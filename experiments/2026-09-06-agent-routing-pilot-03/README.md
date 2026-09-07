@@ -143,3 +143,25 @@ Sol accepted the first handoff. No rework or escalation occurred. This is the
 first accepted item in its database-provenance comparison group and therefore
 does not trigger a route decision. `baseline-01` remains unchanged and credits
 remain unavailable.
+
+## Accepted item eight and provenance-containment checkpoint
+
+The source-forced no-database Kallsyms follow-up is accepted. Astra froze the
+loader, metadata-only package parent and exact two-method parser subclass before
+private content, then made one guarded construction. It established original
+ordinary-global `T` linkage and conservative next-symbol inspection envelopes
+for all four targets without architecture detection, database access, bytecode,
+instruction analysis or reuse of excluded tuples. Sol accepted the complete
+result on first full review; normal and optimized verifiers each rejected 261
+mutations.
+
+Two pre-execution contract gaps triggered the project escalation rule. The
+first dispatch omitted its prospective input manifest. The repaired dispatch
+then proved that the distribution has no `core` initializer source, so a general
+namespace exception remained refused and a Sol-reviewed exact metadata-only
+parent amendment was frozen instead. Neither stop executed package code or read
+private kernel/database content. The final result needed no reparse. These are
+provenance-containment repairs, so they trigger an early checkpoint, but this is
+the only accepted item in its symbol-provenance comparison group and supplies no
+alternate-route measurement. `baseline-01` remains unchanged and credits remain
+unavailable.

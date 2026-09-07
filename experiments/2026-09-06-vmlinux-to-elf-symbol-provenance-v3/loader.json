@@ -1,0 +1,222 @@
+{
+  "schema_version": 1,
+  "execution_head": "f35c050cff62de6278e7788cad0ff775587fb0c9",
+  "lineage": {
+    "amended_dispatch": "3942e5af4fc6887befdc6f301da15e0415bb99e7",
+    "authorized_successor": "f35c050cff62de6278e7788cad0ff775587fb0c9",
+    "successor_delta": [
+      ".github/workflows/repository-checks.yml"
+    ],
+    "v3_and_dependencies_unchanged": true
+  },
+  "pre_private_content_freeze_utc": "2026-09-07T01:06:19Z",
+  "runner_source": "# SPDX-License-Identifier: MIT\n# Frozen, single-construction RE audit. Inputs and output transport are supplied\n# by the separately frozen collector; this process never writes a filesystem.\nimport ast\nimport base64\nimport csv\nimport hashlib\nimport importlib\nimport importlib.machinery\nimport io\nimport json\nimport os\nfrom pathlib import Path\nimport stat\nimport sys\nimport types\n\n# Harness bootstrap above is distinct from parser dependency bootstrap below.\n# These standard-library names are the complete top-level dependency closure\n# established from the seven admitted package sources. No third-party parser\n# dependency is admitted.\nimport logging\nimport math\nimport enum\nimport re\nimport struct\nimport typing\nimport gzip\nimport binascii\nimport time\nimport ctypes\nimport collections\n\nconfig = json.loads(sys.argv[1])\nroot = Path(sys.argv[2])\nprivate_inputs = dict(zip((\"Image.gz\", \"Image\", \"vmlinux\", \"diagnostics\"),\n                          map(Path, sys.argv[3:7])))\ncache = Path(os.environ[\"PYTHONPYCACHEPREFIX\"])\nprefix = \"vmlinux_to_elf\"\ndb_name = prefix + \".kernel_db.database\"\ncore_name = prefix + \".core\"\ndb_names = config[\"database_import_names\"]\nsource_items = {x[\"name\"]: x for x in config[\"source_inventory\"]}\nlog_buffer = io.StringIO()\nlog_handler = logging.StreamHandler(log_buffer)\nlogging.root.handlers[:] = [log_handler]\nlogging.root.setLevel(logging.INFO)\ncounts = {name: 0 for name in (\n    \"network\", \"subprocess\", \"shell\", \"filesystem_write\", \"bytecode_open\",\n    \"database_path\", \"unexpected_read\", \"unexpected_import\",\n    \"unexpected_directory_discovery\", \"unrecorded_package_code\",\n    \"finder_fallback\", \"detector\")}\nbypass_counts = {\"architecture\": 0, \"metadata\": 0}\nstub_imports = {name: 0 for name in db_names}\nstub_ops = {name: 0 for name in db_names}\nloaded = {}\nloaded_objects = {}\ncompiled_codes = {}\npackage_calls = {}\nconstruction_count = 0\nguard_active = False\nrestore_ok = False\nphase = \"bootstrap\"\nresult = {\"status\": \"unresolved\", \"phase\": phase}\noriginal_detector = None\ndetector_class = None\n\ndef require(condition, message):\n    if not condition:\n        raise RuntimeError(message)\n\ndef stop(category):\n    counts[category] += 1\n    raise RuntimeError(\"terminal guard: \" + category)\n\ndef digest(data):\n    return hashlib.sha256(data).hexdigest()\n\ndef safe_path(path):\n    require(path.is_absolute(), \"nonabsolute source path\")\n    current = Path(path.anchor)\n    for component in path.parts[1:]:\n        current /= component\n        require(not stat.S_ISLNK(current.lstat().st_mode), \"symlink path\")\n    require(path.resolve() == path, \"noncanonical source path\")\n    return path\n\ndef source_snapshot(path):\n    safe_path(path)\n    info = path.stat()\n    require(stat.S_ISREG(info.st_mode), \"nonregular source\")\n    data = path.read_bytes()\n    return {\"sha256\": digest(data), \"size\": len(data),\n            \"mode\": stat.S_IMODE(info.st_mode), \"mtime_ns\": info.st_mtime_ns}\n\ndef add_codes(code, name):\n    require(id(code) not in compiled_codes, \"duplicate code identity\")\n    compiled_codes[id(code)] = (code, name)\n    for value in code.co_consts:\n        if isinstance(value, types.CodeType):\n            add_codes(value, name)\n\ndef audit(event, args):\n    if not guard_active:\n        return\n    if event.startswith(\"socket.\"):\n        stop(\"network\")\n    if event.startswith(\"subprocess.\") or event in (\"os.posix_spawn\", \"os.posix_spawnp\"):\n        stop(\"subprocess\")\n    if event in (\"os.system\", \"os.exec\", \"os.fork\", \"os.forkpty\"):\n        stop(\"shell\")\n    if event in (\"os.remove\", \"os.rmdir\", \"os.rename\", \"os.mkdir\", \"os.chmod\",\n                 \"os.chown\", \"os.truncate\", \"os.utime\", \"os.link\", \"os.symlink\",\n                 \"os.setxattr\", \"os.removexattr\", \"shutil.copyfile\", \"shutil.copymode\",\n                 \"shutil.copystat\", \"tempfile.mkstemp\", \"tempfile.mkdtemp\"):\n        stop(\"filesystem_write\")\n    if event in (\"os.listdir\", \"os.scandir\"):\n        if not isinstance(args[0], (str, bytes, os.PathLike)):\n            stop(\"unexpected_directory_discovery\")\n        if os.fsdecode(args[0]) != str(cache):\n            stop(\"unexpected_directory_discovery\")\n    if event == \"open\":\n        path, mode, flags = args\n        if not isinstance(path, (str, bytes, os.PathLike)):\n            stop(\"unexpected_read\")\n        raw = os.fsdecode(path)\n        # Lexical classification precedes any path filesystem operation.\n        parts = Path(raw).parts\n        if \"kernel_db\" in parts and prefix in parts:\n            stop(\"database_path\")\n        if raw.endswith((\".pyc\", \".pyo\")):\n            stop(\"bytecode_open\")\n        if (isinstance(mode, str) and any(c in mode for c in \"wax+\")) or (\n                isinstance(flags, int) and flags & (\n                    os.O_WRONLY | os.O_RDWR | os.O_CREAT | os.O_TRUNC | os.O_APPEND)):\n            stop(\"filesystem_write\")\n        if raw not in allowed_reads:\n            stop(\"unexpected_read\")\n    if event == \"import\":\n        name = args[0]\n        if name not in bootstrap_names and name not in source_items and name not in (core_name, db_name):\n            stop(\"unexpected_import\")\n    if event == \"exec\":\n        code = args[0]\n        if isinstance(code, types.CodeType) and str(code.co_filename).startswith(str(root / prefix)):\n            record = compiled_codes.get(id(code))\n            if record is None or record[0] is not code:\n                stop(\"unrecorded_package_code\")\n\ndef profile(frame, event, arg):\n    if event != \"call\":\n        return\n    name = frame.f_globals.get(\"__name__\", \"\")\n    if isinstance(name, str) and (name == prefix or name.startswith(prefix + \".\")):\n        code = frame.f_code\n        record = compiled_codes.get(id(code))\n        if record is None or record[0] is not code or record[1] != name:\n            stop(\"unrecorded_package_code\")\n        key = name + \":\" + code.co_qualname\n        package_calls[key] = package_calls.get(key, 0) + 1\n\nclass ForcedSourceLoader:\n    def __init__(self, name):\n        self.name = name\n    def create_module(self, spec):\n        return None\n    def exec_module(self, module):\n        name = self.name\n        require(name not in loaded, \"duplicate source execution\")\n        require(len(loaded) < 16, \"source cap\")\n        item = source_items[name]\n        path = root / item[\"path\"]\n        actual = source_snapshot(path)\n        require(actual == snapshots[name], \"source snapshot drift\")\n        row = record_rows[item[\"path\"]]\n        data = path.read_bytes()\n        require(len(data) == int(row[2]) == item[\"size\"], \"RECORD size\")\n        require(\"sha256=\" + base64.urlsafe_b64encode(hashlib.sha256(data).digest()).decode().rstrip(\"=\") == row[1], \"RECORD digest\")\n        require(digest(data) == item[\"sha256\"], \"pinned digest\")\n        code = compile(data, str(path), \"exec\", dont_inherit=True, optimize=0)\n        add_codes(code, name)\n        module.__file__ = str(path)\n        module.__cached__ = None\n        loaded[name] = {\"name\": name, \"path\": item[\"path\"], **actual,\n                        \"loader\": \"ForcedSourceLoader\", \"record_sha256\": True,\n                        \"record_size\": True, \"exec_count\": 1}\n        loaded_objects[name] = (module, self, module.__spec__)\n        exec(code, module.__dict__)\n\nclass TerminalPrefixFinder:\n    def find_spec(self, fullname, path=None, target=None):\n        if fullname != prefix and not fullname.startswith(prefix + \".\"):\n            return None\n        if fullname not in source_items:\n            stop(\"finder_fallback\")\n        item = source_items[fullname]\n        loader = ForcedSourceLoader(fullname)\n        is_package = item[\"path\"].endswith(\"/__init__.py\")\n        spec = importlib.machinery.ModuleSpec(fullname, loader,\n                    origin=str(root / item[\"path\"]), is_package=is_package)\n        if is_package:\n            spec.submodule_search_locations = (str((root / item[\"path\"]).parent),)\n        return spec\n\nsentinel_names = {}\ndef poison(value, operation):\n    name = sentinel_names[id(value)]\n    stub_ops[name] += 1\n    raise RuntimeError(\"database sentinel operation: \" + operation)\n\nclass Poison:\n    __slots__ = ()\n    def __getattribute__(self, name): return poison(self, \"attribute\")\n    def __call__(self, *args, **kwargs): return poison(self, \"call\")\n    def __getitem__(self, key): return poison(self, \"subscription\")\n    def __iter__(self): return poison(self, \"iteration\")\n    def __next__(self): return poison(self, \"iteration\")\n    def __bool__(self): return poison(self, \"truth\")\n    def __len__(self): return poison(self, \"length\")\n    def __eq__(self, other): return poison(self, \"comparison\")\n    def __ne__(self, other): return poison(self, \"comparison\")\n    def __lt__(self, other): return poison(self, \"comparison\")\n    def __le__(self, other): return poison(self, \"comparison\")\n    def __gt__(self, other): return poison(self, \"comparison\")\n    def __ge__(self, other): return poison(self, \"comparison\")\n    def __repr__(self): return poison(self, \"representation\")\n    def __str__(self): return poison(self, \"representation\")\n    def __format__(self, spec): return poison(self, \"representation\")\n    def __hash__(self): return poison(self, \"hash\")\n\nclass Stub(types.ModuleType):\n    def __getattribute__(self, name):\n        if name in db_names:\n            stub_imports[name] += 1\n        return types.ModuleType.__getattribute__(self, name)\n\ndef check_sources_and_modules():\n    require(set(loaded) == set(source_items), \"incomplete loaded closure\")\n    for name, item in source_items.items():\n        module = sys.modules.get(name)\n        require(isinstance(module, types.ModuleType) and module is loaded_objects[name][0], \"module replacement\")\n        require(module.__loader__ is loaded_objects[name][1] and module.__spec__ is loaded_objects[name][2], \"loader/spec identity drift\")\n        require(isinstance(module.__loader__, ForcedSourceLoader), \"loader drift\")\n        require(module.__loader__.name == name, \"loader name drift\")\n        require(module.__spec__.loader is module.__loader__, \"loader spec drift\")\n        require(module.__spec__.origin == str(root / item[\"path\"]), \"source origin drift\")\n        require(module.__file__ == str(root / item[\"path\"]) and module.__cached__ is None, \"source/cache metadata drift\")\n        require(source_snapshot(root / item[\"path\"]) == snapshots[name], \"source changed\")\n    names = {n for n in sys.modules if n == prefix or n.startswith(prefix + \".\")}\n    require(names == set(source_items) | {core_name, db_name}, \"unrecorded package module\")\n    require(not list(cache.iterdir()), \"cache content\")\n    require(stat.S_IMODE(cache.stat().st_mode) == 0o700, \"cache mode changed\")\n    require(sys.meta_path[0] is finder, \"terminal finder replaced\")\n    check_core()\n    require(sys.modules[db_name] is stub, \"database stub replaced\")\n    require(set(stub.__dict__) == stub_keys, \"database stub namespace drift\")\n    for name in db_names:\n        # Deliberately bypass only module import-access accounting for identity checks.\n        require(types.ModuleType.__getattribute__(stub, name) is sentinels[name], \"sentinel replaced\")\n    require(all(v == 0 for v in stub_ops.values()), \"sentinel hit\")\n\ndef check_core():\n    require(sys.modules.get(core_name) is core and top.core is core, \"core binding drift\")\n    require(core.__spec__ is core_spec and core.__spec__.loader is None, \"core spec drift\")\n    require(core.__name__ == core_name and core.__package__ == core_name, \"core name drift\")\n    require(core.__loader__ is None and \"__file__\" not in core.__dict__ and \"__cached__\" not in core.__dict__, \"core executable metadata\")\n    require(core_spec.origin == \"synthetic-metadata-only\", \"core origin drift\")\n    require(core.__path__ is core_path and type(core_path) is tuple and core_path == (str(core_dir),), \"core path drift\")\n    require(core_spec.submodule_search_locations is core_locations and type(core_locations) is tuple and core_locations == core_path, \"core search drift\")\n    require(core_locations is not core_path, \"shared core paths\")\n    additions = set(core.__dict__) - core_keys\n    expected = {n.rsplit(\".\", 1)[1] for n in loaded if n.startswith(core_name + \".\")}\n    require(additions == expected, \"unexpected core attributes\")\n    for name in additions:\n        fullname = core_name + \".\" + name\n        require(core.__dict__[name] is sys.modules[fullname] and fullname in loaded, \"core child drift\")\n\ndef check_method():\n    require(Frozen.__mro__ == (Frozen, KallsymsFinder, object), \"MRO drift\")\n    require(set(Frozen.__dict__) == {\"__module__\", \"__doc__\", \"guess_architecture\", \"extract_db_information\"}, \"extra subclass member\")\n    require(Frozen.__init__ is KallsymsFinder.__init__, \"constructor override\")\n    require(parser_module.KallsymsFinder is KallsymsFinder, \"parser class replacement\")\n    for name, value in override_identities.items():\n        require(Frozen.__dict__[name] is value[0] and value[0].__code__ is value[1], \"override identity drift\")\n    for name, value in inherited.items():\n        require(KallsymsFinder.__dict__[name] is value and value.__code__ is inherited_codes[name], \"base method drift\")\n        if name not in (\"guess_architecture\", \"extract_db_information\"):\n            require(getattr(Frozen, name) is value, \"parser method override\")\n\ndef elf_metadata(data, targets):\n    require(data[:4] == b\"\\x7fELF\" and data[4:7] == bytes((2, 1, 1)), \"ELF identity\")\n    header = struct.unpack_from(\"<HHIQQQIHHHHHH\", data, 16)\n    require(header[1] == 183 and header[7] == 64 and header[10] == 64, \"ELF architecture/header\")\n    shoff, shnum, shstr = header[5], header[11], header[12]\n    require(0 < shnum < 65535 and shstr < shnum and shoff + shnum * 64 <= len(data), \"ELF sections\")\n    sections = [struct.unpack_from(\"<IIQQQQIIQQ\", data, shoff + i * 64) for i in range(shnum)]\n    def contents(section):\n        off, size = section[4:6]\n        require(off + size <= len(data), \"ELF file bounds\")\n        return data[off:off + size]\n    strings = contents(sections[shstr])\n    def text_at(blob, offset):\n        require(offset < len(blob), \"ELF string offset\")\n        end = blob.find(b\"\\0\", offset)\n        require(end >= 0, \"ELF string terminator\")\n        return blob[offset:end].decode(\"ascii\", \"strict\")\n    regions = [{\"index\": i, \"name\": text_at(strings, s[0]), \"type\": s[1],\n                \"flags\": s[2], \"start\": s[3], \"size\": s[5]}\n               for i, s in enumerate(sections) if s[1] == 1 and s[2] & 4]\n    matches = {name: [] for name in targets}\n    for section in sections:\n        if section[1] != 2:\n            continue\n        require(section[9] == 24 and section[5] % 24 == 0 and section[6] < shnum, \"ELF symtab shape\")\n        table = contents(section)\n        names = contents(sections[section[6]])\n        for offset in range(0, len(table), 24):\n            name_off, info, other, index, value, size = struct.unpack_from(\"<IBBHQQ\", table, offset)\n            name = text_at(names, name_off)\n            if name in matches:\n                matches[name].append({\"address\": value, \"size\": size,\n                                     \"binding\": info >> 4, \"type\": info & 15,\n                                     \"section_index\": index})\n    require(all(len(v) == 1 for v in matches.values()), \"ELF target uniqueness\")\n    return regions, {name: values[0] for name, values in matches.items()}\n\ntry:\n    require(sys.version.split()[0] == \"3.12.3\", \"Python version\")\n    require(stat.S_ISFIFO(os.fstat(1).st_mode), \"stdout must be collector pipe\")\n    require(sys.dont_write_bytecode and sys.flags.dont_write_bytecode, \"bytecode option\")\n    require(os.environ.get(\"PYTHONDONTWRITEBYTECODE\") == \"1\", \"bytecode environment\")\n    require(not any(n == prefix or n.startswith(prefix + \".\") for n in sys.modules), \"preloaded package\")\n    require(root.is_absolute() and safe_path(root).is_dir(), \"distribution root\")\n    require(cache.is_absolute() and safe_path(cache).is_dir(), \"cache path\")\n    require(stat.S_IMODE(cache.stat().st_mode) == 0o700 and not list(cache.iterdir()), \"nonempty cache\")\n    record_path = root / \"vmlinux_to_elf-1.3.6.dist-info/RECORD\"\n    record_bytes = record_path.read_bytes()\n    require(digest(record_bytes) == config[\"tool\"][\"RECORD\"], \"RECORD identity\")\n    record_rows = {}\n    for row in csv.reader(io.StringIO(record_bytes.decode())):\n        require(len(row) == 3 and row[0] not in record_rows, \"RECORD shape/duplicate\")\n        record_rows[row[0]] = row\n    tool_paths = {\n        \"METADATA\": root / \"vmlinux_to_elf-1.3.6.dist-info/METADATA\",\n        \"script\": root / \"vmlinux_to_elf/scripts/vmlinux_to_elf.py\",\n        \"launcher\": root.parent.parent.parent / \"bin/vmlinux-to-elf\",\n        \"symbolizer_source\": root / \"vmlinux_to_elf/core/elf_symbolizer.py\"}\n    for name, path in tool_paths.items():\n        safe_path(path)\n        require(digest(path.read_bytes()) == config[\"tool\"][name], \"tool identity: \" + name)\n    snapshots = {}\n    for name, item in source_items.items():\n        path = root / item[\"path\"]\n        require(path.is_relative_to(root) and item[\"path\"] in record_rows, \"source containment/RECORD\")\n        row = record_rows[item[\"path\"]]\n        require(row[1].startswith(\"sha256=\") and row[2].isdigit(), \"incomplete RECORD\")\n        actual = source_snapshot(path)\n        require(actual[\"sha256\"] == item[\"sha256\"] and actual[\"size\"] == item[\"size\"], \"source pin\")\n        require(int(row[2]) == item[\"size\"], \"source RECORD size\")\n        require(base64.urlsafe_b64decode(row[1][7:] + \"=\" * (-len(row[1][7:]) % 4)).hex() == item[\"sha256\"], \"source RECORD digest\")\n        snapshots[name] = actual\n    require(len({x[\"path\"] for x in source_items.values()}) == len(source_items) <= 16, \"origins/cap\")\n    allowed_reads = {str(root / x[\"path\"]) for x in source_items.values()} | {str(p) for p in private_inputs.values()}\n    bootstrap_names = set(sys.modules)\n    require(not any(n == prefix or n.startswith(prefix + \".\") for n in bootstrap_names), \"bootstrap package leak\")\n    phase = \"source-loading\"\n    sys.addaudithook(audit)\n    guard_active = True\n    finder = TerminalPrefixFinder()\n    sys.meta_path.insert(0, finder)\n    sys.setprofile(profile)\n    top = importlib.import_module(prefix)\n    require(core_name not in sys.modules and not any(n.startswith(core_name + \".\") for n in sys.modules), \"preexisting core\")\n    require(\"core\" not in top.__dict__, \"preexisting core binding\")\n    core_dir = root / \"vmlinux_to_elf/core\"\n    require(safe_path(core_dir).is_dir() and core_dir.is_relative_to(root), \"core containment\")\n    require(all((root / x[\"path\"]).parent == core_dir for n, x in source_items.items() if n.startswith(core_name + \".\")), \"core source parent\")\n    core = types.ModuleType(core_name)\n    core.__package__ = core_name\n    core.__loader__ = None\n    core_path = tuple([str(core_dir)])\n    core_locations = tuple([str(core_dir)])\n    core_spec = importlib.machinery.ModuleSpec(core_name, None, origin=\"synthetic-metadata-only\", is_package=True)\n    core_spec.submodule_search_locations = core_locations\n    core.__spec__ = core_spec\n    core.__path__ = core_path\n    core_keys = set(core.__dict__)\n    sys.modules[core_name] = core\n    top.core = core\n    require(db_name not in sys.modules, \"preexisting database stub\")\n    stub = Stub(db_name)\n    stub.__package__ = prefix + \".kernel_db\"\n    stub.__loader__ = None\n    stub.__spec__ = importlib.machinery.ModuleSpec(db_name, None, origin=\"synthetic-poisoned-database-leaf\")\n    sentinels = {}\n    for name in db_names:\n        value = Poison()\n        sentinel_names[id(value)] = name\n        sentinels[name] = value\n        setattr(stub, name, value)\n    require(len(set(map(id, sentinels.values()))) == 6, \"sentinel distinctness\")\n    stub_keys = set(stub.__dict__)\n    sys.modules[db_name] = stub\n    parser_module = importlib.import_module(prefix + \".core.kallsyms\")\n    architecture_module = sys.modules[prefix + \".core.architecture_detecter\"]\n    KallsymsFinder = parser_module.KallsymsFinder\n    ArchitectureName = architecture_module.ArchitectureName\n    require(int(ArchitectureName.aarch64) == 11 and int(architecture_module.ElfMachine.EM_AARCH64) == 183, \"architecture constants\")\n    subclass_source = config[\"subclass_source\"]\n    require(digest(subclass_source.encode()) == config[\"subclass_sha256\"], \"subclass hash\")\n    exec(compile(subclass_source, \"<frozen-two-method-subclass>\", \"exec\", dont_inherit=True), globals())\n    Frozen = FrozenNoDatabaseAArch64Finder\n    inherited = {name: value for name, value in KallsymsFinder.__dict__.items() if isinstance(value, types.FunctionType)}\n    inherited_codes = {name: value.__code__ for name, value in inherited.items()}\n    override_identities = {name: (Frozen.__dict__[name], Frozen.__dict__[name].__code__) for name in (\"guess_architecture\", \"extract_db_information\")}\n    require(sorted(inherited) == sorted(config[\"method_names\"]), \"method inventory\")\n    check_method()\n    check_sources_and_modules()\n    phase = \"kernel-identities\"\n    for name, path in private_inputs.items():\n        # Hash-only passes precede every private content parse.\n        safe_path(path)\n        h = hashlib.sha256()\n        with path.open(\"rb\") as stream:\n            for chunk in iter(lambda: stream.read(1024 * 1024), b\"\"):\n                h.update(chunk)\n        require(h.hexdigest() == config[\"kernel\"][name], \"private input identity\")\n    phase = \"single-construction\"\n    detector_class = architecture_module.ArchitectureDetector\n    original_detector = detector_class.__dict__[\"guess\"]\n    require(isinstance(original_detector, classmethod), \"detector descriptor\")\n    def detector_poison(cls, *args, **kwargs):\n        stop(\"detector\")\n    detector_class.guess = classmethod(detector_poison)\n    try:\n        construction_count += 1\n        image = private_inputs[\"Image\"].read_bytes()\n        finder_result = Frozen(image, bit_size=64)\n    finally:\n        detector_class.guess = original_detector\n        restore_ok = detector_class.__dict__[\"guess\"] is original_detector\n    require(restore_ok and counts[\"detector\"] == 0, \"detector restore/call\")\n    require(construction_count == 1 and bypass_counts == {\"architecture\": 1, \"metadata\": 1}, \"construction/bypass counts\")\n    require(package_calls.get(prefix + \".core.kallsyms:KallsymsFinder.__init__\") == 1, \"constructor execution count\")\n    require(finder_result.architecture is ArchitectureName.aarch64 and type(finder_result.elf_machine) is int and finder_result.elf_machine == 183, \"architecture final\")\n    require(finder_result.is_64_bits is True and finder_result.is_big_endian is False, \"bit/endian final\")\n    check_method()\n    check_sources_and_modules()\n    phase = \"bounded-metadata\"\n    names, addresses = finder_result.symbol_names, finder_result.kernel_addresses\n    require(len(names) == len(addresses) == finder_result.num_symbols, \"tuple lengths\")\n    require(all(type(a) is int for a in addresses), \"address type\")\n    require(all(addresses[i] <= addresses[i + 1] for i in range(len(addresses) - 1)), \"nonmonotonic tuples\")\n    regions, elf_targets = elf_metadata(private_inputs[\"vmlinux\"].read_bytes(), config[\"targets\"])\n    neighborhoods = []\n    for target in config[\"targets\"]:\n        indices = [i for i, n in enumerate(names) if n[1:] == target]\n        require(len(indices) == 1, \"target name ambiguity\")\n        index = indices[0]\n        address = addresses[index]\n        group = [i for i, a in enumerate(addresses) if a == address]\n        require(len(group) - 1 <= 4 and group == list(range(group[0], group[-1] + 1)), \"alias overflow/order\")\n        require(group[0] > 0 and group[-1] + 1 < len(names), \"missing distinct neighbor\")\n        previous, following = group[0] - 1, group[-1] + 1\n        def tuple_at(i):\n            return {\"name\": names[i][1:], \"address\": hex(addresses[i]), \"kallsyms_type\": names[i][0]}\n        original_type = names[index][0]\n        require(original_type in \"TtW\" and all(names[i][0] in \"TtW\" for i in group), \"contradictory type\")\n        strength = {\"T\": \"ordinary-global\", \"t\": \"ordinary-local\", \"W\": \"weak-defined\"}[original_type]\n        elf_target = elf_targets[target]\n        require(elf_target[\"address\"] == address and elf_target[\"size\"] == 0 and elf_target[\"type\"] == 2, \"ELF start/size/type\")\n        require(elf_target[\"binding\"] == {\"T\": 1, \"t\": 0, \"W\": 2}[original_type], \"ELF transformed binding\")\n        matching = [region for region in regions if region[\"index\"] == elf_target[\"section_index\"] and region[\"start\"] <= address < addresses[following] < region[\"start\"] + region[\"size\"]]\n        require(len(matching) == 1, \"cross-region boundary\")\n        region = matching[0]\n        neighborhoods.append({\n            \"target\": tuple_at(index), \"exact_name_count\": 1, \"strength\": strength,\n            \"aliases\": [tuple_at(i) for i in group if i != index],\n            \"previous_distinct\": tuple_at(previous), \"next_distinct\": tuple_at(following),\n            \"retained_elf\": {**elf_target, \"address\": hex(elf_target[\"address\"])},\n            \"region\": {**region, \"start\": hex(region[\"start\"])},\n            \"interval\": {\"start\": hex(address), \"end_exclusive\": hex(addresses[following]),\n                         \"size\": addresses[following] - address,\n                         \"classification\": \"conservative-inspection-envelope\", \"exact_end\": False}})\n    check_sources_and_modules()\n    require(not any(counts.values()), \"nonzero guards\")\n    require(all(stub_imports[n] >= 1 for n in db_names if n != \"ArchitectureEMachineLink\") and stub_imports[\"ArchitectureEMachineLink\"] == 0, \"stub import inventory\")\n    result = {\"status\": \"pass\", \"phase\": \"complete\",\n              \"source_inventory\": [loaded[n] for n in sorted(loaded)],\n              \"source_code_objects\": len(compiled_codes),\n              \"package_call_counts\": package_calls,\n              \"bootstrap_dependencies\": {n: {\"version\": sys.version.split()[0], \"kind\": \"stdlib\"} for n in config[\"parser_dependencies\"]},\n              \"guard_counts\": counts, \"stub_import_counts\": stub_imports,\n              \"stub_operation_counts\": stub_ops, \"bypass_counts\": bypass_counts,\n              \"construction_count\": construction_count, \"detector_restored\": restore_ok,\n              \"source_snapshots_unchanged\": True, \"cache_empty\": True,\n              \"core_metadata_unchanged\": True, \"inherited_methods_unchanged\": True,\n              \"kernel_hashes_verified\": config[\"kernel\"], \"symbol_count\": len(names),\n              \"tuple_order\": \"monotonic-nondecreasing\", \"neighborhoods\": neighborhoods,\n              \"filesystem_claim_scope\": \"guarded-process-only\",\n              \"global_external_file_absence_claimed\": False,\n              \"database_directory_enumerated_or_statted\": False,\n              \"private_content_before_method_freeze\": False,\n              \"instruction_analysis\": False, \"device_action\": False, \"build\": False}\nexcept BaseException as error:\n    result = {\"status\": \"unresolved\", \"phase\": phase, \"error_type\": type(error).__name__,\n              \"reason\": str(error), \"guard_counts\": counts,\n              \"stub_import_counts\": stub_imports, \"stub_operation_counts\": stub_ops,\n              \"bypass_counts\": bypass_counts, \"construction_count\": construction_count,\n              \"detector_restored\": restore_ok, \"loaded_source_names\": sorted(loaded)}\nfinally:\n    if detector_class is not None and original_detector is not None:\n        detector_class.guess = original_detector\n        restore_ok = detector_class.__dict__[\"guess\"] is original_detector\n    sys.setprofile(None)\n    # stdout is a pipe owned by the outer evidence collector, not a filesystem\n    # descriptor. The collector alone persists its received private raw log.\n    print(json.dumps({\"audit\": result, \"private_log\": log_buffer.getvalue()}, sort_keys=True))\n",
+  "runner_sha256": "f8eafb2614c57aeaf7c619396e594f7d4c3d7290d26ee2f5739b10619e2c8319",
+  "collector_source": "# SPDX-License-Identifier: MIT\n# Outer evidence transport. This process does not load package code or inspect\n# kernel/database inputs. Only its fresh child carries out the frozen audit.\nimport datetime\nimport hashlib\nimport json\nimport os\nfrom pathlib import Path\nimport subprocess\nimport sys\nimport tempfile\n\nfrozen = json.loads(sys.argv[1])\ndistribution = sys.argv[2]\nkernel_paths = sys.argv[3:7]\nmanaged_root = Path(sys.argv[7])\nrunner = frozen[\"runner_source\"]\nif hashlib.sha256(runner.encode()).hexdigest() != frozen[\"runner_sha256\"]:\n    raise SystemExit(\"runner freeze mismatch\")\nchild_root = Path(tempfile.mkdtemp(prefix=\"v3-source-forced-\", dir=managed_root))\nos.chmod(child_root, 0o700)\ncache = child_root / \"empty-cache\"\ncache.mkdir(mode=0o700)\nenv = dict(os.environ, PYTHONDONTWRITEBYTECODE=\"1\", PYTHONPYCACHEPREFIX=str(cache),\n           DEBUGINFOD_URLS=\"\", DEBUGINFOD_PROGRESS=\"0\", PIP_NO_INDEX=\"1\", LC_ALL=\"C\")\nstarted = datetime.datetime.now(datetime.timezone.utc).isoformat()\nstdout = b\"\"\nstderr = b\"\"\ntry:\n    completed = subprocess.run(\n        [sys.executable, \"-B\", \"-c\", runner, json.dumps(frozen[\"runtime_config\"]),\n         distribution, *kernel_paths],\n        env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE,\n        timeout=300, check=False)\n    stdout, stderr = completed.stdout, completed.stderr\n    returncode = completed.returncode\nexcept subprocess.TimeoutExpired as error:\n    stdout, stderr = error.stdout or b\"\", error.stderr or b\"\"\n    returncode = \"timeout\"\nfinally:\n    # These are private, unique evidence, not cleanup targets. The guarded child\n    # emitted them only through pipes; it made no filesystem writes.\n    for name, data in ((\"raw-stdout.json\", stdout), (\"raw-stderr.log\", stderr)):\n        path = child_root / name\n        with path.open(\"xb\") as stream:\n            stream.write(data)\n        path.chmod(0o600)\n    cache_empty = not list(cache.iterdir())\n    if cache_empty:\n        cache.rmdir()\nfinished = datetime.datetime.now(datetime.timezone.utc).isoformat()\nreceipt = {\n    \"started_utc\": started, \"finished_utc\": finished,\n    \"returncode\": returncode, \"cache_empty_after_process\": cache_empty,\n    \"private_raw_stdout_sha256\": hashlib.sha256(stdout).hexdigest(),\n    \"private_raw_stderr_sha256\": hashlib.sha256(stderr).hexdigest(),\n    \"private_raw_stdout_size\": len(stdout), \"private_raw_stderr_size\": len(stderr),\n    \"raw_retention\": \"fresh-mode-0700-RE-child-mode-0600-files\",\n    \"collector_private_output_writes\": 2}\ntry:\n    payload = json.loads(stdout)\n    audit = payload[\"audit\"]\n    if audit.get(\"status\") != \"pass\":\n        # Preserve complete diagnostic privately; do not export arbitrary error\n        # text which might include a private input path.\n        audit = {k: v for k, v in audit.items() if k != \"reason\"}\n    receipt[\"audit\"] = audit\n    receipt[\"private_parser_log_sha256\"] = hashlib.sha256(payload[\"private_log\"].encode()).hexdigest()\n    receipt[\"private_parser_log_size\"] = len(payload[\"private_log\"].encode())\nexcept (ValueError, KeyError, TypeError):\n    receipt[\"audit\"] = {\"status\": \"unresolved\", \"phase\": \"collector\", \"error_type\": \"missing-valid-child-result\"}\nprint(json.dumps(receipt, sort_keys=True))\n",
+  "collector_sha256": "5f472d213900494ecb79c9217a9df23a13b4e2d0f2ff9135e970432db7e9005e",
+  "runtime_config": {
+    "tool": {
+      "distribution": "vmlinux-to-elf",
+      "version": "1.3.6",
+      "python": "3.12.3",
+      "launcher": "6140be2ee9638573c32b06e5c00ca387e647720b6c8434d123ede119ec11ca6b",
+      "script": "e3d2de8b5b7ac7ac4e8986369d7a034ae1bbae0af6e08b8d6e6c73c703cb3f15",
+      "kallsyms_source": "2bff550d9486e90782a4320cec7bc26b249ead5048f58839eec6578b52c06c2d",
+      "symbolizer_source": "13e79cf4dc37050547f22b65ad35070dceba17473df823c7311311c3fb9e1118",
+      "writer_source": "f974b1189155d2cea4773d378990e1b20be866f27719be0593fef3110c56891d",
+      "METADATA": "133b5a6b7fab8081a7c201f2fc63b8a2d7a215475c423c8fe3938aff6a708c43",
+      "RECORD": "ac8d68216a496f0f4dedede5e3ea0d72051bbab7983ab196189da05f5aebdc1f"
+    },
+    "kernel": {
+      "Image.gz": "b53d191dc41d3f7364b0fa62b4bc920b1d013a1942b2e6b06727263fc56fcf4d",
+      "Image": "0570480c28bce1583636a240904df8da3af0b5e5b4bcc6254f5719b42bd723d0",
+      "vmlinux": "cc66df06194d3315335462760962165e1dcb2e50221574aeb45a0805bb17a162",
+      "diagnostics": "3e58a3e5c2a43914558f761ccdf4488a9c49b869645b4152ad9b2ee05a2f10b8"
+    },
+    "targets": [
+      "do_connectivity_driver_init",
+      "do_wlan_drv_init",
+      "mtk_wcn_wlan_gen3_init",
+      "mtk_wcn_wlan_gen3_exit"
+    ],
+    "database_import_names": [
+      "KernelVersion",
+      "KernelRelevantFile",
+      "EMachineValue",
+      "ArchitectureEMachineLink",
+      "KnownArchitecture",
+      "DebianRelease"
+    ],
+    "source_inventory": [
+      {
+        "name": "vmlinux_to_elf",
+        "path": "vmlinux_to_elf/__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size": 0
+      },
+      {
+        "name": "vmlinux_to_elf.core.kallsyms",
+        "path": "vmlinux_to_elf/core/kallsyms.py",
+        "sha256": "2bff550d9486e90782a4320cec7bc26b249ead5048f58839eec6578b52c06c2d",
+        "size": 66664
+      },
+      {
+        "name": "vmlinux_to_elf.core.architecture_detecter",
+        "path": "vmlinux_to_elf/core/architecture_detecter.py",
+        "sha256": "3eb32a79485120c4eef6a59212bcddc286b43f7d31091ef9240c94579fb36563",
+        "size": 9159
+      },
+      {
+        "name": "vmlinux_to_elf.core.auto_unpack",
+        "path": "vmlinux_to_elf/core/auto_unpack.py",
+        "sha256": "1e1d9c55c6ce3f2af954c1688c04e10182334c2a1b63ca02643d9f35d87d5995",
+        "size": 19337
+      },
+      {
+        "name": "vmlinux_to_elf.utils",
+        "path": "vmlinux_to_elf/utils/__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size": 0
+      },
+      {
+        "name": "vmlinux_to_elf.utils.elf",
+        "path": "vmlinux_to_elf/utils/elf.py",
+        "sha256": "f974b1189155d2cea4773d378990e1b20be866f27719be0593fef3110c56891d",
+        "size": 41704
+      },
+      {
+        "name": "vmlinux_to_elf.utils.pretty_print",
+        "path": "vmlinux_to_elf/utils/pretty_print.py",
+        "sha256": "0c043bf20f7fa2d642856465fad2dd473d44fd770d7b0339febcd9b716acc873",
+        "size": 3598
+      }
+    ],
+    "subclass_source": "class FrozenNoDatabaseAArch64Finder(KallsymsFinder):\n    def guess_architecture(self):\n        bypass_counts[\"architecture\"] += 1\n        self.architecture = ArchitectureName.aarch64\n        self.elf_machine = 183\n        self.is_64_bits = True\n        self.is_big_endian = False\n\n    def extract_db_information(self):\n        bypass_counts[\"metadata\"] += 1\n",
+    "subclass_sha256": "14ab33ba494a37e2593f88801dd5a8e19ba45b5c5d87e5217562c1b50a986c9e",
+    "method_names": [
+      "__init__",
+      "preprocess_uimage_header",
+      "preprocess_elf_rela_table",
+      "infer_base_address_from_syms",
+      "find_linux_kernel_version",
+      "guess_architecture",
+      "extract_db_information",
+      "find_elf64_rela",
+      "apply_elf64_rela",
+      "find_kallsyms_token_table",
+      "find_kallsyms_token_index",
+      "find_kallsyms_names_uncompressed",
+      "find_kallsyms_markers_uncompressed",
+      "find_kallsyms_markers",
+      "find_kallsyms_names",
+      "find_kallsyms_num_syms",
+      "find_kallsyms_addresses_or_symbols",
+      "get_token_table",
+      "parse_symbol_table",
+      "print_symbols_debug"
+    ],
+    "parser_dependencies": [
+      "logging",
+      "math",
+      "enum",
+      "re",
+      "struct",
+      "io",
+      "typing",
+      "gzip",
+      "binascii",
+      "time",
+      "importlib",
+      "ctypes",
+      "collections"
+    ]
+  },
+  "synthetic_core": {
+    "name": "vmlinux_to_elf.core",
+    "package": "vmlinux_to_elf.core",
+    "origin": "synthetic-metadata-only",
+    "loader": null,
+    "has_file": false,
+    "has_cached": false,
+    "executes_code": false,
+    "path": "one resolved nonsymlink pinned-core parent",
+    "path_type": "tuple",
+    "spec_locations_type": "separate tuple",
+    "path_entries": 1,
+    "preexisting_module_or_descendants": false,
+    "preexisting_top_binding": false,
+    "allowed_added_attributes": "exact loaded child-module identities only",
+    "unchanged_checks": [
+      "after-import",
+      "after-construction",
+      "after-bounded-metadata"
+    ]
+  },
+  "source_policy": {
+    "source_limit": 16,
+    "executable_sources": 7,
+    "static_inspected_sources": 9,
+    "ordinary_get_code": false,
+    "bytecode": false,
+    "namespace_loader": false,
+    "terminal_prefix_finder": true,
+    "record_digest_and_size_required": true,
+    "recursive_code_identity_tracking": true,
+    "source_snapshot_fields": [
+      "sha256",
+      "size",
+      "mode",
+      "mtime_ns"
+    ]
+  },
+  "static_only_sources": [
+    {
+      "path": "vmlinux_to_elf/core/elf_symbolizer.py",
+      "sha256": "13e79cf4dc37050547f22b65ad35070dceba17473df823c7311311c3fb9e1118",
+      "size": 11433,
+      "purpose": "type/case-to-ELF transformation and synthetic region provenance"
+    },
+    {
+      "path": "vmlinux_to_elf/utils/lz4_legacy.py",
+      "sha256": "23785f1185816f1fe0db3f552c94bb757930d9e76f85fc316daf9a6f473227ae",
+      "size": 1524,
+      "purpose": "static dependency-closure exclusion; not executed"
+    }
+  ],
+  "dependency_policy": {
+    "parser_dependencies": [
+      "logging",
+      "math",
+      "enum",
+      "re",
+      "struct",
+      "io",
+      "typing",
+      "gzip",
+      "binascii",
+      "time",
+      "importlib",
+      "ctypes",
+      "collections"
+    ],
+    "third_party": [],
+    "versions": "Python 3.12.3 standard library",
+    "bootstrap_package_modules": 0,
+    "dependency_source_inspection": false,
+    "conditional_decompressors": "Not used by the Kallsyms constructor; auto_unpack is imported only for Signature. No lz4, zstandard or minilzo dependency is admitted.",
+    "harness_bootstrap": "Explicit runner/collector infrastructure imports are separate from the statically proven parser dependency closure."
+  },
+  "filesystem_scope": {
+    "ruling": "The no-new-files acceptance claim concerns this guarded process only.",
+    "checks": [
+      "zero attempted filesystem writes after guards",
+      "unchanged exact admitted-source hashes/sizes/modes/mtimes",
+      "empty fresh private cache prefix"
+    ],
+    "database_directory_enumeration": false,
+    "database_directory_stat": false,
+    "global_external_package_or_database_file_absence_claim": false,
+    "collector": "Outer collector persists only the child's pipe output into two fresh private files; these two explicit evidence writes are not represented as guarded-child writes.",
+    "retention": "Private unique logs retained; empty temporary cache removed by collector."
+  }
+}

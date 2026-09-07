@@ -1,0 +1,188 @@
+{
+  "schema_version": 1,
+  "kernel_image_sha256": "0570480c28bce1583636a240904df8da3af0b5e5b4bcc6254f5719b42bd723d0",
+  "retained_elf_sha256": "cc66df06194d3315335462760962165e1dcb2e50221574aeb45a0805bb17a162",
+  "origin": "single-fresh-source-forced-no-database-Kallsyms-construction",
+  "symbol_count": 64417,
+  "tuple_order": "monotonic-nondecreasing",
+  "bounds": {
+    "targets": 4,
+    "maximum_aliases_per_target": 4,
+    "previous_distinct_per_target": 1,
+    "next_distinct_per_target": 1
+  },
+  "neighborhoods": [
+    {
+      "aliases": [],
+      "exact_name_count": 1,
+      "interval": {
+        "classification": "conservative-inspection-envelope",
+        "end_exclusive": "0xffffffc0006e3be0",
+        "exact_end": false,
+        "size": 368,
+        "start": "0xffffffc0006e3a70"
+      },
+      "next_distinct": {
+        "address": "0xffffffc0006e3be0",
+        "kallsyms_type": "T",
+        "name": "do_common_drv_init"
+      },
+      "previous_distinct": {
+        "address": "0xffffffc0006e3a10",
+        "kallsyms_type": "W",
+        "name": "do_ant_drv_init"
+      },
+      "region": {
+        "flags": 7,
+        "index": 1,
+        "name": ".kernel",
+        "size": 20013248,
+        "start": "0xffffffc000080000",
+        "type": 1
+      },
+      "retained_elf": {
+        "address": "0xffffffc0006e3a70",
+        "binding": 1,
+        "section_index": 1,
+        "size": 0,
+        "type": 2
+      },
+      "strength": "ordinary-global",
+      "target": {
+        "address": "0xffffffc0006e3a70",
+        "kallsyms_type": "T",
+        "name": "do_connectivity_driver_init"
+      }
+    },
+    {
+      "aliases": [],
+      "exact_name_count": 1,
+      "interval": {
+        "classification": "conservative-inspection-envelope",
+        "end_exclusive": "0xffffffc0006e3fe8",
+        "exact_end": false,
+        "size": 280,
+        "start": "0xffffffc0006e3ed0"
+      },
+      "next_distinct": {
+        "address": "0xffffffc0006e3fe8",
+        "kallsyms_type": "t",
+        "name": "hci_stp_tx_thrd_func"
+      },
+      "previous_distinct": {
+        "address": "0xffffffc0006e3e60",
+        "kallsyms_type": "T",
+        "name": "do_fm_drv_init"
+      },
+      "region": {
+        "flags": 7,
+        "index": 1,
+        "name": ".kernel",
+        "size": 20013248,
+        "start": "0xffffffc000080000",
+        "type": 1
+      },
+      "retained_elf": {
+        "address": "0xffffffc0006e3ed0",
+        "binding": 1,
+        "section_index": 1,
+        "size": 0,
+        "type": 2
+      },
+      "strength": "ordinary-global",
+      "target": {
+        "address": "0xffffffc0006e3ed0",
+        "kallsyms_type": "T",
+        "name": "do_wlan_drv_init"
+      }
+    },
+    {
+      "aliases": [],
+      "exact_name_count": 1,
+      "interval": {
+        "classification": "conservative-inspection-envelope",
+        "end_exclusive": "0xffffffc000741898",
+        "exact_end": false,
+        "size": 760,
+        "start": "0xffffffc0007415a0"
+      },
+      "next_distinct": {
+        "address": "0xffffffc000741898",
+        "kallsyms_type": "T",
+        "name": "mtk_wcn_wlan_gen3_exit"
+      },
+      "previous_distinct": {
+        "address": "0xffffffc000741448",
+        "kallsyms_type": "T",
+        "name": "nicConfigProcSetCamCfgWrite"
+      },
+      "region": {
+        "flags": 7,
+        "index": 1,
+        "name": ".kernel",
+        "size": 20013248,
+        "start": "0xffffffc000080000",
+        "type": 1
+      },
+      "retained_elf": {
+        "address": "0xffffffc0007415a0",
+        "binding": 1,
+        "section_index": 1,
+        "size": 0,
+        "type": 2
+      },
+      "strength": "ordinary-global",
+      "target": {
+        "address": "0xffffffc0007415a0",
+        "kallsyms_type": "T",
+        "name": "mtk_wcn_wlan_gen3_init"
+      }
+    },
+    {
+      "aliases": [],
+      "exact_name_count": 1,
+      "interval": {
+        "classification": "conservative-inspection-envelope",
+        "end_exclusive": "0xffffffc000741938",
+        "exact_end": false,
+        "size": 160,
+        "start": "0xffffffc000741898"
+      },
+      "next_distinct": {
+        "address": "0xffffffc000741938",
+        "kallsyms_type": "t",
+        "name": "kalMetCtrlWriteProcfs"
+      },
+      "previous_distinct": {
+        "address": "0xffffffc0007415a0",
+        "kallsyms_type": "T",
+        "name": "mtk_wcn_wlan_gen3_init"
+      },
+      "region": {
+        "flags": 7,
+        "index": 1,
+        "name": ".kernel",
+        "size": 20013248,
+        "start": "0xffffffc000080000",
+        "type": 1
+      },
+      "retained_elf": {
+        "address": "0xffffffc000741898",
+        "binding": 1,
+        "section_index": 1,
+        "size": 0,
+        "type": 2
+      },
+      "strength": "ordinary-global",
+      "target": {
+        "address": "0xffffffc000741898",
+        "kallsyms_type": "T",
+        "name": "mtk_wcn_wlan_gen3_exit"
+      }
+    }
+  ],
+  "later_analysis_admission": "Eligible inputs for a separately scoped instruction-analysis contract after independent review; not authorization to execute that work.",
+  "exact_function_ends": false,
+  "instruction_semantics": false,
+  "result_json_frozen_utc": "2026-09-07T01:09:15Z"
+}

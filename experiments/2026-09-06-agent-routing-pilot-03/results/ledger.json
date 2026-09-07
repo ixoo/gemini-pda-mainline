@@ -29,9 +29,9 @@
   "target_accepted_offline_items": 10,
   "checkpoint_interval": 5,
   "rolling_window_after_pilot": 10,
-  "accepted_count": 7,
-  "next_accepted_sequence": 8,
-  "next_considered_sequence": 13,
+  "accepted_count": 8,
+  "next_accepted_sequence": 9,
+  "next_considered_sequence": 14,
   "considered_items": [
     {
       "considered_sequence": 1,
@@ -376,6 +376,54 @@
         "credit_unit": null,
         "accepted_evidence": "experiments/2026-09-06-vmlinux-to-elf-kernel-db-provenance-v2/analysis.json"
       }
+    },
+    {
+      "considered_sequence": 13,
+      "accepted_sequence": 8,
+      "candidate_id": "vmlinux-to-elf-symbol-provenance-v3",
+      "disposition": "accepted",
+      "offline_eligible": true,
+      "work_type": "reasoning",
+      "risk_class": "hard-uncertainty",
+      "acceptance_contract": "experiments/2026-09-06-vmlinux-to-elf-symbol-provenance-v3/WORK_ITEM.md",
+      "review_comparison_group": "vmlinux-to-elf-symbol-provenance",
+      "parent": "cd9fbe8e0e8f7eda29b553ae131821d9facd8cf0",
+      "owner_route": {
+        "role": "gemini_specialist",
+        "model": "gpt-6-astra",
+        "effort": "medium"
+      },
+      "review_route": {
+        "role": "gemini_reasoner",
+        "model": "gpt-5.6-sol",
+        "effort": "medium"
+      },
+      "result": {
+        "started_at": "2026-09-07T00:35:04Z",
+        "review_ready_at": "2026-09-07T01:27:13Z",
+        "accepted_at": "2026-09-07T01:30:38Z",
+        "timing_source": "observed UTC contract creation, final review-ready handoff and independent full-result acceptance timestamps",
+        "elapsed_minutes": 55.5666667,
+        "review_rework_minutes": 3.4166667,
+        "first_review_accepted": true,
+        "rework_cycles": 2,
+        "escalated": true,
+        "escalation_reason": "Two pre-execution contract gaps required a frozen input-manifest repair and an independently reviewed metadata-only package-parent amendment before any package or private-kernel execution.",
+        "escalation_packet": {
+          "evidence": "experiments/2026-09-06-vmlinux-to-elf-symbol-provenance-v3/PREFLIGHT.md",
+          "attempts": [
+            "published the omitted prospective input manifest after the first source-free preflight stop",
+            "froze a Sol-reviewed exact metadata-only core package parent after RECORD proved that no core initializer source exists"
+          ],
+          "unresolved_question": "how to supply import topology for the code-less core package while retaining terminal RECORD-backed source forcing for every executable package child",
+          "next_discriminating_check": "construct exactly one metadata-only synthetic core parent under the amended assertions, then run the single guarded parser construction only if every source and semantic gate passes"
+        },
+        "review_failure_class": null,
+        "measured_credits": null,
+        "credit_source": "unavailable",
+        "credit_unit": null,
+        "accepted_evidence": "experiments/2026-09-06-vmlinux-to-elf-symbol-provenance-v3/analysis.json"
+      }
     }
   ],
   "checkpoints": [
@@ -417,6 +465,20 @@
       ],
       "comparable_item_ids": [
         "mt6797-wlan-final-linkage-teardown-attribution"
+      ],
+      "conclusion": "no-change",
+      "evidence": "experiments/2026-09-06-agent-routing-pilot-03/README.md"
+    },
+    {
+      "id": "pilot-03-item-eight-provenance-containment",
+      "after_accepted_sequence": 8,
+      "after_considered_sequence": 13,
+      "trigger": "early-signal",
+      "trigger_item_ids": [
+        "vmlinux-to-elf-symbol-provenance-v3"
+      ],
+      "comparable_item_ids": [
+        "vmlinux-to-elf-symbol-provenance-v3"
       ],
       "conclusion": "no-change",
       "evidence": "experiments/2026-09-06-agent-routing-pilot-03/README.md"

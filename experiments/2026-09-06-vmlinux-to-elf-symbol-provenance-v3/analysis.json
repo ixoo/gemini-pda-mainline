@@ -1,0 +1,362 @@
+{
+  "schema_version": 1,
+  "status": "pass-pending-independent-review",
+  "execution_head": "f35c050cff62de6278e7788cad0ff775587fb0c9",
+  "analysis_parent": "cd9fbe8e0e8f7eda29b553ae131821d9facd8cf0",
+  "contract_sha256": "3351a2b6222cf449a4111c0cd4e15cbd2d637f00abdd38698f63c971052eb4a4",
+  "amendment_sha256": "104efd97a0d6eee2c41a0e897c852c6d95e40d7232152adc12cb39b291db6a27",
+  "pre_execution_freeze": {
+    "utc": "2026-09-07T01:06:19Z",
+    "loader_json_sha256": "54763f55f63b12fd47e32931c13f6fe7f617d807a161da9f77e223abc4f43557",
+    "method_json_sha256": "9b4ce1dfe5773c2264ebe302ea17b62fb502793589e05dc6243ac753adbdc51c",
+    "runner_sha256": "f8eafb2614c57aeaf7c619396e594f7d4c3d7290d26ee2f5739b10619e2c8319",
+    "collector_sha256": "5f472d213900494ecb79c9217a9df23a13b4e2d0f2ff9135e970432db7e9005e",
+    "subclass_sha256": "14ab33ba494a37e2593f88801dd5a8e19ba45b5c5d87e5217562c1b50a986c9e"
+  },
+  "dependency_hash_checks": {
+    "contract": 1,
+    "predecessor_and_dependency_records": 20,
+    "all_pass": true,
+    "predecessor_contents_parsed": false,
+    "excluded_tuple_reuse": false
+  },
+  "receipt": {
+    "started_utc": "2026-09-07T01:07:09.223614+00:00",
+    "finished_utc": "2026-09-07T01:07:10.261116+00:00",
+    "returncode": 0,
+    "cache_empty_after_process": true,
+    "collector_private_output_writes": 2,
+    "raw_retention": "fresh-mode-0700-RE-child-mode-0600-files",
+    "private_raw_stdout_sha256": "21a64e9a3745d3ec913d79e099ef7ce14e64b58d62b9aa76b7f28ec57bc7a3e9",
+    "private_raw_stdout_size": 13247,
+    "private_raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "private_raw_stderr_size": 0,
+    "private_parser_log_sha256": "5ff161111bb145e055addadd037848bc5f5674234ec78bde44eab20355a57a05",
+    "private_parser_log_size": 917
+  },
+  "runtime_audit": {
+    "bootstrap_dependencies": {
+      "binascii": {
+        "kind": "stdlib",
+        "version": "3.12.3"
+      },
+      "collections": {
+        "kind": "stdlib",
+        "version": "3.12.3"
+      },
+      "ctypes": {
+        "kind": "stdlib",
+        "version": "3.12.3"
+      },
+      "enum": {
+        "kind": "stdlib",
+        "version": "3.12.3"
+      },
+      "gzip": {
+        "kind": "stdlib",
+        "version": "3.12.3"
+      },
+      "importlib": {
+        "kind": "stdlib",
+        "version": "3.12.3"
+      },
+      "io": {
+        "kind": "stdlib",
+        "version": "3.12.3"
+      },
+      "logging": {
+        "kind": "stdlib",
+        "version": "3.12.3"
+      },
+      "math": {
+        "kind": "stdlib",
+        "version": "3.12.3"
+      },
+      "re": {
+        "kind": "stdlib",
+        "version": "3.12.3"
+      },
+      "struct": {
+        "kind": "stdlib",
+        "version": "3.12.3"
+      },
+      "time": {
+        "kind": "stdlib",
+        "version": "3.12.3"
+      },
+      "typing": {
+        "kind": "stdlib",
+        "version": "3.12.3"
+      }
+    },
+    "build": false,
+    "bypass_counts": {
+      "architecture": 1,
+      "metadata": 1
+    },
+    "cache_empty": true,
+    "construction_count": 1,
+    "core_metadata_unchanged": true,
+    "database_directory_enumerated_or_statted": false,
+    "detector_restored": true,
+    "device_action": false,
+    "filesystem_claim_scope": "guarded-process-only",
+    "global_external_file_absence_claimed": false,
+    "guard_counts": {
+      "bytecode_open": 0,
+      "database_path": 0,
+      "detector": 0,
+      "filesystem_write": 0,
+      "finder_fallback": 0,
+      "network": 0,
+      "shell": 0,
+      "subprocess": 0,
+      "unexpected_directory_discovery": 0,
+      "unexpected_import": 0,
+      "unexpected_read": 0,
+      "unrecorded_package_code": 0
+    },
+    "inherited_methods_unchanged": true,
+    "instruction_analysis": false,
+    "kernel_hashes_verified": {
+      "Image": "0570480c28bce1583636a240904df8da3af0b5e5b4bcc6254f5719b42bd723d0",
+      "Image.gz": "b53d191dc41d3f7364b0fa62b4bc920b1d013a1942b2e6b06727263fc56fcf4d",
+      "diagnostics": "3e58a3e5c2a43914558f761ccdf4488a9c49b869645b4152ad9b2ee05a2f10b8",
+      "vmlinux": "cc66df06194d3315335462760962165e1dcb2e50221574aeb45a0805bb17a162"
+    },
+    "package_call_counts": {
+      "vmlinux_to_elf.core.architecture_detecter:<module>": 1,
+      "vmlinux_to_elf.core.architecture_detecter:ArchitectureDetectionResult": 1,
+      "vmlinux_to_elf.core.architecture_detecter:ArchitectureDetector": 1,
+      "vmlinux_to_elf.core.architecture_detecter:ArchitectureGuessError": 1,
+      "vmlinux_to_elf.core.architecture_detecter:ArchitectureName": 1,
+      "vmlinux_to_elf.core.architecture_detecter:ElfMachine": 1,
+      "vmlinux_to_elf.core.auto_unpack:<module>": 1,
+      "vmlinux_to_elf.core.auto_unpack:DecompressOperation": 1,
+      "vmlinux_to_elf.core.auto_unpack:DecompressOperationType": 1,
+      "vmlinux_to_elf.core.auto_unpack:Signature": 1,
+      "vmlinux_to_elf.core.auto_unpack:SingleGzipReader": 1,
+      "vmlinux_to_elf.core.auto_unpack:VmlinuzDecompressor": 1,
+      "vmlinux_to_elf.core.kallsyms:<module>": 1,
+      "vmlinux_to_elf.core.kallsyms:KallsymsFinder": 1,
+      "vmlinux_to_elf.core.kallsyms:KallsymsFinder.__init__": 1,
+      "vmlinux_to_elf.core.kallsyms:KallsymsFinder.apply_elf64_rela": 1,
+      "vmlinux_to_elf.core.kallsyms:KallsymsFinder.find_elf64_rela": 1,
+      "vmlinux_to_elf.core.kallsyms:KallsymsFinder.find_kallsyms_addresses_or_symbols": 1,
+      "vmlinux_to_elf.core.kallsyms:KallsymsFinder.find_kallsyms_markers": 1,
+      "vmlinux_to_elf.core.kallsyms:KallsymsFinder.find_kallsyms_names": 1,
+      "vmlinux_to_elf.core.kallsyms:KallsymsFinder.find_kallsyms_num_syms": 1,
+      "vmlinux_to_elf.core.kallsyms:KallsymsFinder.find_kallsyms_token_index": 1,
+      "vmlinux_to_elf.core.kallsyms:KallsymsFinder.find_kallsyms_token_table": 1,
+      "vmlinux_to_elf.core.kallsyms:KallsymsFinder.find_kallsyms_token_table.<locals>.<genexpr>": 11,
+      "vmlinux_to_elf.core.kallsyms:KallsymsFinder.find_linux_kernel_version": 1,
+      "vmlinux_to_elf.core.kallsyms:KallsymsFinder.get_token_table": 2,
+      "vmlinux_to_elf.core.kallsyms:KallsymsFinder.infer_base_address_from_syms": 1,
+      "vmlinux_to_elf.core.kallsyms:KallsymsFinder.infer_base_address_from_syms.<locals>.<genexpr>": 1,
+      "vmlinux_to_elf.core.kallsyms:KallsymsFinder.parse_symbol_table": 1,
+      "vmlinux_to_elf.core.kallsyms:KallsymsFinder.preprocess_elf_rela_table": 1,
+      "vmlinux_to_elf.core.kallsyms:KallsymsFinder.preprocess_uimage_header": 1,
+      "vmlinux_to_elf.core.kallsyms:KallsymsNotFoundException": 1,
+      "vmlinux_to_elf.core.kallsyms:KallsymsSymbol": 1,
+      "vmlinux_to_elf.core.kallsyms:KallsymsSymbolType": 1,
+      "vmlinux_to_elf.utils.elf:<module>": 1,
+      "vmlinux_to_elf.utils.elf:EI_CLASS": 1,
+      "vmlinux_to_elf.utils.elf:EI_DATA": 1,
+      "vmlinux_to_elf.utils.elf:EI_OSABI": 1,
+      "vmlinux_to_elf.utils.elf:EI_VERSION": 1,
+      "vmlinux_to_elf.utils.elf:E_IDENT_INDEXES": 1,
+      "vmlinux_to_elf.utils.elf:E_TYPE": 1,
+      "vmlinux_to_elf.utils.elf:Elf32BigEndianRelocationTableEntry": 1,
+      "vmlinux_to_elf.utils.elf:Elf32BigEndianRelocationWithAddendTableEntry": 1,
+      "vmlinux_to_elf.utils.elf:Elf32BigEndianSymbolTableEntry": 1,
+      "vmlinux_to_elf.utils.elf:Elf32LittleEndianRelocationTableEntry": 1,
+      "vmlinux_to_elf.utils.elf:Elf32LittleEndianRelocationWithAddendTableEntry": 1,
+      "vmlinux_to_elf.utils.elf:Elf32LittleEndianSymbolTableEntry": 1,
+      "vmlinux_to_elf.utils.elf:Elf32ProgramHeaderEntry": 1,
+      "vmlinux_to_elf.utils.elf:Elf64BigEndianRelocationTableEntry": 1,
+      "vmlinux_to_elf.utils.elf:Elf64BigEndianRelocationWithAddendTableEntry": 1,
+      "vmlinux_to_elf.utils.elf:Elf64BigEndianSymbolTableEntry": 1,
+      "vmlinux_to_elf.utils.elf:Elf64LittleEndianRelocationTableEntry": 1,
+      "vmlinux_to_elf.utils.elf:Elf64LittleEndianRelocationWithAddendTableEntry": 1,
+      "vmlinux_to_elf.utils.elf:Elf64LittleEndianSymbolTableEntry": 1,
+      "vmlinux_to_elf.utils.elf:Elf64ProgramHeaderEntry": 1,
+      "vmlinux_to_elf.utils.elf:ElfDynamic": 1,
+      "vmlinux_to_elf.utils.elf:ElfDynsym": 1,
+      "vmlinux_to_elf.utils.elf:ElfFile": 1,
+      "vmlinux_to_elf.utils.elf:ElfFileHeader": 1,
+      "vmlinux_to_elf.utils.elf:ElfHash": 1,
+      "vmlinux_to_elf.utils.elf:ElfNoBits": 1,
+      "vmlinux_to_elf.utils.elf:ElfNullSection": 1,
+      "vmlinux_to_elf.utils.elf:ElfProgbits": 1,
+      "vmlinux_to_elf.utils.elf:ElfRel": 1,
+      "vmlinux_to_elf.utils.elf:ElfRela": 1,
+      "vmlinux_to_elf.utils.elf:ElfSection": 1,
+      "vmlinux_to_elf.utils.elf:ElfSectionHeader": 1,
+      "vmlinux_to_elf.utils.elf:ElfStrtab": 1,
+      "vmlinux_to_elf.utils.elf:ElfSymtab": 1,
+      "vmlinux_to_elf.utils.elf:P_FLAGS": 1,
+      "vmlinux_to_elf.utils.elf:P_TYPE": 1,
+      "vmlinux_to_elf.utils.elf:SH_FLAGS": 1,
+      "vmlinux_to_elf.utils.elf:SH_TYPE": 1,
+      "vmlinux_to_elf.utils.elf:SPECIAL_SECTION_INDEX": 1,
+      "vmlinux_to_elf.utils.elf:SPECIAL_SEGMENT_INDEX": 1,
+      "vmlinux_to_elf.utils.elf:ST_INFO_BINDING": 1,
+      "vmlinux_to_elf.utils.elf:ST_INFO_TYPE": 1,
+      "vmlinux_to_elf.utils.elf:VariableEndiannessAndWordsizeStructure": 1,
+      "vmlinux_to_elf.utils.pretty_print:<module>": 1,
+      "vmlinux_to_elf.utils:<module>": 1,
+      "vmlinux_to_elf:<module>": 1
+    },
+    "phase": "complete",
+    "private_content_before_method_freeze": false,
+    "source_code_objects": 160,
+    "source_inventory": [
+      {
+        "exec_count": 1,
+        "loader": "ForcedSourceLoader",
+        "mode": 436,
+        "mtime_ns": "1785068121753597608",
+        "name": "vmlinux_to_elf",
+        "path": "vmlinux_to_elf/__init__.py",
+        "record_sha256": true,
+        "record_size": true,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size": 0
+      },
+      {
+        "exec_count": 1,
+        "loader": "ForcedSourceLoader",
+        "mode": 436,
+        "mtime_ns": "1785068121753597608",
+        "name": "vmlinux_to_elf.core.architecture_detecter",
+        "path": "vmlinux_to_elf/core/architecture_detecter.py",
+        "record_sha256": true,
+        "record_size": true,
+        "sha256": "3eb32a79485120c4eef6a59212bcddc286b43f7d31091ef9240c94579fb36563",
+        "size": 9159
+      },
+      {
+        "exec_count": 1,
+        "loader": "ForcedSourceLoader",
+        "mode": 436,
+        "mtime_ns": "1785068121753597608",
+        "name": "vmlinux_to_elf.core.auto_unpack",
+        "path": "vmlinux_to_elf/core/auto_unpack.py",
+        "record_sha256": true,
+        "record_size": true,
+        "sha256": "1e1d9c55c6ce3f2af954c1688c04e10182334c2a1b63ca02643d9f35d87d5995",
+        "size": 19337
+      },
+      {
+        "exec_count": 1,
+        "loader": "ForcedSourceLoader",
+        "mode": 436,
+        "mtime_ns": "1785068121753597608",
+        "name": "vmlinux_to_elf.core.kallsyms",
+        "path": "vmlinux_to_elf/core/kallsyms.py",
+        "record_sha256": true,
+        "record_size": true,
+        "sha256": "2bff550d9486e90782a4320cec7bc26b249ead5048f58839eec6578b52c06c2d",
+        "size": 66664
+      },
+      {
+        "exec_count": 1,
+        "loader": "ForcedSourceLoader",
+        "mode": 436,
+        "mtime_ns": "1785068121858600379",
+        "name": "vmlinux_to_elf.utils",
+        "path": "vmlinux_to_elf/utils/__init__.py",
+        "record_sha256": true,
+        "record_size": true,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size": 0
+      },
+      {
+        "exec_count": 1,
+        "loader": "ForcedSourceLoader",
+        "mode": 436,
+        "mtime_ns": "1785068121858600379",
+        "name": "vmlinux_to_elf.utils.elf",
+        "path": "vmlinux_to_elf/utils/elf.py",
+        "record_sha256": true,
+        "record_size": true,
+        "sha256": "f974b1189155d2cea4773d378990e1b20be866f27719be0593fef3110c56891d",
+        "size": 41704
+      },
+      {
+        "exec_count": 1,
+        "loader": "ForcedSourceLoader",
+        "mode": 436,
+        "mtime_ns": "1785068121859600405",
+        "name": "vmlinux_to_elf.utils.pretty_print",
+        "path": "vmlinux_to_elf/utils/pretty_print.py",
+        "record_sha256": true,
+        "record_size": true,
+        "sha256": "0c043bf20f7fa2d642856465fad2dd473d44fd770d7b0339febcd9b716acc873",
+        "size": 3598
+      }
+    ],
+    "source_snapshots_unchanged": true,
+    "status": "pass",
+    "stub_import_counts": {
+      "ArchitectureEMachineLink": 0,
+      "DebianRelease": 1,
+      "EMachineValue": 1,
+      "KernelRelevantFile": 1,
+      "KernelVersion": 1,
+      "KnownArchitecture": 1
+    },
+    "stub_operation_counts": {
+      "ArchitectureEMachineLink": 0,
+      "DebianRelease": 0,
+      "EMachineValue": 0,
+      "KernelRelevantFile": 0,
+      "KernelVersion": 0,
+      "KnownArchitecture": 0
+    },
+    "symbol_count": 64417,
+    "tuple_order": "monotonic-nondecreasing"
+  },
+  "metadata_serialization": "mtime_ns is preserved as an exact decimal string to avoid JSON consumer integer precision loss. All remaining audit values are unmodified bounded receipt fields.",
+  "postconditions_proved_by_passing_frozen_checks": {
+    "mro": [
+      "FrozenNoDatabaseAArch64Finder",
+      "KallsymsFinder",
+      "object"
+    ],
+    "constructor_identity": true,
+    "all_base_function_and_code_identities": true,
+    "exact_two_override_function_and_code_identities": true,
+    "architecture": {
+      "enum_member": "ArchitectureName.aarch64",
+      "enum_value": 11,
+      "elf_machine": 183,
+      "is_64_bits": true,
+      "is_big_endian": false
+    },
+    "synthetic_core_spec_path_binding_and_children_unchanged": true
+  },
+  "acceptance": {
+    "input_identities": true,
+    "source_forced_loader": true,
+    "database_independent_parser_state": true,
+    "frozen_architecture_complete": true,
+    "detector_and_sentinel_zero": true,
+    "single_construction": true,
+    "fresh_original_types": true,
+    "four_bounded_neighborhoods": true,
+    "conservative_envelopes": true,
+    "later_instruction_contract_may_use_envelopes": true,
+    "exact_function_ends": false,
+    "instruction_or_control_flow_analysis": false,
+    "runtime_or_teardown_safety": false
+  },
+  "limitations": [
+    "The filesystem claim is scoped to the guarded process: zero attempted writes, unchanged admitted-source snapshots and empty fresh cache. No database directory was enumerated or statted and no global absence of externally created package/database files is claimed.",
+    "The outer collector made exactly two explicitly admitted private evidence-file writes; these are not counted as guarded-child writes.",
+    "The Python audit/source-code provenance mechanism covers this frozen reviewed process; it is not a general OS-level sandbox claim.",
+    "The retained ELF has broad synthetic executable sections and zero target st_size. Next-symbol boundaries are inspection envelopes, not exact ends or proof of instruction bytes.",
+    "No device, network, Buildbox, reconstruction, database query, dependency-source inspection or excluded-output comparison was performed."
+  ],
+  "result_json_frozen_utc": "2026-09-07T01:09:15Z"
+}

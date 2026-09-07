@@ -1,0 +1,318 @@
+{
+  "schema_version": 1,
+  "pre_private_content_freeze_utc": "2026-09-07T01:06:19Z",
+  "parser_source_sha256": "2bff550d9486e90782a4320cec7bc26b249ead5048f58839eec6578b52c06c2d",
+  "subclass_source": "class FrozenNoDatabaseAArch64Finder(KallsymsFinder):\n    def guess_architecture(self):\n        bypass_counts[\"architecture\"] += 1\n        self.architecture = ArchitectureName.aarch64\n        self.elf_machine = 183\n        self.is_64_bits = True\n        self.is_big_endian = False\n\n    def extract_db_information(self):\n        bypass_counts[\"metadata\"] += 1\n",
+  "subclass_sha256": "14ab33ba494a37e2593f88801dd5a8e19ba45b5c5d87e5217562c1b50a986c9e",
+  "architecture_fields": {
+    "architecture": {
+      "type": "ArchitectureName",
+      "member": "aarch64",
+      "value": 11
+    },
+    "elf_machine": {
+      "type": "int",
+      "value": 183
+    },
+    "is_64_bits": {
+      "type": "bool",
+      "value": true
+    },
+    "is_big_endian": {
+      "type": "bool",
+      "value": false
+    }
+  },
+  "class_defaults": {
+    "architecture": [
+      167
+    ],
+    "elf_machine": [
+      169
+    ],
+    "is_64_bits": [
+      158,
+      170
+    ],
+    "is_big_endian": [
+      171
+    ],
+    "value": null
+  },
+  "architecture_references": [
+    {
+      "line": 220,
+      "method": "__init__",
+      "field": "is_64_bits",
+      "operation": "Store"
+    },
+    {
+      "line": 260,
+      "method": "__init__",
+      "field": "is_64_bits",
+      "operation": "Load"
+    },
+    {
+      "line": 435,
+      "method": "guess_architecture",
+      "field": "is_64_bits",
+      "operation": "Load"
+    },
+    {
+      "line": 438,
+      "method": "guess_architecture",
+      "field": "architecture",
+      "operation": "Store"
+    },
+    {
+      "line": 440,
+      "method": "guess_architecture",
+      "field": "elf_machine",
+      "operation": "Store"
+    },
+    {
+      "line": 441,
+      "method": "guess_architecture",
+      "field": "is_64_bits",
+      "operation": "Load"
+    },
+    {
+      "line": 442,
+      "method": "guess_architecture",
+      "field": "is_64_bits",
+      "operation": "Store"
+    },
+    {
+      "line": 443,
+      "method": "guess_architecture",
+      "field": "is_big_endian",
+      "operation": "Store"
+    },
+    {
+      "line": 478,
+      "method": "extract_db_information",
+      "field": "elf_machine",
+      "operation": "Load"
+    },
+    {
+      "line": 495,
+      "method": "extract_db_information",
+      "field": "elf_machine",
+      "operation": "Load"
+    },
+    {
+      "line": 568,
+      "method": "find_elf64_rela",
+      "field": "architecture",
+      "operation": "Load"
+    },
+    {
+      "line": 933,
+      "method": "find_kallsyms_token_index",
+      "field": "is_big_endian",
+      "operation": "Store"
+    },
+    {
+      "line": 940,
+      "method": "find_kallsyms_token_index",
+      "field": "is_big_endian",
+      "operation": "Store"
+    },
+    {
+      "line": 1092,
+      "method": "find_kallsyms_markers_uncompressed",
+      "field": "is_big_endian",
+      "operation": "Load"
+    },
+    {
+      "line": 1093,
+      "method": "find_kallsyms_markers_uncompressed",
+      "field": "is_big_endian",
+      "operation": "Store"
+    },
+    {
+      "line": 1125,
+      "method": "find_kallsyms_markers",
+      "field": "is_big_endian",
+      "operation": "Load"
+    },
+    {
+      "line": 1166,
+      "method": "find_kallsyms_names",
+      "field": "is_big_endian",
+      "operation": "Load"
+    },
+    {
+      "line": 1305,
+      "method": "find_kallsyms_num_syms",
+      "field": "is_big_endian",
+      "operation": "Load"
+    },
+    {
+      "line": 1378,
+      "method": "find_kallsyms_addresses_or_symbols",
+      "field": "is_64_bits",
+      "operation": "Load"
+    },
+    {
+      "line": 1465,
+      "method": "find_kallsyms_addresses_or_symbols",
+      "field": "is_big_endian",
+      "operation": "Load"
+    },
+    {
+      "line": 1496,
+      "method": "find_kallsyms_addresses_or_symbols",
+      "field": "is_big_endian",
+      "operation": "Load"
+    },
+    {
+      "line": 1549,
+      "method": "find_kallsyms_addresses_or_symbols",
+      "field": "is_64_bits",
+      "operation": "Load"
+    },
+    {
+      "line": 1672,
+      "method": "find_kallsyms_addresses_or_symbols",
+      "field": "is_64_bits",
+      "operation": "Load"
+    },
+    {
+      "line": 1823,
+      "method": "print_symbols_debug",
+      "field": "is_64_bits",
+      "operation": "Load"
+    }
+  ],
+  "architecture_proof": [
+    "core/kallsyms.py:204-269 preserves the constructor: bit_size=64 sets a boolean at 220; calls guess_architecture at 234 and extract_db_information at 236 exactly once on the admitted path.",
+    "core/kallsyms.py:429-443 writes only architecture, elf_machine, is_64_bits and is_big_endian; core/architecture_detecter.py:39 fixes aarch64 enum value 11 and 177 fixes EM_AARCH64, True, False; EM_AARCH64 is required to equal 183 at runtime.",
+    "core/kallsyms.py:558-712 uses the AArch64 enum for relocation metadata handling. 876-953 independently detects token-index endianness and may assign False at 933 or True at 940; final False is mandatory, not assumed. 1017-1109 assigns inferred endian only if None at 1092-1093.",
+    "Remaining listed reads use bitness/endian for unpacking, relocation/address inference and formatting. The immutable constructor and parsing methods remain identity-equal before and after execution."
+  ],
+  "database_proof": {
+    "source": "vmlinux_to_elf/core/kallsyms.py",
+    "function": "extract_db_information",
+    "start_line": 445,
+    "end_line": 556,
+    "parser_state_writes": 0,
+    "returns": 0,
+    "parser_method_calls": 0,
+    "self_reads": [
+      "version_number",
+      "elf_machine"
+    ],
+    "imported_name_references": [
+      {
+        "name": "KernelVersion",
+        "lines": [
+          457,
+          458,
+          464,
+          465
+        ]
+      },
+      {
+        "name": "KernelRelevantFile",
+        "lines": [
+          481,
+          520
+        ]
+      },
+      {
+        "name": "EMachineValue",
+        "lines": [
+          494,
+          495
+        ]
+      },
+      {
+        "name": "KnownArchitecture",
+        "lines": [
+          503
+        ]
+      },
+      {
+        "name": "DebianRelease",
+        "lines": [
+          536,
+          538,
+          541
+        ]
+      },
+      {
+        "name": "ArchitectureEMachineLink",
+        "lines": []
+      }
+    ],
+    "downstream_parser_references": 0,
+    "reason": "All queried values are local metadata used for diagnostic logging. No database result is returned, assigned to self, passed to a parsing method, or stored for later parser use. Outside this method the imported database names occur only in the import statement. Removing the entire method body therefore removes its diagnostics and database operations, not a parser data dependency. This is an explicit source-level dataflow claim, not an inspection of the forbidden database implementation."
+  },
+  "inherited_method_names": [
+    "__init__",
+    "preprocess_uimage_header",
+    "preprocess_elf_rela_table",
+    "infer_base_address_from_syms",
+    "find_linux_kernel_version",
+    "guess_architecture",
+    "extract_db_information",
+    "find_elf64_rela",
+    "apply_elf64_rela",
+    "find_kallsyms_token_table",
+    "find_kallsyms_token_index",
+    "find_kallsyms_names_uncompressed",
+    "find_kallsyms_markers_uncompressed",
+    "find_kallsyms_markers",
+    "find_kallsyms_names",
+    "find_kallsyms_num_syms",
+    "find_kallsyms_addresses_or_symbols",
+    "get_token_table",
+    "parse_symbol_table",
+    "print_symbols_debug"
+  ],
+  "overrides": [
+    "guess_architecture",
+    "extract_db_information"
+  ],
+  "required_counts": {
+    "constructions": 1,
+    "architecture_override": 1,
+    "metadata_override": 1,
+    "detector_calls": 0,
+    "sentinel_operations": 0
+  },
+  "detector_restoration": "Preserve exact classmethod descriptor from class dictionary; restore in finally; require identity equality.",
+  "type_transformation": {
+    "parser_citations": [
+      "core/kallsyms.py:97-119",
+      "core/kallsyms.py:1784-1803"
+    ],
+    "writer_citations": [
+      "core/elf_symbolizer.py:254-278"
+    ],
+    "raw_symbol_names_preserved": true,
+    "dictionary_lookup_used": false,
+    "admitted_types": {
+      "T": "ordinary-global",
+      "t": "ordinary-local",
+      "W": "weak-defined"
+    },
+    "elf_binding_is_not_original_strength_evidence": true
+  },
+  "interval_policy": {
+    "classification": "conservative-inspection-envelope",
+    "end": "next distinct recovered Kallsyms symbol start",
+    "exact_end": false,
+    "requires": [
+      "unique exact target name",
+      "complete bounded same-address aliases",
+      "monotonic full tuple ordering",
+      "retained ELF equal start and zero size",
+      "noncontradictory original text type",
+      "strictly greater next address in same executable reconstructed image section"
+    ],
+    "synthetic_region_warning": "The reconstruction assigns executable flags to broad synthetic image sections (elf_symbolizer.py:132-174); these flags do not prove that every byte is an instruction or delimit functions.",
+    "instruction_semantics": false
+  }
+}
