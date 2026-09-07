@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "dispatch_commit": "5663b51271d6aa3a70c1decdce3d575e0a5d2422",
+  "diagnostic_file_sha256": "178a3f12cabfce91dabad67feb3a10fcd0e8b4fc5a36d585478a0af2aa794914",
+  "source_sha256": "f5f6ff91ebe34740676fa6efaec5acdca4aa7e097761b722e440a27f59e8d157",
+  "execution_count": 1,
+  "receipt": {
+    "callback_invocations": 0,
+    "completed_modules": 27,
+    "completed_utc": "2026-09-07T04:34:52.625069+00:00",
+    "engine_instances": 0,
+    "entered_modules": 28,
+    "events": {
+      "cache_write_attempts": 0,
+      "native_requests": 1,
+      "network_attempts": 0,
+      "optional_requests": 0,
+      "process_attempts": 0,
+      "write_attempts": 0
+    },
+    "exact_signal_handler": false,
+    "failure_class": "guard-or-predicate-refusal",
+    "first_callsite": null,
+    "first_callsite_sha256": null,
+    "function_invocations_admitted": 0,
+    "mapping_checks": [
+      {
+        "nonexecuting_pseudo_rows": 13,
+        "nonexecuting_rows_equal_to_baseline": true,
+        "stage": "stdlib-baseline",
+        "vdso_full_row_equal": true
+      },
+      {
+        "nonexecuting_pseudo_rows": 13,
+        "nonexecuting_rows_equal_to_baseline": false,
+        "stage": "pre-import",
+        "vdso_full_row_equal": true
+      },
+      {
+        "nonexecuting_pseudo_rows": 13,
+        "nonexecuting_rows_equal_to_baseline": false,
+        "stage": "post-capstone",
+        "vdso_full_row_equal": true
+      },
+      {
+        "nonexecuting_pseudo_rows": 13,
+        "nonexecuting_rows_equal_to_baseline": false,
+        "stage": "pre-stdlib-resource",
+        "vdso_full_row_equal": true
+      },
+      {
+        "nonexecuting_pseudo_rows": 13,
+        "nonexecuting_rows_equal_to_baseline": false,
+        "stage": "post-stdlib-resource",
+        "vdso_full_row_equal": true
+      }
+    ],
+    "private_reads": 0,
+    "profile_auto_unset": false,
+    "propagation": {
+      "loader-after-exec": false,
+      "outer-import-return": false,
+      "profile-first-call": false,
+      "wrapped-import-return": false,
+      "wrapper-entry": false
+    },
+    "resource_counters": {
+      "cached_requests": 0,
+      "create_module": 1,
+      "exec_module": 1,
+      "extension_audit": 1,
+      "find_spec": 1,
+      "function_attempts": 0
+    },
+    "restorations": {
+      "finder": true,
+      "import": true,
+      "native": true,
+      "path": true,
+      "profile": true,
+      "resource_create": true,
+      "resource_exec": true
+    },
+    "started_utc": "2026-09-07T04:34:52.297945+00:00",
+    "static_candidates": [
+      {
+        "binding": "resource",
+        "binding_form": "import-resource",
+        "callable_name": "getpagesize",
+        "column": 15,
+        "end_line": 17,
+        "line": 17,
+        "module": "elftools.elf.elffile",
+        "source": {
+          "mode": 420,
+          "mtime_ns": 1694043862000000000,
+          "path": "/usr/lib/python3/dist-packages/elftools/elf/elffile.py",
+          "sha256": "457c93c8be327cbce2a86869aa40d9067f12f7c33052730f7e1cbcccb99b9b54",
+          "size": 37150
+        }
+      }
+    ],
+    "status": "refused",
+    "terminal_latch": false
+  },
+  "scope": {
+    "runtime_callsite_join_proved": false,
+    "static_candidate_not_call": true,
+    "private_analysis_consumed": false,
+    "resource_function_admitted": false
+  }
+}
