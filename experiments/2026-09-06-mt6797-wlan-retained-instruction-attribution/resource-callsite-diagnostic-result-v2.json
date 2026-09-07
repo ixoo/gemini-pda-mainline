@@ -1,0 +1,152 @@
+{
+  "schema_version": 2,
+  "dispatch_commit": "b6799696f5d8a2c8f0d9cc61995431d6673cb35f",
+  "diagnostic_file_sha256": "390b7c640f8980091f6d7f58dd81c6bf828f88a63101fff82058a36c0f2eb205",
+  "source_sha256": "4d9cc14cf9c74efb86b44c057fd7f69427821c7979222e61d25e183575a29c8b",
+  "execution_count": 1,
+  "receipt": {
+    "callback_invocations": 0,
+    "completed_modules": 27,
+    "completed_utc": "2026-09-07T04:47:06.828742+00:00",
+    "engine_instances": 0,
+    "entered_modules": 28,
+    "events": {
+      "cache_write_attempts": 0,
+      "native_requests": 1,
+      "network_attempts": 0,
+      "optional_requests": 0,
+      "process_attempts": 0,
+      "write_attempts": 0
+    },
+    "exact_signal_handler": true,
+    "failure_class": "none",
+    "first_callsite": {
+      "callable_module": "resource",
+      "callable_name": "getpagesize",
+      "candidate": {
+        "binding": "resource",
+        "binding_form": "import-resource",
+        "callable_name": "getpagesize",
+        "column": 15,
+        "end_line": 17,
+        "line": 17,
+        "module": "elftools.elf.elffile",
+        "source": {
+          "mode": 420,
+          "mtime_ns": 1694043862000000000,
+          "path": "/usr/lib/python3/dist-packages/elftools/elf/elffile.py",
+          "sha256": "457c93c8be327cbce2a86869aa40d9067f12f7c33052730f7e1cbcccb99b9b54",
+          "size": 37150
+        }
+      },
+      "event": "c_call",
+      "exact_frozen_dictionary_object": true,
+      "file_mapping_dictionary_equal": true,
+      "frame_line": 17,
+      "function_executed": false,
+      "resource_identity": {
+        "mode": 420,
+        "mtime_ns": 1781873160000000000,
+        "path": "/usr/lib/python3.12/lib-dynload/resource.cpython-312-aarch64-linux-gnu.so",
+        "sha256": "2e1deb71ff45f48040851b25eb46d106baacbcd1804641105dce48f8ed278e44",
+        "size": 68288
+      },
+      "resource_object_identity_equal": true
+    },
+    "first_callsite_sha256": "cfbb15d6cc9c2e20b8b494a295f12c77b16f5fdcd3e0410131c7337e284516a1",
+    "function_invocations_admitted": 0,
+    "mapping_checks": [
+      {
+        "nonexecuting_pseudo_rows": 13,
+        "nonexecuting_rows_equal_to_baseline": true,
+        "stage": "stdlib-baseline",
+        "vdso_full_row_equal": true
+      },
+      {
+        "nonexecuting_pseudo_rows": 13,
+        "nonexecuting_rows_equal_to_baseline": false,
+        "stage": "pre-import",
+        "vdso_full_row_equal": true
+      },
+      {
+        "nonexecuting_pseudo_rows": 13,
+        "nonexecuting_rows_equal_to_baseline": false,
+        "stage": "post-capstone",
+        "vdso_full_row_equal": true
+      },
+      {
+        "nonexecuting_pseudo_rows": 13,
+        "nonexecuting_rows_equal_to_baseline": false,
+        "stage": "pre-stdlib-resource",
+        "vdso_full_row_equal": true
+      },
+      {
+        "nonexecuting_pseudo_rows": 13,
+        "nonexecuting_rows_equal_to_baseline": false,
+        "stage": "post-stdlib-resource",
+        "vdso_full_row_equal": true
+      },
+      {
+        "nonexecuting_pseudo_rows": 14,
+        "nonexecuting_rows_equal_to_baseline": false,
+        "stage": "resource-pre-call",
+        "vdso_full_row_equal": true
+      }
+    ],
+    "private_reads": 0,
+    "profile_auto_unset": true,
+    "propagation": {
+      "loader-after-exec": false,
+      "outer-import-return": false,
+      "profile-first-call": true,
+      "wrapped-import-return": false,
+      "wrapper-entry": false
+    },
+    "resource_counters": {
+      "cached_requests": 1,
+      "create_module": 1,
+      "exec_module": 1,
+      "extension_audit": 1,
+      "find_spec": 1,
+      "function_attempts": 1
+    },
+    "restorations": {
+      "finder": true,
+      "import": true,
+      "native": true,
+      "path": true,
+      "profile": true,
+      "resource_create": true,
+      "resource_exec": true
+    },
+    "started_utc": "2026-09-07T04:47:06.451825+00:00",
+    "static_candidates": [
+      {
+        "binding": "resource",
+        "binding_form": "import-resource",
+        "callable_name": "getpagesize",
+        "column": 15,
+        "end_line": 17,
+        "line": 17,
+        "module": "elftools.elf.elffile",
+        "source": {
+          "mode": 420,
+          "mtime_ns": 1694043862000000000,
+          "path": "/usr/lib/python3/dist-packages/elftools/elf/elffile.py",
+          "sha256": "457c93c8be327cbce2a86869aa40d9067f12f7c33052730f7e1cbcccb99b9b54",
+          "size": 37150
+        }
+      }
+    ],
+    "status": "resource-callsite-diagnostic-complete-no-invocation",
+    "terminal_latch": true
+  },
+  "scope": {
+    "runtime_pre_call_join_proved": true,
+    "function_execution_proved": false,
+    "function_execution_admitted": false,
+    "return_value_observed": false,
+    "resource_safety_proved": false,
+    "private_analysis_consumed": false
+  }
+}
