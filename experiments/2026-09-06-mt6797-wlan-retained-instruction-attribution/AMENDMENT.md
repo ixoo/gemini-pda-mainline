@@ -1,7 +1,7 @@
 # Site-disabled source-forced decoder startup amendment
 
 This prospective amendment is controlling contract evidence and resolves only
-the tool-preflight stop in [README.md](README.md). Its exact SHA-256 and the
+the tool-preflight stop in [PREFLIGHT.md](PREFLIGHT.md). Its exact SHA-256 and the
 amended [WORK_ITEM.md](WORK_ITEM.md) SHA-256 must be added to and verified from
 [inputs.json](inputs.json) before any private-content access. The verifier must
 reject drift in either file. Every dependency, private-input, instruction,
@@ -20,11 +20,11 @@ all of its component observations are excluded from result evidence.
 
 ## Frozen source-only bootstrap
 
-Before any new package import, create `bootstrap.json` containing the complete
+Before any new package import, create `bootstrap-v2.json` containing the complete
 independently written isolated-startup, RECORD parser, source-forcing loader,
 native-load guard, optional-module refusal and component-inventory source plus
 its SHA-256. Freeze that file before executing the bootstrap. Syntax-only
-compilation is permitted. The final verifier must pin `bootstrap.json`, its
+compilation is permitted. The final verifier must pin `bootstrap-v2.json`, its
 embedded source hash and its pre-execution chronology.
 
 Run the exact installed Python 3.12.3 interpreter for the fresh tool preflight
@@ -83,7 +83,7 @@ native decoder closure.
 
 The isolated preflight process imports and inventories tools without opening
 the private ELF, then exits. Use its sanitized receipt to create and freeze
-`method.json` containing the pinned `bootstrap.json` identity, complete tool
+`method.json` containing the pinned `bootstrap-v2.json` identity, complete tool
 and native inventories, static load-route proof, full analysis harness/ELF
 mapper/raw decoder/traversal source and every source hash. This is the final
 method freeze before private content.

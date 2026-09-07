@@ -3,9 +3,12 @@
   "analysis_parent": "e25df337406b52bc4da44aa428262a8123d8da21",
   "work_started_utc": "2026-09-07T01:36:36Z",
   "controlling_contract": {
-    "WORK_ITEM.md": "15053516a4dada783add16c9d717cb748df0c46c63ea5f84823dc920ea9d0470",
-    "AMENDMENT.md": "a6bcd9de1fd587b1a313638e6f896c1bc554e189b400b6cb1a25f9c5218af90a",
-    "preflight_README.md": "420fa321f7897d6fead65c5e7b2d6e4d53472f213218e55bf867d88e058008bf"
+    "WORK_ITEM.md": "692a1e1fd34b15113585bd56cd3c6ce47def6fbf6c92a43a9d4681e8f9c39fb3",
+    "AMENDMENT.md": "36e8a93d9946f9f20593cf92a64cb7497ffff39b2dcb8bd5d97a937710e15409",
+    "AMENDMENT-2.md": "e4bfa608ed6155cb9ad7b83add0c75ad64022ba99324ab4e2d3e18869fb1c8a1",
+    "PREFLIGHT.md": "420fa321f7897d6fead65c5e7b2d6e4d53472f213218e55bf867d88e058008bf",
+    "bootstrap-refused.json": "53adefdb21a8bc966930b14cedb0683f7ae0bb11c1184c2d5fc94cbf011aed42",
+    "VALIDATION-REFUSED.md": "e9b2b9a0b946e983679068f4dcd7536715b05357a127b9f10073fd67311fba36"
   },
   "accepted_symbol_provenance": {
     "inputs.json": "c5dffb7323e7eb25626704d3310565b1ca9252e0dd9f349eff66ed04fc3d4e31",
