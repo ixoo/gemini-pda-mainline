@@ -31,10 +31,11 @@
   binary-control-flow uncertainty; `gemini_reasoner`, `gpt-5.6-sol`, medium for
   independent review. No implementation route is selected.
 - **Owned scope:** create only this experiment's `README.md`, `inputs.json`,
-  `AMENDMENT.md`, `AMENDMENT-2.md`, `PREFLIGHT.md`,
+  `AMENDMENT.md`, `AMENDMENT-2.md`, `AMENDMENT-3.md`, `PREFLIGHT.md`,
   `bootstrap-refused.json`, `VALIDATION-REFUSED.md`, `bootstrap-v2.json`,
+  the bootstrap-v2 refusal in `VALIDATION.md`, `bootstrap-v3.json`,
   `method.json`, `analysis.json`, `edges.json`, `FREEZE.md`, an assert-free
-  normal/optimized verifier, final `README.md` and final `VALIDATION.md`.
+  normal/optimized verifier, final `README.md` and `VALIDATION-FINAL.md`.
   Raw outputs stay in a fresh
   mode-0700 RE-VM child with mode-0600 files. Do not edit dependencies,
   hardware/support facts, roadmap, queue, workstreams, workflow ledger,
@@ -47,9 +48,10 @@
   origin, symlink, absent digest, dependency outside the installed environment
   or source/tool drift. Freeze the complete independently written collector,
   ELF mapper, raw AArch64 branch decoder and control-flow traversal source in
-  `bootstrap-v2.json` and `method.json`, with SHA-256 values, before the chronology
-  points required by [AMENDMENT.md](AMENDMENT.md) and
-  [AMENDMENT-2.md](AMENDMENT-2.md). Syntax-checking the frozen scripts is
+  `bootstrap-v3.json` and `method.json`, with SHA-256 values, before the
+  chronology points required by [AMENDMENT.md](AMENDMENT.md) and
+  [AMENDMENT-2.md](AMENDMENT-2.md), as superseded for package inventory by
+  [AMENDMENT-3.md](AMENDMENT-3.md). Syntax-checking the frozen scripts is
   permitted before content; do not run them against another binary.
 - **Execution guard:** install a child-process audit hook before private reads.
   Permit read-only opens of the exact retained ELF and exact frozen installed
@@ -134,7 +136,7 @@
   flow; boundary fallthrough; unproved reachability; candidate-to-call
   promotion; omitted candidates; cap overflow; prior-output dependency;
   private bytes/paths; mutable expected digests; or runtime/resource/firmware/
-  radio authority. Freeze `bootstrap-v2.json`, then `method.json`, then the result
+  radio authority. Freeze `bootstrap-v3.json`, then `method.json`, then the result
   JSON files, before
   writing the verifier. Normal and `-O` modes must use active checks and
   mutations covering identity, chronology, mapping, byte hashes, tool method,
