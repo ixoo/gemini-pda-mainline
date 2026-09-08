@@ -278,3 +278,15 @@ identity until reap, use nonblocking bounded pipes and monotonic deadlines, and
 preserve staging and partial evidence on disconnect or failure. No stdin
 delivery, detached watcher, process-name signal, cleanup, recovery, proof
 promotion, live connection or device action is admitted by this measurement.
+
+The separately bounded two-connection bootstrap investigation closed that
+discriminator negatively. A full measurement-only A command can fit at 32,638
+bytes, and exact source proves successful A completion would reap its frozen
+shell/applet tree. Exact Dropbear source also proves, however, that its idle and
+maximum-session cleanup closes channels and forgets the command PID without
+signalling or waiting for a live shell. Connection B therefore has no remote
+pre-`exec` lifetime owner; neither its host deadline nor the helper's later
+15-second deadline repairs that gap. Specialist review issued a stop/no-go
+before runner implementation. See
+[`BOOTSTRAP_WORK_ITEM.md`](BOOTSTRAP_WORK_ITEM.md) and
+[`results/candidate-r-bootstrap-feasibility.json`](results/candidate-r-bootstrap-feasibility.json).

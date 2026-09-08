@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "classification": "offline_two_connection_bootstrap_rejected_unbounded_preexec",
+  "candidate": "R",
+  "boot_id": "bbad1c49-ecdd-4f40-b1e0-c53f707106d1",
+  "parent_result": "experiments/2026-09-07-keyboard-boot2-session/results/candidate-r-preserver-scan-preparation.json",
+  "accepted_helper_sha256": "750169b008cae28fd6297f7a1567ad833022b521f17ee9c6c1e2ffa023c4f745",
+  "accepted_helper_bytes": 66672,
+  "compressed": {
+    "command": "xz --check=crc32 -9e",
+    "bytes": 22672,
+    "sha256": "f2bae014740fd7bac4e67a237c8ef522b4b68fe4cc4fbdccf1138cc7a20cd083",
+    "unwrapped_base64_bytes": 30232,
+    "unwrapped_base64_sha256": "e63743038aeb3f03627e06159010afbf4f5c8d16b9f6c6c887a92b1ba23bc6ae"
+  },
+  "measurement_only_command_a": {
+    "stage": "/a53-p",
+    "bytes": 32638,
+    "ceiling": 32768,
+    "margin": 130,
+    "sha256": "731abfd578140dbc8e445414e9990171123f730947ad236f1402b74bf7630507",
+    "retained": false,
+    "admitted": false
+  },
+  "source_inputs": {
+    "busybox_version": "1.36.1-6ubuntu3.1",
+    "busybox_upstream_sha256": "b8cc24c9574d809e7279c3be349795c5d5ceb6fdf19ca709f80cde50e47de314",
+    "busybox_ubuntu_delta_sha256": "1c7d785cf1e1d5d09ddc22fe755e14327fb3799878a5d840fc611044ff05f022",
+    "busybox_ubuntu_patches_applied": 23,
+    "dropbear_version": "2026.94",
+    "dropbear_archive_sha256": "e098034a843699200c8c977a991fff73159735bf795d5f72ef672c41a6b1ae81",
+    "hashes_revalidated": true
+  },
+  "lifecycle_findings": {
+    "connection_a_synchronous_descendants_reaped": true,
+    "connection_a_clean_completion_transition_proven": true,
+    "connection_b_exec_default_sigpipe_proven": true,
+    "dropbear_timeout_kills_command_shell": false,
+    "dropbear_timeout_reaps_command_shell": false,
+    "connection_b_preexec_remotely_bounded": false,
+    "helper_deadline_covers_preexec": false
+  },
+  "specialist_review": "stop_no_go_unbounded_connection_b_preexec_shell",
+  "runner_implemented": false,
+  "refusal_fixtures_implemented": false,
+  "device_contact": false,
+  "ssh_executed": false,
+  "build_executed": false,
+  "live_delivery_admitted": false,
+  "live_execution_admitted": false,
+  "next_state": "inspect_only_already_present_hash_pinned_deadline_ownership_primitives_under_separate_work_item"
+}

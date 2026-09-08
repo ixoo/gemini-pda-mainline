@@ -29,9 +29,9 @@
   "target_accepted_offline_items": 10,
   "checkpoint_interval": 5,
   "rolling_window_after_pilot": 10,
-  "accepted_count": 1,
-  "next_accepted_sequence": 2,
-  "next_considered_sequence": 2,
+  "accepted_count": 2,
+  "next_accepted_sequence": 3,
+  "next_considered_sequence": 3,
   "considered_items": [
     {
       "considered_sequence": 1,
@@ -82,6 +82,46 @@
         "credit_source": "unavailable",
         "credit_unit": null,
         "accepted_evidence": "experiments/2026-09-07-keyboard-boot2-session/results/candidate-r-preserver-scan-preparation.json"
+      }
+    },
+    {
+      "considered_sequence": 2,
+      "accepted_sequence": 2,
+      "candidate_id": "keyboard-preserver-two-connection-bootstrap-feasibility",
+      "disposition": "accepted",
+      "offline_eligible": true,
+      "work_type": "reasoning",
+      "risk_class": "hard-uncertainty",
+      "acceptance_contract": "experiments/2026-09-07-keyboard-boot2-session/BOOTSTRAP_WORK_ITEM.md",
+      "review_comparison_group": "gemini-device-session-readiness",
+      "parent": "f8d32e281256ab86137afe145a7760667cb27899",
+      "owner_route": {
+        "role": "gemini_reasoner",
+        "model": "gpt-5.6-sol",
+        "effort": "medium"
+      },
+      "review_route": {
+        "role": "gemini_specialist",
+        "model": "gpt-6-astra",
+        "effort": "medium"
+      },
+      "result": {
+        "started_at": "2026-09-08T03:27:36Z",
+        "review_ready_at": "2026-09-08T03:39:48Z",
+        "accepted_at": "2026-09-08T03:40:20Z",
+        "timing_source": "observed UTC Sol/Luna dispatch, final exact-source handoff and first specialist disposition timestamps",
+        "elapsed_minutes": 12.7333333,
+        "review_rework_minutes": 0.5333333,
+        "first_review_accepted": true,
+        "rework_cycles": 0,
+        "escalated": false,
+        "escalation_reason": null,
+        "escalation_packet": null,
+        "review_failure_class": null,
+        "measured_credits": null,
+        "credit_source": "unavailable",
+        "credit_unit": null,
+        "accepted_evidence": "experiments/2026-09-07-keyboard-boot2-session/results/candidate-r-bootstrap-feasibility.json"
       }
     }
   ],
