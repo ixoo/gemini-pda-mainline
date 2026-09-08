@@ -72,6 +72,9 @@ It also records an AP–MD1 protection request for region 7 at
 This agrees with the asymmetric host-side ownership found in the source audit.
 The messages precede the relevant calls; they do not witness accepted secure
 MPU programming or a readback. No protection-register read was performed.
+The [retained secure-handler follow-up](SECURE_MPU.md) now identifies the
+region-7/13 software-lock rejection and store paths. It confirms that the
+outer host zero return would not distinguish secure lock denial from acceptance.
 
 The remaining handoff gaps are the exact loaded-image identity, attribution of
 the extra 32 MiB reservation, secure MPU acceptance/lock authority and a safe

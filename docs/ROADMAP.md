@@ -128,6 +128,9 @@ The [retained-firmware join](../experiments/2026-09-07-mt6797-cellular-upstream-
 pins matching retained header fields and component container digests; it leaves
 the executing bytes unproved and exposes a one-byte ARM7 component whose purpose
 must be resolved before defining a loadable firmware bundle.
+The [retained modem MPU paths](../experiments/2026-09-07-mt6797-cellular-upstream-architecture/SECURE_MPU.md)
+establish region-7/13 lock-denial and store behavior; current acceptance and
+ownership remain unproved because the host wrapper discards the secure result.
 Do not repeat unchanged OS metadata for those gaps. Missing attribution preserves
 the stop; queue/DMA, framing/channel and full boot/crash teardown remain later gates.
 
