@@ -1,0 +1,91 @@
+{
+  "firmware_sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
+  "analysis_tool": "Ghidra 12.1.2",
+  "premises": [
+    "Existing retained-image identity and plaintext mapping.",
+    "NDS32 instruction decoding and prior calling-convention assumptions.",
+    "Calls not traversed; fallthrough assumes return."
+  ],
+  "scripts_sha256": {
+    "ArithmeticPrefix.java": "280c86db87ce250ac85dc8dcdad6368fc78d81c232a80c2c0eaa3f245a1eb33e",
+    "ArithmeticRefs.java": "c3189874cb6e88858a7ce5820ea845a133d05fe34568667f9ec695a5903887d8",
+    "ArithmeticInspect.java": "120cc2fd3bd7122d89b765a75b3078e30957f96bff48c1b0b9000eabaf202f5b",
+    "ArithmeticCallers.java": "53ff34df351a5a8a65718f1459c6073b953fca42c8f1f3f08a271070e7a7a6e3",
+    "SelectorRefs.java": "a981a9a3b69ccec097a6b68c7c8d8f1a47f7fb90a291ffec304e3f67672e3625",
+    "ArithmeticBoundary.java": "009b2554c7b9910f817d391e350feb94f84096238d2eebac83059c72894f7e87",
+    "FrequencyContext.java": "42904d313e176275b65bc5cf528eb307d3174079e336475c8722607068557ca3",
+    "AdjustmentEntry.java": "4b5843a62f0c67833d7fabf29f903f7883acf345ee8cebbbce78e1d9f42adb74",
+    "AdjustmentPrologue.java": "36b25b16423ae3e69c077cc629760a72c1626a98d1990689b772e1da5f51ce53",
+    "AdjustmentInspect.java": "9457a4f7e4a08ec9e3924a6db216b9eaf2ed95e29cb1441b90da28eef45a178e",
+    "ReservedLabels.java": "c57afc0bca9aa069a3c8efb4515e6fdc4027707ba314af51b1e307bd5668cc1a"
+  },
+  "arithmetic_walk": {
+    "node_cap": 256,
+    "nodes": 22,
+    "calls": 0,
+    "terminal": 1,
+    "queue_exhausted": true,
+    "invalid": 0,
+    "unresolved_noncall_computed": 0
+  },
+  "caller_walk": {
+    "node_cap": 512,
+    "nodes": 203,
+    "calls": 6,
+    "terminal": 1,
+    "queue_exhausted": true,
+    "invalid": 0,
+    "unresolved_noncall_computed": 0
+  },
+  "arithmetic_reference_search": {
+    "method": "two-byte-aligned adjacent same-register split-immediate pairs in plaintext section 2",
+    "target": "candidate arithmetic helper entry",
+    "matches": 2,
+    "both_joined_to_calls": true
+  },
+  "selector_reference_search": {
+    "method": "upper-address immediate candidates and bounded local textual offset match",
+    "upper_immediate_candidates": 686,
+    "instructions_per_window_max": 12,
+    "matching_windows": 44,
+    "warning": "overlaps and unrelated base-register matches included; not a reference count"
+  },
+  "linear_windows": {
+    "ArithmeticPrefix": {
+      "instructions": 50,
+      "cap": 96
+    },
+    "ArithmeticCallers": {
+      "instructions": 121,
+      "cap": 160
+    },
+    "ArithmeticBoundary": {
+      "instructions": 44,
+      "cap": 96
+    },
+    "FrequencyContext": {
+      "instructions": 35,
+      "cap": 96
+    },
+    "AdjustmentEntry": {
+      "instructions": 55,
+      "cap": 96
+    },
+    "AdjustmentPrologue": {
+      "instructions": 31,
+      "cap": 96
+    }
+  },
+  "labels": {
+    "selected": 3,
+    "max_bytes_each": 160,
+    "attribution": "two selected global-load diagnostic labels name transmit-path-loss compensation by band; third provides contextual transmit-power-limit naming only"
+  },
+  "interpretation_limits": [
+    "Diagnostic naming and decoded flow do not prove physical effect, units or live applicability.",
+    "Unresolved output callbacks and compensation lifecycle.",
+    "Linear windows can begin inside prior code; not complete function boundaries.",
+    "No runtime calibration acceptance claim."
+  ],
+  "redaction": "No private addresses, constants, firmware strings, instruction listings or calibration values published."
+}

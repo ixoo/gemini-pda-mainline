@@ -75,7 +75,7 @@ and this full-record handler demonstrably has a narrower selected-field role.
 No change to the existing opaque 512-byte submission helper is required.
 
 The follow-up below narrows those dependencies without a radio test. Remaining
-questions include the arithmetic caller and the other reserved-byte consumers.
+questions include the output callbacks, compensation units and remaining gate consumers.
 The actual installed/executing image, record provenance, complete calibration
 and regulatory behavior remain separate requirements. Shared HIF power/stop
 ownership is unchanged; no active driver or firmware operation is admitted.
@@ -135,8 +135,8 @@ replacement value.
 The candidate search inspected up to 12 instructions after each matching
 upper-address immediate at two-byte offsets in plaintext section 2. Its 19
 matching windows include overlaps, stores and unrelated low-immediate matches;
-they are not 19 proven consumers. The offset-271 and offset-272 consumers and
-other candidate paths remain unresolved. This search cannot establish absence
+they are not 19 proven consumers. The offset-271 arithmetic path is resolved
+below; offset-272 and other candidate paths remain unresolved. This search cannot establish absence
 of indirect or differently constructed references.
 
 The [follow-up receipt](results/firmware-nvram-feature.json) pins the three
@@ -145,3 +145,53 @@ instructions and p-code were reviewed in the RE VM; private listings remain
 retained there. No firmware bytes, private addresses, calibration values or
 strings are published. No kernel code changed and no device access, emulation,
 firmware load, calibration operation or radio test was performed.
+
+## Follow-up: transmit-path-loss compensation attribution
+
+The retained diagnostic labels for the offset-270 and offset-271 globals name
+2.4 GHz and 5 GHz transmit-path-loss compensation respectively. These labels
+are joined to the selected global loads preceding diagnostic calls, rather
+than inferred from a nearby unreferenced string. They corroborate the arithmetic
+use below; they do not establish measured RF effects or units. This transmit
+compensation is distinct from the two RSSI receive-compensation bytes submitted
+by command `0x43`.
+
+A preceding return and padding identify a candidate entry for the arithmetic
+helper. Two separate immediate-derived call sites target that entry, providing
+additional boundary evidence. Its selected graph exhausts at 22 instructions,
+with no calls. It first narrows the adjustment input to a signed byte. Two
+specific selector values choose the offset-270 or offset-271 global; other
+values return the narrowed input unchanged. The selected global is loaded as
+an unsigned byte and feeds the comparison/addition described above. The full
+entry therefore resolves the second reserved-byte path and the previous
+uncertainty about initial input narrowing.
+
+Both call sites lie in one routine whose selected direct-flow graph exhausts
+after 203 instructions and six calls. Each supplies the same fixed global
+word as selector and uses the returned adjustment in signed minimum operations
+that feed local byte tables. One call site is inside a loop. The routine also
+uses the offset-270 global directly in an earlier adjustment. Near its tail,
+it copies 28 bytes from the local table into a fixed global area, passes the
+local table to an indirect callback, and passes a second local table to another
+indirect callback. A final indirect callback receives three bytes from an
+incoming structure. Those callback targets and effects remain unresolved;
+the copy and argument flow are not evidence of hardware programming success.
+
+The selector also participates in a separately inspected base-plus-scaled-index
+calculation, with a special case. That is consistent with frequency selection,
+but its input producer and final consumer have not been joined here. Diagnostic
+band labels support the field attribution without requiring an asserted unit
+for that selector or the compensation values.
+
+The implementation consequence remains preservation of the exact record and
+its applicability requirements. Do not replace these bytes with zero or host
+RSSI compensation, infer a safe range from the arithmetic ceiling, or treat
+the callback handoff as calibration acceptance. Output callback ownership and
+compensation lifecycle are the next useful static questions.
+
+The [transmit-compensation receipt](results/firmware-tx-compensation.json)
+records scripts, search bounds and graph counts. Candidate searches and linear
+windows only located anchors; the selected graphs and relevant p-code support
+the stated data flow. Private labels, addresses, constants and instruction
+listings remain in the RE VM. This follow-up performed no device operation,
+emulation, kernel build or radio test.
