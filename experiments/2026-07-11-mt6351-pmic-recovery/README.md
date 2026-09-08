@@ -20,8 +20,10 @@ Linux 7.1.3 before storage, power key, RTC, and safe regulator control can work?
 ## Evidence and safety
 
 The owner-authorized live probe used the committed
-[`collect-live-pmic.sh`](scripts/collect-live-pmic.sh). Its default mode only
-reads procfs, sysfs, debugfs, and running-kernel configuration. Private output
+[`collect-live-pmic.sh`](scripts/collect-live-pmic.sh). The original default mode
+read procfs, sysfs, debugfs, and running-kernel configuration, but the RTC
+procfs read was not hardware-read-only; see the
+[2026-09-08 source correction](results/rtc-source-audit-20260908.md). Private output
 is ignored by Git at `artifacts/device-inventory/20260711-live/pmic.txt`; the
 normalized facts are committed in
 [`results/runtime-summary.txt`](results/runtime-summary.txt).
@@ -551,10 +553,12 @@ state. Its MT6351 register block starts at `0x4000`, spans `0x40` bytes, uses
 16-bit registers every two bytes, and has write-trigger offset `0x3c`. The
 layout is the older MT6397-style variant, not the MT6358 base at `0x0588`.
 
-Linux 7.1.3's `rtc-mt6397` logic is structurally reusable with an MT6351 match
-and MFD resource at `0x4000` plus PMIC IRQ 9. A controlled set/read/alarm and
-power-cycle test is still required; this experiment intentionally did not
-change the RTC or alarm.
+The register layout suggests reuse of Linux 7.1.3's `rtc-mt6397` with an
+MT6351 match and MFD resource at `0x4000` plus PMIC IRQ 9. This is not yet
+protocol compatibility: the [later source audit](results/rtc-source-audit-20260908.md)
+identifies a vendor reload sequence absent from the upstream time-read path.
+A controlled set/read/alarm and power-cycle test is still required; this
+experiment requested no time setting or alarm programming.
 
 ## Mainline patch boundaries
 
@@ -581,8 +585,10 @@ regulator approximations.
 
 ## Limitations
 
-- No PMIC register was changed and no rail was toggled, so regulator control is
-  not runtime-validated on mainline.
+- No rail toggle was requested, so regulator control is not runtime-validated
+  on mainline. The original blanket claim that no PMIC register changed is
+  withdrawn: the collector invoked a stateful RTC time-read path; see the
+  [source correction](results/rtc-source-audit-20260908.md).
 - Voltage selector tables come from public GPL source and are cross-checked
   against raw live selectors and Gray-code readback; actual rail voltage was
   not measured electrically.

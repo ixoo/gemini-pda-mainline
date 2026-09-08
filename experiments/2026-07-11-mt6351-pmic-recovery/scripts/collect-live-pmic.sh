@@ -86,13 +86,11 @@ else
   printf 'unavailable=/proc/mt_pmic/dump_ldo_status\n'
 fi
 
-heading "RTC interface"
-if [[ -r /proc/driver/rtc ]]; then
-  # Time/date are transient and may expose user policy. Capture capabilities
-  # and alarm state only.
-  grep -E '^(alarm_IRQ|alrm_pending|update IRQ enabled|periodic IRQ enabled|periodic IRQ frequency|max user IRQ frequency|24hr)' \
-    /proc/driver/rtc || true
-fi
+heading "RTC metadata"
+# Do not read /proc/driver/rtc: Gemian's time callback writes BBPU RELOAD and
+# WRTGR even when a consumer filters out the time fields. These sysfs fields
+# use cached metadata in the audited Gemian source; wakealarm is not a hardware
+# alarm readback. See ../results/rtc-source-audit-20260908.md.
 for device in /sys/class/rtc/rtc*; do
   [[ -e "${device}" ]] || continue
   printf '%s|name=%s|hctosys=%s|wakealarm=%s\n' \

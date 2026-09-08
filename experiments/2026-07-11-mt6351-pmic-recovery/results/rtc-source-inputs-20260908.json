@@ -1,0 +1,86 @@
+[
+  {
+    "repository": "torvalds/linux",
+    "revision": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "path": "drivers/rtc/rtc-mt6397.c",
+    "bytes": 9163,
+    "sha256": "bdcc2e03bb190b44cc95f052bee7c8fd7a0964b08164cc6034bfba5205108ddd"
+  },
+  {
+    "repository": "torvalds/linux",
+    "revision": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "path": "drivers/mfd/mt6397-core.c",
+    "bytes": 12078,
+    "sha256": "957c88e5f6979f674002ef48471a817cb034d83e6ab38f912916bf678d768bb9"
+  },
+  {
+    "repository": "torvalds/linux",
+    "revision": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "path": "Documentation/devicetree/bindings/mfd/mediatek,mt6397.yaml",
+    "bytes": 18959,
+    "sha256": "291538ab8f66ca32eba6c1d8d1864b5e6146b57f53db32f7213b0c4f8ae0e9ca"
+  },
+  {
+    "repository": "torvalds/linux",
+    "revision": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "path": "include/linux/mfd/mt6397/rtc.h",
+    "bytes": 2281,
+    "sha256": "6cc6002d16d882c4d5239c5f7dd2b1c7e8e5ade4b6343d9b7011264f2a8486ab"
+  },
+  {
+    "repository": "gemian/gemini-linux-kernel-3.18",
+    "revision": "59e00a9144d782e148332009a835b99c43382467",
+    "path": "drivers/misc/mediatek/rtc/Makefile",
+    "bytes": 1882,
+    "sha256": "b911c1da4e7c4b357bf35320764e49583287a03abeaeef1453349d25d1ac3b8d"
+  },
+  {
+    "repository": "gemian/gemini-linux-kernel-3.18",
+    "revision": "59e00a9144d782e148332009a835b99c43382467",
+    "path": "drivers/misc/mediatek/rtc/mtk_rtc_common.c",
+    "bytes": 19385,
+    "sha256": "4855f60a94958a5717347937dd243cbdbff63bd0d3a676631ee84b2272817e35"
+  },
+  {
+    "repository": "gemian/gemini-linux-kernel-3.18",
+    "revision": "59e00a9144d782e148332009a835b99c43382467",
+    "path": "drivers/misc/mediatek/rtc/mtk_rtc_hal_common.c",
+    "bytes": 10241,
+    "sha256": "30c51b40dd531c194f45073fc2a6dec0dedf1116a0145452ec65901adbce99d0"
+  },
+  {
+    "repository": "gemian/gemini-linux-kernel-3.18",
+    "revision": "59e00a9144d782e148332009a835b99c43382467",
+    "path": "drivers/misc/mediatek/rtc/mt6351/Makefile",
+    "bytes": 510,
+    "sha256": "d87a9bb523ce7dfcf75af0c117a0b06e039ad217adbe610397aa842f39b9da8a"
+  },
+  {
+    "repository": "gemian/gemini-linux-kernel-3.18",
+    "revision": "59e00a9144d782e148332009a835b99c43382467",
+    "path": "drivers/misc/mediatek/rtc/mt6351/mtk_rtc_hal.c",
+    "bytes": 9854,
+    "sha256": "603645f42de898d3b14c9fcf49bd364a19220b2250bbdeffc791673f34b88153"
+  },
+  {
+    "repository": "gemian/gemini-linux-kernel-3.18",
+    "revision": "59e00a9144d782e148332009a835b99c43382467",
+    "path": "drivers/rtc/rtc-proc.c",
+    "bytes": 3684,
+    "sha256": "080b941a2f1fe3079fdf767019166b981f1afff1aea11ea2a63f6329510605a7"
+  },
+  {
+    "repository": "gemian/gemini-linux-kernel-3.18",
+    "revision": "59e00a9144d782e148332009a835b99c43382467",
+    "path": "drivers/rtc/rtc-sysfs.c",
+    "bytes": 6499,
+    "sha256": "d45c7be30cf877d63fb4935dc2df6420045cf104aaeb6f8fa299dc63ce55ed77"
+  },
+  {
+    "repository": "gemian/gemini-linux-kernel-3.18",
+    "revision": "59e00a9144d782e148332009a835b99c43382467",
+    "path": "drivers/rtc/interface.c",
+    "bytes": 31807,
+    "sha256": "c015204737e08494fe7c26368ad174086f2abe9bd058b92dba35ba6ff7124ada"
+  }
+]
