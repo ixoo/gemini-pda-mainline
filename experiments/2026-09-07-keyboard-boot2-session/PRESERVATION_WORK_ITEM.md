@@ -156,3 +156,84 @@ and blocked-output cases. Otherwise it needs a separately designed supervisor.
 Host timeout alone supplies no remote process-lifetime proof. No runner, live
 delivery, probe restart, keyboard action, original proof receipt, success
 promotion, cleanup, shutdown, reboot or recovery is admitted here.
+
+## Fixture-only coverage escalation
+
+The fetched successor package is internally valid, but it does not yet close
+helper acceptance. Its eleven-test Linux log proves the portable device-number
+alias case only through the native host helper; identity drift, exact scan
+limits, truncated process data, executable identity, deadline and blocked
+stdout also lack the contract-required ARM64/QEMU cells. Package integrity is
+not evidence that an unexecuted architecture cell passed.
+
+Astra therefore froze one separately scoped Luna High fixture repair. Only
+`test-preserve-disconnect-native.py` and attributable result documentation are
+owned. Helper source SHA-256
+`184647a9ff7ba0e60159dd75b4836f944238b12302a90653ec46c5960abfaf55`
+must not change. The fixture must parameterize identity drift, process limits,
+descriptor and match boundaries, truncated process values, executable
+identities and portable device aliases across native and explicit pinned-QEMU
+ARM64 execution. It must compile equivalent native and ARM64 pause,
+short-deadline and blocked-output variants, retain marker-driven race
+synchronization, use a deterministic prefilled nonblocking output pipe for
+both architectures, and verify preservation frames survive every scan refusal.
+
+The result must include a bounded matrix naming scenario, architecture,
+fixture-binary SHA-256, result and skip reason. Missing QEMU/compiler, any
+required Linux skip or a missing required cell is failure. A macOS-native alias
+skip is acceptable only when the Linux-native and ARM64/QEMU cells pass. Keep
+the static forbidden-process-call scan against the unchanged helper source.
+
+After focused offline review, commit and push the exact fixture change, then
+run one exact Buildbox job. A test-only run is sufficient if existing routing
+can produce attributable evidence without broader tooling changes. If the
+reviewed package route must rebuild, the production helper must remain exactly
+66,672 bytes with SHA-256
+`750169b008cae28fd6297f7a1567ad833022b521f17ee9c6c1e2ffa023c4f745`;
+record any successor package separately. The earlier two-repair helper-source
+limit does not bar this explicit fixture correction, but no helper repair is
+reopened. Stop on helper or production-binary drift, missing coverage, a
+relevant test failure or need for broader tooling; there is no automatic
+second run. Device delivery and live execution remain excluded.
+
+The first escalated implementation revision, fixture SHA-256 `7f9a0c6a...`,
+is rejected before publication: it reused emptied identity-drift inputs for the
+second architecture, omitted complete preservation assertions on two scan
+refusals, covered only the deleted executable spelling, and recorded process
+exit before semantic assertions as if it were the matrix result. After the two
+Luna attempts, Astra authorized one fresh fixture-only attempt by a different
+Luna High implementer. This is an escalation disposition, not a resumed repair
+loop, and does not admit Buildbox.
+
+Each identity-drift architecture case must reset and repopulate inputs, use a
+bounded explicit marker wait, and reap its child in `finally` before removing
+files. Snapshot and compare all four exact payloads, regular states, successful
+read metadata and stability after every completed-preservation scan refusal.
+Test exact and deleted executable spellings as distinct native and ARM64 cases
+with independent executable/deleted/command-line counters. Matrix `pass` may
+be appended only after semantic assertions; failures are recorded and
+propagated. Required cells occur exactly once and must pass; duplicates,
+missing cells, failures and required skips reject acceptance, while cleanup
+still runs. Focused negative fixtures must prove those matrix refusals. A pair
+of consecutive native variants may prove state isolation only when labeled
+non-ARM; it cannot stand in for the later real QEMU evidence. Any further
+relevant defect, helper drift or scope expansion stops at a new escalation.
+
+The separately escalated Luna revision `7fcf2248...` was also rejected before
+publication because unittest-object/string comparison could label failed cases
+as passing, matrix-validation failure bypassed diagnostic cleanup, and its
+local isolation check did not exercise two delayed drift variants. Astra then
+authorized one final coordinator-owned fixture correction. The resulting
+fixture is
+`790a46a4478e588b508270f07bd32870dcaac330e4a1ed08a58399cadd860285`;
+the helper remains `184647a9...`. Fifteen native methods pass with the one
+expected macOS device-alias skip. Assertion, ordinary-exception and real nested
+subtest failures now produce failed matrix cells while retaining the original
+failure; matrix validation always attempts bounded diagnostics and cleanup;
+and two distinct delayed native binaries both pass the shared drift
+orchestration. Final specialist source review admits commit/push and one exact
+Buildbox run. That run must contain exactly one passing, unskipped native and
+ARM64/QEMU cell for each of the 13 required scenarios (26 cells total), and the
+rebuilt production helper must remain exactly 66,672 bytes with SHA-256
+`750169b008cae28fd6297f7a1567ad833022b521f17ee9c6c1e2ffa023c4f745`.
+Any failure or identity drift stops without another build or repair.
