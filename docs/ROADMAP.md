@@ -125,6 +125,11 @@ power/firmware interface with the integration owner; Bluetooth and GNSS must
 not independently mutate that contract. The evidence must establish the exact
 transport and firmware protocol before choosing reuse or a new family driver.
 Neither a vendor node name nor a compiled MT76 module establishes a match.
+The [gen3 offload review](../experiments/2026-09-08-mt6797-wlan-offloads/README.md)
+selects mac80211 as the preferred design target because authentication,
+association and receive reordering are host responsibilities in the inspected
+source. Translated RX still needs an explicit reorder owner; this choice
+admits no driver activation and does not resolve the shared HIF lifetime stop.
 
 The Wi-Fi delivery sequence is a reviewed resource/firmware contract, bounded
 bring-up and enumeration, standard cfg80211 scanning and authenticated station

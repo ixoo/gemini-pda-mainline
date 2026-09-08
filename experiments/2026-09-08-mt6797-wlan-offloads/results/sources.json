@@ -1,0 +1,340 @@
+{
+  "vendor_commit": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+  "vendor_files": [
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_cfg80211.c",
+      "sha256": "30aa8d675fad0d895a402c5c6e052773661006334e60fe9a22a23c6b183487d8",
+      "bytes": 86432,
+      "line_ranges": [
+        [
+          555,
+          635
+        ],
+        [
+          640,
+          682
+        ],
+        [
+          970,
+          1020
+        ]
+      ],
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_cfg80211.c"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/ais_fsm.c",
+      "sha256": "738b8fcf0d34098fef986c1dba4963ebe0676665b0a914d7a712a50e814838ba",
+      "bytes": 164281,
+      "line_ranges": [
+        [
+          407,
+          535
+        ]
+      ],
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/ais_fsm.c"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/saa_fsm.c",
+      "sha256": "3d92b6d672f6e8ef38e5ff0a4d060a53b579f854ea78060ba1b35d5c557cade8",
+      "bytes": 59617,
+      "line_ranges": [
+        [
+          159,
+          194
+        ],
+        [
+          242,
+          269
+        ],
+        [
+          865,
+          929
+        ]
+      ],
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/saa_fsm.c"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/scan_fsm.c",
+      "sha256": "f14bd3421fb7cae2d8879d7eaf8237c8837b0ced79e41310b4fd2b417bb66758",
+      "bytes": 61447,
+      "line_ranges": [
+        [
+          283,
+          366
+        ],
+        [
+          693,
+          745
+        ]
+      ],
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/scan_fsm.c"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic_tx.c",
+      "sha256": "1f479d41bab8e2b5bba68eb6514f3e977559d31d97c39c7833f3dc9f111cd1ed",
+      "bytes": 104350,
+      "line_ranges": [
+        [
+          1019,
+          1154
+        ],
+        [
+          2377,
+          2414
+        ]
+      ],
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic_tx.c"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic_rx.c",
+      "sha256": "a844bdf75065a152e78d30c789aabb398b0d0f336d30d6ffd028793bf091412b",
+      "bytes": 126321,
+      "line_ranges": [
+        [
+          285,
+          368
+        ],
+        [
+          1313,
+          1348
+        ],
+        [
+          1761,
+          1778
+        ],
+        [
+          1967,
+          1991
+        ],
+        [
+          2473,
+          2538
+        ]
+      ],
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic_rx.c"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/include/nic_cmd_event.h",
+      "sha256": "93c8d67b1bc039a8db5b635e5a00975f2b9e408f4ab1bc8a384f5db49bf00a3a",
+      "bytes": 60516,
+      "line_ranges": [
+        [
+          73,
+          105
+        ],
+        [
+          198,
+          214
+        ],
+        [
+          887,
+          897
+        ],
+        [
+          963,
+          1026
+        ]
+      ],
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/include/nic_cmd_event.h"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/include/nic/nic_tx.h",
+      "sha256": "a51b8357b2a5fc0fdff095866d693194274f552cb2e722016bb1ce7c81612db7",
+      "bytes": 59012,
+      "line_ranges": [
+        [
+          115,
+          124
+        ],
+        [
+          169,
+          190
+        ]
+      ],
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/include/nic/nic_tx.h"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/include/nic/nic_rx.h",
+      "sha256": "0645985217a887e6c2d367955fa656b45f716a6aeeee13a29a2b462eb8dea5cb",
+      "bytes": 33559,
+      "line_ranges": [
+        [
+          112,
+          147
+        ],
+        [
+          682,
+          684
+        ]
+      ],
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/include/nic/nic_rx.h"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/nic/que_mgt.c",
+      "sha256": "03fd22064c8bd56de4a895fde769264679c89cc05645be9e6395ecd545176a96",
+      "bytes": 198456,
+      "line_ranges": [
+        [
+          2557,
+          2628
+        ],
+        [
+          3414,
+          3457
+        ]
+      ],
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/nic/que_mgt.c"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_oid.c",
+      "sha256": "ebfc83d78f86c4cee23207901d8cefbbdaa7b6939c8e078c28e46e703932f5d3",
+      "bytes": 383605,
+      "line_ranges": [
+        [
+          2316,
+          2355
+        ],
+        [
+          2649,
+          2655
+        ]
+      ],
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_oid.c"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/cnm_mem.c",
+      "sha256": "0b076bd5fad5e06de878763e4c8f9a8e600d48af8a3ea5f8146297d8612c34ec",
+      "bytes": 46453,
+      "line_ranges": [
+        [
+          720,
+          760
+        ],
+        [
+          850,
+          880
+        ],
+        [
+          953,
+          963
+        ]
+      ],
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/cnm_mem.c"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/include/config.h",
+      "sha256": "c773b8e5e07978d60565c2eeee976dae3e285ecb9152062fe3bb50b1358a1c32",
+      "bytes": 30266,
+      "line_ranges": [
+        [
+          358,
+          362
+        ]
+      ],
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/include/config.h"
+    }
+  ],
+  "upstream_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "upstream_files": [
+    {
+      "path": "include/net/mac80211.h",
+      "sha256": "8c25dd5dbd54477548edfd3cc7be58d29683be34f3f6adfc8f8b4b05b1ddc2ba",
+      "bytes": 327847,
+      "line_ranges": [
+        [
+          1647,
+          1650
+        ],
+        [
+          2998,
+          3001
+        ],
+        [
+          3058,
+          3064
+        ],
+        [
+          2844,
+          2858
+        ],
+        [
+          4158,
+          4165
+        ],
+        [
+          4200,
+          4208
+        ],
+        [
+          4222,
+          4245
+        ],
+        [
+          4327,
+          4336
+        ]
+      ],
+      "url": "https://github.com/torvalds/linux/blob/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/include/net/mac80211.h"
+    },
+    {
+      "path": "net/mac80211/rx.c",
+      "sha256": "e9d38d41e23bb95e1a344641e929ee26c4a4194a7405bfd76623e9c1ebb04900",
+      "bytes": 164197,
+      "line_ranges": [
+        [
+          4300,
+          4314
+        ],
+        [
+          5258,
+          5305
+        ],
+        [
+          5704,
+          5721
+        ]
+      ],
+      "url": "https://github.com/torvalds/linux/blob/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/net/mac80211/rx.c"
+    }
+  ],
+  "upstream_cache_check": "each inspected file equals the corresponding member of the existing manifest-pinned source archive",
+  "perf_comparator_commit": "59e00a9144d782e148332009a835b99c43382467",
+  "perf_comparator_files": [
+    {
+      "path": "include/uapi/linux/perf_event.h",
+      "sha256": "5a512b8551ae542060ceed1b198665512817fcd716bfa13229dae00380a05953",
+      "bytes": 23708,
+      "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/include/uapi/linux/perf_event.h",
+      "line_ranges": [
+        [
+          120,
+          145
+        ]
+      ]
+    },
+    {
+      "path": "kernel/events/core.c",
+      "sha256": "9278fffdfaafcc80883ae2c0ad1e8231223e858dba940751bff4488608e8749b",
+      "bytes": 204656,
+      "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/kernel/events/core.c",
+      "line_ranges": [
+        [
+          4672,
+          4687
+        ],
+        [
+          6449,
+          6458
+        ]
+      ]
+    }
+  ],
+  "acquisition": "individual git objects from existing Buildbox public source cache; upstream file equality checked against retained pinned archive; no Linux source tree transferred",
+  "network_attempts": "two raw GitHub file opens returned cache misses; existing exact Git object cache then used",
+  "live_device_access": false,
+  "binary_analysis": false,
+  "private_capture_access": false,
+  "upstream_archive_sha256": "45590c057805bc9cf7281ce04d5dbde5316b7c8b017998cafac301f67e92682d",
+  "upstream_archive_checksum_verified": true,
+  "perf_cache_note": "prepared core.c differed from the complete public blob; relevant functions were then read directly from the pinned Git object; no live identity claim"
+}
