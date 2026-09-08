@@ -407,3 +407,29 @@ contains restoration and wake-cleanup helpers, mutex calls and the managed
 cleanup registration. The source baseline, configuration, toolchain and first
 ten patches match the parent package. No device candidate is created, and
 hardware suspend/recovery remains untested.
+
+## Runtime IRQ transport diagnostics
+
+The [twelfth patch](../../patches/upstream-4d7d9486/mt6351/0012-mfd-mt6397-report-runtime-IRQ-transport-errors.patch)
+reports normal-mask and status-acknowledgement write failures with the bank
+number and errno. It uses `dev_err_ratelimited()` for those reports and the
+existing status-read failure. The normal mask loop still attempts every bank
+and unlocks; status dispatch still occurs only after a successful read and
+only for mapped bits; acknowledgement is still one write after dispatch.
+There is no new retry, parent-IRQ disable, or change to `IRQ_HANDLED` behavior.
+
+The [focused regression](test-irq-runtime-errors.py) compiles the actual
+mask-sync and status callbacks with injected bus results. Its 21 cases cover
+successful mask programming, each of four mask failures, and read failure,
+acknowledgement failure, normal dispatch and empty status for each bank.
+A failed read supplies an untrusted nonzero status but must cause no dispatch
+or acknowledgement. Failed acknowledgement must not trigger another write.
+The eleven-patch parent compiles but fails the missing-report assertion; the
+changed source passes, including exact replay. Strict checkpatch passed.
+The logging callback is modeled as a report counter, so this test verifies
+report selection, not kernel ratelimit timing or live interrupt concurrency.
+
+These diagnostics report transport failures; they do not establish or restore
+the hardware state. Repeated status assertion, event loss and safe recovery from a persistent
+bus fault remain runtime questions, not claims supported by this source test.
+The twelve-patch compile is pending. No device candidate is created.
