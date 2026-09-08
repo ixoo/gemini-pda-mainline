@@ -267,6 +267,13 @@ based, without a physical bus trace or live client-memory read. No second
 address was tested. This resolves the chip-ID byte, while device count,
 rails, interrupts, chassis orientation and mainline operation remain unproved.
 A mainline probe must still validate the resource and register contract.
+The [resource audit](../../experiments/2026-09-07-gemini-sensors-upstream-architecture/BMI_RESOURCES.md)
+finds cached power IDs of `0xffff`, which do not identify supply rails, and
+an attempted vendor IRQ lookup of the ALS node whose request failure is not
+propagated. No BMI interrupt action is listed in that snapshot. Do not reuse
+the ALS wiring for the IMU; initial direct IIO reads may omit an IRQ once bus
+and power ownership are established. Buffered IRQ and wake behavior require
+the actual IMU connection.
 
 The vendor's `bmi160_bmi_value` diagnostic is not an identity field: its
 handler reads a 12-byte raw data block beginning at register `0x0c`. Neighboring

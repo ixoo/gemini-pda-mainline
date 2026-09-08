@@ -1,0 +1,131 @@
+{
+  "date": "2026-09-08",
+  "boot_id": "6a5395c2-71d0-4392-a397-be3be83b049b",
+  "kernel_release": "3.18.41+",
+  "version_sha256": "999f539c557b29fb34f1adc6a70992bae63f241e4a5ab4fd47b8d9baf8f81688",
+  "capture_scope": "Normalized allowlisted live DT properties and filtered /proc/interrupts; boot/release/version gates passed. No sensor transaction or control attribute access.",
+  "live_dt": {
+    "cust_accel@1": {
+      "compatible": "mediatek,bmi160_acc",
+      "i2c_num": 1,
+      "direction": 7,
+      "power_id": 65535,
+      "power_vol": 0
+    },
+    "cust_gyro@1": {
+      "compatible": "mediatek,bmi160_gyro",
+      "i2c_num": 1,
+      "direction": 7,
+      "power_id": 65535,
+      "power_vol": 0
+    },
+    "soc/i2c@11008000/gsensor_bmi160@68": {
+      "compatible": "mediatek,gsensor_bmi160",
+      "reg": 104,
+      "status": "okay"
+    },
+    "soc/i2c@11008000/gyro_bmi160@69": {
+      "compatible": "mediatek,gyro_bmi160",
+      "reg": 105,
+      "status": "okay"
+    },
+    "als": {
+      "compatible": "mediatek, als-eint",
+      "status": "okay",
+      "debounce": [
+        88,
+        0
+      ],
+      "interrupt-parent": 13,
+      "interrupts": [
+        88,
+        8
+      ]
+    }
+  },
+  "supply_properties_on_these_nodes": [],
+  "filtered_interrupt_lines": [
+    "395:          0          0   mt-eint  11  ALS-eint"
+  ],
+  "interrupt_filter_case_insensitive": [
+    "bmi",
+    "stk",
+    "als",
+    "gyro",
+    "accel"
+  ],
+  "vendor_commit": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+  "sources": [
+    {
+      "path": "drivers/misc/mediatek/accelerometer/bmi160_acc/bmi160_acc.c",
+      "bytes": 104167,
+      "sha256": "4cdc6e35f527bb888c0e63d447799384995235f68f9ee143edce95242c2a36b2"
+    },
+    {
+      "path": "drivers/misc/mediatek/gyroscope/bmi160_gyro/bmi160_gyro.c",
+      "bytes": 46138,
+      "sha256": "7342660a497848e4f2f2753319f7637ef8dc4b882136e2b7dea1c05d84d93845"
+    },
+    {
+      "path": "drivers/misc/mediatek/accelerometer/accel.c",
+      "bytes": 22222,
+      "sha256": "7caeb91844749c83ccf00a630564a8182cacd1cced6ae1c7abd38e041f1aae55"
+    },
+    {
+      "path": "drivers/misc/mediatek/gyroscope/gyroscope.c",
+      "bytes": 23233,
+      "sha256": "8d2b573a406a88010cd6ef5f178e0f8ab36c20aa61863574bb7fd4af6752980d"
+    },
+    {
+      "path": "drivers/misc/mediatek/hwmon/sensor_dts/sensor_dts.c",
+      "bytes": 12471,
+      "sha256": "bb9925a2a58bbae235e0a6ead19fe43f8e91956c9a9ec65bb73177a657c3e4b7"
+    },
+    {
+      "path": "include/linux/of.h",
+      "bytes": 28732,
+      "sha256": "251d10a27729866ed444533dde52c2ebc3dda35ee6e662ee3bc9ef52a8a1050b"
+    }
+  ],
+  "retained_binary": {
+    "vmlinux_sha256": "cc66df06194d3315335462760962165e1dcb2e50221574aeb45a0805bb17a162",
+    "spans": [
+      {
+        "symbol": "bmi160_acc_i2c_probe",
+        "start": "0xffffffc000490150",
+        "end_exclusive": "0xffffffc000490538",
+        "bytes": 1000,
+        "sha256": "3ca6c1a302c2f1582084e41ef0b9d218a81759adcaeea0cec630034b1a261723"
+      },
+      {
+        "symbol": "__of_device_is_compatible",
+        "start": "0xffffffc0009999c0",
+        "end_exclusive": "0xffffffc000999ae8",
+        "bytes": 296,
+        "sha256": "da8d44ac01cf0bbf8c713faf62408c1805cf609157e10b9d5a3aa01535afb123"
+      },
+      {
+        "symbol": "get_accel_dts_func",
+        "start": "0xffffffc00047c248",
+        "end_exclusive": "0xffffffc00047c400",
+        "bytes": 440,
+        "sha256": "164b74fe67149136b254db9bec112b650e68c56da3e90ff1353d3cdd9fbfe553"
+      }
+    ],
+    "lookup": {
+      "address": "0xffffffc000f7c448",
+      "value": "mediatek, ALS-eint"
+    },
+    "irq_name": {
+      "address": "0xffffffc000f7c460",
+      "value": "bmi160_accint"
+    }
+  },
+  "limits": [
+    "No return code from the historical IRQ request was observed.",
+    "No physical IMU interrupt net or supply source is identified.",
+    "Zero ALS interrupt counts do not establish absence of a wire or sensor function.",
+    "DT power_vol zero is metadata, not a measured zero-volt rail."
+  ],
+  "redaction": "Unrelated DT, interrupt entries, endpoints and raw disassembly omitted."
+}

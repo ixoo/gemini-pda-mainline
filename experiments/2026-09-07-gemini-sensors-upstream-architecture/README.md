@@ -29,6 +29,13 @@ and physical device count remain unproved. The source-only verdict below
 predates this observation; its missing-ID condition is superseded by this
 follow-up, while its node/probe stop remains in force.
 
+The [resource follow-up](BMI_RESOURCES.md) establishes that the legacy power
+fields do not identify VDD/VDDIO, and the accelerometer attempts to register
+against the ALS node without propagating IRQ failure. Do not copy that IRQ
+into the IMU description. An initial direct IIO test can deliberately omit an
+IRQ once bus and power ownership are resolved; that limited scope does not
+require proving a physical absence of interrupt wiring.
+
 ## Verdict
 
 The current Linux BMI160 and STK3310-family IIO drivers remain the correct
