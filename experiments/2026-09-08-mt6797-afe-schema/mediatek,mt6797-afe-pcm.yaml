@@ -1,0 +1,85 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/sound/mediatek,mt6797-afe-pcm.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: MediaTek MT6797 Audio Front End PCM controller
+
+maintainers:
+  - Tzung-Bi Shih <tzungbi@chromium.org>
+  - Jiaxin Yu <jiaxin.yu@mediatek.com>
+
+properties:
+  compatible:
+    const: mediatek,mt6797-audio
+
+  reg:
+    maxItems: 1
+
+  interrupts:
+    maxItems: 1
+
+  power-domains:
+    maxItems: 1
+
+  clocks:
+    items:
+      - description: Infrastructure audio clock
+      - description: Infrastructure audio 26 MHz clock
+      - description: MTKAIF 26 MHz pad clock
+      - description: Audio clock mux
+      - description: Audio internal bus clock mux
+      - description: SYSPLL3 divided by 4 clock
+      - description: SYSPLL1 divided by 4 clock
+      - description: 26 MHz reference clock
+
+  clock-names:
+    items:
+      - const: infra_sys_audio_clk
+      - const: infra_sys_audio_26m
+      - const: mtkaif_26m_clk
+      - const: top_mux_audio
+      - const: top_mux_aud_intbus
+      - const: top_sys_pll3_d4
+      - const: top_sys_pll1_d4
+      - const: top_clk26m_clk
+
+required:
+  - compatible
+  - reg
+  - interrupts
+  - power-domains
+  - clocks
+  - clock-names
+
+additionalProperties: false
+
+examples:
+  - |
+    #include <dt-bindings/clock/mt6797-clk.h>
+    #include <dt-bindings/interrupt-controller/arm-gic.h>
+    #include <dt-bindings/power/mt6797-power.h>
+
+    audio-controller@11220000 {
+        compatible = "mediatek,mt6797-audio";
+        reg = <0x11220000 0x1000>;
+        interrupts = <GIC_SPI 151 IRQ_TYPE_LEVEL_LOW>;
+        power-domains = <&scpsys MT6797_POWER_DOMAIN_AUDIO>;
+        clocks = <&infrasys CLK_INFRA_AUDIO>,
+                 <&infrasys CLK_INFRA_AUDIO_26M>,
+                 <&infrasys CLK_INFRA_AUDIO_26M_PAD_TOP>,
+                 <&topckgen CLK_TOP_MUX_AUDIO>,
+                 <&topckgen CLK_TOP_MUX_AUD_INTBUS>,
+                 <&topckgen CLK_TOP_SYSPLL3_D4>,
+                 <&topckgen CLK_TOP_SYSPLL1_D4>,
+                 <&clk26m>;
+        clock-names = "infra_sys_audio_clk",
+                      "infra_sys_audio_26m",
+                      "mtkaif_26m_clk",
+                      "top_mux_audio",
+                      "top_mux_aud_intbus",
+                      "top_sys_pll3_d4",
+                      "top_sys_pll1_d4",
+                      "top_clk26m_clk";
+    };

@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+# Generate and validate one unsigned binding conversion; no device access.
+set -euo pipefail
+export LC_ALL=C
+export PYTHONDONTWRITEBYTECODE=1
+readonly upstream=4d7d9486c04d917265f64c55bd23b2cc4fe7749c
+repo=$(git rev-parse --show-toplevel)
+revision=$(git rev-parse HEAD)
+[[ $(uname -s) == Linux && $repo == /workspace/gemini-pda/* ]]
+[[ -z $(git status --porcelain) ]]
+[[ $(git remote get-url origin) == https://github.com/ixoo/gemini-pda-mainline.git ]]
+readonly topic="$repo/experiments/2026-09-08-mt6797-afe-schema"
+readonly result="/workspace/gemini-pda/review-packages/mt6797-afe-schema/$revision"
+[[ ! -e $result ]]
+mkdir -p "$result" /workspace/gemini-pda/tmp
+work=$(mktemp -d /workspace/gemini-pda/tmp/afe-schema.XXXXXX)
+trap 'rm -rf -- "$work"' EXIT
+exec > >(tee "$result/validation.log") 2>&1
+export PATH=/workspace/gemini-pda/cache/validation-tools/schema-2026.6/bin:$PATH
+git -C "$work" init -q
+git -C "$work" remote add origin https://github.com/torvalds/linux.git
+git -C "$work" -c protocol.version=2 fetch -q --filter=blob:none --depth=1 origin "$upstream"
+git -C "$work" sparse-checkout init --no-cone
+git -C "$work" sparse-checkout set --no-cone '/Makefile' '/Kbuild' '/scripts/' '/Documentation/devicetree/bindings/' '/include/dt-bindings/' '/arch/arm64/Makefile' '/sound/soc/mediatek/mt6797/'
+git -C "$work" checkout -q --detach "$upstream"
+readonly legacy=Documentation/devicetree/bindings/sound/mt6797-afe-pcm.txt
+readonly binding=Documentation/devicetree/bindings/sound/mediatek,mt6797-afe-pcm.yaml
+printf '%s  %s\n' 3ee4a94768158f942bd1faadc3a260cafb252f9a7a8d1010951df9614bcef062 "$work/$legacy" | sha256sum -c -
+cp "$topic/mediatek,mt6797-afe-pcm.yaml" "$work/$binding"
+python - "$work" "$result" <<'PY'
+import hashlib, json, pathlib, re, sys, yaml
+root, result = map(pathlib.Path, sys.argv[1:])
+legacy = root/'Documentation/devicetree/bindings/sound/mt6797-afe-pcm.txt'
+schema = root/'Documentation/devicetree/bindings/sound/mediatek,mt6797-afe-pcm.yaml'
+clock = root/'sound/soc/mediatek/mt6797/mt6797-afe-clk.c'
+adda = root/'sound/soc/mediatek/mt6797/mt6797-dai-adda.c'
+s = yaml.safe_load(schema.read_text())
+names = [item['const'] for item in s['properties']['clock-names']['items']]
+old = re.findall(r'"([^"\n]+)"', legacy.read_text().split('- clock-names:')[1].split('Example:')[0])
+array = clock.read_text().split('static const char *aud_clks[CLK_NUM] = {')[1].split('};')[0]
+consumers = re.findall(r'"([^"\n]+)"', array)
+assert 'SND_SOC_DAPM_CLOCK_SUPPLY("mtkaif_26m_clk")' in adda.read_text()
+assert names == old and len(names) == len(set(names)) == 8
+assert set(names) == set(consumers) | {'mtkaif_26m_clk'} and len(consumers) == 7
+assert len(s['properties']['clocks']['items']) == 8
+example_names = re.findall(r'"([^"\n]+)"', s['examples'][0].split('clock-names =')[1])
+assert example_names == names
+paths = [legacy, schema, clock, adda, root/'Documentation/devicetree/bindings/sound/mt6797-mt6351.txt']
+(result/'contract.json').write_text(json.dumps({'ordered_clock_names': names, 'direct_clock_consumers': consumers, 'adda_clock_supply': 'mtkaif_26m_clk', 'files': {str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest() for p in paths}}, indent=2)+'\n')
+print('PASS: legacy, schema, example and eight driver consumers agree')
+PY
+rm "$work/$legacy"
+git -C "$work" add --sparse "$legacy" "$binding"
+git -C "$work" diff --cached --check
+export GIT_AUTHOR_NAME='Gemini Mainline Experiment'
+export GIT_AUTHOR_EMAIL=gemini-mainline@example.invalid
+export GIT_COMMITTER_NAME=$GIT_AUTHOR_NAME GIT_COMMITTER_EMAIL=$GIT_AUTHOR_EMAIL
+export GIT_AUTHOR_DATE=2026-09-08T17:00:00Z GIT_COMMITTER_DATE=2026-09-08T17:00:00Z
+git -C "$work" -c commit.gpgsign=false commit -q --no-gpg-sign \
+  -m 'dt-bindings: sound: mediatek: convert MT6797 AFE to schema' \
+  -m 'Convert the existing AFE binding, preserving its resource contract and all eight ordered clocks. Seven clocks are acquired by the AFE clock code; mtkaif_26m_clk is acquired by the ADDA DAPM clock supply. Include the existing example and remove the superseded text binding.' \
+  -m 'Based on the text binding introduced by Kai Chieh Chuang in commit 22d9f80904b4510296c133db15f8d3291292023b.' \
+  -m 'Unsigned experiment draft. Maintainer entries inherited from local patch 0064 are unconfirmed; authorship and DCO certification require resolution before submission.'
+git -C "$work" format-patch --no-signature --stdout -1 > "$result/0001-dt-bindings-sound-mediatek-convert-MT6797-AFE-to-schema.patch"
+GIT_INDEX_FILE="$work/.git/replay-index" git -C "$work" read-tree "$upstream"
+GIT_INDEX_FILE="$work/.git/replay-index" git -C "$work" apply --cached "$result/0001-dt-bindings-sound-mediatek-convert-MT6797-AFE-to-schema.patch"
+[[ $(GIT_INDEX_FILE="$work/.git/replay-index" git -C "$work" write-tree) == "$(git -C "$work" rev-parse 'HEAD^{tree}')" ]]
+perl "$work/scripts/checkpatch.pl" --no-tree --strict --ignore MISSING_SIGN_OFF,FILE_PATH_CHANGES,COMMIT_LOG_LONG_LINE "$result/0001-dt-bindings-sound-mediatek-convert-MT6797-AFE-to-schema.patch"
+make -C "$work" O="$work/out" ARCH=arm64 DT_SCHEMA_FILES=mediatek,mt6797-afe-pcm.yaml dt_binding_check
+printf 'project_commit=%s\nupstream_commit=%s\ngenerated_commit=%s\nstatus=PASS\n' "$revision" "$upstream" "$(git -C "$work" rev-parse HEAD)" > "$result/result.txt"
+cp "$work/out/Documentation/devicetree/bindings/sound/mediatek,mt6797-afe-pcm.example.dts" "$result/"
+# Log checksum is recorded after this process exits by the caller.
+printf 'PASS: binding conversion, replay, strict style and compiled schema example\n'
