@@ -1,8 +1,8 @@
 # MT6351 MFD upstream preparation
 
 Status: incomplete upstream-preparation checkpoint, 2026-09-08. A named
-compile-only topic is prepared; it is not a device candidate or upstream
-submission. Existing profiles are unchanged. [Initial source receipts and
+compile-only topic has passed build and schema checks; it is not a device
+candidate or upstream submission. Existing profiles are unchanged. [Initial source receipts and
 check results](source-review.json) pin the individual public files inspected;
 Linux sources are not vendored here.
 
@@ -29,7 +29,7 @@ quietly changing MT6328's domain to 48 while adding MT6351. Its successful
 application to current source does not establish that the combined change is
 the appropriate upstream topic.
 
-## MT6351 dependency split
+## Initial MT6351 dependency split
 
 | Topic | Evidence and next action |
 | --- | --- |
@@ -50,10 +50,9 @@ other regulators, RTC, key wakeup or audio. The
 The draft applies cleanly to both pinned source snapshots. The pinned MFD-next
 `checkpatch.pl --no-tree` reports **one error: missing Signed-off-by**, with
 zero warnings; this is deliberately an unsigned draft, not a passing
-submission check. No kernel compilation or hardware test was performed.
-Before promotion, compile the focused MFD configuration through the documented
-Buildbox workflow and review the MT6328 mapping boundary. Binding adaptations
-will additionally need focused schema checks.
+submission check. This standalone draft was not compiled or hardware-tested.
+The extracted topic and its later compile result are recorded below; neither
+result establishes hardware IRQ mapping behavior.
 
 The archive identity is non-certifying. Historical patch author/sign-off lines
 are not evidence of current authorship certification. Resolve actual authorship
@@ -106,13 +105,40 @@ alignment error, which was corrected before this result. Existing copyright,
 module-author and proposed binding-maintainer text is retained from the
 historical inputs; it is not new certification or proof of maintainer agreement.
 
-Build and schema validation are pending at this input checkpoint. Reproduce
-the kernel build from a clean pushed checkout with:
+The build from project commit
+`d1f54dbc97fc86c0d2e2443c0c5f82306c840209` passed without compiler warnings
+or errors. The [compile receipt](results/compile.json) records the validated
+and fetched package, exact source/object hashes, configuration and toolchain.
+The linked Image contains the MFD initialization and suspend notifier, and the
+regulator object has calls to the descriptor-copy and registration functions.
+The compiled source hashes match the reviewed draft. Reproduce the build from
+a clean pushed checkout with:
 
 ```sh
 KERNEL_PROFILE=mt6351-regulator-compile ./scripts/build-kernel --backend buildbox
 KERNEL_PROFILE=mt6351-regulator-compile ./scripts/buildbox fetch-package
 ```
+
+Focused `dt_binding_check` passed for `mediatek,mt6397.yaml` and
+`mediatek,mt6351-regulator.yaml` using the existing pinned dtschema 2026.6
+environment. All schema/lint/style completion markers were present. Direct
+validation of the normal examples and the [combined MT6351 fixture](results/joint-example.dts)
+produced empty diagnostics; an unknown rail name was rejected. The
+[schema receipt](results/schema.json) and [portable log](results/schema-validation.txt)
+record those checks, verified source integrity and the fetched inventory.
+The first combined fixture incorrectly included `#address-cells` on the PMIC,
+which the parent schema disallows. Only that fixture was corrected. Its DTC
+check suppresses the corresponding interrupt-provider warning; no board DTS
+or schema constraint was changed to make the fixture pass.
+
+For schema reproduction, use the same prepared source with a separate output
+directory and `ARCH=arm64`, and set
+`DT_SCHEMA_FILES=mediatek,mt6397.yaml:mediatek,mt6351-regulator.yaml` when
+running `make dt_binding_check`. Compile the linked fixture with that output's
+`scripts/dtc/dtc -Wno-interrupt_provider`, then use `dt-validate` with the
+generated `processed-schema.json`, separately selecting `mediatek,mt6397` and
+`mediatek,mt6351-regulator`. Replacing `ldo-vemc` with `ldo-invalid` must produce
+the rejection in the log. These are schema checks, not hardware tests.
 
 The profile enables suspend so the legacy IRQ notifier path is compiled. It
 does not select a Gemini DTB, storage, networking or audio. No resulting image
@@ -121,3 +147,15 @@ resolve shared VCN33 voltage ownership: the BT and Wi-Fi descriptors have
 distinct enables but the same voltage-selector field. Independent voltage
 requests must not silently override another consumer's constraints. Wider rail
 behavior and PMIC interrupt error handling also remain review/runtime gaps.
+The inherited binding's physical-output wording is provisional: 39 is the
+descriptor count, not proof of 39 distinct output pins.
+
+For comparison, the same upstream baseline's `mt6358-regulator.c`
+(`ed08d4146908e19fdd6192f16cf8288c21ded3146a7c901adff82e77df8e7acf`)
+documents one VCN33 output pin with two enable bits and consolidates those
+controls during probe. `mt6359-regulator.c`
+(`8d69fe4466dfdbe848dedde99db964b71ded2c83b000838369011b6e748c861d`)
+also synchronizes enable controls and supplies legacy BT/Wi-Fi aliases from a
+common regulator. These are useful ownership precedents, not proof that
+MT6351 has the same output-pin topology or that copying their probe writes
+is appropriate. Resolve that distinction before revising the shared-rail model.

@@ -111,9 +111,11 @@ does not, and Gemini's analog routes remain unestablished.
 
 The [MT6351 MFD preparation](../experiments/2026-09-08-mt6351-mfd-upstream-preparation/README.md)
 separates an existing MT6328 interrupt-domain correction from the four-bank
-MT6351 extension and identifies the parent/child binding dependencies. The
-unsigned correction is an unbuilt review draft; next extract the MT6351 core
-and required regulator topic without enabling unrelated PMIC children.
+MT6351 extension. Its five-patch parent/core/regulator draft passes an isolated
+Linux 7.3-rc1 build, focused schema checks and a regulator reprobe regression.
+It enables no Gemini board or unrelated PMIC children and is not a device
+candidate. Next resolve VCN33 output topology and shared voltage ownership,
+and review IRQ error paths before promoting this unsigned topic.
 
 The current [cellular architecture refresh](../experiments/2026-09-07-mt6797-cellular-upstream-architecture/README.md)
 confirms that generic WWAN ports and netdevs are reusable only above a future

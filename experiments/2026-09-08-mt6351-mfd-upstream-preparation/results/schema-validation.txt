@@ -1,0 +1,41 @@
+[focused binding checks]
+make: Entering directory 'LINUX'
+make[1]: Entering directory 'WORK/out'
+  SCHEMA  Documentation/devicetree/bindings/processed-schema.json
+  HOSTCC  scripts/basic/fixdep
+  HOSTCC  scripts/dtc/dtc.o
+  HOSTCC  scripts/dtc/flattree.o
+  HOSTCC  scripts/dtc/fstree.o
+  HOSTCC  scripts/dtc/data.o
+  HOSTCC  scripts/dtc/livetree.o
+  HOSTCC  scripts/dtc/treesource.o
+  HOSTCC  scripts/dtc/srcpos.o
+  HOSTCC  scripts/dtc/checks.o
+  HOSTCC  scripts/dtc/util.o
+  LEX     scripts/dtc/dtc-lexer.lex.c
+  YACC    scripts/dtc/dtc-parser.tab.[ch]
+  HOSTCC  scripts/dtc/dtc-lexer.lex.o
+  HOSTCC  scripts/dtc/dtc-parser.tab.o
+  HOSTLD  scripts/dtc/dtc
+  CHKDT   LINUX/Documentation/devicetree/bindings
+  LINT    LINUX/Documentation/devicetree/bindings
+  STYLE   LINUX/Documentation/devicetree/bindings
+  DTEX    Documentation/devicetree/bindings/regulator/mediatek,mt6351-regulator.example.dts
+  DTC [C] Documentation/devicetree/bindings/regulator/mediatek,mt6351-regulator.example.dtb
+  DTEX    Documentation/devicetree/bindings/mfd/mediatek,mt6397.example.dts
+  DTC [C] Documentation/devicetree/bindings/mfd/mediatek,mt6397.example.dtb
+make[1]: Leaving directory 'WORK/out'
+make: Leaving directory 'LINUX'
+
+[direct example checks]
+regulator example: empty diagnostic output
+existing MFD examples: empty diagnostic output
+joint MT6351 MFD and regulator: both diagnostic outputs empty
+
+[unknown rail rejection]
+WORK/invalid.dtb: regulators (mediatek,mt6351-regulator): 'ldo-invalid' does not match any of the regexes: '^buck-v(core|gpu|md1|modem|pa|s1|s2|sram-md|sram-proc)$', '^ldo-v(a10|a18|bif28|cama|camd|camio|cn18|cn28|cn33-bt|cn33-wifi|dram|efuse|emc|gp3|ibr|io18|io28|ldo28|ldo28-1|mc|mch|mipi|rf12|rf18|sim1|sim2|tcxo24|tcxo28|usb33|xo22)$', '^pinctrl-[0-9]+$'
+	from schema $id: http://devicetree.org/schemas/regulator/mediatek,mt6351-regulator.yaml
+
+[first attempt: invalid test fixture, corrected]
+WORK/joint.dtb: pmic (mediatek,mt6351): '#address-cells' does not match any of the regexes: '^pinctrl-[0-9]+$', '^vs(ys|[12])-ldo[1-9]-supply$', '^vsys-v[a-z]+[0-9]*-supply$'
+	from schema $id: http://devicetree.org/schemas/mfd/mediatek,mt6397.yaml

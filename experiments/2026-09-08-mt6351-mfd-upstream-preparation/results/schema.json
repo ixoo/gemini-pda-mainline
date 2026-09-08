@@ -1,0 +1,33 @@
+{
+  "project_commit": "d1f54dbc97fc86c0d2e2443c0c5f82306c840209",
+  "upstream_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "status": "PASS",
+  "schema_version": "2026.6",
+  "checks": [
+    "focused dt_binding_check with three completion markers",
+    "regulator example",
+    "existing MFD examples",
+    "joint MT6351 parent and regulator",
+    "unknown rail rejected",
+    "source integrity unchanged"
+  ],
+  "previous_attempt": "Normal binding checks passed; joint test fixture incorrectly added disallowed #address-cells on PMIC. Corrected fixture only.",
+  "dtc_fixture_warning_exclusion": "interrupt_provider: existing MFD schema disallows #address-cells on PMIC; no device tree is changed.",
+  "kernel_build": false,
+  "device_access": false,
+  "inventory_sha256": "e45f3e330e9bdd30d14ababf1c8db518710850e8ed7a23aedf856382ef84f598",
+  "files": {
+    "binding-check.log": "49eda1727ef3330f7ddc8d7ed495fa98ad62313eeb8030d1dddbbb5486fdfa9f",
+    "invalid-rail.txt": "5c637bfa56eecb371a47207e598939962a3562a93c895a075aa8c51dbda40bd5",
+    "joint-example.dts": "84287ab89f8f89526324ed3b2fc334504f7b9fc279c9b71530816a73c6956dd7",
+    "joint-mediatek,mt6351-regulator.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "joint-mediatek,mt6397.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "mediatek,mt6351-regulator-examples.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "mediatek,mt6397-examples.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "previous-fixture-failure.txt": "696eb28088db7a4dfb52ef6133e2624b93edfbc77d1cf9534fc31453a8103111",
+    "result.json": "eb5877839ef8229edf2221756060aaa81f0d7d693dc6cfc28c45a0f25e5af8d8",
+    "source-after.txt": "85bd36073f109c51926275c5d75c8f677c9d66fc470b1cfd4d550f169c3eb681",
+    "source-before.txt": "85bd36073f109c51926275c5d75c8f677c9d66fc470b1cfd4d550f169c3eb681"
+  },
+  "source_integrity": "source_tree_integrity=ef1933a01a44037bb112540dbad7ecf5368c8f4a0fffffc8cac350f8d19b0de5"
+}

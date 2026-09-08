@@ -1,0 +1,27 @@
+/dts-v1/;
+/ {
+    model = "MT6351 schema test";
+    compatible = "test,mt6351-schema";
+    #address-cells = <1>;
+    #size-cells = <1>;
+    pio: interrupt-controller {
+        interrupt-controller;
+        #interrupt-cells = <2>;
+        #address-cells = <0>;
+    };
+    pmic {
+        compatible = "mediatek,mt6351";
+        interrupt-parent = <&pio>;
+        interrupts = <176 4>;
+        interrupt-controller;
+        #interrupt-cells = <2>;
+        regulators {
+            compatible = "mediatek,mt6351-regulator";
+            ldo-vemc {
+                regulator-name = "vemc";
+                regulator-min-microvolt = <3000000>;
+                regulator-max-microvolt = <3300000>;
+            };
+        };
+    };
+};

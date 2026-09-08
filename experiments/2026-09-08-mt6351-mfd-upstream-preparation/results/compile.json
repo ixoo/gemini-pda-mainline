@@ -1,0 +1,52 @@
+{
+  "repository_commit": "d1f54dbc97fc86c0d2e2443c0c5f82306c840209",
+  "repository_dirty": false,
+  "generated_utc": "2026-09-08T18:32:10Z",
+  "kernel_release": "7.3.0-rc1-mt6351-regulator-compile",
+  "build_profile": "mt6351-regulator-compile",
+  "kernel_source": {
+    "archive_format": "tar.gz",
+    "archive_root": "linux-4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "git_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "released": "2026-09-05",
+    "sha256": "45590c057805bc9cf7281ce04d5dbde5316b7c8b017998cafac301f67e92682d",
+    "source_url": "https://codeload.github.com/torvalds/linux/tar.gz/4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "version": "7.3-rc1"
+  },
+  "patchset_sha256": "8c7b45d2424bd80faf561e4eaeed92353340df3965205a3151848b9681996fc9",
+  "config_sha256": "662850a6e69fd56382898a73a1970040e65adf7053f2fd8004d839c7a5cc29fd",
+  "compiler": "aarch64-linux-gnu-gcc (Debian 12.2.0-14) 12.2.0",
+  "compiler_sha256": "c7b8890354c8ddc0364addfeb8968597e197627bd1e338fb6ed705b578803846",
+  "linker": "GNU ld (GNU Binutils for Debian) 2.40",
+  "linker_sha256": "e09a889c78a75e73ed096c9fa28905599e6813298b9ac839d10b02ffa96e7b08",
+  "status": "PASS",
+  "package": "linux-7.3-rc1-gemini-0cf478d951abe13bb298bbff0582afaa4f6d986e6bc3c1fb00d5eefd5630b0d9",
+  "package_inventory_sha256": "0cf478d951abe13bb298bbff0582afaa4f6d986e6bc3c1fb00d5eefd5630b0d9",
+  "image_gzip_sha256": "ff09ecceb539e74b3ef5b42a387a599c823f70a746c8498e10b131f27200c596",
+  "build_log_sha256": "d11e741bf59c606958fb67d75828b8f8ead2b0e29f9526a46f4f109f57a745fc",
+  "compiler_warnings": 0,
+  "compiler_errors": 0,
+  "source_files": {
+    "drivers/mfd/mt6397-core.c": "100db630f4db5e7062539985407fef53e792c87a6ec00e8cf74cc9a4b22938b5",
+    "drivers/mfd/mt6397-irq.c": "403dd1cadb1e484263cf541bec77b1442cbf4d635b409b0cbbdd8670044fd518",
+    "drivers/regulator/mt6351-regulator.c": "1e3352681dde66f9e048676d6faa16bebe8ab8a7a7e8832b6a6487e028e18d0e"
+  },
+  "compiled_objects": {
+    "drivers/mfd/mt6397-core.o": "a66755110db8af159d06d5b75e0c928765f9cd3d0bb149540bd5ab49462f28e1",
+    "drivers/mfd/mt6397-irq.o": "b0fd7ba8c37ddf2bbe2bc0ca57a953534511bcbf9c230549885b9920e4ba32de",
+    "drivers/regulator/mt6351-regulator.o": "60acc7c4713684ca998eda2dbc90997fec5a4043c1b165b91184731bd312b144"
+  },
+  "probe_relocations": [
+    "0xb8: devm_kmemdup",
+    "0x174: devm_regulator_register"
+  ],
+  "compiled_suspend_notifier": true,
+  "hardware_test": false,
+  "boot_candidate": false,
+  "resolved_enabled_config": [
+    "CONFIG_MFD_MT6397",
+    "CONFIG_REGULATOR_MT6351",
+    "CONFIG_SUSPEND",
+    "CONFIG_PM_SLEEP"
+  ]
+}
