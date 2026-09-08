@@ -60,12 +60,12 @@ export GIT_AUTHOR_DATE=2026-09-08T17:00:00Z GIT_COMMITTER_DATE=2026-09-08T17:00:
 git -C "$work" -c commit.gpgsign=false commit -q --no-gpg-sign \
   -m 'dt-bindings: sound: mediatek: convert MT6797 AFE to schema' \
   -m 'Convert the existing AFE binding, preserving its resource contract and all eight ordered clocks. Seven clocks are acquired by the AFE clock code; mtkaif_26m_clk is acquired by the ADDA DAPM clock supply. Include the existing example and remove the superseded text binding.' \
-  -m 'Based on the text binding introduced by Kai Chieh Chuang in commit 22d9f80904b4510296c133db15f8d3291292023b.' \
+  -m 'Based on the MT6797 audio text binding introduced by Kai Chieh Chuang in 2018.' \
   -m 'Unsigned experiment draft. Maintainer entries inherited from local patch 0064 are unconfirmed; authorship and DCO certification require resolution before submission.'
 git -C "$work" format-patch --no-signature --stdout -1 > "$result/0001-dt-bindings-sound-mediatek-convert-MT6797-AFE-to-schema.patch"
 GIT_INDEX_FILE="$work/.git/replay-index" git -C "$work" read-tree "$upstream"
 GIT_INDEX_FILE="$work/.git/replay-index" git -C "$work" apply --cached "$result/0001-dt-bindings-sound-mediatek-convert-MT6797-AFE-to-schema.patch"
-[[ $(GIT_INDEX_FILE="$work/.git/replay-index" git -C "$work" write-tree) == "$(git -C "$work" rev-parse 'HEAD^{tree}')" ]]
+[[ $(GIT_INDEX_FILE="$work/.git/replay-index" git -C "$work" write-tree --missing-ok) == "$(git -C "$work" rev-parse 'HEAD^{tree}')" ]]
 perl "$work/scripts/checkpatch.pl" --no-tree --strict --ignore MISSING_SIGN_OFF,FILE_PATH_CHANGES,COMMIT_LOG_LONG_LINE "$result/0001-dt-bindings-sound-mediatek-convert-MT6797-AFE-to-schema.patch"
 make -C "$work" O="$work/out" ARCH=arm64 DT_SCHEMA_FILES=mediatek,mt6797-afe-pcm.yaml dt_binding_check
 printf 'project_commit=%s\nupstream_commit=%s\ngenerated_commit=%s\nstatus=PASS\n' "$revision" "$upstream" "$(git -C "$work" rev-parse HEAD)" > "$result/result.txt"

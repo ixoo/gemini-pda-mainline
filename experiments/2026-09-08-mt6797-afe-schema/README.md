@@ -6,7 +6,8 @@ This is an unsigned experiment draft, not an upstream submission or a selected
 kernel patch. The two proposed maintainer entries are inherited unchanged from
 local patch 0064; their agreement is not established. Actual authorship, DCO
 certification and maintainer willingness must be resolved before submission.
-No sign-off is generated.
+No sign-off is generated. The original text binding was introduced by Kai Chieh
+Chuang in upstream commit `22d9f80904b4510296c133db15f8d3291292023b`.
 
 The input schema preserves the legacy compatible, register aperture, interrupt,
 AUDIO power domain and all eight ordered clocks. The example retains the public
@@ -38,4 +39,9 @@ Only the patch and validation evidence are returned from Buildbox. Temporary
 upstream files are removed on exit. No kernel image or ASoC object build is
 needed for this binding-only change. Hardware audio support remains untested.
 
-Validation is pending; an input checkpoint is not a passing result.
+The first validation attempt passed the eight-clock assertions and exact patch
+replay, then stopped at checkpatch: the checker could not resolve the historical
+commit named in the message. The message now credits the original
+author and year, with the exact historical reference above. Replay uses
+`write-tree --missing-ok` to avoid fetching unrelated sparse-tree blobs.
+Schema validation is pending; an input checkpoint is not a passing result.
