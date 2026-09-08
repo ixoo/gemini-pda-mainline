@@ -1,0 +1,49 @@
+{
+  "firmware_sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
+  "analysis_tool": "Ghidra 12.1.2",
+  "identity_policy": "reuse existing retained image and mapping; no new extraction",
+  "scripts_sha256": {
+    "FeatureInspect.java": "b2eca1ad3537f5e5c0d20990e2c4985ba9fefd2bebbb501bc10143968b326a01",
+    "ReservedRefs.java": "af512254f4f6361d1b73adfc948ae991fa45ffafadb3ae15f77a64fe972ec5e1",
+    "ReservedInspect.java": "70861b4841c452c097493c445aa2b3c941b35be7bf6910cade76391516204c8a"
+  },
+  "feature_walk": {
+    "node_cap": 256,
+    "nodes": 37,
+    "queue_exhausted": true,
+    "calls": 1,
+    "terminal": 1,
+    "invalid": 0,
+    "unresolved_noncall_computed": 0
+  },
+  "reserved_reference_candidates": {
+    "section": "plaintext section 2",
+    "alignment_bytes": 2,
+    "matching_upper_immediates": 931,
+    "instructions_per_window_max": 12,
+    "matching_windows": 19,
+    "limits": "heuristic, overlapping, includes unrelated immediate matches; not consumer count"
+  },
+  "selected_reserved_walk": {
+    "start": "offset-270 global address-construction anchor, not function entry",
+    "node_cap": 256,
+    "nodes": 13,
+    "queue_exhausted": true,
+    "calls": 0,
+    "terminal": 1,
+    "invalid": 0,
+    "unresolved_noncall_computed": 0
+  },
+  "source": {
+    "commit": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+    "path": "drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c",
+    "sha256": "56bf99536fcb96de5a5198943aec96c9efccb8af89261b29c62046e6560c422f",
+    "bytes": 215814
+  },
+  "limits": [
+    "Static selected flows only; no execution or peripheral-register meaning established.",
+    "Host submission order does not prove device completion order.",
+    "Indirect callback, incoming arithmetic context and other reserved consumers unresolved."
+  ],
+  "redaction": "Private instructions, addresses, constants, firmware strings and calibration values withheld."
+}

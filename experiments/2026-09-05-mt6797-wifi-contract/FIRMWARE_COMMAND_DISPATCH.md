@@ -59,7 +59,7 @@ and header relationship above places its reads at these payload offsets:
 | 271 | 1 byte | Copy to another global if the gate is nonzero; clear that global otherwise | First byte of `aucTailReserved` |
 
 These are static access/effect facts, not decoded RF meanings. The nested
-helper and downstream uses of those globals remain uninspected. The selected
+helper and selected downstream use are examined in the follow-up below. The selected
 handler contains no visible whole-record copy, checksum/version check or
 record-applied acknowledgement. An earlier validation layer is not excluded,
 and absence of a check here is not a firmware-wide absence claim. The zero
@@ -74,9 +74,8 @@ of every calibration field. The host also sends separate parameter commands,
 and this full-record handler demonstrably has a narrower selected-field role.
 No change to the existing opaque 512-byte submission helper is required.
 
-The next useful firmware question is the one helper selected by feature bit 8
-and the consumers of the three reserved-byte globals, with the exact record and
-firmware identity retained. That can narrow compatibility without a radio test.
+The follow-up below narrows those dependencies without a radio test. Remaining
+questions include the arithmetic caller and the other reserved-byte consumers.
 The actual installed/executing image, record provenance, complete calibration
 and regulatory behavior remain separate requirements. Shared HIF power/stop
 ownership is unchanged; no active driver or firmware operation is admitted.
@@ -95,3 +94,54 @@ No calibration values, firmware strings/bytes, private addresses or disassembly
 are published. Private results remain under the project's existing retention
 and cleanup policy. Repository checks apply; no kernel build, emulation, device
 access, firmware loading, calibration write or radio test was performed.
+
+## Follow-up: feature-dependent writes and a reserved-byte consumer
+
+The feature-bit helper's selected direct-flow graph exhausts after 37
+instructions, with one indirect call. Both branches perform two 32-bit stores
+to fixed addresses outside the mapped plaintext sections. One branch uses a
+fixed pair of values; the other changes the first value and derives the second
+by subtracting the logically right-shifted, zero-extended 2.4 GHz compensation
+byte from a constant. That byte is the global written by command `0x43`.
+The derived branch applies when record offset 268 bit 8 is clear.
+
+The common tail reads the second destination and passes that value, the Boolean
+argument and the compensation byte to an unresolved indirect callback. There
+is no comparison establishing a successful readback in this graph. The
+addresses' peripheral meaning and callback effects remain unproved; these
+stores are static decoded effects, not observed hardware writes.
+
+This establishes a cross-command data dependency: on the derived branch,
+`0x48` uses the compensation state present when it runs. The pinned public
+`wlanLoadManufactureData` source conditionally submits `0x43` when the RSSI
+compensation-valid field is nonzero, then later copies and submits all 512
+bytes with `0x48`. Both requests set the no-response form. This is host
+submission order, not proof of firmware execution/completion order, successful
+submission, or the initial compensation value when the first request is omitted.
+An implementation must preserve the original conditional preparation sequence;
+the full-record request alone is not a demonstrated replacement.
+
+A separate bounded search found candidate consumers of the globals loaded
+from reserved record bytes. Following one address-construction anchor to its
+return establishes that the offset-270 global is loaded as an unsigned byte,
+used in a signed comparison against a constant minus the incoming accumulator,
+and either added to that accumulator with signed-byte narrowing or replaced
+by the constant. The 13-instruction selected graph has no calls. It begins
+inside a containing function: neither its incoming accumulator's meaning nor
+the conditions selecting this path have been established. This is positive
+evidence of arithmetic use, not a decoded power unit, valid range or safe
+replacement value.
+
+The candidate search inspected up to 12 instructions after each matching
+upper-address immediate at two-byte offsets in plaintext section 2. Its 19
+matching windows include overlaps, stores and unrelated low-immediate matches;
+they are not 19 proven consumers. The offset-271 and offset-272 consumers and
+other candidate paths remain unresolved. This search cannot establish absence
+of indirect or differently constructed references.
+
+The [follow-up receipt](results/firmware-nvram-feature.json) pins the three
+private scripts, bounds and additional public source identity. All selected
+instructions and p-code were reviewed in the RE VM; private listings remain
+retained there. No firmware bytes, private addresses, calibration values or
+strings are published. No kernel code changed and no device access, emulation,
+firmware load, calibration operation or radio test was performed.
