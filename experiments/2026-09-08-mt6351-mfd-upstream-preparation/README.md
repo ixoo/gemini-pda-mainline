@@ -296,3 +296,11 @@ A deliberate omitted disable was rejected at runtime locally. Checkpatch and
 repository checks passed; the source baseline, configuration, toolchain and
 first eight patches match the parent. Unchanged bindings needed no additional
 schema check. No device candidate is created.
+
+
+The [IRQ error-path review](IRQ_ERRORS.md) confirms that failed status reads
+already stop before dispatch/acknowledgement. The unresolved suspend path needs
+its own partial-change recovery: the robust notifier chain excludes the failing
+callback from rollback. An error-return-only patch is therefore insufficient.
+The review separates normal mask synchronization, acknowledgement and suspend
+restoration failures; none has new hardware evidence.
