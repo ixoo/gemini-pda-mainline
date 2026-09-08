@@ -288,7 +288,6 @@ def main():
         require(git('rev-parse', revision + '^{commit}') == revision, 'unknown revision')
     else:
         require(not git('status', '--porcelain'), 'build source checkout must be clean')
-        require(git('branch', '--show-current') == branch, 'build branch')
         revision = git('rev-parse', 'HEAD')
         require(git('ls-remote', '--exit-code', 'origin', 'refs/heads/' + branch).split()[0] == revision,
                 'build revision must be published')

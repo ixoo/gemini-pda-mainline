@@ -64,8 +64,8 @@
   recovery action. A later runner may deliver it only to a disjoint RAM-only
   path with exclusive creation and checksum verification; staging is retained.
 - **Implementation handoff:** helper source `5318a346...`, native/QEMU fixture
-  `5d0d8618...`, build script `484412ff...`, dispatcher `209bb45f...` and routing
-  test `e2fd75e1...`. Four native host fixture methods and six routing methods
+  `5d0d8618...`, build script `484412ff...`, dispatcher `6f907510...` and routing
+  test `e810b3c6...`. Four native host fixture methods and seven routing methods
   pass; strict host compilation, Python compilation, Bash syntax, ShellCheck and
   whitespace checks pass. The integration review additionally covers full-size
   bounded output, invalid-mode and symlink ancestry refusal, format-truncation

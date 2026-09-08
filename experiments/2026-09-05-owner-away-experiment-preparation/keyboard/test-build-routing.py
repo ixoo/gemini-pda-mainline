@@ -17,8 +17,10 @@ WORK = HERE.parents[2] / 'artifacts/a53-authenticated/development/keyboard-build
 
 
 class RoutingTests(unittest.TestCase):
-    def exercise(self, kind, fetch_only, branch=None, post_build_ref=None):
+    def exercise(self, kind, fetch_only, branch=None, post_build_ref=None,
+                 local_branch=None):
         branch = branch or MODULE['BRANCH']
+        local_branch = local_branch or branch
         WORK.mkdir(mode=0o700, parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(dir=WORK) as temporary:
             root = Path(temporary)
@@ -36,7 +38,7 @@ class RoutingTests(unittest.TestCase):
                     return revision if publication_reads == 1 or post_build_ref is None else post_build_ref
                 return {('remote', 'get-url', 'origin'): MODULE['ORIGIN'],
                         ('status', '--porcelain'): '',
-                        ('branch', '--show-current'): branch,
+                        ('branch', '--show-current'): local_branch,
                         ('rev-parse', 'HEAD'): revision,
                         ('rev-parse', revision + '^{commit}'): revision}[args]
 
@@ -109,6 +111,10 @@ class RoutingTests(unittest.TestCase):
         self.exercise('keyboard-duration', True, 'main')
         self.exercise('keyboard-disconnect-preserver', False, 'main')
         self.exercise('keyboard-disconnect-preserver', True, 'main')
+
+    def test_published_main_commit_does_not_require_local_main_branch_label(self):
+        self.exercise('keyboard-disconnect-preserver', False, 'main',
+                      local_branch='codex/dynamic-reserved-compile')
 
     def test_remote_ref_drift_refuses_before_fetch(self):
         for branch in ('main', MODULE['BRANCH']):
