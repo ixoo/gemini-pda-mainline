@@ -16,7 +16,7 @@ import tempfile
 HERE = Path(__file__).resolve().parent
 SOURCES = HERE.parent / 'initramfs'
 SOURCE_DIGESTS = {
-    'init': '77ec9d4cdc1b90afdd402a3569fe80e37697511891086ec739cd36bde0427416',
+    'init': '59db0643a8cce87f34c0be30d91d83e341776ece0a0c682108e03b9b02fd693e',
     'usb-auth': 'ea8c42b0d066613810d5489d8461b639554868470052f6efa953660a9db75c72',
     'console-status': 'b61d8ab47dbe36859980c3685985b9042eb71f5c1279b5c92cac5d9b9e4a7523',
 }
@@ -28,14 +28,18 @@ MAP_SHA = '02f8048d76aa0cedf73617b13ea03a2a4e74de88222cb1922d9d19630906675c'
 # loadkmap, init, SSH, or an unrecognized applet. Only the four listed ordinary
 # file/text applets may reach the exact candidate binary under QEMU.
 PROXY = r'''
-import json, os, pathlib, subprocess, sys, time
+import json, os, pathlib, stat, subprocess, sys, time
 config = json.loads(pathlib.Path(__file__).with_name('fixture.json').read_text())
 root = pathlib.Path(config['root'])
 name = pathlib.Path(sys.argv[0]).name
 args = sys.argv[1:]
 case = config['case']
 with (root / 'calls.jsonl').open('a') as stream:
-    stream.write(json.dumps({'name': name, 'args': args}) + '\n')
+    stream.write(json.dumps({'name': name, 'args': args,
+        'stdio_null': all(stat.S_ISCHR(os.fstat(fd).st_mode) and
+                          os.fstat(fd).st_rdev == os.stat('/dev/null').st_rdev
+                          for fd in (0, 1, 2)),
+        'console_env': os.environ.get('CONSOLE')}) + '\n')
 if name == 'bb-proxy':
     applet, *args = args
     if applet in ('awk', 'cat', 'mkdir'):
@@ -90,7 +94,7 @@ def digest(data):
 def run(command, timeout=5):
     """Bound and reap the entire fixture process group, including background jobs."""
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                               start_new_session=True)
+                               start_new_session=True, env=dict(os.environ, CONSOLE='/dev/tty1'))
     expired = False
     try:
         stdout, stderr = process.communicate(timeout=timeout)
@@ -242,6 +246,12 @@ def main():
                 if case == 'init-pass':
                     checked(status == 0 and not expired and sorted(launched) == ['helper-kmsg', 'helper-usb'] and
                             'init' in applets, 'init service launch mismatch')
+                    services = [call for call in observed if call['name'] in
+                                ('helper-kmsg', 'helper-usb') or
+                                (call['name'] == 'bb-proxy' and call['args'] == ['init'])]
+                    checked(len(services) == 3 and all(call['stdio_null'] and
+                            call['console_env'] == '/dev/null' for call in services),
+                            'background service or PID 1 retains console descriptors')
                 else:
                     checked(expired and b'hold for recovery' in out and not launched and 'init' not in applets,
                             'init failed preflight did not hold: ' + case)
