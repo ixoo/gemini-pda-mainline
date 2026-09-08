@@ -1,0 +1,44 @@
+{
+  "repository_commit": "843c46ae443caf378b151178134b3592cd33aa8c",
+  "generated_utc": "2026-09-08T19:29:24Z",
+  "kernel_release": "7.3.0-rc1-mt6351-regulator-compile",
+  "build_profile": "mt6351-regulator-compile",
+  "patchset_sha256": "43d753c49044e019ba733a22dfbfd2049126f1e47702e7654c9fe9a28905fc32",
+  "config_sha256": "662850a6e69fd56382898a73a1970040e65adf7053f2fd8004d839c7a5cc29fd",
+  "compiler": "aarch64-linux-gnu-gcc (Debian 12.2.0-14) 12.2.0",
+  "compiler_sha256": "c7b8890354c8ddc0364addfeb8968597e197627bd1e338fb6ed705b578803846",
+  "linker": "GNU ld (GNU Binutils for Debian) 2.40",
+  "linker_sha256": "e09a889c78a75e73ed096c9fa28905599e6813298b9ac839d10b02ffa96e7b08",
+  "status": "PASS",
+  "parent_compile_receipt": "irq-lifetime-compile.json",
+  "source_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "package": "linux-7.3-rc1-gemini-90be84170488ef6723718b76e70dbd7cbeb2658e34395e803dad291d24fafc75",
+  "package_inventory_sha256": "90be84170488ef6723718b76e70dbd7cbeb2658e34395e803dad291d24fafc75",
+  "image_gzip_sha256": "1b30fd47c6cb0edfef085ad939344f1451195671f21c25f1a53b7c61e1648c65",
+  "build_log_sha256": "43bc8cb47eb8069b1700e995f1a025671f4ca64ea77fda6019343cf6705af30f",
+  "compiler_warnings": 0,
+  "compiler_errors": 0,
+  "irq_source_sha256": "9cefe32db1b9d43c42794037a59883314cab5a77ca048e00e119cf47c5aed18f",
+  "irq_object_sha256": "4e0744f5cdfdc55d459a8c8e74f9db66e5fb1474f222ebb1acd0c2506bb10144",
+  "compiled_calls": [
+    "irq_set_irq_wake in cleanup helper",
+    "irq_set_irq_wake in init success and action-failure paths",
+    "__devm_add_action"
+  ],
+  "regression": {
+    "script_sha256": "4eb1ba36b65ca10bbf82849a44eee23139867d0adbe5cc2d0bea6433fb2cf389",
+    "fixture_sha256": "ee5438727ea9189aabf587f136c34a5894b107ca63be1182b6934d60d0e65c61",
+    "cases_passed": 64,
+    "runners": [
+      "local userspace compiler",
+      "Buildbox userspace compiler with exact prepared source"
+    ],
+    "negative_mutation_rejected_at_runtime": "omit wake disable",
+    "scope": "Extracted initializer/release functions with modeled wake reference and devres ordering; no hardware wake test."
+  },
+  "first_eight_patches_unchanged": true,
+  "upstream_source_configuration_and_toolchain_unchanged": true,
+  "schema_checks": "Not repeated: bindings and source baseline unchanged; see schema.json.",
+  "hardware_test": false,
+  "boot_candidate": false
+}

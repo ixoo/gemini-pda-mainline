@@ -285,4 +285,14 @@ release. This is shared-family cleanup, not a new MT6351 wake implementation.
 Physical wake-disable failure is not modeled or repaired; ignored mask writes
 and the modern initializer's shared mutable IRQ data remain separate gaps.
 The earlier receipt retains the exact eight-patch test hashes and results.
-The nine-patch compile is pending; no device candidate is created.
+The [nine-patch Buildbox compile](results/irq-wake-compile.json) from project
+commit `843c46ae` passed without compiler warnings or errors, and its validated
+package was fetched. The changed IRQ source matches the exact local replay;
+its object includes the disable helper and allocation-failure cleanup. The
+64-case test also passed against Buildbox's prepared source. An initial test
+attempt during source preparation still saw the eight-patch parent and was
+rejected for the missing helper; it was rerun only after preparation completed.
+A deliberate omitted disable was rejected at runtime locally. Checkpatch and
+repository checks passed; the source baseline, configuration, toolchain and
+first eight patches match the parent. Unchanged bindings needed no additional
+schema check. No device candidate is created.

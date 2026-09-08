@@ -119,9 +119,11 @@ registration; its focused regression and updated compile passed. The
 [VCN33 source follow-up](../experiments/2026-09-08-mt6351-mfd-upstream-preparation/VCN33.md)
 establishes shared voltage control but not output topology. Two further
 patches manage IRQ-domain and PM-notifier cleanup; their failure-path model
-and isolated compile pass. Next resolve VCN33 ownership and the remaining
-IRQ/wake-control review gaps, then obtain attributable hardware evidence and
-truthful authorship/certification before promoting this unsigned topic.
+and isolated compile pass. The shared MT6358 wake reference is now balanced
+on teardown, with a passing extended regression and compile. Next resolve
+VCN33 ownership and the remaining IRQ error/control gaps, then obtain
+attributable hardware evidence and truthful authorship/certification before
+promoting this unsigned topic.
 
 The current [cellular architecture refresh](../experiments/2026-09-07-mt6797-cellular-upstream-architecture/README.md)
 confirms that generic WWAN ports and netdevs are reusable only above a future
