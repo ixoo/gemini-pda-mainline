@@ -304,3 +304,50 @@ its own partial-change recovery: the robust notifier chain excludes the failing
 callback from rollback. An error-return-only patch is therefore insufficient.
 The review separates normal mask synchronization, acknowledgement and suspend
 restoration failures; none has new hardware evidence.
+
+## Child wake-request ordering follow-up
+
+The [tenth patch](../../patches/upstream-4d7d9486/mt6351/0010-mfd-mt6397-order-wake-masks-after-child-suspend.patch)
+replaces the global notifier with parent device suspend/resume callbacks.
+The legacy bank count selects mask switching; the MT6358-family initializer
+leaves that count zero and retains its separate wake-reference ownership.
+Only suspend and resume hooks are installed, with no new hibernation or
+runtime-PM behavior. This supersedes the eighth patch's notifier cleanup;
+that historical patch and its receipt are preserved unchanged.
+
+The concrete counterexample is the existing `mtk_pmic_keys_suspend()` child:
+it requests wake IRQs during device suspend, after `PM_SUSPEND_PREPARE` has
+already programmed the parent's wake mask. Parent device suspend runs after
+its children, so the new callback sees those requests. Resume restores the
+parent masks before child resume. This is the documented device-PM order,
+including asynchronous suspend dependencies, not a delay or inferred timing.
+
+Pinned additional inputs from the same upstream baseline:
+
+| File | SHA-256 |
+| --- | --- |
+| `drivers/input/keyboard/mtk-pmic-keys.c` | `4a085e49f16e12cc6c00f7b74b7c1e7e18735b45eccd26f0b24e076d9f940d1e` |
+| `Documentation/driver-api/pm/devices.rst` | `4e076ede7257d7cc29ec23e86fa1ab789b7edc694ba549a903d1d30d15fc709e` |
+
+The original upstream [notifier conversion](https://github.com/torvalds/linux/commit/4e2e7cfec13afa41fcbed1d9b93d83432aa0154f)
+explained family-specific need for mask switching; it did not establish that
+programming masks before device suspend was required. The new bank-count
+check retains that family distinction without the global notifier.
+
+The [ordering test](test-irq-pm-order.py) compiles the actual old notifier,
+new callbacks and unchanged child-IRQ wake setter with fake register access.
+It reproduces the missed child request in the old documented ordering and
+checks the requested bit and restored normal masks in the new ordering for
+two, three and four banks. It also checks that a controller with no legacy
+banks produces no mask writes or wake-reference changes. Supply the nine-patch
+and ten-patch `mt6397-irq.c` files as its arguments. This models the documented
+PM sequence, not a running kernel's scheduler or an actual key press.
+
+The lifetime test supports both source forms: 64 cases still pass for the
+nine-patch parent, while 52 pass for this successor. The twelve removed cases
+are registration/action failures for the six legacy notifiers that no longer
+exist. Domain, parent-handler, mapping and modern wake cleanup cases remain.
+Exact replay passed. Compilation is pending. The [error-path review](IRQ_ERRORS.md)
+remains applicable to ignored mask and wake errors; this patch changes ordering
+and does not implement error recovery or prove working suspend on the Gemini.
+The MT6351 topic still has no key child or admitted device candidate.

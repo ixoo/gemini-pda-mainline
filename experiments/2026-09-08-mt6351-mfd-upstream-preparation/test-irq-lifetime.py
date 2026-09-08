@@ -26,15 +26,16 @@ def function(source, declaration):
     return source[start:end] + '\n'
 
 
+has_notifier = 'register_pm_notifier(&chip->pm_nb)' in legacy
 functions = ''.join([
     function(legacy, 'void mt6397_irq_domain_exit('),
-    function(legacy, 'static void mt6397_irq_unregister_pm_notifier('),
+    function(legacy, 'static void mt6397_irq_unregister_pm_notifier(') if has_notifier else '',
     function(legacy, 'int mt6397_irq_init('),
     function(modern, 'static void mt6358_irq_disable_wake('),
     function(modern, 'int mt6358_irq_init('),
 ])
 tokens = sorted(set(re.findall(r'\bMT\d+_(?:CHIP_ID|INT_[A-Z0-9_]+|IRQ_NR)\b', functions)))
-defines = []
+defines = [f'#define HAS_PM_NOTIFIER {int(has_notifier)}\n']
 for index, token in enumerate(tokens):
     if token.endswith('CHIP_ID'):
         value = int(re.match(r'MT(\d+)', token)[1][-2:], 16)

@@ -1,0 +1,189 @@
+From 71f5a23f6ac9eba0f00f5c84068b394f25376c53 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 8 Sep 2026 15:40:38 -0400
+Subject: [PATCH] mfd: mt6397: program wake masks after child suspend
+
+The PM notifier programs wake masks before device suspend. The PMIC key
+child requests its wake IRQs in its suspend callback, so those requests
+arrive after the notifier has programmed the hardware mask.
+
+Use the parent device suspend/resume callbacks: children suspend before
+the parent and resume after it. Keep mask switching specific to legacy
+IRQ controllers, identified by their populated interrupt-bank count.
+The MT6358 controller family has no such banks and keeps its existing
+wake-reference ownership. Do not add hibernation or runtime PM hooks.
+
+Remove the notifier and its managed unregister action. Bus-error
+recovery remains a separate change; this patch corrects callback order.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/mfd/mt6397-core.c       |  7 ++++
+ drivers/mfd/mt6397-irq.c        | 60 ++++++++++++++-------------------
+ include/linux/mfd/mt6397/core.h |  4 +--
+ 3 files changed, 34 insertions(+), 37 deletions(-)
+
+diff --git a/drivers/mfd/mt6397-core.c b/drivers/mfd/mt6397-core.c
+index 71348b9..f405e0a 100644
+--- a/drivers/mfd/mt6397-core.c
++++ b/drivers/mfd/mt6397-core.c
+@@ -10,6 +10,7 @@
+ #include <linux/module.h>
+ #include <linux/of.h>
+ #include <linux/platform_device.h>
++#include <linux/pm.h>
+ #include <linux/regmap.h>
+ #include <linux/mfd/core.h>
+ #include <linux/mfd/mt6323/core.h>
+@@ -455,10 +456,16 @@ static const struct platform_device_id mt6397_id[] = {
+ };
+ MODULE_DEVICE_TABLE(platform, mt6397_id);
+ 
++static const struct dev_pm_ops mt6397_pm_ops = {
++	.suspend = mt6397_irq_suspend,
++	.resume = mt6397_irq_resume,
++};
++
+ static struct platform_driver mt6397_driver = {
+ 	.probe = mt6397_probe,
+ 	.driver = {
+ 		.name = "mt6397",
++		.pm = pm_sleep_ptr(&mt6397_pm_ops),
+ 		.of_match_table = mt6397_of_match,
+ 	},
+ 	.id_table = mt6397_id,
+diff --git a/drivers/mfd/mt6397-irq.c b/drivers/mfd/mt6397-irq.c
+index ebeaf7d..8fcb8af 100644
+--- a/drivers/mfd/mt6397-irq.c
++++ b/drivers/mfd/mt6397-irq.c
+@@ -7,8 +7,8 @@
+ #include <linux/irqdomain.h>
+ #include <linux/module.h>
+ #include <linux/platform_device.h>
++#include <linux/pm.h>
+ #include <linux/regmap.h>
+-#include <linux/suspend.h>
+ #include <linux/mfd/mt6323/core.h>
+ #include <linux/mfd/mt6323/registers.h>
+ #include <linux/mfd/mt6328/core.h>
+@@ -131,33 +131,35 @@ static const struct irq_domain_ops mt6397_irq_domain_ops = {
+ 	.map = mt6397_irq_domain_map,
+ };
+ 
+-static int mt6397_irq_pm_notifier(struct notifier_block *notifier,
+-				  unsigned long pm_event, void *unused)
++int mt6397_irq_suspend(struct device *dev)
+ {
+-	struct mt6397_chip *chip =
+-		container_of(notifier, struct mt6397_chip, pm_nb);
++	struct mt6397_chip *chip = dev_get_drvdata(dev);
+ 	unsigned int i;
+ 
+-	switch (pm_event) {
+-	case PM_SUSPEND_PREPARE:
+-		for (i = 0; i < chip->num_irq_regs; i++)
+-			regmap_write(chip->regmap, chip->int_con[i],
+-				     chip->wake_mask[i]);
+-		enable_irq_wake(chip->irq);
+-		break;
++	/* Only the legacy IRQ controller switches interrupt masks for sleep. */
++	if (!chip->num_irq_regs)
++		return 0;
+ 
+-	case PM_POST_SUSPEND:
+-		for (i = 0; i < chip->num_irq_regs; i++)
+-			regmap_write(chip->regmap, chip->int_con[i],
+-				     chip->irq_masks_cur[i]);
+-		disable_irq_wake(chip->irq);
+-		break;
++	for (i = 0; i < chip->num_irq_regs; i++)
++		regmap_write(chip->regmap, chip->int_con[i], chip->wake_mask[i]);
++	enable_irq_wake(chip->irq);
+ 
+-	default:
+-		break;
+-	}
++	return 0;
++}
++
++int mt6397_irq_resume(struct device *dev)
++{
++	struct mt6397_chip *chip = dev_get_drvdata(dev);
++	unsigned int i;
+ 
+-	return NOTIFY_DONE;
++	if (!chip->num_irq_regs)
++		return 0;
++
++	for (i = 0; i < chip->num_irq_regs; i++)
++		regmap_write(chip->regmap, chip->int_con[i], chip->irq_masks_cur[i]);
++	disable_irq_wake(chip->irq);
++
++	return 0;
+ }
+ 
+ void mt6397_irq_domain_exit(struct irq_domain *domain)
+@@ -172,11 +174,6 @@ void mt6397_irq_domain_exit(struct irq_domain *domain)
+ 	}
+ }
+ 
+-static void mt6397_irq_unregister_pm_notifier(void *data)
+-{
+-	unregister_pm_notifier(data);
+-}
+-
+ int mt6397_irq_init(struct mt6397_chip *chip)
+ {
+ 	struct irq_domain_info info = {
+@@ -250,7 +247,6 @@ int mt6397_irq_init(struct mt6397_chip *chip)
+ 					     "Failed to mask interrupt bank %u\n", i);
+ 	}
+ 
+-	chip->pm_nb.notifier_call = mt6397_irq_pm_notifier;
+ 	info.size = num_irqs;
+ 	info.hwirq_max = num_irqs;
+ 	chip->irq_domain = devm_irq_domain_instantiate(chip->dev, &info);
+@@ -267,11 +263,5 @@ int mt6397_irq_init(struct mt6397_chip *chip)
+ 		return ret;
+ 	}
+ 
+-	ret = register_pm_notifier(&chip->pm_nb);
+-	if (ret)
+-		return ret;
+-
+-	return devm_add_action_or_reset(chip->dev,
+-					mt6397_irq_unregister_pm_notifier,
+-					&chip->pm_nb);
++	return 0;
+ }
+diff --git a/include/linux/mfd/mt6397/core.h b/include/linux/mfd/mt6397/core.h
+index 9603c6c..fbfb7e1 100644
+--- a/include/linux/mfd/mt6397/core.h
++++ b/include/linux/mfd/mt6397/core.h
+@@ -8,7 +8,6 @@
+ #define __MFD_MT6397_CORE_H__
+ 
+ #include <linux/mutex.h>
+-#include <linux/notifier.h>
+ 
+ enum chip_id {
+ 	MT6323_CHIP_ID = 0x23,
+@@ -63,7 +62,6 @@ enum mt6397_irq_numbers {
+ struct mt6397_chip {
+ 	struct device *dev;
+ 	struct regmap *regmap;
+-	struct notifier_block pm_nb;
+ 	int irq;
+ 	struct irq_domain *irq_domain;
+ 	struct mutex irqlock;
+@@ -80,5 +78,7 @@ struct mt6397_chip {
+ void mt6397_irq_domain_exit(struct irq_domain *domain);
+ int mt6358_irq_init(struct mt6397_chip *chip);
+ int mt6397_irq_init(struct mt6397_chip *chip);
++int mt6397_irq_suspend(struct device *dev);
++int mt6397_irq_resume(struct device *dev);
+ 
+ #endif /* __MFD_MT6397_CORE_H__ */
+-- 
+2.50.1 (Apple Git-155)
+

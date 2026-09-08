@@ -42,7 +42,9 @@ struct mt6397_chip {
 static struct { const char *name; } mt6358_irq_chip = { "fake-pmic" };
 static int mt6397_irq_domain_ops, mt6358_irq_domain_ops, allocation;
 static void mt6397_irq_thread(void) {}
+#if HAS_PM_NOTIFIER
 static void mt6397_irq_pm_notifier(void) {}
+#endif
 static void mt6358_irq_handler(void) {}
 static void mutex_init(int *lock) { *lock = 0; }
 static void *dev_fwnode(void *dev) { return dev; }
@@ -128,6 +130,7 @@ static int devm_request_threaded_irq(void *dev, int irq, void *top,
     add_resource(release_irq, chip);
     return 0;
 }
+#if HAS_PM_NOTIFIER
 static int register_pm_notifier(struct notifier_block *nb)
 {
     assert(irq_live && domain_live && !notifier_live);
@@ -141,6 +144,7 @@ static void unregister_pm_notifier(void *nb)
     assert(notifier_live && irq_live && domain_live && !children_live);
     notifier_live = 0;
 }
+#endif
 static int devm_add_action_or_reset(void *dev, void (*action)(void *), void *data)
 {
     if (fail == ACTION) {
@@ -161,7 +165,8 @@ int main(void)
     unsigned int cases = 0;
     for (unsigned int i = 0; i < sizeof(ids) / sizeof(ids[0]); i++) {
         for (fail = NONE; fail <= CHILD; fail++) {
-            if ((i >= 6 && fail == NOTIFIER) || (i < 6 && fail == WAKE))
+            if ((i >= 6 && fail == NOTIFIER) || (i < 6 && fail == WAKE) ||
+                (!HAS_PM_NOTIFIER && i < 6 && (fail == NOTIFIER || fail == ACTION)))
                 continue;
             struct mt6397_chip chip = { .chip_id = ids[i] };
             writes = disposed = removals = 0;
@@ -171,7 +176,7 @@ int main(void)
                            fail == REQUEST ? -EBUSY : fail == NOTIFIER ? -EIO : 0;
             assert(ret == expected);
             if (!ret) {
-                assert(notifier_live == (i < 6));
+                assert(notifier_live == (HAS_PM_NOTIFIER && i < 6));
                 assert(wake_live == (i >= 6 && fail != WAKE));
                 const unsigned int positions[] = { 0, domain.revmap_size / 2,
                                                    domain.revmap_size - 1 };
