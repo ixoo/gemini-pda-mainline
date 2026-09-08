@@ -357,3 +357,47 @@ first nine patches match the parent. The [error-path review](IRQ_ERRORS.md)
 remains applicable to ignored mask and wake errors; this patch changes ordering
 and does not implement error recovery or prove working suspend on the Gemini.
 The MT6351 topic still has no key child or admitted device candidate.
+
+## Suspend error recovery follow-up
+
+The [eleventh patch](../../patches/upstream-4d7d9486/mt6351/0011-mfd-mt6397-recover-suspend-mask-failures.patch)
+returns the first wake-mask or wake-enable failure and attempts restoration of
+all normal requested mask banks before leaving the failed suspend callback.
+It logs every failed restoration, keeps the original prepare errno, and does
+not retry a failed bank. Earlier writes, including a write that returned an
+error, may already have affected the device.
+
+Resume attempts all normal banks and releases an acquired parent wake
+reference even when a mask write fails. It returns the first mask error, or
+the wake-disable error if mask restoration succeeded. Ownership is cleared
+only after successful disable. A further suspend while that reference remains
+acquired returns `-EBUSY` before new writes or another enable; a managed detach
+callback makes one release attempt before parent IRQ/domain teardown. Failure
+of that final attempt is logged, not described as physical recovery.
+
+The existing IRQ mutex serializes these transactions with normal mask-sync
+transactions. This is not a proof against every possible concurrent control
+path. The normal runtime mask-sync and acknowledgement error paths remain
+unchanged, and the other IRQ-controller family retains its separate behavior.
+
+The expanded [PM test](test-irq-pm-order.py) passes 77 recovery cases across
+2/3/4 banks, in addition to the earlier ordering/no-op checks. It injects each
+prepare-bank failure, every corresponding restoration-bank failure, failed
+wake enable, resume bank failures, failed wake disable with and without a mask
+error, refusal of duplicate acquisition, and outstanding-reference cleanup.
+A failed initial write is modeled as possibly having already changed the
+register; error-free restoration must restore every normal requested mask.
+Failed restoration is required to be reported, not claimed successful.
+
+The [lifetime fixture](test-irq-lifetime.py) passes 58 current cases, including
+six new allocation-failure cases for the legacy wake cleanup action. Its
+historical ten-patch form still passes 52 cases. Both PM test forms also pass;
+the first compatibility run exposed an unused test variable, which was scoped
+to the recovery form before rerunning. Exact patch replay and strict checkpatch
+passed. Three compiled mutations were rejected at runtime: omitted rollback,
+forgotten ownership after failed disable, and early termination of restoration.
+These userspace fixtures model bus/IRQ APIs and locking; they are not kernel
+concurrency tests or a demonstrated hardware recovery procedure.
+
+Compilation of this eleven-patch revision is pending. No device candidate is
+created, and hardware suspend/recovery remains untested.

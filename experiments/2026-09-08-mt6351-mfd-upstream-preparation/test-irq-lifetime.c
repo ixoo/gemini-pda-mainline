@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 /* Userspace control-flow model; no physical addresses or hardware access. */
 #include <assert.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -37,6 +38,7 @@ struct mt6397_chip {
     struct irq_domain *irq_domain;
     unsigned int chip_id, num_irq_regs, int_con[4], int_status[4];
     int irqlock, irq;
+    bool irq_wake_enabled;
     struct notifier_block pm_nb;
 };
 static struct { const char *name; } mt6358_irq_chip = { "fake-pmic" };
@@ -47,6 +49,10 @@ static void mt6397_irq_pm_notifier(void) {}
 #endif
 static void mt6358_irq_handler(void) {}
 static void mutex_init(int *lock) { *lock = 0; }
+#if HAS_WAKE_CLEANUP
+static void mutex_lock(int *lock) { assert(!*lock); *lock = 1; }
+static void mutex_unlock(int *lock) { assert(*lock); *lock = 0; }
+#endif
 static void *dev_fwnode(void *dev) { return dev; }
 static void *devm_kcalloc(void *dev, unsigned int n, unsigned int size, int flags)
 { return &allocation; }
@@ -66,10 +72,11 @@ static int enable_irq_wake(int irq)
     wake_live = 1;
     return 0;
 }
-static void disable_irq_wake(int irq)
+static int disable_irq_wake(int irq)
 {
     assert(wake_live && irq_live && domain_live && !children_live);
     wake_live = 0;
+    return 0;
 }
 static void add_resource(void (*release)(void *), void *data)
 {
@@ -166,7 +173,8 @@ int main(void)
     for (unsigned int i = 0; i < sizeof(ids) / sizeof(ids[0]); i++) {
         for (fail = NONE; fail <= CHILD; fail++) {
             if ((i >= 6 && fail == NOTIFIER) || (i < 6 && fail == WAKE) ||
-                (!HAS_PM_NOTIFIER && i < 6 && (fail == NOTIFIER || fail == ACTION)))
+                (!HAS_PM_NOTIFIER && i < 6 && fail == NOTIFIER) ||
+                (!HAS_PM_NOTIFIER && !HAS_WAKE_CLEANUP && i < 6 && fail == ACTION))
                 continue;
             struct mt6397_chip chip = { .chip_id = ids[i] };
             writes = disposed = removals = 0;

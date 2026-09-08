@@ -1,0 +1,165 @@
+From 801ec07d449fb1c1d614e5b68409ebf251b35caa Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 8 Sep 2026 15:54:08 -0400
+Subject: [PATCH] mfd: mt6397: recover partial suspend mask programming
+
+Fail suspend when a wake-mask write or parent wake enable fails. Restore
+all normal mask banks in the failing callback, because the PM core does
+not resume a device whose suspend callback failed. Keep the original
+prepare error and report each restoration failure without retrying it.
+
+Serialize these mask transactions with normal IRQ mask synchronization.
+On resume, attempt every normal bank and release an acquired wake
+reference even when a mask write fails. Preserve the first mask error,
+or return the wake-disable error when mask restoration succeeded.
+
+Track wake-reference ownership, retain it on disable failure, and refuse
+a further suspend while it remains acquired. Add a managed cleanup action
+before parent IRQ release to balance an outstanding reference on detach.
+A failed cleanup is reported; it does not prove hardware recovery.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/mfd/mt6397-irq.c        | 88 +++++++++++++++++++++++++++++----
+ include/linux/mfd/mt6397/core.h |  1 +
+ 2 files changed, 79 insertions(+), 10 deletions(-)
+
+diff --git a/drivers/mfd/mt6397-irq.c b/drivers/mfd/mt6397-irq.c
+index 8fcb8af..9137ab1 100644
+--- a/drivers/mfd/mt6397-irq.c
++++ b/drivers/mfd/mt6397-irq.c
+@@ -131,35 +131,103 @@ static const struct irq_domain_ops mt6397_irq_domain_ops = {
+ 	.map = mt6397_irq_domain_map,
+ };
+ 
++static int mt6397_irq_restore_masks(struct mt6397_chip *chip)
++{
++	unsigned int i;
++	int ret, first_error = 0;
++
++	for (i = 0; i < chip->num_irq_regs; i++) {
++		ret = regmap_write(chip->regmap, chip->int_con[i],
++				   chip->irq_masks_cur[i]);
++		if (ret) {
++			dev_err(chip->dev, "Failed to restore IRQ bank %u: %d\n", i, ret);
++			if (!first_error)
++				first_error = ret;
++		}
++	}
++
++	return first_error;
++}
++
++static int mt6397_irq_disable_wake(struct mt6397_chip *chip)
++{
++	int ret;
++
++	if (!chip->irq_wake_enabled)
++		return 0;
++
++	ret = disable_irq_wake(chip->irq);
++	if (ret)
++		dev_err(chip->dev, "Failed to disable IRQ wake: %d\n", ret);
++	else
++		chip->irq_wake_enabled = false;
++
++	return ret;
++}
++
++static void mt6397_irq_release_wake(void *data)
++{
++	struct mt6397_chip *chip = data;
++
++	mutex_lock(&chip->irqlock);
++	mt6397_irq_disable_wake(chip);
++	mutex_unlock(&chip->irqlock);
++}
++
+ int mt6397_irq_suspend(struct device *dev)
+ {
+ 	struct mt6397_chip *chip = dev_get_drvdata(dev);
+ 	unsigned int i;
++	int ret;
+ 
+ 	/* Only the legacy IRQ controller switches interrupt masks for sleep. */
+ 	if (!chip->num_irq_regs)
+ 		return 0;
+ 
+-	for (i = 0; i < chip->num_irq_regs; i++)
+-		regmap_write(chip->regmap, chip->int_con[i], chip->wake_mask[i]);
+-	enable_irq_wake(chip->irq);
++	mutex_lock(&chip->irqlock);
++	if (chip->irq_wake_enabled) {
++		ret = -EBUSY;
++		goto out;
++	}
+ 
+-	return 0;
++	for (i = 0; i < chip->num_irq_regs; i++) {
++		ret = regmap_write(chip->regmap, chip->int_con[i], chip->wake_mask[i]);
++		if (ret) {
++			dev_err(dev, "Failed to set wake mask for IRQ bank %u: %d\n", i, ret);
++			goto restore;
++		}
++	}
++
++	ret = enable_irq_wake(chip->irq);
++	if (ret) {
++		dev_err(dev, "Failed to enable IRQ wake: %d\n", ret);
++		goto restore;
++	}
++	chip->irq_wake_enabled = true;
++	goto out;
++
++restore:
++	/* A failed suspend callback is not resumed by the PM core. */
++	mt6397_irq_restore_masks(chip);
++out:
++	mutex_unlock(&chip->irqlock);
++	return ret;
+ }
+ 
+ int mt6397_irq_resume(struct device *dev)
+ {
+ 	struct mt6397_chip *chip = dev_get_drvdata(dev);
+-	unsigned int i;
++	int ret, wake_ret;
+ 
+ 	if (!chip->num_irq_regs)
+ 		return 0;
+ 
+-	for (i = 0; i < chip->num_irq_regs; i++)
+-		regmap_write(chip->regmap, chip->int_con[i], chip->irq_masks_cur[i]);
+-	disable_irq_wake(chip->irq);
++	mutex_lock(&chip->irqlock);
++	ret = mt6397_irq_restore_masks(chip);
++	wake_ret = mt6397_irq_disable_wake(chip);
++	mutex_unlock(&chip->irqlock);
+ 
+-	return 0;
++	return ret ? ret : wake_ret;
+ }
+ 
+ void mt6397_irq_domain_exit(struct irq_domain *domain)
+@@ -263,5 +331,5 @@ int mt6397_irq_init(struct mt6397_chip *chip)
+ 		return ret;
+ 	}
+ 
+-	return 0;
++	return devm_add_action_or_reset(chip->dev, mt6397_irq_release_wake, chip);
+ }
+diff --git a/include/linux/mfd/mt6397/core.h b/include/linux/mfd/mt6397/core.h
+index fbfb7e1..6bbd78b 100644
+--- a/include/linux/mfd/mt6397/core.h
++++ b/include/linux/mfd/mt6397/core.h
+@@ -70,6 +70,7 @@ struct mt6397_chip {
+ 	u16 irq_masks_cache[4];
+ 	u16 int_con[4];
+ 	u16 int_status[4];
++	bool irq_wake_enabled;
+ 	u8 num_irq_regs;
+ 	u16 chip_id;
+ 	void *irq_data;
+-- 
+2.50.1 (Apple Git-155)
+

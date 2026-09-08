@@ -566,3 +566,4 @@ upstream-4d7d9486/mt6351/0007-mfd-mt6397-manage-IRQ-domain-lifetime.patch
 upstream-4d7d9486/mt6351/0008-mfd-mt6397-manage-PM-notifier-lifetime.patch
 upstream-4d7d9486/mt6351/0009-mfd-mt6358-balance-IRQ-wake-reference.patch
 upstream-4d7d9486/mt6351/0010-mfd-mt6397-order-wake-masks-after-child-suspend.patch
+upstream-4d7d9486/mt6351/0011-mfd-mt6397-recover-suspend-mask-failures.patch
