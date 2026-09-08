@@ -1,5 +1,10 @@
 # Bounded resolution of the call carrying the NVRAM reference
 
+The [callee follow-up](FIRMWARE_DIAGNOSTIC_CALLEE.md) now supports a buffered
+diagnostic-formatting interpretation of this target. Its text reference does
+not identify a calibration consumer; the historical target derivation below
+remains the basis for that inspection.
+
 On one statically selected path, the computed call carrying the NVRAM reference
 has a target derived from instruction immediates inside the retained plaintext
 code mapping. No memory load or runtime function-pointer table is required to

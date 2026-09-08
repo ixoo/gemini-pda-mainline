@@ -1,0 +1,31 @@
+{
+  "analysis": "bounded NVRAM-reference callee and nested formatter inspection",
+  "firmware_sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
+  "firmware_bytes": 411632,
+  "identity_policy": "existing retained identity reused; no new extraction or firmware hash",
+  "ghidra": "12.1.2",
+  "isa_premise": "NDS32 big-endian instructions, provisional little-endian data and default ABI",
+  "callee_walk": {
+    "node_cap": 256,
+    "visited": 96,
+    "queue_exhausted": true,
+    "call_sites": 2,
+    "unresolved_noncall_computed": 0,
+    "terminal_instructions": 1,
+    "invalid_or_outside_plain2": 0
+  },
+  "formatter_walk": {
+    "node_cap": 512,
+    "visited": 512,
+    "queue_exhausted": false,
+    "call_sites_seen": 2,
+    "unresolved_noncall_computed_seen": 0,
+    "terminal_instructions_seen": 1,
+    "invalid_or_outside_plain2_seen": 0
+  },
+  "scripts_sha256": {
+    "CalleeInspect.java": "6bfb63988a9d88f1562ce22b9f227be6e860b2483db32e59cf647e1561963dc6",
+    "FormatInspect.java": "091885a7a3796f09010e28f8fd5859e0d1ad35a760077744f270718b85fd5cd7"
+  },
+  "scope": "Intraprocedural direct edges plus call fallthrough, without entering callees; second walk separately selects the first callee. No runtime path, callee-return or whole-function proof."
+}
