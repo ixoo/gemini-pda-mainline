@@ -1,0 +1,102 @@
+{
+  "image_sha256": "0570480c28bce1583636a240904df8da3af0b5e5b4bcc6254f5719b42bd723d0",
+  "elf_sha256": "cc66df06194d3315335462760962165e1dcb2e50221574aeb45a0805bb17a162",
+  "image_bytes": 20013248,
+  "elf_kernel_section_equals_image": true,
+  "instruction_spans": {
+    "long_press_reboot_function_setting": {
+      "start": "0xffffffc0008e95d0",
+      "end_exclusive": "0xffffffc0008e967c",
+      "bytes": 172,
+      "sha256": "f49875af99ed8b5086c2bdb5317e798717b4dcd05af5e9eddcb3a1dfe0929a63"
+    },
+    "store_pmic_access": {
+      "start": "0xffffffc0004b3388",
+      "end_exclusive": "0xffffffc0004b3494",
+      "bytes": 268,
+      "sha256": "2d82286300bd49ae619b6530e30e123c2ff884a9b1a33583a67cf89e317ea4b8"
+    },
+    "show_pmic_access": {
+      "start": "0xffffffc0004b1210",
+      "end_exclusive": "0xffffffc0004b125c",
+      "bytes": 76,
+      "sha256": "03e954717361ef30acfecfdbc57b61632401a5bfc23b15c2aa833a204e23fb25"
+    },
+    "pmic_set_register_value": {
+      "start": "0xffffffc0004b6c30",
+      "end_exclusive": "0xffffffc0004b6c44",
+      "bytes": 20,
+      "sha256": "5d26b05d5becb7d64d6b266ee4edd79b6515f67661b5fcbdb59490b2265a558a"
+    },
+    "mt6351_set_register_value": {
+      "start": "0xffffffc0004b6b70",
+      "end_exclusive": "0xffffffc0004b6bcc",
+      "bytes": 92,
+      "sha256": "71b95f81d07b4e672993d2a409503e383405e6e59f9039bd18c17d3eb20a4e35"
+    },
+    "pmic_read_interface": {
+      "start": "0xffffffc0004b2110",
+      "end_exclusive": "0xffffffc0004b2230",
+      "bytes": 288,
+      "sha256": "5ca65a3c77879ecc4c96936d5d3ce7b595dab2e78603ef48d65f7bed9d7e2f45"
+    },
+    "kpd_pdrv_probe": {
+      "start": "0xffffffc0008e9050",
+      "end_exclusive": "0xffffffc0008e9054",
+      "bytes": 4,
+      "sha256": "54497d1167f2bab73930e93b9042f57626851310aff66d5857ca42f1288023e8"
+    }
+  },
+  "pmu_flags_table_base": "0xffffffc000d18700",
+  "pmu_flags_table_entry_bytes": 12,
+  "reset_fields": {
+    "home_reset_enable": {
+      "id": 598,
+      "register": "0x02b6",
+      "mask": 1,
+      "shift": 8,
+      "entry_address": "0xffffffc000d1a308",
+      "entry_sha256": "f647a04c813bfac1ef6607f30e8d3ac8bf2be7460975aebd9eba33489ed68d0a"
+    },
+    "power_reset_enable": {
+      "id": 599,
+      "register": "0x02b6",
+      "mask": 1,
+      "shift": 9,
+      "entry_address": "0xffffffc000d1a314",
+      "entry_sha256": "f5b253e2dfd438b189419378212b822c4936bb04aca55d23e6b08a8bd8b39123"
+    },
+    "reset_duration_selector": {
+      "id": 601,
+      "register": "0x02b6",
+      "mask": 3,
+      "shift": 12,
+      "entry_address": "0xffffffc000d1a32c",
+      "entry_sha256": "c611e289edb62fff4433ea144c7b63e0495917e2aadb38bd41545ac35df04a72"
+    }
+  },
+  "device_access": false,
+  "proves_live_register_state": false,
+  "boot_image_sha256": "1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513",
+  "disassembler": "GNU objdump (GNU Binutils for Ubuntu) 2.42",
+  "public_source_commit": "59e00a9144d782e148332009a835b99c43382467",
+  "boot_mode_header_sha256": "c76624ea87cefc127ba951fdf67c2cb62792872119390e034d184df39928968e",
+  "normal_and_other_mode_requests": {
+    "power_reset_enable": 1,
+    "home_reset_enable": 0,
+    "reset_duration_selector": 1
+  },
+  "factory_mode_values": [
+    4,
+    6
+  ],
+  "factory_mode_requests": {
+    "power_reset_enable": 0,
+    "home_reset_enable": 0,
+    "reset_duration_selector": "not updated"
+  },
+  "pmic_access_read_count_max": 5,
+  "pmic_access_cache_address": "0xffffffc0014045a8",
+  "pmic_access_propagates_transport_error": false,
+  "pmic_setter_propagates_transport_error": false
+}

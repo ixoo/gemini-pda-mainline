@@ -51,6 +51,13 @@ dangerous write branch. The probe supplied only register addresses `0x200`
 register-dump interface was deliberately not used because bulk reads can touch
 read-clear status registers.
 
+The [retained-binary debug-read audit](../2026-09-08-mt6351-keys-preparation/RESET_BINARY.md#why-the-existing-debug-read-is-insufficient)
+adds an observation limit: the address-trigger interface suppresses transport
+errors and exposes a shared cached value. A numeric response alone does not
+prove freshness or successful access to the requested register. Historical
+values remain observations; do not promote that interface to an unqualified
+live-state admission check.
+
 The live tree was recaptured privately as `device-tree-v5.txt`, then decoded
 with [`decode-eint-capture.py`](../2026-07-11-gemian-hardware-inventory/scripts/decode-eint-capture.py).
 The normalized EINT result is in [`results/eint-summary.txt`](results/eint-summary.txt).

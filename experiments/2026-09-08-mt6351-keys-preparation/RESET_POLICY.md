@@ -87,6 +87,12 @@ in the offline fixture; only 1 must fail MT6351 validation. The legacy check
 changes just the key compatible to `mediatek,mt6331-keys` with duration 1.
 These are configuration and compiler tests, not physical timing measurements.
 
+The [retained-kernel follow-up](RESET_BINARY.md) confirms that the captured
+Gemian binary requests the one-key/selector-1 policy and resolves its actual
+field-table entries. It also shows that the setter discards update errors and
+that `pmic_access` can return cached data after a failed read. These compiled
+facts narrow the policy hypothesis but do not supply live register evidence.
+
 ## Device admission remains separate
 
 An explicit one-key mode with an eleven-second duration would encode the
