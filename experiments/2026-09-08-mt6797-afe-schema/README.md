@@ -44,4 +44,10 @@ replay, then stopped at checkpatch: the checker could not resolve the historical
 commit named in the message. The message now credits the original
 author and year, with the exact historical reference above. Replay uses
 `write-tree --missing-ok` to avoid fetching unrelated sparse-tree blobs.
-Schema validation is pending; an input checkpoint is not a passing result.
+The second attempt passed checkpatch and compiled the example, but the log
+reported a missing `jobserver` module during schema style checking despite
+`make` returning zero. Its generated PASS text is superseded by this review;
+that attempt is incomplete. The sparse checkout now includes upstream's
+`tools/lib/python/`, and all three schema/lint/style completion markers are
+required. A direct focused example validation must also produce no diagnostics.
+Full schema validation is pending.

@@ -22,7 +22,7 @@ git -C "$work" init -q
 git -C "$work" remote add origin https://github.com/torvalds/linux.git
 git -C "$work" -c protocol.version=2 fetch -q --filter=blob:none --depth=1 origin "$upstream"
 git -C "$work" sparse-checkout init --no-cone
-git -C "$work" sparse-checkout set --no-cone '/Makefile' '/Kbuild' '/scripts/' '/Documentation/devicetree/bindings/' '/include/dt-bindings/' '/arch/arm64/Makefile' '/sound/soc/mediatek/mt6797/'
+git -C "$work" sparse-checkout set --no-cone '/Makefile' '/Kbuild' '/scripts/' '/tools/lib/python/' '/Documentation/devicetree/bindings/' '/include/dt-bindings/' '/arch/arm64/Makefile' '/sound/soc/mediatek/mt6797/'
 git -C "$work" checkout -q --detach "$upstream"
 readonly legacy=Documentation/devicetree/bindings/sound/mt6797-afe-pcm.txt
 readonly binding=Documentation/devicetree/bindings/sound/mediatek,mt6797-afe-pcm.yaml
@@ -68,6 +68,13 @@ GIT_INDEX_FILE="$work/.git/replay-index" git -C "$work" apply --cached "$result/
 [[ $(GIT_INDEX_FILE="$work/.git/replay-index" git -C "$work" write-tree --missing-ok) == "$(git -C "$work" rev-parse 'HEAD^{tree}')" ]]
 perl "$work/scripts/checkpatch.pl" --no-tree --strict --ignore MISSING_SIGN_OFF,FILE_PATH_CHANGES,COMMIT_LOG_LONG_LINE "$result/0001-dt-bindings-sound-mediatek-convert-MT6797-AFE-to-schema.patch"
 make -C "$work" O="$work/out" ARCH=arm64 DT_SCHEMA_FILES=mediatek,mt6797-afe-pcm.yaml dt_binding_check
+for marker in .dt-binding.checked .yamllint.checked .dt-style.checked; do
+  [[ -f "$work/out/Documentation/devicetree/bindings/$marker" ]]
+done
+dt-validate -s "$work/out/Documentation/devicetree/bindings/processed-schema.json" \
+  -l mediatek,mt6797-afe-pcm "$work/out/Documentation/devicetree/bindings/sound/mediatek,mt6797-afe-pcm.example.dtb" \
+  > "$result/example-validation.txt" 2>&1
+[[ ! -s "$result/example-validation.txt" ]]
 printf 'project_commit=%s\nupstream_commit=%s\ngenerated_commit=%s\nstatus=PASS\n' "$revision" "$upstream" "$(git -C "$work" rev-parse HEAD)" > "$result/result.txt"
 cp "$work/out/Documentation/devicetree/bindings/sound/mediatek,mt6797-afe-pcm.example.dts" "$result/"
 # Log checksum is recorded after this process exits by the caller.
