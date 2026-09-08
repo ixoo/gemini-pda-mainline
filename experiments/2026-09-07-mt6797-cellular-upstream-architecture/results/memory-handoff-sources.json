@@ -1,0 +1,250 @@
+{
+  "project_parent": "70888138d127d4d84e7e017e6391d00fbc964f10",
+  "source_commit": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+  "method": "Read-only public Git objects in existing Buildbox cache; no source tree transferred.",
+  "files": [
+    {
+      "path": "arch/arm64/configs/lineage_gemini_defconfig",
+      "sha256": "5f0018658a6e0858cbb730be427a379797afd9e2639a51e7f40d963b4e61115a",
+      "bytes": 102819,
+      "line_ranges": [
+        [
+          285,
+          285
+        ],
+        [
+          1327,
+          1334
+        ],
+        [
+          1377,
+          1382
+        ],
+        [
+          1420,
+          1420
+        ],
+        [
+          1461,
+          1461
+        ]
+      ],
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/arch/arm64/configs/lineage_gemini_defconfig"
+    },
+    {
+      "path": "arch/arm64/boot/dts/mt6797.dtsi",
+      "sha256": "eaac86c8752ebd8ddf18b831eb3bc52a08f87475a213bb521650bf95dabb3e5e",
+      "bytes": 104424,
+      "line_ranges": [
+        [
+          278,
+          302
+        ]
+      ],
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/arch/arm64/boot/dts/mt6797.dtsi"
+    },
+    {
+      "path": "drivers/misc/mediatek/ccci_util/ccci_util_lib_fo.c",
+      "sha256": "9c35f3fd4e0ea394f6eec3d87f86d6f42ebb0f76aa6b8116f216f646dce3a7e4",
+      "bytes": 51429,
+      "line_ranges": [
+        [
+          494,
+          543
+        ],
+        [
+          639,
+          752
+        ],
+        [
+          763,
+          787
+        ],
+        [
+          812,
+          1000
+        ],
+        [
+          1061,
+          1134
+        ],
+        [
+          1587,
+          1669
+        ]
+      ],
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/ccci_util/ccci_util_lib_fo.c"
+    },
+    {
+      "path": "drivers/misc/mediatek/ccci_util/ccci_util_lib_load_img.c",
+      "sha256": "c85068e5dc7c55239dc93c62e0e3a854c739a005e53942cf9d9a52f2bc6261dc",
+      "bytes": 36023,
+      "line_ranges": [
+        [
+          948,
+          1002
+        ]
+      ],
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/ccci_util/ccci_util_lib_load_img.c"
+    },
+    {
+      "path": "drivers/misc/mediatek/eccci/ccci_modem.c",
+      "sha256": "5cbc4e9e23f76040356ee0c70b088d06f02c840e0cbece4318573e597297c281",
+      "bytes": 36318,
+      "line_ranges": [
+        [
+          88,
+          216
+        ],
+        [
+          498,
+          544
+        ]
+      ],
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/eccci/ccci_modem.c"
+    },
+    {
+      "path": "drivers/misc/mediatek/eccci/mt6797/ccci_config.h",
+      "sha256": "b357a3315115cc62c2e240d357eb1635ae4f308e32e4fccb1d310cf91d94c56e",
+      "bytes": 7156,
+      "line_ranges": [
+        [
+          14,
+          80
+        ],
+        [
+          98,
+          146
+        ]
+      ],
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/eccci/mt6797/ccci_config.h"
+    },
+    {
+      "path": "drivers/misc/mediatek/eccci/mt6797/ccci_platform.c",
+      "sha256": "d7092013b0fa14b12c37e96a973c3179c565c1a1e1ebef3a6c27ec38b566a156",
+      "bytes": 38764,
+      "line_ranges": [
+        [
+          39,
+          46
+        ],
+        [
+          203,
+          230
+        ],
+        [
+          362,
+          413
+        ],
+        [
+          487,
+          613
+        ],
+        [
+          666,
+          691
+        ],
+        [
+          732,
+          760
+        ],
+        [
+          804,
+          838
+        ]
+      ],
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/eccci/mt6797/ccci_platform.c"
+    },
+    {
+      "path": "drivers/misc/mediatek/eccci/modem_cldma.c",
+      "sha256": "142ffb743fb62b6962164a2caa4506e3a2c97696615892383bd2bd5c90d9d34b",
+      "bytes": 142203,
+      "line_ranges": [
+        [
+          2038,
+          2075
+        ],
+        [
+          2110,
+          2170
+        ],
+        [
+          2378,
+          2416
+        ],
+        [
+          3818,
+          3835
+        ]
+      ],
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/eccci/modem_cldma.c"
+    },
+    {
+      "path": "drivers/misc/mediatek/eccci/mt6797/cldma_platform.c",
+      "sha256": "ada25c673de99cf648955cc782fabf7ab98af1c6bf3227ca7883d5ff44792125",
+      "bytes": 45810,
+      "line_ranges": [
+        [
+          966,
+          973
+        ]
+      ],
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/eccci/mt6797/cldma_platform.c"
+    },
+    {
+      "path": "drivers/misc/mediatek/eccci/port_proxy.c",
+      "sha256": "e03981f121869a87baf8001d092b46669813f2b10382027d357836263cb46979",
+      "bytes": 58719,
+      "line_ranges": [
+        [
+          1636,
+          1660
+        ]
+      ],
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/eccci/port_proxy.c"
+    },
+    {
+      "path": "drivers/misc/mediatek/emi_mpu/mt6797/emi_mpu.c",
+      "sha256": "39921d80191b674940246425123b52fa140262a7e17022f90f02dd88389932b2",
+      "bytes": 93439,
+      "line_ranges": [
+        [
+          1124,
+          1138
+        ]
+      ],
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/emi_mpu/mt6797/emi_mpu.c"
+    },
+    {
+      "path": "drivers/misc/mediatek/emi_mpu/emi_reg_rw.c",
+      "sha256": "da41e7d325aa4d3207a38bd566f39680a3b2275db87b4ba0919d266375d858e0",
+      "bytes": 2254,
+      "line_ranges": [
+        [
+          74,
+          82
+        ]
+      ],
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/emi_mpu/emi_reg_rw.c"
+    },
+    {
+      "path": "drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/mt_secure_api.h",
+      "sha256": "f810af34727ccedfa6a24cf9721d75301875e32cc6e9c6e1aaa5a6cb8ba4b421",
+      "bytes": 4170,
+      "line_ranges": [
+        [
+          87,
+          94
+        ]
+      ],
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/mt_secure_api.h"
+    }
+  ],
+  "claim_scope": "Host source semantics; not proof of the selected boot, loaded image, secure-firmware acceptance or region release.",
+  "effects": {
+    "gemini_access": false,
+    "private_capture_or_binary_access": false,
+    "kernel_build": false,
+    "hardware_actions": false
+  }
+}

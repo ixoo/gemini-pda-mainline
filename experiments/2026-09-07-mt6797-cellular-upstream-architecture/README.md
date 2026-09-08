@@ -82,6 +82,11 @@ be unused scaffolding while the shared framing subset is unproved.
 
 ## Exact stop and discriminator
 
+The follow-up [memory handoff audit](MEMORY_HANDOFF.md) resolves the host-side
+branching and corrects the historical CCIF-tail identity. It finds that loader
+readiness still permits shared-remap and staged MPU writes; the selected boot,
+secure-side acceptance and region-release contract remain unjoined.
+
 No kernel, binding, configuration or patch topic is admitted by this review.
 The smallest safe output at the current boundary is this source-pinned
 architecture record.

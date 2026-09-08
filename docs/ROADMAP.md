@@ -113,11 +113,15 @@ The current [cellular architecture refresh](../experiments/2026-09-07-mt6797-cel
 confirms that generic WWAN ports and netdevs are reusable only above a future
 proved transport. PCIe `t7xx`, RPMsg-WWAN and the current MediaTek SCP remoteproc
 driver do not match MT6797's APB CLDMA/CCIF and shared-memory ownership. Admit no
-driver, binding or shared framing helper yet. The next cellular evidence item is
-one source-pinned MD1 reservation/protection handoff audit joining the selected
-boot configuration and active image/shared regions to AP/modem views,
-remap/EMI-MPU authority and lifetime release. Missing attribution preserves the
-stop; queue/DMA, framing/channel and full boot/crash teardown remain later gates.
+driver, binding or shared framing helper yet. The
+[MD1 memory handoff audit](../experiments/2026-09-07-mt6797-cellular-upstream-architecture/MEMORY_HANDOFF.md)
+resolves host branching: loader readiness still permits shared-remap and staged
+MPU writes, and the host callbacks provide no reservation-release contract.
+Next join an attributable boot configuration and post-fixup reservation map to
+the selected loader branch, image/header and shared-layout tuple, then establish
+secure MPU acceptance and shared-region release authority. Missing attribution
+preserves the stop; queue/DMA, framing/channel and full boot/crash teardown remain
+later gates.
 
 Wi-Fi is a first-class usable-system requirement and an active workstream,
 not deferred peripheral polish. Its owner defines the shared connectivity
