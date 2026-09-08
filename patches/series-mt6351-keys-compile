@@ -16,3 +16,5 @@ upstream-4d7d9486/keys/0002-Input-mtk-pmic-keys-propagate-reset-setup-errors.pat
 upstream-4d7d9486/keys/0003-dt-bindings-input-mediatek-pmic-keys-add-MT6351.patch
 upstream-4d7d9486/keys/0004-Input-mtk-pmic-keys-add-MT6351-data.patch
 upstream-4d7d9486/keys/0005-mfd-mt6397-add-MT6351-key-resources.patch
+upstream-4d7d9486/keys/0006-dt-bindings-input-mediatek-pmic-keys-constrain-MT635.patch
+upstream-4d7d9486/keys/0007-Input-mtk-pmic-keys-convert-MT6351-timeout-seconds.patch

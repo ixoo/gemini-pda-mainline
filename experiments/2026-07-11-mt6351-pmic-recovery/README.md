@@ -348,6 +348,12 @@ contains `mt6397_probe` and `mt6397_irq_init`, and the packaged MT6797 DTB
 contains both `mediatek,mt6351` and `mediatek,mt6351-regulator`. This remains
 build and representation evidence, not device-runtime validation.
 
+> Current correction (2026-09-08): the historical disabled-reset safety
+> assertion below is not an admission rule. The
+> [reset-policy follow-up](../2026-09-08-mt6351-keys-preparation/RESET_POLICY.md)
+> identifies the seconds/selector mismatch and retained one-key policy
+> evidence. A new board node requires a reviewed recovery policy.
+
 Patches 11–13 extend that foundation without inventing board wiring:
 
 1. [`Input: mtk-pmic-keys: add MT6351 support`](../../patches/v7.1.3/0011-Input-mtk-pmic-keys-add-MT6351-support.patch)

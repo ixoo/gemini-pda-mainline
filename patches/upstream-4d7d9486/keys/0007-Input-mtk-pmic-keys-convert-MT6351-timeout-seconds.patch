@@ -1,0 +1,62 @@
+From 2adc8b5b5a38786a1c186891c396d0d4b96129cc Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 8 Sep 2026 18:09:22 -0400
+Subject: [PATCH 7/7] Input: mtk-pmic-keys - convert MT6351 timeout seconds
+
+MT6351 uses a two-bit selector for 8, 11, 14 or 5 seconds. Writing the
+generic power-off-time-sec value directly into this field makes a
+requested 11 seconds select five seconds instead.
+
+Supply the MT6351 selector-to-seconds table and convert an explicit
+duration before updating the reset register. Reject unsupported values
+before the update. Keep the absent-property selector-zero default and
+the legacy interpretation on other chips without a verified timing
+table. This does not change reset enables or admit a board reset policy.
+---
+ drivers/input/keyboard/mtk-pmic-keys.c | 15 ++++++++++++++-
+ 1 file changed, 14 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/input/keyboard/mtk-pmic-keys.c b/drivers/input/keyboard/mtk-pmic-keys.c
+index 2492cd3..9ff675f 100644
+--- a/drivers/input/keyboard/mtk-pmic-keys.c
++++ b/drivers/input/keyboard/mtk-pmic-keys.c
+@@ -56,6 +56,7 @@ struct mtk_pmic_regs {
+ 	const struct mtk_pmic_keys_regs keys_regs[MTK_PMIC_MAX_KEY_COUNT];
+ 	u32 pmic_rst_reg;
+ 	u32 rst_lprst_mask; /* Long-press reset timeout bitmask */
++	u32 rst_lprst_seconds[4]; /* Optional selector-to-seconds table */
+ 	bool key_release_irq;
+ };
+ 
+@@ -105,6 +106,7 @@ static const struct mtk_pmic_regs mt6351_regs = {
+ 				   MTK_PMIC_MT6331_HOMEKEY_RST),
+ 	.pmic_rst_reg = MT6351_TOP_RST_MISC,
+ 	.rst_lprst_mask = MTK_PMIC_MT6331_RST_DU_MASK,
++	.rst_lprst_seconds = { 8, 11, 14, 5 },
+ 	.key_release_irq = true,
+ };
+ 
+@@ -184,8 +186,19 @@ static int mtk_pmic_keys_lp_reset_setup(struct mtk_pmic_keys *keys,
+ 
+ 	error = of_property_read_u32(keys->dev->of_node, "power-off-time-sec",
+ 				     &long_press_debounce);
+-	if (error)
++	if (error) {
+ 		long_press_debounce = 0;
++	} else if (regs->rst_lprst_seconds[0]) {
++		unsigned int i;
++
++		for (i = 0; i < ARRAY_SIZE(regs->rst_lprst_seconds); i++)
++			if (long_press_debounce == regs->rst_lprst_seconds[i])
++				break;
++		if (i == ARRAY_SIZE(regs->rst_lprst_seconds))
++			return -EINVAL;
++
++		long_press_debounce = i;
++	}
+ 
+ 	mask = regs->rst_lprst_mask;
+ 	value = long_press_debounce << (ffs(regs->rst_lprst_mask) - 1);
+-- 
+2.50.1 (Apple Git-155)
+

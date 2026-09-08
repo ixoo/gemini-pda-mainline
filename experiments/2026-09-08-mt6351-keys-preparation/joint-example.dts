@@ -18,6 +18,7 @@
         keys {
             compatible = "mediatek,mt6351-keys";
             mediatek,long-press-mode = <0>;
+            power-off-time-sec = <11>;
             power {
                 linux,keycodes = <116>;
             };

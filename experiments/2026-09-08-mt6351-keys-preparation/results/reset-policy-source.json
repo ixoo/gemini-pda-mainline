@@ -1,0 +1,16 @@
+{
+  "source_commit": "59e00a9144d782e148332009a835b99c43382467",
+  "files": {
+    "drivers/input/keyboard/mediatek/Kconfig": "032ac5e78a34f66d8194857c2566e7223c23b5ea2989fd137aa63b5c54d712c1",
+    "drivers/input/keyboard/mediatek/mt6797/hal_kpd.c": "7dde8f3734f6cd02509b0400b65c72eac3181983815ea577bbe4b341de796c57",
+    "drivers/input/keyboard/mediatek/kpd.c": "6f238c2d5ff73de257f285b714ac687fdb6e7baf7a1a1149e7a0416f6e50154c",
+    "drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/upmu_hw.h": "e376d2835dd32812b52caf6a51139cc7fd541de18eaad0f30ecf8194f70cebbe"
+  },
+  "upstream_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "device_access": false,
+  "policy_installed": false,
+  "upstream_files": {
+    "Documentation/devicetree/bindings/input/input.yaml": "3107001d230813abc54f384d6320da47bc13f9fd34ef043a63eb2ac32f72b0a5",
+    "drivers/input/keyboard/mtk-pmic-keys.c (five-patch topic)": "008886d319d7dd9680a9f73fab3b066cf245107e2943c07e018eafddba622386"
+  }
+}

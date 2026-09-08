@@ -1,6 +1,7 @@
 # MT6351 PMIC key preparation
 
-Status: compile and schema validated, 2026-09-08. This topic
+Status: original five patches compile/schema validated; the two-patch duration
+correction awaits Buildbox validation, 2026-09-08. This topic
 adds chip support and prerequisite error handling. It is not a Gemini boot
 candidate, key-event demonstration or approved change to hardware reset policy.
 
@@ -25,7 +26,7 @@ The register fields fit the upstream MT6331-style data structure, with MT6351
 addresses and separate release IRQs. No RTC reload or counter assumption is
 needed for this input topic.
 
-## Five separate changes
+## Separate changes
 
 The [named series](../../patches/series-mt6351-keys-compile) retains the twelve
 MFD/regulator prerequisites unchanged, followed by:
@@ -49,12 +50,14 @@ hardware writes or prove recovery after a bus fault.
 The key cell is named `mt6351-keys`, while the generic platform driver is
 named `mtk-pmic-keys`. As with the other chips, a matching enabled OF child is
 needed to bind it; an absent child must not trigger a generic name match.
+The [duration follow-up](RESET_POLICY.md) adds separate binding and driver
+patches to convert the standard seconds property to MT6351 selectors.
 No Gemini key node is added. RTC and audio cells remain absent from this topic.
 
 ## Validation
 
 The [focused test](test-key-state.py) compiles the actual MT6351 data and two
-driver functions with a small transport/input fixture. Its 42 cases cover
+driver functions with a small transport/input fixture. The original 42 cases cover
 both debounce masks, press/release state, read failures, default and explicit
 reset policy, preservation of unrelated reset bits, and update errors.
 Restoring the unchanged upstream IRQ handler compiles but fails the no-event
@@ -62,7 +65,10 @@ assertion on a bus error. Discarding the reset update error also compiles but
 fails the error-propagation assertion. The fixture does not execute a complete
 probe, model IRQ timing, or establish either physical key's behavior.
 
-Strict checkpatch passes for all five patches with only `MISSING_SIGN_OFF`
+The duration follow-up expands the fixture to 94 cases; the original raw-selector
+checks did not establish the seconds contract. See [the correction](RESET_POLICY.md).
+
+Strict checkpatch passes for all seven patches with only `MISSING_SIGN_OFF`
 excluded. The [Buildbox compile receipt](results/compile.json) records a clean
 build from `59ddbf6f57767d7ad11a7ded537b591e64fce03a`, with zero compiler
 warnings or errors and a validated, checksum-verified fetched package. The
@@ -71,8 +77,8 @@ the key probe, MT6351 data and MFD IRQ resources. The new profile explicitly
 enables `KEYBOARD_MTK_PMIC`; all 198 previous profiles remain unchanged.
 
 Focused `dt_binding_check` passes for the key, MFD and regulator schemas with
-all three schema/lint/style completion markers. Direct validation of the
-[schema fixture](joint-example.dts) produces empty diagnostics for all three
+all three schema/lint/style completion markers. Direct validation of the original
+[schema fixture](joint-example.dts) produced empty diagnostics for all three
 selections; long-press mode 3 is correctly rejected. This fixture is an offline
 parent, regulator and power-key example, not a board DTS. The
 [schema receipt](results/schema.json) and [portable log](results/schema-validation.txt)

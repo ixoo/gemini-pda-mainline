@@ -1,0 +1,39 @@
+From 25b265f0c760c598b8589eb38f1cad91d2feb1b8 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 8 Sep 2026 18:09:22 -0400
+Subject: [PATCH 6/7] dt-bindings: input: mediatek,pmic-keys: constrain MT6351
+ timeout
+
+The generic power-off-time-sec property describes seconds, not a
+hardware selector. MT6351 documents selectors 0, 1, 2 and 3 as 8, 11, 14
+and 5 seconds in the public MT6797 keypad Kconfig. Limit the new
+compatible to those durations and describe the inherited selector-zero
+default as eight seconds.
+---
+ .../devicetree/bindings/input/mediatek,pmic-keys.yaml  | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/Documentation/devicetree/bindings/input/mediatek,pmic-keys.yaml b/Documentation/devicetree/bindings/input/mediatek,pmic-keys.yaml
+index 05f8753..480f081 100644
+--- a/Documentation/devicetree/bindings/input/mediatek,pmic-keys.yaml
++++ b/Documentation/devicetree/bindings/input/mediatek,pmic-keys.yaml
+@@ -11,6 +11,16 @@ maintainers:
+ 
+ allOf:
+   - $ref: input.yaml#
++  - if:
++      properties:
++        compatible:
++          contains:
++            const: mediatek,mt6351-keys
++    then:
++      properties:
++        power-off-time-sec:
++          enum: [5, 8, 11, 14]
++          default: 8
+ 
+ description: |
+   There are two key functions provided by MT6397, MT6323 and other MediaTek
+-- 
+2.50.1 (Apple Git-155)
+

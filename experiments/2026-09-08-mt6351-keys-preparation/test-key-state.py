@@ -24,12 +24,14 @@ def block(declaration):
 
 prefix = r'''
 #include <assert.h>
+#include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 typedef unsigned int u32;
 typedef int irqreturn_t;
 #define BIT(n) (1U << (n))
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 #define GENMASK(h, l) ((~0U << (l)) & (~0U >> (31 - (h))))
 #define ffs(n) __builtin_ffs(n)
 #define fallthrough __attribute__((__fallthrough__))
@@ -42,6 +44,7 @@ static unsigned int input_events, syncs, reports, reads, updates;
 static unsigned int read_value, reset_value, last_reg, last_code, last_pressed;
 static unsigned int mode, debounce;
 static bool properties_present;
+static bool duration_present = true;
 static int bus_error;
 static int regmap_read(void *map, unsigned int reg, u32 *value)
 {
@@ -69,7 +72,10 @@ static void input_sync(void *dev) { syncs++; }
 static int of_property_read_u32(void *node, const char *name, u32 *value)
 {
     if (!properties_present) return -22;
-    if (!strcmp(name, "power-off-time-sec")) *value = debounce;
+    if (!strcmp(name, "power-off-time-sec")) {
+        if (!duration_present) return -EINVAL;
+        *value = debounce;
+    }
     else {
         assert(!strcmp(name, "mediatek,long-press-mode"));
         *value = mode;
@@ -118,17 +124,64 @@ int main(void)
     for (unsigned int policy = 0; policy < 6; policy++) {
         properties_present = policy != 0;
         mode = policy / 2;
-        debounce = policy & 1 ? 3 : 0;
+        debounce = policy & 1 ? 5 : 8;
         for (unsigned int e = 0; e < 3; e++) {
             updates = 0; reset_value = 0xffff; bus_error = errors[e];
             int ret = mtk_pmic_keys_lp_reset_setup(&keys, &mt6351_regs);
-            unsigned int bits = debounce << 12;
+            unsigned int bits = (policy & 1 ? 3U : 0U) << 12;
             if (mode) bits |= 0x200;
             if (mode == 2) bits |= 0x100;
             assert(ret == bus_error && updates == 1 && last_reg == 0x2b6);
             assert(reset_value == (bus_error ? 0xffff : ((0xffff & ~0x3300) | bits)));
             cases++;
         }
+    }
+    const unsigned int seconds[] = { 5, 8, 11, 14 };
+    const unsigned int selectors[] = { 3, 0, 1, 2 };
+    properties_present = true;
+    for (mode = 0; mode < 3; mode++) {
+        for (unsigned int t = 0; t < ARRAY_SIZE(seconds); t++) {
+            for (unsigned int e = 0; e < ARRAY_SIZE(errors); e++) {
+                updates = 0; reset_value = 0xffff; bus_error = errors[e];
+                debounce = seconds[t];
+                int ret = mtk_pmic_keys_lp_reset_setup(&keys, &mt6351_regs);
+                unsigned int bits = selectors[t] << 12;
+                if (mode) bits |= 0x200;
+                if (mode == 2) bits |= 0x100;
+                assert(ret == bus_error && updates == 1 && last_reg == 0x2b6);
+                assert(reset_value == (bus_error ? 0xffff : ((0xffff & ~0x3300) | bits)));
+                cases++;
+            }
+        }
+    }
+    const unsigned int invalid[] = { 0, 1, 3, 6, 10, 15, ~0U };
+    mode = 1; bus_error = 0;
+    for (unsigned int i = 0; i < ARRAY_SIZE(invalid); i++) {
+        updates = 0; reset_value = 0xffff; debounce = invalid[i];
+        assert(mtk_pmic_keys_lp_reset_setup(&keys, &mt6351_regs) == -EINVAL);
+        assert(updates == 0 && reset_value == 0xffff);
+        cases++;
+    }
+    duration_present = false;
+    for (mode = 1; mode < 3; mode++) {
+        for (unsigned int e = 0; e < ARRAY_SIZE(errors); e++) {
+            updates = 0; reset_value = 0xffff; bus_error = errors[e];
+            int ret = mtk_pmic_keys_lp_reset_setup(&keys, &mt6351_regs);
+            unsigned int bits = mode == 2 ? 0x300 : 0x200;
+            assert(ret == bus_error && updates == 1);
+            assert(reset_value == (bus_error ? 0xffff : ((0xffff & ~0x3300) | bits)));
+            cases++;
+        }
+    }
+    struct mtk_pmic_regs legacy = mt6351_regs;
+    memset(legacy.rst_lprst_seconds, 0, sizeof(legacy.rst_lprst_seconds));
+    duration_present = true; mode = 1; debounce = 3;
+    for (unsigned int e = 0; e < ARRAY_SIZE(errors); e++) {
+        updates = 0; reset_value = 0xffff; bus_error = errors[e];
+        int ret = mtk_pmic_keys_lp_reset_setup(&keys, &legacy);
+        assert(ret == bus_error && updates == 1);
+        assert(reset_value == (bus_error ? 0xffff : ((0xffff & ~0x3300) | 0x3200)));
+        cases++;
     }
     printf("PASS: %u key-state/reset-policy/transport cases\n", cases);
     return 0;
