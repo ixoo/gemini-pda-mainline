@@ -1,0 +1,157 @@
+{
+  "date": "2026-09-08",
+  "sources": [
+    {
+      "commit": "5acbae5f7eb3d5275120abfe698c394b7325dcec",
+      "files": [
+        {
+          "path": "drivers/mfd/mt6397-core.c",
+          "sha256": "957c88e5f6979f674002ef48471a817cb034d83e6ab38f912916bf678d768bb9",
+          "bytes": 12078
+        },
+        {
+          "path": "drivers/mfd/mt6397-irq.c",
+          "sha256": "be6f4059b169ddfcc48a65539f94969d83f220602c09d4df66b7a4e81bb9a61e",
+          "bytes": 6284
+        },
+        {
+          "path": "include/linux/mfd/mt6397/core.h",
+          "sha256": "2e0eba7821a922bdb67e7c26f9cadd165c0c2ea7f4c9dc1adf60528f020d4918",
+          "bytes": 1617
+        },
+        {
+          "path": "Documentation/devicetree/bindings/mfd/mediatek,mt6397.yaml",
+          "sha256": "291538ab8f66ca32eba6c1d8d1864b5e6146b57f53db32f7213b0c4f8ae0e9ca",
+          "bytes": 18959
+        },
+        {
+          "path": "Documentation/devicetree/bindings/input/mediatek,pmic-keys.yaml",
+          "sha256": "d53c083903d79e4c8ea52e253b2a491da85bcec9874579c239ec2794e96f42ae",
+          "bytes": 2221
+        },
+        {
+          "path": "sound/soc/codecs/mt6351.c",
+          "sha256": "652bd3fafdd01c20191cb870398e73ee0d6c01f5d70df84701ac13e2e3c72822",
+          "bytes": 41609
+        },
+        {
+          "path": "MAINTAINERS",
+          "sha256": "5cb3b7950e1923e97fde55895c8d22853ef486e7f28b4f6629e69d3196a374ad",
+          "bytes": 927975
+        },
+        {
+          "path": "drivers/soc/mediatek/mtk-pmic-wrap.c",
+          "sha256": "80173dd03ba85c5f900d27d35a2b6d0bd60bb5cf4bd801295e9953a0e4eaec12",
+          "bytes": 70783
+        },
+        {
+          "path": "include/linux/mfd/mt6328/core.h",
+          "sha256": "acc76d09df59705b651536b5f4a9dbbb8a11fcd1125c8fa12e474ca06d911b7d",
+          "bytes": 1441
+        }
+      ],
+      "repository": "https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git"
+    },
+    {
+      "commit": "b07adc1a304c7ca9ac25a01051561538757363c9",
+      "files": [
+        {
+          "path": "drivers/mfd/mt6397-core.c",
+          "sha256": "957c88e5f6979f674002ef48471a817cb034d83e6ab38f912916bf678d768bb9",
+          "bytes": 12078
+        },
+        {
+          "path": "drivers/mfd/mt6397-irq.c",
+          "sha256": "be6f4059b169ddfcc48a65539f94969d83f220602c09d4df66b7a4e81bb9a61e",
+          "bytes": 6284
+        },
+        {
+          "path": "include/linux/mfd/mt6397/core.h",
+          "sha256": "2e0eba7821a922bdb67e7c26f9cadd165c0c2ea7f4c9dc1adf60528f020d4918",
+          "bytes": 1617
+        },
+        {
+          "path": "Documentation/devicetree/bindings/mfd/mediatek,mt6397.yaml",
+          "sha256": "291538ab8f66ca32eba6c1d8d1864b5e6146b57f53db32f7213b0c4f8ae0e9ca",
+          "bytes": 18959
+        },
+        {
+          "path": "drivers/rtc/rtc-mt6397.c",
+          "sha256": "bdcc2e03bb190b44cc95f052bee7c8fd7a0964b08164cc6034bfba5205108ddd",
+          "bytes": 9163
+        },
+        {
+          "path": "drivers/input/keyboard/mtk-pmic-keys.c",
+          "sha256": "4a085e49f16e12cc6c00f7b74b7c1e7e18735b45eccd26f0b24e076d9f940d1e",
+          "bytes": 11332
+        },
+        {
+          "path": "drivers/regulator/Makefile",
+          "sha256": "825ccf0b4e1ad080780d24fba6b7425b2103a6c6fa566720b6fa5981970740f2",
+          "bytes": 11599
+        },
+        {
+          "path": "include/linux/irqdomain.h",
+          "sha256": "1bb4044856a5ef47c95eb09e366a1a9f147ff80a8a44a4486db584204338a6df",
+          "bytes": 26406
+        },
+        {
+          "path": "kernel/irq/irqdomain.c",
+          "sha256": "b9222174bb521bd13ae69b92df5eae5bfeb7824bd688efa12b199141dba6a95e",
+          "bytes": 60787
+        },
+        {
+          "path": "include/linux/mfd/mt6328/core.h",
+          "sha256": "acc76d09df59705b651536b5f4a9dbbb8a11fcd1125c8fa12e474ca06d911b7d",
+          "bytes": 1441
+        },
+        {
+          "path": "scripts/checkpatch.pl",
+          "sha256": "2553cc1a601e70522e03fbce633d4e79fa5936f7f56a66de1899b7ddd247820a",
+          "bytes": 245615
+        },
+        {
+          "path": "scripts/spelling.txt",
+          "sha256": "4095d4a8810f115bae1b7c0d8a1946beb3435f6e22d9a48ac009bb024bad1e68",
+          "bytes": 36610
+        },
+        {
+          "path": "scripts/const_structs.checkpatch",
+          "sha256": "ea064f6916a74763468037494aeb270aae34b7c97617e84d424ca5b8733539b2",
+          "bytes": 1646
+        }
+      ],
+      "unavailable": [],
+      "repository": "https://git.kernel.org/pub/scm/linux/kernel/git/lee/mfd.git"
+    }
+  ],
+  "checks": [
+    {
+      "check": "draft apply gemini-mt6351-current",
+      "exit": 0,
+      "output": ""
+    },
+    {
+      "check": "draft apply mfd-next",
+      "exit": 0,
+      "output": ""
+    },
+    {
+      "check": "checkpatch",
+      "exit": 1,
+      "output": "ERROR: Missing Signed-off-by: line(s)\n\ntotal: 1 errors, 0 warnings, 29 lines checked\n\nNOTE: For some of the reported defects, checkpatch may be able to\n      mechanically convert to the typical style using --fix or --fix-inplace.\n\nexperiments/2026-09-08-mt6351-mfd-upstream-preparation/patches/0001-mfd-mt6397-size-MT6328-interrupt-domain.patch has style problems, please review.\n\nNOTE: If any of the errors are false positives, please report\n      them to the maintainer, see CHECKPATCH in MAINTAINERS.\n"
+    },
+    {
+      "check": "historical apply 0008-dt-bindings-mfd-mediatek-add-MT6351-PMIC.patch",
+      "exit": 1,
+      "output": "error: patch failed: Documentation/devicetree/bindings/input/mediatek,pmic-keys.yaml:27\nerror: Documentation/devicetree/bindings/input/mediatek,pmic-keys.yaml: patch does not apply\n"
+    },
+    {
+      "check": "historical apply 0010-mfd-mt6397-add-MT6351-core-and-interrupt-support.patch",
+      "exit": 0,
+      "output": ""
+    }
+  ],
+  "kernel_compiled": false,
+  "hardware_tested": false
+}

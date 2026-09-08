@@ -1,0 +1,61 @@
+From 7bf59b4d0c814e65e1ae3341702ef7a3ac556cb4 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 8 Sep 2026 14:11:57 -0400
+Subject: [PATCH] mfd: mt6397: size the MT6328 interrupt domain for its sources
+
+MT6328 has named interrupt sources through hwirq 46 and the handler reads
+three status banks, but initialization uses the 32-source MT6397 domain.
+The IRQ domain rejects sources 32 and above before mapping.
+
+Use a terminal MT6328 source count for that chip while preserving the
+existing domain size for other chips. Keep this correction separate from
+MT6351 bank support.
+
+Unsigned experiment draft. The archive identity is non-certifying. Actual
+authorship and DCO certification must be resolved before submission.
+---
+ drivers/mfd/mt6397-irq.c        | 4 +++-
+ include/linux/mfd/mt6328/core.h | 1 +
+ 2 files changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/mfd/mt6397-irq.c b/drivers/mfd/mt6397-irq.c
+index 5d2e545..86d96b2 100644
+--- a/drivers/mfd/mt6397-irq.c
++++ b/drivers/mfd/mt6397-irq.c
+@@ -171,6 +171,7 @@ static int mt6397_irq_pm_notifier(struct notifier_block *notifier,
+ 
+ int mt6397_irq_init(struct mt6397_chip *chip)
+ {
++	unsigned int num_irqs = MT6397_IRQ_NR;
+ 	int ret;
+ 
+ 	mutex_init(&chip->irqlock);
+@@ -183,6 +184,7 @@ int mt6397_irq_init(struct mt6397_chip *chip)
+ 		chip->int_status[1] = MT6323_INT_STATUS1;
+ 		break;
+ 	case MT6328_CHIP_ID:
++		num_irqs = MT6328_IRQ_NR;
+ 		chip->int_con[0] = MT6328_INT_CON0;
+ 		chip->int_con[1] = MT6328_INT_CON1;
+ 		chip->int_con[2] = MT6328_INT_CON2;
+@@ -216,7 +218,7 @@ int mt6397_irq_init(struct mt6397_chip *chip)
+ 		regmap_write(chip->regmap, chip->int_con[2], 0x0);
+ 
+ 	chip->pm_nb.notifier_call = mt6397_irq_pm_notifier;
+-	chip->irq_domain = irq_domain_create_linear(dev_fwnode(chip->dev), MT6397_IRQ_NR,
++	chip->irq_domain = irq_domain_create_linear(dev_fwnode(chip->dev), num_irqs,
+ 						    &mt6397_irq_domain_ops, chip);
+ 	if (!chip->irq_domain) {
+ 		dev_err(chip->dev, "could not create irq domain\n");
+diff --git a/include/linux/mfd/mt6328/core.h b/include/linux/mfd/mt6328/core.h
+index 9a08aed..0c4493e 100644
+--- a/include/linux/mfd/mt6328/core.h
++++ b/include/linux/mfd/mt6328/core.h
+@@ -48,6 +48,7 @@ enum mt6328_irq_status_numbers {
+ 	MT6328_IRQ_STATUS_FG_ZCV,
+ 	MT6328_IRQ_STATUS_SPKL_D,
+ 	MT6328_IRQ_STATUS_SPKL_AB,
++	MT6328_IRQ_NR,
+ };
+ 
+ #endif /* __MFD_MT6323_CORE_H__ */

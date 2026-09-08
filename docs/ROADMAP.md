@@ -109,6 +109,12 @@ unit-address ordering. Do not add or enable an MT6351 codec or machine card: the
 MFD parent/cell through local patches 0008/0010, while official current upstream
 does not, and Gemini's analog routes remain unestablished.
 
+The [MT6351 MFD preparation](../experiments/2026-09-08-mt6351-mfd-upstream-preparation/README.md)
+separates an existing MT6328 interrupt-domain correction from the four-bank
+MT6351 extension and identifies the parent/child binding dependencies. The
+unsigned correction is an unbuilt review draft; next extract the MT6351 core
+and required regulator topic without enabling unrelated PMIC children.
+
 The current [cellular architecture refresh](../experiments/2026-09-07-mt6797-cellular-upstream-architecture/README.md)
 confirms that generic WWAN ports and netdevs are reusable only above a future
 proved transport. PCIe `t7xx`, RPMsg-WWAN and the current MediaTek SCP remoteproc
