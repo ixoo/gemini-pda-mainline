@@ -1,0 +1,118 @@
+{
+  "firmware_sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
+  "analysis_tool": "Ghidra 12.1.2",
+  "identity_policy": "existing retained identity and mapping reused; no extraction",
+  "scripts_sha256": {
+    "CompensationLifecyclePrefix.java": "6a323c4b35e34821d0828bcb4780e7427fa70f65569edfc19904193347b9247c",
+    "LifecycleBoundary.java": "d8f5e27128144d75e08d5554212794a66116293659ca97762c31b6834bf315fa",
+    "LifecycleInspect.java": "f4c7d22c025e6845dde498557c8a15fb87dfa9438509ba721119269cd708ab8d",
+    "LifecycleRefs.java": "f62da97632fad1db714ea839b025f46acf268b97201d1a9825f4d7102a870fb4",
+    "LifecycleCaller.java": "dd157296418ca89511849d32b0f756524cd25d5dfb65f860906e5e65358a408c",
+    "LifecycleParentInspect.java": "d64479a4dac377007292cca9d16916f65e8a053c23e0405e540002b024bd0f8f",
+    "LifecycleParentRefs.java": "80f05b040c660f62153b2a5e31dd26009618009e186d5a63dbaee4fa27e01b96",
+    "LifecycleRootPrefix.java": "7a06ba5e6c56a07b1507519b7a55f1b4f33159afba6a7b5813971cddfc891b87",
+    "LifecycleRootInspect.java": "f5307647f57891cfffd10fcf056158905c496e7a8bfc0120873f7d408d4b5d6c",
+    "LifecycleRootRefs.java": "b9997476f972f27fda8e9b5e81c4b73d2e543779c7020cb23e336753f352a6d2",
+    "LifecycleStatePrefix.java": "4f5a0f6b06b5bfbe22b5df8436ada9b64263e5197bd837522830095133a161ce",
+    "LifecycleStateBoundary.java": "0886dcca603b38588b04cfb43686fcb08c88101c986aae50fe83274c1075ea26",
+    "LifecycleStartupTail.java": "00b41b342c6951105d74eeec9b60fc1ff10e63e5e0306d9fd61ff966095e48e9",
+    "StateEntryPrefix.java": "7c477865f6440962ee0723f4187a271b929aa6e2b500ae66f239fc390a0aac16",
+    "StateEntryInspect.java": "15ae1e54d40ba8415cd24055c234b0f5606aa8e6a6dcf81f2ccd8307270f1cd3"
+  },
+  "walks": {
+    "initializer": {
+      "target_nodes": 576,
+      "queue_exhausted": true,
+      "call_sites": 20,
+      "unresolved_noncall_computed": 0,
+      "terminal": 1,
+      "invalid": 0,
+      "node_cap": 768
+    },
+    "near_caller": {
+      "target_nodes": 86,
+      "queue_exhausted": true,
+      "call_sites": 9,
+      "unresolved_noncall_computed": 0,
+      "terminal": 1,
+      "invalid": 0,
+      "node_cap": 256
+    },
+    "outer_caller": {
+      "target_nodes": 55,
+      "queue_exhausted": true,
+      "call_sites": 10,
+      "unresolved_noncall_computed": 0,
+      "terminal": 1,
+      "invalid": 0,
+      "node_cap": 512
+    },
+    "initial_tail_incomplete": {
+      "target_nodes": 512,
+      "queue_exhausted": false,
+      "call_sites": 88,
+      "unresolved_noncall_computed": 0,
+      "terminal": 1,
+      "invalid": 0,
+      "node_cap": 512
+    },
+    "state_entry": {
+      "target_nodes": 525,
+      "queue_exhausted": true,
+      "call_sites": 90,
+      "unresolved_noncall_computed": 0,
+      "terminal": 1,
+      "invalid": 0,
+      "node_cap": 640
+    }
+  },
+  "reference_search": {
+    "method": "two-byte-aligned adjacent same-register split-immediate pairs in plaintext section 2",
+    "levels": 3,
+    "matches_each": [
+      1,
+      1,
+      1
+    ],
+    "positive_call_edges_verified": 3,
+    "exhaustive_callers": false
+  },
+  "linear_windows": {
+    "CompensationLifecyclePrefix": {
+      "instructions": 47,
+      "cap": 96
+    },
+    "LifecycleBoundary": {
+      "instructions": 307,
+      "cap": 320
+    },
+    "LifecycleCaller": {
+      "instructions": 119,
+      "cap": 192
+    },
+    "LifecycleRootPrefix": {
+      "instructions": 67,
+      "cap": 96
+    },
+    "LifecycleStatePrefix": {
+      "instructions": 89,
+      "cap": 128
+    },
+    "LifecycleStateBoundary": {
+      "instructions": 235,
+      "cap": 384
+    },
+    "StateEntryPrefix": {
+      "instructions": 45,
+      "cap": 96
+    }
+  },
+  "limits": [
+    "Static selected paths only; skipped calls assumed to return.",
+    "Other callees or concurrent activity may change state and calibration globals.",
+    "No live invocation count, one-time initialization, successful application or persistence established.",
+    "Pointed-to structure producer and output callbacks unresolved.",
+    "Linear windows may begin within previous instructions; used only as anchor searches."
+  ],
+  "redaction": "No private addresses, firmware strings, fallback constants, instructions, calibration or identifiers published."
+}

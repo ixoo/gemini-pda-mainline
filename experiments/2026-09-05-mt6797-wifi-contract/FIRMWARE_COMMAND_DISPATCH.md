@@ -195,3 +195,8 @@ windows only located anchors; the selected graphs and relevant p-code support
 the stated data flow. Private labels, addresses, constants and instruction
 listings remain in the RE VM. This follow-up performed no device operation,
 emulation, kernel build or radio test.
+
+The [calibration lifecycle follow-up](FIRMWARE_CALIBRATION_LIFECYCLE.md) joins
+the compensation-clearing stores to the state-2 initialization path and its
+later transition toward general command admission. Runtime persistence and
+output callback effects remain unverified.
