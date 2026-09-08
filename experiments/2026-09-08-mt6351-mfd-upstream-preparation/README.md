@@ -235,7 +235,8 @@ contracts, not measured device concurrency.
 
 The [focused test](test-irq-lifetime.py), with its
 [userspace fixture](test-irq-lifetime.c), compiles the actual two initializers
-and release helpers from a supplied prepared Linux tree. It passes 56 cases:
+and release helpers from a supplied prepared Linux tree. Its eight-patch
+version passed 56 cases:
 ten chip selections with domain/request failures, successful detach and
 partial child-add failure; legacy notifier/action failures; and all four
 MT6351 mask-bank failures. It checks first, middle and last mapped IRQ disposal,
@@ -264,3 +265,24 @@ checkpatch passed with the unsigned-archive sign-off exclusion. The source
 baseline, configuration, toolchain and first six patches match the parent
 package; unchanged bindings did not need another schema check. No device
 action is admitted.
+
+
+## MT6358-family wake-reference follow-up
+
+The [ninth patch](../../patches/upstream-4d7d9486/mt6351/0009-mfd-mt6358-balance-IRQ-wake-reference.patch)
+balances the MT6358 initializer's successful `enable_irq_wake()` with a managed
+disable action. The pinned `irq_set_irq_wake()` contract requires balanced
+references, independently of handler removal. Cleanup runs before parent IRQ
+release. An action-allocation failure disables wake immediately; an unsuccessful
+wake enable remains nonfatal and installs no disable action, preserving the
+existing probe behavior without decrementing an unacquired reference.
+
+The focused lifetime fixture now models this reference and passes 64 cases.
+The eight additional cases cover wake-enable and action-allocation failure for
+all four chip IDs using this initializer. Existing success and partial-child
+failure cases now also require wake to be disabled before handler/domain
+release. This is shared-family cleanup, not a new MT6351 wake implementation.
+Physical wake-disable failure is not modeled or repaired; ignored mask writes
+and the modern initializer's shared mutable IRQ data remain separate gaps.
+The earlier receipt retains the exact eight-patch test hashes and results.
+The nine-patch compile is pending; no device candidate is created.

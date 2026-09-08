@@ -1,0 +1,51 @@
+From b4343399acb38ac7dc2e15a17b9ddb52cb316880 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 8 Sep 2026 15:25:59 -0400
+Subject: [PATCH] mfd: mt6358: release the parent IRQ wake reference
+
+Balance a successful enable_irq_wake() with a managed cleanup action.
+Register it after the managed parent IRQ so teardown disables wake before
+freeing the handler and domain. Allocation failure immediately releases
+the wake reference through devm_add_action_or_reset().
+
+Keep wake-enable failure nonfatal, as before, and register no cleanup
+when no reference was acquired.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/mfd/mt6358-irq.c | 14 ++++++++++++--
+ 1 file changed, 12 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/mfd/mt6358-irq.c b/drivers/mfd/mt6358-irq.c
+index 8746312..aae3cff 100644
+--- a/drivers/mfd/mt6358-irq.c
++++ b/drivers/mfd/mt6358-irq.c
+@@ -224,6 +224,13 @@ static const struct irq_domain_ops mt6358_irq_domain_ops = {
+ 	.xlate = irq_domain_xlate_twocell,
+ };
+ 
++static void mt6358_irq_disable_wake(void *data)
++{
++	struct mt6397_chip *chip = data;
++
++	disable_irq_wake(chip->irq);
++}
++
+ int mt6358_irq_init(struct mt6397_chip *chip)
+ {
+ 	struct irq_domain_info info = {
+@@ -294,6 +301,9 @@ int mt6358_irq_init(struct mt6397_chip *chip)
+ 		return ret;
+ 	}
+ 
+-	enable_irq_wake(chip->irq);
+-	return ret;
++	ret = enable_irq_wake(chip->irq);
++	if (ret)
++		return 0;
++
++	return devm_add_action_or_reset(chip->dev, mt6358_irq_disable_wake, chip);
+ }
+-- 
+2.50.1 (Apple Git-155)
+

@@ -48,15 +48,27 @@ static void mutex_init(int *lock) { *lock = 0; }
 static void *dev_fwnode(void *dev) { return dev; }
 static void *devm_kcalloc(void *dev, unsigned int n, unsigned int size, int flags)
 { return &allocation; }
-static void enable_irq_wake(int irq) {}
 
-enum failure { NONE, DOMAIN, REQUEST, NOTIFIER, ACTION, CHILD };
+enum failure { NONE, DOMAIN, REQUEST, NOTIFIER, ACTION, WAKE, CHILD };
 static enum failure fail;
 static unsigned int writes, mask_fail, maps[160], disposed, removals;
-static int irq_live, notifier_live, children_live, domain_live;
+static int irq_live, notifier_live, children_live, domain_live, wake_live;
 static struct irq_domain domain;
 static struct { void (*release)(void *); void *data; } resources[4];
 static unsigned int resource_count;
+static int enable_irq_wake(int irq)
+{
+    assert(irq_live && domain_live && !wake_live);
+    if (fail == WAKE)
+        return -EINVAL;
+    wake_live = 1;
+    return 0;
+}
+static void disable_irq_wake(int irq)
+{
+    assert(wake_live && irq_live && domain_live && !children_live);
+    wake_live = 0;
+}
 static void add_resource(void (*release)(void *), void *data)
 {
     assert(resource_count < 4);
@@ -76,14 +88,14 @@ static unsigned int irq_find_mapping(struct irq_domain *d, unsigned int hwirq)
 { assert(d == &domain && domain_live); return maps[hwirq]; }
 static void irq_dispose_mapping(unsigned int virq)
 {
-    assert(domain_live && !children_live && !irq_live && !notifier_live);
+    assert(domain_live && !children_live && !irq_live && !notifier_live && !wake_live);
     assert(virq > 0 && maps[virq - 1] == virq);
     maps[virq - 1] = 0;
     disposed++;
 }
 static void release_domain(void *data)
 {
-    assert(domain_live && !children_live && !irq_live && !notifier_live);
+    assert(domain_live && !children_live && !irq_live && !notifier_live && !wake_live);
     domain.exit(&domain);
     for (unsigned int i = 0; i < domain.revmap_size; i++)
         assert(!maps[i]);
@@ -103,7 +115,7 @@ static struct irq_domain *devm_irq_domain_instantiate(void *dev,
 }
 static void release_irq(void *data)
 {
-    assert(irq_live && domain_live && !notifier_live && !children_live);
+    assert(irq_live && domain_live && !notifier_live && !children_live && !wake_live);
     irq_live = 0; /* Models free_irq() completing before the next release. */
 }
 static int devm_request_threaded_irq(void *dev, int irq, void *top,
@@ -149,7 +161,7 @@ int main(void)
     unsigned int cases = 0;
     for (unsigned int i = 0; i < sizeof(ids) / sizeof(ids[0]); i++) {
         for (fail = NONE; fail <= CHILD; fail++) {
-            if (i >= 6 && (fail == NOTIFIER || fail == ACTION))
+            if ((i >= 6 && fail == NOTIFIER) || (i < 6 && fail == WAKE))
                 continue;
             struct mt6397_chip chip = { .chip_id = ids[i] };
             writes = disposed = removals = 0;
@@ -160,6 +172,7 @@ int main(void)
             assert(ret == expected);
             if (!ret) {
                 assert(notifier_live == (i < 6));
+                assert(wake_live == (i >= 6 && fail != WAKE));
                 const unsigned int positions[] = { 0, domain.revmap_size / 2,
                                                    domain.revmap_size - 1 };
                 for (unsigned int j = 0; j < 3; j++)
@@ -171,7 +184,7 @@ int main(void)
                 }
             }
             unwind();
-            assert(!irq_live && !notifier_live && !domain_live && !children_live);
+            assert(!irq_live && !notifier_live && !domain_live && !children_live && !wake_live);
             assert(disposed == (ret ? 0u : 3u));
             assert(removals == (fail == DOMAIN ? 0u : 1u));
             cases++;

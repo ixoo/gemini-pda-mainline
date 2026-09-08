@@ -30,6 +30,7 @@ functions = ''.join([
     function(legacy, 'void mt6397_irq_domain_exit('),
     function(legacy, 'static void mt6397_irq_unregister_pm_notifier('),
     function(legacy, 'int mt6397_irq_init('),
+    function(modern, 'static void mt6358_irq_disable_wake('),
     function(modern, 'int mt6358_irq_init('),
 ])
 tokens = sorted(set(re.findall(r'\bMT\d+_(?:CHIP_ID|INT_[A-Z0-9_]+|IRQ_NR)\b', functions)))
