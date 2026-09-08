@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "classification": "offline_direct_exec_ownership_rejected_current_contract",
+  "candidate": "R",
+  "boot_id": "bbad1c49-ecdd-4f40-b1e0-c53f707106d1",
+  "candidate_boot_sha256": "3290b867bc6cb2ecee42e6ca1436e1ae29613c074e7e45b3836ecb2905f3e07c",
+  "candidate_initramfs_sha256": "b258a9a5dc894ecbd330005ecab841225b320a3c2b82abe725f3833c874d74cd",
+  "candidate_manifest_sha256": "62440fdee9267e26d6f90148609a7c2551fdb9d6a9f603da03f891638c65180d",
+  "candidate_source_revision": "e9c028005b88ef8536ecb58c095e8d172253fa12",
+  "parent_result": "experiments/2026-09-07-keyboard-boot2-session/results/candidate-r-bootstrap-feasibility.json",
+  "inventory": {
+    "manifest_members": 47,
+    "executable_regular_members": 14,
+    "busybox_applets": 270,
+    "fresh_root_contains_a53_p": false,
+    "qualifying_existing_supervisors": 0,
+    "retained_proof_executable": {
+      "path": "/a53-keyboard-disconnect/probe",
+      "bytes": 66760,
+      "sha256": "560d00ab80040b90fead5d0a5b2672ed633f62599aa483ff0a33be0fa74d3681",
+      "general_exec_or_supervision": false
+    }
+  },
+  "accepted_helper": {
+    "bytes": 66672,
+    "sha256": "750169b008cae28fd6297f7a1567ad833022b521f17ee9c6c1e2ffa023c4f745",
+    "deadline_starts_before_execve": false,
+    "normalizes_inherited_signal_mask": false
+  },
+  "source_inputs": {
+    "busybox_version": "1.36.1-6ubuntu3.1",
+    "busybox_binary_sha256": "52151e7f322f926b64049cdaa1410dc3ea6485525e0624b05813791c219ae933",
+    "busybox_upstream_sha256": "b8cc24c9574d809e7279c3be349795c5d5ceb6fdf19ca709f80cde50e47de314",
+    "busybox_ubuntu_delta_sha256": "1c7d785cf1e1d5d09ddc22fe755e14327fb3799878a5d840fc611044ff05f022",
+    "dropbear_version": "2026.94",
+    "dropbear_archive_sha256": "e098034a843699200c8c977a991fff73159735bf795d5f72ef672c41a6b1ae81",
+    "hashes_revalidated": true
+  },
+  "direct_exec_findings": {
+    "command": "trap - PIPE; exec /a53-p/helper",
+    "a_completion_proves_verified_stage_at_a_completion": true,
+    "changed_fresh_boot_fails_closed_absent_new_creator": true,
+    "stage_path_capability_equivalent_to_b_time_identity_checks": false,
+    "shell_startup_and_execve_inside_helper_deadline": false,
+    "dropbear_terminates_and_reaps_stalled_exec": false,
+    "default_sigpipe_disposition_proven": true,
+    "empty_inherited_signal_mask_proven": false
+  },
+  "blocking_requirements": [
+    "b_time_boot_candidate_and_stage_attribution_equivalence",
+    "no_pre_helper_lifetime_gap",
+    "proven_normalized_signal_mask"
+  ],
+  "specialist_review": "stop_no_go_current_contract",
+  "next_scope_choice": "resident_launch_supervisor_or_explicit_launch_boundary_and_stage_attribution_relaxation",
+  "runner_implemented": false,
+  "device_contact": false,
+  "ssh_executed": false,
+  "build_executed": false,
+  "live_delivery_admitted": false,
+  "live_execution_admitted": false
+}

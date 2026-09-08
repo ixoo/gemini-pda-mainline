@@ -290,3 +290,12 @@ pre-`exec` lifetime owner; neither its host deadline nor the helper's later
 before runner implementation. See
 [`BOOTSTRAP_WORK_ITEM.md`](BOOTSTRAP_WORK_ITEM.md) and
 [`results/candidate-r-bootstrap-feasibility.json`](results/candidate-r-bootstrap-feasibility.json).
+
+The follow-on exhaustive inventory also closed negatively. None of Candidate
+R's executable regular files, 270 exact BusyBox applets, or the one retained
+fixed-purpose proof executable can own the required deadline, helper identity,
+termination and reaping. Immediate direct exec additionally leaves shell/
+`execve` outside the helper deadline, weakens B-time attribution, and cannot
+prove an empty inherited signal mask. See
+[`DIRECT_EXEC_WORK_ITEM.md`](DIRECT_EXEC_WORK_ITEM.md) and
+[`results/candidate-r-direct-exec-feasibility.json`](results/candidate-r-direct-exec-feasibility.json).
