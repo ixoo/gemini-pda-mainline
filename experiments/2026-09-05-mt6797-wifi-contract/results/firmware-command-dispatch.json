@@ -1,0 +1,127 @@
+{
+  "firmware_sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
+  "firmware_bytes": 411632,
+  "identity_policy": "existing immutable identity reused; no new firmware extraction",
+  "analysis_tool": "Ghidra 12.1.2",
+  "premises": [
+    "candidate plaintext mapping",
+    "NDS32 big-endian instructions",
+    "little-endian pointer interpretation supported by this table",
+    "default calling convention and skipped-callee return assumptions"
+  ],
+  "scripts_sha256": {
+    "CallerInspect.java": "2572a64f9a672e31678a0c8e602907f856ca524093920c551a5500aeb8cb05ab",
+    "CallerData.java": "09178dea3bc537f6aa2f101b0db9b298c4789587e4ac9b03761d4830aa50958f",
+    "NvramCandidate.java": "ff60864b78fd0f44f67bf9e959b854ce67885a0f4782a049d4372935b7ccabed",
+    "DispatchRefs.java": "121646a642908c4f466667cc6fde931656ec4ef3f0508ff9be494fdeb128c09a",
+    "DispatchInspect.java": "b17e10448ba4901584c9f70408e84cd576cf4f99ba50f3c3bada672a93d97974",
+    "DispatchPrefix.java": "162bcdf22e47e1e2c96842224f8bb919868f2cc4ef719b9f2eee14a33f0027e8"
+  },
+  "caller_walk": {
+    "node_cap": 256,
+    "nodes": 44,
+    "queue_exhausted": true,
+    "calls": 2,
+    "terminal": 1,
+    "invalid": 0
+  },
+  "pointer_search": {
+    "section": "plaintext data section 3",
+    "alignment_bytes": 4,
+    "words": 16348,
+    "little_endian_entry_matches": 1,
+    "big_endian_entry_matches": 0
+  },
+  "table_reference_search": {
+    "method": "adjacent same-register split-immediate pairs at two-byte offsets in plaintext section 2",
+    "neighborhood_bytes": 1024,
+    "candidates": 30,
+    "warning": "candidate scan alone does not prove instruction boundaries"
+  },
+  "dispatcher_walk": {
+    "start": "table-address construction anchor, not claimed function entry",
+    "node_cap": 256,
+    "nodes": 117,
+    "queue_exhausted": true,
+    "calls": 7,
+    "terminal": 1,
+    "invalid": 0
+  },
+  "prefix_check": {
+    "instructions": 30,
+    "reached_table_load": true,
+    "includes_preceding_return_and_candidate_prologue": true
+  },
+  "table": {
+    "stride_bytes": 8,
+    "command_byte_offset": 0,
+    "pointer_offset": 4,
+    "loop_entries": 81,
+    "selected": [
+      {
+        "command": "0x43",
+        "index": 50,
+        "handler": "original RSSI-reference caller"
+      },
+      {
+        "command": "0x48",
+        "index": 51,
+        "handler": "separate full-record handler"
+      }
+    ]
+  },
+  "nvram_handler_walk": {
+    "node_cap": 256,
+    "nodes": 31,
+    "queue_exhausted": true,
+    "calls": 1,
+    "terminal": 1,
+    "invalid": 0
+  },
+  "record_accesses": [
+    {
+      "offset": 263,
+      "bytes": 1,
+      "effect": "copied to fixed global byte"
+    },
+    {
+      "offset": 268,
+      "bytes": 2,
+      "effect": "bit 8 selects Boolean argument to one uninspected helper"
+    },
+    {
+      "offset": 272,
+      "bytes": 1,
+      "effect": "copied to fixed global byte and used as gate"
+    },
+    {
+      "offset": 270,
+      "bytes": 1,
+      "effect": "copied if gate nonzero; corresponding global cleared otherwise"
+    },
+    {
+      "offset": 271,
+      "bytes": 1,
+      "effect": "copied if gate nonzero; corresponding global cleared otherwise"
+    }
+  ],
+  "limits": [
+    "Static dispatch attribution, not proof of runtime invocation or exact executing firmware.",
+    "No claimed full record validation, calibration acceptance, or acknowledgement.",
+    "Nested helper and downstream global consumers remain uninspected."
+  ],
+  "redaction": "No private firmware strings, addresses, bytes, instruction listings, calibration values or identifiers published.",
+  "vendor_source_commit": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+  "source_files": [
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/include/nic_cmd_event.h",
+      "sha256": "93c8d67b1bc039a8db5b635e5a00975f2b9e408f4ab1bc8a384f5db49bf00a3a",
+      "bytes": 60516
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/include/CFG_Wifi_File.h",
+      "sha256": "f65877529e37df1f63792f59b538f16980af47bdbe4d51cbce47ce8738cd9dbd",
+      "bytes": 9536
+    }
+  ]
+}

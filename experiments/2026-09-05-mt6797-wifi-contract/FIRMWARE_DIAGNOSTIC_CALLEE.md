@@ -1,5 +1,10 @@
 # NVRAM reference reaches a diagnostic formatter
 
+The [command-dispatch follow-up](FIRMWARE_COMMAND_DISPATCH.md) joins the
+original caller to command `0x43` and identifies the separate `0x48` handler.
+It supersedes the incoming-dispatch uncertainty below without changing the
+diagnostic interpretation.
+
 Follow-up, 2026-09-08. The previously resolved
 [computed-call target](FIRMWARE_NVRAM_CALL_TARGET.md) now has a supported
 **diagnostic-formatting interpretation**. The NVRAM-associated address is
