@@ -3,10 +3,8 @@
   "purpose": "Scope and ownership registry; docs/ROADMAP.md alone orders work. Ready means available, not staffed or admitted for hardware.",
   "coordination": {
     "integration_owner": "Project Planning",
-    "max_active_worker_items": 3,
     "device_slots": 1,
     "build_policy": "Explicit Buildbox, shared mutations serialized by existing lock",
-    "handoff_template": "project/WORK_ITEM.md",
     "roadmap": "docs/ROADMAP.md",
     "experiment_queue": "project/experiment-queue.json",
     "owner_away_policy": "Continue independent offline work; waiting-device items free worker slots. Readiness is not physical admission.",

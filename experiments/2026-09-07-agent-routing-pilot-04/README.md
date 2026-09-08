@@ -21,7 +21,7 @@ The [ledger](results/ledger.json) starts a new contiguous considered and
 accepted sequence. Rolling comparisons retain the preceding ten accepted items
 through the linked pilot-03 ledger and add future accepted items here. Five-item
 and early-signal checkpoints follow
-[`project/WORKFLOW_IMPROVEMENT.md`](../../project/WORKFLOW_IMPROVEMENT.md).
+[`project/WORKFLOW_IMPROVEMENT.md`](https://github.com/ixoo/gemini-pda-mainline/blob/56501abf851ef9fdae1a02062939e75ed27b9fe3/project/WORKFLOW_IMPROVEMENT.md).
 This record changes no model, effort, concurrency, build, publication, device
 or hardware authority.
 

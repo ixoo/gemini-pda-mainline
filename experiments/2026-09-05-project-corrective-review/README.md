@@ -62,7 +62,7 @@ an opportunistic cleanup target.
   upstream support. The roadmap now owns concise ordered work, separate
   deliverables and a serial device queue. Historical anchors remain available.
 - The [registry](../../project/workstreams.json),
-  [handoff contract](../../project/WORK_ITEM.md) and
+  [handoff contract](https://github.com/ixoo/gemini-pda-mainline/blob/56501abf851ef9fdae1a02062939e75ed27b9fe3/project/WORK_ITEM.md) and
   [upstream topic inventory](../../project/upstream-topics.json) make task
   boundaries explicit. Unassigned entries are proposed work, not running tasks.
 

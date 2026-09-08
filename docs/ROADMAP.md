@@ -72,13 +72,9 @@ not the starting point for unreviewed deployments.
 <a id="parallel-work-that-does-not-block-the-a72-sequence"></a>
 ## Parallel delivery
 
-Keep one integration owner and at most three active implementation/research work
-items. Each item has one owner, a frozen parent, a bounded scope, a handoff and
-an upstream exit. These are staffing limits, not extra approval gates. Start
-with upstream preparation, A53 serviceability and Wi-Fi support; the integrator
-reviews their handoffs. Keyboard/storage protocol preparation stays with the A53
-worker. Offline power work continues
-when it can resolve a supported interface or measurement dependency. Unassigned work is not running.
+Prioritize upstream preparation, A53 serviceability and Wi-Fi support.
+Keep keyboard/storage preparation with A53 work. Offline power work continues
+when it can resolve a supported interface or measurement dependency.
 
 | Workstream | First bounded deliverable | Can proceed independently | Hardware or integration dependency |
 | --- | --- | --- | --- |
@@ -141,7 +137,7 @@ without a new kernel or boot2 cycle; audit retained firmware/vendor source in
 parallel. Source and protocol implementation proceed alongside A53 work now.
 
 The [registry](../project/workstreams.json) records owners, scopes and evidence
-links. The [work item template](../project/WORK_ITEM.md) is the handoff contract.
+links.
 The [upstream topic inventory](../project/upstream-topics.json) separates review
 preparation from certification and public submission.
 
@@ -364,12 +360,6 @@ inconclusive outcomes too. Patch, build and document counts are not progress
 measures. Review priorities weekly or when a decisive result changes a
 workstream's dependencies. Scheduled continuations are managed separately in
 the app and use this roadmap; the document itself is not a scheduler.
-
-For accepted offline work, use the event-driven
-[workflow improvement loop](../project/WORKFLOW_IMPROVEMENT.md). Its sanitized
-ledger measures first-review acceptance, rework, escalation and observed cost;
-it may propose a reversible future-task settings experiment but cannot reorder
-this roadmap, resume paused work or authorize a build or device session.
 
 ## A53 development-system release gate
 

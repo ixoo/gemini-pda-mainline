@@ -214,8 +214,7 @@ experiment at a time; task completion or a newer package never grants boot
 admission. Shared transport and deployment mechanisms belong in `scripts/`;
 experiment-specific policy and immutable receipts remain in experiments.
 
-The [work item template](../project/WORK_ITEM.md) defines the handoff contract.
-The [roadmap](ROADMAP.md#parallel-delivery) owns priorities, staffing limits and
+The [roadmap](ROADMAP.md#parallel-delivery) owns priorities and
 acceptance gates. The [registry](../project/workstreams.json) is coordination
 metadata, not authority to build, deploy or promote hardware support.
 

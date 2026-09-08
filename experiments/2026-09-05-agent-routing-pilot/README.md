@@ -26,9 +26,9 @@ alternative.
 - Runtime used to validate the project settings: Codex desktop `0.153.4`.
   Standalone CLI `0.144.1` is incompatible with this agent configuration.
 - Effective route and active-cohort pointer:
-  [`project/workflow-improvement.json`](../../project/workflow-improvement.json).
+  [`project/workflow-improvement.json`](https://github.com/ixoo/gemini-pda-mainline/blob/56501abf851ef9fdae1a02062939e75ed27b9fe3/project/workflow-improvement.json).
 - Policy and definitions:
-  [`project/WORKFLOW_IMPROVEMENT.md`](../../project/WORKFLOW_IMPROVEMENT.md).
+  [`project/WORKFLOW_IMPROVEMENT.md`](https://github.com/ixoo/gemini-pda-mainline/blob/56501abf851ef9fdae1a02062939e75ed27b9fe3/project/WORKFLOW_IMPROVEMENT.md).
 
 An eligible item is a bounded offline execution, implementation, reasoning or
 integration handoff with a work contract, frozen parent, named owner and

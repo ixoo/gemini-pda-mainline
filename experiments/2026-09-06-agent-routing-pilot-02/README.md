@@ -20,7 +20,7 @@ group, so this successor inherits baseline decision `baseline-01` unchanged.
 The [ledger](results/ledger.json) records future accepted and excluded work in
 one contiguous sequence local to this cohort. Rolling ten-item comparisons and
 five-item checkpoints follow
-[`project/WORKFLOW_IMPROVEMENT.md`](../../project/WORKFLOW_IMPROVEMENT.md).
+[`project/WORKFLOW_IMPROVEMENT.md`](https://github.com/ixoo/gemini-pda-mainline/blob/56501abf851ef9fdae1a02062939e75ed27b9fe3/project/WORKFLOW_IMPROVEMENT.md).
 This record grants no build, publication, device or hardware authority.
 
 ## Item-one early-signal checkpoint
