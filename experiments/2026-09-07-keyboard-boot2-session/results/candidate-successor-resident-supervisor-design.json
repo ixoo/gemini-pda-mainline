@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "classification": "offline_resident_supervisor_interface_frozen_capability_gate_required",
+  "parent_result": "experiments/2026-09-07-keyboard-boot2-session/results/candidate-r-direct-exec-feasibility.json",
+  "target": "future_candidate_only",
+  "current_candidate_r_recovery": false,
+  "architecture": {
+    "init_owned_supervisor": true,
+    "preforked_single_capsule": true,
+    "postaccept_fork": false,
+    "helper_execution": "sealed_memfd_execveat_at_empty_path",
+    "child_ownership": "direct_parent_unreaped_pid_plus_pidfd",
+    "parent_death_action": "pr_set_pdeathsig_sigkill",
+    "claim_commit": "aligned_lock_free_uint32_compare_exchange",
+    "control_transport": "root_only_af_unix_sock_seqpacket",
+    "acceptance_input": "first_exact_nonzero_192_byte_record",
+    "acceptance_commit": "absolute_timerfd_armed_then_empty_to_claimed_cas",
+    "accepted_disconnect_cancels_action": false
+  },
+  "request_bytes": 192,
+  "helper_start_witness_bytes": 98,
+  "ram_allocation": {
+    "state_bytes": 16384,
+    "stdout_bytes": 524288,
+    "stderr_bytes": 16384,
+    "total_bytes": 557056,
+    "mlock_required": false,
+    "swap_required_absent": true
+  },
+  "lifecycle_invariants": {
+    "terminal_requires_observed_child_reap": true,
+    "exec_status_eof_proves_success": false,
+    "forced_parent_death_may_remain_nonterminal": true,
+    "uninterruptible_delay_has_finite_cessation_claim": false,
+    "sigpipe_must_be_suppressed_for_response_writes": true,
+    "supervisor_respawn": false,
+    "claim_rearm": false
+  },
+  "platform_inputs": {
+    "kernel_config_sha256": "194834d90eb2443f4b14ba8f2078ba16fe0c63f69088fcc8c063fe25af01c410",
+    "system_map_sha256": "07bf653ea74c2bae7e8747430d346b98aed850f3b24cf400a68db9612b6a7035",
+    "system_map_bytes": 2380223,
+    "required_arm64_syscalls_present": [
+      "pidfd_open",
+      "pidfd_send_signal",
+      "memfd_create",
+      "execveat",
+      "signalfd4",
+      "timerfd_create"
+    ],
+    "musl_archive_sha256": "d585fd3b613c66151fc3249e8ed44f77020cb5e6c1e635a616d3f9f82460512a"
+  },
+  "specialist_review": "go_interface_freeze_capability_fixtures_required_before_implementation",
+  "implementation_admitted": false,
+  "build_executed": false,
+  "device_contact": false,
+  "ssh_to_device": false,
+  "candidate_r_state_mutated": false,
+  "next_state": "fixture_only_native_linux_and_static_arm64_qemu_capability_gate"
+}

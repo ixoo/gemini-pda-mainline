@@ -29,9 +29,9 @@
   "target_accepted_offline_items": 10,
   "checkpoint_interval": 5,
   "rolling_window_after_pilot": 10,
-  "accepted_count": 3,
-  "next_accepted_sequence": 4,
-  "next_considered_sequence": 4,
+  "accepted_count": 4,
+  "next_accepted_sequence": 5,
+  "next_considered_sequence": 5,
   "considered_items": [
     {
       "considered_sequence": 1,
@@ -162,6 +162,46 @@
         "credit_source": "unavailable",
         "credit_unit": null,
         "accepted_evidence": "experiments/2026-09-07-keyboard-boot2-session/results/candidate-r-direct-exec-feasibility.json"
+      }
+    },
+    {
+      "considered_sequence": 4,
+      "accepted_sequence": 4,
+      "candidate_id": "keyboard-resident-supervisor-design",
+      "disposition": "accepted",
+      "offline_eligible": true,
+      "work_type": "reasoning",
+      "risk_class": "hard-uncertainty",
+      "acceptance_contract": "experiments/2026-09-07-keyboard-boot2-session/RESIDENT_SUPERVISOR_DESIGN_WORK_ITEM.md",
+      "review_comparison_group": "gemini-device-session-readiness",
+      "parent": "56501abf851ef9fdae1a02062939e75ed27b9fe3",
+      "owner_route": {
+        "role": "gemini_reasoner",
+        "model": "gpt-5.6-sol",
+        "effort": "medium"
+      },
+      "review_route": {
+        "role": "gemini_specialist",
+        "model": "gpt-6-astra",
+        "effort": "medium"
+      },
+      "result": {
+        "started_at": "2026-09-08T10:45:41Z",
+        "review_ready_at": "2026-09-08T11:08:22Z",
+        "accepted_at": "2026-09-08T11:34:36Z",
+        "timing_source": "observed UTC Sol dispatch, complete initial design handoff and final revised-interface specialist acceptance timestamps",
+        "elapsed_minutes": 48.9166667,
+        "review_rework_minutes": 26.2333333,
+        "first_review_accepted": false,
+        "rework_cycles": 1,
+        "escalated": false,
+        "escalation_reason": null,
+        "escalation_packet": null,
+        "review_failure_class": null,
+        "measured_credits": null,
+        "credit_source": "unavailable",
+        "credit_unit": null,
+        "accepted_evidence": "experiments/2026-09-07-keyboard-boot2-session/results/candidate-successor-resident-supervisor-design.json"
       }
     }
   ],
