@@ -86,3 +86,42 @@ A new persistent writer needs its own exact range/write-budget contract.
 No timeout, missing terminal, shortcut return, active competing consumer, or
 empty recovered record may be classified as the required successful cycle.
 This assessment adds neither an upstream vendor ABI nor a hardware-support claim.
+
+## Android startup follow-up
+
+Four further read-only invocations, recorded separately in the
+[metadata receipt](results/cycle-control-gemian-metadata.json), kept the same
+Gemian boot identity. The unique WMT launcher's ancestor chain led through
+Android `/init` and `lxc-start` in `lxc@android.service` to host systemd.
+The LXC configuration names `/var/lib/lxc/android/rootfs` and `/init`.
+Inspection used the Android init process's root namespace, rather than assuming
+that identically named paths in the host root described the container.
+
+A bounded 52-file locator found the normal, factory and meta connectivity
+rules. Only the normal rules were selected for the detailed startup assessment.
+The root init configuration imports the hardware-specific rules, and
+`init.mt6797.rc` line 3 imports `init.connectivity.rc`. Root init starts the
+core, main and late-start classes at lines 585, 589 and 590.
+
+In the normal connectivity rules, both WMT loader and launcher belong to core
+and lack `disabled`; only the loader is `oneshot`. The file supplies no explicit
+loader-completed dependency for starting the launcher. The GNSS helpers `mnld`
+and `MPED` belong to main and also lack `disabled`. The two supplicant services
+and `wifi2agps` are disabled declarations. These are configuration facts, not
+observations that every service ran or acquired a common resource.
+
+This rules out using an otherwise unchanged full Gemian boot followed by a
+ConnMan stop as proof of a pristine, inactive connectivity starting state.
+Starting Android's whole core/main classes also cannot be treated as a
+WLAN-only action. A candidate must select its startup policy before boot and
+observe actual driver registration, common-resource acquisition and first WLAN
+callback. Class membership, launcher presence and a completed loader process
+are insufficient readiness signals. Killing a process is not a reviewed
+service-isolation procedure.
+
+The next design choice is between a candidate-specific minimal startup and an
+explicitly observed full-stack cycle that accounts for every participating
+consumer. Neither is implemented or admitted here. Repeating the same service
+inventory will not resolve that choice; it requires a concrete acquisition and
+recovery design. The read-only follow-up changed no services, properties,
+configuration, partition, firmware or radio state.

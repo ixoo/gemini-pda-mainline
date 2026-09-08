@@ -124,5 +124,135 @@
     "firmware_or_calibration_reads": 0,
     "explicit_device_writes": 0,
     "boots": 0
+  },
+  "startup_followup": {
+    "date": "2026-09-08",
+    "invocations": 4,
+    "completed_boot_brackets": 4,
+    "boot_id": "6a5395c2-71d0-4392-a397-be3be83b049b",
+    "method": [
+      "Trace the unique wmt_launcher process through at most six ancestors using comm, exe, root and cgroup service names.",
+      "Search at most 128 Android-root init files, refusing files above 64 KiB; 52 files read.",
+      "Read the exact normal init and connectivity rules; print selected init control lines and inspect the connectivity rules.",
+      "Read the MT6797 import and LXC root/init configuration; print selected configuration fields."
+    ],
+    "parent_chain": [
+      {
+        "comm": "wmt_launcher",
+        "exe": "/system/vendor/bin/wmt_launcher"
+      },
+      {
+        "comm": "init",
+        "exe": "/init"
+      },
+      {
+        "comm": "lxc-start",
+        "exe": "/usr/bin/lxc-start",
+        "unit": "lxc@android.service"
+      },
+      {
+        "comm": "systemd",
+        "exe": "/lib/systemd/systemd"
+      }
+    ],
+    "lxc_rootfs": "/var/lib/lxc/android/rootfs",
+    "lxc_init": "/init",
+    "files": [
+      {
+        "namespace": "Android",
+        "path": "/init.rc",
+        "bytes": 25666,
+        "sha256": "b0a80c7afa401514f17498888f75b1676a2035bb7a35e1efa049fd95183a10d5"
+      },
+      {
+        "namespace": "Android",
+        "path": "/init.mt6797.rc",
+        "bytes": 45802,
+        "sha256": "0bfe3036d87de7b443437c24f27c434919374aca206e0188832707bc42cd75b8"
+      },
+      {
+        "namespace": "Android",
+        "path": "/init.connectivity.rc",
+        "bytes": 3165,
+        "sha256": "8d1962694ec76f642e0647d2e1fa86b35b1bffdc754dea556e9d82d999a38e59"
+      },
+      {
+        "namespace": "Android",
+        "path": "/factory_init.connectivity.rc",
+        "bytes": 1634,
+        "sha256": "ca277aaf56bc9252ac9c8b94456356a6bca2bf3fd0a3076356bc9ffe128dec80",
+        "scope": "locator only; not selected as normal startup"
+      },
+      {
+        "namespace": "Android",
+        "path": "/meta_init.connectivity.rc",
+        "bytes": 1221,
+        "sha256": "dc37c94c0ce322031a2375475ef5f474e3aad4b0f3a3ddf01bd76316307f48a5",
+        "scope": "locator only; not selected as normal startup"
+      },
+      {
+        "namespace": "Android",
+        "path": "/ueventd.mt6797.rc",
+        "bytes": 5020,
+        "sha256": "2f6c23a25e4dc05133ca1a7af91dd3f3caad0fcbbba79e440e851f9e4dabe104",
+        "scope": "locator only"
+      },
+      {
+        "namespace": "host",
+        "path": "/var/lib/lxc/android/config",
+        "bytes": 312,
+        "sha256": "9a0e2e16207c6d555d4ee43b0f6ee9aa5e4b5356e39d37a3830449f3e21a4854"
+      }
+    ],
+    "normal_rules": {
+      "hardware_specific_import": "init.rc:9",
+      "connectivity_import": "init.mt6797.rc:3",
+      "core_start": "init.rc:585",
+      "main_start": "init.rc:589",
+      "late_start": "init.rc:590",
+      "wmt_loader": {
+        "line": 51,
+        "class": "core",
+        "oneshot": true,
+        "disabled": false
+      },
+      "wmt_launcher": {
+        "line": 57,
+        "class": "core",
+        "oneshot": false,
+        "disabled": false
+      },
+      "mnld": {
+        "line": 73,
+        "class": "main",
+        "disabled": false
+      },
+      "MPED": {
+        "line": 79,
+        "class": "main",
+        "disabled": false
+      },
+      "wifi2agps": {
+        "line": 91,
+        "class": "main",
+        "disabled": true
+      },
+      "p2p_supplicant": {
+        "line": 97,
+        "class": "main",
+        "disabled": true
+      },
+      "wpa_supplicant": {
+        "line": 112,
+        "class": "main",
+        "disabled": true
+      }
+    },
+    "limits": [
+      "Configured rules and the observed parent chain are not a trace of boot execution or proof of hardware inactivity.",
+      "No ordering/completion dependency between the two WMT services is expressed in the inspected connectivity file.",
+      "PID continuity checks do not exclude PID reuse.",
+      "No service stop, process signal, property change, radio action or configuration edit was issued."
+    ]
   }
 }
