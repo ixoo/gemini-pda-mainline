@@ -192,3 +192,48 @@ absent. Candidate construction and its admission consultation are preparation
 for a device session, so they are excluded from accepted offline routing
 measurements. Their exact evidence remains with the keyboard experiment and
 does not change the settings decision.
+
+The following shell-only preservation candidate is also excluded. The accepted
+safe-open contract requires nonblocking no-follow descriptor opens that the
+verified Candidate R BusyBox shell cannot express. It stopped before code and
+was replaced by a separately scoped static helper rather than weakening the
+hardware-safety boundary.
+
+## Accepted item ten and cohort close
+
+The tenth accepted offline item implements that fixed-purpose static AArch64
+preserver. Luna High kept four fixed paths, descriptor-relative no-follow and
+nonblocking opens, regular-file identity/mode/link checks, independent bounded
+framing and no device, signal or recovery effect. Native fixtures passed.
+Buildbox then produced two byte-identical static replicas, passed all four QEMU
+fixture methods and published a checksum-bound package with no production
+entry or device action. Astra accepted the file-preservation component while
+keeping delivery and execution disabled.
+
+Three integration repairs were required. The first allowed an exact published
+commit checked out under a topic branch. The second removed a successful
+`pipefail`/SIGPIPE interaction without weakening finite static-binary reports.
+The third followed the mandatory escalation after the Buildbox socket fixture
+attempted a cross-filesystem rename; the specialist authorized one exact
+fixture-only correction and one rerun, which passed. This item therefore missed
+first review and escalated, but the escalation did not change helper semantics.
+
+The complete cohort contains thirteen considered candidates and ten accepted
+offline items. Across all accepted items, median elapsed time is `24.15`
+minutes, median review/rework time is `6.1666667` minutes and first-review
+acceptance is `5/10`. Two items escalated for distinct lifecycle/state-machine
+and Buildbox-validation reasons. The five current-upstream architecture items
+remain the largest comparable group: median elapsed time is `22.25` minutes,
+median review/rework time is `4.6` minutes and first-review acceptance is
+`2/5`, with no escalation. No alternate setting was prospectively measured,
+and the specialist gates caught rather than introduced the defects.
+
+The prerequisite-tooling and static-preserver items also form two consecutive
+first-review misses in the device-session-readiness implementation signal
+group. They trigger an early checkpoint, but their defects differ: the first
+concerned live process/marker semantics and the second concerned offline build
+and fixture mechanics. Two heterogeneous implementations provide no safe basis
+for a routing change; the checkpoint conclusion is `no-change`.
+
+The item-ten close conclusion is `no-change`: `baseline-01` remains effective,
+no settings experiment is open, and rolling measurement continues in pilot 05.

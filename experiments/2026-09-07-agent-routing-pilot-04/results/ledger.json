@@ -29,9 +29,9 @@
   "target_accepted_offline_items": 10,
   "checkpoint_interval": 5,
   "rolling_window_after_pilot": 10,
-  "accepted_count": 9,
-  "next_accepted_sequence": 10,
-  "next_considered_sequence": 13,
+  "accepted_count": 10,
+  "next_accepted_sequence": 11,
+  "next_considered_sequence": 14,
   "considered_items": [
     {
       "considered_sequence": 1,
@@ -426,6 +426,55 @@
       "reason": "abandoned",
       "note": "The accepted hardware-safety contract requires nonblocking no-follow descriptor opens. Candidate R's verified BusyBox shell cannot express those flags, so the shell-only implementation stopped before code and was escalated to a separately scoped static helper.",
       "evidence": "experiments/2026-09-07-keyboard-boot2-session/PRESERVATION_WORK_ITEM.md"
+    },
+    {
+      "considered_sequence": 13,
+      "accepted_sequence": 10,
+      "candidate_id": "keyboard-disconnect-static-preserver",
+      "disposition": "accepted",
+      "offline_eligible": true,
+      "work_type": "implementation",
+      "risk_class": "hard-uncertainty",
+      "acceptance_contract": "experiments/2026-09-07-keyboard-boot2-session/PRESERVATION_WORK_ITEM.md",
+      "review_comparison_group": "gemini-device-session-readiness",
+      "parent": "37a37a7866d39cc50b475fb37969c634ce07d6b4",
+      "owner_route": {
+        "role": "gemini_implementer",
+        "model": "gpt-5.6-luna",
+        "effort": "high"
+      },
+      "review_route": {
+        "role": "gemini_specialist",
+        "model": "gpt-6-astra",
+        "effort": "medium"
+      },
+      "result": {
+        "started_at": "2026-09-08T00:47:33Z",
+        "review_ready_at": "2026-09-08T01:40:09Z",
+        "accepted_at": "2026-09-08T01:49:03Z",
+        "timing_source": "observed UTC disconnect-result publication, validated package fetch mtime and final specialist acceptance-record timestamp",
+        "elapsed_minutes": 61.5,
+        "review_rework_minutes": 8.9,
+        "first_review_accepted": false,
+        "rework_cycles": 3,
+        "escalated": true,
+        "escalation_reason": "Buildbox publication-gate, validation-pipeline and cross-filesystem fixture failures",
+        "escalation_packet": {
+          "evidence": "experiments/2026-09-07-keyboard-boot2-session/PRESERVATION_WORK_ITEM.md",
+          "attempts": [
+            "accepted the exact published revision from its topic branch",
+            "replaced success-induced pipefail SIGPIPE checks with retained finite reports",
+            "bound the UNIX socket fixture directly on the fixture filesystem"
+          ],
+          "unresolved_question": "Can the unchanged fixed-path helper pass identical static AArch64 reproduction and all QEMU safety fixtures on Buildbox?",
+          "next_discriminating_check": "Run one specialist-authorized exact Buildbox rerun and stop on any further failure."
+        },
+        "review_failure_class": null,
+        "measured_credits": null,
+        "credit_source": "unavailable",
+        "credit_unit": null,
+        "accepted_evidence": "experiments/2026-09-07-keyboard-boot2-session/results/candidate-r-preserver-preparation.json"
+      }
     }
   ],
   "checkpoints": [
@@ -459,6 +508,40 @@
         "mt6797-display-upstream-architecture",
         "mt6797-audio-upstream-architecture",
         "mt6797-cellular-upstream-architecture"
+      ],
+      "conclusion": "no-change",
+      "evidence": "experiments/2026-09-07-agent-routing-pilot-04/README.md"
+    },
+    {
+      "id": "pilot-04-item-ten-close",
+      "after_accepted_sequence": 10,
+      "after_considered_sequence": 13,
+      "trigger": "cohort-close",
+      "trigger_item_ids": [
+        "keyboard-disconnect-static-preserver"
+      ],
+      "comparable_item_ids": [
+        "mt6797-display-upstream-architecture",
+        "mt6797-audio-upstream-architecture",
+        "mt6797-cellular-upstream-architecture",
+        "mt6797-camera-clock-upstream-architecture",
+        "gemini-sensors-upstream-architecture"
+      ],
+      "conclusion": "no-change",
+      "evidence": "experiments/2026-09-07-agent-routing-pilot-04/README.md"
+    },
+    {
+      "id": "pilot-04-item-ten-first-review-signal",
+      "after_accepted_sequence": 10,
+      "after_considered_sequence": 13,
+      "trigger": "early-signal",
+      "trigger_item_ids": [
+        "keyboard-disconnect-prerequisite-tooling",
+        "keyboard-disconnect-static-preserver"
+      ],
+      "comparable_item_ids": [
+        "keyboard-disconnect-prerequisite-tooling",
+        "keyboard-disconnect-static-preserver"
       ],
       "conclusion": "no-change",
       "evidence": "experiments/2026-09-07-agent-routing-pilot-04/README.md"

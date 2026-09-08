@@ -70,9 +70,12 @@
   whitespace checks pass. The integration review additionally covers full-size
   bounded output, invalid-mode and symlink ancestry refusal, format-truncation
   checks and consistent close-error classification.
-- **State:** waiting-build. The exact static AArch64 replicas and QEMU fixtures
-  must pass on Buildbox before specialist review or any live admission. Device
-  remains waiting; no live action is admitted.
+- **State:** offline file-preservation component accepted. Buildbox produced
+  two identical static AArch64 replicas, all four QEMU fixture methods passed,
+  the fetched package inventory revalidated, and the specialist accepted the
+  fixed helper without admitting delivery or execution. The exact result is
+  [`results/candidate-r-preserver-preparation.json`](results/candidate-r-preserver-preparation.json).
+  Device remains waiting; no live action is admitted.
 - **Build attempts:** the first exact Buildbox dispatch refused locally because
   the published `main` commit was checked out on a differently named topic
   branch; revision `9e182d61...` repaired that host-only gate. The next dispatch
@@ -87,3 +90,54 @@
   short relative name, restore the working directory and close/remove only the
   fixture-owned socket. The helper source and semantics remain unchanged. Any
   further failure or broader repair requires immediate escalation.
+
+## Helper-only successor boundary
+
+The accepted helper is not admission-aware and its `stable=yes` field proves
+only the checked before/after identity and size observations, not an atomic
+snapshot. Specialist review rejected a shell-owned diagnostic/timeout tree:
+killing an inner shell does not prove its helper or scan descendants terminate.
+The combined delivery runner is therefore not ready for implementation.
+
+One helper-only successor is frozen for Luna High implementation:
+
+- Keep no arguments and the exact four fixed preservation paths. Preserve every
+  member before scanning, and never let a scan failure suppress already-emitted
+  preservation frames.
+- Add the bounded sanitized process/descriptor scan to the same C process. It
+  may visit at most 512 numeric process entries and 4,096 descriptor entries
+  and report at most 256 fixed category matches. It must never open descriptor
+  targets or print arbitrary command lines. Missing, inaccessible, changing or
+  over-limit inventory is explicitly incomplete.
+- The process may not fork, exec, create a session, signal another process,
+  perform recovery, write remote files, open a device node or access a keyboard
+  or VT. Existing descriptor-relative safe-open, ownership/mode/link, per-file
+  and aggregate-output ceilings remain.
+- Start one 15-second `CLOCK_MONOTONIC` deadline before preservation. Put stdout
+  in nonblocking mode and route every output write through a deadline-aware
+  poll/write loop. A blocked consumer, slow scan or expired deadline returns
+  nonzero without signals; partial frames remain meaningful only as retained
+  raw evidence and can never be promoted by a parser.
+- Native and ARM64/QEMU fixtures must cover preservation retention across each
+  scan failure, numeric-entry validation, malicious/truncated values, exact
+  512/4,096/256 boundaries, overflow, deadline expiry and blocked stdout. Tests
+  must also prove the source has no process-creation, execution or signaling
+  path.
+
+The enlarged binary receives a new exact size, hash and package identity; the
+accepted 66,664-byte component remains historical input, not a delivery pin.
+Stop after two relevant repair failures or any need to change the fixed paths,
+effects, deadline, output semantics or scan ownership.
+
+## Runner remains blocked
+
+A future default-off runner needs a new preservation-admission UUID bound to
+the consumed proof admission and exact boot, a disjoint retained RAM-only
+exclusive stage, separately bounded raw-stdin payload framing and strict local
+incremental retention. Before implementation it must also establish from the
+exact retained BusyBox implementation that every timeout watcher and workload
+has safe PID-reuse, termination and reaping behavior in normal, blocked-payload
+and blocked-output cases. Otherwise it needs a separately designed supervisor.
+Host timeout alone supplies no remote process-lifetime proof. No runner, live
+delivery, probe restart, keyboard action, original proof receipt, success
+promotion, cleanup, shutdown, reboot or recovery is admitted here.
