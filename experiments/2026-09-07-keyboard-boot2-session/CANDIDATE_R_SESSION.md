@@ -1,7 +1,7 @@
 # Candidate R first-boot handoff
 
-Status: **Candidate R is active on a fresh authenticated boot; the exact
-disconnect-proof admission is accepted and awaiting publication**.
+Status: **Candidate R's one harmless disconnect proof is consumed and
+inconclusive; stop before keyboard capture and use separately reviewed recovery**.
 Device custodian: the primary integration coordinator.  No other live-device
 operation may overlap this handoff.
 
@@ -11,13 +11,22 @@ The owner selected boot2 once after the second verified shutdown. The one
 admitted identity connection passed on fresh Candidate R boot
 `bbad1c49-ecdd-4f40-b1e0-c53f707106d1`, with exact release, Candidate R guard,
 authenticated host key and zero stderr. Proof admission
-`c14f6469-5c0a-4a83-9909-6789b3586c36` is now the sole tracked enabled binding;
-its SHA-256 is
+`c14f6469-5c0a-4a83-9909-6789b3586c36` was the sole tracked enabled binding;
+its published SHA-256 was
 `47a1698639f3831e3da486b64e4b98c35653cb976a579b012ca2f40665904da4`.
 The full offline archive/package/admission preparation passes, and Astra accepted
-this exact binding and live boot for one harmless disconnect proof. No disconnect
-or keyboard claim has run; execution remains **NO-GO** until the reviewed binding
-is published.
+this exact binding and live boot for one harmless disconnect proof. Commit
+`8c38024168fc626e2ae407d207383e517567fab6` published it before execution.
+
+The one proof attempt then consumed both admitted connections. The first
+connection received the exact 18-byte fixture marker with complete stdin and
+killed the local client at a rounded 0 ms, with empty stderr. The independent
+export connected once but exited 1 after 0.439 seconds with empty stdout and
+stderr, so it preserved no exportable lifecycle or reader-scan evidence locally.
+The result is **inconclusive**, not a failed lifecycle result: monitor/observer
+termination and reader release are unproven. No retry or keyboard capture is
+permitted. The binding is disabled/null again with SHA-256
+`aa10351e1b5fc85515f790c0e38cf0f42e07ed14fe72fee11d7973f0b5775872`.
 
 ## Frozen candidate
 
@@ -138,5 +147,6 @@ The identity preflight consumed its one connection and passed in 0.282 seconds:
 fresh boot `bbad1c49-ecdd-4f40-b1e0-c53f707106d1`, release
 `7.1.3-gemini-mt6797-pwrap-reset`, complete Candidate R guard, zero stderr and
 uptime 55.83 seconds. It opened no keyboard device and created no remote state.
-The device must remain powered, connected and untouched while the exact binding
-is reviewed and published.
+The subsequent proof result is recorded above. Preserve its private local and
+potentially unique remote partials; do not retry it or type/test keys. Recovery
+requires its separately reviewed path.

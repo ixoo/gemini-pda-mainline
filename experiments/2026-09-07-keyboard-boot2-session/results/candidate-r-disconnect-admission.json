@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "classification": "boot_specific_disconnect_admission_accepted_pending_publication",
+  "classification": "boot_specific_disconnect_admission_consumed_inconclusive",
   "candidate": "R",
   "candidate_sha256": "3290b867bc6cb2ecee42e6ca1436e1ae29613c074e7e45b3836ecb2905f3e07c",
   "candidate_manifest_sha256": "62440fdee9267e26d6f90148609a7c2551fdb9d6a9f603da03f891638c65180d",
@@ -41,9 +41,10 @@
     "retries": 0,
     "input_or_vt_access": false
   },
-  "execution_state": "no-go-pending-publication",
+  "execution_state": "consumed-no-retry",
   "specialist_review": "accepted-one-immediate-harmless-proof-only",
-  "disconnect_proof_consumed": false,
+  "disconnect_proof_consumed": true,
+  "result": "experiments/2026-09-07-keyboard-boot2-session/results/candidate-r-disconnect-result.json",
   "keyboard_capture_consumed": false,
   "hardware_support_claim": false
 }

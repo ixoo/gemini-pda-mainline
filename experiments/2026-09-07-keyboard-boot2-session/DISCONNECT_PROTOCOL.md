@@ -31,13 +31,16 @@ monitor and probe identities above remain unchanged.
 
 The fixed
 [`disconnect-execution-binding.json`](../2026-09-05-owner-away-experiment-preparation/keyboard/disconnect-execution-binding.json)
-now contains the sole enabled proof admission
+contained the sole enabled proof admission
 `c14f6469-5c0a-4a83-9909-6789b3586c36` for fresh Candidate R boot
 `bbad1c49-ecdd-4f40-b1e0-c53f707106d1`. Its exact SHA-256 is
 `47a1698639f3831e3da486b64e4b98c35653cb976a579b012ca2f40665904da4`.
-The gate reads and exactly compares that complete admission before preparation,
-claims or transport. Binding preparation alone performs no disconnect action;
-final Astra acceptance and publication are still required before execution.
+The gate read and exactly compared that complete admission before preparation,
+claims or transport. Binding preparation alone performed no disconnect action.
+Final Astra acceptance and publication both completed before the one admitted
+execution. After that attempt consumed its budget inconclusively, the binding
+returned to disabled/null with SHA-256
+`aa10351e1b5fc85515f790c0e38cf0f42e07ed14fe72fee11d7973f0b5775872`.
 
 The kernel/DT/config hypothesis is the exact Candidate R composition above. The
 older raw candidate
@@ -87,10 +90,10 @@ After those checks, the fixed effect budget is:
 5. Reparse the export locally and run the semantic prerequisite verifier over
    all seven fixed mode-0600 evidence files before writing a passing receipt.
 
-The tracked binding is enabled for only the exact admission and boot above.
-Astra accepted its complete hash and fresh boot-specific evidence for one
-harmless proof. Execution remains **NO-GO** until the reviewed commit is
-published.
+The tracked binding is disabled/null after the exact admission consumed both
+connections. Astra accepted its complete hash and fresh boot-specific evidence
+for one harmless proof, and commit `8c38024168fc626e2ae407d207383e517567fab6`
+published it before execution. That authority is exhausted and cannot be reused.
 
 ## Decision branches
 
@@ -119,8 +122,15 @@ and supplemental phase records `1eae36...`, `947681...`, `31206d...`,
 The older missing-archive and old-candidate findings remain historical
 readiness evidence and do not transfer to Candidate R. The separately admitted
 identity connection passed for fresh boot
-`bbad1c49-ecdd-4f40-b1e0-c53f707106d1`; binding and admission verification pass
-offline. Final specialist acceptance passed; publication is the current stop.
+`bbad1c49-ecdd-4f40-b1e0-c53f707106d1`; binding and admission verification passed
+offline. The first proof connection then received the complete fixture marker
+and deliberately killed its client at a rounded 0 ms with empty stderr. The
+independent export connection exited 1 after 0.439 seconds with empty stdout and
+stderr. Without the four retained files or reader scan, the result is
+inconclusive: monitor/observer termination and reader release are not proven.
+Both connections are consumed, retry is prohibited, keyboard capture stays
+disabled, and the current stop is preservation followed by separately reviewed
+recovery.
 
 A bounded strict-host-key LAN check at `2026-09-07T22:14:15Z` established that
 the named device is reachable in known-good Gemian release `3.18.41+` with boot
@@ -151,4 +161,4 @@ The six prerequisite tests add a rehashed 101 ms transport refusal; the six
 capture tests still pass. Python compilation and whitespace checks pass. No
 Buildbox or kernel action was performed by the offline tests. The one later
 identity connection used the reviewed bounded path and created no remote state.
-Execution remains NO-GO pending publication of the exact accepted binding.
+Execution remains NO-GO after the single admitted proof ended inconclusively.

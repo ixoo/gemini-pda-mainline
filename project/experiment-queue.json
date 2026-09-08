@@ -4,7 +4,7 @@
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
   "selected_item": "keyboard-coverage",
-  "selection_note": "Candidate R is active on a fresh authenticated boot. The single identity preflight passed and one exact disconnect admission is frozen and specialist-accepted; publication remains before execution. No disconnect or keyboard capture claim has run.",
+  "selection_note": "Candidate R's one harmless disconnect proof is consumed and inconclusive: the local client-disconnect record completed, but the independent export refused empty. No lifecycle or reader-release result exists, no retry is permitted, and keyboard capture remains disabled. Preservation followed by separately reviewed recovery is next.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -23,15 +23,15 @@
     },
     "keyboard-coverage": {
       "workstream": "serviceability",
-      "preparation_state": "preparing",
-      "device_state": "mainline-identity-verified",
+      "preparation_state": "stale",
+      "device_state": "mainline-proof-inconclusive-awaiting-recovery",
       "owner": "A53 baseline and queued device tests",
       "reviewer": "Project Planning",
       "device_custodian": "primary integration coordinator",
       "experiment": "experiments/2026-09-05-owner-away-experiment-preparation/README.md#keyboard-coverage",
       "session_packet": "experiments/2026-09-05-owner-away-experiment-preparation/keyboard/README.md",
       "candidate_record": "experiments/2026-09-07-keyboard-boot2-session/results/candidate-r-baseline.json",
-      "readiness_record": "experiments/2026-09-07-keyboard-boot2-session/results/candidate-r-disconnect-admission.json",
+      "readiness_record": "experiments/2026-09-07-keyboard-boot2-session/results/candidate-r-disconnect-result.json",
       "dependencies": [
         {
           "item": "a53-authenticated-baseline",
@@ -40,7 +40,7 @@
         }
       ],
       "owner_task_id": "01a06f91-51c9-7e22-90c9-d5f3e6e43a64",
-      "readiness_note": "Candidate R's fresh baseline and supplemental recovery are verified. After the second verified shutdown, the owner selected boot2 and the one-connection identity preflight passed on a fresh exact Candidate R boot. One proof admission and its complete enabled binding are frozen and specialist-accepted; publication remains required before execution. No disconnect or keyboard claim has run."
+      "readiness_note": "Candidate R's exact proof admission was published and executed once. The first no-PTY connection received the harmless fixture marker with complete stdin and killed the client at 0 ms; the sole export connection then exited 1 in 0.439 s with empty stdout/stderr. The end-to-end proof is inconclusive: lifecycle and reader release are unproven, all connection budgets are consumed, no retry is permitted, and no keyboard capture or hardware claim exists."
     },
     "emmc-readonly": {
       "workstream": "serviceability",
