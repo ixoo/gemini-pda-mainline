@@ -1,7 +1,7 @@
 # Candidate R first-boot handoff
 
-Status: **fresh baseline complete and recovered to changed-ID Gemian; Candidate R
-is not currently active**.
+Status: **Candidate R verified in boot2 and shut down; waiting for one owner
+boot2 selection for the identity preflight only**.
 Device custodian: the primary integration coordinator.  No other live-device
 operation may overlap this handoff.
 
@@ -117,3 +117,20 @@ boot2 checks. A matching boot2 checksum skips the write but still requires a
 complete readback, cleanup, evidence flush and clean shutdown. Any uncertainty
 before deactivation stops without mutation; a confirmed deactivation followed
 by a pre-install abort uses only the reviewed same-boot restoration path.
+
+The fresh preflight on changed-ID Gemian boot
+`50a09f7d-ca67-4d73-8c40-538de1e84c48` passed the exact zram, memory, stable
+external power, live-GPT boot2 ownership and full-partition identity checks.
+The zram entry was then deactivated once; both fresh samples passed and
+`MemAvailable` remained 3,140,812 KiB. The fixed-purpose installer found boot2
+already byte-identical, performed no partition write, required another complete
+matching readback, removed temporary staging and readback, flushed its evidence,
+and requested clean shutdown. A bounded follow-up confirmed the device
+unreachable. The deployment receipt SHA-256 is
+`d6f8358567572ac6b9f43ade0f9da262ad7e21a79f5f5a00aadcbfb088db4f17`.
+
+The next owner action is one physical boot2 selection with the USB data cable
+connected. Do not type or test keys. The custodian will use exactly one bounded
+authenticated identity connection to learn the fresh boot ID; the disconnect
+runner remains disabled until that boot ID and one admission UUID are frozen
+and accepted.

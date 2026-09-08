@@ -3,8 +3,8 @@
   "purpose": "Readiness inventory, not an executable queue or device authorization. Object order is not scheduling order; docs/ROADMAP.md alone owns priority. Exact inputs, budgets and chronology stay in linked experiments.",
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
-  "selected_item": null,
-  "selection_note": "The passive CONSYS session is complete: exact deployment, one owner boot2 selection, one authenticated passive collection and changed-ID known-good Gemian recovery passed. Both experiment budgets are consumed, device custody is released and no candidate is selected.",
+  "selected_item": "keyboard-coverage",
+  "selection_note": "Candidate R is verified in boot2 and the device is shut down. One owner boot2 selection is pending for a bounded identity preflight only; the disconnect binding remains disabled/null and no disconnect or keyboard capture claim is admitted.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -24,14 +24,14 @@
     "keyboard-coverage": {
       "workstream": "serviceability",
       "preparation_state": "preparing",
-      "device_state": "unselected",
+      "device_state": "installed-awaiting-owner-selection",
       "owner": "A53 baseline and queued device tests",
       "reviewer": "Project Planning",
-      "device_custodian": null,
+      "device_custodian": "primary integration coordinator",
       "experiment": "experiments/2026-09-05-owner-away-experiment-preparation/README.md#keyboard-coverage",
       "session_packet": "experiments/2026-09-05-owner-away-experiment-preparation/keyboard/README.md",
       "candidate_record": "experiments/2026-09-07-keyboard-boot2-session/results/candidate-r-baseline.json",
-      "readiness_record": "experiments/2026-09-07-keyboard-boot2-session/results/candidate-r-disconnect-preparation.json",
+      "readiness_record": "experiments/2026-09-07-keyboard-boot2-session/results/candidate-r-disconnect-install.json",
       "dependencies": [
         {
           "item": "a53-authenticated-baseline",
@@ -40,7 +40,7 @@
         }
       ],
       "owner_task_id": "01a06f91-51c9-7e22-90c9-d5f3e6e43a64",
-      "readiness_note": "Candidate R's fresh authenticated baseline and supplemental changed-ID Gemian recovery are verified. The semantic prerequisite validator, exact enabled monitor/disconnect-probe package, disabled one-admission execution gate and fixed second-deployment receipt mode are accepted offline. The next boot-specific binding is still disabled/null; no disconnect or keyboard claim is admitted and the queue remains unselected."
+      "readiness_note": "Candidate R's fresh baseline and supplemental recovery are verified. A fresh Gemian preflight passed; boot2 was already byte-identical, received a second complete readback with no write, and the device shut down cleanly. One owner boot2 selection is pending for a single identity preflight. The boot-specific binding remains disabled/null; no disconnect or keyboard claim is admitted."
     },
     "emmc-readonly": {
       "workstream": "serviceability",

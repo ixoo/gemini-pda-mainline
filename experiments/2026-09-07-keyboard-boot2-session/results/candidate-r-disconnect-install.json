@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "classification": "already_matching_full_readback_verified_and_shutdown",
+  "candidate": "R",
+  "candidate_manifest_sha256": "62440fdee9267e26d6f90148609a7c2551fdb9d6a9f603da03f891638c65180d",
+  "candidate_padded_sha256": "29f59c7f21a25b47d63d653857db9d7d0760d9a00f7193e098219699235f16f1",
+  "preflight": {
+    "boot_id": "50a09f7d-ca67-4d73-8c40-538de1e84c48",
+    "kernel_release": "3.18.41+",
+    "zram_active": true,
+    "zram_used_kib": 0,
+    "stable_external_power": true,
+    "battery_capacity": 100,
+    "boot2_target": "/dev/mmcblk0p30",
+    "active_root": "/dev/mmcblk0p29",
+    "boot2_mounted": false,
+    "boot2_holders": 0,
+    "full_partition_reads": 1,
+    "full_partition_sha256": "29f59c7f21a25b47d63d653857db9d7d0760d9a00f7193e098219699235f16f1",
+    "partition_writes": 0
+  },
+  "temporary_zram": {
+    "classification": "deactivation-complete",
+    "fresh_samples": 2,
+    "post_deactivation_entries": 0,
+    "post_deactivation_mem_available_kib": 3140812
+  },
+  "deployment": {
+    "installer_sha256": "6742e5d1cfd078fdc0c4728bf3f5291885d3a563424f10178810e2949e3ccfa8",
+    "receipt_basename": "a53-keyboard-disconnect-deployment-1",
+    "receipt_sha256": "d6f8358567572ac6b9f43ade0f9da262ad7e21a79f5f5a00aadcbfb088db4f17",
+    "result": "skipped-already-matching",
+    "partition_write_performed": false,
+    "target_major_minor": "179:30",
+    "root_major_minor": "179:29",
+    "readback_sha256": "29f59c7f21a25b47d63d653857db9d7d0760d9a00f7193e098219699235f16f1",
+    "temporary_readback_removed": true,
+    "private_staging_removed": true
+  },
+  "shutdown": {
+    "requested_after_evidence_flush": true,
+    "post_shutdown_reachability": "unreachable",
+    "reboot": false
+  },
+  "next_action": "owner_physically_selects_boot2_once_for_identity_preflight",
+  "disconnect_execution_binding": "disabled-null",
+  "disconnect_proof_consumed": false,
+  "keyboard_capture_consumed": false,
+  "hardware_support_claim": false
+}
