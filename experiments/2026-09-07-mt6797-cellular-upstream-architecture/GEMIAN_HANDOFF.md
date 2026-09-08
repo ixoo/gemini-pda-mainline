@@ -47,8 +47,11 @@ to ordinary allocation. This does not prove a safe later release operation.
 The 32 MiB tail at `0xbc000000–0xbdffffff`, beyond the logged MD1 memory
 requirement but within its DT reservation, remains unattributed. Preserve the
 whole reservation; do not shrink it to the image's requirement or assign the
-tail to another consumer. The AP–MD1 shared size is now observed as 2 MiB on
-this boot; the older 1 MiB device-property inventory is not its active layout.
+tail to another consumer. The subsequent [retained-loader audit](LOADER_TAIL.md)
+finds a deferred-reclamation mechanism consistent with this tail, while leaving
+the actual boot's tags and safe release unresolved. The AP–MD1 shared size is
+now observed as 2 MiB on this boot; the older 1 MiB device-property inventory is
+not its active layout.
 
 The saved MD1 check-header report identifies version 5, 344 bytes, `ulwctg`,
 `MT6797_S00`, build `MOLY.LR11.W1630.MD.MP.V105.8`, and a reported raw image size

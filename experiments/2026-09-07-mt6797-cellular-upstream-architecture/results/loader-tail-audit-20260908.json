@@ -1,0 +1,76 @@
+{
+  "date": "2026-09-08",
+  "method": "Public source audit and bounded static analysis of retained private LK on RE VM; no device operation",
+  "source_commit": "f4988d74bb70a0a15d7f362f412afba7e7fcda46",
+  "source_files": [
+    {
+      "path": "lk/platform/common/md/ccci_ld_md_core.c",
+      "sha256": "5b33f541e068188dd4082fa09b4dd3bcd289c6482fd047f8a3e8e915d891d75d",
+      "url": "https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/common/md/ccci_ld_md_core.c"
+    },
+    {
+      "path": "lk/platform/common/md/ccci_ld_md_ass.c",
+      "sha256": "3c64e51816b5c32cfec3579d1e5bc70fc13c69d13636741b408dbcfc8c70e07f",
+      "url": "https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/common/md/ccci_ld_md_ass.c"
+    },
+    {
+      "path": "lk/platform/common/md/ccci_ld_md_api_wrapper.c",
+      "sha256": "eb86297e72b2b7e2af69ffa2f1bfe2f0707e67935d803fa7ea90479ad055b5d3",
+      "url": "https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/common/md/ccci_ld_md_api_wrapper.c"
+    },
+    {
+      "path": "lk/platform/common/md/ccci_ld_md_padding.c",
+      "sha256": "acdef18ae8e022c61c4732d7eca16b58ef27f46b9ddc6395efd6f960d42fb44e",
+      "url": "https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/common/md/ccci_ld_md_padding.c"
+    }
+  ],
+  "binary": {
+    "input": "artifacts/device-partitions/20260715T020041Z/mmcblk0p20-lk.img",
+    "size_bytes": 524288,
+    "sha256": "75ec9f0ba97af9e68d964b304e0de809f9b4546982570bd16b2e7fe88823282c",
+    "raw_map_base": "0x45fffe00",
+    "payload_file_offset": "0x200",
+    "payload_load_address": "0x46000000",
+    "architecture": "ARM32 Thumb; selected function ranges only",
+    "tool": "radare2 5.5.0 linux-arm64",
+    "private_output_sha256": "5f32edbf89a6e2a7b4bca5dd8cffdd85ad651fd2467282dcc90dc5f9b2668544",
+    "command": "r2 -q -a arm -b 16 -m 0x45fffe00 -c 'e scr.color=false; pd 10 @ 0x4603aa18; pd 13 @ 0x4603aa34; pd 12 @ 0x4603b4b8; pd 50 @ 0x4603a860; pd 32 @ 0x4603a930; pd 11 @ 0x4603a910; pd 28 @ 0x46038fc0; pd 16 @ 0x4603b40e; q' PRIVATE_LK_INPUT",
+    "xref_command": "r2 -q -a arm -b 16 -m 0x45fffe00 -c 'e scr.color=false; aaa; axt @ 0x4605b4f0; axt @ 0x4605b43c; axt @ 0x4605b000; axt @ 0x4603a930; axt @ 0x4603aa18; q' PRIVATE_LK_INPUT",
+    "flag_address": "0x460721e0",
+    "initializer": "0x4603aa18",
+    "initializer_call": "0x4603b4c6",
+    "flag_exporter": "0x4603aa34",
+    "reservation_helper": "0x4603a860",
+    "unused_memory_helper": "0x4603a930",
+    "retrieve_helper": "0x4603a910",
+    "retrieve_tag_builder": "0x46038fc0",
+    "success_tail_call": "0x4603b42c"
+  },
+  "kernel_search": {
+    "commit": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+    "repository": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797",
+    "scope": "entire tracked tree at commit, existing Buildbox bare cache",
+    "command": "git --git-dir=VENDOR_KERNEL_BARE_CACHE grep -n -E 'free_in_kernel|retrieve_num|retrieve[0-9]|retrieve_info|retrieve_mem' c5b0be85017ad0c599725e8273842efdbecdd88a --",
+    "exit_status": 1,
+    "matches": 0,
+    "limitation": "No literal or symbol match; does not exclude indirect, differently named or external consumers or attest complete running-kernel source"
+  },
+  "arithmetic": {
+    "observed_base": "0xb4000000",
+    "observed_reservation_size": "0x0a000000",
+    "observed_header_requirement": "0x08000000",
+    "inferred_tail_base": "0xbc000000",
+    "inferred_tail_size": "0x02000000",
+    "inclusive_end": "0xbdffffff"
+  },
+  "decision": "Preserve complete reservation; compiled deferred-tag mechanism corroborated, actual boot tags and safe release not proved",
+  "exclusions": [
+    "No live LK re-attestation",
+    "No consumed tag buffer read",
+    "No independently recovered complete binary image table or header parser",
+    "No modem image digest",
+    "No secure MPU acceptance or lock readback",
+    "No MD3 release lifetime",
+    "No vendor source, raw firmware or disassembly redistributed"
+  ]
+}

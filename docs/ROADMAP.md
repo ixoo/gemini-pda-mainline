@@ -119,8 +119,11 @@ resolves host branching: loader readiness still permits shared-remap and staged
 MPU writes, and the host callbacks provide no reservation-release contract.
 The [Gemian handoff observation](../experiments/2026-09-07-mt6797-cellular-upstream-architecture/GEMIAN_HANDOFF.md)
 now joins one boot's v2 loader metadata, reported image header and actual
-reservation/shared-layout map. Next resolve the loaded-image digest, the extra
-32 MiB reserved tail, secure MPU acceptance and shared-region release authority.
+reservation/shared-layout map. The [retained-loader tail audit](../experiments/2026-09-07-mt6797-cellular-upstream-architecture/LOADER_TAIL.md)
+corroborates a deferred-reclamation mechanism consistent with the extra 32 MiB,
+without proving the actual boot's tags or a safe release. Next resolve the
+loaded-image digest, runtime tail attribution, secure MPU acceptance and
+shared-region release authority.
 Do not repeat unchanged OS metadata for those gaps. Missing attribution preserves
 the stop; queue/DMA, framing/channel and full boot/crash teardown remain later gates.
 

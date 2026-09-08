@@ -520,6 +520,13 @@ WWAN/TTY/netdev interfaces remain useful above a new MT6797 transport, but the
 vendor CCCI character ABI must not be carried into mainline. See the
 [modem/CCCI recovery experiment](../../experiments/2026-07-13-modem-ccci-recovery/README.md).
 
+The [joined Gemian memory observation](../../experiments/2026-09-07-mt6797-cellular-upstream-architecture/GEMIAN_HANDOFF.md)
+shows that the MD1 image requirement is smaller than its retained reservation.
+The [retained-loader analysis](../../experiments/2026-09-07-mt6797-cellular-upstream-architecture/LOADER_TAIL.md)
+corroborates deferred reclamation through loader tags as a possible explanation;
+it does not establish a safe release lifetime. Preserve the full reservation
+until runtime ownership and protection authority are established.
+
 ## Power, PMIC, and thermal data
 
 The vendor DT contains an `mt6351` child beneath the PMIC wrapper, and live
