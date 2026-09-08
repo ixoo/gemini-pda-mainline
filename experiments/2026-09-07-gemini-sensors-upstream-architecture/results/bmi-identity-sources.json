@@ -1,0 +1,82 @@
+{
+  "vendor_commit": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+  "vendor_source": {
+    "path": "drivers/misc/mediatek/accelerometer/bmi160_acc/bmi160_acc.c",
+    "sha256": "4cdc6e35f527bb888c0e63d447799384995235f68f9ee143edce95242c2a36b2",
+    "bytes": 104167
+  },
+  "retained_binary": {
+    "inputs_sha256": {
+      "boot.img": "1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513",
+      "Image": "0570480c28bce1583636a240904df8da3af0b5e5b4bcc6254f5719b42bd723d0",
+      "vmlinux": "cc66df06194d3315335462760962165e1dcb2e50221574aeb45a0805bb17a162"
+    },
+    "elf_kernel_equals_image": true,
+    "spans": [
+      {
+        "symbol_or_slice": "bmi160_show_reg_val",
+        "start": "0xffffffc00048c560",
+        "end_exclusive": "0xffffffc00048c6d0",
+        "bytes": 368,
+        "sha256": "743f96616c841c6a3bb16b6849e2b9786b0caaf82dbe1c5244d6d01cfa8bb3a6"
+      },
+      {
+        "symbol_or_slice": "bmi160_store_reg_sel",
+        "start": "0xffffffc00048c878",
+        "end_exclusive": "0xffffffc00048c8f0",
+        "bytes": 120,
+        "sha256": "a052abf0e98d74e7f820a4860d04030e1c3337a07336880dfd818f449a08483e"
+      },
+      {
+        "symbol_or_slice": "bmi160_show_reg_sel",
+        "start": "0xffffffc00048c138",
+        "end_exclusive": "0xffffffc00048c188",
+        "bytes": 80,
+        "sha256": "04e6790493626befc57c7e75014cb6634da38882123947e379484c90d2b1158c"
+      },
+      {
+        "symbol_or_slice": "bmi160_read_reg",
+        "start": "0xffffffc000490028",
+        "end_exclusive": "0xffffffc000490070",
+        "bytes": 72,
+        "sha256": "acd309fdb4e81ca336886df9abe13a50431e9c37d3fce3ff20bc9c2aa645b67c"
+      },
+      {
+        "symbol_or_slice": "bmi_i2c_read_wrapper",
+        "start": "0xffffffc00048c090",
+        "end_exclusive": "0xffffffc00048c0e0",
+        "bytes": 80,
+        "sha256": "f662c00141a41669f4c27dd14d0618b5a004acd4e275fe6aa5cea3cd4fadafa7"
+      },
+      {
+        "symbol_or_slice": "bma_i2c_read_block",
+        "start": "0xffffffc00048bfd8",
+        "end_exclusive": "0xffffffc00048c090",
+        "bytes": 184,
+        "sha256": "5e7df63375d586c278e40749bf6442ac1d4509d1cc8da49c7f007edb6efd0e73"
+      },
+      {
+        "symbol_or_slice": "bmi160_init",
+        "start": "0xffffffc0004900b8",
+        "end_exclusive": "0xffffffc000490150",
+        "bytes": 152,
+        "sha256": "e23e605a63e26f4fa5b3242fd565b1b39caacba9ac63aebbda3ac1f6fbccf943"
+      },
+      {
+        "symbol_or_slice": "bmi160_acc_i2c_probe_address_and_callback_setup",
+        "start": "0xffffffc0004901e8",
+        "end_exclusive": "0xffffffc000490248",
+        "bytes": 96,
+        "sha256": "c9d1486f9c26b2250a98a219fed924a9a863355a9e269672fa36b1dda9e5e298"
+      }
+    ],
+    "scope": "RE-VM static analysis; named callback envelopes end at the next distinct symbol; the probe entry is an explicitly bounded instruction slice."
+  },
+  "upstream_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "upstream_path": "drivers/iio/imu/bmi160/bmi160_core.c",
+  "upstream_identity_constants": {
+    "register": "0x00",
+    "BMI160": "0xd1",
+    "BMI120": "0xd3"
+  }
+}

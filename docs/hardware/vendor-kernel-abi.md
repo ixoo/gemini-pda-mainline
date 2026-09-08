@@ -256,14 +256,17 @@ and its [binary ABI record](../../experiments/2026-07-12-sensor-iio-recovery/res
 and [axis contract](../../experiments/2026-07-12-sensor-iio-recovery/results/hal-axis-contract.txt)
 for the exact live and source evidence.
 
-The recovered vendor gyro initializer reads register `0x00` and accepts IDs
-`0xd0` through `0xd3`; the accelerometer initializer reads the same register
-but does not visibly reject an unexpected value in the recovered path. The
-standard Linux 7.1.3 BMI160 core recognizes `0xd1` and `0xd3`, but currently
-continues after an unknown-ID warning. A mainline Gemini probe must record the
-actual ID and register behavior before claiming BMI160 support; a different
-chipset is a reason to select an existing family driver or add a new driver,
-not to bend BMI160 around the legacy ABI. See the [vendor IMU probe record](../../experiments/2026-07-12-sensor-iio-recovery/results/vendor-imu-probe.txt).
+The recovered vendor gyro initializer accepts register-`0x00` IDs `0xd0`
+through `0xd3`, so its successful binding alone did not establish the part.
+A later [bounded identity observation](../../experiments/2026-09-07-gemini-sensors-upstream-architecture/BMI_IDENTITY.md)
+returned `0xd1` through the bound accelerometer client: the pinned upstream
+BMI160 driver identifies this byte as BMI160 (`0xd3` denotes BMI120). The
+observer restored its cached diagnostic selector. The audited probe forces
+the transfer address to `0x69`; that address attribution is source/binary
+based, without a physical bus trace or live client-memory read. No second
+address was tested. This resolves the chip-ID byte, while device count,
+rails, interrupts, chassis orientation and mainline operation remain unproved.
+A mainline probe must still validate the resource and register contract.
 
 The vendor's `bmi160_bmi_value` diagnostic is not an identity field: its
 handler reads a 12-byte raw data block beginning at register `0x0c`. Neighboring
@@ -379,7 +382,7 @@ until ownership is understood.
 | Observed candidate | Linux 7.1.3 status | Required work |
 | --- | --- | --- |
 | AW9523 | Generic GPIO/pinctrl driver and binding present | The local generic matrix-polling path provides accepted partial keyboard input. Function keys, navigation keys, modifiers, rollover, wake, complete event coverage, IRQ mode, and backlight remain separate gates; see the [keyboard boundary](keyboard.md). |
-| BMI160 | I2C/SPI IIO driver present | Patch 52 supplies a disabled `bosch,bmi160` candidate and config; direct ID, rails, IRQ/polling, and runtime validation remain |
+| BMI160 | I2C/SPI IIO driver present | Patch 52 supplies a disabled `bosch,bmi160` candidate and config; ID `0xd1` observed in Gemian; rails, IRQ/polling, orientation and mainline runtime validation remain |
 | BMP280 | I2C/SPI IIO driver present | Confirm the unbound `0x77` candidate, standard compatible, supplies, and any IRQ |
 | HTS221 | I2C/SPI IIO driver present | Confirm the unbound `0x5f` candidate, standard compatible, supply, and any IRQ |
 | MMC3530 | No matching driver found | Identify the `0x30` part and add a new IIO driver/binding if confirmed |

@@ -21,6 +21,14 @@ interrupts and mainline operation remain unproved. The original source-only
 review below retains its historical scope; its proposed ID read is consumed
 by this follow-up and is not a repeat queue item.
 
+The completed [BMI observation](BMI_IDENTITY.md) returned chip ID `0xd1`
+through the bound accelerometer client and verified restoration of its cached
+selector. This supplies direct BMI160 ID-byte evidence; address `0x69` is
+attributed through the audited client setup. Rails, interrupts, orientation
+and physical device count remain unproved. The source-only verdict below
+predates this observation; its missing-ID condition is superseded by this
+follow-up, while its node/probe stop remains in force.
+
 ## Verdict
 
 The current Linux BMI160 and STK3310-family IIO drivers remain the correct

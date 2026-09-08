@@ -1,0 +1,43 @@
+{
+  "classification": "BMI160 chip ID observed through the bound Gemian accelerometer client",
+  "preflight": {
+    "started_utc": "2026-09-08T23:08:49.803828+00:00",
+    "finished_utc": "2026-09-08T23:08:50.437527+00:00",
+    "returncode": 0,
+    "script_sha256": "df6f70207e4e240b45aa2d0272a1913945c731a7196d142bf488e4fd4385c4e1",
+    "stdout_sha256": "3ad4f827c0892a2f2f949f7225c563685f7a3ca17181a780e97d547095070569",
+    "stderr_sha256": "72716c204bd5dd628b4fa5d220a1f5efc0a908e1e8fafa5b365c8491b64afa84"
+  },
+  "invocation": {
+    "started_utc": "2026-09-08T23:08:58.043244+00:00",
+    "finished_utc": "2026-09-08T23:08:58.666068+00:00",
+    "returncode": 0,
+    "script_sha256": "df6f70207e4e240b45aa2d0272a1913945c731a7196d142bf488e4fd4385c4e1",
+    "stdout_sha256": "2c1ac1a7482cf29afdad73fc6527e275f979bec4ffe7015a8193f3add99b71c8",
+    "stderr_sha256": "72716c204bd5dd628b4fa5d220a1f5efc0a908e1e8fafa5b365c8491b64afa84"
+  },
+  "observation": {
+    "value": "0xd1",
+    "initial_selector": "reg=0X00, len=0",
+    "selector_restored": true,
+    "register": "0x00",
+    "result": "identity-observed",
+    "boot_id": "6a5395c2-71d0-4392-a397-be3be83b049b",
+    "value_read_calls": 1
+  },
+  "address_attribution": "Logical 1-0068 client; audited probe forces its transfer address to 0x69. No live client-memory or electrical-bus capture.",
+  "effect_budget": {
+    "value_read_calls": 1,
+    "observer_retries": 0,
+    "register_payload_writes": 0,
+    "cached_selector_writes": 2,
+    "measurement_reads": 0,
+    "new_boots": 0
+  },
+  "limits": [
+    "Read budget consumed; do not repeat.",
+    "One response does not prove device count or absence at another address.",
+    "No rail, interrupt, orientation, mainline probe or sensor-function validation."
+  ],
+  "redaction": "No personal endpoints, credentials, raw firmware/disassembly, calibration or unrelated device data published."
+}
