@@ -1,5 +1,19 @@
 # Keyboard prerequisite repair handoff
 
+The current handoff is bound to Candidate R's raw image
+`3290b867bc6cb2ecee42e6ca1436e1ae29613c074e7e45b3836ecb2905f3e07c`, padded
+boot2 image `29f59c7f21a25b47d63d653857db9d7d0760d9a00f7193e098219699235f16f1`,
+and manifest `62440fdee9267e26d6f90148609a7c2551fdb9d6a9f603da03f891638c65180d`.
+Its fresh baseline admission is `d10dcd8b-d67e-4311-ab7e-3f8c3078a88e`, with
+the reviewed supplemental chain `1eae36...`, `947681...`, `31206d...`,
+`33367f...`, and `74c1be...`; historical old-candidate records remain
+chronology only.
+
+The new tracked `disconnect-execution-binding.json` has the exact three-key
+schema and is currently `state=disabled` with `admission=null`. The generic
+gate validates an enabled binding against the complete admission and returns
+its binding digest for the local claim, but this edit does not enable execution.
+
 The readiness audit's hash-only admission defect is repaired in source. The
 capture path now invokes a bounded semantic verifier before any local claim or
 network transport. It opens the fixed accepted duration receipt plus three
@@ -17,8 +31,8 @@ and child, an independent complete export, and complete absence of surviving
 monitor, observer, tty1 or input readers.
 
 Mutation fixtures reject failed classifications, wrong digests and every
-decision-critical disconnect boolean. The existing default-off host execution
-gate remains unchanged, so the source repair admits no device action.
+decision-critical disconnect boolean. The tracked execution binding is
+disabled/null, so this source repair admits no device action.
 
 An explicit `keyboard-monitor-enabled` Buildbox kind is also prepared. It
 produces two byte-identical static ARM64 monitor replicas with
@@ -30,11 +44,12 @@ Neither binary had been built at the initial source checkpoint. The subsequent
 [enabled Buildbox result](results/enabled-build/RESULT.md) froze both binaries
 without changing the monitor engine.
 
-The remaining blocker is now evidence, not a permissive code path: build and
-freeze the enabled package, then run and independently review one exact
-candidate-bound disconnect proof. Fresh runtime and custody receipts and Astra
-review remain required before capture. The baseline kernel/DT/config and the
-20-case/25-keycode protocol are unchanged; no kernel build is justified.
+The remaining blocker is final session admission: create a future
+boot-specific enabled binding, run and independently review one exact
+Candidate R disconnect proof, and obtain final Astra acceptance of the exact
+enabled hash. Fresh runtime and custody receipts remain required before
+capture. The baseline kernel/DT/config and the 20-case/25-keycode protocol are
+unchanged; no kernel build is justified and execution remains NO-GO.
 
 Focused host validation passed:
 
@@ -47,8 +62,9 @@ Focused host validation passed:
 - protocol rendering, Python compilation, shell syntax, ShellCheck and
   whitespace checks.
 
-This is an offline source handoff only. It is not the missing disconnect result,
-an enabled package result, a keyboard observation or a device admission.
+This is an offline source handoff only. It is not a disconnect result, a
+keyboard observation, a device admission or authorization to enable the
+binding.
 
 ## Specialist rejection and bounded repair
 

@@ -26,10 +26,25 @@ MARKER = re.compile(rb'fixture-child=([1-9][0-9]*)\n')
 ADMISSION_FIELDS = {'schema', 'id', 'boot_id', 'source_identity', 'dependency',
     'package_identity', 'package_revision', 'monitor_sha256', 'monitor_bytes',
     'probe_sha256', 'probe_bytes', 'custody'}
+BINDING = HERE / 'disconnect-execution-binding.json'
 
 
-def execution_gate():
-    raise ValueError('keyboard disconnect proof disabled pending exact protocol review')
+def execution_gate(admission):
+    require(type(admission) is dict and set(admission) == ADMISSION_FIELDS,
+        'execution admission inventory')
+    raw = C['regular'](BINDING, 16384, private=False)
+    binding = json.loads(raw, object_pairs_hook=L['unique'])
+    require(type(binding) is dict and set(binding) == {'schema', 'state', 'admission'} and
+        binding['schema'] == 'keyboard-disconnect-execution-binding-v1', 'execution binding inventory')
+    require(binding['state'] in ('disabled', 'enabled'), 'execution binding state')
+    if binding['state'] == 'disabled':
+        require(binding['admission'] is None, 'disabled execution binding admission')
+        raise ValueError('keyboard disconnect proof disabled pending exact boot-specific admission')
+    require(type(binding['admission']) is dict and
+        set(binding['admission']) == ADMISSION_FIELDS and binding['admission'] == admission and
+        encode(binding['admission']) == encode(admission),
+        'execution binding admission')
+    return sha(raw)
 
 
 def prepare(admission, package):
@@ -276,7 +291,8 @@ def receipt(context, evidence):
 def perform(context, execute=False):
     if not execute:
         return {'classification':'dry-run','execution':'disabled','connections':0}
-    execution_gate()
+    require(type(context) is dict and set(context) == {'admission', 'package'}, 'execution context')
+    binding_sha = execution_gate(context['admission'])
     context = prepare(context['admission'], context['package'])
     runpy.run_path(str(HERE/'../emmc/mainline_host.py'))['require_ready']()
     root = ROOT/context['admission']['id']/'prerequisites'/'disconnect'
@@ -287,7 +303,7 @@ def perform(context, execute=False):
     C['write_new'](root/'export-command.sh', export)
     C['write_new'](root/'claim.json', encode({'claims':1,'connections':2,'retries':0,
         'disconnect_seconds':2,'export_seconds':30,'disconnect_command_sha256':sha(first),
-        'export_command_sha256':sha(export)}))
+        'export_command_sha256':sha(export),'execution_binding_sha256':binding_sha}))
     L['F']['sync_directory'](root); L['F']['sync_directory'](root.parent)
     prepared = context['dependency']['prepared']
     require(sha(C['regular'](prepared['keys']/'known_hosts',8192)) ==
@@ -330,7 +346,8 @@ def main():
     parser.add_argument('--execute',action='store_true')
     args = parser.parse_args(); os.umask(0o077)
     try:
-        admission = json.loads(C['regular'](args.admission.absolute(),65536))
+        admission = json.loads(C['regular'](args.admission.absolute(),65536),
+                               object_pairs_hook=L['unique'])
         context = {'admission':admission,'package':args.package.absolute()}
         result = perform(context,args.execute)
     except (OSError,ValueError,KeyError,TypeError,subprocess.SubprocessError) as error:

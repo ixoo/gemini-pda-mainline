@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "classification": "offline_disconnect_boot_preparation_accepted",
+  "candidate": "R",
+  "candidate_sha256": "3290b867bc6cb2ecee42e6ca1436e1ae29613c074e7e45b3836ecb2905f3e07c",
+  "candidate_padded_sha256": "29f59c7f21a25b47d63d653857db9d7d0760d9a00f7193e098219699235f16f1",
+  "candidate_manifest_sha256": "62440fdee9267e26d6f90148609a7c2551fdb9d6a9f603da03f891638c65180d",
+  "baseline_admission_id": "d10dcd8b-d67e-4311-ab7e-3f8c3078a88e",
+  "disconnect_gate": {
+    "source_sha256": "2438dc1cdacf47f100eab7a68078302b4e0c8ef4686342f65486534c5662f1c9",
+    "binding_sha256": "aa10351e1b5fc85515f790c0e38cf0f42e07ed14fe72fee11d7973f0b5775872",
+    "binding_state": "disabled",
+    "admission": null,
+    "execution_enabled": false
+  },
+  "installer": {
+    "purpose": "keyboard-disconnect",
+    "receipt_basename": "a53-keyboard-disconnect-deployment-1",
+    "derived_sha256": "6742e5d1cfd078fdc0c4728bf3f5291885d3a563424f10178810e2949e3ccfa8",
+    "historical_default_unchanged": true,
+    "receipt_directory_initially_absent": true
+  },
+  "checks": {
+    "disconnect": 6,
+    "prerequisites": 6,
+    "installer": 11,
+    "installer_remote": 2,
+    "candidate_validation": "pass",
+    "generated_bash_syntax": "pass",
+    "generated_shellcheck": "pass",
+    "specialist_review": "accepted"
+  },
+  "next_action": "fresh_gemian_preflight_then_one_guarded_install_or_checksum_skip_and_clean_shutdown",
+  "device_action": "none",
+  "network_access": "none",
+  "disconnect_proof_consumed": false,
+  "keyboard_capture_consumed": false,
+  "hardware_support_claim": false
+}

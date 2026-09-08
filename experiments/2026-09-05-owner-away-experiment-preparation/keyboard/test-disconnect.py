@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 """Host-only disconnect protocol, parser and semantic-receipt fixtures."""
 import base64
+import copy
 import json
 from pathlib import Path
 import runpy
@@ -130,10 +131,112 @@ class DisconnectTests(unittest.TestCase):
             self.assertEqual((linted.returncode,linted.stdout,linted.stderr),(0,b'',b''))
 
     def test_execution_gate_precedes_context_claim_and_transport(self):
-        with patch('subprocess.Popen',side_effect=AssertionError('transport')), \
-                patch.object(Path,'mkdir',side_effect=AssertionError('claim')):
-            with self.assertRaisesRegex(ValueError,'disabled'):
-                D['perform'](None,True)
+        admission = {name: value for name, value in {
+            'schema':'keyboard-disconnect-admission-v1',
+            'id':'11111111-1111-1111-1111-111111111111',
+            'boot_id':'22222222-2222-2222-2222-222222222222',
+            'source_identity':{
+                'local_and_direct':{
+                    'capture.py':'7'*64,'prerequisites.py':'8'*64,
+                    'disconnect.py':'9'*64,'monitor.c':'a'*64,
+                    'delivery.py':'b'*64,'classify.py':'c'*64,
+                    'protocol.json':'d'*64},
+                'emmc_launcher':{'launcher_sha256':'e'*64,'pins_sha256':'f'*64},
+                'pinned_members':{'baseline/scripts/collect-baseline.py':'1'*64}},
+            'dependency':{
+                'baseline_admission_id':'33333333-3333-3333-3333-333333333333',
+                'baseline_manifest_sha256':'2'*64,
+                'confirmation_manifest_sha256':'3'*64,
+                'candidate_manifest_sha256':'4'*64,
+                'deployment_receipt_sha256':'5'*64,
+                'prerequisite_selector':'reviewed-supplemental',
+                'prerequisite_phase_manifests':{
+                    'auth-checks':'6'*64,'preserve-log':'7'*64,
+                    'request-recovery':'8'*64}},
+            'package_identity':'9'*64,'package_revision':'revision-93e2b852',
+            'monitor_sha256':'a'*64,'monitor_bytes':66672,
+            'probe_sha256':'b'*64,'probe_bytes':66760,
+            'custody':{
+                'exclusive':True,'no_other_device_operations':True,
+                'stable_power':True,'physical_selection':True,
+                'screen_readable':True,'owner_ready':True}}.items()}
+        globals_ = D['execution_gate'].__globals__
+
+        def binding(value):
+            path = self.root/'binding.json'
+            path.write_bytes(value)
+            return path
+
+        def refused(value, value_admission=admission):
+            with patch.dict(globals_, {'BINDING':binding(value)}):
+                with self.assertRaises((OSError, ValueError, TypeError)):
+                    D['execution_gate'](value_admission)
+
+        refused(D['encode']({'schema':'keyboard-disconnect-execution-binding-v1',
+            'state':'disabled','admission':None}))
+        missing = self.root/'missing.json'
+        with patch.dict(globals_, {'BINDING':missing}):
+            with self.assertRaises(OSError): D['execution_gate'](admission)
+        target = self.root/'target.json'; target.write_bytes(b'{}')
+        link = self.root/'symlink.json'; link.symlink_to(target)
+        with patch.dict(globals_, {'BINDING':link}):
+            with self.assertRaises(ValueError): D['execution_gate'](admission)
+        refused(b'{}'*8193)
+        for raw in (b'not-json\n',
+                    b'{"schema":"keyboard-disconnect-execution-binding-v1",'
+                    b'"state":"disabled","admission":null,"extra":1}',
+                    b'{"schema":"wrong","state":"disabled","admission":null}',
+                    b'{"schema":"keyboard-disconnect-execution-binding-v1",'
+                    b'"state":"armed","admission":null}',
+                    b'{"schema":"keyboard-disconnect-execution-binding-v1",'
+                    b'"state":"enabled","admission":null}',
+                    b'{"schema":"keyboard-disconnect-execution-binding-v1",'
+                    b'"state":"disabled","admission":null,"state":"enabled"}'):
+            refused(raw)
+
+        enabled = D['encode']({'schema':'keyboard-disconnect-execution-binding-v1',
+            'state':'enabled','admission':admission})
+        with patch.dict(globals_, {'BINDING':binding(enabled)}):
+            with patch.dict(globals_, {'prepare':lambda *args: (_ for _ in ()).throw(
+                    AssertionError('prepare'))}):
+                with patch.object(D['subprocess'],'Popen',side_effect=AssertionError('transport')), \
+                        patch.object(Path,'mkdir',side_effect=AssertionError('claim')):
+                    with self.assertRaises(ValueError):
+                        D['perform']({'admission':{},'package':self.root/'package'},True)
+            self.assertEqual(D['execution_gate'](admission), D['sha'](enabled))
+            prepare_calls = []
+            def prepare_reached(*args):
+                prepare_calls.append(args)
+                raise ValueError('prepare reached')
+            with patch.dict(globals_, {'prepare':prepare_reached}):
+                with self.assertRaisesRegex(ValueError,'prepare reached'):
+                    D['perform']({'admission':admission,'package':self.root/'package'},True)
+            self.assertEqual(len(prepare_calls), 1)
+            mutations = []
+            for field in sorted(D['ADMISSION_FIELDS']):
+                changed = copy.deepcopy(admission)
+                if isinstance(changed[field], dict): changed[field]['mutation'] = True
+                elif isinstance(changed[field], int): changed[field] += 1
+                else: changed[field] = str(changed[field]) + '-mutation'
+                mutations.append((field, changed))
+            for field, changed in mutations:
+                with self.subTest(field=field):
+                    with self.assertRaises(ValueError): D['execution_gate'](changed)
+            for field in ('exclusive','no_other_device_operations','stable_power',
+                          'physical_selection','screen_readable','owner_ready'):
+                changed = copy.deepcopy(admission)
+                changed['custody'][field] = 1
+                with self.subTest(custody=field, value=1):
+                    with self.assertRaises(ValueError): D['execution_gate'](changed)
+
+        before = D['M']['source_identity']()
+        binding_path = binding(enabled)
+        binding_path.write_bytes(D['encode']({'schema':'keyboard-disconnect-execution-binding-v1',
+            'state':'disabled','admission':None}))
+        after = D['M']['source_identity']()
+        self.assertIn('disconnect.py', before['local_and_direct'])
+        self.assertNotIn('disconnect-execution-binding.json', before['local_and_direct'])
+        self.assertEqual(before, after)
 
 
 if __name__ == '__main__': unittest.main()

@@ -18,21 +18,43 @@ the fixture-only child already frozen in enabled package
   66,760 bytes;
 - source revision `93e2b8526daa683c2ba848011fac757a398a13dd`.
 
-The kernel/DT/config hypothesis remains the unchanged raw candidate
-`a25fe4cb907f4f3da2bf9f36fcf38b3fff7d8ba84adc37562fdcff2f1a422daf`
-with candidate-manifest SHA-256
-`54b07f0c70e77fd1e34fde4fc1c929980f0d8c3410f0a97ce3f15ffec1a66179`.
-This protocol does not rebuild or replace it.
+## Current Candidate R admission state
+
+The current admission is rebound to Candidate R: raw boot image
+`3290b867bc6cb2ecee42e6ca1436e1ae29613c074e7e45b3836ecb2905f3e07c`, exact
+16 MiB boot2 image `29f59c7f21a25b47d63d653857db9d7d0760d9a00f7193e098219699235f16f1`,
+and candidate manifest `62440fdee9267e26d6f90148609a7c2551fdb9d6a9f603da03f891638c65180d`.
+It is tied to fresh baseline admission `d10dcd8b-d67e-4311-ab7e-3f8c3078a88e`
+and its reviewed supplemental chain (`1eae36...`, auth `947681...`, preserve
+`31206d...`, request `33367f...`, confirm `74c1be...`). The enabled package,
+monitor and probe identities above remain unchanged.
+
+The fixed
+[`disconnect-execution-binding.json`](../2026-09-05-owner-away-experiment-preparation/keyboard/disconnect-execution-binding.json)
+is deliberately `state=disabled` with `admission=null`. The gate reads that
+binding before preparation, claims or transport, but this offline edit does
+not enable it. A future boot-specific binding must carry the complete Candidate
+R admission and receive final Astra acceptance of the exact enabled hash before
+any execution can be considered. No device action is admitted by this record.
+
+The kernel/DT/config hypothesis is the exact Candidate R composition above. The
+older raw candidate
+`a25fe4cb907f4f3da2bf9f36fcf38b3fff7d8ba84adc37562fdcff2f1a422daf` and
+manifest `54b07f0c70e77fd1e34fde4fc1c929980f0d8c3410f0a97ce3f15ffec1a66179`
+are retained in historical readiness records only; they are not current
+admission inputs and are not rebuilt or replaced by this protocol.
 
 ## Admission and exact effects
 
 [`disconnect.py`](../2026-09-05-owner-away-experiment-preparation/keyboard/disconnect.py)
 accepts a proof-specific admission rather than a future capture receipt. Before
-any claim or packet, it reparses the complete authenticated baseline/recovery
+any claim or packet, the enabled binding must match the complete Candidate R
+admission. That admission reparses the complete authenticated baseline/recovery
 archive, exact candidate and credentials, enabled package inventory, current
 source closure, fresh mainline boot ID and six affirmative custody facts. The
 local USB interface and direct route must also pass the existing read-only host
-gate. Missing retained baseline bytes refuse before device contact.
+gate. Missing retained baseline bytes refuse before device contact. The current
+disabled/null binding therefore refuses before all of these later checks.
 
 After those checks, the fixed effect budget is:
 
@@ -63,9 +85,10 @@ After those checks, the fixed effect budget is:
 5. Reparse the export locally and run the semantic prerequisite verifier over
    all seven fixed mode-0600 evidence files before writing a passing receipt.
 
-The host execution gate remains default-off in this review revision. Enabling
-it is a separate frozen edit after specialist acceptance and recovery of the
-exact private baseline archive.
+The host execution gate is disabled by the tracked binding in this revision.
+Execution remains **NO-GO** until a future boot-specific binding carries the
+exact enabled admission and Astra gives final acceptance of its complete hash
+and fresh boot-specific evidence.
 
 ## Decision branches
 
@@ -87,15 +110,13 @@ part of this proof.
 
 ## Current stop
 
-The reviewed private baseline archive formerly held in the A53 execution
-worktree is not present in any current worktree, the primary project's ignored
-artifact tree, temporary storage or Buildbox. The enabled monitor package and
-current A53 credentials are retained, but `completed_baseline()` correctly
-requires the original `attempts/2a40562a-7ee3-4899-af82-b0faa19df575` and
-matching recovery-session bytes. Those exact runtime bytes cannot be recreated
-from published summaries. Therefore no proof admission can yet be constructed,
-and the device must not be contacted through this protocol until the archive is
-recovered or a separately reviewed fresh baseline/recovery chain is performed.
+The fresh Candidate R baseline/recovery chain is now the dependency for a
+future proof admission: baseline admission `d10dcd8b-d67e-4311-ab7e-3f8c3078a88e`
+and supplemental phase records `1eae36...`, `947681...`, `31206d...`,
+`33367f...`, `74c1be...` are retained in the private authenticated archive.
+The older missing-archive and old-candidate findings remain historical
+readiness evidence and do not transfer to Candidate R. A boot-specific binding
+has not been created, so the device must not be contacted through this protocol.
 
 A bounded strict-host-key LAN check at `2026-09-07T22:14:15Z` established that
 the named device is reachable in known-good Gemian release `3.18.41+` with boot
@@ -119,9 +140,11 @@ treated as that candidate.
 ## Host validation in this revision
 
 Six disconnect tests cover deliberate process-group loss, early-marker refusal,
-complete export
-framing, semantic receipt acceptance and contradictory lifecycle refusal,
-absence of evdev/VT paths from the first command, and default-off ordering.
+complete export framing, semantic receipt acceptance and contradictory lifecycle
+refusal, absence of evdev/VT paths from the first command, and binding refusal
+ordering/mutation cases.
 The six prerequisite tests add a rehashed 101 ms transport refusal; the six
 capture tests still pass. Python compilation and whitespace checks pass. No
-device, network, Buildbox or kernel action was performed.
+device, network, Buildbox or kernel action was performed. Execution remains
+NO-GO pending final Astra acceptance of an exact enabled binding and a fresh
+boot-specific admission.

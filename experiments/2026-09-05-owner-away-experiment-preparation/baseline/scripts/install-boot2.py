@@ -15,7 +15,7 @@ import sys
 import tempfile
 
 sys.dont_write_bytecode = True
-from installer import derive, pinned_sources, REPO, HERE, RECEIPT_NAME
+from installer import derive, pinned_sources, REPO, HERE, receipt_name
 
 
 def run_installer(command):
@@ -58,7 +58,8 @@ def prepare(args):
                                       (args.candidate, args.foundation, args.userspace))
     validator = runpy.run_path(str(HERE / 'validate-candidate.py'))
     validator['validate'](args.candidate, args.foundation, args.userspace)
-    source = derive(pinned_sources(), REPO, candidate, foundation, userspace)
+    source = derive(pinned_sources(), REPO, candidate, foundation, userspace,
+                    getattr(args, 'purpose', None))
     return source, candidate
 
 
@@ -68,6 +69,8 @@ def main():
         parser.add_argument('--' + name, required=True, type=Path)
     parser.add_argument('--execute', action='store_true', help='install, verify and shut down the exact known-good device')
     parser.add_argument('--target', help='required with --execute; only gemini@192.168.1.50 is accepted')
+    parser.add_argument('--purpose', choices=('keyboard-disconnect',),
+                        help='select the fixed receipt namespace for the harmless keyboard disconnect proof')
     args = parser.parse_args()
     if args.execute and args.target != 'gemini@192.168.1.50':
         parser.error('--execute requires the exact --target gemini@192.168.1.50')
@@ -96,7 +99,7 @@ def main():
             subprocess.run(['bash', '-n', str(path)], check=True, timeout=15)
             subprocess.run(['shellcheck', str(path)], check=True, timeout=30)
             if args.execute:
-                evidence = REPO / 'artifacts/device-install-evidence' / RECEIPT_NAME
+                evidence = REPO / 'artifacts/device-install-evidence' / receipt_name(args.purpose)
                 run_installer(['bash', str(path), '--target', args.target,
                                '--candidate-dir', str(candidate), '--evidence-dir', str(evidence)])
             else:

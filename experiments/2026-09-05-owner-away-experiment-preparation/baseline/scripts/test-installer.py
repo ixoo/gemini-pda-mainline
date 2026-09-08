@@ -16,7 +16,8 @@ import time
 import unittest
 
 sys.dont_write_bytecode = True
-from installer import BASE, DERIVER, HERE, PINS, REPO, RECEIPT_NAME, STAGE_LIBRARY, derive, pinned_sources
+from installer import (BASE, DERIVER, HERE, KEYBOARD_DISCONNECT_RECEIPT_NAME, PINS, REPO,
+                       RECEIPT_NAME, STAGE_LIBRARY, derive, pinned_sources, receipt_name)
 from deployment_receipt import receipt
 
 BOOT = '11111111-1111-4111-8111-111111111111'
@@ -154,26 +155,37 @@ class InstallerTests(unittest.TestCase):
         cls.script.write_text(cls.source)
         subprocess.run(['bash', '-n', str(cls.script)], check=True)
         subprocess.run(['shellcheck', str(cls.script)], check=True)
+        cls.keyboard_source = derive(cls.sources, cls.repo, cls.candidate, cls.candidate,
+                                     cls.candidate, 'keyboard-disconnect')
+        cls.keyboard_source = cls.keyboard_source.replace(
+            'd43262bd1f9c76d02eb633900f5e5502e2342d6c1b41586a2d7e524a2293768f',
+            hashlib.sha256(cls.trust.read_bytes()).hexdigest())
+        cls.keyboard_script = cls.root / 'install-keyboard-disconnect.sh'
+        cls.keyboard_script.write_text(cls.keyboard_source)
+        subprocess.run(['bash', '-n', str(cls.keyboard_script)], check=True)
+        subprocess.run(['shellcheck', str(cls.keyboard_script)], check=True)
 
     @classmethod
     def tearDownClass(cls):
         cls.temp.cleanup()
 
-    def run_case(self, case, extra=()):
-        if self.evidence.is_symlink():
-            self.evidence.unlink()
-        elif self.evidence.exists():
-            shutil.rmtree(self.evidence)
+    def run_case(self, case, extra=(), purpose=None, evidence_name=None):
+        evidence = self.evidence_root / (evidence_name or receipt_name(purpose))
+        script = self.keyboard_script if purpose == 'keyboard-disconnect' else self.script
+        if evidence.is_symlink():
+            evidence.unlink()
+        elif evidence.exists():
+            shutil.rmtree(evidence)
         (self.root / 'actions').write_text('')
         (self.root / 'stage').unlink(missing_ok=True)
         if case == 'existing-evidence':
-            self.evidence.mkdir()
+            evidence.mkdir()
         if case == 'symlink-evidence':
-            self.evidence.symlink_to(self.evidence_root)
+            evidence.symlink_to(self.evidence_root)
         env = dict(os.environ, FIXTURE=str(self.root), CASE=case, CANDIDATE_SHA=self.sha,
                    PATH=str(self.bin) + os.pathsep + os.environ['PATH'], PYTHONDONTWRITEBYTECODE='1')
-        result = subprocess.run(['bash', str(self.script), '--target', 'gemini@192.168.1.50',
-                                 '--candidate-dir', str(self.candidate), '--evidence-dir', str(self.evidence), *extra],
+        result = subprocess.run(['bash', str(script), '--target', 'gemini@192.168.1.50',
+                                 '--candidate-dir', str(self.candidate), '--evidence-dir', str(evidence), *extra],
                                 env=env, text=True, capture_output=True, timeout=20)
         actions = (self.root / 'actions').read_text().splitlines()
         self.assertNotIn('UNEXPECTED-TRANSPORT', actions)
@@ -199,6 +211,35 @@ class InstallerTests(unittest.TestCase):
                 self.assertFalse((self.evidence / '.boot2-readback.partial').exists())
                 raw = (self.evidence / 'deployment-summary.txt').read_text()
                 self.assertEqual(receipt(raw, self.sha, self.manifest_sha), BOOT)
+
+    def test_fixed_keyboard_disconnect_receipt_mode(self):
+        self.assertEqual(receipt_name(), RECEIPT_NAME)
+        self.assertEqual(receipt_name('keyboard-disconnect'), KEYBOARD_DISCONNECT_RECEIPT_NAME)
+        with self.assertRaises(ValueError):
+            receipt_name('arbitrary')
+        self.assertIn(KEYBOARD_DISCONNECT_RECEIPT_NAME, self.keyboard_source)
+        self.assertNotIn('a53-authenticated-baseline-deployment-2', self.keyboard_source)
+        for case in ('pass', 'already-current', 'existing-evidence', 'symlink-evidence',
+                     'readback-corrupt', 'cleanup-refused', 'poweroff-refused'):
+            with self.subTest(case=case):
+                result, actions = self.run_case(case, purpose='keyboard-disconnect')
+                self.assertEqual(result.returncode == 0, case == 'pass' or case == 'already-current')
+                if case in ('existing-evidence', 'symlink-evidence'):
+                    self.assertNotIn('preflight', actions)
+                if case in ('pass', 'already-current'):
+                    self.assertEqual(actions.count('write-attempt'), 0 if case == 'already-current' else 1)
+                    self.assertLess(actions.index('readback'), actions.index('poweroff'))
+                    raw = (self.evidence_root / KEYBOARD_DISCONNECT_RECEIPT_NAME /
+                           'deployment-summary.txt').read_text()
+                    self.assertEqual(receipt(raw, self.sha, self.manifest_sha), BOOT)
+                if case != 'cleanup-refused':
+                    self.assertFalse((self.root / 'stage').exists())
+
+    def test_keyboard_mode_rejects_wrong_receipt_basename(self):
+        result, actions = self.run_case('wrong-evidence', purpose='keyboard-disconnect',
+                                        evidence_name=RECEIPT_NAME)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertNotIn('preflight', actions)
 
     def test_host_failures_and_interruptions(self):
         cases = ('validator-refused', 'existing-evidence', 'symlink-evidence', 'ssh-refused', 'bad-boot',

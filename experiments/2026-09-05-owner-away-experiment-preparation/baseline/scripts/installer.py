@@ -14,6 +14,18 @@ PINS = {BASE: 'deaa0e886a881132dd49ee1e3d5b0e6f776400f51fa86a8d0b7c791e979d12a8'
         DERIVER: '9c72675e3043dcf735c8a368800ce9297ca6c343d81283505e7030de82253211',
         'scripts/boot2-device-guard.sh': '0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf'}
 RECEIPT_NAME = 'a53-authenticated-baseline-deployment-2'
+KEYBOARD_DISCONNECT_RECEIPT_NAME = 'a53-keyboard-disconnect-deployment-1'
+_PURPOSE_RECEIPTS = {'keyboard-disconnect': KEYBOARD_DISCONNECT_RECEIPT_NAME}
+
+
+def receipt_name(purpose=None):
+    """Return the one fixed receipt basename allowed for ``purpose``."""
+    if purpose is None:
+        return RECEIPT_NAME
+    try:
+        return _PURPOSE_RECEIPTS[purpose]
+    except (KeyError, TypeError):
+        raise ValueError('unsupported installer purpose') from None
 
 # A quiescent known-good OS is still required: these observations do not lock
 # mounts or swap configuration. No helper enables/disables swap or mounts a FS.
@@ -113,8 +125,9 @@ def pinned_sources(repo=REPO):
     return sources
 
 
-def derive(sources, repo, candidate, foundation, userspace):
+def derive(sources, repo, candidate, foundation, userspace, purpose=None):
     """Pure text derivation. Callers must validate the private candidate first."""
+    selected_receipt = receipt_name(purpose)
     if set(sources) != set(PINS) or any(digest(sources[path]) != sha for path, sha in PINS.items()):
         raise ValueError('installer input pin differs')
     repo, candidate, foundation, userspace = map(Path, (repo, candidate, foundation, userspace))
@@ -162,8 +175,8 @@ ssh_command=(
     replace('gemian-runtime-provenance-observer-rndis-1d303dda10b4', candidate.name)
     replace('2026-08-14-mt6797-runtime-provenance-observer', 'a53-authenticated-baseline')
     replace('provenance-observer', 'a53-authenticated-baseline', 7)
-    replace('a53-authenticated-baseline-deployment-*', RECEIPT_NAME, 2)
-    replace('a53-authenticated-baseline-deployment-N', RECEIPT_NAME)
+    replace('a53-authenticated-baseline-deployment-*', selected_receipt, 2)
+    replace('a53-authenticated-baseline-deployment-N', selected_receipt)
     old_root = 'script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"\nrepo_root="$(cd -- "$script_dir/../../.." && pwd -P)"'
     replace(old_root, 'repo_root=' + shlex.quote(str(repo)))
     replace('manifest="$candidate_dir/SHA256SUMS"', 'manifest="$candidate_dir/candidate.json"')

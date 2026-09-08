@@ -30,17 +30,17 @@
       "device_custodian": null,
       "experiment": "experiments/2026-09-05-owner-away-experiment-preparation/README.md#keyboard-coverage",
       "session_packet": "experiments/2026-09-05-owner-away-experiment-preparation/keyboard/README.md",
-      "candidate_record": null,
-      "readiness_record": "experiments/2026-09-07-keyboard-boot2-session/results/enabled-build/RESULT.md",
+      "candidate_record": "experiments/2026-09-07-keyboard-boot2-session/results/candidate-r-baseline.json",
+      "readiness_record": "experiments/2026-09-07-keyboard-boot2-session/results/candidate-r-disconnect-preparation.json",
       "dependencies": [
         {
           "item": "a53-authenticated-baseline",
           "required_result": "Exact frozen baseline first boot passes authenticated USB and console serviceability; input interface is identified. Ten completed cold boots are not required.",
-          "evidence": null
+          "evidence": "experiments/2026-09-07-keyboard-boot2-session/results/candidate-r-baseline.json"
         }
       ],
       "owner_task_id": "01a06f91-51c9-7e22-90c9-d5f3e6e43a64",
-      "readiness_note": "Semantic prerequisite validation and the exact enabled monitor/disconnect-probe Buildbox package are accepted offline. The exact Dropbear disconnect result, fresh runtime/custody evidence and Astra admission remain incomplete. Host execution stays disabled and the queue remains unselected."
+      "readiness_note": "Candidate R's fresh authenticated baseline and supplemental changed-ID Gemian recovery are verified. The semantic prerequisite validator, exact enabled monitor/disconnect-probe package, disabled one-admission execution gate and fixed second-deployment receipt mode are accepted offline. The next boot-specific binding is still disabled/null; no disconnect or keyboard claim is admitted and the queue remains unselected."
     },
     "emmc-readonly": {
       "workstream": "serviceability",

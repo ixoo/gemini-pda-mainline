@@ -5,6 +5,16 @@ is not currently active**.
 Device custodian: the primary integration coordinator.  No other live-device
 operation may overlap this handoff.
 
+## Harmless disconnect execution state
+
+The separate disconnect proof is rebound to this Candidate R and the fresh
+baseline/recovery chain recorded below. Its tracked execution binding remains
+`state=disabled` with `admission=null`, so the host runner refuses before
+preparation, claims or transport. This offline preparation does not select
+boot2 or authorize a device action. Execution remains **NO-GO** until a future
+boot-specific binding carries the exact enabled admission and receives final
+Astra acceptance of its complete hash and fresh boot-specific evidence.
+
 ## Frozen candidate
 
 - Private directory:
@@ -86,5 +96,24 @@ baseline success.
 Candidate R's fresh authenticated archive is now sufficient to prepare the
 separate harmless Dropbear disconnect proof. That proof still needs another
 guarded Candidate R installation, clean shutdown, and one owner boot2 selection.
-It opens no keyboard device and cannot produce a keyboard result. Only a passing
-same-boot proof may admit the later one-shot 20-case keyboard capture.
+It opens no keyboard device and cannot produce a keyboard result. The tracked
+binding is still disabled/null, and only a passing same-boot proof plus final
+Astra acceptance of the exact enabled hash may admit the later one-shot
+20-case keyboard capture.
+
+## Second deployment preparation
+
+The original installer receipt namespace is consumed and remains preserved.
+The same guarded derivation now has one fixed additional purpose,
+`keyboard-disconnect`, which accepts only the new receipt basename
+`a53-keyboard-disconnect-deployment-1`. It does not accept a caller-selected
+name or path. Exact Candidate R inputs rederive the new installer as
+`6742e5d1cfd078fdc0c4728bf3f5291885d3a563424f10178810e2949e3ccfa8`;
+the historical default derivation remains byte-identical.
+
+The specialist accepted this preparation for one new boot cycle only after a
+fresh same-boot Gemian identity, exact zram, custody, stable-power and live-GPT
+boot2 checks. A matching boot2 checksum skips the write but still requires a
+complete readback, cleanup, evidence flush and clean shutdown. Any uncertainty
+before deactivation stops without mutation; a confirmed deactivation followed
+by a pre-install abort uses only the reviewed same-boot restoration path.
