@@ -64,7 +64,7 @@
   recovery action. A later runner may deliver it only to a disjoint RAM-only
   path with exclusive creation and checksum verification; staging is retained.
 - **Implementation handoff:** helper source `5318a346...`, native/QEMU fixture
-  `5d0d8618...`, build script `484412ff...`, dispatcher `6f907510...` and routing
+  `5d0d8618...`, build script `3c622b2e...`, dispatcher `6f907510...` and routing
   test `e810b3c6...`. Four native host fixture methods and seven routing methods
   pass; strict host compilation, Python compilation, Bash syntax, ShellCheck and
   whitespace checks pass. The integration review additionally covers full-size
@@ -73,3 +73,11 @@
 - **State:** waiting-build. The exact static AArch64 replicas and QEMU fixtures
   must pass on Buildbox before specialist review or any live admission. Device
   remains waiting; no live action is admitted.
+- **Build attempts:** the first exact Buildbox dispatch refused locally because
+  the published `main` commit was checked out on a differently named topic
+  branch; revision `9e182d61...` repaired that host-only gate. The next dispatch
+  reached the pinned compiler and musl build but exited 141 when a successful
+  `nm | grep -q` check closed the large static-symbol pipe under `pipefail`.
+  The focused repair writes bounded tool reports before matching them, avoiding
+  success-induced SIGPIPE without weakening the static/AArch64 checks. A further
+  relevant failure requires escalation before another repair.

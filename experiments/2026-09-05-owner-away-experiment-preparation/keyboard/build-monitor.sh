@@ -123,10 +123,14 @@ for replica in one two; do
     -Wall -Wextra -Werror "-ffile-prefix-map=$repository=." "-ffile-prefix-map=$stage=." \
     -Wl,--gc-sections,"-Map,$stage/$replica/preserver.map" \
     "$here/preserve-disconnect.c" -o "$stage/$replica/preserver"
-  aarch64-linux-gnu-readelf -h "$stage/$replica/preserver" | grep -q AArch64
-  if aarch64-linux-gnu-readelf -l "$stage/$replica/preserver" | grep -q INTERP; then exit 1; fi
-  if aarch64-linux-gnu-readelf -d "$stage/$replica/preserver" | grep -q NEEDED; then exit 1; fi
-  aarch64-linux-gnu-nm --defined-only "$stage/$replica/preserver" | grep -Eq ' T main$'
+  aarch64-linux-gnu-readelf -h "$stage/$replica/preserver" >"$stage/$replica/readelf-header.txt"
+  aarch64-linux-gnu-readelf -l "$stage/$replica/preserver" >"$stage/$replica/readelf-program.txt"
+  aarch64-linux-gnu-readelf -d "$stage/$replica/preserver" >"$stage/$replica/readelf-dynamic.txt"
+  aarch64-linux-gnu-nm --defined-only "$stage/$replica/preserver" >"$stage/$replica/nm.txt"
+  grep -q AArch64 "$stage/$replica/readelf-header.txt"
+  if grep -q INTERP "$stage/$replica/readelf-program.txt"; then exit 1; fi
+  if grep -q NEEDED "$stage/$replica/readelf-dynamic.txt"; then exit 1; fi
+  grep -Eq ' T main$' "$stage/$replica/nm.txt"
   grep -q 'preserve_one' "$stage/$replica/preserver.map"
   aarch64-linux-gnu-strip --strip-all "$stage/$replica/preserver"
   [[ $(stat -c %s "$stage/$replica/preserver") -le 131072 ]]
