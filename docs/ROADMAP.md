@@ -114,8 +114,12 @@ separates an existing MT6328 interrupt-domain correction from the four-bank
 MT6351 extension. Its five-patch parent/core/regulator draft passes an isolated
 Linux 7.3-rc1 build, focused schema checks and a regulator reprobe regression.
 It enables no Gemini board or unrelated PMIC children and is not a device
-candidate. Next resolve VCN33 output topology and shared voltage ownership,
-and review IRQ error paths before promoting this unsigned topic.
+candidate. A sixth patch now rejects failed interrupt-mask writes before IRQ
+registration; its focused regression and updated compile passed. The
+[VCN33 source follow-up](../experiments/2026-09-08-mt6351-mfd-upstream-preparation/VCN33.md)
+establishes shared voltage control but not output topology. Next resolve that
+ownership and repair IRQ/notifier cleanup ordering before promoting this
+unsigned topic.
 
 The current [cellular architecture refresh](../experiments/2026-09-07-mt6797-cellular-upstream-architecture/README.md)
 confirms that generic WWAN ports and netdevs are reusable only above a future

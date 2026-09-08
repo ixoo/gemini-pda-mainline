@@ -182,11 +182,32 @@ The test uses fake register addresses and registration callbacks; it proves
 control flow, not register semantics or a running kernel's IRQ behavior.
 Pass the five-patch and six-patch versions of `drivers/mfd/mt6397-irq.c` as
 its two arguments. Strict checkpatch passed with only the unsigned-archive
-sign-off exclusion. The new compile result is pending at this input checkpoint;
-the five-patch build receipt above remains historical evidence for its own input.
+sign-off exclusion. The [six-patch compile](results/irq-mask-compile.json) from
+project commit `267c94ecdf53dd1e65890644d4c5771dd5ec3a66` passed without
+compiler warnings or errors, and its validated package was fetched. Its IRQ
+source matches the tested after-file and its object contains the new error
+reporting call. The upstream source tuple, configuration and original five
+patches match the parent package exactly. No schema check was repeated for
+this C-only change; the five-patch schema receipt remains applicable to the
+unchanged bindings. Neither build establishes hardware behavior.
 
 Other IRQ lifetime issues remain separate: the legacy initializer does not
 unregister its PM notifier, and the MFD child-add failure path removes the
 domain before the managed parent IRQ is released. Review cleanup ordering and
 concurrent IRQ/notifier use before promoting the topic. The mask-error change
 does not repair or validate those later lifetime paths.
+
+The pinned kernel already provides `devm_irq_domain_instantiate`, which returns
+an error pointer on failure. This offers a standard path for the cleanup fix:
+allocate the managed domain before requesting the managed parent IRQ, and
+manage PM-notifier removal as well. Both `mt6397_irq_init` and
+`mt6358_irq_init` must adopt consistent domain ownership before removing the
+MFD core's manual child-add-error cleanup. Retain the distinction between this
+API's error pointer and the old linear wrapper's NULL result.
+Relevant unchanged upstream files are `include/linux/irqdomain.h`
+(`1bb4044856a5ef47c95eb09e366a1a9f147ff80a8a44a4486db584204338a6df`),
+`kernel/irq/devres.c`
+(`6d14378297fa53ea932184bf6b575c67c11b813ce559b2f706fbdc3df31e2f80`)
+and `drivers/mfd/mt6358-irq.c`
+(`eb2a0304a58b57354db017611265e70d798268a8f602e34ab3b8c04062f0d005`).
+That cleanup change and its failure-path validation remain unimplemented.
