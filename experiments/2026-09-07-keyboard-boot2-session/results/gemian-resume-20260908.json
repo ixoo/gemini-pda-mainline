@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "classification": "authenticated-changed-boot-gemian-confirmed",
+  "date": "2026-09-08",
+  "kernel_release": "3.18.41+",
+  "architecture": "aarch64",
+  "os": "Debian GNU/Linux 9 (stretch)",
+  "boot_id": "6a5395c2-71d0-4392-a397-be3be83b049b",
+  "previous_candidate_r_boot_id": "bbad1c49-ecdd-4f40-b1e0-c53f707106d1",
+  "identity_stdout_sha256": "402b2a0fde62f440b50b53afb061c248b90b7a6bb33b88d91d66045031885ab6",
+  "ssh_connections": 1,
+  "ssh_exit_status": 0,
+  "scope": "Kernel release, architecture, boot identity and OS release only; authenticated pinned host key and project key. No diagnostic, partition, radio or recovery action.",
+  "recovery_mechanism": "not_observed",
+  "candidate_r_remote_partials": "Not retrieved by this observation; former boot RAM is no longer live. No preservation claim.",
+  "keyboard_result": false,
+  "prior_disconnect_result": "inconclusive_export_refused",
+  "next_action": "Offline diagnosis of the failed export and minimum successor keyboard lifecycle requirements. Do not replay Candidate R or implement the preservation supervisor solely to recover former boot RAM."
+}
