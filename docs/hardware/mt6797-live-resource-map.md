@@ -808,6 +808,14 @@ expansion of PMIC consumers still requires a non-primary boot, external
 recovery, and before/after captures of wrapper state and PMIC masks.
 See the [MT6351 probe-safety audit](../../experiments/2026-07-11-mt6351-pmic-recovery/results/mt6351-probe-safety-audit-20260714.txt).
 
+Gemian RTC time reads are stateful: the retained boot kernel writes BBPU
+RELOAD and WRTGR, reads an additional counter at `0x4202`, and contains a
+conditional alarm-programming fallback. The counter is outside the historical
+RTC resource at `0x4000`–`0x403f`. These compiled-code facts prevent treating
+procfs time reads as hardware-read-only or assuming that an MT6397 match alone
+establishes MT6351 RTC compatibility. Exact evidence and remaining latch and
+rollover questions are in the [RTC binary audit](../../experiments/2026-07-11-mt6351-pmic-recovery/results/rtc-binary-audit-20260908.md).
+
 The vendor pinctrl source itself is not a complete EINT map: it marks ordinary
 pins `NO_EINT_SUPPORT` and leaves its EINT offset structure commented. The
 dedicated MT6797 map and controller data are therefore a new mainline data

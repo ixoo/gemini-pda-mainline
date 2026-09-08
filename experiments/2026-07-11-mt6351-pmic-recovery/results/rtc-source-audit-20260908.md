@@ -55,3 +55,9 @@ hardware validation protocol; this audit adds no RTC node or kernel patch.
 
 Validation: shell syntax and ShellCheck for the edited collector, plus the
 repository checks. No kernel build or hardware time/alarm test was run.
+
+The subsequent [retained-kernel binary audit](rtc-binary-audit-20260908.md)
+confirms the reload writes in the historical boot kernel and identifies its
+selected counter-based rollover path and conditional alarm-programming
+fallback. It does not establish current runtime transactions or mainline
+compatibility.

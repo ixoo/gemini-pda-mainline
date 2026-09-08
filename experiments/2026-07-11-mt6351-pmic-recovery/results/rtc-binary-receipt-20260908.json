@@ -1,0 +1,72 @@
+{
+  "schema": 1,
+  "analysis": "retained Gemian RTC binary, no device access",
+  "boot_image_sha256": "1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513",
+  "boot_image_bytes": 16777216,
+  "kernel_payload_bytes": 8429825,
+  "kernel_payload_sha256": "b53d191dc41d3f7364b0fa62b4bc920b1d013a1942b2e6b06727263fc56fcf4d",
+  "gzip_member_bytes": 8299080,
+  "appended_dtb_bytes": 130745,
+  "image_sha256": "0570480c28bce1583636a240904df8da3af0b5e5b4bcc6254f5719b42bd723d0",
+  "image_bytes": 20013248,
+  "reconstructed_elf_sha256": "cc66df06194d3315335462760962165e1dcb2e50221574aeb45a0805bb17a162",
+  "elf_kernel_virtual_base": "0xffffffc000080000",
+  "boot_gzip_matches_image": true,
+  "elf_kernel_section_matches_image": true,
+  "analysis_utc": "2026-09-08T21:35:00Z",
+  "tool": "GNU objdump (GNU Binutils for Ubuntu) 2.42",
+  "function_spans": [
+    {
+      "symbol": "rtc_ops_read_time",
+      "start": "0xffffffc0004af048",
+      "end_exclusive": "0xffffffc0004af1b0",
+      "bytes_including_trailing_padding": 360,
+      "sha256": "157b4a0f7610b934c08d505382b96f0115b5dbbcf6e6515c26c0acca7e527390"
+    },
+    {
+      "symbol": "hal_rtc_get_tick_time",
+      "start": "0xffffffc0004afe70",
+      "end_exclusive": "0xffffffc0004aff20",
+      "bytes_including_trailing_padding": 176,
+      "sha256": "146e060383cf6eb069b921e38946a49fa49a5f0753d8871da9a551a7356ef2ce"
+    },
+    {
+      "symbol": "rtc_get_tick",
+      "start": "0xffffffc0004af998",
+      "end_exclusive": "0xffffffc0004afa60",
+      "bytes_including_trailing_padding": 200,
+      "sha256": "3df34ab295fd434bec518c2067b489e1c52f6b2fc5d141b750c59aa6580d0fac"
+    },
+    {
+      "symbol": "rtc_read",
+      "start": "0xffffffc0004afa60",
+      "end_exclusive": "0xffffffc0004afa88",
+      "bytes_including_trailing_padding": 40,
+      "sha256": "2dd1d50fde570d884a1f9ac6292dafc2b7233bdd3c75c266a3325d0c7bce7852"
+    },
+    {
+      "symbol": "rtc_write",
+      "start": "0xffffffc0004afa88",
+      "end_exclusive": "0xffffffc0004afaa8",
+      "bytes_including_trailing_padding": 32,
+      "sha256": "e729c67bcbdad53e36618d083a9431f251416881d3f9328c044bf359d3a2f288"
+    },
+    {
+      "symbol": "rtc_write_trigger",
+      "start": "0xffffffc0004afb70",
+      "end_exclusive": "0xffffffc0004afb90",
+      "bytes_including_trailing_padding": 32,
+      "sha256": "dec4eab6c5d52311fbf307920b3dfee95700e9aa6e266021bf4598979a34b32a"
+    },
+    {
+      "symbol": "hal_rtc_set_alarm",
+      "start": "0xffffffc0004b0ad0",
+      "end_exclusive": "0xffffffc0004b0b08",
+      "bytes_including_trailing_padding": 56,
+      "sha256": "efbbe81c9825c0cbb1d302f14c6a36a22708e81258dda17626c42bfa6631911c"
+    }
+  ],
+  "span_instruction_bytes_match_verified_image": true,
+  "private_disassembly_retained": true,
+  "device_access": false
+}

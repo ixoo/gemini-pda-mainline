@@ -82,5 +82,12 @@
     "path": "drivers/rtc/interface.c",
     "bytes": 31807,
     "sha256": "c015204737e08494fe7c26368ad174086f2abe9bd058b92dba35ba6ff7124ada"
+  },
+  {
+    "repository": "gemian/gemini-linux-kernel-3.18",
+    "revision": "59e00a9144d782e148332009a835b99c43382467",
+    "path": "drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/mt_rtc_hw.h",
+    "bytes": 14341,
+    "sha256": "55d98f84351a4262f82c77d96a6aa17b5cac4f222f5f4900db31ec574efe1e09"
   }
 ]
