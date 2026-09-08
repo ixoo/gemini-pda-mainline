@@ -16,7 +16,7 @@ The stores precede their respective diagnostic branches, so disabling those
 diagnostics does not skip the stores. The routine also assigns the two RSSI
 compensation globals from an optional pointed-to structure when its relevant
 validity bytes are nonzero, and from separate constants otherwise. The
-structure's producer and provenance have not been decoded; it is not established
+structure's selected population path is examined below; it is not established
 as the host's complete 512-byte NVRAM record. None of these firmware fallback
 values supplies a safe mainline calibration default.
 
@@ -75,3 +75,50 @@ All private output remains in the existing RE VM project. No raw firmware,
 private addresses, instruction listings, fallback values, calibration data or
 identifiers are published. Repository checks apply; no kernel build, emulation,
 device access, firmware loading or radio operation was performed.
+
+## Follow-up: temporary startup parameters and efuse-labelled input
+
+The state-2 branch obtains the temporary parameter pointer with arguments
+selecting allocation class 2 and size 128, stores it in the global used by the
+initializer, and conditionally invokes a population wrapper. Near the end of
+that branch it passes the pointer to a release-style wrapper and clears the
+global. The allocation/release wrappers have complementary bitmap-pool paths
+and indirect fallback paths. The selected class-2 allocation uses an indirect
+fallback, so its exact storage provider remains unresolved.
+
+The population wrapper obtains a second, 256-byte allocation, invokes a
+decoder with the original parameter pointer and that second pointer, then
+passes the second pointer to the release wrapper. A null allocation takes a
+separate diagnostic/error path. This is a local temporary-buffer lifetime,
+not a filesystem-record restoration path. No leak-free or allocation-success
+claim is made for the unresolved callbacks.
+
+The decoder's selected 177-instruction graph replaces its second argument
+before reading it. It calls another helper with the original destination,
+zero and length 128, then obtains indexed values through a single indirect
+callback. An initial loop reports indices 0 through 7; later calls fetch
+selected indices again and use bit tests, extraction and conditional stores
+to populate the temporary structure. The first helper's calling pattern is
+consistent with clearing memory, but its body is outside the retained mapping;
+therefore a fully zero-initialized output has not been proved.
+
+The diagnostic label joined to the index/value loop names efuse data. Labels
+joined to later extraction paths name detector slope/offset, per-band DPD and
+PA-bias fields. These labels corroborate a firmware-side efuse decode path;
+they do not prove physical fuse access, factory validity, units or board
+applicability. The indexed callback's pointer slot is outside the retained
+mapped sections, so neither its target nor its acquisition effects are known.
+
+The selected decoder contains no explicit stores to the two RSSI-validity
+bytes later consulted by the initializer. That local absence is not a proof
+that those bytes are zero: the preparation helper, indirect callbacks and
+other writers remain outside this claim. In particular, do not turn the
+initializer's fallback constants into host-side replacement calibration.
+
+The [startup-parameter receipt](results/firmware-startup-parameters.json) pins
+five private scripts and their bounds. The wrapper, decoder and allocation/
+release graphs all exhausted their queues. Selected parameter passing and
+field stores were checked in p-code. The six diagnostic labels were read only
+inside the RE VM and are paraphrased here; no raw strings or values are
+published. No device access, emulation, kernel build, fuse read, calibration
+write or radio operation occurred.

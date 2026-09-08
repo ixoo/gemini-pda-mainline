@@ -1,0 +1,70 @@
+{
+  "firmware_sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
+  "analysis_tool": "Ghidra 12.1.2",
+  "identity_policy": "existing retained image and mapping; no extraction",
+  "scripts_sha256": {
+    "StartupParametersInspect.java": "23bc7f42bed8ca01a0bdf85634e129e62cf2cecd916bf32b364f01cb204507c9",
+    "StartupDecodeInspect.java": "887fa0b8e708968727da586ee0485ce3e5bd31683554ece5294f6ce6d29a126f",
+    "AllocationInspect.java": "b4b382a168734b1db3071fcf07e4eca10a111c086580fc7b46835789ef53000b",
+    "ReleaseInspect.java": "710e5d6772f3d5ac350f852e584824fcb8b7211e9ca62d5b9b50d73a54c13524",
+    "StartupLabels.java": "c8691c318f1401a94d69b3dddd805fc2a6712d1d1f6558972016aaa7070ca497"
+  },
+  "walks": {
+    "population_wrapper": {
+      "target_nodes": 51,
+      "queue_exhausted": true,
+      "call_sites": 6,
+      "unresolved_noncall_computed": 0,
+      "terminal": 1,
+      "invalid": 0,
+      "node_cap": 384
+    },
+    "decoder": {
+      "target_nodes": 177,
+      "queue_exhausted": true,
+      "call_sites": 16,
+      "unresolved_noncall_computed": 0,
+      "terminal": 1,
+      "invalid": 0,
+      "node_cap": 384
+    },
+    "allocation_wrapper": {
+      "target_nodes": 98,
+      "queue_exhausted": true,
+      "call_sites": 8,
+      "unresolved_noncall_computed": 0,
+      "terminal": 1,
+      "invalid": 0,
+      "node_cap": 384
+    },
+    "release_wrapper": {
+      "target_nodes": 95,
+      "queue_exhausted": true,
+      "call_sites": 8,
+      "unresolved_noncall_computed": 0,
+      "terminal": 1,
+      "invalid": 0,
+      "node_cap": 384
+    }
+  },
+  "buffer_requests": {
+    "startup_parameter_bytes": 128,
+    "secondary_temporary_bytes": 256,
+    "class_argument": 2,
+    "underlying_class_2_provider": "unresolved indirect fallback"
+  },
+  "labels": {
+    "selected": 6,
+    "max_bytes_each": 160,
+    "joined_meaning": "efuse index/value, detector slope/offset, DPD and PA-bias fields",
+    "indexed_callback_pointer_slot_mapped": false
+  },
+  "limits": [
+    "Indirect acquisition callback and memory-preparation helper outside retained mapping.",
+    "Diagnostic naming does not prove physical fuse reads or calibration validity.",
+    "Local absence of explicit RSSI-validity stores does not prove zero contents.",
+    "No filesystem NVRAM provenance or restoration claim.",
+    "Calls not traversed; fallthrough assumes return."
+  ],
+  "redaction": "No private addresses, firmware labels, instruction listings, fuse values or calibration data published."
+}
