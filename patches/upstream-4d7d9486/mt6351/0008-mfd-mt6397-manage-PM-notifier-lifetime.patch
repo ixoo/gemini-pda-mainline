@@ -1,0 +1,48 @@
+From 3b3be8c24f5b764f26f044f5e4541629f622d75c Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 8 Sep 2026 15:13:27 -0400
+Subject: [PATCH] mfd: mt6397: unregister the PM notifier on teardown
+
+Propagate PM notifier registration failure and manage successful
+registration with a cleanup action. Register the action after the parent
+IRQ so teardown unregisters the notifier before releasing the IRQ and
+domain. Action allocation failure immediately unregisters the notifier.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/mfd/mt6397-irq.c | 14 ++++++++++++--
+ 1 file changed, 12 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/mfd/mt6397-irq.c b/drivers/mfd/mt6397-irq.c
+index 1ccc7da..ebeaf7d 100644
+--- a/drivers/mfd/mt6397-irq.c
++++ b/drivers/mfd/mt6397-irq.c
+@@ -172,6 +172,11 @@ void mt6397_irq_domain_exit(struct irq_domain *domain)
+ 	}
+ }
+ 
++static void mt6397_irq_unregister_pm_notifier(void *data)
++{
++	unregister_pm_notifier(data);
++}
++
+ int mt6397_irq_init(struct mt6397_chip *chip)
+ {
+ 	struct irq_domain_info info = {
+@@ -262,6 +267,11 @@ int mt6397_irq_init(struct mt6397_chip *chip)
+ 		return ret;
+ 	}
+ 
+-	register_pm_notifier(&chip->pm_nb);
+-	return 0;
++	ret = register_pm_notifier(&chip->pm_nb);
++	if (ret)
++		return ret;
++
++	return devm_add_action_or_reset(chip->dev,
++					mt6397_irq_unregister_pm_notifier,
++					&chip->pm_nb);
+ }
+-- 
+2.50.1 (Apple Git-155)
+

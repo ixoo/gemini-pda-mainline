@@ -210,4 +210,46 @@ Relevant unchanged upstream files are `include/linux/irqdomain.h`
 (`6d14378297fa53ea932184bf6b575c67c11b813ce559b2f706fbdc3df31e2f80`)
 and `drivers/mfd/mt6358-irq.c`
 (`eb2a0304a58b57354db017611265e70d798268a8f602e34ab3b8c04062f0d005`).
-That cleanup change and its failure-path validation remain unimplemented.
+The implementation follow-up is recorded below.
+
+
+## IRQ lifetime follow-up
+
+The isolated compile series adds two unsigned patches:
+[managed domains](../../patches/upstream-4d7d9486/mt6351/0007-mfd-mt6397-manage-IRQ-domain-lifetime.patch)
+and [managed PM notifier](../../patches/upstream-4d7d9486/mt6351/0008-mfd-mt6397-manage-PM-notifier-lifetime.patch).
+Both IRQ initializers now allocate their managed domain before requesting
+the managed parent IRQ. The shared probe no longer removes the domain ahead
+of that handler on child-add failure. The domain exit callback disposes its
+linear child mappings, which the MFD core creates but does not dispose.
+The legacy notifier registration now propagates errors and installs a managed
+unregister action after parent IRQ registration.
+
+The intended release order is child devices, PM notifier (legacy family),
+parent IRQ, child mappings, domain, and earlier managed allocations. The pinned
+kernel's reverse devres release order supplies this ordering; `free_irq()`
+drains the handler before returning. Domain removal invokes `domain->exit`
+before removing the domain itself. Notifier unregistration uses the blocking
+notifier chain's write lock to exclude active callbacks. These are source
+contracts, not measured device concurrency.
+
+The [focused test](test-irq-lifetime.py), with its
+[userspace fixture](test-irq-lifetime.c), compiles the actual two initializers
+and release helpers from a supplied prepared Linux tree. It passes 56 cases:
+ten chip selections with domain/request failures, successful detach and
+partial child-add failure; legacy notifier/action failures; and all four
+MT6351 mask-bank failures. It checks first, middle and last mapped IRQ disposal,
+error propagation, and release order. Register addresses, modern-family bank
+layouts, allocation, child creation and kernel synchronization are modeled.
+This is not a KUnit or live-kernel concurrency test. Run:
+
+```sh
+python3 experiments/2026-09-08-mt6351-mfd-upstream-preparation/test-irq-lifetime.py PREPARED_LINUX
+```
+
+The earlier mask-error test remains tied to its recorded five/six-patch inputs.
+The lifetime test covers the successor's four MT6351 mask failures. The
+MT6358-family wake-enable reference, ignored mask-write errors, and global
+mutable IRQ data remain separate inherited review gaps; these patches do not
+claim complete teardown or multi-device correctness. Compile validation of
+this eight-patch revision is pending. No device action is admitted.

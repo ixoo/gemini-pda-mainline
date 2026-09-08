@@ -562,3 +562,5 @@ upstream-4d7d9486/mt6351/0003-dt-bindings-mfd-mediatek-describe-MT6351-regulator
 upstream-4d7d9486/mt6351/0004-mfd-mt6397-add-MT6351-interrupt-banks-and-regulator-.patch
 upstream-4d7d9486/mt6351/0005-regulator-mt6351-add-E2-rails-with-device-local-desc.patch
 upstream-4d7d9486/mt6351/0006-mfd-mt6397-stop-on-interrupt-mask-failure.patch
+upstream-4d7d9486/mt6351/0007-mfd-mt6397-manage-IRQ-domain-lifetime.patch
+upstream-4d7d9486/mt6351/0008-mfd-mt6397-manage-PM-notifier-lifetime.patch

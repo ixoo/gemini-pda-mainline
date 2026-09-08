@@ -1,0 +1,154 @@
+From 121e25ead1734e5f67d4c1e2d3433eea3064ef5e Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 8 Sep 2026 15:13:27 -0400
+Subject: [PATCH] mfd: mt6397: release IRQ domains after their users
+
+Manage both IRQ domain variants before requesting the managed parent
+IRQ. This releases the parent handler before removing the domain on
+child-add failure and device detach. Dispose the child mappings in the
+domain exit callback after child devices and the parent IRQ have been
+released. Remove the competing manual cleanup from the shared probe and
+both initializers.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/mfd/mt6358-irq.c        | 19 ++++++++++++-------
+ drivers/mfd/mt6397-core.c       |  4 +---
+ drivers/mfd/mt6397-irq.c        | 32 ++++++++++++++++++++++++--------
+ include/linux/mfd/mt6397/core.h |  1 +
+ 4 files changed, 38 insertions(+), 18 deletions(-)
+
+diff --git a/drivers/mfd/mt6358-irq.c b/drivers/mfd/mt6358-irq.c
+index 74cf208..8746312 100644
+--- a/drivers/mfd/mt6358-irq.c
++++ b/drivers/mfd/mt6358-irq.c
+@@ -226,6 +226,12 @@ static const struct irq_domain_ops mt6358_irq_domain_ops = {
+ 
+ int mt6358_irq_init(struct mt6397_chip *chip)
+ {
++	struct irq_domain_info info = {
++		.fwnode = dev_fwnode(chip->dev),
++		.ops = &mt6358_irq_domain_ops,
++		.host_data = chip,
++		.exit = mt6397_irq_domain_exit,
++	};
+ 	int i, j, ret;
+ 	struct pmic_irq_data *irqd;
+ 
+@@ -272,12 +278,12 @@ int mt6358_irq_init(struct mt6397_chip *chip)
+ 				     irqd->pmic_ints[i].en_reg_shift * j, 0);
+ 	}
+ 
+-	chip->irq_domain = irq_domain_create_linear(dev_fwnode(chip->dev), irqd->num_pmic_irqs,
+-						    &mt6358_irq_domain_ops, chip);
+-	if (!chip->irq_domain) {
+-		dev_err(chip->dev, "Could not create IRQ domain\n");
+-		return -ENODEV;
+-	}
++	info.size = irqd->num_pmic_irqs;
++	info.hwirq_max = irqd->num_pmic_irqs;
++	chip->irq_domain = devm_irq_domain_instantiate(chip->dev, &info);
++	if (IS_ERR(chip->irq_domain))
++		return dev_err_probe(chip->dev, PTR_ERR(chip->irq_domain),
++				     "Could not create IRQ domain\n");
+ 
+ 	ret = devm_request_threaded_irq(chip->dev, chip->irq, NULL,
+ 					mt6358_irq_handler, IRQF_ONESHOT,
+@@ -285,7 +291,6 @@ int mt6358_irq_init(struct mt6397_chip *chip)
+ 	if (ret) {
+ 		dev_err(chip->dev, "Failed to register IRQ=%d, ret=%d\n",
+ 			chip->irq, ret);
+-		irq_domain_remove(chip->irq_domain);
+ 		return ret;
+ 	}
+ 
+diff --git a/drivers/mfd/mt6397-core.c b/drivers/mfd/mt6397-core.c
+index b2c333b..71348b9 100644
+--- a/drivers/mfd/mt6397-core.c
++++ b/drivers/mfd/mt6397-core.c
+@@ -412,10 +412,8 @@ static int mt6397_probe(struct platform_device *pdev)
+ 	ret = devm_mfd_add_devices(&pdev->dev, PLATFORM_DEVID_NONE,
+ 				   pmic_core->cells, pmic_core->cell_size,
+ 				   NULL, 0, pmic->irq_domain);
+-	if (ret) {
+-		irq_domain_remove(pmic->irq_domain);
++	if (ret)
+ 		dev_err(&pdev->dev, "failed to add child devices: %d\n", ret);
+-	}
+ 
+ 	return ret;
+ }
+diff --git a/drivers/mfd/mt6397-irq.c b/drivers/mfd/mt6397-irq.c
+index fe2391d..1ccc7da 100644
+--- a/drivers/mfd/mt6397-irq.c
++++ b/drivers/mfd/mt6397-irq.c
+@@ -160,8 +160,26 @@ static int mt6397_irq_pm_notifier(struct notifier_block *notifier,
+ 	return NOTIFY_DONE;
+ }
+ 
++void mt6397_irq_domain_exit(struct irq_domain *domain)
++{
++	unsigned int hwirq, virq;
++
++	/* Children and the managed parent IRQ have already been released. */
++	for (hwirq = 0; hwirq < domain->revmap_size; hwirq++) {
++		virq = irq_find_mapping(domain, hwirq);
++		if (virq)
++			irq_dispose_mapping(virq);
++	}
++}
++
+ int mt6397_irq_init(struct mt6397_chip *chip)
+ {
++	struct irq_domain_info info = {
++		.fwnode = dev_fwnode(chip->dev),
++		.ops = &mt6397_irq_domain_ops,
++		.host_data = chip,
++		.exit = mt6397_irq_domain_exit,
++	};
+ 	unsigned int num_irqs = MT6397_IRQ_NR;
+ 	unsigned int i;
+ 	int ret;
+@@ -228,13 +246,12 @@ int mt6397_irq_init(struct mt6397_chip *chip)
+ 	}
+ 
+ 	chip->pm_nb.notifier_call = mt6397_irq_pm_notifier;
+-	chip->irq_domain = irq_domain_create_linear(dev_fwnode(chip->dev),
+-						    num_irqs,
+-						    &mt6397_irq_domain_ops, chip);
+-	if (!chip->irq_domain) {
+-		dev_err(chip->dev, "could not create irq domain\n");
+-		return -ENOMEM;
+-	}
++	info.size = num_irqs;
++	info.hwirq_max = num_irqs;
++	chip->irq_domain = devm_irq_domain_instantiate(chip->dev, &info);
++	if (IS_ERR(chip->irq_domain))
++		return dev_err_probe(chip->dev, PTR_ERR(chip->irq_domain),
++				     "Could not create IRQ domain\n");
+ 
+ 	ret = devm_request_threaded_irq(chip->dev, chip->irq, NULL,
+ 					mt6397_irq_thread, IRQF_ONESHOT,
+@@ -242,7 +259,6 @@ int mt6397_irq_init(struct mt6397_chip *chip)
+ 	if (ret) {
+ 		dev_err(chip->dev, "failed to register irq=%d; err: %d\n",
+ 			chip->irq, ret);
+-		irq_domain_remove(chip->irq_domain);
+ 		return ret;
+ 	}
+ 
+diff --git a/include/linux/mfd/mt6397/core.h b/include/linux/mfd/mt6397/core.h
+index 64ae17c..9603c6c 100644
+--- a/include/linux/mfd/mt6397/core.h
++++ b/include/linux/mfd/mt6397/core.h
+@@ -77,6 +77,7 @@ struct mt6397_chip {
+ 	void *irq_data;
+ };
+ 
++void mt6397_irq_domain_exit(struct irq_domain *domain);
+ int mt6358_irq_init(struct mt6397_chip *chip);
+ int mt6397_irq_init(struct mt6397_chip *chip);
+ 
+-- 
+2.50.1 (Apple Git-155)
+
