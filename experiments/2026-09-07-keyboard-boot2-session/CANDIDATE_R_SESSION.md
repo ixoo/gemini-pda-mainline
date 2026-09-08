@@ -1,19 +1,23 @@
 # Candidate R first-boot handoff
 
-Status: **Candidate R verified in boot2 and shut down; waiting for one owner
-boot2 selection for the identity preflight only**.
+Status: **Candidate R is active on a fresh authenticated boot; the exact
+disconnect-proof admission is accepted and awaiting publication**.
 Device custodian: the primary integration coordinator.  No other live-device
 operation may overlap this handoff.
 
 ## Harmless disconnect execution state
 
-The separate disconnect proof is rebound to this Candidate R and the fresh
-baseline/recovery chain recorded below. Its tracked execution binding remains
-`state=disabled` with `admission=null`, so the host runner refuses before
-preparation, claims or transport. This offline preparation does not select
-boot2 or authorize a device action. Execution remains **NO-GO** until a future
-boot-specific binding carries the exact enabled admission and receives final
-Astra acceptance of its complete hash and fresh boot-specific evidence.
+The owner selected boot2 once after the second verified shutdown. The one
+admitted identity connection passed on fresh Candidate R boot
+`bbad1c49-ecdd-4f40-b1e0-c53f707106d1`, with exact release, Candidate R guard,
+authenticated host key and zero stderr. Proof admission
+`c14f6469-5c0a-4a83-9909-6789b3586c36` is now the sole tracked enabled binding;
+its SHA-256 is
+`47a1698639f3831e3da486b64e4b98c35653cb976a579b012ca2f40665904da4`.
+The full offline archive/package/admission preparation passes, and Astra accepted
+this exact binding and live boot for one harmless disconnect proof. No disconnect
+or keyboard claim has run; execution remains **NO-GO** until the reviewed binding
+is published.
 
 ## Frozen candidate
 
@@ -129,8 +133,10 @@ and requested clean shutdown. A bounded follow-up confirmed the device
 unreachable. The deployment receipt SHA-256 is
 `d6f8358567572ac6b9f43ade0f9da262ad7e21a79f5f5a00aadcbfb088db4f17`.
 
-The next owner action is one physical boot2 selection with the USB data cable
-connected. Do not type or test keys. The custodian will use exactly one bounded
-authenticated identity connection to learn the fresh boot ID; the disconnect
-runner remains disabled until that boot ID and one admission UUID are frozen
-and accepted.
+The owner performed the one physical selection and reported the console on.
+The identity preflight consumed its one connection and passed in 0.282 seconds:
+fresh boot `bbad1c49-ecdd-4f40-b1e0-c53f707106d1`, release
+`7.1.3-gemini-mt6797-pwrap-reset`, complete Candidate R guard, zero stderr and
+uptime 55.83 seconds. It opened no keyboard device and created no remote state.
+The device must remain powered, connected and untouched while the exact binding
+is reviewed and published.

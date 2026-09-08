@@ -31,11 +31,13 @@ monitor and probe identities above remain unchanged.
 
 The fixed
 [`disconnect-execution-binding.json`](../2026-09-05-owner-away-experiment-preparation/keyboard/disconnect-execution-binding.json)
-is deliberately `state=disabled` with `admission=null`. The gate reads that
-binding before preparation, claims or transport, but this offline edit does
-not enable it. A future boot-specific binding must carry the complete Candidate
-R admission and receive final Astra acceptance of the exact enabled hash before
-any execution can be considered. No device action is admitted by this record.
+now contains the sole enabled proof admission
+`c14f6469-5c0a-4a83-9909-6789b3586c36` for fresh Candidate R boot
+`bbad1c49-ecdd-4f40-b1e0-c53f707106d1`. Its exact SHA-256 is
+`47a1698639f3831e3da486b64e4b98c35653cb976a579b012ca2f40665904da4`.
+The gate reads and exactly compares that complete admission before preparation,
+claims or transport. Binding preparation alone performs no disconnect action;
+final Astra acceptance and publication are still required before execution.
 
 The kernel/DT/config hypothesis is the exact Candidate R composition above. The
 older raw candidate
@@ -53,8 +55,8 @@ admission. That admission reparses the complete authenticated baseline/recovery
 archive, exact candidate and credentials, enabled package inventory, current
 source closure, fresh mainline boot ID and six affirmative custody facts. The
 local USB interface and direct route must also pass the existing read-only host
-gate. Missing retained baseline bytes refuse before device contact. The current
-disabled/null binding therefore refuses before all of these later checks.
+gate. Missing retained baseline bytes refuse before device contact. Any input
+other than the single exact enabled admission refuses at this first boundary.
 
 After those checks, the fixed effect budget is:
 
@@ -85,10 +87,10 @@ After those checks, the fixed effect budget is:
 5. Reparse the export locally and run the semantic prerequisite verifier over
    all seven fixed mode-0600 evidence files before writing a passing receipt.
 
-The host execution gate is disabled by the tracked binding in this revision.
-Execution remains **NO-GO** until a future boot-specific binding carries the
-exact enabled admission and Astra gives final acceptance of its complete hash
-and fresh boot-specific evidence.
+The tracked binding is enabled for only the exact admission and boot above.
+Astra accepted its complete hash and fresh boot-specific evidence for one
+harmless proof. Execution remains **NO-GO** until the reviewed commit is
+published.
 
 ## Decision branches
 
@@ -110,13 +112,15 @@ part of this proof.
 
 ## Current stop
 
-The fresh Candidate R baseline/recovery chain is now the dependency for a
-future proof admission: baseline admission `d10dcd8b-d67e-4311-ab7e-3f8c3078a88e`
+The fresh Candidate R baseline/recovery chain is the dependency for the sole
+proof admission: baseline admission `d10dcd8b-d67e-4311-ab7e-3f8c3078a88e`
 and supplemental phase records `1eae36...`, `947681...`, `31206d...`,
 `33367f...`, `74c1be...` are retained in the private authenticated archive.
 The older missing-archive and old-candidate findings remain historical
-readiness evidence and do not transfer to Candidate R. A boot-specific binding
-has not been created, so the device must not be contacted through this protocol.
+readiness evidence and do not transfer to Candidate R. The separately admitted
+identity connection passed for fresh boot
+`bbad1c49-ecdd-4f40-b1e0-c53f707106d1`; binding and admission verification pass
+offline. Final specialist acceptance passed; publication is the current stop.
 
 A bounded strict-host-key LAN check at `2026-09-07T22:14:15Z` established that
 the named device is reachable in known-good Gemian release `3.18.41+` with boot
@@ -145,6 +149,6 @@ refusal, absence of evdev/VT paths from the first command, and binding refusal
 ordering/mutation cases.
 The six prerequisite tests add a rehashed 101 ms transport refusal; the six
 capture tests still pass. Python compilation and whitespace checks pass. No
-device, network, Buildbox or kernel action was performed. Execution remains
-NO-GO pending final Astra acceptance of an exact enabled binding and a fresh
-boot-specific admission.
+Buildbox or kernel action was performed by the offline tests. The one later
+identity connection used the reviewed bounded path and created no remote state.
+Execution remains NO-GO pending publication of the exact accepted binding.
