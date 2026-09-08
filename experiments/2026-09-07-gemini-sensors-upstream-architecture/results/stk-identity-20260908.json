@@ -1,0 +1,84 @@
+{
+  "classification": "two-byte STK identity observed through the bound Gemian client; exact marketed variant unresolved",
+  "preflight": {
+    "started_utc": "2026-09-08T22:51:39.922508+00:00",
+    "finished_utc": "2026-09-08T22:51:40.614032+00:00",
+    "returncode": 0,
+    "script_sha256": "732d8a67c31b4aec89cacf645a5647dc35cbd9c78b1c82df9782fa9cf65faff4",
+    "stdout_sha256": "501d921c6a3863b6dfff210aa2eef37e39ef460f6986634158c77b8119e01bab",
+    "stderr_sha256": "72716c204bd5dd628b4fa5d220a1f5efc0a908e1e8fafa5b365c8491b64afa84"
+  },
+  "invocation": {
+    "started_utc": "2026-09-08T22:52:42.904402+00:00",
+    "finished_utc": "2026-09-08T22:52:45.589599+00:00",
+    "returncode": 0,
+    "script_sha256": "732d8a67c31b4aec89cacf645a5647dc35cbd9c78b1c82df9782fa9cf65faff4",
+    "stdout_sha256": "28da05a6e10adae1717ecce26ab8023f33d873cab1a117ec9da3606bfd71d14f",
+    "stderr_sha256": "72716c204bd5dd628b4fa5d220a1f5efc0a908e1e8fafa5b365c8491b64afa84"
+  },
+  "observation": {
+    "result": "identity-observed",
+    "boot_id": "6a5395c2-71d0-4392-a397-be3be83b049b",
+    "requests_issued": 2,
+    "observations": [
+      {
+        "kmsg_monotonic_us": 27508213199,
+        "kmsg_sequence": 118827,
+        "register": "0x3e",
+        "transfer_return": 1,
+        "value": "0x11"
+      },
+      {
+        "kmsg_monotonic_us": 27509235995,
+        "kmsg_sequence": 118830,
+        "register": "0x3f",
+        "transfer_return": 1,
+        "value": "0xc2"
+      }
+    ]
+  },
+  "identity": {
+    "kernel_release": "3.18.41+",
+    "version_sha256": "999f539c557b29fb34f1adc6a70992bae63f241e4a5ab4fd47b8d9baf8f81688",
+    "configuration_decompressed_sha256": "231d8a2ffe7afac3a4cc62c27d0eb6fe8bd9165ebd096e3e3346dd6df35c18f4",
+    "primary_boot_bytes": 16777216,
+    "primary_boot_sha256": "1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513",
+    "bound_logical_client": "1-0048",
+    "bound_driver": "stk3x1x",
+    "client_name": "alsps",
+    "cached_i2c_retry": 3,
+    "live_callback_addresses": "masked; callback names present"
+  },
+  "post_observation_dt": {
+    "boot_id": "6a5395c2-71d0-4392-a397-be3be83b049b",
+    "path": "cust_alsps@0",
+    "compatible": "mediatek,stk3x1x",
+    "i2c_num": 1,
+    "i2c_addr": [
+      72,
+      0,
+      0,
+      0
+    ],
+    "scope": "live immutable DT properties; source assigns its first address to the client during probe, not a live client-memory or electrical-bus capture"
+  },
+  "effect_budget": {
+    "sysfs_read_requests": 2,
+    "maximum_underlying_read_attempts": 6,
+    "registers": [
+      "0x3e",
+      "0x3f"
+    ],
+    "register_payload_writes": 0,
+    "sensor_state_or_calibration_operations": 0,
+    "observer_retries": 0,
+    "measurement_reads": 0,
+    "new_boots": 0
+  },
+  "limits": [
+    "The vendor calls 0x3f VID; an independent revision decoding is not established.",
+    "No mainline probe, sensor sample, rail/IRQ/wake validation or support claim.",
+    "The budget is consumed; do not repeat the identity observation."
+  ],
+  "redaction": "No credentials, personal endpoints, calibration, unrelated kernel logs, raw firmware or disassembly published."
+}

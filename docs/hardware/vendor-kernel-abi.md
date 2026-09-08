@@ -229,10 +229,13 @@ driver is a likely reuse candidate for STK3X1X: the vendor header/disassembly
 and Linux 7.1.3 share the state/control, threshold, flag, data, and product-ID
 (`0x3e`) register model. However, the vendor accepts broader product-ID
 high-nibble families (`0x10`, `0x20`, and `0x30`) than the explicit upstream ID
-table, and the live product/revision has not been read safely. Do not add a
-generic compatible or claim runtime support until that identity and the
-VDD/VIO plus GPIO88/EINT11 contract are captured; use a chip-specific driver if
-the actual protocol differs. The complete audit is in
+table. A bounded Gemian read now reports product `0x11` and vendor VID `0xc2`
+from the bound STK client. `0x11` is outside the inspected upstream ID list;
+the marketed variant and meaning of VID remain unresolved. See the
+[attributable identity observation](../../experiments/2026-09-07-gemini-sensors-upstream-architecture/STK_IDENTITY.md).
+Do not add a generic compatible or claim mainline runtime support until that
+variant and the VDD/VIO plus GPIO88/EINT11 contract are established; use a
+chip-specific driver only if its proved protocol requires one. The earlier audit is in
 [stk3310-reuse-audit.txt](../../experiments/2026-07-12-sensor-iio-recovery/results/stk3310-reuse-audit.txt).
 Linux has no direct MMC3530 match. Its closest MEMSIC magnetometer
 implementation is MMC35240, but the Gemini has no bound MMC3530 symbols or
@@ -387,7 +390,7 @@ until ownership is understood.
 | SII9022/Sil9024A candidate | I2C3 `0x39`/EDID `0x50` clients unbound; vendor source/ELF checks indexed ID `0x9022` plus TPI ID `0xb0` at register `0x1b`, then uses private `/dev/hdmitx`, `mediatek,sii9022_hdmi`, and a separate EDID client (the `siiSegEDID` segment pointer is declared but not assigned in the pinned source). Vendor DPI0 is `0x1401e000`/SPI231 with MM/interface gates and TVDPLL D2/D4/D8/D16 sources | Linux 7.1.3 `sii902x`/DRM bridge and generic `mtk_dpi` are the reuse candidates; patches 60/61 add only MT6797 DPI platform data and a disabled unconnected node. Adapt the verified 20/50/20 ms reset, GPIO247 1.2 V enable, I/O rail, 16-bit DPI graph, HPD, EDID mux, and PLL factor table only after physical identity/resources are proven; do not port the vendor HDMI ioctl ABI |
 | Mali T860 | Panfrost family support present | MT6797 GPU node/compatible, power domains, clocks, reset, regulator, OPPs and runtime tests |
 | MT6351/MT6797 audio | Codec, AFE and machine drivers present | Add SoC/board DT nodes and validate routing |
-| STK3X1X | Existing `stk3310` IIO driver has a matching register model, but no generic `stk3x1x` compatible | Capture product/revision at `0x3e`; reuse the upstream STK3310-family binding when the explicit ID and VDD/VIO/GPIO contract match, otherwise add a chip-specific driver |
+| STK3X1X | Existing `stk3310` IIO driver has a matching register model, but no generic `stk3x1x` compatible | Observed product `0x11` / vendor VID `0xc2` needs a documented variant match; resolve its protocol and VDD/VIO/GPIO contract before choosing an explicit compatible |
 | FUSB301 | Patch 0056 adds a generic `onsemi,fusb301`/`onsemi,fusb301a` Type-C controller and binding; validates Device ID `0x12`, documented mode/current/interrupt registers, attach/partner/BC/orientation status, and standard Type-C reporting. Vendor probe logs now return `0x12` on both populated I2C clients; only FUSB301A's GPIO64/EINT path obtains a valid IRQ | Mainline IRQ/connector mapping, VBUS switch/current control, SuperSpeed redriver, and USB role integration remain unverified; Gemini board nodes stay absent. See the [FUSB301 validation](../../experiments/2026-07-12-usb-typec-recovery/results/fusb301-mainline-validation.txt), [fresh USB/Type-C capture](../../experiments/2026-07-12-usb-typec-recovery/results/runtime-usb-typec-battery-recovery-20260714.txt), and [design record](../../experiments/2026-07-12-usb-typec-recovery/results/fusb301-mainline-design.md) |
 | AW9120 | No matching driver exists. Live I2C3 `0x2c` returns ID `0xb223`; GPIO245 is active-high PDN/reset, and public retained source plus the installed Gemian daemon map the five RGB blocks to outputs 1–15. I2C3 GPIO74/75 and the 8-bit-register/big-endian-16-bit protocol are known; current code 1 is the documented 3.5 mA minimum | Add a new generic regmap LED-class/multicolor driver and binding with `enable-gpios`; first validate block-1 green/output 2 at 3.5 mA and capped PWM. Enable only I2C3/`0x2c`, never scan shared `0x39`/`0x50`, and do not reproduce the vendor `/proc` ABI. See the [Gemian baseline](gemini-gemian-baseline.md#aw9120-indicator-leds) and [screen/LED selection record](../../experiments/2026-07-16-screen-marker-diagnostic/results/display-path-selection-20260716.txt) |
 | RT5735 | Local patch 51 adds a standard VSEL0 provider; vendor source checks product ID `0x10`, uses VSEL registers `0x10`/`0x11`, and enables via bit 7 | Runtime identity/readback and external VGPU wiring remain unverified; do not assume FAN53555 compatibility |

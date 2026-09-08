@@ -11,6 +11,16 @@
 | Date | 2026-09-07 |
 | Investigator | Sol Medium current-source review; Astra Medium hardware-boundary review remains required |
 
+## Identity follow-up, 2026-09-08
+
+The completed [bounded STK observation](STK_IDENTITY.md) now records product
+`0x11` and vendor VID `0xc2` from the bound Gemian client. This closes the
+missing-byte observation, but the exact marketed variant remains unresolved:
+`0x11` is outside the inspected upstream driver's explicit ID list. Rails,
+interrupts and mainline operation remain unproved. The original source-only
+review below retains its historical scope; its proposed ID read is consumed
+by this follow-up and is not a repeat queue item.
+
 ## Verdict
 
 The current Linux BMI160 and STK3310-family IIO drivers remain the correct

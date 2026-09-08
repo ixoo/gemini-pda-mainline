@@ -1,0 +1,147 @@
+{
+  "vendor_commit": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+  "vendor_files": [
+    {
+      "path": "drivers/misc/mediatek/alsps/Makefile",
+      "sha256": "b390c380a31572863ce2eb156cc18fdd1ba04b5dccca1a75d907cd580663b452",
+      "bytes": 1114,
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/alsps/Makefile"
+    },
+    {
+      "path": "drivers/misc/mediatek/alsps/stk3x1x-new/Makefile",
+      "sha256": "a76ad233b09d8f773b905e901b25e294468547344e68b895788cb10d07524324",
+      "bytes": 142,
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/alsps/stk3x1x-new/Makefile"
+    },
+    {
+      "path": "drivers/misc/mediatek/alsps/stk3x1x-new/stk3x1x.c",
+      "sha256": "06525bcb8107ff25ee85c1ba847c78b3d9e0ea1d9342c92ceeb60acda06b75a0",
+      "bytes": 137268,
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/alsps/stk3x1x-new/stk3x1x.c",
+      "line_ranges": [
+        [
+          416,
+          477
+        ],
+        [
+          497,
+          525
+        ],
+        [
+          848,
+          904
+        ],
+        [
+          2665,
+          2700
+        ],
+        [
+          2811,
+          2832
+        ],
+        [
+          2861,
+          2890
+        ],
+        [
+          2954,
+          3020
+        ],
+        [
+          5019,
+          5041
+        ],
+        [
+          5330,
+          5340
+        ]
+      ]
+    },
+    {
+      "path": "drivers/misc/mediatek/hwmon/sensor_dts/sensor_dts.c",
+      "bytes": 12471,
+      "sha256": "bb9925a2a58bbae235e0a6ead19fe43f8e91956c9a9ec65bb73177a657c3e4b7",
+      "line_ranges": [
+        [
+          90,
+          122
+        ]
+      ],
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/hwmon/sensor_dts/sensor_dts.c"
+    }
+  ],
+  "retained_binary": {
+    "inputs_sha256": {
+      "boot.img": "1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513",
+      "Image": "0570480c28bce1583636a240904df8da3af0b5e5b4bcc6254f5719b42bd723d0",
+      "vmlinux": "cc66df06194d3315335462760962165e1dcb2e50221574aeb45a0805bb17a162"
+    },
+    "elf_kernel_equals_image": true,
+    "spans": [
+      {
+        "symbol": "stk3x1x_show_config",
+        "start": "0xffffffc000481ac8",
+        "end_exclusive": "0xffffffc000481b48",
+        "bytes": 128,
+        "sha256": "e1c40447f657e17332e8c351a21d50f2ae7dd60551b791c98204819776c965bb"
+      },
+      {
+        "symbol": "stk3x1x_store_recv",
+        "start": "0xffffffc000482690",
+        "end_exclusive": "0xffffffc000482780",
+        "bytes": 240,
+        "sha256": "e16173fc37a5bec9e3dae3b356f626ecddd8aafbc29cde3679ff8382ba47ee2d"
+      },
+      {
+        "symbol": "stk3x1x_show_recv",
+        "start": "0xffffffc0004818a8",
+        "end_exclusive": "0xffffffc000481908",
+        "bytes": 96,
+        "sha256": "0ef4e8e923903201fd9a2797d9449193d3bd34bf9c6dd98427728e6d62a2485e"
+      },
+      {
+        "symbol": "stk3x1x_master_recv",
+        "start": "0xffffffc000481fe8",
+        "end_exclusive": "0xffffffc0004820f8",
+        "bytes": 272,
+        "sha256": "730fe0cc3a98bfb93d3a3be6dbe9cb78055071e0561359aea67ea98289345049"
+      },
+      {
+        "symbol": "stk3x1x_hwmsen_read_block",
+        "start": "0xffffffc000481ec8",
+        "end_exclusive": "0xffffffc000481fe0",
+        "bytes": 280,
+        "sha256": "292f46bbf3936d6bc4fcab9de40ab9d483d6f02ba0a86c4156a600682bb34aee"
+      }
+    ],
+    "scope": "Private RE-VM disassembly; next-distinct-symbol spans, not a general function-size claim."
+  },
+  "upstream_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "upstream_files": [
+    {
+      "path": "drivers/iio/light/stk3310.c",
+      "sha256": "0e7640c2bc732b53cfaa41209e9255c9c785362522f2db150071020003e2bade",
+      "line_ranges": [
+        [
+          50,
+          56
+        ],
+        [
+          97,
+          105
+        ],
+        [
+          513,
+          535
+        ]
+      ],
+      "url": "https://github.com/torvalds/linux/blob/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/drivers/iio/light/stk3310.c"
+    },
+    {
+      "path": "Documentation/devicetree/bindings/iio/light/stk33xx.yaml",
+      "sha256": "da26973c53cc9ba3780d5f614f55a018677c2c781223f9bfdadfd2826ae50bf9",
+      "url": "https://github.com/torvalds/linux/blob/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/Documentation/devicetree/bindings/iio/light/stk33xx.yaml"
+    }
+  ],
+  "source_acquisition": "Individual public Git objects from existing Buildbox cache; upstream files read from the prepared pinned source. Binary analysis only in the RE VM; raw evidence retained privately."
+}
