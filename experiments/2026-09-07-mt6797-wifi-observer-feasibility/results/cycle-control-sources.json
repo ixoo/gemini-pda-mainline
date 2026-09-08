@@ -1,0 +1,47 @@
+{
+  "scope": "Public source analysis; package revision suffixes select corresponding source commits, not binary/source equivalence proof",
+  "sources": [
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/wmt_chrdev_wifi.c",
+      "sha256": "b2791e8354a41a53265a2619f9bfd8ec2ebe37319a0a8e9aa085c9ae15f9d3f5",
+      "bytes": 14426,
+      "repository": "gemian/gemini-linux-kernel-3.18",
+      "revision": "59e00a9144d782e148332009a835b99c43382467"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c",
+      "sha256": "8a644f0c9f3e37c6f66654cf3aeecb8e5f4cd71405e67f79105da7c8f87a7665",
+      "bytes": 76036,
+      "repository": "gemian/gemini-linux-kernel-3.18",
+      "revision": "59e00a9144d782e148332009a835b99c43382467"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/sdio_bus_driver.c",
+      "sha256": "317101d86cb7478d1ec8e9f25fbfa109ec49ffee7041649263064f1480f14d94",
+      "bytes": 12834,
+      "repository": "gemian/gemini-linux-kernel-3.18",
+      "revision": "59e00a9144d782e148332009a835b99c43382467"
+    },
+    {
+      "repository": "gemian/connman",
+      "revision": "a884432b2bca976e21d84776ea0b773b3d7217fb",
+      "path": "plugins/wifi.c",
+      "bytes": 84737,
+      "sha256": "15185ea56b9c72b44bcdce089b8cb9bfd42dd0a79894fab28c2e3f8f7cd6b295"
+    },
+    {
+      "repository": "gemian/connman",
+      "revision": "a884432b2bca976e21d84776ea0b773b3d7217fb",
+      "path": "src/rfkill.c",
+      "bytes": 5109,
+      "sha256": "c7477f2e261472db927d6730ea518199121180a004e1ad048d2a1a4062880094"
+    },
+    {
+      "repository": "gemian/connman-plugin-suspend-wmtwifi",
+      "revision": "c0615773e2250f910e0ec9fc883a5f168dbcaeb5",
+      "path": "src/suspendplugin.c",
+      "bytes": 10744,
+      "sha256": "f7b7aef59c3807348e24b2186f76d83a30f85ee4bbba66700c6f82e38fa942c3"
+    }
+  ]
+}

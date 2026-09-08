@@ -70,3 +70,6 @@ technical claim.
 The [native source assessment](NATIVE_SOURCE_FEASIBILITY.md) identifies actual
 read sites and misleading success paths for a possible compiled observer. It
 leaves source/configuration attribution and experiment admission unresolved.
+
+The [cycle-control and recovery assessment](CYCLE_CONTROL.md) records the native
+request/teardown limits and a fresh read-only check of active Gemian actors.

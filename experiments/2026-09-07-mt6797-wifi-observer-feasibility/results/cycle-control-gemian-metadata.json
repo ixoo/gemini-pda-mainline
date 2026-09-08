@@ -1,0 +1,128 @@
+{
+  "date": "2026-09-08",
+  "scope": "Read-only Gemian identity, service/package metadata, bounded service-file search, process names and ConnMan plugin mapping/hash",
+  "device_custodian": "root task",
+  "identity": {
+    "release": "3.18.41+",
+    "architecture": "aarch64",
+    "root": "/dev/mmcblk0p29",
+    "boot_id": "6a5395c2-71d0-4392-a397-be3be83b049b",
+    "init": "systemd"
+  },
+  "invocations": [
+    {
+      "number": 1,
+      "result": "pass",
+      "reads": "OS/root/boot identity and matching systemd unit-file names; stable before/after boot ID",
+      "host_note": "Default OpenSSH host-key update attempted a local temporary known_hosts write and failed; subsequent connections disabled UpdateHostKeys."
+    },
+    {
+      "number": 2,
+      "result": "pass",
+      "reads": "Service states, 135 service files searched for selected connectivity strings without emitting contents, three character-device stat records; stable before/after boot ID",
+      "service_search_matches": 0,
+      "service_search_limits": {
+        "files": 256,
+        "bytes_per_file": 65536
+      }
+    },
+    {
+      "number": 3,
+      "result": "pass",
+      "reads": "Two service executable paths, package versions and matching process names; stable before/after boot ID"
+    },
+    {
+      "number": 4,
+      "result": "partial",
+      "reads": "ConnMan package inventory; unprivileged ConnMan process maps read failed with EACCES",
+      "after_boot_id_checked": false
+    },
+    {
+      "number": 5,
+      "result": "partial",
+      "reads": "Root ConnMan process maps read succeeded, but an assumed non-multiarch plugin-path guard refused before hashing",
+      "after_boot_id_checked": false
+    },
+    {
+      "number": 6,
+      "result": "pass",
+      "reads": "Root ConnMan process mapping plus one 14864-byte plugin hash; stable MainPID and before/after boot ID",
+      "limits": {
+        "process_map_lines": 4096,
+        "plugin_paths": 16,
+        "bytes_per_plugin": 1048576
+      }
+    }
+  ],
+  "services": [
+    {
+      "unit": "connman.service",
+      "active": "active",
+      "sub": "running",
+      "executable": "/usr/sbin/connmand",
+      "package": "connman",
+      "version": "1.36+gemian+0~20180821154603.8~1.gbpa88443"
+    },
+    {
+      "unit": "bluetooth.service",
+      "active": "active",
+      "sub": "running",
+      "executable": "/usr/lib/bluetooth/bluetoothd",
+      "package": "bluez",
+      "version": "5.43-2+deb9u5"
+    },
+    {
+      "unit": "networking.service",
+      "active": "active",
+      "sub": "exited"
+    }
+  ],
+  "process_names": [
+    "bluetoothd",
+    "connmand",
+    "hci_stpd",
+    "mtk_stp_btm",
+    "mtk_stp_psm",
+    "mtk_wmtd",
+    "stp_dump3",
+    "wmt_launcher"
+  ],
+  "character_devices": [
+    {
+      "path": "/dev/wmtWifi",
+      "major": 153,
+      "minor": 0
+    },
+    {
+      "path": "/dev/stpwmt",
+      "major": 190,
+      "minor": 0
+    },
+    {
+      "path": "/dev/wmtdetect",
+      "major": 154,
+      "minor": 0
+    }
+  ],
+  "loaded_plugin": {
+    "package": "connman-plugin-suspend-wmtwifi",
+    "version": "0.0.1+gemian+0~20190312212246.8~1.gbpc06157",
+    "path": "/usr/lib/aarch64-linux-gnu/connman/plugins/suspendplugin.so",
+    "bytes": 14864,
+    "sha256": "1c0185f756ce2d9514bdc94222bcfce5cba3311af1162a08e1dc8ce421cd9bd3"
+  },
+  "limitations": [
+    "Loaded plugin and service presence do not prove a radio transaction occurred during collection.",
+    "Stable MainPID is not a complete process-lifetime attribution oracle.",
+    "No source/binary equivalence, firmware-stop, DMA-idle or CONSYS-OFF observation."
+  ],
+  "effects": {
+    "service_changes": 0,
+    "radio_commands": 0,
+    "connectivity_device_node_opens": 0,
+    "register_accesses": 0,
+    "firmware_or_calibration_reads": 0,
+    "explicit_device_writes": 0,
+    "boots": 0
+  }
+}
