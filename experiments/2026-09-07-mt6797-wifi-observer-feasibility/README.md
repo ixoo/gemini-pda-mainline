@@ -64,3 +64,9 @@ Independent Astra Medium review accepted the capability stop at
 `2026-09-07T19:11:51Z` after one wording repair narrowed boot-ID continuity to
 the final bracketed snapshot. The review introduced no new device access or
 technical claim.
+
+## Offline follow-up
+
+The [native source assessment](NATIVE_SOURCE_FEASIBILITY.md) identifies actual
+read sites and misleading success paths for a possible compiled observer. It
+leaves source/configuration attribution and experiment admission unresolved.
