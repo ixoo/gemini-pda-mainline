@@ -117,11 +117,12 @@ driver, binding or shared framing helper yet. The
 [MD1 memory handoff audit](../experiments/2026-09-07-mt6797-cellular-upstream-architecture/MEMORY_HANDOFF.md)
 resolves host branching: loader readiness still permits shared-remap and staged
 MPU writes, and the host callbacks provide no reservation-release contract.
-Next join an attributable boot configuration and post-fixup reservation map to
-the selected loader branch, image/header and shared-layout tuple, then establish
-secure MPU acceptance and shared-region release authority. Missing attribution
-preserves the stop; queue/DMA, framing/channel and full boot/crash teardown remain
-later gates.
+The [Gemian handoff observation](../experiments/2026-09-07-mt6797-cellular-upstream-architecture/GEMIAN_HANDOFF.md)
+now joins one boot's v2 loader metadata, reported image header and actual
+reservation/shared-layout map. Next resolve the loaded-image digest, the extra
+32 MiB reserved tail, secure MPU acceptance and shared-region release authority.
+Do not repeat unchanged OS metadata for those gaps. Missing attribution preserves
+the stop; queue/DMA, framing/channel and full boot/crash teardown remain later gates.
 
 Wi-Fi is a first-class usable-system requirement and an active workstream,
 not deferred peripheral polish. Its owner defines the shared connectivity

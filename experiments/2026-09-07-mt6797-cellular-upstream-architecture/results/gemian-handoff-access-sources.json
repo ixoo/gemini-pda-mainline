@@ -1,0 +1,81 @@
+{
+  "source_commit": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+  "gemian_comparison_commit": "59e00a9144d782e148332009a835b99c43382467",
+  "comparison": "Complete files byte-identical at both public revisions; this is not an exact source-revision attestation for the running kernel.",
+  "files": [
+    {
+      "path": "drivers/misc/mediatek/ccci_util/ccci_private_log.c",
+      "sha256": "348de5dfb28b705ea1ed5d291d3015cdc0b5b6d5af5efac0efe435aa1577bccd",
+      "bytes": 28350,
+      "line_ranges": [
+        [
+          248,
+          253
+        ],
+        [
+          263,
+          327
+        ],
+        [
+          473,
+          687
+        ]
+      ],
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/ccci_util/ccci_private_log.c"
+    },
+    {
+      "path": "drivers/misc/mediatek/ccci_util/ccci_util_lib_sys.c",
+      "sha256": "bb5547f2e6da4a23c339e51e84f918d194d0685b6b4767cf59993f77ea6c92e0",
+      "bytes": 9568,
+      "line_ranges": [
+        [
+          217,
+          222
+        ],
+        [
+          348,
+          373
+        ]
+      ],
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/ccci_util/ccci_util_lib_sys.c"
+    },
+    {
+      "path": "drivers/misc/mediatek/ccci_util/ccci_util_lib_fo.c",
+      "sha256": "9c35f3fd4e0ea394f6eec3d87f86d6f42ebb0f76aa6b8116f216f646dce3a7e4",
+      "bytes": 51429,
+      "line_ranges": [
+        [
+          74,
+          82
+        ],
+        [
+          947,
+          1000
+        ],
+        [
+          1004,
+          1046
+        ]
+      ],
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/ccci_util/ccci_util_lib_fo.c"
+    },
+    {
+      "path": "mm/memblock.c",
+      "sha256": "f8ad4d53e64c6074decea9495a977ced96a135078a22d33560902a53d44c6d91",
+      "bytes": 47124,
+      "line_ranges": [
+        [
+          1584,
+          1628
+        ]
+      ],
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/mm/memblock.c"
+    }
+  ],
+  "read_contracts": {
+    "lk_md": "Formats saved loader status through get_lk_load_md_info; no store callback.",
+    "memblock_reserved": "seq_file formats retained region metadata, not physical-memory contents.",
+    "ccci_dump": "One nonblocking open/read/close, at most 32768 bytes. Open allocates per-file cursors; read copies pre-existing buffers and advances those cursors, with no hardware callback or producer-buffer clear. Capture is partial and not atomic.",
+    "excluded": "No ccci_log, modem char device, chosen-buffer dereference, trace enablement, register dump request or protection read."
+  }
+}

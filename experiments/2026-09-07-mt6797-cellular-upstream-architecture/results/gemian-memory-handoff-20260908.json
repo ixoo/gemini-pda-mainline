@@ -1,0 +1,315 @@
+{
+  "project_parent": "fd088e584b26965ec1b8c2fe5551116bc191b2d4",
+  "custodian": "/root",
+  "scope": "Three bounded read-only SSH invocations: identity, ordinary boot metadata, then source-reviewed saved status/reservation/log-prefix reads. No modem device, physical memory or hardware transaction.",
+  "chronology": [
+    {
+      "started_utc": "2026-09-08T17:02:57.131490+00:00",
+      "finished_utc": "2026-09-08T17:02:57.569903+00:00",
+      "returncode": 0,
+      "stdout_sha256": "402b2a0fde62f440b50b53afb061c248b90b7a6bb33b88d91d66045031885ab6",
+      "stderr_sha256": "048e2ba89ae430962e02f5341cf60c694fb7e131cb417790075a56b32ca09992"
+    },
+    {
+      "started_utc": "2026-09-08T17:04:21.096886+00:00",
+      "finished_utc": "2026-09-08T17:04:23.734031+00:00",
+      "returncode": 0,
+      "stdout_sha256": "32c6f13092c9f32b1a7260504d25e4eae2c8063e57f0450a82e83e9413d69757",
+      "stderr_sha256": "048e2ba89ae430962e02f5341cf60c694fb7e131cb417790075a56b32ca09992"
+    },
+    {
+      "started_utc": "2026-09-08T17:06:50.445744+00:00",
+      "finished_utc": "2026-09-08T17:06:50.945901+00:00",
+      "returncode": 0,
+      "stdout_sha256": "10357c2cd5b4d5056083e9f06bb481342ed813a6a5d755108835585f95db10d4",
+      "stderr_sha256": "048e2ba89ae430962e02f5341cf60c694fb7e131cb417790075a56b32ca09992"
+    }
+  ],
+  "identity": {
+    "kernel": "3.18.41+",
+    "architecture": "aarch64",
+    "os": "Debian GNU/Linux 9 (stretch)",
+    "root_mount": "/dev/mmcblk0p29 ext4",
+    "boot_id": "6a5395c2-71d0-4392-a397-be3be83b049b",
+    "boot_stable_across_collections": true,
+    "config_sha256": "231d8a2ffe7afac3a4cc62c27d0eb6fe8bd9165ebd096e3e3346dd6df35c18f4",
+    "selected_configuration": [
+      "CONFIG_MTK_PSCI=y",
+      "CONFIG_OF_RESERVED_MEM=y",
+      "CONFIG_MTK_CCCI_DEVICES=y",
+      "CONFIG_MTK_MD1_SUPPORT=12",
+      "CONFIG_MD1_SMEM_SIZE=0x200000",
+      "CONFIG_MTK_MD3_SUPPORT=2",
+      "CONFIG_MTK_C2K_LTE_MODE=2",
+      "CONFIG_MTK_ECCCI_DRIVER=y",
+      "CONFIG_MTK_ECCCI_CLDMA=y",
+      "CONFIG_MTK_ECCCI_C2K=y",
+      "CONFIG_MTK_EMI_MPU=y",
+      "CONFIG_MTK_TINYSYS_SCP_SUPPORT=y"
+    ]
+  },
+  "loader": {
+    "v1_property_present": false,
+    "v2_property_bytes": 48,
+    "v2_property_sha256": "fa241ba12f3ce8e4a80e5dcb7228b2d596d008f3ff007329907ea87a4039bce3",
+    "source_interpreted_fields": {
+      "buffer_address": "0x88000000",
+      "buffer_used_bytes": "0xa20",
+      "loader_error": 0,
+      "tag_version": 2,
+      "tag_count": 22,
+      "loaded_flags": "0x5",
+      "per_modem_errors": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "decode_basis": "AArch64 native little-endian struct ccci_lk_info_t_v2 in pinned source; only property bytes decoded. No access to buffer_address.",
+    "saved_status": "LK Load MD:[Enabled](0x00000001)\nLK load MD success!\n"
+  },
+  "reserved_memory": [
+    {
+      "node": "mblock-5-ccci",
+      "base": "0x88000000",
+      "size": "0x600000",
+      "end_inclusive": "0x885fffff",
+      "no_map": true,
+      "compatible": "mediatek,ccci"
+    },
+    {
+      "node": "mblock-6-ccci",
+      "base": "0xb4000000",
+      "size": "0xa000000",
+      "end_inclusive": "0xbdffffff",
+      "no_map": false,
+      "compatible": "mediatek,ccci"
+    },
+    {
+      "node": "mblock-7-ccci",
+      "base": "0xbe000000",
+      "size": "0xc00000",
+      "end_inclusive": "0xbebfffff",
+      "no_map": false,
+      "compatible": "mediatek,ccci"
+    }
+  ],
+  "allocator_metadata": {
+    "memblock_reserved_cover": {
+      "base": "0xb4000000",
+      "end_inclusive": "0xbebfffff"
+    },
+    "image_blocks_are_within_system_ram_resource": true,
+    "shared_block_is_outside_system_ram_resources": true,
+    "limit": "OS metadata describes reservations; no allocator or modem memory contents were read, and no reclamation or release safety is established."
+  },
+  "log_reported_regions": {
+    "md1_image": {
+      "base": "0xb4000000",
+      "size": "0x08000000"
+    },
+    "md3_image": {
+      "base": "0xbe000000",
+      "size": "0x00c00000"
+    },
+    "ap_md1_shared": {
+      "base": "0x88000000",
+      "size": "0x00200000"
+    },
+    "md1_md3_shared": {
+      "base": "0x88200000",
+      "size": "0x00200000"
+    },
+    "ap_md3_shared": {
+      "base": "0x88400000",
+      "size": "0x00200000"
+    }
+  },
+  "unattributed_reserved_tail": {
+    "base": "0xbc000000",
+    "size": "0x02000000",
+    "meaning": "Remainder of the MD1 DT reservation beyond the log-reported image memory requirement; do not reclaim or assign an owner from these records."
+  },
+  "image_header_report": {
+    "version": 5,
+    "bytes": 344,
+    "type": "ulwctg",
+    "platform": "MT6797_S00",
+    "build": "MOLY.LR11.W1630.MD.MP.V105.8",
+    "build_time": "2018/12/08 11:40",
+    "memory_requirement": "0x08000000",
+    "image_size": "0x0116113c",
+    "loaded_image_sha256": null,
+    "limit": "Saved header report, not a digest of the running modem image or proof of authentication."
+  },
+  "retained_prefix": {
+    "requested_bytes": 32768,
+    "returned_bytes": 32768,
+    "read_calls": 1,
+    "sha256": "d5ab8066700fb993dec461d95934a173494d02a42bc7cbc9185a621f97d09385",
+    "complete_file_claim": false,
+    "atomic_snapshot_claim": false,
+    "selected_lines": [
+      {
+        "prefix_line": 15,
+        "text": "[    0.254776] (4)[1:swapper/0][0/util]lk info.lk_info_base_addr: 0x88000000"
+      },
+      {
+        "prefix_line": 16,
+        "text": "[    0.254785] (4)[1:swapper/0][0/util]lk info.lk_info_size:      0xa20"
+      },
+      {
+        "prefix_line": 17,
+        "text": "[    0.254792] (4)[1:swapper/0][0/util]lk info.lk_info_tag_num:   0x16"
+      },
+      {
+        "prefix_line": 43,
+        "text": "[    0.257313] (4)[1:swapper/0][0/util]md_num:2"
+      },
+      {
+        "prefix_line": 44,
+        "text": "[    0.257337] (4)[1:swapper/0][0/util]md1 lk_load_img_err_no: 0"
+      },
+      {
+        "prefix_line": 45,
+        "text": "[    0.257345] (4)[1:swapper/0][0/util]md1 MemStart: 0x00000000b4000000, MemSize:0x08000000"
+      },
+      {
+        "prefix_line": 46,
+        "text": "[    0.257370] (4)[1:swapper/0][0/util]md3 lk_load_img_err_no: 0"
+      },
+      {
+        "prefix_line": 47,
+        "text": "[    0.257378] (4)[1:swapper/0][0/util]md3 MemStart: 0x00000000be000000, MemSize:0x00C00000"
+      },
+      {
+        "prefix_line": 53,
+        "text": "[    0.258749] (4)[1:swapper/0][0/util]AP  <--> MD1 SMEM(0x00200000):0000000088000000~00000000881fffff"
+      },
+      {
+        "prefix_line": 54,
+        "text": "[    0.258759] (4)[1:swapper/0][0/util]MD1 <--> MD3 SMEM(0x00200000):0000000088200000~00000000883fffff"
+      },
+      {
+        "prefix_line": 55,
+        "text": "[    0.258768] (4)[1:swapper/0][0/util]AP  <--> MD3 SMEM(0x00200000):0000000088400000~00000000885fffff"
+      },
+      {
+        "prefix_line": 57,
+        "text": "[    0.259024] (4)[1:swapper/0][0/util]using v3."
+      },
+      {
+        "prefix_line": 67,
+        "text": "[    1.175411] (4)[1:swapper/0][1]MD Smem remap:[88000000]->[40000000](8f8d8b89:97959391), invalid_map=0xbe000000"
+      },
+      {
+        "prefix_line": 86,
+        "text": "[   10.795371] (4)[149:ccci_fsm1][1/util]MD image header size = 344"
+      },
+      {
+        "prefix_line": 89,
+        "text": "[   10.795391] (4)[149:ccci_fsm1][1/util]Modem header check OK!"
+      },
+      {
+        "prefix_line": 90,
+        "text": "[   10.795396] (4)[149:ccci_fsm1][1/util](MD)[type]=ulwctg, (AP)[type]=ulwctg"
+      },
+      {
+        "prefix_line": 91,
+        "text": "[   10.795402] (4)[149:ccci_fsm1][1/util](MD)[plat]=MT6797_S00, (AP)[plat]=MT6797E1"
+      },
+      {
+        "prefix_line": 92,
+        "text": "[   10.795407] (4)[149:ccci_fsm1][1/util](MD)[size]=8000000, (AP)[size]=8000000"
+      },
+      {
+        "prefix_line": 93,
+        "text": "[   10.795413] (4)[149:ccci_fsm1][1/util](MD)[img_size]=116113c, (AP)[img_size]=116113c"
+      },
+      {
+        "prefix_line": 94,
+        "text": "[   10.795419] (4)[149:ccci_fsm1][1/util]DSP image offset=1400000 size=200000"
+      },
+      {
+        "prefix_line": 95,
+        "text": "[   10.795425] (4)[149:ccci_fsm1][1/util]load_image: check_header_v4, region(0): size = 1610000 , offset = 0"
+      },
+      {
+        "prefix_line": 96,
+        "text": "[   10.795432] (4)[149:ccci_fsm1][1/util]load_image: check_header_v4, region(1): size = 1e50000 , offset = 1610000"
+      },
+      {
+        "prefix_line": 97,
+        "text": "[   10.795438] (4)[149:ccci_fsm1][1/util]load_image: check_header_v4, region(2): size = 13d0000 , offset = 3460000"
+      },
+      {
+        "prefix_line": 98,
+        "text": "[   10.795444] (4)[149:ccci_fsm1][1/util]load_image: check_header_v4, region(3): size = 17d0000 , offset = 4830000"
+      },
+      {
+        "prefix_line": 99,
+        "text": "[   10.795449] (4)[149:ccci_fsm1][1/util]load_image: check_header_v4, region(4): size = 2000000 , offset = 6000000"
+      },
+      {
+        "prefix_line": 103,
+        "text": "[   10.795472] (4)[149:ccci_fsm1][1/util]load_image: check_header_v5, arm7_offset = 0x04530000, arm_size = 0x00300000"
+      },
+      {
+        "prefix_line": 104,
+        "text": "[   10.795478] (4)[149:ccci_fsm1][1/util](MD)[build_ver]=MOLY.LR11.W1630.MD.MP.V105.8, [build_time]=2018/12/08 11:40"
+      },
+      {
+        "prefix_line": 105,
+        "text": "[   10.795484] (4)[149:ccci_fsm1][1/util](MD)[product_ver]=Release"
+      },
+      {
+        "prefix_line": 113,
+        "text": "[    1.175404] (4)[1:swapper/0][1]RO_RW has mapped"
+      },
+      {
+        "prefix_line": 116,
+        "text": "[   10.795363] (4)[149:ccci_fsm1][1]CLDMA modem image ready, bypass load"
+      },
+      {
+        "prefix_line": 118,
+        "text": "[   10.796277] (4)[149:ccci_fsm1][1]CCCI Image header version = 5"
+      },
+      {
+        "prefix_line": 119,
+        "text": "[   10.796287] (4)[149:ccci_fsm1][1]Has protected, bypass"
+      },
+      {
+        "prefix_line": 120,
+        "text": "[   10.796292] (4)[149:ccci_fsm1][1]MPU protect MD Share region<7:88000000:881fffff> b6d140"
+      },
+      {
+        "prefix_line": 136,
+        "text": "[   10.797259] (4)[149:ccci_fsm1][1]Has protected, only MDHW bypass other 1st step"
+      },
+      {
+        "prefix_line": 137,
+        "text": "[   10.797262] (4)[149:ccci_fsm1][1]Start MPU protect region <13:B7460000:B882FFFF> 16DB44"
+      },
+      {
+        "prefix_line": 253,
+        "text": "[   11.781692] (1)[148:ccci_ctrl][1]Start MPU protect region <13:B7460000:B882FFFF> 16DB64"
+      }
+    ]
+  },
+  "private_evidence_policy": "Raw streams, complete proc-log prefix, command packets and host endpoint remain ignored and mode 0600. Only selected non-personal metadata and log lines are published; omit kernel virtual pointers and unrelated radio/runtime data.",
+  "effects": {
+    "ordinary_os_metadata_reads": true,
+    "saved_log_prefix_read": true,
+    "new_hardware_observer": false,
+    "modem_device_open": false,
+    "physical_memory_read": false,
+    "modem_command": false,
+    "radio_control": false,
+    "register_or_protection_access": false,
+    "device_write": false,
+    "reboot": false,
+    "boot2_write": false
+  },
+  "ssh_diagnostics": "All invocations returned zero; stderr contained only the same OpenSSH legacy key-exchange warning."
+}

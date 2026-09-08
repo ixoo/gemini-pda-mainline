@@ -87,6 +87,11 @@ branching and corrects the historical CCIF-tail identity. It finds that loader
 readiness still permits shared-remap and staged MPU writes; the selected boot,
 secure-side acceptance and region-release contract remain unjoined.
 
+The later [Gemian handoff observation](GEMIAN_HANDOFF.md) joins one actual boot
+to its v2 loader metadata, image-header report and reservation map. It leaves
+the exact loaded-image digest, an extra reserved tail, secure MPU acceptance
+and release authority unresolved; the implementation stop remains.
+
 No kernel, binding, configuration or patch topic is admitted by this review.
 The smallest safe output at the current boundary is this source-pinned
 architecture record.

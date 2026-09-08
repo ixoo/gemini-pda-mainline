@@ -2,6 +2,10 @@
 
 ## Result
 
+Follow-up: the [Gemian observation](GEMIAN_HANDOFF.md) supplies one boot's
+loader branch, reported header and concrete reservation map. The findings below
+retain their source-only scope; secure acceptance and release remain unproved.
+
 The pinned public host source distinguishes bootloader-loaded and kernel-loaded
 modem paths, but neither is a passive reservation consumer. Bootloader readiness
 skips selected image, ROM-remap and protection operations while leaving shared
