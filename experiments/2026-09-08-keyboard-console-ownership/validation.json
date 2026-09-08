@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "classification": "offline-console-ownership-candidate-validated",
+  "date": "2026-09-08",
+  "userspace": {
+    "source_commit": "93e97fa6a4b9458faee9ecc87ef0e07112be5522",
+    "package_sha256": "db4b09bd83a94cb3b1f06427eaf5ced259eedf7e7efd78bdad2c9bf92837978f",
+    "shell_fixture_cases": 25,
+    "session_shell_fixture_cases": 61,
+    "authentication_fixture_cases": 8,
+    "shell_receipt_sha256": "0693d58698ba5eba60bca322a57b58bd79d76245d9de4b7c9b2c214e0bfc30ec",
+    "session_receipt_sha256": "04b53826e12cbe05f38bf08bd6f452b1b1dd0bfe2a4695e5d06f5c690e190dfc",
+    "authentication_receipt_sha256": "68d8c74c59d11ccbcc6e43e2d35e808c5aa1b8dba42487cfdc7aadc07909e0b3"
+  },
+  "export_diagnostics": {
+    "source_commit": "0541b8471b83f8105d2e150e0aa84643f9e6b081",
+    "native_fixture_methods": 7,
+    "arm64_qemu_fixture_methods": 7,
+    "busybox_sha256": "52151e7f322f926b64049cdaa1410dc3ea6485525e0624b05813791c219ae933",
+    "qemu_sha256": "4f55e2e88dc05dc0f619562d5795b8eb25ed2ad2547504fb4835207a6911c350",
+    "arm64_log_sha256": "895bc90269132326c4f95fcafda4b656000a816f1a8c9bbb72ab0e5cb2fc972a"
+  },
+  "candidate": {
+    "repository_commit": "0541b8471b83f8105d2e150e0aa84643f9e6b081",
+    "manifest_sha256": "907c0c107eb71e0335c52d6b0f20bbb9cf6742d3603ff3e690a11cc9d7202ec1",
+    "files": {
+      "Image.gz": "6682b2f7d4843c9460576380f28eb14289620e74c7d9b1f0c70ae33eeed3d4e5",
+      "board.dtb": "e1e4eca289320533bad5c879e78055eaa86a295080b1154c13debe29ddd8ee4a",
+      "boot.img": "7dfc3b1f771a12b8e711f699cf8fcfd2678aedc15bc9d8bcc98554f9c6654cdb",
+      "boot2-padded.img": "7d9eb0e20f145594ba5b9e56bbb809998c813d2517ce2f43b17074828459ea2a",
+      "initramfs.img": "42a20df30acd99b763e5ea74733039aded4553696c7fb5271f6bade99e00f1c7",
+      "kernel.config": "194834d90eb2443f4b14ba8f2078ba16fe0c63f69088fcc8c063fe25af01c410"
+    },
+    "initramfs_members": 47,
+    "padded_size": 16777216,
+    "assembly_replicas_identical": true,
+    "independent_validator": "a53-authenticated-private-candidate-pass",
+    "new_private_credentials": true
+  },
+  "installer": {
+    "derived_sha256": "95f85db37dafdd431516331fafc6918419a741044a0d54db3cd6edcfc12f21fe",
+    "syntax_and_shellcheck": "pass",
+    "host_fixture_methods": 11,
+    "remote_fixture_methods": 2,
+    "remote_gate_cases": 38,
+    "remote_stage_cases": 11
+  },
+  "foundation_audit": "historical-foundation-pass",
+  "repository_checks": "pass on macOS; kernel-artifact provenance self-test also passed on Buildbox",
+  "device_action": "none",
+  "deployment": false,
+  "runtime_result": false,
+  "historical_result_reclassified": false
+}

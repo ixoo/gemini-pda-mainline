@@ -3,8 +3,8 @@
   "purpose": "Readiness inventory, not an executable queue or device authorization. Object order is not scheduling order; docs/ROADMAP.md alone owns priority. Exact inputs, budgets and chronology stay in linked experiments.",
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
-  "selected_item": "keyboard-coverage",
-  "selection_note": "Candidate R disconnect proof remains consumed and inconclusive. A fresh authenticated identity check confirms changed-boot Gemian; recovery mechanism and preservation of former RAM are unproven. Keyboard capture remains disabled pending offline export diagnosis and successor admission.",
+  "selected_item": "keyboard-console-ownership",
+  "selection_note": "The console-ownership successor is offline prepared at its exact new candidate identity. It is not installed and requests no physical selection. Keep Gemian available while owner availability is unknown; the old Candidate R proof remains consumed and inconclusive.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -134,6 +134,21 @@
       ],
       "owner_task_id": null,
       "readiness_note": "The candidate was selected once. Authenticated serviceability and logging passed, but live ramoops reported zero address and size, so no restart request was issued and the attempt is inconclusive. The owner physically recovered the device; one bounded authenticated check confirmed changed-ID Gemian 3.18.41+ on AArch64. The artifact is consumed and must not be retried; diagnose its DT/ramoops composition offline."
+    },
+    "keyboard-console-ownership": {
+      "workstream": "serviceability",
+      "preparation_state": "ready",
+      "device_state": "unselected",
+      "owner": "primary integration coordinator",
+      "reviewer": "primary integration coordinator",
+      "device_custodian": null,
+      "experiment": "experiments/2026-09-08-keyboard-console-ownership/README.md",
+      "session_packet": "experiments/2026-09-08-keyboard-console-ownership/SESSION.md",
+      "candidate_record": "experiments/2026-09-08-keyboard-console-ownership/validation.json",
+      "readiness_record": "experiments/2026-09-08-keyboard-console-ownership/validation.json",
+      "dependencies": [],
+      "owner_task_id": null,
+      "readiness_note": "New private candidate assembled and independently validated from the audited kernel foundation; ARM64 shell and export-diagnostic fixtures, installer syntax/ShellCheck and refusal fixtures passed. One future baseline plus three PID-1 descriptor metadata observations test the console-ownership fix. No installation or runtime result. Keyboard disconnect/capture admissions remain disabled."
     }
   }
 }

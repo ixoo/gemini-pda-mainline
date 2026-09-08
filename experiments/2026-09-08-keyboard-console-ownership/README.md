@@ -67,14 +67,24 @@ transport stderr was already retained by the host runner.
 Seven local disconnect fixtures pass, including actual shell exits at identity,
 RAM and a symlinked attempt path. The initial trap draft lost an implicit
 `set -e` failure status on the host shell; an explicit final exit repaired that
-observed defect. Exact ARM64 shell validation of this diagnostic remains due.
+observed defect. The same seven fixtures also passed under the exact ARM64
+BusyBox on Buildbox.
 The legacy binding stays disabled and its consumed admission is not reused.
 
 ## Validation and next boundary
 
-Implementation is prepared for focused exact-AArch64 BusyBox fixtures on
-Buildbox. No successor package, device admission or hardware result is claimed
-yet. The original disabled disconnect binding remains disabled.
+Buildbox validated and exported the userspace package. Its 25 exact ARM64 shell
+cases and 61 session-shell cases passed; the new diagnostic separately passed
+all seven fixtures under the same pinned ARM64 BusyBox. The historical kernel
+foundation audit, two identical private image assemblies, independent candidate
+validation, derived-installer syntax/ShellCheck, 11 host installer methods and
+49 remote gate/staging cases passed. Exact identities and receipt hashes are in
+[validation.json](validation.json). No kernel rebuild was needed.
+
+The new private authentication bundle makes this a new candidate; it is never
+represented as Candidate R. The [session packet](SESSION.md) defines the next
+observation. It is not deployed and has no hardware result. The original
+disabled disconnect binding remains disabled.
 
 Preservation must not depend on a passing reader scan. The existing reviewed
 fixed-file preservation helper provides a separate component to consider for
