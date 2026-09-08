@@ -1,7 +1,7 @@
 # MT6351 reset duration and recovery policy
 
-Status: source contract resolved; conversion draft awaiting Buildbox compile
-and schema validation, 2026-09-08. No physical reset or register access was
+Status: duration conversion compile and schema validated, 2026-09-08.
+No physical reset or register access was
 performed. This follow-up does not admit a Gemini key node.
 
 ## Evidence
@@ -62,6 +62,30 @@ update errors, absent duration, unsupported durations with zero register
 updates, and the legacy no-table path. Restoring only the pre-conversion reset
 function compiles but fails the expected register-value assertion. The fixture
 still does not execute full probe or model physical timing.
+
+## Validation
+
+The [compile receipt](results/duration-compile.json) records the clean
+`1611b52dc1b9a72be0b606a2768da346714222e2` build of all nineteen patches and
+the checksum-verified fetched package. There are no compiler warnings or
+errors. The configuration and MFD object match the original key-topic build;
+the key object changes, and the compiled source matches the reviewed patch.
+The 94-case fixture also passes against this prepared source on Buildbox.
+
+Focused binding checks pass with all three completion markers. Direct
+validation accepts each of 5, 8, 11 and 14 seconds for MT6351, rejects 1, and
+still accepts 1 when only the key compatible is changed to MT6331. The combined
+parent/regulator/power-key fixture passes all three schema selections; invalid
+reset mode 3 remains rejected. The [schema receipt](results/duration-schema.json)
+and [portable log](results/duration-schema-validation.txt) preserve the result.
+`PYTHONDONTWRITEBYTECODE=1` prevents generated source-tree bytecode; the complete
+source integrity digest is unchanged before and after validation.
+
+Use the [parent reproduction commands](README.md#validation). For the duration
+schema checks, substitute each of 5, 8, 11, 14 and 1 into `power-off-time-sec`
+in the offline fixture; only 1 must fail MT6351 validation. The legacy check
+changes just the key compatible to `mediatek,mt6331-keys` with duration 1.
+These are configuration and compiler tests, not physical timing measurements.
 
 ## Device admission remains separate
 

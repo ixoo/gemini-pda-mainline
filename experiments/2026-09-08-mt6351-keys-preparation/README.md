@@ -1,7 +1,6 @@
 # MT6351 PMIC key preparation
 
-Status: original five patches compile/schema validated; the two-patch duration
-correction awaits Buildbox validation, 2026-09-08. This topic
+Status: seven-patch key topic compile and schema validated, 2026-09-08. This topic
 adds chip support and prerequisite error handling. It is not a Gemini boot
 candidate, key-event demonstration or approved change to hardware reset policy.
 
@@ -66,19 +65,22 @@ fails the error-propagation assertion. The fixture does not execute a complete
 probe, model IRQ timing, or establish either physical key's behavior.
 
 The duration follow-up expands the fixture to 94 cases; the original raw-selector
-checks did not establish the seconds contract. See [the correction](RESET_POLICY.md).
+checks did not establish the seconds contract. Its corrected nineteen-patch
+series, including the twelve MFD prerequisites, passes Buildbox compilation and
+focused schema checks. See [the correction and current receipts](RESET_POLICY.md).
 
 Strict checkpatch passes for all seven patches with only `MISSING_SIGN_OFF`
-excluded. The [Buildbox compile receipt](results/compile.json) records a clean
+excluded. The original [Buildbox compile receipt](results/compile.json) records a clean
 build from `59ddbf6f57767d7ad11a7ded537b591e64fce03a`, with zero compiler
 warnings or errors and a validated, checksum-verified fetched package. The
 compiled source hashes match the reviewed draft, and the final image contains
 the key probe, MT6351 data and MFD IRQ resources. The new profile explicitly
 enables `KEYBOARD_MTK_PMIC`; all 198 previous profiles remain unchanged.
 
-Focused `dt_binding_check` passes for the key, MFD and regulator schemas with
+The original focused `dt_binding_check` passed for the key, MFD and regulator schemas with
 all three schema/lint/style completion markers. Direct validation of the original
-[schema fixture](joint-example.dts) produced empty diagnostics for all three
+[fixture at the original commit](https://github.com/ixoo/gemini-pda-mainline/blob/59ddbf6f57767d7ad11a7ded537b591e64fce03a/experiments/2026-09-08-mt6351-keys-preparation/joint-example.dts)
+produced empty diagnostics for all three
 selections; long-press mode 3 is correctly rejected. This fixture is an offline
 parent, regulator and power-key example, not a board DTS. The
 [schema receipt](results/schema.json) and [portable log](results/schema-validation.txt)

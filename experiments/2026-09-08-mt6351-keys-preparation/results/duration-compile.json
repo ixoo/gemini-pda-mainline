@@ -1,0 +1,58 @@
+{
+  "repository_commit": "1611b52dc1b9a72be0b606a2768da346714222e2",
+  "repository_dirty": false,
+  "generated_utc": "2026-09-08T22:16:41Z",
+  "kernel_release": "7.3.0-rc1-mt6351-keys-compile",
+  "build_profile": "mt6351-keys-compile",
+  "kernel_source": {
+    "archive_format": "tar.gz",
+    "archive_root": "linux-4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "git_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "released": "2026-09-05",
+    "sha256": "45590c057805bc9cf7281ce04d5dbde5316b7c8b017998cafac301f67e92682d",
+    "source_url": "https://codeload.github.com/torvalds/linux/tar.gz/4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "version": "7.3-rc1"
+  },
+  "patchset_sha256": "69ee1ad7064ff4a469adba8fc69f71fdd9a314f43f65d33f44143ab48132bf25",
+  "config_sha256": "b3e28165b31e2622c0dcd1e193bc9007911e0bd304325a6e33b98b40fdc7582e",
+  "compiler": "aarch64-linux-gnu-gcc (Debian 12.2.0-14) 12.2.0",
+  "compiler_sha256": "c7b8890354c8ddc0364addfeb8968597e197627bd1e338fb6ed705b578803846",
+  "linker": "GNU ld (GNU Binutils for Debian) 2.40",
+  "linker_sha256": "e09a889c78a75e73ed096c9fa28905599e6813298b9ac839d10b02ffa96e7b08",
+  "status": "PASS",
+  "package": "linux-7.3-rc1-gemini-66b28b85e96332e26608cf727ace31d2e9d4fb3e3304bdbbad6415aed1241268",
+  "package_inventory_sha256": "66b28b85e96332e26608cf727ace31d2e9d4fb3e3304bdbbad6415aed1241268",
+  "image_gzip_sha256": "cce17a8b5c180fb4dfdeca138c42996038cf3d03fff8f3f09074c8f30608e649",
+  "build_log_sha256": "8c5cc15f28a741a690b3367160790785bfad499ded2de08099d2eda305c3802e",
+  "compiler_warnings": 0,
+  "compiler_errors": 0,
+  "hardware_test": false,
+  "boot_candidate": false,
+  "patch_count": 19,
+  "source_files": {
+    "drivers/input/keyboard/mtk-pmic-keys.c": "4bdb1a37eed1c53996b0580898ec18d7f69a78847e3fc57f3908e4a03ac007b7",
+    "drivers/mfd/mt6397-core.c": "4c304cce2cea8a6c4d1f1e0716969477a83994e8fd98a68eb9d30b7911ce6684",
+    "Documentation/devicetree/bindings/input/mediatek,pmic-keys.yaml": "614006f6b5e6ac4d8ebf5bd584f5567c441baf851b4e2093c5b9b72139d6b79f"
+  },
+  "compiled_objects": {
+    "drivers/input/keyboard/mtk-pmic-keys.o": "7eecef395f07f53766d1c1c8ad8c27cfda47b71a0dda78662ecefb1e3db8e768",
+    "drivers/mfd/mt6397-core.o": "cbb4d97abc5e40bd0c74b3a8cb94ff0873bef35becaa0efdf78b42bd5d840e25"
+  },
+  "resolved_enabled_config": [
+    "CONFIG_INPUT",
+    "CONFIG_INPUT_KEYBOARD",
+    "CONFIG_KEYBOARD_MTK_PMIC",
+    "CONFIG_MFD_MT6397",
+    "CONFIG_REGULATOR_MT6351",
+    "CONFIG_PM_SLEEP",
+    "CONFIG_SUSPEND"
+  ],
+  "linked_symbols": [
+    "mtk_pmic_keys_probe",
+    "mt6351_regs",
+    "mt6351_keys_resources"
+  ],
+  "config_unchanged_from": "59ddbf6f57767d7ad11a7ded537b591e64fce03a",
+  "mfd_object_unchanged": true,
+  "key_object_changed": true
+}

@@ -126,8 +126,10 @@ required before promoting this unsigned topic.
 The independent [MT6351 key topic](../experiments/2026-09-08-mt6351-keys-preparation/README.md)
 adds chip data and MFD IRQ resources after two generic transport-error fixes.
 Its isolated compile and focused schema checks pass; no Gemini key node is
-enabled. Before board
-admission, establish an explicit long-press recovery policy: the upstream
+enabled. The [duration correction](../experiments/2026-09-08-mt6351-keys-preparation/RESET_POLICY.md)
+converts seconds to the documented hardware selector and rejects unsupported
+durations. Before board admission, establish an explicit long-press recovery
+policy: the upstream
 default disables hardware long-press reset, including the second key function
 even with only a power-key child. Physical key, wake and suspend behavior
 remain later runtime gates.

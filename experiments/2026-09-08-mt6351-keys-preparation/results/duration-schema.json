@@ -1,0 +1,40 @@
+{
+  "project_commit": "1611b52dc1b9a72be0b606a2768da346714222e2",
+  "upstream_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "status": "PASS",
+  "schema_version": "2026.6",
+  "PYTHONDONTWRITEBYTECODE": "1",
+  "checks": [
+    "focused dt_binding_check for keys, MFD and regulator; three completion markers",
+    "combined MT6351 parent, regulator and power key: empty diagnostics for all three selections",
+    "long-press mode 3 rejected",
+    "MT6351 durations 5, 8, 11 and 14 accepted",
+    "MT6351 duration 1 rejected",
+    "MT6331 duration 1 still accepted",
+    "94 actual driver function cases",
+    "source integrity unchanged"
+  ],
+  "source_integrity": "source_tree_integrity=356f808cb8c5340ff9a6f09cbd42483579602cfc9ecb90a7ab02da3cd4ecf60a",
+  "dtc_fixture_warning_exclusion": "interrupt_provider: parent MFD schema disallows #address-cells on PMIC; no board DTS changed",
+  "inventory_sha256": "73c8826f007cedb1116723c7ccb5dc22c9de425cf42070ea2cd82832bd3f7695",
+  "files": {
+    "binding-check.log": "9f82196c7bd82208912bae7ce7c6ef292aeb5895dda6c7c8df52a0a645bd9c59",
+    "invalid-reset-mode.txt": "2a316bdd2edf1c2ef4420239ea15429f083dca03fbe40b03af664675134f52d2",
+    "invalid-duration.txt": "7d09b967f93a9f7e2b8e6ee256d8954b689a75a0976922741763a5845e121352",
+    "legacy-duration.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "duration-5.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "duration-8.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "duration-11.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "duration-14.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "joint-example.dts": "91441ce3fd05b9bc5a4d8b0a0694f0a6edcb627af469f495703c9c67ed58f2bc",
+    "joint-mediatek,pmic-keys.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "joint-mediatek,mt6397.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "joint-mediatek,mt6351-regulator.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "key-state.txt": "6643e1cdea34d0932d42c3712671971698ac63c04a1d90fe82379d490f93c453",
+    "source-before.txt": "1d69e59e6cfd5316e9fdabbad0957b6f44ffaa065bd005d8d90de91020186a5a",
+    "source-after.txt": "1d69e59e6cfd5316e9fdabbad0957b6f44ffaa065bd005d8d90de91020186a5a",
+    "status.txt": "a125ff2acc9b001b1158e0c6f0ae1d2badb3fbf5c76ce13d673c493488f8b37b"
+  },
+  "hardware_test": false,
+  "boot_candidate": false
+}
