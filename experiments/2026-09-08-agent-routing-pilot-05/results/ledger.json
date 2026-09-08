@@ -29,10 +29,62 @@
   "target_accepted_offline_items": 10,
   "checkpoint_interval": 5,
   "rolling_window_after_pilot": 10,
-  "accepted_count": 0,
-  "next_accepted_sequence": 1,
-  "next_considered_sequence": 1,
-  "considered_items": [],
+  "accepted_count": 1,
+  "next_accepted_sequence": 2,
+  "next_considered_sequence": 2,
+  "considered_items": [
+    {
+      "considered_sequence": 1,
+      "accepted_sequence": 1,
+      "candidate_id": "keyboard-disconnect-static-preserver-scan",
+      "disposition": "accepted",
+      "offline_eligible": true,
+      "work_type": "implementation",
+      "risk_class": "hard-uncertainty",
+      "acceptance_contract": "experiments/2026-09-07-keyboard-boot2-session/PRESERVATION_WORK_ITEM.md",
+      "review_comparison_group": "gemini-device-session-readiness",
+      "parent": "059fc28c8a1708c32cf2f97f6411d9b66330c3ea",
+      "owner_route": {
+        "role": "gemini_implementer",
+        "model": "gpt-5.6-luna",
+        "effort": "high"
+      },
+      "review_route": {
+        "role": "gemini_specialist",
+        "model": "gpt-6-astra",
+        "effort": "medium"
+      },
+      "result": {
+        "started_at": "2026-09-08T01:57:23Z",
+        "review_ready_at": "2026-09-08T02:05:36Z",
+        "accepted_at": "2026-09-08T03:16:44Z",
+        "timing_source": "observed UTC implementation dispatch, initial implementation handoff and final exact-package specialist acceptance timestamps",
+        "elapsed_minutes": 79.35,
+        "review_rework_minutes": 71.1333333,
+        "first_review_accepted": false,
+        "rework_cycles": 5,
+        "escalated": true,
+        "escalation_reason": "helper deadline and scan semantics plus incomplete and falsely attributed ARM64 fixture evidence",
+        "escalation_packet": {
+          "evidence": "experiments/2026-09-07-keyboard-boot2-session/PRESERVATION_WORK_ITEM.md",
+          "attempts": [
+            "closed writable-output deadline and executable-identity defects",
+            "closed dangling-input, enumeration-errno and exact match-overflow defects",
+            "parameterized required scenarios across native and ARM64 fixtures",
+            "added complete preservation and separate executable-identity assertions",
+            "replaced test-wide result inference with assertion-scoped matrix accounting and unconditional cleanup"
+          ],
+          "unresolved_question": "Can the unchanged production helper pass each required native and ARM64 scenario exactly once with trustworthy per-cell outcomes?",
+          "next_discriminating_check": "Run one exact specialist-authorized Buildbox job and reject any missing, skipped, failed or duplicate required matrix cell."
+        },
+        "review_failure_class": null,
+        "measured_credits": null,
+        "credit_source": "unavailable",
+        "credit_unit": null,
+        "accepted_evidence": "experiments/2026-09-07-keyboard-boot2-session/results/candidate-r-preserver-scan-preparation.json"
+      }
+    }
+  ],
   "checkpoints": [],
   "settings_decisions": []
 }

@@ -237,3 +237,44 @@ ARM64/QEMU cell for each of the 13 required scenarios (26 cells total), and the
 rebuilt production helper must remain exactly 66,672 bytes with SHA-256
 `750169b008cae28fd6297f7a1567ad833022b521f17ee9c6c1e2ffa023c4f745`.
 Any failure or identity drift stops without another build or repair.
+
+The single Buildbox run at revision `70637c2f...` passed and produced package
+identity `a3a0c301...`. All nine indexed files revalidate. The production
+helper remains the required 66,672-byte static AArch64 binary with SHA-256
+`750169b0...`; the retained log reports 15 tests, no skips, and 48 unique
+passing matrix cells. All 26 required native/ARM64 cells occur exactly once
+with no skip reason. Stdout/stderr buffering placed the unittest summary
+between the intact JSON line and its end marker; independent parsing and the
+specialist both accepted the single 8,800-byte JSON array. Preserve the
+checksummed log unchanged. The exact successor result is
+[`results/candidate-r-preserver-scan-preparation.json`](results/candidate-r-preserver-scan-preparation.json).
+This closes offline helper preparation only.
+
+## Exec-command bootstrap feasibility
+
+The fixed helper still has no admitted delivery runner. Source review of the
+exact retained BusyBox rejected its detached `timeout` watcher for PID
+identity, termination and reaping ownership. A proposed supervisor can own its
+helper child after it starts, but receiving the supervisor over standard input
+would recreate the unresolved blocked-input lifetime before supervision begins.
+The next discriminator is therefore a complete bootstrap carried in the SSH
+exec-command request, with no payload read from the network stream.
+
+Offline revalidation of Ubuntu's exact retained BusyBox package and binary
+confirmed `base64`, `sha256sum`, `xz`, `unxz`, `gzip`, `gunzip`, `printf`,
+`chmod`, `mkdir`, `stat` and `awk` applets. The accepted 66,672-byte helper is
+22,672 bytes under deterministic `xz --check=crc32 -9e`, but 30,233 bytes once
+base64 encoded; gzip plus base64 is 35,165 bytes. Thus the helper alone only
+barely fits the 32 KiB exec-command ceiling and does not establish room for the
+mandatory boot/admission checks, exclusive RAM staging, checksum verification
+and transition. No supervisor exists in Candidate R and no static supervisor
+size has been established.
+
+Runner design remains blocked at that bootstrap boundary. A safe future design
+must first prove an exact complete encoded-size budget and a fixed decoder/
+exclusive-stage/`exec` sequence using only already-received command bytes. If a
+supervisor is used, it must replace the shell, keep its sole helper child
+identity until reap, use nonblocking bounded pipes and monotonic deadlines, and
+preserve staging and partial evidence on disconnect or failure. No stdin
+delivery, detached watcher, process-name signal, cleanup, recovery, proof
+promotion, live connection or device action is admitted by this measurement.
