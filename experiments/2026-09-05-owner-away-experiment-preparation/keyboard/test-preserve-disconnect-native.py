@@ -164,20 +164,23 @@ class PreserverFixtures(unittest.TestCase):
         cases.append(('nonregular', 'monitor.status', lambda path: None))
         (self.attempt / 'outer-exit').unlink()
         sock = socket.socket(socket.AF_UNIX)
-        socket_path = Path('/tmp') / f'preserver-socket-{os.getpid()}'
+        socket_path = self.attempt / 'outer-exit'
+        original_cwd = Path.cwd()
         try:
-            socket_path.unlink()
-        except FileNotFoundError:
-            pass
-        sock.bind(str(socket_path))
-        socket_path.rename(self.attempt / 'outer-exit')
-        cases.append(('nonregular', 'outer-exit', lambda path: sock.close()))
-        if hasattr(os, 'mknod') and hasattr(os, 'makedev') and os.geteuid() == 0:
-            path = self.attempt / 'outer-exit'
+            try:
+                os.chdir(self.attempt)
+                sock.bind('outer-exit')
+            finally:
+                os.chdir(original_cwd)
+        except BaseException:
             sock.close()
-            path.unlink()
-            os.mknod(path, 0o600 | 0o20000, os.makedev(1, 3))
-            cases.append(('nonregular', 'outer-exit', lambda path: None))
+            raise
+
+        def cleanup_socket(path):
+            sock.close()
+            path.unlink(missing_ok=True)
+
+        cases.append(('nonregular', 'outer-exit', cleanup_socket))
         for label, name, cleanup in cases:
             with self.subTest(label=label):
                 try:
@@ -186,6 +189,17 @@ class PreserverFixtures(unittest.TestCase):
                         self.assertEqual(parse(completed.stdout)[name][0]['state'], label)
                 finally:
                     cleanup(self.attempt / name)
+
+        if hasattr(os, 'mknod') and hasattr(os, 'makedev') and os.geteuid() == 0:
+            path = self.attempt / 'outer-exit'
+            os.mknod(path, 0o600 | 0o20000, os.makedev(1, 3))
+            try:
+                for run_label, completed in self.run_both():
+                    self.assertEqual(completed.returncode, 0, run_label)
+                    self.assertEqual(parse(completed.stdout)['outer-exit'][0]['state'],
+                                     'nonregular')
+            finally:
+                path.unlink(missing_ok=True)
 
     def test_oversize_and_identity_drift_are_reported_independently(self):
         self.populate({**{name: 8 for name in NAMES}, 'observer.stdout': 98305})

@@ -64,7 +64,7 @@
   recovery action. A later runner may deliver it only to a disjoint RAM-only
   path with exclusive creation and checksum verification; staging is retained.
 - **Implementation handoff:** helper source `5318a346...`, native/QEMU fixture
-  `5d0d8618...`, build script `3c622b2e...`, dispatcher `6f907510...` and routing
+  `54e42b5b...`, build script `3c622b2e...`, dispatcher `6f907510...` and routing
   test `e810b3c6...`. Four native host fixture methods and seven routing methods
   pass; strict host compilation, Python compilation, Bash syntax, ShellCheck and
   whitespace checks pass. The integration review additionally covers full-size
@@ -80,4 +80,10 @@
   `nm | grep -q` check closed the large static-symbol pipe under `pipefail`.
   The focused repair writes bounded tool reports before matching them, avoiding
   success-induced SIGPIPE without weakening the static/AArch64 checks. A further
-  relevant failure requires escalation before another repair.
+  Buildbox run compiled the helper and reached the QEMU fixtures, where the
+  socket fixture failed with `EXDEV` while renaming a socket from `/tmp` into
+  the workspace filesystem. Specialist escalation authorized one fixture-only
+  repair and one exact rerun: bind the socket under the fixture directory by a
+  short relative name, restore the working directory and close/remove only the
+  fixture-owned socket. The helper source and semantics remain unchanged. Any
+  further failure or broader repair requires immediate escalation.
