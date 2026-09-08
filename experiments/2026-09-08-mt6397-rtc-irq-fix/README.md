@@ -1,7 +1,8 @@
 # MT6397 RTC alarm interrupt-enable correction
 
-Status: incomplete compile-preparation checkpoint, 2026-09-08. This is a
-standalone unsigned upstream fix, not MT6351 RTC enablement or a boot candidate.
+Status: compile and regression checks passed, 2026-09-08. This remains an
+unsigned upstream-preparation checkpoint, not MT6351 RTC enablement or a
+boot candidate.
 
 ## Problem and change
 
@@ -51,10 +52,17 @@ KERNEL_PROFILE=mt6397-rtc-compile ./scripts/buildbox fetch-package
 The named profile selects only this patch against the manifest-pinned source
 and explicitly enables the upstream RTC driver. Existing profiles retain
 their exact definitions and selected patch bytes/order. It adds no Gemini DT.
-Buildbox compilation and package validation are pending at this checkpoint.
+The [Buildbox receipt](compile.json) records the successful compile from
+project commit `6e3e94d4`, with zero compiler warnings or errors. The RTC driver
+is enabled in the final configuration, its object was compiled, and its alarm
+handler is present in the final kernel symbol map. The validated package was
+fetched with matching inventory and checksums. The same 160-case regression
+also passed against Buildbox's exact prepared source.
 Strict checkpatch passes with only `MISSING_SIGN_OFF` excluded; that exclusion
-does not establish submission readiness. Repository checks are required before
-publication. No device access, alarm programming or kernel boot was performed.
+does not establish submission readiness. Repository checks passed before
+publication. No DT binding/schema check was needed because this patch changes
+no bindings or DT. No device access, alarm programming or kernel boot was
+performed.
 
 ## Upstream boundary
 

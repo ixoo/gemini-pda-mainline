@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "repository_commit": "6e3e94d4575a53302b69c72e9b90668b55c50dcb",
+  "source_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "generated_utc": "2026-09-08T21:22:15Z",
+  "kernel_release": "7.3.0-rc1-mt6397-rtc-compile",
+  "build_profile": "mt6397-rtc-compile",
+  "patchset_sha256": "3de395f3e4507839e82258a214e0a0f94f29077f8638966d9b34d203c5164c99",
+  "config_sha256": "52962019721c559fdf5819c5b8eb7ba52d278a7e042779d9dbc7de5eac0e5772",
+  "compiler": "aarch64-linux-gnu-gcc (Debian 12.2.0-14) 12.2.0",
+  "compiler_sha256": "c7b8890354c8ddc0364addfeb8968597e197627bd1e338fb6ed705b578803846",
+  "linker": "GNU ld (GNU Binutils for Debian) 2.40",
+  "linker_sha256": "e09a889c78a75e73ed096c9fa28905599e6813298b9ac839d10b02ffa96e7b08",
+  "completed_utc": "2026-09-08T21:22:35Z",
+  "package": "linux-7.3-rc1-gemini-0db6595e192e1f2dfcc836ac15811e71c916ea4cbce19c6062c36e0a693e9760",
+  "package_inventory_sha256": "0db6595e192e1f2dfcc836ac15811e71c916ea4cbce19c6062c36e0a693e9760",
+  "build_log_sha256": "0af4502000aae53997779c2a03c398de2f3c121e5ebebd3911a1f65ab1f252c7",
+  "compiler_warnings": 0,
+  "compiler_errors": 0,
+  "rtc_source_sha256": "aa7e7aae9246d3f3d575bba76a8ea7dc1c903dd61ccce087563eb1a6bf42e85f",
+  "rtc_object_sha256": "ce377e638ecfde18035e6006e0e669788b2491e5b215c7915d865d516b4abe5a",
+  "image_gzip_sha256": "009fbdf5b890c01ae204ba444dfbdf016eadb5d6537be0457c217ce9338e33d4",
+  "rtc_driver_built_in": true,
+  "alarm_handler_in_final_system_map": true,
+  "package_fetched_and_verified": true,
+  "regression": {
+    "script_sha256": "2e9e65e8db256efe2eab7a24f3159f0629991c192f45f70816d69fab05e8b5e6",
+    "cases_passed": 160,
+    "before_source_sha256": "bdcc2e03bb190b44cc95f052bee7c8fd7a0964b08164cc6034bfba5205108ddd",
+    "before_result": "Unchanged upstream handler compiles but fails the enable-preservation assertion.",
+    "runners": [
+      "local userspace compiler",
+      "Buildbox userspace compiler with exact prepared source"
+    ],
+    "scope": "Actual alarm handler; register transport and mutex behavior modeled, no physical PMIC or IRQ timing."
+  },
+  "existing_profiles_unchanged": 197,
+  "dt_binding_changes": false,
+  "hardware_test": false,
+  "boot_candidate": false
+}

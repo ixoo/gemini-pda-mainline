@@ -37,7 +37,7 @@ the appropriate upstream topic.
 | MFD binding | Parent/core support remains absent in the inspected upstream files. Local 0008 fails application at the changed PMIC-keys schema. Adapt the parent binding separately and check current child schema dependencies. |
 | Core and IRQ | Extract MT6351 chip identity, four-bank storage and IRQ handling from local 0010 after separating the existing-chip correction. Preserve mask, suspend and handler behavior for existing chips; review error handling and registration ordering. |
 | Regulators | Local regulator support underlies demonstrated storage supplies. A new MFD parent must be paired with the corresponding reviewed regulator driver/binding; the inspected upstream regulator Makefile has no MT6351 entry. |
-| RTC and keys | The inspected MFD-next drivers have no MT6351 match. Do not equate creating these child devices with working RTC, keys or wakeup. |
+| RTC and keys | The inspected MFD-next drivers have no MT6351 match. Do not equate creating these child devices with working RTC, keys or wakeup. A separate [RTC alarm-mask correction](../2026-09-08-mt6397-rtc-irq-fix/README.md) fixes an existing upstream-driver defect; MT6351 reload compatibility remains unresolved. |
 | Audio | The upstream MT6351 codec exists, but its component initialization writes PMIC registers, including protection settings. Keep codec/card enablement out of this topic until analog routes and resource ownership are established. |
 
 The earlier corrected-reset storage evidence establishes bounded VEMC/VIO18
