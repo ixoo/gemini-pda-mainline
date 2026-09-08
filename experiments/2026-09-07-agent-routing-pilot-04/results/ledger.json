@@ -31,7 +31,7 @@
   "rolling_window_after_pilot": 10,
   "accepted_count": 9,
   "next_accepted_sequence": 10,
-  "next_considered_sequence": 12,
+  "next_considered_sequence": 13,
   "considered_items": [
     {
       "considered_sequence": 1,
@@ -418,6 +418,14 @@
       "reason": "device-session",
       "note": "The private deterministic candidate reconstruction and admission review are device-session preparation, not an accepted offline routing item.",
       "evidence": "experiments/2026-09-07-keyboard-boot2-session/results/candidate-reconstruction.json"
+    },
+    {
+      "considered_sequence": 12,
+      "candidate_id": "keyboard-disconnect-shell-preserver",
+      "disposition": "excluded",
+      "reason": "abandoned",
+      "note": "The accepted hardware-safety contract requires nonblocking no-follow descriptor opens. Candidate R's verified BusyBox shell cannot express those flags, so the shell-only implementation stopped before code and was escalated to a separately scoped static helper.",
+      "evidence": "experiments/2026-09-07-keyboard-boot2-session/PRESERVATION_WORK_ITEM.md"
     }
   ],
   "checkpoints": [

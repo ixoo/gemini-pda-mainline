@@ -5,11 +5,11 @@ set -euo pipefail
 umask 077
 export LC_ALL=C SOURCE_DATE_EPOCH=0 PYTHONDONTWRITEBYTECODE=1 PYTHONOPTIMIZE=0
 unset CPATH C_INCLUDE_PATH CPLUS_INCLUDE_PATH LIBRARY_PATH COMPILER_PATH GCC_EXEC_PREFIX REALGCC CFLAGS CPPFLAGS LDFLAGS
-[[ $# == 2 || $# == 3 ]] || { echo 'usage: build-monitor.sh EXACT_REVISION MANAGED_ROOT [keyboard-monitor|keyboard-monitor-enabled|keyboard-duration]' >&2; exit 2; }
+[[ $# == 2 || $# == 3 ]] || { echo 'usage: build-monitor.sh EXACT_REVISION MANAGED_ROOT [keyboard-monitor|keyboard-monitor-enabled|keyboard-duration|keyboard-disconnect-preserver]' >&2; exit 2; }
 revision=$1
 managed=$2
 kind=${3:-keyboard-monitor}
-[[ $kind == keyboard-monitor || $kind == keyboard-monitor-enabled || $kind == keyboard-duration ]]
+[[ $kind == keyboard-monitor || $kind == keyboard-monitor-enabled || $kind == keyboard-duration || $kind == keyboard-disconnect-preserver ]]
 here=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 repository=$(git -C "$here" rev-parse --show-toplevel)
 [[ $revision =~ ^[0-9a-f]{40}$ ]]
@@ -114,6 +114,47 @@ if [[ $kind == keyboard-duration ]]; then
   install -m 0600 "$repository/LICENSE" "$stage/package/licenses/repository-LICENSE"
   install -m 0600 /usr/share/doc/gcc-12-aarch64-linux-gnu/copyright "$stage/package/licenses/GCC-copyright"
   printf 'repository_commit=%s\nproduction_entry=none\ndevice_action=none\n' "$revision" >"$stage/package/provenance.txt"
+elif [[ $kind == keyboard-disconnect-preserver ]]; then
+production_entry=none
+entry=keyboard-disconnect-preserver
+for replica in one two; do
+  mkdir "$stage/$replica"
+  timeout 60 "$compiler" -std=c11 -Os -static -ffunction-sections -fdata-sections \
+    -Wall -Wextra -Werror "-ffile-prefix-map=$repository=." "-ffile-prefix-map=$stage=." \
+    -Wl,--gc-sections,"-Map,$stage/$replica/preserver.map" \
+    "$here/preserve-disconnect.c" -o "$stage/$replica/preserver"
+  aarch64-linux-gnu-readelf -h "$stage/$replica/preserver" | grep -q AArch64
+  if aarch64-linux-gnu-readelf -l "$stage/$replica/preserver" | grep -q INTERP; then exit 1; fi
+  if aarch64-linux-gnu-readelf -d "$stage/$replica/preserver" | grep -q NEEDED; then exit 1; fi
+  aarch64-linux-gnu-nm --defined-only "$stage/$replica/preserver" | grep -Eq ' T main$'
+  grep -q 'preserve_one' "$stage/$replica/preserver.map"
+  aarch64-linux-gnu-strip --strip-all "$stage/$replica/preserver"
+  [[ $(stat -c %s "$stage/$replica/preserver") -le 131072 ]]
+done
+cmp "$stage/one/preserver" "$stage/two/preserver"
+mkdir -m 0700 "$stage/fixtures"
+timeout 120 env MONITOR_TEST_WORK_ROOT="$stage/fixtures" \
+  python3 "$here/test-preserve-disconnect-native.py" --compiler "$compiler" \
+  --qemu "$qemu" --library-root "$stage/musl-install" --work-root "$stage/fixtures" >"$stage/tests.txt" 2>&1
+install -m 0700 "$stage/one/preserver" "$stage/package/$entry"
+install -m 0600 "$stage/one/preserver.map" "$stage/package/preserver.map"
+install -m 0600 "$stage/tests.txt" "$stage/package/fixture-tests.txt"
+install -m 0600 "$musl/COPYRIGHT" "$stage/package/licenses/musl-COPYRIGHT"
+install -m 0600 "$repository/LICENSE" "$stage/package/licenses/repository-LICENSE"
+install -m 0600 /usr/share/doc/gcc-12-aarch64-linux-gnu/copyright "$stage/package/licenses/GCC-copyright"
+printf 'repository_commit=%s\nproduction_entry=%s\ndevice_action=none\n' "$revision" "$production_entry" >"$stage/package/provenance.txt"
+python3 - "$here" "$stage" "$revision" <<'PY'
+import hashlib, json, pathlib, sys
+here, stage = map(pathlib.Path, sys.argv[1:3])
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+inputs = {p.name: sha(p) for p in [here/'preserve-disconnect.c', here/'test-preserve-disconnect-native.py', here/'build-monitor.sh', stage/'musl.tar.gz']}
+library = {str(p.relative_to(stage/'musl-install')): sha(p) for p in sorted((stage/'musl-install').rglob('*')) if p.is_file()}
+result = {'revision': sys.argv[3], 'inputs': inputs, 'library_inputs': library,
+          'stripped_bytes': (stage/'package'/'keyboard-disconnect-preserver').stat().st_size,
+          'replicas_identical': True, 'fixture_scope': 'host and ARM64 Linux QEMU fixed-path fixtures',
+          'production_entry': 'none', 'device_action': 'none'}
+(stage/'package/manifest.json').write_text(json.dumps(result, indent=2, sort_keys=True)+'\n')
+PY
 else
 production_entry=disabled
 entry=keyboard-monitor-disabled

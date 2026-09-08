@@ -27,7 +27,7 @@ umask 077
 revision=$1
 branch=$2
 kind=$3
-[[ $kind == userspace || $kind == keyboard-monitor || $kind == keyboard-monitor-enabled || $kind == keyboard-duration ]]
+[[ $kind == userspace || $kind == keyboard-monitor || $kind == keyboard-monitor-enabled || $kind == keyboard-duration || $kind == keyboard-disconnect-preserver ]]
 [[ $revision =~ ^[0-9a-f]{40}$ && ( $branch == codex/a53-authenticated-baseline || $branch == main ) ]]
 root=/workspace/gemini-a53-userspace
 [[ ! -L $root ]]
@@ -55,7 +55,11 @@ if [[ ! -e $checkout ]]; then
 fi
 if [[ $kind == keyboard-duration ]]; then
   timeout --kill-after=10 1500 bash "$checkout/experiments/2026-09-05-owner-away-experiment-preparation/keyboard/build-monitor.sh" "$revision" "$root" keyboard-duration
-elif [[ $kind == keyboard-monitor || $kind == keyboard-monitor-enabled ]]; then
+elif [[ $kind == keyboard-monitor || $kind == keyboard-monitor-enabled || $kind == keyboard-disconnect-preserver ]]; then
+  if [[ $kind == keyboard-disconnect-preserver ]]; then
+    timeout 1200 bash "$checkout/experiments/2026-09-05-owner-away-experiment-preparation/keyboard/build-monitor.sh" "$revision" "$root" keyboard-disconnect-preserver
+    exit
+  fi
   extra=()
   [[ $kind == keyboard-monitor ]] || extra=(keyboard-monitor-enabled)
   timeout 1200 bash "$checkout/experiments/2026-09-05-owner-away-experiment-preparation/keyboard/build-monitor.sh" "$revision" "$root" "${extra[@]}"
@@ -68,7 +72,7 @@ set -euo pipefail
 revision=$1
 identity=$2
 kind=$3
-[[ $kind == userspace || $kind == keyboard-monitor || $kind == keyboard-monitor-enabled || $kind == keyboard-duration ]]
+[[ $kind == userspace || $kind == keyboard-monitor || $kind == keyboard-monitor-enabled || $kind == keyboard-duration || $kind == keyboard-disconnect-preserver ]]
 publication=published
 [[ $kind == userspace ]] || publication="$kind-published"
 [[ $revision =~ ^[0-9a-f]{40}$ && $identity =~ ^[0-9a-f]{64}$ ]]
@@ -107,7 +111,7 @@ def managed_dir(path):
 def clear_partial(stage):
     """Only this fixed managed name is disposable; never follow linked state."""
     require(stage.name in ('.fetch-userspace', '.fetch-keyboard-monitor', '.fetch-keyboard-monitor-enabled',
-                           '.fetch-keyboard-duration'), 'unexpected partial name')
+                           '.fetch-keyboard-duration', '.fetch-keyboard-disconnect-preserver'), 'unexpected partial name')
     if not stage.exists() and not stage.is_symlink():
         return
     require(not stage.is_symlink() and stage.is_dir(), 'partial path type')
@@ -265,13 +269,16 @@ def main():
     kinds.add_argument('--keyboard-monitor', action='store_true', help='build/fetch the disabled keyboard monitor only')
     kinds.add_argument('--keyboard-monitor-enabled', action='store_true',
                        help='build/fetch the explicitly enabled reviewed keyboard monitor')
+    kinds.add_argument('--keyboard-disconnect-preserver', action='store_true',
+                       help='build/fetch the fixed offline disconnect preservation helper')
     parser.add_argument('--branch', choices=(BRANCH, 'main'), default=BRANCH,
                         help='published source branch; defaults to existing worker branch')
     args = parser.parse_args()
     branch = args.branch
     kind = ('keyboard-duration' if args.keyboard_duration else
             ('keyboard-monitor-enabled' if args.keyboard_monitor_enabled else
-             ('keyboard-monitor' if args.keyboard_monitor else 'userspace')))
+             ('keyboard-disconnect-preserver' if args.keyboard_disconnect_preserver else
+              ('keyboard-monitor' if args.keyboard_monitor else 'userspace'))))
     os.umask(0o077)
     require(git('remote', 'get-url', 'origin') == ORIGIN, 'unexpected origin')
     if args.fetch_only:
