@@ -399,5 +399,11 @@ forgotten ownership after failed disable, and early termination of restoration.
 These userspace fixtures model bus/IRQ APIs and locking; they are not kernel
 concurrency tests or a demonstrated hardware recovery procedure.
 
-Compilation of this eleven-patch revision is pending. No device candidate is
-created, and hardware suspend/recovery remains untested.
+The [eleven-patch Buildbox compile](results/irq-pm-recovery-compile.json) from
+project commit `7e9102cc` passed without compiler warnings or errors, and its
+validated package was fetched. Both focused tests also passed on Buildbox's
+exact prepared source. Source hashes match the local replay; the IRQ object
+contains restoration and wake-cleanup helpers, mutex calls and the managed
+cleanup registration. The source baseline, configuration, toolchain and first
+ten patches match the parent package. No device candidate is created, and
+hardware suspend/recovery remains untested.

@@ -1,0 +1,55 @@
+{
+  "repository_commit": "7e9102cc89937087b610d6af1219cb7b976802a7",
+  "generated_utc": "2026-09-08T19:59:30Z",
+  "kernel_release": "7.3.0-rc1-mt6351-regulator-compile",
+  "build_profile": "mt6351-regulator-compile",
+  "patchset_sha256": "a9cdac0a8ae779d77a2ef56819174f13ff9fb6bd9d5865531d1e0c4df59a737e",
+  "config_sha256": "662850a6e69fd56382898a73a1970040e65adf7053f2fd8004d839c7a5cc29fd",
+  "compiler": "aarch64-linux-gnu-gcc (Debian 12.2.0-14) 12.2.0",
+  "compiler_sha256": "c7b8890354c8ddc0364addfeb8968597e197627bd1e338fb6ed705b578803846",
+  "linker": "GNU ld (GNU Binutils for Debian) 2.40",
+  "linker_sha256": "e09a889c78a75e73ed096c9fa28905599e6813298b9ac839d10b02ffa96e7b08",
+  "status": "PASS",
+  "parent_compile_receipt": "irq-pm-order-compile.json",
+  "source_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "package": "linux-7.3-rc1-gemini-2f2d11334bb6f5bd02e135b72885a8a8ddfab6c7aa1b7a4dfe98e54ecec8a368",
+  "package_inventory_sha256": "2f2d11334bb6f5bd02e135b72885a8a8ddfab6c7aa1b7a4dfe98e54ecec8a368",
+  "image_gzip_sha256": "83a86ef04be2fcdae726d4ccb11f0c56f6bdc079e02cdd3d06226026c75ee4f3",
+  "build_log_sha256": "7f4e98eb5f5e70d55ecac60734e2f61e6a7ee2d91d7d0c34ccace914c276e2ff",
+  "compiler_warnings": 0,
+  "compiler_errors": 0,
+  "source_sha256": {
+    "drivers/mfd/mt6397-irq.c": "ca402b841956f5570d82874e8a05ccd9a27e64fee7cb5b3fbde7021c5616ea56",
+    "include/linux/mfd/mt6397/core.h": "ddd3e30df01cc46f2a8e144bee08130369409001395f3989f607f9976fcf9081"
+  },
+  "irq_object_sha256": "187b44013fa8417dc0b61c02fa2f89c7cfd13a38392756628f4a7e81bd278b88",
+  "compiled_evidence": [
+    "IRQ object contains restore_masks and release_wake helpers",
+    "Suspend/resume and cleanup code reference mutex operations",
+    "Initializer references __devm_add_action"
+  ],
+  "regression": {
+    "pm_script_sha256": "56e0db51f5f896a2dca4e320bd8dfe3e1850aa2949f0c22d9c81c8bd96ad80f3",
+    "pm_recovery_cases_passed": 77,
+    "ordering_cases": "Prior 2/3/4-bank child-wake ordering and modern zero-bank no-op remain passing.",
+    "lifetime_script_sha256": "794fdf46c5486954109e27cb82866626b10d1004393b9a08994a9dded90c0f78",
+    "lifetime_fixture_sha256": "3b789df5f53eadcc278e43ff6e2e64cb7a2647572a2c8d31644dd647ef0e191e",
+    "lifetime_cases_passed": 58,
+    "historical_ten_patch_lifetime_cases_passed_locally": 52,
+    "negative_mutations_rejected_at_runtime": [
+      "omit rollback",
+      "forget failed-disable ownership",
+      "stop restoration early"
+    ],
+    "runners": [
+      "local userspace compiler",
+      "Buildbox userspace compiler with exact prepared source"
+    ],
+    "scope": "Actual callback bodies with injected bus/wake outcomes and modeled locking/devres; not physical recovery or concurrent kernel execution."
+  },
+  "first_ten_patches_unchanged": true,
+  "upstream_source_configuration_and_toolchain_unchanged": true,
+  "schema_checks": "Not repeated: bindings and source baseline unchanged; see schema.json.",
+  "hardware_test": false,
+  "boot_candidate": false
+}

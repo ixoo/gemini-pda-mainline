@@ -88,3 +88,15 @@ device without that flag. Therefore a future failing device-suspend callback
 must also restore its own partial changes; moving callbacks alone supplies no
 error recovery. Review serialization in the new device-PM phase instead of
 assuming that the old pre-freeze notifier constraints still describe it.
+
+
+## Eleven-patch successor
+
+The [recovery follow-up](README.md#suspend-error-recovery-follow-up) implements
+self-restoration after failed prepare, all-bank restoration on resume, and
+explicit parent-wake ownership with bounded cleanup. The earlier tables and
+implementation checklist describe the pre-fix sources. A mutex now serializes
+these transactions with normal mask synchronization; the fixtures do not prove
+all concurrent hardware/control interactions. Normal runtime mask-sync and
+status-acknowledgement write errors remain unhandled. A failed restoration or
+final wake-disable operation leaves physical recovery unproved.
