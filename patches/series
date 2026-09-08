@@ -561,3 +561,4 @@ upstream-4d7d9486/mt6351/0002-dt-bindings-regulator-describe-MediaTek-MT6351-rai
 upstream-4d7d9486/mt6351/0003-dt-bindings-mfd-mediatek-describe-MT6351-regulator-p.patch
 upstream-4d7d9486/mt6351/0004-mfd-mt6397-add-MT6351-interrupt-banks-and-regulator-.patch
 upstream-4d7d9486/mt6351/0005-regulator-mt6351-add-E2-rails-with-device-local-desc.patch
+upstream-4d7d9486/mt6351/0006-mfd-mt6397-stop-on-interrupt-mask-failure.patch

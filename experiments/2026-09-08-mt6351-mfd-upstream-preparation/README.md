@@ -159,3 +159,34 @@ also synchronizes enable controls and supplies legacy BT/Wi-Fi aliases from a
 common regulator. These are useful ownership precedents, not proof that
 MT6351 has the same output-pin topology or that copying their probe writes
 is appropriate. Resolve that distinction before revising the shared-rail model.
+
+The [MT6351-specific VCN33 follow-up](VCN33.md) confirms the common selector
+and separate software/on-control/source-clock fields. The vendor's common
+BT/Wi-Fi helper is in a disabled branch, so it cannot justify consolidating
+the controls. The physical topology remains unresolved.
+
+## IRQ mask-write failure follow-up
+
+The compile series now adds [one mask-error correction](../../patches/upstream-4d7d9486/mt6351/0006-mfd-mt6397-stop-on-interrupt-mask-failure.patch).
+Initialization previously ignored failed writes while masking the interrupt
+banks, then created the IRQ domain and registered the parent handler. The
+correction returns the bus error at the first failed bank before either
+registration step. Earlier banks may already be masked; it performs no retry
+or restoration of unknown hardware state.
+
+The [focused regression](test-irq-mask-failure.py) compiles the actual before
+and after initialization bodies with injected register-write results. It
+reproduced the old behavior and rejected all 15 per-bank failures across the
+six supported chip IDs, while preserving their successful bank/domain setup.
+The test uses fake register addresses and registration callbacks; it proves
+control flow, not register semantics or a running kernel's IRQ behavior.
+Pass the five-patch and six-patch versions of `drivers/mfd/mt6397-irq.c` as
+its two arguments. Strict checkpatch passed with only the unsigned-archive
+sign-off exclusion. The new compile result is pending at this input checkpoint;
+the five-patch build receipt above remains historical evidence for its own input.
+
+Other IRQ lifetime issues remain separate: the legacy initializer does not
+unregister its PM notifier, and the MFD child-add failure path removes the
+domain before the managed parent IRQ is released. Review cleanup ordering and
+concurrent IRQ/notifier use before promoting the topic. The mask-error change
+does not repair or validate those later lifetime paths.
