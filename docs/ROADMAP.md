@@ -124,6 +124,10 @@ corroborates a deferred-reclamation mechanism consistent with the extra 32 MiB,
 without proving the actual boot's tags or a safe release. Next resolve the
 loaded-image digest, runtime tail attribution, secure MPU acceptance and
 shared-region release authority.
+The [retained-firmware join](../experiments/2026-09-07-mt6797-cellular-upstream-architecture/RETAINED_FIRMWARE.md)
+pins matching retained header fields and component container digests; it leaves
+the executing bytes unproved and exposes a one-byte ARM7 component whose purpose
+must be resolved before defining a loadable firmware bundle.
 Do not repeat unchanged OS metadata for those gaps. Missing attribution preserves
 the stop; queue/DMA, framing/channel and full boot/crash teardown remain later gates.
 

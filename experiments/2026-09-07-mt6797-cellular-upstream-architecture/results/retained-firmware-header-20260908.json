@@ -1,0 +1,198 @@
+{
+  "retained_inputs": [
+    {
+      "input": "artifacts/device-partitions/20260715T020041Z/mmcblk0p13-md1img.img",
+      "partition_size": 25165824,
+      "partition_sha256": "f3d514f0cdcdfb2addbf70b9dbf9cbd0e41ea646eb342eb759bbc4f215f2d0cf",
+      "image_name": "md1rom",
+      "payload_offset": 512,
+      "payload_size": 18223992,
+      "payload_sha256": "6d7f4aa4a3ab42e038e395e62f85529c01bc5fb468f9b5f2589d6e6e5863b56f",
+      "image_type": "0x1000000",
+      "image_list_end": 0,
+      "alignment": 16
+    },
+    {
+      "input": "artifacts/device-partitions/20260715T020041Z/mmcblk0p14-md1dsp.img",
+      "partition_size": 4194304,
+      "partition_sha256": "2b0d7322d0df0fabf957f38f215822eba3c134d75a30faae2965996dc4c42829",
+      "image_name": "md1dsp",
+      "payload_offset": 512,
+      "payload_size": 1016744,
+      "payload_sha256": "87104ef948eb35157b77ec1fa866437a1338cb052943992b8aec17152a448063",
+      "image_type": "0x0",
+      "image_list_end": 0,
+      "alignment": 16
+    },
+    {
+      "input": "artifacts/device-partitions/20260715T020041Z/mmcblk0p15-md1arm7.img",
+      "partition_size": 3145728,
+      "partition_sha256": "756070f69e02249f5478e978b03214eb17aa30adfec591cffe9af8748507ce95",
+      "image_name": "md1arm7",
+      "payload_offset": 512,
+      "payload_size": 1,
+      "payload_sha256": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9",
+      "image_type": "0x0",
+      "image_list_end": 0,
+      "alignment": 16
+    }
+  ],
+  "main_check_header": {
+    "file_offset": 18224160,
+    "size": 344,
+    "sha256": "5176f3eccb13a360d76b99d7dd2274176e5ec0fae7ef8256b35e64b908fa58f3",
+    "version": 5,
+    "product_version": 2,
+    "image_type": 12,
+    "platform": "MT6797_S00",
+    "build_time": "2018/12/08 11:40",
+    "build_version": "MOLY.LR11.W1630.MD.MP.V105.8",
+    "bind_sys_id": 1,
+    "ext_attr": 0,
+    "memory_size": 134217728,
+    "md_image_size": 18223420,
+    "rpc_secure_memory_address": 0,
+    "dsp_offset": 20971520,
+    "dsp_reserved_size": 2097152,
+    "region_count": 5,
+    "regions": [
+      [
+        0,
+        23134208
+      ],
+      [
+        23134208,
+        31784960
+      ],
+      [
+        54919168,
+        20774912
+      ],
+      [
+        75694080,
+        24969216
+      ],
+      [
+        100663296,
+        33554432
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ]
+    ],
+    "domain_attributes": [
+      4294967295,
+      4294967295,
+      4294967295,
+      4294967295
+    ],
+    "arm7_offset": 72548352,
+    "arm7_reserved_size": 3145728,
+    "padding_blocks": [
+      [
+        18284544,
+        2686976
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ]
+    ],
+    "ap_md_shared_size": 0,
+    "md_to_md_shared_size": 0,
+    "ramdisk_offset": 0,
+    "ramdisk_size": 0
+  },
+  "unclassified_bytes_before_check_header": {
+    "file_offset": 18223932,
+    "size": 228,
+    "all_zero": false,
+    "sha256": "7d77a24bcb9542193308f319ab23c32317181f63fb39b5708422ad1b7ce9c752"
+  },
+  "date": "2026-09-08",
+  "source": {
+    "commit": "f4988d74bb70a0a15d7f362f412afba7e7fcda46",
+    "header_path": "lk/platform/common/md/ccci_ld_md_core.h",
+    "header_sha256": "66e442d011cb4b6bd136faef1d55ea00d90ef5f2ae47310f63650a55c05bd716",
+    "header_url": "https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/common/md/ccci_ld_md_core.h",
+    "header_lines": {
+      "container": "176-194",
+      "common_check_header": "200-215",
+      "v5_check_header": "260-284"
+    },
+    "other_source_hash_receipt": "loader-tail-audit-20260908.json",
+    "header_locator": "ccci_ld_md_ass.c:107-140",
+    "subimage_size_check": "ccci_ld_md_core.c:383-408",
+    "lookup_and_load": "ccci_ld_md_core.c:144-249",
+    "security_hooks": {
+      "path": "lk/platform/common/md/ccci_ld_md_sec.c",
+      "sha256": "0c571baf01bce83d132428e9c6a5a75fd40db4e943d1563e28fbe6625aedfb17",
+      "url": "https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/common/md/ccci_ld_md_sec.c",
+      "scope": "Policy and authentication calls exist; neither built configuration nor active policy is attested"
+    }
+  },
+  "comparison": {
+    "receipt": "gemian-memory-handoff-20260908.json",
+    "matching_fields": [
+      "header version",
+      "header size",
+      "platform",
+      "build version",
+      "build time",
+      "memory requirement",
+      "declared image size",
+      "all five active region offset/size pairs",
+      "DSP offset and reservation size",
+      "ARM7 offset and reservation size"
+    ],
+    "mismatches": [],
+    "not_compared": [
+      "complete live header bytes",
+      "running-image digest",
+      "live DSP payload",
+      "live ARM7 payload",
+      "authentication state"
+    ]
+  },
+  "acquisition": {
+    "method": "Read existing July partition captures through read-only repository mount in RE VM; no device access",
+    "input_hashes_match": "Original MANIFEST.tsv rows for the three captures",
+    "private_parser_sha256": "a114fb0cece89d946302e7ce5422631d142537f490f9b5d4a7ddc174bf06a958",
+    "check_header_location": "payload_offset + container_dsize - trailing_u32_size; validated size=344 and CHECK_HEADER magic",
+    "integer_encoding": "little-endian",
+    "payload_hash_scope": "Exactly container_dsize bytes from offset 512, including check header for md1rom; not asserted to be executable or authenticated bytes",
+    "additional_header_search": "No additional matching md1rom/md1dsp/md1arm7 header candidates with both MediaTek magics, 512-byte header and in-file payload bounds in any of the three captures",
+    "additional_header_search_limit": "Bounded name/format search, not a complete container or security-image parser"
+  },
+  "decision": "Retained component identities joined to matching saved header fields; no running-image attestation or load admission",
+  "limits": [
+    "All inputs are retained July captures, not current partition readback",
+    "One-byte ARM7 payload purpose unresolved",
+    "228 bytes before check header unclassified",
+    "Header shared-memory fields are zero; runtime placement comes from separate handoff evidence",
+    "Internal padding and domain attributes do not authorize memory release or protection changes",
+    "No firmware, header bytes, raw partition data or calibration published"
+  ],
+  "source_predicted_arm7_load": {
+    "conditions": "Normal source path selects this retained component and passes applicable security policy",
+    "declared_read_bytes": 1,
+    "alignment_zero_padding_bytes": 15,
+    "returned_load_bytes": 1,
+    "full_reservation_zero_fill": false,
+    "special_one_byte_branch_in_load_image_by_name": false,
+    "runtime_execution_proved": false
+  }
+}

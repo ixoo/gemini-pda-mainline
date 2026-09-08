@@ -58,6 +58,9 @@ The saved MD1 check-header report identifies version 5, 344 bytes, `ulwctg`,
 of `0x0116113c`. Its memory requirement agrees with the 128 MiB loader record.
 This identifies the reported header, not the exact running-image digest;
 neither firmware nor modem memory was read to establish such a digest.
+The subsequent [retained-firmware join](RETAINED_FIRMWARE.md) finds matching
+reported header fields in the July capture and pins its component container
+digests. That comparison does not attest the running bytes.
 
 ## Protection evidence and limits
 
