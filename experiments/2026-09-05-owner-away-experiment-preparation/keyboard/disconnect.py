@@ -106,26 +106,38 @@ def first_script(context):
 def export_script(context):
     """Wait for terminal proof, scan all readers, then export four exact members."""
     a, c = context['admission'], context['candidate']
-    text = S['identity_script'](c, a['boot_id']) + S['ram_guard_script']()
+    # Fixed stage names explain a refusal without disclosing process or file data.
+    text = "export_stage=identity\nexport_status=0\ntrap 'export_status=$?; if [ \"$export_status\" -ne 0 ]; then printf \"keyboard-disconnect-export stage=%s exit=%s\\n\" \"$export_stage\" \"$export_status\" >&2; fi; exit \"$export_status\"' 0\n"
+    text += S['identity_script'](c, a['boot_id'])
+    text += 'export_stage=ram-guard\n' + S['ram_guard_script']()
+    text += 'export_stage=attempt-path\n'
     text += f'[ -d {REMOTE} ] && [ ! -L {REMOTE} ]\n[ -d {PROBE_PARENT} ] && [ ! -L {PROBE_PARENT} ]\n[ -d {ATTEMPT} ] && [ ! -L {ATTEMPT} ]\n'
+    text += 'export_stage=outer-exit\n'
     text += f'i=0\nwhile [ ! -e {ATTEMPT}/outer-exit ] && [ ! -L {ATTEMPT}/outer-exit ]; do [ "$i" -lt 20 ]; $BB sleep 0.1; i=$((i+1)); done\n'
     text += f'[ "$($BB cat {ATTEMPT}/outer-exit)" = 2 ]\n'
     text += r'''processes=0
 descriptors=0
 for proc in /proc/[0-9]*; do
+  export_stage=process-count
   processes=$((processes+1)); [ "$processes" -le 512 ]
+  export_stage=process-command
   [ -r "$proc/cmdline" ]; command=$($BB tr '\000' ' ' <"$proc/cmdline")
   case "$command" in */a53-keyboard-disconnect/probe*|*/bin/keyboard-observe*) exit 1;; esac
+  export_stage=process-executable
   if [ -L "$proc/exe" ]; then
     executable=$($BB readlink "$proc/exe")
     case "$executable" in /a53-keyboard-disconnect/probe|/a53-keyboard-disconnect/probe\ \(deleted\)|/bin/keyboard-observe|/bin/keyboard-observe\ \(deleted\)) exit 1;; esac
   fi
+  export_stage=descriptor-directory
   [ -d "$proc/fd" ]
   for fd in "$proc"/fd/*; do
     [ -L "$fd" ] || continue
+    export_stage=descriptor-count
     descriptors=$((descriptors+1)); [ "$descriptors" -le 4096 ]
+    export_stage=descriptor-target
     target=$($BB readlink "$fd")
     case "$target" in /dev/tty1|/dev/tty0|/dev/console|/dev/input/*) exit 1;; esac
+    export_stage=descriptor-device
     device=$($BB stat -Lc '%t:%T' "$fd")
     case "$device" in 4:0|4:1|5:0|5:1|d:*) exit 1;; esac
   done
@@ -133,6 +145,7 @@ done
 $BB printf 'scan-processes=%s\nscan-descriptors=%s\n' "$processes" "$descriptors"
 '''
     for name in FILES:
+        text += f'export_stage=file-{name}\n'
         path = f'{ATTEMPT}/{name}'
         text += f"$BB printf 'file={name}\\n'\n[ -f {path} ] && [ ! -L {path} ]\n"
         text += f'[ "$($BB stat -c %u:%g:%a:%h {path})" = 0:0:600:1 ]\n[ "$($BB stat -c %s {path})" -le {LIMITS[name]} ]\n'

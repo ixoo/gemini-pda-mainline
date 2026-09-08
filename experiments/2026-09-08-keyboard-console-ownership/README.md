@@ -52,6 +52,24 @@ required. These mocks test shell inheritance, not a real PID-1 boot or hardware
 reader release. A successor must still verify the console worker has exited
 and the strict reader scan passes before keyboard capture.
 
+## Refusal diagnostics
+
+The successor exporter installs an exit trap before its identity check and
+assigns fixed stage names to identity, RAM, attempt paths, outer exit, process
+and descriptor checks, and each fixed file. A shell-controlled nonzero exit
+emits only the stage and original status on writable stderr, then explicitly
+exits with that status. A killed shell or broken transport can still leave an
+incomplete diagnostic; missing output remains inconclusive. It does
+not print process names, IDs, paths obtained from the device, or file contents.
+Successful stdout framing and all pass/refusal conditions are unchanged. Raw
+transport stderr was already retained by the host runner.
+
+Seven local disconnect fixtures pass, including actual shell exits at identity,
+RAM and a symlinked attempt path. The initial trap draft lost an implicit
+`set -e` failure status on the host shell; an explicit final exit repaired that
+observed defect. Exact ARM64 shell validation of this diagnostic remains due.
+The legacy binding stays disabled and its consumed admission is not reused.
+
 ## Validation and next boundary
 
 Implementation is prepared for focused exact-AArch64 BusyBox fixtures on

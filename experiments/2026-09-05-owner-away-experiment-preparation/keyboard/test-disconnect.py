@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
 """Host-only disconnect protocol, parser and semantic-receipt fixtures."""
+import argparse
 import base64
 import copy
+import hashlib
 import json
 from pathlib import Path
 import runpy
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -15,6 +18,24 @@ from unittest.mock import patch
 HERE = Path(__file__).resolve().parent
 D = runpy.run_path(str(HERE/'disconnect.py'))
 WORK = HERE.parents[2]/'artifacts/a53-authenticated/development/keyboard-disconnect-tests'
+
+_parser = argparse.ArgumentParser(add_help=False)
+_parser.add_argument('--busybox', type=Path)
+_parser.add_argument('--qemu', default='qemu-aarch64-static')
+_options, _remaining = _parser.parse_known_args()
+sys.argv = [sys.argv[0], *_remaining]
+SHELL = ['/bin/sh']
+if _options.busybox is not None:
+    if hashlib.sha256(_options.busybox.read_bytes()).hexdigest() != \
+            '52151e7f322f926b64049cdaa1410dc3ea6485525e0624b05813791c219ae933':
+        raise ValueError('exact candidate BusyBox required')
+    qemu = shutil.which(_options.qemu)
+    if qemu is None:
+        raise ValueError('requested QEMU unavailable')
+    SHELL = [qemu, str(_options.busybox), 'sh']
+SHELLCHECK = shutil.which('shellcheck')
+if SHELLCHECK is None:
+    raise ValueError('ShellCheck required')
 
 
 class DisconnectTests(unittest.TestCase):
@@ -47,6 +68,29 @@ class DisconnectTests(unittest.TestCase):
         self.assertFalse(result['stdin_complete'])
         self.assertEqual(result['client_signal'],9)
         self.assertEqual((self.root/'stdout.txt').read_bytes(),b'fixture-child=43\n')
+
+    def test_export_refusal_reports_stage_and_preserves_exit_status(self):
+        context = {'admission': {'boot_id': '33333333-3333-3333-3333-333333333333'},
+                   'candidate': {}}
+        for stage, identity, ram in (
+                ('identity', 'set -eu\nexit 7\n', ''),
+                ('ram-guard', 'set -eu\n', 'exit 8\n'),
+                ('attempt-path', 'set -eu\n', '')):
+            with self.subTest(stage=stage), patch.dict(D['S'], {
+                    'identity_script': lambda *a: identity,
+                    'ram_guard_script': lambda: ram}):
+                if stage == 'attempt-path':
+                    (self.root/'real').mkdir()
+                    (self.root/'absent').symlink_to(self.root/'real', target_is_directory=True)
+                script = D['export_script'](context).replace(
+                    b'/a53-keyboard-disconnect', str(self.root/'absent').encode())
+                result = subprocess.run(SHELL + ['-s'], input=script,
+                                        capture_output=True, timeout=2)
+                expected = {'identity': 7, 'ram-guard': 8, 'attempt-path': 1}[stage]
+                self.assertEqual(result.returncode, expected)
+                self.assertEqual(result.stdout, b'')
+                self.assertEqual(result.stderr,
+                    f'keyboard-disconnect-export stage={stage} exit={expected}\n'.encode())
 
     def test_export_parser_requires_complete_ordered_members(self):
         files = {'observer.stdout':b'fixture-child=8\n','observer.stderr':b'',
@@ -124,9 +168,9 @@ class DisconnectTests(unittest.TestCase):
         self.assertIn(b'/a53-keyboard-disconnect/probe\\ \\(deleted\\)',exported)
         self.assertNotIn(b'*keyboard-disconnect-probe*',exported)
         for script in (raw,exported):
-            checked = subprocess.run(['/bin/sh','-n'],input=script,capture_output=True)
+            checked = subprocess.run(SHELL + ['-n'],input=script,capture_output=True)
             self.assertEqual((checked.returncode,checked.stderr),(0,b''))
-            linted = subprocess.run(['/opt/homebrew/bin/shellcheck','-s','sh','-e','SC2016','-'],
+            linted = subprocess.run([SHELLCHECK,'-s','sh','-e','SC2016','-'],
                 input=script,capture_output=True)
             self.assertEqual((linted.returncode,linted.stdout,linted.stderr),(0,b'',b''))
 
