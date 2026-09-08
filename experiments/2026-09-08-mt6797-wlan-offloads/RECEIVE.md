@@ -122,6 +122,57 @@ question is specifically whether old data and BA events are excluded after a
 positive boundary, not merely whether a new station can transmit. This record
 admits no radio or firmware action.
 
+## Encrypted translated data: replay ownership
+
+The security follow-up keeps translated data as the design direction, but it
+cannot rely on mac80211 to supply a missing replay check after Ethernet
+handoff. The [security source receipt](results/security-sources.json) pins the
+inspected files and ranges; this is public-source analysis, not a finding about
+replay acceptance by the installed firmware.
+
+At the pinned upstream revision, `__ieee80211_rx_handle_8023()` requires a
+station and its eligible `fast_rx` state, then calls `ieee80211_rx_8023()`.
+That delivery function performs accounting and forwarding; it does not run the
+normal 802.11 decrypt/replay handlers. The **native-header** fast RX helper
+separately tests `RX_FLAG_PN_VALIDATED | RX_FLAG_DECRYPTED` when a key is present.
+Those tests must not be mistaken for checks on the direct Ethernet entry.
+Fast-RX eligibility also excludes TKIP, WEP and unsupported ciphers; the
+existence of a translated vendor path does not make every vendor cipher
+eligible for this upstream interface.
+
+The upstream status documentation assigns replay detection to the driver or
+hardware when IV/ICV have been stripped. `RX_FLAG_PN_VALIDATED` asserts that
+CCMP/GCMP replay protection already happened; it does not request that work.
+Likewise, a decrypted flag is not evidence of replay protection.
+
+The selected gen3 source provides narrower positive facts:
+
+| Boundary | Inspected behavior | What remains unproved |
+| --- | --- | --- |
+| RX metadata | Optional group 1 contains 16 PN bytes. `HAL_RX_STATUS_GET_RSC` copies its first six bytes; `HAL_RX_STATUS_GET_PN` copies all 16. An exact gen3 symbol search finds only the two macro definitions. | Cipher-specific byte order, presence guarantees, replay owner and key incarnation cannot be inferred from the field or unused accessors. This search is not proof that firmware lacks replay protection. |
+| RX acceptance | `nicRxProcessDataPacket()` uses the separate AMPDU/non-AMPDU acceptance masks, drops the error branch and reports qualifying TKIP MIC failures. | Passing these descriptor tests does not by itself prove monotonically valid PN, correct key generation or all cipher integrity semantics. |
+| Normal Linux key addition | `mtk_cfg80211_add_key()` zeroes its parameter structure and copies the key and peer/index fields, but does not consume `params->seq` or `seq_len`. `wlanoidSetAddKey()` zeroes `CMD_802_11_KEY` and does not populate its `aucKeyRsc` field. | This ordinary path does not transfer a supplied nonzero receive-sequence floor to that command. It does not establish how firmware initializes or retains replay state. |
+| Separate WAPI path | `wlanoidSetWapiKey()` explicitly copies 16 PN bytes into `aucKeyRsc`. | That cipher-specific assignment does not establish CCMP sequence semantics or repair the ordinary key path. |
+| Key completion | The ordinary add-key command requests no response and returns pending after local enqueue. | Local command completion does not prove the firmware key switch or the exclusion of older queued RX. |
+
+Implementation consequence: retain the PN and security metadata with **each
+buffer across reordering**, and establish replay validation before encrypted
+Ethernet delivery. A driver-owned validator needs an attributable key lifetime,
+cipher-specific PN interpretation, the initial receive sequence, and the
+appropriate peer/key/TID domains. Its ordering must account for legitimate
+out-of-order arrivals and multiple MSDUs from one protected MPDU; a scalar PN
+comparison at raw arrival is not sufficient. If firmware owns validation,
+establish its equivalent guarantees and the error/completion observations that
+let the driver rely on them. Neither choice is proved by this review.
+
+Do not copy the ordinary vendor key-add path as the upstream sequence contract,
+or advertise validated replay merely because a packet passed its RX masks.
+The next decision-changing evidence is the CCMP group-1 interpretation and
+replay/key-switch behavior for the exact firmware, including rekey and queued
+old frames. The station reuse boundary above remains independently necessary.
+No standalone replay helper is added before a real receiver and these inputs
+exist; no radio test or firmware operation is admitted by this source review.
+
 ## Validation and scope
 
 The cited public call sites, event layouts and command arguments were inspected
