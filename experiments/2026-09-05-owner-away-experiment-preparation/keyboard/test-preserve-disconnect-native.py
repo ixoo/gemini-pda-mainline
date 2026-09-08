@@ -19,6 +19,7 @@ NAMES = ('observer.stdout', 'observer.stderr', 'monitor.status', 'outer-exit')
 LIMITS = {'observer.stdout': 98304, 'observer.stderr': 98304,
           'monitor.status': 4096, 'outer-exit': 16}
 MARKER = b'__PRESERVE_FILE_BEGIN__\n'
+SCAN_BEGIN = b'__PRESERVE_SCAN_BEGIN__\n'
 
 _parser = argparse.ArgumentParser(add_help=False)
 _parser.add_argument('--compiler', default='cc')
@@ -63,8 +64,17 @@ def parse(raw):
         metadata = fields(raw[meta_fields_start:meta_end])
         result[expected] = (header, data, metadata)
         cursor = meta_end + len(b'__PRESERVE_FILE_END__\n')
-    if raw[cursor:] != b'__PRESERVE_FILES_END__\n__PRESERVE_END__\n':
+    files_end = b'__PRESERVE_FILES_END__\n'
+    if raw[cursor:cursor + len(files_end)] != files_end:
         raise AssertionError('missing completion marker')
+    cursor += len(files_end)
+    if not raw.startswith(SCAN_BEGIN, cursor):
+        raise AssertionError('missing scan marker')
+    cursor += len(SCAN_BEGIN)
+    scan_end = raw.index(b'__PRESERVE_SCAN_END__\n', cursor)
+    result['__scan__'] = fields(raw[cursor:scan_end])
+    if raw[scan_end + len(b'__PRESERVE_SCAN_END__\n'):] != b'__PRESERVE_END__\n':
+        raise AssertionError('missing final marker')
     return result
 
 
@@ -77,14 +87,20 @@ class PreserverFixtures(unittest.TestCase):
         cls.cleanup_work = cls.options.work_root is None
         cls.base = cls.work / 'a53-keyboard-disconnect'
         cls.attempt = cls.base / 'run' / 'keyboard-attempt'
+        cls.proc = cls.work / 'proc-fixture'
+        (cls.proc / '1' / 'fd').mkdir(mode=0o700, parents=True)
+        (cls.proc / '1' / 'cmdline').write_bytes(b'/bin/idle\0')
+        (cls.proc / '1' / 'cmdline').chmod(0o600)
+        (cls.proc / '1' / 'exe').symlink_to('/bin/idle')
+        (cls.proc / '1' / 'fd' / '0').symlink_to('/dev/null')
         for path in (cls.base, cls.base / 'run', cls.attempt):
             path.mkdir(mode=0o700)
         cls.host = cls.work / 'preserver-host'
         cls.host_compiler = shutil.which('cc') or 'cc'
-        cls.compile(cls.host_compiler, cls.host, static=False)
+        cls.compile(cls.host_compiler, cls.host, static=False, deadline=60000)
         cls.arm = cls.work / 'preserver-arm64'
         if cls.options.qemu and cls.options.library_root:
-            cls.compile(cls.options.compiler, cls.arm, static=True)
+            cls.compile(cls.options.compiler, cls.arm, static=True, deadline=60000)
 
     @classmethod
     def tearDownClass(cls):
@@ -92,11 +108,12 @@ class PreserverFixtures(unittest.TestCase):
             shutil.rmtree(cls.work)
 
     @classmethod
-    def compile(cls, compiler, output, static, pause=0):
+    def compile(cls, compiler, output, static, pause=0, deadline=15000):
         owner = str(os.getuid())
         base = str(cls.base)
         command = [compiler, '-std=c11', '-Os', '-Wall', '-Wextra', '-Werror',
-                   f'-DPRESERVER_BASE={json.dumps(base)}', f'-DPRESERVER_OWNER_UID={owner}']
+                   f'-DPRESERVER_BASE={json.dumps(base)}', f'-DPRESERVER_PROC={json.dumps(str(cls.proc))}',
+                   f'-DPRESERVER_OWNER_UID={owner}', f'-DPRESERVER_DEADLINE_MS={deadline}']
         if static:
             command += ['-static']
         if pause:
@@ -146,8 +163,11 @@ class PreserverFixtures(unittest.TestCase):
 
     def test_complete_files_and_bounded_output(self):
         self.populate(LIMITS)
-        self.assert_complete(self.run_both())
-        self.assertLessEqual(len(self.execute(self.host).stdout), 524288)
+        results = self.run_both()
+        self.assert_complete(results)
+        for label, completed in results:
+            self.assertEqual(parse(completed.stdout)['__scan__']['scan_status'], 'passed', label)
+            self.assertLessEqual(len(completed.stdout), 524288)
 
     def test_missing_symlink_fifo_socket_and_device_refuse_without_blocking(self):
         cases = []
@@ -224,6 +244,183 @@ class PreserverFixtures(unittest.TestCase):
         self.assertEqual((process.returncode, stderr),
                          (0, b'__PRESERVER_TEST_OPENED__\n' * 3))
         self.assertEqual(parse(stdout)['observer.stdout'][0]['state'], 'changing')
+
+    def test_scan_failures_retain_preservation_frames_and_validate_numeric_values(self):
+        self.populate()
+        malformed = self.proc / '001'
+        (malformed / 'fd').mkdir(mode=0o700, parents=True)
+        (malformed / 'cmdline').write_bytes(b'/bin/idle\0')
+        (malformed / 'exe').symlink_to('/bin/idle')
+        try:
+            for label, completed in self.run_both():
+                self.assertEqual(completed.returncode, 2, label)
+                parsed = parse(completed.stdout)
+                self.assertEqual(parsed['observer.stdout'][0]['state'], 'regular')
+                self.assertEqual(parsed['__scan__']['scan_status'], 'incomplete')
+        finally:
+            shutil.rmtree(malformed)
+
+    def test_scan_process_limit_overflow(self):
+        self.populate()
+        for number in range(2, 513):
+            process = self.proc / str(number)
+            (process / 'fd').mkdir(mode=0o700, parents=True)
+            (process / 'cmdline').write_bytes(b'/bin/idle\0')
+            (process / 'exe').symlink_to('/bin/idle')
+            (process / 'fd' / '0').symlink_to('/dev/null')
+        try:
+            completed = self.execute(self.host)
+            self.assertEqual(completed.returncode, 0)
+            scan = parse(completed.stdout)['__scan__']
+            self.assertEqual((scan['processes'], scan['scan_status']), ('512', 'passed'))
+            process = self.proc / '513'
+            (process / 'fd').mkdir(mode=0o700, parents=True)
+            (process / 'cmdline').write_bytes(b'/bin/idle\0')
+            (process / 'exe').symlink_to('/bin/idle')
+            completed = self.execute(self.host)
+            self.assertEqual(completed.returncode, 2)
+            scan = parse(completed.stdout)['__scan__']
+            self.assertEqual(scan['processes'], '512')
+            self.assertEqual(scan['scan_status'], 'overflow')
+        finally:
+            shutil.rmtree(self.proc / '513', ignore_errors=True)
+            for number in range(2, 513):
+                shutil.rmtree(self.proc / str(number))
+
+    def test_scan_descriptor_and_match_exact_limits_then_overflow(self):
+        self.populate()
+        baseline = self.proc / '1'
+        held = self.proc / '.baseline-held'
+        baseline.rename(held)
+        process = self.proc / '2'
+        (process / 'fd').mkdir(mode=0o700, parents=True)
+        (process / 'cmdline').write_bytes(b'/bin/idle\0')
+        (process / 'exe').symlink_to('/bin/idle')
+        for number in range(4096):
+            (process / 'fd' / str(number)).symlink_to('/dev/null')
+        try:
+            completed = self.execute(self.host)
+            self.assertEqual(completed.returncode, 0)
+            scan = parse(completed.stdout)['__scan__']
+            self.assertEqual((scan['descriptors'], scan['scan_status']), ('4096', 'passed'))
+            (process / 'fd' / '4096').symlink_to('/dev/null')
+            completed = self.execute(self.host)
+            self.assertEqual(completed.returncode, 2)
+            scan = parse(completed.stdout)['__scan__']
+            self.assertEqual((scan['descriptors'], scan['scan_status']), ('4096', 'overflow'))
+            self.assertEqual(parse(completed.stdout)['observer.stdout'][0]['state'], 'regular')
+        finally:
+            shutil.rmtree(process)
+            held.rename(baseline)
+
+        process = self.proc / '3'
+        (process / 'fd').mkdir(mode=0o700, parents=True)
+        (process / 'cmdline').write_bytes(b'/bin/idle\0')
+        (process / 'exe').symlink_to('/bin/idle')
+        for number in range(256):
+            (process / 'fd' / str(number)).symlink_to('/dev/input/preserver-nonexistent-review-node')
+        try:
+            completed = self.execute(self.host)
+            self.assertEqual(completed.returncode, 2)
+            scan = parse(completed.stdout)['__scan__']
+            self.assertEqual((scan['matches'], scan['scan_status']), ('256', 'incomplete'))
+            (process / 'fd' / '256').symlink_to('/dev/input/preserver-nonexistent-review-node')
+            completed = self.execute(self.host)
+            self.assertEqual(completed.returncode, 2)
+            scan = parse(completed.stdout)['__scan__']
+            self.assertEqual((scan['matches'], scan['scan_status']), ('256', 'overflow'))
+            self.assertEqual(scan['match_overflow'], 'yes')
+            self.assertEqual(parse(completed.stdout)['observer.stdout'][0]['state'], 'regular')
+        finally:
+            shutil.rmtree(process)
+
+    def test_scan_truncated_proc_content_is_incomplete_after_preservation(self):
+        self.populate()
+        process = self.proc / '4'
+        (process / 'fd').mkdir(mode=0o700, parents=True)
+        (process / 'cmdline').write_bytes(b'x' * 4097)
+        (process / 'exe').symlink_to('/bin/idle')
+        try:
+            completed = self.execute(self.host)
+            self.assertEqual(completed.returncode, 2)
+            parsed = parse(completed.stdout)
+            self.assertEqual(parsed['observer.stdout'][0]['state'], 'regular')
+            self.assertEqual(parsed['__scan__']['scan_status'], 'incomplete')
+        finally:
+            shutil.rmtree(process)
+
+    def test_executable_identity_is_sanitized_independent_of_cmdline(self):
+        self.populate()
+        process = self.proc / '5'
+        (process / 'fd').mkdir(mode=0o700, parents=True)
+        (process / 'cmdline').write_bytes(b'changed-argv\0')
+        (process / 'exe').symlink_to('/a53-keyboard-disconnect/probe (deleted)')
+        try:
+            completed = self.execute(self.host)
+            self.assertEqual(completed.returncode, 0)
+            scan = parse(completed.stdout)['__scan__']
+            self.assertEqual(scan['scan_status'], 'passed')
+            self.assertEqual(scan['exe_matches'], '1')
+            self.assertEqual(scan['exe_deleted_matches'], '1')
+            self.assertEqual(scan['cmdline_matches'], '0')
+        finally:
+            shutil.rmtree(process)
+
+    def test_portable_console_rdev_alias_is_metadata_only(self):
+        candidates = [Path('/dev/console'), Path('/dev/tty')]
+        candidate = next((path for path in candidates if path.exists() and
+                          os.stat(path).st_rdev and
+                          (os.major(os.stat(path).st_rdev) in (4, 5, 13))), None)
+        if candidate is None:
+            self.skipTest('host has no portable Linux console/input rdev alias')
+        self.populate()
+        process = self.proc / '6'
+        (process / 'fd').mkdir(mode=0o700, parents=True)
+        (process / 'cmdline').write_bytes(b'/bin/idle\0')
+        (process / 'exe').symlink_to('/bin/idle')
+        (process / 'fd' / '0').symlink_to(candidate)
+        try:
+            completed = self.execute(self.host)
+            self.assertEqual(completed.returncode, 0)
+            scan = parse(completed.stdout)['__scan__']
+            self.assertEqual(scan['scan_status'], 'passed')
+            self.assertGreater(int(scan['console_matches']) + int(scan['input_matches']), 0)
+        finally:
+            shutil.rmtree(process)
+
+    def test_deadline_blocked_stdout_and_static_no_process_paths(self):
+        self.populate(LIMITS)
+        delayed = self.work / 'preserver-short-deadline'
+        self.compile(self.host_compiler, delayed, static=False, pause=100000, deadline=20)
+        completed = subprocess.run([str(delayed)], capture_output=True, timeout=3)
+        self.assertEqual(completed.returncode, 2)
+        blocked = self.work / 'preserver-blocked-output'
+        self.compile(self.host_compiler, blocked, static=False, deadline=20)
+        read_fd, write_fd = os.pipe()
+        os.set_blocking(write_fd, False)
+        prefill = bytearray()
+        while True:
+            try:
+                written = os.write(write_fd, b'p' * 4096)
+                prefill.extend(b'p' * written)
+            except BlockingIOError:
+                break
+        process = subprocess.Popen([str(blocked)], stdout=write_fd, stderr=subprocess.PIPE)
+        os.close(write_fd)
+        self.assertEqual(process.wait(timeout=3), 2)
+        captured = bytearray()
+        while True:
+            chunk = os.read(read_fd, 65536)
+            if not chunk:
+                break
+            captured.extend(chunk)
+        os.close(read_fd)
+        stderr = process.stderr.read()
+        process.stderr.close()
+        self.assertEqual((bytes(captured), stderr), (bytes(prefill), b''))
+        source = SOURCE.read_text()
+        for name in ('fork', 'exec', 'setsid', 'kill', 'signal'):
+            self.assertIsNone(re.search(r'\b' + name + r'\s*\(', source), name)
 
     def test_no_arbitrary_arguments_and_no_output_on_invalid_ancestry(self):
         self.populate()

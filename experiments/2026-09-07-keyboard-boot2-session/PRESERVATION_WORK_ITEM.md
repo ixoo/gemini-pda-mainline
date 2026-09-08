@@ -129,6 +129,21 @@ accepted 66,664-byte component remains historical input, not a delivery pin.
 Stop after two relevant repair failures or any need to change the fixed paths,
 effects, deadline, output semantics or scan ownership.
 
+The helper-only implementation handoff is source
+`184647a9ff7ba0e60159dd75b4836f944238b12302a90653ec46c5960abfaf55`
+and fixture
+`732c86fc1ba8a7191b8d1f0c2aea8b0f1151a62aa911711537e59030f9189ff7`.
+Eleven host methods pass; the Linux device-number alias case is the sole macOS
+skip and is mandatory on Buildbox. The first specialist review reproduced a
+writable-output deadline bypass and executable-identity blind spot. Repair one
+closed those plus descriptor ownership, sanitized identity and deterministic
+blocked-output coverage, but left outer enumeration errno coupling and a
+recognized dangling-input false completion. Final repair two made descriptor
+metadata failure incomplete, isolated each outer `readdir`, and made match 257
+an overflow after exact-limit 256. Final specialist source review found no
+remaining relevant defect and admitted one exact Buildbox run only. Any new
+failure is an escalation stop, not another repair authorization.
+
 ## Runner remains blocked
 
 A future default-off runner needs a new preservation-admission UUID bound to
