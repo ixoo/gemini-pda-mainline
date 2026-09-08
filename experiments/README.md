@@ -25,6 +25,13 @@ the loop. Positive identity-gated observations are unaffected.
   — records the current canonical-subsequence findings and enforcement
   boundary.
 
+### Current PMIC key preparation
+
+- [2026-09-08 MT6351 PMIC key preparation](2026-09-08-mt6351-keys-preparation/README.md)
+  — isolated chip-data and MFD resource support, failed-read and reset-setup
+  error handling, compile/schema evidence, and the unresolved physical key
+  and recovery-policy admission boundary.
+
 ### Boot graphics and retained-firmware records
 
 - [2026-08-31 Gemini boot-graphics recovery](2026-08-31-boot-graphics-recovery/README.md)

@@ -123,6 +123,15 @@ Next resolve the
 Attributable hardware evidence and truthful authorship/certification remain
 required before promoting this unsigned topic.
 
+The independent [MT6351 key topic](../experiments/2026-09-08-mt6351-keys-preparation/README.md)
+adds chip data and MFD IRQ resources after two generic transport-error fixes.
+Its isolated compile and focused schema checks pass; no Gemini key node is
+enabled. Before board
+admission, establish an explicit long-press recovery policy: the upstream
+default disables hardware long-press reset, including the second key function
+even with only a power-key child. Physical key, wake and suspend behavior
+remain later runtime gates.
+
 The current [cellular architecture refresh](../experiments/2026-09-07-mt6797-cellular-upstream-architecture/README.md)
 confirms that generic WWAN ports and netdevs are reusable only above a future
 proved transport. PCIe `t7xx`, RPMsg-WWAN and the current MediaTek SCP remoteproc

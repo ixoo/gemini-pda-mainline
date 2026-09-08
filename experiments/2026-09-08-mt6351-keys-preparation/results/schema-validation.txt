@@ -1,0 +1,49 @@
+Buildbox MT6351 keys focused validation; neutral paths substituted.
+
+binding-check.log
+make: Entering directory '<prepared-source>'
+make[1]: Entering directory '<schema-output>'
+  SCHEMA  Documentation/devicetree/bindings/processed-schema.json
+  HOSTCC  scripts/basic/fixdep
+  HOSTCC  scripts/dtc/dtc.o
+  HOSTCC  scripts/dtc/flattree.o
+  HOSTCC  scripts/dtc/fstree.o
+  HOSTCC  scripts/dtc/data.o
+  HOSTCC  scripts/dtc/livetree.o
+  HOSTCC  scripts/dtc/treesource.o
+  HOSTCC  scripts/dtc/srcpos.o
+  HOSTCC  scripts/dtc/checks.o
+  HOSTCC  scripts/dtc/util.o
+  LEX     scripts/dtc/dtc-lexer.lex.c
+  YACC    scripts/dtc/dtc-parser.tab.[ch]
+  HOSTCC  scripts/dtc/dtc-lexer.lex.o
+  HOSTCC  scripts/dtc/dtc-parser.tab.o
+  HOSTLD  scripts/dtc/dtc
+  CHKDT   <prepared-source>/Documentation/devicetree/bindings
+  LINT    <prepared-source>/Documentation/devicetree/bindings
+  STYLE   <prepared-source>/Documentation/devicetree/bindings
+  DTEX    Documentation/devicetree/bindings/regulator/mediatek,mt6351-regulator.example.dts
+  DTC [C] Documentation/devicetree/bindings/regulator/mediatek,mt6351-regulator.example.dtb
+  DTEX    Documentation/devicetree/bindings/mfd/mediatek,mt6397.example.dts
+  DTC [C] Documentation/devicetree/bindings/mfd/mediatek,mt6397.example.dtb
+make[1]: Leaving directory '<schema-output>'
+make: Leaving directory '<prepared-source>'
+
+key-state.txt
+PASS: 42 key-state/reset-policy/transport cases
+
+invalid-reset-mode.txt
+<schema-receipt>/invalid-reset-mode.dtb: keys (mediatek,mt6351-keys): mediatek,long-press-mode: 3 is greater than the maximum of 2
+	from schema $id: http://devicetree.org/schemas/input/mediatek,pmic-keys.yaml
+
+generated-cache.txt
+a9c71b233270d54dea904b5eb519fd6f29ee4e326ceac709f6ea7f8a53a1c0d7  <prepared-source>/tools/lib/python/__pycache__/jobserver.cpython-311.pyc
+
+source-before.txt
+source_tree_integrity=69f366e8604ca7a974ad6dae81ba85ad1d2f078164df537db3ef57bc344ea67b
+
+source-after.txt
+source_tree_integrity=69f366e8604ca7a974ad6dae81ba85ad1d2f078164df537db3ef57bc344ea67b
+
+status.txt
+PASS: focused bindings, completion markers, joint fixture, invalid reset mode, 42 driver cases; original source integrity restored after removing generated Python bytecode

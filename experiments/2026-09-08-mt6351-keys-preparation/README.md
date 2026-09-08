@@ -1,6 +1,6 @@
 # MT6351 PMIC key preparation
 
-Status: incomplete compile-preparation checkpoint, 2026-09-08. This topic
+Status: compile and schema validated, 2026-09-08. This topic
 adds chip support and prerequisite error handling. It is not a Gemini boot
 candidate, key-event demonstration or approved change to hardware reset policy.
 
@@ -63,10 +63,27 @@ fails the error-propagation assertion. The fixture does not execute a complete
 probe, model IRQ timing, or establish either physical key's behavior.
 
 Strict checkpatch passes for all five patches with only `MISSING_SIGN_OFF`
-excluded. Buildbox compile and focused schema checks are pending at this
-checkpoint. The [schema fixture](joint-example.dts) is an offline parent,
-regulator and power-key example, not a board DTS. Existing profiles are
-unchanged; the new profile explicitly enables `KEYBOARD_MTK_PMIC`.
+excluded. The [Buildbox compile receipt](results/compile.json) records a clean
+build from `59ddbf6f57767d7ad11a7ded537b591e64fce03a`, with zero compiler
+warnings or errors and a validated, checksum-verified fetched package. The
+compiled source hashes match the reviewed draft, and the final image contains
+the key probe, MT6351 data and MFD IRQ resources. The new profile explicitly
+enables `KEYBOARD_MTK_PMIC`; all 198 previous profiles remain unchanged.
+
+Focused `dt_binding_check` passes for the key, MFD and regulator schemas with
+all three schema/lint/style completion markers. Direct validation of the
+[schema fixture](joint-example.dts) produces empty diagnostics for all three
+selections; long-press mode 3 is correctly rejected. This fixture is an offline
+parent, regulator and power-key example, not a board DTS. The
+[schema receipt](results/schema.json) and [portable log](results/schema-validation.txt)
+record the result, including 42 driver cases repeated on the prepared source.
+The post-check integrity verification initially detected a generated
+`tools/lib/python/__pycache__/jobserver.cpython-311.pyc`. Removing only that
+regenerable file and its empty directory restored the original complete source
+digest. No source or patch repair was needed. Set `PYTHONDONTWRITEBYTECODE=1`
+for reproduction to avoid this cache. The fixture DTC check suppresses only
+`interrupt_provider`, because the parent MFD schema disallows `#address-cells`
+on the PMIC. No board or binding constraint was changed for this exclusion.
 
 ```sh
 python3 experiments/2026-09-08-mt6351-keys-preparation/test-key-state.py \
@@ -74,6 +91,15 @@ python3 experiments/2026-09-08-mt6351-keys-preparation/test-key-state.py \
 KERNEL_PROFILE=mt6351-keys-compile ./scripts/build-kernel --backend buildbox
 KERNEL_PROFILE=mt6351-keys-compile ./scripts/buildbox fetch-package
 ```
+
+For schema reproduction, use the pinned dtschema 2026.6 environment and a
+separate output directory with `ARCH=arm64`. Run `make dt_binding_check` with
+`DT_SCHEMA_FILES=mediatek,pmic-keys.yaml:mediatek,mt6397.yaml:mediatek,mt6351-regulator.yaml`.
+Compile the fixture with that output's `scripts/dtc/dtc -Wno-interrupt_provider`,
+then use `dt-validate -s processed-schema.json` with separate `-l` selections
+`mediatek,pmic-keys`, `mediatek,mt6397` and `mediatek,mt6351-regulator`. Changing
+`mediatek,long-press-mode` from 0 to 3 must produce the logged maximum-2
+rejection. These checks do not establish physical reset behavior.
 
 ## Admission and upstream limits
 
