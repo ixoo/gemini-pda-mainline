@@ -1,0 +1,51 @@
+[
+  {
+    "repository": "torvalds/linux",
+    "revision": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "path": "drivers/rtc/rtc-mt6397.c",
+    "bytes": 9163,
+    "sha256": "bdcc2e03bb190b44cc95f052bee7c8fd7a0964b08164cc6034bfba5205108ddd"
+  },
+  {
+    "repository": "torvalds/linux",
+    "revision": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "path": "include/linux/mfd/mt6397/rtc.h",
+    "bytes": 2281,
+    "sha256": "6cc6002d16d882c4d5239c5f7dd2b1c7e8e5ade4b6343d9b7011264f2a8486ab"
+  },
+  {
+    "repository": "torvalds/linux",
+    "revision": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "path": "scripts/checkpatch.pl",
+    "bytes": 245615,
+    "sha256": "2553cc1a601e70522e03fbce633d4e79fa5936f7f56a66de1899b7ddd247820a"
+  },
+  {
+    "repository": "torvalds/linux",
+    "revision": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "path": "scripts/spelling.txt",
+    "bytes": 36610,
+    "sha256": "4095d4a8810f115bae1b7c0d8a1946beb3435f6e22d9a48ac009bb024bad1e68"
+  },
+  {
+    "repository": "torvalds/linux",
+    "revision": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "path": "scripts/const_structs.checkpatch",
+    "bytes": 1646,
+    "sha256": "ea064f6916a74763468037494aeb270aae34b7c97617e84d424ca5b8733539b2"
+  },
+  {
+    "repository": "torvalds/linux",
+    "revision": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "path": "drivers/rtc/Kconfig",
+    "bytes": 63550,
+    "sha256": "7600a842173b1a4146a2ececb3bf99d254f8f87d1b33e946e59ad9fd88a1b31e"
+  },
+  {
+    "repository": "torvalds/linux",
+    "revision": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "path": "MAINTAINERS",
+    "bytes": 927914,
+    "sha256": "39e65935b8f213dfa9b7a49a7341565855c6aec851288f0f32a0b2afcb35558a"
+  }
+]

@@ -1,0 +1,47 @@
+From 9564d030d8c214ae26aa481440c49bf0171c3980 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 8 Sep 2026 17:14:28 -0400
+Subject: [PATCH] rtc: mt6397: preserve interrupt enables when handling an
+ alarm
+
+The alarm handler derives the replacement IRQ_EN value from IRQ_STA.
+These are different registers: an alarm-only status clears other enabled
+interrupts, while a simultaneous low-power status can enable its interrupt
+even if it was disabled. The one-shot mode bit is also discarded.
+
+Clear only RTC_IRQ_EN_AL with a masked update of IRQ_EN under the existing
+mutex. Keep the write trigger after a successful update and preserve the
+existing alarm notification and IRQ return behavior.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/rtc/rtc-mt6397.c | 7 +++----
+ 1 file changed, 3 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/rtc/rtc-mt6397.c b/drivers/rtc/rtc-mt6397.c
+index 3d85768..eeb5c5d 100644
+--- a/drivers/rtc/rtc-mt6397.c
++++ b/drivers/rtc/rtc-mt6397.c
+@@ -39,16 +39,15 @@ static int mtk_rtc_write_trigger(struct mt6397_rtc *rtc)
+ static irqreturn_t mtk_rtc_irq_handler_thread(int irq, void *data)
+ {
+ 	struct mt6397_rtc *rtc = data;
+-	u32 irqsta, irqen;
++	u32 irqsta;
+ 	int ret;
+ 
+ 	ret = regmap_read(rtc->regmap, rtc->addr_base + RTC_IRQ_STA, &irqsta);
+ 	if ((ret >= 0) && (irqsta & RTC_IRQ_STA_AL)) {
+ 		rtc_update_irq(rtc->rtc_dev, 1, RTC_IRQF | RTC_AF);
+-		irqen = irqsta & ~RTC_IRQ_EN_AL;
+ 		mutex_lock(&rtc->lock);
+-		if (regmap_write(rtc->regmap, rtc->addr_base + RTC_IRQ_EN,
+-				 irqen) == 0)
++		if (regmap_update_bits(rtc->regmap, rtc->addr_base + RTC_IRQ_EN,
++				       RTC_IRQ_EN_AL, 0) == 0)
+ 			mtk_rtc_write_trigger(rtc);
+ 		mutex_unlock(&rtc->lock);
+ 
+-- 
+2.50.1 (Apple Git-155)
+
