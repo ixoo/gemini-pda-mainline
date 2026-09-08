@@ -1,0 +1,53 @@
+{
+  "repository_commit": "6e41ef8d77e349e674a9189495403438349470d0",
+  "generated_utc": "2026-09-08T19:44:50Z",
+  "kernel_release": "7.3.0-rc1-mt6351-regulator-compile",
+  "build_profile": "mt6351-regulator-compile",
+  "patchset_sha256": "98ade3921856c94913ac0d1cf67b2569897573148df4c3a22bbc96d605d29a77",
+  "config_sha256": "662850a6e69fd56382898a73a1970040e65adf7053f2fd8004d839c7a5cc29fd",
+  "compiler": "aarch64-linux-gnu-gcc (Debian 12.2.0-14) 12.2.0",
+  "compiler_sha256": "c7b8890354c8ddc0364addfeb8968597e197627bd1e338fb6ed705b578803846",
+  "linker": "GNU ld (GNU Binutils for Debian) 2.40",
+  "linker_sha256": "e09a889c78a75e73ed096c9fa28905599e6813298b9ac839d10b02ffa96e7b08",
+  "status": "PASS",
+  "parent_compile_receipt": "irq-wake-compile.json",
+  "source_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "package": "linux-7.3-rc1-gemini-6c316109f1e1f72db136a8533b85dd96a2e371597c70f3eff0483f8a19a9b108",
+  "package_inventory_sha256": "6c316109f1e1f72db136a8533b85dd96a2e371597c70f3eff0483f8a19a9b108",
+  "image_gzip_sha256": "d28e840bc08bd6aebd68a27169dc4c9dcad9a04fc1e6ae2bf0fea9fda82e3510",
+  "build_log_sha256": "776695e9b50069431434df72c8bd6a762464c74313ad18406393892a57b21c74",
+  "compiler_warnings": 0,
+  "compiler_errors": 0,
+  "source_sha256": {
+    "drivers/mfd/mt6397-irq.c": "67010b2a7a4ace2a1328e95e090ca27f729855da1502f28412c339d87bd60bfc",
+    "drivers/mfd/mt6397-core.c": "f7caed8b60e3140e76479a3b1d1b8ddde9d80a7cb2358e9fa7fdee7062f7c3c0",
+    "include/linux/mfd/mt6397/core.h": "0b13b246abeb853563f4d750f8313de0b9121c36b83a4863064ce3232f618452"
+  },
+  "object_sha256": {
+    "drivers/mfd/mt6397-irq.o": "2e4ee8fda685e4811afec6dee9216fcc6357d255c8656827bbd73de07de3864e",
+    "drivers/mfd/mt6397-core.o": "201bfa5500b005da4600fbd91aa811f3c4e02b2fae8e0a01951329d603e576a3"
+  },
+  "compiled_evidence": [
+    "MFD core references mt6397_irq_suspend and mt6397_irq_resume",
+    "IRQ object defines both callbacks and has no notifier reference"
+  ],
+  "regression": {
+    "order_script_sha256": "5edd6ab5eca18bb18ab108e6fe5826bd62676ecb8a8953cd297b3515dcc89425",
+    "before_irq_source_sha256": "34bf992b5e41ce5532392927b9d001f88d8d232a46c27de550da40ec89d6c8b4",
+    "order_cases": "Missed child wake request reproduced before fix and accepted afterward for 2/3/4 banks; modern zero-bank no-op.",
+    "lifetime_script_sha256": "99ccfaa1261e568f5a6a1670fb6c29b6c35a3cd1d0d179f41f00aae4053256a8",
+    "lifetime_fixture_sha256": "1e13b86594b2d455469c8ba7c55338c7d0ad07f6b1c906ea618f6a9cea1eb401",
+    "current_lifetime_cases_passed": 52,
+    "historical_nine_patch_cases_passed_locally": 64,
+    "runners": [
+      "local userspace compiler",
+      "Buildbox userspace compiler with exact prepared source"
+    ],
+    "scope": "Actual callback bodies with modeled documented PM order, register access and devres; not a running kernel or physical wake test."
+  },
+  "first_nine_patches_unchanged": true,
+  "upstream_source_configuration_and_toolchain_unchanged": true,
+  "schema_checks": "Not repeated: bindings and source baseline unchanged; see schema.json.",
+  "hardware_test": false,
+  "boot_candidate": false
+}

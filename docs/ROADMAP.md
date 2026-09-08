@@ -110,20 +110,16 @@ MFD parent/cell through local patches 0008/0010, while official current upstream
 does not, and Gemini's analog routes remain unestablished.
 
 The [MT6351 MFD preparation](../experiments/2026-09-08-mt6351-mfd-upstream-preparation/README.md)
-separates an existing MT6328 interrupt-domain correction from the four-bank
-MT6351 extension. Its five-patch parent/core/regulator draft passes an isolated
-Linux 7.3-rc1 build, focused schema checks and a regulator reprobe regression.
-It enables no Gemini board or unrelated PMIC children and is not a device
-candidate. A sixth patch now rejects failed interrupt-mask writes before IRQ
-registration; its focused regression and updated compile passed. The
-[VCN33 source follow-up](../experiments/2026-09-08-mt6351-mfd-upstream-preparation/VCN33.md)
-establishes shared voltage control but not output topology. Two further
-patches manage IRQ-domain and PM-notifier cleanup; their failure-path model
-and isolated compile pass. The shared MT6358 wake reference is now balanced
-on teardown, with a passing extended regression and compile. Next resolve
-VCN33 ownership and the remaining IRQ error/control gaps, then obtain
-attributable hardware evidence and truthful authorship/certification before
-promoting this unsigned topic.
+separates the existing MT6328 domain correction from MT6351 support. Its
+isolated ten-patch core/regulator topic passes compilation and focused tests;
+the unchanged bindings retain their schema validation. IRQ domains and the
+MT6358-family wake reference have managed cleanup. Legacy wake masks are
+programmed after child suspend requests. The topic enables no Gemini board
+or unrelated PMIC children and is not a device candidate. Next implement partial-change recovery
+for suspend/register failures and resolve the
+[shared VCN33 output/control contract](../experiments/2026-09-08-mt6351-mfd-upstream-preparation/VCN33.md).
+Attributable hardware evidence and truthful authorship/certification remain
+required before promoting this unsigned topic.
 
 The current [cellular architecture refresh](../experiments/2026-09-07-mt6797-cellular-upstream-architecture/README.md)
 confirms that generic WWAN ports and netdevs are reusable only above a future

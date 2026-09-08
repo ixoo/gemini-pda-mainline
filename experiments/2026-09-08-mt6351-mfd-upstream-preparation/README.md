@@ -347,7 +347,13 @@ The lifetime test supports both source forms: 64 cases still pass for the
 nine-patch parent, while 52 pass for this successor. The twelve removed cases
 are registration/action failures for the six legacy notifiers that no longer
 exist. Domain, parent-handler, mapping and modern wake cleanup cases remain.
-Exact replay passed. Compilation is pending. The [error-path review](IRQ_ERRORS.md)
+Exact replay and strict checkpatch passed. The
+[ten-patch Buildbox compile](results/irq-pm-order-compile.json) from `6e41ef8d`
+passed without compiler warnings or errors; the validated package was fetched.
+The prepared sources match the exact replay, the core object references both
+new callbacks, and the IRQ object has no notifier reference. Both focused
+tests passed on Buildbox. Source baseline, configuration, toolchain and the
+first nine patches match the parent. The [error-path review](IRQ_ERRORS.md)
 remains applicable to ignored mask and wake errors; this patch changes ordering
 and does not implement error recovery or prove working suspend on the Gemini.
 The MT6351 topic still has no key child or admitted device candidate.

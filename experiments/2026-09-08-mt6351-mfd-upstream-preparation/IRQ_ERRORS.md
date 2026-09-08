@@ -72,3 +72,19 @@ This identifies the required error contract, not an admitted implementation.
 Status acknowledgement reporting can be a separate small correction. It must
 not add an automatic retry or claim that returning `IRQ_NONE` clears an asserted
 hardware interrupt. Shared VCN33 ownership remains independent of this review.
+
+
+## Ten-patch successor
+
+The [ordering follow-up](README.md#child-wake-request-ordering-follow-up)
+replaces the notifier with device suspend/resume callbacks because child wake
+requests can arrive during device suspend. The nine-patch notifier analysis
+above remains historical evidence, not a description of the current callback.
+Ignored register/wake errors and the need for self-restoration remain open.
+In the same baseline, `drivers/base/power/main.c` (SHA-256
+`a704473ddbabfc19fea20d24944b12e6e1889a230d7a76b66ef92bce1cc77eb4`)
+sets `is_suspended` only after a successful callback and skips resume for a
+device without that flag. Therefore a future failing device-suspend callback
+must also restore its own partial changes; moving callbacks alone supplies no
+error recovery. Review serialization in the new device-PM phase instead of
+assuming that the old pre-freeze notifier constraints still describe it.
