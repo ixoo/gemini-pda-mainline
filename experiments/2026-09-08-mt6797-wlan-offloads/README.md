@@ -95,6 +95,11 @@ No firmware command or register bit is invented to obtain that mode. The next
 independent source question is that RX-format/control and BA-lifetime boundary,
 not another stand-alone parser without a real receiver.
 
+The [receive follow-up](RECEIVE.md) retains the source-supported translated
+path and distinguishes normal DELBA delivery from station-removal discard. It
+also identifies the missing firmware ordering boundary before station-index
+reuse; a host-only generation does not authenticate a late wire event.
+
 The existing `mt76` hardware/transport mismatch is unchanged. A plausible
 mac80211 integration does not make this an MT7603, MT7628 or SDIO device, and
 similar descriptor vocabulary is not a compatibility proof.
