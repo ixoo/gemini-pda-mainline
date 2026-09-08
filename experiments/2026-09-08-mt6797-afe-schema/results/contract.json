@@ -1,0 +1,29 @@
+{
+  "ordered_clock_names": [
+    "infra_sys_audio_clk",
+    "infra_sys_audio_26m",
+    "mtkaif_26m_clk",
+    "top_mux_audio",
+    "top_mux_aud_intbus",
+    "top_sys_pll3_d4",
+    "top_sys_pll1_d4",
+    "top_clk26m_clk"
+  ],
+  "direct_clock_consumers": [
+    "infra_sys_audio_clk",
+    "infra_sys_audio_26m",
+    "top_mux_audio",
+    "top_mux_aud_intbus",
+    "top_sys_pll3_d4",
+    "top_sys_pll1_d4",
+    "top_clk26m_clk"
+  ],
+  "adda_clock_supply": "mtkaif_26m_clk",
+  "files": {
+    "Documentation/devicetree/bindings/sound/mt6797-afe-pcm.txt": "3ee4a94768158f942bd1faadc3a260cafb252f9a7a8d1010951df9614bcef062",
+    "Documentation/devicetree/bindings/sound/mediatek,mt6797-afe-pcm.yaml": "d69ad28ae271a301debf9002b8b6fbdf95baef491025cf1a625851d19c778c91",
+    "sound/soc/mediatek/mt6797/mt6797-afe-clk.c": "0d1ec1ae44312c6eab43d7c0835307f6f3e9d622abe9ab79e1bb074b775438a0",
+    "sound/soc/mediatek/mt6797/mt6797-dai-adda.c": "1f8a3db8ef1bef3eb92f54a5dedae56ec635e855034f163a6c771e2bc01ea5dd",
+    "Documentation/devicetree/bindings/sound/mt6797-mt6351.txt": "2a4a8fcb3449d5701119ad203ffccf414b48b1a12d4fc05ab50aac06586719ad"
+  }
+}

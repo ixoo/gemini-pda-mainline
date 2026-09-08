@@ -1,0 +1,33 @@
+<upstream-worktree>/Documentation/devicetree/bindings/sound/mt6797-afe-pcm.txt: OK
+PASS: legacy, schema, example and eight driver consumers agree
+total: 0 errors, 0 warnings, 0 checks, 85 lines checked
+
+<review-package>/0001-dt-bindings-sound-mediatek-convert-MT6797-AFE-to-schema.patch has no obvious style problems and is ready for submission.
+
+NOTE: Ignored message types: COMMIT_LOG_LONG_LINE FILE_PATH_CHANGES MISSING_SIGN_OFF
+make: Entering directory '<upstream-worktree>'
+make[1]: Entering directory '<upstream-worktree>/out'
+  SCHEMA  Documentation/devicetree/bindings/processed-schema.json
+  HOSTCC  scripts/basic/fixdep
+  HOSTCC  scripts/dtc/dtc.o
+  HOSTCC  scripts/dtc/flattree.o
+  HOSTCC  scripts/dtc/fstree.o
+  HOSTCC  scripts/dtc/data.o
+  HOSTCC  scripts/dtc/livetree.o
+  HOSTCC  scripts/dtc/treesource.o
+  HOSTCC  scripts/dtc/srcpos.o
+  HOSTCC  scripts/dtc/checks.o
+  HOSTCC  scripts/dtc/util.o
+  LEX     scripts/dtc/dtc-lexer.lex.c
+  YACC    scripts/dtc/dtc-parser.tab.[ch]
+  HOSTCC  scripts/dtc/dtc-lexer.lex.o
+  HOSTCC  scripts/dtc/dtc-parser.tab.o
+  HOSTLD  scripts/dtc/dtc
+  CHKDT   ../Documentation/devicetree/bindings
+  LINT    ../Documentation/devicetree/bindings
+  STYLE   ../Documentation/devicetree/bindings
+  DTEX    Documentation/devicetree/bindings/sound/mediatek,mt6797-afe-pcm.example.dts
+  DTC [C] Documentation/devicetree/bindings/sound/mediatek,mt6797-afe-pcm.example.dtb
+make[1]: Leaving directory '<upstream-worktree>/out'
+make: Leaving directory '<upstream-worktree>'
+PASS: binding conversion, replay, strict style and compiled schema example

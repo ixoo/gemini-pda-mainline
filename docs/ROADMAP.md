@@ -99,10 +99,13 @@ lifetime; missing attribution preserves the current two-clock contract.
 The current [audio architecture refresh](../experiments/2026-09-07-mt6797-audio-upstream-architecture/README.md)
 identifies one smaller independent upstream topic: adapt local patch 0064 into
 a true MT6797 AFE text-to-YAML conversion, deleting the superseded text binding
-and preserving all eight ordered clock consumers. Only after that schema is
-accepted should patch 0045 be adapted as a disabled SoC-node follow-up with the
-current power-header include and unit-address ordering. Do not add or enable an
-MT6351 codec or machine card: the project's older package supplied the missing
+and preserving all eight ordered clock consumers. The
+[conversion draft](../experiments/2026-09-08-mt6797-afe-schema/README.md) now passes
+focused schema checks and its compiled example against the pinned upstream
+baseline; maintainer agreement and truthful authorship/certification remain
+unresolved. Only after that schema is accepted should patch 0045 be adapted as
+a disabled SoC-node follow-up with the current power-header include and
+unit-address ordering. Do not add or enable an MT6351 codec or machine card: the project's older package supplied the missing
 MFD parent/cell through local patches 0008/0010, while official current upstream
 does not, and Gemini's analog routes remain unestablished.
 

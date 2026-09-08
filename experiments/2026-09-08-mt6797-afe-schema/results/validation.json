@@ -1,0 +1,50 @@
+{
+  "status": "pass-offline-draft",
+  "project_input_commit": "4588061fdf959ed6603b9c0610e79b5c2e899277",
+  "upstream_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "generated_commit": "15c36e0aba612048480786770c9e09e1762941ce",
+  "schema_tools": "existing schema-2026.6 environment; dtschema 2026.6, PyYAML 6.0.3, yamllint 1.38.0",
+  "source_inventory_sha256": "8772a376fdef636987dbb3a360fc44d58bcbc7c94f7a3bac8ae5c4b193a1cfaa",
+  "raw_files_sha256": {
+    "0001-dt-bindings-sound-mediatek-convert-MT6797-AFE-to-schema.patch": "a5942db7ed70bf7e1023474d37614cc18e70f55eb3d8a123ff94fc885c7b507d",
+    "SHA256SUMS": "8772a376fdef636987dbb3a360fc44d58bcbc7c94f7a3bac8ae5c4b193a1cfaa",
+    "contract.json": "f9725d5231c1896d0874bfd7781e9ab0ff59e3a4cbb09573f0631aaba6ca728f",
+    "example-validation.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "mediatek,mt6797-afe-pcm.example.dts": "20a3e104dd7d5a87e03540fa92834e97a04be6f23a2b840543e265eeb6888999",
+    "result.txt": "985eb43444097135a3a36ba495d928cac6ca3c056590848467d1da3239947cd7",
+    "validation.log": "2520f5d06b2360f9d71d4affcdbabde5468450311c23e4f219bf032b52e6c431"
+  },
+  "checks": {
+    "patch_replay": "exact upstream tree match",
+    "eight_clocks": "legacy order equals schema and example; seven direct clocks plus ADDA supply",
+    "checkpatch_strict": "0 errors, 0 warnings, 0 checks; MISSING_SIGN_OFF, FILE_PATH_CHANGES, COMMIT_LOG_LONG_LINE excluded",
+    "dt_binding_check": "exit 0; all schema, yamllint and style completion markers required and present; no diagnostics",
+    "compiled_example": "built and directly validated against processed schema with empty diagnostic output",
+    "local_repository": "pass; Linux-only provenance checks skipped locally",
+    "shell": "bash syntax and ShellCheck pass"
+  },
+  "prior_attempts": [
+    {
+      "project_commit": "397f420e3c6e8587b9629b9e6f2f8cae72fdee75",
+      "result": "clock contract and replay passed; checkpatch stopped at unresolved historical commit in message"
+    },
+    {
+      "project_commit": "3f4db323c8925b121510283bde26431e2f8f2dcf",
+      "result": "incomplete despite generated PASS text: missing jobserver module skipped schema style; superseded"
+    }
+  ],
+  "not_run": [
+    "kernel image build",
+    "ASoC object build",
+    "device access",
+    "runtime audio tests",
+    "upstream submission"
+  ],
+  "limitations": [
+    "unsigned draft with synthetic non-certifying identity",
+    "inherited maintainer entries unconfirmed",
+    "canonical patch series and profiles unchanged",
+    "validated baseline is pinned 7.3-rc1, not a fresh current-HEAD claim"
+  ],
+  "sanitization": "validation log substitutes temporary upstream checkout and review-package directories; hashes refer to exact raw files"
+}

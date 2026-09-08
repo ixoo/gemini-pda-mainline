@@ -50,4 +50,20 @@ reported a missing `jobserver` module during schema style checking despite
 that attempt is incomplete. The sparse checkout now includes upstream's
 `tools/lib/python/`, and all three schema/lint/style completion markers are
 required. A direct focused example validation must also produce no diagnostics.
-Full schema validation is pending.
+
+## Validated result
+
+The corrected run from project commit
+`4588061fdf959ed6603b9c0610e79b5c2e899277` passed every required check,
+including all three completion markers and an independently invoked example
+validation with empty diagnostic output. The fetched seven-file inventory and
+every checksum matched the remote result. Exact identities, predecessor
+limitations and checks are in the [receipt](results/validation.json); the
+[clock contract](results/contract.json) and [sanitized log](results/validation.txt)
+retain the evidence.
+
+The [one-patch series](patches/series) is ready for technical review against
+the pinned baseline. It is still not submission-ready: resolve maintainer
+agreement and truthful authorship/certification, then refresh against the
+submission tree. The disabled SoC-node follow-up remains ordered after binding
+acceptance. No canonical patch is replaced merely because this draft passes.
