@@ -1,0 +1,55 @@
+{
+  "repository_commit": "3fc732c6af27da781118da5e048261398817a44b",
+  "generated_utc": "2026-09-08T19:21:10Z",
+  "kernel_release": "7.3.0-rc1-mt6351-regulator-compile",
+  "build_profile": "mt6351-regulator-compile",
+  "patchset_sha256": "c16634c04d2e4be601c64ac703454577b538406cb77f79c0e38b645f0696751f",
+  "config_sha256": "662850a6e69fd56382898a73a1970040e65adf7053f2fd8004d839c7a5cc29fd",
+  "compiler": "aarch64-linux-gnu-gcc (Debian 12.2.0-14) 12.2.0",
+  "compiler_sha256": "c7b8890354c8ddc0364addfeb8968597e197627bd1e338fb6ed705b578803846",
+  "linker": "GNU ld (GNU Binutils for Debian) 2.40",
+  "linker_sha256": "e09a889c78a75e73ed096c9fa28905599e6813298b9ac839d10b02ffa96e7b08",
+  "status": "PASS",
+  "parent_compile_receipt": "irq-mask-compile.json",
+  "source_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "package": "linux-7.3-rc1-gemini-f456d8a6ccf4be9d4b87a7aafdb785823e29c49ac638674a256663ba6dc0f9fa",
+  "package_inventory_sha256": "f456d8a6ccf4be9d4b87a7aafdb785823e29c49ac638674a256663ba6dc0f9fa",
+  "image_gzip_sha256": "1eaa34ccaea021c1ff375c499ce705795d12b38846018d1ac103fb32fd694f81",
+  "build_log_sha256": "2d8bc993ab7be6c7eb4b94e4ec3939663ae3747517eb1611b42e3823ebf871da",
+  "compiler_warnings": 0,
+  "compiler_errors": 0,
+  "source_sha256": {
+    "drivers/mfd/mt6397-irq.c": "34bf992b5e41ce5532392927b9d001f88d8d232a46c27de550da40ec89d6c8b4",
+    "drivers/mfd/mt6358-irq.c": "b295cb730838c73ccbafadf382f53d47fad5932ec1b5fbe0eb041596f0926f4b",
+    "drivers/mfd/mt6397-core.c": "5123964fecd99a2932bfc75eea9ef7dd53a0564398e83170e5054c80fe5fd397",
+    "include/linux/mfd/mt6397/core.h": "18624c6178b563693d790962358ec347d43ae6f63f60adf3bca3170cca30de62"
+  },
+  "object_sha256": {
+    "drivers/mfd/mt6397-irq.o": "24244d86d83c885368380881b5e6f99dc6843258f7830470821b298789b9fe45",
+    "drivers/mfd/mt6358-irq.o": "7663459cebbccbae41369855b3b9331ba665d48fd6c4384553766010dbd9c369",
+    "drivers/mfd/mt6397-core.o": "7ebf59c0c2baa558f84c2de6be0034afb7927402dcf986025ddee15d0fbc2f71"
+  },
+  "compiled_calls": [
+    "mt6397: devm_irq_domain_instantiate, irq_dispose_mapping, unregister_pm_notifier, __devm_add_action",
+    "mt6358: devm_irq_domain_instantiate; reference to mt6397_irq_domain_exit"
+  ],
+  "regression": {
+    "script_sha256": "7bf15b92cceb2c4198c8603576fd0d1a9c553e513dea15da3bc4a30c5445ef06",
+    "fixture_sha256": "6af46bb3ba0d336cd28b64776c604650325095ed800b86787d405705ab844075",
+    "cases_passed": 56,
+    "runners": [
+      "local userspace compiler",
+      "Buildbox userspace compiler with exact prepared source"
+    ],
+    "negative_mutations_rejected_at_runtime": [
+      "omit mapping disposal",
+      "omit notifier removal"
+    ],
+    "scope": "Actual initializer/release bodies with modeled devres, allocations, mappings and children; not live IRQ concurrency."
+  },
+  "first_six_patches_unchanged": true,
+  "upstream_source_configuration_and_toolchain_unchanged": true,
+  "schema_checks": "Not repeated: bindings and source baseline unchanged; see schema.json.",
+  "hardware_test": false,
+  "boot_candidate": false
+}

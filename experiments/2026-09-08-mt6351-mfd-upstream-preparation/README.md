@@ -251,5 +251,16 @@ The earlier mask-error test remains tied to its recorded five/six-patch inputs.
 The lifetime test covers the successor's four MT6351 mask failures. The
 MT6358-family wake-enable reference, ignored mask-write errors, and global
 mutable IRQ data remain separate inherited review gaps; these patches do not
-claim complete teardown or multi-device correctness. Compile validation of
-this eight-patch revision is pending. No device action is admitted.
+claim complete teardown or multi-device correctness.
+
+The [eight-patch Buildbox compile](results/irq-lifetime-compile.json) passed
+without compiler warnings or errors from project commit `3fc732c6` and its
+validated package was fetched. The prepared sources match the replayed/tested
+files; both IRQ objects contain the new managed-domain calls, and the legacy
+object contains mapping disposal and notifier cleanup. The exact same test
+also passed on Buildbox's prepared source. Two deliberate omissions (mapping
+disposal and notifier removal) were rejected at runtime locally. Strict
+checkpatch passed with the unsigned-archive sign-off exclusion. The source
+baseline, configuration, toolchain and first six patches match the parent
+package; unchanged bindings did not need another schema check. No device
+action is admitted.
