@@ -1,0 +1,88 @@
+{
+  "date": "2026-09-08",
+  "scope": "Read-only installed filesystem metadata and producer-software identity comparison; no calibration contents read",
+  "identity": {
+    "release": "3.18.41+",
+    "architecture": "aarch64",
+    "root": "/dev/mmcblk0p29",
+    "boot_id": "6a5395c2-71d0-4392-a397-be3be83b049b"
+  },
+  "invocations": [
+    {
+      "number": 1,
+      "result": "pass",
+      "observations": "Android-root symlink, two regular-file stat records, selected mountinfo entries and nvram_daemon process count; stable boot ID and launcher PID"
+    },
+    {
+      "number": 2,
+      "result": "pass",
+      "observations": "Five installed software-file hashes compared in memory with locally manifest-verified retained inputs; stable boot ID and launcher PID",
+      "file_size_limit": 4194304,
+      "host_timeout_seconds": 30
+    }
+  ],
+  "android_namespace": "root of the observed Android init parent of the unique wmt_launcher process",
+  "mapping": {
+    "symlink": "/data/nvram",
+    "target": "/nvdata",
+    "consumer_path": "/data/nvram/APCFG/APRDEB/WIFI",
+    "storage_path": "/nvdata/APCFG/APRDEB/WIFI",
+    "both_regular": true,
+    "both_bytes": 514,
+    "same_device_inode_and_size": true,
+    "mountpoint": "/nvdata",
+    "filesystem": "ext4",
+    "mount_options": "rw,nosuid,nodev,noatime",
+    "mount_source": "/dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/nvdata"
+  },
+  "nvram_daemon_process_count": 0,
+  "retained_corpus": "gemian-2019",
+  "retained_selected_manifest_verification": "pass",
+  "software_comparison": [
+    {
+      "path": "system/vendor/bin/nvram_daemon",
+      "bytes": 22316,
+      "installed_matches_retained": true
+    },
+    {
+      "path": "system/vendor/lib/libcustom_nvram.so",
+      "bytes": 74152,
+      "installed_matches_retained": true
+    },
+    {
+      "path": "system/vendor/lib/libnvram.so",
+      "bytes": 75364,
+      "installed_matches_retained": true
+    },
+    {
+      "path": "system/vendor/lib64/libcustom_nvram.so",
+      "bytes": 70608,
+      "installed_matches_retained": true
+    },
+    {
+      "path": "system/vendor/lib64/libnvram.so",
+      "bytes": 79928,
+      "installed_matches_retained": true
+    }
+  ],
+  "limits": [
+    "Current metadata does not establish the historical July runtime configuration.",
+    "File-size and inode equality do not compare the live record contents to the retained record.",
+    "Software equality does not identify which process, restoration branch or version wrote this file.",
+    "No daemon process at snapshot time does not mean it never ran.",
+    "PID continuity is not a complete process-lifetime oracle.",
+    "Factory calibration, board/firmware applicability and firmware acceptance remain unproved."
+  ],
+  "effects": {
+    "calibration_record_content_reads": 0,
+    "calibration_record_hashes_computed": 0,
+    "record_or_binary_exports": 0,
+    "vendor_api_calls": 0,
+    "radio_commands": 0,
+    "register_accesses": 0,
+    "service_or_property_changes": 0,
+    "explicit_device_writes": 0,
+    "boots": 0
+  },
+  "private_hashes_or_identifiers_published": false
+}

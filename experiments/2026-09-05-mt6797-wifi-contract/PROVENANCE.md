@@ -153,3 +153,35 @@ Public-source SHA-256 identities (no private input hashes):
 | Gemini `rootdir/init.mt6797.rc` | `c9e637be263538b656dd3e1a4abd6f026054db2cb4edbe1ff70f2f047b65533d` |
 | Gemini `rootdir/fstab.mt6797` | `6bee3124347fea36cd1d933921b1cfaea0682aa6486d459103b9bcfd7c369127` |
 | Gemian `var/lib/lxc/android/fstab.mt6797` | `7a83b99eb01fd8548c72705344888fefa127c84a6d39bceebfbfcb74c1d225e2` |
+
+## Installed mapping and producer identity follow-up — 2026-09-08
+
+The [installed metadata receipt](results/installed-calibration-metadata.json)
+closes two current-system attribution gaps through two bounded read-only SSH
+invocations. Both retained the same known-good Gemian boot identity. Inspection
+used the root namespace of the observed Android init parent, not an assumed
+host pathname. No calibration-record bytes, calibration-record hashes or vendor APIs were
+read, computed or invoked.
+
+Android `/data/nvram` is a symlink to `/nvdata`. The consumer pathname and
+`/nvdata/APCFG/APRDEB/WIFI` resolve to the same device/inode and size; both stat
+records describe a regular 514-byte file. Android mount metadata identifies
+`/nvdata` as the ext4 mount from the named nvdata device path. This establishes
+the installed namespace mapping and file presence for this snapshot. It does
+not compare the live record with the retained record or establish which record
+the firmware used.
+
+The installed `nvram_daemon`, both ABI versions of `libnvram.so`, and both ABI
+versions of `libcustom_nvram.so` are byte-identical by SHA-256 to the five
+selected `gemian-2019` corpus files. Those retained files were first checked
+against their own manifest. Comparisons occurred in memory; private software
+hashes and binaries are not published. The earlier producer-family analysis
+therefore applies to these installed file identities, without asserting which
+library was loaded by a past producer or which restoration branch ran.
+
+No `nvram_daemon` process was present at the snapshot. That is not proof that
+it never ran or that another producer did not update the record. Actual record
+production/restoration history, factory provenance, board/firmware applicability
+and firmware acceptance remain unresolved. The earlier retained-filesystem
+checksum failure remains an inconclusive historical result; it was neither
+repaired nor bypassed. This follow-up supplies no radio-action admission.
