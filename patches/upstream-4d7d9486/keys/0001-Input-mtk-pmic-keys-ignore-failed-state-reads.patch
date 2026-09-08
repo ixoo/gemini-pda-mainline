@@ -1,0 +1,38 @@
+From 37db9d538f76977ac669e7029f6951fb0d922ff2 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 8 Sep 2026 17:45:54 -0400
+Subject: [PATCH] Input: mtk-pmic-keys - ignore failed key state reads
+
+A failed debounce-register read leaves key_deb unavailable, but the
+handler still reports a key transition based on it. Return without an
+input event when the read fails, and rate-limit the error report. The
+parent PMIC handler owns acknowledgment; do not retry the transaction.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/input/keyboard/mtk-pmic-keys.c | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/input/keyboard/mtk-pmic-keys.c b/drivers/input/keyboard/mtk-pmic-keys.c
+index c78d9f6..263a4c2 100644
+--- a/drivers/input/keyboard/mtk-pmic-keys.c
++++ b/drivers/input/keyboard/mtk-pmic-keys.c
+@@ -206,8 +206,14 @@ static irqreturn_t mtk_pmic_keys_irq_handler_thread(int irq, void *data)
+ {
+ 	struct mtk_pmic_keys_info *info = data;
+ 	u32 key_deb, pressed;
++	int error;
+ 
+-	regmap_read(info->keys->regmap, info->regs->deb_reg, &key_deb);
++	error = regmap_read(info->keys->regmap, info->regs->deb_reg, &key_deb);
++	if (error) {
++		dev_err_ratelimited(info->keys->dev,
++				    "Failed to read key state: %d\n", error);
++		return IRQ_HANDLED;
++	}
+ 
+ 	key_deb &= info->regs->deb_mask;
+ 
+-- 
+2.50.1 (Apple Git-155)
+

@@ -1,0 +1,63 @@
+From 9a58c28e5c3633ef7826ba0346901bc67ebd25e4 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 8 Sep 2026 17:45:54 -0400
+Subject: [PATCH] Input: mtk-pmic-keys - propagate reset setup errors
+
+Do not report successful probe when programming the requested long-press
+reset policy failed. Return the register update error from setup and
+check it before registering the input device. Managed resources still
+unwind on probe failure. Preserve the existing register masks and defaults.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/input/keyboard/mtk-pmic-keys.c | 13 ++++++++-----
+ 1 file changed, 8 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/input/keyboard/mtk-pmic-keys.c b/drivers/input/keyboard/mtk-pmic-keys.c
+index 263a4c2..6183b46 100644
+--- a/drivers/input/keyboard/mtk-pmic-keys.c
++++ b/drivers/input/keyboard/mtk-pmic-keys.c
+@@ -156,8 +156,8 @@ enum mtk_pmic_keys_lp_mode {
+ 	LP_TWOKEY,
+ };
+ 
+-static void mtk_pmic_keys_lp_reset_setup(struct mtk_pmic_keys *keys,
+-					 const struct mtk_pmic_regs *regs)
++static int mtk_pmic_keys_lp_reset_setup(struct mtk_pmic_keys *keys,
++					const struct mtk_pmic_regs *regs)
+ {
+ 	const struct mtk_pmic_keys_regs *kregs_home, *kregs_pwr;
+ 	u32 long_press_mode, long_press_debounce;
+@@ -199,7 +199,7 @@ static void mtk_pmic_keys_lp_reset_setup(struct mtk_pmic_keys *keys,
+ 		break;
+ 	}
+ 
+-	regmap_update_bits(keys->regmap, regs->pmic_rst_reg, mask, value);
++	return regmap_update_bits(keys->regmap, regs->pmic_rst_reg, mask, value);
+ }
+ 
+ static irqreturn_t mtk_pmic_keys_irq_handler_thread(int irq, void *data)
+@@ -404,6 +404,11 @@ static int mtk_pmic_keys_probe(struct platform_device *pdev)
+ 		index++;
+ 	}
+ 
++	error = mtk_pmic_keys_lp_reset_setup(keys, mtk_pmic_regs);
++	if (error)
++		return dev_err_probe(&pdev->dev, error,
++				     "Failed to configure long-press reset\n");
++
+ 	error = input_register_device(input_dev);
+ 	if (error) {
+ 		dev_err(&pdev->dev,
+@@ -411,8 +416,6 @@ static int mtk_pmic_keys_probe(struct platform_device *pdev)
+ 		return error;
+ 	}
+ 
+-	mtk_pmic_keys_lp_reset_setup(keys, mtk_pmic_regs);
+-
+ 	platform_set_drvdata(pdev, keys);
+ 
+ 	return 0;
+-- 
+2.50.1 (Apple Git-155)
+

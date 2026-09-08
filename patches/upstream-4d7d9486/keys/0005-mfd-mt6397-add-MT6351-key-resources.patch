@@ -1,0 +1,48 @@
+From b4a9c7cec47040bf3c234672565f41ea174e9af6 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 8 Sep 2026 17:45:54 -0400
+Subject: [PATCH] mfd: mt6397: add MT6351 key resources
+
+Expose power/home press and release interrupts 0 through 3 to the PMIC
+key driver. Use the chip-specific platform name and compatible, following
+the other PMIC key cells, so an absent key node does not name-match the
+generic input driver. Leave RTC, audio and board enablement separate.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/mfd/mt6397-core.c | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/drivers/mfd/mt6397-core.c b/drivers/mfd/mt6397-core.c
+index f405e0a..1fa88c3 100644
+--- a/drivers/mfd/mt6397-core.c
++++ b/drivers/mfd/mt6397-core.c
+@@ -73,6 +73,13 @@ static const struct resource mt6397_rtc_resources[] = {
+ 	DEFINE_RES_IRQ(MT6397_IRQ_RTC),
+ };
+ 
++static const struct resource mt6351_keys_resources[] = {
++	DEFINE_RES_IRQ_NAMED(MT6351_IRQ_PWRKEY, "powerkey"),
++	DEFINE_RES_IRQ_NAMED(MT6351_IRQ_HOMEKEY, "homekey"),
++	DEFINE_RES_IRQ_NAMED(MT6351_IRQ_PWRKEY_R, "powerkey_r"),
++	DEFINE_RES_IRQ_NAMED(MT6351_IRQ_HOMEKEY_R, "homekey_r"),
++};
++
+ static const struct resource mt6358_keys_resources[] = {
+ 	DEFINE_RES_IRQ_NAMED(MT6358_IRQ_PWRKEY, "powerkey"),
+ 	DEFINE_RES_IRQ_NAMED(MT6358_IRQ_HOMEKEY, "homekey"),
+@@ -216,6 +223,11 @@ static const struct mfd_cell mt6351_devs[] = {
+ 	{
+ 		.name = "mt6351-regulator",
+ 		.of_compatible = "mediatek,mt6351-regulator",
++	}, {
++		.name = "mt6351-keys",
++		.num_resources = ARRAY_SIZE(mt6351_keys_resources),
++		.resources = mt6351_keys_resources,
++		.of_compatible = "mediatek,mt6351-keys",
+ 	},
+ };
+ 
+-- 
+2.50.1 (Apple Git-155)
+

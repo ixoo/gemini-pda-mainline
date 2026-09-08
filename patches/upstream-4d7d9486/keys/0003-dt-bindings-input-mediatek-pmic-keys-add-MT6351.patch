@@ -1,0 +1,28 @@
+From 8e9a49fc214f72b9a1a1cc547e343ee6256c766c Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 8 Sep 2026 17:45:54 -0400
+Subject: [PATCH] dt-bindings: input: mediatek,pmic-keys: add MT6351
+
+Describe the MT6351 power and home key function. It uses separate press
+and release interrupt resources supplied by the parent PMIC.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ Documentation/devicetree/bindings/input/mediatek,pmic-keys.yaml | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/Documentation/devicetree/bindings/input/mediatek,pmic-keys.yaml b/Documentation/devicetree/bindings/input/mediatek,pmic-keys.yaml
+index 140a862..05f8753 100644
+--- a/Documentation/devicetree/bindings/input/mediatek,pmic-keys.yaml
++++ b/Documentation/devicetree/bindings/input/mediatek,pmic-keys.yaml
+@@ -28,6 +28,7 @@ properties:
+           - mediatek,mt6323-keys
+           - mediatek,mt6328-keys
+           - mediatek,mt6331-keys
++          - mediatek,mt6351-keys
+           - mediatek,mt6357-keys
+           - mediatek,mt6358-keys
+           - mediatek,mt6359-keys
+-- 
+2.50.1 (Apple Git-155)
+

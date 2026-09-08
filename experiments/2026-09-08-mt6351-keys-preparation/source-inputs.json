@@ -1,0 +1,44 @@
+{
+  "upstream_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "project_baseline": "fe7661d8499fe71b7ac7ade185d7423b3397fa3b",
+  "prepared_series": "patches/series-mt6351-regulator-compile",
+  "prepared_files": [
+    {
+      "path": "drivers/input/keyboard/mtk-pmic-keys.c",
+      "bytes": 11332,
+      "sha256": "4a085e49f16e12cc6c00f7b74b7c1e7e18735b45eccd26f0b24e076d9f940d1e"
+    },
+    {
+      "path": "drivers/input/keyboard/Kconfig",
+      "bytes": 23151,
+      "sha256": "7313b1e7b28f6f402f6ab840616801246d668581e1e2718066d873d01d9c6ee6"
+    },
+    {
+      "path": "drivers/mfd/mt6397-core.c",
+      "bytes": 12671,
+      "sha256": "f7caed8b60e3140e76479a3b1d1b8ddde9d80a7cb2358e9fa7fdee7062f7c3c0"
+    },
+    {
+      "path": "include/linux/mfd/mt6351/core.h",
+      "bytes": 1641,
+      "sha256": "8eeac8c282a8980b99df1fc4fdd146b25a4f17b69d8cb1b1b5b149f070ba0c33"
+    },
+    {
+      "path": "include/linux/mfd/mt6351/registers.h",
+      "bytes": 4357,
+      "sha256": "12c336181c8971a1ffe40f8c982bf891fa9ccb60d4f999a6e541ab0dc127f4a8"
+    },
+    {
+      "path": "Documentation/devicetree/bindings/input/mediatek,pmic-keys.yaml",
+      "bytes": 2221,
+      "sha256": "d53c083903d79e4c8ea52e253b2a491da85bcec9874579c239ec2794e96f42ae"
+    }
+  ],
+  "vendor_header": {
+    "repository": "gemian/gemini-linux-kernel-3.18",
+    "revision": "59e00a9144d782e148332009a835b99c43382467",
+    "path": "drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/upmu_hw.h",
+    "bytes": 1232296,
+    "sha256": "e376d2835dd32812b52caf6a51139cc7fd541de18eaad0f30ecf8194f70cebbe"
+  }
+}

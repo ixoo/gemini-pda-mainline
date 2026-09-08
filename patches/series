@@ -569,3 +569,8 @@ upstream-4d7d9486/mt6351/0010-mfd-mt6397-order-wake-masks-after-child-suspend.pa
 upstream-4d7d9486/mt6351/0011-mfd-mt6397-recover-suspend-mask-failures.patch
 upstream-4d7d9486/mt6351/0012-mfd-mt6397-report-runtime-IRQ-transport-errors.patch
 upstream-4d7d9486/rtc/0001-rtc-mt6397-preserve-interrupt-enables-on-alarm.patch
+upstream-4d7d9486/keys/0001-Input-mtk-pmic-keys-ignore-failed-state-reads.patch
+upstream-4d7d9486/keys/0002-Input-mtk-pmic-keys-propagate-reset-setup-errors.patch
+upstream-4d7d9486/keys/0003-dt-bindings-input-mediatek-pmic-keys-add-MT6351.patch
+upstream-4d7d9486/keys/0004-Input-mtk-pmic-keys-add-MT6351-data.patch
+upstream-4d7d9486/keys/0005-mfd-mt6397-add-MT6351-key-resources.patch
