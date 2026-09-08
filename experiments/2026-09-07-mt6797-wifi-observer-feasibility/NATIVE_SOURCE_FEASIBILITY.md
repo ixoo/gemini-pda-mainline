@@ -9,8 +9,10 @@ values inside DMA and shutdown loops, together with paths that can report
 success without the required observation. No observer was implemented and no
 hardware was accessed in this assessment.
 
-This narrows the next action: establish an exact, rebuildable known-good source
-and configuration, then design capture at the actual accesses below. Do not
+This narrows the next action: select a reproducible candidate source and
+configuration, then design capture at the actual accesses below. A new candidate
+requires its own runtime baseline; it need not reproduce the unknown original
+source revision of the installed Gemian image. Do not
 repeat the closed retained binary observer or the unavailable live ftrace path.
 
 ## Reproducible source boundary
@@ -69,3 +71,51 @@ remove safety, or a production upstream driver. Those boundaries remain in the
 [HIF architecture assessment](../2026-09-07-mt6797-hif-upstream-architecture/README.md).
 This assessment changes no hardware-support claim and authorizes no build,
 deployment, boot selection or radio action.
+
+## Gemian build selection follow-up
+
+The [source comparison receipt](results/native-build-selection-sources.json)
+pins twelve individually retrieved files from
+`gemian/gemini-linux-kernel-3.18@59e00a9144d782e148332009a835b99c43382467`.
+All six observation-site files above are byte-identical to the Planet inputs.
+This source already has a [Buildbox compile setup](../../docs/BUILDBOX.md#gemian-observer-compile-review-lane)
+with a pinned compiler and retained configuration. Its earlier A72 hook
+reconciliation does not attribute this Wi-Fi implementation to the installed
+binary, and its A72 observer patches are not selected for this work.
+
+The retained configuration was rehashed against its published digest. Together
+with the retrieved makefiles and headers, it establishes the following source
+selections, subject to checking the actual complete compiler invocation:
+
+- `CONFIG_MTK_COMBO_CHIP="CONSYS_6797"` and `CONFIG_MTK_COMBO_WIFI=y` select
+  built-in gen3 and its `ahb.o`, `ahb_pdma.o`, and `sdio_bus_driver.o` objects.
+  The gen3 makefile adds `_HIF_SDIO` only to the other chip branch.
+- `hif.h` sets `CONF_MTK_AHB_DMA=1` and `CONF_HIF_DMA_INT=0`; `ahb.c` leaves
+  `MTK_DMA_BUF_MEMCPY_SUP` commented out. These select polling and DMA API
+  mapping in the inspected source unless another input overrides the symbols.
+  Runtime `use_dma`, `fgDmaEnable`, and callback availability still determine
+  whether a particular transfer takes DMA. The address fields are `ULONG`;
+  their effective width and any register-write narrowing need compiled review.
+- `CONFIG_OF=y`, disabled `CONFIG_MTK_CLKMGR`, and the platform header's
+  `CONSYS_PWR_ON_OFF_API_AVAILABLE=1` select the common CCF power wrapper.
+  Other consumers and actual provider dispatch remain runtime observations.
+
+The exact power-provider source additionally defines `TOPAXI_PROTECT_LOCK`.
+Its selected protection helper at lines 400–458 has a count-limited wait followed
+by diagnostics and `BUG()` on timeout. That is a fault terminal, not an ordinary
+successful return or a recoverable timeout. Its successful polling exit can
+supply the existing protection-status observation without adding a read.
+
+At lines 2098–2104, `sys_get_state_op` reads both status registers but reports
+ON only when both bits are set. With `CHECK_PWR_ST=1`, `disable_subsys` at
+2345–2349 skips the physical OFF sequence whenever this result is false.
+Consequently, one set bit and one clear bit can take the same shortcut as both
+bits clear. Record the raw pair and the shortcut separately; neither the false
+state result nor successful disable return proves coherent OFF. This differs
+from the terminating OFF loop, whose OR condition requires both bits clear.
+
+This closes the source-file compatibility question for the reusable Gemian
+build setup. The next implementation prerequisite is a concrete one-cycle
+capture/recovery design and compiled verification of the selected paths, not
+another search for the unknown original kernel revision. A new instrumented
+image still needs its own baseline and admission before any radio operation.
