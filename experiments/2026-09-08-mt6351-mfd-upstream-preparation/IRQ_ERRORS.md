@@ -100,3 +100,13 @@ these transactions with normal mask synchronization; the fixtures do not prove
 all concurrent hardware/control interactions. Normal runtime mask-sync and
 status-acknowledgement write errors remain unhandled. A failed restoration or
 final wake-disable operation leaves physical recovery unproved.
+
+
+## Twelve-patch successor
+
+The [runtime diagnostics](README.md#runtime-irq-transport-diagnostics) now report
+normal mask-write and status-acknowledgement failures, and rate-limit those
+reports along with failed status reads. The operation and dispatch counts are
+unchanged. These previously silent failures are now diagnosable; hardware
+recovery, persistent-fault interrupt behavior and concurrency still require
+separately admitted runtime evidence. Reporting does not establish recovery.

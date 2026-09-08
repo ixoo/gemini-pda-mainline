@@ -1,0 +1,45 @@
+{
+  "repository_commit": "70fae5eed29de490196b0a926a8e012148108976",
+  "generated_utc": "2026-09-08T20:10:07Z",
+  "kernel_release": "7.3.0-rc1-mt6351-regulator-compile",
+  "build_profile": "mt6351-regulator-compile",
+  "patchset_sha256": "2e54c310bf6f765e38eab4f056a97728bf01f80047081038d8ebc050166e888c",
+  "config_sha256": "662850a6e69fd56382898a73a1970040e65adf7053f2fd8004d839c7a5cc29fd",
+  "compiler": "aarch64-linux-gnu-gcc (Debian 12.2.0-14) 12.2.0",
+  "compiler_sha256": "c7b8890354c8ddc0364addfeb8968597e197627bd1e338fb6ed705b578803846",
+  "linker": "GNU ld (GNU Binutils for Debian) 2.40",
+  "linker_sha256": "e09a889c78a75e73ed096c9fa28905599e6813298b9ac839d10b02ffa96e7b08",
+  "status": "PASS",
+  "parent_compile_receipt": "irq-pm-recovery-compile.json",
+  "source_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "package": "linux-7.3-rc1-gemini-0038882d1554609d3a72c27e09063fbe795430790a27c2386eabc934ad818b18",
+  "package_inventory_sha256": "0038882d1554609d3a72c27e09063fbe795430790a27c2386eabc934ad818b18",
+  "image_gzip_sha256": "4af673e0214557e8d93b2b00cb822ee79c2854e41070e63aa979ed8b9390d91d",
+  "build_log_sha256": "3eb0c57728c6d81a007df47ba80e15dbdaa002c44e903996715fc81baefccfb5",
+  "compiler_warnings": 0,
+  "compiler_errors": 0,
+  "irq_source_sha256": "a78019a9c23a07863a1bec3987c7e8c5877c03fc477dbb2903baed06e8815cee",
+  "irq_object_sha256": "5e79b5da3715076248e0ec92295cea9afac3eb2957efab02cb1991cde08d3fe4",
+  "compiled_ratelimit_call_relocations": [
+    "0x1fc",
+    "0x320",
+    "0x34c"
+  ],
+  "regression": {
+    "script_sha256": "21b43c393c61c040bf1670b55fcdacc75a790be2251f0eb788d5d2cad92030b3",
+    "cases_passed": 21,
+    "before_source_sha256": "ca402b841956f5570d82874e8a05ccd9a27e64fee7cb5b3fbde7021c5616ea56",
+    "before_result": "Compiled parent fails missing-report assertion at runtime.",
+    "runners": [
+      "local userspace compiler",
+      "Buildbox userspace compiler with exact prepared source"
+    ],
+    "scope": "Actual mask/status callback bodies with injected bus outcomes; logging API modeled as report counter, not rate-limiter timing or live IRQ behavior."
+  },
+  "first_eleven_patches_unchanged": true,
+  "upstream_source_configuration_and_toolchain_unchanged": true,
+  "schema_checks": "Not repeated: bindings and source baseline unchanged; see schema.json.",
+  "other_tests": "PM/lifetime fixtures not repeated: their extracted helper bodies and initializer are unchanged.",
+  "hardware_test": false,
+  "boot_candidate": false
+}

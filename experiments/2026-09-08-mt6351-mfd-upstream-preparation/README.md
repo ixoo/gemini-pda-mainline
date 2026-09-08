@@ -432,4 +432,10 @@ report selection, not kernel ratelimit timing or live interrupt concurrency.
 These diagnostics report transport failures; they do not establish or restore
 the hardware state. Repeated status assertion, event loss and safe recovery from a persistent
 bus fault remain runtime questions, not claims supported by this source test.
-The twelve-patch compile is pending. No device candidate is created.
+The [twelve-patch Buildbox compile](results/irq-runtime-compile.json) from
+`70fae5ee` passed without compiler warnings or errors and its validated package
+was fetched. The exact prepared source also passed the 21-case test. Its IRQ
+object contains three calls to the kernel rate limiter for the changed paths.
+The source baseline, configuration, toolchain and first eleven patches match
+the parent. Unchanged PM/lifetime helper tests and bindings were not rerun.
+No device candidate is created.
