@@ -1,0 +1,36 @@
+From 2f3dae95f1f750062a7066de7a0617b93fb211ac Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 8 Sep 2026 14:23:28 -0400
+Subject: [PATCH 3/5] dt-bindings: mfd: mediatek: describe MT6351 regulator
+ parent
+
+Add the MT6351 parent and regulator child compatible. Leave RTC,
+keys and audio child extensions to their own subsystem topics.
+The regulator schema is supplied by the preceding change.
+
+Adapted from local patch 0008. Unsigned experiment draft; archive
+identity is non-certifying.
+---
+ Documentation/devicetree/bindings/mfd/mediatek,mt6397.yaml | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/Documentation/devicetree/bindings/mfd/mediatek,mt6397.yaml b/Documentation/devicetree/bindings/mfd/mediatek,mt6397.yaml
+index 3cbc0dc..00557c8 100644
+--- a/Documentation/devicetree/bindings/mfd/mediatek,mt6397.yaml
++++ b/Documentation/devicetree/bindings/mfd/mediatek,mt6397.yaml
+@@ -37,6 +37,7 @@ properties:
+           - mediatek,mt6323
+           - mediatek,mt6331 # "mediatek,mt6331" for PMIC MT6331 and MT6332.
+           - mediatek,mt6328
++          - mediatek,mt6351
+           - mediatek,mt6358
+           - mediatek,mt6359
+           - mediatek,mt6397
+@@ -97,6 +98,7 @@ properties:
+               - mediatek,mt6323-regulator
+               - mediatek,mt6328-regulator
+               - mediatek,mt6331-regulator
++              - mediatek,mt6351-regulator
+               - mediatek,mt6358-regulator
+               - mediatek,mt6359-regulator
+               - mediatek,mt6397-regulator

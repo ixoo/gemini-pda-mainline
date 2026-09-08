@@ -1,9 +1,10 @@
 # MT6351 MFD upstream preparation
 
-Status: incomplete upstream-preparation checkpoint, 2026-09-08. No new kernel
-candidate, device access or upstream submission. Selected series and profiles
-are unchanged. [Source receipts and check results](source-review.json) pin the
-individual public files inspected; Linux sources are not vendored here.
+Status: incomplete upstream-preparation checkpoint, 2026-09-08. A named
+compile-only topic is prepared; it is not a device candidate or upstream
+submission. Existing profiles are unchanged. [Initial source receipts and
+check results](source-review.json) pin the individual public files inspected;
+Linux sources are not vendored here.
 
 ## Scope and result
 
@@ -67,3 +68,56 @@ into a disposable source checkout, verify their SHA-256 values, and run
 `git apply --check` on the linked draft. Run the recorded checkpatch version
 with its adjacent spelling and constant-structure files. Receipt entries refer
 to source inspection, not a complete checkout or a kernel build.
+
+## Extracted regulator topic
+
+The [five-patch compile series](../../patches/series-mt6351-regulator-compile)
+now separates the MT6328 correction, regulator binding, MFD parent binding,
+MT6351 core/IRQ extension and regulator driver. The MFD creates only the
+regulator child. RTC, key and sound cells and their binding extensions remain
+outside this topic. No SoC or board DTS is added.
+
+The compile baseline is the already cached upstream commit
+`4d7d9486c04d917265f64c55bd23b2cc4fe7749c` (Linux 7.3-rc1), selected by
+the complete source tuple in the new `mt6351-regulator-compile` profile.
+Its five inspected MFD/header/binding inputs are byte-identical to the newer
+snapshot reviewed above. [Series receipts](series-review.json) pin the seven
+base files, five patches and pre-build checks. Exact replay and comparison of
+all nine buck and 30 LDO descriptors and voltage tables passed.
+
+The extracted regulator driver fixes one concrete lifetime bug in local 0015:
+its probe mutated the shared descriptor array when a buck control bit was set,
+but never restored the default selector register when a later probe read that
+bit clear. The draft keeps an immutable template and allocates a private copy
+for each device before selection and registration. The
+[helper regression](test-buck-reprobe.py), run with Python 3 and a host C
+compiler, reproduces the old stale selection, checks fresh-instance selection
+and isolation, and checks propagation of a selector-register read failure.
+It exercises extracted helper bodies with an injected regmap; it does not
+exercise regulator-core registration or hardware. All rail tables and the E2
+revision restriction remain unchanged.
+
+Strict checkpatch passes with three explicitly recorded exclusions: missing
+sign-off for the unsigned archive, new-file maintainer reminders, and two
+initializer-macro argument-reuse notices. The latter pass only static arrays
+to descriptor pointers and `ARRAY_SIZE`, so no side-effecting expression is
+evaluated twice. The initial unrestricted check also caught a continuation
+alignment error, which was corrected before this result. Existing copyright,
+module-author and proposed binding-maintainer text is retained from the
+historical inputs; it is not new certification or proof of maintainer agreement.
+
+Build and schema validation are pending at this input checkpoint. Reproduce
+the kernel build from a clean pushed checkout with:
+
+```sh
+KERNEL_PROFILE=mt6351-regulator-compile ./scripts/build-kernel --backend buildbox
+KERNEL_PROFILE=mt6351-regulator-compile ./scripts/buildbox fetch-package
+```
+
+The profile enables suspend so the legacy IRQ notifier path is compiled. It
+does not select a Gemini DTB, storage, networking or audio. No resulting image
+is admitted for device installation. Before a production regulator topic,
+resolve shared VCN33 voltage ownership: the BT and Wi-Fi descriptors have
+distinct enables but the same voltage-selector field. Independent voltage
+requests must not silently override another consumer's constraints. Wider rail
+behavior and PMIC interrupt error handling also remain review/runtime gaps.
