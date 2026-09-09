@@ -1,6 +1,6 @@
 # MT6351 VCN33 ownership evidence
 
-Source-only follow-up, 2026-09-08. No device access, PMIC reads or writes.
+Source and retained-binary follow-up, 2026-09-08. No device access, PMIC reads or writes.
 The shared voltage selector is established; output-pin topology and the enable
 combination logic remain unresolved. Do not copy the newer PMIC drivers'
 enable-consolidation writes on the strength of register names alone.
@@ -46,9 +46,50 @@ not evidence that the common helper governs this platform.
 The selected source branch has separate BT and Wi-Fi paths. Both request
 3.3 V. Under `CONFIG_MTK_PMIC_LEGACY`, each path changes its own on-control
 field and uses the vendor power API; the alternative uses separate regulator
-handles. Which branch executes on a given boot needs matching configuration
-and binary evidence. Nearby comments cite older offsets that disagree with the
+handles. The retained-binary audit below identifies the compiled branch; its
+execution on a given boot remains unobserved. Nearby comments cite older offsets that disagree with the
 MT6351 header; they are not a register-address authority.
+
+## Retained kernel control path
+
+The [binary receipt](results/vcn33-binary-receipt.json) pins the retained boot
+image, decompressed kernel, reconstructed ELF, five function spans and the
+descriptor/operation/register tables. The boot image is the same historical
+capture identified by the [RTC audit](../2026-07-11-mt6351-pmic-recovery/results/rtc-binary-audit-20260908.md).
+Its gzip payload equals the retained `Image`, and the ELF's entire `.kernel`
+section equals that image. Analysis used GNU AArch64 objdump 2.42 in the RE VM;
+private disassembly is retained there. This does not establish the current boot.
+
+Both compiled PALDO control functions select separate regulator handles.
+For a nonzero enable argument and a non-null handle, each requests exactly
+3,300,000 microvolts and then calls `regulator_enable()`. The disable path
+calls `regulator_disable()` when its handle is non-null. Neither consumer
+function contains the legacy branch's direct on-control writes or the disabled
+shared-counter implementation. Comments describing a software-to-hardware mode
+switch therefore do not describe an operation in these compiled consumers.
+
+The two named descriptors reference the same operations table. Their enable
+and selector fields, decoded at the offsets actually loaded by the callbacks,
+join the compiled PMU table to `0x0a98` bit 1 for BT, `0x0a9a` bit 1 for Wi-Fi,
+and the common `0x0ada` bits 10:9 selector. Both voltage-table pointers yield
+3.3, 3.4, 3.5 and 3.6 V. This independently confirms the source register mapping
+and shared selector in the retained kernel, rather than assuming its tables
+match the public source.
+
+The return path is not a hardware-success witness. Both consumer functions
+return zero on every decoded path, including null handles and reported enable
+failure; they ignore voltage-setting and disable results. The provider's
+enable and voltage-selector callbacks also discard the PMIC setter result and
+return zero. Its disable callback rejects a zero use count, but otherwise
+discards the setter result too. Enable/disable read back the register without
+comparing it or propagating the read result. These are compiled control-flow
+facts, not evidence that a failure happened on hardware.
+
+This narrows the next investigation to the physical output/control contract
+and ownership of any mode/source-clock setup elsewhere. Do not repeat the
+source-branch question or treat the legacy mode-switch sequence as the running
+reference. The audit does not prove pin topology, enable combination logic,
+current rail state or successful PMIC transport, and admits no rail experiment.
 
 ## Decision
 

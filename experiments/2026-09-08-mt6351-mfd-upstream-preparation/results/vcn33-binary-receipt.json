@@ -1,0 +1,163 @@
+{
+  "schema": 1,
+  "analysis": "retained Gemian VCN33 control branches; offline only",
+  "boot_image_sha256": "1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513",
+  "image_sha256": "0570480c28bce1583636a240904df8da3af0b5e5b4bcc6254f5719b42bd723d0",
+  "reconstructed_elf_sha256": "cc66df06194d3315335462760962165e1dcb2e50221574aeb45a0805bb17a162",
+  "boot_gzip_matches_image": true,
+  "elf_kernel_section_matches_image": true,
+  "tool": "GNU objdump (GNU Binutils for Ubuntu) 2.42",
+  "function_spans": [
+    {
+      "symbol": "mtk_wcn_consys_hw_bt_paldo_ctrl",
+      "start": "0xffffffc0006df470",
+      "end_exclusive": "0xffffffc0006df570",
+      "bytes": 256,
+      "sha256": "375602461975b4c2b2b375588e434589622aaf944196336d0ed43725fd4cc8bc"
+    },
+    {
+      "symbol": "mtk_wcn_consys_hw_wifi_paldo_ctrl",
+      "start": "0xffffffc0006df570",
+      "end_exclusive": "0xffffffc0006df670",
+      "bytes": 256,
+      "sha256": "05b4d8a98ad268ccb39667b9f9728e113c35fc7bd29e0c5f62a61c5317b8e281"
+    },
+    {
+      "symbol": "mtk_regulator_enable",
+      "start": "0xffffffc0004b22a0",
+      "end_exclusive": "0xffffffc0004b2300",
+      "bytes": 96,
+      "sha256": "491bedc26ae3bf9b4f2f93bb7f3c07e4d68ebb8a745d6a20093658dc57d3d2ed"
+    },
+    {
+      "symbol": "mtk_regulator_disable",
+      "start": "0xffffffc0004b2230",
+      "end_exclusive": "0xffffffc0004b22a0",
+      "bytes": 112,
+      "sha256": "5db300fa89348dd9306eee7ebc9c730c37c4fe63d3b7b208101426fa34a39892"
+    },
+    {
+      "symbol": "mtk_regulator_set_voltage_sel",
+      "start": "0xffffffc0004b0c60",
+      "end_exclusive": "0xffffffc0004b0cb0",
+      "bytes": 80,
+      "sha256": "7fb4dd602b02394326741092e83bc4c0995d489344d2de125cea57f6a3f1982d"
+    }
+  ],
+  "private_disassembly_retained": true,
+  "device_access": false,
+  "compiled_descriptors": [
+    {
+      "name": "vcn33_bt",
+      "enable": {
+        "index": 2144,
+        "register": "0xa98",
+        "mask": "0x1",
+        "shift": 1
+      },
+      "voltage_selector": {
+        "index": 2250,
+        "register": "0xada",
+        "mask": "0x3",
+        "shift": 9
+      },
+      "voltage_table_uv": [
+        3300000,
+        3400000,
+        3500000,
+        3600000
+      ]
+    },
+    {
+      "name": "vcn33_wifi",
+      "enable": {
+        "index": 2147,
+        "register": "0xa9a",
+        "mask": "0x1",
+        "shift": 1
+      },
+      "voltage_selector": {
+        "index": 2250,
+        "register": "0xada",
+        "mask": "0x3",
+        "shift": 9
+      },
+      "voltage_table_uv": [
+        3300000,
+        3400000,
+        3500000,
+        3600000
+      ]
+    }
+  ],
+  "data_spans": [
+    {
+      "name": "regulator operations through is_enabled",
+      "start": "0xffffffc001244900",
+      "bytes": 88,
+      "sha256": "8aa2ca7cc697102dd8bbc176b3ea4a9ca7be9c60ede559bbdf59f3c29625d352"
+    },
+    {
+      "name": "PMU flag 2144",
+      "start": "0xffffffc000d1eb80",
+      "bytes": 12,
+      "sha256": "5ed46c2771f7084bd2ba661fa94ee77b38e930864b211f1b7e4b3a7eb34fe561"
+    },
+    {
+      "name": "PMU flag 2250",
+      "start": "0xffffffc000d1f078",
+      "bytes": 12,
+      "sha256": "71aeed1ec82f4de335096fa4f7f27c4328b670657eaee854acb82c57cfb4064d"
+    },
+    {
+      "name": "vcn33_bt descriptor prefix through voltage-table pointer",
+      "start": "0xffffffc001241ee8",
+      "bytes": 488,
+      "sha256": "582060e7c92f8966d4ff0220add69ee1a4549cef82f74b66da442fad924f3e9b"
+    },
+    {
+      "name": "vcn33_bt voltage table",
+      "start": "0xffffffc000d186c0",
+      "bytes": 16,
+      "sha256": "420acd11e49973776bc6e1418141d896b74e3a5ca9ef1f240139b7104524fc11"
+    },
+    {
+      "name": "PMU flag 2147",
+      "start": "0xffffffc000d1eba4",
+      "bytes": 12,
+      "sha256": "9f19ad928c6d3ee4e19712dfcc7f4130d8da976a51eddad9f5a2b97441491006"
+    },
+    {
+      "name": "PMU flag 2250",
+      "start": "0xffffffc000d1f078",
+      "bytes": 12,
+      "sha256": "71aeed1ec82f4de335096fa4f7f27c4328b670657eaee854acb82c57cfb4064d"
+    },
+    {
+      "name": "vcn33_wifi descriptor prefix through voltage-table pointer",
+      "start": "0xffffffc0012420f0",
+      "bytes": 488,
+      "sha256": "662652054851e5976b0ecfcb31f22187fa44d6c0fc4e5aed676a26f8070d417d"
+    },
+    {
+      "name": "vcn33_wifi voltage table",
+      "start": "0xffffffc000d186c0",
+      "bytes": 16,
+      "sha256": "420acd11e49973776bc6e1418141d896b74e3a5ca9ef1f240139b7104524fc11"
+    }
+  ],
+  "compiled_consumer_branch": "separate regulator handles; exact 3300000 uV request; no direct mode-control write in either consumer function",
+  "control_return_limitation": "both consumer functions return zero on all decoded paths; provider setters discard PMIC results",
+  "does_not_establish": [
+    "live boot identity or callback execution",
+    "output-pin topology",
+    "enable Boolean logic",
+    "source-clock or on-control ownership",
+    "physical voltage or successful transport"
+  ],
+  "source_layout_commit": "8cfe6596a503612e3332d9c26e292a19525a7f07",
+  "source_layout_files": {
+    "drivers/misc/mediatek/power/mt6797/pmic.h": "b54d8264a270af746edf32026b6ebe2896f0c728255ec119eb3a3c62b88f5ac4",
+    "drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/upmu_hw.h": "e376d2835dd32812b52caf6a51139cc7fd541de18eaad0f30ecf8194f70cebbe"
+  }
+}
