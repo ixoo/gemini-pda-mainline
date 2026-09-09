@@ -53,8 +53,9 @@ missing-proof fixture used the host's symlinked temporary path; resolving the
 fixture root allowed it to reach the intended missing-file check. No production
 predicate was relaxed. Python syntax and repository checks passed.
 
-The generated metadata command has not run on the device. Exact candidate
-BusyBox command validation and the complete attended contract remain pending.
+The generated metadata command has not run on the device. All four generated commands subsequently passed exact ARM64 BusyBox syntax
+validation; see the [attended contract](ATTENDED_SESSION.md#validation-and-limits).
+Actual fresh runtime conditions remain pending.
 Capture and disconnect execution bindings remain disabled, and the shared queue
 is not ready for physical selection. No kernel, userspace rebuild, or device
 access was needed for this collector. The [combined budget](CAPTURE_ADMISSION.md)

@@ -59,9 +59,9 @@ operations or concurrent device tests are added.
 
 The classifier contract is still unfilled. The [bounded metadata collector](METADATA.md) now produces the runtime
 receipt from actual event identity, capabilities, resource ancestry, map, logger
-age and reader exclusion. It has not yet run on the candidate. Review the exact generated
-capture/delivery/export commands under the candidate's BusyBox. Then freeze the
-candidate classifier fields and the complete attended sequence. Fresh runtime
+age and reader exclusion. It has not yet run on the candidate. The exact generated metadata/capture/delivery/export commands passed the
+candidate's BusyBox syntax check. The [attended sequence](ATTENDED_SESSION.md)
+pins the offline inputs and produces classifier fields from fresh metadata. Fresh runtime
 facts and owner confirmation can only be filled after the later physical boot.
 Until those steps are complete, keep both capture admission and queue readiness
 disabled/preparing. The device remains in known-good Gemian.

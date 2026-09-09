@@ -5,10 +5,10 @@
 | Field | Value |
 | --- | --- |
 | Queue ID | `keyboard-coverage` |
-| Status | Preparing; device unselected; no runtime execution |
+| Status | Conditionally prepared; device unselected; capture not executed |
 | Parent | `2891e041fbc5291956bd90882f0f52fea11f2504` |
 | Device | Named Gemini development unit; US printed layout from prior record |
-| Implementation | A53 serviceability keyboard worker; reviewer and custodian unassigned |
+| Implementation | Primary integration coordinator; exclusive custody assigned at attended handoff |
 | Date | 2026-09-05 |
 | Parent packet | [Owner-away preparation](../README.md#keyboard-coverage) |
 
@@ -64,11 +64,11 @@ package. The [capture/delivery decision](CAPTURE_DELIVERY_DECISION.md) records
 its identity, existing behavior and the minimum remaining lifecycle work.
 The [prerequisite repair](../../2026-09-07-keyboard-boot2-session/PREREQUISITE_REPAIR.md)
 now rejects hash-shaped placeholders and prepares an explicit enabled Buildbox
-kind plus harmless disconnect probe. The frozen packet still lacks the actual
-enabled package, exact passing disconnect proof, current input
-identity/capabilities, reader exclusion, admitted launch/delivery evidence and
-combined session/power-duration review. Neither conditional readiness nor
-physical admission is established.
+kind plus harmless disconnect probe. The [attended session](ATTENDED_SESSION.md) now pins the corrected enabled
+package, passing mechanism/duration evidence, metadata collector, command checks
+and combined budget. Fresh input identity/capabilities, reader exclusion, actual
+custody and the complete boot-specific capture binding remain runtime conditions.
+Both execution bindings remain disabled.
 
 ## Frozen proposed observation protocol
 
@@ -223,7 +223,8 @@ selection is never automatic.
 ## Conclusion
 
 Protocol and host classifier implemented; new keyboard hypothesis untested.
-Preparation is not complete, and no physical session is admitted. The
+The [attended packet](ATTENDED_SESSION.md) is conditionally prepared; its fresh
+runtime and owner facts remain required before execution. The
 [keyboard hardware boundary](../../../docs/hardware/keyboard.md) and current
 support claims remain unchanged. Scheduling belongs only to the
 [roadmap](../../../docs/ROADMAP.md#owner-away-progress).

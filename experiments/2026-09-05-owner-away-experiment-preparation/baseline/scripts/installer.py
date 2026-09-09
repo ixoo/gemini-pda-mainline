@@ -15,7 +15,9 @@ PINS = {BASE: 'deaa0e886a881132dd49ee1e3d5b0e6f776400f51fa86a8d0b7c791e979d12a8'
         'scripts/boot2-device-guard.sh': '0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf'}
 RECEIPT_NAME = 'a53-authenticated-baseline-deployment-2'
 KEYBOARD_DISCONNECT_RECEIPT_NAME = 'a53-keyboard-disconnect-deployment-2'
-_PURPOSE_RECEIPTS = {'keyboard-disconnect': KEYBOARD_DISCONNECT_RECEIPT_NAME}
+KEYBOARD_CAPTURE_RECEIPT_NAME = 'a53-keyboard-capture-deployment-1'
+_PURPOSE_RECEIPTS = {'keyboard-disconnect': KEYBOARD_DISCONNECT_RECEIPT_NAME,
+                     'keyboard-capture': KEYBOARD_CAPTURE_RECEIPT_NAME}
 
 
 def receipt_name(purpose=None):
