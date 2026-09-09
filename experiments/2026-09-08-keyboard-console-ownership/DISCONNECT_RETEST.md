@@ -1,6 +1,7 @@
 # Corrected disconnect test
 
-Status: prepared and validated; no fresh boot or execution admission yet.
+Status: guarded handoff complete; waiting for one owner boot2 selection.
+No fresh mainline identity or execution admission yet.
 The [correction](DISCONNECT_FIX.md) follows the
 [failed attended result](DISCONNECT_RESULT.md), which remains unchanged.
 
@@ -59,3 +60,18 @@ Disable the consumed binding, preserve/seal the logger once under its original
 Use the reviewed single native request and authenticated changed-ID Gemian
 confirmation. Pass advances later keyboard preparation; cancellation, scan or
 transport failure requires diagnosis before another physical test.
+
+## Attended handoff
+
+On 2026-09-09, the owner reported readiness for boot selection. The primary
+integration coordinator took exclusive device custody. The exact installer
+derivation above passed local validation, then verified known-good Gemian boot
+`21748845-bc80-4536-b67c-84f7bb16c74f`, stable power, and live-GPT boot2
+`/dev/mmcblk0p30` (`179:30`), separate from root (`179:29`). Both full-partition
+checks matched padded candidate
+`7d9eb0e20f145594ba5b9e56bbb809998c813d2517ce2f43b17074828459ea2a`;
+the installer skipped writing and confirmed clean shutdown by unreachability.
+The strict deployment receipt parser passed. Private receipt SHA-256:
+`e5224624699a0fa0978fc7726415bdad3d9dee44a7af53c059c6507f5e04e1f2`.
+No new backup, automatic reboot, or mainline test occurred. The next action is
+one owner boot2 selection with USB connected and an immediate screen report.

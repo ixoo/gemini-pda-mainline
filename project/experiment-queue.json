@@ -4,7 +4,7 @@
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
   "selected_item": "keyboard-console-disconnect",
-  "selection_note": "Corrected disconnect monitor and kernel-thread scan validated on Buildbox. The failed predecessor remains recorded; a fresh attended boot-specific admission is required.",
+  "selection_note": "Fresh guarded boot2 handoff passed; matching image skipped and clean shutdown confirmed. Waiting for one owner selection for the corrected disconnect test.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -153,10 +153,10 @@
     "keyboard-console-disconnect": {
       "workstream": "serviceability",
       "preparation_state": "ready",
-      "device_state": "unselected",
+      "device_state": "waiting-owner-boot",
       "owner": "primary integration coordinator",
       "reviewer": "primary integration coordinator",
-      "device_custodian": null,
+      "device_custodian": "primary integration coordinator",
       "experiment": "experiments/2026-09-08-keyboard-console-ownership/README.md",
       "session_packet": "experiments/2026-09-08-keyboard-console-ownership/DISCONNECT_RETEST.md",
       "candidate_record": "experiments/2026-09-08-keyboard-console-ownership/validation.json",
@@ -169,7 +169,7 @@
         }
       ],
       "owner_task_id": null,
-      "readiness_note": "Quiet-client-loss regression reproduced and fixed; explicit kernel-thread scan classification added. ARM64/QEMU monitor tests and exact BusyBox disconnect tests pass, new package validated. Existing boot2 candidate unchanged. Fresh guarded handoff and actual boot-specific binding required; execution remains disabled."
+      "readiness_note": "Fresh guarded handoff passed on known-good Gemian; full boot2 checksum already matched and shutdown confirmed. Waiting for physical selection and readable-screen report. Fresh boot-specific binding remains required; execution disabled."
     }
   }
 }
