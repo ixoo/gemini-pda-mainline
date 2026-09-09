@@ -282,3 +282,51 @@ only checked transaction IDs and that limited scope; no hardware pass is emitted
 Non-DMA events are outside this function's verdict. Their schemas and causal
 checks, capture hooks, physical storage ownership and recovery remain required
 before a candidate can use this format for the complete experiment.
+
+## Firmware-stop observation boundary
+
+A source audit of the three inputs pinned in
+[the capture-sizing receipt](results/capture-sizing.json) narrows the next
+producer hooks. In `wlan_lib.c`, `wlanAdapterStop()` initializes both its local
+WCIR value to zero and its returned status to success. Its power-down work is
+conditional on D0, a responsive chip and a present card, then on driver
+ownership and successful `wlanSendNicPowerCtrlCmd(adapter, 1)`. The returned
+status is not changed when those gates skip work or when the polling loop
+uses a fallback or reset branch. Adapter-stop return alone cannot establish
+firmware shutdown.
+
+The ordinary loop first tests READY clear, then conditionally invokes
+`wlanPowerOffInt()`, then handles removal, bus failure or polling timeout.
+Consequently an exit record must distinguish ordinary READY clear, successful
+fallback and reset-trigger branches, as well as skipped command/polling work.
+The actual branch matters: reconstructing an assumed timeout decision from
+only the final loop counter loses the source's branch priority.
+
+There is also a read-attribution hazard before that first test. In the non-SDIO
+`hal.h` path, `HAL_MCR_RD` either calls the accessor directly or stores a shared
+register offset/result pointer, wakes the HIF thread and calls
+`wait_for_completion_interruptible()`. The macro discards the wait result.
+A macro return therefore does not by itself prove that a read supplied the
+local value. If a wait returns early before the first read, the initialized
+zero could satisfy READY clear. This is a source-level possible path, not an
+observed device failure or a claim that the selected shutdown uses the queued
+path. Direct dispatch depends on the HIF-thread pointer and caller name and
+must itself be observed.
+
+In the selected AHB `ahb.c`, `kalDevRegRead()` assigns the result of
+`HIF_REG_READL` to the output and returns TRUE unconditionally. Its return is
+not an independent bus-error check. The producer needs a record after the
+actual accessor assignment, joined to the stop invocation and particular
+read request, followed by the caller's consumed value and selected exit
+branch. Record direct/queued dispatch and, for queued dispatch, the actual
+completion-wait result. A missing accessor completion, unmatched request,
+interrupted wait or mismatched consumed value cannot establish ordinary
+READY-clear shutdown. Capturing only the wrapper return and local value is
+insufficient even with valid framing and CRC.
+
+Before implementing the firmware payload, trace the selected removal call site
+and HIF completion lifecycle to establish whether queued reads can occur there
+and how requests can be joined without races. Do not publish kernel pointers
+as correlation IDs. This audit changes the hook placement requirement; it
+adds no runtime instrumentation, firmware-stop verdict or hardware evidence.
+The firmware kind remains reserved until those producer semantics are resolved.
