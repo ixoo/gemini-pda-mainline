@@ -36,8 +36,11 @@ static int fake_open(const char *path, int flags, ...)
         if (input_fd >= 0) fcntl(input_fd, F_SETFL, O_NONBLOCK);
         return input_fd;
     }
-    if (!strcmp(path, "/dev/tty1"))
-        return console_fd = dup(atoi(getenv("CONSOLE_FD")));
+    if (!strcmp(path, "/dev/tty1")) {
+        console_fd = dup(atoi(getenv("CONSOLE_FD")));
+        if (console_fd >= 0) fcntl(console_fd, F_SETFL, O_NONBLOCK);
+        return console_fd;
+    }
     return -1;
 }
 static int fake_stat(int fd, struct stat *s)
@@ -175,6 +178,34 @@ def state_case(binary, qemu, failure=False):
             os.close(fd)
 
 
+def drain_case(binary, qemu):
+    master, slave = pty.openpty()
+    reader, writer = os.pipe()
+    try:
+        before = termios.tcgetattr(slave)
+        os.write(master, b'n' * 64)
+        # Observe the echo to establish delivery to the line discipline.
+        echoed = b''
+        while len(echoed) < 64:
+            assert select.select([master], [], [], 1)[0]
+            echoed += os.read(master, 4096)
+        result = subprocess.run([qemu, str(binary), '--drain-console', 'event0', '64'],
+            pass_fds=(reader, slave), capture_output=True, timeout=3,
+            env={**os.environ, 'INPUT_FD': str(reader), 'CONSOLE_FD': str(slave)})
+        assert result.returncode == 0 and result.stderr == b'', result
+        lines = result.stdout.splitlines()
+        saved = b''.join(bytes.fromhex(line.split(b'hex=')[1].decode()) for line in lines if b'hex=' in line)
+        assert saved == b'n' * 64, result
+        assert b'console-drain empty=1 bytes=64' in lines, result
+        assert lines[-1] == b'console-drain complete=1 restored=1', result
+        assert termios.tcgetattr(slave) == before
+        assert not select.select([master], [], [], 0)[0]
+        print('console-drain-preserves-and-restores=pass')
+    finally:
+        for fd in (master, slave, reader, writer):
+            os.close(fd)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--compiler', required=True)
@@ -197,6 +228,7 @@ def main():
     run_case(binary, args.qemu, 'escape-preserves-pending-space', [(4, 4, 36), press, sync, release, sync], b'\x1b ')
     state_case(binary, args.qemu)
     state_case(binary, args.qemu, failure=True)
+    drain_case(binary, args.qemu)
 
 
 if __name__ == '__main__':

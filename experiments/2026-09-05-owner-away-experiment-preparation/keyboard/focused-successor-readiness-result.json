@@ -1,0 +1,17 @@
+{
+  "schema": "focused-readiness-result-v2",
+  "id": "e94119fc-dd80-4dec-b965-725ad5e8696c",
+  "boot_id": "e3a29c80-4948-4ef8-893a-cfbef0cd4918",
+  "process": {
+    "elapsed_seconds": 72.176,
+    "exit_status": 2,
+    "reason": null,
+    "stderr_bytes": 0,
+    "stdin_complete": true,
+    "stdout_bytes": 384
+  },
+  "stdout": "space-ready=waiting\nspace-ready=waiting\nspace-ready=waiting\nspace-ready=failed reason=console-byte restored=1 state=0 events=1 bytes=0 read=24 type=4 code=4 value=36 console_byte=110 errno=0\nconsole-read bytes=32 hex=6e6e6e6e6e6e6e6e6e6e6e6e6e6e6e6e6e6e6e6e6e6e6e6e6e6e6e6e6e6e6e6e\npending type=1 code=57 value=1\npending type=0 code=0 value=0\npending count=2 limit=8 read=-1 errno=11\n",
+  "classification": "space-press-confirmed-console-read-contains-32-n-bytes",
+  "focused_capture_started": false,
+  "logger_started": false
+}

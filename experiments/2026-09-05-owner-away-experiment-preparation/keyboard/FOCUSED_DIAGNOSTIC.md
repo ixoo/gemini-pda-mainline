@@ -282,3 +282,26 @@ commands passed shell syntax and ShellCheck (literal remote awk and indirect
 logger trap callbacks retain their existing exclusions). No kernel changed.
 A failed start remains a failure; a successful start permits the previously
 prepared focused observation under the existing logger and preservation guards.
+
+The successor readiness failed on the same boot after 72.176 seconds. Its
+[retained result](focused-successor-readiness-result.json) now establishes
+MSC_SCAN 36 followed by EV_KEY 57 press and SYN_REPORT. The simultaneous
+32-byte console read consisted entirely of byte 110 (`n`). This confirms the
+Space press without attributing those console bytes to its translation. No
+focused capture or logger started. The binding was disabled again.
+
+A subsequent snapshot again found no held keys or shift bits. The console was
+in its original canonical/echoing mode. A bounded attempt to preserve pending
+input using BusyBox `stty` plus `dd` timed out with zero exported bytes. Its
+unique RAM directory was retained. A separate authenticated inspection found
+zero-byte input/status files, no after-state file, and the exact original
+termios string restored. This is a failed preservation attempt, not an empty
+queue result. Do not repeat the blocking read.
+
+The existing helper now has an explicit `--drain-console` mode: it uses its
+already nonblocking console descriptor, preserves at most 128 reads of 32
+bytes each, reports whether a zero/EAGAIN read was reached, requires released
+keys before and after, and restores termios. It does not flush input or admit
+a keyboard test. The pending bytes stay private. Its PTY fixture supplies
+64 canonical queued `n` bytes and checks exact preservation and restoration.
+A capped or interrupted read cannot establish an empty queue.

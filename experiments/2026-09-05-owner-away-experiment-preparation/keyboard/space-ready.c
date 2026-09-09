@@ -114,6 +114,31 @@ static int report_state(int fd)
 	return printf("console-state complete=1 shift_after=%u\n", after) < 0 || ferror(stdout) ? 2 : 0;
 }
 
+/* Preserve queued bytes rather than flushing them. Every read is nonblocking. */
+static int drain_console(void)
+{
+	unsigned int total = 0;
+	for (unsigned int i = 0; i < 128 && !interrupted; i++) {
+		unsigned char data[32];
+		ssize_t count = read(ttyfd, data, sizeof(data));
+		if (!count || (count < 0 && errno == EAGAIN)) {
+			printf("console-drain empty=1 bytes=%u\n", total);
+			return ferror(stdout) ? 2 : 0;
+		}
+		if (count < 0)
+			return 2;
+		total += count;
+		printf("console-drain bytes=%ld hex=", (long)count);
+		for (ssize_t j = 0; j < count; j++)
+			printf("%02x", data[j]);
+		putchar('\n');
+		if (ferror(stdout))
+			return 2;
+	}
+	printf("console-drain empty=unproven bytes=%u limit=4096\n", total);
+	return 2;
+}
+
 int main(int argc, char **argv)
 {
 	struct stat info;
@@ -134,8 +159,9 @@ int main(int argc, char **argv)
 	int pending_errno = 0;
 	long long start, reported, quiet = -1;
 	bool state_only = argc == 4 && !strcmp(argv[1], "--state");
+	bool drain_only = argc == 4 && !strcmp(argv[1], "--drain-console");
 
-	if (state_only) {
+	if (state_only || drain_only) {
 		argc--;
 		argv++;
 	}
@@ -180,6 +206,13 @@ int main(int argc, char **argv)
 	if (tcsetattr(ttyfd, TCSANOW, &raw))
 		goto done;
 	changed = true;
+	if (drain_only) {
+		setvbuf(stdout, NULL, _IONBF, 0);
+		result = drain_console();
+		if (released(fd))
+			result = 2;
+		goto done;
+	}
 	/* Refuse stale input without discarding it before displaying readiness. */
 	struct pollfd fds[] = { { fd, POLLIN, 0 }, { ttyfd, POLLIN, 0 } };
 	if (poll(fds, 2, 0) != 0 ||
@@ -261,7 +294,7 @@ int main(int argc, char **argv)
 		result = 2;
 	}
 	if (ttyfd >= 0) {
-		if (!state_only && dprintf(ttyfd, result ? "\r\nStart cancelled. Test has not begun.\r\n" :
+		if (!state_only && !drain_only && dprintf(ttyfd, result ? "\r\nStart cancelled. Test has not begun.\r\n" :
 			    "\r\nReady. Keep keys released; prompts will start shortly.\r\n") < 0)
 			result = 2;
 		close(ttyfd);
@@ -281,6 +314,10 @@ int main(int argc, char **argv)
 		close(fd);
 	if (state_only)
 		return result;
+	if (drain_only) {
+		printf("console-drain complete=%d restored=%d\n", !result, !changed);
+		return result;
+	}
 	if (result)
 		printf("space-ready=failed reason=%s restored=%d state=%d events=%u bytes=%u "
 		       "read=%ld type=%u code=%u value=%d console_byte=%d errno=%d\n",

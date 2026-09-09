@@ -25,7 +25,8 @@ def prepare(context, package, identity, revision):
     require(C['regular'](package/'fixture-tests.txt', 16384).splitlines() ==
         [f'{case}=pass'.encode() for case in ('press-release', 'held-space-does-not-start',
          'wrong-key', 'release-without-press', 'lost-events', 'timeout', 'signal-restores-console',
-         'escape-preserves-pending-space', 'state-query-read-only', 'state-query-failure')],
+         'escape-preserves-pending-space', 'state-query-read-only', 'state-query-failure',
+         'console-drain-preserves-and-restores')],
         'readiness fixtures')
     names = ('space-ready', 'licenses/musl-COPYRIGHT', 'licenses/repository-LICENSE',
              'licenses/GCC-copyright')
