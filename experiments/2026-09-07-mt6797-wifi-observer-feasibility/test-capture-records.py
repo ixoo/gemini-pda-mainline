@@ -15,6 +15,55 @@ class RecordsTests(unittest.TestCase):
     def identity(self):
         return r.encode(r.IDENTITY, 0, CYCLE, 0, bytes(range(80)))
 
+    def stop_payloads(self):
+        return [(r.FW_STOP_ENTRY, [1, 17, 1, 0, 1, 0, 0]),
+                (r.FW_STOP_COMMAND, [2, 0, 1, 0]),
+                (r.FW_STOP_POLL, [3, 1, 1, 5, 5, 5, 0, 0, 0x1234, 0x1234]),
+                (r.FW_STOP_RETURN, [4, 0])]
+
+    def stop_stream(self, payloads):
+        return self.identity() + b''.join(
+            r.encode(7, i, CYCLE, 23, layout.pack(*values))
+            for i, (layout, values) in enumerate(payloads, 1))
+
+    def test_stop_ordinary_and_faults(self):
+        stream = self.stop_stream(self.stop_payloads())
+        self.assertEqual(r.check_stop(stream, CYCLE)['checked_stops'], [23])
+        # All faults retain valid framing/CRC and remain available to decode.
+        faults = [(0, 2, 2), (0, 3, 1), (0, 4, 0), (0, 5, 1), (0, 6, 1),
+                  (1, 1, 1), (1, 2, 0), (1, 3, 1), (2, 1, 2), (2, 1, 3),
+                  (2, 2, 2), (2, 2, 3), (2, 2, 4), (2, 4, 4), (2, 5, 4),
+                  (2, 6, 1), (2, 7, 4), (2, 8, 0), (2, 9, 0), (3, 1, 1)]
+        for row, field, value in faults:
+            with self.subTest(row=row, field=field):
+                payloads = self.stop_payloads()
+                payloads[row][1][field] = value
+                stream = self.stop_stream(payloads)
+                self.assertEqual(len(r.decode(stream, CYCLE)), 5)
+                with self.assertRaises(ValueError):
+                    r.check_stop(stream, CYCLE)
+        for actual, consumed in [(1 << 21, 1 << 21), (0, 0)]:
+            payloads = self.stop_payloads()
+            payloads[2][1][8:] = [actual, consumed]
+            if actual == 0:
+                payloads[2][1][3:6] = [0, 0, 0]
+            with self.assertRaises(ValueError):
+                r.check_stop(self.stop_stream(payloads), CYCLE)
+
+    def test_stop_structure_and_order(self):
+        payloads = self.stop_payloads()
+        for bad in [payloads[:-1], payloads + payloads, list(reversed(payloads))]:
+            with self.assertRaises(ValueError):
+                r.check_stop(self.stop_stream(bad), CYCLE)
+        for payload in [b'', bytes(4), r.FW_STOP_ENTRY.pack(1, 0, 1, 0, 1, 0, 0),
+                        r.FW_STOP_POLL.pack(3, 1, 1, 1, 2, 1, 0, 0, 0, 0)]:
+            with self.assertRaises(ValueError):
+                r.encode(7, 1, CYCLE, 23, payload)
+        with self.assertRaises(ValueError):
+            r.encode(7, 1, CYCLE, 0, r.FW_STOP_RETURN.pack(4, 0))
+        with self.assertRaises(ValueError):
+            r.check_stop(self.identity(), CYCLE)
+
     def test_roundtrip_and_prefix(self):
         start = self.identity()
         self.assertEqual(len(r.decode(start, CYCLE)), 1)

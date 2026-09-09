@@ -13,7 +13,7 @@ PAYLOAD_BYTES = 120 - HEADER.size
 COMMIT = 0x57464331
 IDENTITY = 1
 TERMINAL = 255
-# Non-DMA event payloads and cross-record lifecycle semantics remain unfinished.
+# Firmware load and other non-DMA lifecycle semantics remain unfinished.
 KINDS = {IDENTITY, 2, 3, 4, 5, 6, 7, 8, 9, 10, TERMINAL}
 TERMINAL_STATUSES = {1, 2, 3}  # producer-reported complete, failed, overflow
 
@@ -56,6 +56,41 @@ def validate_dma_payload(kind, transaction, payload):
             raise ValueError('invalid DMA unmap discriminator')
 
 
+# Kind 7 is currently stop-only; no firmware-load payload is admitted yet.
+FW_STOP_ENTRY = struct.Struct('<7I')
+FW_STOP_COMMAND = struct.Struct('<4I')
+FW_STOP_POLL = struct.Struct('<III4QIII')
+FW_STOP_RETURN = struct.Struct('<2I')
+FW_STOP_LAYOUTS = {1: FW_STOP_ENTRY, 2: FW_STOP_COMMAND,
+                   3: FW_STOP_POLL, 4: FW_STOP_RETURN}
+
+
+def validate_stop_payload(transaction, payload):
+    if not transaction or len(payload) < 4:
+        raise ValueError('stop requires an invocation ID and subtype')
+    subtype = int.from_bytes(payload[:4], 'little')
+    layout = FW_STOP_LAYOUTS.get(subtype)
+    if layout is None or len(payload) != layout.size:
+        raise ValueError('unsupported stop subtype or payload size')
+    values = layout.unpack(payload)
+    if subtype == 1:
+        _, adapter, caller, hif_present, d0, no_ack, removed = values
+        if not adapter or caller not in (1, 2) or any(x not in (0, 1) for x in values[3:]):
+            raise ValueError('invalid stop entry')
+    elif subtype == 2:
+        _, fw_own, attempted, status = values
+        if fw_own not in (0, 1) or attempted not in (0, 1) or (not attempted and status):
+            raise ValueError('invalid stop command')
+    elif subtype == 3:
+        _, dispatch, branch, requests, completions, last_request, fallbacks, offset, actual, consumed = values
+        if dispatch not in (0, 1, 2, 3) or branch not in (1, 2, 3, 4):
+            raise ValueError('invalid stop poll branch')
+        if completions > requests or last_request > requests or bool(completions) != bool(last_request):
+            raise ValueError('invalid stop read attribution')
+        if not completions and actual:
+            raise ValueError('accessor value without completion')
+
+
 def encode(kind, sequence, cycle, transaction, payload):
     if len(cycle) != 16 or not any(cycle):
         raise ValueError('requires a nonzero 16-byte cycle identity')
@@ -73,6 +108,8 @@ def encode(kind, sequence, cycle, transaction, payload):
                              int.from_bytes(payload, 'little') not in TERMINAL_STATUSES):
         raise ValueError('invalid terminal payload')
     validate_dma_payload(kind, transaction, payload)
+    if kind == 7:
+        validate_stop_payload(transaction, payload)
     body = HEADER.pack(b'WFC1', 1, kind, sequence, cycle, transaction, len(payload))
     body += payload + bytes(PAYLOAD_BYTES - len(payload))
     return body + struct.pack('<II', zlib.crc32(body), COMMIT)
@@ -141,3 +178,32 @@ def check_dma(data, expected_cycle):
                 raise ValueError('unmap does not match the idle DMA mapping')
     return {'checked_transactions': list(transactions),
             'scope': 'recorded DMA API/programming/poll/unmap consistency only'}
+
+
+def check_stop(data, expected_cycle):
+    """Check a recorded ordinary direct-read stop, not thread quiescence or shared OFF."""
+    stops = {}
+    for record in decode(data, expected_cycle):
+        if record['kind'] == 7:
+            stops.setdefault(record['transaction'], []).append(record['payload'])
+    if not stops:
+        raise ValueError('no firmware stop recorded')
+    for payloads in stops.values():
+        if [int.from_bytes(p[:4], 'little') for p in payloads] != [1, 2, 3, 4]:
+            raise ValueError('incomplete, reordered or reused stop invocation')
+        _, adapter, caller, hif_present, d0, no_ack, removed = FW_STOP_ENTRY.unpack(payloads[0])
+        if (caller, hif_present, d0, no_ack, removed) != (1, 0, 1, 0, 0):
+            raise ValueError('not an ordinary eligible remove invocation')
+        if FW_STOP_COMMAND.unpack(payloads[1]) != (2, 0, 1, 0):
+            raise ValueError('stop command skipped, firmware-owned or failed')
+        _, dispatch, branch, requests, completions, last_request, fallbacks, offset, actual, consumed = FW_STOP_POLL.unpack(payloads[2])
+        if (dispatch, branch, fallbacks, offset) != (1, 1, 0, 0):
+            raise ValueError('not a direct WCIR condition exit without fallback')
+        if not requests or requests != completions or last_request != requests:
+            raise ValueError('missing attributable final accessor completion')
+        if actual != consumed or actual & (1 << 21):
+            raise ValueError('consumed READY-clear read not established')
+        if FW_STOP_RETURN.unpack(payloads[3]) != (4, 0):
+            raise ValueError('adapter stop did not return success')
+    return {'checked_stops': list(stops),
+            'scope': 'recorded ordinary direct-read firmware-stop consistency only'}

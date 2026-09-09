@@ -324,9 +324,64 @@ interrupted wait or mismatched consumed value cannot establish ordinary
 READY-clear shutdown. Capturing only the wrapper return and local value is
 insufficient even with valid framing and CRC.
 
-Before implementing the firmware payload, trace the selected removal call site
-and HIF completion lifecycle to establish whether queued reads can occur there
-and how requests can be joined without races. Do not publish kernel pointers
-as correlation IDs. This audit changes the hook placement requirement; it
-adds no runtime instrumentation, firmware-stop verdict or hardware evidence.
-The firmware kind remains reserved until those producer semantics are resolved.
+The selected removal caller and HIF completion lifecycle are resolved below.
+Queued-read attribution remains outside the ordinary-stop checker. Do not
+publish kernel pointers as correlation IDs. This audit adds no runtime
+instrumentation or hardware evidence.
+
+
+## Firmware-stop payload and consistency check
+
+The previously pinned `gl_init.c` confirms that normal `wlanRemove()` clears
+its HIF-thread pointer before `wlanAdapterStop()`, even after a completion
+wait times out. Probe-failure cleanup calls stop separately without that
+sequence. The [additional source receipt](results/stop-check-sources.json)
+pins `gl_kal.c` and the register definitions: WCIR offset is zero and READY
+is bit 21. The HIF loop completes queued register reads after calling the
+accessor. Its halt completion is signalled before final wake-lock cleanup
+and thread return. Neither a null pointer nor that completion alone proves
+that every thread cleanup operation finished. The existing
+[removal wait requirements](CYCLE_CONTROL.md#native-request-and-teardown-paths)
+remain separate from firmware-stop consistency.
+
+Kind 7 now admits four stop subtypes, each beginning with a little-endian
+`u32` subtype. The envelope transaction is a nonzero stop-invocation ID;
+firmware-load payloads remain unsupported. All fields below are `u32` unless
+explicitly `u64`; adapter IDs are observer-assigned ordinals, never pointers.
+
+| Subtype | Fields in wire order, including subtype |
+| --- | --- |
+| 1, entry | subtype, adapter ID, caller (1 normal remove, 2 probe failure), HIF pointer present, D0 predicate, chip-no-ack predicate, card-removed predicate |
+| 2, command | subtype, firmware-owned predicate, command attempted, native command status (zero placeholder when not attempted) |
+| 3, poll summary | subtype, dispatch (0 none, 1 direct, 2 queued, 3 mixed), actual exit branch (1 READY clear, 2 successful fallback, 3 reset, 4 skipped), request count `u64`, accessor-completion count `u64`, last completed request ordinal `u64`, fallback-call count `u64`, register offset, final accessor value, final caller-consumed value |
+| 4, return | subtype, native adapter-stop status |
+
+Boolean fields use 0/1. Entry gate fields reflect the evaluated native
+predicates; unevaluated predicates use zero and cannot make an ineligible
+entry pass. Command ownership is recorded at the command gate, after power
+acquisition. Counters and request ordinals are scoped to this stop's outer
+WCIR loop, starting at one for the first request; exclude nested fallback
+reads and unrelated accesses. Count every fallback call, including failed
+ones. Increment completion only after the accessor assigned its result,
+with the originating request ordinal. With no completed accessor, its value
+and last ordinal are zero. These are producer requirements still awaiting
+hooks, not properties established by the offline decoder.
+
+`check_stop()` requires exactly subtypes 1–4 for every recorded invocation.
+It accepts only eligible normal removal with the HIF pointer cleared, driver
+ownership and an attempted successful stop command. The poll must be direct,
+exit on READY clear without any fallback call, address WCIR, and have positive
+equal request/completion counts with the final request completed. The final
+accessor and consumed values must match and have READY clear; the adapter
+return must also be successful. Queued dispatch, probe cleanup, skipped work,
+fallback, reset and missing or inconsistent reads cannot pass. Structurally
+valid fault records remain decodable as evidence. Four records consume 512
+bytes per stop, in addition to removal/thread records still to be specified.
+
+Twelve framing/checker tests pass, including twenty valid-CRC stop mutations,
+READY still set, zero reads, missing/reordered/reused invocations, malformed
+payloads and absent stop evidence. The output names only checked stop IDs and
+its limited scope. It does not establish thread quiescence, bus health,
+firmware execution, shared OFF, physical capture persistence or full-cycle
+success. Other event kinds are outside this check's verdict. No producer or
+runtime candidate is added by this offline format change.

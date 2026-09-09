@@ -1,0 +1,17 @@
+{
+  "repository": "gemian/gemini-linux-kernel-3.18",
+  "revision": "59e00a9144d782e148332009a835b99c43382467",
+  "scope": "Source inputs for stop record semantics; no binary or hardware attribution",
+  "sources": [
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_kal.c",
+      "bytes": 153027,
+      "sha256": "749c5fc0e6cf3614d15e237e2d65cf92858d483ef1d678f6d9aee0f87bf348f1"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/include/nic/mt6630_reg.h",
+      "bytes": 10576,
+      "sha256": "06aefcafb733ef5fba79e8d6cb2dd71d315b48caec7fa421a78c2214ad40d50f"
+    }
+  ]
+}
