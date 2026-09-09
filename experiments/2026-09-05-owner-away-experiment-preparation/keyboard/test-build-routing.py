@@ -63,7 +63,7 @@ class RoutingTests(unittest.TestCase):
 
             argv = ['buildbox_userspace.py', '--branch', branch]
             if kind in ('keyboard-monitor', 'keyboard-monitor-enabled', 'keyboard-duration',
-                        'keyboard-disconnect-preserver', 'keyboard-space-ready'):
+                        'keyboard-disconnect-preserver', 'keyboard-space-ready', 'keyboard-focused'):
                 argv.append('--' + kind)
             if fetch_only:
                 argv += ['--fetch-only', revision, identity]
@@ -90,7 +90,7 @@ class RoutingTests(unittest.TestCase):
 
     def test_legacy_and_monitor_build_paths(self):
         for kind in ('userspace', 'keyboard-monitor', 'keyboard-monitor-enabled', 'keyboard-duration',
-                     'keyboard-disconnect-preserver', 'keyboard-space-ready'):
+                     'keyboard-disconnect-preserver', 'keyboard-space-ready', 'keyboard-focused'):
             with self.subTest(kind=kind):
                 self.exercise(kind, False)
 
@@ -113,6 +113,8 @@ class RoutingTests(unittest.TestCase):
         self.exercise('keyboard-disconnect-preserver', True, 'main')
         self.exercise('keyboard-space-ready', False, 'main')
         self.exercise('keyboard-space-ready', True, 'main')
+        self.exercise('keyboard-focused', False, 'main')
+        self.exercise('keyboard-focused', True, 'main')
 
     def test_published_main_commit_does_not_require_local_main_branch_label(self):
         self.exercise('keyboard-disconnect-preserver', False, 'main',
@@ -121,7 +123,7 @@ class RoutingTests(unittest.TestCase):
     def test_remote_ref_drift_refuses_before_fetch(self):
         for branch in ('main', MODULE['BRANCH']):
             for kind in ('userspace', 'keyboard-monitor', 'keyboard-monitor-enabled', 'keyboard-duration',
-                         'keyboard-disconnect-preserver', 'keyboard-space-ready'):
+                         'keyboard-disconnect-preserver', 'keyboard-space-ready', 'keyboard-focused'):
                 with self.subTest(branch=branch, kind=kind):
                     self.exercise(kind, False, branch, post_build_ref='b' * 40)
 
@@ -130,7 +132,7 @@ class RoutingTests(unittest.TestCase):
 
     def test_fetch_only_never_builds_either_kind(self):
         for kind in ('userspace', 'keyboard-monitor', 'keyboard-monitor-enabled', 'keyboard-duration',
-                     'keyboard-disconnect-preserver', 'keyboard-space-ready'):
+                     'keyboard-disconnect-preserver', 'keyboard-space-ready', 'keyboard-focused'):
             with self.subTest(kind=kind):
                 self.exercise(kind, True)
 

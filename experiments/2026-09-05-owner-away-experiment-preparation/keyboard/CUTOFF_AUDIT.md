@@ -72,3 +72,6 @@ No reader change, build, device query, new capture, boot or recovery was perform
 for this audit. A future capture still requires a fresh bounded session and
 owner participation. Raw captures remain private; only numeric counts, source
 identities and reviewed conclusions are published here.
+
+The later [focused reader implementation](FOCUSED_DIAGNOSTIC.md) addresses
+collection separately from live admission and regression acceptance.
