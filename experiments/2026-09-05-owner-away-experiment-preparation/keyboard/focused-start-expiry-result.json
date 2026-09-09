@@ -1,0 +1,19 @@
+{
+  "boot_id": "e3a29c80-4948-4ef8-893a-cfbef0cd4918",
+  "capture_process": {
+    "elapsed_seconds": 0.535,
+    "exit_status": 1,
+    "reason": null,
+    "stderr_bytes": 0,
+    "stdin_complete": true,
+    "stdout_bytes": 0
+  },
+  "classification": "logger-clock-guard-refused-before-observer",
+  "correction": "Start the logger only after final owner readiness; then deliver and capture without another setup or readiness pause.",
+  "diagnostic_trace_sha256": "5f9177b600cf1e39b01404deaaa2d5efc00cf1f0b0984885aa0811499fdbf267",
+  "id": "76d97dbe-ac55-44e0-a825-2c9015aed09e",
+  "no_remote_attempt_verified": true,
+  "preservation_complete": true,
+  "reboot_performed": false,
+  "schema": "keyboard-focused-preflight-result-v1"
+}

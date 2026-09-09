@@ -364,3 +364,17 @@ uses a fresh claim; no previous evidence is deleted. Its logger starts from the
 newly sealed predecessor. Delivery finishes before asking for the owner's final
 start confirmation, so capture can begin immediately on that reply. A missed
 window does not authorize a reboot or a hardware failure conclusion.
+
+That successor was refused before observer launch: waiting for the owner's
+final reply after logger startup exhausted the existing 120-second start
+allowance. The [preflight result](focused-start-expiry-result.json) records the
+refusal; a bounded read-only trace stopped at the logger-clock guard. A separate
+seal verified that no remote keyboard-attempt directory existed and preserved
+the logs. No keyboard outcome or new observer execution occurred.
+
+Correct the ordering without extending any limit: prepare and bind the complete
+session first, obtain final owner readiness, then start the logger, perform the
+two short deliveries and immediately launch capture. No build, publication or
+second readiness wait belongs between that reply and those execution steps.
+The unexecuted delivery is hash-verified and archived with an absent-attempt
+check before replacement; existing completed capture evidence remains intact.
