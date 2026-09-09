@@ -116,3 +116,45 @@ were inspected separately. These graph results do not prove every callee,
 runtime path, cipher implementation or hardware effect. Private script hashes,
 bounds and public source hashes are retained in the receipt. Repository checks
 cover publication; no kernel build, radio test or mainline support is claimed.
+
+
+## Follow-up: WTBL2 identity and post-notification work
+
+A later bounded diagnostic trace joins the same callback's third output-pointer
+argument to the firmware's WTBL2 address label. The six-byte initialization
+therefore targets the beginning of the table identified as WTBL2 by that
+firmware, rather than an unidentified output pointer. The diagnostic belongs
+to the transmit manager, but neither the component name nor the table label
+establishes the field's TX/RX direction, replay meaning, hardware address or
+safe initialization policy. A separate decoded diagnostic names an even-PN
+flag; it does not identify this six-byte field as receive replay state.
+
+Two diagnostic tails were inspected from previously decoded callback-load
+anchors. One only dumps the fixed first-table window; the other supplies the
+WTBL2/3/4 label-and-address argument joins. A nearby prefix considered as a
+possible counter reader instead changes control bits and returns. That negative
+hypothesis is retained, not reclassified as a counter read. No diagnostic was
+invoked on hardware.
+
+The direct callee after key-ready notification was also inspected. In addition
+to table reads and formatted diagnostics, it conditionally stores the WLAN
+index and cipher into station-indexed software arrays. The stores are joined
+to later diagnostic argument loads identifying unit-key, broadcast-key and
+cipher mappings. Thus this helper is not merely a log operation, and the
+notification attempt precedes additional software mapping work in the selected
+firmware path. Its lower-level callbacks remain unresolved.
+
+This narrows the ordering requirement: the event constructor alone cannot be
+treated as the end of all installation-related state changes. It does **not**
+prove that the host receives the event before those changes, that a race occurs,
+or that the later mapping stores govern RX replay. Delivery scheduling and
+callback completion still need attribution before using this event as a
+rekey/station-reuse fence. No new host delay, retry or firmware register command
+is justified by these static facts.
+
+The [follow-up receipt](results/firmware-key-table-followup.json) preserves four
+bounded walks and two referenced-label inspections. All four walks exhausted;
+the two anchor tails and heuristic prefix are explicitly not proofs of complete
+containing-function boundaries. The post-notification walk starts at the
+immediate-derived call target. Raw labels, addresses and listings remain
+private. This follow-up changes no driver, hardware policy or support claim.

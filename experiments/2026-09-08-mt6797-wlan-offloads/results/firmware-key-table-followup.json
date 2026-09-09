@@ -1,0 +1,70 @@
+{
+  "schema": 1,
+  "firmware_sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
+  "firmware_bytes": 411632,
+  "method": "Retained RE-VM Ghidra 12.1.2 project and existing NDS32 BE-instruction/LE-data mapping premises. Bounded direct-flow walks skip callees and assume return. Diagnostic labels are joined to decoded argument loads, not proximity alone.",
+  "private_analysis": [
+    {
+      "script": "KeyCounterReadPrefix.java",
+      "sha256": "de214ce1c6f36735864ff6d9d3390da0d588b1235b75be06812768ffb4f6512b",
+      "node_cap": 384,
+      "nodes": 40,
+      "queue_exhausted": true,
+      "calls": 1,
+      "unresolved_noncall_computed": 0,
+      "terminals": 1,
+      "invalid": 0,
+      "scope": "Heuristic prefix before an established callback-load anchor; changes control bits, not a proved counter reader."
+    },
+    {
+      "script": "KeyCounterDiagnosticTail.java",
+      "sha256": "b5644e6ff287da25a087dccd389e0b7216c85f9fabdc8a2b0ce3a5e22524c414",
+      "node_cap": 384,
+      "nodes": 25,
+      "queue_exhausted": true,
+      "calls": 3,
+      "unresolved_noncall_computed": 0,
+      "terminals": 1,
+      "invalid": 0,
+      "scope": "Starts at an established callback-load anchor; tail only, not a complete containing function."
+    },
+    {
+      "script": "KeyCounterDumpTail.java",
+      "sha256": "b3ac338819edd44120984eb588933e08894ea15d6f50d99a7132e337a643ee9c",
+      "node_cap": 384,
+      "nodes": 102,
+      "queue_exhausted": true,
+      "calls": 7,
+      "unresolved_noncall_computed": 0,
+      "terminals": 1,
+      "invalid": 0,
+      "scope": "Starts at an established callback-load anchor; tail only, not a complete containing function."
+    },
+    {
+      "script": "KeyPostNotifyInspect.java",
+      "sha256": "cb8e5b5bfa65cc17b1f6aeae1851e288a9c033d92ffd06ea3097f45a587e557f",
+      "node_cap": 384,
+      "nodes": 275,
+      "queue_exhausted": true,
+      "calls": 12,
+      "unresolved_noncall_computed": 0,
+      "terminals": 1,
+      "invalid": 0,
+      "scope": "Immediate-derived callee after key-ready notification."
+    },
+    {
+      "script": "KeyCounterLabels.java",
+      "sha256": "a7dc1f676848e1fb83966286ac9e4d5f07d2acdffea934c0fe39d7ce3111da6f",
+      "referenced_labels": 4,
+      "maximum_bytes_per_label": 160,
+      "all_labels_terminated": true
+    },
+    {
+      "script": "KeyPostNotifyLabels.java",
+      "sha256": "65a62280e9a52129266ac21fc86825c8c4d552a131d4244d97aea0376f34345e",
+      "referenced_labels": 8,
+      "maximum_bytes_per_label": 256,
+      "all_labels_terminated": true
+    }
+  ]
+}
