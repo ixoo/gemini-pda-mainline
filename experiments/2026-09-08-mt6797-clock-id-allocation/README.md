@@ -1,6 +1,6 @@
 # MT6797 clock provider allocation
 
-Status: unsigned patch and focused regression pass; Buildbox compile pending.
+Status: compile and focused regression passed, 2026-09-08.
 This is an upstream-preparation checkpoint, not a boot candidate.
 
 ## Problem and fix
@@ -47,14 +47,25 @@ KERNEL_PROFILE=mt6797-clock-ids-compile ./scripts/buildbox fetch-package
 ```
 
 The isolated profile selects only this patch and enables all four affected
-providers. Strict checkpatch passes with only `MISSING_SIGN_OFF` excluded.
+providers. The [Buildbox receipt](compile.json) records a successful build from
+project commit `b143a571`, with zero compiler warnings or errors. All four
+provider objects compiled and their driver symbols are present in the final
+kernel. The package was fetched with matching inventory and checksums. The
+same six regression cases pass against Buildbox's exact prepared source.
+All 244 inspected shared-descriptor initializers use named fields. The 199
+existing profiles retain their definitions and patch order. Repository checks
+passed before publication; Linux-only provenance fixtures remain deferred to
+CI. Strict checkpatch passes with only `MISSING_SIGN_OFF` excluded.
 No DT/schema changes require validation. No device access or boot occurred.
 
 ## Upstream boundary
 
 The destination is the MediaTek common-clock subsystem. A targeted public
 search found no equivalent correction; that is not an exhaustive maintainer
-or mailing-list review. Recheck overlap and run upstream maintainer discovery
-before submission. The synthetic archive author provides no DCO sign-off;
+or mailing-list review. Pinned-tree `get_maintainer.pl --no-git --no-git-fallback`
+identifies Stephen Boyd, Brian Masney and Jerome Brunet for common clocks,
+and Matthias Brugger and AngeloGioacchino Del Regno for MediaTek, with the
+linux-clk and linux-mediatek lists among its destinations. Recheck overlap
+and recipients before submission. The synthetic archive author provides no DCO sign-off;
 truthful authorship and certification remain required. No message was sent.
 Delete this local patch once an equivalent fix reaches the selected baseline.

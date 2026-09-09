@@ -12,6 +12,8 @@
     "drivers/clk/mediatek/clk-mtk.h": "67c603ab0a319e7672fba7f569a4e691fd8b3772b031427524d8da934198e6d9",
     "drivers/clk/mediatek/clk-mt6797-venc.c": "4b7c9ed72dcf53b8735b120ea274f1939509b2365005c966b00363414a21eb3b",
     "drivers/clk/mediatek/clk-mt6797-mm.c": "60c7ccbc28dc6356632fe1d8ae4bd653b571bc789553aa1f19d6304e000b13fa",
-    "drivers/clk/mediatek/clk-mtk.c": "e8a89dffaffedfce01489b0887fb425d64649d6fb841157bbcea5aac0fc93e59"
+    "drivers/clk/mediatek/clk-mtk.c": "e8a89dffaffedfce01489b0887fb425d64649d6fb841157bbcea5aac0fc93e59",
+    "MAINTAINERS": "39e65935b8f213dfa9b7a49a7341565855c6aec851288f0f32a0b2afcb35558a",
+    "scripts/get_maintainer.pl": "103c295e5c6cb557d2026a2b45ba7e9df9e09fd360339810f5f1e7f7309801cb"
   }
 }

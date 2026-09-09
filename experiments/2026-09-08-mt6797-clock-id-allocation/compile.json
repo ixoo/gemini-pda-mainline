@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "source_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "repository_commit": "b143a5715942c7d80793944457620cd942596c70",
+  "generated_utc": "2026-09-09T00:09:27Z",
+  "kernel_release": "7.3.0-rc1-mt6797-clock-ids-compile",
+  "build_profile": "mt6797-clock-ids-compile",
+  "patchset_sha256": "7d062a18a9e8e5c2be7fc503c399b70d0f8b3c9fa359f09ab008934f0cca2874",
+  "config_sha256": "0fe5eb8c7a211b4ef4c2ae9922d6d6e14a234b8c4f462358a1858cde106d51a1",
+  "compiler": "aarch64-linux-gnu-gcc (Debian 12.2.0-14) 12.2.0",
+  "compiler_sha256": "c7b8890354c8ddc0364addfeb8968597e197627bd1e338fb6ed705b578803846",
+  "linker": "GNU ld (GNU Binutils for Debian) 2.40",
+  "linker_sha256": "e09a889c78a75e73ed096c9fa28905599e6813298b9ac839d10b02ffa96e7b08",
+  "completed_utc": "2026-09-09T00:09:46Z",
+  "package_name": "linux-7.3-rc1-gemini-8db3060506d06de3fbe315e95ec50b99e8de7563dedd91c4e6303387801a917d",
+  "package_inventory_sha256": "8db3060506d06de3fbe315e95ec50b99e8de7563dedd91c4e6303387801a917d",
+  "build_log_sha256": "33d48c6e00144843438050cbd3e0c8a899f23d2a684495d2d884d87574b33026",
+  "compiler_warnings": 0,
+  "compiler_errors": 0,
+  "outputs_sha256": {
+    ".config": "0fe5eb8c7a211b4ef4c2ae9922d6d6e14a234b8c4f462358a1858cde106d51a1",
+    "System.map": "f16a2df7bc174d783ebaf4915abc0c082ad07f428c611fbfa897fc42d3e0f812",
+    "arch/arm64/boot/Image.gz": "e60305c8b3a38e9fe99f6e137215a7f0c2187598647ce390ce26ef8ffbb5fe4e",
+    "drivers/clk/mediatek/clk-mtk.o": "4559831195756669484123c80ac4b23ec11f9d7c8f5846d9aa32f4db245086cb",
+    "drivers/clk/mediatek/clk-mt6797-img.o": "e4165fe0864142f7fbddb88ee0aa70b3142832757b0ef6c382b633f6e598037a",
+    "drivers/clk/mediatek/clk-mt6797-mm.o": "a7c6a28785ed0995c8bdef6e619b4ab31cdd082c4fdaf87d1763893f53fdbd02",
+    "drivers/clk/mediatek/clk-mt6797-vdec.o": "2998a833bcd0e3b2a5e17c3ba287d1da49e2c36d2d620e0e94fed00a2e738a82",
+    "drivers/clk/mediatek/clk-mt6797-venc.o": "e5a153d8ac5351ff0a80fae9b5a360dcd978a8b4edf9552ac4c6661fdc7b687f"
+  },
+  "driver_symbols": [
+    "clk_mt6797_img_drv",
+    "clk_mt6797_mm_drv",
+    "clk_mt6797_vdec_drv",
+    "clk_mt6797_venc_drv"
+  ],
+  "package_fetched_and_verified": true,
+  "existing_profiles_unchanged": 199,
+  "designated_descriptor_initializers_inspected": 244,
+  "regression": {
+    "script_sha256": "f4a8b6ef0566c49d430cf88f3eef62f00f2b3ec47e436e6770cecaa04be86fca",
+    "provider_cases": 4,
+    "default_allocation_cases": 2,
+    "unpatched_result": "Compiles, then fails all four MT6797 allocation checks.",
+    "patched_result": "All six cases pass locally and against exact Buildbox prepared source.",
+    "scope": "Actual allocation statements; register operations and hardware behavior are not exercised."
+  },
+  "hardware_test": false,
+  "boot_candidate": false
+}
