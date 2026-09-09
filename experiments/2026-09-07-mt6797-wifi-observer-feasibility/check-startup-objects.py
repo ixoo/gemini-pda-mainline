@@ -99,7 +99,7 @@ def main():
         headers = RELATIVE + "core/include"
         shutil.copytree(source / headers, patched / headers)
         patches = sorted((experiment / "patches").glob("*.patch"))
-        assert len(patches) == 3
+        assert len(patches) == 4
         for patch in patches:
             subprocess.run(["git", "apply", str(patch)], cwd=patched, check=True)
         records = []

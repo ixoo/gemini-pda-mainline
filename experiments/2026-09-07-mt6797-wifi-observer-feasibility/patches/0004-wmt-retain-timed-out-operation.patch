@@ -1,0 +1,47 @@
+From 5a3bb83476462e122b522ff770b73d5b543e3381 Mon Sep 17 00:00:00 2001
+From: "Gemini Wi-Fi experiment (non-certifying)" <noreply@gemini-wifi.invalid>
+Date: Wed, 9 Sep 2026 16:46:41 -0400
+Subject: [PATCH] wmt: retain timed-out operations in the isolated experiment
+
+A waiter timeout does not cancel queued or running work. Do not return
+its operation to the free queue, where a subsequent request could reuse
+it while the worker still holds the pointer. Keep the failure result
+even when the worker publishes success during timeout diagnostics.
+
+The isolated experiment stops normal requests on failure and retains
+the operation until teardown or reboot. This is not a general pool
+reclamation design, a cancellation mechanism, or a shutdown proof.
+
+This internal experiment patch is not submission-ready. No DCO is
+asserted.
+---
+ .../mediatek/connectivity/common/common_main/core/wmt_lib.c | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_lib.c b/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_lib.c
+index 51fc6b8..82ea80c 100644
+--- a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_lib.c
++++ b/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_lib.c
+@@ -1238,7 +1238,7 @@ MTK_WCN_BOOL wmt_lib_put_act_op(P_OSAL_OP pOp)
+ 		WMT_DBG_FUNC("osal_wait_for_signal_timeout:%d\n", waitRet);
+ 
+ 		/* if (unlikely(!wait_ret)) { */
+-		if (0 == waitRet) {
++		if (waitRet <= 0) {
+ 			pThread = &gDevWmt.thread;
+ 			pbuf = "Wait wmtd complation timeout, just collect SYS_FTRACE to DB";
+ 			len = osal_strlen(pbuf);
+@@ -1248,6 +1248,10 @@ MTK_WCN_BOOL wmt_lib_put_act_op(P_OSAL_OP pOp)
+ 			/* wcn_wmtd_timeout_collect_ftrace();*/ /*trigger collect SYS_FTRACE */
+ 			osal_thread_show_stack(pThread);
+ 			stp_dbg_trigger_collect_ftrace(pbuf, len);
++			/* The worker may still own this experiment operation. */
++			bCleanup = MTK_WCN_BOOL_FALSE;
++			bRet = MTK_WCN_BOOL_FALSE;
++			break;
+ 		} else {
+ 			if (pOp->result)
+ 				WMT_WARN_FUNC("opId(%d) result:%d\n", pOp->op.opId, pOp->result);
+-- 
+2.50.1 (Apple Git-155)
+

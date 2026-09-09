@@ -192,3 +192,63 @@ now removes an internal retry path that could multiply a single userspace
 request into three initialization attempts. Its complete source file now
 [compiles on Buildbox](OPENMTTOOLS.md#complete-source-file-compilation), but
 the patch is not a device candidate; cleanup and recovery remain unvalidated.
+
+## Controller route and operation timeout
+
+The [five-file source receipt](results/controller-route-sources.json) pins a
+further review of the existing native control routes. Select
+`WMT_IOCTL_FUNC_ONOFF_CTRL` on the already initialized WMT descriptor for the
+minimal experiment design. This is reuse of the vendor experiment interface,
+not a proposed mainline ABI or an admitted runtime controller.
+
+The first-byte `0` branch of `WIFI_write()` can call `pf_set_p2p_mode` with a
+disable request before function-off whenever the netdev and callback exist.
+Both its on and off failure branches invoke `WMT_CHECK_DO_CHIP_RESET`, which
+can assert/reset the chip when `g_IsNeedDoChipReset` is set. The corresponding
+WMT ioctl case calls only the selected function-on/off wrapper and translates
+its boolean to zero or `-EFAULT`. It avoids those character-device wrapper
+actions and the wrapper's separate `powered` shortcut. It does not remove
+reset/error handling deeper in the stack or prove that WMT actually changes
+state. The controller must still capture the real lifecycle calls.
+
+In the reviewed 64-bit ABI the ioctl is `_IOW(0xa0, 6, int)` (`0x4004a006`).
+Despite the encoding, the implementation uses the scalar argument directly,
+not a user pointer: bit 31 selects on, and the low nibble selects the function;
+`WMTDRV_TYPE_WIFI` is 3. Thus the design uses only scalar `0x80000003` for on
+and `3` for off. No such ioctl was issued during this review.
+
+The shared `mtk_wcn_wmt_func_ctrl()` gives Wi-Fi operations a 4000 ms signal
+wait for both directions, independently of the larger non-Wi-Fi constants.
+Its wake/PSM work occurs outside that wait. More seriously,
+`wmt_lib_put_act_op()` returns an operation to the free queue after timeout
+without removing it from the active queue or cancelling a running worker.
+It also reads `pOp->result` after timeout diagnostics, so a late zero result
+can produce success. The worker retains and later signals its operation
+pointer after `wmt_core_opid()` returns. A timeout therefore cannot authorize
+a second request, cleanup by descriptor close, or a successful-cycle verdict.
+
+The fourth [experiment patch](patches/0004-wmt-retain-timed-out-operation.patch)
+forces nonpositive waits to fail and omits the waiter's free-queue return on
+that path. This deliberately retains a possibly worker-owned operation; it
+does not reclaim it when the worker eventually completes. The normal
+experiment must stop issuing requests on failure and must not reinitialize
+the WMT library. No generic cancellation or indefinite-service pool policy is
+introduced. Positive completion and unsubmitted-operation cleanup keep their
+existing behavior; other reset/completion races remain outside this fix.
+
+The [actual-function regression](test-operation-timeout.py) reproduces original
+timeout recycling and late success, then verifies the changed behavior. Eight
+injected cases cover ordinary success, worker error, timeout, late success,
+negative wait, queue refusal, coredump blocking and asynchronous submission.
+The host compile used C11 and `-Wall -Wextra -Werror`. Checkpatch passed with
+the previously pinned checker and explicit legacy `CAMELCASE` exception.
+These are sequential injected tests, not a worker-cancellation or scheduling
+proof. Full-file compilation of the fourth patch remains outstanding.
+
+The next controller implementation must anchor capture and an independently
+reviewed recovery owner before the first effect-bearing request. A reported
+operation error ends the normal cycle; a successful on request is insufficient
+without an attributable completed load. Off is issued only after that joined
+success, with its own complete teardown evidence. The four-second wait is
+neither a total operation bound nor an excuse to extend the consumed historical
+watchdog experiment. Persistent capture and recovery integration remain open.
