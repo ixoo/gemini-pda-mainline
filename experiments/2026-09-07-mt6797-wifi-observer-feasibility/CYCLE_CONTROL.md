@@ -182,3 +182,7 @@ candidate's power behavior is bounded.
 No service, framebuffer state, CPU policy, radio or kernel was changed. The
 source review narrows the startup/capture contract without admitting a build
 or selecting a new device candidate.
+
+The [startup dependency follow-up](STARTUP_DEPENDENCIES.md) identifies the
+concurrent patch-search responder and separate common/WLAN firmware lookups.
+It fixes the next startup ordering work without selecting a live command.

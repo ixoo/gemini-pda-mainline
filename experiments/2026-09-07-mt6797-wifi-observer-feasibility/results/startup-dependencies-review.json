@@ -1,0 +1,84 @@
+{
+  "schema": "wifi-native-startup-dependencies-review-v1",
+  "scope": "public source and retained build inputs; no target execution or device action",
+  "source_revision": "59e00a9144d782e148332009a835b99c43382467",
+  "package_name": "gemian-observer-a98ffc90f979",
+  "package_inventory_sha256": "45e28e14a2c25a4fc829cee3753477da5c98a2a029a82626774dab6e9f854f28",
+  "build_log_sha256": "cc43a28e3856325f3087dbc0c6b0a32e5cc0d8034074d851a0e0e33dd9da1a39",
+  "config_sha256": "a7eaf67c19ad9b689457d057412019ecb75c8f4d6be1e8142060ea81861fea32",
+  "configuration": [
+    "CONFIG_FW_LOADER=y",
+    "CONFIG_FW_LOADER_USER_HELPER=y",
+    "CONFIG_FW_LOADER_USER_HELPER_FALLBACK=y",
+    "CONFIG_ANDROID=y"
+  ],
+  "sources": [
+    {
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_ctrl.c",
+      "bytes": 31505,
+      "sha256": "4fdc36fab251ba206c580268be73d9b9161005821bffe0ad01f3bf8a6b8800ec"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_lib.c",
+      "bytes": 54747,
+      "sha256": "e363d3377aab1de6f81d94dd482bcdba5eb55884792f45e1688ebf850f991e4f"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_ic_soc.c",
+      "bytes": 86140,
+      "sha256": "22d98e9e5f0c9c3cae36a3099e57315ed7808524239a061bf9ab0cf97379e66f"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_dev.c",
+      "bytes": 39254,
+      "sha256": "d7be291ca5e2962be24def406260b5bb21a4b85438f64a1064944686a84fd62e"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/linux/include/wmt_dev.h",
+      "bytes": 1220,
+      "sha256": "779ea334c698b897bcd9a9d18b27ac7ed39459fd9d80b3eb9b3c0c0bafd32f08"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_kal.c",
+      "bytes": 153027,
+      "sha256": "749c5fc0e6cf3614d15e237e2d65cf92858d483ef1d678f6d9aee0f87bf348f1"
+    },
+    {
+      "path": "drivers/base/firmware_class.c",
+      "bytes": 40777,
+      "sha256": "721d23aa70d2bd1b7bca457d4471361263373538c9c8d457d9e41f18513dff42"
+    }
+  ],
+  "commands": [
+    {
+      "source_basename": "firmware_class.c",
+      "log_line": 908,
+      "command_sha256_no_newline": "29cdec3b580e43fa1c00c2c9e82ad362fe5d29fb48d752c8e3eec9d42e0d3ca0"
+    },
+    {
+      "source_basename": "wmt_ctrl.c",
+      "log_line": 2405,
+      "command_sha256_no_newline": "306891208025e0fe37a35aeb98a737b8956dd14f88adcaa9ce4b25ca3485c56b"
+    },
+    {
+      "source_basename": "wmt_lib.c",
+      "log_line": 2410,
+      "command_sha256_no_newline": "b32b742f18bbe809a5701951d80cf8cba8ac3122f7595d659fce2607cd05447a"
+    },
+    {
+      "source_basename": "wmt_dev.c",
+      "log_line": 2785,
+      "command_sha256_no_newline": "3dfd8db2413cb73cd563b4d15812dddeee4e8bac56ec46cb3495bf80ff08bcf0"
+    },
+    {
+      "source_basename": "wmt_ic_soc.c",
+      "log_line": 2851,
+      "command_sha256_no_newline": "b9cc08d74823c8e18700db02b0fbd95a9c47b93cc2b1da9b0acdaa5888502be1"
+    },
+    {
+      "source_basename": "gl_kal.c",
+      "log_line": 3054,
+      "command_sha256_no_newline": "9a23843729223d52f4ffca434c10fdd5c26a597f9630fd0506c1fb96a0c25d5a"
+    }
+  ]
+}
