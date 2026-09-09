@@ -1,0 +1,11 @@
+{
+  "repository": "gemian/gemini-linux-kernel-3.18",
+  "revision": "59e00a9144d782e148332009a835b99c43382467",
+  "sources": [
+    {
+      "path": "drivers/clk/mediatek/clk-mt6797-pg.h",
+      "bytes": 1366,
+      "sha256": "b3214783e1167fa1a523500fed95966121659ed9068d0556410b83c8786cd5d9"
+    }
+  ]
+}

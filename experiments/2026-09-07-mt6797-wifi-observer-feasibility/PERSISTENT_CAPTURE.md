@@ -452,12 +452,13 @@ are separate from diagnostic reads in the loop body and from the earlier
 `sys_get_state_op()` pair used to decide whether to skip provider execution.
 A value retained from a previous condition evaluation is not a final pair.
 
-Kind 9 currently describes only that terminal condition loop. Its exact payload
+Kind 9 subtypes 1 and 2 describe that terminal condition loop. Its exact payload
 is little-endian `<IIIQQIIII`: stage (1 entry, 2 summary), nonzero provider ID,
 exit reason, primary condition-read count `u64`, secondary condition-read count
 `u64`, final primary value, final secondary value, primary-valid and
 secondary-valid. Other fields are `u32`; IDs are observer ordinals. The envelope
-transaction is a nonzero poll invocation ID. Entry has zero counters, values,
+transaction is a nonzero provider OFF invocation ID, shared with the provider
+records below. Entry has zero counters, values,
 validity and reason. Summary reasons are 1 normal condition exit, 2 polling
 compiled out, and 3 observer counter overflow. A stalled native loop has its
 entry and no successful summary; no native timeout is invented.
@@ -485,3 +486,54 @@ that bus protection completed, that control writes occurred or that other
 CONSYS consumers are excluded. Those shared-OFF records and their causal join
 remain required. Neither `disable_subsys()` return nor the common clock-disable
 wrapper can substitute for them. No physical reads or capture hooks were added.
+
+
+## Provider OFF sequence
+
+Kind 9 now also records the dispatch and operations surrounding that loop.
+The [additional header identity](results/provider-off-sources.json) pins native
+`SYS_CONN=1`; the previously pinned provider supplies the key, protection mask,
+control bits and exact call order. The transaction joins one `disable_subsys`
+invocation and its selected CONN operation, including the two condition records.
+All fields below are little-endian `u32` except explicit signed or `u64` fields.
+Every record repeats the observer-assigned provider ID.
+
+| Subtype | Fields in wire order, including subtype |
+| --- | --- |
+| 3, provider entry | subtype, provider, native subsystem ID, route (1 normal, 2 bring-up, 3 control-limit skip), before-off callback present (0/1) |
+| 4, state decision | subtype, provider, primary raw status, secondary raw status, actual `get_state` result (0/1), decision (1 dispatch, 2 shortcut) |
+| 5, CONN dispatch/key | subtype, provider, native state argument, issued POWERON_CONFIG_EN value |
+| 6, protection entry | subtype, provider, requested protection mask, enable argument |
+| 7, protection summary | subtype, provider, PROTECTEN input read, issued store, existing PROTECTEN verification read, reason (1 normal return, 2 count-limit fault, 3 verification fault, 4 counter overflow), condition-read count `u64`, last condition read, read-valid (0/1), helper-returned (0/1), helper status `s32` (zero placeholder when not returned) |
+| 8, control stores | subtype, provider, five input-read/issued-store pairs in ISO-set, CLK_DIS-set, RST_B-clear, ON-clear, ON_2ND-clear order |
+| 9, provider return | subtype, provider, CONN-operation status `s32`, `disable_subsys` status `s32` |
+
+Dispatch/key is recorded after the native key store and before bus protection.
+Protection entry precedes the selected locked helper. Its summary uses the
+helper's existing input, verification and condition reads, excluding diagnostics;
+a fault branch may lack a normal return and must not become success. Capture
+fault information before BUG where possible, without retrying the operation.
+The five control pairs preserve each actual input read independently; do not
+invent readback or assume an earlier store equals the next read. Provider
+return records the inner results before the void CCF callback discards them.
+
+`check_provider_off()` requires exactly subtypes `3,4,5,6,7,8,1,2,9` with the
+same provider and transaction. The normal CONN route must observe both initial
+status bits set, get state ON and dispatch rather than shortcut. The CONN
+operation must receive POWER_DOWN=0 and issue key `0x0b160001`. Protection must
+request mask `0x60000`, issue the native OR update, see both bits in its existing
+verification and terminal condition reads, and return normally with status zero.
+Each control store must match its own input with the specified bit operation.
+Finally the existing OFF-poll check must pass and both operation results must
+be zero. Nine records occupy 1,152 bytes, including the two poll records.
+
+Sixteen focused tests pass, including twenty-five valid-CRC provider mutations
+covering mixed initial status, skipped dispatch, wrong key/mask/control stores,
+incomplete protection and failed returns. Missing, repeated and reordered
+sequences are refused; an isolated passing OFF pair cannot pass the provider
+check. These remain consistency checks of recorded operations. They do not
+prove callback effects, common-layer request attribution, other-consumer
+exclusion, physical write visibility, safe release or the complete Wi-Fi cycle.
+The callback-present field preserves that remaining isolation obligation rather
+than treating callback presence or absence as an ownership grant. Atomic capture
+hooks, common-owner joins and recovery remain unimplemented.

@@ -147,6 +147,49 @@ class RecordsTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             r.check_off_poll(self.identity(), CYCLE)
 
+    def provider_payloads(self):
+        controls = []
+        for index, (mask, set_bit) in enumerate([(2, True), (16, True), (1, False), (4, False), (8, False)]):
+            before = 0x100 + index * 31
+            controls += [before, before | mask if set_bit else before & ~mask]
+        return [(r.OFF_ENTRY, [3, 73, 1, 1, 0]),
+                (r.OFF_STATE, [4, 73, 0x102, 0x202, 1, 1]),
+                (r.OFF_DISPATCH, [5, 73, 0, 0x0b160001]),
+                (r.OFF_PROTECT_ENTRY, [6, 73, 0x60000, 1]),
+                (r.OFF_PROTECT_RESULT, [7, 73, 0x100, 0x60100, 0x60200, 1, 3, 0x60400, 1, 1, 0]),
+                (r.OFF_CONTROL, [8, 73] + controls),
+                (r.OFF_POLL, [1, 73, 0, 0, 0, 0, 0, 0, 0]),
+                (r.OFF_POLL, [2, 73, 1, 5, 3, 0x100, 0x200, 1, 1]),
+                (r.OFF_RETURN, [9, 73, 0, 0])]
+
+    def provider_stream(self, payloads):
+        return self.identity() + b''.join(r.encode(9, i, CYCLE, 61, layout.pack(*values))
+                                          for i, (layout, values) in enumerate(payloads, 1))
+
+    def test_provider_off_operations(self):
+        stream = self.provider_stream(self.provider_payloads())
+        self.assertEqual(r.check_provider_off(stream, CYCLE)['checked_provider_operations'], [61])
+        self.assertEqual(r.check_off_poll(stream, CYCLE)['checked_polls'], [61])
+        faults = [(0, 2, 0), (0, 3, 2), (0, 3, 3), (1, 2, 0x100), (1, 3, 0x200),
+                  (1, 4, 0), (1, 5, 2), (2, 1, 74), (2, 2, 1), (2, 3, 1),
+                  (3, 2, 0x20000), (3, 3, 0), (4, 3, 0x100), (4, 4, 0x40200),
+                  (4, 5, 2), (4, 7, 0x20400), (4, 9, 0), (4, 10, -1),
+                  (8, 2, -1), (8, 3, -1)]
+        faults += [(5, index, 0) for index in (3, 5, 7, 9, 11)]
+        for row, field, value in faults:
+            with self.subTest(row=row, field=field):
+                payloads = self.provider_payloads()
+                payloads[row][1][field] = value
+                stream = self.provider_stream(payloads)
+                self.assertEqual(len(r.decode(stream, CYCLE)), 10)
+                with self.assertRaises(ValueError):
+                    r.check_provider_off(stream, CYCLE)
+        payloads = self.provider_payloads()
+        for bad in [payloads[:-1], payloads + payloads, payloads[6:8],
+                    payloads[:3] + payloads[5:6] + payloads[3:5] + payloads[6:]]:
+            with self.assertRaises(ValueError):
+                r.check_provider_off(self.provider_stream(bad), CYCLE)
+
     def test_roundtrip_and_prefix(self):
         start = self.identity()
         self.assertEqual(len(r.decode(start, CYCLE)), 1)

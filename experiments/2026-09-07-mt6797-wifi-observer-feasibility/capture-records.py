@@ -121,13 +121,42 @@ def validate_emi_payload(transaction, payload):
         raise ValueError('invalid EMI copy stage')
 
 
-# Shared-OFF kind currently defines only the actual terminal condition loop.
+# Shared-OFF records preserve provider operations and the terminal condition loop.
 OFF_POLL = struct.Struct('<IIIQQIIII')
+OFF_ENTRY = struct.Struct('<5I')
+OFF_STATE = struct.Struct('<6I')
+OFF_DISPATCH = struct.Struct('<4I')
+OFF_PROTECT_ENTRY = struct.Struct('<4I')
+OFF_PROTECT_RESULT = struct.Struct('<IIIIIIQIIIi')
+OFF_CONTROL = struct.Struct('<12I')
+OFF_RETURN = struct.Struct('<IIii')
+OFF_LAYOUTS = {1: OFF_POLL, 2: OFF_POLL, 3: OFF_ENTRY, 4: OFF_STATE,
+               5: OFF_DISPATCH, 6: OFF_PROTECT_ENTRY, 7: OFF_PROTECT_RESULT,
+               8: OFF_CONTROL, 9: OFF_RETURN}
 
 
 def validate_off_payload(transaction, payload):
-    if not transaction or len(payload) != OFF_POLL.size:
-        raise ValueError('OFF poll requires invocation ID and exact payload size')
+    if not transaction or len(payload) < 4:
+        raise ValueError('OFF requires invocation ID and subtype')
+    subtype = int.from_bytes(payload[:4], 'little')
+    layout = OFF_LAYOUTS.get(subtype)
+    if layout is None or len(payload) != layout.size:
+        raise ValueError('unsupported OFF subtype or payload size')
+    values = layout.unpack(payload)
+    if not values[1]:
+        raise ValueError('OFF requires provider ID')
+    if subtype > 2:
+        if subtype == 3 and (values[3] not in (1, 2, 3) or values[4] not in (0, 1)):
+            raise ValueError('invalid OFF entry route or callback flag')
+        if subtype == 4 and (values[4] not in (0, 1) or values[5] not in (1, 2)):
+            raise ValueError('invalid OFF state decision')
+        if subtype == 7:
+            _, provider, before, stored, readback, reason, count, last, valid, returned, status = values
+            if reason not in (1, 2, 3, 4) or valid not in (0, 1) or returned not in (0, 1):
+                raise ValueError('invalid protection summary')
+            if bool(count) != bool(valid) or (not valid and last) or (not returned and status):
+                raise ValueError('protection result without read or return')
+        return
     stage, provider, reason, primary_count, secondary_count, primary, secondary, primary_valid, secondary_valid = OFF_POLL.unpack(payload)
     if stage not in (1, 2) or not provider or primary_valid not in (0, 1) or secondary_valid not in (0, 1):
         raise ValueError('invalid OFF poll discriminator')
@@ -301,7 +330,7 @@ def check_off_poll(data, expected_cycle):
     """Check the recorded final CONN status condition, not the complete provider OFF."""
     polls = {}
     for record in decode(data, expected_cycle):
-        if record['kind'] == 9:
+        if record['kind'] == 9 and int.from_bytes(record['payload'][:4], 'little') in (1, 2):
             polls.setdefault(record['transaction'], []).append(OFF_POLL.unpack(record['payload']))
     if not polls:
         raise ValueError('no OFF condition poll recorded')
@@ -315,3 +344,41 @@ def check_off_poll(data, expected_cycle):
             raise ValueError('terminal CONN power-status pair is not clear')
     return {'checked_polls': list(polls),
             'scope': 'recorded terminal CONN OFF condition consistency only'}
+
+
+def check_provider_off(data, expected_cycle):
+    """Check recorded provider OFF operations, not shared-consumer ownership."""
+    check_off_poll(data, expected_cycle)
+    operations = {}
+    for record in decode(data, expected_cycle):
+        if record['kind'] == 9:
+            operations.setdefault(record['transaction'], []).append(record['payload'])
+    for payloads in operations.values():
+        if [int.from_bytes(p[:4], 'little') for p in payloads] != [3, 4, 5, 6, 7, 8, 1, 2, 9]:
+            raise ValueError('incomplete, reordered or reused provider OFF operation')
+        _, provider, native_id, route, callback = OFF_ENTRY.unpack(payloads[0])
+        if (native_id, route) != (1, 1):
+            raise ValueError('not the normal CONN provider route')
+        if any(int.from_bytes(p[4:8], 'little') != provider for p in payloads):
+            raise ValueError('provider identity mismatch')
+        _, _, primary, secondary, state, decision = OFF_STATE.unpack(payloads[1])
+        if (not primary & 2 or not secondary & 2 or state != 1 or decision != 1):
+            raise ValueError('provider was not dispatched from observed ON state')
+        if OFF_DISPATCH.unpack(payloads[2]) != (5, provider, 0, 0x0b160001):
+            raise ValueError('CONN power-down dispatch or SPM key mismatch')
+        if OFF_PROTECT_ENTRY.unpack(payloads[3]) != (6, provider, 0x60000, 1):
+            raise ValueError('wrong bus-protection request')
+        _, _, before, stored, readback, reason, count, last, valid, returned, status = OFF_PROTECT_RESULT.unpack(payloads[4])
+        if (stored != before | 0x60000 or readback & 0x60000 != 0x60000 or
+                reason != 1 or not count or not valid or last & 0x60000 != 0x60000 or
+                not returned or status):
+            raise ValueError('bus-protection programming or completion missing')
+        values = OFF_CONTROL.unpack(payloads[5])[2:]
+        for index, (mask, set_bit) in enumerate(((2, True), (16, True), (1, False), (4, False), (8, False))):
+            before, stored = values[2 * index:2 * index + 2]
+            if stored != (before | mask if set_bit else before & ~mask):
+                raise ValueError('CONN control store differs from native operation')
+        if OFF_RETURN.unpack(payloads[8]) != (9, provider, 0, 0):
+            raise ValueError('provider operation did not return success')
+    return {'checked_provider_operations': list(operations),
+            'scope': 'recorded CONN provider OFF operation consistency only'}
