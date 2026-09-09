@@ -328,3 +328,20 @@ The verified Space evdev press, later released-key snapshots, and empty-queue
 observation are evidence for this decision, not a console-correctness claim.
 All live device, exclusive-reader, keymap, logger, monitor, duration, export
 and seal guards remain in force. No automatic restart is admitted.
+
+## Review correction before the next attended observation
+
+The focused reader now preserves the already-consumed event that triggers an
+idle-input refusal and the console read that triggers either idle-input or
+byte-limit refusal. `unexpected-event` retains its reader-relative monotonic
+time and numeric fields; `unexpected-tty` retains that time and at most 32
+bytes as hex. The reader still stops and restores the console. These failure
+records cannot become a successful analyzer result; normal capture framing,
+limits, input settings and kernel remain unchanged. Three added PTY fixtures
+exercise idle events, idle console bytes and the first excess console read.
+
+The planner permits a newly built reader package when both reviewed supervisor
+sources remain byte-identical. It still verifies those sources against their
+historical Git objects and verifies every new package source against the
+current files. A different reader build revision does not invalidate the
+unchanged supervisor's source comparison or establish new runtime evidence.

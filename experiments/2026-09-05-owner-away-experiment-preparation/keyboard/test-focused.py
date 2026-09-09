@@ -112,7 +112,8 @@ def wait_prompt(master, marker, process, timeout):
 
 
 def run(binary, qemu, name, *, first=b'', second=None, period='33',
-        failure=None, cancel=False, before_console=False, legacy=False, full=False):
+        failure=None, cancel=False, before_console=False, legacy=False, full=False,
+        idle=False, tty=b''):
     master, slave = pty.openpty()
     reader, writer = os.pipe()
     before = termios.tcgetattr(slave)
@@ -127,11 +128,13 @@ def run(binary, qemu, name, *, first=b'', second=None, period='33',
                  'REPEAT_PERIOD': period, **({'FAIL_REPEAT': '1'} if name == 'query-failure' else {}),
                  **({'HELD_END': '1'} if name == 'held-at-end' else {})})
         if not before_console:
-            wait_prompt(master, b'1/20' if legacy else b'1/2', process, 5)
+            wait_prompt(master, b'Keyboard check:' if idle else b'1/20' if legacy else b'1/2', process, 5)
             assert termios.tcgetattr(slave) != before, name
 
             def feed():
                 try:
+                    if tty:
+                        os.write(master, tty)
                     view = memoryview(first)
                     while view:
                         view = view[os.write(writer, view):]
@@ -210,6 +213,17 @@ def main():
               first=packed([sync] * 1024 + [(1, 2, 1)]), failure='event-limit')
     assert len(re.findall(rb'^event ', out, re.M)) == 1024
     assert re.search(rb'^overflow \d+ 1 2 1$', out, re.M)
+    out = run(binary, args.qemu, 'idle-retains-event', idle=True,
+              first=packed([(4, 4, 36)]), failure='idle-input')
+    assert re.search(rb'^unexpected-event \d+ 4 4 36$', out, re.M)
+    out = run(binary, args.qemu, 'idle-retains-console-bytes', idle=True,
+              tty=b'\x1b ', failure='idle-tty')
+    assert re.search(rb'^unexpected-tty \d+ hex=1b20$', out, re.M)
+    out = run(binary, args.qemu, 'console-limit-retains-offending-read',
+              tty=b'n'*160, failure='tty-limit')
+    assert b''.join(bytes.fromhex(raw.decode()) for raw in
+        re.findall(rb'^(?:tty|unexpected-tty \d+) hex=([0-9a-f]+)$', out, re.M)) == b'n'*160
+    assert len(re.findall(rb'^unexpected-tty ', out, re.M)) == 1
     run(binary, args.qemu, 'lost-events', first=packed([(0, 3, 0)]), failure='syn-dropped')
     run(binary, args.qemu, 'short-read', first=b'x', failure='event-read')
     run(binary, args.qemu, 'signal-restores-console', cancel=True, failure='signal')

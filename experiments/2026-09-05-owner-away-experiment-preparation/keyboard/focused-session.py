@@ -80,7 +80,9 @@ def prepare(reference_path, reference_package, focused_package, identity, revisi
             and review['preprocessed_equal'] is True and review['new_device_proof_claim'] is False,
             'historical proof scope')
     old, new = review['records']
-    require(ref['package_revision'] == old['revision'] and revision == new['revision'], 'reviewed revisions')
+    # The reader may change while the reviewed supervisor sources stay identical.
+    # Both current sources and the new package inputs are checked below.
+    require(ref['package_revision'] == old['revision'], 'reviewed legacy revision')
     for entry in (old, new):
         for name, digest in entry['sources'].items():
             raw = subprocess.check_output(['git', '-C', str(L['REPO']), 'show',

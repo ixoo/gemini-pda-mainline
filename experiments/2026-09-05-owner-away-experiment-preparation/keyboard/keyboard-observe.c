@@ -144,6 +144,9 @@ static int window(int fd, int duration_ms, bool idle)
 			if (n < 0 && (errno == EAGAIN || errno == EINTR))
 				continue;
 			if (n != (ssize_t)sizeof(event) || idle) {
+				if (focused && n == (ssize_t)sizeof(event))
+					printf("unexpected-event %lld %u %u %d\n",
+					       now - start, event.type, event.code, event.value);
 				failure = idle ? "idle-input" : "event-read";
 				return -1;
 			}
@@ -171,6 +174,12 @@ static int window(int fd, int duration_ms, bool idle)
 			if (n < 0 && (errno == EAGAIN || errno == EINTR))
 				continue;
 			if (n <= 0 || idle || bytes + (size_t)n > BYTE_LIMIT) {
+				if (focused && n > 0) {
+					printf("unexpected-tty %lld hex=", now - start);
+					for (ssize_t i = 0; i < n; i++)
+						printf("%02x", data[i]);
+					putchar('\n');
+				}
 				failure = n <= 0 ? "tty-read" : idle ? "idle-tty" : "tty-limit";
 				return -1;
 			}
