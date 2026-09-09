@@ -63,3 +63,26 @@ Wrong or multiplied bytes would instead justify examining the common read path
 before changing the matrix driver. A transport or PTY-allocation failure is
 inconclusive. The prepared mainline attempt stopped at the local route check
 before any device connection, so neither branch is established yet.
+
+
+## Mainline roundtrip result
+
+After the owner selected boot2, boot
+`f2999a36-edfe-42ea-bca4-1abf8db1a7f9` passed the pinned kernel, init, helper,
+and CPU0–7 identity checks. The [result](mainline-pty-reference.json) records two
+fresh SSH-owned PTY exchanges. Both returned exactly `31201b5b5b4161`, with
+normal exit and no stderr, in less than one second. The first used raw mode
+with VMIN=1 and seven one-byte BusyBox `dd` reads. The second used VMIN=0,
+VTIME=0 and BusyBox ash's bounded seven-byte read. Each restored its own PTY
+settings before exit; neither accessed the physical VT.
+
+A separate read-only physical-console query verified all eight keymap tables,
+1,024 payload entries, 2,048 kernel entries, unused entries/tables, and Unicode
+mode. tty1 was foreground with line discipline 0 and ordinary canonical/echo
+settings. These checks changed no physical-console state.
+
+The shared tty path works for these samples, including the zero-minimum input
+setting. This leaves the physical VT translation path and the observation
+binary as distinctions requiring a further measurement. The tests used BusyBox,
+not the musl-linked keyboard reader, and did not reproduce a physical key press.
+No keyboard-driver correction or complete keyboard-support claim follows yet.

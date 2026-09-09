@@ -1,0 +1,56 @@
+{
+  "boot_id": "f2999a36-edfe-42ea-bca4-1abf8db1a7f9",
+  "console_process": {
+    "elapsed_seconds": 0.403,
+    "exit_status": 0,
+    "reason": null,
+    "stderr_bytes": 0,
+    "stdin_complete": true,
+    "stdout_bytes": 795
+  },
+  "console_readback": "keymap_readback=verified tables=8 payload_entries=1024 kernel_entries=2048 high_halves=K_HOLE table3=K_ALLOCATED undeclared_tables=K_NOSUCHMAP unicode_mode=K_UNICODE\nspeed 38400 baud; rows 33; columns 135; line = 0;\nintr = ^C; quit = ^\\; erase = ^?; kill = ^U; eof = ^D; eol = <undef>;\neol2 = <undef>; swtch = <undef>; start = ^Q; stop = ^S; susp = ^Z; rprnt = ^R;\nwerase = ^W; lnext = ^V; flush = ^O; min = 1; time = 0;\n-parenb -parodd -cmspar cs8 hupcl -cstopb cread -clocal -crtscts\n-ignbrk -brkint -ignpar -parmrk -inpck -istrip -inlcr -igncr icrnl ixon -ixoff\n-iuclc -ixany -imaxbel iutf8\nopost -olcuc -ocrnl onlcr -onocr -onlret -ofill -ofdel nl0 cr0 tab0 bs0 vt0 ff0\nisig icanon iexten echo echoe echok -echonl -noflsh -xcase -tostop -echoprt\nechoctl echoke -flusho -extproc\n85.90 675.63\n",
+  "identity_process": {
+    "elapsed_seconds": 0.323,
+    "exit_status": 0,
+    "reason": null,
+    "stderr_bytes": 0,
+    "stdin_complete": true,
+    "stdout_bytes": 50
+  },
+  "limitation": "SSH-owned PTYs and BusyBox readers bypass the physical VT translation path and the musl keyboard-observe binary. Passing these samples does not diagnose or fix the recorded console fault.",
+  "physical_keyboard_test": false,
+  "pty_cases": [
+    {
+      "boot_id": "f2999a36-edfe-42ea-bca4-1abf8db1a7f9",
+      "command_sha256": "fa6d9516cbe3ab77da2534d884ea861f2f22893c25d7e95d445177aa88b2cdc7",
+      "elapsed_seconds": 0.324,
+      "exact_roundtrip": true,
+      "exit_status": 0,
+      "payload_hex": "31201b5b5b4161",
+      "reader": "BusyBox dd, seven one-byte reads",
+      "reason": null,
+      "sent": true,
+      "stderr_hex": "",
+      "stdout_hex": "5f5f5054595f52454144595f5f0a31201b5b5b41615f5f5054595f444f4e455f5f0a",
+      "vmin": 1,
+      "vtime": 0
+    },
+    {
+      "boot_id": "f2999a36-edfe-42ea-bca4-1abf8db1a7f9",
+      "command_sha256": "f737f6c44ccd9d4316c6bab0c394bf29549ceaff2c58491d0253ba1dd2d5620f",
+      "elapsed_seconds": 0.315,
+      "exact_roundtrip": true,
+      "exit_status": 0,
+      "payload_hex": "31201b5b5b4161",
+      "reader": "BusyBox ash read -r -n 7 -t 5",
+      "reason": null,
+      "sent": true,
+      "stderr_hex": "",
+      "stdout_hex": "5f5f5054595f52454144595f5f0a31201b5b5b41615f5f5054595f444f4e455f5f0a",
+      "vmin": 0,
+      "vtime": 0
+    }
+  ],
+  "reboot_performed_by_agent": false,
+  "schema": "keyboard-mainline-pty-reference-v1"
+}
