@@ -103,7 +103,10 @@ def run_case(binary, qemu, name, events=None, text=b'', cancel=False, expected=2
         reports = [line for line in lines if line == b'space-ready=waiting\n']
         assert len(reports) <= 10, (name, out)
         final = b''.join(line for line in lines if line != b'space-ready=waiting\n')
-        assert final == (b'space-ready=passed released=1 restored=1\n' if expected == 0 else b''), (name, out)
+        if expected == 0:
+            assert final == b'space-ready=passed released=1 restored=1\n', (name, out)
+        else:
+            assert final.startswith(b'space-ready=failed reason=') and b' restored=1 ' in final, (name, out)
         if name == 'timeout':
             assert reports, 'waiting must emit channel activity'
         assert termios.tcgetattr(slave) == before, (name, 'termios not restored')

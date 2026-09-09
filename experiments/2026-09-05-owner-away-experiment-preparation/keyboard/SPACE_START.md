@@ -74,3 +74,11 @@ accepted, so the timed capture and new logger were not started. The same
 mainline boot remains in place; no reboot or partition action occurred. This
 demonstrates the full waiting interval through the existing SSH server, not
 the physical Space-trigger path or a completed keyboard regression.
+
+On the next owner-requested wait, the screen appeared and the owner reported
+pressing Space followed by “test cancelled”. The helper exited 2 after
+5.848 seconds with no stdout or stderr, so its rejecting branch is unknown.
+The observer now reports its failure branch and last numeric input fields
+after restoring the console. Acceptance behavior is unchanged; the next
+Space press is intended to distinguish an unexpected key event, console byte,
+or read failure before any corrective behavior is chosen.

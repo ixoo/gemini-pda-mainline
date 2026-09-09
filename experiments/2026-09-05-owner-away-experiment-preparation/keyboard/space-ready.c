@@ -93,6 +93,10 @@ int main(int argc, char **argv)
 	char path[64], name[128] = { 0 }, extra;
 	unsigned int eventno, minorno, events = 0, bytes = 0;
 	int fd = -1, mode, state = 0, result = 2;
+	const char *reason = "setup";
+	struct input_event last_event = { 0 };
+	ssize_t last_read = -1;
+	int last_byte = -1, read_errno = 0;
 	long long start, reported, quiet = -1;
 
 	if (argc != 3 || sscanf(argv[1], "event%u%c", &eventno, &extra) != 1 ||
@@ -144,8 +148,10 @@ int main(int argc, char **argv)
 		goto done;
 	while (!interrupted) {
 		long long now = now_ms();
-		if (now < 0 || now - start >= WAIT_MS)
+		if (now < 0 || now - start >= WAIT_MS) {
+			reason = "deadline-or-clock";
 			goto done;
+		}
 		if (now - reported >= WAIT_REPORT_MS) {
 			if (printf("space-ready=waiting\n") < 0)
 				goto done;
@@ -155,24 +161,39 @@ int main(int argc, char **argv)
 		if (ready < 0 && errno == EINTR)
 			continue;
 		if (ready < 0 || ((fds[0].revents | fds[1].revents) &
-		    (POLLERR | POLLHUP | POLLNVAL)))
+		    (POLLERR | POLLHUP | POLLNVAL))) {
+			reason = "poll";
 			goto done;
+		}
 		if (ready)
 			quiet = -1;
 		if (fds[0].revents & POLLIN) {
-			struct input_event event;
-			if (read(fd, &event, sizeof(event)) != (ssize_t)sizeof(event) ||
-			    ++events > 512 || edge(&event, &state))
+			last_read = read(fd, &last_event, sizeof(last_event));
+			read_errno = last_read < 0 ? errno : 0;
+			if (last_read != (ssize_t)sizeof(last_event)) {
+				reason = "event-read";
 				goto done;
+			}
+			if (++events > 512 || edge(&last_event, &state)) {
+				reason = "event-sequence";
+				goto done;
+			}
 		}
 		if (fds[1].revents & POLLIN) {
 			unsigned char data[32];
 			ssize_t n = read(ttyfd, data, sizeof(data));
-			if (n <= 0 || bytes + n > 128)
+			if (n <= 0 || bytes + n > 128) {
+				last_read = n;
+				read_errno = n < 0 ? errno : 0;
+				reason = "console-read";
 				goto done;
+			}
 			for (ssize_t i = 0; i < n; i++)
-				if (data[i] != ' ')
+				if (data[i] != ' ') {
+					last_byte = data[i];
+					reason = "console-byte";
 					goto done;
+				}
 			bytes += n;
 		}
 		if (!ready && state == 2 && bytes && !released(fd)) {
@@ -185,8 +206,12 @@ int main(int argc, char **argv)
 		}
 	}
  done:
-	if (restore())
+	if (interrupted)
+		reason = "signal";
+	if (restore()) {
+		reason = "restore";
 		result = 2;
+	}
 	if (ttyfd >= 0) {
 		if (dprintf(ttyfd, result ? "\r\nStart cancelled. Test has not begun.\r\n" :
 			    "\r\nReady. Keep keys released; prompts will start shortly.\r\n") < 0)
@@ -195,6 +220,11 @@ int main(int argc, char **argv)
 	}
 	if (fd >= 0)
 		close(fd);
+	if (result)
+		printf("space-ready=failed reason=%s restored=%d state=%d events=%u bytes=%u "
+		       "read=%ld type=%u code=%u value=%d console_byte=%d errno=%d\n",
+		       reason, !changed, state, events, bytes, (long)last_read,
+		       last_event.type, last_event.code, last_event.value, last_byte, read_errno);
 	if (!result && printf("space-ready=passed released=1 restored=1\n") < 0)
 		result = 2;
 	return result;
