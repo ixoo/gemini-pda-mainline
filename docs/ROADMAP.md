@@ -106,6 +106,11 @@ adds the source-backed six-pin IES map and passes isolated Buildbox compilation.
 It activates no board state. Schmitt direction semantics, shared drive fields,
 pad bias tuning and PMIC trim ownership remain separate before microSD admission.
 
+The independent [Schmitt refusal correction](../experiments/2026-09-09-mtk-pinctrl-schmitt-refusal/README.md)
+prevents unavailable SMT fields from causing a direction write before failure.
+Its host regression and isolated Buildbox compile pass. Supported-request
+direction policy and the MT6797 SMT map remain separate upstream-review work.
+
 The current [display architecture refresh](../experiments/2026-09-07-mt6797-display-upstream-architecture/README.md)
 found no local 0028–0044 subset with both a truthful current resource contract
 and a real consumer/test story. Display PWM is the smallest likely unlock, but

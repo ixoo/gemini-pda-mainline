@@ -154,3 +154,8 @@ Additional pinned upstream inputs for this follow-up:
 | `drivers/pinctrl/mediatek/pinctrl-paris.c` | `94848be20fd43e443398b5975829534ef95fa1f2df9cd1f835939616b0643502` |
 | `drivers/pinctrl/pinconf-generic.c` | `c8d45b678240b3b97a311e217dcb0498b0e90594bb1d2c30c450d0b26cad66e3` |
 | `include/linux/pinctrl/pinconf-generic.h` | `fd7ce25e1d63aa48169bbe08b98b2e7bdfbf12ff0bed0deb3547781aa170c0fb` |
+
+The independent [Schmitt refusal fix](../2026-09-09-mtk-pinctrl-schmitt-refusal/README.md)
+now preflights the field before DIR and passes its host regression and isolated
+Buildbox compile. It preserves supported-request direction behavior, so it does
+not resolve the SMT-only vendor equivalence question or admit an MT6797 SMT map.

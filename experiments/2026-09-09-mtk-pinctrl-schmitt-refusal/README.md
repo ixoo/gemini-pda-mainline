@@ -1,7 +1,7 @@
 # MediaTek Schmitt refusal before direction writes
 
-Status: unsigned implementation checkpoint; focused host regression and strict
-checkpatch pass. Buildbox compilation remains pending. No device candidate.
+Status: unsigned upstream-preparation checkpoint; focused host regression,
+strict checkpatch and isolated Buildbox compilation pass. No device candidate.
 
 The [microSD API audit](../2026-07-12-mt6797-msdc-recovery/MICROSD_PADS.md#schmitt-api-follow-up)
 reproduced a direction write before `-ENOTSUPP` when an SMT field is absent.
@@ -44,9 +44,17 @@ KERNEL_PROFILE=mtk-pinctrl-schmitt-compile ./scripts/build-kernel --backend buil
 KERNEL_PROFILE=mtk-pinctrl-schmitt-compile ./scripts/buildbox fetch-package
 ```
 
-All prior manifest profiles and their series are preserved. Kernel compilation
-and symbol-link verification are pending at this checkpoint. No kernel/DT,
-device, pin transition or card-enumeration result is claimed yet.
+All 202 prior manifest profiles and their series are preserved. The
+[Buildbox receipt](compile.json) records the validated build from
+`49dfd70dd1e7c00b34c2eb40f78875e37ffe0d41`. The three prepared source files
+match the reviewed patched files. Paris, common-v2 and MT6797 objects compiled;
+Paris has a relocation to the lookup, and the lookup, setter and MT6797 driver
+are present in the final symbol map. There were no compiler warning/error
+lines. Remote package validation and fetched inventory/checksums passed.
+This built-in profile does not test module linkage. Repository checks passed
+with the usual Linux-only provenance fixture deferred to CI. No binding was
+changed and no schema result is claimed. No device, pin transition or
+card-enumeration test occurred.
 
 ## Upstream boundary
 

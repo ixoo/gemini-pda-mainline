@@ -1,0 +1,64 @@
+{
+  "generated_utc": "2026-09-09T07:23:38Z",
+  "repository_commit": "49dfd70dd1e7c00b34c2eb40f78875e37ffe0d41",
+  "repository_dirty": false,
+  "kernel_release": "7.3.0-rc1-mtk-pinctrl-schmitt-compile",
+  "build_profile": "mtk-pinctrl-schmitt-compile",
+  "kernel_source": {
+    "archive_format": "tar.gz",
+    "archive_root": "linux-4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "git_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "released": "2026-09-05",
+    "sha256": "45590c057805bc9cf7281ce04d5dbde5316b7c8b017998cafac301f67e92682d",
+    "source_url": "https://codeload.github.com/torvalds/linux/tar.gz/4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "version": "7.3-rc1"
+  },
+  "patchset_sha256": "2343790f4dc66f2c22a9e98daabaaf968fdd1429928cc81a2196ce9ebb7f5bb3",
+  "config_inputs_sha256": "fb92c6aac77add10151c14d944a52b523da6d960517d1ca564f686e1e2d3647a",
+  "config_sha256": "e745bab2ea262cc1b721113ac70a0c8ade1af55d47304ad8f6e192e45985c569",
+  "modules_built": false,
+  "build_architecture": "x86_64",
+  "target_architecture": "arm64",
+  "compiler": "aarch64-linux-gnu-gcc (Debian 12.2.0-14) 12.2.0",
+  "compiler_sha256": "c7b8890354c8ddc0364addfeb8968597e197627bd1e338fb6ed705b578803846",
+  "linker": "GNU ld (GNU Binutils for Debian) 2.40",
+  "linker_sha256": "e09a889c78a75e73ed096c9fa28905599e6813298b9ac839d10b02ffa96e7b08",
+  "status": "validated",
+  "scope": "isolated Schmitt refusal correction; no Gemini candidate",
+  "package_name": "linux-7.3-rc1-gemini-d58f9996d215966688128c9da952b47e95652046a85c67ee4345f08136f9aad5",
+  "artifact_sha256": {
+    "Image": "1abb1f5c040bb6cb910a7ea80227d2eb1c7b49fee9652070d47f4746979be393",
+    "Image.gz": "1b4a452863612a8b5e8c7b44e6a691e5476c384fdefbfe9b59d9931c3237155c",
+    "kernel.config": "e745bab2ea262cc1b721113ac70a0c8ade1af55d47304ad8f6e192e45985c569",
+    "System.map": "5c51e17694ce7d1fc04b3121f03344a1ecc7a9afad4374375b36bc4bb5550b14",
+    "SHA256SUMS": "d58f9996d215966688128c9da952b47e95652046a85c67ee4345f08136f9aad5"
+  },
+  "prepared_source_sha256": {
+    "pinctrl-paris.c": "893c9ac9494c678c12eac15914b529bcf6f8cd17df353d1d48a55e06167e3580",
+    "pinctrl-mtk-common-v2.c": "348ce40cb57320bb172d026b149c6e038f063033912ced219a9acf411d9b8da5",
+    "pinctrl-mtk-common-v2.h": "44150d2aa8b5c7bca106cf206b031089d5d9cbafbe8f38859da9af8cd797db2e"
+  },
+  "object_sha256": {
+    "pinctrl-paris.o": "865b715ddc0b40f5bb1f2d90a89c4014b0ef4f696ca9c44bd57900ad8e546686",
+    "pinctrl-mtk-common-v2.o": "ccee7dd01e9aab0dd8c4633df7b4c6b5dfb8dcea41dcac3eeaa6c267ff9bdf03",
+    "pinctrl-mt6797.o": "5ec15268dafb5ee19291542a2b2f623fc993dfccd93af9eb0072ac57cf856d7a"
+  },
+  "required_builtin_config": [
+    "PINCTRL_MT6797",
+    "PINCTRL_MTK_PARIS",
+    "PINCTRL_MTK_V2"
+  ],
+  "linked_symbols": [
+    "mtk_hw_pin_field_get",
+    "mtk_pinconf_set",
+    "mt6797_pinctrl_driver"
+  ],
+  "lookup_relocation_in_paris": true,
+  "module_linkage_tested": false,
+  "host_regression_cases": 72,
+  "unpatched_regression_reproduced": true,
+  "compiler_warning_error_lines": 0,
+  "remote_package_validation": "pass",
+  "local_fetch_inventory_and_checksums": "pass",
+  "hardware_tested": false
+}
