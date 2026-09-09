@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "scope": "retained removal callback identity, conditional early return, and no-op bus release; no device access",
+  "image_sha256": "0570480c28bce1583636a240904df8da3af0b5e5b4bcc6254f5719b42bd723d0",
+  "reconstructed_elf_sha256": "cc66df06194d3315335462760962165e1dcb2e50221574aeb45a0805bb17a162",
+  "elf_kernel_section_matches_image": true,
+  "regions": [
+    {
+      "symbol": "wlanRemove",
+      "start": "0xffffffc00073fb58",
+      "end_exclusive": "0xffffffc0007401b8",
+      "bytes": 1632,
+      "sha256": "85eb134992928c48901d75693c4614d15baa4919ddcaed15870b4a6e3e0141ca"
+    },
+    {
+      "symbol": "glRegisterBus",
+      "start": "0xffffffc00076b968",
+      "end_exclusive": "0xffffffc00076ba90",
+      "bytes": 296,
+      "sha256": "04de54a811245f5a69bd0f977f6218055c6456e6d6fdf13501861b96c6a5f04d"
+    },
+    {
+      "symbol": "glBusRelease",
+      "start": "0xffffffc00076bfd8",
+      "end_exclusive": "0xffffffc00076bfe0",
+      "bytes": 8,
+      "sha256": "5815fa81ae0dfc292103586ff7fcade32cd0bb635d633fabefb1c25cf0d9ec6f"
+    },
+    {
+      "symbol": "mtk_wcn_wlan_gen3_init",
+      "start": "0xffffffc0007415a0",
+      "end_exclusive": "0xffffffc000741898",
+      "bytes": 760,
+      "sha256": "f93371e56a52bf45accb9e2af35e861b821fff4fb58b34217ce1a972b7eaa9ef"
+    }
+  ],
+  "hif_object": "0xffffffc0015b7450",
+  "remove_slot_offset": 16,
+  "remove_callback": "0xffffffc00073fb58",
+  "early_return_state_word": "0xffffffc0015b48b8",
+  "early_return_condition": "word equals zero",
+  "early_return_effects": "optional debug logging; no teardown or power control call",
+  "bus_release_body": "ret; nop",
+  "failed_probe_state_value_proven": false,
+  "transitive_adapter_cleanup_proven": false,
+  "executed_boot_attestation": false,
+  "device_action": false
+}

@@ -50,3 +50,36 @@ Validation checked the Image/ELF identities, symbol entry addresses, bounded
 instruction ranges, key call/store encodings and source-file digests. The
 original experiment verifier still checks only its frozen source audit, not
 this new binary control-flow interpretation. No kernel build was required.
+
+## Removal callback follow-up
+
+A further retained-binary audit resolves the callback identity and one concrete
+non-cleanup branch. It uses the same reverified Image/ELF pair; the additional
+bounded regions are pinned in [the removal receipt](retained-removal.json).
+
+The compiled `mtk_wcn_wlan_gen3_init` passes `wlanProbe` and `wlanRemove` to
+`glRegisterBus`. Registration stores the second argument at offset 16 of the
+HIF object `0xffffffc0015b7450`, exactly the slot invoked by `HifAhbProbe` on
+probe failure. This is a compiled producer-to-consumer join, not merely a
+similar function name.
+
+`wlanRemove` reads the 32-bit word at `0xffffffc0015b48b8`. Its use as a
+one-based array bound/index on the populated path is consistent with a device
+count. When this word is zero, the function takes its early return, with only
+optional debug logging. That branch never reaches adapter stop, IRQ release,
+bus release, or a PALDO control operation. Thus invoking this callback alone
+cannot be treated as an unconditional compensating power release. This audit
+does not establish the word's value at a failed probe or prove that a particular
+failure reaches this branch on the device.
+
+The populated path calls `wlanAdapterStop`, `glBusFreeIrq`, `glBusRelease` and
+network teardown. The retained `glBusRelease` body is a return instruction
+followed by padding; it supplies no release operation. The transitive effects
+of adapter stop and other callees remain unproved here. Neither a global rail
+leak nor successful full unwind follows from this result.
+
+Validation rechecked complete Image/ELF hashes and section equality, decoded
+the four bounded regions, and checked seven key instruction encodings against
+the image bytes. Raw disassembly stays private in the RE VM. No device access,
+new kernel build, firmware execution or hardware action was performed. The
+original frozen source verifier does not validate this added binary analysis.
