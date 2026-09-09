@@ -69,11 +69,35 @@ different continuation without constructing this event. Neither the allocation
 path nor the output call proves reliable delivery, when the host can receive
 the event, or that older results and callbacks have drained.
 
+## Cancellation cleanup follow-up
+
+The cancellation cleanup wrapper's direct callee has two referenced diagnostics
+identifying beacon-to-MCU/hardware-parsing control. On its applicable path it
+passes an inverted Boolean to three unresolved callbacks, stores that Boolean
+in the BSS context and optionally reads values for diagnostics. The callback
+results are not tested before the local store. The incoming zero from the
+cancellation wrapper becomes one in this helper. These argument and diagnostic
+joins identify beacon-processing work; they do not establish a hardware success
+acknowledgement or a scan-result drain operation. Null/ineligible context and
+other state-dependent paths can return earlier.
+
+The repeatedly called timer helper removes a linked node, clears its two link
+words and decrements the list count. If the resulting list is empty, it calls
+another callback with a value from the list header. An unlinked node returns
+directly. Its selected body has no wait or running-callback join. This is timer-list removal,
+not proof that a callback already dispatched elsewhere has finished; exclusion
+by the firmware scheduler remains a separate unproved possibility.
+
+The two additional direct-flow walks exhaust at 61 and 38 instructions. These
+results narrow the earlier generic cleanup description without closing the
+stop/drain requirement. Do not translate either helper into a host success
+flag or infer missing synchronization from its caller's return.
+
 ## Validation and next boundary
 
 The initial 1,024-node state-machine walk was incomplete and is retained as
 such. A bounded repeat from the original entry exhausts at 1,649 nodes with
-106 call sites; all ten completed selected walks have no invalid instruction
+106 call sites; all twelve completed selected walks have no invalid instruction
 or unresolved non-call computed transfer. Calls remain skipped under an
 assumed return. Exhausted direct graphs are not a proof of every callee,
 feasible runtime path, hardware effect or concurrent ordering.

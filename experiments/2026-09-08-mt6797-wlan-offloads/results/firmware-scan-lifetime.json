@@ -177,11 +177,45 @@
       "invalid": 0,
       "listing_sha256": "b440f723c542e39d693251c999d7ca6748675b8905f0bb07cdd77f7c3f5c434d",
       "log_sha256": "9fa553c2c0669e11f0eb6568736813179150fe423d5b84dea4e61fedb2359e40"
+    },
+    {
+      "role": "beacon-processing cleanup callee",
+      "script": "StationDispatchCallers.java",
+      "script_sha256": "2efce21970a2830e20fac166455a3c3ebcfee2a8a0e41bd3acab006927ad44c5",
+      "node_cap": 1024,
+      "nodes": 61,
+      "queue_exhausted": true,
+      "calls": 5,
+      "unresolved_noncall_computed": 0,
+      "terminals": 1,
+      "invalid": 0,
+      "listing_sha256": "46dc35c191e4f940ff32a790c46fe076fab7f97166edbe11b0363aea93fc1605",
+      "log_sha256": "ac24ad4f410b44eb12fb7c1107f3561d8a5cc0c5f320aafe99a78177b844cc75"
+    },
+    {
+      "role": "timer-list removal helper",
+      "script": "StationDispatchCallers.java",
+      "script_sha256": "2efce21970a2830e20fac166455a3c3ebcfee2a8a0e41bd3acab006927ad44c5",
+      "node_cap": 1024,
+      "nodes": 38,
+      "queue_exhausted": true,
+      "calls": 3,
+      "unresolved_noncall_computed": 0,
+      "terminals": 1,
+      "invalid": 0,
+      "listing_sha256": "f459640137ca3182f8276756f8fcb7fd9087d0656e7a2dede99fee70a913ab9e",
+      "log_sha256": "04db6ab6c2773ab532ece0798fe85968d6340cd71af27dd61c1823bf8261686d"
     }
   ],
   "live_device_access": false,
   "firmware_execution": false,
   "radio_action": false,
   "kernel_build": false,
-  "host_source_receipt": "scan-sources.json"
+  "host_source_receipt": "scan-sources.json",
+  "cleanup_labels": {
+    "script": "ScanCleanupLabels.java",
+    "sha256": "8221acba410312de74304f71b2a851fb30abb344dec84dc2b7494f627a57ab84",
+    "referenced_labels": 2,
+    "listing_sha256": "6029e8a96a0af419221a000bd12163ea9e2548dac8305713460239e5b71e8bb4"
+  }
 }
