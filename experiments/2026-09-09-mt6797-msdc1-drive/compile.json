@@ -1,0 +1,106 @@
+{
+  "generated_utc": "2026-09-09T07:35:23Z",
+  "repository_commit": "a56e97f65a4f67b4318ebd8cdf7e06e1a8001e9a",
+  "repository_dirty": false,
+  "kernel_release": "7.3.0-rc1-mt6797-msdc1-drive-compile",
+  "build_profile": "mt6797-msdc1-drive-compile",
+  "kernel_source": {
+    "archive_format": "tar.gz",
+    "archive_root": "linux-4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "git_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "released": "2026-09-05",
+    "sha256": "45590c057805bc9cf7281ce04d5dbde5316b7c8b017998cafac301f67e92682d",
+    "source_url": "https://codeload.github.com/torvalds/linux/tar.gz/4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "version": "7.3-rc1"
+  },
+  "patchset_sha256": "a3ab33da267eac01f033cd2b93cf4db63f1a44c5834a6f3b7f180105386dd545",
+  "config_inputs_sha256": "10b163f728591eec7713909b8ca5f1fe95d8172c55173bd0a01f3e7eb08b51e1",
+  "config_sha256": "b500d2a6253a9deaca523ac3a960833b44667b51096ab2068f85a56452406d95",
+  "modules_built": false,
+  "build_architecture": "x86_64",
+  "target_architecture": "arm64",
+  "compiler": "aarch64-linux-gnu-gcc (Debian 12.2.0-14) 12.2.0",
+  "compiler_sha256": "c7b8890354c8ddc0364addfeb8968597e197627bd1e338fb6ed705b578803846",
+  "linker": "GNU ld (GNU Binutils for Debian) 2.40",
+  "linker_sha256": "e09a889c78a75e73ed096c9fa28905599e6813298b9ac839d10b02ffa96e7b08",
+  "scope": "isolated MSDC1 drive-field and binding compile; no Gemini candidate",
+  "status": "validated",
+  "package_name": "linux-7.3-rc1-gemini-400b482c6ea644626ec57f8b5c118fed89288c3248d2a76525f58c09a21ca5d4",
+  "artifact_sha256": {
+    "Image": "5da219264814d2883a76eded495ac69b4279e18900616e20a4b7370c1ca8f734",
+    "Image.gz": "9571c42bc23b43408ac6d0c26e87c13df46c35c58afe5cb3f658ceccd41973d6",
+    "kernel.config": "b500d2a6253a9deaca523ac3a960833b44667b51096ab2068f85a56452406d95",
+    "System.map": "16763390a4ff4728b18a0c16a91f58edffbe7a26c7b9b7ac1611b48129e146b7",
+    "SHA256SUMS": "400b482c6ea644626ec57f8b5c118fed89288c3248d2a76525f58c09a21ca5d4"
+  },
+  "prepared_source_sha256": {
+    "drivers/pinctrl/mediatek/pinctrl-mt6797.c": "eb3953e09725dc2eedcfe54581dbb8c84927302f6594ca259c51d32192ebf59d",
+    "drivers/pinctrl/mediatek/pinctrl-mtk-mt6797.h": "67d0aad2ad889f9d4ff3eb5e8f1df50d37cc536081f5dfff6d7a2f50cf0d29a2",
+    "Documentation/devicetree/bindings/pinctrl/mediatek,mt6779-pinctrl.yaml": "3e192675e05ac14ad031ab15ac04af065b9320060f9c0d5ea687ed4c6fe72b2f"
+  },
+  "driver_object_sha256": "ad82ba37cd9387e6904aab142388a2e91c6bf0a4f1d053d348a8df77d95e8765",
+  "compiled_fields": [
+    [
+      129,
+      129,
+      2,
+      432,
+      16,
+      21,
+      3,
+      32,
+      0
+    ],
+    [
+      130,
+      133,
+      2,
+      432,
+      16,
+      24,
+      3,
+      32,
+      1
+    ],
+    [
+      134,
+      134,
+      2,
+      432,
+      16,
+      27,
+      3,
+      32,
+      0
+    ]
+  ],
+  "compiled_field_bytes_sha256": "6258aec8d762f663e7eb8ebb17ddd4b59b0e7c9d3796626f1efb826c30a08084",
+  "required_builtin_config": [
+    "PINCTRL_MT6797",
+    "PINCTRL_MTK_PARIS",
+    "PINCTRL_MTK_V2"
+  ],
+  "linked_symbols": [
+    "mt6797_pin_drv_range",
+    "mt6797_pinctrl_driver",
+    "mtk_pinconf_drive_set_rev1",
+    "mtk_pinconf_drive_get_rev1"
+  ],
+  "driver_callback_relocations_verified": true,
+  "compiler_warning_error_lines": 0,
+  "module_linkage_tested": false,
+  "remote_package_validation": "pass",
+  "local_fetch_inventory_and_checksums": "pass",
+  "hardware_tested": false,
+  "compiled_field_layout": [
+    "start_pin",
+    "end_pin",
+    "base_index",
+    "offset",
+    "register_stride",
+    "start_bit",
+    "bits_per_pin",
+    "register_bits",
+    "shared"
+  ]
+}

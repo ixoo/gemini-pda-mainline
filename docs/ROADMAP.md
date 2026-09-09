@@ -111,6 +111,11 @@ prevents unavailable SMT fields from causing a direction write before failure.
 Its host regression and isolated Buildbox compile pass. Supported-request
 direction policy and the MT6797 SMT map remain separate upstream-review work.
 
+The [MSDC1 drive-field topic](../experiments/2026-09-09-mt6797-msdc1-drive/README.md)
+now maps CMD, shared DAT0–3 and CLK using the correct selector scale and existing
+callbacks. Compilation, encoding and focused binding checks pass; bias tuning,
+PMIC trim and the board's pad/power transition remain unresolved before use.
+
 The current [display architecture refresh](../experiments/2026-09-07-mt6797-display-upstream-architecture/README.md)
 found no local 0028–0044 subset with both a truthful current resource contract
 and a real consumer/test story. Display PWM is the smallest likely unlock, but

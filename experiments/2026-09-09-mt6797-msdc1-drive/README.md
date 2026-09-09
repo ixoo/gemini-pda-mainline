@@ -1,7 +1,7 @@
 # MT6797 MSDC1 drive-strength fields
 
-Status: unsigned implementation checkpoint. Strict checkpatch passes;
-Buildbox compilation and focused schema validation are pending. No candidate.
+Status: unsigned upstream-preparation checkpoint. Strict checkpatch, isolated
+Buildbox compilation and focused schema validation pass. No device candidate.
 
 ## Change and evidence
 
@@ -49,8 +49,47 @@ KERNEL_PROFILE=mt6797-msdc1-drive-compile ./scripts/build-kernel --backend build
 KERNEL_PROFILE=mt6797-msdc1-drive-compile ./scripts/buildbox fetch-package
 ```
 
-Compilation, descriptor/encoding checks and positive/negative binding checks
-remain pending at this checkpoint. No hardware behavior is claimed.
+The [compile receipt](compile.json) records the validated build from
+`a56e97f65a4f67b4318ebd8cdf7e06e1a8001e9a`. Prepared driver, descriptor header
+and binding hashes match the reviewed files. The compiled 60-byte field table
+contains exactly the three intended ranges, including the shared-data flag.
+Both drive callbacks have object relocations and linked symbols. There were
+no compiler warning/error lines; remote package validation and fetched
+inventory/checksums passed. Module linkage was not tested.
+
+The [validation receipt](validation.json) records the remaining focused checks:
+
+- A host probe executes the exact upstream rev1 drive callbacks and drive-group
+  table with an injected register word. All 182 cases pass: six pins, eight
+  valid strengths and three initial words; six invalid strengths for each pin;
+  and both adjacent unsupported pins. Valid requests round-trip, preserve bits
+  outside their field (including bias tune), and share DAT0–3 readback. Invalid
+  requests perform no writes. Separately, the source field descriptors and six
+  drive groups match the vendor map. This models selector/control flow, not
+  electrical current, actual MMIO or concurrent consumers.
+- Focused `dt_binding_check` passes schema, lint and style completion markers
+  and compiles the existing example. A direct example validation is silent.
+  Synthetic DTBs test every integer from 0 through 18 mA for both compatibles:
+  MT6797 accepts all eight even strengths from 2 through 16; MT6779 accepts
+  only 2, 4, 8, 12 and 16. All other tested values are rejected for drive
+  strength. The preliminary fixture corrections are recorded in the receipt;
+  the final 38-case run passed in full.
+
+Schema validation uses the existing
+[pinned tool environment](../2026-09-05-mt6797-infracfg-upstream-preparation/schema-tools-requirements.lock).
+On Buildbox, put that environment's `bin` directory on `PATH` and run against
+the prepared source/output pair:
+
+```sh
+make -C "$SOURCE" O="$OUTPUT" ARCH=arm64 \
+  DT_SCHEMA_FILES=mediatek,mt6779-pinctrl.yaml dt_binding_check
+dt-validate -s "$OUTPUT/Documentation/devicetree/bindings/processed-schema.json" \
+  -l mediatek,mt6779-pinctrl \
+  "$OUTPUT/Documentation/devicetree/bindings/pinctrl/mediatek,mt6779-pinctrl.example.dtb"
+```
+
+Repository publication checks pass; the usual Linux-only provenance fixture
+remains deferred to CI. No device access, pad transition or card test occurred.
 
 ## Upstream boundary
 

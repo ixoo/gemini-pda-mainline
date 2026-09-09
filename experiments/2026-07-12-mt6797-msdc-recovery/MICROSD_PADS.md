@@ -159,3 +159,9 @@ The independent [Schmitt refusal fix](../2026-09-09-mtk-pinctrl-schmitt-refusal/
 now preflights the field before DIR and passes its host regression and isolated
 Buildbox compile. It preserves supported-request direction behavior, so it does
 not resolve the SMT-only vendor equivalence question or admit an MT6797 SMT map.
+
+The [isolated drive-field topic](../2026-09-09-mt6797-msdc1-drive/README.md)
+adds the three selectors with the shared DAT field and matching drive group,
+using existing upstream callbacks. Its compile, encoding and binding checks
+pass. It preserves the separate bias-tuning bits and selects no board state;
+complete MMC pad/power ownership remains unresolved.
