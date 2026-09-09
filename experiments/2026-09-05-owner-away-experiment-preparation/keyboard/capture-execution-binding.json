@@ -36,7 +36,7 @@
       "input_capabilities_sha256": "a739f371a2ef6c4d9691c43417d1e0b8ddaa145411ee0c1dc60d7f4b00f6276d",
       "input_sysfs_realpath": "/sys/devices/platform/keyboard-matrix/input/input0",
       "kernel_release": "7.1.3-gemini-mt6797-pwrap-reset",
-      "launcher_sha256": "a8a7e987346b9440990923122b80866d7e2b77f27b59f98ff516e9dde9e2442e",
+      "launcher_sha256": "53cdc76f3bb0c903e3bff24e9da62c9a9ca7d3bd3675214b415a254731ddeae9",
       "protocol_sha256": "5dd8b42b00a60041a9d5cb85f586ce639af6b62172a5488d8c0b73a0ed764306",
       "schema_version": 1,
       "state": "conditional"
@@ -70,7 +70,8 @@
         "/sys/bus/i2c/devices/0-005b/of_node": "/sys/firmware/devicetree/base/i2c@1101c000/gpio-expander@5b",
         "/sys/devices/platform/keyboard-matrix/driver": "/sys/bus/platform/drivers/matrix-keypad",
         "/sys/devices/platform/keyboard-matrix/of_node": "/sys/firmware/devicetree/base/keyboard-matrix"
-      }
+      },
+      "retry_id": "1c573500-ae1d-4e51-aa18-5d69b627f48a"
     },
     "source_identity": {
       "emmc_launcher": {
@@ -80,7 +81,7 @@
       "local_and_direct": {
         "../baseline/scripts/buildbox_userspace.py": "6f90751017f5e921cf673d945326a9e1b8fafd465d3b3cc6d71075a6ae946e96",
         "../emmc/mainline_host.py": "57491d7ac60a380ee85215e391274e5ced2733b33ab6df70e0757db7b67bf082",
-        "capture.py": "a8a7e987346b9440990923122b80866d7e2b77f27b59f98ff516e9dde9e2442e",
+        "capture.py": "53cdc76f3bb0c903e3bff24e9da62c9a9ca7d3bd3675214b415a254731ddeae9",
         "classify.py": "be55d4d816c4c0709bed44dd77057b404aa3baf15d23aa7be46e966c98aaefa9",
         "delivery.py": "63bfa4dab0525a6d5055b483ec2d4c2887457326ad4d90f2c7b39d3a35e004f5",
         "disconnect.py": "b4e6e328b58f03135e301a19bd8e72eaa6ede4f878e8712b53c2e8aba856de82",
@@ -88,7 +89,8 @@
         "monitor.c": "2cb30948d6d4c5ada9e6fd2a9bdfd9ab54489661367e568faaa3ef2785bad683",
         "prerequisites.py": "31d015f96943319f2828ed712ad68137023cfff5457f8f09b984ce2ecf7bf23c",
         "protocol.json": "5dd8b42b00a60041a9d5cb85f586ce639af6b62172a5488d8c0b73a0ed764306",
-        "restart-logger.py": "c34590fd3f613facda09ae625c455ebf964fb01258d98edd4027cf05f2b1e2f0"
+        "restart-logger.py": "37ca506d705b6d6d07bb28764c332d95136c20c81ab8f314ed3c7cc26306ee50",
+        "retry.py": "50c681df9d1a4d2e8a07c3988038a35ef56a8f4d80f6ea93a91391723fd46f96"
       },
       "pinned_members": {
         "experiments/2026-09-04-mt6797-pwrap-reset-serviceability/scripts/classify_observation.py": "f628143d6a70fdda8c6da5171c69e91647a51eb3cb65fa1577d2487540cb1ca6",

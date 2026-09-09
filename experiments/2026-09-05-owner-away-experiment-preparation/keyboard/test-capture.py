@@ -56,6 +56,16 @@ class CaptureTests(unittest.TestCase):
             'capture_script':lambda c:b'capture','export_script':lambda c:b'export'}):
             return M['assess'](self.context,self.owner)
 
+    def test_retry_paths_keep_original_attempt_and_reject_unsafe_ids(self):
+        original = M['attempt_root'](self.admission)
+        retry = '1c573500-ae1d-4e51-aa18-5d69b627f48a'
+        self.admission['runtime']['retry_id'] = retry
+        self.assertEqual(M['attempt_root'](self.admission), original/'retries'/retry)
+        for value in ('../capture', '', 'retry', 1):
+            self.admission['runtime']['retry_id'] = value
+            with self.assertRaisesRegex(ValueError, 'retry identity'):
+                M['attempt_root'](self.admission)
+
     def test_restarted_clock_age_identity_and_malformed_records(self):
         boot = 'e3a29c80-4948-4ef8-893a-cfbef0cd4918'
         with tempfile.TemporaryDirectory() as work:

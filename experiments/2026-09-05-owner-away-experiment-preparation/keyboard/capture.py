@@ -54,7 +54,7 @@ def source_identity():
     closure.update(dict(L['V']['SOURCE_PINS']))
     for name,value in closure.items():
         require(sha(C['regular'](L['REPO']/name,262144,private=False)) == value, 'imported closure drift')
-    direct = ('capture.py','restart-logger.py','metadata.py','prerequisites.py','disconnect.py','monitor.c','delivery.py','classify.py','protocol.json',
+    direct = ('capture.py','retry.py','restart-logger.py','metadata.py','prerequisites.py','disconnect.py','monitor.c','delivery.py','classify.py','protocol.json',
               '../emmc/mainline_host.py','../baseline/scripts/buildbox_userspace.py')
     return {'local_and_direct':{name:sha(C['regular'](HERE/name,262144,private=False)) for name in direct},
             'emmc_launcher':launcher,'pinned_members':closure}
@@ -107,8 +107,12 @@ def prepare(admission, package):
     runtime = admission['runtime']
     runtime_fields = {'event', 'minor', 'input_path', 'capabilities', 'resource_paths',
         'logger_age_limit_seconds', 'metadata_receipt_sha256'}
-    require(set(runtime) in (runtime_fields, runtime_fields | {'logger_clock'}) and
+    require(set(runtime) in (runtime_fields, runtime_fields | {'logger_clock'},
+        runtime_fields | {'logger_clock', 'retry_id'}) and
         runtime.get('logger_clock', 'boot') in ('boot', 'restarted'), 'runtime contract inventory')
+    if 'retry_id' in runtime:
+        require(type(runtime['retry_id']) is str and C['UUID'].fullmatch(runtime['retry_id'])
+            and runtime['logger_clock'] == 'restarted', 'explicit retry identity')
     require(re.fullmatch(r'event(?:0|[1-9][0-9]{0,2})', runtime['event']) and int(runtime['event'][5:]) <= 255
         and type(runtime['minor']) is int and 0 <= runtime['minor'] <= 1048575, 'input identity')
     require(runtime['input_path'] == expected['input_sysfs_realpath'] and
@@ -257,6 +261,15 @@ def export_script(context):
     return text.encode()
 
 
+def attempt_root(admission):
+    root = ROOT / admission['id']
+    retry = admission['runtime'].get('retry_id')
+    if retry is not None:
+        require(type(retry) is str and C['UUID'].fullmatch(retry), 'retry identity')
+        root = root / 'retries' / retry
+    return root
+
+
 def perform(context, action, execute=False):
     require(action in ('delivery', 'capture', 'export'), 'action')
     if not execute:
@@ -265,7 +278,7 @@ def perform(context, action, execute=False):
     require(context['admission']['source_identity'] == source_identity(), 'source changed')
     context = prepare(context['admission'], context['package'])
     runpy.run_path(str(HERE/'../emmc/mainline_host.py'))['require_ready']()
-    root = ROOT / context['admission']['id']
+    root = attempt_root(context['admission'])
     C['private_root'](root)
     if action == 'capture':
         require(json.loads(C['regular'](root/'delivery/admission.json',65536)) == context['admission'], 'delivery admission binding')
@@ -315,7 +328,7 @@ def parse_export(raw):
 def assess(context, owner_record):
     """Reparse retained bytes. Never infer owner completion or final recovery."""
     context = prepare(context['admission'],context['package'])
-    a = context['admission']; root = ROOT/a['id']
+    a = context['admission']; root = attempt_root(a)
     for action in ('capture','export'):
         require(json.loads(C['regular'](root/action/'admission.json',65536)) == a, 'phase admission drift')
         expected_script = capture_script(context) if action == 'capture' else export_script(context)

@@ -10,18 +10,20 @@ M = runpy.run_path(str(HERE/'capture.py'))
 C, S, require, sha = (M[k] for k in ('C', 'S', 'require', 'sha'))
 
 
-def prepare(session):
+def prepare(session, seal='seal', retry_id=None):
+    require(seal in ('seal', 'restarted-seal'), 'seal source')
+    require(retry_id is None or (type(retry_id) is str and C['UUID'].fullmatch(retry_id)), 'retry identity')
     session = Path(session)
     admission = json.loads(C['regular'](session/'proof-admission.json', 65536))
     dependency = M['L']['completed_baseline'](admission['dependency'])
     candidate = dependency['prepared']['candidate']
     boot = admission['boot_id']
-    result = json.loads(C['regular'](session/'seal/result.json', 65536))
+    result = json.loads(C['regular'](session/seal/'result.json', 65536))
     require(result['preservation_complete'] and result['logger_terminal'] and
             result['classification'] == 'complete-log-through-seal', 'original log unpreserved')
     files = {}
     for name in ('kmsg.log', 'kmsg.status', 'kmsg-exit'):
-        raw = C['regular'](session/'seal'/name, 2097152)
+        raw = C['regular'](session/seal/name, 2097152)
         require(sha(raw) == result['files'][name]['sha256'], 'original evidence drift')
         files[name] = raw
     require(files['kmsg-exit'] == b'0\n' and
@@ -57,6 +59,15 @@ done
 '''
     for name, raw in files.items():
         text += f'h=$($BB sha256sum /run/a53/keyboard-logger-prior/{name}); [ "${{h%% *}}" = {sha(raw)} ]\n'
+    if retry_id is not None:
+        text = text.replace('/run/a53/keyboard-logger-prior', '/run/a53/keyboard-logger-prior-' + retry_id)
+        absent = '[ ! -e /run/a53/keyboard-logger-clock ] && [ ! -L /run/a53/keyboard-logger-clock ]'
+        clock = C['regular'](session/'logger-clock.txt', 128)
+        require(len(clock.split()) == 3 and clock.split()[0].decode() == boot, 'prior clock identity')
+        text = text.replace(absent, '[ -f /run/a53/keyboard-logger-clock ] && [ ! -L /run/a53/keyboard-logger-clock ]\n'
+            '[ "$($BB stat -c %u:%a /run/a53/keyboard-logger-clock)" = 0:600 ]\n'
+            f'h=$($BB sha256sum /run/a53/keyboard-logger-clock); [ "${{h%% *}}" = {sha(clock)} ]')
+        text += f'$BB mv /run/a53/keyboard-logger-clock /run/a53/keyboard-logger-prior-{retry_id}/keyboard-logger-clock\n'
     text += f'''started=$($BB awk '{{print $1}}' /proc/uptime)
 # The connection stays open and owns/reaps this child; no daemon or PID 1 change.
 /bin/kmsg-capture </dev/null >/dev/null &
