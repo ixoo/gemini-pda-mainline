@@ -96,3 +96,61 @@ not that these functions executed on the current boot.
 | `msdc_set_driving_by_id` | `0xffffffc000978638` | `0xffffffc000978910` | `fa2c78180d3ef193d900e60a8de524d58a4ef49f1e4e8ecdadfe410507bab4e1` |
 
 Only facts and hashes are published; retained binary bytes remain private.
+
+## Schmitt API follow-up
+
+The pinned Paris setter handles both `PIN_CONFIG_INPUT_SCHMITT` and
+`PIN_CONFIG_INPUT_SCHMITT_ENABLE` by writing DIR to `!arg`, then SMT to
+`!!arg`. It does not inspect the current mux or direction first. If the SMT
+field is absent, its lookup fails only after the DIR operation succeeded.
+Thus an unsupported Schmitt request is not an effect-free rejection on the
+current MT6797 provider, even after the independent IES addition.
+
+A host-only execution of the exact switch cases, with an injected register
+setter, produced the following results for both initial DIR values 0 and 1.
+SMT started at 1; DIR field support was present. These are modeled register
+operations, not observed electrical direction or writes on Gemini.
+
+| SMT supported | Requested Schmitt | Final DIR | Final SMT | Setter writes | Result |
+| --- | --- | --- | --- | --- | --- |
+| no | disabled | 1 (output) | unchanged | 1 | `-ENOTSUPP` |
+| no | enabled | 0 (input) | unchanged | 1 | `-ENOTSUPP` |
+| yes | disabled | 1 (output) | 0 | 2 | success |
+| yes | enabled | 0 (input) | 1 | 2 | success |
+
+The eight cases use the source text from the first Schmitt case through the
+following drive-strength case, excluding the latter. This slice has SHA-256
+`97ba3c5b21cdfc0571da7aa5b3ceee9e5e22cc51178ec7d1a8ec1103f02542b7`.
+It was compiled with `cc -std=c11 -Wall -Wextra -Werror`, inside a switch that
+selects `PIN_CONFIG_INPUT_SCHMITT_ENABLE`. The injected setter records successful
+DIR/SMT writes and returns kernel `-ENOTSUPP` (-524) before any unsupported
+SMT write. This checks control flow and error ordering only; it does not model
+pinmux hardware, electrical loading, concurrency or bus failures. Temporary
+probe files were removed after execution.
+
+The generic parameter documentation defines Schmitt enable/disable, not an
+output-level request. However, changing this shared driver is not a local
+MT6797 data correction. The
+[2020 setter revision](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3599cc525486be6681640ff3083376c001264c61)
+explicitly grouped the two Schmitt parameters under the same implementation.
+The [2024 readback correction](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=08f66a8edd08f6f7cfa769c81634b29a2b123908)
+changes disabled-state reporting only; it does not remove the getter's DIR
+check or the setter's direction operation. Neither revision establishes that
+existing board descriptions can lose the implicit direction change safely.
+
+Do not add the MT6797 SMT map as though it reproduced the vendor's SMT-only
+helper. First settle the shared API behavior with pinctrl/MediaTek review:
+preserving direction, any required input setup, and failure behavior for an
+unsupported SMT field must be explicit. An enable-only board convention would
+hide the disable/failure cases, and a Gemini-specific callback would duplicate
+the unresolved shared policy. The current input-enable topic remains valid
+because its setter updates IES without this DIR operation. No Schmitt patch,
+board-state change, submission or new device session is selected here.
+
+Additional pinned upstream inputs for this follow-up:
+
+| File | SHA-256 |
+| --- | --- |
+| `drivers/pinctrl/mediatek/pinctrl-paris.c` | `94848be20fd43e443398b5975829534ef95fa1f2df9cd1f835939616b0643502` |
+| `drivers/pinctrl/pinconf-generic.c` | `c8d45b678240b3b97a311e217dcb0498b0e90594bb1d2c30c450d0b26cad66e3` |
+| `include/linux/pinctrl/pinconf-generic.h` | `fd7ce25e1d63aa48169bbe08b98b2e7bdfbf12ff0bed0deb3547781aa170c0fb` |
