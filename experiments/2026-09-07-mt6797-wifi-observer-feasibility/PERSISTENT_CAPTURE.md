@@ -700,3 +700,63 @@ no-ECC layout and retain malformed or partially committed evidence through a
 separately reviewed reader. Successful allocation creates only a volatile copy;
 it is not durable host collection, exclusive capture ownership or permission
 to overwrite a previous record. No recovery image or runtime test is selected.
+
+## Fixed metadata and ordinary recovery
+
+The selected source-level design keeps the native ring header constant during
+capture: signature `0x43474244`, start zero and size 65,524 for the exact
+64-KiB no-ECC zone. These values describe the entire payload, including unused
+record slots. Establish and read back that header before the first identity
+record and before any observed cycle operation. The future writer then commits
+only fixed 128-byte slots; it must never call `persistent_ram_write()` or update
+ring start/size during capture. An interrupted payload write cannot itself tear
+those unchanged ring metadata fields.
+
+This avoids requiring a new recovery format in the ordinary Gemian pstore
+reader. `persistent_ram_save_old()` copies all 65,524 bytes when start is zero
+and size equals capacity. The PMSG read path selects that old copy with
+`update=false`, and, with ECC disabled, exports exactly its bytes. The expanded
+[recovery fixture](test-pmsg-recovery.py) confirms full-payload byte equality
+through the actual save/post-init/new-zone/ramoops-init functions, including
+an unfinished slot. Original and repaired source both pass this successful
+allocation path; the third patch's allocation-failure protection remains a
+separate prerequisite for a future revised recovery kernel. The test uses fake
+memory mapping and does not establish physical retention or the live recovery
+configuration.
+
+`decode_pmsg()` in [capture-records.py](capture-records.py) implements the offline
+reader for this exact exported payload. It requires the independently expected
+cycle and 80-byte candidate/boot/input identity. It walks fixed slots from zero,
+never searches for magic or skips a hole, and applies the existing complete
+record checks to the committed prefix. A zero next slot yields incomplete
+evidence. One nonzero uncommitted slot may terminate an attributable incomplete
+prefix only when everything after it is zero. A damaged commit marker cannot
+be distinguished from an interrupted write and therefore also yields only
+incomplete evidence. A committed record with bad checksum or other invalid
+fields is refused.
+
+A recorded terminal followed by any partial or committed record is refused.
+All 116 unused tail bytes must be zero. Missing identity, a shifted stream,
+data after a hole, wrong expected identity and a non-exact payload length are
+refusals. The reader never repairs or modifies its input. Its
+`terminal-recorded` result and `producer_status` report framing and the
+producer's assertion only; the separate full-cycle and resource checks still
+must establish the outcome.
+
+The [nine reader tests](test-capture-pmsg.py) cover all 127 interrupted event
+prefix lengths, corruption of each of the first 124 bytes of a committed
+record, all three producer terminals, identity, holes, trailing data and full
+511-slot capacity. The existing 17 record tests also pass. The
+[recorded result](results/pmsg-fixed-metadata-test.txt) includes the native
+full-payload recovery checks.
+
+Acquisition remains unresolved. Every payload byte must already be zero and
+any previous evidence must already be preserved before this layout is admitted;
+this design authorizes no clearing of a nonempty zone. The backend must exclude
+ordinary PMSG writes and erases before header initialization and keep exclusion
+through failure and recovery. A producer must commit/read back the body before
+the final marker and preserve an interrupted slot without retry or reuse.
+The exact mapping, barrier, ECC and reset-retention contracts are still needed.
+Unrelated corruption of the fixed header can still defeat ordinary recovery,
+and snapshot allocation alone is not durable collection. No new kernel writer,
+reader image, memory access, radio operation or candidate is selected here.

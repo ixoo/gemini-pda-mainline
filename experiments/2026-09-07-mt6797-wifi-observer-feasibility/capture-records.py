@@ -236,6 +236,36 @@ def decode(data, expected_cycle):
     return records
 
 
+def decode_pmsg(payload, expected_cycle, expected_identity):
+    """Decode a fixed-slot no-ECC pmsg payload; no resynchronization or success verdict."""
+    if len(payload) != ZONE_PAYLOAD_BYTES or len(expected_identity) != 80:
+        raise ValueError('requires exact pmsg payload and independent identity')
+    limit = MAX_RECORDS * RECORD_BYTES
+    if any(payload[limit:]):
+        raise ValueError('nonzero unused pmsg tail')
+    end = limit
+    interrupted_slot = None
+    for offset in range(0, limit, RECORD_BYTES):
+        block = payload[offset:offset + RECORD_BYTES]
+        if int.from_bytes(block[124:128], 'little') == COMMIT:
+            continue
+        end = offset
+        if any(payload[offset + RECORD_BYTES:]):
+            raise ValueError('data after an uncommitted slot')
+        if any(block):
+            interrupted_slot = offset // RECORD_BYTES
+        break
+    records = decode(payload[:end], expected_cycle)
+    if records[0]['payload'] != expected_identity:
+        raise ValueError('candidate, boot or input identity mismatch')
+    terminal = records[-1]['kind'] == TERMINAL
+    if terminal and interrupted_slot is not None:
+        raise ValueError('partial record after terminal')
+    return {'records': records, 'interrupted_slot': interrupted_slot,
+            'framing': 'terminal-recorded' if terminal else 'incomplete',
+            'producer_status': int.from_bytes(records[-1]['payload'], 'little') if terminal else None}
+
+
 def check_dma(data, expected_cycle):
     """Check complete recorded DMA lifetimes, not endpoint translation or Wi-Fi success."""
     transactions = {}

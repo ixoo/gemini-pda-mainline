@@ -1,0 +1,22 @@
+test=test-capture-pmsg.py mode=offline
+.........
+----------------------------------------------------------------------
+Ran 9 tests in 0.046s
+
+OK
+test=test-capture-records.py mode=offline
+.................
+----------------------------------------------------------------------
+Ran 17 tests in 0.008s
+
+OK
+test=test-pmsg-recovery.py mode=original-source
+PASS: native allocation failure still succeeds and zaps retained metadata
+PASS: successful old-log copy preserves ring order; empty ring needs no copy
+PASS: fixed full-length metadata recovers all 65524 slot bytes unchanged
+Scope: four exact functions, fake mapping/allocation/ECC/free; no device access
+test=test-pmsg-recovery.py mode=fixed-source
+PASS: allocation failure refuses initialization and preserves retained bytes
+PASS: successful old-log copy preserves ring order; empty ring needs no copy
+PASS: fixed full-length metadata recovers all 65524 slot bytes unchanged
+Scope: four exact functions, fake mapping/allocation/ECC/free; no device access
