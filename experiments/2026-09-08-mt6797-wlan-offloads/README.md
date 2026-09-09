@@ -104,6 +104,11 @@ The existing `mt76` hardware/transport mismatch is unchanged. A plausible
 mac80211 integration does not make this an MT7603, MT7628 or SDIO device, and
 similar descriptor vocabulary is not a compatibility proof.
 
+The independent [scan-lifetime follow-up](SCAN.md) separates firmware cancel,
+local completion and quiescence. It identifies status loss on cancellation and
+timeout, and timer mutation before event-sequence validation in the selected
+vendor source. Those behaviors must not become the mac80211 scan contract.
+
 ## Observation-path check
 
 Before the offload review, the public Gemian comparator

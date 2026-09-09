@@ -1,0 +1,129 @@
+{
+  "vendor_commit": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+  "vendor_files": [
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/scan_fsm.c",
+      "sha256": "f14bd3421fb7cae2d8879d7eaf8237c8837b0ced79e41310b4fd2b417bb66758",
+      "bytes": 61447,
+      "line_ranges": [
+        [
+          118,
+          161
+        ],
+        [
+          283,
+          356
+        ],
+        [
+          429,
+          476
+        ],
+        [
+          628,
+          675
+        ],
+        [
+          693,
+          745
+        ],
+        [
+          757,
+          806
+        ],
+        [
+          1792,
+          1813
+        ]
+      ],
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/scan_fsm.c"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/ais_fsm.c",
+      "sha256": "738b8fcf0d34098fef986c1dba4963ebe0676665b0a914d7a712a50e814838ba",
+      "bytes": 164281,
+      "line_ranges": [
+        [
+          1320,
+          1325
+        ],
+        [
+          1890,
+          1975
+        ],
+        [
+          3382,
+          3438
+        ]
+      ],
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/ais_fsm.c"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic_rx.c",
+      "sha256": "a844bdf75065a152e78d30c789aabb398b0d0f336d30d6ffd028793bf091412b",
+      "bytes": 126321,
+      "line_ranges": [
+        [
+          1967,
+          1972
+        ]
+      ],
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic_rx.c"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/include/nic_cmd_event.h",
+      "sha256": "93c8d67b1bc039a8db5b635e5a00975f2b9e408f4ab1bc8a384f5db49bf00a3a",
+      "bytes": 60516,
+      "line_ranges": [
+        [
+          74,
+          106
+        ],
+        [
+          1169,
+          1217
+        ]
+      ],
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/include/nic_cmd_event.h"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_kal.c",
+      "sha256": "749c5fc0e6cf3614d15e237e2d65cf92858d483ef1d678f6d9aee0f87bf348f1",
+      "bytes": 153027,
+      "line_ranges": [
+        [
+          1112,
+          1129
+        ],
+        [
+          3336,
+          3347
+        ]
+      ],
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_kal.c"
+    }
+  ],
+  "upstream_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "upstream_files": [
+    {
+      "path": "include/net/mac80211.h",
+      "sha256": "8c25dd5dbd54477548edfd3cc7be58d29683be34f3f6adfc8f8b4b05b1ddc2ba",
+      "bytes": 327847,
+      "line_ranges": [
+        [
+          4222,
+          4247
+        ],
+        [
+          6384,
+          6398
+        ]
+      ],
+      "url": "https://github.com/torvalds/linux/blob/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/include/net/mac80211.h"
+    }
+  ],
+  "acquisition": "individual public raw GitHub files; four vendor objects and upstream header matched prior complete SHA-256 pins; gl_kal.c newly pinned",
+  "live_device_access": false,
+  "firmware_execution": false,
+  "kernel_build": false,
+  "finding_scope": "selected source control flow; firmware cancellation completion and live behavior unproved"
+}
