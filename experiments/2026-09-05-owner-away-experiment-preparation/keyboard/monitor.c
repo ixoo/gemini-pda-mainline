@@ -21,6 +21,18 @@
 #endif
 
 #define FILE_LIMIT 98304
+#ifndef KEYBOARD_MONITOR_FOCUSED
+#define KEYBOARD_MONITOR_FOCUSED 0
+#endif
+#if KEYBOARD_MONITOR_FOCUSED
+#define DELIVERY_PATH "/a53-keyboard-focused"
+#define OBSERVER_PATH DELIVERY_PATH "/keyboard-observe"
+#define OBSERVER_MODE "--diagnose"
+#else
+#define DELIVERY_PATH "/a53-keyboard-delivery"
+#define OBSERVER_PATH "/bin/keyboard-observe"
+#define OBSERVER_MODE "--capture"
+#endif
 #if defined(MONITOR_FIXTURE) && !defined(MONITOR_FULL_DURATION)
 #define TERM_MS 300
 #define KILL_MS 380
@@ -34,6 +46,15 @@ static void fixture_child(void);
 static void fixture_after_status(void);
 static void fixture_after_defaults(void);
 static void fixture_before_term(void);
+#elif KEYBOARD_MONITOR_FOCUSED
+#define TERM_MS 40000
+#define KILL_MS 44000
+#define TERM_TRIGGER_MS 39000
+#define KILL_TRIGGER_MS 43000
+#define END_MS 45000
+#define GRACE_MS 4000
+#define REAP_MS 1000
+#define TICK_MS 20
 #else
 #define TERM_MS 210000
 #define KILL_MS 214000
@@ -188,7 +209,7 @@ int keyboard_monitor_run(int parent, const char *event, const char *minor)
 #ifdef MONITOR_FIXTURE
 		(void)event; (void)minor; fixture_child();
 #else
-		execl("/bin/keyboard-observe", "keyboard-observe", "--capture", event, "13", minor, (char *)NULL);
+		execl(OBSERVER_PATH, "keyboard-observe", OBSERVER_MODE, event, "13", minor, (char *)NULL);
 #endif
 		_exit(126);
 	}
@@ -293,7 +314,7 @@ int main(int argc, char **argv)
 	/* Only the reviewed host admission adapter may deliver an enabled build.
 	 * The target entry still accepts no command, parent path or helper override. */
 	if (argc != 3) return 2;
-	int parent = open("/a53-keyboard-delivery", O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
+	int parent = open(DELIVERY_PATH, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
 	struct stat st;
 	if (parent < 0 || fstat(parent, &st) || st.st_uid != 0 ||
 	    (st.st_mode & 0777) != 0700) return 2;

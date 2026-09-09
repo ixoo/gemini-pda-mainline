@@ -49,8 +49,8 @@ cannot establish runtime attribution or the owner's physical actions.
 
 Before live use, bind an exact package to a fresh monitored session, including prompt ownership,
 reader exclusion, logging, the revised time budget and owner participation.
-The old monitor invocation selects `--capture`; it cannot launch this mode
-unchanged. Do not repurpose the consumed retry receipt or rewrite historical
+The legacy monitor invocation selects `--capture`. The separate focused build
+described below selects `--diagnose`. Do not repurpose the consumed retry receipt or rewrite historical
 capture evidence.
 
 Build the separate reader package through the existing managed userspace lane:
@@ -84,3 +84,34 @@ repeat events from physical presses, preserve independent input/VT mismatches,
 and refuse truncated, overflowing, malformed or inconsistent records. These
 are synthetic stream checks, separate from the compiled ARM64 reader fixtures.
 No kernel build, new capture, live query or device transition was performed.
+
+## Focused monitor preparation
+
+`KEYBOARD_MONITOR_FOCUSED=1` selects the existing supervisor's focused variant.
+It uses the fixed parent `/a53-keyboard-focused` and executes only its delivered
+`keyboard-observe --diagnose eventN 13 MINOR`. There is no runtime path, command
+or mode override. The separate `KEYBOARD_MONITOR_ENABLED=1` switch is still
+required; selecting a focused build alone does not enable its target entry.
+
+This variant retains the existing exclusive `keyboard-attempt` claim, file
+limits, direct-child identity, signal handling and disconnect preservation.
+The complete expected observation is 32 seconds. Its planned TERM trigger is
+39 seconds (hard bound 40), KILL trigger 43 (hard bound 44), and reap/exit bound
+45 seconds. Early cancellation or transport failure still uses the existing
+four-second termination grace and one-second reap allowance. A forced stop or
+missed bound remains inconclusive. This changes neither the legacy 215-second
+monitor nor its frozen runtime evidence.
+
+The `--keyboard-focused` package now builds both the reader and this monitor,
+with matching replicas and both compilation header inventories. The
+[focused monitor tests](test-focused-monitor.py) check the production entry's
+exact fixed path/arguments with a harmless substitute, then exercise the full
+32-second observation boundary and forced cleanup of a child that ignores
+TERM. The existing thirteen scaled supervisor fixtures also run for this
+variant. These tests use no physical input device or PDA connection.
+
+The thirteen focused host fixtures pass. The composed ARM64 package and focused
+production-entry/deadline fixtures are pending at this checkpoint. A fresh
+host-side delivery/admission binding, combined logger budget and owner readiness
+are still required before any device execution; the old capture adapter does
+not select this variant.

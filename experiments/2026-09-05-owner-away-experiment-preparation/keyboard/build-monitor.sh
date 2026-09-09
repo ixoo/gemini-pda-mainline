@@ -140,9 +140,30 @@ elif [[ $kind == keyboard-space-ready || $kind == keyboard-focused ]]; then
   install -m 0600 "$stage/tests.txt" "$stage/package/fixture-tests.txt"
   install -m 0700 "$stage/one/$helper" "$stage/package/$helper"
   if [[ $kind == keyboard-focused ]]; then
+    for replica in one two; do
+      timeout 60 "$compiler" -std=c11 -Os -static -Wall -Wextra -Werror \
+        -DKEYBOARD_MONITOR_ENABLED=1 -DKEYBOARD_MONITOR_FOCUSED=1 \
+        "-ffile-prefix-map=$repository=." "-ffile-prefix-map=$stage=." \
+        -MD -MF "$stage/$replica/monitor-headers.d" \
+        "$here/monitor.c" -o "$stage/$replica/keyboard-monitor"
+      aarch64-linux-gnu-readelf -h "$stage/$replica/keyboard-monitor" | grep -q AArch64
+      if aarch64-linux-gnu-readelf -l "$stage/$replica/keyboard-monitor" | grep -q INTERP; then exit 1; fi
+      if aarch64-linux-gnu-readelf -d "$stage/$replica/keyboard-monitor" | grep -q NEEDED; then exit 1; fi
+      aarch64-linux-gnu-strip --strip-all "$stage/$replica/keyboard-monitor"
+      [[ $(stat -c %s "$stage/$replica/keyboard-monitor") -le 131072 ]]
+    done
+    cmp "$stage/one/keyboard-monitor" "$stage/two/keyboard-monitor"
+    timeout 90 env MONITOR_TEST_CC="$compiler" MONITOR_TEST_QEMU="$qemu" \
+      MONITOR_TEST_FOCUSED=1 MONITOR_TEST_FULL_DURATION=0 MONITOR_TEST_FIXTURE_ONLY=0 \
+      MONITOR_TEST_WORK_ROOT="$stage/scaled-focused-monitor" \
+      python3 "$here/test-monitor.py" >>"$stage/tests.txt" 2>&1
+    timeout 90 python3 "$here/test-focused-monitor.py" --compiler "$compiler" --qemu "$qemu" \
+      --work "$stage" >>"$stage/tests.txt" 2>&1
+    install -m 0600 "$stage/tests.txt" "$stage/package/fixture-tests.txt"
+    install -m 0700 "$stage/one/keyboard-monitor" "$stage/package/keyboard-monitor"
     install -m 0600 /usr/share/common-licenses/GPL-2 "$stage/package/licenses/GPL-2"
     mkdir "$stage/package/source"
-    install -m 0600 "$here/keyboard-observe.c" "$here/protocol.h" "$stage/package/source/"
+    install -m 0600 "$here/keyboard-observe.c" "$here/protocol.h" "$here/monitor.c" "$stage/package/source/"
   fi
   install -m 0600 "$musl/COPYRIGHT" "$stage/package/licenses/musl-COPYRIGHT"
   install -m 0600 "$repository/LICENSE" "$stage/package/licenses/repository-LICENSE"
@@ -156,10 +177,16 @@ headers = (stage/'one/headers.d').read_text().replace('\\\n', ' ').split()[1:]
 inputs = {p.name: sha(p) for p in [here/(sys.argv[4]+'.c'), here/sys.argv[5], here/'build-monitor.sh', stage/'musl.tar.gz']}
 if sys.argv[4] == 'keyboard-observe':
     inputs['protocol.h'] = sha(here/'protocol.h')
+    headers += (stage/'one/monitor-headers.d').read_text().replace('\\\n', ' ').split()[1:]
+    for name in ('monitor.c', 'monitor-fixture.c', 'test-monitor.py', 'test-focused-monitor.py'):
+        inputs[name] = sha(here/name)
 header_inputs = {str(pathlib.Path(p)).replace(str(stage), 'build').replace(str(here), 'keyboard'): sha(pathlib.Path(p)) for p in headers}
 result = {'revision': sys.argv[3], 'inputs': inputs, 'header_inputs': header_inputs,
           'replicas_identical': True, 'production_entry': sys.argv[4]+'-v1', 'device_action': 'none',
           'stripped_bytes': (stage/'package'/sys.argv[4]).stat().st_size}
+if sys.argv[4] == 'keyboard-observe':
+    result['monitor_entry'] = 'focused-admission-v1'
+    result['monitor_bytes'] = (stage/'package/keyboard-monitor').stat().st_size
 (stage/'package/manifest.json').write_text(json.dumps(result, indent=2, sort_keys=True)+'\n')
 PYREADY
 elif [[ $kind == keyboard-disconnect-preserver ]]; then

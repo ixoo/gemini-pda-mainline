@@ -19,6 +19,7 @@ CC = os.environ.get('MONITOR_TEST_CC', 'cc')
 QEMU = os.environ.get('MONITOR_TEST_QEMU')
 PREFIX = [QEMU] if QEMU else []
 FULL = os.environ.get("MONITOR_TEST_FULL_DURATION") == "1"
+FOCUSED = os.environ.get("MONITOR_TEST_FOCUSED") == "1"
 OUTER_SECONDS = 225 if FULL else 3
 FIXTURE_ONLY = os.environ.get('MONITOR_TEST_FIXTURE_ONLY') == '1'
 
@@ -46,7 +47,8 @@ class MonitorTests(unittest.TestCase):
         if not FIXTURE_ONLY:
             builds.append(('monitor.c', cls.disabled, []))
         for source, dest, extra in builds:
-            subprocess.run([CC, *(['-static'] if QEMU else []), *(['-DMONITOR_FULL_DURATION'] if FULL else []), '-std=c11', '-Os', '-Wall', '-Wextra', '-Werror',
+            subprocess.run([CC, *(['-static'] if QEMU else []), *(['-DMONITOR_FULL_DURATION'] if FULL else []),
+                            *(['-DKEYBOARD_MONITOR_FOCUSED=1'] if FOCUSED else []), '-std=c11', '-Os', '-Wall', '-Wextra', '-Werror',
                             str(HERE / source), '-o', str(dest), *extra],
                            check=True, capture_output=True, timeout=30)
 

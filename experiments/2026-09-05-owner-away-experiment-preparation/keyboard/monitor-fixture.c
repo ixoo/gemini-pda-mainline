@@ -20,8 +20,13 @@ static void fixture_child(void)
 #ifdef MONITOR_FULL_DURATION
 	/* One harmless run witnesses the observation boundary then forced cleanup. */
 	if (!strcmp(mode, "ignore")) {
+#if KEYBOARD_MONITOR_FOCUSED
+		pause_ms(32000);
+		(void)store(1, "fixture-observation-boundary=32000\n", sizeof("fixture-observation-boundary=32000\n") - 1);
+#else
 		pause_ms(202000);
 		(void)store(1, "fixture-observation-boundary=202000\n", sizeof("fixture-observation-boundary=202000\n") - 1);
+#endif
 	}
 #endif
 	if (!strcmp(mode, "nonzero")) _exit(7);
