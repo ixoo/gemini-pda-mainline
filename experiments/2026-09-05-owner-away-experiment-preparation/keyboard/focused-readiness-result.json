@@ -1,0 +1,26 @@
+{
+  "schema": "focused-readiness-result-v1",
+  "id": "79424420-f296-49b3-a379-1e58d75970c9",
+  "boot_id": "e3a29c80-4948-4ef8-893a-cfbef0cd4918",
+  "classification": "readiness-failed-before-focused-capture",
+  "process": {
+    "elapsed_seconds": 5.152,
+    "exit_status": 2,
+    "reason": null,
+    "stderr_bytes": 0,
+    "stdin_complete": true,
+    "stdout_bytes": 130
+  },
+  "stdout_sha256": "e7d86bd69fe7156e4ac5fd7ce14093096652fabbf0c6ed698394c68cff9e2aa2",
+  "failure": "console-byte",
+  "console_byte": 27,
+  "last_event": {
+    "type": 4,
+    "code": 4,
+    "value": 36
+  },
+  "restored_reported": true,
+  "logger_started": false,
+  "focused_capture_started": false,
+  "owner_action_attribution": "Owner reports pressing Space; photo shows cancelled start."
+}

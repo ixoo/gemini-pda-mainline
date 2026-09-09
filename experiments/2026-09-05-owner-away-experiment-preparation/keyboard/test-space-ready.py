@@ -53,13 +53,31 @@ static int fake_ioctl(int fd, unsigned long request, ...)
         strcpy(out, "keyboard-matrix"); return 16;
     }
     if (fd == input_fd && request == EVIOCGKEY(96)) {
-        memset(out, 0, 96); return 96;
+        memset(out, 0, 96);
+        if (getenv("STATE_CASE")) ((unsigned char *)out)[56 / 8] = 1;
+        return 96;
     }
     if (fd == console_fd && request == VT_GETSTATE) {
         ((struct vt_stat *)out)->v_active = 1; return 0;
     }
     if (fd == console_fd && request == KDGKBMODE) {
         *(int *)out = K_UNICODE; return 0;
+    }
+    if (fd == console_fd && request == TIOCLINUX) {
+        if (*(unsigned char *)out != 6) abort();
+        *(unsigned char *)out = 8; return 0;
+    }
+    if (fd == console_fd && request == KDGKBLED) {
+        *(unsigned char *)out = 0; return 0;
+    }
+    if (fd == console_fd && request == KDGKBMETA) {
+        *(int *)out = K_ESCPREFIX; return 0;
+    }
+    if (fd == console_fd && request == KDGKBENT) {
+        if (getenv("STATE_CASE") && !strcmp(getenv("STATE_CASE"), "failure")) return -1;
+        struct kbentry *entry = out;
+        if (entry->kb_index != KEY_SPACE || entry->kb_table > 15) abort();
+        entry->kb_value = 32; return 0;
     }
     return -1;
 }
@@ -119,6 +137,30 @@ def run_case(binary, qemu, name, events=None, text=b'', cancel=False, expected=2
             os.close(fd)
 
 
+def state_case(binary, qemu, failure=False):
+    master, slave = pty.openpty()
+    reader, writer = os.pipe()
+    try:
+        before = termios.tcgetattr(slave)
+        os.write(writer, b'event-untouched')
+        result = subprocess.run([qemu, str(binary), '--state', 'event0', '64'],
+            pass_fds=(reader, slave), capture_output=True, timeout=3,
+            env={**os.environ, 'INPUT_FD': str(reader), 'CONSOLE_FD': str(slave),
+                 'STATE_CASE': 'failure' if failure else 'success'})
+        assert result.returncode == (2 if failure else 0), result
+        assert result.stderr == b'', result
+        assert result.stdout.startswith(b'console-state version=1 shift=8 leds=0 meta=4 held=56,\n'), result
+        assert (b'complete=1' in result.stdout) == (not failure), result
+        assert termios.tcgetattr(slave) == before
+        assert not select.select([master], [], [], 0)[0], 'unexpected console output'
+        assert select.select([reader], [], [], 0)[0], 'event consumed'
+        assert os.read(reader, 15) == b'event-untouched', 'event consumed'
+        print(('state-query-failure' if failure else 'state-query-read-only') + '=pass')
+    finally:
+        for fd in (master, slave, reader, writer):
+            os.close(fd)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--compiler', required=True)
@@ -138,6 +180,8 @@ def main():
     run_case(binary, args.qemu, 'lost-events', [(0, 3, 0)])
     run_case(binary, args.qemu, 'timeout')
     run_case(binary, args.qemu, 'signal-restores-console', cancel=True)
+    state_case(binary, args.qemu)
+    state_case(binary, args.qemu, failure=True)
 
 
 if __name__ == '__main__':

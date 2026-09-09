@@ -216,3 +216,40 @@ before creating a claim or making a connection. Existing focused assembly and
 historical-prerequisite fixtures passed. The owner-controlled Space wait and
 actual focused capture have not yet run in this preparation record; their
 receipts must establish the outcomes. Disable the binding after consumption.
+
+## Attended readiness result
+
+The single Space delivery passed. The readiness process then exited 2 after
+5.152 seconds with complete stdin and empty stderr. Its explicit failure was
+`console-byte`: the first recorded evdev item was MSC_SCAN value 36, while the
+console supplied byte 27 (Escape). The helper reported console restoration.
+The owner reports pressing Space; their photo shows the readiness prompt and
+“Start cancelled. Test has not begun.” This is not attributed to a wrong key.
+The scan is consistent with the matrix Space position, but the capture ended
+before its EV_KEY edge and does not identify the source of the Escape byte.
+
+[The sanitized result](focused-readiness-result.json) preserves the exact
+outcome. No logger, focused delivery, timed capture, export or seal phase ran.
+The prior logs remain sealed; there is no active capture deadline. The execution
+binding is disabled. Do not repeat this consumed start or accept Escape as a
+successful Space result. Resolve the console/input mismatch before a successor;
+no keymap, modifier state, kernel, partition or boot was changed by this result.
+
+The next observation is `space-ready --state eventN MINOR`, a read-only
+snapshot using the same device and VT identity checks. It queries evdev held
+keys, the transient VT shift bits before/after, LED flags, Meta mode, and Space
+entries for maps 0–15. It does not consume input, print console prompts, change
+termios/keymaps/modifiers, or admit the focused test. The LED byte is not the
+VT lock/slock map state; equal shift samples do not make this an atomic snapshot.
+Missing observations refuse. The Space readiness rule remains unchanged.
+
+The read-only ioctl semantics were inspected in the retained Linux 7.1.3
+`drivers/tty/vt/vt.c` (SHA-256
+`e421d6ea542e6fe6a2711aaf27dd358f83429247d6676477f94d839230a22377`)
+and `drivers/tty/vt/keyboard.c` (SHA-256
+`cd0ca2d6183ebad4bbd4aacfb3326d010d0cafa7bdbd854fd30eaa80d7c35799`).
+`TIOCL_GETSHIFTSTATE` returns the transient shift byte; `KDGKBLED` reports
+current/default LED flags. These source observations explain the diagnostic
+fields, not the failed Space press. Buildbox fixtures check successful and
+failed metadata queries without consuming queued evdev data, changing terminal
+settings, or writing a console prompt.

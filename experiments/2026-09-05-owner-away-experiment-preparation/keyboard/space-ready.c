@@ -4,6 +4,7 @@
 #include <fcntl.h>
 #include <linux/input.h>
 #include <linux/kd.h>
+#include <linux/tiocl.h>
 #include <linux/vt.h>
 #include <poll.h>
 #include <signal.h>
@@ -84,6 +85,35 @@ static int edge(const struct input_event *event, int *state)
 	return 0;
 }
 
+/* Diagnostic snapshot only: no reads, prompts, termios changes or setters.
+ * GETSHIFTSTATE is transient and excludes the VT's lock/slock state. */
+static int report_state(int fd)
+{
+	unsigned char keys[(KEY_MAX + 8) / 8] = { 0 };
+	unsigned char shift = TIOCL_GETSHIFTSTATE, after = TIOCL_GETSHIFTSTATE;
+	unsigned char leds;
+	int meta;
+
+	if (ioctl(fd, EVIOCGKEY(sizeof(keys)), keys) < 0 ||
+	    ioctl(ttyfd, TIOCLINUX, &shift) ||
+	    ioctl(ttyfd, KDGKBLED, &leds) || ioctl(ttyfd, KDGKBMETA, &meta))
+		return 2;
+	printf("console-state version=1 shift=%u leds=%u meta=%d held=", shift, leds, meta);
+	for (unsigned int key = 0; key <= KEY_MAX; key++)
+		if (keys[key / 8] & (1U << (key % 8)))
+			printf("%u,", key);
+	putchar('\n');
+	for (unsigned int table = 0; table < 16; table++) {
+		struct kbentry entry = { .kb_table = table, .kb_index = KEY_SPACE };
+		if (ioctl(ttyfd, KDGKBENT, &entry))
+			return 2;
+		printf("space table=%u value=%u\n", table, entry.kb_value);
+	}
+	if (ioctl(ttyfd, TIOCLINUX, &after))
+		return 2;
+	return printf("console-state complete=1 shift_after=%u\n", after) < 0 || ferror(stdout) ? 2 : 0;
+}
+
 int main(int argc, char **argv)
 {
 	struct stat info;
@@ -98,6 +128,12 @@ int main(int argc, char **argv)
 	ssize_t last_read = -1;
 	int last_byte = -1, read_errno = 0;
 	long long start, reported, quiet = -1;
+	bool state_only = argc == 4 && !strcmp(argv[1], "--state");
+
+	if (state_only) {
+		argc--;
+		argv++;
+	}
 
 	if (argc != 3 || sscanf(argv[1], "event%u%c", &eventno, &extra) != 1 ||
 	    eventno > 255 || sscanf(argv[2], "%u%c", &minorno, &extra) != 1 ||
@@ -114,14 +150,19 @@ int main(int argc, char **argv)
 	if (fd < 0 || fstat(fd, &info) || !S_ISCHR(info.st_mode) ||
 	    major(info.st_rdev) != 13 || minor(info.st_rdev) != minorno ||
 	    ioctl(fd, EVIOCGNAME(sizeof(name) - 1), name) < 0 ||
-	    strcmp(name, "keyboard-matrix") || released(fd))
+	    strcmp(name, "keyboard-matrix") || (!state_only && released(fd)))
 		goto done;
 	ttyfd = open("/dev/tty1", O_RDWR | O_NONBLOCK | O_NOFOLLOW | O_NOCTTY | O_CLOEXEC);
 	if (ttyfd < 0 || fstat(ttyfd, &info) || !S_ISCHR(info.st_mode) ||
 	    major(info.st_rdev) != 4 || minor(info.st_rdev) != 1 ||
 	    ioctl(ttyfd, VT_GETSTATE, &vt) || vt.v_active != 1 ||
-	    ioctl(ttyfd, KDGKBMODE, &mode) || mode != K_UNICODE ||
-	    tcgetattr(ttyfd, &saved) || atexit(cleanup))
+	    ioctl(ttyfd, KDGKBMODE, &mode) || mode != K_UNICODE)
+		goto done;
+	if (state_only) {
+		result = report_state(fd);
+		goto done;
+	}
+	if (tcgetattr(ttyfd, &saved) || atexit(cleanup))
 		goto done;
 	sigemptyset(&action.sa_mask);
 	if (sigaction(SIGINT, &action, NULL) || sigaction(SIGTERM, &action, NULL) ||
@@ -213,13 +254,15 @@ int main(int argc, char **argv)
 		result = 2;
 	}
 	if (ttyfd >= 0) {
-		if (dprintf(ttyfd, result ? "\r\nStart cancelled. Test has not begun.\r\n" :
+		if (!state_only && dprintf(ttyfd, result ? "\r\nStart cancelled. Test has not begun.\r\n" :
 			    "\r\nReady. Keep keys released; prompts will start shortly.\r\n") < 0)
 			result = 2;
 		close(ttyfd);
 	}
 	if (fd >= 0)
 		close(fd);
+	if (state_only)
+		return result;
 	if (result)
 		printf("space-ready=failed reason=%s restored=%d state=%d events=%u bytes=%u "
 		       "read=%ld type=%u code=%u value=%d console_byte=%d errno=%d\n",

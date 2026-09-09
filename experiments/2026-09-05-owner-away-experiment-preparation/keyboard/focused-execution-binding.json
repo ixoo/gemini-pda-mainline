@@ -1,8 +1,4 @@
 {
   "schema": "keyboard-focused-execution-v1",
-  "state": "enabled",
-  "id": "79424420-f296-49b3-a379-1e58d75970c9",
-  "boot_id": "e3a29c80-4948-4ef8-893a-cfbef0cd4918",
-  "plan_sha256": "0230067af80edfe0ed25bffe699ae447c45dfd9a77525a7596f3cdb86ca11442",
-  "runner_sha256": "0697664c80a008b44eb81f88778663efe5a60752ddd55015f4cbccd49b261359"
+  "state": "disabled"
 }
