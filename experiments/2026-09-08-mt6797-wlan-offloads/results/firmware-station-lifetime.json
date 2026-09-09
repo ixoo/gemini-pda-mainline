@@ -1,0 +1,284 @@
+{
+  "schema": 1,
+  "firmware_sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
+  "firmware_bytes": 411632,
+  "tool": "Ghidra 12.1.2; existing RE-VM project",
+  "method": "Existing NDS32 BE-instruction/LE-data premise. Bounded direct-flow graphs skip callees and assume return; selected immediate-derived callees inspected separately. Update body hits its cap; response-tail follow-up starts at a visited instruction.",
+  "private_analysis": [
+    {
+      "script": "StationDispatch.java",
+      "sha256": "d03503c7a8b69e3f0177e3a80fea52cd83f9552063179b1b00b16a2a6dc8df55",
+      "entries_examined": 81,
+      "selected_command_matches": 2
+    },
+    {
+      "script": "StationRemoveInspect.java",
+      "sha256": "3bf70b42ea7cc7505f9b6c353cddecb8d6371ef82f186be7e9c201902aade3dd",
+      "node_cap": 384,
+      "nodes": 91,
+      "queue_exhausted": true,
+      "calls": 10,
+      "unresolved_noncall_computed": 0,
+      "terminals": 1,
+      "invalid": 0
+    },
+    {
+      "script": "StationLookup.java",
+      "sha256": "104528ad3a940501889f6e0209393f093dd6a55af6bb733809b86c62bcdc5e67",
+      "node_cap": 384,
+      "nodes": 11,
+      "queue_exhausted": true,
+      "calls": 0,
+      "unresolved_noncall_computed": 0,
+      "terminals": 1,
+      "invalid": 0
+    },
+    {
+      "script": "StationRemoveCore.java",
+      "sha256": "e2a247f83de260bfbb5a5a5ab89038bc17b423d48ba6e5354a2089b2c6729c0e",
+      "node_cap": 384,
+      "nodes": 25,
+      "queue_exhausted": true,
+      "calls": 5,
+      "unresolved_noncall_computed": 0,
+      "terminals": 1,
+      "invalid": 0
+    },
+    {
+      "script": "StationRemoveGroup.java",
+      "sha256": "599c274c1062c38f48516390c4fddb6a23920da56fdfad227e6f83e36d1591c2",
+      "node_cap": 384,
+      "nodes": 41,
+      "queue_exhausted": true,
+      "calls": 2,
+      "unresolved_noncall_computed": 0,
+      "terminals": 1,
+      "invalid": 0
+    },
+    {
+      "script": "StationCleanupA.java",
+      "sha256": "c9e7b575d7cb834170939e1ec5a0e5100f3c29a6910fe16e029d15dc86cfb0fd",
+      "node_cap": 384,
+      "nodes": 64,
+      "queue_exhausted": true,
+      "calls": 7,
+      "unresolved_noncall_computed": 0,
+      "terminals": 1,
+      "invalid": 0
+    },
+    {
+      "script": "StationCleanupB.java",
+      "sha256": "9760d06ff0638cfd304d669133b6df660ff37c92031d181d35f7dc49192f5dad",
+      "node_cap": 384,
+      "nodes": 102,
+      "queue_exhausted": true,
+      "calls": 8,
+      "unresolved_noncall_computed": 0,
+      "terminals": 1,
+      "invalid": 0
+    },
+    {
+      "script": "StationCleanupC.java",
+      "sha256": "e6034b4cf2d381076767ef631470a4980f890953d32487ddec97a064d941b3c4",
+      "node_cap": 384,
+      "nodes": 29,
+      "queue_exhausted": true,
+      "calls": 2,
+      "unresolved_noncall_computed": 0,
+      "terminals": 1,
+      "invalid": 0
+    },
+    {
+      "script": "StationCleanupD.java",
+      "sha256": "1f85d391f24ba0281ce5b270fe60bb8c3da6972b917cf41f8c6aa0a45a0e036d",
+      "node_cap": 384,
+      "nodes": 109,
+      "queue_exhausted": true,
+      "calls": 3,
+      "unresolved_noncall_computed": 0,
+      "terminals": 1,
+      "invalid": 0
+    },
+    {
+      "script": "StationCleanupE.java",
+      "sha256": "dce6699eee5a2af01660f6dd3383a9efd984bbc6ba43eabe618586e638c8988f",
+      "node_cap": 384,
+      "nodes": 65,
+      "queue_exhausted": true,
+      "calls": 3,
+      "unresolved_noncall_computed": 0,
+      "terminals": 1,
+      "invalid": 0
+    },
+    {
+      "script": "StationFinalize.java",
+      "sha256": "9eb9c375011dcf4e7268beb66a36eb906d784caae5f6208b392384731a7c735c",
+      "node_cap": 384,
+      "nodes": 84,
+      "queue_exhausted": true,
+      "calls": 5,
+      "unresolved_noncall_computed": 0,
+      "terminals": 1,
+      "invalid": 0
+    },
+    {
+      "script": "StationBaRemove.java",
+      "sha256": "48572c54448ef3c16db3c4faffa9106cea036f14e1e8a4c4bd7a504402755b30",
+      "node_cap": 384,
+      "nodes": 215,
+      "queue_exhausted": true,
+      "calls": 14,
+      "unresolved_noncall_computed": 0,
+      "terminals": 1,
+      "invalid": 0
+    },
+    {
+      "script": "StationBaQueue.java",
+      "sha256": "911078ee5fb42eb7cef46fff89dada9f9c23e21499327abc4314664431767823",
+      "node_cap": 384,
+      "nodes": 169,
+      "queue_exhausted": true,
+      "calls": 14,
+      "unresolved_noncall_computed": 0,
+      "terminals": 1,
+      "invalid": 0
+    },
+    {
+      "script": "StationDispatchCompletion.java",
+      "sha256": "97a0f7be1e1dbd166e69188a75155efb517ddee4dc1c1ec0708f8d5da0c184ba",
+      "node_cap": 384,
+      "nodes": 76,
+      "queue_exhausted": true,
+      "calls": 5,
+      "unresolved_noncall_computed": 0,
+      "terminals": 1,
+      "invalid": 0
+    },
+    {
+      "script": "StationBufferRelease.java",
+      "sha256": "44978f37b8f1eb8d9ca90f0ee32c7a357d4240b543b8f36e6c58560ddf92a252",
+      "node_cap": 384,
+      "nodes": 64,
+      "queue_exhausted": true,
+      "calls": 7,
+      "unresolved_noncall_computed": 0,
+      "terminals": 1,
+      "invalid": 0
+    },
+    {
+      "script": "StationUpdateInspect.java",
+      "sha256": "20215ea38b8f66a07cbf918977311760c222fe291c4106a283d21eb76d8a6444",
+      "node_cap": 384,
+      "nodes": 384,
+      "queue_exhausted": false,
+      "calls": 26,
+      "unresolved_noncall_computed": 0,
+      "terminals": 1,
+      "invalid": 0
+    },
+    {
+      "script": "StationUpdateTail.java",
+      "sha256": "7f613b5ad3c3f445d718dc78bc5ee0f6baa3648b7efd90c83697e71865684349",
+      "node_cap": 192,
+      "nodes": 18,
+      "queue_exhausted": true,
+      "calls": 2,
+      "unresolved_noncall_computed": 0,
+      "terminals": 1,
+      "invalid": 0
+    },
+    {
+      "script": "StationUpdateResponse.java",
+      "sha256": "121a9f8a5ff03dafc1a6b848b1d48818482e4bf0d9c0b30bb1de5dad72149e0f",
+      "node_cap": 384,
+      "nodes": 31,
+      "queue_exhausted": true,
+      "calls": 2,
+      "unresolved_noncall_computed": 0,
+      "terminals": 1,
+      "invalid": 0
+    },
+    {
+      "script": "StationResponseQueue.java",
+      "sha256": "638f869e3633999b6c3d7ba6db3dee7bdf9b66aeb41db4c56b9c57c302992714",
+      "node_cap": 384,
+      "nodes": 59,
+      "queue_exhausted": true,
+      "calls": 6,
+      "unresolved_noncall_computed": 0,
+      "terminals": 1,
+      "invalid": 0
+    },
+    {
+      "script": "StationResponseEnqueue.java",
+      "sha256": "4c3cd6affe1b781aded68aa37bc13c66e874453ee1ec42ccb35ee6e60c40ff6c",
+      "node_cap": 384,
+      "nodes": 62,
+      "queue_exhausted": true,
+      "calls": 7,
+      "unresolved_noncall_computed": 0,
+      "terminals": 1,
+      "invalid": 0
+    }
+  ],
+  "hardware_test": false,
+  "firmware_execution": false,
+  "radio_action": false,
+  "vendor_commit": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+  "vendor_files": [
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/include/nic_cmd_event.h",
+      "sha256": "93c8d67b1bc039a8db5b635e5a00975f2b9e408f4ab1bc8a384f5db49bf00a3a",
+      "line_ranges": [
+        [
+          199,
+          214
+        ],
+        [
+          287,
+          315
+        ],
+        [
+          760,
+          764
+        ],
+        [
+          955,
+          1033
+        ]
+      ]
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/include/mgmt/cnm_mem.h",
+      "sha256": "281f07b30d476ae2ffdd728bd7c03e78e2327c8c6b4c18425f712e2d54162239",
+      "line_ranges": [
+        [
+          586,
+          590
+        ]
+      ]
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/cnm_mem.c",
+      "sha256": "0b076bd5fad5e06de878763e4c8f9a8e600d48af8a3ea5f8146297d8612c34ec",
+      "line_ranges": [
+        [
+          620,
+          645
+        ],
+        [
+          778,
+          806
+        ],
+        [
+          953,
+          966
+        ],
+        [
+          974,
+          1011
+        ]
+      ]
+    }
+  ]
+}

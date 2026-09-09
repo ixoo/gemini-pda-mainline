@@ -122,6 +122,11 @@ question is specifically whether old data and BA events are excluded after a
 positive boundary, not merely whether a new station can transmit. This record
 admits no radio or firmware action.
 
+The [retained firmware follow-up](FIRMWARE_STATION_LIFETIME.md) now separates
+removal cleanup and command-object recycling from the optional activation
+response. Its output callback remains unresolved, so the reply is not yet a
+proved drain boundary for older station data or BA events.
+
 ## Encrypted translated data: replay ownership
 
 The security follow-up keeps translated data as the design direction, but it
