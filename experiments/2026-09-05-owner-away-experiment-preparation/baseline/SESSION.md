@@ -45,8 +45,9 @@ The [installer](scripts/install-boot2.py) defaults to validation without SSH.
 Its private generated adapter binds `candidate.json` and the padded digest,
 uses the current shared device guard twice, resolves live GPT `boot2`, and
 requires inactive target/root, stable power and complete readback. Secret image
-staging is limited to the exact `/dev/shm` tmpfs with no active swap, verified
-ownership/mode/size/hash and bounded cleanup. A matching partition is skipped.
+staging is limited to the exact `/dev/shm` tmpfs with verified
+ownership/mode/size/hash and bounded cleanup. Since the owner's 2026-09-09
+policy change, active non-target swap is accepted and is not deactivated. A matching partition is skipped.
 No alternative partition, automatic reboot, new backup or persistent-root
 staging is admitted. The installer finishes with clean shutdown; the owner
 physically selects the candidate only on Project Planning's later card.

@@ -43,7 +43,6 @@ elif 'GATE_MODE=' in command:
     mode=re.search("GATE_MODE='([^']+)'",command).group(1)
     remote=sys.stdin.read()
     if 'boot2_device_guard "$target" "$majmin" "$root_major_minor"' not in remote: refuse()
-    if 'a53_no_swap' not in remote: refuse()
     action('gate-'+mode)
     if case==mode+'-refused': refuse()
     if mode=='write':
@@ -61,7 +60,7 @@ elif 'STAGE_ACTION=' in command:
     import re
     mode=re.search("STAGE_ACTION='([^']+)'",command).group(1)
     remote=sys.stdin.read()
-    if 'a53_tmpfs_mount' not in remote or 'a53_no_swap' not in remote: refuse()
+    if 'a53_tmpfs_mount' not in remote: refuse()
     if not command.startswith('sudo -n env ') or '"$owner" == 0' not in remote: refuse()
     action('stage-'+mode)
     if mode=='prepare':

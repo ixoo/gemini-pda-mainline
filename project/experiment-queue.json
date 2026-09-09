@@ -4,7 +4,7 @@
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
   "selected_item": "keyboard-console-ownership",
-  "selection_note": "The console-ownership successor is offline prepared at its exact new candidate identity. It is not installed and requests no physical selection. Keep Gemian available while owner availability is unknown; the old Candidate R proof remains consumed and inconclusive.",
+  "selection_note": "Console-ownership installation and clean shutdown are verified; waiting for owner physical boot2 selection. Conditional disconnect remains disabled pending this session result.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -138,17 +138,17 @@
     "keyboard-console-ownership": {
       "workstream": "serviceability",
       "preparation_state": "ready",
-      "device_state": "unselected",
+      "device_state": "waiting-owner-boot",
       "owner": "primary integration coordinator",
       "reviewer": "primary integration coordinator",
-      "device_custodian": null,
+      "device_custodian": "primary integration coordinator",
       "experiment": "experiments/2026-09-08-keyboard-console-ownership/README.md",
       "session_packet": "experiments/2026-09-08-keyboard-console-ownership/SESSION.md",
       "candidate_record": "experiments/2026-09-08-keyboard-console-ownership/validation.json",
       "readiness_record": "experiments/2026-09-08-keyboard-console-ownership/validation.json",
       "dependencies": [],
       "owner_task_id": null,
-      "readiness_note": "New private candidate assembled and independently validated from the audited kernel foundation; ARM64 shell and export-diagnostic fixtures, installer syntax/ShellCheck and refusal fixtures passed. One future baseline plus three PID-1 descriptor metadata observations test the console-ownership fix. No installation or runtime result. Keyboard disconnect/capture admissions remain disabled."
+      "readiness_note": "Exact console-ownership candidate installed on 2026-09-09; guarded full readback and clean shutdown verified. Waiting for one owner boot2 selection. Initial swap staging refusal preceded all writes; reviewed unused zram deactivation permitted the subsequent verified installation. No mainline runtime result yet."
     },
     "keyboard-console-disconnect": {
       "workstream": "serviceability",

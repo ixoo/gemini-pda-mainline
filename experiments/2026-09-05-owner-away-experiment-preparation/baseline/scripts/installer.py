@@ -28,16 +28,13 @@ def receipt_name(purpose=None):
         raise ValueError('unsupported installer purpose') from None
 
 # A quiescent known-good OS is still required: these observations do not lock
-# mounts or swap configuration. No helper enables/disables swap or mounts a FS.
+# mounts. Staging permits active swap and never changes its configuration.
 STAGE_LIBRARY = r'''
 a53_tmpfs_mount() {
     [[ -d /dev/shm && ! -L /dev/shm ]] || return 1
     [[ "$(readlink -f -- /dev/shm)" == /dev/shm ]] || return 1
     [[ "$(findmnt -rn -o TARGET,FSTYPE --target /dev/shm)" == '/dev/shm tmpfs' ]] || return 1
     [[ "$(stat -c '%u %a' -- /dev/shm)" == '0 1777' ]] || return 1
-}
-a53_no_swap() {
-    awk 'NR != 1 || NF != 5 || $1 != "Filename" || $2 != "Type" || $3 != "Size" || $4 != "Used" || $5 != "Priority" {bad=1} END {exit (bad || NR != 1)}' /proc/swaps
 }
 a53_stage_identity() {
     local stage=$1 owner mode size links
@@ -64,7 +61,6 @@ a53_tmpfs_mount || fail 'staging mount is not the exact tmpfs'
 case "$STAGE_ACTION" in
 prepare)
     [[ "$EXPECTED_STAGE" == none ]] || fail 'unexpected prepare path'
-    a53_no_swap || fail 'active or malformed swap state'
     available=$(df -P -B1 /dev/shm | awk 'NR == 2 && NF == 6 {print $4}')
     [[ "$available" =~ ^[0-9]{1,12}$ ]] && (( available >= EXPECTED_SIZE + 1048576 )) || fail 'insufficient tmpfs space'
     # Only this exact candidate's reconstructible staging copies are eligible.
@@ -206,11 +202,11 @@ ssh_command=(
 \t[[ "$owner" == gemini && "$mode" == 600 && "$stage_size" == "$EXPECTED_SIZE" ]] ||
 \t\tfail 'staging identity changed'
 '''
-    replace(old_stage, '''\ta53_tmpfs_mount && a53_no_swap && a53_stage_identity "$EXPECTED_STAGE" || fail 'private tmpfs staging gate failed'
+    replace(old_stage, '''\ta53_tmpfs_mount && a53_stage_identity "$EXPECTED_STAGE" || fail 'private tmpfs staging gate failed'
 \t[[ "$(stat -c '%s' -- "$EXPECTED_STAGE")" == "$EXPECTED_SIZE" ]] || fail 'staging size changed'
 ''')
     write = '\tboot2_device_guard "$target" "$majmin" "$root_major_minor" >/dev/null || fail \'pre-write block identity changed\'\n'
-    replace(write, '\ta53_tmpfs_mount && a53_no_swap && a53_stage_identity "$EXPECTED_STAGE" || fail \'staging changed before write\'\n' + write)
+    replace(write, '\ta53_tmpfs_mount && a53_stage_identity "$EXPECTED_STAGE" || fail \'staging changed before write\'\n' + write)
     replace('single_value() {\n', STAGE_FUNCTION + '\nsingle_value() {\n')
     old_cleanup = '''stage=
 cleanup_stage() {
@@ -225,10 +221,10 @@ trap cleanup_stage EXIT HUP INT TERM
     replace('[[ "$stage" =~ ^@LEGACY_HOME@/\\.gemini-a53-authenticated-baseline\\.[A-Za-z0-9]+$ ]]',
             '[[ "$stage" =~ ^/dev/shm/\\.gemini-a53-${CANDIDATE_SHA256}\\.[A-Za-z0-9]{8}$ ]]')
     upload = 'set -euo pipefail\nEXPECTED_STAGE=$1\nEXPECTED_CANDIDATE=$2\nEXPECTED_SIZE=$3\n' + STAGE_LIBRARY + r'''
-a53_tmpfs_mount && a53_no_swap && a53_stage_identity "$EXPECTED_STAGE" || exit 2
+a53_tmpfs_mount && a53_stage_identity "$EXPECTED_STAGE" || exit 2
 [[ "$(stat -c '%s' -- "$EXPECTED_STAGE")" == 0 ]] || exit 2
 cat >"$EXPECTED_STAGE"
-a53_tmpfs_mount && a53_no_swap && a53_stage_identity "$EXPECTED_STAGE" || exit 2
+a53_tmpfs_mount && a53_stage_identity "$EXPECTED_STAGE" || exit 2
 [[ "$(stat -c '%s' -- "$EXPECTED_STAGE")" == "$EXPECTED_SIZE" ]] || exit 2
 '''
     upload_command = shlex.quote('sudo -n /bin/bash -c ' + shlex.quote(upload) + ' a53-upload')

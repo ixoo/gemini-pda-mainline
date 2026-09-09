@@ -1,6 +1,12 @@
 # Temporary swap prerequisite — corrective protocol proposal
 
-Status: preparation only. The frozen installer's `a53_no_swap` gate stays
+Status: **historical; superseded on 2026-09-09 at the owner's request**.
+The active installer accepts non-target swap and no longer requires zram
+deactivation or the associated memory/ownership probes. The protocol below
+records the former policy and is not a prerequisite for new installations.
+See [the change and deployment record](../../2026-09-08-keyboard-console-ownership/DEPLOYMENT.md).
+
+Historical status: preparation only. The frozen installer's `a53_no_swap` gate stays
 unchanged. Its purpose is to keep the credential-bearing candidate's tmpfs
 staging outside swap. No swap mutation, installer retry, shutdown or new boot
 is enabled by this proposal. The current custodian retains custody with live

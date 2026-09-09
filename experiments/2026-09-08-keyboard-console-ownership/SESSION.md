@@ -1,6 +1,8 @@
 # Console-ownership successor session
 
-Status: **offline prepared; not installed; no physical-start request**.
+Status: **installed; clean shutdown verified; waiting for one owner boot2 selection**.
+The [deployment record](DEPLOYMENT.md) preserves the completed installation
+and the subsequent removal of the installer's no-swap prerequisite.
 The candidate and validation identities are frozen in [validation.json](validation.json).
 No result, budget or admission from Candidate R is reused.
 
@@ -25,7 +27,8 @@ read, thermal sample, load, CPU admission or radio action belongs in this boot.
 - Exact 16 MiB padded image: `7d9eb0e20f145594ba5b9e56bbb809998c813d2517ce2f43b17074828459ea2a`.
 - Private manifest: `907c0c107eb71e0335c52d6b0f20bbb9cf6742d3603ff3e690a11cc9d7202ec1`.
 - Source revision: `0541b8471b83f8105d2e150e0aa84643f9e6b081`.
-- Derived installer: `95f85db37dafdd431516331fafc6918419a741044a0d54db3cd6edcfc12f21fe`.
+- Installer used for this completed deployment: `95f85db37dafdd431516331fafc6918419a741044a0d54db3cd6edcfc12f21fe`.
+  The later tool-only revision is recorded in DEPLOYMENT.md; no reinstallation is needed.
 
 Use the existing validated baseline installer with the default baseline receipt
 namespace. At execution it must recheck known-good Gemian identity, live GPT

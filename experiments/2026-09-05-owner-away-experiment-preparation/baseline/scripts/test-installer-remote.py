@@ -65,7 +65,8 @@ findmnt() {
 }
 stat() {
  local path=${@: -1}
- if [[ "$path" == /dev/shm ]]; then
+ if [[ "$path" == /dev/block/zram0 ]]; then printf 'block special file|fe:0\n'
+ elif [[ "$path" == /dev/shm ]]; then
   if [[ "$CASE" == tmpfs-owner ]]; then printf '1000 1777\n'
   elif [[ "$CASE" == tmpfs-mode ]]; then printf '0 777\n'
   else printf '0 1777\n'; fi
@@ -131,7 +132,7 @@ stat() {
 }
 '''
             cases = ('pass', 'stale-pass', 'stale-owner', 'stale-mode', 'stale-symlink', 'stale-hardlink',
-                     'multiple-stale', 'active-swap', 'bad-swap-table', 'persistent', 'low-space')
+                     'multiple-stale', 'active-swap', 'persistent', 'low-space')
             for case in cases:
                 with self.subTest(case=case):
                     work = root / case
@@ -140,7 +141,6 @@ stat() {
                     shm.mkdir()
                     swaps = work / 'swaps'
                     swaps.write_text(SHARED['SWAP_HEADER'] + ('/dev/mmcblk0p30 partition 100 0 -1\n' if case == 'active-swap' else ''))
-                    if case == 'bad-swap-table': swaps.write_text('invalid\n')
                     sha = 'c' * 64
                     stale = shm / ('.gemini-a53-' + sha + '.old00001')
                     if case.startswith('stale-') or case == 'multiple-stale':
@@ -162,7 +162,7 @@ stat() {
                                EXPECTED_STAGE='none', EXPECTED_CANDIDATE=sha, EXPECTED_SIZE='4', STAGE_ACTION='prepare',
                                AVAILABLE='0' if case == 'low-space' else '99999999', FILESYSTEM='ext4' if case == 'persistent' else 'tmpfs')
                     result = subprocess.run(['bash', '-c', text], env=env, text=True, capture_output=True, timeout=5)
-                    admitted = case in ('pass', 'stale-pass')
+                    admitted = case in ('pass', 'stale-pass', 'active-swap')
                     self.assertEqual(result.returncode == 0, admitted, result.stderr)
                     if not admitted:
                         if case.startswith('stale-') or case == 'multiple-stale':
@@ -205,7 +205,6 @@ stat() {
                 '[[ ! -r "$online" ]] || external=$((external + $(cat "$online")))': ': # no external fixture supply',
                 '[[ -d /dev/shm && ! -L /dev/shm ]]': '[[ -d "$FIXTURE/shm" && ! -L "$FIXTURE/shm" ]]',
                 '[[ -f "$stage" && ! -L "$stage" ]]': '[[ -f "$FIXTURE/stage" && ! -L "$FIXTURE/stage" ]]',
-                "' /proc/swaps\n": "' \"$FIXTURE/swaps\"\n",
                 '\nfor command in awk blockdev cat dd find findmnt id lsblk readlink sha256sum sleep ':
                     '\n' + MOCKS + '\nfor command in awk blockdev cat dd find findmnt id lsblk readlink sha256sum sleep ',
             }
@@ -218,7 +217,7 @@ stat() {
                      'mounted-before-write', 'root-before-write', 'readback-corrupt', 'persistent-stage',
                      'tmpfs-parent', 'tmpfs-alias', 'tmpfs-owner', 'tmpfs-mode', 'tmpfs-symlink',
                      'stage-owner', 'stage-mode', 'stage-links', 'stage-short', 'stage-symlink', 'unsafe-stage',
-                     'other-swap', 'mount-before-write', 'swap-before-write', 'mode-before-write',
+                     'other-swap', 'zram-swap', 'mount-before-write', 'swap-before-write', 'mode-before-write',
                      'write-failed', 'sync-failed', 'flush-failed')
             for case in cases:
                 with self.subTest(case=case):
@@ -237,6 +236,7 @@ stat() {
                     if case == 'holder': values['holders'] = '/sys/dev/block/179:31/holders/dm-0\n'
                     if case == 'swap': values['swaps'] += '/dev/disk/by-uuid/target partition 1024 0 -1\n'
                     if case == 'other-swap': values['swaps'] += '/dev/mmcblk0p30 partition 1024 0 -1\n'
+                    if case == 'zram-swap': values['swaps'] += '/dev/block/zram0 partition 1930336 0 -1\n'
                     for name, value in values.items(): (work / name).write_text(value)
                     if case == 'tmpfs-symlink':
                         (work / 'shm').rmdir(); (work / 'shm').symlink_to(work)
@@ -255,9 +255,11 @@ stat() {
                         EXPECTED_TARGET_NUMBER='179:30' if case == 'target-stage-change' else '')
                     result = subprocess.run(['bash', '-c', remote], env=env, text=True, capture_output=True, timeout=10)
                     actions = (work / 'actions').read_text().splitlines()
-                    passed = case in ('probe-pass', 'probe-current', 'post-pass', 'write-pass')
+                    passed = case in ('probe-pass', 'probe-current', 'post-pass', 'write-pass',
+                                      'other-swap', 'zram-swap', 'swap-before-write')
                     self.assertEqual(result.returncode == 0, passed, (result.stdout, result.stderr))
-                    written = case in ('write-pass', 'readback-corrupt', 'write-failed', 'sync-failed', 'flush-failed')
+                    written = case in ('write-pass', 'other-swap', 'zram-swap', 'swap-before-write',
+                                       'readback-corrupt', 'write-failed', 'sync-failed', 'flush-failed')
                     self.assertEqual(actions.count('write'), int(written), actions)
                     expected_actions = [] if not written else ['write'] if case == 'write-failed' else ['write', 'sync'] if case == 'sync-failed' else ['write', 'sync', 'flush'] if case == 'flush-failed' else ['write', 'sync', 'flush', 'sync']
                     self.assertEqual(actions, expected_actions)
