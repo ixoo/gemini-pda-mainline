@@ -1,0 +1,72 @@
+{
+  "project_commit": "e2d7fd8bf5ff52c54e091b47e48bb79e91b11818",
+  "source_commit": "59e00a9144d782e148332009a835b99c43382467",
+  "scope": "five complete translation units; no kernel link or device execution",
+  "patched_header_sha256": "795cba445947e9ef971a29a788ab909b81e996e00d6b316ca7505c7f69a3274e",
+  "toolchain_manifest_sha256": "a45d945f092461a611d276ad7d0a0fea1ea8a7f93db413908bcb892c12817d14",
+  "config_sha256": "c96ca5c8a767b93f59487c9b4a1c3d05c1f47c166f3f9ea9f2b7ffe0f6f1f0fb",
+  "config_delta": {
+    "CONFIG_ANBOX": [
+      null,
+      "n"
+    ]
+  },
+  "patches": {
+    "0001-wmt-check-firmware-version-read.patch": "bf6ee85c12806092e92c5691be16828c3229ee7e221cc2f40d2b33357a5edd5f",
+    "0002-wmt-use-one-startup-attempt.patch": "a48a597e589b5982e699eff0ff093e1a0619de853ca3148706528577c50f9cb4",
+    "0003-wmt-guard-single-patch-reply.patch": "b66b28751e00fcabbc95f30496e14588866cace7ea8a756e414bd7ace9523bfe",
+    "0004-wmt-retain-timed-out-operation.patch": "0c7e51c8f226811eb2534d69008adf445ba440133c3857509d1583757f6f85d2"
+  },
+  "objects": [
+    {
+      "file": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_ic_soc.c",
+      "baseline_source_sha256": "22d98e9e5f0c9c3cae36a3099e57315ed7808524239a061bf9ab0cf97379e66f",
+      "baseline_object_sha256": "6f8036721d974d686fe012d752215c104263b0a14dd278e189165f8fe8f9852e",
+      "patched_source_sha256": "c9e2a4a2e0988effa9b7bf0fbb18c98f1f70c2d9ca77547c40b55089d23d5c8e",
+      "object_sha256": "2b4baf6384596e736485f4d78120f0af9c5b53b4029b504a7460954e31ddf330",
+      "baseline_command_sha256": "b9cc08d74823c8e18700db02b0fbd95a9c47b93cc2b1da9b0acdaa5888502be1",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c",
+      "baseline_source_sha256": "e9f438c5c6033f0bf831347c69d656ec917b3e705648d3d27fb1b27409334f1e",
+      "baseline_object_sha256": "1109f7a87e8f9f714157edc42d55659cc1ba8e478defe4219cf153a7bc63191f",
+      "patched_source_sha256": "65b168931973cc8cca5894a17a373cd581f703758935c471068beac8f199984a",
+      "object_sha256": "6bbdecf16b882ba1685c028f9c0dbc20b85838cb3d19965c2973e1b95b1201c7",
+      "baseline_command_sha256": "1250688b24475da82ae94065835443837e6cce5f82d2258e309273bd66bf89f3",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_ctrl.c",
+      "baseline_source_sha256": "4fdc36fab251ba206c580268be73d9b9161005821bffe0ad01f3bf8a6b8800ec",
+      "baseline_object_sha256": "ef48402c457becebd908c16f815162a46795896893e193c53122805672e05145",
+      "patched_source_sha256": "3e8afa9f0100190145a1b8b47592e954f6571d6d183dfa16a16a4c17e0ae11d2",
+      "object_sha256": "7725f57dbc52c93d8b65536a4d9171b44d1101cbba24411f811fc58809aaa65b",
+      "baseline_command_sha256": "306891208025e0fe37a35aeb98a737b8956dd14f88adcaa9ce4b25ca3485c56b",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_lib.c",
+      "baseline_source_sha256": "e363d3377aab1de6f81d94dd482bcdba5eb55884792f45e1688ebf850f991e4f",
+      "baseline_object_sha256": "9bb58be4898ccc3fb386670dcb4cd3aea39ae5bf38008a7e464f125162d2d509",
+      "patched_source_sha256": "e2855a96fff8ae2d0c39809b933bce18d2124a2b41d788bf6e74013f0dea2d11",
+      "object_sha256": "dd592b017a374a7899615c2ed71f413c9a1508961f0c13e4203812849e9d5bbb",
+      "baseline_command_sha256": "b32b742f18bbe809a5701951d80cf8cba8ac3122f7595d659fce2607cd05447a",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_dev.c",
+      "baseline_source_sha256": "d7be291ca5e2962be24def406260b5bb21a4b85438f64a1064944686a84fd62e",
+      "baseline_object_sha256": "2a363bc97aa1d9d352ce6a100ee571e0642c9844ca77052ffb173ead5a989735",
+      "patched_source_sha256": "0584c47aafebca6d09f519b20c8cc0c084d1128e797516cd7da753631f79ef1c",
+      "object_sha256": "8983b255f2107cf56f6b349566fd285741f8df236a3a9e5b4593868126bfa383",
+      "baseline_command_sha256": "3dfd8db2413cb73cd563b4d15812dddeee4e8bac56ec46cb3495bf80ff08bcf0",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    }
+  ]
+}

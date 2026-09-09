@@ -252,3 +252,16 @@ without an attributable completed load. Off is issued only after that joined
 success, with its own complete teardown evidence. The four-second wait is
 neither a total operation bound nor an excuse to extend the consumed historical
 watchdog experiment. Persistent capture and recovery integration remain open.
+
+### Four-patch compilation follow-up
+
+The [complete-file result](results/operation-timeout-object-compile.json)
+closes compilation of the fourth patch at clean pushed project commit
+`e2d7fd8bf5ff52c54e091b47e48bb79e91b11818`. Buildbox compiled all five original
+and patched translation units with the four-patch series, the pinned GCC 6.3
+configuration and verified patched-header dependencies. All five changed
+compiler logs were empty with the recorded flags (including `-w`). The exact
+23-file package passed remote/local checksum validation and was retained under
+the ignored Buildbox artifact path. Temporary output was removed and the
+prepared baseline remained clean. This adds no kernel link, executed controller,
+worker cancellation, radio action or hardware recovery evidence.
