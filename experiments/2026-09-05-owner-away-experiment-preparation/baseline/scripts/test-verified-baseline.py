@@ -520,6 +520,16 @@ class AggregateTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'emergency-chain'):
             self.verify()
 
+    def test_reboot_timeout_with_wrapper_output_and_changed_gemian_passes(self):
+        child = self.sessions / 'request-recovery/native-reboot'
+        raw = (child / 'stdout.txt').read_bytes() + F.REBOOT_ANNOUNCEMENT
+        write(child / 'stdout.txt', raw)
+        proc = A.load(child / 'process.json')
+        proc.update(reason='outer-timeout', elapsed_seconds=14.085, stdout_bytes=len(raw))
+        save(child / 'process.json', proc)
+        self.rebind_phase('request-recovery')
+        self.assertEqual(self.verify()['classification'], 'verified-first-authenticated-baseline-and-recovery')
+
     def test_recovery_request_interruption_and_wrong_id(self):
         path = self.sessions / 'request-recovery/native-reboot/process.json'
         value = A.load(path)

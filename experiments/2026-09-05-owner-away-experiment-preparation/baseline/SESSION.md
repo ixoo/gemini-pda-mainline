@@ -205,8 +205,11 @@ logs. Injected syscall fixtures test control flow; they do not establish actual
 Linux/device behavior. Physical evidence is still required.
 
 The native recovery command uses the inherited hash-pinned `/bin/reboot`
-wrapper, which invokes BusyBox `reboot -n -f`. The exact request frame followed
-by SSH disconnect means only `native-recovery-requested`. It does not prove
+wrapper, which invokes BusyBox `reboot -n -f`. The exact request frame
+with optional normal reboot-helper output means only `native-recovery-requested`.
+The old SSH connection may time out when USB disappears; that timeout is not a
+recovery failure. Interrupted/incomplete requests and a reboot helper that
+returns are still refused. The request alone does not prove
 that Gemian returned. One separately admitted known-good probe must show
 `3.18.41+`, `aarch64` and a changed boot ID. No post-recovery partition read is
 added. Complete logs/authentication, ordinary recovery, owner console acceptance, original baseline
@@ -227,3 +230,7 @@ established physical known-good recovery path. Unusual heat, charging anomalies,
 reset loops, changed recovery behavior or an unreadable screen stop the session.
 Only Project Planning may then issue a revised physical action card. The owner
 never has to infer readiness from a build completion or these preparation files.
+
+The [2026-09-09 recovery checker update](../../2026-09-08-keyboard-console-ownership/RECOVERY.md)
+implements these semantics for new baseline sessions. Older receipts retain
+their original interpretation and cannot be executed as new admissions.

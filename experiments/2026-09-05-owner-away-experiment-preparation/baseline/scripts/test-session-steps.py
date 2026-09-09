@@ -159,6 +159,30 @@ class LogTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             S['parse_recovery_request'](raw + b'extra\n', {**PROCESS, 'exit_status': 255}, BOOT)
 
+    def test_current_recovery_request_accepts_timeout_but_not_partial_or_failed_command(self):
+        raw = (f'__A53_NATIVE_RECOVERY_BEGIN__\nboot_id={BOOT}\nreboot_sha256={S["REBOOT_SHA"]}\n'
+               'request_count=1\npartition_access=none\nsync_requested=no\n__A53_NATIVE_RECOVERY_END__\n').encode()
+        admission = {'finish_source_sha256': F['sha']((HERE / 'finish-baseline.py').read_bytes()),
+                     'steps_source_sha256': F['sha']((HERE / 'session_steps.py').read_bytes())}
+        for reason, code in ((None, 255), ('outer-timeout', 255), ('outer-timeout', -15), ('outer-timeout', -9)):
+            for output in (raw, raw + F['REBOOT_ANNOUNCEMENT']):
+                result = F['parse_recovery_request'](output, {**PROCESS, 'reason': reason, 'exit_status': code}, BOOT, admission)
+                self.assertFalse(result['recovery_confirmed'])
+        for changes in ({'exit_status': 0}, {'exit_status': 94}, {'reason': 'interrupted'},
+                        {'reason': 'stdout-limit'}, {'stdin_complete': False}):
+            with self.assertRaises(ValueError):
+                F['parse_recovery_request'](raw, {**PROCESS, 'exit_status': 255, **changes}, BOOT, admission)
+        for output in (raw[:-1], raw + b'extra\n', raw.replace(BOOT.encode(), OLD.encode())):
+            with self.assertRaises(ValueError):
+                F['parse_recovery_request'](output, {**PROCESS, 'exit_status': 255}, BOOT, admission)
+        admission['finish_source_sha256'] = F['LEGACY_FINISH_SHA']
+        F['check_source'](admission)
+        with self.assertRaises(ValueError):
+            F['check_source'](admission, execute=True)
+        with self.assertRaises(ValueError):
+            F['parse_recovery_request'](raw + F['REBOOT_ANNOUNCEMENT'],
+                                       {**PROCESS, 'exit_status': 255, 'reason': 'outer-timeout'}, BOOT, admission)
+
     def test_known_good_requires_changed_id_exact_release(self):
         raw = f'kernel=3.18.41+\narchitecture=aarch64\nboot_id={NEW}\n'.encode()
         self.assertEqual(S['parse_gemian'](raw, b'', PROCESS, OLD, BOOT)['boot_id'], NEW)
@@ -216,8 +240,22 @@ class HostTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             F['verify_phase'](path, expected, 'request-recovery')
 
+    def test_historical_admission_cannot_execute_or_create_a_claim(self):
+        context = {'admission': {'action': 'request-recovery',
+            'finish_source_sha256': F['LEGACY_FINISH_SHA'],
+            'steps_source_sha256': F['sha']((HERE / 'session_steps.py').read_bytes())},
+            'attempt': self.root / BOOT}
+        with patch.dict(F['perform'].__globals__, REPO=self.root), \
+                patch('subprocess.Popen', side_effect=AssertionError('network forbidden')):
+            with self.assertRaisesRegex(ValueError, 'finish source/evidence binding'):
+                F['perform'](context, execute=True)
+        self.assertFalse((self.root / 'artifacts/a53-authenticated/sessions').exists())
+
     def test_existing_step_refuses_before_process(self):
-        context = {'admission': {'action': 'request-recovery'}, 'attempt': self.root / BOOT}
+        context = {'admission': {'action': 'request-recovery',
+            'finish_source_sha256': F['sha']((HERE / 'finish-baseline.py').read_bytes()),
+            'steps_source_sha256': F['sha']((HERE / 'session_steps.py').read_bytes())},
+            'attempt': self.root / BOOT}
         state = self.root / 'artifacts/a53-authenticated/sessions' / BOOT / 'request-recovery'
         state.mkdir(parents=True, mode=0o700)
         for parent in state.parents:
@@ -272,6 +310,8 @@ class PriorPhaseTests(unittest.TestCase):
         self.interrupted = None
         self.export_raw = frame()
         self.transport_overrides = {}
+        self.reboot_announcement = b''
+        self.confirmed_boot = NEW
         transport = patch.dict(F['C'], run_once=self.fake_run)
         transport.start(); self.addCleanup(transport.stop)
 
@@ -292,11 +332,12 @@ class PriorPhaseTests(unittest.TestCase):
         elif label == 'native-reboot':
             out = (f'__A53_NATIVE_RECOVERY_BEGIN__\nboot_id={self.boot}\nreboot_sha256={S["REBOOT_SHA"]}\n'
                    'request_count=1\npartition_access=none\nsync_requested=no\n__A53_NATIVE_RECOVERY_END__\n').encode()
+            out += self.reboot_announcement
             err, code = b'Connection closed\n', 255
         elif label == 'known-good-probe':
             self.assertEqual(command[-2:], ['gemini@192.168.1.50', '/bin/sh -s'])
             self.assertEqual(script, S['GEMIAN_PROBE'])
-            out, err, code = f'kernel=3.18.41+\narchitecture=aarch64\nboot_id={NEW}\n'.encode(), b'', 0
+            out, err, code = f'kernel=3.18.41+\narchitecture=aarch64\nboot_id={self.confirmed_boot}\n'.encode(), b'', 0
         else:
             raise AssertionError('unadmitted fixture transport label')
         self.write(child / 'stdout.txt', out)
@@ -372,6 +413,31 @@ class PriorPhaseTests(unittest.TestCase):
         result = F['perform'](context, execute=True)
         self.assertEqual(result['baseline_classification'], 'recovered-with-baseline-incomplete')
         self.assertEqual(self.calls, ['known-good-probe'])
+
+    def test_reboot_timeout_and_announcement_confirm_by_changed_gemian(self):
+        auth, _ = self.phase('auth-checks')
+        self.reboot_announcement = F['REBOOT_ANNOUNCEMENT']
+        self.transport_overrides['native-reboot'] = {'reason': 'outer-timeout', 'elapsed_seconds': 14.085}
+        request, result = self.phase('request-recovery')
+        self.assertEqual(result['classification'], 'native-recovery-requested')
+        self.assertFalse(result['recovery_confirmed'])
+        context = self.confirmation(self.refresh(auth), self.refresh(request))
+        result = F['perform'](context, execute=True)
+        self.assertEqual(result['classification'], 'changed-ID-Gemian')
+        self.assertEqual(result['baseline_classification'], 'first-authenticated-baseline-and-recovery-pass')
+        self.assertEqual(self.calls.count('native-reboot'), 1)
+        self.assertEqual(self.calls.count('known-good-probe'), 1)
+
+    def test_reboot_timeout_without_changed_gemian_is_not_recovery(self):
+        auth, _ = self.phase('auth-checks')
+        self.reboot_announcement = F['REBOOT_ANNOUNCEMENT']
+        self.transport_overrides['native-reboot'] = {'reason': 'outer-timeout', 'elapsed_seconds': 14.085}
+        request, _ = self.phase('request-recovery')
+        self.confirmed_boot = self.boot
+        result = F['perform'](self.confirmation(self.refresh(auth), self.refresh(request)), execute=True)
+        self.assertEqual(result['classification'], 'inconclusive')
+        self.assertNotIn('baseline_classification', result)
+        self.assertEqual(self.calls.count('native-reboot'), 1)
 
     def test_interrupted_native_request_remains_observable_without_full_pass(self):
         auth, _ = self.phase('auth-checks')

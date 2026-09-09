@@ -10,7 +10,7 @@ import importlib.util
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-AGGREGATE_SHA = 'ba70f6df476283c0113d433ae856940cc9c031f864019da95f014324e16c926e'
+AGGREGATE_SHA = '8a94fd6fdb2d87028eece7922d23f4b7de826bf4d9a4e3f4c47365787d5cccd6'
 ANNOUNCEMENT = b'Candidate AB: kernel restart requested now (BusyBox reboot -n -f).\n'
 FAILED = {'classification': 'inconclusive', 'reason': 'native request/SSH disconnect unconfirmed',
           'budget': 'consumed', 'next_action': 'review evidence; no repeat; physical recovery if identity or USB is unavailable'}
@@ -74,7 +74,7 @@ def verify(root, bindings):
                    proc['reason'] == 'outer-timeout' and proc['exit_status'] == 255 and
                    14 <= proc['elapsed_seconds'] <= 15, 'supplemental-exact-timeout-witness')
             try:
-                F.S['parse_recovery_request'](out, proc, boot)
+                F.parse_recovery_request(out, proc, boot, prior['admission'])
             except ValueError as error:
                 A.need(str(error) == FAILED['reason'], 'supplemental-original-refusal-changed')
             else:

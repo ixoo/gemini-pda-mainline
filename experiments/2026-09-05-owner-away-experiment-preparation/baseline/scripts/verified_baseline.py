@@ -30,7 +30,7 @@ SHA = re.compile(r'[0-9a-f]{64}')
 UUID = re.compile(r'[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}')
 SOURCE_PINS = MappingProxyType({
     BASELINE + 'collect-baseline.py': 'efbca1e464e04005d3b7d503742b426eb9f642140ec289c40bc43563852208cf',
-    BASELINE + 'finish-baseline.py': 'f6fc5cf6a73518385af714b4f8566e32e4b231338cf231b0204d0b5aa96564a0',
+    BASELINE + 'finish-baseline.py': 'f4fc22f6de7456e9c5e3336fd76114151492414d4c09356cda77b2a9d35a6708',
     BASELINE + 'session_steps.py': '762616bb386647e0a25addd36ad9dba2f6384ebde4858f89a806a32678fc60fc',
     BASELINE + 'deployment_receipt.py': 'a2dc643ddedf5c9c93ede43598208cafd17242fccbb45db6ddaf078f30ae6f23',
     'experiments/2026-09-04-mt6797-pwrap-reset-serviceability/scripts/remote_observe.sh':
@@ -243,9 +243,8 @@ def finish_admission(directory, action, context, pins, F, snapshot):
          value['experiment'] == 'a53-authenticated-baseline' and value['action'] == action, 'phase-scope')
     need(value['baseline_admission_id'] == context['attempt'].name and
          value['baseline_manifest_sha256'] == digest(context['manifest']) and
-         value['candidate_manifest_sha256'] == digest(context['prepared']['candidate_raw']) and
-         value['finish_source_sha256'] == digest(safe_read(REPO / BASELINE / 'finish-baseline.py', 131072)) and
-         value['steps_source_sha256'] == digest(safe_read(REPO / BASELINE / 'session_steps.py', 131072)), 'phase-source-or-baseline-drift')
+         value['candidate_manifest_sha256'] == digest(context['prepared']['candidate_raw']), 'phase-source-or-baseline-drift')
+    F.check_source(value)
     need(valid_hash(value['custody_handoff_sha256']) and type(value['custodian_role']) is str and
          re.fullmatch(r'[A-Za-z][A-Za-z0-9 _-]{0,63}', value['custodian_role']) and
          value['custody_exclusive'] is True and value['no_other_device_operations'] is True, 'phase-custody')
@@ -342,8 +341,8 @@ def verify(evidence_root, bindings):
             need(result['classification'] == 'complete-log-through-seal' and
                  result['export']['preservation_complete'] is True, 'incomplete-baseline-log')
         else:
-            result = F.S['parse_recovery_request'](F.snapshot_read(snapshot, 'native-reboot/stdout.txt', 131072),
-                                                  F.snapshot_load(snapshot, 'native-reboot/process.json'), boot)
+            result = F.parse_recovery_request(F.snapshot_read(snapshot, 'native-reboot/stdout.txt', 131072),
+                                              F.snapshot_load(snapshot, 'native-reboot/process.json'), boot, prior['admission'])
             prior['preservation_proof'] = proof['preserve-log']
             result.update(F.recovery_context(prior))
         need(encoded(F.snapshot_load(snapshot, 'result.json')) == encoded(result), 'prior-result-not-reparsed')

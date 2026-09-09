@@ -8,10 +8,10 @@ from pathlib import Path
 BASE = Path(__file__).resolve().parent.parent / 'baseline/scripts'
 SELECTORS = {
     'original-strict': ('verified_baseline.py',
-        'ba70f6df476283c0113d433ae856940cc9c031f864019da95f014324e16c926e',
+        '8a94fd6fdb2d87028eece7922d23f4b7de826bf4d9a4e3f4c47365787d5cccd6',
         'verified-first-authenticated-baseline-and-recovery'),
     'reviewed-supplemental': ('supplemental_recovery.py',
-        'c0cc57dbc8c782bb7a995716c3b0dcdd74d7068dc84200d3954012a619b8b293',
+        'd09016fa8d0353db9e81e508a6c4a350055e3d1cf9eee59baee6e11d70ea0e18',
         'supplemental-authenticated-baseline-recovery-verified'),
 }
 

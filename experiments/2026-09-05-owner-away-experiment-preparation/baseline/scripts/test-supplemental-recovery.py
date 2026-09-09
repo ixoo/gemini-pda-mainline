@@ -29,9 +29,23 @@ class SupplementalTests(unittest.TestCase):
         proc.update(reason='outer-timeout', elapsed_seconds=14.011, stdout_bytes=len(raw), stderr_bytes=0)
         T.save(request / 'native-reboot/process.json', proc)
         T.save(request / 'result.json', S.FAILED)
+        # These fixtures represent retained receipts from the original checker.
+        for phase in T.F.STEPS:
+            path = self.sessions / phase / 'admission.json'
+            value = json.loads(path.read_text())
+            value['finish_source_sha256'] = T.F.LEGACY_FINISH_SHA
+            T.save(path, value)
+            claim = T.F.phase_claim({**self.context, 'admission': value, 'admission_raw': T.F.json_bytes(value)})
+            T.save(path.with_name('claim.json'), claim)
         self.resign()
 
     def resign(self):
+        request = self.sessions / 'request-recovery'
+        value = json.loads((request / 'admission.json').read_text())
+        value['log_export_manifest_sha256'] = T.refresh(self.sessions / 'preserve-log')
+        T.save(request / 'admission.json', value)
+        T.save(request / 'claim.json', T.F.phase_claim({**self.context, 'admission': value,
+                                                     'admission_raw': T.F.json_bytes(value)}))
         pins = {action: T.refresh(self.sessions / action) for action in T.F.PRIOR_FIELDS}
         final = self.sessions / 'confirm-recovery'
         admission = json.loads((final / 'admission.json').read_text())

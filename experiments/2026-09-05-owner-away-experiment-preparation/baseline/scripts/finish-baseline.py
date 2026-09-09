@@ -26,6 +26,34 @@ PRIOR_FIELDS = {'auth-checks': 'auth_checks_manifest_sha256',
                 'preserve-log': 'log_export_manifest_sha256',
                 'request-recovery': 'native_request_manifest_sha256'}
 EMERGENCY_REASONS = {'log-export-unavailable', 'log-preservation-incomplete', 'immediate-safety-stop'}
+# Retained receipts use the original checker; new actions use this revision.
+LEGACY_FINISH_SHA = 'f6fc5cf6a73518385af714b4f8566e32e4b231338cf231b0204d0b5aa96564a0'
+REBOOT_ANNOUNCEMENT = b'Candidate AB: kernel restart requested now (BusyBox reboot -n -f).\n'
+
+
+def check_source(admission, *, execute=False):
+    current = sha(Path(__file__).read_bytes())
+    allowed = (current,) if execute else (current, LEGACY_FINISH_SHA)
+    require(admission['finish_source_sha256'] in allowed and
+            admission['steps_source_sha256'] == sha((HERE / 'session_steps.py').read_bytes()),
+            'finish source/evidence binding')
+
+
+def parse_recovery_request(raw, process, boot, admission):
+    if admission['finish_source_sha256'] == LEGACY_FINISH_SHA:
+        return S['parse_recovery_request'](raw, process, boot)
+    expected = (f'__A53_NATIVE_RECOVERY_BEGIN__\nboot_id={boot}\nreboot_sha256={S["REBOOT_SHA"]}\n'
+                'request_count=1\npartition_access=none\nsync_requested=no\n__A53_NATIVE_RECOVERY_END__\n').encode()
+    require(raw in (expected, expected + REBOOT_ANNOUNCEMENT) and process['stdin_complete'],
+            'native recovery request incomplete')
+    # Reboot can remove USB without closing TCP. The subsequent authenticated
+    # changed-boot Gemian observation, not this connection's exit, proves return.
+    require(process['reason'] in (None, 'outer-timeout') and
+            (process['exit_status'] == 255 or
+             (process['reason'] == 'outer-timeout' and process['exit_status'] in (-15, -9))),
+            'native recovery request interrupted or returned without reboot')
+    return {'classification': 'native-recovery-requested', 'boot_id': boot,
+            'request_count': 1, 'recovery_confirmed': False}
 
 
 def json_bytes(value):
@@ -137,9 +165,8 @@ def prepare(attempt, admission_path):
             'finish admission inventory/scope')
     require(admission['baseline_admission_id'] == attempt.name == prepared['admission']['admission_id'] and
             admission['baseline_manifest_sha256'] == sha(manifest) and
-            admission['candidate_manifest_sha256'] == sha(prepared['candidate_raw']) and
-            admission['finish_source_sha256'] == sha(Path(__file__).read_bytes()) and
-            admission['steps_source_sha256'] == sha((HERE / 'session_steps.py').read_bytes()), 'finish source/evidence binding')
+            admission['candidate_manifest_sha256'] == sha(prepared['candidate_raw']), 'finish source/evidence binding')
+    check_source(admission)
     require(C['SHA'].fullmatch(admission['custody_handoff_sha256']) and
             re.fullmatch(r'[A-Za-z][A-Za-z0-9 _-]{0,63}', admission['custodian_role']) and
             admission['custody_exclusive'] is True and admission['no_other_device_operations'] is True,
@@ -377,8 +404,8 @@ def verify_prior_phase(context, action, expected):
     elif action == 'preserve-log':
         result = recheck_export(directory, boot, snapshot=snapshot)
     else:
-        result = S['parse_recovery_request'](snapshot_read(snapshot, 'native-reboot/stdout.txt', 131072),
-                                              snapshot_load(snapshot, 'native-reboot/process.json'), boot)
+        result = parse_recovery_request(snapshot_read(snapshot, 'native-reboot/stdout.txt', 131072),
+                                        snapshot_load(snapshot, 'native-reboot/process.json'), boot, prior['admission'])
         result.update(recovery_context(prior))
     require(json_bytes(snapshot_load(snapshot, 'result.json')) == json_bytes(result), 'prior phase result differs from raw evidence')
     return result
@@ -474,6 +501,7 @@ def perform(context, execute=False):
         elif action == 'request-recovery':
             result.update(recovery_context(context))
         return result
+    check_source(context['admission'], execute=True)
     root = REPO / 'artifacts/a53-authenticated/sessions' / context['attempt'].name
     C['private_root'](root)
     directory = root / action
@@ -497,7 +525,7 @@ def perform(context, execute=False):
                     'preservation evidence changed after recovery preparation')
             out, _err, process = invoke(context, directory, 'native-reboot', authenticated_command(context),
                                        S['recovery_script'](context['prepared']['candidate'], boot), 15)
-            result = S['parse_recovery_request'](out, process, boot)
+            result = parse_recovery_request(out, process, boot, context['admission'])
             result.update(recovery_context(context))
         else:
             out, err, process = invoke(context, directory, 'known-good-probe', known_good_command(context),

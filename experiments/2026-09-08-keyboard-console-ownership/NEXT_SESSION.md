@@ -126,3 +126,10 @@ fixtures already passed as recorded in validation.json; they were not rerun
 for this documentation-only preparation. Package integrity and source matching
 were rechecked. No actual future baseline archive, boot identity, custody,
 Dropbear cancellation or reader-release result exists yet.
+
+Use the [updated recovery semantics](RECOVERY.md) for the next session: an old
+SSH timeout after the complete request does not require a supplemental recovery
+review. Actual changed-ID Gemian confirmation remains required. The earlier
+source-identity snapshot in next-session-preparation.json is historical; compute
+the current closure before the fresh boot-specific admission. The completed
+first-session dependency still verifies without changing its original result.
