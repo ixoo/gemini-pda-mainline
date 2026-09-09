@@ -265,3 +265,8 @@ compiler logs were empty with the recorded flags (including `-w`). The exact
 the ignored Buildbox artifact path. Temporary output was removed and the
 prepared baseline remained clean. This adds no kernel link, executed controller,
 worker cancellation, radio action or hardware recovery evidence.
+
+The [persistent-capture assessment](PERSISTENT_CAPTURE.md) now identifies the
+existing pmsg helper's lock-context conflict and reproduces ring truncation and
+metadata-before-payload ordering. A complete-cycle writer needs its own bounded
+record/commit contract; the earlier pmsg witness cannot be reused unchanged.

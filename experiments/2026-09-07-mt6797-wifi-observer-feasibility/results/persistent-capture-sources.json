@@ -1,0 +1,36 @@
+{
+  "scope": "Public source and retained configuration; no runtime memory access",
+  "repository": "gemian/gemini-linux-kernel-3.18",
+  "revision": "59e00a9144d782e148332009a835b99c43382467",
+  "sources": [
+    {
+      "path": "fs/pstore/pmsg.c",
+      "bytes": 2749,
+      "sha256": "d068bcef6caea7674bde8a900f5c0a774f6c8a71ab981075d1a12d0b8d9dd7e0"
+    },
+    {
+      "path": "fs/pstore/ram.c",
+      "bytes": 18446,
+      "sha256": "7ba661c230fb71d7d2768bb3cddb95d1deb36810531cfc992bc5c7297113a391"
+    },
+    {
+      "path": "fs/pstore/ram_core.c",
+      "bytes": 13562,
+      "sha256": "eb25a629b9dff9bbffedd7c90fd2a1045420792570cd0a775d78d3bd2c2ca1b6"
+    },
+    {
+      "path": "drivers/clk/mediatek/clk-mt6797-pg.c",
+      "bytes": 88028,
+      "sha256": "4a661ed078bddaba15b7a7a2db27ca59ced8883a1b71c545bbbe24cddd64d58f"
+    },
+    {
+      "path": "drivers/clk/mediatek/clk-mtk-v1.h",
+      "bytes": 1468,
+      "sha256": "4c0502209ccdceebe5cd2a35ba646703f0f5aaa38b033fe2e2fa0c8a788cafd7"
+    }
+  ],
+  "configuration": {
+    "path": "experiments/2026-07-23-gemian-a72-owner-observer/inputs/active-gemian.config",
+    "sha256": "231d8a2ffe7afac3a4cc62c27d0eb6fe8bd9165ebd096e3e3346dd6df35c18f4"
+  }
+}
