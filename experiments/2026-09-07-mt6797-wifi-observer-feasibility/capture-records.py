@@ -91,6 +91,36 @@ def validate_stop_payload(transaction, payload):
             raise ValueError('accessor value without completion')
 
 
+EMI_SECTION = struct.Struct('<IIIQ5I')
+EMI_PROTECTION = struct.Struct('<IIIIQQIi')
+EMI_MAPPING = struct.Struct('<IIQI')
+EMI_COPY = struct.Struct('<6I')
+EMI_LAYOUTS = {1: EMI_SECTION, 2: EMI_PROTECTION, 3: EMI_MAPPING, 4: EMI_COPY}
+EMI_WINDOW = 512 * 1024
+EMI_OPEN = 18 << 27
+EMI_RESTRICT = EMI_OPEN | sum(5 << (3 * domain) for domain in range(8) if domain != 2)
+
+
+def validate_emi_payload(transaction, payload):
+    if not transaction or len(payload) < 4:
+        raise ValueError('EMI requires a section-operation ID and subtype')
+    subtype = int.from_bytes(payload[:4], 'little')
+    layout = EMI_LAYOUTS.get(subtype)
+    if layout is None or len(payload) != layout.size:
+        raise ValueError('unsupported EMI subtype or payload size')
+    values = layout.unpack(payload)
+    if subtype == 1 and (not values[1] or not values[2]):
+        raise ValueError('EMI section requires adapter and image IDs')
+    if subtype == 2:
+        _, phase, stage, branch, start, end, policy, status = values
+        if phase not in (1, 2) or stage not in (1, 2) or branch not in (1, 2):
+            raise ValueError('invalid EMI protection discriminator')
+        if stage == 1 and status:
+            raise ValueError('EMI protection entry contains a result')
+    if subtype == 4 and values[1] not in (1, 2):
+        raise ValueError('invalid EMI copy stage')
+
+
 def encode(kind, sequence, cycle, transaction, payload):
     if len(cycle) != 16 or not any(cycle):
         raise ValueError('requires a nonzero 16-byte cycle identity')
@@ -110,6 +140,8 @@ def encode(kind, sequence, cycle, transaction, payload):
     validate_dma_payload(kind, transaction, payload)
     if kind == 7:
         validate_stop_payload(transaction, payload)
+    if kind == 8:
+        validate_emi_payload(transaction, payload)
     body = HEADER.pack(b'WFC1', 1, kind, sequence, cycle, transaction, len(payload))
     body += payload + bytes(PAYLOAD_BYTES - len(payload))
     return body + struct.pack('<II', zlib.crc32(body), COMMIT)
@@ -207,3 +239,34 @@ def check_stop(data, expected_cycle):
             raise ValueError('adapter stop did not return success')
     return {'checked_stops': list(stops),
             'scope': 'recorded ordinary direct-read firmware-stop consistency only'}
+
+
+def check_emi(data, expected_cycle):
+    """Check recorded native section operations; does not grant EMI ownership."""
+    sections = {}
+    for record in decode(data, expected_cycle):
+        if record['kind'] == 8:
+            sections.setdefault(record['transaction'], []).append(record['payload'])
+    if not sections:
+        raise ValueError('no EMI section recorded')
+    for payloads in sections.values():
+        if [int.from_bytes(p[:4], 'little') for p in payloads] != [1, 2, 2, 3, 4, 4, 2, 2]:
+            raise ValueError('incomplete, reordered or reused EMI operation')
+        _, adapter, image, base, index, source_offset, length, destination, image_bytes = EMI_SECTION.unpack(payloads[0])
+        destination_offset = destination & 0xfffff
+        if (not base or base > 0xffffffffffffffff - (EMI_WINDOW - 1) or index < 2 or
+                not length or source_offset > image_bytes or length > image_bytes - source_offset or
+                destination_offset > EMI_WINDOW or length > EMI_WINDOW - destination_offset):
+            raise ValueError('EMI source or destination span is invalid')
+        for entry, result, phase, policy in ((1, 2, 1, EMI_OPEN), (6, 7, 2, EMI_RESTRICT)):
+            for row, stage in ((entry, 1), (result, 2)):
+                if EMI_PROTECTION.unpack(payloads[row]) != (2, phase, stage, 1, base, base + EMI_WINDOW - 1, policy, 0):
+                    raise ValueError('EMI lower protection call/result mismatch or failure')
+        _, mapping, mapped_base, mapped_length = EMI_MAPPING.unpack(payloads[3])
+        if not mapping or mapped_base != base or mapped_length != EMI_WINDOW:
+            raise ValueError('missing or mismatched EMI mapping')
+        for row, stage in ((4, 1), (5, 2)):
+            if EMI_COPY.unpack(payloads[row]) != (4, stage, mapping, destination_offset, source_offset, length):
+                raise ValueError('EMI copy does not match section and mapping')
+    return {'checked_sections': list(sections),
+            'scope': 'recorded native EMI section-operation consistency only'}

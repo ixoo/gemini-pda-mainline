@@ -1,0 +1,22 @@
+{
+  "repository": "gemian/gemini-linux-kernel-3.18",
+  "revision": "59e00a9144d782e148332009a835b99c43382467",
+  "scope": "Source inputs for native EMI records, not authority to change permissions or proof of memory ownership",
+  "sources": [
+    {
+      "path": "drivers/misc/mediatek/emi_mpu/mt6797/emi_mpu.c",
+      "bytes": 93439,
+      "sha256": "39921d80191b674940246425123b52fa140262a7e17022f90f02dd88389932b2"
+    },
+    {
+      "path": "drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/emi_mpu.h",
+      "bytes": 9747,
+      "sha256": "a59c8a9a3e6fbb6889d131e23a413597f7bf5f188d82c4e953a66ce2a5aed68d"
+    },
+    {
+      "path": "drivers/misc/mediatek/emi_mpu/emi_reg_rw.c",
+      "bytes": 2254,
+      "sha256": "da41e7d325aa4d3207a38bd566f39680a3b2275db87b4ba0919d266375d858e0"
+    }
+  ]
+}

@@ -64,6 +64,56 @@ class RecordsTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             r.check_stop(self.identity(), CYCLE)
 
+    def emi_payloads(self):
+        base = 0x100000000  # Synthetic full-width address, not a device reservation.
+        return [(r.EMI_SECTION, [1, 17, 31, base, 2, 0x100, 0x200, 0x80101000, 0x1000]),
+                (r.EMI_PROTECTION, [2, 1, 1, 1, base, base + 0x7ffff, r.EMI_OPEN, 0]),
+                (r.EMI_PROTECTION, [2, 1, 2, 1, base, base + 0x7ffff, r.EMI_OPEN, 0]),
+                (r.EMI_MAPPING, [3, 47, base, 0x80000]),
+                (r.EMI_COPY, [4, 1, 47, 0x1000, 0x100, 0x200]),
+                (r.EMI_COPY, [4, 2, 47, 0x1000, 0x100, 0x200]),
+                (r.EMI_PROTECTION, [2, 2, 1, 1, base, base + 0x7ffff, r.EMI_RESTRICT, 0]),
+                (r.EMI_PROTECTION, [2, 2, 2, 1, base, base + 0x7ffff, r.EMI_RESTRICT, 0])]
+
+    def emi_stream(self, payloads):
+        return self.identity() + b''.join(
+            r.encode(8, i, CYCLE, 53, layout.pack(*values))
+            for i, (layout, values) in enumerate(payloads, 1))
+
+    def test_emi_operations_and_faults(self):
+        self.assertEqual(r.check_emi(self.emi_stream(self.emi_payloads()), CYCLE)['checked_sections'], [53])
+        faults = [(0, 3, 0), (0, 3, 0xffffffffffffffff), (0, 4, 1), (0, 5, 0x1001),
+                  (0, 6, 0), (0, 6, 0xffffffff), (0, 7, 0x80180000), (0, 8, 0x200),
+                  (1, 4, 0), (2, 3, 2), (2, 7, -1), (2, 7, -4), (2, 7, 1),
+                  (3, 1, 0), (3, 2, 0), (3, 3, 0x100000), (4, 2, 48), (4, 3, 0),
+                  (5, 4, 0), (5, 5, 0x100), (6, 5, 0x10007fffe),
+                  (7, 1, 1), (7, 6, r.EMI_OPEN), (7, 7, -2)]
+        for row, field, value in faults:
+            with self.subTest(row=row, field=field):
+                payloads = self.emi_payloads()
+                payloads[row][1][field] = value
+                stream = self.emi_stream(payloads)
+                self.assertEqual(len(r.decode(stream, CYCLE)), 9)
+                with self.assertRaises(ValueError):
+                    r.check_emi(stream, CYCLE)
+        # Source's 32-bit sum could wrap; the checker must not accept that span.
+        payloads = self.emi_payloads()
+        payloads[0][1][5:9] = [0, 0xfffff001, 0x80101000, 0xffffffff]
+        with self.assertRaises(ValueError):
+            r.check_emi(self.emi_stream(payloads), CYCLE)
+
+    def test_emi_structure_and_order(self):
+        payloads = self.emi_payloads()
+        for bad in [payloads[:-1], payloads + payloads, payloads[:3] + payloads[4:6] + payloads[3:4] + payloads[6:]]:
+            with self.assertRaises(ValueError):
+                r.check_emi(self.emi_stream(bad), CYCLE)
+        for payload in [b'', bytes(4), r.EMI_MAPPING.pack(3, 1, 0, 0)[:-1],
+                        r.EMI_PROTECTION.pack(2, 1, 1, 1, 0, 0, 0, -1)]:
+            with self.assertRaises(ValueError):
+                r.encode(8, 1, CYCLE, 53, payload)
+        with self.assertRaises(ValueError):
+            r.check_emi(self.identity(), CYCLE)
+
     def test_roundtrip_and_prefix(self):
         start = self.identity()
         self.assertEqual(len(r.decode(start, CYCLE)), 1)

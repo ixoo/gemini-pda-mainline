@@ -385,3 +385,59 @@ its limited scope. It does not establish thread quiescence, bus health,
 firmware execution, shared OFF, physical capture persistence or full-cycle
 success. Other event kinds are outside this check's verdict. No producer or
 runtime candidate is added by this offline format change.
+
+## EMI section payload and consistency check
+
+Kind 8 now describes one later-section operation using the pinned
+`wlanImageDividDownload()` path. The
+[additional source receipt](results/emi-check-sources.json) pins its MPU
+wrapper, lower operation and permission encoding. As established in the
+[whole-image audit](../2026-09-05-mt6797-wifi-contract/WHOLE_IMAGE_EMI.md), the
+wrapper discards the lower result, the loader ignores mapping failure, and a
+failed copy-span condition can leave load status successful. Capture the lower
+protection operation's actual result and the actual copy entry/return;
+wrapper status and `fgEmiDownloaded` cannot substitute.
+
+Each record starts with a `u32` subtype. Other fields are `u32` except those
+marked otherwise. The envelope transaction is a nonzero section-operation ID.
+Adapter, immutable image and mapping IDs are observer-assigned ordinals; no
+kernel pointer or firmware bytes enter this format.
+
+| Subtype | Fields in wire order, including subtype |
+| --- | --- |
+| 1, section | subtype, adapter ID, image ID, physical EMI base `u64`, section index, source offset, length, original destination, image byte length |
+| 2, protection | subtype, phase (1 open, 2 restrict), stage (1 entry, 2 return), branch (1 secure call, 2 no-op), start `u64`, inclusive end `u64`, actual packed region/permission argument, lower signed `s32` status (zero placeholder at entry) |
+| 3, mapping result | subtype, mapping ID (zero on failure), requested physical base `u64`, requested mapping byte length |
+| 4, copy | subtype, stage (1 entry, 2 return), mapping ID, destination offset, source offset, copied byte length |
+
+Record protection at the lower call, inside the existing lock, preserving its
+packed argument and returned status before the outer wrapper discards it.
+Distinguish the secure-call branch from the configuration-dependent zero-return
+stub. Mapping records describe `ioremap_nocache()` arguments and whether its
+result was non-null. Copy records surround the existing `kalMemCopy`, without
+adding a read or replacing its implementation. Missing return after a stall is
+partial evidence. The inspected path supplies no corresponding unmap operation;
+this format does not invent one or claim mapping release.
+
+`check_emi()` requires eight records per section: section, open entry/return,
+mapping, copy entry/return, restrict entry/return. It checks positive source and
+destination spans without 32-bit wrap, a nonzero base with a representable
+512-KiB inclusive extent, and an EMI index of at least two. Both protection
+pairs must use that extent, the secure branch and a zero lower status. Packed
+arguments must match the native region-18 open policy and subsequent domain-2
+policy. The mapping must cover the same base and 512 KiB; both copy records
+must match that mapping and the section's source, length and masked destination.
+Missing, reused or reordered operations are refused. Eight records occupy
+1,024 bytes per section; the retained two-EMI-section image would need 2,048
+bytes for these core events, separate from loader completion and ownership.
+
+Fourteen focused tests pass, including twenty-four valid-CRC EMI mutations,
+32-bit span-wrap refusal, negative and unknown positive lower statuses, no-op
+protection, failed mapping, mismatched copy/protection fields and partial or
+reordered sections. Fault records remain decodable when structurally valid.
+This checks recorded operation consistency only. It does not bind the image
+ID to actual immutable bytes, prove that every image section was handled,
+grant reservation/remap authority, identify masters with permission domains,
+establish copy visibility or authorize the native broad permissions. Those
+remain whole-image and shared-owner requirements. No EMI write or producer
+hook was executed or added by this offline change.
