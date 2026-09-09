@@ -1,0 +1,66 @@
+{
+  "revision": "59e00a9144d782e148332009a835b99c43382467",
+  "sources": [
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c",
+      "bytes": 49595,
+      "sha256": "d9b4e80fe98695284627e495ad640e39728ebe7df235df129f64d48e8a2e726b"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb_pdma.c",
+      "bytes": 15404,
+      "sha256": "83c23a5582be2dcaa385359b7cd0f82af0ec9d6a4e102ea6faea57f59d75b480"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c",
+      "bytes": 215814,
+      "sha256": "56bf99536fcb96de5a5198943aec96c9efccb8af89261b29c62046e6560c422f"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic_tx.c",
+      "bytes": 104350,
+      "sha256": "1f479d41bab8e2b5bba68eb6514f3e977559d31d97c39c7833f3dc9f111cd1ed"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/include/nic/hal.h",
+      "bytes": 18239,
+      "sha256": "24b9bce2fc8b331d75a330cae8c9291816bb90cff8078200cd7ecb719f180ee0"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/include/nic/hif_tx.h",
+      "bytes": 4837,
+      "sha256": "fb29ef49498d3416daa0f1ba9f1f312d1b262c5e01971c7338918f5d1521eaef"
+    }
+  ],
+  "scope": "Source-derived capture sizing inputs, not a total-cycle or runtime transfer bound",
+  "repository": "gemian/gemini-linux-kernel-3.18",
+  "retained_inspection": {
+    "path": "experiments/2026-09-05-mt6797-wifi-contract/results/firmware-mtke.json",
+    "sha256": "801a45dce0596675faaa67a693ca535b2256f687f4f9c7d25db9626ce681db0e"
+  },
+  "hif_section_payload_bytes": [
+    5840,
+    8992
+  ],
+  "hif_payload_chunk_bytes": [
+    [
+      2048,
+      2048,
+      1744
+    ],
+    [
+      2048,
+      2048,
+      2048,
+      2048,
+      800
+    ]
+  ],
+  "hif_payload_chunk_count": 8,
+  "emi_section_payload_bytes": [
+    331296,
+    65392
+  ],
+  "idle_loop_max_native_polls_before_count_escape": 100001,
+  "full_cycle_transfer_bound_established": false
+}

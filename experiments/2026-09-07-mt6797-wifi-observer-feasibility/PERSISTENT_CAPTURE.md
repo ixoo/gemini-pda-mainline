@@ -78,3 +78,56 @@ Then bind the exact capture budget to the separately reviewed watchdog owner
 and recovery reader. The controller's four-second wait and the historical
 12-second recovery window do not supply this contract. No observer, controller,
 new runtime writer, kernel image or device action is introduced by this review.
+
+## Source-derived record inventory
+
+The [sizing receipt](results/capture-sizing.json) pins six complete source files
+and reuses the existing sanitized retained-image inspection. It separates
+firmware payload chunks from actual DMA transactions and from polling reads.
+
+For the selected MT6797 divided loader, sections 0 and 1 use HIF download;
+sections 2 onward take the conditional EMI-copy path. The retained image's
+first two sections contain 5,840 and 8,992 bytes. At the source's 2,048-byte
+`CMD_PKT_SIZE_FOR_IMAGE`, these produce three and five payload chunks:
+`2048, 2048, 1744` and `2048, 2048, 2048, 2048, 800`. The other sections,
+331,296 and 65,392 bytes, must not be charged as HIF payload chunks.
+
+This gives eight payload submissions if the selected load completes, not eight
+DMA transfers for the whole cycle. Section-configuration commands, subsequent
+initialization commands, events and shutdown are additional. `nicTxInitCmd()`
+passes through `HAL_WRITE_TX_PORT` to WTDR1, but the AHB writer takes DMA only
+when its runtime `use_dma`, `fgDmaEnable` and callback checks also pass. Neither
+the submission count nor the helper's unconditional success return proves a
+mapping, completion or firmware execution. Common WMT patches are a separate
+BTIF transfer path and must not be mixed into WLAN AHB counts.
+
+The native EN idle loop can call its polling helper 100,001 times before the
+count escape. Even one byte per read would exceed the nominal pmsg payload
+capacity. The INTFLAG loop is time-based, so its read count is not supplied by
+the source's five-second comparison. Capture each loop as an entry plus a
+summary of existing reads: read count, last raw value, whether a read occurred,
+and the exact exit reason. Preserve the original calls and branch ordering.
+A loop that stalls before its summary remains an incomplete phase; its entry
+must never be accepted as positive idle. Counter overflow must also invalidate
+the summary rather than wrap into a small count.
+
+The required record families are now:
+
+| Family | Required content and joining rule |
+| --- | --- |
+| Cycle and initializer | Candidate/boot identity, single cycle identity, component entry/result, selected HIF and firmware identities; no arithmetic aggregate as readiness. |
+| DMA acquisition | Transaction identity, device identity, RX/TX direction, requested and rounded byte counts, full DMA API address and selected mapping branch. |
+| DMA programming | Same transaction, actual low SRC/DST and LEN/CON store arguments, existing ADDR2 read values and store arguments, and start/interrupt-control arguments. No extra readback. |
+| DMA completion/release | INTFLAG and EN loop summaries, ACK/stop operation arguments, exact timeout/escape/reset branch, and unmap entry/completion joined to a prior positive idle result. |
+| Firmware and EMI | Section/configuration outcomes, conditional EMI extent/protection/copy outcomes, stop-command outcome and actual WCIR-read completion/value with exit branch. No payload or calibration bytes. |
+| Shared OFF | Actual provider dispatch, shortcut state pair, protection/control arguments, existing polling summaries and the terminal pair of clear power bits; retain short-circuit read validity. |
+| Isolation and terminal | Unexpected consumer, transmit/mode/reset/boost activity; completion, failure or overflow; no successful terminal with missing required records. |
+
+This inventory selects loop summaries rather than per-poll logging while
+retaining every DMA transaction. It does not yet choose encoded record sizes,
+a maximum transaction count or a new memory layout. The full-cycle transfer
+count remains unbounded by the inspected sources; the writer must enforce a
+finite admitted capacity and refuse overflow. The eight-chunk calculation
+makes a compact capture plausible but does not prove that one complete cycle
+fits. The next step is an explicit byte layout and capacity calculation for
+these fields, followed by the atomic-context writer and recovery contract.
