@@ -577,3 +577,4 @@ upstream-4d7d9486/keys/0005-mfd-mt6397-add-MT6351-key-resources.patch
 upstream-4d7d9486/keys/0006-dt-bindings-input-mediatek-pmic-keys-constrain-MT635.patch
 upstream-4d7d9486/keys/0007-Input-mtk-pmic-keys-convert-MT6351-timeout-seconds.patch
 upstream-4d7d9486/clock-ids/0001-clk-mediatek-size-MT6797-providers-for-one-based-IDs.patch
+upstream-4d7d9486/mmc/0001-mmc-mtk-sd-propagate-pinctrl-errors-during-voltage.patch

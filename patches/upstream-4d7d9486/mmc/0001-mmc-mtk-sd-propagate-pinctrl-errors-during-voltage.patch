@@ -1,0 +1,40 @@
+From b5b0bbffe5a347f0b8df339757f592fb652067db Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Wed, 9 Sep 2026 02:26:07 -0400
+Subject: [PATCH] mmc: mtk-sd: propagate pinctrl errors during voltage
+ switching
+
+The voltage-switch callback discards pinctrl_select_state() errors and
+returns success after setting VQMMC. If the requested pin state cannot be
+applied, the MMC core therefore treats the signaling-voltage switch as
+complete and may continue the transfer sequence with mismatched pad state.
+
+Return the selected pin state's result for both 1.8 V and 3.3 V. This lets
+the MMC core handle the failed transition through its existing error path.
+Preserve the regulator-error and missing-supply behavior. This does not
+add a driver-local regulator rollback or alter the order of operations.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/mmc/host/mtk-sd.c | 5 ++---
+ 1 file changed, 2 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/mmc/host/mtk-sd.c b/drivers/mmc/host/mtk-sd.c
+index 01ea3ad..b66b65e 100644
+--- a/drivers/mmc/host/mtk-sd.c
++++ b/drivers/mmc/host/mtk-sd.c
+@@ -1681,9 +1681,8 @@ static int msdc_ops_switch_volt(struct mmc_host *mmc, struct mmc_ios *ios)
+ 
+ 		/* Apply different pinctrl settings for different signal voltage */
+ 		if (ios->signal_voltage == MMC_SIGNAL_VOLTAGE_180)
+-			pinctrl_select_state(host->pinctrl, host->pins_uhs);
+-		else
+-			pinctrl_select_state(host->pinctrl, host->pins_default);
++			return pinctrl_select_state(host->pinctrl, host->pins_uhs);
++		return pinctrl_select_state(host->pinctrl, host->pins_default);
+ 	}
+ 	return 0;
+ }
+-- 
+2.50.1 (Apple Git-155)
+

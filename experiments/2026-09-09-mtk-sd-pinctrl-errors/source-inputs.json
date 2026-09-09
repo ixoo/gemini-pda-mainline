@@ -1,0 +1,27 @@
+{
+  "scope": "public source and injected error regression; no device operation",
+  "date": "2026-09-09",
+  "baseline": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "files_sha256": {
+    "drivers/mmc/host/mtk-sd.c": "8f4c5e54ca7b8a4c177c86ab4e29a88a244cb965926af6396a8d6da212a54610",
+    "drivers/mmc/core/core.c": "56678ec9c220d952b63f4e2af7072f7d3b815cd867c7809c937b5f38cddd5304",
+    "drivers/mmc/host/Kconfig": "22bb932e6c9dc4228d1a09eb57bbe14d7e99d1b3419ef4b17be9314c47ed61d6",
+    "Documentation/devicetree/bindings/mmc/mtk-sd.yaml": "6cde4f55ff317befc23fd52d0b3ea11863263fe2b4b6911074029c682b54cdb8",
+    "MAINTAINERS": "39e65935b8f213dfa9b7a49a7341565855c6aec851288f0f32a0b2afcb35558a",
+    "scripts/checkpatch.pl": "2553cc1a601e70522e03fbce633d4e79fa5936f7f56a66de1899b7ddd247820a",
+    "scripts/spelling.txt": "4095d4a8810f115bae1b7c0d8a1946beb3435f6e22d9a48ac009bb024bad1e68",
+    "scripts/const_structs.checkpatch": "ea064f6916a74763468037494aeb270aae34b7c97617e84d424ca5b8733539b2"
+  },
+  "observed_refs": {
+    "mainline_HEAD": "893e11787f78e43b534e252249ac3fff4d1333f8",
+    "mmc_next": "9d4279dfd43e486abdef5d483fcd368963776846",
+    "mmc_fixes": "8b0cc8707f65e0f51912e764e1b309b2559db1ec"
+  },
+  "host_driver_identical_at_all_four_revisions": true,
+  "mainline_binding_identical_to_baseline": true,
+  "regression_cases": 54,
+  "unchanged_upstream_negative_control": "fails: pinctrl -EINVAL returns 0",
+  "existing_profiles_unchanged": 200,
+  "kernel_compiled": false,
+  "hardware_tested": false
+}

@@ -1,0 +1,13 @@
+# Unsigned generic MMC fix compile; no Gemini board or boot candidate.
+CONFIG_ARCH_MEDIATEK=y
+CONFIG_PINCTRL=y
+CONFIG_MMC=y
+CONFIG_MMC_MTK=y
+CONFIG_LOCALVERSION="-mtk-sd-pinctrl-compile"
+# CONFIG_LOCALVERSION_AUTO is not set
+# CONFIG_MODULES is not set
+# CONFIG_KUNIT is not set
+# CONFIG_NET is not set
+# CONFIG_USB is not set
+# CONFIG_CPU_FREQ is not set
+# CONFIG_CPU_IDLE is not set
