@@ -21,6 +21,9 @@
 #ifndef WAIT_MS
 #define WAIT_MS 300000
 #endif
+#ifndef WAIT_REPORT_MS
+#define WAIT_REPORT_MS 20000
+#endif
 static volatile sig_atomic_t interrupted;
 static struct termios saved;
 static int ttyfd = -1;
@@ -90,7 +93,7 @@ int main(int argc, char **argv)
 	char path[64], name[128] = { 0 }, extra;
 	unsigned int eventno, minorno, events = 0, bytes = 0;
 	int fd = -1, mode, state = 0, result = 2;
-	long long start, quiet = -1;
+	long long start, reported, quiet = -1;
 
 	if (argc != 3 || sscanf(argv[1], "event%u%c", &eventno, &extra) != 1 ||
 	    eventno > 255 || sscanf(argv[2], "%u%c", &minorno, &extra) != 1 ||
@@ -134,13 +137,20 @@ int main(int argc, char **argv)
 		    "Then leave all keys released until the first prompt.\r\n"
 		    "This screen waits up to five minutes.\r\n") < 0)
 		goto done;
+	setvbuf(stdout, NULL, _IONBF, 0);
 	start = now_ms();
+	reported = start;
 	if (start < 0)
 		goto done;
 	while (!interrupted) {
 		long long now = now_ms();
 		if (now < 0 || now - start >= WAIT_MS)
 			goto done;
+		if (now - reported >= WAIT_REPORT_MS) {
+			if (printf("space-ready=waiting\n") < 0)
+				goto done;
+			reported = now;
+		}
 		int ready = poll(fds, 2, 100);
 		if (ready < 0 && errno == EINTR)
 			continue;

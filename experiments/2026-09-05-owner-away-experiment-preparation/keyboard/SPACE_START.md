@@ -49,3 +49,12 @@ positive `EVIOCGKEY` return values. The generated RAM-delivery and readiness
 shells pass Bash syntax and ShellCheck (excluding literal awk quoting).
 This admits the readiness screen on the existing boot; it is not a live
 readiness result or keyboard regression pass.
+
+The first live readiness connection closed after 60.318 seconds with exit 255
+and no readiness witness. The capture and restarted logger were not launched.
+The server's 60-second channel-idle limit was not refreshed by SSH keepalives.
+The readiness helper now emits a bounded waiting line every 20 seconds; its
+five-minute limit remains. The logger wrapper likewise emits channel output
+every 20 seconds while checking and reaping its child within five seconds,
+inside the existing ten-second seal wait. Revised helper deliveries use a
+package-qualified directory, preserving the original helper and wait evidence.

@@ -79,6 +79,14 @@ $BB printf '%s\\n' "$logger_pid" >/run/a53/kmsg-pid
 $BB printf '%s %s %s\\n' '{boot}' "$logger_pid" "$started" >/run/a53/keyboard-logger-clock
 $BB printf '__KEYBOARD_LOGGER_STARTED__\\n'
 set +e
+# Dropbear's channel-idle limit ignores SSH-level keepalives. Preserve the
+# 600-second logger bound; reap within five seconds of its terminal state.
+ticks=0
+while [ "$ticks" -lt 120 ] && kill -0 "$logger_pid" 2>/dev/null; do
+  ticks=$((ticks+1))
+  if [ "$((ticks % 4))" -eq 1 ]; then $BB printf '__KEYBOARD_LOGGER_WAIT__\\n'; fi
+  $BB sleep 5
+done
 wait "$logger_pid"
 status=$?
 # A trapped signal may interrupt wait before the child is terminal.

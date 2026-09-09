@@ -67,6 +67,7 @@ static int fake_ioctl(int fd, unsigned long request, ...)
 #define fstat fake_stat
 #define ioctl fake_ioctl
 #define WAIT_MS 2000
+#define WAIT_REPORT_MS 200
 #include "space-ready.c"
 '''
 
@@ -98,7 +99,13 @@ def run_case(binary, qemu, name, events=None, text=b'', cancel=False, expected=2
         out, err = process.communicate(timeout=4)
         assert process.returncode == expected, (name, process.returncode, out, err)
         assert err == b'', (name, err)
-        assert out == (b'space-ready=passed released=1 restored=1\n' if expected == 0 else b''), (name, out)
+        lines = out.splitlines(keepends=True)
+        reports = [line for line in lines if line == b'space-ready=waiting\n']
+        assert len(reports) <= 10, (name, out)
+        final = b''.join(line for line in lines if line != b'space-ready=waiting\n')
+        assert final == (b'space-ready=passed released=1 restored=1\n' if expected == 0 else b''), (name, out)
+        if name == 'timeout':
+            assert reports, 'waiting must emit channel activity'
         assert termios.tcgetattr(slave) == before, (name, 'termios not restored')
         print(name + '=pass')
     finally:

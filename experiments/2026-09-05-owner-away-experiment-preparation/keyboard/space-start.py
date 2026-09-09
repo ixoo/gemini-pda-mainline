@@ -32,7 +32,7 @@ def prepare(context, package, identity, revision):
     require(all(files.values()) and sum(map(len, files.values())) <= 196608, 'delivery bound')
     a = context['admission']; runtime = a['runtime']
     require(C['UUID'].fullmatch(runtime['retry_id']), 'retry identity')
-    destination = '/a53-keyboard-ready-' + runtime['retry_id']
+    destination = '/a53-keyboard-ready-' + runtime['retry_id'] + '-' + identity[:12]
     candidate = context['dependency']['prepared']['candidate']
     guard = S['identity_script'](candidate, a['boot_id']) + S['ram_guard_script']()
     guard += M['console_guard'](candidate) + M['reader_guard']()
