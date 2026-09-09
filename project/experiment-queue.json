@@ -3,8 +3,8 @@
   "purpose": "Readiness inventory, not an executable queue or device authorization. Object order is not scheduling order; docs/ROADMAP.md alone owns priority. Exact inputs, budgets and chronology stay in linked experiments.",
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
-  "selected_item": "keyboard-console-ownership",
-  "selection_note": "Console-ownership installation and clean shutdown are verified; waiting for owner physical boot2 selection. Conditional disconnect remains disabled pending this session result.",
+  "selected_item": "keyboard-console-disconnect",
+  "selection_note": "Console-ownership observation passed with complete logs and changed-ID Gemian return. The original native SSH-disconnect witness remains incomplete; the reviewed supplemental dependency passes. The prepared disconnect proof is next, but no fresh boot or execution binding is admitted.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -137,22 +137,22 @@
     },
     "keyboard-console-ownership": {
       "workstream": "serviceability",
-      "preparation_state": "ready",
-      "device_state": "waiting-owner-boot",
+      "preparation_state": "stale",
+      "device_state": "complete",
       "owner": "primary integration coordinator",
       "reviewer": "primary integration coordinator",
-      "device_custodian": "primary integration coordinator",
+      "device_custodian": null,
       "experiment": "experiments/2026-09-08-keyboard-console-ownership/README.md",
       "session_packet": "experiments/2026-09-08-keyboard-console-ownership/SESSION.md",
       "candidate_record": "experiments/2026-09-08-keyboard-console-ownership/validation.json",
-      "readiness_record": "experiments/2026-09-08-keyboard-console-ownership/validation.json",
+      "readiness_record": "experiments/2026-09-08-keyboard-console-ownership/session-result.json",
       "dependencies": [],
       "owner_task_id": null,
-      "readiness_note": "Exact console-ownership candidate installed on 2026-09-09; guarded full readback and clean shutdown verified. Waiting for one owner boot2 selection. Initial swap staging refusal preceded all writes; reviewed unused zram deactivation permitted the subsequent verified installation. No mainline runtime result yet."
+      "readiness_note": "One authenticated baseline, three null PID-1 descriptors, owner-readable console, authentication and complete log preservation passed. Changed-ID Gemian return confirmed; native request transport remains inconclusive with no retry. Original aggregate remains incomplete; existing supplemental verifier accepts the recovery evidence. All observation budgets consumed."
     },
     "keyboard-console-disconnect": {
       "workstream": "serviceability",
-      "preparation_state": "conditional",
+      "preparation_state": "ready",
       "device_state": "unselected",
       "owner": "primary integration coordinator",
       "reviewer": "primary integration coordinator",
@@ -160,16 +160,16 @@
       "experiment": "experiments/2026-09-08-keyboard-console-ownership/README.md",
       "session_packet": "experiments/2026-09-08-keyboard-console-ownership/NEXT_SESSION.md",
       "candidate_record": "experiments/2026-09-08-keyboard-console-ownership/validation.json",
-      "readiness_record": "experiments/2026-09-08-keyboard-console-ownership/next-session-preparation.json",
+      "readiness_record": "experiments/2026-09-08-keyboard-console-ownership/session-result.json",
       "dependencies": [
         {
           "item": "keyboard-console-ownership",
-          "required_result": "Complete exact-candidate baseline, null PID-1 stdio, readable screen, authentication, preserved logs and changed-ID Gemian recovery; actual raw archive required.",
-          "evidence": null
+          "required_result": "Passing exact-candidate console observation and authenticated baseline/archive, with log preservation and reviewed supplemental changed-ID Gemian recovery; original incomplete SSH witness retained.",
+          "evidence": "experiments/2026-09-08-keyboard-console-ownership/session-result.json"
         }
       ],
       "owner_task_id": null,
-      "readiness_note": "Conditional second test using the same candidate and validated harmless probe package. Offline host fixtures and package/source checks pass. Fresh boot-specific admission awaits the first session result; binding remains disabled. No device action or keyboard capture."
+      "readiness_note": "Package/source preparation and the actual current-candidate baseline dependency pass, using the existing reviewed-supplemental selector. Fresh physical selection, boot identity and exact binding remain required. Execution is disabled; no disconnect or keyboard capture has run."
     }
   }
 }

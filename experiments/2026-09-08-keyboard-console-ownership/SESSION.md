@@ -1,8 +1,8 @@
 # Console-ownership successor session
 
-Status: **installed; clean shutdown verified; waiting for one owner boot2 selection**.
-The [deployment record](DEPLOYMENT.md) preserves the completed installation
-and the subsequent removal of the installer's no-swap prerequisite.
+Status: **completed; observation budgets consumed; changed-ID Gemian confirmed**.
+The [result](RESULT.md) records the passing console observation and preserves
+the incomplete native SSH-disconnect witness separately.
 The candidate and validation identities are frozen in [validation.json](validation.json).
 No result, budget or admission from Candidate R is reused.
 

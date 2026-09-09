@@ -1,6 +1,10 @@
 # Conditional successor: harmless disconnect proof
 
-Status: **offline prepared; awaiting the console-ownership result; execution disabled**.
+Status: **dependency verified; fresh boot-specific admission still required; execution disabled**.
+The [first-session result](RESULT.md) passes the console observation. The existing
+reviewed supplemental verifier confirms changed-ID Gemian return while preserving
+the original incomplete SSH-disconnect witness. Its exact dependency pins are in
+[session-result.json](session-result.json); the strict aggregate is not relabelled.
 This is the test after [SESSION.md](SESSION.md), on a separate owner-selected
 boot of the exact same [validated candidate](validation.json). It does not
 extend that first session's budget. No device action occurred during preparation.

@@ -84,7 +84,7 @@ validation, derived-installer syntax/ShellCheck, 11 host installer methods and
 The new private authentication bundle makes this a new candidate; it is never
 represented as Candidate R. The [session packet](SESSION.md) defines the next
 observation. Its [installation and clean shutdown](DEPLOYMENT.md) are verified;
-mainline observation is still pending. The original
+the [console observation passed and Gemian return was verified](RESULT.md). The original
 disabled disconnect binding remains disabled.
 
 Preservation must not depend on a passing reader scan. The existing reviewed
