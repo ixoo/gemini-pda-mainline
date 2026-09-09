@@ -37,20 +37,25 @@ def verify(data, expected):
     return metadata
 
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("directory", help="private retained firmware directory")
-    args = parser.parse_args()
+def check_directory(directory):
     rows = []
     for expected in PATCHES:
         name, size, *_ = expected
-        fd = os.open(os.path.join(args.directory, name),
+        fd = os.open(os.path.join(directory, name),
                      os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
         with os.fdopen(fd, "rb") as source:
             info = os.fstat(source.fileno())
             if not stat.S_ISREG(info.st_mode) or info.st_size != size:
                 raise ValueError(f"{name}: expected regular file and retained size")
             rows.append(verify(source.read(size + 1), expected))
+    return rows
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("directory", help="private retained firmware directory")
+    args = parser.parse_args()
+    rows = check_directory(args.directory)
     print(json.dumps({"scope": "offline retained identity; not runtime admission",
                       "patches": rows}, indent=2))
 

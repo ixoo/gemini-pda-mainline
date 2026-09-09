@@ -105,3 +105,9 @@ The [Open MT Tools assessment](OPENMTTOOLS.md) now supplies a licensed,
 source-available responder reference and reproduces its metadata-validation
 failures. Its automatic power cycle and missing MT6797 support prevent direct
 use; a narrowly scoped adaptation remains to be prepared.
+
+The [one-request responder prototype](RESPONDER.md) now implements the fixed
+metadata publication and failure paths with mocked-transport tests. Its late
+write test also demonstrates why userspace deadline checks alone cannot meet
+the admission contract. Kernel acceptance/expiry, controller integration and
+userspace packaging remain unresolved before device use.
