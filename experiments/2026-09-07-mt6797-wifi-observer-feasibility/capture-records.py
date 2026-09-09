@@ -56,13 +56,17 @@ def validate_dma_payload(kind, transaction, payload):
             raise ValueError('invalid DMA unmap discriminator')
 
 
-# Kind 7 is currently stop-only; no firmware-load payload is admitted yet.
+# Kind 7 has stop records and image/section identity records.
 FW_STOP_ENTRY = struct.Struct('<7I')
 FW_STOP_COMMAND = struct.Struct('<4I')
 FW_STOP_POLL = struct.Struct('<III4QIII')
 FW_STOP_RETURN = struct.Struct('<2I')
+FW_IMAGE = struct.Struct('<5I32s')
+FW_SECTION = struct.Struct('<9I')
+FW_IMAGE_RETURN = struct.Struct('<4I')
 FW_STOP_LAYOUTS = {1: FW_STOP_ENTRY, 2: FW_STOP_COMMAND,
-                   3: FW_STOP_POLL, 4: FW_STOP_RETURN}
+                   3: FW_STOP_POLL, 4: FW_STOP_RETURN,
+                   5: FW_IMAGE, 6: FW_SECTION, 7: FW_IMAGE_RETURN}
 
 
 def validate_stop_payload(transaction, payload):
@@ -73,6 +77,14 @@ def validate_stop_payload(transaction, payload):
     if layout is None or len(payload) != layout.size:
         raise ValueError('unsupported stop subtype or payload size')
     values = layout.unpack(payload)
+    if subtype >= 5:
+        if not values[1] or not values[2]:
+            raise ValueError('image record requires adapter and image IDs')
+        if subtype == 5 and (not values[3] or values[4] < 2 or not any(values[5])):
+            raise ValueError('invalid divided image identity')
+        if subtype == 6 and (values[7] > 255 or values[8] > 255):
+            raise ValueError('invalid native section flag byte')
+        return
     if subtype == 1:
         _, adapter, caller, hif_present, d0, no_ack, removed = values
         if not adapter or caller not in (1, 2) or any(x not in (0, 1) for x in values[3:]):
@@ -270,7 +282,7 @@ def check_stop(data, expected_cycle):
     """Check a recorded ordinary direct-read stop, not thread quiescence or shared OFF."""
     stops = {}
     for record in decode(data, expected_cycle):
-        if record['kind'] == 7:
+        if record['kind'] == 7 and int.from_bytes(record['payload'][:4], 'little') in (1, 2, 3, 4):
             stops.setdefault(record['transaction'], []).append(record['payload'])
     if not stops:
         raise ValueError('no firmware stop recorded')
@@ -382,3 +394,52 @@ def check_provider_off(data, expected_cycle):
             raise ValueError('provider operation did not return success')
     return {'checked_provider_operations': list(operations),
             'scope': 'recorded CONN provider OFF operation consistency only'}
+
+
+def check_image_sections(data, expected_cycle, expected_hash, expected_image_bytes, expected_sections):
+    """Join independently supplied image metadata to recorded sections and EMI copies."""
+    if len(expected_hash) != 32 or not any(expected_hash) or len(expected_sections) < 3:
+        raise ValueError('requires reviewed image hash and section metadata including EMI')
+    records = decode(data, expected_cycle)
+    image_rows = [row for row in records if row['kind'] == 7 and
+                  int.from_bytes(row['payload'][:4], 'little') in (5, 6, 7)]
+    if [int.from_bytes(row['payload'][:4], 'little') for row in image_rows] != [5] + [6] * len(expected_sections) + [7]:
+        raise ValueError('missing, repeated or reordered image metadata')
+    _, adapter, image_id, image_bytes, count, digest = FW_IMAGE.unpack(image_rows[0]['payload'])
+    if digest != expected_hash or image_bytes != expected_image_bytes or count != len(expected_sections):
+        raise ValueError('image identity or section count mismatch')
+    invocation = image_rows[0]['transaction']
+    if any(row['transaction'] != invocation for row in image_rows):
+        raise ValueError('mixed image invocations')
+    for index, (row, expected) in enumerate(zip(image_rows[1:-1], expected_sections)):
+        values = FW_SECTION.unpack(row['payload'])
+        if values != (6, adapter, image_id, index, *expected):
+            raise ValueError('section differs from independently supplied image metadata')
+        source, length, destination, enc, key = expected
+        if not length or source > image_bytes or length > image_bytes - source or destination + length > 0x100000000:
+            raise ValueError('invalid image section span')
+    if FW_IMAGE_RETURN.unpack(image_rows[-1]['payload']) != (7, adapter, image_id, 0):
+        raise ValueError('divided image loader did not return success')
+    check_emi(data, expected_cycle)
+    emi = {}
+    for row in records:
+        if row['kind'] == 8:
+            emi.setdefault(row['transaction'], []).append(row)
+    seen = set()
+    bases = set()
+    for rows in emi.values():
+        _, emi_adapter, emi_image, base, index, source, length, destination, size = EMI_SECTION.unpack(rows[0]['payload'])
+        if emi_adapter != adapter or emi_image != image_id or size != image_bytes or index in seen or not 2 <= index < count:
+            raise ValueError('unexpected or duplicate EMI section identity')
+        if (source, length, destination) != tuple(expected_sections[index][:3]):
+            raise ValueError('EMI operation differs from the image section')
+        if not image_rows[index + 1]['sequence'] < rows[0]['sequence'] <= rows[-1]['sequence'] < image_rows[index + 2]['sequence']:
+            raise ValueError('EMI operation is outside its native section interval')
+        seen.add(index)
+        bases.add(base)
+    if len(bases) != 1:
+        raise ValueError('EMI base changed within the image operation')
+    if seen != set(range(2, count)):
+        raise ValueError('not every required EMI section has complete operations')
+    return {'checked_image': image_id, 'checked_emi_indices': sorted(seen),
+            'scope': 'recorded image metadata and EMI coverage only; HIF submission and execution unchecked'}

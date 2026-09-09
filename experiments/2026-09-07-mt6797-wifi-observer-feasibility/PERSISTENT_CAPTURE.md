@@ -537,3 +537,40 @@ exclusion, physical write visibility, safe release or the complete Wi-Fi cycle.
 The callback-present field preserves that remaining isolation obligation rather
 than treating callback presence or absence as an ownership grant. Atomic capture
 hooks, common-owner joins and recovery remain unimplemented.
+
+## Image identity and EMI coverage
+
+Kind 7 subtypes 5–7 bind the divided-image metadata around its native section
+sequence. Subtype 5 uses `<5I32s`: subtype, adapter ID, image ID, actual image
+byte length, section count and SHA-256 of the actual immutable input buffer.
+Subtype 6 uses `<9I`: subtype, adapter ID, image ID, section index, source
+offset, length, original destination, native encryption byte and key-index byte.
+Subtype 7 uses `<4I`: subtype, adapter ID, image ID and divided-loader return
+status. The envelope transaction identifies the image invocation. Stop subtypes
+1–4 remain separately checked; neither family substitutes for the other.
+
+The producer must bind the hash to the actual buffer being used, not copy a
+manifest hash into the record without checking the input. Describe each section
+before its native operation and record loader return afterward. Hashing and
+buffer immutability still need concrete producer hooks and a measured acquisition
+budget. No hashing or firmware access was added to the kernel here.
+
+`check_image_sections()` takes a separately reviewed expected hash, image size
+and ordered section table. That table contains source offset, length, destination,
+encryption and key-index bytes from the same independently validated image.
+It is not reconstructed from the capture under test. The checker requires one
+matching image invocation, exactly ordered matching descriptors, valid spans
+and successful loader return. It then requires complete checked EMI operations
+for every index from two onward, with matching adapter/image/section metadata,
+a stable EMI base, and each operation entirely between its own descriptor and
+the next descriptor or loader return. Missing or duplicate EMI indices cannot
+be hidden by individually valid copies. The retained four-entry image adds six
+metadata records (768 bytes), separate from its section-operation records.
+
+Seventeen focused tests pass, including wrong expected hash/size/table, altered
+section flags and identity, missing and duplicate complete EMI operations,
+misplaced operations and failed loader return. This establishes only recorded
+metadata consistency and EMI coverage relative to the supplied independent
+metadata. The checker does not perform private-image parsing, HIF configuration
+or chunk checks, START/readiness validation, ownership admission or full-cycle
+classification. No device or firmware action occurred during implementation.

@@ -190,6 +190,50 @@ class RecordsTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 r.check_provider_off(self.provider_stream(bad), CYCLE)
 
+    def image_records(self):
+        sections = [(0x40, 0x20, 0x1000, 0, 0), (0x80, 0x20, 0x2000, 1, 2),
+                    (0x100, 0x200, 0x80101000, 0, 0), (0x400, 0x100, 0x80102000, 0, 0)]
+        rows = [(7, 79, r.FW_IMAGE, [5, 17, 31, 0x1000, 4, bytes(range(32))])]
+        for index, fields in enumerate(sections):
+            rows.append((7, 79, r.FW_SECTION, [6, 17, 31, index, *fields]))
+            if index >= 2:
+                payloads = self.emi_payloads()
+                source, length, destination = fields[:3]
+                payloads[0][1][4:9] = [index, source, length, destination, 0x1000]
+                for i in (4, 5):
+                    payloads[i][1][3:6] = [destination & 0xfffff, source, length]
+                rows.extend((8, 53 + index, layout, values) for layout, values in payloads)
+        rows.append((7, 79, r.FW_IMAGE_RETURN, [7, 17, 31, 0]))
+        return rows, sections
+
+    def image_stream(self, rows):
+        return self.identity() + b''.join(r.encode(kind, seq, CYCLE, transaction, layout.pack(*values))
+                                          for seq, (kind, transaction, layout, values) in enumerate(rows, 1))
+
+    def test_image_metadata_and_emi_coverage(self):
+        rows, sections = self.image_records()
+        def check(rows, digest=bytes(range(32)), size=0x1000, metadata=sections):
+            return r.check_image_sections(self.image_stream(rows), CYCLE, digest, size, metadata)
+        self.assertEqual(check(rows)['checked_emi_indices'], [2, 3])
+        for kwargs in [{'digest': bytes(reversed(range(32)))}, {'size': 0x1001}, {'metadata': sections[:-1]}]:
+            with self.assertRaises(ValueError):
+                check(rows, **kwargs)
+        for row, field, value in [(1, 3, 1), (2, 7, 0), (3, 4, 0x200), (4, 2, 32),
+                                  (4, 4, 3), (4, 8, 0x1001), (21, 3, 1)]:
+            bad, _ = self.image_records()
+            bad[row][3][field] = value
+            with self.assertRaises(ValueError):
+                check(bad)
+        for bad in [rows[:4] + rows[12:], rows[:-1], rows + rows,
+                    rows[:4] + rows[12:13] + rows[4:12] + rows[13:]]:
+            with self.assertRaises(ValueError):
+                check(bad)
+        # Another complete, internally consistent copy cannot replace index 3.
+        bad, _ = self.image_records()
+        bad[13:21] = [(kind, 99, layout, values) for kind, _, layout, values in bad[4:12]]
+        with self.assertRaises(ValueError):
+            check(bad)
+
     def test_roundtrip_and_prefix(self):
         start = self.identity()
         self.assertEqual(len(r.decode(start, CYCLE)), 1)
