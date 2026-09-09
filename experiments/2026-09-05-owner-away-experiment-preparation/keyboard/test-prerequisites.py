@@ -174,8 +174,13 @@ class PrerequisiteTests(unittest.TestCase):
             self.disconnect_verify(self.disconnect)
 
     def test_duration_exact_tracked_receipt(self):
-        raw = (HERE/'results/duration-6d8c9b18/receipt.json').read_bytes()
+        raw = P['DURATION'].read_bytes()
         P['duration'](raw, sha(raw), sha((HERE/'monitor.c').read_bytes()))
+        changed_source = json.loads(raw)
+        changed_source['source_inputs']['monitor.c'] = '0'*64
+        mutated_source = encode(changed_source)
+        with self.assertRaisesRegex(ValueError, 'duration monitor source'):
+            P['duration'](mutated_source, sha(mutated_source), sha((HERE/'monitor.c').read_bytes()))
         changed = json.loads(raw)
         changed['classification']['classification'] = 'inconclusive'
         mutated = encode(changed)

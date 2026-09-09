@@ -227,3 +227,7 @@ Preparation is not complete, and no physical session is admitted. The
 [keyboard hardware boundary](../../../docs/hardware/keyboard.md) and current
 support claims remain unchanged. Scheduling belongs only to the
 [roadmap](../../../docs/ROADMAP.md#owner-away-progress).
+
+The [corrected monitor duration result](results/duration-daaa4529/RESULT.md)
+refreshes the full-length timing prerequisite after the quiet-disconnect repair.
+Capture remains disabled pending the fresh session requirements recorded there.

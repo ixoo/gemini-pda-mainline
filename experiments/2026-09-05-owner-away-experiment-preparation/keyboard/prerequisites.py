@@ -7,7 +7,7 @@ from pathlib import Path
 import re
 
 HERE = Path(__file__).resolve().parent
-DURATION = HERE / 'results/duration-6d8c9b18/receipt.json'
+DURATION = HERE / 'results/duration-daaa4529/receipt.json'
 SHA = re.compile(r'[0-9a-f]{64}')
 FILES = ('observer.stdout', 'observer.stderr', 'monitor.status', 'outer-exit')
 EVIDENCE = FILES + ('disconnect-process.json', 'export-process.json', 'reader-scan.json')
@@ -64,7 +64,7 @@ def duration(raw, expected, monitor_sha256):
     require(classification == {
         'classification': 'passed', 'device_action': 'none', 'failures': [],
         'keyboard_result': 'not-tested',
-        'proof_sha256': 'bc165b390b04345eec23a2e6a0d2cc86bd193099b2cdb6bc64f0026e30480870',
+        'proof_sha256': 'bfff5b5917d1dd936851e64591f6de90ecebb294b34f4a4f78e4b620e44cf586',
         'schema': 'keyboard-duration-classification-v1'}, 'duration outcome')
     require(value.get('schema') == 'keyboard-duration-build-result-v1' and
             value.get('attempt_count') == 1 and value.get('retry_count') == 0 and
