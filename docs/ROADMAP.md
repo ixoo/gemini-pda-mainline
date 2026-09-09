@@ -88,6 +88,13 @@ when it can resolve a supported interface or measurement dependency.
 | Cellular and cameras | Identify upstream transport/pipeline feasibility and the irreducible blockers | Public interface, resource, licensing and existing-effort research | Shared-memory/crash isolation and radio or imaging-specific safety review before hardware work |
 | Standard boot and distribution | Define normal package/update/rollback consumption of the integration baseline | Packaging and retained-loader contract review | Reliable storage/recovery; loader replacement is separately admitted |
 
+The [standard package/loader contract](../experiments/2026-09-09-standard-kernel-package/README.md)
+separates normal versioned kernel/DTB/initramfs files from retained-LK container
+construction and guarded boot2 selection. Current Gemian initramfs hooks supply
+no inspected LK deployment step. Select a persistent-root/distribution and its
+filesystem update/rollback protocol before implementing that adapter; no package
+installation or automatic slot writer is admitted by the source review.
+
 The current [display architecture refresh](../experiments/2026-09-07-mt6797-display-upstream-architecture/README.md)
 found no local 0028–0044 subset with both a truthful current resource contract
 and a real consumer/test story. Display PWM is the smallest likely unlock, but
