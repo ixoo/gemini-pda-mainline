@@ -61,6 +61,10 @@ card test should exclude 1.8 V switching; that restriction alone does not
 resolve the initial 3.0 V power/pad transition. No trim writes or new DT node
 are introduced by this investigation.
 
+The [pad follow-up](MICROSD_PADS.md) resolves the six-pin register map and
+identifies a separate bias-tuning write and a drive-group encoding mismatch
+that a direct generic pinconf port would miss.
+
 ## Reproduction and identities
 
 Use the private retained primary Gemian boot extraction documented in the
