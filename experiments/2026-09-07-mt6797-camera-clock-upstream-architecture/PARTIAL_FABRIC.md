@@ -66,6 +66,38 @@ power domains still required.
 
 ## Consequence and remaining work
 
+### Legacy-register lifetime follow-up
+
+Patch 0024 adds three writes to `mtk_iommu_hw_init()` under its new
+`HAS_LEGACY_MMU_MISC` flag: coherence enable at `0x80` receives `3`,
+in-order-write enable at `0x84` receives `0`, and table-walk disable at `0x88`
+receives `0`. It adds no corresponding suspend-state fields or resume writes.
+The existing [July register observation](../2026-07-12-mt6797-m4u-smi-recovery/README.md)
+supports those values on its named boot, not retention across a power cycle.
+
+The same checksum-verified upstream `mtk_iommu.c` shows why first attachment
+does not close this lifetime question. Lines 754–771 call hardware initialization
+only while the selected bank has no `m4u_dom`, then retain that domain pointer.
+The ordinary runtime-resume callback at lines 1514–1559 restores a selected
+saved register set and flushes the TLB; it does not call hardware initialization.
+Neither that callback nor runtime suspend at lines 1489–1512 saves or restores
+the three legacy registers. The patch does not change either callback. An
+exact-symbol search across repository patches finds those new legacy register
+definitions and the flag only in 0024; it finds no follow-up using those names.
+This is not an exhaustive search for numeric-offset writers.
+
+This establishes an omitted restoration path, **not an observed resume
+failure**. The block's retention, reset values and ownership across the actual
+power transitions have not been established here. Before adapting 0024 for a
+power-managed consumer, either substantiate that the three required values
+survive every relevant transition, or define and validate their restoration
+alongside the existing resume sequence. Do not assume a subsequent attachment
+replays initialization, or add speculative writes without resolving that
+lifetime contract. The source file digest was rechecked unchanged for this
+follow-up; no power transition, register access or kernel build was performed.
+
+### Remaining consumer review
+
 Assess a first real consumer with its complete participating-larb set and
 shared common/IOMMU resources. Do not require unrelated camera or MJC clock
 work merely because the historical DT enumerates all seven larbs. Conversely,

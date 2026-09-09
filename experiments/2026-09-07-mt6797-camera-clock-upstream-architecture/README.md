@@ -7,6 +7,9 @@ dependency: the pinned IOMMU parser skips disabled larbs, so an initial consumer
 does not acquire a software requirement to enable all seven together. This
 does not resolve the consumer or hardware-lifetime stop below. The independent
 clock slot-count fix is complete at its compile-only boundary.
+The follow-up also identifies three legacy M4U initialization registers absent
+from suspend/resume restoration; their retention or restoration contract must
+be resolved with the first power-managed consumer.
 
 No clock topic is admitted from local patches 0021/0022 yet. Current mainline,
 clock `clk-next`, and MediaTek `for-next` contain neither the MT6797 CAMSYS/MJCSYS
