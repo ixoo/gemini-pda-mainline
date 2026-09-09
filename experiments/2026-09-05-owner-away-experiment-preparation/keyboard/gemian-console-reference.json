@@ -1,0 +1,118 @@
+{
+  "boot_id": "38a5040d-c5f7-4deb-9b2a-5e7be87042c3",
+  "entries": [
+    [
+      0,
+      2,
+      49
+    ],
+    [
+      0,
+      30,
+      2913
+    ],
+    [
+      0,
+      42,
+      1792
+    ],
+    [
+      0,
+      57,
+      32
+    ],
+    [
+      0,
+      125,
+      512
+    ],
+    [
+      1,
+      2,
+      33
+    ],
+    [
+      1,
+      30,
+      2881
+    ],
+    [
+      1,
+      42,
+      1792
+    ],
+    [
+      1,
+      57,
+      32
+    ],
+    [
+      1,
+      125,
+      512
+    ],
+    [
+      2,
+      2,
+      512
+    ],
+    [
+      2,
+      30,
+      2324
+    ],
+    [
+      2,
+      42,
+      1792
+    ],
+    [
+      2,
+      57,
+      512
+    ],
+    [
+      2,
+      125,
+      512
+    ],
+    [
+      3,
+      2,
+      512
+    ],
+    [
+      3,
+      30,
+      512
+    ],
+    [
+      3,
+      42,
+      512
+    ],
+    [
+      3,
+      57,
+      512
+    ],
+    [
+      3,
+      125,
+      512
+    ]
+  ],
+  "kernel": "3.18.41+",
+  "keyboard_mode": 3,
+  "limitations": "PTY bypasses AW9523, evdev, and VT translation. No mainline PTY comparison yet; mainline USB route absent and changed-boot Gemian confirmed.",
+  "line_discipline": 0,
+  "pty": {
+    "exact": true,
+    "extra_ready": false,
+    "received_hex": "31201b5b5b4161",
+    "sent_hex": "31201b5b5b4161"
+  },
+  "schema": "keyboard-gemian-console-reference-v1",
+  "scope": "Read-only tty1 settings/keymap queries and a newly allocated private PTY roundtrip; no physical keyboard input or console setting writes.",
+  "termios": "[25858, 5, 1215, 33281, 15, 15, [b'\\x03', b'\\x1c', b'\\x7f', b'\\x15', b'\\x04', 0, 1, b'\\x00', b'\\x11', b'\\x13', b'\\x1a', b'\\x00', b'\\x12', b'\\x0f', b'\\x17', b'\\x16', b'\\x00', b'\\x00', b'\\x00', b'\\x00', b'\\x00', b'\\x00', b'\\x00', b'\\x00', b'\\x00', b'\\x00', b'\\x00', b'\\x00', b'\\x00', b'\\x00', b'\\x00', b'\\x00']]"
+}
