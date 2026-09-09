@@ -82,3 +82,26 @@ The observer now reports its failure branch and last numeric input fields
 after restoring the console. Acceptance behavior is unchanged; the next
 Space press is intended to distinguish an unexpected key event, console byte,
 or read failure before any corrective behavior is chosen.
+
+The diagnostic package at `c883502090576f72add6fd8d7f9d71de0b0360ae`, identity
+`494f39f09fbc698d019b74edffea48e70ce6c61f7efa791e9a2b7b477cc3d6b4`,
+passed all seven ARM64 fixtures and produced matching replicas. Its live wait
+accepted Space press/release after 85.824 seconds, with the console restored
+and a successful readiness witness. The earlier cancellation remains unexplained;
+this diagnostic change did not alter acceptance behavior.
+
+That witness started the same-boot retry automatically. Preflight passed, but
+the first capture step stopped at its 64-event limit: left Shift and Fn presses
+followed by Fn repeats, without a recorded 1, modifier release or A. The monitor
+reaped the observer after 10,622 ms; the observer reported console restoration.
+The owner confirmed performing the complete requested sequence. Missing chord
+events versus collection ending before the remaining actions is unresolved;
+this is not a passing keyboard regression or an established operator mistake.
+A focused check of 1 alone and the chord, with enough collection capacity, is
+the next discriminating observation rather than another identical full run.
+
+All capture files and the complete 1,746-record, 121,076-byte sequence-zero log
+were preserved. The restarted logger connection exited zero after 66.726 seconds
+with no stderr, and its independent seal passed. Thus Space-triggered startup
+and logger channel activity were observed, while keyboard regression remains
+incomplete. The PDA remains on the same mainline boot; no recovery was requested.
