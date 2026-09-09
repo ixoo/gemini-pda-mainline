@@ -1,0 +1,40 @@
+From b236037d3960ec781a72ff9d74653f4bdc0a1763 Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <experiment@invalid.example>
+Date: Wed, 9 Sep 2026 18:35:54 -0400
+Subject: [PATCH 1/2] pstore: report native pmsg backend write failures
+
+Stop after a rejected backend chunk. Return the error for a first-chunk
+failure or the accepted byte count for a later failure, releasing the
+mutex and bounce buffer in both cases. Preserve existing copy-fault
+semantics. This is a native 3.18 experiment prerequisite, not a capture
+ownership implementation.
+
+Host tests exercise the exact function with injected backend failures.
+No full kernel build or hardware test has been performed.
+The archive identity is synthetic and non-certifying; not submission-ready.
+---
+ fs/pstore/pmsg.c | 11 +++++++++--
+ 1 file changed, 9 insertions(+), 2 deletions(-)
+
+diff --git a/fs/pstore/pmsg.c b/fs/pstore/pmsg.c
+index e086604..d40ce4d 100644
+--- a/fs/pstore/pmsg.c
++++ b/fs/pstore/pmsg.c
+@@ -52,8 +52,15 @@ static ssize_t write_pmsg(struct file *file, const char __user *buf,
+ 			free_pages((unsigned long)buffer, get_order(buffer_size));
+ 			return -EFAULT;
+ 		}
+-		psinfo->write_buf(PSTORE_TYPE_PMSG, 0, &id, 0, buffer, 0, c,
+-				  psinfo);
++		ret = psinfo->write_buf(PSTORE_TYPE_PMSG, 0, &id, 0, buffer,
++					0, c, psinfo);
++		if (ret < 0) {
++			mutex_unlock(&pmsg_lock);
++			free_pages((unsigned long)buffer, get_order(buffer_size));
++			if (i)
++				return i;
++			return ret;
++		}
+ 
+ 		i += c;
+ 	}

@@ -1,0 +1,42 @@
+From aac4d1344878d830653cfc024de8a8abd43fb538 Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <experiment@invalid.example>
+Date: Wed, 9 Sep 2026 18:35:54 -0400
+Subject: [PATCH 2/2] pstore: preserve native records when backend erase fails
+
+Do not unlink the exported record when its backend refuses erasure.
+This native 3.18 prerequisite preserves the existing missing-callback
+refusal and does not implement backing-store ownership.
+
+Host tests exercise the exact inode and ramoops function bodies with
+injected storage and erase refusal. No full kernel build or hardware
+test has been performed. The archive identity is synthetic and
+non-certifying; not submission-ready.
+---
+ fs/pstore/inode.c | 12 ++++++++----
+ 1 file changed, 8 insertions(+), 4 deletions(-)
+
+diff --git a/fs/pstore/inode.c b/fs/pstore/inode.c
+index 77bdcdc..e5adde8 100644
+--- a/fs/pstore/inode.c
++++ b/fs/pstore/inode.c
+@@ -175,12 +175,16 @@ static int pstore_unlink(struct inode *dir, struct dentry *dentry)
+ {
+ 	struct pstore_private *p = dentry->d_inode->i_private;
+ 
+-	if (p->psi->erase)
+-		p->psi->erase(p->type, p->id, p->count,
+-			      dentry->d_inode->i_ctime, p->psi);
+-	else
++	int ret;
++
++	if (!p->psi->erase)
+ 		return -EPERM;
+ 
++	ret = p->psi->erase(p->type, p->id, p->count,
++			    dentry->d_inode->i_ctime, p->psi);
++	if (ret)
++		return ret;
++
+ 	return simple_unlink(dir, dentry);
+ }
+ 

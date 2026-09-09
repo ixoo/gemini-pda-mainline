@@ -56,12 +56,12 @@ int main(void)
     current.start = current.size = 128;
     zone.old = true;
     psi.erase = refuse_erase;
-    assert(pstore_unlink(&inode, &entry) == 0);
+    assert(pstore_unlink(&inode, &entry) == (FIXED ? -EBUSY : 0));
     assert(zone.old && current.start == 128 && current.size == 128);
-    assert(unlinks == 2 && header_updates == 1);
+    assert(unlinks == (FIXED ? 1 : 2) && header_updates == 1);
     psi.erase = NULL;
     assert(pstore_unlink(&inode, &entry) == -EPERM);
-    assert(unlinks == 2);
+    assert(unlinks == (FIXED ? 1 : 2));
     return 0;
 }
 '''
@@ -70,9 +70,11 @@ int main(void)
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('sources', type=Path, help='directory containing the pinned C source files')
+    parser.add_argument('--fixed', action='store_true', help='test the repaired source identities')
     args = parser.parse_args()
     here = Path(__file__).resolve().parent
-    receipt = json.loads((here/'results/pmsg-ownership-sources.json').read_text())
+    receipt_name = 'pmsg-fixed-sources.json' if args.fixed else 'pmsg-ownership-sources.json'
+    receipt = json.loads((here/'results'/receipt_name).read_text())
     sources = {}
     for row in receipt['sources']:
         raw = (args.sources/Path(row['path']).name).read_bytes()
@@ -88,12 +90,13 @@ def main():
         functions.append(text[begin:end])
     with tempfile.TemporaryDirectory(prefix='wifi-pmsg-erase-') as tmp:
         source, executable = Path(tmp)/'erase.c', Path(tmp)/'erase'
-        source.write_text(SHIM + '\n'.join(functions) + TEST)
+        source.write_text(f'#define FIXED {int(args.fixed)}\n' + SHIM + '\n'.join(functions) + TEST)
         subprocess.run(['cc', '-std=gnu11', '-Wall', '-Wextra', '-Werror',
                         '-Wno-unused-parameter', str(source), '-o', str(executable)], check=True)
         subprocess.run([str(executable)], check=True, timeout=3)
     print('PASS: unlink of old pmsg snapshot also clears current ring metadata')
-    print('PASS: backend erase refusal is ignored and unlink still succeeds')
+    print('PASS: backend erase refusal preserves exported record' if args.fixed else
+          'PASS: backend erase refusal is ignored and unlink still succeeds')
     print('PASS: missing erase callback refuses unlink')
     print('Scope: pinned function bodies with fake storage; no physical memory or device access')
 

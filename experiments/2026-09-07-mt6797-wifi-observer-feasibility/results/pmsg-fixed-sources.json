@@ -1,0 +1,37 @@
+{
+  "scope": "native 3.18 source-only repair; no kernel build or device access",
+  "repository": "gemian/gemini-linux-kernel-3.18",
+  "revision": "59e00a9144d782e148332009a835b99c43382467",
+  "patches": [
+    {
+      "path": "patches/pstore/0001-pstore-report-native-pmsg-backend-write-failures.patch",
+      "sha256": "41a64284f4013ccd7c8bfa7fa0adb78a0b001f289970319310a6cb193848184b"
+    },
+    {
+      "path": "patches/pstore/0002-pstore-preserve-native-records-when-backend-erase-fa.patch",
+      "sha256": "48b3b5f3bac483c4c85a65cba5756f3b577dd1f9bbb2a723ff1630df02812565"
+    }
+  ],
+  "sources": [
+    {
+      "path": "fs/pstore/pmsg.c",
+      "bytes": 2905,
+      "sha256": "6c08ebdeaabaa1e61b681118982b5ab5562357ac042ee3566736e9c3f8abe21d"
+    },
+    {
+      "path": "fs/pstore/ram.c",
+      "bytes": 18446,
+      "sha256": "7ba661c230fb71d7d2768bb3cddb95d1deb36810531cfc992bc5c7297113a391"
+    },
+    {
+      "path": "fs/pstore/ram_core.c",
+      "bytes": 13562,
+      "sha256": "eb25a629b9dff9bbffedd7c90fd2a1045420792570cd0a775d78d3bd2c2ca1b6"
+    },
+    {
+      "path": "fs/pstore/inode.c",
+      "bytes": 10686,
+      "sha256": "f49ac29f36e3145f0cd67c595f7b66ac5fc16ec9ec489143f4191aac9b0c5130"
+    }
+  ]
+}

@@ -627,3 +627,39 @@ native memory mapping can be write-combined, and its byte-copy loop supplies
 no demonstrated persistence barrier or full readback. Those properties remain
 unresolved; the source reproduction selects no new writer, memory range,
 observer kernel, radio operation or device test.
+
+## Native refusal propagation repair
+
+The isolated [two-patch pstore series](patches/pstore/series) repairs the two
+frontend error paths identified above against the pinned public native 3.18
+source. The [source receipt](results/pmsg-fixed-sources.json) pins every patch
+and resulting source file; apply the series relative to that kernel's root.
+It is independent of the WMT experiment patches and is not selected by any
+kernel manifest or build profile. Its synthetic archive author asserts no DCO;
+these patches are not submission-ready.
+
+The write repair stops immediately on a negative backend return. A rejected
+first chunk returns the error; a later rejection returns the previously
+accepted byte count. Both paths release the mutex and bounce buffer. Existing
+copy-from-user failure semantics are unchanged. The unlink repair returns an
+erase failure before calling `simple_unlink()`, preserving the exported
+record; a missing backend callback still returns `-EPERM`.
+
+The [write test](test-pmsg-write.py) and [erase test](test-pmsg-erase.py) compile
+exact source function bodies against injected operations. Each accepts the
+original source directory, or `--fixed` with the repaired directory, and checks
+its corresponding full-file hashes. The [recorded results](results/pmsg-repair-test.txt)
+cover first, second and third chunk failures, successful and empty writes,
+allocation/lock cleanup, erase rejection and normal erase. Ordered application
+and reversal reproduce the pinned output and input hashes. Strict Checkpatch
+reports no errors, warnings or checks with only `MISSING_SIGN_OFF` excluded for
+the explicitly non-certifying archive.
+
+This is incomplete capture preparation. Successful ordinary erase still clears
+the current ring, as the fixture explicitly demonstrates. The backend owner,
+interference latch, persistence/readback ordering and recovery preservation
+remain unimplemented. A short userspace write cannot by itself identify why a
+later chunk failed; capture isolation must rely on the future backend owner
+and its failure state. No full kernel compile, boot candidate, radio operation
+or device test is established by these host tests, and the closed A72 Gemian
+observer line remains closed.
