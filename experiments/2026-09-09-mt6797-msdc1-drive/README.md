@@ -1,5 +1,9 @@
 # MT6797 MSDC1 drive-strength fields
 
+Current patch context and profile dependencies are updated in the
+[composition record](../2026-09-09-mt6797-msdc1-pull/COMPOSITION.md).
+The isolated build receipts below describe their pinned earlier revisions.
+
 Status: unsigned upstream-preparation checkpoint. Strict checkpatch, isolated
 Buildbox compilation and focused schema validation pass. No device candidate.
 

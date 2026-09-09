@@ -1,0 +1,75 @@
+{
+  "baseline": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "base_source_sha256": {
+    "Documentation/devicetree/bindings/pinctrl/mediatek,mt6779-pinctrl.yaml": "694e02b12351d0f9a525cb7584a6cd52ed2c23f0eb6fbc0a8adda6b57584a8d7",
+    "drivers/pinctrl/mediatek/pinctrl-mt6797.c": "e1dc88dc086cc60e384a04b23c52b7f61da04d06a314f511f0f77c3fe2c001dc",
+    "drivers/pinctrl/mediatek/pinctrl-mtk-common-v2.c": "f95fe0f92461afb8c2586c43f6d1970fa302fa69a6d17839cbfda0b17b3d9a69",
+    "drivers/pinctrl/mediatek/pinctrl-mtk-common-v2.h": "8691ca4ef77adbb488f1388562c4930affc911778a65933eb9549a92f8086ff4",
+    "drivers/pinctrl/mediatek/pinctrl-mtk-mt6797.h": "e0bd6e683dc0b25d7bf955ba862f911bd79eeb1e33d0bc05caf41fec7981fbca",
+    "drivers/pinctrl/mediatek/pinctrl-paris.c": "94848be20fd43e443398b5975829534ef95fa1f2df9cd1f835939616b0643502"
+  },
+  "composed_source_sha256": {
+    "Documentation/devicetree/bindings/pinctrl/mediatek,mt6779-pinctrl.yaml": "3e192675e05ac14ad031ab15ac04af065b9320060f9c0d5ea687ed4c6fe72b2f",
+    "drivers/pinctrl/mediatek/pinctrl-mt6797.c": "1068ae13b103f90c37ba371efd7e50c4d60e9d7bdcfd24fdfc59b92f78fad5e8",
+    "drivers/pinctrl/mediatek/pinctrl-mtk-common-v2.c": "dc4b669866c62a880aa04797439b8e85b1b24cf2489b720421751e6964a8526d",
+    "drivers/pinctrl/mediatek/pinctrl-mtk-common-v2.h": "44150d2aa8b5c7bca106cf206b031089d5d9cbafbe8f38859da9af8cd797db2e",
+    "drivers/pinctrl/mediatek/pinctrl-mtk-mt6797.h": "67d0aad2ad889f9d4ff3eb5e8f1df50d37cc536081f5dfff6d7a2f50cf0d29a2",
+    "drivers/pinctrl/mediatek/pinctrl-paris.c": "893c9ac9494c678c12eac15914b529bcf6f8cd17df353d1d48a55e06167e3580"
+  },
+  "rebased_patch_numbers": [
+    4,
+    6
+  ],
+  "source_edit_multisets_unchanged": true,
+  "original_failure": "0004 does not apply after 0001: overlapping pinctrl-mt6797.c context",
+  "hardware_tested": false,
+  "selected_profile_application": {
+    "drive": {
+      "result": "pass",
+      "patches": [
+        "upstream-4d7d9486/pinctrl/0001-pinctrl-mediatek-add-MT6797-MSDC1-input-enable-fields.patch",
+        "upstream-4d7d9486/pinctrl/0003-dt-bindings-pinctrl-mediatek-MT6797-drive-strengths.patch",
+        "upstream-4d7d9486/pinctrl/0004-pinctrl-mediatek-MT6797-MSDC1-drive-fields.patch"
+      ],
+      "source_sha256": {
+        "Documentation/devicetree/bindings/pinctrl/mediatek,mt6779-pinctrl.yaml": "3e192675e05ac14ad031ab15ac04af065b9320060f9c0d5ea687ed4c6fe72b2f",
+        "drivers/pinctrl/mediatek/pinctrl-mt6797.c": "3fbd93aacc267a65254643986df7b2ce01b9553ea05f86a82d3908df73f1bdaf",
+        "drivers/pinctrl/mediatek/pinctrl-mtk-common-v2.c": "f95fe0f92461afb8c2586c43f6d1970fa302fa69a6d17839cbfda0b17b3d9a69",
+        "drivers/pinctrl/mediatek/pinctrl-mtk-common-v2.h": "8691ca4ef77adbb488f1388562c4930affc911778a65933eb9549a92f8086ff4",
+        "drivers/pinctrl/mediatek/pinctrl-mtk-mt6797.h": "67d0aad2ad889f9d4ff3eb5e8f1df50d37cc536081f5dfff6d7a2f50cf0d29a2",
+        "drivers/pinctrl/mediatek/pinctrl-paris.c": "94848be20fd43e443398b5975829534ef95fa1f2df9cd1f835939616b0643502"
+      }
+    },
+    "pull": {
+      "result": "pass",
+      "patches": [
+        "upstream-4d7d9486/pinctrl/0001-pinctrl-mediatek-add-MT6797-MSDC1-input-enable-fields.patch",
+        "upstream-4d7d9486/pinctrl/0002-pinctrl-mediatek-preflight-Schmitt-field.patch",
+        "upstream-4d7d9486/pinctrl/0003-dt-bindings-pinctrl-mediatek-MT6797-drive-strengths.patch",
+        "upstream-4d7d9486/pinctrl/0004-pinctrl-mediatek-MT6797-MSDC1-drive-fields.patch",
+        "upstream-4d7d9486/pinctrl/0005-pinctrl-mediatek-propagate-advanced-pull-errors.patch",
+        "upstream-4d7d9486/pinctrl/0006-pinctrl-mediatek-MT6797-MSDC1-pull-fields.patch"
+      ],
+      "source_sha256": {
+        "Documentation/devicetree/bindings/pinctrl/mediatek,mt6779-pinctrl.yaml": "3e192675e05ac14ad031ab15ac04af065b9320060f9c0d5ea687ed4c6fe72b2f",
+        "drivers/pinctrl/mediatek/pinctrl-mt6797.c": "1068ae13b103f90c37ba371efd7e50c4d60e9d7bdcfd24fdfc59b92f78fad5e8",
+        "drivers/pinctrl/mediatek/pinctrl-mtk-common-v2.c": "dc4b669866c62a880aa04797439b8e85b1b24cf2489b720421751e6964a8526d",
+        "drivers/pinctrl/mediatek/pinctrl-mtk-common-v2.h": "44150d2aa8b5c7bca106cf206b031089d5d9cbafbe8f38859da9af8cd797db2e",
+        "drivers/pinctrl/mediatek/pinctrl-mtk-mt6797.h": "67d0aad2ad889f9d4ff3eb5e8f1df50d37cc536081f5dfff6d7a2f50cf0d29a2",
+        "drivers/pinctrl/mediatek/pinctrl-paris.c": "893c9ac9494c678c12eac15914b529bcf6f8cd17df353d1d48a55e06167e3580"
+      }
+    }
+  },
+  "profile_audit": {
+    "profiles": 205,
+    "effective_inputs_changed": [
+      "mt6797-msdc1-drive-compile",
+      "mt6797-msdc1-pull-compile"
+    ],
+    "manifest_unchanged": true,
+    "unchanged_profiles": 203
+  },
+  "schmitt_refusal_cases": 72,
+  "advanced_pull_cases": 64,
+  "checkpatch": "pass; MISSING_SIGN_OFF only excluded"
+}

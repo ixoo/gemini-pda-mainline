@@ -1,5 +1,9 @@
 # MT6797 MSDC1 pull-field preparation
 
+Current patch context and profile dependencies are updated in the
+[composition record](../2026-09-09-mt6797-msdc1-pull/COMPOSITION.md).
+The isolated build receipts below describe their pinned earlier revisions.
+
 Status: unsigned upstream-preparation checkpoint. Strict checkpatch, focused
 host checks and isolated Buildbox compilation pass. No device candidate.
 
