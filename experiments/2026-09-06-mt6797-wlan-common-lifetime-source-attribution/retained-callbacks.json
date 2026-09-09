@@ -1,0 +1,79 @@
+{
+  "schema": 1,
+  "scope": "retained compiled late-registration and callback error propagation; no device access",
+  "image_sha256": "0570480c28bce1583636a240904df8da3af0b5e5b4bcc6254f5719b42bd723d0",
+  "reconstructed_elf_sha256": "cc66df06194d3315335462760962165e1dcb2e50221574aeb45a0805bb17a162",
+  "elf_kernel_section_matches_image": true,
+  "source_commit": "8cfe6596a503612e3332d9c26e292a19525a7f07",
+  "source_files": {
+    "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_func.c": "c57079b29491338fa635dd36f550f3be53b4a2cee343b1dce1c9e4d365b4589d",
+    "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_exp.c": "9ee1dfe7f361c02d24b1c443d2e1ef13d7b054509feb2d5dfc00f2620a5d6b12",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c": "d9b4e80fe98695284627e495ad640e39728ebe7df235df129f64d48e8a2e726b"
+  },
+  "regions": [
+    {
+      "symbol": "HifAhbPltmProbe",
+      "start": "0xffffffc00076b620",
+      "end_exclusive": "0xffffffc00076b6d8",
+      "bytes": 184,
+      "sha256": "0a2ee09538ef3bfbf23d68f86ba5357571c16e2d4582b04bb631993949381019",
+      "scope": "decoded entry and its reachable local branches; not a claim about indirect callees"
+    },
+    {
+      "symbol": "mtk_wcn_wmt_wlan_reg",
+      "start": "0xffffffc0006acf98",
+      "end_exclusive": "0xffffffc0006ad0c0",
+      "bytes": 296,
+      "sha256": "18ca2e6b6b258ba105e0cba969367048a6488f82a830f7cf2a8642fdd5b78853",
+      "scope": "decoded entry and its reachable local branches; not a claim about indirect callees"
+    },
+    {
+      "symbol": "mtk_wcn_wmt_system_state_reset",
+      "start": "0xffffffc0006acf50",
+      "end_exclusive": "0xffffffc0006acf98",
+      "bytes": 72,
+      "sha256": "0e1aeb61fc3a723cb328c74c8d62fafdf20802b9972d5a1f98928bfeb351032d",
+      "scope": "decoded entry and its reachable local branches; not a claim about indirect callees"
+    },
+    {
+      "symbol": "wmt_func_wifi_on",
+      "start": "0xffffffc0006a7a58",
+      "end_exclusive": "0xffffffc0006a7ba8",
+      "bytes": 336,
+      "sha256": "21ca2e8de7009123e34831688d20c8c470062bc51bd32cb94db1e41b1222b7df",
+      "scope": "decoded entry and its reachable local branches; not a claim about indirect callees"
+    }
+  ],
+  "global_object": "0xffffffc001552be0",
+  "callback_offsets": {
+    "probe": 48,
+    "remove": 56
+  },
+  "pending_flag_offset": 80,
+  "reset_zero_fill_requests": [
+    {
+      "offset": 0,
+      "bytes": 24
+    },
+    {
+      "offset": 24,
+      "bytes": 24
+    }
+  ],
+  "platform_callback_values": {
+    "probe": "0xffffffc00076b8d0",
+    "remove": "0xffffffc00076b6d8"
+  },
+  "late_registration_failure": {
+    "callback_return_nonzero": true,
+    "return_value": -2,
+    "pending_flag_clear": false,
+    "second_callback_or_common_power_call": false
+  },
+  "platform_discards_registration_return": true,
+  "normal_soc_wifi_on_callback_failure_return": -1,
+  "executed_boot_attestation": false,
+  "full_power_or_rail_unwind_proven": false,
+  "device_action": false,
+  "selected_source_files_match_original_audit": true
+}

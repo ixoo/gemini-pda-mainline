@@ -112,3 +112,7 @@ Buildbox, kernel source/configuration, staging, commit or push action occurred.
 The integration owner records the accepted/excluded efficiency measurement;
 credits are unavailable. Shared roadmap, hardware-support and queue ownership
 remain unchanged.
+
+The later [retained-kernel callback audit](RETAINED_CALLBACKS.md) confirms the
+late-registration error and pending-state behavior in compiled instructions.
+It preserves the original frozen source result and does not attest a live boot.

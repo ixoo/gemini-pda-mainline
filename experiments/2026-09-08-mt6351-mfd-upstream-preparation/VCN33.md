@@ -158,6 +158,10 @@ power contract cannot assume that the failure branch locally balances its
 request. This result supplies no current-boot, physical output or enable-logic
 attribution and admits no rail or radio experiment.
 
+The [retained late-registration follow-up](../2026-09-06-mt6797-wlan-common-lifetime-source-attribution/RETAINED_CALLBACKS.md)
+confirms that this caller supplies no local compensating disable and can hide
+the callback error behind a successful platform probe. Full unwind remains unproved.
+
 ## Decision
 
 The common selector and common status naming support a shared analog-resource
