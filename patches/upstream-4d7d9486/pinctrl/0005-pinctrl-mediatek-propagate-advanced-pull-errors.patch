@@ -1,0 +1,41 @@
+From fda07fbbacb98a689d5dbe857ab894095a8f51c6 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Wed, 9 Sep 2026 03:49:40 -0400
+Subject: [PATCH] pinctrl: mediatek: propagate advanced pull resistor errors
+
+The advanced-pull setter returns success when either the R0 or R1 field
+write fails. A missing resistor field can therefore accept a request
+without configuring the requested pull. An R1 failure can also leave
+the already-written R0 field changed while reporting success.
+
+Return the field error to the pinconf caller. Preserve the successful
+sequence and the existing PUPD fallback; do not attempt rollback of an
+earlier field write.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/pinctrl/mediatek/pinctrl-mtk-common-v2.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/pinctrl/mediatek/pinctrl-mtk-common-v2.c b/drivers/pinctrl/mediatek/pinctrl-mtk-common-v2.c
+index faa6dbf..7351dc6 100644
+--- a/drivers/pinctrl/mediatek/pinctrl-mtk-common-v2.c
++++ b/drivers/pinctrl/mediatek/pinctrl-mtk-common-v2.c
+@@ -1151,12 +1151,12 @@ int mtk_pinconf_adv_pull_set(struct mtk_pinctrl *hw,
+ 	 */
+ 	err = mtk_hw_set_value(hw, desc, PINCTRL_PIN_REG_R0, arg & 1);
+ 	if (err)
+-		return 0;
++		return err;
+ 
+ 	err = mtk_hw_set_value(hw, desc, PINCTRL_PIN_REG_R1,
+ 			       !!(arg & 2));
+ 	if (err)
+-		return 0;
++		return err;
+ 
+ 	arg = pullup ? 0 : 1;
+ 
+-- 
+2.50.1 (Apple Git-155)
+

@@ -1,0 +1,23 @@
+{
+  "baseline": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "upstream_files_sha256": {
+    "drivers/pinctrl/mediatek/pinctrl-mt6797.c": "e1dc88dc086cc60e384a04b23c52b7f61da04d06a314f511f0f77c3fe2c001dc",
+    "drivers/pinctrl/mediatek/pinctrl-mtk-mt6797.h": "e0bd6e683dc0b25d7bf955ba862f911bd79eeb1e33d0bc05caf41fec7981fbca",
+    "drivers/pinctrl/mediatek/pinctrl-mtk-common-v2.c": "f95fe0f92461afb8c2586c43f6d1970fa302fa69a6d17839cbfda0b17b3d9a69",
+    "drivers/pinctrl/mediatek/pinctrl-mtk-common-v2.h": "8691ca4ef77adbb488f1388562c4930affc911778a65933eb9549a92f8086ff4",
+    "drivers/pinctrl/mediatek/pinctrl-paris.c": "94848be20fd43e443398b5975829534ef95fa1f2df9cd1f835939616b0643502",
+    "include/dt-bindings/pinctrl/mt65xx.h": "f65c0ac3ff79e3100adb89f17333792ad71998b108992c2734e0a81ba23c4b8f",
+    "Documentation/devicetree/bindings/pinctrl/mediatek,mt6779-pinctrl.yaml": "694e02b12351d0f9a525cb7584a6cd52ed2c23f0eb6fbc0a8adda6b57584a8d7",
+    "scripts/checkpatch.pl": "2553cc1a601e70522e03fbce633d4e79fa5936f7f56a66de1899b7ddd247820a",
+    "scripts/spelling.txt": "4095d4a8810f115bae1b7c0d8a1946beb3435f6e22d9a48ac009bb024bad1e68",
+    "scripts/const_structs.checkpatch": "ea064f6916a74763468037494aeb270aae34b7c97617e84d424ca5b8733539b2"
+  },
+  "vendor_commit": "8cfe6596a503612e3332d9c26e292a19525a7f07",
+  "vendor_files_sha256": {
+    "drivers/misc/mediatek/gpio/mt6797/mt_gpio_base.c": "fa8dcdcbda386451d619cd55f14b7aed2225cd692a1476eee9e1bf28982df1bc",
+    "drivers/misc/mediatek/gpio/mt6797/gpio_cfg.h": "29ea8cc6a821288defab068c0f8c6f452b3adcd068d48c3ca0702a616454ac9c",
+    "drivers/mmc/host/mediatek/mt6797/msdc_io.c": "b87966fb3bb7be7e9c7c273cc58e92e7c19ed6a3b09a503afbaedb529c890e07",
+    "drivers/mmc/host/mediatek/mt6797/msdc_io.h": "e3c97a2930ac29dd46838c170c733fb05d5d87b5aa139ee7837da9b9f242ce65"
+  },
+  "hardware_tested": false
+}
