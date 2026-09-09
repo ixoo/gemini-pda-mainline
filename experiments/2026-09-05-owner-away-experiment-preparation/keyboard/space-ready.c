@@ -5,6 +5,7 @@
 #include <linux/input.h>
 #include <linux/kd.h>
 #include <linux/tiocl.h>
+#include <linux/tty.h>
 #include <linux/vt.h>
 #include <poll.h>
 #include <signal.h>
@@ -117,7 +118,25 @@ static int report_state(int fd)
 /* Preserve queued bytes rather than flushing them. Every read is nonblocking. */
 static int drain_console(void)
 {
+	struct pollfd pending = { ttyfd, POLLIN, 0 };
+	int discipline, ready;
 	unsigned int total = 0;
+
+	/* A closed VT can retain flip-buffer input with no ldisc consumer.
+	 * In the pinned kernel, reselecting the current N_TTY takes the no-op
+	 * branch but restarts that worker. It neither replaces nor flushes the
+	 * discipline. Preserve the released bytes instead of using TCIFLUSH.
+	 */
+	if (ioctl(ttyfd, TIOCGETD, &discipline) || discipline != N_TTY ||
+	    ioctl(ttyfd, TIOCSETD, &discipline)) {
+		printf("console-drain requeue=refused\n");
+		return 2;
+	}
+	printf("console-drain requeue=accepted ldisc=0\n");
+	ready = poll(&pending, 1, 1000);
+	if (ready < 0 || interrupted ||
+	    (pending.revents & (POLLERR | POLLHUP | POLLNVAL)))
+		return 2;
 	for (unsigned int i = 0; i < 128 && !interrupted; i++) {
 		unsigned char data[32];
 		ssize_t count = read(ttyfd, data, sizeof(data));

@@ -86,3 +86,47 @@ setting. This leaves the physical VT translation path and the observation
 binary as distinctions requiring a further measurement. The tests used BusyBox,
 not the musl-linked keyboard reader, and did not reproduce a physical key press.
 No keyboard-driver correction or complete keyboard-support claim follows yet.
+
+
+## Independent physical-console comparison
+
+The [comparison](independent-reader-comparison.json) uses the same new boot.
+The owner missed the first fifteen-second BusyBox window. A successor kept the
+prompt available for ninety seconds and completed in 5.289 seconds with byte
+`31`, using the same raw termios bit changes as `cfmakeraw()` and VMIN=0/VTIME=0.
+It restored settings. This is one physical-console byte, not a full event or
+release trace; the shell reader's descriptor did not use O_NONBLOCK.
+
+The existing validated musl Space helper then received `31313120` (`111 `).
+Its first event was the Space scan, followed by the preserved Space press and
+sync; it cancelled because the prefix was not Space. The owner confirms the
+Space action. The prefix therefore predates the observed Space sequence, which
+suggests queued input rather than a Space-to-1 keymap error. Neither result
+proves the origin of the preceding digit bytes.
+
+## Pending flip-buffer hypothesis and diagnostic
+
+In the inspected 7.1.3 source, `tty_port_default_receive_buf()` returns zero
+without `port->itty` or an available line discipline. `flush_to_ldisc()` then
+leaves the bytes queued. Initial tty setup attaches the terminal and opens its
+line discipline without restarting this work; a later keyboard character's
+`tty_flip_buffer_push()` schedules it again. A read-side empty result or quiet
+poll therefore need not describe a previously stalled flip buffer. This is a
+source-derived explanation to test. Gemian also has this general buffering
+model; ordinary persistent console ownership differs from our diagnostic's
+requirement that all physical-console descriptors be closed between readers.
+
+Only `space-ready --drain-console` now requests the existing N_TTY discipline
+again after verifying it with TIOCGETD. The pinned kernel's same-discipline
+TIOCSETD branch does not close, replace or flush the discipline, but restarts
+its buffer worker. The helper then polls for up to one second and uses its
+existing 4,096-byte preservation limit and termios restoration. It refuses a
+non-N_TTY discipline or failed ioctl. Normal Space readiness and state-only
+queries remain unchanged pending evidence.
+
+The added PTY fixtures exercise the real no-op ioctl, inject bytes only after
+that call, and check wrong-discipline and failed-set refusals. Injection models
+a deferred source; it is not a hardware reproduction of a closed VT. A build
+and an attributable device observation are still required before concluding
+that requeueing resolves the recorded backlog. No keyboard-driver or kernel
+patch is justified by these observations alone.

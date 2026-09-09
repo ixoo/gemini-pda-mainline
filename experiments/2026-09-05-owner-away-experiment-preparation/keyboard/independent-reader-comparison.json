@@ -1,0 +1,60 @@
+{
+  "boot_id": "f2999a36-edfe-42ea-bca4-1abf8db1a7f9",
+  "cases": [
+    {
+      "case": "busybox-15-second",
+      "owner_report": "Owner reports missing the window.",
+      "process": {
+        "elapsed_seconds": 16.963,
+        "exit_status": 2,
+        "reason": null,
+        "stderr_bytes": 0,
+        "stdin_complete": true,
+        "stdout_bytes": 160
+      },
+      "stdout": "reader=busybox-first-byte\nraw=4000:4:4bf:a30:3:1c:7f:15:4:0:0:0:11:13:1a:0:12:f:17:16:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0\nidle=clear\nread=incomplete hex=restored=1\n",
+      "stdout_sha256": "9af6de460514324ae289d6cc26adce337e2217145cc74813a6c7fac88423f59c"
+    },
+    {
+      "case": "busybox-90-second",
+      "owner_report": "One digit byte captured after the tap-1 prompt.",
+      "process": {
+        "elapsed_seconds": 5.289,
+        "exit_status": 0,
+        "reason": null,
+        "stderr_bytes": 0,
+        "stdin_complete": true,
+        "stdout_bytes": 162
+      },
+      "stdout": "reader=busybox-first-byte\nraw=4000:4:4bf:a30:3:1c:7f:15:4:0:0:0:11:13:1a:0:12:f:17:16:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0\nidle=clear\nread=complete hex= 31\nrestored=1\n",
+      "stdout_sha256": "025888f651304decd80eb6036c9a31fa1c90c8b05358f509733c74204078bd11"
+    },
+    {
+      "case": "musl-space",
+      "owner_report": "Owner confirms pressing and releasing Space; start cancelled.",
+      "process": {
+        "elapsed_seconds": 6.695,
+        "exit_status": 2,
+        "reason": null,
+        "stderr_bytes": 0,
+        "stdin_complete": true,
+        "stdout_bytes": 266
+      },
+      "stdout": "space-ready=failed reason=console-byte restored=1 state=0 events=1 bytes=0 read=24 type=4 code=4 value=36 console_byte=49 errno=0\nconsole-read bytes=4 hex=31313120\npending type=1 code=57 value=1\npending type=0 code=0 value=0\npending count=2 limit=8 read=-1 errno=11\n",
+      "stdout_sha256": "4aee412ff9c5aaff59a0d901a18bee07a55055a02bed95cee412487bc105c889"
+    }
+  ],
+  "classification": "correct-independent-digit-then-preexisting-digit-prefix-before-musl-space",
+  "limitation": "A missed first window is inconclusive. The subsequent BusyBox sample proves one correct console byte. The musl capture preserved 111 followed by Space while its event stream began with Space; stale flip-buffer input is a hypothesis, not yet proven by a requeue test. No complete keyboard regression is claimed.",
+  "musl_package": {
+    "binary_sha256": "0520f341d4b44a21d26ad53bba0cf275ec21cd42b3f11df8bda946e2f848e07f",
+    "boot_id": "f2999a36-edfe-42ea-bca4-1abf8db1a7f9",
+    "capture_sha256": "0b222c63e9364781b84df70645f2b7eb881fb9684ce293ae6ae27bd7ea1d9a0e",
+    "delivery_sha256": "84ea6f1dbd8657d7c163e4ce8593cc4ff37857b5270b149a3771f23ca14f8e5f",
+    "id": "dca0c613-9316-41ec-8d39-f8b5660714a9",
+    "package": "8b5389ef5bede1798fda52219ab700d1a783260f3a254139ce02291e05387daa",
+    "remote": "/a53-keyboard-muslcheck-dca0c613-9316-41ec-8d39-f8b5660714a9",
+    "revision": "14ad01ce2596f43cc081ea4163fa00709fed47d6"
+  },
+  "schema": "keyboard-independent-reader-comparison-v1"
+}

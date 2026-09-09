@@ -86,6 +86,19 @@ static int fake_ioctl(int fd, unsigned long request, ...)
         if (entry->kb_index != KEY_SPACE || entry->kb_table > 15) abort();
         entry->kb_value = 32; return 0;
     }
+    if (fd == console_fd && request == TIOCGETD) {
+        if (getenv("WRONG_LDISC")) { *(int *)out = 1; return 0; }
+        return ioctl(fd, request, out);
+    }
+    if (fd == console_fd && request == TIOCSETD) {
+        static int calls;
+        if (++calls != 1 || *(int *)out != 0) abort();
+        if (getenv("REFUSE_REQUEUE")) return -1;
+        int result = ioctl(fd, request, out);
+        if (!result && getenv("REQUEUE_FD"))
+            if (write(atoi(getenv("REQUEUE_FD")), "queued", 6) != 6) abort();
+        return result;
+    }
     return -1;
 }
 #define open fake_open
@@ -206,6 +219,32 @@ def drain_case(binary, qemu):
             os.close(fd)
 
 
+def requeue_case(binary, qemu, fault=None):
+    master, slave = pty.openpty()
+    reader, writer = os.pipe()
+    try:
+        before = termios.tcgetattr(slave)
+        result = subprocess.run([qemu, str(binary), '--drain-console', 'event0', '64'],
+            pass_fds=(reader, slave, master), capture_output=True, timeout=3,
+            env={**os.environ, 'INPUT_FD': str(reader), 'CONSOLE_FD': str(slave),
+                 'REQUEUE_FD': str(master), **({fault: '1'} if fault else {})})
+        assert result.returncode == (2 if fault else 0) and result.stderr == b'', result
+        if fault:
+            assert result.stdout == (b'console-drain requeue=refused\n'
+                                     b'console-drain complete=0 restored=1\n'), result
+        else:
+            assert result.stdout == (b'console-drain requeue=accepted ldisc=0\n'
+                b'console-drain bytes=6 hex=717565756564\n'
+                b'console-drain empty=1 bytes=6\n'
+                b'console-drain complete=1 restored=1\n'), result
+        assert termios.tcgetattr(slave) == before
+        assert not select.select([master], [], [], 0)[0]
+        print('console-drain-' + (fault or 'injected-after-requeue') + '=pass')
+    finally:
+        for fd in (master, slave, reader, writer):
+            os.close(fd)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--compiler', required=True)
@@ -229,6 +268,9 @@ def main():
     state_case(binary, args.qemu)
     state_case(binary, args.qemu, failure=True)
     drain_case(binary, args.qemu)
+    requeue_case(binary, args.qemu)
+    requeue_case(binary, args.qemu, 'WRONG_LDISC')
+    requeue_case(binary, args.qemu, 'REFUSE_REQUEUE')
 
 
 if __name__ == '__main__':
