@@ -5,11 +5,11 @@ set -euo pipefail
 umask 077
 export LC_ALL=C SOURCE_DATE_EPOCH=0 PYTHONDONTWRITEBYTECODE=1 PYTHONOPTIMIZE=0
 unset CPATH C_INCLUDE_PATH CPLUS_INCLUDE_PATH LIBRARY_PATH COMPILER_PATH GCC_EXEC_PREFIX REALGCC CFLAGS CPPFLAGS LDFLAGS
-[[ $# == 2 || $# == 3 ]] || { echo 'usage: build-monitor.sh EXACT_REVISION MANAGED_ROOT [keyboard-monitor|keyboard-monitor-enabled|keyboard-duration|keyboard-disconnect-preserver]' >&2; exit 2; }
+[[ $# == 2 || $# == 3 ]] || { echo 'usage: build-monitor.sh EXACT_REVISION MANAGED_ROOT [keyboard-monitor|keyboard-monitor-enabled|keyboard-duration|keyboard-disconnect-preserver|keyboard-space-ready]' >&2; exit 2; }
 revision=$1
 managed=$2
 kind=${3:-keyboard-monitor}
-[[ $kind == keyboard-monitor || $kind == keyboard-monitor-enabled || $kind == keyboard-duration || $kind == keyboard-disconnect-preserver ]]
+[[ $kind == keyboard-monitor || $kind == keyboard-monitor-enabled || $kind == keyboard-duration || $kind == keyboard-disconnect-preserver || $kind == keyboard-space-ready ]]
 here=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 repository=$(git -C "$here" rev-parse --show-toplevel)
 [[ $revision =~ ^[0-9a-f]{40}$ ]]
@@ -114,6 +114,40 @@ if [[ $kind == keyboard-duration ]]; then
   install -m 0600 "$repository/LICENSE" "$stage/package/licenses/repository-LICENSE"
   install -m 0600 /usr/share/doc/gcc-12-aarch64-linux-gnu/copyright "$stage/package/licenses/GCC-copyright"
   printf 'repository_commit=%s\nproduction_entry=none\ndevice_action=none\n' "$revision" >"$stage/package/provenance.txt"
+elif [[ $kind == keyboard-space-ready ]]; then
+  for replica in one two; do
+    mkdir "$stage/$replica"
+    timeout 60 "$compiler" -std=c11 -Os -static -Wall -Wextra -Werror \
+      -idirafter /usr/aarch64-linux-gnu/include \
+      "-ffile-prefix-map=$repository=." "-ffile-prefix-map=$stage=." \
+      -MD -MF "$stage/$replica/headers.d" "$here/space-ready.c" \
+      -o "$stage/$replica/space-ready"
+    aarch64-linux-gnu-readelf -h "$stage/$replica/space-ready" | grep -q AArch64
+    if aarch64-linux-gnu-readelf -l "$stage/$replica/space-ready" | grep -q INTERP; then exit 1; fi
+    if aarch64-linux-gnu-readelf -d "$stage/$replica/space-ready" | grep -q NEEDED; then exit 1; fi
+    aarch64-linux-gnu-strip --strip-all "$stage/$replica/space-ready"
+    [[ $(stat -c %s "$stage/$replica/space-ready") -le 131072 ]]
+  done
+  cmp "$stage/one/space-ready" "$stage/two/space-ready"
+  timeout 60 python3 "$here/test-space-ready.py" --compiler "$compiler" --qemu "$qemu" \
+    --work "$stage" >"$stage/package/fixture-tests.txt" 2>&1
+  install -m 0700 "$stage/one/space-ready" "$stage/package/space-ready"
+  install -m 0600 "$musl/COPYRIGHT" "$stage/package/licenses/musl-COPYRIGHT"
+  install -m 0600 "$repository/LICENSE" "$stage/package/licenses/repository-LICENSE"
+  install -m 0600 /usr/share/doc/gcc-12-aarch64-linux-gnu/copyright "$stage/package/licenses/GCC-copyright"
+  printf 'repository_commit=%s\nproduction_entry=space-ready-v1\ndevice_action=none\n' "$revision" >"$stage/package/provenance.txt"
+  python3 - "$here" "$stage" "$revision" <<'PYREADY'
+import hashlib, json, pathlib, sys
+here, stage = map(pathlib.Path, sys.argv[1:3])
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+headers = (stage/'one/headers.d').read_text().replace('\\\n', ' ').split()[1:]
+inputs = {p.name: sha(p) for p in [here/'space-ready.c', here/'test-space-ready.py', here/'build-monitor.sh', stage/'musl.tar.gz']}
+header_inputs = {str(pathlib.Path(p)).replace(str(stage), 'build').replace(str(here), 'keyboard'): sha(pathlib.Path(p)) for p in headers}
+result = {'revision': sys.argv[3], 'inputs': inputs, 'header_inputs': header_inputs,
+          'replicas_identical': True, 'production_entry': 'space-ready-v1', 'device_action': 'none',
+          'stripped_bytes': (stage/'package/space-ready').stat().st_size}
+(stage/'package/manifest.json').write_text(json.dumps(result, indent=2, sort_keys=True)+'\n')
+PYREADY
 elif [[ $kind == keyboard-disconnect-preserver ]]; then
 production_entry=none
 entry=keyboard-disconnect-preserver
