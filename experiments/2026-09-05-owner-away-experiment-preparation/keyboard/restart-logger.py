@@ -10,8 +10,10 @@ M = runpy.run_path(str(HERE/'capture.py'))
 C, S, require, sha = (M[k] for k in ('C', 'S', 'require', 'sha'))
 
 
-def prepare(session, seal='seal', retry_id=None):
-    require(seal in ('seal', 'restarted-seal'), 'seal source')
+def prepare(session, seal='seal', retry_id=None, clock_path=None):
+    require(seal in ('seal', 'restarted-seal', 'retry-seal'), 'seal source')
+    require(seal != 'retry-seal' or (retry_id is not None and clock_path is not None),
+            'latest retry seal requires a fresh clock and archive identity')
     require(retry_id is None or (type(retry_id) is str and C['UUID'].fullmatch(retry_id)), 'retry identity')
     session = Path(session)
     admission = json.loads(C['regular'](session/'proof-admission.json', 65536))
@@ -62,8 +64,13 @@ done
     if retry_id is not None:
         text = text.replace('/run/a53/keyboard-logger-prior', '/run/a53/keyboard-logger-prior-' + retry_id)
         absent = '[ ! -e /run/a53/keyboard-logger-clock ] && [ ! -L /run/a53/keyboard-logger-clock ]'
-        clock = C['regular'](session/'logger-clock.txt', 128)
-        require(len(clock.split()) == 3 and clock.split()[0].decode() == boot, 'prior clock identity')
+        clock = C['regular'](Path(clock_path) if clock_path is not None else session/'logger-clock.txt', 128)
+        parts = clock.split()
+        require(len(parts) == 3 and parts[0].decode() == boot and parts[1].isdigit()
+                and 0 < int(parts[1]) <= 4194304, 'prior clock identity')
+        marker = '$BB mkdir -m 700 /run/a53/keyboard-logger-prior-' + retry_id
+        require(text.count(marker) == 1, 'logger archive template')
+        text = text.replace(marker, f'[ "$($BB cat /run/a53/kmsg-pid)" = {int(parts[1])} ]\n' + marker)
         text = text.replace(absent, '[ -f /run/a53/keyboard-logger-clock ] && [ ! -L /run/a53/keyboard-logger-clock ]\n'
             '[ "$($BB stat -c %u:%a /run/a53/keyboard-logger-clock)" = 0:600 ]\n'
             f'h=$($BB sha256sum /run/a53/keyboard-logger-clock); [ "${{h%% *}}" = {sha(clock)} ]')

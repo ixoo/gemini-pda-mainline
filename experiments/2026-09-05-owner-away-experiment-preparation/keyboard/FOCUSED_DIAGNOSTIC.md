@@ -181,3 +181,38 @@ Both actual command generation and Bash syntax/ShellCheck passed (SC2016 is
 excluded for intentional literal awk programs). Focused assembly and historical
 source-pin refusal fixtures cover the new code; target-shell execution of this
 plan and device timing remain untested.
+
+## Attended execution preparation
+
+The owner returned and reported the console visible. One bounded read-only USB
+connection confirmed the original mainline boot
+`e3a29c80-4948-4ef8-893a-cfbef0cd4918`, exact candidate guards and matching current
+logger-clock/PID. The known-good Gemian LAN alias timed out; the authenticated
+USB observation establishes that this is still mainline. No boot or partition
+operation is needed. Previous capture and sealed-log evidence remain preserved.
+
+The fresh plan `79424420-f296-49b3-a379-1e58d75970c9` uses the same reviewed
+focused package and eight fixed phases: Space delivery/wait, logger start,
+two focused deliveries, capture, independent export and log seal. The
+[execution binding](focused-execution-binding.json) pins the private plan and
+[phase runner](focused-run.py). Every phase has a persistent once-only host
+claim, exact command digest, fixed deadline/caps and prerequisites. The runner
+requires fresh Space acceptance before starting the logger, rechecks the source
+closure, and uses the existing live guards in each frozen command. It has no
+recovery or reboot phase. Export preserves available parsed files even when
+completeness fails; sealing requires the exported monitor's reaped result.
+
+The logger preparer now accepts the latest `retry-seal` only with an explicit
+fresh clock file and new archive identity. It checks that clock's PID against
+the live PID before moving the preserved log files, retains their exact hashes,
+and preserves the original logger duration and byte limit. Older clock records
+are not overwritten. This is a logger restart, not a device restart.
+
+All eight frozen commands passed shell syntax and ShellCheck. SC2016 excludes
+literal awk programs; SC2329 is additionally excluded for the logger's existing
+signal-trap callback, which is invoked indirectly. The generated PID check was
+verified before the archive claim. The disabled execution binding refused
+before creating a claim or making a connection. Existing focused assembly and
+historical-prerequisite fixtures passed. The owner-controlled Space wait and
+actual focused capture have not yet run in this preparation record; their
+receipts must establish the outcomes. Disable the binding after consumption.
