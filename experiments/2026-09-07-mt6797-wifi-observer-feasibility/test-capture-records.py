@@ -91,6 +91,53 @@ class RecordsTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 r.encode(kind, 1, CYCLE, 0, bytes(layout.size))
 
+    def dma_trace(self, direction=1):
+        address, endpoint = 0x100004000, 0x18000000
+        source, destination = (address, endpoint) if direction else (endpoint, address)
+        return [(3, r.DMA_MAP.pack(1, direction, 2000, 2048, address, 0x34, 1)),
+                (4, r.DMA_PROGRAM.pack(1, 1, source, destination,
+                                      0, 0x80030000 | (1 - direction), source & 0xffffffff,
+                                      destination & 0xffffffff, 2048, 0, 1, 0, 1, 0, 1, 0, 1)),
+                (5, r.DMA_POLL.pack(1, 1, 0, 0, 0, 0, 0)),
+                (5, r.DMA_POLL.pack(1, 2, 1, 0, 2, 1, 1)),
+                (4, r.DMA_PROGRAM.pack(1, 2, 0, 0, 1, 0, 1, 0, *([0] * 9))),
+                (5, r.DMA_POLL.pack(2, 1, 0, 0, 0, 0, 0)),
+                (5, r.DMA_POLL.pack(2, 2, 1, 0, 2, 0, 1)),
+                (6, r.DMA_UNMAP.pack(1, 1, address, 2048, direction)),
+                (6, r.DMA_UNMAP.pack(2, 1, address, 2048, direction))]
+
+    def stream(self, events):
+        return self.identity() + b''.join(r.encode(kind, seq, CYCLE, 7, payload)
+                                          for seq, (kind, payload) in enumerate(events, 1))
+
+    def test_dma_lifetime_rx_tx(self):
+        for direction in (0, 1):
+            result = r.check_dma(self.stream(self.dma_trace(direction)), CYCLE)
+            self.assertEqual(result['checked_transactions'], [7])
+        with self.assertRaises(ValueError):
+            r.check_dma(self.identity(), CYCLE)
+
+    def test_dma_semantic_mutations_with_valid_crc(self):
+        layouts = {3: r.DMA_MAP, 4: r.DMA_PROGRAM, 5: r.DMA_POLL, 6: r.DMA_UNMAP}
+        # Event index, field index, changed value: frames are re-encoded with valid CRCs.
+        mutations = [(0, 6, 2), (0, 3, 1000), (1, 2, 0x100008000),
+                     (1, 5, 0), (1, 6, 0), (1, 8, 4096), (1, 10, 0),
+                     (1, 12, 0), (1, 14, 0), (1, 16, 0),
+                     (3, 5, 0), (4, 5, 1), (4, 7, 1),
+                     (6, 2, 3), (6, 5, 1), (7, 2, 0x100008000), (8, 3, 4096)]
+        for event_index, field_index, value in mutations:
+            events = self.dma_trace()
+            kind, payload = events[event_index]
+            fields = list(layouts[kind].unpack(payload))
+            fields[field_index] = value
+            events[event_index] = (kind, layouts[kind].pack(*fields))
+            with self.assertRaises(ValueError):
+                r.check_dma(self.stream(events), CYCLE)
+        events = self.dma_trace()
+        for changed in (events[:-1], events + events, events[:5] + events[7:9] + events[5:7]):
+            with self.assertRaises(ValueError):
+                r.check_dma(self.stream(changed), CYCLE)
+
     def test_invalid_fields(self):
         for kind, seq, cycle, transaction, payload in [
                 (99, 1, CYCLE, 0, b''), (3, 1, bytes(16), 0, b''),

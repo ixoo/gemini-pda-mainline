@@ -1,0 +1,18 @@
+{
+  "scope": "Native DMA enum and register masks for offline trace consistency; no hardware observation",
+  "repository": "gemian/gemini-linux-kernel-3.18",
+  "revision": "59e00a9144d782e148332009a835b99c43382467",
+  "sources": [
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif.h",
+      "bytes": 10855,
+      "sha256": "e9d18516cc49e6290203a827551ea7cb890af155d2ae9ddd0fd9ec03888fb87c"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_pdma.h",
+      "bytes": 5060,
+      "sha256": "898874f9f3180000a393fab0a13666fd4960364f3c4b7517a1f965f027213028"
+    }
+  ],
+  "operation_sources": "results/capture-sizing.json"
+}

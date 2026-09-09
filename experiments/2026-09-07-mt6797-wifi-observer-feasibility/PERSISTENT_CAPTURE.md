@@ -242,3 +242,43 @@ unattributed DMA payload refusal. Existing framing corruption and capacity
 tests still pass. Cross-record transaction ordering, positive idle before
 unmap, non-DMA payload schemas and physical writer/recovery behavior remain
 unfinished; no producer-reported success is promoted by these checks.
+
+## Cross-record DMA consistency
+
+`check_dma()` now checks each recorded DMA transaction after strict framing
+validation. The [additional source receipt](results/dma-check-sources.json)
+pins the native direction enum and register masks; the previously pinned
+`ahb_pdma.c` supplies the actual transformations. Native TX/RX are 0/1,
+while the observer enum is RX/TX 0/1, so the CON direction bit is translated
+explicitly rather than copied from the observer field.
+
+The checker requires exactly the nine core records per transaction, including
+both poll entries/exits and unmap entry/return. Missing records, reuse of a
+transaction ID or moving unmap before the idle result are refusals. It requires
+a DMA API mapping with positive, nontruncated transfer length, matching device
+and full mapped address in the selected programming source/destination, matching
+low-word stores and LEN, the native CON masks/burst/direction, and the recorded
+ADDR2/interrupt/enable OR operations. ACK and interrupt-stop stores must match
+their recorded reads with bit zero cleared.
+
+Both polling exits must report the condition branch and include an actual
+read: INTFLAG bit zero set for completion, EN bit zero clear for idle. Unmap
+must then use the same device, address, length and direction. A count escape,
+missing read or a producer's claimed completion with the wrong raw bit is not
+accepted. The decoder still preserves those structurally valid fault records;
+only the consistency check refuses them.
+
+Ten tests pass, including RX and TX sequences, seventeen payload mutations
+re-encoded with valid CRCs, and incomplete, repeated and reordered lifetimes.
+The new mutations cover mapping branch/length/address, register transformations,
+false completion/idle, timeout/count-escape classification and mismatched unmap.
+This is stronger than CRC checking but remains a check of recorded software
+operations. It does not establish bus translation, actual endpoint ownership,
+visibility of posted stores, firmware execution, a full Wi-Fi cycle or a safe
+physical release. In particular, reproducing the vendor's unconditional ADDR2
+OR does not prove it encodes the DMA API address correctly. The result contains
+only checked transaction IDs and that limited scope; no hardware pass is emitted.
+
+Non-DMA events are outside this function's verdict. Their schemas and causal
+checks, capture hooks, physical storage ownership and recovery remain required
+before a candidate can use this format for the complete experiment.

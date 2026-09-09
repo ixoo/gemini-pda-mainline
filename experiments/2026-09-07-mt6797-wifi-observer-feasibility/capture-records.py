@@ -99,3 +99,45 @@ def decode(data, expected_cycle):
                         'payload': payload})
     # A committed prefix without terminal is useful partial evidence, never completion.
     return records
+
+
+def check_dma(data, expected_cycle):
+    """Check complete recorded DMA lifetimes, not endpoint translation or Wi-Fi success."""
+    transactions = {}
+    for record in decode(data, expected_cycle):
+        if record['kind'] in (3, 4, 5, 6):
+            transactions.setdefault(record['transaction'], []).append(record)
+    if not transactions:
+        raise ValueError('no DMA lifetime recorded')
+    for transaction, rows in transactions.items():
+        if [row['kind'] for row in rows] != [3, 4, 5, 5, 4, 5, 5, 6, 6]:
+            raise ValueError('incomplete, reordered or reused DMA transaction')
+        device, direction, requested, rounded, address, port, branch = DMA_MAP.unpack(rows[0]['payload'])
+        if branch != 1 or not requested or not requested <= rounded <= 0xfffff:
+            raise ValueError('missing DMA API mapping or invalid transfer length')
+        program_device, phase, source, destination, *regs = DMA_PROGRAM.unpack(rows[1]['payload'])
+        if program_device != device or phase != 1 or (destination if direction == 0 else source) != address:
+            raise ValueError('DMA mapping/programming identity mismatch')
+        con_in, con_out, src_low, dst_low, length, src2_in, src2_out, dst2_in, dst2_out, irq_in, irq_out, en_in, en_out = regs
+        # Native RX is 1 and TX is 0; observer direction uses RX=0, TX=1.
+        expected_con = (con_in & ~0x30003) | 0x80030000 | (1 - direction)
+        if (con_out != expected_con or src_low != source & 0xffffffff or
+                dst_low != destination & 0xffffffff or length != rounded or
+                src2_out != src2_in | 1 or dst2_out != dst2_in | 1 or
+                irq_out != irq_in | 1 or en_out != en_in | 1):
+            raise ValueError('recorded programming differs from the native operation')
+        for entry_index, exit_index, poll_phase in ((2, 3, 1), (5, 6, 2)):
+            entry = DMA_POLL.unpack(rows[entry_index]['payload'])
+            result = DMA_POLL.unpack(rows[exit_index]['payload'])
+            if entry[:2] != (poll_phase, 1) or result[:3] != (poll_phase, 2, 1):
+                raise ValueError('missing successful native poll sequence')
+            if not result[4] or not result[6] or bool(result[5] & 1) != (poll_phase == 1):
+                raise ValueError('completion or positive idle read missing')
+        stop_device, stop_phase, _, _, *stop = DMA_PROGRAM.unpack(rows[4]['payload'])
+        if stop_device != device or stop_phase != 2 or stop[1] != stop[0] & ~1 or stop[3] != stop[2] & ~1:
+            raise ValueError('ACK/interrupt-stop programming mismatch')
+        for index, stage in ((7, 1), (8, 2)):
+            if DMA_UNMAP.unpack(rows[index]['payload']) != (stage, device, address, rounded, direction):
+                raise ValueError('unmap does not match the idle DMA mapping')
+    return {'checked_transactions': list(transactions),
+            'scope': 'recorded DMA API/programming/poll/unmap consistency only'}
