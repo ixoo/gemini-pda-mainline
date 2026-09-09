@@ -125,3 +125,60 @@ consumer. Neither is implemented or admitted here. Repeating the same service
 inventory will not resolve that choice; it requires a concrete acquisition and
 recovery design. The read-only follow-up changed no services, properties,
 configuration, partition, firmware or radio state.
+
+## Minimal startup direction and kernel actors, 2026-09-09
+
+Use a candidate-specific minimal startup as the design direction for the first
+load/shutdown observation. It should start only the reviewed connectivity
+prerequisites and collector, keep WLAN/P2P interfaces administratively down,
+and issue no scan, association, AP/P2P-mode or packet-transmission request.
+This avoids introducing full Android classes, ConnMan, Bluetooth and GNSS
+consumers into a WLAN lifetime discriminator. It is a design choice, not a
+completed initramfs, a claim that firmware cannot transmit, or authorization
+to change the current Gemian session. The exact loader prerequisites, capture
+storage and recovery window still require closure before implementation.
+
+The [kernel-actor receipt](results/startup-kernel-actors-review.json) identifies
+one additional control path that userspace isolation alone must not obscure.
+Five prepared source files were compared byte-for-byte with Git objects at
+`59e00a9144d782e148332009a835b99c43382467`. The retained compile package's log
+records their five compilations; its symbol map has a global text definition
+of `kalBoostCpu`, as well as the performance-start and framebuffer callbacks.
+This supplements the [compiler-input review](NATIVE_SOURCE_FEASIBILITY.md#recorded-compiler-command-follow-up-2026-09-09).
+It is source/link evidence, not executed instruction or current-boot evidence.
+
+`initWlan()` registers `wlan_fb_notifier_callback` independently of the ConnMan
+plugin. For accepted blank events, the kernel callback clears the performance
+monitor's disable flag on unblank, or disables the monitor on powerdown, after
+its halt-lock checks. Unblank does **not** call `kalPerMonStart()`. Initialization
+sets the monitor stopped and gives its timer a 1000 ms period. The two start
+calls found in the gen3 C sources are in station and P2P transmit entry points:
+the station call additionally requires successful enqueue and carrier; the P2P
+call requires a connection or a nonempty client list. `WIFI_write`'s first-byte
+`1` branch requests WMT function-on without a netdev-open or mode-selection call
+in that branch. The `S`/`P`/`A` branches remain outside the proposed cycle.
+
+The MT6797 platform source supplies a non-weak `kalBoostCpu` implementation.
+For a nonzero request it submits a CPU-count request, capped by possible CPUs,
+and a 2,000,000 kHz frequency request through the PPM API. Zero submits release
+requests. This is a request to policy code, not proof that any CPU was enabled
+or ran at that frequency. The weak no-op definition in `gl_kal.c` therefore
+cannot justify calling the selected platform path harmless. The performance
+handler can make nonzero requests after a throughput-level change; stopping a
+running monitor also calls the zero-request path.
+
+For the minimal cycle, retain the native monitor behavior and require no
+performance-monitor start or CPU-boost call in the attributable capture,
+alongside no station/P2P transmit entry and no mode/association request.
+Keeping interfaces down and excluding network managers is the source-backed
+way to avoid the identified starts; a live state snapshot alone is not proof
+of their absence throughout the cycle. A display unblank by itself is not a
+counterexample, and no speculative boost-suppression patch is needed from this
+review. Unexpected start/boost activity invalidates this isolation predicate
+and must be preserved, not reclassified as an ordinary load/shutdown pass.
+This does not exclude unrelated kernel CPU policy or establish that the wider
+candidate's power behavior is bounded.
+
+No service, framebuffer state, CPU policy, radio or kernel was changed. The
+source review narrows the startup/capture contract without admitting a build
+or selecting a new device candidate.

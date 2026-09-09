@@ -1,0 +1,68 @@
+{
+  "schema": "wifi-startup-kernel-actors-review-v1",
+  "scope": "public source and retained compiler log/symbol-map analysis; no binary decoding or device action",
+  "source_revision": "59e00a9144d782e148332009a835b99c43382467",
+  "package_name": "gemian-observer-a98ffc90f979",
+  "package_inventory_sha256": "45e28e14a2c25a4fc829cee3753477da5c98a2a029a82626774dab6e9f854f28",
+  "build_log_sha256": "cc43a28e3856325f3087dbc0c6b0a32e5cc0d8034074d851a0e0e33dd9da1a39",
+  "system_map_sha256": "d1e7d37aa963f4a1ca5cfab2097892d548e3d24e9da3bcd9f1c978eab7edd3d2",
+  "sources": [
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/wmt_chrdev_wifi.c",
+      "bytes": 14426,
+      "sha256": "b2791e8354a41a53265a2619f9bfd8ec2ebe37319a0a8e9aa085c9ae15f9d3f5"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c",
+      "bytes": 76036,
+      "sha256": "8a644f0c9f3e37c6f66654cf3aeecb8e5f4cd71405e67f79105da7c8f87a7665"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_kal.c",
+      "bytes": 153027,
+      "sha256": "749c5fc0e6cf3614d15e237e2d65cf92858d483ef1d678f6d9aee0f87bf348f1"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_p2p.c",
+      "bytes": 120660,
+      "sha256": "b5c30dce56cf8d236a2685d58906ca52a3b8e373350e1ec58296663c2384c036"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/plat/mt6797/plat_priv.c",
+      "bytes": 1144,
+      "sha256": "4a12c42ca54ae5aa9ce2c0abaaa64f55ab31bbfe7f3f6ff5882844a73cb5ebaa"
+    }
+  ],
+  "commands": [
+    {
+      "source_basename": "wmt_chrdev_wifi.c",
+      "log_line": 2633,
+      "command_sha256_no_newline": "53eca9aa1a986f6e3a4f93fe698d3eb1033e2ef2f45e5c9ef90e4d5d36119513"
+    },
+    {
+      "source_basename": "plat_priv.c",
+      "log_line": 2751,
+      "command_sha256_no_newline": "340e311b5d23730ae692f3333081e5ac7c8239b7b7993e04f2c83ed13b0bd997"
+    },
+    {
+      "source_basename": "gl_init.c",
+      "log_line": 3045,
+      "command_sha256_no_newline": "823fdbf00749a07cf7aaf02ca743b2d20f17b440ac3aba85ef6592dc7e5c60e4"
+    },
+    {
+      "source_basename": "gl_kal.c",
+      "log_line": 3054,
+      "command_sha256_no_newline": "9a23843729223d52f4ffca434c10fdd5c26a597f9630fd0506c1fb96a0c25d5a"
+    },
+    {
+      "source_basename": "gl_p2p.c",
+      "log_line": 3239,
+      "command_sha256_no_newline": "104ccdb4aa54ebd2a5f458bad8f8c22caaaaa8964036e4e30eb2a94053df4e34"
+    }
+  ],
+  "symbols": [
+    "ffffffc0006e8af0 T kalBoostCpu",
+    "ffffffc00074c778 T kalPerMonStart",
+    "ffffffc00074cda8 t wlan_fb_notifier_callback"
+  ]
+}
