@@ -1,0 +1,45 @@
+From c2b0e5d7890756dbf9a306830ecf1d22395b6fb0 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Wed, 9 Sep 2026 03:30:43 -0400
+Subject: [PATCH] dt-bindings: pinctrl: mediatek: allow all MT6797 MSDC drive
+ strengths
+
+MT6797 MSDC pads encode 2 through 16 mA in steps of 2 mA. Permit
+the missing 6, 10 and 14 mA requests in the shared binding while
+retaining the existing MT6779 constraint.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ .../bindings/pinctrl/mediatek,mt6779-pinctrl.yaml        | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/Documentation/devicetree/bindings/pinctrl/mediatek,mt6779-pinctrl.yaml b/Documentation/devicetree/bindings/pinctrl/mediatek,mt6779-pinctrl.yaml
+index f4bab7a..8f7c26a 100644
+--- a/Documentation/devicetree/bindings/pinctrl/mediatek,mt6779-pinctrl.yaml
++++ b/Documentation/devicetree/bindings/pinctrl/mediatek,mt6779-pinctrl.yaml
+@@ -81,6 +81,13 @@ allOf:
+             - const: iocfg_lt
+             - const: iocfg_tl
+             - const: eint
++      patternProperties:
++        '-[0-9]*$':
++          patternProperties:
++            '-pins*$':
++              properties:
++                drive-strength:
++                  enum: [2, 4, 8, 12, 16]
+   - if:
+       properties:
+         compatible:
+@@ -152,7 +159,7 @@ patternProperties:
+           input-schmitt-disable: true
+ 
+           drive-strength:
+-            enum: [2, 4, 8, 12, 16]
++            enum: [2, 4, 6, 8, 10, 12, 14, 16]
+ 
+           slew-rate:
+             enum: [0, 1]
+-- 
+2.50.1 (Apple Git-155)
+

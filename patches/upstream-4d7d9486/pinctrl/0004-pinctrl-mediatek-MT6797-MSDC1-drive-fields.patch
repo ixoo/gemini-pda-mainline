@@ -1,0 +1,116 @@
+From aa91cb3ed6e88addbceb3231c84c50dcece5fdd1 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Wed, 9 Sep 2026 03:30:43 -0400
+Subject: [PATCH] pinctrl: mediatek: add MT6797 MSDC1 drive-strength fields
+
+Describe the CMD, shared DAT0-3 and CLK drive selectors for GPIO129-134
+in IOCFG_B register 0x1b0. Use the existing rev1 drive callbacks and
+DRV_GRP4 to encode their documented 2-16 mA scale correctly.
+
+The vendor GPIO map and MMC definitions agree on the three-bit fields.
+The GPIO setter changes these selectors independently; the separate MMC
+bias-tuning operation is not a drive field and is not added here.
+
+Other pins retain unsupported drive configuration. No board state or
+pad power transition is selected.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/pinctrl/mediatek/pinctrl-mt6797.c     | 10 ++++++++++
+ drivers/pinctrl/mediatek/pinctrl-mtk-mt6797.h | 12 ++++++------
+ 2 files changed, 16 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/pinctrl/mediatek/pinctrl-mt6797.c b/drivers/pinctrl/mediatek/pinctrl-mt6797.c
+index 6d4a5b1..da4e843 100644
+--- a/drivers/pinctrl/mediatek/pinctrl-mt6797.c
++++ b/drivers/pinctrl/mediatek/pinctrl-mt6797.c
+@@ -36,11 +36,19 @@ static const struct mtk_pin_field_calc mt6797_pin_do_range[] = {
+ 	PIN_FIELD(0, 261, 0x100, 0x10, 0, 1),
+ };
+ 
++static const struct mtk_pin_field_calc mt6797_pin_drv_range[] = {
++	PIN_FIELD_CALC(129, 129, 2, 0x1b0, 0x10, 21, 3, 32, 0),
++	/* DAT0 through DAT3 share one drive-strength selector. */
++	PIN_FIELD_CALC(130, 133, 2, 0x1b0, 0x10, 24, 3, 32, 1),
++	PIN_FIELD_CALC(134, 134, 2, 0x1b0, 0x10, 27, 3, 32, 0),
++};
++
+ static const struct mtk_pin_reg_calc mt6797_reg_cals[PINCTRL_PIN_REG_MAX] = {
+ 	[PINCTRL_PIN_REG_MODE] = MTK_RANGE(mt6797_pin_mode_range),
+ 	[PINCTRL_PIN_REG_DIR] = MTK_RANGE(mt6797_pin_dir_range),
+ 	[PINCTRL_PIN_REG_DI] = MTK_RANGE(mt6797_pin_di_range),
+ 	[PINCTRL_PIN_REG_DO] = MTK_RANGE(mt6797_pin_do_range),
++	[PINCTRL_PIN_REG_DRV] = MTK_RANGE(mt6797_pin_drv_range),
+ };
+ 
+ static const char * const mt6797_pinctrl_register_base_names[] = {
+@@ -55,6 +63,8 @@ static const struct mtk_pin_soc mt6797_data = {
+ 	.gpio_m = 0,
+ 	.base_names = mt6797_pinctrl_register_base_names,
+ 	.nbase_names = ARRAY_SIZE(mt6797_pinctrl_register_base_names),
++	.drive_set = mtk_pinconf_drive_set_rev1,
++	.drive_get = mtk_pinconf_drive_get_rev1,
+ };
+ 
+ static const struct of_device_id mt6797_pinctrl_of_match[] = {
+diff --git a/drivers/pinctrl/mediatek/pinctrl-mtk-mt6797.h b/drivers/pinctrl/mediatek/pinctrl-mtk-mt6797.h
+index 86ab78e..929e17d 100644
+--- a/drivers/pinctrl/mediatek/pinctrl-mtk-mt6797.h
++++ b/drivers/pinctrl/mediatek/pinctrl-mtk-mt6797.h
+@@ -1236,7 +1236,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	MTK_PIN(
+ 		129, "GPIO129",
+ 		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
+-		DRV_GRP3,
++		DRV_GRP4,
+ 		MTK_FUNCTION(0, "GPIO129"),
+ 		MTK_FUNCTION(1, "MSDC1_CMD"),
+ 		MTK_FUNCTION(2, "CONN_DSP_JMS"),
+@@ -1247,7 +1247,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	MTK_PIN(
+ 		130, "GPIO130",
+ 		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
+-		DRV_GRP3,
++		DRV_GRP4,
+ 		MTK_FUNCTION(0, "GPIO130"),
+ 		MTK_FUNCTION(1, "MSDC1_DAT0"),
+ 		MTK_FUNCTION(2, "CONN_DSP_JDI"),
+@@ -1258,7 +1258,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	MTK_PIN(
+ 		131, "GPIO131",
+ 		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
+-		DRV_GRP3,
++		DRV_GRP4,
+ 		MTK_FUNCTION(0, "GPIO131"),
+ 		MTK_FUNCTION(1, "MSDC1_DAT1"),
+ 		MTK_FUNCTION(2, "CONN_DSP_JDO"),
+@@ -1269,7 +1269,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	MTK_PIN(
+ 		132, "GPIO132",
+ 		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
+-		DRV_GRP3,
++		DRV_GRP4,
+ 		MTK_FUNCTION(0, "GPIO132"),
+ 		MTK_FUNCTION(1, "MSDC1_DAT2"),
+ 		MTK_FUNCTION(5, "C2K_RTCK")
+@@ -1277,7 +1277,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	MTK_PIN(
+ 		133, "GPIO133",
+ 		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
+-		DRV_GRP3,
++		DRV_GRP4,
+ 		MTK_FUNCTION(0, "GPIO133"),
+ 		MTK_FUNCTION(1, "MSDC1_DAT3"),
+ 		MTK_FUNCTION(2, "CONN_DSP_JINTP"),
+@@ -1288,7 +1288,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	MTK_PIN(
+ 		134, "GPIO134",
+ 		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
+-		DRV_GRP3,
++		DRV_GRP4,
+ 		MTK_FUNCTION(0, "GPIO134"),
+ 		MTK_FUNCTION(1, "MSDC1_CLK"),
+ 		MTK_FUNCTION(2, "CONN_DSP_JCK"),
+-- 
+2.50.1 (Apple Git-155)
+

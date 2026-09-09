@@ -580,3 +580,5 @@ upstream-4d7d9486/clock-ids/0001-clk-mediatek-size-MT6797-providers-for-one-base
 upstream-4d7d9486/mmc/0001-mmc-mtk-sd-propagate-pinctrl-errors-during-voltage.patch
 upstream-4d7d9486/pinctrl/0001-pinctrl-mediatek-add-MT6797-MSDC1-input-enable-fields.patch
 upstream-4d7d9486/pinctrl/0002-pinctrl-mediatek-preflight-Schmitt-field.patch
+upstream-4d7d9486/pinctrl/0003-dt-bindings-pinctrl-mediatek-MT6797-drive-strengths.patch
+upstream-4d7d9486/pinctrl/0004-pinctrl-mediatek-MT6797-MSDC1-drive-fields.patch
