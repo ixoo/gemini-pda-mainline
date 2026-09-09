@@ -71,15 +71,34 @@ host request; they do not identify every later unsolicited event's incarnation.
 The existing host-generation limitation remains. No new ACK, delay, `RX_FLUSH`
 format or driver activation is inferred.
 
+## Response-pool backpressure
+
+The completed update-body walk exposes an early resource check. After station
+lookup and before the handler's station-clear/copy mutations, a requested reply
+requires a nonzero free-object count in a pool also identified by the recycling
+routine. A zero count returns a distinct resource status. The common dispatcher
+recognizes that status and skips its ordinary command-object recycling call.
+The no-reply path bypasses this check.
+
+This establishes an early resource-failure path that retains command ownership
+at the dispatcher boundary. It does not establish whether an outer caller
+retries, rejects or eventually releases that command. Nor does the count check
+alone prove an atomic reservation. A missing activation reply therefore cannot
+be treated as evidence that this handler applied the station update. The
+separate old-RX/BA drainage requirement remains unresolved.
+
 ## Method and limits
 
 The existing RE-VM Ghidra project and NDS32 instruction/data mapping premises
 were reused. Direct-flow walks skip callees and assume return; selected
-immediate-derived callees were inspected separately. The update-body walk hit
-its 384-node cap and is incomplete. A separate walk starts at an instruction
-reached by that walk and covers the 18-instruction response tail; it does not
-turn the partial body into a full-function proof. Other selected walks exhausted
-their queues without invalid or unresolved non-call transfers.
+immediate-derived callees were inspected separately. The initial update-body
+walk hit its 384-node cap; a separate 18-instruction response-tail walk covered
+its reply branch. A follow-up from the original entry with a 1,024-node cap now
+exhausts at 488 instructions and 39 call sites, without invalid instructions or
+unresolved non-call transfers. This completes the selected direct-flow graph,
+not the effects of all callees: additional indirect and unmapped callbacks
+remain unresolved. Other selected walks exhausted their queues under the same
+callee-return assumption.
 
 Private scripts, logs and listings remain retained with the original evidence.
 Public host inputs are pinned to Planet commit

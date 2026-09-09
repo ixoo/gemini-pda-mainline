@@ -3,7 +3,7 @@
   "firmware_sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
   "firmware_bytes": 411632,
   "tool": "Ghidra 12.1.2; existing RE-VM project",
-  "method": "Existing NDS32 BE-instruction/LE-data premise. Bounded direct-flow graphs skip callees and assume return; selected immediate-derived callees inspected separately. Update body hits its cap; response-tail follow-up starts at a visited instruction.",
+  "method": "Existing NDS32 BE-instruction/LE-data premise. Bounded direct-flow graphs skip callees and assume return; selected immediate-derived callees inspected separately. Initial capped update-body and response-tail walks retained; follow-up from original entry exhausts its direct-flow queue, without proving all callee effects.",
   "private_analysis": [
     {
       "script": "StationDispatch.java",
@@ -219,6 +219,19 @@
       "unresolved_noncall_computed": 0,
       "terminals": 1,
       "invalid": 0
+    },
+    {
+      "script": "StationUpdateComplete.java",
+      "sha256": "6d3da1d6da2e000317833f42c1da5977f5c2af4d7ffe0bbdac6cdc6813603439",
+      "node_cap": 1024,
+      "nodes": 488,
+      "queue_exhausted": true,
+      "calls": 39,
+      "unresolved_noncall_computed": 0,
+      "terminals": 1,
+      "invalid": 0,
+      "listing_sha256": "bfaa70e11418ef0cefb7ebd3f513bf787753051135a2bd2aaadf9705d777a6ab",
+      "log_sha256": "af3c209b92fbb835d1e09dc962f2ae04baaf4b04c7fbc4d49b704762db98bcb5"
     }
   ],
   "hardware_test": false,
