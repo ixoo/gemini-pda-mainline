@@ -30,6 +30,16 @@
       "path": "drivers/misc/mediatek/xhci/xhci-mtk-driver.c",
       "sha256": "509b4cecc180b9d0955b5f787b64cee0347eab7571b39b288ceecbf6021595d1",
       "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/xhci/xhci-mtk-driver.c"
+    },
+    {
+      "path": "drivers/misc/mediatek/power/mt6797/rt9466.c",
+      "sha256": "c1fd18c0c2fc906aa5b50154bcf235e7184dbafc74a0582788113dc25ebd0222",
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/power/mt6797/rt9466.c"
+    },
+    {
+      "path": "drivers/misc/mediatek/power/mt6797/Makefile",
+      "sha256": "1a270fd070e41fce76166a171c66a3230766515987ebf298719bde7f0d377bdf",
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/power/mt6797/Makefile"
     }
   ]
 }

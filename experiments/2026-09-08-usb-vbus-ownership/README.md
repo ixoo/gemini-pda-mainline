@@ -11,12 +11,16 @@ into one supported board power description? The answer from the inspected
 source is no: software control paths are visible, but their electrical
 relationship and physical connector mapping are not established.
 
-The [source receipt](source-inputs.json) pins six public vendor files by commit
+The [source receipt](source-inputs.json) pins the inspected public vendor files by commit
 and SHA-256. Paths and line numbers below refer to that exact revision. This
-investigation used source inspection only; it performed no device access,
+initial investigation used source inspection only; it performed no device access,
 register operation, cable change, boot or kernel build. Earlier runtime facts
 remain owned by the [USB recovery experiment](../2026-07-12-usb-typec-recovery/README.md)
 and [charger recovery experiment](../2026-07-12-charger-power-recovery/README.md).
+
+A later [bounded Gemian observation](GEMIAN_BINDINGS.md) records the installed
+configuration and current bindings under a freshly checked boot identity. It
+narrows the source alternatives without proving live OTG or electrical wiring.
 
 ## Two distinct software control paths
 
