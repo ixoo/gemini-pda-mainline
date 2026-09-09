@@ -131,3 +131,56 @@ finite admitted capacity and refuse overflow. The eight-chunk calculation
 makes a compact capture plausible but does not prove that one complete cycle
 fits. The next step is an explicit byte layout and capacity calculation for
 these fields, followed by the atomic-context writer and recovery contract.
+
+## Offline record framing prototype
+
+[capture-records.py](capture-records.py) now defines a fixed 128-byte,
+little-endian envelope. This is an offline encoding/decoding prototype, not a
+kernel writer, raw-pmsg scanner or complete event-payload schema.
+
+| Offset | Bytes | Field |
+| --- | ---: | --- |
+| 0 | 4 | `WFC1` magic |
+| 4 | 2 | Format version 1 |
+| 6 | 2 | Record kind |
+| 8 | 4 | Contiguous sequence starting at zero |
+| 12 | 16 | Nonzero cycle identity, independently expected by the reader |
+| 28 | 4 | Transaction identity |
+| 32 | 4 | Used payload length, at most 84 |
+| 36 | 84 | Payload followed by mandatory zero padding |
+| 120 | 4 | IEEE CRC32 of bytes 0–119 |
+| 124 | 4 | Final marker `0x57464331` |
+
+Kind 1 is the sole first record: an 80-byte payload containing the candidate
+SHA-256, 16-byte boot ID and input-manifest SHA-256; transaction is zero.
+Kinds 2–10 reserve initializer, DMA acquisition, programming, poll summary,
+unmap, firmware, EMI, shared-OFF and isolation records respectively. Their
+field-level payload contracts remain unfinished; the decoder deliberately
+makes no lifecycle verdict from them. Kind 255 has zero transaction and a
+four-byte producer-reported status: 1 complete, 2 failed or 3 overflow. A
+producer's complete status is not an independently validated cycle result.
+
+The largest identity payload fits without splitting. The nominal 65,524-byte
+zone accommodates 511 records (65,408 bytes), leaving 116 bytes unused.
+Only 510 slots are available to ordinary records, including the identity;
+slot 510 is terminal-only. This is an explicit capacity limit, not a proof
+that the complete cycle fits. The writer will need to reserve the terminal
+before recording ordinary events and terminate capture on exhaustion.
+
+The decoder takes an exact record stream and an independently supplied cycle
+identity. It rejects missing prefixes, sequence gaps/duplicates, mixed cycles,
+unknown kinds, nonzero padding, bad CRC/marker, partial records, excess capacity
+and records after a terminal. A complete committed prefix without a terminal
+can be returned as partial evidence. It does not search untrusted raw pmsg for
+magic, discard bad records, accept a suffix, verify payload semantics or turn
+a recorded terminal into hardware success.
+
+The [six focused tests](test-capture-records.py) passed round-trip/prefix checks,
+every single-bit mutation of the first record (1,024 cases), every nonempty
+partial-final-record length (127 cases), cycle/order failures, invalid fields
+and full capacity with the reserved terminal. No physical storage is touched.
+CRC is an accidental-corruption check, not authentication or a proof of atomic
+writes. The future writer must still establish ownership, write ordering,
+readback and recovery behavior; this encoder merely places the marker last
+in a byte string. Stale-record exclusion also requires a fresh externally
+bound cycle identity, not just a nonzero field.
