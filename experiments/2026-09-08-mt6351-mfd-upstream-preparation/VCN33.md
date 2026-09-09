@@ -1,9 +1,10 @@
 # MT6351 VCN33 ownership evidence
 
 Source and retained-binary follow-up, 2026-09-08. No device access, PMIC reads or writes.
-The shared voltage selector is established; output-pin topology and the enable
-combination logic remain unresolved. Do not copy the newer PMIC drivers'
-enable-consolidation writes on the strength of register names alone.
+The shared voltage selector is established. An X20 reference schematic shows
+one VCN33 output; Gemini wiring and the enable combination logic remain
+unresolved. Do not copy the newer PMIC drivers' enable-consolidation writes
+on the strength of register names alone.
 
 ## Pinned source
 
@@ -162,11 +163,36 @@ The [retained late-registration follow-up](../2026-09-06-mt6797-wlan-common-life
 confirms that this caller supplies no local compensating disable and can hide
 the callback error behind a successful platform probe. Full unwind remains unproved.
 
+## X20 reference schematic follow-up, 2026-09-09
+
+The [96Boards hardware page](https://www.96boards.org/documentation/consumer/mediatekx20/hardware-docs/)
+links vendor-published schematics. The inspected
+[pinned PDF](https://github.com/96boards/documentation/blob/fe7df7c9a3af4093452ca3971f2b674a4fbe4b51/consumer/mediatekx20/hardware-docs/MediaTekX20_Schematics_v2.0.pdf)
+is 726,731 bytes, 21 PDF pages, SHA-256
+`ab1a265043786812e3e0c3cf2281853547c95822a29db120c4c3fbedd7fa0591`.
+The moving download matched this pinned revision byte-for-byte. Text extraction
+located the nets; rendered full pages 8 and 15 confirmed the connections.
+
+- PDF page 8, printed sheet 20 (`20_POWER_MT6351`): U2001A, MT6351V,
+  exposes VCN33 at J17 on `VCN33_PMU`.
+- PDF page 15, printed sheet 50 (`50_CONNECTIVITY_MT6631`): `VCN33_PMU`
+  connects through R5015, specified as zero ohms, to `AVDD33_WBT`, which
+  supplies U5003, MT6631, pin 33.
+
+This establishes a single named VCN33 output in the reference drawing, not
+Gemini board continuity or actual component population. The drawing does not
+specify the internal relationship between the BT/Wi-Fi software enables,
+on-control fields and source-clock inputs. It therefore narrows the physical
+model without admitting enable consolidation. No device access occurred.
+The PDF and rendered pages remain ignored reference material; only facts and
+provenance are published here.
+
 ## Decision
 
 The common selector and common status naming support a shared analog-resource
-interpretation, but they do not prove one output pin, two switched outputs, or
-the Boolean relationship between the software and source-clock controls.
+interpretation. The X20 schematic independently shows one named output at J17,
+but the Boolean relationship between the software and source-clock controls
+and the Gemini connection remain unproved.
 The [retained runtime summary](../2026-07-11-mt6351-pmic-recovery/results/runtime-pmic-repeat-20260714.txt)
 reported both handles enabled at 3.3 V. That observation does not distinguish
 those hardware models.

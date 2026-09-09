@@ -620,6 +620,12 @@ VSRAM_PROC is one of nine bucks exposed only through vendor PMIC diagnostics.
 Zero user counts remain vendor-kernel implementation details, not evidence that
 a physical rail is absent or unused.
 
+The two VCN33 handles share one voltage-selector field. The X20 reference
+schematic shows a single MT6351 VCN33 output, but Gemini wiring and internal
+enable combination logic remain unproved. Separate vendor handles do not
+establish independent voltage ownership; see the
+[VCN33 source and schematic audit](../../experiments/2026-09-08-mt6351-mfd-upstream-preparation/VCN33.md).
+
 ## Useful GPIO and interrupt correlations
 
 These correlations come from live pinmux/interrupt debug data and are candidates

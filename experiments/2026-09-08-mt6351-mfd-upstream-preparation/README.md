@@ -163,7 +163,8 @@ is appropriate. Resolve that distinction before revising the shared-rail model.
 The [MT6351-specific VCN33 follow-up](VCN33.md) confirms the common selector
 and separate software/on-control/source-clock fields. The vendor's common
 BT/Wi-Fi helper is in a disabled branch, so it cannot justify consolidating
-the controls. The physical topology remains unresolved.
+the controls. The subsequent X20 reference-schematic check identifies one
+VCN33 output at J17; Gemini wiring and internal enable logic remain unresolved.
 
 ## IRQ mask-write failure follow-up
 
