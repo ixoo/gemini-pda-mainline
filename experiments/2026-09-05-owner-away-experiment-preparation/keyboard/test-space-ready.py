@@ -49,11 +49,11 @@ static int fake_ioctl(int fd, unsigned long request, ...)
     va_start(args, request);
     void *out = va_arg(args, void *);
     va_end(args);
-    if (fd == input_fd && _IOC_NR(request) == _IOC_NR(EVIOCGNAME(128))) {
+    if (fd == input_fd && request == EVIOCGNAME(127)) {
         strcpy(out, "keyboard-matrix"); return 16;
     }
-    if (fd == input_fd && _IOC_NR(request) == _IOC_NR(EVIOCGKEY(96))) {
-        memset(out, 0, _IOC_SIZE(request)); return _IOC_SIZE(request);
+    if (fd == input_fd && request == EVIOCGKEY(96)) {
+        memset(out, 0, 96); return 96;
     }
     if (fd == console_fd && request == VT_GETSTATE) {
         ((struct vt_stat *)out)->v_active = 1; return 0;

@@ -36,4 +36,7 @@ being prepared; the previous retry has not executed.
 The first package build did not publish. Its fixture diagnostics were incorrectly
 placed outside the builder’s retained failure-log list; that path is corrected.
 A bounded diagnostic run of all seven cases using static ARM64 glibc and QEMU
-passed. Acceptance still requires the ordinary musl package build and tests.
+passed. The retained second-build diagnostics identified fixture-only `_IOC_NR` and
+`_IOC_SIZE` macros absent from musl. The fixture now compares its two exact
+ioctl requests and fixed bitmap length. The production helper is unchanged;
+acceptance still requires the ordinary musl package build and tests.
