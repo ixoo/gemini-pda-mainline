@@ -272,3 +272,13 @@ prefix, not proof that the queue is empty. The new fixture supplies MSC_SCAN,
 Space press/release and Escape+Space and requires the missing evidence to be
 retained. A fresh attended attempt is justified by this added measurement;
 the old attempt remains consumed and the focused binding remains disabled.
+
+The successor package `410be65288d0350b47ec2eb63d72292c00eb61c0245783a824e6d054ec4c1581`
+from commit `4ae54a6f5f55e53cacf2b247c5d04801023a5796` passed ten ARM64/PTY
+fixtures, including complete Escape+Space/pending-event preservation. Both
+compiled replicas matched. The owner reconfirmed attendance before binding
+plan `e94119fc-dd80-4dec-b965-725ad5e8696c` to the same boot. All eight generated
+commands passed shell syntax and ShellCheck (literal remote awk and indirect
+logger trap callbacks retain their existing exclusions). No kernel changed.
+A failed start remains a failure; a successful start permits the previously
+prepared focused observation under the existing logger and preservation guards.
