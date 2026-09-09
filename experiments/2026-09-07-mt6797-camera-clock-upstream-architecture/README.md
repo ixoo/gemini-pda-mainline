@@ -2,6 +2,12 @@
 
 ## Decision
 
+The [partial-fabric follow-up](PARTIAL_FABRIC.md) corrects one historical
+dependency: the pinned IOMMU parser skips disabled larbs, so an initial consumer
+does not acquire a software requirement to enable all seven together. This
+does not resolve the consumer or hardware-lifetime stop below. The independent
+clock slot-count fix is complete at its compile-only boundary.
+
 No clock topic is admitted from local patches 0021/0022 yet. Current mainline,
 clock `clk-next`, and MediaTek `for-next` contain neither the MT6797 CAMSYS/MJCSYS
 clock IDs and providers nor an MT6797 DTS node that instantiates them. Current
