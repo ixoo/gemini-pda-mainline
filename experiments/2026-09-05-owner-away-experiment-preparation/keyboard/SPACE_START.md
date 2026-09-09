@@ -91,7 +91,7 @@ and a successful readiness witness. The earlier cancellation remains unexplained
 this diagnostic change did not alter acceptance behavior.
 
 That witness started the same-boot retry automatically. Preflight passed, but
-the first capture step stopped at its 64-event limit: left Shift and Fn presses
+the first capture step ended after 64 recorded events: left Shift and Fn presses
 followed by Fn repeats, without a recorded 1, modifier release or A. The monitor
 reaped the observer after 10,622 ms; the observer reported console restoration.
 The owner confirmed performing the complete requested sequence. Missing chord
@@ -99,6 +99,9 @@ events versus collection ending before the remaining actions is unresolved;
 this is not a passing keyboard regression or an established operator mistake.
 A focused check of 1 alone and the chord, with enough collection capacity, is
 the next discriminating observation rather than another identical full run.
+The [cutoff audit](CUTOFF_AUDIT.md) identifies an overflow-recording gap and
+an independent repeat refusal in the classifier; increasing capacity alone
+does not make the current protocol suitable for that diagnostic.
 
 All capture files and the complete 1,746-record, 121,076-byte sequence-zero log
 were preserved. The restarted logger connection exited zero after 66.726 seconds
