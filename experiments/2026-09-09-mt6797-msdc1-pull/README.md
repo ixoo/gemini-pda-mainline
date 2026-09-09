@@ -1,7 +1,7 @@
 # MT6797 MSDC1 pull-field preparation
 
-Status: unsigned implementation checkpoint. Strict checkpatch and focused host
-checks pass; Buildbox compilation is pending. No device candidate.
+Status: unsigned upstream-preparation checkpoint. Strict checkpatch, focused
+host checks and isolated Buildbox compilation pass. No device candidate.
 
 ## Changes
 
@@ -79,8 +79,27 @@ KERNEL_PROFILE=mt6797-msdc1-pull-compile ./scripts/build-kernel --backend buildb
 KERNEL_PROFILE=mt6797-msdc1-pull-compile ./scripts/buildbox fetch-package
 ```
 
-Compilation and compiled field/type-table checks remain pending. No binding
-was changed and no schema or runtime result is claimed at this checkpoint.
+The [compile receipt](compile.json) records the validated build from
+`d49003e7bb5afe43c2879c18ed060f899893f625`. Prepared driver/common-source
+hashes match the reviewed files. Each compiled field descriptor has the
+expected six-pin map, and the 262-entry pull-type table has nonzero entries
+only for GPIO129–134, all selecting PUPD/R0/R1. All four callbacks have driver
+object relocations and linked symbols. No compiler warning/error lines were
+found. Remote package validation and fetched inventory/checksums pass. Module
+linkage was not tested. The [host receipt](validation.json) pins the focused
+checks and combo-helper identity.
+
+Offline inspection in the RE VM also confirms these settings in the retained
+kernel's `msdc_pin_config_by_id`: host 1, mode 2 programs CMD/DAT as
+PUPD/R0/R1 = 0/1/0 and CLK as 1/0/1; mode 1 programs all six as 1/0/1,
+and mode 0 clears all three fields. The receipt pins the Image and symbol-span
+hashes and confirms that the reconstructed ELF kernel section equals Image.
+See the retained capture's [identities and reproduction](../2026-07-12-mt6797-msdc-recovery/MICROSD_CONTRACT.md#reproduction-and-identities).
+This establishes compiled behavior, not current execution or electrical results.
+
+Repository publication checks pass, with the usual Linux-only provenance
+fixture deferred to CI. No binding or DT was changed, so no new schema result
+is claimed. No device access, pull transition or card test occurred.
 
 ## Upstream boundary
 

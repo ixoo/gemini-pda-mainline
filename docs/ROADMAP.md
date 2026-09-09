@@ -116,6 +116,12 @@ now maps CMD, shared DAT0–3 and CLK using the correct selector scale and exist
 callbacks. Compilation, encoding and focused binding checks pass; bias tuning,
 PMIC trim and the board's pad/power transition remain unresolved before use.
 
+The [MSDC1 pull-field topic](../experiments/2026-09-09-mt6797-msdc1-pull/README.md)
+adds the three pull controls after an advanced-pull error-propagation fix.
+Compilation and host checks pass. Explicit resistor selections, API write order
+and disable-state differences must be respected in the future board protocol;
+this topic does not resolve the remaining pad/power ownership.
+
 The current [display architecture refresh](../experiments/2026-09-07-mt6797-display-upstream-architecture/README.md)
 found no local 0028–0044 subset with both a truthful current resource contract
 and a real consumer/test story. Display PWM is the smallest likely unlock, but

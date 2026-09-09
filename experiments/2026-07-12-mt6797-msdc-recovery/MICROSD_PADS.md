@@ -165,3 +165,9 @@ adds the three selectors with the shared DAT field and matching drive group,
 using existing upstream callbacks. Its compile, encoding and binding checks
 pass. It preserves the separate bias-tuning bits and selects no board state;
 complete MMC pad/power ownership remains unresolved.
+
+The [isolated pull-field topic](../2026-09-09-mt6797-msdc1-pull/README.md)
+now describes PUPD/R0/R1 and propagates advanced-pull field errors. Its compile
+and host checks pass. Explicit resistor selections express the retained active
+tuples; the topic records API write-order and disable-latch differences and
+adds neither an ohmic table nor a board state.

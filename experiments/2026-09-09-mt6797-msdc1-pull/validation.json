@@ -1,0 +1,58 @@
+{
+  "advanced_pull_cases": 64,
+  "original_advanced_pull_regression_reproduced": true,
+  "combo_contract_cases": 12,
+  "combo_helper_sha256": "65814dafd433874cc11f7e7c9b5a9da2413ee48f7432e0363311748e5ee20ef4",
+  "combo_probe_sha256": "ac7a46fdfd9b42e0e54245dad378d7f51763c64870abf56b10b4ce0890e8f27d",
+  "field_map_matches_vendor": true,
+  "hardware_tested": false,
+  "compiler": "Apple clang version 21.0.0 (clang-2100.1.1.101)",
+  "compiler_flags": [
+    "-std=c11",
+    "-Wall",
+    "-Wextra",
+    "-Werror"
+  ],
+  "combo_test_arguments": [
+    0,
+    100,
+    101,
+    102,
+    103,
+    1
+  ],
+  "combo_test_directions": [
+    0,
+    1
+  ],
+  "retained_kernel": {
+    "image_sha256": "0570480c28bce1583636a240904df8da3af0b5e5b4bcc6254f5719b42bd723d0",
+    "vmlinux_kernel_section_equals_image": true,
+    "symbol": "msdc_pin_config_by_id",
+    "symbol_start": "0xffffffc000977a28",
+    "next_symbol_start": "0xffffffc000978018",
+    "symbol_span_sha256": "413e748cd40c3c78ad3757ee5a5f4171264a384268c1cb4963d0768eb362f74d",
+    "host_id": 1,
+    "mode_0_disabled_pupd_r0_r1": [
+      0,
+      0,
+      0
+    ],
+    "mode_1_down_pupd_r0_r1": [
+      1,
+      0,
+      1
+    ],
+    "mode_2_up_cmd_dat_pupd_r0_r1": [
+      0,
+      1,
+      0
+    ],
+    "mode_2_up_clk_pupd_r0_r1": [
+      1,
+      0,
+      1
+    ],
+    "scope": "Offline retained binary inspection in RE VM; no live execution or electrical measurement."
+  }
+}

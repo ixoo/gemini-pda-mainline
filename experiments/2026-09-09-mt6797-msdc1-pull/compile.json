@@ -1,0 +1,137 @@
+{
+  "generated_utc": "2026-09-09T07:56:40Z",
+  "repository_commit": "d49003e7bb5afe43c2879c18ed060f899893f625",
+  "repository_dirty": false,
+  "kernel_release": "7.3.0-rc1-mt6797-msdc1-pull-compile",
+  "build_profile": "mt6797-msdc1-pull-compile",
+  "kernel_source": {
+    "archive_format": "tar.gz",
+    "archive_root": "linux-4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "git_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "released": "2026-09-05",
+    "sha256": "45590c057805bc9cf7281ce04d5dbde5316b7c8b017998cafac301f67e92682d",
+    "source_url": "https://codeload.github.com/torvalds/linux/tar.gz/4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "version": "7.3-rc1"
+  },
+  "patchset_sha256": "66967883f7a44129296c497bef51d08bdee88e637172c85c5c5615359abfcdfd",
+  "config_inputs_sha256": "5edc93da5a2bd3eb77fceed48dc26d120417dbe390aa543eba6f85c48ae37599",
+  "config_sha256": "9b413af9ed883d8e58fa8ac3ff772c96d083a084c0888a941a585274e9bf5a00",
+  "modules_built": false,
+  "build_architecture": "x86_64",
+  "target_architecture": "arm64",
+  "compiler": "aarch64-linux-gnu-gcc (Debian 12.2.0-14) 12.2.0",
+  "compiler_sha256": "c7b8890354c8ddc0364addfeb8968597e197627bd1e338fb6ed705b578803846",
+  "linker": "GNU ld (GNU Binutils for Debian) 2.40",
+  "linker_sha256": "e09a889c78a75e73ed096c9fa28905599e6813298b9ac839d10b02ffa96e7b08",
+  "prepared_source_sha256": {
+    "drivers/pinctrl/mediatek/pinctrl-mt6797.c": "0beb97d4a3749c01bf97d6d9c5ddcfdb5b292eed05b4fe7842fedccc92e81938",
+    "drivers/pinctrl/mediatek/pinctrl-mtk-common-v2.c": "cf67e54fffac9f8c9e537dcac3c0700eaa05659975c4bb8e518a487c6c742606"
+  },
+  "driver_object_sha256": "c68f02fc4e19f5badb106c69b6dcafe77474bca75b7b157f9ad8de348bc99641",
+  "common_object_sha256": "892fef81b3c21f2de95fdcdc60e812915ae2c78aa37e5302f31900a81e88b7fb",
+  "compiled_fields": {
+    "pupd": {
+      "values": [
+        129,
+        134,
+        2,
+        256,
+        16,
+        18,
+        1,
+        32,
+        0
+      ],
+      "sha256": "5270c2dfb35bd42e238aa48b38d7d824ec07fe8921ef991273404e243e921d8c"
+    },
+    "r0": {
+      "values": [
+        129,
+        134,
+        2,
+        272,
+        16,
+        18,
+        1,
+        32,
+        0
+      ],
+      "sha256": "ee086e66ba01786dd83ac88aaab5c63f812856af78b06b558e5ca1b7390ae1dd"
+    },
+    "r1": {
+      "values": [
+        129,
+        134,
+        2,
+        288,
+        16,
+        18,
+        1,
+        32,
+        0
+      ],
+      "sha256": "ddae7faa83624d6d50d5c4be0b3dd6592899dcb922b5d3669b5a324f65493b10"
+    }
+  },
+  "pull_type_table": {
+    "entries": 262,
+    "nonzero_pins": [
+      129,
+      130,
+      131,
+      132,
+      133,
+      134
+    ],
+    "nonzero_value": 4,
+    "sha256": "97f7e14975ce5895b5a2d57cec9efb5856cb96f2e6180b3b7260ef9d77ae765d"
+  },
+  "driver_callback_relocations": [
+    "mtk_pinconf_bias_set_combo",
+    "mtk_pinconf_bias_get_combo",
+    "mtk_pinconf_adv_pull_set",
+    "mtk_pinconf_adv_pull_get"
+  ],
+  "compiler_warning_error_lines": 0,
+  "scope": "isolated advanced-pull error correction and MSDC1 pull map; no Gemini candidate",
+  "status": "validated",
+  "package_name": "linux-7.3-rc1-gemini-3ad7ce9a38af5a03c054d34b7409a658e58d202f05c14b05e224ca0197e59cc0",
+  "artifact_sha256": {
+    "Image": "2538fdbaf6bfb348ad39bf29370617c49cde4c69a3596a13b808b67d1248174c",
+    "Image.gz": "b685a41b1069f23a5701801c9e0bb8d9a978780050a8a7d23d25b35432632288",
+    "kernel.config": "9b413af9ed883d8e58fa8ac3ff772c96d083a084c0888a941a585274e9bf5a00",
+    "System.map": "41d5c5dccdeea2a376916f30766624ef71402a6359e515567678ab0d9b88614c",
+    "SHA256SUMS": "3ad7ce9a38af5a03c054d34b7409a658e58d202f05c14b05e224ca0197e59cc0"
+  },
+  "required_builtin_config": [
+    "PINCTRL_MT6797",
+    "PINCTRL_MTK_PARIS",
+    "PINCTRL_MTK_V2"
+  ],
+  "linked_symbols": [
+    "mt6797_pin_pupd_range",
+    "mt6797_pin_r0_range",
+    "mt6797_pin_r1_range",
+    "mt6797_pull_type",
+    "mt6797_pinctrl_driver",
+    "mtk_pinconf_bias_set_combo",
+    "mtk_pinconf_bias_get_combo",
+    "mtk_pinconf_adv_pull_set",
+    "mtk_pinconf_adv_pull_get"
+  ],
+  "compiled_field_layout": [
+    "start_pin",
+    "end_pin",
+    "base_index",
+    "offset",
+    "register_stride",
+    "start_bit",
+    "bits_per_pin",
+    "register_bits",
+    "shared"
+  ],
+  "module_linkage_tested": false,
+  "remote_package_validation": "pass",
+  "local_fetch_inventory_and_checksums": "pass",
+  "hardware_tested": false
+}
