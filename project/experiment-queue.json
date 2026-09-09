@@ -149,6 +149,27 @@
       "dependencies": [],
       "owner_task_id": null,
       "readiness_note": "New private candidate assembled and independently validated from the audited kernel foundation; ARM64 shell and export-diagnostic fixtures, installer syntax/ShellCheck and refusal fixtures passed. One future baseline plus three PID-1 descriptor metadata observations test the console-ownership fix. No installation or runtime result. Keyboard disconnect/capture admissions remain disabled."
+    },
+    "keyboard-console-disconnect": {
+      "workstream": "serviceability",
+      "preparation_state": "conditional",
+      "device_state": "unselected",
+      "owner": "primary integration coordinator",
+      "reviewer": "primary integration coordinator",
+      "device_custodian": null,
+      "experiment": "experiments/2026-09-08-keyboard-console-ownership/README.md",
+      "session_packet": "experiments/2026-09-08-keyboard-console-ownership/NEXT_SESSION.md",
+      "candidate_record": "experiments/2026-09-08-keyboard-console-ownership/validation.json",
+      "readiness_record": "experiments/2026-09-08-keyboard-console-ownership/next-session-preparation.json",
+      "dependencies": [
+        {
+          "item": "keyboard-console-ownership",
+          "required_result": "Complete exact-candidate baseline, null PID-1 stdio, readable screen, authentication, preserved logs and changed-ID Gemian recovery; actual raw archive required.",
+          "evidence": null
+        }
+      ],
+      "owner_task_id": null,
+      "readiness_note": "Conditional second test using the same candidate and validated harmless probe package. Offline host fixtures and package/source checks pass. Fresh boot-specific admission awaits the first session result; binding remains disabled. No device action or keyboard capture."
     }
   }
 }
