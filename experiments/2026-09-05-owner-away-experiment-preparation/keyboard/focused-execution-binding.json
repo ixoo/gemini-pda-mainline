@@ -1,4 +1,8 @@
 {
+  "boot_id": "e3a29c80-4948-4ef8-893a-cfbef0cd4918",
+  "id": "513bda5e-6706-43b7-ac2b-d651a2be146e",
+  "plan_sha256": "e8e1caaf524e6fdb57cdc10d724ae5ae37c26f2b7cd0cdeb4469a1996f7480b6",
+  "runner_sha256": "271eae8834180e256e4c9c7612812772a0b2eb02c02f9c90b458b169a5520e39",
   "schema": "keyboard-focused-execution-v1",
-  "state": "disabled"
+  "state": "enabled"
 }
