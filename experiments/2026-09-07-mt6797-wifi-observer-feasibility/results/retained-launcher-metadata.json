@@ -1,0 +1,53 @@
+{
+  "scope": "static retained-launcher analysis in RE VM and pinned public kernel source; no execution or device access",
+  "launcher_sha256": "79ec10a6cc96642c042a6ae160d838e5b5a9cb63e6447f1761fc6a78000ac8bc",
+  "launcher_path": "system/vendor/bin/wmt_launcher",
+  "elf": "stripped AArch64 little-endian shared object",
+  "kernel_revision": "59e00a9144d782e148332009a835b99c43382467",
+  "kernel_sources": [
+    {
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_dev.c",
+      "sha256": "d7be291ca5e2962be24def406260b5bb21a4b85438f64a1064944686a84fd62e",
+      "bytes": 39254
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_lib.c",
+      "sha256": "e363d3377aab1de6f81d94dd482bcdba5eb55884792f45e1688ebf850f991e4f",
+      "bytes": 54747
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_ctrl.c",
+      "sha256": "4fdc36fab251ba206c580268be73d9b9161005821bffe0ad01f3bf8a6b8800ec",
+      "bytes": 31505
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_ic_soc.c",
+      "sha256": "22d98e9e5f0c9c3cae36a3099e57315ed7808524239a061bf9ab0cf97379e66f",
+      "bytes": 86140
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/core/include/wmt_lib.h",
+      "sha256": "1745b691069c9983267c9b3e4f7071bb63422540bc1214d60165d874707e63cb",
+      "bytes": 12020
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/core/include/wmt_core.h",
+      "sha256": "da51f1389115bf5f0ee14d42c1a9d6d516097cdbae563e0fba0b63adf85d4094",
+      "bytes": 13831
+    }
+  ],
+  "launcher_virtual_address_ranges": {
+    "chip_id_query": "0x1e58-0x1e68",
+    "firmware_version_query": "0x1f60-0x1f70",
+    "header_version_read_and_low_byte_compare": "0x2118-0x21d8",
+    "address_read": "0x21dc-0x21f0",
+    "count_publication": "0x2244-0x2274",
+    "sequence_address_name_publication": "0x2278-0x22d4",
+    "mt6797_romv3_selection": "0x2494-0x24e8"
+  },
+  "limitations": [
+    "static control flow, not emulation or target execution",
+    "kernel firmware-version read loses its error return; cached version alone is not proof of a successful read",
+    "current running launcher and device firmware version not observed"
+  ]
+}

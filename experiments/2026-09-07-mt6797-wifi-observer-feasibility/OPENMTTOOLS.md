@@ -73,8 +73,8 @@ an independently established host address. The checker verifies exact retained
 identity before emitting a complete ordered manifest; it issues no ioctls.
 It is an offline preparation tool, not protection against later file replacement
 or proof that a running chip accepts the version or destination fields.
-The actual MT6797 kernel/launcher interpretation still needs attribution before
-the responder may publish this metadata.
+The static attribution below now establishes the kernel/launcher interpretation;
+runtime applicability remains a separate gate before metadata publication.
 
 Run it in the RE VM with the private firmware directory as its sole argument.
 Both retained files passed. Eight in-memory mutations (truncation, extension,
@@ -82,3 +82,43 @@ one changed byte and changed sequence for each file) were refused. Missing,
 symlink, FIFO and short-file inputs were also refused without manifest output;
 the FIFO check completed within a three-second subprocess limit. Original
 retained files were not modified. No firmware bytes are redistributed here.
+
+## Retained launcher and kernel attribution, 2026-09-09
+
+The [static receipt](results/retained-launcher-metadata.json) pins the retained
+AArch64 launcher, audited virtual-address ranges and six kernel source files
+verified against the recorded Gemian revision. Analysis ran in the RE VM;
+the executable was not launched or emulated. No disassembly or binary is
+redistributed. The current running launcher was not inspected.
+
+The launcher requests chip identity using ioctl `0x8004a00c`, argument 0.
+Both `0x0279` and `0x6797` select the `ROMv3_patch` prefix. Argument 2 obtains
+the cached firmware version. The launcher seeks to offset 22 and reads the
+two bytes individually into reversed positions, then compares only the low
+eight bits of the assembled version with the returned version. Thus its
+selection condition for the retained `0x8a00` header is a low byte of zero,
+not equality with `0x8a00`. Openmttools' full two-byte comparison is a real
+compatibility difference; do not substitute it without an explicit decision.
+
+The next four bytes provide count in the first byte's high nibble and sequence
+in its low nibble. The launcher submits count with `0x4004a00e`; it clears the
+first address byte and submits a record with sequence at offset 0, address at
+offset 4 and the relative filename at offset 8 using `0x4008a00f`. This matches
+the kernel's 264-byte `WMT_PATCH_INFO` layout. The ioctl encodes pointer size,
+not record size. The inspected launcher does not branch on these publication
+results, so its behavior is evidence rather than a suitable failure policy.
+
+Kernel `WMT_unlocked_ioctl()` returns the cached identity/version for those
+selectors and places each record at sequence minus one. The patch downloader
+retrieves them in index order and copies the four address bytes unchanged into
+`WMT_PATCH_P_ADDRESS_CMD[12..15]`. It strips the 28-byte file header before
+downloading the body. These findings resolve the candidate metadata layout and
+ordering, not the physical meaning or safe ownership of the destination.
+
+One additional source limitation matters to admission: `mtk_wcn_soc_ver_check()`
+does not assign the return from its `GEN_FVR` read before testing `iret`.
+It tests the preceding successful hardware-version read's status instead.
+Therefore even a matching cached firmware version cannot independently prove
+a successful firmware-version transaction. The experiment needs attributable
+read completion before accepting it. Responder implementation, finite command
+timing and full startup/recovery remain unfinished; no radio cycle is admitted.
