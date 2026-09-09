@@ -100,3 +100,8 @@ metadata, early initialization effects, persistent capture layout and total
 recovery budget are still unresolved. No current service, character device,
 firmware, configuration, partition or radio state was read or changed. Only
 public source and retained build records were inspected on Buildbox.
+
+The [Open MT Tools assessment](OPENMTTOOLS.md) now supplies a licensed,
+source-available responder reference and reproduces its metadata-validation
+failures. Its automatic power cycle and missing MT6797 support prevent direct
+use; a narrowly scoped adaptation remains to be prepared.

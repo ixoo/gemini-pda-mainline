@@ -1,0 +1,55 @@
+{
+  "schema": "openmttools-reuse-review-v1",
+  "repository": "https://gitlab.com/Dahrkael/openmttools",
+  "revision": "ef35f769d211a2942a6783410b58bd824dd363f9",
+  "scope": "source review and host counterexamples; no daemon main, device ioctl or radio execution",
+  "license": "MIT; Copyright (c) 2020 Dahrkael",
+  "sources": [
+    {
+      "path": "LICENSE",
+      "bytes": 1065,
+      "sha256": "c3ee8171a95c407440b4729843b9696e48909aceac27383e665bbe320b119c93"
+    },
+    {
+      "path": "Makefile",
+      "bytes": 525,
+      "sha256": "bd5ec9911716aed7fc5ff39051047039e0ec71bbf896ed0eff9ea343f6a72590"
+    },
+    {
+      "path": "README.md",
+      "bytes": 603,
+      "sha256": "deb40cd13e35b99daba492904a40638e29828c2773e49561bb5b93f47f18d2d4"
+    },
+    {
+      "path": "mtdaemon.c",
+      "bytes": 16335,
+      "sha256": "09c7a6d30b3259c817c8f3bcccff8b1ee1be189dd2e7e72dfe9e17b7b9f7d248"
+    },
+    {
+      "path": "mtinit.c",
+      "bytes": 6786,
+      "sha256": "45f34757c30d036572529283da3e3882ffe50e7718fcd71718fc1289b62771d3"
+    }
+  ],
+  "probe": {
+    "source": "probe-openmttools.c",
+    "source_sha256": "d86d0ec5a4508bd7f39fe01bfbed394f98f7c17653ab5d67218dde7c8fbc8489",
+    "compiler": "Apple clang version 21.0.0 (clang-2100.1.1.101)",
+    "flags": [
+      "-std=gnu11",
+      "-Wno-format-extra-args",
+      "-pthread",
+      "OPENMTTOOLS_SOURCE points to pinned mtdaemon.c"
+    ],
+    "result": "four counterexamples reproduced",
+    "synthetic_chip_for_patch_tests": "0x6752",
+    "synthetic_patch_bytes": 28,
+    "synthetic_patch_count": 2,
+    "sequence_in_both_files": 1,
+    "ioctl": "all calls mocked; no device descriptor opened",
+    "warnings": [
+      "two Clang VLA-folding extension warnings in unchanged daemon source"
+    ],
+    "initial_attempt": "probe prototype missing; corrected before successful compile/run; upstream source unchanged"
+  }
+}
