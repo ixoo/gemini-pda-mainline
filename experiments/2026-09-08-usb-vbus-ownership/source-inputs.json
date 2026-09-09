@@ -1,0 +1,35 @@
+{
+  "vendor_commit": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+  "files": [
+    {
+      "path": "drivers/misc/mediatek/power/mt6797/fan49101.c",
+      "sha256": "02ce8dc67a48d9fdb0dac433216b8b74805347275ab751d26ecab6380647fd55",
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/power/mt6797/fan49101.c"
+    },
+    {
+      "path": "drivers/misc/mediatek/power/mt6797/fan49101.h",
+      "sha256": "9cd2b35c4ac90a1aa573cd82d67de5d2b3dc0fcc846b56dfe780b4559d2838cc",
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/power/mt6797/fan49101.h"
+    },
+    {
+      "path": "drivers/misc/mediatek/usb_c/Makefile",
+      "sha256": "8f067db41e0ccade0894c30ce24897cf3cff26781008426f6f83e4609c15a2c6",
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/usb_c/Makefile"
+    },
+    {
+      "path": "drivers/misc/mediatek/usb_c/fusb302/usb_typec.c",
+      "sha256": "5ac1fa7dd1224fb4527a563d21943a6afdbf9e25c8ce60ea72a5b7cd12d6dba6",
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/usb_c/fusb302/usb_typec.c"
+    },
+    {
+      "path": "arch/arm64/boot/dts/aeon_gpio.dtsi",
+      "sha256": "86d248e602a2cad2b213c58a4e4d8525402f38e42b284dc1e896d9d6eb5aa95a",
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/arch/arm64/boot/dts/aeon_gpio.dtsi"
+    },
+    {
+      "path": "drivers/misc/mediatek/xhci/xhci-mtk-driver.c",
+      "sha256": "509b4cecc180b9d0955b5f787b64cee0347eab7571b39b288ceecbf6021595d1",
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/xhci/xhci-mtk-driver.c"
+    }
+  ]
+}

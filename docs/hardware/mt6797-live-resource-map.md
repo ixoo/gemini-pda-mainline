@@ -713,21 +713,16 @@ register `0x03`; it does not prove a BQ part number. Linux additionally checks
 the `0x14` part/revision fields and rejects unknown devices. The bounded
 [BQ25890 reuse audit](../../experiments/2026-07-12-charger-power-recovery/results/bq25890-reuse-audit-20260713.txt)
 records this distinction. Linux's
-FAN53555 regulator is not a safe name-based substitute for FAN49101: the
-vendor source identifies manufacturer register `0x40` as `0x83`, reads die ID
-register `0x41`, and programs VOUT register `0x01` with a 603 mV base, 12.826
-mV steps, and bit 7 as enable. Patch 0055 adds a dedicated
-`onsemi,fan49101` regmap driver/binding and a disabled I2C0 `0x70` node. Its
-probe is read-only and requires manufacturer `0x83`; the post-recovery vendor
-probe logged manufacturer `0x83` and die ID `0x06`, but reset/control semantics,
-mainline die-ID handling, rail ownership, and safe readback still need
-board-level evidence before enabling it. The bounded
-[FAN49101 register contract](../../experiments/2026-07-12-charger-power-recovery/results/fan49101-register-contract.txt)
-records the source hashes and safe bring-up gates. The fresh vendor identity
-capture is in
-[live-charger-battery-recovery-20260714.txt](../../experiments/2026-07-12-charger-power-recovery/results/live-charger-battery-recovery-20260714.txt),
-and static driver/schema checks are in
-[FAN49101 validation](../../experiments/2026-07-12-charger-power-recovery/results/fan49101-mainline-validation.txt).
+FAN53555 regulator is not a safe name-based substitute for FAN49101. The
+historical vendor probe logged manufacturer `0x83` and die ID `0x06`, but the
+source-derived 603 mV voltage table used by patch 0055 conflicts with onsemi's
+published output specifications. That draft is not a reusable regulator
+foundation; its voltage/enable contract and read-only-probe claim are withdrawn.
+The node remains disabled. See the
+[USB VBUS ownership and FAN49101 correction](../../experiments/2026-09-08-usb-vbus-ownership/README.md)
+for exact source inputs, manufacturer counterevidence and remaining protocol
+and rail-ownership requirements. The historical identity observation remains in
+[live-charger-battery-recovery-20260714.txt](../../experiments/2026-07-12-charger-power-recovery/results/live-charger-battery-recovery-20260714.txt).
 The vendor battery meter
 and charger interface remain private HALs; they must be replaced by standard
 power_supply plus IIO/fuel-gauge interfaces rather than copied wholesale. See
@@ -736,8 +731,9 @@ and its [mainline design result](../../experiments/2026-07-12-charger-power-reco
 
 The local Gemini description leaves the charger controller and FAN49101 child
 disabled and contains no BQ25890, RT9466, battery, or fuel-gauge consumer.
-Available generic drivers and the local FAN49101 provider establish reusable
-implementation boundaries, not runtime charger or battery support.
+Available generic charger drivers provide implementation candidates; the local
+FAN49101 draft requires a corrected silicon contract before reuse. Neither
+establishes runtime charger or battery support.
 
 ## PMIC wrapper, MT6351, and EINT
 

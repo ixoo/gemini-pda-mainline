@@ -25,6 +25,12 @@ the loop. Positive identity-gated observations are unaffected.
   — records the current canonical-subsequence findings and enforcement
   boundary.
 
+### USB power ownership
+
+- [2026-09-08 USB VBUS ownership and FAN49101 correction](2026-09-08-usb-vbus-ownership/README.md)
+  — distinguishes GPIO94 and charger-boost source paths and rejects the
+  historical FAN49101 voltage table using manufacturer counterevidence.
+
 ### Current clock allocation preparation
 
 - [2026-09-08 MT6797 clock provider allocation](2026-09-08-mt6797-clock-id-allocation/README.md)

@@ -1,5 +1,11 @@
 # Experiment: MT6797 charger and fuel-gauge recovery
 
+Current correction (2026-09-08): the source-derived FAN49101 voltage table
+and patch 0055 are not an accepted silicon contract. Manufacturer documentation
+contradicts the table; the read-only-probe claim is also withdrawn. See the
+[correction and USB power ownership investigation](../2026-09-08-usb-vbus-ownership/README.md).
+Results below retain the historical investigation chronology.
+
 ## Record
 
 | Field | Value |
@@ -120,7 +126,7 @@ The audit is read-only and byte-repeatable:
 
 ```sh
 ./scripts/dev-vm run bash -lc \
-  'CURRENT_PACKAGE=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-a9a7c5002038 \
+  'CURRENT_PACKAGE="$HOME"/artifacts/gemini-pda/linux-7.1.3-gemini-a9a7c5002038 \
    experiments/2026-07-12-charger-power-recovery/scripts/audit-current-package-charger.sh'
 ```
 
