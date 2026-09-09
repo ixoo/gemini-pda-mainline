@@ -124,6 +124,10 @@ this topic does not resolve the remaining pad/power ownership.
 The [composed pinctrl sequence](../experiments/2026-09-09-mt6797-msdc1-pull/COMPOSITION.md)
 now combines input-enable, drive and pull support with both error fixes;
 both updated profiles compile. Board pad/power admission remains separate.
+The [power-state follow-up](../experiments/2026-07-12-mt6797-msdc-recovery/MICROSD_POWER.md)
+shows that retained off requests only clear bookkeeping, while normal regulator
+updates preserve trim fields. Establish actual entry trim and rail transitions
+before using that retained behavior as the basis for a card-power protocol.
 
 The current [display architecture refresh](../experiments/2026-09-07-mt6797-display-upstream-architecture/README.md)
 found no local 0028–0044 subset with both a truthful current resource contract

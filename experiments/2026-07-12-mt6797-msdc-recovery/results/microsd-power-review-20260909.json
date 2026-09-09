@@ -1,0 +1,214 @@
+{
+  "vendor_commit": "8cfe6596a503612e3332d9c26e292a19525a7f07",
+  "source_sha256": {
+    "drivers/mmc/host/mediatek/mt6797/msdc_io.c": "b87966fb3bb7be7e9c7c273cc58e92e7c19ed6a3b09a503afbaedb529c890e07",
+    "drivers/mmc/host/mediatek/mt6797/sd.c": "e8cc38b57f18b0a8c8e6476d3c11c333f999326297538d35e7f93585daf63cba",
+    "drivers/mmc/host/mediatek/mt6797/msdc_io.h": "e3c97a2930ac29dd46838c170c733fb05d5d87b5aa139ee7837da9b9f242ce65",
+    "drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/upmu_hw.h": "e376d2835dd32812b52caf6a51139cc7fd541de18eaad0f30ecf8194f70cebbe",
+    "drivers/misc/mediatek/pmic_wrap/mt6797/pwrap_hal.c": "991ca49130ec394b67e14ced67f74ff847bff8dd20d0f698607beb6f674ed0c1"
+  },
+  "image_sha256": "0570480c28bce1583636a240904df8da3af0b5e5b4bcc6254f5719b42bd723d0",
+  "elf_kernel_section_equals_image": true,
+  "symbols": {
+    "msdc_ldo_power": {
+      "start": "0xffffffc000975d90",
+      "end": "0xffffffc000975ec0",
+      "sha256": "764681fdc83fb5a4a853ff4222e49ef8905e7470cd4b4aeed01d110ca6f58f00"
+    },
+    "msdc_hwPowerOn": {
+      "start": "0xffffffc000975c58",
+      "end": "0xffffffc000975d08",
+      "sha256": "84263aca1c939273f1363214182ca4b9f4a991e38622111bea75978f9ccee404"
+    },
+    "msdc_hwPowerDown": {
+      "start": "0xffffffc000975d08",
+      "end": "0xffffffc000975d90",
+      "sha256": "b4c9b788d4fecc935a8714ec2dec81d67ae0396ac6b586a7aa133ea681f3321e"
+    },
+    "msdc_sd_power_switch": {
+      "start": "0xffffffc000978910",
+      "end": "0xffffffc0009789c8",
+      "sha256": "f48cd3ede2d67a14c6bae4f9ab800d7e1c27fcdacb43c8c984985283d7cc1827"
+    },
+    "pmic_config_interface": {
+      "start": "0xffffffc0004b3278",
+      "end": "0xffffffc0004b3388",
+      "sha256": "5c881d3d5d995c76f8792b5b4a894ee8dffd93fc0a17a09103ca71f47240a0b3"
+    },
+    "pwrap_wacs2": {
+      "start": "0xffffffc0004c5f28",
+      "end": "0xffffffc0004c5f60",
+      "sha256": "b867a80781a75ae192f52e8e0bd60391f30cbd6cd7c8734c0bb36db6ac4b4d5c"
+    },
+    "pwrap_wacs2_hal": {
+      "start": "0xffffffc0004c6528",
+      "end": "0xffffffc0004c6860",
+      "sha256": "8f8c94bfd82b02c3e8ca5ece474202681427e28f31db37739b864414580279a2"
+    },
+    "pwrap_hal_init": {
+      "start": "0xffffffc001164a6c",
+      "end": "0xffffffc001164c64",
+      "sha256": "77830ad593d4a44c1cf1b0556b0ea736587676da84a49166769bc84b6494c568"
+    }
+  },
+  "host_probe": {
+    "helper": "msdc_ldo_power",
+    "helper_sha256": "5d5130ebc802eec4021bc5ac2af6b91165e96f191582095d3633ae63806b58d8",
+    "compiler": "cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+    "flags": [
+      "-std=c11",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-Wno-sign-compare"
+    ],
+    "sign_compare_exclusion": "Unmodified vendor helper compares its u32 status against an int microvolt value.",
+    "cases": [
+      {
+        "name": "on_from_zero",
+        "initial_status": 0,
+        "requests": [
+          {
+            "on": 1,
+            "millivolts": 3000
+          }
+        ],
+        "mock_helpers_succeed": true,
+        "final_status": 3000000,
+        "power_on_calls": 1,
+        "power_down_calls": 0,
+        "return_values_all_zero": true
+      },
+      {
+        "name": "on_at_same_voltage",
+        "initial_status": 3000000,
+        "requests": [
+          {
+            "on": 1,
+            "millivolts": 3000
+          }
+        ],
+        "mock_helpers_succeed": true,
+        "final_status": 3000000,
+        "power_on_calls": 0,
+        "power_down_calls": 0,
+        "return_values_all_zero": true
+      },
+      {
+        "name": "off_from_on",
+        "initial_status": 3000000,
+        "requests": [
+          {
+            "on": 0,
+            "millivolts": 3000
+          }
+        ],
+        "mock_helpers_succeed": true,
+        "final_status": 0,
+        "power_on_calls": 0,
+        "power_down_calls": 0,
+        "return_values_all_zero": true
+      },
+      {
+        "name": "change_voltage",
+        "initial_status": 3000000,
+        "requests": [
+          {
+            "on": 1,
+            "millivolts": 1800
+          }
+        ],
+        "mock_helpers_succeed": true,
+        "final_status": 1800000,
+        "power_on_calls": 1,
+        "power_down_calls": 1,
+        "return_values_all_zero": true
+      },
+      {
+        "name": "failed_enable",
+        "initial_status": 0,
+        "requests": [
+          {
+            "on": 1,
+            "millivolts": 3000
+          }
+        ],
+        "mock_helpers_succeed": false,
+        "final_status": 3000000,
+        "power_on_calls": 1,
+        "power_down_calls": 0,
+        "return_values_all_zero": true
+      },
+      {
+        "name": "on_off_on",
+        "initial_status": 0,
+        "requests": [
+          {
+            "on": 1,
+            "millivolts": 3000
+          },
+          {
+            "on": 0,
+            "millivolts": 3000
+          },
+          {
+            "on": 1,
+            "millivolts": 3000
+          }
+        ],
+        "mock_helpers_succeed": true,
+        "final_status": 3000000,
+        "power_on_calls": 2,
+        "power_down_calls": 0,
+        "return_values_all_zero": true
+      }
+    ],
+    "result": "pass"
+  },
+  "scope": "Offline RE VM binary inspection and extracted-source host probe; no live PMIC, GPIO or storage operation.",
+  "upstream_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "upstream_source_sha256": {
+    "drivers/regulator/helpers.c": "860f6e07370505cf909331d120390a3f622056af8d1c197dac795b1f5f9fa981",
+    "drivers/base/regmap/regmap.c": "3d4b622a577f2a008539727d9d26b422112da67dcea170e05ba9d567e2f5a7a9",
+    "drivers/soc/mediatek/mtk-pmic-wrap.c": "80173dd03ba85c5f900d27d35a2b6d0bd60bb5cf4bd801295e9953a0e4eaec12"
+  },
+  "regulator_patch": {
+    "path": "patches/upstream-4d7d9486/mt6351/0005-regulator-mt6351-add-E2-rails-with-device-local-desc.patch",
+    "sha256": "c1b79977b76779592ee2fca2c86056de1959c205eb89aa72f0cd4492269f3378",
+    "repository_commit": "1d7a052ec7288da686b283bba6ebf4b53d63d5d4"
+  },
+  "nominal_3v_descriptors": {
+    "VMCH": {
+      "vsel_register": "0xace",
+      "vsel_mask": "0x100",
+      "selector": 0,
+      "enable_register": "0xa2e",
+      "enable_mask": "0x2",
+      "trim_mask": "0x1f"
+    },
+    "VMC": {
+      "vsel_register": "0xae2",
+      "vsel_mask": "0x700",
+      "selector": 6,
+      "enable_register": "0xaaa",
+      "enable_mask": "0x2",
+      "trim_mask": "0x1f"
+    }
+  },
+  "voltage_switch_boundary": {
+    "hypothetical_saved_defaults": [
+      0,
+      1
+    ],
+    "subtraction_width": 32,
+    "subtraction_wrap_values": [
+      "0xfffffffe",
+      "0xffffffff"
+    ],
+    "pmic_config_interface_masks_input_value": false,
+    "wrapper_rejects_upper_16_bits": true,
+    "wrapper_invalid_write_data_result": 4,
+    "caller_checks_trim_result": false,
+    "observed_device_calibration": false
+  }
+}

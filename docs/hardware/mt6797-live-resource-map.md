@@ -668,6 +668,10 @@ trim fields outside ordinary regulator requests. These compiled contracts
 and their limits are recorded in the
 [microSD follow-up](../../experiments/2026-07-12-mt6797-msdc-recovery/MICROSD_CONTRACT.md);
 physical switch polarity and mainline power transitions remain unverified.
+The retained helper's off request clears software status without disabling the
+regulator, so an off IOS state is not evidence of rail removal. The
+[power-state review](../../experiments/2026-07-12-mt6797-msdc-recovery/MICROSD_POWER.md)
+records this distinction and the normal regulator path's trim preservation.
 
 Therefore mainline `vmmc-supply`/`vqmmc-supply` wiring depends on real MT6351
 regulator support. A fixed-regulator shortcut would lose voltage switching and

@@ -38,15 +38,18 @@ The compiled host-1 power callback matches the public source's VMCH card
 supply and VMC I/O supply requests at nominal 3.0 V. It programs pad drive,
 TDSEL and RDSEL before those requests. The `MSDC_SD_NEED_POWER` flag can keep
 the card-supply request on while the I/O-supply request follows the callback's
-argument. Regulator requests are not measurements of output voltage.
+argument. The [power-state follow-up](MICROSD_POWER.md) establishes that an
+off request at this callback boundary does not actually issue regulator
+disable, and that helper errors do not propagate into the saved power status.
+Regulator requests are not measurements of output voltage.
 
 The retained probe also contains PMIC trim adjustments for host 1:
 
-| Field | Compiled operation on the five-bit value |
+| Field | Compiled operation |
 | --- | --- |
 | VMCH, register `0xace`, bits 4:0 | Subtract 5 with wrap modulo 32 |
 | VMC, register `0xae2`, bits 4:0 | Add 5 with wrap modulo 32; save the result as the default |
-| VMC in the enabled 1.8 V switch path | Write saved default minus 2 before requesting 1.8 V |
+| VMC in the enabled 1.8 V switch path | Attempt saved default minus 2 before requesting 1.8 V; see the follow-up's width/refusal boundary |
 
 These are code operations, not recovered device calibration values or an
 approved sequence to reproduce. The probe does not check the return values
