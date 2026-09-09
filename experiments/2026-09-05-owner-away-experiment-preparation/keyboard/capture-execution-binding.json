@@ -1,5 +1,115 @@
 {
-  "admission": null,
+  "admission": {
+    "boot_id": "803cd938-3da1-442a-b593-f11ab9fe740c",
+    "custody": {
+      "exclusive": true,
+      "no_other_device_operations": true,
+      "owner_ready": true,
+      "physical_selection": true,
+      "receipt_sha256": "ca5fee0378e978a92742f49b81f84d75c2c136c0bb19354c2d20d73bc85391d0",
+      "screen_readable": true,
+      "stable_power": true
+    },
+    "dependency": {
+      "baseline_admission_id": "32517011-dbba-4c8a-8c58-7fc2d2434437",
+      "baseline_manifest_sha256": "ed4e08e02578602aad9feb0fb63b0c42750eca723dbd7d5f94fba498a9fe1e4d",
+      "candidate_manifest_sha256": "907c0c107eb71e0335c52d6b0f20bbb9cf6742d3603ff3e690a11cc9d7202ec1",
+      "confirmation_manifest_sha256": "df8e130d1a6d247ac5db42a6a86849898241f1c626aae9095ca220dede2844ab",
+      "deployment_receipt_sha256": "cf9448e410ba378cee2b7f2317c10856532ffa2a01962813b262be05d6cb8e8f",
+      "prerequisite_phase_manifests": {
+        "auth-checks": "6d5eecee9feffac7b57df40797bbb758e5d7a20989fd27f2751c6dd4be69fbb1",
+        "preserve-log": "233c71f5c48b8f2160fed4889dfcdeeb85c5d09eae43c315859c34f58260d902",
+        "request-recovery": "b40a957034f667f1f6bfa15d8ce35a81b0afb5b8b7eda6359329959ced435828"
+      },
+      "prerequisite_selector": "reviewed-supplemental"
+    },
+    "disconnect_receipt_sha256": "ef9e590303f41d1a2bf50aecc9a2bc47dda7b84782ee43fb57cc65133b33bd47",
+    "expected": {
+      "baseline_first_boot_result_sha256": "0a7f8c969de5d447f9f7e412641ff11dd5caafd9ceff4e4f230f4c0bda12afc1",
+      "baseline_recovery_result_sha256": "add27c26cb2c24c369693693ba8d6378fb765759fa8a04a4032e0d9c033a7d41",
+      "candidate_sha256": "7dfc3b1f771a12b8e711f699cf8fcfd2678aedc15bc9d8bcc98554f9c6654cdb",
+      "config_sha256": "194834d90eb2443f4b14ba8f2078ba16fe0c63f69088fcc8c063fe25af01c410",
+      "dtb_sha256": "e1e4eca289320533bad5c879e78055eaa86a295080b1154c13debe29ddd8ee4a",
+      "helper_sha256": "51ef03def5461b2c13367906b3184a2dae14ca2f7ba7e835740be6a7268fa223",
+      "image_sha256": "6682b2f7d4843c9460576380f28eb14289620e74c7d9b1f0c70ae33eeed3d4e5",
+      "initramfs_sha256": "42a20df30acd99b763e5ea74733039aded4553696c7fb5271f6bade99e00f1c7",
+      "input_capabilities_sha256": "a739f371a2ef6c4d9691c43417d1e0b8ddaa145411ee0c1dc60d7f4b00f6276d",
+      "input_sysfs_realpath": "/sys/devices/platform/keyboard-matrix/input/input0",
+      "kernel_release": "7.1.3-gemini-mt6797-pwrap-reset",
+      "launcher_sha256": "273bce611b711c61c8d6d9a1e59723f56a7379d2283d06bba94645153d17538e",
+      "protocol_sha256": "5dd8b42b00a60041a9d5cb85f586ce639af6b62172a5488d8c0b73a0ed764306",
+      "schema_version": 1,
+      "state": "conditional"
+    },
+    "full_duration_receipt_sha256": "0a8eac660bebfc755eb5c5d1fa0da80a4a26bbaea5be75fbc42846a161657956",
+    "id": "ee6ba88c-dafa-46b5-8add-62965e2b226d",
+    "monitor_bytes": 66672,
+    "monitor_sha256": "105c3544ce69b095271c11b12b939f11a7172dc8ca3bb009c96426dec1413470",
+    "package_identity": "89a9765b72b55b47c9e7ed973ceb175cbfab5623749be12a2739ee9c8f4e7657",
+    "package_revision": "18a5882d55f11450dd049c7a6bbc2c6d1731359f",
+    "runtime": {
+      "capabilities": {
+        "abs": "0\n",
+        "ev": "100013\n",
+        "ff": "0\n",
+        "key": "2000168000000000 35ff57ff3ffcffc\n",
+        "led": "0\n",
+        "msc": "10\n",
+        "rel": "0\n",
+        "snd": "0\n",
+        "sw": "0\n"
+      },
+      "event": "event0",
+      "input_path": "/sys/devices/platform/keyboard-matrix/input/input0",
+      "logger_age_limit_seconds": 240,
+      "metadata_receipt_sha256": "a01005a2169c6af6334dd28479cfcc4884ca3ba05007197e58f73a2259d1b17b",
+      "minor": 64,
+      "resource_paths": {
+        "/sys/bus/i2c/devices/0-005b/driver": "/sys/bus/i2c/drivers/aw9523-pinctrl",
+        "/sys/bus/i2c/devices/0-005b/of_node": "/sys/firmware/devicetree/base/i2c@1101c000/gpio-expander@5b",
+        "/sys/devices/platform/keyboard-matrix/driver": "/sys/bus/platform/drivers/matrix-keypad",
+        "/sys/devices/platform/keyboard-matrix/of_node": "/sys/firmware/devicetree/base/keyboard-matrix"
+      }
+    },
+    "source_identity": {
+      "emmc_launcher": {
+        "launcher_sha256": "2a59e87b8b90c73a8ecad06933f277868e7201bea9c2a082a033ab2193e0b6ba",
+        "pins_sha256": "b71af25496bff90bae854b833a2d5370cd5c9c9647b6c5292347ea4fcb582005"
+      },
+      "local_and_direct": {
+        "../baseline/scripts/buildbox_userspace.py": "6f90751017f5e921cf673d945326a9e1b8fafd465d3b3cc6d71075a6ae946e96",
+        "../emmc/mainline_host.py": "57491d7ac60a380ee85215e391274e5ced2733b33ab6df70e0757db7b67bf082",
+        "capture.py": "273bce611b711c61c8d6d9a1e59723f56a7379d2283d06bba94645153d17538e",
+        "classify.py": "be55d4d816c4c0709bed44dd77057b404aa3baf15d23aa7be46e966c98aaefa9",
+        "delivery.py": "63bfa4dab0525a6d5055b483ec2d4c2887457326ad4d90f2c7b39d3a35e004f5",
+        "disconnect.py": "b4e6e328b58f03135e301a19bd8e72eaa6ede4f878e8712b53c2e8aba856de82",
+        "metadata.py": "327bd20b3f4ef41ee4d391a9c0964872db2348e442dcd5fffb76c3d28b47dbdf",
+        "monitor.c": "2cb30948d6d4c5ada9e6fd2a9bdfd9ab54489661367e568faaa3ef2785bad683",
+        "prerequisites.py": "31d015f96943319f2828ed712ad68137023cfff5457f8f09b984ce2ecf7bf23c",
+        "protocol.json": "5dd8b42b00a60041a9d5cb85f586ce639af6b62172a5488d8c0b73a0ed764306"
+      },
+      "pinned_members": {
+        "experiments/2026-09-04-mt6797-pwrap-reset-serviceability/scripts/classify_observation.py": "f628143d6a70fdda8c6da5171c69e91647a51eb3cb65fa1577d2487540cb1ca6",
+        "experiments/2026-09-04-mt6797-pwrap-reset-serviceability/scripts/remote_observe.sh": "bfa7b11a355263f181285b12d99a07c1ca71ac6b8f13570730da7783937e9fe4",
+        "experiments/2026-09-04-mt6797-thermal-snapshot/scripts/v4_deployment_receipt.py": "2ef4fc09a11207e2f43cce9c1d328905b636d618c72f3ab76325ef766201c5b7",
+        "experiments/2026-09-05-owner-away-experiment-preparation/baseline/scripts/collect-baseline.py": "efbca1e464e04005d3b7d503742b426eb9f642140ec289c40bc43563852208cf",
+        "experiments/2026-09-05-owner-away-experiment-preparation/baseline/scripts/deployment_receipt.py": "a2dc643ddedf5c9c93ede43598208cafd17242fccbb45db6ddaf078f30ae6f23",
+        "experiments/2026-09-05-owner-away-experiment-preparation/baseline/scripts/finish-baseline.py": "f4fc22f6de7456e9c5e3336fd76114151492414d4c09356cda77b2a9d35a6708",
+        "experiments/2026-09-05-owner-away-experiment-preparation/baseline/scripts/session_steps.py": "762616bb386647e0a25addd36ad9dba2f6384ebde4858f89a806a32678fc60fc",
+        "experiments/2026-09-05-owner-away-experiment-preparation/baseline/scripts/supplemental_recovery.py": "d09016fa8d0353db9e81e508a6c4a350055e3d1cf9eee59baee6e11d70ea0e18",
+        "experiments/2026-09-05-owner-away-experiment-preparation/baseline/scripts/verified_baseline.py": "8a94fd6fdb2d87028eece7922d23f4b7de826bf4d9a4e3f4c47365787d5cccd6",
+        "experiments/2026-09-05-owner-away-experiment-preparation/emmc/classify.py": "0be35e88eb3868e515d2185932519d0fb878260eced50f336e6dde301983acc3",
+        "experiments/2026-09-05-owner-away-experiment-preparation/emmc/execution_gate.py": "62845b4b0ecce7f540554a58a0e58e3246531e655de8edff6a13477bba48c4d6",
+        "experiments/2026-09-05-owner-away-experiment-preparation/emmc/guarded_observation.py": "5fe4472b3ed61812cc05b6662decac89f6799d81de06def4f8bae51cb920317d",
+        "experiments/2026-09-05-owner-away-experiment-preparation/emmc/live_window.py": "d369770d46d1189d1b4dd45376d858d11933679aa5f844ad5547ebb492a5cdb3",
+        "experiments/2026-09-05-owner-away-experiment-preparation/emmc/mainline_host.py": "57491d7ac60a380ee85215e391274e5ced2733b33ab6df70e0757db7b67bf082",
+        "experiments/2026-09-05-owner-away-experiment-preparation/emmc/observe.sh": "dbdf6a7c07c9ad895e75e8dc83b229567da7b22e92d905f284ff43208d902e31",
+        "experiments/2026-09-05-owner-away-experiment-preparation/emmc/prerequisite.py": "508865e200022d97cdfb901f195bc3b790226136b0850aea8a3f22f48ff6a3cf",
+        "experiments/2026-09-05-owner-away-experiment-preparation/emmc/recovery_v2.py": "70d2b34b505278b81e98ffdb63a3c6963e20025a4a6ce05bf9e7de756f0e6279",
+        "experiments/2026-09-05-owner-away-experiment-preparation/emmc/session.py": "3677710b33eb4a494f797854de7764455a379b64ce757bf61c4240c75de69c01"
+      }
+    }
+  },
   "schema": "keyboard-capture-execution-binding-v1",
-  "state": "disabled"
+  "state": "enabled"
 }
