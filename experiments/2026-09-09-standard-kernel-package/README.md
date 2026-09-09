@@ -76,7 +76,10 @@ files alone does not prove rollback or make the predecessor boot automatically.
 
 The next implementation input is a selected persistent-root/distribution and
 an admitted filesystem update/rollback protocol. The present diagnostic
-baseline is not that persistent installation. Once selected, test package
+baseline is not that persistent installation. The
+[persistent-root migration audit](PERSISTENT_ROOT.md) identifies forced
+command-line root selection, pre-mount filesystem checking and orderly
+shutdown as concrete gaps in reusing that baseline. Once selected, test package
 staging, exact image/DTB/initramfs pairing, hook ordering and predecessor
 retention off-device before the separately admitted runtime update. Do not
 install a probe package into known-good Gemian merely to test these scripts.
