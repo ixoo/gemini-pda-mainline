@@ -121,6 +121,9 @@ adds the three pull controls after an advanced-pull error-propagation fix.
 Compilation and host checks pass. Explicit resistor selections, API write order
 and disable-state differences must be respected in the future board protocol;
 this topic does not resolve the remaining pad/power ownership.
+The [composed pinctrl sequence](../experiments/2026-09-09-mt6797-msdc1-pull/COMPOSITION.md)
+now combines input-enable, drive and pull support with both error fixes;
+both updated profiles compile. Board pad/power admission remains separate.
 
 The current [display architecture refresh](../experiments/2026-09-07-mt6797-display-upstream-architecture/README.md)
 found no local 0028–0044 subset with both a truthful current resource contract

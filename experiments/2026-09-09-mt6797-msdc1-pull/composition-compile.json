@@ -1,0 +1,141 @@
+{
+  "drive": {
+    "generated_utc": "2026-09-09T08:10:22Z",
+    "repository_commit": "2653ed44d37fa02c304eb1a0b1b8b7bb032a21ae",
+    "repository_dirty": false,
+    "kernel_release": "7.3.0-rc1-mt6797-msdc1-drive-compile",
+    "build_profile": "mt6797-msdc1-drive-compile",
+    "kernel_source": {
+      "archive_format": "tar.gz",
+      "archive_root": "linux-4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+      "git_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+      "released": "2026-09-05",
+      "sha256": "45590c057805bc9cf7281ce04d5dbde5316b7c8b017998cafac301f67e92682d",
+      "source_url": "https://codeload.github.com/torvalds/linux/tar.gz/4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+      "version": "7.3-rc1"
+    },
+    "patchset_sha256": "e9ea5350f684127e7b07ceb9479c2b85f039fb1de1cc5a4bb026eb3def99c8b0",
+    "config_inputs_sha256": "10b163f728591eec7713909b8ca5f1fe95d8172c55173bd0a01f3e7eb08b51e1",
+    "config_sha256": "b500d2a6253a9deaca523ac3a960833b44667b51096ab2068f85a56452406d95",
+    "modules_built": false,
+    "build_architecture": "x86_64",
+    "target_architecture": "arm64",
+    "compiler": "aarch64-linux-gnu-gcc (Debian 12.2.0-14) 12.2.0",
+    "compiler_sha256": "c7b8890354c8ddc0364addfeb8968597e197627bd1e338fb6ed705b578803846",
+    "linker": "GNU ld (GNU Binutils for Debian) 2.40",
+    "linker_sha256": "e09a889c78a75e73ed096c9fa28905599e6813298b9ac839d10b02ffa96e7b08",
+    "status": "validated",
+    "package_name": "linux-7.3-rc1-gemini-d4bdbebdb320417ce5de7436415f787d8e08cbf93b64916751499aae32ee74f7",
+    "prepared_source_sha256": {
+      "Documentation/devicetree/bindings/pinctrl/mediatek,mt6779-pinctrl.yaml": "3e192675e05ac14ad031ab15ac04af065b9320060f9c0d5ea687ed4c6fe72b2f",
+      "drivers/pinctrl/mediatek/pinctrl-mt6797.c": "3fbd93aacc267a65254643986df7b2ce01b9553ea05f86a82d3908df73f1bdaf",
+      "drivers/pinctrl/mediatek/pinctrl-mtk-common-v2.c": "f95fe0f92461afb8c2586c43f6d1970fa302fa69a6d17839cbfda0b17b3d9a69",
+      "drivers/pinctrl/mediatek/pinctrl-mtk-common-v2.h": "8691ca4ef77adbb488f1388562c4930affc911778a65933eb9549a92f8086ff4",
+      "drivers/pinctrl/mediatek/pinctrl-mtk-mt6797.h": "67d0aad2ad889f9d4ff3eb5e8f1df50d37cc536081f5dfff6d7a2f50cf0d29a2",
+      "drivers/pinctrl/mediatek/pinctrl-paris.c": "94848be20fd43e443398b5975829534ef95fa1f2df9cd1f835939616b0643502"
+    },
+    "object_sha256": {
+      "pinctrl-mt6797.o": "fd00d90c3e4b70476c79c44608aab5a18156260c65cd03fdc14d9dbf707ecf90",
+      "pinctrl-mtk-common-v2.o": "ea9f45157a4c4862498b69ab31dc16b7102a9924cc0704614324c401db90a734",
+      "pinctrl-paris.o": "ca0c32d84da4d24f3a5bb0f6dc70250317959f56b06ac29fa751b82a5d149835"
+    },
+    "linked_symbols": [
+      "mt6797_pin_ies_range",
+      "mt6797_pin_drv_range",
+      "mt6797_pinctrl_driver",
+      "mtk_pinconf_drive_set_rev1",
+      "mtk_pinconf_drive_get_rev1"
+    ],
+    "required_builtin_config": [
+      "CONFIG_PINCTRL_MT6797=y",
+      "CONFIG_PINCTRL_MTK_PARIS=y",
+      "CONFIG_PINCTRL_MTK_V2=y"
+    ],
+    "compiler_warning_error_lines": 0,
+    "remote_package_validation": "pass",
+    "artifact_sha256": {
+      "Image": "20e82c16d5b37d2aebdb716f88ccadbc9f583f883a6ad52ebda8408895771935",
+      "Image.gz": "d1b444cb2c80338a7cfe26d696ec07341c621f25d0eb376d3cc6868292186898",
+      "System.map": "65e5e3ee5c85548f687b80f895cd0b39c08a157d1ffda869669a8d520b1bf6f7",
+      "kernel.config": "b500d2a6253a9deaca523ac3a960833b44667b51096ab2068f85a56452406d95",
+      "SHA256SUMS": "d4bdbebdb320417ce5de7436415f787d8e08cbf93b64916751499aae32ee74f7"
+    },
+    "hardware_tested": false,
+    "module_linkage_tested": false,
+    "local_fetch_inventory_and_checksums": "pass"
+  },
+  "pull": {
+    "generated_utc": "2026-09-09T08:13:10Z",
+    "repository_commit": "2653ed44d37fa02c304eb1a0b1b8b7bb032a21ae",
+    "repository_dirty": false,
+    "kernel_release": "7.3.0-rc1-mt6797-msdc1-pull-compile",
+    "build_profile": "mt6797-msdc1-pull-compile",
+    "kernel_source": {
+      "archive_format": "tar.gz",
+      "archive_root": "linux-4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+      "git_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+      "released": "2026-09-05",
+      "sha256": "45590c057805bc9cf7281ce04d5dbde5316b7c8b017998cafac301f67e92682d",
+      "source_url": "https://codeload.github.com/torvalds/linux/tar.gz/4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+      "version": "7.3-rc1"
+    },
+    "patchset_sha256": "4cc82fcf72d452c65e76720aa6014f93e026ddeb38bdc0acc0b185f992ac8e3c",
+    "config_inputs_sha256": "5edc93da5a2bd3eb77fceed48dc26d120417dbe390aa543eba6f85c48ae37599",
+    "config_sha256": "9b413af9ed883d8e58fa8ac3ff772c96d083a084c0888a941a585274e9bf5a00",
+    "modules_built": false,
+    "build_architecture": "x86_64",
+    "target_architecture": "arm64",
+    "compiler": "aarch64-linux-gnu-gcc (Debian 12.2.0-14) 12.2.0",
+    "compiler_sha256": "c7b8890354c8ddc0364addfeb8968597e197627bd1e338fb6ed705b578803846",
+    "linker": "GNU ld (GNU Binutils for Debian) 2.40",
+    "linker_sha256": "e09a889c78a75e73ed096c9fa28905599e6813298b9ac839d10b02ffa96e7b08",
+    "status": "validated",
+    "package_name": "linux-7.3-rc1-gemini-9033604f46b1a1196e27a61dd5cbbca4e4ea56db7fc5112467d038048a45a64f",
+    "prepared_source_sha256": {
+      "Documentation/devicetree/bindings/pinctrl/mediatek,mt6779-pinctrl.yaml": "3e192675e05ac14ad031ab15ac04af065b9320060f9c0d5ea687ed4c6fe72b2f",
+      "drivers/pinctrl/mediatek/pinctrl-mt6797.c": "1068ae13b103f90c37ba371efd7e50c4d60e9d7bdcfd24fdfc59b92f78fad5e8",
+      "drivers/pinctrl/mediatek/pinctrl-mtk-common-v2.c": "dc4b669866c62a880aa04797439b8e85b1b24cf2489b720421751e6964a8526d",
+      "drivers/pinctrl/mediatek/pinctrl-mtk-common-v2.h": "44150d2aa8b5c7bca106cf206b031089d5d9cbafbe8f38859da9af8cd797db2e",
+      "drivers/pinctrl/mediatek/pinctrl-mtk-mt6797.h": "67d0aad2ad889f9d4ff3eb5e8f1df50d37cc536081f5dfff6d7a2f50cf0d29a2",
+      "drivers/pinctrl/mediatek/pinctrl-paris.c": "893c9ac9494c678c12eac15914b529bcf6f8cd17df353d1d48a55e06167e3580"
+    },
+    "object_sha256": {
+      "pinctrl-mt6797.o": "5c19880f11f92869b19ef765922245072da5234e67d998f1dd920ccbf367c76c",
+      "pinctrl-mtk-common-v2.o": "7ebfb1aeb2a29a650904fd2a6b73fbc823a27d9e1cef10cd808f443f8ec1b2fb",
+      "pinctrl-paris.o": "865b715ddc0b40f5bb1f2d90a89c4014b0ef4f696ca9c44bd57900ad8e546686"
+    },
+    "linked_symbols": [
+      "mt6797_pin_ies_range",
+      "mt6797_pin_drv_range",
+      "mt6797_pinctrl_driver",
+      "mtk_pinconf_drive_set_rev1",
+      "mtk_pinconf_drive_get_rev1",
+      "mt6797_pin_pupd_range",
+      "mt6797_pin_r0_range",
+      "mt6797_pin_r1_range",
+      "mt6797_pull_type",
+      "mtk_pinconf_bias_set_combo",
+      "mtk_pinconf_bias_get_combo",
+      "mtk_pinconf_adv_pull_set",
+      "mtk_pinconf_adv_pull_get",
+      "mtk_hw_pin_field_get"
+    ],
+    "required_builtin_config": [
+      "CONFIG_PINCTRL_MT6797=y",
+      "CONFIG_PINCTRL_MTK_PARIS=y",
+      "CONFIG_PINCTRL_MTK_V2=y"
+    ],
+    "compiler_warning_error_lines": 0,
+    "remote_package_validation": "pass",
+    "artifact_sha256": {
+      "Image": "39542c3eb2cf9eba71ce7107ae37585625a176836b5748d0fae01776ad87f452",
+      "Image.gz": "8c9a0bed481fc83eef33759f73ad9c5deffe93b8b17bcc214370262a251102dc",
+      "System.map": "0930f84f6165a3f89e8759bbc2adbb1571defb8a0090e2c7eceb8b3a76987f9e",
+      "kernel.config": "9b413af9ed883d8e58fa8ac3ff772c96d083a084c0888a941a585274e9bf5a00",
+      "SHA256SUMS": "9033604f46b1a1196e27a61dd5cbbca4e4ea56db7fc5112467d038048a45a64f"
+    },
+    "hardware_tested": false,
+    "module_linkage_tested": false,
+    "local_fetch_inventory_and_checksums": "pass"
+  }
+}

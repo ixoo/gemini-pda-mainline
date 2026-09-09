@@ -1,6 +1,6 @@
 # MSDC1 pinctrl topic composition
 
-Status: rebased input checkpoint; combined Buildbox compilation is pending.
+Status: both rebased compile profiles pass Buildbox validation.
 No Gemini candidate or device operation is selected.
 
 ## Observed integration failure
@@ -42,8 +42,16 @@ KERNEL_PROFILE=mt6797-msdc1-pull-compile ./scripts/build-kernel --backend buildb
 KERNEL_PROFILE=mt6797-msdc1-pull-compile ./scripts/buildbox fetch-package
 ```
 
-Build results remain pending at this input checkpoint. The binding patch is
-unchanged; its earlier focused schema result remains applicable to the same
-binding bytes. There is no new board DT, SMT map, bias-tuning operation or
+The [two build receipts](composition-compile.json) record validated packages
+from `2653ed44d37fa02c304eb1a0b1b8b7bb032a21ae`. All six prepared source files
+match each profile's reviewed composition, the expected field-table and
+callback symbols are linked, and MT6797/Paris/common-v2 are built in. Both logs
+have zero compiler warning/error lines. Remote package validation and local
+fetch inventory/checksums pass. Module linkage and device behavior were not
+tested. Repository checks pass with the Linux-only provenance fixture deferred
+to CI.
+
+The binding patch is unchanged; its earlier focused schema result remains
+applicable to the same binding bytes. There is no new board DT, SMT map, bias-tuning operation or
 power sequence. Electrical validation and truthful upstream certification
 remain separate requirements.
