@@ -1,0 +1,54 @@
+{
+  "analysis": {
+    "capture_sha256": "f25e4d7cc3a8c80bb76820acd06261e596f0a9ed4f330ccf06c1ef175dd82bb9",
+    "cases": [
+      {
+        "index": 0,
+        "input": "mismatch",
+        "physical_edges": 0,
+        "repeat_events": 0,
+        "vt": "mismatch"
+      },
+      {
+        "index": 1,
+        "input": "mismatch",
+        "physical_edges": 0,
+        "repeat_events": 0,
+        "vt": "mismatch"
+      }
+    ],
+    "hardware_claim": false,
+    "outcome": "observations-complete",
+    "reported_input": {
+      "event": "event0",
+      "minor": 64
+    },
+    "session_receipt_verified": false
+  },
+  "boot_id": "e3a29c80-4948-4ef8-893a-cfbef0cd4918",
+  "classification": "inconclusive-owner-sequence-not-completed",
+  "id": "513bda5e-6706-43b7-ac2b-d651a2be146e",
+  "monitor": {
+    "cancel": "0",
+    "exit": "0",
+    "forwarded_bytes": "454",
+    "identity_lost": "0",
+    "kill_errno": "0",
+    "kill_ms": "-1",
+    "late": "0",
+    "reap_ms": "32095",
+    "reaped": "1",
+    "reason": "normal-lifecycle-only",
+    "schema": "keyboard-monitor-v1",
+    "signal": "0",
+    "stderr_bytes": "0",
+    "stdout_bytes": "454",
+    "term_errno": "0",
+    "term_ms": "-1"
+  },
+  "owner_report": "I missed one or both windows",
+  "package_identity": "477db0d31c2d2a5d9830022e7dc63288a4e8cd48717aa3cee9b25d4043cc1927",
+  "preservation_complete": true,
+  "reboot_performed": false,
+  "schema": "keyboard-focused-result-v1"
+}

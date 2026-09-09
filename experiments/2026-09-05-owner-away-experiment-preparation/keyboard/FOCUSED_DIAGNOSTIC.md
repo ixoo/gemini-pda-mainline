@@ -345,3 +345,22 @@ sources remain byte-identical. It still verifies those sources against their
 historical Git objects and verifies every new package source against the
 current files. A different reader build revision does not invalidate the
 unchanged supervisor's source comparison or establish new runtime evidence.
+
+The corrected reader package
+`477db0d31c2d2a5d9830022e7dc63288a4e8cd48717aa3cee9b25d4043cc1927`
+passed fourteen reader fixtures, thirteen supervisor fixtures and the full
+32-second observation/45-second cleanup check. The supervisor remains
+byte-identical to its prior validated build. The first attended run completed
+both fifteen-second windows with no input events or VT bytes; the owner then
+reported missing one or both windows. Its [result](focused-missed-windows-result.json)
+is inconclusive, with complete export and sealed logs. It is not evidence of a
+missing-key defect.
+
+The next plan reuses these exact binaries. Before delivery, it verifies the
+previous delivered files and all exported attempt files against their retained
+hashes, then moves the completed RAM-only directory to its unique archive name.
+The reader-exclusion and live-identity guards precede that move. The new attempt
+uses a fresh claim; no previous evidence is deleted. Its logger starts from the
+newly sealed predecessor. Delivery finishes before asking for the owner's final
+start confirmation, so capture can begin immediately on that reply. A missed
+window does not authorize a reboot or a hardware failure conclusion.
