@@ -109,5 +109,7 @@ use; a narrowly scoped adaptation remains to be prepared.
 The [one-request responder prototype](RESPONDER.md) now implements the fixed
 metadata publication and failure paths with mocked-transport tests. Its late
 write test also demonstrates why userspace deadline checks alone cannot meet
-the admission contract. Kernel acceptance/expiry, controller integration and
-userspace packaging remain unresolved before device use.
+the admission contract. The [kernel reply guard](OPENMTTOOLS.md#single-command-reply-guard-incomplete-checkpoint)
+now has focused timing tests and complete-file AArch64 compilation. Integrated
+acceptance/expiry behavior, controller integration and userspace packaging
+remain unresolved before device use.

@@ -244,3 +244,28 @@ serialize metadata ioctls, establish exclusive resource ownership, or impose
 a total startup/shutdown deadline. Minimal startup, integrated capture and
 recovery, and a full validated Buildbox candidate remain unfinished. No device
 action, radio cycle or upstream submission is admitted by this checkpoint.
+
+### Reply-guard complete-file compilation
+
+The [five-file result](results/command-guard-object-compile.json) now covers all
+three patches at clean pushed project commit
+`ac6ebda89cff8fd7911b8bbeaffec12e073d68cc`. The existing Buildbox check compiled
+original and patched `wmt_ic_soc.c`, `wmt_core.c`, `wmt_ctrl.c`, `wmt_lib.c` and
+`wmt_dev.c`, producing ten AArch64 objects. It reused the pinned source,
+configuration and GCC 6.3 toolchain described above.
+
+The check copies the small neighboring core-header directory into its temporary
+patch area and puts that directory first in the patched compiler's include
+search path. For every patched object, the emitted dependency list must name
+the changed `wmt_ctrl.h` and must not name the baseline copy. This passed for
+all five files, closing the risk of silently compiling against the old header
+through a quoted neighboring include. The receipt records the patched header
+hash and each dependency-check result.
+
+All five patched compiler logs were empty with the recorded flags, including
+`-w`; this is not a strict-warning result. The 23-file package passed remote
+and local checksum and exact-inventory validation and was retained under the
+ignored Buildbox artifact directory. Temporary build output was removed and
+the prepared baseline remained clean. This closes the checkpoint's outstanding
+complete-file compilation, but does not link a kernel, verify scheduling,
+establish a total cycle deadline or admit a device candidate.

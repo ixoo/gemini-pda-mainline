@@ -1,0 +1,71 @@
+{
+  "project_commit": "ac6ebda89cff8fd7911b8bbeaffec12e073d68cc",
+  "source_commit": "59e00a9144d782e148332009a835b99c43382467",
+  "scope": "five complete translation units; no kernel link or device execution",
+  "patched_header_sha256": "795cba445947e9ef971a29a788ab909b81e996e00d6b316ca7505c7f69a3274e",
+  "toolchain_manifest_sha256": "a45d945f092461a611d276ad7d0a0fea1ea8a7f93db413908bcb892c12817d14",
+  "config_sha256": "c96ca5c8a767b93f59487c9b4a1c3d05c1f47c166f3f9ea9f2b7ffe0f6f1f0fb",
+  "config_delta": {
+    "CONFIG_ANBOX": [
+      null,
+      "n"
+    ]
+  },
+  "patches": {
+    "0001-wmt-check-firmware-version-read.patch": "bf6ee85c12806092e92c5691be16828c3229ee7e221cc2f40d2b33357a5edd5f",
+    "0002-wmt-use-one-startup-attempt.patch": "a48a597e589b5982e699eff0ff093e1a0619de853ca3148706528577c50f9cb4",
+    "0003-wmt-guard-single-patch-reply.patch": "b66b28751e00fcabbc95f30496e14588866cace7ea8a756e414bd7ace9523bfe"
+  },
+  "objects": [
+    {
+      "file": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_ic_soc.c",
+      "baseline_source_sha256": "22d98e9e5f0c9c3cae36a3099e57315ed7808524239a061bf9ab0cf97379e66f",
+      "baseline_object_sha256": "a4f8e82dfd755f665ff7701f0c472355183fce28ecc6ec7856b51159282f5899",
+      "patched_source_sha256": "c9e2a4a2e0988effa9b7bf0fbb18c98f1f70c2d9ca77547c40b55089d23d5c8e",
+      "object_sha256": "5cc0eb18f5216d05b33197259f7ebdbc7e225cce59e706e22b3270078e55e6b7",
+      "baseline_command_sha256": "b9cc08d74823c8e18700db02b0fbd95a9c47b93cc2b1da9b0acdaa5888502be1",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c",
+      "baseline_source_sha256": "e9f438c5c6033f0bf831347c69d656ec917b3e705648d3d27fb1b27409334f1e",
+      "baseline_object_sha256": "14c90e116bf8ab3c0aa5a849719634d3f11965d445c2678d934c8b7015ca75aa",
+      "patched_source_sha256": "65b168931973cc8cca5894a17a373cd581f703758935c471068beac8f199984a",
+      "object_sha256": "f8f01b0d8a24434dd8f381e1840cf448cdfbb4eadade2906d66a7f4436b5819d",
+      "baseline_command_sha256": "1250688b24475da82ae94065835443837e6cce5f82d2258e309273bd66bf89f3",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_ctrl.c",
+      "baseline_source_sha256": "4fdc36fab251ba206c580268be73d9b9161005821bffe0ad01f3bf8a6b8800ec",
+      "baseline_object_sha256": "6059b824ad35d73ca8305d958a32d142506b961c336e7a595603f0004d420780",
+      "patched_source_sha256": "3e8afa9f0100190145a1b8b47592e954f6571d6d183dfa16a16a4c17e0ae11d2",
+      "object_sha256": "e47c6c884fbf74832f798a67d99f90c9e6b3adf4e9295c77ad6530741b97748b",
+      "baseline_command_sha256": "306891208025e0fe37a35aeb98a737b8956dd14f88adcaa9ce4b25ca3485c56b",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_lib.c",
+      "baseline_source_sha256": "e363d3377aab1de6f81d94dd482bcdba5eb55884792f45e1688ebf850f991e4f",
+      "baseline_object_sha256": "70bd9c0934abc97a82b5e85d5d1e34da5b151dbb9e89fa96565438d0156b930a",
+      "patched_source_sha256": "46bb8c64e497fc8de2bc1484a383704ba61ee58584c9e3af0dd740580225746b",
+      "object_sha256": "f0a3d5c5cda254201c05ff71778b5d09d8e5c317723d1a338417bfd66b356ef8",
+      "baseline_command_sha256": "b32b742f18bbe809a5701951d80cf8cba8ac3122f7595d659fce2607cd05447a",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_dev.c",
+      "baseline_source_sha256": "d7be291ca5e2962be24def406260b5bb21a4b85438f64a1064944686a84fd62e",
+      "baseline_object_sha256": "f76acac921c8e3c64da6e2607dc28044daa81f24f86360024f94b46bb36ffc91",
+      "patched_source_sha256": "0584c47aafebca6d09f519b20c8cc0c084d1128e797516cd7da753631f79ef1c",
+      "object_sha256": "9d461396246687c184e24c3a62323c4450822ced0b1b1db6e0fe560c3a99171d",
+      "baseline_command_sha256": "3dfd8db2413cb73cd563b4d15812dddeee4e8bac56ec46cb3495bf80ff08bcf0",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    }
+  ]
+}
