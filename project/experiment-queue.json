@@ -4,7 +4,7 @@
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
   "selected_item": null,
-  "selection_note": "Attended keyboard capture ended incomplete; evidence preserved and changed-ID Gemian confirmed separately after initial confirmation timeout. No successor selected. Future restarts require owner confirmation except urgent safety reasons.",
+  "selection_note": "Keyboard retest prepared after owner sequence clarification; no deployment or boot selected. Confirm with owner before shutdown/restart.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -23,13 +23,13 @@
     },
     "keyboard-coverage": {
       "workstream": "serviceability",
-      "preparation_state": "preparing",
-      "device_state": "complete",
+      "preparation_state": "conditional",
+      "device_state": "unselected",
       "owner": "primary integration coordinator",
       "reviewer": "primary integration coordinator",
       "device_custodian": null,
       "experiment": "experiments/2026-09-05-owner-away-experiment-preparation/README.md#keyboard-coverage",
-      "session_packet": "experiments/2026-09-05-owner-away-experiment-preparation/keyboard/ATTENDED_SESSION.md",
+      "session_packet": "experiments/2026-09-05-owner-away-experiment-preparation/keyboard/ATTENDED_RETEST.md",
       "candidate_record": "experiments/2026-09-08-keyboard-console-ownership/validation.json",
       "readiness_record": "experiments/2026-09-05-owner-away-experiment-preparation/keyboard/attended-session-result.json",
       "dependencies": [
@@ -40,7 +40,7 @@
         }
       ],
       "owner_task_id": null,
-      "readiness_note": "Same-boot prerequisites passed, but capture stopped during third prompt after 64 events including repeated Shift. Owner had difficulty reading final prompt character; photo identifies it as A without obvious right-edge clipping. Address instruction clarity and pacing before a successor; no keyboard acceptance."
+      "readiness_note": "Owner confirms absence for first two prompts and Shift+Fn+1 during prompt 3. Same-image retest prepared to observe the correct declared sequence with owner present; fresh per-boot prerequisites and owner readiness remain required. No driver or keymap fault inferred."
     },
     "emmc-readonly": {
       "workstream": "serviceability",

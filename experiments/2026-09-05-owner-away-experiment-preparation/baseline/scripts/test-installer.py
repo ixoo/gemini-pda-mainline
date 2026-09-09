@@ -235,15 +235,18 @@ class InstallerTests(unittest.TestCase):
                     self.assertFalse((self.root / 'stage').exists())
 
     def test_keyboard_capture_changes_only_receipt_namespace(self):
-        self.assertEqual(receipt_name('keyboard-capture'), KEYBOARD_CAPTURE_RECEIPT_NAME)
-        source = derive(self.sources, self.repo, self.candidate, self.candidate,
-                        self.candidate, 'keyboard-capture')
-        source = source.replace(
-            'd43262bd1f9c76d02eb633900f5e5502e2342d6c1b41586a2d7e524a2293768f',
-            hashlib.sha256(self.trust.read_bytes()).hexdigest())
-        self.assertIn(KEYBOARD_CAPTURE_RECEIPT_NAME, source)
-        self.assertEqual(source.replace(KEYBOARD_CAPTURE_RECEIPT_NAME,
-            KEYBOARD_DISCONNECT_RECEIPT_NAME), self.keyboard_source)
+        for purpose, name in (('keyboard-capture', KEYBOARD_CAPTURE_RECEIPT_NAME),
+                              ('keyboard-capture-retest', 'a53-keyboard-capture-deployment-2')):
+            with self.subTest(purpose=purpose):
+                self.assertEqual(receipt_name(purpose), name)
+                source = derive(self.sources, self.repo, self.candidate, self.candidate,
+                                self.candidate, purpose)
+                source = source.replace(
+                    'd43262bd1f9c76d02eb633900f5e5502e2342d6c1b41586a2d7e524a2293768f',
+                    hashlib.sha256(self.trust.read_bytes()).hexdigest())
+                self.assertIn(name, source)
+                self.assertEqual(source.replace(name,
+                    KEYBOARD_DISCONNECT_RECEIPT_NAME), self.keyboard_source)
 
     def test_keyboard_mode_rejects_wrong_receipt_basename(self):
         result, actions = self.run_case('wrong-evidence', purpose='keyboard-disconnect',

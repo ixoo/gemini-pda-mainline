@@ -17,7 +17,8 @@ RECEIPT_NAME = 'a53-authenticated-baseline-deployment-2'
 KEYBOARD_DISCONNECT_RECEIPT_NAME = 'a53-keyboard-disconnect-deployment-2'
 KEYBOARD_CAPTURE_RECEIPT_NAME = 'a53-keyboard-capture-deployment-1'
 _PURPOSE_RECEIPTS = {'keyboard-disconnect': KEYBOARD_DISCONNECT_RECEIPT_NAME,
-                     'keyboard-capture': KEYBOARD_CAPTURE_RECEIPT_NAME}
+                     'keyboard-capture': KEYBOARD_CAPTURE_RECEIPT_NAME,
+                     'keyboard-capture-retest': 'a53-keyboard-capture-deployment-2'}
 
 
 def receipt_name(purpose=None):

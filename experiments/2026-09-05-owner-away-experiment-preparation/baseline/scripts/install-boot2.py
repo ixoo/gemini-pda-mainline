@@ -69,7 +69,7 @@ def main():
         parser.add_argument('--' + name, required=True, type=Path)
     parser.add_argument('--execute', action='store_true', help='install, verify and shut down the exact known-good device')
     parser.add_argument('--target', help='required with --execute; only gemini@192.168.1.50 is accepted')
-    parser.add_argument('--purpose', choices=('keyboard-disconnect', 'keyboard-capture'),
+    parser.add_argument('--purpose', choices=('keyboard-disconnect', 'keyboard-capture', 'keyboard-capture-retest'),
                         help='select the fixed receipt namespace for the named keyboard session')
     args = parser.parse_args()
     if args.execute and args.target != 'gemini@192.168.1.50':

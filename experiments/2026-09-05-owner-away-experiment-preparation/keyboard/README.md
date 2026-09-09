@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | Queue ID | `keyboard-coverage` |
-| Status | Conditionally prepared; device unselected; capture not executed |
+| Status | First capture incomplete; attended retest prepared offline, device unselected |
 | Parent | `2891e041fbc5291956bd90882f0f52fea11f2504` |
 | Device | Named Gemini development unit; US printed layout from prior record |
 | Implementation | Primary integration coordinator; exclusive custody assigned at attended handoff |
@@ -64,7 +64,8 @@ package. The [capture/delivery decision](CAPTURE_DELIVERY_DECISION.md) records
 its identity, existing behavior and the minimum remaining lifecycle work.
 The [prerequisite repair](../../2026-09-07-keyboard-boot2-session/PREREQUISITE_REPAIR.md)
 now rejects hash-shaped placeholders and prepares an explicit enabled Buildbox
-kind plus harmless disconnect probe. The [attended session](ATTENDED_SESSION.md) now pins the corrected enabled
+kind plus harmless disconnect probe. The [attended retest](ATTENDED_RETEST.md) records the owner clarification and fresh
+receipt for the next observation. The [attended session](ATTENDED_SESSION.md) pins the corrected enabled
 package, passing mechanism/duration evidence, metadata collector, command checks
 and combined budget. Fresh input identity/capabilities, reader exclusion, actual
 custody and the complete boot-specific capture binding remain runtime conditions.
