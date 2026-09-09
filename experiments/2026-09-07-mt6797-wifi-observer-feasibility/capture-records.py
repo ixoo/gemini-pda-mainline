@@ -13,9 +13,47 @@ PAYLOAD_BYTES = 120 - HEADER.size
 COMMIT = 0x57464331
 IDENTITY = 1
 TERMINAL = 255
-# Event payload semantics remain a separate, unfinished observer contract.
+# Non-DMA event payloads and cross-record lifecycle semantics remain unfinished.
 KINDS = {IDENTITY, 2, 3, 4, 5, 6, 7, 8, 9, 10, TERMINAL}
 TERMINAL_STATUSES = {1, 2, 3}  # producer-reported complete, failed, overflow
+
+
+DMA_MAP = struct.Struct('<IIIIQII')
+DMA_PROGRAM = struct.Struct('<IIQQ13I')
+DMA_POLL = struct.Struct('<IIIIQII')
+DMA_UNMAP = struct.Struct('<IIQII')
+
+
+def validate_dma_payload(kind, transaction, payload):
+    layout = {3: DMA_MAP, 4: DMA_PROGRAM, 5: DMA_POLL, 6: DMA_UNMAP}.get(kind)
+    if layout is None:
+        return
+    if not transaction or len(payload) != layout.size:
+        raise ValueError('DMA record requires transaction and exact payload size')
+    values = layout.unpack(payload)
+    if kind == 3:
+        device, direction, requested, rounded, address, port, branch = values
+        if not device or direction not in (0, 1) or branch not in (1, 2):
+            raise ValueError('invalid DMA acquisition discriminator')
+    elif kind == 4:
+        device, phase, source, destination, *registers = values
+        if not device or phase not in (1, 2):
+            raise ValueError('invalid DMA programming phase')
+        if phase == 2 and (source or destination or any(registers[4:])):
+            raise ValueError('nonzero unused shutdown programming fields')
+    elif kind == 5:
+        phase, stage, reason, reserved, count, last, valid = values
+        if phase not in (1, 2) or stage not in (1, 2) or reserved or valid not in (0, 1):
+            raise ValueError('invalid poll discriminator')
+        if stage == 1:
+            if reason or count or last or valid:
+                raise ValueError('poll entry contains a result')
+        elif reason not in (1, 2, 3, 4, 5) or bool(count) != bool(valid) or (not valid and last):
+            raise ValueError('invalid poll summary')
+    else:
+        stage, device, address, rounded, direction = values
+        if stage not in (1, 2) or not device or direction not in (0, 1):
+            raise ValueError('invalid DMA unmap discriminator')
 
 
 def encode(kind, sequence, cycle, transaction, payload):
@@ -34,6 +72,7 @@ def encode(kind, sequence, cycle, transaction, payload):
     if kind == TERMINAL and (transaction or len(payload) != 4 or
                              int.from_bytes(payload, 'little') not in TERMINAL_STATUSES):
         raise ValueError('invalid terminal payload')
+    validate_dma_payload(kind, transaction, payload)
     body = HEADER.pack(b'WFC1', 1, kind, sequence, cycle, transaction, len(payload))
     body += payload + bytes(PAYLOAD_BYTES - len(payload))
     return body + struct.pack('<II', zlib.crc32(body), COMMIT)

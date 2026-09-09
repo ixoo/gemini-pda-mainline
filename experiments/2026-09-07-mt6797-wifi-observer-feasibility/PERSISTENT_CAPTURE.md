@@ -184,3 +184,61 @@ writes. The future writer must still establish ownership, write ordering,
 readback and recovery behavior; this encoder merely places the marker last
 in a byte string. Stale-record exclusion also requires a fresh externally
 bound cycle identity, not just a nonzero field.
+
+## DMA payload layouts
+
+The offline codec now checks exact payload sizes and discriminators for kinds
+3–6. All integer fields below are little-endian. Device is a nonzero ID that
+the future candidate must bind to its exact DMA device; it is not a kernel
+pointer. Transaction is the nonzero envelope field, shared by the records of
+one transfer. Direction is observer enum 0 RX or 1 TX, corresponding to the
+native FROM_DEVICE or TO_DEVICE mapping call respectively.
+
+| Kind | Payload fields, in order | Bytes |
+| --- | --- | ---: |
+| 3 acquisition | device u32, direction u32, requested bytes u32, rounded bytes u32, full DMA address u64, port u32, branch u32 | 32 |
+| 4 programming | device u32, phase u32, full source argument u64, full destination argument u64, thirteen register values u32 | 76 |
+| 5 polling | phase u32, stage u32, reason u32, reserved zero u32, read count u64, last raw value u32, read-valid u32 | 32 |
+| 6 unmap | stage u32, device u32, full DMA address u64, rounded bytes u32, direction u32 | 24 |
+
+Acquisition branch 1 means the DMA API path and 2 the preallocated path. A
+branch-2 record is representable so the observer can retain an unexpected
+selection; it does not satisfy the DMA API acquisition predicate. Zero or
+unexpected addresses and inconsistent requested/rounded counts are likewise
+preserved, not normalized into validity.
+
+Programming phase 1 stores the full configuration source/destination arguments
+and these thirteen actual values: CON read, CON store, low SRC store, low DST
+store, LEN store, SRC_ADDR2 read/store, DST_ADDR2 read/store, INT_EN read/store,
+and EN read/store. Phase 2 records ACK read/store and stop INT_EN read/store in
+the first four slots; full source/destination and the other nine slots are
+zero. These are values at existing accesses, not added readback transactions.
+The encoder does not require the observed programming to match the DMA address;
+that comparison belongs to the later lifecycle validator.
+
+Polling phase 1 is INTFLAG and 2 is EN. Stage 1 is entry, with all result fields
+zero. Stage 2 is exit. Reasons are 1 condition satisfied, 2 deadline escape,
+3 count escape, 4 native error path, or 5 observer counter overflow. Read-valid
+must agree with a nonzero read count; without a read, last value must be zero.
+These are record-consistency checks, not proof that an EN result is idle or
+that an INTFLAG result is completion. The raw value remains available to the
+future validator. Unmap stages 1/2 are entry/return and repeat its exact native
+address, length and direction.
+
+The core DMA sequence therefore costs nine records: acquisition, setup,
+INTFLAG entry/exit, shutdown programming, EN entry/exit, unmap entry/return.
+That is 1,152 bytes per transaction. After the identity record, at most 56 such
+sequences fit in the ordinary-record allowance, even before initializer,
+firmware, EMI, shared-OFF, isolation and other wrapper observations are added.
+The eight firmware payload submissions would consume 72 records if all eight
+take DMA, leaving 437 ordinary records after identity. This arithmetic is a
+capacity illustration, not a whole-cycle bound or a decision to omit any
+required observation. Event schemas and the final admitted budget must account
+for those other records before constructing a candidate.
+
+Eight focused tests now pass, including exact DMA layout round trips, full
+64-bit address preservation, poll entry/exit consistency and truncated or
+unattributed DMA payload refusal. Existing framing corruption and capacity
+tests still pass. Cross-record transaction ordering, positive idle before
+unmap, non-DMA payload schemas and physical writer/recovery behavior remain
+unfinished; no producer-reported success is promoted by these checks.
