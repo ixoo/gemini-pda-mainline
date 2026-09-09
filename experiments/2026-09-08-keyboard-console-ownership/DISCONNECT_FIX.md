@@ -45,3 +45,14 @@ Local validation: 13 monitor tests and eight disconnect tests passed. The
 separately delivered ARM64 monitor/probe must be rebuilt and validated on
 Buildbox before a new admission. The kernel, initramfs and installed boot2 image
 are unchanged. The previous package cannot validate the changed monitor source.
+
+## Buildbox validation
+
+Revision `18a5882d55f11450dd049c7a6bbc2c6d1731359f` produced the immutable
+monitor package `89a9765b72b55b47c9e7ed973ceb175cbfab5623749be12a2739ee9c8f4e7657`.
+Both stripped replicas matched. All 13 ARM64/QEMU monitor tests passed,
+including the quiet-child case. The eight disconnect tests also passed under
+the exact candidate BusyBox with QEMU; that log has SHA-256
+`3cbaccd0276acf409289c90a7bda764908ec0ba8ec8aa02917986949a9f45080`.
+The [next session packet](DISCONNECT_RETEST.md) owns the new binary identities
+and physical-test boundary. No changed helper has run on the PDA yet.

@@ -14,7 +14,7 @@ PINS = {BASE: 'deaa0e886a881132dd49ee1e3d5b0e6f776400f51fa86a8d0b7c791e979d12a8'
         DERIVER: '9c72675e3043dcf735c8a368800ce9297ca6c343d81283505e7030de82253211',
         'scripts/boot2-device-guard.sh': '0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf'}
 RECEIPT_NAME = 'a53-authenticated-baseline-deployment-2'
-KEYBOARD_DISCONNECT_RECEIPT_NAME = 'a53-keyboard-disconnect-deployment-1'
+KEYBOARD_DISCONNECT_RECEIPT_NAME = 'a53-keyboard-disconnect-deployment-2'
 _PURPOSE_RECEIPTS = {'keyboard-disconnect': KEYBOARD_DISCONNECT_RECEIPT_NAME}
 
 

@@ -100,3 +100,6 @@ Its original package and source preparation is in
 The [attended disconnect result](DISCONNECT_RESULT.md) failed cancellation: the
 harmless child reached its deadline, and the strict reader scan also stopped.
 All unique evidence was preserved and changed-ID Gemian return was confirmed.
+
+The [correction and target validation](DISCONNECT_FIX.md) prepare the
+[separately admitted retest](DISCONNECT_RETEST.md); the failed result remains unchanged.
