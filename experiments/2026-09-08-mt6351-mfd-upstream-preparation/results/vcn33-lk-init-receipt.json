@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "analysis": "Bounded retained LK PMIC initialization audit; no device access",
+  "source_commit": "f4988d74bb70a0a15d7f362f412afba7e7fcda46",
+  "source_file": "lk/platform/mt6797/mt_pmic.c",
+  "source_url": "https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/mt_pmic.c",
+  "source_sha256": "90e1772c5fade1dd6e4ad4ab728b8ef483f7821b67962de4af64824dad7cd00f",
+  "source_lines": [
+    263,
+    296
+  ],
+  "image_sha256": "75ec9f0ba97af9e68d964b304e0de809f9b4546982570bd16b2e7fe88823282c",
+  "image_bytes": 524288,
+  "raw_map_base": "0x45fffe00",
+  "tool": "radare2 5.5.0; ARM32 Thumb; RE VM",
+  "identification": "Caller profiling-string reference, call targets and register arguments; function names inferred, not symbols",
+  "private_listing_sha256": "ede4a4d3ead27fb11cd86eb98def8dc932337563708968e3f24459a7f9ac8b58",
+  "command": "r2 -q -a arm -b 16 -m 0x45fffe00 -c 'e scr.color=false; pD 40 @ 0x4600d270; pD 44 @ 0x4600d3bc; pd 12 @ 0x46001e58; q' PRIVATE_LK_INPUT",
+  "function_spans": [
+    {
+      "role": "PMIC initialization",
+      "start": "0x4600d3c4",
+      "end_exclusive": "0x4600d3e8",
+      "sha256": "bc33416c248163c92bcb20b137a64b78e6ac78ae66961ee4d2b1faca1944946c"
+    },
+    {
+      "role": "initialization hook",
+      "start": "0x4600d3bc",
+      "end_exclusive": "0x4600d3be",
+      "sha256": "c7dfbb7d02759eacb64dbc916c1bb6f21eabaff1c1032ea5c9176abf7fd28df8"
+    },
+    {
+      "role": "customization hook",
+      "start": "0x4600d3c0",
+      "end_exclusive": "0x4600d3c2",
+      "sha256": "c7dfbb7d02759eacb64dbc916c1bb6f21eabaff1c1032ea5c9176abf7fd28df8"
+    },
+    {
+      "role": "read wrapper",
+      "start": "0x4600d270",
+      "end_exclusive": "0x4600d298",
+      "sha256": "4a7698487f52a06b37dcdf29cca76b8a9c8e23b5dc73d9e08671e0963fc270b0"
+    }
+  ],
+  "scope": "Selected initialization and read-wrapper bodies; underlying transport, other LK consumers and earlier firmware not audited",
+  "device_access": false,
+  "firmware_execution": false
+}

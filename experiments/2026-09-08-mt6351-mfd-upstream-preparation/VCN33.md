@@ -119,6 +119,23 @@ missing mode/source-clock owner. Investigate other writers or obtain an
 attributable, separately admitted observation; do not infer software ownership
 from the golden values or copy them as a programming recipe.
 
+## Retained LK initialization follow-up
+
+The [LK receipt](results/vcn33-lk-init-receipt.json) pins a bounded audit of the
+same retained loader used by the [modem-tail analysis](../2026-09-07-mt6797-cellular-upstream-architecture/LOADER_TAIL.md).
+The routine identified by its caller's PMIC-initialization profiling message
+calls two hooks that each return immediately. It then requests a full-width
+read of `0x02b6` and returns zero without using the read result. The public LK
+source has the same empty initialization/custom hooks and read sequence.
+These hooks therefore do not supply the missing VCN33 mode/source-clock setup.
+
+This is a selected compiled-path result, not a whole-loader writer inventory or
+proof that LK leaves all PMIC state unchanged. The read wrapper's underlying
+transport effects are outside this audit. Other LK consumers and earlier
+preloader/firmware remain possible owners; the retained image also does not
+attest the current boot. Do not repeat these empty hooks as a proposed source
+of the missing rail contract. No current PMIC read or rail experiment occurred.
+
 ## Decision
 
 The common selector and common status naming support a shared analog-resource
