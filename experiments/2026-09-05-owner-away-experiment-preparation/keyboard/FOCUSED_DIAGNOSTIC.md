@@ -41,8 +41,13 @@ monitor file cap, including an overflow record and framing.
 
 Exit zero means only that collection and restoration completed. Empty windows,
 wrong keys, malformed frames or wrong VT bytes do not establish a diagnostic
-pass. Before live use, finish the repeat-aware evidence interpretation and
-bind an exact package to a fresh monitored session, including prompt ownership,
+pass. The [offline analyzer](analyze-focused.py) checks complete framing,
+timestamps, counters, balanced physical edges and repeat/synchronization pairs.
+It compares input coordinates/edges and VT bytes separately. It always reports
+`hardware_claim=false` and `session_receipt_verified=false`: stream contents
+cannot establish runtime attribution or the owner's physical actions.
+
+Before live use, bind an exact package to a fresh monitored session, including prompt ownership,
 reader exclusion, logging, the revised time budget and owner participation.
 The old monitor invocation selects `--capture`; it cannot launch this mode
 unchanged. Do not repurpose the consumed retry receipt or rewrite historical
@@ -62,7 +67,20 @@ read, signal restoration, held keys, repeat-query/capacity refusals, legacy
 framing and both full production-duration windows. Simulated input cannot prove
 the physical keyboard, matrix rollover or console mapping.
 
+The managed Buildbox build at `f2b43fc044928f37ba9a30a7b169e79556a1871d`
+passed all eleven ARM64 fixtures, including both full fifteen-second windows.
+Its two stripped static binaries match at 67,280 bytes. The validated package
+identity is
+`903a846668b605bf076f234864e0b0820543c9aac33b2bfb170bef63fa5bd3df`;
+the reader SHA-256 is
+`41d7eb823cee071d36d71288bb4d00a96485b5a24ca37c3ccb035a063f6ab0ab`.
+The fixture-results SHA-256 is
+`90266f9b3e4c66f8624f669f83e568838a0ddb164afde5ba3a47a6038549da46`.
+Only the validated package was fetched; the build stage was removed normally.
+
 Local routing, Python syntax, shell syntax/ShellCheck and the unchanged v1
-packet tests pass. ARM64 compilation and fixture execution are pending at this
-implementation checkpoint. No kernel build or device action is required for
-this userspace preparation.
+packet tests pass. The [analyzer fixtures](test-analyze-focused.py) distinguish
+repeat events from physical presses, preserve independent input/VT mismatches,
+and refuse truncated, overflowing, malformed or inconsistent records. These
+are synthetic stream checks, separate from the compiled ARM64 reader fixtures.
+No kernel build, new capture, live query or device transition was performed.
