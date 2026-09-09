@@ -1,0 +1,6 @@
+PASS: native allocation failure still succeeds and zaps retained metadata
+PASS: successful old-log copy preserves ring order; empty ring needs no copy
+Scope: four exact functions, fake mapping/allocation/ECC/free; no device access
+PASS: allocation failure refuses initialization and preserves retained bytes
+PASS: successful old-log copy preserves ring order; empty ring needs no copy
+Scope: four exact functions, fake mapping/allocation/ECC/free; no device access

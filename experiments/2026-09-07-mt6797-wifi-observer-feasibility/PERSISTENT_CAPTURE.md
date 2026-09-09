@@ -2,8 +2,9 @@
 
 The existing same-version Gemian pmsg storage is a possible backing store, but
 the old process-context witness helper is not a suitable direct writer for all
-required Wi-Fi observations. This assessment selects no new memory range,
-changes no kernel code and admits no physical write or recovery action.
+required Wi-Fi observations. This source-only preparation selects no new memory range and admits no
+physical write or recovery action. The isolated repairs below are not a
+capture implementation or a selected kernel candidate.
 
 The [source receipt](results/persistent-capture-sources.json) pins five complete
 public Git objects at the selected Gemian revision and the retained build
@@ -630,10 +631,11 @@ observer kernel, radio operation or device test.
 
 ## Native refusal propagation repair
 
-The isolated [two-patch pstore series](patches/pstore/series) repairs the two
-frontend error paths identified above against the pinned public native 3.18
-source. The [source receipt](results/pmsg-fixed-sources.json) pins every patch
-and resulting source file; apply the series relative to that kernel's root.
+The isolated [pstore series](patches/pstore/series) repairs the two frontend
+error paths and the old-log allocation failure described below against the
+pinned public native 3.18 source. The
+[source receipt](results/pmsg-fixed-sources.json) pins every patch and resulting
+source file; apply the series relative to that kernel's root.
 It is independent of the WMT experiment patches and is not selected by any
 kernel manifest or build profile. Its synthetic archive author asserts no DCO;
 these patches are not submission-ready.
@@ -663,3 +665,38 @@ later chunk failed; capture isolation must rely on the future backend owner
 and its failure state. No full kernel compile, boot candidate, radio operation
 or device test is established by these host tests, and the closed A72 Gemian
 observer line remains closed.
+
+## Recovery allocation failure
+
+The third patch makes `persistent_ram_post_init()` return `-ENOMEM` when a
+valid nonempty retained ring has no allocated old-log copy after
+`persistent_ram_save_old()`. Previously that allocation failure was only
+logged; `persistent_ram_new()` returned a zone and `ramoops_init_prz()` then
+cleared its current start/size fields. The caller therefore destroyed the
+metadata needed to recover the old record without having copied it.
+
+With the repair, `persistent_ram_new()` follows its existing error cleanup
+and returns an error pointer. `ramoops_init_prz()` propagates the error before
+its zap and before advancing the physical-address cursor. Source inspection of
+`persistent_ram_free()` confirms that it unmaps the zone and frees ordinary
+allocations without clearing the retained ring. The probe's failure labels
+skip freeing the failed zone again. This does not fix the separate cleanup
+of previously initialized zones or make a failed whole probe retryable.
+
+The [recovery reproduction](test-pmsg-recovery.py) compiles the exact save,
+post-init, new-zone and ramoops zone-initialization functions with fake mapping,
+allocation, ECC and free operations. It demonstrates the old destructive
+success and the repaired refusal with byte-identical retained storage, no zap,
+an unchanged address cursor and released zone allocation. It also checks a
+successful wrapped old-log copy and an empty ring that needs no copy, with
+allocation failure both enabled and disabled. The [result](results/pmsg-recovery-test.txt)
+is a host control-flow test, not evidence of persistence across physical reset.
+
+The refusal concerns a valid nonempty header and snapshot allocation failure.
+Invalid headers still follow the native reset path. ECC validation/correction
+precedes the new check; the fixture models disabled ECC and establishes no
+preservation guarantee for ECC repair. A future capture must verify the exact
+no-ECC layout and retain malformed or partially committed evidence through a
+separately reviewed reader. Successful allocation creates only a volatile copy;
+it is not durable host collection, exclusive capture ownership or permission
+to overwrite a previous record. No recovery image or runtime test is selected.

@@ -10,6 +10,10 @@
     {
       "path": "patches/pstore/0002-pstore-preserve-native-records-when-backend-erase-fa.patch",
       "sha256": "48b3b5f3bac483c4c85a65cba5756f3b577dd1f9bbb2a723ff1630df02812565"
+    },
+    {
+      "path": "patches/pstore/0003-pstore-preserve-old-log-on-allocation-failure.patch",
+      "sha256": "f59195e7009ea7dd8299d6d627962338cebdc3d9022e9e3047cedacca283b060"
     }
   ],
   "sources": [
@@ -25,8 +29,8 @@
     },
     {
       "path": "fs/pstore/ram_core.c",
-      "bytes": 13562,
-      "sha256": "eb25a629b9dff9bbffedd7c90fd2a1045420792570cd0a775d78d3bd2c2ca1b6"
+      "bytes": 13624,
+      "sha256": "9f07dc5c78c78008e57a00090f8c76a3d3412e318c3decc545fd87ed7cc8da47"
     },
     {
       "path": "fs/pstore/inode.c",

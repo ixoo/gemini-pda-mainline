@@ -1,0 +1,33 @@
+From e1c49a7cb78aaf305b7ee1c5b82f00641279270f Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <experiment@invalid.example>
+Date: Wed, 9 Sep 2026 18:40:07 -0400
+Subject: [PATCH] pstore: fail native initialization when old log allocation
+ fails
+
+A valid nonempty retained ring must have an old-log copy before
+initialization succeeds. Otherwise ramoops_init_prz() clears the
+current metadata despite failure to preserve the old record. Return
+ENOMEM so persistent_ram_new() unmaps and reports failure before
+the ramoops caller reaches its zap.
+
+This native 3.18 experiment prerequisite is tested with exact function
+bodies and injected allocation failure. ECC is disabled in the fixture;
+no physical persistence or full kernel build is established.
+The archive identity is synthetic and non-certifying; not submission-ready.
+---
+ fs/pstore/ram_core.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/fs/pstore/ram_core.c b/fs/pstore/ram_core.c
+index e964eee..7ab712d 100644
+--- a/fs/pstore/ram_core.c
++++ b/fs/pstore/ram_core.c
+@@ -494,6 +494,8 @@ static int persistent_ram_post_init(struct persistent_ram_zone *prz, u32 sig,
+ 			pr_debug("found existing buffer, size %zu, start %zu\n",
+ 				 buffer_size(prz), buffer_start(prz));
+ 			persistent_ram_save_old(prz);
++			if (buffer_size(prz) && !prz->old_log)
++				return -ENOMEM;
+ 			return 0;
+ 		}
+ 	} else {
