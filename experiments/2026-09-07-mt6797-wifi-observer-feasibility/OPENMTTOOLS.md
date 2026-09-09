@@ -203,3 +203,44 @@ build output was removed. No source tree was copied from the host.
 This closes complete-file compilation for the two changes. It does not link
 a kernel, establish the final Wi-Fi configuration or replace the later
 Buildbox kernel build, startup/capture integration and device recovery tests.
+
+## Single-command reply guard (incomplete checkpoint)
+
+The userspace responder can be descheduled after checking its deadline and
+before writing its reply. The third [experiment patch](patches/0003-wmt-guard-single-patch-reply.patch)
+therefore enforces reply acceptance in the kernel. The
+[source receipt](results/command-guard-sources.json) pins all four parent files
+at the same public Gemian revision. Apply this after the first two patches.
+
+This experiment permits exactly one `srh_patch` transaction per boot. A mutex
+serializes command initialization, reply acceptance and terminal cleanup. The
+signal and command are initialized before publishing the pending bit; a reply
+is refused while that bit still indicates an unread command. After consumption,
+the first reply before the two-second jiffies deadline may complete the signal.
+The write path returns the rejection errno for early, expired or duplicate
+replies. A negative accepted reply still returns the byte count to userspace
+and delivers failure to the waiting kernel caller. Later transactions are
+refused for the remainder of the boot, including after timeout or an invalid
+command consumes the one-command allowance. UART open/close commands are outside
+this isolated BTIF experiment policy.
+
+The [focused test](test-command-guard.py) accepts a public source root, verifies
+the four source hashes, replays the actual patch and compiles the extracted
+control, library and write functions together. It passed early/unread replies,
+success, negative acknowledgement, duplicate replies, exact-deadline and late
+replies, missing replies, unsigned-jiffies wraparound, concurrent-entry boundary
+rejection, terminal reuse, invalid arguments and an occupied buffer. The host
+compile used C11, `-Wall -Wextra -Werror`, with unused callback parameters
+suppressed. The lock shim checks sequential boundary interleavings; it does
+not test a real scheduler or simultaneous threads.
+
+Checkpatch passed with `--no-tree --strict --no-signoff --ignore CAMELCASE`
+using the previously pinned checker. The explicit CamelCase exception preserves
+existing vendor identifiers; this is not an unqualified strict-style pass.
+
+Complete-file AArch64 compilation of this third patch remains outstanding.
+The two-file compilation receipt above does not cover it. The guard does not
+serialize metadata ioctls, establish exclusive resource ownership, or impose
+a total startup/shutdown deadline. Minimal startup, integrated capture and
+recovery, and a full validated Buildbox candidate remain unfinished. No device
+action, radio cycle or upstream submission is admitted by this checkpoint.

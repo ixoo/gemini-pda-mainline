@@ -1,0 +1,25 @@
+{
+  "revision": "59e00a9144d782e148332009a835b99c43382467",
+  "sources": [
+    {
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_ctrl.c",
+      "bytes": 31505,
+      "sha256": "4fdc36fab251ba206c580268be73d9b9161005821bffe0ad01f3bf8a6b8800ec"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_lib.c",
+      "bytes": 54747,
+      "sha256": "e363d3377aab1de6f81d94dd482bcdba5eb55884792f45e1688ebf850f991e4f"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_dev.c",
+      "bytes": 39254,
+      "sha256": "d7be291ca5e2962be24def406260b5bb21a4b85438f64a1064944686a84fd62e"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/core/include/wmt_ctrl.h",
+      "bytes": 4717,
+      "sha256": "087c94e35a9b186f1d407bb1baa87acb4df37d80f7c68ade4933091b4ac61409"
+    }
+  ]
+}

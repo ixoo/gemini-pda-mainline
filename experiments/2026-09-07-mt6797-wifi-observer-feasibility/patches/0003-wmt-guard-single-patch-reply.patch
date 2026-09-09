@@ -1,0 +1,197 @@
+From 58c55fc250d2ac245b861188fa694ffb92ca8083 Mon Sep 17 00:00:00 2001
+From: "Gemini Wi-Fi experiment (non-certifying)" <noreply@gemini-wifi.invalid>
+Date: Wed, 9 Sep 2026 16:33:29 -0400
+Subject: [PATCH] wmt: guard one patch-search reply in the isolated experiment
+
+Userspace can be delayed between a deadline check and its reply write.
+Accept only the first patch-search transaction of this experiment boot
+and serialize reply acceptance against expiry and terminal state.
+
+Initialize the reply signal and command before exposing the pending bit.
+Refuse late or duplicate replies and propagate refusal through WMT_write.
+Never reset the consumed transaction within this boot. Other userspace
+WMT command types are outside the isolated BTIF startup protocol.
+
+This deliberately restricts the vendor experiment. It is not an
+upstream API proposal or device candidate. No DCO is asserted.
+---
+ .../common_main/core/include/wmt_ctrl.h       |  1 +
+ .../common/common_main/core/wmt_ctrl.c        | 88 +++++++++++++------
+ .../common/common_main/core/wmt_lib.c         |  7 +-
+ .../common/common_main/linux/wmt_dev.c        |  7 +-
+ 4 files changed, 65 insertions(+), 38 deletions(-)
+
+diff --git a/drivers/misc/mediatek/connectivity/common/common_main/core/include/wmt_ctrl.h b/drivers/misc/mediatek/connectivity/common/common_main/core/include/wmt_ctrl.h
+index a736780..4ef02f0 100644
+--- a/drivers/misc/mediatek/connectivity/common/common_main/core/include/wmt_ctrl.h
++++ b/drivers/misc/mediatek/connectivity/common/common_main/core/include/wmt_ctrl.h
+@@ -126,6 +126,7 @@ typedef INT32(*WMT_CTRL_FUNC) (P_WMT_CTRL_DATA);
+ */
+ 
+ extern INT32 wmt_ctrl(P_WMT_CTRL_DATA pWmtCtrlData);
++INT32 wmt_ctrl_cmd_reply(INT32 result);
+ 
+ extern INT32
+ wmt_ctrl_tx_ex(const PUINT8 pData,
+diff --git a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_ctrl.c b/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_ctrl.c
+index 063b92c..b89e219 100644
+--- a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_ctrl.c
++++ b/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_ctrl.c
+@@ -38,6 +38,9 @@
+ *                    E X T E R N A L   R E F E R E N C E S
+ ********************************************************************************
+ */
++#include <linux/jiffies.h>
++#include <linux/mutex.h>
++
+ #include "osal_typedef.h"
+ #include "osal.h"
+ 
+@@ -398,48 +401,75 @@ INT32 wmt_ctrl_hw_pwr_on(P_WMT_CTRL_DATA pWmtCtrlData)
+ 	return iret;
+ }
+ 
++/* One patch-search transaction for this isolated experiment's boot. */
++static DEFINE_MUTEX(wmt_cmd_lock);
++static bool wmt_cmd_used;
++static bool wmt_cmd_active;
++static unsigned long wmt_cmd_deadline;
++
++INT32 wmt_ctrl_cmd_reply(INT32 result)
++{
++	INT32 ret = -ESTALE;
++
++	mutex_lock(&wmt_cmd_lock);
++	if (!wmt_cmd_active)
++		goto out;
++	if (time_after_eq(jiffies, wmt_cmd_deadline)) {
++		wmt_cmd_active = false;
++		ret = -ETIMEDOUT;
++		goto out;
++	}
++	if (osal_test_bit(WMT_STAT_CMD, &gDevWmt.state)) {
++		ret = -EAGAIN;
++		goto out;
++	}
++	wmt_cmd_active = false;
++	gDevWmt.cmdResult = result;
++	osal_raise_signal(&gDevWmt.cmdResp);
++	ret = 0;
++out:
++	mutex_unlock(&wmt_cmd_lock);
++	return ret;
++}
++
+ INT32 wmt_ctrl_ul_cmd(P_DEV_WMT pWmtDev, const PUINT8 pCmdStr)
+ {
+-	INT32 waitRet = -1;
++	INT32 waitRet;
++	INT32 result;
+ 	P_OSAL_SIGNAL pCmdSignal;
+-	P_OSAL_EVENT pCmdReq;
+ 
+-	if (osal_test_and_set_bit(WMT_STAT_CMD, &pWmtDev->state)) {
+-		WMT_WARN_FUNC("cmd buf is occupied by (%s)\n", pWmtDev->cCmd);
+-		return -1;
++	if (pWmtDev != &gDevWmt || !pCmdStr)
++		return -EINVAL;
++	mutex_lock(&wmt_cmd_lock);
++	if (wmt_cmd_used) {
++		mutex_unlock(&wmt_cmd_lock);
++		return -EBUSY;
++	}
++	wmt_cmd_used = true;
++	if (osal_strcmp(pCmdStr, "srh_patch") ||
++	    osal_test_bit(WMT_STAT_CMD, &pWmtDev->state)) {
++		mutex_unlock(&wmt_cmd_lock);
++		return -EINVAL;
+ 	}
+-
+-	/* indicate baud rate change to user space app */
+-#if 0
+-	INIT_COMPLETION(pWmtDev->cmd_comp);
+-	pWmtDev->cmd_result = -1;
+-	strncpy(pWmtDev->cCmd, pCmdStr, NAME_MAX);
+-	pWmtDev->cCmd[NAME_MAX] = '\0';
+-	wake_up_interruptible(&pWmtDev->cmd_wq);
+-#endif
+-
+ 	pCmdSignal = &pWmtDev->cmdResp;
+ 	osal_signal_init(pCmdSignal);
+ 	pCmdSignal->timeoutValue = 2000;
++	pWmtDev->cmdResult = -ETIMEDOUT;
+ 	osal_strncpy(pWmtDev->cCmd, pCmdStr, NAME_MAX);
+ 	pWmtDev->cCmd[NAME_MAX] = '\0';
+-
+-	pCmdReq = &pWmtDev->cmdReq;
++	wmt_cmd_deadline = jiffies + msecs_to_jiffies(2000);
++	wmt_cmd_active = true;
++	osal_set_bit(WMT_STAT_CMD, &pWmtDev->state);
++	mutex_unlock(&wmt_cmd_lock);
+ 
+ 	osal_trigger_event(&pWmtDev->cmdReq);
+-	WMT_DBG_FUNC("str(%s) request ok\n", pCmdStr);
+-
+-/* waitRet = wait_for_completion_interruptible_timeout(&pWmtDev->cmd_comp, msecs_to_jiffies(2000)); */
+ 	waitRet = osal_wait_for_signal_timeout(pCmdSignal);
+-	WMT_LOUD_FUNC("wait signal iRet:%d\n", waitRet);
+-	if (0 == waitRet) {
+-		WMT_ERR_FUNC("wait signal timeout\n");
+-		return -2;
+-	}
+-
+-	WMT_INFO_FUNC("str(%s) result(%d)\n", pCmdStr, pWmtDev->cmdResult);
+-
+-	return pWmtDev->cmdResult;
++	mutex_lock(&wmt_cmd_lock);
++	wmt_cmd_active = false;
++	osal_clear_bit(WMT_STAT_CMD, &pWmtDev->state);
++	result = waitRet > 0 ? pWmtDev->cmdResult : -ETIMEDOUT;
++	mutex_unlock(&wmt_cmd_lock);
++	return result;
+ }
+ 
+ INT32 wmt_ctrl_hw_rst(P_WMT_CTRL_DATA pWmtCtrlData)
+diff --git a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_lib.c b/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_lib.c
+index dca2d32..51fc6b8 100644
+--- a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_lib.c
++++ b/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_lib.c
+@@ -516,12 +516,7 @@ VOID wmt_lib_flush_rx(VOID)
+ 
+ INT32 wmt_lib_trigger_cmd_signal(INT32 result)
+ {
+-	P_OSAL_SIGNAL pSignal = &gDevWmt.cmdResp;
+-
+-	gDevWmt.cmdResult = result;
+-	osal_raise_signal(pSignal);
+-	WMT_DBG_FUNC("wakeup cmdResp\n");
+-	return 0;
++	return wmt_ctrl_cmd_reply(result);
+ }
+ 
+ P_OSAL_EVENT wmt_lib_get_cmd_event(VOID)
+diff --git a/drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_dev.c b/drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_dev.c
+index 70f7a42..4d670dd 100644
+--- a/drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_dev.c
++++ b/drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_dev.c
+@@ -694,13 +694,14 @@ ssize_t WMT_write(struct file *filp, const char __user *buf, size_t count, loff_
+ 		if (!strncasecmp(wrBuf, "ok", NAME_MAX)) {
+ 			WMT_DBG_FUNC("resp str ok\n");
+ 			/* pWmtDevCtx->cmd_result = 0; */
+-			wmt_lib_trigger_cmd_signal(0);
++			iRet = wmt_lib_trigger_cmd_signal(0);
+ 		} else {
+ 			WMT_WARN_FUNC("warning resp str (%s)\n", wrBuf);
+ 			/* pWmtDevCtx->cmd_result = -1; */
+-			wmt_lib_trigger_cmd_signal(-1);
++			iRet = wmt_lib_trigger_cmd_signal(-1);
+ 		}
+-		/* complete(&pWmtDevCtx->cmd_comp); */
++		if (!iRet)
++			iRet = copySize;
+ 	}
+ 
+ write_done:
+-- 
+2.50.1 (Apple Git-155)
+
