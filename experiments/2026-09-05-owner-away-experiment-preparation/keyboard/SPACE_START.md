@@ -30,8 +30,8 @@ identities and build provenance. Two stripped binaries must match, and
 wrong keys, release without press, dropped input, timeout and signal cleanup
 under ARM64 QEMU with a real PTY and injected evdev/VT metadata. The fixture is
 not a hardware result. Deployment still requires an exact package and live
-session identity. The timed-capture binding is disabled while this change is
-being prepared; the previous retry has not executed.
+session identity. The timed-capture binding selects the prepared same-boot retry; that retry
+has not yet executed.
 
 The first package build did not publish. Its fixture diagnostics were incorrectly
 placed outside the builder’s retained failure-log list; that path is corrected.
@@ -40,3 +40,12 @@ passed. The retained second-build diagnostics identified fixture-only `_IOC_NR` 
 `_IOC_SIZE` macros absent from musl. The fixture now compares its two exact
 ioctl requests and fixed bitmap length. The production helper is unchanged;
 acceptance still requires the ordinary musl package build and tests.
+
+The accepted musl package was built at revision
+`9982265768a31a0fe868f193b6f8ba4ac111054d`, with package identity
+`f6584eeffe6659bb38aeea63c46830d250cd3d36ca4a0dcddfcad9d5482ded22`.
+Both stripped ARM64 replicas match and all seven PTY fixtures pass, including
+positive `EVIOCGKEY` return values. The generated RAM-delivery and readiness
+shells pass Bash syntax and ShellCheck (excluding literal awk quoting).
+This admits the readiness screen on the existing boot; it is not a live
+readiness result or keyboard regression pass.
