@@ -134,6 +134,11 @@ owner's one physical `boot2` selection.
 
 ## Runtime result
 
+The later [ramoops diagnosis](RAMOOPS_DIAGNOSIS.md) recovers historical log
+inspection showing the expected reservation and successful initcall returns.
+Backend registration remains unproved; the next investigation is device
+creation/binding/probe, rather than assuming the reservation was missing.
+
 The owner selected `boot2` before the prepared recovery collector was armed.
 One strict authenticated USB preflight nevertheless established the exact
 candidate release, boot identity, AArch64 execution, CPU0--7 online with
