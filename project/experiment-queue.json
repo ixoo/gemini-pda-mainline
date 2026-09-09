@@ -3,8 +3,8 @@
   "purpose": "Readiness inventory, not an executable queue or device authorization. Object order is not scheduling order; docs/ROADMAP.md alone owns priority. Exact inputs, budgets and chronology stay in linked experiments.",
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
-  "selected_item": null,
-  "selection_note": "Keyboard coverage is conditionally prepared for an attended session. No device operation selected; leave Gemian running while awaiting owner availability.",
+  "selected_item": "keyboard-coverage",
+  "selection_note": "Owner reported availability. Guarded boot2 checksum matched the selected keyboard candidate and clean shutdown completed; awaiting physical boot2 selection and readable-screen report.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -24,10 +24,10 @@
     "keyboard-coverage": {
       "workstream": "serviceability",
       "preparation_state": "conditional",
-      "device_state": "unselected",
+      "device_state": "waiting-owner-boot",
       "owner": "primary integration coordinator",
       "reviewer": "primary integration coordinator",
-      "device_custodian": null,
+      "device_custodian": "primary integration coordinator",
       "experiment": "experiments/2026-09-05-owner-away-experiment-preparation/README.md#keyboard-coverage",
       "session_packet": "experiments/2026-09-05-owner-away-experiment-preparation/keyboard/ATTENDED_SESSION.md",
       "candidate_record": "experiments/2026-09-08-keyboard-console-ownership/validation.json",

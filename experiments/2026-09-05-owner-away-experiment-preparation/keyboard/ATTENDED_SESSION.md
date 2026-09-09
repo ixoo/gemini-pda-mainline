@@ -1,8 +1,8 @@
 # Attended targeted keyboard session
 
-Status: conditionally prepared; device unselected; both execution bindings disabled.
-The primary integration coordinator owns preparation and review and will take
-exclusive device custody at the attended handoff. This is one new boot containing
+Status: guarded handoff completed; waiting for owner boot2 screen report; both execution bindings disabled.
+The primary integration coordinator owns preparation, review and exclusive
+device custody for this attended handoff. This is one new boot containing
 its own prerequisites and the existing 20-case keyboard observation. No physical
 selection or capture is admitted by this document alone.
 
@@ -119,3 +119,14 @@ When the keyboard check starts, follow one displayed instruction every ten secon
 release all keys between cases, and wait for the next instruction. The final
 HELP-and-Enter sequence is captured as test input. If you miss a case or cannot
 read it, release all keys and tell the operator; do not repeat it or reboot.
+
+## Current handoff
+
+The owner reported availability. The guarded `keyboard-capture` installer
+confirmed known-good Gemian, inactive live-GPT boot2, stable power and the
+selected full-partition checksum above. It skipped the already matching image
+and confirmed shutdown by loss of reachability. The fixed deployment receipt
+`a53-keyboard-capture-deployment-1` is consumed. The predecessor remains
+`1128b013-25b3-4e9c-9a94-398df98c2471`, so the prepared identity exclusions
+remain applicable. Physical selection, readable-screen confirmation and all
+mainline observations are still pending. No keyboard result is claimed.
