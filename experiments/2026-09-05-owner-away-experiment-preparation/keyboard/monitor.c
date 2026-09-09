@@ -86,6 +86,11 @@ static int forward(int fd, off_t size, off_t *sent)
 {
 	char b[4096];
 	if (*sent > size) return -1;
+	/* A quiet child makes no write that could report EPIPE. Check the output
+	 * reader even when the retained file has no new bytes to forward. */
+	struct pollfd output = { .fd = STDOUT_FILENO, .events = POLLOUT };
+	if (poll(&output, 1, 0) < 0) return errno == EINTR ? 0 : -1;
+	if (output.revents & (POLLERR | POLLHUP | POLLNVAL)) return -1;
 	if (*sent == size) return 0;
 	size_t n = size - *sent < (off_t)sizeof(b) ? (size_t)(size - *sent) : sizeof(b);
 	ssize_t got = pread(fd, b, n, *sent);

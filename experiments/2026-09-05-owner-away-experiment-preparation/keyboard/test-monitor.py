@@ -55,7 +55,7 @@ class MonitorTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
 
-    def run_case(self, mode, *, sig=None, close=False, stall=False, limit=131072):
+    def run_case(self, mode, *, sig=None, close=False, close_after_marker=False, stall=False, limit=131072):
         # A deliberately inherited fd checks the fixture child close policy.
         fd = os.open('/dev/null', os.O_RDONLY)
         os.dup2(fd, 47, inheritable=True)
@@ -99,7 +99,8 @@ class MonitorTests(unittest.TestCase):
                 if info is not None and info.si_pid == p.pid:
                     terminal = True
                     break
-                if not delivered and captured.exists() and captured.stat().st_size:
+                if (not delivered and captured.exists() and captured.stat().st_size and
+                        (not close_after_marker or b'\n' in output)):
                     if sig:
                         os.kill(p.pid, sig)
                     if close:
@@ -199,6 +200,13 @@ class MonitorTests(unittest.TestCase):
         self.assertEqual(code, 2)
         self.assertGreater(int(f['stdout_bytes']), int(f['forwarded_bytes']))
         self.assertGreater((self.root / 'keyboard-attempt/observer.stdout').stat().st_size, 0)
+
+    def test_quiet_child_detects_closed_reader_before_deadline(self):
+        code, _, _, f = self.run_case('ignore', close=True, close_after_marker=True)
+        self.assertEqual((code, f['reason']), (2, 'forward-close-or-stall'))
+        self.assertEqual((f['reaped'], f['identity_lost'], f['late']), ('1', '0', '0'))
+        self.assertLess(int(f['term_ms']), 280)
+        self.assertLessEqual(int(f['reap_ms']), 500)
 
     def test_forwarding_stall_retains_capture(self):
         code, _, _, f = self.run_case('fill', stall=True)

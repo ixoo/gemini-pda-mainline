@@ -8,6 +8,7 @@ import hashlib
 import json
 from pathlib import Path
 import runpy
+import shlex
 import shutil
 import subprocess
 import sys
@@ -91,6 +92,50 @@ class DisconnectTests(unittest.TestCase):
                 self.assertEqual(result.stdout, b'')
                 self.assertEqual(result.stderr,
                     f'keyboard-disconnect-export stage={stage} exit={expected}\n'.encode())
+
+    def test_scan_distinguishes_kernel_threads_without_ignoring_user_exe_errors(self):
+        context = {'admission': {'boot_id': '33333333-3333-3333-3333-333333333333'},
+                   'candidate': {}}
+        with patch.dict(D['S'], {'identity_script': lambda *a: '', 'ram_guard_script': lambda: ''}):
+            full = D['export_script'](context).decode()
+        scan = 'processes=0\n' + full.split('processes=0\n', 1)[1].split(
+            'export_stage=file-observer.stdout\n', 1)[0]
+        cases = (
+            ('kernel', 'Kthread:\t1\n', True, None, None),
+            ('user', 'Kthread:\t0\n', False, None, None),
+            ('user-exe-error', 'Kthread:\t0\n', True, None, 'process-executable'),
+            ('kernel-reader', 'Kthread:\t1\n', True, '/dev/input/event0', 'descriptor-target'),
+            ('missing-kind', 'Name:\tkworker\n', True, None, 'process-kind'),
+            ('duplicate-kind', 'Kthread:\t1\nKthread:\t0\n', True, None, 'process-kind'),
+            ('invalid-kind', 'Kthread:\t2\n', True, None, 'process-kind'),
+        )
+        for label, status, exe_error, reader, failure in cases:
+            with self.subTest(case=label):
+                proc = self.root / label / '2'
+                proc.mkdir(parents=True)
+                (proc / 'cmdline').write_bytes(b'')
+                (proc / 'status').write_text(status)
+                (proc / 'exe').symlink_to('/fixture/program')
+                (proc / 'fd').mkdir()
+                if reader:
+                    (proc / 'fd/0').symlink_to(reader)
+                # Model Linux's existing /proc kernel-thread magic link whose
+                # readlink fails, unlike an ordinary dangling filesystem link.
+                prefix = 'set -eu\nBB=fixture_bb\nfixture_bb() {\n'
+                if exe_error:
+                    prefix += ('if [ "$1" = readlink ] && [ "$2" = ' +
+                               shlex.quote(str(proc / 'exe')) + ' ]; then return 1; fi\n')
+                prefix += (shlex.join(SHELL[:-1]) + ' ' if _options.busybox else '') + '"$@"; }\n'
+                prefix += "trap 's=$?; if [ \"$s\" -ne 0 ]; then printf \"%s\\n\" \"$export_stage\" >&2; fi; exit \"$s\"' 0\n"
+                command = prefix + scan.replace('/proc/[0-9]*', str(proc.parent / '[0-9]*'))
+                result = subprocess.run(SHELL + ['-s'], input=command.encode(),
+                                        capture_output=True, timeout=2)
+                if failure:
+                    self.assertEqual(result.returncode, 1)
+                    self.assertEqual(result.stderr, (failure + '\n').encode())
+                else:
+                    self.assertEqual((result.returncode, result.stderr), (0, b''))
+                    self.assertEqual(result.stdout, b'scan-processes=1\nscan-descriptors=0\n')
 
     def test_export_parser_requires_complete_ordered_members(self):
         files = {'observer.stdout':b'fixture-child=8\n','observer.stderr':b'',

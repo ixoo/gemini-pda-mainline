@@ -123,8 +123,13 @@ for proc in /proc/[0-9]*; do
   export_stage=process-command
   [ -r "$proc/cmdline" ]; command=$($BB tr '\000' ' ' <"$proc/cmdline")
   case "$command" in */a53-keyboard-disconnect/probe*|*/bin/keyboard-observe*) exit 1;; esac
+  export_stage=process-kind
+  kernel_thread=$($BB awk '$1 == "Kthread:" {n++; value=$2; if (NF != 2 || value !~ /^[01]$/) bad=1} END {if (n != 1 || bad) exit 1; print value}' "$proc/status")
   export_stage=process-executable
-  if [ -L "$proc/exe" ]; then
+  # Kernel threads have no userspace executable, but their fds still count.
+  # A userspace task with an unreadable executable remains a refusal.
+  if [ "$kernel_thread" = 0 ]; then
+    [ -L "$proc/exe" ]
     executable=$($BB readlink "$proc/exe")
     case "$executable" in /a53-keyboard-disconnect/probe|/a53-keyboard-disconnect/probe\ \(deleted\)|/bin/keyboard-observe|/bin/keyboard-observe\ \(deleted\)) exit 1;; esac
   fi
