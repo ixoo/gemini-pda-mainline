@@ -1,6 +1,6 @@
 # MT6797 MSDC1 input-enable fields
 
-Status: source review and strict checkpatch passed; Buildbox compilation pending.
+Status: source review, strict checkpatch and Buildbox compilation passed.
 Unsigned upstream-preparation checkpoint, not a device candidate.
 
 ## Change and scope
@@ -42,6 +42,18 @@ definitions, selected series and configuration fragments are preserved.
 KERNEL_PROFILE=mt6797-msdc1-ies-compile ./scripts/build-kernel --backend buildbox
 KERNEL_PROFILE=mt6797-msdc1-ies-compile ./scripts/buildbox fetch-package
 ```
+
+The [Buildbox receipt](compile.json) records the validated build from
+`d92df003a67a058f91a554bc85d203866d3113e7`. The MT6797 driver and both shared
+MediaTek pinctrl layers are built in; its object compiled, and the driver,
+IES table and shared setter are present in the final symbol map. The compiled
+20-byte field descriptor decodes to the reviewed six-pin map. Its object
+relocation joins the IES register-calculation entry to that descriptor with
+range count 1. The prepared driver matches the reviewed patched source.
+No compiler warning/error lines were found. Remote package validation and
+the fetched inventory/checksums passed. Repository publication checks passed;
+the usual Linux-only provenance fixture remains deferred to CI.
+No device access, input-buffer transition or card test occurred.
 
 ## Upstream boundary
 

@@ -1,0 +1,69 @@
+{
+  "scope": "isolated MSDC1 input-enable field compile; no Gemini candidate",
+  "status": "validated",
+  "completed_utc": "2026-09-09T07:01:44Z",
+  "package_name": "linux-7.3-rc1-gemini-20f55062cf1418b0c5027f49307f5767def423b25413571ad469b46b03ec3446",
+  "repository_commit": "d92df003a67a058f91a554bc85d203866d3113e7",
+  "repository_dirty": false,
+  "kernel_release": "7.3.0-rc1-mt6797-msdc1-ies-compile",
+  "build_profile": "mt6797-msdc1-ies-compile",
+  "kernel_source": {
+    "archive_format": "tar.gz",
+    "archive_root": "linux-4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "git_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "released": "2026-09-05",
+    "sha256": "45590c057805bc9cf7281ce04d5dbde5316b7c8b017998cafac301f67e92682d",
+    "source_url": "https://codeload.github.com/torvalds/linux/tar.gz/4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "version": "7.3-rc1"
+  },
+  "patchset_sha256": "2f4e9b4af833f2eb85fdbc47328a233043ab9216e5ac619fc4f8d3338f350dce",
+  "config_inputs_sha256": "36fc379756cfa6191842f8c7c5f7d92973656af436ab6b0f79771bbf5fe23971",
+  "config_sha256": "84aa2740a80b6cda90a942fcebd2c10e6e07b1c4c6b9630451790f448d39d087",
+  "modules_built": false,
+  "build_architecture": "x86_64",
+  "target_architecture": "arm64",
+  "compiler": "aarch64-linux-gnu-gcc (Debian 12.2.0-14) 12.2.0",
+  "compiler_sha256": "c7b8890354c8ddc0364addfeb8968597e197627bd1e338fb6ed705b578803846",
+  "linker": "GNU ld (GNU Binutils for Debian) 2.40",
+  "linker_sha256": "e09a889c78a75e73ed096c9fa28905599e6813298b9ac839d10b02ffa96e7b08",
+  "artifact_sha256": {
+    "Image": "49a62c8e627e5f454ff91048d742bd569e6e8bbbc101983d8f63f55036135ed9",
+    "Image.gz": "589926ec66cda0e6c865c1dd6673e062c4148d00b805c018b70d5d9a87163032",
+    "kernel.config": "84aa2740a80b6cda90a942fcebd2c10e6e07b1c4c6b9630451790f448d39d087",
+    "System.map": "746cac99c8c6af2bdd1e0633d028792dc9d3b660659a8787113941c64c4fda0d",
+    "SHA256SUMS": "20f55062cf1418b0c5027f49307f5767def423b25413571ad469b46b03ec3446"
+  },
+  "required_builtin_config": [
+    "PINCTRL",
+    "PINCTRL_MT6797",
+    "PINCTRL_MTK_PARIS",
+    "PINCTRL_MTK_V2"
+  ],
+  "driver_object_compiled": true,
+  "driver_object_sha256": "bd39f0d4586bc0f4ff7fea360d1698700c4382fcc0591ac9ee86ff40f8cd729c",
+  "prepared_driver_sha256": "d38e9fdcd2708cffacfc8d68b4c196e50f708bed2c3845a672b3c63d4bcbef74",
+  "linked_symbols": [
+    "mt6797_pin_ies_range",
+    "mt6797_reg_cals",
+    "mt6797_pinctrl_driver",
+    "mtk_hw_set_value"
+  ],
+  "compiled_field": {
+    "symbol_bytes": 20,
+    "start_pin": 129,
+    "end_pin": 134,
+    "base_index": 2,
+    "offset": 32,
+    "register_stride": 16,
+    "start_bit": 25,
+    "bits_per_pin": 1,
+    "register_bits": 32,
+    "shared": false,
+    "IES_table_pointer_relocation_verified": true,
+    "IES_range_count": 1
+  },
+  "compiler_warning_error_lines": 0,
+  "remote_package_validation": "pass",
+  "local_fetch_inventory_and_checksums": "pass",
+  "hardware_tested": false
+}

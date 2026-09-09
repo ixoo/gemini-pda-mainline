@@ -101,6 +101,11 @@ and injected regression pass; it changes no device candidate or voltage policy.
 Truthful certification and upstream review remain required. MT6797 controller
 data and microSD rail/card-detect validation remain separate work.
 
+The [MSDC1 input-enable topic](../experiments/2026-09-09-mt6797-msdc1-input-enable/README.md)
+adds the source-backed six-pin IES map and passes isolated Buildbox compilation.
+It activates no board state. Schmitt direction semantics, shared drive fields,
+pad bias tuning and PMIC trim ownership remain separate before microSD admission.
+
 The current [display architecture refresh](../experiments/2026-09-07-mt6797-display-upstream-architecture/README.md)
 found no local 0028–0044 subset with both a truthful current resource contract
 and a real consumer/test story. Display PWM is the smallest likely unlock, but

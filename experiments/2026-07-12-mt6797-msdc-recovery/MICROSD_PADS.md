@@ -55,6 +55,8 @@ use the existing MediaTek R0/R1 contract and preserve unsupported cases,
 rather than guessing an ohmic mapping.
 
 Input-enable fields can be prepared independently of this drive/bias policy.
+The [isolated input-enable topic](../2026-09-09-mt6797-msdc1-input-enable/README.md)
+now adds that six-pin map and passes Buildbox compilation without a board change.
 Schmitt handling needs an additional API review: the pinned Paris setter
 changes GPIO direction before writing SMT, whereas the compiled vendor MMC
 helper changes SMT alone. A mapped SMT bit is therefore not by itself proof
