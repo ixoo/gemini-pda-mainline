@@ -1,0 +1,125 @@
+{
+  "schema": 1,
+  "firmware_sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
+  "firmware_bytes": 411632,
+  "tool": "Ghidra 12.1.2; retained RE-VM project",
+  "method": "Reuses existing NDS32 BE-instruction/LE-data and source-mapping premises. Direct-flow walks skip callees and assume return; selected immediate-derived callees are inspected separately. The first installation-helper walk is capped; the separately retained larger walk exhausts.",
+  "private_analysis": [
+    {
+      "script": "KeyDispatch.java",
+      "sha256": "44c17a4779ffa2a25e5873426d9242ee91b8566b78f3a57e14885c01552f4a48",
+      "entries_examined": 81,
+      "selected_command_matches": 1
+    },
+    {
+      "script": "KeyHandlerInspect.java",
+      "sha256": "9bd84477773a3d9be3e456d6c150093656e4575a8286806955342e7f4aa19017",
+      "node_cap": 384,
+      "nodes": 232,
+      "queue_exhausted": true,
+      "calls": 14,
+      "unresolved_noncall_computed": 0,
+      "terminals": 1,
+      "invalid": 0
+    },
+    {
+      "script": "KeyInstallInspect.java",
+      "sha256": "b9a9709821fed3063eacdf6e9495da8432db6a0e1379575ebfddc31ae99b3a20",
+      "node_cap": 384,
+      "nodes": 384,
+      "queue_exhausted": false,
+      "calls": 27,
+      "unresolved_noncall_computed": 0,
+      "terminals": 1,
+      "invalid": 0
+    },
+    {
+      "script": "KeyInstallComplete.java",
+      "sha256": "0d8ad9560467b4ab71fe7671e834e7edb1579dca4efa7616b6c564cae771a25b",
+      "node_cap": 768,
+      "nodes": 460,
+      "queue_exhausted": true,
+      "calls": 35,
+      "unresolved_noncall_computed": 0,
+      "terminals": 1,
+      "invalid": 0
+    },
+    {
+      "script": "KeyCounterSetup.java",
+      "sha256": "049a45d8b5707486b10f6524b4e13b81f15516f22a377993c7e2805ea8a7a9ca",
+      "node_cap": 384,
+      "nodes": 53,
+      "queue_exhausted": true,
+      "calls": 1,
+      "unresolved_noncall_computed": 0,
+      "terminals": 1,
+      "invalid": 0
+    },
+    {
+      "script": "KeyTableRead.java",
+      "sha256": "110802ed6f1eb03c430b5b725cefa229c953ba76a01b9de7eef5f5238c12ddf1",
+      "node_cap": 384,
+      "nodes": 266,
+      "queue_exhausted": true,
+      "calls": 9,
+      "unresolved_noncall_computed": 0,
+      "terminals": 1,
+      "invalid": 0
+    },
+    {
+      "script": "KeyTableWrite.java",
+      "sha256": "ce90116f1c380d3998f1a4b914f0059e55cb11291a756b402e098ceaca0c425a",
+      "node_cap": 384,
+      "nodes": 20,
+      "queue_exhausted": true,
+      "calls": 2,
+      "unresolved_noncall_computed": 0,
+      "terminals": 1,
+      "invalid": 0
+    },
+    {
+      "script": "KeyInstallNotify.java",
+      "sha256": "2d76ba9f2f719f69983ec34c0f41d6cfa03fc65db5d8ff6ea6391ccef981f4ce",
+      "node_cap": 384,
+      "nodes": 63,
+      "queue_exhausted": true,
+      "calls": 5,
+      "unresolved_noncall_computed": 0,
+      "terminals": 1,
+      "invalid": 0
+    },
+    {
+      "script": "KeyCallbackRefs.java",
+      "sha256": "f9535c786ebe5d8362a1fa964b3d3e0941caa40fe2d4bbbfa85d6a0f9b5f2918",
+      "section": "plaintext section 2",
+      "candidate_alignment_bytes": 2,
+      "maximum_local_instructions": 12,
+      "upper_immediate_candidates": 542,
+      "matching_local_windows": 12,
+      "limitation": "Known callback loads, no resolving initializer in these windows; not an exhaustive reference or absence proof."
+    }
+  ],
+  "host_commit": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+  "host_sources": [
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/include/nic_cmd_event.h",
+      "sha256": "93c8d67b1bc039a8db5b635e5a00975f2b9e408f4ab1bc8a384f5db49bf00a3a",
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/include/nic_cmd_event.h"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/include/mgmt/privacy.h",
+      "sha256": "6387512054b6154eb905b6ce35c1fbedc4f3c49e70f616e73a694d4d581cceeb",
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/include/mgmt/privacy.h"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic_rx.c",
+      "sha256": "a844bdf75065a152e78d30c789aabb398b0d0f336d30d6ffd028793bf091412b",
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic_rx.c"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/nic/que_mgt.c",
+      "sha256": "03fd22064c8bd56de4a895fde769264679c89cc05645be9e6395ecd545176a96",
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/nic/que_mgt.c"
+    }
+  ]
+}
