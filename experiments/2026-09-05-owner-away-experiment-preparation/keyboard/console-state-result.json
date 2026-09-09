@@ -1,0 +1,22 @@
+{
+  "boot_id": "e3a29c80-4948-4ef8-893a-cfbef0cd4918",
+  "id": "455d37ce-a993-42e2-9e08-7cf548ab676c",
+  "identity": "ad0126979c894c08eca70f6de7e071e355619058e203f35c39c2d850404221f5",
+  "phases": {
+    "delivery": "b768ab3fa69610f35395990c3d074b41f8064b3c976cf8e7a17b6cad5a5f20a0",
+    "query": "9a5fe9b10fa0e066438c3f83f7c4e9115a48e0ed4b8ee139ee1eb683c8396d98"
+  },
+  "revision": "2c0c6e3dab119963f21b58bf056f9402f83a2754",
+  "schema": "keyboard-console-state-result-v1",
+  "process": {
+    "elapsed_seconds": 0.84,
+    "exit_status": 0,
+    "reason": null,
+    "stderr_bytes": 0,
+    "stdin_complete": true,
+    "stdout_bytes": 478
+  },
+  "stdout_sha256": "907d27a0b64db5707d26711e6c4937c3e46b7091ef6e3488067faf1cacd3386c",
+  "stdout": "console-state version=1 shift=0 leds=0 meta=4 held=\nspace table=0 value=32\nspace table=1 value=32\nspace table=2 value=512\nspace table=3 value=512\nspace table=4 value=0\nspace table=5 value=512\nspace table=6 value=512\nspace table=7 value=512\nspace table=8 value=2080\nspace table=9 value=512\nspace table=10 value=512\nspace table=11 value=512\nspace table=12 value=512\nspace table=13 value=512\nspace table=14 value=512\nspace table=15 value=512\nconsole-state complete=1 shift_after=0\n",
+  "classification": "released-and-zero-shift-snapshot-does-not-explain-escape"
+}

@@ -253,3 +253,22 @@ current/default LED flags. These source observations explain the diagnostic
 fields, not the failed Space press. Buildbox fixtures check successful and
 failed metadata queries without consuming queued evdev data, changing terminal
 settings, or writing a console prompt.
+
+The guarded snapshot completed on the same boot in 0.840 seconds with empty
+stderr: no held evdev keys; both shift samples zero; LED byte zero; Meta mode
+4; plain and Shift Space entries 32. Alt Space was 2080 (Meta Space), but this
+is a map entry, not evidence that Alt was active during the failed press.
+[The complete sanitized snapshot](console-state-result.json) records all 16
+entries and package identity. Nine ARM64/PTY fixtures and the common repository
+gate passed. The query changed no console settings or input state and does not
+explain the earlier Escape.
+
+The failed readiness reader retained only the first non-Space byte and the
+first evdev item, stopping before the actual keycode. Its successor preserves
+the entire failing console read (at most 32 bytes) and up to eight already
+queued evdev records after restoring the console. It does not wait for further
+input or turn a failure into readiness. Reaching eight records is a bounded
+prefix, not proof that the queue is empty. The new fixture supplies MSC_SCAN,
+Space press/release and Escape+Space and requires the missing evidence to be
+retained. A fresh attended attempt is justified by this added measurement;
+the old attempt remains consumed and the focused binding remains disabled.

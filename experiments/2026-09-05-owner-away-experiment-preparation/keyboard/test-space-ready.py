@@ -31,7 +31,11 @@ static int fake_open(const char *path, int flags, ...)
 {
     (void)flags;
     if (!strcmp(path, "/dev/input/event0"))
-        return input_fd = dup(atoi(getenv("INPUT_FD")));
+    {
+        input_fd = dup(atoi(getenv("INPUT_FD")));
+        if (input_fd >= 0) fcntl(input_fd, F_SETFL, O_NONBLOCK);
+        return input_fd;
+    }
     if (!strcmp(path, "/dev/tty1"))
         return console_fd = dup(atoi(getenv("CONSOLE_FD")));
     return -1;
@@ -108,10 +112,15 @@ def run_case(binary, qemu, name, events=None, text=b'', cancel=False, expected=2
                 break
         assert b'Press and release SPACE' in prompt, (name, prompt)
         assert termios.tcgetattr(slave) != before, name
+        if name == 'escape-preserves-pending-space':
+            process.send_signal(signal.SIGSTOP)
+            os.waitpid(process.pid, os.WUNTRACED)
         if events:
             os.write(writer, b''.join(struct.pack('<qqHHi', 0, 0, *event) for event in events))
         if text:
             os.write(master, text)
+        if name == 'escape-preserves-pending-space':
+            process.send_signal(signal.SIGCONT)
         if cancel:
             process.send_signal(signal.SIGTERM)
         out, err = process.communicate(timeout=4)
@@ -125,6 +134,11 @@ def run_case(binary, qemu, name, events=None, text=b'', cancel=False, expected=2
             assert final == b'space-ready=passed released=1 restored=1\n', (name, out)
         else:
             assert final.startswith(b'space-ready=failed reason=') and b' restored=1 ' in final, (name, out)
+        if name == 'escape-preserves-pending-space':
+            assert b'console-read bytes=2 hex=1b20\n' in out, out
+            assert b'pending type=1 code=57 value=1\n' in out, out
+            assert b'pending type=1 code=57 value=0\n' in out, out
+            assert len(out) <= 1024, out
         if name == 'timeout':
             assert reports, 'waiting must emit channel activity'
         assert termios.tcgetattr(slave) == before, (name, 'termios not restored')
@@ -180,6 +194,7 @@ def main():
     run_case(binary, args.qemu, 'lost-events', [(0, 3, 0)])
     run_case(binary, args.qemu, 'timeout')
     run_case(binary, args.qemu, 'signal-restores-console', cancel=True)
+    run_case(binary, args.qemu, 'escape-preserves-pending-space', [(4, 4, 36), press, sync, release, sync], b'\x1b ')
     state_case(binary, args.qemu)
     state_case(binary, args.qemu, failure=True)
 

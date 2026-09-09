@@ -127,6 +127,11 @@ int main(int argc, char **argv)
 	struct input_event last_event = { 0 };
 	ssize_t last_read = -1;
 	int last_byte = -1, read_errno = 0;
+	unsigned char failed_bytes[32];
+	size_t failed_count = 0, pending_count = 0;
+	struct input_event pending[8];
+	ssize_t pending_read = -1;
+	int pending_errno = 0;
 	long long start, reported, quiet = -1;
 	bool state_only = argc == 4 && !strcmp(argv[1], "--state");
 
@@ -232,6 +237,8 @@ int main(int argc, char **argv)
 			for (ssize_t i = 0; i < n; i++)
 				if (data[i] != ' ') {
 					last_byte = data[i];
+					memcpy(failed_bytes, data, n);
+					failed_count = n;
 					reason = "console-byte";
 					goto done;
 				}
@@ -259,6 +266,17 @@ int main(int argc, char **argv)
 			result = 2;
 		close(ttyfd);
 	}
+	/* On the observed console mismatch, retain the entire read and up to
+	 * eight already queued evdev records. Never wait, retry or admit a start. */
+	if (fd >= 0 && failed_count) {
+		while (pending_count < sizeof(pending) / sizeof(pending[0])) {
+			pending_read = read(fd, &pending[pending_count], sizeof(pending[0]));
+			pending_errno = pending_read < 0 ? errno : 0;
+			if (pending_read != (ssize_t)sizeof(pending[0]))
+				break;
+			pending_count++;
+		}
+	}
 	if (fd >= 0)
 		close(fd);
 	if (state_only)
@@ -268,6 +286,17 @@ int main(int argc, char **argv)
 		       "read=%ld type=%u code=%u value=%d console_byte=%d errno=%d\n",
 		       reason, !changed, state, events, bytes, (long)last_read,
 		       last_event.type, last_event.code, last_event.value, last_byte, read_errno);
+	if (failed_count) {
+		printf("console-read bytes=%zu hex=", failed_count);
+		for (size_t i = 0; i < failed_count; i++)
+			printf("%02x", failed_bytes[i]);
+		putchar('\n');
+		for (size_t i = 0; i < pending_count; i++)
+			printf("pending type=%u code=%u value=%d\n",
+			       pending[i].type, pending[i].code, pending[i].value);
+		printf("pending count=%zu limit=8 read=%ld errno=%d\n",
+		       pending_count, (long)pending_read, pending_errno);
+	}
 	if (!result && printf("space-ready=passed released=1 restored=1\n") < 0)
 		result = 2;
 	return result;
