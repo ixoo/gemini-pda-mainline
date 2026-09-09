@@ -54,3 +54,31 @@ the resulting host executable. Do not run the upstream daemon or initializer.
 The probe creates only its two synthetic temporary files, mocks every ioctl,
 and removes the files on success. A passing result means that the four
 counterexamples were reproduced, not that the daemon is suitable for hardware.
+
+## Retained MT6797 header check, 2026-09-09
+
+The offline [identity checker](check-retained-patches.py) now pins both retained
+files and checks the candidate metadata interpretation in the RE VM. Their
+complete hashes and sizes match the [earlier inventory](../2026-07-12-connectivity-wmt-recovery/results/runtime-summary.txt).
+Applying the inspected openmttools offsets gives:
+
+| Filename | Sequence / count | Bytes 22–23, interpreted big-endian | Address bytes after clearing the sequence byte |
+| --- | --- | --- | --- |
+| `ROMv3_patch_1_1_hdr.bin` | 1 / 2 | `0x8a00` | `00 00 0a f0` |
+| `ROMv3_patch_1_0_hdr.bin` | 2 / 2 | `0x8a00` | `00 00 09 00` |
+
+This order agrees with the [retained post-reboot load observation](../2026-07-12-connectivity-wmt-recovery/results/live-connectivity-postreboot-20260714.txt).
+Do not derive order from the filename suffix or treat these address bytes as
+an independently established host address. The checker verifies exact retained
+identity before emitting a complete ordered manifest; it issues no ioctls.
+It is an offline preparation tool, not protection against later file replacement
+or proof that a running chip accepts the version or destination fields.
+The actual MT6797 kernel/launcher interpretation still needs attribution before
+the responder may publish this metadata.
+
+Run it in the RE VM with the private firmware directory as its sole argument.
+Both retained files passed. Eight in-memory mutations (truncation, extension,
+one changed byte and changed sequence for each file) were refused. Missing,
+symlink, FIFO and short-file inputs were also refused without manifest output;
+the FIFO check completed within a three-second subprocess limit. Original
+retained files were not modified. No firmware bytes are redistributed here.
