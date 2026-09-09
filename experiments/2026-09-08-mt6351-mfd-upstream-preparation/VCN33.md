@@ -136,6 +136,28 @@ preloader/firmware remain possible owners; the retained image also does not
 attest the current boot. Do not repeat these empty hooks as a proposed source
 of the missing rail contract. No current PMIC read or rail experiment occurred.
 
+## Retained HIF wrapper follow-up
+
+The [HIF receipt](results/vcn33-hif-wrapper-receipt.json) revalidates the retained
+kernel and its reconstructed ELF, then pins the 152-byte `HifAhbProbe` and
+40-byte `HifAhbRemove` spans. Their direct power calls are the already-audited
+`mtk_wcn_consys_hw_wifi_paldo_ctrl(1)` and `(0)`, respectively. Neither wrapper
+adds a direct VCN33 mode or source-clock operation. The matching gen3 source
+places its direct `upmu_set_vcn33_on_ctrl_wifi` calls in the non-Device-Tree
+MT6323 branch; those calls are not the compiled wrapper path in this image.
+The source's hardware-mode comment beside the selected helper call therefore
+adds no mode-setting operation to the earlier compiled PALDO result.
+
+The probe wrapper ignores the PALDO helper's return. If the subsequent probe
+callback fails, it invokes the remove callback and returns an error without a
+balancing PALDO-disable call in this wrapper. The normal HIF remove wrapper
+invokes that callback and then explicitly disables PALDO. This is a difference
+between the two decoded paths, not proof of a leaked rail: the indirect
+callbacks and caller-level unwind are outside this bounded audit. A future
+power contract cannot assume that the failure branch locally balances its
+request. This result supplies no current-boot, physical output or enable-logic
+attribution and admits no rail or radio experiment.
+
 ## Decision
 
 The common selector and common status naming support a shared analog-resource

@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "analysis": "retained HIF VCN33 wrapper call paths; offline only",
+  "image_sha256": "0570480c28bce1583636a240904df8da3af0b5e5b4bcc6254f5719b42bd723d0",
+  "reconstructed_elf_sha256": "cc66df06194d3315335462760962165e1dcb2e50221574aeb45a0805bb17a162",
+  "elf_kernel_section_matches_image": true,
+  "source_commit": "8cfe6596a503612e3332d9c26e292a19525a7f07",
+  "source_path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c",
+  "source_sha256": "d9b4e80fe98695284627e495ad640e39728ebe7df235df129f64d48e8a2e726b",
+  "function_spans": [
+    {
+      "symbol": "HifAhbProbe",
+      "start": "0xffffffc00076b8d0",
+      "end_exclusive": "0xffffffc00076b968",
+      "span_basis": "next distinct reconstructed symbol in kernel section",
+      "bytes": 152,
+      "sha256": "dccd213413db81b3e9ccd372b8be2d9613d9726dcc58cdf9765ef9964ead0f75"
+    },
+    {
+      "symbol": "HifAhbRemove",
+      "start": "0xffffffc00076b6d8",
+      "end_exclusive": "0xffffffc00076b700",
+      "span_basis": "next distinct reconstructed symbol in kernel section",
+      "bytes": 40,
+      "sha256": "fb240ccefcc66b8cc6ef7470eebb7d21349f1c83aa34af103eb68d32eaeaef71"
+    }
+  ],
+  "paldo_helper_address": "0xffffffc0006df570",
+  "probe_enable_call": "0xffffffc00076b908",
+  "probe_enable_argument": 1,
+  "remove_disable_call": "0xffffffc00076b6f0",
+  "remove_disable_argument": 0,
+  "probe_failure_branch": "0xffffffc00076b958",
+  "probe_failure_calls_remove_callback": true,
+  "probe_failure_has_balancing_paldo_call": false,
+  "scope": "direct wrapper instructions and immediate branch joins only; indirect callback internals and caller unwind not inventoried",
+  "current_boot_attested": false,
+  "device_access": false
+}
