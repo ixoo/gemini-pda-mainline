@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "classification": "linux-integration-checks-pass",
+  "commit": "a7661039f535ba8d973652620a2aac31f5b180b2",
+  "base_commit": "3942e5af4fc6887befdc6f301da15e0415bb99e7",
+  "commits_in_range": 141,
+  "run_url": "https://github.com/ixoo/gemini-pda-mainline/actions/runs/34297976206",
+  "workflow": "repository-checks.yml",
+  "trigger": "workflow_dispatch",
+  "runner": "ubuntu-24.04",
+  "changed_files_checked": 362,
+  "profiles_checked": 200,
+  "linux_kernel_artifact_provenance_self_test": "executed; pass",
+  "repository_checks": "pass",
+  "historical_metadata_debt": {
+    "unresolved": true,
+    "grandfathered_current": 37,
+    "audited": 37
+  },
+  "not_run": [
+    "kernel-build",
+    "checkpatch",
+    "DT-schemas",
+    "device-tests"
+  ],
+  "scope": "Existing publication and fixture workflow across the range since the prior successful Linux run; not validation of all kernel experiments or hardware support."
+}

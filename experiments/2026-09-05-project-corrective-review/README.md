@@ -110,3 +110,13 @@ Ordered corrective and parallel delivery gates are in the
 and any physical result. Upstream topics own target-tree review, actual author
 provenance, public feedback and eventual local-patch removal. The workstream
 registry helps coordinate ownership; it does not bypass either boundary.
+
+
+## Accumulated Linux validation, 2026-09-08
+
+The [manual integration run](results/linux-integration-20260908.json) passed on
+Ubuntu across 141 commits from the previous successful Linux workflow to
+`a7661039`. It checked 362 changed files and all 200 profiles, including the
+kernel-artifact provenance self-test skipped on macOS. This uses the existing
+workflow and adds no validation stage. Historical metadata debt remains open;
+no kernel build, DT/schema check or device test was part of this run.
