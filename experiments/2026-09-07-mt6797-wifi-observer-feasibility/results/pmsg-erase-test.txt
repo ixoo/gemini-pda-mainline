@@ -1,0 +1,4 @@
+PASS: unlink of old pmsg snapshot also clears current ring metadata
+PASS: backend erase refusal is ignored and unlink still succeeds
+PASS: missing erase callback refuses unlink
+Scope: pinned function bodies with fake storage; no physical memory or device access

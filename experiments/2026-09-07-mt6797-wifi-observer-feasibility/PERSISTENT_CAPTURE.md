@@ -574,3 +574,56 @@ metadata consistency and EMI coverage relative to the supplied independent
 metadata. The checker does not perform private-image parsing, HIF configuration
 or chunk checks, START/readiness validation, ownership admission or full-cycle
 classification. No device or firmware action occurred during implementation.
+
+## Exclusive backing-store ownership
+
+The [ownership source receipt](results/pmsg-ownership-sources.json) adds the
+native pstore inode implementation to the pinned pmsg/ring sources. The
+64-KiB pmsg zone is not owned exclusively by a prospective Wi-Fi writer merely
+because that writer serializes its own calls or ordinary logging is stopped.
+
+| Native path | Effect relevant to a capture |
+| --- | --- |
+| `write_pmsg()` | Ordinary userspace writes call the PMSG backend under `pmsg_lock`. The frontend ignores the backend return and reports the submitted byte count. |
+| `ramoops_pstore_write_buf(PMSG)` | Writes into `cxt->mprz`; there is no capture-owner check. Console and ftrace use different zone pointers. |
+| `pstore_unlink()` → `ramoops_pstore_erase(PMSG)` | Deleting the exported old-log file frees its old snapshot **and zeros the current pmsg ring's start/size**. The inode path ignores an erase error before calling `simple_unlink()`. |
+| `ramoops_init_prz()` | After constructing/saving the old zone, probe zaps the current ring metadata. This is a boot-time transition, not an acquisition API. |
+| `persistent_ram_post_init()` / `persistent_ram_save_old()` | Valid old data is copied into allocated RAM. Allocation failure is logged but the save function has no success return; later probe can still zap the current metadata. Recovery must establish actual preservation, not just successful probe. |
+
+The [focused erase reproduction](test-pmsg-erase.py) compiles the three exact
+native function bodies with injected storage and VFS operations. It confirms
+that unlinking an old PMSG snapshot resets a distinct current-ring state. It
+also confirms that returning `-EBUSY` from the backend alone leaves storage
+intact but still allows the exported file to disappear. A missing erase
+callback, by contrast, refuses unlink. The
+[recorded result](results/pmsg-erase-test.txt) is a host reproduction, not a
+concurrent, physical-persistence or hardware result. The unused-parameter
+compiler exception retains the native callback signatures.
+
+Consequently, a future default-off Wi-Fi capture owner must protect both
+backend writes and erase operations for the entire admitted capture and
+recovery interval. It cannot rely on chmod, removal of the character device,
+absence of an observed logging process, or a capture-private spinlock. Existing
+open file descriptors and the separate pstore unlink path remain relevant.
+If backend refusal is selected, the frontend must preserve that refusal rather
+than report a successful write or unlink; an unexpected attempt must also
+invalidate the isolation result. Merely adding an erase return check is not
+an ownership implementation.
+
+The owner must be established before the first capture byte, after the exact
+resolved zone, mapping attributes, ECC state and preservation of any old
+unique evidence have been verified. It must remain exclusive after a failure
+or overflow; resuming ordinary pmsg writes would overwrite the evidence needed
+for recovery. No in-place reset, re-claim or automatic old-record deletion is
+selected here. Other ramoops zones need no new ownership merely to isolate
+PMSG, although their initialization and physical layout still require the
+candidate's existing bounds checks.
+
+This narrows the next implementation: a non-sleeping append path alone is
+insufficient. It needs backend ownership plus refusal propagation, the already
+bounded record/terminal inventory, explicit commit/readback ordering and a
+reader that preserves old evidence before the native boot-time zap. The
+native memory mapping can be write-combined, and its byte-copy loop supplies
+no demonstrated persistence barrier or full readback. Those properties remain
+unresolved; the source reproduction selects no new writer, memory range,
+observer kernel, radio operation or device test.

@@ -1,0 +1,27 @@
+{
+  "scope": "public native source only; no device access",
+  "repository": "gemian/gemini-linux-kernel-3.18",
+  "revision": "59e00a9144d782e148332009a835b99c43382467",
+  "sources": [
+    {
+      "path": "fs/pstore/pmsg.c",
+      "bytes": 2749,
+      "sha256": "d068bcef6caea7674bde8a900f5c0a774f6c8a71ab981075d1a12d0b8d9dd7e0"
+    },
+    {
+      "path": "fs/pstore/ram.c",
+      "bytes": 18446,
+      "sha256": "7ba661c230fb71d7d2768bb3cddb95d1deb36810531cfc992bc5c7297113a391"
+    },
+    {
+      "path": "fs/pstore/ram_core.c",
+      "bytes": 13562,
+      "sha256": "eb25a629b9dff9bbffedd7c90fd2a1045420792570cd0a775d78d3bd2c2ca1b6"
+    },
+    {
+      "path": "fs/pstore/inode.c",
+      "bytes": 10652,
+      "sha256": "ff9e4cf2cc9decf2a62afe92505d4a8a49ca5c32b7fb473434cc77bfc6574b92"
+    }
+  ]
+}
