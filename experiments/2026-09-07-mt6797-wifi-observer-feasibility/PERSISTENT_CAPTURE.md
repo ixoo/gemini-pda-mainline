@@ -441,3 +441,47 @@ grant reservation/remap authority, identify masters with permission domains,
 establish copy visibility or authorize the native broad permissions. Those
 remain whole-image and shared-owner requirements. No EMI write or producer
 hook was executed or added by this offline change.
+
+## Shared-OFF condition records
+
+The provider source was rechecked against the
+[existing source receipt](results/persistent-capture-sources.json). Its terminal
+CONN OFF loop reads `PWR_STATUS`, then reads `PWR_STATUS_2ND` only when the first
+CONN bit is clear. The mask is bit 1 in each register. These condition reads
+are separate from diagnostic reads in the loop body and from the earlier
+`sys_get_state_op()` pair used to decide whether to skip provider execution.
+A value retained from a previous condition evaluation is not a final pair.
+
+Kind 9 currently describes only that terminal condition loop. Its exact payload
+is little-endian `<IIIQQIIII`: stage (1 entry, 2 summary), nonzero provider ID,
+exit reason, primary condition-read count `u64`, secondary condition-read count
+`u64`, final primary value, final secondary value, primary-valid and
+secondary-valid. Other fields are `u32`; IDs are observer ordinals. The envelope
+transaction is a nonzero poll invocation ID. Entry has zero counters, values,
+validity and reason. Summary reasons are 1 normal condition exit, 2 polling
+compiled out, and 3 observer counter overflow. A stalled native loop has its
+entry and no successful summary; no native timeout is invented.
+
+Counters include only the existing reads in the condition, preserving their
+short-circuit order. Final validity describes the last condition evaluation,
+not whether a register was ever read. An invalid final value is encoded zero.
+Secondary count cannot exceed primary count; a valid final secondary read
+requires a valid primary with the CONN bit clear. Counter overflow invalidates
+the capture instead of wrapping. If ACK polling is compiled out, record the
+phase as skipped; do not fabricate a pair from a later diagnostic access.
+
+`check_off_poll()` requires matching entry/summary provider IDs and a normal
+exit with positive counts, both final reads valid, and both CONN bits clear.
+It permits unequal read counts and preserves 64-bit counts. It refuses a missing final
+secondary read despite earlier secondary reads, contradictory short-circuit attribution,
+skipped polling, missing records and invocation reuse. Two records consume
+256 bytes. Fifteen focused tests pass, including a primary count above 32 bits,
+fewer secondary reads, a valid pair with unrelated status bits set, partial
+polls and valid-CRC fault summaries.
+
+This is a check of the recorded terminal condition only. It cannot establish
+that CCF dispatched this provider, that the earlier state shortcut was avoided,
+that bus protection completed, that control writes occurred or that other
+CONSYS consumers are excluded. Those shared-OFF records and their causal join
+remain required. Neither `disable_subsys()` return nor the common clock-disable
+wrapper can substitute for them. No physical reads or capture hooks were added.

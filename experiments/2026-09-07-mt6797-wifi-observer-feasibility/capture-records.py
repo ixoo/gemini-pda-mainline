@@ -121,6 +121,29 @@ def validate_emi_payload(transaction, payload):
         raise ValueError('invalid EMI copy stage')
 
 
+# Shared-OFF kind currently defines only the actual terminal condition loop.
+OFF_POLL = struct.Struct('<IIIQQIIII')
+
+
+def validate_off_payload(transaction, payload):
+    if not transaction or len(payload) != OFF_POLL.size:
+        raise ValueError('OFF poll requires invocation ID and exact payload size')
+    stage, provider, reason, primary_count, secondary_count, primary, secondary, primary_valid, secondary_valid = OFF_POLL.unpack(payload)
+    if stage not in (1, 2) or not provider or primary_valid not in (0, 1) or secondary_valid not in (0, 1):
+        raise ValueError('invalid OFF poll discriminator')
+    if stage == 1:
+        if any((reason, primary_count, secondary_count, primary, secondary, primary_valid, secondary_valid)):
+            raise ValueError('OFF poll entry contains a result')
+    elif reason not in (1, 2, 3):
+        raise ValueError('invalid OFF poll exit reason')
+    if (secondary_count > primary_count or primary_valid > bool(primary_count) or
+            secondary_valid > bool(secondary_count) or secondary_valid > primary_valid or
+            (not primary_valid and primary) or (not secondary_valid and secondary)):
+        raise ValueError('invalid OFF condition read attribution')
+    if primary_valid and primary & 2 and secondary_valid:
+        raise ValueError('secondary condition read violates short-circuit order')
+
+
 def encode(kind, sequence, cycle, transaction, payload):
     if len(cycle) != 16 or not any(cycle):
         raise ValueError('requires a nonzero 16-byte cycle identity')
@@ -142,6 +165,8 @@ def encode(kind, sequence, cycle, transaction, payload):
         validate_stop_payload(transaction, payload)
     if kind == 8:
         validate_emi_payload(transaction, payload)
+    if kind == 9:
+        validate_off_payload(transaction, payload)
     body = HEADER.pack(b'WFC1', 1, kind, sequence, cycle, transaction, len(payload))
     body += payload + bytes(PAYLOAD_BYTES - len(payload))
     return body + struct.pack('<II', zlib.crc32(body), COMMIT)
@@ -270,3 +295,23 @@ def check_emi(data, expected_cycle):
                 raise ValueError('EMI copy does not match section and mapping')
     return {'checked_sections': list(sections),
             'scope': 'recorded native EMI section-operation consistency only'}
+
+
+def check_off_poll(data, expected_cycle):
+    """Check the recorded final CONN status condition, not the complete provider OFF."""
+    polls = {}
+    for record in decode(data, expected_cycle):
+        if record['kind'] == 9:
+            polls.setdefault(record['transaction'], []).append(OFF_POLL.unpack(record['payload']))
+    if not polls:
+        raise ValueError('no OFF condition poll recorded')
+    for rows in polls.values():
+        if len(rows) != 2 or rows[0][0] != 1 or rows[1][0] != 2 or rows[0][1] != rows[1][1]:
+            raise ValueError('incomplete, reordered or reused OFF poll')
+        _, provider, reason, primary_count, secondary_count, primary, secondary, primary_valid, secondary_valid = rows[1]
+        if reason != 1 or not primary_count or not secondary_count or (primary_valid, secondary_valid) != (1, 1):
+            raise ValueError('missing complete terminal OFF condition evaluation')
+        if (primary | secondary) & 2:
+            raise ValueError('terminal CONN power-status pair is not clear')
+    return {'checked_polls': list(polls),
+            'scope': 'recorded terminal CONN OFF condition consistency only'}

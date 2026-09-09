@@ -114,6 +114,39 @@ class RecordsTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             r.check_emi(self.identity(), CYCLE)
 
+    def off_stream(self, rows):
+        return self.identity() + b''.join(r.encode(9, i, CYCLE, 61, r.OFF_POLL.pack(*row))
+                                          for i, row in enumerate(rows, 1))
+
+    def test_off_condition_short_circuit(self):
+        entry = [1, 73, 0, 0, 0, 0, 0, 0, 0]
+        result = [2, 73, 1, 0x100000001, 7, 0x100, 0x200, 1, 1]
+        self.assertEqual(r.check_off_poll(self.off_stream([entry, result]), CYCLE)['checked_polls'], [61])
+        for field, value in [(1, 74), (2, 2), (2, 3), (6, 2), (8, 0)]:
+            bad = result.copy()
+            bad[field] = value
+            if field == 8:
+                bad[6] = 0  # No final secondary value; older reads do not count.
+            stream = self.off_stream([entry, bad])
+            self.assertEqual(len(r.decode(stream, CYCLE)), 3)
+            with self.assertRaises(ValueError):
+                r.check_off_poll(stream, CYCLE)
+        for bad in [[2, 73, 1, 0, 0, 0, 0, 0, 0],
+                    [2, 73, 1, 7, 3, 2, 0, 1, 0]]:
+            with self.assertRaises(ValueError):
+                r.check_off_poll(self.off_stream([entry, bad]), CYCLE)
+        for bad in [[2, 73, 1, 7, 8, 0, 0, 1, 1],
+                    [2, 73, 1, 7, 3, 2, 0, 1, 1],
+                    [2, 73, 1, 7, 3, 0, 0x200, 1, 0],
+                    [2, 73, 1, 0, 0, 0, 0, 1, 1]]:
+            with self.assertRaises(ValueError):
+                self.off_stream([entry, bad])
+        for rows in [[entry], [result, entry], [entry, result, entry, result]]:
+            with self.assertRaises(ValueError):
+                r.check_off_poll(self.off_stream(rows), CYCLE)
+        with self.assertRaises(ValueError):
+            r.check_off_poll(self.identity(), CYCLE)
+
     def test_roundtrip_and_prefix(self):
         start = self.identity()
         self.assertEqual(len(r.decode(start, CYCLE)), 1)
