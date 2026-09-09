@@ -1,7 +1,7 @@
 # Corrected disconnect test
 
-Status: guarded handoff complete; waiting for one owner boot2 selection.
-No fresh mainline identity or execution admission yet.
+Status: **passed; evidence preserved; changed-ID Gemian return confirmed**.
+The sequence below is consumed and does not authorize a repeat.
 The [correction](DISCONNECT_FIX.md) follows the
 [failed attended result](DISCONNECT_RESULT.md), which remains unchanged.
 
@@ -75,3 +75,34 @@ The strict deployment receipt parser passed. Private receipt SHA-256:
 `e5224624699a0fa0978fc7726415bdad3d9dee44a7af53c059c6507f5e04e1f2`.
 No new backup, automatic reboot, or mainline test occurred. The next action is
 one owner boot2 selection with USB connected and an immediate screen report.
+
+## Attended result
+
+The owner selected boot2 and confirmed the readable baseline screen. One guarded
+authenticated connection established fresh boot
+`fe849250-5d28-4f67-88db-cc3e38413dcd`. The actual dependency, current source
+closure and corrected package passed preparation. The boot-specific binding was
+published at `19258bd5` before the single proof and is now disabled.
+
+The semantic verifier accepted the complete proof: the monitor reported
+`forward-close-or-stall`, TERM at 7 ms, KILL at 87 ms and reap at 89 ms, with
+no identity loss or lateness. The independent export completed in 1.207 seconds
+with exit 0 and empty stderr. The complete scan covered 95 processes and
+28 descriptors, with no matching reader or surviving test process. All four
+probe files and the seven required evidence members were preserved. No fallback
+preservation, extra scan or retry was needed. Exact sanitized fields and receipt
+hashes are in [disconnect-retest-result.json](disconnect-retest-result.json).
+
+The logger was sealed once and exported completely: 121,113 bytes, 1,746 records,
+sequence zero through explicit seal. Only afterward did the guarded native
+recovery request run once. Its complete frame passed the existing parser;
+authenticated Gemian `3.18.41+` returned as
+`1128b013-25b3-4e9c-9a94-398df98c2471`, different from both prior boots.
+Raw captures and process identifiers remain private.
+
+This is one passing disconnect/reader-release observation, not keyboard key
+coverage or a transferable same-boot prerequisite. Prepare the finite keyboard
+session next; its fresh boot must establish its own runtime prerequisites.
+The earlier failed result remains unchanged. No kernel rebuild or keyboard
+capture occurred. Candidate/dependency/package checks, semantic proof validation,
+log/recovery parsers and repository publication checks passed.

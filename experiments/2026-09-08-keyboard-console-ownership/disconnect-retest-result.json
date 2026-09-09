@@ -1,0 +1,152 @@
+{
+  "admission_commit": "19258bd5",
+  "admission_id": "9f73ecb6-ba8d-4352-a291-f8c1e64be56a",
+  "candidate_sha256": "7dfc3b1f771a12b8e711f699cf8fcfd2678aedc15bc9d8bcc98554f9c6654cdb",
+  "classification": "disconnect-passed-Gemian-confirmed",
+  "date": "2026-09-09",
+  "deployment_summary_sha256": "e5224624699a0fa0978fc7726415bdad3d9dee44a7af53c059c6507f5e04e1f2",
+  "disconnect_receipt_sha256": "1654c74c955f98d7fbb76bf5c5d9ee277a8b942a576888e9a1e125fa8efbe046",
+  "disconnect_transport": {
+    "classification": "deliberate-client-disconnect",
+    "client_signal": 9,
+    "connections": 1,
+    "elapsed_milliseconds": 0,
+    "marker_seen": true,
+    "no_pty": true,
+    "schema": "keyboard-disconnect-transport-v1",
+    "stdin_complete": true
+  },
+  "export_transport": {
+    "elapsed_seconds": 1.207,
+    "exit_status": 0,
+    "reason": null,
+    "stderr_bytes": 0,
+    "stdin_complete": true,
+    "stdout_bytes": 524
+  },
+  "gemian_after": "1128b013-25b3-4e9c-9a94-398df98c2471",
+  "gemian_before": "21748845-bc80-4536-b67c-84f7bb16c74f",
+  "keyboard_capture_performed": false,
+  "log": {
+    "bytes": 121113,
+    "classification": "complete-log-through-seal",
+    "coverage": "sequence-zero-through-explicit-seal",
+    "records": 1746,
+    "sha256": "a3e7348c4323e931ea8f3727fefb5d0423233b66dca28f3b4f14b39fc3983125",
+    "status_sha256": "e4f773a3a2fdb4378e82715924375427972b61c446611deb17de6f2e21bab73d"
+  },
+  "mainline_boot_id": "fe849250-5d28-4f67-88db-cc3e38413dcd",
+  "monitor_status": {
+    "cancel": "0",
+    "exit": "-1",
+    "forwarded_bytes": "18",
+    "identity_lost": "0",
+    "kill_errno": "0",
+    "kill_ms": "87",
+    "late": "0",
+    "reap_ms": "89",
+    "reaped": "1",
+    "reason": "forward-close-or-stall",
+    "schema": "keyboard-monitor-v1",
+    "signal": "9",
+    "stderr_bytes": "0",
+    "stdout_bytes": "18",
+    "term_errno": "0",
+    "term_ms": "7"
+  },
+  "owner_console_readable": true,
+  "package_identity": "89a9765b72b55b47c9e7ed973ceb175cbfab5623749be12a2739ee9c8f4e7657",
+  "package_revision": "18a5882d55f11450dd049c7a6bbc2c6d1731359f",
+  "proof": {
+    "admission_id": "9f73ecb6-ba8d-4352-a291-f8c1e64be56a",
+    "boot_id": "fe849250-5d28-4f67-88db-cc3e38413dcd",
+    "candidate_sha256": "7dfc3b1f771a12b8e711f699cf8fcfd2678aedc15bc9d8bcc98554f9c6654cdb",
+    "claim": {
+      "count": 1,
+      "retained": true
+    },
+    "classification": "passed",
+    "evidence": {
+      "disconnect-process.json": "9ddc5060b374db830da0abb2cad3671b4b39ddc292c694f8eefd12682ac2a511",
+      "export-process.json": "9e88d24e80ef9438cd6cdd95d7fbdbb5a7e14d87d244a1ab1b383d9a43a2ead1",
+      "monitor.status": "1ad915bdf7455ff5aafd13822def2cc9b8adc5cf5925cf8a25aef4efd155d7a8",
+      "observer.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "observer.stdout": "b32c8249ca3088d82109855a43e07c5a120f99658b6a7c7f9cc515d68edd8b77",
+      "outer-exit": "53c234e5e8472b6ac51c1ae1cab3fe06fad053beb8ebfd8977b010655bfdd3c3",
+      "reader-scan.json": "499d45844193ae986fd44a84c48f66ad1e5913ac20037ad006bff64f87e97a94"
+    },
+    "monitor": {
+      "binary_sha256": "105c3544ce69b095271c11b12b939f11a7172dc8ca3bb009c96426dec1413470",
+      "package_identity": "89a9765b72b55b47c9e7ed973ceb175cbfab5623749be12a2739ee9c8f4e7657",
+      "package_revision": "18a5882d55f11450dd049c7a6bbc2c6d1731359f",
+      "probe_sha256": "dfbff43d49bbe0473ffd44fb97e568a01df611b358351f43c9656438acf4b19d",
+      "source_sha256": "2cb30948d6d4c5ada9e6fd2a9bdfd9ab54489661367e568faaa3ef2785bad683"
+    },
+    "preservation": {
+      "complete_available_members": true,
+      "members": {
+        "monitor.status": "1ad915bdf7455ff5aafd13822def2cc9b8adc5cf5925cf8a25aef4efd155d7a8",
+        "observer.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "observer.stdout": "b32c8249ca3088d82109855a43e07c5a120f99658b6a7c7f9cc515d68edd8b77",
+        "outer-exit": "53c234e5e8472b6ac51c1ae1cab3fe06fad053beb8ebfd8977b010655bfdd3c3"
+      },
+      "source_retained": true
+    },
+    "process": {
+      "late": false,
+      "monitor_reaped": true,
+      "monitor_terminal": true,
+      "observer_reaped": true,
+      "observer_terminal": true
+    },
+    "reader_release": {
+      "input_reader_absent": true,
+      "inventory_complete": true,
+      "monitor_absent": true,
+      "observer_absent": true,
+      "tty1_reader_absent": true
+    },
+    "schema": "keyboard-disconnect-v1",
+    "server": {
+      "admin_shell_sha256": "9cf2e515392ffe98680216cee2f82f3f7af626dc4b27513009a3bad5fc7a4ca2",
+      "authentication": "exact-candidate-ed25519",
+      "binary_sha256": "10663dd45019bc1391730c36d779e6a5e4433fd86311543a714f1a198629bc54",
+      "no_pty": true
+    },
+    "transport": {
+      "deliberate_disconnect": true,
+      "first_connection_no_pty": true,
+      "independent_export_connection": true
+    }
+  },
+  "proof_retry": false,
+  "raw_evidence_published": false,
+  "reader_scan": {
+    "admission_id": "9f73ecb6-ba8d-4352-a291-f8c1e64be56a",
+    "boot_id": "fe849250-5d28-4f67-88db-cc3e38413dcd",
+    "classification": "passed",
+    "descriptors_scanned": 28,
+    "matches": [],
+    "processes_scanned": 95,
+    "schema": "keyboard-reader-release-v1"
+  },
+  "recovery_confirmation": {
+    "boot_id": "1128b013-25b3-4e9c-9a94-398df98c2471",
+    "classification": "changed-ID-Gemian"
+  },
+  "recovery_request": {
+    "boot_id": "fe849250-5d28-4f67-88db-cc3e38413dcd",
+    "classification": "native-recovery-requested",
+    "recovery_confirmed": false,
+    "request_count": 1
+  },
+  "recovery_transport": {
+    "elapsed_seconds": 14.062,
+    "exit_status": 255,
+    "reason": "outer-timeout",
+    "stderr_bytes": 0,
+    "stdin_complete": true,
+    "stdout_bytes": 305
+  },
+  "schema": 1
+}

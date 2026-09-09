@@ -3,8 +3,8 @@
   "purpose": "Readiness inventory, not an executable queue or device authorization. Object order is not scheduling order; docs/ROADMAP.md alone owns priority. Exact inputs, budgets and chronology stay in linked experiments.",
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
-  "selected_item": "keyboard-console-disconnect",
-  "selection_note": "Fresh guarded boot2 handoff passed; matching image skipped and clean shutdown confirmed. Waiting for one owner selection for the corrected disconnect test.",
+  "selected_item": null,
+  "selection_note": "Corrected disconnect test passed, evidence preserved and changed-ID Gemian return confirmed. Prepare the fresh keyboard coverage session next; no physical test selected.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -153,14 +153,14 @@
     "keyboard-console-disconnect": {
       "workstream": "serviceability",
       "preparation_state": "ready",
-      "device_state": "waiting-owner-boot",
+      "device_state": "complete",
       "owner": "primary integration coordinator",
       "reviewer": "primary integration coordinator",
-      "device_custodian": "primary integration coordinator",
+      "device_custodian": null,
       "experiment": "experiments/2026-09-08-keyboard-console-ownership/README.md",
       "session_packet": "experiments/2026-09-08-keyboard-console-ownership/DISCONNECT_RETEST.md",
       "candidate_record": "experiments/2026-09-08-keyboard-console-ownership/validation.json",
-      "readiness_record": "experiments/2026-09-08-keyboard-console-ownership/DISCONNECT_FIX.md",
+      "readiness_record": "experiments/2026-09-08-keyboard-console-ownership/disconnect-retest-result.json",
       "dependencies": [
         {
           "item": "keyboard-console-ownership",
@@ -169,7 +169,7 @@
         }
       ],
       "owner_task_id": null,
-      "readiness_note": "Fresh guarded handoff passed on known-good Gemian; full boot2 checksum already matched and shutdown confirmed. Waiting for physical selection and readable-screen report. Fresh boot-specific binding remains required; execution disabled."
+      "readiness_note": "One corrected disconnect proof passed with complete empty reader scan. Log preservation and changed-ID Gemian return passed. Binding disabled; all session budgets consumed. Fresh keyboard admission remains required."
     }
   }
 }

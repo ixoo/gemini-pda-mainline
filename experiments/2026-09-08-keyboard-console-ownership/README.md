@@ -103,3 +103,7 @@ All unique evidence was preserved and changed-ID Gemian return was confirmed.
 
 The [correction and target validation](DISCONNECT_FIX.md) prepare the
 [separately admitted retest](DISCONNECT_RETEST.md); the failed result remains unchanged.
+
+The [corrected retest](DISCONNECT_RETEST.md#attended-result) passed cancellation
+and the complete empty reader scan. Evidence was preserved and Gemian return
+confirmed. Keyboard coverage remains a separate fresh-session requirement.
