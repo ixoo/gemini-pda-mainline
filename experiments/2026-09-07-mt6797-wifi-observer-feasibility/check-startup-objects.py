@@ -65,6 +65,9 @@ def main():
         "aarch64-linux-gnu-gcc-6 (Debian 6.3.0-18) 6.3.0 20170516")
     config = project / "experiments/2026-07-23-gemian-a72-owner-observer/inputs/active-gemian.config"
     assert digest(config) == "231d8a2ffe7afac3a4cc62c27d0eb6fe8bd9165ebd096e3e3346dd6df35c18f4"
+    recorded = root / "gemian-artifacts/gemian-observer-a98ffc90f979/outputs/build.log"
+    assert digest(recorded) == "cc43a28e3856325f3087dbc0c6b0a32e5cc0d8034074d851a0e0e33dd9da1a39"
+    old_source = str(root / "gemian-source/gemian-observer/a98ffc90f979eabe4e927b0d478199673b62781c")
     assert shutil.disk_usage(root).free > 2 * 1024 ** 3
     package = root / "gemian-artifacts" / ("wifi-startup-objects-" + commit)
     assert not package.exists(), "refusing to overwrite a result"
@@ -85,7 +88,7 @@ def main():
             delta = {key: [before.get(key), after.get(key)] for key in before.keys() | after.keys()
                      if before.get(key) != after.get(key)}
             assert delta == {"CONFIG_ANBOX": [None, "n"]}, delta
-            compile_logged(command + ["-j2", "V=1"] + [RELATIVE + n + ".o" for n in FILES],
+            compile_logged(command + ["-j2", "V=1", "prepare"],
                            stream, env=environment, timeout=300)
         patched = work / "patched"
         for name in FILES:
@@ -99,12 +102,19 @@ def main():
         records = []
         for name in FILES:
             suffix = RELATIVE + name + ".c"
-            lines = [line for line in log.read_text().splitlines()
+            lines = [line for line in recorded.read_text().splitlines()
                      if " -c " in line and line.endswith("/" + suffix)]
             assert len(lines) == 1, (name, len(lines))
             args = shlex.split(lines[0])
-            assert args[0] == str(compiler) and args[-1] == str(source / suffix)
+            assert args[0] == str(compiler) and args[-1] == old_source + "/" + suffix
             assert args[args.index("-o") + 1] == RELATIVE + name + ".o"
+            args = [a.replace(old_source, str(source)) for a in args]
+            baseline = work / (name + "-baseline.o")
+            args[args.index("-o") + 1] = str(baseline)
+            args = ["-Wp,-MD," + str(work / (name + "-baseline.d")) if a.startswith("-Wp,-MD,") else a
+                    for a in args]
+            with (work / (name + "-baseline.log")).open("w") as stream:
+                compile_logged(args, stream, cwd=output, env=environment, timeout=120)
             result = work / (name + ".o")
             args[args.index("-o") + 1] = str(result)
             args[-1] = str(patched / suffix)
@@ -114,7 +124,7 @@ def main():
                 compile_logged(args, stream, cwd=output, env=environment, timeout=120)
             assert "AArch64" in run(["readelf", "-h", str(result)])
             records.append({"file": suffix, "baseline_source_sha256": digest(source / suffix),
-                            "baseline_object_sha256": digest(output / (RELATIVE + name + ".o")),
+                            "baseline_object_sha256": digest(baseline),
                             "patched_source_sha256": digest(patched / suffix),
                             "object_sha256": digest(result),
                             "baseline_command_sha256": hashlib.sha256(lines[0].encode()).hexdigest(),
