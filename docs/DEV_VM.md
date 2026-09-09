@@ -1,9 +1,10 @@
 # ARM64 development VM
 
-The supported development environment is an ARM64 Ubuntu 24.04 LTS virtual
-machine on Apple Silicon. It is intended for Linux, Device Tree, initramfs,
-boot-artifact, and static-analysis work. Firmware flashing remains outside this
-VM and should be performed from the separate x86_64 Windows recovery machine.
+The ARM64 Ubuntu 24.04 LTS virtual machine on Apple Silicon provides private
+reverse engineering and Linux development tools. Kernel builds use
+[Buildbox](BUILDBOX.md); a native VM build requires an explicit owner request.
+Device installation stays outside this VM and follows the
+[safety and recovery policy](SAFETY.md).
 
 ## Design
 
@@ -157,55 +158,34 @@ host target remains mode 0700 and its manifest remains mode 0600. Keep analysis
 databases and temporary decompilation output in guest-owned
 `~/reverse-engineering/work/`, never beside the evidence payload.
 
-## Build the patched stable kernel
+## Kernel builds
 
-The repository is already wired into the guest's native source, build, and
-artifact directories. Run the complete verified pipeline from macOS:
-
-```sh
-./scripts/dev-vm build-kernel
-```
-
-This is the explicit native-ARM64 backend. The normal backend-selecting command
-is `./scripts/build-kernel`; it prefers buildbox when available and falls back
-to this VM. See [Buildbox kernel builds](BUILDBOX.md).
-
-To package the optional `CONFIG_*=m` outputs as well, use the same wrapper
-with the documented build override:
+Use the normal Buildbox entry point from a clean, committed and pushed checkout:
 
 ```sh
-BUILD_MODULES=1 KERNEL_JOBS=8 ./scripts/dev-vm build-kernel
+./scripts/build-kernel --backend buildbox
 ```
 
-The default `full` profile is the hardware-development build. For a first LK
-handoff test, build the separate built-in-only profile instead:
+Omitting `--backend` also selects Buildbox. The legacy `auto` option is an alias
+for Buildbox; an unavailable builder defers the build without a VM fallback.
+Select only the profile and inputs named by the active experiment. The
+[kernel workflow](KERNEL_WORKFLOW.md) owns profile selection, source preparation,
+configuration and package validation; historical VM shortcuts do not select a
+new device candidate.
+
+For an explicitly owner-requested native ARM64 comparison, the existing VM
+source, build and artifact directories remain available:
 
 ```sh
-KERNEL_JOBS=8 ./scripts/dev-vm build-handoff-kernel
+./scripts/build-kernel --backend vm
 ```
 
-That profile keeps only the early console, framebuffer console, architectural
-boot foundation, MT6797 clocks/pinctrl/timers, and watchdog. It deliberately
-omits storage, PMIC/regulator, DMA/IOMMU, SCP, USB, network, and other
-peripheral probes. `KERNEL_PROFILE`, `BUILD_MODULES`, and `KERNEL_JOBS` are
-also forwarded by the lower-level `./scripts/dev-vm kernel COMMAND` form;
-generated source, build, and module files remain guest-owned.
-
-For a reusable minimal USB-gadget handoff build, use the separate `usbdiag`
-profile:
+Within that requested VM build, optional `CONFIG_*=m` outputs can be packaged
+with the same entry point:
 
 ```sh
-KERNEL_JOBS=8 ./scripts/dev-vm build-usbdiag-kernel
+BUILD_MODULES=1 KERNEL_JOBS=8 ./scripts/build-kernel --backend vm
 ```
-
-It applies after the handoff fragment and adds only IPv4, gadget-only MTU3,
-the MT6797 USB2 T-PHY, regulator core, and built-in `g_ether`. Storage, USB
-host/dual-role mode, xHCI, Type-C policy, mass-storage gadgets, and unrelated
-network-device families remain disabled. This is still a build result, not a
-USB runtime claim.
-
-See the [pinned stable-kernel patch workflow](KERNEL_WORKFLOW.md) for the
-manifest, patch-series, configuration, provenance, and artifact contracts.
 
 Validate the explicitly selected guest-owned package, including every file in
 its checksum manifest and the required provenance fields:
