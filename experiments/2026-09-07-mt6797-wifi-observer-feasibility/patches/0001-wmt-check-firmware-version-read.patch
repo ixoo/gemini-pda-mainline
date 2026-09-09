@@ -1,0 +1,33 @@
+From 891ad82e2e900b6687dde60b9b63ed572ce56377 Mon Sep 17 00:00:00 2001
+From: "Gemini Wi-Fi experiment (non-certifying)" <noreply@gemini-wifi.invalid>
+Date: Wed, 9 Sep 2026 15:54:17 -0400
+Subject: [PATCH] wmt: check the firmware-version read result
+
+Capture the GEN_FVR transaction result before testing it. Previously
+the check reused the successful GEN_HVR result, allowing failed
+firmware-version reads to reach cached identity publication.
+
+Keep the existing -2 failure result and stop before selecting chip
+information or publishing version data. This is an isolated Gemian
+experiment correction, not an upstream submission or a selected
+device candidate. No DCO is asserted.
+---
+ .../mediatek/connectivity/common/common_main/core/wmt_ic_soc.c  | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_ic_soc.c b/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_ic_soc.c
+index 92e45e3..d1270ca 100644
+--- a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_ic_soc.c
++++ b/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_ic_soc.c
+@@ -1630,7 +1630,7 @@ static INT32 mtk_wcn_soc_ver_check(VOID)
+ 	WMT_DBG_FUNC("0x%x: read hw_ver (hw version) (0x%x)\n", wmt_ic_ops_soc.icId, hw_ver);
+ 
+ 	WMT_LOUD_FUNC("0x%x: before fw_ver (rom version)\n", wmt_ic_ops_soc.icId);
+-	wmt_core_reg_rw_raw(0, GEN_FVR, &fw_ver, GEN_VER_MASK);
++	iret = wmt_core_reg_rw_raw(0, GEN_FVR, &fw_ver, GEN_VER_MASK);
+ 	if (iret) {
+ 		WMT_ERR_FUNC("0x%x: read fw_ver fail:%d\n", wmt_ic_ops_soc.icId, iret);
+ 		return -2;
+-- 
+2.50.1 (Apple Git-155)
+

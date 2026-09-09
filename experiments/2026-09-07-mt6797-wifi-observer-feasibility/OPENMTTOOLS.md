@@ -122,3 +122,27 @@ Therefore even a matching cached firmware version cannot independently prove
 a successful firmware-version transaction. The experiment needs attributable
 read completion before accepting it. Responder implementation, finite command
 timing and full startup/recovery remain unfinished; no radio cycle is admitted.
+
+## Firmware-version read correction
+
+The isolated [one-line patch](patches/0001-wmt-check-firmware-version-read.patch)
+now assigns the `GEN_FVR` return to `iret`, preserving the existing `-2` error
+path before chip lookup and cached identity publication. It applies to the
+hash-pinned Gemian source above. It selects no kernel profile or device
+candidate and carries a non-certifying experiment identity, without a DCO.
+
+The [focused regression](test-version-read.py) takes the unmodified public
+`wmt_ic_soc.c` as its argument, verifies its hash, applies the actual patch in
+a temporary directory and compiles the exact original and changed function
+with fake register reads. It reproduces publication after failed firmware
+read in the original; the corrected function stops before lookup/publication.
+Hardware-read failure, missing chip information and normal success also pass
+for both versions. Compilation used C11 with `-Wall -Wextra -Werror` on the
+host. This verifies function control flow, not real transport or a kernel build.
+
+Strict checkpatch passed using the retained current checker with SHA-256
+`2553cc1a601e70522e03fbce633d4e79fa5936f7f56a66de1899b7ddd247820a`
+and `--no-tree --no-signoff`; the legacy 3.18 checker could not parse on the
+available modern Perl. Commit-message wrapping was corrected before the pass.
+Full vendor-kernel compilation and runtime validation remain outstanding.
+The existing A72-only build lane has not been repurposed for this Wi-Fi patch.
