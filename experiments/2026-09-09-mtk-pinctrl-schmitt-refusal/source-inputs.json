@@ -1,0 +1,9 @@
+{
+  "baseline": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "files_sha256": {
+    "drivers/pinctrl/mediatek/pinctrl-mtk-common-v2.c": "f95fe0f92461afb8c2586c43f6d1970fa302fa69a6d17839cbfda0b17b3d9a69",
+    "drivers/pinctrl/mediatek/pinctrl-mtk-common-v2.h": "8691ca4ef77adbb488f1388562c4930affc911778a65933eb9549a92f8086ff4",
+    "drivers/pinctrl/mediatek/pinctrl-paris.c": "94848be20fd43e443398b5975829534ef95fa1f2df9cd1f835939616b0643502"
+  },
+  "hardware_tested": false
+}

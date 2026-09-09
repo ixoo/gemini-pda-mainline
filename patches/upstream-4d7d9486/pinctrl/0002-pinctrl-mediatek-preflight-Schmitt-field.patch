@@ -1,0 +1,88 @@
+From a721959354944d14d8357be104ac5413a6e7a2aa Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Wed, 9 Sep 2026 03:17:27 -0400
+Subject: [PATCH] pinctrl: mediatek: reject unavailable Schmitt fields before
+ changing direction
+
+A Schmitt request on a pin without an SMT field changes DIR before
+returning -ENOTSUPP. MT6797 has DIR fields but no SMT table, so even
+a rejected request can change the pin direction.
+
+Expose the existing field lookup and validate SMT before the first write.
+The lookup performs no MMIO and also rejects invalid register bases.
+Keep the successful DIR-then-SMT sequence and its argument conversion.
+This does not change Schmitt direction policy or add any SoC fields.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/pinctrl/mediatek/pinctrl-mtk-common-v2.c | 7 ++++---
+ drivers/pinctrl/mediatek/pinctrl-mtk-common-v2.h | 3 +++
+ drivers/pinctrl/mediatek/pinctrl-paris.c         | 6 ++++++
+ 3 files changed, 13 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/pinctrl/mediatek/pinctrl-mtk-common-v2.c b/drivers/pinctrl/mediatek/pinctrl-mtk-common-v2.c
+index faa6dbf..17c6e62 100644
+--- a/drivers/pinctrl/mediatek/pinctrl-mtk-common-v2.c
++++ b/drivers/pinctrl/mediatek/pinctrl-mtk-common-v2.c
+@@ -144,9 +144,9 @@ static int mtk_hw_pin_field_lookup(struct mtk_pinctrl *hw,
+ 	return 0;
+ }
+ 
+-static int mtk_hw_pin_field_get(struct mtk_pinctrl *hw,
+-				const struct mtk_pin_desc *desc,
+-				int field, struct mtk_pin_field *pfd)
++int mtk_hw_pin_field_get(struct mtk_pinctrl *hw,
++			 const struct mtk_pin_desc *desc,
++			 int field, struct mtk_pin_field *pfd)
+ {
+ 	if (field < 0 || field >= PINCTRL_PIN_REG_MAX) {
+ 		dev_err(hw->dev, "Invalid Field %d\n", field);
+@@ -155,6 +155,7 @@ static int mtk_hw_pin_field_get(struct mtk_pinctrl *hw,
+ 
+ 	return mtk_hw_pin_field_lookup(hw, desc, field, pfd);
+ }
++EXPORT_SYMBOL_GPL(mtk_hw_pin_field_get);
+ 
+ static void mtk_hw_bits_part(struct mtk_pin_field *pf, int *h, int *l)
+ {
+diff --git a/drivers/pinctrl/mediatek/pinctrl-mtk-common-v2.h b/drivers/pinctrl/mediatek/pinctrl-mtk-common-v2.h
+index fa7c0ed..7a9ec41 100644
+--- a/drivers/pinctrl/mediatek/pinctrl-mtk-common-v2.h
++++ b/drivers/pinctrl/mediatek/pinctrl-mtk-common-v2.h
+@@ -306,6 +306,9 @@ struct mtk_pinctrl {
+ 
+ void mtk_rmw(struct mtk_pinctrl *pctl, u8 i, u32 reg, u32 mask, u32 set);
+ 
++int mtk_hw_pin_field_get(struct mtk_pinctrl *hw,
++			 const struct mtk_pin_desc *desc, int field,
++			 struct mtk_pin_field *pfd);
+ int mtk_hw_set_value(struct mtk_pinctrl *hw, const struct mtk_pin_desc *desc,
+ 		     int field, int value);
+ int mtk_hw_get_value(struct mtk_pinctrl *hw, const struct mtk_pin_desc *desc,
+diff --git a/drivers/pinctrl/mediatek/pinctrl-paris.c b/drivers/pinctrl/mediatek/pinctrl-paris.c
+index 09098b6..65cc291 100644
+--- a/drivers/pinctrl/mediatek/pinctrl-paris.c
++++ b/drivers/pinctrl/mediatek/pinctrl-paris.c
+@@ -260,6 +260,7 @@ static int mtk_pinconf_set(struct pinctrl_dev *pctldev, unsigned int pin,
+ {
+ 	struct mtk_pinctrl *hw = pinctrl_dev_get_drvdata(pctldev);
+ 	const struct mtk_pin_desc *desc;
++	struct mtk_pin_field pf;
+ 	int err = -ENOTSUPP;
+ 	u32 reg;
+ 
+@@ -303,6 +304,11 @@ static int mtk_pinconf_set(struct pinctrl_dev *pctldev, unsigned int pin,
+ 		break;
+ 	case PIN_CONFIG_INPUT_SCHMITT:
+ 	case PIN_CONFIG_INPUT_SCHMITT_ENABLE:
++		/* Reject unavailable SMT fields before changing direction. */
++		err = mtk_hw_pin_field_get(hw, desc, PINCTRL_PIN_REG_SMT, &pf);
++		if (err)
++			break;
++
+ 		/* arg = 1: Input mode & SMT enable ;
+ 		 * arg = 0: Output mode & SMT disable
+ 		 */
+-- 
+2.50.1 (Apple Git-155)
+
