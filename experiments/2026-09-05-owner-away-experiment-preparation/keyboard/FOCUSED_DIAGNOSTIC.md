@@ -110,8 +110,24 @@ exact fixed path/arguments with a harmless substitute, then exercise the full
 TERM. The existing thirteen scaled supervisor fixtures also run for this
 variant. These tests use no physical input device or PDA connection.
 
-The thirteen focused host fixtures pass. The composed ARM64 package and focused
-production-entry/deadline fixtures are pending at this checkpoint. A fresh
-host-side delivery/admission binding, combined logger budget and owner readiness
+Both the thirteen focused and thirteen legacy host fixtures pass. The composed
+Buildbox package at `11f830c68866044cd7b86dd95e743adfa4997345` passed the eleven
+reader cases, thirteen scaled ARM64 supervisor cases, exact focused-entry
+argument/once-only check, and the full observation/forced-cleanup check. The
+latter observed the 32-second marker and verified TERM within 39–40 seconds,
+KILL within 43–44 seconds and child reaping by 45 seconds, with no identity
+loss or late flag. These are fixture bounds, not device timing measurements.
+
+The validated package identity is
+`0c08662aa4c52120820e55b6f036b8b1e93a8abe489f231b2b4db8d88cba1f76`.
+The 66,672-byte supervisor has SHA-256
+`52310c8189f3603f2a2ac3e5729a1be45daf9576b99c25e47a1ef10b598b3971`.
+The reader remains byte-identical to the earlier validated reader above.
+Both binaries have matching replicas. The combined fixture transcript has
+SHA-256 `33dcfd0ecbe62b6639251553b0c0f8a14a4990967945a635804af17d97153b4b`.
+The fetched source inputs match the reviewed files. Only the validated package
+was transferred; no kernel or device action occurred.
+
+A fresh host-side delivery/admission binding, combined logger budget and owner readiness
 are still required before any device execution; the old capture adapter does
 not select this variant.
