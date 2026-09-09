@@ -131,3 +131,53 @@ was transferred; no kernel or device action occurred.
 A fresh host-side delivery/admission binding, combined logger budget and owner readiness
 are still required before any device execution; the old capture adapter does
 not select this variant.
+
+## Host plan and remaining runtime facts
+
+[focused-session.py](focused-session.py) freezes four private command files and
+their digests, source identities, exact package and expected boot into a plan.
+It has no transport or execution action. It reuses the existing live identity,
+RAM, map, logger, ancestry, capability and reader guards. The two delivery
+steps install the supervisor/notices, then reader/GPL notice. A UUID readiness
+record binds the completed delivery; capture rechecks every delivered file and
+the record before invoking the focused supervisor. Existing files, symlinks,
+mounted delivery paths, partial delivery and a consumed attempt refuse reuse.
+
+The actual prepared commands occupy 197,234 bytes for delivery A and 124,934
+for B, each below the existing 262,144-byte command cap. Capture is 14,475 bytes
+and export 4,415 bytes. Their host limits are 30, 30, 60 and 30 seconds.
+Capture starts only while the restarted logger is younger than 120 seconds.
+Allowing the full 60-second capture host limit, 30-second export and 30-second
+independent seal leaves completion before logger age 240 seconds, within its
+unchanged 600-second/2-MiB envelope. The Space wait precedes logger startup.
+These are proposed phase bounds, not observed transfer timing or log coverage.
+
+The [disconnect source review](focused-disconnect-source-review.json) compared
+the retained probe revision with the focused variant on Buildbox using the
+installed target GCC preprocessor and headers. Both scaled probe configurations
+produced identical 120,596-byte output with SHA-256
+`adc56233836aa73dc5b75a4973cda7ef45c25413a267ed605c06bf6477817efe`.
+This preserves the historical probe's relevance to the unchanged scaled engine;
+it is neither binary equivalence nor a focused production device proof. The
+focused production argument and deadline fixtures remain separate evidence.
+
+The prerequisite verifier now accepts an explicit historical monitor source
+pin. Its default still requires the current source. The planner verifies the
+historical pin against its Git revision and validated package before rechecking
+all seven raw disconnect evidence members and the historical duration, metadata
+and custody receipts. Those checks passed for the retained session. Historical
+custody never becomes fresh owner readiness, and a different boot invalidates
+the same-boot reuse decision.
+
+The plan remains disabled. The retained host logger-clock record precedes the
+latest completed logger run; it must not be substituted for that run's current
+clock/PID. Obtain and preserve a bounded readback after verifying live identity,
+then prepare restart from the latest `retry-seal`, with a fresh archive claim.
+Bind fresh owner/Space readiness and retain the actual phase, export and seal
+receipts before using the analyzer for an attributable observation. No restart,
+capture or recovery was performed while preparing this plan.
+
+Both actual command generation and Bash syntax/ShellCheck passed (SC2016 is
+excluded for intentional literal awk programs). Focused assembly and historical
+source-pin refusal fixtures cover the new code; target-shell execution of this
+plan and device timing remain untested.

@@ -6,6 +6,7 @@ import hashlib
 import json
 from pathlib import Path
 import runpy
+import subprocess
 import tempfile
 import unittest
 
@@ -93,6 +94,22 @@ class PrerequisiteTests(unittest.TestCase):
         return P['disconnect'](raw, sha(raw), self.admission, self.candidate,
             {'keyboard-disconnect-probe': '7'*64}, self.evidence_root, self.regular)
 
+    def test_historical_source_pin_is_explicit_and_does_not_replace_other_checks(self):
+        historical = copy.deepcopy(self.disconnect)
+        historical['monitor']['source_sha256'] = 'a'*64
+        raw = encode(historical)
+        args = (raw, sha(raw), self.admission, self.candidate,
+                {'keyboard-disconnect-probe': '7'*64}, self.evidence_root, self.regular)
+        with self.assertRaisesRegex(ValueError, 'monitor binding'):
+            P['disconnect'](*args)
+        P['disconnect'](*args, monitor_source_sha256='a'*64)
+        for invalid in ('', 'b'*64):
+            with self.assertRaises(ValueError):
+                P['disconnect'](*args, monitor_source_sha256=invalid)
+        (self.evidence_root/'observer.stdout').write_bytes(b'changed\n')
+        with self.assertRaisesRegex(ValueError, 'evidence inventory'):
+            P['disconnect'](*args, monitor_source_sha256='a'*64)
+
     def test_runtime_custody_disconnect_bindings_and_mutations(self):
         cases = [('runtime', self.runtime, P['runtime']), ('custody', self.custody, P['custody'])]
         for label, value, verifier in cases:
@@ -175,17 +192,25 @@ class PrerequisiteTests(unittest.TestCase):
 
     def test_duration_exact_tracked_receipt(self):
         raw = P['DURATION'].read_bytes()
-        P['duration'](raw, sha(raw), sha((HERE/'monitor.c').read_bytes()))
+        receipt = json.loads(raw)
+        repo = HERE.parents[2]
+        historical = subprocess.check_output(['git', '-C', str(repo), 'show',
+            receipt['source_revision'] + ':' + (HERE/'monitor.c').relative_to(repo).as_posix()])
+        source_sha = sha(historical)
+        self.assertEqual(source_sha, receipt['source_inputs']['monitor.c'])
+        P['duration'](raw, sha(raw), source_sha)
+        with self.assertRaisesRegex(ValueError, 'duration monitor source'):
+            P['duration'](raw, sha(raw), sha((HERE/'monitor.c').read_bytes()))
         changed_source = json.loads(raw)
         changed_source['source_inputs']['monitor.c'] = '0'*64
         mutated_source = encode(changed_source)
         with self.assertRaisesRegex(ValueError, 'duration monitor source'):
-            P['duration'](mutated_source, sha(mutated_source), sha((HERE/'monitor.c').read_bytes()))
+            P['duration'](mutated_source, sha(mutated_source), source_sha)
         changed = json.loads(raw)
         changed['classification']['classification'] = 'inconclusive'
         mutated = encode(changed)
         with self.assertRaisesRegex(ValueError, 'duration outcome'):
-            P['duration'](mutated, sha(mutated), sha((HERE/'monitor.c').read_bytes()))
+            P['duration'](mutated, sha(mutated), source_sha)
 
 
 if __name__ == '__main__':

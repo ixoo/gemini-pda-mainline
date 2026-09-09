@@ -128,7 +128,8 @@ def custody(raw, expected, admission, candidate):
     return value
 
 
-def disconnect(raw, expected, admission, candidate, package_pins, evidence_root, regular):
+def disconnect(raw, expected, admission, candidate, package_pins, evidence_root, regular,
+               *, monitor_source_sha256=None):
     require(digest(raw) == expected, 'disconnect receipt digest')
     value = decode(raw)
     require(set(value) == {'schema', 'classification', 'admission_id', 'boot_id',
@@ -141,7 +142,10 @@ def disconnect(raw, expected, admission, candidate, package_pins, evidence_root,
     probe_sha256 = package_pins.get('keyboard-disconnect-probe')
     require(isinstance(probe_sha256, str) and SHA.fullmatch(probe_sha256),
             'disconnect probe package binding')
-    require(monitor == {'source_sha256': digest((HERE/'monitor.c').read_bytes()),
+    source_sha = (digest((HERE/'monitor.c').read_bytes()) if monitor_source_sha256 is None
+                  else monitor_source_sha256)
+    require(type(source_sha) is str and SHA.fullmatch(source_sha), 'monitor source identity')
+    require(monitor == {'source_sha256': source_sha,
         'package_identity': admission['package_identity'],
         'package_revision': admission['package_revision'],
         'binary_sha256': admission['monitor_sha256'],
@@ -225,9 +229,12 @@ def disconnect(raw, expected, admission, candidate, package_pins, evidence_root,
     return value
 
 
-def verify(admission, candidate, package_pins, regular, root):
+def verify(admission, candidate, package_pins, regular, root, *, monitor_source_sha256=None):
     """Verify all four exact prerequisites before a claim or transport."""
-    monitor_sha = digest((HERE/'monitor.c').read_bytes())
+    # An explicit source pin verifies historical evidence only. The caller must
+    # establish its selected revision and the scope of any reuse independently.
+    monitor_sha = (digest((HERE/'monitor.c').read_bytes()) if monitor_source_sha256 is None
+                   else monitor_source_sha256)
     duration_raw = regular(DURATION, 131072, private=False)
     base = Path(root) / admission['id'] / 'prerequisites'
     runtime_raw = regular(base/'runtime.json', 65536)
@@ -238,4 +245,5 @@ def verify(admission, candidate, package_pins, regular, root):
         'runtime': runtime(runtime_raw, admission['runtime']['metadata_receipt_sha256'], admission, candidate),
         'custody': custody(custody_raw, admission['custody']['receipt_sha256'], admission, candidate),
         'disconnect': disconnect(disconnect_raw, admission['disconnect_receipt_sha256'], admission,
-                                 candidate, package_pins, disconnect_root, regular)}
+                                 candidate, package_pins, disconnect_root, regular,
+                                 monitor_source_sha256=monitor_sha)}

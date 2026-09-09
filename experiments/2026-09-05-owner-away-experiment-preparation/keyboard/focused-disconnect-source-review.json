@@ -1,0 +1,36 @@
+{
+  "schema": "focused-disconnect-source-review-v1",
+  "scope": "historical-scaled-probe-only",
+  "same_boot_required": true,
+  "compiler_sha256": "c7b8890354c8ddc0364addfeb8968597e197627bd1e338fb6ed705b578803846",
+  "flags": [
+    "-E",
+    "-P",
+    "-std=c11",
+    "-DFIXTURE_ROOT=\"/a53-keyboard-disconnect\""
+  ],
+  "new_extra_flags": [
+    "-DKEYBOARD_MONITOR_FOCUSED=1"
+  ],
+  "records": [
+    {
+      "revision": "18a5882d55f11450dd049c7a6bbc2c6d1731359f",
+      "sources": {
+        "monitor.c": "2cb30948d6d4c5ada9e6fd2a9bdfd9ab54489661367e568faaa3ef2785bad683",
+        "monitor-fixture.c": "00b36d2f4c4b9cb9a65b6f8915eb973ce2c88f527e00dee1b53b058a64b2b1e4"
+      }
+    },
+    {
+      "revision": "11f830c68866044cd7b86dd95e743adfa4997345",
+      "sources": {
+        "monitor.c": "7c381206581acc3a9c903c118250463ae0f1559dc09d7b537a5e77615022580a",
+        "monitor-fixture.c": "a4bfb6e9bfd76fa0d39f89af5d33c1013c732694048f0584894007d8416a9af4"
+      }
+    }
+  ],
+  "preprocessed_equal": true,
+  "preprocessed_bytes": 120596,
+  "preprocessed_sha256": "adc56233836aa73dc5b75a4973cda7ef45c25413a267ed605c06bf6477817efe",
+  "binary_equivalence_claim": false,
+  "new_device_proof_claim": false
+}
