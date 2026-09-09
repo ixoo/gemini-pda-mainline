@@ -234,3 +234,7 @@ Capture remains disabled pending the fresh session requirements recorded there.
 
 The [capture admission and combined budget](CAPTURE_ADMISSION.md) describe the
 disabled exact-session gate and the remaining metadata/command preparation.
+
+The [fresh metadata collector](METADATA.md) prepares the existing runtime receipt
+from a new boot after its own passing disconnect proof; no live metadata has
+been collected yet.

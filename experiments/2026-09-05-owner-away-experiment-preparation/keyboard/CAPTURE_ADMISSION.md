@@ -57,9 +57,9 @@ operations or concurrent device tests are added.
 
 ## Remaining preparation
 
-The classifier contract is still unfilled. Complete the bounded input-metadata
-collection and validation path for actual event identity, capabilities, resource
-ancestry, map, logger age and reader exclusion. Review the exact generated
+The classifier contract is still unfilled. The [bounded metadata collector](METADATA.md) now produces the runtime
+receipt from actual event identity, capabilities, resource ancestry, map, logger
+age and reader exclusion. It has not yet run on the candidate. Review the exact generated
 capture/delivery/export commands under the candidate's BusyBox. Then freeze the
 candidate classifier fields and the complete attended sequence. Fresh runtime
 facts and owner confirmation can only be filled after the later physical boot.

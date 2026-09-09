@@ -54,7 +54,7 @@ def source_identity():
     closure.update(dict(L['V']['SOURCE_PINS']))
     for name,value in closure.items():
         require(sha(C['regular'](L['REPO']/name,262144,private=False)) == value, 'imported closure drift')
-    direct = ('capture.py','prerequisites.py','disconnect.py','monitor.c','delivery.py','classify.py','protocol.json',
+    direct = ('capture.py','metadata.py','prerequisites.py','disconnect.py','monitor.c','delivery.py','classify.py','protocol.json',
               '../emmc/mainline_host.py','../baseline/scripts/buildbox_userspace.py')
     return {'local_and_direct':{name:sha(C['regular'](HERE/name,262144,private=False)) for name in direct},
             'emmc_launcher':launcher,'pinned_members':closure}
@@ -158,13 +158,24 @@ def guard(context, initial):
         script += f'[ "$($BB cat /sys/class/input/{r["event"]}/device/capabilities/{name})" = {shlex.quote(value.rstrip())} ]\n'
     for path, target in sorted(r['resource_paths'].items()):
         script += f'[ "$($BB readlink -f {shlex.quote(path)})" = {shlex.quote(target)} ]\n'
+    script += console_guard(c)
+    if initial:
+        script += f'$BB awk \'$1 >= {r["logger_age_limit_seconds"]} {{exit 1}}\' /proc/uptime\n'
+    return script + reader_guard()
+
+
+def console_guard(c):
+    script = ''
     for member in ('bin/console-keymap-verify','etc/gemini-us.bkeymap','bin/keyboard-observe'):
         script += f'h=$($BB sha256sum /{member}); [ "${{h%% *}}" = {c["members"][member]["sha256"]} ]\n'
     script += f'map=$(/bin/console-keymap-verify --verify /etc/gemini-us.bkeymap); [ "$map" = {shlex.quote(C["MAP_RESULT"])} ]\n'
     script += '[ "$($BB cat /sys/class/tty/tty0/active)" = tty1 ]\n'
     script += '[ "$($BB awk \'$1 ~ /^tty[01]$/ {n++} END {print n+0}\' /proc/consoles)" = 0 ]\n'
-    if initial:
-        script += f'$BB awk \'$1 >= {r["logger_age_limit_seconds"]} {{exit 1}}\' /proc/uptime\n'
+    return script
+
+
+def reader_guard():
+    script = ''
     # Any inaccessible/changing process inventory refuses; never assume absence.
     script += r'''
 processes=0
