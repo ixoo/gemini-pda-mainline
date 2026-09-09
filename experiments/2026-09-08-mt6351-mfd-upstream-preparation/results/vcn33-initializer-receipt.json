@@ -1,0 +1,65 @@
+{
+  "schema": 1,
+  "analysis": "VCN33 initializer and expected-suspend-value audit; offline only",
+  "image_sha256": "0570480c28bce1583636a240904df8da3af0b5e5b4bcc6254f5719b42bd723d0",
+  "source_commit": "8cfe6596a503612e3332d9c26e292a19525a7f07",
+  "source_files": {
+    "drivers/misc/mediatek/power/mt6797/pmic_initial_setting.c": "893772cbaab2d5ab6fa5dad43f9d6aa4edf813f9db34d84e783fc39ff9c68b23",
+    "drivers/misc/mediatek/power_gs/mt6797/mt_power_gs_6351_array.c": "e895b1ac2a4e9243783ea883d73f5f24a3b8e90ca6ce103f118aed322c9ec5f1"
+  },
+  "function_spans": [
+    {
+      "symbol": "PMIC_INIT_SETTING_V1",
+      "start": "0xffffffc0004b7e90",
+      "end_exclusive": "0xffffffc0004b93c0",
+      "bytes": 5424,
+      "sha256": "e63c9226d2b1d7bf5d2b60bfb1eab7dd5521cd1a0e239cdd642ea0982f8a1eee",
+      "direct_config_calls": 245,
+      "flag_set_calls": 9,
+      "flag_registers": {
+        "93": "0x18",
+        "119": "0x2a",
+        "126": "0x2a",
+        "603": "0x2b8",
+        "604": "0x2ba"
+      },
+      "vcn33_control_targets": []
+    },
+    {
+      "symbol": "PMIC_MD_INIT_SETTING_V1",
+      "start": "0xffffffc0004b7c58",
+      "end_exclusive": "0xffffffc0004b7d60",
+      "bytes": 264,
+      "sha256": "92ab77ce056d93cae0a40400b3e5a489e7730198f536683360b57cebb3207a15",
+      "direct_config_calls": 7,
+      "flag_set_calls": 0,
+      "flag_registers": {},
+      "vcn33_control_targets": []
+    }
+  ],
+  "scope": "Direct PMIC config and flag-set arguments in these two compiled functions; not an inventory of every kernel, firmware or loader writer",
+  "expected_suspend_values": [
+    {
+      "register": "0xa92",
+      "mask": "0x4",
+      "expected": "0x0"
+    },
+    {
+      "register": "0xa98",
+      "mask": "0xa",
+      "expected": "0x0"
+    },
+    {
+      "register": "0xa9a",
+      "mask": "0xa",
+      "expected": "0x0"
+    }
+  ],
+  "golden_tables_are_runtime_evidence": false,
+  "device_access": false,
+  "audited_control_registers": [
+    "0xa92",
+    "0xa98",
+    "0xa9a"
+  ]
+}

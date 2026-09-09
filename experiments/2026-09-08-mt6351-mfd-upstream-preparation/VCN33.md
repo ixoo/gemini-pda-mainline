@@ -91,6 +91,34 @@ source-branch question or treat the legacy mode-switch sequence as the running
 reference. The audit does not prove pin topology, enable combination logic,
 current rail state or successful PMIC transport, and admits no rail experiment.
 
+## Initializer and suspend-table follow-up
+
+The [initializer receipt](results/vcn33-initializer-receipt.json) checks the
+same retained kernel's `PMIC_INIT_SETTING_V1()` and its modem helper. All 245
+direct configuration calls and nine flag-setting calls in the first function,
+plus seven configuration calls in the helper, have locally resolvable register
+arguments. None targets `0x0a92`, `0x0a98` or `0x0a9a`. The initializer does
+write `0x0a94` bit 9, a separate VCN33 field; this is not a claim that startup
+leaves every VCN33 register untouched. Other kernel, loader and firmware writers
+remain outside this bounded audit.
+
+The pinned source's `mt_power_gs_6351_array.c` contains the same three VCN33
+triples in its flight-mode suspend, suspend and early-suspend deep-idle tables:
+
+| Register | Comparison mask | Expected masked value |
+| --- | --- | --- |
+| `0x0a92` | `0x0004` | `0` |
+| `0x0a98` | `0x000a` | `0` |
+| `0x0a9a` | `0x000a` | `0` |
+
+These describe expected mode-control, on-control and enable bits in those
+named states. They omit the source-clock selectors and do not establish an
+initialization sequence, observed register values or actual suspend behavior.
+Thus neither these tables nor the two compiled initializers supplies the
+missing mode/source-clock owner. Investigate other writers or obtain an
+attributable, separately admitted observation; do not infer software ownership
+from the golden values or copy them as a programming recipe.
+
 ## Decision
 
 The common selector and common status naming support a shared analog-resource
