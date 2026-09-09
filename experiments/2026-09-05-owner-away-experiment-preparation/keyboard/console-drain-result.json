@@ -1,0 +1,31 @@
+{
+  "boot_id": "e3a29c80-4948-4ef8-893a-cfbef0cd4918",
+  "id": "10c4c963-22a1-4ad4-a898-fe765e03ca83",
+  "identity": "8b5389ef5bede1798fda52219ab700d1a783260f3a254139ce02291e05387daa",
+  "phases": {
+    "delivery": "378e82d381236d146780ef5428903091fa079dfedfefa373de648510b8e498c3",
+    "query": "2f479276a78d97dae2f515f4b79ec2129b3e7cf7e372ae46f7b183c93d355027"
+  },
+  "revision": "14ad01ce2596f43cc081ea4163fa00709fed47d6",
+  "schema": "keyboard-console-drain-result-v1",
+  "process": {
+    "elapsed_seconds": 0.906,
+    "exit_status": 0,
+    "reason": null,
+    "stderr_bytes": 0,
+    "stdin_complete": true,
+    "stdout_bytes": 66
+  },
+  "stdout": "console-drain empty=1 bytes=0\nconsole-drain complete=1 restored=1\n",
+  "captured_bytes": 0,
+  "classification": "empty-at-nonblocking-observation-no-backlog-explanation-established",
+  "previous_dd_terminated_and_reaped": true,
+  "stop_process": {
+    "elapsed_seconds": 0.512,
+    "exit_status": 0,
+    "reason": null,
+    "stderr_bytes": 0,
+    "stdin_complete": true,
+    "stdout_bytes": 200
+  }
+}

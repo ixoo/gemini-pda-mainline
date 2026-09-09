@@ -305,3 +305,26 @@ keys before and after, and restores termios. It does not flush input or admit
 a keyboard test. The pending bytes stay private. Its PTY fixture supplies
 64 canonical queued `n` bytes and checks exact preservation and restoration.
 A capped or interrupted read cannot establish an empty queue.
+
+The failed BusyBox read had survived its SSH parent timeout as PID 5529, still
+holding tty1. Two transfer attempts were refused before their RAM directories
+were created. Their host cleanup also raised a process-group permission error;
+that host exception did not identify the underlying reader conflict. An exact
+boot/start-time/executable/arguments/fd check identified our `dd` process. It
+was terminated with SIGTERM and confirmed reaped; the original termios string
+was verified again. No unrelated process was stopped.
+
+The validated nonblocking helper then passed the existing exclusive-reader
+and delivery guards. Its [result](console-drain-result.json) reported zero
+pending bytes, an empty read, released keys, and restored settings in 0.906
+seconds. This does not establish a stale-byte explanation for the Space
+failure. Eleven ARM64/PTY fixtures passed for its package.
+
+The next bounded observation separates owner readiness from the console
+translation being investigated. An explicitly bound
+`owner-confirmed-diagnostic` plan accepts fresh owner confirmation in place of
+the successful literal-Space gate. Normal Space-gated plans remain unchanged.
+The verified Space evdev press, later released-key snapshots, and empty-queue
+observation are evidence for this decision, not a console-correctness claim.
+All live device, exclusive-reader, keymap, logger, monitor, duration, export
+and seal guards remain in force. No automatic restart is admitted.

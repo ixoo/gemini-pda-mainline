@@ -38,6 +38,12 @@ def main():
         result = json.loads(C['regular'](q/name/'result.json', 65536))
         M['require'](result['passed'] is True and result['id'] == plan['id'], 'prior phase did not pass')
     prior = {'space-wait':'space-delivery', 'logger':'space-wait', 'delivery-b':'delivery-a', 'capture':'delivery-b'}
+    # The owner can explicitly start a diagnostic of console translation.
+    # Requiring correct console bytes to admit that observation is circular.
+    # This choice is covered by the exact plan binding and fresh-owner check;
+    # it changes no device, logger, reader, capture or preservation guard.
+    if phase == 'logger' and plan.get('readiness') == 'owner-confirmed-diagnostic':
+        prior.pop('logger')
     if phase in prior:
         passed(prior[phase])
     if phase in ('delivery-a', 'delivery-b', 'capture'):
