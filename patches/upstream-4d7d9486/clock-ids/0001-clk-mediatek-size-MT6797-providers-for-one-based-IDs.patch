@@ -1,0 +1,101 @@
+From 950633259f607cd2c34fe4465a3e911033fd0b2a Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 8 Sep 2026 20:03:20 -0400
+Subject: [PATCH] clk: mediatek: size MT6797 providers for one-based clock IDs
+
+The MT6797 IMG, MM, VDEC and VENC bindings start at one. The common
+probe allocates only the number of registered clocks, so the largest
+clock ID indexes past the allocated hws array during registration and
+removal. The OF provider also rejects that valid ID.
+
+Allow descriptors to specify their provider slot count separately from
+the gate count, and use the existing binding limits for these providers.
+Descriptors without an explicit slot count retain the existing summed
+allocation. Keep registration and unwind loop bounds unchanged.
+---
+ drivers/clk/mediatek/clk-mt6797-img.c  | 1 +
+ drivers/clk/mediatek/clk-mt6797-mm.c   | 1 +
+ drivers/clk/mediatek/clk-mt6797-vdec.c | 1 +
+ drivers/clk/mediatek/clk-mt6797-venc.c | 1 +
+ drivers/clk/mediatek/clk-mtk.c         | 3 +++
+ drivers/clk/mediatek/clk-mtk.h         | 2 ++
+ 6 files changed, 9 insertions(+)
+
+diff --git a/drivers/clk/mediatek/clk-mt6797-img.c b/drivers/clk/mediatek/clk-mt6797-img.c
+index 338c692..3a12d97 100644
+--- a/drivers/clk/mediatek/clk-mt6797-img.c
++++ b/drivers/clk/mediatek/clk-mt6797-img.c
+@@ -27,6 +27,7 @@ static const struct mtk_gate img_clks[] = {
+ };
+ 
+ static const struct mtk_clk_desc img_desc = {
++	.num_clk_ids = CLK_IMG_NR,
+ 	.clks = img_clks,
+ 	.num_clks = ARRAY_SIZE(img_clks),
+ };
+diff --git a/drivers/clk/mediatek/clk-mt6797-mm.c b/drivers/clk/mediatek/clk-mt6797-mm.c
+index ddb40b8..d801726 100644
+--- a/drivers/clk/mediatek/clk-mt6797-mm.c
++++ b/drivers/clk/mediatek/clk-mt6797-mm.c
+@@ -81,6 +81,7 @@ static const struct mtk_gate mm_clks[] = {
+ };
+ 
+ static const struct mtk_clk_desc mm_desc = {
++	.num_clk_ids = CLK_MM_NR,
+ 	.clks = mm_clks,
+ 	.num_clks = ARRAY_SIZE(mm_clks),
+ };
+diff --git a/drivers/clk/mediatek/clk-mt6797-vdec.c b/drivers/clk/mediatek/clk-mt6797-vdec.c
+index d832f48..80bbbb0 100644
+--- a/drivers/clk/mediatek/clk-mt6797-vdec.c
++++ b/drivers/clk/mediatek/clk-mt6797-vdec.c
+@@ -38,6 +38,7 @@ static const struct mtk_gate vdec_clks[] = {
+ };
+ 
+ static const struct mtk_clk_desc vdec_desc = {
++	.num_clk_ids = CLK_VDEC_NR,
+ 	.clks = vdec_clks,
+ 	.num_clks = ARRAY_SIZE(vdec_clks),
+ };
+diff --git a/drivers/clk/mediatek/clk-mt6797-venc.c b/drivers/clk/mediatek/clk-mt6797-venc.c
+index fd4446f..49bc43c 100644
+--- a/drivers/clk/mediatek/clk-mt6797-venc.c
++++ b/drivers/clk/mediatek/clk-mt6797-venc.c
+@@ -29,6 +29,7 @@ static const struct mtk_gate venc_clks[] = {
+ };
+ 
+ static const struct mtk_clk_desc venc_desc = {
++	.num_clk_ids = CLK_VENC_NR,
+ 	.clks = venc_clks,
+ 	.num_clks = ARRAY_SIZE(venc_clks),
+ };
+diff --git a/drivers/clk/mediatek/clk-mtk.c b/drivers/clk/mediatek/clk-mtk.c
+index 3dfdd3a..d5df2ca 100644
+--- a/drivers/clk/mediatek/clk-mtk.c
++++ b/drivers/clk/mediatek/clk-mtk.c
+@@ -514,6 +514,9 @@ static int __mtk_clk_simple_probe(struct platform_device *pdev,
+ 	num_clks += mcd->num_fixed_clks + mcd->num_factor_clks;
+ 	num_clks += mcd->num_mux_clks + mcd->num_divider_clks;
+ 
++	if (mcd->num_clk_ids)
++		num_clks = mcd->num_clk_ids;
++
+ 	clk_data = mtk_alloc_clk_data(num_clks);
+ 	if (!clk_data) {
+ 		r = -ENOMEM;
+diff --git a/drivers/clk/mediatek/clk-mtk.h b/drivers/clk/mediatek/clk-mtk.h
+index 5417b92..c8ce139 100644
+--- a/drivers/clk/mediatek/clk-mtk.h
++++ b/drivers/clk/mediatek/clk-mtk.h
+@@ -240,6 +240,8 @@ struct clk_hw *mtk_clk_register_ref2usb_tx(const char *name,
+ void mtk_clk_unregister_ref2usb_tx(struct clk_hw *hw);
+ 
+ struct mtk_clk_desc {
++	/* Optional provider size for clock IDs with holes. */
++	unsigned int num_clk_ids;
+ 	const struct mtk_gate *clks;
+ 	size_t num_clks;
+ 	const struct mtk_composite *composite_clks;
+-- 
+2.50.1 (Apple Git-155)
+

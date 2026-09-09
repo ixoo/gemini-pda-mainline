@@ -25,6 +25,12 @@ the loop. Positive identity-gated observations are unaffected.
   — records the current canonical-subsequence findings and enforcement
   boundary.
 
+### Current clock allocation preparation
+
+- [2026-09-08 MT6797 clock provider allocation](2026-09-08-mt6797-clock-id-allocation/README.md)
+  — fixes provider storage for existing one-based IMG, MM, VDEC and VENC IDs;
+  isolated compile profile and an upstream negative-control regression.
+
 ### Current PMIC key preparation
 
 - [2026-09-08 MT6351 PMIC key preparation](2026-09-08-mt6351-keys-preparation/README.md)

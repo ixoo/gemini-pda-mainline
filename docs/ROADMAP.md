@@ -96,6 +96,11 @@ the local one-handle evidence does not resolve upstream's mandatory `main` +
 of consumer and parent clock identity, rate-source/gate ownership and MM-domain
 lifetime; missing attribution preserves the current two-clock contract.
 
+The independent [clock allocation fix](../experiments/2026-09-08-mt6797-clock-id-allocation/README.md)
+repairs the slot-count contract in four existing MT6797 providers. Finish its
+compile validation and upstream preparation before adapting historical camera
+or multimedia clock additions; it does not resolve their consumer ownership.
+
 The current [audio architecture refresh](../experiments/2026-09-07-mt6797-audio-upstream-architecture/README.md)
 identifies one smaller independent upstream topic: adapt local patch 0064 into
 a true MT6797 AFE text-to-YAML conversion, deleting the superseded text binding

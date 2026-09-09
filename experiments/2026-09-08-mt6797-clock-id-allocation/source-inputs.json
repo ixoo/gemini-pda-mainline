@@ -1,0 +1,17 @@
+{
+  "source_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "source": "Validated Buildbox prepared source; unrelated RTC patch does not touch these files.",
+  "files": {
+    "scripts/spelling.txt": "4095d4a8810f115bae1b7c0d8a1946beb3435f6e22d9a48ac009bb024bad1e68",
+    "scripts/checkpatch.pl": "2553cc1a601e70522e03fbce633d4e79fa5936f7f56a66de1899b7ddd247820a",
+    "scripts/const_structs.checkpatch": "ea064f6916a74763468037494aeb270aae34b7c97617e84d424ca5b8733539b2",
+    "include/dt-bindings/clock/mt6797-clk.h": "73ef029a8a51216697d7384a360ac94b714a6fea83e5bd8c4e2a5f78f2a48a63",
+    "drivers/clk/mediatek/clk-mt6797-img.c": "cb9e25f289cbbad70541a89734862ddf8d44f1b142dc10a1b6f58cf31ae52a10",
+    "drivers/clk/mediatek/clk-mt6797-vdec.c": "8f4ffd0b0a47392166ea1b6659712fda80f27b028dee3fe634c1409969d7a3a7",
+    "drivers/clk/mediatek/Kconfig": "6634c6e7c14ca9a72fc0a258ca9b8a575c53bc451919646feb644c7b9354c3c0",
+    "drivers/clk/mediatek/clk-mtk.h": "67c603ab0a319e7672fba7f569a4e691fd8b3772b031427524d8da934198e6d9",
+    "drivers/clk/mediatek/clk-mt6797-venc.c": "4b7c9ed72dcf53b8735b120ea274f1939509b2365005c966b00363414a21eb3b",
+    "drivers/clk/mediatek/clk-mt6797-mm.c": "60c7ccbc28dc6356632fe1d8ae4bd653b571bc789553aa1f19d6304e000b13fa",
+    "drivers/clk/mediatek/clk-mtk.c": "e8a89dffaffedfce01489b0887fb425d64649d6fb841157bbcea5aac0fc93e59"
+  }
+}
