@@ -65,4 +65,12 @@ Its two ARM64 replicas match and all seven musl/PTY fixtures pass, with the
 timeout fixture additionally requiring channel-status output. The logger
 poll/wait loop was exercised under ARM64 BusyBox for both zero and nonzero
 child exits. Generated delivery, readiness and logger shells pass syntax and
-ShellCheck. The second live start-screen attempt is prepared, not yet observed.
+ShellCheck. These checks admitted the second live start-screen attempt.
+
+The second live wait remained connected for 300.936 seconds and retained
+14 waiting records, then exited 2 with no stderr and no readiness witness.
+This is consistent with its five-minute deadline. No Space press/release was
+accepted, so the timed capture and new logger were not started. The same
+mainline boot remains in place; no reboot or partition action occurred. This
+demonstrates the full waiting interval through the existing SSH server, not
+the physical Space-trigger path or a completed keyboard regression.
