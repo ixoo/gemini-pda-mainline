@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "analysis": "Retained command 0x0a packet-filter value transformation",
+  "firmware_sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
+  "firmware_bytes": 411632,
+  "tool": "Ghidra 12.1.2; existing RE-VM project",
+  "method": "Existing NDS32 BE-instruction/LE-data premise; direct-flow walk skips callees and assumes return. Selected immediate-derived dispatcher target; callback implementations unresolved.",
+  "dispatch": {
+    "script": "RxFilterDispatch.java",
+    "sha256": "41a0b20002dd13f213d859a4fd2b613d85903d9b9ede4c63e231d538eed8a3c6",
+    "table_entries": 81,
+    "selected_matches": 1
+  },
+  "handler": {
+    "script": "StationDispatchCallers.java",
+    "sha256": "2efce21970a2830e20fac166455a3c3ebcfee2a8a0e41bd3acab006927ad44c5",
+    "node_cap": 1024,
+    "nodes": 253,
+    "calls": 20,
+    "queue_exhausted": true,
+    "invalid": 0,
+    "unresolved_noncall_computed": 0,
+    "terminals": 1,
+    "listing_sha256": "b634915720f31e6585986ed8132728d4c30602981842db45d57d42485b2bdccc",
+    "log_sha256": "37545c250cdb893293e7f53e38b7e8e16300dcd18e06bef9ef9ba3fd9f0907df"
+  },
+  "public_header": {
+    "path": "drivers/misc/mediatek/connectivity/wlan/gen3/include/wlan_oid.h",
+    "sha256": "7bfbb248cc6288b7d8614159dffa203868a96520dcfec9668fdedc298bdcf819",
+    "source_commit": "8cfe6596a503612e3332d9c26e292a19525a7f07",
+    "matches_prior_planet_commit": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+    "lines": [
+      72,
+      94
+    ]
+  },
+  "hardware_test": false,
+  "firmware_execution": false,
+  "radio_action": false
+}

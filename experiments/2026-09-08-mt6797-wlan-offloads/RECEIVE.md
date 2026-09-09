@@ -40,6 +40,36 @@ insufficient to select native managed data. The inspected fields are positive
 source facts; this is not an exhaustive claim that no other firmware control
 exists.
 
+## Retained packet-filter handler
+
+A [bounded firmware follow-up](results/firmware-rx-filter.json) identifies the
+mapped handler for command `0x0a` in the retained image. It obtains an initial
+32-bit value through an unresolved callback, transforms a local copy according
+to the command's filter word, and passes the result to a second unresolved
+callback. The public filter header matches byte-for-byte between the pinned
+Planet source and the inspected Gemian revision.
+
+| Public filter request | Direct transformation of the local callback value |
+| --- | --- |
+| All multicast (`0x04`) | Clear bits 5 and 7; this branch takes precedence over ordinary multicast. |
+| Multicast (`0x02`) without all multicast | Clear bit 5 and set bit 7. |
+| Neither multicast request | Set bit 5; preserve bit 7. |
+| Broadcast (`0x08`) | Clear bit 6 when requested; set it otherwise. |
+
+The promiscuous (`0x20`) branch selects diagnostic calls but does not directly
+change this local value. Directed (`0x01`) and higher request bits have no
+explicit transformation in this selected body. These are internal callback
+arguments, not identified hardware-register bits or an admitted programming
+recipe. The callback implementations and diagnostic side effects remain
+unresolved; zero returned by the handler does not validate their success.
+
+This narrows the normal filter command to a concrete multicast/broadcast value
+transformation without establishing a native-data selector. It does not prove
+that the firmware has no other receive-format control. The 253-instruction
+direct-flow walk exhausts with 20 calls, no invalid instructions and no
+unresolved non-call transfers; callees are skipped under an assumed return.
+No filter command, register access, radio action or firmware execution occurred.
+
 ## Receive representation
 
 The base RX descriptor is 16 bytes. Its optional groups are selected by the
