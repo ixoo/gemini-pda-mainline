@@ -73,3 +73,9 @@ locally incremented generation supplies this proof. Request encoding, permitted
 channels, scan-result delivery and shared power/HIF failure lifetime remain
 necessary parts of usable scanning. No standalone state-machine fixture or
 radio candidate is added without those connected interfaces.
+
+The [retained-firmware follow-up](FIRMWARE_SCAN_LIFETIME.md) now joins the
+request and cancel sequence state and identifies the normal completion
+constructor. An ordinary cancellation path bypasses that constructor; its
+callbacks still lack a proved stop/drain rule. Waiting unconditionally for
+`0x0d` is therefore not an established cancellation protocol.
