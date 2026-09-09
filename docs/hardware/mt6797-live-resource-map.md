@@ -620,7 +620,7 @@ are in the [sensor/IIO recovery experiment](../../experiments/2026-07-12-sensor-
 | Clock | `CLK_INFRA_MSDC0` (ID 33) | `CLK_INFRA_MSDC1` (ID 35) |
 | Bus width | 8 | 4 |
 | Maximum frequency | 200 MHz | 200 MHz |
-| Media | non-removable | removable, card detect GPIO/EINT 67; vendor GPIO flags 0 and `cd_level = 1` |
+| Media | non-removable | removable, card detect GPIO67 / EINT6; vendor GPIO flags 0 and `cd_level = 1` |
 | Advertised modes | MMC high speed, HS200 1.8 V, HS400 1.8 V | downstream source advertises SD high speed and SDR12/25/50/104 |
 | Pinctrl | vendor inline pad settings | `default` and `insert_cfg`, plus downstream speed-specific drive settings |
 
@@ -661,6 +661,13 @@ Downstream power code identifies the rail relationship:
   calibration;
 - microSD card power uses `VMCH`, nominally 3.0 V;
 - microSD I/O uses `VMC`, switching between 3.0 V and 1.8 V.
+
+The retained microSD driver interprets GPIO67 high as card-present using a
+separate one-byte `cd_level` property. Its power setup also adjusts VMCH/VMC
+trim fields outside ordinary regulator requests. These compiled contracts
+and their limits are recorded in the
+[microSD follow-up](../../experiments/2026-07-12-mt6797-msdc-recovery/MICROSD_CONTRACT.md);
+physical switch polarity and mainline power transitions remain unverified.
 
 Therefore mainline `vmmc-supply`/`vqmmc-supply` wiring depends on real MT6351
 regulator support. A fixed-regulator shortcut would lose voltage switching and

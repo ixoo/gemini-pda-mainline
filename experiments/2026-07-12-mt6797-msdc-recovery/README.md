@@ -20,6 +20,11 @@ voltage-switching modes?
 
 ## Evidence and safety
 
+The [microSD contract follow-up](MICROSD_CONTRACT.md) checks the retained
+card-detect byte encoding and compiled polarity, and identifies PMIC trim
+operations that remain outside a standard regulator-only power description.
+It is offline evidence, not a mainline microSD test.
+
 The owner-authorized live probe uses the committed
 [`collect-live-msdc.sh`](scripts/collect-live-msdc.sh). It excludes CID, CSD,
 serial number, and raw uevent data. Raw output is private and ignored by Git at
