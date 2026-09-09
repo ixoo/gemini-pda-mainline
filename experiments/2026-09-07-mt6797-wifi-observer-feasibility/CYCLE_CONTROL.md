@@ -186,3 +186,8 @@ or selecting a new device candidate.
 The [startup dependency follow-up](STARTUP_DEPENDENCIES.md) identifies the
 concurrent patch-search responder and separate common/WLAN firmware lookups.
 It fixes the next startup ordering work without selecting a live command.
+
+The [single-attempt correction](OPENMTTOOLS.md#single-attempt-startup-policy)
+now removes an internal retry path that could multiply a single userspace
+request into three initialization attempts. It remains an unbuilt experiment
+patch, with cleanup and physical recovery still requiring validation.

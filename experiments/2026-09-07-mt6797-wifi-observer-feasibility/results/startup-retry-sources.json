@@ -1,0 +1,15 @@
+{
+  "revision": "59e00a9144d782e148332009a835b99c43382467",
+  "sources": [
+    {
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c",
+      "bytes": 93721,
+      "sha256": "e9f438c5c6033f0bf831347c69d656ec917b3e705648d3d27fb1b27409334f1e"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/linux/include/osal.h",
+      "bytes": 12200,
+      "sha256": "18f8b68dbc0942f58daf2dcab2464e50193925bb9b057a0e584a0384da7d26c4"
+    }
+  ]
+}

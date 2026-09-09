@@ -1,0 +1,66 @@
+From f3ae53645d354330a99cf3b73f6b7023d052bcf7 Mon Sep 17 00:00:00 2001
+From: "Gemini Wi-Fi experiment (non-certifying)" <noreply@gemini-wifi.invalid>
+Date: Wed, 9 Sep 2026 16:02:17 -0400
+Subject: [PATCH] wmt: use one power-on attempt in the isolated experiment
+
+The experiment admits one initialization attempt. Internal retries
+would otherwise start another power cycle after a version-read or
+patch-response failure, even with a one-shot userspace controller.
+
+Remove the retry branches from this function only. Preserve the
+existing cleanup and error returns. Cleanup success is not proof
+of physical shutdown.
+
+This is an experiment policy change, not an upstream submission or
+a selected device candidate. No DCO is asserted.
+---
+ .../connectivity/common/common_main/core/wmt_core.c  | 12 +-----------
+ 1 file changed, 1 insertion(+), 11 deletions(-)
+
+diff --git a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c b/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c
+index cc17b77..16d9542 100644
+--- a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c
++++ b/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c
+@@ -1029,7 +1029,6 @@ static INT32 opfunc_pwr_on(P_WMT_OP pWmtOp)
+ 	INT32 iRet;
+ 	ULONG ctrlPa1;
+ 	ULONG ctrlPa2;
+-	INT32 retry = WMT_PWRON_RTY_DFT;
+ 
+ 	if (DRV_STS_POWER_OFF != gMtkWmtCtx.eDrvStatus[WMTDRV_TYPE_WMT]) {
+ 		WMT_ERR_FUNC("WMT-CORE: already powered on, WMT DRV_STS_[0x%x]\n",
+@@ -1041,17 +1040,12 @@ static INT32 opfunc_pwr_on(P_WMT_OP pWmtOp)
+ 	if (pWmtOp->u4InfoBit & WMT_OP_HIF_BIT)
+ 		opfunc_hif_conf(pWmtOp);
+ 
+-pwr_on_rty:
+ 	/* power on control */
+ 	ctrlPa1 = 0;
+ 	ctrlPa2 = 0;
+ 	iRet = wmt_core_ctrl(WMT_CTRL_HW_PWR_ON, &ctrlPa1, &ctrlPa2);
+ 	if (iRet) {
+ 		WMT_ERR_FUNC("WMT-CORE: WMT_CTRL_HW_PWR_ON fail iRet(%d)\n", iRet);
+-		if (0 == retry--) {
+-			WMT_INFO_FUNC("WMT-CORE: retry (%d)\n", retry);
+-			goto pwr_on_rty;
+-		}
+ 		return -1;
+ 	}
+ 	gMtkWmtCtx.eDrvStatus[WMTDRV_TYPE_WMT] = DRV_STS_POWER_ON;
+@@ -1066,12 +1060,8 @@ pwr_on_rty:
+ 		iRet = wmt_core_stp_deinit();
+ 		iRet = opfunc_pwr_off(pWmtOp);
+ 		if (iRet)
+-			WMT_ERR_FUNC("WMT-CORE: opfunc_pwr_off fail during pwr_on retry\n");
++			WMT_ERR_FUNC("WMT-CORE: opfunc_pwr_off fail after pwr_on failure\n");
+ 
+-		if (0 < retry--) {
+-			WMT_INFO_FUNC("WMT-CORE: retry (%d)\n", retry);
+-			goto pwr_on_rty;
+-		}
+ 		iRet = -2;
+ 		return iRet;
+ 	}
+-- 
+2.50.1 (Apple Git-155)
+

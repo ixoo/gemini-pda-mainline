@@ -146,3 +146,32 @@ and `--no-tree --no-signoff`; the legacy 3.18 checker could not parse on the
 available modern Perl. Commit-message wrapping was corrected before the pass.
 Full vendor-kernel compilation and runtime validation remain outstanding.
 The existing A72-only build lane has not been repurposed for this Wi-Fi patch.
+
+## Single-attempt startup policy
+
+The caller audit confirms that a version-check error returns through
+`wmt_core_hw_check()` and `wmt_core_stp_init()` before software initialization
+and patch search. However, `opfunc_pwr_on()` then performs cleanup and retries
+initialization with `WMT_PWRON_RTY_DFT=2`. The pinned `osal_assert` only logs;
+it does not stop this path. A single userspace request can therefore produce
+three initialization attempts. The [additional source receipt](results/startup-retry-sources.json)
+pins the core and assertion definition; the retry constant is in the previously
+pinned `wmt_lib.h`.
+
+The second [experiment patch](patches/0002-wmt-use-one-startup-attempt.patch)
+removes this function's retry branches, retaining its cleanup and error
+returns. Changing the global retry constant to zero would be incorrect: the
+hardware-power failure branch uses an inverted equality test and would then
+retry. The patch leaves that global constant and other transport policies
+unchanged. It is a deliberate experiment policy, not a general driver fix.
+
+The [regression](test-startup-attempt.py) applies the actual patch to the
+hash-pinned public `wmt_core.c` supplied as its argument, then compiles both
+exact functions against fake operations. It reproduces three power/init/cleanup
+sequences in the original and one in the changed function, including when
+cleanup reports failure. Normal success, hardware-power failure and an already
+powered entry also pass. Strict checkpatch passes. This establishes the local
+control-flow change, not physical shutdown, a total time bound or absence of
+requests from other actors. `opfunc_func_on()` returns `-3` after this caller
+fails; it does not retry at that call site. Kernel compilation, integrated
+capture/recovery and device validation remain outstanding for both patches.
