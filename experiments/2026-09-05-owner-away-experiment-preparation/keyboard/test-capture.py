@@ -5,6 +5,7 @@ import base64
 import json
 from pathlib import Path
 import runpy
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -55,6 +56,31 @@ class CaptureTests(unittest.TestCase):
             'capture_script':lambda c:b'capture','export_script':lambda c:b'export'}):
             return M['assess'](self.context,self.owner)
 
+    def test_restarted_clock_age_identity_and_malformed_records(self):
+        boot = 'e3a29c80-4948-4ef8-893a-cfbef0cd4918'
+        with tempfile.TemporaryDirectory() as work:
+            clock, uptime = Path(work)/'clock', Path(work)/'uptime'
+            command = 'set -eu\nBB=\npid=42\n' + M['logger_clock_guard'](boot, 240)
+            command = command.replace('/run/a53/keyboard-logger-clock', str(clock))
+            command = command.replace('/proc/uptime', str(uptime))
+            # Model stat for portability; these cases test clock data and arithmetic.
+            command = command.replace('$($BB stat -c %u:%a '+str(clock)+')', '0:600')
+            command = command.replace('$($BB stat -c %s '+str(clock)+')', '64')
+            cases = [(f'{boot} 42 1000.25\n', '1000.25 0\n', True),
+                     (f'{boot} 42 1000.25\n', '1239.99 0\n', True),
+                     (f'{boot} 42 1000.25\n', '1240.25 0\n', False),
+                     (f'{boot} 42 1000.25\n', '999 0\n', False),
+                     (f'{boot} 43 1000.25\n', '1001 0\n', False),
+                     ('bad 42 1000.25\n', '1001 0\n', False),
+                     (f'{boot} 42 nan\n', '1001 0\n', False),
+                     ('', '1001 0\n', False),
+                     (f'{boot} 42 1000.25\nextra\n', '1001 0\n', False)]
+            for record, now, passed in cases:
+                with self.subTest(record=record, now=now):
+                    clock.write_text(record); uptime.write_text(now)
+                    result = subprocess.run(['sh'], input=command.encode(), capture_output=True)
+                    self.assertEqual(result.returncode == 0, passed, result.stderr)
+
     def test_complete_export_rejoins_classifier_without_hardware_claim(self):
         self.store();result=self.assess()
         self.assertEqual(result['classification'],'pass')
@@ -76,7 +102,12 @@ class CaptureTests(unittest.TestCase):
             with self.assertRaises(ValueError):M['parse_export'](value)
 
     def test_execution_gate_precedes_all_context_and_io(self):
-        with patch('subprocess.Popen',side_effect=AssertionError('transport')),patch.object(Path,'mkdir',side_effect=AssertionError('claim')):
+        path = self.root/'disabled-binding.json'
+        path.write_bytes(M['encode']({'schema':'keyboard-capture-execution-binding-v1',
+                                     'state':'disabled', 'admission':None}))
+        with patch.dict(M['execution_binding'].__globals__, {'BINDING':path}), \
+                patch('subprocess.Popen',side_effect=AssertionError('transport')), \
+                patch.object(Path,'mkdir',side_effect=AssertionError('claim')):
             for action in ('delivery','capture','export'):
                 with self.assertRaisesRegex(ValueError,'disabled'):M['perform'](None,action,True)
 

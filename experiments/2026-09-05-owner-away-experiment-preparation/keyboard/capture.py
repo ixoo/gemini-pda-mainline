@@ -54,7 +54,7 @@ def source_identity():
     closure.update(dict(L['V']['SOURCE_PINS']))
     for name,value in closure.items():
         require(sha(C['regular'](L['REPO']/name,262144,private=False)) == value, 'imported closure drift')
-    direct = ('capture.py','metadata.py','prerequisites.py','disconnect.py','monitor.c','delivery.py','classify.py','protocol.json',
+    direct = ('capture.py','restart-logger.py','metadata.py','prerequisites.py','disconnect.py','monitor.c','delivery.py','classify.py','protocol.json',
               '../emmc/mainline_host.py','../baseline/scripts/buildbox_userspace.py')
     return {'local_and_direct':{name:sha(C['regular'](HERE/name,262144,private=False)) for name in direct},
             'emmc_launcher':launcher,'pinned_members':closure}
@@ -105,15 +105,17 @@ def prepare(admission, package):
     require(expected.get('baseline_first_boot_result_sha256') == sha(C['regular'](archive/'attempts'/baseline_id/'result.json',131072))
         and expected.get('baseline_recovery_result_sha256') == sha(C['regular'](archive/'sessions'/baseline_id/'confirm-recovery/result.json',131072)), 'baseline result pins')
     runtime = admission['runtime']
-    require(set(runtime) == {'event', 'minor', 'input_path', 'capabilities', 'resource_paths',
-        'logger_age_limit_seconds', 'metadata_receipt_sha256'}, 'runtime contract inventory')
+    runtime_fields = {'event', 'minor', 'input_path', 'capabilities', 'resource_paths',
+        'logger_age_limit_seconds', 'metadata_receipt_sha256'}
+    require(set(runtime) in (runtime_fields, runtime_fields | {'logger_clock'}) and
+        runtime.get('logger_clock', 'boot') in ('boot', 'restarted'), 'runtime contract inventory')
     require(re.fullmatch(r'event(?:0|[1-9][0-9]{0,2})', runtime['event']) and int(runtime['event'][5:]) <= 255
         and type(runtime['minor']) is int and 0 <= runtime['minor'] <= 1048575, 'input identity')
     require(runtime['input_path'] == expected['input_sysfs_realpath'] and
         re.fullmatch(r'/sys/devices/platform/[A-Za-z0-9_./:@+-]+/input/input[0-9]+', runtime['input_path'])
         and '..' not in Path(runtime['input_path']).parts, 'input ancestry')
     require(type(runtime['logger_age_limit_seconds']) is int and 0 < runtime['logger_age_limit_seconds'] <= 240,
-        'original logger budget')
+        'logger start budget')
     require(C['SHA'].fullmatch(runtime['metadata_receipt_sha256']), 'reviewed metadata receipt')
     require(set(runtime['capabilities']) == {'ev','key','rel','abs','msc','led','snd','ff','sw'} and
         all(re.fullmatch(r'[0-9a-f ]+\n', v) for v in runtime['capabilities'].values()), 'capability bytes')
@@ -160,8 +162,31 @@ def guard(context, initial):
         script += f'[ "$($BB readlink -f {shlex.quote(path)})" = {shlex.quote(target)} ]\n'
     script += console_guard(c)
     if initial:
-        script += f'$BB awk \'$1 >= {r["logger_age_limit_seconds"]} {{exit 1}}\' /proc/uptime\n'
+        if r.get('logger_clock', 'boot') == 'restarted':
+            script += logger_clock_guard(a['boot_id'], r['logger_age_limit_seconds'])
+        else:
+            script += f'$BB awk \'$1 >= {r["logger_age_limit_seconds"]} {{exit 1}}\' /proc/uptime\n'
     return script + reader_guard()
+
+
+def logger_clock_guard(boot, limit):
+    """Use the fresh logger's conservative start time, bound to its live PID."""
+    require(C['UUID'].fullmatch(boot) and type(limit) is int and 0 < limit <= 240,
+            'logger clock inputs')
+    return f'''[ -f /run/a53/keyboard-logger-clock ] && [ ! -L /run/a53/keyboard-logger-clock ]
+[ "$($BB stat -c %u:%a /run/a53/keyboard-logger-clock)" = 0:600 ]
+[ "$($BB stat -c %s /run/a53/keyboard-logger-clock)" -le 128 ]
+$BB awk -v boot={boot} -v pid="$pid" -v limit={limit} '
+NR == FNR {{
+  if (FNR != 1 || NF != 3 || $1 != boot || $2 != pid ||
+      $3 !~ /^[0-9]+([.][0-9]+)?$/) bad=1
+  started=$3; next
+}}
+{{ if (FNR != 1 || $1 !~ /^[0-9]+([.][0-9]+)?$/ ||
+       $1 < started || $1-started >= limit) bad=1 }}
+END {{ if (NR != 2 || bad) exit 1 }}
+' /run/a53/keyboard-logger-clock /proc/uptime
+'''
 
 
 def console_guard(c):
