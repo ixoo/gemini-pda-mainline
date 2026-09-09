@@ -1,0 +1,37 @@
+{
+  "project_commit": "44eeec9ee843c99568984a6c292bddf7057d3b91",
+  "source_commit": "59e00a9144d782e148332009a835b99c43382467",
+  "scope": "two complete translation units; no kernel link or device execution",
+  "toolchain_manifest_sha256": "a45d945f092461a611d276ad7d0a0fea1ea8a7f93db413908bcb892c12817d14",
+  "config_sha256": "c96ca5c8a767b93f59487c9b4a1c3d05c1f47c166f3f9ea9f2b7ffe0f6f1f0fb",
+  "config_delta": {
+    "CONFIG_ANBOX": [
+      null,
+      "n"
+    ]
+  },
+  "patches": {
+    "0001-wmt-check-firmware-version-read.patch": "bf6ee85c12806092e92c5691be16828c3229ee7e221cc2f40d2b33357a5edd5f",
+    "0002-wmt-use-one-startup-attempt.patch": "a48a597e589b5982e699eff0ff093e1a0619de853ca3148706528577c50f9cb4"
+  },
+  "objects": [
+    {
+      "file": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_ic_soc.c",
+      "baseline_source_sha256": "22d98e9e5f0c9c3cae36a3099e57315ed7808524239a061bf9ab0cf97379e66f",
+      "baseline_object_sha256": "95a594d81a5c0fe2676a7a80f15c24333c411a64d0f4e3cc7f8cd7dfc040428d",
+      "patched_source_sha256": "c9e2a4a2e0988effa9b7bf0fbb18c98f1f70c2d9ca77547c40b55089d23d5c8e",
+      "object_sha256": "99984836e76f3408105794ea6ab1776b0498b7b55bb0e8c4e48d1b2eb4abc487",
+      "baseline_command_sha256": "b9cc08d74823c8e18700db02b0fbd95a9c47b93cc2b1da9b0acdaa5888502be1",
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c",
+      "baseline_source_sha256": "e9f438c5c6033f0bf831347c69d656ec917b3e705648d3d27fb1b27409334f1e",
+      "baseline_object_sha256": "155c77fa59f9af9a23df013c31db14137e72a03f2c7369e4c8dc3bd60e5e5514",
+      "patched_source_sha256": "65b168931973cc8cca5894a17a373cd581f703758935c471068beac8f199984a",
+      "object_sha256": "cf949b811428b0b82da0c622ef4fb004c0ccb42e92ca97708054046d5099eb1e",
+      "baseline_command_sha256": "1250688b24475da82ae94065835443837e6cce5f82d2258e309273bd66bf89f3",
+      "diagnostics_bytes": 0
+    }
+  ]
+}

@@ -175,3 +175,31 @@ control-flow change, not physical shutdown, a total time bound or absence of
 requests from other actors. `opfunc_func_on()` returns `-3` after this caller
 fails; it does not retry at that call site. Kernel compilation, integrated
 capture/recovery and device validation remain outstanding for both patches.
+
+## Complete source-file compilation
+
+The [Buildbox check](check-startup-objects.py) now compiles the complete original
+and patched `wmt_ic_soc.c` and `wmt_core.c` for AArch64. The
+[result](results/startup-object-compile.json) pins project commit
+`44eeec9ee843c99568984a6c292bddf7057d3b91`, source, patches, compiler-command
+hashes, configuration and all four object identities. The checksum-validated
+package was fetched under the ignored Buildbox artifact directory.
+
+The old generated headers had been cleaned up. The check regenerated them
+from the clean pinned baseline and retained live configuration, allowing only
+the existing absent-to-disabled ANBOX normalization. It reused the pinned
+GCC 6.3 toolchain and complete commands from the verified full-build log,
+changing source/include paths to the clean baseline and output paths to
+temporary files. No A72 observer patch was selected. Compiler output for both
+patched files was empty, with the recorded flags (including `-w`) preserved;
+this is not a claim that new strict warning checks passed.
+
+The first attempt at project commit `c2be8bf14d817c8b6530dfd9fe87e29229853e1c`
+failed because direct object targets omitted inherited parent include paths
+and definitions. The successful correction uses the recorded full commands,
+not guessed flags. Both attempts used clean pushed project checkouts; temporary
+build output was removed. No source tree was copied from the host.
+
+This closes complete-file compilation for the two changes. It does not link
+a kernel, establish the final Wi-Fi configuration or replace the later
+Buildbox kernel build, startup/capture integration and device recovery tests.

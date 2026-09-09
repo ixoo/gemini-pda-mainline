@@ -189,5 +189,6 @@ It fixes the next startup ordering work without selecting a live command.
 
 The [single-attempt correction](OPENMTTOOLS.md#single-attempt-startup-policy)
 now removes an internal retry path that could multiply a single userspace
-request into three initialization attempts. It remains an unbuilt experiment
-patch, with cleanup and physical recovery still requiring validation.
+request into three initialization attempts. Its complete source file now
+[compiles on Buildbox](OPENMTTOOLS.md#complete-source-file-compilation), but
+the patch is not a device candidate; cleanup and recovery remain unvalidated.
