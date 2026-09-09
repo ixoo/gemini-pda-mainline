@@ -232,6 +232,76 @@
       "invalid": 0,
       "listing_sha256": "bfaa70e11418ef0cefb7ebd3f513bf787753051135a2bd2aaadf9705d777a6ab",
       "log_sha256": "af3c209b92fbb835d1e09dc962f2ae04baaf4b04c7fbc4d49b704762db98bcb5"
+    },
+    {
+      "script": "StationDispatcherRefs.java",
+      "sha256": "035d0693e4bd4c950d7a35ba11beace05c33be11e2e7b2facfa6f14f98e94c66",
+      "immediate_pair_candidates": 2,
+      "complete_caller_inventory": false
+    },
+    {
+      "script": "StationRetryRefs.java",
+      "sha256": "a4772173e1da904e590ce0078d59184d18f1533c05cf7404d98c059fbc66a849",
+      "immediate_pair_candidates": 1,
+      "complete_caller_inventory": false
+    },
+    {
+      "script": "StationCallerPrefix.java",
+      "sha256": "14296649685d245f352b1c3fa1b4bf28146c20c78df53e0cd6bbbbeea714066a",
+      "method": "Bounded linear windows identify candidate entry boundaries and callback registration; not a full initialization control-flow proof.",
+      "registration_listing_sha256": "cbf09f01689802efb73ed1847749cbfaa2339d5d37a3a54319eb17395b88e840"
+    },
+    {
+      "script": "StationDispatchCallers.java",
+      "sha256": "2efce21970a2830e20fac166455a3c3ebcfee2a8a0e41bd3acab006927ad44c5",
+      "selected_role": "pending-command drain",
+      "node_cap": 1024,
+      "nodes": 47,
+      "queue_exhausted": true,
+      "calls": 2,
+      "unresolved_noncall_computed": 0,
+      "terminals": 1,
+      "invalid": 0,
+      "listing_sha256": "83a1c0069391194b219ac78cbb49692e30dd9ddaef6dae510f17bfa267eb6b3e"
+    },
+    {
+      "script": "StationDispatchCallers.java",
+      "sha256": "2efce21970a2830e20fac166455a3c3ebcfee2a8a0e41bd3acab006927ad44c5",
+      "selected_role": "command input",
+      "node_cap": 1024,
+      "nodes": 93,
+      "queue_exhausted": true,
+      "calls": 8,
+      "unresolved_noncall_computed": 0,
+      "terminals": 1,
+      "invalid": 0,
+      "listing_sha256": "243c597419ce85910e4abeca51546791ec28e8f7d3bed256fa67138ba653cb25"
+    },
+    {
+      "script": "StationDispatchCallers.java",
+      "sha256": "2efce21970a2830e20fac166455a3c3ebcfee2a8a0e41bd3acab006927ad44c5",
+      "selected_role": "scheduling helper",
+      "node_cap": 1024,
+      "nodes": 119,
+      "queue_exhausted": true,
+      "calls": 9,
+      "unresolved_noncall_computed": 0,
+      "terminals": 1,
+      "invalid": 0,
+      "listing_sha256": "7721d363fb1826da4200325301612730aec4bb3332f6a0db805ae2a78eacc089"
+    },
+    {
+      "script": "StationDispatchCallers.java",
+      "sha256": "2efce21970a2830e20fac166455a3c3ebcfee2a8a0e41bd3acab006927ad44c5",
+      "selected_role": "callback initializer",
+      "node_cap": 1024,
+      "nodes": 26,
+      "queue_exhausted": true,
+      "calls": 2,
+      "unresolved_noncall_computed": 0,
+      "terminals": 1,
+      "invalid": 0,
+      "listing_sha256": "8fb264f0ec00aebdf2789fbc0bb0aeb108ee082c9e28af30e0eda1074f9d56b9"
     }
   ],
   "hardware_test": false,

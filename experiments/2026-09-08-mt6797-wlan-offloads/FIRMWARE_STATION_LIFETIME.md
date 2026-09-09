@@ -81,11 +81,26 @@ recognizes that status and skips its ordinary command-object recycling call.
 The no-reply path bypasses this check.
 
 This establishes an early resource-failure path that retains command ownership
-at the dispatcher boundary. It does not establish whether an outer caller
-retries, rejects or eventually releases that command. Nor does the count check
-alone prove an atomic reservation. A missing activation reply therefore cannot
-be treated as evidence that this handler applied the station update. The
-separate old-RX/BA drainage requirement remains unresolved.
+at the dispatcher boundary. The count check alone does not prove an atomic
+reservation. A missing activation reply therefore cannot be treated as evidence
+that this handler applied the station update.
+
+A caller follow-up now identifies a retry mechanism. The inspected input path
+appends a resource-refused command to a pending list and increments its count.
+A separate drain callback removes the list's first object, clears its links,
+decrements the count and invokes the same dispatcher. If the resource status
+recurs, it restores that object at the front, restores the count, calls a
+scheduling helper and returns. Other statuses continue the drain loop. This is
+command retry, not a new host reply or station incarnation.
+
+The initialization sequence passes that drain callback to an initializer for
+the same scheduling object used by both callers. The initializer stores the
+callback and clears the object's links; the scheduling helper computes a
+deadline and links an inactive object into its own pending list. Both
+callers supply the same delay argument. The underlying time and alarm callbacks
+remain unresolved, so this does not establish runtime wakeup, a measured retry
+interval, eventual resource availability or teardown/cancellation safety.
+The separate old-RX/BA drainage requirement remains unresolved.
 
 ## Method and limits
 
@@ -98,7 +113,14 @@ exhausts at 488 instructions and 39 call sites, without invalid instructions or
 unresolved non-call transfers. This completes the selected direct-flow graph,
 not the effects of all callees: additional indirect and unmapped callbacks
 remain unresolved. Other selected walks exhausted their queues under the same
-callee-return assumption.
+callee-return assumption. Immediate-pair searches found two dispatcher references
+and one drain-callback reference; these are search candidates, not a complete
+caller inventory. Decoding confirmed the selected joins. Full-entry walks of
+the input and drain routines cover 93 and 47 instructions respectively; the
+scheduling helper and initializer cover 119 and 26. All four direct-flow queues
+exhaust without invalid or unresolved non-call transfers. A bounded linear
+initialization window corroborates callback registration and list setup; it
+is not a complete initialization-flow proof.
 
 Private scripts, logs and listings remain retained with the original evidence.
 Public host inputs are pinned to Planet commit
