@@ -1,0 +1,80 @@
+{
+  "schema": 1,
+  "scope": "retained VCN28 on-control producer and setter-table join; no device access",
+  "image_sha256": "0570480c28bce1583636a240904df8da3af0b5e5b4bcc6254f5719b42bd723d0",
+  "reconstructed_elf_sha256": "cc66df06194d3315335462760962165e1dcb2e50221574aeb45a0805bb17a162",
+  "elf_kernel_section_matches_image": true,
+  "function_spans": [
+    {
+      "symbol": "mtk_wcn_consys_hw_reg_ctrl",
+      "start": "0xffffffc0006de350",
+      "end_exclusive": "0xffffffc0006dec50",
+      "bytes": 2304,
+      "sha256": "a30d2cadd54069d72a7f48c068a7aa58eb218c0d9598e94d7b6cc43f54b7a8df"
+    },
+    {
+      "symbol": "mtk_wcn_consys_hw_vcn28_ctrl",
+      "start": "0xffffffc0006df670",
+      "end_exclusive": "0xffffffc0006df770",
+      "bytes": 256,
+      "sha256": "384cf19bcf5d26cc9e3cfa31f462577e4faa16d41b64cc2dbd7bed3f9fcada32"
+    },
+    {
+      "symbol": "pmic_set_register_value",
+      "start": "0xffffffc0004b6c30",
+      "end_exclusive": "0xffffffc0004b6c48",
+      "bytes": 24,
+      "sha256": "2b98c290c9d74df083e2c93b222d5d7e5574329540cba4404b93e500281e08b9"
+    },
+    {
+      "symbol": "mt6351_set_register_value",
+      "start": "0xffffffc0004b6b70",
+      "end_exclusive": "0xffffffc0004b6bd0",
+      "bytes": 96,
+      "sha256": "3d9d9530a9ca62bb007ca890c2a4d0a28832c92c619e29043e073571c2924c08"
+    }
+  ],
+  "source_commit": "8cfe6596a503612e3332d9c26e292a19525a7f07",
+  "source_files": {
+    "drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c": "0ec8e9c1594626d0b31f2d2623927d614f63af4437c16df838e10e11258663ce",
+    "drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/upmu_hw.h": "e376d2835dd32812b52caf6a51139cc7fd541de18eaad0f30ecf8194f70cebbe"
+  },
+  "pmu_flag": {
+    "index": 1758,
+    "table_address": "0xffffffc000d1d968",
+    "bytes": 12,
+    "sha256": "fe5e4d8504d58fdf53746bd7ea33f56be29ef33113941da111240911b3c53fae",
+    "register": "0xa0c",
+    "mask": 1,
+    "shift": 3
+  },
+  "common_on": {
+    "condition": "on != 0 and co_clock_type == 0",
+    "on_control_value": 1,
+    "voltage_uv": 2800000,
+    "mode_before_regulator": true
+  },
+  "common_off": {
+    "condition": "on == 0; no co_clock_type check",
+    "on_control_value": 0,
+    "mode_before_regulator": true
+  },
+  "standalone_vcn28_mode_write": false,
+  "setter_discards_transport_result": true,
+  "initializer_inventory_revalidated": [
+    {
+      "symbol": "PMIC_INIT_SETTING_V1",
+      "sha256": "e63c9226d2b1d7bf5d2b60bfb1eab7dd5521cd1a0e239cdd642ea0982f8a1eee",
+      "vcn28_control_targets": []
+    },
+    {
+      "symbol": "PMIC_MD_INIT_SETTING_V1",
+      "sha256": "92ab77ce056d93cae0a40400b3e5a489e7730198f536683360b57cebb3207a15",
+      "vcn28_control_targets": []
+    }
+  ],
+  "current_execution_proven": false,
+  "source_clock_selection_proven": false,
+  "physical_control_logic_proven": false,
+  "device_action": false
+}

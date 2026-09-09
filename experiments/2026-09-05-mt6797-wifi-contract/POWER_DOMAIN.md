@@ -221,3 +221,9 @@ source, schema/consistency, publication and independent review checks. No
 kernel code, binding, DT, config, manifest or patch series changed, so no
 kernel build, checkpatch or DT-schema execution was required. This is a
 source/retained-evidence contract, not hardware validation.
+
+The [retained VCN28 follow-up](../2026-09-08-mt6351-mfd-upstream-preparation/VCN28.md)
+confirms the common wrapper's separate `0x0a0c` bit-3 mode request and its
+conditional-on/unconditional-off asymmetry. A standalone regulator vote does
+not supply that operation. Source-clock selection and physical control logic
+remain unresolved; no new power sequence is admitted.
