@@ -1,6 +1,8 @@
 # Conditional successor: harmless disconnect proof
 
-Status: **dependency verified; fresh boot-specific admission still required; execution disabled**.
+Status: **executed; cancellation requirement failed; evidence preserved; Gemian confirmed**.
+See [the result](DISCONNECT_RESULT.md). The sequence below records the consumed
+admission, not permission to repeat it.
 The [first-session result](RESULT.md) passes the console observation. The existing
 reviewed supplemental verifier confirms changed-ID Gemian return while preserving
 the original incomplete SSH-disconnect witness. Its exact dependency pins are in

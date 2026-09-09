@@ -1,0 +1,108 @@
+{
+  "admission_commit": "6c11fd62",
+  "admission_id": "faf7503d-ab1b-4ed1-8a62-9bc5e931f70d",
+  "candidate_sha256": "7dfc3b1f771a12b8e711f699cf8fcfd2678aedc15bc9d8bcc98554f9c6654cdb",
+  "classification": "disconnect-cancellation-failed-reader-scan-incomplete",
+  "date": "2026-09-09",
+  "deployment": {
+    "padded_sha256": "7d9eb0e20f145594ba5b9e56bbb809998c813d2517ce2f43b17074828459ea2a",
+    "result": "skipped-already-matching",
+    "summary_sha256": "be1000625eab692c32dc7807713dfbda4a98b7f713c1f6a47b41839b89d1c648"
+  },
+  "disconnect_requirement_passed": false,
+  "disconnect_transport": {
+    "classification": "deliberate-client-disconnect",
+    "client_signal": 9,
+    "connections": 1,
+    "elapsed_milliseconds": 0,
+    "marker_seen": true,
+    "no_pty": true,
+    "schema": "keyboard-disconnect-transport-v1",
+    "stdin_complete": true
+  },
+  "export_diagnostic": "keyboard-disconnect-export stage=process-executable exit=1",
+  "export_transport": {
+    "elapsed_seconds": 0.395,
+    "exit_status": 1,
+    "reason": null,
+    "stderr_bytes": 59,
+    "stdin_complete": true,
+    "stdout_bytes": 0
+  },
+  "fixed_preservation": {
+    "boot_id": "37696b51-071c-4bdb-a708-fd83b76a3423",
+    "classification": "fixed-four-file-preservation-complete",
+    "files": {
+      "monitor.status": {
+        "bytes": 213,
+        "sha256": "13bd6658b1ee9297e43e3883c038e14b38ffa0e00525e570e4c374d879938ec0"
+      },
+      "observer.stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "observer.stdout": {
+        "bytes": 18,
+        "sha256": "20a3625d9f436aaf090bae2afcc52e7acacf7c22ceaac6cbfadbb8e551385de6"
+      },
+      "outer-exit": {
+        "bytes": 2,
+        "sha256": "53c234e5e8472b6ac51c1ae1cab3fe06fad053beb8ebfd8977b010655bfdd3c3"
+      }
+    },
+    "reader_scan_pass": false
+  },
+  "gemian_after": "21748845-bc80-4536-b67c-84f7bb16c74f",
+  "gemian_before": "e0389001-dc2c-428d-a965-c6cb1f3415a8",
+  "keyboard_capture_performed": false,
+  "log": {
+    "bytes": 121116,
+    "classification": "complete-log-through-seal",
+    "coverage": "sequence-zero-through-explicit-seal",
+    "records": 1746,
+    "sha256": "322e3a709bcf0109638f9ef397493cc920a486ca7dab76e218e9ecbe43f3c624",
+    "status_sha256": "e2d5b4e4b6b60e8559f59510c7a5becc53fd0365c70ca0c230c1457e932eaa97"
+  },
+  "mainline_boot_id": "37696b51-071c-4bdb-a708-fd83b76a3423",
+  "monitor_status": {
+    "cancel": "0",
+    "exit": "-1",
+    "forwarded_bytes": "18",
+    "identity_lost": "0",
+    "kill_errno": "0",
+    "kill_ms": "360",
+    "late": "0",
+    "reap_ms": "362",
+    "reaped": "1",
+    "reason": "deadline",
+    "schema": "keyboard-monitor-v1",
+    "signal": "9",
+    "stderr_bytes": "0",
+    "stdout_bytes": "18",
+    "term_errno": "0",
+    "term_ms": "280"
+  },
+  "owner_console_readable": true,
+  "proof_retry": false,
+  "raw_evidence_published": false,
+  "reader_scan_complete": false,
+  "recovery_confirmation": {
+    "boot_id": "21748845-bc80-4536-b67c-84f7bb16c74f",
+    "classification": "changed-ID-Gemian"
+  },
+  "recovery_request": {
+    "boot_id": "37696b51-071c-4bdb-a708-fd83b76a3423",
+    "classification": "native-recovery-requested",
+    "recovery_confirmed": false,
+    "request_count": 1
+  },
+  "recovery_transport": {
+    "elapsed_seconds": 14.014,
+    "exit_status": 255,
+    "reason": "outer-timeout",
+    "stderr_bytes": 0,
+    "stdin_complete": true,
+    "stdout_bytes": 305
+  },
+  "schema": 1
+}

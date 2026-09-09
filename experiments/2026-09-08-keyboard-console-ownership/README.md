@@ -93,6 +93,10 @@ the successor; this init change alone does not repair evidence export or prove
 Dropbear cancellation. Review that integration after the focused shell result,
 without building a resident supervisor merely to recover RAM from an ended boot.
 
-The conditional test after that baseline is prepared in [NEXT_SESSION.md](NEXT_SESSION.md).
-Its package and source checks are in [next-session-preparation.json](next-session-preparation.json);
-execution still requires the actual first-session result and a fresh boot admission.
+The consumed successor protocol is in [NEXT_SESSION.md](NEXT_SESSION.md).
+Its original package and source preparation is in
+[next-session-preparation.json](next-session-preparation.json).
+
+The [attended disconnect result](DISCONNECT_RESULT.md) failed cancellation: the
+harmless child reached its deadline, and the strict reader scan also stopped.
+All unique evidence was preserved and changed-ID Gemian return was confirmed.
