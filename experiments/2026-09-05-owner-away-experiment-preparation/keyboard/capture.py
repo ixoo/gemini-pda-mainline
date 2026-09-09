@@ -19,10 +19,31 @@ encode = L['json_bytes']
 ROOT = L['REPO'] / 'artifacts/a53-authenticated/keyboard-capture'
 FILES = ('observer.stdout', 'observer.stderr', 'monitor.status', 'outer-exit')
 LIMITS = {'observer.stdout': 98304, 'observer.stderr': 98304, 'monitor.status': 4096, 'outer-exit': 16}
+BINDING = HERE / 'capture-execution-binding.json'
+ADMISSION_FIELDS = {'id', 'source_identity', 'dependency', 'boot_id', 'expected',
+    'package_identity', 'package_revision', 'monitor_sha256', 'monitor_bytes', 'runtime',
+    'custody', 'full_duration_receipt_sha256', 'disconnect_receipt_sha256'}
 
 
-def execution_gate():
-    raise ValueError('keyboard capture/export disabled pending complete source and target review')
+def execution_binding():
+    raw = C['regular'](BINDING, 65536, private=False)
+    binding = json.loads(raw, object_pairs_hook=L['unique'])
+    require(type(binding) is dict and set(binding) == {'schema', 'state', 'admission'} and
+        binding['schema'] == 'keyboard-capture-execution-binding-v1', 'capture binding inventory')
+    require(binding['state'] in ('disabled', 'enabled'), 'capture binding state')
+    if binding['state'] == 'disabled':
+        require(binding['admission'] is None, 'disabled capture binding admission')
+        raise ValueError('keyboard capture/export disabled pending exact session admission')
+    require(type(binding['admission']) is dict and set(binding['admission']) == ADMISSION_FIELDS,
+        'capture binding admission inventory')
+    return binding, sha(raw)
+
+
+def execution_gate(admission):
+    binding, digest = execution_binding()
+    require(type(admission) is dict and admission == binding['admission'] and
+        encode(admission) == encode(binding['admission']), 'capture binding admission mismatch')
+    return digest
 
 
 def source_identity():
@@ -41,9 +62,7 @@ def source_identity():
 
 def prepare(admission, package):
     """Admitted values are exact pins; unknown runtime facts cannot be defaults."""
-    require(set(admission) == {'id', 'source_identity', 'dependency', 'boot_id', 'expected',
-        'package_identity', 'package_revision', 'monitor_sha256', 'monitor_bytes', 'runtime',
-        'custody', 'full_duration_receipt_sha256', 'disconnect_receipt_sha256'}, 'admission inventory')
+    require(type(admission) is dict and set(admission) == ADMISSION_FIELDS, 'admission inventory')
     require(C['UUID'].fullmatch(admission['id']) and C['UUID'].fullmatch(admission['boot_id']), 'UUID')
     require(admission['source_identity'] == source_identity(), 'source drift')
     for key in ('package_identity', 'monitor_sha256', 'full_duration_receipt_sha256', 'disconnect_receipt_sha256'):
@@ -206,7 +225,7 @@ def perform(context, action, execute=False):
     require(action in ('delivery', 'capture', 'export'), 'action')
     if not execute:
         return {'classification':'dry-run', 'action':action, 'execution':'disabled'}
-    execution_gate()
+    binding_sha = execution_gate(context.get('admission') if type(context) is dict else None)
     require(context['admission']['source_identity'] == source_identity(), 'source changed')
     context = prepare(context['admission'], context['package'])
     runpy.run_path(str(HERE/'../emmc/mainline_host.py'))['require_ready']()
@@ -226,7 +245,8 @@ def perform(context, action, execute=False):
     seconds, cap = {'delivery':(30,4096),'capture':(240,131072),'export':(30,278528)}[action]
     C['write_new'](directory/'admission.json',encode(context['admission']))
     C['write_new'](directory/'command.sh',script)
-    C['write_new'](directory/'claim.json',encode({'action':action,'connections':1,'seconds':seconds,'command_sha256':sha(script)}))
+    C['write_new'](directory/'claim.json',encode({'action':action,'connections':1,'seconds':seconds,'command_sha256':sha(script),
+        'execution_binding_sha256':binding_sha}))
     L['F']['sync_directory'](directory); L['F']['sync_directory'](root)
     prepared = context['dependency']['prepared']
     require(sha(C['regular'](prepared['keys']/'known_hosts',8192)) == prepared['candidate']['known_hosts_sha256'], 'host pin drift')
@@ -318,7 +338,7 @@ if __name__ == '__main__':
     parser.add_argument('--owner',type=Path)
     parser.add_argument('--execute',action='store_true')
     args = parser.parse_args()
-    if args.execute: execution_gate()  # Refuse before even reading paths.
+    if args.execute: execution_binding()  # Refuse disabled state before reading paths.
     context = prepare(json.loads(C['regular'](args.admission,65536),object_pairs_hook=L['unique']),args.package)
     if args.action == 'prepare':
         result = {'classification':'prepared','execution':'disabled'}

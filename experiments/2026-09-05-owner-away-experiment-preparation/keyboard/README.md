@@ -231,3 +231,6 @@ support claims remain unchanged. Scheduling belongs only to the
 The [corrected monitor duration result](results/duration-daaa4529/RESULT.md)
 refreshes the full-length timing prerequisite after the quiet-disconnect repair.
 Capture remains disabled pending the fresh session requirements recorded there.
+
+The [capture admission and combined budget](CAPTURE_ADMISSION.md) describe the
+disabled exact-session gate and the remaining metadata/command preparation.

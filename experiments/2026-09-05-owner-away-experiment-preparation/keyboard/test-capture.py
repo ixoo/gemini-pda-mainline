@@ -80,6 +80,31 @@ class CaptureTests(unittest.TestCase):
             for action in ('delivery','capture','export'):
                 with self.assertRaisesRegex(ValueError,'disabled'):M['perform'](None,action,True)
 
+    def test_binding_rejects_cross_session_and_changed_admissions(self):
+        admission = dict.fromkeys(M['ADMISSION_FIELDS'], 'fixture')
+        binding = {'schema':'keyboard-capture-execution-binding-v1',
+            'state':'enabled', 'admission':admission}
+        path = self.root/'binding.json'
+        path.write_bytes(M['encode'](binding))
+        with patch.dict(M['execution_binding'].__globals__, {'BINDING':path}):
+            self.assertEqual(M['execution_gate'](admission), M['sha'](path.read_bytes()))
+            with patch('subprocess.Popen', side_effect=AssertionError('transport')), \
+                    patch.object(Path, 'mkdir', side_effect=AssertionError('claim')):
+                with self.assertRaisesRegex(ValueError, 'admission mismatch'):
+                    M['perform']({'admission':{**admission, 'boot_id':'changed'}}, 'capture', True)
+            for field in M['ADMISSION_FIELDS']:
+                with self.subTest(field=field), self.assertRaisesRegex(ValueError, 'admission mismatch'):
+                    M['execution_gate']({**admission, field:'changed'})
+            for malformed in (
+                    {**binding, 'state':'unknown'},
+                    {**binding, 'state':'disabled'},
+                    {**binding, 'admission':{}},
+                    {**binding, 'extra':True}):
+                path.write_bytes(M['encode'](malformed))
+                with self.assertRaises(ValueError):M['execution_gate'](admission)
+            path.write_text('{"state":"enabled","state":"disabled"}')
+            with self.assertRaises(ValueError):M['execution_gate'](admission)
+
     def test_imported_helper_drift_refuses_before_effect(self):
         identity = M['source_identity']()
         context = {'admission':{'source_identity':identity}}
@@ -89,7 +114,7 @@ class CaptureTests(unittest.TestCase):
             raw = original(path,*args,**kwargs)
             return raw+b'\n# changed helper\n' if Path(path).resolve()==helper else raw
         with patch.dict(M['C'],{'regular':changed}), \
-                patch.dict(M['perform'].__globals__,{'execution_gate':lambda:None}), \
+                patch.dict(M['perform'].__globals__,{'execution_gate':lambda a:None}), \
                 patch.object(Path,'mkdir',side_effect=AssertionError('claim')), \
                 patch('subprocess.Popen',side_effect=AssertionError('transport')):
             with self.assertRaisesRegex(ValueError,'^imported closure drift$'):
