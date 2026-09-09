@@ -22,6 +22,6 @@
   "regression_cases": 54,
   "unchanged_upstream_negative_control": "fails: pinctrl -EINVAL returns 0",
   "existing_profiles_unchanged": 200,
-  "kernel_compiled": false,
+  "kernel_compiled_during_source_audit": false,
   "hardware_tested": false
 }

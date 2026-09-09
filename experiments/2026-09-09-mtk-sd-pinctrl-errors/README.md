@@ -1,7 +1,7 @@
 # MediaTek MMC voltage-switch pinctrl errors
 
-Status: source and injected regression checks passed; Buildbox compilation
-pending. Unsigned upstream-preparation checkpoint, not a boot candidate.
+Status: source, injected regression and Buildbox compilation passed.
+Unsigned upstream-preparation checkpoint, not a boot candidate.
 
 ## Problem and change
 
@@ -69,8 +69,17 @@ The isolated profile selects only this fix against the pinned upstream source
 and enables the MMC host driver and pinctrl. All 200 previously defined
 profiles, their effective series and fragment bytes are unchanged.
 Strict checkpatch passes with only `MISSING_SIGN_OFF` excluded. No bindings or
-DT changed, so there is no new schema or DT validation claim. Kernel
-compilation and package validation remain pending at this checkpoint.
+DT changed, so there is no new schema or DT validation claim.
+
+The [Buildbox receipt](compile.json) records the successful build from
+`1bf9a437fc673c57ab9e0c37ae96f169b5737d65`. The host driver object compiled;
+MMC, its MediaTek host, pinctrl and regulator support are enabled in the
+resolved configuration, and the driver callback, core caller and pinctrl
+function are present in the final symbol map. The build log contains no
+compiler warning/error lines. The 54-case fixture also passed against
+Buildbox's exact prepared source. Package validation passed remotely, and
+the fetched package's inventory and checksums matched. Repository publication
+checks passed, with the usual Linux-only provenance fixture deferred to CI.
 No device access, voltage switching, pin configuration or boot test occurred.
 
 ## Upstream boundary

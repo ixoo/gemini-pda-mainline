@@ -95,6 +95,12 @@ no inspected LK deployment step. Select a persistent-root/distribution and its
 filesystem update/rollback protocol before implementing that adapter; no package
 installation or automatic slot writer is admitted by the source review.
 
+The independent [MMC voltage-switch error fix](../experiments/2026-09-09-mtk-sd-pinctrl-errors/README.md)
+returns failed pin configuration to the MMC core. Its isolated Buildbox compile
+and injected regression pass; it changes no device candidate or voltage policy.
+Truthful certification and upstream review remain required. MT6797 controller
+data and microSD rail/card-detect validation remain separate work.
+
 The current [display architecture refresh](../experiments/2026-09-07-mt6797-display-upstream-architecture/README.md)
 found no local 0028–0044 subset with both a truthful current resource contract
 and a real consumer/test story. Display PWM is the smallest likely unlock, but

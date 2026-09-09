@@ -1,0 +1,55 @@
+{
+  "scope": "isolated generic MMC error-fix compile; no Gemini candidate",
+  "status": "validated",
+  "completed_utc": "2026-09-09T06:34:11Z",
+  "package_name": "linux-7.3-rc1-gemini-aca3bc45b251d3c49fd38f67e31be356c085cb2233c6b80d2ab37f8cca15846b",
+  "repository_commit": "1bf9a437fc673c57ab9e0c37ae96f169b5737d65",
+  "repository_dirty": false,
+  "kernel_release": "7.3.0-rc1-mtk-sd-pinctrl-compile",
+  "build_profile": "mtk-sd-pinctrl-compile",
+  "kernel_source": {
+    "archive_format": "tar.gz",
+    "archive_root": "linux-4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "git_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "released": "2026-09-05",
+    "sha256": "45590c057805bc9cf7281ce04d5dbde5316b7c8b017998cafac301f67e92682d",
+    "source_url": "https://codeload.github.com/torvalds/linux/tar.gz/4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "version": "7.3-rc1"
+  },
+  "patchset_sha256": "df27e82e0f01c0941a99a557e602b669f365ead97dccb35d1743c68480e1fef7",
+  "config_inputs_sha256": "69ae1d9d44041e52a5804e143bef3997f752d5ac0c18189847f3ed4f8f28b9f9",
+  "config_sha256": "53bad183d6fa3612fae418971e290f330cd5edfb93c9a1774a979115520602d1",
+  "modules_built": false,
+  "build_architecture": "x86_64",
+  "target_architecture": "arm64",
+  "compiler": "aarch64-linux-gnu-gcc (Debian 12.2.0-14) 12.2.0",
+  "compiler_sha256": "c7b8890354c8ddc0364addfeb8968597e197627bd1e338fb6ed705b578803846",
+  "linker": "GNU ld (GNU Binutils for Debian) 2.40",
+  "linker_sha256": "e09a889c78a75e73ed096c9fa28905599e6813298b9ac839d10b02ffa96e7b08",
+  "artifact_sha256": {
+    "Image": "58dc5cac02a318e359dccf93351965a8762925d8636b0b769673b20ff9191de1",
+    "Image.gz": "29ec768930521606a26d9094082c6899be8dfbc64c1a3fa53598bda0f6108dfd",
+    "kernel.config": "53bad183d6fa3612fae418971e290f330cd5edfb93c9a1774a979115520602d1",
+    "System.map": "1e96a42e9cce488ede0483de45f35031bfcc4c43d865a979bfa7c46a93f5e207",
+    "SHA256SUMS": "aca3bc45b251d3c49fd38f67e31be356c085cb2233c6b80d2ab37f8cca15846b"
+  },
+  "required_builtin_config": [
+    "MMC",
+    "MMC_MTK",
+    "PINCTRL",
+    "REGULATOR",
+    "COMMON_CLK"
+  ],
+  "driver_object_compiled": true,
+  "linked_symbols": [
+    "msdc_ops_switch_volt",
+    "mmc_set_signal_voltage",
+    "pinctrl_select_state"
+  ],
+  "compiler_warning_error_lines": 0,
+  "host_regression_cases": 54,
+  "buildbox_prepared_source_regression_cases": 54,
+  "remote_package_validation": "pass",
+  "local_fetch_inventory_and_checksums": "pass",
+  "hardware_tested": false
+}
