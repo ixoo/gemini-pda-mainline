@@ -378,3 +378,24 @@ two short deliveries and immediately launch capture. No build, publication or
 second readiness wait belongs between that reply and those execution steps.
 The unexecuted delivery is hash-verified and archived with an absent-attempt
 check before replacement; existing completed capture evidence remains intact.
+
+
+## Attended plain-1 capture
+
+The reordered run `3d1ed6b8-bca6-45b7-8264-78ac38289f7e` launched on the same
+boot with the validated reader above. The owner reports tapping and releasing
+1 once. The [result](focused-key1-result.json) preserves a scan-0, key-code-2
+press and sync at 3053–3054 ms into the first window. The console reader
+received 160 bytes of `6e` (`n`) across five reads, including the newly retained
+32-byte excess read. It stopped at the unchanged 128-byte limit, reported
+`restored=1`, and was reaped normally after 5100 ms with observer exit 2.
+No release event or second case was captured; absence after the cutoff is not
+an observation of a stuck key. The owner reports that nothing appeared on screen; visible output remains
+separate from the captured console input.
+
+Export completed and the independent seal preserved the complete 1746-record
+kernel log, with the logger terminal. Execution is disabled after consumption;
+no reboot occurred. This is a reproduced discrepancy between the recorded key
+press and console bytes, not a completed two-case pass or a diagnosis of its
+cause. The reviewed failure-record change retained the triggering excess bytes
+on hardware. No kernel changes or additional hardware trials were made.

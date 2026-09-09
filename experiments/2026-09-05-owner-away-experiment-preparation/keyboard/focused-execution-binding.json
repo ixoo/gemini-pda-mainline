@@ -4,5 +4,5 @@
   "plan_sha256": "77d5553bf23d2ed15c45d5b6b03aa81cd55e4a24ee0baad2686d8b4079dd89eb",
   "runner_sha256": "271eae8834180e256e4c9c7612812772a0b2eb02c02f9c90b458b169a5520e39",
   "schema": "keyboard-focused-execution-v1",
-  "state": "enabled"
+  "state": "disabled"
 }

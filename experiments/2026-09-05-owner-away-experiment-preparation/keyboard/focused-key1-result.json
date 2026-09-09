@@ -1,0 +1,91 @@
+{
+  "boot_id": "e3a29c80-4948-4ef8-893a-cfbef0cd4918",
+  "capture": {
+    "capture_sha256": "d4851c7017c667240688c25ca5c6d04813541179cf6541f6026f068af99e319c",
+    "hardware_claim": false,
+    "outcome": "inconclusive",
+    "reason": "unexpected-record",
+    "reported_input": {
+      "event": "event0",
+      "minor": 64
+    },
+    "session_receipt_verified": false
+  },
+  "capture_process": {
+    "elapsed_seconds": 6.203,
+    "exit_status": 1,
+    "reason": null,
+    "stderr_bytes": 0,
+    "stdin_complete": true,
+    "stdout_bytes": 757
+  },
+  "classification": "console-byte-limit-after-key-1-press",
+  "evidence": {
+    "monitor.status": {
+      "bytes": 218,
+      "sha256": "4cf191a4ec6a24d15029c00b55189749ff174e27f85ecf3f5a78eef66ac90997"
+    },
+    "observer.stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "observer.stdout": {
+      "bytes": 757,
+      "sha256": "d4851c7017c667240688c25ca5c6d04813541179cf6541f6026f068af99e319c"
+    },
+    "outer-exit": {
+      "bytes": 2,
+      "sha256": "53c234e5e8472b6ac51c1ae1cab3fe06fad053beb8ebfd8977b010655bfdd3c3"
+    }
+  },
+  "id": "3d1ed6b8-bca6-45b7-8264-78ac38289f7e",
+  "kernel_log": {
+    "bytes": 121076,
+    "classification": "complete-log-through-seal",
+    "coverage": "sequence-zero-through-explicit-seal",
+    "records": 1746,
+    "sha256": "bf034fbd6607e44324175d66b291104ba6c9e1cb34eece40dc6d53b6a9ebea09",
+    "status_sha256": "13d4ae64930a2f5318196ec1c67708f4fa87c91c638dec3ae143543240136930"
+  },
+  "limitation": "The observer stopped before key release and the second case. This localizes the recorded discrepancy between evdev and console bytes; it does not identify its cause or prove complete keyboard support.",
+  "logger_terminal": true,
+  "monitor": {
+    "cancel": "0",
+    "exit": "2",
+    "forwarded_bytes": "757",
+    "identity_lost": "0",
+    "kill_errno": "0",
+    "kill_ms": "-1",
+    "late": "0",
+    "reap_ms": "5100",
+    "reaped": "1",
+    "reason": "observer-exit",
+    "schema": "keyboard-monitor-v1",
+    "signal": "0",
+    "stderr_bytes": "0",
+    "stdout_bytes": "757",
+    "term_errno": "0",
+    "term_ms": "-1"
+  },
+  "observed": {
+    "console_bytes_preserved": 160,
+    "console_hex_byte": "6e",
+    "console_limit": 128,
+    "first_event_ms": 3053,
+    "key_code": 2,
+    "key_value": 1,
+    "limit_ms": 3054,
+    "release_event_captured": false,
+    "restored": true,
+    "scan": 0,
+    "second_step_started": false
+  },
+  "owner_report": "Tapped and released 1 once; nothing appeared on screen.",
+  "package": {
+    "identity": "477db0d31c2d2a5d9830022e7dc63288a4e8cd48717aa3cee9b25d4043cc1927",
+    "revision": "8a276a6b7d7e04e66cedfe776be95e354ea291fc"
+  },
+  "preservation_complete": true,
+  "reboot_performed": false,
+  "schema": "keyboard-focused-runtime-result-v1"
+}
