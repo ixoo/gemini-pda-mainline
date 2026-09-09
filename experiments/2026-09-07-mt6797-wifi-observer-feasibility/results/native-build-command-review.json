@@ -1,0 +1,257 @@
+{
+  "schema": "wifi-native-build-command-review-v1",
+  "scope": "retained compile package and compiler-input review; no new kernel build, target execution or installed-image attribution",
+  "package_name": "gemian-observer-a98ffc90f979",
+  "package_inventory_sha256": "45e28e14a2c25a4fc829cee3753477da5c98a2a029a82626774dab6e9f854f28",
+  "package_members_verified": 13,
+  "provenance": {
+    "repository_commit": "a98ffc90f979eabe4e927b0d478199673b62781c",
+    "repository_dirty": false,
+    "source_url": "https://github.com/gemian/gemini-linux-kernel-3.18.git",
+    "source_commit": "59e00a9144d782e148332009a835b99c43382467",
+    "patchset_sha256": "99221df407cf090dbbd4f657c4f39ed53e7d1e52d886679557b1843da4ddf4a7",
+    "baseline_config_sha256": "231d8a2ffe7afac3a4cc62c27d0eb6fe8bd9165ebd096e3e3346dd6df35c18f4",
+    "toolchain_manifest_sha256": "a45d945f092461a611d276ad7d0a0fea1ea8a7f93db413908bcb892c12817d14",
+    "snapshot_url": "https://snapshot.debian.org/archive/debian/20170618T000000Z",
+    "cust_dtsi_sha256": "7a7eb416499346afff30c15f967ccb9cf79323c076204b6a953515db74811632",
+    "build_architecture": "x86_64",
+    "target_architecture": "arm64",
+    "host_extra_cflags": "-fcommon",
+    "purpose": "compile-review-only",
+    "boot_candidate": false,
+    "completed_utc": "2026-08-02T13:18:43Z"
+  },
+  "inputs": {
+    "outputs/build.log": "cc43a28e3856325f3087dbc0c6b0a32e5cc0d8034074d851a0e0e33dd9da1a39",
+    "outputs/config": "a7eaf67c19ad9b689457d057412019ecb75c8f4d6be1e8142060ea81861fea32",
+    "provenance/compiler.txt": "5c77bfa017da4f9dc2585d7e70594b26fd6c1bde1f22edae24f6df929f8d94f0",
+    "provenance/build.json": "186f0ce3fd368cc6b4ff954f785a312ce265bd7abeadf1ed32b97ac858e8744e"
+  },
+  "config_values": [
+    "CONFIG_ARM64=y",
+    "CONFIG_OF=y",
+    "# CONFIG_MTK_CLKMGR is not set",
+    "CONFIG_MTK_COMBO_CHIP=\"CONSYS_6797\"",
+    "CONFIG_MTK_COMBO_WIFI=y"
+  ],
+  "compiler_builtin_probe": {
+    "arguments": [
+      "-dM",
+      "-E",
+      "-x",
+      "c",
+      "/dev/null"
+    ],
+    "macros": [
+      "#define __SIZEOF_INT__ 4",
+      "#define __SIZEOF_POINTER__ 8",
+      "#define __SIZEOF_LONG__ 8",
+      "#define __aarch64__ 1"
+    ]
+  },
+  "sources": [
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c",
+      "sha256": "d9b4e80fe98695284627e495ad640e39728ebe7df235df129f64d48e8a2e726b"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb_pdma.c",
+      "sha256": "83c23a5582be2dcaa385359b7cd0f82af0ec9d6a4e102ea6faea57f59d75b480"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c",
+      "sha256": "56bf99536fcb96de5a5198943aec96c9efccb8af89261b29c62046e6560c422f"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c",
+      "sha256": "0ec8e9c1594626d0b31f2d2623927d614f63af4437c16df838e10e11258663ce"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/include/nic/hal.h",
+      "sha256": "24b9bce2fc8b331d75a330cae8c9291816bb90cff8078200cd7ecb719f180ee0"
+    },
+    {
+      "path": "drivers/clk/mediatek/clk-mt6797-pg.c",
+      "sha256": "4a661ed078bddaba15b7a7a2db27ca59ced8883a1b71c545bbbe24cddd64d58f"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/Makefile",
+      "sha256": "46185e00d63f9c29ee721781c9fd43b9f3e6f157f26d3610c60c63e00351fc33"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/Makefile",
+      "sha256": "5e099f94e6c79593a9210b97096646d2d8e2b0ddd7110a8870519b3dd5c49204"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/include/config.h",
+      "sha256": "c773b8e5e07978d60565c2eeee976dae3e285ecb9152062fe3bb50b1358a1c32"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif.h",
+      "sha256": "e9d18516cc49e6290203a827551ea7cb890af155d2ae9ddd0fd9ec03888fb87c"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_pdma.h",
+      "sha256": "898874f9f3180000a393fab0a13666fd4960364f3c4b7517a1f965f027213028"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/mt6797/include/mtk_wcn_consys_hw.h",
+      "sha256": "3ee7631a95a12f5cddd860c213e51e75e1cb3146ca858a892aaae55b4d22fad1"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/include/gl_typedef.h",
+      "sha256": "b93965ce8a3c13838b69451b1d6b592f901f918689cca867fe38cdc22c1e89ba"
+    },
+    {
+      "path": "arch/arm64/include/asm/io.h",
+      "sha256": "302462dde8842a65d60195f773b73b2f279aa20bd26c5e753fa629277887dd41"
+    }
+  ],
+  "commands": [
+    {
+      "source": "drivers/clk/mediatek/clk-mt6797-pg.c",
+      "log_line": 805,
+      "command_sha256_no_newline": "7fc16322325653121fbe5347fe16a7f1da08b28bb75b69c75b01aa580eaf2613",
+      "definitions_and_undefinitions": [
+        "-D__KERNEL__",
+        "-DKBUILD_STR(s)=#s",
+        "-DKBUILD_BASENAME=KBUILD_STR(clk_mt6797_pg)",
+        "-DKBUILD_MODNAME=KBUILD_STR(clk_mt6797_pg)"
+      ]
+    },
+    {
+      "source": "drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c",
+      "log_line": 2616,
+      "command_sha256_no_newline": "c2bba39794129c835f712b9e2243a9fa358830db232ae7f3d78092ee7eebd3b1",
+      "definitions_and_undefinitions": [
+        "-D__KERNEL__",
+        "-DMTK_WCN_REMOVE_KERNEL_MODULE",
+        "-DCONFIG_MTK_WCN_ARM64",
+        "-DWMT_IDC_SUPPORT=1",
+        "-DMTK_WCN_WMT_STP_EXP_SYMBOL_ABSTRACT",
+        "-DWMT_PLAT_ALPS=1",
+        "-DWMT_UART_RX_MODE_WORK=0",
+        "-DWMT_SDIO_MODE=1",
+        "-DMTK_WCN_WMT_STP_EXP_SYMBOL_ABSTRACT",
+        "-DWMT_IDC_SUPPORT=1",
+        "-DKBUILD_STR(s)=#s",
+        "-DKBUILD_BASENAME=KBUILD_STR(mtk_wcn_consys_hw)",
+        "-DKBUILD_MODNAME=KBUILD_STR(mtk_wcn_consys_hw)"
+      ]
+    },
+    {
+      "source": "drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c",
+      "log_line": 2789,
+      "command_sha256_no_newline": "6a10f869c399311c709b44b88ad362fc0bd49002a28717cabde2254696b5f19f",
+      "definitions_and_undefinitions": [
+        "-D__KERNEL__",
+        "-DMTK_WCN_REMOVE_KERNEL_MODULE",
+        "-DCONFIG_MTK_WCN_ARM64",
+        "-DWMT_IDC_SUPPORT=1",
+        "-DMTK_WCN_WMT_STP_EXP_SYMBOL_ABSTRACT",
+        "-DMTK_WCN_BUILT_IN_DRIVER",
+        "-DMT6797",
+        "-DCFG_SPM_WORKAROUND_FOR_HOTSPOT=0",
+        "-UMT6620",
+        "-UMT6628",
+        "-UMT5931",
+        "-UMT6630",
+        "-DCFG_SUPPORT_DEBUG_FS=0",
+        "-DWLAN_INCLUDE_PROC",
+        "-DCFG_SUPPORT_AGPS_ASSIST=1",
+        "-DCFG_SUPPORT_TSF_USING_BOOTTIME=1",
+        "-DARP_MONITER_ENABLE=1",
+        "-DLINUX",
+        "-DMT6797",
+        "-DCFG_SUPPORT_CHNL_CONFLICT_REVISE=0",
+        "-DCFG_SUPPORT_AEE=1",
+        "-DBUILD_QA_DBG=1",
+        "-DCFG_SUPPORT_PASSPOINT=0",
+        "-DCFG_HS20_DEBUG=0",
+        "-DCFG_ENABLE_GTK_FRAME_FILTER=0",
+        "-DCFG_MET_PACKET_TRACE_SUPPORT=1",
+        "-DDBG=0",
+        "-DFW_CFG_SUPPORT",
+        "-DKBUILD_STR(s)=#s",
+        "-DKBUILD_BASENAME=KBUILD_STR(wlan_lib)",
+        "-DKBUILD_MODNAME=KBUILD_STR(wlan_gen3)"
+      ]
+    },
+    {
+      "source": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c",
+      "log_line": 3396,
+      "command_sha256_no_newline": "108cdd942be686edda98f7d93295045ea2b305a6b25c4a5b419a186341dcfe92",
+      "definitions_and_undefinitions": [
+        "-D__KERNEL__",
+        "-DMTK_WCN_REMOVE_KERNEL_MODULE",
+        "-DCONFIG_MTK_WCN_ARM64",
+        "-DWMT_IDC_SUPPORT=1",
+        "-DMTK_WCN_WMT_STP_EXP_SYMBOL_ABSTRACT",
+        "-DMTK_WCN_BUILT_IN_DRIVER",
+        "-DMT6797",
+        "-DCFG_SPM_WORKAROUND_FOR_HOTSPOT=0",
+        "-UMT6620",
+        "-UMT6628",
+        "-UMT5931",
+        "-UMT6630",
+        "-DCFG_SUPPORT_DEBUG_FS=0",
+        "-DWLAN_INCLUDE_PROC",
+        "-DCFG_SUPPORT_AGPS_ASSIST=1",
+        "-DCFG_SUPPORT_TSF_USING_BOOTTIME=1",
+        "-DARP_MONITER_ENABLE=1",
+        "-DLINUX",
+        "-DMT6797",
+        "-DCFG_SUPPORT_CHNL_CONFLICT_REVISE=0",
+        "-DCFG_SUPPORT_AEE=1",
+        "-DBUILD_QA_DBG=1",
+        "-DCFG_SUPPORT_PASSPOINT=0",
+        "-DCFG_HS20_DEBUG=0",
+        "-DCFG_ENABLE_GTK_FRAME_FILTER=0",
+        "-DCFG_MET_PACKET_TRACE_SUPPORT=1",
+        "-DDBG=0",
+        "-DFW_CFG_SUPPORT",
+        "-DKBUILD_STR(s)=#s",
+        "-DKBUILD_BASENAME=KBUILD_STR(ahb)",
+        "-DKBUILD_MODNAME=KBUILD_STR(wlan_gen3)"
+      ]
+    },
+    {
+      "source": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb_pdma.c",
+      "log_line": 3402,
+      "command_sha256_no_newline": "2b4f27097e4a7f87e533fc8e769aae45a4cd6a9295d2fac92bbe9e794289d952",
+      "definitions_and_undefinitions": [
+        "-D__KERNEL__",
+        "-DMTK_WCN_REMOVE_KERNEL_MODULE",
+        "-DCONFIG_MTK_WCN_ARM64",
+        "-DWMT_IDC_SUPPORT=1",
+        "-DMTK_WCN_WMT_STP_EXP_SYMBOL_ABSTRACT",
+        "-DMTK_WCN_BUILT_IN_DRIVER",
+        "-DMT6797",
+        "-DCFG_SPM_WORKAROUND_FOR_HOTSPOT=0",
+        "-UMT6620",
+        "-UMT6628",
+        "-UMT5931",
+        "-UMT6630",
+        "-DCFG_SUPPORT_DEBUG_FS=0",
+        "-DWLAN_INCLUDE_PROC",
+        "-DCFG_SUPPORT_AGPS_ASSIST=1",
+        "-DCFG_SUPPORT_TSF_USING_BOOTTIME=1",
+        "-DARP_MONITER_ENABLE=1",
+        "-DLINUX",
+        "-DMT6797",
+        "-DCFG_SUPPORT_CHNL_CONFLICT_REVISE=0",
+        "-DCFG_SUPPORT_AEE=1",
+        "-DBUILD_QA_DBG=1",
+        "-DCFG_SUPPORT_PASSPOINT=0",
+        "-DCFG_HS20_DEBUG=0",
+        "-DCFG_ENABLE_GTK_FRAME_FILTER=0",
+        "-DCFG_MET_PACKET_TRACE_SUPPORT=1",
+        "-DDBG=0",
+        "-DFW_CFG_SUPPORT",
+        "-DKBUILD_STR(s)=#s",
+        "-DKBUILD_BASENAME=KBUILD_STR(ahb_pdma)",
+        "-DKBUILD_MODNAME=KBUILD_STR(wlan_gen3)"
+      ]
+    }
+  ]
+}

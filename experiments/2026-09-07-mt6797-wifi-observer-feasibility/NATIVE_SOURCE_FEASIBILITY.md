@@ -119,3 +119,46 @@ build setup. The next implementation prerequisite is a concrete one-cycle
 capture/recovery design and compiled verification of the selected paths, not
 another search for the unknown original kernel revision. A new instrumented
 image still needs its own baseline and admission before any radio operation.
+
+## Recorded compiler-command follow-up, 2026-09-09
+
+The [command receipt](results/native-build-command-review.json) checks the
+retained `gemian-observer-a98ffc90f979` compile-review package, rather than
+reconstructing an invocation from Makefiles. All 13 inventory members passed
+their checksums. Its verbose log contains exactly one target compilation for
+each of `ahb.c`, `ahb_pdma.c`, `wlan_lib.c`, `mtk_wcn_consys_hw.c` and
+`clk-mt6797-pg.c`. The receipt pins those complete command lines by log line
+and digest and records every `-D`/`-U` argument. All twelve previously inspected
+source/header/Makefile hashes match the retained prepared tree, including the
+power provider. The package remains an A72 compile-review artifact, not a
+selected Wi-Fi candidate or an attribution of the installed Gemian image.
+
+The three WLAN commands define `MT6797`, `MTK_WCN_BUILT_IN_DRIVER` and
+`CONFIG_MTK_WCN_ARM64`, use the gen3 AHB include directory, and do not define
+`_HIF_SDIO`. None overrides `CONF_MTK_AHB_DMA`, `CONF_HIF_DMA_INT` or
+`MTK_DMA_BUF_MEMCPY_SUP`. The common-layer command's `WMT_SDIO_MODE=1` is a
+different macro in a different translation unit; it does not select the
+WLAN SDIO HAL. The retained resolved configuration enables ARM64, OF,
+`CONSYS_6797` and combo Wi-Fi and leaves `MTK_CLKMGR` disabled. This removes
+the command-line override uncertainty in the source selection above; it does
+not replace a complete preprocessed or machine-code check of a future candidate.
+
+The compiler at the recorded wrapper path also reports 8-byte `long` and pointers and 4-byte
+`int` in a header-free predefined-macro query. The inspected `gl_typedef.h`
+defines `ULONG` as unsigned long; `hif.h` uses that type for `Src` and `Dst`.
+Those fields therefore retain 64-bit values in this target's C type model.
+The MT6797 `HIF_DMAR_WRITEL` branch passes them to `writel`, whose ARM64 path
+narrows to `u32` before the raw store. `HifPdmaStart` separately ORs the ADDR2
+flags into existing register values. A future observer must record the full
+mapping result and the low-word and ADDR2 programming separately; the width
+of the configuration struct cannot prove that the endpoint received that
+full address. No DMA address or register was observed here.
+
+The managed build-output directories had already been cleaned, so their
+`.cmd` files were unavailable. The checksum-covered verbose log supplied the
+original commands without rebuilding or reactivating the A72 experiment.
+Only a compiler predefined-macro query was executed; no target binary,
+preprocessor replay of a kernel translation unit, observer, kernel build,
+deployment or device operation ran. The next work remains the concrete startup,
+capture and recovery design in [cycle control](CYCLE_CONTROL.md), followed by
+candidate-specific compiled validation and admission.
