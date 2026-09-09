@@ -48,6 +48,11 @@ with a reviewed standard `pwm-backlight` consumer/test plan. Unresolved parent,
 inherited or rate-source attribution is inconclusive and preserves the current
 mandatory `main` + `mm` contract and this stop.
 
+The [retained oscillator follow-up](PWM_OSCILLATOR.md) identifies direct
+sleep-controller oscillator writes outside CCF in the PWM power callbacks.
+A CCF-only acquisition would miss those operations; the future observation
+must attribute them as well as the clock and domain dependencies above.
+
 This review does not authorize the trace, brightness transition or
 suspend/resume action. The acquisition mechanism, effects, owner interaction,
 finite budget and recovery must be frozen and reviewed before use; avoiding a

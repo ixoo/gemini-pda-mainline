@@ -1476,11 +1476,13 @@ Linux 7.1.3's `pwm-mtk-disp` already implements the matching register/commit
 shape under the nearest MT8173 data record. The vendor CCF source maps
 `DISP_PWM` to exactly one `INFRA_DISP_PWM` gate; its separate
 `DISP_MTCMOS_CLK` handle powers the display domain and `MUX_PWM` selects the
-parent source. The local MT6797 extension therefore adds a distinct
-compatible and makes the secondary `mm` clock optional, rather than inventing
-a second MT6797 display clock. A standard `pwm-backlight` consumer is still
-required. The panel consumer remains disabled until that graph and the panel
-bias/reset rails are verified.
+parent source. The historical local extension makes the secondary `mm` clock
+optional, but that change is not justified by the one-handle observation;
+the [current architecture decision](../../experiments/2026-09-07-mt6797-display-upstream-architecture/README.md)
+preserves upstream's two-clock contract pending complete ownership evidence.
+The [retained oscillator path](../../experiments/2026-09-07-mt6797-display-upstream-architecture/PWM_OSCILLATOR.md)
+also directly controls oscillator enable/reset bits outside CCF. A standard
+`pwm-backlight` consumer and validated panel bias/reset resources remain required.
 
 The vendor board entry selects `led_mode = 5` with `pwm_config = <0 0 0 0 0>`.
 In the vendor mux table source selector 0 is the ULPOSC/29 MHz path and the
