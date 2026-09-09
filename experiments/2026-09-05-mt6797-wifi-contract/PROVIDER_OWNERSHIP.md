@@ -139,3 +139,9 @@ its return replaces the earlier error. A successful `post_enable` can therefore
 mask enable failure while the descriptor remains marked unpowered. This
 strengthens the framework limitation above; no pwrseq fix or hardware result
 is claimed here.
+
+A [2026-09-09 upstream overlap check](../2026-09-09-pwrseq-enable-error/README.md)
+found the maintainer's existing proposal for the post-enable error-masking bug,
+with a companion KUnit regression. Its fix passes the focused sequential check
+against the pinned source; merge/release and the other retention limitations
+remain unproved. Follow that series instead of preparing a duplicate fix.
