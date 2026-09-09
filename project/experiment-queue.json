@@ -3,8 +3,8 @@
   "purpose": "Readiness inventory, not an executable queue or device authorization. Object order is not scheduling order; docs/ROADMAP.md alone owns priority. Exact inputs, budgets and chronology stay in linked experiments.",
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
-  "selected_item": "keyboard-coverage",
-  "selection_note": "Owner reported availability. Guarded boot2 checksum matched the selected keyboard candidate and clean shutdown completed; awaiting physical boot2 selection and readable-screen report.",
+  "selected_item": null,
+  "selection_note": "Attended keyboard capture ended incomplete; evidence preserved and changed-ID Gemian confirmed separately after initial confirmation timeout. No successor selected. Future restarts require owner confirmation except urgent safety reasons.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -23,15 +23,15 @@
     },
     "keyboard-coverage": {
       "workstream": "serviceability",
-      "preparation_state": "conditional",
-      "device_state": "waiting-owner-boot",
+      "preparation_state": "preparing",
+      "device_state": "complete",
       "owner": "primary integration coordinator",
       "reviewer": "primary integration coordinator",
-      "device_custodian": "primary integration coordinator",
+      "device_custodian": null,
       "experiment": "experiments/2026-09-05-owner-away-experiment-preparation/README.md#keyboard-coverage",
       "session_packet": "experiments/2026-09-05-owner-away-experiment-preparation/keyboard/ATTENDED_SESSION.md",
       "candidate_record": "experiments/2026-09-08-keyboard-console-ownership/validation.json",
-      "readiness_record": "experiments/2026-09-05-owner-away-experiment-preparation/keyboard/session-preparation.json",
+      "readiness_record": "experiments/2026-09-05-owner-away-experiment-preparation/keyboard/attended-session-result.json",
       "dependencies": [
         {
           "item": "keyboard-console-ownership",
@@ -40,7 +40,7 @@
         }
       ],
       "owner_task_id": null,
-      "readiness_note": "Corrected monitor disconnect and full-duration proofs pass. Exact BusyBox syntax checks, metadata collector, disabled capture binding and combined session budget prepared. Fresh same-boot proof, metadata, custody and owner key sequence remain required. Candidate R history remains preserved separately."
+      "readiness_note": "Same-boot prerequisites passed, but capture stopped during third prompt after 64 events including repeated Shift. Owner had difficulty reading final prompt character; photo identifies it as A without obvious right-edge clipping. Address instruction clarity and pacing before a successor; no keyboard acceptance."
     },
     "emmc-readonly": {
       "workstream": "serviceability",

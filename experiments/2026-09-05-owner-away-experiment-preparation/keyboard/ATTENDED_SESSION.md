@@ -1,7 +1,7 @@
 # Attended targeted keyboard session
 
-Status: guarded handoff completed; waiting for owner boot2 screen report; both execution bindings disabled.
-The primary integration coordinator owns preparation, review and exclusive
+Status: attended capture incomplete; evidence preserved and Gemian recovered; both execution bindings disabled.
+The primary integration coordinator owned preparation, review and exclusive
 device custody for this attended handoff. This is one new boot containing
 its own prerequisites and the existing 20-case keyboard observation. No physical
 selection or capture is admitted by this document alone.
@@ -68,8 +68,9 @@ hardware. A failed prerequisite stops capture; no replacement test is selected.
    and classify using the exact admission. A classifier result alone is not final
    hardware acceptance. No second capture is allowed.
 8. Disable the consumed bindings, preserve and seal the original logger once,
-   then make one guarded native recovery request after unique evidence and
-   terminal child state are established. Confirm authenticated changed-ID Gemian.
+   then obtain owner restart confirmation and make one guarded native recovery
+   request after unique evidence and terminal child state are established.
+   Confirm authenticated changed-ID Gemian.
    The [combined budget](CAPTURE_ADMISSION.md#combined-budget) leaves the logger
    seal below boot age 540 seconds at the latest permitted capture start;
    preparation/owner delays are not additional budget.
@@ -120,13 +121,37 @@ release all keys between cases, and wait for the next instruction. The final
 HELP-and-Enter sequence is captured as test input. If you miss a case or cannot
 read it, release all keys and tell the operator; do not repeat it or reboot.
 
-## Current handoff
+## Deployment handoff (completed)
 
 The owner reported availability. The guarded `keyboard-capture` installer
 confirmed known-good Gemian, inactive live-GPT boot2, stable power and the
 selected full-partition checksum above. It skipped the already matching image
 and confirmed shutdown by loss of reachability. The fixed deployment receipt
-`a53-keyboard-capture-deployment-1` is consumed. The predecessor remains
-`1128b013-25b3-4e9c-9a94-398df98c2471`, so the prepared identity exclusions
-remain applicable. Physical selection, readable-screen confirmation and all
-mainline observations are still pending. No keyboard result is claimed.
+`a53-keyboard-capture-deployment-1` is consumed. The deployment predecessor was
+`1128b013-25b3-4e9c-9a94-398df98c2471`. The following attended outcome
+consumed the prepared identity and observation admissions.
+
+## Attended outcome
+
+The [session result](attended-session-result.json) records the fresh boot and
+passing same-boot disconnect and metadata prerequisites. Capture exited after
+32.238 seconds: the first two windows had no input, and the third recorded
+64 events including repeated left Shift. The helper restored terminal settings
+and the monitor reaped it with exit status 2. This is incomplete evidence, not
+a keyboard pass or an attributed driver defect. The fixed event ceiling is
+consistent with the stop; the generic failure marker does not identify a branch.
+
+The owner reported difficulty reading the final prompt character. The supplied
+picture shows the first three instructions ending in `tap A`; it does not show
+obvious clipping at the right edge. This identifies the character without
+establishing that the timed instructions were usable or followed. There was no
+second capture. All four fixed files and the complete kernel log through seal were
+preserved before the guarded recovery request. The original Gemian confirmation
+timed out; a separate bounded read-only check confirmed changed-ID Gemian. Both
+records remain distinct. Device custody is released with Gemian running.
+
+The coordinator requested recovery while the owner was still supplying the
+picture. The owner then required confirmation before future restarts, except
+for an actual urgent safety reason. That rule now applies to the recovery step
+above and is recorded in [Safety](../../../docs/SAFETY.md). A successor must
+address instruction clarity and pacing before another attended admission.

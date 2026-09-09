@@ -1,0 +1,142 @@
+{
+  "schema": 1,
+  "classification": "incomplete-keyboard-capture",
+  "hardware_acceptance": false,
+  "boot_id": "803cd938-3da1-442a-b593-f11ab9fe740c",
+  "admission_id": "ee6ba88c-dafa-46b5-8add-62965e2b226d",
+  "candidate_sha256": "7dfc3b1f771a12b8e711f699cf8fcfd2678aedc15bc9d8bcc98554f9c6654cdb",
+  "deployment_receipt_name": "a53-keyboard-capture-deployment-1",
+  "deployment_result": "skipped-already-matching",
+  "prerequisites": {
+    "disconnect": "passed",
+    "metadata": "preserved",
+    "full_duration_receipt_sha256": "0a8eac660bebfc755eb5c5d1fa0da80a4a26bbaea5be75fbc42846a161657956"
+  },
+  "capture_process": {
+    "elapsed_seconds": 32.238,
+    "exit_status": 1,
+    "reason": null,
+    "stderr_bytes": 0,
+    "stdin_complete": true,
+    "stdout_bytes": 2204
+  },
+  "observation": {
+    "complete_steps": 2,
+    "complete_steps_input_events": [
+      0,
+      0
+    ],
+    "incomplete_step_index": 2,
+    "incomplete_step_events": 64,
+    "observed_pressed_keycode": 42,
+    "autorepeat_observed": true,
+    "observer_exit_status": 2,
+    "termios_restored": true,
+    "monitor_reaped": true,
+    "interpretation": "The 64-event ceiling is consistent with the stop after repeated Shift events; the generic observer failure marker does not name its failing branch."
+  },
+  "owner_report": "Owner reported difficulty reading the final prompt character. Complete sequence not established.",
+  "preserved_capture_files": {
+    "outer-exit": "53c234e5e8472b6ac51c1ae1cab3fe06fad053beb8ebfd8977b010655bfdd3c3",
+    "observer.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "monitor.status": "bb9b94072d43f823036e5914b8fa1bd0865c37b172c0ee0688516dbe1f42a2b4",
+    "observer.stdout": "52020cbbd99b16b3fe0465e69588bf0262b81efb68b831394200745ac2803d7a"
+  },
+  "log_preservation": {
+    "classification": "complete-log-through-seal",
+    "export_complete": true,
+    "files": {
+      "kmsg-exit": {
+        "captured_bytes": 2,
+        "encode_status": "0",
+        "read_status": "0",
+        "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+        "size_after": "2",
+        "size_before": "2",
+        "stable": "yes",
+        "state": "regular",
+        "truncated": "no"
+      },
+      "kmsg.log": {
+        "captured_bytes": 121078,
+        "encode_status": "0",
+        "read_status": "0",
+        "sha256": "3804cca96c4e95fd965bf32a38c4d12bf864c4d8321c3a330f40a2a4eba24fe0",
+        "size_after": "121078",
+        "size_before": "121078",
+        "stable": "yes",
+        "state": "regular",
+        "truncated": "no"
+      },
+      "kmsg.status": {
+        "captured_bytes": 178,
+        "encode_status": "0",
+        "read_status": "0",
+        "sha256": "b9f9d36691625f5793f0b2ade9e9c103ba4965396a1f695da44039f82a996a23",
+        "size_after": "178",
+        "size_before": "178",
+        "stable": "yes",
+        "state": "regular",
+        "truncated": "no"
+      },
+      "kmsg.status.partial": {
+        "captured_bytes": 0,
+        "encode_status": "none",
+        "read_status": "none",
+        "sha256": null,
+        "size_after": "-",
+        "size_before": "-",
+        "stable": "not-applicable",
+        "state": "missing",
+        "truncated": "no"
+      }
+    },
+    "log": {
+      "bytes": 121078,
+      "classification": "complete-log-through-seal",
+      "coverage": "sequence-zero-through-explicit-seal",
+      "records": 1746,
+      "sha256": "3804cca96c4e95fd965bf32a38c4d12bf864c4d8321c3a330f40a2a4eba24fe0",
+      "status_sha256": "c8d58823e1e8fa6f2f748b80c07239e4794a6a9dc788cb8ebb17f6cd6fce4e1f"
+    },
+    "logger_terminal": true,
+    "preservation_complete": true,
+    "reason": null,
+    "signal_attempts": 1,
+    "signal_status": "0",
+    "stop": "signalled",
+    "terminal_before_export": true,
+    "transport_complete": true
+  },
+  "recovery": {
+    "request": {
+      "boot_id": "803cd938-3da1-442a-b593-f11ab9fe740c",
+      "classification": "native-recovery-requested",
+      "recovery_confirmed": false,
+      "request_count": 1
+    },
+    "original_confirmation": {
+      "classification": "transport-timeout",
+      "process": {
+        "elapsed_seconds": 10.011,
+        "exit_status": 255,
+        "reason": null,
+        "stderr_bytes": 64,
+        "stdin_complete": true,
+        "stdout_bytes": 0
+      }
+    },
+    "supplemental_confirmation": {
+      "boot_id": "a54cc501-f558-4081-8779-dee9858ea258",
+      "classification": "changed-ID-Gemian"
+    },
+    "supplemental_scope": "Separate bounded read-only check under standing Gemian inspection authorization; original timeout retained.",
+    "owner_followup": "Coordinator recovered while owner was supplying a picture. Future restarts require owner confirmation except for actual urgent safety reasons; waiting for owner input means waiting."
+  },
+  "next_action": "Address instruction clarity and pacing before preparing a successor; no repeat capture admitted.",
+  "photo_review": {
+    "observation": "First three instructions end in tap A; no obvious right-edge clipping in the supplied picture.",
+    "limitation": "Does not establish owner readability during the timed windows or correct physical sequence.",
+    "publication": "Photo remains private."
+  }
+}

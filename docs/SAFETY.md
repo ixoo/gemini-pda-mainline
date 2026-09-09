@@ -93,6 +93,10 @@ Returning a completed, attributable mainline session to Gemian is also
 permitted through its reviewed native recovery path. Assign one device
 custodian, preserve pending unique evidence and verify the exact live kernel,
 boot identity and required recovery binary before requesting that transition.
+Obtain owner confirmation before restarting, including this recovery transition,
+unless an actual urgent safety reason requires immediate action. When awaiting
+owner input, wait. A completed test, observation timeout or logging deadline is
+not itself an urgent reason to restart. Preserve available evidence while waiting.
 Require a changed boot identity and known-good Gemian confirmation afterward.
 Missing or mismatched observations defer the transition; never guess bootloader
 controls, interrupt an admitted experiment, or reinterpret this as automatic

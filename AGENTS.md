@@ -80,6 +80,9 @@ repository a small patch, tooling and evidence layer; do not vendor Linux.
 - Return from a completed mainline session to Gemian is authorized only through
   the reviewed recovery path after preserving evidence and verifying live
   identity and recovery-tool identity; confirm changed-boot Gemian afterward.
+  Ask the owner before restarting, including recovery, unless an actual urgent
+  safety reason requires it. When waiting for owner input, wait; a completed
+  test, timeout or logging deadline does not replace restart confirmation.
 
 ## Validation and publication
 
