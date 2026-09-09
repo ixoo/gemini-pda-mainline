@@ -58,3 +58,11 @@ five-minute limit remains. The logger wrapper likewise emits channel output
 every 20 seconds while checking and reaping its child within five seconds,
 inside the existing ten-second seal wait. Revised helper deliveries use a
 package-qualified directory, preserving the original helper and wait evidence.
+
+The revised package at `e5759fe0db3c20e92e14493180312c8b0c32c197` has identity
+`a60137337512b9ed7d44220c94b4303aabe0676ac492af312cc0e052177b7b36`.
+Its two ARM64 replicas match and all seven musl/PTY fixtures pass, with the
+timeout fixture additionally requiring channel-status output. The logger
+poll/wait loop was exercised under ARM64 BusyBox for both zero and nonzero
+child exits. Generated delivery, readiness and logger shells pass syntax and
+ShellCheck. The second live start-screen attempt is prepared, not yet observed.
