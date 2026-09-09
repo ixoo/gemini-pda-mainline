@@ -130,7 +130,8 @@ elif [[ $kind == keyboard-space-ready ]]; then
   done
   cmp "$stage/one/space-ready" "$stage/two/space-ready"
   timeout 60 python3 "$here/test-space-ready.py" --compiler "$compiler" --qemu "$qemu" \
-    --work "$stage" >"$stage/package/fixture-tests.txt" 2>&1
+    --work "$stage" >"$stage/tests.txt" 2>&1
+  install -m 0600 "$stage/tests.txt" "$stage/package/fixture-tests.txt"
   install -m 0700 "$stage/one/space-ready" "$stage/package/space-ready"
   install -m 0600 "$musl/COPYRIGHT" "$stage/package/licenses/musl-COPYRIGHT"
   install -m 0600 "$repository/LICENSE" "$stage/package/licenses/repository-LICENSE"

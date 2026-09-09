@@ -1,7 +1,7 @@
 # Space starts the attended keyboard test
 
 The owner requested a start screen on the PDA instead of coordinating timed
-prompts through chat. [space-ready.c](space-ready.c) is a separate userspace
+prompts through chat. [space-ready.c](space-ready.c), prepared by [space-start.py](space-start.py), is a separate userspace
 helper, delivered to executable RAM. It opens the admitted keyboard event node
 and tty1, verifies their device identities and current Unicode VT, saves console
 settings, and displays “Press and release SPACE”. It accepts one Space press and
@@ -32,3 +32,8 @@ under ARM64 QEMU with a real PTY and injected evdev/VT metadata. The fixture is
 not a hardware result. Deployment still requires an exact package and live
 session identity. The timed-capture binding is disabled while this change is
 being prepared; the previous retry has not executed.
+
+The first package build did not publish. Its fixture diagnostics were incorrectly
+placed outside the builder’s retained failure-log list; that path is corrected.
+A bounded diagnostic run of all seven cases using static ARM64 glibc and QEMU
+passed. Acceptance still requires the ordinary musl package build and tests.
