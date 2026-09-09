@@ -1,0 +1,48 @@
+From 5f5bfaeb5f9187fcd3643c4756f806c0e0163e27 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Wed, 9 Sep 2026 02:56:00 -0400
+Subject: [PATCH] pinctrl: mediatek: add MT6797 MSDC1 input-enable fields
+
+Input-enable requests for GPIO129-134 currently fail because MT6797
+has no IES register calculation. Describe their individual input buffers
+in IOCFG_B register 0x020, bits 25-30, so the existing Paris pinconf
+operations can read and update them.
+
+The vendor GPIO field table and MMC register definitions agree on this
+mapping; the retained MMC helper uses the same combined mask. No new
+callback or register resource is needed. Other pins retain their existing
+unsupported input-enable behavior.
+
+This adds only input-buffer control. It does not select a board state or
+add Schmitt, pull, delay, drive-strength or bias-tuning operations.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/pinctrl/mediatek/pinctrl-mt6797.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/drivers/pinctrl/mediatek/pinctrl-mt6797.c b/drivers/pinctrl/mediatek/pinctrl-mt6797.c
+index 6d4a5b1..c56f309 100644
+--- a/drivers/pinctrl/mediatek/pinctrl-mt6797.c
++++ b/drivers/pinctrl/mediatek/pinctrl-mt6797.c
+@@ -36,11 +36,17 @@ static const struct mtk_pin_field_calc mt6797_pin_do_range[] = {
+ 	PIN_FIELD(0, 261, 0x100, 0x10, 0, 1),
+ };
+ 
++static const struct mtk_pin_field_calc mt6797_pin_ies_range[] = {
++	/* MSDC1 CMD, DAT0-3 and CLK input buffers in IOCFG_B. */
++	PIN_FIELD_CALC(129, 134, 2, 0x020, 0x10, 25, 1, 32, 0),
++};
++
+ static const struct mtk_pin_reg_calc mt6797_reg_cals[PINCTRL_PIN_REG_MAX] = {
+ 	[PINCTRL_PIN_REG_MODE] = MTK_RANGE(mt6797_pin_mode_range),
+ 	[PINCTRL_PIN_REG_DIR] = MTK_RANGE(mt6797_pin_dir_range),
+ 	[PINCTRL_PIN_REG_DI] = MTK_RANGE(mt6797_pin_di_range),
+ 	[PINCTRL_PIN_REG_DO] = MTK_RANGE(mt6797_pin_do_range),
++	[PINCTRL_PIN_REG_IES] = MTK_RANGE(mt6797_pin_ies_range),
+ };
+ 
+ static const char * const mt6797_pinctrl_register_base_names[] = {
+-- 
+2.50.1 (Apple Git-155)
+

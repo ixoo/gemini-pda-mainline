@@ -1,0 +1,22 @@
+{
+  "baseline": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "date": "2026-09-09",
+  "files_sha256": {
+    "drivers/pinctrl/mediatek/pinctrl-mt6797.c": "e1dc88dc086cc60e384a04b23c52b7f61da04d06a314f511f0f77c3fe2c001dc",
+    "drivers/pinctrl/mediatek/pinctrl-mtk-common-v2.h": "8691ca4ef77adbb488f1388562c4930affc911778a65933eb9549a92f8086ff4",
+    "drivers/pinctrl/mediatek/pinctrl-mtk-common-v2.c": "f95fe0f92461afb8c2586c43f6d1970fa302fa69a6d17839cbfda0b17b3d9a69",
+    "drivers/pinctrl/mediatek/pinctrl-paris.c": "94848be20fd43e443398b5975829534ef95fa1f2df9cd1f835939616b0643502",
+    "drivers/pinctrl/mediatek/Kconfig": "516d7e99110a9055622a331aebf46af2027eb6242b9381ec5be579189d12c496",
+    "MAINTAINERS": "39e65935b8f213dfa9b7a49a7341565855c6aec851288f0f32a0b2afcb35558a",
+    "scripts/checkpatch.pl": "2553cc1a601e70522e03fbce633d4e79fa5936f7f56a66de1899b7ddd247820a",
+    "scripts/spelling.txt": "4095d4a8810f115bae1b7c0d8a1946beb3435f6e22d9a48ac009bb024bad1e68",
+    "scripts/const_structs.checkpatch": "ea064f6916a74763468037494aeb270aae34b7c97617e84d424ca5b8733539b2"
+  },
+  "observed_refs": {
+    "mainline_HEAD": "893e11787f78e43b534e252249ac3fff4d1333f8",
+    "pinctrl_for_next_and_devel": "d067f0f4c96cb5402a111cf649b7bf9c5771ec74"
+  },
+  "driver_identical_at_all_three_revisions": true,
+  "existing_profiles_unchanged": 201,
+  "hardware_tested": false
+}
