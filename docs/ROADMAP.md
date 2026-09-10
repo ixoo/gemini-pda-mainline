@@ -283,12 +283,12 @@ follow the [transport reference](../experiments/2026-09-05-owner-away-experiment
 when a USB connection is absent. A relayed boot report does not replace live
 identity or establish that a different OS is unreachable.
 
-Complete the keyboard observation next when the owner is available; read-only
-storage preparation remains independent. Keep physical-start requests
-in Project Planning and require the selected candidate's verified deployment
+The keyboard milestone is owner-accepted, and the bounded eMMC read has its
+own completed observation. Preserve their limitations without scheduling the
+consumed tests again. Require the next selected candidate's verified deployment
 and clean-shutdown handoff. Wi-Fi progresses kernel integration and its shared
-resource/firmware contract in parallel, with physical observations chosen to
-resolve explicit blockers. If the owner is unavailable, leave the exact session
+resource/firmware contract, with physical observations chosen to resolve
+explicit blockers. If the owner is unavailable, leave the exact session
 packet ready and continue independent work; do not make all workers wait for boot2.
 
 ### Owner-away progress
@@ -361,12 +361,14 @@ The remaining preparation order is:
    and [accepted Kallsyms provenance](../experiments/2026-09-06-vmlinux-to-elf-symbol-provenance-v3/README.md).
    Exit order must not be inferred by reversing initialization, and the vendor
    WMT ioctl must not be copied merely to run the retained loader.
-4. **Read-only eMMC regression:** finish the fresh-session handoff against the
-   actual OS/transport and execute the prepared bounded read when physical
-   selection is available. Preserve prior inconclusive connections; a failed
-   local USB prerequisite must not consume a device observation. Its runtime gate
-   needs baseline serviceability and reviewed recovery, independently of keyboard
-   completion. Persistent-root writes remain separate.
+4. **Preserve the bounded eMMC result:** the [closed session](../experiments/2026-09-05-owner-away-experiment-preparation/emmc/PAUSE_SESSION_PREPARATION.json)
+   completed its one 16 MiB read, matched the installed image, and preserved the
+   controller log with zero targeted errors. Changed-ID Gemian return was
+   confirmed separately; the native recovery transport remains inconclusive
+   and the aggregate remains incomplete. Its read/log budgets are consumed.
+   Do not execute the superseded preparation handoffs or repeat this read as
+   pending work. Broader storage reliability and persistent-root writes require
+   a distinct measurement and their own admission.
 
 Protocol work across these items can proceed concurrently within the three-worker
 limit. Wi-Fi has its own worker; keyboard and storage remain with serviceability. Items with unverified

@@ -1,6 +1,15 @@
 # Read-only eMMC session packet
 
-## Record and readiness
+## Current disposition
+
+The [closed session](PAUSE_SESSION_PREPARATION.json) completed its one admitted
+16 MiB read and sealed log. The checksum matched and no targeted controller
+errors were recorded. Changed-ID Gemian return passed separately; the native
+recovery transport remained inconclusive and the aggregate remained incomplete.
+Read and log budgets are consumed. No further device action is selected; the
+preparation records below must not be reused as an unconsumed session.
+
+## Historical preparation and readiness
 
 | Field | Value |
 | --- | --- |

@@ -4,7 +4,7 @@
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
   "selected_item": null,
-  "selection_note": "Keyboard retest prepared after owner sequence clarification; no deployment or boot selected. Confirm with owner before shutdown/restart.",
+  "selection_note": "No device test selected. Keyboard milestone owner-accepted; eMMC read/log budgets consumed. Wi-Fi observer integration remains in preparation; confirm with owner before shutdown/restart.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -23,15 +23,15 @@
     },
     "keyboard-coverage": {
       "workstream": "serviceability",
-      "preparation_state": "conditional",
-      "device_state": "unselected",
+      "preparation_state": "stale",
+      "device_state": "complete",
       "owner": "primary integration coordinator",
       "reviewer": "primary integration coordinator",
       "device_custodian": null,
       "experiment": "experiments/2026-09-05-owner-away-experiment-preparation/README.md#keyboard-coverage",
-      "session_packet": "experiments/2026-09-05-owner-away-experiment-preparation/keyboard/ATTENDED_RETEST.md",
+      "session_packet": "experiments/2026-09-05-owner-away-experiment-preparation/keyboard/COVERAGE_TEST.md",
       "candidate_record": "experiments/2026-09-08-keyboard-console-ownership/validation.json",
-      "readiness_record": "experiments/2026-09-05-owner-away-experiment-preparation/keyboard/attended-session-result.json",
+      "readiness_record": "experiments/2026-09-05-owner-away-experiment-preparation/keyboard/COVERAGE_TEST.md",
       "dependencies": [
         {
           "item": "keyboard-console-ownership",
@@ -40,7 +40,7 @@
         }
       ],
       "owner_task_id": null,
-      "readiness_note": "Owner confirms absence for first two prompts and Shift+Fn+1 during prompt 3. Same-image retest prepared to observe the correct declared sequence with owner present; fresh per-boot prerequisites and owner readiness remain required. No driver or keymap fault inferred."
+      "readiness_note": "Twenty-step capture completed with preserved evidence and correct observed press/repeat translation. Owner accepts Ctrl+A for this milestone and requests moving on without another keyboard test. The recorded release-order limitation remains; wider coverage/reliability needs a separate scope."
     },
     "emmc-readonly": {
       "workstream": "serviceability",

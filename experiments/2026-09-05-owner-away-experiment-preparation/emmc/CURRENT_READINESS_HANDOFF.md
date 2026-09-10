@@ -1,4 +1,10 @@
-# Current eMMC readiness handoff
+# Historical eMMC readiness handoff
+
+**Superseded by the [closed session](PAUSE_SESSION_PREPARATION.json).** The
+single read and log budgets were subsequently consumed. The read matched and
+its controller log passed; changed-ID Gemian return was confirmed separately,
+while the native recovery transport and aggregate remained incomplete. The
+preparation below is historical and is not a pending physical-selection request.
 
 This is a local-record review after worker commit `eb38185e`, not a physical
 selection request or a live device observation. Sole device custody remains with
