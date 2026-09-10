@@ -249,6 +249,8 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
             args[-1] = str(patched / suffix)
             args.insert(1, "-I" + str(patched / headers))
             if stop:
+                # precomp.h includes "hal.h" by basename from include/nic.
+                args.insert(1, "-I" + str(patched / relative / "include/nic"))
                 args.insert(1, "-I" + str(patched / relative / "include"))
             if (pstore and not capture) or dma:
                 args.insert(1, "-I" + str(patched / "include"))
