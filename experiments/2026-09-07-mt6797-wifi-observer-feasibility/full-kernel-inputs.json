@@ -1,0 +1,169 @@
+{
+  "source_revision": "59e00a9144d782e148332009a835b99c43382467",
+  "toolchain_sha256": "a45d945f092461a611d276ad7d0a0fea1ea8a7f93db413908bcb892c12817d14",
+  "baseline_config_sha256": "231d8a2ffe7afac3a4cc62c27d0eb6fe8bd9165ebd096e3e3346dd6df35c18f4",
+  "cust_dtsi_sha256": "7a7eb416499346afff30c15f967ccb9cf79323c076204b6a953515db74811632",
+  "patches": [
+    {
+      "path": "experiments/2026-08-02-a72-recovery-only-discriminator/patches/0001-diagnostic-reject-A72-during-recovery-gate.patch",
+      "sha256": "e2620fd7cfc6bbeac9e32e5201a767dd00bf217823ba12748e3855eb6382c36a"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/pstore/0001-pstore-report-native-pmsg-backend-write-failures.patch",
+      "sha256": "41a64284f4013ccd7c8bfa7fa0adb78a0b001f289970319310a6cb193848184b"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/pstore/0002-pstore-preserve-native-records-when-backend-erase-fa.patch",
+      "sha256": "48b3b5f3bac483c4c85a65cba5756f3b577dd1f9bbb2a723ff1630df02812565"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/pstore/0003-pstore-preserve-old-log-on-allocation-failure.patch",
+      "sha256": "f59195e7009ea7dd8299d6d627962338cebdc3d9022e9e3047cedacca283b060"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/pstore/0004-pstore-reserve-native-pmsg-for-capture.patch",
+      "sha256": "f79230f50760d4bf45c71660dd65bc68c872e56f953c2bcfecacc9f66b9353cf"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/pstore/0005-pstore-freeze-native-capture-parameters.patch",
+      "sha256": "871664dbdf4ea52615e5151e677feacce6f0a84dce2cf2f20a0497eff54e1ae6"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/pstore/0006-pstore-release-mapped-zones-on-probe-failure.patch",
+      "sha256": "1f55211e3a156cdc4097d6d460bd5f27d10701d9caeb59707930760edcf78bd1"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/pstore/0007-pstore-integrate-native-fixed-slot-capture.patch",
+      "sha256": "f6d7ecd752b8693b3f8b3f226f8fcc9489f74c243f757797fd11549bdc96523b"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/pstore/0008-arm64-dts-reserve-native-pmsg-without-linear-alias.patch",
+      "sha256": "20ad1e7ac53a0f8eed94f63529cb054ef4e98b75c92f532c240e14bc33c7ecf6"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/pstore/0009-pstore-retain-rejected-capture-access-in-tail.patch",
+      "sha256": "744d6bc4e167e7f2722246c42fd61e92819604d0688af707d97dfff0173d7be9"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/pstore/0010-pstore-expose-native-capture-activity-to-built-ins.patch",
+      "sha256": "e063c558c21328d99d7e11d7638a58bebe93642b1e740c7bf3466619f1d6ab97"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/dma/0001-wlan-observe-native-AHB-DMA-lifetimes.patch",
+      "sha256": "40d00262ed2ce3edd5ad46af97f288a2eadde77da5bfdf7dba906ea874191c15"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/stop/0001-wlan-capture-native-adapter-stop-decisions.patch",
+      "sha256": "5175620e3287f01a80d8f009ab3d3112ac4f75ec4186e4c2a35632e15f261291"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/firmware-read/0001-wlan-capture-native-firmware-file-read-results.patch",
+      "sha256": "3a4824ee47f7d9ea304c4c4620200ad23962af8e572539292769c1c804240cb0"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/firmware-read-safety/0001-wlan-reject-invalid-native-firmware-mappings.patch",
+      "sha256": "90eda58094ee09949c6c488bb01e381c7b70dfbebbac3dc53effa16c9335f62d"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/firmware-image/0001-wlan-capture-native-firmware-buffer-and-sections.patch",
+      "sha256": "60219e6d632c5f8dd76e1776212a6761e1e55fde641c3788a21899639d6a969c"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/emi/0001-wlan-capture-native-EMI-protection-and-copy.patch",
+      "sha256": "fc3928153be1c88120dbd794d8b1b03b31af64606dc08f2b604992f6e4e34257"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/provider-off/0001-clk-capture-native-CONN-provider-shutdown.patch",
+      "sha256": "aa88b970935ba61a14454bd9a85b4e5d014115fed80634e4fe133409ea0d6500"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/0001-wmt-check-firmware-version-read.patch",
+      "sha256": "bf6ee85c12806092e92c5691be16828c3229ee7e221cc2f40d2b33357a5edd5f"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/0002-wmt-use-one-startup-attempt.patch",
+      "sha256": "a48a597e589b5982e699eff0ff093e1a0619de853ca3148706528577c50f9cb4"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/0003-wmt-guard-single-patch-reply.patch",
+      "sha256": "b66b28751e00fcabbc95f30496e14588866cace7ea8a756e414bd7ace9523bfe"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/0004-wmt-retain-timed-out-operation.patch",
+      "sha256": "0c7e51c8f226811eb2534d69008adf445ba440133c3857509d1583757f6f85d2"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/common-off-errors/0001-wmt-preserve-common-shutdown-errors.patch",
+      "sha256": "bc225be459254a7b8a5f6fd75b5ffcbcee1176aa1c5aed1531d38108ef355bc0"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/common-off/0001-wmt-bind-common-OFF-to-native-CONN-provider.patch",
+      "sha256": "8454ecbbc513507565e6c9d1d79a5f0dd1472e43450557eaa6919f7547c3e786"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/operation-ownership/0001-wmt-retain-worker-ownership-after-reset-completion.patch",
+      "sha256": "062b5fe5192763e1b4e027b72d68416dd4bb39e71467f55a5f36d09459ad1621"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/request-capture/0001-wmt-bind-captured-requests-to-worker-and-common-off.patch",
+      "sha256": "4fc1a7ba2e5946f5cacf2982e385ef085f1d1094528660b101c1ac8f40d93b6b"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/request-firmware/0001-wlan-bind-firmware-observation-to-the-ON-request.patch",
+      "sha256": "1caec8ceb65fb1cc56b369e991d83a33729ceb8216915c2e165edca92db1adf8"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/tx-payload/0001-wlan-join-native-firmware-payload-digests-to-DMA.patch",
+      "sha256": "1b4e32b4a09ed56d26f3015d7bce1761a8419876a52567fe016da49fdfadad7a"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/stop-workers/0001-wlan-record-native-removal-completion-waits.patch",
+      "sha256": "cd23e6f993ab1e1af96db5dc5e8bf385b8d6fce479985c35b80fd484fa191be2"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/remove-retain/0001-wlan-retain-resources-after-incomplete-removal.patch",
+      "sha256": "4894243afaf01b3f9e2c808f366b25443e85e020a763fa538f1d0ee6e779be93"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/probe-retain/0001-wlan-retain-failed-startup-resources-until-recovery.patch",
+      "sha256": "727d843e29e3911ec3389af9c9453d6c90f2d975e0d8c07ffa5023175c467322"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/dma-map-error/0001-wlan-reject-failed-native-DMA-mappings.patch",
+      "sha256": "fc2bfab7c2d634078e42f6cc755dd87d79bed8e9fe17ca61bd33318d1d9ef511"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/transport-setup/0001-wmt-wait-for-experimental-transport-configuration.patch",
+      "sha256": "84622e8b4885ecf53704920875c7d499afeef796b58a2ce083ecd01801bd5782"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/transport-setup/0002-wmt-exclude-display-power-callbacks-in-recovery-expe.patch",
+      "sha256": "ed0e164a18b0903dac0c9a74be8c076b6f94e42e0c2607e99037ba6823625928"
+    },
+    {
+      "path": "experiments/2026-08-02-a72-recovery-only-discriminator/patches/0002-diagnostic-add-exclusive-TOPRGU-recovery-owner.patch",
+      "sha256": "a3f55c86b0c3d3ca8aa5d49864d0574f5684fc58b2ab403609fdb6c1c5bade96"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/recovery-setters/0001-watchdog-serialize-setters-with-diagnostic-takeover.patch",
+      "sha256": "4f4eee696a5a9b2bca4d2d698b590ceb2cc8287525023ce52962f1e1c8b12396"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/recovery-gate/0001-watchdog-join-capture-and-recovery-takeover.patch",
+      "sha256": "ae05d7c2d7be3ceb6472ec16f936430f902cf310f13b57046043f1da89bfe995"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/controller-init/0001-wmt-initialize-after-recorded-recovery-takeover.patch",
+      "sha256": "0b9c3b4f344d980642f567d2da4e545008460509f24ba630adec8d68a0dd6009"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/controller-cycle/0001-wmt-gate-the-captured-controller-cycle-on-recorded-c.patch",
+      "sha256": "eac52798310b046d9fc0fb28136b63d81005a3fc2104f520b561346a33cf106d"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/recovery-reset/0001-watchdog-preserve-owned-deadline-across-emergency-reset.patch",
+      "sha256": "48ba21d2f5e94a17129ce9b03223416f433748c81657f549df33bcfe6ed97979"
+    }
+  ],
+  "purpose": "complete native kernel link; no boot candidate or device admission"
+}

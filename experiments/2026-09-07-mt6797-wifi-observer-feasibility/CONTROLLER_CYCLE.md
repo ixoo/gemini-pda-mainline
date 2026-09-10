@@ -136,3 +136,6 @@ warning-clean claim.
 Complete kernel linking, minimal filesystem packaging,
 capture zero-state preparation, remaining isolation and an exact owner-approved
 radio/timed-recovery session are still required before device validation.
+
+The [complete native link](FULL_KERNEL.md) composes the controller with the
+emergency reset correction and an explicit A72 refusal for integration review.
