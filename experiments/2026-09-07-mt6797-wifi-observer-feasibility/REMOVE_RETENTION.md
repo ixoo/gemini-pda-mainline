@@ -93,3 +93,44 @@ The emitted AHB removal code branches around the power-control call on a
 nonzero callback return. Native commands retain baseline warning suppression,
 so empty diagnostics are not warning-clean evidence. There is no full kernel
 link, boot candidate, new hardware observation or device admission.
+
+## Startup-failure follow-up: unresolved containment
+
+Source review on 2026-09-10 rechecked the output and baseline-support hashes
+in the same source receipt. The 29-patch composition still has a distinct
+startup-failure path that bypasses the removal-retention contract. This is
+source evidence, not an observed device failure or an implemented repair.
+
+In the pinned output `gl_init.c`, `wlanProbe()` starts the main, HIF and RX
+workers at lines 2082-2085. It does not check their returned task pointers
+before scheduling and subsequent startup operations. Its late-failure switch
+at lines 2239-2255 wakes only the main worker, discards the result of an
+interruptible main-worker completion wait, then stops the adapter, releases
+the IRQ and destroys the netdev. It neither wakes nor waits for the HIF/RX
+workers in this cleanup path. A failed or interrupted wait therefore does not
+prevent resource release.
+
+Calling the newly guarded `wlanRemove()` is not a sufficient replacement:
+`wlanNetRegister()` clears the device-table entry when registration fails,
+and `wlanNetUnregister()` clears it before the late-failure worker wait.
+`wlanRemove()` locates its adapter through that table and returns `-ENODEV`
+when it is empty. Cleanup must retain the probe-local object and actual
+acquisition state instead of assuming a registered device exists.
+
+There are also two outer error translations. `HifAhbProbe()` calls removal
+again after a failed probe, ignores its result and returns `-1` (output
+`ahb.c`, lines 1520-1530). The baseline `wmt_func_wifi_on()` changes any
+nonzero probe result to `-1` (`wmt_func.c`, lines 694-730). Finally,
+`opfunc_func_on()` marks Wi-Fi off after a callback error, shuts the UART SDIO
+slot down where selected, and can reset system state and power common CONSYS
+off when other functions are off (output `wmt_core.c`, lines 1209-1263).
+The OFF-path retention patch does not intercept these ON-failure effects.
+
+The next repair must distinguish a fully unwound startup failure from a
+failure with retained resources, preserve that distinction through both
+callers, and prevent automatic cleanup or another startup after retention.
+It must account for partial worker creation and earlier adapter-start
+failures; adding the two missing waits alone would leave the outer power-off
+path unresolved. Adapter-stop/DMA ownership and the recovery owner still
+need inspection before selecting that implementation. No new failure code,
+retry, reset or device protocol is admitted by this review.
