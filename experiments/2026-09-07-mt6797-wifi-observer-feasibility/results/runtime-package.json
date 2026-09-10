@@ -1,0 +1,31 @@
+{
+  "scope": "offline ARM64 runtime, not boot candidate or hardware evidence",
+  "repository_commit": "05288f07f4da6ae3550dd72707307e1caed008ba",
+  "inputs_sha256": "649ceb1743ed10ea6066f581bd0030fa245cd025c6aa5b0deec8c47e648f6aae",
+  "sources": {
+    "cycle-controller.py": "6a7d712927ec94ca36a87e69c25da85fc025f4f7a0eae5ec7d1999c13c767715",
+    "respond-once.py": "88c45874db0dd745f2ec9ac1e81cadf7410608f1ba60287d36748d79620328e7",
+    "check-retained-patches.py": "ad7d5e1cf03463ad80d11a23583e448a6fce6d54b4b1fd7c94566fa7d6f4fa50",
+    "test-cycle-controller.py": "dbb7a39c7dc33d96e5ce0dfb0ed8889ba44e07a5e70ec0e3f82252d413974cd2",
+    "test-respond-once.py": "0c2bf4cc33c0e176f98501dd7883d7f2037b4904908097c154c0dc454d0a6798"
+  },
+  "packages": 38,
+  "qemu_version": "qemu-aarch64 version 7.2.22 (Debian 1:7.2+dfsg-7+deb12u18+b3)",
+  "qemu_sha256": "4f55e2e88dc05dc0f619562d5795b8eb25ed2ad2547504fb4835207a6911c350",
+  "root_bytes": 73481387,
+  "runtime_sha256": "7ff2ebf4153d8055f92f3baa1c550a3376b913e680162de60a3557ca2d855294",
+  "runtime_bytes": 23266365,
+  "tests": [
+    "test-cycle-controller.py",
+    "test-respond-once.py"
+  ],
+  "test_environment": "user-namespace chroot, QEMU user-mode, host kernel",
+  "package_manifest_sha256": "36765d1bc116dda8aaf8badf7f824ea64036f91fa50421b439f2779ff57148c9",
+  "package_files_verified": 5,
+  "archive_members_verified": 1608,
+  "controller_tests_passed": 7,
+  "responder_tests_passed": 12,
+  "archive_without_init_firmware_emulator_tests": true,
+  "kernel_3_18_compatibility": "not tested",
+  "device_access": "none"
+}

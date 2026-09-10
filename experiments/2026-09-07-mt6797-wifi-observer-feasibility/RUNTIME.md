@@ -17,10 +17,12 @@ notices, remain in the ignored artifact, outside this repository.
 
 From a clean project checkout on Linux x86_64, with `gpgv`, the Debian archive
 keyring, `dpkg-deb`, GNU tar/gzip, QEMU's static ARM64 user emulator, and working
-unprivileged user namespaces:
+unprivileged user namespaces. Serialize access to the cache/output pair; on
+Buildbox hold its existing shared build lock. Temporary extraction/download
+state is removed on normal failure and on the next invocation after interruption:
 
 ```sh
-python3 build-runtime.py CACHE NEW_PACKAGE
+PATH=/usr/sbin:/usr/bin:/bin python3 build-runtime.py CACHE NEW_PACKAGE
 ```
 
 The builder checks ARM64/64-bit little-endian execution, SHA-256 and monotonic
@@ -35,4 +37,13 @@ with normalized tar ownership/order/timestamps and gzip metadata. There is no
 `/init`, firmware, boot container or trigger. Construction of the actual minimal
 startup, fixed firmware lookup layout, capture preparation, remaining kernel
 actor/reset isolation and exact session admission still precede a device test.
-Runtime preparation has not yet been executed for these inputs.
+The [runtime receipt](results/runtime-package.json) records successful packaging
+at `05288f07f4da6ae3550dd72707307e1caed008ba`: seven controller tests, twelve
+responder tests and the ABI/hash/time/BusyBox checks passed. All five fetched
+package files and 1,608 archive members were checked, including exact controller
+source hashes and absence of init, firmware, emulator and fixture scripts.
+The compressed archive is 23,266,365 bytes; the unpacked regular files total
+73,481,387 bytes. Two launcher attempts failed before Python execution because
+`chroot` was outside the command search path; the successful invocation resolves
+it before clearing the test environment and includes `/usr/sbin` in the host
+path. No interpreter or device failure was inferred from those launcher errors.

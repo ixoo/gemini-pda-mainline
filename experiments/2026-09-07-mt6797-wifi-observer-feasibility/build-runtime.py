@@ -33,7 +33,7 @@ def run(args, **kwargs):
 def fetch(cache, name, url, expected):
     target = cache / name
     if not target.exists():
-        with tempfile.NamedTemporaryFile(dir=cache, prefix='.download-', delete=False) as out:
+        with tempfile.NamedTemporaryFile(dir=cache, prefix='.wifi-runtime-download-', delete=False) as out:
             temporary = Path(out.name)
             try:
                 with urllib.request.urlopen(url, timeout=60) as response:
@@ -58,6 +58,16 @@ def main():
         raise ValueError('package must be new, with an existing parent')
     if shutil.disk_usage(package.parent).free < 1024 ** 3:
         raise ValueError('requires 1 GiB free')
+    # Caller serializes this cache/output pair. Only this builder's temporary
+    # names may be removed after an interrupted run; completed packages remain.
+    for stale in cache.glob('.wifi-runtime-download-*'):
+        if stale.is_symlink() or not stale.is_file():
+            raise ValueError('unsafe stale download')
+        stale.unlink()
+    for stale in package.parent.glob('.wifi-runtime-staging-*'):
+        if stale.is_symlink() or not stale.is_dir():
+            raise ValueError('unsafe stale staging directory')
+        shutil.rmtree(stale)
     pins = json.loads((HERE / 'runtime-inputs.json').read_text())
     repository = pins['repository']
     release = fetch(cache, 'InRelease', repository + '/dists/bookworm/InRelease', pins['release_sha256'])
@@ -86,7 +96,7 @@ def main():
                 raise ValueError('package pin is not in authenticated index')
     source_hashes = {name: digest(HERE / name) for name in SOURCES + TESTS}
     qemu = Path(shutil.which('qemu-aarch64-static'))
-    with tempfile.TemporaryDirectory(prefix='wifi-runtime-', dir=package.parent) as temporary:
+    with tempfile.TemporaryDirectory(prefix='.wifi-runtime-staging-', dir=package.parent) as temporary:
         work = Path(temporary)
         root = work / 'root'
         root.mkdir()

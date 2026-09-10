@@ -133,6 +133,8 @@ remotely validated inventory and checksum manifest; all 38 patch identities
 were checked. The original compiler commands retain `-w`, so this is not a
 warning-clean claim.
 
+The [ARM64 runtime package](RUNTIME.md) now executes the controller and responder
+fixtures under QEMU in an isolated filesystem. It supplies no startup or firmware.
 Minimal filesystem packaging, capture zero-state preparation, remaining
 isolation and an exact owner-approved
 radio/timed-recovery session are still required before device validation.
