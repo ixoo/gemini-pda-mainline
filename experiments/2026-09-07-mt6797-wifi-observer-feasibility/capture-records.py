@@ -601,7 +601,8 @@ REQUEST_LAYOUTS = {16: struct.Struct('<3I'), 17: struct.Struct('<5I'),
                    18: struct.Struct('<2I'), 19: struct.Struct('<4I'),
                    20: struct.Struct('<IIi'), 21: struct.Struct('<IIiIiI'),
                    22: struct.Struct('<3I'), 23: struct.Struct('<3I'),
-                   24: struct.Struct('<IIi')}
+                   24: struct.Struct('<IIi'), 25: struct.Struct('<4I'),
+                   26: struct.Struct('<4I'), 27: struct.Struct('<4Ii')}
 
 
 def request_values(row):
@@ -657,7 +658,8 @@ def check_common_off(data, expected_cycle):
 def check_request_cycle(data, expected_cycle):
     """Join native request records to common OFF; no whole-cycle admission."""
     common = check_common_off(data, expected_cycle)
-    rows = [row for row in decode(data, expected_cycle) if row['kind'] in (9, 10)]
+    rows = [row for row in decode(data, expected_cycle) if row['kind'] in (9, 10) and
+            not (row['kind'] == 10 and int.from_bytes(row['payload'][:4], 'little') in (25, 26, 27))]
     lower = [(10, n) for n in (1, 2, 3)] + [(9, n) for n in (3, 4, 5, 6, 7, 8, 1, 2, 9)] + [(10, n) for n in (4, 5, 6)]
     order = ([(10, n) for n in (16, 17, 18, 19, 20, 21, 24, 16, 17, 18, 19, 22)] +
              lower + [(10, n) for n in (23, 20, 21, 24)])
@@ -684,6 +686,52 @@ def check_request_cycle(data, expected_cycle):
         raise ValueError('request references a different common operation')
     return {'checked_requests': [1, 2], 'checked_common_operation': 1,
             'scope': 'recorded native ioctl/worker/common attribution only; firmware causality and isolation unchecked'}
+
+
+def check_request_firmware(data, expected_cycle, expected_hash, expected_image_bytes, expected_sections):
+    """Join request workers to read/image and teardown records, not hardware bytes."""
+    check_request_cycle(data, expected_cycle)
+    binding = check_firmware_bindings(data, expected_cycle)
+    image = check_image_read(data, expected_cycle, expected_hash, expected_image_bytes, expected_sections)
+    check_image_sections(data, expected_cycle, expected_hash, expected_image_bytes, expected_sections)
+    device, image_id = binding['checked_device'], image['checked_image']
+    if binding['checked_reads'] != [image_id]:
+        raise ValueError('requires exactly the request-bound firmware read')
+    rows = decode(data, expected_cycle)
+    links = [row for row in rows if row['kind'] == 10 and
+             int.from_bytes(row['payload'][:4], 'little') in (25, 26, 27)]
+    expected = [(25, 1, device, image_id), (26, 1, device, image_id),
+                (27, 1, device, image_id, 0)]
+    if [request_values(row) for row in links] != expected:
+        raise ValueError('missing, repeated or mismatched request/firmware links')
+
+    def sequence(kind, subtype, transaction=None):
+        selected = [row['sequence'] for row in rows if row['kind'] == kind and
+                    int.from_bytes(row['payload'][:4], 'little') == subtype and
+                    (transaction is None or row['transaction'] == transaction)]
+        if len(selected) != 1:
+            raise ValueError('ambiguous request/firmware boundary')
+        return selected[0]
+
+    on_begin, on_end = sequence(10, 19, 1), sequence(10, 20, 1)
+    off_begin, off_end = sequence(10, 19, 2), sequence(10, 20, 2)
+    read_begin, image_begin, image_end = [row['sequence'] for row in links]
+    reads = [row['sequence'] for row in rows if row['kind'] == 7 and
+             int.from_bytes(row['payload'][:4], 'little') in (8, 9, 10, 11)]
+    images = [row['sequence'] for row in rows if row['kind'] == 7 and
+              int.from_bytes(row['payload'][:4], 'little') in (5, 6, 7)]
+    if not (on_begin < sequence(2, 1) < read_begin < min(reads) <= max(reads) <
+            image_begin < min(images) <= max(images) < image_end < on_end):
+        raise ValueError('firmware read/image is outside its recorded ON worker scope')
+    if not (off_begin < sequence(7, 1) < sequence(7, 4) < sequence(2, 2) <
+            sequence(10, 22, 2) < off_end):
+        raise ValueError('stop/release is outside the recorded OFF worker scope')
+    if any(row['kind'] in (3, 4, 5, 6) and not
+           (on_begin < row['sequence'] < on_end or off_begin < row['sequence'] < off_end)
+           for row in rows):
+        raise ValueError('DMA activity recorded outside either request worker interval')
+    return {'checked_requests': [1, 2], 'checked_image': image_id, 'checked_device': device,
+            'scope': 'recorded request/read/image/EMI and teardown joins; submitted byte identity, quiescence and isolation unchecked'}
 
 
 def _image_metadata(data, expected_cycle, expected_hash, expected_image_bytes, expected_sections):

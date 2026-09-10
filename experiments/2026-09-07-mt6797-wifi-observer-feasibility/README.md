@@ -111,3 +111,7 @@ by later worker success. It does not establish reset/resource isolation.
 The unselected [request hooks](REQUEST_CAPTURE.md) bind one native ioctl pair
 to its worker completions and synchronous common OFF scope. Firmware causality,
 controller integration and reset/resource isolation remain open.
+
+The [firmware/request join](REQUEST_FIRMWARE.md) requires the recorded read and
+image completion to belong to the ON worker, rejecting a successful no-load
+shortcut. Submitted-byte identity and resource isolation remain unproven.

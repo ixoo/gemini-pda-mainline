@@ -112,3 +112,7 @@ legacy `CAMELCASE`, synthetic `MISSING_SIGN_OFF` and experiment-only
 `FILE_PATH_CHANGES` exceptions. Native compiler flags include `-w`, so empty
 compiler logs do not establish warning-clean compilation. Full kernel linking,
 timing/lock budgets and on-device validation remain separate gates.
+
+The subsequent [firmware/request join](REQUEST_FIRMWARE.md) adds three link
+records and requires image completion before accepting the ON worker return.
+The request/common-only decoder above retains its narrower scope.

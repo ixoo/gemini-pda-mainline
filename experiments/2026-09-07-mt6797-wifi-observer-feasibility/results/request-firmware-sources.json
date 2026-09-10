@@ -1,0 +1,19 @@
+{
+  "source_revision": "59e00a9144d782e148332009a835b99c43382467",
+  "scope": "Unselected native request/read/image lineage; submitted-byte identity, isolation and device admission remain open",
+  "parents": {
+    "include/linux/mt6797_wifi_capture.h": "15c98c3aa5d0d4486ddfc8879fced11b7d8275c2e7eafc6d7a589e0767dcc2f5",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_kal.c": "ade0fc1e792d2fb29a7f47d60c816dea0e08a43542bf8833773d8cb4302756d3",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/hif_fw_capture.c": "750241ef768c0232cd0bdeefd18c9500b15186fc18d88bab90c59594a30bb733",
+    "drivers/misc/mediatek/connectivity/common/common_main/core/wmt-request-capture.h": "ea5856f6fa9e906e2656feb6bfc58b6528a44ee71f77ed026d60237bb67092bd"
+  },
+  "outputs": {
+    "include/linux/mt6797_wifi_capture.h": "b100215ba3c0fe02b467d2e256f367f8ab9692626e1afbbd7e3b20b178de9059",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_kal.c": "7187c80bd16d69c605afaf41b8b65c592a4576b05f75613f7a5f893f619ebbe9",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/hif_fw_capture.c": "65da8f0471710894fde289d31df154c3884cd5bdb0f812532b7084659f86e0db",
+    "drivers/misc/mediatek/connectivity/common/common_main/core/wmt-request-capture.h": "c6e5e6c864b72022f80715c58fdcc9d57d9e7b69fb2845d3979a65ce53ffe4ba"
+  },
+  "patch": "0001-wlan-bind-firmware-observation-to-the-ON-request.patch",
+  "patch_sha256": "1caec8ceb65fb1cc56b369e991d83a33729ceb8216915c2e165edca92db1adf8",
+  "replay_and_reverse_verified": true
+}
