@@ -1,0 +1,63 @@
+{
+  "project_commit": "e025cf58bf3fc6745222b1d72039f785ad1ff5de",
+  "inputs_sha256": "c05823e4fb2b6853e9fd0d08a51e7c22ea7afb3d9603e9f49d57bf1ad36fdcd5",
+  "source_integrity": "source_tree_integrity=f6f52f7904c58c7b79020e7cb14f74239fc3335e604a4e3ae102b3f902f17351",
+  "compiler": "aarch64-linux-gnu-gcc-6 (Debian 6.3.0-18) 6.3.0 20170516",
+  "linker": "GNU ld (GNU Binutils for Debian) 2.28",
+  "config_sha256": "486392ac9152365891c50ffdee56be1b6ed1aed61d588aa66e29f966604202ff",
+  "configuration_delta": {
+    "CONFIG_ANBOX": [
+      null,
+      "n"
+    ],
+    "CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR": [
+      null,
+      "y"
+    ]
+  },
+  "build_environment": {
+    "HOST_EXTRACFLAGS": "-fcommon",
+    "KBUILD_BUILD_USER": "gemini",
+    "KBUILD_BUILD_HOST": "buildbox",
+    "KBUILD_BUILD_VERSION": "1",
+    "KBUILD_BUILD_TIMESTAMP": "Thu Jan 1 00:00:00 UTC 1970"
+  },
+  "target_cflags": "-fstack-usage",
+  "undefined_symbols": 0,
+  "diagnostic_lines": 1,
+  "boot_candidate": false,
+  "device_execution": false,
+  "scope": "complete native kernel link only",
+  "inputs_file": "full-kernel-inputs.json",
+  "patch_count": 44,
+  "outputs": {
+    "vmlinux": "3e845b37c402c30b707de481e8f4811bdc9dac2bdd0e87cddcba35e54887ffac",
+    "Image.gz-dtb": "bb632b4a1d570cb5ff6f1a5cdd026c81ce40d16d8cd53580e7828d4f41f47b5e",
+    "config": "486392ac9152365891c50ffdee56be1b6ed1aed61d588aa66e29f966604202ff",
+    "System.map": "5ee5812bacd444258e2358b1bdb99a70dddfef9a210bdcff2cdc9e597fc3e185"
+  },
+  "verification": {
+    "package_files": 11,
+    "package_sha256_manifest": "8571090db8fd08715e4a9772b850288f272bb70a9765a5b3372515b03e81e8b2",
+    "all_remote_and_fetched_checksums_match": true,
+    "diagnostic": "WARNING: modpost: Found 69 section mismatch(es).",
+    "baseline_comparison": "41-patch full link and retained observer report the same count; mismatch identities not compared, not a warning-clean claim",
+    "linked_arch_reset": {
+      "section": ".text",
+      "address": "ffffffc0009270f8",
+      "size_bytes": 24,
+      "instructions": [
+        "stp x29, x30, [sp, #-16]!",
+        "mov w0, #1",
+        "mov x29, sp",
+        "bl wdt_arch_reset",
+        "ldp x29, x30, [sp], #16",
+        "ret"
+      ],
+      "only_call": "wdt_arch_reset(1)",
+      "rtc_calls": 0,
+      "indirect_calls": 0,
+      "scope": "compiled wrapper only; no device execution or complete notifier isolation"
+    }
+  }
+}

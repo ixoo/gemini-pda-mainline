@@ -58,9 +58,11 @@ inherit `-w`, so this is not warning-clean evidence. Source integrity matched
 before and after compilation. All 19 package files passed remote inventory and
 checksum validation and checksum verification after fetch.
 
-The patch is appended to the [43-patch full-kernel inputs](full-kernel-inputs.json)
+The patch occupies entry 43 in the [full-kernel inputs](full-kernel-inputs.json)
 without changing the preceding entries or canonical upstream profiles. The
-existing full-link receipt covers 41 patches; a new complete link is pending.
-System restart/notifier effects, remaining shared-resource consumers, minimal
-PID1, capture zero-state preparation and the owner-approved radio/recovery
-session remain separate prerequisites. No device access occurred here.
+[updated complete link](FULL_KERNEL.md) covers all 44 entries, including the
+subsequent RTC restart-wrapper correction. The [minimal PID1](BOOT_STARTUP.md)
+is implemented and tested separately but is not yet packaged. Remaining restart
+notifier effects, shared-resource consumers, capture zero-state preparation,
+complete packaging and the owner-approved radio/recovery session remain
+prerequisites. No device access occurred here.

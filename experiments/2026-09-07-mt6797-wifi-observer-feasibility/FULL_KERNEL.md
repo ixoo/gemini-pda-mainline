@@ -55,16 +55,23 @@ The [complete link receipt](results/full-kernel-link.json) records success at
 match the remotely validated inventory and checksum manifest. The full source
 tree retained its integrity digest through compilation, all required entry
 points are linked, and the linked kernel has no unresolved symbols.
-That receipt covers the original 41-patch input manifest. The newly selected
-calibration and reset-isolation corrections have passed native object
-compilation, but the 44-patch composition has not yet been fully linked.
+That receipt covers the original 41-patch input manifest. The
+[44-patch link receipt](results/full-kernel-link-44.json) records the complete
+updated build from `e025cf58bf3fc6745222b1d72039f785ad1ff5de`, including the
+calibration, reset-isolation and restart-wrapper corrections. All eleven package
+files passed remote inventory/checksum validation and local verification after
+fetch. Source integrity remained unchanged, the required entry points are linked,
+and no undefined symbols remain.
 
 The last patch routes experimental `arch_reset()` directly to the existing
 `wdt_arch_reset(1)` before RTC recovery/fastboot/charging-mode writes. The
 low-level owner parks after takeover and retains its normal reset path before
 takeover. This avoids introducing a new lock across potentially sleeping RTC
-operations. Ordinary builds retain their original wrapper. Full compilation
-and inspection of the linked wrapper remain pending for this last correction.
+operations. Ordinary builds retain their original wrapper. In the final linked
+ARM64 kernel, `arch_reset` is 24 bytes in `.text`: its only call is
+`wdt_arch_reset` with argument one, followed by return. It contains no RTC call
+or indirect watchdog-API dispatch. This establishes the wrapper's compiled
+control flow, not complete isolation of restart notifiers or other kernel actors.
 
 Modpost reports 69 section mismatches. The retained observer package reports
 the same count, but mismatch identities have not been compared. Native compiler
