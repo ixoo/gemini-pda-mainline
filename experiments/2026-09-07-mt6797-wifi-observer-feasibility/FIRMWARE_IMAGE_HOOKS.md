@@ -16,8 +16,8 @@ in that order. The canonical kernel series and profiles do not select it.
 
 A stack-owned witness in `gl_init.c` receives the borrowed allocation pointer,
 length, adapter identity and read transaction only after successful mapping
-publication is recorded. The separate ACPI power-management mapper passes a null witness and retains
-its existing loader path. The synchronous `wlanAdapterStart()` call passes that
+publication is recorded. The separate ACPI power-management mapper passes a
+null witness and retains its existing loader path. The synchronous `wlanAdapterStart()` call passes that
 witness to `wlanImageDividDownload()`. Before additional buffer reads, the
 observer requires the actual argument and header pointers to equal the witness,
 a live matching DMA binding, and exactly 411632 bytes. It checks the MTKE
@@ -75,7 +75,17 @@ The existing full image/EMI checker retains its separate requirements.
 
 For native compilation, `check-startup-objects.py COMMIT --firmware-image` uses
 the clean pushed checkout on Buildbox, applies all fifteen prerequisite patches,
-and compiles complete `gl_kal.c`, `gl_init.c`, `wlan_lib.c`, `nic_pwr_mgt.c` and `hif_fw_capture.c`
-translation units. It checks modified header dependencies and emitted capture
-calls. Until a result receipt is recorded, this is a reproduction path, not a
-compilation claim. It creates no kernel image and performs no device action.
+and compiles complete `gl_kal.c`, `gl_init.c`, `wlan_lib.c`, `nic_pwr_mgt.c` and
+`hif_fw_capture.c` translation units. It checks modified header dependencies and
+emitted capture calls. The [compile receipt](results/firmware-image-object-compile.json)
+records a successful run at `2d1c0e4370d9844a6dd622208a11d487ee59c14d` and exact
+remote/local verification of all 26 package files. The native flags retain `-w`;
+zero diagnostics do not establish warning-clean code. The emitted hash helper
+reserves 304 stack bytes, excluding caller and crypto-backend frames. This is
+not a complete stack budget. No kernel image or device action was performed.
+
+An earlier four-unit compile at `f87a941846bc0deb2772cb8f40cc47ebe2f7f573`
+missed the second mapping caller in `nic_pwr_mgt.c`. The recorded five-unit
+success supersedes it. The [Linux repository check](https://github.com/ixoo/gemini-pda-mainline/actions/runs/34473691629)
+passed at the five-unit input commit, including the mandatory Linux provenance
+fixture and all eight changed publication paths.
