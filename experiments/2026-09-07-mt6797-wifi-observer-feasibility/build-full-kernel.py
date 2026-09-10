@@ -8,6 +8,7 @@ from pathlib import Path
 import platform
 import re
 import shutil
+import subprocess
 import sys
 import tempfile
 
@@ -112,8 +113,27 @@ def main():
         assert count == 1;cust.write_text(data)
         assert digest(cust) == pins['cust_dtsi_sha256']
         with (work / 'build.log').open('w') as stream:
-            native.compile_logged(command + ['-j' + str(jobs), 'V=1', 'Image.gz-dtb'],
-                                  stream, env=environment, timeout=3600)
+            result = subprocess.run(command + ['-j' + str(jobs), 'V=1', 'Image.gz-dtb'],
+                                    stdout=stream, stderr=subprocess.STDOUT,
+                                    env=environment, timeout=3600)
+        if result.returncode:
+            failure = package.with_name(package.name + '-failed')
+            assert not failure.exists()
+            failure.mkdir()
+            for name in ('build.log', 'configure.log', 'dct.log'):
+                shutil.copyfile(work / name, failure / name)
+            (failure / 'result.json').write_text(json.dumps({
+                'project_commit': commit, 'inputs_sha256': identity,
+                'build_exit_status': result.returncode, 'boot_candidate': False}) + '\n')
+            (failure / 'SHA256SUMS').write_text(''.join(
+                digest(p) + '  ' + p.name + '\n' for p in sorted(failure.iterdir())))
+            run(['sha256sum', '--check', '--strict', 'SHA256SUMS'], cwd=failure)
+            errors = [line for line in (work / 'build.log').read_text().splitlines()
+                      if re.search(r'error:|undefined reference|Error [0-9]|No rule to make', line, re.I)]
+            print('\n'.join(errors), flush=True)
+            print(json.dumps({'failure_package': failure.name,
+                              'manifest_sha256': digest(failure / 'SHA256SUMS')}), flush=True)
+            result.check_returncode()
         symbol_map = (output / 'System.map').read_text()
         for name in ('mtk_wdt_capture_begin', 'mtk_wdt_recovery_arm', 'mt6797_wfc_request_begin',
                      'mt6797_wfc_request_end', 'ramoops_capture_begin', 'ramoops_capture_append'):
