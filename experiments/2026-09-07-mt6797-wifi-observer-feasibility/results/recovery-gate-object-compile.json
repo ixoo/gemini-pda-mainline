@@ -1,0 +1,79 @@
+{
+  "commit": "c421ee8f6ed34ecd0690dd8a1f758c3560d5d78a",
+  "source_revision": "59e00a9144d782e148332009a835b99c43382467",
+  "compiler": "aarch64-linux-gnu-gcc-6 (Debian 6.3.0-18) 6.3.0 20170516",
+  "toolchain_sha256": "a45d945f092461a611d276ad7d0a0fea1ea8a7f93db413908bcb892c12817d14",
+  "config_sha256": "c96ca5c8a767b93f59487c9b4a1c3d05c1f47c166f3f9ea9f2b7ffe0f6f1f0fb",
+  "configuration_delta": {
+    "CONFIG_ANBOX": [
+      null,
+      "n"
+    ]
+  },
+  "compile_only_define": "CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR=1",
+  "selected_hardware_path": "TOPRGU; SPM and dummy watchdog branches excluded",
+  "patch_sha256": "ae05d7c2d7be3ceb6472ec16f936430f902cf310f13b57046043f1da89bfe995",
+  "parent_patch_sha256": "a3f55c86b0c3d3ca8aa5d49864d0574f5684fc58b2ab403609fdb6c1c5bade96",
+  "objects": [
+    {
+      "label": "parent-mtk_wdt",
+      "source": "drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c",
+      "source_sha256": "accee425dd694555694e5d7263db960958c0d47722505361aad7bf983f617993",
+      "object_sha256": "e317607f088b580729b02f74a54b61278238ccbd272ffba4c525dbe783973d13",
+      "header_sha256": "a5bb2b27d35b7ac1381ee50807d6fe658055d326d2788217113822d06c82eab7"
+    },
+    {
+      "label": "child-mtk_wdt",
+      "source": "drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c",
+      "source_sha256": "accee425dd694555694e5d7263db960958c0d47722505361aad7bf983f617993",
+      "object_sha256": "fd2f1e57a497f273482abd9e796f80337acb59e9dc525b22185a7520d21ce684",
+      "header_sha256": "42349c920e4b34a36627d487262b90f2b27e01f9fbc1918d50728adf831e6f99"
+    },
+    {
+      "label": "parent-wd_common_drv",
+      "source": "drivers/watchdog/mediatek/wdk/wd_common_drv.c",
+      "source_sha256": "ce82e6c861affe32baa7061055ad74c4eca8c304adeb996f4a8619de963485e9",
+      "object_sha256": "cafdba847094155ac49ef339768f61ce91a61d9928a5e1f0f166fff21fc485ff",
+      "header_sha256": "a5bb2b27d35b7ac1381ee50807d6fe658055d326d2788217113822d06c82eab7"
+    },
+    {
+      "label": "child-wd_common_drv",
+      "source": "drivers/watchdog/mediatek/wdk/wd_common_drv.c",
+      "source_sha256": "6f9e295d6e980505bc73105ef6693f5cdb111894aea9102fbed129c275875fed",
+      "object_sha256": "01ab6ff7ec27bcbdb15f617a6770bb49cd68fa1fe8b6d1b97cdccb0fa403be4e",
+      "header_sha256": "42349c920e4b34a36627d487262b90f2b27e01f9fbc1918d50728adf831e6f99"
+    },
+    {
+      "label": "parent-ram",
+      "source": "fs/pstore/ram.c",
+      "source_sha256": "ea7427e08efa3ad455f6dc5784164d5dd7b1098ce714f5ef88b6ff86188ee609",
+      "object_sha256": "2eb3717b6fb235ec324aa6baced32e0af900302fc7236d04e2f096504a413aa5",
+      "header_sha256": "a5bb2b27d35b7ac1381ee50807d6fe658055d326d2788217113822d06c82eab7"
+    },
+    {
+      "label": "child-ram",
+      "source": "fs/pstore/ram.c",
+      "source_sha256": "ea7427e08efa3ad455f6dc5784164d5dd7b1098ce714f5ef88b6ff86188ee609",
+      "object_sha256": "724c1bfcf8871ed93885eaf3dc53aa4752f682a48e3041acb6c3948ee1f724ea",
+      "header_sha256": "42349c920e4b34a36627d487262b90f2b27e01f9fbc1918d50728adf831e6f99"
+    }
+  ],
+  "fixture": "15 capture/arm boundary cases, one-shot and invalid argument refusal passed",
+  "warning_policy": "Recorded native -w retained; not warning-clean evidence",
+  "boot_candidate": false,
+  "device_access": false,
+  "prerequisites": {
+    "experiments/2026-08-02-a72-recovery-only-discriminator/patches/0002-diagnostic-add-exclusive-TOPRGU-recovery-owner.patch": "a3f55c86b0c3d3ca8aa5d49864d0574f5684fc58b2ab403609fdb6c1c5bade96",
+    "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/recovery-setters/0001-watchdog-serialize-setters-with-diagnostic-takeover.patch": "4f4eee696a5a9b2bca4d2d698b590ceb2cc8287525023ce52962f1e1c8b12396",
+    "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/pstore/0001-pstore-report-native-pmsg-backend-write-failures.patch": "41a64284f4013ccd7c8bfa7fa0adb78a0b001f289970319310a6cb193848184b",
+    "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/pstore/0002-pstore-preserve-native-records-when-backend-erase-fa.patch": "48b3b5f3bac483c4c85a65cba5756f3b577dd1f9bbb2a723ff1630df02812565",
+    "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/pstore/0003-pstore-preserve-old-log-on-allocation-failure.patch": "f59195e7009ea7dd8299d6d627962338cebdc3d9022e9e3047cedacca283b060",
+    "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/pstore/0004-pstore-reserve-native-pmsg-for-capture.patch": "f79230f50760d4bf45c71660dd65bc68c872e56f953c2bcfecacc9f66b9353cf",
+    "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/pstore/0005-pstore-freeze-native-capture-parameters.patch": "871664dbdf4ea52615e5151e677feacce6f0a84dce2cf2f20a0497eff54e1ae6",
+    "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/pstore/0006-pstore-release-mapped-zones-on-probe-failure.patch": "1f55211e3a156cdc4097d6d460bd5f27d10701d9caeb59707930760edcf78bd1",
+    "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/pstore/0007-pstore-integrate-native-fixed-slot-capture.patch": "f6d7ecd752b8693b3f8b3f226f8fcc9489f74c243f757797fd11549bdc96523b",
+    "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/pstore/0008-arm64-dts-reserve-native-pmsg-without-linear-alias.patch": "20ad1e7ac53a0f8eed94f63529cb054ef4e98b75c92f532c240e14bc33c7ecf6",
+    "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/pstore/0009-pstore-retain-rejected-capture-access-in-tail.patch": "744d6bc4e167e7f2722246c42fd61e92819604d0688af707d97dfff0173d7be9",
+    "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/pstore/0010-pstore-expose-native-capture-activity-to-built-ins.patch": "e063c558c21328d99d7e11d7638a58bebe93642b1e740c7bf3466619f1d6ab97"
+  }
+}

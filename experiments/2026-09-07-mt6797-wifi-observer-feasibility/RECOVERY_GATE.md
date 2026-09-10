@@ -68,7 +68,15 @@ duplicate refusal. It uses injected arm/capture operations; the low-level arm
 and setter tests remain separate. The slot-writer test roundtrips both recovery
 records through the actual host writer and decoder. Framing tests reject bad
 readback, ordering, transaction and status fields. These tests and strict
-Checkpatch pass; native kernel compilation is still pending.
+Checkpatch pass. The [native compilation receipt](results/recovery-gate-object-compile.json)
+records six successful complete-object compilations and the same fifteen
+boundary cases on Buildbox at `c421ee8f6ed34ecd0690dd8a1f758c3560d5d78a`.
+All twenty-nine returned files match the remote inventory and twenty-eight-entry
+checksum manifest, SHA-256
+`56a1bff40dc8c282291336f01e932c972960b6b86ab1881cd863c772d01ef379`.
+The changed native slot-writer header is byte-identical to the host-tested
+header. Native compiler commands retain baseline `-w`; this is not
+warning-clean evidence or a link of the complete Wi-Fi/recovery combination.
 
 The [Buildbox object checker](check-recovery-setters.py) accepts the additional
 `--gate` argument after the exact published commit. It reconstructs both sides
