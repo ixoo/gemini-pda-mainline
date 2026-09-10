@@ -366,7 +366,10 @@ def main():
                 for path, expected in pinned[section].items():
                     assert digest(tree / path) == expected, path
         if emi_capture:
-            for path, expected in emi_pins["outputs"].items():
+            final_sources = dict(emi_pins["outputs"])
+            if request_firmware:
+                final_sources.update(request_fw_pins["outputs"])
+            for path, expected in final_sources.items():
                 assert digest(patched / path) == expected, path
         elif firmware_image:
             for path, expected in image_pins["outputs"].items():

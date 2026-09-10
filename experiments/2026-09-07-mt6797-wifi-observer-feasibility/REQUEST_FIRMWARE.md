@@ -87,3 +87,10 @@ The focused Buildbox mode is
 runs both request fixtures at their source boundaries and checks the new native
 helper dependencies/calls in the fifteen complete translation units.
 Native compilation is pending; no new device test or boot candidate exists.
+
+The first Buildbox attempt at `ffaa13fb278e58f1fe43d5267d25b4df153a2845`
+passed both source-boundary fixtures, then refused before compilation because
+the final EMI-family check still required the parent firmware-helper digest.
+The successor mode now requires the four pinned child outputs in that final
+check, retaining all unchanged EMI pins and the existing parent/child boundary
+checks. This was a checker composition error, not a native compiler result.
