@@ -2,12 +2,16 @@
   "source_revision": "59e00a9144d782e148332009a835b99c43382467",
   "scope": "Unselected native shutdown error propagation; no runtime or ownership proof",
   "parents": {
-    "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c": "e9f438c5c6033f0bf831347c69d656ec917b3e705648d3d27fb1b27409334f1e"
+    "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c": "65b168931973cc8cca5894a17a373cd581f703758935c471068beac8f199984a"
   },
   "outputs": {
-    "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c": "b0668d2836cec5d249febe6f6db0f403ee017fae3d903780c2d5ccf6f16a721f"
+    "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c": "57618a982c52e9cfe656e2756b02612782ca825926085c1e0e9ee65955f8db76"
   },
   "patch": "0001-wmt-preserve-common-shutdown-errors.patch",
-  "patch_sha256": "ac499ea2ebd9167096dddeddd2cb810479631c6ebf4388100458609275c19785",
-  "replay_and_reverse_verified": true
+  "patch_sha256": "bc225be459254a7b8a5f6fd75b5ffcbcee1176aa1c5aed1531d38108ef355bc0",
+  "replay_and_reverse_verified": true,
+  "preceding_patch": {
+    "path": "patches/0002-wmt-use-one-startup-attempt.patch",
+    "sha256": "a48a597e589b5982e699eff0ff093e1a0619de853ca3148706528577c50f9cb4"
+  }
 }

@@ -13,9 +13,12 @@ preserves the first nonzero result across these two boundaries. It still runs
 the existing teardown and common power-off sequence, including native state
 assignments and shortcut behavior. Later failures retain their diagnostics;
 the first failure is returned. The [source receipt](results/common-off-errors-sources.json)
-pins the complete original and changed `wmt_core.c` and verifies patch replay
-and reversal against public Gemian revision
-`59e00a9144d782e148332009a835b99c43382467`.
+pins the complete parent and changed `wmt_core.c` and verifies patch replay
+and reversal after the existing single-startup-attempt patch on public Gemian
+revision `59e00a9144d782e148332009a835b99c43382467`. The first Buildbox attempt
+refused the original receipt's unpatched baseline hash at this composition
+boundary. Regenerating against the actual parent preserves the same two
+shutdown-function edits and the earlier startup correction.
 
 This is an unselected native experiment correction. It changes no canonical
 series or device candidate and supplies no DCO certification. The planned
