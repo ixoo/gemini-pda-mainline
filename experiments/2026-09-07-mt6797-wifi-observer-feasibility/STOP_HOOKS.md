@@ -100,6 +100,28 @@ dictionaries were unavailable. This is not an upstream submission.
 The Buildbox `check-startup-objects.py COMMIT --stop` lane compiles the complete
 native adapter, glue, accessor and new helper units after applying the full
 pstore/DMA/stop dependency chain. It verifies patched header dependencies.
-Compilation is pending for these inputs. A full kernel rebuild and link,
-controller integration and independent watchdog recovery remain required
-before candidate admission; no device action is selected.
+The [validated Buildbox package](results/stop-capture-object-compile.json)
+passes from clean published input `ca870bc02c9a7c55318d5d384b3e0f60f839fc65`:
+three original and four patched translation units compile, and all 21 package
+files pass remote/local checksum verification. The helper uses the recorded
+`ahb.c` compiler flags and has no baseline counterpart. Native commands retain
+`-w`; empty compiler logs do not establish warning-clean code.
+
+Two earlier checks were rejected before packaging. The first omitted the
+patched NIC basename include directory used by `precomp.h`. After that was
+fixed, the check wrongly required the dispatcher header in `ahb.c`, which does
+not use it. A diagnostic replay identified that unit and its actual patched
+HIF/library dependencies. The final check requires the dispatcher header in
+its adapter/glue consumers, the patched library/HIF headers in all three native
+units, and the public pstore header in the helper.
+
+Emitted code contains the direct captured accessor, both dispatch branches,
+entry/command gates, fallback counter and final stop records. Both native
+callers pass their intended distinct IDs. The compiler duplicates some gate
+record sites across mutually exclusive branches; these are not extra runtime
+records. The prior DMA call sites remain in the accessor unit. These checks
+establish object integration, not physical timing or full-cycle behavior.
+
+A full kernel rebuild and link, remaining producer/controller integration and
+independent watchdog recovery remain required before candidate admission;
+no device action is selected.

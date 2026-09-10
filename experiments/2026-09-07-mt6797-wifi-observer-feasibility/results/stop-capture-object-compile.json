@@ -1,0 +1,129 @@
+{
+  "project_commit": "ca870bc02c9a7c55318d5d384b3e0f60f839fc65",
+  "source_commit": "59e00a9144d782e148332009a835b99c43382467",
+  "scope": "4 complete translation units; no kernel link or device execution",
+  "patched_header_sha256": "6c3b27541dc9714329e474bfb1cd7178ad2fbe900793746c35ba2f45694cc507",
+  "toolchain_manifest_sha256": "a45d945f092461a611d276ad7d0a0fea1ea8a7f93db413908bcb892c12817d14",
+  "config_sha256": "c96ca5c8a767b93f59487c9b4a1c3d05c1f47c166f3f9ea9f2b7ffe0f6f1f0fb",
+  "config_delta": {
+    "CONFIG_ANBOX": [
+      null,
+      "n"
+    ]
+  },
+  "patches": {
+    "0001-pstore-report-native-pmsg-backend-write-failures.patch": "41a64284f4013ccd7c8bfa7fa0adb78a0b001f289970319310a6cb193848184b",
+    "0002-pstore-preserve-native-records-when-backend-erase-fa.patch": "48b3b5f3bac483c4c85a65cba5756f3b577dd1f9bbb2a723ff1630df02812565",
+    "0003-pstore-preserve-old-log-on-allocation-failure.patch": "f59195e7009ea7dd8299d6d627962338cebdc3d9022e9e3047cedacca283b060",
+    "0004-pstore-reserve-native-pmsg-for-capture.patch": "f79230f50760d4bf45c71660dd65bc68c872e56f953c2bcfecacc9f66b9353cf",
+    "0005-pstore-freeze-native-capture-parameters.patch": "871664dbdf4ea52615e5151e677feacce6f0a84dce2cf2f20a0497eff54e1ae6",
+    "0006-pstore-release-mapped-zones-on-probe-failure.patch": "1f55211e3a156cdc4097d6d460bd5f27d10701d9caeb59707930760edcf78bd1",
+    "0007-pstore-integrate-native-fixed-slot-capture.patch": "f6d7ecd752b8693b3f8b3f226f8fcc9489f74c243f757797fd11549bdc96523b",
+    "0008-arm64-dts-reserve-native-pmsg-without-linear-alias.patch": "20ad1e7ac53a0f8eed94f63529cb054ef4e98b75c92f532c240e14bc33c7ecf6",
+    "0009-pstore-retain-rejected-capture-access-in-tail.patch": "744d6bc4e167e7f2722246c42fd61e92819604d0688af707d97dfff0173d7be9",
+    "0010-pstore-expose-native-capture-activity-to-built-ins.patch": "e063c558c21328d99d7e11d7638a58bebe93642b1e740c7bf3466619f1d6ab97",
+    "0001-wlan-observe-native-AHB-DMA-lifetimes.patch": "40d00262ed2ce3edd5ad46af97f288a2eadde77da5bfdf7dba906ea874191c15",
+    "0001-wlan-capture-native-adapter-stop-decisions.patch": "5175620e3287f01a80d8f009ab3d3112ac4f75ec4186e4c2a35632e15f261291"
+  },
+  "objects": [
+    {
+      "file": "drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c",
+      "baseline_source_sha256": "56bf99536fcb96de5a5198943aec96c9efccb8af89261b29c62046e6560c422f",
+      "baseline_object_sha256": "648950652c8e19de366299a5cad00a554b73fb886f67250f0e3ea1f5a56459d4",
+      "patched_source_sha256": "75c3edd71acefcbacaa8f045328f93a27fa0070478b16e9591f69b67c303e15d",
+      "object_sha256": "b8eeb1801bcb710b18acb99a1ede13dd917ea7a7b5329c28f9154720c9ef04c8",
+      "baseline_command_sha256": "6a10f869c399311c709b44b88ad362fc0bd49002a28717cabde2254696b5f19f",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c",
+      "baseline_source_sha256": "8a644f0c9f3e37c6f66654cf3aeecb8e5f4cd71405e67f79105da7c8f87a7665",
+      "baseline_object_sha256": "a48580a83e977691991f440845c100bb9579bf1de25d85bba721ef6f63d3a6a3",
+      "patched_source_sha256": "bb40fc6eb4e40d4471dfcbea0b470b21162703afad9821ce6eaf7a7f57326438",
+      "object_sha256": "637cb995879cb427d09fe521585529078531b698b89cdb91832cbed6eb829088",
+      "baseline_command_sha256": "823fdbf00749a07cf7aaf02ca743b2d20f17b440ac3aba85ef6592dc7e5c60e4",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c",
+      "baseline_source_sha256": "d9b4e80fe98695284627e495ad640e39728ebe7df235df129f64d48e8a2e726b",
+      "baseline_object_sha256": "c8813297e74469a8c4d1fcb3c40dd922abbcdf5549113a160f380244777be0ba",
+      "patched_source_sha256": "08c4c61ad812537877f66dcba933cea79c1feaffd7c8c7a62353d8ead53ec85c",
+      "object_sha256": "8351b6bf6fec282e461f43e5ba029ae742c060c55ccfffed327e511f55a959a5",
+      "baseline_command_sha256": "108cdd942be686edda98f7d93295045ea2b305a6b25c4a5b419a186341dcfe92",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/hif_stop_capture.c",
+      "baseline_source_sha256": null,
+      "baseline_object_sha256": null,
+      "patched_source_sha256": "4289a69abd944b294237d569de5c0d6543de9a3011d5621d3761022c50f9b63f",
+      "object_sha256": "1133a7602ba5713bfcfaed56dff320a107de9b98edf3b3d3fcddcd5bd90056a8",
+      "baseline_command_sha256": "108cdd942be686edda98f7d93295045ea2b305a6b25c4a5b419a186341dcfe92",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    }
+  ],
+  "package_files": 21,
+  "package_inventory_sha256": "dafaa9303d4de415ad82fc0e5d47d1d1caf5d4e1448e93646c8d029454c1e13e",
+  "remote_and_local_inventory_verified": true,
+  "emitted_call_sites": {
+    "wlan_lib": {
+      "kalDevRegReadCapture": 1,
+      "wfc_stop_begin": 1,
+      "wfc_stop_command": 3,
+      "wfc_stop_dispatch": 2,
+      "wfc_stop_entry": 3,
+      "wfc_stop_fallback": 1,
+      "wfc_stop_poll_end": 1,
+      "wfc_stop_read_begin": 1,
+      "wfc_stop_read_end": 1,
+      "wfc_stop_return": 1
+    },
+    "gl_init": {
+      "wlanAdapterStop": 2
+    },
+    "ahb": {
+      "kalDevRegReadCapture": 1,
+      "wfc_dma_abort": 1,
+      "wfc_dma_bind": 1,
+      "wfc_dma_map": 2,
+      "wfc_dma_poll_begin": 4,
+      "wfc_dma_poll_end": 6,
+      "wfc_dma_program": 4,
+      "wfc_dma_unbind": 1,
+      "wfc_dma_unmap": 4,
+      "wfc_stop_read_done": 1
+    },
+    "hif_stop_capture": {
+      "ramoops_capture_active": 1,
+      "ramoops_capture_append": 1,
+      "wfc_dma_abort": 7
+    }
+  },
+  "emitted_call_scope": "wlan_lib inventory covers only wlanAdapterStop; other inventories cover each complete object. Compiler-duplicated gate sites are mutually exclusive.",
+  "caller_arguments_verified": {
+    "normal_remove": 1,
+    "probe_failure": 2
+  },
+  "prior_rejections": [
+    {
+      "project_commit": "e2856fb159d70dac247c7732ca46e867eb10db9a",
+      "reason": "Patched NIC header missing from dependency set; added its basename include directory."
+    },
+    {
+      "project_commit": "b983bdb52540eab679e2c05b23f5eed694ef0f72",
+      "reason": "Header check wrongly required hal.h in ahb.c; diagnostic replay identified the unit and verified its actual patched HIF and library headers. Restricted dispatcher-header check to wlan_lib and gl_init."
+    }
+  ],
+  "validation_limits": [
+    "Three unmodified native baseline objects and four patched objects; new helper uses the recorded ahb compiler flags and has no baseline.",
+    "Native compiler commands retain -w; empty logs are not a warning-clean claim.",
+    "Patched HIF, capture and stop headers verified for all native consumers; patched NIC dispatcher verified in wlan_lib and gl_init only; public pstore header verified in helper.",
+    "Queued completion/wait result remains unobserved by capture and cannot pass ordinary stop consistency.",
+    "No full kernel link, controller/recovery integration, device execution or Wi-Fi support claim."
+  ]
+}
