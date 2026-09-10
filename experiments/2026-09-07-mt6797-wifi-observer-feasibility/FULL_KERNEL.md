@@ -64,8 +64,14 @@ files passed remote inventory/checksum validation and local verification after
 fetch. Source integrity remained unchanged, the required entry points are linked,
 and no undefined symbols remain.
 
-The newly appended restart gate has passed host ordering tests but its
-45-patch composition has not yet been fully linked.
+The [45-patch link receipt](results/full-kernel-link-45.json) records the complete
+restart-gate composition at `aa2c51767d0fab9ebbc187b6b355f30931e8c4d4`.
+All eleven package files passed remote and fetched checksum verification;
+source integrity, required symbols and absence of undefined symbols passed.
+The [linked restart inspection](RESTART_GATE.md) confirms the shared atomic
+claim precedes the inspected restart effects and remains inside IRQ exclusion
+during timer arming. The private startup assembly still binds the earlier
+44-patch package; no updated session or boot container is selected here.
 
 The RTC wrapper patch routes experimental `arch_reset()` directly to the existing
 `wdt_arch_reset(1)` before RTC recovery/fastboot/charging-mode writes. The

@@ -1,0 +1,48 @@
+{
+  "project_commit": "aa2c51767d0fab9ebbc187b6b355f30931e8c4d4",
+  "inputs_sha256": "c0f3331aca86b448d4b1821507a0a98732cd882683dba67ae8e7ae04107ffe33",
+  "source_integrity": "source_tree_integrity=9073b7fc33839f4da86f96919262ca247a859693b21ac9e532b4551015b27b51",
+  "compiler": "aarch64-linux-gnu-gcc-6 (Debian 6.3.0-18) 6.3.0 20170516",
+  "linker": "GNU ld (GNU Binutils for Debian) 2.28",
+  "config_sha256": "486392ac9152365891c50ffdee56be1b6ed1aed61d588aa66e29f966604202ff",
+  "configuration_delta": {
+    "CONFIG_ANBOX": [
+      null,
+      "n"
+    ],
+    "CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR": [
+      null,
+      "y"
+    ]
+  },
+  "build_environment": {
+    "HOST_EXTRACFLAGS": "-fcommon",
+    "KBUILD_BUILD_USER": "gemini",
+    "KBUILD_BUILD_HOST": "buildbox",
+    "KBUILD_BUILD_VERSION": "1",
+    "KBUILD_BUILD_TIMESTAMP": "Thu Jan 1 00:00:00 UTC 1970"
+  },
+  "target_cflags": "-fstack-usage",
+  "undefined_symbols": 0,
+  "diagnostic_lines": 1,
+  "boot_candidate": false,
+  "device_execution": false,
+  "scope": "complete native kernel link only",
+  "inputs_file": "full-kernel-inputs.json",
+  "patch_count": 45,
+  "outputs": {
+    "vmlinux": "82162df6aa3fd4fa2d1b62927e8ffb766f50caf0903864f49a104cf7506cf9f0",
+    "Image.gz-dtb": "afd449686723dcc49d8bebd90c3ed9f2f21d7522a56fa5927b8869e9aae95686",
+    "config": "486392ac9152365891c50ffdee56be1b6ed1aed61d588aa66e29f966604202ff",
+    "System.map": "ba13078bf15911ef03ad0289990bff20d69376f1803ad79bab24aec8984e6a92"
+  },
+  "verification": {
+    "package_files": 11,
+    "package_sha256_manifest": "9eaaca620ef7f9f747a93da7b010b76baf64dadf7e1cbdbd45cd5dd98a23e503",
+    "all_remote_and_fetched_checksums_match": true,
+    "changed_sources_match_restart_receipt": true,
+    "diagnostic": "WARNING: modpost: Found 69 section mismatch(es).",
+    "baseline_comparison": "41- and 44-patch full links report the same count; mismatch identities not compared, not warning-clean evidence",
+    "restart_inspection": "restart-gate.json"
+  }
+}

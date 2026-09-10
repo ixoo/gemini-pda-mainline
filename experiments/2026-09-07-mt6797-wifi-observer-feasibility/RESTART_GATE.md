@@ -44,8 +44,22 @@ not a simulation of ARM64 interrupt delivery or physical timer behavior.
 
 Strict checkpatch passes with the missing-signoff category excluded for the
 synthetic, non-certifying experiment archive. The patch is entry 45 in the
-[full-kernel inputs](full-kernel-inputs.json); native compilation and linked
-inspection are pending.
+[full-kernel inputs](full-kernel-inputs.json). The [complete native build](FULL_KERNEL.md)
+from `aa2c51767d0fab9ebbc187b6b355f30931e8c4d4` links successfully. Its four
+changed source files match this receipt, and the fetched eleven-file package
+matches the remotely verified inventory and checksums.
+
+In the final ARM64 binary, the three outer restart functions call the guard
+before their effects; the low-level reset contains an inlined guard. Both
+restart and takeover use the same four-byte claim, with `LDXR`/`STXR` and
+`DMB ISH` barriers. The captured branch loops without calls or register access.
+Takeover acquires its IRQ-save lock before the atomic claim, performs the
+existing three watchdog writes and readback, then restores IRQ state. The
+linked lock helpers save DAIF and mask IRQs before acquiring the lock, and
+restore the saved DAIF after releasing it. An earlier restart branches to
+`-EBUSY` before watchdog MMIO. These are inspected compiled paths, not device
+execution. The native build retains its 69 section-mismatch warning and `-w`;
+it is not warning-clean evidence.
 
 The gate changes no power-off, halt, suspend, panic body, direct firmware call
 or unrelated shared-resource consumer. It is not an NMI/FIQ safety mechanism.

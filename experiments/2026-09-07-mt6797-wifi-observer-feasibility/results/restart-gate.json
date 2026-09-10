@@ -27,6 +27,57 @@
       "excluded": "MISSING_SIGN_OFF: synthetic experiment archive without certification"
     }
   },
-  "native_compilation": "pending",
+  "native_compilation": {
+    "project_commit": "aa2c51767d0fab9ebbc187b6b355f30931e8c4d4",
+    "full_link_receipt": "full-kernel-link-45.json",
+    "linked_symbols": {
+      "mtk_wdt_recovery_restart_guard": {
+        "address": "ffffffc000926508",
+        "size_bytes": 60,
+        "section": ".text"
+      },
+      "mtk_wdt_recovery_arm": {
+        "address": "ffffffc0009267f8",
+        "size_bytes": 336,
+        "section": ".text"
+      },
+      "kernel_restart_prepare": {
+        "address": "ffffffc0000c3938",
+        "size_bytes": 76,
+        "section": ".text"
+      },
+      "emergency_restart": {
+        "address": "ffffffc0000c3910",
+        "size_bytes": 36,
+        "section": ".text"
+      },
+      "machine_restart": {
+        "address": "ffffffc000086b08",
+        "size_bytes": 104,
+        "section": ".text"
+      },
+      "wdt_arch_reset": {
+        "address": "ffffffc000926ad8",
+        "size_bytes": 476,
+        "section": ".text"
+      },
+      "arch_reset": {
+        "address": "ffffffc000926138",
+        "size_bytes": 24,
+        "section": ".text"
+      }
+    },
+    "guard_first_in_restart_prepare_emergency_and_machine_restart": true,
+    "guard_inlined_before_low_level_reset_effects": true,
+    "shared_claim_address": "ffffffc0016664f8",
+    "atomic_sequence": "DMB ISH; LDXR/STXR conditional compare-exchange; DMB ISH",
+    "owned_path": "branch to self without calls or watchdog register access",
+    "takeover_irq_save_before_claim_and_restore_after_readback": true,
+    "irq_save_helper": "MRS DAIF then MSR DAIFSET #2 before acquiring the lock",
+    "irq_restore_helper": "MSR DAIF with saved flags after releasing the lock",
+    "takeover_programming": "unchanged three MMIO writes with DSB SY and final readback",
+    "earlier_restart_refusal": "-EBUSY before watchdog MMIO",
+    "rtc_wrapper": "only wdt_arch_reset(1); no RTC call"
+  },
   "device_execution": false
 }
