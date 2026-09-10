@@ -847,3 +847,68 @@ The recorded flags include `-w`; this is target/header compatibility, not a
 warnings-enabled or full-kernel-link result. Temporary output was removed and
 the prepared source remained clean. Neither version was selected or executed
 on the Gemini.
+
+## Fixed-slot writer implementation
+
+[capture-slot-writer.h](capture-slot-writer.h) implements the WFC1 byte writer
+as an isolated C prototype. It has no kernel caller or physical mapping and is
+not part of the pstore patch series. The remaining integration must acquire
+the exact PMSG zone under the boot-long exclusion above, preserve old evidence,
+verify the fixed header and no-ECC layout, and serialize every call outside
+NMI context. A zero-initialized ordinary-RAM state permits one begin attempt;
+there is no retry, reset, clearing or ownership-release function.
+
+The [mapping receipt](results/capture-writer-sources.json) resolves the native
+source choices. With memtype zero, both `pgprot_writecombine()` in the vmap
+branch and `ioremap_wc()` in the I/O branch select `MT_NORMAL_NC`. Nonzero
+memtype selects different Device attributes in those branches and is outside
+this prototype's intended integration contract. Source selection does not
+prove a live page-table mapping, absence of conflicting cacheable aliases or
+DRAM retention. Native ARM64 `mb()` expands to `dsb(sy)`; `mmiowb()` is empty
+and is not a replacement. The writer uses explicit byte I/O and full barriers,
+without allocation, sleeping locks, ring operations or cache-maintenance calls.
+
+Begin reads all 65,524 payload bytes, including the unused tail, and refuses
+any nonzero byte without writing. On admission it writes the identity as slot
+zero. Each append constructs its own sequence, envelope, CRC and marker in a
+128-byte stack buffer, then consumes the attempt before inspecting its target.
+It checks all 128 target bytes for zero; writes the 124-byte body; executes a
+full barrier; reads back the entire body and still-zero marker; executes a
+full barrier; writes the four marker bytes; executes a full barrier; and reads
+back all 128 bytes followed by another full barrier. A mismatch stops the
+writer permanently without repair or a later terminal attempt. Successful
+readback alone advances the sequence. All reads in each verification pass
+complete even after a mismatch.
+
+After 510 ordinary records, the next otherwise valid event request writes a
+producer-overflow terminal in slot 510 and returns `-ENOSPC` only after its
+successful readback. An explicitly requested terminal can use that slot or an
+earlier slot. Every terminal closes the writer. Envelope argument failures
+also close it without storage access. Payload-specific lifecycle validation
+remains with the typed producers and existing reader; this primitive does not
+interpret DMA, power or firmware results.
+
+The [host test](test-capture-writer.py) compiles the exact header with injected
+byte I/O and checks its output against the independent Python codec/decoder.
+The [eight test groups](results/capture-writer-test.txt) cover all 128 event
+store interruption points, all 256 body/final readback fault positions, every
+lost nonzero event-byte store, every nonempty target-byte position, nonempty
+admission including the unused tail, exact operation ordering, invalid arguments
+and full capacity. Every failure checks that later event, terminal and begin
+requests make no further stores. These tests model program order and byte
+faults; they do not simulate ARM memory ordering, concurrent callers or reset.
+
+A reset after the last marker store can leave a complete record even before
+the function returns. Conversely a final-readback failure may leave complete
+bytes. The reader therefore still reports framing and producer status only;
+neither a marker nor the writer's volatile state supplies an independent
+success or isolation verdict after reset. A future controller must join the
+capture with its admitted watchdog/recovery and interference evidence.
+
+The existing object checker accepts `EXACT_PROJECT_COMMIT --capture-writer`.
+It compiles the header with emitted wrappers in the original native
+`ram_core.c` translation unit, using the pinned compiler/configuration and
+retaining disassembly. This checks native headers and generated code without
+integrating a caller. Target compilation is pending. Acquisition, header
+initialization, producer integration and physical retention remain unfinished;
+this prototype admits no reserved-memory access or device operation.

@@ -1,0 +1,30 @@
+{
+  "repository": "gemian/gemini-linux-kernel-3.18",
+  "revision": "59e00a9144d782e148332009a835b99c43382467",
+  "sources": [
+    {
+      "path": "arch/arm64/include/asm/barrier.h",
+      "bytes": 3259,
+      "sha256": "6020fd3caec4083cd2477f0667412408acbb6872166f2ee05d0069cc9ed35cec"
+    },
+    {
+      "path": "arch/arm64/include/asm/pgtable.h",
+      "bytes": 16066,
+      "sha256": "9cf8796f2131f8c19709d36c0ca082f23affc286e4a445c56c27f541c4a29e39"
+    },
+    {
+      "path": "arch/arm64/include/asm/io.h",
+      "sha256": "302462dde8842a65d60195f773b73b2f279aa20bd26c5e753fa629277887dd41"
+    },
+    {
+      "path": "arch/arm64/mm/ioremap.c",
+      "sha256": "a2d327d8b749be5b3b8d8a52d8a74b80fa75916635f4770b5b29ad27acd63d15"
+    },
+    {
+      "path": "fs/pstore/ram_core.c",
+      "sha256": "eb25a629b9dff9bbffedd7c90fd2a1045420792570cd0a775d78d3bd2c2ca1b6"
+    }
+  ],
+  "scope": "Source-resolved native mapping and barrier definitions; no live mapping or reset-retention evidence",
+  "writer_sha256": "6c484141882e9fe2cf8f5898f7dc107450fa97eea9c2a51f703ec1641e54ee14"
+}

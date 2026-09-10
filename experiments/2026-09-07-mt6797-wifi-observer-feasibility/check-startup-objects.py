@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-"""Buildbox-only WMT or pstore file compilation; does not build a kernel image."""
+"""Buildbox-only WMT, pstore or capture primitive compile; no kernel image."""
 
 import hashlib
 import json
@@ -53,11 +53,16 @@ def main():
     project = experiment.parents[1]
     commit = run(["git", "-C", str(project), "rev-parse", "HEAD"])
     assert len(sys.argv) in (2, 3) and sys.argv[1] == commit
-    pstore = len(sys.argv) == 3
-    assert not pstore or sys.argv[2] == "--pstore"
+    mode = sys.argv[2] if len(sys.argv) == 3 else "--wmt"
+    assert mode in ("--wmt", "--pstore", "--capture-writer")
+    capture = mode == "--capture-writer"
+    pstore = mode != "--wmt"
     relative = "fs/pstore/" if pstore else RELATIVE
     files = ("pmsg", "inode", "ram_core", "ram") if pstore else FILES
     label = "wifi-pstore-objects-" if pstore else "wifi-startup-objects-"
+    if capture:
+        files = ("ram_core",)
+        label = "wifi-capture-writer-objects-"
     assert not run(["git", "-C", str(project), "status", "--porcelain"])
     root = Path("/workspace/gemini-pda")
     source = root / "gemian-source/gemian-baseline" / REVISION
@@ -108,10 +113,24 @@ def main():
         else:
             shutil.copytree(source / headers, patched / headers)
         patch_dir = experiment / "patches" / "pstore" if pstore else experiment / "patches"
-        patches = sorted(patch_dir.glob("*.patch"))
-        assert len(patches) == (5 if pstore else 4)
+        patches = [] if capture else sorted(patch_dir.glob("*.patch"))
+        assert len(patches) == (0 if capture else 5 if pstore else 4)
         for patch in patches:
             subprocess.run(["git", "apply", str(patch)], cwd=patched, check=True)
+        if capture:
+            shutil.copyfile(experiment / "capture-slot-writer.h",
+                            patched / relative / "capture-slot-writer.h")
+            # External wrappers force emission of both static prototype bodies.
+            with (patched / relative / "ram_core.c").open("a") as stream:
+                stream.write('''
+#include "capture-slot-writer.h"
+int wfc_compile_begin(struct wfc_writer *w, u8 __iomem *p, size_t n,
+                      const u8 *c, const u8 *id)
+{ return wfc_writer_begin(w, p, n, c, id); }
+int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
+                       const u8 *p, size_t n)
+{ return wfc_slot_write(w, k, tx, p, n); }
+''')
         records = []
         header = headers + "/wmt_ctrl.h"
         if not pstore:
@@ -144,6 +163,13 @@ def main():
             if not pstore:
                 assert str(patched / header) in dependencies, name
                 assert str(source / header) not in dependencies, name
+            if capture:
+                assert str(patched / relative / "capture-slot-writer.h") in dependencies
+                table = run(["readelf", "-Ws", str(result)])
+                assert "wfc_compile_begin" in table and "wfc_compile_append" in table
+                disassembly = run([str(toolchain / "wrappers/aarch64-linux-gnu-objdump"),
+                                   "-dr", str(result)], env=environment)
+                (work / "capture-writer.disasm").write_text(disassembly + "\n")
             assert "AArch64" in run(["readelf", "-h", str(result)])
             records.append({"file": suffix, "baseline_source_sha256": digest(source / suffix),
                             "baseline_object_sha256": digest(baseline),
@@ -158,8 +184,11 @@ def main():
                    "toolchain_manifest_sha256": TOOLCHAIN,
                    "config_sha256": digest(output / ".config"), "config_delta": delta,
                    "patches": {p.name: digest(p) for p in patches}, "objects": records}
+        if capture:
+            receipt["capture_header_sha256"] = digest(experiment / "capture-slot-writer.h")
+            receipt["scope"] = "Native ARM64 header/object check with emitted wrappers; no owner integration, kernel link or device execution"
         package.mkdir()
-        for file in [log, *work.glob("*.o"), *work.glob("*-baseline.log"),
+        for file in [log, *work.glob("*.o"), *work.glob("*.disasm"), *work.glob("*-baseline.log"),
                      *(work / (Path(name).name + ".log") for name in files)]:
             shutil.copyfile(file, package / file.name)
         (package / "result.json").write_text(json.dumps(receipt, indent=2) + "\n")

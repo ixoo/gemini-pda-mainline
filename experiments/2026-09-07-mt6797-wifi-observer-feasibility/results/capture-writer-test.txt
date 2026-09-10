@@ -1,0 +1,15 @@
+scope=host injected byte I/O; no native mapping, synchronization, persistence or device execution
+compiler_flags=-std=gnu11 -Wall -Wextra -Werror -fPIC -shared
+test_bytes_match_independent_codec_and_order (__main__.WriterTests.test_bytes_match_independent_codec_and_order) ... ok
+test_capacity_commits_overflow_terminal (__main__.WriterTests.test_capacity_commits_overflow_terminal) ... ok
+test_every_body_and_final_readback_fault_stops (__main__.WriterTests.test_every_body_and_final_readback_fault_stops) ... ok
+test_every_interruption_preserves_prefix_and_stops (__main__.WriterTests.test_every_interruption_preserves_prefix_and_stops) ... ok
+test_invalid_arguments_close_without_stores (__main__.WriterTests.test_invalid_arguments_close_without_stores) ... ok
+test_lost_nonzero_store_is_detected_without_retry (__main__.WriterTests.test_lost_nonzero_store_is_detected_without_retry) ... ok
+test_nonempty_admission_including_tail_never_writes (__main__.WriterTests.test_nonempty_admission_including_tail_never_writes) ... ok
+test_nonempty_target_is_preserved (__main__.WriterTests.test_nonempty_target_is_preserved) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 2.461s
+
+OK
