@@ -1,0 +1,29 @@
+{
+  "scope": "private startup input filesystem; incomplete boot integration",
+  "runtime_sha256": "7ff2ebf4153d8055f92f3baa1c550a3376b913e680162de60a3557ca2d855294",
+  "builder_sha256": "867b711d0d085d44d2fdf1c47ccd947258bb368cfd2a19cd9ea9610f235272e3",
+  "filesystem_bytes": 23568419,
+  "archive_members": 1622,
+  "private_input_files": 5,
+  "calibration_storage_bytes_preserved": 514,
+  "checks": {
+    "private_source_manifests": true,
+    "private_package_checksums_in_vm_and_after_export": true,
+    "archive_input_bytes_match_manifests": true,
+    "archive_ownership_root_and_timestamps_zero": true,
+    "archive_types_regular_directory_symlink_only": true,
+    "input_file_modes_0400": true,
+    "alternate_lookup_files_absent": true,
+    "init_absent": true,
+    "host_package_access_restricted": true
+  },
+  "device_access": false,
+  "kernel_compilation": false,
+  "boot_candidate": false,
+  "limitations": [
+    "No PID1 or trigger; runtime read-only mount enforcement remains unimplemented.",
+    "Calibration structure and exact preservation do not prove factory provenance or board/firmware applicability.",
+    "Private file hashes, manifests, calibration and combined filesystem remain unpublished.",
+    "Kernel startup isolation and calibration open-error address-limit restoration remain prerequisites."
+  ]
+}

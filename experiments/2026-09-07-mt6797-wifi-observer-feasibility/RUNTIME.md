@@ -56,3 +56,7 @@ with boot integration still untested. The subsequent
 [native Gemian check](RUNTIME_NATIVE.md) passes the scoped ABI, clock, hashing
 and mocked controller/responder tests on Linux 3.18.41+ without an emulator.
 Actual connectivity and recovery remain outside that result.
+
+The subsequent [private input filesystem](STARTUP_FILESYSTEM.md) places the
+verified retained inputs at the selected lookup paths. It still has no init
+or trigger and remains incomplete boot integration.
