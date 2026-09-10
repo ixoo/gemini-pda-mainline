@@ -184,7 +184,6 @@ Not established:
 
 - complete physical legend coverage or the function of the four unknown
   contacts;
-- complete physical F1–F10 and Page Up/Page Down coverage;
 - IRQ-driven scanning, debounce, latency, rollover, ghosting, autorepeat,
   keyboard LEDs, wake, suspend/resume, or long-duration repeatability; and
 - equivalence across all Gemini hardware revisions.
@@ -206,7 +205,15 @@ See the [controlled comparison and startup correction](../../experiments/2026-09
 A subsequent [focused physical capture](../../experiments/2026-09-05-owner-away-experiment-preparation/keyboard/TTY_PATH_COMPARISON.md#focused-physical-validation-after-corrected-startup)
 observed correct plain 1, Shift+Fn+1 → F1, and lowercase A after modifier release.
 Each repeated F1 corresponded to a reported repeat of the held 1 key. This is
-one bounded diagnostic, not full function-key, rollover or wake acceptance.
+one bounded diagnostic, not rollover or wake acceptance.
+
+The subsequent [twenty-step capture](../../experiments/2026-09-05-owner-away-experiment-preparation/keyboard/COVERAGE_TEST.md#attended-result)
+observed correct F1–F10, Home/End/Page Up/Page Down, both Shift keys, Ctrl+A,
+Alt+A, Fn release and a short typing sequence, including all recorded repeat
+bytes. Nineteen instructed physical sequences matched. The Ctrl step recorded
+A released first, so Ctrl-first release while A remains held is still untested.
+The owner reported a readable and responsive console throughout. These are
+bounded mapping observations, not rollover, wake or long-duration acceptance.
 
 ## Evidence index
 

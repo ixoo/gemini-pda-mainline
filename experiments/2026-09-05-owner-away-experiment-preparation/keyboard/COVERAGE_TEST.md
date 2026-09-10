@@ -1,6 +1,8 @@
 # Twenty-step keyboard coverage preparation
 
-State: implementation prepared; Buildbox validation and live admission pending.
+State: attended capture completed. Build and delivery identities are recorded
+in [coverage-preparation-result.json](coverage-preparation-result.json); the
+[attended result](coverage-result.json) owns the runtime evidence.
 
 The focused hardware session showed that ordinary held-modifier repeats can
 exceed the original 64-event ceiling before a chord finishes. The reader's
@@ -37,3 +39,31 @@ repeat frames are preserved and validated; repeated character/function bytes
 remain an explicit VT mismatch for trace review. The analyzer does not certify
 the live identity, map, logger or owner witnesses. A complete attributable
 session must record those separately before any hardware-support claim.
+
+## Attended result
+
+All twenty ten-second windows completed and the monitor reaped the reader
+normally at 202.348 seconds, with no signals, lost identity or late cleanup.
+The corrected startup found zero queued bytes and accepted a fresh Space press
+and release. Export preserved all seven result files; the saved observer stream
+exactly matches the forwarded capture. Same-boot CPU, map, binding and console
+checks passed before and after. The owner confirmed all prompts remained
+readable and the keyboard responsive.
+
+All observed key presses and repeats produced the expected console bytes:
+F1–F10, Home/End/Page Up/Page Down, both Shift keys, Ctrl+A, Alt+A, Fn release,
+and `help` followed by Enter. The 361 repeat events remain in private evidence.
+Nineteen instructed physical sequences matched exactly. Step 17 recorded A
+released before Ctrl; the requested Ctrl-first release while A remained down
+was therefore not exercised. Its Ctrl+A and subsequent plain A translated
+correctly for the observed ordering. The owner was unsure which key was
+released first, so the requested ordering check remains unresolved. This
+distinction is retained in the result.
+
+The strict single-tap byte oracle matches nine cases; the other eleven include
+legitimate character/function repeats. A bounded review reconstructed output
+from each recorded press/repeat and its held modifiers, using the verified map
+and protocol function strings, and matched every case. This is an observed
+translation result, not a claim that the original twenty single-tap sequences
+all passed. The remaining acceptance item is the specific Ctrl-first release
+ordering, followed by separately scoped reliability and wider coverage work.

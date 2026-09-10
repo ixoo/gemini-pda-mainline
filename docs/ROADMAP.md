@@ -315,11 +315,15 @@ The remaining preparation order is:
    authenticated userspace, logging and reviewed recovery closure. Repair only
    an identified invalidated prerequisite; a similarly named newer profile is
    not a replacement for recorded inputs. Do not spend a boot on another marker.
-2. **Keyboard coverage:** the [corrected Dropbear disconnect proof](../experiments/2026-09-08-keyboard-console-ownership/DISCONNECT_RETEST.md#attended-result) passed. Finish fresh
-   runtime/custody admission, finite owner key sequence, classification and
-   complete private evidence export; establish same-boot prerequisites again. Reuse the measured monitor and exact enabled
-   Buildbox package; inert binary delivery alone is not a device test. Its runtime
-   gate needs the first baseline USB/console pass, not all ten cold boots.
+2. **Keyboard coverage:** the [twenty-step attended capture](../experiments/2026-09-05-owner-away-experiment-preparation/keyboard/COVERAGE_TEST.md#attended-result)
+   completed with preserved evidence and correct translation of every observed
+   press/repeat. Finish the single unexercised Ctrl-first release ordering;
+   nineteen instructed physical sequences matched, while the Ctrl step recorded
+   A released first. Reuse same-boot admission and the corrected startup for a
+   bounded follow-up, then address wider physical coverage and reliability.
+   Do not repeat the whole function-key sequence or baseline solely for this
+   remaining ordering check. The runtime gate needs the first baseline
+   USB/console pass, not all ten cold boots.
 3. **Wi-Fi:** compile the connected transfer components through the actual Linux
    interfaces, then complete a validated whole-image plan and shared EMI/AP-DMA
    ownership. Identify the retained calibration record's producer, restoration

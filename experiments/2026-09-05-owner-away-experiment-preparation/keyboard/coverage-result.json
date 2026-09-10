@@ -1,0 +1,1146 @@
+{
+  "baseline": {
+    "candidate_sha256": "7dfc3b1f771a12b8e711f699cf8fcfd2678aedc15bc9d8bcc98554f9c6654cdb",
+    "config_sha256": "194834d90eb2443f4b14ba8f2078ba16fe0c63f69088fcc8c063fe25af01c410",
+    "dtb_sha256": "e1e4eca289320533bad5c879e78055eaa86a295080b1154c13debe29ddd8ee4a",
+    "image_sha256": "6682b2f7d4843c9460576380f28eb14289620e74c7d9b1f0c70ae33eeed3d4e5",
+    "initramfs_sha256": "42a20df30acd99b763e5ea74733039aded4553696c7fb5271f6bade99e00f1c7",
+    "input_capabilities_sha256": "a739f371a2ef6c4d9691c43417d1e0b8ddaa145411ee0c1dc60d7f4b00f6276d",
+    "input_sysfs_realpath": "/sys/devices/platform/keyboard-matrix/input/input0",
+    "kernel_release": "7.1.3-gemini-mt6797-pwrap-reset"
+  },
+  "classification": "all-observed-translations-match-one-instructed-release-order-uncovered",
+  "coverage": {
+    "complete_steps": 20,
+    "console_restored": true,
+    "forwarded_stdout_equals_preserved_capture": true,
+    "instructed_physical_sequence_matches": 19,
+    "observed_translation_matches": 20,
+    "repeat_events": 361,
+    "same_boot_postflight_and_map_verified": true,
+    "strict_single_tap_vt_matches": 9
+  },
+  "ctrl_release_owner_witness": "owner is unsure of release order; trace reports A before Ctrl; leave the requested Ctrl-first check unresolved",
+  "limitations": [
+    "One bounded diagnostic on the named boot; no long-duration, rollover, wake, LED or all-legend certification.",
+    "Step 17 reports A released before Ctrl. Ctrl+A and plain A after both releases translated correctly; Ctrl-first release while A remains down is untested.",
+    "Eleven cases include character/function repeats and therefore do not pass the original exact single-tap VT expectation. All repeated bytes match the observed key repeats and active modifiers.",
+    "Initial kernel logger remains untouched; no sealed full-session log or new recovery-cycle claim."
+  ],
+  "map_sha256": "02f8048d76aa0cedf73617b13ea03a2a4e74de88222cb1922d9d19630906675c",
+  "monitor": {
+    "cancel": "0",
+    "exit": "0",
+    "forwarded_bytes": "23653",
+    "identity_lost": "0",
+    "kill_errno": "0",
+    "kill_ms": "-1",
+    "late": "0",
+    "reap_ms": "202348",
+    "reaped": "1",
+    "reason": "normal-lifecycle-only",
+    "schema": "keyboard-monitor-v1",
+    "signal": "0",
+    "stderr_bytes": "0",
+    "stdout_bytes": "23653",
+    "term_errno": "0",
+    "term_ms": "-1"
+  },
+  "observed_translation_analysis": {
+    "cases": [
+      {
+        "index": 0,
+        "instructed_edges_match": true,
+        "instruction": "Hold left Shift, hold Fn, tap 1, release Fn, release Shift; tap A",
+        "observed_input_translation_match": true,
+        "physical_edges": [
+          [
+            42,
+            1
+          ],
+          [
+            125,
+            1
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            125,
+            0
+          ],
+          [
+            42,
+            0
+          ],
+          [
+            30,
+            1
+          ],
+          [
+            30,
+            0
+          ]
+        ],
+        "repeat_counts_by_keycode": {
+          "125": 45,
+          "2": 5,
+          "42": 20
+        },
+        "strict_single_tap_vt_match": false,
+        "vt_expected_for_observed_presses_and_repeats_hex": "1b5b5b411b5b5b411b5b5b411b5b5b411b5b5b411b5b5b4161",
+        "vt_hex": "1b5b5b411b5b5b411b5b5b411b5b5b411b5b5b411b5b5b4161"
+      },
+      {
+        "index": 1,
+        "instructed_edges_match": true,
+        "instruction": "Hold left Shift, hold Fn, tap 2, release Fn, release Shift; tap A",
+        "observed_input_translation_match": true,
+        "physical_edges": [
+          [
+            42,
+            1
+          ],
+          [
+            125,
+            1
+          ],
+          [
+            3,
+            1
+          ],
+          [
+            3,
+            0
+          ],
+          [
+            125,
+            0
+          ],
+          [
+            42,
+            0
+          ],
+          [
+            30,
+            1
+          ],
+          [
+            30,
+            0
+          ]
+        ],
+        "repeat_counts_by_keycode": {
+          "125": 15,
+          "3": 2,
+          "42": 7
+        },
+        "strict_single_tap_vt_match": false,
+        "vt_expected_for_observed_presses_and_repeats_hex": "1b5b5b421b5b5b421b5b5b4261",
+        "vt_hex": "1b5b5b421b5b5b421b5b5b4261"
+      },
+      {
+        "index": 2,
+        "instructed_edges_match": true,
+        "instruction": "Hold left Shift, hold Fn, tap 3, release Fn, release Shift; tap A",
+        "observed_input_translation_match": true,
+        "physical_edges": [
+          [
+            42,
+            1
+          ],
+          [
+            125,
+            1
+          ],
+          [
+            4,
+            1
+          ],
+          [
+            4,
+            0
+          ],
+          [
+            125,
+            0
+          ],
+          [
+            42,
+            0
+          ],
+          [
+            30,
+            1
+          ],
+          [
+            30,
+            0
+          ]
+        ],
+        "repeat_counts_by_keycode": {
+          "125": 28,
+          "4": 12
+        },
+        "strict_single_tap_vt_match": false,
+        "vt_expected_for_observed_presses_and_repeats_hex": "1b5b5b431b5b5b431b5b5b431b5b5b431b5b5b431b5b5b431b5b5b431b5b5b431b5b5b431b5b5b431b5b5b431b5b5b431b5b5b4361",
+        "vt_hex": "1b5b5b431b5b5b431b5b5b431b5b5b431b5b5b431b5b5b431b5b5b431b5b5b431b5b5b431b5b5b431b5b5b431b5b5b431b5b5b4361"
+      },
+      {
+        "index": 3,
+        "instructed_edges_match": true,
+        "instruction": "Hold left Shift, hold Fn, tap 4, release Fn, release Shift; tap A",
+        "observed_input_translation_match": true,
+        "physical_edges": [
+          [
+            42,
+            1
+          ],
+          [
+            125,
+            1
+          ],
+          [
+            5,
+            1
+          ],
+          [
+            5,
+            0
+          ],
+          [
+            125,
+            0
+          ],
+          [
+            42,
+            0
+          ],
+          [
+            30,
+            1
+          ],
+          [
+            30,
+            0
+          ]
+        ],
+        "repeat_counts_by_keycode": {
+          "125": 12,
+          "42": 4,
+          "5": 4
+        },
+        "strict_single_tap_vt_match": false,
+        "vt_expected_for_observed_presses_and_repeats_hex": "1b5b5b441b5b5b441b5b5b441b5b5b441b5b5b4461",
+        "vt_hex": "1b5b5b441b5b5b441b5b5b441b5b5b441b5b5b4461"
+      },
+      {
+        "index": 4,
+        "instructed_edges_match": true,
+        "instruction": "Hold left Shift, hold Fn, tap 5, release Fn, release Shift; tap A",
+        "observed_input_translation_match": true,
+        "physical_edges": [
+          [
+            42,
+            1
+          ],
+          [
+            125,
+            1
+          ],
+          [
+            6,
+            1
+          ],
+          [
+            6,
+            0
+          ],
+          [
+            125,
+            0
+          ],
+          [
+            42,
+            0
+          ],
+          [
+            30,
+            1
+          ],
+          [
+            30,
+            0
+          ]
+        ],
+        "repeat_counts_by_keycode": {
+          "125": 10,
+          "42": 4,
+          "6": 3
+        },
+        "strict_single_tap_vt_match": false,
+        "vt_expected_for_observed_presses_and_repeats_hex": "1b5b5b451b5b5b451b5b5b451b5b5b4561",
+        "vt_hex": "1b5b5b451b5b5b451b5b5b451b5b5b4561"
+      },
+      {
+        "index": 5,
+        "instructed_edges_match": true,
+        "instruction": "Hold left Shift, hold Fn, tap 6, release Fn, release Shift; tap A",
+        "observed_input_translation_match": true,
+        "physical_edges": [
+          [
+            42,
+            1
+          ],
+          [
+            125,
+            1
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            7,
+            0
+          ],
+          [
+            125,
+            0
+          ],
+          [
+            42,
+            0
+          ],
+          [
+            30,
+            1
+          ],
+          [
+            30,
+            0
+          ]
+        ],
+        "repeat_counts_by_keycode": {
+          "125": 11,
+          "42": 2
+        },
+        "strict_single_tap_vt_match": true,
+        "vt_expected_for_observed_presses_and_repeats_hex": "1b5b31377e61",
+        "vt_hex": "1b5b31377e61"
+      },
+      {
+        "index": 6,
+        "instructed_edges_match": true,
+        "instruction": "Hold left Shift, hold Fn, tap 7, release Fn, release Shift; tap A",
+        "observed_input_translation_match": true,
+        "physical_edges": [
+          [
+            42,
+            1
+          ],
+          [
+            125,
+            1
+          ],
+          [
+            8,
+            1
+          ],
+          [
+            8,
+            0
+          ],
+          [
+            125,
+            0
+          ],
+          [
+            42,
+            0
+          ],
+          [
+            30,
+            1
+          ],
+          [
+            30,
+            0
+          ]
+        ],
+        "repeat_counts_by_keycode": {
+          "125": 12,
+          "42": 11,
+          "8": 4
+        },
+        "strict_single_tap_vt_match": false,
+        "vt_expected_for_observed_presses_and_repeats_hex": "1b5b31387e1b5b31387e1b5b31387e1b5b31387e1b5b31387e61",
+        "vt_hex": "1b5b31387e1b5b31387e1b5b31387e1b5b31387e1b5b31387e61"
+      },
+      {
+        "index": 7,
+        "instructed_edges_match": true,
+        "instruction": "Hold left Shift, hold Fn, tap 8, release Fn, release Shift; tap A",
+        "observed_input_translation_match": true,
+        "physical_edges": [
+          [
+            42,
+            1
+          ],
+          [
+            125,
+            1
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            0
+          ],
+          [
+            125,
+            0
+          ],
+          [
+            42,
+            0
+          ],
+          [
+            30,
+            1
+          ],
+          [
+            30,
+            0
+          ]
+        ],
+        "repeat_counts_by_keycode": {
+          "125": 11,
+          "42": 2
+        },
+        "strict_single_tap_vt_match": true,
+        "vt_expected_for_observed_presses_and_repeats_hex": "1b5b31397e61",
+        "vt_hex": "1b5b31397e61"
+      },
+      {
+        "index": 8,
+        "instructed_edges_match": true,
+        "instruction": "Hold left Shift, hold Fn, tap 9, release Fn, release Shift; tap A",
+        "observed_input_translation_match": true,
+        "physical_edges": [
+          [
+            42,
+            1
+          ],
+          [
+            125,
+            1
+          ],
+          [
+            10,
+            1
+          ],
+          [
+            10,
+            0
+          ],
+          [
+            125,
+            0
+          ],
+          [
+            42,
+            0
+          ],
+          [
+            30,
+            1
+          ],
+          [
+            30,
+            0
+          ]
+        ],
+        "repeat_counts_by_keycode": {
+          "125": 9,
+          "42": 1
+        },
+        "strict_single_tap_vt_match": true,
+        "vt_expected_for_observed_presses_and_repeats_hex": "1b5b32307e61",
+        "vt_hex": "1b5b32307e61"
+      },
+      {
+        "index": 9,
+        "instructed_edges_match": true,
+        "instruction": "Hold left Shift, hold Fn, tap 0, release Fn, release Shift; tap A",
+        "observed_input_translation_match": true,
+        "physical_edges": [
+          [
+            42,
+            1
+          ],
+          [
+            125,
+            1
+          ],
+          [
+            11,
+            1
+          ],
+          [
+            11,
+            0
+          ],
+          [
+            125,
+            0
+          ],
+          [
+            42,
+            0
+          ],
+          [
+            30,
+            1
+          ],
+          [
+            30,
+            0
+          ]
+        ],
+        "repeat_counts_by_keycode": {
+          "125": 7,
+          "42": 4
+        },
+        "strict_single_tap_vt_match": true,
+        "vt_expected_for_observed_presses_and_repeats_hex": "1b5b32317e61",
+        "vt_hex": "1b5b32317e61"
+      },
+      {
+        "index": 10,
+        "instructed_edges_match": true,
+        "instruction": "Hold Fn, tap Left (Home), release Fn; tap A",
+        "observed_input_translation_match": true,
+        "physical_edges": [
+          [
+            125,
+            1
+          ],
+          [
+            105,
+            1
+          ],
+          [
+            105,
+            0
+          ],
+          [
+            125,
+            0
+          ],
+          [
+            30,
+            1
+          ],
+          [
+            30,
+            0
+          ]
+        ],
+        "repeat_counts_by_keycode": {
+          "105": 5,
+          "125": 24
+        },
+        "strict_single_tap_vt_match": false,
+        "vt_expected_for_observed_presses_and_repeats_hex": "1b5b317e1b5b317e1b5b317e1b5b317e1b5b317e1b5b317e61",
+        "vt_hex": "1b5b317e1b5b317e1b5b317e1b5b317e1b5b317e1b5b317e61"
+      },
+      {
+        "index": 11,
+        "instructed_edges_match": true,
+        "instruction": "Hold Fn, tap Up (Page Up), release Fn; tap A",
+        "observed_input_translation_match": true,
+        "physical_edges": [
+          [
+            125,
+            1
+          ],
+          [
+            103,
+            1
+          ],
+          [
+            103,
+            0
+          ],
+          [
+            125,
+            0
+          ],
+          [
+            30,
+            1
+          ],
+          [
+            30,
+            0
+          ]
+        ],
+        "repeat_counts_by_keycode": {
+          "125": 10
+        },
+        "strict_single_tap_vt_match": true,
+        "vt_expected_for_observed_presses_and_repeats_hex": "1b5b357e61",
+        "vt_hex": "1b5b357e61"
+      },
+      {
+        "index": 12,
+        "instructed_edges_match": true,
+        "instruction": "Hold Fn, tap Down (Page Down), release Fn; tap A",
+        "observed_input_translation_match": true,
+        "physical_edges": [
+          [
+            125,
+            1
+          ],
+          [
+            108,
+            1
+          ],
+          [
+            108,
+            0
+          ],
+          [
+            125,
+            0
+          ],
+          [
+            30,
+            1
+          ],
+          [
+            30,
+            0
+          ]
+        ],
+        "repeat_counts_by_keycode": {
+          "125": 9
+        },
+        "strict_single_tap_vt_match": true,
+        "vt_expected_for_observed_presses_and_repeats_hex": "1b5b367e61",
+        "vt_hex": "1b5b367e61"
+      },
+      {
+        "index": 13,
+        "instructed_edges_match": true,
+        "instruction": "Hold Fn, tap Right (End), release Fn; tap A",
+        "observed_input_translation_match": true,
+        "physical_edges": [
+          [
+            125,
+            1
+          ],
+          [
+            106,
+            1
+          ],
+          [
+            106,
+            0
+          ],
+          [
+            125,
+            0
+          ],
+          [
+            30,
+            1
+          ],
+          [
+            30,
+            0
+          ]
+        ],
+        "repeat_counts_by_keycode": {
+          "125": 8
+        },
+        "strict_single_tap_vt_match": true,
+        "vt_expected_for_observed_presses_and_repeats_hex": "1b5b347e61",
+        "vt_hex": "1b5b347e61"
+      },
+      {
+        "index": 14,
+        "instructed_edges_match": true,
+        "instruction": "Hold left Shift, tap A, release Shift; tap A",
+        "observed_input_translation_match": true,
+        "physical_edges": [
+          [
+            42,
+            1
+          ],
+          [
+            30,
+            1
+          ],
+          [
+            30,
+            0
+          ],
+          [
+            42,
+            0
+          ],
+          [
+            30,
+            1
+          ],
+          [
+            30,
+            0
+          ]
+        ],
+        "repeat_counts_by_keycode": {
+          "30": 4,
+          "42": 6
+        },
+        "strict_single_tap_vt_match": false,
+        "vt_expected_for_observed_presses_and_repeats_hex": "414141414161",
+        "vt_hex": "414141414161"
+      },
+      {
+        "index": 15,
+        "instructed_edges_match": true,
+        "instruction": "Hold right Shift, tap A, release Shift; tap A",
+        "observed_input_translation_match": true,
+        "physical_edges": [
+          [
+            54,
+            1
+          ],
+          [
+            30,
+            1
+          ],
+          [
+            30,
+            0
+          ],
+          [
+            54,
+            0
+          ],
+          [
+            30,
+            1
+          ],
+          [
+            30,
+            0
+          ]
+        ],
+        "repeat_counts_by_keycode": {
+          "30": 2,
+          "54": 10
+        },
+        "strict_single_tap_vt_match": false,
+        "vt_expected_for_observed_presses_and_repeats_hex": "41414161",
+        "vt_hex": "41414161"
+      },
+      {
+        "index": 16,
+        "instructed_edges_match": false,
+        "instruction": "Hold Ctrl, press A, release Ctrl, release A; tap A",
+        "observed_input_translation_match": true,
+        "physical_edges": [
+          [
+            29,
+            1
+          ],
+          [
+            30,
+            1
+          ],
+          [
+            30,
+            0
+          ],
+          [
+            29,
+            0
+          ],
+          [
+            30,
+            1
+          ],
+          [
+            30,
+            0
+          ]
+        ],
+        "repeat_counts_by_keycode": {
+          "29": 16,
+          "30": 3
+        },
+        "strict_single_tap_vt_match": false,
+        "vt_expected_for_observed_presses_and_repeats_hex": "0101010161",
+        "vt_hex": "0101010161"
+      },
+      {
+        "index": 17,
+        "instructed_edges_match": true,
+        "instruction": "Hold Alt, tap A, release Alt; tap A",
+        "observed_input_translation_match": true,
+        "physical_edges": [
+          [
+            56,
+            1
+          ],
+          [
+            30,
+            1
+          ],
+          [
+            30,
+            0
+          ],
+          [
+            56,
+            0
+          ],
+          [
+            30,
+            1
+          ],
+          [
+            30,
+            0
+          ]
+        ],
+        "repeat_counts_by_keycode": {
+          "30": 3,
+          "56": 8
+        },
+        "strict_single_tap_vt_match": false,
+        "vt_expected_for_observed_presses_and_repeats_hex": "1b611b611b611b6161",
+        "vt_hex": "1b611b611b611b6161"
+      },
+      {
+        "index": 18,
+        "instructed_edges_match": true,
+        "instruction": "Tap Fn and release; tap A",
+        "observed_input_translation_match": true,
+        "physical_edges": [
+          [
+            125,
+            1
+          ],
+          [
+            125,
+            0
+          ],
+          [
+            30,
+            1
+          ],
+          [
+            30,
+            0
+          ]
+        ],
+        "repeat_counts_by_keycode": {
+          "125": 8
+        },
+        "strict_single_tap_vt_match": true,
+        "vt_expected_for_observed_presses_and_repeats_hex": "61",
+        "vt_hex": "61"
+      },
+      {
+        "index": 19,
+        "instructed_edges_match": true,
+        "instruction": "Tap H, E, L, P, Enter, releasing each before the next",
+        "observed_input_translation_match": true,
+        "physical_edges": [
+          [
+            35,
+            1
+          ],
+          [
+            35,
+            0
+          ],
+          [
+            18,
+            1
+          ],
+          [
+            18,
+            0
+          ],
+          [
+            38,
+            1
+          ],
+          [
+            38,
+            0
+          ],
+          [
+            25,
+            1
+          ],
+          [
+            25,
+            0
+          ],
+          [
+            28,
+            1
+          ],
+          [
+            28,
+            0
+          ]
+        ],
+        "repeat_counts_by_keycode": {},
+        "strict_single_tap_vt_match": true,
+        "vt_expected_for_observed_presses_and_repeats_hex": "68656c700d",
+        "vt_hex": "68656c700d"
+      }
+    ],
+    "scope": "bounded replay of only the observed protocol keys under the verified map; modifiers emit no text; every key press and repeat contributes its mapped bytes"
+  },
+  "owner_readability_and_responsiveness": "confirmed for all twenty prompts",
+  "plan": {
+    "boot_id": "f2999a36-edfe-42ea-bca4-1abf8db1a7f9",
+    "commands": {
+      "capture": "0e55e88bb74dae21a7c1fa518bf25e40779af9f0ee0bbae21c2c1e62f6624388",
+      "delivery": "5a4432a698eac961a59a93ed4cf26e817f6dda37ea3224ba84f282b18f0ba653",
+      "export": "ee297e8dfe1503773b8bae2b971987451aa68d1d34adeaf4471aa93247710140"
+    },
+    "decision": "complete matches establish bounded targeted coverage; mismatches require event/VT/owner trace review; loss or incomplete framing is inconclusive",
+    "hypothesis": "twenty instructed sequences retain complete physical edges and mapped VT bytes after corrected startup",
+    "id": "398d1a4c-2bda-4d3a-bccf-a6ac2dc9e904",
+    "kernel_logger": "initial logger untouched; bounded observation, not sealed session certification",
+    "metadata_correction": "The initial plan label copied the earlier reference boot ID. All executed command guards independently required the current boot ID recorded here; command bytes and hashes are unchanged.",
+    "package": "9419b0e2be45b5491c5c5588d06cd683643944db218ba8ecf78d5e4032e74e43",
+    "revision": "4d410bf63c061a333bd1da4718e3dc9d02b10fed"
+  },
+  "preserved_files": {
+    "monitor.status": {
+      "bytes": 232,
+      "sha256": "a1a0ab4182db0b22bae765aa46ad9e6b0fc131e5cd87b6e3bc8148d4246a6128"
+    },
+    "observer.stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "observer.stdout": {
+      "bytes": 23653,
+      "sha256": "6d15cfa6516edd57ff51c58f05efe3224138a6d1ce1c9444386da7591720e3cf"
+    },
+    "outer-exit": {
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    "start-error": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "start-result": {
+      "bytes": 141,
+      "sha256": "929d2b29d4e110401c95c06f8ca5b3394e199fab8e1d946b8866c9b3d51ba13e"
+    },
+    "start-status": {
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    }
+  },
+  "processes": {
+    "capture": {
+      "elapsed_seconds": 209.726,
+      "exit_status": 0,
+      "reason": null,
+      "stderr_bytes": 0,
+      "stdin_complete": true,
+      "stdout_bytes": 23823
+    },
+    "delivery": {
+      "elapsed_seconds": 0.967,
+      "exit_status": 0,
+      "reason": null,
+      "stderr_bytes": 0,
+      "stdin_complete": true,
+      "stdout_bytes": 27
+    },
+    "export": {
+      "elapsed_seconds": 1.002,
+      "exit_status": 0,
+      "reason": null,
+      "stderr_bytes": 0,
+      "stdin_complete": true,
+      "stdout_bytes": 32728
+    }
+  },
+  "schema": "keyboard-coverage-result-v1",
+  "startup": "console-drain requeue=accepted ldisc=0\nconsole-drain empty=1 bytes=0\nspace-ready=preflight-complete\nspace-ready=passed released=1 restored=1\n",
+  "strict_single_tap_analysis": {
+    "capture_sha256": "6d15cfa6516edd57ff51c58f05efe3224138a6d1ce1c9444386da7591720e3cf",
+    "cases": [
+      {
+        "index": 0,
+        "input": "match",
+        "physical_edges": 8,
+        "repeat_events": 70,
+        "vt": "mismatch"
+      },
+      {
+        "index": 1,
+        "input": "match",
+        "physical_edges": 8,
+        "repeat_events": 24,
+        "vt": "mismatch"
+      },
+      {
+        "index": 2,
+        "input": "match",
+        "physical_edges": 8,
+        "repeat_events": 40,
+        "vt": "mismatch"
+      },
+      {
+        "index": 3,
+        "input": "match",
+        "physical_edges": 8,
+        "repeat_events": 20,
+        "vt": "mismatch"
+      },
+      {
+        "index": 4,
+        "input": "match",
+        "physical_edges": 8,
+        "repeat_events": 17,
+        "vt": "mismatch"
+      },
+      {
+        "index": 5,
+        "input": "match",
+        "physical_edges": 8,
+        "repeat_events": 13,
+        "vt": "match"
+      },
+      {
+        "index": 6,
+        "input": "match",
+        "physical_edges": 8,
+        "repeat_events": 27,
+        "vt": "mismatch"
+      },
+      {
+        "index": 7,
+        "input": "match",
+        "physical_edges": 8,
+        "repeat_events": 13,
+        "vt": "match"
+      },
+      {
+        "index": 8,
+        "input": "match",
+        "physical_edges": 8,
+        "repeat_events": 10,
+        "vt": "match"
+      },
+      {
+        "index": 9,
+        "input": "match",
+        "physical_edges": 8,
+        "repeat_events": 11,
+        "vt": "match"
+      },
+      {
+        "index": 10,
+        "input": "match",
+        "physical_edges": 6,
+        "repeat_events": 29,
+        "vt": "mismatch"
+      },
+      {
+        "index": 11,
+        "input": "match",
+        "physical_edges": 6,
+        "repeat_events": 10,
+        "vt": "match"
+      },
+      {
+        "index": 12,
+        "input": "match",
+        "physical_edges": 6,
+        "repeat_events": 9,
+        "vt": "match"
+      },
+      {
+        "index": 13,
+        "input": "match",
+        "physical_edges": 6,
+        "repeat_events": 8,
+        "vt": "match"
+      },
+      {
+        "index": 14,
+        "input": "match",
+        "physical_edges": 6,
+        "repeat_events": 10,
+        "vt": "mismatch"
+      },
+      {
+        "index": 15,
+        "input": "match",
+        "physical_edges": 6,
+        "repeat_events": 12,
+        "vt": "mismatch"
+      },
+      {
+        "index": 16,
+        "input": "mismatch",
+        "physical_edges": 6,
+        "repeat_events": 19,
+        "vt": "mismatch"
+      },
+      {
+        "index": 17,
+        "input": "match",
+        "physical_edges": 6,
+        "repeat_events": 11,
+        "vt": "mismatch"
+      },
+      {
+        "index": 18,
+        "input": "match",
+        "physical_edges": 4,
+        "repeat_events": 8,
+        "vt": "match"
+      },
+      {
+        "index": 19,
+        "input": "match",
+        "physical_edges": 10,
+        "repeat_events": 0,
+        "vt": "match"
+      }
+    ],
+    "hardware_claim": false,
+    "outcome": "observations-complete",
+    "reported_input": {
+      "event": "event0",
+      "minor": 64
+    },
+    "session_receipt_verified": false
+  }
+}

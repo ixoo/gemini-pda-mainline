@@ -1,0 +1,44 @@
+{
+  "binaries": {
+    "keyboard-monitor": {
+      "bytes": 66672,
+      "sha256": "0ad2431542858d1567312280e72402c45234b9612858301906a3fb4340b38f6f"
+    },
+    "keyboard-observe": {
+      "bytes": 67280,
+      "sha256": "0bc39d8627addeff68c425b43b1b9694820d2cb1d48863459ad0ac1b3e7d3093"
+    }
+  },
+  "boot_id": "f2999a36-edfe-42ea-bca4-1abf8db1a7f9",
+  "boot_identity_source": "Exact boot ID assertions in all successful delivery, capture and export commands; corrected copied reference label before publication.",
+  "capture_command_sha256": "0e55e88bb74dae21a7c1fa518bf25e40779af9f0ee0bbae21c2c1e62f6624388",
+  "delivery": {
+    "command_sha256": "5a4432a698eac961a59a93ed4cf26e817f6dda37ea3224ba84f282b18f0ba653",
+    "process": {
+      "elapsed_seconds": 0.967,
+      "exit_status": 0,
+      "reason": null,
+      "stderr_bytes": 0,
+      "stdin_complete": true,
+      "stdout_bytes": 27
+    },
+    "stdout": "coverage-delivery=verified\n"
+  },
+  "export_command_sha256": "ee297e8dfe1503773b8bae2b971987451aa68d1d34adeaf4471aa93247710140",
+  "fixtures": {
+    "coverage": "all twenty production-duration windows, 80 modifier repeats where Fn is held, physical edges, VT bytes, console restoration, incomplete and malformed framing, VT mismatch",
+    "log_sha256": "645e9037e8b7b1c4b541bb0e9db35102454d0f0f614d6815b5ae872ba5cbbde7",
+    "monitor": "coverage exact production entry and once-only claim; shared focused scaled lifecycle and full 45-second cleanup regressions"
+  },
+  "limitations": [
+    "Synthetic PTY/evdev fixtures do not establish hardware support.",
+    "Attended capture has not started.",
+    "Initial kernel logger is untouched; this plan does not seal or certify a full baseline session.",
+    "Physical sequence and strict single-tap VT expectations are reported separately; held character/function repeats require trace review."
+  ],
+  "package": "9419b0e2be45b5491c5c5588d06cd683643944db218ba8ecf78d5e4032e74e43",
+  "replicas_identical": true,
+  "revision": "4d410bf63c061a333bd1da4718e3dc9d02b10fed",
+  "schema": "keyboard-coverage-preparation-v1",
+  "state": "validated-and-delivered-not-started"
+}
