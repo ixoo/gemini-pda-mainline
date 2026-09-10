@@ -1,0 +1,108 @@
+{
+  "project_commit": "274be32408ea5bcb9bcc443652f671525b932180",
+  "source_commit": "59e00a9144d782e148332009a835b99c43382467",
+  "scope": "4 complete translation units; no kernel link or device execution",
+  "patched_header_sha256": "4d188ae15e82379860241da62717173c8979331b25906c454135f56b1b344807",
+  "toolchain_manifest_sha256": "a45d945f092461a611d276ad7d0a0fea1ea8a7f93db413908bcb892c12817d14",
+  "config_sha256": "c96ca5c8a767b93f59487c9b4a1c3d05c1f47c166f3f9ea9f2b7ffe0f6f1f0fb",
+  "config_delta": {
+    "CONFIG_ANBOX": [
+      null,
+      "n"
+    ]
+  },
+  "patches": {
+    "0001-pstore-report-native-pmsg-backend-write-failures.patch": "41a64284f4013ccd7c8bfa7fa0adb78a0b001f289970319310a6cb193848184b",
+    "0002-pstore-preserve-native-records-when-backend-erase-fa.patch": "48b3b5f3bac483c4c85a65cba5756f3b577dd1f9bbb2a723ff1630df02812565",
+    "0003-pstore-preserve-old-log-on-allocation-failure.patch": "f59195e7009ea7dd8299d6d627962338cebdc3d9022e9e3047cedacca283b060",
+    "0004-pstore-reserve-native-pmsg-for-capture.patch": "f79230f50760d4bf45c71660dd65bc68c872e56f953c2bcfecacc9f66b9353cf",
+    "0005-pstore-freeze-native-capture-parameters.patch": "871664dbdf4ea52615e5151e677feacce6f0a84dce2cf2f20a0497eff54e1ae6",
+    "0006-pstore-release-mapped-zones-on-probe-failure.patch": "1f55211e3a156cdc4097d6d460bd5f27d10701d9caeb59707930760edcf78bd1",
+    "0007-pstore-integrate-native-fixed-slot-capture.patch": "f6d7ecd752b8693b3f8b3f226f8fcc9489f74c243f757797fd11549bdc96523b",
+    "0008-arm64-dts-reserve-native-pmsg-without-linear-alias.patch": "20ad1e7ac53a0f8eed94f63529cb054ef4e98b75c92f532c240e14bc33c7ecf6",
+    "0009-pstore-retain-rejected-capture-access-in-tail.patch": "744d6bc4e167e7f2722246c42fd61e92819604d0688af707d97dfff0173d7be9",
+    "0010-pstore-expose-native-capture-activity-to-built-ins.patch": "e063c558c21328d99d7e11d7638a58bebe93642b1e740c7bf3466619f1d6ab97",
+    "0001-wlan-observe-native-AHB-DMA-lifetimes.patch": "40d00262ed2ce3edd5ad46af97f288a2eadde77da5bfdf7dba906ea874191c15",
+    "0001-wlan-capture-native-adapter-stop-decisions.patch": "5175620e3287f01a80d8f009ab3d3112ac4f75ec4186e4c2a35632e15f261291",
+    "0001-wlan-capture-native-firmware-file-read-results.patch": "3a4824ee47f7d9ea304c4c4620200ad23962af8e572539292769c1c804240cb0",
+    "0001-wlan-reject-invalid-native-firmware-mappings.patch": "90eda58094ee09949c6c488bb01e381c7b70dfbebbac3dc53effa16c9335f62d",
+    "0001-wlan-capture-native-firmware-buffer-and-sections.patch": "60219e6d632c5f8dd76e1776212a6761e1e55fde641c3788a21899639d6a969c",
+    "0001-wlan-capture-native-EMI-protection-and-copy.patch": "fc3928153be1c88120dbd794d8b1b03b31af64606dc08f2b604992f6e4e34257",
+    "0001-clk-capture-native-CONN-provider-shutdown.patch": "aa88b970935ba61a14454bd9a85b4e5d014115fed80634e4fe133409ea0d6500",
+    "0001-wmt-check-firmware-version-read.patch": "bf6ee85c12806092e92c5691be16828c3229ee7e221cc2f40d2b33357a5edd5f",
+    "0002-wmt-use-one-startup-attempt.patch": "a48a597e589b5982e699eff0ff093e1a0619de853ca3148706528577c50f9cb4",
+    "0003-wmt-guard-single-patch-reply.patch": "b66b28751e00fcabbc95f30496e14588866cace7ea8a756e414bd7ace9523bfe",
+    "0004-wmt-retain-timed-out-operation.patch": "0c7e51c8f226811eb2534d69008adf445ba440133c3857509d1583757f6f85d2",
+    "0001-wmt-preserve-common-shutdown-errors.patch": "bc225be459254a7b8a5f6fd75b5ffcbcee1176aa1c5aed1531d38108ef355bc0",
+    "0001-wmt-bind-common-OFF-to-native-CONN-provider.patch": "8454ecbbc513507565e6c9d1d79a5f0dd1472e43450557eaa6919f7547c3e786",
+    "0001-wmt-retain-worker-ownership-after-reset-completion.patch": "062b5fe5192763e1b4e027b72d68416dd4bb39e71467f55a5f36d09459ad1621",
+    "0001-wmt-bind-captured-requests-to-worker-and-common-off.patch": "4fc1a7ba2e5946f5cacf2982e385ef085f1d1094528660b101c1ac8f40d93b6b",
+    "0001-wlan-bind-firmware-observation-to-the-ON-request.patch": "1caec8ceb65fb1cc56b369e991d83a33729ceb8216915c2e165edca92db1adf8",
+    "0001-wlan-join-native-firmware-payload-digests-to-DMA.patch": "1b4e32b4a09ed56d26f3015d7bce1761a8419876a52567fe016da49fdfadad7a",
+    "0001-wlan-record-native-removal-completion-waits.patch": "cd23e6f993ab1e1af96db5dc5e8bf385b8d6fce479985c35b80fd484fa191be2",
+    "0001-wlan-retain-resources-after-incomplete-removal.patch": "4894243afaf01b3f9e2c808f366b25443e85e020a763fa538f1d0ee6e779be93",
+    "0001-wlan-retain-failed-startup-resources-until-recovery.patch": "727d843e29e3911ec3389af9c9453d6c90f2d975e0d8c07ffa5023175c467322",
+    "0001-wlan-reject-failed-native-DMA-mappings.patch": "fc2bfab7c2d634078e42f6cc755dd87d79bed8e9fe17ca61bd33318d1d9ef511",
+    "0001-wmt-wait-for-experimental-transport-configuration.patch": "84622e8b4885ecf53704920875c7d499afeef796b58a2ce083ecd01801bd5782",
+    "0002-wmt-exclude-display-power-callbacks-in-recovery-expe.patch": "ed0e164a18b0903dac0c9a74be8c076b6f94e42e0c2607e99037ba6823625928",
+    "0002-diagnostic-add-exclusive-TOPRGU-recovery-owner.patch": "a3f55c86b0c3d3ca8aa5d49864d0574f5684fc58b2ab403609fdb6c1c5bade96",
+    "0001-watchdog-serialize-setters-with-diagnostic-takeover.patch": "4f4eee696a5a9b2bca4d2d698b590ceb2cc8287525023ce52962f1e1c8b12396",
+    "0001-watchdog-join-capture-and-recovery-takeover.patch": "ae05d7c2d7be3ceb6472ec16f936430f902cf310f13b57046043f1da89bfe995",
+    "0001-wmt-initialize-after-recorded-recovery-takeover.patch": "0b9c3b4f344d980642f567d2da4e545008460509f24ba630adec8d68a0dd6009",
+    "0001-wmt-gate-the-captured-controller-cycle-on-recorded-c.patch": "eac52798310b046d9fc0fb28136b63d81005a3fc2104f520b561346a33cf106d"
+  },
+  "objects": [
+    {
+      "file": "drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_dev.c",
+      "baseline_source_sha256": "d7be291ca5e2962be24def406260b5bb21a4b85438f64a1064944686a84fd62e",
+      "baseline_object_sha256": "31de0485efc1cb0ce0b3871b49e56df0708716d2d8fcf95f3df6d4a25e7a0599",
+      "patched_source_sha256": "fda31432cde99e2c81bb47e245a3daf1aa2da578babcc738be66ca811e1ace24",
+      "object_sha256": "60aa0c6e3a9fde20eac4806556c945ce0246114c86c2ccdc1e05d772f31af100",
+      "baseline_command_sha256": "3dfd8db2413cb73cd563b4d15812dddeee4e8bac56ec46cb3495bf80ff08bcf0",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_lib.c",
+      "baseline_source_sha256": "e363d3377aab1de6f81d94dd482bcdba5eb55884792f45e1688ebf850f991e4f",
+      "baseline_object_sha256": "e5cae3e81272026304af5b70d2678da6500afbbf61a696143007611e7c1f0ff0",
+      "patched_source_sha256": "3ea9de93e2e6ac839b83e673b4fbcf8af458bc1e7ccdd54ef67c40e725f99802",
+      "object_sha256": "1fc9bcd06efb66f98c883e1bad7fed921b43cb66a95cb6aac2d3b541876629a2",
+      "baseline_command_sha256": "b32b742f18bbe809a5701951d80cf8cba8ac3122f7595d659fce2607cd05447a",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "fs/pstore/ram.c",
+      "baseline_source_sha256": "7ba661c230fb71d7d2768bb3cddb95d1deb36810531cfc992bc5c7297113a391",
+      "baseline_object_sha256": "2dcca30271d3c89355b7c705f5098e01b1651e7826a9b8f5c219e1f402cee7ab",
+      "patched_source_sha256": "ea7427e08efa3ad455f6dc5784164d5dd7b1098ce714f5ef88b6ff86188ee609",
+      "object_sha256": "0f797a4de967ffc447deb8c1ae738e132ce3cadda5c46dfc04579a0ba01acb62",
+      "baseline_command_sha256": "a2d8c9bc14a5cf4256355fef94c23c6d57b0e88b1c72e51f9767fe79bd2e4c4a",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect.c",
+      "baseline_source_sha256": "5dcff637a689eb1de92b77a527ad4f51af35f8657db48e36e8dc2c3c379dc2a4",
+      "baseline_object_sha256": "2203de68e02809e7047706c1995d7c1e1d5fa91e385d2e2d3ca1682ea557b0c3",
+      "patched_source_sha256": "de48fc9cbee37fb9a5634de23452e8f8dcee32c08f38953939cab98490956898",
+      "object_sha256": "3a3b65701e8564245fda13e6aeb1e60a312e0d06999c536808844c2a28eb34c7",
+      "baseline_command_sha256": "59612c6423d3de3e0cb7ae7d46110abc1b5f56d7470482a5344c2c1f47e7d6cf",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    }
+  ],
+  "verification": {
+    "package_files": 21,
+    "package_sha256_manifest": "b31fae80f8d71254677cad7fd61cfbc31b11a6f91defcc168665018f20ef412c",
+    "all_remote_and_fetched_checksums_match": true,
+    "patch_identities_checked": 38,
+    "native_fixture": "controller cases, request/firmware gates, task/argument/order refusals and 22 lost records",
+    "userspace_fixture": "7 groups using real fork/pipe/exit/wait with mocked device calls",
+    "classifier_fixture": "5 groups including every missing/repeated record in a synthetic complete stream",
+    "native_compiler_diagnostics": "original commands retain -w; not a warning-clean claim",
+    "boot_candidate": false,
+    "device_execution": false
+  }
+}

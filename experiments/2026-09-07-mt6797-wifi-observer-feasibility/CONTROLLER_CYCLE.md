@@ -122,6 +122,17 @@ parents/outputs. The existing Buildbox checker accepts `COMMIT --controller-cycl
 it composes the 31-patch DMA-map-error source, two transport patches, historical
 low-level recovery ownership, setter correction, recovery gate, controller
 initialization and this patch, then targets complete detector, WMT-device,
-WMT-library and ramoops objects. Complete kernel linking, minimal filesystem packaging,
+WMT-library and ramoops objects.
+
+The [native compilation receipt](results/controller-cycle-object-compile.json)
+records successful compilation of those four complete units, both baseline and
+experimental, at `274be32408ea5bcb9bcc443652f671525b932180`. It uses the pinned
+GCC 6.3 toolchain and Gemian configuration. The native controller, process and
+classifier fixtures also passed on Buildbox. All 21 fetched files match the
+remotely validated inventory and checksum manifest; all 38 patch identities
+were checked. The original compiler commands retain `-w`, so this is not a
+warning-clean claim.
+
+Complete kernel linking, minimal filesystem packaging,
 capture zero-state preparation, remaining isolation and an exact owner-approved
 radio/timed-recovery session are still required before device validation.
