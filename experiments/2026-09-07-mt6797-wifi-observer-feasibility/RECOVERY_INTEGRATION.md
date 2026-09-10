@@ -54,6 +54,10 @@ direct reset, retention and request-routing writes in that audit; the table
 is not the complete TOPRGU ownership surface. Do not patch only suspend and
 declare the watchdog exclusive.
 
+The [ordinary setter correction](RECOVERY_SETTERS.md) now implements locked
+refusal for timeout, mode, enable and ordinary reload changes. The other
+ownership paths above remain unresolved.
+
 ## Exclude the CPU-idle route at boot
 
 Require `cpuidle.off=1` in the experimental candidate's effective command line,

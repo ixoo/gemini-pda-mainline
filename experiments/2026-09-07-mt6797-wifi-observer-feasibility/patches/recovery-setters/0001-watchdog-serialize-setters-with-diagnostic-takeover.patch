@@ -1,0 +1,77 @@
+From eb64ca177f34549f98c6b6c186c300809c31d8e6 Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <archive@example.invalid>
+Date: Thu, 10 Sep 2026 13:23:05 -0400
+Subject: [PATCH] watchdog: serialize ordinary setters with diagnostic takeover
+
+Check terminal ownership under the existing register lock before timeout,
+mode and enable changes. Return EBUSY for a rejected enable request.
+Recheck ownership after locking the ordinary restart path so a caller that
+passed its fast check before takeover cannot reload the armed timer.
+
+This unselected source experiment follows the historical low-level recovery
+helper only. It does not select that profile or its consumed boot artifact.
+Direct reset, retention and request routing remain outside this correction.
+The synthetic archive identity provides no DCO certification.
+---
+ .../watchdog/mediatek/wdt/mt6797/mtk_wdt.c    | 24 +++++++++++++++++++
+ 1 file changed, 24 insertions(+)
+
+diff --git a/drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c b/drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c
+index 0f8116b..b8d7f1f 100644
+--- a/drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c
++++ b/drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c
+@@ -105,6 +105,12 @@ void mtk_wdt_set_time_out_value(unsigned int value)
+ 	 * Key	   = BitField  4:0 = 0x08
+ 	 */
+ 	spin_lock(&rgu_reg_operation_spinlock);
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++	if (mtk_wdt_recovery_owned) {
++		spin_unlock(&rgu_reg_operation_spinlock);
++		return;
++	}
++#endif
+ 
+     #ifdef CONFIG_KICK_SPM_WDT
+ 	spm_wdt_set_timeout(value);
+@@ -136,6 +142,12 @@ void mtk_wdt_mode_config(bool dual_mode_en,
+ 	unsigned int tmp;
+ 	#endif
+ 	spin_lock(&rgu_reg_operation_spinlock);
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++	if (mtk_wdt_recovery_owned) {
++		spin_unlock(&rgu_reg_operation_spinlock);
++		return;
++	}
++#endif
+ 	#ifdef CONFIG_KICK_SPM_WDT
+ 	if (wdt_en == TRUE) {
+ 		pr_debug("wdt enable spm timer.....\n");
+@@ -197,6 +209,12 @@ int mtk_wdt_enable(enum wk_wdt_en en)
+ 	unsigned int tmp = 0;
+ 
+ 	spin_lock(&rgu_reg_operation_spinlock);
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++	if (mtk_wdt_recovery_owned) {
++		spin_unlock(&rgu_reg_operation_spinlock);
++		return -EBUSY;
++	}
++#endif
+     #ifdef CONFIG_KICK_SPM_WDT
+ 	if (WK_WDT_EN == en) {
+ 		spm_wdt_enable_timer();
+@@ -317,6 +335,12 @@ void mtk_wdt_restart(enum wd_restart_type type)
+ 	if (type == WD_TYPE_NORMAL) {
+ 		/* printk("WDT:ext restart\n" ); */
+ 		spin_lock(&rgu_reg_operation_spinlock);
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++		if (mtk_wdt_recovery_owned) {
++			spin_unlock(&rgu_reg_operation_spinlock);
++			return;
++		}
++#endif
+ 	#ifdef CONFIG_KICK_SPM_WDT
+ 		spm_wdt_restart_timer();
+ 	#else
+-- 
+2.54.0 (Apple Git-157)
+

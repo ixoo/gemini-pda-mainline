@@ -1,0 +1,21 @@
+{
+  "source_revision": "59e00a9144d782e148332009a835b99c43382467",
+  "scope": "Unselected ordinary watchdog setter serialization; full recovery ownership and device admission remain open",
+  "parent_patch": "experiments/2026-08-02-a72-recovery-only-discriminator/patches/0002-diagnostic-add-exclusive-TOPRGU-recovery-owner.patch",
+  "parent_patch_sha256": "a3f55c86b0c3d3ca8aa5d49864d0574f5684fc58b2ab403609fdb6c1c5bade96",
+  "parents": {
+    "drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c": "4854b7ec1c9cf8640aff42dcd07ffaccde12e72471579e7c2f6678bf2cb75bda",
+    "drivers/watchdog/mediatek/include/ext_wd_drv.h": "a5bb2b27d35b7ac1381ee50807d6fe658055d326d2788217113822d06c82eab7"
+  },
+  "outputs": {
+    "drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c": "accee425dd694555694e5d7263db960958c0d47722505361aad7bf983f617993",
+    "drivers/watchdog/mediatek/include/ext_wd_drv.h": "a5bb2b27d35b7ac1381ee50807d6fe658055d326d2788217113822d06c82eab7"
+  },
+  "support": {
+    "mt_wdt.h": "fdbd42a1e238cc5148486a0d765434bddf008808244ad76af77d9371a208fa30",
+    "wd_api.h": "da711e704f392a52ad05f8b43f93bf1be7f0f35e3263591bad6910899a201a09"
+  },
+  "patch": "0001-watchdog-serialize-setters-with-diagnostic-takeover.patch",
+  "patch_sha256": "4f4eee696a5a9b2bca4d2d698b590ceb2cc8287525023ce52962f1e1c8b12396",
+  "replay_and_reverse_verified": true
+}
