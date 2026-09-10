@@ -1,0 +1,22 @@
+{
+  "source_revision": "59e00a9144d782e148332009a835b99c43382467",
+  "scope": "Unselected DMA mapping-error refusal; DMA timeout, count-escape and concurrent ownership remain unresolved",
+  "parents": {
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c": "ba167e0dac64f61e33d84dfa7b6e30aef42131351ff9e7b5cd4918250eca2555"
+  },
+  "outputs": {
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c": "d63a8beae353355534ab9824357ac82253c301647d260196e3d307fbd56582b5"
+  },
+  "patch": "0001-wlan-reject-failed-native-DMA-mappings.patch",
+  "patch_sha256": "fc2bfab7c2d634078e42f6cc755dd87d79bed8e9fe17ca61bd33318d1d9ef511",
+  "replay_and_reverse_verified": true,
+  "support": {
+    "sdio.h": "adc07b543c958e85332cb68eae1a457a590465ef547309fd4fa45989f68b55b4",
+    "hif.h": "e9d18516cc49e6290203a827551ea7cb890af155d2ae9ddd0fd9ec03888fb87c"
+  },
+  "api_reference": {
+    "path": "Documentation/DMA-API-HOWTO.txt",
+    "sha256": "15b3328ba2e3004d303aecbdf0956602204f70de48d40dffe15ef9fb53284e49",
+    "revision": "59e00a9144d782e148332009a835b99c43382467"
+  }
+}

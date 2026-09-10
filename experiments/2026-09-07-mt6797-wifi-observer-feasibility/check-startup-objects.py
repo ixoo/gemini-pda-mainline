@@ -107,8 +107,9 @@ def main():
     mode = sys.argv[2] if len(sys.argv) == 3 else "--wmt"
     assert mode in ("--wmt", "--pstore", "--capture-writer", "--dma", "--stop",
                     "--firmware-read", "--firmware-read-safe", "--firmware-image", "--emi", "--provider-off",
-                    "--common-off-safe", "--common-off", "--operation-ownership", "--request-capture", "--request-firmware", "--tx-payload", "--stop-workers", "--remove-retain", "--probe-retain")
-    probe_retain = mode == "--probe-retain"
+                    "--common-off-safe", "--common-off", "--operation-ownership", "--request-capture", "--request-firmware", "--tx-payload", "--stop-workers", "--remove-retain", "--probe-retain", "--dma-map-error")
+    dma_map_error = mode == "--dma-map-error"
+    probe_retain = mode == "--probe-retain" or dma_map_error
     remove_retain = mode == "--remove-retain" or probe_retain
     stop_workers = mode == "--stop-workers" or remove_retain
     tx_payload = mode == "--tx-payload" or stop_workers
@@ -178,6 +179,8 @@ def main():
         label = "wifi-remove-retain-objects-"
     if probe_retain:
         label = "wifi-probe-retain-objects-"
+    if dma_map_error:
+        label = "wifi-dma-map-error-objects-"
     def unit_path(name):
         return name if name.startswith("drivers/") else relative + name
     assert not run(["git", "-C", str(project), "status", "--porcelain"])
@@ -287,6 +290,8 @@ def main():
                     patches += sorted((experiment / "patches/remove-retain").glob("*.patch"))
                 if probe_retain:
                     patches += sorted((experiment / "patches/probe-retain").glob("*.patch"))
+                if dma_map_error:
+                    patches += sorted((experiment / "patches/dma-map-error").glob("*.patch"))
             for extra in ("include/linux/pstore_ram.h", "arch/arm64/boot/dts/mt6797.dtsi",
                           "drivers/misc/mediatek/connectivity/wlan/gen3/Makefile",
                           "fs/pstore/ram.c", "fs/pstore/ram_core.c", "fs/pstore/internal.h",
@@ -298,8 +303,22 @@ def main():
             for name in ("gl_typedef.h", "gl_os.h"):
                 path = relative + "os/linux/include/" + name
                 shutil.copyfile(source / path, patched / path)
-        assert len(patches) == (30 if probe_retain else 29 if remove_retain else 28 if stop_workers else 27 if tx_payload else 26 if request_firmware else 25 if request_capture else 24 if ownership else 23 if common_off else 17 if provider_off else 16 if emi_capture else 15 if firmware_image else 14 if firmware_safe else 13 if firmware_read else 12 if stop else 11 if dma else 0 if capture else 10 if pstore else 5 if common_off_safe else 4)
+        assert len(patches) == (31 if dma_map_error else 30 if probe_retain else 29 if remove_retain else 28 if stop_workers else 27 if tx_payload else 26 if request_firmware else 25 if request_capture else 24 if ownership else 23 if common_off else 17 if provider_off else 16 if emi_capture else 15 if firmware_image else 14 if firmware_safe else 13 if firmware_read else 12 if stop else 11 if dma else 0 if capture else 10 if pstore else 5 if common_off_safe else 4)
         for patch in patches:
+            if dma_map_error and patch.parent.name == "dma-map-error":
+                map_pins = json.loads((experiment / "results/dma-map-error-sources.json").read_text())
+                assert digest(patch) == map_pins["patch_sha256"]
+                map_parent, map_support = work / "map-parent", work / "map-support"
+                map_support.mkdir()
+                for path, expected in map_pins["parents"].items():
+                    assert digest(patched / path) == expected, path
+                    (map_parent / path).parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copyfile(patched / path, map_parent / path)
+                for name, expected in map_pins["support"].items():
+                    original = source / relative / hif / "include" / name
+                    assert digest(original) == expected, name
+                    shutil.copyfile(original, map_support / name)
+                assert digest(source / map_pins["api_reference"]["path"]) == map_pins["api_reference"]["sha256"]
             if probe_retain and patch.parent.name == "probe-retain":
                 probe_pins = json.loads((experiment / "results/probe-retain-sources.json").read_text())
                 assert digest(patch) == probe_pins["patch_sha256"]
@@ -391,6 +410,11 @@ def main():
                 for path, expected in off_pins["parents"].items():
                     assert digest(patched / path) == expected, path
             subprocess.run(["git", "apply", str(patch)], cwd=patched, check=True)
+            if dma_map_error and patch.parent.name == "dma-map-error":
+                for path, expected in map_pins["outputs"].items():
+                    assert digest(patched / path) == expected, path
+                subprocess.run(["python3", str(experiment / "test-dma-map-error.py"),
+                                str(map_parent), str(patched), str(map_support)], check=True)
             if probe_retain and patch.parent.name == "probe-retain":
                 for path, expected in probe_pins["outputs"].items():
                     assert digest(patched / path) == expected, path
@@ -466,6 +490,8 @@ def main():
                 final_sources.update(retain_pins["outputs"])
             if probe_retain:
                 final_sources.update(probe_pins["outputs"])
+            if dma_map_error:
+                final_sources.update(map_pins["outputs"])
             for path, expected in final_sources.items():
                 assert digest(patched / path) == expected, path
         elif firmware_image:

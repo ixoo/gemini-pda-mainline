@@ -106,3 +106,6 @@ This compilation does not establish runtime retention, DMA safety, concurrency
 or recovery. Full linking, resource isolation, controller/recovery integration
 and a separately admitted device protocol remain necessary. No device was
 accessed for this checkpoint.
+
+The subsequent [DMA mapping-error guard](DMA_MAP_ERRORS.md) prevents submission
+of a failed DMA API result. Post-programming failure handling remains separate.

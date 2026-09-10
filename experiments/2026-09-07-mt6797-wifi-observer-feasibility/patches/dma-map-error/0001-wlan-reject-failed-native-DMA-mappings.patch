@@ -1,0 +1,73 @@
+From befb801211b7e5837446508803ab303e99f18ac8 Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <archive@example.invalid>
+Date: Thu, 10 Sep 2026 12:57:02 -0400
+Subject: [PATCH] wlan: reject failed native DMA mappings before programming
+
+Use dma_mapping_error for both native port mappings. On failure, abort
+capture, latch the existing fatal state and release the acquired HIF
+mask request, lock and clock request without programming or unmapping.
+Return failure for subsequent fatal RX entries, matching the TX refusal.
+
+This does not repair DMA timeouts, count escapes or concurrent reset.
+The built-in MT6797 AHB experiment archive has a synthetic identity and
+no DCO certification.
+---
+ .../wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c | 21 +++++++++++++++++++
+ 1 file changed, 21 insertions(+)
+
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c
+index 4e33547..2a3587d 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c
+@@ -773,6 +773,17 @@ BOOLEAN kalDevRegWrite(IN GLUE_INFO_T *GlueInfo, IN UINT_32 RegOffset, IN UINT_3
+ * \retval FALSE         operation fail
+ */
+ /*----------------------------------------------------------------------------*/
++/* The failed map has not been submitted to the DMA engine. */
++static void HifDmaMapError(void)
++{
++	WlanDmaFatalErr = 1;
++	wfc_dma_abort();
++	__enable_irq();
++	my_sdio_enable(HifLock);
++	if (pfWlanDmaOps)
++		pfWlanDmaOps->DmaClockCtrl(FALSE);
++}
++
+ BOOLEAN
+ kalDevPortRead(IN P_GLUE_INFO_T GlueInfo, IN UINT_16 Port, IN UINT_32 Size, OUT PUINT_8 Buf, IN UINT_32 MaxBufSize)
+ {
+@@ -793,6 +804,8 @@ kalDevPortRead(IN P_GLUE_INFO_T GlueInfo, IN UINT_16 Port, IN UINT_32 Size, OUT
+ 
+ 	/* sanity check */
+ 	if ((WlanDmaFatalErr == 1) || (fgIsResetting == TRUE) || (HifIsFwOwn(GlueInfo->prAdapter) == TRUE)) {
++		if (WlanDmaFatalErr == 1)
++			return FALSE;
+ 		/* #ifdef CONF_HIF_CONNSYS_DBG */
+ #if 0
+ 		/* avoid log is overwrited */
+@@ -922,6 +935,10 @@ kalDevPortRead(IN P_GLUE_INFO_T GlueInfo, IN UINT_16 Port, IN UINT_32 Size, OUT
+ 		/* TODO: if dst_off was not cacheline aligned? */
+ 
+ 		DmaConf.Dst = dma_map_single(HifInfo->Dev, Buf, count, DMA_FROM_DEVICE);
++		if (dma_mapping_error(HifInfo->Dev, DmaConf.Dst)) {
++			HifDmaMapError();
++			return FALSE;
++		}
+ 
+ #endif /* MTK_DMA_BUF_MEMCPY_SUP */
+ 
+@@ -1215,6 +1232,10 @@ kalDevPortWriteCapture(IN P_GLUE_INFO_T GlueInfo, IN UINT_16 Port,
+ 				  MaxBufSize, Port);
+ 		/* DMA_TO_DEVICE writeback the cache */
+ 		DmaConf.Src = dma_map_single(HifInfo->Dev, Buf, count, DMA_TO_DEVICE);
++		if (dma_mapping_error(HifInfo->Dev, DmaConf.Src)) {
++			HifDmaMapError();
++			return wfc_fw_tx_port_return(tx, FALSE);
++		}
+ 
+ #endif /* MTK_DMA_BUF_MEMCPY_SUP */
+ 
+-- 
+2.54.0 (Apple Git-157)
+
