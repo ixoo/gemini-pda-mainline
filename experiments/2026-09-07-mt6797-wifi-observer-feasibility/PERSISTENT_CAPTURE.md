@@ -909,6 +909,14 @@ The existing object checker accepts `EXACT_PROJECT_COMMIT --capture-writer`.
 It compiles the header with emitted wrappers in the original native
 `ram_core.c` translation unit, using the pinned compiler/configuration and
 retaining disassembly. This checks native headers and generated code without
-integrating a caller. Target compilation is pending. Acquisition, header
-initialization, producer integration and physical retention remain unfinished;
-this prototype admits no reserved-memory access or device operation.
+integrating a caller. The [target result](results/capture-writer-object-compile.json)
+passed at `2196a566e2d303c6fd7a2c74d49cdf712b1b2803`, with all eight package
+files validated remotely and locally. Disassembly contains the six full
+barriers in append and two in begin, byte load/store loops, and the append
+state advance after final readback. Its observed 224-byte append frame excludes
+callee and future integration stack usage. The recorded compiler flags include
+`-w`; this is not warnings-enabled validation or a full kernel link. Strict
+Checkpatch on the header reported zero errors, warnings and checks with its
+spelling/const dictionaries unavailable. Acquisition, header initialization,
+producer integration and physical retention remain unfinished; this prototype
+admits no reserved-memory access or device operation.

@@ -1,0 +1,55 @@
+{
+  "project_commit": "2196a566e2d303c6fd7a2c74d49cdf712b1b2803",
+  "source_commit": "59e00a9144d782e148332009a835b99c43382467",
+  "scope": "Native ARM64 header/object check with emitted wrappers; no owner integration, kernel link or device execution",
+  "patched_header_sha256": null,
+  "toolchain_manifest_sha256": "a45d945f092461a611d276ad7d0a0fea1ea8a7f93db413908bcb892c12817d14",
+  "config_sha256": "c96ca5c8a767b93f59487c9b4a1c3d05c1f47c166f3f9ea9f2b7ffe0f6f1f0fb",
+  "config_delta": {
+    "CONFIG_ANBOX": [
+      null,
+      "n"
+    ]
+  },
+  "patches": {},
+  "objects": [
+    {
+      "file": "fs/pstore/ram_core.c",
+      "baseline_source_sha256": "eb25a629b9dff9bbffedd7c90fd2a1045420792570cd0a775d78d3bd2c2ca1b6",
+      "baseline_object_sha256": "5bf39a6319aecf29b2b37b10831d00dd57166782d6c60d52f8082a98200cb4f3",
+      "patched_source_sha256": "3cd48f643e7101590c808645fb74d25fe9560e28334547023ff06b652e736272",
+      "object_sha256": "37b35f712dee2c5e41830db3358d78a42f1fce7cdd10da44a726a0145e832907",
+      "baseline_command_sha256": "f2176797030c9d44feb431620bc705022054671b24500e5b8238394c05723bda",
+      "patched_header_dependency_verified": null,
+      "diagnostics_bytes": 0
+    }
+  ],
+  "capture_header_sha256": "6c484141882e9fe2cf8f5898f7dc107450fa97eea9c2a51f703ec1641e54ee14",
+  "package_files": 8,
+  "package_inventory_sha256": "cbea737e079ec9d28cf1726927a081a5dbdc0255ca34164a1de0a2ae53c7775c",
+  "remote_and_local_inventory_verified": true,
+  "native_header_dependency_verified": true,
+  "prepared_source_clean_after": true,
+  "temporary_build_output_removed": true,
+  "emitted_code": {
+    "wfc_slot_write": {
+      "dsb_sy_sites": [
+        "0x314",
+        "0x33c",
+        "0x360",
+        "0x3b4",
+        "0x3d8",
+        "0x408"
+      ]
+    },
+    "wfc_compile_begin": {
+      "dsb_sy_sites": [
+        "0x10c0",
+        "0x10ec"
+      ]
+    }
+  },
+  "slot_writer_frame_bytes": 224,
+  "stack_scope": "Observed writer prologue only; excludes callees and outer integration",
+  "warning_policy": "Reuses original compiler commands including -w; not a warnings-enabled result"
+}
