@@ -60,3 +60,7 @@ Actual connectivity and recovery remain outside that result.
 The subsequent [private input filesystem](STARTUP_FILESYSTEM.md) places the
 verified retained inputs at the selected lookup paths. It still has no init
 or trigger and remains incomplete boot integration.
+
+The [minimal startup implementation](BOOT_STARTUP.md) now supplies the read-only
+mount and PID1 preflight/controller sequence. Its focused checks pass, but it
+has not yet been packaged with a selected session or booted on the PDA.

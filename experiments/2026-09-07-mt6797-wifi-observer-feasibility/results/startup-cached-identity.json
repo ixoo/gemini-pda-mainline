@@ -1,0 +1,24 @@
+{
+  "arch": "aarch64",
+  "boot_after": "f2b923f9-f952-4cdb-80e0-72142282cc4f",
+  "boot_before": "f2b923f9-f952-4cdb-80e0-72142282cc4f",
+  "cached_firmware_version": "0x8a00",
+  "chip_id": "0x279",
+  "descriptor_mode": "read-only",
+  "kernel": "3.18.41+",
+  "query_count": 2,
+  "radio_requests": 0,
+  "scope": "known-good Gemian cached WMT identity; not a fresh hardware or firmware transaction",
+  "source_revision": "59e00a9144d782e148332009a835b99c43382467",
+  "ioctl": "0x8004a00c",
+  "arguments": [
+    0,
+    2
+  ],
+  "timeout_seconds": 5,
+  "limits": [
+    "No command read, reply write, initialization, function-on/off, firmware load, reset or interface change.",
+    "Descriptor open/close changes its software reference count and may log.",
+    "The observed cached values do not establish firmware acceptance or board/calibration applicability."
+  ]
+}

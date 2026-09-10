@@ -1,0 +1,33 @@
+{
+  "scope": "unpackaged minimal startup implementation; no boot candidate",
+  "sources": {
+    "startup.py": "1ae02697120ad33912ef0bd944de9580033239a4fbba53a8476215f450ed5d57",
+    "startup-init.sh": "d23fb3fb9886f37d953f749f6e9cf72021d80409d06aeca3ba66d2cdb1d04ca8",
+    "test-startup.py": "73fb407a22c0f6ade90ca28755b3a8222d31640d72b01d827a2dbce1f91f9a01"
+  },
+  "synthetic_preflight_tests": 12,
+  "host_test_result": "pass",
+  "arm64_vm_pinned_runtime_test_result": "pass",
+  "runtime_sha256": "7ff2ebf4153d8055f92f3baa1c550a3376b913e680162de60a3557ca2d855294",
+  "mount_check": {
+    "kernel": "6.8.0-139-generic",
+    "architecture": "aarch64",
+    "namespace": "separate mount and PID namespaces in RE VM",
+    "read_only_bind_mounts": 6,
+    "root_write_attempts_with_read_only_filesystem_error": 6,
+    "writable_control_passed": true,
+    "original_bytes_preserved": true,
+    "temporary_state_removed": true
+  },
+  "shell_syntax": "pass",
+  "shellcheck": "pass",
+  "device_boot_execution": false,
+  "kernel_build": false,
+  "limitations": [
+    "Initial write-refusal fixture used a missing stderr destination; its write-attempt claim was rejected and the corrected fixture required actual read-only-filesystem errors.",
+    "Mount checks cover the exact bind/remount loop, not a complete boot or device kernel.",
+    "Synthetic preflight tests mock kernel/mount/process observations; ARM64 VM execution is not PDA startup execution.",
+    "No session manifest, updated startup filesystem or boot container has been built.",
+    "Remaining isolation, capture preparation and owner-approved radio/recovery admission are unfinished."
+  ]
+}
