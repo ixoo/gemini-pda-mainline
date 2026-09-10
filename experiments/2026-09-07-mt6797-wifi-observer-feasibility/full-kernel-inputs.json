@@ -175,6 +175,10 @@
     {
       "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/reset-isolation/0001-wmt-isolate-recovery-reset-paths-in-captured-experiment.patch",
       "sha256": "09a71c4e886793034584109e465685165f5f3434f3acfffb873e94b804b4c4b1"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/restart-wrapper/0001-watchdog-bypass-RTC-mode-writes-in-captured-experiment.patch",
+      "sha256": "1449a12318c0f1ddc535fffe71ed6af71efb08fe58f114dfbe9075c1f220aaa0"
     }
   ],
   "purpose": "complete native kernel link; no boot candidate or device admission"

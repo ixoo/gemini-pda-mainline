@@ -23,7 +23,7 @@ def main() -> None:
             'printf "buildbox %s\\n" "$*" >> "$TEST_CALLS"\n'
             'case "$1" in\n'
             'available) exit "$TEST_AVAILABLE" ;;\n'
-            'build-kernel) exit "$TEST_BUILD_RESULT" ;;\n'
+            'build-kernel|build-wifi-controller-kernel) exit "$TEST_BUILD_RESULT" ;;\n'
             '*) exit 99 ;;\n'
             'esac\n',
             encoding="ascii",
@@ -49,13 +49,21 @@ def main() -> None:
             ("invalid-backend", ["--backend=invalid"], None, 0, 0, 1, []),
             ("missing-backend", ["--backend"], None, 0, 0, 1, []),
         ]
-        for name, arguments, backend, available, build_result, expected_status, expected_calls in cases:
+        cases = [(*case, "") for case in cases] + [
+            ("wifi-ready", ["--backend", "buildbox"], None, 0, 0, 0,
+             ["buildbox available", "buildbox build-wifi-controller-kernel"], "wifi-controller"),
+            ("wifi-unavailable", [], None, 1, 0, 1, ["buildbox available"], "wifi-controller"),
+            ("wifi-vm-refused", ["--backend", "vm"], None, 0, 0, 1, [], "wifi-controller"),
+            ("unknown-experiment", [], None, 0, 0, 1, [], "unknown"),
+        ]
+        for name, arguments, backend, available, build_result, expected_status, expected_calls, experiment in cases:
             calls.unlink(missing_ok=True)
             environment = {
                 "PATH": os.environ["PATH"],
                 "TEST_CALLS": str(calls),
                 "TEST_AVAILABLE": str(available),
                 "TEST_BUILD_RESULT": str(build_result),
+                "GEMINI_BUILD_EXPERIMENT": experiment,
             }
             if backend is not None:
                 environment["GEMINI_BUILD_BACKEND"] = backend

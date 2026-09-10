@@ -1,16 +1,26 @@
 # Complete native controller kernel link
 
 The [Buildbox-only builder](build-full-kernel.py) compiles the complete native
-kernel from [forty-three pinned patches](full-kernel-inputs.json): the previously
+kernel from [forty-four pinned patches](full-kernel-inputs.json): the previously
 compiled controller composition, the emergency reset correction, and historical
 patch 0001's A72 refusal/configuration declaration, plus the detector's watchdog
 header dependency, the [calibration open-error correction](CALIBRATION_OPEN.md)
-and [native recovery-reset isolation](RESET_ISOLATION.md).
+and [native recovery-reset isolation](RESET_ISOLATION.md), followed by the
+[restart-wrapper correction](patches/restart-wrapper/0001-watchdog-bypass-RTC-mode-writes-in-captured-experiment.patch).
 It does not select the old
 recovery trigger, profile or consumed artifact.
 
-Run `python3 build-full-kernel.py COMMIT JOBS` from the experiment's clean,
-pushed Buildbox checkout while holding the normal shared Buildbox lock. The
+Run from the clean, pushed project checkout:
+
+```sh
+GEMINI_BUILD_EXPERIMENT=wifi-controller KERNEL_JOBS=8 ./scripts/build-kernel --backend buildbox
+```
+
+The explicit experiment selector uses the existing Buildbox clean-push check,
+mirror fetch, exact checkout and shared build lock before calling this builder.
+It accepts no manifest profile, module build or VM backend. It defaults to eight
+jobs; the native builder permits one through sixteen. This is a separate native
+experiment, not a new upstream kernel profile. The
 builder uses the existing pinned Gemian source and GCC 6.3 toolchain. It reuses
 a prepared source tree keyed by the complete input manifest, verifies that tree
 with the repository's existing integrity tool, and builds in a separate
@@ -47,7 +57,14 @@ tree retained its integrity digest through compilation, all required entry
 points are linked, and the linked kernel has no unresolved symbols.
 That receipt covers the original 41-patch input manifest. The newly selected
 calibration and reset-isolation corrections have passed native object
-compilation, but the 43-patch composition has not yet been fully linked.
+compilation, but the 44-patch composition has not yet been fully linked.
+
+The last patch routes experimental `arch_reset()` directly to the existing
+`wdt_arch_reset(1)` before RTC recovery/fastboot/charging-mode writes. The
+low-level owner parks after takeover and retains its normal reset path before
+takeover. This avoids introducing a new lock across potentially sleeping RTC
+operations. Ordinary builds retain their original wrapper. Full compilation
+and inspection of the linked wrapper remain pending for this last correction.
 
 Modpost reports 69 section mismatches. The retained observer package reports
 the same count, but mismatch identities have not been compared. Native compiler

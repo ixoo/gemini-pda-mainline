@@ -29,6 +29,8 @@ Commands:
   available             Exit successfully when buildbox is ready for builds
   doctor                Inspect local and remote build prerequisites
   build-kernel          Fetch the pushed HEAD commit, build, and validate it
+  build-wifi-controller-kernel
+                        Build the pinned native Wi-Fi observation kernel
   fetch-package         Fetch the validated package for HEAD and the profile
   generate-mt6797-thermal-calibration-patches
                         Generate the fail-closed thermal calibration review
@@ -1114,7 +1116,7 @@ build_gemian_observer() {
   local sha
 
   case "${mode}" in
-    observer|rollback|recovery|one-way|held|late|cpu9|window|terminal|coherence|multiline|parallel|scheduler|register|pmsg) ;;
+    observer|rollback|recovery|one-way|held|late|cpu9|window|terminal|coherence|multiline|parallel|scheduler|register|pmsg|wifi-controller) ;;
     *) die "invalid Gemian compile-review mode: ${mode}" ;;
   esac
 
@@ -1124,6 +1126,7 @@ build_gemian_observer() {
   identity="$(require_clean_pushed_head)"
   IFS=$'\t' read -r sha branch <<< "${identity}"
   jobs="$(job_count)"
+  if [[ "${mode}" == wifi-controller && -z "${KERNEL_JOBS:-}" ]]; then jobs=8; fi
   printf -v remote_command 'bash -s -- %q %q %q %q %q %q %q' \
     "${sha}" "${branch}" "${jobs}" "${mode}" \
     "${EXPECTED_SCHEDULER_UNPARK_PATCHSET_SHA256}" \
@@ -1154,6 +1157,11 @@ readonly artifact_root="${workspace_root}/gemian-artifacts"
 readonly toolchain_root="${workspace_root}/gemian-toolchains"
 readonly job_root="${workspace_root}/jobs"
 case "${mode}" in
+  wifi-controller)
+    readonly job_suffix=wifi-controller-kernel
+    readonly job_purpose=wifi-controller-kernel-compile-only
+    readonly build_script=experiments/2026-09-07-mt6797-wifi-observer-feasibility/build-full-kernel.py
+    ;;
   observer)
     readonly job_suffix=gemian-a72-owner-observer
     readonly job_purpose=gemian-a72-owner-observer-compile-review
@@ -1269,6 +1277,11 @@ if [[ ! -d "${checkout}" ]]; then
 fi
 [[ "$(git -C "${checkout}" rev-parse HEAD)" == "${commit}" ]]
 [[ -z "$(git -C "${checkout}" status --porcelain)" ]]
+
+if [[ "${mode}" == wifi-controller ]]; then
+  python3 -B "${checkout}/${build_script}" "${commit}" "${jobs}" 2>&1 | tee "${job_log}"
+  exit 0
+fi
 
 if [[ -f "${job_record}" ]] && jq -e \
   --arg commit "${commit}" --arg purpose "${job_purpose}" '
@@ -17658,6 +17671,7 @@ case "${COMMAND}" in
   build-gemian-register-capsule-compile) build_gemian_observer register ;;
   fetch-gemian-register-capsule-compile) fetch_gemian_observer register ;;
   build-gemian-pmsg-witness-compile) build_gemian_observer pmsg ;;
+  build-wifi-controller-kernel) build_gemian_observer wifi-controller ;;
   fetch-gemian-pmsg-witness-compile) fetch_gemian_observer pmsg ;;
   help|-h|--help) usage ;;
   *) usage >&2; exit 2 ;;

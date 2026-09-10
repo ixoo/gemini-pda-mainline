@@ -787,6 +787,17 @@ KERNEL_PROFILE=PROFILE_NAME ./scripts/build-kernel --backend vm
 
 ## Safety boundary
 
+The native Wi-Fi observation kernel uses the same clean-checkout and shared-lock
+path through the standard entry point:
+
+```sh
+GEMINI_BUILD_EXPERIMENT=wifi-controller KERNEL_JOBS=8 ./scripts/build-kernel --backend buildbox
+```
+
+Its [experiment builder and scope](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/FULL_KERNEL.md)
+pin the separate native inputs and validate the resulting compile-only package.
+This selector cannot be combined with a manifest profile, modules or VM backend.
+
 Buildbox has no device credentials and performs no candidate installation or
 hardware writes. Candidate construction, pre-boot hypotheses, runtime evidence,
 and guarded `boot2` deployment remain separate experiment-owned steps governed
