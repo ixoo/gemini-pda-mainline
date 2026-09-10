@@ -95,3 +95,7 @@ and full cycle admission remain unproven.
 The unselected [EMI hooks](EMI_HOOKS.md) capture actual lower protection results
 and native mapping/copy boundaries after the image hooks. Shared ownership,
 visibility and candidate admission remain separate.
+
+The unselected [provider OFF hooks](PROVIDER_OFF_HOOKS.md) retain actual CONN
+state, protection, control and terminal condition observations. Common-owner
+attribution and isolation still require their own producers and joins.

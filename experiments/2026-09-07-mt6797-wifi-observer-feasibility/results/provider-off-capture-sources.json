@@ -1,0 +1,18 @@
+{
+  "source_revision": "59e00a9144d782e148332009a835b99c43382467",
+  "scope": "Unselected native CONN provider OFF capture; no runtime or common-owner proof",
+  "parents": {
+    "drivers/clk/mediatek/clk-mt6797-pg.c": "4a661ed078bddaba15b7a7a2db27ca59ced8883a1b71c545bbbe24cddd64d58f",
+    "drivers/clk/mediatek/clk-mt6797-pg.h": "b3214783e1167fa1a523500fed95966121659ed9068d0556410b83c8786cd5d9",
+    "drivers/clk/mediatek/clk-mtk-v1.h": "4c0502209ccdceebe5cd2a35ba646703f0f5aaa38b033fe2e2fa0c8a788cafd7"
+  },
+  "outputs": {
+    "drivers/clk/mediatek/clk-mt6797-pg.c": "c3c2c7bdb178b6831738be966a4a148a50f783bdd54d418500a746704bf4824d",
+    "drivers/clk/mediatek/clk-mt6797-pg.h": "b3214783e1167fa1a523500fed95966121659ed9068d0556410b83c8786cd5d9",
+    "drivers/clk/mediatek/clk-mt6797-wfc.h": "d3dbeeae951d7b0d5f965c8535116a709f922be4d60a5dd074fb698d86e15fc0",
+    "drivers/clk/mediatek/clk-mtk-v1.h": "4c0502209ccdceebe5cd2a35ba646703f0f5aaa38b033fe2e2fa0c8a788cafd7"
+  },
+  "patch": "0001-clk-capture-native-CONN-provider-shutdown.patch",
+  "patch_sha256": "aa88b970935ba61a14454bd9a85b4e5d014115fed80634e4fe133409ea0d6500",
+  "replay_and_reverse_verified": true
+}

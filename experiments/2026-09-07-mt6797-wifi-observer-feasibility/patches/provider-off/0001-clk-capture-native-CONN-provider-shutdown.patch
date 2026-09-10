@@ -1,0 +1,599 @@
+From b4c4f87d2c321d751bb3cb7f34356d5f5eaeba81 Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <experiment@invalid.example>
+Date: Thu, 10 Sep 2026 08:27:38 -0400
+Subject: [PATCH] clk: capture native CONN provider shutdown
+
+Pass one stack-owned observation context through the existing state and
+disable callbacks. Record the native route, state decision, CONN key,
+bus-protection result, five actual control read/store pairs, terminal OFF
+condition reads and provider return. Preserve diagnostic reads separately
+from the short-circuited condition counters.
+
+Keep native reads, stores, callback order, count-limit faults and returns.
+No readback, timeout, retry or recovery operation is added. Existing
+non-CONN paths carry an inactive context and direct CONN helpers use NULL.
+
+This unselected native experiment is not an upstream ABI or boot candidate.
+The synthetic archive identity supplies no author certification.
+---
+ drivers/clk/mediatek/clk-mt6797-pg.c  | 154 ++++++++++++++++------
+ drivers/clk/mediatek/clk-mt6797-wfc.h | 181 ++++++++++++++++++++++++++
+ 2 files changed, 297 insertions(+), 38 deletions(-)
+ create mode 100644 drivers/clk/mediatek/clk-mt6797-wfc.h
+
+diff --git a/drivers/clk/mediatek/clk-mt6797-pg.c b/drivers/clk/mediatek/clk-mt6797-pg.c
+index 4cd5504..cd43fee 100644
+--- a/drivers/clk/mediatek/clk-mt6797-pg.c
++++ b/drivers/clk/mediatek/clk-mt6797-pg.c
+@@ -78,10 +78,12 @@ while (0)
+ 
+ 	struct subsys;
+ 
++struct wfc_off_trace;
++
+ struct subsys_ops {
+ 	int (*enable)(struct subsys *sys);
+-	int (*disable)(struct subsys *sys);
+-	int (*get_state)(struct subsys *sys);
++	int (*disable)(struct subsys *sys, struct wfc_off_trace *capture);
++	int (*get_state)(struct subsys *sys, struct wfc_off_trace *capture);
+ };
+ 
+ struct subsys {
+@@ -395,9 +397,12 @@ struct pg_callbacks *register_pg_callback(struct pg_callbacks *pgcb)
+ 	return old_pgcb;
+ }
+ 
++#include "clk-mt6797-wfc.h"
++
+ #ifdef TOPAXI_PROTECT_LOCK
+ #define _TOPAXI_TIMEOUT_CNT_ 20000
+-int spm_topaxi_protect(unsigned int mask_value, int en)
++static int spm_topaxi_protect_capture(unsigned int mask_value, int en,
++				      struct wfc_off_trace *capture)
+ {
+ 	unsigned long flags;
+ 	int count = 0;
+@@ -409,15 +414,25 @@ int spm_topaxi_protect(unsigned int mask_value, int en)
+ 	spm_mtcmos_noncpu_lock(flags);
+ 
+ 	if (en == 1) {
+-		spm_write(INFRA_TOPAXI_PROTECTEN, spm_read(INFRA_TOPAXI_PROTECTEN) | (mask_value));
++		u32 before = spm_read(INFRA_TOPAXI_PROTECTEN);
++		u32 stored = before | mask_value;
++
++		spm_write(INFRA_TOPAXI_PROTECTEN, stored);
++		if (capture && capture->transaction) {
++			capture->protect_before = before;
++			capture->protect_store = stored;
++		}
+ 		local_en = clk_readl(INFRA_TOPAXI_PROTECTEN);
++		if (capture && capture->transaction)
++			capture->protect_verify = local_en;
+ 		if ((local_en & mask_value) != mask_value) {
+ 			spm_mtcmos_noncpu_unlock(flags);
+ 			pr_err("INFRA_TOPAXI_PROTECTEN = 0x%x, local = 0x%x != mask=0x%x\n",
+ 				clk_readl(INFRA_TOPAXI_PROTECTEN), local_en, mask_value);
++			wfc_off_protection(capture, 3, false, 0);
+ 			BUG();
+ 		}
+-		while ((spm_read(INFRA_TOPAXI_PROTECTSTA1) & (mask_value)) != (mask_value)) {
++		while ((wfc_off_protect_condition(capture) & (mask_value)) != (mask_value)) {
+ 			#ifdef CONFIG_MTK_RAM_CONSOLE
+ 			aee_rr_rec_clk(0, spm_read(INFRA_TOPAXI_PROTECTSTA1));
+ 			#endif
+@@ -448,6 +463,7 @@ int spm_topaxi_protect(unsigned int mask_value, int en)
+ 		pr_err("INFRA_TOPAXI_PROTECTSTA0 = 0x%x\n", clk_readl(INFRA_TOPAXI_PROTECTSTA0));
+ 		pr_err("INFRA_TOPAXI_PROTECTSTA1 = 0x%x\n", clk_readl(INFRA_TOPAXI_PROTECTSTA1));
+ 		pr_err("INFRA_BUS_IDLE_STA5 = 0x%x\n", clk_readl(INFRA_BUS_IDLE_STA5));
++		wfc_off_protection(capture, 2, false, 0);
+ 		BUG();
+ 	}
+ /*
+@@ -456,6 +472,11 @@ int spm_topaxi_protect(unsigned int mask_value, int en)
+ */
+ 	return 0;
+ }
++
++int spm_topaxi_protect(unsigned int mask_value, int en)
++{
++	return spm_topaxi_protect_capture(mask_value, en, NULL);
++}
+ #endif
+ 
+ static struct subsys *id_to_sys(unsigned int id)
+@@ -571,7 +592,7 @@ static int spm_mtcmos_ctrl_md1(int state)
+ 	return err;
+ }
+ 
+-static int spm_mtcmos_ctrl_conn(int state)
++static int spm_mtcmos_ctrl_conn_capture(int state, struct wfc_off_trace *capture)
+ {
+ 	int err = 0;
+ 
+@@ -579,10 +600,19 @@ static int spm_mtcmos_ctrl_conn(int state)
+ 	spm_write(POWERON_CONFIG_EN, (SPM_PROJECT_CODE << 16) | (0x1 << 0));
+ 
+ 	if (state == STA_POWER_DOWN) {
++		u32 dispatch[] = {5, 1, state, (SPM_PROJECT_CODE << 16) | 1};
++		u32 protection[] = {6, 1, CONN_PROT_MASK, 1};
++#ifdef TOPAXI_PROTECT_LOCK
++		int protection_status;
++#endif
++
++		wfc_off_words(capture, dispatch, ARRAY_SIZE(dispatch));
++		wfc_off_words(capture, protection, ARRAY_SIZE(protection));
+ 		/* TINFO="Start to turn off CONN" */
+ 		/* TINFO="Set bus protect" */
+ 		#ifdef TOPAXI_PROTECT_LOCK
+-		spm_topaxi_protect(CONN_PROT_MASK, 1);
++		protection_status = spm_topaxi_protect_capture(CONN_PROT_MASK, 1, capture);
++		wfc_off_protection(capture, 1, true, protection_status);
+ 		#else
+ 		spm_write(INFRA_TOPAXI_PROTECTEN,
+ 			  spm_read(INFRA_TOPAXI_PROTECTEN) | CONN_PROT_MASK);
+@@ -593,26 +623,32 @@ static int spm_mtcmos_ctrl_conn(int state)
+ 		}
+ 		#endif
+ 		/* TINFO="Set PWR_ISO = 1" */
+-		spm_write(CONN_PWR_CON, spm_read(CONN_PWR_CON) | PWR_ISO);
++		wfc_off_control(capture, 0, PWR_ISO, true);
+ 		/* TINFO="Set PWR_CLK_DIS = 1" */
+-		spm_write(CONN_PWR_CON, spm_read(CONN_PWR_CON) | PWR_CLK_DIS);
++		wfc_off_control(capture, 1, PWR_CLK_DIS, true);
+ 		/* TINFO="Set PWR_RST_B = 0" */
+-		spm_write(CONN_PWR_CON, spm_read(CONN_PWR_CON) & ~PWR_RST_B);
++		wfc_off_control(capture, 2, PWR_RST_B, false);
+ 		/* TINFO="Set PWR_ON = 0" */
+-		spm_write(CONN_PWR_CON, spm_read(CONN_PWR_CON) & ~PWR_ON);
++		wfc_off_control(capture, 3, PWR_ON, false);
+ 		/* TINFO="Set PWR_ON_2ND = 0" */
+-		spm_write(CONN_PWR_CON, spm_read(CONN_PWR_CON) & ~PWR_ON_2ND);
++		wfc_off_control(capture, 4, PWR_ON_2ND, false);
+ 
++		if (capture)
++			wfc_off_words(capture, capture->control, ARRAY_SIZE(capture->control));
++		wfc_off_poll(capture, 1, 0);
+ #ifndef IGNORE_PWR_ACK
+ 		/* TINFO="Wait until PWR_STATUS = 0 and PWR_STATUS_2ND = 0" */
+-		while ((spm_read(PWR_STATUS) & CONN_PWR_STA_MASK)
+-		       || (spm_read(PWR_STATUS_2ND) & CONN_PWR_STA_MASK)) {
++		while ((wfc_off_condition(capture, false) & CONN_PWR_STA_MASK) ||
++		       (wfc_off_condition(capture, true) & CONN_PWR_STA_MASK)) {
+ 			/* No logic between pwr_on and pwr_ack. Print SRAM / MTCMOS control and PWR_ACK for debug. */
+ 			#ifdef CONFIG_MTK_RAM_CONSOLE
+ 			aee_rr_rec_clk(1, spm_read(PWR_STATUS));
+ 			aee_rr_rec_clk(2, spm_read(PWR_STATUS_2ND));
+ 			#endif
+ 		}
++		wfc_off_poll(capture, 2, 1);
++#else
++		wfc_off_poll(capture, 2, 2);
+ #endif
+ 
+ 		/* TINFO="Finish to turn off CONN" */
+@@ -661,6 +697,11 @@ static int spm_mtcmos_ctrl_conn(int state)
+ 	return err;
+ }
+ 
++static int spm_mtcmos_ctrl_conn(int state)
++{
++	return spm_mtcmos_ctrl_conn_capture(state, NULL);
++}
++
+ static int spm_mtcmos_ctrl_dis(int state)
+ {
+ 	int err = 0;
+@@ -1998,109 +2039,129 @@ static int C2K_sys_enable_op(struct subsys *sys)
+ 
+ /* disable op */
+ /*
+-static int general_sys_disable_op(struct subsys *sys)
++static int general_sys_disable_op(struct subsys *sys,
++				  struct wfc_off_trace *capture)
+ {
+ 	return spm_mtcmos_power_off_general_locked(sys, 1, 0);
+ }
+ */
+-static int MD1_sys_disable_op(struct subsys *sys)
++static int MD1_sys_disable_op(struct subsys *sys,
++			      struct wfc_off_trace *capture)
+ {
+ 	/*printk("MD1_sys_disable_op\r\n"); */
+ 	return spm_mtcmos_ctrl_md1(STA_POWER_DOWN);
+ }
+ 
+-static int CONN_sys_disable_op(struct subsys *sys)
++static int CONN_sys_disable_op(struct subsys *sys,
++			       struct wfc_off_trace *capture)
+ {
+ 	/*printk("CONN_sys_disable_op\r\n"); */
+-	return spm_mtcmos_ctrl_conn(STA_POWER_DOWN);
++	return spm_mtcmos_ctrl_conn_capture(STA_POWER_DOWN, capture);
+ }
+ 
+-static int DIS_sys_disable_op(struct subsys *sys)
++static int DIS_sys_disable_op(struct subsys *sys,
++			      struct wfc_off_trace *capture)
+ {
+ 	/*printk("DIS_sys_disable_op bypass\r\n"); */
+ 	return spm_mtcmos_ctrl_dis(STA_POWER_DOWN);
+ 	/*return 0; */
+ }
+ 
+-static int ISP_sys_disable_op(struct subsys *sys)
++static int ISP_sys_disable_op(struct subsys *sys,
++			      struct wfc_off_trace *capture)
+ {
+ 	/*printk("ISP_sys_disable_op\r\n"); */
+ 	return spm_mtcmos_ctrl_isp(STA_POWER_DOWN);
+ }
+ 
+-static int VDE_sys_disable_op(struct subsys *sys)
++static int VDE_sys_disable_op(struct subsys *sys,
++			      struct wfc_off_trace *capture)
+ {
+ 	/*printk("VDE_sys_disable_op\r\n"); */
+ 	return spm_mtcmos_ctrl_vde(STA_POWER_DOWN);
+ }
+ 
+-static int MFG_CORE3_sys_disable_op(struct subsys *sys)
++static int MFG_CORE3_sys_disable_op(struct subsys *sys,
++				    struct wfc_off_trace *capture)
+ {
+ 	/*printk("MFG_CORE3_sys_disable_op\r\n"); */
+ 	return spm_mtcmos_ctrl_mfg_core3(STA_POWER_DOWN);
+ }
+ 
+-static int MFG_CORE2_sys_disable_op(struct subsys *sys)
++static int MFG_CORE2_sys_disable_op(struct subsys *sys,
++				    struct wfc_off_trace *capture)
+ {
+ 	/*printk("MFG_CORE2_sys_disable_op\r\n"); */
+ 	return spm_mtcmos_ctrl_mfg_core2(STA_POWER_DOWN);
+ }
+ 
+-static int MFG_CORE1_sys_disable_op(struct subsys *sys)
++static int MFG_CORE1_sys_disable_op(struct subsys *sys,
++				    struct wfc_off_trace *capture)
+ {
+ 	/*printk("MFG_CORE1_sys_disable_op\r\n"); */
+ 	return spm_mtcmos_ctrl_mfg_core1(STA_POWER_DOWN);
+ }
+ 
+-static int MFG_CORE0_sys_disable_op(struct subsys *sys)
++static int MFG_CORE0_sys_disable_op(struct subsys *sys,
++				    struct wfc_off_trace *capture)
+ {
+ 	/*printk("MFG_CORE0_sys_disable_op\r\n"); */
+ 	return spm_mtcmos_ctrl_mfg_core0(STA_POWER_DOWN);
+ }
+ 
+-static int MFG_sys_disable_op(struct subsys *sys)
++static int MFG_sys_disable_op(struct subsys *sys,
++			      struct wfc_off_trace *capture)
+ {
+ 	/*printk("MFG_sys_disable_op\r\n"); */
+ 	return spm_mtcmos_ctrl_mfg(STA_POWER_DOWN);
+ }
+ 
+-static int MFG_ASYNC_sys_disable_op(struct subsys *sys)
++static int MFG_ASYNC_sys_disable_op(struct subsys *sys,
++				    struct wfc_off_trace *capture)
+ {
+ 	/*printk("MFG_ASYNC_sys_disable_op\r\n"); */
+ 	return spm_mtcmos_ctrl_mfg_async(STA_POWER_DOWN);
+ }
+ 
+-static int MJC_sys_disable_op(struct subsys *sys)
++static int MJC_sys_disable_op(struct subsys *sys,
++			      struct wfc_off_trace *capture)
+ {
+ 	/*printk("MJC_sys_disable_op\r\n"); */
+ 	return spm_mtcmos_ctrl_mjc(STA_POWER_DOWN);
+ }
+ 
+-static int VEN_sys_disable_op(struct subsys *sys)
++static int VEN_sys_disable_op(struct subsys *sys,
++			      struct wfc_off_trace *capture)
+ {
+ 	/*printk("VEN_sys_disable_op\r\n"); */
+ 	return spm_mtcmos_ctrl_ven(STA_POWER_DOWN);
+ }
+ 
+-static int AUDIO_sys_disable_op(struct subsys *sys)
++static int AUDIO_sys_disable_op(struct subsys *sys,
++				struct wfc_off_trace *capture)
+ {
+ 	/*printk("AUDIO_sys_disable_op\r\n"); */
+ 	return spm_mtcmos_ctrl_audio(STA_POWER_DOWN);
+ }
+ 
+-static int C2K_sys_disable_op(struct subsys *sys)
++static int C2K_sys_disable_op(struct subsys *sys,
++			      struct wfc_off_trace *capture)
+ {
+ 	/*printk("C2K_sys_disable_op\r\n"); */
+ 	return spm_mtcmos_ctrl_c2k(STA_POWER_DOWN);
+ }
+ 
+ 
+-static int sys_get_state_op(struct subsys *sys)
++static int sys_get_state_op(struct subsys *sys, struct wfc_off_trace *capture)
+ {
+ 	unsigned int sta = clk_readl(PWR_STATUS);
+ 	unsigned int sta_s = clk_readl(PWR_STATUS_2ND);
+ 
+-	return (sta & sys->sta_mask) && (sta_s & sys->sta_mask);
++	int state = (sta & sys->sta_mask) && (sta_s & sys->sta_mask);
++	u32 words[] = {4, 1, sta, sta_s, state, state ? 1 : 2};
++
++	wfc_off_words(capture, words, ARRAY_SIZE(words));
++	return state;
+ }
+ 
+ /* ops */
+@@ -2208,7 +2269,7 @@ static int subsys_is_on(enum subsys_id id)
+ 
+ 	BUG_ON(!sys);
+ 
+-	r = sys->ops->get_state(sys);
++	r = sys->ops->get_state(sys, NULL);
+ 
+ #if MT_CCF_DEBUG
+ 	pr_debug("[CCF] %s:%d, sys=%s, id=%d\n", __func__, r, sys->name, id);
+@@ -2278,7 +2339,7 @@ static int enable_subsys(enum subsys_id id)
+ 	mtk_clk_lock(flags);
+ 
+ #if CHECK_PWR_ST
+-	if (sys->ops->get_state(sys) == SUBSYS_PWR_ON) {
++	if (sys->ops->get_state(sys, NULL) == SUBSYS_PWR_ON) {
+ 		mtk_clk_unlock(flags);
+ 		return 0;
+ 	}
+@@ -2300,10 +2361,17 @@ static int disable_subsys(enum subsys_id id)
+ 	int r;
+ 	unsigned long flags;
+ 	struct subsys *sys = id_to_sys(id);
++	struct wfc_off_trace capture;
+ 
+ 	BUG_ON(!sys);
++	wfc_off_init(&capture, id);
++	if (capture.transaction &&
++	    (!sys->ops || sys->ops->disable != CONN_sys_disable_op ||
++	     sys->ops->get_state != sys_get_state_op))
++		wfc_off_fail(&capture);
+ 
+ #if MT_CCF_BRINGUP
++	wfc_off_entry(&capture, 2, false);
+ 	pr_debug("[CCF] %s: sys=%s, id=%d\n", __func__, sys->name, id);
+ 	switch (id) {
+ 	case SYS_MD1:
+@@ -2325,6 +2393,7 @@ static int disable_subsys(enum subsys_id id)
+ 	pr_debug("[CCF] %s: sys=%s, id=%d\n", __func__, sys->name, id);
+ 	#endif
+ 	if (allow[id] == 0) {
++		wfc_off_entry(&capture, 3, false);
+ 		#if MT_CCF_DEBUG
+ 		pr_debug("[CCF] %s: do nothing return\n", __func__);
+ 		#endif
+@@ -2337,20 +2406,29 @@ static int disable_subsys(enum subsys_id id)
+ 	/* TODO: check all clocks related to this subsys are off */
+ 	/* could be power off or not */
+ 
+-	if (g_pgcb && g_pgcb->before_off)
++	if (g_pgcb && g_pgcb->before_off) {
++		wfc_off_entry(&capture, 1, true);
+ 		g_pgcb->before_off(id);
++	} else {
++		wfc_off_entry(&capture, 1, false);
++	}
+ 
+ 	mtk_clk_lock(flags);
+ 
+ #if CHECK_PWR_ST
+-	if (sys->ops->get_state(sys) == SUBSYS_PWR_DOWN) {
++	if (sys->ops->get_state(sys, &capture) == SUBSYS_PWR_DOWN) {
+ 		mtk_clk_unlock(flags);
+ 		return 0;
+ 	}
+ #endif				/* CHECK_PWR_ST */
+ 
+-	r = sys->ops->disable(sys);
++	r = sys->ops->disable(sys, &capture);
+ 	WARN_ON(r);
++	if (capture.transaction) {
++		u32 words[] = {9, 1, r, r};
++
++		wfc_off_words(&capture, words, ARRAY_SIZE(words));
++	}
+ 
+ 	mtk_clk_unlock(flags);
+ 
+diff --git a/drivers/clk/mediatek/clk-mt6797-wfc.h b/drivers/clk/mediatek/clk-mt6797-wfc.h
+new file mode 100644
+index 0000000..29489bf
+--- /dev/null
++++ b/drivers/clk/mediatek/clk-mt6797-wfc.h
+@@ -0,0 +1,181 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/* One native CONN OFF observation; no extra hardware reads or timeout. */
++#ifndef _MT6797_WFC_OFF_H
++#define _MT6797_WFC_OFF_H
++
++#include <linux/pstore_ram.h>
++#include <asm/unaligned.h>
++
++struct wfc_off_trace {
++	u32 transaction;
++	u64 primary_count;
++	u64 secondary_count;
++	u32 primary;
++	u32 secondary;
++	u32 primary_valid;
++	u32 secondary_valid;
++	u64 protect_count;
++	u32 protect_before;
++	u32 protect_store;
++	u32 protect_verify;
++	u32 protect_last;
++	u32 protect_valid;
++	u32 control[12];
++};
++
++static atomic_t wfc_off_attempts = ATOMIC_INIT(0);
++
++static void wfc_off_fail(struct wfc_off_trace *trace)
++{
++	u8 status[4];
++
++	if (trace)
++		trace->transaction = 0;
++	if (!ramoops_capture_active())
++		return;
++	put_unaligned_le32(2, status);
++	ramoops_capture_append(255, 0, status, sizeof(status));
++}
++
++static void wfc_off_emit(struct wfc_off_trace *trace, const u8 *data, size_t bytes)
++{
++	if (!trace || !trace->transaction)
++		return;
++	if (!ramoops_capture_active() ||
++	    ramoops_capture_append(9, trace->transaction, data, bytes))
++		wfc_off_fail(trace);
++}
++
++static void wfc_off_words(struct wfc_off_trace *trace, const u32 *words, size_t count)
++{
++	u8 data[48];
++	size_t i;
++
++	if (!trace || !trace->transaction)
++		return;
++	if (count > ARRAY_SIZE(data) / sizeof(u32)) {
++		wfc_off_fail(trace);
++		return;
++	}
++	for (i = 0; i < count; i++)
++		put_unaligned_le32(words[i], data + i * 4);
++	wfc_off_emit(trace, data, count * 4);
++}
++
++static void wfc_off_init(struct wfc_off_trace *trace, unsigned int id)
++{
++	memset(trace, 0, sizeof(*trace));
++	if (id != SYS_CONN || !ramoops_capture_active())
++		return;
++	trace->transaction = 1;
++	if (atomic_inc_return(&wfc_off_attempts) != 1)
++		wfc_off_fail(trace);
++}
++
++static void wfc_off_entry(struct wfc_off_trace *trace, u32 route, bool callback)
++{
++	u32 words[] = {3, 1, SYS_CONN, route, callback};
++
++	wfc_off_words(trace, words, ARRAY_SIZE(words));
++}
++
++static void wfc_off_poll(struct wfc_off_trace *trace, u32 stage, u32 reason)
++{
++	u8 data[44];
++
++	if (!trace || !trace->transaction)
++		return;
++	put_unaligned_le32(stage, data);
++	put_unaligned_le32(1, data + 4);
++	put_unaligned_le32(reason, data + 8);
++	put_unaligned_le64(trace->primary_count, data + 12);
++	put_unaligned_le64(trace->secondary_count, data + 20);
++	put_unaligned_le32(trace->primary, data + 28);
++	put_unaligned_le32(trace->secondary, data + 32);
++	put_unaligned_le32(trace->primary_valid, data + 36);
++	put_unaligned_le32(trace->secondary_valid, data + 40);
++	wfc_off_emit(trace, data, sizeof(data));
++}
++
++static u32 wfc_off_condition(struct wfc_off_trace *trace, bool secondary)
++{
++	u32 value = spm_read(secondary ? PWR_STATUS_2ND : PWR_STATUS);
++	u64 *count;
++
++	if (!trace || !trace->transaction)
++		return value;
++	if (!secondary) {
++		trace->secondary = 0;
++		trace->secondary_valid = 0;
++	}
++	count = secondary ? &trace->secondary_count : &trace->primary_count;
++	if (*count == ~(u64)0) {
++		trace->primary = 0;
++		trace->secondary = 0;
++		trace->primary_valid = 0;
++		trace->secondary_valid = 0;
++		wfc_off_poll(trace, 2, 3);
++		wfc_off_fail(trace);
++		return value;
++	}
++	(*count)++;
++	if (secondary) {
++		trace->secondary = value;
++		trace->secondary_valid = 1;
++	} else {
++		trace->primary = value;
++		trace->primary_valid = 1;
++	}
++	return value;
++}
++
++static u32 wfc_off_protect_condition(struct wfc_off_trace *trace)
++{
++	u32 value = spm_read(INFRA_TOPAXI_PROTECTSTA1);
++
++	if (trace && trace->transaction) {
++		/* Native count limit bounds this loop to 20001 condition reads. */
++		trace->protect_count++;
++		trace->protect_last = value;
++		trace->protect_valid = 1;
++	}
++	return value;
++}
++
++static void wfc_off_protection(struct wfc_off_trace *trace, u32 reason,
++			       bool returned, int status)
++{
++	u8 data[48];
++
++	if (!trace || !trace->transaction)
++		return;
++	put_unaligned_le32(7, data);
++	put_unaligned_le32(1, data + 4);
++	put_unaligned_le32(trace->protect_before, data + 8);
++	put_unaligned_le32(trace->protect_store, data + 12);
++	put_unaligned_le32(trace->protect_verify, data + 16);
++	put_unaligned_le32(reason, data + 20);
++	put_unaligned_le64(trace->protect_count, data + 24);
++	put_unaligned_le32(trace->protect_last, data + 32);
++	put_unaligned_le32(trace->protect_valid, data + 36);
++	put_unaligned_le32(returned, data + 40);
++	put_unaligned_le32(status, data + 44);
++	wfc_off_emit(trace, data, sizeof(data));
++}
++
++static void wfc_off_control(struct wfc_off_trace *trace, u32 index,
++			    u32 mask, bool set)
++{
++	u32 before = spm_read(CONN_PWR_CON);
++	u32 stored = set ? before | mask : before & ~mask;
++
++	spm_write(CONN_PWR_CON, stored);
++	if (!trace || !trace->transaction)
++		return;
++	trace->control[0] = 8;
++	trace->control[1] = 1;
++	trace->control[2 + index * 2] = before;
++	trace->control[3 + index * 2] = stored;
++}
++
++#endif

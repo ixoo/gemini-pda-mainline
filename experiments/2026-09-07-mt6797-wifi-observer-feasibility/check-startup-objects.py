@@ -106,12 +106,13 @@ def main():
     assert len(sys.argv) in (2, 3) and sys.argv[1] == commit
     mode = sys.argv[2] if len(sys.argv) == 3 else "--wmt"
     assert mode in ("--wmt", "--pstore", "--capture-writer", "--dma", "--stop",
-                    "--firmware-read", "--firmware-read-safe", "--firmware-image", "--emi")
+                    "--firmware-read", "--firmware-read-safe", "--firmware-image", "--emi", "--provider-off")
     capture = mode == "--capture-writer"
-    emi_capture = mode == "--emi"
+    provider_off = mode == "--provider-off"
+    emi_capture = mode == "--emi" or provider_off
     firmware_image = mode == "--firmware-image" or emi_capture
     firmware_safe = mode == "--firmware-read-safe" or firmware_image
-    firmware_read = mode in ("--firmware-read", "--firmware-read-safe", "--firmware-image", "--emi")
+    firmware_read = mode in ("--firmware-read", "--firmware-read-safe", "--firmware-image", "--emi", "--provider-off")
     stop = mode == "--stop" or firmware_read
     dma = mode == "--dma" or stop
     pstore = mode in ("--pstore", "--capture-writer")
@@ -139,6 +140,9 @@ def main():
         files += ("drivers/misc/mediatek/emi_mpu/emi_reg_rw",
                   "drivers/misc/mediatek/emi_mpu/mt6797/emi_mpu")
         label = "wifi-emi-objects-"
+    if provider_off:
+        files += ("drivers/clk/mediatek/clk-mt6797-pg",)
+        label = "wifi-provider-off-objects-"
     def unit_path(name):
         return name if name.startswith("drivers/") else relative + name
     assert not run(["git", "-C", str(project), "status", "--porcelain"])
@@ -221,13 +225,17 @@ def main():
                 emi_header = "drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/emi_mpu.h"
                 (patched / emi_header).parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(source / emi_header, patched / emi_header)
+            if provider_off:
+                patches += sorted((experiment / "patches/provider-off").glob("*.patch"))
+                for path in (source / "drivers/clk/mediatek").glob("*.h"):
+                    shutil.copyfile(path, patched / "drivers/clk/mediatek" / path.name)
             for extra in ("include/linux/pstore_ram.h", "arch/arm64/boot/dts/mt6797.dtsi",
                           "drivers/misc/mediatek/connectivity/wlan/gen3/Makefile",
                           "fs/pstore/ram.c", "fs/pstore/ram_core.c", "fs/pstore/internal.h",
                           "fs/pstore/pmsg.c", "fs/pstore/inode.c"):
                 (patched / extra).parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(source / extra, patched / extra)
-        assert len(patches) == (16 if emi_capture else 15 if firmware_image else 14 if firmware_safe else 13 if firmware_read else 12 if stop else 11 if dma else 0 if capture else 10 if pstore else 4)
+        assert len(patches) == (17 if provider_off else 16 if emi_capture else 15 if firmware_image else 14 if firmware_safe else 13 if firmware_read else 12 if stop else 11 if dma else 0 if capture else 10 if pstore else 4)
         for patch in patches:
             if stop and patch.parent.name == "stop":
                 stop_pins = json.loads((experiment / "results/stop-capture-sources.json").read_text())
@@ -254,7 +262,15 @@ def main():
                 assert digest(patch) == emi_pins["patch_sha256"]
                 for path, expected in emi_pins["parents"].items():
                     assert digest(patched / path) == expected, path
+            if provider_off and patch.parent.name == "provider-off":
+                off_pins = json.loads((experiment / "results/provider-off-capture-sources.json").read_text())
+                assert digest(patch) == off_pins["patch_sha256"]
+                for path, expected in off_pins["parents"].items():
+                    assert digest(patched / path) == expected, path
             subprocess.run(["git", "apply", str(patch)], cwd=patched, check=True)
+            if provider_off and patch.parent.name == "provider-off":
+                for path, expected in off_pins["outputs"].items():
+                    assert digest(patched / path) == expected, path
             if firmware_image and patch.parent.name == "firmware-image":
                 for path, expected in image_pins["outputs"].items():
                     assert digest(patched / path) == expected, path
@@ -377,7 +393,7 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
                     assert str(patched / emi_header) in dependencies
                     assert str(source / emi_header) not in dependencies
                     assert "emi_mpu_set_region_protection_capture" in disassembly
-            if emi_capture and not wlan_unit:
+            if emi_capture and suffix.startswith("drivers/misc/mediatek/emi_mpu/"):
                 assert str(patched / emi_header) in dependencies
                 assert str(source / emi_header) not in dependencies
                 assert "-DMODULE" not in args
@@ -389,6 +405,18 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
                     assert str(patched / "include/linux/pstore_ram.h") in dependencies
                     assert "ramoops_capture_append" in disassembly
                     assert "ramoops_capture_active" in disassembly
+            if provider_off and name == "clk-mt6797-pg":
+                for included in ("clk-mt6797-wfc.h", "clk-mt6797-pg.h", "clk-mtk-v1.h"):
+                    assert str(patched / "drivers/clk/mediatek" / included) in dependencies
+                    assert str(source / "drivers/clk/mediatek" / included) not in dependencies
+                assert str(patched / "include/linux/pstore_ram.h") in dependencies
+                assert "-DMODULE" not in args
+                disassembly = run([str(toolchain / "wrappers/aarch64-linux-gnu-objdump"),
+                                   "-dr", str(result)], env=environment)
+                (work / (name + "-capture.disasm")).write_text(disassembly + "\n")
+                for symbol in ("ramoops_capture_active", "ramoops_capture_append", "wfc_off_",
+                               "spm_mtcmos_ctrl_conn", "disable_subsys"):
+                    assert symbol in disassembly, symbol
             if capture:
                 assert str(patched / relative / "capture-slot-writer.h") in dependencies
                 table = run(["readelf", "-Ws", str(result)])
