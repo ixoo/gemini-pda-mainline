@@ -130,3 +130,23 @@ a deferred source; it is not a hardware reproduction of a closed VT. A build
 and an attributable device observation are still required before concluding
 that requeueing resolves the recorded backlog. No keyboard-driver or kernel
 patch is justified by these observations alone.
+
+
+## Closed-console comparison result and startup correction
+
+The [controlled comparison](console-requeue-comparison.json) used the same
+mainline boot. With no reader running, the owner tapped and released unshifted
+A once. The old drain then reported zero bytes and restored termios. Without
+another keypress, the revised drain reselected N_TTY and recovered exactly `61`,
+then reported empty and restored termios. Both commands exited successfully.
+This demonstrates input invisible to the old empty check becoming available
+when the buffer worker is restarted, consistent with the inspected closed-VT
+path. It does not establish where the earlier repeated `n`/`1` bytes originated.
+
+Normal Space readiness now performs that same bounded preservation step before
+its prompt, keeping the descriptor open through the fresh Space press/release.
+It records every preflight byte, refuses concurrent evdev input or held keys,
+and preserves the existing fresh-event and restoration requirements. No flush,
+keymap change or keyboard-driver change is involved. The added PTY case releases
+a queued prefix during preflight and then requires a new Space sequence to pass.
+The physical startup and full keyboard sequence still require validation.

@@ -117,10 +117,11 @@ def run_case(binary, qemu, name, events=None, text=b'', cancel=False, expected=2
     process = None
     try:
         process = subprocess.Popen([qemu, str(binary), 'event0', '64'],
-            pass_fds=(reader, slave), stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            env={**os.environ, 'INPUT_FD': str(reader), 'CONSOLE_FD': str(slave)})
+            pass_fds=(reader, slave, master), stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            env={**os.environ, 'INPUT_FD': str(reader), 'CONSOLE_FD': str(slave),
+                 **({'REQUEUE_FD': str(master)} if name == 'queued-prefix-before-space' else {})})
         prompt = b''
-        deadline = time.monotonic() + 3
+        deadline = time.monotonic() + 4
         while b'This screen waits' not in prompt and time.monotonic() < deadline:
             if select.select([master], [], [], .1)[0]:
                 prompt += os.read(master, 4096)
@@ -145,7 +146,16 @@ def run_case(binary, qemu, name, events=None, text=b'', cancel=False, expected=2
         lines = out.splitlines(keepends=True)
         reports = [line for line in lines if line == b'space-ready=waiting\n']
         assert len(reports) <= 10, (name, out)
-        final = b''.join(line for line in lines if line != b'space-ready=waiting\n')
+        prefix, separator, rest = out.partition(b'space-ready=preflight-complete\n')
+        assert separator, (name, out)
+        assert prefix.startswith(b'console-drain requeue=accepted ldisc=0\n'), (name, out)
+        if name == 'queued-prefix-before-space':
+            assert b'console-drain bytes=6 hex=717565756564\n' in prefix, out
+            assert prefix.endswith(b'console-drain empty=1 bytes=6\n'), out
+        else:
+            assert prefix.endswith(b'console-drain empty=1 bytes=0\n'), out
+        final = b''.join(line for line in rest.splitlines(keepends=True)
+                         if line != b'space-ready=waiting\n')
         if expected == 0:
             assert final == b'space-ready=passed released=1 restored=1\n', (name, out)
         else:
@@ -258,6 +268,7 @@ def main():
         '-idirafter', '/usr/aarch64-linux-gnu/include', '-I', str(HERE), str(source), '-o', str(binary)], check=True)
     press, release, sync = (1, 57, 1), (1, 57, 0), (0, 0, 0)
     run_case(binary, args.qemu, 'press-release', [press, sync, release, sync], b' ', expected=0)
+    run_case(binary, args.qemu, 'queued-prefix-before-space', [press, sync, release, sync], b' ', expected=0)
     run_case(binary, args.qemu, 'held-space-does-not-start', [press, sync], b' ')
     run_case(binary, args.qemu, 'wrong-key', [(1, 30, 1), sync], b'a')
     run_case(binary, args.qemu, 'release-without-press', [release, sync], b' ')

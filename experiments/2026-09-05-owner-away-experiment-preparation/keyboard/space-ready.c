@@ -232,14 +232,23 @@ int main(int argc, char **argv)
 			result = 2;
 		goto done;
 	}
-	/* Refuse stale input without discarding it before displaying readiness. */
+	/* Release and preserve input left while the VT was closed. Keep this
+	 * same descriptor open through readiness so the backlog cannot recur
+	 * between this preparation and the owner's Space press.
+	 */
+	setvbuf(stdout, NULL, _IONBF, 0);
+	reason = "preflight";
+	if (drain_console() || released(fd))
+		goto done;
+	if (printf("space-ready=preflight-complete\n") < 0)
+		goto done;
+	/* Refuse new input arriving during preparation, before readiness. */
 	struct pollfd fds[] = { { fd, POLLIN, 0 }, { ttyfd, POLLIN, 0 } };
 	if (poll(fds, 2, 0) != 0 ||
 	    dprintf(ttyfd, "\r\nPress and release SPACE to begin the keyboard test.\r\n"
 		    "Then leave all keys released until the first prompt.\r\n"
 		    "This screen waits up to five minutes.\r\n") < 0)
 		goto done;
-	setvbuf(stdout, NULL, _IONBF, 0);
 	start = now_ms();
 	reported = start;
 	if (start < 0)

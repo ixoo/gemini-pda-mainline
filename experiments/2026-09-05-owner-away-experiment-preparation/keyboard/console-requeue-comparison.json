@@ -1,0 +1,44 @@
+{
+  "boot_id": "f2999a36-edfe-42ea-bca4-1abf8db1a7f9",
+  "cases": [
+    {
+      "case": "before",
+      "process": {
+        "elapsed_seconds": 0.883,
+        "exit_status": 0,
+        "reason": null,
+        "stderr_bytes": 0,
+        "stdin_complete": true,
+        "stdout_bytes": 66
+      },
+      "stdout": "console-drain empty=1 bytes=0\nconsole-drain complete=1 restored=1\n",
+      "stdout_sha256": "91e56ed294da6ab283c937ff6839b4ecf3bcbeeeb9b33cb08b73cd18a6f524be"
+    },
+    {
+      "case": "capture",
+      "process": {
+        "elapsed_seconds": 0.842,
+        "exit_status": 0,
+        "reason": null,
+        "stderr_bytes": 0,
+        "stdin_complete": true,
+        "stdout_bytes": 134
+      },
+      "stdout": "console-drain requeue=accepted ldisc=0\nconsole-drain bytes=1 hex=61\nconsole-drain empty=1 bytes=1\nconsole-drain complete=1 restored=1\n",
+      "stdout_sha256": "6fcbd26ae9649f5e9f7237148e679a3abe2d5f3332771df3e96fe6d0f4bcbf54"
+    }
+  ],
+  "conclusion": "Old drain reported zero bytes. Same-N_TTY requeue recovered exactly 61 without another keypress. Supports stalled closed-VT flip-buffer input; does not establish the origin of prior repeated n or 1 bytes or complete keyboard correctness.",
+  "new_package": {
+    "binary_sha256": "d3f4f3ff369e33c68f652452e8b5153315ec60a12713d7175ed1b1df21c772ec",
+    "boot_id": "f2999a36-edfe-42ea-bca4-1abf8db1a7f9",
+    "capture_sha256": "ed65eb98f51734bb0a4b2ae19b3a9bc8cc4bcc9e3b38d0f9ca53b52a66781749",
+    "delivery_sha256": "8537a35fc8fe059aea393a5791975f9b5d001382bc35d6c74d6f05b824314e5a",
+    "id": "478f8d2c-91a3-4a99-8aea-bb1015741bd3",
+    "package": "3ac01063b66dc6b94a89bf8cfb725b841586efb3c734590b64c7408736b4fc86",
+    "remote": "/a53-keyboard-muslcheck-478f8d2c-91a3-4a99-8aea-bb1015741bd3",
+    "revision": "eedad0fd2ee37fe9f2a62e45b8f2f1de2497542c"
+  },
+  "owner_action": "One unshifted A tap and release before either reader; owner replied Done A.",
+  "schema": "keyboard-console-requeue-comparison-v1"
+}

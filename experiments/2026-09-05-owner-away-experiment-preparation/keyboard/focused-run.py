@@ -3,13 +3,14 @@
 """Run one explicitly bound phase of the attended focused keyboard observation."""
 import argparse
 import json
+import re
 from pathlib import Path
 import runpy
 
 HERE = Path(__file__).resolve().parent
 F = runpy.run_path(str(HERE/'focused-session.py'))
 M, C, S = F['M'], F['C'], F['S']
-LIMITS = {'space-delivery': (30, 1024), 'space-wait': (315, 1024), 'logger': (620, 1024),
+LIMITS = {'space-delivery': (30, 1024), 'space-wait': (315, 16384), 'logger': (620, 1024),
           'delivery-a': (30, 4096), 'delivery-b': (30, 4096), 'capture': (60, 131072),
           'export': (30, 278528), 'seal': (30, 3145728)}
 
@@ -77,8 +78,21 @@ def main():
                     'delivery-b': b'__FOCUSED_DELIVERY_B_PASS__\n'}[phase]
         M['require'](stdout == expected, 'delivery result')
     elif phase == 'space-wait':
-        lines = stdout.splitlines()
-        M['require'](1 <= len(lines) <= 15 and stdout == b'space-ready=waiting\n'*(len(lines)-1)
+        prefix, separator, result = stdout.partition(b'space-ready=preflight-complete\n')
+        entries = prefix.splitlines()
+        M['require'](separator and 2 <= len(entries) <= 130 and
+            entries[0] == b'console-drain requeue=accepted ldisc=0', 'Space preflight header')
+        total = 0
+        for entry in entries[1:-1]:
+            match = re.fullmatch(rb'console-drain bytes=([1-9][0-9]?) hex=([0-9a-f]+)', entry)
+            M['require'](match is not None, 'Space preflight byte record')
+            count = int(match[1])
+            M['require'](count <= 32 and len(match[2]) == 2 * count, 'Space preflight byte count')
+            total += count
+        M['require'](total <= 4096 and entries[-1] ==
+            f'console-drain empty=1 bytes={total}'.encode(), 'Space preflight terminal')
+        lines = result.splitlines()
+        M['require'](1 <= len(lines) <= 15 and result == b'space-ready=waiting\n'*(len(lines)-1)
             + b'space-ready=passed released=1 restored=1\n', 'Space readiness result')
     elif phase == 'capture':
         M['require'](stdout.endswith(b'__FOCUSED_POSTFLIGHT_PASS__\n'), 'focused capture postflight')
