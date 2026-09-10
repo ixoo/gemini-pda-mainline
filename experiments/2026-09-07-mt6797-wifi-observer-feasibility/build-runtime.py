@@ -108,7 +108,7 @@ def main():
         (root / 'tmp').chmod(0o1777)
         shutil.copyfile(qemu, root / 'qemu-aarch64-static')
         (root / 'qemu-aarch64-static').chmod(0o755)
-        prefix = ['unshare', '--user', '--map-root-user', 'chroot', str(root),
+        prefix = ['unshare', '--user', '--map-root-user', shutil.which('chroot'), str(root),
                   '/qemu-aarch64-static']
         # Chroot excludes host ARM64 libraries and Python modules. QEMU translates
         # syscalls to the host kernel; it does not emulate the PDA's Linux 3.18.
