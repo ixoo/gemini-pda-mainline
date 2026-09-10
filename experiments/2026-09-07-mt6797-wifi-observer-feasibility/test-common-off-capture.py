@@ -30,6 +30,10 @@ static struct task_struct *current;
 struct clk_hw { int unused; };
 struct clk { struct clk_hw *hw; };
 static unsigned int common_lock, scope_fault;
+static unsigned int task_pins;
+static void get_task_struct(struct task_struct *task) { assert(task==current && !task_pins);task_pins++; }
+static void put_task_struct(struct task_struct *task) { assert(task==current && task_pins==1);task_pins--; }
+unsigned int pinned_tasks(void) { return task_pins; }
 #define DEFINE_RAW_SPINLOCK(name) unsigned int name
 #define raw_spin_lock_irqsave(p,f) do { assert(!*(p));*(p)=1;(f)=1;common_lock=1; } while(0)
 #define raw_spin_unlock_irqrestore(p,f) do { assert(*(p) && (f)==1);*(p)=0;common_lock=0; } while(0)
@@ -105,7 +109,7 @@ static int allow[NR_SYSS];
     a = text.index('struct mt_power_gate {')
     source += text[a:text.index('static int pg_enable', a)]
     source += provider.fn(text, 'pg_disable') + provider.fn(text, 'pg_unprepare') + CLOCK
-    reset = 'wfc_off_attempts.counter=0; current=&main_task; common_lock=0;'
+    reset = 'wfc_off_attempts.counter=0; current=&main_task; common_lock=0; task_pins=0;'
     if linked:
         reset += 'wfc_common_lock=0;wfc_common_stage=WFC_COMMON_UNUSED;wfc_common_task=NULL;wfc_common_hw=NULL;'
     source += provider.WRAPPER.replace('FAKE_ARGUMENTS', 'struct subsys *sys, struct wfc_off_trace *capture').replace('FAKE_IGNORE', '(void)capture;').replace('RESET_CAPTURE', reset).replace('int result=disable_subsys(SYS_CONN);', 'common_cycle();int result=0;')
@@ -217,16 +221,21 @@ def main():
                     assert list(child.effects()[:child.effect_count()]) == effects
                     if not enabled:
                         assert child.store_count()==0
+                        assert child.pinned_tasks()==0
                         continue
                     data, _ = dma.stream(child)
                     if fault==0 and native in (0,5):
                         assert r.check_common_off(data,dma.writer.CYCLE)['checked_common_operation']==1
+                        assert child.pinned_tasks()==0
                         if native==0:
                             decoder_refusals(data)
                     else:
                         try:r.check_common_off(data,dma.writer.CYCLE)
                         except ValueError:pass
                         else:raise AssertionError(('accepted',fault,native))
+                    assert child.pinned_tasks() <= 1
+                    if fault in (1,2,3,4,6,7,8,9,12,13,15):
+                        assert child.pinned_tasks()==1
         parent.set_scope_fault(0);child.set_scope_fault(0)
         expected = parent.run_case(0,0,0)
         effects = list(parent.effects()[:parent.effect_count()])
@@ -235,6 +244,7 @@ def main():
             assert list(child.effects()[:child.effect_count()])==effects
             _, decoded = dma.stream(child)
             assert decoded['framing']=='incomplete'
+            assert child.pinned_tasks()==1
         core_calls(args.parent,args.changed,root)
     print('common-off-capture=pass provider_paths=8 scope_faults=15 lost_records=15 core_cases=297 decoder_refusals=pass')
     print('native_effects_and_return_values=preserved; real_hardware_clock_or_task_execution=none')

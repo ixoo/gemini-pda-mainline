@@ -12,7 +12,7 @@
   "outputs": {
     "drivers/clk/mediatek/clk-mt6797-pg.c": "38bee9cc3a636bb28d03afe57e086f3ebcf9fa9cc97cfc02d6e12533246a0093",
     "drivers/clk/mediatek/clk-mt6797-pg.h": "b3214783e1167fa1a523500fed95966121659ed9068d0556410b83c8786cd5d9",
-    "drivers/clk/mediatek/clk-mt6797-wfc-common.h": "b6b8fdf78e408f2954742bbc2016a8fcf45503e6ce3c3eb77f9058392ced5bb0",
+    "drivers/clk/mediatek/clk-mt6797-wfc-common.h": "b4331e2f6a46244002ac4796076766334928221dc5d1e644b76cc6fbe9cdb2fa",
     "drivers/clk/mediatek/clk-mt6797-wfc.h": "ca745c044223aeeb3f32c11bb2dfab48c923f428f0811aabd3c0a860a7f7a251",
     "drivers/clk/mediatek/clk-mtk-v1.h": "4c0502209ccdceebe5cd2a35ba646703f0f5aaa38b033fe2e2fa0c8a788cafd7",
     "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c": "dea3a69db226fbbbe15f7b4af40c7632464e91a3135dc522f8e06ecc20c7b794",
@@ -20,6 +20,6 @@
     "include/linux/mt6797_wifi_capture.h": "5fa31493fb5114d7b26483f8d085acb104e9536dcac802c27c7ea034bc445a55"
   },
   "patch": "0001-wmt-bind-common-OFF-to-native-CONN-provider.patch",
-  "patch_sha256": "9fd317580cc08745d2d2b9187929d616b6f519cfdf8832cf3ea84f64ad3dd18a",
+  "patch_sha256": "8454ecbbc513507565e6c9d1d79a5f0dd1472e43450557eaa6919f7547c3e786",
   "replay_and_reverse_verified": true
 }

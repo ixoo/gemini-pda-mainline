@@ -1,6 +1,6 @@
-From 13f5267e1a18707f5ef22b808a72cda846edee88 Mon Sep 17 00:00:00 2001
+From 1a452aaa910da7bc291b487beb658fbd1e15d402 Mon Sep 17 00:00:00 2001
 From: Gemini experiment archive <experiment@invalid.example>
-Date: Thu, 10 Sep 2026 09:10:17 -0400
+Date: Thu, 10 Sep 2026 09:13:46 -0400
 Subject: [PATCH] wmt: bind common OFF to native CONN provider
 
 Scope one synchronous function-off common-power request by its calling
@@ -16,12 +16,12 @@ This unselected native experiment is not an upstream ABI or boot candidate.
 The synthetic archive identity supplies no author certification.
 ---
  drivers/clk/mediatek/clk-mt6797-pg.c          |   2 +
- drivers/clk/mediatek/clk-mt6797-wfc-common.h  | 178 ++++++++++++++++++
+ drivers/clk/mediatek/clk-mt6797-wfc-common.h  | 181 ++++++++++++++++++
  drivers/clk/mediatek/clk-mt6797-wfc.h         |   3 +
  .../common/common_main/core/wmt_core.c        |   3 +
  .../common_main/mt6797/mtk_wcn_consys_hw.c    |   6 +
  include/linux/mt6797_wifi_capture.h           |  12 ++
- 6 files changed, 204 insertions(+)
+ 6 files changed, 207 insertions(+)
  create mode 100644 drivers/clk/mediatek/clk-mt6797-wfc-common.h
  create mode 100644 include/linux/mt6797_wifi_capture.h
 
@@ -44,10 +44,10 @@ index cd43fee..6d8f4c1 100644
  static const struct clk_ops mt_power_gate_ops = {
 diff --git a/drivers/clk/mediatek/clk-mt6797-wfc-common.h b/drivers/clk/mediatek/clk-mt6797-wfc-common.h
 new file mode 100644
-index 0000000..d010444
+index 0000000..011ab59
 --- /dev/null
 +++ b/drivers/clk/mediatek/clk-mt6797-wfc-common.h
-@@ -0,0 +1,178 @@
+@@ -0,0 +1,181 @@
 +/* SPDX-License-Identifier: GPL-2.0-only */
 +/* One synchronous common OFF scope; pointers are compared, never published. */
 +#ifndef _MT6797_WFC_COMMON_H
@@ -80,7 +80,7 @@ index 0000000..d010444
 +	u8 status[4];
 +
 +	wfc_common_stage = WFC_COMMON_FAILED;
-+	wfc_common_task = NULL;
++	/* Retain the one task pin after failure until recovery. */
 +	wfc_common_hw = NULL;
 +	put_unaligned_le32(2, status);
 +	if (ramoops_capture_active())
@@ -114,6 +114,7 @@ index 0000000..d010444
 +	if (wfc_common_stage != WFC_COMMON_UNUSED) {
 +		wfc_common_fail();
 +	} else {
++		get_task_struct(current);
 +		wfc_common_task = current;
 +		wfc_common_stage = WFC_COMMON_ROOT;
 +		wfc_common_emit(words, ARRAY_SIZE(words));
@@ -192,7 +193,9 @@ index 0000000..d010444
 +	} else {
 +		wfc_common_stage = next;
 +		wfc_common_emit(words, count);
-+		if (next == WFC_COMMON_DONE) {
++		if (wfc_common_stage == WFC_COMMON_DONE) {
++			/* The matching current task is still live: not its last ref. */
++			put_task_struct(wfc_common_task);
 +			wfc_common_task = NULL;
 +			wfc_common_hw = NULL;
 +		}

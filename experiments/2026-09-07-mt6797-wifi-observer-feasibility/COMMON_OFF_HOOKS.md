@@ -33,10 +33,13 @@ The native clock reference counts, dispatch decisions and operations are intact.
 
 A small global scope is needed because the CCF callback does not accept an
 observer argument. Its calling-task and clock-hardware pointers are only
-compared under a raw spinlock; neither is encoded or dereferenced by the scope.
-They are cleared on completion or capture failure. The synchronous caller
-remains live throughout this interval, and the original clock consumer owns
-the passed clock lifetime. There is no borrowed pointer to a stack context,
+compared under a raw spinlock and neither is encoded. One task reference
+prevents address reuse if the caller dies mid-scope. Normal completion releases
+it while the matching current task is still live, so this cannot be its last
+reference. A failed or incomplete scope retains at most that one reference
+until recovery; it cannot start another scope or take another reference.
+The clock pointer is cleared on completion or failure, and the original clock
+consumer owns the passed clock lifetime. There is no borrowed stack pointer,
 asynchronous observer worker, ownership transfer or scope reset/retry API.
 
 The scope lock protects only bookkeeping and bounded capture appends. It is
