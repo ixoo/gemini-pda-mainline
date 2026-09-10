@@ -83,3 +83,7 @@ are still required.
 The [native firmware-stop hooks](STOP_HOOKS.md) record evaluated gates, direct
 read completions and actual exit branches while preserving native effects.
 They do not treat the adapter-stop return as shutdown evidence.
+
+The [firmware file-read hooks](FIRMWARE_READ_HOOKS.md) distinguish the actual
+signed read result from the native success return and published unsigned length.
+They establish recorded read extents, not firmware-buffer identity or execution.

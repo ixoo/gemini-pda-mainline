@@ -1,0 +1,231 @@
+From ed5a0906798ff550caf99aae3e27be1f08638a59 Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <experiment@invalid.example>
+Date: Thu, 10 Sep 2026 06:50:51 -0400
+Subject: [PATCH] wlan: capture native firmware file-read results
+
+Retain the requested and aligned allocation sizes, allocation presence,
+actual signed file-read return, and the values published by the mapping
+routine. The native read helper returns success after negative or short
+reads; recording its wrapper status alone would hide that result.
+
+Preserve the original file operations, allocation, assignment, cleanup
+and native returns. Capture has a synchronous stack-owned invocation and
+uses the existing HIF binding ordinal. It reads no firmware payload and
+performs no hash, extra file operation or resource repair.
+
+This unselected MT6797 AHB experiment depends on the pstore/DMA capture
+series. The tested composition also includes the native stop patch.
+It is not a controller, buffer-identity proof or boot candidate. The
+synthetic archive identity does not certify authorship; this patch is
+not submission-ready.
+---
+ .../connectivity/wlan/gen3/os/linux/gl_kal.c  | 133 +++++++++++++++++-
+ 1 file changed, 129 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_kal.c b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_kal.c
+index 7458b96..ea8ac10 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_kal.c
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_kal.c
+@@ -36,6 +36,8 @@
+ #include "gl_kal.h"
+ #include "gl_wext.h"
+ #include "precomp.h"
++#include <linux/pstore_ram.h>
++#include <asm/unaligned.h>
+ #if CFG_SUPPORT_AGPS_ASSIST
+ #include <net/netlink.h>
+ #endif
+@@ -301,11 +303,116 @@ WLAN_STATUS kalFirmwareClose(IN P_GLUE_INFO_T prGlueInfo)
+ *
+ */
+ /*----------------------------------------------------------------------------*/
+-WLAN_STATUS kalFirmwareLoad(IN P_GLUE_INFO_T prGlueInfo, OUT PVOID prBuf, IN UINT_32 u4Offset, OUT PUINT_32 pu4Size)
++
++/* The selected MT6797 observer keeps one synchronous file-read invocation. */
++struct wfc_fw_read_trace {
++	const struct wfc_dma_trace *binding;
++	u32 transaction;
++	u32 device;
++};
++
++static atomic_t wfc_fw_reads = ATOMIC_INIT(0);
++
++static void wfc_fw_read_emit(struct wfc_fw_read_trace *trace,
++			     const u8 *data, size_t size)
++{
++	if (!trace || !trace->transaction)
++		return;
++	if (atomic_read(&trace->binding->retired)) {
++		trace->transaction = 0;
++		wfc_dma_abort();
++		return;
++	}
++#if defined(CONFIG_PSTORE_RAM) && !defined(MODULE)
++	if (ramoops_capture_append(7, trace->transaction, data, size))
++		trace->transaction = 0;
++#endif
++}
++
++static void wfc_fw_read_begin(struct wfc_fw_read_trace *trace,
++			      const struct wfc_dma_trace *binding)
+ {
++	u8 data[8];
++	int transaction;
++
++	memset(trace, 0, sizeof(*trace));
++#if defined(CONFIG_PSTORE_RAM) && !defined(MODULE)
++	if (!ramoops_capture_active())
++		return;
++#else
++	return;
++#endif
++	if (!binding->device || atomic_read(&binding->retired)) {
++		wfc_dma_abort();
++		return;
++	}
++	transaction = atomic_inc_return(&wfc_fw_reads);
++	if (transaction <= 0) {
++		wfc_dma_abort();
++		return;
++	}
++	trace->binding = binding;
++	trace->device = binding->device;
++	trace->transaction = transaction;
++	put_unaligned_le32(8, data);
++	put_unaligned_le32(trace->device, data + 4);
++	wfc_fw_read_emit(trace, data, sizeof(data));
++}
++
++static void wfc_fw_read_allocation(struct wfc_fw_read_trace *trace,
++				   u32 requested, u32 allocated, bool present)
++{
++	u8 data[20];
++
++	put_unaligned_le32(9, data);
++	put_unaligned_le32(trace->device, data + 4);
++	put_unaligned_le32(requested, data + 8);
++	put_unaligned_le32(allocated, data + 12);
++	put_unaligned_le32(present, data + 16);
++	wfc_fw_read_emit(trace, data, sizeof(data));
++}
++
++static void wfc_fw_read_result(struct wfc_fw_read_trace *trace,
++			       u32 requested, bool called, s64 result)
++{
++	u8 data[24];
++
++	if (!trace)
++		return;
++	put_unaligned_le32(10, data);
++	put_unaligned_le32(trace->device, data + 4);
++	put_unaligned_le32(requested, data + 8);
++	put_unaligned_le32(called, data + 12);
++	put_unaligned_le64((u64)result, data + 16);
++	wfc_fw_read_emit(trace, data, sizeof(data));
++}
++
++static void wfc_fw_read_return(struct wfc_fw_read_trace *trace,
++			       bool published, u32 length, bool present)
++{
++	u8 data[20];
++
++	put_unaligned_le32(11, data);
++	put_unaligned_le32(trace->device, data + 4);
++	put_unaligned_le32(published, data + 8);
++	put_unaligned_le32(length, data + 12);
++	put_unaligned_le32(present, data + 16);
++	wfc_fw_read_emit(trace, data, sizeof(data));
++	trace->transaction = 0;
++}
++
++static WLAN_STATUS
++kalFirmwareLoadCapture(IN P_GLUE_INFO_T prGlueInfo, OUT PVOID prBuf,
++		       IN UINT_32 u4Offset, OUT PUINT_32 pu4Size,
++		       struct wfc_fw_read_trace *capture)
++{
++	UINT_32 requested;
++	ssize_t result;
++
+ 	ASSERT(prGlueInfo);
+ 	ASSERT(pu4Size);
+ 	ASSERT(prBuf);
++	requested = *pu4Size;
+ 
+ 	/* l = filp->f_path.dentry->d_inode->i_size; */
+ 
+@@ -314,15 +421,24 @@ WLAN_STATUS kalFirmwareLoad(IN P_GLUE_INFO_T prGlueInfo, OUT PVOID prBuf, IN UIN
+ 		goto error_read;
+ 	} else {
+ 		filp->f_pos = u4Offset;
+-		*pu4Size = filp->f_op->read(filp, prBuf, *pu4Size, &filp->f_pos);
++		result = filp->f_op->read(filp, prBuf, *pu4Size, &filp->f_pos);
++		*pu4Size = result;
++		wfc_fw_read_result(capture, requested, true, result);
+ 	}
+ 
+ 	return WLAN_STATUS_SUCCESS;
+ 
+ error_read:
++	wfc_fw_read_result(capture, requested, false, 0);
+ 	return WLAN_STATUS_FAILURE;
+ }
+ 
++WLAN_STATUS kalFirmwareLoad(IN P_GLUE_INFO_T prGlueInfo, OUT PVOID prBuf,
++			    IN UINT_32 u4Offset, OUT PUINT_32 pu4Size)
++{
++	return kalFirmwareLoadCapture(prGlueInfo, prBuf, u4Offset, pu4Size, NULL);
++}
++
+ /*----------------------------------------------------------------------------*/
+ /*!
+ * \brief This function is provided by GLUE Layer for internal driver stack to
+@@ -360,14 +476,18 @@ WLAN_STATUS kalFirmwareSize(IN P_GLUE_INFO_T prGlueInfo, OUT PUINT_32 pu4Size)
+ 
+ PVOID kalFirmwareImageMapping(IN P_GLUE_INFO_T prGlueInfo, OUT PPVOID ppvMapFileBuf, OUT PUINT_32 pu4FileLength)
+ {
++	struct wfc_fw_read_trace capture;
++
+ 	DEBUGFUNC("kalFirmwareImageMapping");
+ 
+ 	ASSERT(prGlueInfo);
+ 	ASSERT(ppvMapFileBuf);
+ 	ASSERT(pu4FileLength);
++	wfc_fw_read_begin(&capture, &prGlueInfo->rHifInfo.capture);
+ 
+ 	do {
+ 		UINT_32 u4FwSize = 0;
++		UINT_32 allocation;
+ 		PVOID prFwBuffer = NULL;
+ 
+ 		/* <1> Open firmware */
+@@ -377,9 +497,12 @@ PVOID kalFirmwareImageMapping(IN P_GLUE_INFO_T prGlueInfo, OUT PPVOID ppvMapFile
+ 		/* <2> Query firmare size */
+ 		kalFirmwareSize(prGlueInfo, &u4FwSize);
+ 		/* <3> Use vmalloc for allocating large memory trunk */
+-		prFwBuffer = vmalloc(ALIGN_4(u4FwSize));
++		allocation = ALIGN_4(u4FwSize);
++		prFwBuffer = vmalloc(allocation);
++		wfc_fw_read_allocation(&capture, u4FwSize, allocation, !!prFwBuffer);
+ 		/* <4> Load image binary into buffer */
+-		if (kalFirmwareLoad(prGlueInfo, prFwBuffer, 0, &u4FwSize) != WLAN_STATUS_SUCCESS) {
++		if (kalFirmwareLoadCapture(prGlueInfo, prFwBuffer, 0, &u4FwSize,
++					   &capture) != WLAN_STATUS_SUCCESS) {
+ 			vfree(prFwBuffer);
+ 			kalFirmwareClose(prGlueInfo);
+ 			break;
+@@ -388,10 +511,12 @@ PVOID kalFirmwareImageMapping(IN P_GLUE_INFO_T prGlueInfo, OUT PPVOID ppvMapFile
+ 		*pu4FileLength = u4FwSize;
+ 		*ppvMapFileBuf = prFwBuffer;
+ 
++		wfc_fw_read_return(&capture, true, u4FwSize, !!prFwBuffer);
+ 		return prFwBuffer;
+ 
+ 	} while (FALSE);
+ 
++	wfc_fw_read_return(&capture, false, 0, false);
+ 	return NULL;
+ }
+ 
+-- 
+2.54.0 (Apple Git-157)
+

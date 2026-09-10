@@ -75,6 +75,38 @@ class RecordsTests(unittest.TestCase):
                 (r.EMI_PROTECTION, [2, 2, 1, 1, base, base + 0x7ffff, r.EMI_RESTRICT, 0]),
                 (r.EMI_PROTECTION, [2, 2, 2, 1, base, base + 0x7ffff, r.EMI_RESTRICT, 0])]
 
+    def test_firmware_read_records(self):
+        def payloads():
+            return [(r.FW_READ_ENTRY, [8, 17]),
+                    (r.FW_READ_ALLOCATION, [9, 17, 101, 104, 1]),
+                    (r.FW_READ_RESULT, [10, 17, 101, 1, 101]),
+                    (r.FW_READ_RETURN, [11, 17, 1, 101, 1])]
+        stream = self.stop_stream(payloads())
+        self.assertEqual(r.check_firmware_read(stream, CYCLE)['checked_reads'], [23])
+        faults = [(1, 1, 18), (1, 2, 102), (1, 3, 100), (1, 3, 108), (1, 4, 0),
+                  (2, 1, 18), (2, 2, 100), (2, 4, -5), (2, 4, 0),
+                  (2, 4, 100), (2, 4, 102), (2, 4, (1 << 32) + 101),
+                  (3, 1, 18), (3, 3, 100), (3, 4, 0)]
+        for row, field, value in faults:
+            with self.subTest(row=row, field=field):
+                changed = payloads()
+                changed[row][1][field] = value
+                stream = self.stop_stream(changed)
+                self.assertEqual(len(r.decode(stream, CYCLE)), 5)
+                with self.assertRaises(ValueError):
+                    r.check_firmware_read(stream, CYCLE)
+        for changed in (payloads()[:-1], payloads() + payloads(), list(reversed(payloads()))):
+            with self.assertRaises(ValueError):
+                r.check_firmware_read(self.stop_stream(changed), CYCLE)
+        with self.assertRaises(ValueError):
+            r.check_firmware_read(self.identity(), CYCLE)
+        for payload in (r.FW_READ_ENTRY.pack(8, 0), r.FW_READ_ALLOCATION.pack(9, 1, 4, 4, 2),
+                        r.FW_READ_RESULT.pack(10, 1, 4, 0, -5),
+                        r.FW_READ_RESULT.pack(10, 1, 4, 2, 4),
+                        r.FW_READ_RETURN.pack(11, 1, 0, 4, 1)):
+            with self.assertRaises(ValueError):
+                r.encode(7, 1, CYCLE, 23, payload)
+
     def emi_stream(self, payloads):
         return self.identity() + b''.join(
             r.encode(8, i, CYCLE, 53, layout.pack(*values))

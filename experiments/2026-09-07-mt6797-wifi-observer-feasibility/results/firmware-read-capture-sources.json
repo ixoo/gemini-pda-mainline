@@ -1,0 +1,18 @@
+{
+  "source_revision": "59e00a9144d782e148332009a835b99c43382467",
+  "scope": "Unselected native firmware file-read capture; no hashing or hardware action",
+  "parents": {
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_kal.c": "749c5fc0e6cf3614d15e237e2d65cf92858d483ef1d678f6d9aee0f87bf348f1"
+  },
+  "outputs": {
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_kal.c": "1bd96c4e3e15b682c71dfc6bc67e358fb6bc1e9a977c73a2d3bda15c4cb1f7b5"
+  },
+  "patch": "0001-wlan-capture-native-firmware-file-read-results.patch",
+  "patch_sha256": "3a4824ee47f7d9ea304c4c4620200ad23962af8e572539292769c1c804240cb0",
+  "dependencies": {
+    "patches/pstore/series": "b357ce8535f667f9484c919627f6d21f05ee0fb0022a9da7d9c932737edf1b54",
+    "patches/dma/0001-wlan-observe-native-AHB-DMA-lifetimes.patch": "40d00262ed2ce3edd5ad46af97f288a2eadde77da5bfdf7dba906ea874191c15",
+    "patches/stop/0001-wlan-capture-native-adapter-stop-decisions.patch": "5175620e3287f01a80d8f009ab3d3112ac4f75ec4186e4c2a35632e15f261291"
+  },
+  "replay_and_reverse_verified": true
+}

@@ -13,7 +13,7 @@ PAYLOAD_BYTES = 120 - HEADER.size
 COMMIT = 0x57464331
 IDENTITY = 1
 TERMINAL = 255
-# Firmware load and other non-DMA lifecycle semantics remain unfinished.
+# Firmware execution and whole-cycle lifecycle semantics remain unfinished.
 KINDS = {IDENTITY, 2, 3, 4, 5, 6, 7, 8, 9, 10, TERMINAL}
 TERMINAL_STATUSES = {1, 2, 3}  # producer-reported complete, failed, overflow
 
@@ -82,9 +82,15 @@ FW_STOP_RETURN = struct.Struct('<2I')
 FW_IMAGE = struct.Struct('<5I32s')
 FW_SECTION = struct.Struct('<9I')
 FW_IMAGE_RETURN = struct.Struct('<4I')
+FW_READ_ENTRY = struct.Struct('<2I')
+FW_READ_ALLOCATION = struct.Struct('<5I')
+FW_READ_RESULT = struct.Struct('<4Iq')
+FW_READ_RETURN = struct.Struct('<5I')
 FW_STOP_LAYOUTS = {1: FW_STOP_ENTRY, 2: FW_STOP_COMMAND,
                    3: FW_STOP_POLL, 4: FW_STOP_RETURN,
-                   5: FW_IMAGE, 6: FW_SECTION, 7: FW_IMAGE_RETURN}
+                   5: FW_IMAGE, 6: FW_SECTION, 7: FW_IMAGE_RETURN,
+                   8: FW_READ_ENTRY, 9: FW_READ_ALLOCATION,
+                   10: FW_READ_RESULT, 11: FW_READ_RETURN}
 
 
 def validate_stop_payload(transaction, payload):
@@ -95,6 +101,17 @@ def validate_stop_payload(transaction, payload):
     if layout is None or len(payload) != layout.size:
         raise ValueError('unsupported stop subtype or payload size')
     values = layout.unpack(payload)
+    if subtype >= 8:
+        if not values[1]:
+            raise ValueError('firmware read requires an adapter ID')
+        if subtype == 9 and values[4] not in (0, 1):
+            raise ValueError('invalid allocation presence')
+        if subtype == 10 and (values[3] not in (0, 1) or (not values[3] and values[4])):
+            raise ValueError('invalid firmware read result attribution')
+        if subtype == 11 and (values[2] not in (0, 1) or values[4] not in (0, 1) or
+                              (not values[2] and any(values[3:]))):
+            raise ValueError('invalid firmware mapping publication')
+        return
     if subtype >= 5:
         if not values[1] or not values[2]:
             raise ValueError('image record requires adapter and image IDs')
@@ -403,6 +420,31 @@ def check_stop(data, expected_cycle):
             raise ValueError('adapter stop did not return success')
     return {'checked_stops': list(stops),
             'scope': 'recorded ordinary direct-read firmware-stop consistency only'}
+
+
+def check_firmware_read(data, expected_cycle):
+    """Check allocation/read/publication sizes, not actual buffer identity or contents."""
+    reads = {}
+    for row in decode(data, expected_cycle):
+        if row['kind'] == 7 and int.from_bytes(row['payload'][:4], 'little') in (8, 9, 10, 11):
+            reads.setdefault(row['transaction'], []).append(row['payload'])
+    if not reads:
+        raise ValueError('no firmware file read recorded')
+    for payloads in reads.values():
+        if [int.from_bytes(p[:4], 'little') for p in payloads] != [8, 9, 10, 11]:
+            raise ValueError('incomplete, reordered or reused firmware read invocation')
+        device = FW_READ_ENTRY.unpack(payloads[0])[1]
+        if any(int.from_bytes(p[4:8], 'little') != device for p in payloads):
+            raise ValueError('firmware read adapter changed')
+        _, _, requested, allocated, present = FW_READ_ALLOCATION.unpack(payloads[1])
+        if not requested or allocated < requested or allocated != (requested + 3) & ~3 or not present:
+            raise ValueError('missing allocation or invalid native allocation extent')
+        if FW_READ_RESULT.unpack(payloads[2]) != (10, device, requested, 1, requested):
+            raise ValueError('firmware read failed, was skipped or did not fill the requested extent')
+        if FW_READ_RETURN.unpack(payloads[3]) != (11, device, 1, requested, 1):
+            raise ValueError('firmware mapping did not publish the complete read')
+    return {'checked_reads': list(reads),
+            'scope': 'recorded firmware allocation/read/publication extents only; no buffer identity proof'}
 
 
 def check_shutdown_bindings(data, expected_cycle):

@@ -105,10 +105,11 @@ def main():
     commit = run(["git", "-C", str(project), "rev-parse", "HEAD"])
     assert len(sys.argv) in (2, 3) and sys.argv[1] == commit
     mode = sys.argv[2] if len(sys.argv) == 3 else "--wmt"
-    assert mode in ("--wmt", "--pstore", "--capture-writer", "--dma", "--stop")
+    assert mode in ("--wmt", "--pstore", "--capture-writer", "--dma", "--stop", "--firmware-read")
     capture = mode == "--capture-writer"
-    stop = mode == "--stop"
-    dma = mode in ("--dma", "--stop")
+    firmware_read = mode == "--firmware-read"
+    stop = mode in ("--stop", "--firmware-read")
+    dma = mode in ("--dma", "--stop", "--firmware-read")
     pstore = mode in ("--pstore", "--capture-writer")
     relative = "fs/pstore/" if pstore else RELATIVE
     files = ("pmsg", "inode", "ram_core", "ram") if pstore else FILES
@@ -124,6 +125,9 @@ def main():
         if stop:
             files = ("common/wlan_lib", "os/linux/gl_init", hif + "ahb", hif + "hif_stop_capture")
             label = "wifi-stop-objects-"
+        if firmware_read:
+            files = ("os/linux/gl_kal",)
+            label = "wifi-firmware-read-objects-"
     assert not run(["git", "-C", str(project), "status", "--porcelain"])
     root = Path("/workspace/gemini-pda")
     source = root / "gemian-source/gemian-baseline" / REVISION
@@ -188,17 +192,28 @@ def main():
                 patches += sorted((experiment / "patches/stop").glob("*.patch"))
                 shutil.copytree(source / relative / "include", patched / relative / "include")
                 shutil.copyfile(source / relative / hif / "ahb_pdma.c", patched / relative / hif / "ahb_pdma.c")
+            if firmware_read:
+                patches += sorted((experiment / "patches/firmware-read").glob("*.patch"))
+                for extra in ("common/wlan_lib.c", "os/linux/gl_init.c", hif + "ahb.c"):
+                    dest = patched / relative / extra
+                    dest.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copyfile(source / relative / extra, dest)
             for extra in ("include/linux/pstore_ram.h", "arch/arm64/boot/dts/mt6797.dtsi",
                           "drivers/misc/mediatek/connectivity/wlan/gen3/Makefile",
                           "fs/pstore/ram.c", "fs/pstore/ram_core.c", "fs/pstore/internal.h",
                           "fs/pstore/pmsg.c", "fs/pstore/inode.c"):
                 (patched / extra).parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(source / extra, patched / extra)
-        assert len(patches) == (12 if stop else 11 if dma else 0 if capture else 10 if pstore else 4)
+        assert len(patches) == (13 if firmware_read else 12 if stop else 11 if dma else 0 if capture else 10 if pstore else 4)
         for patch in patches:
             if stop and patch.parent.name == "stop":
                 stop_pins = json.loads((experiment / "results/stop-capture-sources.json").read_text())
                 for path, expected in stop_pins["parents"].items():
+                    assert digest(patched / path) == expected, path
+            if firmware_read and patch.parent.name == "firmware-read":
+                read_pins = json.loads((experiment / "results/firmware-read-capture-sources.json").read_text())
+                assert digest(patch) == read_pins["patch_sha256"]
+                for path, expected in read_pins["parents"].items():
                     assert digest(patched / path) == expected, path
             subprocess.run(["git", "apply", str(patch)], cwd=patched, check=True)
         if dma:
@@ -208,6 +223,9 @@ def main():
             for section, tree in sections:
                 for path, expected in pinned[section].items():
                     assert digest(tree / path) == expected, path
+        if firmware_read:
+            for path, expected in read_pins["outputs"].items():
+                assert digest(patched / path) == expected, path
         if capture:
             shutil.copyfile(experiment / "capture-slot-writer.h",
                             patched / relative / "capture-slot-writer.h")
@@ -267,7 +285,7 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
                 assert str(patched / headers / "hif_capture.h") in dependencies
                 if stop:
                     assert str(patched / headers / "hif_stop_capture.h") in dependencies
-                    if name in ("wlan_lib", "gl_init"):
+                    if name in ("wlan_lib", "gl_init", "gl_kal"):
                         assert str(patched / relative / "include/nic/hal.h") in dependencies, name
                     if name != "hif_stop_capture":
                         assert str(patched / relative / "include/wlan_lib.h") in dependencies, name
@@ -276,9 +294,11 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
                 disassembly = run([str(toolchain / "wrappers/aarch64-linux-gnu-objdump"),
                                    "-dr", str(result)], env=environment)
                 (work / (name + "-capture.disasm")).write_text(disassembly + "\n")
-                assert ("wlanAdapterStop" if stop and name == "gl_init" else
+                assert ("kalFirmwareLoadCapture" if firmware_read else "wlanAdapterStop" if stop and name == "gl_init" else
                         "wfc_stop_" if stop else "wfc_dma_") in disassembly
-                if name in ("hif_capture", "hif_stop_capture"):
+                if firmware_read:
+                    assert str(patched / "include/linux/pstore_ram.h") in dependencies
+                if firmware_read or name in ("hif_capture", "hif_stop_capture"):
                     assert "ramoops_capture_active" in disassembly
                     assert "ramoops_capture_append" in disassembly
             if capture:
