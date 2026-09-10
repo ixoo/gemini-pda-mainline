@@ -1,0 +1,24 @@
+{
+  "source_revision": "59e00a9144d782e148332009a835b99c43382467",
+  "scope": "Unselected built-in MT6797 AHB removal-failure retention; no reset, unload, retry, recovery or device admission",
+  "parents": {
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c": "bc8aa8f937eeaba83573f8a19c8e90b2de289ca012f4e87ba0371cdcd050106f",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/include/gl_typedef.h": "b93965ce8a3c13838b69451b1d6b592f901f918689cca867fe38cdc22c1e89ba",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c": "6a545f22016ee7311c604531bdf7ce1c591163e666adfe12191af6d789de2ba2",
+    "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c": "dea3a69db226fbbbe15f7b4af40c7632464e91a3135dc522f8e06ecc20c7b794"
+  },
+  "outputs": {
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c": "2d5a5a2d83641eac81465ff05591fc8d21d466b5ddbeaf6ab1c3a464fd62b097",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/include/gl_typedef.h": "1de6b461856ce36acb5ebdb5e8070dd64d13d611623394420bfd6ff1e1c6d48f",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c": "1ace5a6dabce1cc65bfb5f6f40b18deeeecadaa3ad0864e03c23498a8b31f56e",
+    "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c": "f196b5b36bbaecaae30e9e341001f5f28824c844c136a03b851fbbb0399ed21e"
+  },
+  "baseline_support": {
+    "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_func.c": "c57079b29491338fa635dd36f550f3be53b4a2cee343b1dce1c9e4d365b4589d",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/include/gl_kal.h": "090ba29f6e64d9bc527fc018277a4301e033f0c3e9c52e745b5058b4de653eb0",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_kal.c": "749c5fc0e6cf3614d15e237e2d65cf92858d483ef1d678f6d9aee0f87bf348f1"
+  },
+  "patch": "0001-wlan-retain-resources-after-incomplete-removal.patch",
+  "patch_sha256": "4894243afaf01b3f9e2c808f366b25443e85e020a763fa538f1d0ee6e779be93",
+  "replay_and_reverse_verified": true
+}

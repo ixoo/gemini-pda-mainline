@@ -107,8 +107,9 @@ def main():
     mode = sys.argv[2] if len(sys.argv) == 3 else "--wmt"
     assert mode in ("--wmt", "--pstore", "--capture-writer", "--dma", "--stop",
                     "--firmware-read", "--firmware-read-safe", "--firmware-image", "--emi", "--provider-off",
-                    "--common-off-safe", "--common-off", "--operation-ownership", "--request-capture", "--request-firmware", "--tx-payload", "--stop-workers")
-    stop_workers = mode == "--stop-workers"
+                    "--common-off-safe", "--common-off", "--operation-ownership", "--request-capture", "--request-firmware", "--tx-payload", "--stop-workers", "--remove-retain")
+    remove_retain = mode == "--remove-retain"
+    stop_workers = mode == "--stop-workers" or remove_retain
     tx_payload = mode == "--tx-payload" or stop_workers
     request_firmware = mode == "--request-firmware" or tx_payload
     request_capture = mode == "--request-capture" or request_firmware
@@ -171,6 +172,9 @@ def main():
     if stop_workers:
         files += (hif + "hif_stop_capture",)
         label = "wifi-stop-workers-objects-"
+    if remove_retain:
+        files += (RELATIVE + "core/wmt_func",)
+        label = "wifi-remove-retain-objects-"
     def unit_path(name):
         return name if name.startswith("drivers/") else relative + name
     assert not run(["git", "-C", str(project), "status", "--porcelain"])
@@ -276,14 +280,30 @@ def main():
                     patches += sorted((experiment / "patches/tx-payload").glob("*.patch"))
                 if stop_workers:
                     patches += sorted((experiment / "patches/stop-workers").glob("*.patch"))
+                if remove_retain:
+                    patches += sorted((experiment / "patches/remove-retain").glob("*.patch"))
             for extra in ("include/linux/pstore_ram.h", "arch/arm64/boot/dts/mt6797.dtsi",
                           "drivers/misc/mediatek/connectivity/wlan/gen3/Makefile",
                           "fs/pstore/ram.c", "fs/pstore/ram_core.c", "fs/pstore/internal.h",
                           "fs/pstore/pmsg.c", "fs/pstore/inode.c"):
                 (patched / extra).parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(source / extra, patched / extra)
-        assert len(patches) == (28 if stop_workers else 27 if tx_payload else 26 if request_firmware else 25 if request_capture else 24 if ownership else 23 if common_off else 17 if provider_off else 16 if emi_capture else 15 if firmware_image else 14 if firmware_safe else 13 if firmware_read else 12 if stop else 11 if dma else 0 if capture else 10 if pstore else 5 if common_off_safe else 4)
+        if remove_retain:
+            # gl_os.h includes gl_typedef.h with a neighboring quoted include.
+            for name in ("gl_typedef.h", "gl_os.h"):
+                path = relative + "os/linux/include/" + name
+                shutil.copyfile(source / path, patched / path)
+        assert len(patches) == (29 if remove_retain else 28 if stop_workers else 27 if tx_payload else 26 if request_firmware else 25 if request_capture else 24 if ownership else 23 if common_off else 17 if provider_off else 16 if emi_capture else 15 if firmware_image else 14 if firmware_safe else 13 if firmware_read else 12 if stop else 11 if dma else 0 if capture else 10 if pstore else 5 if common_off_safe else 4)
         for patch in patches:
+            if remove_retain and patch.parent.name == "remove-retain":
+                retain_pins = json.loads((experiment / "results/remove-retain-sources.json").read_text())
+                assert digest(patch) == retain_pins["patch_sha256"]
+                retain_parent = work / "retain-parent"
+                for section, tree in (("parents", patched), ("baseline_support", source)):
+                    for path, expected in retain_pins[section].items():
+                        assert digest(tree / path) == expected, path
+                        (retain_parent / path).parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copyfile(tree / path, retain_parent / path)
             if stop_workers and patch.parent.name == "stop-workers":
                 worker_pins = json.loads((experiment / "results/stop-workers-sources.json").read_text())
                 assert digest(patch) == worker_pins["patch_sha256"]
@@ -358,6 +378,11 @@ def main():
                 for path, expected in off_pins["parents"].items():
                     assert digest(patched / path) == expected, path
             subprocess.run(["git", "apply", str(patch)], cwd=patched, check=True)
+            if remove_retain and patch.parent.name == "remove-retain":
+                for path, expected in retain_pins["outputs"].items():
+                    assert digest(patched / path) == expected, path
+                subprocess.run(["python3", str(experiment / "test-remove-retain.py"),
+                                str(retain_parent), str(patched)], check=True)
             if stop_workers and patch.parent.name == "stop-workers":
                 for path, expected in worker_pins["outputs"].items():
                     assert digest(patched / path) == expected, path
@@ -419,6 +444,8 @@ def main():
                 final_sources.update(tx_pins["outputs"])
             if stop_workers:
                 final_sources.update(worker_pins["outputs"])
+            if remove_retain:
+                final_sources.update(retain_pins["outputs"])
             for path, expected in final_sources.items():
                 assert digest(patched / path) == expected, path
         elif firmware_image:
@@ -533,6 +560,10 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
                 assert str(patched / header) in dependencies, name
                 assert str(source / header) not in dependencies, name
             if wlan_unit:
+                if remove_retain and name in ("gl_init", "ahb"):
+                    typedef = relative + "os/linux/include/gl_typedef.h"
+                    assert str(patched / typedef) in dependencies, name
+                    assert str(source / typedef) not in dependencies, name
                 assert "-DMODULE" not in args
                 assert str(patched / headers / "hif_capture.h") in dependencies
                 if stop:

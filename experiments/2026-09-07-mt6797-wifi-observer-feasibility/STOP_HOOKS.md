@@ -187,10 +187,13 @@ neither replaces them nor upgrades their existing scopes.
 
 Successful native waits still **do not prove worker exit**. In the pinned
 `os/linux/gl_kal.c`, HIF, RX and main workers signal their completion before
-wake-lock active/unlock/destroy calls using the adapter. The baseline locations
-are 2586, 2665 and 2930. Those trailing accesses remain unchanged, and reset,
-other callers and buffer ownership remain unresolved. A completion witness
-must not be labeled task quiescence or permission to free live state.
+wake-lock active/unlock/destroy calls. The baseline completion locations are
+2586, 2665 and 2930. The apparent adapter arguments to those macros are discarded
+by their definitions; cleanup uses worker-local wake locks. The
+[macro-expansion follow-up](REMOVE_RETENTION.md#completion-tail-correction)
+corrects the earlier claim of trailing adapter accesses. It supplies no reason
+to move the completion calls. Reset, other callers and full buffer ownership
+remain separate requirements.
 
 The [focused fixture](test-stop-workers.py) compiles the actual parent/child
 removal wait block, the actual observer and slot writer. Injected completion,

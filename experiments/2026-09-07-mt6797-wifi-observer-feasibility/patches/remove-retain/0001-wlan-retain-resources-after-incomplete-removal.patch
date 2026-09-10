@@ -1,0 +1,157 @@
+From cc57c02ea370219fb83f825238fb2617145e48a8 Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <archive@example.invalid>
+Date: Thu, 10 Sep 2026 12:14:06 -0400
+Subject: [PATCH] wlan: retain resources after incomplete removal
+
+Return failure before adapter teardown when the halt lock or any worker
+completion wait fails. Propagate removal failure through the AHB callback
+and retain the WMT Wi-Fi state, SDIO slot and common power on that path.
+Do not add cancellation, retry, module-unload or reset handling.
+
+This built-in MT6797 AHB experiment archive has a synthetic identity and
+no DCO certification.
+---
+ .../common/common_main/core/wmt_core.c        |  8 ++++++
+ .../connectivity/wlan/gen3/os/linux/gl_init.c | 25 ++++++++++++-------
+ .../wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c |  5 +++-
+ .../wlan/gen3/os/linux/include/gl_typedef.h   |  2 +-
+ 4 files changed, 29 insertions(+), 11 deletions(-)
+
+diff --git a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c b/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c
+index 060aa07..ca9e42a 100644
+--- a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c
++++ b/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c
+@@ -1305,6 +1305,10 @@ static INT32 opfunc_func_off(P_WMT_OP pWmtOp)
+ 			    (*(gpWmtFuncOps[drvType]->func_off)) (gMtkWmtCtx.p_ic_ops,
+ 								  wmt_conf_get_cfg());
+ 
++			/* A failed WLAN removal can retain live DMA and workers. */
++			if (iRet && WMTDRV_TYPE_WIFI == drvType)
++				return iRet;
++
+ 			if (WMTDRV_TYPE_WIFI == drvType
+ 			    && WMT_HIF_UART == gMtkWmtCtx.wmtHifConf.hifType) {
+ 				UINT32 iRet = 0;
+@@ -1333,6 +1337,10 @@ static INT32 opfunc_func_off(P_WMT_OP pWmtOp)
+ 		iRet = 0;
+ 	}
+ 
++	/* Also retain WLAN state when its removal callback was unavailable. */
++	if (iRet && WMTDRV_TYPE_WIFI == drvType)
++		return iRet;
++
+ 	/* shall we put device state to POWER_OFF state when fail? */
+ 	gMtkWmtCtx.eDrvStatus[drvType] = DRV_STS_POWER_OFF;
+ 	if (iRet) {
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c
+index 939f481..041383e 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c
+@@ -2268,10 +2268,10 @@ bailout:
+ * \brief A method to stop driver operation and release all resources. Following
+ *        this call, no frame should go up or down through this interface.
+ *
+-* \return (none)
++* \return Zero after removal, or an error with resources retained.
+ */
+ /*----------------------------------------------------------------------------*/
+-static VOID wlanRemove(VOID)
++static INT_32 wlanRemove(VOID)
+ {
+ #define KAL_WLAN_REMOVE_TIMEOUT_MSEC			3000
+ 	struct net_device *prDev = NULL;
+@@ -2287,7 +2287,7 @@ static VOID wlanRemove(VOID)
+ 	ASSERT(u4WlanDevNum <= CFG_MAX_WLAN_DEVICES);
+ 	if (0 == u4WlanDevNum) {
+ 		DBGLOG(INIT, ERROR, "0 == u4WlanDevNum\n");
+-		return;
++		return -ENODEV;
+ 	}
+ #if (CFG_ENABLE_WIFI_DIRECT)
+ 	register_set_p2p_mode_handler(NULL);
+@@ -2299,15 +2299,14 @@ static VOID wlanRemove(VOID)
+ 	ASSERT(prDev);
+ 	if (NULL == prDev) {
+ 		DBGLOG(INIT, ERROR, "NULL == prDev\n");
+-		return;
++		return -ENODEV;
+ 	}
+ 
+ 	prGlueInfo = *((P_GLUE_INFO_T *) netdev_priv(prDev));
+ 	ASSERT(prGlueInfo);
+ 	if (NULL == prGlueInfo) {
+ 		DBGLOG(INIT, ERROR, "NULL == prGlueInfo\n");
+-		free_netdev(prDev);
+-		return;
++		return -ENODEV;
+ 	}
+ #ifdef FW_CFG_SUPPORT
+ 	cfgRemoveProcEntry();
+@@ -2333,9 +2332,9 @@ static VOID wlanRemove(VOID)
+ 	flush_delayed_work(&sched_workq);
+ 
+ 	wfc_halt = kalHaltLock(KAL_WLAN_REMOVE_TIMEOUT_MSEC);
+-	if (-ETIME == wfc_halt) {
+-		DBGLOG(INIT, ERROR, "Halt Lock, need OidComplete.\n");
+-		kalOidComplete(prGlueInfo, FALSE, 0, WLAN_STATUS_NOT_ACCEPTED);
++	if (wfc_halt) {
++		wfc_dma_abort();
++		return wfc_halt;
+ 	}
+ 	kalSetHalted(TRUE);
+ 
+@@ -2371,6 +2370,13 @@ static VOID wlanRemove(VOID)
+ 
+ 	wfc_stop_workers(&prGlueInfo->rHifInfo.capture,
+ 			 CFG_SUPPORT_MULTITHREAD, wfc_halt, wfc_wait);
++	if ((CFG_SUPPORT_MULTITHREAD && (!wfc_wait[0] || !wfc_wait[1])) ||
++	    !wfc_wait[2]) {
++		/* Workers may still use the adapter and its DMA buffer. */
++		wfc_dma_abort();
++		kalHaltUnlock();
++		return -ETIMEDOUT;
++	}
+ 
+ 	DBGLOG(INIT, TRACE, "mtk_sdiod stopped\n");
+ 
+@@ -2441,6 +2447,7 @@ static VOID wlanRemove(VOID)
+ 
+ 	/* 4 <9> Unregister notifier callback */
+ 	wlanUnregisterNotifier();
++	return 0;
+ 
+ }				/* end of wlanRemove() */
+ 
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c
+index c604d01..1df993f 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c
+@@ -1542,8 +1542,11 @@ static int HifAhbProbe(VOID)
+ /*----------------------------------------------------------------------------*/
+ static int HifAhbRemove(VOID)
+ {
++	int ret;
+ 
+-	pfWlanRemove();
++	ret = pfWlanRemove();
++	if (ret)
++		return ret;
+ 
+ 	{
+ #ifdef CONFIG_MTK_PMIC_MT6397
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/include/gl_typedef.h b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/include/gl_typedef.h
+index 4ff1a4e..942218c 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/include/gl_typedef.h
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/include/gl_typedef.h
+@@ -119,7 +119,7 @@ typedef union _ULARGE_INTEGER {
+ } ULARGE_INTEGER, *PULARGE_INTEGER;
+ 
+ typedef INT_32(*probe_card) (PVOID pvData);
+-typedef VOID(*remove_card) (VOID);
++typedef INT_32(*remove_card) (VOID);
+ 
+ /*******************************************************************************
+ *                            P U B L I C   D A T A
+-- 
+2.54.0 (Apple Git-157)
+
