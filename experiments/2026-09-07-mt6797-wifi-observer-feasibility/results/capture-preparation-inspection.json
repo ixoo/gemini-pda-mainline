@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "result": "nonempty-current-pmsg; preparation-not-admitted",
+  "boot_id": "f2b923f9-f952-4cdb-80e0-72142282cc4f",
+  "kernel_release": "3.18.41+",
+  "architecture": "aarch64",
+  "pid1": "systemd",
+  "boot_identity_unchanged": true,
+  "ramoops_driver_bound": true,
+  "exported_pstore_files": 0,
+  "covering_dt_reservation": {
+    "base": "0x44410000",
+    "size": "0xe0000",
+    "no_map": false
+  },
+  "pmsg_range": {
+    "base": "0x444e0000",
+    "bytes": 65536,
+    "ecc_bytes": 0
+  },
+  "acquisition": {
+    "interface": "read-only /dev/mem; one pread",
+    "device_major": 1,
+    "device_minor": 1,
+    "bytes_received": 65536,
+    "private_length_and_digest_verified": true,
+    "writers_frozen": false,
+    "atomic_snapshot_claimed": false,
+    "mapping_coherence_established": false,
+    "writes_issued": 0
+  },
+  "private_re_vm_analysis": {
+    "native_signature_matches": true,
+    "ring_start": 7169,
+    "ring_size": 65524,
+    "header_bounds_valid": true,
+    "raw_nonzero_bytes": 60814,
+    "payload_nonzero_bytes": 60806
+  },
+  "raw_bytes_and_digest_published": false,
+  "boot_candidate_selected": false,
+  "clearing_implemented": false,
+  "clearing_authorized": false,
+  "limitations": [
+    "Current bytes may change after the unsynchronized read.",
+    "Linear-map reads do not prove capture-mapping coherence.",
+    "No shutdown or cross-boot retention measurement was performed.",
+    "The minimal startup has no frozen-snapshot external export path."
+  ]
+}
