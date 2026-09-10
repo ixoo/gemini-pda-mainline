@@ -71,8 +71,19 @@ individual recorded operation cannot override a rejected overall capture.
 `check-startup-objects.py COMMIT --provider-off` composes the prior sixteen
 pstore/WLAN/EMI patches and this provider patch in a clean pushed Buildbox
 checkout. It compiles eight complete source files and checks the actual patched
-provider headers and emitted capture calls. Until a receipt is recorded, that
-is a reproduction path rather than a compilation claim.
+provider headers and emitted capture calls. The
+[Buildbox receipt](results/provider-off-object-compile.json) records a successful
+compile at `89902aad3813b2a06f61a8233c48863ec3df9690`, with the 41-file package
+inventory verified remotely and locally. The first attempt compiled all units
+but its verifier incorrectly required an inlined static helper name. Only that
+verification was corrected; the native patch remained unchanged.
+
+The emitted code retains the indirect state/disable callbacks and stack context,
+five control helper calls, and short-circuited primary/secondary OFF condition.
+Individual provider, CONN callback and protection-helper frames are 208, 80 and
+128 bytes, excluding callers and capture-writer frames. Native compiler flags
+retain `-w`; empty diagnostics do not establish warning-clean code. These object
+checks establish neither a complete stack budget nor a full kernel link.
 
 CCF/common-owner request attribution, competing-consumer isolation, full kernel
 linking, controller/recovery integration and an admitted device test remain
