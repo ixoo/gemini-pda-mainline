@@ -20,11 +20,19 @@
 #include <sys/syscall.h>
 #endif
 
-#define FILE_LIMIT 98304
+#ifndef KEYBOARD_MONITOR_COVERAGE
+#define KEYBOARD_MONITOR_COVERAGE 0
+#endif
+/* Twenty windows of at most 1024 timestamped records, plus bounded VT. */
+#define FILE_LIMIT (KEYBOARD_MONITOR_COVERAGE ? 1048576 : 98304)
 #ifndef KEYBOARD_MONITOR_FOCUSED
 #define KEYBOARD_MONITOR_FOCUSED 0
 #endif
-#if KEYBOARD_MONITOR_FOCUSED
+#if KEYBOARD_MONITOR_COVERAGE
+#define DELIVERY_PATH "/a53-keyboard-coverage"
+#define OBSERVER_PATH DELIVERY_PATH "/keyboard-observe"
+#define OBSERVER_MODE "--coverage"
+#elif KEYBOARD_MONITOR_FOCUSED
 #define DELIVERY_PATH "/a53-keyboard-focused"
 #define OBSERVER_PATH DELIVERY_PATH "/keyboard-observe"
 #define OBSERVER_MODE "--diagnose"

@@ -27,7 +27,7 @@ umask 077
 revision=$1
 branch=$2
 kind=$3
-[[ $kind == userspace || $kind == keyboard-monitor || $kind == keyboard-monitor-enabled || $kind == keyboard-duration || $kind == keyboard-disconnect-preserver || $kind == keyboard-space-ready || $kind == keyboard-focused ]]
+[[ $kind == userspace || $kind == keyboard-monitor || $kind == keyboard-monitor-enabled || $kind == keyboard-duration || $kind == keyboard-disconnect-preserver || $kind == keyboard-space-ready || $kind == keyboard-focused || $kind == keyboard-coverage ]]
 [[ $revision =~ ^[0-9a-f]{40}$ && ( $branch == codex/a53-authenticated-baseline || $branch == main ) ]]
 root=/workspace/gemini-a53-userspace
 [[ ! -L $root ]]
@@ -55,8 +55,8 @@ if [[ ! -e $checkout ]]; then
 fi
 if [[ $kind == keyboard-duration ]]; then
   timeout --kill-after=10 1500 bash "$checkout/experiments/2026-09-05-owner-away-experiment-preparation/keyboard/build-monitor.sh" "$revision" "$root" keyboard-duration
-elif [[ $kind == keyboard-monitor || $kind == keyboard-monitor-enabled || $kind == keyboard-disconnect-preserver || $kind == keyboard-space-ready || $kind == keyboard-focused ]]; then
-  if [[ $kind == keyboard-disconnect-preserver || $kind == keyboard-space-ready || $kind == keyboard-focused ]]; then
+elif [[ $kind == keyboard-monitor || $kind == keyboard-monitor-enabled || $kind == keyboard-disconnect-preserver || $kind == keyboard-space-ready || $kind == keyboard-focused || $kind == keyboard-coverage ]]; then
+  if [[ $kind == keyboard-disconnect-preserver || $kind == keyboard-space-ready || $kind == keyboard-focused || $kind == keyboard-coverage ]]; then
     timeout 1200 bash "$checkout/experiments/2026-09-05-owner-away-experiment-preparation/keyboard/build-monitor.sh" "$revision" "$root" "$kind"
     exit
   fi
@@ -72,7 +72,7 @@ set -euo pipefail
 revision=$1
 identity=$2
 kind=$3
-[[ $kind == userspace || $kind == keyboard-monitor || $kind == keyboard-monitor-enabled || $kind == keyboard-duration || $kind == keyboard-disconnect-preserver || $kind == keyboard-space-ready || $kind == keyboard-focused ]]
+[[ $kind == userspace || $kind == keyboard-monitor || $kind == keyboard-monitor-enabled || $kind == keyboard-duration || $kind == keyboard-disconnect-preserver || $kind == keyboard-space-ready || $kind == keyboard-focused || $kind == keyboard-coverage ]]
 publication=published
 [[ $kind == userspace ]] || publication="$kind-published"
 [[ $revision =~ ^[0-9a-f]{40}$ && $identity =~ ^[0-9a-f]{64}$ ]]
@@ -111,7 +111,7 @@ def managed_dir(path):
 def clear_partial(stage):
     """Only this fixed managed name is disposable; never follow linked state."""
     require(stage.name in ('.fetch-userspace', '.fetch-keyboard-monitor', '.fetch-keyboard-monitor-enabled',
-                           '.fetch-keyboard-duration', '.fetch-keyboard-disconnect-preserver', '.fetch-keyboard-space-ready', '.fetch-keyboard-focused'), 'unexpected partial name')
+                           '.fetch-keyboard-duration', '.fetch-keyboard-disconnect-preserver', '.fetch-keyboard-space-ready', '.fetch-keyboard-focused', '.fetch-keyboard-coverage'), 'unexpected partial name')
     if not stage.exists() and not stage.is_symlink():
         return
     require(not stage.is_symlink() and stage.is_dir(), 'partial path type')
@@ -272,6 +272,7 @@ def main():
     kinds.add_argument('--keyboard-disconnect-preserver', action='store_true',
                        help='build/fetch the fixed offline disconnect preservation helper')
     kinds.add_argument('--keyboard-space-ready', action='store_true', help='build/fetch the Space start helper')
+    kinds.add_argument('--keyboard-coverage', action='store_true', help='build/fetch the twenty-step keyboard reader and monitor')
     kinds.add_argument('--keyboard-focused', action='store_true', help='build/fetch the focused keyboard reader; no live admission')
     parser.add_argument('--branch', choices=(BRANCH, 'main'), default=BRANCH,
                         help='published source branch; defaults to existing worker branch')
@@ -283,6 +284,8 @@ def main():
               ('keyboard-monitor' if args.keyboard_monitor else 'userspace'))))
     if args.keyboard_space_ready:
         kind = 'keyboard-space-ready'
+    if args.keyboard_coverage:
+        kind = 'keyboard-coverage'
     if args.keyboard_focused:
         kind = 'keyboard-focused'
     os.umask(0o077)

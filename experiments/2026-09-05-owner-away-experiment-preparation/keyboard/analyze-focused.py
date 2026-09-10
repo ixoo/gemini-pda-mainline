@@ -15,24 +15,27 @@ EXPECTED = [([[2, 1], [2, 0]], '31'),
             (V1['PROTOCOL']['steps'][0]['key_edges'], V1['PROTOCOL']['steps'][0]['vt_hex'])]
 
 
-def analyze(data):
+def analyze(data, *, coverage=False):
+    duration = 10000 if coverage else 15000
+    expected = [(s["key_edges"], s["vt_hex"]) for s in V1["PROTOCOL"]["steps"]] if coverage else EXPECTED
+    byte_limit = 1048576 if coverage else 98304
     result = {'hardware_claim': False, 'session_receipt_verified': False,
               'capture_sha256': hashlib.sha256(data).hexdigest()}
     try:
-        require(len(data) <= 98304, 'capture-byte-limit')
+        require(len(data) <= byte_limit, 'capture-byte-limit')
         require(data.endswith(b'\n'), 'unterminated-capture')
         lines = iter(data.decode('ascii').splitlines())
 
         def exact(wanted):
             require(next(lines, None) == wanted, 'incomplete-or-unexpected-frame')
 
-        exact('keyboard-diagnostic version=1')
+        exact('keyboard-coverage version=1' if coverage else 'keyboard-diagnostic version=1')
         repeat = re.fullmatch(r'repeat delay_ms=([0-9]+) period_ms=([0-9]+) planned_events=([0-9]+) limit=1024',
                               next(lines, ''))
         require(repeat is not None, 'missing-repeat-settings')
         delay, period, planned = map(int, repeat.groups())
         require(0 <= delay <= 60000 and 0 < period <= 60000, 'repeat-settings')
-        require(planned == 64 + 2 * ((15000 + period - 1) // period) and planned <= 1024,
+        require(planned == 64 + 2 * ((duration + period - 1) // period) and planned <= 1024,
                 'repeat-capacity')
         identity = re.fullmatch(r'device event=(event[0-9]+) major=13 minor=([0-9]+) name=keyboard-matrix',
                                 next(lines, ''))
@@ -42,7 +45,7 @@ def analyze(data):
         require(idle is not None and int(idle[1]) >= 2000, 'idle-preflight')
         exact('preflight state=pass vt=1 unicode=1 held=0 functions=exact')
         cases = []
-        for index, (expected_edges, expected_vt) in enumerate(EXPECTED):
+        for index, (expected_edges, expected_vt) in enumerate(expected):
             exact(f'step begin index={index}')
             edges, scans, vt = [], [], bytearray()
             held = set()
@@ -53,7 +56,7 @@ def analyze(data):
                 require(not line.startswith(('overflow ', 'incomplete ')), 'collection-incomplete')
                 end = re.fullmatch(r'window elapsed_ms=([0-9]+) events=([0-9]+) bytes=([0-9]+) held=0', line)
                 if end:
-                    require(int(end[1]) >= 15000 and int(end[2]) == count and int(end[3]) == len(vt),
+                    require(int(end[1]) >= duration and int(end[2]) == count and int(end[3]) == len(vt),
                             'window-time-or-counters')
                     require(pending_scan is None and frame is None and not held, 'unfinished-frame-or-held-key')
                     break
@@ -62,7 +65,7 @@ def analyze(data):
                 if event:
                     elapsed, kind, code, value = map(int, event.groups())
                     count += 1
-                    require(count <= 1024 and last_ms <= elapsed < 15000, 'event-budget-or-time')
+                    require(count <= 1024 and last_ms <= elapsed < duration, 'event-budget-or-time')
                     last_ms = elapsed
                     if kind == 4:
                         require(code == 4 and 0 <= value <= 63 and pending_scan is None and frame != 'repeat',
@@ -101,7 +104,7 @@ def analyze(data):
             cases.append({'index': index, 'input': 'match' if input_match else 'mismatch',
                           'vt': 'match' if vt.hex() == expected_vt else 'mismatch',
                           'physical_edges': len(edges), 'repeat_events': repeats})
-        exact('complete steps=2 restored=1')
+        exact(f'complete steps={len(expected)} restored=1')
         require(next(lines, None) is None, 'trailing-record')
         result.update(outcome='observations-complete', cases=cases)
     except (Refusal, UnicodeError, ValueError) as exc:
@@ -112,11 +115,12 @@ def analyze(data):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('capture', type=Path)
+    parser.add_argument('--coverage', action='store_true')
     args = parser.parse_args()
     require(args.capture.is_file() and not args.capture.is_symlink(), 'capture-not-regular')
     with args.capture.open('rb') as stream:
-        data = stream.read(98305)
-    result = analyze(data)
+        data = stream.read(1048577 if args.coverage else 98305)
+    result = analyze(data, coverage=args.coverage)
     print(json.dumps(result, indent=2))
     return 0 if result['outcome'] == 'observations-complete' else 2
 

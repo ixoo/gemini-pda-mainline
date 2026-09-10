@@ -29,7 +29,7 @@
 #endif
 #define FOCUSED_EVENT_LIMIT 1024
 
-static bool focused;
+static bool focused, coverage;
 static const char *failure = "preflight";
 static const char *const focused_instructions[] = {
 	"Tap 1 and release it; then wait with every key released",
@@ -228,15 +228,16 @@ int main(int argc, char **argv)
 	/* The admitted baseline launcher supplies exact independently observed
 	 * sysfs identity and makes tty1 exclusive. This helper never launches a
 	 * shell, grabs evdev, changes VT/keymap, or writes a hardware resource. */
-	if (argc != 5 || (strcmp(argv[1], "--capture") && strcmp(argv[1], "--diagnose")) ||
+	if (argc != 5 || (strcmp(argv[1], "--capture") && strcmp(argv[1], "--diagnose") && strcmp(argv[1], "--coverage")) ||
 	    sscanf(argv[2], "event%u%c", &eventno, &extra) != 1 ||
 	    sscanf(argv[3], "%u%c", &expected_major, &extra) != 1 ||
 	    sscanf(argv[4], "%u%c", &expected_minor, &extra) != 1 ||
 	    eventno > 255 || expected_major != 13 || expected_minor > 1048575) {
-		fprintf(stderr, "usage: keyboard-observe --capture|--diagnose eventN 13 MINOR\n");
+		fprintf(stderr, "usage: keyboard-observe --capture|--diagnose|--coverage eventN 13 MINOR\n");
 		return 2;
 	}
-	focused = !strcmp(argv[1], "--diagnose");
+	coverage = !strcmp(argv[1], "--coverage");
+	focused = coverage || !strcmp(argv[1], "--diagnose");
 	snprintf(canonical, sizeof(canonical), "event%u", eventno);
 	if (strcmp(argv[2], canonical) || strcmp(argv[3], "13"))
 		return 2;
@@ -248,7 +249,7 @@ int main(int argc, char **argv)
 	if (output_flags < 0 ||
 	    fcntl(STDOUT_FILENO, F_SETFL, output_flags | O_NONBLOCK) < 0)
 		return 2;
-	printf("%s\n", focused ? "keyboard-diagnostic version=1" : "keyboard-observe version=1");
+	printf("%s\n", coverage ? "keyboard-coverage version=1" : focused ? "keyboard-diagnostic version=1" : "keyboard-observe version=1");
 	snprintf(path, sizeof(path), "/dev/input/event%u", eventno);
 	fd = open(path, O_RDONLY | O_NONBLOCK | O_NOFOLLOW | O_CLOEXEC);
 	if (fd < 0 || fstat(fd, &info) || !S_ISCHR(info.st_mode) ||
@@ -265,7 +266,7 @@ int main(int argc, char **argv)
 		if (ioctl(fd, EVIOCGREP, repeat) || !repeat[1] ||
 		    repeat[1] > 60000 || repeat[0] > 60000)
 			goto finish;
-		unsigned int needed = 64 + 2 * ((FOCUSED_STEP_MS + repeat[1] - 1) / repeat[1]);
+		unsigned int needed = 64 + 2 * (((coverage ? STEP_MS : FOCUSED_STEP_MS) + repeat[1] - 1) / repeat[1]);
 		printf("repeat delay_ms=%u period_ms=%u planned_events=%u limit=%u\n",
 		       repeat[0], repeat[1], needed, FOCUSED_EVENT_LIMIT);
 		if (needed > FOCUSED_EVENT_LIMIT)
@@ -300,10 +301,10 @@ int main(int argc, char **argv)
 	    window(fd, IDLE_MS, true))
 		goto finish;
 	printf("preflight state=pass vt=1 unicode=1 held=0 functions=exact\n");
-	size_t count = focused ? 2 : sizeof(instructions) / sizeof(instructions[0]);
+	size_t count = focused && !coverage ? 2 : sizeof(instructions) / sizeof(instructions[0]);
 	for (size_t i = 0; i < count; i++) {
-		int duration = focused ? FOCUSED_STEP_MS : STEP_MS;
-		const char *instruction = focused ? focused_instructions[i] : instructions[i];
+		int duration = focused && !coverage ? FOCUSED_STEP_MS : STEP_MS;
+		const char *instruction = focused && !coverage ? focused_instructions[i] : instructions[i];
 		printf("step begin index=%zu\n", i);
 		failure = "prompt-write";
 		if (dprintf(ttyfd, "\r\n%zu/%zu (%d seconds): %s\r\n",

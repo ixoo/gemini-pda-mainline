@@ -5,11 +5,11 @@ set -euo pipefail
 umask 077
 export LC_ALL=C SOURCE_DATE_EPOCH=0 PYTHONDONTWRITEBYTECODE=1 PYTHONOPTIMIZE=0
 unset CPATH C_INCLUDE_PATH CPLUS_INCLUDE_PATH LIBRARY_PATH COMPILER_PATH GCC_EXEC_PREFIX REALGCC CFLAGS CPPFLAGS LDFLAGS
-[[ $# == 2 || $# == 3 ]] || { echo 'usage: build-monitor.sh EXACT_REVISION MANAGED_ROOT [keyboard-monitor|keyboard-monitor-enabled|keyboard-duration|keyboard-disconnect-preserver|keyboard-space-ready|keyboard-focused]' >&2; exit 2; }
+[[ $# == 2 || $# == 3 ]] || { echo 'usage: build-monitor.sh EXACT_REVISION MANAGED_ROOT [keyboard-monitor|keyboard-monitor-enabled|keyboard-duration|keyboard-disconnect-preserver|keyboard-space-ready|keyboard-focused|keyboard-coverage]' >&2; exit 2; }
 revision=$1
 managed=$2
 kind=${3:-keyboard-monitor}
-[[ $kind == keyboard-monitor || $kind == keyboard-monitor-enabled || $kind == keyboard-duration || $kind == keyboard-disconnect-preserver || $kind == keyboard-space-ready || $kind == keyboard-focused ]]
+[[ $kind == keyboard-monitor || $kind == keyboard-monitor-enabled || $kind == keyboard-duration || $kind == keyboard-disconnect-preserver || $kind == keyboard-space-ready || $kind == keyboard-focused || $kind == keyboard-coverage ]]
 here=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 repository=$(git -C "$here" rev-parse --show-toplevel)
 [[ $revision =~ ^[0-9a-f]{40}$ ]]
@@ -114,12 +114,14 @@ if [[ $kind == keyboard-duration ]]; then
   install -m 0600 "$repository/LICENSE" "$stage/package/licenses/repository-LICENSE"
   install -m 0600 /usr/share/doc/gcc-12-aarch64-linux-gnu/copyright "$stage/package/licenses/GCC-copyright"
   printf 'repository_commit=%s\nproduction_entry=none\ndevice_action=none\n' "$revision" >"$stage/package/provenance.txt"
-elif [[ $kind == keyboard-space-ready || $kind == keyboard-focused ]]; then
+elif [[ $kind == keyboard-space-ready || $kind == keyboard-focused || $kind == keyboard-coverage ]]; then
   helper=space-ready
   test_source=test-space-ready.py
-  if [[ $kind == keyboard-focused ]]; then
+  if [[ $kind == keyboard-focused || $kind == keyboard-coverage ]]; then
     helper=keyboard-observe
     test_source=test-focused.py
+    monitor_mode=FOCUSED
+    if [[ $kind == keyboard-coverage ]]; then monitor_mode=COVERAGE; fi
   fi
   for replica in one two; do
     mkdir "$stage/$replica"
@@ -139,10 +141,10 @@ elif [[ $kind == keyboard-space-ready || $kind == keyboard-focused ]]; then
     --work "$stage" >"$stage/tests.txt" 2>&1
   install -m 0600 "$stage/tests.txt" "$stage/package/fixture-tests.txt"
   install -m 0700 "$stage/one/$helper" "$stage/package/$helper"
-  if [[ $kind == keyboard-focused ]]; then
+  if [[ $kind == keyboard-focused || $kind == keyboard-coverage ]]; then
     for replica in one two; do
       timeout 60 "$compiler" -std=c11 -Os -static -Wall -Wextra -Werror \
-        -DKEYBOARD_MONITOR_ENABLED=1 -DKEYBOARD_MONITOR_FOCUSED=1 \
+        -DKEYBOARD_MONITOR_ENABLED=1 "-DKEYBOARD_MONITOR_$monitor_mode=1" \
         "-ffile-prefix-map=$repository=." "-ffile-prefix-map=$stage=." \
         -MD -MF "$stage/$replica/monitor-headers.d" \
         "$here/monitor.c" -o "$stage/$replica/keyboard-monitor"
@@ -159,6 +161,10 @@ elif [[ $kind == keyboard-space-ready || $kind == keyboard-focused ]]; then
       python3 "$here/test-monitor.py" >>"$stage/tests.txt" 2>&1
     timeout 90 python3 "$here/test-focused-monitor.py" --compiler "$compiler" --qemu "$qemu" \
       --work "$stage" >>"$stage/tests.txt" 2>&1
+    if [[ $kind == keyboard-coverage ]]; then
+      timeout 270 python3 "$here/test-coverage.py" --compiler "$compiler" --qemu "$qemu" \
+        --work "$stage" >>"$stage/tests.txt" 2>&1
+    fi
     install -m 0600 "$stage/tests.txt" "$stage/package/fixture-tests.txt"
     install -m 0700 "$stage/one/keyboard-monitor" "$stage/package/keyboard-monitor"
     install -m 0600 /usr/share/common-licenses/GPL-2 "$stage/package/licenses/GPL-2"
@@ -169,7 +175,7 @@ elif [[ $kind == keyboard-space-ready || $kind == keyboard-focused ]]; then
   install -m 0600 "$repository/LICENSE" "$stage/package/licenses/repository-LICENSE"
   install -m 0600 /usr/share/doc/gcc-12-aarch64-linux-gnu/copyright "$stage/package/licenses/GCC-copyright"
   printf 'repository_commit=%s\nproduction_entry=%s\ndevice_action=none\n' "$revision" "$helper-v1" >"$stage/package/provenance.txt"
-  python3 - "$here" "$stage" "$revision" "$helper" "$test_source" <<'PYREADY'
+  python3 - "$here" "$stage" "$revision" "$helper" "$test_source" "$kind" <<'PYREADY'
 import hashlib, json, pathlib, sys
 here, stage = map(pathlib.Path, sys.argv[1:3])
 sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
@@ -185,7 +191,12 @@ result = {'revision': sys.argv[3], 'inputs': inputs, 'header_inputs': header_inp
           'replicas_identical': True, 'production_entry': sys.argv[4]+'-v1', 'device_action': 'none',
           'stripped_bytes': (stage/'package'/sys.argv[4]).stat().st_size}
 if sys.argv[4] == 'keyboard-observe':
-    result['monitor_entry'] = 'focused-admission-v1'
+    result['monitor_entry'] = 'coverage-admission-v1' if sys.argv[6] == 'keyboard-coverage' else 'focused-admission-v1'
+    if sys.argv[6] == 'keyboard-coverage':
+        inputs['test-coverage.py'] = sha(here/'test-coverage.py')
+        inputs['analyze-focused.py'] = sha(here/'analyze-focused.py')
+        inputs['classify.py'] = sha(here/'classify.py')
+        inputs['protocol.json'] = sha(here/'protocol.json')
     result['monitor_bytes'] = (stage/'package/keyboard-monitor').stat().st_size
 (stage/'package/manifest.json').write_text(json.dumps(result, indent=2, sort_keys=True)+'\n')
 PYREADY
