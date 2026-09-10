@@ -1005,8 +1005,8 @@ sign-off, the new file's maintainer-inventory reminder, and the modern
 `kzalloc_obj` recommendation unavailable in the native 3.18 API. The script's
 spelling/const dictionaries are unavailable.
 
-At the initial integration below, the `--pstore` object check applies eight patches, checks the
-native header dependencies, retains both capture disassemblies, and compiles
+At the initial integration below, the `--pstore` object check applies eight
+patches, checks the native header dependencies, retains both capture disassemblies, and compiles
 the complete native board DT before and after the split using the pinned DCT
 output. It requires only the one existing `reg` change and the new PMSG `reg`
 and `no-map` properties. The [validated Buildbox result](results/capture-integration-object-compile.json)
@@ -1061,8 +1061,8 @@ This adds at most **two byte stores per boot after acquisition**, including
 denials after a terminal. A full capture plus both markers therefore has at
 most 65,422 byte stores: twelve header bytes, 511 complete 128-byte slots and
 two tail bytes. Each marker adds at most two byte reads and four `dsb sy`
-barriers; an already nonzero byte needs only one read and two barriers. Native
-readback ordering still requires target compilation and physical validation.
+barriers; an already nonzero byte needs only one read and two barriers. The
+emitted native ordering is checked below; physical validation remains open.
 
 The existing reader rejects every nonzero tail, so no decoder relaxation or
 new successful record type is introduced. The raw recovery snapshot preserves
@@ -1087,6 +1087,17 @@ proof. The controller must still establish the bounded observation interval,
 account for in-flight actors and join admitted watchdog/recovery evidence;
 these markers do not replace those requirements.
 
-The Buildbox object check now selects all nine patches. Target compilation of
-this successor is pending. No controller, boot candidate, clearing protocol or
-device action is selected.
+The [successor Buildbox result](results/capture-denial-tail-object-compile.json)
+passes from clean published input `bd08277b6b3059cc03c0dd7784cec9826caa998c`
+with all nine patches: four original and four patched complete translation
+units compile, and all 25 package files pass remote/local checksum verification.
+The helper's emitted code has its atomic attempt before the native IRQ-save
+lock, the four `dsb sy` sites, one conditional byte store and the `0xff` readback
+comparison. Both native callbacks call it with their distinct bit indices.
+The helper's own stack frame is 48 bytes, excluding callees and enclosing
+pstore calls. Begin publishes the tail pointer only after prepare succeeds.
+Both full board DTBs are byte-identical to the initial integration's pair;
+they still emit 211 inherited warnings each. C compilation still uses the
+native `-w` commands. No full kernel link, DT schema check or device execution
+was performed. No controller, boot candidate, clearing protocol or device
+action is selected.

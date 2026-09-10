@@ -1,0 +1,110 @@
+{
+  "project_commit": "bd08277b6b3059cc03c0dd7784cec9826caa998c",
+  "source_commit": "59e00a9144d782e148332009a835b99c43382467",
+  "scope": "4 complete translation units; no kernel link or device execution",
+  "patched_header_sha256": null,
+  "toolchain_manifest_sha256": "a45d945f092461a611d276ad7d0a0fea1ea8a7f93db413908bcb892c12817d14",
+  "config_sha256": "c96ca5c8a767b93f59487c9b4a1c3d05c1f47c166f3f9ea9f2b7ffe0f6f1f0fb",
+  "config_delta": {
+    "CONFIG_ANBOX": [
+      null,
+      "n"
+    ]
+  },
+  "patches": {
+    "0001-pstore-report-native-pmsg-backend-write-failures.patch": "41a64284f4013ccd7c8bfa7fa0adb78a0b001f289970319310a6cb193848184b",
+    "0002-pstore-preserve-native-records-when-backend-erase-fa.patch": "48b3b5f3bac483c4c85a65cba5756f3b577dd1f9bbb2a723ff1630df02812565",
+    "0003-pstore-preserve-old-log-on-allocation-failure.patch": "f59195e7009ea7dd8299d6d627962338cebdc3d9022e9e3047cedacca283b060",
+    "0004-pstore-reserve-native-pmsg-for-capture.patch": "f79230f50760d4bf45c71660dd65bc68c872e56f953c2bcfecacc9f66b9353cf",
+    "0005-pstore-freeze-native-capture-parameters.patch": "871664dbdf4ea52615e5151e677feacce6f0a84dce2cf2f20a0497eff54e1ae6",
+    "0006-pstore-release-mapped-zones-on-probe-failure.patch": "1f55211e3a156cdc4097d6d460bd5f27d10701d9caeb59707930760edcf78bd1",
+    "0007-pstore-integrate-native-fixed-slot-capture.patch": "f6d7ecd752b8693b3f8b3f226f8fcc9489f74c243f757797fd11549bdc96523b",
+    "0008-arm64-dts-reserve-native-pmsg-without-linear-alias.patch": "20ad1e7ac53a0f8eed94f63529cb054ef4e98b75c92f532c240e14bc33c7ecf6",
+    "0009-pstore-retain-rejected-capture-access-in-tail.patch": "744d6bc4e167e7f2722246c42fd61e92819604d0688af707d97dfff0173d7be9"
+  },
+  "objects": [
+    {
+      "file": "fs/pstore/pmsg.c",
+      "baseline_source_sha256": "d068bcef6caea7674bde8a900f5c0a774f6c8a71ab981075d1a12d0b8d9dd7e0",
+      "baseline_object_sha256": "265f11548a2f769c7bfab4894590ecf3d8723dc2181ea0dbe0e9754b5124e994",
+      "patched_source_sha256": "6c08ebdeaabaa1e61b681118982b5ab5562357ac042ee3566736e9c3f8abe21d",
+      "object_sha256": "6e27f85dd75489b9796f94f5ff5036ee157b4ca3a4137e3f0f3466efa552d433",
+      "baseline_command_sha256": "84c548a2c5b42c77dcbad5fd58b412c9d77354946c6001fc17ee4a4319466b0d",
+      "patched_header_dependency_verified": null,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "fs/pstore/inode.c",
+      "baseline_source_sha256": "ff9e4cf2cc9decf2a62afe92505d4a8a49ca5c32b7fb473434cc77bfc6574b92",
+      "baseline_object_sha256": "7641d476a675cb20ab3b0cb6a65b4df2d886ba3246828d95cef72aa842643ab0",
+      "patched_source_sha256": "f49ac29f36e3145f0cd67c595f7b66ac5fc16ec9ec489143f4191aac9b0c5130",
+      "object_sha256": "d0115e2327930c72bbb21d7032b55b941e051bbce0fd97b7fa3f9bf1e11dc615",
+      "baseline_command_sha256": "88e667ae1c82e233ad120ecc5d4c5984855707ac2f8a8d685403db0c7e1e8438",
+      "patched_header_dependency_verified": null,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "fs/pstore/ram_core.c",
+      "baseline_source_sha256": "eb25a629b9dff9bbffedd7c90fd2a1045420792570cd0a775d78d3bd2c2ca1b6",
+      "baseline_object_sha256": "89dda7aabaf2c689c63895888b5dd17e5d6748bde08f678326c409e86e8e88f7",
+      "patched_source_sha256": "8a5a63163989901ec5dcccb374a77d572b81982fe5544025e090f4e00bcd0b10",
+      "object_sha256": "5b0830ecc632b7fa0e1fae17894d79df82529990d5e9df25860bd19ff1e5c504",
+      "baseline_command_sha256": "f2176797030c9d44feb431620bc705022054671b24500e5b8238394c05723bda",
+      "patched_header_dependency_verified": null,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "fs/pstore/ram.c",
+      "baseline_source_sha256": "7ba661c230fb71d7d2768bb3cddb95d1deb36810531cfc992bc5c7297113a391",
+      "baseline_object_sha256": "217c5aa0509f57ba0e2abb8b247c7a416e6cbd3ba51d7cbc3d566d20e10af126",
+      "patched_source_sha256": "3c720fea7482ebf9153b506d4c798431274a7ce5b07fb4614deb7fd79fc83a2d",
+      "object_sha256": "51de634b12b4356fec5bf7a6d368840b13c55c3a9d4cba7b896b5d83dd0007a2",
+      "baseline_command_sha256": "a2d8c9bc14a5cf4256355fef94c23c6d57b0e88b1c72e51f9767fe79bd2e4c4a",
+      "patched_header_dependency_verified": null,
+      "diagnostics_bytes": 0
+    }
+  ],
+  "capture_header_sha256": "6c484141882e9fe2cf8f5898f7dc107450fa97eea9c2a51f703ec1641e54ee14",
+  "dt": {
+    "board_source_sha256": "d1bd9d83941dffb44615f69e9113c7b79d87b3e9e87057619c70370f56456f5a",
+    "cust_dtsi_sha256": "7a7eb416499346afff30c15f967ccb9cf79323c076204b6a953515db74811632",
+    "dtc_version": "Version: DTC 1.6.1",
+    "dtc_sha256": "84a8279cdc8200af26d5d91182408374baef54867c1e23381cee769f2dd37d5d",
+    "parser_sha256": "e7f09a32e72dd64b2e50ada6015cae94af60c80a5c5741d8ddf83cf86b18fedf",
+    "baseline_dtb_sha256": "bcb8adf45eaa3a585567dbff212fe7b7209a0ddf738db98a6ac9f5a861bdcbe6",
+    "capture_dtb_sha256": "9d9ed86146a8257077a4a5e936048b7760d9dddf93f3a125cd6fc2beaa33f32b",
+    "property_delta": "one existing reg change; one new reg and empty no-map; all other properties equal",
+    "combined_extent": "0x44410000..0x444f0000 unchanged; PMSG 0x444e0000..0x444f0000",
+    "identical_to_initial_integration_dtb_pair": true,
+    "warnings_each": 211
+  },
+  "package_files": 25,
+  "package_inventory_sha256": "94e04319e0c55f5bbc054af7c9ad7b6de0876381dc249d03591faf440679f5e7",
+  "remote_and_local_inventory_verified": true,
+  "native_capture_header_dependencies_verified": true,
+  "prepared_source_clean_after": true,
+  "temporary_build_output_removed": true,
+  "emitted_denial_helper": {
+    "frame_bytes": 48,
+    "frame_scope": "individual helper; excludes callees and enclosing pstore call",
+    "atomic_attempt_before_lock": true,
+    "native_irqsave_lock_pair_present": true,
+    "dsb_sy_sites": [
+      "0x8c",
+      "0x98",
+      "0xd0",
+      "0xdc"
+    ],
+    "retained_marker_store_site": "0xcc",
+    "readback_compare_site": "0xe0",
+    "write_callback_call_site": "0x2cc, argument 0",
+    "erase_callback_call_site": "0x724, argument 1",
+    "begin_tail_pointer_offset": "raw zone + 0xff8c, published after prepare success"
+  },
+  "warning_policy": "C object commands retain -w; both DT builds retain 211 inherited warnings",
+  "limitations": [
+    "No full kernel link, DT schema check or device execution",
+    "A zero tail is not an isolation certificate",
+    "No reset-retention claim"
+  ]
+}
