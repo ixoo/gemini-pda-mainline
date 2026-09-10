@@ -3,3 +3,6 @@
 0003-pstore-preserve-old-log-on-allocation-failure.patch
 0004-pstore-reserve-native-pmsg-for-capture.patch
 0005-pstore-freeze-native-capture-parameters.patch
+0006-pstore-release-mapped-zones-on-probe-failure.patch
+0007-pstore-integrate-native-fixed-slot-capture.patch
+0008-arm64-dts-reserve-native-pmsg-without-linear-alias.patch

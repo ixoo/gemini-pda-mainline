@@ -266,6 +266,15 @@ def decode_pmsg(payload, expected_cycle, expected_identity):
             'producer_status': int.from_bytes(records[-1]['payload'], 'little') if terminal else None}
 
 
+def decode_pmsg_zone(raw, expected_cycle, expected_identity):
+    """Decode the capture-mode raw snapshot, including its unchanged native header."""
+    if len(raw) != ZONE_PAYLOAD_BYTES + 12:
+        raise ValueError('requires exact 64-KiB raw capture zone')
+    if struct.unpack('<III', raw[:12]) != (0x43474244, 0, ZONE_PAYLOAD_BYTES):
+        raise ValueError('raw capture header does not match the fixed no-ECC layout')
+    return decode_pmsg(raw[12:], expected_cycle, expected_identity)
+
+
 def check_dma(data, expected_cycle):
     """Check complete recorded DMA lifetimes, not endpoint translation or Wi-Fi success."""
     transactions = {}

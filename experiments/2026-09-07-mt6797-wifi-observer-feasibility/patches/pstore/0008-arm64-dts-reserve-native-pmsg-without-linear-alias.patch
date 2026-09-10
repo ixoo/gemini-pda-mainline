@@ -1,0 +1,40 @@
+From 1bba6c1ac183a0af08c58f19b09e7bf116fb8a11 Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <experiment@invalid.example>
+Date: Wed, 9 Sep 2026 21:39:33 -0400
+Subject: [PATCH] arm64: dts: reserve native PMSG without a linear alias
+
+Split the existing native pstore reservation at the unchanged final
+64-KiB PMSG zone. Mark only that slice no-map so the capture constructor
+can refuse RAM PFNs and use the existing non-cached I/O mapping. The
+combined physical extent and all configured ramoops zone sizes remain
+unchanged. This is an isolated capture/recovery DT input, not a board
+default.
+
+The archive identity is synthetic and non-certifying. This isolated
+native experiment is not submission-ready or a selected device
+candidate.
+---
+ arch/arm64/boot/dts/mt6797.dtsi | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm64/boot/dts/mt6797.dtsi b/arch/arm64/boot/dts/mt6797.dtsi
+index 6a03d1c..980f9a8 100644
+--- a/arch/arm64/boot/dts/mt6797.dtsi
++++ b/arch/arm64/boot/dts/mt6797.dtsi
+@@ -323,7 +323,12 @@
+ 
+ 		pstore-reserved-memory@44410000 {
+ 			compatible = "mediatek,pstore";
+-			reg = <0 0x44410000 0 0xe0000>;
++			reg = <0 0x44410000 0 0xd0000>;
++		};
++
++		pmsg-capture-reserved-memory@444e0000 {
++			reg = <0 0x444e0000 0 0x10000>;
++			no-map;
+ 		};
+ 
+ 		consys-reserve-memory {
+-- 
+2.50.1 (Apple Git-155)
+

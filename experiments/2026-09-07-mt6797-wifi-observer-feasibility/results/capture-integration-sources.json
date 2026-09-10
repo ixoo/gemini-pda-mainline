@@ -1,0 +1,38 @@
+{
+  "source_revision": "59e00a9144d782e148332009a835b99c43382467",
+  "inputs_after_pstore_patch_5": {
+    "fs/pstore/ram.c": "bcef3a7a261e3a7242b6d18e045d5c299cfcf3227c2a75228ddc2baca54db1b1",
+    "fs/pstore/ram_core.c": "9f07dc5c78c78008e57a00090f8c76a3d3412e318c3decc545fd87ed7cc8da47",
+    "include/linux/pstore_ram.h": "2266d45a2b2628f42355a54280261b5aa2ddd86cfeecd6075a2087ec58f28367",
+    "arch/arm64/boot/dts/mt6797.dtsi": "eaac86c8752ebd8ddf18b831eb3bc52a08f87475a213bb521650bf95dabb3e5e"
+  },
+  "patches": [
+    {
+      "patch": "0006-pstore-release-mapped-zones-on-probe-failure.patch",
+      "sha256": "1f55211e3a156cdc4097d6d460bd5f27d10701d9caeb59707930760edcf78bd1"
+    },
+    {
+      "patch": "0007-pstore-integrate-native-fixed-slot-capture.patch",
+      "sha256": "f6d7ecd752b8693b3f8b3f226f8fcc9489f74c243f757797fd11549bdc96523b"
+    },
+    {
+      "patch": "0008-arm64-dts-reserve-native-pmsg-without-linear-alias.patch",
+      "sha256": "20ad1e7ac53a0f8eed94f63529cb054ef4e98b75c92f532c240e14bc33c7ecf6"
+    }
+  ],
+  "outputs": {
+    "fs/pstore/ram.c": "4e38a1f62b57cb35805dabac5c541ecab1c8103ab8cc53e68e014f09ea6d6a4e",
+    "fs/pstore/ram_core.c": "8a5a63163989901ec5dcccb374a77d572b81982fe5544025e090f4e00bcd0b10",
+    "include/linux/pstore_ram.h": "4fdfca942947ec066b6a6e98e2bda2c667b8106eefe4a4acd460705f5d393133",
+    "arch/arm64/boot/dts/mt6797.dtsi": "5e7809ca4ceb07c501a76b5c2f4d7d067ce11b092fa556b5893246831bd9330f",
+    "fs/pstore/wifi_capture.h": "6c484141882e9fe2cf8f5898f7dc107450fa97eea9c2a51f703ec1641e54ee14"
+  },
+  "scope": "Unselected native capture integration; no observer caller or device operation",
+  "reservation_sources": {
+    "arch/arm64/mm/init.c": "55e7f3f8895da839bfb1b5ad5cc2efa0cd44b5b3ead3533453f5c56f2b76a7d0",
+    "drivers/of/fdt.c": "3c9b23e038f9b58db3f7c428d598e14cba7fec2a8686691ead5c55e20623de41",
+    "drivers/of/of_reserved_mem.c": "4f1af2387a737e3e324ec807894d4b7955aea8237c13ac49597009b7ca0aed4a",
+    "arch/arm64/boot/dts/mt6797.dtsi": "eaac86c8752ebd8ddf18b831eb3bc52a08f87475a213bb521650bf95dabb3e5e"
+  },
+  "ordered_replay_and_reverse_verified": true
+}

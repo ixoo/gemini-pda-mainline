@@ -1,0 +1,69 @@
+From 3622c344fe50e028693458222cd4edb4752cf7ff Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <experiment@invalid.example>
+Date: Wed, 9 Sep 2026 21:39:33 -0400
+Subject: [PATCH] pstore: release mapped native zones on probe failure
+
+The failure labels free only zone structures, leaking mappings and old-
+log allocations. Use the existing zone destructor, which releases these
+resources without changing retained bytes. Capture admission introduces
+intentional probe refusals and must not leave these allocations behind.
+
+The dump-zone pointer array has exactly max_dump_cnt elements and no
+sentinel. Save that count before clearing it, bound the free loop and
+clear the freed array pointer. Do not clear the count in an earlier
+failure label. This handles both partially constructed and fully
+populated arrays without an out-of-bounds scan.
+
+The archive identity is synthetic and non-certifying. This isolated
+native experiment is not submission-ready or a selected device
+candidate.
+---
+ fs/pstore/ram.c | 15 ++++++++-------
+ 1 file changed, 8 insertions(+), 7 deletions(-)
+
+diff --git a/fs/pstore/ram.c b/fs/pstore/ram.c
+index 56d0405..a1b574f 100644
+--- a/fs/pstore/ram.c
++++ b/fs/pstore/ram.c
+@@ -436,15 +436,17 @@ static struct ramoops_context oops_cxt = {
+ 
+ static void ramoops_free_przs(struct ramoops_context *cxt)
+ {
+-	int i;
++	unsigned int count = cxt->max_dump_cnt;
++	unsigned int i;
+ 
+ 	cxt->max_dump_cnt = 0;
+ 	if (!cxt->przs)
+ 		return;
+ 
+-	for (i = 0; !IS_ERR_OR_NULL(cxt->przs[i]); i++)
++	for (i = 0; i < count && !IS_ERR_OR_NULL(cxt->przs[i]); i++)
+ 		persistent_ram_free(cxt->przs[i]);
+ 	kfree(cxt->przs);
++	cxt->przs = NULL;
+ }
+ 
+ static int ramoops_init_przs(struct device *dev, struct ramoops_context *cxt,
+@@ -642,14 +644,13 @@ fail_buf:
+ 	kfree(cxt->pstore.buf);
+ fail_clear:
+ 	cxt->pstore.bufsize = 0;
+-	cxt->max_dump_cnt = 0;
+-	kfree(cxt->mprz);
++	persistent_ram_free(cxt->mprz);
+ fail_init_mprz:
+-	kfree(cxt->fprz);
++	persistent_ram_free(cxt->fprz);
+ fail_init_fprz:
+-	kfree(cxt->bprz);
++	persistent_ram_free(cxt->bprz);
+ fail_init_bprz:
+-	kfree(cxt->cprz);
++	persistent_ram_free(cxt->cprz);
+ fail_init_cprz:
+ 	ramoops_free_przs(cxt);
+ fail_out:
+-- 
+2.50.1 (Apple Git-155)
+

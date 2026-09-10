@@ -3,6 +3,7 @@
 """Buildbox-only WMT, pstore or capture primitive compile; no kernel image."""
 
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -10,6 +11,7 @@ import platform
 import shlex
 import shutil
 import subprocess
+import struct
 import sys
 import tempfile
 
@@ -45,6 +47,55 @@ def symbols(path):
         elif line.startswith("# CONFIG_") and line.endswith(" is not set"):
             values[line[2:-11]] = "n"
     return values
+
+
+def compile_capture_dt(project, source, patched, work, output, compiler, environment):
+    """Compile the full native board twice and require only the PMSG split."""
+    dts = "arch/arm64/boot/dts"
+    board = "aeon6797_6m_n.dts"
+    cust = Path("/workspace/gemini-pda/gemian-artifacts/gemian-observer-a98ffc90f979/outputs/cust.dtsi")
+    assert digest(cust) == "7a7eb416499346afff30c15f967ccb9cf79323c076204b6a953515db74811632"
+    (output / dts).mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(cust, output / dts / "cust.dtsi")
+    shutil.copyfile(source / dts / board, patched / dts / board)
+    dtc = Path(shutil.which("dtc"))
+    dtc_version = run([str(dtc), "--version"])
+    parser_path = project / "experiments/2026-09-04-mt6797-pwrap-reset-serviceability/scripts/build_dtb.py"
+    spec = importlib.util.spec_from_file_location("capture_dtb_parser", parser_path)
+    parser = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(parser)
+    trees, dtbs = [], []
+    for label, tree in (("baseline", source), ("capture", patched)):
+        preprocessed = work / (label + ".dts")
+        dtb = work / (label + ".dtb")
+        args = [str(compiler), "-E", "-nostdinc", "-I" + str(tree / dts),
+                "-I" + str(source / dts), "-I" + str(output / dts),
+                "-I" + str(source / dts / "include"), "-I" + str(output / "include"),
+                "-I" + str(source / "drivers/of/testcase-data"),
+                "-undef", "-D__DTS__", "-x", "assembler-with-cpp",
+                "-o", str(preprocessed), str(tree / dts / board)]
+        with (work / (label + "-dt.log")).open("w") as stream:
+            compile_logged(args, stream, cwd=output, env=environment, timeout=120)
+            compile_logged([str(dtc), "-I", "dts", "-O", "dtb", "-b", "0",
+                            "-i", str(source / dts), "-o", str(dtb), str(preprocessed)],
+                           stream, cwd=output, env=environment, timeout=120)
+        trees.append({key: value for key, (_, value) in parser.properties(dtb.read_bytes()).items()})
+        dtbs.append(dtb)
+    expected = dict(trees[0])
+    parent = "/reserved-memory/pstore-reserved-memory@44410000"
+    child = "/reserved-memory/pmsg-capture-reserved-memory@444e0000"
+    assert expected[(parent, "reg")] == struct.pack(">4I", 0, 0x44410000, 0, 0xe0000)
+    assert not any(key[0] == child for key in expected)
+    expected[(parent, "reg")] = struct.pack(">4I", 0, 0x44410000, 0, 0xd0000)
+    expected[(child, "reg")] = struct.pack(">4I", 0, 0x444e0000, 0, 0x10000)
+    expected[(child, "no-map")] = b""
+    assert trees[1] == expected, "unexpected native board property change"
+    return {"board_source_sha256": digest(source / dts / board),
+            "cust_dtsi_sha256": digest(cust), "dtc_version": dtc_version,
+            "dtc_sha256": digest(dtc), "parser_sha256": digest(parser_path),
+            "baseline_dtb_sha256": digest(dtbs[0]), "capture_dtb_sha256": digest(dtbs[1]),
+            "property_delta": "one existing reg change; one new reg and empty no-map; all other properties equal",
+            "combined_extent": "0x44410000..0x444f0000 unchanged; PMSG 0x444e0000..0x444f0000"}
 
 
 def main():
@@ -110,11 +161,15 @@ def main():
         if pstore:
             for path in (source / headers).glob("*.h"):
                 shutil.copyfile(path, patched / headers / path.name)
+            if not capture:
+                for extra in ("include/linux/pstore_ram.h", "arch/arm64/boot/dts/mt6797.dtsi"):
+                    (patched / extra).parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copyfile(source / extra, patched / extra)
         else:
             shutil.copytree(source / headers, patched / headers)
         patch_dir = experiment / "patches" / "pstore" if pstore else experiment / "patches"
         patches = [] if capture else sorted(patch_dir.glob("*.patch"))
-        assert len(patches) == (0 if capture else 5 if pstore else 4)
+        assert len(patches) == (0 if capture else 8 if pstore else 4)
         for patch in patches:
             subprocess.run(["git", "apply", str(patch)], cwd=patched, check=True)
         if capture:
@@ -155,6 +210,8 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
             args[args.index("-o") + 1] = str(result)
             args[-1] = str(patched / suffix)
             args.insert(1, "-I" + str(patched / headers))
+            if pstore and not capture:
+                args.insert(1, "-I" + str(patched / "include"))
             args = ["-Wp,-MD," + str(work / (name + ".d")) if a.startswith("-Wp,-MD,") else a
                     for a in args]
             with (work / (name + ".log")).open("w") as stream:
@@ -170,6 +227,13 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
                 disassembly = run([str(toolchain / "wrappers/aarch64-linux-gnu-objdump"),
                                    "-dr", str(result)], env=environment)
                 (work / "capture-writer.disasm").write_text(disassembly + "\n")
+            if pstore and not capture and name in ("ram", "ram_core"):
+                assert str(patched / "include/linux/pstore_ram.h") in dependencies
+                if name == "ram":
+                    assert str(patched / "fs/pstore/wifi_capture.h") in dependencies
+                disassembly = run([str(toolchain / "wrappers/aarch64-linux-gnu-objdump"),
+                                   "-dr", str(result)], env=environment)
+                (work / (name + "-capture.disasm")).write_text(disassembly + "\n")
             assert "AArch64" in run(["readelf", "-h", str(result)])
             records.append({"file": suffix, "baseline_source_sha256": digest(source / suffix),
                             "baseline_object_sha256": digest(baseline),
@@ -187,8 +251,13 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
         if capture:
             receipt["capture_header_sha256"] = digest(experiment / "capture-slot-writer.h")
             receipt["scope"] = "Native ARM64 header/object check with emitted wrappers; no owner integration, kernel link or device execution"
+        if pstore and not capture:
+            receipt["capture_header_sha256"] = digest(patched / "fs/pstore/wifi_capture.h")
+            assert receipt["capture_header_sha256"] == digest(experiment / "capture-slot-writer.h")
+            receipt["dt"] = compile_capture_dt(project, source, patched, work, output, compiler, environment)
         package.mkdir()
-        for file in [log, *work.glob("*.o"), *work.glob("*.disasm"), *work.glob("*-baseline.log"),
+        for file in [log, *work.glob("*.o"), *work.glob("*.disasm"), *work.glob("*.dtb"),
+                     *work.glob("*-dt.log"), *work.glob("*-baseline.log"),
                      *(work / (Path(name).name + ".log") for name in files)]:
             shutil.copyfile(file, package / file.name)
         (package / "result.json").write_text(json.dumps(receipt, indent=2) + "\n")

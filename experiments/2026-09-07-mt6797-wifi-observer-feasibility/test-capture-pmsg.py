@@ -91,6 +91,19 @@ class PmsgTests(unittest.TestCase):
         self.assertEqual(len(result['records']), 511)
         self.assertEqual(result['producer_status'], 3)
 
+    def test_raw_zone_requires_exact_header_and_size(self):
+        header = bytes.fromhex('4442474300000000f4ff0000')
+        raw = header + zone(self.identity)
+        self.assertEqual(r.decode_pmsg_zone(raw, CYCLE, IDENTITY), self.decode(raw[12:]))
+        for bit in range(96):
+            damaged = bytearray(raw)
+            damaged[bit // 8] ^= 1 << (bit % 8)
+            with self.subTest(bit=bit), self.assertRaises(ValueError):
+                r.decode_pmsg_zone(damaged, CYCLE, IDENTITY)
+        for damaged in (raw[:-1], raw + b'\0', raw[12:], bytes(65536)):
+            with self.assertRaises(ValueError):
+                r.decode_pmsg_zone(damaged, CYCLE, IDENTITY)
+
 
 if __name__ == '__main__':
     unittest.main()

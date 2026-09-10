@@ -1,0 +1,474 @@
+From ce28a6b56736a4dd78c6aca300e0a79aeeb42bca Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <experiment@invalid.example>
+Date: Wed, 9 Sep 2026 21:39:33 -0400
+Subject: [PATCH] pstore: integrate native fixed-slot capture acquisition
+
+In capture mode map the exact PMSG zone without the normal constructor
+or metadata zap. Refuse any PFN in the native RAM map, take a complete
+raw snapshot including malformed headers, and export that snapshot
+through the existing PMSG reader. Allocation failures preserve retained
+bytes.
+
+Provide built-in begin and append entry points under one raw spinlock.
+Begin is one-shot and accepts only a zero raw zone and zero initial
+snapshot. Publish and fully read back fixed header metadata before
+invoking the reviewed WFC1 writer. Denied ordinary writes or erases
+prevent later append; the denial latch remains volatile and does not
+establish post-reset isolation.
+
+Freeze exact native platform sizes and no-ECC settings before probe
+writes other zones. The writer header is the reviewed experiment
+prototype unchanged. No observer or controller calls these new entry
+points. Physical preparation, firmware producers and reset-retention
+admission remain separate.
+
+The archive identity is synthetic and non-certifying. This isolated
+native experiment is not submission-ready or a selected device
+candidate.
+---
+ fs/pstore/ram.c            | 105 +++++++++++++++++++++++++-
+ fs/pstore/ram_core.c       | 100 +++++++++++++++++++++++++
+ fs/pstore/wifi_capture.h   | 149 +++++++++++++++++++++++++++++++++++++
+ include/linux/pstore_ram.h |  11 +++
+ 4 files changed, 363 insertions(+), 2 deletions(-)
+ create mode 100644 fs/pstore/wifi_capture.h
+
+diff --git a/fs/pstore/ram.c b/fs/pstore/ram.c
+index a1b574f..d68e936 100644
+--- a/fs/pstore/ram.c
++++ b/fs/pstore/ram.c
+@@ -35,6 +35,9 @@
+ #include <linux/slab.h>
+ #include <linux/compiler.h>
+ #include <linux/pstore_ram.h>
++#include <linux/interrupt.h>
++
++#include "wifi_capture.h"
+ 
+ #define RAMOOPS_KERNMSG_HDR "===="
+ #define MIN_MEM_SIZE 4096UL
+@@ -434,6 +437,76 @@ static struct ramoops_context oops_cxt = {
+ 	},
+ };
+ 
++static DEFINE_RAW_SPINLOCK(pmsg_capture_lock);
++static struct wfc_writer pmsg_writer;
++static bool pmsg_capture_attempted;
++static bool pmsg_capture_registered;
++static atomic_t pmsg_capture_probe_attempted = ATOMIC_INIT(0);
++
++/* Built-in callers only; no userspace control, export or ownership release. */
++int ramoops_capture_begin(const u8 cycle[16], const u8 identity[80])
++{
++	struct persistent_ram_zone *prz;
++	u8 __iomem *payload;
++	unsigned long flags;
++	u8 nonzero = 0;
++	unsigned int i;
++	int ret = -EPERM;
++
++	if (!pmsg_capture || in_interrupt())
++		return -EPERM;
++	raw_spin_lock_irqsave(&pmsg_capture_lock, flags);
++	if (pmsg_capture_attempted)
++		goto out;
++	pmsg_capture_attempted = true;
++	prz = oops_cxt.mprz;
++	if (!pmsg_capture_locked || !pmsg_capture_registered || !prz ||
++	    !cycle || !identity || READ_ONCE(pmsg_capture_denials))
++		goto out;
++	for (i = 0; i < 16; i++)
++		nonzero |= cycle[i];
++	if (!nonzero) {
++		ret = -EINVAL;
++		goto out;
++	}
++	ret = persistent_ram_capture_prepare(prz);
++	if (ret)
++		goto out;
++	payload = (u8 __iomem *)prz->buffer + PERSISTENT_RAM_CAPTURE_HEADER_SIZE;
++	ret = wfc_writer_begin(&pmsg_writer, payload, prz->buffer_size,
++			       cycle, identity);
++	if (READ_ONCE(pmsg_capture_denials)) {
++		pmsg_writer.stopped = true;
++		ret = -EBUSY;
++	}
++out:
++	raw_spin_unlock_irqrestore(&pmsg_capture_lock, flags);
++	return ret;
++}
++
++int ramoops_capture_append(unsigned int kind, u32 transaction,
++			   const u8 *payload, size_t length)
++{
++	unsigned long flags;
++	int ret = -EPERM;
++
++	if (!pmsg_capture || in_nmi())
++		return -EPERM;
++	raw_spin_lock_irqsave(&pmsg_capture_lock, flags);
++	if (!pmsg_capture_registered || READ_ONCE(pmsg_capture_denials)) {
++		pmsg_writer.stopped = true;
++		goto out;
++	}
++	ret = wfc_slot_write(&pmsg_writer, kind, transaction, payload, length);
++	if (READ_ONCE(pmsg_capture_denials)) {
++		pmsg_writer.stopped = true;
++		ret = -EBUSY;
++	}
++out:
++	raw_spin_unlock_irqrestore(&pmsg_capture_lock, flags);
++	return ret;
++}
++
+ static void ramoops_free_przs(struct ramoops_context *cxt)
+ {
+ 	unsigned int count = cxt->max_dump_cnt;
+@@ -509,7 +582,11 @@ static int ramoops_init_prz(struct device *dev, struct ramoops_context *cxt,
+ 		return -ENOMEM;
+ 	}
+ 
+-	*prz = persistent_ram_new(*paddr, sz, sig, &cxt->ecc_info, cxt->memtype);
++	if (pmsg_capture && prz == &cxt->mprz)
++		*prz = persistent_ram_capture_map(*paddr, sz);
++	else
++		*prz = persistent_ram_new(*paddr, sz, sig, &cxt->ecc_info,
++					  cxt->memtype);
+ 	if (IS_ERR(*prz)) {
+ 		int err = PTR_ERR(*prz);
+ 
+@@ -518,7 +595,8 @@ static int ramoops_init_prz(struct device *dev, struct ramoops_context *cxt,
+ 		return err;
+ 	}
+ 
+-	persistent_ram_zap(*prz);
++	if (!pmsg_capture || prz != &cxt->mprz)
++		persistent_ram_zap(*prz);
+ 
+ 	*paddr += sz;
+ 
+@@ -540,6 +618,21 @@ static int ramoops_probe(struct platform_device *pdev)
+ 	phys_addr_t paddr;
+ 	int err = -EINVAL;
+ 
++	if (pmsg_capture) {
++		if (atomic_cmpxchg(&pmsg_capture_probe_attempted, 0, 1))
++			return -EPERM;
++		/* Exact native layout, before any zone initialization. */
++		if (!pdata || pdata->mem_address != 0x44410000 ||
++		    pdata->mem_size != 0xe0000 || pdata->mem_type ||
++		    pdata->record_size != 0x1000 ||
++		    pdata->console_size != 0x10000 ||
++		    pdata->ftrace_size != 0x1000 ||
++		    pdata->pmsg_size != 0x10000 ||
++		    pdata->ecc_info.ecc_size || pdata->ecc_info.block_size ||
++		    pdata->ecc_info.symsize || pdata->ecc_info.poly)
++			return -EINVAL;
++	}
++
+ 	/* Only a single ramoops area allowed at a time, so fail extra
+ 	 * probes.
+ 	 */
+@@ -625,6 +718,14 @@ static int ramoops_probe(struct platform_device *pdev)
+ 		goto fail_buf;
+ 	}
+ 
++	if (pmsg_capture) {
++		unsigned long flags;
++
++		raw_spin_lock_irqsave(&pmsg_capture_lock, flags);
++		pmsg_capture_registered = true;
++		raw_spin_unlock_irqrestore(&pmsg_capture_lock, flags);
++	}
++
+ 	/*
+ 	 * Update the module parameter variables as well so they are visible
+ 	 * through /sys/module/ramoops/parameters/
+diff --git a/fs/pstore/ram_core.c b/fs/pstore/ram_core.c
+index 7ab712d..d5a67a0 100644
+--- a/fs/pstore/ram_core.c
++++ b/fs/pstore/ram_core.c
+@@ -553,3 +553,103 @@ err:
+ 	persistent_ram_free(prz);
+ 	return ERR_PTR(ret);
+ }
++
++/* Map and snapshot the raw capture zone without changing retained bytes. */
++struct persistent_ram_zone *persistent_ram_capture_map(phys_addr_t start,
++						       size_t size)
++{
++	struct persistent_ram_zone *prz;
++	unsigned int i;
++	int ret = -ENOMEM;
++
++	BUILD_BUG_ON(sizeof(struct persistent_ram_buffer) !=
++		     PERSISTENT_RAM_CAPTURE_HEADER_SIZE);
++	if (!IS_ENABLED(CONFIG_ARM64) ||
++	    !IS_ENABLED(CONFIG_HAVE_ARCH_PFN_VALID) ||
++	    start != PERSISTENT_RAM_CAPTURE_ADDRESS ||
++	    size != PERSISTENT_RAM_CAPTURE_SIZE ||
++	    !IS_ALIGNED(start, PAGE_SIZE) || start + size < start)
++		return ERR_PTR(-EINVAL);
++	/* Refuse a range still present in the native linear RAM mapping. */
++	for (i = 0; i < size; i += PAGE_SIZE)
++		if (pfn_valid((start + i) >> PAGE_SHIFT))
++			return ERR_PTR(-EBUSY);
++	prz = kzalloc(sizeof(*prz), GFP_KERNEL);
++	if (!prz)
++		return ERR_PTR(-ENOMEM);
++	prz->paddr = start;
++	prz->size = size;
++	if (!request_mem_region(start, size, "pmsg_capture")) {
++		ret = -EBUSY;
++		goto fail;
++	}
++	prz->vaddr = ioremap_wc(start, size);
++	if (!prz->vaddr) {
++		release_mem_region(start, size);
++		goto fail;
++	}
++	prz->buffer = prz->vaddr;
++	prz->buffer_size = size - PERSISTENT_RAM_CAPTURE_HEADER_SIZE;
++	prz->old_log = kmalloc(size, GFP_KERNEL);
++	if (!prz->old_log)
++		goto fail;
++	/* Finish earlier accesses before taking the complete raw snapshot. */
++	mb();
++	for (i = 0; i < size; i++)
++		prz->old_log[i] = readb_relaxed((u8 __iomem *)prz->vaddr + i);
++	/* Finish all reads before publishing the snapshot to pstore. */
++	mb();
++	prz->old_log_size = size;
++	return prz;
++fail:
++	persistent_ram_free(prz);
++	return ERR_PTR(ret);
++}
++
++/* Called once by the capture owner, before the identity or any observation. */
++int persistent_ram_capture_prepare(struct persistent_ram_zone *prz)
++{
++	static const u8 header[PERSISTENT_RAM_CAPTURE_HEADER_SIZE] = {
++		0x44, 0x42, 0x47, 0x43, 0, 0, 0, 0, 0xf4, 0xff, 0, 0
++	};
++	u8 __iomem *raw;
++	u8 mismatch = 0;
++	unsigned int i;
++
++	if (!prz || !prz->vaddr || prz->buffer != prz->vaddr ||
++	    prz->paddr != PERSISTENT_RAM_CAPTURE_ADDRESS ||
++	    prz->size != PERSISTENT_RAM_CAPTURE_SIZE ||
++	    prz->buffer_size != PERSISTENT_RAM_CAPTURE_SIZE - sizeof(header) ||
++	    prz->ecc_info.ecc_size || prz->par_buffer || prz->par_header ||
++	    prz->rs_decoder || !prz->old_log ||
++	    prz->old_log_size != PERSISTENT_RAM_CAPTURE_SIZE)
++		return -EINVAL;
++	raw = prz->vaddr;
++	/* Complete admission activity before checking every retained byte. */
++	mb();
++	for (i = 0; i < PERSISTENT_RAM_CAPTURE_SIZE; i++)
++		mismatch |= readb_relaxed(raw + i) | (u8)prz->old_log[i];
++	/* Complete the scan before any header store. Never clear old data. */
++	mb();
++	if (mismatch)
++		return -EBUSY;
++	for (i = 4; i < sizeof(header); i++)
++		writeb_relaxed(header[i], raw + i);
++	/* Complete start/size stores before checking them and the zero signature. */
++	mb();
++	for (i = 0; i < sizeof(header); i++)
++		mismatch |= readb_relaxed(raw + i) ^ (i < 4 ? 0 : header[i]);
++	/* Complete verification before making the fixed header recognizable. */
++	mb();
++	if (mismatch)
++		return -EIO;
++	for (i = 0; i < 4; i++)
++		writeb_relaxed(header[i], raw + i);
++	/* Complete signature stores before full header readback. */
++	mb();
++	for (i = 0; i < sizeof(header); i++)
++		mismatch |= readb_relaxed(raw + i) ^ header[i];
++	/* Complete all readback before allowing identity publication. */
++	mb();
++	return mismatch ? -EIO : 0;
++}
+diff --git a/fs/pstore/wifi_capture.h b/fs/pstore/wifi_capture.h
+new file mode 100644
+index 0000000..6b6646e
+--- /dev/null
++++ b/fs/pstore/wifi_capture.h
+@@ -0,0 +1,149 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Experimental WFC1 slot writer. No production caller or mapping owner yet.
++ * The caller must hold exclusive PMSG ownership and serialize every call,
++ * including begin, outside NMI context. State lives in ordinary RAM.
++ * The mapped payload must have the reviewed fixed header and no ECC.
++ * mb() is the native ARM64 dsb(sy); it does not prove reset retention.
++ */
++#ifndef WFC_SLOT_WRITER_H
++#define WFC_SLOT_WRITER_H
++
++#include <linux/crc32.h>
++#include <linux/errno.h>
++#include <linux/io.h>
++#include <linux/string.h>
++#include <asm/unaligned.h>
++
++#define WFC_PAYLOAD_BYTES 65524
++#define WFC_SLOT_BYTES 128
++#define WFC_LAST_SLOT 510
++#define WFC_COMMIT 0x57464331
++
++struct wfc_writer {
++	u8 __iomem *payload;
++	u8 cycle[16];
++	unsigned int next;
++	bool attempted;
++	bool stopped;
++};
++
++/* This primitive never resets state or clears retained bytes. */
++static int wfc_slot_write(struct wfc_writer *writer, unsigned int kind,
++			  u32 transaction, const u8 *payload, size_t length)
++{
++	u8 record[WFC_SLOT_BYTES] = { 0 };
++	u8 __iomem *slot;
++	unsigned int i;
++	u8 mismatch = 0;
++	bool overflow = false;
++
++	if (!writer->attempted || writer->stopped || !writer->payload)
++		return -EPERM;
++	if (writer->next > WFC_LAST_SLOT || length > 84 ||
++	    (length && !payload) || !((kind >= 1 && kind <= 10) ||
++				    kind == 255) ||
++	    (!writer->next && (kind != 1 || length != 80 || transaction)) ||
++	    (writer->next && kind == 1) ||
++	    (kind == 255 && (transaction || length != 4 ||
++			    get_unaligned_le32(payload) < 1 ||
++			    get_unaligned_le32(payload) > 3))) {
++		writer->stopped = true;
++		return -EINVAL;
++	}
++
++	/* Consume the final slot with an overflow terminal, never an event. */
++	if (writer->next == WFC_LAST_SLOT && kind != 255) {
++		overflow = true;
++		kind = 255;
++		transaction = 0;
++		length = 4;
++		put_unaligned_le32(3, record + 36);
++	} else if (length) {
++		memcpy(record + 36, payload, length);
++	}
++	memcpy(record, "WFC1", 4);
++	put_unaligned_le16(1, record + 4);
++	put_unaligned_le16(kind, record + 6);
++	put_unaligned_le32(writer->next, record + 8);
++	memcpy(record + 12, writer->cycle, sizeof(writer->cycle));
++	put_unaligned_le32(transaction, record + 28);
++	put_unaligned_le32(length, record + 32);
++	put_unaligned_le32(crc32_le(~0U, record, 120) ^ ~0U, record + 120);
++	put_unaligned_le32(WFC_COMMIT, record + 124);
++
++	slot = writer->payload + writer->next * WFC_SLOT_BYTES;
++	/* Consume the attempt before touching storage: no retry, even on error. */
++	writer->stopped = true;
++	/* Order prior activity before inspecting the target slot. */
++	mb();
++	for (i = 0; i < WFC_SLOT_BYTES; i++)
++		mismatch |= readb_relaxed(slot + i);
++	/* Finish the zero-slot reads before any body store. */
++	mb();
++	if (mismatch)
++		return -EBUSY;
++	for (i = 0; i < 124; i++)
++		writeb_relaxed(record[i], slot + i);
++	/* Complete body stores before their readback. */
++	mb();
++	/* Check the entire body and still-zero marker before committing. */
++	for (i = 0; i < WFC_SLOT_BYTES; i++)
++		mismatch |= readb_relaxed(slot + i) ^ (i < 124 ? record[i] : 0);
++	/* Complete verification before publishing any marker byte. */
++	mb();
++	if (mismatch)
++		return -EIO;
++	for (i = 124; i < WFC_SLOT_BYTES; i++)
++		writeb_relaxed(record[i], slot + i);
++	/* Complete marker stores before full-record readback. */
++	mb();
++	for (i = 0; i < WFC_SLOT_BYTES; i++)
++		mismatch |= readb_relaxed(slot + i) ^ record[i];
++	/* Complete all readback before advancing volatile state. */
++	mb();
++	if (mismatch)
++		return -EIO;
++	writer->next++;
++	writer->stopped = kind == 255;
++	return overflow ? -ENOSPC : 0;
++}
++
++/*
++ * One attempt on a zero-initialized state. External admission must first
++ * preserve old evidence and verify mapping, header, ECC and backend ownership.
++ * A successful begin includes a fully read-back identity in slot zero.
++ */
++static int wfc_writer_begin(struct wfc_writer *writer, u8 __iomem *payload,
++			    size_t length, const u8 cycle[16],
++			    const u8 identity[80])
++{
++	u8 nonzero = 0, cycle_nonzero = 0;
++	unsigned int i;
++
++	if (writer->attempted)
++		return -EPERM;
++	writer->attempted = true;
++	writer->stopped = true;
++	if (!payload || length != WFC_PAYLOAD_BYTES || !cycle || !identity)
++		return -EINVAL;
++	for (i = 0; i < 16; i++)
++		cycle_nonzero |= cycle[i];
++	if (!cycle_nonzero)
++		return -EINVAL;
++	/* Order prior admission work before the complete zero scan. */
++	mb();
++	for (i = 0; i < WFC_PAYLOAD_BYTES; i++)
++		nonzero |= readb_relaxed(payload + i);
++	/* Finish the zero scan before enabling the first append. */
++	mb();
++	if (nonzero)
++		return -EBUSY;
++	writer->payload = payload;
++	memcpy(writer->cycle, cycle, sizeof(writer->cycle));
++	writer->next = 0;
++	writer->stopped = false;
++	return wfc_slot_write(writer, 1, 0, identity, 80);
++}
++
++#endif
+diff --git a/include/linux/pstore_ram.h b/include/linux/pstore_ram.h
+index 712757f..fe17123 100644
+--- a/include/linux/pstore_ram.h
++++ b/include/linux/pstore_ram.h
+@@ -70,6 +70,17 @@ ssize_t persistent_ram_ecc_string(struct persistent_ram_zone *prz,
+ 
+ void ramoops_console_write_buf(const char *buf, size_t size);
+ 
++#define PERSISTENT_RAM_CAPTURE_ADDRESS 0x444e0000ULL
++#define PERSISTENT_RAM_CAPTURE_SIZE 65536U
++#define PERSISTENT_RAM_CAPTURE_HEADER_SIZE 12U
++
++struct persistent_ram_zone *persistent_ram_capture_map(phys_addr_t start,
++						       size_t size);
++int persistent_ram_capture_prepare(struct persistent_ram_zone *prz);
++int ramoops_capture_begin(const u8 cycle[16], const u8 identity[80]);
++int ramoops_capture_append(unsigned int kind, u32 transaction,
++			   const u8 *payload, size_t length);
++
+ /*
+  * Ramoops platform data
+  * @mem_size	memory size for ramoops
+-- 
+2.50.1 (Apple Git-155)
+

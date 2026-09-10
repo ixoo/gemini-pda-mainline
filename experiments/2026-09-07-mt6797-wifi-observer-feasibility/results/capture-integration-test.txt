@@ -1,0 +1,32 @@
+scope=host injected allocation and byte I/O; no native lock or physical retention claim
+compiler_flags=-std=gnu11 -Wall -Wextra -Werror -Wno-unused-parameter -fPIC -shared -pthread
+test=test-capture-integration.py
+test_bad_contract_and_arguments_do_not_initialize_header (__main__.IntegrationTests.test_bad_contract_and_arguments_do_not_initialize_header) ... ok
+test_denial_before_and_during_append_closes_capture (__main__.IntegrationTests.test_denial_before_and_during_append_closes_capture) ... ok
+test_dump_cleanup_stops_at_count_and_clears_pointer (__main__.IntegrationTests.test_dump_cleanup_stops_at_count_and_clears_pointer) ... ok
+test_every_header_readback_fault_stops_before_identity (__main__.IntegrationTests.test_every_header_readback_fault_stops_before_identity) ... ok
+test_every_header_store_interruption_stops_before_identity (__main__.IntegrationTests.test_every_header_store_interruption_stops_before_identity) ... ok
+test_header_then_identity_and_terminal_match_reader (__main__.IntegrationTests.test_header_then_identity_and_terminal_match_reader) ... ok
+test_mapping_refusals_release_resources_without_stores (__main__.IntegrationTests.test_mapping_refusals_release_resources_without_stores) ... ok
+test_old_snapshot_prevents_admission_even_if_live_bytes_change (__main__.IntegrationTests.test_old_snapshot_prevents_admission_even_if_live_bytes_change) ... ok
+test_recovery_snapshot_decodes_and_cannot_be_reused (__main__.IntegrationTests.test_recovery_snapshot_decodes_and_cannot_be_reused) ... ok
+test_serialized_callers_keep_contiguous_sequences (__main__.IntegrationTests.test_serialized_callers_keep_contiguous_sequences) ... ok
+test_snapshot_preserves_invalid_header_and_every_byte (__main__.IntegrationTests.test_snapshot_preserves_invalid_header_and_every_byte) ... ok
+test_wrong_extent_refuses_before_mapping (__main__.IntegrationTests.test_wrong_extent_refuses_before_mapping) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.562s
+
+OK
+test=test-capture-pmsg.py
+..........
+----------------------------------------------------------------------
+Ran 10 tests in 0.052s
+
+OK
+test=test-capture-records.py
+.................
+----------------------------------------------------------------------
+Ran 17 tests in 0.009s
+
+OK

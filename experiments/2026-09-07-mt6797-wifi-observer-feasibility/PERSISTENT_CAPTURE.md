@@ -3,8 +3,10 @@
 The existing same-version Gemian pmsg storage is a possible backing store, but
 the old process-context witness helper is not a suitable direct writer for all
 required Wi-Fi observations. This source-only preparation selects no new memory range and admits no
-physical write or recovery action. The isolated repairs below are not a
-capture implementation or a selected kernel candidate.
+physical write or recovery action. The latest
+[native integration](#native-acquisition-and-raw-recovery-integration) remains
+an unselected implementation with no observer/controller caller or admitted
+device operation.
 
 The [source receipt](results/persistent-capture-sources.json) pins five complete
 public Git objects at the selected Gemian revision and the retained build
@@ -920,3 +922,94 @@ Checkpatch on the header reported zero errors, warnings and checks with its
 spelling/const dictionaries unavailable. Acquisition, header initialization,
 producer integration and physical retention remain unfinished; this prototype
 admits no reserved-memory access or device operation.
+
+## Native acquisition and raw recovery integration
+
+Pstore patches 6–8 in the [series](patches/pstore/series) integrate the reviewed
+writer into the native backend. They add built-in `ramoops_capture_begin()`
+and `ramoops_capture_append()` entry points; no observer or controller calls
+them yet. The [source receipt](results/capture-integration-sources.json) pins
+the five-patch parent, new patches and resulting files. The installed writer
+header is byte-identical to the tested prototype. This remains a synthetic,
+non-certifying experiment archive, not an upstream submission or candidate.
+
+The original native DT reservation has no `no-map` property. Native ARM64
+`pfn_valid()` tests membership in `memblock.memory`, and the normal ramoops
+constructor can create a non-cached vmap while a linear RAM mapping remains.
+Patch 8 splits only the existing reservation: the first `0xd0000` bytes remain
+at `0x44410000`; the final `0x10000` bytes at `0x444e0000` receive `no-map`.
+Their union remains `0x44410000..0x444f0000`. Configured ramoops sizes and all
+physical zone boundaries stay unchanged. This DT is intended only for the
+isolated capture/recovery kernel with capture mode enabled.
+
+Before initializing any zones, capture-mode probe requires the exact native
+base, total size, record/console/ftrace/PMSG sizes, memtype zero and all-zero
+ECC settings. An atomic one-attempt guard refuses a second capture probe even
+after failure. The PMSG constructor then checks the exact `0x444e0000` address,
+64-KiB size and page alignment, and refuses if **any** page remains a valid RAM
+PFN. It requests the region and uses `ioremap_wc()` directly. It never enters
+the generic ring constructor, ECC initialization or metadata zap, and does not
+switch the other zones' ring-update callbacks.
+
+The new constructor allocates a complete 64-KiB old snapshot and copies every
+raw byte, including the header, before pstore registration. Allocation or
+mapping failure releases resources without changing retained bytes. Patch 6
+also replaces the probe failure labels' structure-only frees with the existing
+zone destructor, releasing mappings and snapshots without zapping storage.
+Its dump-array cleanup saves the actual count before clearing it, stops at
+that count instead of assuming a missing sentinel, and clears the freed pointer.
+Malformed or interrupted headers therefore remain available as raw evidence
+through the existing PMSG old-log reader when capture-mode probe succeeds.
+In this mode the exported file is **65,536 bytes including the header**;
+ordinary Gemian's 65,524-byte payload export remains a different input format.
+
+Begin is process-context only and consumes its one attempt under a raw spinlock.
+It requires completed backend registration, frozen capture mode, valid identity
+arguments and no recorded PMSG interference. Both the entire current raw zone
+and its initial snapshot must be zero. A nonempty snapshot forbids admission
+even if an outside actor has cleared current memory; no clearing operation is
+provided. Begin writes start/size, verifies all twelve header bytes with the
+signature still zero, writes the signature, and verifies the complete fixed
+header. Only successful readback reaches the identity writer. Interruptions
+and errors cannot trigger another begin or a later payload write.
+
+Append uses the same raw spinlock and rejects NMI context. It checks the sticky
+ordinary-write/erase denial mask before and after the slot writer and closes
+capture on interference. This serializes supported producers but does not make
+the denial mask persistent: a denial racing a write can leave committed bytes,
+and a denial after a terminal cannot be inferred from that terminal after reset.
+The existing framing-only interpretation is unchanged. A durable isolation
+result remains a controller/recovery requirement before hardware admission.
+
+`decode_pmsg_zone()` in the [codec](capture-records.py) accepts the raw snapshot
+only at exactly 64 KiB, checks all fixed header fields, then uses the existing
+payload decoder and independently expected cycle/candidate/boot/input identity.
+It rejects malformed headers without repairing or resynchronizing data; the
+collector must retain the original raw snapshot even when decoding fails.
+
+The [integration fixture](test-capture-integration.py) compiles the exact native
+mapping, preparation, zone-initialization, owner and destructor functions with
+injected allocation/I/O and a host lock. Its
+[twelve test groups](results/capture-integration-test.txt) cover raw
+malformed-header preservation, all sixteen RAM-PFN refusals, allocation and
+mapping cleanup, exact range refusal, every header-store interruption and every
+header-readback fault, old-snapshot admission refusal, interference, concurrent
+append ordering, bounded dump-array cleanup, and a simulated recovery snapshot
+that refuses reuse. The
+raw-reader test additionally rejects all 96 single-bit header mutations.
+These are control-flow and byte-preservation tests, not ARM spinlock, physical
+retention, live page-table or interrupt-context evidence. The full probe's
+guard/publication placement is inspected separately from the extracted fixtures.
+Strict Checkpatch passes with three explicit exclusions: synthetic archive
+sign-off, the new file's maintainer-inventory reminder, and the modern
+`kzalloc_obj` recommendation unavailable in the native 3.18 API. The script's
+spelling/const dictionaries are unavailable.
+
+The existing `--pstore` object check now applies all eight patches, checks the
+native header dependencies, retains both capture disassemblies, and compiles
+the complete native board DT before and after the split using the pinned DCT
+output. It requires only the one existing `reg` change and the new PMSG `reg`
+and `no-map` properties. Target compilation and DT validation are pending.
+Physical zero-state preparation, typed observer/controller callers, durable
+interference evidence, the watchdog contract and reset retention remain open.
+No kernel image, boot selection, memory access or radio operation is admitted.
