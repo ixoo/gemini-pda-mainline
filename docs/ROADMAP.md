@@ -317,13 +317,10 @@ The remaining preparation order is:
    not a replacement for recorded inputs. Do not spend a boot on another marker.
 2. **Keyboard coverage:** the [twenty-step attended capture](../experiments/2026-09-05-owner-away-experiment-preparation/keyboard/COVERAGE_TEST.md#attended-result)
    completed with preserved evidence and correct translation of every observed
-   press/repeat. Finish the single unexercised Ctrl-first release ordering;
-   nineteen instructed physical sequences matched, while the Ctrl step recorded
-   A released first. Reuse same-boot admission and the corrected startup for a
-   bounded follow-up, then address wider physical coverage and reliability.
-   Do not repeat the whole function-key sequence or baseline solely for this
-   remaining ordering check. The runtime gate needs the first baseline
-   USB/console pass, not all ten cold boots.
+   press/repeat. The owner accepts Ctrl+A as sufficient for this milestone and
+   requests moving on without another keyboard test. The recorded release-order
+   limitation remains evidence, not a gate on Wi-Fi or storage. Defer wider
+   physical coverage and reliability to a separately scoped session.
 3. **Wi-Fi:** compile the connected transfer components through the actual Linux
    interfaces, then complete a validated whole-image plan and shared EMI/AP-DMA
    ownership. Identify the retained calibration record's producer, restoration

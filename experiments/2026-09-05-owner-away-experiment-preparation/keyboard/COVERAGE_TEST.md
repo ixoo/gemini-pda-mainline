@@ -65,5 +65,7 @@ legitimate character/function repeats. A bounded review reconstructed output
 from each recorded press/repeat and its held modifiers, using the verified map
 and protocol function strings, and matched every case. This is an observed
 translation result, not a claim that the original twenty single-tap sequences
-all passed. The remaining acceptance item is the specific Ctrl-first release
-ordering, followed by separately scoped reliability and wider coverage work.
+all passed. The owner subsequently accepted Ctrl+A as sufficient for this
+milestone and explicitly requested moving on without another keyboard test. The recorded
+release order remains unchanged; it is no longer a scheduling gate. Wider
+coverage and reliability remain separately scoped work.

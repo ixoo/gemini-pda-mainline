@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-"""Buildbox-only compilation check of five files; does not build a kernel image."""
+"""Buildbox-only WMT or pstore file compilation; does not build a kernel image."""
 
 import hashlib
 import json
@@ -52,7 +52,12 @@ def main():
     experiment = Path(__file__).resolve().parent
     project = experiment.parents[1]
     commit = run(["git", "-C", str(project), "rev-parse", "HEAD"])
-    assert len(sys.argv) == 2 and sys.argv[1] == commit
+    assert len(sys.argv) in (2, 3) and sys.argv[1] == commit
+    pstore = len(sys.argv) == 3
+    assert not pstore or sys.argv[2] == "--pstore"
+    relative = "fs/pstore/" if pstore else RELATIVE
+    files = ("pmsg", "inode", "ram_core") if pstore else FILES
+    label = "wifi-pstore-objects-" if pstore else "wifi-startup-objects-"
     assert not run(["git", "-C", str(project), "status", "--porcelain"])
     root = Path("/workspace/gemini-pda")
     source = root / "gemian-source/gemian-baseline" / REVISION
@@ -69,11 +74,11 @@ def main():
     assert digest(recorded) == "cc43a28e3856325f3087dbc0c6b0a32e5cc0d8034074d851a0e0e33dd9da1a39"
     old_source = str(root / "gemian-source/gemian-observer/a98ffc90f979eabe4e927b0d478199673b62781c")
     assert shutil.disk_usage(root).free > 2 * 1024 ** 3
-    package = root / "gemian-artifacts" / ("wifi-startup-objects-" + commit)
+    package = root / "gemian-artifacts" / (label + commit)
     assert not package.exists(), "refusing to overwrite a result"
     environment = dict(os.environ, LD_LIBRARY_PATH=str(toolchain / "root/usr/lib/x86_64-linux-gnu"),
                        HOST_EXTRACFLAGS="-fcommon")
-    with tempfile.TemporaryDirectory(prefix="wifi-startup-objects-", dir=root / "build") as tmp:
+    with tempfile.TemporaryDirectory(prefix=label, dir=root / "build") as tmp:
         work = Path(tmp)
         output = work / "output"
         output.mkdir()
@@ -91,29 +96,35 @@ def main():
             compile_logged(command + ["-j2", "V=1", "prepare"],
                            stream, env=environment, timeout=300)
         patched = work / "patched"
-        for name in FILES:
-            dest = patched / (RELATIVE + name + ".c")
+        for name in files:
+            dest = patched / (relative + name + ".c")
             dest.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(source / (RELATIVE + name + ".c"), dest)
+            shutil.copyfile(source / (relative + name + ".c"), dest)
         # Copy neighboring headers so quoted includes resolve to the patched header.
-        headers = RELATIVE + "core/include"
-        shutil.copytree(source / headers, patched / headers)
-        patches = sorted((experiment / "patches").glob("*.patch"))
-        assert len(patches) == 4
+        headers = relative if pstore else RELATIVE + "core/include"
+        if pstore:
+            for path in (source / headers).glob("*.h"):
+                shutil.copyfile(path, patched / headers / path.name)
+        else:
+            shutil.copytree(source / headers, patched / headers)
+        patch_dir = experiment / "patches" / "pstore" if pstore else experiment / "patches"
+        patches = sorted(patch_dir.glob("*.patch"))
+        assert len(patches) == (3 if pstore else 4)
         for patch in patches:
             subprocess.run(["git", "apply", str(patch)], cwd=patched, check=True)
         records = []
         header = headers + "/wmt_ctrl.h"
-        assert digest(source / header) != digest(patched / header)
-        for relative_name in FILES:
+        if not pstore:
+            assert digest(source / header) != digest(patched / header)
+        for relative_name in files:
             name = Path(relative_name).name
-            suffix = RELATIVE + relative_name + ".c"
+            suffix = relative + relative_name + ".c"
             lines = [line for line in recorded.read_text().splitlines()
                      if " -c " in line and line.endswith("/" + suffix)]
             assert len(lines) == 1, (name, len(lines))
             args = shlex.split(lines[0])
             assert args[0] == str(compiler) and args[-1] == old_source + "/" + suffix
-            assert args[args.index("-o") + 1] == RELATIVE + relative_name + ".o"
+            assert args[args.index("-o") + 1] == relative + relative_name + ".o"
             args = [a.replace(old_source, str(source)) for a in args]
             baseline = work / (name + "-baseline.o")
             args[args.index("-o") + 1] = str(baseline)
@@ -130,24 +141,26 @@ def main():
             with (work / (name + ".log")).open("w") as stream:
                 compile_logged(args, stream, cwd=output, env=environment, timeout=120)
             dependencies = (work / (name + ".d")).read_text().replace("\\\n", " ").split()
-            assert str(patched / header) in dependencies, name
-            assert str(source / header) not in dependencies, name
+            if not pstore:
+                assert str(patched / header) in dependencies, name
+                assert str(source / header) not in dependencies, name
             assert "AArch64" in run(["readelf", "-h", str(result)])
             records.append({"file": suffix, "baseline_source_sha256": digest(source / suffix),
                             "baseline_object_sha256": digest(baseline),
                             "patched_source_sha256": digest(patched / suffix),
                             "object_sha256": digest(result),
                             "baseline_command_sha256": hashlib.sha256(lines[0].encode()).hexdigest(),
-                            "patched_header_dependency_verified": True,
+                            "patched_header_dependency_verified": None if pstore else True,
                             "diagnostics_bytes": (work / (name + ".log")).stat().st_size})
         receipt = {"project_commit": commit, "source_commit": REVISION,
-                   "scope": "five complete translation units; no kernel link or device execution",
-                   "patched_header_sha256": digest(patched / header),
+                   "scope": f"{len(files)} complete translation units; no kernel link or device execution",
+                   "patched_header_sha256": None if pstore else digest(patched / header),
                    "toolchain_manifest_sha256": TOOLCHAIN,
                    "config_sha256": digest(output / ".config"), "config_delta": delta,
                    "patches": {p.name: digest(p) for p in patches}, "objects": records}
         package.mkdir()
-        for file in [log, *work.glob("wmt_*.o"), *work.glob("wmt_*.log")]:
+        for file in [log, *work.glob("*.o"), *work.glob("*-baseline.log"),
+                     *(work / (Path(name).name + ".log") for name in files)]:
             shutil.copyfile(file, package / file.name)
         (package / "result.json").write_text(json.dumps(receipt, indent=2) + "\n")
         (package / "SHA256SUMS").write_text("".join(

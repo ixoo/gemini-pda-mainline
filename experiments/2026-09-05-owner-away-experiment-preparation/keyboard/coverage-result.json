@@ -9,7 +9,7 @@
     "input_sysfs_realpath": "/sys/devices/platform/keyboard-matrix/input/input0",
     "kernel_release": "7.1.3-gemini-mt6797-pwrap-reset"
   },
-  "classification": "all-observed-translations-match-one-instructed-release-order-uncovered",
+  "classification": "keyboard-milestone-accepted-by-owner-observed-translations-match",
   "coverage": {
     "complete_steps": 20,
     "console_restored": true,
@@ -917,6 +917,7 @@
     ],
     "scope": "bounded replay of only the observed protocol keys under the verified map; modifiers emit no text; every key press and repeat contributes its mapped bytes"
   },
+  "owner_acceptance": "Owner accepts Ctrl+A as sufficient and explicitly requests moving on without another keyboard test. The recorded release order remains unchanged.",
   "owner_readability_and_responsiveness": "confirmed for all twenty prompts",
   "plan": {
     "boot_id": "f2999a36-edfe-42ea-bca4-1abf8db1a7f9",

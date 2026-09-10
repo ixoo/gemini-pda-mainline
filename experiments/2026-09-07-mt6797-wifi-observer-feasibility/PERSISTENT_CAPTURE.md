@@ -760,3 +760,15 @@ The exact mapping, barrier, ECC and reset-retention contracts are still needed.
 Unrelated corruption of the fixed header can still defeat ordinary recovery,
 and snapshot allocation alone is not durable collection. No new kernel writer,
 reader image, memory access, radio operation or candidate is selected here.
+
+## Complete-source compilation check
+
+The existing [Buildbox object checker](check-startup-objects.py) accepts
+`EXACT_PROJECT_COMMIT --pstore` to compile the original and repaired `pmsg.c`,
+`inode.c` and `ram_core.c` translation units. It reuses the pinned native
+compiler, resolved configuration, prepared source and recorded compiler
+commands, and applies only the three-patch pstore series to temporary files.
+It leaves the prepared source untouched and removes temporary build output.
+This checks a concrete gap in the function-body fixtures: compatibility with
+the actual kernel headers and target compiler. It does not link a kernel,
+implement capture ownership or admit a device operation. The result is pending.
