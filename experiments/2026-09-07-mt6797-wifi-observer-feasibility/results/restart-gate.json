@@ -1,0 +1,32 @@
+{
+  "parent_full_inputs_sha256": "c05823e4fb2b6853e9fd0d08a51e7c22ea7afb3d9603e9f49d57bf1ad36fdcd5",
+  "patch": "0001-watchdog-arbitrate-takeover-before-restart-effects.patch",
+  "patch_sha256": "5b0e294fd1923e1ff9e2c8003e31d684c4b63d1612cc42c9e9f94af7b2cb6d39",
+  "parents": {
+    "drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c": "d52e4d8d91152f53260a1bde5fc702d51e9c26eac2751d98761e69d1bb1a6bcc",
+    "include/linux/reboot.h": "0e7c785420f8c44385f1fece12f2d8d8571984ebe1607741edacd4dd3c3a4400",
+    "kernel/reboot.c": "303dad3078deb07b233119d8779c37c79f1f4f4ce33409098e4dd2d9a1b3496f",
+    "arch/arm64/kernel/process.c": "fde5da399c0da370fd751287f750b07da578c21eb7a66e29f2140ca6d3b78a8a"
+  },
+  "outputs": {
+    "drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c": "96642a819b3fb1a3b76c266e722b5bdad06c530983637b63b49ee8a1cc788f46",
+    "include/linux/reboot.h": "1ea471cc8d3902e9c1a12e451f93951dad1f27d56d8ca8e61fb36678b0924e5e",
+    "kernel/reboot.c": "e2f58b58b929ec6552637e0786b26ef70fd03fb218442fbad7d80083c07b0614",
+    "arch/arm64/kernel/process.c": "964bc00bd3ae6438d1200311ca861548b91da8a8a791701df52fc6f77085a171"
+  },
+  "host_test_sha256": "8dea97da083fd7d29fb29b66dba82c189f21404a4fb06852fe84bb0690677dae",
+  "tests": {
+    "parent_earlier_restart_effects_reproduced": true,
+    "four_restart_entries_both_orders": true,
+    "three_claim_ordering_races": true,
+    "local_irq_mask_required_during_claim": true,
+    "strict_checkpatch": {
+      "errors": 0,
+      "warnings": 0,
+      "checks": 0,
+      "excluded": "MISSING_SIGN_OFF: synthetic experiment archive without certification"
+    }
+  },
+  "native_compilation": "pending",
+  "device_execution": false
+}

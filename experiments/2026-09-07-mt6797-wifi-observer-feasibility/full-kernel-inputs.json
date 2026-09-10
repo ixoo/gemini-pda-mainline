@@ -179,6 +179,10 @@
     {
       "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/restart-wrapper/0001-watchdog-bypass-RTC-mode-writes-in-captured-experiment.patch",
       "sha256": "1449a12318c0f1ddc535fffe71ed6af71efb08fe58f114dfbe9075c1f220aaa0"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/restart-gate/0001-watchdog-arbitrate-takeover-before-restart-effects.patch",
+      "sha256": "5b0e294fd1923e1ff9e2c8003e31d684c4b63d1612cc42c9e9f94af7b2cb6d39"
     }
   ],
   "purpose": "complete native kernel link; no boot candidate or device admission"

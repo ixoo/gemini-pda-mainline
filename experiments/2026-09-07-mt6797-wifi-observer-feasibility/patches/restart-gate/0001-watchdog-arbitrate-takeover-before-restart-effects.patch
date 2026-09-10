@@ -1,0 +1,159 @@
+From 27641ff0ed8bb6cb4226232b7f72f0bf98c97967 Mon Sep 17 00:00:00 2001
+From: Gemini PDA experiment archive <experiment@example.invalid>
+Date: Thu, 10 Sep 2026 22:07:47 +0000
+Subject: [PATCH] watchdog: arbitrate experimental takeover before restart
+ effects
+
+The low-level reset guard runs after reboot notifiers, device shutdown
+and CPU-stop callbacks. A shared atomic claim prevents those restart
+paths from racing an observation takeover. A restart claimed first
+permanently refuses takeover; capture claimed first parks restart before
+those effects. Disable local IRQs across claim and watchdog programming
+so an interrupt restart cannot strand its own arming CPU. Normal builds
+keep no-op guards. Power-off and NMI paths remain separate. Internal
+experiment archive; no DCO certification or upstream submission claim.
+---
+ arch/arm64/kernel/process.c                   |  1 +
+ .../watchdog/mediatek/wdt/mt6797/mtk_wdt.c    | 33 +++++++++++++++++--
+ include/linux/reboot.h                        |  6 ++++
+ kernel/reboot.c                               |  2 ++
+ 4 files changed, 40 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
+index 9dfd32d..d2f5803 100644
+--- a/arch/arm64/kernel/process.c
++++ b/arch/arm64/kernel/process.c
+@@ -158,6 +158,7 @@ void machine_power_off(void)
+  */
+ void machine_restart(char *cmd)
+ {
++	mtk_wdt_recovery_restart_guard();
+ 	/* Disable interrupts first */
+ 	local_irq_disable();
+ 	smp_send_stop();
+diff --git a/drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c b/drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c
+index a467c18..a64d367 100644
+--- a/drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c
++++ b/drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c
+@@ -20,6 +20,8 @@
+ #include <linux/interrupt.h>
+ #include <linux/spinlock.h>
+ #include <linux/watchdog.h>
++#include <linux/atomic.h>
++#include <linux/reboot.h>
+ #include <linux/platform_device.h>
+ 
+ #include <asm/uaccess.h>
+@@ -80,6 +82,25 @@ static const struct of_device_id rgu_of_match[] = {
+ static DEFINE_SPINLOCK(rgu_reg_operation_spinlock);
+ #ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
+ static bool mtk_wdt_recovery_owned;
++enum {
++	MTK_WDT_TRANSITION_IDLE,
++	MTK_WDT_TRANSITION_RESTART,
++	MTK_WDT_TRANSITION_CAPTURE,
++};
++
++static atomic_t mtk_wdt_transition = ATOMIC_INIT(MTK_WDT_TRANSITION_IDLE);
++
++void mtk_wdt_recovery_restart_guard(void)
++{
++	if (atomic_cmpxchg(&mtk_wdt_transition, MTK_WDT_TRANSITION_IDLE,
++			   MTK_WDT_TRANSITION_RESTART) !=
++	    MTK_WDT_TRANSITION_CAPTURE)
++		return;
++
++	/* The takeover CPU must finish arming; do not stop it or reload RGU. */
++	for (;;)
++		cpu_relax();
++}
+ #endif
+ #ifndef CONFIG_KICK_SPM_WDT
+ static unsigned int timeout;
+@@ -267,6 +288,7 @@ int  mtk_wdt_confirm_hwreboot(void)
+ int mtk_wdt_recovery_arm(unsigned int timeout,
+ 			     struct mtk_wdt_recovery_state *state)
+ {
++	unsigned long flags;
+ 	unsigned int length;
+ 	unsigned int mode;
+ 	int ret = 0;
+@@ -274,7 +296,8 @@ int mtk_wdt_recovery_arm(unsigned int timeout,
+ 	if (!state || timeout != 12)
+ 		return -EINVAL;
+ 	*state = (struct mtk_wdt_recovery_state) { };
+-	spin_lock(&rgu_reg_operation_spinlock);
++	/* Exclude a local IRQ restart between the claim and timer programming. */
++	spin_lock_irqsave(&rgu_reg_operation_spinlock, flags);
+ 	if (!toprgu_base) {
+ 		ret = -ENODEV;
+ 		goto out;
+@@ -284,6 +307,11 @@ int mtk_wdt_recovery_arm(unsigned int timeout,
+ 		ret = -EALREADY;
+ 		goto out;
+ 	}
++	if (atomic_cmpxchg(&mtk_wdt_transition, MTK_WDT_TRANSITION_IDLE,
++			   MTK_WDT_TRANSITION_CAPTURE) != MTK_WDT_TRANSITION_IDLE) {
++		ret = -EBUSY;
++		goto out;
++	}
+ 	state->mode_before = __raw_readl(MTK_WDT_MODE);
+ 	length = (timeout * (1 << 6)) << 5;
+ 	mode = state->mode_before | MTK_WDT_MODE_KEY;
+@@ -305,7 +333,7 @@ int mtk_wdt_recovery_arm(unsigned int timeout,
+ 	    (MTK_WDT_MODE_ENABLE | MTK_WDT_MODE_EXTEN))
+ 		ret = -EIO;
+ out:
+-	spin_unlock(&rgu_reg_operation_spinlock);
++	spin_unlock_irqrestore(&rgu_reg_operation_spinlock, flags);
+ 	return ret;
+ }
+ #endif
+@@ -414,6 +442,7 @@ void wdt_arch_reset(char mode)
+ #ifdef CONFIG_OF
+ 	struct device_node *np_rgu;
+ #endif
++	mtk_wdt_recovery_restart_guard();
+ #if (defined(CONFIG_ARM_PSCI) || defined(CONFIG_MTK_PSCI)) && \
+ 	!defined(CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR)
+ 	mt_secure_call(MTK_SIP_KERNEL_DISABLE_DFD, 0, 0, 0);
+diff --git a/include/linux/reboot.h b/include/linux/reboot.h
+index e7df244..df51004 100644
+--- a/include/linux/reboot.h
++++ b/include/linux/reboot.h
+@@ -78,6 +78,12 @@ extern int orderly_reboot(bool force);
+  * Emergency restart, callable from an interrupt handler.
+  */
+ 
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++void mtk_wdt_recovery_restart_guard(void);
++#else
++static inline void mtk_wdt_recovery_restart_guard(void) { }
++#endif
++
+ extern void emergency_restart(void);
+ #include <asm/emergency-restart.h>
+ 
+diff --git a/kernel/reboot.c b/kernel/reboot.c
+index 1675164..394b3da 100644
+--- a/kernel/reboot.c
++++ b/kernel/reboot.c
+@@ -60,6 +60,7 @@ void (*pm_power_off_prepare)(void);
+  */
+ void emergency_restart(void)
+ {
++	mtk_wdt_recovery_restart_guard();
+ 	kmsg_dump(KMSG_DUMP_EMERG);
+ 	machine_emergency_restart();
+ }
+@@ -67,6 +68,7 @@ EXPORT_SYMBOL_GPL(emergency_restart);
+ 
+ void kernel_restart_prepare(char *cmd)
+ {
++	mtk_wdt_recovery_restart_guard();
+ 	blocking_notifier_call_chain(&reboot_notifier_list, SYS_RESTART, cmd);
+ 	system_state = SYSTEM_RESTART;
+ 	usermodehelper_disable();
+-- 
+2.39.5
+

@@ -1,12 +1,13 @@
 # Complete native controller kernel link
 
 The [Buildbox-only builder](build-full-kernel.py) compiles the complete native
-kernel from [forty-four pinned patches](full-kernel-inputs.json): the previously
+kernel from [forty-five pinned patches](full-kernel-inputs.json): the previously
 compiled controller composition, the emergency reset correction, and historical
 patch 0001's A72 refusal/configuration declaration, plus the detector's watchdog
 header dependency, the [calibration open-error correction](CALIBRATION_OPEN.md)
 and [native recovery-reset isolation](RESET_ISOLATION.md), followed by the
-[restart-wrapper correction](patches/restart-wrapper/0001-watchdog-bypass-RTC-mode-writes-in-captured-experiment.patch).
+[restart-wrapper correction](patches/restart-wrapper/0001-watchdog-bypass-RTC-mode-writes-in-captured-experiment.patch)
+and [earlier restart exclusion](RESTART_GATE.md).
 It does not select the old
 recovery trigger, profile or consumed artifact.
 
@@ -63,7 +64,10 @@ files passed remote inventory/checksum validation and local verification after
 fetch. Source integrity remained unchanged, the required entry points are linked,
 and no undefined symbols remain.
 
-The last patch routes experimental `arch_reset()` directly to the existing
+The newly appended restart gate has passed host ordering tests but its
+45-patch composition has not yet been fully linked.
+
+The RTC wrapper patch routes experimental `arch_reset()` directly to the existing
 `wdt_arch_reset(1)` before RTC recovery/fastboot/charging-mode writes. The
 low-level owner parks after takeover and retains its normal reset path before
 takeover. This avoids introducing a new lock across potentially sleeping RTC
