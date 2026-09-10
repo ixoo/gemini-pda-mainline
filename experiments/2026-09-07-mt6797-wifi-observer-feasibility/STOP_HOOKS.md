@@ -125,3 +125,28 @@ establish object integration, not physical timing or full-cycle behavior.
 A full kernel rebuild and link, remaining producer/controller integration and
 independent watchdog recovery remain required before candidate admission;
 no device action is selected.
+
+## DMA and stop lifetime join
+
+`check_shutdown_bindings()` in [the decoder](capture-records.py) composes the
+existing DMA binding, DMA operation and ordinary-stop checks. It requires one
+stop invocation for the same software HIF ordinal, all four stop records before
+binding release and after binding acquisition, and no recorded DMA activity
+after stop returns. DMA within the stop invocation remains permitted: the stop
+command can use the native transfer path. Numeric transaction IDs may coincide
+across the DMA and stop record families.
+
+The [decoder tests](test-capture-records.py) pass all 19 test groups. Two valid
+orderings cover transfers before stop and during its command. Seven deliberately
+misjoined streams still pass all three individual checks but fail the new join:
+another adapter, stop before binding, stop after release, entry before binding,
+return after release, DMA after stop and a second complete stop invocation.
+These streams have valid framing and checksums, so rejection tests the
+relationship between observations rather than corrupted storage.
+
+This is an offline component check. It does not require a cycle-complete
+terminal, establish absence of unobserved activity, validate physical device
+identity, join firmware loading or common OFF, or prove thread quiescence. The
+future controller/result classifier must require this join alongside its other
+cycle predicates. No producer bytes changed and no kernel build or device test
+was performed for this decoder change.

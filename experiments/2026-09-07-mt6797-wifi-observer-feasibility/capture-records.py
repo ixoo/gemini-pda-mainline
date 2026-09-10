@@ -405,6 +405,42 @@ def check_stop(data, expected_cycle):
             'scope': 'recorded ordinary direct-read firmware-stop consistency only'}
 
 
+def check_shutdown_bindings(data, expected_cycle):
+    """Join one ordinary stop and checked DMA to a closed software HIF lifetime."""
+    binding = check_dma_bindings(data, expected_cycle)
+    check_dma(data, expected_cycle)
+    stop = check_stop(data, expected_cycle)
+    if len(stop['checked_stops']) != 1:
+        raise ValueError('requires exactly one ordinary stop in the HIF lifetime')
+    device = binding['checked_device']
+    live = stopped = False
+    for row in decode(data, expected_cycle):
+        kind, payload = row['kind'], row['payload']
+        if kind == 2:
+            subtype = int.from_bytes(payload[:4], 'little')
+            if subtype == 1:
+                live = True
+            else:
+                if not stopped:
+                    raise ValueError('HIF released before ordinary stop returned')
+                live = False
+        elif kind in (3, 4, 5, 6) and stopped:
+            raise ValueError('DMA activity recorded after adapter stop returned')
+        elif kind == 7:
+            subtype = int.from_bytes(payload[:4], 'little')
+            if subtype not in (1, 2, 3, 4):
+                continue
+            if not live:
+                raise ValueError('stop record outside the live HIF binding')
+            if subtype == 1 and FW_STOP_ENTRY.unpack(payload)[1] != device:
+                raise ValueError('stop adapter differs from the DMA HIF binding')
+            if subtype == 4:
+                stopped = True
+    return {'checked_device': device, 'checked_stop': stop['checked_stops'][0],
+            'checked_transactions': binding['checked_transactions'],
+            'scope': 'recorded DMA and ordinary stop within one software HIF lifetime only'}
+
+
 def check_emi(data, expected_cycle):
     """Check recorded native section operations; does not grant EMI ownership."""
     sections = {}

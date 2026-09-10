@@ -336,6 +336,52 @@ class RecordsTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             r.check_dma(self.identity(), CYCLE)
 
+    def shutdown_parts(self):
+        bind = [(2, 1, r.HIF_BIND.pack(1, 1, 1, 1))]
+        unbind = [(2, 1, r.HIF_UNBIND.pack(2, 1, 0))]
+        dma = [(kind, 7, payload) for kind, payload in self.dma_trace()]
+        payloads = self.stop_payloads()
+        payloads[0][1][1] = 1
+        stop = [(7, 7, layout.pack(*values)) for layout, values in payloads]
+        return bind, dma, stop, unbind
+
+    def shutdown_stream(self, events):
+        return self.identity() + b''.join(
+            r.encode(kind, seq, CYCLE, transaction, payload)
+            for seq, (kind, transaction, payload) in enumerate(events, 1))
+
+    def test_shutdown_binding_join(self):
+        bind, dma, stop, unbind = self.shutdown_parts()
+        # The stop command can itself use DMA. IDs are scoped by record family.
+        for events in (bind + dma + stop + unbind,
+                       bind + stop[:1] + dma + stop[1:] + unbind):
+            result = r.check_shutdown_bindings(self.shutdown_stream(events), CYCLE)
+            self.assertEqual(result['checked_device'], 1)
+            self.assertEqual(result['checked_stop'], 7)
+            self.assertEqual(result['checked_transactions'], [7])
+
+    def test_shutdown_rejects_individually_valid_unjoined_records(self):
+        bind, dma, stop, unbind = self.shutdown_parts()
+        wrong_adapter = [(7, 7, r.FW_STOP_ENTRY.pack(1, 2, 1, 0, 1, 0, 0))] + stop[1:]
+        second_stop = [(kind, 8, payload) for kind, _, payload in stop]
+        faults = {
+            'other adapter': bind + dma + wrong_adapter + unbind,
+            'before binding': stop + bind + dma + unbind,
+            'after release': bind + dma + unbind + stop,
+            'entry before binding': stop[:1] + bind + dma + stop[1:] + unbind,
+            'return after release': bind + dma + stop[:-1] + unbind + stop[-1:],
+            'DMA after stop': bind + stop + dma + unbind,
+            'second stop': bind + dma + stop + second_stop + unbind,
+        }
+        for name, events in faults.items():
+            with self.subTest(name=name):
+                data = self.shutdown_stream(events)
+                r.check_dma_bindings(data, CYCLE)
+                r.check_dma(data, CYCLE)
+                r.check_stop(data, CYCLE)
+                with self.assertRaises(ValueError):
+                    r.check_shutdown_bindings(data, CYCLE)
+
     def test_dma_semantic_mutations_with_valid_crc(self):
         layouts = {3: r.DMA_MAP, 4: r.DMA_PROGRAM, 5: r.DMA_POLL, 6: r.DMA_UNMAP}
         # Event index, field index, changed value: frames are re-encoded with valid CRCs.
