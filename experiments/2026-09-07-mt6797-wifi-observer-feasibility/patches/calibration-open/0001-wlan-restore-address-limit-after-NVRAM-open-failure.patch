@@ -1,0 +1,37 @@
+From 3117f224d2923f6c91418766b4c213bb8e2ba701 Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <noreply@gemini-experiment.invalid>
+Date: Thu, 10 Sep 2026 20:58:06 +0000
+Subject: [PATCH] wlan: restore address limit after NVRAM open failure
+
+Both helpers return early when filp_open fails after setting KERNEL_DS.
+Restore the saved address limit on those two exits, as on the existing
+success and I/O error paths. Preserve the return value and file operations.
+
+Internal experiment archive; synthetic author, no DCO certification.
+---
+ .../misc/mediatek/connectivity/wlan/gen3/os/linux/platform.c    | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/platform.c b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/platform.c
+index d42a23b..ca66e49 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/platform.c
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/platform.c
+@@ -271,6 +271,7 @@ static int nvram_read(char *filename, char *buf, ssize_t len, int offset)
+ 
+ 	if (IS_ERR(fd)) {
+ 		DBGLOG(INIT, INFO, "[nvram_read] : failed to open!!\n");
++		set_fs(old_fs);
+ 		return -1;
+ 	}
+ 
+@@ -335,6 +336,7 @@ static int nvram_write(char *filename, char *buf, ssize_t len, int offset)
+ 
+ 	if (IS_ERR(fd)) {
+ 		DBGLOG(INIT, INFO, "[nvram_write] : failed to open!!\n");
++		set_fs(old_fs);
+ 		return -1;
+ 	}
+ 
+-- 
+2.39.5
+
