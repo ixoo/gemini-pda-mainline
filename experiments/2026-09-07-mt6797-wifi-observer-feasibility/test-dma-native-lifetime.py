@@ -147,18 +147,7 @@ int main(void) {
 '''
 
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('source', type=Path, help='directory containing the five pinned source basenames')
-    args = parser.parse_args()
-    receipt = json.loads((HERE / 'results/dma-hook-sources.json').read_text())
-    source = {}
-    for entry in receipt['sources']:
-        p = args.source / Path(entry['path']).name
-        raw = p.read_bytes()
-        assert hashlib.sha256(raw).hexdigest() == entry['sha256'], p.name
-        source[p.name] = raw.decode()
-    hif, sdio, ahb = (source[n] for n in ('hif.h', 'sdio.h', 'ahb.c'))
+def native_definitions(hif, sdio, ahb):
     # Use actual selected constants, native macros, wire bitfields and DMA config types.
     native = ''
     for name, value in (('CONF_MTK_AHB_DMA', 1), ('CONF_HIF_DMA_INT', 0),
@@ -179,6 +168,22 @@ def main():
     native += re.search(r'typedef union _sdio_gen3_cmd53_info\b.*?} sdio_gen3_cmd53_info;', sdio, re.S).group() + '\n'
     native += re.search(r'typedef enum _MTK_WCN_HIF_DMA_DIR\b.*?} MTK_WCN_HIF_DMA_DIR;', hif, re.S).group() + '\n'
     native += re.search(r'typedef struct _MTK_WCN_HIF_DMA_CONF\b.*?} MTK_WCN_HIF_DMA_CONF;', hif, re.S).group() + '\n'
+    return native
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('source', type=Path, help='directory containing the five pinned source basenames')
+    args = parser.parse_args()
+    receipt = json.loads((HERE / 'results/dma-hook-sources.json').read_text())
+    source = {}
+    for entry in receipt['sources']:
+        p = args.source / Path(entry['path']).name
+        raw = p.read_bytes()
+        assert hashlib.sha256(raw).hexdigest() == entry['sha256'], p.name
+        source[p.name] = raw.decode()
+    hif, sdio, ahb = (source[n] for n in ('hif.h', 'sdio.h', 'ahb.c'))
+    native = native_definitions(hif, sdio, ahb)
     functions = ''.join('BOOLEAN\n' + fixture.function(ahb, name) for name in ('kalDevPortRead', 'kalDevPortWrite'))
     with tempfile.TemporaryDirectory(prefix='wifi-native-lifetime-') as td:
         root = Path(td)

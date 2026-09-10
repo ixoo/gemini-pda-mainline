@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-"""Buildbox-only WMT, pstore or capture primitive compile; no kernel image."""
+"""Buildbox-only WMT, DMA, pstore or capture primitive compile; no kernel image."""
 
 import hashlib
 import importlib.util
@@ -105,15 +105,20 @@ def main():
     commit = run(["git", "-C", str(project), "rev-parse", "HEAD"])
     assert len(sys.argv) in (2, 3) and sys.argv[1] == commit
     mode = sys.argv[2] if len(sys.argv) == 3 else "--wmt"
-    assert mode in ("--wmt", "--pstore", "--capture-writer")
+    assert mode in ("--wmt", "--pstore", "--capture-writer", "--dma")
     capture = mode == "--capture-writer"
-    pstore = mode != "--wmt"
+    dma = mode == "--dma"
+    pstore = mode in ("--pstore", "--capture-writer")
     relative = "fs/pstore/" if pstore else RELATIVE
     files = ("pmsg", "inode", "ram_core", "ram") if pstore else FILES
     label = "wifi-pstore-objects-" if pstore else "wifi-startup-objects-"
     if capture:
         files = ("ram_core",)
         label = "wifi-capture-writer-objects-"
+    if dma:
+        relative = "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/"
+        files = ("ahb", "ahb_pdma", "hif_capture")
+        label = "wifi-dma-objects-"
     assert not run(["git", "-C", str(project), "status", "--porcelain"])
     root = Path("/workspace/gemini-pda")
     source = root / "gemian-source/gemian-baseline" / REVISION
@@ -153,11 +158,13 @@ def main():
                            stream, env=environment, timeout=300)
         patched = work / "patched"
         for name in files:
+            if dma and name == "hif_capture":
+                continue
             dest = patched / (relative + name + ".c")
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(source / (relative + name + ".c"), dest)
         # Copy neighboring headers so quoted includes resolve to the patched header.
-        headers = relative if pstore else RELATIVE + "core/include"
+        headers = relative + "include" if dma else relative if pstore else RELATIVE + "core/include"
         if pstore:
             for path in (source / headers).glob("*.h"):
                 shutil.copyfile(path, patched / headers / path.name)
@@ -169,9 +176,23 @@ def main():
             shutil.copytree(source / headers, patched / headers)
         patch_dir = experiment / "patches" / "pstore" if pstore else experiment / "patches"
         patches = [] if capture else sorted(patch_dir.glob("*.patch"))
-        assert len(patches) == (0 if capture else 9 if pstore else 4)
+        if dma:
+            patches = sorted((experiment / "patches/pstore").glob("*.patch"))
+            patches += sorted((experiment / "patches/dma").glob("*.patch"))
+            for extra in ("include/linux/pstore_ram.h", "arch/arm64/boot/dts/mt6797.dtsi",
+                          "drivers/misc/mediatek/connectivity/wlan/gen3/Makefile",
+                          "fs/pstore/ram.c", "fs/pstore/ram_core.c", "fs/pstore/internal.h",
+                          "fs/pstore/pmsg.c", "fs/pstore/inode.c"):
+                (patched / extra).parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(source / extra, patched / extra)
+        assert len(patches) == (11 if dma else 0 if capture else 10 if pstore else 4)
         for patch in patches:
             subprocess.run(["git", "apply", str(patch)], cwd=patched, check=True)
+        if dma:
+            pinned = json.loads((experiment / "results/dma-capture-sources.json").read_text())
+            for section, tree in (("parents", source), ("outputs", patched)):
+                for path, expected in pinned[section].items():
+                    assert digest(tree / path) == expected, path
         if capture:
             shutil.copyfile(experiment / "capture-slot-writer.h",
                             patched / relative / "capture-slot-writer.h")
@@ -187,39 +208,53 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
 { return wfc_slot_write(w, k, tx, p, n); }
 ''')
         records = []
-        header = headers + "/wmt_ctrl.h"
+        header = headers + ("/hif.h" if dma else "/wmt_ctrl.h")
         if not pstore:
             assert digest(source / header) != digest(patched / header)
         for relative_name in files:
             name = Path(relative_name).name
             suffix = relative + relative_name + ".c"
+            template = relative + "ahb.c" if dma and name == "hif_capture" else suffix
             lines = [line for line in recorded.read_text().splitlines()
-                     if " -c " in line and line.endswith("/" + suffix)]
+                     if " -c " in line and line.endswith("/" + template)]
             assert len(lines) == 1, (name, len(lines))
             args = shlex.split(lines[0])
-            assert args[0] == str(compiler) and args[-1] == old_source + "/" + suffix
-            assert args[args.index("-o") + 1] == relative + relative_name + ".o"
+            assert args[0] == str(compiler) and args[-1] == old_source + "/" + template
+            assert args[args.index("-o") + 1] == template[:-2] + ".o"
             args = [a.replace(old_source, str(source)) for a in args]
             baseline = work / (name + "-baseline.o")
             args[args.index("-o") + 1] = str(baseline)
             args = ["-Wp,-MD," + str(work / (name + "-baseline.d")) if a.startswith("-Wp,-MD,") else a
                     for a in args]
-            with (work / (name + "-baseline.log")).open("w") as stream:
-                compile_logged(args, stream, cwd=output, env=environment, timeout=120)
+            if not (dma and name == "hif_capture"):
+                with (work / (name + "-baseline.log")).open("w") as stream:
+                    compile_logged(args, stream, cwd=output, env=environment, timeout=120)
             result = work / (name + ".o")
             args[args.index("-o") + 1] = str(result)
             args[-1] = str(patched / suffix)
             args.insert(1, "-I" + str(patched / headers))
-            if pstore and not capture:
+            if (pstore and not capture) or dma:
                 args.insert(1, "-I" + str(patched / "include"))
             args = ["-Wp,-MD," + str(work / (name + ".d")) if a.startswith("-Wp,-MD,") else a
                     for a in args]
             with (work / (name + ".log")).open("w") as stream:
                 compile_logged(args, stream, cwd=output, env=environment, timeout=120)
             dependencies = (work / (name + ".d")).read_text().replace("\\\n", " ").split()
-            if not pstore:
+            if not pstore and name != "hif_capture":
                 assert str(patched / header) in dependencies, name
                 assert str(source / header) not in dependencies, name
+            if dma:
+                assert "-DMODULE" not in args
+                assert str(patched / headers / "hif_capture.h") in dependencies
+                if name == "hif_capture":
+                    assert str(patched / "include/linux/pstore_ram.h") in dependencies
+                disassembly = run([str(toolchain / "wrappers/aarch64-linux-gnu-objdump"),
+                                   "-dr", str(result)], env=environment)
+                (work / (name + "-capture.disasm")).write_text(disassembly + "\n")
+                assert "wfc_dma_" in disassembly
+                if name == "hif_capture":
+                    assert "ramoops_capture_active" in disassembly
+                    assert "ramoops_capture_append" in disassembly
             if capture:
                 assert str(patched / relative / "capture-slot-writer.h") in dependencies
                 table = run(["readelf", "-Ws", str(result)])
@@ -235,8 +270,8 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
                                    "-dr", str(result)], env=environment)
                 (work / (name + "-capture.disasm")).write_text(disassembly + "\n")
             assert "AArch64" in run(["readelf", "-h", str(result)])
-            records.append({"file": suffix, "baseline_source_sha256": digest(source / suffix),
-                            "baseline_object_sha256": digest(baseline),
+            records.append({"file": suffix, "baseline_source_sha256": digest(source / suffix) if (source / suffix).exists() else None,
+                            "baseline_object_sha256": digest(baseline) if baseline.exists() else None,
                             "patched_source_sha256": digest(patched / suffix),
                             "object_sha256": digest(result),
                             "baseline_command_sha256": hashlib.sha256(lines[0].encode()).hexdigest(),

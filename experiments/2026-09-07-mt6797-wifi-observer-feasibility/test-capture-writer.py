@@ -123,7 +123,7 @@ class WriterTests(unittest.TestCase):
         return bytes(self.c.data()[:r.ZONE_PAYLOAD_BYTES])
 
     def event(self):
-        return self.c.append(2, 0, b'event', 5)
+        return self.c.append(10, 0, b'event', 5)
 
     def terminal(self, status=1):
         return self.c.append(255, 0, status.to_bytes(4, 'little'), 4)
@@ -146,7 +146,7 @@ class WriterTests(unittest.TestCase):
         self.assertEqual(self.c.operations(), expected_order)
         self.assertEqual(self.terminal(), 0)
         stream = (r.encode(1, 0, CYCLE, 0, IDENTITY) +
-                  r.encode(2, 1, CYCLE, 0, b'event') +
+                  r.encode(10, 1, CYCLE, 0, b'event') +
                   r.encode(255, 2, CYCLE, 0, (1).to_bytes(4, 'little')))
         self.assertEqual(self.snapshot(), stream + bytes(r.ZONE_PAYLOAD_BYTES - len(stream)))
         self.assertEqual(r.decode_pmsg(self.snapshot(), CYCLE, IDENTITY)['framing'], 'terminal-recorded')
@@ -176,7 +176,7 @@ class WriterTests(unittest.TestCase):
                 self.assert_closed()
 
     def test_lost_nonzero_store_is_detected_without_retry(self):
-        record = r.encode(2, 1, CYCLE, 0, b'event')
+        record = r.encode(10, 1, CYCLE, 0, b'event')
         for offset, value in enumerate(record):
             if not value:
                 continue  # Losing an already-zero store is byte-equivalent.

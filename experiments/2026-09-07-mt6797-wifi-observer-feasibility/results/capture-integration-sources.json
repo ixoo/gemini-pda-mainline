@@ -22,12 +22,16 @@
     {
       "patch": "0009-pstore-retain-rejected-capture-access-in-tail.patch",
       "sha256": "744d6bc4e167e7f2722246c42fd61e92819604d0688af707d97dfff0173d7be9"
+    },
+    {
+      "patch": "0010-pstore-expose-native-capture-activity-to-built-ins.patch",
+      "sha256": "e063c558c21328d99d7e11d7638a58bebe93642b1e740c7bf3466619f1d6ab97"
     }
   ],
   "outputs": {
-    "fs/pstore/ram.c": "3c720fea7482ebf9153b506d4c798431274a7ce5b07fb4614deb7fd79fc83a2d",
+    "fs/pstore/ram.c": "ea7427e08efa3ad455f6dc5784164d5dd7b1098ce714f5ef88b6ff86188ee609",
     "fs/pstore/ram_core.c": "8a5a63163989901ec5dcccb374a77d572b81982fe5544025e090f4e00bcd0b10",
-    "include/linux/pstore_ram.h": "4fdfca942947ec066b6a6e98e2bda2c667b8106eefe4a4acd460705f5d393133",
+    "include/linux/pstore_ram.h": "404790fa4ab45866e4b726aeb2b5bc53f2ba0d9ecc86394e3dd36cbf29486f94",
     "arch/arm64/boot/dts/mt6797.dtsi": "5e7809ca4ceb07c501a76b5c2f4d7d067ce11b092fa556b5893246831bd9330f",
     "fs/pstore/wifi_capture.h": "6c484141882e9fe2cf8f5898f7dc107450fa97eea9c2a51f703ec1641e54ee14"
   },

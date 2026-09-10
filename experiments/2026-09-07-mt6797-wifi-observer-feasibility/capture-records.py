@@ -18,6 +18,24 @@ KINDS = {IDENTITY, 2, 3, 4, 5, 6, 7, 8, 9, 10, TERMINAL}
 TERMINAL_STATUSES = {1, 2, 3}  # producer-reported complete, failed, overflow
 
 
+HIF_BIND = struct.Struct('<4I')
+HIF_UNBIND = struct.Struct('<3I')
+
+
+def validate_hif_payload(transaction, payload):
+    if not transaction or len(payload) < 4:
+        raise ValueError('HIF binding requires an initialization ordinal')
+    subtype = int.from_bytes(payload[:4], 'little')
+    layout = {1: HIF_BIND, 2: HIF_UNBIND}.get(subtype)
+    if layout is None or len(payload) != layout.size:
+        raise ValueError('invalid HIF binding subtype or payload size')
+    values = layout.unpack(payload)
+    if values[1] != transaction:
+        raise ValueError('HIF binding ordinal disagrees with envelope')
+    if subtype == 1 and (values[2] not in (1, 2) or values[3] not in (0, 1)):
+        raise ValueError('invalid HIF device route or presence')
+
+
 DMA_MAP = struct.Struct('<IIIIQII')
 DMA_PROGRAM = struct.Struct('<IIQQ13I')
 DMA_POLL = struct.Struct('<IIIIQII')
@@ -201,6 +219,8 @@ def encode(kind, sequence, cycle, transaction, payload):
     if kind == TERMINAL and (transaction or len(payload) != 4 or
                              int.from_bytes(payload, 'little') not in TERMINAL_STATUSES):
         raise ValueError('invalid terminal payload')
+    if kind == 2:
+        validate_hif_payload(transaction, payload)
     validate_dma_payload(kind, transaction, payload)
     if kind == 7:
         validate_stop_payload(transaction, payload)
@@ -273,6 +293,45 @@ def decode_pmsg_zone(raw, expected_cycle, expected_identity):
     if struct.unpack('<III', raw[:12]) != (0x43474244, 0, ZONE_PAYLOAD_BYTES):
         raise ValueError('raw capture header does not match the fixed no-ECC layout')
     return decode_pmsg(raw[12:], expected_cycle, expected_identity)
+
+
+def check_dma_bindings(data, expected_cycle):
+    """Join DMA records to one closed software HIF lifetime, not a bus identity proof."""
+    live, seen, transfers, used = {}, set(), {}, set()
+    for row in decode(data, expected_cycle):
+        kind, transaction, payload = row['kind'], row['transaction'], row['payload']
+        if kind == 2:
+            subtype = int.from_bytes(payload[:4], 'little')
+            if subtype == 1:
+                _, device, route, present = HIF_BIND.unpack(payload)
+                if device in seen or route != 1 or not present:
+                    raise ValueError('reused HIF lifetime or unsupported device binding')
+                seen.add(device)
+                live[device] = True
+            else:
+                _, device, pending = HIF_UNBIND.unpack(payload)
+                if device not in live or pending or device in transfers.values():
+                    raise ValueError('HIF release without a closed DMA lifetime')
+                del live[device]
+        elif kind == 3:
+            device = DMA_MAP.unpack(payload)[0]
+            if device not in live or transaction in used:
+                raise ValueError('DMA acquisition outside a live HIF binding')
+            used.add(transaction)
+            transfers[transaction] = device
+        elif kind in (4, 5, 6):
+            if transaction not in transfers or transfers[transaction] not in live:
+                raise ValueError('DMA event outside its binding lifetime')
+            device = (DMA_PROGRAM.unpack(payload)[0] if kind == 4 else
+                      DMA_UNMAP.unpack(payload)[1] if kind == 6 else transfers[transaction])
+            if device != transfers[transaction]:
+                raise ValueError('DMA device changed within its transaction')
+            if kind == 6 and DMA_UNMAP.unpack(payload)[0] == 2:
+                del transfers[transaction]
+    if len(seen) != 1 or live or transfers or not used:
+        raise ValueError('requires one complete HIF binding with DMA evidence')
+    return {'checked_device': next(iter(seen)), 'checked_transactions': sorted(used),
+            'scope': 'software HIF lifetime join only; use the separate DMA consistency check'}
 
 
 def check_dma(data, expected_cycle):

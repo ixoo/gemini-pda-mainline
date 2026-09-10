@@ -1,0 +1,22 @@
+{
+  "source_revision": "59e00a9144d782e148332009a835b99c43382467",
+  "scope": "Unselected native typed DMA capture; no controller or device operation",
+  "parents": {
+    "drivers/misc/mediatek/connectivity/wlan/gen3/Makefile": "5e099f94e6c79593a9210b97096646d2d8e2b0ddd7110a8870519b3dd5c49204",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c": "d9b4e80fe98695284627e495ad640e39728ebe7df235df129f64d48e8a2e726b",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb_pdma.c": "83c23a5582be2dcaa385359b7cd0f82af0ec9d6a4e102ea6faea57f59d75b480",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif.h": "e9d18516cc49e6290203a827551ea7cb890af155d2ae9ddd0fd9ec03888fb87c"
+  },
+  "outputs": {
+    "drivers/misc/mediatek/connectivity/wlan/gen3/Makefile": "18d6121588bff475f706a4d2c9009db8630e536762dc8fbf74d5b3debf25f4ff",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c": "89f733935cea4e06e4720121fccc3a6125f1241872133ceb8874b531eaae211e",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb_pdma.c": "7f56585062ae6888e3aac419d4581121e3f58220652e1649487c1d00be3768b7",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif.h": "4bbada6eb5742687d9c01b3e78845187700cc85019809ddfd5a20bacac28f4cc",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/hif_capture.c": "d12813e9181a57c83721a6675ea92817ad63dacac4bf8fb3d9d476fbfce8f387",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_capture.h": "d58d79154fe0f32bade8d682d2b0dad35bc34848a8abd4f19659aa0302a29457"
+  },
+  "patch": "0001-wlan-observe-native-AHB-DMA-lifetimes.patch",
+  "patch_sha256": "40d00262ed2ce3edd5ad46af97f288a2eadde77da5bfdf7dba906ea874191c15",
+  "pstore_series_sha256": "b357ce8535f667f9484c919627f6d21f05ee0fb0022a9da7d9c932737edf1b54",
+  "replay_and_reverse_verified": true
+}

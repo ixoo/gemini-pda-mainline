@@ -248,6 +248,7 @@ static u8 memory""")
         functions += function(ram, 'ramoops_init_prz')
         functions += function(ram, 'ramoops_free_przs')
         functions += function(ram, 'ramoops_capture_deny')
+        functions += function(ram, 'ramoops_capture_active')
         functions += function(ram, 'ramoops_capture_begin') + function(ram, 'ramoops_capture_append')
         # Only the PMSG capture branches change in the two full callbacks.
         for name, bit in (('ramoops_pstore_write_buf', 0), ('ramoops_pstore_erase', 1)):
@@ -289,16 +290,19 @@ static u8 memory""")
 
     def begin(self):
         self.open()
+        self.assertFalse(self.c.ramoops_capture_active())
         self.assertEqual(self.c.begin(CYCLE, IDENTITY), 0)
+        self.assertTrue(self.c.ramoops_capture_active())
         self.c.inject(0, 0, 0, 0)
 
     def snapshot(self):
         return bytes(self.c.data()[:65536])
 
     def event(self):
-        return self.c.append(2, 0, b'event', 5)
+        return self.c.append(10, 0, b'event', 5)
 
     def assert_closed(self):
+        self.assertFalse(self.c.ramoops_capture_active())
         before, count = self.snapshot(), self.c.store_count()
         self.assertLess(self.c.begin(CYCLE, IDENTITY), 0)
         self.assertLess(self.event(), 0)

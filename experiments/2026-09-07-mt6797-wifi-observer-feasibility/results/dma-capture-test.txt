@@ -1,0 +1,2 @@
+helper_fault_cases=11; binding_mutations=8; result=pass
+native_dma_hook_comparisons=24; actual_port_and_pdma_functions=true; result=pass; hardware_claim=none

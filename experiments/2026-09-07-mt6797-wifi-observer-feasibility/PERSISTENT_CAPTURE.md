@@ -1106,3 +1106,16 @@ they still emit 211 inherited warnings each. C compilation still uses the
 native `-w` commands. No full kernel link, DT schema check or device execution
 was performed. No controller, boot candidate, clearing protocol or device
 action is selected.
+
+## Built-in producer activity query
+
+[Patch 0010](patches/pstore/0010-pstore-expose-native-capture-activity-to-built-ins.patch)
+adds the unexported `ramoops_capture_active()` query for the
+[native DMA producer](DMA_HOOKS.md#native-producer-implementation). It returns
+false outside capture mode or in NMI context. Under the existing IRQ-save raw
+spinlock it requires the registered backend, acquired payload, begun writer,
+no stopped state and no denial latch. It changes no retained bytes and grants
+no reservation: every append must pass its own admission checks. The existing
+18-group native-integration fixture now also requires false before begin and
+after closure, and true after successful acquisition. Target compilation of
+this tenth patch remains pending; the nine-patch receipts above are historical.

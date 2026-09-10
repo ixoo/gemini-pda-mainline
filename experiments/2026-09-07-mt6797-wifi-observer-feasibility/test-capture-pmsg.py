@@ -23,7 +23,7 @@ def zone(stream):
 class PmsgTests(unittest.TestCase):
     def setUp(self):
         self.identity = record(r.IDENTITY, 0, IDENTITY)
-        self.event = record(2, 1, b'event')
+        self.event = record(10, 1, b'event')
 
     def decode(self, payload):
         return r.decode_pmsg(payload, CYCLE, IDENTITY)
@@ -61,8 +61,8 @@ class PmsgTests(unittest.TestCase):
 
     def test_no_resynchronization_or_suffix(self):
         for stream in (bytes(128) + self.identity,
-                       self.identity + bytes(128) + record(2, 2, b'later'),
-                       self.identity + self.event[:120] + bytes(8) + record(2, 2, b'later')):
+                       self.identity + bytes(128) + record(10, 2, b'later'),
+                       self.identity + self.event[:120] + bytes(8) + record(10, 2, b'later')):
             with self.assertRaises(ValueError):
                 self.decode(zone(stream))
 
@@ -75,7 +75,7 @@ class PmsgTests(unittest.TestCase):
 
     def test_no_data_after_terminal(self):
         terminal = record(r.TERMINAL, 1, (1).to_bytes(4, 'little'))
-        for tail in (record(2, 2, b'later'), b'partial'):
+        for tail in (record(10, 2, b'later'), b'partial'):
             with self.assertRaises(ValueError):
                 self.decode(zone(self.identity + terminal + tail))
 
@@ -86,7 +86,7 @@ class PmsgTests(unittest.TestCase):
                 self.decode(broken)
 
     def test_full_capacity_keeps_terminal_slot(self):
-        stream = self.identity + b''.join(record(2, i, b'event') for i in range(1, 510))
+        stream = self.identity + b''.join(record(10, i, b'event') for i in range(1, 510))
         result = self.decode(zone(stream + record(r.TERMINAL, 510, (3).to_bytes(4, 'little'))))
         self.assertEqual(len(result['records']), 511)
         self.assertEqual(result['producer_status'], 3)

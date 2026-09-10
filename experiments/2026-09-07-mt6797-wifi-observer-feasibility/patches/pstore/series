@@ -7,3 +7,4 @@
 0007-pstore-integrate-native-fixed-slot-capture.patch
 0008-arm64-dts-reserve-native-pmsg-without-linear-alias.patch
 0009-pstore-retain-rejected-capture-access-in-tail.patch
+0010-pstore-expose-native-capture-activity-to-built-ins.patch

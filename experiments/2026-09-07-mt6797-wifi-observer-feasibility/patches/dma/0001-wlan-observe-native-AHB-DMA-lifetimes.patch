@@ -1,0 +1,715 @@
+From 15459e0520e0f914513cf060dc991ea9d38f4f0d Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <experiment@invalid.example>
+Date: Wed, 9 Sep 2026 22:37:27 -0400
+Subject: [PATCH] wlan: observe native AHB DMA lifetimes
+
+Join HIF initialization ordinals to full DMA API addresses, actual PDMA
+programming arguments, read-preserving poll summaries and unmap boundaries.
+Keep transaction state within the native HIF critical section. Atomically
+retire identity at HIF cleanup without acquiring a possibly retained HIF
+lock, and report a failed capture before an explicit native DMA reset.
+
+Use the built-in capture owner's existing activity and append interfaces.
+Failed recording does not repair, retry or alter the native hardware path.
+Preserve the selected deadline return with its outstanding mapping and
+lock, and the independent idle-count escape followed by unmap.
+
+This unselected native 3.18 experiment depends on the pstore capture series
+through patch 10. It supplies no controller, watchdog, candidate, resource
+admission or hardware evidence. The synthetic archive identity does not
+certify authorship; this patch is not submission-ready.
+---
+ .../mediatek/connectivity/wlan/gen3/Makefile  |   3 +-
+ .../wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c |  55 +++-
+ .../gen3/os/linux/hif/ahb_sdioLike/ahb_pdma.c |  21 ++
+ .../os/linux/hif/ahb_sdioLike/hif_capture.c   | 276 ++++++++++++++++++
+ .../os/linux/hif/ahb_sdioLike/include/hif.h   |   2 +
+ .../hif/ahb_sdioLike/include/hif_capture.h    |  42 +++
+ 6 files changed, 397 insertions(+), 2 deletions(-)
+ create mode 100644 drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/hif_capture.c
+ create mode 100644 drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_capture.h
+
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/Makefile b/drivers/misc/mediatek/connectivity/wlan/gen3/Makefile
+index a1027c1..03f0d75 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/Makefile
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/Makefile
+@@ -187,7 +187,8 @@ OS_OBJS += $(OS_DIR)gl_proc.o
+ 
+ HIF_OBJS :=  $(HIF_DIR)arm.o
+ ifeq ($(WLAN_CHIP_ID), MT6797)
+-HIF_OBJS += $(HIF_DIR)ahb.o\
++HIF_OBJS += $(HIF_DIR)hif_capture.o\
++			$(HIF_DIR)ahb.o\
+ 			$(HIF_DIR)ahb_pdma.o\
+ 			$(HIF_DIR)sdio_bus_driver.o
+ PLAT_OBJS := $(PLAT_DIR)plat_priv.o
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c
+index 2baa623..9f855ff 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c
+@@ -304,8 +304,10 @@ VOID glResetHif(GLUE_INFO_T *GlueInfo)
+ 
+ 	ASSERT(GlueInfo);
+ 	HifInfo = &GlueInfo->rHifInfo;
+-	if (HifInfo->DmaOps)
++	if (HifInfo->DmaOps) {
++		wfc_dma_abort();
+ 		HifInfo->DmaOps->DmaReset(HifInfo);
++	}
+ }
+ 
+ /*----------------------------------------------------------------------------*/
+@@ -333,6 +335,8 @@ VOID glSetHifInfo(GLUE_INFO_T *GlueInfo, ULONG ulCookie)
+ #else
+ 	HifInfo->Dev = &HifAhbPDev->dev;
+ #endif /* CONF_HIF_DEV_MISC */
++	wfc_dma_bind(&HifInfo->capture, HifInfo->Dev,
++		     CONF_HIF_DEV_MISC ? 2 : 1);
+ 	SET_NETDEV_DEV(GlueInfo->prDevHandler, HifInfo->Dev);
+ 
+ 	HifInfo->HifRegBaseAddr = ioremap(HIF_DRV_BASE, HIF_DRV_LENGTH);
+@@ -431,6 +435,7 @@ VOID glClearHifInfo(GLUE_INFO_T *GlueInfo)
+ #ifdef MT6797
+ 	iounmap(GlueInfo->rHifInfo.confRegBaseAddr);
+ #endif
++	wfc_dma_unbind(&GlueInfo->rHifInfo.capture);
+ 	return;
+ 
+ }				/* end of glClearHifInfo() */
+@@ -768,6 +773,7 @@ kalDevPortRead(IN P_GLUE_INFO_T GlueInfo, IN UINT_16 Port, IN UINT_32 Size, OUT
+ #if (CONF_MTK_AHB_DMA == 1)
+ 	MTK_WCN_HIF_DMA_CONF DmaConf;
+ 	UINT_32 LoopCnt;
++	u32 wfc_poll_reason;
+ #endif /* CONF_MTK_AHB_DMA */
+ 	UINT_32 IdLoop, MaxLoop;
+ 	UINT_32 *LoopBuf;
+@@ -912,11 +918,20 @@ kalDevPortRead(IN P_GLUE_INFO_T GlueInfo, IN UINT_16 Port, IN UINT_32 Size, OUT
+ 
+ #endif /* MTK_DMA_BUF_MEMCPY_SUP */
+ 
++#ifdef MTK_DMA_BUF_MEMCPY_SUP
++		wfc_dma_map(&HifInfo->capture, HifInfo->Dev, 0, Size,
++			    count, DmaConf.Dst, Port, 2);
++#else
++		wfc_dma_map(&HifInfo->capture, HifInfo->Dev, 0, Size,
++			    count, DmaConf.Dst, Port, 1);
++#endif
++
+ 		/* start to read data */
+ 		AP_DMA_HIF_LOCK(HifInfo);	/* lock to avoid other codes config GDMA */
+ 
+ 		HifInfo->DmaOps->DmaConfig(HifInfo, &DmaConf);
+ 		HifInfo->DmaOps->DmaStart(HifInfo);
++		wfc_dma_program(&HifInfo->capture, 1);
+ 
+ 		/* TODO: use interrupt mode */
+ 		/* TODO: use timeout, not loopcnt */
+@@ -930,6 +945,8 @@ kalDevPortRead(IN P_GLUE_INFO_T GlueInfo, IN UINT_16 Port, IN UINT_32 Size, OUT
+ 
+ 		LoopCnt = 0;
+ 		PollTimeout = jiffies + HZ * 5;
++		wfc_poll_reason = 1;
++		wfc_dma_poll_begin(&HifInfo->capture, 1);
+ 
+ 		do {
+ 			if (time_before(jiffies, PollTimeout)) {
+@@ -940,6 +957,7 @@ kalDevPortRead(IN P_GLUE_INFO_T GlueInfo, IN UINT_16 Port, IN UINT_32 Size, OUT
+ #if (CONF_HIF_CONNSYS_DBG == 0)
+ 				/* TODO: impossible! reset DMA */
+ 				DBGLOG(RX, ERROR, "fatal error1! reset DMA!\n");
++				wfc_poll_reason = 2;
+ 				break;
+ #else
+ 				/*
+@@ -969,25 +987,32 @@ kalDevPortRead(IN P_GLUE_INFO_T GlueInfo, IN UINT_16 Port, IN UINT_32 Size, OUT
+ 						DBGLOG(RX, WARN, "\n");
+ 				}
+ 				DBGLOG(RX, WARN, "\n\n");
++				wfc_dma_poll_end(&HifInfo->capture, 1, 2);
+ 				return TRUE;
+ 				}
+ #endif /* CONF_HIF_DMA_DBG */
+ #endif /* CONF_HIF_CONNSYS_DBG */
+ 			}
+ 		} while (!HifInfo->DmaOps->DmaPollIntr(HifInfo));
++		wfc_dma_poll_end(&HifInfo->capture, 1, wfc_poll_reason);
+ #endif /* CONF_HIF_DMA_INT */
+ 
+ 		HifInfo->DmaOps->DmaAckIntr(HifInfo);
+ 		HifInfo->DmaOps->DmaStop(HifInfo);
++		wfc_dma_program(&HifInfo->capture, 2);
+ 
+ 		LoopCnt = 0;
++		wfc_poll_reason = 1;
++		wfc_dma_poll_begin(&HifInfo->capture, 2);
+ 		do {
+ 			if (LoopCnt++ > 100000) {
+ 				/* TODO: impossible! reset DMA */
+ 				DBGLOG(RX, ERROR, "fatal error2! reset DMA!\n");
++				wfc_poll_reason = 3;
+ 				break;
+ 			}
+ 		} while (HifInfo->DmaOps->DmaPollStart(HifInfo) != 0);
++		wfc_dma_poll_end(&HifInfo->capture, 2, wfc_poll_reason);
+ 
+ 		AP_DMA_HIF_UNLOCK(HifInfo);
+ 
+@@ -996,7 +1021,11 @@ kalDevPortRead(IN P_GLUE_INFO_T GlueInfo, IN UINT_16 Port, IN UINT_32 Size, OUT
+ 			kalMemCopy(Buf, DmaVBuf, Size);
+ #else
+ 
++		wfc_dma_unmap(&HifInfo->capture, HifInfo->Dev, 1,
++			      DmaConf.Dst, count, 0);
+ 		dma_unmap_single(HifInfo->Dev, DmaConf.Dst, count, DMA_FROM_DEVICE);
++		wfc_dma_unmap(&HifInfo->capture, HifInfo->Dev, 2,
++			      DmaConf.Dst, count, 0);
+ #endif /* MTK_DMA_BUF_MEMCPY_SUP */
+ 
+ 		__enable_irq();
+@@ -1049,6 +1078,7 @@ kalDevPortWrite(IN P_GLUE_INFO_T GlueInfo, IN UINT_16 Port, IN UINT_32 Size, IN
+ #if (CONF_MTK_AHB_DMA == 1)
+ 	MTK_WCN_HIF_DMA_CONF DmaConf;
+ 	UINT_32 LoopCnt;
++	u32 wfc_poll_reason;
+ #endif /* CONF_MTK_AHB_DMA */
+ /* UINT8 *BufSrc, *BufLast; */
+ /* UINT8 Last4B[4]; */
+@@ -1177,11 +1207,20 @@ kalDevPortWrite(IN P_GLUE_INFO_T GlueInfo, IN UINT_16 Port, IN UINT_32 Size, IN
+ 
+ #endif /* MTK_DMA_BUF_MEMCPY_SUP */
+ 
++#ifdef MTK_DMA_BUF_MEMCPY_SUP
++		wfc_dma_map(&HifInfo->capture, HifInfo->Dev, 1, Size,
++			    count, DmaConf.Src, Port, 2);
++#else
++		wfc_dma_map(&HifInfo->capture, HifInfo->Dev, 1, Size,
++			    count, DmaConf.Src, Port, 1);
++#endif
++
+ 		/* start to write */
+ 		AP_DMA_HIF_LOCK(HifInfo);
+ 
+ 		HifInfo->DmaOps->DmaConfig(HifInfo, &DmaConf);
+ 		HifInfo->DmaOps->DmaStart(HifInfo);
++		wfc_dma_program(&HifInfo->capture, 1);
+ 
+ 		/* TODO: use interrupt mode */
+ 		/* TODO: use timeout, not loopcnt */
+@@ -1201,6 +1240,8 @@ kalDevPortWrite(IN P_GLUE_INFO_T GlueInfo, IN UINT_16 Port, IN UINT_32 Size, IN
+ 
+ 		LoopCnt = 0;
+ 		PollTimeout = jiffies + HZ * 5;
++		wfc_poll_reason = 1;
++		wfc_dma_poll_begin(&HifInfo->capture, 1);
+ 
+ 		do {
+ 
+@@ -1212,6 +1253,7 @@ kalDevPortWrite(IN P_GLUE_INFO_T GlueInfo, IN UINT_16 Port, IN UINT_32 Size, IN
+ #if (CONF_HIF_CONNSYS_DBG == 0)
+ 				/* TODO: impossible! reset DMA */
+ 				DBGLOG(TX, ERROR, "fatal error1! reset DMA!\n");
++				wfc_poll_reason = 2;
+ 				break;
+ #else
+ 
+@@ -1235,29 +1277,40 @@ kalDevPortWrite(IN P_GLUE_INFO_T GlueInfo, IN UINT_16 Port, IN UINT_32 Size, IN
+ 						DBGLOG(TX, WARN, "\n");
+ 					}
+ 
++					wfc_dma_poll_end(&HifInfo->capture, 1, 2);
+ 					return TRUE;
+ 				}
+ #endif /* CONF_HIF_DMA_DBG */
+ #endif /* CONF_HIF_CONNSYS_DBG */
+ 			}
+ 		} while (!HifInfo->DmaOps->DmaPollIntr(HifInfo));
++		wfc_dma_poll_end(&HifInfo->capture, 1, wfc_poll_reason);
+ #endif /* CONF_HIF_DMA_INT */
+ 
+ 		HifInfo->DmaOps->DmaAckIntr(HifInfo);
+ 		HifInfo->DmaOps->DmaStop(HifInfo);
++		wfc_dma_program(&HifInfo->capture, 2);
+ 
+ 		LoopCnt = 0;
++		wfc_poll_reason = 1;
++		wfc_dma_poll_begin(&HifInfo->capture, 2);
+ 		do {
+ 			if (LoopCnt++ > 100000) {
+ 				DBGLOG(TX, ERROR, "fatal error2! reset DMA!\n");
++				wfc_poll_reason = 3;
+ 				break;
+ 			}
+ 		} while (HifInfo->DmaOps->DmaPollStart(HifInfo) != 0);
++		wfc_dma_poll_end(&HifInfo->capture, 2, wfc_poll_reason);
+ 
+ 		AP_DMA_HIF_UNLOCK(HifInfo);
+ 
+ #ifndef MTK_DMA_BUF_MEMCPY_SUP
++		wfc_dma_unmap(&HifInfo->capture, HifInfo->Dev, 1,
++			      DmaConf.Src, count, 1);
+ 		dma_unmap_single(HifInfo->Dev, DmaConf.Src, count, DMA_TO_DEVICE);
++		wfc_dma_unmap(&HifInfo->capture, HifInfo->Dev, 2,
++			      DmaConf.Src, count, 1);
+ #endif /* MTK_DMA_BUF_MEMCPY_SUP */
+ 
+ 		__enable_irq();
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb_pdma.c b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb_pdma.c
+index 8388fbc..cd3a5ff 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb_pdma.c
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb_pdma.c
+@@ -235,6 +235,8 @@ static VOID HifPdmaConfig(IN void *HifInfoSrc, IN void *Param)
+ 	MTK_WCN_HIF_DMA_CONF *Conf = (MTK_WCN_HIF_DMA_CONF *) Param;
+ 	UINT_32 RegVal;
+ 
++	wfc_dma_config(&HifInfo->capture, Conf->Src, Conf->Dst);
++
+ 	/* Assign fixed value */
+ 	Conf->Burst = HIF_PDMA_BURST_4_4;	/* vs. HIF_BURST_4DW */
+ 	Conf->Fix_en = FALSE;
+@@ -244,6 +246,7 @@ static VOID HifPdmaConfig(IN void *HifInfoSrc, IN void *Param)
+ 
+ 	/* AP_DMA_HIF_0_CON */
+ 	RegVal = HIF_DMAR_READL(HifInfo, AP_DMA_HIF_0_CON);
++	wfc_dma_sample(&HifInfo->capture, 1, 0, RegVal);
+ 	RegVal &= ~(ADH_CR_BURST_LEN | ADH_CR_FIX_EN | ADH_CR_DIR);
+ 	RegVal |= (((Conf->Burst << ADH_CR_BURST_LEN_OFFSET) & ADH_CR_BURST_LEN) |
+ 		   (Conf->Fix_en << ADH_CR_FIX_EN_OFFSET) | (Conf->Dir));
+@@ -251,18 +254,22 @@ static VOID HifPdmaConfig(IN void *HifInfoSrc, IN void *Param)
+ 	RegVal |= (1 << ADH_CR_BUS_INCR_OFFSET);
+ #endif
+ 	HIF_DMAR_WRITEL(HifInfo, AP_DMA_HIF_0_CON, RegVal);
++	wfc_dma_sample(&HifInfo->capture, 1, 1, RegVal);
+ 	PDMA_DBG("PDMA> AP_DMA_HIF_0_CON = 0x%08x\n", RegVal);
+ 
+ 	/* AP_DMA_HIF_0_SRC_ADDR */
+ 	HIF_DMAR_WRITEL(HifInfo, AP_DMA_HIF_0_SRC_ADDR, Conf->Src);
++	wfc_dma_sample(&HifInfo->capture, 1, 2, Conf->Src);
+ 	PDMA_DBG("PDMA> AP_DMA_HIF_0_SRC_ADDR = 0x%08lx\n", Conf->Src); 
+ 
+ 	/* AP_DMA_HIF_0_DST_ADDR */
+ 	HIF_DMAR_WRITEL(HifInfo, AP_DMA_HIF_0_DST_ADDR, Conf->Dst);
++	wfc_dma_sample(&HifInfo->capture, 1, 3, Conf->Dst);
+ 	PDMA_DBG("PDMA> AP_DMA_HIF_0_DST_ADDR = 0x%08lx\n", Conf->Dst);
+ 
+ 	/* AP_DMA_HIF_0_LEN */
+ 	HIF_DMAR_WRITEL(HifInfo, AP_DMA_HIF_0_LEN, (Conf->Count & ADH_CR_LEN));
++	wfc_dma_sample(&HifInfo->capture, 1, 4, (Conf->Count & ADH_CR_LEN));
+ 	PDMA_DBG("PDMA> AP_DMA_HIF_0_LEN = %u\n", (UINT_32)(Conf->Count & ADH_CR_LEN));
+ 
+ }				/* End of HifPdmaConfig */
+@@ -282,17 +289,25 @@ static VOID HifPdmaStart(IN void *HifInfoSrc)
+ 	UINT_32 RegVal;
+ 
+ 	RegVal = HIF_DMAR_READL(HifInfo, AP_DMA_HIF_0_SRC_ADDR2);
++	wfc_dma_sample(&HifInfo->capture, 1, 5, RegVal);
+ 	HIF_DMAR_WRITEL(HifInfo, AP_DMA_HIF_0_SRC_ADDR2, (RegVal | ADH_CR_SRC_ADDR2));
++	wfc_dma_sample(&HifInfo->capture, 1, 6, (RegVal | ADH_CR_SRC_ADDR2));
+ 	RegVal = HIF_DMAR_READL(HifInfo, AP_DMA_HIF_0_DST_ADDR2);
++	wfc_dma_sample(&HifInfo->capture, 1, 7, RegVal);
+ 	HIF_DMAR_WRITEL(HifInfo, AP_DMA_HIF_0_DST_ADDR2, (RegVal | ADH_CR_DST_ADDR2));
++	wfc_dma_sample(&HifInfo->capture, 1, 8, (RegVal | ADH_CR_DST_ADDR2));
+ 
+ 	/* Enable interrupt */
+ 	RegVal = HIF_DMAR_READL(HifInfo, AP_DMA_HIF_0_INT_EN);
++	wfc_dma_sample(&HifInfo->capture, 1, 9, RegVal);
+ 	HIF_DMAR_WRITEL(HifInfo, AP_DMA_HIF_0_INT_EN, (RegVal | ADH_CR_INTEN_FLAG_0));
++	wfc_dma_sample(&HifInfo->capture, 1, 10, (RegVal | ADH_CR_INTEN_FLAG_0));
+ 
+ 	/* Start DMA */
+ 	RegVal = HIF_DMAR_READL(HifInfo, AP_DMA_HIF_0_EN);
++	wfc_dma_sample(&HifInfo->capture, 1, 11, RegVal);
+ 	HIF_DMAR_WRITEL(HifInfo, AP_DMA_HIF_0_EN, (RegVal | ADH_CR_EN));
++	wfc_dma_sample(&HifInfo->capture, 1, 12, (RegVal | ADH_CR_EN));
+ 
+ 	PDMA_DBG("PDMA> HifPdmaStart...\n");
+ 
+@@ -315,7 +330,9 @@ static VOID HifPdmaStop(IN void *HifInfoSrc)
+ 
+ 	/* Disable interrupt */
+ 	RegVal = HIF_DMAR_READL(HifInfo, AP_DMA_HIF_0_INT_EN);
++	wfc_dma_sample(&HifInfo->capture, 2, 2, RegVal);
+ 	HIF_DMAR_WRITEL(HifInfo, AP_DMA_HIF_0_INT_EN, (RegVal & ~(ADH_CR_INTEN_FLAG_0)));
++	wfc_dma_sample(&HifInfo->capture, 2, 3, (RegVal & ~(ADH_CR_INTEN_FLAG_0)));
+ 
+ #if 0				/* DE says we donot need to do it */
+ 	/* Stop DMA */
+@@ -348,6 +365,7 @@ static MTK_WCN_BOOL HifPdmaPollStart(IN void *HifInfoSrc)
+ 	UINT_32 RegVal;
+ 
+ 	RegVal = HIF_DMAR_READL(HifInfo, AP_DMA_HIF_0_EN);
++	wfc_dma_poll_sample(&HifInfo->capture, 2, RegVal);
+ 	return ((RegVal & ADH_CR_EN) != 0) ? TRUE : FALSE;
+ 
+ }				/* End of HifPdmaPollStart */
+@@ -367,6 +385,7 @@ static MTK_WCN_BOOL HifPdmaPollIntr(IN void *HifInfoSrc)
+ 	UINT_32 RegVal;
+ 
+ 	RegVal = HIF_DMAR_READL(HifInfo, AP_DMA_HIF_0_INT_FLAG);
++	wfc_dma_poll_sample(&HifInfo->capture, 1, RegVal);
+ 	return ((RegVal & ADH_CR_FLAG_0) != 0) ? TRUE : FALSE;
+ 
+ }				/* End of HifPdmaPollIntr */
+@@ -387,7 +406,9 @@ static VOID HifPdmaAckIntr(IN void *HifInfoSrc)
+ 
+ 	/* Write 0 to clear interrupt */
+ 	RegVal = HIF_DMAR_READL(HifInfo, AP_DMA_HIF_0_INT_FLAG);
++	wfc_dma_sample(&HifInfo->capture, 2, 0, RegVal);
+ 	HIF_DMAR_WRITEL(HifInfo, AP_DMA_HIF_0_INT_FLAG, (RegVal & ~ADH_CR_FLAG_0));
++	wfc_dma_sample(&HifInfo->capture, 2, 1, (RegVal & ~ADH_CR_FLAG_0));
+ 
+ }				/* End of HifPdmaAckIntr */
+ 
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/hif_capture.c b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/hif_capture.c
+new file mode 100644
+index 0000000..56ef357
+--- /dev/null
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/hif_capture.c
+@@ -0,0 +1,276 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/* Experimental native DMA observation; no hardware control or retry. */
++#include <linux/atomic.h>
++#include <linux/errno.h>
++#include <linux/pstore_ram.h>
++#include <linux/string.h>
++#include <asm/unaligned.h>
++
++#include "hif_capture.h"
++
++static atomic_t wfc_devices = ATOMIC_INIT(0);
++static atomic_t wfc_transactions = ATOMIC_INIT(0);
++
++static bool wfc_active(void)
++{
++#if defined(CONFIG_PSTORE_RAM) && !defined(MODULE)
++	return ramoops_capture_active();
++#else
++	return false;
++#endif
++}
++
++static int wfc_append(u32 kind, u32 transaction, const u8 *data, size_t size)
++{
++#if defined(CONFIG_PSTORE_RAM) && !defined(MODULE)
++	return ramoops_capture_append(kind, transaction, data, size);
++#else
++	return -EPERM;
++#endif
++}
++
++static void wfc_fail(struct wfc_dma_trace *trace)
++{
++	u8 status[4];
++
++	trace->transaction = 0;
++	trace->fault = true;
++	put_unaligned_le32(2, status);
++	wfc_append(255, 0, status, sizeof(status));
++}
++
++static void wfc_emit(struct wfc_dma_trace *trace, u32 kind,
++		     const u8 *data, size_t size)
++{
++	if (trace->transaction && atomic_read(&trace->retired)) {
++		wfc_fail(trace);
++		return;
++	}
++	if (trace->transaction &&
++	    wfc_append(kind, trace->transaction, data, size))
++		trace->transaction = 0;
++}
++
++void wfc_dma_bind(struct wfc_dma_trace *trace, const void *device, u32 route)
++{
++	u8 data[16];
++	int ordinal;
++
++	memset(trace, 0, sizeof(*trace));
++	if (!wfc_active())
++		return;
++	ordinal = atomic_inc_return(&wfc_devices);
++	if (ordinal <= 0 || !device || (route != 1 && route != 2)) {
++		wfc_fail(trace);
++		return;
++	}
++	put_unaligned_le32(1, data);
++	put_unaligned_le32(ordinal, data + 4);
++	put_unaligned_le32(route, data + 8);
++	put_unaligned_le32(1, data + 12);
++	if (wfc_append(2, ordinal, data, sizeof(data)))
++		return;
++	trace->device = ordinal;
++	trace->bound_device = device;
++}
++
++void wfc_dma_abort(void)
++{
++	u8 status[4];
++
++	if (!wfc_active())
++		return;
++	put_unaligned_le32(2, status);
++	wfc_append(255, 0, status, sizeof(status));
++}
++
++void wfc_dma_unbind(struct wfc_dma_trace *trace)
++{
++	u8 data[12];
++	u32 pending;
++	int retired;
++
++	/* Do not take HifLock: a native timeout can retain it indefinitely. */
++	retired = atomic_xchg(&trace->retired, 1);
++	if (!trace->device || !wfc_active())
++		return;
++	if (retired) {
++		wfc_dma_abort();
++		return;
++	}
++	pending = READ_ONCE(trace->transaction);
++	put_unaligned_le32(2, data);
++	put_unaligned_le32(trace->device, data + 4);
++	put_unaligned_le32(pending, data + 8);
++	wfc_append(2, trace->device, data, sizeof(data));
++	if (pending)
++		wfc_dma_abort();
++}
++
++void wfc_dma_map(struct wfc_dma_trace *trace, const void *device, u32 direction,
++		 u32 requested, u32 rounded, u64 address, u32 port, u32 branch)
++{
++	u8 data[32];
++	int transaction;
++
++	if (!wfc_active()) {
++		trace->transaction = 0;
++		return;
++	}
++	if (atomic_read(&trace->retired) || !trace->device ||
++	    trace->bound_device != device ||
++	    trace->transaction || trace->fault) {
++		wfc_fail(trace);
++		return;
++	}
++	transaction = atomic_inc_return(&wfc_transactions);
++	if (transaction <= 0) {
++		wfc_fail(trace);
++		return;
++	}
++	trace->transaction = transaction;
++	memset(trace->setup, 0, sizeof(trace->setup));
++	memset(trace->shutdown, 0, sizeof(trace->shutdown));
++	trace->setup_seen = 0;
++	trace->shutdown_seen = 0;
++	trace->source = 0;
++	trace->destination = 0;
++	trace->reads = 0;
++	trace->last = 0;
++	trace->phase = 0;
++	trace->overflow = false;
++	put_unaligned_le32(trace->device, data);
++	put_unaligned_le32(direction, data + 4);
++	put_unaligned_le32(requested, data + 8);
++	put_unaligned_le32(rounded, data + 12);
++	put_unaligned_le64(address, data + 16);
++	put_unaligned_le32(port, data + 24);
++	put_unaligned_le32(branch, data + 28);
++	wfc_emit(trace, 3, data, sizeof(data));
++}
++
++void wfc_dma_config(struct wfc_dma_trace *trace, u64 source, u64 destination)
++{
++	if (!trace->transaction)
++		return;
++	trace->source = source;
++	trace->destination = destination;
++}
++
++void wfc_dma_sample(struct wfc_dma_trace *trace, u32 phase, u32 index, u32 value)
++{
++	u32 *values, *seen;
++
++	if (!trace->transaction)
++		return;
++	if ((phase != 1 && phase != 2) || index >= (phase == 1 ? 13 : 4)) {
++		trace->fault = true;
++		return;
++	}
++	values = phase == 1 ? trace->setup : trace->shutdown;
++	seen = phase == 1 ? &trace->setup_seen : &trace->shutdown_seen;
++	if (*seen & (1U << index))
++		trace->fault = true;
++	*seen |= 1U << index;
++	values[index] = value;
++}
++
++void wfc_dma_program(struct wfc_dma_trace *trace, u32 phase)
++{
++	u8 data[76] = { 0 };
++	unsigned int i;
++
++	if (!trace->transaction)
++		return;
++	if (trace->fault || (phase != 1 && phase != 2) ||
++	    (phase == 1 ? trace->setup_seen != 0x1fff :
++			  trace->shutdown_seen != 0xf)) {
++		wfc_fail(trace);
++		return;
++	}
++	put_unaligned_le32(trace->device, data);
++	put_unaligned_le32(phase, data + 4);
++	if (phase == 1) {
++		put_unaligned_le64(trace->source, data + 8);
++		put_unaligned_le64(trace->destination, data + 16);
++	}
++	for (i = 0; i < (phase == 1 ? 13 : 4); i++)
++		put_unaligned_le32(phase == 1 ? trace->setup[i] :
++				  trace->shutdown[i], data + 24 + 4 * i);
++	wfc_emit(trace, 4, data, sizeof(data));
++}
++
++void wfc_dma_poll_begin(struct wfc_dma_trace *trace, u32 phase)
++{
++	u8 data[32] = { 0 };
++
++	if (!trace->transaction)
++		return;
++	if (trace->phase || (phase != 1 && phase != 2)) {
++		wfc_fail(trace);
++		return;
++	}
++	trace->phase = phase;
++	trace->reads = 0;
++	trace->last = 0;
++	trace->overflow = false;
++	put_unaligned_le32(phase, data);
++	put_unaligned_le32(1, data + 4);
++	wfc_emit(trace, 5, data, sizeof(data));
++}
++
++void wfc_dma_poll_sample(struct wfc_dma_trace *trace, u32 phase, u32 value)
++{
++	if (!trace->transaction)
++		return;
++	if (trace->phase != phase) {
++		trace->fault = true;
++		return;
++	}
++	if (trace->reads == ~0ULL)
++		trace->overflow = true;
++	else
++		trace->reads++;
++	trace->last = value;
++}
++
++void wfc_dma_poll_end(struct wfc_dma_trace *trace, u32 phase, u32 reason)
++{
++	u8 data[32] = { 0 };
++
++	if (!trace->transaction)
++		return;
++	if (trace->fault || trace->phase != phase || reason < 1 || reason > 4) {
++		wfc_fail(trace);
++		return;
++	}
++	put_unaligned_le32(phase, data);
++	put_unaligned_le32(2, data + 4);
++	put_unaligned_le32(trace->overflow ? 5 : reason, data + 8);
++	put_unaligned_le64(trace->reads, data + 16);
++	put_unaligned_le32(trace->last, data + 24);
++	put_unaligned_le32(!!trace->reads, data + 28);
++	wfc_emit(trace, 5, data, sizeof(data));
++	trace->phase = 0;
++}
++
++void wfc_dma_unmap(struct wfc_dma_trace *trace, const void *device, u32 stage,
++		   u64 address, u32 rounded, u32 direction)
++{
++	u8 data[24];
++
++	if (!trace->transaction)
++		return;
++	if (trace->bound_device != device || (stage != 1 && stage != 2)) {
++		wfc_fail(trace);
++		return;
++	}
++	put_unaligned_le32(stage, data);
++	put_unaligned_le32(trace->device, data + 4);
++	put_unaligned_le64(address, data + 8);
++	put_unaligned_le32(rounded, data + 16);
++	put_unaligned_le32(direction, data + 20);
++	wfc_emit(trace, 6, data, sizeof(data));
++	if (stage == 2)
++		trace->transaction = 0;
++}
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif.h b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif.h
+index 5eac334..95cd27f 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif.h
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif.h
+@@ -25,6 +25,7 @@
+ #ifndef _HIF_H
+ #define _HIF_H
+ 
++#include "hif_capture.h"
+ #include "gl_typedef.h"
+ #include "mtk_porting.h"
+ 
+@@ -160,6 +161,7 @@ typedef struct _GL_HIF_INFO_T {
+ #if !defined(CONFIG_MTK_CLKMGR)
+ 	struct clk *clk_wifi_dma;
+ #endif
++	struct wfc_dma_trace capture;
+ } GL_HIF_INFO_T, *P_GL_HIF_INFO_T;
+ 
+ #define HIF_MOD_NAME                "AHB_SLAVE_HIF"
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_capture.h b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_capture.h
+new file mode 100644
+index 0000000..152b376
+--- /dev/null
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_capture.h
+@@ -0,0 +1,42 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef _HIF_CAPTURE_H
++#define _HIF_CAPTURE_H
++
++#include <linux/atomic.h>
++#include <linux/types.h>
++
++/* Private software state, never a wire image or a published pointer. */
++struct wfc_dma_trace {
++	/* Immutable after initialization; retirement can race native I/O. */
++	atomic_t retired;
++	const void *bound_device;
++	u32 device;
++	u32 transaction;
++	u32 setup[13];
++	u32 shutdown[4];
++	u32 setup_seen;
++	u32 shutdown_seen;
++	u64 source;
++	u64 destination;
++	u64 reads;
++	u32 last;
++	u32 phase;
++	bool fault;
++	bool overflow;
++};
++
++void wfc_dma_unbind(struct wfc_dma_trace *trace);
++void wfc_dma_abort(void);
++void wfc_dma_bind(struct wfc_dma_trace *trace, const void *device, u32 route);
++void wfc_dma_map(struct wfc_dma_trace *trace, const void *device, u32 direction,
++		 u32 requested, u32 rounded, u64 address, u32 port, u32 branch);
++void wfc_dma_config(struct wfc_dma_trace *trace, u64 source, u64 destination);
++void wfc_dma_sample(struct wfc_dma_trace *trace, u32 phase, u32 index, u32 value);
++void wfc_dma_program(struct wfc_dma_trace *trace, u32 phase);
++void wfc_dma_poll_begin(struct wfc_dma_trace *trace, u32 phase);
++void wfc_dma_poll_sample(struct wfc_dma_trace *trace, u32 phase, u32 value);
++void wfc_dma_poll_end(struct wfc_dma_trace *trace, u32 phase, u32 reason);
++void wfc_dma_unmap(struct wfc_dma_trace *trace, const void *device, u32 stage,
++		   u64 address, u32 rounded, u32 direction);
++
++#endif
+-- 
+2.50.1 (Apple Git-155)
+

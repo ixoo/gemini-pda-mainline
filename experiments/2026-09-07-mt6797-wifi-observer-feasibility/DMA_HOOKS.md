@@ -102,3 +102,68 @@ The next hooks must preserve this contract:
 No producer hook, kernel build, candidate or physical operation is selected by
 this assessment. It resolves placement and failure-path requirements before
 implementation; full typed producer/controller integration remains open.
+
+## Native producer implementation
+
+The unselected [DMA patch](patches/dma/0001-wlan-observe-native-AHB-DMA-lifetimes.patch)
+now implements those hooks against the [pinned inputs](results/dma-capture-sources.json).
+It adds the built-in helper to the MT6797 HIF objects and private state to the
+native HIF structure. Initialization records a new software ordinal after the
+existing `Dev` assignment; no pointer is published. Kind 2 carries either
+`<4I>` initialization (subtype 1, ordinal, route, pointer-present) or `<3I>`
+retirement (subtype 2, ordinal, pending transaction). The envelope carries the
+same ordinal. Route 1 is the native platform-device assignment; route 2 is the
+misc-device branch, which the consistency checker refuses. This records a
+software binding, not physical endpoint or DMA translation identity.
+
+The existing HIF lock protects transfer fields. Native accesses supply thirteen
+setup samples, four shutdown samples, and the raw result of each actual poll
+read. The helper accumulates poll counts in 64 bits; overflow saturates and
+records reason 5. No per-poll persistent record or additional MMIO read is
+introduced. Each transfer retains its full DMA address and obtains a new
+transaction ID. Unmap entry and return surround the existing DMA API call.
+The selected early deadline return records a summary and preserves its missing
+cleanup. Reset records failure before the existing native reset operation.
+
+Retirement sets an atomic flag without acquiring the HIF lock, since that lock
+may remain held on the native deadline path. It reads the pending transaction
+without modifying transfer fields, records retirement and fails the capture
+if a transfer remains. A later transfer emission sees retirement and fails.
+Reset similarly does not modify transfer fields outside their lock. There is
+no deferred work holding a trace pointer. These hooks do not repair native
+teardown races or prove that all users have stopped; a controller must join
+the relevant actors before completing capture.
+
+Capture remains inactive until the native owner begins. A bind that happened
+before begin supplies no ordinal for later DMA. Missing samples, duplicate
+samples, a changed device, reused live transaction or retired state fails the
+capture. Append failure stops that transaction's recording while leaving the
+native operation intact. The pstore activity query is a lock-protected snapshot,
+not a reservation; every append still checks the actual writer state.
+
+The [combined fixture](test-dma-capture.py) compiles the actual original and
+patched port functions and six PDMA callbacks with injected MMIO, DMA, clock
+and locks. It includes the real capture helper and slot writer. Its
+[24 comparisons](results/dma-capture-test.txt) require identical native access
+sequences for both directions and four exits, each with inactive capture,
+active capture and an injected lost record store. Eleven helper cases cover
+invalid lifetime/sample state, retirement, abort, zero-read deadline and
+64-bit counting/overflow. Eight records with recalculated CRCs test invalid
+binding histories. The independent decoder accepts the ordinary complete
+DMA sequence and refuses all three native failure cases. These tests model
+new boots when resetting fixture globals; production counters are not reset.
+
+Reproduce with the exact original basenames and patched HIF directory:
+
+```sh
+python3 experiments/2026-09-07-mt6797-wifi-observer-feasibility/test-dma-capture.py ORIGINAL PATCHED_HIF
+```
+
+The fixture stubs HIF initialization/retirement, clocks and diagnostic dump;
+it does not compile the full native glue structure or prove target ABI,
+physical timing, concurrent kernel lifetime, persistence or Wi-Fi operation.
+The native compile lane is `check-startup-objects.py COMMIT --dma` on Buildbox
+and requires clean published input. Compilation is pending for this source
+revision. The changed HIF structure requires all consumers to be rebuilt in a
+full native kernel before any deployment. Controller integration, watchdog
+recovery and candidate admission remain open; no candidate is selected.

@@ -237,7 +237,7 @@ class RecordsTests(unittest.TestCase):
     def test_roundtrip_and_prefix(self):
         start = self.identity()
         self.assertEqual(len(r.decode(start, CYCLE)), 1)
-        event = r.encode(2, 1, CYCLE, 7, b'event')
+        event = r.encode(10, 1, CYCLE, 7, b'event')
         terminal = r.encode(r.TERMINAL, 2, CYCLE, 0, (2).to_bytes(4, 'little'))
         rows = r.decode(start + event + terminal, CYCLE)
         self.assertEqual(rows[1]['payload'], b'event')
@@ -253,30 +253,30 @@ class RecordsTests(unittest.TestCase):
 
     def test_partial_record(self):
         start = self.identity()
-        event = r.encode(2, 1, CYCLE, 7, b'event')
+        event = r.encode(10, 1, CYCLE, 7, b'event')
         for length in range(1, r.RECORD_BYTES):
             with self.assertRaises(ValueError):
                 r.decode(start + event[:length], CYCLE)
 
     def test_order_and_cycle(self):
         start = self.identity()
-        event = r.encode(2, 1, CYCLE, 1, b'')
+        event = r.encode(10, 1, CYCLE, 1, b'')
         terminal = r.encode(r.TERMINAL, 1, CYCLE, 0, (1).to_bytes(4, 'little'))
         for stream, cycle in [(event, CYCLE), (start + start, CYCLE),
                               (start, bytes(reversed(CYCLE))),
-                              (start + terminal + r.encode(2, 2, CYCLE, 1, b''), CYCLE)]:
+                              (start + terminal + r.encode(10, 2, CYCLE, 1, b''), CYCLE)]:
             with self.assertRaises(ValueError):
                 r.decode(stream, cycle)
 
     def test_capacity_reserves_terminal(self):
         self.assertEqual((r.MAX_RECORDS, r.MAX_ORDINARY_RECORDS, r.PAYLOAD_BYTES), (511, 510, 84))
-        stream = self.identity() + b''.join(r.encode(2, seq, CYCLE, seq, b'')
+        stream = self.identity() + b''.join(r.encode(10, seq, CYCLE, seq, b'')
                                           for seq in range(1, 510))
         stream += r.encode(r.TERMINAL, 510, CYCLE, 0, (3).to_bytes(4, 'little'))
         self.assertEqual(len(stream), 65408)
         self.assertEqual(len(r.decode(stream, CYCLE)), 511)
         with self.assertRaises(ValueError):
-            r.encode(2, 510, CYCLE, 1, b'')
+            r.encode(10, 510, CYCLE, 1, b'')
         with self.assertRaises(ValueError):
             r.decode(stream + self.identity(), CYCLE)
 

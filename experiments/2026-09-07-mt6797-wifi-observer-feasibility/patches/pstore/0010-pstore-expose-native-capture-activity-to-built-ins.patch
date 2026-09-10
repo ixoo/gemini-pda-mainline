@@ -1,0 +1,59 @@
+From 3815cf4df56c14a315f07e79ee30301d46b0c202 Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <experiment@invalid.example>
+Date: Wed, 9 Sep 2026 22:31:27 -0400
+Subject: [PATCH] pstore: expose capture activity to built-in observers
+
+Allow built-in native observers to avoid initializing a capture session
+while PMSG is unavailable, denied or closed. Read the owner state under
+its existing raw lock and refuse NMI callers. The result is a snapshot,
+not a reservation: each append still performs its own owner checks.
+
+This experimental native 3.18 interface exports no module symbol and
+selects no candidate or device action. The archive identity is synthetic
+and non-certifying; not submission-ready.
+---
+ fs/pstore/ram.c            | 15 +++++++++++++++
+ include/linux/pstore_ram.h |  1 +
+ 2 files changed, 16 insertions(+)
+
+diff --git a/fs/pstore/ram.c b/fs/pstore/ram.c
+index a396d77..9cad413 100644
+--- a/fs/pstore/ram.c
++++ b/fs/pstore/ram.c
+@@ -481,6 +481,21 @@ out:
+ 	return ret;
+ }
+ 
++bool ramoops_capture_active(void)
++{
++	unsigned long flags;
++	bool active;
++
++	if (!pmsg_capture || in_nmi())
++		return false;
++	raw_spin_lock_irqsave(&pmsg_capture_lock, flags);
++	active = pmsg_capture_registered && pmsg_writer.payload &&
++		 pmsg_writer.attempted && !pmsg_writer.stopped &&
++		 !READ_ONCE(pmsg_capture_denials);
++	raw_spin_unlock_irqrestore(&pmsg_capture_lock, flags);
++	return active;
++}
++
+ /* Built-in callers only; no userspace control, export or ownership release. */
+ int ramoops_capture_begin(const u8 cycle[16], const u8 identity[80])
+ {
+diff --git a/include/linux/pstore_ram.h b/include/linux/pstore_ram.h
+index fe17123..2d49bd8 100644
+--- a/include/linux/pstore_ram.h
++++ b/include/linux/pstore_ram.h
+@@ -77,6 +77,7 @@ void ramoops_console_write_buf(const char *buf, size_t size);
+ struct persistent_ram_zone *persistent_ram_capture_map(phys_addr_t start,
+ 						       size_t size);
+ int persistent_ram_capture_prepare(struct persistent_ram_zone *prz);
++bool ramoops_capture_active(void);
+ int ramoops_capture_begin(const u8 cycle[16], const u8 identity[80]);
+ int ramoops_capture_append(unsigned int kind, u32 transaction,
+ 			   const u8 *payload, size_t length);
+-- 
+2.50.1 (Apple Git-155)
+
