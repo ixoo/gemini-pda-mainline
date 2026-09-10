@@ -91,3 +91,7 @@ They establish recorded read extents, not firmware-buffer identity or execution.
 The unselected [firmware image hooks](FIRMWARE_IMAGE_HOOKS.md) carry the successful
 read witness into native buffer hashing and section records; interval immutability
 and full cycle admission remain unproven.
+
+The unselected [EMI hooks](EMI_HOOKS.md) capture actual lower protection results
+and native mapping/copy boundaries after the image hooks. Shared ownership,
+visibility and candidate admission remain separate.

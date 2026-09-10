@@ -1,0 +1,23 @@
+{
+  "source_revision": "59e00a9144d782e148332009a835b99c43382467",
+  "scope": "Unselected native EMI protection/map/copy capture; no ownership grant or device action",
+  "parents": {
+    "drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c": "9092c96ff992e526e1f9d51912af118db974aba0f2bb8c383ff5666188a93b38",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/hif_fw_capture.c": "4b9f5695fee53f046fdb661721696b2227051ec3778e51f48804a403601115e3",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_fw_capture.h": "5ce54a31dfc95a2d2bee6a4a493cdfd0a9fdb00412b1b79c3e1c3beee0a3126a",
+    "drivers/misc/mediatek/emi_mpu/emi_reg_rw.c": "da41e7d325aa4d3207a38bd566f39680a3b2275db87b4ba0919d266375d858e0",
+    "drivers/misc/mediatek/emi_mpu/mt6797/emi_mpu.c": "39921d80191b674940246425123b52fa140262a7e17022f90f02dd88389932b2",
+    "drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/emi_mpu.h": "a59c8a9a3e6fbb6889d131e23a413597f7bf5f188d82c4e953a66ce2a5aed68d"
+  },
+  "outputs": {
+    "drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c": "7f5909ad674d3f00a112e810434a27bbe35bea5d7921d00abc9653980c385ae5",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/hif_fw_capture.c": "750241ef768c0232cd0bdeefd18c9500b15186fc18d88bab90c59594a30bb733",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_fw_capture.h": "8342b54a36a5e27c78677261aa3acf01e3248ed00af228cd1fb76bcb9836b2ac",
+    "drivers/misc/mediatek/emi_mpu/emi_reg_rw.c": "a8fa9f8a158ea2006dbf2a5f5d04b252ffca9923bd0bdcc7a363d91e8d89c5d1",
+    "drivers/misc/mediatek/emi_mpu/mt6797/emi_mpu.c": "64329de6544f1067041747bd22cebf5ce455bdf90f1f900b6bd42ee5e3a9acd1",
+    "drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/emi_mpu.h": "8ea7e8c17bcba41118723e02b447c1a4aa596601509d179182f0bc3d3095a8f3"
+  },
+  "patch": "0001-wlan-capture-native-EMI-protection-and-copy.patch",
+  "patch_sha256": "fc3928153be1c88120dbd794d8b1b03b31af64606dc08f2b604992f6e4e34257",
+  "replay_and_reverse_verified": true
+}

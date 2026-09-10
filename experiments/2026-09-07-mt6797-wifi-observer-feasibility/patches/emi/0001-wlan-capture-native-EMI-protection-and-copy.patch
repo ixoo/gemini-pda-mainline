@@ -1,0 +1,387 @@
+From 49b0e29cb3b77cc708de352228b602f69a5f55cb Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <experiment@invalid.example>
+Date: Thu, 10 Sep 2026 08:05:22 -0400
+Subject: [PATCH] wlan: capture native EMI protection and copy
+
+Record each later firmware section, the existing mapping result and the
+arguments surrounding the native copy. Carry the section ordinal through
+the locked MPU wrapper to capture the actual lower secure-call result,
+which the native wrapper discards. Preserve the wrapper return and all
+native permission, mapping and copy operations.
+
+Keep the existing protection APIs as zero-capture wrappers. The observer
+adds no mapping cleanup or payload reads, and does not repair native
+mapping/span failures. Section records identify observations, not memory
+ownership, copy visibility or interval firmware immutability.
+
+This unselected native experiment is not an upstream ABI or boot candidate.
+The synthetic archive identity supplies no author certification.
+---
+ .../connectivity/wlan/gen3/common/wlan_lib.c  | 80 +++++++++++-----
+ .../linux/hif/ahb_sdioLike/hif_fw_capture.c   | 91 +++++++++++++++++++
+ .../hif/ahb_sdioLike/include/hif_fw_capture.h |  8 ++
+ drivers/misc/mediatek/emi_mpu/emi_reg_rw.c    | 50 +++++++++-
+ .../misc/mediatek/emi_mpu/mt6797/emi_mpu.c    | 24 +++--
+ .../mt-plat/mt6797/include/mach/emi_mpu.h     | 12 +++
+ 6 files changed, 230 insertions(+), 35 deletions(-)
+
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c b/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c
+index d8fa5e0..6ce9045 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c
+@@ -853,16 +853,31 @@ wlanImageDividDownload(IN P_ADAPTER_T prAdapter,
+ 		else { /* EMI */
+ #define WIFI_EMI_MEM_SIZE	(512*1024)
+ 
++			u32 emi_transaction = wfc_fw_emi_begin(&capture, i, gConEmiPhyBase);
++
+ 			if (gConEmiPhyBase) {
+ 				UINT_8 __iomem *pWiFiEmibaseaddr;
+-
+-				emi_mpu_set_region_protection(gConEmiPhyBase,
+-					gConEmiPhyBase + 512 * 1024 - 1,
+-					18,
+-					SET_ACCESS_PERMISSON(NO_PROTECTION, NO_PROTECTION, NO_PROTECTION,
+-					  NO_PROTECTION, NO_PROTECTION, NO_PROTECTION, NO_PROTECTION, NO_PROTECTION));
+-
+-				pWiFiEmibaseaddr = ioremap_nocache(gConEmiPhyBase, WIFI_EMI_MEM_SIZE);
++				u64 mapping_base;
++				u32 permission;
++
++				permission = SET_ACCESS_PERMISSON(NO_PROTECTION,
++								  NO_PROTECTION,
++								  NO_PROTECTION,
++								  NO_PROTECTION,
++								  NO_PROTECTION,
++								  NO_PROTECTION,
++								  NO_PROTECTION,
++								  NO_PROTECTION);
++				emi_mpu_set_region_protection_capture(gConEmiPhyBase,
++								      gConEmiPhyBase +
++								      512 * 1024 - 1,
++								      18, permission,
++								      emi_transaction, 1);
++
++				mapping_base = gConEmiPhyBase;
++				pWiFiEmibaseaddr = ioremap_nocache(mapping_base, WIFI_EMI_MEM_SIZE);
++				wfc_fw_emi_mapping(&capture, mapping_base, WIFI_EMI_MEM_SIZE,
++						   (const void __force *)pWiFiEmibaseaddr);
+ 				DBGLOG(INIT, INFO,
+ 					"gConEmiPhyBase %p, idx %d, pEmiWiFibaseaddr %p, Dst %p, SecOffset %x, SecLen %x, fgEmiDownloaded %d\n",
+ 					gConEmiPhyBase,
+@@ -873,23 +888,38 @@ wlanImageDividDownload(IN P_ADAPTER_T prAdapter,
+ 					prFwHead->arSection[i].u4Length,
+ 					fgEmiDownloaded);
+ 
+-					if ((prFwHead->arSection[i].u4DestAddr & 0xfffff)
+-							+ prFwHead->arSection[i].u4Length <= WIFI_EMI_MEM_SIZE) {
+-							/* if (!fgEmiDownloaded), TODO, EMI download only if reboot */
+-						kalMemCopy(
+-							pWiFiEmibaseaddr +
+-								(prFwHead->arSection[i].u4DestAddr & 0xfffff),
+-							pvFwImageMapFile + prFwHead->arSection[i].u4Offset,
+-							prFwHead->arSection[i].u4Length);
+-					}
+-					if (i == (prFwHead->u4NumOfEntries - 1))
+-						fgEmiDownloaded = TRUE;
+-
+-				emi_mpu_set_region_protection(gConEmiPhyBase,
+-					gConEmiPhyBase + 512 * 1024 - 1,
+-					18,
+-					SET_ACCESS_PERMISSON(FORBIDDEN, FORBIDDEN, FORBIDDEN, FORBIDDEN, FORBIDDEN,
+-					  NO_PROTECTION, FORBIDDEN, FORBIDDEN));
++				if ((prFwHead->arSection[i].u4DestAddr & 0xfffff)
++				    + prFwHead->arSection[i].u4Length <= WIFI_EMI_MEM_SIZE) {
++					void __iomem *destination = pWiFiEmibaseaddr +
++						(prFwHead->arSection[i].u4DestAddr & 0xfffff);
++					const void *source = pvFwImageMapFile +
++						prFwHead->arSection[i].u4Offset;
++					u32 bytes = prFwHead->arSection[i].u4Length;
++
++					wfc_fw_emi_copy(&capture, 1,
++							(const void __force *)destination,
++							source, bytes);
++					kalMemCopy(destination, source, bytes);
++					wfc_fw_emi_copy(&capture, 2,
++							(const void __force *)destination,
++							source, bytes);
++				}
++				if (i == (prFwHead->u4NumOfEntries - 1))
++					fgEmiDownloaded = TRUE;
++
++				permission = SET_ACCESS_PERMISSON(FORBIDDEN,
++								  FORBIDDEN,
++								  FORBIDDEN,
++								  FORBIDDEN,
++								  FORBIDDEN,
++								  NO_PROTECTION,
++								  FORBIDDEN,
++								  FORBIDDEN);
++				emi_mpu_set_region_protection_capture(gConEmiPhyBase,
++								      gConEmiPhyBase +
++								      512 * 1024 - 1,
++								      18, permission,
++								      emi_transaction, 2);
+ 
+ 			} else {
+ 				DBGLOG(INIT, ERROR, "consys emi memory address gConEmiPhyBase invalid\n");
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/hif_fw_capture.c b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/hif_fw_capture.c
+index c1c75f7..5d87f38 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/hif_fw_capture.c
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/hif_fw_capture.c
+@@ -154,3 +154,94 @@ u32 wfc_fw_image_return(struct wfc_fw_image *trace, u32 status)
+ 	memzero_explicit(digest, sizeof(digest));
+ 	return status;
+ }
++
++/* The selected cycle has exactly two later sections and no retry. */
++static atomic_t wfc_emi_sections = ATOMIC_INIT(0);
++
++static void wfc_fw_emi_emit(struct wfc_fw_image *trace,
++			    const u8 *data, size_t bytes)
++{
++	if (!trace->transaction || !trace->emi_transaction)
++		return;
++	if (!wfc_fw_image_live(trace) ||
++	    ramoops_capture_append(8, trace->emi_transaction, data, bytes))
++		wfc_fw_image_fail(trace);
++}
++
++u32 wfc_fw_emi_begin(struct wfc_fw_image *trace, u32 index, u64 base)
++{
++	const u8 *section;
++	u32 transaction;
++	u8 data[40];
++
++	trace->emi_transaction = 0;
++	trace->emi_mapping = NULL;
++	if (!trace->transaction)
++		return 0;
++	if (!wfc_fw_image_live(trace) || index < 2 ||
++	    index >= WFC_FW_SECTIONS || trace->next != index + 1) {
++		wfc_fw_image_fail(trace);
++		return 0;
++	}
++	transaction = atomic_inc_return(&wfc_emi_sections);
++	if (transaction > 2) {
++		wfc_fw_image_fail(trace);
++		return 0;
++	}
++	trace->emi_transaction = transaction;
++	section = trace->buffer + 24 + index * 16;
++	put_unaligned_le32(1, data);
++	put_unaligned_le32(trace->device, data + 4);
++	put_unaligned_le32(trace->transaction, data + 8);
++	put_unaligned_le64(base, data + 12);
++	put_unaligned_le32(index, data + 20);
++	put_unaligned_le32(get_unaligned_le32(section), data + 24);
++	put_unaligned_le32(get_unaligned_le32(section + 8), data + 28);
++	put_unaligned_le32(get_unaligned_le32(section + 12), data + 32);
++	put_unaligned_le32(WFC_FW_BYTES, data + 36);
++	wfc_fw_emi_emit(trace, data, sizeof(data));
++	return trace->transaction ? transaction : 0;
++}
++
++void wfc_fw_emi_mapping(struct wfc_fw_image *trace, u64 base,
++			u32 bytes, const void *mapping)
++{
++	u8 data[20];
++
++	if (!trace->transaction || !trace->emi_transaction)
++		return;
++	trace->emi_mapping = mapping;
++	put_unaligned_le32(3, data);
++	put_unaligned_le32(mapping ? trace->emi_transaction : 0, data + 4);
++	put_unaligned_le64(base, data + 8);
++	put_unaligned_le32(bytes, data + 16);
++	wfc_fw_emi_emit(trace, data, sizeof(data));
++}
++
++void wfc_fw_emi_copy(struct wfc_fw_image *trace, u32 stage,
++		     const void *destination, const void *source, u32 bytes)
++{
++	unsigned long target = (unsigned long)destination;
++	unsigned long mapped = (unsigned long)trace->emi_mapping;
++	unsigned long input = (unsigned long)source;
++	unsigned long buffer = (unsigned long)trace->buffer;
++	u8 data[24];
++
++	if (!trace->transaction || !trace->emi_transaction)
++		return;
++	if (!trace->emi_mapping || target < mapped || input < buffer ||
++	    target - mapped > 512 * 1024 || input - buffer > WFC_FW_BYTES ||
++	    !bytes || bytes > 512 * 1024 - (target - mapped) ||
++	    bytes > WFC_FW_BYTES - (input - buffer) ||
++	    (stage != 1 && stage != 2)) {
++		wfc_fw_image_fail(trace);
++		return;
++	}
++	put_unaligned_le32(4, data);
++	put_unaligned_le32(stage, data + 4);
++	put_unaligned_le32(trace->emi_transaction, data + 8);
++	put_unaligned_le32(target - mapped, data + 12);
++	put_unaligned_le32(input - buffer, data + 16);
++	put_unaligned_le32(bytes, data + 20);
++	wfc_fw_emi_emit(trace, data, sizeof(data));
++}
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_fw_capture.h b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_fw_capture.h
+index ca15fa7..f9ef850 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_fw_capture.h
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_fw_capture.h
+@@ -26,6 +26,8 @@ struct wfc_fw_image {
+ 	u32 device;
+ 	u32 next;
+ 	u8 digest[32];
++	u32 emi_transaction;
++	const void *emi_mapping;
+ };
+ 
+ void wfc_fw_image_begin(struct wfc_fw_image *trace,
+@@ -35,4 +37,10 @@ void wfc_fw_image_begin(struct wfc_fw_image *trace,
+ void wfc_fw_image_section(struct wfc_fw_image *trace, u32 index);
+ u32 wfc_fw_image_return(struct wfc_fw_image *trace, u32 status);
+ 
++u32 wfc_fw_emi_begin(struct wfc_fw_image *trace, u32 index, u64 base);
++void wfc_fw_emi_mapping(struct wfc_fw_image *trace, u64 base,
++			u32 bytes, const void *mapping);
++void wfc_fw_emi_copy(struct wfc_fw_image *trace, u32 stage,
++		     const void *destination, const void *source, u32 bytes);
++
+ #endif
+diff --git a/drivers/misc/mediatek/emi_mpu/emi_reg_rw.c b/drivers/misc/mediatek/emi_mpu/emi_reg_rw.c
+index 7d62aff..35eb004 100644
+--- a/drivers/misc/mediatek/emi_mpu/emi_reg_rw.c
++++ b/drivers/misc/mediatek/emi_mpu/emi_reg_rw.c
+@@ -12,6 +12,8 @@
+  */
+ 
+ #include <linux/kernel.h>
++#include <linux/pstore_ram.h>
++#include <asm/unaligned.h>
+ #include <linux/module.h>
+ #include <linux/interrupt.h>
+ #include <linux/device.h>
+@@ -71,14 +73,54 @@ unsigned int mt_emi_reg_read(unsigned int offset)
+ 	return 0;
+ }
+ 
++static void emi_capture_protection(unsigned int transaction, unsigned int phase,
++				   unsigned int stage, unsigned int branch,
++				   u64 start, u64 end, u32 permission, int status)
++{
++	u8 data[40];
++
++	if (!transaction || !ramoops_capture_active())
++		return;
++	put_unaligned_le32(2, data);
++	put_unaligned_le32(phase, data + 4);
++	put_unaligned_le32(stage, data + 8);
++	put_unaligned_le32(branch, data + 12);
++	put_unaligned_le64(start, data + 16);
++	put_unaligned_le64(end, data + 24);
++	put_unaligned_le32(permission, data + 32);
++	put_unaligned_le32(status, data + 36);
++	ramoops_capture_append(8, transaction, data, sizeof(data));
++}
++
++int mt_emi_mpu_set_region_protection_capture(unsigned long long start,
++					     unsigned long long end,
++					     unsigned int region_permission,
++					     unsigned int transaction,
++					     unsigned int phase)
++{
++	int ret = 0;
++#if defined(CONFIG_ARM_PSCI) || defined(CONFIG_MTK_PSCI)
++	const u32 branch = 1;
++#else
++	const u32 branch = 2;
++#endif
++
++	emi_capture_protection(transaction, phase, 1, branch,
++			       start, end, region_permission, 0);
++#if defined(CONFIG_ARM_PSCI) || defined(CONFIG_MTK_PSCI)
++	ret = emi_mpu_smc_set(start, end, region_permission);
++#endif
++	emi_capture_protection(transaction, phase, 2, branch,
++			       start, end, region_permission, ret);
++	return ret;
++}
++
+ int mt_emi_mpu_set_region_protection(unsigned long long start,
+ 				     unsigned long long end,
+ 				     unsigned int region_permission)
+ {
+-#if defined(CONFIG_ARM_PSCI) || defined(CONFIG_MTK_PSCI)
+-	return emi_mpu_smc_set(start, end, region_permission);
+-#endif
+-	return 0;
++	return mt_emi_mpu_set_region_protection_capture(start, end,
++							region_permission, 0, 0);
+ }
+ 
+ void mt_emi_reg_base_set(void *base)
+diff --git a/drivers/misc/mediatek/emi_mpu/mt6797/emi_mpu.c b/drivers/misc/mediatek/emi_mpu/mt6797/emi_mpu.c
+index 9612821..3391dcb 100644
+--- a/drivers/misc/mediatek/emi_mpu/mt6797/emi_mpu.c
++++ b/drivers/misc/mediatek/emi_mpu/mt6797/emi_mpu.c
+@@ -1121,19 +1121,31 @@ void acquire_dram_setting(struct basic_dram_setting *pasrdpd)
+  * @access_permission: EMI MPU access permission
+  * Return 0 for success, otherwise negative status code.
+  */
+-int emi_mpu_set_region_protection(unsigned long long start,
+-unsigned long long end, int region, unsigned int access_permission)
++int emi_mpu_set_region_protection_capture(unsigned long long start,
++					  unsigned long long end, int region,
++					  unsigned int access_permission,
++					  unsigned int transaction,
++					  unsigned int phase)
+ {
+-	int ret = 0;
+ 	unsigned long flags;
+ 
+ 	access_permission = access_permission & 0xFFFFFF;
+-	access_permission = access_permission | ((region & 0x1F)<<27);
++	access_permission = access_permission | ((region & 0x1F) << 27);
+ 	spin_lock_irqsave(&emi_mpu_lock, flags);
+-	mt_emi_mpu_set_region_protection(start, end, access_permission);
++	mt_emi_mpu_set_region_protection_capture(start, end, access_permission,
++						 transaction, phase);
+ 	spin_unlock_irqrestore(&emi_mpu_lock, flags);
+ 
+-	return ret;
++	/* Preserve the native wrapper result; capture retains the lower status. */
++	return 0;
++}
++
++int emi_mpu_set_region_protection(unsigned long long start,
++				  unsigned long long end, int region,
++				  unsigned int access_permission)
++{
++	return emi_mpu_set_region_protection_capture(start, end, region,
++						     access_permission, 0, 0);
+ }
+ EXPORT_SYMBOL(emi_mpu_set_region_protection);
+ 
+diff --git a/drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/emi_mpu.h b/drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/emi_mpu.h
+index f6372c0..c9b7b02 100644
+--- a/drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/emi_mpu.h
++++ b/drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/emi_mpu.h
+@@ -279,6 +279,18 @@ typedef void (*emi_mpu_notifier)(u32 addr, int wr_vio);
+ (((d7) << 21) | ((d6) << 18) | ((d5) << 15) | \
+ ((d4) << 12) | ((d3) << 9) | ((d2) << 6) | ((d1) << 3) | (d0))
+ 
++/* Built-in observer only; zero transaction keeps capture disabled. */
++int emi_mpu_set_region_protection_capture(unsigned long long start,
++					  unsigned long long end, int region,
++					  unsigned int permission,
++					  unsigned int transaction,
++					  unsigned int phase);
++int mt_emi_mpu_set_region_protection_capture(unsigned long long start,
++					     unsigned long long end,
++					     unsigned int permission,
++					     unsigned int transaction,
++					     unsigned int phase);
++
+ extern int emi_mpu_set_region_protection(unsigned long long start_addr,
+ unsigned long long end_addr, int region, unsigned int access_permission);
+ #if defined(CONFIG_MTKPASR)

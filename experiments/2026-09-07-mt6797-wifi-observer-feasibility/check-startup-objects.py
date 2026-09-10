@@ -106,11 +106,12 @@ def main():
     assert len(sys.argv) in (2, 3) and sys.argv[1] == commit
     mode = sys.argv[2] if len(sys.argv) == 3 else "--wmt"
     assert mode in ("--wmt", "--pstore", "--capture-writer", "--dma", "--stop",
-                    "--firmware-read", "--firmware-read-safe", "--firmware-image")
+                    "--firmware-read", "--firmware-read-safe", "--firmware-image", "--emi")
     capture = mode == "--capture-writer"
-    firmware_image = mode == "--firmware-image"
+    emi_capture = mode == "--emi"
+    firmware_image = mode == "--firmware-image" or emi_capture
     firmware_safe = mode == "--firmware-read-safe" or firmware_image
-    firmware_read = mode in ("--firmware-read", "--firmware-read-safe", "--firmware-image")
+    firmware_read = mode in ("--firmware-read", "--firmware-read-safe", "--firmware-image", "--emi")
     stop = mode == "--stop" or firmware_read
     dma = mode == "--dma" or stop
     pstore = mode in ("--pstore", "--capture-writer")
@@ -134,6 +135,12 @@ def main():
         if firmware_image:
             files = ("os/linux/gl_kal", "os/linux/gl_init", "common/wlan_lib", "nic/nic_pwr_mgt", hif + "hif_fw_capture")
             label = "wifi-firmware-image-objects-"
+    if emi_capture:
+        files += ("drivers/misc/mediatek/emi_mpu/emi_reg_rw",
+                  "drivers/misc/mediatek/emi_mpu/mt6797/emi_mpu")
+        label = "wifi-emi-objects-"
+    def unit_path(name):
+        return name if name.startswith("drivers/") else relative + name
     assert not run(["git", "-C", str(project), "status", "--porcelain"])
     root = Path("/workspace/gemini-pda")
     source = root / "gemian-source/gemian-baseline" / REVISION
@@ -175,9 +182,9 @@ def main():
         for name in files:
             if dma and Path(name).name in ("hif_capture", "hif_stop_capture", "hif_fw_capture"):
                 continue
-            dest = patched / (relative + name + ".c")
+            dest = patched / (unit_path(name) + ".c")
             dest.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(source / (relative + name + ".c"), dest)
+            shutil.copyfile(source / (unit_path(name) + ".c"), dest)
         # Copy neighboring headers so quoted includes resolve to the patched header.
         headers = relative + hif + "include" if dma else relative if pstore else RELATIVE + "core/include"
         if pstore:
@@ -209,13 +216,18 @@ def main():
             if firmware_image:
                 patches += sorted((experiment / "patches/firmware-image").glob("*.patch"))
                 shutil.copytree(source / relative / "os/linux/include", patched / relative / "os/linux/include")
+            if emi_capture:
+                patches += sorted((experiment / "patches/emi").glob("*.patch"))
+                emi_header = "drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/emi_mpu.h"
+                (patched / emi_header).parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(source / emi_header, patched / emi_header)
             for extra in ("include/linux/pstore_ram.h", "arch/arm64/boot/dts/mt6797.dtsi",
                           "drivers/misc/mediatek/connectivity/wlan/gen3/Makefile",
                           "fs/pstore/ram.c", "fs/pstore/ram_core.c", "fs/pstore/internal.h",
                           "fs/pstore/pmsg.c", "fs/pstore/inode.c"):
                 (patched / extra).parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(source / extra, patched / extra)
-        assert len(patches) == (15 if firmware_image else 14 if firmware_safe else 13 if firmware_read else 12 if stop else 11 if dma else 0 if capture else 10 if pstore else 4)
+        assert len(patches) == (16 if emi_capture else 15 if firmware_image else 14 if firmware_safe else 13 if firmware_read else 12 if stop else 11 if dma else 0 if capture else 10 if pstore else 4)
         for patch in patches:
             if stop and patch.parent.name == "stop":
                 stop_pins = json.loads((experiment / "results/stop-capture-sources.json").read_text())
@@ -237,7 +249,15 @@ def main():
                 assert digest(patch) == image_pins["patch_sha256"]
                 for path, expected in image_pins["parents"].items():
                     assert digest(patched / path) == expected, path
+            if emi_capture and patch.parent.name == "emi":
+                emi_pins = json.loads((experiment / "results/emi-capture-sources.json").read_text())
+                assert digest(patch) == emi_pins["patch_sha256"]
+                for path, expected in emi_pins["parents"].items():
+                    assert digest(patched / path) == expected, path
             subprocess.run(["git", "apply", str(patch)], cwd=patched, check=True)
+            if firmware_image and patch.parent.name == "firmware-image":
+                for path, expected in image_pins["outputs"].items():
+                    assert digest(patched / path) == expected, path
             if stop and patch.parent.name == "stop":
                 for path, expected in stop_pins["outputs"].items():
                     assert digest(patched / path) == expected, path
@@ -250,7 +270,10 @@ def main():
             for section, tree in sections:
                 for path, expected in pinned[section].items():
                     assert digest(tree / path) == expected, path
-        if firmware_image:
+        if emi_capture:
+            for path, expected in emi_pins["outputs"].items():
+                assert digest(patched / path) == expected, path
+        elif firmware_image:
             for path, expected in image_pins["outputs"].items():
                 assert digest(patched / path) == expected, path
         elif firmware_read:
@@ -279,7 +302,8 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
             assert digest(source / header) != digest(patched / header)
         for relative_name in files:
             name = Path(relative_name).name
-            suffix = relative + relative_name + ".c"
+            suffix = unit_path(relative_name) + ".c"
+            wlan_unit = dma and suffix.startswith(relative)
             template = relative + hif + "ahb.c" if dma and name in ("hif_capture", "hif_stop_capture", "hif_fw_capture") else suffix
             lines = [line for line in recorded.read_text().splitlines()
                      if " -c " in line and line.endswith("/" + template)]
@@ -299,6 +323,8 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
             args[args.index("-o") + 1] = str(result)
             args[-1] = str(patched / suffix)
             args.insert(1, "-I" + str(patched / headers))
+            if emi_capture:
+                args.insert(1, "-I" + str((patched / emi_header).parent.parent))
             if firmware_image:
                 args.insert(1, "-I" + str(patched / relative / "os/linux/include"))
             if stop:
@@ -312,10 +338,10 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
             with (work / (name + ".log")).open("w") as stream:
                 compile_logged(args, stream, cwd=output, env=environment, timeout=120)
             dependencies = (work / (name + ".d")).read_text().replace("\\\n", " ").split()
-            if not pstore and name not in ("hif_capture", "hif_stop_capture", "hif_fw_capture"):
+            if not pstore and (not dma or wlan_unit) and name not in ("hif_capture", "hif_stop_capture", "hif_fw_capture"):
                 assert str(patched / header) in dependencies, name
                 assert str(source / header) not in dependencies, name
-            if dma:
+            if wlan_unit:
                 assert "-DMODULE" not in args
                 assert str(patched / headers / "hif_capture.h") in dependencies
                 if stop:
@@ -343,6 +369,26 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
                 if (firmware_read and name == "gl_kal") or name in ("hif_capture", "hif_stop_capture", "hif_fw_capture"):
                     assert "ramoops_capture_active" in disassembly
                     assert "ramoops_capture_append" in disassembly
+            if emi_capture and name in ("wlan_lib", "hif_fw_capture"):
+                assert "wfc_fw_emi_begin" in disassembly
+                assert "wfc_fw_emi_mapping" in disassembly
+                assert "wfc_fw_emi_copy" in disassembly
+                if name == "wlan_lib":
+                    assert str(patched / emi_header) in dependencies
+                    assert str(source / emi_header) not in dependencies
+                    assert "emi_mpu_set_region_protection_capture" in disassembly
+            if emi_capture and not wlan_unit:
+                assert str(patched / emi_header) in dependencies
+                assert str(source / emi_header) not in dependencies
+                assert "-DMODULE" not in args
+                disassembly = run([str(toolchain / "wrappers/aarch64-linux-gnu-objdump"),
+                                   "-dr", str(result)], env=environment)
+                (work / (name + "-capture.disasm")).write_text(disassembly + "\n")
+                assert "mt_emi_mpu_set_region_protection_capture" in disassembly
+                if name == "emi_reg_rw":
+                    assert str(patched / "include/linux/pstore_ram.h") in dependencies
+                    assert "ramoops_capture_append" in disassembly
+                    assert "ramoops_capture_active" in disassembly
             if capture:
                 assert str(patched / relative / "capture-slot-writer.h") in dependencies
                 table = run(["readelf", "-Ws", str(result)])
