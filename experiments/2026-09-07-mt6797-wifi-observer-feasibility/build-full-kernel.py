@@ -73,16 +73,16 @@ def main():
     toolchain = ROOT / 'gemian-toolchains' / native.TOOLCHAIN
     assert (toolchain / 'validated').read_text().strip() == native.TOOLCHAIN
     cross = str(toolchain / 'wrappers/aarch64-linux-gnu-')
-    compiler = run([cross + 'gcc', '--version']).splitlines()[0]
-    linker = run([cross + 'ld', '--version']).splitlines()[0]
-    assert compiler == 'aarch64-linux-gnu-gcc-6 (Debian 6.3.0-18) 6.3.0 20170516'
-    assert linker == 'GNU ld (GNU Binutils for Debian) 2.28'
     config = PROJECT / 'experiments/2026-07-23-gemian-a72-owner-observer/inputs/active-gemian.config'
     assert digest(config) == pins['baseline_config_sha256']
     environment = dict(os.environ, LD_LIBRARY_PATH=str(toolchain / 'root/usr/lib/x86_64-linux-gnu'),
                        HOST_EXTRACFLAGS='-fcommon', PYTHONDONTWRITEBYTECODE='1', KBUILD_BUILD_USER='gemini',
                        KBUILD_BUILD_HOST='buildbox', KBUILD_BUILD_VERSION='1',
                        KBUILD_BUILD_TIMESTAMP='Thu Jan 1 00:00:00 UTC 1970')
+    compiler = run([cross + 'gcc', '--version'], env=environment).splitlines()[0]
+    linker = run([cross + 'ld', '--version'], env=environment).splitlines()[0]
+    assert compiler == 'aarch64-linux-gnu-gcc-6 (Debian 6.3.0-18) 6.3.0 20170516'
+    assert linker == 'GNU ld (GNU Binutils for Debian) 2.28'
     with tempfile.TemporaryDirectory(prefix='wifi-controller-kernel-', dir=ROOT / 'build') as tmp:
         work = Path(tmp);output = work / 'output';output.mkdir()
         shutil.copyfile(config, output / '.config')
@@ -119,7 +119,7 @@ def main():
                      'mt6797_wfc_request_end', 'ramoops_capture_begin', 'ramoops_capture_append'):
             assert re.search(r' [Tt] ' + re.escape(name) + r'$', symbol_map, re.M), name
         assert 'recovery_discriminator_callback' not in symbol_map
-        assert not run([cross + 'nm', '-u', str(output / 'vmlinux')])
+        assert not run([cross + 'nm', '-u', str(output / 'vmlinux')], env=environment)
         assert run(integrity + ['verify', str(source)]) == source_integrity
         with tempfile.TemporaryDirectory(prefix='wifi-controller-package-', dir=package.parent) as tmp_package:
             staged = Path(tmp_package) / 'package';staged.mkdir()
