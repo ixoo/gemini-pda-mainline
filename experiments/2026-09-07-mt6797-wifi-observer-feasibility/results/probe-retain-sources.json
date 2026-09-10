@@ -1,0 +1,21 @@
+{
+  "source_revision": "59e00a9144d782e148332009a835b99c43382467",
+  "scope": "Unselected terminal startup-failure retention; lower DMA cleanup, concurrent reset, unload and recovery remain unresolved",
+  "parents": {
+    "drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c": "baf1bebddcb2b7af13c4ac13b226f2b8f6aaf103c1316c2a9f3b43616f23468d",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c": "2d5a5a2d83641eac81465ff05591fc8d21d466b5ddbeaf6ab1c3a464fd62b097",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c": "1ace5a6dabce1cc65bfb5f6f40b18deeeecadaa3ad0864e03c23498a8b31f56e",
+    "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c": "f196b5b36bbaecaae30e9e341001f5f28824c844c136a03b851fbbb0399ed21e",
+    "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_func.c": "c57079b29491338fa635dd36f550f3be53b4a2cee343b1dce1c9e4d365b4589d"
+  },
+  "outputs": {
+    "drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c": "acd8685ad1a2b811a479a7b337cb87e8121df3dbc96351b2ef15bc6969aa919a",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c": "961fb12ea7179701cf84791b1659cfc06437936c040a2b5ae8c59d7b179d916a",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c": "ba167e0dac64f61e33d84dfa7b6e30aef42131351ff9e7b5cd4918250eca2555",
+    "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c": "3d00dd955f425582cf78c364d9c7736358c8734bca989b142cfafa6285808cc8",
+    "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_func.c": "b4d8137ed91df99cb0f1c027a99565d38b167baca3a87aaeaa51b5a9de0b272e"
+  },
+  "patch": "0001-wlan-retain-failed-startup-resources-until-recovery.patch",
+  "patch_sha256": "727d843e29e3911ec3389af9c9453d6c90f2d975e0d8c07ffa5023175c467322",
+  "replay_and_reverse_verified": true
+}

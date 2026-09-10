@@ -1,0 +1,247 @@
+From 9413410943843ab2ca9803d998ce0f57e00556e9 Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <archive@example.invalid>
+Date: Thu, 10 Sep 2026 12:41:15 -0400
+Subject: [PATCH] wlan: retain failed startup resources until recovery
+
+After adapter startup is attempted, abort capture and request all worker
+halts without freeing probe resources. Check partial worker creation and
+skip adapter-start error teardown. Carry EUCLEAN through AHB and WMT,
+retain common ownership and reject subsequent dispatched operations.
+
+This terminal experiment path needs an independent recovery owner. It
+does not repair lower DMA cleanup, concurrent reset or module unload.
+The built-in MT6797 AHB archive has a synthetic identity and no DCO.
+---
+ .../common/common_main/core/wmt_core.c        | 12 +++++++
+ .../common/common_main/core/wmt_func.c        |  3 +-
+ .../connectivity/wlan/gen3/common/wlan_lib.c  | 32 ++---------------
+ .../connectivity/wlan/gen3/os/linux/gl_init.c | 36 +++++++++++++++++++
+ .../wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c | 17 +++++++--
+ 5 files changed, 67 insertions(+), 33 deletions(-)
+
+diff --git a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c b/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c
+index ca9e42a..74999c6 100644
+--- a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c
++++ b/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c
+@@ -52,6 +52,9 @@
+ #include "wmt_exp.h"
+ #include "wmt_detect.h"
+ 
++/* Occupied resources after failed WLAN startup; cleared only by a new boot. */
++static bool wmt_probe_retained;
++
+ P_WMT_FUNC_OPS gpWmtFuncOps[WMTDRV_TYPE_MAX] = {
+ #if CFG_FUNC_BT_SUPPORT
+ 	[WMTDRV_TYPE_BT] = &wmt_func_bt_ops,
+@@ -495,6 +498,9 @@ INT32 wmt_core_opid_handler(P_WMT_OP pWmtOp)
+ 	UINT32 opId;
+ 	INT32 ret;
+ 
++	if (READ_ONCE(wmt_probe_retained))
++		return -EUCLEAN;
++
+ 	opId = pWmtOp->opId;
+ 
+ 	if (wmt_core_opfunc[opId]) {
+@@ -1210,6 +1216,12 @@ static INT32 opfunc_func_on(P_WMT_OP pWmtOp)
+ 			iRet =
+ 			    (*(gpWmtFuncOps[drvType]->func_on)) (gMtkWmtCtx.p_ic_ops,
+ 								 wmt_conf_get_cfg());
++			if (iRet == -EUCLEAN && WMTDRV_TYPE_WIFI == drvType) {
++				/* FUNC_ON here retains ownership, not usable networking. */
++				gMtkWmtCtx.eDrvStatus[drvType] = DRV_STS_FUNC_ON;
++				WRITE_ONCE(wmt_probe_retained, true);
++				return iRet;
++			}
+ 			if (0 != iRet) {
+ 				if (WMTDRV_TYPE_WIFI == drvType
+ 				    && WMT_HIF_UART == gMtkWmtCtx.wmtHifConf.hifType) {
+diff --git a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_func.c b/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_func.c
+index b3d8d45..b6ea00a 100644
+--- a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_func.c
++++ b/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_func.c
+@@ -705,7 +705,8 @@ INT32 wmt_func_wifi_on(P_WMT_IC_OPS pOps, P_WMT_GEN_CONF pConf)
+ 		iRet = (*mtk_wcn_wlan_probe) ();
+ 		if (iRet) {
+ 			WMT_ERR_FUNC("WMT-FUNC: wmt call wlan probe fail(%d)\n", iRet);
+-			iRet = -1;
++			if (iRet != -EUCLEAN)
++				iRet = -1;
+ 		} else {
+ 			WMT_WARN_FUNC("WMT-FUNC: wmt call wlan probe ok\n");
+ 		}
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c b/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c
+index 25ac5b9..571cd97 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c
+@@ -691,35 +691,9 @@ wlanAdapterStart(IN P_ADAPTER_T prAdapter,
+ 		nicEnableInterrupt(prAdapter);
+ 
+ 	} else {
+-		/* release allocated memory */
+-		switch (eFailReason) {
+-		case WAIT_FIRMWARE_READY_FAIL:
+-			nicRxUninitialize(prAdapter);
+-			nicTxRelease(prAdapter, FALSE);
+-			/* System Service Uninitialization */
+-			nicUninitSystemService(prAdapter);
+-			nicReleaseAdapterMemory(prAdapter);
+-			wlanPollingCpupcr(4, 5);
+-			break;
+-		case RAM_CODE_DOWNLOAD_FAIL:
+-			nicRxUninitialize(prAdapter);
+-			nicTxRelease(prAdapter, FALSE);
+-			/* System Service Uninitialization */
+-			nicUninitSystemService(prAdapter);
+-			nicReleaseAdapterMemory(prAdapter);
+-			wlanPollingCpupcr(4, 5);
+-			break;
+-		case INIT_ADAPTER_FAIL:
+-			nicReleaseAdapterMemory(prAdapter);
+-			break;
+-		case DRIVER_OWN_FAIL:
+-			nicReleaseAdapterMemory(prAdapter);
+-			break;
+-		case ALLOC_ADAPTER_MEM_FAIL:
+-			break;
+-		default:
+-			break;
+-		}
++		/* Failed startup retains allocations for independent recovery. */
++		DBGLOG(INIT, ERROR, "Adapter start failed; resources retained (stage %u)\n",
++		       eFailReason);
+ 	}
+ 
+ 	return u4Status;
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c
+index 041383e..b6157aa 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c
+@@ -1914,6 +1914,21 @@ VOID nicConfigProcSetCamCfgWrite(BOOLEAN enabled)
+ * \retval negative value Failed
+ */
+ /*----------------------------------------------------------------------------*/
++/* Failed startup is terminal: request worker halt without releasing resources. */
++static INT_32 wlanProbeRetain(P_GLUE_INFO_T prGlueInfo)
++{
++	wfc_dma_abort();
++	prGlueInfo->u4ReadyFlag = 0;
++	kalSetHalted(TRUE);
++	set_bit(GLUE_FLAG_HALT_BIT, &prGlueInfo->ulFlag);
++	wake_up_interruptible(&prGlueInfo->waitq);
++#if CFG_SUPPORT_MULTITHREAD
++	wake_up_interruptible(&prGlueInfo->waitq_hif);
++	wake_up_interruptible(&prGlueInfo->waitq_rx);
++#endif
++	return -EUCLEAN;
++}
++
+ static INT_32 wlanProbe(PVOID pvData)
+ {
+ 	struct wireless_dev *prWdev = NULL;
+@@ -1933,6 +1948,7 @@ static INT_32 wlanProbe(PVOID pvData)
+ 	P_ADAPTER_T prAdapter = NULL;
+ 	INT_32 i4Status = 0;
+ 	BOOL bRet = FALSE;
++	bool retain_failure = false;
+ 
+ 	eFailReason = FAIL_REASON_NUM;
+ 	do {
+@@ -2015,6 +2031,9 @@ static INT_32 wlanProbe(PVOID pvData)
+ #endif
+ #endif
+ 
++		/* From here, failure requires independent recovery. */
++		retain_failure = true;
++
+ 		/* 4 <5> Start Device */
+ 		/*  */
+ #if CFG_ENABLE_FW_DOWNLOAD
+@@ -2080,9 +2099,24 @@ bailout:
+ #endif
+ 
+ 		prGlueInfo->main_thread = kthread_run(tx_thread, prGlueInfo->prDevHandler, "tx_thread");
++		if (IS_ERR(prGlueInfo->main_thread)) {
++			i4Status = PTR_ERR(prGlueInfo->main_thread);
++			prGlueInfo->main_thread = NULL;
++			break;
++		}
+ #if CFG_SUPPORT_MULTITHREAD
+ 		prGlueInfo->hif_thread = kthread_run(hif_thread, prGlueInfo->prDevHandler, "hif_thread");
++		if (IS_ERR(prGlueInfo->hif_thread)) {
++			i4Status = PTR_ERR(prGlueInfo->hif_thread);
++			prGlueInfo->hif_thread = NULL;
++			break;
++		}
+ 		prGlueInfo->rx_thread = kthread_run(rx_thread, prGlueInfo->prDevHandler, "rx_thread");
++		if (IS_ERR(prGlueInfo->rx_thread)) {
++			i4Status = PTR_ERR(prGlueInfo->rx_thread);
++			prGlueInfo->rx_thread = NULL;
++			break;
++		}
+ #endif
+ 
+ 		/* TODO the change schedule API shall be provided by OS glue layer */
+@@ -2236,6 +2270,8 @@ bailout:
+ 		DBGLOG(INIT, LOUD, "wlanProbe: probe success\n");
+ 	} else {
+ 		DBGLOG(INIT, ERROR, "wlanProbe: probe failed\n");
++		if (retain_failure)
++			return wlanProbeRetain(prGlueInfo);
+ 		switch (eFailReason) {
+ 		case FAIL_MET_INIT_PROCFS:
+ 			kalMetRemoveProcfs();
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c
+index 1df993f..4e33547 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c
+@@ -167,6 +167,7 @@ static probe_card pfWlanProbe;
+ 
+ /* release function from other module */
+ static remove_card pfWlanRemove;
++static bool hif_probe_retained;
+ 
+ /* DMA operator */
+ static GL_HIF_DMA_OPS_T *pfWlanDmaOps;
+@@ -1484,6 +1485,9 @@ static int HifAhbProbe(VOID)
+ {
+ 	int Ret = 0;
+ 
++	if (READ_ONCE(hif_probe_retained))
++		return -EUCLEAN;
++
+ 	DBGLOG(INIT, INFO, "HifAhbProbe()\n");
+ 
+ 	/* power on WiFi TX PA 3.3V and HIF GDMA clock */
+@@ -1518,11 +1522,15 @@ static int HifAhbProbe(VOID)
+ 	}
+ 
+ #if (CONF_HIF_DEV_MISC == 1)
+-	if (pfWlanProbe((PVOID) &MtkAhbDriver.this_device) != WLAN_STATUS_SUCCESS) {
++	Ret = pfWlanProbe((PVOID)&MtkAhbDriver.this_device);
+ #else
+-	if (pfWlanProbe((PVOID) &HifAhbPDev->dev) != WLAN_STATUS_SUCCESS) {
++	Ret = pfWlanProbe((PVOID)&HifAhbPDev->dev);
+ #endif /* CONF_HIF_DEV_MISC */
+-
++	if (Ret == -EUCLEAN) {
++		WRITE_ONCE(hif_probe_retained, true);
++		return Ret;
++	}
++	if (Ret != WLAN_STATUS_SUCCESS) {
+ 		pfWlanRemove();
+ 		Ret = -1;
+ 	}
+@@ -1544,6 +1552,9 @@ static int HifAhbRemove(VOID)
+ {
+ 	int ret;
+ 
++	if (READ_ONCE(hif_probe_retained))
++		return -EUCLEAN;
++
+ 	ret = pfWlanRemove();
+ 	if (ret)
+ 		return ret;
+-- 
+2.54.0 (Apple Git-157)
+

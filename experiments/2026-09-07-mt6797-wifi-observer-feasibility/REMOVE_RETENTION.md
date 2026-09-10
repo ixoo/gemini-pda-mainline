@@ -134,3 +134,7 @@ failures; adding the two missing waits alone would leave the outer power-off
 path unresolved. Adapter-stop/DMA ownership and the recovery owner still
 need inspection before selecting that implementation. No new failure code,
 retry, reset or device protocol is admitted by this review.
+
+The subsequent [terminal startup-retention prototype](PROBE_RETENTION.md)
+implements the outer failure path. It leaves lower DMA cleanup, concurrent
+reset and independent recovery unresolved.

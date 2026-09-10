@@ -107,8 +107,9 @@ def main():
     mode = sys.argv[2] if len(sys.argv) == 3 else "--wmt"
     assert mode in ("--wmt", "--pstore", "--capture-writer", "--dma", "--stop",
                     "--firmware-read", "--firmware-read-safe", "--firmware-image", "--emi", "--provider-off",
-                    "--common-off-safe", "--common-off", "--operation-ownership", "--request-capture", "--request-firmware", "--tx-payload", "--stop-workers", "--remove-retain")
-    remove_retain = mode == "--remove-retain"
+                    "--common-off-safe", "--common-off", "--operation-ownership", "--request-capture", "--request-firmware", "--tx-payload", "--stop-workers", "--remove-retain", "--probe-retain")
+    probe_retain = mode == "--probe-retain"
+    remove_retain = mode == "--remove-retain" or probe_retain
     stop_workers = mode == "--stop-workers" or remove_retain
     tx_payload = mode == "--tx-payload" or stop_workers
     request_firmware = mode == "--request-firmware" or tx_payload
@@ -175,6 +176,8 @@ def main():
     if remove_retain:
         files += (RELATIVE + "core/wmt_func",)
         label = "wifi-remove-retain-objects-"
+    if probe_retain:
+        label = "wifi-probe-retain-objects-"
     def unit_path(name):
         return name if name.startswith("drivers/") else relative + name
     assert not run(["git", "-C", str(project), "status", "--porcelain"])
@@ -282,6 +285,8 @@ def main():
                     patches += sorted((experiment / "patches/stop-workers").glob("*.patch"))
                 if remove_retain:
                     patches += sorted((experiment / "patches/remove-retain").glob("*.patch"))
+                if probe_retain:
+                    patches += sorted((experiment / "patches/probe-retain").glob("*.patch"))
             for extra in ("include/linux/pstore_ram.h", "arch/arm64/boot/dts/mt6797.dtsi",
                           "drivers/misc/mediatek/connectivity/wlan/gen3/Makefile",
                           "fs/pstore/ram.c", "fs/pstore/ram_core.c", "fs/pstore/internal.h",
@@ -293,8 +298,16 @@ def main():
             for name in ("gl_typedef.h", "gl_os.h"):
                 path = relative + "os/linux/include/" + name
                 shutil.copyfile(source / path, patched / path)
-        assert len(patches) == (29 if remove_retain else 28 if stop_workers else 27 if tx_payload else 26 if request_firmware else 25 if request_capture else 24 if ownership else 23 if common_off else 17 if provider_off else 16 if emi_capture else 15 if firmware_image else 14 if firmware_safe else 13 if firmware_read else 12 if stop else 11 if dma else 0 if capture else 10 if pstore else 5 if common_off_safe else 4)
+        assert len(patches) == (30 if probe_retain else 29 if remove_retain else 28 if stop_workers else 27 if tx_payload else 26 if request_firmware else 25 if request_capture else 24 if ownership else 23 if common_off else 17 if provider_off else 16 if emi_capture else 15 if firmware_image else 14 if firmware_safe else 13 if firmware_read else 12 if stop else 11 if dma else 0 if capture else 10 if pstore else 5 if common_off_safe else 4)
         for patch in patches:
+            if probe_retain and patch.parent.name == "probe-retain":
+                probe_pins = json.loads((experiment / "results/probe-retain-sources.json").read_text())
+                assert digest(patch) == probe_pins["patch_sha256"]
+                probe_parent = work / "probe-parent"
+                for path, expected in probe_pins["parents"].items():
+                    assert digest(patched / path) == expected, path
+                    (probe_parent / path).parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copyfile(patched / path, probe_parent / path)
             if remove_retain and patch.parent.name == "remove-retain":
                 retain_pins = json.loads((experiment / "results/remove-retain-sources.json").read_text())
                 assert digest(patch) == retain_pins["patch_sha256"]
@@ -378,6 +391,11 @@ def main():
                 for path, expected in off_pins["parents"].items():
                     assert digest(patched / path) == expected, path
             subprocess.run(["git", "apply", str(patch)], cwd=patched, check=True)
+            if probe_retain and patch.parent.name == "probe-retain":
+                for path, expected in probe_pins["outputs"].items():
+                    assert digest(patched / path) == expected, path
+                subprocess.run(["python3", str(experiment / "test-probe-retain.py"),
+                                str(probe_parent), str(patched)], check=True)
             if remove_retain and patch.parent.name == "remove-retain":
                 for path, expected in retain_pins["outputs"].items():
                     assert digest(patched / path) == expected, path
@@ -446,6 +464,8 @@ def main():
                 final_sources.update(worker_pins["outputs"])
             if remove_retain:
                 final_sources.update(retain_pins["outputs"])
+            if probe_retain:
+                final_sources.update(probe_pins["outputs"])
             for path, expected in final_sources.items():
                 assert digest(patched / path) == expected, path
         elif firmware_image:
