@@ -26,9 +26,10 @@ def main():
     assert platform.system() == 'Linux' and platform.machine() == 'x86_64'
     project = HERE.parents[1]
     commit = run(['git', '-C', str(project), 'rev-parse', 'HEAD'])
+    reset = sys.argv[1:] == [commit, '--reset']
     controller = sys.argv[1:] == [commit, '--controller']
     gate = controller or sys.argv[1:] == [commit, '--gate']
-    assert gate or sys.argv[1:] == [commit]
+    assert reset or gate or sys.argv[1:] == [commit]
     assert not run(['git', '-C', str(project), 'status', '--porcelain'])
     root = Path('/workspace/gemini-pda')
     source = root / 'gemian-source/gemian-baseline' / native.REVISION
@@ -50,12 +51,12 @@ def main():
     patch = HERE / 'patches/recovery-setters' / pins['patch']
     assert digest(parent_patch) == pins['parent_patch_sha256']
     assert digest(patch) == pins['patch_sha256']
-    topic = 'controller-init' if controller else 'recovery-gate'
-    gate_pins = json.loads((HERE / ('results/' + topic + '-sources.json')).read_text()) if gate else None
-    gate_patch = HERE / 'patches' / topic / gate_pins['patch'] if gate else None
-    if gate:
+    topic = 'recovery-reset' if reset else 'controller-init' if controller else 'recovery-gate'
+    gate_pins = json.loads((HERE / ('results/' + topic + '-sources.json')).read_text()) if gate or reset else None
+    gate_patch = HERE / 'patches' / topic / gate_pins['patch'] if gate or reset else None
+    if gate or reset:
         assert digest(gate_patch) == gate_pins['patch_sha256']
-    label = ('wifi-controller-init-objects-' if controller else
+    label = ('wifi-recovery-reset-objects-' if reset else 'wifi-controller-init-objects-' if controller else
              'wifi-recovery-gate-objects-' if gate else 'wifi-recovery-setters-objects-')
     package = root / 'gemian-artifacts' / (label + commit)
     assert not package.exists()
@@ -79,6 +80,8 @@ def main():
             native.compile_logged(command + ['-j2', 'V=1', 'prepare'], stream, env=env, timeout=300)
         parent, child = work / 'parent', work / 'child'
         prerequisites = [parent_patch]
+        if reset:
+            prerequisites.append(patch)
         inputs = set(pins['parents'])
         if gate:
             prerequisites += [patch] + sorted((HERE / 'patches/pstore').glob('*.patch'))
@@ -102,9 +105,9 @@ def main():
         for item in prerequisites:
             run(['git', 'apply', '--unsafe-paths', '--directory=' + str(parent), str(item)])
         shutil.copytree(parent, child)
-        run(['git', 'apply', '--unsafe-paths', '--directory=' + str(child), str(gate_patch if gate else patch)])
+        run(['git', 'apply', '--unsafe-paths', '--directory=' + str(child), str(gate_patch if gate or reset else patch)])
         for key, tree in [('parents', parent), ('outputs', child)]:
-            for path, expected in (gate_pins if gate else pins)[key].items():
+            for path, expected in (gate_pins if gate or reset else pins)[key].items():
                 assert digest(tree / path) == expected
         support = work / 'support'
         support.mkdir()
@@ -112,7 +115,9 @@ def main():
         shutil.copyfile(source / 'drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/wd_api.h',
                         support / 'wd_api.h')
         with (exported / 'fixture.log').open('w') as stream:
-            fixture = ([sys.executable, str(HERE / 'test-controller-init.py'), str(child)] if controller else
+            fixture = ([sys.executable, str(HERE / 'test-recovery-reset.py'),
+                        str(parent), str(child), str(support)] if reset else
+                       [sys.executable, str(HERE / 'test-controller-init.py'), str(child)] if controller else
                        [sys.executable, str(HERE / 'test-recovery-gate.py'), str(child)] if gate else
                        [sys.executable, str(HERE / 'test-recovery-setters.py'),
                         str(parent), str(child), str(support)])
@@ -203,10 +208,12 @@ def main():
                    'objects': records, 'fixture': '12 parent/child ordering comparisons passed',
                    'warning_policy': 'Recorded native -w retained; not warning-clean evidence',
                    'boot_candidate': False, 'device_access': False}
-        if gate:
+        if gate or reset:
             receipt['patch_sha256'] = digest(gate_patch)
             receipt['prerequisites'] = {str(item.relative_to(project)): digest(item) for item in prerequisites}
             receipt['fixture'] = '15 capture/arm boundary cases, one-shot and invalid argument refusal passed'
+        if reset:
+            receipt['fixture'] = 'parent/child direct-reset and no-lock reload takeover orderings, plus held-lock contention'
         if controller:
             receipt['fixture'] = ('native startup; 20 initializer failures; 26 lost records; '
                                   '4 preflight refusals; duplicate refusal; 52 decoder mutations passed')

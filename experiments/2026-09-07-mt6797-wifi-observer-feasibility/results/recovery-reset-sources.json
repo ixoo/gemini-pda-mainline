@@ -1,0 +1,14 @@
+{
+  "source_revision": "59e00a9144d782e148332009a835b99c43382467",
+  "prerequisite": "historical low-level recovery ownership and recovery-setters correction",
+  "patch": "0001-watchdog-preserve-owned-deadline-across-emergency-reset.patch",
+  "patch_sha256": "48ba21d2f5e94a17129ce9b03223416f433748c81657f549df33bcfe6ed97979",
+  "parents": {
+    "drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c": "accee425dd694555694e5d7263db960958c0d47722505361aad7bf983f617993"
+  },
+  "outputs": {
+    "drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c": "d52e4d8d91152f53260a1bde5fc702d51e9c26eac2751d98761e69d1bb1a6bcc"
+  },
+  "scope": "direct low-level reset and no-lock reload only; remaining reset routes and candidate isolation unproved",
+  "device_execution": false
+}

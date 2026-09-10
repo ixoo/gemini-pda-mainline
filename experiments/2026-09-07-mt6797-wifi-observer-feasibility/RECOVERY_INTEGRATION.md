@@ -58,6 +58,11 @@ The [ordinary setter correction](RECOVERY_SETTERS.md) now implements locked
 refusal for timeout, mode, enable and ordinary reload changes. The other
 ownership paths above remain unresolved.
 
+The [emergency reset/reload correction](RECOVERY_RESET.md) adds experimental
+serialization for the no-lock reload and parks direct low-level reset after
+takeover, before its secure-firmware and PMIC calls. Higher-level reset effects,
+request routing and shared subsystem reset ownership remain unresolved.
+
 ## Retention callers: preserve the existing configuration exclusion
 
 The [retained-build review](results/recovery-retention-exclusion.json) narrows

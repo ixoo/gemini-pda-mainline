@@ -1,0 +1,81 @@
+From 22371a21f28d07c041813a83c8b0e6fe74938606 Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <noreply@gemini-experiment.invalid>
+Date: Thu, 10 Sep 2026 15:33:58 -0400
+Subject: [PATCH] watchdog: preserve owned deadline across emergency reset
+ paths
+
+Serialize no-lock reloads with takeover using one trylock, without waiting
+on an interrupted holder. After ownership, park the direct reset path
+before secure firmware, PMIC or TOPRGU writes. Keep ordinary builds
+unchanged.
+
+Internal experiment archive; synthetic author, no DCO certification.
+---
+ .../watchdog/mediatek/wdt/mt6797/mtk_wdt.c    | 25 ++++++++++++++++++-
+ 1 file changed, 24 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c b/drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c
+index b8d7f1f..a467c18 100644
+--- a/drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c
++++ b/drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c
+@@ -348,11 +348,23 @@ void mtk_wdt_restart(enum wd_restart_type type)
+ 	#endif
+ 		spin_unlock(&rgu_reg_operation_spinlock);
+ 	} else if (type == WD_TYPE_NOLOCK) {
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++		/* Exceptional callers must not wait on an interrupted lock holder. */
++		if (!spin_trylock(&rgu_reg_operation_spinlock))
++			return;
++		if (mtk_wdt_recovery_owned) {
++			spin_unlock(&rgu_reg_operation_spinlock);
++			return;
++		}
++#endif
+ 	#ifdef CONFIG_KICK_SPM_WDT
+ 		spm_wdt_restart_timer_nolock();
+ 	#else
+ 		*(volatile u32 *)(MTK_WDT_RESTART) = MTK_WDT_RESTART_KEY;
+ 	#endif
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++		spin_unlock(&rgu_reg_operation_spinlock);
++#endif
+ 	} else
+ 		pr_debug("WDT:[mtk_wdt_restart] type=%d error pid =%d\n", type, current->pid);
+ }
+@@ -402,7 +414,8 @@ void wdt_arch_reset(char mode)
+ #ifdef CONFIG_OF
+ 	struct device_node *np_rgu;
+ #endif
+-#if defined(CONFIG_ARM_PSCI) || defined(CONFIG_MTK_PSCI)
++#if (defined(CONFIG_ARM_PSCI) || defined(CONFIG_MTK_PSCI)) && \
++	!defined(CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR)
+ 	mt_secure_call(MTK_SIP_KERNEL_DISABLE_DFD, 0, 0, 0);
+ #endif
+ 	pr_debug("wdt_arch_reset called@Kernel mode =%c\n", mode);
+@@ -417,6 +430,13 @@ void wdt_arch_reset(char mode)
+ 	}
+ #endif
+ 	spin_lock(&rgu_reg_operation_spinlock);
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++	if (mtk_wdt_recovery_owned)
++		goto wait_for_recovery;
++#if defined(CONFIG_ARM_PSCI) || defined(CONFIG_MTK_PSCI)
++	mt_secure_call(MTK_SIP_KERNEL_DISABLE_DFD, 0, 0, 0);
++#endif
++#endif
+ 	/* Watchdog Rest */
+ 	mt_reg_sync_writel(MTK_WDT_RESTART_KEY, MTK_WDT_RESTART);
+ 	wdt_mode_val = __raw_readl(MTK_WDT_MODE);
+@@ -439,6 +459,9 @@ void wdt_arch_reset(char mode)
+ 	udelay(100);
+ 	mt_reg_sync_writel(MTK_WDT_SWRST_KEY, MTK_WDT_SWRST);
+ 	pr_debug("wdt_arch_reset: SW_reset happen\n");
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++wait_for_recovery:
++#endif
+ 	spin_unlock(&rgu_reg_operation_spinlock);
+ 
+ 	while (1) {
+-- 
+2.54.0 (Apple Git-157)
+
