@@ -53,7 +53,15 @@ compiles the complete parent and child watchdog source with the pinned native
 compiler command and generated headers, verifies header selection and the
 non-SPM/non-dummy path, and runs the fixture there. Invoke it from a clean,
 published checkout with its exact commit argument under the existing Buildbox
-build lock. Native compilation is pending at this source checkpoint.
+build lock. The [native compilation receipt](results/recovery-setters-object-compile.json)
+records success at `6d5c1b7ea16e7512ac5416268ca9a97059e8ea5d`. Both complete
+watchdog objects compile and all twelve ordering comparisons pass on Buildbox.
+All thirteen package files match the remote inventory and twelve-entry checksum
+manifest, whose SHA-256 is
+`e6415409b348bdf54e7354c32bef5339e4a6e7455a2673d9620ff79b97c8e7c8`.
+The compiled source/header hashes match the source receipt. Native commands
+retain the baseline `-w`; this is not warning-clean evidence or compilation of
+the whole Wi-Fi/recovery combination.
 
 Full linking, complete recovery ownership and an admitted device session remain
 necessary. No kernel image or device action is selected here.
