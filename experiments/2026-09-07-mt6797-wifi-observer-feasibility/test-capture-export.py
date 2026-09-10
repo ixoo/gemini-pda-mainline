@@ -19,6 +19,7 @@ spec = importlib.util.spec_from_file_location(
 export = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(export)
 BOOT = '00000000-0000-4000-8000-000000000001'
+PREVIOUS = '00000000-0000-4000-8000-000000000002'
 SESSION = 'ab' * 32
 SNAPSHOT = bytes(range(256)) * 256
 
@@ -44,7 +45,7 @@ class ExportTests(unittest.TestCase):
     def receive(self, frame=None, **kwargs):
         return export.receive_snapshot(
             Fragmented(self.frame if frame is None else frame), self.output,
-            kwargs.get('boot', BOOT), kwargs.get('session', SESSION))
+            kwargs.get('boot', PREVIOUS), kwargs.get('session', SESSION))
 
     def test_fragmented_roundtrip_and_private_files(self):
         result = self.receive()
@@ -58,7 +59,7 @@ class ExportTests(unittest.TestCase):
     def test_identity_corruption_and_truncation_refuse_before_save(self):
         cases = [self.frame[:cut] for cut in (0, 1, export.HEADER.size - 1,
                                              export.HEADER.size, len(self.frame) - 1)]
-        for offset in (0, 4, 20, 52, 84, 88, len(self.frame) - 1):
+        for offset in (0, 20, 52, 84, 88, len(self.frame) - 1):
             bad = bytearray(self.frame)
             bad[offset] ^= 1
             cases.append(bytes(bad))
@@ -67,7 +68,7 @@ class ExportTests(unittest.TestCase):
                 self.receive(frame)
             self.assertFalse(self.output.exists())
         with self.assertRaises(ValueError):
-            self.receive(boot='00000000-0000-4000-8000-000000000002')
+            self.receive(boot=BOOT)
         with self.assertRaises(ValueError):
             self.receive(session='cd' * 32)
 
@@ -81,7 +82,7 @@ class ExportTests(unittest.TestCase):
         link = self.root / 'link'
         link.symlink_to(self.output, target_is_directory=True)
         with self.assertRaises(FileExistsError):
-            export.receive_snapshot(io.BytesIO(self.frame), link, BOOT, SESSION)
+            export.receive_snapshot(io.BytesIO(self.frame), link, PREVIOUS, SESSION)
         self.assertEqual(marker.read_bytes(), b'keep')
 
     def test_public_parent_refused(self):
@@ -106,24 +107,53 @@ class ExportTests(unittest.TestCase):
                 export.send_snapshot(stream, snapshot, BOOT, SESSION)
             self.assertEqual(stream.getvalue(), b'')
 
+    def test_request_rejects_same_boot_wrong_session_and_short_input(self):
+        stream = io.BytesIO()
+        export.request_snapshot(stream, PREVIOUS, SESSION)
+        frame = stream.getvalue()
+        export.await_request(Fragmented(frame), BOOT, SESSION)
+        for bad in (frame[:-1], b'BAD!' + frame[4:]):
+            with self.assertRaises(ValueError):
+                export.await_request(Fragmented(bad), BOOT, SESSION)
+        with self.assertRaises(ValueError):
+            export.await_request(Fragmented(frame), PREVIOUS, SESSION)
+        with self.assertRaises(ValueError):
+            export.await_request(Fragmented(frame), BOOT, 'cd' * 32)
+
+    def test_nonblocking_stream_deadline_and_disconnect(self):
+        reader, writer = os.pipe()
+        self.addCleanup(os.close, reader)
+        os.set_blocking(reader, False)
+        try:
+            with self.assertRaises(TimeoutError):
+                export.SerialStream(reader, 0.01).read(1)
+        finally:
+            os.close(writer)
+        with self.assertRaises(ValueError):
+            export.read_exact(export.SerialStream(reader, 1), 1)
+
     def test_real_pseudoterminal_transfer_without_ack(self):
         master, slave = pty.openpty()
         self.addCleanup(os.close, master)
         self.addCleanup(os.close, slave)
         tty.setraw(slave)
+        os.set_blocking(master, False)
+        os.set_blocking(slave, False)
         errors = []
 
         def receive():
             try:
-                with os.fdopen(os.dup(master), 'rb', buffering=0) as stream:
-                    export.receive_snapshot(stream, self.output, BOOT, SESSION)
+                stream = export.SerialStream(master, 2)
+                export.request_snapshot(stream, PREVIOUS, SESSION)
+                export.receive_snapshot(stream, self.output, PREVIOUS, SESSION)
             except Exception as error:
                 errors.append(error)
 
         receiver = threading.Thread(target=receive, daemon=True)
         receiver.start()
-        with os.fdopen(os.dup(slave), 'wb', buffering=0) as stream:
-            export.send_snapshot(stream, SNAPSHOT, BOOT, SESSION)
+        stream = export.SerialStream(slave, 2)
+        export.await_request(stream, BOOT, SESSION)
+        export.send_snapshot(stream, SNAPSHOT, BOOT, SESSION)
         receiver.join(timeout=5)
         self.assertFalse(receiver.is_alive(), 'receiver stalled')
         self.assertEqual(errors, [])

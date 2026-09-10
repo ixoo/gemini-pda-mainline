@@ -10,14 +10,48 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import select
 import stat
 import struct
-import sys
+import time
+import tty
 import uuid
 
 SIZE = 65536
 HEADER = struct.Struct('<4s16s32s32sI')
 MAGIC = b'WFP1'
+REQUEST = struct.Struct('<4s16s32s')
+
+
+class SerialStream:
+    """Unbuffered I/O on an already open nonblocking terminal, one deadline."""
+    def __init__(self, fd, seconds=60):
+        self.fd = fd
+        self.deadline = time.monotonic() + seconds
+
+    def transfer(self, value, writing):
+        while True:
+            remaining = self.deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError('snapshot transport deadline expired')
+            readable, writable, _ = select.select(
+                [] if writing else [self.fd], [self.fd] if writing else [], [], remaining)
+            if not (readable or writable):
+                raise TimeoutError('snapshot transport deadline expired')
+            try:
+                return os.write(self.fd, value) if writing else os.read(self.fd, value)
+            except BlockingIOError:
+                continue
+
+    def read(self, size):
+        return self.transfer(size, False)
+
+    def write(self, data):
+        return self.transfer(data, True)
+
+    def flush(self):
+        # No userspace buffer; this is not a USB drain/receipt acknowledgement.
+        pass
 
 
 def identities(boot_id, session_sha256):
@@ -61,18 +95,33 @@ def send_snapshot(stream, snapshot, boot_id, session_sha256):
     stream.flush()
 
 
-def receive_snapshot(stream, output, boot_id, session_sha256):
+def request_snapshot(stream, previous_boot_id, session_sha256):
+    previous, session = identities(previous_boot_id, session_sha256)
+    write_all(stream, REQUEST.pack(b'WFR1', previous, session))
+    stream.flush()
+
+
+def await_request(stream, boot_id, session_sha256):
+    boot, session = identities(boot_id, session_sha256)
+    magic, previous, selected = REQUEST.unpack(read_exact(stream, REQUEST.size))
+    if magic != b'WFR1' or not any(previous) or previous == boot or selected != session:
+        raise ValueError('snapshot request identity mismatch')
+
+
+def receive_snapshot(stream, output, previous_boot_id, session_sha256):
     """Save one frame; return only after file readback and directory sync.
 
     The output directory must not exist. A failed save is retained privately
     for inspection; any files left behind do not certify a completed save.
     The caller supplies a deadline/disconnect policy for its chosen stream.
     """
-    boot, session = identities(boot_id, session_sha256)
+    previous, session = identities(previous_boot_id, session_sha256)
     magic, actual_boot, actual_session, digest, size = HEADER.unpack(
         read_exact(stream, HEADER.size))
-    if (magic, actual_boot, actual_session, size) != (MAGIC, boot, session, SIZE):
+    if ((magic, actual_session, size) != (MAGIC, session, SIZE) or
+            not any(actual_boot) or actual_boot == previous):
         raise ValueError('snapshot identity or framing mismatch')
+    boot_id = str(uuid.UUID(bytes=actual_boot))
     snapshot = read_exact(stream, SIZE)
     if hashlib.sha256(snapshot).digest() != digest:
         raise ValueError('snapshot digest mismatch')
@@ -128,11 +177,23 @@ def save_snapshot(directory, snapshot, digest, boot_id, session_sha256):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--boot-id', required=True)
+    parser.add_argument('--previous-boot-id', required=True)
     parser.add_argument('--session-sha256', required=True)
+    parser.add_argument('--serial', required=True, help='explicit host USB serial terminal')
     parser.add_argument('output', help='new directory below a private parent')
     args = parser.parse_args()
-    receive_snapshot(sys.stdin.buffer, args.output, args.boot_id, args.session_sha256)
+    identities(args.previous_boot_id, args.session_sha256)
+    fd = os.open(args.serial, os.O_RDWR | os.O_NONBLOCK | os.O_NOCTTY |
+                 os.O_NOFOLLOW | os.O_CLOEXEC)
+    try:
+        if not stat.S_ISCHR(os.fstat(fd).st_mode) or not os.isatty(fd):
+            raise ValueError('expected a serial terminal')
+        tty.setraw(fd, when=tty.TCSANOW)
+        stream = SerialStream(fd)
+        request_snapshot(stream, args.previous_boot_id, args.session_sha256)
+        receive_snapshot(stream, args.output, args.previous_boot_id, args.session_sha256)
+    finally:
+        os.close(fd)
     print('snapshot preserved; no clearing command sent')
 
 

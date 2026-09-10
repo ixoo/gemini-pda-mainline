@@ -51,7 +51,7 @@ def main():
         startup_sources = {'init': HERE / 'startup-init.sh'}
         startup_sources.update({f'opt/wifi-cycle/{name}': HERE / name for name in
                                 ('startup.py', 'cycle-controller.py', 'respond-once.py',
-                                 'check-retained-patches.py')})
+                                 'check-retained-patches.py', 'capture-export.py', 'capture-device.py')})
         if {name: digest(path) for name, path in startup_sources.items()} != session['startup_files']:
             raise ValueError('session startup source mismatch')
     if package.exists() or not package.parent.is_dir():

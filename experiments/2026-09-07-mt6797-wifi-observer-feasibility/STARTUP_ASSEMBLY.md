@@ -13,13 +13,18 @@ python3 build-startup-filesystem.py PRIVATE_INPUTS RUNTIME_TAR NEW_PACKAGE SESSI
 ```
 
 Without that argument it still produces an input-only filesystem. With it,
-the builder validates the [session schema](BOOT_STARTUP.md#identity-and-packaging-contract),
+at this assembly revision the builder validated the session schema,
 requires the exact five startup source hashes, and requires the generated input
 manifest to match the session. It installs `/init` with mode 0500, the four
 Python files and session with mode 0400, and the four virtual-filesystem mount
 directories. The pinned runtime already contains three controller files; their
 copies are replaced by the explicitly hashed current sources. No startup code
 is invoked during assembly.
+
+The current [export startup](CAPTURE_DEVICE.md) advances the builder to schema 2
+and seven pinned startup sources (six Python files plus `/init`). The second
+package recorded here remains the original schema-1 artifact; it is not silently
+updated or selected by the new code.
 
 The assembly session binds the verified [44-patch kernel](FULL_KERNEL.md), its
 configuration and input manifest, the tested runtime, private inputs and startup

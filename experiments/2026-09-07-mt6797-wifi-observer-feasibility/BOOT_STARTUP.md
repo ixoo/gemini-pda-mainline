@@ -25,21 +25,27 @@ Process inspection uses the pinned kernel's `PF_KTHREAD` flag, not an empty
 command line, to reject every other userspace process, including zombies.
 Existing network interfaces must be administratively down.
 
-Only then does it import the checked controller, open and identify its detector
+The schema-2 manifest explicitly selects `cycle` or `export`. In cycle mode,
+only then does it import the checked controller, open and identify its detector
 through the existing controller checks, recheck kernel/process/interface state,
 and invoke the existing single-cycle implementation. There is one invocation,
 with no retry. Success still requires recovered capture classification. On
 failure or completion PID1 waits; it neither disarms nor reloads the watchdog
 and issues no software restart. A refusal before takeover leaves recovery to
 the owner; the planned session must account for that case.
+In [export mode](CAPTURE_DEVICE.md), PID1 instead reads the preserved raw PMSG
+file, sets up one ACM serial function and serves one requested snapshot. It
+then parks with the serial descriptor open. It never opens the detector or
+continues into the cycle. The init script mounts pstore read-only for this path.
 
 ## Identity and packaging contract
 
 `/etc/wifi-cycle/session.json` is a private, externally pinned build manifest.
-Its schema is validated by `validate_session()`: schema version 1, a nonzero
+Its schema is validated by `validate_session()`: schema version 2, an explicit
+startup action, a nonzero
 cycle UUID, expected kernel release/version/online CPUs, kernel image/input/
 configuration hashes, the pinned runtime archive hash, private input-manifest
-hash, and hashes for `/init` plus the four Python startup/controller sources.
+hash, and hashes for `/init` plus the six Python startup/controller/export sources.
 The image/input hashes are build-time provenance fields; PID1 cannot attest
 the running kernel image from those supplied fields.
 
@@ -83,5 +89,5 @@ prove continuous kernel actor isolation. Remaining system restart/notifier and
 shared-resource control, capture zero-state preparation, complete packaging and
 the owner-approved radio/recovery session still precede device execution.
 The [live preparation inspection](CAPTURE_PREPARATION.md) found nonempty PMSG
-memory; a frozen-snapshot export path must be resolved before implementing a
-clear operation. The current startup supplies no such path.
+memory. The new export action implements a preservation path; actual device
+export and the clear operation remain unvalidated and unimplemented respectively.

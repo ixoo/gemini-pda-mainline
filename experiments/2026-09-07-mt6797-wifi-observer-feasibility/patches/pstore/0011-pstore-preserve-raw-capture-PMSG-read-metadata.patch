@@ -1,0 +1,41 @@
+From 3da3a0a1dffdf1151c7532aba9972947b5817cbd Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <experiment@invalid.example>
+Date: Thu, 10 Sep 2026 19:03:24 -0400
+Subject: [PATCH] pstore: preserve raw capture PMSG read metadata
+
+The capture-mode PMSG old log includes every byte of the raw zone, not
+a text crash record. Its copy is not guaranteed to be NUL-terminated
+before the crash-header parser runs. Bypass that parser for this one
+mode and record type, returning zero time and uncompressed metadata.
+Other reads are unchanged. The caller decompresses only DMESG; this
+change does not claim to repair PMSG payload decompression.
+
+The archive identity is synthetic and non-certifying. This isolated
+native experiment is not submission-ready or a selected device candidate.
+---
+ fs/pstore/ram.c | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/fs/pstore/ram.c b/fs/pstore/ram.c
+index 9cad413..d44a463 100644
+--- a/fs/pstore/ram.c
++++ b/fs/pstore/ram.c
+@@ -287,7 +287,14 @@ static ssize_t ramoops_pstore_read(u64 *id, enum pstore_type_id *type,
+ 		return -ENOMEM;
+ 
+ 	memcpy(*buf, persistent_ram_old(prz), size);
+-	ramoops_read_kmsg_hdr(*buf, time, compressed);
++	if (pmsg_capture && *type == PSTORE_TYPE_PMSG) {
++		/* This is a complete raw snapshot, never a text crash record. */
++		time->tv_sec = 0;
++		time->tv_nsec = 0;
++		*compressed = false;
++	} else {
++		ramoops_read_kmsg_hdr(*buf, time, compressed);
++	}
+ 	persistent_ram_ecc_string(prz, *buf + size, ecc_notice_size + 1);
+ 
+ 	return size + ecc_notice_size;
+-- 
+2.54.0 (Apple Git-157)
+

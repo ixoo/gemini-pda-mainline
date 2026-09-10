@@ -46,10 +46,11 @@ selected capture-mode boot will export its complete initial raw snapshot to
 external private storage while ordinary writers remain excluded. Bind that
 export and any subsequent preparation request to the same boot and exact
 current bytes. Resolve the transport and failure recovery before selecting a
-candidate; the current minimal PID1 filesystem supplies no such export path.
+candidate; the earlier minimal PID1 filesystem supplies no such export path.
 The [stream transfer implementation](CAPTURE_EXPORT.md) now supplies bounded
-framing and private host preservation. Acquisition and USB integration remain
-unfinished, so it does not yet satisfy this same-boot requirement.
+framing and private host preservation. The [device bridge](CAPTURE_DEVICE.md)
+adds acquisition and USB integration; packaging and actual device export still
+precede any claim that this same-boot requirement has been satisfied.
 
 Only after that contract is concrete can a separately reviewed operation
 compare the preserved predecessor, perform one bounded zero pass and require

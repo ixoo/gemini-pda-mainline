@@ -14,6 +14,7 @@ trap park EXIT HUP INT TERM
 set -eu
 /bin/busybox mount -t proc -o nosuid,nodev,noexec proc /proc
 /bin/busybox mount -t sysfs -o nosuid,nodev,noexec sysfs /sys
+/bin/busybox mount -t pstore -o ro,nosuid,nodev,noexec pstore /sys/fs/pstore
 /bin/busybox mount -t devtmpfs -o nosuid,noexec devtmpfs /dev
 exec </dev/console >/dev/console 2>&1
 printf '0\n' > /proc/sys/kernel/sysrq

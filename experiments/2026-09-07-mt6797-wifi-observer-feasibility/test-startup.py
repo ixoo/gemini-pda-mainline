@@ -42,11 +42,12 @@ class StartupTests(unittest.TestCase):
         self.write('etc/wifi-cycle/input-manifest.json', self.manifest)
         source_files = {}
         for name in ('init', 'opt/wifi-cycle/startup.py', 'opt/wifi-cycle/cycle-controller.py',
-                     'opt/wifi-cycle/respond-once.py', 'opt/wifi-cycle/check-retained-patches.py'):
+                     'opt/wifi-cycle/respond-once.py', 'opt/wifi-cycle/check-retained-patches.py',
+                     'opt/wifi-cycle/capture-export.py', 'opt/wifi-cycle/capture-device.py'):
             self.write(name, b'fixture source')
             source_files[name] = startup.sha(b'fixture source')
         config = b'fixture config\n'
-        self.session = {'schema': 1, 'cycle_id': '12345678-1234-4234-9234-123456789abc',
+        self.session = {'schema': 2, 'startup_action': 'cycle', 'cycle_id': '12345678-1234-4234-9234-123456789abc',
                         'kernel_release': 'fixture', 'kernel_version': 'fixture version',
                         'kernel_image_sha256': 'a' * 64, 'kernel_inputs_sha256': 'b' * 64,
                         'kernel_config_sha256': startup.sha(config), 'runtime_sha256': startup.RUNTIME,
@@ -81,6 +82,21 @@ class StartupTests(unittest.TestCase):
     def test_writable_mount_refused(self):
         self.mount.return_value.f_flag = 0
         with self.assertRaisesRegex(ValueError, 'writable'):
+            startup.prepare()
+
+    def test_action_and_schema_are_explicit(self):
+        for action in ('cycle', 'export'):
+            self.session['startup_action'] = action
+            self.save_session()
+            self.assertEqual(startup.prepare()[0]['startup_action'], action)
+        self.session['startup_action'] = 'clear'
+        self.save_session()
+        with self.assertRaisesRegex(ValueError, 'action'):
+            startup.prepare()
+        self.session['startup_action'] = 'export'
+        self.session['schema'] = 1
+        self.save_session()
+        with self.assertRaisesRegex(ValueError, 'schema'):
             startup.prepare()
 
     def test_changed_private_input_refused(self):

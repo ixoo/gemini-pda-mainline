@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "scope": "PID1 export integration; no device session selected",
+  "sources": {
+    "startup-init.sh": "e7a67ba313196a2dfa9884383d41ed785a9bc69117c09b7c1d0ce940b79b6f5a",
+    "startup.py": "a0f4965b31d363d2524c7ccc042e4b31c1f59f88a68d538d833e21e3bc26070a",
+    "capture-device.py": "d8cec3b76c1bbc3154c947de626cecc5edb1d6305e4130e5acb28884d5d06f6a",
+    "capture-export.py": "f921a6e2778b465a0851983130b25cf7b455e1eb6ee683f1a73e8782e1b9fb59",
+    "build-startup-filesystem.py": "a6c46434eb478a1cd74a4bfa83d1a1dc2a69190e44afebc43f941637c02ed2de",
+    "test-startup.py": "61df698d7e9760f4a055aa3782c1497cba2cda40b6cacb3093dba3e12b24064f",
+    "test-capture-device.py": "cfb2f2200bb311405bdb639799677abe92b7ca15913a9c93e49fbb62049e2fad",
+    "test-capture-export.py": "622566f62ac817f5e56385bd474e90782a12c4842b2e367bd8efbf2bdb0639eb",
+    "test-capture-reader.py": "e7ff49464a6668b70a2a2912542493a972e8209bb53f6564d3159ce14dd4f7fc"
+  },
+  "native_parent_input_sha256": "c0f3331aca86b448d4b1821507a0a98732cd882683dba67ae8e7ae04107ffe33",
+  "native_reader_parent_sha256": "ea7427e08efa3ad455f6dc5784164d5dd7b1098ce714f5ef88b6ff86188ee609",
+  "native_reader_child_sha256": "09761efea84dd9b9b8d398bf7171ebff901d2f5df6a8b649ecf0ec6a0e0c3f4f",
+  "native_sources": {
+    "drivers/usb/gadget/android.c": "e4ddfeff93fef89a88ed507a41f3d964f6b20846cc792f1df37e78a319e5b59c",
+    "drivers/usb/gadget/function/f_acm.c": "f2bf83e897c19228f942704d25a7d5c3210b37a25932a679e5fd4ae8527b1a48",
+    "drivers/usb/gadget/function/u_serial.c": "94b4af15ffd2d6d683596f45c7a5cc73d46fa81ae88a3e466b9a8717d1b5063e",
+    "drivers/usb/gadget/function/f_mbim.c": "1be0f23aa1b6cf0d30a307aa6c912604b17777fa90f20ccb5e18272f49df03da",
+    "drivers/usb/gadget/function/f_fs.c": "ba6e272262b1074c5d21b523f028113c7a875ed05a53303d35bf16e9bbff70c7",
+    "fs/pstore/ram_core.c": "8a5a63163989901ec5dcccb374a77d572b81982fe5544025e090f4e00bcd0b10",
+    "fs/pstore/inode.c": "f49ac29f36e3145f0cd67c595f7b66ac5fc16ec9ec489143f4191aac9b0c5130",
+    "fs/pstore/platform.c": "faff4a24ea2a298ba8fe267f04266665bc75e0241dc67718390708e587e73474"
+  },
+  "reader_patch_sha256": "d66554caaef1c6b810542db2a066566626662976a4d7fbf1c642b37e8c220ab8",
+  "selected_46_patch_inputs_sha256": "bbefddd06bc41e62bf127fadb5f015ce5b040ae7c149d345bcbe76d432da13dc",
+  "tests": {
+    "startup_host_and_arm64_re_vm": "13 passed each",
+    "stream_host_and_arm64_re_vm": "9 passed each",
+    "device_bridge_host_and_arm64_re_vm": "4 groups passed each; USB controls and device identity injected",
+    "reader_native_bodies_host": "parent metadata confusion reproduced; child corrected; ordinary paths and allocation refusal preserved",
+    "shell_syntax_and_shellcheck": "passed",
+    "strict_checkpatch": "passed using Linux 7.1.3; only MISSING_SIGN_OFF excluded"
+  },
+  "native_46_patch_link": "pending",
+  "packaged_runtime_tested": false,
+  "device_export_tested": false,
+  "clearing_implemented": false,
+  "radio_triggered": false,
+  "boot_candidate_selected": false
+}

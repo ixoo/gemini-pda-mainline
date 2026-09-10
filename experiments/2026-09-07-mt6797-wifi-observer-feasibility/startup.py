@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import platform
 import stat
+import sys
 import time
 import uuid
 
@@ -54,9 +55,12 @@ def digest_field(value):
 def validate_session(session):
     required = {'schema', 'cycle_id', 'kernel_release', 'kernel_version',
                 'kernel_image_sha256', 'kernel_inputs_sha256', 'kernel_config_sha256',
-                'runtime_sha256', 'input_manifest_sha256', 'startup_files', 'cpu_online'}
-    if set(session) != required or session['schema'] != 1:
+                'runtime_sha256', 'input_manifest_sha256', 'startup_files', 'cpu_online',
+                'startup_action'}
+    if set(session) != required or session['schema'] != 2:
         raise ValueError('unknown session schema')
+    if session['startup_action'] not in ('export', 'cycle'):
+        raise ValueError('unknown startup action')
     cycle = uuid.UUID(session['cycle_id'])
     if str(cycle) != session['cycle_id'] or cycle.int == 0:
         raise ValueError('invalid cycle identity')
@@ -67,7 +71,8 @@ def validate_session(session):
         raise ValueError('runtime identity mismatch')
     if set(session['startup_files']) != {'init', 'opt/wifi-cycle/startup.py',
             'opt/wifi-cycle/cycle-controller.py', 'opt/wifi-cycle/respond-once.py',
-            'opt/wifi-cycle/check-retained-patches.py'}:
+            'opt/wifi-cycle/check-retained-patches.py', 'opt/wifi-cycle/capture-export.py',
+            'opt/wifi-cycle/capture-device.py'}:
         raise ValueError('startup source inventory mismatch')
     for value in session['startup_files'].values():
         digest_field(value)
@@ -161,6 +166,15 @@ def main():
         raise SystemExit('requires candidate PID1; no standalone run')
     try:
         session, identity = prepare()
+        if session['startup_action'] == 'export':
+            spec = importlib.util.spec_from_file_location('capture_device', ROOT / 'opt/wifi-cycle/capture-device.py')
+            device = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(device)
+            # Intentionally retain the open serial descriptor while PID1 parks.
+            device.export_snapshot(sys.modules[__name__], session, identity)
+            print('wifi-startup: snapshot queued; host preservation required', flush=True)
+            while True:
+                time.sleep(3600)
         spec = importlib.util.spec_from_file_location('cycle', ROOT / 'opt/wifi-cycle/cycle-controller.py')
         controller = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(controller)
