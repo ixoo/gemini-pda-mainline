@@ -839,5 +839,11 @@ returns `-EPERM`, instead of a missing setter. Supplying a value at boot cannot
 clear the mask or call a NULL pointer. The expanded callback fixture exercises
 both setter bodies, pre-freeze parsing, post-freeze refusal and denial-mask
 refusal; the source receipt also pins the three parameter/kernfs files.
-Final five-patch ARM64 compilation remains pending. Neither version was
-selected or executed on the Gemini.
+The [final five-patch compilation](results/pmsg-owner-object-compile.json)
+passed at `f65e32bf830e65da70d286f279d59003edab3df2`: all four original and
+patched translation units compiled, their source hashes match the reviewed
+inputs, and all nineteen package files passed remote and local validation.
+The recorded flags include `-w`; this is target/header compatibility, not a
+warnings-enabled or full-kernel-link result. Temporary output was removed and
+the prepared source remained clean. Neither version was selected or executed
+on the Gemini.

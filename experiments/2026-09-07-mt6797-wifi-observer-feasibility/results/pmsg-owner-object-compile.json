@@ -1,0 +1,69 @@
+{
+  "config_delta": {
+    "CONFIG_ANBOX": [
+      null,
+      "n"
+    ]
+  },
+  "config_sha256": "c96ca5c8a767b93f59487c9b4a1c3d05c1f47c166f3f9ea9f2b7ffe0f6f1f0fb",
+  "objects": [
+    {
+      "baseline_command_sha256": "84c548a2c5b42c77dcbad5fd58b412c9d77354946c6001fc17ee4a4319466b0d",
+      "baseline_object_sha256": "337468ab834d24020698fb9e84e1e72d8b519c24edc935f5f72983827c632ea6",
+      "baseline_source_sha256": "d068bcef6caea7674bde8a900f5c0a774f6c8a71ab981075d1a12d0b8d9dd7e0",
+      "diagnostics_bytes": 0,
+      "file": "fs/pstore/pmsg.c",
+      "object_sha256": "15d67723f5ce35294c075281c1e38fc6a164ed494f28b8634c258c637474058c",
+      "patched_header_dependency_verified": null,
+      "patched_source_sha256": "6c08ebdeaabaa1e61b681118982b5ab5562357ac042ee3566736e9c3f8abe21d"
+    },
+    {
+      "baseline_command_sha256": "88e667ae1c82e233ad120ecc5d4c5984855707ac2f8a8d685403db0c7e1e8438",
+      "baseline_object_sha256": "69ee31915e41e503226d4d5cf0d8b1d72258ec13351a64dcc47bf04d2f8fcff2",
+      "baseline_source_sha256": "ff9e4cf2cc9decf2a62afe92505d4a8a49ca5c32b7fb473434cc77bfc6574b92",
+      "diagnostics_bytes": 0,
+      "file": "fs/pstore/inode.c",
+      "object_sha256": "2f24e56d07fb4eb352b3080b1f442c5c0d1329b13e1aec0038ce2f6e5ac9603b",
+      "patched_header_dependency_verified": null,
+      "patched_source_sha256": "f49ac29f36e3145f0cd67c595f7b66ac5fc16ec9ec489143f4191aac9b0c5130"
+    },
+    {
+      "baseline_command_sha256": "f2176797030c9d44feb431620bc705022054671b24500e5b8238394c05723bda",
+      "baseline_object_sha256": "827b4ec49d004c5a0d9a165d99192210a63259dc57c965dd20f3e07c802f1a1b",
+      "baseline_source_sha256": "eb25a629b9dff9bbffedd7c90fd2a1045420792570cd0a775d78d3bd2c2ca1b6",
+      "diagnostics_bytes": 0,
+      "file": "fs/pstore/ram_core.c",
+      "object_sha256": "057f546d2538668c929d5ff34f22b91d7ef8cd063c19ff566b2ec9bdf88a9256",
+      "patched_header_dependency_verified": null,
+      "patched_source_sha256": "9f07dc5c78c78008e57a00090f8c76a3d3412e318c3decc545fd87ed7cc8da47"
+    },
+    {
+      "baseline_command_sha256": "a2d8c9bc14a5cf4256355fef94c23c6d57b0e88b1c72e51f9767fe79bd2e4c4a",
+      "baseline_object_sha256": "8df4a3bf55b9d015b30ce05139a3a07c79cf774b43310f4426583c20dbdcbaf9",
+      "baseline_source_sha256": "7ba661c230fb71d7d2768bb3cddb95d1deb36810531cfc992bc5c7297113a391",
+      "diagnostics_bytes": 0,
+      "file": "fs/pstore/ram.c",
+      "object_sha256": "7ebbcf829a8236c1f9bacb6a131e2a89c517b24f5218ac192d1ea2c2386d2de2",
+      "patched_header_dependency_verified": null,
+      "patched_source_sha256": "bcef3a7a261e3a7242b6d18e045d5c299cfcf3227c2a75228ddc2baca54db1b1"
+    }
+  ],
+  "package_files": 19,
+  "package_inventory_sha256": "76a4f6cc908a3b0865108aab63ad784c86926d1985df21e05cad18b1f921b4f0",
+  "patched_header_sha256": null,
+  "patches": {
+    "0001-pstore-report-native-pmsg-backend-write-failures.patch": "41a64284f4013ccd7c8bfa7fa0adb78a0b001f289970319310a6cb193848184b",
+    "0002-pstore-preserve-native-records-when-backend-erase-fa.patch": "48b3b5f3bac483c4c85a65cba5756f3b577dd1f9bbb2a723ff1630df02812565",
+    "0003-pstore-preserve-old-log-on-allocation-failure.patch": "f59195e7009ea7dd8299d6d627962338cebdc3d9022e9e3047cedacca283b060",
+    "0004-pstore-reserve-native-pmsg-for-capture.patch": "f79230f50760d4bf45c71660dd65bc68c872e56f953c2bcfecacc9f66b9353cf",
+    "0005-pstore-freeze-native-capture-parameters.patch": "871664dbdf4ea52615e5151e677feacce6f0a84dce2cf2f20a0497eff54e1ae6"
+  },
+  "prepared_source_clean_after": true,
+  "project_commit": "f65e32bf830e65da70d286f279d59003edab3df2",
+  "remote_and_local_inventory_verified": true,
+  "scope": "4 complete translation units; no kernel link or device execution",
+  "source_commit": "59e00a9144d782e148332009a835b99c43382467",
+  "temporary_build_output_removed": true,
+  "toolchain_manifest_sha256": "a45d945f092461a611d276ad7d0a0fea1ea8a7f93db413908bcb892c12817d14",
+  "warning_policy": "Original recorded commands are reused, including -w; empty logs are not a warnings-enabled claim."
+}
