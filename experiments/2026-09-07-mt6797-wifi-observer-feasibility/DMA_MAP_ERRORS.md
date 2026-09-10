@@ -66,6 +66,13 @@ not physical DMA observations.
 
 `check-startup-objects.py COMMIT --dma-map-error` selects 31 patches and the
 existing 19-unit native compile scope, verifies source/API pins and runs the
-focused fixture. Native compilation is pending. Full linking, DMA failure
-containment, consumer isolation and reviewed controller/recovery integration
-remain necessary before device admission.
+focused fixture. The [native compilation receipt](results/dma-map-error-object-compile.json)
+records success at `b3559e46e145db184b06616e3d4e6cc7ca94c91d`. All 91 regular
+package files match the remote inventory and the 90-entry checksum manifest;
+its SHA-256 is `8acd6b1c89f8b474d2fec169f27558c243d5f4d5c4885946fa6f53e81a9067ee`.
+The compiled AHB source matches the pinned output. Native commands retain
+baseline warning suppression; empty diagnostics are not warning-clean evidence.
+
+Full linking, DMA failure containment, consumer isolation and reviewed
+controller/recovery integration remain necessary before device admission.
+No device was accessed for this checkpoint.
