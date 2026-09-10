@@ -414,6 +414,49 @@ class RecordsTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     r.check_shutdown_bindings(data, CYCLE)
 
+    def firmware_events(self, device=1, transaction=7):
+        return [(7, transaction, layout.pack(*values)) for layout, values in [
+            (r.FW_READ_ENTRY, [8, device]),
+            (r.FW_READ_ALLOCATION, [9, device, 101, 104, 1]),
+            (r.FW_READ_RESULT, [10, device, 101, 1, 101]),
+            (r.FW_READ_RETURN, [11, device, 1, 101, 1])]]
+
+    def test_firmware_binding_join(self):
+        bind, dma, stop, unbind = self.shutdown_parts()
+        read = self.firmware_events()
+        # Reads and DMA have separate ordinal spaces; no payload/DMA join is claimed.
+        for middle, expected_reads in ((read + dma, [7]), (dma + read, [7]),
+                                       (read + dma + self.firmware_events(transaction=8), [7, 8])):
+            result = r.check_firmware_bindings(
+                self.shutdown_stream(bind + middle + stop + unbind), CYCLE)
+            self.assertEqual(result['checked_device'], 1)
+            self.assertEqual(result['checked_reads'], expected_reads)
+
+    def test_firmware_rejects_individually_valid_unjoined_records(self):
+        bind, dma, stop, unbind = self.shutdown_parts()
+        read = self.firmware_events()
+        faults = {
+            'other adapter': bind + self.firmware_events(device=2) + dma + stop + unbind,
+            'before binding': read + bind + dma + stop + unbind,
+            'entry before binding': read[:1] + bind + read[1:] + dma + stop + unbind,
+            'after release': bind + dma + stop + unbind + read,
+            'during stop': bind + dma + stop[:1] + read + stop[1:] + unbind,
+            'after stop': bind + dma + stop + read + unbind,
+            'return during stop': bind + read[:-1] + dma + stop[:1] + read[-1:] + stop[1:] + unbind,
+            'return after release': bind + read[:-1] + dma + stop + unbind + read[-1:],
+        }
+        for name, events in faults.items():
+            with self.subTest(name=name):
+                data = self.shutdown_stream(events)
+                r.check_shutdown_bindings(data, CYCLE)
+                r.check_firmware_read(data, CYCLE)
+                with self.assertRaises(ValueError):
+                    r.check_firmware_bindings(data, CYCLE)
+        with self.assertRaises(ValueError):
+            r.check_firmware_bindings(self.shutdown_stream(bind + dma + stop + unbind), CYCLE)
+        with self.assertRaises(ValueError):
+            r.check_firmware_bindings(self.shutdown_stream(read), CYCLE)
+
     def test_dma_semantic_mutations_with_valid_crc(self):
         layouts = {3: r.DMA_MAP, 4: r.DMA_PROGRAM, 5: r.DMA_POLL, 6: r.DMA_UNMAP}
         # Event index, field index, changed value: frames are re-encoded with valid CRCs.

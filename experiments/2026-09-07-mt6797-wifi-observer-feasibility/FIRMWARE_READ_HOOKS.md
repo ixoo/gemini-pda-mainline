@@ -79,3 +79,25 @@ were verified, as were the emitted capture/read call sites. All eight package
 files passed remote/local inventory verification. The native flags retain
 `-w`; empty diagnostics do not establish warning-clean code. Full kernel
 linking, controller integration and device validation remain separate work.
+
+## Firmware-read lifetime join
+
+`check_firmware_bindings()` composes the file-read extent checker with the
+existing DMA/ordinary-stop lifetime checker. Every firmware-read record must
+name that same software HIF binding, follow its acquisition and precede stop
+entry. A read that straddles either boundary is rejected. Several complete
+mapping invocations are allowed; their ordinals are independent of DMA and
+stop ordinals. This does not associate a particular read with a DMA transfer.
+
+All 22 decoder test groups pass. Three valid streams cover reads before DMA,
+after DMA, and multiple mapping invocations. Eight valid-checksum streams pass
+the separate extent and shutdown checks but fail the join: another adapter,
+read or entry before binding, read after release, read during or after stop,
+and return during stop or after release. Missing read or shutdown evidence
+also refuses. These fixtures establish recorded ordering only, not producer
+coverage, buffer identity, firmware execution, common OFF or a complete cycle.
+
+No producer or kernel input changed. No kernel build or device test was run
+for this offline decoder change. The integrated controller, remaining native
+capture sites and admitted recovery protocol are still required before a
+hardware session can establish the lifetime predicates.

@@ -483,6 +483,27 @@ def check_shutdown_bindings(data, expected_cycle):
             'scope': 'recorded DMA and ordinary stop within one software HIF lifetime only'}
 
 
+def check_firmware_bindings(data, expected_cycle):
+    """Join recorded file reads to the DMA/stop binding; no loaded-byte proof."""
+    shutdown = check_shutdown_bindings(data, expected_cycle)
+    reads = check_firmware_read(data, expected_cycle)
+    live = stopping = False
+    for row in decode(data, expected_cycle):
+        kind, payload = row['kind'], row['payload']
+        subtype = int.from_bytes(payload[:4], 'little')
+        if kind == 2:
+            live = subtype == 1
+        elif kind == 7 and subtype == 1:
+            stopping = True
+        elif kind == 7 and subtype in (8, 9, 10, 11):
+            if not live or stopping:
+                raise ValueError('firmware read outside the pre-stop HIF lifetime')
+            if int.from_bytes(payload[4:8], 'little') != shutdown['checked_device']:
+                raise ValueError('firmware read adapter differs from the DMA/stop binding')
+    return {**shutdown, 'checked_reads': reads['checked_reads'],
+            'scope': 'recorded file reads, DMA and stop share one software HIF lifetime only'}
+
+
 def check_emi(data, expected_cycle):
     """Check recorded native section operations; does not grant EMI ownership."""
     sections = {}
