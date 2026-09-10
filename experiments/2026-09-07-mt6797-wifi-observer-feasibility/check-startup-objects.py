@@ -107,8 +107,9 @@ def main():
     mode = sys.argv[2] if len(sys.argv) == 3 else "--wmt"
     assert mode in ("--wmt", "--pstore", "--capture-writer", "--dma", "--stop",
                     "--firmware-read", "--firmware-read-safe", "--firmware-image", "--emi", "--provider-off",
-                    "--common-off-safe", "--common-off", "--operation-ownership", "--request-capture", "--request-firmware")
-    request_firmware = mode == "--request-firmware"
+                    "--common-off-safe", "--common-off", "--operation-ownership", "--request-capture", "--request-firmware", "--tx-payload")
+    tx_payload = mode == "--tx-payload"
+    request_firmware = mode == "--request-firmware" or tx_payload
     request_capture = mode == "--request-capture" or request_firmware
     ownership = mode == "--operation-ownership" or request_capture
     common_off = mode == "--common-off" or ownership
@@ -163,6 +164,9 @@ def main():
         label = "wifi-request-capture-objects-"
     if request_firmware:
         label = "wifi-request-firmware-objects-"
+    if tx_payload:
+        files += ("nic/nic_tx", hif + "ahb")
+        label = "wifi-tx-payload-objects-"
     def unit_path(name):
         return name if name.startswith("drivers/") else relative + name
     assert not run(["git", "-C", str(project), "status", "--porcelain"])
@@ -264,14 +268,24 @@ def main():
                     patches += sorted((experiment / "patches/request-capture").glob("*.patch"))
                 if request_firmware:
                     patches += sorted((experiment / "patches/request-firmware").glob("*.patch"))
+                if tx_payload:
+                    patches += sorted((experiment / "patches/tx-payload").glob("*.patch"))
             for extra in ("include/linux/pstore_ram.h", "arch/arm64/boot/dts/mt6797.dtsi",
                           "drivers/misc/mediatek/connectivity/wlan/gen3/Makefile",
                           "fs/pstore/ram.c", "fs/pstore/ram_core.c", "fs/pstore/internal.h",
                           "fs/pstore/pmsg.c", "fs/pstore/inode.c"):
                 (patched / extra).parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(source / extra, patched / extra)
-        assert len(patches) == (26 if request_firmware else 25 if request_capture else 24 if ownership else 23 if common_off else 17 if provider_off else 16 if emi_capture else 15 if firmware_image else 14 if firmware_safe else 13 if firmware_read else 12 if stop else 11 if dma else 0 if capture else 10 if pstore else 5 if common_off_safe else 4)
+        assert len(patches) == (27 if tx_payload else 26 if request_firmware else 25 if request_capture else 24 if ownership else 23 if common_off else 17 if provider_off else 16 if emi_capture else 15 if firmware_image else 14 if firmware_safe else 13 if firmware_read else 12 if stop else 11 if dma else 0 if capture else 10 if pstore else 5 if common_off_safe else 4)
         for patch in patches:
+            if tx_payload and patch.parent.name == "tx-payload":
+                tx_pins = json.loads((experiment / "results/tx-payload-sources.json").read_text())
+                assert digest(patch) == tx_pins["patch_sha256"]
+                tx_parent = work / "tx-parent"
+                for path, expected in tx_pins["parents"].items():
+                    assert digest(patched / path) == expected, path
+                    (tx_parent / path).parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copyfile(patched / path, tx_parent / path)
             if request_firmware and patch.parent.name == "request-firmware":
                 request_fw_pins = json.loads((experiment / "results/request-firmware-sources.json").read_text())
                 assert digest(patch) == request_fw_pins["patch_sha256"]
@@ -328,6 +342,17 @@ def main():
                 for path, expected in off_pins["parents"].items():
                     assert digest(patched / path) == expected, path
             subprocess.run(["git", "apply", str(patch)], cwd=patched, check=True)
+            if tx_payload and patch.parent.name == "tx-payload":
+                for path, expected in tx_pins["outputs"].items():
+                    assert digest(patched / path) == expected, path
+                support = work / "tx-support"
+                support.mkdir()
+                for entry in json.loads((experiment / "results/dma-hook-sources.json").read_text())["sources"]:
+                    shutil.copyfile(source / entry["path"], support / Path(entry["path"]).name)
+                shutil.copyfile(patched / relative / hif / "ahb_pdma.c", support / "ahb_pdma-capture.c")
+                subprocess.run(["python3", str(experiment / "test-tx-payload.py"),
+                                "--parent", str(tx_parent), "--tree", str(patched),
+                                "--support", str(support)], check=True)
             if request_firmware and patch.parent.name == "request-firmware":
                 for path, expected in request_fw_pins["outputs"].items():
                     assert digest(patched / path) == expected, path
@@ -369,6 +394,8 @@ def main():
             final_sources = dict(emi_pins["outputs"])
             if request_firmware:
                 final_sources.update(request_fw_pins["outputs"])
+            if tx_payload:
+                final_sources.update(tx_pins["outputs"])
             for path, expected in final_sources.items():
                 assert digest(patched / path) == expected, path
         elif firmware_image:
@@ -498,7 +525,8 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
                                    "-dr", str(result)], env=environment)
                 (work / (name + "-capture.disasm")).write_text(disassembly + "\n")
                 assert ({"gl_kal": "kalFirmwareLoadCapture", "gl_init": "kalFirmwareImageMapping",
-                         "wlan_lib": "wfc_fw_image_begin", "nic_pwr_mgt": "kalFirmwareImageMapping", "hif_fw_capture": "wfc_fw_image_begin"}[name] if firmware_image else
+                         "wlan_lib": "wfc_fw_image_begin", "nic_pwr_mgt": "kalFirmwareImageMapping", "hif_fw_capture": "wfc_fw_image_begin",
+                         "nic_tx": "wfc_fw_tx_staged", "ahb": "wfc_fw_tx_payload"}[name] if firmware_image else
                         "kalFirmwareLoadCapture" if firmware_read else "wlanAdapterStop" if stop and name == "gl_init" else
                         "wfc_stop_" if stop else "wfc_dma_") in disassembly
                 if firmware_image:
@@ -550,6 +578,14 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
             if request_firmware and name in ("wmt_lib", "gl_kal", "hif_fw_capture"):
                 assert str(patched / "include/linux/mt6797_wifi_capture.h") in dependencies
                 assert "mt6797_wfc_request_firmware" in disassembly, name
+            if tx_payload and name in ("wlan_lib", "nic_tx", "ahb", "hif_fw_capture"):
+                assert str(patched / headers / "hif_fw_capture.h") in dependencies
+                calls = {"wlan_lib": ("wfc_fw_tx_begin", "wfc_fw_tx_command", "wfc_fw_tx_finish", "nicTxInitCmdCapture"),
+                         "nic_tx": ("wfc_fw_tx_staged", "kalDevPortWriteCapture"),
+                         "ahb": ("wfc_fw_tx_payload", "wfc_fw_tx_dma", "wfc_fw_tx_port_return"),
+                         "hif_fw_capture": ("wfc_fw_tx_payload", "crypto_shash_digest")}[name]
+                for symbol in calls:
+                    assert symbol in disassembly, (name, symbol)
             if capture:
                 assert str(patched / relative / "capture-slot-writer.h") in dependencies
                 table = run(["readelf", "-Ws", str(result)])

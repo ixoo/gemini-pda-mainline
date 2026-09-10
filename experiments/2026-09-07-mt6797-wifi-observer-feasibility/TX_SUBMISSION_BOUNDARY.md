@@ -5,6 +5,8 @@ and the mapped image. Its boundary hashes cannot identify the later transmit
 copy. The next byte witness must attach to the actual transport buffer and its
 transfer identity. Adding only another loader-side digest would preserve this
 gap.
+The subsequent [pre-map payload component](TX_PAYLOAD.md) implements that
+boundary and DMA join while retaining the post-hash stability limitation.
 
 ## Source and executable counterexamples
 

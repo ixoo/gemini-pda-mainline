@@ -86,11 +86,15 @@ FW_READ_ENTRY = struct.Struct('<2I')
 FW_READ_ALLOCATION = struct.Struct('<5I')
 FW_READ_RESULT = struct.Struct('<4Iq')
 FW_READ_RETURN = struct.Struct('<5I')
+FW_TX_PAYLOAD = struct.Struct('<8I32s')
+FW_TX_DMA = struct.Struct('<5I')
+FW_TX_RETURN = struct.Struct('<6I')
 FW_STOP_LAYOUTS = {1: FW_STOP_ENTRY, 2: FW_STOP_COMMAND,
                    3: FW_STOP_POLL, 4: FW_STOP_RETURN,
                    5: FW_IMAGE, 6: FW_SECTION, 7: FW_IMAGE_RETURN,
                    8: FW_READ_ENTRY, 9: FW_READ_ALLOCATION,
-                   10: FW_READ_RESULT, 11: FW_READ_RETURN}
+                   10: FW_READ_RESULT, 11: FW_READ_RETURN,
+                   12: FW_TX_PAYLOAD, 13: FW_TX_DMA, 14: FW_TX_RETURN}
 
 
 def validate_stop_payload(transaction, payload):
@@ -101,6 +105,17 @@ def validate_stop_payload(transaction, payload):
     if layout is None or len(payload) != layout.size:
         raise ValueError('unsupported stop subtype or payload size')
     values = layout.unpack(payload)
+    if subtype >= 12:
+        if not values[1] or not values[2] or not 1 <= values[3] <= 8 or values[3] != transaction:
+            raise ValueError('payload witness requires adapter, image and matching chunk ordinal')
+        if subtype == 12 and (values[4] > 1 or not 1 <= values[6] <= 2048 or
+                              values[7] != values[6] + 8 or not any(values[8])):
+            raise ValueError('invalid payload extent or digest')
+        if subtype >= 13 and not values[4]:
+            raise ValueError('payload witness requires a DMA transaction')
+        if subtype == 14 and values[5] not in (0, 1):
+            raise ValueError('invalid native port result')
+        return
     if subtype >= 8:
         if not values[1]:
             raise ValueError('firmware read requires an adapter ID')
@@ -806,3 +821,67 @@ def check_image_sections(data, expected_cycle, expected_hash, expected_image_byt
         raise ValueError('not every required EMI section has complete operations')
     return {'checked_image': image_id, 'checked_emi_indices': sorted(seen),
             'scope': 'recorded image metadata and EMI coverage only; HIF submission and execution unchecked'}
+
+
+def check_image_tx(data, expected_cycle, expected_hash, expected_image_bytes,
+                   expected_sections, expected_payload_hashes):
+    """Join eight pre-map payload digests to complete DMA; no interval immutability proof."""
+    rows, images, device, image_id, _, _ = _image_metadata(
+        data, expected_cycle, expected_hash, expected_image_bytes, expected_sections)
+    binding = check_dma_bindings(data, expected_cycle)
+    check_dma(data, expected_cycle)
+    if binding['checked_device'] != device or images[0]['transaction'] != image_id:
+        raise ValueError('payload image does not identify the live HIF binding')
+    spans = []
+    for section, (offset, length, *_) in enumerate(expected_sections[:2]):
+        for relative in range(0, length, 2048):
+            spans.append((section, offset + relative, min(2048, length - relative)))
+    if len(spans) != 8 or len(expected_payload_hashes) != 8 or any(
+            len(digest) != 32 or not any(digest) for digest in expected_payload_hashes):
+        raise ValueError('requires independently reviewed digests for exactly eight chunks')
+    tx_rows = [row for row in rows if row['kind'] == 7 and
+               int.from_bytes(row['payload'][:4], 'little') in (12, 13, 14)]
+    if [int.from_bytes(row['payload'][:4], 'little') for row in tx_rows] != [12, 13, 14] * 8:
+        raise ValueError('missing, repeated or reordered payload witnesses')
+    used = set()
+    for index, ((section, offset, length), digest) in enumerate(zip(spans, expected_payload_hashes)):
+        chunk = index + 1
+        payload, link, returned = tx_rows[index * 3:index * 3 + 3]
+        if any(row['transaction'] != chunk for row in (payload, link, returned)):
+            raise ValueError('payload chunk ordinal changed')
+        if FW_TX_PAYLOAD.unpack(payload['payload']) != (
+                12, device, image_id, chunk, section, offset, length, length + 8, digest):
+            raise ValueError('pre-map payload differs from independently supplied image chunk')
+        _, link_device, link_image, link_chunk, transaction = FW_TX_DMA.unpack(link['payload'])
+        if (link_device, link_image, link_chunk) != (device, image_id, chunk) or transaction in used:
+            raise ValueError('mismatched or reused payload DMA join')
+        used.add(transaction)
+        if FW_TX_RETURN.unpack(returned['payload']) != (14, device, image_id, chunk, transaction, 1):
+            raise ValueError('native payload port did not return true for the joined transfer')
+        transfers = [row for row in rows if row['kind'] in (3, 4, 5, 6) and
+                     payload['sequence'] < row['sequence'] < returned['sequence']]
+        if len(transfers) != 9 or any(row['transaction'] != transaction for row in transfers):
+            raise ValueError('payload span does not enclose exactly its complete DMA transaction')
+        mapped = transfers[0]
+        dma_device, direction, requested, rounded, _, port, branch = DMA_MAP.unpack(mapped['payload'])
+        logical = length + 8
+        if (dma_device, direction, requested, rounded, port, branch) != (
+                device, 1, logical, ((logical + 511) // 512) * 512, 0x34, 1):
+            raise ValueError('payload DMA extent, direction or selected native route changed')
+        if not (images[section + 1]['sequence'] < payload['sequence'] < mapped['sequence'] <
+                link['sequence'] < transfers[1]['sequence'] < transfers[-1]['sequence'] <
+                returned['sequence'] < images[section + 2]['sequence']):
+            raise ValueError('payload witness is outside its section or DMA phase')
+    return {'checked_image': image_id, 'checked_device': device,
+            'checked_payload_chunks': list(range(1, 9)), 'checked_payload_dma': sorted(used),
+            'scope': 'pre-map payload digests joined to recorded DMA completion; buffer immutability and firmware execution unchecked'}
+
+
+def check_request_tx(data, expected_cycle, expected_hash, expected_image_bytes,
+                     expected_sections, expected_payload_hashes):
+    """Compose request/read/image/EMI/stop checks with the pre-map payload witness."""
+    check_request_firmware(data, expected_cycle, expected_hash, expected_image_bytes, expected_sections)
+    result = check_image_tx(data, expected_cycle, expected_hash, expected_image_bytes,
+                            expected_sections, expected_payload_hashes)
+    return {**result, 'checked_requests': [1, 2],
+            'scope': 'recorded request, firmware, pre-map payload, DMA, EMI and stop joins; immutability, quiescence, isolation and execution unchecked'}

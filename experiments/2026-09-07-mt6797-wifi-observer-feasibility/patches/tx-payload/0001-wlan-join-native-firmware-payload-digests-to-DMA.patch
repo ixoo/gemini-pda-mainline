@@ -1,0 +1,604 @@
+From 00483615ff30d226da271dada0d72d37f00276d4 Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <experiment@invalid.example>
+Date: Thu, 10 Sep 2026 11:22:25 -0400
+Subject: [PATCH] wlan: join native firmware payload digests to DMA transfers
+
+Carry a borrowed synchronous chunk witness from the divided-image loop
+through command allocation, NIC staging and the actual AHB DMA port call.
+Require the image owner and exact source, command and coalescing-buffer
+extents. Hash only the bounded payload before DMA_TO_DEVICE mapping,
+using the image's existing generic SHA-256 transform.
+
+Record each chunk digest, DMA ordinal and native port return. Require all
+eight chunk lifetimes before successful image observation. Refuse capture
+for PIO, alternate mapping, missing stages or native failure without
+changing native transfers, polling, cleanup, allocation or return values.
+Keep existing no-witness entry points and the original HAL macro path.
+
+This unselected experiment does not prove post-hash buffer immutability,
+firmware execution or resource isolation. Added lock duration, complete
+linking, controller integration and device admission remain open. The
+synthetic archive author supplies no DCO certification.
+---
+ .../connectivity/wlan/gen3/common/wlan_lib.c  |  53 +++--
+ .../connectivity/wlan/gen3/nic/nic_tx.c       |  29 ++-
+ .../wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c |  22 +-
+ .../linux/hif/ahb_sdioLike/hif_fw_capture.c   | 205 +++++++++++++++++-
+ .../hif/ahb_sdioLike/include/hif_fw_capture.h |  39 ++++
+ 5 files changed, 320 insertions(+), 28 deletions(-)
+
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c b/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c
+index 6ce9045..25ac5b9 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c
+@@ -141,10 +141,16 @@ PFN_OID_HANDLER_FUNC apfnOidWOTimeoutCheck[] = {
+ *                  F U N C T I O N   D E C L A R A T I O N S
+ ********************************************************************************
+ */
++static WLAN_STATUS
++wlanFwChunkCapture(struct wfc_fw_image *image,
++		   IN P_ADAPTER_T prAdapter, IN UINT_32 u4ImgSecSize,
++		   IN PUINT_8 pucImgSecBuf);
++
+ static WLAN_STATUS
+ wlanImageSectionDownloadStage(IN P_ADAPTER_T prAdapter,
+ 				  IN PVOID pvFwImageMapFile, IN UINT_32 index, IN UINT_32 u4FwImageFileLength,
+-				  IN BOOLEAN fgValidHead, IN UINT_32 u4FwLoadAddr);
++				  IN BOOLEAN fgValidHead, IN UINT_32 u4FwLoadAddr,
++				  struct wfc_fw_image *image);
+ 
+ #if CFG_ENABLE_FW_DOWNLOAD
+ #if CFG_ENABLE_FW_DIVIDED_DOWNLOAD
+@@ -451,7 +457,8 @@ wlanAdapterStart(IN P_ADAPTER_T prAdapter,
+ 			{
+ 				if (wlanImageSectionDownloadStage(prAdapter,
+ 						 pvFwImageMapFile, 0, u4FwImageFileLength,
+-						 FALSE, u4FwLoadAddr) != WLAN_STATUS_FAILURE) {
++						 FALSE, u4FwLoadAddr, NULL) !=
++				    WLAN_STATUS_FAILURE) {
+ 					u4Status = WLAN_STATUS_FAILURE;
+ 					eFailReason = RAM_CODE_DOWNLOAD_FAIL;
+ 				}
+@@ -722,7 +729,8 @@ wlanAdapterStart(IN P_ADAPTER_T prAdapter,
+ static WLAN_STATUS
+ wlanImageSectionDownloadStage(IN P_ADAPTER_T prAdapter,
+ 			      IN PVOID pvFwImageMapFile, IN UINT_32 index, IN UINT_32 u4FwImageFileLength,
+-			      IN BOOLEAN fgValidHead, IN UINT_32 u4FwLoadAddr)
++			      IN BOOLEAN fgValidHead, IN UINT_32 u4FwLoadAddr,
++			      struct wfc_fw_image *image)
+ {
+ #if CFG_ENABLE_FW_DOWNLOAD
+ 	UINT_32 u4ImgSecSize;
+@@ -766,10 +774,10 @@ wlanImageSectionDownloadStage(IN P_ADAPTER_T prAdapter,
+ 				else
+ 					u4ImgSecSize = prFwHead->arSection[index].u4Length - j;
+ 
+-				if (wlanImageSectionDownload(prAdapter, u4ImgSecSize, (PUINT_8)
+-							     pvFwImageMapFile
+-							     +
+-							     prFwHead->arSection[index].u4Offset + j) !=
++				if (wlanFwChunkCapture(image, prAdapter,
++						       u4ImgSecSize,
++						       (PUINT_8)pvFwImageMapFile +
++						       prFwHead->arSection[index].u4Offset + j) !=
+ 				    WLAN_STATUS_SUCCESS) {
+ 					DBGLOG(INIT, ERROR, "Firmware scatter download failed!\n");
+ 
+@@ -800,9 +808,9 @@ wlanImageSectionDownloadStage(IN P_ADAPTER_T prAdapter,
+ 					else
+ 						u4ImgSecSize = u4FwImageFileLength - j;
+ 
+-					if (wlanImageSectionDownload(prAdapter,
+-								     u4ImgSecSize,
+-								     (PUINT_8) pvFwImageMapFile + j) !=
++					if (wlanFwChunkCapture(image, prAdapter,
++							       u4ImgSecSize,
++							       (PUINT_8) pvFwImageMapFile + j) !=
+ 					    WLAN_STATUS_SUCCESS) {
+ 						DBGLOG(INIT, ERROR, "Firmware scatter download failed!\n");
+ 
+@@ -845,7 +853,7 @@ wlanImageDividDownload(IN P_ADAPTER_T prAdapter,
+ 			u4Status = wlanImageSectionDownloadStage(prAdapter,
+ 								 pvFwImageMapFile, i,
+ 								 u4FwImageFileLength, TRUE,
+-								 u4FwLoadAddr);
++								 u4FwLoadAddr, &capture);
+ 			if (u4Status == WLAN_STATUS_FAILURE)
+ 				return wfc_fw_image_return(&capture, u4Status);
+ 		}
+@@ -2582,8 +2590,12 @@ wlanImageSectionConfig(IN P_ADAPTER_T prAdapter, IN UINT_32 u4DestAddr, IN UINT_
+ * @return (none)
+ */
+ /*----------------------------------------------------------------------------*/
+-WLAN_STATUS wlanImageSectionDownload(IN P_ADAPTER_T prAdapter, IN UINT_32 u4ImgSecSize, IN PUINT_8 pucImgSecBuf)
++static WLAN_STATUS
++wlanFwChunkCapture(struct wfc_fw_image *image,
++		   IN P_ADAPTER_T prAdapter, IN UINT_32 u4ImgSecSize,
++		   IN PUINT_8 pucImgSecBuf)
+ {
++	struct wfc_fw_tx tx;
+ 	P_CMD_INFO_T prCmdInfo;
+ 	P_INIT_HIF_TX_HEADER_T prInitHifTxHeader;
+ 	WLAN_STATUS u4Status = WLAN_STATUS_SUCCESS;
+@@ -2594,14 +2606,15 @@ WLAN_STATUS wlanImageSectionDownload(IN P_ADAPTER_T prAdapter, IN UINT_32 u4ImgS
+ 
+ 	DEBUGFUNC("wlanImageSectionDownload");
+ 
++	wfc_fw_tx_begin(&tx, image, pucImgSecBuf, u4ImgSecSize);
+ 	if (u4ImgSecSize == 0)
+-		return WLAN_STATUS_SUCCESS;
++		return wfc_fw_tx_finish(&tx, WLAN_STATUS_SUCCESS);
+ 	/* 1. Allocate CMD Info Packet and its Buffer. */
+ 	prCmdInfo = cmdBufAllocateCmdInfo(prAdapter, sizeof(INIT_HIF_TX_HEADER_T) + u4ImgSecSize);
+ 
+ 	if (!prCmdInfo) {
+ 		DBGLOG(INIT, ERROR, "Allocate CMD_INFO_T ==> FAILED.\n");
+-		return WLAN_STATUS_FAILURE;
++		return wfc_fw_tx_finish(&tx, WLAN_STATUS_FAILURE);
+ 	}
+ 
+ 	prCmdInfo->u2InfoBufLen = sizeof(INIT_HIF_TX_HEADER_T) + (UINT_16) u4ImgSecSize;
+@@ -2618,15 +2631,23 @@ WLAN_STATUS wlanImageSectionDownload(IN P_ADAPTER_T prAdapter, IN UINT_32 u4ImgS
+ 	/* 3. Setup DOWNLOAD_BUF */
+ 	kalMemCopy(prInitHifTxHeader->rInitWifiCmd.aucBuffer, pucImgSecBuf, u4ImgSecSize);
+ 
++	wfc_fw_tx_command(&tx, pucImgSecBuf, u4ImgSecSize,
++			  prCmdInfo->pucInfoBuffer, prCmdInfo->u2InfoBufLen);
+ 	/* 4. Send FW_Download command */
+-	if (nicTxInitCmd(prAdapter, prCmdInfo) != WLAN_STATUS_SUCCESS) {
++	if (nicTxInitCmdCapture(prAdapter, prCmdInfo, &tx) != WLAN_STATUS_SUCCESS) {
+ 		u4Status = WLAN_STATUS_FAILURE;
+ 		DBGLOG(INIT, ERROR, "Fail to transmit image download command\n");
+ 	}
+ 	/* 5. Free CMD Info Packet. */
+ 	cmdBufFreeCmdInfo(prAdapter, prCmdInfo);
+ 
+-	return u4Status;
++	return wfc_fw_tx_finish(&tx, u4Status);
++}
++
++WLAN_STATUS wlanImageSectionDownload(IN P_ADAPTER_T prAdapter,
++				     IN UINT_32 bytes, IN PUINT_8 source)
++{
++	return wlanFwChunkCapture(NULL, prAdapter, bytes, source);
+ }
+ 
+ /* for AOSP */
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic_tx.c b/drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic_tx.c
+index 4f16a7c..1eebe25 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic_tx.c
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic_tx.c
+@@ -31,6 +31,7 @@
+ ********************************************************************************
+ */
+ #include "precomp.h"
++#include "hif_fw_capture.h"
+ #include "que_mgt.h"
+ 
+ #ifdef UDP_SKT_WIFI
+@@ -2256,7 +2257,8 @@ WLAN_STATUS nicTxFlush(IN P_ADAPTER_T prAdapter)
+ * @retval WLAN_STATUS_FAILURE   Bus access fail.
+ */
+ /*----------------------------------------------------------------------------*/
+-WLAN_STATUS nicTxInitCmd(IN P_ADAPTER_T prAdapter, IN P_CMD_INFO_T prCmdInfo)
++WLAN_STATUS nicTxInitCmdCapture(IN P_ADAPTER_T prAdapter,
++				IN P_CMD_INFO_T prCmdInfo, struct wfc_fw_tx *tx)
+ {
+ 	UINT_16 u2OverallBufferLength;
+ 	PUINT_8 pucOutputBuf = (PUINT_8) NULL;	/* Pointer to Transmit Data Structure Frame */
+@@ -2275,14 +2277,33 @@ WLAN_STATUS nicTxInitCmd(IN P_ADAPTER_T prAdapter, IN P_CMD_INFO_T prCmdInfo)
+ 
+ 	ASSERT(u2OverallBufferLength <= prAdapter->u4CoalescingBufCachedSize);
+ 
++	wfc_fw_tx_staged(tx, prCmdInfo->pucInfoBuffer, prCmdInfo->u2InfoBufLen,
++			 pucOutputBuf, u2OverallBufferLength,
++			 prAdapter->u4CoalescingBufCachedSize);
+ 	/* <2> Write frame to data port */
+-	HAL_WRITE_TX_PORT(prAdapter,
+-			  (UINT_32) u2OverallBufferLength,
+-			  (PUINT_8) pucOutputBuf, (UINT_32) prAdapter->u4CoalescingBufCachedSize);
++	if (tx) {
++		/* Keep the native terminator and AHB port operation. */
++		if (prAdapter->u4CoalescingBufCachedSize - u2OverallBufferLength >= sizeof(UINT_32))
++			*(PUINT_32)(&pucOutputBuf[ALIGN_4(u2OverallBufferLength)]) = 0;
++		if (prAdapter->rAcpiState == ACPI_STATE_D3)
++			ASSERT(0);
++		kalDevPortWriteCapture(prAdapter->prGlueInfo, MCR_WTDR1,
++				       u2OverallBufferLength, pucOutputBuf,
++				       prAdapter->u4CoalescingBufCachedSize, tx);
++	} else {
++		HAL_WRITE_TX_PORT(prAdapter, (UINT_32)u2OverallBufferLength,
++				  (PUINT_8)pucOutputBuf,
++				  prAdapter->u4CoalescingBufCachedSize);
++	}
+ 
+ 	return WLAN_STATUS_SUCCESS;
+ }
+ 
++WLAN_STATUS nicTxInitCmd(IN P_ADAPTER_T prAdapter, IN P_CMD_INFO_T prCmdInfo)
++{
++	return nicTxInitCmdCapture(prAdapter, prCmdInfo, NULL);
++}
++
+ /*----------------------------------------------------------------------------*/
+ /*!
+ * \brief In this function, we'll reset TX resource counter to initial value used
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c
+index 341fc3a..c604d01 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c
+@@ -1078,7 +1078,9 @@ kalDevPortRead(IN P_GLUE_INFO_T GlueInfo, IN UINT_16 Port, IN UINT_32 Size, OUT
+ */
+ /*----------------------------------------------------------------------------*/
+ BOOLEAN
+-kalDevPortWrite(IN P_GLUE_INFO_T GlueInfo, IN UINT_16 Port, IN UINT_32 Size, IN PUINT_8 Buf, IN UINT_32 MaxBufSize)
++kalDevPortWriteCapture(IN P_GLUE_INFO_T GlueInfo, IN UINT_16 Port,
++		       IN UINT_32 Size, IN PUINT_8 Buf, IN UINT_32 MaxBufSize,
++		       struct wfc_fw_tx *tx)
+ {
+ 	GL_HIF_INFO_T *HifInfo;
+ #if (CONF_MTK_AHB_DMA == 1)
+@@ -1105,7 +1107,7 @@ kalDevPortWrite(IN P_GLUE_INFO_T GlueInfo, IN UINT_16 Port, IN UINT_32 Size, IN
+ 	if ((WlanDmaFatalErr == 1) || (fgIsResetting == TRUE) || (HifIsFwOwn(GlueInfo->prAdapter) == TRUE)) {
+ 		DBGLOG(RX, ERROR, "WlanDmaFatalErr: %d, fgIsResetting: %d, HifIsFwOwn: %d\n",
+ 				WlanDmaFatalErr, fgIsResetting, HifIsFwOwn(GlueInfo->prAdapter));
+-		return FALSE;
++		return wfc_fw_tx_port_return(tx, FALSE);
+ 	}
+ 
+ 	/* Init */
+@@ -1208,6 +1210,8 @@ kalDevPortWrite(IN P_GLUE_INFO_T GlueInfo, IN UINT_16 Port, IN UINT_32 Size, IN
+ 		}
+ #else
+ 
++		wfc_fw_tx_payload(tx, &HifInfo->capture, Buf, Size, count,
++				  MaxBufSize, Port);
+ 		/* DMA_TO_DEVICE writeback the cache */
+ 		DmaConf.Src = dma_map_single(HifInfo->Dev, Buf, count, DMA_TO_DEVICE);
+ 
+@@ -1221,6 +1225,8 @@ kalDevPortWrite(IN P_GLUE_INFO_T GlueInfo, IN UINT_16 Port, IN UINT_32 Size, IN
+ 			    count, DmaConf.Src, Port, 1);
+ #endif
+ 
++		wfc_fw_tx_dma(tx, &HifInfo->capture);
++
+ 		/* start to write */
+ 		AP_DMA_HIF_LOCK(HifInfo);
+ 
+@@ -1284,7 +1290,7 @@ kalDevPortWrite(IN P_GLUE_INFO_T GlueInfo, IN UINT_16 Port, IN UINT_32 Size, IN
+ 					}
+ 
+ 					wfc_dma_poll_end(&HifInfo->capture, 1, 2);
+-					return TRUE;
++					return wfc_fw_tx_port_return(tx, TRUE);
+ 				}
+ #endif /* CONF_HIF_DMA_DBG */
+ #endif /* CONF_HIF_CONNSYS_DBG */
+@@ -1352,9 +1358,15 @@ kalDevPortWrite(IN P_GLUE_INFO_T GlueInfo, IN UINT_16 Port, IN UINT_32 Size, IN
+ 		HIF_DBG_TX(("\n\n"));
+ 	}
+ 
+-	return TRUE;
++	return wfc_fw_tx_port_return(tx, TRUE);
+ 
+-}				/* end of kalDevPortWrite() */
++}				/* end of kalDevPortWriteCapture() */
++
++BOOLEAN kalDevPortWrite(IN P_GLUE_INFO_T glue, IN UINT_16 port,
++			IN UINT_32 bytes, IN PUINT_8 buffer, IN UINT_32 capacity)
++{
++	return kalDevPortWriteCapture(glue, port, bytes, buffer, capacity, NULL);
++}
+ 
+ /*******************************************************************************
+ *                       P R I V A T E   F U N C T I O N S
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/hif_fw_capture.c b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/hif_fw_capture.c
+index d21c144..96c5395 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/hif_fw_capture.c
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/hif_fw_capture.c
+@@ -4,6 +4,8 @@
+ #include <linux/pstore_ram.h>
+ #include <linux/mt6797_wifi_capture.h>
+ #include <linux/string.h>
++#include <linux/sched.h>
++#include <linux/kernel.h>
+ #include <crypto/hash.h>
+ #include <crypto/sha.h>
+ #include <asm/unaligned.h>
+@@ -62,6 +64,7 @@ void wfc_fw_image_begin(struct wfc_fw_image *trace,
+ 		goto fail;
+ 	if (!mt6797_wfc_request_firmware(2, read->device, read->read_id, 0))
+ 		goto fail;
++	trace->owner = current;
+ 	trace->binding = binding;
+ 	trace->buffer = buffer;
+ 	trace->device = read->device;
+@@ -113,11 +116,19 @@ void wfc_fw_image_section(struct wfc_fw_image *trace, u32 index)
+ 
+ 	if (!trace->transaction)
+ 		return;
+-	if (!wfc_fw_image_live(trace) || index != trace->next ||
++	if (!wfc_fw_image_live(trace) || current != trace->owner ||
++	    index != trace->next ||
+ 	    index >= WFC_FW_SECTIONS) {
+ 		wfc_fw_image_fail(trace);
+ 		return;
+ 	}
++	if (index && index <= 2 &&
++	    trace->tx_offset != get_unaligned_le32(trace->buffer +
++						 24 + (index - 1) * 16 + 8)) {
++		wfc_fw_image_fail(trace);
++		return;
++	}
++	trace->tx_offset = 0;
+ 	section = trace->buffer + 24 + index * 16;
+ 	put_unaligned_le32(6, data);
+ 	put_unaligned_le32(trace->device, data + 4);
+@@ -138,8 +149,9 @@ u32 wfc_fw_image_return(struct wfc_fw_image *trace, u32 status)
+ 	u8 data[16];
+ 
+ 	if (trace->transaction) {
+-		if (!wfc_fw_image_live(trace) ||
+-		    (!status && trace->next != WFC_FW_SECTIONS) ||
++		if (!wfc_fw_image_live(trace) || current != trace->owner ||
++		    (!status && (trace->next != WFC_FW_SECTIONS ||
++				 trace->tx_chunks != 8)) ||
+ 		    wfc_fw_image_hash(trace, digest) ||
+ 		    memcmp(trace->digest, digest, sizeof(digest))) {
+ 			wfc_fw_image_fail(trace);
+@@ -251,3 +263,190 @@ void wfc_fw_emi_copy(struct wfc_fw_image *trace, u32 stage,
+ 	put_unaligned_le32(bytes, data + 20);
+ 	wfc_fw_emi_emit(trace, data, sizeof(data));
+ }
++
++static void wfc_fw_tx_fail(struct wfc_fw_tx *tx)
++{
++	if (tx && tx->image)
++		wfc_fw_image_fail(tx->image);
++	if (tx)
++		tx->phase = 0;
++}
++
++static bool wfc_fw_tx_ready(struct wfc_fw_tx *tx, u32 phase)
++{
++	if (!tx || !tx->image || !tx->image->transaction)
++		return false;
++	if (!wfc_fw_image_live(tx->image) ||
++	    current != tx->image->owner || tx->phase != phase) {
++		wfc_fw_tx_fail(tx);
++		return false;
++	}
++	return true;
++}
++
++static void wfc_fw_tx_emit(struct wfc_fw_tx *tx, const u8 *data, u32 bytes)
++{
++	if (ramoops_capture_append(7, tx->chunk, data, bytes))
++		wfc_fw_tx_fail(tx);
++}
++
++void wfc_fw_tx_begin(struct wfc_fw_tx *tx, struct wfc_fw_image *image,
++		     const void *source, u32 bytes)
++{
++	const u8 *section;
++	u32 offset, length;
++
++	memset(tx, 0, sizeof(*tx));
++	if (!image || !image->transaction)
++		return;
++	tx->image = image;
++	if (!wfc_fw_tx_ready(tx, 0))
++		return;
++	if (!image->next || image->next > 2 || image->tx_chunks >= 8)
++		goto fail;
++	section = image->buffer + 24 + (image->next - 1) * 16;
++	offset = get_unaligned_le32(section);
++	length = get_unaligned_le32(section + 8);
++	if (offset < 88 || offset > WFC_FW_BYTES || !length ||
++	    length > WFC_FW_BYTES - offset || image->tx_offset >= length ||
++	    !bytes || bytes > 2048 || bytes != min(2048U, length - image->tx_offset) ||
++	    source != image->buffer + offset + image->tx_offset)
++		goto fail;
++	tx->source = source;
++	tx->offset = offset + image->tx_offset;
++	tx->bytes = bytes;
++	tx->section = image->next - 1;
++	tx->chunk = image->tx_chunks + 1;
++	tx->phase = 1;
++	return;
++fail:
++	wfc_fw_tx_fail(tx);
++}
++
++void wfc_fw_tx_command(struct wfc_fw_tx *tx, const void *source, u32 bytes,
++		       const void *command, u32 logical)
++{
++	if (!wfc_fw_tx_ready(tx, 1))
++		return;
++	if (source != tx->source || bytes != tx->bytes || !command ||
++	    logical != bytes + 8) {
++		wfc_fw_tx_fail(tx);
++		return;
++	}
++	tx->command = command;
++	tx->phase = 2;
++}
++
++void wfc_fw_tx_staged(struct wfc_fw_tx *tx, const void *command, u32 logical,
++		      const void *buffer, u32 aligned, u32 capacity)
++{
++	if (!wfc_fw_tx_ready(tx, 2))
++		return;
++	if (command != tx->command || logical != tx->bytes + 8 || !buffer ||
++	    aligned != ALIGN(logical, 4) || aligned > capacity) {
++		wfc_fw_tx_fail(tx);
++		return;
++	}
++	tx->buffer = buffer;
++	tx->phase = 3;
++}
++
++void wfc_fw_tx_payload(struct wfc_fw_tx *tx, const struct wfc_dma_trace *binding,
++		       const void *buffer, u32 logical, u32 rounded,
++		       u32 capacity, u32 port)
++{
++	u8 context[sizeof(struct shash_desc) + sizeof(struct sha256_state)]
++		CRYPTO_MINALIGN_ATTR;
++	struct shash_desc *desc = (struct shash_desc *)context;
++	const u8 *packet = buffer;
++	u8 data[64];
++	int ret;
++
++	if (!wfc_fw_tx_ready(tx, 3))
++		return;
++	if (binding != tx->image->binding || binding->transaction || binding->fault ||
++	    buffer != tx->buffer || logical != tx->bytes + 8 ||
++	    rounded < logical || rounded > capacity || port != 0x34)
++		goto fail;
++	/* Only the already-bounded logical header and payload are read. */
++	if (get_unaligned_le16(packet) != logical ||
++	    get_unaligned_le16(packet + 2) != 0xc000 || packet[4] ||
++	    packet[5] != 0xa0 || packet[6])
++		goto fail;
++	memset(context, 0, sizeof(context));
++	desc->tfm = tx->image->hash;
++	ret = crypto_shash_digest(desc, packet + 8, tx->bytes, data + 32);
++	memzero_explicit(context, sizeof(context));
++	if (ret)
++		goto fail;
++	put_unaligned_le32(12, data);
++	put_unaligned_le32(tx->image->device, data + 4);
++	put_unaligned_le32(tx->image->transaction, data + 8);
++	put_unaligned_le32(tx->chunk, data + 12);
++	put_unaligned_le32(tx->section, data + 16);
++	put_unaligned_le32(tx->offset, data + 20);
++	put_unaligned_le32(tx->bytes, data + 24);
++	put_unaligned_le32(logical, data + 28);
++	tx->phase = 4;
++	wfc_fw_tx_emit(tx, data, sizeof(data));
++	return;
++fail:
++	wfc_fw_tx_fail(tx);
++}
++
++void wfc_fw_tx_dma(struct wfc_fw_tx *tx, const struct wfc_dma_trace *binding)
++{
++	u8 data[20];
++
++	if (!wfc_fw_tx_ready(tx, 4))
++		return;
++	if (binding != tx->image->binding || binding->fault || !binding->transaction) {
++		wfc_fw_tx_fail(tx);
++		return;
++	}
++	tx->dma = binding->transaction;
++	put_unaligned_le32(13, data);
++	put_unaligned_le32(tx->image->device, data + 4);
++	put_unaligned_le32(tx->image->transaction, data + 8);
++	put_unaligned_le32(tx->chunk, data + 12);
++	put_unaligned_le32(tx->dma, data + 16);
++	tx->phase = 5;
++	wfc_fw_tx_emit(tx, data, sizeof(data));
++}
++
++u8 wfc_fw_tx_port_return(struct wfc_fw_tx *tx, u8 status)
++{
++	u8 data[24];
++
++	if (!wfc_fw_tx_ready(tx, 5))
++		return status;
++	if (tx->image->binding->transaction || tx->image->binding->fault) {
++		wfc_fw_tx_fail(tx);
++		return status;
++	}
++	put_unaligned_le32(14, data);
++	put_unaligned_le32(tx->image->device, data + 4);
++	put_unaligned_le32(tx->image->transaction, data + 8);
++	put_unaligned_le32(tx->chunk, data + 12);
++	put_unaligned_le32(tx->dma, data + 16);
++	put_unaligned_le32(status, data + 20);
++	tx->phase = 6;
++	wfc_fw_tx_emit(tx, data, sizeof(data));
++	if (status != 1)
++		wfc_fw_tx_fail(tx);
++	return status;
++}
++
++u32 wfc_fw_tx_finish(struct wfc_fw_tx *tx, u32 status)
++{
++	if (wfc_fw_tx_ready(tx, 6)) {
++		if (status) {
++			wfc_fw_tx_fail(tx);
++		} else {
++			tx->image->tx_chunks++;
++			tx->image->tx_offset += tx->bytes;
++		}
++	}
++	memzero_explicit(tx, sizeof(*tx));
++	return status;
++}
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_fw_capture.h b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_fw_capture.h
+index f9ef850..9fc73b6 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_fw_capture.h
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_fw_capture.h
+@@ -9,6 +9,10 @@
+ 
+ struct wfc_dma_trace;
+ struct crypto_shash;
++struct task_struct;
++struct _ADAPTER_T;
++struct _CMD_INFO_T;
++struct _GLUE_INFO_T;
+ 
+ /* Borrowed only from the synchronous, successful native mapping invocation. */
+ struct wfc_fw_buffer {
+@@ -25,6 +29,9 @@ struct wfc_fw_image {
+ 	u32 transaction;
+ 	u32 device;
+ 	u32 next;
++	struct task_struct *owner;
++	u32 tx_offset;
++	u32 tx_chunks;
+ 	u8 digest[32];
+ 	u32 emi_transaction;
+ 	const void *emi_mapping;
+@@ -43,4 +50,36 @@ void wfc_fw_emi_mapping(struct wfc_fw_image *trace, u64 base,
+ void wfc_fw_emi_copy(struct wfc_fw_image *trace, u32 stage,
+ 		     const void *destination, const void *source, u32 bytes);
+ 
++/* Borrowed by nested synchronous calls; never queued or globally published. */
++struct wfc_fw_tx {
++	struct wfc_fw_image *image;
++	const void *source;
++	const void *command;
++	const void *buffer;
++	u32 bytes;
++	u32 offset;
++	u32 section;
++	u32 chunk;
++	u32 phase;
++	u32 dma;
++};
++
++void wfc_fw_tx_begin(struct wfc_fw_tx *tx, struct wfc_fw_image *image,
++		     const void *source, u32 bytes);
++void wfc_fw_tx_command(struct wfc_fw_tx *tx, const void *source, u32 bytes,
++		       const void *command, u32 logical);
++void wfc_fw_tx_staged(struct wfc_fw_tx *tx, const void *command, u32 logical,
++		      const void *buffer, u32 aligned, u32 capacity);
++void wfc_fw_tx_payload(struct wfc_fw_tx *tx, const struct wfc_dma_trace *binding,
++		       const void *buffer, u32 logical, u32 rounded,
++		       u32 capacity, u32 port);
++void wfc_fw_tx_dma(struct wfc_fw_tx *tx, const struct wfc_dma_trace *binding);
++u8 wfc_fw_tx_port_return(struct wfc_fw_tx *tx, u8 status);
++u32 wfc_fw_tx_finish(struct wfc_fw_tx *tx, u32 status);
++
++u32 nicTxInitCmdCapture(struct _ADAPTER_T *adapter, struct _CMD_INFO_T *command,
++			struct wfc_fw_tx *tx);
++u8 kalDevPortWriteCapture(struct _GLUE_INFO_T *glue, u16 port, u32 bytes,
++			  u8 *buffer, u32 capacity, struct wfc_fw_tx *tx);
++
+ #endif
+-- 
+2.54.0 (Apple Git-157)
+

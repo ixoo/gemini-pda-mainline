@@ -1,0 +1,94 @@
+{
+  "scope": "Retained-file payload expectations, not runtime submission or firmware execution evidence",
+  "environment": "RE VM; read-only retained firmware inspection; no firmware copy or load",
+  "image_bytes": 411632,
+  "image_sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
+  "sections": [
+    [
+      88,
+      5840,
+      34209792,
+      1,
+      0
+    ],
+    [
+      5928,
+      8992,
+      665600,
+      1,
+      0
+    ],
+    [
+      14920,
+      331296,
+      4026531840,
+      0,
+      0
+    ],
+    [
+      346216,
+      65392,
+      4026908672,
+      0,
+      0
+    ]
+  ],
+  "chunks": [
+    {
+      "chunk": 1,
+      "section": 0,
+      "offset": 88,
+      "bytes": 2048,
+      "sha256": "5241256bb4a2fbe51c97bba63f0154eca474f4d33db3bf47cb81438bfa02a3bc"
+    },
+    {
+      "chunk": 2,
+      "section": 0,
+      "offset": 2136,
+      "bytes": 2048,
+      "sha256": "b592c0e42bfd00d9e6e8779087cb0c7024f04b89eff5ec516237f7ffb0d1a3e7"
+    },
+    {
+      "chunk": 3,
+      "section": 0,
+      "offset": 4184,
+      "bytes": 1744,
+      "sha256": "e59bb1149bb3973a61c80507f8d861e1e5069f4990f6397a425eeb8f567fab38"
+    },
+    {
+      "chunk": 4,
+      "section": 1,
+      "offset": 5928,
+      "bytes": 2048,
+      "sha256": "e2c415dd793fe9156d22987be1ca2a2e5d6abc4a847be0e4722bc2880e69cba8"
+    },
+    {
+      "chunk": 5,
+      "section": 1,
+      "offset": 7976,
+      "bytes": 2048,
+      "sha256": "d8907f9be5f80b7041278f758a3c208d25d30b0641f4f6fab44d98e8231d0d66"
+    },
+    {
+      "chunk": 6,
+      "section": 1,
+      "offset": 10024,
+      "bytes": 2048,
+      "sha256": "46409b8446dc02684ad8e70fdc69fcf9ed36dbdd2f4efd5d1e4977e187b07a81"
+    },
+    {
+      "chunk": 7,
+      "section": 1,
+      "offset": 12072,
+      "bytes": 2048,
+      "sha256": "fc9b54a3513c782b1f58962f3a6ba009de0b631c013b5c18b7aa302ae19d18f6"
+    },
+    {
+      "chunk": 8,
+      "section": 1,
+      "offset": 14120,
+      "bytes": 800,
+      "sha256": "ef8f323fe0f027989e546a78a19e0ee4fead78467c344dd31c379b68ff156bee"
+    }
+  ]
+}

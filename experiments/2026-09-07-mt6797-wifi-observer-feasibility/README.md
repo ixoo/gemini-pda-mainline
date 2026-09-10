@@ -115,3 +115,7 @@ controller integration and reset/resource isolation remain open.
 The [firmware/request join](REQUEST_FIRMWARE.md) requires the recorded read and
 image completion to belong to the ON worker, rejecting a successful no-load
 shortcut. Submitted-byte identity and resource isolation remain unproven.
+
+The [pre-map payload witness](TX_PAYLOAD.md) now joins the eight actual
+coalescing-buffer payload digests to their DMA completions. Buffer stability
+after hashing, broader consumer isolation and device admission remain open.

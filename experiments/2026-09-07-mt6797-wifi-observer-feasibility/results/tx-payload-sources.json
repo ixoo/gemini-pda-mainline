@@ -1,0 +1,23 @@
+{
+  "source_revision": "59e00a9144d782e148332009a835b99c43382467",
+  "scope": "Unselected pre-map payload witness and DMA join; immutability, isolation and device admission remain open",
+  "parents": {
+    "drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic_tx.c": "1f479d41bab8e2b5bba68eb6514f3e977559d31d97c39c7833f3dc9f111cd1ed",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c": "7f5909ad674d3f00a112e810434a27bbe35bea5d7921d00abc9653980c385ae5",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/hif_fw_capture.c": "65da8f0471710894fde289d31df154c3884cd5bdb0f812532b7084659f86e0db",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c": "08c4c61ad812537877f66dcba933cea79c1feaffd7c8c7a62353d8ead53ec85c",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_fw_capture.h": "8342b54a36a5e27c78677261aa3acf01e3248ed00af228cd1fb76bcb9836b2ac",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/include/nic/hal.h": "e1c8946e684a2757577209c20a489b41d3c3d32c2463f5c1e9e47c2810250117"
+  },
+  "outputs": {
+    "drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic_tx.c": "0612ffa440817bec27dca39b1a81fbaa08c181621388ef75b8c3ace994f582f7",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c": "baf1bebddcb2b7af13c4ac13b226f2b8f6aaf103c1316c2a9f3b43616f23468d",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/hif_fw_capture.c": "08ca661e912be7582802e1b7ea9a9910bc733c3c8f519f4d5b949880785355e9",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c": "6a545f22016ee7311c604531bdf7ce1c591163e666adfe12191af6d789de2ba2",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_fw_capture.h": "e4d3e60b40f706a1cbe166f1f16fb5789c791eaef05bb5fc49af2f92b204ab0d",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/include/nic/hal.h": "e1c8946e684a2757577209c20a489b41d3c3d32c2463f5c1e9e47c2810250117"
+  },
+  "patch": "0001-wlan-join-native-firmware-payload-digests-to-DMA.patch",
+  "patch_sha256": "1b4e32b4a09ed56d26f3015d7bce1761a8419876a52567fe016da49fdfadad7a",
+  "replay_and_reverse_verified": true
+}
