@@ -58,6 +58,31 @@ The [ordinary setter correction](RECOVERY_SETTERS.md) now implements locked
 refusal for timeout, mode, enable and ordinary reload changes. The other
 ownership paths above remain unresolved.
 
+## Retention callers: preserve the existing configuration exclusion
+
+The [retained-build review](results/recovery-retention-exclusion.json) narrows
+the unlocked DRAM-retention concern. A full-tree source-name search locates the
+native `mtk_rgu_dram_reserved()` calls in the watchdog API wrapper, with its
+client calls in `mrdump_hw.c` and `mrdump_setup.c`. The pinned mrdump Makefile
+selects the former only for MT6570/MT6757, and the latter only with
+`CONFIG_MTK_AEE_MRDUMP=y`. Neither selection holds in the retained MT6797
+configuration. Its compiler log contains no compilation of either caller.
+The symbol map still contains the watchdog wrapper and low-level function;
+unused entry points have not been removed from the kernel.
+
+Keep that exclusion in the experimental candidate and verify its final
+configuration and complete build inputs before takeover. No retention guard
+patch is selected on the basis of these inactive callers. The independent
+`CONFIG_MTK_MRDUMP_KEY=y` and `CONFIG_MTK_AEE_IPANIC=y` settings are not evidence
+that full mrdump is selected, and this decision does not disable those features.
+
+The review rechecks the already pinned source revision, config, compiler log
+and symbol-map hashes; it is not a new kernel build or runtime observation.
+An added client, changed configuration, loadable module or indirect access not
+covered by this source-name search invalidates the exclusion. Minimal userspace
+and module isolation remain required; the API's presence means this is not a
+general kernel guarantee that retention cannot change after takeover.
+
 ## Exclude the CPU-idle route at boot
 
 Require `cpuidle.off=1` in the experimental candidate's effective command line,

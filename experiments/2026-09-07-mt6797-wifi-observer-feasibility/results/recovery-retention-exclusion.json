@@ -1,0 +1,30 @@
+{
+  "source_revision": "59e00a9144d782e148332009a835b99c43382467",
+  "scope": "Retained build and source-only caller exclusion; final candidate validation remains required",
+  "package": "gemian-observer-a98ffc90f979",
+  "inputs": {
+    "outputs/build.log": "cc43a28e3856325f3087dbc0c6b0a32e5cc0d8034074d851a0e0e33dd9da1a39",
+    "outputs/config": "a7eaf67c19ad9b689457d057412019ecb75c8f4d6be1e8142060ea81861fea32",
+    "outputs/System.map": "d1e7d37aa963f4a1ca5cfab2097892d548e3d24e9da3bcd9f1c978eab7edd3d2"
+  },
+  "sources": {
+    "drivers/misc/mediatek/aee/mrdump/Makefile": "737acea41e92ab37a441288b6357195d0eb9276b59b1bef34ec153d89cb4b9f3",
+    "drivers/misc/mediatek/aee/mrdump/mrdump_hw.c": "374100d24ada615dc9ec343bb3c6f8a5fc78b3a32ad8820b7b196b8f3d9cdf65",
+    "drivers/misc/mediatek/aee/mrdump/mrdump_setup.c": "560c2e630e16fcfd07590f0bff70190730f48ee0444746309e90d0b917d4ce89",
+    "drivers/watchdog/mediatek/wdk/wd_api.c": "badeb41928d3604909288fd026b4a46c7f8e28b003cb7aa93be74bba45473cfe"
+  },
+  "config": [
+    "# CONFIG_ARCH_MT6757 is not set",
+    "CONFIG_ARCH_MT6797=y",
+    "CONFIG_MTK_AEE_IPANIC=y",
+    "# CONFIG_MTK_AEE_MRDUMP is not set",
+    "CONFIG_MTK_MRDUMP_KEY=y"
+  ],
+  "excluded_caller_compile_commands": 0,
+  "symbol_presence": {
+    "mtk_rgu_dram_reserved": true,
+    "wd_dram_reserved_mode": true,
+    "mrdump_wd_dram_reserved_mode": false
+  },
+  "device_access": false
+}
