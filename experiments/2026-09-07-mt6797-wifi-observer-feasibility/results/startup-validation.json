@@ -2,7 +2,7 @@
   "scope": "unpackaged minimal startup implementation; no boot candidate",
   "sources": {
     "startup.py": "1ae02697120ad33912ef0bd944de9580033239a4fbba53a8476215f450ed5d57",
-    "startup-init.sh": "d23fb3fb9886f37d953f749f6e9cf72021d80409d06aeca3ba66d2cdb1d04ca8",
+    "startup-init.sh": "595f67cfa9d566dcc48985799d95a4417fb439b34db5957f95efaf47edbf4778",
     "test-startup.py": "73fb407a22c0f6ade90ca28755b3a8222d31640d72b01d827a2dbce1f91f9a01"
   },
   "synthetic_preflight_tests": 12,

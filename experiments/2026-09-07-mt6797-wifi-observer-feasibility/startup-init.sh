@@ -1,5 +1,6 @@
 #!/bin/busybox sh
 # SPDX-License-Identifier: MIT
+# shellcheck shell=dash
 # Install as /init only in a separately admitted observation candidate.
 [ "$$" -eq 1 ] || exit 1
 PATH=/bin:/usr/bin:/sbin:/usr/sbin
