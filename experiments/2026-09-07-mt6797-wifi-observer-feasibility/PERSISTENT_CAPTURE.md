@@ -771,4 +771,13 @@ commands, and applies only the three-patch pstore series to temporary files.
 It leaves the prepared source untouched and removes temporary build output.
 This checks a concrete gap in the function-body fixtures: compatibility with
 the actual kernel headers and target compiler. It does not link a kernel,
-implement capture ownership or admit a device operation. The result is pending.
+implement capture ownership or admit a device operation.
+
+The [completed result](results/pmsg-object-compile.json) records all three
+original and patched files compiling successfully at project commit
+`1f25e1cea73fc8044e914578b594b8d3d3888fc2`. Patched source hashes match the
+previously reviewed repair receipt; all fifteen package files passed remote
+and local inventory/checksum validation. The changed compiler logs are empty
+under the recorded flags, including `-w`. Temporary output was removed and
+the prepared source stayed clean. Capture ownership, its atomic writer and
+physical retention remain separate implementation and runtime work.
