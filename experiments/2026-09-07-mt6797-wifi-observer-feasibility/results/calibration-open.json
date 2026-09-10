@@ -1,0 +1,27 @@
+{
+  "project_commit": "27eaa19c4d7e2d1187f4e9a6775ae6f88fce4d8a",
+  "parent_source_sha256": "f6c8b02d1af757c91143ebee83f240469a274a4c9949f96543a649281f0d2090",
+  "corrected_source_sha256": "4bb879982b86c23bae916975136f9c2c3aca1a065eb0136a5f183e47b34ba0db",
+  "patch_sha256": "064798617d2ae0ca155dba041ebe785022e7442d17f2ab2e67fb68a23cd8f56b",
+  "config_sha256": "486392ac9152365891c50ffdee56be1b6ed1aed61d588aa66e29f966604202ff",
+  "toolchain_sha256": "a45d945f092461a611d276ad7d0a0fea1ea8a7f93db413908bcb892c12817d14",
+  "arch": "arm64",
+  "complete_translation_units": 2,
+  "fixture_cases_per_version": 32,
+  "parent_open_failure_leak_reproduced": true,
+  "corrected_paths_restore": true,
+  "native_compile": "pass",
+  "objects": {
+    "parent": "eaf2ac4ea3fd2038894691e3d3bb20bb190caaedc02a6167703b9455b100d274",
+    "corrected": "235e52973ca221f5d666998a31d5aaa87b9b531481e45b686e1fb32cd06a8b98"
+  },
+  "device_execution": false,
+  "full_kernel_link": false,
+  "package_manifest_sha256": "b9f09677fb0958f8bdb562d83cb650122be18ea4ce194be0d509c322f5895241",
+  "fetched_package_files": 12,
+  "limitations": [
+    "Host fixtures substitute file operations and address-limit state; no device execution.",
+    "Native commands inherit -w; not warning-clean evidence.",
+    "No full kernel link for this correction yet."
+  ]
+}

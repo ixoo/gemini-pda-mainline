@@ -167,6 +167,10 @@
     {
       "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/controller-build/0001-wmt-include-watchdog-interface-in-experimental-detector.patch",
       "sha256": "a38d6daeb851b06ad574db6fdfc6040d63247ca9732895382964a34077a67aa6"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/calibration-open/0001-wlan-restore-address-limit-after-NVRAM-open-failure.patch",
+      "sha256": "064798617d2ae0ca155dba041ebe785022e7442d17f2ab2e67fb68a23cd8f56b"
     }
   ],
   "purpose": "complete native kernel link; no boot candidate or device admission"

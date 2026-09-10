@@ -1,10 +1,11 @@
 # Complete native controller kernel link
 
 The [Buildbox-only builder](build-full-kernel.py) compiles the complete native
-kernel from [forty-one pinned patches](full-kernel-inputs.json): the previously
+kernel from [forty-two pinned patches](full-kernel-inputs.json): the previously
 compiled controller composition, the emergency reset correction, and historical
 patch 0001's A72 refusal/configuration declaration, plus the detector's watchdog
-header dependency. It does not select the old
+header dependency and the [calibration open-error correction](CALIBRATION_OPEN.md).
+It does not select the old
 recovery trigger, profile or consumed artifact.
 
 Run `python3 build-full-kernel.py COMMIT JOBS` from the experiment's clean,
@@ -43,6 +44,9 @@ The [complete link receipt](results/full-kernel-link.json) records success at
 match the remotely validated inventory and checksum manifest. The full source
 tree retained its integrity digest through compilation, all required entry
 points are linked, and the linked kernel has no unresolved symbols.
+That receipt covers the original 41-patch input manifest. The newly selected
+calibration correction has passed native object compilation, but the 42-patch
+composition has not yet been fully linked.
 
 Modpost reports 69 section mismatches. The retained observer package reports
 the same count, but mismatch identities have not been compared. Native compiler

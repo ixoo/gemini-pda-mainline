@@ -46,7 +46,7 @@ def main():
         path = PROJECT / path
         assert path.is_file() and not path.is_symlink() and digest(path) == item['sha256']
         patches.append(path)
-    assert len(patches) == len(set(patches)) == 41
+    assert len(patches) == len(set(patches)) == 42
     identity = digest(HERE / 'full-kernel-inputs.json')
     source = ROOT / 'gemian-source' / ('wifi-controller-' + identity)
     baseline = ROOT / 'gemian-source/gemian-baseline' / native.REVISION

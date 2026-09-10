@@ -44,8 +44,9 @@ Tracing this path also found a prerequisite kernel defect: `nvram_read` and
 `nvram_write` in WLAN `os/linux/platform.c` set `KERNEL_DS` before `filp_open`
 but return on open failure without restoring `old_fs`. The source file matches
 the earlier [consumer pin](../2026-09-05-mt6797-wifi-contract/CALIBRATION.md).
-This is a source observation, not an observed device failure. The correction
-and its native compilation are still pending.
+This is a source observation, not an observed device failure. The subsequent
+[two-line correction](CALIBRATION_OPEN.md) passes focused fixtures and native
+compilation; it is selected for the next full kernel build.
 
 ## Packaging and validation
 
