@@ -1,0 +1,24 @@
+{
+  "source_revision": "59e00a9144d782e148332009a835b99c43382467",
+  "prerequisite": "31-patch DMA-map-error composition, two transport-setup patches, recovery ownership/setters/gate and controller-init",
+  "patch": "0001-wmt-gate-the-captured-controller-cycle-on-recorded-c.patch",
+  "patch_sha256": "eac52798310b046d9fc0fb28136b63d81005a3fc2104f520b561346a33cf106d",
+  "parents": {
+    "drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect.c": "a06fb7be80589a882cd39a4a6745eed5728cac4d7f35c0978217cdb9ac44b418",
+    "drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect.h": "a13c0f5be2cbc00192ff1ffc214f288c68895cd97f89960b6b9bd6cad9216a3b",
+    "drivers/misc/mediatek/connectivity/common/common_main/core/wmt-request-capture.h": "c6e5e6c864b72022f80715c58fdcc9d57d9e7b69fb2845d3979a65ce53ffe4ba",
+    "drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_dev.c": "d8cefc850a424fd75a207e9559ce05cd969540d125a8822449349059213fd12b",
+    "fs/pstore/wifi_capture.h": "d591f3616e10a8af05a3bc751ee45f942dab8198a7d14971ab97ec6891928d60",
+    "include/linux/mt6797_wifi_capture.h": "b100215ba3c0fe02b467d2e256f367f8ab9692626e1afbbd7e3b20b178de9059"
+  },
+  "outputs": {
+    "drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect.c": "de48fc9cbee37fb9a5634de23452e8f8dcee32c08f38953939cab98490956898",
+    "drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect.h": "9d456b4b2f6b7d6bcb3de1a0589c451fadc03c5bf551e63ea4bff4d1daa20b2e",
+    "drivers/misc/mediatek/connectivity/common/common_main/core/wmt-request-capture.h": "9c3c1e7595c112c82b7486d2935da66cdd9490e7762cdedf16d3e72095b33e21",
+    "drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_dev.c": "fda31432cde99e2c81bb47e245a3daf1aa2da578babcc738be66ca811e1ace24",
+    "fs/pstore/wifi_capture.h": "410ba44b71f1ddd16a9ef2726ff567874b72c9df1d198a274091b9b33a33b580",
+    "include/linux/mt6797_wifi_capture.h": "18339d6661500db5e552803892b0eff8a2aa17dc001a2203d736f615510ac406"
+  },
+  "boot_candidate": false,
+  "device_execution": false
+}

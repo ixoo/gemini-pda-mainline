@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-"""Offline Wi-Fi capture framing only; never classifies hardware success."""
+"""Offline Wi-Fi capture validation; never declares hardware support."""
 import struct
 import zlib
 
@@ -13,12 +13,13 @@ PAYLOAD_BYTES = 120 - HEADER.size
 COMMIT = 0x57464331
 IDENTITY = 1
 TERMINAL = 255
-# Firmware execution and whole-cycle lifecycle semantics remain unfinished.
-KINDS = {IDENTITY, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, TERMINAL}
+# Recorded controller completion does not establish firmware execution or isolation.
+KINDS = {IDENTITY, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, TERMINAL}
 TERMINAL_STATUSES = {1, 2, 3}  # producer-reported complete, failed, overflow
 
 RECOVERY = struct.Struct('<6Ii')
 INITIALIZER = struct.Struct('<IIi')
+TRANSPORT = struct.Struct('<IIi')
 INITIALIZER_ORDER = ((0, 1), (1, 1), (11, 1), (11, 2), (12, 1), (12, 2),
                      (13, 1), (13, 2), (14, 1), (14, 2), (1, 2),
                      (2, 1), (2, 2), (3, 1), (3, 2), (4, 1), (4, 2),
@@ -46,6 +47,28 @@ def check_startup_prefix(records):
         validate_initializer_payload(record['transaction'], record['payload'])
         if INITIALIZER.unpack(record['payload']) != (site, stage, 0):
             raise ValueError('initializer failed or arrived out of order')
+
+
+def validate_transport_payload(transaction, payload):
+    if transaction or len(payload) != TRANSPORT.size:
+        raise ValueError('transport requires transaction zero and exact payload size')
+    stage, argument, result = TRANSPORT.unpack(payload)
+    if stage not in (1, 2) or argument != 0x23 or (stage == 1 and result):
+        raise ValueError('invalid transport stage, argument or entry result')
+
+
+def check_control_prefix(records):
+    """Require successful fixed transport configuration after complete startup."""
+    check_startup_prefix(records)
+    start = 3 + len(INITIALIZER_ORDER)
+    if len(records) < start + 2 or any(r['kind'] == 13 for r in records[start + 2:]):
+        raise ValueError('missing or repeated transport configuration')
+    for record, stage in zip(records[start:start + 2], (1, 2)):
+        if record['kind'] != 13:
+            raise ValueError('activity before completion of transport configuration')
+        validate_transport_payload(record['transaction'], record['payload'])
+        if TRANSPORT.unpack(record['payload']) != (stage, 0x23, 0):
+            raise ValueError('transport configuration failed or arrived out of order')
 
 
 def validate_recovery_payload(transaction, payload):
@@ -328,6 +351,8 @@ def encode(kind, sequence, cycle, transaction, payload):
         validate_recovery_payload(transaction, payload)
     if kind == 12:
         validate_initializer_payload(transaction, payload)
+    if kind == 13:
+        validate_transport_payload(transaction, payload)
     body = HEADER.pack(b'WFC1', 1, kind, sequence, cycle, transaction, len(payload))
     body += payload + bytes(PAYLOAD_BYTES - len(payload))
     return body + struct.pack('<II', zlib.crc32(body), COMMIT)
@@ -974,3 +999,32 @@ def check_request_tx(data, expected_cycle, expected_hash, expected_image_bytes,
                             expected_sections, expected_payload_hashes)
     return {**result, 'checked_requests': [1, 2],
             'scope': 'recorded request, firmware, pre-map payload, DMA, EMI and stop joins; immutability, quiescence, isolation and execution unchecked'}
+
+
+def check_controller_cycle(raw_zone, expected_cycle, expected_identity, expected_hash,
+                           expected_image_bytes, expected_sections, expected_payload_hashes):
+    """Validate the recorded controller sequence, without a hardware-support verdict."""
+    decoded = decode_pmsg_zone(raw_zone, expected_cycle, expected_identity)
+    records = decoded['records']
+    if decoded['producer_status'] != 1 or decoded['interrupted_slot'] is not None:
+        raise ValueError('controller did not commit a complete producer terminal')
+    check_control_prefix(records)
+    start = 5 + len(INITIALIZER_ORDER)
+    if (len(records) <= start + 2 or records[start]['kind'] != 10 or
+            request_values(records[start]) != (16, 1, 0x80000003)):
+        raise ValueError('ON does not follow the completed control prefix')
+    if records[-2]['kind'] != 10 or request_values(records[-2]) != (24, 2, 0):
+        raise ValueError('complete terminal does not immediately follow successful OFF')
+    data = raw_zone[12:12 + len(records) * RECORD_BYTES]
+    result = check_request_tx(data, expected_cycle, expected_hash, expected_image_bytes,
+                              expected_sections, expected_payload_hashes)
+    check_stop_workers(data, expected_cycle)
+    wait = next(row for row in records if row['kind'] == 7 and
+                int.from_bytes(row['payload'][:4], 'little') == 15)
+    off = next(row for row in records if row['kind'] == 10 and row['transaction'] == 2 and
+               int.from_bytes(row['payload'][:4], 'little') == 19)
+    if wait['sequence'] <= off['sequence']:
+        raise ValueError('removal waits are outside the OFF worker interval')
+    return {**result, 'checked_transport': 0x23, 'producer_status': 1,
+            'scope': 'recorded startup, transport, request, payload, DMA, EMI and removal-wait sequence; '
+                     'firmware execution, interval immutability, quiescence and reset/resource isolation unchecked'}

@@ -1,0 +1,260 @@
+From 16c6ab2e964f5589a132914b42b90827efc69ea5 Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <noreply@gemini-experiment.invalid>
+Date: Thu, 10 Sep 2026 15:16:49 -0400
+Subject: [PATCH] wmt: gate the captured controller cycle on recorded
+ completion
+
+Expose an effect-free protocol query because the old detector returns
+zero for unknown commands. Record one fixed transport setup, refuse
+requests after capture or attribution fails, and commit the producer
+terminal only after successful OFF. Return observer refusal through the
+experimental ioctl instead of continuing with unobserved requests.
+
+Internal experiment archive; synthetic author, no DCO certification.
+---
+ .../common/common_detect/wmt_detect.c         |  2 +
+ .../common/common_detect/wmt_detect.h         |  2 +
+ .../common_main/core/wmt-request-capture.h    | 16 +++-
+ .../common/common_main/linux/wmt_dev.c        | 73 +++++++++++++++++++
+ fs/pstore/wifi_capture.h                      |  2 +-
+ include/linux/mt6797_wifi_capture.h           |  4 +-
+ 6 files changed, 92 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect.c b/drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect.c
+index b2a04dd..e4e21d7 100644
+--- a/drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect.c
++++ b/drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect.c
+@@ -122,6 +122,8 @@ failed_capture:
+ static long wmt_detect_unlocked_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+ {
+ #ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++	if (cmd == COMBO_IOCTL_CAPTURE_ABI)
++		return WMT_CAPTURE_ABI_VERSION;
+ 	if (cmd != COMBO_IOCTL_CAPTURE_INIT)
+ 		return -EPERM;
+ 	return wmt_capture_initialize(arg);
+diff --git a/drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect.h b/drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect.h
+index cc3ded4..20fd5ac 100644
+--- a/drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect.h
++++ b/drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect.h
+@@ -97,6 +97,8 @@ struct wmt_capture_identity {
+ 
+ #define COMBO_IOCTL_CAPTURE_INIT \
+ 	_IOW(WMT_DETECT_IOC_MAGIC, 9, struct wmt_capture_identity)
++#define COMBO_IOCTL_CAPTURE_ABI _IO(WMT_DETECT_IOC_MAGIC, 10)
++#define WMT_CAPTURE_ABI_VERSION 0x57464301
+ #endif
+ 
+ typedef enum _ENUM_WMT_CHIP_TYPE_T {
+diff --git a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt-request-capture.h b/drivers/misc/mediatek/connectivity/common/common_main/core/wmt-request-capture.h
+index f964a80..730e80e 100644
+--- a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt-request-capture.h
++++ b/drivers/misc/mediatek/connectivity/common/common_main/core/wmt-request-capture.h
+@@ -67,13 +67,14 @@ static unsigned int wfc_request_opid(void)
+ 	return wfc_request_id == 1 ? WMT_OPID_FUNC_ON : WMT_OPID_FUNC_OFF;
+ }
+ 
+-void mt6797_wfc_request_begin(unsigned long arg)
++bool mt6797_wfc_request_begin(unsigned long arg)
+ {
+ 	unsigned long flags;
++	bool accepted = false;
+ 	u32 words[] = {16, 0, arg};
+ 
+ 	if (!ramoops_capture_active())
+-		return;
++		return false;
+ 	raw_spin_lock_irqsave(&wfc_request_lock, flags);
+ 	if (wfc_request_phase == WFC_REQ_UNUSED && arg == 0x80000003UL) {
+ 		get_task_struct(current);
+@@ -90,8 +91,10 @@ void mt6797_wfc_request_begin(unsigned long arg)
+ 	}
+ 	wfc_request_phase = WFC_REQ_ROOT;
+ 	wfc_request_emit(words, ARRAY_SIZE(words));
++	accepted = wfc_request_phase == WFC_REQ_ROOT && ramoops_capture_active();
+ out:
+ 	raw_spin_unlock_irqrestore(&wfc_request_lock, flags);
++	return accepted;
+ }
+ 
+ void mt6797_wfc_request_bind(const void *op, unsigned int opid,
+@@ -288,13 +291,14 @@ out:
+ 	raw_spin_unlock_irqrestore(&wfc_request_lock, flags);
+ }
+ 
+-void mt6797_wfc_request_end(int status)
++bool mt6797_wfc_request_end(int status)
+ {
+ 	unsigned long flags;
++	bool accepted;
+ 	u32 words[] = {24, 0, status};
+ 
+ 	if (!ramoops_capture_active())
+-		return;
++		return false;
+ 	raw_spin_lock_irqsave(&wfc_request_lock, flags);
+ 	if (wfc_request_phase != WFC_REQ_WAIT_DONE ||
+ 	    wfc_request_root != current || wfc_request_op || wfc_request_worker) {
+@@ -309,7 +313,11 @@ void mt6797_wfc_request_end(int status)
+ 			wfc_request_root = NULL;
+ 		}
+ 	}
++	accepted = ramoops_capture_active() &&
++		   (wfc_request_phase == WFC_REQ_ON_DONE ||
++		    wfc_request_phase == WFC_REQ_DONE);
+ 	raw_spin_unlock_irqrestore(&wfc_request_lock, flags);
++	return accepted;
+ }
+ 
+ static void wfc_request_release(const void *op)
+diff --git a/drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_dev.c b/drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_dev.c
+index 9bfb6a0..52851f6 100644
+--- a/drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_dev.c
++++ b/drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_dev.c
+@@ -51,6 +51,10 @@
+ #include <linux/proc_fs.h>
+ #include <mtk_wcn_cmb_stub.h>
+ #include <linux/mt6797_wifi_capture.h>
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++#include <linux/atomic.h>
++#include <linux/pstore_ram.h>
++#endif
+ 
+ #include "osal_typedef.h"
+ #include "osal.h"
+@@ -761,6 +765,46 @@ UINT32 WMT_poll(struct file *filp, poll_table *wait)
+ 	return mask;
+ }
+ 
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++static atomic_t wmt_capture_hif_attempted = ATOMIC_INIT(0);
++
++static int wmt_capture_control_fail(int status)
++{
++	__le32 failed = cpu_to_le32(2);
++
++	if (ramoops_capture_active())
++		ramoops_capture_append(255, 0, (const u8 *)&failed, sizeof(failed));
++	return status;
++}
++
++static int wmt_capture_hif_begin(unsigned long arg)
++{
++	__le32 record[] = { cpu_to_le32(1), cpu_to_le32(0x23), 0 };
++	int ret;
++
++	if (!ramoops_capture_active())
++		return -EPERM;
++	if (atomic_cmpxchg(&wmt_capture_hif_attempted, 0, 1))
++		return wmt_capture_control_fail(-EALREADY);
++	if (arg != 0x23UL || hif_info)
++		return wmt_capture_control_fail(-EINVAL);
++	ret = ramoops_capture_append(13, 0, (const u8 *)record, sizeof(record));
++	return ret ? wmt_capture_control_fail(ret) : 0;
++}
++
++static int wmt_capture_hif_end(int status)
++{
++	__le32 record[] = { cpu_to_le32(2), cpu_to_le32(0x23),
++			    cpu_to_le32((u32)status) };
++	int ret;
++
++	ret = ramoops_capture_append(13, 0, (const u8 *)record, sizeof(record));
++	if (status || ret)
++		return wmt_capture_control_fail(status ? status : ret);
++	return 0;
++}
++#endif
++
+ /* INT32 WMT_ioctl(struct inode *inode, struct file *filp, UINT32 cmd, unsigned long arg) */
+ LONG WMT_unlocked_ioctl(struct file *filp, UINT32 cmd, ULONG arg)
+ {
+@@ -787,6 +831,11 @@ LONG WMT_unlocked_ioctl(struct file *filp, UINT32 cmd, ULONG arg)
+ 		}
+ 		break;
+ 	case WMT_IOCTL_SET_STP_MODE:	/* stp/hif/fm mode */
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++		iRet = wmt_capture_hif_begin(arg);
++		if (iRet)
++			break;
++#endif
+ 		/* set hif conf */
+ 		do {
+ 			P_OSAL_OP pOp;
+@@ -827,19 +876,43 @@ LONG WMT_unlocked_ioctl(struct file *filp, UINT32 cmd, ULONG arg)
+ 				hif_info = 1;
+ 			}
+ 		} while (0);
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++		iRet = wmt_capture_hif_end(iRet);
++#endif
+ 		break;
+ 	case WMT_IOCTL_FUNC_ONOFF_CTRL:	/* test turn on/off func */
+ 		do {
+ 			MTK_WCN_BOOL bRet = MTK_WCN_BOOL_FALSE;
+ 
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++			if (!hif_info || !ramoops_capture_active() ||
++			    !mt6797_wfc_request_begin(arg)) {
++				iRet = wmt_capture_control_fail(-EPROTO);
++				break;
++			}
++#else
+ 			mt6797_wfc_request_begin(arg);
++#endif
+ 			if (arg & 0x80000000)
+ 				bRet = mtk_wcn_wmt_func_on(arg & 0xF);
+ 			else
+ 				bRet = mtk_wcn_wmt_func_off(arg & 0xF);
+ 
+ 			iRet = (MTK_WCN_BOOL_FALSE == bRet) ? -EFAULT : 0;
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++			if (!mt6797_wfc_request_end(iRet)) {
++				iRet = wmt_capture_control_fail(iRet ? iRet : -EPROTO);
++				break;
++			}
++			if (arg == 3) {
++				__le32 complete = cpu_to_le32(1);
++
++				iRet = ramoops_capture_append(255, 0, (const u8 *)&complete,
++							      sizeof(complete));
++			}
++#else
+ 			mt6797_wfc_request_end(iRet);
++#endif
+ 		} while (0);
+ 		break;
+ 	case WMT_IOCTL_LPBK_POWER_CTRL:
+diff --git a/fs/pstore/wifi_capture.h b/fs/pstore/wifi_capture.h
+index 654438f..f0317c0 100644
+--- a/fs/pstore/wifi_capture.h
++++ b/fs/pstore/wifi_capture.h
+@@ -41,7 +41,7 @@ static int wfc_slot_write(struct wfc_writer *writer, unsigned int kind,
+ 	if (!writer->attempted || writer->stopped || !writer->payload)
+ 		return -EPERM;
+ 	if (writer->next > WFC_LAST_SLOT || length > 84 ||
+-	    (length && !payload) || !((kind >= 1 && kind <= 12) ||
++	    (length && !payload) || !((kind >= 1 && kind <= 13) ||
+ 				    kind == 255) ||
+ 	    (!writer->next && (kind != 1 || length != 80 || transaction)) ||
+ 	    (writer->next && kind == 1) ||
+diff --git a/include/linux/mt6797_wifi_capture.h b/include/linux/mt6797_wifi_capture.h
+index d42233d..4e38cc2 100644
+--- a/include/linux/mt6797_wifi_capture.h
++++ b/include/linux/mt6797_wifi_capture.h
+@@ -11,10 +11,10 @@ void mt6797_wfc_common_off_end(int power_status, int function_status);
+ void mt6797_wfc_clock_off_begin(struct clk *clk);
+ void mt6797_wfc_clock_off_end(void);
+ 
+-void mt6797_wfc_request_begin(unsigned long arg);
++bool mt6797_wfc_request_begin(unsigned long arg);
+ void mt6797_wfc_request_bind(const void *op, unsigned int opid,
+ 			     unsigned int type, unsigned int timeout);
+-void mt6797_wfc_request_end(int status);
++bool mt6797_wfc_request_end(int status);
+ bool mt6797_wfc_request_common_begin(void);
+ void mt6797_wfc_request_common_end(void);
+ 
+-- 
+2.54.0 (Apple Git-157)
+

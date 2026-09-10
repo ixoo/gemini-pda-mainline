@@ -119,3 +119,8 @@ shortcut. Submitted-byte identity and resource isolation remain unproven.
 The [pre-map payload witness](TX_PAYLOAD.md) now joins the eight actual
 coalescing-buffer payload digests to their DMA completions. Buffer stability
 after hashing, broader consumer isolation and device admission remain open.
+
+The [single-cycle controller](CONTROLLER_CYCLE.md) connects recorded startup,
+fixed transport setup, a joined responder and gated ON/OFF requests. Its
+recovered classifier composes the observation families; complete linking,
+candidate packaging, isolation and the device session remain outstanding.

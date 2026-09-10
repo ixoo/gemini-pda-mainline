@@ -164,9 +164,11 @@ The [capture/arm backend](RECOVERY_GATE.md) now implements the first takeover
 join as an unselected built-in function, with no trigger or connectivity call.
 The [controller initialization entry](CONTROLLER_INIT.md) now calls that backend
 before the native initializer chain and preserves each named return value.
-The remaining controller stages, full watchdog caller/configuration audit,
-shared-buffer/reset isolation, complete linking and candidate-specific recovery
-review remain open. The owner must approve the exact radio and timed-restart
+The [single-cycle controller](CONTROLLER_CYCLE.md) now connects transport setup,
+responder completion and the recorded ON/OFF sequence. The full watchdog
+caller/configuration audit, shared-buffer/reset isolation, complete linking,
+minimal filesystem packaging and candidate-specific recovery review remain open.
+The owner must approve the exact radio and timed-restart
 session before it runs, as required by [safety policy](../../docs/SAFETY.md).
 No watchdog, radio, service, partition or device state was changed for this
 assessment. No hardware deadline or recovery behavior was measured.

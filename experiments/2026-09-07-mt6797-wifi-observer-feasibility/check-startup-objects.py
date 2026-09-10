@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import re
 import shlex
 import shutil
 import subprocess
@@ -107,9 +108,10 @@ def main():
     mode = sys.argv[2] if len(sys.argv) == 3 else "--wmt"
     assert mode in ("--wmt", "--pstore", "--capture-writer", "--dma", "--stop",
                     "--firmware-read", "--firmware-read-safe", "--firmware-image", "--emi", "--provider-off",
-                    "--common-off-safe", "--common-off", "--operation-ownership", "--request-capture", "--request-firmware", "--tx-payload", "--stop-workers", "--remove-retain", "--probe-retain", "--dma-map-error", "--transport-setup")
-    transport_setup = mode == "--transport-setup"
-    dma_map_error = mode == "--dma-map-error"
+                    "--common-off-safe", "--common-off", "--operation-ownership", "--request-capture", "--request-firmware", "--tx-payload", "--stop-workers", "--remove-retain", "--probe-retain", "--dma-map-error", "--transport-setup", "--controller-cycle")
+    controller_cycle = mode == "--controller-cycle"
+    transport_setup = mode == "--transport-setup" or controller_cycle
+    dma_map_error = mode == "--dma-map-error" or controller_cycle
     probe_retain = mode == "--probe-retain" or dma_map_error
     remove_retain = mode == "--remove-retain" or probe_retain
     stop_workers = mode == "--stop-workers" or remove_retain
@@ -183,9 +185,9 @@ def main():
     if dma_map_error:
         label = "wifi-dma-map-error-objects-"
     if transport_setup:
-        label = "wifi-transport-setup-objects-"
+        label = "wifi-controller-cycle-objects-" if controller_cycle else "wifi-transport-setup-objects-"
     def unit_path(name):
-        return name if name.startswith("drivers/") else relative + name
+        return name if name.startswith(("drivers/", "fs/")) else relative + name
     assert not run(["git", "-C", str(project), "status", "--porcelain"])
     root = Path("/workspace/gemini-pda")
     source = root / "gemian-source/gemian-baseline" / REVISION
@@ -534,6 +536,37 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
             subprocess.run(["python3", str(experiment / "test-transport-setup.py"),
                             str(patched)], check=True)
             files = (RELATIVE + "linux/wmt_dev",)
+        if controller_cycle:
+            detector_headers = "drivers/misc/mediatek/connectivity/common/common_detect"
+            (patched / detector_headers).mkdir(parents=True, exist_ok=True)
+            for path in (source / detector_headers).glob("*.h"):
+                shutil.copyfile(path, patched / detector_headers / path.name)
+            setter = json.loads((experiment / "results/recovery-setters-sources.json").read_text())
+            additions = [(project / setter["parent_patch"], setter["parent_patch_sha256"], None)]
+            for topic in ("recovery-setters", "recovery-gate", "controller-init", "controller-cycle"):
+                pins = json.loads((experiment / "results" / (topic + "-sources.json")).read_text())
+                additions.append((experiment / "patches" / topic / pins["patch"], pins["patch_sha256"], pins))
+            for patch, expected, pins in additions:
+                assert digest(patch) == expected
+                for path in re.findall(r"^--- a/(.+)$", patch.read_text(), re.M):
+                    destination = patched / path
+                    if not destination.exists():
+                        destination.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copyfile(source / path, destination)
+                if pins:
+                    for path, expected in pins["parents"].items():
+                        assert digest(patched / path) == expected, path
+                run(["git", "apply", "--unsafe-paths", "--directory=" + str(patched), str(patch)])
+                if pins:
+                    for path, expected in pins["outputs"].items():
+                        assert digest(patched / path) == expected, path
+                patches.append(patch)
+            assert len(patches) == 38
+            subprocess.run(["python3", str(experiment / "test-controller-cycle.py"), str(patched)], check=True)
+            subprocess.run(["python3", str(experiment / "test-cycle-controller.py")], check=True)
+            subprocess.run(["python3", str(experiment / "test-controller-classifier.py")], check=True)
+            files = (RELATIVE + "linux/wmt_dev", RELATIVE + "core/wmt_lib", "fs/pstore/ram",
+                     "drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect")
         records = []
         header = headers + ("/hif.h" if dma else "/wmt_ctrl.h")
         if not pstore:
@@ -563,6 +596,9 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
             args[-1] = str(patched / suffix)
             if transport_setup:
                 args.insert(1, "-DCONFIG_MTK_A72_RECOVERY_DISCRIMINATOR")
+            if controller_cycle:
+                args[1:1] = ["-I" + str(patched / "drivers/watchdog/mediatek/include"),
+                             "-I" + str(patched / "drivers/misc/mediatek/connectivity/common/common_detect")]
             args.insert(1, "-I" + str(patched / headers))
             if common_unit:
                 args.insert(1, "-I" + str(patched / common_headers))
@@ -580,13 +616,19 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
                     for a in args]
             with (work / (name + ".log")).open("w") as stream:
                 compile_logged(args, stream, cwd=output, env=environment, timeout=120)
-            if transport_setup:
+            if transport_setup and name == "wmt_dev":
                 nm = str(toolchain / "wrappers/aarch64-linux-gnu-nm")
                 assert "fb_register_client" in run([nm, str(baseline)], env=environment)
                 emitted = run([nm, str(result)], env=environment)
                 assert "fb_register_client" not in emitted
                 assert "fb_unregister_client" not in emitted
             dependencies = (work / (name + ".d")).read_text().replace("\\\n", " ").split()
+            if controller_cycle and name == "ram":
+                assert str(patched / "fs/pstore/wifi_capture.h") in dependencies
+                assert digest(patched / "fs/pstore/wifi_capture.h") == digest(experiment / "capture-slot-writer.h")
+            if controller_cycle and name == "wmt_detect":
+                assert str(patched / "drivers/watchdog/mediatek/include/ext_wd_drv.h") in dependencies
+                assert str(patched / "drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect.h") in dependencies
             if ownership and name in ("wmt_lib", "wmt_exp"):
                 disassembly = run([str(toolchain / "wrappers/aarch64-linux-gnu-objdump"),
                                    "-dr", str(result)], env=environment)

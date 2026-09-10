@@ -64,6 +64,34 @@ def serve(fd, deadline, records, chip, version):
     return {"stage": "reply-written", "kernel_acceptance": "requires capture"}
 
 
+def check_abi(chip, version):
+    if sys.platform != "linux" or sys.byteorder != "little" or struct.calcsize("P") != 8:
+        raise RuntimeError("requires the reviewed Linux 64-bit little-endian ABI")
+    if chip not in (0x0279, 0x6797) or not 0 <= version <= 0xffff or version & 0xff:
+        raise ValueError("unsupported chip/version selection")
+
+
+def check_descriptor(fd, name="stpwmt"):
+    info = os.fstat(fd)
+    if not stat.S_ISCHR(info.st_mode):
+        raise ValueError("descriptor is not a character device")
+    if fcntl.fcntl(fd, fcntl.F_GETFL) & os.O_ACCMODE != os.O_RDWR:
+        raise ValueError("descriptor must permit both reading and writing")
+    identity = Path(f"/sys/dev/char/{os.major(info.st_rdev)}:{os.minor(info.st_rdev)}/uevent")
+    if f"DEVNAME={name}" not in identity.read_text().splitlines():
+        raise ValueError(f"descriptor is not the {name} device")
+
+
+def prepare_patches(directory):
+    if not os.statvfs(directory).f_flag & os.ST_RDONLY:
+        raise ValueError("firmware filesystem must be read-only")
+    spec = importlib.util.spec_from_file_location(
+        "retained_patches", Path(__file__).with_name("check-retained-patches.py"))
+    checker = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(checker)
+    return checker.check_directory(directory)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--fd", type=int, required=True, help="inherited /dev/stpwmt descriptor")
@@ -72,25 +100,9 @@ def main():
     parser.add_argument("--version", type=lambda value: int(value, 0), required=True)
     parser.add_argument("--firmware-directory", required=True)
     args = parser.parse_args()
-    if sys.platform != "linux" or sys.byteorder != "little" or struct.calcsize("P") != 8:
-        raise RuntimeError("requires the reviewed Linux 64-bit little-endian ABI")
-    if args.chip not in (0x0279, 0x6797) or not 0 <= args.version <= 0xffff or args.version & 0xff:
-        raise ValueError("unsupported chip/version selection")
-    info = os.fstat(args.fd)
-    if not stat.S_ISCHR(info.st_mode):
-        raise ValueError("descriptor is not a character device")
-    if fcntl.fcntl(args.fd, fcntl.F_GETFL) & os.O_ACCMODE != os.O_RDWR:
-        raise ValueError("descriptor must permit both reading and writing")
-    identity = Path(f"/sys/dev/char/{os.major(info.st_rdev)}:{os.minor(info.st_rdev)}/uevent")
-    if "DEVNAME=stpwmt" not in identity.read_text().splitlines():
-        raise ValueError("descriptor is not the stpwmt device")
-    if not os.statvfs(args.firmware_directory).f_flag & os.ST_RDONLY:
-        raise ValueError("firmware filesystem must be read-only")
-    spec = importlib.util.spec_from_file_location(
-        "retained_patches", Path(__file__).with_name("check-retained-patches.py"))
-    checker = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(checker)
-    records = checker.check_directory(args.firmware_directory)
+    check_abi(args.chip, args.version)
+    check_descriptor(args.fd)
+    records = prepare_patches(args.firmware_directory)
     if check_deadline(args.deadline_ns) > 1500000000:
         raise ValueError("remaining response budget exceeds 1500 ms")
     print(json.dumps({"stage": "ready", "deadline_ns": args.deadline_ns}), flush=True)

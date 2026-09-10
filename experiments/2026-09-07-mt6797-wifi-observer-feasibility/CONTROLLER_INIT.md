@@ -91,11 +91,13 @@ match the remote inventory and 44-entry checksum manifest, SHA-256
 The native compiler commands retain `-w`; these are not warning-clean or
 complete-kernel-link results.
 
-Responder/HIF configuration, request sequencing, final classification, complete
-kernel linking, reset/resource isolation and the exact owner-approved device
-session remain open. This source checkpoint neither installs a candidate nor
-claims runtime support.
+Complete kernel linking, minimal filesystem packaging, reset/resource isolation
+and the exact owner-approved device session remain open. This source checkpoint
+neither installs a candidate nor claims runtime support.
 
 The [transport setup prerequisites](TRANSPORT_SETUP.md) repair false success,
 wait for configuration completion and exclude display-triggered power work.
-They remain separate from the controller's pending request sequence.
+
+The [single-cycle controller](CONTROLLER_CYCLE.md) now connects that sequence,
+joins the responder process and records producer completion. Candidate packaging,
+full linking and the device session remain outstanding.
