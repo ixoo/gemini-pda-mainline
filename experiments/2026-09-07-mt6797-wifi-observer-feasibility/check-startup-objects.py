@@ -414,8 +414,9 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
                 disassembly = run([str(toolchain / "wrappers/aarch64-linux-gnu-objdump"),
                                    "-dr", str(result)], env=environment)
                 (work / (name + "-capture.disasm")).write_text(disassembly + "\n")
+                # Static provider helpers may be inlined into their callers.
                 for symbol in ("ramoops_capture_active", "ramoops_capture_append", "wfc_off_",
-                               "spm_mtcmos_ctrl_conn", "disable_subsys"):
+                               "pg_unprepare"):
                     assert symbol in disassembly, symbol
             if capture:
                 assert str(patched / relative / "capture-slot-writer.h") in dependencies
