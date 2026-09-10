@@ -27,6 +27,11 @@
       "path": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_lib.c",
       "bytes": 54747,
       "sha256": "e363d3377aab1de6f81d94dd482bcdba5eb55884792f45e1688ebf850f991e4f"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/common/common_main/linux/osal.c",
+      "bytes": 26361,
+      "sha256": "e092adc17a3092a8cacaa04975bad49c57ff0dd191fb60195e426e49c764f3db"
     }
   ]
 }

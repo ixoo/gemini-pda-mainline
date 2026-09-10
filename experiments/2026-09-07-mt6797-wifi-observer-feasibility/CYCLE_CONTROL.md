@@ -195,7 +195,7 @@ the patch is not a device candidate; cleanup and recovery remain unvalidated.
 
 ## Controller route and operation timeout
 
-The [five-file source receipt](results/controller-route-sources.json) pins a
+The [source receipt](results/controller-route-sources.json) pins a
 further review of the existing native control routes. Select
 `WMT_IOCTL_FUNC_ONOFF_CTRL` on the already initialized WMT descriptor for the
 minimal experiment design. This is reuse of the vendor experiment interface,
@@ -265,6 +265,49 @@ compiler logs were empty with the recorded flags (including `-w`). The exact
 the ignored Buildbox artifact path. Temporary output was removed and the
 prepared baseline remained clean. This adds no kernel link, executed controller,
 worker cancellation, radio action or hardware recovery evidence.
+
+### Reset completion is not worker completion
+
+The operation-join follow-up also pins native `linux/osal.c`. Its
+`osal_op_raise_signal()` writes the supplied result into the operation and
+then raises its signal. Three WMT paths call this helper:
+
+- `wmtd_thread()` signals after its core operation returns;
+- `wmt_lib_state_init()` drains queued operations with result `-1`;
+- `wmt_lib_cmb_rst()` signals the current operation with result `-1` before
+  running its hardware/software reset sequence.
+
+The last path does not join or cancel the core worker. Therefore a positive
+wait result does not identify the completion producer or prove worker exit.
+The existing timeout-retention patch only handles nonpositive wait results.
+It still returns an operation to the free queue after a positive reset signal,
+even if the worker remains inside `wmt_core_opid()`. A later worker result can
+also replace the reset result before the waiter reads it.
+
+Two additional cases in `test-operation-timeout.py` execute the actual original
+and timeout-patched waiter with these injected schedules. Both versions recycle
+the operation while the simulated worker remains active after reset signals an
+error. Both report success when worker success replaces the reset error before
+the wait returns. All ten cases pass their expected outcomes. These are
+deterministic reproductions of permitted source orderings, not observations of
+a live race or execution of the reset machinery. No reset was issued.
+
+This changes the required placement of the remaining capture hooks. A request
+must bind its operation identity before active-queue publication, and worker
+completion must be recorded before signaling allows the waiter to recycle it.
+A reset-origin completion must irreversibly invalidate that request's capture;
+the later worker result cannot restore success. Recording only the final
+`pOp->result`, ioctl return, task pointer or common-OFF scope cannot provide this
+join. The native wrapper logs also read operation fields after waiter cleanup,
+and the worker reads the operation ID after signaling or free-queue return;
+new capture hooks must not copy those late accesses.
+
+Request attribution and resource isolation remain different requirements.
+Even perfect attribution cannot prevent a reset from changing hardware or
+reusing an operation that the worker still owns. Before a device cycle, resolve
+reset/current-operation ownership and exclude or safely account for competing
+actors. This follow-up supplies no ownership repair, reset suppression,
+controller, kernel candidate or additional hardware admission.
 
 The [persistent-capture assessment](PERSISTENT_CAPTURE.md) now identifies the
 existing pmsg helper's lock-context conflict and reproduces ring truncation and

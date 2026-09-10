@@ -30,7 +30,7 @@ typedef int *P_OSAL_THREAD;
 typedef struct { int rActiveOpQ, rFreeOpQ, rWmtdWq, thread; } DEV, *P_DEV_WMT;
 static DEV gDevWmt;
 static OP *active;
-static int scenario, free_puts, active_puts, wakes, diagnostics;
+static int scenario, free_puts, active_puts, wakes, diagnostics, worker_running;
 static int mtk_wcn_stp_coredump_start_get(void) { return scenario == 6; }
 static void osal_signal_init(SIGNAL *s) { assert(s->timeoutValue); }
 static bool wmt_lib_put_op(int *queue, OP *op)
@@ -47,6 +47,17 @@ static int osal_wait_for_signal_timeout(SIGNAL *s)
 {
     assert(s == &active->signal);
     if (scenario == 2 || scenario == 3) return 0;
+    if (scenario == 8 || scenario == 9) {
+        /* Reset signals the current operation while its worker still runs. */
+        active->result = -1;
+        worker_running = 1;
+        if (scenario == 9) {
+            /* Worker success replaces the reset result before waiter reads. */
+            active->result = 0;
+            worker_running = 0;
+        }
+        return 1;
+    }
     active->result = scenario == 1 ? -5 : 0;
     return scenario == 4 ? -4 : 1;
 }
@@ -62,19 +73,26 @@ static void stp_dbg_trigger_collect_ftrace(PUINT8 buf, INT32 len)
 TEST = r'''
 int main(void)
 {
-    for (scenario = 0; scenario < 8; scenario++) {
+    for (scenario = 0; scenario < 10; scenario++) {
         OP op = { .signal.timeoutValue = scenario == 7 ? 0 : 4000,
                   .op.opId = 4 };
         active = NULL;
         free_puts = active_puts = wakes = diagnostics = 0;
+        worker_running = 0;
         bool result = wmt_lib_put_act_op(&op);
         bool expired = scenario >= 2 && scenario <= 4;
-        bool success = scenario == 0 || scenario == 7 || (!FIXED && (scenario == 3 || scenario == 4));
+        bool success = scenario == 0 || scenario == 7 || scenario == 9 ||
+                       (!FIXED && (scenario == 3 || scenario == 4));
         assert(result == success);
         assert(free_puts == (scenario == 7 || (FIXED && expired) ? 0 : 1));
         assert(active_puts == (scenario == 6 ? 0 : 1));
         assert(wakes == (scenario == 5 || scenario == 6 ? 0 : 1));
         assert(diagnostics == (scenario == 2 || scenario == 3 || (FIXED && scenario == 4)));
+        if (scenario == 8) {
+            /* Positive reset completion recycles a still worker-owned object. */
+            assert(worker_running && free_puts == 1 && !result);
+            active->result = 0;
+        }
         if (expired) {
             /* A later worker write has a retained object, never returned by this waiter. */
             active->result = 0;
@@ -113,6 +131,7 @@ def main():
             subprocess.run([str(executable)], check=True, timeout=3)
     print('PASS: original recycles on timeout and can report late success; patch retains and fails')
     print('PASS: success, worker error, timeout, late success, interrupted wait, queue refusal, coredump block, async')
+    print('REPRODUCED in both: reset completion recycles before worker exit; late worker success masks reset')
     print('Scope: actual waiter with injected dependencies; no cancellation, scheduler, or hardware proof')
 
 
