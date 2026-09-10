@@ -1,0 +1,14 @@
+scope=exact_native_port_bodies_with_injected_DMA_MMIO_locks_and_time
+source_revision=59e00a9144d782e148332009a835b99c43382467
+configuration=CONF_MTK_AHB_DMA:1,CONF_HIF_DMA_INT:0,CONF_HIF_CONNSYS_DBG:1,CONF_HIF_DMA_DBG:0,no_MTK_DMA_BUF_MEMCPY_SUP
+clock_model=HZ:100,tick_step:1_or_600; not_elapsed_hardware_time
+compiler_flags=-std=gnu11 -Wall -Wextra -Werror
+direction=RX case=condition returned_true=1 intr_calls=2 idle_calls=2 lock_held=0 mapping_live=0 hif_irq_mask_request=0 clock_balance=0 unmaps=1
+direction=RX case=deadline returned_true=1 intr_calls=499 idle_calls=0 lock_held=1 mapping_live=1 hif_irq_mask_request=1 clock_balance=1 unmaps=0
+direction=RX case=idle-count returned_true=1 intr_calls=2 idle_calls=100001 lock_held=0 mapping_live=0 hif_irq_mask_request=0 clock_balance=0 unmaps=1
+direction=RX case=deadline-before-read returned_true=1 intr_calls=0 idle_calls=0 lock_held=1 mapping_live=1 hif_irq_mask_request=1 clock_balance=1 unmaps=0
+direction=TX case=condition returned_true=1 intr_calls=2 idle_calls=2 lock_held=0 mapping_live=0 hif_irq_mask_request=0 clock_balance=0 unmaps=1
+direction=TX case=deadline returned_true=1 intr_calls=499 idle_calls=0 lock_held=1 mapping_live=1 hif_irq_mask_request=1 clock_balance=1 unmaps=0
+direction=TX case=idle-count returned_true=1 intr_calls=2 idle_calls=100001 lock_held=0 mapping_live=0 hif_irq_mask_request=0 clock_balance=0 unmaps=1
+direction=TX case=deadline-before-read returned_true=1 intr_calls=0 idle_calls=0 lock_held=1 mapping_live=1 hif_irq_mask_request=1 clock_balance=1 unmaps=0
+native_port_lifetime_cases=8; result=pass; hardware_claim=none

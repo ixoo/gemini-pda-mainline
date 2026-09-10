@@ -1,0 +1,40 @@
+{
+  "scope": "Native DMA hook placement and failure lifetime; no device action or installed-binary attribution",
+  "sources": [
+    {
+      "repository": "gemian/gemini-linux-kernel-3.18",
+      "revision": "59e00a9144d782e148332009a835b99c43382467",
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c",
+      "bytes": 49595,
+      "sha256": "d9b4e80fe98695284627e495ad640e39728ebe7df235df129f64d48e8a2e726b"
+    },
+    {
+      "repository": "gemian/gemini-linux-kernel-3.18",
+      "revision": "59e00a9144d782e148332009a835b99c43382467",
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb_pdma.c",
+      "bytes": 15404,
+      "sha256": "83c23a5582be2dcaa385359b7cd0f82af0ec9d6a4e102ea6faea57f59d75b480"
+    },
+    {
+      "repository": "gemian/gemini-linux-kernel-3.18",
+      "revision": "59e00a9144d782e148332009a835b99c43382467",
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif.h",
+      "bytes": 10855,
+      "sha256": "e9d18516cc49e6290203a827551ea7cb890af155d2ae9ddd0fd9ec03888fb87c"
+    },
+    {
+      "repository": "gemian/gemini-linux-kernel-3.18",
+      "revision": "59e00a9144d782e148332009a835b99c43382467",
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_pdma.h",
+      "bytes": 5060,
+      "sha256": "898874f9f3180000a393fab0a13666fd4960364f3c4b7517a1f965f027213028"
+    },
+    {
+      "repository": "gemian/gemini-linux-kernel-3.18",
+      "revision": "59e00a9144d782e148332009a835b99c43382467",
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/sdio.h",
+      "bytes": 9972,
+      "sha256": "adc07b543c958e85332cb68eae1a457a590465ef547309fd4fa45989f68b55b4"
+    }
+  ]
+}

@@ -282,6 +282,11 @@ physical release. In particular, reproducing the vendor's unconditional ADDR2
 OR does not prove it encodes the DMA API address correctly. The result contains
 only checked transaction IDs and that limited scope; no hardware pass is emitted.
 
+The [native hook-placement follow-up](DMA_HOOKS.md) now identifies the actual
+HIF lock and reproduces the selected timeout paths. Its returned-TRUE path can
+retain a mapping and lock; the separate idle-count escape can unmap without
+positive idle. Hooks must preserve and identify both paths.
+
 Non-DMA events are outside this function's verdict. Their schemas and causal
 checks, capture hooks, physical storage ownership and recovery remain required
 before a candidate can use this format for the complete experiment.
