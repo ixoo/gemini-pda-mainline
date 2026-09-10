@@ -1,0 +1,29 @@
+From 86f27ca1d383c6d5f4ca726ef280f7ec57e871a5 Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <noreply@gemini-experiment.invalid>
+Date: Thu, 10 Sep 2026 15:56:16 -0400
+Subject: [PATCH] wmt: include watchdog interface in experimental detector
+ build
+
+The complete kernel build cannot find ext_wd_drv.h from wmt_detect.c.
+Add the dependency to its native build rule, conditional on the
+experimental controller configuration.
+
+Internal experiment archive; synthetic author, no DCO certification.
+---
+ drivers/misc/mediatek/connectivity/common/common_detect/Makefile | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/misc/mediatek/connectivity/common/common_detect/Makefile b/drivers/misc/mediatek/connectivity/common/common_detect/Makefile
+index 5284ec6..c4d26e0 100644
+--- a/drivers/misc/mediatek/connectivity/common/common_detect/Makefile
++++ b/drivers/misc/mediatek/connectivity/common/common_detect/Makefile
+@@ -1,5 +1,6 @@
+ subdir-ccflags-y += -I$(srctree)/arch/arm/mach-$(MTK_PLATFORM)/$(ARCH_MTK_PROJECT)/dct/dct
+ subdir-ccflags-y += -DWMT_PLAT_ALPS=1
++ccflags-$(CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR) += -I$(srctree)/drivers/watchdog/mediatek/include
+ 
+ COMBO_CHIP_SUPPORT := false
+ ifneq ($(filter "MT6620E3",$(CONFIG_MTK_COMBO_CHIP)),)
+-- 
+2.54.0 (Apple Git-157)
+

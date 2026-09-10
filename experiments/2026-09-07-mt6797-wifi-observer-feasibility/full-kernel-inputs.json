@@ -163,6 +163,10 @@
     {
       "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/recovery-reset/0001-watchdog-preserve-owned-deadline-across-emergency-reset.patch",
       "sha256": "48ba21d2f5e94a17129ce9b03223416f433748c81657f549df33bcfe6ed97979"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/controller-build/0001-wmt-include-watchdog-interface-in-experimental-detector.patch",
+      "sha256": "a38d6daeb851b06ad574db6fdfc6040d63247ca9732895382964a34077a67aa6"
     }
   ],
   "purpose": "complete native kernel link; no boot candidate or device admission"

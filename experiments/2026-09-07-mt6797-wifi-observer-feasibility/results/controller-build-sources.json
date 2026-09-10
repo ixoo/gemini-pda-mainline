@@ -1,0 +1,15 @@
+{
+  "source_revision": "59e00a9144d782e148332009a835b99c43382467",
+  "patch": "0001-wmt-include-watchdog-interface-in-experimental-detector.patch",
+  "patch_sha256": "a38d6daeb851b06ad574db6fdfc6040d63247ca9732895382964a34077a67aa6",
+  "parents": {
+    "drivers/misc/mediatek/connectivity/common/common_detect/Makefile": "148d50c0e1a1f320519e1ad8ab918bd67501ea098111c1d4a6e21737f14d0f05"
+  },
+  "outputs": {
+    "drivers/misc/mediatek/connectivity/common/common_detect/Makefile": "3b91f331a357fa41dce24a341be36b4994754cd6a0370e57a58665617672c3dc"
+  },
+  "observed_failure_commit": "406ac87cae65c950fb99f731dd3d8943a9601237",
+  "observed_error": "wmt_detect.c: fatal error: ext_wd_drv.h: No such file or directory",
+  "failure_package_manifest_sha256": "adb5e2f005fe2f4cb8590b7c23e82e4a327dac75aa70b0e13bad6169a1abb0bc",
+  "failure_inputs_sha256": "08ba2e385ee9f96a9b13cc2714098127b6cd6cc6fbd46456ccdaf25fc575660a"
+}

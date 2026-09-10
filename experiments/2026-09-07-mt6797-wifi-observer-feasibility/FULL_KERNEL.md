@@ -1,9 +1,10 @@
 # Complete native controller kernel link
 
 The [Buildbox-only builder](build-full-kernel.py) compiles the complete native
-kernel from [forty pinned patches](full-kernel-inputs.json): the previously
+kernel from [forty-one pinned patches](full-kernel-inputs.json): the previously
 compiled controller composition, the emergency reset correction, and historical
-patch 0001's A72 refusal/configuration declaration. It does not select the old
+patch 0001's A72 refusal/configuration declaration, plus the detector's watchdog
+header dependency. It does not select the old
 recovery trigger, profile or consumed artifact.
 
 Run `python3 build-full-kernel.py COMMIT JOBS` from the experiment's clean,
@@ -28,3 +29,11 @@ Filesystem construction, complete reset/resource isolation, capture preparation,
 independent reproduction, container validation and an approved device session
 remain separate requirements. Firmware files remain private and are not inputs
 to this compile-only package.
+
+The first attempt stopped before compilation because the linker identity check
+lacked the pinned library environment. After that correction, full compilation
+exposed a missing `ext_wd_drv.h` include path in the detector's native Makefile.
+The retained [failure identity and correction](results/controller-build-sources.json)
+record that error; isolated object checks had supplied this path explicitly.
+The correction adds a configuration-dependent include path to the native rule.
+Failed compilation now retains complete logs with a checksum manifest.
