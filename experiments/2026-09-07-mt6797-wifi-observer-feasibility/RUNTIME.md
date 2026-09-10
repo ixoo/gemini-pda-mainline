@@ -15,7 +15,7 @@ or packages leave the mirror, the builder refuses different bytes; update or
 restore authenticated inputs explicitly. Package contents, including copyright
 notices, remain in the ignored artifact, outside this repository.
 
-From a clean project checkout on Linux x86_64, with `gpgv`, the Debian archive
+Run from a clean project checkout on Linux x86_64, with `gpgv`, the Debian archive
 keyring, `dpkg-deb`, GNU tar/gzip, QEMU's static ARM64 user emulator, and working
 unprivileged user namespaces. Serialize access to the cache/output pair; on
 Buildbox hold its existing shared build lock. Temporary extraction/download
@@ -47,3 +47,9 @@ The compressed archive is 23,266,365 bytes; the unpacked regular files total
 `chroot` was outside the command search path; the successful invocation resolves
 it before clearing the test environment and includes `/usr/sbin` in the host
 path. No interpreter or device failure was inferred from those launcher errors.
+
+A second extraction and test at `05df41212f663bdf84f292e97a662a50e745c07a`
+passed the same checks and produced a byte-identical `runtime.tar.gz`. It used
+the same authenticated cached packages, QEMU and host kernel. The receipt pins
+both complete package manifests; this establishes repeatable runtime packaging,
+with Linux 3.18 compatibility and boot integration still untested.

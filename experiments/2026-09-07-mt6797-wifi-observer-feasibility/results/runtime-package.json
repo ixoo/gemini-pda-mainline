@@ -27,5 +27,14 @@
   "responder_tests_passed": 12,
   "archive_without_init_firmware_emulator_tests": true,
   "kernel_3_18_compatibility": "not tested",
-  "device_access": "none"
+  "device_access": "none",
+  "reproduction": {
+    "repository_commit": "05df41212f663bdf84f292e97a662a50e745c07a",
+    "package_manifest_sha256": "44bd8ddedc1605c4acca70b5ea4dd14d2b1d9610f79af58add5d72dad2e558d4",
+    "package_files_verified": 5,
+    "runtime_byte_identical": true,
+    "controller_tests_passed": 7,
+    "responder_tests_passed": 12,
+    "scope": "second extraction and packaging from the same authenticated cached packages; same QEMU and host kernel"
+  }
 }
