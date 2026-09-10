@@ -54,6 +54,39 @@ direct reset, retention and request-routing writes in that audit; the table
 is not the complete TOPRGU ownership surface. Do not patch only suspend and
 declare the watchdog exclusive.
 
+## Exclude the CPU-idle route at boot
+
+Require `cpuidle.off=1` in the experimental candidate's effective command line,
+before any connectivity activity. Use the existing boot parameter rather than
+adding a second idle-policy implementation or changing the running Gemian
+system. This is a candidate requirement; no current image was modified.
+
+The pinned [configuration](../2026-07-23-gemian-a72-owner-observer/inputs/active-gemian.config)
+enables MT6797, CPU idle, the MTK idle governor and the watchdog kicker.
+The same source revision's power and cpuidle Makefiles select `spm_v2` and
+`cpuidle-mt67xx_v2.o`. The latter's `mt_soidle3_enter()` calls
+`soidle3_enter()`, whose MT6797 implementation calls `spm_go_to_sodi3()`.
+In [that implementation](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/base/power/spm_v2/mt_spm_sodi3p0.c#L393),
+the kicker-enabled MT6797 branch calls `wd_suspend_notify()` before entry
+and `wd_resume_notify()` afterward. `wd_api.c` connects these callbacks to the
+watchdog suspend/resume functions above. Their names therefore do not restrict
+them to an explicit userspace system-suspend request. Whether idle selection
+would actually choose this state during a particular attempt is unmeasured.
+
+The existing [cpuidle implementation](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/cpuidle/cpuidle.c)
+exposes the read-only `off` parameter and makes `cpuidle_select()` return
+`-ENODEV` when set. The scheduler then takes its default idle path;
+ARM64 `arch_cpu_idle()` calls `cpu_do_idle()`, whose pinned implementation is
+`dsb sy; wfi; ret`. This excludes the framework's selected SODI3 entry without
+requiring a busy loop. It does not prove physical clock behavior, watchdog
+continuity, exclusion of direct SPM callers or suppression of idle notifiers.
+
+Before takeover, verify the built configuration, effective boot arguments and
+the actual cpuidle `off` parameter. A missing or false value is a refusal.
+System suspend, direct reset, notifier effects and the remaining watchdog
+mutators still need their own exclusion or ownership proof. Boot-time exclusion
+of this one path must not be promoted to complete recovery isolation.
+
 ## Controller ordering to implement
 
 1. Prepare the fixed minimal filesystem, private firmware identities and
