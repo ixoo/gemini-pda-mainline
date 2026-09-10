@@ -71,6 +71,40 @@ before HIF locking; broader consumer isolation and a stable-buffer ownership
 contract remain necessary. Controller integration, complete linking, recovery
 budget and device admission remain open.
 
+## Shared-buffer ownership review
+
+Read-only inspection of Gemian source revision
+`59e00a9144d782e148332009a835b99c43382467` narrows the next ownership change.
+The locations below are relative to `drivers/misc/mediatek/connectivity/wlan/gen3/`
+in that baseline, before the observer patches; they are source observations,
+not evidence of a runtime race or an exhaustive caller-isolation proof.
+
+| Source location | Observed lifetime or access |
+| --- | --- |
+| `nic/nic.c:195-204,262-264` | Allocate one common buffer sized to the larger TX/RX requirement; release it during memory teardown. |
+| `nic/nic_tx.c:143,1565,1723,2269` | TX aliases that allocation. MSDU, command and initialization-command paths stage into it before entering the port operation. |
+| `nic/nic_rx.c:206,3247-3275` | RX aliases the same allocation. Aggregated receive fills it through the port, then copies packets out after the port call returns. |
+| `nic/nic_rx.c:3680-3686` | The extra-four-byte response branch likewise reads into the shared buffer and copies the response out after the port call. |
+| `include/config.h:196,705,740` | Baseline definitions enable RX aggregation, multithreading and the extra-four-byte response branch. These definitions are not a candidate configuration receipt. |
+| `os/linux/hif/ahb_sdioLike/ahb.c:855,1133` | Port read/write acquire the HIF lock inside the port functions; this does not cover earlier TX staging or subsequent RX copy-out. |
+| `os/linux/gl_init.c:1965,1975,2047,2078-2081` | Probe publishes `gPrDev` and installs the IRQ before adapter start, but creates the normal TX/HIF/RX workers afterward. |
+| `os/linux/hif/ahb_sdioLike/ahb.c:1314-1352` | The installed AHB IRQ handler disables the IRQ, records bookkeeping, sets the interrupt flag and wakes the HIF wait queue. It does not itself fill the coalescing buffer. |
+
+Consequently, early IRQ installation alone is not evidence of a competing
+buffer writer during firmware loading. Normal worker creation order narrows
+startup concurrency, but does not prove that global entry points, reset or
+teardown are excluded by the eventual capture controller.
+
+A guard only around `kalDevPortWrite()` is insufficient. Any ownership fix
+must cover the common allocation from before TX staging through DMA release,
+and RX filling through its final copy-out, together with allocation teardown.
+A capture-only overlap detector could invalidate evidence but would not prevent
+the underlying access. It must not be presented as an immutability fix. Resolve
+controller exclusion of these callers before choosing between a diagnostic
+detector and changed native serialization; neither change is selected here.
+In particular, do not insert a second acquisition of the existing HIF lock
+around staging without resolving nested port locking and all return paths.
+
 ## Validation
 
 The [source receipt](results/tx-payload-sources.json) pins six parent/output
