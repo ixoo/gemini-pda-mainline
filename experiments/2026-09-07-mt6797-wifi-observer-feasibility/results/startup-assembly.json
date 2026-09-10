@@ -1,0 +1,32 @@
+{
+  "scope": "private startup filesystem assembly; not selected for boot",
+  "builder_sha256": "a81bc1f4084bd8a2f1673c341770fccd5886903cc5c42a4ca86fcf4362c35059",
+  "runtime_sha256": "7ff2ebf4153d8055f92f3baa1c550a3376b913e680162de60a3557ca2d855294",
+  "kernel_project_commit": "e025cf58bf3fc6745222b1d72039f785ad1ff5de",
+  "filesystem_bytes": 23571711,
+  "archive_members": 1629,
+  "private_input_files": 5,
+  "startup_source_files": 5,
+  "checks": {
+    "archive_exact_startup_and_input_bytes": true,
+    "root_ownership_zero_timestamps_allowed_types": true,
+    "unique_relative_paths_no_symlink_ancestors": true,
+    "all_other_runtime_members_unchanged": true,
+    "init_mode_0500_python_and_session_modes_0400": true,
+    "virtual_mount_directories_present": true,
+    "package_checksums_in_vm_and_after_export": true,
+    "packaged_arm64_startup_and_controller_imports": true,
+    "altered_startup_identity_refused": true,
+    "altered_private_manifest_identity_refused": true,
+    "temporary_assembly_directories_removed": true,
+    "host_access_restricted": true
+  },
+  "controller_invocation": false,
+  "device_access": false,
+  "boot_candidate": false,
+  "limitations": [
+    "Assembly CPU expectation 0-9 is unvalidated on the candidate kernel.",
+    "Kernel actor isolation, capture preparation, native read-only mounts, container validation and approved radio/recovery session remain incomplete.",
+    "Private file hashes, session manifest, calibration and combined filesystem remain unpublished."
+  ]
+}

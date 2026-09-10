@@ -6,6 +6,9 @@ RE VM. The [sanitized receipt](results/startup-filesystem.json) records the
 result. This is an incomplete input filesystem: it has no `/init` or trigger
 and is not a boot candidate.
 
+The later [startup assembly](STARTUP_ASSEMBLY.md) adds PID1 and a private session
+manifest in a separate package, preserving this original input-only result.
+
 The four firmware/configuration files matched their retained corpus manifest.
 The calibration input came from the verified private partition backup: its
 manifest, successful capture status, image size and full image checksum were
@@ -46,7 +49,7 @@ but return on open failure without restoring `old_fs`. The source file matches
 the earlier [consumer pin](../2026-09-05-mt6797-wifi-contract/CALIBRATION.md).
 This is a source observation, not an observed device failure. The subsequent
 [two-line correction](CALIBRATION_OPEN.md) passes focused fixtures and native
-compilation; it is selected for the next full kernel build.
+compilation and is included in the [completed 44-patch link](FULL_KERNEL.md).
 
 ## Packaging and validation
 

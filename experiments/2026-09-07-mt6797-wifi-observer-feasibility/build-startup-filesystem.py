@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-"""Assemble private startup inputs in the RE VM; contains no init or trigger."""
+"""Assemble a private filesystem in the RE VM; never admits a device session."""
 import hashlib
 import importlib.util
 import json
@@ -37,9 +37,23 @@ def module(name, path):
 
 
 def main():
-    if len(sys.argv) != 4 or platform.system() != 'Linux':
-        raise SystemExit('usage in RE VM: build-startup-filesystem.py PRIVATE_INPUTS RUNTIME_TAR NEW_PACKAGE')
-    private, runtime, package = (Path(value).resolve() for value in sys.argv[1:])
+    if len(sys.argv) not in (4, 5) or platform.system() != 'Linux':
+        raise SystemExit('usage in RE VM: build-startup-filesystem.py PRIVATE_INPUTS RUNTIME_TAR NEW_PACKAGE [SESSION_JSON]')
+    private, runtime, package = (Path(value).resolve() for value in sys.argv[1:4])
+    session_path = Path(sys.argv[4]) if len(sys.argv) == 5 else None
+    session_raw = None
+    if session_path is not None:
+        if session_path.is_symlink() or not session_path.is_file() or session_path.stat().st_size > 65536:
+            raise ValueError('requires a bounded regular session manifest')
+        session_raw = session_path.read_bytes()
+        session = json.loads(session_raw)
+        module('startup', HERE / 'startup.py').validate_session(session)
+        startup_sources = {'init': HERE / 'startup-init.sh'}
+        startup_sources.update({f'opt/wifi-cycle/{name}': HERE / name for name in
+                                ('startup.py', 'cycle-controller.py', 'respond-once.py',
+                                 'check-retained-patches.py')})
+        if {name: digest(path) for name, path in startup_sources.items()} != session['startup_files']:
+            raise ValueError('session startup source mismatch')
     if package.exists() or not package.parent.is_dir():
         raise ValueError('requires a new package in an existing parent')
     if shutil.disk_usage(package.parent).free < 1024 ** 3:
@@ -98,6 +112,22 @@ def main():
         target.parent.mkdir(parents=True)
         target.write_text(json.dumps(identity, sort_keys=True, indent=2) + '\n')
         target.chmod(0o400)
+        if session_raw is not None:
+            if digest(target) != session['input_manifest_sha256']:
+                raise ValueError('session private input manifest mismatch')
+            (target.parent / 'session.json').write_bytes(session_raw)
+            (target.parent / 'session.json').chmod(0o400)
+            for name, source in startup_sources.items():
+                destination = root / name
+                if destination.is_symlink():
+                    raise ValueError('startup destination is a symlink')
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(source, destination)
+                destination.chmod(0o500 if name == 'init' else 0o400)
+                if digest(destination) != session['startup_files'][name]:
+                    raise ValueError('copied startup source mismatch')
+            for name in ('proc', 'sys', 'dev', 'run'):
+                (root / name).mkdir(exist_ok=True)
         paths = [root] + sorted(root.rglob('*'))
         for path in paths:
             if not path.is_symlink() and path.is_dir():
@@ -116,10 +146,14 @@ def main():
         for target, expected in files.items():
             if digest(root / target) != expected['sha256']:
                 raise ValueError('copied input mismatch')
-        if (root / 'init').exists() or (root / 'storage').exists():
+        if (root / 'init').exists() != (session_raw is not None) or (root / 'storage').exists():
             raise ValueError('unexpected startup or earlier WLAN lookup')
         shutil.copyfile(root / 'etc/wifi-cycle/input-manifest.json', output / 'input-manifest.json')
-        receipt = {'scope': 'private input filesystem; no init, trigger or boot admission',
+        if session_raw is not None:
+            (output / 'session.json').write_bytes(session_raw)
+        receipt = {'scope': 'private filesystem assembly only; no boot or device-session admission',
+                   'startup_installed': session_raw is not None,
+                   'session_manifest_sha256': hashlib.sha256(session_raw).hexdigest() if session_raw is not None else None,
                    'builder_sha256': digest(Path(__file__)), 'runtime_sha256': RUNTIME_SHA256,
                    'input_manifest_sha256': digest(output / 'input-manifest.json'),
                    'filesystem_sha256': digest(output / 'rootfs.cpio.gz'),
@@ -130,7 +164,8 @@ def main():
         (output / 'private-result.json').write_text(json.dumps(receipt, indent=2) + '\n')
         (output / 'SHA256SUMS').write_text(''.join(f'{digest(p)}  {p.name}\n' for p in sorted(output.iterdir())))
         output.rename(package)
-        print('startup_input_filesystem=assembled private_inputs=5 init=absent device_access=none')
+        print('startup_input_filesystem=assembled private_inputs=5 device_access=none')
+        print('init=' + ('installed' if session_raw is not None else 'absent'))
         print('filesystem_bytes=' + str(receipt['filesystem_bytes']))
 
 

@@ -62,7 +62,7 @@ The patch occupies entry 43 in the [full-kernel inputs](full-kernel-inputs.json)
 without changing the preceding entries or canonical upstream profiles. The
 [updated complete link](FULL_KERNEL.md) covers all 44 entries, including the
 subsequent RTC restart-wrapper correction. The [minimal PID1](BOOT_STARTUP.md)
-is implemented and tested separately but is not yet packaged. Remaining restart
+is tested and [packaged separately](STARTUP_ASSEMBLY.md), without boot selection. Remaining restart
 notifier effects, shared-resource consumers, capture zero-state preparation,
 complete packaging and the owner-approved radio/recovery session remain
 prerequisites. No device access occurred here.
