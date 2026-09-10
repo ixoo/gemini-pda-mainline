@@ -1,0 +1,37 @@
+{
+  "scope": "selected native kernel key-reset policy; physical check proposed, not executed",
+  "kernel_project_commit": "c9a8d30423da33a7fae8c95f2c0d9b5f96b90ee7",
+  "vmlinux_sha256": "9a8113c71fad403f92769fa70cda2db769df345a921e462bb6a5cf434fb1867b",
+  "config_sha256": "486392ac9152365891c50ffdee56be1b6ed1aed61d588aa66e29f966604202ff",
+  "sources": {
+    "drivers/input/keyboard/mediatek/mt6797/hal_kpd.c": "7dde8f3734f6cd02509b0400b65c72eac3181983815ea577bbe4b341de796c57",
+    "drivers/input/keyboard/mediatek/kpd.c": "6f238c2d5ff73de257f285b714ac687fdb6e7baf7a1a1149e7a0416f6e50154c"
+  },
+  "configuration": {
+    "CONFIG_ONEKEY_REBOOT_NORMAL_MODE": "y",
+    "CONFIG_TWOKEY_REBOOT_NORMAL_MODE": "n",
+    "CONFIG_ONEKEY_REBOOT_OTHER_MODE": "y",
+    "CONFIG_TWOKEY_REBOOT_OTHER_MODE": "n",
+    "CONFIG_KPD_PMIC_LPRST_TD": 1,
+    "CONFIG_KPD_PWRKEY_USE_PMIC": "y"
+  },
+  "linked_helper": {
+    "name": "long_press_reboot_function_setting",
+    "address": "ffffffc0008ee570",
+    "end_exclusive": "ffffffc0008ee61c",
+    "probe_callsite": "ffffffc0008edff0",
+    "normal_and_other_setter_arguments": [[599, 1], [598, 0], [601, 1]],
+    "factory_modes": [4, 6],
+    "factory_setter_arguments": [[599, 0], [598, 0]],
+    "setter_status_checked": false
+  },
+  "manufacturer_reference": "https://support.planetcom.co.uk/download/GeminiPDAUserGuide.pdf#page=226",
+  "physical_test_executed": false,
+  "device_register_access": false,
+  "restart_requested": false,
+  "limitations": [
+    "Compiled requests do not prove probe completion, successful register updates or live PMIC state.",
+    "The manufacturer and source timing values are not measured reset latency.",
+    "The proposed baseline check needs owner confirmation; the export candidate still needs its own recovery result."
+  ]
+}
