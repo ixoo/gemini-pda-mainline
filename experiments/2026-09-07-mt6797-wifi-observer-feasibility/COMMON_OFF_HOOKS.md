@@ -100,6 +100,10 @@ The host tests and 22 existing decoder groups pass. Strict Checkpatch passes
 with legacy `CAMELCASE`, synthetic `MISSING_SIGN_OFF` and new-file
 `FILE_PATH_CHANGES` exceptions. `check-startup-objects.py COMMIT --common-off`
 composes all 23 patches and compiles fourteen complete source files on a clean
-pushed Buildbox checkout. Compilation remains unproved until a receipt is
-recorded here. No full kernel link, live controller, candidate or hardware test
-is established by the injected tests.
+pushed Buildbox checkout. The [Buildbox receipt](results/common-off-capture-object-compile.json) records
+successful compilation at `8eff6a81974f742fed433e865a255ca289b6d57f` and exact
+remote/local validation of all 67 package files. Emitted code retains the
+common-call and clock-call brackets, provider completion after pre-clock release,
+and task reference acquisition plus completion-only release. Native compiler
+flags include `-w`, so empty diagnostics do not establish warning-clean code.
+No full kernel link, live controller, candidate or hardware test is established.
