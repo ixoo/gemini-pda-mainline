@@ -1,0 +1,79 @@
+From 365078201ba935dbfdd57b44cee03a2e5bc5fb5a Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <experiment@invalid.example>
+Date: Thu, 10 Sep 2026 08:42:57 -0400
+Subject: [PATCH] wmt: preserve common shutdown errors
+
+A successful hardware power-off currently overwrites an STP deinit error.
+The function-off dispatcher also replaces a failed subsystem callback with
+the later common power-off result, allowing a false successful ioctl.
+
+Preserve the first nonzero teardown result while still running the native
+cleanup and power-off sequence. Keep its state assignments and shortcuts.
+This does not make a zero result proof of quiescence or provider execution.
+
+This unselected native experiment is not an upstream ABI or boot candidate.
+The synthetic archive identity supplies no author certification.
+---
+ .../common/common_main/core/wmt_core.c         | 18 +++++++++++-------
+ 1 file changed, 11 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c b/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c
+index cc17b77..8a43ed3 100644
+--- a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c
++++ b/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c
+@@ -1092,6 +1092,7 @@ static INT32 opfunc_pwr_off(P_WMT_OP pWmtOp)
+ {
+ 
+ 	INT32 iRet;
++	INT32 stpRet = 0;
+ 	ULONG ctrlPa1;
+ 	ULONG ctrlPa2;
+ 
+@@ -1108,9 +1109,9 @@ static INT32 opfunc_pwr_off(P_WMT_OP pWmtOp)
+ 	}
+ 	/* wmt and stp are initialized successfully */
+ 	if (DRV_STS_FUNC_ON == gMtkWmtCtx.eDrvStatus[WMTDRV_TYPE_WMT]) {
+-		iRet = wmt_core_stp_deinit();
+-		if (iRet) {
+-			WMT_WARN_FUNC("wmt_core_stp_deinit fail (%d)\n", iRet);
++		stpRet = wmt_core_stp_deinit();
++		if (stpRet) {
++			WMT_WARN_FUNC("wmt_core_stp_deinit fail (%d)\n", stpRet);
+ 			/*should let run to power down chip */
+ 		}
+ 	}
+@@ -1127,7 +1128,7 @@ static INT32 opfunc_pwr_off(P_WMT_OP pWmtOp)
+ 
+ 	/*anyway, set to POWER_OFF state */
+ 	gMtkWmtCtx.eDrvStatus[WMTDRV_TYPE_WMT] = DRV_STS_POWER_OFF;
+-	return iRet;
++	return stpRet ? stpRet : iRet;
+ 
+ }
+ 
+@@ -1280,6 +1281,7 @@ static INT32 opfunc_func_off(P_WMT_OP pWmtOp)
+ {
+ 
+ 	INT32 iRet = -1;
++	INT32 pwrOffRet;
+ 	UINT32 drvType;
+ 	ULONG ctrlPa1;
+ 	ULONG ctrlPa2;
+@@ -1361,12 +1363,14 @@ static INT32 opfunc_func_off(P_WMT_OP pWmtOp)
+ 	    (DRV_STS_POWER_OFF == gMtkWmtCtx.eDrvStatus[WMTDRV_TYPE_COREDUMP])) {
+ 		WMT_INFO_FUNC("WMT-CORE:Fun(%d) [POWER_OFF] and power down chip\n", drvType);
+ 
+-		iRet = opfunc_pwr_off(pWmtOp);
+-		if (iRet) {
++		pwrOffRet = opfunc_pwr_off(pWmtOp);
++		if (pwrOffRet) {
+ 			WMT_ERR_FUNC("WMT-CORE: wmt_pwr_off fail(%d) when turn off func(%d)\n",
+-				     iRet, drvType);
++				     pwrOffRet, drvType);
+ 			osal_assert(0);
+ 		}
++		if (!iRet)
++			iRet = pwrOffRet;
+ 	}
+ 
+ 	wmt_core_dump_func_state("AF FUNC OFF");

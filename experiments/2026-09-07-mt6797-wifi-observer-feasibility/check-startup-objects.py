@@ -106,7 +106,9 @@ def main():
     assert len(sys.argv) in (2, 3) and sys.argv[1] == commit
     mode = sys.argv[2] if len(sys.argv) == 3 else "--wmt"
     assert mode in ("--wmt", "--pstore", "--capture-writer", "--dma", "--stop",
-                    "--firmware-read", "--firmware-read-safe", "--firmware-image", "--emi", "--provider-off")
+                    "--firmware-read", "--firmware-read-safe", "--firmware-image", "--emi", "--provider-off",
+                    "--common-off-safe")
+    common_off_safe = mode == "--common-off-safe"
     capture = mode == "--capture-writer"
     provider_off = mode == "--provider-off"
     emi_capture = mode == "--emi" or provider_off
@@ -119,6 +121,8 @@ def main():
     relative = "fs/pstore/" if pstore else RELATIVE
     files = ("pmsg", "inode", "ram_core", "ram") if pstore else FILES
     label = "wifi-pstore-objects-" if pstore else "wifi-startup-objects-"
+    if common_off_safe:
+        label = "wifi-common-off-safe-objects-"
     if capture:
         files = ("ram_core",)
         label = "wifi-capture-writer-objects-"
@@ -202,6 +206,8 @@ def main():
             shutil.copytree(source / headers, patched / headers)
         patch_dir = experiment / "patches" / "pstore" if pstore else experiment / "patches"
         patches = [] if capture else sorted(patch_dir.glob("*.patch"))
+        if common_off_safe:
+            patches += sorted((experiment / "patches/common-off-errors").glob("*.patch"))
         if dma:
             patches = sorted((experiment / "patches/pstore").glob("*.patch"))
             patches += sorted((experiment / "patches/dma").glob("*.patch"))
@@ -235,8 +241,13 @@ def main():
                           "fs/pstore/pmsg.c", "fs/pstore/inode.c"):
                 (patched / extra).parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(source / extra, patched / extra)
-        assert len(patches) == (17 if provider_off else 16 if emi_capture else 15 if firmware_image else 14 if firmware_safe else 13 if firmware_read else 12 if stop else 11 if dma else 0 if capture else 10 if pstore else 4)
+        assert len(patches) == (17 if provider_off else 16 if emi_capture else 15 if firmware_image else 14 if firmware_safe else 13 if firmware_read else 12 if stop else 11 if dma else 0 if capture else 10 if pstore else 5 if common_off_safe else 4)
         for patch in patches:
+            if common_off_safe and patch.parent.name == "common-off-errors":
+                common_pins = json.loads((experiment / "results/common-off-errors-sources.json").read_text())
+                assert digest(patch) == common_pins["patch_sha256"]
+                for path, expected in common_pins["parents"].items():
+                    assert digest(patched / path) == expected, path
             if stop and patch.parent.name == "stop":
                 stop_pins = json.loads((experiment / "results/stop-capture-sources.json").read_text())
                 for path, expected in stop_pins["parents"].items():
@@ -268,6 +279,9 @@ def main():
                 for path, expected in off_pins["parents"].items():
                     assert digest(patched / path) == expected, path
             subprocess.run(["git", "apply", str(patch)], cwd=patched, check=True)
+            if common_off_safe and patch.parent.name == "common-off-errors":
+                for path, expected in common_pins["outputs"].items():
+                    assert digest(patched / path) == expected, path
             if provider_off and patch.parent.name == "provider-off":
                 for path, expected in off_pins["outputs"].items():
                     assert digest(patched / path) == expected, path
@@ -354,6 +368,10 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
             with (work / (name + ".log")).open("w") as stream:
                 compile_logged(args, stream, cwd=output, env=environment, timeout=120)
             dependencies = (work / (name + ".d")).read_text().replace("\\\n", " ").split()
+            if common_off_safe and name == "wmt_core":
+                disassembly = run([str(toolchain / "wrappers/aarch64-linux-gnu-objdump"),
+                                   "-dr", str(result)], env=environment)
+                (work / "wmt_core-errors.disasm").write_text(disassembly + "\n")
             if not pstore and (not dma or wlan_unit) and name not in ("hif_capture", "hif_stop_capture", "hif_fw_capture"):
                 assert str(patched / header) in dependencies, name
                 assert str(source / header) not in dependencies, name

@@ -270,3 +270,8 @@ The [persistent-capture assessment](PERSISTENT_CAPTURE.md) now identifies the
 existing pmsg helper's lock-context conflict and reproduces ring truncation and
 metadata-before-payload ordering. A complete-cycle writer needs its own bounded
 record/commit contract; the earlier pmsg witness cannot be reused unchanged.
+
+The [common shutdown correction](COMMON_OFF_ERRORS.md) preserves subsystem and
+STP teardown failures that later successful power-off operations previously
+overwrote. Native cleanup still runs; a zero result remains insufficient without
+the complete attributed teardown observations.

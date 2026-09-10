@@ -1,0 +1,13 @@
+{
+  "source_revision": "59e00a9144d782e148332009a835b99c43382467",
+  "scope": "Unselected native shutdown error propagation; no runtime or ownership proof",
+  "parents": {
+    "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c": "e9f438c5c6033f0bf831347c69d656ec917b3e705648d3d27fb1b27409334f1e"
+  },
+  "outputs": {
+    "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c": "b0668d2836cec5d249febe6f6db0f403ee017fae3d903780c2d5ccf6f16a721f"
+  },
+  "patch": "0001-wmt-preserve-common-shutdown-errors.patch",
+  "patch_sha256": "ac499ea2ebd9167096dddeddd2cb810479631c6ebf4388100458609275c19785",
+  "replay_and_reverse_verified": true
+}
