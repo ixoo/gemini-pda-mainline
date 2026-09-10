@@ -1,0 +1,121 @@
+From b417457770ce4f8635b84d494195f7599cc8a56c Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <noreply@gemini-experiment.invalid>
+Date: Thu, 10 Sep 2026 21:08:46 +0000
+Subject: [PATCH] wmt: isolate recovery reset paths in the captured experiment
+
+The native whole-chip error handler can retry reset ten times while a
+function worker still owns resources. In the diagnostic configuration,
+fail the capture and refuse whole-chip, hardware/software recovery reset
+and forced STP assertion before their effects. Return failure from the
+BTM reset callback instead of acknowledging an unperformed reset.
+
+Reuse the existing capture invalidation routine across the two units.
+Normal startup reset operations and ordinary build paths are unchanged.
+The already armed watchdog owns terminal recovery; no retry is added.
+
+Internal experiment archive; synthetic author, no DCO certification.
+---
+ .../common_main/core/wmt-request-capture.h    |  2 +-
+ .../common/common_main/core/wmt_core.c        |  5 +++++
+ .../common/common_main/core/wmt_lib.c         | 22 ++++++++++++++++++-
+ include/linux/mt6797_wifi_capture.h           |  1 +
+ 4 files changed, 28 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt-request-capture.h b/drivers/misc/mediatek/connectivity/common/common_main/core/wmt-request-capture.h
+index 730e80e..f572ffd 100644
+--- a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt-request-capture.h
++++ b/drivers/misc/mediatek/connectivity/common/common_main/core/wmt-request-capture.h
+@@ -332,7 +332,7 @@ static void wfc_request_release(const void *op)
+ 	raw_spin_unlock_irqrestore(&wfc_request_lock, flags);
+ }
+ 
+-static void wfc_request_reset(void)
++void mt6797_wfc_request_reset(void)
+ {
+ 	unsigned long flags;
+ 
+diff --git a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c b/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c
+index 74999c6..e17a309 100644
+--- a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c
++++ b/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c
+@@ -2529,6 +2529,11 @@ MTK_WCN_BOOL wmt_core_trigger_stp_assert(VOID)
+ 	MTK_WCN_BOOL bRet = MTK_WCN_BOOL_FALSE;
+ 	P_WMT_CTX pctx = &gMtkWmtCtx;
+ 
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++	mt6797_wfc_request_reset();
++	return MTK_WCN_BOOL_FALSE;
++#endif
++
+ 	if (0 == mtk_wcn_stp_coredump_flag_get()) {
+ 		WMT_INFO_FUNC("coredump is disabled, omit trigger STP assert\n");
+ 		return MTK_WCN_BOOL_FALSE;
+diff --git a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_lib.c b/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_lib.c
+index 69c3ea2..001ddd6 100644
+--- a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_lib.c
++++ b/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_lib.c
+@@ -1689,6 +1689,13 @@ MTK_WCN_BOOL wmt_lib_btm_cb(MTKSTP_BTM_WMT_OP_T op)
+ {
+ 	MTK_WCN_BOOL bRet = MTK_WCN_BOOL_FALSE;
+ 
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++	if (op == BTM_RST_OP) {
++		mt6797_wfc_request_reset();
++		return MTK_WCN_BOOL_FALSE;
++	}
++#endif
++
+ 	if (op == BTM_RST_OP) {
+ 		/* high priority, not to enqueue into the queue of wmtd */
+ 		WMT_INFO_FUNC("Invoke whole chip reset from stp_btm!!!\n");
+@@ -1820,6 +1827,11 @@ MTK_WCN_BOOL wmt_lib_hw_rst(VOID)
+ 	P_OSAL_SIGNAL pSignal;
+ 	P_DEV_WMT pDevWmt = &gDevWmt;
+ 
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++	mt6797_wfc_request_reset();
++	return MTK_WCN_BOOL_FALSE;
++#endif
++
+ 	wmt_lib_state_init();
+ 
+ 	osal_clear_bit(WMT_STAT_STP_REG, &pDevWmt->state);
+@@ -1862,6 +1874,11 @@ MTK_WCN_BOOL wmt_lib_sw_rst(INT32 baudRst)
+ 	P_OSAL_SIGNAL pSignal;
+ 
+ 	/* <1> wmt state reset */
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++	mt6797_wfc_request_reset();
++	return MTK_WCN_BOOL_FALSE;
++#endif
++
+ 	wmt_lib_state_init();
+ 
+ 	/* <2> Reset STP data structure */
+@@ -1915,7 +1932,10 @@ ENUM_WMTRSTRET_TYPE_T wmt_lib_cmb_rst(ENUM_WMTRSTSRC_TYPE_T src)
+ 		"WMTRSTSRC_RESET_TEST"
+ 	};
+ 
+-	wfc_request_reset();
++	mt6797_wfc_request_reset();
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++	return WMTRSTRET_FAIL;
++#endif
+ 	if (src < WMTRSTSRC_RESET_MAX)
+ 		WMT_INFO_FUNC("reset source = %s\n", srcName[src]);
+ 
+diff --git a/include/linux/mt6797_wifi_capture.h b/include/linux/mt6797_wifi_capture.h
+index 4e38cc2..f1099e1 100644
+--- a/include/linux/mt6797_wifi_capture.h
++++ b/include/linux/mt6797_wifi_capture.h
+@@ -11,6 +11,7 @@ void mt6797_wfc_common_off_end(int power_status, int function_status);
+ void mt6797_wfc_clock_off_begin(struct clk *clk);
+ void mt6797_wfc_clock_off_end(void);
+ 
++void mt6797_wfc_request_reset(void);
+ bool mt6797_wfc_request_begin(unsigned long arg);
+ void mt6797_wfc_request_bind(const void *op, unsigned int opid,
+ 			     unsigned int type, unsigned int timeout);
+-- 
+2.39.5
+
