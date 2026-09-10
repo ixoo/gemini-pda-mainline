@@ -99,3 +99,5 @@ With the 8,447,406-byte kernel payload, one 2,048-byte header and page-aligned
 payloads project to 16,295,936 bytes, leaving 481,280 bytes below the limit.
 This calculation resolves the size obstacle, not the complete LK container,
 header/DT handoff, native mounts, physical USB export or recovery requirements.
+The subsequent [native container](EXPORT_CONTAINER.md) passes offline assembly
+and layout validation; physical handoff and recovery remain outstanding.

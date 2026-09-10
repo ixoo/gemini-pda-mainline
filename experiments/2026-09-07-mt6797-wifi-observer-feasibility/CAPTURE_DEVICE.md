@@ -82,6 +82,8 @@ configuration: its first patch rejects CPU8/9 before platform or firmware
 CPU-on. The [third assembly](STARTUP_ASSEMBLY.md#export-filesystem) uses `0-7`;
 that source expectation is still not an observed successful boot. It binds the
 seven startup files and schema-2 manifest to the validated 46-patch kernel.
-Complete the boot/recovery and physical USB-export protocol next. Clearing remains absent
+The [compact filesystem and native container](EXPORT_CONTAINER.md) now pass
+offline composition checks. Complete recovery and the physical USB-export
+protocol next. Clearing remains absent
 and requires separate owner approval after its implementation and preserved
 predecessor are reviewable.

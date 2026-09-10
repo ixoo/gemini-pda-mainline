@@ -1,0 +1,47 @@
+{
+  "scope": "unselected private native capture-export container; no deployment or device execution",
+  "sources": {
+    "build-export-container.py": "e524317902436216f494cc517fa4aa2d9cf32ce121551c7aecd9f987ba9347ea",
+    "native_parent_assembler_sha256": "532f6f0dec5030a7b066f3baefa53580ec148317f633d4dd8d43308d30ac03b3"
+  },
+  "kernel_sha256": "b69963d057b14322a8a0b39389cea9ed4c058e653967b211b0ade741434a0bbb",
+  "kernel_project_commit": "c9a8d30423da33a7fae8c95f2c0d9b5f96b90ee7",
+  "filesystem_receipt": "runtime-compact.json",
+  "header": {
+    "version": 0,
+    "page_bytes": 2048,
+    "kernel_address": "0x40080000",
+    "ramdisk_address": "0x45000000",
+    "second_address": "0x40f00000",
+    "tags_address": "0x44000000",
+    "second_size": 0,
+    "dt_field_size": 0,
+    "native_arm64_text_offset": "0x80000",
+    "native_arm64_flags": 0
+  },
+  "sizes": {
+    "kernel_field": 8447406,
+    "decompressed_image": 20160752,
+    "arm64_image_size": 23244800,
+    "appended_dtb": 130833,
+    "filesystem": 7844041,
+    "raw": 16295936,
+    "padded": 16777216
+  },
+  "checks": {
+    "private_filesystem_and_session_external_hashes": true,
+    "embedded_session_matches_exact_file": true,
+    "current_startup_hashes_and_kernel_inputs": true,
+    "independent_header_payload_id_padding_parse": true,
+    "repeat_construction_identical": true,
+    "capture_split_reg_and_empty_no_map": true,
+    "container_mutations_rejected": 17,
+    "input_refusals": 6
+  },
+  "limitations": [
+    "The native header contract is inherited from historical Gemian recovery evidence; this new container has not booted.",
+    "Effective loader command-line/DT handoff, native PID1 mounts, USB export and recovery remain unvalidated.",
+    "No deployment or physical session selected; no radio, capture clearing or watchdog takeover requested.",
+    "Combined image, session and filesystem hashes remain in private package receipts."
+  ]
+}
