@@ -52,4 +52,7 @@ A second extraction and test at `05df41212f663bdf84f292e97a662a50e745c07a`
 passed the same checks and produced a byte-identical `runtime.tar.gz`. It used
 the same authenticated cached packages, QEMU and host kernel. The receipt pins
 both complete package manifests; this establishes repeatable runtime packaging,
-with Linux 3.18 compatibility and boot integration still untested.
+with boot integration still untested. The subsequent
+[native Gemian check](RUNTIME_NATIVE.md) passes the scoped ABI, clock, hashing
+and mocked controller/responder tests on Linux 3.18.41+ without an emulator.
+Actual connectivity and recovery remain outside that result.
