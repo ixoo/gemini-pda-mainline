@@ -74,6 +74,15 @@ visibility to another master.
 `check-startup-objects.py COMMIT --emi` is the clean-pushed Buildbox compilation
 path for seven complete translation units and sixteen patches. It verifies the
 patched EMI header and lower capture calls as well as the five WLAN units.
-Compilation evidence will be recorded separately; this reproduction command is
-not a kernel-link or device-runtime result. Controller, provider OFF, isolation,
-shared reservation/permission ownership and recovery admission remain open.
+The [compile receipt](results/emi-object-compile.json) records the successful run
+at `b9475c47e27a335df9b09091d518ad4b74f58771` and remote/local verification of
+all 36 package files. The emitted wrapper encloses the lower operation in the
+existing raw spin lock; the lower code preserves the secure return in the
+record. The native flags retain `-w`, so empty diagnostics are not a warning-clean
+claim. Individual wrapper/lower frames are 80/128 bytes, excluding their callees.
+There is no complete stack, lock-duration or watchdog budget.
+
+The [Linux repository check](https://github.com/ixoo/gemini-pda-mainline/actions/runs/34475192228)
+passed at that input commit, including the required provenance fixture. No
+kernel image or device action ran. Controller, provider OFF, isolation, shared
+reservation/permission ownership and recovery admission remain open.

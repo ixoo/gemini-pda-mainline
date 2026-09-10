@@ -1,0 +1,114 @@
+{
+  "project_commit": "b9475c47e27a335df9b09091d518ad4b74f58771",
+  "source_commit": "59e00a9144d782e148332009a835b99c43382467",
+  "scope": "7 complete translation units; no kernel link or device execution",
+  "patched_header_sha256": "4d188ae15e82379860241da62717173c8979331b25906c454135f56b1b344807",
+  "toolchain_manifest_sha256": "a45d945f092461a611d276ad7d0a0fea1ea8a7f93db413908bcb892c12817d14",
+  "config_sha256": "c96ca5c8a767b93f59487c9b4a1c3d05c1f47c166f3f9ea9f2b7ffe0f6f1f0fb",
+  "config_delta": {
+    "CONFIG_ANBOX": [
+      null,
+      "n"
+    ]
+  },
+  "patches": {
+    "0001-pstore-report-native-pmsg-backend-write-failures.patch": "41a64284f4013ccd7c8bfa7fa0adb78a0b001f289970319310a6cb193848184b",
+    "0002-pstore-preserve-native-records-when-backend-erase-fa.patch": "48b3b5f3bac483c4c85a65cba5756f3b577dd1f9bbb2a723ff1630df02812565",
+    "0003-pstore-preserve-old-log-on-allocation-failure.patch": "f59195e7009ea7dd8299d6d627962338cebdc3d9022e9e3047cedacca283b060",
+    "0004-pstore-reserve-native-pmsg-for-capture.patch": "f79230f50760d4bf45c71660dd65bc68c872e56f953c2bcfecacc9f66b9353cf",
+    "0005-pstore-freeze-native-capture-parameters.patch": "871664dbdf4ea52615e5151e677feacce6f0a84dce2cf2f20a0497eff54e1ae6",
+    "0006-pstore-release-mapped-zones-on-probe-failure.patch": "1f55211e3a156cdc4097d6d460bd5f27d10701d9caeb59707930760edcf78bd1",
+    "0007-pstore-integrate-native-fixed-slot-capture.patch": "f6d7ecd752b8693b3f8b3f226f8fcc9489f74c243f757797fd11549bdc96523b",
+    "0008-arm64-dts-reserve-native-pmsg-without-linear-alias.patch": "20ad1e7ac53a0f8eed94f63529cb054ef4e98b75c92f532c240e14bc33c7ecf6",
+    "0009-pstore-retain-rejected-capture-access-in-tail.patch": "744d6bc4e167e7f2722246c42fd61e92819604d0688af707d97dfff0173d7be9",
+    "0010-pstore-expose-native-capture-activity-to-built-ins.patch": "e063c558c21328d99d7e11d7638a58bebe93642b1e740c7bf3466619f1d6ab97",
+    "0001-wlan-observe-native-AHB-DMA-lifetimes.patch": "40d00262ed2ce3edd5ad46af97f288a2eadde77da5bfdf7dba906ea874191c15",
+    "0001-wlan-capture-native-adapter-stop-decisions.patch": "5175620e3287f01a80d8f009ab3d3112ac4f75ec4186e4c2a35632e15f261291",
+    "0001-wlan-capture-native-firmware-file-read-results.patch": "3a4824ee47f7d9ea304c4c4620200ad23962af8e572539292769c1c804240cb0",
+    "0001-wlan-reject-invalid-native-firmware-mappings.patch": "90eda58094ee09949c6c488bb01e381c7b70dfbebbac3dc53effa16c9335f62d",
+    "0001-wlan-capture-native-firmware-buffer-and-sections.patch": "60219e6d632c5f8dd76e1776212a6761e1e55fde641c3788a21899639d6a969c",
+    "0001-wlan-capture-native-EMI-protection-and-copy.patch": "fc3928153be1c88120dbd794d8b1b03b31af64606dc08f2b604992f6e4e34257"
+  },
+  "objects": [
+    {
+      "file": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_kal.c",
+      "baseline_source_sha256": "749c5fc0e6cf3614d15e237e2d65cf92858d483ef1d678f6d9aee0f87bf348f1",
+      "baseline_object_sha256": "95372212cbb971b4ad6ee71df6b0367ba80cec8c926b853e2d08e174e882877c",
+      "patched_source_sha256": "ade0fc1e792d2fb29a7f47d60c816dea0e08a43542bf8833773d8cb4302756d3",
+      "object_sha256": "8770f2ce608ac66bfe8082ae430fd22148d4366a00199f5a4f88bdfea5b8f040",
+      "baseline_command_sha256": "9a23843729223d52f4ffca434c10fdd5c26a597f9630fd0506c1fb96a0c25d5a",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c",
+      "baseline_source_sha256": "8a644f0c9f3e37c6f66654cf3aeecb8e5f4cd71405e67f79105da7c8f87a7665",
+      "baseline_object_sha256": "35139f833167669ad48480c16bad06e379c3047dea583e0009b7cb586ef1fcdd",
+      "patched_source_sha256": "b03283c30a769b52b5979d6b46d1b4f7b09070e59e6edc81f6d4e078d2671a00",
+      "object_sha256": "902a9898951e6efa7f50fa6eec28269578bf6c964303441426f1b9736d9dbe6d",
+      "baseline_command_sha256": "823fdbf00749a07cf7aaf02ca743b2d20f17b440ac3aba85ef6592dc7e5c60e4",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c",
+      "baseline_source_sha256": "56bf99536fcb96de5a5198943aec96c9efccb8af89261b29c62046e6560c422f",
+      "baseline_object_sha256": "dbfbf6836fd274fdd42bbbdd96a9fb0cf74387baa546ea858b9ca11bf8fab87a",
+      "patched_source_sha256": "7f5909ad674d3f00a112e810434a27bbe35bea5d7921d00abc9653980c385ae5",
+      "object_sha256": "85371ed2fbbfa3c5e139dec48e6fbd3cfef45f235fdcda4a2641083780d62918",
+      "baseline_command_sha256": "6a10f869c399311c709b44b88ad362fc0bd49002a28717cabde2254696b5f19f",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic_pwr_mgt.c",
+      "baseline_source_sha256": "413f7b153029a34c3c326fa59ae44b6eace685ae1d53cde9b9cc2b48728ea039",
+      "baseline_object_sha256": "d06cd6a6e139d5a900cedf05e8afbea89bae35b0aa4f782b2326fff66a413e86",
+      "patched_source_sha256": "2d012f41d0e6ea0f7a496b4f06605d1180ad2887cc6ae02e521c0792b7f0428b",
+      "object_sha256": "6179dbb9273a780ed4629adab1d641e4d0cc899b9aea2d79158bab75f6bae777",
+      "baseline_command_sha256": "b3c3effed8b40d1d547d92745fe7a916a44ec28e28391f6e54fbd772f0bcc9dc",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/hif_fw_capture.c",
+      "baseline_source_sha256": null,
+      "baseline_object_sha256": null,
+      "patched_source_sha256": "750241ef768c0232cd0bdeefd18c9500b15186fc18d88bab90c59594a30bb733",
+      "object_sha256": "e21b18ffe074a1b597346210e4656a2ec346dedc495836d73587867b8f834f39",
+      "baseline_command_sha256": "108cdd942be686edda98f7d93295045ea2b305a6b25c4a5b419a186341dcfe92",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "drivers/misc/mediatek/emi_mpu/emi_reg_rw.c",
+      "baseline_source_sha256": "da41e7d325aa4d3207a38bd566f39680a3b2275db87b4ba0919d266375d858e0",
+      "baseline_object_sha256": "64d55f76eeb1e0e906583f4e7ce84ba5eab3089af61a189091f5bf2d2cb4e6eb",
+      "patched_source_sha256": "a8fa9f8a158ea2006dbf2a5f5d04b252ffca9923bd0bdcc7a363d91e8d89c5d1",
+      "object_sha256": "5936c21d736fea838415b41b532d4b7677fca90ce14a017d2f84ae08a592f933",
+      "baseline_command_sha256": "7fd608ab59ac1735736849cadba45bf9a489b032d83961baef95545583fa3913",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "drivers/misc/mediatek/emi_mpu/mt6797/emi_mpu.c",
+      "baseline_source_sha256": "39921d80191b674940246425123b52fa140262a7e17022f90f02dd88389932b2",
+      "baseline_object_sha256": "54128525582ab2b8089698317c5ec5768fb4a927067dcd2f7ffd29d0857490f5",
+      "patched_source_sha256": "64329de6544f1067041747bd22cebf5ce455bdf90f1f900b6bd42ee5e3a9acd1",
+      "object_sha256": "38787a980d4329f99d36da9d834834a98a06c0de17256ad89fb63d895c0ff8c2",
+      "baseline_command_sha256": "8c4b747bfa8c2a960fc240e9581c00273351eb66022c592d6d95c04e43817a2f",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    }
+  ],
+  "package_files": 36,
+  "package_inventory_sha256": "0b5518b46eb60e0a9fd57aeec6935b8aa4287a3f44699cf4c741be23e3b1f038",
+  "remote_and_local_inventory_verified": true,
+  "validation_limits": [
+    "Seven complete native translation units compiled with sixteen pinned patches and verified modified headers; no full kernel link or device execution.",
+    "Emitted MPU wrapper calls the capture lower operation between raw spin lock/unlock and preserves the outer zero result. Lower code retains the secure return in w24 and writes it into the return record; secure function ID is 0x82000209.",
+    "Native compiler flags retain -w; empty diagnostics do not establish warning-clean code.",
+    "Individual emitted wrapper/lower stack frames are 80 and 128 bytes respectively, excluding caller, secure-call and record-writer frames. No complete stack, lock-duration or watchdog budget is established.",
+    "No shared EMI ownership, permission-policy admission, copy visibility, provider OFF, controller or recovery execution is established."
+  ]
+}
