@@ -63,4 +63,35 @@ or trigger and remains incomplete boot integration.
 
 The [minimal startup implementation](BOOT_STARTUP.md) now supplies the read-only
 mount and PID1 preflight/controller sequence. Its focused checks pass, but it
-has not yet been packaged with a selected session or booted on the PDA.
+has not been booted on the PDA.
+
+## Compact boot runtime
+
+The full preparation runtime cannot fit the retained loader's 16 MiB image
+limit: its filesystem alone is larger than that limit. The
+[compact builder](build-compact-runtime.py) selects unchanged bytes from the
+pinned preparation archive. It keeps Python, the complete pure-Python standard
+library, twelve named extension modules, their selected libraries, static
+BusyBox and copyright/license files. It excludes package-management utilities,
+locales, manuals, unused extensions and their libraries. This is a controller
+runtime, not a complete Python distribution. Hashing uses Python's built-in
+`_sha256` implementation rather than the omitted OpenSSL extension.
+
+```sh
+python3 build-compact-runtime.py VERIFIED_PARENT_TAR NEW_RUNTIME_TAR
+```
+
+The [compact receipt](results/runtime-compact.json) pins the 7,510,652-byte
+archive. Host and ARM64 VM construction produced identical bytes. The selected
+23 ELF files have no missing named library dependencies. All 46 startup,
+stream, bridge, controller and responder fixture tests passed in the assembled
+ARM64 filesystem. USB controls are injected and transfer payloads synthetic.
+
+The [native compact result](results/runtime-compact-native.json) separately
+records the unchanged [bounded Gemian protocol](RUNTIME_NATIVE.md) with this
+archive: the ABI/hash/clock/isolation checks and 19 controller/responder tests
+passed on Linux 3.18.41+ in six integer-clock seconds. Boot identity remained
+unchanged; the exact log was retrieved and verified before temporary RAM files
+were removed. No radio, watchdog, partition or restart operation occurred.
+The new [filesystem assembly](STARTUP_ASSEMBLY.md#compact-export-filesystem)
+fits the projected image budget; boot and recovery validation remain open.

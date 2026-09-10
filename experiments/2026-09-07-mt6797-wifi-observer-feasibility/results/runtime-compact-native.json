@@ -1,0 +1,63 @@
+{
+  "observed_date": "2026-09-10",
+  "scope": "Compact native userspace ABI and mocked controller/responder execution; no connectivity or recovery test",
+  "boot_before": "f2b923f9-f952-4cdb-80e0-72142282cc4f",
+  "boot_after": "f2b923f9-f952-4cdb-80e0-72142282cc4f",
+  "boot_after_cleanup": "f2b923f9-f952-4cdb-80e0-72142282cc4f",
+  "baseline": {
+    "kernel": "Linux 3.18.41+ aarch64",
+    "model": "MT6797X",
+    "os": "Debian 9",
+    "pid1": "systemd",
+    "kernel_source_attribution": "not established by this metadata check"
+  },
+  "runtime": {
+    "python": "3.11.2",
+    "archive_sha256": "16e8ab61ac39d3cf22146b0a945f5eea41c53fb67020a6fc2a6f30d50d51077f",
+    "archive_bytes": 7510652,
+    "transferred_files_verified": 4,
+    "emulator_used": false,
+    "sha256_backend": "_sha256 (verified in ARM64 VM)"
+  },
+  "test_sources": {
+    "native-runtime-smoke.sh": "bd1f4917abc7699ccb347fd99d7434c1ae691983883fa69ab6efe163ea7540b8",
+    "test-cycle-controller.py": "dbb7a39c7dc33d96e5ce0dfb0ed8889ba44e07a5e70ec0e3f82252d413974cd2",
+    "test-respond-once.py": "0c2bf4cc33c0e176f98501dd7883d7f2037b4904908097c154c0dc454d0a6798"
+  },
+  "execution": {
+    "storage": "private directory in existing executable tmpfs",
+    "privileges": "ordinary numeric UID/GID; supplementary groups empty",
+    "cpu_affinity": [
+      0
+    ],
+    "nice": 19,
+    "wall_limit_seconds": 20,
+    "termination_grace_seconds": 2,
+    "cpu_limit_seconds_per_process": 6,
+    "virtual_memory_limit_kib": 262144,
+    "open_file_limit": 64,
+    "core_dump_limit": 0,
+    "elapsed_seconds_integer_clock": 6,
+    "exit_status": 0
+  },
+  "checks_passed": [
+    "ARM64 64-bit little-endian ABI",
+    "selected kernel release",
+    "SHA-256 known answer",
+    "progressing monotonic nanosecond clock",
+    "unprivileged identity and empty supplementary groups",
+    "CPU0 affinity",
+    "absence of device nodes and /dev /proc /sys /run /init",
+    "7 controller tests",
+    "12 responder tests"
+  ],
+  "native_log_sha256": "9a494515a531d6f9b2737554d4376b94c52edf5d5a25c7ea5fbcf599cf5c5fb3",
+  "temporary_ram_cleanup": "completed after exact log retrieval and checksum verification",
+  "persistent_or_hardware_writes_requested": false,
+  "restart_or_boot_selection_requested": false,
+  "limitations": [
+    "Same bounded protocol as the original native-runtime check, using the compact archive.",
+    "Does not establish experimental kernel execution, PID1 startup, physical USB, connectivity, or recovery."
+  ],
+  "sanitization": "Endpoint, account IDs, private temporary path, authentication details and SSH banners omitted; boot identities retained under publication policy"
+}

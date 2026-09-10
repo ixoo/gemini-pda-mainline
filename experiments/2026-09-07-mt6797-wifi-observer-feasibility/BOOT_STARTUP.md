@@ -1,8 +1,8 @@
 # Minimal observation startup
 
 The [init script](startup-init.sh) and [PID1 controller entry](startup.py) implement
-the selected minimal userspace. The [second private filesystem](STARTUP_ASSEMBLY.md)
-now includes them with an assembly session manifest. No boot candidate selects
+the selected minimal userspace. The [compact private filesystem](STARTUP_ASSEMBLY.md#compact-export-filesystem)
+includes them with an export session manifest. No boot candidate selects
 that filesystem. They must not run in the current Gemian environment.
 
 When packaged as `/init`, the shell requires PID1, mounts proc, sysfs, devtmpfs

@@ -15,7 +15,7 @@ import tempfile
 
 HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parents[1]
-RUNTIME_SHA256 = '7ff2ebf4153d8055f92f3baa1c550a3376b913e680162de60a3557ca2d855294'
+RUNTIME_SHA256 = '16e8ab61ac39d3cf22146b0a945f5eea41c53fb67020a6fc2a6f30d50d51077f'
 INPUTS = {
     'ROMv3_patch_1_1_hdr.bin': ('lib/firmware/ROMv3_patch_1_1_hdr.bin', 46472),
     'ROMv3_patch_1_0_hdr.bin': ('lib/firmware/ROMv3_patch_1_0_hdr.bin', 210904),

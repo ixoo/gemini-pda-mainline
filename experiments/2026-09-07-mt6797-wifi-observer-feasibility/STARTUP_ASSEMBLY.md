@@ -78,3 +78,24 @@ USB controls and device identity were injected; the duplex terminal transfer
 used synthetic bytes. No PDA, radio, capture initializer or clearing operation
 ran. Temporary extracted roots and mount namespaces were removed. The boot
 container, native mounts, actual USB export and recovery remain unvalidated.
+
+## Compact export filesystem
+
+The third archive cannot fit the retained loader's 16 MiB Android image limit.
+The [fourth assembly](results/runtime-compact.json) uses the separately verified
+[compact runtime](RUNTIME.md#compact-boot-runtime) with the same 46-patch kernel.
+The builder and startup preflight now pin that runtime. The earlier archives
+remain unchanged and are not candidate inputs.
+
+The new archive is 7,844,041 bytes with 723 members. Independent newc inspection
+verified every selected runtime file, all seven current startup source hashes,
+all five unchanged private inputs, modes, ownership, timestamps and paths.
+Compared with the third assembly, 908 runtime members are absent; only startup's
+runtime pin, the private input manifest and session metadata change among the
+retained members. Package checksums and startup hashes also pass after export.
+All 46 fixture tests passed using the actual packaged ARM64 Python.
+
+With the 8,447,406-byte kernel payload, one 2,048-byte header and page-aligned
+payloads project to 16,295,936 bytes, leaving 481,280 bytes below the limit.
+This calculation resolves the size obstacle, not the complete LK container,
+header/DT handoff, native mounts, physical USB export or recovery requirements.

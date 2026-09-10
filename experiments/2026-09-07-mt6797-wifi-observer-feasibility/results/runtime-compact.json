@@ -1,0 +1,53 @@
+{
+  "scope": "compact runtime and fourth private export filesystem; no selected boot",
+  "parent_runtime_sha256": "7ff2ebf4153d8055f92f3baa1c550a3376b913e680162de60a3557ca2d855294",
+  "runtime_sha256": "16e8ab61ac39d3cf22146b0a945f5eea41c53fb67020a6fc2a6f30d50d51077f",
+  "runtime_bytes": 7510652,
+  "sources": {
+    "build-compact-runtime.py": "502c965d4e18b250bdc29dcfddbc3f1b1c696ad9592d1ec137598b97396b8fb9",
+    "build-startup-filesystem.py": "ec9687752cadb382a9702020b747fbc72c7e67cedc7f5a32ba20f42a3497d58c",
+    "startup.py": "0ef148c64ab4be54b173a996e8add37229a99474e590c1248e160e16b9ef7e03",
+    "native-runtime-smoke.sh": "bd1f4917abc7699ccb347fd99d7434c1ae691983883fa69ab6efe163ea7540b8"
+  },
+  "assembly": {
+    "kernel_project_commit": "c9a8d30423da33a7fae8c95f2c0d9b5f96b90ee7",
+    "kernel_patch_count": 46,
+    "filesystem_bytes": 7844041,
+    "archive_members": 723,
+    "removed_from_third_assembly": 908,
+    "changed_retained_members": [
+      "etc/wifi-cycle/input-manifest.json",
+      "etc/wifi-cycle/session.json",
+      "opt/wifi-cycle/startup.py"
+    ],
+    "exact_kept_runtime_and_private_input_bytes": true,
+    "startup_action": "export"
+  },
+  "container_size_projection": {
+    "kernel_bytes": 8447406,
+    "page_bytes": 2048,
+    "header_plus_aligned_payloads_bytes": 16295936,
+    "limit_bytes": 16777216,
+    "remaining_bytes": 481280,
+    "complete_container_validated": false
+  },
+  "validation": {
+    "host_and_arm64_vm_runtime_archive_identical": true,
+    "selected_elf_dependency_inventory": 23,
+    "packaged_arm64_tests": {
+      "startup": 13,
+      "stream": 10,
+      "bridge": 4,
+      "controller": 7,
+      "responder": 12
+    },
+    "sha256_backend": "_sha256",
+    "payloads": "synthetic; injected USB controls; no PDA gadget action"
+  },
+  "limitations": [
+    "Compact runtime intentionally excludes unused extension modules and their external libraries; it is not a complete Python distribution.",
+    "Native Gemian tests cover only the bounded ABI and controller/responder fixtures.",
+    "No complete boot container, native PID1 mounts, physical USB export or recovery validation.",
+    "Private input/session/filesystem hashes remain unpublished."
+  ]
+}
