@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "scope": "unintegrated snapshot stream transfer and host preservation",
+  "sources": {
+    "capture-export.py": "17e5d6e9aa2df5c50a233fd31a53dcb0669fbcaf7834d43703ddeddad5a1c199",
+    "test-capture-export.py": "a1105c99a0ed900ebb70dd530b9905cda58175bc2f0284362198d5dd8cd04b33"
+  },
+  "native_usb_sources": {
+    "drivers/usb/gadget/android.c": "e4ddfeff93fef89a88ed507a41f3d964f6b20846cc792f1df37e78a319e5b59c",
+    "drivers/usb/gadget/function/f_acm.c": "f2bf83e897c19228f942704d25a7d5c3210b37a25932a679e5fd4ae8527b1a48"
+  },
+  "kernel_input_sha256": "c0f3331aca86b448d4b1821507a0a98732cd882683dba67ae8e7ae04107ffe33",
+  "live_inspection": {
+    "boot_id": "f2b923f9-f952-4cdb-80e0-72142282cc4f",
+    "boot_unchanged": true,
+    "kernel_release": "3.18.41+",
+    "usb_enabled": true,
+    "usb_functions": "rndis",
+    "usb_state": "DISCONNECTED",
+    "acm_instances": 0,
+    "acm_port_index": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "ttyGS_character_nodes": 8,
+    "ttyGS_major": 233,
+    "ttyGS_minors": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "serial_nodes_opened": 0,
+    "usb_controls_written": 0
+  },
+  "tests": {
+    "host": "7 passed",
+    "arm64_re_vm": "7 passed",
+    "real_local_pseudoterminal": "passed on both",
+    "payloads": "synthetic only"
+  },
+  "startup_integrated": false,
+  "device_serial_transfer_tested": false,
+  "clearing_implemented": false,
+  "boot_candidate_selected": false
+}

@@ -47,6 +47,9 @@ external private storage while ordinary writers remain excluded. Bind that
 export and any subsequent preparation request to the same boot and exact
 current bytes. Resolve the transport and failure recovery before selecting a
 candidate; the current minimal PID1 filesystem supplies no such export path.
+The [stream transfer implementation](CAPTURE_EXPORT.md) now supplies bounded
+framing and private host preservation. Acquisition and USB integration remain
+unfinished, so it does not yet satisfy this same-boot requirement.
 
 Only after that contract is concrete can a separately reviewed operation
 compare the preserved predecessor, perform one bounded zero pass and require
