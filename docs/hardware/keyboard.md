@@ -184,7 +184,7 @@ Not established:
 
 - complete physical legend coverage or the function of the four unknown
   contacts;
-- physical F1–F10 and Page Up/Page Down results;
+- complete physical F1–F10 and Page Up/Page Down coverage;
 - IRQ-driven scanning, debounce, latency, rollover, ghosting, autorepeat,
   keyboard LEDs, wake, suspend/resume, or long-duration repeatability; and
 - equivalence across all Gemini hardware revisions.
@@ -194,6 +194,19 @@ owns scheduling for the remaining acceptance work. Map coverage, multi-key
 behavior, interrupt-versus-polling behavior, wake/suspend, LEDs, and
 console/USB coexistence require separate attributable experiments; this
 hardware document does not prescribe their order or candidate construction.
+
+## Focused console startup and modifier check
+
+A closed diagnostic VT can retain input that an immediate empty read does not
+expose. Requeueing the existing N_TTY buffer worker recovered an owner-typed A
+without another keypress. The readiness helper now preserves such input before
+its prompt and keeps the console open through the fresh Space press/release.
+See the [controlled comparison and startup correction](../../experiments/2026-09-05-owner-away-experiment-preparation/keyboard/TTY_PATH_COMPARISON.md#closed-console-comparison-result-and-startup-correction).
+
+A subsequent [focused physical capture](../../experiments/2026-09-05-owner-away-experiment-preparation/keyboard/TTY_PATH_COMPARISON.md#focused-physical-validation-after-corrected-startup)
+observed correct plain 1, Shift+Fn+1 → F1, and lowercase A after modifier release.
+Each repeated F1 corresponded to a reported repeat of the held 1 key. This is
+one bounded diagnostic, not full function-key, rollover or wake acceptance.
 
 ## Evidence index
 

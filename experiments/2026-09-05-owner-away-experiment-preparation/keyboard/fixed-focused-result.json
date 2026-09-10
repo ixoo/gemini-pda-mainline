@@ -1,0 +1,124 @@
+{
+  "capture_process": {
+    "elapsed_seconds": 32.968,
+    "exit_status": 0,
+    "reason": null,
+    "stderr_bytes": 0,
+    "stdin_complete": true,
+    "stdout_bytes": 3140
+  },
+  "capture_sha256": "1f916580b4d02e7787ca7c9e3ed1f0a2c12af441d0fd811d4a3b99a8b150948a",
+  "cases": [
+    {
+      "index": 0,
+      "physical_edges": [
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          0
+        ]
+      ],
+      "repeat_aware_console_match": true,
+      "repeat_events_by_key": {},
+      "vt_hex": "31"
+    },
+    {
+      "index": 1,
+      "physical_edges": [
+        [
+          42,
+          1
+        ],
+        [
+          125,
+          1
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          125,
+          0
+        ],
+        [
+          42,
+          0
+        ],
+        [
+          30,
+          1
+        ],
+        [
+          30,
+          0
+        ]
+      ],
+      "repeat_aware_console_match": true,
+      "repeat_events_by_key": {
+        "125": 15,
+        "2": 20,
+        "42": 16
+      },
+      "vt_hex": "1b5b5b411b5b5b411b5b5b411b5b5b411b5b5b411b5b5b411b5b5b411b5b5b411b5b5b411b5b5b411b5b5b411b5b5b411b5b5b411b5b5b411b5b5b411b5b5b411b5b5b411b5b5b411b5b5b411b5b5b411b5b5b4161"
+    }
+  ],
+  "classification": "both-focused-translations-correct-including-observed-key-repeat",
+  "export_process": {
+    "elapsed_seconds": 0.937,
+    "exit_status": 0,
+    "reason": null,
+    "stderr_bytes": 0,
+    "stdin_complete": true,
+    "stdout_bytes": 4714
+  },
+  "limitations": "One two-step diagnostic on the current boot; second 1 was held for about 1.06 seconds and emitted 20 repeat events, so the original strict single-tap byte oracle does not pass. This does not certify all function keys, rollover, wake or sustained reliability. The initial kernel logger remains untouched, and this diagnostic does not claim a sealed full-session log.",
+  "monitor_status": "schema=keyboard-monitor-v1\nreason=normal-lifecycle-only\nreaped=1\nidentity_lost=0\nexit=0\nsignal=0\ncancel=0\nterm_ms=-1\nkill_ms=-1\nreap_ms=32043\nterm_errno=0\nkill_errno=0\nlate=0\nstdout_bytes=3140\nstderr_bytes=0\nforwarded_bytes=3140\n",
+  "plan": {
+    "boot_id": "f2999a36-edfe-42ea-bca4-1abf8db1a7f9",
+    "commands": {
+      "capture": "e9b03112c94b1de99cd53a762b7e559c01287dcfe0218cb10458edbd27c1364b",
+      "delivery": "4399cdb1026711d833f3a116aff664efbc6a2e7ceec4f7b56a2a17728a6b31a8",
+      "export": "5ab13c7d4fd43e5d0e2cdcf197b3a46937d80880a0e0121db53735b29d865cbc"
+    },
+    "id": "5ed25114-6bfb-47c4-a393-9fb1f73e6984",
+    "kernel_logger": "initial logger untouched; this is a bounded diagnostic, not a sealed session support certification",
+    "package": "477db0d31c2d2a5d9830022e7dc63288a4e8cd48717aa3cee9b25d4043cc1927",
+    "revision": "8a276a6b7d7e04e66cedfe776be95e354ea291fc"
+  },
+  "schema": "keyboard-fixed-focused-result-v1",
+  "stdout": "keyboard-diagnostic version=1\nrepeat delay_ms=250 period_ms=33 planned_events=974 limit=1024\ndevice event=event0 major=13 minor=64 name=keyboard-matrix\nwindow elapsed_ms=2002 events=0 bytes=0 held=0\npreflight state=pass vt=1 unicode=1 held=0 functions=exact\nstep begin index=0\nevent 3920 4 4 0\ntty hex=31\nevent 3920 1 2 1\nevent 3920 0 0 0\nevent 4143 4 4 0\nevent 4144 1 2 0\nevent 4144 0 0 0\nwindow elapsed_ms=15010 events=6 bytes=1 held=0\nstep end index=0\nstep begin index=1\nevent 1937 4 4 30\nevent 1937 1 42 1\nevent 1937 0 0 0\nevent 2199 1 42 2\nevent 2199 0 0 1\nevent 2239 1 42 2\nevent 2239 0 0 1\nevent 2279 1 42 2\nevent 2279 0 0 1\nevent 2319 1 42 2\nevent 2319 0 0 1\nevent 2359 1 42 2\nevent 2359 0 0 1\nevent 2399 1 42 2\nevent 2399 0 0 1\nevent 2439 1 42 2\nevent 2439 0 0 1\nevent 2479 1 42 2\nevent 2479 0 0 1\nevent 2519 1 42 2\nevent 2519 0 0 1\nevent 2559 1 42 2\nevent 2559 0 0 1\nevent 2599 1 42 2\nevent 2599 0 0 1\nevent 2639 1 42 2\nevent 2639 0 0 1\nevent 2679 1 42 2\nevent 2679 0 0 1\nevent 2719 1 42 2\nevent 2719 0 0 1\nevent 2759 1 42 2\nevent 2759 0 0 1\nevent 2799 1 42 2\nevent 2799 0 0 1\nevent 2800 4 4 35\nevent 2800 1 125 1\nevent 2800 0 0 0\nevent 3063 1 125 2\nevent 3063 0 0 1\nevent 3103 1 125 2\nevent 3103 0 0 1\nevent 3143 1 125 2\nevent 3143 0 0 1\nevent 3183 1 125 2\nevent 3183 0 0 1\nevent 3223 1 125 2\nevent 3223 0 0 1\nevent 3263 1 125 2\nevent 3263 0 0 1\nevent 3303 1 125 2\nevent 3303 0 0 1\nevent 3343 1 125 2\nevent 3343 0 0 1\nevent 3383 1 125 2\nevent 3383 0 0 1\nevent 3423 1 125 2\nevent 3423 0 0 1\nevent 3463 1 125 2\nevent 3463 0 0 1\nevent 3503 1 125 2\nevent 3503 0 0 1\nevent 3543 1 125 2\nevent 3543 0 0 1\nevent 3583 1 125 2\nevent 3583 0 0 1\nevent 3623 1 125 2\nevent 3623 0 0 1\nevent 3633 4 4 0\ntty hex=1b5b5b41\nevent 3633 1 2 1\nevent 3633 0 0 0\nevent 3895 1 2 2\ntty hex=1b5b5b41\nevent 3895 0 0 1\nevent 3935 1 2 2\ntty hex=1b5b5b41\nevent 3935 0 0 1\nevent 3975 1 2 2\ntty hex=1b5b5b41\nevent 3975 0 0 1\nevent 4015 1 2 2\ntty hex=1b5b5b41\nevent 4015 0 0 1\nevent 4055 1 2 2\ntty hex=1b5b5b41\nevent 4055 0 0 1\nevent 4095 1 2 2\ntty hex=1b5b5b41\nevent 4095 0 0 1\nevent 4135 1 2 2\ntty hex=1b5b5b41\nevent 4135 0 0 1\nevent 4175 1 2 2\ntty hex=1b5b5b41\nevent 4175 0 0 1\nevent 4215 1 2 2\ntty hex=1b5b5b41\nevent 4215 0 0 1\nevent 4255 1 2 2\ntty hex=1b5b5b41\nevent 4255 0 0 1\nevent 4295 1 2 2\ntty hex=1b5b5b41\nevent 4295 0 0 1\nevent 4335 1 2 2\ntty hex=1b5b5b41\nevent 4335 0 0 1\nevent 4375 1 2 2\ntty hex=1b5b5b41\nevent 4375 0 0 1\nevent 4415 1 2 2\ntty hex=1b5b5b41\nevent 4415 0 0 1\nevent 4455 1 2 2\ntty hex=1b5b5b41\nevent 4455 0 0 1\nevent 4495 1 2 2\ntty hex=1b5b5b41\nevent 4495 0 0 1\nevent 4535 1 2 2\ntty hex=1b5b5b41\nevent 4535 0 0 1\nevent 4575 1 2 2\ntty hex=1b5b5b41\nevent 4575 0 0 1\nevent 4615 1 2 2\ntty hex=1b5b5b41\nevent 4615 0 0 1\nevent 4655 1 2 2\ntty hex=1b5b5b41\nevent 4655 0 0 1\nevent 4693 4 4 0\nevent 4693 1 2 0\nevent 4693 0 0 0\nevent 5269 4 4 35\nevent 5269 1 125 0\nevent 5269 0 0 0\nevent 5909 4 4 30\nevent 5909 1 42 0\nevent 5909 0 0 0\nevent 7156 4 4 21\ntty hex=61\nevent 7157 1 30 1\nevent 7157 0 0 0\nevent 7380 4 4 21\nevent 7380 1 30 0\nevent 7380 0 0 0\nwindow elapsed_ms=15008 events=126 bytes=85 held=0\nstep end index=1\ncomplete steps=2 restored=1\n",
+  "strict_single_tap_analysis": {
+    "capture_sha256": "1f916580b4d02e7787ca7c9e3ed1f0a2c12af441d0fd811d4a3b99a8b150948a",
+    "cases": [
+      {
+        "index": 0,
+        "input": "match",
+        "physical_edges": 2,
+        "repeat_events": 0,
+        "vt": "match"
+      },
+      {
+        "index": 1,
+        "input": "match",
+        "physical_edges": 8,
+        "repeat_events": 51,
+        "vt": "mismatch"
+      }
+    ],
+    "hardware_claim": false,
+    "outcome": "observations-complete",
+    "reported_input": {
+      "event": "event0",
+      "minor": 64
+    },
+    "session_receipt_verified": false
+  }
+}

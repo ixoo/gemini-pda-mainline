@@ -1,0 +1,25 @@
+{
+  "classification": "fresh-space-press-release-and-console-byte-passed",
+  "limitations": "The startup test passed with zero preflight bytes after the prior controlled A backlog had been preserved. The queued-prefix startup case passed in the PTY fixture. Full keyboard sequence remains pending.",
+  "package": {
+    "binary_sha256": "80c812749fddb1c027ce651c61a203f82f3b40e1d5b4ac4cd820ac1ce56a7678",
+    "boot_id": "f2999a36-edfe-42ea-bca4-1abf8db1a7f9",
+    "capture_sha256": "2685ab098b09927555769859e0c17437fb83faf28545aa137085ccf9175e5d85",
+    "delivery_sha256": "ff7b83b7d9fcec42922fa8b9051e2346654acb6f83785e314df73b7a259044f3",
+    "id": "32bf8596-5ca2-4700-8da3-1c1b6ca63a9f",
+    "package": "448376f4e832aa07fed2885b883de4362f1dcd67e15c7c5dab5ca8f7a045f3fe",
+    "remote": "/a53-keyboard-muslcheck-32bf8596-5ca2-4700-8da3-1c1b6ca63a9f",
+    "revision": "63e3f6886d903cd68a5f56dda5beb1e5cc0cbccf"
+  },
+  "process": {
+    "elapsed_seconds": 5.255,
+    "exit_status": 0,
+    "reason": null,
+    "stderr_bytes": 0,
+    "stdin_complete": true,
+    "stdout_bytes": 141
+  },
+  "schema": "keyboard-startup-requeue-result-v1",
+  "stdout": "console-drain requeue=accepted ldisc=0\nconsole-drain empty=1 bytes=0\nspace-ready=preflight-complete\nspace-ready=passed released=1 restored=1\n",
+  "stdout_sha256": "929d2b29d4e110401c95c06f8ca5b3394e199fab8e1d946b8866c9b3d51ba13e"
+}

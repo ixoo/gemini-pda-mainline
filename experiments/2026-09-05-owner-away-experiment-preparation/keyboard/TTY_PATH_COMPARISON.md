@@ -150,3 +150,39 @@ and preserves the existing fresh-event and restoration requirements. No flush,
 keymap change or keyboard-driver change is involved. The added PTY case releases
 a queued prefix during preflight and then requires a new Space sequence to pass.
 The physical startup and full keyboard sequence still require validation.
+
+
+The [corrected startup result](startup-requeue-result.json) passed on the same
+Gemini boot in 5.255 seconds. It reported zero preflight bytes, then accepted a
+fresh Space press/release and correct console byte, restoring termios with no
+stderr. Its validated package passed all 15 ARM64 helper fixtures, including
+the queued-prefix startup case. The preceding controlled drain had already
+removed the known A byte; this runtime pass does not independently retest a
+nonempty startup prefix. The package admission list now names all 15 fixtures.
+
+
+## Focused physical validation after corrected startup
+
+The [two-step capture](fixed-focused-result.json) completed both 15-second
+windows using the unchanged validated observer and supervisor. Plain 1 produced
+exactly `31` with a press and release. Left Shift + Fn + 1 produced `1b5b5b41`
+(F1); after all three releases, A produced `61`. The combination's 1 remained
+down for 1,060 ms, with 20 repeat events; its console output contains exactly
+21 F1 sequences followed by lowercase A. Modifier repeat events emitted no
+console bytes. Both windows ended with no held keys. The supervisor retained
+and exported all observer bytes, reported normal exit, and reaped the child;
+termios was restored. No stale `6e` prefix or byte-limit stop recurred.
+
+The original strict single-tap analyzer reports matching physical edges for
+both cases and a byte mismatch for the combination because it expects one F1.
+Retain that result: the observed repetitions explain every extra F1, but this
+is not a strict single-tap pass. This bounded diagnostic reused the boot's
+initial kernel logger without stopping or restarting it; it does not claim a
+sealed session log. It establishes the two translations and modifier release
+for this observation, not all-key coverage or long-duration reliability.
+
+The startup defect is resolved by preserving previously stalled input before
+readiness on the same open console. The unchanged keyboard driver and map
+produce correct output in the focused retest. The precise origin of all bytes
+from the earlier closed boot remains unproven; no driver defect is inferred
+from those older cutoffs.
