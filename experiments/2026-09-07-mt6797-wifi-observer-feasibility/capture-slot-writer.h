@@ -41,7 +41,7 @@ static int wfc_slot_write(struct wfc_writer *writer, unsigned int kind,
 	if (!writer->attempted || writer->stopped || !writer->payload)
 		return -EPERM;
 	if (writer->next > WFC_LAST_SLOT || length > 84 ||
-	    (length && !payload) || !((kind >= 1 && kind <= 10) ||
+	    (length && !payload) || !((kind >= 1 && kind <= 11) ||
 				    kind == 255) ||
 	    (!writer->next && (kind != 1 || length != 80 || transaction)) ||
 	    (writer->next && kind == 1) ||

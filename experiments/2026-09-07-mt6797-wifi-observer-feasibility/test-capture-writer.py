@@ -220,8 +220,17 @@ class WriterTests(unittest.TestCase):
         self.assertEqual(result['producer_status'], 3)
         self.assert_closed()
 
+    def test_recovery_prefix_roundtrip(self):
+        self.begin()
+        for values in ((1, 12, 0, 0, 0, 0, 0), (2, 12, 1, 0x48, 5, 24576, 0)):
+            payload = r.RECOVERY.pack(*values)
+            self.assertEqual(self.c.append(11, 0, payload, len(payload)), 0)
+        result = r.decode_pmsg(self.snapshot(), CYCLE, IDENTITY)
+        r.check_recovery_prefix(result['records'])
+        self.assertEqual(result['framing'], 'incomplete')
+
     def test_invalid_arguments_close_without_stores(self):
-        for args in ((1, 0, IDENTITY, 80), (11, 0, b'', 0),
+        for args in ((1, 0, IDENTITY, 80), (12, 0, b'', 0),
                      (2, 0, bytes(85), 85), (2, 0, None, 1),
                      (255, 1, bytes([1, 0, 0, 0]), 4),
                      (255, 0, None, 4), (255, 0, bytes(4), 4)):

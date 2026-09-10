@@ -1,0 +1,151 @@
+From 2bb5e08755bf3e75a41cc53962e324bfab217f2c Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <noreply@gemini-experiment.invalid>
+Date: Thu, 10 Sep 2026 13:59:17 -0400
+Subject: [PATCH] watchdog: record capture before one-shot recovery takeover
+
+Join the fixed-slot capture owner to the native twelve-second takeover.
+Preserve recovery ownership on readback or recording failure. This built-in
+entry point has no trigger and does not establish full reset isolation.
+
+Internal experiment archive; synthetic author, no DCO certification.
+---
+ .../watchdog/mediatek/include/ext_wd_drv.h    |  2 +
+ drivers/watchdog/mediatek/wdk/wd_common_drv.c | 75 +++++++++++++++++++
+ fs/pstore/wifi_capture.h                      |  2 +-
+ include/linux/cpuidle.h                       |  1 +
+ 4 files changed, 79 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/watchdog/mediatek/include/ext_wd_drv.h b/drivers/watchdog/mediatek/include/ext_wd_drv.h
+index e9b46f1..1449686 100644
+--- a/drivers/watchdog/mediatek/include/ext_wd_drv.h
++++ b/drivers/watchdog/mediatek/include/ext_wd_drv.h
+@@ -34,6 +34,8 @@ struct mtk_wdt_recovery_state {
+ };
+ int mtk_wdt_recovery_arm(unsigned int timeout,
+ 			     struct mtk_wdt_recovery_state *state);
++int mtk_wdt_capture_begin(const u8 cycle[16], const u8 identity[80],
++			  struct mtk_wdt_recovery_state *state);
+ #endif
+ int mtk_wdt_confirm_hwreboot(void);
+ int mtk_wdt_enable(enum wk_wdt_en en);
+diff --git a/drivers/watchdog/mediatek/wdk/wd_common_drv.c b/drivers/watchdog/mediatek/wdk/wd_common_drv.c
+index 20ad012..505ac1d 100644
+--- a/drivers/watchdog/mediatek/wdk/wd_common_drv.c
++++ b/drivers/watchdog/mediatek/wdk/wd_common_drv.c
+@@ -25,6 +25,11 @@
+ #include <linux/rtc.h>
+ #include <linux/cpu.h>
+ #include <linux/jiffies.h>
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++#include <linux/atomic.h>
++#include <linux/cpuidle.h>
++#include <linux/pstore_ram.h>
++#endif
+ #include <mt-plat/aee.h>
+ #include <mt-plat/mtk_ram_console.h>
+ #include <ext_wd_drv.h>
+@@ -757,6 +762,76 @@ static struct notifier_block cpu_nfb __cpuinitdata = {
+ 	.priority = 6
+ };
+ 
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++static atomic_t capture_attempted = ATOMIC_INIT(0);
++
++/* Sleepable built-in controller only; no trigger or connectivity here. */
++int mtk_wdt_capture_begin(const u8 cycle[16], const u8 identity[80],
++			  struct mtk_wdt_recovery_state *state)
++{
++	__le32 record[7] = { cpu_to_le32(1), cpu_to_le32(12) };
++	__le32 failed = cpu_to_le32(2);
++	unsigned long flags;
++	int ret, recorded;
++
++	/* Rejected callers receive no state; never infer no owner from refusal. */
++	if (!cycle || !identity || !state)
++		return -EINVAL;
++	if (in_interrupt() || irqs_disabled())
++		return -EWOULDBLOCK;
++	might_sleep();
++	if (atomic_cmpxchg(&capture_attempted, 0, 1))
++		return -EALREADY;
++	*state = (struct mtk_wdt_recovery_state) { };
++#ifdef CONFIG_CPU_IDLE
++	if (!cpuidle_disabled())
++		return -EPERM;
++#else
++	return -EOPNOTSUPP;
++#endif
++	if (READ_ONCE(panic_timeout))
++		return -EPERM;
++	ret = ramoops_capture_begin(cycle, identity);
++	if (ret)
++		return ret;
++	ret = ramoops_capture_append(11, 0, (const u8 *)record,
++				     sizeof(record));
++	if (ret)
++		goto failed_capture;
++
++	cpu_hotplug_disable();
++	spin_lock_irqsave(&lock, flags);
++	if (!g_kicker_init || !g_wd_api || !g_wd_api->ready || !g_enable) {
++		ret = -ENODEV;
++	} else {
++		g_enable = 0;
++		ret = mtk_wdt_recovery_arm(12, state);
++		if (ret && !state->owned)
++			g_enable = 1;
++	}
++	spin_unlock_irqrestore(&lock, flags);
++	if (!state->owned)
++		cpu_hotplug_enable();
++
++	record[0] = cpu_to_le32(2);
++	record[2] = cpu_to_le32(state->owned);
++	record[3] = cpu_to_le32(state->mode_before);
++	record[4] = cpu_to_le32(state->mode_after);
++	record[5] = cpu_to_le32(state->length_after);
++	record[6] = cpu_to_le32((u32)ret);
++	recorded = ramoops_capture_append(11, 0, (const u8 *)record,
++					  sizeof(record));
++	if (!ret)
++		ret = recorded;
++	if (!ret)
++		return 0;
++failed_capture:
++	/* Failure ends capture, even when ownership requires leaving recovery on. */
++	ramoops_capture_append(255, 0, (const u8 *)&failed, sizeof(failed));
++	return ret;
++}
++#endif
++
+ static void wdk_work_callback(struct work_struct *work)
+ {
+ 	int res = 0;
+diff --git a/fs/pstore/wifi_capture.h b/fs/pstore/wifi_capture.h
+index 6b6646e..fbd88a7 100644
+--- a/fs/pstore/wifi_capture.h
++++ b/fs/pstore/wifi_capture.h
+@@ -41,7 +41,7 @@ static int wfc_slot_write(struct wfc_writer *writer, unsigned int kind,
+ 	if (!writer->attempted || writer->stopped || !writer->payload)
+ 		return -EPERM;
+ 	if (writer->next > WFC_LAST_SLOT || length > 84 ||
+-	    (length && !payload) || !((kind >= 1 && kind <= 10) ||
++	    (length && !payload) || !((kind >= 1 && kind <= 11) ||
+ 				    kind == 255) ||
+ 	    (!writer->next && (kind != 1 || length != 80 || transaction)) ||
+ 	    (writer->next && kind == 1) ||
+diff --git a/include/linux/cpuidle.h b/include/linux/cpuidle.h
+index 575b716..9c97e39 100644
+--- a/include/linux/cpuidle.h
++++ b/include/linux/cpuidle.h
+@@ -118,6 +118,7 @@ struct cpuidle_driver {
+ };
+ 
+ #ifdef CONFIG_CPU_IDLE
++int cpuidle_disabled(void);
+ extern void disable_cpuidle(void);
+ 
+ extern int cpuidle_select(struct cpuidle_driver *drv,
+-- 
+2.54.0 (Apple Git-157)
+

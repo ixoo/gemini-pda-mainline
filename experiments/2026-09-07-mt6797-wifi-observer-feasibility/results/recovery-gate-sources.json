@@ -1,0 +1,23 @@
+{
+  "source_revision": "59e00a9144d782e148332009a835b99c43382467",
+  "prerequisites": [
+    "historical recovery-only patch 0002 plus recovery-setters patch 0001",
+    "pstore patches 0001 through 0010; no historical trigger or profile"
+  ],
+  "patch": "0001-watchdog-join-capture-and-recovery-takeover.patch",
+  "patch_sha256": "ae05d7c2d7be3ceb6472ec16f936430f902cf310f13b57046043f1da89bfe995",
+  "parents": {
+    "drivers/watchdog/mediatek/include/ext_wd_drv.h": "a5bb2b27d35b7ac1381ee50807d6fe658055d326d2788217113822d06c82eab7",
+    "drivers/watchdog/mediatek/wdk/wd_common_drv.c": "ce82e6c861affe32baa7061055ad74c4eca8c304adeb996f4a8619de963485e9",
+    "fs/pstore/wifi_capture.h": "6c484141882e9fe2cf8f5898f7dc107450fa97eea9c2a51f703ec1641e54ee14",
+    "include/linux/cpuidle.h": "4eb1ac1f594884c143f74bd0250ee283e02ecab454295026d5a78df292b70be8"
+  },
+  "outputs": {
+    "drivers/watchdog/mediatek/include/ext_wd_drv.h": "42349c920e4b34a36627d487262b90f2b27e01f9fbc1918d50728adf831e6f99",
+    "drivers/watchdog/mediatek/wdk/wd_common_drv.c": "6f9e295d6e980505bc73105ef6693f5cdb111894aea9102fbed129c275875fed",
+    "fs/pstore/wifi_capture.h": "7977c28b0bfcba7544a3f49d74ea54d40483f51b6c1892f073a86626f2b1570e",
+    "include/linux/cpuidle.h": "c0062f727300d8703975300f3e858581e88d2df41c24bf13e673c633fac8e0b8"
+  },
+  "boot_candidate": false,
+  "device_access": false
+}

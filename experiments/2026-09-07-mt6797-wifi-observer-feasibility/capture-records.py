@@ -14,8 +14,36 @@ COMMIT = 0x57464331
 IDENTITY = 1
 TERMINAL = 255
 # Firmware execution and whole-cycle lifecycle semantics remain unfinished.
-KINDS = {IDENTITY, 2, 3, 4, 5, 6, 7, 8, 9, 10, TERMINAL}
+KINDS = {IDENTITY, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, TERMINAL}
 TERMINAL_STATUSES = {1, 2, 3}  # producer-reported complete, failed, overflow
+
+RECOVERY = struct.Struct('<6Ii')
+
+
+def validate_recovery_payload(transaction, payload):
+    if transaction or len(payload) != RECOVERY.size:
+        raise ValueError('recovery requires transaction zero and exact payload size')
+    stage, timeout, owned, before, after, length, status = RECOVERY.unpack(payload)
+    if stage not in (1, 2) or timeout != 12 or owned not in (0, 1) or status > 0:
+        raise ValueError('invalid recovery discriminator')
+    if stage == 1 and any((owned, before, after, length, status)):
+        raise ValueError('recovery entry contains a result')
+    if stage == 2 and not status and (not owned or after & 0x4d != 5 or
+                                     length & 0xffe0 != 12 * 64 * 32):
+        raise ValueError('successful recovery result lacks verified arm state')
+
+
+def check_recovery_prefix(records):
+    """Require recorded takeover before activity; no hardware-recovery verdict."""
+    if (len(records) < 3 or records[0]['kind'] != IDENTITY or
+            [r['kind'] for r in records[1:3]] != [11, 11] or
+            any(r['kind'] == 11 for r in records[3:])):
+        raise ValueError('missing, misplaced or repeated recovery prefix')
+    for record in records[1:3]:
+        validate_recovery_payload(record['transaction'], record['payload'])
+    entry, result = [RECOVERY.unpack(r['payload']) for r in records[1:3]]
+    if entry[0] != 1 or result[0] != 2 or result[-1]:
+        raise ValueError('recovery prefix does not record successful takeover')
 
 
 HIF_BIND = struct.Struct('<4I')
@@ -268,6 +296,8 @@ def encode(kind, sequence, cycle, transaction, payload):
         validate_emi_payload(transaction, payload)
     if kind == 9:
         validate_off_payload(transaction, payload)
+    if kind == 11:
+        validate_recovery_payload(transaction, payload)
     body = HEADER.pack(b'WFC1', 1, kind, sequence, cycle, transaction, len(payload))
     body += payload + bytes(PAYLOAD_BYTES - len(payload))
     return body + struct.pack('<II', zlib.crc32(body), COMMIT)

@@ -12,6 +12,27 @@ CYCLE = bytes(range(16))
 
 
 class RecordsTests(unittest.TestCase):
+    def test_recovery_prefix(self):
+        entry = r.RECOVERY.pack(1, 12, 0, 0, 0, 0, 0)
+        result = r.RECOVERY.pack(2, 12, 1, 0x48, 5, 24576, 0)
+        records = r.decode(self.identity() + r.encode(11, 1, CYCLE, 0, entry) +
+                           r.encode(11, 2, CYCLE, 0, result), CYCLE)
+        r.check_recovery_prefix(records)
+        for values in [(1, 12, 1, 0, 0, 0, 0), (2, 11, 1, 0, 5, 24576, 0),
+                       (2, 12, 0, 0, 5, 24576, 0), (2, 12, 1, 0, 13, 24576, 0),
+                       (2, 12, 1, 0, 5, 0, 0), (2, 12, 1, 0, 5, 24576, 1)]:
+            with self.assertRaises(ValueError):
+                r.encode(11, 2, CYCLE, 0, r.RECOVERY.pack(*values))
+        failed = dict(records[2], payload=r.RECOVERY.pack(2, 12, 1, 0, 0, 0, -5))
+        r.validate_recovery_payload(0, failed['payload'])
+        for malformed in (records[:2], records + [records[2]],
+                          [records[0], records[2], records[1]],
+                          records[:2] + [failed]):
+            with self.assertRaises(ValueError):
+                r.check_recovery_prefix(malformed)
+        with self.assertRaises(ValueError):
+            r.encode(11, 1, CYCLE, 1, entry)
+
     def identity(self):
         return r.encode(r.IDENTITY, 0, CYCLE, 0, bytes(range(80)))
 
