@@ -92,7 +92,17 @@ Patch replay/reversal and strict Checkpatch pass with the established legacy
 
 `check-startup-objects.py COMMIT --probe-retain` selects 30 patches and the
 same 19 native translation units as removal retention, verifies five source
-pairs and runs the focused fixture. Native compilation is pending. A passing
-compile will not establish runtime retention, DMA safety, concurrency or
-recovery. Full linking, resource isolation, controller/recovery integration
-and a separately admitted device protocol remain necessary.
+pairs and runs the focused fixture. The [native compilation receipt](results/probe-retain-object-compile.json)
+records success at `39f8d7778567b95cf7648d41ac38e2f59e959325`. All 91 regular
+package files match the remote inventory and the 90-entry checksum manifest;
+its SHA-256 is `765be9865a226cdec097eee4b218086944de3c023ab0645f40c84b64b5cc4ccc`.
+All five changed native source hashes match the source receipt. The emitted
+AHB probe code skips removal on `-117`, and the emitted WMT dispatcher returns
+that error before calling a handler when retention is latched. Native commands
+retain baseline warning suppression, so empty diagnostics are not
+warning-clean evidence.
+
+This compilation does not establish runtime retention, DMA safety, concurrency
+or recovery. Full linking, resource isolation, controller/recovery integration
+and a separately admitted device protocol remain necessary. No device was
+accessed for this checkpoint.
