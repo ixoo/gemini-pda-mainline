@@ -1,0 +1,42 @@
+From a1a4c7991cabbba6a4327b122ca02c0b6fc1fbce Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <noreply@gemini-experiment.invalid>
+Date: Thu, 10 Sep 2026 14:36:00 -0400
+Subject: [PATCH 1/2] wmt: wait for experimental transport configuration
+
+Return allocation failure instead of false success. In the isolated
+recovery experiment, require the existing worker completion wait before
+reporting HIF configuration ready. This depends on the operation
+ownership repair.
+
+Internal experiment archive; synthetic author, no DCO certification.
+---
+ .../mediatek/connectivity/common/common_main/linux/wmt_dev.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_dev.c b/drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_dev.c
+index cafaf9c..90d971d 100644
+--- a/drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_dev.c
++++ b/drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_dev.c
+@@ -803,6 +803,7 @@ LONG WMT_unlocked_ioctl(struct file *filp, UINT32 cmd, ULONG arg)
+ 			pOp = wmt_lib_get_free_op();
+ 			if (!pOp) {
+ 				WMT_INFO_FUNC("get_free_lxop fail\n");
++				iRet = -ENOMEM;
+ 				break;
+ 			}
+ 			pSignal = &pOp->signal;
+@@ -812,7 +813,11 @@ LONG WMT_unlocked_ioctl(struct file *filp, UINT32 cmd, ULONG arg)
+ 
+ 			osal_memcpy(&pOp->op.au4OpData[0], pHif, sizeof(WMT_HIF_CONF));
+ 			pOp->op.u4InfoBit = WMT_OP_HIF_BIT;
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++			pSignal->timeoutValue = 4000;
++#else
+ 			pSignal->timeoutValue = 0;
++#endif
+ 
+ 			bRet = wmt_lib_put_act_op(pOp);
+ 			WMT_DBG_FUNC("WMT_OPID_HIF_CONF result(%d)\n", bRet);
+-- 
+2.54.0 (Apple Git-157)
+

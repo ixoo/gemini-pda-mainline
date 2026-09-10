@@ -1,0 +1,17 @@
+{
+  "source_revision": "59e00a9144d782e148332009a835b99c43382467",
+  "prerequisite": "request-capture and its operation-ownership prerequisites",
+  "parents": {
+    "drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_dev.c": "63b7621f3c4251b710c62cb66e5322144036a210014d6c65a65da5df0a120dde"
+  },
+  "after_transport_wait": "fd898bf9b05b583c19fd101ef3cec2df411201bdf864d45d7e96a5642cebf884",
+  "outputs": {
+    "drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_dev.c": "d8cefc850a424fd75a207e9559ce05cd969540d125a8822449349059213fd12b"
+  },
+  "patches": {
+    "0001-wmt-wait-for-experimental-transport-configuration.patch": "84622e8b4885ecf53704920875c7d499afeef796b58a2ce083ecd01801bd5782",
+    "0002-wmt-exclude-display-power-callbacks-in-recovery-expe.patch": "ed0e164a18b0903dac0c9a74be8c076b6f94e42e0c2607e99037ba6823625928"
+  },
+  "boot_candidate": false,
+  "device_actions": false
+}

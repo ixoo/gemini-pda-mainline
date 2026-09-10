@@ -107,14 +107,15 @@ def main():
     mode = sys.argv[2] if len(sys.argv) == 3 else "--wmt"
     assert mode in ("--wmt", "--pstore", "--capture-writer", "--dma", "--stop",
                     "--firmware-read", "--firmware-read-safe", "--firmware-image", "--emi", "--provider-off",
-                    "--common-off-safe", "--common-off", "--operation-ownership", "--request-capture", "--request-firmware", "--tx-payload", "--stop-workers", "--remove-retain", "--probe-retain", "--dma-map-error")
+                    "--common-off-safe", "--common-off", "--operation-ownership", "--request-capture", "--request-firmware", "--tx-payload", "--stop-workers", "--remove-retain", "--probe-retain", "--dma-map-error", "--transport-setup")
+    transport_setup = mode == "--transport-setup"
     dma_map_error = mode == "--dma-map-error"
     probe_retain = mode == "--probe-retain" or dma_map_error
     remove_retain = mode == "--remove-retain" or probe_retain
     stop_workers = mode == "--stop-workers" or remove_retain
     tx_payload = mode == "--tx-payload" or stop_workers
     request_firmware = mode == "--request-firmware" or tx_payload
-    request_capture = mode == "--request-capture" or request_firmware
+    request_capture = mode == "--request-capture" or request_firmware or transport_setup
     ownership = mode == "--operation-ownership" or request_capture
     common_off = mode == "--common-off" or ownership
     common_off_safe = mode == "--common-off-safe"
@@ -181,6 +182,9 @@ def main():
         label = "wifi-probe-retain-objects-"
     if dma_map_error:
         label = "wifi-dma-map-error-objects-"
+    if transport_setup:
+        files = (RELATIVE + "linux/wmt_dev",)
+        label = "wifi-transport-setup-objects-"
     def unit_path(name):
         return name if name.startswith("drivers/") else relative + name
     assert not run(["git", "-C", str(project), "status", "--porcelain"])
@@ -517,6 +521,19 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
                        const u8 *p, size_t n)
 { return wfc_slot_write(w, k, tx, p, n); }
 ''')
+        if transport_setup:
+            transport_pins = json.loads((experiment / "results/transport-setup-sources.json").read_text())
+            for path, expected in transport_pins["parents"].items():
+                assert digest(patched / path) == expected, path
+            for name, expected in transport_pins["patches"].items():
+                patch = experiment / "patches/transport-setup" / name
+                assert digest(patch) == expected
+                run(["git", "apply", "--unsafe-paths", "--directory=" + str(patched), str(patch)])
+                patches.append(patch)
+            for path, expected in transport_pins["outputs"].items():
+                assert digest(patched / path) == expected, path
+            subprocess.run(["python3", str(experiment / "test-transport-setup.py"),
+                            str(patched)], check=True)
         records = []
         header = headers + ("/hif.h" if dma else "/wmt_ctrl.h")
         if not pstore:
@@ -544,6 +561,8 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
             result = work / (name + ".o")
             args[args.index("-o") + 1] = str(result)
             args[-1] = str(patched / suffix)
+            if transport_setup:
+                args.insert(1, "-DCONFIG_MTK_A72_RECOVERY_DISCRIMINATOR")
             args.insert(1, "-I" + str(patched / headers))
             if common_unit:
                 args.insert(1, "-I" + str(patched / common_headers))
@@ -561,6 +580,12 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
                     for a in args]
             with (work / (name + ".log")).open("w") as stream:
                 compile_logged(args, stream, cwd=output, env=environment, timeout=120)
+            if transport_setup:
+                nm = str(toolchain / "wrappers/aarch64-linux-gnu-nm")
+                assert "fb_register_client" in run([nm, str(baseline)], env=environment)
+                emitted = run([nm, str(result)], env=environment)
+                assert "fb_register_client" not in emitted
+                assert "fb_unregister_client" not in emitted
             dependencies = (work / (name + ".d")).read_text().replace("\\\n", " ").split()
             if ownership and name in ("wmt_lib", "wmt_exp"):
                 disassembly = run([str(toolchain / "wrappers/aarch64-linux-gnu-objdump"),

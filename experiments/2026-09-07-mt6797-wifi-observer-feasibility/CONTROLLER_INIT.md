@@ -95,3 +95,7 @@ Responder/HIF configuration, request sequencing, final classification, complete
 kernel linking, reset/resource isolation and the exact owner-approved device
 session remain open. This source checkpoint neither installs a candidate nor
 claims runtime support.
+
+The [transport setup prerequisites](TRANSPORT_SETUP.md) repair false success,
+wait for configuration completion and exclude display-triggered power work.
+They remain separate from the controller's pending request sequence.

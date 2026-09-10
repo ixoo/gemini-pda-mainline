@@ -1,0 +1,53 @@
+From e16e76c7d7a2228c5c06b2b08740edd1fc3538f3 Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <noreply@gemini-experiment.invalid>
+Date: Thu, 10 Sep 2026 14:36:00 -0400
+Subject: [PATCH 2/2] wmt: exclude display power callbacks in recovery
+ experiment
+
+Framebuffer blanking and early suspend callbacks schedule an independent
+loopback power worker. Do not register either notifier in the isolated
+recovery experiment; skip the corresponding unregister as well.
+
+Internal experiment archive; synthetic author, no DCO certification.
+---
+ .../mediatek/connectivity/common/common_main/linux/wmt_dev.c  | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_dev.c b/drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_dev.c
+index 90d971d..9bfb6a0 100644
+--- a/drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_dev.c
++++ b/drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_dev.c
+@@ -1382,6 +1382,7 @@ static INT32 WMT_init(VOID)
+ 
+ 	osal_sleepable_lock_init(&g_es_lr_lock);
+ 	INIT_WORK(&gPwrOnOffWork, wmt_pwr_on_off_handler);
++#ifndef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
+ #ifdef CONFIG_EARLYSUSPEND
+ 	register_early_suspend(&wmt_early_suspend_handler);
+ 	WMT_INFO_FUNC("register_early_suspend finished\n");
+@@ -1393,6 +1394,7 @@ static INT32 WMT_init(VOID)
+ 	else
+ 		WMT_INFO_FUNC("wmt register fb_notifier OK!\n");
+ #endif /* CONFIG_EARLYSUSPEND */
++#endif
+ 	WMT_INFO_FUNC("success\n");
+ 
+ 	return 0;
+@@ -1429,12 +1431,14 @@ static VOID WMT_exit(VOID)
+ 	dev_t dev = MKDEV(gWmtMajor, 0);
+ 
+ 	osal_sleepable_lock_deinit(&g_es_lr_lock);
++#ifndef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
+ #ifdef CONFIG_EARLYSUSPEND
+ 	unregister_early_suspend(&wmt_early_suspend_handler);
+ 	WMT_INFO_FUNC("unregister_early_suspend finished\n");
+ #else
+ 	fb_unregister_client(&wmt_fb_notifier);
+ #endif /* CONFIG_EARLYSUSPEND */
++#endif
+ 
+ 	wmt_dev_bgw_desense_deinit();
+ 
+-- 
+2.54.0 (Apple Git-157)
+
