@@ -158,12 +158,13 @@ static void nicEnableInterrupt(void *p) { (void)p;scheduled++; }
 '''
 
 
-def compile_library(code, work, name):
+def compile_library(code, work, name, legacy_fallthrough=False):
     path=work/name
     path.with_suffix('.c').write_text(code)
+    extra = ['-Wno-implicit-fallthrough'] if legacy_fallthrough else []
     subprocess.run(['cc','-std=gnu11','-Wall','-Wextra','-Werror',
                     '-Wno-unused-parameter','-Wno-unused-function','-Wno-unused-variable',
-                    '-Wno-unused-but-set-variable','-shared','-fPIC',
+                    '-Wno-unused-but-set-variable',*extra,'-shared','-fPIC',
                     str(path.with_suffix('.c')),'-o',str(path.with_suffix('.so'))],check=True)
     return ctypes.CDLL(str(path.with_suffix('.so')))
 
@@ -215,7 +216,7 @@ def local(tree, work, name):
 '''+enum+'\n eFailReason=reason;\n'+adapter[start:]+'\n'
     for var in ('created','scheduled','wakes','cleanup','halted','aborted'):
         code+=f'int get_{var}(void) {{ return {var}; }}\n'
-    return compile_library(code,work,name)
+    return compile_library(code,work,name,legacy_fallthrough=True)
 
 
 def main():

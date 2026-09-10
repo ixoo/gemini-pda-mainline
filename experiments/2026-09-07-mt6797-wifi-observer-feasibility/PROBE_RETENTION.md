@@ -83,6 +83,10 @@ failure before worker creation, earlier setup cleanup and all five adapter
 failure stages. Parent/child ordinary caller effects match; retained paths
 skip the modeled cleanup and power effects. Compilation uses strict warnings
 with explicit unused-code exceptions for native bodies and injected stubs.
+The extracted startup fragments also allow the original cleanup switch's
+intentional implicit fall-through. The first Buildbox attempt stopped on that
+GCC warning in the host fixture before native compilation; no kernel failure
+is inferred from it.
 Patch replay/reversal and strict Checkpatch pass with the established legacy
 `CAMELCASE` and synthetic `MISSING_SIGN_OFF` exceptions.
 
