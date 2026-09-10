@@ -1,0 +1,13 @@
+{
+  "source_revision": "59e00a9144d782e148332009a835b99c43382467",
+  "scope": "Unselected native firmware mapping failure handling; no payload hash or device action",
+  "parent": {
+    "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_kal.c",
+    "sha256": "1bd96c4e3e15b682c71dfc6bc67e358fb6bc1e9a977c73a2d3bda15c4cb1f7b5"
+  },
+  "output_sha256": "785e196e96a070930adb27f0587923223b1efec24ba6d0fd28f2500c9adc503a",
+  "patch": "0001-wlan-reject-invalid-native-firmware-mappings.patch",
+  "patch_sha256": "90eda58094ee09949c6c488bb01e381c7b70dfbebbac3dc53effa16c9335f62d",
+  "replay_and_reverse_verified": true,
+  "checkpatch_sha256": "2553cc1a601e70522e03fbce633d4e79fa5936f7f56a66de1899b7ddd247820a"
+}

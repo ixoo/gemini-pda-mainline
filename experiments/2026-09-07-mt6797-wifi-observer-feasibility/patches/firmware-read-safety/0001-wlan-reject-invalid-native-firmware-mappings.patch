@@ -1,0 +1,86 @@
+From cab9b0fd0e0ea88ba04a721c04568e95aa7f895a Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <experiment@invalid.example>
+Date: Thu, 10 Sep 2026 07:18:43 -0400
+Subject: [PATCH] wlan: reject invalid native firmware mappings
+
+The native firmware reader publishes negative and short read results as
+successful mappings. A failed allocation also reaches the file read, and
+inode sizes are truncated before four-byte allocation rounding.
+
+Reject invalid signed inode sizes before conversion, stop on allocation
+failure, and require an exact full read before mapping publication. Keep
+the native capture of the actual signed read result and release the opened
+file and allocated buffer on failure. Valid mapping effects stay in their
+existing order. No retry, extra read, hash or radio operation is added.
+
+This unselected experiment changes failure handling after the firmware-read
+capture patch. It is not a boot candidate or an upstream submission. The
+synthetic archive identity supplies no author certification.
+---
+ .../connectivity/wlan/gen3/os/linux/gl_kal.c  | 25 +++++++++++++++++--
+ 1 file changed, 23 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_kal.c b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_kal.c
+index ea8ac10..fb29acb 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_kal.c
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_kal.c
+@@ -409,6 +409,10 @@ kalFirmwareLoadCapture(IN P_GLUE_INFO_T prGlueInfo, OUT PVOID prBuf,
+ 	UINT_32 requested;
+ 	ssize_t result;
+ 
++	if (!prGlueInfo || !pu4Size || !prBuf || !*pu4Size) {
++		wfc_fw_read_result(capture, pu4Size ? *pu4Size : 0, false, 0);
++		return WLAN_STATUS_FAILURE;
++	}
+ 	ASSERT(prGlueInfo);
+ 	ASSERT(pu4Size);
+ 	ASSERT(prBuf);
+@@ -424,6 +428,8 @@ kalFirmwareLoadCapture(IN P_GLUE_INFO_T prGlueInfo, OUT PVOID prBuf,
+ 		result = filp->f_op->read(filp, prBuf, *pu4Size, &filp->f_pos);
+ 		*pu4Size = result;
+ 		wfc_fw_read_result(capture, requested, true, result);
++		if (result != (ssize_t)requested)
++			return WLAN_STATUS_FAILURE;
+ 	}
+ 
+ 	return WLAN_STATUS_SUCCESS;
+@@ -454,10 +460,18 @@ WLAN_STATUS kalFirmwareLoad(IN P_GLUE_INFO_T prGlueInfo, OUT PVOID prBuf,
+ 
+ WLAN_STATUS kalFirmwareSize(IN P_GLUE_INFO_T prGlueInfo, OUT PUINT_32 pu4Size)
+ {
++	loff_t size;
++
++	if (!prGlueInfo || !pu4Size || !filp || IS_ERR(filp))
++		return WLAN_STATUS_FAILURE;
+ 	ASSERT(prGlueInfo);
+ 	ASSERT(pu4Size);
+ 
+-	*pu4Size = filp->f_path.dentry->d_inode->i_size;
++	size = filp->f_path.dentry->d_inode->i_size;
++	/* The native length and ALIGN_4 allocation argument are both u32. */
++	if (size <= 0 || size > 0xfffffffcLL)
++		return WLAN_STATUS_FAILURE;
++	*pu4Size = size;
+ 
+ 	return WLAN_STATUS_SUCCESS;
+ }
+@@ -495,11 +509,18 @@ PVOID kalFirmwareImageMapping(IN P_GLUE_INFO_T prGlueInfo, OUT PPVOID ppvMapFile
+ 			break;
+ 
+ 		/* <2> Query firmare size */
+-		kalFirmwareSize(prGlueInfo, &u4FwSize);
++		if (kalFirmwareSize(prGlueInfo, &u4FwSize) != WLAN_STATUS_SUCCESS) {
++			kalFirmwareClose(prGlueInfo);
++			break;
++		}
+ 		/* <3> Use vmalloc for allocating large memory trunk */
+ 		allocation = ALIGN_4(u4FwSize);
+ 		prFwBuffer = vmalloc(allocation);
+ 		wfc_fw_read_allocation(&capture, u4FwSize, allocation, !!prFwBuffer);
++		if (!prFwBuffer) {
++			kalFirmwareClose(prGlueInfo);
++			break;
++		}
+ 		/* <4> Load image binary into buffer */
+ 		if (kalFirmwareLoadCapture(prGlueInfo, prFwBuffer, 0, &u4FwSize,
+ 					   &capture) != WLAN_STATUS_SUCCESS) {

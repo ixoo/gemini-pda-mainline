@@ -105,11 +105,13 @@ def main():
     commit = run(["git", "-C", str(project), "rev-parse", "HEAD"])
     assert len(sys.argv) in (2, 3) and sys.argv[1] == commit
     mode = sys.argv[2] if len(sys.argv) == 3 else "--wmt"
-    assert mode in ("--wmt", "--pstore", "--capture-writer", "--dma", "--stop", "--firmware-read")
+    assert mode in ("--wmt", "--pstore", "--capture-writer", "--dma", "--stop",
+                    "--firmware-read", "--firmware-read-safe")
     capture = mode == "--capture-writer"
-    firmware_read = mode == "--firmware-read"
-    stop = mode in ("--stop", "--firmware-read")
-    dma = mode in ("--dma", "--stop", "--firmware-read")
+    firmware_safe = mode == "--firmware-read-safe"
+    firmware_read = mode in ("--firmware-read", "--firmware-read-safe")
+    stop = mode == "--stop" or firmware_read
+    dma = mode == "--dma" or stop
     pstore = mode in ("--pstore", "--capture-writer")
     relative = "fs/pstore/" if pstore else RELATIVE
     files = ("pmsg", "inode", "ram_core", "ram") if pstore else FILES
@@ -127,7 +129,7 @@ def main():
             label = "wifi-stop-objects-"
         if firmware_read:
             files = ("os/linux/gl_kal",)
-            label = "wifi-firmware-read-objects-"
+            label = "wifi-firmware-read-safe-objects-" if firmware_safe else "wifi-firmware-read-objects-"
     assert not run(["git", "-C", str(project), "status", "--porcelain"])
     root = Path("/workspace/gemini-pda")
     source = root / "gemian-source/gemian-baseline" / REVISION
@@ -194,6 +196,8 @@ def main():
                 shutil.copyfile(source / relative / hif / "ahb_pdma.c", patched / relative / hif / "ahb_pdma.c")
             if firmware_read:
                 patches += sorted((experiment / "patches/firmware-read").glob("*.patch"))
+                if firmware_safe:
+                    patches += sorted((experiment / "patches/firmware-read-safety").glob("*.patch"))
                 for extra in ("common/wlan_lib.c", "os/linux/gl_init.c", hif + "ahb.c"):
                     dest = patched / relative / extra
                     dest.parent.mkdir(parents=True, exist_ok=True)
@@ -204,7 +208,7 @@ def main():
                           "fs/pstore/pmsg.c", "fs/pstore/inode.c"):
                 (patched / extra).parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(source / extra, patched / extra)
-        assert len(patches) == (13 if firmware_read else 12 if stop else 11 if dma else 0 if capture else 10 if pstore else 4)
+        assert len(patches) == (14 if firmware_safe else 13 if firmware_read else 12 if stop else 11 if dma else 0 if capture else 10 if pstore else 4)
         for patch in patches:
             if stop and patch.parent.name == "stop":
                 stop_pins = json.loads((experiment / "results/stop-capture-sources.json").read_text())
@@ -215,6 +219,12 @@ def main():
                 assert digest(patch) == read_pins["patch_sha256"]
                 for path, expected in read_pins["parents"].items():
                     assert digest(patched / path) == expected, path
+            if firmware_safe and patch.parent.name == "firmware-read-safety":
+                safe_pins = json.loads((experiment / "results/firmware-read-safety-sources.json").read_text())
+                assert digest(patch) == safe_pins["patch_sha256"]
+                assert digest(patched / safe_pins["parent"]["path"]) == safe_pins["parent"]["sha256"]
+                for path, expected in read_pins["outputs"].items():
+                    assert digest(patched / path) == expected, path
             subprocess.run(["git", "apply", str(patch)], cwd=patched, check=True)
         if dma:
             pinned = json.loads((experiment / "results" / (
@@ -224,8 +234,11 @@ def main():
                 for path, expected in pinned[section].items():
                     assert digest(tree / path) == expected, path
         if firmware_read:
-            for path, expected in read_pins["outputs"].items():
-                assert digest(patched / path) == expected, path
+            if firmware_safe:
+                assert digest(patched / safe_pins["parent"]["path"]) == safe_pins["output_sha256"]
+            else:
+                for path, expected in read_pins["outputs"].items():
+                    assert digest(patched / path) == expected, path
         if capture:
             shutil.copyfile(experiment / "capture-slot-writer.h",
                             patched / relative / "capture-slot-writer.h")

@@ -101,3 +101,8 @@ No producer or kernel input changed. No kernel build or device test was run
 for this offline decoder change. The integrated controller, remaining native
 capture sites and admitted recovery protocol are still required before a
 hardware session can establish the lifetime predicates.
+
+The separate [failure-handling successor](FIRMWARE_READ_SAFETY.md) rejects
+invalid sizes, failed allocations and incomplete reads before mapping
+publication. It deliberately changes those native failure paths while keeping
+this original capture patch and its receipts unchanged.
