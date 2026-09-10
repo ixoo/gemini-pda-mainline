@@ -1,0 +1,93 @@
+From 868c99acc637f21ea235be9b2baab1697f5bafce Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <experiment@invalid.example>
+Date: Wed, 9 Sep 2026 20:47:26 -0400
+Subject: [PATCH] pstore: exclude ordinary native PMSG access for capture
+
+Add a default-off, boot-only PMSG reservation. Refuse writes and erases
+before touching either current storage or its old snapshot, and latch
+each rejected operation with atomic bit operations. Keep normal logging
+unchanged when reservation is disabled.
+
+The flag is read-only after boot. Refuse module use and suppress
+userspace bind/unbind controls while reserved; there is no release or
+re-claim API. This does not implement a capture writer, validate a
+memory layout or prove persistence.
+
+This native 3.18 experiment patch has no selected candidate. The archive
+identity is synthetic and non-certifying; not submission-ready.
+---
+ fs/pstore/ram.c | 30 ++++++++++++++++++++++++++++++
+ 1 file changed, 30 insertions(+)
+
+diff --git a/fs/pstore/ram.c b/fs/pstore/ram.c
+index 481ba33..d1fadac 100644
+--- a/fs/pstore/ram.c
++++ b/fs/pstore/ram.c
+@@ -23,6 +23,7 @@
+ #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+ 
+ #include <linux/kernel.h>
++#include <linux/bitops.h>
+ #include <linux/err.h>
+ #include <linux/module.h>
+ #include <linux/version.h>
+@@ -99,6 +100,20 @@ module_param(mem_type, uint, 0600);
+ MODULE_PARM_DESC(mem_type,
+ 		"set to 1 to try to use unbuffered memory (default 0)");
+ 
++/* Boot-only exclusion: never transfer PMSG ownership in a running kernel. */
++static bool pmsg_capture;
++module_param(pmsg_capture, bool, 0400);
++MODULE_PARM_DESC(pmsg_capture, "reserve PMSG from ordinary writes and erases");
++
++/* Bit 0: rejected write; bit 1: rejected erase. Never clear during this boot. */
++static unsigned long pmsg_capture_denials;
++static const struct kernel_param_ops pmsg_capture_denials_ops = {
++	.get = param_get_ulong,
++};
++module_param_cb(pmsg_capture_denials, &pmsg_capture_denials_ops,
++		&pmsg_capture_denials, 0400);
++MODULE_PARM_DESC(pmsg_capture_denials, "latched PMSG capture interference");
++
+ static int dump_oops = 1;
+ module_param(dump_oops, int, 0600);
+ MODULE_PARM_DESC(dump_oops,
+@@ -306,6 +321,10 @@ static int notrace ramoops_pstore_write_buf(enum pstore_type_id type,
+ 		persistent_ram_write(cxt->fprz, buf, size);
+ 		return 0;
+ 	} else if (type == PSTORE_TYPE_PMSG) {
++		if (pmsg_capture) {
++			set_bit(0, &pmsg_capture_denials);
++			return -EBUSY;
++		}
+ 		if (!cxt->mprz)
+ 			return -ENOMEM;
+ 		persistent_ram_write(cxt->mprz, buf, size);
+@@ -368,6 +387,10 @@ static int ramoops_pstore_erase(enum pstore_type_id type, u64 id, int count,
+ 		prz = cxt->fprz;
+ 		break;
+ 	case PSTORE_TYPE_PMSG:
++		if (pmsg_capture) {
++			set_bit(1, &pmsg_capture_denials);
++			return -EBUSY;
++		}
+ 		prz = cxt->mprz;
+ 		break;
+ 	default:
+@@ -680,6 +703,13 @@ static void ramoops_register_dummy(void)
+ 
+ static int __init ramoops_init(void)
+ {
++#ifdef MODULE
++	/* Capture exclusion must last for the boot, without unload/reload. */
++	if (pmsg_capture)
++		return -EINVAL;
++#endif
++	if (pmsg_capture)
++		ramoops_driver.driver.suppress_bind_attrs = true;
+ 	ramoops_register_dummy();
+ 	return platform_driver_register(&ramoops_driver);
+ }
+-- 
+2.50.1 (Apple Git-155)
+

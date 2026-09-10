@@ -765,9 +765,9 @@ reader image, memory access, radio operation or candidate is selected here.
 
 The existing [Buildbox object checker](check-startup-objects.py) accepts
 `EXACT_PROJECT_COMMIT --pstore` to compile the original and repaired `pmsg.c`,
-`inode.c` and `ram_core.c` translation units. It reuses the pinned native
+`inode.c`, `ram_core.c` and `ram.c` translation units. It reuses the pinned native
 compiler, resolved configuration, prepared source and recorded compiler
-commands, and applies only the three-patch pstore series to temporary files.
+commands, and applies only the selected pstore series to temporary files.
 It leaves the prepared source untouched and removes temporary build output.
 This checks a concrete gap in the function-body fixtures: compatibility with
 the actual kernel headers and target compiler. It does not link a kernel,
@@ -781,3 +781,41 @@ and local inventory/checksum validation. The changed compiler logs are empty
 under the recorded flags, including `-w`. Temporary output was removed and
 the prepared source stayed clean. Capture ownership, its atomic writer and
 physical retention remain separate implementation and runtime work.
+
+## Boot-time PMSG exclusion
+
+The fourth [pstore patch](patches/pstore/0004-pstore-reserve-native-pmsg-for-capture.patch)
+adds default-off `ramoops.pmsg_capture=1` for a future built-in observer kernel.
+It rejects ordinary PMSG backend writes and erases with `-EBUSY` before touching
+current storage or the old snapshot. The first two patches propagate those
+refusals to the original userspace write/unlink callers. PMSG reading and the
+other ramoops zones retain their original paths.
+
+The flag is read-only after boot. Exclusion therefore precedes backend
+registration; there is no live ownership handoff, release or retry API and no
+new sleeping lock in the callbacks. Capture mode refuses a modular ramoops
+build and suppresses its userspace bind/unbind attributes. These constraints
+avoid losing exclusion through unload/reload or ordinary driver rebinding.
+They do not defend against arbitrary privileged kernel memory modification.
+
+Read-only `pmsg_capture_denials` exposes sticky atomic bits: bit zero for a
+rejected write, bit one for a rejected erase. The collector must treat any
+nonzero value as interference. The bits are ordinary RAM state, not a durable
+failure record; they neither prove reset retention nor replace the future
+writer's committed terminal. No normal path clears them during this boot.
+
+The [source receipt](results/pmsg-owner-sources.json) pins the original and
+patched file. The [callback test](test-pmsg-owner.py) compiles the exact two
+backend functions with injected storage/atomic operations and checks default
+behavior, refusal without storage access, sticky bits, an absent PMSG zone,
+unaffected console/ftrace callbacks and concurrent denials. Its
+[result](results/pmsg-owner-test.txt) establishes callback behavior only.
+Checkpatch reported zero errors, warnings and checks with `MISSING_SIGN_OFF`
+excluded for the non-certifying archive; its spelling/const dictionaries were
+unavailable. Complete ARM64 compilation of this fourth patch is pending.
+
+This implements backend exclusion, not capture acquisition. A future writer
+still must verify the exact zero payload, layout, mapping and ECC, preserve old
+evidence, establish the fixed header, and commit/read back bounded slots with
+the required ordering. No new memory write, initramfs, kernel image, radio
+operation or device candidate is selected by this patch.

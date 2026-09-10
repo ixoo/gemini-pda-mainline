@@ -1,0 +1,11 @@
+{
+  "patch_sha256": "f79230f50760d4bf45c71660dd65bc68c872e56f953c2bcfecacc9f66b9353cf",
+  "repository": "gemian/gemini-linux-kernel-3.18",
+  "revision": "59e00a9144d782e148332009a835b99c43382467",
+  "scope": "default-off boot-lifetime backend exclusion; no selected candidate or capture writer",
+  "source": {
+    "original_sha256": "7ba661c230fb71d7d2768bb3cddb95d1deb36810531cfc992bc5c7297113a391",
+    "patched_sha256": "20a043ba3c420f3aae0ffc056344370ac427b27d0204f3a52f439513d31c0165",
+    "path": "fs/pstore/ram.c"
+  }
+}

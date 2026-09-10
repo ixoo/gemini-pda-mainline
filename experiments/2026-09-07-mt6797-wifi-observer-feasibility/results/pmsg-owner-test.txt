@@ -1,0 +1,4 @@
+PASS: default behavior, rejected PMSG writes/erases, unchanged storage and sticky denial bits
+PASS: missing-zone refusal, unaffected console/ftrace, concurrent rejected callbacks
+Scope: exact callback bodies with injected RAM/atomic operations; no hardware or persistence claim
+PASS: patch apply/reverse reproduces exact patched/original source bytes

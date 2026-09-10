@@ -1,3 +1,4 @@
 0001-pstore-report-native-pmsg-backend-write-failures.patch
 0002-pstore-preserve-native-records-when-backend-erase-fa.patch
 0003-pstore-preserve-old-log-on-allocation-failure.patch
+0004-pstore-reserve-native-pmsg-for-capture.patch

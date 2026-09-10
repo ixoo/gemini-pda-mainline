@@ -56,7 +56,7 @@ def main():
     pstore = len(sys.argv) == 3
     assert not pstore or sys.argv[2] == "--pstore"
     relative = "fs/pstore/" if pstore else RELATIVE
-    files = ("pmsg", "inode", "ram_core") if pstore else FILES
+    files = ("pmsg", "inode", "ram_core", "ram") if pstore else FILES
     label = "wifi-pstore-objects-" if pstore else "wifi-startup-objects-"
     assert not run(["git", "-C", str(project), "status", "--porcelain"])
     root = Path("/workspace/gemini-pda")
@@ -109,7 +109,7 @@ def main():
             shutil.copytree(source / headers, patched / headers)
         patch_dir = experiment / "patches" / "pstore" if pstore else experiment / "patches"
         patches = sorted(patch_dir.glob("*.patch"))
-        assert len(patches) == (3 if pstore else 4)
+        assert len(patches) == 4
         for patch in patches:
             subprocess.run(["git", "apply", str(patch)], cwd=patched, check=True)
         records = []
