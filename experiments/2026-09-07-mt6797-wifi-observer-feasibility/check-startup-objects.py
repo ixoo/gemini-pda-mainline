@@ -132,7 +132,7 @@ def main():
             files = ("os/linux/gl_kal",)
             label = "wifi-firmware-read-safe-objects-" if firmware_safe else "wifi-firmware-read-objects-"
         if firmware_image:
-            files = ("os/linux/gl_kal", "os/linux/gl_init", "common/wlan_lib", hif + "hif_fw_capture")
+            files = ("os/linux/gl_kal", "os/linux/gl_init", "common/wlan_lib", "nic/nic_pwr_mgt", hif + "hif_fw_capture")
             label = "wifi-firmware-image-objects-"
     assert not run(["git", "-C", str(project), "status", "--porcelain"])
     root = Path("/workspace/gemini-pda")
@@ -321,7 +321,7 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
                 if stop:
                     if name != "hif_fw_capture":
                         assert str(patched / headers / "hif_stop_capture.h") in dependencies
-                    if name in ("wlan_lib", "gl_init", "gl_kal"):
+                    if name in ("wlan_lib", "gl_init", "gl_kal", "nic_pwr_mgt"):
                         assert str(patched / relative / "include/nic/hal.h") in dependencies, name
                     if name not in ("hif_stop_capture", "hif_fw_capture"):
                         assert str(patched / relative / "include/wlan_lib.h") in dependencies, name
@@ -331,7 +331,7 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
                                    "-dr", str(result)], env=environment)
                 (work / (name + "-capture.disasm")).write_text(disassembly + "\n")
                 assert ({"gl_kal": "kalFirmwareLoadCapture", "gl_init": "kalFirmwareImageMapping",
-                         "wlan_lib": "wfc_fw_image_begin", "hif_fw_capture": "wfc_fw_image_begin"}[name] if firmware_image else
+                         "wlan_lib": "wfc_fw_image_begin", "nic_pwr_mgt": "kalFirmwareImageMapping", "hif_fw_capture": "wfc_fw_image_begin"}[name] if firmware_image else
                         "kalFirmwareLoadCapture" if firmware_read else "wlanAdapterStop" if stop and name == "gl_init" else
                         "wfc_stop_" if stop else "wfc_dma_") in disassembly
                 if firmware_image:

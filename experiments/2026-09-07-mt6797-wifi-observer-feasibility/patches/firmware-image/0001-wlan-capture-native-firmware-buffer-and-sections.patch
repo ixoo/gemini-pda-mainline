@@ -1,6 +1,6 @@
-From 9d9d30d9bd90d74c988d46ef2292494698e9fd3e Mon Sep 17 00:00:00 2001
+From 56d45ef4915bf8f404eb6a964a3e77fac8437e8a Mon Sep 17 00:00:00 2001
 From: Gemini experiment archive <experiment@invalid.example>
-Date: Thu, 10 Sep 2026 07:44:01 -0400
+Date: Thu, 10 Sep 2026 07:52:25 -0400
 Subject: [PATCH] wlan: capture native firmware buffer and sections
 
 Carry a successful file-read ordinal and its borrowed buffer through the
@@ -26,13 +26,14 @@ no author certification.
  .../mediatek/connectivity/wlan/gen3/Makefile  |   1 +
  .../connectivity/wlan/gen3/common/wlan_lib.c  |  35 ++--
  .../connectivity/wlan/gen3/include/wlan_lib.h |   7 +-
+ .../connectivity/wlan/gen3/nic/nic_pwr_mgt.c  |   4 +-
  .../connectivity/wlan/gen3/os/linux/gl_init.c |   9 +-
  .../connectivity/wlan/gen3/os/linux/gl_kal.c  |  29 +++-
  .../linux/hif/ahb_sdioLike/hif_fw_capture.c   | 156 ++++++++++++++++++
  .../os/linux/hif/ahb_sdioLike/include/hif.h   |   1 +
  .../hif/ahb_sdioLike/include/hif_fw_capture.h |  38 +++++
  .../wlan/gen3/os/linux/include/gl_kal.h       |   6 +-
- 9 files changed, 262 insertions(+), 20 deletions(-)
+ 10 files changed, 265 insertions(+), 21 deletions(-)
  create mode 100644 drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/hif_fw_capture.c
  create mode 100644 drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_fw_capture.h
 
@@ -160,6 +161,21 @@ index fc9a681..531fbed 100644
  
  WLAN_STATUS wlanAdapterStop(IN P_ADAPTER_T prAdapter, UINT_32 capture_caller);
  
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic_pwr_mgt.c b/drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic_pwr_mgt.c
+index 127abb4..d8dfd59 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic_pwr_mgt.c
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic_pwr_mgt.c
+@@ -276,7 +276,9 @@ BOOLEAN nicpmSetAcpiPowerD0(IN P_ADAPTER_T prAdapter)
+ #endif
+ 
+ #if CFG_ENABLE_FW_DOWNLOAD
+-		prFwMappingHandle = kalFirmwareImageMapping(prAdapter->prGlueInfo, &pvFwImageMapFile, &u4FwImgLength);
++		prFwMappingHandle = kalFirmwareImageMapping(prAdapter->prGlueInfo,
++							    &pvFwImageMapFile,
++							    &u4FwImgLength, NULL);
+ 		if (!prFwMappingHandle) {
+ 			DBGLOG(NIC, ERROR, "Fail to load FW image from file!\n");
+ 			pvFwImageMapFile = NULL;
 diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c
 index 24a9777..50a5484 100644
 --- a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c

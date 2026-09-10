@@ -9,14 +9,15 @@ upstream driver change. The synthetic patch author makes no DCO certification.
 ## Producer and lineage
 
 The [patch](patches/firmware-image/0001-wlan-capture-native-firmware-buffer-and-sections.patch)
-and [source receipt](results/firmware-image-capture-sources.json) pin the seven
-modified parent files and all nine resulting files at the existing native
+and [source receipt](results/firmware-image-capture-sources.json) pin the eight
+modified parent files and all ten resulting files at the existing native
 revision. Apply after pstore, DMA, stop, firmware-read and firmware-read-safety,
 in that order. The canonical kernel series and profiles do not select it.
 
 A stack-owned witness in `gl_init.c` receives the borrowed allocation pointer,
 length, adapter identity and read transaction only after successful mapping
-publication is recorded. The synchronous `wlanAdapterStart()` call passes that
+publication is recorded. The separate ACPI power-management mapper passes a null witness and retains
+its existing loader path. The synchronous `wlanAdapterStart()` call passes that
 witness to `wlanImageDividDownload()`. Before additional buffer reads, the
 observer requires the actual argument and header pointers to equal the witness,
 a live matching DMA binding, and exactly 411632 bytes. It checks the MTKE
@@ -74,7 +75,7 @@ The existing full image/EMI checker retains its separate requirements.
 
 For native compilation, `check-startup-objects.py COMMIT --firmware-image` uses
 the clean pushed checkout on Buildbox, applies all fifteen prerequisite patches,
-and compiles complete `gl_kal.c`, `gl_init.c`, `wlan_lib.c` and `hif_fw_capture.c`
+and compiles complete `gl_kal.c`, `gl_init.c`, `wlan_lib.c`, `nic_pwr_mgt.c` and `hif_fw_capture.c`
 translation units. It checks modified header dependencies and emitted capture
 calls. Until a result receipt is recorded, this is a reproduction path, not a
 compilation claim. It creates no kernel image and performs no device action.
