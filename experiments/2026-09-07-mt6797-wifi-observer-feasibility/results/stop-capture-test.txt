@@ -1,0 +1,1 @@
+native_stop_comparisons=45; actual_stop_dispatch_accessor=true; result=pass; hardware_claim=none

@@ -1,0 +1,520 @@
+From 208c24d24e8631cc0a79aa6408832a6e17153da2 Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <experiment@invalid.example>
+Date: Wed, 9 Sep 2026 23:02:37 -0400
+Subject: [PATCH] wlan: capture native adapter-stop decisions
+
+Retain the evaluated entry and command gates, caller identity, actual
+poll branch and adapter return. Attribute direct accessor completion to
+one caller-owned read context. Pass no context to the queued HIF worker:
+its completions remain unobserved and cannot certify ordinary shutdown.
+Count fallback calls independently of the branch finally taken.
+
+Preserve the original short-circuit evaluations, accesses, effects and
+returns, including successful returns after skipped or failed shutdown.
+Use the existing HIF initialization ordinal without publishing pointers.
+
+This unselected MT6797 native experiment depends on ten pstore patches
+and the DMA capture patch. It supplies no controller, recovery owner,
+full kernel, candidate or hardware evidence. The synthetic archive identity
+does not certify authorship; this patch is not submission-ready.
+---
+ .../mediatek/connectivity/wlan/gen3/Makefile  |   1 +
+ .../connectivity/wlan/gen3/common/wlan_lib.c  |  40 +++-
+ .../connectivity/wlan/gen3/include/nic/hal.h  |  29 ++-
+ .../connectivity/wlan/gen3/include/wlan_lib.h |   2 +-
+ .../connectivity/wlan/gen3/os/linux/gl_init.c |   4 +-
+ .../wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c |   8 +-
+ .../linux/hif/ahb_sdioLike/hif_stop_capture.c | 180 ++++++++++++++++++
+ .../os/linux/hif/ahb_sdioLike/include/hif.h   |   4 +
+ .../ahb_sdioLike/include/hif_stop_capture.h   |  39 ++++
+ 9 files changed, 287 insertions(+), 20 deletions(-)
+ create mode 100644 drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/hif_stop_capture.c
+ create mode 100644 drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_stop_capture.h
+
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/Makefile b/drivers/misc/mediatek/connectivity/wlan/gen3/Makefile
+index 03f0d75..c72123a 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/Makefile
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/Makefile
+@@ -188,6 +188,7 @@ OS_OBJS += $(OS_DIR)gl_proc.o
+ HIF_OBJS :=  $(HIF_DIR)arm.o
+ ifeq ($(WLAN_CHIP_ID), MT6797)
+ HIF_OBJS += $(HIF_DIR)hif_capture.o\
++			$(HIF_DIR)hif_stop_capture.o\
+ 			$(HIF_DIR)ahb.o\
+ 			$(HIF_DIR)ahb_pdma.o\
+ 			$(HIF_DIR)sdio_bus_driver.o
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c b/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c
+index f876ed6..4fef8e5 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c
+@@ -938,12 +938,19 @@ WLAN_STATUS wlanPowerOffInt(IN P_ADAPTER_T prAdapter)
+ * \retval WLAN_STATUS_FAILURE: Failed
+ */
+ /*----------------------------------------------------------------------------*/
+-WLAN_STATUS wlanAdapterStop(IN P_ADAPTER_T prAdapter)
++WLAN_STATUS wlanAdapterStop(IN P_ADAPTER_T prAdapter, UINT_32 capture_caller)
+ {
+ 	UINT_32 i, u4Value = 0;
+ 	WLAN_STATUS u4Status = WLAN_STATUS_SUCCESS;
++	struct wfc_stop_trace capture;
++	bool capture_d0 = false, capture_no_ack = false, capture_removed = false;
++	bool capture_gate;
++	BOOLEAN capture_owned;
++	u32 capture_command = 0, capture_reason = 4;
+ 
+ 	ASSERT(prAdapter);
++	wfc_stop_begin(&capture, &prAdapter->prGlueInfo->rHifInfo.capture,
++		       capture_caller);
+ 
+ 	/* Release all CMD/MGMT/SEC frame in command queue */
+ 	kalClearCommandQueue(prAdapter->prGlueInfo);
+@@ -961,8 +968,12 @@ WLAN_STATUS wlanAdapterStop(IN P_ADAPTER_T prAdapter)
+ 
+ #endif
+ 
+-	if (prAdapter->rAcpiState == ACPI_STATE_D0 &&
+-	    !wlanIsChipNoAck(prAdapter) && !kalIsCardRemoved(prAdapter->prGlueInfo)) {
++	capture_gate = (capture_d0 = prAdapter->rAcpiState == ACPI_STATE_D0) &&
++		!(capture_no_ack = wlanIsChipNoAck(prAdapter)) &&
++		!(capture_removed = kalIsCardRemoved(prAdapter->prGlueInfo));
++	wfc_stop_entry(&capture, !!prAdapter->prGlueInfo->hif_thread,
++		       capture_d0, capture_no_ack, capture_removed);
++	if (capture_gate) {
+ 
+ 		/* 0. Disable interrupt, this can be done without Driver own */
+ 		nicDisableInterrupt(prAdapter);
+@@ -970,7 +981,12 @@ WLAN_STATUS wlanAdapterStop(IN P_ADAPTER_T prAdapter)
+ 		ACQUIRE_POWER_CONTROL_FROM_PM(prAdapter);
+ 
+ 		/* 1. Set CMD to FW to tell WIFI to stop (enter power off state) */
+-		if (prAdapter->fgIsFwOwn == FALSE && wlanSendNicPowerCtrlCmd(prAdapter, 1) == WLAN_STATUS_SUCCESS) {
++		capture_owned = prAdapter->fgIsFwOwn;
++		if (!capture_owned)
++			capture_command = wlanSendNicPowerCtrlCmd(prAdapter, 1);
++		wfc_stop_command(&capture, !!capture_owned, !capture_owned,
++				 capture_command);
++		if (!capture_owned && capture_command == WLAN_STATUS_SUCCESS) {
+ 			/* 2. Clear pending interrupt */
+ 			i = 0;
+ 			while (i < CFG_IST_LOOP_COUNT && nicProcessIST(prAdapter) != WLAN_STATUS_NOT_INDICATING) {
+@@ -980,13 +996,19 @@ WLAN_STATUS wlanAdapterStop(IN P_ADAPTER_T prAdapter)
+ 			/* 3. Wait til RDY bit has been cleaerd */
+ 			i = 0;
+ 			while (1) {
+-				HAL_MCR_RD(prAdapter, MCR_WCIR, &u4Value);
++				wfc_stop_read_begin(&capture, &u4Value);
++				HAL_MCR_RD_CAPTURE(prAdapter, MCR_WCIR, &u4Value, &capture);
++				wfc_stop_read_end(&capture, u4Value);
+ 
+ 				if ((u4Value & WCIR_WLAN_READY) == 0) {
++					capture_reason = 1;
+ 					break;
+ 				} else if (i >= CFG_RESPONSE_CLEAR_RDY_TIMEOUT && i < CFG_RESPONSE_POLLING_TIMEOUT) {
+-					if (wlanPowerOffInt(prAdapter) == WLAN_STATUS_SUCCESS)
++					wfc_stop_fallback(&capture);
++					if (wlanPowerOffInt(prAdapter) == WLAN_STATUS_SUCCESS) {
++						capture_reason = 2;
+ 						break;
++					}
+ 				} else if (kalIsCardRemoved(prAdapter->prGlueInfo)
+ 					 || fgIsBusAccessFailed || (i >= CFG_RESPONSE_POLLING_TIMEOUT)) {
+ 
+@@ -997,6 +1019,7 @@ WLAN_STATUS wlanAdapterStop(IN P_ADAPTER_T prAdapter)
+ 					glGetRstReason(RST_WAIT_BIT_TIMEOUT);
+ 					wlanPollingCpupcr(4, 5);
+ 					glResetTrigger(prAdapter);
++					capture_reason = 3;
+ 					break;
+ 				}
+ 				i++;
+@@ -1026,6 +1049,10 @@ WLAN_STATUS wlanAdapterStop(IN P_ADAPTER_T prAdapter)
+ 		RECLAIM_POWER_CONTROL_TO_PM(prAdapter, FALSE);
+ 	}
+ 
++	if (!capture_gate)
++		wfc_stop_command(&capture, false, false, 0);
++	wfc_stop_poll_end(&capture, capture_reason);
++
+ 	nicRxUninitialize(prAdapter);
+ 
+ 	nicTxRelease(prAdapter, FALSE);
+@@ -1043,6 +1070,7 @@ WLAN_STATUS wlanAdapterStop(IN P_ADAPTER_T prAdapter)
+ 	nicRestoreSpiDefMode(prAdapter);
+ #endif
+ 
++	wfc_stop_return(&capture, u4Status);
+ 	return u4Status;
+ }				/* wlanAdapterStop */
+ 
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/include/nic/hal.h b/drivers/misc/mediatek/connectivity/wlan/gen3/include/nic/hal.h
+index c66dce5..b85357d 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/include/nic/hal.h
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/include/nic/hal.h
+@@ -215,26 +215,35 @@ do { \
+ /* Now rx_thread don't access hif register, so if someone call HAL_MCR_RD,
+  * no need to use spinlock to protect u4Register and prRegValue. */
+ #define HAL_MCR_RD(_prAdapter, _u4Offset, _pu4Value) \
++	HAL_MCR_RD_CAPTURE(_prAdapter, _u4Offset, _pu4Value, NULL)
++
++#define HAL_MCR_RD_CAPTURE(_prAdapter, _u4Offset, _pu4Value, _trace) \
+ do { \
+-	if ((!_prAdapter->prGlueInfo->hif_thread) || !kalStrnCmp(current->comm, "hif_thread", 10)) { \
+-		HAL_MCR_HIF_RD(_prAdapter, _u4Offset, _pu4Value); \
++	if ((!(_prAdapter)->prGlueInfo->hif_thread) || \
++	    !kalStrnCmp(current->comm, "hif_thread", 10)) { \
++		wfc_stop_dispatch(_trace, 1); \
++		HAL_MCR_HIF_RD_CAPTURE(_prAdapter, _u4Offset, _pu4Value, _trace); \
+ 	} else { \
+-		_prAdapter->prGlueInfo->u4Register = _u4Offset; \
+-		_prAdapter->prGlueInfo->prRegValue = _pu4Value; \
+-		KAL_WAKE_LOCK_TIMEOUT(_prAdapter, &_prAdapter->prGlueInfo->rTimeoutWakeLock, \
++		wfc_stop_dispatch(_trace, 2); \
++		(_prAdapter)->prGlueInfo->u4Register = _u4Offset; \
++		(_prAdapter)->prGlueInfo->prRegValue = _pu4Value; \
++		KAL_WAKE_LOCK_TIMEOUT(_prAdapter, &(_prAdapter)->prGlueInfo->rTimeoutWakeLock, \
+ 							MSEC_TO_JIFFIES(WAKE_LOCK_THREAD_WAKEUP_TIMEOUT)); \
+-		set_bit(GLUE_FLAG_HAL_MCR_RD_BIT, &_prAdapter->prGlueInfo->ulFlag); \
+-		wake_up_interruptible(&_prAdapter->prGlueInfo->waitq_hif); \
+-		wait_for_completion_interruptible(&_prAdapter->prGlueInfo->rHalRDMCRComp); \
++		set_bit(GLUE_FLAG_HAL_MCR_RD_BIT, &(_prAdapter)->prGlueInfo->ulFlag); \
++		wake_up_interruptible(&(_prAdapter)->prGlueInfo->waitq_hif); \
++		wait_for_completion_interruptible(&(_prAdapter)->prGlueInfo->rHalRDMCRComp); \
+ 	} \
+ } while (0)
+ 
+ #define HAL_MCR_HIF_RD(_prAdapter, _u4Offset, _pu4Value) \
++	HAL_MCR_HIF_RD_CAPTURE(_prAdapter, _u4Offset, _pu4Value, NULL)
++
++#define HAL_MCR_HIF_RD_CAPTURE(_prAdapter, _u4Offset, _pu4Value, _trace) \
+ do { \
+-	if (_prAdapter->rAcpiState == ACPI_STATE_D3) { \
++	if ((_prAdapter)->rAcpiState == ACPI_STATE_D3) { \
+ 		ASSERT(0); \
+ 	} \
+-	kalDevRegRead(_prAdapter->prGlueInfo, _u4Offset, _pu4Value); \
++	kalDevRegReadCapture((_prAdapter)->prGlueInfo, _u4Offset, _pu4Value, _trace); \
+ } while (0)
+ 
+ #define HAL_MCR_WR(_prAdapter, _u4Offset, _u4Value) \
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/include/wlan_lib.h b/drivers/misc/mediatek/connectivity/wlan/gen3/include/wlan_lib.h
+index f765520..fc9a681 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/include/wlan_lib.h
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/include/wlan_lib.h
+@@ -696,7 +696,7 @@ WLAN_STATUS
+ wlanAdapterStart(IN P_ADAPTER_T prAdapter,
+ 		 IN P_REG_INFO_T prRegInfo, IN PVOID pvFwImageMapFile, IN UINT_32 u4FwImageFileLength);
+ 
+-WLAN_STATUS wlanAdapterStop(IN P_ADAPTER_T prAdapter);
++WLAN_STATUS wlanAdapterStop(IN P_ADAPTER_T prAdapter, UINT_32 capture_caller);
+ 
+ #if CFG_SUPPORT_WAPI
+ BOOLEAN wlanQueryWapiMode(IN P_ADAPTER_T prAdapter);
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c
+index 9b62a50..24a9777 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c
+@@ -2243,7 +2243,7 @@ bailout:
+ 			wake_up_interruptible(&prGlueInfo->waitq);
+ 			/* wait main thread stops */
+ 			wait_for_completion_interruptible(&prGlueInfo->rHaltComp);
+-			wlanAdapterStop(prAdapter);
++			wlanAdapterStop(prAdapter, 2);
+ 		case ADAPTER_START_FAIL:
+ 			glBusFreeIrq(prWdev->netdev, *((P_GLUE_INFO_T *) netdev_priv(prWdev->netdev)));
+ 		case BUS_SET_IRQ_FAIL:
+@@ -2397,7 +2397,7 @@ static VOID wlanRemove(VOID)
+ 	kalIndicateAgpsNotify(prAdapter, AGPS_EVENT_WLAN_OFF, NULL, 0);
+ #endif
+ 
+-	wlanAdapterStop(prAdapter);
++	wlanAdapterStop(prAdapter, 1);
+ 	DBGLOG(INIT, TRACE, "Number of Stalled Packets = %d\n", GLUE_GET_REF_CNT(prGlueInfo->i4TxPendingFrameNum));
+ 
+ 	/* 4 <x> Stopping handling interrupt and free IRQ */
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c
+index 9f855ff..341fc3a 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c
+@@ -704,7 +704,8 @@ VOID glBusFreeIrq(PVOID pvData, PVOID pvCookie)
+ * \retval FALSE         operation fail
+ */
+ /*----------------------------------------------------------------------------*/
+-BOOLEAN kalDevRegRead(IN GLUE_INFO_T *GlueInfo, IN UINT_32 RegOffset, OUT UINT_32 *pu4Value)
++BOOLEAN kalDevRegReadCapture(P_GLUE_INFO_T GlueInfo, UINT_32 RegOffset,
++			     UINT_32 *pu4Value, struct wfc_stop_trace *trace)
+ {
+ 	GL_HIF_INFO_T *HifInfo;
+ 
+@@ -715,11 +716,16 @@ BOOLEAN kalDevRegRead(IN GLUE_INFO_T *GlueInfo, IN UINT_32 RegOffset, OUT UINT_3
+ 
+ 	/* use PIO mode to read register */
+ 	*pu4Value = HIF_REG_READL(HifInfo, RegOffset);
++	wfc_stop_read_done(trace, RegOffset, pu4Value, *pu4Value);
+ 
+ 	HIF_DBG(("[WiFi/HIF] kalDevRegRead 0x%x = 0x%x\n", RegOffset, *pu4Value));
+ 
+ 	return TRUE;
++}
+ 
++BOOLEAN kalDevRegRead(P_GLUE_INFO_T GlueInfo, UINT_32 RegOffset, UINT_32 *pu4Value)
++{
++	return kalDevRegReadCapture(GlueInfo, RegOffset, pu4Value, NULL);
+ }				/* end of kalDevRegRead() */
+ 
+ /*----------------------------------------------------------------------------*/
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/hif_stop_capture.c b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/hif_stop_capture.c
+new file mode 100644
+index 0000000..fe37d04
+--- /dev/null
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/hif_stop_capture.c
+@@ -0,0 +1,180 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/* Observe one native adapter-stop invocation without changing its effects. */
++#include <linux/atomic.h>
++#include <linux/pstore_ram.h>
++#include <linux/string.h>
++#include <asm/unaligned.h>
++
++#include "hif_stop_capture.h"
++
++static atomic_t wfc_stops = ATOMIC_INIT(0);
++
++static void wfc_stop_fail(struct wfc_stop_trace *trace)
++{
++	trace->transaction = 0;
++	wfc_dma_abort();
++}
++
++static void wfc_stop_emit(struct wfc_stop_trace *trace, const u8 *data, size_t size)
++{
++	if (!trace->transaction)
++		return;
++	if (atomic_read(&trace->binding->retired)) {
++		wfc_stop_fail(trace);
++		return;
++	}
++#if defined(CONFIG_PSTORE_RAM) && !defined(MODULE)
++	if (ramoops_capture_append(7, trace->transaction, data, size))
++		trace->transaction = 0;
++#endif
++}
++
++void wfc_stop_begin(struct wfc_stop_trace *trace,
++		    const struct wfc_dma_trace *binding, u32 caller)
++{
++	int transaction;
++
++	memset(trace, 0, sizeof(*trace));
++#if defined(CONFIG_PSTORE_RAM) && !defined(MODULE)
++	if (!ramoops_capture_active())
++		return;
++#else
++	return;
++#endif
++	if (!binding->device || atomic_read(&binding->retired) ||
++	    (caller != 1 && caller != 2)) {
++		wfc_stop_fail(trace);
++		return;
++	}
++	transaction = atomic_inc_return(&wfc_stops);
++	if (transaction <= 0) {
++		wfc_stop_fail(trace);
++		return;
++	}
++	trace->binding = binding;
++	trace->device = binding->device;
++	trace->transaction = transaction;
++	trace->caller = caller;
++}
++
++void wfc_stop_entry(struct wfc_stop_trace *trace, bool hif, bool d0,
++		    bool no_ack, bool removed)
++{
++	u8 data[28];
++
++	put_unaligned_le32(1, data);
++	put_unaligned_le32(trace->device, data + 4);
++	put_unaligned_le32(trace->caller, data + 8);
++	put_unaligned_le32(hif, data + 12);
++	put_unaligned_le32(d0, data + 16);
++	put_unaligned_le32(no_ack, data + 20);
++	put_unaligned_le32(removed, data + 24);
++	wfc_stop_emit(trace, data, sizeof(data));
++}
++
++void wfc_stop_command(struct wfc_stop_trace *trace, bool owned,
++		      bool attempted, u32 status)
++{
++	u8 data[16];
++
++	put_unaligned_le32(2, data);
++	put_unaligned_le32(owned, data + 4);
++	put_unaligned_le32(attempted, data + 8);
++	put_unaligned_le32(status, data + 12);
++	wfc_stop_emit(trace, data, sizeof(data));
++}
++
++void wfc_stop_read_begin(struct wfc_stop_trace *trace, u32 *output)
++{
++	if (!trace->transaction)
++		return;
++	if (trace->requests == ~0ULL || trace->output || !output) {
++		wfc_stop_fail(trace);
++		return;
++	}
++	trace->requests++;
++	trace->request_dispatch = 0;
++	trace->output = output;
++}
++
++void wfc_stop_dispatch(struct wfc_stop_trace *trace, u32 dispatch)
++{
++	if (!trace || !trace->transaction)
++		return;
++	if (!trace->output || trace->request_dispatch ||
++	    (dispatch != 1 && dispatch != 2)) {
++		wfc_stop_fail(trace);
++		return;
++	}
++	trace->request_dispatch = dispatch;
++	if (!trace->dispatch)
++		trace->dispatch = dispatch;
++	else if (trace->dispatch != dispatch)
++		trace->dispatch = 3;
++}
++
++void wfc_stop_read_done(struct wfc_stop_trace *trace, u32 offset,
++			u32 *output, u32 value)
++{
++	if (!trace || !trace->transaction)
++		return;
++	if (offset || !output || trace->output != output ||
++	    trace->request_dispatch != 1 || trace->last_request == trace->requests ||
++	    trace->completions == ~0ULL) {
++		wfc_stop_fail(trace);
++		return;
++	}
++	trace->completions++;
++	trace->last_request = trace->requests;
++	trace->value = value;
++}
++
++void wfc_stop_read_end(struct wfc_stop_trace *trace, u32 consumed)
++{
++	if (!trace->transaction)
++		return;
++	if (!trace->output || !trace->request_dispatch) {
++		wfc_stop_fail(trace);
++		return;
++	}
++	trace->consumed = consumed;
++	trace->output = NULL;
++}
++
++void wfc_stop_fallback(struct wfc_stop_trace *trace)
++{
++	if (!trace->transaction)
++		return;
++	if (trace->fallbacks == ~0ULL) {
++		wfc_stop_fail(trace);
++		return;
++	}
++	trace->fallbacks++;
++}
++
++void wfc_stop_poll_end(struct wfc_stop_trace *trace, u32 reason)
++{
++	u8 data[56];
++
++	put_unaligned_le32(3, data);
++	put_unaligned_le32(trace->dispatch, data + 4);
++	put_unaligned_le32(reason, data + 8);
++	put_unaligned_le64(trace->requests, data + 12);
++	put_unaligned_le64(trace->completions, data + 20);
++	put_unaligned_le64(trace->last_request, data + 28);
++	put_unaligned_le64(trace->fallbacks, data + 36);
++	put_unaligned_le32(0, data + 44);
++	put_unaligned_le32(trace->value, data + 48);
++	put_unaligned_le32(trace->consumed, data + 52);
++	wfc_stop_emit(trace, data, sizeof(data));
++}
++
++void wfc_stop_return(struct wfc_stop_trace *trace, u32 status)
++{
++	u8 data[8];
++
++	put_unaligned_le32(4, data);
++	put_unaligned_le32(status, data + 4);
++	wfc_stop_emit(trace, data, sizeof(data));
++	trace->transaction = 0;
++}
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif.h b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif.h
+index 95cd27f..85b6105 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif.h
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif.h
+@@ -26,6 +26,7 @@
+ #define _HIF_H
+ 
+ #include "hif_capture.h"
++#include "hif_stop_capture.h"
+ #include "gl_typedef.h"
+ #include "mtk_porting.h"
+ 
+@@ -288,6 +289,9 @@ VOID glUnregisterBus(remove_card pfRemove);
+ 
+ VOID glResetHif(GLUE_INFO_T *GlueInfo);
+ 
++BOOLEAN kalDevRegReadCapture(P_GLUE_INFO_T glue, UINT_32 offset,
++			     UINT_32 *value, struct wfc_stop_trace *trace);
++
+ VOID glSetHifInfo(P_GLUE_INFO_T prGlueInfo, ULONG ulCookie);
+ 
+ VOID glClearHifInfo(P_GLUE_INFO_T prGlueInfo);
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_stop_capture.h b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_stop_capture.h
+new file mode 100644
+index 0000000..151f7e5
+--- /dev/null
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_stop_capture.h
+@@ -0,0 +1,39 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef _HIF_STOP_CAPTURE_H
++#define _HIF_STOP_CAPTURE_H
++
++#include "hif_capture.h"
++
++/* Caller-owned synchronous state; never passed to the queued HIF worker. */
++struct wfc_stop_trace {
++	const struct wfc_dma_trace *binding;
++	u32 transaction;
++	u32 device;
++	u32 caller;
++	u32 dispatch;
++	u32 request_dispatch;
++	u32 value;
++	u32 consumed;
++	u32 *output;
++	u64 requests;
++	u64 completions;
++	u64 last_request;
++	u64 fallbacks;
++};
++
++void wfc_stop_begin(struct wfc_stop_trace *trace,
++		    const struct wfc_dma_trace *binding, u32 caller);
++void wfc_stop_entry(struct wfc_stop_trace *trace, bool hif, bool d0,
++		    bool no_ack, bool removed);
++void wfc_stop_command(struct wfc_stop_trace *trace, bool owned,
++		      bool attempted, u32 status);
++void wfc_stop_read_begin(struct wfc_stop_trace *trace, u32 *output);
++void wfc_stop_dispatch(struct wfc_stop_trace *trace, u32 dispatch);
++void wfc_stop_read_done(struct wfc_stop_trace *trace, u32 offset,
++			u32 *output, u32 value);
++void wfc_stop_read_end(struct wfc_stop_trace *trace, u32 consumed);
++void wfc_stop_fallback(struct wfc_stop_trace *trace);
++void wfc_stop_poll_end(struct wfc_stop_trace *trace, u32 reason);
++void wfc_stop_return(struct wfc_stop_trace *trace, u32 status);
++
++#endif
+-- 
+2.50.1 (Apple Git-155)
+

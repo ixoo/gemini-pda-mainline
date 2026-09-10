@@ -105,9 +105,10 @@ def main():
     commit = run(["git", "-C", str(project), "rev-parse", "HEAD"])
     assert len(sys.argv) in (2, 3) and sys.argv[1] == commit
     mode = sys.argv[2] if len(sys.argv) == 3 else "--wmt"
-    assert mode in ("--wmt", "--pstore", "--capture-writer", "--dma")
+    assert mode in ("--wmt", "--pstore", "--capture-writer", "--dma", "--stop")
     capture = mode == "--capture-writer"
-    dma = mode == "--dma"
+    stop = mode == "--stop"
+    dma = mode in ("--dma", "--stop")
     pstore = mode in ("--pstore", "--capture-writer")
     relative = "fs/pstore/" if pstore else RELATIVE
     files = ("pmsg", "inode", "ram_core", "ram") if pstore else FILES
@@ -116,9 +117,13 @@ def main():
         files = ("ram_core",)
         label = "wifi-capture-writer-objects-"
     if dma:
-        relative = "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/"
-        files = ("ahb", "ahb_pdma", "hif_capture")
+        relative = "drivers/misc/mediatek/connectivity/wlan/gen3/"
+        hif = "os/linux/hif/ahb_sdioLike/"
+        files = tuple(hif + name for name in ("ahb", "ahb_pdma", "hif_capture"))
         label = "wifi-dma-objects-"
+        if stop:
+            files = ("common/wlan_lib", "os/linux/gl_init", hif + "ahb", hif + "hif_stop_capture")
+            label = "wifi-stop-objects-"
     assert not run(["git", "-C", str(project), "status", "--porcelain"])
     root = Path("/workspace/gemini-pda")
     source = root / "gemian-source/gemian-baseline" / REVISION
@@ -158,13 +163,13 @@ def main():
                            stream, env=environment, timeout=300)
         patched = work / "patched"
         for name in files:
-            if dma and name == "hif_capture":
+            if dma and Path(name).name in ("hif_capture", "hif_stop_capture"):
                 continue
             dest = patched / (relative + name + ".c")
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(source / (relative + name + ".c"), dest)
         # Copy neighboring headers so quoted includes resolve to the patched header.
-        headers = relative + "include" if dma else relative if pstore else RELATIVE + "core/include"
+        headers = relative + hif + "include" if dma else relative if pstore else RELATIVE + "core/include"
         if pstore:
             for path in (source / headers).glob("*.h"):
                 shutil.copyfile(path, patched / headers / path.name)
@@ -179,18 +184,28 @@ def main():
         if dma:
             patches = sorted((experiment / "patches/pstore").glob("*.patch"))
             patches += sorted((experiment / "patches/dma").glob("*.patch"))
+            if stop:
+                patches += sorted((experiment / "patches/stop").glob("*.patch"))
+                shutil.copytree(source / relative / "include", patched / relative / "include")
+                shutil.copyfile(source / relative / hif / "ahb_pdma.c", patched / relative / hif / "ahb_pdma.c")
             for extra in ("include/linux/pstore_ram.h", "arch/arm64/boot/dts/mt6797.dtsi",
                           "drivers/misc/mediatek/connectivity/wlan/gen3/Makefile",
                           "fs/pstore/ram.c", "fs/pstore/ram_core.c", "fs/pstore/internal.h",
                           "fs/pstore/pmsg.c", "fs/pstore/inode.c"):
                 (patched / extra).parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(source / extra, patched / extra)
-        assert len(patches) == (11 if dma else 0 if capture else 10 if pstore else 4)
+        assert len(patches) == (12 if stop else 11 if dma else 0 if capture else 10 if pstore else 4)
         for patch in patches:
+            if stop and patch.parent.name == "stop":
+                stop_pins = json.loads((experiment / "results/stop-capture-sources.json").read_text())
+                for path, expected in stop_pins["parents"].items():
+                    assert digest(patched / path) == expected, path
             subprocess.run(["git", "apply", str(patch)], cwd=patched, check=True)
         if dma:
-            pinned = json.loads((experiment / "results/dma-capture-sources.json").read_text())
-            for section, tree in (("parents", source), ("outputs", patched)):
+            pinned = json.loads((experiment / "results" / (
+                "stop-capture-sources.json" if stop else "dma-capture-sources.json")).read_text())
+            sections = (("outputs", patched),) if stop else (("parents", source), ("outputs", patched))
+            for section, tree in sections:
                 for path, expected in pinned[section].items():
                     assert digest(tree / path) == expected, path
         if capture:
@@ -214,7 +229,7 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
         for relative_name in files:
             name = Path(relative_name).name
             suffix = relative + relative_name + ".c"
-            template = relative + "ahb.c" if dma and name == "hif_capture" else suffix
+            template = relative + hif + "ahb.c" if dma and name in ("hif_capture", "hif_stop_capture") else suffix
             lines = [line for line in recorded.read_text().splitlines()
                      if " -c " in line and line.endswith("/" + template)]
             assert len(lines) == 1, (name, len(lines))
@@ -226,13 +241,15 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
             args[args.index("-o") + 1] = str(baseline)
             args = ["-Wp,-MD," + str(work / (name + "-baseline.d")) if a.startswith("-Wp,-MD,") else a
                     for a in args]
-            if not (dma and name == "hif_capture"):
+            if not (dma and name in ("hif_capture", "hif_stop_capture")):
                 with (work / (name + "-baseline.log")).open("w") as stream:
                     compile_logged(args, stream, cwd=output, env=environment, timeout=120)
             result = work / (name + ".o")
             args[args.index("-o") + 1] = str(result)
             args[-1] = str(patched / suffix)
             args.insert(1, "-I" + str(patched / headers))
+            if stop:
+                args.insert(1, "-I" + str(patched / relative / "include"))
             if (pstore and not capture) or dma:
                 args.insert(1, "-I" + str(patched / "include"))
             args = ["-Wp,-MD," + str(work / (name + ".d")) if a.startswith("-Wp,-MD,") else a
@@ -240,19 +257,25 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
             with (work / (name + ".log")).open("w") as stream:
                 compile_logged(args, stream, cwd=output, env=environment, timeout=120)
             dependencies = (work / (name + ".d")).read_text().replace("\\\n", " ").split()
-            if not pstore and name != "hif_capture":
+            if not pstore and name not in ("hif_capture", "hif_stop_capture"):
                 assert str(patched / header) in dependencies, name
                 assert str(source / header) not in dependencies, name
             if dma:
                 assert "-DMODULE" not in args
                 assert str(patched / headers / "hif_capture.h") in dependencies
-                if name == "hif_capture":
+                if stop:
+                    assert str(patched / headers / "hif_stop_capture.h") in dependencies
+                    if name != "hif_stop_capture":
+                        assert str(patched / relative / "include/nic/hal.h") in dependencies
+                        assert str(patched / relative / "include/wlan_lib.h") in dependencies
+                if name in ("hif_capture", "hif_stop_capture"):
                     assert str(patched / "include/linux/pstore_ram.h") in dependencies
                 disassembly = run([str(toolchain / "wrappers/aarch64-linux-gnu-objdump"),
                                    "-dr", str(result)], env=environment)
                 (work / (name + "-capture.disasm")).write_text(disassembly + "\n")
-                assert "wfc_dma_" in disassembly
-                if name == "hif_capture":
+                assert ("wlanAdapterStop" if stop and name == "gl_init" else
+                        "wfc_stop_" if stop else "wfc_dma_") in disassembly
+                if name in ("hif_capture", "hif_stop_capture"):
                     assert "ramoops_capture_active" in disassembly
                     assert "ramoops_capture_append" in disassembly
             if capture:

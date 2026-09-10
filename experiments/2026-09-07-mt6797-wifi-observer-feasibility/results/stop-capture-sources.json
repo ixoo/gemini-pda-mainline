@@ -1,0 +1,31 @@
+{
+  "source_revision": "59e00a9144d782e148332009a835b99c43382467",
+  "scope": "Unselected native adapter-stop capture; no controller or hardware action",
+  "parents": {
+    "drivers/misc/mediatek/connectivity/wlan/gen3/Makefile": "18d6121588bff475f706a4d2c9009db8630e536762dc8fbf74d5b3debf25f4ff",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c": "89f733935cea4e06e4720121fccc3a6125f1241872133ceb8874b531eaae211e",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif.h": "4bbada6eb5742687d9c01b3e78845187700cc85019809ddfd5a20bacac28f4cc",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c": "56bf99536fcb96de5a5198943aec96c9efccb8af89261b29c62046e6560c422f",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/include/wlan_lib.h": "82680ed2fba541a751b63d01aa9d18b8414929e4e4eba74d44fe36d1c531172c",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/include/nic/hal.h": "24b9bce2fc8b331d75a330cae8c9291816bb90cff8078200cd7ecb719f180ee0",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c": "8a644f0c9f3e37c6f66654cf3aeecb8e5f4cd71405e67f79105da7c8f87a7665"
+  },
+  "outputs": {
+    "drivers/misc/mediatek/connectivity/wlan/gen3/Makefile": "124b81ec1552aae92bc47b501b91f71fec21ce5d746cf194f242dc2b8262d6ad",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c": "08c4c61ad812537877f66dcba933cea79c1feaffd7c8c7a62353d8ead53ec85c",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif.h": "6c3b27541dc9714329e474bfb1cd7178ad2fbe900793746c35ba2f45694cc507",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c": "75c3edd71acefcbacaa8f045328f93a27fa0070478b16e9591f69b67c303e15d",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/include/wlan_lib.h": "faac618a478a41a961b42f5ec99d574bdc50fb2602d48e5073d1af12ea6d6f0c",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/include/nic/hal.h": "e1c8946e684a2757577209c20a489b41d3c3d32c2463f5c1e9e47c2810250117",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c": "bb40fc6eb4e40d4471dfcbea0b470b21162703afad9821ce6eaf7a7f57326438",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/hif_stop_capture.c": "4289a69abd944b294237d569de5c0d6543de9a3011d5621d3761022c50f9b63f",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_stop_capture.h": "c9948bf2f4a015eb36dbeed5c2dccd5e084fd6093176929087674be8c64b1070"
+  },
+  "patch": "0001-wlan-capture-native-adapter-stop-decisions.patch",
+  "patch_sha256": "5175620e3287f01a80d8f009ab3d3112ac4f75ec4186e4c2a35632e15f261291",
+  "dependencies": {
+    "patches/pstore/series": "b357ce8535f667f9484c919627f6d21f05ee0fb0022a9da7d9c932737edf1b54",
+    "patches/dma/0001-wlan-observe-native-AHB-DMA-lifetimes.patch": "40d00262ed2ce3edd5ad46af97f288a2eadde77da5bfdf7dba906ea874191c15"
+  },
+  "replay_and_reverse_verified": true
+}

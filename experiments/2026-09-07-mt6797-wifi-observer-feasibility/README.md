@@ -79,3 +79,7 @@ software HIF bindings to DMA addresses, programming, polls and unmap boundaries.
 Host access comparisons and focused native compilation pass. The hooks remain
 unselected; controller integration, full kernel linking and hardware admission
 are still required.
+
+The [native firmware-stop hooks](STOP_HOOKS.md) record evaluated gates, direct
+read completions and actual exit branches while preserving native effects.
+They do not treat the adapter-stop return as shutdown evidence.
