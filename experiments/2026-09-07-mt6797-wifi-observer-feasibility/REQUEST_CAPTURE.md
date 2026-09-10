@@ -97,6 +97,18 @@ remain unchecked.
 
 `check-startup-objects.py COMMIT --request-capture` composes 25 patches and
 compiles the fifteen existing full native translation units with pinned
-source boundaries and request header/call-target checks. Compilation is
-pending. Full kernel linking, timing/lock budgets and on-device validation
-remain separate gates.
+source boundaries and request header/call-target checks. The
+[Buildbox receipt](results/request-capture-object-compile.json) records successful
+compilation at `090c5ae5dfe73292ecefcb14bd898cdb201c3448`. All 74 regular package
+files matched the remote inventory and local checksums. Its `SHA256SUMS` digest
+is `8f8da34bc31801c5b1e93e6c31a604f794e40733b276dc401384947f2069ae57`.
+The emitted ioctl code retains the full-width entry argument and both translated
+return branches; the function wrapper binds before power-save wake-up and the
+normal worker path brackets its core call with request records.
+
+The request fixture passed on both the host and Buildbox. All 22 existing
+decoder groups and eight slot-writer groups pass. Strict Checkpatch passes with
+legacy `CAMELCASE`, synthetic `MISSING_SIGN_OFF` and experiment-only
+`FILE_PATH_CHANGES` exceptions. Native compiler flags include `-w`, so empty
+compiler logs do not establish warning-clean compilation. Full kernel linking,
+timing/lock budgets and on-device validation remain separate gates.
