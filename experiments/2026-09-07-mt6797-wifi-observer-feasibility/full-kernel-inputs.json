@@ -171,6 +171,10 @@
     {
       "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/calibration-open/0001-wlan-restore-address-limit-after-NVRAM-open-failure.patch",
       "sha256": "064798617d2ae0ca155dba041ebe785022e7442d17f2ab2e67fb68a23cd8f56b"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/reset-isolation/0001-wmt-isolate-recovery-reset-paths-in-captured-experiment.patch",
+      "sha256": "09a71c4e886793034584109e465685165f5f3434f3acfffb873e94b804b4c4b1"
     }
   ],
   "purpose": "complete native kernel link; no boot candidate or device admission"

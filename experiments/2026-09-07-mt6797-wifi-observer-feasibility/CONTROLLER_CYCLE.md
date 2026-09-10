@@ -77,9 +77,10 @@ ready, capture is active, and the request observer accepts its exact argument,
 task and stage. Its returned success also requires accepted request completion.
 The existing firmware/request witness therefore rejects ON's successful
 no-load shortcut, missing image completion, reset invalidation, lost records
-and failed worker/waiter attribution. These checks do not suppress independent
-native reset paths or all other WMT controls; actor/resource isolation remains
-a candidate prerequisite.
+and failed worker/waiter attribution. The subsequent
+[reset-isolation correction](RESET_ISOLATION.md) refuses the native WMT recovery
+reset and forced-assert entry points. Other WMT controls and broader
+actor/resource isolation remain candidate prerequisites.
 
 After accepted OFF completion, the ioctl writes producer terminal 1 and checks
 that write's result. This uses the existing reserved terminal slot and adds no

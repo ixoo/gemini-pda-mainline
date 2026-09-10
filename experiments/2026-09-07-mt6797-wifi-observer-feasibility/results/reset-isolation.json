@@ -1,0 +1,45 @@
+{
+  "project_commit": "7958552d8865484eb67c04aa02c4e03d2a2d93f9",
+  "patch_sha256": "09a71c4e886793034584109e465685165f5f3434f3acfffb873e94b804b4c4b1",
+  "config_sha256": "486392ac9152365891c50ffdee56be1b6ed1aed61d588aa66e29f966604202ff",
+  "toolchain_sha256": "a45d945f092461a611d276ad7d0a0fea1ea8a7f93db413908bcb892c12817d14",
+  "source_files": {
+    "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_lib.c": {
+      "parent": "3ea9de93e2e6ac839b83e673b4fbcf8af458bc1e7ccdd54ef67c40e725f99802",
+      "corrected": "c49af9531fca6992d59fdb7142b0cdc472e344d0eac8609e6b8fae3873256190"
+    },
+    "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c": {
+      "parent": "3d00dd955f425582cf78c364d9c7736358c8734bca989b142cfafa6285808cc8",
+      "corrected": "0820f63170243fa841a0a90148752154e71afd2a591bf0e629436e9d8655808b"
+    },
+    "drivers/misc/mediatek/connectivity/common/common_main/core/wmt-request-capture.h": {
+      "parent": "9c3c1e7595c112c82b7486d2935da66cdd9490e7762cdedf16d3e72095b33e21",
+      "corrected": "e3d7344c91d118fd673e7cc4b64ef04c1cb77a41f7c3a4e7b9dcaea6dd124894"
+    },
+    "include/linux/mt6797_wifi_capture.h": {
+      "parent": "18339d6661500db5e552803892b0eff8a2aa17dc001a2203d736f615510ac406",
+      "corrected": "b394e962c2a5861365c2800c207d32e8d5f01d96f1c1d39b29fd9fc3b9353b12"
+    }
+  },
+  "ordinary_source_restored_after_removing_guards_and_symbol_rename": true,
+  "complete_translation_units": 4,
+  "native_compile": "pass",
+  "objects": {
+    "wmt_lib-parent": "a89ece9b07e090d1b77452bbfae0f1f4c8df3bb341172f317079a29f541ca42a",
+    "wmt_lib-corrected": "4946b631fe9a999992d63000db7c8d92a9ca1c253ab4a70eda6a3aec160936aa",
+    "wmt_core-parent": "d97a6aeaaca8deb4df44ae6da2941c8d7532d63d99c20d7453ccacbe75e8aefc",
+    "wmt_core-corrected": "a6882d444bcc229a68f619518fe1f8d2a6d7d27d92026a02d1e8b80815e0fd07"
+  },
+  "device_execution": false,
+  "full_kernel_link": false,
+  "compiled_reset_entries_only_invalidate_and_return_failure": true,
+  "compiled_stp_assert_indirect_callback_removed": true,
+  "compiled_btm_reset_branch_reviewed_returns_false": true,
+  "package_manifest_sha256": "5cdffd09e485a4749bfad94145aa80983b525ba668eff7d62a7d6117cd737564",
+  "fetched_package_files": 19,
+  "limitations": [
+    "Native commands inherit -w; not warning-clean evidence.",
+    "No full kernel link or device execution for the reset-isolation patch.",
+    "System restart/notifier paths and other shared-resource consumers remain outside this scoped correction."
+  ]
+}
