@@ -133,9 +133,10 @@ remotely validated inventory and checksum manifest; all 38 patch identities
 were checked. The original compiler commands retain `-w`, so this is not a
 warning-clean claim.
 
-Complete kernel linking, minimal filesystem packaging,
-capture zero-state preparation, remaining isolation and an exact owner-approved
+Minimal filesystem packaging, capture zero-state preparation, remaining
+isolation and an exact owner-approved
 radio/timed-recovery session are still required before device validation.
 
 The [complete native link](FULL_KERNEL.md) composes the controller with the
 emergency reset correction and an explicit A72 refusal for integration review.
+That complete link now passes; it is not a boot candidate.

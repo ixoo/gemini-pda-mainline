@@ -37,3 +37,16 @@ The retained [failure identity and correction](results/controller-build-sources.
 record that error; isolated object checks had supplied this path explicitly.
 The correction adds a configuration-dependent include path to the native rule.
 Failed compilation now retains complete logs with a checksum manifest.
+
+The [complete link receipt](results/full-kernel-link.json) records success at
+`d19a9c4947614d51363085f6c47a4c7b51ec3964`. All eleven fetched package files
+match the remotely validated inventory and checksum manifest. The full source
+tree retained its integrity digest through compilation, all required entry
+points are linked, and the linked kernel has no unresolved symbols.
+
+Modpost reports 69 section mismatches. The retained observer package reports
+the same count, but mismatch identities have not been compared. Native compiler
+commands retain `-w`; this is not warning-clean evidence. The controller and
+recovery entries and the inspected wrapper symbols reside in `.text`, which
+does not establish the lifetime of every downstream callback or data object.
+This result closes the complete-link check for these inputs, not device admission.

@@ -1,0 +1,46 @@
+{
+  "project_commit": "d19a9c4947614d51363085f6c47a4c7b51ec3964",
+  "inputs_sha256": "8eb70ddef491146e7d7f47c0226f9b9565c68da2c4aa96e0857e88ad36b585cf",
+  "source_integrity": "source_tree_integrity=21af592233054b96e5322ca07df1ba30b6ff77c51cd773f1e8683717d55e6e6a",
+  "compiler": "aarch64-linux-gnu-gcc-6 (Debian 6.3.0-18) 6.3.0 20170516",
+  "linker": "GNU ld (GNU Binutils for Debian) 2.28",
+  "config_sha256": "486392ac9152365891c50ffdee56be1b6ed1aed61d588aa66e29f966604202ff",
+  "configuration_delta": {
+    "CONFIG_ANBOX": [
+      null,
+      "n"
+    ],
+    "CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR": [
+      null,
+      "y"
+    ]
+  },
+  "build_environment": {
+    "HOST_EXTRACFLAGS": "-fcommon",
+    "KBUILD_BUILD_USER": "gemini",
+    "KBUILD_BUILD_HOST": "buildbox",
+    "KBUILD_BUILD_VERSION": "1",
+    "KBUILD_BUILD_TIMESTAMP": "Thu Jan 1 00:00:00 UTC 1970"
+  },
+  "target_cflags": "-fstack-usage",
+  "undefined_symbols": 0,
+  "diagnostic_lines": 1,
+  "boot_candidate": false,
+  "device_execution": false,
+  "scope": "complete native kernel link only",
+  "inputs_file": "full-kernel-inputs.json",
+  "patch_count": 41,
+  "outputs": {
+    "vmlinux": "14c1df5e5784b97cf598456bc541124e271bacfe670e8440ecf5e42d83dc9325",
+    "Image.gz-dtb": "49dbab84868a96b68fdd6ed08f669be57364dec2ac39b319eb808d780d30470b",
+    "config": "486392ac9152365891c50ffdee56be1b6ed1aed61d588aa66e29f966604202ff",
+    "System.map": "c3e89b31ecc48e3a60e5322325c0d58b2b5d1f4beea59f22633260164b6ebe58"
+  },
+  "verification": {
+    "package_files": 11,
+    "package_sha256_manifest": "c07ab873a61289fa373ebb848ffa06de93bbd67c9e387f258acb570718b9720d",
+    "all_remote_and_fetched_checksums_match": true,
+    "diagnostic": "WARNING: modpost: Found 69 section mismatch(es).",
+    "baseline_comparison": "retained observer package reports the same count; identities not compared, not a warning-clean claim"
+  }
+}
