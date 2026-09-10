@@ -68,6 +68,18 @@ builds. It checks four outcomes in each, copied operation contents, wait value
 and readiness publication. It does not exercise actual scheduler timing.
 
 The existing Buildbox checker accepts `COMMIT --transport-setup` for the complete
-native `wmt_dev.c` object. Native compilation, complete linking and runtime
-validation are separate from the host fixture. No kernel profile selects these
-patches and no image has been built or installed for them.
+native `wmt_dev.c` object. The [native compilation receipt](results/transport-setup-object-compile.json)
+records successful baseline and experimental objects at
+`4d8f85e471612bade24b964465500ae8fa2a409e`, with the pinned GCC 6.3 toolchain
+and Gemian configuration. The experimental object has neither
+`fb_register_client` nor `fb_unregister_client` references; the baseline
+registers the callback. The focused fixture also passed on Buildbox. All eight
+package files match the remotely validated inventory and checksum manifest.
+An initial attempt stopped in source preparation before object compilation;
+the checker now preserves all prerequisite sources before narrowing compilation.
+
+The native compiler command retains `-w`, so this is not a warning-clean claim.
+Both patches replay and reverse to their exact pinned sources. Complete linking,
+the alternate early-suspend configuration and runtime behavior were not tested.
+No kernel profile selects these patches and no image has been built or installed
+for them.
