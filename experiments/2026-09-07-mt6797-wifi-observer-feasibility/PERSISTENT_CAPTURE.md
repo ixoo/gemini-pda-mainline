@@ -1009,7 +1009,21 @@ The existing `--pstore` object check now applies all eight patches, checks the
 native header dependencies, retains both capture disassemblies, and compiles
 the complete native board DT before and after the split using the pinned DCT
 output. It requires only the one existing `reg` change and the new PMSG `reg`
-and `no-map` properties. Target compilation and DT validation are pending.
+and `no-map` properties. The [validated Buildbox result](results/capture-integration-object-compile.json)
+passes for clean published input `2747ee92b47402b2d88293380d77e7834a16094b`:
+four original and four patched translation units compile, and the full board
+DT comparison finds exactly those three property changes. The reservation
+table and boot CPU identity also remain unchanged. All 25 package files pass
+remote and local checksum verification; the prepared source remains clean.
+
+The emitted capture entry points contain the native IRQ-save lock pairs, and
+the mapping, header preparation and slot writer retain their ordered `dsb sy`
+sites. Recorded stack sizes are individual function frames, excluding callees
+and future controller nesting. C compilation retains the native commands'
+`-w`, so empty diagnostics do not establish warning cleanliness. Both DT builds
+report 211 inherited warnings, identical after normalizing only file names and
+source locations. This is object compilation and DT comparison, not a full
+kernel link, binding-schema validation or hardware test.
 Physical zero-state preparation, typed observer/controller callers, durable
 interference evidence, the watchdog contract and reset retention remain open.
 No kernel image, boot selection, memory access or radio operation is admitted.
