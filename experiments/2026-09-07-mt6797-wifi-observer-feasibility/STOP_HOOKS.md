@@ -206,5 +206,11 @@ Host strict compilation, all 22 existing decoder test groups and strict
 Checkpatch pass with the legacy `CAMELCASE` and synthetic `MISSING_SIGN_OFF`
 exceptions. `check-startup-objects.py COMMIT --stop-workers` adds the producer
 unit to the clean-pushed Buildbox composition (28 patches, 18 native units),
-verifies source pins and runs the native fixtures. Native compilation is
-pending; no full kernel link, device candidate or device operation is included.
+verifies source pins and runs the native fixtures. The
+[native compilation receipt](results/stop-workers-object-compile.json) records
+success at `33db48d8ffd13c2a6c88de739ec2efd3d8fcd62d`. All 87 regular package
+files match the remote inventory and the 86-entry checksum manifest, whose
+SHA-256 is `88b070963802b013a5a086342eb68d75ec318c054a52ac0b07634c7f8d77cb8c`.
+The native compiler commands retain baseline warning suppression; empty logs
+are not warning-clean evidence. No full kernel link, device candidate or
+device operation is included.
