@@ -1,0 +1,15 @@
+{
+  "source_revision": "59e00a9144d782e148332009a835b99c43382467",
+  "scope": "Unselected WMT pool ownership correction; no reset/resource isolation or device admission",
+  "parents": {
+    "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_lib.c": "e2855a96fff8ae2d0c39809b933bce18d2124a2b41d788bf6e74013f0dea2d11",
+    "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_exp.c": "9ee1dfe7f361c02d24b1c443d2e1ef13d7b054509feb2d5dfc00f2620a5d6b12"
+  },
+  "outputs": {
+    "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_lib.c": "733c39a9910a567b1607d93406fdb4572173166e4cc808622a69e83f744e9db2",
+    "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_exp.c": "8e240ea6bc5226aba9d070b99c33566309ed0d974cc4cd9de4494218810f888d"
+  },
+  "patch": "0001-wmt-retain-worker-ownership-after-reset-completion.patch",
+  "patch_sha256": "062b5fe5192763e1b4e027b72d68416dd4bb39e71467f55a5f36d09459ad1621",
+  "replay_and_reverse_verified": true
+}

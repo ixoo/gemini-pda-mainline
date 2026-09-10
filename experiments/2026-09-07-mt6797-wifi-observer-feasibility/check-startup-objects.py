@@ -107,8 +107,9 @@ def main():
     mode = sys.argv[2] if len(sys.argv) == 3 else "--wmt"
     assert mode in ("--wmt", "--pstore", "--capture-writer", "--dma", "--stop",
                     "--firmware-read", "--firmware-read-safe", "--firmware-image", "--emi", "--provider-off",
-                    "--common-off-safe", "--common-off")
-    common_off = mode == "--common-off"
+                    "--common-off-safe", "--common-off", "--operation-ownership")
+    ownership = mode == "--operation-ownership"
+    common_off = mode == "--common-off" or ownership
     common_off_safe = mode == "--common-off-safe"
     capture = mode == "--capture-writer"
     provider_off = mode == "--provider-off" or common_off
@@ -153,6 +154,9 @@ def main():
         files += tuple(RELATIVE + name for name in FILES)
         files += (RELATIVE + "mt6797/mtk_wcn_consys_hw",)
         label = "wifi-common-off-objects-"
+    if ownership:
+        files += (RELATIVE + "core/wmt_exp",)
+        label = "wifi-operation-ownership-objects-"
     def unit_path(name):
         return name if name.startswith("drivers/") else relative + name
     assert not run(["git", "-C", str(project), "status", "--porcelain"])
@@ -248,14 +252,21 @@ def main():
                 patches += sorted((experiment / "patches").glob("*.patch"))
                 patches += sorted((experiment / "patches/common-off-errors").glob("*.patch"))
                 patches += sorted((experiment / "patches/common-off").glob("*.patch"))
+                if ownership:
+                    patches += sorted((experiment / "patches/operation-ownership").glob("*.patch"))
             for extra in ("include/linux/pstore_ram.h", "arch/arm64/boot/dts/mt6797.dtsi",
                           "drivers/misc/mediatek/connectivity/wlan/gen3/Makefile",
                           "fs/pstore/ram.c", "fs/pstore/ram_core.c", "fs/pstore/internal.h",
                           "fs/pstore/pmsg.c", "fs/pstore/inode.c"):
                 (patched / extra).parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(source / extra, patched / extra)
-        assert len(patches) == (23 if common_off else 17 if provider_off else 16 if emi_capture else 15 if firmware_image else 14 if firmware_safe else 13 if firmware_read else 12 if stop else 11 if dma else 0 if capture else 10 if pstore else 5 if common_off_safe else 4)
+        assert len(patches) == (24 if ownership else 23 if common_off else 17 if provider_off else 16 if emi_capture else 15 if firmware_image else 14 if firmware_safe else 13 if firmware_read else 12 if stop else 11 if dma else 0 if capture else 10 if pstore else 5 if common_off_safe else 4)
         for patch in patches:
+            if ownership and patch.parent.name == "operation-ownership":
+                ownership_pins = json.loads((experiment / "results/operation-ownership-sources.json").read_text())
+                assert digest(patch) == ownership_pins["patch_sha256"]
+                for path, expected in ownership_pins["parents"].items():
+                    assert digest(patched / path) == expected, path
             if (common_off_safe or common_off) and patch.parent.name == "common-off-errors":
                 common_pins = json.loads((experiment / "results/common-off-errors-sources.json").read_text())
                 assert digest(patch) == common_pins["patch_sha256"]
@@ -297,6 +308,9 @@ def main():
                 for path, expected in off_pins["parents"].items():
                     assert digest(patched / path) == expected, path
             subprocess.run(["git", "apply", str(patch)], cwd=patched, check=True)
+            if ownership and patch.parent.name == "operation-ownership":
+                for path, expected in ownership_pins["outputs"].items():
+                    assert digest(patched / path) == expected, path
             if (common_off_safe or common_off) and patch.parent.name == "common-off-errors":
                 for path, expected in common_pins["outputs"].items():
                     assert digest(patched / path) == expected, path
@@ -392,6 +406,13 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
             with (work / (name + ".log")).open("w") as stream:
                 compile_logged(args, stream, cwd=output, env=environment, timeout=120)
             dependencies = (work / (name + ".d")).read_text().replace("\\\n", " ").split()
+            if ownership and name in ("wmt_lib", "wmt_exp"):
+                disassembly = run([str(toolchain / "wrappers/aarch64-linux-gnu-objdump"),
+                                   "-dr", str(result)], env=environment)
+                (work / (name + "-ownership.disasm")).write_text(disassembly + "\n")
+                if name == "wmt_lib":
+                    for symbol in ("wmt_op_complete", "wmt_op_put", "mutex_lock", "mutex_unlock"):
+                        assert symbol in disassembly, symbol
             if (common_off_safe or common_off) and name == "wmt_core":
                 disassembly = run([str(toolchain / "wrappers/aarch64-linux-gnu-objdump"),
                                    "-dr", str(result)], env=environment)

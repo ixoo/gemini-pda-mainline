@@ -103,3 +103,7 @@ attribution and isolation still require their own producers and joins.
 The unselected [common OFF hooks](COMMON_OFF_HOOKS.md) now bind that provider
 to the synchronous common-power call and actual clock callback. The outer
 ioctl/worker join and broader consumer isolation remain separate.
+
+The unselected [operation-ownership correction](OPERATION_OWNERSHIP.md) prevents
+reset completion from recycling a still-running operation or being overwritten
+by later worker success. It does not establish reset/resource isolation.

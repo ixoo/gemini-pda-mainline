@@ -1,0 +1,314 @@
+From 3865cea3758435bacf39ee3a11a2ae56daa76c28 Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <experiment@invalid.example>
+Date: Thu, 10 Sep 2026 09:42:44 -0400
+Subject: [PATCH] wmt: retain worker ownership after reset completion
+
+A reset can signal the current operation before the worker returns.
+The waiter then recycles a still-running operation, and a later worker
+result can overwrite the reset error. Track submitter and queue/worker
+ownership separately within the WMT pool. Serialize reset signaling,
+worker result publication and current-operation access. Keep
+reset-signaled errors sticky.
+
+Release the queue reference only after worker or queue-drain
+completion; reset notification cannot release it. Preserve the
+existing deliberate submitter retention on nonpositive waits. Cache
+the worker exit opcode and use request parameters for the selected
+function wrapper's final logs.
+
+This changes software lifetime handling only, not the native reset
+sequence. Other native diagnostic callers' post-submit field accesses,
+reset/resource isolation, library reinitialization and observer
+request joins are outside this correction. This unselected native
+experiment is not a boot candidate or upstream submission. The
+synthetic archive identity is non-certifying.
+---
+ .../common/common_main/core/wmt_exp.c         |   4 +-
+ .../common/common_main/core/wmt_lib.c         | 138 +++++++++++++-----
+ 2 files changed, 102 insertions(+), 40 deletions(-)
+
+diff --git a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_exp.c b/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_exp.c
+index db7993b..d4e1626 100644
+--- a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_exp.c
++++ b/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_exp.c
+@@ -131,9 +131,9 @@ static MTK_WCN_BOOL mtk_wcn_wmt_func_ctrl(ENUM_WMTDRV_TYPE_T type, ENUM_WMT_OPID
+ 	wmt_lib_host_awake_put();
+ 
+ 	if (MTK_WCN_BOOL_FALSE == bRet)
+-		WMT_WARN_FUNC("OPID(%d) type(%zu) fail\n", pOp->op.opId, pOp->op.au4OpData[0]);
++		WMT_WARN_FUNC("OPID(%d) type(%d) fail\n", opId, type);
+ 	else
+-		WMT_INFO_FUNC("OPID(%d) type(%zu) ok\n", pOp->op.opId, pOp->op.au4OpData[0]);
++		WMT_INFO_FUNC("OPID(%d) type(%d) ok\n", opId, type);
+ 
+ 	return bRet;
+ }
+diff --git a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_lib.c b/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_lib.c
+index 82ea80c..a602df1 100644
+--- a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_lib.c
++++ b/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_lib.c
+@@ -39,6 +39,8 @@
+ *                    E X T E R N A L   R E F E R E N C E S
+ ********************************************************************************
+ */
++#include <linux/mutex.h>
++
+ #include "osal_typedef.h"
+ #include "wmt_dbg.h"
+ 
+@@ -99,6 +101,13 @@ static UINT32 g_quick_sleep_ctrl = 1;
+ 
+ DEV_WMT gDevWmt;
+ 
++/* WMT pool ownership only; the shared OSAL operation layout is unchanged. */
++static DEFINE_MUTEX(wmt_op_lock);
++static struct {
++	unsigned int users;
++	bool reset_signaled;
++} wmt_op_state[WMT_OP_BUF_SIZE];
++
+ /*******************************************************************************
+ *                  F U N C T I O N   D E C L A R A T I O N S
+ ********************************************************************************
+@@ -118,6 +127,65 @@ static P_OSAL_OP wmt_lib_get_op(P_OSAL_OP_Q pOpQ);
+ 
+ static INT32 wmtd_thread(PVOID pvData);
+ 
++static void wmt_op_get(P_OSAL_OP op)
++{
++	mutex_lock(&wmt_op_lock);
++	wmt_op_state[op - gDevWmt.arQue].users++;
++	mutex_unlock(&wmt_op_lock);
++}
++
++static INT32 wmt_op_put(P_OSAL_OP op)
++{
++	bool release;
++
++	mutex_lock(&wmt_op_lock);
++	release = !--wmt_op_state[op - gDevWmt.arQue].users;
++	mutex_unlock(&wmt_op_lock);
++	if (release && !wmt_lib_put_op(&gDevWmt.rFreeOpQ, op))
++		return -1;
++	return 0;
++}
++
++static void wmt_op_complete(P_OSAL_OP op, INT32 result)
++{
++	mutex_lock(&wmt_op_lock);
++	if (!wmt_op_state[op - gDevWmt.arQue].reset_signaled)
++		op->result = result;
++	if (gDevWmt.pCurOP == op)
++		gDevWmt.pCurOP = NULL;
++	if (osal_op_is_wait_for_signal(op))
++		osal_op_raise_signal(op, op->result);
++	mutex_unlock(&wmt_op_lock);
++	/* The worker or queue drainer releases its own reference, not the caller's. */
++	wmt_op_put(op);
++}
++
++static void wmt_op_reset_signal(void)
++{
++	P_OSAL_OP op;
++
++	mutex_lock(&wmt_op_lock);
++	op = gDevWmt.pCurOP;
++	if (op && osal_op_is_wait_for_signal(op)) {
++		wmt_op_state[op - gDevWmt.arQue].reset_signaled = true;
++		osal_op_raise_signal(op, -1);
++	}
++	mutex_unlock(&wmt_op_lock);
++}
++
++static bool wmt_op_current_is_func(void)
++{
++	P_OSAL_OP op;
++	bool is_func;
++
++	mutex_lock(&wmt_op_lock);
++	op = gDevWmt.pCurOP;
++	is_func = op && (op->op.opId == WMT_OPID_FUNC_ON ||
++			 op->op.opId == WMT_OPID_FUNC_OFF);
++	mutex_unlock(&wmt_op_lock);
++	return is_func;
++}
++
+ static INT32 wmt_lib_pin_ctrl(WMT_IC_PIN_ID id, WMT_IC_PIN_STATE stat, UINT32 flag);
+ static MTK_WCN_BOOL wmt_lib_hw_state_show(VOID);
+ 
+@@ -1015,6 +1083,7 @@ static INT32 wmtd_thread(void *pvData)
+ 	P_OSAL_EVENT pEvent = NULL;
+ 	P_OSAL_OP pOp;
+ 	INT32 iResult;
++	UINT32 opid;
+ 
+ 	if (NULL == pWmtDev) {
+ 		WMT_ERR_FUNC("pWmtDev(NULL)\n");
+@@ -1066,20 +1135,15 @@ static INT32 wmtd_thread(void *pvData)
+ 		} else {
+ 			wmt_lib_set_current_op(pWmtDev, pOp);
+ 			iResult = wmt_core_opid(&pOp->op);
+-			wmt_lib_set_current_op(pWmtDev, NULL);
+ 		}
+ 
+ 		if (iResult)
+ 			WMT_WARN_FUNC("opid (0x%x) failed, iRet(%d)\n", pOp->op.opId, iResult);
+ 
+-		if (osal_op_is_wait_for_signal(pOp)) {
+-			osal_op_raise_signal(pOp, iResult);
+-		} else {
+-			/* put Op back to freeQ */
+-			wmt_lib_put_op(&pWmtDev->rFreeOpQ, pOp);
+-		}
++		opid = pOp->op.opId;
++		wmt_op_complete(pOp, iResult);
+ 
+-		if (WMT_OPID_EXIT == pOp->op.opId) {
++		if (opid == WMT_OPID_EXIT) {
+ 			WMT_INFO_FUNC("wmtd thread received exit signal\n");
+ 			break;
+ 		}
+@@ -1157,12 +1221,9 @@ static P_OSAL_OP wmt_lib_get_op(P_OSAL_OP_Q pOpQ)
+ 
+ INT32 wmt_lib_put_op_to_free_queue(P_OSAL_OP pOp)
+ {
+-	P_DEV_WMT pWmtDev = &gDevWmt;
+-
+-	if (MTK_WCN_BOOL_FALSE == wmt_lib_put_op(&pWmtDev->rFreeOpQ, pOp))
++	if (!pOp)
+ 		return -1;
+-
+-	return 0;
++	return wmt_op_put(pOp);
+ }
+ 
+ 
+@@ -1173,8 +1234,13 @@ P_OSAL_OP wmt_lib_get_free_op(VOID)
+ 
+ 	osal_assert(pDevWmt);
+ 	pOp = wmt_lib_get_op(&pDevWmt->rFreeOpQ);
+-	if (pOp)
++	if (pOp) {
++		mutex_lock(&wmt_op_lock);
++		wmt_op_state[pOp - pDevWmt->arQue].users = 1;
++		wmt_op_state[pOp - pDevWmt->arQue].reset_signaled = false;
++		mutex_unlock(&wmt_op_lock);
+ 		osal_memset(&pOp->op, 0, osal_sizeof(pOp->op));
++	}
+ 	return pOp;
+ }
+ 
+@@ -1185,6 +1251,7 @@ MTK_WCN_BOOL wmt_lib_put_act_op(P_OSAL_OP pOp)
+ 	MTK_WCN_BOOL bCleanup = MTK_WCN_BOOL_FALSE;
+ 	P_OSAL_SIGNAL pSignal = NULL;
+ 	INT32 waitRet = -1;
++	INT32 result;
+ 	P_OSAL_THREAD pThread;
+ 	PUINT8 pbuf = NULL;
+ 	INT32 len = 0;
+@@ -1211,10 +1278,12 @@ MTK_WCN_BOOL wmt_lib_put_act_op(P_OSAL_OP pOp)
+ 			osal_signal_init(pSignal);
+ 		}
+ 
+-		/* put to active Q */
++		/* Acquire queue/worker ownership before the operation becomes visible. */
++		wmt_op_get(pOp);
+ 		bRet = wmt_lib_put_op(&pWmtDev->rActiveOpQ, pOp);
+ 		if (MTK_WCN_BOOL_FALSE == bRet) {
+ 			WMT_WARN_FUNC("put to active queue fail\n");
++			wmt_op_put(pOp);
+ 			bCleanup = MTK_WCN_BOOL_TRUE;
+ 			break;
+ 		}
+@@ -1225,7 +1294,8 @@ MTK_WCN_BOOL wmt_lib_put_act_op(P_OSAL_OP pOp)
+ 
+ 		if (0 == pSignal->timeoutValue) {
+ 			bRet = MTK_WCN_BOOL_TRUE;
+-			/* clean it in wmtd */
++			/* Drop the submitter; wmtd still owns its separate reference. */
++			bCleanup = MTK_WCN_BOOL_TRUE;
+ 			break;
+ 		}
+ 		/* wait result, clean it here */
+@@ -1252,18 +1322,17 @@ MTK_WCN_BOOL wmt_lib_put_act_op(P_OSAL_OP pOp)
+ 			bCleanup = MTK_WCN_BOOL_FALSE;
+ 			bRet = MTK_WCN_BOOL_FALSE;
+ 			break;
+-		} else {
+-			if (pOp->result)
+-				WMT_WARN_FUNC("opId(%d) result:%d\n", pOp->op.opId, pOp->result);
+ 		}
+-		/* op completes, check result */
+-		bRet = (pOp->result) ? MTK_WCN_BOOL_FALSE : MTK_WCN_BOOL_TRUE;
++		mutex_lock(&wmt_op_lock);
++		result = pOp->result;
++		mutex_unlock(&wmt_op_lock);
++		if (result)
++			WMT_WARN_FUNC("opId(%d) result:%d\n", pOp->op.opId, result);
++		bRet = result ? MTK_WCN_BOOL_FALSE : MTK_WCN_BOOL_TRUE;
+ 	} while (0);
+ 
+-	if (bCleanup) {
+-		/* put Op back to freeQ */
+-		wmt_lib_put_op(&pWmtDev->rFreeOpQ, pOp);
+-	}
++	if (bCleanup)
++		wmt_op_put(pOp);
+ 
+ 	return bRet;
+ }
+@@ -1671,12 +1740,8 @@ VOID wmt_lib_state_init(VOID)
+ 
+ 	while (!RB_EMPTY(&pDevWmt->rActiveOpQ)) {
+ 		pOp = wmt_lib_get_op(&pDevWmt->rActiveOpQ);
+-		if (pOp) {
+-			if (osal_op_is_wait_for_signal(pOp))
+-				osal_op_raise_signal(pOp, -1);
+-			else
+-				wmt_lib_put_op(&pDevWmt->rFreeOpQ, pOp);
+-		}
++		if (pOp)
++			wmt_op_complete(pOp, -1);
+ 	}
+ }
+ 
+@@ -1835,7 +1900,6 @@ ENUM_WMTRSTRET_TYPE_T wmt_lib_cmb_rst(ENUM_WMTRSTSRC_TYPE_T src)
+ 	ENUM_WMTRSTMSG_TYPE_T rstMsg = WMTRSTMSG_RESET_MAX;
+ 	INT32 retries = RETRYTIMES;
+ 	P_DEV_WMT pDevWmt = &gDevWmt;
+-	P_OSAL_OP pOp;
+ 	UINT8 *srcName[] = { "WMTRSTSRC_RESET_BT",
+ 		"WMTRSTSRC_RESET_FM",
+ 		"WMTRSTSRC_RESET_GPS",
+@@ -1848,9 +1912,7 @@ ENUM_WMTRSTRET_TYPE_T wmt_lib_cmb_rst(ENUM_WMTRSTSRC_TYPE_T src)
+ 		WMT_INFO_FUNC("reset source = %s\n", srcName[src]);
+ 
+ 	if (WMTRSTSRC_RESET_TEST == src) {
+-		pOp = wmt_lib_get_current_op(pDevWmt);
+-		if (pOp && ((WMT_OPID_FUNC_ON == pOp->op.opId)
+-			    || (WMT_OPID_FUNC_OFF == pOp->op.opId))) {
++		if (wmt_op_current_is_func()) {
+ 			WMT_INFO_FUNC("can't do reset by test src when func on/off\n");
+ 			return -1;
+ 		}
+@@ -1871,9 +1933,7 @@ ENUM_WMTRSTRET_TYPE_T wmt_lib_cmb_rst(ENUM_WMTRSTSRC_TYPE_T src)
+ 		goto rstDone;
+ 	}
+ 	/* wakeup blocked opid */
+-	pOp = wmt_lib_get_current_op(pDevWmt);
+-	if (osal_op_is_wait_for_signal(pOp))
+-		osal_op_raise_signal(pOp, -1);
++	wmt_op_reset_signal();
+ 	/* wakeup blocked cmd */
+ 	wmt_dev_rx_event_cb();
+ 
+@@ -2001,7 +2061,9 @@ VOID wmt_lib_set_patch_info(P_WMT_PATCH_INFO pPatchinfo)
+ INT32 wmt_lib_set_current_op(P_DEV_WMT pWmtDev, P_OSAL_OP pOp)
+ {
+ 	if (pWmtDev) {
++		mutex_lock(&wmt_op_lock);
+ 		pWmtDev->pCurOP = pOp;
++		mutex_unlock(&wmt_op_lock);
+ 		WMT_DBG_FUNC("pOp=0x%p\n", pOp);
+ 		return 0;
+ 	}

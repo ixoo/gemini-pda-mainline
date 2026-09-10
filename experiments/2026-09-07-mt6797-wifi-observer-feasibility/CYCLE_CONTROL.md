@@ -309,6 +309,11 @@ reset/current-operation ownership and exclude or safely account for competing
 actors. This follow-up supplies no ownership repair, reset suppression,
 controller, kernel candidate or additional hardware admission.
 
+The subsequent unselected [operation-ownership correction](OPERATION_OWNERSHIP.md)
+separates caller and worker references and preserves reset-signaled errors.
+It addresses these two reproduced cases while leaving reset/resource isolation
+and whole-request capture attribution outstanding.
+
 The [persistent-capture assessment](PERSISTENT_CAPTURE.md) now identifies the
 existing pmsg helper's lock-context conflict and reproduces ring truncation and
 metadata-before-payload ordering. A complete-cycle writer needs its own bounded
