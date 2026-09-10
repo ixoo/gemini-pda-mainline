@@ -85,5 +85,11 @@ Strict Checkpatch passes with the established `CAMELCASE` and synthetic
 `check-startup-objects.py COMMIT --remove-retain` selects 29 patches and 19
 native translation units on Buildbox, verifies source pins and the overridden
 callback-type header dependency, and runs the actual-function fixtures.
-Native compilation is pending. There is no full kernel link, boot candidate,
-new hardware observation or device admission.
+The [native compilation receipt](results/remove-retain-object-compile.json)
+records success at `895b61f8b1fab5742e2948a19294da7603c6f932`. All 91 regular
+package files match the remote inventory and the 90-entry checksum manifest;
+its SHA-256 is `349d0838b8ee930d1ecf04a2d54cda827c3f665a6875108f91bb67d7e67f6408`.
+The emitted AHB removal code branches around the power-control call on a
+nonzero callback return. Native commands retain baseline warning suppression,
+so empty diagnostics are not warning-clean evidence. There is no full kernel
+link, boot candidate, new hardware observation or device admission.
