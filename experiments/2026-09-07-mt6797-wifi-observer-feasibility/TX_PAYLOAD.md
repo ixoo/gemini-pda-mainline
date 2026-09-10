@@ -102,5 +102,12 @@ exceptions. No device operation was performed.
 Buildbox mode: 27 patches and 17 complete native translation units, including
 both newly changed NIC and AHB units. It verifies parent/output pins, runs
 the request fixtures before this patch and the new native TX fixture afterward,
-and checks the emitted capture dependencies/calls. Native compilation is
-pending; no full kernel link or new boot candidate is included.
+and checks the emitted capture dependencies/calls. The
+[native compilation receipt](results/tx-payload-object-compile.json) records
+success at `ac128b5bbf2366e710261c1cf84b1f06000f1ffa`. All 84 package files
+were verified against the remote inventory and the 83-entry checksum manifest;
+the manifest SHA-256 is
+`736a935e8a302388f8c9f326f4b6a4f671f6cdf2678cdda21e8e458282eb8066`.
+Native commands retain the baseline warning-suppression flags, so empty
+diagnostics do not establish warning-clean compilation. No full kernel link,
+new boot candidate or device execution is included.
