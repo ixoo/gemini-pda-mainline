@@ -1,4 +1,26 @@
 {
+  "parameter_repair": {
+    "input_sha256": "20a043ba3c420f3aae0ffc056344370ac427b27d0204f3a52f439513d31c0165",
+    "patch_sha256": "871664dbdf4ea52615e5151e677feacce6f0a84dce2cf2f20a0497eff54e1ae6",
+    "patched_sha256": "bcef3a7a261e3a7242b6d18e045d5c299cfcf3227c2a75228ddc2baca54db1b1"
+  },
+  "parameter_source_review": [
+    {
+      "bytes": 22812,
+      "path": "kernel/params.c",
+      "sha256": "ce94c67590b78e3c2eac958950e74fb247af21a14598e803972f633580f5f343"
+    },
+    {
+      "bytes": 9030,
+      "path": "fs/kernfs/inode.c",
+      "sha256": "b970cdd04d9235ac6f5fe5c7182f9fff66f21824c2280ec336ad181329cdf842"
+    },
+    {
+      "bytes": 23964,
+      "path": "fs/kernfs/file.c",
+      "sha256": "d5b66b332876cfc7b89da55cb438aec0ae6e922f0f736e49dbe14f6e3fcc7ac6"
+    }
+  ],
   "patch_sha256": "f79230f50760d4bf45c71660dd65bc68c872e56f953c2bcfecacc9f66b9353cf",
   "repository": "gemian/gemini-linux-kernel-3.18",
   "revision": "59e00a9144d782e148332009a835b99c43382467",

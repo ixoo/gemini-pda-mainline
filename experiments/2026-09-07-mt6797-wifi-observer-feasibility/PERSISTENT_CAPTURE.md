@@ -812,10 +812,32 @@ unaffected console/ftrace callbacks and concurrent denials. Its
 [result](results/pmsg-owner-test.txt) establishes callback behavior only.
 Checkpatch reported zero errors, warnings and checks with `MISSING_SIGN_OFF`
 excluded for the non-certifying archive; its spelling/const dictionaries were
-unavailable. Complete ARM64 compilation of this fourth patch is pending.
+unavailable. The first four-patch series compiled at `7764fe01bac4dc257473c3071ba851eb61a1ce8c`;
+that does not establish the parameter lifetime fixed below.
 
 This implements backend exclusion, not capture acquisition. A future writer
 still must verify the exact zero payload, layout, mapping and ECC, preserve old
 evidence, establish the fixed header, and commit/read back bounded slots with
-the required ordering. No new memory write, initramfs, kernel image, radio
-operation or device candidate is selected by this patch.
+the required ordering. No new reserved-memory write path, initramfs, kernel
+image, radio operation or device candidate is selected by this patch.
+
+
+### Parameter lifetime repair
+
+Use the exclusion patch together with the fifth
+[parameter repair](patches/pstore/0005-pstore-freeze-native-capture-parameters.patch).
+The pinned native `kernfs_iop_setattr` accepts permitted mode changes, while
+`param_attr_store` calls the setter without checking the original parameter
+permissions. Mode 0400 alone therefore cannot establish boot-long exclusion.
+The repaired capture setter refuses every change after `ramoops_init` freezes
+it, before any backend/device registration. This also closes a later chmod
+route. There is no unfreeze operation.
+
+Native `parse_one` calls a matching parameter's setter without a NULL check.
+The denial-mask parameter consequently has an explicit setter that always
+returns `-EPERM`, instead of a missing setter. Supplying a value at boot cannot
+clear the mask or call a NULL pointer. The expanded callback fixture exercises
+both setter bodies, pre-freeze parsing, post-freeze refusal and denial-mask
+refusal; the source receipt also pins the three parameter/kernfs files.
+Final five-patch ARM64 compilation remains pending. Neither version was
+selected or executed on the Gemini.
