@@ -45,7 +45,14 @@ explicit legacy `CAMELCASE` and synthetic `MISSING_SIGN_OFF` exceptions.
 The compile reproduction path is `check-startup-objects.py COMMIT --common-off-safe`
 on a clean pushed Buildbox checkout. It composes the four existing startup
 patches and this correction and compiles five complete native source files.
-Compilation remains unproved until its receipt is recorded here.
+The [Buildbox receipt](results/common-off-errors-object-compile.json) records
+successful compilation at `5a713c73d75e53cf49be6cd932371c74b338dbf1`; its
+24-file package inventory passed remote and local checksum checks. Inspection
+of the emitted code confirms both earlier results survive the later calls
+and are selected when nonzero. The baseline objects use the original source;
+the host regression instead compares the actual four-patch parent and child.
+Native compiler flags include `-w`, so empty diagnostics are not a
+warning-clean result. No complete kernel was linked.
 
 A successful return remains insufficient: existing shortcuts, software-only
 consumer states, lower-layer discarded results and the void CCF wrapper remain.

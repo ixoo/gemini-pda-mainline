@@ -1,0 +1,83 @@
+{
+  "project_commit": "5a713c73d75e53cf49be6cd932371c74b338dbf1",
+  "source_commit": "59e00a9144d782e148332009a835b99c43382467",
+  "scope": "5 complete translation units; no kernel link or device execution",
+  "patched_header_sha256": "795cba445947e9ef971a29a788ab909b81e996e00d6b316ca7505c7f69a3274e",
+  "toolchain_manifest_sha256": "a45d945f092461a611d276ad7d0a0fea1ea8a7f93db413908bcb892c12817d14",
+  "config_sha256": "c96ca5c8a767b93f59487c9b4a1c3d05c1f47c166f3f9ea9f2b7ffe0f6f1f0fb",
+  "config_delta": {
+    "CONFIG_ANBOX": [
+      null,
+      "n"
+    ]
+  },
+  "patches": {
+    "0001-wmt-check-firmware-version-read.patch": "bf6ee85c12806092e92c5691be16828c3229ee7e221cc2f40d2b33357a5edd5f",
+    "0002-wmt-use-one-startup-attempt.patch": "a48a597e589b5982e699eff0ff093e1a0619de853ca3148706528577c50f9cb4",
+    "0003-wmt-guard-single-patch-reply.patch": "b66b28751e00fcabbc95f30496e14588866cace7ea8a756e414bd7ace9523bfe",
+    "0004-wmt-retain-timed-out-operation.patch": "0c7e51c8f226811eb2534d69008adf445ba440133c3857509d1583757f6f85d2",
+    "0001-wmt-preserve-common-shutdown-errors.patch": "bc225be459254a7b8a5f6fd75b5ffcbcee1176aa1c5aed1531d38108ef355bc0"
+  },
+  "objects": [
+    {
+      "file": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_ic_soc.c",
+      "baseline_source_sha256": "22d98e9e5f0c9c3cae36a3099e57315ed7808524239a061bf9ab0cf97379e66f",
+      "baseline_object_sha256": "020e700556f61d9ba4cdee0a024b01af7e6023a8e49ecd8d2a4174bcdfc57aff",
+      "patched_source_sha256": "c9e2a4a2e0988effa9b7bf0fbb18c98f1f70c2d9ca77547c40b55089d23d5c8e",
+      "object_sha256": "14494846ae7b28bb0ab88ac7b73b8cb37409b6f7bdb81b451546ae88821bab1a",
+      "baseline_command_sha256": "b9cc08d74823c8e18700db02b0fbd95a9c47b93cc2b1da9b0acdaa5888502be1",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c",
+      "baseline_source_sha256": "e9f438c5c6033f0bf831347c69d656ec917b3e705648d3d27fb1b27409334f1e",
+      "baseline_object_sha256": "57d8678cd499e970d7a6531e7b25a457b9d3ffd73a17a2b28b0ea7083be6acec",
+      "patched_source_sha256": "57618a982c52e9cfe656e2756b02612782ca825926085c1e0e9ee65955f8db76",
+      "object_sha256": "3752e1b3d81bf7ea562b4e1a4cf1d967dee47031a4eaaf5196f6abca23381b99",
+      "baseline_command_sha256": "1250688b24475da82ae94065835443837e6cce5f82d2258e309273bd66bf89f3",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_ctrl.c",
+      "baseline_source_sha256": "4fdc36fab251ba206c580268be73d9b9161005821bffe0ad01f3bf8a6b8800ec",
+      "baseline_object_sha256": "3b13c846c58bd5353904a0bbb77d2c61b63da44a85d089df24a980b49fd76310",
+      "patched_source_sha256": "3e8afa9f0100190145a1b8b47592e954f6571d6d183dfa16a16a4c17e0ae11d2",
+      "object_sha256": "1d05948968c3471bb5811d70e13d9b6cdd44c05ba7e7651fa10298e3524b26c3",
+      "baseline_command_sha256": "306891208025e0fe37a35aeb98a737b8956dd14f88adcaa9ce4b25ca3485c56b",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_lib.c",
+      "baseline_source_sha256": "e363d3377aab1de6f81d94dd482bcdba5eb55884792f45e1688ebf850f991e4f",
+      "baseline_object_sha256": "a2c01942a1371640e9c9ccf591115ad53e1373a8916ce5a87321672aa98b9d81",
+      "patched_source_sha256": "e2855a96fff8ae2d0c39809b933bce18d2124a2b41d788bf6e74013f0dea2d11",
+      "object_sha256": "60392a7058ad8696442b4e7ca248cfcc406522299ef74f6802ac48a3e870076a",
+      "baseline_command_sha256": "b32b742f18bbe809a5701951d80cf8cba8ac3122f7595d659fce2607cd05447a",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_dev.c",
+      "baseline_source_sha256": "d7be291ca5e2962be24def406260b5bb21a4b85438f64a1064944686a84fd62e",
+      "baseline_object_sha256": "e377c173229d510ce6f99a1580e36ea7764503349a9c90c88e57cdcbecec8c9d",
+      "patched_source_sha256": "0584c47aafebca6d09f519b20c8cc0c084d1128e797516cd7da753631f79ef1c",
+      "object_sha256": "372acab49878aa28b2bb96aadb5b12a76da8b4669e1b2e77a32c231797828d24",
+      "baseline_command_sha256": "3dfd8db2413cb73cd563b4d15812dddeee4e8bac56ec46cb3495bf80ff08bcf0",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    }
+  ],
+  "package_files": 24,
+  "package_inventory_sha256": "d73023d459dbc41059b7291d4469efb77d016cefdd4cfda35059c0a35ed1ae3a",
+  "remote_and_local_inventory_verified": true,
+  "validation_limits": [
+    "Five complete native translation units compiled with four existing startup patches followed by the common shutdown correction; source receipt hashes verified at the patch boundary. Baseline objects use the original public source, not the four-patch parent.",
+    "Emitted opfunc_pwr_off retains the STP result in w20 across hardware control and selects it when nonzero. Emitted opfunc_func_off retains the subsystem result in w23 across common power-off and selects it when nonzero. Both later calls remain present.",
+    "Native compiler flags retain -w; empty diagnostics do not establish warning-clean code.",
+    "The 297-case host regression compares actual shutdown functions from the composed parent and changed source, with injected cleanup operations and nonfatal diagnostic assertions. It establishes no real teardown, concurrency or provider behavior.",
+    "No full kernel link, controller execution, consumer isolation, boot candidate or device action."
+  ]
+}
