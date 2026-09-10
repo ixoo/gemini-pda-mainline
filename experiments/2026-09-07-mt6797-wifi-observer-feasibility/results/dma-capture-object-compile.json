@@ -1,0 +1,90 @@
+{
+  "project_commit": "67691114b68f2759dd51b920c51d39f90fbf13ef",
+  "source_commit": "59e00a9144d782e148332009a835b99c43382467",
+  "scope": "3 complete translation units; no kernel link or device execution",
+  "patched_header_sha256": "4bbada6eb5742687d9c01b3e78845187700cc85019809ddfd5a20bacac28f4cc",
+  "toolchain_manifest_sha256": "a45d945f092461a611d276ad7d0a0fea1ea8a7f93db413908bcb892c12817d14",
+  "config_sha256": "c96ca5c8a767b93f59487c9b4a1c3d05c1f47c166f3f9ea9f2b7ffe0f6f1f0fb",
+  "config_delta": {
+    "CONFIG_ANBOX": [
+      null,
+      "n"
+    ]
+  },
+  "patches": {
+    "0001-pstore-report-native-pmsg-backend-write-failures.patch": "41a64284f4013ccd7c8bfa7fa0adb78a0b001f289970319310a6cb193848184b",
+    "0002-pstore-preserve-native-records-when-backend-erase-fa.patch": "48b3b5f3bac483c4c85a65cba5756f3b577dd1f9bbb2a723ff1630df02812565",
+    "0003-pstore-preserve-old-log-on-allocation-failure.patch": "f59195e7009ea7dd8299d6d627962338cebdc3d9022e9e3047cedacca283b060",
+    "0004-pstore-reserve-native-pmsg-for-capture.patch": "f79230f50760d4bf45c71660dd65bc68c872e56f953c2bcfecacc9f66b9353cf",
+    "0005-pstore-freeze-native-capture-parameters.patch": "871664dbdf4ea52615e5151e677feacce6f0a84dce2cf2f20a0497eff54e1ae6",
+    "0006-pstore-release-mapped-zones-on-probe-failure.patch": "1f55211e3a156cdc4097d6d460bd5f27d10701d9caeb59707930760edcf78bd1",
+    "0007-pstore-integrate-native-fixed-slot-capture.patch": "f6d7ecd752b8693b3f8b3f226f8fcc9489f74c243f757797fd11549bdc96523b",
+    "0008-arm64-dts-reserve-native-pmsg-without-linear-alias.patch": "20ad1e7ac53a0f8eed94f63529cb054ef4e98b75c92f532c240e14bc33c7ecf6",
+    "0009-pstore-retain-rejected-capture-access-in-tail.patch": "744d6bc4e167e7f2722246c42fd61e92819604d0688af707d97dfff0173d7be9",
+    "0010-pstore-expose-native-capture-activity-to-built-ins.patch": "e063c558c21328d99d7e11d7638a58bebe93642b1e740c7bf3466619f1d6ab97",
+    "0001-wlan-observe-native-AHB-DMA-lifetimes.patch": "40d00262ed2ce3edd5ad46af97f288a2eadde77da5bfdf7dba906ea874191c15"
+  },
+  "objects": [
+    {
+      "file": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c",
+      "baseline_source_sha256": "d9b4e80fe98695284627e495ad640e39728ebe7df235df129f64d48e8a2e726b",
+      "baseline_object_sha256": "7302aacb094452000c789d0a24f8a38593a7b83acce3cfbe3ba9218e6cfa93bc",
+      "patched_source_sha256": "89f733935cea4e06e4720121fccc3a6125f1241872133ceb8874b531eaae211e",
+      "object_sha256": "efe648e3fd355b6299279fb58afb4d7ad411e781e9aa013583d920eb4d2b6cb1",
+      "baseline_command_sha256": "108cdd942be686edda98f7d93295045ea2b305a6b25c4a5b419a186341dcfe92",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb_pdma.c",
+      "baseline_source_sha256": "83c23a5582be2dcaa385359b7cd0f82af0ec9d6a4e102ea6faea57f59d75b480",
+      "baseline_object_sha256": "8aa77b5ca431ae5059578cedfe7a01c5f35e74fb89b7d951fe024c0fba24ebe1",
+      "patched_source_sha256": "7f56585062ae6888e3aac419d4581121e3f58220652e1649487c1d00be3768b7",
+      "object_sha256": "105d5b9d8c0f7cf2fce84e486e1401aef8f7d0d7411b11e155b37b25f51e4108",
+      "baseline_command_sha256": "2b4f27097e4a7f87e533fc8e769aae45a4cd6a9295d2fac92bbe9e794289d952",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/hif_capture.c",
+      "baseline_source_sha256": null,
+      "baseline_object_sha256": null,
+      "patched_source_sha256": "d12813e9181a57c83721a6675ea92817ad63dacac4bf8fb3d9d476fbfce8f387",
+      "object_sha256": "528bb2ebc02dd5bf72b868782b0c042a6107fa7b311d74cb0ef1b3a90dcb7f28",
+      "baseline_command_sha256": "108cdd942be686edda98f7d93295045ea2b305a6b25c4a5b419a186341dcfe92",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    }
+  ],
+  "package_files": 16,
+  "package_inventory_sha256": "ea44df7e8bac7a9eb7a0b506eb4c6768726e7b7f7b4ace39c3ed45f0c095c37a",
+  "remote_and_local_inventory_verified": true,
+  "emitted_capture_call_sites": {
+    "ahb": {
+      "wfc_dma_abort": 1,
+      "wfc_dma_bind": 1,
+      "wfc_dma_map": 2,
+      "wfc_dma_poll_begin": 4,
+      "wfc_dma_poll_end": 6,
+      "wfc_dma_program": 4,
+      "wfc_dma_unbind": 1,
+      "wfc_dma_unmap": 4
+    },
+    "ahb_pdma": {
+      "wfc_dma_config": 1,
+      "wfc_dma_poll_sample": 2,
+      "wfc_dma_sample": 17
+    },
+    "hif_capture": {
+      "ramoops_capture_active": 5,
+      "ramoops_capture_append": 11
+    }
+  },
+  "validation_limits": [
+    "Recorded native compiler commands include -w; no warning-clean claim.",
+    "hif_capture uses the recorded ahb command flags and has no baseline source/object.",
+    "Header dependency check uses patched hif.h for ahb and ahb_pdma; patched hif_capture.h for all three; patched public pstore header for hif_capture.",
+    "Host fixture clock, diagnostic dump and HIF initialization/retirement are injected; no physical timing or concurrent kernel-lifetime proof.",
+    "No full kernel link, rebuild of all HIF consumers, boot candidate or device execution."
+  ]
+}

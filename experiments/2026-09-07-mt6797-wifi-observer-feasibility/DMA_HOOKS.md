@@ -163,7 +163,18 @@ The fixture stubs HIF initialization/retirement, clocks and diagnostic dump;
 it does not compile the full native glue structure or prove target ABI,
 physical timing, concurrent kernel lifetime, persistence or Wi-Fi operation.
 The native compile lane is `check-startup-objects.py COMMIT --dma` on Buildbox
-and requires clean published input. Compilation is pending for this source
-revision. The changed HIF structure requires all consumers to be rebuilt in a
-full native kernel before any deployment. Controller integration, watchdog
-recovery and candidate admission remain open; no candidate is selected.
+and requires clean published input. The [Buildbox result](results/dma-capture-object-compile.json)
+passes from `67691114b68f2759dd51b920c51d39f90fbf13ef`: two original and three
+patched complete translation units compile with the pinned GCC 6.3 toolchain.
+All 16 package files pass remote and local checksum verification. Both native
+HIF units depend on the patched HIF layout, all three depend on the new helper
+header, and the helper depends on the patched public pstore header. The helper
+uses the recorded `ahb.c` compiler flags and has no original counterpart.
+The disassembly contains two map calls, four unmap calls, four poll entries,
+six poll exits, seventeen programming samples and two raw poll sample sites;
+bind, retire and reset-abort sites are present. The helper calls the built-in
+activity/append interfaces. Native compile commands retain `-w`, so zero log
+bytes are not a warning-clean claim. The changed HIF structure still requires
+all consumers to be rebuilt and linked in a full native kernel before deployment.
+Controller integration, watchdog recovery and candidate admission remain open;
+no candidate is selected.

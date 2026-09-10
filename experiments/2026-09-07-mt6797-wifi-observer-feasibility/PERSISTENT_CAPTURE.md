@@ -1117,5 +1117,14 @@ spinlock it requires the registered backend, acquired payload, begun writer,
 no stopped state and no denial latch. It changes no retained bytes and grants
 no reservation: every append must pass its own admission checks. The existing
 18-group native-integration fixture now also requires false before begin and
-after closure, and true after successful acquisition. Target compilation of
-this tenth patch remains pending; the nine-patch receipts above are historical.
+after closure, and true after successful acquisition.
+
+The [ten-patch Buildbox result](results/capture-activity-object-compile.json)
+passes from clean published input `67691114b68f2759dd51b920c51d39f90fbf13ef`:
+four original and four patched translation units compile, with all 25 package
+files verified remotely and locally. The emitted activity query has the native
+IRQ-save lock/unlock pair and checks the registered, acquired, attempted,
+stopped and denial fields; it contains no retained-memory store. Its own frame
+is 48 bytes, excluding callees. Both board DTBs match the nine-patch receipt
+byte-for-byte. Native C commands retain `-w`; inherited DT warnings remain.
+No full kernel link, DT schema check or hardware test was performed.

@@ -73,3 +73,9 @@ leaves source/configuration attribution and experiment admission unresolved.
 
 The [cycle-control and recovery assessment](CYCLE_CONTROL.md) records the native
 request/teardown limits and a fresh read-only check of active Gemian actors.
+
+The [native DMA hooks](DMA_HOOKS.md#native-producer-implementation) now join
+software HIF bindings to DMA addresses, programming, polls and unmap boundaries.
+Host access comparisons and focused native compilation pass. The hooks remain
+unselected; controller integration, full kernel linking and hardware admission
+are still required.
