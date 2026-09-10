@@ -267,9 +267,10 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
                 assert str(patched / headers / "hif_capture.h") in dependencies
                 if stop:
                     assert str(patched / headers / "hif_stop_capture.h") in dependencies
+                    if name in ("wlan_lib", "gl_init"):
+                        assert str(patched / relative / "include/nic/hal.h") in dependencies, name
                     if name != "hif_stop_capture":
-                        assert str(patched / relative / "include/nic/hal.h") in dependencies
-                        assert str(patched / relative / "include/wlan_lib.h") in dependencies
+                        assert str(patched / relative / "include/wlan_lib.h") in dependencies, name
                 if name in ("hif_capture", "hif_stop_capture"):
                     assert str(patched / "include/linux/pstore_ram.h") in dependencies
                 disassembly = run([str(toolchain / "wrappers/aarch64-linux-gnu-objdump"),
