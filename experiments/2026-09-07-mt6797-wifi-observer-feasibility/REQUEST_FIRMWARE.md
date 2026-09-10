@@ -86,7 +86,16 @@ The focused Buildbox mode is
 `check-startup-objects.py COMMIT --request-firmware`. It composes 26 patches,
 runs both request fixtures at their source boundaries and checks the new native
 helper dependencies/calls in the fifteen complete translation units.
-Native compilation is pending; no new device test or boot candidate exists.
+The [compile receipt](results/request-firmware-object-compile.json) records
+success at `a1496ad904012c4063793d779206a7dc5392cb61`. All 74 regular package
+files passed exact remote/local inventory and checksum verification; the
+`SHA256SUMS` digest is
+`3b65f26baa174a7327d336be407257c99fa631168ad93a5df8f75278fb6876f0`.
+Both request fixtures pass on Buildbox, and the 22 existing decoder groups pass
+locally. Strict Checkpatch passes with only legacy `CAMELCASE` and synthetic
+`MISSING_SIGN_OFF` exceptions. Native flags retain `-w`; empty logs are not
+warning-clean evidence. No full kernel link, new device test or boot candidate
+is included.
 
 The first Buildbox attempt at `ffaa13fb278e58f1fe43d5267d25b4df153a2845`
 passed both source-boundary fixtures, then refused before compilation because
