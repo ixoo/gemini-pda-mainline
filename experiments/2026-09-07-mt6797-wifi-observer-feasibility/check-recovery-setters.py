@@ -19,13 +19,15 @@ spec.loader.exec_module(native)
 run, digest = native.run, native.digest
 SOURCE = 'drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c'
 HEADER = 'drivers/watchdog/mediatek/include/ext_wd_drv.h'
+DETECT = 'drivers/misc/mediatek/connectivity/common/common_detect/'
 
 
 def main():
     assert platform.system() == 'Linux' and platform.machine() == 'x86_64'
     project = HERE.parents[1]
     commit = run(['git', '-C', str(project), 'rev-parse', 'HEAD'])
-    gate = sys.argv[1:] == [commit, '--gate']
+    controller = sys.argv[1:] == [commit, '--controller']
+    gate = controller or sys.argv[1:] == [commit, '--gate']
     assert gate or sys.argv[1:] == [commit]
     assert not run(['git', '-C', str(project), 'status', '--porcelain'])
     root = Path('/workspace/gemini-pda')
@@ -48,11 +50,13 @@ def main():
     patch = HERE / 'patches/recovery-setters' / pins['patch']
     assert digest(parent_patch) == pins['parent_patch_sha256']
     assert digest(patch) == pins['patch_sha256']
-    gate_pins = json.loads((HERE / 'results/recovery-gate-sources.json').read_text()) if gate else None
-    gate_patch = HERE / 'patches/recovery-gate' / gate_pins['patch'] if gate else None
+    topic = 'controller-init' if controller else 'recovery-gate'
+    gate_pins = json.loads((HERE / ('results/' + topic + '-sources.json')).read_text()) if gate else None
+    gate_patch = HERE / 'patches' / topic / gate_pins['patch'] if gate else None
     if gate:
         assert digest(gate_patch) == gate_pins['patch_sha256']
-    label = 'wifi-recovery-gate-objects-' if gate else 'wifi-recovery-setters-objects-'
+    label = ('wifi-controller-init-objects-' if controller else
+             'wifi-recovery-gate-objects-' if gate else 'wifi-recovery-setters-objects-')
     package = root / 'gemian-artifacts' / (label + commit)
     assert not package.exists()
     env = dict(os.environ, HOST_EXTRACFLAGS='-fcommon',
@@ -79,11 +83,18 @@ def main():
         if gate:
             prerequisites += [patch] + sorted((HERE / 'patches/pstore').glob('*.patch'))
             assert len(prerequisites) == 12
+            if controller:
+                recovery_pins = json.loads((HERE / 'results/recovery-gate-sources.json').read_text())
+                recovery_patch = HERE / 'patches/recovery-gate' / recovery_pins['patch']
+                assert digest(recovery_patch) == recovery_pins['patch_sha256']
+                prerequisites.append(recovery_patch)
             inputs.update(gate_pins['parents'])
-            inputs.discard('fs/pstore/wifi_capture.h')  # Created by pstore patch 0007.
             for item in prerequisites:
                 inputs.update(re.findall(r'^--- a/(.+)$', item.read_text(), re.M))
+            inputs.discard('fs/pstore/wifi_capture.h')  # Created by pstore patch 0007.
             inputs.update(str(path.relative_to(source)) for path in (source / 'fs/pstore').glob('*.h'))
+            if controller:
+                inputs.update(str(path.relative_to(source)) for path in (source / DETECT).glob('*.h'))
         for path in inputs:
             dest = parent / path
             dest.parent.mkdir(parents=True, exist_ok=True)
@@ -101,13 +112,17 @@ def main():
         shutil.copyfile(source / 'drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/wd_api.h',
                         support / 'wd_api.h')
         with (exported / 'fixture.log').open('w') as stream:
-            fixture = ([sys.executable, str(HERE / 'test-recovery-gate.py'), str(child)] if gate else
+            fixture = ([sys.executable, str(HERE / 'test-controller-init.py'), str(child)] if controller else
+                       [sys.executable, str(HERE / 'test-recovery-gate.py'), str(child)] if gate else
                        [sys.executable, str(HERE / 'test-recovery-setters.py'),
                         str(parent), str(child), str(support)])
             native.compile_logged(fixture, stream, timeout=60)
         units = [SOURCE]
         if gate:
             units += ['drivers/watchdog/mediatek/wdk/wd_common_drv.c', 'fs/pstore/ram.c']
+        if controller:
+            units = [DETECT + path for path in ['wmt_detect.c', 'drv_init/conn_drv_init.c',
+                     'drv_init/common_drv_init.c', 'drv_init/wlan_drv_init.c']] + ['fs/pstore/ram.c']
         records = []
         for unit in units:
             lines = [line for line in recorded.read_text().splitlines()
@@ -125,11 +140,14 @@ def main():
                              '-I' + str((tree / HEADER).parent), '-I' + str((source / SOURCE).parent)]
                 if gate:
                     args[1:1] = ['-I' + str(tree / 'include'), '-I' + str(tree / 'fs/pstore')]
+                if controller:
+                    args[1:1] = ['-I' + str(tree / DETECT)]
                 args = ['-Wp,-MD,' + str(dep) if a.startswith('-Wp,-MD,') else a for a in args]
                 with (exported / (label + '.log')).open('w') as stream:
                     native.compile_logged(args, stream, cwd=output, env=env, timeout=120)
                 deps = dep.read_text().replace('\\\n', ' ').split()
-                if unit != 'fs/pstore/ram.c':
+                if unit == SOURCE or unit.endswith('wd_common_drv.c') or (controller and
+                        version_label == 'child' and unit.endswith('wmt_detect.c')):
                     assert str(tree / HEADER) in deps and str(source / HEADER) not in deps
                 if unit == SOURCE:
                     assert str((source / SOURCE).with_name('mt_wdt.h')) in deps
@@ -139,6 +157,10 @@ def main():
                     assert str(tree / 'fs/pstore/wifi_capture.h') in deps
                 if gate and version_label == 'child' and unit.endswith('wd_common_drv.c'):
                     assert str(tree / 'include/linux/cpuidle.h') in deps
+                if controller and unit.startswith(DETECT):
+                    assert str(tree / DETECT / 'wmt_detect.h') in deps
+                    if version_label == 'child':
+                        assert str(tree / DETECT / 'wmt_capture_init.h') in deps
                 macros = list(args)
                 macros.remove('-c')
                 index = macros.index('-o')
@@ -149,13 +171,25 @@ def main():
                 assert '#define CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR 1' in definitions
                 assert '#define CONFIG_KICK_SPM_WDT' not in definitions
                 assert '#define __USING_DUMMY_WDT_DRV__' not in definitions
+                if controller and unit.startswith(DETECT):
+                    assert '#define MTK_WCN_REMOVE_KO 1' in definitions
+                    assert '#define CONFIG_MTK_COMBO_WIFI 1' in definitions
+                    if unit.endswith('wlan_drv_init.c'):
+                        assert '#define MTK_WCN_WLAN_GEN3 1' in definitions
                 emitted = run([str(toolchain / 'wrappers/aarch64-linux-gnu-nm'), str(result)], env=env)
                 names = (['mtk_wdt_recovery_arm', 'mtk_wdt_set_time_out_value',
                           'mtk_wdt_mode_config', 'mtk_wdt_enable', 'mtk_wdt_restart'] if unit == SOURCE else
                          ['ramoops_capture_begin', 'ramoops_capture_append'] if unit == 'fs/pstore/ram.c' else
                          ['mtk_wdt_capture_begin'] if version_label == 'child' else [])
+                if controller and unit.startswith(DETECT):
+                    names = {'wmt_detect.c': ['wmt_detect_unlocked_ioctl'],
+                             'conn_drv_init.c': ['do_connectivity_driver_init'],
+                             'common_drv_init.c': ['do_common_drv_init'],
+                             'wlan_drv_init.c': ['do_wlan_drv_init']}[Path(unit).name]
                 for name in names:
-                    assert any(line.endswith(' T ' + name) for line in emitted.splitlines()), name
+                    assert any(line.endswith((' T ' + name, ' t ' + name)) for line in emitted.splitlines()), name
+                if controller and unit.endswith('wmt_detect.c'):
+                    assert (' U mtk_wdt_capture_begin' in emitted) == (version_label == 'child')
                 if gate and version_label == 'parent' and unit.endswith('wd_common_drv.c'):
                     assert 'mtk_wdt_capture_begin' not in emitted
                 records.append({'label': label, 'source': unit, 'source_sha256': digest(tree / unit),
@@ -173,6 +207,9 @@ def main():
             receipt['patch_sha256'] = digest(gate_patch)
             receipt['prerequisites'] = {str(item.relative_to(project)): digest(item) for item in prerequisites}
             receipt['fixture'] = '15 capture/arm boundary cases, one-shot and invalid argument refusal passed'
+        if controller:
+            receipt['fixture'] = ('native startup; 20 initializer failures; 26 lost records; '
+                                  '4 preflight refusals; duplicate refusal; 52 decoder mutations passed')
         (exported / 'result.json').write_text(json.dumps(receipt, indent=2) + '\n')
         shutil.copyfile(output / '.config', exported / 'config')
         files = sorted(exported.iterdir())

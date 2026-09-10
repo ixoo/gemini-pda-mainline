@@ -1,0 +1,27 @@
+{
+  "source_revision": "59e00a9144d782e148332009a835b99c43382467",
+  "prerequisite": "recovery-gate patch 0001 and its pinned prerequisites",
+  "patch": "0001-wmt-initialize-after-recorded-recovery-takeover.patch",
+  "patch_sha256": "0b9c3b4f344d980642f567d2da4e545008460509f24ba630adec8d68a0dd6009",
+  "parents": {
+    "drivers/misc/mediatek/connectivity/common/common_detect/drv_init/common_drv_init.c": "12381bc3dcbe79475111205c1428e13763b78b270e6ef2d8313f374f55ff973b",
+    "drivers/misc/mediatek/connectivity/common/common_detect/drv_init/conn_drv_init.c": "01a19e83933b7e46030b25a0ff3c8fe15d5db9a51196003a1d63e6a757828f43",
+    "drivers/misc/mediatek/connectivity/common/common_detect/drv_init/wlan_drv_init.c": "92bea150715ef09d2661d427dd33a1a3c290acf6123106add093c1028ebcacad",
+    "drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect.c": "5dcff637a689eb1de92b77a527ad4f51af35f8657db48e36e8dc2c3c379dc2a4",
+    "drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect.h": "2f4964b6ec52bf3cd6ada45827f96bb66e5bd2090b12f9c19a0c58a859b89df9",
+    "drivers/watchdog/mediatek/include/ext_wd_drv.h": "42349c920e4b34a36627d487262b90f2b27e01f9fbc1918d50728adf831e6f99",
+    "fs/pstore/wifi_capture.h": "7977c28b0bfcba7544a3f49d74ea54d40483f51b6c1892f073a86626f2b1570e"
+  },
+  "outputs": {
+    "drivers/misc/mediatek/connectivity/common/common_detect/drv_init/common_drv_init.c": "1b7793a247f7c4ad36ce2c81f9e2cebcdca3b921f62b0f3d4984b41672f185ee",
+    "drivers/misc/mediatek/connectivity/common/common_detect/drv_init/conn_drv_init.c": "eece08a75fe99a9d7846f46e4441efb22af0cee68ebda31e97052ec7786e917f",
+    "drivers/misc/mediatek/connectivity/common/common_detect/drv_init/wlan_drv_init.c": "2a7d1a9fef8f45a79025997cb32ae72f8db52c20442789125bfa17536538e349",
+    "drivers/misc/mediatek/connectivity/common/common_detect/wmt_capture_init.h": "9ccac866e0fbe6284b4cbf94970716d79ddabc2e99bc76692030bd0728d9205a",
+    "drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect.c": "a06fb7be80589a882cd39a4a6745eed5728cac4d7f35c0978217cdb9ac44b418",
+    "drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect.h": "a13c0f5be2cbc00192ff1ffc214f288c68895cd97f89960b6b9bd6cad9216a3b",
+    "drivers/watchdog/mediatek/include/ext_wd_drv.h": "42349c920e4b34a36627d487262b90f2b27e01f9fbc1918d50728adf831e6f99",
+    "fs/pstore/wifi_capture.h": "d591f3616e10a8af05a3bc751ee45f942dab8198a7d14971ab97ec6891928d60"
+  },
+  "boot_candidate": false,
+  "device_access": false
+}

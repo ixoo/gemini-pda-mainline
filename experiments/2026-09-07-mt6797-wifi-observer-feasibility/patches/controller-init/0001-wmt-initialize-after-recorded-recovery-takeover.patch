@@ -1,0 +1,401 @@
+From 8ac822b0027a373838be4f1321befd6d062b9574 Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <noreply@gemini-experiment.invalid>
+Date: Thu, 10 Sep 2026 14:15:22 -0400
+Subject: [PATCH] wmt: initialize only after recorded recovery takeover
+
+Add a fixed-identity experimental detector request. Preserve every native
+initializer result and stop at the first native or capture failure.
+Refuse the legacy detector controls in this experimental configuration.
+
+Internal experiment archive; synthetic author, no DCO certification.
+---
+ .../common_detect/drv_init/common_drv_init.c  | 26 ++++++++++
+ .../common_detect/drv_init/conn_drv_init.c    | 42 ++++++++++++++++
+ .../common_detect/drv_init/wlan_drv_init.c    | 19 +++++++
+ .../common/common_detect/wmt_capture_init.h   | 34 +++++++++++++
+ .../common/common_detect/wmt_detect.c         | 49 +++++++++++++++++++
+ .../common/common_detect/wmt_detect.h         | 10 ++++
+ fs/pstore/wifi_capture.h                      |  2 +-
+ 7 files changed, 181 insertions(+), 1 deletion(-)
+ create mode 100644 drivers/misc/mediatek/connectivity/common/common_detect/wmt_capture_init.h
+
+diff --git a/drivers/misc/mediatek/connectivity/common/common_detect/drv_init/common_drv_init.c b/drivers/misc/mediatek/connectivity/common/common_detect/drv_init/common_drv_init.c
+index 8b358d3..0ad8460 100644
+--- a/drivers/misc/mediatek/connectivity/common/common_detect/drv_init/common_drv_init.c
++++ b/drivers/misc/mediatek/connectivity/common/common_detect/drv_init/common_drv_init.c
+@@ -18,6 +18,7 @@
+ #define DFT_TAG         "[WMT-MOD-INIT]"
+ 
+ #include "wmt_detect.h"
++#include "wmt_capture_init.h"
+ #include "common_drv_init.h"
+ 
+ 
+@@ -25,6 +26,7 @@
+ int do_common_drv_init(int chip_id)
+ {
+ 	int i_ret = 0;
++	int capture_ret;
+ 	int i_ret_tmp = 0;
+ 
+ 	WMT_DETECT_INFO_FUNC("start to do common driver init, chipid:0x%08x\n", chip_id);
+@@ -32,22 +34,46 @@ int do_common_drv_init(int chip_id)
+ 	wmt_detect_set_chip_type(chip_id);
+ 
+ 	/* HIF-SDIO driver init */
++	capture_ret = wmt_capture_init_event(11, 1, 0);
++	if (capture_ret)
++		return capture_ret;
+ 	i_ret_tmp = mtk_wcn_hif_sdio_drv_init();
++	capture_ret = wmt_capture_init_result(11, i_ret_tmp);
++	if (capture_ret)
++		return capture_ret;
+ 	i_ret += i_ret_tmp;
+ 	WMT_DETECT_DBG_FUNC("HIF-SDIO driver init, i_ret:%d\n", i_ret);
+ 
+ 	/* WMT driver init */
++	capture_ret = wmt_capture_init_event(12, 1, 0);
++	if (capture_ret)
++		return capture_ret;
+ 	i_ret_tmp = mtk_wcn_common_drv_init();
++	capture_ret = wmt_capture_init_result(12, i_ret_tmp);
++	if (capture_ret)
++		return capture_ret;
+ 	i_ret += i_ret_tmp;
+ 	WMT_DETECT_DBG_FUNC("COMBO COMMON driver init, i_ret:%d\n", i_ret);
+ 
+ 	/* STP-UART driver init */
++	capture_ret = wmt_capture_init_event(13, 1, 0);
++	if (capture_ret)
++		return capture_ret;
+ 	i_ret_tmp = mtk_wcn_stp_uart_drv_init();
++	capture_ret = wmt_capture_init_result(13, i_ret_tmp);
++	if (capture_ret)
++		return capture_ret;
+ 	i_ret += i_ret_tmp;
+ 	WMT_DETECT_DBG_FUNC("STP-UART driver init, i_ret:%d\n", i_ret);
+ 
+ 	/* STP-SDIO driver init */
++	capture_ret = wmt_capture_init_event(14, 1, 0);
++	if (capture_ret)
++		return capture_ret;
+ 	i_ret_tmp = mtk_wcn_stp_sdio_drv_init();
++	capture_ret = wmt_capture_init_result(14, i_ret_tmp);
++	if (capture_ret)
++		return capture_ret;
+ 	i_ret += i_ret_tmp;
+ 	WMT_DETECT_DBG_FUNC("STP-SDIO driver init, i_ret:%d\n", i_ret);
+ 
+diff --git a/drivers/misc/mediatek/connectivity/common/common_detect/drv_init/conn_drv_init.c b/drivers/misc/mediatek/connectivity/common/common_detect/drv_init/conn_drv_init.c
+index 8112d2a..e7f215d 100644
+--- a/drivers/misc/mediatek/connectivity/common/common_detect/drv_init/conn_drv_init.c
++++ b/drivers/misc/mediatek/connectivity/common/common_detect/drv_init/conn_drv_init.c
+@@ -18,6 +18,7 @@
+ #define DFT_TAG         "[WCN-MOD-INIT]"
+ 
+ #include "wmt_detect.h"
++#include "wmt_capture_init.h"
+ #include "conn_drv_init.h"
+ #include "common_drv_init.h"
+ #include "fm_drv_init.h"
+@@ -29,7 +30,11 @@
+ int __weak do_wlan_drv_init(int chip_id)
+ {
+ 	WMT_DETECT_ERR_FUNC("Can not find wlan module for chip: %d !\n", chip_id);
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++	return -EOPNOTSUPP;
++#else
+ 	return 0;
++#endif
+ }
+ 
+ int __weak do_ant_drv_init(int chip_id)
+@@ -41,9 +46,16 @@ int __weak do_ant_drv_init(int chip_id)
+ int do_connectivity_driver_init(int chip_id)
+ {
+ 	int i_ret = 0;
++	int capture_ret;
+ 	int tmp_ret = 0;
+ 
++	capture_ret = wmt_capture_init_event(1, 1, 0);
++	if (capture_ret)
++		return capture_ret;
+ 	tmp_ret = do_common_drv_init(chip_id);
++	capture_ret = wmt_capture_init_result(1, tmp_ret);
++	if (capture_ret)
++		return capture_ret;
+ 	i_ret += tmp_ret;
+ 	if (tmp_ret) {
+ 		WMT_DETECT_ERR_FUNC("do common driver init failed, ret:%d\n", tmp_ret);
+@@ -51,27 +63,57 @@ int do_connectivity_driver_init(int chip_id)
+ 		return i_ret;
+ 	}
+ 
++	capture_ret = wmt_capture_init_event(2, 1, 0);
++	if (capture_ret)
++		return capture_ret;
+ 	tmp_ret = do_bluetooth_drv_init(chip_id);
++	capture_ret = wmt_capture_init_result(2, tmp_ret);
++	if (capture_ret)
++		return capture_ret;
+ 	i_ret += tmp_ret;
+ 	if (tmp_ret)
+ 		WMT_DETECT_ERR_FUNC("do common driver init failed, ret:%d\n", tmp_ret);
+ 
++	capture_ret = wmt_capture_init_event(3, 1, 0);
++	if (capture_ret)
++		return capture_ret;
+ 	tmp_ret = do_gps_drv_init(chip_id);
++	capture_ret = wmt_capture_init_result(3, tmp_ret);
++	if (capture_ret)
++		return capture_ret;
+ 	i_ret += tmp_ret;
+ 	if (tmp_ret)
+ 		WMT_DETECT_ERR_FUNC("do common driver init failed, ret:%d\n", tmp_ret);
+ 
++	capture_ret = wmt_capture_init_event(4, 1, 0);
++	if (capture_ret)
++		return capture_ret;
+ 	tmp_ret = do_fm_drv_init(chip_id);
++	capture_ret = wmt_capture_init_result(4, tmp_ret);
++	if (capture_ret)
++		return capture_ret;
+ 	i_ret += tmp_ret;
+ 	if (tmp_ret)
+ 		WMT_DETECT_ERR_FUNC("do fm module init failed, ret:%d\n", tmp_ret);
+ 
++	capture_ret = wmt_capture_init_event(5, 1, 0);
++	if (capture_ret)
++		return capture_ret;
+ 	tmp_ret = do_wlan_drv_init(chip_id);
++	capture_ret = wmt_capture_init_result(5, tmp_ret);
++	if (capture_ret)
++		return capture_ret;
+ 	i_ret += tmp_ret;
+ 	if (tmp_ret)
+ 		WMT_DETECT_ERR_FUNC("do wlan module init failed, ret:%d\n", tmp_ret);
+ 
++	capture_ret = wmt_capture_init_event(6, 1, 0);
++	if (capture_ret)
++		return capture_ret;
+ 	tmp_ret = do_ant_drv_init(chip_id);
++	capture_ret = wmt_capture_init_result(6, tmp_ret);
++	if (capture_ret)
++		return capture_ret;
+ 	i_ret += tmp_ret;
+ 	if (tmp_ret)
+ 		WMT_DETECT_ERR_FUNC("do ANT module init failed, ret:%d\n", tmp_ret);
+diff --git a/drivers/misc/mediatek/connectivity/common/common_detect/drv_init/wlan_drv_init.c b/drivers/misc/mediatek/connectivity/common/common_detect/drv_init/wlan_drv_init.c
+index 5b0d039..0f5705d 100644
+--- a/drivers/misc/mediatek/connectivity/common/common_detect/drv_init/wlan_drv_init.c
++++ b/drivers/misc/mediatek/connectivity/common/common_detect/drv_init/wlan_drv_init.c
+@@ -18,12 +18,19 @@
+ #define DFT_TAG         "[WLAN-MOD-INIT]"
+ 
+ #include "wmt_detect.h"
++#include "wmt_capture_init.h"
+ #include "wlan_drv_init.h"
+ 
+ 
+ int do_wlan_drv_init(int chip_id)
+ {
+ 	int i_ret = 0;
++	int capture_ret;
++
++#if defined(CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR) && \
++	(!defined(CONFIG_MTK_COMBO_WIFI) || !defined(MTK_WCN_WLAN_GEN3))
++	return -EOPNOTSUPP;
++#endif
+ 
+ #ifdef CONFIG_MTK_COMBO_WIFI
+ 	int ret = 0;
+@@ -31,7 +38,13 @@ int do_wlan_drv_init(int chip_id)
+ 	WMT_DETECT_INFO_FUNC("start to do wlan module init 0x%x\n", chip_id);
+ 
+ 	/* WMT-WIFI char dev init */
++	capture_ret = wmt_capture_init_event(21, 1, 0);
++	if (capture_ret)
++		return capture_ret;
+ 	ret = mtk_wcn_wmt_wifi_init();
++	capture_ret = wmt_capture_init_result(21, ret);
++	if (capture_ret)
++		return capture_ret;
+ 	WMT_DETECT_INFO_FUNC("WMT-WIFI char dev init, ret:%d\n", ret);
+ 	i_ret += ret;
+ 
+@@ -40,7 +53,13 @@ int do_wlan_drv_init(int chip_id)
+ 	case 0x6797:
+ #ifdef MTK_WCN_WLAN_GEN3
+ 		/* WLAN driver init */
++		capture_ret = wmt_capture_init_event(22, 1, 0);
++		if (capture_ret)
++			return capture_ret;
+ 		ret = mtk_wcn_wlan_gen3_init();
++		capture_ret = wmt_capture_init_result(22, ret);
++		if (capture_ret)
++			return capture_ret;
+ 		WMT_DETECT_INFO_FUNC("WLAN-GEN3 driver init, ret:%d\n", ret);
+ 		i_ret += ret;
+ #else
+diff --git a/drivers/misc/mediatek/connectivity/common/common_detect/wmt_capture_init.h b/drivers/misc/mediatek/connectivity/common/common_detect/wmt_capture_init.h
+new file mode 100644
+index 0000000..d58b043
+--- /dev/null
++++ b/drivers/misc/mediatek/connectivity/common/common_detect/wmt_capture_init.h
+@@ -0,0 +1,34 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef _WMT_CAPTURE_INIT_H
++#define _WMT_CAPTURE_INIT_H
++
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++#include <linux/pstore_ram.h>
++
++static inline int wmt_capture_init_event(u32 site, u32 stage, int result)
++{
++	__le32 record[] = { cpu_to_le32(site), cpu_to_le32(stage),
++			    cpu_to_le32((u32)result) };
++
++	return ramoops_capture_append(12, 0, (const u8 *)record, sizeof(record));
++}
++
++static inline int wmt_capture_init_result(u32 site, int result)
++{
++	int recorded = wmt_capture_init_event(site, 2, result);
++
++	return result ? result : recorded;
++}
++#else
++static inline int wmt_capture_init_event(u32 site, u32 stage, int result)
++{
++	return 0;
++}
++
++static inline int wmt_capture_init_result(u32 site, int result)
++{
++	return 0;
++}
++#endif
++
++#endif
+diff --git a/drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect.c b/drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect.c
+index 632cd1e..b2a04dd 100644
+--- a/drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect.c
++++ b/drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect.c
+@@ -22,6 +22,11 @@
+ 
+ #include "wmt_detect.h"
+ #include "wmt_gpio.h"
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++#include <linux/capability.h>
++#include <ext_wd_drv.h>
++#include "wmt_capture_init.h"
++#endif
+ 
+ #if MTK_WCN_REMOVE_KO
+ #include "conn_drv_init.h"
+@@ -80,8 +85,47 @@ ssize_t wmt_detect_write(struct file *filp, const char __user *buf, size_t count
+ 	return 0;
+ }
+ 
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++static long wmt_capture_initialize(unsigned long arg)
++{
++	struct wmt_capture_identity input;
++	struct mtk_wdt_recovery_state recovery;
++	__le32 failed = cpu_to_le32(2);
++	int ret, recorded;
++
++	if (!capable(CAP_SYS_ADMIN))
++		return -EPERM;
++	if (copy_from_user(&input, (const void __user *)arg, sizeof(input)))
++		return -EFAULT;
++#if !MTK_WCN_REMOVE_KO || !defined(CONFIG_MTK_COMBO_WIFI)
++	return -EOPNOTSUPP;
++#endif
++	ret = mtk_wdt_capture_begin(input.cycle, input.identity, &recovery);
++	if (ret)
++		return ret;
++	ret = wmt_capture_init_event(0, 1, 0);
++	if (ret)
++		goto failed_capture;
++	mtk_wcn_wmt_set_chipid(0x6797);
++	ret = do_connectivity_driver_init(0x6797);
++	recorded = wmt_capture_init_event(0, 2, ret);
++	if (!ret)
++		ret = recorded;
++	if (!ret)
++		return 0;
++failed_capture:
++	ramoops_capture_append(255, 0, (const u8 *)&failed, sizeof(failed));
++	return ret > 0 ? -EIO : ret;
++}
++#endif
++
+ static long wmt_detect_unlocked_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+ {
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++	if (cmd != COMBO_IOCTL_CAPTURE_INIT)
++		return -EPERM;
++	return wmt_capture_initialize(arg);
++#else
+ 	int retval = 0;
+ 
+ 	WMT_DETECT_INFO_FUNC("cmd (%d),arg(%ld)\n", cmd, arg);
+@@ -145,15 +189,20 @@ static long wmt_detect_unlocked_ioctl(struct file *filp, unsigned int cmd, unsig
+ 		break;
+ 	}
+ 	return retval;
++#endif
+ }
+ #ifdef CONFIG_COMPAT
+ static long WMT_compat_detect_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+ {
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++	return -EOPNOTSUPP;
++#else
+ 	long ret;
+ 
+ 	WMT_DETECT_INFO_FUNC("cmd (%d)\n", cmd);
+ 	ret = wmt_detect_unlocked_ioctl(filp, cmd, arg);
+ 	return ret;
++#endif
+ }
+ #endif
+ const struct file_operations gWmtDetectFops = {
+diff --git a/drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect.h b/drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect.h
+index 3a59805..cc3ded4 100644
+--- a/drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect.h
++++ b/drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect.h
+@@ -89,6 +89,16 @@ do { \
+ #define COMBO_IOCTL_EXT_CHIP_PWR_OFF  _IOR(WMT_DETECT_IOC_MAGIC, 7, int)
+ #define COMBO_IOCTL_DO_SDIO_AUDOK     _IOR(WMT_DETECT_IOC_MAGIC, 8, int)
+ 
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++struct wmt_capture_identity {
++	u8 cycle[16];
++	u8 identity[80];
++};
++
++#define COMBO_IOCTL_CAPTURE_INIT \
++	_IOW(WMT_DETECT_IOC_MAGIC, 9, struct wmt_capture_identity)
++#endif
++
+ typedef enum _ENUM_WMT_CHIP_TYPE_T {
+ 	WMT_CHIP_TYPE_COMBO,
+ 	WMT_CHIP_TYPE_SOC,
+diff --git a/fs/pstore/wifi_capture.h b/fs/pstore/wifi_capture.h
+index fbd88a7..654438f 100644
+--- a/fs/pstore/wifi_capture.h
++++ b/fs/pstore/wifi_capture.h
+@@ -41,7 +41,7 @@ static int wfc_slot_write(struct wfc_writer *writer, unsigned int kind,
+ 	if (!writer->attempted || writer->stopped || !writer->payload)
+ 		return -EPERM;
+ 	if (writer->next > WFC_LAST_SLOT || length > 84 ||
+-	    (length && !payload) || !((kind >= 1 && kind <= 11) ||
++	    (length && !payload) || !((kind >= 1 && kind <= 12) ||
+ 				    kind == 255) ||
+ 	    (!writer->next && (kind != 1 || length != 80 || transaction)) ||
+ 	    (writer->next && kind == 1) ||
+-- 
+2.54.0 (Apple Git-157)
+

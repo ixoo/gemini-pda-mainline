@@ -230,7 +230,7 @@ class WriterTests(unittest.TestCase):
         self.assertEqual(result['framing'], 'incomplete')
 
     def test_invalid_arguments_close_without_stores(self):
-        for args in ((1, 0, IDENTITY, 80), (12, 0, b'', 0),
+        for args in ((1, 0, IDENTITY, 80), (13, 0, b'', 0),
                      (2, 0, bytes(85), 85), (2, 0, None, 1),
                      (255, 1, bytes([1, 0, 0, 0]), 4),
                      (255, 0, None, 4), (255, 0, bytes(4), 4)):

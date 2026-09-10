@@ -162,7 +162,9 @@ remain outstanding. They do not consume or authorize a new boot2 session.
 
 The [capture/arm backend](RECOVERY_GATE.md) now implements the first takeover
 join as an unselected built-in function, with no trigger or connectivity call.
-The complete controller entry point, full watchdog caller/configuration audit,
+The [controller initialization entry](CONTROLLER_INIT.md) now calls that backend
+before the native initializer chain and preserves each named return value.
+The remaining controller stages, full watchdog caller/configuration audit,
 shared-buffer/reset isolation, complete linking and candidate-specific recovery
 review remain open. The owner must approve the exact radio and timed-restart
 session before it runs, as required by [safety policy](../../docs/SAFETY.md).

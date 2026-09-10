@@ -14,10 +14,38 @@ COMMIT = 0x57464331
 IDENTITY = 1
 TERMINAL = 255
 # Firmware execution and whole-cycle lifecycle semantics remain unfinished.
-KINDS = {IDENTITY, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, TERMINAL}
+KINDS = {IDENTITY, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, TERMINAL}
 TERMINAL_STATUSES = {1, 2, 3}  # producer-reported complete, failed, overflow
 
 RECOVERY = struct.Struct('<6Ii')
+INITIALIZER = struct.Struct('<IIi')
+INITIALIZER_ORDER = ((0, 1), (1, 1), (11, 1), (11, 2), (12, 1), (12, 2),
+                     (13, 1), (13, 2), (14, 1), (14, 2), (1, 2),
+                     (2, 1), (2, 2), (3, 1), (3, 2), (4, 1), (4, 2),
+                     (5, 1), (21, 1), (21, 2), (22, 1), (22, 2), (5, 2),
+                     (6, 1), (6, 2), (0, 2))
+
+
+def validate_initializer_payload(transaction, payload):
+    if transaction or len(payload) != INITIALIZER.size:
+        raise ValueError('initializer requires transaction zero and exact payload size')
+    site, stage, result = INITIALIZER.unpack(payload)
+    if (site, stage) not in INITIALIZER_ORDER or (stage == 1 and result):
+        raise ValueError('invalid initializer site, stage or entry result')
+
+
+def check_startup_prefix(records):
+    """Require recovery and individually successful native initializer returns."""
+    check_recovery_prefix(records)
+    end = 3 + len(INITIALIZER_ORDER)
+    if len(records) < end or any(r['kind'] == 12 for r in records[end:]):
+        raise ValueError('missing or repeated initialization records')
+    for record, (site, stage) in zip(records[3:end], INITIALIZER_ORDER):
+        if record['kind'] != 12:
+            raise ValueError('activity before completion of initialization')
+        validate_initializer_payload(record['transaction'], record['payload'])
+        if INITIALIZER.unpack(record['payload']) != (site, stage, 0):
+            raise ValueError('initializer failed or arrived out of order')
 
 
 def validate_recovery_payload(transaction, payload):
@@ -298,6 +326,8 @@ def encode(kind, sequence, cycle, transaction, payload):
         validate_off_payload(transaction, payload)
     if kind == 11:
         validate_recovery_payload(transaction, payload)
+    if kind == 12:
+        validate_initializer_payload(transaction, payload)
     body = HEADER.pack(b'WFC1', 1, kind, sequence, cycle, transaction, len(payload))
     body += payload + bytes(PAYLOAD_BYTES - len(payload))
     return body + struct.pack('<II', zlib.crc32(body), COMMIT)
