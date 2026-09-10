@@ -1,0 +1,51 @@
+{
+  "project_commit": "00f66e7cd22d8669ba39fb75b9dd189a8c83ab2b",
+  "source_commit": "59e00a9144d782e148332009a835b99c43382467",
+  "scope": "1 complete translation units; no kernel link or device execution",
+  "patched_header_sha256": "6c3b27541dc9714329e474bfb1cd7178ad2fbe900793746c35ba2f45694cc507",
+  "toolchain_manifest_sha256": "a45d945f092461a611d276ad7d0a0fea1ea8a7f93db413908bcb892c12817d14",
+  "config_sha256": "c96ca5c8a767b93f59487c9b4a1c3d05c1f47c166f3f9ea9f2b7ffe0f6f1f0fb",
+  "config_delta": {
+    "CONFIG_ANBOX": [
+      null,
+      "n"
+    ]
+  },
+  "patches": {
+    "0001-pstore-report-native-pmsg-backend-write-failures.patch": "41a64284f4013ccd7c8bfa7fa0adb78a0b001f289970319310a6cb193848184b",
+    "0002-pstore-preserve-native-records-when-backend-erase-fa.patch": "48b3b5f3bac483c4c85a65cba5756f3b577dd1f9bbb2a723ff1630df02812565",
+    "0003-pstore-preserve-old-log-on-allocation-failure.patch": "f59195e7009ea7dd8299d6d627962338cebdc3d9022e9e3047cedacca283b060",
+    "0004-pstore-reserve-native-pmsg-for-capture.patch": "f79230f50760d4bf45c71660dd65bc68c872e56f953c2bcfecacc9f66b9353cf",
+    "0005-pstore-freeze-native-capture-parameters.patch": "871664dbdf4ea52615e5151e677feacce6f0a84dce2cf2f20a0497eff54e1ae6",
+    "0006-pstore-release-mapped-zones-on-probe-failure.patch": "1f55211e3a156cdc4097d6d460bd5f27d10701d9caeb59707930760edcf78bd1",
+    "0007-pstore-integrate-native-fixed-slot-capture.patch": "f6d7ecd752b8693b3f8b3f226f8fcc9489f74c243f757797fd11549bdc96523b",
+    "0008-arm64-dts-reserve-native-pmsg-without-linear-alias.patch": "20ad1e7ac53a0f8eed94f63529cb054ef4e98b75c92f532c240e14bc33c7ecf6",
+    "0009-pstore-retain-rejected-capture-access-in-tail.patch": "744d6bc4e167e7f2722246c42fd61e92819604d0688af707d97dfff0173d7be9",
+    "0010-pstore-expose-native-capture-activity-to-built-ins.patch": "e063c558c21328d99d7e11d7638a58bebe93642b1e740c7bf3466619f1d6ab97",
+    "0001-wlan-observe-native-AHB-DMA-lifetimes.patch": "40d00262ed2ce3edd5ad46af97f288a2eadde77da5bfdf7dba906ea874191c15",
+    "0001-wlan-capture-native-adapter-stop-decisions.patch": "5175620e3287f01a80d8f009ab3d3112ac4f75ec4186e4c2a35632e15f261291",
+    "0001-wlan-capture-native-firmware-file-read-results.patch": "3a4824ee47f7d9ea304c4c4620200ad23962af8e572539292769c1c804240cb0",
+    "0001-wlan-reject-invalid-native-firmware-mappings.patch": "90eda58094ee09949c6c488bb01e381c7b70dfbebbac3dc53effa16c9335f62d"
+  },
+  "objects": [
+    {
+      "file": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_kal.c",
+      "baseline_source_sha256": "749c5fc0e6cf3614d15e237e2d65cf92858d483ef1d678f6d9aee0f87bf348f1",
+      "baseline_object_sha256": "92a4b49136bb6d33fdafd1e3dc0c9eeda37e8d3d7608c674b7ba1fc93ab05e80",
+      "patched_source_sha256": "785e196e96a070930adb27f0587923223b1efec24ba6d0fd28f2500c9adc503a",
+      "object_sha256": "a178c3fa5f96c73f1bc2b8b62b445458c1ce7e42e8550b2d6080f22bde4265ad",
+      "baseline_command_sha256": "9a23843729223d52f4ffca434c10fdd5c26a597f9630fd0506c1fb96a0c25d5a",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    }
+  ],
+  "package_files": 8,
+  "package_inventory_sha256": "cad3e229db5bb560178c4081169de1ed1d41a05a91761a6c3762628001c90dfa",
+  "remote_and_local_inventory_verified": true,
+  "validation_limits": [
+    "Complete original and patched gl_kal.c compiled with the recorded AArch64 command and fourteen pinned patches; no kernel link or device execution.",
+    "Emitted code retains the signed-size and null-allocation refusals, full-width read-result comparison, and cleanup branches before output publication.",
+    "Native compiler flags retain -w; empty diagnostics do not establish warning-clean code.",
+    "No payload hashing, firmware structure validation, controller or recovery admission."
+  ]
+}

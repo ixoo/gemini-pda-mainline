@@ -57,9 +57,16 @@ python3 experiments/2026-09-07-mt6797-wifi-observer-feasibility/test-firmware-re
 ```
 
 The existing Buildbox lane accepts `check-startup-objects.py COMMIT
---firmware-read-safe` for the fourteen-patch composition. Native compilation
-is pending. No manifest profile or boot candidate selects this patch; no
-kernel image, device test or upstream certification is supplied here.
+--firmware-read-safe` for the fourteen-patch composition. The
+[native result](results/firmware-read-safety-object-compile.json) passes for
+clean published input `00f66e7cd22d8669ba39fb75b9dd189a8c83ab2b`. The complete
+original and changed `gl_kal.c` files compiled, their patched header dependencies
+were verified, and all eight package files passed remote/local inventory
+verification. Emitted code retains the signed-size bound, null-allocation
+refusal, full-width read-result comparison and cleanup before publication.
+The recorded native flags include `-w`; empty diagnostics are not a
+warning-clean result. No manifest profile or boot candidate selects this patch;
+no full kernel link, device test or upstream certification is supplied here.
 
 Patch replay and reversal pass. Strict Checkpatch reports zero errors,
 warnings and checks with two explicit exclusions: the synthetic archive has
