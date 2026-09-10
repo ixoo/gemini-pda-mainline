@@ -150,3 +150,61 @@ identity, join firmware loading or common OFF, or prove thread quiescence. The
 future controller/result classifier must require this join alongside its other
 cycle predicates. No producer bytes changed and no kernel build or device test
 was performed for this decoder change.
+
+## Removal wait witness
+
+The unselected [removal-wait patch](patches/stop-workers/0001-wlan-record-native-removal-completion-waits.patch)
+records the native halt-lock result and three completion waits before normal
+removal enters adapter stop. It follows the complete 27-patch
+[TX payload composition](TX_PAYLOAD.md); its
+[source receipt](results/stop-workers-sources.json) pins the three parent/output
+files and unchanged baseline worker source. No canonical profile selects it.
+The archive identity is synthetic and provides no DCO certification.
+
+The concrete source problem is in `wlanRemove()`: a failed HIF, RX or main
+completion wait prints a stack and continues. It then clears thread pointers
+and enters adapter stop, whose cleanup releases the common coalescing buffer.
+The earlier stop witness therefore cannot distinguish completed native waits
+from timed-out workers. Capturing the existing returns adds no wait, retry,
+lock acquisition or teardown operation and preserves each native timeout branch.
+It does not make that native timeout cleanup safe.
+
+One kind-7 subtype-15 record uses the software HIF device ordinal as its
+transaction. Its 40-byte payload is little-endian: subtype, device and
+multithread flag (`u32` each), halt-lock return (`s32`), then HIF, RX and main
+wait returns (`u64` each). The native `unsigned long` wait returns are widened
+without truncation. HIF/RX slots are zero when multithreading is not compiled.
+The one record consumes 128 capture bytes. A missing/retired binding aborts
+capture; disabled capture makes no retained store. A hang before the summary
+leaves it absent.
+
+`check_stop_workers()` supplements the existing ordinary stop check: exactly
+one summary must precede exactly one ordinary stop for the same adapter; the
+selected multithread branch, zero halt-lock return and all three positive waits
+are required. This predicate must be composed with request, firmware, DMA and
+resource checks before any later controller interprets a complete cycle. It
+neither replaces them nor upgrades their existing scopes.
+
+Successful native waits still **do not prove worker exit**. In the pinned
+`os/linux/gl_kal.c`, HIF, RX and main workers signal their completion before
+wake-lock active/unlock/destroy calls using the adapter. The baseline locations
+are 2586, 2665 and 2930. Those trailing accesses remain unchanged, and reset,
+other callers and buffer ownership remain unresolved. A completion witness
+must not be labeled task quiescence or permission to free live state.
+
+The [focused fixture](test-stop-workers.py) compiles the actual parent/child
+removal wait block, the actual observer and slot writer. Injected completion,
+lock, task-pointer and memory operations compare 144 native sequences across
+both multithread branches, every timeout combination, halt-lock failure,
+disabled/enabled capture and a lost store. The record join rejects missing,
+duplicate, late, wrong-adapter and unsuccessful wait summaries. Missing and
+retired bindings produce failed terminals. The stop suffix used for the join
+is synthetic; the fixture does not execute complete removal, worker bodies,
+the scheduler, wake-lock cleanup or hardware.
+
+Host strict compilation, all 22 existing decoder test groups and strict
+Checkpatch pass with the legacy `CAMELCASE` and synthetic `MISSING_SIGN_OFF`
+exceptions. `check-startup-objects.py COMMIT --stop-workers` adds the producer
+unit to the clean-pushed Buildbox composition (28 patches, 18 native units),
+verifies source pins and runs the native fixtures. Native compilation is
+pending; no full kernel link, device candidate or device operation is included.

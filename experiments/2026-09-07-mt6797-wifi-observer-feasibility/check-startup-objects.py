@@ -107,8 +107,9 @@ def main():
     mode = sys.argv[2] if len(sys.argv) == 3 else "--wmt"
     assert mode in ("--wmt", "--pstore", "--capture-writer", "--dma", "--stop",
                     "--firmware-read", "--firmware-read-safe", "--firmware-image", "--emi", "--provider-off",
-                    "--common-off-safe", "--common-off", "--operation-ownership", "--request-capture", "--request-firmware", "--tx-payload")
-    tx_payload = mode == "--tx-payload"
+                    "--common-off-safe", "--common-off", "--operation-ownership", "--request-capture", "--request-firmware", "--tx-payload", "--stop-workers")
+    stop_workers = mode == "--stop-workers"
+    tx_payload = mode == "--tx-payload" or stop_workers
     request_firmware = mode == "--request-firmware" or tx_payload
     request_capture = mode == "--request-capture" or request_firmware
     ownership = mode == "--operation-ownership" or request_capture
@@ -167,6 +168,9 @@ def main():
     if tx_payload:
         files += ("nic/nic_tx", hif + "ahb")
         label = "wifi-tx-payload-objects-"
+    if stop_workers:
+        files += (hif + "hif_stop_capture",)
+        label = "wifi-stop-workers-objects-"
     def unit_path(name):
         return name if name.startswith("drivers/") else relative + name
     assert not run(["git", "-C", str(project), "status", "--porcelain"])
@@ -270,14 +274,26 @@ def main():
                     patches += sorted((experiment / "patches/request-firmware").glob("*.patch"))
                 if tx_payload:
                     patches += sorted((experiment / "patches/tx-payload").glob("*.patch"))
+                if stop_workers:
+                    patches += sorted((experiment / "patches/stop-workers").glob("*.patch"))
             for extra in ("include/linux/pstore_ram.h", "arch/arm64/boot/dts/mt6797.dtsi",
                           "drivers/misc/mediatek/connectivity/wlan/gen3/Makefile",
                           "fs/pstore/ram.c", "fs/pstore/ram_core.c", "fs/pstore/internal.h",
                           "fs/pstore/pmsg.c", "fs/pstore/inode.c"):
                 (patched / extra).parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(source / extra, patched / extra)
-        assert len(patches) == (27 if tx_payload else 26 if request_firmware else 25 if request_capture else 24 if ownership else 23 if common_off else 17 if provider_off else 16 if emi_capture else 15 if firmware_image else 14 if firmware_safe else 13 if firmware_read else 12 if stop else 11 if dma else 0 if capture else 10 if pstore else 5 if common_off_safe else 4)
+        assert len(patches) == (28 if stop_workers else 27 if tx_payload else 26 if request_firmware else 25 if request_capture else 24 if ownership else 23 if common_off else 17 if provider_off else 16 if emi_capture else 15 if firmware_image else 14 if firmware_safe else 13 if firmware_read else 12 if stop else 11 if dma else 0 if capture else 10 if pstore else 5 if common_off_safe else 4)
         for patch in patches:
+            if stop_workers and patch.parent.name == "stop-workers":
+                worker_pins = json.loads((experiment / "results/stop-workers-sources.json").read_text())
+                assert digest(patch) == worker_pins["patch_sha256"]
+                worker_source = worker_pins["baseline_worker_source"]
+                assert digest(source / worker_source["path"]) == worker_source["sha256"]
+                worker_parent = work / "worker-parent"
+                for path, expected in worker_pins["parents"].items():
+                    assert digest(patched / path) == expected, path
+                    (worker_parent / path).parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copyfile(patched / path, worker_parent / path)
             if tx_payload and patch.parent.name == "tx-payload":
                 tx_pins = json.loads((experiment / "results/tx-payload-sources.json").read_text())
                 assert digest(patch) == tx_pins["patch_sha256"]
@@ -342,6 +358,11 @@ def main():
                 for path, expected in off_pins["parents"].items():
                     assert digest(patched / path) == expected, path
             subprocess.run(["git", "apply", str(patch)], cwd=patched, check=True)
+            if stop_workers and patch.parent.name == "stop-workers":
+                for path, expected in worker_pins["outputs"].items():
+                    assert digest(patched / path) == expected, path
+                subprocess.run(["python3", str(experiment / "test-stop-workers.py"),
+                                str(worker_parent), str(patched)], check=True)
             if tx_payload and patch.parent.name == "tx-payload":
                 for path, expected in tx_pins["outputs"].items():
                     assert digest(patched / path) == expected, path
@@ -396,6 +417,8 @@ def main():
                 final_sources.update(request_fw_pins["outputs"])
             if tx_payload:
                 final_sources.update(tx_pins["outputs"])
+            if stop_workers:
+                final_sources.update(worker_pins["outputs"])
             for path, expected in final_sources.items():
                 assert digest(patched / path) == expected, path
         elif firmware_image:
@@ -526,10 +549,11 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
                 (work / (name + "-capture.disasm")).write_text(disassembly + "\n")
                 assert ({"gl_kal": "kalFirmwareLoadCapture", "gl_init": "kalFirmwareImageMapping",
                          "wlan_lib": "wfc_fw_image_begin", "nic_pwr_mgt": "kalFirmwareImageMapping", "hif_fw_capture": "wfc_fw_image_begin",
-                         "nic_tx": "wfc_fw_tx_staged", "ahb": "wfc_fw_tx_payload"}[name] if firmware_image else
+                         "nic_tx": "wfc_fw_tx_staged", "ahb": "wfc_fw_tx_payload",
+                         "hif_stop_capture": "wfc_stop_workers"}[name] if firmware_image else
                         "kalFirmwareLoadCapture" if firmware_read else "wlanAdapterStop" if stop and name == "gl_init" else
                         "wfc_stop_" if stop else "wfc_dma_") in disassembly
-                if firmware_image:
+                if firmware_image and name != "hif_stop_capture":
                     assert str(patched / headers / "hif_fw_capture.h") in dependencies
                     if name != "hif_fw_capture":
                         assert str(patched / relative / "os/linux/include/gl_kal.h") in dependencies
@@ -586,6 +610,8 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
                          "hif_fw_capture": ("wfc_fw_tx_payload", "crypto_shash_digest")}[name]
                 for symbol in calls:
                     assert symbol in disassembly, (name, symbol)
+            if stop_workers and name in ("gl_init", "hif_stop_capture"):
+                assert "wfc_stop_workers" in disassembly, name
             if capture:
                 assert str(patched / relative / "capture-slot-writer.h") in dependencies
                 table = run(["readelf", "-Ws", str(result)])

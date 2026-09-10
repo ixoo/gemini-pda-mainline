@@ -1,0 +1,21 @@
+{
+  "source_revision": "59e00a9144d782e148332009a835b99c43382467",
+  "scope": "Unselected native removal wait witness; no task exit, quiescence or device admission",
+  "parents": {
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c": "b03283c30a769b52b5979d6b46d1b4f7b09070e59e6edc81f6d4e078d2671a00",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/hif_stop_capture.c": "4289a69abd944b294237d569de5c0d6543de9a3011d5621d3761022c50f9b63f",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_stop_capture.h": "c9948bf2f4a015eb36dbeed5c2dccd5e084fd6093176929087674be8c64b1070"
+  },
+  "outputs": {
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c": "bc8aa8f937eeaba83573f8a19c8e90b2de289ca012f4e87ba0371cdcd050106f",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/hif_stop_capture.c": "7d078426d0488fa6111abd7cd179e4efa990303774e06f1b5ff2a28c9612935e",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_stop_capture.h": "9db24815f164acf0e8a34ea957d53264fac735f5a47766eb3ff29e23d4a4bb4a"
+  },
+  "baseline_worker_source": {
+    "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_kal.c",
+    "sha256": "749c5fc0e6cf3614d15e237e2d65cf92858d483ef1d678f6d9aee0f87bf348f1"
+  },
+  "patch": "0001-wlan-record-native-removal-completion-waits.patch",
+  "patch_sha256": "cd23e6f993ab1e1af96db5dc5e8bf385b8d6fce479985c35b80fd484fa191be2",
+  "replay_and_reverse_verified": true
+}

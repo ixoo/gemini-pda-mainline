@@ -1,0 +1,131 @@
+From 38aa0d0bdd23b452a87548dc1620d90bce69beca Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <archive@example.invalid>
+Date: Thu, 10 Sep 2026 11:54:27 -0400
+Subject: [PATCH] wlan: record native removal completion waits
+
+Record the existing halt-lock and HIF/RX/main wait results before adapter
+stop. Preserve native timeout branches and teardown behavior. Completion
+precedes final wake-lock cleanup and is not a task-exit proof.
+
+This experiment archive has a synthetic identity and no DCO certification.
+---
+ .../connectivity/wlan/gen3/os/linux/gl_init.c | 21 ++++++++++++----
+ .../linux/hif/ahb_sdioLike/hif_stop_capture.c | 24 +++++++++++++++++++
+ .../ahb_sdioLike/include/hif_stop_capture.h   |  3 +++
+ 3 files changed, 44 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c
+index 50a5484..939f481 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c
+@@ -37,6 +37,7 @@
+ #include "gl_wext.h"
+ #include "gl_cfg80211.h"
+ #include "precomp.h"
++#include "hif_stop_capture.h"
+ #if CFG_SUPPORT_AGPS_ASSIST
+ #include "gl_kal.h"
+ #endif
+@@ -2277,6 +2278,8 @@ static VOID wlanRemove(VOID)
+ 	P_WLANDEV_INFO_T prWlandevInfo = NULL;
+ 	P_GLUE_INFO_T prGlueInfo = NULL;
+ 	P_ADAPTER_T prAdapter = NULL;
++	unsigned long wfc_wait[3] = { 0 };
++	int wfc_halt;
+ 
+ 	DBGLOG(INIT, INFO, "Remove wlan!\n");
+ 
+@@ -2329,7 +2332,8 @@ static VOID wlanRemove(VOID)
+ 
+ 	flush_delayed_work(&sched_workq);
+ 
+-	if (-ETIME == kalHaltLock(KAL_WLAN_REMOVE_TIMEOUT_MSEC)) {
++	wfc_halt = kalHaltLock(KAL_WLAN_REMOVE_TIMEOUT_MSEC);
++	if (-ETIME == wfc_halt) {
+ 		DBGLOG(INIT, ERROR, "Halt Lock, need OidComplete.\n");
+ 		kalOidComplete(prGlueInfo, FALSE, 0, WLAN_STATUS_NOT_ACCEPTED);
+ 	}
+@@ -2340,12 +2344,16 @@ static VOID wlanRemove(VOID)
+ 
+ #if CFG_SUPPORT_MULTITHREAD
+ 	wake_up_interruptible(&prGlueInfo->waitq_hif);
+-	if (!wait_for_completion_timeout(&prGlueInfo->rHifHaltComp, MSEC_TO_JIFFIES(KAL_WLAN_REMOVE_TIMEOUT_MSEC))) {
++	wfc_wait[0] = wait_for_completion_timeout(&prGlueInfo->rHifHaltComp,
++						  MSEC_TO_JIFFIES(KAL_WLAN_REMOVE_TIMEOUT_MSEC));
++	if (!wfc_wait[0]) {
+ 		DBGLOG(INIT, ERROR, "wait hif_thread exit timeout, longer than 3s, show backtrace of hif_thread\n");
+ 		show_stack(prGlueInfo->hif_thread, NULL);
+ 	}
+ 	wake_up_interruptible(&prGlueInfo->waitq_rx);
+-	if (!wait_for_completion_timeout(&prGlueInfo->rRxHaltComp, MSEC_TO_JIFFIES(KAL_WLAN_REMOVE_TIMEOUT_MSEC))) {
++	wfc_wait[1] = wait_for_completion_timeout(&prGlueInfo->rRxHaltComp,
++						  MSEC_TO_JIFFIES(KAL_WLAN_REMOVE_TIMEOUT_MSEC));
++	if (!wfc_wait[1]) {
+ 		DBGLOG(INIT, ERROR, "wait rx_thread exit timeout, longer than 3s, show backtrace of rx_thread\n");
+ 		show_stack(prGlueInfo->rx_thread, NULL);
+ 	}
+@@ -2354,11 +2362,16 @@ static VOID wlanRemove(VOID)
+ 	/* wake up main thread */
+ 	wake_up_interruptible(&prGlueInfo->waitq);
+ 	/* wait main thread stops */
+-	if (!wait_for_completion_timeout(&prGlueInfo->rHaltComp, MSEC_TO_JIFFIES(KAL_WLAN_REMOVE_TIMEOUT_MSEC))) {
++	wfc_wait[2] = wait_for_completion_timeout(&prGlueInfo->rHaltComp,
++						  MSEC_TO_JIFFIES(KAL_WLAN_REMOVE_TIMEOUT_MSEC));
++	if (!wfc_wait[2]) {
+ 		DBGLOG(INIT, ERROR, "wait tx_thread exit timeout, longer than 3s, show backtrace of tx_thread\n");
+ 		show_stack(prGlueInfo->main_thread, NULL);
+ 	}
+ 
++	wfc_stop_workers(&prGlueInfo->rHifInfo.capture,
++			 CFG_SUPPORT_MULTITHREAD, wfc_halt, wfc_wait);
++
+ 	DBGLOG(INIT, TRACE, "mtk_sdiod stopped\n");
+ 
+ 	/* prGlueInfo->rHifInfo.main_thread = NULL; */
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/hif_stop_capture.c b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/hif_stop_capture.c
+index fe37d04..48bd972 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/hif_stop_capture.c
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/hif_stop_capture.c
+@@ -178,3 +178,27 @@ void wfc_stop_return(struct wfc_stop_trace *trace, u32 status)
+ 	wfc_stop_emit(trace, data, sizeof(data));
+ 	trace->transaction = 0;
+ }
++
++/* Native completions precede worker wake-lock cleanup; this is not a join. */
++void wfc_stop_workers(const struct wfc_dma_trace *binding, bool multithread,
++		      int halt_result, const unsigned long waits[3])
++{
++#if defined(CONFIG_PSTORE_RAM) && !defined(MODULE)
++	u8 data[40];
++
++	if (!ramoops_capture_active())
++		return;
++	if (!binding->device || atomic_read(&binding->retired)) {
++		wfc_dma_abort();
++		return;
++	}
++	put_unaligned_le32(15, data);
++	put_unaligned_le32(binding->device, data + 4);
++	put_unaligned_le32(multithread, data + 8);
++	put_unaligned_le32(halt_result, data + 12);
++	put_unaligned_le64(waits[0], data + 16);
++	put_unaligned_le64(waits[1], data + 24);
++	put_unaligned_le64(waits[2], data + 32);
++	ramoops_capture_append(7, binding->device, data, sizeof(data));
++#endif
++}
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_stop_capture.h b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_stop_capture.h
+index 151f7e5..935c0ad 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_stop_capture.h
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_stop_capture.h
+@@ -36,4 +36,7 @@ void wfc_stop_fallback(struct wfc_stop_trace *trace);
+ void wfc_stop_poll_end(struct wfc_stop_trace *trace, u32 reason);
+ void wfc_stop_return(struct wfc_stop_trace *trace, u32 status);
+ 
++void wfc_stop_workers(const struct wfc_dma_trace *binding, bool multithread,
++		      int halt_result, const unsigned long waits[3]);
++
+ #endif
+-- 
+2.54.0 (Apple Git-157)
+

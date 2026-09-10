@@ -89,12 +89,14 @@ FW_READ_RETURN = struct.Struct('<5I')
 FW_TX_PAYLOAD = struct.Struct('<8I32s')
 FW_TX_DMA = struct.Struct('<5I')
 FW_TX_RETURN = struct.Struct('<6I')
+FW_STOP_WORKERS = struct.Struct('<3Ii3Q')
 FW_STOP_LAYOUTS = {1: FW_STOP_ENTRY, 2: FW_STOP_COMMAND,
                    3: FW_STOP_POLL, 4: FW_STOP_RETURN,
                    5: FW_IMAGE, 6: FW_SECTION, 7: FW_IMAGE_RETURN,
                    8: FW_READ_ENTRY, 9: FW_READ_ALLOCATION,
                    10: FW_READ_RESULT, 11: FW_READ_RETURN,
-                   12: FW_TX_PAYLOAD, 13: FW_TX_DMA, 14: FW_TX_RETURN}
+                   12: FW_TX_PAYLOAD, 13: FW_TX_DMA, 14: FW_TX_RETURN,
+                   15: FW_STOP_WORKERS}
 
 
 def validate_stop_payload(transaction, payload):
@@ -105,6 +107,12 @@ def validate_stop_payload(transaction, payload):
     if layout is None or len(payload) != layout.size:
         raise ValueError('unsupported stop subtype or payload size')
     values = layout.unpack(payload)
+    if subtype == 15:
+        if values[1] != transaction or values[2] not in (0, 1):
+            raise ValueError('invalid worker-wait binding or configuration')
+        if not values[2] and any(values[4:6]):
+            raise ValueError('unselected worker waits contain results')
+        return
     if subtype >= 12:
         if not values[1] or not values[2] or not 1 <= values[3] <= 8 or values[3] != transaction:
             raise ValueError('payload witness requires adapter, image and matching chunk ordinal')
@@ -435,6 +443,27 @@ def check_stop(data, expected_cycle):
             raise ValueError('adapter stop did not return success')
     return {'checked_stops': list(stops),
             'scope': 'recorded ordinary direct-read firmware-stop consistency only'}
+
+
+def check_stop_workers(data, expected_cycle):
+    """Require successful native removal waits, not exited tasks or safe teardown."""
+    stop = check_stop(data, expected_cycle)
+    if len(stop['checked_stops']) != 1:
+        raise ValueError('requires one ordinary stop for worker-wait attribution')
+    rows = decode(data, expected_cycle)
+    waits = [row for row in rows if row['kind'] == 7 and
+             int.from_bytes(row['payload'][:4], 'little') == 15]
+    entry = next(row for row in rows if row['kind'] == 7 and
+                 int.from_bytes(row['payload'][:4], 'little') == 1)
+    if len(waits) != 1:
+        raise ValueError('missing or repeated worker-wait summary')
+    _, device, multithread, halt, hif, rx, main = FW_STOP_WORKERS.unpack(waits[0]['payload'])
+    if device != FW_STOP_ENTRY.unpack(entry['payload'])[1] or waits[0]['sequence'] >= entry['sequence']:
+        raise ValueError('worker waits do not precede their adapter stop')
+    if multithread != 1 or halt or not all((hif, rx, main)):
+        raise ValueError('native halt lock or worker completion wait failed')
+    return {'checked_device': device, 'checked_stop': stop['checked_stops'][0],
+            'scope': 'successful recorded native removal waits only; worker exit and quiescence unchecked'}
 
 
 def check_firmware_read(data, expected_cycle):
