@@ -106,10 +106,11 @@ def main():
     assert len(sys.argv) in (2, 3) and sys.argv[1] == commit
     mode = sys.argv[2] if len(sys.argv) == 3 else "--wmt"
     assert mode in ("--wmt", "--pstore", "--capture-writer", "--dma", "--stop",
-                    "--firmware-read", "--firmware-read-safe")
+                    "--firmware-read", "--firmware-read-safe", "--firmware-image")
     capture = mode == "--capture-writer"
-    firmware_safe = mode == "--firmware-read-safe"
-    firmware_read = mode in ("--firmware-read", "--firmware-read-safe")
+    firmware_image = mode == "--firmware-image"
+    firmware_safe = mode == "--firmware-read-safe" or firmware_image
+    firmware_read = mode in ("--firmware-read", "--firmware-read-safe", "--firmware-image")
     stop = mode == "--stop" or firmware_read
     dma = mode == "--dma" or stop
     pstore = mode in ("--pstore", "--capture-writer")
@@ -130,6 +131,9 @@ def main():
         if firmware_read:
             files = ("os/linux/gl_kal",)
             label = "wifi-firmware-read-safe-objects-" if firmware_safe else "wifi-firmware-read-objects-"
+        if firmware_image:
+            files = ("os/linux/gl_kal", "os/linux/gl_init", "common/wlan_lib", hif + "hif_fw_capture")
+            label = "wifi-firmware-image-objects-"
     assert not run(["git", "-C", str(project), "status", "--porcelain"])
     root = Path("/workspace/gemini-pda")
     source = root / "gemian-source/gemian-baseline" / REVISION
@@ -169,7 +173,7 @@ def main():
                            stream, env=environment, timeout=300)
         patched = work / "patched"
         for name in files:
-            if dma and Path(name).name in ("hif_capture", "hif_stop_capture"):
+            if dma and Path(name).name in ("hif_capture", "hif_stop_capture", "hif_fw_capture"):
                 continue
             dest = patched / (relative + name + ".c")
             dest.parent.mkdir(parents=True, exist_ok=True)
@@ -202,13 +206,16 @@ def main():
                     dest = patched / relative / extra
                     dest.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copyfile(source / relative / extra, dest)
+            if firmware_image:
+                patches += sorted((experiment / "patches/firmware-image").glob("*.patch"))
+                shutil.copytree(source / relative / "os/linux/include", patched / relative / "os/linux/include")
             for extra in ("include/linux/pstore_ram.h", "arch/arm64/boot/dts/mt6797.dtsi",
                           "drivers/misc/mediatek/connectivity/wlan/gen3/Makefile",
                           "fs/pstore/ram.c", "fs/pstore/ram_core.c", "fs/pstore/internal.h",
                           "fs/pstore/pmsg.c", "fs/pstore/inode.c"):
                 (patched / extra).parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(source / extra, patched / extra)
-        assert len(patches) == (14 if firmware_safe else 13 if firmware_read else 12 if stop else 11 if dma else 0 if capture else 10 if pstore else 4)
+        assert len(patches) == (15 if firmware_image else 14 if firmware_safe else 13 if firmware_read else 12 if stop else 11 if dma else 0 if capture else 10 if pstore else 4)
         for patch in patches:
             if stop and patch.parent.name == "stop":
                 stop_pins = json.loads((experiment / "results/stop-capture-sources.json").read_text())
@@ -225,15 +232,28 @@ def main():
                 assert digest(patched / safe_pins["parent"]["path"]) == safe_pins["parent"]["sha256"]
                 for path, expected in read_pins["outputs"].items():
                     assert digest(patched / path) == expected, path
+            if firmware_image and patch.parent.name == "firmware-image":
+                image_pins = json.loads((experiment / "results/firmware-image-capture-sources.json").read_text())
+                assert digest(patch) == image_pins["patch_sha256"]
+                for path, expected in image_pins["parents"].items():
+                    assert digest(patched / path) == expected, path
             subprocess.run(["git", "apply", str(patch)], cwd=patched, check=True)
-        if dma:
+            if stop and patch.parent.name == "stop":
+                for path, expected in stop_pins["outputs"].items():
+                    assert digest(patched / path) == expected, path
+            if firmware_safe and patch.parent.name == "firmware-read-safety":
+                assert digest(patched / safe_pins["parent"]["path"]) == safe_pins["output_sha256"]
+        if dma and not stop:
             pinned = json.loads((experiment / "results" / (
                 "stop-capture-sources.json" if stop else "dma-capture-sources.json")).read_text())
             sections = (("outputs", patched),) if stop else (("parents", source), ("outputs", patched))
             for section, tree in sections:
                 for path, expected in pinned[section].items():
                     assert digest(tree / path) == expected, path
-        if firmware_read:
+        if firmware_image:
+            for path, expected in image_pins["outputs"].items():
+                assert digest(patched / path) == expected, path
+        elif firmware_read:
             if firmware_safe:
                 assert digest(patched / safe_pins["parent"]["path"]) == safe_pins["output_sha256"]
             else:
@@ -260,7 +280,7 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
         for relative_name in files:
             name = Path(relative_name).name
             suffix = relative + relative_name + ".c"
-            template = relative + hif + "ahb.c" if dma and name in ("hif_capture", "hif_stop_capture") else suffix
+            template = relative + hif + "ahb.c" if dma and name in ("hif_capture", "hif_stop_capture", "hif_fw_capture") else suffix
             lines = [line for line in recorded.read_text().splitlines()
                      if " -c " in line and line.endswith("/" + template)]
             assert len(lines) == 1, (name, len(lines))
@@ -272,13 +292,15 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
             args[args.index("-o") + 1] = str(baseline)
             args = ["-Wp,-MD," + str(work / (name + "-baseline.d")) if a.startswith("-Wp,-MD,") else a
                     for a in args]
-            if not (dma and name in ("hif_capture", "hif_stop_capture")):
+            if not (dma and name in ("hif_capture", "hif_stop_capture", "hif_fw_capture")):
                 with (work / (name + "-baseline.log")).open("w") as stream:
                     compile_logged(args, stream, cwd=output, env=environment, timeout=120)
             result = work / (name + ".o")
             args[args.index("-o") + 1] = str(result)
             args[-1] = str(patched / suffix)
             args.insert(1, "-I" + str(patched / headers))
+            if firmware_image:
+                args.insert(1, "-I" + str(patched / relative / "os/linux/include"))
             if stop:
                 # precomp.h includes "hal.h" by basename from include/nic.
                 args.insert(1, "-I" + str(patched / relative / "include/nic"))
@@ -290,28 +312,35 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
             with (work / (name + ".log")).open("w") as stream:
                 compile_logged(args, stream, cwd=output, env=environment, timeout=120)
             dependencies = (work / (name + ".d")).read_text().replace("\\\n", " ").split()
-            if not pstore and name not in ("hif_capture", "hif_stop_capture"):
+            if not pstore and name not in ("hif_capture", "hif_stop_capture", "hif_fw_capture"):
                 assert str(patched / header) in dependencies, name
                 assert str(source / header) not in dependencies, name
             if dma:
                 assert "-DMODULE" not in args
                 assert str(patched / headers / "hif_capture.h") in dependencies
                 if stop:
-                    assert str(patched / headers / "hif_stop_capture.h") in dependencies
+                    if name != "hif_fw_capture":
+                        assert str(patched / headers / "hif_stop_capture.h") in dependencies
                     if name in ("wlan_lib", "gl_init", "gl_kal"):
                         assert str(patched / relative / "include/nic/hal.h") in dependencies, name
-                    if name != "hif_stop_capture":
+                    if name not in ("hif_stop_capture", "hif_fw_capture"):
                         assert str(patched / relative / "include/wlan_lib.h") in dependencies, name
-                if name in ("hif_capture", "hif_stop_capture"):
+                if name in ("hif_capture", "hif_stop_capture", "hif_fw_capture"):
                     assert str(patched / "include/linux/pstore_ram.h") in dependencies
                 disassembly = run([str(toolchain / "wrappers/aarch64-linux-gnu-objdump"),
                                    "-dr", str(result)], env=environment)
                 (work / (name + "-capture.disasm")).write_text(disassembly + "\n")
-                assert ("kalFirmwareLoadCapture" if firmware_read else "wlanAdapterStop" if stop and name == "gl_init" else
+                assert ({"gl_kal": "kalFirmwareLoadCapture", "gl_init": "kalFirmwareImageMapping",
+                         "wlan_lib": "wfc_fw_image_begin", "hif_fw_capture": "wfc_fw_image_begin"}[name] if firmware_image else
+                        "kalFirmwareLoadCapture" if firmware_read else "wlanAdapterStop" if stop and name == "gl_init" else
                         "wfc_stop_" if stop else "wfc_dma_") in disassembly
-                if firmware_read:
+                if firmware_image:
+                    assert str(patched / headers / "hif_fw_capture.h") in dependencies
+                    if name != "hif_fw_capture":
+                        assert str(patched / relative / "os/linux/include/gl_kal.h") in dependencies
+                if firmware_read and name == "gl_kal":
                     assert str(patched / "include/linux/pstore_ram.h") in dependencies
-                if firmware_read or name in ("hif_capture", "hif_stop_capture"):
+                if (firmware_read and name == "gl_kal") or name in ("hif_capture", "hif_stop_capture", "hif_fw_capture"):
                     assert "ramoops_capture_active" in disassembly
                     assert "ramoops_capture_append" in disassembly
             if capture:

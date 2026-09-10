@@ -593,8 +593,8 @@ def check_provider_off(data, expected_cycle):
             'scope': 'recorded CONN provider OFF operation consistency only'}
 
 
-def check_image_sections(data, expected_cycle, expected_hash, expected_image_bytes, expected_sections):
-    """Join independently supplied image metadata to recorded sections and EMI copies."""
+def _image_metadata(data, expected_cycle, expected_hash, expected_image_bytes, expected_sections):
+    """Validate one successful image operation against independently supplied metadata."""
     if len(expected_hash) != 32 or not any(expected_hash) or len(expected_sections) < 3:
         raise ValueError('requires reviewed image hash and section metadata including EMI')
     records = decode(data, expected_cycle)
@@ -617,6 +617,31 @@ def check_image_sections(data, expected_cycle, expected_hash, expected_image_byt
             raise ValueError('invalid image section span')
     if FW_IMAGE_RETURN.unpack(image_rows[-1]['payload']) != (7, adapter, image_id, 0):
         raise ValueError('divided image loader did not return success')
+    return records, image_rows, adapter, image_id, image_bytes, count
+
+
+def check_image_read(data, expected_cycle, expected_hash, expected_image_bytes, expected_sections):
+    """Join image records to a completed read; no interval immutability proof."""
+    records, image_rows, adapter, image_id, image_bytes, _ = _image_metadata(
+        data, expected_cycle, expected_hash, expected_image_bytes, expected_sections)
+    check_firmware_read(data, expected_cycle)
+    reads = [row for row in records if row['kind'] == 7 and
+             row['transaction'] == image_id and
+             int.from_bytes(row['payload'][:4], 'little') in (8, 9, 10, 11)]
+    if image_rows[0]['transaction'] != image_id or len(reads) != 4:
+        raise ValueError('image does not identify its recorded read')
+    if FW_READ_RETURN.unpack(reads[-1]['payload']) != (11, adapter, 1, image_bytes, 1):
+        raise ValueError('image adapter or extent differs from its read')
+    if reads[-1]['sequence'] >= image_rows[0]['sequence']:
+        raise ValueError('image began before its read completed')
+    return {'checked_image': image_id, 'checked_read': image_id,
+            'scope': 'recorded read/image lineage only; immutability, HIF and EMI execution unchecked'}
+
+
+def check_image_sections(data, expected_cycle, expected_hash, expected_image_bytes, expected_sections):
+    """Join independently supplied image metadata to recorded sections and EMI copies."""
+    records, image_rows, adapter, image_id, image_bytes, count = _image_metadata(
+        data, expected_cycle, expected_hash, expected_image_bytes, expected_sections)
     check_emi(data, expected_cycle)
     emi = {}
     for row in records:

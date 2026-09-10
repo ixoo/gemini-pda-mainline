@@ -1,0 +1,513 @@
+From 9d9d30d9bd90d74c988d46ef2292494698e9fd3e Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <experiment@invalid.example>
+Date: Thu, 10 Sep 2026 07:44:01 -0400
+Subject: [PATCH] wlan: capture native firmware buffer and sections
+
+Carry a successful file-read ordinal and its borrowed buffer through the
+probe and adapter calls to the divided loader. Check the exact pointer,
+extent and binding before reading payload bytes. Bound this experiment to
+the retained 411632-byte, four-section MT6797 image layout.
+
+Hash the actual input through the native SHA-256 shash interface, record
+ordered section metadata and the native return, and reject capture when
+the closing digest differs. Keep the hash transform until every native
+return path releases it. This adds one crypto allocation and at most two
+whole-buffer hash calls; it does not prove immutability between hashes.
+
+Native transfers, EMI operations and return values remain unchanged. The
+read mapping depends on its explicit failure-handling predecessor. Failed
+capture stops observation, without repairing or retrying the native path.
+
+This is an unselected experiment, not an upstream ABI or boot candidate.
+Whole-image lifetime, EMI/OFF capture, recovery and acquisition timing
+remain unfinished. The synthetic archive identity supplies
+no author certification.
+---
+ .../mediatek/connectivity/wlan/gen3/Makefile  |   1 +
+ .../connectivity/wlan/gen3/common/wlan_lib.c  |  35 ++--
+ .../connectivity/wlan/gen3/include/wlan_lib.h |   7 +-
+ .../connectivity/wlan/gen3/os/linux/gl_init.c |   9 +-
+ .../connectivity/wlan/gen3/os/linux/gl_kal.c  |  29 +++-
+ .../linux/hif/ahb_sdioLike/hif_fw_capture.c   | 156 ++++++++++++++++++
+ .../os/linux/hif/ahb_sdioLike/include/hif.h   |   1 +
+ .../hif/ahb_sdioLike/include/hif_fw_capture.h |  38 +++++
+ .../wlan/gen3/os/linux/include/gl_kal.h       |   6 +-
+ 9 files changed, 262 insertions(+), 20 deletions(-)
+ create mode 100644 drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/hif_fw_capture.c
+ create mode 100644 drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_fw_capture.h
+
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/Makefile b/drivers/misc/mediatek/connectivity/wlan/gen3/Makefile
+index c72123a..18a5da2 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/Makefile
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/Makefile
+@@ -189,6 +189,7 @@ HIF_OBJS :=  $(HIF_DIR)arm.o
+ ifeq ($(WLAN_CHIP_ID), MT6797)
+ HIF_OBJS += $(HIF_DIR)hif_capture.o\
+ 			$(HIF_DIR)hif_stop_capture.o\
++			$(HIF_DIR)hif_fw_capture.o\
+ 			$(HIF_DIR)ahb.o\
+ 			$(HIF_DIR)ahb_pdma.o\
+ 			$(HIF_DIR)sdio_bus_driver.o
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c b/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c
+index 4fef8e5..d8fa5e0 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c
+@@ -149,8 +149,12 @@ wlanImageSectionDownloadStage(IN P_ADAPTER_T prAdapter,
+ #if CFG_ENABLE_FW_DOWNLOAD
+ #if CFG_ENABLE_FW_DIVIDED_DOWNLOAD
+ static WLAN_STATUS
+-wlanImageDividDownload(IN P_ADAPTER_T prAdapter, IN P_FIRMWARE_DIVIDED_DOWNLOAD_T prFwHead,
+-			IN PVOID pvFwImageMapFile, IN UINT_32 u4FwImageFileLength, IN UINT_32 u4FwLoadAddr);
++wlanImageDividDownload(IN P_ADAPTER_T prAdapter,
++		       IN P_FIRMWARE_DIVIDED_DOWNLOAD_T prFwHead,
++		       IN PVOID pvFwImageMapFile,
++		       IN UINT_32 u4FwImageFileLength,
++		       IN UINT_32 u4FwLoadAddr,
++		       const struct wfc_fw_buffer *read);
+ #endif
+ #endif
+ /*******************************************************************************
+@@ -286,7 +290,10 @@ VOID wlanAdapterDestroy(IN P_ADAPTER_T prAdapter)
+ /*----------------------------------------------------------------------------*/
+ WLAN_STATUS
+ wlanAdapterStart(IN P_ADAPTER_T prAdapter,
+-		 IN P_REG_INFO_T prRegInfo, IN PVOID pvFwImageMapFile, IN UINT_32 u4FwImageFileLength)
++		 IN P_REG_INFO_T prRegInfo,
++		 IN PVOID pvFwImageMapFile,
++		 IN UINT_32 u4FwImageFileLength,
++		 const struct wfc_fw_buffer *read)
+ {
+ 	WLAN_STATUS u4Status = WLAN_STATUS_SUCCESS;
+ 	UINT_32 i, u4Value = 0;
+@@ -434,7 +441,7 @@ wlanAdapterStart(IN P_ADAPTER_T prAdapter,
+ 			if (fgValidHead == TRUE) {
+ 				if (wlanImageDividDownload(prAdapter,
+ 						prFwHead, pvFwImageMapFile, u4FwImageFileLength,
+-						u4FwLoadAddr) != WLAN_STATUS_SUCCESS) {
++						u4FwLoadAddr, read) != WLAN_STATUS_SUCCESS) {
+ 					u4Status = WLAN_STATUS_FAILURE;
+ 					eFailReason = RAM_CODE_DOWNLOAD_FAIL;
+ 				}
+@@ -815,24 +822,32 @@ wlanImageSectionDownloadStage(IN P_ADAPTER_T prAdapter,
+ #if CFG_ENABLE_FW_DOWNLOAD
+ #if CFG_ENABLE_FW_DIVIDED_DOWNLOAD
+ static WLAN_STATUS
+-wlanImageDividDownload(IN P_ADAPTER_T prAdapter, IN P_FIRMWARE_DIVIDED_DOWNLOAD_T prFwHead,
+-			IN PVOID pvFwImageMapFile, IN UINT_32 u4FwImageFileLength, IN UINT_32 u4FwLoadAddr)
+-{
++wlanImageDividDownload(IN P_ADAPTER_T prAdapter,
++		       IN P_FIRMWARE_DIVIDED_DOWNLOAD_T prFwHead,
++		       IN PVOID pvFwImageMapFile,
++		       IN UINT_32 u4FwImageFileLength,
++		       IN UINT_32 u4FwLoadAddr,
++		       const struct wfc_fw_buffer *read)
++{
++	struct wfc_fw_image capture;
+ 	UINT_32 i;
+ 	WLAN_STATUS u4Status = WLAN_STATUS_SUCCESS;
+ #if defined(MT6797)
+ 	static UINT_8 fgEmiDownloaded = FALSE;
+ #endif
+ 
++	wfc_fw_image_begin(&capture, &prAdapter->prGlueInfo->rHifInfo.capture,
++			   read, pvFwImageMapFile, u4FwImageFileLength, prFwHead);
+ 	/* engage divided firmware downloading */
+ 	for (i = 0; i < prFwHead->u4NumOfEntries; i++) {
++		wfc_fw_image_section(&capture, i);
+ 		if (i < 2) { /* IDLM */
+ 			u4Status = wlanImageSectionDownloadStage(prAdapter,
+ 								 pvFwImageMapFile, i,
+ 								 u4FwImageFileLength, TRUE,
+ 								 u4FwLoadAddr);
+ 			if (u4Status == WLAN_STATUS_FAILURE)
+-				return u4Status;
++				return wfc_fw_image_return(&capture, u4Status);
+ 		}
+ #if defined(MT6797)
+ 		else { /* EMI */
+@@ -879,12 +894,12 @@ wlanImageDividDownload(IN P_ADAPTER_T prAdapter, IN P_FIRMWARE_DIVIDED_DOWNLOAD_
+ 			} else {
+ 				DBGLOG(INIT, ERROR, "consys emi memory address gConEmiPhyBase invalid\n");
+ 				u4Status = WLAN_STATUS_FAILURE;
+-				return u4Status;
++				return wfc_fw_image_return(&capture, u4Status);
+ 			}
+ 		}
+ #endif
+ 	}
+-	return u4Status;
++	return wfc_fw_image_return(&capture, u4Status);
+ }
+ #endif
+ #endif
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/include/wlan_lib.h b/drivers/misc/mediatek/connectivity/wlan/gen3/include/wlan_lib.h
+index fc9a681..531fbed 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/include/wlan_lib.h
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/include/wlan_lib.h
+@@ -692,9 +692,14 @@ wlanSetInformation(IN P_ADAPTER_T prAdapter,
+ 		   IN PFN_OID_HANDLER_FUNC pfOidSetHandler,
+ 		   IN PVOID pvInfoBuf, IN UINT_32 u4InfoBufLen, OUT PUINT_32 pu4SetInfoLen);
+ 
++struct wfc_fw_buffer;
++
+ WLAN_STATUS
+ wlanAdapterStart(IN P_ADAPTER_T prAdapter,
+-		 IN P_REG_INFO_T prRegInfo, IN PVOID pvFwImageMapFile, IN UINT_32 u4FwImageFileLength);
++		 IN P_REG_INFO_T prRegInfo,
++		 IN PVOID pvFwImageMapFile,
++		 IN UINT_32 u4FwImageFileLength,
++		 const struct wfc_fw_buffer *read);
+ 
+ WLAN_STATUS wlanAdapterStop(IN P_ADAPTER_T prAdapter, UINT_32 capture_caller);
+ 
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c
+index 24a9777..50a5484 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c
+@@ -2021,6 +2021,7 @@ static INT_32 wlanProbe(PVOID pvData)
+ 		{
+ 			UINT_32 u4FwSize = 0;
+ 			PVOID prFwBuffer = NULL;
++			struct wfc_fw_buffer capture_buffer;
+ 			P_REG_INFO_T prRegInfo = &prGlueInfo->rRegInfo;
+ 
+ 			/* P_REG_INFO_T prRegInfo = (P_REG_INFO_T) kmalloc(sizeof(REG_INFO_T), GFP_KERNEL); */
+@@ -2040,11 +2041,13 @@ static INT_32 wlanProbe(PVOID pvData)
+ 			prRegInfo->u4PowerMode = CFG_INIT_POWER_SAVE_PROF;
+ 			prRegInfo->fgEnArpFilter = TRUE;
+ 
+-			if (kalFirmwareImageMapping(prGlueInfo, &prFwBuffer, &u4FwSize) == NULL) {
++			if (kalFirmwareImageMapping(prGlueInfo, &prFwBuffer, &u4FwSize,
++						    &capture_buffer) == NULL) {
+ 				i4Status = -EIO;
+ 				goto bailout;
+ 			} else {
+-				if (wlanAdapterStart(prAdapter, prRegInfo, prFwBuffer, u4FwSize) != WLAN_STATUS_SUCCESS)
++				if (wlanAdapterStart(prAdapter, prRegInfo, prFwBuffer, u4FwSize,
++						     &capture_buffer) != WLAN_STATUS_SUCCESS)
+ 					i4Status = -EIO;
+ 			}
+ 
+@@ -2068,7 +2071,7 @@ bailout:
+ 
+ 		prRegInfo->u4PowerMode = CFG_INIT_POWER_SAVE_PROF;
+ 
+-		if (wlanAdapterStart(prAdapter, prRegInfo, NULL, 0) != WLAN_STATUS_SUCCESS) {
++		if (wlanAdapterStart(prAdapter, prRegInfo, NULL, 0, NULL) != WLAN_STATUS_SUCCESS) {
+ 			i4Status = -EIO;
+ 			eFailReason = ADAPTER_START_FAIL;
+ 			break;
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_kal.c b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_kal.c
+index fb29acb..197b038 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_kal.c
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_kal.c
+@@ -387,10 +387,13 @@ static void wfc_fw_read_result(struct wfc_fw_read_trace *trace,
+ 	wfc_fw_read_emit(trace, data, sizeof(data));
+ }
+ 
+-static void wfc_fw_read_return(struct wfc_fw_read_trace *trace,
+-			       bool published, u32 length, bool present)
++static u32 wfc_fw_read_return(struct wfc_fw_read_trace *trace,
++			      bool published,
++			      u32 length,
++			      bool present)
+ {
+ 	u8 data[20];
++	u32 transaction;
+ 
+ 	put_unaligned_le32(11, data);
+ 	put_unaligned_le32(trace->device, data + 4);
+@@ -398,7 +401,9 @@ static void wfc_fw_read_return(struct wfc_fw_read_trace *trace,
+ 	put_unaligned_le32(length, data + 12);
+ 	put_unaligned_le32(present, data + 16);
+ 	wfc_fw_read_emit(trace, data, sizeof(data));
++	transaction = trace->transaction;
+ 	trace->transaction = 0;
++	return transaction;
+ }
+ 
+ static WLAN_STATUS
+@@ -488,15 +493,21 @@ WLAN_STATUS kalFirmwareSize(IN P_GLUE_INFO_T prGlueInfo, OUT PUINT_32 pu4Size)
+ */
+ /*----------------------------------------------------------------------------*/
+ 
+-PVOID kalFirmwareImageMapping(IN P_GLUE_INFO_T prGlueInfo, OUT PPVOID ppvMapFileBuf, OUT PUINT_32 pu4FileLength)
++PVOID kalFirmwareImageMapping(IN P_GLUE_INFO_T prGlueInfo,
++			      OUT PPVOID ppvMapFileBuf,
++			      OUT PUINT_32 pu4FileLength,
++			      struct wfc_fw_buffer *read)
+ {
+ 	struct wfc_fw_read_trace capture;
++	u32 read_id;
+ 
+ 	DEBUGFUNC("kalFirmwareImageMapping");
+ 
+ 	ASSERT(prGlueInfo);
+ 	ASSERT(ppvMapFileBuf);
+ 	ASSERT(pu4FileLength);
++	if (read)
++		memset(read, 0, sizeof(*read));
+ 	wfc_fw_read_begin(&capture, &prGlueInfo->rHifInfo.capture);
+ 
+ 	do {
+@@ -532,7 +543,13 @@ PVOID kalFirmwareImageMapping(IN P_GLUE_INFO_T prGlueInfo, OUT PPVOID ppvMapFile
+ 		*pu4FileLength = u4FwSize;
+ 		*ppvMapFileBuf = prFwBuffer;
+ 
+-		wfc_fw_read_return(&capture, true, u4FwSize, !!prFwBuffer);
++		read_id = wfc_fw_read_return(&capture, true, u4FwSize, !!prFwBuffer);
++		if (read && read_id) {
++			read->buffer = prFwBuffer;
++			read->bytes = u4FwSize;
++			read->read_id = read_id;
++			read->device = capture.device;
++		}
+ 		return prFwBuffer;
+ 
+ 	} while (FALSE);
+@@ -582,7 +599,9 @@ VOID kalFirmwareImageUnmapping(IN P_GLUE_INFO_T prGlueInfo, IN PVOID prFwHandle,
+ */
+ /*----------------------------------------------------------------------------*/
+ 
+-PVOID kalFirmwareImageMapping(IN P_GLUE_INFO_T prGlueInfo, OUT PPVOID ppvMapFileBuf, OUT PUINT_32 pu4FileLength)
++PVOID kalFirmwareImageMapping(IN P_GLUE_INFO_T prGlueInfo,
++			      OUT PPVOID ppvMapFileBuf,
++			      OUT PUINT_32 pu4FileLength)
+ {
+ 	INT_32 i4Ret = 0;
+ 
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/hif_fw_capture.c b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/hif_fw_capture.c
+new file mode 100644
+index 0000000..c1c75f7
+--- /dev/null
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/hif_fw_capture.c
+@@ -0,0 +1,156 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/* Isolated native MT6797 buffer/section observation, not a firmware loader. */
++#include <linux/err.h>
++#include <linux/pstore_ram.h>
++#include <linux/string.h>
++#include <crypto/hash.h>
++#include <crypto/sha.h>
++#include <asm/unaligned.h>
++#include "include/hif_capture.h"
++#include "include/hif_fw_capture.h"
++
++static void wfc_fw_image_fail(struct wfc_fw_image *trace)
++{
++	trace->transaction = 0;
++	wfc_dma_abort();
++}
++
++static bool wfc_fw_image_live(const struct wfc_fw_image *trace)
++{
++	return trace->transaction && !atomic_read(&trace->binding->retired) &&
++		ramoops_capture_active();
++}
++
++static void wfc_fw_image_emit(struct wfc_fw_image *trace,
++			      const u8 *data, size_t bytes)
++{
++	if (!wfc_fw_image_live(trace) ||
++	    ramoops_capture_append(7, trace->transaction, data, bytes))
++		wfc_fw_image_fail(trace);
++}
++
++static int wfc_fw_image_hash(struct wfc_fw_image *trace, u8 *digest)
++{
++	u8 context[sizeof(struct shash_desc) + sizeof(struct sha256_state)]
++		CRYPTO_MINALIGN_ATTR;
++	struct shash_desc *desc = (struct shash_desc *)context;
++	int ret;
++
++	memset(context, 0, sizeof(context));
++	desc->tfm = trace->hash;
++	ret = crypto_shash_digest(desc, trace->buffer, WFC_FW_BYTES, digest);
++	memzero_explicit(context, sizeof(context));
++	return ret;
++}
++
++void wfc_fw_image_begin(struct wfc_fw_image *trace,
++			const struct wfc_dma_trace *binding,
++			const struct wfc_fw_buffer *read,
++			const void *buffer, u32 bytes, const void *header)
++{
++	u8 data[52];
++	u32 i;
++
++	memset(trace, 0, sizeof(*trace));
++	if (!ramoops_capture_active())
++		return;
++	if (!read || !read->read_id || !binding || !binding->device ||
++	    atomic_read(&binding->retired) || read->device != binding->device ||
++	    !buffer || buffer != read->buffer || buffer != header ||
++	    bytes != read->bytes || bytes != WFC_FW_BYTES)
++		goto fail;
++	trace->binding = binding;
++	trace->buffer = buffer;
++	trace->device = read->device;
++	trace->transaction = read->read_id;
++	/* Validate every descriptor before the extra whole-buffer reads. */
++	if (get_unaligned_le32(trace->buffer) != 0x454b544d ||
++	    get_unaligned_le32(trace->buffer + 8) != WFC_FW_SECTIONS)
++		goto fail;
++	for (i = 0; i < WFC_FW_SECTIONS; i++) {
++		const u8 *section = trace->buffer + 24 + i * 16;
++		u32 offset = get_unaligned_le32(section);
++		u32 length = get_unaligned_le32(section + 8);
++		u32 destination = get_unaligned_le32(section + 12);
++
++		if (offset < 24 + WFC_FW_SECTIONS * 16 || offset > bytes ||
++		    !length || length > bytes - offset ||
++		    (u64)destination + length > 0x100000000ULL)
++			goto fail;
++	}
++	trace->hash = crypto_alloc_shash("sha256-generic", 0, 0);
++	if (IS_ERR(trace->hash)) {
++		trace->hash = NULL;
++		goto fail;
++	}
++	if (crypto_shash_descsize(trace->hash) != sizeof(struct sha256_state) ||
++	    crypto_shash_digestsize(trace->hash) != 32 ||
++	    wfc_fw_image_hash(trace, trace->digest))
++		goto free_hash;
++	put_unaligned_le32(5, data);
++	put_unaligned_le32(trace->device, data + 4);
++	put_unaligned_le32(trace->transaction, data + 8);
++	put_unaligned_le32(bytes, data + 12);
++	put_unaligned_le32(WFC_FW_SECTIONS, data + 16);
++	memcpy(data + 20, trace->digest, 32);
++	wfc_fw_image_emit(trace, data, sizeof(data));
++	return;
++
++free_hash:
++	crypto_free_shash(trace->hash);
++	trace->hash = NULL;
++fail:
++	wfc_fw_image_fail(trace);
++}
++
++void wfc_fw_image_section(struct wfc_fw_image *trace, u32 index)
++{
++	const u8 *section;
++	u8 data[36];
++
++	if (!trace->transaction)
++		return;
++	if (!wfc_fw_image_live(trace) || index != trace->next ||
++	    index >= WFC_FW_SECTIONS) {
++		wfc_fw_image_fail(trace);
++		return;
++	}
++	section = trace->buffer + 24 + index * 16;
++	put_unaligned_le32(6, data);
++	put_unaligned_le32(trace->device, data + 4);
++	put_unaligned_le32(trace->transaction, data + 8);
++	put_unaligned_le32(index, data + 12);
++	put_unaligned_le32(get_unaligned_le32(section), data + 16);
++	put_unaligned_le32(get_unaligned_le32(section + 8), data + 20);
++	put_unaligned_le32(get_unaligned_le32(section + 12), data + 24);
++	put_unaligned_le32(section[5], data + 28);
++	put_unaligned_le32(section[4], data + 32);
++	wfc_fw_image_emit(trace, data, sizeof(data));
++	trace->next++;
++}
++
++u32 wfc_fw_image_return(struct wfc_fw_image *trace, u32 status)
++{
++	u8 digest[32] __aligned(4);
++	u8 data[16];
++
++	if (trace->transaction) {
++		if (!wfc_fw_image_live(trace) ||
++		    (!status && trace->next != WFC_FW_SECTIONS) ||
++		    wfc_fw_image_hash(trace, digest) ||
++		    memcmp(trace->digest, digest, sizeof(digest))) {
++			wfc_fw_image_fail(trace);
++		} else {
++			put_unaligned_le32(7, data);
++			put_unaligned_le32(trace->device, data + 4);
++			put_unaligned_le32(trace->transaction, data + 8);
++			put_unaligned_le32(status, data + 12);
++			wfc_fw_image_emit(trace, data, sizeof(data));
++		}
++	}
++	if (trace->hash)
++		crypto_free_shash(trace->hash);
++	memzero_explicit(trace, sizeof(*trace));
++	memzero_explicit(digest, sizeof(digest));
++	return status;
++}
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif.h b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif.h
+index 85b6105..c511366 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif.h
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif.h
+@@ -27,6 +27,7 @@
+ 
+ #include "hif_capture.h"
+ #include "hif_stop_capture.h"
++#include "hif_fw_capture.h"
+ #include "gl_typedef.h"
+ #include "mtk_porting.h"
+ 
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_fw_capture.h b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_fw_capture.h
+new file mode 100644
+index 0000000..ca15fa7
+--- /dev/null
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_fw_capture.h
+@@ -0,0 +1,38 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef _WFC_FW_CAPTURE_H
++#define _WFC_FW_CAPTURE_H
++
++#include <linux/types.h>
++
++#define WFC_FW_BYTES 411632U
++#define WFC_FW_SECTIONS 4U
++
++struct wfc_dma_trace;
++struct crypto_shash;
++
++/* Borrowed only from the synchronous, successful native mapping invocation. */
++struct wfc_fw_buffer {
++	const void *buffer;
++	u32 bytes;
++	u32 read_id;
++	u32 device;
++};
++
++struct wfc_fw_image {
++	const struct wfc_dma_trace *binding;
++	const u8 *buffer;
++	struct crypto_shash *hash;
++	u32 transaction;
++	u32 device;
++	u32 next;
++	u8 digest[32];
++};
++
++void wfc_fw_image_begin(struct wfc_fw_image *trace,
++			const struct wfc_dma_trace *binding,
++			const struct wfc_fw_buffer *read,
++			const void *buffer, u32 bytes, const void *header);
++void wfc_fw_image_section(struct wfc_fw_image *trace, u32 index);
++u32 wfc_fw_image_return(struct wfc_fw_image *trace, u32 status);
++
++#endif
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/include/gl_kal.h b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/include/gl_kal.h
+index 9395361..6bc9b5a 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/include/gl_kal.h
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/include/gl_kal.h
+@@ -772,7 +772,11 @@ VOID kalHandleAssocInfo(IN P_GLUE_INFO_T prGlueInfo, IN P_EVENT_ASSOC_INFO prAss
+ 
+ #if CFG_ENABLE_FW_DOWNLOAD
+ 
+-PVOID kalFirmwareImageMapping(IN P_GLUE_INFO_T prGlueInfo, OUT PPVOID ppvMapFileBuf, OUT PUINT_32 pu4FileLength);
++struct wfc_fw_buffer;
++PVOID kalFirmwareImageMapping(IN P_GLUE_INFO_T prGlueInfo,
++			      OUT PPVOID ppvMapFileBuf,
++			      OUT PUINT_32 pu4FileLength,
++			      struct wfc_fw_buffer *read);
+ 
+ VOID kalFirmwareImageUnmapping(IN P_GLUE_INFO_T prGlueInfo, IN PVOID prFwHandle, IN PVOID pvMapFileBuf);
+ #endif

@@ -1,0 +1,27 @@
+{
+  "source_revision": "59e00a9144d782e148332009a835b99c43382467",
+  "scope": "Unselected native buffer identity and section capture; no controller or device action",
+  "parents": {
+    "drivers/misc/mediatek/connectivity/wlan/gen3/Makefile": "124b81ec1552aae92bc47b501b91f71fec21ce5d746cf194f242dc2b8262d6ad",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c": "75c3edd71acefcbacaa8f045328f93a27fa0070478b16e9591f69b67c303e15d",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/include/wlan_lib.h": "faac618a478a41a961b42f5ec99d574bdc50fb2602d48e5073d1af12ea6d6f0c",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c": "bb40fc6eb4e40d4471dfcbea0b470b21162703afad9821ce6eaf7a7f57326438",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_kal.c": "785e196e96a070930adb27f0587923223b1efec24ba6d0fd28f2500c9adc503a",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif.h": "6c3b27541dc9714329e474bfb1cd7178ad2fbe900793746c35ba2f45694cc507",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/include/gl_kal.h": "090ba29f6e64d9bc527fc018277a4301e033f0c3e9c52e745b5058b4de653eb0"
+  },
+  "outputs": {
+    "drivers/misc/mediatek/connectivity/wlan/gen3/Makefile": "568916c3252edd36edfca9093a25a902675e00455249824a2d174338c62653e5",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c": "9092c96ff992e526e1f9d51912af118db974aba0f2bb8c383ff5666188a93b38",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/include/wlan_lib.h": "e7a4ef0b809ccd189cdb9ee8ce59bea4e02b7dd04493391671441d3d044983a6",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c": "b03283c30a769b52b5979d6b46d1b4f7b09070e59e6edc81f6d4e078d2671a00",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_kal.c": "ade0fc1e792d2fb29a7f47d60c816dea0e08a43542bf8833773d8cb4302756d3",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/hif_fw_capture.c": "4b9f5695fee53f046fdb661721696b2227051ec3778e51f48804a403601115e3",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif.h": "4d188ae15e82379860241da62717173c8979331b25906c454135f56b1b344807",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_fw_capture.h": "5ce54a31dfc95a2d2bee6a4a493cdfd0a9fdb00412b1b79c3e1c3beee0a3126a",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/include/gl_kal.h": "ebd8bd2ecf845356dc021da761e2c1426bf265f75f67cba5192ed1d9b20254e3"
+  },
+  "patch": "0001-wlan-capture-native-firmware-buffer-and-sections.patch",
+  "patch_sha256": "96cd42507694d23d998d4ff3fc1e2c1fc0adaab3ee97d26b991f4182ae5ced33",
+  "replay_and_reverse_verified": true
+}

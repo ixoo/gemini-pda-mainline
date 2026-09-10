@@ -106,3 +106,7 @@ The separate [failure-handling successor](FIRMWARE_READ_SAFETY.md) rejects
 invalid sizes, failed allocations and incomplete reads before mapping
 publication. It deliberately changes those native failure paths while keeping
 this original capture patch and its receipts unchanged.
+
+The unselected [firmware image hooks](FIRMWARE_IMAGE_HOOKS.md) carry the successful
+read witness into native buffer hashing and section records; interval immutability
+and full cycle admission remain unproven.

@@ -87,3 +87,7 @@ They do not treat the adapter-stop return as shutdown evidence.
 The [firmware file-read hooks](FIRMWARE_READ_HOOKS.md) distinguish the actual
 signed read result from the native success return and published unsigned length.
 They establish recorded read extents, not firmware-buffer identity or execution.
+
+The unselected [firmware image hooks](FIRMWARE_IMAGE_HOOKS.md) carry the successful
+read witness into native buffer hashing and section records; interval immutability
+and full cycle admission remain unproven.
