@@ -85,6 +85,10 @@ completion implementation, reset machinery or hardware operation.
 
 `check-startup-objects.py COMMIT --operation-ownership` composes all 24 patches
 and includes the complete `wmt_exp.c` alongside the previous fourteen units.
-Its source-boundary checks, native header dependencies and emitted ownership
-code must pass before a Buildbox receipt establishes compilation. Full kernel
-linking, lock/timing budgets and device admission remain separate.
+The [Buildbox receipt](results/operation-ownership-object-compile.json) records
+successful compilation at `5a63e161522f463c7a9be3f69dfe6b602f8d8bde`, with
+source-boundary and native header-dependency checks and exact remote/local
+validation of all 73 package files. Emitted code retains the queue reference
+before publication, sticky reset error, locked result read and separate worker
+release. Native compile flags include `-w`; this is not warning-clean evidence.
+Full kernel linking, lock/timing budgets and device admission remain separate.

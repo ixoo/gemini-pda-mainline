@@ -1,0 +1,204 @@
+{
+  "project_commit": "5a63e161522f463c7a9be3f69dfe6b602f8d8bde",
+  "source_commit": "59e00a9144d782e148332009a835b99c43382467",
+  "scope": "15 complete translation units; no kernel link or device execution",
+  "patched_header_sha256": "4d188ae15e82379860241da62717173c8979331b25906c454135f56b1b344807",
+  "toolchain_manifest_sha256": "a45d945f092461a611d276ad7d0a0fea1ea8a7f93db413908bcb892c12817d14",
+  "config_sha256": "c96ca5c8a767b93f59487c9b4a1c3d05c1f47c166f3f9ea9f2b7ffe0f6f1f0fb",
+  "config_delta": {
+    "CONFIG_ANBOX": [
+      null,
+      "n"
+    ]
+  },
+  "patches": {
+    "0001-pstore-report-native-pmsg-backend-write-failures.patch": "41a64284f4013ccd7c8bfa7fa0adb78a0b001f289970319310a6cb193848184b",
+    "0002-pstore-preserve-native-records-when-backend-erase-fa.patch": "48b3b5f3bac483c4c85a65cba5756f3b577dd1f9bbb2a723ff1630df02812565",
+    "0003-pstore-preserve-old-log-on-allocation-failure.patch": "f59195e7009ea7dd8299d6d627962338cebdc3d9022e9e3047cedacca283b060",
+    "0004-pstore-reserve-native-pmsg-for-capture.patch": "f79230f50760d4bf45c71660dd65bc68c872e56f953c2bcfecacc9f66b9353cf",
+    "0005-pstore-freeze-native-capture-parameters.patch": "871664dbdf4ea52615e5151e677feacce6f0a84dce2cf2f20a0497eff54e1ae6",
+    "0006-pstore-release-mapped-zones-on-probe-failure.patch": "1f55211e3a156cdc4097d6d460bd5f27d10701d9caeb59707930760edcf78bd1",
+    "0007-pstore-integrate-native-fixed-slot-capture.patch": "f6d7ecd752b8693b3f8b3f226f8fcc9489f74c243f757797fd11549bdc96523b",
+    "0008-arm64-dts-reserve-native-pmsg-without-linear-alias.patch": "20ad1e7ac53a0f8eed94f63529cb054ef4e98b75c92f532c240e14bc33c7ecf6",
+    "0009-pstore-retain-rejected-capture-access-in-tail.patch": "744d6bc4e167e7f2722246c42fd61e92819604d0688af707d97dfff0173d7be9",
+    "0010-pstore-expose-native-capture-activity-to-built-ins.patch": "e063c558c21328d99d7e11d7638a58bebe93642b1e740c7bf3466619f1d6ab97",
+    "0001-wlan-observe-native-AHB-DMA-lifetimes.patch": "40d00262ed2ce3edd5ad46af97f288a2eadde77da5bfdf7dba906ea874191c15",
+    "0001-wlan-capture-native-adapter-stop-decisions.patch": "5175620e3287f01a80d8f009ab3d3112ac4f75ec4186e4c2a35632e15f261291",
+    "0001-wlan-capture-native-firmware-file-read-results.patch": "3a4824ee47f7d9ea304c4c4620200ad23962af8e572539292769c1c804240cb0",
+    "0001-wlan-reject-invalid-native-firmware-mappings.patch": "90eda58094ee09949c6c488bb01e381c7b70dfbebbac3dc53effa16c9335f62d",
+    "0001-wlan-capture-native-firmware-buffer-and-sections.patch": "60219e6d632c5f8dd76e1776212a6761e1e55fde641c3788a21899639d6a969c",
+    "0001-wlan-capture-native-EMI-protection-and-copy.patch": "fc3928153be1c88120dbd794d8b1b03b31af64606dc08f2b604992f6e4e34257",
+    "0001-clk-capture-native-CONN-provider-shutdown.patch": "aa88b970935ba61a14454bd9a85b4e5d014115fed80634e4fe133409ea0d6500",
+    "0001-wmt-check-firmware-version-read.patch": "bf6ee85c12806092e92c5691be16828c3229ee7e221cc2f40d2b33357a5edd5f",
+    "0002-wmt-use-one-startup-attempt.patch": "a48a597e589b5982e699eff0ff093e1a0619de853ca3148706528577c50f9cb4",
+    "0003-wmt-guard-single-patch-reply.patch": "b66b28751e00fcabbc95f30496e14588866cace7ea8a756e414bd7ace9523bfe",
+    "0004-wmt-retain-timed-out-operation.patch": "0c7e51c8f226811eb2534d69008adf445ba440133c3857509d1583757f6f85d2",
+    "0001-wmt-preserve-common-shutdown-errors.patch": "bc225be459254a7b8a5f6fd75b5ffcbcee1176aa1c5aed1531d38108ef355bc0",
+    "0001-wmt-bind-common-OFF-to-native-CONN-provider.patch": "8454ecbbc513507565e6c9d1d79a5f0dd1472e43450557eaa6919f7547c3e786",
+    "0001-wmt-retain-worker-ownership-after-reset-completion.patch": "062b5fe5192763e1b4e027b72d68416dd4bb39e71467f55a5f36d09459ad1621"
+  },
+  "objects": [
+    {
+      "file": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_kal.c",
+      "baseline_source_sha256": "749c5fc0e6cf3614d15e237e2d65cf92858d483ef1d678f6d9aee0f87bf348f1",
+      "baseline_object_sha256": "64a3a105a1620744e9e752ef89c8544f81d33ef56bca893748fed839c80cefd1",
+      "patched_source_sha256": "ade0fc1e792d2fb29a7f47d60c816dea0e08a43542bf8833773d8cb4302756d3",
+      "object_sha256": "d5b685f89b109b9c7bf22a3b7c612073d8a4706765c2b45e7fb5a8259b8ce7e8",
+      "baseline_command_sha256": "9a23843729223d52f4ffca434c10fdd5c26a597f9630fd0506c1fb96a0c25d5a",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c",
+      "baseline_source_sha256": "8a644f0c9f3e37c6f66654cf3aeecb8e5f4cd71405e67f79105da7c8f87a7665",
+      "baseline_object_sha256": "7609bc91b5ffcb55c8ae37121c66871863208fc0aff5bf4a7d84fff0efbfb62b",
+      "patched_source_sha256": "b03283c30a769b52b5979d6b46d1b4f7b09070e59e6edc81f6d4e078d2671a00",
+      "object_sha256": "3bf1074624278ce991300e4e008a12f1aef75a7284555443c678f0d835d12106",
+      "baseline_command_sha256": "823fdbf00749a07cf7aaf02ca743b2d20f17b440ac3aba85ef6592dc7e5c60e4",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c",
+      "baseline_source_sha256": "56bf99536fcb96de5a5198943aec96c9efccb8af89261b29c62046e6560c422f",
+      "baseline_object_sha256": "08b82e70f09ad10f82147136891c74b806a06c2da86897b4ba0fe7a2e5d5cf6a",
+      "patched_source_sha256": "7f5909ad674d3f00a112e810434a27bbe35bea5d7921d00abc9653980c385ae5",
+      "object_sha256": "6be095456f6f0e64d4aeecb32e622f13bc53d36f3e8644328af381379aaae0b1",
+      "baseline_command_sha256": "6a10f869c399311c709b44b88ad362fc0bd49002a28717cabde2254696b5f19f",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic_pwr_mgt.c",
+      "baseline_source_sha256": "413f7b153029a34c3c326fa59ae44b6eace685ae1d53cde9b9cc2b48728ea039",
+      "baseline_object_sha256": "520be3dc982f329124348a751b16d8658ed9c363014f75bfc28e7bbc6c9e3ef2",
+      "patched_source_sha256": "2d012f41d0e6ea0f7a496b4f06605d1180ad2887cc6ae02e521c0792b7f0428b",
+      "object_sha256": "2ea19191cb8669d49e7cfbcbd8db793218007371a3c1c55941e39d0864e75b0d",
+      "baseline_command_sha256": "b3c3effed8b40d1d547d92745fe7a916a44ec28e28391f6e54fbd772f0bcc9dc",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/hif_fw_capture.c",
+      "baseline_source_sha256": null,
+      "baseline_object_sha256": null,
+      "patched_source_sha256": "750241ef768c0232cd0bdeefd18c9500b15186fc18d88bab90c59594a30bb733",
+      "object_sha256": "7553e6de0a2c00c4d68429c4227ea03480cc130438be1718a28f87013ce2ea1b",
+      "baseline_command_sha256": "108cdd942be686edda98f7d93295045ea2b305a6b25c4a5b419a186341dcfe92",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "drivers/misc/mediatek/emi_mpu/emi_reg_rw.c",
+      "baseline_source_sha256": "da41e7d325aa4d3207a38bd566f39680a3b2275db87b4ba0919d266375d858e0",
+      "baseline_object_sha256": "5b409f5808dddd38a526485dee4a065c11db9d8efe85b4263a773addcc404c78",
+      "patched_source_sha256": "a8fa9f8a158ea2006dbf2a5f5d04b252ffca9923bd0bdcc7a363d91e8d89c5d1",
+      "object_sha256": "4e0b887ed42b38844fca9aa4ff6ac5e7a62de381e5ee16247d95651c30e4cec5",
+      "baseline_command_sha256": "7fd608ab59ac1735736849cadba45bf9a489b032d83961baef95545583fa3913",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "drivers/misc/mediatek/emi_mpu/mt6797/emi_mpu.c",
+      "baseline_source_sha256": "39921d80191b674940246425123b52fa140262a7e17022f90f02dd88389932b2",
+      "baseline_object_sha256": "36199b3e6c8371578ff82f7202d27a715208ec4ef48cf4e601ac962d94b1e3b0",
+      "patched_source_sha256": "64329de6544f1067041747bd22cebf5ce455bdf90f1f900b6bd42ee5e3a9acd1",
+      "object_sha256": "5dddcfd0cb4e6fe526d3fbe1cb107a71b7e7395e7bfafb3f1da4715f8b64a54a",
+      "baseline_command_sha256": "8c4b747bfa8c2a960fc240e9581c00273351eb66022c592d6d95c04e43817a2f",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "drivers/clk/mediatek/clk-mt6797-pg.c",
+      "baseline_source_sha256": "4a661ed078bddaba15b7a7a2db27ca59ced8883a1b71c545bbbe24cddd64d58f",
+      "baseline_object_sha256": "bac2fe0e7dc1b38ba5f3e521f68d1a386bffaa165842686e6ae7dedaefcf2b3e",
+      "patched_source_sha256": "38bee9cc3a636bb28d03afe57e086f3ebcf9fa9cc97cfc02d6e12533246a0093",
+      "object_sha256": "88603491429d3a6eb2d780994285f43a6e4294f18914702f2c72069acde3afba",
+      "baseline_command_sha256": "7fc16322325653121fbe5347fe16a7f1da08b28bb75b69c75b01aa580eaf2613",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_ic_soc.c",
+      "baseline_source_sha256": "22d98e9e5f0c9c3cae36a3099e57315ed7808524239a061bf9ab0cf97379e66f",
+      "baseline_object_sha256": "41f96ede384979c404aca01a62a68b9d2b75d6ac0e757fa929c77f7d68ef8d6e",
+      "patched_source_sha256": "c9e2a4a2e0988effa9b7bf0fbb18c98f1f70c2d9ca77547c40b55089d23d5c8e",
+      "object_sha256": "916d729ee0a12872eedc82efe00abf2c36370f1cd1186bc600d02150b6826bd0",
+      "baseline_command_sha256": "b9cc08d74823c8e18700db02b0fbd95a9c47b93cc2b1da9b0acdaa5888502be1",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c",
+      "baseline_source_sha256": "e9f438c5c6033f0bf831347c69d656ec917b3e705648d3d27fb1b27409334f1e",
+      "baseline_object_sha256": "77892893126f84749154409dcc495fe0351222d412f4cc64f33778f74ab5f7bb",
+      "patched_source_sha256": "dea3a69db226fbbbe15f7b4af40c7632464e91a3135dc522f8e06ecc20c7b794",
+      "object_sha256": "6de20672ef68b78021ba6dd3d543601174b75cd9ac4bc8fb9b0d54b071a1aee8",
+      "baseline_command_sha256": "1250688b24475da82ae94065835443837e6cce5f82d2258e309273bd66bf89f3",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_ctrl.c",
+      "baseline_source_sha256": "4fdc36fab251ba206c580268be73d9b9161005821bffe0ad01f3bf8a6b8800ec",
+      "baseline_object_sha256": "73a9342350b2ded06e14c6a6df243af4ec7940c280ca6ff7dd96a40a08305bc8",
+      "patched_source_sha256": "3e8afa9f0100190145a1b8b47592e954f6571d6d183dfa16a16a4c17e0ae11d2",
+      "object_sha256": "68f0b0e201fbbefbd7797b18fd1ba5d5294e13ba69f368add72c9bc5ce884442",
+      "baseline_command_sha256": "306891208025e0fe37a35aeb98a737b8956dd14f88adcaa9ce4b25ca3485c56b",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_lib.c",
+      "baseline_source_sha256": "e363d3377aab1de6f81d94dd482bcdba5eb55884792f45e1688ebf850f991e4f",
+      "baseline_object_sha256": "81b939eae63740bf7daa4807ae991bd96d8f989c809175a1015190936e48880f",
+      "patched_source_sha256": "733c39a9910a567b1607d93406fdb4572173166e4cc808622a69e83f744e9db2",
+      "object_sha256": "1e42b254716c5d6baf2a1613eaf12bc18872e15f7cfc3af632051923daf390d5",
+      "baseline_command_sha256": "b32b742f18bbe809a5701951d80cf8cba8ac3122f7595d659fce2607cd05447a",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_dev.c",
+      "baseline_source_sha256": "d7be291ca5e2962be24def406260b5bb21a4b85438f64a1064944686a84fd62e",
+      "baseline_object_sha256": "ae50d0d6148cc3c920c71cf7b8dc03c92c3e8c38cb33b2845d957e9ee6a30b4e",
+      "patched_source_sha256": "0584c47aafebca6d09f519b20c8cc0c084d1128e797516cd7da753631f79ef1c",
+      "object_sha256": "9828616ee179f2bad236587672dc25688f989ca12902b16ea3ade280a8c324fb",
+      "baseline_command_sha256": "3dfd8db2413cb73cd563b4d15812dddeee4e8bac56ec46cb3495bf80ff08bcf0",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c",
+      "baseline_source_sha256": "0ec8e9c1594626d0b31f2d2623927d614f63af4437c16df838e10e11258663ce",
+      "baseline_object_sha256": "144cd3df9471ce972d1623b9942ea2f60193917ac11b34671024e11e9e6e1461",
+      "patched_source_sha256": "bd17b2c83e0d9b115a54f54cb9b5daa43e748bab1a0a35c261dfa07ec762b979",
+      "object_sha256": "9bae4d8b9825a5ef352fdfcb72dc32341e384224b431de8cb6021244d4428b71",
+      "baseline_command_sha256": "c2bba39794129c835f712b9e2243a9fa358830db232ae7f3d78092ee7eebd3b1",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    },
+    {
+      "file": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_exp.c",
+      "baseline_source_sha256": "9ee1dfe7f361c02d24b1c443d2e1ef13d7b054509feb2d5dfc00f2620a5d6b12",
+      "baseline_object_sha256": "984f186e8ae4382d869896ce12cdc36f51b2dd1123f08987579fbead0b5fcc04",
+      "patched_source_sha256": "8e240ea6bc5226aba9d070b99c33566309ed0d974cc4cd9de4494218810f888d",
+      "object_sha256": "00e87ddb1b04904cc177d7beade19c9cbb6717a87c0d97d85926c8146614daf6",
+      "baseline_command_sha256": "3434c9a8e23e50f673697a431845896d80e862556bede479975d802f67303db1",
+      "patched_header_dependency_verified": true,
+      "diagnostics_bytes": 0
+    }
+  ],
+  "package_files": 73,
+  "package_inventory_sha256": "91e5d82386b63b6dc025dee5f25fc160a45ba279d3499a217f561318d1b100e8",
+  "remote_and_local_inventory_verified": true,
+  "validation_limits": [
+    "Fifteen complete native translation units compile with all 24 composed patches. Baseline objects use the original public source, not the preceding capture parent.",
+    "Emitted submitter increments queue ownership under the mutex before publication. Release decrements under the mutex, unlocks, and inserts into the free queue only when the count reaches zero.",
+    "Emitted reset marks the sticky bit before signaling -1 under the mutex. Completion skips result overwrite when that bit is set, clears the matching current pointer, signals, unlocks, and drops the queue/worker reference. Waiter copies the result under the same mutex.",
+    "Worker EXIT comparison uses the cached opcode after completion. Selected function-control wrapper logs its saved parameters after submission returns. Native hardware/software reset calls remain present.",
+    "Native compiler flags include -w; empty diagnostics do not establish warning-clean code.",
+    "Thirteen directed pthread fixture cases exercise actual selected WMT functions with injected queues/core execution. They do not execute the kernel completion implementation or real reset machinery.",
+    "No full kernel link, reset/resource isolation, repair of other diagnostic clients post-submit accesses, library reinitialization support, whole-request capture attribution, timing budget, boot candidate or device execution."
+  ]
+}
