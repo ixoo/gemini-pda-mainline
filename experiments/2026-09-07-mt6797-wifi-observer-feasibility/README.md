@@ -99,3 +99,7 @@ visibility and candidate admission remain separate.
 The unselected [provider OFF hooks](PROVIDER_OFF_HOOKS.md) retain actual CONN
 state, protection, control and terminal condition observations. Common-owner
 attribution and isolation still require their own producers and joins.
+
+The unselected [common OFF hooks](COMMON_OFF_HOOKS.md) now bind that provider
+to the synchronous common-power call and actual clock callback. The outer
+ioctl/worker join and broader consumer isolation remain separate.

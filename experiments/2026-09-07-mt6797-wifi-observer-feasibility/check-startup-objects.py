@@ -107,14 +107,15 @@ def main():
     mode = sys.argv[2] if len(sys.argv) == 3 else "--wmt"
     assert mode in ("--wmt", "--pstore", "--capture-writer", "--dma", "--stop",
                     "--firmware-read", "--firmware-read-safe", "--firmware-image", "--emi", "--provider-off",
-                    "--common-off-safe")
+                    "--common-off-safe", "--common-off")
+    common_off = mode == "--common-off"
     common_off_safe = mode == "--common-off-safe"
     capture = mode == "--capture-writer"
-    provider_off = mode == "--provider-off"
+    provider_off = mode == "--provider-off" or common_off
     emi_capture = mode == "--emi" or provider_off
     firmware_image = mode == "--firmware-image" or emi_capture
     firmware_safe = mode == "--firmware-read-safe" or firmware_image
-    firmware_read = mode in ("--firmware-read", "--firmware-read-safe", "--firmware-image", "--emi", "--provider-off")
+    firmware_read = mode == "--firmware-read" or firmware_safe
     stop = mode == "--stop" or firmware_read
     dma = mode == "--dma" or stop
     pstore = mode in ("--pstore", "--capture-writer")
@@ -147,6 +148,11 @@ def main():
     if provider_off:
         files += ("drivers/clk/mediatek/clk-mt6797-pg",)
         label = "wifi-provider-off-objects-"
+    common_headers = RELATIVE + "core/include"
+    if common_off:
+        files += tuple(RELATIVE + name for name in FILES)
+        files += (RELATIVE + "mt6797/mtk_wcn_consys_hw",)
+        label = "wifi-common-off-objects-"
     def unit_path(name):
         return name if name.startswith("drivers/") else relative + name
     assert not run(["git", "-C", str(project), "status", "--porcelain"])
@@ -235,18 +241,30 @@ def main():
                 patches += sorted((experiment / "patches/provider-off").glob("*.patch"))
                 for path in (source / "drivers/clk/mediatek").glob("*.h"):
                     shutil.copyfile(path, patched / "drivers/clk/mediatek" / path.name)
+            if common_off:
+                shutil.copytree(source / common_headers, patched / common_headers)
+                for path in (source / RELATIVE / "mt6797").glob("*.h"):
+                    shutil.copyfile(path, patched / RELATIVE / "mt6797" / path.name)
+                patches += sorted((experiment / "patches").glob("*.patch"))
+                patches += sorted((experiment / "patches/common-off-errors").glob("*.patch"))
+                patches += sorted((experiment / "patches/common-off").glob("*.patch"))
             for extra in ("include/linux/pstore_ram.h", "arch/arm64/boot/dts/mt6797.dtsi",
                           "drivers/misc/mediatek/connectivity/wlan/gen3/Makefile",
                           "fs/pstore/ram.c", "fs/pstore/ram_core.c", "fs/pstore/internal.h",
                           "fs/pstore/pmsg.c", "fs/pstore/inode.c"):
                 (patched / extra).parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(source / extra, patched / extra)
-        assert len(patches) == (17 if provider_off else 16 if emi_capture else 15 if firmware_image else 14 if firmware_safe else 13 if firmware_read else 12 if stop else 11 if dma else 0 if capture else 10 if pstore else 5 if common_off_safe else 4)
+        assert len(patches) == (23 if common_off else 17 if provider_off else 16 if emi_capture else 15 if firmware_image else 14 if firmware_safe else 13 if firmware_read else 12 if stop else 11 if dma else 0 if capture else 10 if pstore else 5 if common_off_safe else 4)
         for patch in patches:
-            if common_off_safe and patch.parent.name == "common-off-errors":
+            if (common_off_safe or common_off) and patch.parent.name == "common-off-errors":
                 common_pins = json.loads((experiment / "results/common-off-errors-sources.json").read_text())
                 assert digest(patch) == common_pins["patch_sha256"]
                 for path, expected in common_pins["parents"].items():
+                    assert digest(patched / path) == expected, path
+            if common_off and patch.parent.name == "common-off":
+                common_capture_pins = json.loads((experiment / "results/common-off-capture-sources.json").read_text())
+                assert digest(patch) == common_capture_pins["patch_sha256"]
+                for path, expected in common_capture_pins["parents"].items():
                     assert digest(patched / path) == expected, path
             if stop and patch.parent.name == "stop":
                 stop_pins = json.loads((experiment / "results/stop-capture-sources.json").read_text())
@@ -279,8 +297,11 @@ def main():
                 for path, expected in off_pins["parents"].items():
                     assert digest(patched / path) == expected, path
             subprocess.run(["git", "apply", str(patch)], cwd=patched, check=True)
-            if common_off_safe and patch.parent.name == "common-off-errors":
+            if (common_off_safe or common_off) and patch.parent.name == "common-off-errors":
                 for path, expected in common_pins["outputs"].items():
+                    assert digest(patched / path) == expected, path
+            if common_off and patch.parent.name == "common-off":
+                for path, expected in common_capture_pins["outputs"].items():
                     assert digest(patched / path) == expected, path
             if provider_off and patch.parent.name == "provider-off":
                 for path, expected in off_pins["outputs"].items():
@@ -334,6 +355,7 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
             name = Path(relative_name).name
             suffix = unit_path(relative_name) + ".c"
             wlan_unit = dma and suffix.startswith(relative)
+            common_unit = common_off and suffix.startswith(RELATIVE)
             template = relative + hif + "ahb.c" if dma and name in ("hif_capture", "hif_stop_capture", "hif_fw_capture") else suffix
             lines = [line for line in recorded.read_text().splitlines()
                      if " -c " in line and line.endswith("/" + template)]
@@ -353,6 +375,8 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
             args[args.index("-o") + 1] = str(result)
             args[-1] = str(patched / suffix)
             args.insert(1, "-I" + str(patched / headers))
+            if common_unit:
+                args.insert(1, "-I" + str(patched / common_headers))
             if emi_capture:
                 args.insert(1, "-I" + str((patched / emi_header).parent.parent))
             if firmware_image:
@@ -368,10 +392,24 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
             with (work / (name + ".log")).open("w") as stream:
                 compile_logged(args, stream, cwd=output, env=environment, timeout=120)
             dependencies = (work / (name + ".d")).read_text().replace("\\\n", " ").split()
-            if common_off_safe and name == "wmt_core":
+            if (common_off_safe or common_off) and name == "wmt_core":
                 disassembly = run([str(toolchain / "wrappers/aarch64-linux-gnu-objdump"),
                                    "-dr", str(result)], env=environment)
                 (work / "wmt_core-errors.disasm").write_text(disassembly + "\n")
+            if common_unit:
+                assert "-DMODULE" not in args
+                if name != "mtk_wcn_consys_hw":
+                    assert str(patched / common_headers / "wmt_ctrl.h") in dependencies
+                    assert str(source / common_headers / "wmt_ctrl.h") not in dependencies
+                if name in ("wmt_core", "mtk_wcn_consys_hw"):
+                    assert str(patched / "include/linux/mt6797_wifi_capture.h") in dependencies
+                    disassembly = run([str(toolchain / "wrappers/aarch64-linux-gnu-objdump"),
+                                       "-dr", str(result)], env=environment)
+                    calls = ("common_off_begin", "common_off_end") if name == "wmt_core" else ("clock_off_begin", "clock_off_end")
+                    for call in calls:
+                        assert "mt6797_wfc_" + call in disassembly
+                    if name == "mtk_wcn_consys_hw":
+                        (work / "mtk_wcn_consys_hw-common.disasm").write_text(disassembly + "\n")
             if not pstore and (not dma or wlan_unit) and name not in ("hif_capture", "hif_stop_capture", "hif_fw_capture"):
                 assert str(patched / header) in dependencies, name
                 assert str(source / header) not in dependencies, name
@@ -427,6 +465,10 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
                 for included in ("clk-mt6797-wfc.h", "clk-mt6797-pg.h", "clk-mtk-v1.h"):
                     assert str(patched / "drivers/clk/mediatek" / included) in dependencies
                     assert str(source / "drivers/clk/mediatek" / included) not in dependencies
+                if common_off:
+                    for included in ("drivers/clk/mediatek/clk-mt6797-wfc-common.h",
+                                     "include/linux/mt6797_wifi_capture.h"):
+                        assert str(patched / included) in dependencies
                 assert str(patched / "include/linux/pstore_ram.h") in dependencies
                 assert "-DMODULE" not in args
                 disassembly = run([str(toolchain / "wrappers/aarch64-linux-gnu-objdump"),

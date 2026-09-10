@@ -1,0 +1,328 @@
+From 13f5267e1a18707f5ef22b808a72cda846edee88 Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <experiment@invalid.example>
+Date: Thu, 10 Sep 2026 09:10:17 -0400
+Subject: [PATCH] wmt: bind common OFF to native CONN provider
+
+Scope one synchronous function-off common-power request by its calling
+task and actual CCF clock hardware object. Record common and clock entry,
+provider callback binding and returns around the existing native calls.
+Require the provider observation to bind inside that scope.
+
+Keep native operations, clock reference handling and returned results.
+Missing, repeated or mismatched callbacks fail capture without repairing
+or retrying the native sequence. No pointer identity is published.
+
+This unselected native experiment is not an upstream ABI or boot candidate.
+The synthetic archive identity supplies no author certification.
+---
+ drivers/clk/mediatek/clk-mt6797-pg.c          |   2 +
+ drivers/clk/mediatek/clk-mt6797-wfc-common.h  | 178 ++++++++++++++++++
+ drivers/clk/mediatek/clk-mt6797-wfc.h         |   3 +
+ .../common/common_main/core/wmt_core.c        |   3 +
+ .../common_main/mt6797/mtk_wcn_consys_hw.c    |   6 +
+ include/linux/mt6797_wifi_capture.h           |  12 ++
+ 6 files changed, 204 insertions(+)
+ create mode 100644 drivers/clk/mediatek/clk-mt6797-wfc-common.h
+ create mode 100644 include/linux/mt6797_wifi_capture.h
+
+diff --git a/drivers/clk/mediatek/clk-mt6797-pg.c b/drivers/clk/mediatek/clk-mt6797-pg.c
+index cd43fee..6d8f4c1 100644
+--- a/drivers/clk/mediatek/clk-mt6797-pg.c
++++ b/drivers/clk/mediatek/clk-mt6797-pg.c
+@@ -2512,10 +2512,12 @@ void pg_unprepare(struct clk_hw *hw)
+ 		 pg->pre_clk ? __clk_get_name(pg->pre_clk) : "");
+ #endif				/* MT_CCF_DEBUG */
+ 
++	wfc_common_pg_begin(hw, pg->pd_id);
+ 	pg_disable(hw);
+ 
+ 	if (pg->pre_clk)
+ 		clk_disable_unprepare(pg->pre_clk);
++	wfc_common_pg_end(pg->pd_id);
+ }
+ 
+ static const struct clk_ops mt_power_gate_ops = {
+diff --git a/drivers/clk/mediatek/clk-mt6797-wfc-common.h b/drivers/clk/mediatek/clk-mt6797-wfc-common.h
+new file mode 100644
+index 0000000..d010444
+--- /dev/null
++++ b/drivers/clk/mediatek/clk-mt6797-wfc-common.h
+@@ -0,0 +1,178 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/* One synchronous common OFF scope; pointers are compared, never published. */
++#ifndef _MT6797_WFC_COMMON_H
++#define _MT6797_WFC_COMMON_H
++
++#include <linux/clk-provider.h>
++#include <linux/mt6797_wifi_capture.h>
++#include <linux/sched.h>
++#include <linux/spinlock.h>
++
++enum wfc_common_stage {
++	WFC_COMMON_UNUSED,
++	WFC_COMMON_ROOT,
++	WFC_COMMON_CLOCK,
++	WFC_COMMON_PG,
++	WFC_COMMON_PROVIDER,
++	WFC_COMMON_PG_DONE,
++	WFC_COMMON_CLOCK_DONE,
++	WFC_COMMON_DONE,
++	WFC_COMMON_FAILED,
++};
++
++static DEFINE_RAW_SPINLOCK(wfc_common_lock);
++static enum wfc_common_stage wfc_common_stage;
++static struct task_struct *wfc_common_task;
++static struct clk_hw *wfc_common_hw;
++
++static void wfc_common_fail(void)
++{
++	u8 status[4];
++
++	wfc_common_stage = WFC_COMMON_FAILED;
++	wfc_common_task = NULL;
++	wfc_common_hw = NULL;
++	put_unaligned_le32(2, status);
++	if (ramoops_capture_active())
++		ramoops_capture_append(255, 0, status, sizeof(status));
++}
++
++static void wfc_common_emit(const u32 *words, size_t count)
++{
++	u8 data[16];
++	size_t i;
++
++	if (count > sizeof(data) / sizeof(u32)) {
++		wfc_common_fail();
++		return;
++	}
++	for (i = 0; i < count; i++)
++		put_unaligned_le32(words[i], data + i * 4);
++	if (!ramoops_capture_active() ||
++	    ramoops_capture_append(10, 1, data, count * 4))
++		wfc_common_fail();
++}
++
++void mt6797_wfc_common_off_begin(unsigned int type, int function_status)
++{
++	unsigned long flags;
++	u32 words[] = {1, 1, type, function_status};
++
++	if (!ramoops_capture_active())
++		return;
++	raw_spin_lock_irqsave(&wfc_common_lock, flags);
++	if (wfc_common_stage != WFC_COMMON_UNUSED) {
++		wfc_common_fail();
++	} else {
++		wfc_common_task = current;
++		wfc_common_stage = WFC_COMMON_ROOT;
++		wfc_common_emit(words, ARRAY_SIZE(words));
++	}
++	raw_spin_unlock_irqrestore(&wfc_common_lock, flags);
++}
++
++void mt6797_wfc_clock_off_begin(struct clk *clk)
++{
++	unsigned long flags;
++	struct clk_hw *hw;
++	u32 words[] = {2, 1, 1};
++
++	if (!ramoops_capture_active())
++		return;
++	hw = IS_ERR_OR_NULL(clk) ? NULL : __clk_get_hw(clk);
++	raw_spin_lock_irqsave(&wfc_common_lock, flags);
++	if (wfc_common_task != current ||
++	    wfc_common_stage != WFC_COMMON_ROOT || !hw) {
++		wfc_common_fail();
++	} else {
++		wfc_common_hw = hw;
++		wfc_common_stage = WFC_COMMON_CLOCK;
++		wfc_common_emit(words, ARRAY_SIZE(words));
++	}
++	raw_spin_unlock_irqrestore(&wfc_common_lock, flags);
++}
++
++static void wfc_common_pg_begin(struct clk_hw *hw, unsigned int id)
++{
++	unsigned long flags;
++	u32 words[] = {3, 1, id, 1};
++
++	if (id != SYS_CONN || !ramoops_capture_active())
++		return;
++	raw_spin_lock_irqsave(&wfc_common_lock, flags);
++	if (wfc_common_task != current ||
++	    wfc_common_stage != WFC_COMMON_CLOCK || wfc_common_hw != hw) {
++		wfc_common_fail();
++	} else {
++		wfc_common_stage = WFC_COMMON_PG;
++		wfc_common_emit(words, ARRAY_SIZE(words));
++	}
++	raw_spin_unlock_irqrestore(&wfc_common_lock, flags);
++}
++
++static bool wfc_common_provider_bind(void)
++{
++	unsigned long flags;
++	bool bound = false;
++
++	if (!ramoops_capture_active())
++		return false;
++	raw_spin_lock_irqsave(&wfc_common_lock, flags);
++	if (wfc_common_task != current || wfc_common_stage != WFC_COMMON_PG) {
++		wfc_common_fail();
++	} else {
++		wfc_common_stage = WFC_COMMON_PROVIDER;
++		bound = true;
++	}
++	raw_spin_unlock_irqrestore(&wfc_common_lock, flags);
++	return bound;
++}
++
++static void wfc_common_advance(enum wfc_common_stage expected,
++			       enum wfc_common_stage next, const u32 *words,
++			       size_t count)
++{
++	unsigned long flags;
++
++	if (!ramoops_capture_active())
++		return;
++	raw_spin_lock_irqsave(&wfc_common_lock, flags);
++	if (wfc_common_task != current || wfc_common_stage != expected) {
++		wfc_common_fail();
++	} else {
++		wfc_common_stage = next;
++		wfc_common_emit(words, count);
++		if (next == WFC_COMMON_DONE) {
++			wfc_common_task = NULL;
++			wfc_common_hw = NULL;
++		}
++	}
++	raw_spin_unlock_irqrestore(&wfc_common_lock, flags);
++}
++
++static void wfc_common_pg_end(unsigned int id)
++{
++	u32 words[] = {4, 1};
++
++	if (id == SYS_CONN)
++		wfc_common_advance(WFC_COMMON_PROVIDER, WFC_COMMON_PG_DONE,
++				   words, ARRAY_SIZE(words));
++}
++
++void mt6797_wfc_clock_off_end(void)
++{
++	u32 words[] = {5, 1};
++
++	wfc_common_advance(WFC_COMMON_PG_DONE, WFC_COMMON_CLOCK_DONE,
++			   words, ARRAY_SIZE(words));
++}
++
++void mt6797_wfc_common_off_end(int power_status, int function_status)
++{
++	u32 words[] = {6, 1, power_status, function_status};
++
++	wfc_common_advance(WFC_COMMON_CLOCK_DONE, WFC_COMMON_DONE,
++			   words, ARRAY_SIZE(words));
++}
++
++#endif
+diff --git a/drivers/clk/mediatek/clk-mt6797-wfc.h b/drivers/clk/mediatek/clk-mt6797-wfc.h
+index 29489bf..d57d336 100644
+--- a/drivers/clk/mediatek/clk-mt6797-wfc.h
++++ b/drivers/clk/mediatek/clk-mt6797-wfc.h
+@@ -5,6 +5,7 @@
+ 
+ #include <linux/pstore_ram.h>
+ #include <asm/unaligned.h>
++#include "clk-mt6797-wfc-common.h"
+ 
+ struct wfc_off_trace {
+ 	u32 transaction;
+@@ -70,6 +71,8 @@ static void wfc_off_init(struct wfc_off_trace *trace, unsigned int id)
+ 	trace->transaction = 1;
+ 	if (atomic_inc_return(&wfc_off_attempts) != 1)
+ 		wfc_off_fail(trace);
++	else if (!wfc_common_provider_bind())
++		trace->transaction = 0;
+ }
+ 
+ static void wfc_off_entry(struct wfc_off_trace *trace, u32 route, bool callback)
+diff --git a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c b/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c
+index 1ce35bf..060aa07 100644
+--- a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c
++++ b/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c
+@@ -37,6 +37,7 @@
+ *                    E X T E R N A L   R E F E R E N C E S
+ ********************************************************************************
+ */
++#include <linux/mt6797_wifi_capture.h>
+ #include "osal_typedef.h"
+ 
+ #include "wmt_lib.h"
+@@ -1353,6 +1354,7 @@ static INT32 opfunc_func_off(P_WMT_OP pWmtOp)
+ 	    (DRV_STS_POWER_OFF == gMtkWmtCtx.eDrvStatus[WMTDRV_TYPE_COREDUMP])) {
+ 		WMT_INFO_FUNC("WMT-CORE:Fun(%d) [POWER_OFF] and power down chip\n", drvType);
+ 
++		mt6797_wfc_common_off_begin(drvType, iRet);
+ 		pwrOffRet = opfunc_pwr_off(pWmtOp);
+ 		if (pwrOffRet) {
+ 			WMT_ERR_FUNC("WMT-CORE: wmt_pwr_off fail(%d) when turn off func(%d)\n",
+@@ -1361,6 +1363,7 @@ static INT32 opfunc_func_off(P_WMT_OP pWmtOp)
+ 		}
+ 		if (!iRet)
+ 			iRet = pwrOffRet;
++		mt6797_wfc_common_off_end(pwrOffRet, iRet);
+ 	}
+ 
+ 	wmt_core_dump_func_state("AF FUNC OFF");
+diff --git a/drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c b/drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c
+index 045fc78..d75c22c 100644
+--- a/drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c
++++ b/drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c
+@@ -35,6 +35,8 @@
+ *                    E X T E R N A L   R E F E R E N C E S
+ ********************************************************************************
+ */
++#include <linux/mt6797_wifi_capture.h>
++
+ #if defined(CONFIG_MTK_CLKMGR)
+ #include <mt_clkmgr.h>
+ #else
+@@ -629,7 +631,9 @@ INT32 mtk_wcn_consys_hw_reg_ctrl(UINT32 on, UINT32 co_clock_type)
+ 			WMT_PLAT_ERR_FUNC("conn_power_off fail(%d)\n", iRet);
+ 		WMT_PLAT_DBG_FUNC("conn_power_off ok\n");
+ #else
++		mt6797_wfc_clock_off_begin(clk_scp_conn_main);
+ 		clk_disable_unprepare(clk_scp_conn_main);
++		mt6797_wfc_clock_off_end();
+ 		WMT_PLAT_DBG_FUNC("clk_disable_unprepare(clk_scp_conn_main) calling\n");
+ #endif /* defined(CONFIG_MTK_CLKMGR) */
+ #else
+@@ -686,7 +690,9 @@ INT32 mtk_wcn_consys_hw_reg_ctrl(UINT32 on, UINT32 co_clock_type)
+ 			WMT_PLAT_ERR_FUNC("conn_power_off fail(%d)\n", iRet);
+ 		WMT_PLAT_DBG_FUNC("conn_power_off ok\n");
+ #else
++		mt6797_wfc_clock_off_begin(clk_scp_conn_main);
+ 		clk_disable_unprepare(clk_scp_conn_main);
++		mt6797_wfc_clock_off_end();
+ 		WMT_PLAT_DBG_FUNC("clk_disable_unprepare(clk_scp_conn_main) calling\n");
+ #endif /* defined(CONFIG_MTK_CLKMGR) */
+ #else
+diff --git a/include/linux/mt6797_wifi_capture.h b/include/linux/mt6797_wifi_capture.h
+new file mode 100644
+index 0000000..24d2731
+--- /dev/null
++++ b/include/linux/mt6797_wifi_capture.h
+@@ -0,0 +1,12 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef _LINUX_MT6797_WIFI_CAPTURE_H
++#define _LINUX_MT6797_WIFI_CAPTURE_H
++
++struct clk;
++
++void mt6797_wfc_common_off_begin(unsigned int type, int function_status);
++void mt6797_wfc_common_off_end(int power_status, int function_status);
++void mt6797_wfc_clock_off_begin(struct clk *clk);
++void mt6797_wfc_clock_off_end(void);
++
++#endif

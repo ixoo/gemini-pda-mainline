@@ -593,6 +593,44 @@ def check_provider_off(data, expected_cycle):
             'scope': 'recorded CONN provider OFF operation consistency only'}
 
 
+COMMON_OFF_LAYOUTS = {1: struct.Struct('<IIIi'), 2: struct.Struct('<3I'),
+                      3: struct.Struct('<4I'), 4: struct.Struct('<2I'),
+                      5: struct.Struct('<2I'), 6: struct.Struct('<IIii')}
+
+
+def check_common_off(data, expected_cycle):
+    """Join the synchronous common/CCF/provider scope; no outer ioctl proof."""
+    check_provider_off(data, expected_cycle)
+    decoded = decode(data, expected_cycle)
+    if any(row['kind'] == TERMINAL and int.from_bytes(row['payload'], 'little') != 1 for row in decoded):
+        raise ValueError('common OFF capture has a failed producer terminal')
+    records = [row for row in decoded if row['kind'] in (9, 10)]
+    order = [(10, n) for n in (1, 2, 3)] + [(9, n) for n in (3, 4, 5, 6, 7, 8, 1, 2, 9)] + [(10, n) for n in (4, 5, 6)]
+    if [(row['kind'], int.from_bytes(row['payload'][:4], 'little')) for row in records] != order:
+        raise ValueError('missing, repeated or reordered common/provider scope')
+    transaction = records[0]['transaction']
+    common_id = int.from_bytes(records[0]['payload'][4:8], 'little')
+    if not transaction or not common_id:
+        raise ValueError('common OFF requires invocation and owner ordinals')
+    values = {}
+    for row in records:
+        if row['transaction'] != transaction or int.from_bytes(row['payload'][4:8], 'little') != common_id:
+            raise ValueError('common/provider identity mismatch')
+        if row['kind'] == 10:
+            subtype = int.from_bytes(row['payload'][:4], 'little')
+            layout = COMMON_OFF_LAYOUTS[subtype]
+            if len(row['payload']) != layout.size:
+                raise ValueError('invalid common OFF payload size')
+            values[subtype] = layout.unpack(row['payload'])
+    expected = {1: (1, common_id, 3, 0), 2: (2, common_id, 1),
+                3: (3, common_id, 1, 1), 4: (4, common_id),
+                5: (5, common_id), 6: (6, common_id, 0, 0)}
+    if values != expected:
+        raise ValueError('common OFF route, binding or result rejected')
+    return {'checked_common_operation': transaction, 'checked_provider_operation': transaction,
+            'scope': 'recorded synchronous common/CCF/provider attribution; outer ioctl and isolation unchecked'}
+
+
 def _image_metadata(data, expected_cycle, expected_hash, expected_image_bytes, expected_sections):
     """Validate one successful image operation against independently supplied metadata."""
     if len(expected_hash) != 32 or not any(expected_hash) or len(expected_sections) < 3:
