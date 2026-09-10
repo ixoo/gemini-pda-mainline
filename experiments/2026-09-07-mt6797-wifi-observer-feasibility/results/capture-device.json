@@ -5,11 +5,11 @@
     "startup-init.sh": "e7a67ba313196a2dfa9884383d41ed785a9bc69117c09b7c1d0ce940b79b6f5a",
     "startup.py": "a0f4965b31d363d2524c7ccc042e4b31c1f59f88a68d538d833e21e3bc26070a",
     "capture-device.py": "d8cec3b76c1bbc3154c947de626cecc5edb1d6305e4130e5acb28884d5d06f6a",
-    "capture-export.py": "f921a6e2778b465a0851983130b25cf7b455e1eb6ee683f1a73e8782e1b9fb59",
+    "capture-export.py": "cc8d907b18a3669ab5dc4c86a159110cebf4aeea217098d93e2669be456de92b",
     "build-startup-filesystem.py": "a6c46434eb478a1cd74a4bfa83d1a1dc2a69190e44afebc43f941637c02ed2de",
     "test-startup.py": "61df698d7e9760f4a055aa3782c1497cba2cda40b6cacb3093dba3e12b24064f",
     "test-capture-device.py": "cfb2f2200bb311405bdb639799677abe92b7ca15913a9c93e49fbb62049e2fad",
-    "test-capture-export.py": "622566f62ac817f5e56385bd474e90782a12c4842b2e367bd8efbf2bdb0639eb",
+    "test-capture-export.py": "f755710eba80393465e403233a3840c94fa194632bff18157b908d3077a8d69a",
     "test-capture-reader.py": "e7ff49464a6668b70a2a2912542493a972e8209bb53f6564d3159ce14dd4f7fc"
   },
   "native_parent_input_sha256": "c0f3331aca86b448d4b1821507a0a98732cd882683dba67ae8e7ae04107ffe33",
@@ -29,16 +29,27 @@
   "selected_46_patch_inputs_sha256": "bbefddd06bc41e62bf127fadb5f015ce5b040ae7c149d345bcbe76d432da13dc",
   "tests": {
     "startup_host_and_arm64_re_vm": "13 passed each",
-    "stream_host_and_arm64_re_vm": "9 passed each",
+    "stream_host_and_arm64_re_vm": "10 passed on host and packaged ARM64 runtime",
     "device_bridge_host_and_arm64_re_vm": "4 groups passed each; USB controls and device identity injected",
     "reader_native_bodies_host": "parent metadata confusion reproduced; child corrected; ordinary paths and allocation refusal preserved",
     "shell_syntax_and_shellcheck": "passed",
     "strict_checkpatch": "passed using Linux 7.1.3; only MISSING_SIGN_OFF excluded"
   },
-  "native_46_patch_link": "pending",
-  "packaged_runtime_tested": false,
+  "native_46_patch_link": "passed; full-kernel-link-46.json",
+  "packaged_runtime_tested": true,
   "device_export_tested": false,
   "clearing_implemented": false,
   "radio_triggered": false,
-  "boot_candidate_selected": false
+  "boot_candidate_selected": false,
+  "linked_reader": {
+    "function": "ramoops_pstore_read",
+    "address": "ffffffc0002d09d8",
+    "size_bytes": 648,
+    "frame_bytes": 112,
+    "capture_pmsg_type": 7,
+    "capture_branch": "ffffffc0002d0b14 -> ffffffc0002d0b64",
+    "zero_time_store": "ffffffc0002d0b64",
+    "zero_compressed_store": "ffffffc0002d0b68",
+    "capture_branch_bypasses_both_sscanf_calls": true
+  }
 }

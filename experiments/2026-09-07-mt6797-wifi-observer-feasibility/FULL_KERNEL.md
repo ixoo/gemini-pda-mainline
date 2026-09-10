@@ -90,3 +90,14 @@ commands retain `-w`; this is not warning-clean evidence. The controller and
 recovery entries and the inspected wrapper symbols reside in `.text`, which
 does not establish the lifetime of every downstream callback or data object.
 This result closes the complete-link check for these inputs, not device admission.
+
+The [46-patch link](results/full-kernel-link-46.json) passes from
+`c9a8d30423da33a7fae8c95f2c0d9b5f96b90ee7`, adding the raw-reader correction.
+All eleven package files passed remote and fetched checksum verification;
+configuration, required symbols, absence of undefined symbols and source
+integrity passed. The final reader's capture-PMSG branch bypasses both text
+parser calls and stores zero timestamp and compression metadata. Its frame is
+112 bytes and its code is 648 bytes. The same 69 section-mismatch count and
+compiler warning limitation remain. This package is bound by the
+[third private filesystem assembly](STARTUP_ASSEMBLY.md#export-filesystem); no
+boot container or physical session is selected.

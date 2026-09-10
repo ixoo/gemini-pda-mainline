@@ -91,6 +91,19 @@ class ExportTests(unittest.TestCase):
             self.receive()
         self.assertFalse(self.output.exists())
 
+    def test_destination_preflight_precedes_serial_open(self):
+        self.output.mkdir()
+        arguments = ['capture-export.py', '--serial', '/not-a-terminal',
+                     '--previous-boot-id', PREVIOUS, '--session-sha256', SESSION, str(self.output)]
+        with patch('sys.argv', arguments), patch.object(export.tty, 'setraw') as raw:
+            with self.assertRaisesRegex(FileExistsError, 'snapshot output'):
+                export.main()
+            raw.assert_not_called()
+        link = self.root / 'broken-link'
+        link.symlink_to(self.root / 'absent')
+        with self.assertRaises(FileExistsError):
+            export.check_destination(link)
+
     def test_failed_sync_keeps_raw_and_reports_failure(self):
         with patch.object(export.os, 'fsync', side_effect=OSError('injected sync failure')):
             with self.assertRaises(OSError):

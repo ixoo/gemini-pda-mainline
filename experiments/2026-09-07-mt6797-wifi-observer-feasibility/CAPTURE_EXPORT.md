@@ -65,14 +65,18 @@ ports. No serial node was opened and no control was written. Node existence
 does not establish successful enumeration, data transfer, resource isolation
 or identity of the separately built kernel.
 
-The [nine focused tests](test-capture-export.py) pass on the host and ARM64 RE
+The [ten focused tests](test-capture-export.py) pass on the host and ARM64 RE
 VM, including a real local pseudo-terminal transfer, fragmented reads/writes,
 identity and corruption refusal, truncation, private modes, existing evidence
 preservation and injected sync failure. The pseudo-terminal receiver sends no
 save acknowledgement. They also exercise the request handshake, same-boot
 refusal, a real nonblocking deadline and disconnect. All payloads are synthetic;
-no retained bytes were exported through USB. These tests do not validate the
-candidate's packaged runtime.
+no retained bytes were exported through USB. The final ten tests also passed
+with the [packaged ARM64 runtime](STARTUP_ASSEMBLY.md#export-filesystem).
+The host checks its destination before opening USB so an already existing or
+unsuitable parent does not consume the one-shot exchange. The receiver repeats
+the ownership check and exclusively creates the output after reception; the
+preflight does not guarantee a later filesystem operation cannot fail.
 
 The device bridge implements checked acquisition and one ACM setup. Actual
 enumeration/export, the complete candidate and recovery procedure still need

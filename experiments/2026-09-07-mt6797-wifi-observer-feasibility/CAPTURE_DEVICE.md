@@ -63,7 +63,9 @@ confusion and verifies the correction, the unchanged other paths and allocation
 failure with retained input preservation. Strict Checkpatch passes, excluding
 the explicitly synthetic archive sign-off. The original 3.18 Checkpatch cannot
 run under the installed Perl; Linux 7.1.3 Checkpatch supplies the style result.
-The 46-patch complete kernel build is required before using this correction.
+The [46-patch full build](results/full-kernel-link-46.json) now passes. Inspection
+of the final linked reader confirms that the capture-PMSG branch bypasses both
+text-parser calls and stores zero time and compression metadata.
 
 ## Validation and remaining work
 
@@ -77,9 +79,9 @@ ownership. The stream tests and startup preflight tests remain separate.
 
 The earlier assembly's `0-9` CPU expectation is not appropriate for this native
 configuration: its first patch rejects CPU8/9 before platform or firmware
-CPU-on. Use a separately reviewed expectation for the remaining CPUs; a source
-expectation is still not an observed successful boot. Package the new seven
-startup files and schema-2 manifest against a validated kernel, then complete
-the boot/recovery and physical USB-export protocol. Clearing remains absent
+CPU-on. The [third assembly](STARTUP_ASSEMBLY.md#export-filesystem) uses `0-7`;
+that source expectation is still not an observed successful boot. It binds the
+seven startup files and schema-2 manifest to the validated 46-patch kernel.
+Complete the boot/recovery and physical USB-export protocol next. Clearing remains absent
 and requires separate owner approval after its implementation and preserved
 predecessor are reviewable.

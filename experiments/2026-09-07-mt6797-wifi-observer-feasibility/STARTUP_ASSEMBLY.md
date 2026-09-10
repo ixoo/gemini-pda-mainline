@@ -14,8 +14,8 @@ python3 build-startup-filesystem.py PRIVATE_INPUTS RUNTIME_TAR NEW_PACKAGE SESSI
 
 Without that argument it still produces an input-only filesystem. With it,
 at this assembly revision the builder validated the session schema,
-requires the exact five startup source hashes, and requires the generated input
-manifest to match the session. It installs `/init` with mode 0500, the four
+required the exact five startup source hashes and required the generated input
+manifest to match the session. It installed `/init` with mode 0500, the four
 Python files and session with mode 0400, and the four virtual-filesystem mount
 directories. The pinned runtime already contains three controller files; their
 copies are replaced by the explicitly hashed current sources. No startup code
@@ -55,3 +55,26 @@ device access occurred. Read-only mount behavior on the native kernel, complete
 kernel actor isolation, capture zero-state preparation, container validation
 and the owner-approved radio/recovery session remain required. Private firmware,
 calibration, manifests and the combined archive remain unpublished.
+
+## Export filesystem
+
+The [third assembly receipt](results/startup-export-assembly.json) records the
+schema-2 export action against the verified 46-patch kernel. The builder installs
+seven pinned startup sources and binds the exact kernel package, runtime and
+private input manifest. Its `0-7` CPU expectation follows the source's CPU8/9
+refusal; it is not an observed candidate boot. Earlier packages remain unchanged.
+
+The archive has 1,631 members and is 23,576,689 compressed bytes. Independent
+newc inspection verifies exact source/input bytes, modes, root ownership, zero
+timestamps, unique relative paths and absence of paths below symlinks. Exactly
+five members differ from the second archive: `/init`, startup, the two export
+modules and session metadata. All other runtime and retained input bytes match.
+All five package files pass VM and fetched checksums; local directories and
+files have modes 0700 and 0600 respectively.
+
+The actual packaged ARM64 Python passed 13 startup tests, ten stream tests and
+four bridge test groups in an isolated RE-VM chroot with its own devpts mount.
+USB controls and device identity were injected; the duplex terminal transfer
+used synthetic bytes. No PDA, radio, capture initializer or clearing operation
+ran. Temporary extracted roots and mount namespaces were removed. The boot
+container, native mounts, actual USB export and recovery remain unvalidated.

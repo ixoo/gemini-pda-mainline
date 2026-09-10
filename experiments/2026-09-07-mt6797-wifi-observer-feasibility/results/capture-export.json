@@ -2,8 +2,8 @@
   "schema_version": 1,
   "scope": "snapshot request/transfer and host preservation; PID1 export bridge available",
   "sources": {
-    "capture-export.py": "f921a6e2778b465a0851983130b25cf7b455e1eb6ee683f1a73e8782e1b9fb59",
-    "test-capture-export.py": "622566f62ac817f5e56385bd474e90782a12c4842b2e367bd8efbf2bdb0639eb"
+    "capture-export.py": "cc8d907b18a3669ab5dc4c86a159110cebf4aeea217098d93e2669be456de92b",
+    "test-capture-export.py": "f755710eba80393465e403233a3840c94fa194632bff18157b908d3077a8d69a"
   },
   "native_usb_sources": {
     "drivers/usb/gadget/android.c": "e4ddfeff93fef89a88ed507a41f3d964f6b20846cc792f1df37e78a319e5b59c",
@@ -40,8 +40,8 @@
     "usb_controls_written": 0
   },
   "tests": {
-    "host": "9 passed",
-    "arm64_re_vm": "9 passed",
+    "host": "10 passed",
+    "arm64_re_vm": "10 passed with packaged runtime",
     "real_local_pseudoterminal": "passed on both",
     "payloads": "synthetic only"
   },

@@ -108,6 +108,36 @@ def await_request(stream, boot_id, session_sha256):
         raise ValueError('snapshot request identity mismatch')
 
 
+def open_private_parent(output):
+    if not output.name or output.name in ('.', '..'):
+        raise ValueError('expected a new output directory name')
+    fd = os.open(output.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
+    try:
+        info = os.fstat(fd)
+        if info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) & 0o077:
+            raise ValueError('output parent must be owned and private')
+        if not os.access('.', os.W_OK | os.X_OK, dir_fd=fd, effective_ids=True):
+            raise ValueError('output parent is not writable and searchable')
+    except BaseException:
+        os.close(fd)
+        raise
+    return fd
+
+
+def check_destination(output):
+    """Reject an unusable existing destination before requesting the one shot."""
+    output = Path(output)
+    parent = open_private_parent(output)
+    try:
+        try:
+            os.stat(output.name, dir_fd=parent, follow_symlinks=False)
+        except FileNotFoundError:
+            return
+        raise FileExistsError('snapshot output already exists')
+    finally:
+        os.close(parent)
+
+
 def receive_snapshot(stream, output, previous_boot_id, session_sha256):
     """Save one frame; return only after file readback and directory sync.
 
@@ -130,11 +160,8 @@ def receive_snapshot(stream, output, previous_boot_id, session_sha256):
     # A private, caller-owned parent is required; do not follow an output link
     # or replace a prior export. Never remove evidence after a failed save.
     flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC
-    parent = os.open(output.parent, flags)
+    parent = open_private_parent(output)
     try:
-        info = os.fstat(parent)
-        if info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) & 0o077:
-            raise ValueError('output parent must be owned and private')
         os.mkdir(output.name, mode=0o700, dir_fd=parent)
         directory = os.open(output.name, flags, dir_fd=parent)
         try:
@@ -183,6 +210,7 @@ def main():
     parser.add_argument('output', help='new directory below a private parent')
     args = parser.parse_args()
     identities(args.previous_boot_id, args.session_sha256)
+    check_destination(args.output)
     fd = os.open(args.serial, os.O_RDWR | os.O_NONBLOCK | os.O_NOCTTY |
                  os.O_NOFOLLOW | os.O_CLOEXEC)
     try:

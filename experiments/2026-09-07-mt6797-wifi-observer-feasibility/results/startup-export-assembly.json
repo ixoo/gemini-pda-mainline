@@ -1,0 +1,36 @@
+{
+  "scope": "third private startup filesystem; export action; no selected boot",
+  "builder_sha256": "a6c46434eb478a1cd74a4bfa83d1a1dc2a69190e44afebc43f941637c02ed2de",
+  "runtime_sha256": "7ff2ebf4153d8055f92f3baa1c550a3376b913e680162de60a3557ca2d855294",
+  "kernel_project_commit": "c9a8d30423da33a7fae8c95f2c0d9b5f96b90ee7",
+  "kernel_patch_count": 46,
+  "filesystem_bytes": 23576689,
+  "archive_members": 1631,
+  "private_input_files": 5,
+  "startup_source_files": 7,
+  "schema": 2,
+  "startup_action": "export",
+  "cpu_expectation": "0-7; source-derived, not observed on candidate",
+  "checks": {
+    "archive_exact_startup_and_input_bytes": true,
+    "unique_relative_paths_root_ownership_zero_timestamps_allowed_types": true,
+    "no_symlink_ancestors": true,
+    "exactly_five_changed_members_from_second_archive": true,
+    "all_other_runtime_members_unchanged": true,
+    "package_checksums_in_vm_and_after_export": true,
+    "private_host_modes_0700_0600": true,
+    "packaged_arm64_startup_tests": 13,
+    "packaged_arm64_stream_tests": 10,
+    "packaged_arm64_device_bridge_test_groups": 4,
+    "isolated_vm_devpts_only": true
+  },
+  "device_access": false,
+  "radio_triggered": false,
+  "clearing_implemented": false,
+  "boot_candidate": false,
+  "limitations": [
+    "USB controls and device identity were injected in tests.",
+    "PDA enumeration/export, native pstore mounts, boot container and recovery remain unvalidated.",
+    "Private firmware, calibration, session and filesystem hashes remain unpublished."
+  ]
+}
