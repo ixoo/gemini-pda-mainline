@@ -597,6 +597,24 @@ COMMON_OFF_LAYOUTS = {1: struct.Struct('<IIIi'), 2: struct.Struct('<3I'),
                       3: struct.Struct('<4I'), 4: struct.Struct('<2I'),
                       5: struct.Struct('<2I'), 6: struct.Struct('<IIii')}
 
+REQUEST_LAYOUTS = {16: struct.Struct('<3I'), 17: struct.Struct('<5I'),
+                   18: struct.Struct('<2I'), 19: struct.Struct('<4I'),
+                   20: struct.Struct('<IIi'), 21: struct.Struct('<IIiIiI'),
+                   22: struct.Struct('<3I'), 23: struct.Struct('<3I'),
+                   24: struct.Struct('<IIi')}
+
+
+def request_values(row):
+    """Decode a typed request record without changing opaque kind-10 framing."""
+    subtype = int.from_bytes(row['payload'][:4], 'little')
+    layout = REQUEST_LAYOUTS.get(subtype)
+    if layout is None or len(row['payload']) != layout.size:
+        raise ValueError('invalid request subtype or payload size')
+    values = layout.unpack(row['payload'])
+    if row['transaction'] not in (1, 2) or values[1] != row['transaction']:
+        raise ValueError('request identity disagrees with envelope')
+    return values
+
 
 def check_common_off(data, expected_cycle):
     """Join the synchronous common/CCF/provider scope; no outer ioctl proof."""
@@ -604,7 +622,12 @@ def check_common_off(data, expected_cycle):
     decoded = decode(data, expected_cycle)
     if any(row['kind'] == TERMINAL and int.from_bytes(row['payload'], 'little') != 1 for row in decoded):
         raise ValueError('common OFF capture has a failed producer terminal')
-    records = [row for row in decoded if row['kind'] in (9, 10)]
+    records = []
+    for row in decoded:
+        if row['kind'] == 10 and int.from_bytes(row['payload'][:4], 'little') in REQUEST_LAYOUTS:
+            request_values(row)
+        elif row['kind'] in (9, 10):
+            records.append(row)
     order = [(10, n) for n in (1, 2, 3)] + [(9, n) for n in (3, 4, 5, 6, 7, 8, 1, 2, 9)] + [(10, n) for n in (4, 5, 6)]
     if [(row['kind'], int.from_bytes(row['payload'][:4], 'little')) for row in records] != order:
         raise ValueError('missing, repeated or reordered common/provider scope')
@@ -629,6 +652,38 @@ def check_common_off(data, expected_cycle):
         raise ValueError('common OFF route, binding or result rejected')
     return {'checked_common_operation': transaction, 'checked_provider_operation': transaction,
             'scope': 'recorded synchronous common/CCF/provider attribution; outer ioctl and isolation unchecked'}
+
+
+def check_request_cycle(data, expected_cycle):
+    """Join native request records to common OFF; no whole-cycle admission."""
+    common = check_common_off(data, expected_cycle)
+    rows = [row for row in decode(data, expected_cycle) if row['kind'] in (9, 10)]
+    lower = [(10, n) for n in (1, 2, 3)] + [(9, n) for n in (3, 4, 5, 6, 7, 8, 1, 2, 9)] + [(10, n) for n in (4, 5, 6)]
+    order = ([(10, n) for n in (16, 17, 18, 19, 20, 21, 24, 16, 17, 18, 19, 22)] +
+             lower + [(10, n) for n in (23, 20, 21, 24)])
+    if [(row['kind'], int.from_bytes(row['payload'][:4], 'little')) for row in rows] != order:
+        raise ValueError('missing, repeated or reordered request/common scope')
+    requests = [row for row in rows if row['kind'] == 10 and
+                int.from_bytes(row['payload'][:4], 'little') in REQUEST_LAYOUTS]
+    for index, row in enumerate(requests):
+        values = request_values(row)
+        subtype, request = values[:2]
+        expected_request = 1 if index < 7 else 2
+        if request != expected_request:
+            raise ValueError('wrong ON/OFF request identity')
+        opid = 3 if request == 1 else 4
+        expected = {16: (0x80000003 if request == 1 else 3,),
+                    17: (opid, 3, 4000), 18: (), 19: (opid, 3),
+                    20: (0,), 22: (1,), 23: (1,), 24: (0,)}
+        if subtype == 21:
+            if values[2] <= 0 or values[3:] != (1, 0, 1):
+                raise ValueError('native waiter did not observe successful completion')
+        elif values[2:] != expected[subtype]:
+            raise ValueError('request argument, route, link or result rejected')
+    if common['checked_common_operation'] != 1:
+        raise ValueError('request references a different common operation')
+    return {'checked_requests': [1, 2], 'checked_common_operation': 1,
+            'scope': 'recorded native ioctl/worker/common attribution only; firmware causality and isolation unchecked'}
 
 
 def _image_metadata(data, expected_cycle, expected_hash, expected_image_bytes, expected_sections):

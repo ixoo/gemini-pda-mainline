@@ -107,8 +107,9 @@ def main():
     mode = sys.argv[2] if len(sys.argv) == 3 else "--wmt"
     assert mode in ("--wmt", "--pstore", "--capture-writer", "--dma", "--stop",
                     "--firmware-read", "--firmware-read-safe", "--firmware-image", "--emi", "--provider-off",
-                    "--common-off-safe", "--common-off", "--operation-ownership")
-    ownership = mode == "--operation-ownership"
+                    "--common-off-safe", "--common-off", "--operation-ownership", "--request-capture")
+    request_capture = mode == "--request-capture"
+    ownership = mode == "--operation-ownership" or request_capture
     common_off = mode == "--common-off" or ownership
     common_off_safe = mode == "--common-off-safe"
     capture = mode == "--capture-writer"
@@ -157,6 +158,8 @@ def main():
     if ownership:
         files += (RELATIVE + "core/wmt_exp",)
         label = "wifi-operation-ownership-objects-"
+    if request_capture:
+        label = "wifi-request-capture-objects-"
     def unit_path(name):
         return name if name.startswith("drivers/") else relative + name
     assert not run(["git", "-C", str(project), "status", "--porcelain"])
@@ -254,14 +257,21 @@ def main():
                 patches += sorted((experiment / "patches/common-off").glob("*.patch"))
                 if ownership:
                     patches += sorted((experiment / "patches/operation-ownership").glob("*.patch"))
+                if request_capture:
+                    patches += sorted((experiment / "patches/request-capture").glob("*.patch"))
             for extra in ("include/linux/pstore_ram.h", "arch/arm64/boot/dts/mt6797.dtsi",
                           "drivers/misc/mediatek/connectivity/wlan/gen3/Makefile",
                           "fs/pstore/ram.c", "fs/pstore/ram_core.c", "fs/pstore/internal.h",
                           "fs/pstore/pmsg.c", "fs/pstore/inode.c"):
                 (patched / extra).parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(source / extra, patched / extra)
-        assert len(patches) == (24 if ownership else 23 if common_off else 17 if provider_off else 16 if emi_capture else 15 if firmware_image else 14 if firmware_safe else 13 if firmware_read else 12 if stop else 11 if dma else 0 if capture else 10 if pstore else 5 if common_off_safe else 4)
+        assert len(patches) == (25 if request_capture else 24 if ownership else 23 if common_off else 17 if provider_off else 16 if emi_capture else 15 if firmware_image else 14 if firmware_safe else 13 if firmware_read else 12 if stop else 11 if dma else 0 if capture else 10 if pstore else 5 if common_off_safe else 4)
         for patch in patches:
+            if request_capture and patch.parent.name == "request-capture":
+                request_pins = json.loads((experiment / "results/request-capture-sources.json").read_text())
+                assert digest(patch) == request_pins["patch_sha256"]
+                for path, expected in request_pins["parents"].items():
+                    assert digest(patched / path) == expected, path
             if ownership and patch.parent.name == "operation-ownership":
                 ownership_pins = json.loads((experiment / "results/operation-ownership-sources.json").read_text())
                 assert digest(patch) == ownership_pins["patch_sha256"]
@@ -308,6 +318,11 @@ def main():
                 for path, expected in off_pins["parents"].items():
                     assert digest(patched / path) == expected, path
             subprocess.run(["git", "apply", str(patch)], cwd=patched, check=True)
+            if request_capture and patch.parent.name == "request-capture":
+                for path, expected in request_pins["outputs"].items():
+                    assert digest(patched / path) == expected, path
+                subprocess.run(["python3", str(experiment / "test-request-capture.py"),
+                                "--tree", str(patched)], check=True)
             if ownership and patch.parent.name == "operation-ownership":
                 for path, expected in ownership_pins["outputs"].items():
                     assert digest(patched / path) == expected, path
@@ -412,6 +427,21 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
                 (work / (name + "-ownership.disasm")).write_text(disassembly + "\n")
                 if name == "wmt_lib":
                     for symbol in ("wmt_op_complete", "wmt_op_put", "mutex_lock", "mutex_unlock"):
+                        assert symbol in disassembly, symbol
+            if request_capture and name in ("wmt_lib", "wmt_exp", "wmt_dev", "clk-mt6797-pg"):
+                assert str(patched / "include/linux/mt6797_wifi_capture.h") in dependencies
+                disassembly = run([str(toolchain / "wrappers/aarch64-linux-gnu-objdump"),
+                                   "-dr", str(result)], env=environment)
+                if name == "wmt_dev":
+                    (work / "wmt_dev-request.disasm").write_text(disassembly + "\n")
+                calls = {"wmt_lib": ("begin", "bind", "end", "common_begin", "common_end"),
+                         "wmt_exp": ("bind",), "wmt_dev": ("begin", "end"),
+                         "clk-mt6797-pg": ("common_begin", "common_end")}
+                for call in calls[name]:
+                    assert "mt6797_wfc_request_" + call in disassembly, (name, call)
+                if name == "wmt_lib":
+                    assert str(patched / RELATIVE / "core/wmt-request-capture.h") in dependencies
+                    for symbol in ("ramoops_capture_active", "ramoops_capture_append", "wfc_request_"):
                         assert symbol in disassembly, symbol
             if (common_off_safe or common_off) and name == "wmt_core":
                 disassembly = run([str(toolchain / "wrappers/aarch64-linux-gnu-objdump"),

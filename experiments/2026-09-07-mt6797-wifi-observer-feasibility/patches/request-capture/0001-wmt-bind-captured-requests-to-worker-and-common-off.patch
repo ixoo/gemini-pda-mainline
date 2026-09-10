@@ -1,0 +1,496 @@
+From 6cdada7da004805fcf9090e452d8d2722c61a47e Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <experiment@invalid.example>
+Date: Thu, 10 Sep 2026 10:11:25 -0400
+Subject: [PATCH] wmt: bind one captured ioctl pair to its worker and common
+ OFF
+
+Record one exact native Wi-Fi ON/OFF ioctl pair and bind each request
+through operation allocation, queue offer, actual worker entry and
+completion, waiter result and ioctl return. Link the OFF worker to
+one synchronous common/provider scope. A reset, conflicting function
+request, bad completion or failed record permanently invalidates capture.
+
+Keep task references across identity comparisons, clear the operation
+pointer before caller release and rely on the preceding operation
+ownership repair. Failed scopes retain at most two request task pins
+until recovery. No pointers or task identifiers enter retained bytes.
+The observer changes no native return, queue, reset or hardware operation.
+
+These unselected hooks are an experiment archive, not upstream submission.
+Controller/firmware attribution, concurrent resource exclusion, full
+kernel linking and device admission remain separate. This synthetic
+author is non-certifying and supplies no DCO sign-off.
+---
+ drivers/clk/mediatek/clk-mt6797-wfc-common.h  |   3 +-
+ .../common_main/core/wmt-request-capture.h    | 304 ++++++++++++++++++
+ .../common/common_main/core/wmt_exp.c         |   4 +
+ .../common/common_main/core/wmt_lib.c         |   8 +
+ .../common/common_main/linux/wmt_dev.c        |   4 +
+ include/linux/mt6797_wifi_capture.h           |   9 +
+ 6 files changed, 331 insertions(+), 1 deletion(-)
+ create mode 100644 drivers/misc/mediatek/connectivity/common/common_main/core/wmt-request-capture.h
+
+diff --git a/drivers/clk/mediatek/clk-mt6797-wfc-common.h b/drivers/clk/mediatek/clk-mt6797-wfc-common.h
+index 011ab59..3fd7703 100644
+--- a/drivers/clk/mediatek/clk-mt6797-wfc-common.h
++++ b/drivers/clk/mediatek/clk-mt6797-wfc-common.h
+@@ -58,7 +58,7 @@ void mt6797_wfc_common_off_begin(unsigned int type, int function_status)
+ 	unsigned long flags;
+ 	u32 words[] = {1, 1, type, function_status};
+ 
+-	if (!ramoops_capture_active())
++	if (!ramoops_capture_active() || !mt6797_wfc_request_common_begin())
+ 		return;
+ 	raw_spin_lock_irqsave(&wfc_common_lock, flags);
+ 	if (wfc_common_stage != WFC_COMMON_UNUSED) {
+@@ -176,6 +176,7 @@ void mt6797_wfc_common_off_end(int power_status, int function_status)
+ 
+ 	wfc_common_advance(WFC_COMMON_CLOCK_DONE, WFC_COMMON_DONE,
+ 			   words, ARRAY_SIZE(words));
++	mt6797_wfc_request_common_end();
+ }
+ 
+ #endif
+diff --git a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt-request-capture.h b/drivers/misc/mediatek/connectivity/common/common_main/core/wmt-request-capture.h
+new file mode 100644
+index 0000000..72256d9
+--- /dev/null
++++ b/drivers/misc/mediatek/connectivity/common/common_main/core/wmt-request-capture.h
+@@ -0,0 +1,304 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/* One native ioctl on/off pair; pointer identities never enter retained RAM. */
++#ifndef _WMT_REQUEST_CAPTURE_H
++#define _WMT_REQUEST_CAPTURE_H
++
++#include <linux/mt6797_wifi_capture.h>
++#include <linux/pstore_ram.h>
++#include <linux/sched.h>
++#include <linux/spinlock.h>
++#include <asm/unaligned.h>
++
++enum wfc_request_phase {
++	WFC_REQ_UNUSED,
++	WFC_REQ_ROOT,
++	WFC_REQ_BOUND,
++	WFC_REQ_QUEUED,
++	WFC_REQ_WORKER,
++	WFC_REQ_WORKER_DONE,
++	WFC_REQ_WAIT_DONE,
++	WFC_REQ_ON_DONE,
++	WFC_REQ_DONE,
++	WFC_REQ_FAILED,
++};
++
++static DEFINE_RAW_SPINLOCK(wfc_request_lock);
++static enum wfc_request_phase wfc_request_phase;
++static struct task_struct *wfc_request_root;
++static struct task_struct *wfc_request_worker;
++static const void *wfc_request_op;
++static u32 wfc_request_id;
++static unsigned int wfc_request_common;
++
++static void wfc_request_fail(void)
++{
++	u8 status[4];
++
++	wfc_request_phase = WFC_REQ_FAILED;
++	wfc_request_op = NULL;
++	/* Failed scopes retain at most one root and one worker task pin. */
++	put_unaligned_le32(2, status);
++	if (ramoops_capture_active())
++		ramoops_capture_append(255, 0, status, sizeof(status));
++}
++
++static void wfc_request_emit(u32 *words, size_t count)
++{
++	u8 data[24];
++	size_t i;
++
++	if (count < 2 || count > ARRAY_SIZE(data) / sizeof(u32)) {
++		wfc_request_fail();
++		return;
++	}
++	words[1] = wfc_request_id;
++	for (i = 0; i < count; i++)
++		put_unaligned_le32(words[i], data + i * 4);
++	if (!ramoops_capture_active() ||
++	    ramoops_capture_append(10, wfc_request_id, data, count * 4))
++		wfc_request_fail();
++}
++
++static unsigned int wfc_request_opid(void)
++{
++	return wfc_request_id == 1 ? WMT_OPID_FUNC_ON : WMT_OPID_FUNC_OFF;
++}
++
++void mt6797_wfc_request_begin(unsigned long arg)
++{
++	unsigned long flags;
++	u32 words[] = {16, 0, arg};
++
++	if (!ramoops_capture_active())
++		return;
++	raw_spin_lock_irqsave(&wfc_request_lock, flags);
++	if (wfc_request_phase == WFC_REQ_UNUSED && arg == 0x80000003UL) {
++		get_task_struct(current);
++		wfc_request_root = current;
++		wfc_request_id = 1;
++	} else if (wfc_request_phase == WFC_REQ_ON_DONE && arg == 3 &&
++		   wfc_request_root == current && !wfc_request_op &&
++		   !wfc_request_worker) {
++		wfc_request_id = 2;
++		wfc_request_common = 0;
++	} else {
++		wfc_request_fail();
++		goto out;
++	}
++	wfc_request_phase = WFC_REQ_ROOT;
++	wfc_request_emit(words, ARRAY_SIZE(words));
++out:
++	raw_spin_unlock_irqrestore(&wfc_request_lock, flags);
++}
++
++void mt6797_wfc_request_bind(const void *op, unsigned int opid,
++			     unsigned int type, unsigned int timeout)
++{
++	unsigned long flags;
++	u32 words[] = {17, 0, opid, type, timeout};
++
++	if (!ramoops_capture_active())
++		return;
++	raw_spin_lock_irqsave(&wfc_request_lock, flags);
++	if (!op || wfc_request_root != current ||
++	    wfc_request_phase != WFC_REQ_ROOT ||
++	    opid != wfc_request_opid() || type != WMTDRV_TYPE_WIFI ||
++	    timeout != 4000) {
++		wfc_request_fail();
++	} else {
++		wfc_request_op = op;
++		wfc_request_phase = WFC_REQ_BOUND;
++		wfc_request_emit(words, ARRAY_SIZE(words));
++	}
++	raw_spin_unlock_irqrestore(&wfc_request_lock, flags);
++}
++
++static void wfc_request_submit(P_OSAL_OP op)
++{
++	unsigned long flags;
++	u32 words[] = {18, 0};
++
++	if (!op || !ramoops_capture_active())
++		return;
++	raw_spin_lock_irqsave(&wfc_request_lock, flags);
++	if (op != wfc_request_op) {
++		if (op->op.opId == WMT_OPID_FUNC_ON || op->op.opId == WMT_OPID_FUNC_OFF)
++			wfc_request_fail();
++	} else if (wfc_request_root != current ||
++		   wfc_request_phase != WFC_REQ_BOUND) {
++		wfc_request_fail();
++	} else {
++		wfc_request_phase = WFC_REQ_QUEUED;
++		wfc_request_emit(words, ARRAY_SIZE(words));
++	}
++	raw_spin_unlock_irqrestore(&wfc_request_lock, flags);
++}
++
++static void wfc_request_worker_begin(P_OSAL_OP op)
++{
++	unsigned long flags;
++	u32 words[] = {19, 0, op->op.opId, op->op.au4OpData[0]};
++
++	if (!ramoops_capture_active())
++		return;
++	raw_spin_lock_irqsave(&wfc_request_lock, flags);
++	if (op != wfc_request_op) {
++		if (op->op.opId == WMT_OPID_FUNC_ON || op->op.opId == WMT_OPID_FUNC_OFF)
++			wfc_request_fail();
++	} else if (wfc_request_phase != WFC_REQ_QUEUED ||
++		   current == wfc_request_root || op->op.opId != wfc_request_opid() ||
++		   op->op.au4OpData[0] != WMTDRV_TYPE_WIFI) {
++		wfc_request_fail();
++	} else {
++		get_task_struct(current);
++		wfc_request_worker = current;
++		wfc_request_phase = WFC_REQ_WORKER;
++		wfc_request_emit(words, ARRAY_SIZE(words));
++	}
++	raw_spin_unlock_irqrestore(&wfc_request_lock, flags);
++}
++
++bool mt6797_wfc_request_common_begin(void)
++{
++	unsigned long flags;
++	bool bound = false;
++	u32 words[] = {22, 0, 1};
++
++	if (!ramoops_capture_active())
++		return false;
++	raw_spin_lock_irqsave(&wfc_request_lock, flags);
++	if (wfc_request_phase != WFC_REQ_WORKER || wfc_request_id != 2 ||
++	    wfc_request_worker != current || wfc_request_common) {
++		wfc_request_fail();
++	} else {
++		wfc_request_common = 1;
++		wfc_request_emit(words, ARRAY_SIZE(words));
++		bound = wfc_request_phase != WFC_REQ_FAILED;
++	}
++	raw_spin_unlock_irqrestore(&wfc_request_lock, flags);
++	return bound;
++}
++
++void mt6797_wfc_request_common_end(void)
++{
++	unsigned long flags;
++	u32 words[] = {23, 0, 1};
++
++	if (!ramoops_capture_active())
++		return;
++	raw_spin_lock_irqsave(&wfc_request_lock, flags);
++	if (wfc_request_phase != WFC_REQ_WORKER || wfc_request_id != 2 ||
++	    wfc_request_worker != current || wfc_request_common != 1) {
++		wfc_request_fail();
++	} else {
++		wfc_request_common = 2;
++		wfc_request_emit(words, ARRAY_SIZE(words));
++	}
++	raw_spin_unlock_irqrestore(&wfc_request_lock, flags);
++}
++
++static void wfc_request_worker_end(P_OSAL_OP op, int status)
++{
++	unsigned long flags;
++	u32 words[] = {20, 0, status};
++
++	if (!ramoops_capture_active())
++		return;
++	raw_spin_lock_irqsave(&wfc_request_lock, flags);
++	if (op != wfc_request_op) {
++		if (op->op.opId == WMT_OPID_FUNC_ON || op->op.opId == WMT_OPID_FUNC_OFF)
++			wfc_request_fail();
++		goto out;
++	}
++	if (wfc_request_phase != WFC_REQ_WORKER || wfc_request_worker != current) {
++		wfc_request_fail();
++	} else {
++		wfc_request_phase = WFC_REQ_WORKER_DONE;
++		wfc_request_emit(words, ARRAY_SIZE(words));
++		if (status || wfc_request_common != (wfc_request_id == 2 ? 2 : 0))
++			wfc_request_fail();
++		if (wfc_request_phase == WFC_REQ_WORKER_DONE) {
++			/* Matching current remains live; this is not its last task ref. */
++			put_task_struct(wfc_request_worker);
++			wfc_request_worker = NULL;
++		}
++	}
++out:
++	raw_spin_unlock_irqrestore(&wfc_request_lock, flags);
++}
++
++static void wfc_request_wait(P_OSAL_OP op, int wait, bool valid,
++			     int result, unsigned int success)
++{
++	unsigned long flags;
++	u32 words[] = {21, 0, wait, valid, result, success};
++
++	if (!op || !ramoops_capture_active())
++		return;
++	raw_spin_lock_irqsave(&wfc_request_lock, flags);
++	if (op != wfc_request_op) {
++		if (op->op.opId == WMT_OPID_FUNC_ON || op->op.opId == WMT_OPID_FUNC_OFF)
++			wfc_request_fail();
++		goto out;
++	}
++	wfc_request_emit(words, ARRAY_SIZE(words));
++	if (wfc_request_phase != WFC_REQ_WORKER_DONE ||
++	    wfc_request_root != current || wait <= 0 || !valid || result || success != 1) {
++		wfc_request_fail();
++	} else {
++		wfc_request_phase = WFC_REQ_WAIT_DONE;
++		/* The caller still owns the operation; clear before its pool release. */
++		wfc_request_op = NULL;
++	}
++out:
++	raw_spin_unlock_irqrestore(&wfc_request_lock, flags);
++}
++
++void mt6797_wfc_request_end(int status)
++{
++	unsigned long flags;
++	u32 words[] = {24, 0, status};
++
++	if (!ramoops_capture_active())
++		return;
++	raw_spin_lock_irqsave(&wfc_request_lock, flags);
++	if (wfc_request_phase != WFC_REQ_WAIT_DONE ||
++	    wfc_request_root != current || wfc_request_op || wfc_request_worker) {
++		wfc_request_fail();
++	} else {
++		wfc_request_phase = wfc_request_id == 1 ? WFC_REQ_ON_DONE : WFC_REQ_DONE;
++		wfc_request_emit(words, ARRAY_SIZE(words));
++		if (status)
++			wfc_request_fail();
++		if (wfc_request_phase == WFC_REQ_DONE) {
++			put_task_struct(wfc_request_root);
++			wfc_request_root = NULL;
++		}
++	}
++	raw_spin_unlock_irqrestore(&wfc_request_lock, flags);
++}
++
++static void wfc_request_release(const void *op)
++{
++	unsigned long flags;
++
++	if (!ramoops_capture_active())
++		return;
++	raw_spin_lock_irqsave(&wfc_request_lock, flags);
++	if (op == wfc_request_op)
++		wfc_request_fail();
++	raw_spin_unlock_irqrestore(&wfc_request_lock, flags);
++}
++
++static void wfc_request_reset(void)
++{
++	unsigned long flags;
++
++	if (!ramoops_capture_active())
++		return;
++	raw_spin_lock_irqsave(&wfc_request_lock, flags);
++	wfc_request_fail();
++	raw_spin_unlock_irqrestore(&wfc_request_lock, flags);
++}
++
++#endif
+diff --git a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_exp.c b/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_exp.c
+index d4e1626..ff9a6ae 100644
+--- a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_exp.c
++++ b/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_exp.c
+@@ -37,6 +37,8 @@
+ *                    E X T E R N A L   R E F E R E N C E S
+ ********************************************************************************
+ */
++#include <linux/mt6797_wifi_capture.h>
++
+ #include "osal_typedef.h"
+ 
+ #include <wmt_exp.h>
+@@ -114,6 +116,8 @@ static MTK_WCN_BOOL mtk_wcn_wmt_func_ctrl(ENUM_WMTDRV_TYPE_T type, ENUM_WMT_OPID
+ 		pSignal->timeoutValue =
+ 		    (WMT_OPID_FUNC_ON == pOp->op.opId) ? MAX_FUNC_ON_TIME : MAX_FUNC_OFF_TIME;
+ 
++	mt6797_wfc_request_bind(pOp, pOp->op.opId, pOp->op.au4OpData[0],
++				pSignal->timeoutValue);
+ 	WMT_INFO_FUNC("wmt-exp: OPID(%d) type(%zu) start\n", pOp->op.opId, pOp->op.au4OpData[0]);
+ 
+ 	/*do not check return value, we will do this either way */
+diff --git a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_lib.c b/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_lib.c
+index a602df1..69c3ea2 100644
+--- a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_lib.c
++++ b/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_lib.c
+@@ -57,6 +57,7 @@
+ #include "psm_core.h"
+ #include "stp_sdio.h"
+ #include "stp_dbg.h"
++#include "wmt-request-capture.h"
+ 
+ /*******************************************************************************
+ *                              C O N S T A N T S
+@@ -141,6 +142,8 @@ static INT32 wmt_op_put(P_OSAL_OP op)
+ 	mutex_lock(&wmt_op_lock);
+ 	release = !--wmt_op_state[op - gDevWmt.arQue].users;
+ 	mutex_unlock(&wmt_op_lock);
++	if (release)
++		wfc_request_release(op);
+ 	if (release && !wmt_lib_put_op(&gDevWmt.rFreeOpQ, op))
+ 		return -1;
+ 	return 0;
+@@ -1134,7 +1137,9 @@ static INT32 wmtd_thread(void *pvData)
+ 			}
+ 		} else {
+ 			wmt_lib_set_current_op(pWmtDev, pOp);
++			wfc_request_worker_begin(pOp);
+ 			iResult = wmt_core_opid(&pOp->op);
++			wfc_request_worker_end(pOp, iResult);
+ 		}
+ 
+ 		if (iResult)
+@@ -1280,6 +1285,7 @@ MTK_WCN_BOOL wmt_lib_put_act_op(P_OSAL_OP pOp)
+ 
+ 		/* Acquire queue/worker ownership before the operation becomes visible. */
+ 		wmt_op_get(pOp);
++		wfc_request_submit(pOp);
+ 		bRet = wmt_lib_put_op(&pWmtDev->rActiveOpQ, pOp);
+ 		if (MTK_WCN_BOOL_FALSE == bRet) {
+ 			WMT_WARN_FUNC("put to active queue fail\n");
+@@ -1331,6 +1337,7 @@ MTK_WCN_BOOL wmt_lib_put_act_op(P_OSAL_OP pOp)
+ 		bRet = result ? MTK_WCN_BOOL_FALSE : MTK_WCN_BOOL_TRUE;
+ 	} while (0);
+ 
++	wfc_request_wait(pOp, waitRet, waitRet > 0, waitRet > 0 ? result : 0, bRet);
+ 	if (bCleanup)
+ 		wmt_op_put(pOp);
+ 
+@@ -1908,6 +1915,7 @@ ENUM_WMTRSTRET_TYPE_T wmt_lib_cmb_rst(ENUM_WMTRSTSRC_TYPE_T src)
+ 		"WMTRSTSRC_RESET_TEST"
+ 	};
+ 
++	wfc_request_reset();
+ 	if (src < WMTRSTSRC_RESET_MAX)
+ 		WMT_INFO_FUNC("reset source = %s\n", srcName[src]);
+ 
+diff --git a/drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_dev.c b/drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_dev.c
+index 4d670dd..cafaf9c 100644
+--- a/drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_dev.c
++++ b/drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_dev.c
+@@ -50,6 +50,8 @@
+ #endif
+ #include <linux/proc_fs.h>
+ #include <mtk_wcn_cmb_stub.h>
++#include <linux/mt6797_wifi_capture.h>
++
+ #include "osal_typedef.h"
+ #include "osal.h"
+ #include "wmt_dev.h"
+@@ -825,12 +827,14 @@ LONG WMT_unlocked_ioctl(struct file *filp, UINT32 cmd, ULONG arg)
+ 		do {
+ 			MTK_WCN_BOOL bRet = MTK_WCN_BOOL_FALSE;
+ 
++			mt6797_wfc_request_begin(arg);
+ 			if (arg & 0x80000000)
+ 				bRet = mtk_wcn_wmt_func_on(arg & 0xF);
+ 			else
+ 				bRet = mtk_wcn_wmt_func_off(arg & 0xF);
+ 
+ 			iRet = (MTK_WCN_BOOL_FALSE == bRet) ? -EFAULT : 0;
++			mt6797_wfc_request_end(iRet);
+ 		} while (0);
+ 		break;
+ 	case WMT_IOCTL_LPBK_POWER_CTRL:
+diff --git a/include/linux/mt6797_wifi_capture.h b/include/linux/mt6797_wifi_capture.h
+index 24d2731..516937e 100644
+--- a/include/linux/mt6797_wifi_capture.h
++++ b/include/linux/mt6797_wifi_capture.h
+@@ -2,6 +2,8 @@
+ #ifndef _LINUX_MT6797_WIFI_CAPTURE_H
+ #define _LINUX_MT6797_WIFI_CAPTURE_H
+ 
++#include <linux/types.h>
++
+ struct clk;
+ 
+ void mt6797_wfc_common_off_begin(unsigned int type, int function_status);
+@@ -9,4 +11,11 @@ void mt6797_wfc_common_off_end(int power_status, int function_status);
+ void mt6797_wfc_clock_off_begin(struct clk *clk);
+ void mt6797_wfc_clock_off_end(void);
+ 
++void mt6797_wfc_request_begin(unsigned long arg);
++void mt6797_wfc_request_bind(const void *op, unsigned int opid,
++			     unsigned int type, unsigned int timeout);
++void mt6797_wfc_request_end(int status);
++bool mt6797_wfc_request_common_begin(void);
++void mt6797_wfc_request_common_end(void);
++
+ #endif
+-- 
+2.54.0 (Apple Git-157)
+

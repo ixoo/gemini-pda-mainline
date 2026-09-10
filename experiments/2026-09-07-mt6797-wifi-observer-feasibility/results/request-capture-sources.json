@@ -1,0 +1,22 @@
+{
+  "source_revision": "59e00a9144d782e148332009a835b99c43382467",
+  "scope": "Unselected native request attribution; firmware causality, isolation and device admission remain open",
+  "parents": {
+    "include/linux/mt6797_wifi_capture.h": "5fa31493fb5114d7b26483f8d085acb104e9536dcac802c27c7ea034bc445a55",
+    "drivers/clk/mediatek/clk-mt6797-wfc-common.h": "b4331e2f6a46244002ac4796076766334928221dc5d1e644b76cc6fbe9cdb2fa",
+    "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_exp.c": "8e240ea6bc5226aba9d070b99c33566309ed0d974cc4cd9de4494218810f888d",
+    "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_lib.c": "733c39a9910a567b1607d93406fdb4572173166e4cc808622a69e83f744e9db2",
+    "drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_dev.c": "0584c47aafebca6d09f519b20c8cc0c084d1128e797516cd7da753631f79ef1c"
+  },
+  "outputs": {
+    "include/linux/mt6797_wifi_capture.h": "15c98c3aa5d0d4486ddfc8879fced11b7d8275c2e7eafc6d7a589e0767dcc2f5",
+    "drivers/clk/mediatek/clk-mt6797-wfc-common.h": "b3e4f49ea0aa10ee93a6f3cde09097b47bd163c82ef196c2f5654ed64f05bc98",
+    "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_exp.c": "6fad89d6a774422052738dba9a754538885f5e13959f3efec0af3884a4995ca5",
+    "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_lib.c": "3ea9de93e2e6ac839b83e673b4fbcf8af458bc1e7ccdd54ef67c40e725f99802",
+    "drivers/misc/mediatek/connectivity/common/common_main/core/wmt-request-capture.h": "ea5856f6fa9e906e2656feb6bfc58b6528a44ee71f77ed026d60237bb67092bd",
+    "drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_dev.c": "63b7621f3c4251b710c62cb66e5322144036a210014d6c65a65da5df0a120dde"
+  },
+  "patch": "0001-wmt-bind-captured-requests-to-worker-and-common-off.patch",
+  "patch_sha256": "4fc1a7ba2e5946f5cacf2982e385ef085f1d1094528660b101c1ac8f40d93b6b",
+  "replay_and_reverse_verified": true
+}
