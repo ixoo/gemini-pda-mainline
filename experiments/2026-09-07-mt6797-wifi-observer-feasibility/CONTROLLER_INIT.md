@@ -79,8 +79,17 @@ failures, all 26 lost records, four preflight refusals and duplicate refusal.
 Actual emitted record bytes pass the decoder; 52 missing/repeated-record
 mutations are rejected. This fixture specifies the Linux ioctl packing on the
 host; it does not use the host OS's potentially different ioctl encoding.
-Strict Checkpatch and the existing capture tests pass. Native compilation is
-pending through `check-recovery-setters.py COMMIT --controller` on Buildbox.
+Strict Checkpatch and the existing capture tests pass. The
+[native compilation receipt](results/controller-init-object-compile.json) records
+ten successful complete-object compilations and the same fixture on Buildbox
+at `6cc40eb8bd31f32b24d2acae9cb0b5a97d50a10b`, using
+`check-recovery-setters.py COMMIT --controller`. It verifies the selected
+built-in/Wi-Fi/gen3 macros and changed header dependencies. The detector object
+references the capture/recovery backend only in the child. All 45 returned files
+match the remote inventory and 44-entry checksum manifest, SHA-256
+`f4f4d975f7b478dfff4575f5a50a706a6015f2fbcba1b74a4f138f1dde7201a2`.
+The native compiler commands retain `-w`; these are not warning-clean or
+complete-kernel-link results.
 
 Responder/HIF configuration, request sequencing, final classification, complete
 kernel linking, reset/resource isolation and the exact owner-approved device
