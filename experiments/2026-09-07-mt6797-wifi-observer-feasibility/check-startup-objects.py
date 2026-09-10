@@ -183,7 +183,6 @@ def main():
     if dma_map_error:
         label = "wifi-dma-map-error-objects-"
     if transport_setup:
-        files = (RELATIVE + "linux/wmt_dev",)
         label = "wifi-transport-setup-objects-"
     def unit_path(name):
         return name if name.startswith("drivers/") else relative + name
@@ -534,6 +533,7 @@ int wfc_compile_append(struct wfc_writer *w, unsigned int k, u32 tx,
                 assert digest(patched / path) == expected, path
             subprocess.run(["python3", str(experiment / "test-transport-setup.py"),
                             str(patched)], check=True)
+            files = (RELATIVE + "linux/wmt_dev",)
         records = []
         header = headers + ("/hif.h" if dma else "/wmt_ctrl.h")
         if not pstore:
