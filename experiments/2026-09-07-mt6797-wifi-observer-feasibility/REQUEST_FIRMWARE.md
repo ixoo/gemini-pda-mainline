@@ -59,6 +59,10 @@ immutability, WLAN-thread quiescence, exclusive resource ownership or firmware
 execution. A changed-and-restored buffer still passes the boundary hashes.
 Controller integration, full-cycle termination, recovery budgets and device
 admission remain separate. No kernel profile selects this patch.
+The [transmit-boundary audit](TX_SUBMISSION_BOUNDARY.md) now executes native
+staging counterexamples and selects the actual transport buffer as the next
+payload-witness boundary; caller success and original-buffer hashes remain
+insufficient.
 
 ## Validation
 
