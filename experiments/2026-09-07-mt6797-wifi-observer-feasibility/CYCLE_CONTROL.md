@@ -1,5 +1,10 @@
 # Wi-Fi cycle control and recovery assessment
 
+The later [recovery integration decision](RECOVERY_INTEGRATION.md) selects a
+hard-cutoff design and identifies watchdog mutations that the historical
+reload interlock does not exclude. Candidate implementation and admission
+remain open.
+
 ## Decision
 
 A single direct on/off write is not yet a controlled lifetime experiment.

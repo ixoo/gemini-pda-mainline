@@ -1,0 +1,81 @@
+# Recovery integration decision
+
+Design checkpoint, 2026-09-10. Use the historical twelve-second watchdog
+window as the proposed hard cutoff for one minimal-startup attempt. Do not
+increase it to accommodate native waits, and do not describe it as a proven
+completion budget. This selects a design direction, not a candidate, restart
+authorization or a new use of the consumed recovery-only artifact.
+
+## A cutoff does not require bounded worker completion
+
+The [native controller assessment](CYCLE_CONTROL.md#controller-route-and-operation-timeout)
+establishes that a four-second WMT wait does not cancel its worker. The
+[DMA assessment](DMA_HOOKS.md#selected-deadline-and-idle-exits) also identifies
+a return with the HIF lock retained. Therefore a software timer, joined worker,
+descriptor close or ordinary WLAN teardown cannot own emergency recovery.
+
+The watchdog must already be armed before the first connectivity initializer
+with resource effects. The remaining time includes initialization, responder
+interaction, one WLAN-on request, a joined load result, and at most one WLAN-off
+request. If the attempt does not finish before hardware expiry, recovered
+partial records are an incomplete attempt. Neither a successful syscall nor
+the reset itself upgrades them to a successful lifetime observation. A cutoff
+before the required observations must change the acquisition design; it does
+not authorize repeating the same image or extending the timeout automatically.
+
+## Historical ownership is insufficient for this candidate
+
+Inspected public source:
+[`mtk_wdt.c` at Gemian revision `59e00a9144d782e148332009a835b99c43382467`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c),
+SHA-256 `816e82eddf63d2bf9366b84ff238b3ff305c7929bea3bd694a229c0294acd6bc`.
+These are source observations, not executed paths or an exhaustive caller audit.
+
+| Baseline function | Effect relevant after takeover |
+| --- | --- |
+| `mtk_wdt_set_time_out_value()` | Writes LENGTH under the register lock. |
+| `mtk_wdt_mode_config()` | Can clear ENABLE or change reset/interrupt mode under that lock. |
+| `mtk_wdt_enable()` | Can clear ENABLE independently of a reload. |
+| `mtk_wd_suspend()` | Calls mode configuration with watchdog enable false, then restart. |
+| `mtk_wd_resume()` | Can restore the saved timeout and ordinary mode, then restart. |
+| `wdt_arch_reset()` | Directly reloads and changes MODE on its separate reset path. |
+
+The historical [low-level takeover patch](../2026-08-02-a72-recovery-only-discriminator/patches/0002-diagnostic-add-exclusive-TOPRGU-recovery-owner.patch)
+adds its ownership check to `mtk_wdt_restart()` only. It does not add checks to
+the other mutations above. Its [kicker-side patch](../2026-08-02-a72-recovery-only-discriminator/patches/0003-diagnostic-run-bounded-watchdog-pstore-gate.patch)
+disables ordinary kicking and CPU hotplug, which does not by itself exclude
+suspend, resume or direct mode changes. The earlier scoped runtime result is
+preserved; it does not prove exclusivity during this different workload.
+
+Before implementation, the selected configuration and complete caller audit
+must either exclude each competing mutation or provide serialization that
+refuses it after takeover. Checking a flag before acquiring the register lock
+is insufficient to exclude a caller that already passed the check. Include
+direct reset, retention and request-routing writes in that audit; the table
+is not the complete TOPRGU ownership surface. Do not patch only suspend and
+declare the watchdog exclusive.
+
+## Controller ordering to implement
+
+1. Prepare the fixed minimal filesystem, private firmware identities and
+   responder inputs without initiating connectivity. Establish candidate
+   identity, capture storage availability and watchdog readiness.
+2. Begin attributable persistent capture, then perform the reviewed watchdog
+   takeover. No connectivity effect is allowed on a capture or arm refusal.
+   Failure after hardware ownership is claimed must not restore the kicker.
+3. Record verified arm readback before invoking connectivity initialization.
+   Keep CPU hotplug and all competing watchdog mutators excluded until reset.
+   The historical delayed-work trigger is not selected.
+4. Run the existing single-attempt initialization and responder sequence, then
+   the selected WLAN request sequence. The first error ends normal requests;
+   no cleanup retry or presumed DMA release follows a returned error.
+5. Preserve completed or partial records. A completed cycle also leaves the
+   hard cutoff armed; no disarm/reload path is part of this proposed experiment.
+6. After reset, require changed-boot known-good Gemian identity and retrieve
+   the exact capture before classifying the result or selecting further work.
+
+The controller entry point, full watchdog caller/configuration audit,
+shared-buffer/reset isolation, complete linking and candidate-specific recovery
+review remain open. The owner must approve the exact radio and timed-restart
+session before it runs, as required by [safety policy](../../docs/SAFETY.md).
+No watchdog, radio, service, partition or device state was changed for this
+assessment. No hardware deadline or recovery behavior was measured.
