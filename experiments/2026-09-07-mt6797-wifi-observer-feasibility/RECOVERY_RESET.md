@@ -67,6 +67,13 @@ sign-off/path/camelcase exceptions. The existing native object checker accepts
 `COMMIT --reset` to compile both complete watchdog units and run this fixture.
 No image, device state or firmware is changed by these tests.
 
+The [native compilation receipt](results/recovery-reset-object-compile.json)
+records successful parent and child watchdog objects at
+`81c96acb7d38ff0d8e29515cb5c86bd2d86d0bfb`, using the pinned GCC 6.3 toolchain
+and Gemian configuration. The fixture also passed on Buildbox. All 13 fetched
+files match its validated checksum manifest. The native compiler retains `-w`;
+this is not a warning-clean result, complete kernel link or device test.
+
 The higher-level `arch_reset()` wrapper in `wd_api.c` can mark RTC boot modes
 before entering this low-level reset function. This patch does not guard those
 writes. Explicit restart entry points, other reset notifiers, watchdog request

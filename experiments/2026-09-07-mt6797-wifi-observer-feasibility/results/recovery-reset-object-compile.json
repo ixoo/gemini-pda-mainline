@@ -1,0 +1,46 @@
+{
+  "commit": "81c96acb7d38ff0d8e29515cb5c86bd2d86d0bfb",
+  "source_revision": "59e00a9144d782e148332009a835b99c43382467",
+  "compiler": "aarch64-linux-gnu-gcc-6 (Debian 6.3.0-18) 6.3.0 20170516",
+  "toolchain_sha256": "a45d945f092461a611d276ad7d0a0fea1ea8a7f93db413908bcb892c12817d14",
+  "config_sha256": "c96ca5c8a767b93f59487c9b4a1c3d05c1f47c166f3f9ea9f2b7ffe0f6f1f0fb",
+  "configuration_delta": {
+    "CONFIG_ANBOX": [
+      null,
+      "n"
+    ]
+  },
+  "compile_only_define": "CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR=1",
+  "selected_hardware_path": "TOPRGU; SPM and dummy watchdog branches excluded",
+  "patch_sha256": "48ba21d2f5e94a17129ce9b03223416f433748c81657f549df33bcfe6ed97979",
+  "parent_patch_sha256": "a3f55c86b0c3d3ca8aa5d49864d0574f5684fc58b2ab403609fdb6c1c5bade96",
+  "objects": [
+    {
+      "label": "parent",
+      "source": "drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c",
+      "source_sha256": "accee425dd694555694e5d7263db960958c0d47722505361aad7bf983f617993",
+      "object_sha256": "15762032ac35f607feaacb798905c6bcc02837ad8b77b147453fbfc92ef69132",
+      "header_sha256": "a5bb2b27d35b7ac1381ee50807d6fe658055d326d2788217113822d06c82eab7"
+    },
+    {
+      "label": "child",
+      "source": "drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c",
+      "source_sha256": "d52e4d8d91152f53260a1bde5fc702d51e9c26eac2751d98761e69d1bb1a6bcc",
+      "object_sha256": "5e9423f3670dd6e33eb7aeb13f2fa1e791c34d587ed0e8fc5dbb78c41629400b",
+      "header_sha256": "a5bb2b27d35b7ac1381ee50807d6fe658055d326d2788217113822d06c82eab7"
+    }
+  ],
+  "fixture": "parent/child direct-reset and no-lock reload takeover orderings, plus held-lock contention",
+  "warning_policy": "Recorded native -w retained; not warning-clean evidence",
+  "boot_candidate": false,
+  "device_access": false,
+  "prerequisites": {
+    "experiments/2026-08-02-a72-recovery-only-discriminator/patches/0002-diagnostic-add-exclusive-TOPRGU-recovery-owner.patch": "a3f55c86b0c3d3ca8aa5d49864d0574f5684fc58b2ab403609fdb6c1c5bade96",
+    "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/recovery-setters/0001-watchdog-serialize-setters-with-diagnostic-takeover.patch": "4f4eee696a5a9b2bca4d2d698b590ceb2cc8287525023ce52962f1e1c8b12396"
+  },
+  "verification": {
+    "package_files": 13,
+    "package_sha256_manifest": "e96db6e90dba6e330be2722368138bc70712a6fca7339ab88c3e7360faa9d5a2",
+    "all_fetched_checksums_match_remote_manifest": true
+  }
+}
