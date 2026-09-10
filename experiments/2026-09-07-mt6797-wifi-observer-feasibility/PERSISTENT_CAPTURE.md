@@ -1005,7 +1005,7 @@ sign-off, the new file's maintainer-inventory reminder, and the modern
 `kzalloc_obj` recommendation unavailable in the native 3.18 API. The script's
 spelling/const dictionaries are unavailable.
 
-The existing `--pstore` object check now applies all eight patches, checks the
+At the initial integration below, the `--pstore` object check applies eight patches, checks the
 native header dependencies, retains both capture disassemblies, and compiles
 the complete native board DT before and after the split using the pinned DCT
 output. It requires only the one existing `reg` change and the new PMSG `reg`
@@ -1027,3 +1027,66 @@ kernel link, binding-schema validation or hardware test.
 Physical zero-state preparation, typed observer/controller callers, durable
 interference evidence, the watchdog contract and reset retention remain open.
 No kernel image, boot selection, memory access or radio operation is admitted.
+
+
+## Rejected-access tail markers
+
+[Patch 9](patches/pstore/0009-pstore-retain-rejected-capture-access-in-tail.patch)
+addresses one loss of evidence: an ordinary PMSG write or erase rejected after
+a recorded terminal previously left only a volatile denial bit. The capture
+owner now reserves the first two bytes of the existing 116-byte unused payload
+tail for one rejected-write and one rejected-erase marker. These are payload
+offsets 65,408 and 65,409, raw-zone offsets 65,420 and 65,421, physical addresses
+`0x444eff8c` and `0x444eff8d`. They are inside the already selected 64-KiB zone;
+slot count, slot contents and ring metadata remain unchanged.
+
+The marker pointer becomes available only after successful full-zone zero
+admission and fixed-header readback. Earlier denials still prevent begin and
+perform no retained write, including when recovery has mapped nonempty old
+storage. Each callback consumes its atomic denial bit before waiting for the
+same raw spinlock used by begin/append. Under that lock it closes the writer,
+checks its byte, and preserves any nonzero value. A zero byte receives one
+`0xff` store with ordered readback. Failed readback returns `-EIO`; ordinary
+rejection and repeated calls return `-EBUSY`. There is no marker retry, clear,
+repair or ownership release, even after a failed store or an outside clear.
+
+The two process-context routes remain native `write_pmsg()` and
+`pstore_unlink()`, with the input hashes already recorded in the
+[initial object result](results/capture-integration-object-compile.json).
+The new helper runs below the former's mutex; it calls no generic pstore path,
+allocation, logging or sleeping operation while holding the capture lock.
+It is not an NMI interface. Normal-mode callbacks remain unchanged.
+
+This adds at most **two byte stores per boot after acquisition**, including
+denials after a terminal. A full capture plus both markers therefore has at
+most 65,422 byte stores: twelve header bytes, 511 complete 128-byte slots and
+two tail bytes. Each marker adds at most two byte reads and four `dsb sy`
+barriers; an already nonzero byte needs only one read and two barriers. Native
+readback ordering still requires target compilation and physical validation.
+
+The existing reader rejects every nonzero tail, so no decoder relaxation or
+new successful record type is introduced. The raw recovery snapshot preserves
+the complete marked zone. A nonzero marker is a reason to reject the capture,
+not an authenticated account of which actor ran; retain the original bytes.
+
+The [expanded eighteen-group fixture](results/capture-denial-tail-test.txt)
+retains the twelve acquisition tests and adds both post-terminal markers,
+raw recovery and refusal to reuse, pre-acquisition preservation, repeated
+concurrent denials with the two-store bound, nonempty-marker preservation,
+read/write faults without retry, and a denial latched while the terminal writer
+holds its lock. That deterministic interleaving joins the blocked denial only
+after the writer releases the lock, then requires the terminal's `-EBUSY` and
+the recovery reader's tail refusal. The injected host lock and memory do not
+establish native interrupt or physical persistence behavior.
+
+**A zero tail still cannot certify isolation.** Reset before the marker store,
+a dropped store, or a false nonzero initial read can leave a framing-valid
+terminal without a marker. The fault fixtures explicitly preserve that
+counterexample. Even a successful readback is not physical reset-retention
+proof. The controller must still establish the bounded observation interval,
+account for in-flight actors and join admitted watchdog/recovery evidence;
+these markers do not replace those requirements.
+
+The Buildbox object check now selects all nine patches. Target compilation of
+this successor is pending. No controller, boot candidate, clearing protocol or
+device action is selected.

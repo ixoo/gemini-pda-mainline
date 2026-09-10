@@ -169,7 +169,7 @@ def main():
             shutil.copytree(source / headers, patched / headers)
         patch_dir = experiment / "patches" / "pstore" if pstore else experiment / "patches"
         patches = [] if capture else sorted(patch_dir.glob("*.patch"))
-        assert len(patches) == (0 if capture else 8 if pstore else 4)
+        assert len(patches) == (0 if capture else 9 if pstore else 4)
         for patch in patches:
             subprocess.run(["git", "apply", str(patch)], cwd=patched, check=True)
         if capture:

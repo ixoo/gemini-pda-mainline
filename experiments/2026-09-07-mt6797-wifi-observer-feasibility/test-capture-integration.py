@@ -11,6 +11,7 @@ import re
 import subprocess
 import tempfile
 import threading
+import time
 import unittest
 
 HERE = Path(__file__).resolve().parent
@@ -120,6 +121,9 @@ struct ramoops_context {
 static struct ramoops_context oops_cxt;
 static bool pmsg_capture, pmsg_capture_locked;
 static bool pmsg_capture_registered, pmsg_capture_attempted;
+static u8 *pmsg_capture_tail;
+static bool test_and_set_bit(unsigned int bit, unsigned long *value)
+{ assert(bit < 2); return !!(__atomic_fetch_or(value, 1UL << bit, __ATOMIC_SEQ_CST) & (1UL << bit)); }
 static pthread_mutex_t pmsg_capture_lock = PTHREAD_MUTEX_INITIALIZER;
 #define raw_spin_lock_irqsave(p, flags) do { (flags) = 0; assert(!pthread_mutex_lock(p)); } while (0)
 #define raw_spin_unlock_irqrestore(p, flags) do { (void)(flags); assert(!pthread_mutex_unlock(p)); } while (0)
@@ -139,6 +143,7 @@ void fresh(void)
     valid_page = pfn_checks = fail_request = fail_mapping = zaps = normal_calls = 0;
     pmsg_capture = pmsg_capture_locked = true;
     pmsg_capture_registered = pmsg_capture_attempted = false;
+    pmsg_capture_tail = NULL;
     pmsg_capture_denials = interrupt_context = nmi_context = 0;
     reads = writes = barriers = trace_length = cut = drop = fault_read = interference_read = 0;
     oops_cxt.phys_addr = 0x44410000;
@@ -181,6 +186,8 @@ unsigned int live_count(void) { return live_allocations; }
 unsigned int reservation_count(void) { return reservation; }
 unsigned int map_count(void) { return mappings; }
 unsigned int zap_count(void) { return zaps; }
+int deny(unsigned int bit) { return ramoops_capture_deny(bit); }
+char *operations(void) { trace[trace_length] = 0; return trace; }
 void denied(void) { __atomic_fetch_or(&pmsg_capture_denials, 1UL, __ATOMIC_SEQ_CST); }
 void corrupt_contract(void) { oops_cxt.mprz->ecc_info.ecc_size = 1; }
 void contexts(unsigned int irq, unsigned int nmi) { interrupt_context = irq; nmi_context = nmi; }
@@ -214,13 +221,40 @@ class IntegrationTests(unittest.TestCase):
         header = '\n'.join(x for x in header.splitlines() if not x.startswith('#include '))
         shim = slot.SHIM.replace('memory[65524]', 'memory[65536]')
         shim = shim.replace('static unsigned int reads,',
-                            'static unsigned long pmsg_capture_denials;\nstatic unsigned int interference_read;\nstatic unsigned int reads,')
-        shim = shim.replace("reads++; log_op('R');", "reads++; log_op('R'); if (reads == interference_read) __atomic_fetch_or(&pmsg_capture_denials, 1UL, __ATOMIC_SEQ_CST);")
+                            'static unsigned int interference_read;\nstatic unsigned int reads,')
+        shim = shim.replace('#include <stdint.h>', '#include <pthread.h>\n#include <stdint.h>')
+        shim = shim.replace('static u8 memory', r"""
+static pthread_mutex_t pause_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t pause_condition = PTHREAD_COND_INITIALIZER;
+static unsigned int pause_read, paused, released;
+void pause_on(unsigned int n) { pause_read = n; paused = released = 0; }
+unsigned int is_paused(void) { return __atomic_load_n(&paused, __ATOMIC_SEQ_CST); }
+unsigned long denial_bits(void) { return __atomic_load_n(&pmsg_capture_denials, __ATOMIC_SEQ_CST); }
+void release_pause(void) {
+    pthread_mutex_lock(&pause_lock); released = 1;
+    pthread_cond_broadcast(&pause_condition); pthread_mutex_unlock(&pause_lock);
+}
+static void pause_here(unsigned int n) {
+    if (n != pause_read) return;
+    pthread_mutex_lock(&pause_lock); __atomic_store_n(&paused, 1, __ATOMIC_SEQ_CST);
+    while (!released) pthread_cond_wait(&pause_condition, &pause_lock);
+    pthread_mutex_unlock(&pause_lock);
+}
+static u8 memory""")
+        shim = 'static unsigned long pmsg_capture_denials;\n' + shim
+        shim = shim.replace("reads++; log_op('R');", "reads++; log_op('R'); if (reads == interference_read) __atomic_fetch_or(&pmsg_capture_denials, 1UL, __ATOMIC_SEQ_CST); pause_here(reads);")
         functions = ''.join(function(core, name) for name in
                             ('persistent_ram_free', 'persistent_ram_capture_map', 'persistent_ram_capture_prepare'))
         functions += function(ram, 'ramoops_init_prz')
         functions += function(ram, 'ramoops_free_przs')
+        functions += function(ram, 'ramoops_capture_deny')
         functions += function(ram, 'ramoops_capture_begin') + function(ram, 'ramoops_capture_append')
+        # Only the PMSG capture branches change in the two full callbacks.
+        for name, bit in (('ramoops_pstore_write_buf', 0), ('ramoops_pstore_erase', 1)):
+            callback = function(ram, name)
+            assert callback.count(f'return ramoops_capture_deny({bit});') == 1
+            assert callback.index(f'return ramoops_capture_deny({bit});') < callback.index(
+                'persistent_ram_write(cxt->mprz' if bit == 0 else 'persistent_ram_free_old(prz)')
         # The complete probe is target-compiled. Check these integration boundaries explicitly.
         probe = function(ram, 'ramoops_probe')
         assert probe.index('atomic_cmpxchg(&pmsg_capture_probe_attempted') < probe.index('ramoops_init_przs(')
@@ -235,6 +269,7 @@ class IntegrationTests(unittest.TestCase):
         cls.c.open_zone.argtypes = [ctypes.c_uint64, ctypes.c_size_t]
         cls.c.begin.argtypes = cls.c.interrupted_begin.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
         cls.c.append.argtypes = [ctypes.c_uint, ctypes.c_uint32, ctypes.c_char_p, ctypes.c_size_t]
+        cls.c.operations.restype = ctypes.c_char_p
         cls.c.data.restype = cls.c.old_data.restype = ctypes.POINTER(ctypes.c_ubyte)
 
     @classmethod
@@ -244,6 +279,7 @@ class IntegrationTests(unittest.TestCase):
 
     def setUp(self):
         self.c.fresh()
+        self.c.pause_on(0)
 
     def open(self):
         self.assertEqual(self.c.open_zone(0x444e0000, 65536), 0)
@@ -391,6 +427,133 @@ class IntegrationTests(unittest.TestCase):
         self.assertEqual(self.c.append(255, 0, (1).to_bytes(4, 'little'), 4), 0)
         result = r.decode_pmsg_zone(self.snapshot(), CYCLE, IDENTITY)
         self.assertEqual(len(result['records']), 82)
+        self.assert_closed()
+
+    def terminal(self):
+        self.assertEqual(self.c.append(255, 0, (1).to_bytes(4, 'little'), 4), 0)
+        self.c.inject(0, 0, 0, 0)
+
+    def test_completed_denial_after_terminal_survives_raw_recovery(self):
+        for bit in (0, 1):
+            self.setUp()
+            self.begin()
+            self.terminal()
+            before = self.snapshot()
+            self.assertEqual(self.c.deny(bit), -16)
+            expected = bytearray(before)
+            expected[12 + 511 * 128 + bit] = 255
+            self.assertEqual(self.snapshot(), expected)
+            self.assertEqual(self.c.store_count(), 1)
+            self.assertEqual(self.c.operations(), b'BRBWBRB')
+            self.assert_closed()
+            retained = self.snapshot()
+            self.setUp()
+            ctypes.memmove(self.c.data(), retained, len(retained))
+            self.open()
+            self.assertEqual(bytes(self.c.old_data()[:65536]), retained)
+            with self.assertRaisesRegex(ValueError, 'tail'):
+                r.decode_pmsg_zone(retained, CYCLE, IDENTITY)
+            self.assertLess(self.c.begin(CYCLE, IDENTITY), 0)
+            self.assertEqual(self.c.deny(bit), -16)
+            self.assertEqual(self.c.store_count(), 0)
+            self.assertEqual(self.snapshot(), retained)
+
+    def test_denial_before_acquisition_never_touches_retained_storage(self):
+        for mapped in (False, True):
+            self.setUp()
+            self.c.data()[65535] = 7
+            if mapped:
+                self.open()
+            before = self.snapshot()
+            for bit in (0, 1):
+                self.assertEqual(self.c.deny(bit), -16)
+            if not mapped:
+                self.open()
+            self.assertLess(self.c.begin(CYCLE, IDENTITY), 0)
+            self.assertEqual(self.c.store_count(), 0)
+            self.assertEqual(self.snapshot(), before)
+
+    def test_repeated_concurrent_denials_have_two_store_budget(self):
+        self.begin()
+        before = self.snapshot()
+        results = []
+        def worker(bit):
+            for _ in range(50):
+                results.append(self.c.deny(bit))
+        threads = [threading.Thread(target=worker, args=(bit,)) for bit in (0, 1, 0, 1)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+        self.assertEqual(results, [-16] * 200)
+        self.assertEqual(self.c.store_count(), 2)
+        expected = bytearray(before)
+        expected[65420:65422] = b'\xff\xff'
+        self.assertEqual(self.snapshot(), expected)
+        self.assert_closed()
+
+    def test_nonempty_denial_tail_is_preserved_without_retry(self):
+        self.begin()
+        self.c.data()[65420] = 3
+        before = self.snapshot()
+        self.assertEqual(self.c.deny(0), -16)
+        self.assertEqual(self.snapshot(), before)
+        self.assertEqual(self.c.store_count(), 0)
+        # Outside clearing cannot reopen a consumed marker attempt.
+        self.c.data()[65420] = 0
+        self.assertEqual(self.c.deny(0), -16)
+        self.assertEqual(self.c.store_count(), 0)
+        self.assert_closed()
+
+    def test_denial_io_faults_do_not_retry_or_imply_durable_success(self):
+        for lost, bad_read, expected_ret, expected_writes, retained in (
+                (1, 0, -5, 1, 0), (0, 2, -5, 1, 255), (0, 1, -16, 0, 0)):
+            self.setUp()
+            self.begin()
+            self.terminal()
+            self.c.inject(0, lost, bad_read, 0)
+            self.assertEqual(self.c.deny(0), expected_ret)
+            self.assertEqual(self.c.store_count(), expected_writes)
+            self.assertEqual(self.c.data()[65420], retained)
+            self.c.inject(0, 0, 0, 0)
+            self.assertEqual(self.c.deny(0), -16)
+            self.assertEqual(self.c.store_count(), 0)
+            if retained:
+                with self.assertRaisesRegex(ValueError, 'tail'):
+                    r.decode_pmsg_zone(self.snapshot(), CYCLE, IDENTITY)
+            else:
+                # An absent marker cannot prove the absence of a denied call.
+                self.assertEqual(r.decode_pmsg_zone(self.snapshot(), CYCLE, IDENTITY)['framing'],
+                                 'terminal-recorded')
+            self.assert_closed()
+
+    def test_denial_waiting_on_terminal_writer_marks_after_unlock(self):
+        self.begin()
+        self.c.pause_on(200)
+        results = {}
+        writer = threading.Thread(target=lambda: results.update(
+            terminal=self.c.append(255, 0, (1).to_bytes(4, 'little'), 4)))
+        denial = threading.Thread(target=lambda: results.update(denial=self.c.deny(0)))
+        writer.start()
+        try:
+            deadline = time.monotonic() + 3
+            while not self.c.is_paused() and time.monotonic() < deadline:
+                time.sleep(0.001)
+            self.assertTrue(self.c.is_paused())
+            denial.start()
+            while not self.c.denial_bits() and time.monotonic() < deadline:
+                time.sleep(0.001)
+            self.assertEqual(self.c.denial_bits(), 1)
+        finally:
+            self.c.release_pause()
+            writer.join()
+            if denial.ident is not None:
+                denial.join()
+        self.assertEqual(results, {'terminal': -16, 'denial': -16})
+        self.assertEqual(self.c.store_count(), 129)
+        self.assertEqual(self.c.data()[65420], 255)
+        with self.assertRaisesRegex(ValueError, 'tail'):
+            r.decode_pmsg_zone(self.snapshot(), CYCLE, IDENTITY)
         self.assert_closed()
 
     def test_recovery_snapshot_decodes_and_cannot_be_reused(self):

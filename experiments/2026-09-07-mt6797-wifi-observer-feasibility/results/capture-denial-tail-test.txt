@@ -1,0 +1,26 @@
+scope=host_injected_io_and_lock_model; no_device_or_reset_retention_claim
+patch_replay_and_reverse=pass
+strict_checkpatch=pass; excluded=MISSING_SIGN_OFF; spelling_and_const_dictionaries_unavailable
+test_bad_contract_and_arguments_do_not_initialize_header (__main__.IntegrationTests.test_bad_contract_and_arguments_do_not_initialize_header) ... ok
+test_completed_denial_after_terminal_survives_raw_recovery (__main__.IntegrationTests.test_completed_denial_after_terminal_survives_raw_recovery) ... ok
+test_denial_before_acquisition_never_touches_retained_storage (__main__.IntegrationTests.test_denial_before_acquisition_never_touches_retained_storage) ... ok
+test_denial_before_and_during_append_closes_capture (__main__.IntegrationTests.test_denial_before_and_during_append_closes_capture) ... ok
+test_denial_io_faults_do_not_retry_or_imply_durable_success (__main__.IntegrationTests.test_denial_io_faults_do_not_retry_or_imply_durable_success) ... ok
+test_denial_waiting_on_terminal_writer_marks_after_unlock (__main__.IntegrationTests.test_denial_waiting_on_terminal_writer_marks_after_unlock) ... ok
+test_dump_cleanup_stops_at_count_and_clears_pointer (__main__.IntegrationTests.test_dump_cleanup_stops_at_count_and_clears_pointer) ... ok
+test_every_header_readback_fault_stops_before_identity (__main__.IntegrationTests.test_every_header_readback_fault_stops_before_identity) ... ok
+test_every_header_store_interruption_stops_before_identity (__main__.IntegrationTests.test_every_header_store_interruption_stops_before_identity) ... ok
+test_header_then_identity_and_terminal_match_reader (__main__.IntegrationTests.test_header_then_identity_and_terminal_match_reader) ... ok
+test_mapping_refusals_release_resources_without_stores (__main__.IntegrationTests.test_mapping_refusals_release_resources_without_stores) ... ok
+test_nonempty_denial_tail_is_preserved_without_retry (__main__.IntegrationTests.test_nonempty_denial_tail_is_preserved_without_retry) ... ok
+test_old_snapshot_prevents_admission_even_if_live_bytes_change (__main__.IntegrationTests.test_old_snapshot_prevents_admission_even_if_live_bytes_change) ... ok
+test_recovery_snapshot_decodes_and_cannot_be_reused (__main__.IntegrationTests.test_recovery_snapshot_decodes_and_cannot_be_reused) ... ok
+test_repeated_concurrent_denials_have_two_store_budget (__main__.IntegrationTests.test_repeated_concurrent_denials_have_two_store_budget) ... ok
+test_serialized_callers_keep_contiguous_sequences (__main__.IntegrationTests.test_serialized_callers_keep_contiguous_sequences) ... ok
+test_snapshot_preserves_invalid_header_and_every_byte (__main__.IntegrationTests.test_snapshot_preserves_invalid_header_and_every_byte) ... ok
+test_wrong_extent_refuses_before_mapping (__main__.IntegrationTests.test_wrong_extent_refuses_before_mapping) ... ok
+
+----------------------------------------------------------------------
+Ran 18 tests in 0.627s
+
+OK

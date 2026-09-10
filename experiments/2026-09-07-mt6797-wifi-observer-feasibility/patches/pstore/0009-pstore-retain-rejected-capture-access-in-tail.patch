@@ -1,0 +1,124 @@
+From 149ec536b0c638841f49634e967a3b82a81787a9 Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <experiment@invalid.example>
+Date: Wed, 9 Sep 2026 21:58:11 -0400
+Subject: [PATCH] pstore: retain rejected capture access in unused tail
+
+A rejected ordinary PMSG operation can follow the last capture record.
+Its volatile denial bit alone disappears on reset. Reserve one byte per
+operation type in the existing unused tail and mark it once after capture
+acquisition, under the same lock as the writer. Any nonzero tail already
+causes the recovery decoder to refuse the stream. Preserve nonzero bytes,
+consume the attempt before I/O and return EIO on failed marker readback.
+
+This adds at most two byte stores without changing slots or ring metadata.
+Pre-acquisition denials still forbid begin without touching retained RAM.
+Reset before the marker store, dropped writes and physical retention remain
+separate limitations; this is not a complete isolation certificate.
+
+This unselected native 3.18 experiment has no admitted device operation.
+The archive identity is synthetic and non-certifying; not submission-ready.
+---
+ fs/pstore/ram.c | 57 ++++++++++++++++++++++++++++++++++++++++++-------
+ 1 file changed, 49 insertions(+), 8 deletions(-)
+
+diff --git a/fs/pstore/ram.c b/fs/pstore/ram.c
+index d68e936..a396d77 100644
+--- a/fs/pstore/ram.c
++++ b/fs/pstore/ram.c
+@@ -316,6 +316,8 @@ static size_t ramoops_write_kmsg_hdr(struct persistent_ram_zone *prz,
+ 	return len;
+ }
+ 
++static int ramoops_capture_deny(unsigned int bit);
++
+ static int notrace ramoops_pstore_write_buf(enum pstore_type_id type,
+ 					    enum kmsg_dump_reason reason,
+ 					    u64 *id, unsigned int part,
+@@ -344,10 +346,8 @@ static int notrace ramoops_pstore_write_buf(enum pstore_type_id type,
+ 		persistent_ram_write(cxt->fprz, buf, size);
+ 		return 0;
+ 	} else if (type == PSTORE_TYPE_PMSG) {
+-		if (pmsg_capture) {
+-			set_bit(0, &pmsg_capture_denials);
+-			return -EBUSY;
+-		}
++		if (pmsg_capture)
++			return ramoops_capture_deny(0);
+ 		if (!cxt->mprz)
+ 			return -ENOMEM;
+ 		persistent_ram_write(cxt->mprz, buf, size);
+@@ -410,10 +410,8 @@ static int ramoops_pstore_erase(enum pstore_type_id type, u64 id, int count,
+ 		prz = cxt->fprz;
+ 		break;
+ 	case PSTORE_TYPE_PMSG:
+-		if (pmsg_capture) {
+-			set_bit(1, &pmsg_capture_denials);
+-			return -EBUSY;
+-		}
++		if (pmsg_capture)
++			return ramoops_capture_deny(1);
+ 		prz = cxt->mprz;
+ 		break;
+ 	default:
+@@ -441,8 +439,48 @@ static DEFINE_RAW_SPINLOCK(pmsg_capture_lock);
+ static struct wfc_writer pmsg_writer;
+ static bool pmsg_capture_attempted;
+ static bool pmsg_capture_registered;
++static u8 __iomem *pmsg_capture_tail;
+ static atomic_t pmsg_capture_probe_attempted = ATOMIC_INIT(0);
+ 
++/*
++ * Native PMSG write/erase callers are process-context paths. Each rejected
++ * operation type owns one unused tail byte, even after a capture terminal.
++ * Latch before waiting for the writer; never retry a consumed marker attempt.
++ */
++static int ramoops_capture_deny(unsigned int bit)
++{
++	u8 __iomem *marker;
++	unsigned long flags;
++	u8 value;
++	int ret = -EBUSY;
++
++	if (test_and_set_bit(bit, &pmsg_capture_denials))
++		return -EBUSY;
++	raw_spin_lock_irqsave(&pmsg_capture_lock, flags);
++	pmsg_writer.stopped = true;
++	if (!pmsg_capture_tail)
++		goto out;
++	marker = pmsg_capture_tail + bit;
++	/* Order prior capture activity before inspecting the marker. */
++	mb();
++	value = readb_relaxed(marker);
++	/* Complete the zero-byte check before its only store. */
++	mb();
++	if (value)
++		goto out;
++	writeb_relaxed(0xff, marker);
++	/* Complete the marker store before checking retention readback. */
++	mb();
++	value = readb_relaxed(marker);
++	/* Complete readback before releasing capture serialization. */
++	mb();
++	if (value != 0xff)
++		ret = -EIO;
++out:
++	raw_spin_unlock_irqrestore(&pmsg_capture_lock, flags);
++	return ret;
++}
++
+ /* Built-in callers only; no userspace control, export or ownership release. */
+ int ramoops_capture_begin(const u8 cycle[16], const u8 identity[80])
+ {
+@@ -473,6 +511,9 @@ int ramoops_capture_begin(const u8 cycle[16], const u8 identity[80])
+ 	if (ret)
+ 		goto out;
+ 	payload = (u8 __iomem *)prz->buffer + PERSISTENT_RAM_CAPTURE_HEADER_SIZE;
++	BUILD_BUG_ON((WFC_LAST_SLOT + 1) * WFC_SLOT_BYTES + 2 >
++		     WFC_PAYLOAD_BYTES);
++	pmsg_capture_tail = payload + (WFC_LAST_SLOT + 1) * WFC_SLOT_BYTES;
+ 	ret = wfc_writer_begin(&pmsg_writer, payload, prz->buffer_size,
+ 			       cycle, identity);
+ 	if (READ_ONCE(pmsg_capture_denials)) {
+-- 
+2.50.1 (Apple Git-155)
+

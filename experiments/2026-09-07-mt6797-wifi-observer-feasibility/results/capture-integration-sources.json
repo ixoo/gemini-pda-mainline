@@ -18,10 +18,14 @@
     {
       "patch": "0008-arm64-dts-reserve-native-pmsg-without-linear-alias.patch",
       "sha256": "20ad1e7ac53a0f8eed94f63529cb054ef4e98b75c92f532c240e14bc33c7ecf6"
+    },
+    {
+      "patch": "0009-pstore-retain-rejected-capture-access-in-tail.patch",
+      "sha256": "744d6bc4e167e7f2722246c42fd61e92819604d0688af707d97dfff0173d7be9"
     }
   ],
   "outputs": {
-    "fs/pstore/ram.c": "4e38a1f62b57cb35805dabac5c541ecab1c8103ab8cc53e68e014f09ea6d6a4e",
+    "fs/pstore/ram.c": "3c720fea7482ebf9153b506d4c798431274a7ce5b07fb4614deb7fd79fc83a2d",
     "fs/pstore/ram_core.c": "8a5a63163989901ec5dcccb374a77d572b81982fe5544025e090f4e00bcd0b10",
     "include/linux/pstore_ram.h": "4fdfca942947ec066b6a6e98e2bda2c667b8106eefe4a4acd460705f5d393133",
     "arch/arm64/boot/dts/mt6797.dtsi": "5e7809ca4ceb07c501a76b5c2f4d7d067ce11b092fa556b5893246831bd9330f",
