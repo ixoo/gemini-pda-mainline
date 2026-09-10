@@ -70,8 +70,12 @@ malformed record rejection. Patch replay/reversal and strict Checkpatch pass;
 exceptions cover the synthetic non-certifying archive identity, file inventory,
 legacy names and macro reuse. This is not an upstream submission.
 
-Native complete-file compilation is pending at this input checkpoint. The
-Buildbox lane is `check-startup-objects.py COMMIT --firmware-read`; it applies
-all 13 patches, verifies source/header identities and compiles original and
-changed `gl_kal.c` using the recorded native command. Full kernel linking,
-controller integration and device validation remain separate work.
+The [native compile receipt](results/firmware-read-object-compile.json) passes
+from clean published input `e09ef144638983cff0b329f1c931c3e3974cc1bb`. The
+Buildbox lane `check-startup-objects.py COMMIT --firmware-read` applied all
+13 patches and compiled original and changed `gl_kal.c` using the recorded
+AArch64 command. Patched HIF, library, dispatcher and pstore header dependencies
+were verified, as were the emitted capture/read call sites. All eight package
+files passed remote/local inventory verification. The native flags retain
+`-w`; empty diagnostics do not establish warning-clean code. Full kernel
+linking, controller integration and device validation remain separate work.
