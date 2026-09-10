@@ -116,6 +116,31 @@ System suspend, direct reset, notifier effects and the remaining watchdog
 mutators still need their own exclusion or ownership proof. Boot-time exclusion
 of this one path must not be promoted to complete recovery isolation.
 
+## Live parameter check and panic restart exclusion
+
+Two bounded read-only checks on 2026-09-10 restored contact with the known-good
+Gemian endpoint. The [sanitized observation](results/recovery-live-parameters.json)
+records the same boot identity across both invocations, the expected MT6797X
+model, Linux `3.18.41+` on ARM64, Debian 9 and systemd. The parameter check
+pinned that boot identity before reading and required it again afterward.
+The live CPU-idle `off` parameter was readable and zero. This establishes a
+usable software preflight observation; it does not validate the proposed
+candidate or attribute the installed kernel to a source revision.
+
+The live panic timeout was one second. In the separately pinned
+[`kernel/panic.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/kernel/panic.c#L182),
+a nonzero timeout reaches `emergency_restart()` after any positive delay.
+The existing `panic` boot parameter controls that value. Require `panic=0`
+and verify `/proc/sys/kernel/panic` is zero before experimental takeover.
+This excludes that automatic panic-restart branch; it does not exclude panic
+notifiers, explicit software restart, SysRq or other direct reset callers.
+The controller must still exclude those competing paths or account for them.
+
+Neither parameter was written on the device. No service, interface, radio,
+watchdog, partition or boot state was changed. The read-only checks establish
+access and current parameter values only; Wi-Fi and recovery runtime validation
+remain outstanding. They do not consume or authorize a new boot2 session.
+
 ## Controller ordering to implement
 
 1. Prepare the fixed minimal filesystem, private firmware identities and

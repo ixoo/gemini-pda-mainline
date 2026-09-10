@@ -1,0 +1,21 @@
+{
+  "observed_date": "2026-09-10",
+  "scope": "Two read-only Gemian identity and software-parameter checks; no experimental kernel or radio test",
+  "completed_invocations": 2,
+  "boot_before": "f2b923f9-f952-4cdb-80e0-72142282cc4f",
+  "boot_after": "f2b923f9-f952-4cdb-80e0-72142282cc4f",
+  "boot_identity_pinned_for_parameter_check": true,
+  "kernel": "Linux 3.18.41+ aarch64",
+  "model": "MT6797X",
+  "os": {
+    "id": "debian",
+    "version_id": "9",
+    "version_codename": "stretch"
+  },
+  "pid1": "systemd",
+  "cpuidle_off": 0,
+  "panic_timeout_seconds": 1,
+  "kernel_source_attribution": "Not established by this metadata observation",
+  "state_changes": [],
+  "sanitization": "Endpoint, account, authentication details and connection banners omitted; boot identity is retained under publication policy"
+}
