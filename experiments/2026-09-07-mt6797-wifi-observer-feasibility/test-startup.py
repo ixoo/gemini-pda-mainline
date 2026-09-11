@@ -5,7 +5,9 @@ import gzip
 import importlib.util
 import json
 from pathlib import Path
+import stat
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -149,6 +151,49 @@ class StartupTests(unittest.TestCase):
         self.write('proc/config.gz', gzip.compress(b'other config'))
         with self.assertRaisesRegex(ValueError, 'configuration mismatch'):
             startup.prepare()
+
+    def test_failure_stage_names_the_rejected_runtime_field(self):
+        self.write('sys/module/cpuidle/parameters/off', '0')
+        with self.assertRaises(ValueError):
+            startup.prepare()
+        self.assertEqual(startup.STAGE, 'runtime:sys/module/cpuidle/parameters/off')
+
+    def test_log_descriptor_budget_and_short_write(self):
+        info = SimpleNamespace(st_mode=stat.S_IFCHR, st_rdev=startup.os.makedev(1, 11))
+        with patch.object(startup, 'LOG_WRITES', 0), \
+                patch.object(startup, 'text', return_value='aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'), \
+                patch.object(startup.os, 'fstat', return_value=info), \
+                patch.object(startup.os, 'write', side_effect=lambda fd, data: len(data)) as write:
+            startup.mark('session')
+            for _ in range(8):
+                startup.log_stage('stopped')
+            with self.assertRaisesRegex(ValueError, 'budget'):
+                startup.log_stage('stopped')
+            self.assertEqual(write.call_count, 8)
+            self.assertEqual(write.call_args.args, (3,
+                b'<11>wifi-bootstrap-v1 boot=aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee python=session status=stopped\n'))
+            startup.LOG_WRITES = 0
+            write.reset_mock()
+            info.st_rdev = startup.os.makedev(1, 3)
+            with self.assertRaisesRegex(ValueError, 'descriptor'):
+                startup.log_stage('stopped')
+            write.assert_not_called()
+            info.st_rdev = startup.os.makedev(1, 11)
+            write.side_effect = lambda fd, data: len(data) - 1
+            with self.assertRaises(OSError):
+                startup.log_stage('stopped')
+            self.assertEqual(write.call_count, 1)
+
+    def test_logging_failure_still_parks_without_retry(self):
+        with patch.object(startup, 'log_stage', side_effect=OSError('private detail')) as log, \
+                patch.object(startup, 'prepare') as prepare, \
+                patch.object(startup.time, 'sleep', side_effect=SystemExit('parked')), \
+                patch('builtins.print', side_effect=OSError('console unavailable')) as output:
+            with self.assertRaisesRegex(SystemExit, 'parked'):
+                startup.main()
+            prepare.assert_not_called()
+            self.assertEqual(log.call_count, 2)
+            self.assertNotIn('private detail', repr(output.call_args_list))
 
 
 if __name__ == '__main__':

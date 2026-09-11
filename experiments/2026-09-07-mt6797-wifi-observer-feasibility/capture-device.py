@@ -11,6 +11,7 @@ import uuid
 
 def check_capture(startup, session, boot_id):
     startup.check_runtime(session)
+    startup.mark('capture-layout')
     if startup.text('proc/sys/kernel/random/boot_id') != boot_id:
         raise ValueError('capture boot identity changed')
     parameters = 'sys/module/ramoops/parameters/'
@@ -45,6 +46,7 @@ def check_capture(startup, session, boot_id):
 
 def read_snapshot(startup, session, boot_id):
     check_capture(startup, session, boot_id)
+    startup.mark('snapshot-read')
     directory = startup.ROOT / 'sys/fs/pstore'
     if sorted(p.name for p in directory.iterdir() if p.name.startswith('pmsg-')) != ['pmsg-ramoops-0']:
         raise ValueError('ambiguous or absent preserved PMSG snapshot')
@@ -86,8 +88,13 @@ def export_snapshot(startup, session, identity):
         raise ValueError('export requires the checked root PID1 session')
     boot_id = str(uuid.UUID(bytes=identity[48:64]))
     session_sha256 = identity[16:48].hex()
+    startup.mark('snapshot')
+    startup.log_stage('entered')
     snapshot = read_snapshot(startup, session, boot_id)
+    startup.mark('usb-ownership')
+    startup.log_stage('entered')
     check_usb(startup, '0', '', '0')
+    startup.mark('acm-node')
     device = startup.ROOT / 'dev/ttyGS0'
     numbers = startup.text('sys/class/tty/ttyGS0/dev').split(':')
     if len(numbers) != 2 or int(numbers[0]) <= 0 or numbers[1] != '0':
@@ -96,14 +103,19 @@ def export_snapshot(startup, session, identity):
     info = device.lstat()
     if not stat.S_ISCHR(info.st_mode) or info.st_rdev != expected:
         raise ValueError('ACM terminal node mismatch')
+    startup.mark('export-protocol-import')
     spec = importlib.util.spec_from_file_location('capture_export', startup.ROOT / 'opt/wifi-cycle/capture-export.py')
     export = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(export)
+    startup.mark('acm-instance')
     control_write(startup, 'f_acm/instances', '1')
+    startup.mark('acm-function')
     control_write(startup, 'android0/functions', 'acm')
     check_usb(startup, '0', 'acm', '1')
+    startup.mark('usb-enable')
     control_write(startup, 'android0/enable', '1')
     check_usb(startup, '1', 'acm', '1')
+    startup.mark('acm-open')
     fd = os.open(device, os.O_RDWR | os.O_NONBLOCK | os.O_NOCTTY |
                  os.O_NOFOLLOW | os.O_CLOEXEC)
     try:
@@ -112,12 +124,15 @@ def export_snapshot(startup, session, identity):
             raise ValueError('opened ACM terminal mismatch')
         tty.setraw(fd, when=tty.TCSANOW)
         stream = export.SerialStream(fd)
+        startup.mark('host-request')
+        startup.log_stage('waiting')
         # Host first opens/configures its terminal, then requests this session.
         export.await_request(stream, boot_id, session_sha256)
         if startup.text('sys/class/android_usb/android0/state') != 'CONFIGURED':
             raise ValueError('ACM gadget is not configured')
         check_usb(startup, '1', 'acm', '1')
         check_capture(startup, session, boot_id)
+        startup.mark('snapshot-send')
         export.send_snapshot(stream, snapshot, boot_id, session_sha256)
         check_capture(startup, session, boot_id)
         return fd

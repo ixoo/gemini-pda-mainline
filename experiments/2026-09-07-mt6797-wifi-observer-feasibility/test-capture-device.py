@@ -38,6 +38,7 @@ class DeviceTests(unittest.TestCase):
 
     def setUp(self):
         fixture.StartupTests.setUp(self)
+        self.log = patch.object(startup, 'log_stage').start()
         self.session['startup_action'] = 'export'
         for name in ('capture-export.py', 'capture-device.py'):
             content = (HERE / name).read_bytes()
@@ -164,6 +165,8 @@ class DeviceTests(unittest.TestCase):
             self.assertFalse(receiver.is_alive())
             self.assertEqual(errors, [])
             self.assertEqual(original_fstat(fd).st_rdev, original_fstat(slave).st_rdev)
+            self.assertEqual([call.args for call in self.log.call_args_list],
+                             [('entered',), ('entered',), ('waiting',)])
         self.assertEqual((output / 'snapshot.raw').read_bytes(), SNAPSHOT)
         self.assertEqual(controls, [('f_acm/instances', '1'), ('android0/functions', 'acm'),
                                     ('android0/enable', '1')])

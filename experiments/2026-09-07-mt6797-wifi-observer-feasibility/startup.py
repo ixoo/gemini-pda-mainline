@@ -22,6 +22,28 @@ INPUT_PATHS = {
 }
 RUNTIME = '16e8ab61ac39d3cf22146b0a945f5eea41c53fb67020a6fc2a6f30d50d51077f'
 CHIP, VERSION = 0x0279, 0x8a00
+STAGE = 'python-entry'
+LOG_WRITES = 0
+
+
+def mark(stage):
+    """Fixed call-site labels only; never pass input values or exception text."""
+    global STAGE
+    STAGE = stage
+
+
+def log_stage(status):
+    global LOG_WRITES
+    if LOG_WRITES >= 8:
+        raise ValueError('bootstrap log budget exhausted')
+    LOG_WRITES += 1  # Consume before the syscall; no write retry.
+    info = os.fstat(3)
+    if not stat.S_ISCHR(info.st_mode) or info.st_rdev != os.makedev(1, 11):
+        raise ValueError('expected inherited kernel log descriptor')
+    boot = str(uuid.UUID(text('proc/sys/kernel/random/boot_id')))
+    data = f'<11>wifi-bootstrap-v1 boot={boot} python={STAGE} status={status}\n'.encode('ascii')
+    if len(data) > 192 or os.write(3, data) != len(data):
+        raise OSError('bootstrap log write failed')
 
 
 def file_bytes(relative, limit):
@@ -83,12 +105,14 @@ def validate_session(session):
 
 
 def check_runtime(session):
+    mark('kernel-identity')
     if platform.machine() != 'aarch64' or platform.release() != session['kernel_release']:
         raise ValueError('kernel ABI or release mismatch')
     if text('proc/version') != session['kernel_version']:
         raise ValueError('kernel version mismatch')
     # Bind the selected cycle to its boot command line; reject duplicate keys.
     words = text('proc/cmdline').split()
+    mark('boot-parameters')
     if any(word.partition('=')[0] == 'sysrq_always_enabled' for word in words):
         raise ValueError('SysRq override present')
     for key, expected in {'rdinit': '/init', 'panic': '0', 'cpuidle.off': '1',
@@ -104,13 +128,16 @@ def check_runtime(session):
         'sys/module/firmware_class/parameters/path': '',
         'sys/devices/system/cpu/online': session['cpu_online'],
     }.items():
+        mark('runtime:' + path)
         if text(path) != expected:
             raise ValueError('kernel startup state mismatch')
     import gzip
+    mark('kernel-config')
     config = gzip.decompress(file_bytes('proc/config.gz', 262144))
     if sha(config) != session['kernel_config_sha256']:
         raise ValueError('kernel configuration mismatch')
     # Linux PF_KTHREAD is 0x00200000. Empty cmdline alone would also admit zombies.
+    mark('process-isolation')
     for process in (ROOT / 'proc').iterdir():
         if not process.name.isdecimal() or process.name == '1':
             continue
@@ -120,35 +147,42 @@ def check_runtime(session):
             continue
         if not int(fields[6]) & 0x00200000:
             raise ValueError('another userspace process exists')
+    mark('network-isolation')
     for interface in (ROOT / 'sys/class/net').iterdir():
         if int((interface / 'flags').read_text(), 16) & 1:
             raise ValueError('a network interface is administratively up')
 
 
 def prepare():
+    mark('input-mounts')
     if os.getpid() != 1 or os.geteuid() != 0:
         raise ValueError('startup requires root PID1')
     for directory in ('lib/firmware', 'vendor/firmware', 'data/nvram',
                       'etc/wifi-cycle', 'opt/wifi-cycle', 'init'):
         if not os.statvfs(ROOT / directory).f_flag & os.ST_RDONLY:
             raise ValueError('startup input mount is writable')
+    mark('session')
     raw = file_bytes('etc/wifi-cycle/session.json', 65536)
     session = json.loads(raw)
     cycle = validate_session(session)
+    mark('startup-hashes')
     for path, expected in session['startup_files'].items():
         if sha(file_bytes(path, 1048576)) != expected:
             raise ValueError('startup source mismatch')
+    mark('input-manifest')
     manifest_raw = file_bytes('etc/wifi-cycle/input-manifest.json', 65536)
     if sha(manifest_raw) != session['input_manifest_sha256']:
         raise ValueError('input manifest mismatch')
     manifest = json.loads(manifest_raw)
     if manifest['runtime_sha256'] != RUNTIME or set(manifest['files']) != set(INPUT_PATHS):
         raise ValueError('private input inventory mismatch')
+    mark('private-inputs')
     for path, size in INPUT_PATHS.items():
         expected = manifest['files'][path]
         value = file_bytes(path, size)
         if len(value) != size or expected['size'] != size or sha(value) != expected['sha256']:
             raise ValueError('private input bytes mismatch')
+    mark('input-lookups')
     for directory in ('lib/firmware', 'vendor/firmware', 'data/nvram'):
         actual = {str(p.relative_to(ROOT)) for p in (ROOT / directory).rglob('*') if p.is_symlink() or not p.is_dir()}
         if actual != {p for p in INPUT_PATHS if p.startswith(directory + '/')}:
@@ -164,32 +198,49 @@ def prepare():
 def main():
     if os.getpid() != 1:
         raise SystemExit('requires candidate PID1; no standalone run')
+    mark('python-entry')
     try:
+        log_stage('entered')
         session, identity = prepare()
+        mark('preflight')
+        log_stage('passed')
         if session['startup_action'] == 'export':
+            mark('export-import')
             spec = importlib.util.spec_from_file_location('capture_device', ROOT / 'opt/wifi-cycle/capture-device.py')
             device = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(device)
             # Intentionally retain the open serial descriptor while PID1 parks.
             device.export_snapshot(sys.modules[__name__], session, identity)
+            mark('export')
+            log_stage('queued')
             print('wifi-startup: snapshot queued; host preservation required', flush=True)
             while True:
                 time.sleep(3600)
+        mark('cycle-import')
         spec = importlib.util.spec_from_file_location('cycle', ROOT / 'opt/wifi-cycle/cycle-controller.py')
         controller = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(controller)
+        mark('detector-open')
         fd = os.open(ROOT / 'dev/wmtdetect', os.O_RDWR | os.O_NOFOLLOW | os.O_CLOEXEC)
         try:
             # Opening the detector is not initialization; recheck immediately before takeover.
             check_runtime(session)
+            mark('cycle')
             result = controller.run_cycle(fd, identity, session['kernel_release'],
                                           ROOT / 'lib/firmware', CHIP, VERSION)
         finally:
             os.close(fd)
         print('wifi-startup: ' + result['stage'] + '; recovered classification required', flush=True)
     except BaseException as error:
+        try:
+            log_stage('stopped')
+        except BaseException:
+            pass  # Logging failure must still leave PID1 parked.
         # Never print private input contents or hashes into the console.
-        print('wifi-startup: stopped (' + type(error).__name__ + '); no retry', flush=True)
+        try:
+            print('wifi-startup: stopped (' + type(error).__name__ + '); no retry', flush=True)
+        except OSError:
+            pass
     while True:
         time.sleep(3600)  # Before takeover, wait for the owner; afterward, retain the watchdog cutoff.
 
