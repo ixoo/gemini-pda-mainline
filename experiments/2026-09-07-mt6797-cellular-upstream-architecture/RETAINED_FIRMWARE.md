@@ -42,6 +42,12 @@ negative results and payloads larger than the header allowance; it does not
 require equal sizes. Actual runtime treatment and the byte's purpose remain
 unresolved, and the security hooks were not executed or bypassed.
 
+The later [retained-LK selection audit](ARM7_SELECTION.md) corroborates the
+compiled normal-v5 table selection, required ARM7 descriptor and header-based
+destination/size assignment. Its subimage loop has no one-byte exception.
+This narrows the static selection question without proving a runtime load,
+the byte's purpose or permission to omit the component.
+
 The loader searches the main-image partition before the component partition.
 A bounded search found no additional matching MD1 component container headers
 in these three captures, but it was not a complete loader/security-parser

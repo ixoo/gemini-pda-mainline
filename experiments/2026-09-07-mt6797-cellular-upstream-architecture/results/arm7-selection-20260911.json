@@ -1,0 +1,150 @@
+{
+  "date": "2026-09-11",
+  "method": "Bounded static retained-LK analysis in RE VM; no firmware execution or device access",
+  "source_commit": "f4988d74bb70a0a15d7f362f412afba7e7fcda46",
+  "source_files": [
+    {
+      "path": "lk/platform/common/md/ccci_ld_md_core.c",
+      "sha256": "5b33f541e068188dd4082fa09b4dd3bcd289c6482fd047f8a3e8e915d891d75d",
+      "url": "https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/common/md/ccci_ld_md_core.c"
+    },
+    {
+      "path": "lk/platform/common/md/ccci_ld_md_core.h",
+      "sha256": "66e442d011cb4b6bd136faef1d55ea00d90ef5f2ae47310f63650a55c05bd716",
+      "url": "https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/common/md/ccci_ld_md_core.h"
+    },
+    {
+      "path": "lk/platform/common/md/ccci_ld_md_ass.c",
+      "sha256": "3c64e51816b5c32cfec3579d1e5bc70fc13c69d13636741b408dbcfc8c70e07f",
+      "url": "https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/common/md/ccci_ld_md_ass.c"
+    },
+    {
+      "path": "lk/platform/common/md/ccci_ld_md_hal.c",
+      "sha256": "4132624b2f1637785ec7fdca3cb88601b1eaa1af1a4aba2079933edfd6bc6876",
+      "url": "https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/common/md/ccci_ld_md_hal.c"
+    },
+    {
+      "path": "lk/platform/mt6797/ccci_lk_load_img_plat.c",
+      "sha256": "3490e14dd9d61428a58ca6927089b048b365a65948f334567092b5f31887efae",
+      "url": "https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/ccci_lk_load_img_plat.c"
+    }
+  ],
+  "binary": {
+    "input": "artifacts/device-partitions/20260715T020041Z/mmcblk0p20-lk.img",
+    "size_bytes": 524288,
+    "sha256": "75ec9f0ba97af9e68d964b304e0de809f9b4546982570bd16b2e7fe88823282c",
+    "map_base": "0x45fffe00",
+    "architecture": "ARM32 Thumb",
+    "tool": "radare2 5.5.0 0 @ linux-arm-64 git.5.5.0",
+    "private_disassembly_sha256": "b7f8e818ccda2a262da96ec87bfbb20aac9e0641181f9c17b8dc2b3ecd70a612",
+    "commands": "pD 0x7e @ 0x46023120; pD 0x38 @ 0x4603a70c; pD 0x50 @ 0x4603b5d6; pD 0x28 @ 0x4603b96c; pD 0x194 @ 0x460391b8; pD 0x8a @ 0x4603b2e8; q",
+    "ranges": [
+      {
+        "name": "platform-setting",
+        "address": "0x46023120",
+        "bytes": 152,
+        "sha256": "e2da0677fd3cf99bc61c159fccb7c032bdd88a2ce849458e5533603f74249ca4"
+      },
+      {
+        "name": "setting-wrapper",
+        "address": "0x4603a70c",
+        "bytes": 68,
+        "sha256": "c2a5a6cb470c73077017232bf66f9cc76725dd56dfe4fc763cf1201cd253d529"
+      },
+      {
+        "name": "normal-v5-assistant",
+        "address": "0x460391b8",
+        "bytes": 404,
+        "sha256": "299e03f265bc1258008c4952b4eb20cfb43529cde090a94e87d1b466d76c2e72"
+      }
+    ]
+  },
+  "normal_v5_table": {
+    "address": "0x46067df0",
+    "row_bytes": 32,
+    "bytes_including_terminator": 128,
+    "sha256": "782e2df3c608149e8c71c965c45824bbf28b8dfe7c9ab6004c1fd27f28fea3ed",
+    "rows": [
+      {
+        "type": 1,
+        "partition": "md1img",
+        "image": "md1rom",
+        "maximum_bytes": 167772160,
+        "initial_size_bytes": 0,
+        "extension_flags": 0,
+        "initial_destination": 0,
+        "assistant": "0x460391b9"
+      },
+      {
+        "type": 2,
+        "partition": "md1dsp",
+        "image": "md1dsp",
+        "maximum_bytes": 2097152,
+        "initial_size_bytes": 0,
+        "extension_flags": 0,
+        "initial_destination": 0,
+        "assistant": "0x0"
+      },
+      {
+        "type": 3,
+        "partition": "md1arm7",
+        "image": "md1arm7",
+        "maximum_bytes": 2097152,
+        "initial_size_bytes": 0,
+        "extension_flags": 0,
+        "initial_destination": 0,
+        "assistant": "0x0"
+      }
+    ],
+    "zero_terminator": true
+  },
+  "selection": {
+    "configuration_name": "ld_version",
+    "string_address": "0x46053e40",
+    "query_call": "0x4603b5de",
+    "wrapper": "0x4603a70c",
+    "linked_platform_pointer_address": "0x46069380",
+    "linked_platform_pointer": "0x46023121",
+    "platform_function": "0x46023120",
+    "matched_result_low": "0x10000",
+    "matched_result_high": 0,
+    "result_instructions": [
+      "0x4602318c",
+      "0x46023190"
+    ],
+    "normal_table_branch": "0x4603b604",
+    "normal_table_load_call": "0x4603b98c",
+    "default_uses_same_table": true
+  },
+  "arm7_assignment": {
+    "assistant_function": "0x460391b8",
+    "missing_entry_error": -9,
+    "header_offset_field": "0x114",
+    "header_size_field": "0x118",
+    "destination_store": "0x46039282",
+    "size_store": "0x46039284",
+    "retained_offset": "0x04530000",
+    "retained_reservation_bytes": 3145728,
+    "descriptor_maximum_bytes": 2097152
+  },
+  "subimage_loop": {
+    "skip_zero_destination": "0x4603b338",
+    "skip_zero_declared_size": "0x4603b340",
+    "helper_call": "0x4603b358",
+    "helper_address": "0x4603ad44",
+    "negative_result_branch": "0x4603b35e",
+    "larger_than_header_branch": "0x4603b366",
+    "non_dsp_return_to_loop": "0x4603b36e",
+    "one_byte_exception_in_loop": false
+  },
+  "limits": [
+    "Function names inferred by control flow, strings and source agreement; no symbols asserted",
+    "Static load-path selection, not proof of actual boot execution or loaded bytes",
+    "No authentication-policy execution or bypass",
+    "Generic loader/security helpers not fully rederived from this binary",
+    "One-byte payload purpose unresolved; no executable-image claim",
+    "No new firmware load, radio action, memory release or hardware admission",
+    "Raw firmware and disassembly remain private"
+  ],
+  "private_parser_sha256": "2ff6e54b35941ebb5b67bfdb2ebe78bc3d7841257872501f63b1d1a837286d46"
+}
