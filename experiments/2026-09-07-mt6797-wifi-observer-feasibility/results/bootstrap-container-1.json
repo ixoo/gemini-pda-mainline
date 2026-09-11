@@ -1,0 +1,57 @@
+{
+  "scope": "bootstrap diagnostic export candidate; offline validation only, not installed or booted",
+  "package": "wifi-export-container-20260911-bootstrap1",
+  "startup_project_commit": "ed3709e2acbc9fe7f98cc938a3cd24f48afcebd6",
+  "kernel_project_commit": "c9a8d30423da33a7fae8c95f2c0d9b5f96b90ee7",
+  "kernel_sha256": "b69963d057b14322a8a0b39389cea9ed4c058e653967b211b0ade741434a0bbb",
+  "padded_image_sha256": "a0661c7a0a02cf690516cc026ee07209eb14e815bc3ef939f18a8de684bc95dd",
+  "startup_files": {
+    "init": "6485ae89914af916c000f76a80d5f5ef849f86937830af3622d4ca00b359e6e6",
+    "opt/wifi-cycle/capture-device.py": "a101c5891c076a16670e71fec3f7b7665d923bb466fe8accbfcc1b36d884493a",
+    "opt/wifi-cycle/capture-export.py": "cc8d907b18a3669ab5dc4c86a159110cebf4aeea217098d93e2669be456de92b",
+    "opt/wifi-cycle/check-retained-patches.py": "ad7d5e1cf03463ad80d11a23583e448a6fce6d54b4b1fd7c94566fa7d6f4fa50",
+    "opt/wifi-cycle/cycle-controller.py": "6a7d712927ec94ca36a87e69c25da85fc025f4f7a0eae5ec7d1999c13c767715",
+    "opt/wifi-cycle/respond-once.py": "88c45874db0dd745f2ec9ac1e81cadf7410608f1ba60287d36748d79620328e7",
+    "opt/wifi-cycle/startup.py": "134955ca62d46343467d84318594e372472cdfc4c9549c49b95385ff5a639d75"
+  },
+  "sources": {
+    "build-startup-filesystem.py": "ec9687752cadb382a9702020b747fbc72c7e67cedc7f5a32ba20f42a3497d58c",
+    "build-export-container.py": "e524317902436216f494cc517fa4aa2d9cf32ce121551c7aecd9f987ba9347ea",
+    "export-installer.py": "a67997c864f059304521ceda94c3b30390d78a70cef8935974d570b01075351f"
+  },
+  "installer_sha256": "055e0be2751e277acf56200c840b4a226a3afa318e088b9c1aa342cc4674f8ad",
+  "sizes": {
+    "archive_members": 723,
+    "filesystem": 7845082,
+    "raw_container": 16295936,
+    "padded_container": 16777216,
+    "spare_bytes": 481280
+  },
+  "changed_archive_members": [
+    "init",
+    "opt/wifi-cycle/startup.py",
+    "opt/wifi-cycle/capture-device.py",
+    "etc/wifi-cycle/session.json"
+  ],
+  "checks": {
+    "same_member_inventory": true,
+    "private_inputs_and_runtime_unchanged": true,
+    "kernel_config_and_dtb_unchanged": true,
+    "all_five_filesystem_package_files_reproduced_identically": true,
+    "independent_newc_member_and_metadata_parse": true,
+    "independent_header_payload_padding_and_sha1_parse": true,
+    "container_reassembly_identical": true,
+    "serialized_container_mutations_rejected": 17,
+    "container_input_refusals": 6,
+    "host_fetch_checksums_and_private_modes": true,
+    "installer_remote_body_unchanged": true,
+    "actual_derived_deployment_shell_cases_passed": 19,
+    "installer_identity_refusals": 4
+  },
+  "limitations": [
+    "No native bootstrap diagnostic or USB runtime result yet.",
+    "Console records may wrap or be filtered; an absent marker is inconclusive.",
+    "Exact session and filesystem identities remain in private checksum-covered receipts.",
+    "No capture clearing, radio cycle, watchdog takeover or automatic restart is selected."
+  ]
+}

@@ -4,8 +4,9 @@ The [init script](startup-init.sh) and [PID1 controller entry](startup.py) imple
 the selected minimal userspace. The [compact private filesystem](STARTUP_ASSEMBLY.md#compact-export-filesystem)
 included their preceding revision with an export session manifest for the
 [first physical attempt](EXPORT_ATTEMPT_1.md). The current
-[bootstrap diagnostics](BOOTSTRAP_DIAGNOSTICS.md) are not yet packaged or
-selected for another session. They must not run in the current Gemian environment.
+[bootstrap diagnostics](BOOTSTRAP_DIAGNOSTICS.md) are packaged for the
+[second session](EXPORT_SESSION_2.md), with device validation outstanding.
+They must not run in the current Gemian environment.
 
 When packaged as `/init`, the shell requires PID1, mounts devtmpfs first and
 opens the checked kernel log node on descriptor 3. It then mounts proc, sysfs,

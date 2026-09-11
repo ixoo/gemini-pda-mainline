@@ -1,7 +1,8 @@
 # Bootstrap failure diagnostics
 
-Status: implemented and tested offline; no replacement filesystem or boot
-candidate selected. The [first attempt](EXPORT_ATTEMPT_1.md) produced neither
+Status: implemented and tested offline; the [second session](EXPORT_SESSION_2.md)
+now binds the validated replacement filesystem and container, without deployment
+or physical selection. The [first attempt](EXPORT_ATTEMPT_1.md) produced neither
 a USB export nor an attributable startup failure. Console-only messages could
 not discriminate startup refusal from an earlier boot failure.
 

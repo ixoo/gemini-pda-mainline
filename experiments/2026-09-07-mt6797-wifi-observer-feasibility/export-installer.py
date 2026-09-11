@@ -37,7 +37,7 @@ def derive(candidate, filesystem, padded_sha, session_sha, boot_id):
         raise ValueError('invalid externally pinned digest')
     if str(uuid.UUID(boot_id)) != boot_id or uuid.UUID(boot_id).int == 0:
         raise ValueError('invalid preceding Gemian boot UUID')
-    if candidate.name != 'wifi-export-container-20260910':
+    if candidate.name != 'wifi-export-container-20260911-bootstrap1':
         raise ValueError('unexpected validated package name')
     for path, expected in PINS.items():
         if sha(regular(path)) != expected:
@@ -87,8 +87,8 @@ def derive(candidate, filesystem, padded_sha, session_sha, boot_id):
     replace('gemian-runtime-provenance-observer-rndis-1d303dda10b4', candidate.name)
     replace('2026-08-14-mt6797-runtime-provenance-observer', HERE.name)
     replace('provenance-observer', 'wifi-export', 7)
-    replace('wifi-export-deployment-*', 'wifi-export-deployment-1', 2)
-    replace('wifi-export-deployment-N', 'wifi-export-deployment-1')
+    replace('wifi-export-deployment-*', 'wifi-export-deployment-2', 2)
+    replace('wifi-export-deployment-N', 'wifi-export-deployment-2')
     replace('script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"\n'
             'repo_root="$(cd -- "$script_dir/../../.." && pwd -P)"',
             'repo_root=' + shlex.quote(str(REPO)))

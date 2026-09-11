@@ -2,6 +2,11 @@
 
 The [first installation and physical attempt](EXPORT_ATTEMPT_1.md) now have
 results. Installation/readback passed; the USB export did not complete.
+The deriver now selects only the [second diagnostic session](EXPORT_SESSION_2.md)
+and its new `wifi-export-deployment-2` evidence directory. Its generated remote
+gate is byte-identical to the first installer's; only package/checksum,
+preceding-boot and evidence-directory identities differ. The exact generated
+shell again passed all 19 deployment cases and four external-identity refusals.
 
 [The deriver](export-installer.py) reuses the pinned historical installer and
 the current reviewed block-device guard. The generated script stays private.
