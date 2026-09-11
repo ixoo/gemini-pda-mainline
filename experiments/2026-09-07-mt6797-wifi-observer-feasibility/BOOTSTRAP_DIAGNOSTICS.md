@@ -102,6 +102,60 @@ Additional source identities from the same prepared input tree are:
 | `drivers/of/fdt.c` | `3c9b23e038f9b58db3f7c428d598e14cba7fec2a8686691ead5c55e20623de41` |
 | `arch/arm64/boot/dts/mt6797.dtsi` | `5e7809ca4ceb07c501a76b5c2f4d7d067ce11b092fa556b5893246831bd9330f` |
 
+### Retained LK and complete DT comparison
+
+A subsequent RE-VM comparison checked every node and property in the appended
+DTBs of the checksum-verified retained Gemian reference and selected kernel.
+The reference has 875 nodes and 3,472 properties; the candidate has 876 and
+3,474. The only differences are the smaller original pstore `reg` and the new
+PMSG node's `reg` and empty `no-map`. All existing node/property ordering,
+header memory-reservation entries and boot-CPU field are preserved.
+
+| Appended DTB | Bytes | SHA-256 |
+| --- | ---: | --- |
+| Retained native reference | 130,745 | `9e26929563f7682d1f7545d6007f0092c7e085a4edbd6e7be0ac8eaa5159b2f9` |
+| Selected export kernel | 130,833 | `f15b0840d7999a7c37b11017324de5c9f46d7d7f7b76b369aad337e453dc729f` |
+
+The retained July LK binary, SHA-256
+`75ec9f0ba97af9e68d964b304e0de809f9b4546982570bd16b2e7fe88823282c`,
+was inspected as ARM Thumb at mapping base `0x45fffe00`. Its caller invokes
+the memory sanity check at `0x46027164` and, on success, the reservation
+appender at `0x46027268`. Function roles are inferred from source, strings
+and control flow, not asserted debug symbols.
+
+Within the check, the `reg` lookup at `0x46035502` advances to the next child
+when absent, through `0x460356d4`. Present values are decoded as four 32-bit
+big-endian cells and compared with the loader's reserved ranges. A conflict
+can enter the infinite loop at `0x460356d2`. This check uses neither
+`compatible` nor `no-map`; omitting `compatible` on the new PMSG node does not
+itself trigger this path. The appender at `0x46033bfc` iterates the loader's
+own reservation list and adds nodes/properties; it does not replace the
+original pstore node in the inspected function.
+
+This agrees with pinned
+[mblock_v2.c](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/lib/mblock/mblock_v2.c)
+lines 125–174 and 969–1113, SHA-256
+`5712e8c35ec0e85e38339af4be5664a4bd8366785695bffb091746514183b004`,
+and the caller in
+[mt_boot.c](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/app/mt_boot/mt_boot.c)
+lines 1718–1730, SHA-256
+`9380b89d367770acf29f1c5b7f4856cc87bc4b64afd17aa9fa1fd621c213ecda`.
+Both source identities were verified against downloads from that revision.
+
+For an unchanged loader reservation list, splitting the same half-open range
+cannot introduce an overlap that the original covering range did not already
+have. That inference is limited to this check: changed boot allocations, other
+DT callbacks, the actually installed LK and the DT delivered on the failed
+boot remain unproved. No loader code was executed or changed.
+
+The private audit uses pylibfdt to traverse ordered nodes/properties, verifies
+both input digests and three compiled string references, and retains bounded
+radare2 disassembly. Its SHA-256 is
+`77e25303241da0d64afb00c6541b1dc4d7ba91c8af1583e4478761aa06f5646d`;
+the principal disassembly digest is
+`a171f1147ea457e0e6555503ea27127078b81599272628baea4854a3cd5e67aa`.
+Raw DTBs, firmware and disassembly remain private.
+
 This audit found no demonstrated layout repair and made no kernel, image or
 device change. Keep the [known-good retention control](RETENTION_CONTROL.md)
 as the next observation, pending its owner approval. Even a passing Gemian
