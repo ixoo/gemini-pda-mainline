@@ -157,9 +157,11 @@ the principal disassembly digest is
 Raw DTBs, firmware and disassembly remain private.
 
 This audit found no demonstrated layout repair and made no kernel, image or
-device change. Keep the [known-good retention control](RETENTION_CONTROL.md)
-as the next observation, pending its owner approval. Even a passing Gemian
-control would leave candidate backend registration unproven; absent candidate
+device change. The subsequent [known-good retention control](RETENTION_CONTROL.md)
+also recovered no console record after an owner-confirmed Esc restart, despite
+a confirmed pre-restart marker and successful returned-Gemian backend
+registration. Resolve retention and record handling before another physical
+attempt. Candidate backend registration remains unproven; absent candidate
 markers cannot establish failure before kernel entry or before PID1.
 
 ## Validation and device boundary

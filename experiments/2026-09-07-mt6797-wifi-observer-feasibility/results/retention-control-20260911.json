@@ -1,0 +1,33 @@
+{
+  "control": "cdc90407-c6d2-40f5-9c61-049594af8e73",
+  "marker_boot": "8876d666-547d-4538-9387-8c46819ca5cf",
+  "returned_gemian_boot": "5257ff6d-7ca3-470f-b1da-24eeb93f48e3",
+  "marker_write_attempts": 1,
+  "marker_bytes": 126,
+  "marker_current_log_matches": 1,
+  "collector_sha256": "9349cd1cd9e1c84a06a8262a62ae1f2d23c9a62092ab6e569c628a3e8f2edf2d",
+  "pstore_mount_verified_by_collector": true,
+  "record_present": false,
+  "payload_reads": 0,
+  "payload_bytes": 0,
+  "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "captured_utc": "2026-09-11T23:27:35.331120+00:00",
+  "result": "confirmed marker not recovered; console record absent",
+  "limit": "Does not locate the loss or establish kernel entry for either export attempt",
+  "physical_reset_report": "Owner confirmed vibration/restart and Gemian return after the instructed Esc hold",
+  "first_watch": "Owner later confirmed no Esc hold occurred; watch expired with no qualifying changed boot and no payload read",
+  "rearmed_watch": "Owner explicitly requested another watch; same marker and preceding boot verified, no additional marker write; only collector output directory changed",
+  "return_startup_observation": {
+    "same_boot_before_after": true,
+    "pstore_directory_entries": 0,
+    "pstore_console_enabled": true,
+    "ramoops_backend_registered": true,
+    "ramoops_memory_address": "0x44410000",
+    "ramoops_memory_bytes": "0xe0000",
+    "console_bytes": "0x10000",
+    "pmsg_bytes": "0x10000",
+    "ecc": "0/0",
+    "additional_pstore_payload_reads": 0
+  },
+  "device_left": "Gemian running; no further restart or device write"
+}

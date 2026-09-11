@@ -1,8 +1,8 @@
 # Known-good Gemian console-retention control
 
-Status: incomplete; the owner approved the control and the marker was written
-once. The return watch expired without a qualifying changed boot; the owner's
-physical-reset observation is pending. Do not repeat the marker or restart.
+Status: control completed; the confirmed marker was not recovered after one
+owner-confirmed Esc restart. Changed-boot Gemian exposed no console record.
+This does not locate the loss. Both the marker and physical-test budgets are consumed.
 No boot2 image is selected by this control. The [second export attempt](EXPORT_ATTEMPT_2.md)
 returned to Gemian without a console record, leaving kernel entry and log
 retention unresolved.
@@ -83,11 +83,40 @@ no restart.
 
 The pinned collector was armed before the physical Esc instruction. Its
 180-second watch terminated without a qualifying changed-boot Gemian identity.
-It made zero console payload reads. The marker receipt and watch diagnostics
-remain private; the owner's actual reset observation is still pending.
+It made zero console payload reads. The owner later confirmed that no Esc hold
+had occurred and explicitly requested another watch. This unattended window is
+not a retention failure. Its original diagnostics remain private and unchanged.
 
-The result is incomplete: neither successful retention nor loss of a confirmed
-marker across a confirmed restart is established. The marker-write budget is
-consumed. Preserve the current state and obtain the owner's observation before
-deciding how to finish collection; do not rerun either program or request another
-restart automatically.
+## Rearmed collection and result
+
+A read-only preflight confirmed the same preceding Gemian boot and exactly one
+copy of the original marker in its current log. No second marker was written.
+The collector was rearmed for the same 180-second budget with only its local
+output-directory name changed, preserving the first watch's evidence. That
+collector's SHA-256 is
+`9349cd1cd9e1c84a06a8262a62ae1f2d23c9a62092ab6e569c628a3e8f2edf2d`.
+It was running before the owner was signalled to hold Esc. The owner confirmed
+vibration/restart and Gemian return.
+
+At `23:27:35 UTC`, collection verified new Gemian boot
+`5257ff6d-7ca3-470f-b1da-24eeb93f48e3`, Linux `3.18.41+` on AArch64,
+MT6797X, Debian 9 and running systemd. The boot UUID matched before and after
+the check. Pstore was mounted, but `/sys/fs/pstore/console-ramoops` was absent.
+The collector preserved an absence receipt and made zero payload reads.
+
+A subsequent bounded, read-only inspection on that same boot found an empty
+pstore directory. Existing startup messages recorded the enabled `pstore-1`
+console, successful ramoops backend registration and the expected
+`0xe0000@0x44410000` layout with `0x10000` console/PMSG sizes and ECC `0/0`.
+This verifies returned-Gemian registration and the absence of an alternate file
+at inspection time; it does not prove the old ring survived or exclude earlier
+record removal. No further pstore payload, PMIC, radio or partition operation
+was performed. Gemian was left running.
+
+The [sanitized result](results/retention-control-20260911.json) joins the marker,
+owner observation, changed boot and absence result. This control failed to
+recover a message confirmed in healthy Gemian before the Esc restart. Missing
+markers from the two export attempts therefore remain unusable as evidence of
+failure before kernel entry or PID1. Investigate retention, initialization and
+record handling before selecting another physical attempt; neither a new marker
+nor a kernel change is justified by this result alone.
