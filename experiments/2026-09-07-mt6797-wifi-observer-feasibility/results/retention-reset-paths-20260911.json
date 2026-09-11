@@ -1,0 +1,76 @@
+{
+  "kernel_image_sha256": "0570480c28bce1583636a240904df8da3af0b5e5b4bcc6254f5719b42bd723d0",
+  "kernel_spans": {
+    "arch_reset": {
+      "start": "0xffffffc000921f30",
+      "end_exclusive": "0xffffffc000922040",
+      "bytes": 272,
+      "sha256": "3bd5ea40c114ce9314689f9850a58bb36a3196e38b32b0affc80d161e6ed42a9"
+    },
+    "mtk_arch_reset_handle": {
+      "start": "0xffffffc000922040",
+      "end_exclusive": "0xffffffc000922088",
+      "bytes": 72,
+      "sha256": "acd8639ac9e9b47b9b802e8825c4613492fca88fdde9457ce13aef098eda6107"
+    },
+    "wd_sw_reset": {
+      "start": "0xffffffc000921910",
+      "end_exclusive": "0xffffffc000921928",
+      "bytes": 24,
+      "sha256": "61281328f940a832f18a82f7fba8fd50ce18c219fd79c9a3935d339f8d9b358a"
+    },
+    "wdt_arch_reset": {
+      "start": "0xffffffc000922808",
+      "end_exclusive": "0xffffffc0009229b0",
+      "bytes": 424,
+      "sha256": "69adb2df0b5c086eb9f4850c1eda2bc045d6eb3eeadf3b0cbe1261ccdfb7c6d2"
+    },
+    "mtk_rgu_dram_reserved": {
+      "start": "0xffffffc0009229b0",
+      "end_exclusive": "0xffffffc000922a90",
+      "bytes": 224,
+      "sha256": "1130e7a237f6482e9e3b155e8c74488920843e5d52581f023aa1d9538f9dd087"
+    },
+    "mtk_arch_reset_init": {
+      "start": "0xffffffc001174430",
+      "end_exclusive": "0xffffffc0011744a4",
+      "bytes": 116,
+      "sha256": "650bcd45fa0952ab5fd78998f2f25d594c6c2c602c299841bf78696b05b5c4f7"
+    }
+  },
+  "wd_api_reset_pointer": "0xffffffc0012b3248",
+  "preloader_payload_sha256": "a974c97fcb3757478cfd3389ffb2b7d48f2fb622ff10d34a080766d634fd63e1",
+  "preloader_spans": {
+    "retention_policy": {
+      "start": "0x20b58c",
+      "end_exclusive": "0x20b5f6",
+      "sha256": "2f8accb3c6c33b5a6d306e26f2d9e5d9eaa90f86cbdd43721293d6de4509fcec"
+    },
+    "mode_reader": {
+      "start": "0x21de60",
+      "end_exclusive": "0x21de70",
+      "sha256": "7726db01ed610fa0f8ab7ee7cad7156c9b9e4a62af06b2c04604c1facfc2ac0a"
+    },
+    "success_reader": {
+      "start": "0x21df90",
+      "end_exclusive": "0x21dfc0",
+      "sha256": "2534a690a63afbc8ea08b6d423dddd61d059f6c27a6b8c14af15b9b7ff81b396"
+    },
+    "self_refresh_reader": {
+      "start": "0x21de70",
+      "end_exclusive": "0x21dea0",
+      "sha256": "8b56b512a1dc0792380b34bfaa71d5543984652e3f0b3ba371462e35693c0484"
+    },
+    "caller": {
+      "start": "0x214300",
+      "end_exclusive": "0x214304",
+      "sha256": "10e3c2ef0750c4ae5513511d382e826c170e578f64d9629f112ac2c4c7232a00"
+    }
+  },
+  "firmware_executed": false,
+  "hardware_register_access": false,
+  "verification": "Kernel .kernel/Image equality and all decoded instruction bytes checked; fixed preloader branch/bit operations and MMIO literals checked. Static analysis only.",
+  "tools": "GNU AArch64 objdump 2.42; radare2 5.5.0 ARM32 Thumb; RE VM",
+  "preloader_identity_reference": "../../2026-09-08-mt6351-mfd-upstream-preparation/results/vcn33-preloader-trim-receipt.json",
+  "kernel_identity_reference": "../../2026-09-08-mt6351-keys-preparation/results/reset-policy-binary.json"
+}

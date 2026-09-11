@@ -120,3 +120,8 @@ markers from the two export attempts therefore remain unusable as evidence of
 failure before kernel entry or PID1. Investigate retention, initialization and
 record handling before selecting another physical attempt; neither a new marker
 nor a kernel change is justified by this result alone.
+
+The subsequent [reset-path comparison](RETENTION_RESET_COMPARISON.md) narrows
+standard userspace removal and identifies conditional firmware preservation.
+It prepares a distinct normal-restart comparator, pending separate owner
+approval; this completed Esc control is not reopened.
