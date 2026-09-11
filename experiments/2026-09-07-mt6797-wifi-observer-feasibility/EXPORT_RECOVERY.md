@@ -2,9 +2,11 @@
 
 The export filesystem parks PID1 after success or refusal. USB cannot therefore
 be its only recovery transport: a failure before enumeration would leave no
-command channel. The next proposed check is one owner-controlled Esc-key restart
-on known-good Gemian, before deploying the export image. It has not run and
-requires owner confirmation under [safety policy](../../docs/SAFETY.md).
+command channel. The prerequisite is one owner-controlled Esc-key restart
+on known-good Gemian, before deploying the export image, with confirmation
+under [safety policy](../../docs/SAFETY.md). The owner-reported check and
+subsequent authenticated return are recorded below; the proposed procedure
+remains for provenance, not a request to repeat it.
 
 ## Evidence and limits
 
@@ -57,3 +59,24 @@ preparation of the export session's physical recovery procedure, while its
 own boot, USB preservation and failure-recovery results remain outstanding.
 This packet authorizes no automatic restart, deployment, radio operation or
 capture clearing.
+
+## Attended result
+
+The owner reported using Esc to force a restart and clarified that it occurred
+before the Gemian startup subsequently verified over authenticated LAN SSH.
+The returned boot was `9ed3b455-0e52-45e1-9812-c8895dbb1b95`, different from
+the preceding `f2b923f9-f952-4cdb-80e0-72142282cc4f`, with the expected
+MT6797X model, Linux 3.18.41+ aarch64, Debian 9 and running systemd.
+This is an owner-observed physical action plus an authenticated return, not an
+instrumented reset-timing measurement.
+
+Chronology matters: the owner first requested a clean shutdown, which was sent
+on the preceding boot. The later three-minute monitor began after the returned
+boot had already been authenticated; it saw that same healthy boot throughout.
+The owner clarified the Esc action preceded that startup, so the later monitor
+is not a second reset result. No hold duration or specific vibration timing was
+reported. No repeat was requested after that clarification.
+
+This satisfies the physical-key prerequisite for preparing the export session.
+It does not prove the candidate kernel's keypad initialization, recovery after
+export failure, or boot2 installation. Those remain separate checks.

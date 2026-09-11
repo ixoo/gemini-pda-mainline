@@ -1,8 +1,8 @@
 # One physical snapshot-export session
 
-Status: preparing. The [physical recovery prerequisite](EXPORT_RECOVERY.md)
-still awaits owner confirmation and execution. This packet does not select,
-install or boot an image.
+Status: preparing. The [physical recovery prerequisite](EXPORT_RECOVERY.md#attended-result)
+has an owner-reported Esc restart and authenticated changed-boot Gemian return.
+This packet does not install or boot an image.
 
 ## Hypothesis and fixed inputs
 
