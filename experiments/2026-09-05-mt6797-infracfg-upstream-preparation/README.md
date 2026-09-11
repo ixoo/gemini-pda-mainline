@@ -368,4 +368,13 @@ schema hunk and rejects all three changed inputs. The 25 prepared DTS cases
 cover old/new MT6797 descriptions, malformed values and eight existing required
 compatible branches. Their outcomes remain expectations; no schema case has
 been executed by this preparation or its integration. Original patch bytes,
-selected profiles and the just-built two-patch source state remain unchanged.
+selected profiles and the just-built two-patch source state remained unchanged
+at that preparation checkpoint.
+
+Subsequently, [compatibility attempt 3](binding-compatibility/ATTEMPT_3.md)
+completed the accepted 50-row comparison, and the
+[revised application series](revised-topic/INTEGRATION.md) passed independent
+source comparison and full-tree replay. Those records supersede the pending
+execution status above. The [September 10 routing refresh](SUBMISSION_READINESS.md#september-10-refresh)
+records current selected upstream files and maintainer sections; authorship,
+certification and final submission coordination remain open.

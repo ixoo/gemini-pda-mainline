@@ -1,0 +1,154 @@
+{
+  "observed_date": "2026-09-10",
+  "refs": {
+    "mainline": "08df884136f1c1197bab2a27814404fd329d9aac",
+    "clock": "91b1b8d437abe0cd83210d8f257b785a63047aa9",
+    "mediatek": "7e1e89af36f6ea0e583a657407134696e0be8bfc"
+  },
+  "files": [
+    {
+      "tree": "mainline",
+      "path": "Documentation/devicetree/bindings/clock/mediatek,infracfg.yaml",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/08df884136f1c1197bab2a27814404fd329d9aac/Documentation/devicetree/bindings/clock/mediatek,infracfg.yaml",
+      "status": "present",
+      "bytes": 2384,
+      "sha256": "0610f891e326d1e0a7ce9ffe3ef0513ab229bf37eee8177de0999cac17157c6f",
+      "matches_previous_snapshot": true
+    },
+    {
+      "tree": "mainline",
+      "path": "drivers/clk/mediatek/reset.c",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/08df884136f1c1197bab2a27814404fd329d9aac/drivers/clk/mediatek/reset.c",
+      "status": "present",
+      "bytes": 4290,
+      "sha256": "8c1cdf2ad881dc20659340cd7f0244b8ff1a1b6d1d7b4cd1e74946533adcee76",
+      "matches_previous_snapshot": true
+    },
+    {
+      "tree": "mainline",
+      "path": "drivers/clk/mediatek/Kconfig",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/08df884136f1c1197bab2a27814404fd329d9aac/drivers/clk/mediatek/Kconfig",
+      "status": "present",
+      "bytes": 34673,
+      "sha256": "6634c6e7c14ca9a72fc0a258ca9b8a575c53bc451919646feb644c7b9354c3c0",
+      "matches_previous_snapshot": true
+    },
+    {
+      "tree": "mainline",
+      "path": "drivers/clk/mediatek/Makefile",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/08df884136f1c1197bab2a27814404fd329d9aac/drivers/clk/mediatek/Makefile",
+      "status": "present",
+      "bytes": 10756,
+      "sha256": "6af23f8e56cbb5e9fdda850fb8201f384053f89e8b3347aa8a6cd98239678b11",
+      "matches_previous_snapshot": true
+    },
+    {
+      "tree": "mainline",
+      "path": "drivers/clk/mediatek/clk-mt6797.c",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/08df884136f1c1197bab2a27814404fd329d9aac/drivers/clk/mediatek/clk-mt6797.c",
+      "status": "present",
+      "bytes": 23000,
+      "sha256": "eaad6324621679371f33bbb76e10bcb0d3374b1f2dbbd837323b3f9e8fee1534",
+      "matches_previous_snapshot": true
+    },
+    {
+      "tree": "mainline",
+      "path": "arch/arm64/boot/dts/mediatek/mt6797.dtsi",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/08df884136f1c1197bab2a27814404fd329d9aac/arch/arm64/boot/dts/mediatek/mt6797.dtsi",
+      "status": "present",
+      "bytes": 11331,
+      "sha256": "798662eb7df0a7cf37cbc47d54d232bbf85fbc748afc63af2c373526a948af83",
+      "matches_previous_snapshot": true
+    },
+    {
+      "tree": "mainline",
+      "path": "MAINTAINERS",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/08df884136f1c1197bab2a27814404fd329d9aac/MAINTAINERS",
+      "status": "present",
+      "bytes": 928186,
+      "sha256": "67c627e85663a6ca51e2394c720fe115d47525675a8904a92b0c54a3921bb394",
+      "matches_previous_snapshot": false
+    },
+    {
+      "tree": "mainline",
+      "path": "scripts/get_maintainer.pl",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/08df884136f1c1197bab2a27814404fd329d9aac/scripts/get_maintainer.pl",
+      "status": "present",
+      "bytes": 71115,
+      "sha256": "103c295e5c6cb557d2026a2b45ba7e9df9e09fd360339810f5f1e7f7309801cb",
+      "matches_previous_snapshot": true
+    },
+    {
+      "tree": "mainline",
+      "path": "drivers/clk/mediatek/reset-internal.h",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/08df884136f1c1197bab2a27814404fd329d9aac/drivers/clk/mediatek/reset-internal.h",
+      "status": "absent-404",
+      "previous_status": "http-error"
+    },
+    {
+      "tree": "mainline",
+      "path": "drivers/clk/mediatek/reset-test.c",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/08df884136f1c1197bab2a27814404fd329d9aac/drivers/clk/mediatek/reset-test.c",
+      "status": "absent-404",
+      "previous_status": "http-error"
+    },
+    {
+      "tree": "mainline",
+      "path": "drivers/clk/mediatek/clk-mt6797-reset.h",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/08df884136f1c1197bab2a27814404fd329d9aac/drivers/clk/mediatek/clk-mt6797-reset.h",
+      "status": "absent-404",
+      "previous_status": "http-error"
+    },
+    {
+      "tree": "mainline",
+      "path": "drivers/clk/mediatek/clk-mt6797-reset-test.c",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/08df884136f1c1197bab2a27814404fd329d9aac/drivers/clk/mediatek/clk-mt6797-reset-test.c",
+      "status": "absent-404",
+      "previous_status": "http-error"
+    },
+    {
+      "tree": "mainline",
+      "path": "include/dt-bindings/reset/mt6797-resets.h",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/08df884136f1c1197bab2a27814404fd329d9aac/include/dt-bindings/reset/mt6797-resets.h",
+      "status": "absent-404",
+      "previous_status": "http-error"
+    },
+    {
+      "tree": "mediatek",
+      "path": "drivers/clk/mediatek/clk-mt6797.c",
+      "url": "https://git.kernel.org/pub/scm/linux/kernel/git/mediatek/linux.git/plain/drivers/clk/mediatek/clk-mt6797.c?id=7e1e89af36f6ea0e583a657407134696e0be8bfc",
+      "status": "present",
+      "bytes": 23000,
+      "sha256": "eaad6324621679371f33bbb76e10bcb0d3374b1f2dbbd837323b3f9e8fee1534",
+      "matches_previous_mainline_file": true
+    }
+  ],
+  "clock_tree_changed_since_prior_snapshot": false,
+  "scope": "selected-file and advertised-ref refresh; no rebase/build/schema/device execution or submission",
+  "maintainer_sections": [
+    {
+      "name": "ARM/Mediatek SoC support",
+      "sha256": "191ed743595e10c7fcb06656c312f4e8a594f491b9f2cfd1e2ad0ef1b56f3f08",
+      "identical_to_prior_mainline": true,
+      "contacts_unchanged": true
+    },
+    {
+      "name": "COMMON CLK FRAMEWORK",
+      "sha256": "a964346478017bfdaf63c1824be4bf4bc7c6765ec28f8305a3e2e995b0b52749",
+      "identical_to_prior_mainline": true,
+      "contacts_unchanged": true
+    },
+    {
+      "name": "OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS",
+      "sha256": "be76bfe2051f28206fd8daa82e693bf1db553757197ae01a022273e00a378d81",
+      "identical_to_prior_mainline": true,
+      "contacts_unchanged": true
+    },
+    {
+      "name": "RESET CONTROLLER FRAMEWORK",
+      "sha256": "babbbfe9ac0e3a3434b0d965dadffdc5781fb3cda2fda0c685d23079c50e405f",
+      "identical_to_prior_mainline": true,
+      "contacts_unchanged": true
+    }
+  ]
+}

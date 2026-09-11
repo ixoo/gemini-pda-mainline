@@ -1,5 +1,32 @@
 # Unsigned infracfg submission readiness packet
 
+The original packet below describes the September 5 snapshot. The
+[accepted revised series](revised-topic/INTEGRATION.md) subsequently resolved
+the patch-3 compatibility correction; see the refresh below for upstream state.
+
+## September 10 refresh
+
+The [new receipt](results/submission-routing-refresh-20260910.json) records
+advertised refs and immutable selected-file identities observed on September 10.
+Mainline advanced to `08df884136f1c1197bab2a27814404fd329d9aac` and MediaTek
+`for-next` to `7e1e89af36f6ea0e583a657407134696e0be8bfc`; clock `clk-next`
+remained at `91b1b8d437abe0cd83210d8f257b785a63047aa9`.
+
+All seven existing selected mainline topic/tool files match the earlier
+snapshot. The five proposed new topic paths return HTTP 404. Although the full
+MAINTAINERS file changed, the complete MediaTek, clock, DT and reset sections
+are byte-identical to the previous mainline sections. The current MediaTek
+MT6797 clock driver also matches the previously inspected mainline driver.
+The overlapping common-helper conversion is absent from these inspected driver
+versions; this does not establish the status of unmerged mailing-list revisions.
+
+No selected-file change requires revising the accepted topic on this evidence.
+This refresh is not a full-tree rebase or a new build, schema or hardware result.
+Final overlap coordination, actual authorship and truthful DCO certification
+remain required before an explicitly authorized submission. No message was sent.
+
+## Original September 5 packet
+
 **Not ready to send.** The exact six-patch topic has useful build, test and schema
 evidence, but patch 3 should preserve old-DT schema compatibility, patch 4 overlaps
 an unmerged MT6797 probe conversion, and the actual authors must resolve DCO
