@@ -1,9 +1,11 @@
 # Second export session: attributable startup failure
 
-Status: offline-ready; not installed or physically selected. Use only
+Status: attempt consumed, with no attributed USB terminal or recovered startup
+marker; see the [installation and recovery result](EXPORT_ATTEMPT_2.md).
+The procedure below records the contract for
 `wifi-export-container-20260911-bootstrap1`, identified by the
-[validation receipt](results/bootstrap-container-1.json). The
-[first image](EXPORT_ATTEMPT_1.md) remains consumed.
+[validation receipt](results/bootstrap-container-1.json). Neither this image nor
+the [first image](EXPORT_ATTEMPT_1.md) may be repeated unchanged.
 
 ## Hypothesis and decision-changing evidence
 

@@ -1,8 +1,9 @@
 # Bootstrap failure diagnostics
 
-Status: implemented and tested offline; the [second session](EXPORT_SESSION_2.md)
-now binds the validated replacement filesystem and container, without deployment
-or physical selection. The [first attempt](EXPORT_ATTEMPT_1.md) produced neither
+Status: implemented and tested offline, then deployed for the
+[second attempt](EXPORT_ATTEMPT_2.md). That boot produced neither USB export nor
+recovered diagnostic markers; its kernel/startup stage remains inconclusive.
+The [first attempt](EXPORT_ATTEMPT_1.md) also produced neither
 a USB export nor an attributable startup failure. Console-only messages could
 not discriminate startup refusal from an earlier boot failure.
 
@@ -73,8 +74,8 @@ the VM kernel log or operating a PDA. Extracted roots/namespaces were removed.
 Shell syntax and ShellCheck passed. No kernel sources or configuration changed;
 no kernel rebuild or hardware result is claimed.
 
-A later session must bind the updated sources to a new UUID, filesystem and
-verified container before deployment. The ordinary console ring can wrap,
+The second session bound these sources to a new UUID, filesystem and verified
+container; its one physical attempt is consumed. The ordinary console ring can wrap,
 log-level filtering can suppress records, and a hard failure before devtmpfs or
 the log descriptor opens still has no new userspace record. An absent marker
 therefore remains inconclusive. Preserve retained logs promptly after the

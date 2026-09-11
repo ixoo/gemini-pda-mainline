@@ -359,6 +359,10 @@ The remaining preparation order is:
    [retained-ELF boundary](../experiments/2026-09-06-mt6797-wlan-final-linkage-teardown-attribution/README.md),
    [accepted database boundary](../experiments/2026-09-06-vmlinux-to-elf-kernel-db-provenance-v2/README.md)
    and [accepted Kallsyms provenance](../experiments/2026-09-06-vmlinux-to-elf-symbol-provenance-v3/README.md).
+   The native observation image's [second export attempt](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/EXPORT_ATTEMPT_2.md)
+   recovered neither USB data nor startup markers, despite an authenticated
+   owner-controlled return to Gemian. Resolve kernel-entry or retained-console
+   attribution before another physical attempt; do not repeat that image unchanged.
    Exit order must not be inferred by reversing initialization, and the vendor
    WMT ioctl must not be copied merely to run the retained loader.
 4. **Preserve the bounded eMMC result:** the [closed session](../experiments/2026-09-05-owner-away-experiment-preparation/emmc/PAUSE_SESSION_PREPARATION.json)
