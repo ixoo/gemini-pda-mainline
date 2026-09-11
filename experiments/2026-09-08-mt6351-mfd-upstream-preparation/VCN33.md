@@ -137,6 +137,38 @@ preloader/firmware remain possible owners; the retained image also does not
 attest the current boot. Do not repeat these empty hooks as a proposed source
 of the missing rail contract. No current PMIC read or rail experiment occurred.
 
+## Retained preloader trimming follow-up, 2026-09-11
+
+The [preloader receipt](results/vcn33-preloader-trim-receipt.json) pins the
+retained 4 MiB capture, its GFH metadata, the extracted payload and the selected
+Thumb instruction spans. The GFH load address plus header size yields payload
+base `0x201000`; the entry's self-reference agrees. Analysis used radare2 in
+the RE VM without executing firmware. Routine roles are inferred from callers,
+arguments and PMIC log-string references, not recovered symbols.
+
+The PMIC initializer calls the body at `0x214de4`. That body tests bit 15 of
+`0x0c5c`, which the pinned MT6351 header names as an OTP output register, and
+returns immediately when it is zero. Otherwise it fills a RAM table through
+the OTP interface helper. Two later branches compare the value read from PMIC
+register `0x0202` with `0x5110` and `0x5120`. Each branch contains five calls to
+the masked-update helper for `0x0ada`, with mask one and shifts zero through
+four. Their one-bit values come from the OTP table; the two branches select
+different source bits. No actual OTP or calibration values were obtained.
+
+For these one-bit values, the helper's read-modify-write preserves bits outside
+its shifted mask. These calls target only `0x0ada[4:0]`, named `RG_VCN33_CAL`
+in the same pinned register header. They preserve the shared voltage selector
+at bits 10:9. Finding the selector's register address in an initializer is
+therefore insufficient to classify that call as voltage or enable setup.
+
+This is a bounded result for ten calls discovered through immediate-address
+loads, not an exhaustive preloader writer inventory. It does not establish
+which branch ran, successful PMIC transport, current loader identity, or the
+owner of VCN33 mode/source-clock setup. The calls do not supply that missing
+contract and must not be copied as fixed rail settings. Other address-loading
+forms, writers and firmware stages remain outside this audit. No device access,
+PMIC transaction, kernel build or new hardware-support claim accompanies it.
+
 ## Retained HIF wrapper follow-up
 
 The [HIF receipt](results/vcn33-hif-wrapper-receipt.json) revalidates the retained

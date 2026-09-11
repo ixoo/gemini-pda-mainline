@@ -1,0 +1,200 @@
+{
+  "schema": 1,
+  "analysis": "Retained preloader VCN33 OTP-trimming audit; offline only",
+  "capture_bytes": 4194304,
+  "capture_sha256": "25319ce877bd17b204fa264645aebf4583ec10ae2f05f6d8a7fff5efe4c06246",
+  "gfh_file_info": {
+    "offset": "0x800",
+    "sha256": "0dba43770fba5f7b1d2b95baa679523a9b0b29072e0ed1ccc55dbefe9aae1e14",
+    "load_address": "0x200d00",
+    "header_bytes": "0x300",
+    "signature_bytes": "0x124",
+    "total_bytes": "0x2e988"
+  },
+  "payload": {
+    "file_offset": "0xb00",
+    "map_base": "0x201000",
+    "bytes": 189796,
+    "sha256": "a974c97fcb3757478cfd3389ffb2b7d48f2fb622ff10d34a080766d634fd63e1"
+  },
+  "header_format_source": {
+    "url": "https://github.com/u-boot/u-boot/blob/v2025.01/tools/mtk_image.h",
+    "sha256": "b262f936ad0e90bd44a0dc74fc0709c26149e6d1441a1f3466a943a2fff96918"
+  },
+  "register_source": {
+    "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/upmu_hw.h",
+    "sha256": "e376d2835dd32812b52caf6a51139cc7fd541de18eaad0f30ecf8194f70cebbe"
+  },
+  "tool": "radare2 5.5.0; ARM32 Thumb; RE VM",
+  "reproduce": "Extract the pinned GFH payload, map it at 0x201000 in r2 with -a arm -b 16, and use pD over the recorded spans. Trace arguments r0=register, r1=value, r2=mask and r3=shift to the update helper.",
+  "selected_spans": {
+    "masked_update_helper": {
+      "start": "0x214b50",
+      "end_exclusive": "0x214ba6",
+      "sha256": "3282d48237f9d67dfad650d7a50f8c4c08dab2e5bcd7959e65218abb21a6ee8c"
+    },
+    "otp_read_helper": {
+      "start": "0x214d6a",
+      "end_exclusive": "0x214de4",
+      "sha256": "e23980d50804ef9aaaa84c49ecc300696dca3600c09a01f9146a10d44dd1c5cc"
+    },
+    "otp_setting_body": {
+      "start": "0x214de4",
+      "end_exclusive": "0x216f4e",
+      "sha256": "587cf8902d5768e0a392d0e3bb70332db63970b78d18f739d0f8fff6ef7fbe5a"
+    },
+    "pmic_initializer": {
+      "start": "0x217228",
+      "end_exclusive": "0x217608",
+      "sha256": "edf9e31349894c10a6fe6f85cadcbe6a8d3337a07ed60931a215534be4f261ca"
+    }
+  },
+  "trim_calls": [
+    {
+      "start": "0x2154e8",
+      "end_exclusive": "0x2154fa",
+      "sha256": "81ab757097235ba1f0b745e1a2cc11713beceffe8fd903e88c7d95038cb09dc8",
+      "id_comparison": "0x5110",
+      "call": "0x2154f6",
+      "register": "0xada",
+      "mask": "0x1",
+      "shift": 0,
+      "value_source": {
+        "otp_word_index": 9,
+        "bit": 15
+      }
+    },
+    {
+      "start": "0x2154fa",
+      "end_exclusive": "0x21550c",
+      "sha256": "41da0fd123496c0036f59c249aefd1cbdbcfa013b41afb69ca194dabfa1f0299",
+      "id_comparison": "0x5110",
+      "call": "0x215508",
+      "register": "0xada",
+      "mask": "0x1",
+      "shift": 1,
+      "value_source": {
+        "otp_word_index": 10,
+        "bit": 0
+      }
+    },
+    {
+      "start": "0x21550c",
+      "end_exclusive": "0x21551e",
+      "sha256": "ed006e05abb476bb01470b6eb51fcf577f4821e5a0f62ba827961f92a3bdc147",
+      "id_comparison": "0x5110",
+      "call": "0x21551a",
+      "register": "0xada",
+      "mask": "0x1",
+      "shift": 2,
+      "value_source": {
+        "otp_word_index": 10,
+        "bit": 1
+      }
+    },
+    {
+      "start": "0x21551e",
+      "end_exclusive": "0x215530",
+      "sha256": "3b6bfabc23af9f4ca94158c088044c33d3a32d64282c87fc3022e859ca62cafa",
+      "id_comparison": "0x5110",
+      "call": "0x21552c",
+      "register": "0xada",
+      "mask": "0x1",
+      "shift": 3,
+      "value_source": {
+        "otp_word_index": 10,
+        "bit": 2
+      }
+    },
+    {
+      "start": "0x215530",
+      "end_exclusive": "0x215542",
+      "sha256": "464802dc505b79c487cc8bb6509a8da4f771b267c756ef92827d4aca405f8c33",
+      "id_comparison": "0x5110",
+      "call": "0x21553e",
+      "register": "0xada",
+      "mask": "0x1",
+      "shift": 4,
+      "value_source": {
+        "otp_word_index": 10,
+        "bit": 3
+      }
+    },
+    {
+      "start": "0x216218",
+      "end_exclusive": "0x21622a",
+      "sha256": "1812c19d94ce83b65eed85fe73e2ed453d0ac0271261c335e657784dcfdff25d",
+      "id_comparison": "0x5120",
+      "call": "0x216226",
+      "register": "0xada",
+      "mask": "0x1",
+      "shift": 0,
+      "value_source": {
+        "otp_word_index": 10,
+        "bit": 0
+      }
+    },
+    {
+      "start": "0x21622a",
+      "end_exclusive": "0x21623c",
+      "sha256": "b27a08cb1c5c11908b3278a041bc53d9f9a14c443cfc192a5b3a33957e8dd141",
+      "id_comparison": "0x5120",
+      "call": "0x216238",
+      "register": "0xada",
+      "mask": "0x1",
+      "shift": 1,
+      "value_source": {
+        "otp_word_index": 10,
+        "bit": 1
+      }
+    },
+    {
+      "start": "0x21623c",
+      "end_exclusive": "0x21624e",
+      "sha256": "9b1837c78ce962cc7c3f95804866b058155bff31b5571f9b150f26330bb47ad7",
+      "id_comparison": "0x5120",
+      "call": "0x21624a",
+      "register": "0xada",
+      "mask": "0x1",
+      "shift": 2,
+      "value_source": {
+        "otp_word_index": 10,
+        "bit": 2
+      }
+    },
+    {
+      "start": "0x21624e",
+      "end_exclusive": "0x216260",
+      "sha256": "1843b31f318a020c3cde760cf0122900b86b8a5ab6f18ba9322222934b49d1be",
+      "id_comparison": "0x5120",
+      "call": "0x21625c",
+      "register": "0xada",
+      "mask": "0x1",
+      "shift": 3,
+      "value_source": {
+        "otp_word_index": 10,
+        "bit": 3
+      }
+    },
+    {
+      "start": "0x216260",
+      "end_exclusive": "0x216272",
+      "sha256": "aa884ad42fdb3548317d7364d1826410b2a6913f2a8623d5ee35bf07162c0aeb",
+      "id_comparison": "0x5120",
+      "call": "0x21626e",
+      "register": "0xada",
+      "mask": "0x1",
+      "shift": 4,
+      "value_source": {
+        "otp_word_index": 10,
+        "bit": 4
+      }
+    }
+  ],
+  "combined_trim_mask": "0x001f",
+  "voltage_selector_mask": "0x0600",
+  "scope": "Ten MOVW-discovered register-0xada calls in two ID-selected branches, their OTP-data provenance and masked update helper; not a whole-preloader writer inventory or current boot attestation.",
+  "device_access": false,
+  "firmware_execution": false,
+  "calibration_values_observed": false
+}
