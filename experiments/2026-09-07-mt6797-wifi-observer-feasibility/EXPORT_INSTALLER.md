@@ -1,5 +1,8 @@
 # Export installation preparation
 
+The [first installation and physical attempt](EXPORT_ATTEMPT_1.md) now have
+results. Installation/readback passed; the USB export did not complete.
+
 [The deriver](export-installer.py) reuses the pinned historical installer and
 the current reviewed block-device guard. The generated script stays private.
 It is bound to the externally supplied padded-image/session digests and the

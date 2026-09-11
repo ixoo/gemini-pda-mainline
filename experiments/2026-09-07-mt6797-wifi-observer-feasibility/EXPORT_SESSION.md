@@ -1,8 +1,10 @@
 # One physical snapshot-export session
 
-Status: preparing. The [physical recovery prerequisite](EXPORT_RECOVERY.md#attended-result)
-has an owner-reported Esc restart and authenticated changed-boot Gemian return.
-This packet does not install or boot an image.
+Status: first attempt consumed, with no attributed USB terminal. See the
+[installation, observation and return record](EXPORT_ATTEMPT_1.md). The procedure
+below is retained as that attempt's contract, not a repeat authorization.
+The [physical recovery prerequisite](EXPORT_RECOVERY.md#attended-result) had
+an owner-reported Esc restart and authenticated changed-boot Gemian return.
 
 ## Hypothesis and fixed inputs
 
