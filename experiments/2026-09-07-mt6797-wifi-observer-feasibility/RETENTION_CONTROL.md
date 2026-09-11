@@ -1,7 +1,9 @@
 # Known-good Gemian console-retention control
 
-Status: prepared; marker write and restart await owner approval. No boot2 image
-is selected by this control. The [second export attempt](EXPORT_ATTEMPT_2.md)
+Status: incomplete; the owner approved the control and the marker was written
+once. The return watch expired without a qualifying changed boot; the owner's
+physical-reset observation is pending. Do not repeat the marker or restart.
+No boot2 image is selected by this control. The [second export attempt](EXPORT_ATTEMPT_2.md)
 returned to Gemian without a console record, leaving kernel entry and log
 retention unresolved.
 
@@ -70,3 +72,22 @@ Match the exact control UUID and preceding boot UUID; a marker from the returned
 Gemian boot is not a retention pass. No log is cleared. No partition, radio,
 calibration, regulator, clock, watchdog setting or USB configuration is changed.
 Leave returned Gemian running and record the owner's actual reset observation.
+
+## Execution checkpoint, 2026-09-11
+
+The owner approved this control. An authenticated preflight confirmed the exact
+preceding boot and Gemian identity. At `23:17:23 UTC`, the pinned marker program
+completed its one 126-byte write, found exactly one matching line in the current
+kernel log, rechecked the boot UUID and completed its filesystem sync. It issued
+no restart.
+
+The pinned collector was armed before the physical Esc instruction. Its
+180-second watch terminated without a qualifying changed-boot Gemian identity.
+It made zero console payload reads. The marker receipt and watch diagnostics
+remain private; the owner's actual reset observation is still pending.
+
+The result is incomplete: neither successful retention nor loss of a confirmed
+marker across a confirmed restart is established. The marker-write budget is
+consumed. Preserve the current state and obtain the owner's observation before
+deciding how to finish collection; do not rerun either program or request another
+restart automatically.
