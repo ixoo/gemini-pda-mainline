@@ -38,7 +38,8 @@ The prefix `<11>` requests LOG_USER at error severity. In the pinned native
 source, `devkmsg_write()` sends this to `printk_emit()`. The registered pstore
 console calls `pstore_simp_console_write()`, which selects the existing CONSOLE
 backend and its `cprz` ring. The capture-mode PMSG snapshot and exclusion path
-are separate. This uses ordinary kernel logging, not a new physical mapping,
+use a separate zone, but share backend registration as described below.
+This uses ordinary kernel logging, not a new physical mapping,
 reserved-memory slot, pmsg write, capture initializer or clear operation.
 
 The source review used the prepared 46-patch tree bound by
@@ -50,6 +51,62 @@ The source review used the prepared 46-patch tree bound by
 | `drivers/char/mem.c` | `b693f13ce4edf0f0e5e3553ddf0d86fc779283c2ce6442972731cfbe31d45390` |
 | `fs/pstore/platform.c` | `faff4a24ea2a298ba8fe267f04266665bc75e0241dc67718390708e587e73474` |
 | `fs/pstore/ram.c` | `09761efea84dd9b9b8d398bf7171ebff901d2f5df6a8b649ecf0ec6a0e0c3f4f` |
+
+## Registration dependency and layout audit
+
+After the second attempt, a source audit found that these markers depend on
+successful capture-region setup. In the selected `fs/pstore/ram.c:675–811`,
+`ramoops_probe()` checks the fixed capture layout, initializes the dump,
+console, backup-console, ftrace and PMSG zones, then calls `pstore_register()`.
+A capture mapping refusal therefore prevents the ordinary pstore console from
+registering too. The console zone has already been initialized and its current
+ring reset before PMSG mapping; failure cleanup frees the saved old-console
+copy. Consequently a failed probe can leave no retained console message even
+if the kernel reached this code. This is a source-derived failure path, not
+evidence that the second attempt took it.
+
+The selected configuration, SHA-256
+`486392ac9152365891c50ffdee56be1b6ed1aed61d588aa66e29f966604202ff`,
+and native parameter defaults satisfy the early layout guard without overrides:
+base `0x44410000`, total size `0xe0000`, 4 KiB dump/ftrace sizes, 64 KiB
+console/PMSG sizes, memory type zero and no ECC. The packaged command line
+adds capture mode without changing these layout parameters. Applying the
+unchanged native allocation formula gives these half-open ranges:
+
+| Zone | Start | End, excluded |
+| --- | --- | --- |
+| 175 dump records | `0x44410000` | `0x444bf000` |
+| Console | `0x444bf000` | `0x444cf000` |
+| Backup console | `0x444cf000` | `0x444df000` |
+| Ftrace | `0x444df000` | `0x444e0000` |
+| PMSG | `0x444e0000` | `0x444f0000` |
+
+Splitting the DT reservation into `0xd0000` plus the final `0x10000` PMSG
+region does not change this configured allocation. Native
+`ramoops_register_dummy()` takes its layout from parameters/configuration;
+the MediaTek reservation callback only logs its range. The previously checked
+[container](results/bootstrap-container-1.json) includes the split reservation
+and PMSG `no-map` property. In the native source, the reserved-memory scanner
+passes `no-map` to `memblock_remove()`, while ARM64 `pfn_valid()` queries
+`memblock_is_memory()`. The capture mapper checks every page with `pfn_valid()`
+before requesting the region and mapping it. Those source paths are consistent
+with the intended exclusion; they do not establish the DT delivered by LK,
+runtime reservation success, resource availability or successful mapping.
+
+Additional source identities from the same prepared input tree are:
+
+| Source | SHA-256 |
+| --- | --- |
+| `fs/pstore/ram_core.c` | `8a5a63163989901ec5dcccb374a77d572b81982fe5544025e090f4e00bcd0b10` |
+| `arch/arm64/mm/init.c` | `55e7f3f8895da839bfb1b5ad5cc2efa0cd44b5b3ead3533453f5c56f2b76a7d0` |
+| `drivers/of/fdt.c` | `3c9b23e038f9b58db3f7c428d598e14cba7fec2a8686691ead5c55e20623de41` |
+| `arch/arm64/boot/dts/mt6797.dtsi` | `5e7809ca4ceb07c501a76b5c2f4d7d067ce11b092fa556b5893246831bd9330f` |
+
+This audit found no demonstrated layout repair and made no kernel, image or
+device change. Keep the [known-good retention control](RETENTION_CONTROL.md)
+as the next observation, pending its owner approval. Even a passing Gemian
+control would leave candidate backend registration unproven; absent candidate
+markers cannot establish failure before kernel entry or before PID1.
 
 ## Validation and device boundary
 
