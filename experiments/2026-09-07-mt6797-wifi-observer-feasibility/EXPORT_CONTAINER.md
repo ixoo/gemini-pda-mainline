@@ -57,6 +57,8 @@ lookup passed. No device action occurred during construction or validation.
 Startup parks after export or refusal and provides no recovery command channel.
 The [physical-key prerequisite](EXPORT_RECOVERY.md) now specifies the next
 owner-confirmed check on known-good Gemian.
+The [single export session](EXPORT_SESSION.md) defines the host attribution,
+request budget and result boundary once that prerequisite passes.
 Resolve the recovery path for both cases before guarded deployment, including
 owner confirmation before any restart. The effective loader arguments and DT,
 native PID1 mounts, actual USB enumeration/transfer and changed-boot recovery

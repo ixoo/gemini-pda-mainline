@@ -49,6 +49,9 @@ without a retry or clearing command. This bounds userspace transport waits,
 not arbitrary kernel stalls or filesystem synchronization. The host closes
 its terminal afterward; the device retains its descriptor while PID1 parks.
 Diagnostic console text uses a different descriptor from this binary stream.
+The device's post-send capture check has no transmitted completion status.
+A successful receiver therefore cannot certify that final check; the
+[physical session](EXPORT_SESSION.md) keeps that limit in its pass criteria.
 
 ## Transport evidence and remaining integration
 
