@@ -64,8 +64,10 @@ using the preceding verified compact filesystem. The complete mount sequence
 reached its Python boundary with 19 records. Injected sysfs and pstore mount
 failures stopped at the correct stage with three and four records respectively.
 The probe redirected descriptor 3 to its captured stdout, omitted console open
-and SysRq write, replaced the park loop with test exit 42, and replaced Python
-exec with test exit zero. Thus it tested the shell and mounts without writing
+and SysRq write, and replaced the park loop with test exit 42. At the Python
+boundary, the actual BusyBox `env` command launched the packaged Python with a
+test entry that verified PID1, the inherited descriptor and cleared environment,
+then exited zero. Thus it tested the shell and mounts without writing
 the VM kernel log or operating a PDA. Extracted roots/namespaces were removed.
 Shell syntax and ShellCheck passed. No kernel sources or configuration changed;
 no kernel rebuild or hardware result is claimed.

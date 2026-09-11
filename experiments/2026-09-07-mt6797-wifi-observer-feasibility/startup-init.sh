@@ -28,7 +28,9 @@ trap park EXIT HUP INT TERM
 set -eu
 /bin/busybox mount -t devtmpfs -o nosuid,noexec devtmpfs /dev
 [ "$(/bin/busybox stat -c '%t:%T' /dev/kmsg)" = '1:b' ]
-[ -c /dev/kmsg ] && [ ! -L /dev/kmsg ] || park
+if [ ! -c /dev/kmsg ] || [ -L /dev/kmsg ]; then
+    park
+fi
 exec 3>/dev/kmsg
 log_ready=1
 mark proc
