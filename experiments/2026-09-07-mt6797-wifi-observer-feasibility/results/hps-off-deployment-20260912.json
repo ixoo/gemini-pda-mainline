@@ -1,0 +1,36 @@
+{
+  "status": "installed-awaiting-owner-selection",
+  "date": "2026-09-12",
+  "cycle_id": "8e78b74b-ba3a-4ca1-9bc1-0d9fc8635a88",
+  "preceding_gemian_boot": "a1efb6e0-4c7e-43f6-9b56-0ba6086bd8c2",
+  "deployment_summary_sha256": "7097b0cb960ca65f6bcf6787fbe87521b6029cddba0cc73c821d212dd064f86d",
+  "result": "write-synced-flushed-full-readback-verified",
+  "target_logical_name": "boot2",
+  "target_major_minor": "179:30",
+  "root_major_minor": "179:29",
+  "guard_sha256": "0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf",
+  "predecessor_sha256": "3064aeba166c06da72b7d22cd72ae75b8790ca1c6307f04eeb70a108e1d4bff5",
+  "padded_bytes": 16777216,
+  "candidate_sha256": "9eb59c31f27fd20e7b911797259eef301c8ce5146fd905482f63512034a1b9f3",
+  "readback_sha256": "9eb59c31f27fd20e7b911797259eef301c8ce5146fd905482f63512034a1b9f3",
+  "independent_host_readback_byte_compare": "pass",
+  "fresh_predecessor_backup": false,
+  "power_probe": {
+    "present": 1,
+    "capacity": 43,
+    "health": "Good",
+    "external_power": 1
+  },
+  "power_write_and_post": {
+    "present": 1,
+    "capacity": 44,
+    "health": "Good",
+    "external_power": 1
+  },
+  "power_pairs_stable": true,
+  "poweroff_ssh_exit": 0,
+  "post_shutdown_reachability": "unreachable",
+  "physical_selections_consumed": 0,
+  "collectors_armed": false,
+  "next_action": "Coordinate owner readiness, arm both existing 180-second collectors, then request one physical boot2 selection."
+}

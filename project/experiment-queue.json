@@ -181,10 +181,10 @@
       "experiment": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/README.md",
       "session_packet": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/HPS_BOOT_POLICY.md",
       "candidate_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/hps-default-off.json",
-      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/HPS_BOOT_POLICY.md#initial-installation-power-refusal",
+      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/HPS_BOOT_POLICY.md#verified-installation",
       "dependencies": [],
       "owner_task_id": null,
-      "readiness_note": "Cycle 8e78b74b-ba3a-4ca1-9bc1-0d9fc8635a88 selects the validated 47-patch kernel and container. Initial installation refused before upload/write/shutdown on power; its one physical-selection budget remains unused. Recheck the existing installer gates before deployment. The completed one-register Gemian charger identity inspection did not change this candidate or consume its boot budget. No WMT request, firmware load or WLAN cycle is selected."
+      "readiness_note": "Cycle 8e78b74b-ba3a-4ca1-9bc1-0d9fc8635a88 is installed on guarded live-GPT boot2, with matching full readback and clean shutdown. Power passed at 43\u201344% with external supply. The one physical-selection budget remains unused. Coordinate owner readiness, arm both existing collectors, then request one physical selection. No WMT request, firmware load or WLAN cycle is selected."
     }
   }
 }

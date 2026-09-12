@@ -1,8 +1,8 @@
 # Native diagnostic HPS startup policy
 
-Status: source, complete kernel, startup and container checks passed. One new
-export-return session is selected below. Installation waits for sufficient
-power; device execution remains outstanding and its selection budget is unused.
+Status: source, complete kernel, startup and container checks passed. The selected
+export-return image is installed with matching full readback and clean shutdown.
+Device execution remains outstanding and its physical-selection budget is unused.
 
 The [export-return session](EXPORT_RETURN.md#deployment-and-runtime-result)
 reached Python and stopped at the required CPU0–7 check. Its retained log also
@@ -128,4 +128,26 @@ status `Not charging`, with AC, USB and wireless external-power values all zero.
 The existing installer requires at least 80% on battery alone, or at least 40%
 with external power. Those requirements remain unchanged. The owner has been
 asked to connect the charger; proceed only after the ordinary live gates pass.
-Boot2 retains its predecessor and no physical selection has occurred.
+At that refusal, boot2 retained its predecessor and no physical selection occurred.
+
+## Verified installation
+
+The [deployment receipt](results/hps-off-deployment-20260912.json) records the
+subsequent successful installation on 2026-09-12. The same known-good Gemian
+boot was verified. Live GPT resolved boot2 as `179:30`, distinct from root
+`179:29`; the reviewed guard passed before the write. The battery was present
+and healthy with external power, at 43% during the probe and 44% during write
+and post checks. Each pair of power samples was stable.
+
+The predecessor checksum was `3064aeba166c06da72b7d22cd72ae75b8790ca1c6307f04eeb70a108e1d4bff5`.
+The installer wrote the selected padded image, synced and flushed it, and
+required matching full-partition checksums. A separate complete host readback
+matched the candidate both by checksum and byte comparison. No fresh backup
+was created. After evidence preservation, clean poweroff returned zero and
+the authenticated endpoint became unreachable.
+
+The PDA is left off with the selected candidate installed. The owner-readiness
+question is pending; collectors have not been started, to preserve their finite
+windows for the physical selection. Arm both existing collectors before asking
+the owner to select boot2 once. This installation is not a runtime result and
+does not consume the physical-selection budget.
