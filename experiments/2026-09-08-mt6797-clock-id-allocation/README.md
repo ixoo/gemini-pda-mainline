@@ -1,7 +1,10 @@
 # MT6797 clock provider allocation
 
-Status: compile and focused regression passed, 2026-09-08.
-This is an upstream-preparation checkpoint, not a boot candidate.
+Status: compile and focused regression passed, 2026-09-08; current upstream
+submission preparation refreshed, 2026-09-12. The
+[review packet](SUBMISSION.md) records current source matches, both introducing
+commits, public overlap and prepared commit text. Human review and truthful
+certification remain required. This is not a boot candidate.
 
 ## Problem and fix
 
@@ -60,12 +63,9 @@ No DT/schema changes require validation. No device access or boot occurred.
 
 ## Upstream boundary
 
-The destination is the MediaTek common-clock subsystem. A targeted public
-search found no equivalent correction; that is not an exhaustive maintainer
-or mailing-list review. Pinned-tree `get_maintainer.pl --no-git --no-git-fallback`
-identifies Stephen Boyd, Brian Masney and Jerome Brunet for common clocks,
-and Matthias Brugger and AngeloGioacchino Del Regno for MediaTek, with the
-linux-clk and linux-mediatek lists among its destinations. Recheck overlap
-and recipients before submission. The synthetic archive author provides no DCO sign-off;
-truthful authorship and certification remain required. No message was sent.
-Delete this local patch once an equivalent fix reaches the selected baseline.
+The destination is the MediaTek common-clock subsystem. The
+[submission review](SUBMISSION.md) records exact current refs, recipients,
+bounded overlap findings, source-license review and AI attribution. The
+synthetic archive author provides no DCO sign-off; truthful authorship and
+certification remain required. No message was sent. Delete this local patch
+once an equivalent fix reaches the selected baseline and passes regression.

@@ -139,8 +139,11 @@ lifetime; missing attribution preserves the current two-clock contract.
 
 The independent [clock allocation fix](../experiments/2026-09-08-mt6797-clock-id-allocation/README.md)
 repairs the slot-count contract in four existing MT6797 providers and passes
-Buildbox compilation. Complete upstream preparation before adapting historical camera
-or multimedia clock additions; it does not resolve their consumer ownership.
+Buildbox compilation. Its [submission packet](../experiments/2026-09-08-mt6797-clock-id-allocation/SUBMISSION.md)
+now records current upstream compatibility, both introducing commits and the
+common-helper conversion overlap. Human authorship review and truthful
+certification are the next handoff before upstream submission. Historical
+camera or multimedia additions still need their own consumer-ownership review.
 
 The current [audio architecture refresh](../experiments/2026-09-07-mt6797-audio-upstream-architecture/README.md)
 identifies one smaller independent upstream topic: adapt local patch 0064 into

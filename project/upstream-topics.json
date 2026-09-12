@@ -53,6 +53,34 @@
       }
     },
     {
+      "id": "mt6797-clock-id-allocation",
+      "status": "human-review-and-certification-required",
+      "owner": "Integration",
+      "target": "Common-clock tree with MediaTek review; clk-fixes is the proposed bug-fix target. Current mainline, clk-fixes and clk-next have identical selected source inputs. Public common-helper cpumux/PLL additions overlap the allocation context; preserve their default terms if adapting after integration.",
+      "patches": [
+        "patches/upstream-4d7d9486/clock-ids/0001-clk-mediatek-size-MT6797-providers-for-one-based-IDs.patch"
+      ],
+      "evidence": [
+        "experiments/2026-09-08-mt6797-clock-id-allocation/README.md",
+        "experiments/2026-09-08-mt6797-clock-id-allocation/SUBMISSION.md",
+        "experiments/2026-09-08-mt6797-clock-id-allocation/compile.json"
+      ],
+      "dependencies": [
+        "Human review of actual authorship, GPL-2.0-only provenance and truthful DCO certification",
+        "Export with accurate author, both introducing-commit Fixes tags, AI attribution and the final public base; refresh recipients and overlap at submission",
+        "Recheck patch/style after export and compile if code or source context changes; no dependency on historical camera additions or infracfg reset ordering"
+      ],
+      "authorship": "Synthetic unsigned archive only. Prepared text records LLM assistance; a human must establish authorship and personally certify the final contribution.",
+      "submission_url": null,
+      "removal_condition": "Remove after an equivalent fix reaches the selected upstream baseline and the allocation regression passes",
+      "validation_profile": "mt6797-clock-ids-compile",
+      "validation": {
+        "scope": "Original-base Buildbox compile passed with all four drivers and zero compiler warnings/errors. Current selected source files match that base; unchanged patch application and all six allocation cases pass. No full build of the refreshed refs or device test.",
+        "build": "experiments/2026-09-08-mt6797-clock-id-allocation/compile.json",
+        "submission_ready": false
+      }
+    },
+    {
       "id": "mt6797-toprgu-restart",
       "status": "policy-evidence-required",
       "owner": "CPU 8-9 Astra",
