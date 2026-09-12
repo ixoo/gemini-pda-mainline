@@ -98,8 +98,11 @@ The [Debian ARM64 userspace evaluation](../experiments/2026-09-09-standard-kerne
 now provides a verified 119-package off-device archive and a passing
 [VM container lifecycle](../experiments/2026-09-09-standard-kernel-package/DEBIAN_RUNTIME.md).
 It identifies missing service isolation in the tested A53 configuration.
-Confirm distribution/storage inputs and address those requirements in the future integration profile before
-creating a persistent-root candidate; the archive is not a device boot result.
+The [A53 service-facilities profile](../experiments/2026-09-09-standard-kernel-package/A53_SERVICE_FACILITIES.md)
+now freezes the exact tested patch foundation and compiles the missing
+namespace/BPF facilities. Confirm distribution/storage inputs and validate the
+new kernel's service behavior before creating a persistent-root candidate;
+neither the archive nor this compile is a device boot result.
 
 The independent [MMC voltage-switch error fix](../experiments/2026-09-09-mtk-sd-pinctrl-errors/README.md)
 returns failed pin configuration to the MMC core. Its isolated Buildbox compile

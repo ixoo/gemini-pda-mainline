@@ -1,0 +1,253 @@
+{
+  "status": "validated-compile-only",
+  "completed_utc": "2026-09-12T22:19:59Z",
+  "scope": "Distribution service facilities on the tested 505-patch A53 foundation; no new device candidate",
+  "package_name": "linux-7.1.3-gemini-3692f6a38580326b4aa8c453ae7db051051d7d32701678d81e77d5421eb10414",
+  "repository_commit": "ac6cf1774966ff282449881c5337d9888eab1d5a",
+  "repository_dirty": false,
+  "kernel_release": "7.1.3-gemini-a53-service-facilities",
+  "build_profile": "mt6797-a53-service-facilities",
+  "kernel_source": {
+    "archive_format": "tar.xz",
+    "archive_root": "linux-7.1.3",
+    "released": "2026-07-04",
+    "sha256": "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc",
+    "source_url": "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.1.3.tar.xz",
+    "version": "7.1.3"
+  },
+  "patchset_sha256": "408a716223971dcdfa358c2c2e03762606823ad37eb7861823b67be455ee3da0",
+  "config_inputs_sha256": "8825a88f4cf867cd64ccc668419bd28eace51565b48318f41d9727900a85a71b",
+  "config_sha256": "bae0155286a3172a4e3e690d6eec3f9c66981e83a2f24f30799a30f70f60247b",
+  "modules_built": false,
+  "compiler": "aarch64-linux-gnu-gcc (Debian 12.2.0-14) 12.2.0",
+  "compiler_sha256": "c7b8890354c8ddc0364addfeb8968597e197627bd1e338fb6ed705b578803846",
+  "linker": "GNU ld (GNU Binutils for Debian) 2.40",
+  "linker_sha256": "e09a889c78a75e73ed096c9fa28905599e6813298b9ac839d10b02ffa96e7b08",
+  "foundation": {
+    "build_commit": "ded915b81d56902d8800ff9fefc477480e4bcaa1",
+    "patch_count": 505,
+    "historical_patchset_sha256": "bc6d039d88019e95c6e08c9a8caf78f611a8e238ca1cfb234672db3d31d6bcae",
+    "historical_series_sha256": "0fb18bba40d9d55bb6dc7e0f3d5b3ebfe7bdbc36963991ac77c1913883071010",
+    "new_series_sha256": "0fb18bba40d9d55bb6dc7e0f3d5b3ebfe7bdbc36963991ac77c1913883071010",
+    "all_ordered_patch_bytes_identical": true,
+    "unchanged_ordered_fragments": 11,
+    "kernel_config_sha256": "194834d90eb2443f4b14ba8f2078ba16fe0c63f69088fcc8c063fe25af01c410"
+  },
+  "artifacts": {
+    "Image": {
+      "bytes": 14624776,
+      "sha256": "539d187e76d2948128060b6e6a82625824fb6be70b490fe043820ef0a4e491b6"
+    },
+    "Image.gz": {
+      "bytes": 6045287,
+      "sha256": "f83db1b5d6d49a0e589e5353a570e971445fa3e14b04b2fe2cf3e970b273914e"
+    },
+    "kernel.config": {
+      "bytes": 110479,
+      "sha256": "bae0155286a3172a4e3e690d6eec3f9c66981e83a2f24f30799a30f70f60247b"
+    },
+    "System.map": {
+      "bytes": 2523534,
+      "sha256": "016af6c302253a9d5010cab1149c417a318dc74c4c439e14c269c2c80728118c"
+    },
+    "SHA256SUMS": {
+      "bytes": 93247,
+      "sha256": "3692f6a38580326b4aa8c453ae7db051051d7d32701678d81e77d5421eb10414"
+    }
+  },
+  "image_effective_bytes": 15204352,
+  "lk_image_limit_bytes": 52428800,
+  "image_growth_bytes": {
+    "Image": 935936,
+    "Image.gz": 408385
+  },
+  "required_builtin_config": [
+    "NET_NS",
+    "BPF",
+    "BPF_SYSCALL",
+    "BPF_JIT",
+    "HAVE_EBPF_JIT",
+    "CGROUP_BPF",
+    "FW_LOADER",
+    "BPF_UNPRIV_DEFAULT_OFF"
+  ],
+  "config_changes": {
+    "CONFIG_BINARY_PRINTF": {
+      "before": "absent",
+      "after": "y"
+    },
+    "CONFIG_BPF_JIT": {
+      "before": "n",
+      "after": "y"
+    },
+    "CONFIG_BPF_JIT_DEFAULT_ON": {
+      "before": "absent",
+      "after": "y"
+    },
+    "CONFIG_BPF_SYSCALL": {
+      "before": "n",
+      "after": "y"
+    },
+    "CONFIG_BPF_UNPRIV_DEFAULT_OFF": {
+      "before": "absent",
+      "after": "y"
+    },
+    "CONFIG_CGROUP_BPF": {
+      "before": "absent",
+      "after": "y"
+    },
+    "CONFIG_EXECMEM": {
+      "before": "absent",
+      "after": "y"
+    },
+    "CONFIG_FW_LOADER_USER_HELPER": {
+      "before": "y",
+      "after": "n"
+    },
+    "CONFIG_IO_URING_ZCRX": {
+      "before": "absent",
+      "after": "y"
+    },
+    "CONFIG_LOCALVERSION": {
+      "before": "\"-gemini-mt6797-pwrap-reset\"",
+      "after": "\"-gemini-a53-service-facilities\""
+    },
+    "CONFIG_NEED_TASKS_RCU": {
+      "before": "absent",
+      "after": "y"
+    },
+    "CONFIG_NET_DEVMEM": {
+      "before": "absent",
+      "after": "y"
+    },
+    "CONFIG_NET_EGRESS": {
+      "before": "absent",
+      "after": "y"
+    },
+    "CONFIG_NET_INGRESS": {
+      "before": "absent",
+      "after": "y"
+    },
+    "CONFIG_NET_NS": {
+      "before": "n",
+      "after": "y"
+    },
+    "CONFIG_NET_SOCK_MSG": {
+      "before": "absent",
+      "after": "y"
+    },
+    "CONFIG_NET_XGRESS": {
+      "before": "absent",
+      "after": "y"
+    },
+    "CONFIG_PAGE_POOL": {
+      "before": "absent",
+      "after": "y"
+    },
+    "CONFIG_PAGE_POOL_STATS": {
+      "before": "absent",
+      "after": "y"
+    },
+    "CONFIG_SOCK_CGROUP_DATA": {
+      "before": "absent",
+      "after": "y"
+    },
+    "CONFIG_TASKS_RCU": {
+      "before": "absent",
+      "after": "y"
+    },
+    "CONFIG_TASKS_RCU_GENERIC": {
+      "before": "absent",
+      "after": "y"
+    },
+    "CONFIG_TASKS_TRACE_RCU": {
+      "before": "absent",
+      "after": "y"
+    }
+  },
+  "disabled_visibility_changes": [
+    "CONFIG_BPF_JIT_ALWAYS_ON",
+    "CONFIG_BPF_PRELOAD",
+    "CONFIG_BPF_STREAM_PARSER",
+    "CONFIG_FW_LOADER_USER_HELPER_FALLBACK",
+    "CONFIG_XDP_SOCKETS"
+  ],
+  "preserved_control_values": {
+    "SMP": "y",
+    "NR_CPUS": "512",
+    "CMDLINE_FORCE": "y",
+    "THERMAL": "n",
+    "CPU_FREQ": "n",
+    "CPU_IDLE": "n",
+    "SUSPEND": "n",
+    "MODULES": "n",
+    "WIRELESS": "n",
+    "WLAN": "n",
+    "MTK_SCPSYS": "n",
+    "MTK_SCPSYS_PM_DOMAINS": "n",
+    "MMC_MTK": "y",
+    "EXT4_FS": "y",
+    "USB_MTU3": "y",
+    "USB_ETH": "y"
+  },
+  "forced_cmdline_unchanged": true,
+  "implementation_objects_sha256": {
+    "net/core/net_namespace.o": "4dbfba6652ba9f59b2e11481aba28683fc7ea74b4fd179f90be7878f4d3ad554",
+    "kernel/bpf/syscall.o": "e66129da29320aba899952464bd65d96fab8d64dc82940f5b9b0ce6dbbae4122",
+    "kernel/bpf/cgroup.o": "650672ec55f8a769ae70bbddffb55a9609dcfe97443ae7cc7559afc09c814b46",
+    "arch/arm64/net/bpf_jit_comp.o": "225cb8189711d6a16ea91dbf9b7c50194ca9d051977164c2a300e1f260409816"
+  },
+  "linked_symbols": [
+    "copy_net_ns",
+    "__arm64_sys_bpf",
+    "__cgroup_bpf_run_filter_skb",
+    "bpf_int_jit_compile",
+    "request_firmware"
+  ],
+  "warnings": {
+    "baseline": {
+      "log_sha256": "8f2d12920a58ffc482d62aad161cc88bbc720ca2c357150b187d83688a7a40bf",
+      "compiler_warning_lines": 1,
+      "compiler_error_lines": 0,
+      "dt_warning_lines": 14,
+      "patch_application_warning_lines": 0,
+      "distinct_compiler_and_dt_messages": [
+        "arch/arm64/boot/dts/mediatek/mt6797.dtsi:234.3-10: Warning (ranges_format): /usb@11271000:ranges: empty \"ranges\" property but its #address-cells (1) differs from / (2)",
+        "arch/arm64/boot/dts/mediatek/mt6797.dtsi:234.3-10: Warning (ranges_format): /usb@11271000:ranges: empty \"ranges\" property but its #size-cells (1) differs from / (2)",
+        "kernel/cpu.c:179:12: warning: 'cpuhp_rollback_callback_inventory' defined but not used [-Wunused-function]"
+      ]
+    },
+    "service": {
+      "log_sha256": "270fe08793ec3af2c341239a333c1b3aca66e8f303624bc32cbe8979e85bf1b9",
+      "compiler_warning_lines": 1,
+      "compiler_error_lines": 0,
+      "dt_warning_lines": 14,
+      "patch_application_warning_lines": 1,
+      "distinct_compiler_and_dt_messages": [
+        "arch/arm64/boot/dts/mediatek/mt6797.dtsi:234.3-10: Warning (ranges_format): /usb@11271000:ranges: empty \"ranges\" property but its #address-cells (1) differs from / (2)",
+        "arch/arm64/boot/dts/mediatek/mt6797.dtsi:234.3-10: Warning (ranges_format): /usb@11271000:ranges: empty \"ranges\" property but its #size-cells (1) differs from / (2)",
+        "kernel/cpu.c:179:12: warning: 'cpuhp_rollback_callback_inventory' defined but not used [-Wunused-function]"
+      ]
+    },
+    "compiler_and_dt_messages_match_after_source_root_normalization": true
+  },
+  "source_kconfig_sha256": {
+    "init/Kconfig": "9715263dc9a8fd2240d05a58777c2c6eb8257fc5a963a55050ea7a371fa78f50",
+    "net/Kconfig": "d128d4c902c5fc6a0128279b915724c742b6eb3a74b3b2cbe1c9763ab7e53783",
+    "kernel/bpf/Kconfig": "b718640b8cbb019fb9ac7b0187cacb3c33675be27806ccf2c4928d01099d4abd",
+    "drivers/base/firmware_loader/Kconfig": "8107bd432a07743c2c4db077bf869d188dd051a4d3feccb65bcf64ec25ee54f1",
+    "io_uring/Kconfig": "95860c058afe2d49b135916736bd753690d7093e8b72cfe0cfd9932f9d102fbb",
+    "drivers/net/ethernet/freescale/Kconfig": "3d4a1bbbeadd22dd20249cb09bad747853a555eba93c22dcfd18e6c0779d6546"
+  },
+  "remote_package_validation": "pass",
+  "local_fetch_inventory_and_checksums": "pass",
+  "existing_profiles_unchanged": 207,
+  "hosted_checks": {
+    "url": "https://github.com/ixoo/gemini-pda-mainline/actions/runs/34722252621",
+    "commit": "ac6cf1774966ff282449881c5337d9888eab1d5a",
+    "conclusion": "success"
+  },
+  "hardware_tested": false,
+  "userspace_runtime_on_this_kernel": false,
+  "persistent_root_selected": false
+}

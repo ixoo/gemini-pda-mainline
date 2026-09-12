@@ -76,9 +76,11 @@ controls:
 
 The receipt pins the inspected installed service files and their directives.
 No service failure or sandbox fallback was inferred from a successful static
-unit check. The next distribution kernel profile should address required
-isolation after the baseline and deployment inputs are frozen; this audit does
-not modify a kernel configuration or the selected Wi-Fi candidate.
+unit check. The later [A53 service-facilities profile](A53_SERVICE_FACILITIES.md)
+freezes the tested foundation and compiles the missing namespace/BPF facilities,
+with legacy firmware fallback disabled. Its complete configuration delta and
+build limitations are recorded separately. It selects no persistent root or
+replacement Wi-Fi candidate, and its PDA runtime validation remains outstanding.
 
 ## Reproduction
 

@@ -90,7 +90,9 @@ The private artifacts retain both observation attempts, launch/closure logs,
 three host-journal lines and 150 guest-journal lines. No new runner or permanent
 service was added to the project or the prepared archive.
 
-Next confirm the distribution and exact storage allocation, resolve the tested
-kernel's missing service facilities, and prepare the persistent-root and
-recovery plan. The container does not supply those missing inputs or consume
+The later [A53 service-facilities compile](A53_SERVICE_FACILITIES.md) addresses
+the tested kernel's missing namespace/BPF configuration; this container was
+not run on that new kernel. Next confirm the distribution and exact storage
+allocation, validate services on the new kernel, and prepare the persistent-root
+and recovery plan. The container does not supply those missing inputs or consume
 the separately selected Wi-Fi device session.
