@@ -1,0 +1,99 @@
+{
+  "date": "2026-09-12",
+  "status": "exact-kernel-Debian-QEMU-services-and-filtering-pass",
+  "kernel_project_commit": "ac6cf1774966ff282449881c5337d9888eab1d5a",
+  "profile": "mt6797-a53-service-facilities",
+  "kernel_release": "7.1.3-gemini-a53-service-facilities",
+  "architecture": "aarch64",
+  "inputs": {
+    "kernel_sha256": "539d187e76d2948128060b6e6a82625824fb6be70b490fe043820ef0a4e491b6",
+    "archive_sha256": "e72e859a5f5f9b404bbb89e4c2593a6f4e5b7c2f17570f31902a15047ab9a488",
+    "disk_initial_sha256": "69695ee913c9d983d377ae36bb312951cd11fe506f83f3e7554209fce6753af3",
+    "disk_bytes": 1073741824,
+    "initramfs_sha256": "e50f2b5402708cbca673fddb008d753fc02b144be96debcc12bb91bed41d9b9b",
+    "init_sha256": "8e78a44bbf9d88dae1292f3cbe1adeed1239bfd5a301d7f4bfcf7dfcda10f04c",
+    "observation_sha256": "f1841afd5f9241f76ef22b13b08886696873d67292a0d84e2a9ba0a8b3b283b5"
+  },
+  "qemu_version": "8.2.2 (1:8.2.2+ds-0ubuntu1.18)",
+  "qemu_machine": "virt-8.2,gic-version=3",
+  "cpu": "cortex-a53",
+  "vcpus": 2,
+  "accelerator": "tcg",
+  "ram_mib": 2048,
+  "network_devices": 0,
+  "physical_device_passthrough": false,
+  "run": {
+    "started_utc_seconds": 1789252962.0095854,
+    "elapsed_seconds": 33.94123196601868,
+    "qemu_exit": 0,
+    "started_utc": "2026-09-12T22:42:42.009585+00:00"
+  },
+  "smoke": {
+    "started_utc_seconds": 1789252376.953183,
+    "elapsed_seconds": 1.3488717079162598,
+    "qemu_exit": 0
+  },
+  "smoke_boot": "d2dd5abb-c026-4a8a-85df-eab76ee01db8",
+  "debian_boot": "8e67bad2-70fa-4f7c-be6d-ac9841018843",
+  "pid1": "systemd",
+  "system_state": "running",
+  "failed_units_before_filter_probe": 0,
+  "only_pending_job": "temporary observer service",
+  "active_services": [
+    "dbus",
+    "systemd-journald",
+    "systemd-logind",
+    "systemd-udevd"
+  ],
+  "dbus_hostname_and_locale_queries": "pass",
+  "private_network_namespaces": "both services distinct from PID1 and each other",
+  "ip_filter_probe": {
+    "target": "IPv4 loopback UDP port 9; one byte per service",
+    "no_filter_exit": 0,
+    "deny_any_exit": 1,
+    "deny_any_errno": "Operation not permitted",
+    "deny_any_allow_localhost_exit": 0,
+    "claim": "observed effect of systemd cgroup IP policy; IPv6, ingress and broad networking untested"
+  },
+  "observed_bpf_defaults": {
+    "unprivileged_bpf_disabled": 2,
+    "bpf_jit_enable": 1
+  },
+  "root": "temporary virtual ext4 disk, initially ro then systemd remount rw",
+  "packages": 119,
+  "observer_exit": 0,
+  "orderly_poweroff": "systemd sync, all filesystems unmounted and devices detached, final sync, Powering off, kernel Power down; QEMU exit 0",
+  "stopped_filesystem_state": "clean",
+  "offline_e2fsck_fn_exit": 0,
+  "original_archive_unchanged": true,
+  "warnings": [
+    "QEMU cache hierarchy unavailable",
+    "No IPMI system interface",
+    "Inherited clk_ignore_unused policy",
+    "Initial kernel console unavailable before fixture opens PL011",
+    "Deliberately denied transient service exits 1"
+  ],
+  "limits": [
+    "Generic QEMU platform, not Gemini hardware emulation",
+    "No PDA boot, storage allocation, install, update or rollback test",
+    "No radio or retained firmware loading",
+    "One smoke boot and one Debian boot; no reliability claim"
+  ],
+  "evidence_sha256": {
+    "smoke-serial.log": "3268c597db94d953ff7c0a907f58adfb7e9626f7db7a79d5d93834d2fd2f8302",
+    "debian-serial.log": "c7e97aacd19e35810f137e080cad3ee3c66d6d0adc9b1e0b6772e07eb6f92079",
+    "debian-fsck.stdout": "29da92b604abf0b31d08e98d2e27dd05d2b8a841a9951dbae36c719fb6aa78a8",
+    "debian-fsck.stderr": "f074aa9872d23bd7876c68381422f0b17c739d7dbd64d41e99dfd1398653a818",
+    "preserved/observation.txt": "8d584b73aef68f70b7bf579c0984ca24118c7777ffbfef3847b350ad65db9db1",
+    "preserved/journal.txt": "aae726c3432c057b784d98008ab84334c893d11323f891611846a41c7e961208",
+    "preserved/filesystem-header.txt": "477af8e6ff47927fa40822e401720a0a0ccdd7c2ab8d4cfeb66f3be06f7cfa84"
+  },
+  "harness_sha256": {
+    "prepare-smoke.py": "e8489f8f47ceb3635eed72c6733fdf4ad72f1fb4560b7df8715189b9318bbc7c",
+    "run-smoke.py": "eb7fae1aa80a67fcdcf16eea9bd321707a8593679ac712325f70dea58f2775fa",
+    "prepare-debian.py": "955e21deb76d2a0378386bd467b3c3e279a0a3a4ba702387116fdc31a6d530ee",
+    "run-debian.py": "cbdf42b6d21af80628a8c24f12a2ba238d837e3f818796e5dd1b94c9dbf1ee08",
+    "observe-debian.sh": "f1841afd5f9241f76ef22b13b08886696873d67292a0d84e2a9ba0a8b3b283b5",
+    "preserve-result.py": "51ed4d4412cb905c592ca527361e41d418882a56321e05fe800731f13ca8ac06"
+  }
+}

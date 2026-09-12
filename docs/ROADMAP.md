@@ -100,9 +100,10 @@ now provides a verified 119-package off-device archive and a passing
 It identifies missing service isolation in the tested A53 configuration.
 The [A53 service-facilities profile](../experiments/2026-09-09-standard-kernel-package/A53_SERVICE_FACILITIES.md)
 now freezes the exact tested patch foundation and compiles the missing
-namespace/BPF facilities. Confirm distribution/storage inputs and validate the
-new kernel's service behavior before creating a persistent-root candidate;
-neither the archive nor this compile is a device boot result.
+namespace/BPF facilities. Its [exact-kernel QEMU test](../experiments/2026-09-09-standard-kernel-package/A53_DEBIAN_QEMU.md)
+passes Debian service isolation, IPv4 filtering and orderly virtual filesystem
+shutdown. Confirm distribution/storage inputs before creating a persistent-root
+candidate; none of this is a PDA distribution boot result.
 
 The independent [MMC voltage-switch error fix](../experiments/2026-09-09-mtk-sd-pinctrl-errors/README.md)
 returns failed pin configuration to the MMC core. Its isolated Buildbox compile

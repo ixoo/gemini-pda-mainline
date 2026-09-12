@@ -1,6 +1,7 @@
 # A53 distribution service facilities
 
-Status: Buildbox compilation and package validation passed. This profile enables
+Status: Buildbox compilation, package validation and a later
+[Debian QEMU runtime](A53_DEBIAN_QEMU.md) passed. This profile enables
 facilities requested by the evaluated Debian services. It selects no device
 candidate, storage allocation or persistent-root installation.
 
@@ -86,8 +87,9 @@ this work changes no patch, DT source or binding and runs no new DT schema test.
 Remote package validation, local full inventory/checksum validation and hosted
 Linux repository checks passed.
 
-No userspace was run on this compiled kernel. Network namespace creation,
-cgroup BPF attachment and actual filtering on the PDA remain runtime gates.
+The later [exact-kernel QEMU test](A53_DEBIAN_QEMU.md) ran Debian as PID1,
+observed private network namespaces and demonstrated IPv4 loopback filtering.
+Those facilities and the composed distribution still require PDA validation.
 
 Network policy beyond the evaluated directives, modules, root selection,
 filesystem checks/writes, orderly hardware shutdown and independent recovery
