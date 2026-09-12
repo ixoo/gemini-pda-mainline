@@ -1,0 +1,47 @@
+{
+  "base-driver.c": {
+    "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/drivers/power/supply/bq25890_charger.c",
+    "bytes": 44664,
+    "sha256": "618e44edab0b9e6220f33a59211fe8b46337b10f4b029bd3318194c4f99429b5"
+  },
+  "base-Kconfig": {
+    "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/drivers/power/supply/Kconfig",
+    "bytes": 38103,
+    "sha256": "a09c7ca04c20696888e5a88904204979f9205eeda0d6799b4c458e55723d2f7e"
+  },
+  "base-MAINTAINERS": {
+    "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/MAINTAINERS",
+    "bytes": 927914,
+    "sha256": "39e65935b8f213dfa9b7a49a7341565855c6aec851288f0f32a0b2afcb35558a"
+  },
+  "base-checkpatch.pl": {
+    "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/scripts/checkpatch.pl",
+    "bytes": 245615,
+    "sha256": "2553cc1a601e70522e03fbce633d4e79fa5936f7f56a66de1899b7ddd247820a"
+  },
+  "fixes-driver.c": {
+    "url": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/sre/linux-power-supply/+/a58cbc8b36ec0cd00d2ba3de7d003de818a27523/drivers/power/supply/bq25890_charger.c?format=TEXT",
+    "bytes": 44664,
+    "sha256": "618e44edab0b9e6220f33a59211fe8b46337b10f4b029bd3318194c4f99429b5"
+  },
+  "next-driver.c": {
+    "url": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/sre/linux-power-supply/+/4fc88ba435dadbc05990951e3f3fbd8ccd2df140/drivers/power/supply/bq25890_charger.c?format=TEXT",
+    "bytes": 44665,
+    "sha256": "aa825721b46d1263ecfb1f7c0d42ab6298eadcc1fe2a5a033ed83e13cb82d1f4"
+  },
+  "mainline-driver.c": {
+    "url": "https://raw.githubusercontent.com/torvalds/linux/cba2348ab114391f5b1a00fa65c5b739f13f0563/drivers/power/supply/bq25890_charger.c",
+    "bytes": 44664,
+    "sha256": "618e44edab0b9e6220f33a59211fe8b46337b10f4b029bd3318194c4f99429b5"
+  },
+  "spelling.txt": {
+    "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/scripts/spelling.txt",
+    "bytes": 36610,
+    "sha256": "4095d4a8810f115bae1b7c0d8a1946beb3435f6e22d9a48ac009bb024bad1e68"
+  },
+  "const_structs.checkpatch": {
+    "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/scripts/const_structs.checkpatch",
+    "bytes": 1646,
+    "sha256": "ea064f6916a74763468037494aeb270aae34b7c97617e84d424ca5b8733539b2"
+  }
+}

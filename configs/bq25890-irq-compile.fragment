@@ -1,0 +1,16 @@
+# Unsigned charger probe-order fix compile; no Gemini board or boot candidate.
+CONFIG_ARCH_MEDIATEK=y
+CONFIG_I2C=y
+CONFIG_GPIOLIB=y
+CONFIG_POWER_SUPPLY=y
+CONFIG_CHARGER_BQ25890=y
+CONFIG_REGULATOR=y
+CONFIG_LOCALVERSION="-bq25890-irq-compile"
+# CONFIG_LOCALVERSION_AUTO is not set
+# CONFIG_MODULES is not set
+# CONFIG_KUNIT is not set
+# CONFIG_NET is not set
+# CONFIG_USB is not set
+# CONFIG_MMC is not set
+# CONFIG_CPU_FREQ is not set
+# CONFIG_CPU_IDLE is not set

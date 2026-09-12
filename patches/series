@@ -584,3 +584,4 @@ upstream-4d7d9486/pinctrl/0003-dt-bindings-pinctrl-mediatek-MT6797-drive-strengt
 upstream-4d7d9486/pinctrl/0004-pinctrl-mediatek-MT6797-MSDC1-drive-fields.patch
 upstream-4d7d9486/pinctrl/0005-pinctrl-mediatek-propagate-advanced-pull-errors.patch
 upstream-4d7d9486/pinctrl/0006-pinctrl-mediatek-MT6797-MSDC1-pull-fields.patch
+upstream-4d7d9486/power-supply/0001-power-supply-bq25890-resolve-IRQ-before-initializing.patch

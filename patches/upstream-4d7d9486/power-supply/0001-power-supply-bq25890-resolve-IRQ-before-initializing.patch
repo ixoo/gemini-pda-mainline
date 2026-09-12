@@ -1,0 +1,51 @@
+From 3fa0d02354ae232455cb2725f9b947e9e8410948 Mon Sep 17 00:00:00 2001
+From: Gemini PDA contributors <gemini-pda@invalid>
+Date: Sat, 12 Sep 2026 17:04:14 -0400
+Subject: [PATCH] power: supply: bq25890: resolve IRQ before initializing the
+ charger
+
+A missing or deferred GPIO interrupt currently fails probe only after
+bq25890_hw_init() has reset or enabled charging and programmed the chip.
+A deferred probe can therefore repeat those changes before the interrupt
+provider becomes available.
+
+Resolve the existing interrupt resource before hardware initialization.
+Keep the threaded IRQ request after initialization and power-supply setup,
+so its handler still sees initialized state. This does not undo changes
+if a later registration or IRQ-request step fails.
+
+Assisted-by: LLM
+---
+ drivers/power/supply/bq25890_charger.c | 12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/power/supply/bq25890_charger.c b/drivers/power/supply/bq25890_charger.c
+index 741a45c..9751a1c 100644
+--- a/drivers/power/supply/bq25890_charger.c
++++ b/drivers/power/supply/bq25890_charger.c
+@@ -1498,12 +1498,6 @@ static int bq25890_probe(struct i2c_client *client)
+ 	if (ret < 0)
+ 		return dev_err_probe(dev, ret, "reading device properties\n");
+ 
+-	ret = bq25890_hw_init(bq);
+-	if (ret < 0) {
+-		dev_err(dev, "Cannot initialize the chip: %d\n", ret);
+-		return ret;
+-	}
+-
+ 	if (client->irq <= 0)
+ 		client->irq = bq25890_irq_probe(bq);
+ 
+@@ -1512,6 +1506,12 @@ static int bq25890_probe(struct i2c_client *client)
+ 		return client->irq;
+ 	}
+ 
++	ret = bq25890_hw_init(bq);
++	if (ret < 0) {
++		dev_err(dev, "Cannot initialize the chip: %d\n", ret);
++		return ret;
++	}
++
+ 	/* OTG reporting */
+ 	bq->usb_phy = devm_usb_get_phy(dev, USB_PHY_TYPE_USB2);
+ 
