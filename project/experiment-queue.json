@@ -4,7 +4,7 @@
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
   "selected_item": "wifi-export-return-maxcpus8",
-  "selection_note": "The maxcpus=8 correction is published, checked and installed on guarded boot2 with matching full readback and clean shutdown. Its physical-selection budget is unused; wait for owner readiness before arming collectors. The preceding HPS session remains consumed.",
+  "selection_note": "The owner reported one maxcpus8 boot2 selection and an apparent return toward Gemian. The late return collector timed out without authenticated identity or a console payload. Selection and collector window are consumed; custody remains reserved until device state is resolved. No retry or new candidate is selected.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -188,7 +188,7 @@
     },
     "wifi-export-return-maxcpus8": {
       "workstream": "wifi",
-      "preparation_state": "ready",
+      "preparation_state": "stale",
       "device_state": "selected",
       "owner": "primary integration coordinator",
       "reviewer": "primary integration coordinator",
@@ -196,10 +196,10 @@
       "experiment": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/README.md",
       "session_packet": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/BOOT_CPU_LIMIT.md",
       "candidate_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/maxcpus8.json",
-      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/BOOT_CPU_LIMIT.md#verified-installation",
+      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/maxcpus8-runtime-20260912.json",
       "dependencies": [],
       "owner_task_id": null,
-      "readiness_note": "Cycle 54efed5a-f015-4a0e-bd83-f59a0fa31097 is installed with full-partition checksum and byte comparison verified. Power passed at 89% on battery. PDA is off; collectors are unarmed and the one physical selection is unused. Wait for owner readiness, capture the pre-selection USB inventory and arm both collectors before requesting physical boot2 selection. No WMT request or WLAN cycle."
+      "readiness_note": "One physical selection was reported before collectors were armed. The sole 180-second Gemian return collector timed out after 25 failed connections, with no authenticated identity and zero console reads. USB watcher and receiver were not invoked. Runtime and recovery remain unverified; clarify the visible device state while retaining custody. No automatic retry, rearm or alternate recovery."
     }
   }
 }

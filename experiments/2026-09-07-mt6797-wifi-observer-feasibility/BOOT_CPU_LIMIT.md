@@ -1,8 +1,9 @@
 # Native export diagnostic initial CPU limit
 
-Status: published, checked and installed with matching full readback and clean
-shutdown. Owner readiness is pending; collectors are unarmed and the one physical
-selection is unused. No runtime result exists for this new session. The preceding
+Status: the owner reported one physical selection and an apparent return toward
+Gemian. The return collector timed out without authenticated OS identity or a
+console payload; the outcome is inconclusive. The physical-selection budget is
+consumed. See [the observation result](#device-observation). The preceding
 [HPS-off session](HPS_BOOT_POLICY.md#device-result) is consumed and remains a
 CPU-online refusal.
 
@@ -116,5 +117,30 @@ and byte-compared the entire partition on the host. No fresh backup was made.
 After evidence was preserved, `systemctl poweroff` closed SSH with status 255
 and the authenticated endpoint became unreachable. The installer completed
 successfully. No automatic reboot, physical selection or collector invocation
-occurred. The owner-readiness question is pending; leave the finite observation
-windows unused until that reply, then follow the physical procedure above.
+occurred during installation. The finite observation windows were left unused
+for the owner-readiness handoff.
+
+## Device observation
+
+The owner subsequently reported starting boot2 and an apparent restart toward
+Gemian. Neither collector was armed before that selection. The exact return
+collector was then invoked once, from approximately `23:15:53` to `23:18:53 UTC`
+on 2026-09-12. Its 180-second window ended with status 1 after 25 failed SSH
+connections to the known-good Gemian endpoint. No invocation authenticated;
+no boot ID, OS identity, return marker or console payload was obtained.
+
+One passive USB inventory taken after selection showed one MediaTek parent
+and no export-descriptor parent. This cannot identify the running OS or boot
+stage, establish an earlier USB state, or substitute for the missing
+pre-selection inventory. The USB watcher and receiver were never invoked;
+no request or acknowledgement was sent. The frozen runtime classifier was not
+run because there is no console capture receipt to classify.
+
+The [observation receipt](results/maxcpus8-runtime-20260912.json) records the
+consumed selection and collector window, zero console reads, and private
+evidence hashes. CPU0–7 establishment, export progress and normal recovery
+remain unverified. An apparent restart is an owner observation, not proof of
+a caught startup refusal or a kernel crash. Keep device custody reserved while
+the visible state is clarified; do not repeat this image, rearm the expired
+window or request another recovery action from this timeout alone. No new
+candidate or device action was selected.
