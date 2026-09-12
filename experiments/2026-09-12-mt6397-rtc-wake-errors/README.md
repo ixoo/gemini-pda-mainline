@@ -1,7 +1,7 @@
 # MT6397 RTC alarm wake error propagation
 
-Status: unsigned upstream-preparation checkpoint; callback regression and
-patch style checks pass, kernel compilation pending. This is not MT6351 RTC
+Status: unsigned upstream-preparation checkpoint; callback regression,
+patch style checks and isolated Buildbox compilation pass. This is not MT6351 RTC
 or Gemini suspend enablement and selects no device candidate.
 
 ## Problem and correction
@@ -66,10 +66,19 @@ KERNEL_PROFILE=mt6397-rtc-wake ./scripts/build-kernel --backend buildbox
 KERNEL_PROFILE=mt6397-rtc-wake ./scripts/buildbox fetch-package
 ```
 
-Compilation must establish built-in RTC and PM/suspend support, both callbacks
-in the final symbol map, and a validated immutable package before this
-checkpoint is described as built. No alarm, RTC register, suspend, IRQ wake
-operation or kernel boot has been requested on the PDA by this work.
+The [Buildbox receipt](compile.json) binds the successful compile at
+`4f4a88ec44166ed0518eca03d9ce43221893acce`. The built-in RTC object compiled
+with `PM`, `SUSPEND` and `PM_SLEEP` enabled; both changed callbacks and the
+driver probe are present in the final symbol map. The build log contains zero
+compiler warning or error lines. The exact prepared source matches the locally
+tested source and passes both the 16-case wake and 160-case alarm regressions
+on Buildbox. Remote package validation and local inventory/checksum validation
+passed, as did the hosted Linux repository checks.
+
+These checks substitute IRQ-controller calls and do not exercise actual wake
+routing, a PM transition or controller recovery. No alarm, RTC register,
+suspend, IRQ wake operation or kernel boot has been requested on the PDA by
+this RTC work. The separately selected Wi-Fi session is unchanged.
 
 ## Upstream boundary
 

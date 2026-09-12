@@ -1,0 +1,71 @@
+{
+  "scope": "isolated MT6397 RTC wake-error propagation; no Gemini boot candidate",
+  "status": "validated",
+  "completed_utc": "2026-09-12T22:04:31Z",
+  "package_name": "linux-7.3-rc1-gemini-cecfd54c15372db460c5ad98ce0e3c72b5e0fd7eb8fd49d4642cf0a8b5664b74",
+  "repository_commit": "4f4a88ec44166ed0518eca03d9ce43221893acce",
+  "repository_dirty": false,
+  "kernel_release": "7.3.0-rc1-mt6397-rtc-wake",
+  "build_profile": "mt6397-rtc-wake",
+  "kernel_source": {
+    "archive_format": "tar.gz",
+    "archive_root": "linux-4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "git_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "released": "2026-09-05",
+    "sha256": "45590c057805bc9cf7281ce04d5dbde5316b7c8b017998cafac301f67e92682d",
+    "source_url": "https://codeload.github.com/torvalds/linux/tar.gz/4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "version": "7.3-rc1"
+  },
+  "patchset_sha256": "397f11ea10fe9b478c36243e4a93b84860261c314b910edc0fb816104e2bb012",
+  "config_inputs_sha256": "09b8b7e6a33c3a3d5b951138781d77eeefbef567109be35d0c2ef577be205cd5",
+  "config_sha256": "8bdda79c42e4265c98ebd6bf17a58d849557c533bd48a7930e1c062c74159d45",
+  "modules_built": false,
+  "build_architecture": "x86_64",
+  "target_architecture": "arm64",
+  "compiler": "aarch64-linux-gnu-gcc (Debian 12.2.0-14) 12.2.0",
+  "compiler_sha256": "c7b8890354c8ddc0364addfeb8968597e197627bd1e338fb6ed705b578803846",
+  "linker": "GNU ld (GNU Binutils for Debian) 2.40",
+  "linker_sha256": "e09a889c78a75e73ed096c9fa28905599e6813298b9ac839d10b02ffa96e7b08",
+  "artifact_sha256": {
+    "Image": "2ce4e1ab424bd4a97540ef227f5cf328fa6191135d7f893ce1bf8983ce73ad49",
+    "Image.gz": "f037aecf0c56377642de59559b669fa8b1a5c73e90de336a6b1f7032fb1f14a0",
+    "kernel.config": "8bdda79c42e4265c98ebd6bf17a58d849557c533bd48a7930e1c062c74159d45",
+    "System.map": "72a1425d3156cb55f1cbf9cc673753f586556d75b30707bb73e6c29bbd7ec6a2",
+    "SHA256SUMS": "cecfd54c15372db460c5ad98ce0e3c72b5e0fd7eb8fd49d4642cf0a8b5664b74"
+  },
+  "required_builtin_config": [
+    "MFD_MT6397",
+    "RTC_CLASS",
+    "RTC_DRV_MT6397",
+    "PM",
+    "SUSPEND",
+    "PM_SLEEP"
+  ],
+  "linked_symbols": [
+    "mt6397_rtc_suspend",
+    "mt6397_rtc_resume",
+    "mtk_rtc_probe"
+  ],
+  "driver_object_sha256": "bd07c1fac8b103a3559c7ab6847ebb9c6088cd2f907a87ddbdd154e1f193d15d",
+  "driver_source_sha256": "45fe8fd184c82381ab1f13781494b0958fd456c065eefb0528999909578a03e2",
+  "compiler_warning_error_lines": 0,
+  "build_log_sha256": "71947921d44394336d59cfeca0b4fd88807d1fa92ed0133baeeac4134d4d4068",
+  "driver_object_compiled": true,
+  "host_wake_regression_cases_per_source": 16,
+  "host_alarm_regression_cases_per_source": 160,
+  "host_source_inputs": 4,
+  "buildbox_prepared_source_regressions": {
+    "wake": "PASS: 16 RTC wake policy/error cases",
+    "alarm": "PASS: 160 alarm/status/enable/transport cases"
+  },
+  "test_script_sha256": "4024c9ae1bc055455c9001d95da7ec0d804ea18e32ba9cef86d4dd5026d6b8fc",
+  "remote_package_validation": "pass",
+  "local_fetch_inventory_and_checksums": "pass",
+  "existing_profiles_unchanged": 206,
+  "hosted_checks": {
+    "url": "https://github.com/ixoo/gemini-pda-mainline/actions/runs/34721588172",
+    "commit": "4f4a88ec44166ed0518eca03d9ce43221893acce",
+    "conclusion": "success"
+  },
+  "hardware_tested": false
+}

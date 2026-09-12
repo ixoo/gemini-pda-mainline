@@ -113,6 +113,12 @@ Its isolated Buildbox compile and injected regression pass. Human review and
 truthful certification remain required; Gemini charging limits, IRQ wiring and
 mainline operation are still unresolved despite its matching BQ25896 identity.
 
+The independent [MT6397 RTC wake-error correction](../experiments/2026-09-12-mt6397-rtc-wake-errors/README.md)
+reports failed alarm IRQ wake requests to the power-management core. Its isolated
+Buildbox compile includes both suspend callbacks, and the wake/alarm regressions
+pass. Human certification remains required; MT6351 compatibility, parent PMIC
+interrupt errors and Gemini suspend validation remain separate dependencies.
+
 The [MSDC1 input-enable topic](../experiments/2026-09-09-mt6797-msdc1-input-enable/README.md)
 adds the source-backed six-pin IES map and passes isolated Buildbox compilation.
 It activates no board state. Schmitt direction semantics, shared drive fields,

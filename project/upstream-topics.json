@@ -132,6 +132,33 @@
         "build": "experiments/2026-09-12-bq25890-irq-preflight/compile.json",
         "submission_ready": false
       }
+    },
+    {
+      "id": "mt6397-rtc-wake-errors",
+      "status": "human-review-and-certification-required",
+      "owner": "Integration",
+      "target": "RTC tree with linux-rtc and MediaTek review. The two callbacks match the compile base in the inspected rtc-fixes, rtc-next and rtc/irqf_no_autoen branches; complete drivers differ elsewhere.",
+      "patches": [
+        "patches/upstream-4d7d9486/rtc/0002-rtc-mt6397-report-alarm-IRQ-wake-errors.patch"
+      ],
+      "evidence": [
+        "experiments/2026-09-12-mt6397-rtc-wake-errors/README.md",
+        "experiments/2026-09-12-mt6397-rtc-wake-errors/compile.json"
+      ],
+      "dependencies": [
+        "Human authorship review and truthful DCO certification",
+        "Verify the introducing commit, final source base, recipients and public overlap at export",
+        "Keep wake-error propagation separate from alarm masking, MT6351 compatibility and Gemini suspend policy"
+      ],
+      "authorship": "Synthetic unsigned archive with LLM assistance recorded; a human must establish authorship and personally certify the final contribution.",
+      "submission_url": null,
+      "removal_condition": "Remove after an accepted equivalent reaches the selected upstream baseline and the wake-error regression passes",
+      "validation_profile": "mt6397-rtc-wake",
+      "validation": {
+        "scope": "Isolated Buildbox compilation includes both PM callbacks. Sixteen wake and 160 alarm cases pass on the exact prepared source; remote/local package validation and hosted Linux repository checks pass. No device RTC or suspend test.",
+        "build": "experiments/2026-09-12-mt6397-rtc-wake-errors/compile.json",
+        "submission_ready": false
+      }
     }
   ]
 }
