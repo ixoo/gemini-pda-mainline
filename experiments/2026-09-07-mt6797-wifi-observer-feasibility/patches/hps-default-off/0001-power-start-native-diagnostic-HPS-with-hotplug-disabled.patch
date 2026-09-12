@@ -1,0 +1,41 @@
+From 35eb79466ff179b26ad4cf23bb844d748a540972 Mon Sep 17 00:00:00 2001
+From: Codex native diagnostic <noreply@native-diagnostic.invalid>
+Date: Sat, 12 Sep 2026 01:10:05 +0000
+Subject: [PATCH] power: start native diagnostic HPS with hotplug disabled
+
+The export startup requires CPU0-7 to stay online. Rejecting CPU8/9
+does not meet that contract while HPS can still remove A53 cores and
+retry the rejected A72 cores.
+
+Start the existing HPS enabled state at zero only for the diagnostic
+configuration, before its worker starts. Its existing disabled path
+skips hotplug decisions while retaining load collection, periodic PPM
+work, client registration and normal restart behavior.
+
+The isolated initramfs does not write the HPS control or request suspend.
+This is a native experiment correction, not a general hotplug lock or
+an upstream submission; it contains no DCO certification.
+---
+ .../mediatek/base/power/mt6797/mt_hotplug_strategy_main.c    | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt_hotplug_strategy_main.c b/drivers/misc/mediatek/base/power/mt6797/mt_hotplug_strategy_main.c
+index e7d669e..a51181e 100644
+--- a/drivers/misc/mediatek/base/power/mt6797/mt_hotplug_strategy_main.c
++++ b/drivers/misc/mediatek/base/power/mt6797/mt_hotplug_strategy_main.c
+@@ -100,7 +100,12 @@ hps_ctxt_t hps_ctxt = {
+ 	.hps_regular_ktime = {0},
+ 	.hps_hrt_ktime = {0},
+ 	/* enabled */
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++	/* Keep the boot CPU set while retaining HPS power-management work. */
++	.enabled = 0,
++#else
+ 	.enabled = 1,
++#endif
+ 	.suspend_enabled = 1,
+ 	.cur_dump_enabled = 0,
+ 	.stats_dump_enabled = 0,
+-- 
+2.39.5
+

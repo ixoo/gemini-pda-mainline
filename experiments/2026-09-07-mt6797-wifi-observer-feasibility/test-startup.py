@@ -69,6 +69,7 @@ class StartupTests(unittest.TestCase):
             'proc/sys/kernel/panic': '0', 'proc/sys/kernel/sysrq': '0',
             'proc/sys/kernel/hotplug': '', 'sys/module/cpuidle/parameters/off': '1',
             'sys/module/firmware_class/parameters/path': '', 'sys/devices/system/cpu/online': '0-7',
+            'proc/hps/enabled': '0',
             'sys/class/net/lo/flags': '0x8',
             'proc/sys/kernel/random/boot_id': 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
             'proc/2/stat': '2 (kernel thread) S 0 0 0 0 0 2097152 0',
@@ -290,6 +291,24 @@ class StartupTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             startup.prepare()
         self.assertEqual(startup.STAGE, 'runtime:sys/module/cpuidle/parameters/off')
+
+    def test_active_hotplug_policy_refused_before_cpu_check(self):
+        self.write('proc/hps/enabled', '1')
+        with self.assertRaisesRegex(ValueError, 'startup state'):
+            startup.prepare()
+        self.assertEqual(startup.STAGE, 'runtime:proc/hps/enabled')
+
+    def test_cpu_refusal_logs_only_a_short_numeric_cpu_list(self):
+        for value in ('0-3', '0,2-7', 'private text', '1' * 33, '0-3\nsecret'):
+            self.write('sys/devices/system/cpu/online', value)
+            with patch.object(startup, 'log_stage') as log:
+                with self.assertRaisesRegex(ValueError, 'startup state'):
+                    startup.prepare()
+                if value in ('0-3', '0,2-7'):
+                    log.assert_called_once_with('observed-' + value)
+                else:
+                    log.assert_not_called()
+            self.assertEqual(startup.STAGE, 'runtime:sys/devices/system/cpu/online')
 
     def test_log_descriptor_budget_and_short_write(self):
         info = SimpleNamespace(st_mode=stat.S_IFCHR, st_rdev=startup.os.makedev(1, 11))

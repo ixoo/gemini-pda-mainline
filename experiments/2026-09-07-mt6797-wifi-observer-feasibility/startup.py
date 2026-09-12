@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import re
 import stat
 import sys
 import time
@@ -171,10 +172,17 @@ def check_runtime(session):
         'proc/sys/kernel/hotplug': '',
         'sys/module/cpuidle/parameters/off': '1',
         'sys/module/firmware_class/parameters/path': '',
+        'proc/hps/enabled': '0',
         'sys/devices/system/cpu/online': session['cpu_online'],
     }.items():
         mark('runtime:' + path)
-        if text(path) != expected:
+        actual = text(path)
+        if actual != expected:
+            # This CPU list is the only admitted input-valued diagnostic.
+            # Never log other runtime values, private inputs or exception text.
+            if (path == 'sys/devices/system/cpu/online' and len(actual) <= 32 and
+                    re.fullmatch(r'[0-9]+(?:[-,][0-9]+)*', actual)):
+                log_stage('observed-' + actual)
             raise ValueError('kernel startup state mismatch')
     import gzip
     mark('kernel-config')

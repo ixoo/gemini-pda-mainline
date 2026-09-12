@@ -187,6 +187,10 @@
     {
       "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/pstore/0011-pstore-preserve-raw-capture-PMSG-read-metadata.patch",
       "sha256": "d66554caaef1c6b810542db2a066566626662976a4d7fbf1c642b37e8c220ab8"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/hps-default-off/0001-power-start-native-diagnostic-HPS-with-hotplug-disabled.patch",
+      "sha256": "c014d765dd18638b9cb71e74301f4fdac6ab692809eac7a3ccd9225fcaeaf623"
     }
   ],
   "purpose": "complete native kernel link; no boot candidate or device admission"

@@ -1,0 +1,39 @@
+{
+  "status": "source-reviewed-build-outstanding",
+  "native_source_commit": "59e00a9144d782e148332009a835b99c43382467",
+  "source_sha256": {
+    "drivers/misc/mediatek/base/power/mt6797/Makefile": "64a1f784e7df01e445d8a2d77a40a9537b1978275b668520d3d4974719a0c74f",
+    "drivers/misc/mediatek/base/power/mt6797/mt_hotplug_strategy_main.c": "12d85a9f8bd273288c60b95cdf7d039986645e3288a2162ffbc5437e23dd33a7",
+    "drivers/misc/mediatek/base/power/mt6797/mt_hotplug_strategy_core.c": "d8ba0dfda736c7d54439eabbbd30d85037f6b182822fed2ec931046bc68bb747",
+    "drivers/misc/mediatek/base/power/mt6797/mt_hotplug_strategy_algo.c": "1100eac008d27a9bab9bba3a445aa8b7d51d602e15146b0990bc759c7d7c7f09",
+    "drivers/misc/mediatek/base/power/mt6797/mt_hotplug_strategy_api.c": "1feec7e4dccac96f5162a59f4233299cd6c83200a94dc3689a431b640bad6ff1",
+    "drivers/misc/mediatek/base/power/mt6797/mt_hotplug_strategy_procfs.c": "bb5cc775a2bd76adda9c0a5fb16c7075f244d573cde70b24821d851755c7020c",
+    "drivers/misc/mediatek/base/power/mt6797/mt_hotplug_strategy_internal.h": "2be8c5270819c0cdea9c5e1f136c9a08d01dccb1e68f0ef56b3690f64610ff45"
+  },
+  "patch_path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/hps-default-off/0001-power-start-native-diagnostic-HPS-with-hotplug-disabled.patch",
+  "patch_sha256": "c014d765dd18638b9cb71e74301f4fdac6ab692809eac7a3ccd9225fcaeaf623",
+  "selected_patches": 47,
+  "prior_manifest_sha256": "bbefddd06bc41e62bf127fadb5f015ce5b040ae7c149d345bcbe76d432da13dc",
+  "new_manifest_sha256": "bc844c38321c2dc0f4c919bd1a4be4885b1296abd5b5bd94af93a5b3055d48bf",
+  "configuration_changes": 0,
+  "active_symbol": "CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR",
+  "hps_enabled_default": 0,
+  "normal_hps_enabled_default": 1,
+  "existing_worker_and_ppm_calls": "unchanged",
+  "cpu_isolation": "not configured in selected kernel",
+  "api_enable_callers_in_drivers_kernel_arm64": 0,
+  "userspace_hps_control_writes": 0,
+  "source_license": "GPL-2.0 per inspected source headers",
+  "patch_authorship": "assistant-generated native experiment; no DCO certification; not submission-ready",
+  "patch_apply_check": "passed against exact prepared 46-patch source",
+  "scope": "Disable HPS hotplug decisions through its existing enabled state, retaining periodic PPM work. Does not lock every hotplug API or certify thermal protection. Build and device execution outstanding.",
+  "startup_tests_passed": 24,
+  "bridge_tests_passed": 5,
+  "packaged_arm64_runtime": "passed",
+  "checkpatch": {
+    "source": "Linux 7.1.3",
+    "errors": 0,
+    "warnings": 0,
+    "signoff_check": "disabled for explicitly non-certifying experiment"
+  }
+}
