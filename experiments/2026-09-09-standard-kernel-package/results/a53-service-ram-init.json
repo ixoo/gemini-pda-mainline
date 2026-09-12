@@ -1,0 +1,44 @@
+{
+  "status": "exact-ARM64-init-delta-tests-pass",
+  "recipe_sha256": "83839c68cfa7ebd3f8206abc5495f676b0fa0e726c1b4c91a04d5ee48248dfff",
+  "fixture_sha256": "48c87fc2743dbb9ee9c2710e640c56d5f1177acb4e5e706450bdb5d03c3d62f6",
+  "init_sha256": "3b2cea90510f32461d453fb595819e559c8b6fe158eee9ae8c30d48bba615c00",
+  "busybox_sha256": "52151e7f322f926b64049cdaa1410dc3ea6485525e0624b05813791c219ae933",
+  "qemu_sha256": "6f8f03726f95be1a2f9b6342d89c649cb097dc593d2ef8b4ab487c08812098ff",
+  "cases": [
+    {
+      "case": "new-release",
+      "result": "pass",
+      "effect_proxy_sha256": "e2629357c691246e2b260d330a767ad53a45f15b28fbc0902d9d294e973f12ad"
+    },
+    {
+      "case": "old-release",
+      "result": "pass",
+      "effect_proxy_sha256": "117cda0dd9b034d2f6d833818707bf02572e3c0a5dcf74a04e757d887d407fbc"
+    },
+    {
+      "case": "unrelated-release",
+      "result": "pass",
+      "effect_proxy_sha256": "1c6129f8994c1458a7f01632e651f9b11815c6d08ff5430e62dda040eb191725"
+    },
+    {
+      "case": "cpu-refusal",
+      "result": "pass",
+      "effect_proxy_sha256": "e2629357c691246e2b260d330a767ad53a45f15b28fbc0902d9d294e973f12ad"
+    },
+    {
+      "case": "mount-refusal",
+      "result": "pass",
+      "effect_proxy_sha256": "e2629357c691246e2b260d330a767ad53a45f15b28fbc0902d9d294e973f12ad"
+    }
+  ],
+  "shell_syntax": "pass",
+  "archive_member_and_metadata_roundtrip": "pass",
+  "changed_members": [
+    "init"
+  ],
+  "unchanged_members": 46,
+  "hardware_effects": "all injected through existing fixture",
+  "candidate_boot": "not-tested",
+  "fixtures": "removed"
+}

@@ -90,6 +90,9 @@ Linux repository checks passed.
 The later [exact-kernel QEMU test](A53_DEBIAN_QEMU.md) ran Debian as PID1,
 observed private network namespaces and demonstrated IPv4 loopback filtering.
 Those facilities and the composed distribution still require PDA validation.
+The separate [RAM regression preparation](A53_RAM_REGRESSION.md) reuses the
+accepted authenticated environment for the first board kernel regression;
+its composition and session status are recorded there.
 
 Network policy beyond the evaluated directives, modules, root selection,
 filesystem checks/writes, orderly hardware shutdown and independent recovery
