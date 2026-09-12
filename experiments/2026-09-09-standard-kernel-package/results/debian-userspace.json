@@ -1,0 +1,247 @@
+{
+  "schema_version": 1,
+  "date": "2026-09-12",
+  "status": "off-device-userspace-archive-validated",
+  "distribution": "Debian 13 arm64 (evaluation default; owner preference pending)",
+  "host": {
+    "architecture": "aarch64",
+    "distribution": "Ubuntu 24.04.4 LTS",
+    "mmdebstrap": "1.4.3-6",
+    "initial_keyring": "2023.4ubuntu1",
+    "kernel": "6.8.0-139-generic",
+    "apt": "2.8.3"
+  },
+  "snapshot_requested": "20260912T000000Z",
+  "included_packages": [
+    "systemd-sysv",
+    "udev",
+    "dbus",
+    "libnss-systemd",
+    "libpam-systemd",
+    "initramfs-tools",
+    "iproute2",
+    "kmod",
+    "ca-certificates"
+  ],
+  "variant": "minbase",
+  "archive": {
+    "archive_name": "debian-trixie-arm64-audit.tar.gz",
+    "archive_size": 101262854,
+    "archive_sha256": "e72e859a5f5f9b404bbb89e4c2593a6f4e5b7c2f17570f31902a15047ab9a488",
+    "rootfs_allocated_bytes": 315793408,
+    "packages_sha256": "af290792549ff1690954394ae27d44fcd7840bebd855bee8351892639b792b75",
+    "package_count": 119,
+    "pid1_boot_tested": false,
+    "device_candidate": false
+  },
+  "keyring": {
+    "release_url": "https://deb.debian.org/debian/dists/bookworm/InRelease",
+    "release_sha256": "77737fa4b34f2693e982cc9ee35736816c35a7778fc2d326cc1bbf5b301fe1aa",
+    "package_index_sha256": "2ddb1737692e8c45c53e8d57c0ce4cd21c78c5703b830c3226b1423566a06c00",
+    "package_version": "2023.3+deb12u2",
+    "package_url": "https://deb.debian.org/debian/pool/main/d/debian-archive-keyring/debian-archive-keyring_2023.3+deb12u2_all.deb",
+    "package_sha256": "f699e2f88dca05212f2a452b58475f2993cb6993dfbafb1d0205a3291eb8b4b8",
+    "keyring_sha256": "506b815cbb32d9b6066b4a2aa524071e071761e7e7f68c3ac74f3061ba852017",
+    "validated_bookworm_primary_fingerprints": [
+      "B8B80B5B623EAB6AD8775C45B7C5D7D6350947F8",
+      "4D64FEC119C2029067D6E791F8D2585B8783D481"
+    ]
+  },
+  "signed_releases": [
+    {
+      "filename": "snapshot.debian.org_archive_debian-security_20260912T000000Z_dists_trixie-security_InRelease",
+      "sha256": "da411b141bb70a40e104e02cd2284a3cff1d80df707edec7bcc16de61563ed53",
+      "gpgv_exit_code": 0,
+      "fields": [
+        "Suite: stable-security",
+        "Version: 13",
+        "Codename: trixie-security",
+        "Date: Fri, 11 Sep 2026 20:42:49 UTC",
+        "Valid-Until: Fri, 18 Sep 2026 20:42:49 UTC"
+      ]
+    },
+    {
+      "filename": "snapshot.debian.org_archive_debian_20260912T000000Z_dists_trixie-updates_InRelease",
+      "sha256": "e3e5aa95015fdbf44534fc1265448dd70abc866b3288dfefad844104394869ee",
+      "gpgv_exit_code": 0,
+      "fields": [
+        "Suite: stable-updates",
+        "Version: 13-updates",
+        "Codename: trixie-updates",
+        "Date: Fri, 11 Sep 2026 20:09:08 UTC",
+        "Valid-Until: Fri, 18 Sep 2026 20:09:08 UTC"
+      ]
+    },
+    {
+      "filename": "snapshot.debian.org_archive_debian_20260912T000000Z_dists_trixie_InRelease",
+      "sha256": "98b25b5cd185c59d34aa6e4c3e9b5b8f01bbe9d104fe2dcfbcd30dc0a14a59ed",
+      "gpgv_exit_code": 0,
+      "fields": [
+        "Suite: stable",
+        "Version: 13.6",
+        "Codename: trixie",
+        "Date: Sat, 11 Jul 2026 09:02:23 UTC"
+      ]
+    }
+  ],
+  "checks": {
+    "dpkg-audit": {
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "apt-check": {
+      "exit_code": 0,
+      "stdout": "Reading package lists...\nBuilding dependency tree...\nReading state information...\n",
+      "stderr": ""
+    },
+    "systemd-version": {
+      "exit_code": 0,
+      "stdout": "systemd 257 (257.13-1~deb13u1)\n+PAM +AUDIT +SELINUX +APPARMOR +IMA +IPE +SMACK +SECCOMP +GCRYPT -GNUTLS +OPENSSL +ACL +BLKID +CURL +ELFUTILS +FIDO2 +IDN2 -IDN +IPTC +KMOD +LIBCRYPTSETUP +LIBCRYPTSETUP_PLUGINS +LIBFDISK +PCRE2 +PWQUALITY +P11KIT +QRENCODE +TPM2 +BZIP2 +LZ4 +XZ +ZLIB +ZSTD +BPF_FRAMEWORK +BTF -XKBCOMMON -UTMP +SYSVINIT +LIBARCHIVE\n",
+      "stderr": ""
+    },
+    "unit-verify": {
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  },
+  "fresh_archive_checks": {
+    "dpkg-audit": {
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "systemd-version": {
+      "exit_code": 0,
+      "stdout": "systemd 257 (257.13-1~deb13u1)\n+PAM +AUDIT +SELINUX +APPARMOR +IMA +IPE +SMACK +SECCOMP +GCRYPT -GNUTLS +OPENSSL +ACL +BLKID +CURL +ELFUTILS +FIDO2 +IDN2 -IDN +IPTC +KMOD +LIBCRYPTSETUP +LIBCRYPTSETUP_PLUGINS +LIBFDISK +PCRE2 +PWQUALITY +P11KIT +QRENCODE +TPM2 +BZIP2 +LZ4 +XZ +ZLIB +ZSTD +BPF_FRAMEWORK +BTF -XKBCOMMON -UTMP +SYSVINIT +LIBARCHIVE\n",
+      "stderr": ""
+    },
+    "unit-verify": {
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "package_manifest_matches": true,
+    "merged_usr": true,
+    "identity_and_resolver_generalized": true
+  },
+  "systemd_requirements": {
+    "url": "https://sources.debian.org/data/main/s/systemd/257.13-1~deb13u1/README",
+    "sha256": "5b955903c1bcb6ea7485d07ec3bb27ba712c58a5e3480fde8b937a0e516d1011"
+  },
+  "kernel_config_comparison": {
+    "kernel_config_sha256": "194834d90eb2443f4b14ba8f2078ba16fe0c63f69088fcc8c063fe25af01c410",
+    "kernel_version": "7.1.3-gemini-mt6797-pwrap-reset",
+    "base_systemd_requirements": {
+      "CONFIG_DEVTMPFS": "y",
+      "CONFIG_CGROUPS": "y",
+      "CONFIG_INOTIFY_USER": "y",
+      "CONFIG_SIGNALFD": "y",
+      "CONFIG_TIMERFD": "y",
+      "CONFIG_EPOLL": "y",
+      "CONFIG_UNIX": "y",
+      "CONFIG_NET": "y",
+      "CONFIG_SYSFS": "y",
+      "CONFIG_PROC_FS": "y",
+      "CONFIG_FHANDLE": "y"
+    },
+    "service_features": {
+      "CONFIG_NET_NS": "n",
+      "CONFIG_USER_NS": "y",
+      "CONFIG_FW_LOADER_USER_HELPER": "y",
+      "CONFIG_FW_LOADER_USER_HELPER_FALLBACK": "n",
+      "CONFIG_UEVENT_HELPER": "n",
+      "CONFIG_IPV6": "n",
+      "CONFIG_AUTOFS_FS": "y",
+      "CONFIG_TMPFS_XATTR": "y",
+      "CONFIG_TMPFS_POSIX_ACL": "y",
+      "CONFIG_EXT4_FS_POSIX_ACL": "y",
+      "CONFIG_SECCOMP": "y",
+      "CONFIG_SECCOMP_FILTER": "y",
+      "CONFIG_CGROUP_SCHED": "y",
+      "CONFIG_FAIR_GROUP_SCHED": "y",
+      "CONFIG_CFS_BANDWIDTH": "n",
+      "CONFIG_BPF": "y",
+      "CONFIG_BPF_SYSCALL": "n",
+      "CONFIG_BPF_JIT": "n",
+      "CONFIG_HAVE_EBPF_JIT": "y",
+      "CONFIG_CGROUP_BPF": "absent",
+      "CONFIG_PSI": "n",
+      "CONFIG_MEMCG": "y",
+      "CONFIG_RT_GROUP_SCHED": "n",
+      "CONFIG_NET_SCHED": "n",
+      "CONFIG_NET_SCH_FQ_CODEL": "absent",
+      "CONFIG_MODULES": "n",
+      "CONFIG_CMDLINE_FORCE": "y"
+    }
+  },
+  "installed_service_directives": [
+    {
+      "unit": "fstrim.service",
+      "sha256": "9d5ab55ca0f12257edd33d154e5dc523ddea4d5f2525557cbf96e30b97deab56",
+      "directives": [
+        "PrivateNetwork=yes",
+        "PrivateUsers=no"
+      ]
+    },
+    {
+      "unit": "systemd-hostnamed.service",
+      "sha256": "e717824d38cbccd038a480e24d1023faf1f52e39b1d39503a3187c19b81158b9",
+      "directives": [
+        "IPAddressDeny=any",
+        "PrivateNetwork=yes"
+      ]
+    },
+    {
+      "unit": "systemd-journald.service",
+      "sha256": "4baf517dd2dbbe52173b3b6c0e4f9690a8ab03ac6406ba455c468bf140f6bd95",
+      "directives": [
+        "IPAddressDeny=any"
+      ]
+    },
+    {
+      "unit": "systemd-journald@.service",
+      "sha256": "3db28ab89a2ff92c9c05c0924ebd5df6abd5228d50992d34c738733386b53547",
+      "directives": [
+        "IPAddressDeny=any"
+      ]
+    },
+    {
+      "unit": "systemd-localed.service",
+      "sha256": "a87aa45f21736868e2196dfe1d7f870c9bea0fb92bd792177b0b091d3a870033",
+      "directives": [
+        "IPAddressDeny=any",
+        "PrivateNetwork=yes"
+      ]
+    },
+    {
+      "unit": "systemd-logind.service",
+      "sha256": "37563c6df1a510141bfd0777c20dfcc1c17087cdb56d3f71971a57d3cd380e64",
+      "directives": [
+        "IPAddressDeny=any"
+      ]
+    },
+    {
+      "unit": "systemd-timedated.service",
+      "sha256": "7583cfdf2ced83f4365cf7b59135f5aac1571cd86e4d2a0b670e3cbde174076d",
+      "directives": [
+        "IPAddressDeny=any"
+      ]
+    },
+    {
+      "unit": "systemd-udevd.service",
+      "sha256": "e5b492be4ceeaae3a854d1e1ff7e25ba9818e9b92da937b6861284f2b5f2bdba",
+      "directives": [
+        "IPAddressDeny=any"
+      ]
+    }
+  ],
+  "limitations": [
+    "No PID 1 boot or service sandbox enforcement was tested.",
+    "No kernel, initramfs, storage target, login/network configuration or device candidate was created.",
+    "No filesystem or partition on the PDA was changed.",
+    "Package versions and input metadata are pinned; byte-identical archive rebuilds are not claimed."
+  ],
+  "elf_machine": "AArch64"
+}

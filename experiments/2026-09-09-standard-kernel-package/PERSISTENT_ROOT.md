@@ -1,6 +1,9 @@
 # Persistent-root migration audit
 
 Status: offline input audit; no persistent-system candidate or write protocol.
+The later [Debian userspace evaluation](DEBIAN_USERSPACE.md) builds and checks a
+standalone ARM64 archive and identifies service/configuration gaps. It selects
+no storage target and does not implement a persistent-root installation.
 
 The tested serviceability kernel has useful built-in storage and filesystem
 support, but replacing its diagnostic archive with a distribution initramfs
@@ -62,8 +65,9 @@ the installed Gemian version 0.130 inspected in the parent record.
 
 ## Next input and validation boundary
 
-Select the distribution, exact root medium and owner-approved storage allocation
-before implementation. Retain the existing recovery filesystem; no existing
+Confirm the distribution, exact root medium and owner-approved storage allocation
+before implementing the persistent-root adapter or installation. Retain the
+existing recovery filesystem; no existing
 partition is designated expendable by this audit. Resolve root selection,
 filesystem effects, complete userspace requirements and image size against
 those concrete inputs, then validate package/update/predecessor retention

@@ -94,6 +94,11 @@ construction and guarded boot2 selection. Current Gemian initramfs hooks supply
 no inspected LK deployment step. Select a persistent-root/distribution and its
 filesystem update/rollback protocol before implementing that adapter; no package
 installation or automatic slot writer is admitted by the source review.
+The [Debian ARM64 userspace evaluation](../experiments/2026-09-09-standard-kernel-package/DEBIAN_USERSPACE.md)
+now provides a verified 119-package off-device archive and identifies missing
+service isolation in the tested A53 configuration. Confirm distribution/storage
+inputs and address those requirements in the future integration profile before
+creating a persistent-root candidate; the archive is not a device boot result.
 
 The independent [MMC voltage-switch error fix](../experiments/2026-09-09-mtk-sd-pinctrl-errors/README.md)
 returns failed pin configuration to the MMC core. Its isolated Buildbox compile

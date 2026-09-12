@@ -92,3 +92,8 @@ and live boot identity checked across both acquisitions. No kernel compilation,
 Debian package build, hook execution, distribution boot or rollback test ran.
 Repository publication checks validate these documents, not the proposed
 future update path. Ordinary distribution updates remain an open roadmap gate.
+
+The later [Debian userspace evaluation](DEBIAN_USERSPACE.md) builds and verifies
+a standalone ARM64 archive and identifies missing service isolation in the
+tested A53 configuration. Its separate receipt adds no persistent-root target,
+kernel package installation, boot result or update/rollback claim to this audit.
