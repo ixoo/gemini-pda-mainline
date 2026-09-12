@@ -25,6 +25,7 @@ BOOT_ENTRY_CYCLE_ID = '7f21b732-da47-4245-ad83-e985044054a6'
 CHIP, VERSION = 0x0279, 0x8a00
 STAGE = 'python-entry'
 LOG_WRITES = 0
+RETURN_ATTEMPTED = False
 
 
 def mark(stage):
@@ -45,6 +46,41 @@ def log_stage(status):
     data = f'<11>wifi-bootstrap-v1 boot={boot} python={STAGE} status={status}\n'.encode('ascii')
     if len(data) > 192 or os.write(3, data) != len(data):
         raise OSError('bootstrap log write failed')
+
+
+def return_once(outcome):
+    """One normal restart for the separately admitted export-return boot only."""
+    global RETURN_ATTEMPTED, LOG_WRITES
+    boot = os.environ.get('WIFI_EXPORT_RETURN_BOOT', '')
+    cycle = os.environ.get('WIFI_EXPORT_RETURN_CYCLE', '')
+    if not boot or RETURN_ATTEMPTED:
+        return
+    RETURN_ATTEMPTED = True
+    try:
+        if (os.getpid() != 1 or os.geteuid() != 0 or platform.machine() != 'aarch64' or
+                platform.release() != '3.18.41+' or outcome not in ('stopped', 'preserved')):
+            raise ValueError('return identity mismatch')
+        if (str(uuid.UUID(boot)) != boot or not uuid.UUID(boot).int or
+                str(uuid.UUID(cycle)) != cycle or not uuid.UUID(cycle).int or
+                text('proc/sys/kernel/random/boot_id') != boot):
+            raise ValueError('return boot identity changed')
+        words = text('proc/cmdline').split()
+        for key, expected in {'wifi_return': '1', 'wifi_cycle': cycle}.items():
+            if [word.partition('=')[2] for word in words if word.partition('=')[0] == key] != [expected]:
+                raise ValueError('return boot parameter changed')
+        if LOG_WRITES >= 8:
+            raise ValueError('bootstrap log budget exhausted')
+        LOG_WRITES += 1
+        info = os.fstat(3)
+        if not stat.S_ISCHR(info.st_mode) or info.st_rdev != os.makedev(1, 11):
+            raise ValueError('return log descriptor changed')
+        data = f'<11>wifi-export-return-v1 boot={boot} cycle={cycle} outcome={outcome}\n'.encode('ascii')
+        if len(data) > 192 or os.write(3, data) != len(data):
+            raise OSError('return marker write failed')
+        # Keep PID1 alive if the syscall utility returns or cannot be started.
+        os.spawnv(os.P_WAIT, '/bin/busybox', ['/bin/busybox', 'reboot', '-f'])
+    except BaseException:
+        pass  # No retry, fallback or PID1 exit after a refused/returned request.
 
 
 def file_bytes(relative, limit):
@@ -82,7 +118,7 @@ def validate_session(session):
                 'startup_action'}
     if set(session) != required or session['schema'] != 2:
         raise ValueError('unknown session schema')
-    if session['startup_action'] not in ('export', 'cycle', 'boot-entry'):
+    if session['startup_action'] not in ('export', 'export-return', 'cycle', 'boot-entry'):
         raise ValueError('unknown startup action')
     if session['startup_action'] == 'boot-entry' and session['cycle_id'] != BOOT_ENTRY_CYCLE_ID:
         raise ValueError('boot-entry control identity mismatch')
@@ -123,6 +159,12 @@ def check_runtime(session):
         matches = [word.partition('=')[2] for word in words if word.partition('=')[0] == key]
         if matches != [expected]:
             raise ValueError('boot parameter mismatch')
+    expected_return = ['1'] if session['startup_action'] == 'export-return' else []
+    if [word.partition('=')[2] for word in words if word.partition('=')[0] == 'wifi_return'] != expected_return:
+        raise ValueError('return boot parameter mismatch')
+    if expected_return and (os.environ.get('WIFI_EXPORT_RETURN_BOOT') != text('proc/sys/kernel/random/boot_id') or
+                            os.environ.get('WIFI_EXPORT_RETURN_CYCLE') != session['cycle_id']):
+        raise ValueError('return shell handoff mismatch')
     for path, expected in {
         'proc/sys/kernel/panic': '0',
         'proc/sys/kernel/sysrq': '0',
@@ -209,7 +251,7 @@ def main():
             raise ValueError('boot-entry control requires its dedicated init')
         mark('preflight')
         log_stage('passed')
-        if session['startup_action'] == 'export':
+        if session['startup_action'] in ('export', 'export-return'):
             mark('export-import')
             spec = importlib.util.spec_from_file_location('capture_device', ROOT / 'opt/wifi-cycle/capture-device.py')
             device = importlib.util.module_from_spec(spec)
@@ -217,8 +259,13 @@ def main():
             # Intentionally retain the open serial descriptor while PID1 parks.
             device.export_snapshot(sys.modules[__name__], session, identity)
             mark('export')
-            log_stage('queued')
-            print('wifi-startup: snapshot queued; host preservation required', flush=True)
+            if session['startup_action'] == 'export-return':
+                log_stage('preserved')
+                print('wifi-startup: host preservation acknowledged', flush=True)
+                return_once('preserved')
+            else:
+                log_stage('queued')
+                print('wifi-startup: snapshot queued; host preservation required', flush=True)
             while True:
                 time.sleep(3600)
         mark('cycle-import')
@@ -246,6 +293,7 @@ def main():
             print('wifi-startup: stopped (' + type(error).__name__ + '); no retry', flush=True)
         except OSError:
             pass
+        return_once('stopped')
     while True:
         time.sleep(3600)  # Before takeover, wait for the owner; afterward, retain the watchdog cutoff.
 

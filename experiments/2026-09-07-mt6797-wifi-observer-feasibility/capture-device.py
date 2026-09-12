@@ -84,7 +84,7 @@ def export_snapshot(startup, session, identity):
     establish host preservation; no clearing or controller call follows.
     """
     if (os.getpid() != 1 or os.geteuid() != 0 or len(identity) != 96 or
-            session.get('startup_action') != 'export'):
+            session.get('startup_action') not in ('export', 'export-return')):
         raise ValueError('export requires the checked root PID1 session')
     boot_id = str(uuid.UUID(bytes=identity[48:64]))
     session_sha256 = identity[16:48].hex()
@@ -135,6 +135,9 @@ def export_snapshot(startup, session, identity):
         startup.mark('snapshot-send')
         export.send_snapshot(stream, snapshot, boot_id, session_sha256)
         check_capture(startup, session, boot_id)
+        if session['startup_action'] == 'export-return':
+            startup.mark('host-preservation')
+            export.await_preserved(stream, snapshot, boot_id, session_sha256)
         return fd
     except BaseException:
         os.close(fd)

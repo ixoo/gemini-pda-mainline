@@ -105,6 +105,15 @@ class DeviceTests(unittest.TestCase):
             write.assert_not_called()
 
     def test_duplex_export_with_injected_usb_controls(self):
+        self.duplex_export(False)
+
+    def test_duplex_export_return_requires_preservation_ack(self):
+        self.duplex_export(True)
+
+    def duplex_export(self, acknowledge):
+        if acknowledge:
+            fixture.StartupTests.arm_return(self)
+            self.session, self.identity = startup.prepare()
         master, slave = pty.openpty()
         self.addCleanup(os.close, master)
         self.addCleanup(os.close, slave)
@@ -151,7 +160,8 @@ class DeviceTests(unittest.TestCase):
             try:
                 stream = export.SerialStream(master, 3)
                 export.request_snapshot(stream, PREVIOUS, session_hash)
-                export.receive_snapshot(stream, output, PREVIOUS, session_hash)
+                export.receive_snapshot(stream, output, PREVIOUS, session_hash,
+                                        acknowledge=acknowledge)
             except Exception as error:
                 errors.append(error)
 

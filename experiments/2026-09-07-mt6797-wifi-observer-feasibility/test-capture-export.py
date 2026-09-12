@@ -120,6 +120,53 @@ class ExportTests(unittest.TestCase):
                 export.send_snapshot(stream, snapshot, BOOT, SESSION)
             self.assertEqual(stream.getvalue(), b'')
 
+    def test_acknowledgement_follows_all_four_successful_syncs(self):
+        stream = Fragmented(self.frame)
+        original_sync = os.fsync
+        with patch.object(export.os, 'fsync', side_effect=original_sync) as sync:
+            original_write = stream.write
+
+            def write(data):
+                self.assertEqual(sync.call_count, 4)
+                self.assertEqual((self.output / 'snapshot.raw').read_bytes(), SNAPSHOT)
+                self.assertTrue((self.output / 'receipt.json').is_file())
+                return original_write(data)
+
+            with patch.object(stream, 'write', side_effect=write):
+                export.receive_snapshot(stream, self.output, PREVIOUS, SESSION, acknowledge=True)
+        ack = stream.getvalue()[len(self.frame):]
+        self.assertEqual(len(ack), 84)
+        export.await_preserved(Fragmented(ack), SNAPSHOT, BOOT, SESSION)
+
+    def test_no_acknowledgement_after_each_failed_sync(self):
+        for failure in range(4):
+            stream = Fragmented(self.frame)
+            output = self.root / ('failed-' + str(failure))
+            with patch.object(export.os, 'fsync', side_effect=[None] * failure + [OSError('sync')]), \
+                    patch.object(stream, 'write') as write:
+                with self.assertRaises(OSError):
+                    export.receive_snapshot(stream, output, PREVIOUS, SESSION, acknowledge=True)
+                write.assert_not_called()
+            self.assertTrue(output.exists(), 'partial evidence must remain')
+
+    def test_acknowledgement_rejects_corruption_truncation_and_wrong_identity(self):
+        ack = export.PRESERVED.pack(b'WFA1', export.uuid.UUID(BOOT).bytes,
+                                    bytes.fromhex(SESSION), export.hashlib.sha256(SNAPSHOT).digest())
+        bad_frames = [ack[:cut] for cut in (0, 1, 83)]
+        for offset in (0, 4, 20, 52, 83):
+            bad = bytearray(ack)
+            bad[offset] ^= 1
+            bad_frames.append(bytes(bad))
+        for bad in bad_frames:
+            with self.subTest(frame=bad[:4]), self.assertRaises(ValueError):
+                export.await_preserved(Fragmented(bad), SNAPSHOT, BOOT, SESSION)
+        for snapshot, boot, session in ((SNAPSHOT[:-1], BOOT, SESSION),
+                                        (bytearray(SNAPSHOT), BOOT, SESSION),
+                                        (SNAPSHOT, PREVIOUS, SESSION),
+                                        (SNAPSHOT, BOOT, 'cd' * 32)):
+            with self.assertRaises(ValueError):
+                export.await_preserved(Fragmented(ack), snapshot, boot, session)
+
     def test_request_rejects_same_boot_wrong_session_and_short_input(self):
         stream = io.BytesIO()
         export.request_snapshot(stream, PREVIOUS, SESSION)
@@ -146,6 +193,12 @@ class ExportTests(unittest.TestCase):
             export.read_exact(export.SerialStream(reader, 1), 1)
 
     def test_real_pseudoterminal_transfer_without_ack(self):
+        self.pseudoterminal_transfer(False)
+
+    def test_real_pseudoterminal_transfer_with_ack(self):
+        self.pseudoterminal_transfer(True)
+
+    def pseudoterminal_transfer(self, acknowledge):
         master, slave = pty.openpty()
         self.addCleanup(os.close, master)
         self.addCleanup(os.close, slave)
@@ -158,7 +211,8 @@ class ExportTests(unittest.TestCase):
             try:
                 stream = export.SerialStream(master, 2)
                 export.request_snapshot(stream, PREVIOUS, SESSION)
-                export.receive_snapshot(stream, self.output, PREVIOUS, SESSION)
+                export.receive_snapshot(stream, self.output, PREVIOUS, SESSION,
+                                        acknowledge=acknowledge)
             except Exception as error:
                 errors.append(error)
 
@@ -167,6 +221,8 @@ class ExportTests(unittest.TestCase):
         stream = export.SerialStream(slave, 2)
         export.await_request(stream, BOOT, SESSION)
         export.send_snapshot(stream, SNAPSHOT, BOOT, SESSION)
+        if acknowledge:
+            export.await_preserved(stream, SNAPSHOT, BOOT, SESSION)
         receiver.join(timeout=5)
         self.assertFalse(receiver.is_alive(), 'receiver stalled')
         self.assertEqual(errors, [])

@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: MIT
 """Bounded snapshot transfer over an already established binary stream.
 
-This module neither configures USB nor reads device memory. Its receiver
-preserves evidence only; it sends no acknowledgement or preparation command.
+This module neither configures USB nor reads device memory. Its receiver may
+acknowledge durable preservation; that acknowledgement authorizes no clearing.
 """
 import argparse
 import hashlib
@@ -21,6 +21,7 @@ SIZE = 65536
 HEADER = struct.Struct('<4s16s32s32sI')
 MAGIC = b'WFP1'
 REQUEST = struct.Struct('<4s16s32s')
+PRESERVED = struct.Struct('<4s16s32s32s')
 
 
 class SerialStream:
@@ -108,6 +109,15 @@ def await_request(stream, boot_id, session_sha256):
         raise ValueError('snapshot request identity mismatch')
 
 
+def await_preserved(stream, snapshot, boot_id, session_sha256):
+    boot, session = identities(boot_id, session_sha256)
+    if not isinstance(snapshot, bytes) or len(snapshot) != SIZE:
+        raise ValueError('expected the complete immutable snapshot')
+    expected = (b'WFA1', boot, session, hashlib.sha256(snapshot).digest())
+    if PRESERVED.unpack(read_exact(stream, PRESERVED.size)) != expected:
+        raise ValueError('snapshot preservation acknowledgement mismatch')
+
+
 def open_private_parent(output):
     if not output.name or output.name in ('.', '..'):
         raise ValueError('expected a new output directory name')
@@ -138,7 +148,7 @@ def check_destination(output):
         os.close(parent)
 
 
-def receive_snapshot(stream, output, previous_boot_id, session_sha256):
+def receive_snapshot(stream, output, previous_boot_id, session_sha256, *, acknowledge=False):
     """Save one frame; return only after file readback and directory sync.
 
     The output directory must not exist. A failed save is retained privately
@@ -173,6 +183,11 @@ def receive_snapshot(stream, output, previous_boot_id, session_sha256):
         os.fsync(parent)
     finally:
         os.close(parent)
+    # This comes after raw readback, both files' fsync and both directory syncs.
+    # No acknowledgement is sent after any failed save or sync.
+    if acknowledge:
+        write_all(stream, PRESERVED.pack(b'WFA1', actual_boot, actual_session, digest))
+        stream.flush()
     return receipt
 
 
@@ -207,6 +222,8 @@ def main():
     parser.add_argument('--previous-boot-id', required=True)
     parser.add_argument('--session-sha256', required=True)
     parser.add_argument('--serial', required=True, help='explicit host USB serial terminal')
+    parser.add_argument('--acknowledge', action='store_true',
+                        help='send one bound preservation acknowledgement after durable save')
     parser.add_argument('output', help='new directory below a private parent')
     args = parser.parse_args()
     identities(args.previous_boot_id, args.session_sha256)
@@ -219,10 +236,12 @@ def main():
         tty.setraw(fd, when=tty.TCSANOW)
         stream = SerialStream(fd)
         request_snapshot(stream, args.previous_boot_id, args.session_sha256)
-        receive_snapshot(stream, args.output, args.previous_boot_id, args.session_sha256)
+        receive_snapshot(stream, args.output, args.previous_boot_id, args.session_sha256,
+                         acknowledge=args.acknowledge)
     finally:
         os.close(fd)
-    print('snapshot preserved; no clearing command sent')
+    print('snapshot preserved; acknowledgement sent' if args.acknowledge else
+          'snapshot preserved; no clearing command sent')
 
 
 if __name__ == '__main__':

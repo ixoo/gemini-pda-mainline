@@ -26,7 +26,12 @@ replacement, synchronizes the snapshot, checks its complete readback, then
 synchronizes the receipt and both directories. Failed saves remain for private
 inspection; their files alone must not be treated as a successful return.
 These filesystem operations do not prove survival of every storage failure.
-No receipt authorizes clearing, and the receiver sends no save acknowledgement.
+No receipt authorizes clearing. The optional `--acknowledge` mode sends one
+84-byte `WFA1` preservation reply only after all four syncs succeed. It contains
+the frame's boot UUID, session digest and snapshot digest; the sender compares
+all fields with its immutable snapshot. Legacy export sends no reply. The
+[export-return session](EXPORT_RETURN.md) uses this reply before its normal
+return and describes the additional failure/retention limits.
 
 Before transmission, the host opens the explicitly selected serial terminal
 in raw, nonblocking mode and sends a 52-byte request: `WFR1`, the previous
@@ -44,13 +49,15 @@ python3 capture-export.py --serial "$selected_serial_terminal" \
 
 The selected terminal must be a character device and pass `isatty`; final
 symlinks are refused. Each endpoint uses one 60-second deadline for nonblocking
-request/data I/O. EOF, I/O failure, malformed input or timeout stops the exchange
+request/data I/O and the optional acknowledgement. EOF, I/O failure, malformed
+input or timeout stops the exchange
 without a retry or clearing command. This bounds userspace transport waits,
 not arbitrary kernel stalls or filesystem synchronization. The host closes
-its terminal afterward; the device retains its descriptor while PID1 parks.
+its terminal afterward; the device retains its descriptor while PID1 parks
+or requests the separately selected normal return.
 Diagnostic console text uses a different descriptor from this binary stream.
-The device's post-send capture check has no transmitted completion status.
-A successful receiver therefore cannot certify that final check; the
+Legacy export's post-send capture check has no transmitted completion status.
+A successful receiver alone therefore cannot certify that final check; the
 [physical session](EXPORT_SESSION.md) keeps that limit in its pass criteria.
 
 ## Transport evidence and remaining integration
@@ -68,7 +75,7 @@ ports. No serial node was opened and no control was written. Node existence
 does not establish successful enumeration, data transfer, resource isolation
 or identity of the separately built kernel.
 
-The [ten focused tests](test-capture-export.py) pass on the host and ARM64 RE
+The original ten [focused tests](test-capture-export.py) passed on the host and ARM64 RE
 VM, including a real local pseudo-terminal transfer, fragmented reads/writes,
 identity and corruption refusal, truncation, private modes, existing evidence
 preservation and injected sync failure. The pseudo-terminal receiver sends no
@@ -76,6 +83,8 @@ save acknowledgement. They also exercise the request handshake, same-boot
 refusal, a real nonblocking deadline and disconnect. All payloads are synthetic;
 no retained bytes were exported through USB. The final ten tests also passed
 with the [packaged ARM64 runtime](STARTUP_ASSEMBLY.md#export-filesystem).
+The export-return revision passes 14 stream tests, adding bound acknowledgement
+refusals, successful duplex acknowledgement and refusal after each failed sync.
 The host checks its destination before opening USB so an already existing or
 unsuitable parent does not consume the one-shot exchange. The receiver repeats
 the ownership check and exclusively creates the output after reception; the

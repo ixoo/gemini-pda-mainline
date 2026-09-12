@@ -203,3 +203,7 @@ owner-approved recovery, without interpreting a timeout as restart approval.
 A recovered marker must be joined to its boot UUID and exact deployment;
 it identifies a reached stage, not successful hardware support or proof that
 the next operation completed. The unchanged first image must not be repeated.
+
+The [export-return session](EXPORT_RETURN.md) applies the observed normal
+return to full startup, with a bound host-save acknowledgement and retained
+terminal stages. Its packet records the caught-failure scope and handoff gaps.

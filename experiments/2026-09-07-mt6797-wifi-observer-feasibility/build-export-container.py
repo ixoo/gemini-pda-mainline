@@ -39,7 +39,7 @@ def build(active, kernel, filesystem, session_raw):
     baseline, _ = native.build(active, kernel)
     session = json.loads(session_raw)
     load('startup', HERE / 'startup.py').validate_session(session)
-    if session['startup_action'] not in ('export', 'boot-entry') or session['kernel_image_sha256'] != KERNEL_SHA256:
+    if session['startup_action'] not in ('export', 'export-return', 'boot-entry') or session['kernel_image_sha256'] != KERNEL_SHA256:
         raise ValueError('requires the selected export kernel and diagnostic action')
     if session['kernel_inputs_sha256'] != sha((HERE / 'full-kernel-inputs.json').read_bytes()):
         raise ValueError('kernel inputs changed')
@@ -54,7 +54,8 @@ def build(active, kernel, filesystem, session_raw):
     if extracted.stderr or extracted.stdout != session_raw:
         raise ValueError('filesystem session identity mismatch')
     command = (native.CMDLINE + ' rdinit=/init panic=0 cpuidle.off=1'
-               ' ramoops.pmsg_capture=1 wifi_cycle=' + session['cycle_id']).encode('ascii')
+               ' ramoops.pmsg_capture=1 wifi_cycle=' + session['cycle_id'] +
+               (' wifi_return=1' if session['startup_action'] == 'export-return' else '')).encode('ascii')
     if len(command) >= 512:
         raise ValueError('startup command line exceeds first header field')
     header = bytearray(baseline[:native.PAGE_SIZE])

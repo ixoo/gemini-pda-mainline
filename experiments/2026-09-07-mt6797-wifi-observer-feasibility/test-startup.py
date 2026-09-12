@@ -31,6 +31,11 @@ class StartupTests(unittest.TestCase):
         patch.object(startup, 'ROOT', self.root).start()
         patch.object(startup.os, 'getpid', return_value=1).start()
         patch.object(startup.os, 'geteuid', return_value=0).start()
+        # Inject every possible restart even when a test arms the return path.
+        self.restart = patch.object(startup.os, 'spawnv', return_value=1).start()
+        patch.object(startup, 'RETURN_ATTEMPTED', False).start()
+        patch.object(startup, 'LOG_WRITES', 0).start()
+        patch.dict(startup.os.environ, {}, clear=True).start()
         self.mount = patch.object(startup.os, 'statvfs').start()
         self.mount.return_value.f_flag = startup.os.ST_RDONLY
         patch.object(startup.platform, 'machine', return_value='aarch64').start()
@@ -106,6 +111,116 @@ class StartupTests(unittest.TestCase):
         self.write(path, b'x' * startup.INPUT_PATHS[path])
         with self.assertRaisesRegex(ValueError, 'private input bytes'):
             startup.prepare()
+
+    def arm_return(self):
+        self.session['startup_action'] = 'export-return'
+        self.save_session()
+        self.write('proc/cmdline', self.cmdline + ' wifi_return=1')
+        startup.os.environ.update(WIFI_EXPORT_RETURN_BOOT='aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
+                                  WIFI_EXPORT_RETURN_CYCLE=self.session['cycle_id'])
+
+    def test_export_return_requires_exact_flag_and_shell_handoff(self):
+        self.arm_return()
+        startup.prepare()
+        for suffix in ('', ' wifi_return=0', ' wifi_return=1 wifi_return=1'):
+            self.write('proc/cmdline', self.cmdline + suffix)
+            with self.assertRaisesRegex(ValueError, 'return boot parameter'):
+                startup.prepare()
+        self.write('proc/cmdline', self.cmdline + ' wifi_return=1')
+        startup.os.environ['WIFI_EXPORT_RETURN_BOOT'] = 'changed'
+        with self.assertRaisesRegex(ValueError, 'shell handoff'):
+            startup.prepare()
+        self.session['startup_action'] = 'export'
+        self.save_session()
+        with self.assertRaisesRegex(ValueError, 'return boot parameter'):
+            startup.prepare()
+        self.restart.assert_not_called()
+
+    def test_return_once_requires_marker_and_never_retries(self):
+        self.arm_return()
+        info = SimpleNamespace(st_mode=stat.S_IFCHR, st_rdev=startup.os.makedev(1, 11))
+        with patch.object(startup.platform, 'release', return_value='3.18.41+'), \
+                patch.object(startup, 'text', side_effect=lambda path: (self.root / path).read_text().rstrip('\n')), \
+                patch.object(startup.os, 'fstat', return_value=info), \
+                patch.object(startup.os, 'write', side_effect=lambda fd, data: len(data)) as write:
+            for outcome in ('preserved', 'stopped'):
+                startup.RETURN_ATTEMPTED = False
+                self.restart.reset_mock()
+                write.reset_mock()
+                startup.return_once(outcome)
+                startup.return_once(outcome)
+                self.restart.assert_called_once_with(startup.os.P_WAIT, '/bin/busybox',
+                                                      ['/bin/busybox', 'reboot', '-f'])
+                write.assert_called_once()
+                self.assertIn(('outcome=' + outcome).encode(), write.call_args.args[1])
+                self.assertLessEqual(len(write.call_args.args[1]), 192)
+            for failure in ('short-write', 'bad-node', 'budget', 'wrong-boot', 'duplicate-flag'):
+                startup.RETURN_ATTEMPTED = False
+                startup.LOG_WRITES = 0
+                self.restart.reset_mock()
+                write.side_effect = lambda fd, data: len(data)
+                info.st_rdev = startup.os.makedev(1, 11)
+                self.write('proc/cmdline', self.cmdline + ' wifi_return=1')
+                if failure == 'short-write':
+                    write.side_effect = lambda fd, data: len(data) - 1
+                elif failure == 'bad-node':
+                    info.st_rdev = startup.os.makedev(1, 3)
+                elif failure == 'budget':
+                    startup.LOG_WRITES = 8
+                elif failure == 'wrong-boot':
+                    self.write('proc/sys/kernel/random/boot_id', 'changed')
+                else:
+                    self.write('proc/sys/kernel/random/boot_id', startup.os.environ['WIFI_EXPORT_RETURN_BOOT'])
+                    self.write('proc/cmdline', self.cmdline + ' wifi_return=1 wifi_return=1')
+                startup.return_once('stopped')
+                startup.return_once('stopped')
+                self.restart.assert_not_called()
+
+    def test_caught_startup_failure_requests_one_return_and_parks(self):
+        self.arm_return()
+        info = SimpleNamespace(st_mode=stat.S_IFCHR, st_rdev=startup.os.makedev(1, 11))
+        with patch.object(startup.platform, 'release', return_value='3.18.41+'), \
+                patch.object(startup, 'text', side_effect=lambda path: (self.root / path).read_text().rstrip('\n')), \
+                patch.object(startup.os, 'fstat', return_value=info), \
+                patch.object(startup.os, 'write', side_effect=lambda fd, data: len(data)) as write, \
+                patch.object(startup, 'prepare', side_effect=ValueError('injected')), \
+                patch.object(startup.time, 'sleep', side_effect=SystemExit('parked')), \
+                patch('builtins.print'):
+            with self.assertRaisesRegex(SystemExit, 'parked'):
+                startup.main()
+            self.restart.assert_called_once()
+            self.assertIn(b'outcome=stopped', write.call_args.args[1])
+
+    def test_unarmed_startup_failure_does_not_restart(self):
+        startup.return_once('stopped')
+        self.restart.assert_not_called()
+        self.assertFalse(startup.RETURN_ATTEMPTED)
+
+    def test_preserved_export_requests_return_without_importing_cycle(self):
+        self.arm_return()
+        identity = startup.prepare()[1]
+        device = SimpleNamespace(export_snapshot=lambda *args: 99)
+        loader = SimpleNamespace(exec_module=lambda module: None)
+        info = SimpleNamespace(st_mode=stat.S_IFCHR, st_rdev=startup.os.makedev(1, 11))
+        with patch.object(startup.platform, 'release', return_value='3.18.41+'), \
+                patch.object(startup, 'prepare', return_value=(self.session, identity)), \
+                patch.object(startup, 'text', side_effect=lambda path: (self.root / path).read_text().rstrip('\n')), \
+                patch.object(startup.os, 'fstat', return_value=info), \
+                patch.object(startup.os, 'write', side_effect=lambda fd, data: len(data)) as write, \
+                patch.object(startup.importlib.util, 'spec_from_file_location',
+                             return_value=SimpleNamespace(loader=loader)) as load, \
+                patch.object(startup.importlib.util, 'module_from_spec', return_value=device), \
+                patch.dict(startup.sys.modules, {'startup': startup}), \
+                patch.object(startup.time, 'sleep', side_effect=SystemExit('parked')), \
+                patch('builtins.print'):
+            with self.assertRaisesRegex(SystemExit, 'parked'):
+                startup.main()
+            self.restart.assert_called_once()
+            load.assert_called_once()
+            self.assertEqual(load.call_args.args[0], 'capture_device')
+            rows = [call.args[1] for call in write.call_args_list]
+            self.assertEqual(sum(b'outcome=preserved' in row for row in rows), 1)
+            self.assertFalse(any(b'outcome=stopped' in row for row in rows))
 
     def test_boot_entry_control_is_bound_and_cannot_enter_cycle(self):
         self.session['startup_action'] = 'boot-entry'
