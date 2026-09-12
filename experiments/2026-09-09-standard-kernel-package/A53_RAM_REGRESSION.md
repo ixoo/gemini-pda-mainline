@@ -2,8 +2,9 @@
 
 Status: complete private image composed and validated; exact-shell and hosted
 Linux checks pass. No deployment or physical session is selected; the unresolved
-Wi-Fi boot retains device custody. Collection/recovery binding and a distinct
-finite session remain required before device use.
+Wi-Fi boot retains device custody. Offline collection/recovery script bindings
+now pass their focused checks. Live deployment and collection orchestration
+remain required before device use.
 
 ## Purpose and bounded change
 
@@ -90,20 +91,76 @@ passed. No new kernel/DT source or binding changed, so no additional kernel
 build or DT schema run was needed. This is packaging and injected userspace
 evidence only; it establishes no new physical support claim.
 
-## Before a device session
+## Bound observation and recovery scripts
 
-Bind the collection and recovery tools to this new kernel
-and candidate. Historical baseline tools pin the old release; they must not be
-used unchanged or have their closed validation receipts reclassified. Freeze
-a distinct finite session, including its hypothesis, observation branches,
-authenticated identity, bounded log preservation and reviewed normal recovery.
-Do not reactivate consumed keyboard or eMMC observation budgets.
+The [offline generator](a53-ram-session.py) checks the exact private candidate
+inventory, image hashes and permissions, then reuses the existing observation,
+log-sealing and recovery script generators. Its module instances accept the
+new release and exact candidate/init/config identities. Historical files and
+their closed receipts remain unchanged. The observation classifier additionally
+rejects a zero or noncanonical boot UUID after an otherwise passing frame.
+
+The [binding tests](results/a53-service-ram-session-tests.json) establish that
+reversing those identity substitutions makes all four generated scripts
+byte-identical to their historical counterparts. One valid observation frame
+passes; nine altered identity, CPU, framing or transport cases refuse. All
+42 exact-ARM64 shell cases pass, covering both sets of 17 identity/RAM/claim
+guards and eight additional failed-log cases. Failed logs retain their available
+bytes and are never promoted to a complete log. No target signal, restart or
+hardware operation is executed by these fixtures.
+
+Six accepted recovery-request framing/transport combinations remain requests
+only, requiring later changed-boot Gemian confirmation. Three malformed,
+interrupted or returned-helper cases refuse. Shell syntax passes. Full
+ShellCheck has zero errors/warnings and 23 informational findings identical
+to the original scripts: eight intentional awk expressions and fifteen reports
+about the same BusyBox assignment in a subshell. None is suppressed or repaired
+by changing the historical control flow.
+
+The generator's CLI writes a private bundle and never contacts SSH or executes
+its scripts. Supplied UUIDs are bindings, not observations. The checked bundle
+uses explicitly synthetic fixture UUIDs and must never be sent to the PDA.
+For actual collection, `prepare()` supplies the exact-candidate context and
+bound classifier; `collector.remote_script(context)` obtains the observation
+before a mainline UUID is known. Generate the later scripts only after that
+UUID is observed and verified. The returned historical collector/finisher CLI
+entry points still have their original admission contracts and are not new
+live entry points.
+
+## Finite session and remaining live preparation
 
 The proposed board question is whether the service configuration preserves
 CPU0–7 startup, authenticated USB, console availability and complete logging
 on the existing device description. Namespace/BPF behavior on the PDA needs
 its own declared measurement; the RAM shell alone cannot demonstrate Debian
 service behavior. Missing identity or logs must remain inconclusive.
+
+Prepare one physical selection, one 45-second observation invocation, at most
+one 15-second bound identity probe, one 30-second log-export invocation and
+one 15-second normal recovery request. Use the existing bounded host runner
+with 128 KiB observation/probe output, 3 MiB framed log-export output and
+16 KiB stderr limits. The unchanged logger has a 600-second/2 MiB RAM limit;
+export may signal it once and inspect termination at most ten times. These
+limits do not bound blocked kernel I/O or prove that a restart completes.
+
+Live preparation must bind the actual guarded deployment receipt, preceding
+Gemian boot and exact host-key bundle before connecting. Preserve each command,
+bounded raw stream, process result and parsed log file privately; sync and
+read back the saved evidence before a recovery request. Ordinary recovery
+requires verified complete preservation of all available bounded RAM evidence,
+even when the logger's own result failed. Incomplete preservation, failed
+identity or failed RAM guards require a separate reviewed recovery decision;
+they never select an automatic retry. A returned helper is not a successful
+restart. Confirm a changed boot in known-good Gemian afterward, independently
+of the USB connection's exit status.
+
+The one-shot host execution records, installation bindings and finite Gemian
+return collection still need preparation after the current device state is
+resolved. No keyboard event capture, eMMC partition read, namespace/BPF
+operation or repetition is added to this session. Its success branch requires
+the attributable baseline observation, complete log and confirmed recovery;
+a refusal selects diagnosis from preserved evidence. Do not reactivate the
+consumed baseline, keyboard or eMMC budgets.
 
 Resolve the currently selected Wi-Fi session before installation. Any later
 boot2 write still uses the reviewed live-GPT guard, full readback and clean
