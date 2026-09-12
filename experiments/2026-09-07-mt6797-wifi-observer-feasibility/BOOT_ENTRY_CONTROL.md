@@ -1,6 +1,7 @@
 # Export-kernel boot-entry control
 
-Status: assembled and checked offline; device execution is outstanding. This
+Status: passed on device. The exact PID1 marker survived the normal return to
+authenticated Gemian. The one-selection budget is consumed. This
 is one distinct control after the inconclusive [second export
 attempt](EXPORT_ATTEMPT_2.md) and the successful [normal Gemian restart
 retention test](RETENTION_RESET_COMPARISON.md). It does not repeat either boot.
@@ -109,3 +110,50 @@ timeout does not authorize a second selection or an unreviewed fallback.
 Standing [project device authorization](../../docs/SAFETY.md#standing-project-device-authorization)
 covers this reviewed installation/control. Hardware support, successful export
 and a WLAN cycle remain unproven.
+
+## Deployment
+
+The final inputs are published at `aca7237337b260238a60de84aa80b2e6998dc48f`;
+[hosted repository checks](https://github.com/ixoo/gemini-pda-mainline/actions/runs/34661559667)
+passed. The installer confirmed the preceding Gemian boot and resolved boot2
+as `179:30`, distinct from root `179:29`. Both power samples at each gate
+reported a present, healthy, fully charged battery and external power. The
+predecessor matched the second export image. The write, flush, full on-device
+checksum and independent complete readback all matched this control's
+`7d19a05e…b60a3` padded image. No fresh predecessor backup was made.
+
+After preserving the deployment evidence, the installer requested clean
+poweroff. The remote closed the SSH connection (status 255), and a subsequent
+reachability check failed. This is the observed shutdown handoff; physical
+selection remained an owner action. The reviewed collector was armed before
+requesting that single selection. Installation alone did not establish a new
+boot or marker. The receipt records these deployment observations;
+private installers, raw images and transport logs remain excluded from Git.
+
+## Runtime result
+
+The owner confirmed the single physical selection. At `00:29:57 UTC` on
+2026-09-12, the collector authenticated Gemian boot
+`57a8683b-b9dc-4643-99c1-aca916d3ae54`, with Linux `3.18.41+`/AArch64, MT6797X,
+Debian 9 and running systemd. Before/after boot UUIDs matched. Its sole console
+read preserved 65,524 bytes, SHA-256
+`6a93806be655d02e3905b89288c47e731cda31fe3bd895687a401c761aa2def9`.
+
+Private RE-VM analysis found the complete expected control marker exactly once
+at byte 56,595. It carries candidate boot
+`2408a654-f543-47b4-8254-a84e13874c05`, distinct from both Gemian boots. The
+kernel timestamp is `1.924290` seconds; the following normal restart message
+is at `2.418511` seconds. No panic, BUG, WARNING, unhandled-kernel-fault or call
+trace token appears in the retained tail after the marker. This bounded token
+check is not a complete kernel-health assessment. The earlier kernel banner
+is not present in this ring snapshot.
+
+This establishes entry into the control's BusyBox PID1, successful devtmpfs and
+proc setup, passage through its argument/log checks, and retention through the
+return. It also supplies an observed warm-return path for the same kernel used
+by the unsuccessful export attempts. It does not prove that either older
+attempt reached PID1, identify their failure, or validate the full Python/USB
+startup. The next change can add this observed return path to full export
+startup so a caught refusal leaves recoverable stage evidence. Do not repeat
+the boot-entry control. Gemian is left running; no further recovery or device
+write was requested after preserving this log.

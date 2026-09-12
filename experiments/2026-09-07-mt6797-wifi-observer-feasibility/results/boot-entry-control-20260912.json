@@ -1,5 +1,5 @@
 {
-  "status": "offline-validated-device-execution-outstanding",
+  "status": "passed-candidate-pid1-marker-retained-after-return",
   "control": "7f21b732-da47-4245-ad83-e985044054a6",
   "startup_action": "boot-entry",
   "preceding_gemian_boot": "a3105a07-6372-4f09-bc9c-509bf578861e",
@@ -42,5 +42,62 @@
   "private_installer_sha256": "9b45f847c9c260c4ea8e3f20f2b453f47271f4b0e7e46da20cb3c2adff4d165a",
   "private_collector_sha256": "1da75391956bd426428be2c857c60b1f7aea47b4ecf6897c332b8c505e82b264",
   "guard_sha256": "0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf",
-  "scope": "One minimal PID1 marker and normal-restart control. No new kernel build, raw PMSG read/clear, WMT request, USB setup or WLAN cycle. Runtime result outstanding."
+  "scope": "One control reached BusyBox PID1, emitted its exact marker, logged normal restart and returned to authenticated Gemian with the marker retained. No raw PMSG read/clear, USB export or WLAN cycle. Budget consumed; do not repeat.",
+  "deployment": {
+    "result": "write-synced-flushed-full-readback-verified",
+    "target_logical_name": "boot2",
+    "boot2_device_guard": "passed",
+    "boot2_device_guard_sha256": "0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf",
+    "target_major_minor": "179:30",
+    "root_major_minor": "179:29",
+    "predecessor_sha256": "a0661c7a0a02cf690516cc026ee07209eb14e815bc3ef939f18a8de684bc95dd",
+    "candidate_sha256": "7d19a05e3e39acf40777192817150fffea298b9ff47142a1363dcd0959db60a3",
+    "readback_sha256": "7d19a05e3e39acf40777192817150fffea298b9ff47142a1363dcd0959db60a3",
+    "boot_id": "a3105a07-6372-4f09-bc9c-509bf578861e",
+    "fresh_predecessor_backup": "no",
+    "poweroff_ssh_rc": "255",
+    "post_shutdown_reachability": "unreachable",
+    "reboot": "no",
+    "source_commit": "aca7237337b260238a60de84aa80b2e6998dc48f",
+    "control": "7f21b732-da47-4245-ad83-e985044054a6",
+    "summary_sha256": "39fd31eff14bd3523b2ecef88a2a2939a15d49afccf83f6082ddb4f745a6e45f",
+    "physical_selection": "owner-confirmed-one-selection",
+    "checked_utc": "2026-09-12T00:28:49.046672+00:00",
+    "poweroff_observation": "remote closed the connection during the clean poweroff request, then was unreachable"
+  },
+  "repository_checks": {
+    "local": "pass",
+    "hosted": "pass",
+    "head": "aca7237337b260238a60de84aa80b2e6998dc48f",
+    "run_url": "https://github.com/ixoo/gemini-pda-mainline/actions/runs/34661559667"
+  },
+  "runtime": {
+    "control": "7f21b732-da47-4245-ad83-e985044054a6",
+    "preceding_gemian_boot": "a3105a07-6372-4f09-bc9c-509bf578861e",
+    "returned_gemian_boot": "57a8683b-b9dc-4643-99c1-aca916d3ae54",
+    "captured_utc": "2026-09-12T00:29:57.663791+00:00",
+    "console_bytes": 65524,
+    "console_sha256": "6a93806be655d02e3905b89288c47e731cda31fe3bd895687a401c761aa2def9",
+    "console_payload_reads": 1,
+    "control_prefix_occurrences": 1,
+    "exact_marker_occurrences": 1,
+    "marker_present": true,
+    "candidate_boot": "2408a654-f543-47b4-8254-a84e13874c05",
+    "classification": "candidate-pid1-marker-retained-after-return",
+    "normal_restart_line_present": true,
+    "candidate_kernel_version_present": false,
+    "marker_byte_offset": 56595,
+    "marker_line_bytes": 149,
+    "restart_line_after_marker": true,
+    "marker_kernel_seconds": "1.924290",
+    "restart_kernel_seconds": "2.418511",
+    "post_marker_fault_tokens": {
+      "Kernel panic": 0,
+      "BUG:": 0,
+      "WARNING:": 0,
+      "Unable to handle kernel": 0,
+      "Call trace:": 0
+    },
+    "owner_reported_physical_selection": true
+  }
 }
