@@ -1,8 +1,9 @@
 # A53 service-kernel RAM regression candidate
 
-Status: composition recipe and exact-shell tests prepared. Complete image
-composition and its receipt remain pending. No deployment or physical session
-is selected; the unresolved Wi-Fi boot retains device custody.
+Status: complete private image composed and validated; exact-shell and hosted
+Linux checks pass. No deployment or physical session is selected; the unresolved
+Wi-Fi boot retains device custody. Collection/recovery binding and a distinct
+finite session remain required before device use.
 
 ## Purpose and bounded change
 
@@ -63,9 +64,35 @@ The prior authentication and logging results remain evidence for the unchanged
 userspace bytes. These five tests do not rerun Dropbear authentication, exercise
 real device nodes, test the new kernel's PID1 path or establish board support.
 
+## Complete composition result
+
+The [composition receipt](results/a53-service-ram-candidate.json) records the
+image built from clean recipe commit
+`4ce5197b3c79139baaae6dc2026c6566336dde5d` in the RE VM. The existing
+Buildbox kernel was reused; no kernel compilation or device action occurred.
+The complete boot image is 9,129,984 bytes, leaving 7,647,232 bytes in boot2.
+Its SHA-256 is
+`97c23e3f34686d8831e56f9903e109f6b9ba89cb121c88996f25411e86d5bec0`;
+the exact 16 MiB padded image has SHA-256
+`f185a0f2f993f8c68227f2a6e225e951ee22487d418610b9156ee1e517f56cb0`.
+
+The LK analyzer accepted the image, paired payloads, header and load addresses.
+A separate readback checked all output hashes, the complete file inventory,
+private permissions and exact zero padding. Inverting the one release-string
+change reproduces the original init member including metadata. All 46 other
+members and the device tree compare equal to the accepted parent. The packaged
+init hash matches the five-case fixture. Managed staging was removed; the final
+private candidate remains in the RE VM, with no host image fetch or installation.
+
+Local repository checks and the exact source commit's
+[hosted Linux checks](https://github.com/ixoo/gemini-pda-mainline/actions/runs/34725518175)
+passed. No new kernel/DT source or binding changed, so no additional kernel
+build or DT schema run was needed. This is packaging and injected userspace
+evidence only; it establishes no new physical support claim.
+
 ## Before a device session
 
-After composition, bind the collection and recovery tools to this new kernel
+Bind the collection and recovery tools to this new kernel
 and candidate. Historical baseline tools pin the old release; they must not be
 used unchanged or have their closed validation receipts reclassified. Freeze
 a distinct finite session, including its hypothesis, observation branches,

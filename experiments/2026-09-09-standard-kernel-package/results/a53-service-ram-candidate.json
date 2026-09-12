@@ -1,0 +1,65 @@
+{
+  "status": "offline-a53-service-ram-composition-validated",
+  "recipe_commit": "4ce5197b3c79139baaae6dc2026c6566336dde5d",
+  "recipe_sha256": "83839c68cfa7ebd3f8206abc5495f676b0fa0e726c1b4c91a04d5ee48248dfff",
+  "kernel_build_commit": "ac6cf1774966ff282449881c5337d9888eab1d5a",
+  "kernel_release": "7.1.3-gemini-a53-service-facilities",
+  "kernel_package_sha256": "3692f6a38580326b4aa8c453ae7db051051d7d32701678d81e77d5421eb10414",
+  "parent_receipt_sha256": "c0f9154c1e78b5210cbce9eed31770d03671a7bc892e086a32a86c9d72a11a41",
+  "kernel_receipt_sha256": "b3717c1f9b0818593e28148b0e382b0003e7c7afb7cdba1f9dd12be50dfaa00d",
+  "parent_boot_sha256": "7dfc3b1f771a12b8e711f699cf8fcfd2678aedc15bc9d8bcc98554f9c6654cdb",
+  "files": {
+    "Image.gz": {
+      "sha256": "f83db1b5d6d49a0e589e5353a570e971445fa3e14b04b2fe2cf3e970b273914e",
+      "bytes": 6045287
+    },
+    "board.dtb": {
+      "sha256": "e1e4eca289320533bad5c879e78055eaa86a295080b1154c13debe29ddd8ee4a",
+      "bytes": 26826
+    },
+    "boot.img": {
+      "sha256": "97c23e3f34686d8831e56f9903e109f6b9ba89cb121c88996f25411e86d5bec0",
+      "bytes": 9129984
+    },
+    "boot2-padded.img": {
+      "sha256": "f185a0f2f993f8c68227f2a6e225e951ee22487d418610b9156ee1e517f56cb0",
+      "bytes": 16777216
+    },
+    "initramfs.img": {
+      "sha256": "0bd75912a8f35f097b0e26a52e1f2756612a342c9ac78067e5f6dfae5b76163b",
+      "bytes": 3055466
+    },
+    "kernel.config": {
+      "sha256": "bae0155286a3172a4e3e690d6eec3f9c66981e83a2f24f30799a30f70f60247b",
+      "bytes": 110479
+    }
+  },
+  "initramfs_members": 47,
+  "changed_members": [
+    "init"
+  ],
+  "init_sha256": "3b2cea90510f32461d453fb595819e559c8b6fe158eee9ae8c30d48bba615c00",
+  "unchanged_device_tree": true,
+  "unchanged_member_count": 46,
+  "secret_bearing": true,
+  "device_action": "none",
+  "physical_admission": false,
+  "post_composition_checks": {
+    "inventory_hashes_permissions": "pass",
+    "exact_partition_padding": "pass",
+    "inverse_init_delta_and_all_other_member_metadata": "pass",
+    "packaged_init_matches_five_case_fixture": "pass",
+    "device_tree_byte_comparison": "pass",
+    "stage_removed": true
+  },
+  "boot2_spare_bytes": 7647232,
+  "hosted_checks": {
+    "url": "https://github.com/ixoo/gemini-pda-mainline/actions/runs/34725518175",
+    "commit": "4ce5197b3c79139baaae6dc2026c6566336dde5d",
+    "conclusion": "success"
+  },
+  "init_test_receipt": "experiments/2026-09-09-standard-kernel-package/results/a53-service-ram-init.json",
+  "runtime_tools": "new kernel/candidate bindings and finite session not yet prepared",
+  "host_image_fetch": false,
+  "publication": "Only reproducibility inputs, image hashes, sizes and offline checks are published; all candidate bytes and keys remain private."
+}

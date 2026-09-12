@@ -104,6 +104,11 @@ namespace/BPF facilities. Its [exact-kernel QEMU test](../experiments/2026-09-09
 passes Debian service isolation, IPv4 filtering and orderly virtual filesystem
 shutdown. Confirm distribution/storage inputs before creating a persistent-root
 candidate; none of this is a PDA distribution boot result.
+The separate [A53 RAM regression image](../experiments/2026-09-09-standard-kernel-package/A53_RAM_REGRESSION.md)
+now pairs that kernel with the accepted authenticated environment and passes
+offline packaging checks. Bind its collection/recovery tools and freeze a
+distinct session before requesting a board regression; it is not selected
+while the current Wi-Fi device state remains unresolved.
 
 The independent [MMC voltage-switch error fix](../experiments/2026-09-09-mtk-sd-pinctrl-errors/README.md)
 returns failed pin configuration to the MMC core. Its isolated Buildbox compile
