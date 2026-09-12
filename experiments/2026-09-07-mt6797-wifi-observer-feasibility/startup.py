@@ -21,6 +21,7 @@ INPUT_PATHS = {
     'data/nvram/APCFG/APRDEB/WIFI': 514,
 }
 RUNTIME = '16e8ab61ac39d3cf22146b0a945f5eea41c53fb67020a6fc2a6f30d50d51077f'
+BOOT_ENTRY_CYCLE_ID = '7f21b732-da47-4245-ad83-e985044054a6'
 CHIP, VERSION = 0x0279, 0x8a00
 STAGE = 'python-entry'
 LOG_WRITES = 0
@@ -81,8 +82,10 @@ def validate_session(session):
                 'startup_action'}
     if set(session) != required or session['schema'] != 2:
         raise ValueError('unknown session schema')
-    if session['startup_action'] not in ('export', 'cycle'):
+    if session['startup_action'] not in ('export', 'cycle', 'boot-entry'):
         raise ValueError('unknown startup action')
+    if session['startup_action'] == 'boot-entry' and session['cycle_id'] != BOOT_ENTRY_CYCLE_ID:
+        raise ValueError('boot-entry control identity mismatch')
     cycle = uuid.UUID(session['cycle_id'])
     if str(cycle) != session['cycle_id'] or cycle.int == 0:
         raise ValueError('invalid cycle identity')
@@ -202,6 +205,8 @@ def main():
     try:
         log_stage('entered')
         session, identity = prepare()
+        if session['startup_action'] == 'boot-entry':
+            raise ValueError('boot-entry control requires its dedicated init')
         mark('preflight')
         log_stage('passed')
         if session['startup_action'] == 'export':

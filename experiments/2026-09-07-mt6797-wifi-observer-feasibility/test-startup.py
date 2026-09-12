@@ -107,6 +107,24 @@ class StartupTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'private input bytes'):
             startup.prepare()
 
+    def test_boot_entry_control_is_bound_and_cannot_enter_cycle(self):
+        self.session['startup_action'] = 'boot-entry'
+        with self.assertRaisesRegex(ValueError, 'control identity'):
+            startup.validate_session(self.session)
+        self.session['cycle_id'] = startup.BOOT_ENTRY_CYCLE_ID
+        startup.validate_session(self.session)
+        script = (HERE / 'boot-entry-init.sh').read_text()
+        self.assertIn('wifi_cycle=' + startup.BOOT_ENTRY_CYCLE_ID, script)
+        self.assertIn('control=' + startup.BOOT_ENTRY_CYCLE_ID, script)
+        with patch.object(startup, 'prepare', return_value=(self.session, bytes(96))), \
+                patch.object(startup, 'log_stage'), \
+                patch.object(startup.importlib.util, 'spec_from_file_location') as load, \
+                patch.object(startup.time, 'sleep', side_effect=SystemExit('parked')), \
+                patch('builtins.print'):
+            with self.assertRaisesRegex(SystemExit, 'parked'):
+                startup.main()
+            load.assert_not_called()
+
     def test_changed_controller_refused_before_import(self):
         self.write('opt/wifi-cycle/cycle-controller.py', b'changed')
         with self.assertRaisesRegex(ValueError, 'startup source'):

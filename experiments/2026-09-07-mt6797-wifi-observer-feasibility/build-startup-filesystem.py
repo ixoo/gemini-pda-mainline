@@ -48,7 +48,8 @@ def main():
         session_raw = session_path.read_bytes()
         session = json.loads(session_raw)
         module('startup', HERE / 'startup.py').validate_session(session)
-        startup_sources = {'init': HERE / 'startup-init.sh'}
+        startup_sources = {'init': HERE / ('boot-entry-init.sh' if
+                           session['startup_action'] == 'boot-entry' else 'startup-init.sh')}
         startup_sources.update({f'opt/wifi-cycle/{name}': HERE / name for name in
                                 ('startup.py', 'cycle-controller.py', 'respond-once.py',
                                  'check-retained-patches.py', 'capture-export.py', 'capture-device.py')})

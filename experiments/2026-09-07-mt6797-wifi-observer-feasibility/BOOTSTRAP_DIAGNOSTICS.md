@@ -1,5 +1,9 @@
 # Bootstrap failure diagnostics
 
+The next distinct [boot-entry control](BOOT_ENTRY_CONTROL.md) uses this same
+kernel with minimal PID1 and one normal restart, to test userspace entry and
+console retention before resuming full export startup.
+
 Status: implemented and tested offline, then deployed for the
 [second attempt](EXPORT_ATTEMPT_2.md). That boot produced neither USB export nor
 recovered diagnostic markers; its kernel/startup stage remains inconclusive.

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-"""Construct an unselected private native export container in the RE VM."""
+"""Construct an unselected private export-kernel diagnostic in the RE VM."""
 import argparse
 import gzip
 import hashlib
@@ -39,12 +39,13 @@ def build(active, kernel, filesystem, session_raw):
     baseline, _ = native.build(active, kernel)
     session = json.loads(session_raw)
     load('startup', HERE / 'startup.py').validate_session(session)
-    if session['startup_action'] != 'export' or session['kernel_image_sha256'] != KERNEL_SHA256:
-        raise ValueError('requires the selected export kernel and action')
+    if session['startup_action'] not in ('export', 'boot-entry') or session['kernel_image_sha256'] != KERNEL_SHA256:
+        raise ValueError('requires the selected export kernel and diagnostic action')
     if session['kernel_inputs_sha256'] != sha((HERE / 'full-kernel-inputs.json').read_bytes()):
         raise ValueError('kernel inputs changed')
     for name, expected in session['startup_files'].items():
-        source = HERE / ('startup-init.sh' if name == 'init' else Path(name).name)
+        init = 'boot-entry-init.sh' if session['startup_action'] == 'boot-entry' else 'startup-init.sh'
+        source = HERE / (init if name == 'init' else Path(name).name)
         if sha(source.read_bytes()) != expected:
             raise ValueError('startup source changed')
     extracted = subprocess.run(['cpio', '--quiet', '-i', '--to-stdout',
@@ -101,7 +102,8 @@ def main():
         with (args.output / name).open('xb') as stream:
             stream.write(data)
     (args.output / 'private-result.json').write_text(json.dumps({
-        'scope': 'unselected native export container; recovery and device validation outstanding',
+        'scope': 'unselected native diagnostic container; device validation outstanding',
+        'startup_action': json.loads(session)['startup_action'],
         'assembler_sha256': sha(Path(__file__).read_bytes()),
         'parent_assembler_sha256': PARENT_SHA256,
         'kernel_sha256': KERNEL_SHA256,
