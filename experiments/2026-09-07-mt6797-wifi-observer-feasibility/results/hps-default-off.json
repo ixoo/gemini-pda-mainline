@@ -1,5 +1,5 @@
 {
-  "status": "source-reviewed-build-outstanding",
+  "status": "validated-export-return-candidate-device-execution-outstanding",
   "native_source_commit": "59e00a9144d782e148332009a835b99c43382467",
   "source_sha256": {
     "drivers/misc/mediatek/base/power/mt6797/Makefile": "64a1f784e7df01e445d8a2d77a40a9537b1978275b668520d3d4974719a0c74f",
@@ -26,7 +26,7 @@
   "source_license": "GPL-2.0 per inspected source headers",
   "patch_authorship": "assistant-generated native experiment; no DCO certification; not submission-ready",
   "patch_apply_check": "passed against exact prepared 46-patch source",
-  "scope": "Disable HPS hotplug decisions through its existing enabled state, retaining periodic PPM work. Does not lock every hotplug API or certify thermal protection. Build and device execution outstanding.",
+  "scope": "Disable HPS hotplug decisions through its existing enabled state, retaining periodic PPM work. Does not lock every hotplug API or certify thermal protection. Complete build and container validation passed; device execution outstanding.",
   "startup_tests_passed": 24,
   "bridge_tests_passed": 5,
   "packaged_arm64_runtime": "passed",
@@ -35,5 +35,124 @@
     "errors": 0,
     "warnings": 0,
     "signoff_check": "disabled for explicitly non-certifying experiment"
+  },
+  "build": {
+    "package": "wifi-controller-kernel-aa404d3e65fabff058269cde55631214ff0fb042",
+    "manifest_sha256": "20e492585fa3b69a8d9feb945ce180e3753ee934c3a66282e623dd9f5ca651c5",
+    "files": 11,
+    "kernel_sha256": "4fc02b373433bba5ca2ee8dc00990ea8698ad2d817ed7f7aa2e9fc7e08cda06b",
+    "kernel_bytes": 8447426,
+    "project_commit": "aa404d3e65fabff058269cde55631214ff0fb042",
+    "source_integrity_sha256": "ed9d7766fbd8dc4d8a1c067f141e06012dd2ee2570fba0bcbae7ef6363ef2429",
+    "config_sha256": "486392ac9152365891c50ffdee56be1b6ed1aed61d588aa66e29f966604202ff",
+    "config_identical_to_46_patch": true,
+    "undefined_symbols": 0,
+    "modpost_section_mismatches": 69,
+    "compiler_warnings_suppressed": true,
+    "hosted_checks": "https://github.com/ixoo/gemini-pda-mainline/actions/runs/34664345370"
+  },
+  "linked_inspection": {
+    "tool": "RE VM GDB debug types and ELF section/symbol data",
+    "hps_context_bytes": 1232,
+    "enabled_offset": 32,
+    "previous_enabled": 1,
+    "new_enabled": 0,
+    "hps_context_changed_offsets": [
+      32
+    ],
+    "unchanged_functions": {
+      "_hps_task_main": {
+        "bytes": 552,
+        "sha256": "a1d7b01420dba16f69d8ca98ae0d6a35814ec50953abed09c1f979ef3e617849"
+      },
+      "hps_algo_main": {
+        "bytes": 2976,
+        "sha256": "f17448a31ab46cc450c7929629d3796fbc4eee25aa54abb6d3692d92cd87e67d"
+      },
+      "arch_reset": {
+        "bytes": 24,
+        "sha256": "726b08db89cde6f103e6c913ab3d32c926d858b3bf3c32cdba464a0c36f2d7ba"
+      }
+    },
+    "data_delta": {
+      "read_only_data_equal_after_prepared_source_path_normalization": true,
+      "debug_descriptor_line_increase": 5,
+      "debug_descriptors_changed": 44,
+      "vdso_and_kernel_build_ids_changed": true,
+      "remaining_hps_byte_offset": 32,
+      "all_allocated_data_differences_accounted": true
+    },
+    "read_only_data_difference_bytes": 83880,
+    "writable_data_difference_bytes": 65,
+    "kernel_note_difference_bytes": 20,
+    "all_other_allocated_file_backed_sections_identical": true
+  },
+  "session": {
+    "cycle_id": "8e78b74b-ba3a-4ca1-9bc1-0d9fc8635a88",
+    "preceding_gemian_boot": "a1efb6e0-4c7e-43f6-9b56-0ba6086bd8c2",
+    "action": "export-return",
+    "session_sha256": "47bcdda8ba5e1afac219d01cb57e6f2b1f91ce435b91caf93336fba2846823ef",
+    "physical_selection_budget": 1,
+    "application_snapshot_read_budget": 1,
+    "snapshot_bytes": 65536,
+    "host_request_bytes": 52,
+    "device_frame_bytes": 65624,
+    "host_ack_bytes": 84,
+    "transport_deadline_seconds": 60,
+    "host_observation_seconds": 180,
+    "normal_return_requests_maximum": 1,
+    "console_payload_reads_maximum": 1,
+    "console_payload_bytes_maximum": 65536,
+    "pmsg_clear": false,
+    "wmt_request": false,
+    "wlan_cycle": false,
+    "recovery": "reviewed attributable normal restart before capture claim; caught failures only",
+    "decision": "require HPS=0 then CPU0-7; acknowledged export or attributable next failure; no identical retry"
+  },
+  "filesystem": {
+    "sha256": "cba719efb2836d8523104339a3909811bee29325ae7d24884c2a6dc78cdbc06b",
+    "bytes": 7848401,
+    "runtime_sha256": "16e8ab61ac39d3cf22146b0a945f5eea41c53fb67020a6fc2a6f30d50d51077f",
+    "archive_members": 723,
+    "removed_members": 0,
+    "changed_existing_members": [
+      "etc/wifi-cycle/session.json",
+      "opt/wifi-cycle/startup.py"
+    ],
+    "exact_current_startup_inputs_and_runtime": true,
+    "filesystem_bytes": 7848401,
+    "kernel_bytes": 8447426,
+    "page_bytes": 2048,
+    "projected_container_bytes": 16300032,
+    "limit_bytes": 16777216,
+    "spare_bytes": 477184
+  },
+  "container": {
+    "assembler_sha256": "e9ada676db849050f161bb3d42eb6f426bc0badb9344a45670c102b9c308521e",
+    "filesystem_sha256": "cba719efb2836d8523104339a3909811bee29325ae7d24884c2a6dc78cdbc06b",
+    "kernel_sha256": "4fc02b373433bba5ca2ee8dc00990ea8698ad2d817ed7f7aa2e9fc7e08cda06b",
+    "padded_bytes": 16777216,
+    "padded_sha256": "9eb59c31f27fd20e7b911797259eef301c8ce5146fd905482f63512034a1b9f3",
+    "parent_assembler_sha256": "532f6f0dec5030a7b066f3baefa53580ec148317f633d4dd8d43308d30ac03b3",
+    "raw_bytes": 16300032,
+    "raw_sha256": "b52a0ef793d3bc601bbf60ebeb24cf1d00eaab054575e2919f3b86a132a5633f",
+    "session_sha256": "47bcdda8ba5e1afac219d01cb57e6f2b1f91ce435b91caf93336fba2846823ef",
+    "manifest_sha256": "79a12b2ff25382b9cf6e7d9fe658aafb1920fdecf9f9608c518bcfc78f4ed6d1",
+    "binary_header_and_payloads": true,
+    "reassembled_identical": true,
+    "native_addresses_and_flags": true,
+    "split_capture_dt_reg_and_no_map": true,
+    "container_mutations_rejected": 17,
+    "input_refusals": 6
+  },
+  "deployment_preparation": {
+    "installer_sha256": "dc26069bf7214e4bd0b2adeebf5e86c0022a2ed3cc9e286a467e5f3427610483",
+    "installer_change": "five exact identity substitutions from validated export-return installer; inverse comparison identical",
+    "device_guard_source_sha256": "0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf",
+    "collector_sha256": "ff05f4fd802875a5ab40a3661af43235a9ac5f2f942ff8f1700a4e6a8b12f25c",
+    "usb_watcher_sha256": "174e7115bf1ac4f2c0842ff707036237ea9a6d2b659527e3d96ac25468da2343",
+    "collector_changes": "preceding Gemian UUID; watcher also binds new session digest; receiver unchanged",
+    "shell_syntax_and_shellcheck": "passed",
+    "known_good_identity": "verified before preparation; installer must recheck live identity and full device guards"
   }
 }

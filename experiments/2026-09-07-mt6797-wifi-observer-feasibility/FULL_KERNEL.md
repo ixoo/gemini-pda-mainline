@@ -102,3 +102,8 @@ parser calls and stores zero timestamp and compression metadata. Its frame is
 compiler warning limitation remain. This package is bound by the
 [third private filesystem assembly](STARTUP_ASSEMBLY.md#export-filesystem); no
 boot container or physical session is selected.
+
+The [47-patch HPS startup correction](HPS_BOOT_POLICY.md#validated-build-and-selected-session)
+passes the complete Buildbox link, fetched checksum inventory and linked-code
+comparison. Its receipt and separately selected export-return candidate are
+owned by that experiment record; device execution remains outstanding there.

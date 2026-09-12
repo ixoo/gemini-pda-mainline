@@ -15,7 +15,7 @@ import subprocess
 HERE = Path(__file__).resolve().parent
 PARENT = HERE.parent / '2026-08-02-gemian-a72-bounded-observer-boot/scripts/assemble.py'
 PARENT_SHA256 = '532f6f0dec5030a7b066f3baefa53580ec148317f633d4dd8d43308d30ac03b3'
-KERNEL_SHA256 = 'b69963d057b14322a8a0b39389cea9ed4c058e653967b211b0ade741434a0bbb'
+KERNEL_SHA256 = '4fc02b373433bba5ca2ee8dc00990ea8698ad2d817ed7f7aa2e9fc7e08cda06b'
 
 
 def sha(data):
