@@ -101,6 +101,12 @@ and injected regression pass; it changes no device candidate or voltage policy.
 Truthful certification and upstream review remain required. MT6797 controller
 data and microSD rail/card-detect validation remain separate work.
 
+The independent [BQ25890 IRQ lookup correction](../experiments/2026-09-12-bq25890-irq-preflight/README.md)
+rejects missing or deferred interrupt resources before charger initialization.
+Its isolated Buildbox compile and injected regression pass. Human review and
+truthful certification remain required; Gemini charging limits, IRQ wiring and
+mainline operation are still unresolved despite its matching BQ25896 identity.
+
 The [MSDC1 input-enable topic](../experiments/2026-09-09-mt6797-msdc1-input-enable/README.md)
 adds the source-backed six-pin IES map and passes isolated Buildbox compilation.
 It activates no board state. Schmitt direction semantics, shared drive fields,

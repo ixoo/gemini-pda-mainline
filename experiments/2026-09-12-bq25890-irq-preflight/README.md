@@ -1,8 +1,8 @@
 # BQ25890 interrupt lookup before hardware initialization
 
-Status: source review and injected regression pass. Buildbox compilation is
-pending. This unsigned preparation topic enables no Gemini board device and
-does not select a boot candidate.
+Status: source review, injected regression and isolated Buildbox compilation
+pass. This unsigned preparation topic enables no Gemini board device and does
+not select a boot candidate.
 
 ## Problem and change
 
@@ -27,6 +27,9 @@ IRQ request stays after initialization and power-supply registration so its
 handler sees initialized state. Later registration/request failures still
 follow charger writes; this change neither adds rollback nor makes all failed
 probes free of effects. GPIO acquisition itself may configure a GPIO input.
+The pinned I2C core restores `client->irq` from `client->init_irq` at the start
+of each probe, before calling the driver. A subsequent core-driven probe thus
+does not inherit the fallback IRQ assignment from a failed driver attempt.
 
 The [Gemian identity result](../2026-07-12-charger-power-recovery/CHARGER_ID.md)
 matches BQ25896, a variant supported by this driver. Gemini's IRQ wiring,
@@ -46,6 +49,12 @@ by correcting a suspend-comment typo. All four retain this probe ordering,
 and the patch applies to each. A bounded public search for BQ25890 IRQ,
 initialization and probe deferral found no matching ordering fix; refresh the
 final outgoing base and public overlap before submission.
+
+The original [driver introduction](https://github.com/torvalds/linux/commit/4aeae9cb0dad117f055add68c48decaf489aecf3)
+already places hardware initialization before IRQ lookup. Its added driver
+file and exact commit/title were checked. The eventual human-certified export
+should include `Fixes: 4aeae9cb0dad ("power_supply: Add support for TI BQ25890 charger chip")`.
+The unsigned archive tested below remains byte-identical to its build input.
 
 The isolated `bq25890-irq-compile` profile selects only this patch and builds
 the driver with I2C, GPIO, power-supply and regulator support. All 205 existing
@@ -73,10 +82,21 @@ KERNEL_PROFILE=bq25890-irq-compile ./scripts/buildbox fetch-package
 ```
 
 Strict checkpatch passes with its pinned spelling/const tables and only
-`MISSING_SIGN_OFF` excluded. Repository publication checks and the isolated
-Buildbox compile remain required before recording build completion. No new
-schema check is required because no binding or DT changes. No mainline device
-test, charger transaction, charge-policy change or kernel boot is selected.
+`MISSING_SIGN_OFF` excluded. The [Buildbox receipt](compile.json) binds the
+successful compile at `dbcc256fb248f02e1c7ce25fdb31c10a43ce584e`. The charger
+object compiled with all six required configuration options enabled, its probe
+and driver symbols are linked, and the build log has zero compiler warning or
+error lines. The exact prepared source matches the locally tested source and
+passes all eleven regression cases on Buildbox. Remote package validation and
+the fetched package's inventory/checksums pass.
+
+Local repository checks and the [hosted Linux checks](https://github.com/ixoo/gemini-pda-mainline/actions/runs/34719211474)
+pass for the build-input commit, including the Linux-only provenance fixtures.
+No new schema check is required because no binding or DT changes. No mainline
+device test, charger transaction, charge-policy change or kernel boot occurred
+for this correction. A bounded Gemian power-status read still found insufficient
+installation power; no Wi-Fi installation or additional identity-register read
+was attempted.
 
 ## Publication boundary
 

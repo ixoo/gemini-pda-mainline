@@ -43,5 +43,20 @@
     "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/scripts/const_structs.checkpatch",
     "bytes": 1646,
     "sha256": "ea064f6916a74763468037494aeb270aae34b7c97617e84d424ca5b8733539b2"
+  },
+  "i2c-core-base.c": {
+    "url": "https://raw.githubusercontent.com/torvalds/linux/4d7d9486c04d917265f64c55bd23b2cc4fe7749c/drivers/i2c/i2c-core-base.c",
+    "bytes": 75391,
+    "sha256": "5f27edcd062389a19d005c5b146863f69a13c513d8d7bac8d451532e6a9f672f"
+  },
+  "introducing-driver.c": {
+    "url": "https://raw.githubusercontent.com/torvalds/linux/4aeae9cb0dad117f055add68c48decaf489aecf3/drivers/power/bq25890_charger.c",
+    "bytes": 25557,
+    "sha256": "ee58e6dabfb953b2767209f097dc014912a7d0696f17bb133fbcbc0759dfd493"
+  },
+  "introducing-commit.json": {
+    "url": "https://api.github.com/repos/torvalds/linux/commits/4aeae9cb0dad117f055add68c48decaf489aecf3",
+    "bytes": 34018,
+    "sha256": "3e8e24dc6eef31c539b04c491f129da35d1e5abec38ffdeed2c2c826fa9c3952"
   }
 }

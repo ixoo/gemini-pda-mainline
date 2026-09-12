@@ -105,6 +105,33 @@
       "authorship": "Unresolved: actual author and truthful certifier required",
       "submission_url": null,
       "removal_condition": "Remove only after accepted equivalents are in the selected upstream baseline and exact restart regression passes"
+    },
+    {
+      "id": "bq25890-irq-preflight",
+      "status": "human-review-and-certification-required",
+      "owner": "Integration",
+      "target": "Power-supply tree with linux-pm review. The observed fixes branch matches the compile base; for-next differs only by a comment typo and the patch applies there.",
+      "patches": [
+        "patches/upstream-4d7d9486/power-supply/0001-power-supply-bq25890-resolve-IRQ-before-initializing.patch"
+      ],
+      "evidence": [
+        "experiments/2026-09-12-bq25890-irq-preflight/README.md",
+        "experiments/2026-09-12-bq25890-irq-preflight/compile.json"
+      ],
+      "dependencies": [
+        "Human authorship review and truthful DCO certification",
+        "Include the verified introducing-commit Fixes reference in the final export and refresh recipients/source overlap",
+        "Keep GPIO lookup before charger initialization and IRQ registration after initialized state; no broad probe-rollback claim"
+      ],
+      "authorship": "Synthetic unsigned archive with LLM assistance recorded; a human must establish authorship and personally certify the final contribution.",
+      "submission_url": null,
+      "removal_condition": "Remove after an accepted equivalent reaches the selected upstream baseline and the probe-order regression passes",
+      "validation_profile": "bq25890-irq-compile",
+      "validation": {
+        "scope": "Isolated Buildbox compile and eleven injected probe/IRQ cases pass; remote/local package validation and hosted Linux repository checks pass. No Gemini charger activation or hardware charging test.",
+        "build": "experiments/2026-09-12-bq25890-irq-preflight/compile.json",
+        "submission_ready": false
+      }
     }
   ]
 }

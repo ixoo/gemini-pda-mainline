@@ -1,0 +1,65 @@
+{
+  "scope": "isolated BQ25890 IRQ lookup ordering fix; no Gemini boot candidate",
+  "status": "validated",
+  "completed_utc": "2026-09-12T21:11:52Z",
+  "package_name": "linux-7.3-rc1-gemini-c8f03c852d0258865a02e0dcecf433fb5be1f5ad5c41d6848b0bcdc600707b44",
+  "repository_commit": "dbcc256fb248f02e1c7ce25fdb31c10a43ce584e",
+  "repository_dirty": false,
+  "kernel_release": "7.3.0-rc1-bq25890-irq-compile",
+  "build_profile": "bq25890-irq-compile",
+  "kernel_source": {
+    "archive_format": "tar.gz",
+    "archive_root": "linux-4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "git_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "released": "2026-09-05",
+    "sha256": "45590c057805bc9cf7281ce04d5dbde5316b7c8b017998cafac301f67e92682d",
+    "source_url": "https://codeload.github.com/torvalds/linux/tar.gz/4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+    "version": "7.3-rc1"
+  },
+  "patchset_sha256": "42d6bef875b3a0d8da2c138ac2eb9c27eb394c8bcff1e80e2be8770c62d77f7c",
+  "config_inputs_sha256": "5b7d8eb15f9e0e0e4c61f73b723fa687293a500c519444dec2b0d6c9480ad0bb",
+  "config_sha256": "a2d2acb5c0265df3b3b372b0465c6c84201d87d3647a08aab2f65f49e8d5d8ed",
+  "modules_built": false,
+  "build_architecture": "x86_64",
+  "target_architecture": "arm64",
+  "compiler": "aarch64-linux-gnu-gcc (Debian 12.2.0-14) 12.2.0",
+  "compiler_sha256": "c7b8890354c8ddc0364addfeb8968597e197627bd1e338fb6ed705b578803846",
+  "linker": "GNU ld (GNU Binutils for Debian) 2.40",
+  "linker_sha256": "e09a889c78a75e73ed096c9fa28905599e6813298b9ac839d10b02ffa96e7b08",
+  "artifact_sha256": {
+    "Image": "f4cb315e89ca246dc490a4776b4a9f4f463b305d0ea261239379de1c7d0e07b4",
+    "Image.gz": "43c53b557498956138df622dfa32120d80162c21587e9222235651388900ece0",
+    "kernel.config": "a2d2acb5c0265df3b3b372b0465c6c84201d87d3647a08aab2f65f49e8d5d8ed",
+    "System.map": "5145f21f2e9b59bcc979c8ae1a266984c967841dc74a60809b0fee48b7d3135e",
+    "SHA256SUMS": "c8f03c852d0258865a02e0dcecf433fb5be1f5ad5c41d6848b0bcdc600707b44"
+  },
+  "required_builtin_config": [
+    "I2C",
+    "GPIOLIB",
+    "POWER_SUPPLY",
+    "CHARGER_BQ25890",
+    "REGULATOR",
+    "REGMAP_I2C"
+  ],
+  "linked_symbols": [
+    "bq25890_probe",
+    "bq25890_driver"
+  ],
+  "driver_object_sha256": "a24ae9f2d064fce6d2ddace575a47baa0e79f1875ba6b166bed36287e48f31ba",
+  "driver_source_sha256": "6f63b99f7753381d2571b38377b3c2282635329caf2e0e925374d612c78f9581",
+  "compiler_warning_error_lines": 0,
+  "build_log_sha256": "d0781502ab1ab5b2a4e7b561405aa2680f43a12b9125bfd51c6088e173c1a2ee",
+  "driver_object_compiled": true,
+  "host_regression_cases": 11,
+  "buildbox_prepared_source_regression_cases": 11,
+  "test_script_sha256": "35e3db32b5f7cffee009263fc9cd7b531e1583d84a3bdc97150db7e16a94a578",
+  "remote_package_validation": "pass",
+  "local_fetch_inventory_and_checksums": "pass",
+  "existing_profiles_unchanged": 205,
+  "hosted_checks": {
+    "url": "https://github.com/ixoo/gemini-pda-mainline/actions/runs/34719211474",
+    "commit": "dbcc256fb248f02e1c7ce25fdb31c10a43ce584e",
+    "conclusion": "success"
+  },
+  "hardware_tested": false
+}
