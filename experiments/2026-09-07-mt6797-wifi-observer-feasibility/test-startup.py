@@ -116,9 +116,31 @@ class StartupTests(unittest.TestCase):
     def arm_return(self):
         self.session['startup_action'] = 'export-return'
         self.save_session()
-        self.write('proc/cmdline', self.cmdline + ' wifi_return=1')
+        self.write('proc/cmdline', self.cmdline + ' wifi_return=1 maxcpus=5 maxcpus=8')
         startup.os.environ.update(WIFI_EXPORT_RETURN_BOOT='aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
                                   WIFI_EXPORT_RETURN_CYCLE=self.session['cycle_id'])
+
+    def test_export_return_requires_ordered_boot_cpu_limit(self):
+        self.arm_return()
+        startup.prepare()
+        for arguments in ('', 'maxcpus=5', 'maxcpus=8', 'maxcpus=8 maxcpus=5',
+                          'maxcpus=0 maxcpus=8', 'maxcpus=5 maxcpus=8 maxcpus=8',
+                          'maxcpus=5 maxcpus=8 maxcpus=10',
+                          'maxcpus=5 maxcpus=8 nosmp', 'maxcpus=5 maxcpus=8 nr_cpus=8'):
+            with self.subTest(arguments=arguments):
+                self.write('proc/cmdline', self.cmdline + ' wifi_return=1 ' + arguments)
+                with self.assertRaisesRegex(ValueError, 'boot CPU limit'):
+                    startup.prepare()
+        self.restart.assert_not_called()
+
+    def test_boot_cpu_limit_does_not_replace_online_mask_check(self):
+        self.arm_return()
+        self.write('sys/devices/system/cpu/online', '0-4')
+        with patch.object(startup, 'log_stage') as log:
+            with self.assertRaisesRegex(ValueError, 'kernel startup state'):
+                startup.prepare()
+            log.assert_called_once_with('observed-0-4')
+        self.restart.assert_not_called()
 
     def test_export_return_requires_exact_flag_and_shell_handoff(self):
         self.arm_return()

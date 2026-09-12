@@ -388,10 +388,11 @@ The remaining preparation order is:
    reached full PID1 startup and preserved its CPU-online refusal through a
    normal return to Gemian. The [native HPS correction](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/HPS_BOOT_POLICY.md)
    passed its disabled-HPS check but still refused CPU0–4 in place of CPU0–7,
-   preserving the failure through normal return. Resolve the effective boot
-   CPU limit and initial activation before selecting the next correction or
-   bounded measurement. Acknowledged export remains outstanding; do not repeat
-   this consumed session or weaken its CPU check.
+   preserving the failure through normal return. The validated
+   [initial CPU-limit correction](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/BOOT_CPU_LIMIT.md)
+   overrides LK's five-CPU default and requires both exact arguments and actual
+   CPU0–7 in its next bounded session. Acknowledged export remains outstanding;
+   do not repeat the consumed HPS session or weaken the CPU check.
    Exit order must not be inferred by reversing initialization, and the vendor
    WMT ioctl must not be copied merely to run the retained loader.
 4. **Preserve the bounded eMMC result:** the [closed session](../experiments/2026-09-05-owner-away-experiment-preparation/emmc/PAUSE_SESSION_PREPARATION.json)

@@ -1,0 +1,125 @@
+{
+  "status": "validated-selected-awaiting-publication-and-installation",
+  "date": "2026-09-12",
+  "cycle_id": "54efed5a-f015-4a0e-bd83-f59a0fa31097",
+  "preceding_gemian_boot": "0b7bd62b-20b3-4e28-aa9b-3ff92455678d",
+  "hypothesis": "The LK maxcpus=5 default limited initial A53 bring-up; a later maxcpus=8 lets native SMP establish CPU0-7 while HPS remains disabled.",
+  "unique_observation": "Require ordered maxcpus=5,maxcpus=8, no nosmp/nr_cpus, HPS=0 and actual CPU0-7 before one acknowledged snapshot export; otherwise preserve the next attributable refusal.",
+  "prior_runtime_receipt": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/hps-off-runtime-20260912.json",
+  "kernel_project_commit": "aa404d3e65fabff058269cde55631214ff0fb042",
+  "kernel_sha256": "4fc02b373433bba5ca2ee8dc00990ea8698ad2d817ed7f7aa2e9fc7e08cda06b",
+  "kernel_config_sha256": "486392ac9152365891c50ffdee56be1b6ed1aed61d588aa66e29f966604202ff",
+  "kernel_native_input_manifest_sha256": "bc844c38321c2dc0f4c919bd1a4be4885b1296abd5b5bd94af93a5b3055d48bf",
+  "new_kernel_build": false,
+  "changed_runtime_effect": "Native initial SMP may bring up A53 CPUs 5-7 before driver init; existing native CPU-on path, no new userspace hotplug request. A72 rejection, HPS disabled state, PPM and EEM paths remain unchanged.",
+  "header_argument_added": "maxcpus=8",
+  "expected_maxcpus_values": [
+    "5",
+    "8"
+  ],
+  "expected_cpu_online": "0-7",
+  "kernel_parser_source_sha256": {
+    "kernel/smp.c": "883078e26a8f02e942a22b4f4d8224de31132307301c2e557941b91e7a174c37",
+    "init/main.c": "4a96ad2a8fc517fab4cf2368816b523e5afa5127f5b646af85e4084a9ff370ca",
+    "kernel/params.c": "ce94c67590b78e3c2eac958950e74fb247af21a14598e803972f633580f5f343",
+    "lib/cmdline.c": "8cf75de7c075a365817eed8fc50673a62b8f8f0a0d253b5e8c546864185e0595",
+    "arch/arm64/kernel/smp.c": "855636305fe5d465ca9804827a95eae3203f7dd5d2994c600741e4d73b047d42"
+  },
+  "lk_source_revision": "f4988d74bb70a0a15d7f362f412afba7e7fcda46",
+  "lk_source_sha256": {
+    "lk/app/mt_boot/mt_boot.c": "9380b89d367770acf29f1c5b7f4856cc87bc4b64afd17aa9fa1fd621c213ecda",
+    "lk/platform/mt6797/include/platform/mt_reg_base.h": "4ae32d900b0a146555fbaaeecb45d5477330016fdf082a973a659d0dfdc68f16"
+  },
+  "linked_inspection": {
+    "maxcpus_address": "0xffffffc0011613b8",
+    "setup_max_cpus_address": "0xffffffc00120e090",
+    "call": "get_option receives the address of setup_max_cpus on each invocation",
+    "disassembly_sha256": "b1c5c935c12879a074714910db2e41bbd6f4740fdf74b2fc9bd91a879b03c73d"
+  },
+  "startup_tests_passed": 26,
+  "bridge_tests_passed": 5,
+  "stream_tests_passed": 14,
+  "ordered_limit_refusals": 9,
+  "actual_online_mask_refusal_retained": true,
+  "packaged_arm64_startup_and_bridge_tests": "passed with restart and hardware effects injected",
+  "source_sha256": {
+    "build-export-container.py": "244bd8fc29d71db4d375b6c30713fb960400ef2b57d98189f56c0752decbe910",
+    "startup.py": "12276907513ac2902c8c24d57ef9163ac2908d4e69e711c3f1347d60170829d9",
+    "test-startup.py": "7023de1b79a327601931d2e6f8f178730bb49300f3ef3c2b60daff728d865a73"
+  },
+  "filesystem": {
+    "archive_members": 723,
+    "removed_members": 0,
+    "changed_existing_members": [
+      "etc/wifi-cycle/session.json",
+      "opt/wifi-cycle/startup.py"
+    ],
+    "exact_current_startup_inputs_and_runtime": true,
+    "filesystem_bytes": 7848264,
+    "kernel_bytes": 8447426,
+    "page_bytes": 2048,
+    "projected_container_bytes": 16300032,
+    "limit_bytes": 16777216,
+    "spare_bytes": 477184
+  },
+  "container": {
+    "assembler_sha256": "244bd8fc29d71db4d375b6c30713fb960400ef2b57d98189f56c0752decbe910",
+    "filesystem_sha256": "14fec335e68fd7973660de8f24897a2cf16a66bee4f19b7174188b9254103330",
+    "kernel_sha256": "4fc02b373433bba5ca2ee8dc00990ea8698ad2d817ed7f7aa2e9fc7e08cda06b",
+    "padded_bytes": 16777216,
+    "padded_sha256": "d9334cba2f6ca5870d7004ecbf8c01b4e47b8004e00db3178f5098bdb4f6fb9d",
+    "parent_assembler_sha256": "532f6f0dec5030a7b066f3baefa53580ec148317f633d4dd8d43308d30ac03b3",
+    "raw_bytes": 16300032,
+    "raw_sha256": "9d402b0079713d9c120b878ab6e813c67daad9127a21609711e5292f4833f838",
+    "scope": "unselected native diagnostic container; device validation outstanding",
+    "session_sha256": "da877f7b2cfb49e9cd3c5d98fb03909d18047e35ea050cd4433cf1b22fb34779",
+    "startup_action": "export-return",
+    "manifest_sha256": "81b09de0270bc114b03a8b5f348662854e697e29c6bdbad81e8c21f128a71a1b"
+  },
+  "container_validation": {
+    "raw_bytes": 16300032,
+    "padded_bytes": 16777216,
+    "binary_header_and_payloads": true,
+    "reassembled_identical": true,
+    "native_addresses_and_flags": true,
+    "split_capture_dt_reg_and_no_map": true,
+    "container_mutations_rejected": 17,
+    "input_refusals": 6
+  },
+  "effects": {
+    "action": "export-return",
+    "physical_selection_budget": 1,
+    "application_snapshot_read_budget": 1,
+    "snapshot_bytes": 65536,
+    "host_request_bytes": 52,
+    "device_frame_bytes": 65624,
+    "host_ack_bytes": 84,
+    "transport_deadline_seconds": 60,
+    "host_observation_seconds": 180,
+    "normal_return_requests_maximum": 1,
+    "console_payload_reads_maximum": 1,
+    "console_payload_bytes_maximum": 65536,
+    "pmsg_clear": false,
+    "wmt_request": false,
+    "wlan_cycle": false,
+    "recovery": "reviewed attributable normal restart before capture claim; caught failures only",
+    "physical_selections_consumed": 0
+  },
+  "deployment_preparation": {
+    "installer_sha256": "f96a0cabb5ac3ba3d18f947b7d4d3c036ff31a7687de669764eef86a7e055c26",
+    "installer_change": "five exact identity substitutions; inverse byte comparison to reviewed HPS installer passed",
+    "device_guard_source_sha256": "0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf",
+    "shell_syntax_and_shellcheck": "passed",
+    "collector_sha256": "17f94439b7c1f5edf55cf7672afae6fbecc52dadd02cfbb4e90c6fbe0a3b2dbf",
+    "usb_watcher_sha256": "3c76eda2463ff9e1a8215a1cad3bc03b4f6ee9a52bcdc20eb70ba7324d1d771b",
+    "classifier_sha256": "ff6b12eebb8faa6bc2340b2d5ecd0fec8aaefa859213a913fe70257730cd2747",
+    "known_good_identity": "fresh bounded read verified preceding Gemian boot and running system",
+    "collectors_armed": false
+  },
+  "decisions": {
+    "pass": "exact CPU preflights, host-preserved snapshot and retained preserved marker",
+    "caught_failure": "save retained stage and choose a decision-changing correction",
+    "snapshot_without_marker": "preservation only",
+    "no_attribution_or_return": "preserve partial evidence; no unreviewed recovery or unchanged retry"
+  }
+}

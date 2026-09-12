@@ -3,8 +3,8 @@
   "purpose": "Readiness inventory, not an executable queue or device authorization. Object order is not scheduling order; docs/ROADMAP.md alone owns priority. Exact inputs, budgets and chronology stay in linked experiments.",
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
-  "selected_item": null,
-  "selection_note": "The HPS-default-off export-return session is consumed. One owner boot observed HPS=0, refused CPU0-7 with CPU0-4 online, and returned normally to verified changed-boot Gemian. Evidence is preserved; no device session or identical retry is selected.",
+  "selected_item": "wifi-export-return-maxcpus8",
+  "selection_note": "The validated maxcpus=8 export-return correction is selected for publication, guarded boot2 installation and one owner selection. The preceding HPS session is consumed. Runtime CPU checks and the original finite export/return budgets remain mandatory.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -185,6 +185,21 @@
       "dependencies": [],
       "owner_task_id": null,
       "readiness_note": "One physical selection and one retained-console read are consumed. HPS=0 passed but CPU0-4 failed the CPU0-7 requirement before USB export. Normal return to changed-boot Gemian is verified. Collectors were not armed before selection; no USB request or acknowledgement was sent. Audit the effective boot CPU limit and initial activation path before any new candidate or measurement. No unchanged-image retry."
+    },
+    "wifi-export-return-maxcpus8": {
+      "workstream": "wifi",
+      "preparation_state": "ready",
+      "device_state": "selected",
+      "owner": "primary integration coordinator",
+      "reviewer": "primary integration coordinator",
+      "device_custodian": "primary integration coordinator",
+      "experiment": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/README.md",
+      "session_packet": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/BOOT_CPU_LIMIT.md",
+      "candidate_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/maxcpus8.json",
+      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/BOOT_CPU_LIMIT.md",
+      "dependencies": [],
+      "owner_task_id": null,
+      "readiness_note": "Validated cycle 54efed5a-f015-4a0e-bd83-f59a0fa31097 adds maxcpus=8 after the inherited five-CPU default. Require exact ordered arguments, HPS=0 and CPU0-7 before export. No new kernel build; packaging, exact ARM64 startup tests and installer checks pass. Publish and pass hosted checks before guarded installation, clean shutdown, collectors and one physical selection. No WMT request or WLAN cycle."
     }
   }
 }

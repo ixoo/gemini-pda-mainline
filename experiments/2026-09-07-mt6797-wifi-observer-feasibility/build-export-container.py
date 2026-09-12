@@ -55,7 +55,7 @@ def build(active, kernel, filesystem, session_raw):
         raise ValueError('filesystem session identity mismatch')
     command = (native.CMDLINE + ' rdinit=/init panic=0 cpuidle.off=1'
                ' ramoops.pmsg_capture=1 wifi_cycle=' + session['cycle_id'] +
-               (' wifi_return=1' if session['startup_action'] == 'export-return' else '')).encode('ascii')
+               (' wifi_return=1 maxcpus=8' if session['startup_action'] == 'export-return' else '')).encode('ascii')
     if len(command) >= 512:
         raise ValueError('startup command line exceeds first header field')
     header = bytearray(baseline[:native.PAGE_SIZE])

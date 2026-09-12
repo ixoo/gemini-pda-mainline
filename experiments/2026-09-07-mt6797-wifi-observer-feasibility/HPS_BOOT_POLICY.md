@@ -191,4 +191,5 @@ CPUs 5–7 were ever online in this boot.
 Next resolve that boot-limit and initial-activation boundary before changing
 the candidate or admitting a new measurement. Do not weaken the online-mask
 check or repeat this unchanged image. The one physical selection and console
-read are consumed; leave the verified Gemian system running.
+read are consumed; leave the verified Gemian system running until the separately
+validated [initial CPU-limit correction](BOOT_CPU_LIMIT.md) is deployed.

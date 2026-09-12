@@ -150,7 +150,7 @@ def check_runtime(session):
         raise ValueError('kernel ABI or release mismatch')
     if text('proc/version') != session['kernel_version']:
         raise ValueError('kernel version mismatch')
-    # Bind the selected cycle to its boot command line; reject duplicate keys.
+    # Bind the cycle to its command line; only the reviewed maxcpus override repeats.
     words = text('proc/cmdline').split()
     mark('boot-parameters')
     if any(word.partition('=')[0] == 'sysrq_always_enabled' for word in words):
@@ -166,6 +166,13 @@ def check_runtime(session):
     if expected_return and (os.environ.get('WIFI_EXPORT_RETURN_BOOT') != text('proc/sys/kernel/random/boot_id') or
                             os.environ.get('WIFI_EXPORT_RETURN_CYCLE') != session['cycle_id']):
         raise ValueError('return shell handoff mismatch')
+    if expected_return:
+        mark('boot-cpu-limit')
+        # LK supplies five first; the image requests eight. Native early parsing
+        # applies both in order. Still require the actual online mask below.
+        if ([word.partition('=')[2] for word in words if word.partition('=')[0] == 'maxcpus'] != ['5', '8'] or
+                any(word.partition('=')[0] in ('nosmp', 'nr_cpus') for word in words)):
+            raise ValueError('boot CPU limit mismatch')
     for path, expected in {
         'proc/sys/kernel/panic': '0',
         'proc/sys/kernel/sysrq': '0',
