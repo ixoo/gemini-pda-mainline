@@ -1,5 +1,6 @@
 #!/bin/busybox sh
 # SPDX-License-Identifier: MIT
+# shellcheck shell=dash
 # One boot-entry control; this is not the Wi-Fi export or cycle launcher.
 # Keep the control UUID equal to BOOT_ENTRY_CYCLE_ID in startup.py.
 [ "$$" -eq 1 ] || exit 1
