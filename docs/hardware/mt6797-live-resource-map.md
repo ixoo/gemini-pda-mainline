@@ -715,15 +715,18 @@ same address. This is a concrete warning that an enabled-looking vendor node
 can be an inactive board alternative: the RT9466 settings and stale BQ24261
 node are not evidence for the populated charger.
 
-Linux 7.1.3 already has a BQ25890 power-supply driver and binding, so the
-standard core can be reused once the exact silicon ID, interrupt, battery and
-system-rail wiring, and conservative charge limits are proven. The refreshed
-2026-07-13 capture and source comparison show that the vendor register map is
-the standard 21-byte BQ25890 window, but the vendor presence check only reads
-register `0x03`; it does not prove a BQ part number. Linux additionally checks
-the `0x14` part/revision fields and rejects unknown devices. The bounded
+The upstream BQ25890-family power-supply driver supports BQ25896. One reviewed
+Gemian read returned `0x14 = 0x06`, PN zero/revision two, matching that part's
+identity fields. New kernel messages corroborated the exact read request and
+cached value, but the vendor interface hides transfer status and uses a shared
+cache. See the [identity result and limits](../../experiments/2026-07-12-charger-power-recovery/CHARGER_ID.md).
+Interrupt ownership, battery/system-rail wiring, conservative limits and safe
+mainline operation remain unproved. The vendor's ordinary presence check only
+reads register `0x03`; its driver name alone does not prove a BQ part number.
+Upstream checks the `0x14` fields, but unknown revisions with PN zero fall back
+to BQ25892. That fallback is not an identity pass. The historical
 [BQ25890 reuse audit](../../experiments/2026-07-12-charger-power-recovery/results/bq25890-reuse-audit-20260713.txt)
-records this distinction. Linux's
+records the earlier source comparison. Linux's
 FAN53555 regulator is not a safe name-based substitute for FAN49101. The
 historical vendor probe logged manufacturer `0x83` and die ID `0x06`, but the
 source-derived 603 mV voltage table used by patch 0055 conflicts with onsemi's

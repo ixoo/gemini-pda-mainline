@@ -1,5 +1,11 @@
 # Experiment: MT6797 charger and fuel-gauge recovery
 
+Current identity result (2026-09-12): one reviewed Gemian read returned charger
+register `0x14 = 0x06`, PN zero/revision two, matching BQ25896. Kernel messages
+corroborated the request and value. The interface hides transfer status; no
+mainline charging was tested. See the [identity protocol and result](CHARGER_ID.md),
+which also corrects the older upstream unknown-revision rejection claim.
+
 Current correction (2026-09-08): the source-derived FAN49101 voltage table
 and patch 0055 are not an accepted silicon contract. Manufacturer documentation
 contradicts the table; the read-only-probe claim is also withdrawn. See the

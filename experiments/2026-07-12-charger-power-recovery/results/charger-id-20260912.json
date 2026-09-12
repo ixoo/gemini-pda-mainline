@@ -1,0 +1,180 @@
+{
+  "schema_version": 1,
+  "date": "2026-09-12",
+  "result": "observed-identity-matches-bq25896",
+  "mainline_support": "untested",
+  "protocol": "experiments/2026-07-12-charger-power-recovery/CHARGER_ID.md",
+  "source_inputs": {
+    "vendor.c": {
+      "url": "https://raw.githubusercontent.com/gemian/gemini-linux-kernel-3.18/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/bq25890.c",
+      "bytes": 30069,
+      "sha256": "01f79a7dba68dd916e7fbc1bd20be448d10ff6706521112a7904cdb86900add6"
+    },
+    "vendor.h": {
+      "url": "https://raw.githubusercontent.com/gemian/gemini-linux-kernel-3.18/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/bq25890.h",
+      "bytes": 9406,
+      "sha256": "72db3f1b15ecf2a4dfc850591d8d5da481322583950164a21877b253f7351967"
+    },
+    "upstream.c": {
+      "url": "https://raw.githubusercontent.com/torvalds/linux/cba2348ab114391f5b1a00fa65c5b739f13f0563/drivers/power/supply/bq25890_charger.c",
+      "bytes": 44664,
+      "sha256": "618e44edab0b9e6220f33a59211fe8b46337b10f4b029bd3318194c4f99429b5"
+    }
+  },
+  "datasheet": {
+    "url": "https://www.ti.com/lit/ds/symlink/bq25896.pdf",
+    "bytes": 1641473,
+    "sha256": "25c4ab8e9c2c9e67d8a0bc2cd8ca6e582567c64ea4074fa8b4dbc878481fd896"
+  },
+  "retained_binary": {
+    "image_sha256": "0570480c28bce1583636a240904df8da3af0b5e5b4bcc6254f5719b42bd723d0",
+    "elf_sha256": "cc66df06194d3315335462760962165e1dcb2e50221574aeb45a0805bb17a162",
+    "elf_kernel_equals_image": true,
+    "functions": {
+      "bq25890_user_space_probe": {
+        "start": "0xffffffc0004c3308",
+        "end_exclusive": "0xffffffc0004c3360",
+        "bytes": 88,
+        "sha256": "76e44cdc51d29b1d132241cb7552713b4d533d0328d54e1f4173e5228505612d"
+      },
+      "show_bq25890_access": {
+        "start": "0xffffffc0004c3360",
+        "end_exclusive": "0xffffffc0004c33c0",
+        "bytes": 96,
+        "sha256": "0c9bfb66a13e5ab395414a9777fe23942239966118c29cce4f0d19a24af05944"
+      },
+      "bq25890_read_byte": {
+        "start": "0xffffffc0004c33c0",
+        "end_exclusive": "0xffffffc0004c34b8",
+        "bytes": 248,
+        "sha256": "f783afae42d7ec0575e21eb81e621974d289694cd9889020afa5abf0f1473fef"
+      },
+      "bq25890_read_interface": {
+        "start": "0xffffffc0004c35d0",
+        "end_exclusive": "0xffffffc0004c36b0",
+        "bytes": 224,
+        "sha256": "7367a764f1df960aa52587195f065ebb4af5313ded247eceafcbdf9fa1173c47"
+      },
+      "store_bq25890_access": {
+        "start": "0xffffffc0004c3790",
+        "end_exclusive": "0xffffffc0004c3900",
+        "bytes": 368,
+        "sha256": "8b6c679a16d84a5d878b6d4adbb4d9f484dbde54b3992195ffbde2f6d582fe31"
+      }
+    }
+  },
+  "compiled_attribute": {
+    "address": "0xffffffc001246ac8",
+    "name": "bq25890_access",
+    "mode": "0664",
+    "show": "0xffffffc0004c3360",
+    "store": "0xffffffc0004c3790"
+  },
+  "identity": {
+    "kernel": "Linux 3.18.41+ aarch64",
+    "boot_id": "a1efb6e0-4c7e-43f6-9b56-0ba6086bd8c2",
+    "boot_id_unchanged": true,
+    "primary_boot_sha256": "1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513",
+    "proc_version_sha256": "999f539c557b29fb34f1adc6a70992bae63f241e4a5ab4fd47b8d9baf8f81688",
+    "runtime_attestation": false,
+    "helper_names_present": true,
+    "live_symbol_addresses": "masked",
+    "client": "I2C0 0x6b",
+    "name": "sw_charger",
+    "compatible": "mediatek,sw_charger",
+    "driver": "bq25890",
+    "interface_driver": "bq25890-user"
+  },
+  "observation": {
+    "device_utc": "2026-09-12T20:54:31.820464Z",
+    "register": "0x14",
+    "request_hex": "3134",
+    "accepted_bytes": 2,
+    "cached_decimal": 6,
+    "register_hex": "0x06",
+    "pn": 0,
+    "dev_rev": 2,
+    "datasheet_match": "BQ25896",
+    "kernel_log_records": 5,
+    "log_corroborates_input_size_address_value": true,
+    "log_read_reached_current_end": true,
+    "transfer_status_exposed": false,
+    "power_before": {
+      "health": "Good",
+      "present": "1",
+      "wireless_online": "0",
+      "capacity": "31",
+      "ac_online": "0",
+      "status": "Not charging",
+      "usb_online": "0"
+    },
+    "power_after": {
+      "health": "Good",
+      "present": "1",
+      "wireless_online": "0",
+      "capacity": "31",
+      "ac_online": "0",
+      "status": "Not charging",
+      "usb_online": "0"
+    }
+  },
+  "consumed_budget": {
+    "helper_requests": 1,
+    "cached_show_reads": 1,
+    "kernel_log_records": 5,
+    "kernel_log_max_records": 32,
+    "kernel_log_max_record_bytes": 4096,
+    "remote_timeout_seconds": 20,
+    "host_timeout_seconds": 35,
+    "remote_exit_code": 0,
+    "boot_selections": 0,
+    "collector_retries": 0,
+    "requested_control_register_writes": 0
+  },
+  "limitations": [
+    "Shared diagnostic cache does not lock out other sysfs writers.",
+    "Input count and logs do not expose the discarded I2C transfer status.",
+    "One helper invocation does not establish an exact wire-attempt count below the driver.",
+    "Stored boot checksum and known Gemian identity are not runtime cryptographic attestation.",
+    "No mainline charger probe, IRQ, wiring, battery-limit or charging validation."
+  ],
+  "private_evidence": {
+    "metadata-remote.py": {
+      "sha256": "dcd0295ba0bc8f515d138d4672e924ee66a4bf31ccf1688c619991347e06e68a",
+      "bytes": 2081
+    },
+    "metadata.stdout": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "metadata.stderr": {
+      "sha256": "ad27a7209db37f42379d9725cf15fe405b462cb4572c50284508c50c3ace0d87",
+      "bytes": 867
+    },
+    "metadata-2-remote.py": {
+      "sha256": "a8b7665c91ea3a747285e334b0bdcc034a323b6ed2901e62901ff13aeeb957d2",
+      "bytes": 2351
+    },
+    "metadata-2.stdout": {
+      "sha256": "febd93df063ff41c73647874e95375902db3a56ec0da7ff36417b5314b9d66c1",
+      "bytes": 1701
+    },
+    "metadata-2.stderr": {
+      "sha256": "72716c204bd5dd628b4fa5d220a1f5efc0a908e1e8fafa5b365c8491b64afa84",
+      "bytes": 291
+    },
+    "identity-remote.py": {
+      "sha256": "f6809c77df633ffdc341e62b46acde36190ac2260c557eec4a120f7a7f15057b",
+      "bytes": 3311
+    },
+    "identity.stdout": {
+      "sha256": "2f7404af3df0a5dc522061ee818620d05de053882203964b10601a4b48a4b5db",
+      "bytes": 1750
+    },
+    "identity.stderr": {
+      "sha256": "72716c204bd5dd628b4fa5d220a1f5efc0a908e1e8fafa5b365c8491b64afa84",
+      "bytes": 291
+    }
+  },
+  "redactions": "Raw kernel records, host paths and transport endpoints remain private. Public evidence contains only selected hardware facts, checksums and sanitized boot identity."
+}

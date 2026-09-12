@@ -3,8 +3,8 @@
   "purpose": "Readiness inventory, not an executable queue or device authorization. Object order is not scheduling order; docs/ROADMAP.md alone owns priority. Exact inputs, budgets and chronology stay in linked experiments.",
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
-  "selected_item": null,
-  "selection_note": "No device test selected. Keyboard milestone owner-accepted; eMMC read/log budgets consumed. Wi-Fi observer integration remains in preparation; confirm with owner before shutdown/restart.",
+  "selected_item": "wifi-export-return-hps-off",
+  "selection_note": "The exact HPS-default-off export-return candidate is selected and validated; installation waits for the existing live power gate. No installation, shutdown or owner boot2 selection has occurred for this cycle. Standing project authorization covers the reviewed test and normal return. Exact identity, finite budgets and physical boot2 selection remain mandatory.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -170,6 +170,21 @@
       ],
       "owner_task_id": null,
       "readiness_note": "One corrected disconnect proof passed with complete empty reader scan. Log preservation and changed-ID Gemian return passed. Binding disabled; all session budgets consumed. Fresh keyboard admission remains required."
+    },
+    "wifi-export-return-hps-off": {
+      "workstream": "wifi",
+      "preparation_state": "ready",
+      "device_state": "selected",
+      "owner": "primary integration coordinator",
+      "reviewer": "primary integration coordinator",
+      "device_custodian": "primary integration coordinator",
+      "experiment": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/README.md",
+      "session_packet": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/HPS_BOOT_POLICY.md",
+      "candidate_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/hps-default-off.json",
+      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/HPS_BOOT_POLICY.md#initial-installation-power-refusal",
+      "dependencies": [],
+      "owner_task_id": null,
+      "readiness_note": "Cycle 8e78b74b-ba3a-4ca1-9bc1-0d9fc8635a88 selects the validated 47-patch kernel and container. Initial installation refused before upload/write/shutdown on power; its one physical-selection budget remains unused. Recheck the existing installer gates before deployment. The completed one-register Gemian charger identity inspection did not change this candidate or consume its boot budget. No WMT request, firmware load or WLAN cycle is selected."
     }
   }
 }
