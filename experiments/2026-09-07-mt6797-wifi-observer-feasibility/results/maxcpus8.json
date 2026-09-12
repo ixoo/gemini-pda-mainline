@@ -1,5 +1,5 @@
 {
-  "status": "validated-selected-awaiting-publication-and-installation",
+  "status": "installed-awaiting-owner-selection",
   "date": "2026-09-12",
   "cycle_id": "54efed5a-f015-4a0e-bd83-f59a0fa31097",
   "preceding_gemian_boot": "0b7bd62b-20b3-4e28-aa9b-3ff92455678d",
@@ -121,5 +121,12 @@
     "caught_failure": "save retained stage and choose a decision-changing correction",
     "snapshot_without_marker": "preservation only",
     "no_attribution_or_return": "preserve partial evidence; no unreviewed recovery or unchanged retry"
-  }
+  },
+  "publication": {
+    "commit": "2c900749683cb5e0c621da9b66915b9989559156",
+    "local_repository_checks": "pass",
+    "hosted_checks": "https://github.com/ixoo/gemini-pda-mainline/actions/runs/34724331096",
+    "hosted_result": "success"
+  },
+  "deployment_receipt": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/maxcpus8-deployment-20260912.json"
 }

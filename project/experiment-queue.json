@@ -4,7 +4,7 @@
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
   "selected_item": "wifi-export-return-maxcpus8",
-  "selection_note": "The validated maxcpus=8 export-return correction is selected for publication, guarded boot2 installation and one owner selection. The preceding HPS session is consumed. Runtime CPU checks and the original finite export/return budgets remain mandatory.",
+  "selection_note": "The maxcpus=8 correction is published, checked and installed on guarded boot2 with matching full readback and clean shutdown. Its physical-selection budget is unused; wait for owner readiness before arming collectors. The preceding HPS session remains consumed.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -196,10 +196,10 @@
       "experiment": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/README.md",
       "session_packet": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/BOOT_CPU_LIMIT.md",
       "candidate_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/maxcpus8.json",
-      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/BOOT_CPU_LIMIT.md",
+      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/BOOT_CPU_LIMIT.md#verified-installation",
       "dependencies": [],
       "owner_task_id": null,
-      "readiness_note": "Validated cycle 54efed5a-f015-4a0e-bd83-f59a0fa31097 adds maxcpus=8 after the inherited five-CPU default. Require exact ordered arguments, HPS=0 and CPU0-7 before export. No new kernel build; packaging, exact ARM64 startup tests and installer checks pass. Publish and pass hosted checks before guarded installation, clean shutdown, collectors and one physical selection. No WMT request or WLAN cycle."
+      "readiness_note": "Cycle 54efed5a-f015-4a0e-bd83-f59a0fa31097 is installed with full-partition checksum and byte comparison verified. Power passed at 89% on battery. PDA is off; collectors are unarmed and the one physical selection is unused. Wait for owner readiness, capture the pre-selection USB inventory and arm both collectors before requesting physical boot2 selection. No WMT request or WLAN cycle."
     }
   }
 }

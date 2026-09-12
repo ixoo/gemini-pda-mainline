@@ -1,9 +1,10 @@
 # Native export diagnostic initial CPU limit
 
-Status: correction and complete container validated; selected for publication,
-guarded installation and one physical boot. No runtime result exists for this
-new session. The preceding [HPS-off session](HPS_BOOT_POLICY.md#device-result)
-is consumed and remains a CPU-online refusal.
+Status: published, checked and installed with matching full readback and clean
+shutdown. Owner readiness is pending; collectors are unarmed and the one physical
+selection is unused. No runtime result exists for this new session. The preceding
+[HPS-off session](HPS_BOOT_POLICY.md#device-result) is consumed and remains a
+CPU-online refusal.
 
 ## Cause boundary and correction
 
@@ -95,3 +96,25 @@ correction. Missing attribution/return preserves uncertainty and does not
 permit an unchanged retry or an alternate recovery action. Standing project
 authorization covers this reviewed test; physical selection remains the owner
 action.
+
+## Verified installation
+
+The correction was published at `2c900749683cb5e0c621da9b66915b9989559156`.
+Local repository checks and the
+[hosted Linux checks](https://github.com/ixoo/gemini-pda-mainline/actions/runs/34724331096)
+passed. The [deployment receipt](results/maxcpus8-deployment-20260912.json)
+records installation in the same verified preceding Gemian boot.
+
+Live GPT resolved boot2 as `179:30`, distinct from root `179:29`, with the
+reviewed device guard passing before the write. All three gates saw a present,
+healthy battery at 89% without external power, meeting the existing 80%
+unpowered threshold; each sample pair matched. The predecessor was the exact
+consumed HPS-off image. The installer wrote, synced and flushed the selected
+image, required matching full-partition checksums, and independently read back
+and byte-compared the entire partition on the host. No fresh backup was made.
+
+After evidence was preserved, `systemctl poweroff` closed SSH with status 255
+and the authenticated endpoint became unreachable. The installer completed
+successfully. No automatic reboot, physical selection or collector invocation
+occurred. The owner-readiness question is pending; leave the finite observation
+windows unused until that reply, then follow the physical procedure above.
