@@ -160,8 +160,11 @@ This audit found no demonstrated layout repair and made no kernel, image or
 device change. The subsequent [known-good retention control](RETENTION_CONTROL.md)
 also recovered no console record after an owner-confirmed Esc restart, despite
 a confirmed pre-restart marker and successful returned-Gemian backend
-registration. Resolve retention and record handling before another physical
-attempt. Candidate backend registration remains unproven; absent candidate
+registration. The subsequent [normal-restart comparator](RETENTION_RESET_COMPARISON.md#runtime-result-2026-09-11)
+retained its exact marker and reported a different reset class. This proves
+one healthy-Gemian warm-return path, not the export candidate's backend or
+Esc retention. Before another export attempt, validate an attributable
+warm-return or independent live/external observation path. Absent candidate
 markers cannot establish failure before kernel entry or before PID1.
 
 ## Validation and device boundary

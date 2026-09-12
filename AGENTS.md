@@ -55,9 +55,11 @@ repository a small patch, tooling and evidence layer; do not vendor Linux.
 - Before a boot, state its hypothesis, unique observation and decision branches.
   Use the active experiment's validated candidate, never the newest timestamp.
   Do not repeat identical artifacts without a decision-changing measurement.
-- Preserve unique evidence before recovery. Owner absence permits already
-  authorized offline progress, not automatic physical selection or broader
-  hardware actions. An explicit pause overrides continuation.
+- The device is dedicated to this project. Standing owner authorization covers
+  reviewed project device tests, their admitted diagnostic effects, required
+  shutdown/restarts and reviewed recovery. Proceed without repeated permission
+  prompts. Preserve unique evidence before recovery; an explicit pause overrides
+  continuation. Physical boot2 selection remains an owner action.
 - Standing authorization covers bounded read-only Gemian inspection and private
   analysis of retained captures. Use the RE VM for binary analysis. Retained
   firmware may support private tests; redistribution rights remain separate.
@@ -73,16 +75,17 @@ repository a small patch, tooling and evidence layer; do not vendor Linux.
   pad to exact size, write, sync/flush and require matching full readback.
   Rely on the verified project-wide backup; do not make a fresh backup solely
   for each write. Shut down cleanly after a verified write; the owner selects
-  boot2 physically. Never reboot automatically or substitute another partition.
+  boot2 physically. Do not replace that handoff with an automatic reboot or
+  substitute another partition.
 - Primary boot, boot3, preloader, NVRAM, GPT and whole-device writes are outside
   that approval. Radio actions, calibration and resource writes require their
   own admitted protocols. Follow the detailed safety rules for diagnostics.
 - Return from a completed mainline session to Gemian is authorized only through
   the reviewed recovery path after preserving evidence and verifying live
   identity and recovery-tool identity; confirm changed-boot Gemian afterward.
-  Ask the owner before restarting, including recovery, unless an actual urgent
-  safety reason requires it. When waiting for owner input, wait; a completed
-  test, timeout or logging deadline does not replace restart confirmation.
+  No separate restart confirmation is required within this reviewed scope.
+  Identity, evidence, finite budgets and stop conditions remain mandatory;
+  a timeout does not authorize an unreviewed retry or alternate recovery path.
 
 ## Validation and publication
 

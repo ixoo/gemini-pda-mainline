@@ -121,7 +121,7 @@ failure before kernel entry or PID1. Investigate retention, initialization and
 record handling before selecting another physical attempt; neither a new marker
 nor a kernel change is justified by this result alone.
 
-The subsequent [reset-path comparison](RETENTION_RESET_COMPARISON.md) narrows
-standard userspace removal and identifies conditional firmware preservation.
-It prepares a distinct normal-restart comparator, pending separate owner
-approval; this completed Esc control is not reopened.
+The subsequent [reset-path comparison](RETENTION_RESET_COMPARISON.md) recovered
+its exact marker after one normal Gemian restart reported as `wdt_by_pass_pwk`.
+This supports a reset-path distinction; it does not locate this Esc control's
+record loss or reopen either consumed control.

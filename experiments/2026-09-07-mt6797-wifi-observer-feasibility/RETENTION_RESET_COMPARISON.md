@@ -1,7 +1,7 @@
 # Console retention across different reset paths
 
-Status: reset-path audit completed; one normal-restart comparator prepared, not executed.
-It requires separate owner approval for its marker write and restart. The
+Status: normal-restart comparator completed with the exact marker retained once.
+Its marker, restart and collection budgets are consumed. The
 [completed Esc control](RETENTION_CONTROL.md) remains a negative result.
 
 ## Evidence from the returned boot
@@ -65,16 +65,17 @@ fields was read from the device, and their state during the Esc control is
 unknown. This does not prove that Esc power-cycled DRAM or identify a clearing
 instruction.
 
-## Prepared comparator
+## Comparator contract
 
 The combination of a confirmed `power_key` return, a conditional preservation
 path and an earlier positive watchdog result justifies changing the reset
 method while keeping healthy Gemian and its console writer/reader. It does
 not justify another unchanged export-kernel boot or a DRAM-control write.
 
-The comparator is fixed to the returned boot above and control UUID
-`8142a374-220c-447e-8707-f509425d0079`. After owner approval and saving open
-work, reuse the Esc control's identity, console-level, descriptor and unique
+The comparator was fixed to the returned boot above and control UUID
+`8142a374-220c-447e-8707-f509425d0079`. The reviewed procedure, below, was
+executed once after explicit owner approval. It reused the Esc control's
+identity, console-level, descriptor and unique
 log-match guards for exactly one 137-byte ASCII write to `/dev/kmsg`:
 
 ```text
@@ -100,8 +101,8 @@ the fixed boot/control identity and marker stage. Their SHA-256 identities are:
 | Collector | `7b2baa9a622e4910787f5fedd7115d8ccf6ec66efeeb480e5d9422ba41178a72` |
 | Restart request | `c3a4b412b4c1ee582d192242270a7556e0bf551e7f252508be073eadf7017507` |
 
-Their syntax and exact substitutions were checked; the restart request was
-reviewed without executing it. They remain private. Changed or mismatched
+Before execution, their syntax and exact substitutions were checked and the
+restart request was reviewed. They remain private. Changed or mismatched
 preflight identity stops the control. A partial write, ambiguous restart
 result or timeout preserves evidence and permits no retry, force restart,
 Esc hold or alternative recovery action.
@@ -121,5 +122,41 @@ running. Classify against this exact control and preceding boot:
 - Missing return, unstable identity or incomplete collection: inconclusive;
   preserve evidence and await owner direction.
 
-No kernel build, marker write, restart or new physical test was performed by
-this preparation. Repository checks validate publication, not retention.
+## Runtime result, 2026-09-11
+
+The owner approved the comparison and then established
+[standing project device authorization](../../docs/SAFETY.md#standing-project-device-authorization).
+A fresh read-only preflight matched the fixed Gemian boot, all three program
+digests and the normal restart client. At `23:55:17 UTC`, the marker program
+completed one 137-byte write, confirmed exactly one current-log match and
+synced. The collector was running before the one normal restart request at
+`23:55:46 UTC`. The request returned zero. No force option, Esc hold, second
+marker, retry or boot2 selection was used.
+
+At `23:56:24 UTC`, the collector verified changed Gemian boot
+`a3105a07-6372-4f09-bc9c-509bf578861e`, Linux `3.18.41+` on AArch64,
+MT6797X, Debian 9 and running systemd, with matching before/after identities.
+Its one console read preserved 65,524 bytes with SHA-256
+`a755b7c00930985db1b140cfaa93bfcfe9b0ea61246ba8ea62bcc24c1fe322b9`.
+Private RE-VM analysis found the exact complete marker once, at byte offset
+32,724, carrying the preceding boot and this control UUID.
+
+A subsequent bounded metadata-only query on the same verified boot reported
+`boot_reason=4`, `androidboot.bootreason=wdt_by_pass_pwk` and
+`mrdump_ddrsv=yes`. It read no additional pstore payload and made no device
+write. The [sanitized receipt](results/retention-normal-restart-20260911.json)
+joins the exact identities, action counts, marker and returned reset class.
+Raw logs remain private. Gemian was left running.
+
+This establishes one successful normal-restart console-retention control,
+alongside one failed Esc control reported as `power_key`. It supports a
+reset-path distinction and disproves a blanket claim that this healthy Gemian
+writer/reader cannot retain the marker. It does not identify where Esc lost
+the record, prove reliability across resets, attest the running firmware bytes
+or establish entry into either failed export kernel. The differing return
+paths must not be treated as interchangeable negative-log oracles.
+
+Do not repeat either control or select the unchanged export image. The next
+export candidate needs attributable observation through a proven warm-return
+path or an independently validated live/external channel. No kernel build or
+new export candidate was produced by this comparison.

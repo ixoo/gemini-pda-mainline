@@ -1,0 +1,33 @@
+{
+  "previous_boot": "5257ff6d-7ca3-470f-b1da-24eeb93f48e3",
+  "returned_boot": "a3105a07-6372-4f09-bc9c-509bf578861e",
+  "control": "8142a374-220c-447e-8707-f509425d0079",
+  "marker_write_attempts": 1,
+  "marker_bytes": 137,
+  "restart_request": "/bin/systemctl reboot",
+  "restart_request_returncode": 0,
+  "restart_request_attempts": 1,
+  "console_payload_reads": 1,
+  "console_bytes": 65524,
+  "console_sha256": "a755b7c00930985db1b140cfaa93bfcfe9b0ea61246ba8ea62bcc24c1fe322b9",
+  "exact_marker_occurrences": 1,
+  "exact_marker_line_count": 1,
+  "marker_byte_offset": 32724,
+  "marker_complete_line": true,
+  "classification": "normal-restart-marker-retained",
+  "returned_boot_arguments": [
+    "boot_reason=4",
+    "androidboot.bootreason=wdt_by_pass_pwk",
+    "mrdump_ddrsv=yes"
+  ],
+  "return_metadata_program_sha256": "0354a8bf0232630a2569a4e3a454124dea33057e7be2ce887730dec375bd29b6",
+  "captured_utc": "2026-09-11T23:56:24.202957+00:00",
+  "marker_completed_utc": "2026-09-11T23:55:17.812298+00:00",
+  "restart_requested_utc": "2026-09-11T23:55:46.325621+00:00",
+  "program_sha256": {
+    "write-marker.py": "8803b869840cd8b83df74e286f93d5e68767ffd1dc81f972d05b793055ec0287",
+    "collect-return.py": "7b2baa9a622e4910787f5fedd7115d8ccf6ec66efeeb480e5d9422ba41178a72",
+    "request-restart.py": "c3a4b412b4c1ee582d192242270a7556e0bf551e7f252508be073eadf7017507"
+  },
+  "scope": "One ordinary Gemian restart retained one exact console marker. Earlier Esc control exposed no record. This is not export-kernel entry evidence or a reset-retention reliability claim."
+}
