@@ -1,0 +1,4 @@
+# Compile the RTC wake callbacks; no Gemini suspend or boot admission.
+CONFIG_PM=y
+CONFIG_SUSPEND=y
+CONFIG_LOCALVERSION="-mt6397-rtc-wake"

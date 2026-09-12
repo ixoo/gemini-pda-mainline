@@ -1,0 +1,41 @@
+From 771575d18e12b6417031666049ec3754eeac3d80 Mon Sep 17 00:00:00 2001
+From: Gemini PDA contributors <gemini-pda@invalid>
+Date: Sat, 12 Sep 2026 17:53:52 -0400
+Subject: [PATCH] rtc: mt6397: report alarm IRQ wake errors
+
+The suspend and resume callbacks discard the return value of the IRQ wake
+helpers. If enabling the wake IRQ fails, suspend therefore reports success
+without the requested alarm wake configuration. A failed disable is hidden
+from the power-management core as well.
+
+Return the helper result when wakeup is enabled. Keep the zero return and
+absence of IRQ operations when wakeup is disabled. This adds no retry or
+recovery after an IRQ-controller failure.
+
+Assisted-by: LLM
+---
+ drivers/rtc/rtc-mt6397.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/rtc/rtc-mt6397.c b/drivers/rtc/rtc-mt6397.c
+index 3d85768..e96a803 100644
+--- a/drivers/rtc/rtc-mt6397.c
++++ b/drivers/rtc/rtc-mt6397.c
+@@ -302,7 +302,7 @@ static int mt6397_rtc_suspend(struct device *dev)
+ 	struct mt6397_rtc *rtc = dev_get_drvdata(dev);
+ 
+ 	if (device_may_wakeup(dev))
+-		enable_irq_wake(rtc->irq);
++		return enable_irq_wake(rtc->irq);
+ 
+ 	return 0;
+ }
+@@ -312,7 +312,7 @@ static int mt6397_rtc_resume(struct device *dev)
+ 	struct mt6397_rtc *rtc = dev_get_drvdata(dev);
+ 
+ 	if (device_may_wakeup(dev))
+-		disable_irq_wake(rtc->irq);
++		return disable_irq_wake(rtc->irq);
+ 
+ 	return 0;
+ }

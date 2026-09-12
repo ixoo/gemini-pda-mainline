@@ -1,0 +1,49 @@
+{
+  "base": [
+    {
+      "revision": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+      "path": "drivers/rtc/rtc-mt6397.c",
+      "bytes": 9163,
+      "sha256": "bdcc2e03bb190b44cc95f052bee7c8fd7a0964b08164cc6034bfba5205108ddd"
+    },
+    {
+      "revision": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+      "path": "kernel/irq/manage.c",
+      "bytes": 78308,
+      "sha256": "ce0db3d162604dc793fa9e2e4d3f6ba3e6314b39e37d79d34061744ad58aa735"
+    },
+    {
+      "revision": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+      "path": "drivers/base/power/main.c",
+      "bytes": 62359,
+      "sha256": "a704473ddbabfc19fea20d24944b12e6e1889a230d7a76b66ef92bce1cc77eb4"
+    }
+  ],
+  "maintainer_branches": [
+    {
+      "tree": "abelloni/linux",
+      "branch": "rtc-fixes",
+      "revision": "254f49634ee16a731174d2ae34bc50bd5f45e731",
+      "url": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/abelloni/linux/+/254f49634ee16a731174d2ae34bc50bd5f45e731/drivers/rtc/rtc-mt6397.c?format=TEXT",
+      "bytes": 9198,
+      "sha256": "fa9fb999e4f22cde90b2a931e8ac547c87d3e267c94be6e6ab48f286fae2881c"
+    },
+    {
+      "tree": "abelloni/linux",
+      "branch": "rtc-next",
+      "revision": "afce9701d6423a63194a349d2f1e34c50ce76482",
+      "url": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/abelloni/linux/+/afce9701d6423a63194a349d2f1e34c50ce76482/drivers/rtc/rtc-mt6397.c?format=TEXT",
+      "bytes": 9198,
+      "sha256": "fa9fb999e4f22cde90b2a931e8ac547c87d3e267c94be6e6ab48f286fae2881c"
+    },
+    {
+      "tree": "abelloni/linux",
+      "branch": "rtc-irqf_no_autoen",
+      "revision": "81a0eaf28af6bcf925cee63ba5f6ab4d73c1d072",
+      "url": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/abelloni/linux/+/81a0eaf28af6bcf925cee63ba5f6ab4d73c1d072/drivers/rtc/rtc-mt6397.c?format=TEXT",
+      "bytes": 9321,
+      "sha256": "f380cdac1c8b8f3704aeb48c5242c3479c39b96a0f979016986163ca2623a88f"
+    }
+  ],
+  "scope": "Individual public source files; current maintainer callback bodies match the pinned compile base."
+}
