@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "date": "2026-09-12",
+  "status": "single-arm64-container-boot-and-shutdown-pass",
+  "archive_sha256": "e72e859a5f5f9b404bbb89e4c2593a6f4e5b7c2f17570f31902a15047ab9a488",
+  "package_inventory_sha256": "af290792549ff1690954394ae27d44fcd7840bebd855bee8351892639b792b75",
+  "host": {
+    "architecture": "aarch64",
+    "distribution": "Ubuntu 24.04.4 LTS",
+    "kernel": "6.8.0-139-generic",
+    "systemd_container": "255.4-1ubuntu8.17"
+  },
+  "guest": {
+    "distribution": "Debian 13.6 plus pinned snapshot updates/security",
+    "systemd": "257.13-1~deb13u1",
+    "pid1_comm": "systemd",
+    "boot_id": "4e9393b5-8d1c-453a-9053-4997e32be073"
+  },
+  "launch": {
+    "machine": "gemini-debian-audit-20260912",
+    "service_type": "notify",
+    "delegate": true,
+    "kill_mode": "mixed",
+    "runtime_max_seconds": 180,
+    "timeout_start_seconds": 45,
+    "timeout_stop_seconds": 30,
+    "nspawn_options": [
+      "--boot",
+      "--keep-unit",
+      "--register=yes",
+      "--settings=no",
+      "--private-network",
+      "--link-journal=no",
+      "--resolv-conf=off",
+      "--timezone=off",
+      "--console=pipe",
+      "--notify-ready=yes"
+    ],
+    "root": "fresh extraction into managed VM artifact directory",
+    "guest_addition": "empty var/log/journal directory for persistent observation logs"
+  },
+  "observation": {
+    "system_state": "running",
+    "system_state_exit": 0,
+    "listed_failed_units": [],
+    "active_targets": [
+      "basic.target",
+      "multi-user.target"
+    ],
+    "running_services": [
+      "dbus.service",
+      "systemd-journald.service",
+      "systemd-logind.service"
+    ],
+    "udev": {
+      "active_state": "inactive",
+      "sub_state": "dead",
+      "condition_result": false
+    },
+    "hostname_query": {
+      "exit_code": 0,
+      "value": "gemini-debian-audit"
+    },
+    "locale_query": {
+      "exit_code": 0,
+      "value": [
+        "LANG=C.UTF-8"
+      ]
+    },
+    "network_namespaces": {
+      "pid1": "4026532342",
+      "systemd-hostnamed.service": "4026532421",
+      "systemd-localed.service": "4026532483"
+    },
+    "three_distinct_network_namespaces": true,
+    "bpf_filter_enforcement_tested": false
+  },
+  "initial_observer_failure": {
+    "exit_code": 2,
+    "reason": "The script was placed below the backing root directory /run, hidden by the live container tmpfs. No observation body ran.",
+    "correction": "Pass the same shell body directly using systemd-run with --expand-environment=no in the same running container.",
+    "guest_journal_warning_preserved": true
+  },
+  "shutdown": {
+    "request": "machinectl poweroff gemini-debian-audit-20260912",
+    "request_exit": 0,
+    "guest_targets": [
+      "shutdown.target",
+      "umount.target",
+      "final.target",
+      "poweroff.target"
+    ],
+    "host_service_deactivated_successfully": true,
+    "machine_absent": true,
+    "root_mounts_remain": false,
+    "archive_checksum_unchanged": true
+  },
+  "private_evidence": {
+    "runtime-host-journal.txt": {
+      "sha256": "f5d37fe3d4801ec8070a7b7fc58b90793e8b5564da0cee337658d7330d66bc21",
+      "lines": 3
+    },
+    "runtime-guest-journal.txt": {
+      "sha256": "38a3387e3eab182f35ff0353f32686b702d29d84c5ee50e46a93c1cafe7b540f",
+      "lines": 150
+    }
+  },
+  "observation_script_sha256": "da0e5de4fb68839bff605868ec5b37519f2b49c58290c6e41526e3ff9ef17a9f",
+  "limitations": [
+    "One container lifecycle on the VM kernel, not a Gemini kernel boot or reliability result.",
+    "Container udev was skipped; no PDA device discovery, USB, storage or power-off was tested.",
+    "No persistent-root filesystem mount, repair, block-device flush or recovery-slot transition was tested.",
+    "IPAddressDeny settings were observed; BPF traffic filtering was not tested.",
+    "The original archive remains immutable; runtime-generated identity and logs are confined to the separate extraction."
+  ]
+}

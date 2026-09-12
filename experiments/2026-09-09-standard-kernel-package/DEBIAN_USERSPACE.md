@@ -46,10 +46,11 @@ or image are committed here. No kernel was built or copied into this archive.
 - All three retained InRelease files independently passed `gpgv` with the
   authenticated updated keyring. APT signature and expiry checks stayed enabled.
 
-These are package, binary-execution and static service checks against the VM's
-kernel. Systemd was not booted as PID 1, and service sandbox enforcement was not
-exercised. The archive supplies neither PDA networking/login configuration nor a
-kernel, initramfs, root selector, filesystem layout or recovery/update adapter.
+These initial checks cover packages, binary execution and static services on
+the VM's kernel. The later [container lifecycle](DEBIAN_RUNTIME.md) separately
+tests PID 1 and selected services. The archive supplies neither PDA
+networking/login configuration nor a kernel, initramfs, root selector,
+filesystem layout or recovery/update adapter.
 It has not been installed or booted on the PDA. Package integrity does not prove
 storage reliability or writable-root shutdown.
 
