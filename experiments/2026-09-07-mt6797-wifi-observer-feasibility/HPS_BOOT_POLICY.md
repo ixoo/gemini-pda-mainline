@@ -1,8 +1,9 @@
 # Native diagnostic HPS startup policy
 
-Status: source, complete kernel, startup and container checks passed. The selected
-export-return image is installed with matching full readback and clean shutdown.
-Device execution remains outstanding and its physical-selection budget is unused.
+Status: one device boot observed HPS disabled, but startup refused CPU0–4 where
+CPU0–7 was required. Its normal return to changed-boot Gemian and retained
+evidence are verified. The physical-selection budget is consumed; no retry is
+selected. See the [runtime result](#device-result).
 
 The [export-return session](EXPORT_RETURN.md#deployment-and-runtime-result)
 reached Python and stopped at the required CPU0–7 check. Its retained log also
@@ -146,8 +147,48 @@ matched the candidate both by checksum and byte comparison. No fresh backup
 was created. After evidence preservation, clean poweroff returned zero and
 the authenticated endpoint became unreachable.
 
-The PDA is left off with the selected candidate installed. The owner-readiness
-question is pending; collectors have not been started, to preserve their finite
-windows for the physical selection. Arm both existing collectors before asking
-the owner to select boot2 once. This installation is not a runtime result and
-does not consume the physical-selection budget.
+At installation completion, the PDA was off with the selected candidate
+installed. Collectors had not been started, to preserve their finite windows
+for physical selection. Installation itself consumed no physical selection.
+
+## Device result
+
+The owner reported one boot2 selection followed by a return to Gemian on
+2026-09-12. The [runtime receipt](results/hps-off-runtime-20260912.json) binds
+the candidate boot `0f3f0336-f69b-4a5d-971d-86c705288b22` to the exact cycle
+above and the verified installed image. HPS logged `hps_ctxt.enabled: 0`.
+Python passed the HPS preflight, then recorded `observed-0-4` and stopped at
+`sys/devices/system/cpu/online`. It emitted the attributable `outcome=stopped`
+return marker at 2.767004 seconds; normal restart followed at 3.117558 seconds.
+The authenticated Gemian collector verified a new boot,
+`0b7bd62b-20b3-4e28-aa9b-3ff92455678d`, with systemd reporting `running`.
+
+One bounded console read preserved 65,524 bytes. The retained ring starts in a
+partial record around 1.606 seconds, so neither the effective boot arguments
+nor initial SMP activation survived. One CPU8 refusal remains before HPS
+starts. The retained pre-return portion contains one warning and two call-trace
+headings; no panic, BUG or kernel-fault token was found. The portion after the
+return marker contains none of those fault tokens. These bounded observations
+establish the caught refusal and normal return, not a warning-free kernel boot.
+
+The owner selected boot2 before the collectors were armed. The return collector
+ran afterward; the host USB inventory was also taken afterward. No pre-selection
+USB inventory, watcher invocation, receiver request, acknowledgement or saved
+application snapshot exists. Startup stopped before importing the USB exporter
+or reading the application snapshot, so the missing receiver does not explain
+this CPU preflight failure. No WMT request, firmware load or WLAN cycle occurred
+through the diagnostic action. Raw console and USB inventory remain private.
+
+HPS was disabled at initialization and preflight, but CPU0–7 was absent. The
+[historical LK handoff](../../docs/hardware/gemini-gemian-baseline.md#boot-handoff-and-storage-boundary)
+supplied `maxcpus=5`. The selected native source's `smp_prepare_cpus()` and
+`smp_init()` honor that limit; later `hps_cpu_init()` marks the remaining CPUs
+present without itself bringing them online. CPU0–4 therefore fits an initial
+five-CPU limit left in place when HPS hotplug is disabled. This is a source-backed
+inference: the lost early log prevents proving the effective limit or whether
+CPUs 5–7 were ever online in this boot.
+
+Next resolve that boot-limit and initial-activation boundary before changing
+the candidate or admitting a new measurement. Do not weaken the online-mask
+check or repeat this unchanged image. The one physical selection and console
+read are consumed; leave the verified Gemian system running.

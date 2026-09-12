@@ -1,5 +1,5 @@
 {
-  "status": "installed-awaiting-owner-selection",
+  "status": "hps-disabled-cpu-online-refused-normal-return-retained",
   "native_source_commit": "59e00a9144d782e148332009a835b99c43382467",
   "source_sha256": {
     "drivers/misc/mediatek/base/power/mt6797/Makefile": "64a1f784e7df01e445d8a2d77a40a9537b1978275b668520d3d4974719a0c74f",
@@ -26,7 +26,7 @@
   "source_license": "GPL-2.0 per inspected source headers",
   "patch_authorship": "assistant-generated native experiment; no DCO certification; not submission-ready",
   "patch_apply_check": "passed against exact prepared 46-patch source",
-  "scope": "Disable HPS hotplug decisions through its existing enabled state, retaining periodic PPM work. Does not lock every hotplug API or certify thermal protection. Complete build and container validation passed; device execution outstanding.",
+  "scope": "Disable HPS hotplug decisions through its existing enabled state, retaining periodic PPM work. Does not lock every hotplug API or certify thermal protection. Build/container validation passed; one device boot observed HPS=0 but CPU0-4 and returned normally after refusing CPU0-7.",
   "startup_tests_passed": 24,
   "bridge_tests_passed": 5,
   "packaged_arm64_runtime": "passed",
@@ -108,7 +108,7 @@
     "wlan_cycle": false,
     "recovery": "reviewed attributable normal restart before capture claim; caught failures only",
     "decision": "require HPS=0 then CPU0-7; acknowledged export or attributable next failure; no identical retry",
-    "physical_selections_consumed": 0
+    "physical_selections_consumed": 1
   },
   "filesystem": {
     "sha256": "cba719efb2836d8523104339a3909811bee29325ae7d24884c2a6dc78cdbc06b",
@@ -177,5 +177,6 @@
       "required_next_action": "owner connects external power; wait for existing >=40% powered or >=80% unpowered gate; no change to installer"
     }
   ],
-  "deployment_receipt": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/hps-off-deployment-20260912.json"
+  "deployment_receipt": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/hps-off-deployment-20260912.json",
+  "runtime_receipt": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/hps-off-runtime-20260912.json"
 }
