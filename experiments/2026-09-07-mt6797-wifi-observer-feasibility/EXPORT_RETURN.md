@@ -1,6 +1,8 @@
 # Export startup with one normal return
 
-Status: prepared for one physical session; no runtime result yet. Session
+Status: startup refused the CPU-online preflight; its normal return retained
+the exact failure marker. USB export was not reached. The one-selection budget
+is consumed. Session
 `3f6581cf-157e-45fc-aaef-bf1d23e15df7` follows the successful
 [boot-entry control](BOOT_ENTRY_CONTROL.md). It does not repeat an earlier
 export image or select a WLAN cycle.
@@ -116,3 +118,49 @@ Also arm the existing 180-second changed-boot Gemian collector. It preserves
 one console payload of at most 65,536 bytes with before/after identity checks;
 an absent payload consumes no read. Preserve host status, partial evidence and
 the console before any additional recovery. A timeout authorizes no repeat.
+
+## Deployment and runtime result
+
+The exact inputs were published at
+`b127aff8c09fc561f2e54b53b602b6c5db43c859`, and the
+[hosted checks](https://github.com/ixoo/gemini-pda-mainline/actions/runs/34663192255)
+passed. Fresh inspection confirmed preceding Gemian boot
+`57a8683b-b9dc-4643-99c1-aca916d3ae54`. The guarded installer resolved boot2 as
+`179:30`, distinct from root `179:29`; its power samples were stable with a
+present, healthy, fully charged battery. The predecessor was the completed
+boot-entry control. After writing, both full checksums matched `3064aeba…4bff5`.
+Clean poweroff closed SSH with status 255; the endpoint then became unreachable.
+No fresh backup or automatic boot2 selection was performed.
+
+Both collectors were armed before the owner confirmed one physical selection.
+At `00:58:54 UTC` on 2026-09-12, the return collector authenticated Gemian boot
+`a1efb6e0-4c7e-43f6-9b56-0ba6086bd8c2`. Before/after identity checks matched.
+Its single console read preserved 65,524 bytes, SHA-256
+`856cca9d179b0d61f4e82dd18e3f3d3f57c904e4f82b8f8a523a98c615a36037`.
+
+RE-VM analysis found one exact session return marker at byte 61,288, with
+candidate boot `606245b9-5e6f-45a7-bc8b-a5e6d09dc160` and `outcome=stopped`.
+It is timestamped `2.693203` seconds and is followed by a normal restart line.
+The retained sequence includes sysfs/pstore setup, all read-only input mounts,
+the Python handoff and `python-entry status=entered`. Its final stage is:
+
+```text
+python=runtime:sys/devices/system/cpu/online status=stopped
+```
+
+This establishes that the full shell and Python runtime ran and that preflight
+stopped at the required `0-7` CPU-online check. The exact online-list value was
+not logged, so it cannot be reconstructed from this marker alone. Earlier
+retained messages show active native HPS CPU policy and 13 `CPU8: failed to
+boot: -1` messages between `1.634960` and `2.686638` seconds. Those observations
+motivate auditing native CPU policy before the next candidate; they do not
+prove the precise online set at the failed check. Do not weaken the check or
+repeat this image merely to reach USB.
+
+The host watcher completed its 180-second window without an attributed ACM
+terminal and invoked no receiver. The observed startup failure precedes bridge
+import, so application snapshot acquisition and ACM writes were not reached.
+No host request, acknowledgement, clear or WLAN cycle occurred. The initial
+raw snapshot remains unretrieved; this is not an export pass. The normal return
+and retained-stage diagnosis passed for this one session. Gemian is left
+running, and no additional recovery or device action followed collection.
