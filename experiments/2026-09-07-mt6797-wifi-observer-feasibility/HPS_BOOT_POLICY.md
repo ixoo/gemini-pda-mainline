@@ -1,7 +1,8 @@
 # Native diagnostic HPS startup policy
 
 Status: source, complete kernel, startup and container checks passed. One new
-export-return session is selected below; device execution remains outstanding.
+export-return session is selected below. Installation waits for sufficient
+power; device execution remains outstanding and its selection budget is unused.
 
 The [export-return session](EXPORT_RETURN.md#deployment-and-runtime-result)
 reached Python and stopped at the required CPU0–7 check. Its retained log also
@@ -116,3 +117,15 @@ preceding-boot substitutions. It must recheck live GPT, identity, inactivity,
 power and full-partition readback, then shut down cleanly. Arm both existing
 collectors for this new session before the owner selects boot2 once. The
 standing project authorization covers this reviewed test and normal return.
+
+## Initial installation power refusal
+
+The candidate was published at `0acadbf83ce56ae8403810dd6054a6fac48e29d3`.
+Its first installation attempt stopped at the initial power gate, before
+candidate upload, partition writing or shutdown. A subsequent bounded read
+with matching Gemian boot identity found a present, healthy battery at 34%,
+status `Not charging`, with AC, USB and wireless external-power values all zero.
+The existing installer requires at least 80% on battery alone, or at least 40%
+with external power. Those requirements remain unchanged. The owner has been
+asked to connect the charger; proceed only after the ordinary live gates pass.
+Boot2 retains its predecessor and no physical selection has occurred.

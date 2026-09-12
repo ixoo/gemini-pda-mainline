@@ -359,10 +359,12 @@ The remaining preparation order is:
    [retained-ELF boundary](../experiments/2026-09-06-mt6797-wlan-final-linkage-teardown-attribution/README.md),
    [accepted database boundary](../experiments/2026-09-06-vmlinux-to-elf-kernel-db-provenance-v2/README.md)
    and [accepted Kallsyms provenance](../experiments/2026-09-06-vmlinux-to-elf-symbol-provenance-v3/README.md).
-   The native observation image's [second export attempt](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/EXPORT_ATTEMPT_2.md)
-   recovered neither USB data nor startup markers, despite an authenticated
-   owner-controlled return to Gemian. Resolve kernel-entry or retained-console
-   attribution before another physical attempt; do not repeat that image unchanged.
+   The [native export-return diagnostic](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/EXPORT_RETURN.md)
+   reached full PID1 startup and preserved its CPU-online refusal through a
+   normal return to Gemian. The [native HPS correction](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/HPS_BOOT_POLICY.md)
+   must now pass its frozen CPU-policy and acknowledged-export session before
+   the retained snapshot can support the next lifecycle observation. Preserve
+   any next failure; do not repeat an unchanged image without a new measurement.
    Exit order must not be inferred by reversing initialization, and the vendor
    WMT ioctl must not be copied merely to run the retained loader.
 4. **Preserve the bounded eMMC result:** the [closed session](../experiments/2026-09-05-owner-away-experiment-preparation/emmc/PAUSE_SESSION_PREPARATION.json)

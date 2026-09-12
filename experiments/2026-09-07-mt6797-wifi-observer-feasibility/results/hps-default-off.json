@@ -1,5 +1,5 @@
 {
-  "status": "validated-export-return-candidate-device-execution-outstanding",
+  "status": "validated-candidate-installation-waits-for-power",
   "native_source_commit": "59e00a9144d782e148332009a835b99c43382467",
   "source_sha256": {
     "drivers/misc/mediatek/base/power/mt6797/Makefile": "64a1f784e7df01e445d8a2d77a40a9537b1978275b668520d3d4974719a0c74f",
@@ -107,7 +107,8 @@
     "wmt_request": false,
     "wlan_cycle": false,
     "recovery": "reviewed attributable normal restart before capture claim; caught failures only",
-    "decision": "require HPS=0 then CPU0-7; acknowledged export or attributable next failure; no identical retry"
+    "decision": "require HPS=0 then CPU0-7; acknowledged export or attributable next failure; no identical retry",
+    "physical_selections_consumed": 0
   },
   "filesystem": {
     "sha256": "cba719efb2836d8523104339a3909811bee29325ae7d24884c2a6dc78cdbc06b",
@@ -154,5 +155,26 @@
     "collector_changes": "preceding Gemian UUID; watcher also binds new session digest; receiver unchanged",
     "shell_syntax_and_shellcheck": "passed",
     "known_good_identity": "verified before preparation; installer must recheck live identity and full device guards"
-  }
+  },
+  "deployment_attempts": [
+    {
+      "installer_exit": 2,
+      "failed_stage": "initial boot2 probe: power gate",
+      "candidate_upload_reached": false,
+      "partition_write_reached": false,
+      "shutdown_reached": false,
+      "evidence_directory_created": false,
+      "gemian_boot": "a1efb6e0-4c7e-43f6-9b56-0ba6086bd8c2",
+      "power_observation": {
+        "present": 1,
+        "capacity": 34,
+        "health": "Good",
+        "status": "Not charging",
+        "ac_online": 0,
+        "usb_online": 0,
+        "wireless_online": 0
+      },
+      "required_next_action": "owner connects external power; wait for existing >=40% powered or >=80% unpowered gate; no change to installer"
+    }
+  ]
 }
