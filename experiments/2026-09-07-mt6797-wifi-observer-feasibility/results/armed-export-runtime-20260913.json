@@ -1,0 +1,213 @@
+{
+  "status": "prearmed-usb-attribution-timeout-native-host-request-stopped-gemian-confirmed",
+  "date_utc": "2026-09-13",
+  "host_session": "wifi-export-maxcpus8-armed-2",
+  "preparation_base_commit": "2c07017c03714f675be16484fcef2107bf30f352",
+  "candidate_source_commit": "2c900749683cb5e0c621da9b66915b9989559156",
+  "candidate_padded_sha256": "d9334cba2f6ca5870d7004ecbf8c01b4e47b8004e00db3178f5098bdb4f6fb9d",
+  "session_sha256": "da877f7b2cfb49e9cd3c5d98fb03909d18047e35ea050cd4433cf1b22fb34779",
+  "installation_receipt": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/maxcpus8-deployment-20260912.json",
+  "reused_deployment_receipt_sha256": "0a9704ab13b0cfb7756325e5bc84dc80b3713578ab15e543a6a90b8f4878e73c",
+  "owner_requested_reuse_of_prior_verification": true,
+  "new_image_verification": false,
+  "new_device_writes": 0,
+  "new_shutdown_requests": 0,
+  "owner_reported_powered_off_before_arming": true,
+  "left_usb_port_confirmed": true,
+  "preceding_boot_basis": "last authenticated Gemian; owner subsequently reports powered off; no intervening boot reported",
+  "fresh_preceding_gemian_identity_query": false,
+  "physical_selections_reported": 1,
+  "owner_selection_report_received_after_arming": true,
+  "collectors_armed_observed_utc": "2026-09-13T00:47:44.568106+00:00",
+  "owner_selection_reported_utc": "2026-09-13T00:49:27.736733+00:00",
+  "runtime": {
+    "session_id": "54efed5a-f015-4a0e-bd83-f59a0fa31097",
+    "previous_gemian_boot": "db6b8120-0d47-4d05-9519-665e4aa74663",
+    "returned_gemian_boot": "efa64e7c-d039-400b-8042-fab762793f9d",
+    "console_bytes": 65524,
+    "console_sha256": "4ad71cf157fbc8279ef9deed31ccabd05da07bbade36b714a207d42e8d5a2985",
+    "console_payload_reads": 1,
+    "captured_utc": "2026-09-13T00:50:23.913003+00:00",
+    "return_marker_count": 1,
+    "classification": "retained-stopped",
+    "candidate_boot": "16dacdda-bfb2-4c37-8e5e-73a7989a8a2d",
+    "outcome": "stopped",
+    "marker_byte_offset": 60457,
+    "stages": [
+      "wifi-bootstrap-v1 boot=16dacdda-bfb2-4c37-8e5e-73a7989a8a2d shell=sysfs",
+      "wifi-bootstrap-v1 boot=16dacdda-bfb2-4c37-8e5e-73a7989a8a2d shell=pstore",
+      "wifi-bootstrap-v1 boot=16dacdda-bfb2-4c37-8e5e-73a7989a8a2d shell=console",
+      "wifi-bootstrap-v1 boot=16dacdda-bfb2-4c37-8e5e-73a7989a8a2d shell=sysrq",
+      "wifi-bootstrap-v1 boot=16dacdda-bfb2-4c37-8e5e-73a7989a8a2d shell=run",
+      "wifi-bootstrap-v1 boot=16dacdda-bfb2-4c37-8e5e-73a7989a8a2d shell=bind:/lib/firmware",
+      "wifi-bootstrap-v1 boot=16dacdda-bfb2-4c37-8e5e-73a7989a8a2d shell=readonly:/lib/firmware",
+      "wifi-bootstrap-v1 boot=16dacdda-bfb2-4c37-8e5e-73a7989a8a2d shell=bind:/vendor/firmware",
+      "wifi-bootstrap-v1 boot=16dacdda-bfb2-4c37-8e5e-73a7989a8a2d shell=readonly:/vendor/firmware",
+      "wifi-bootstrap-v1 boot=16dacdda-bfb2-4c37-8e5e-73a7989a8a2d shell=bind:/data/nvram",
+      "wifi-bootstrap-v1 boot=16dacdda-bfb2-4c37-8e5e-73a7989a8a2d shell=readonly:/data/nvram",
+      "wifi-bootstrap-v1 boot=16dacdda-bfb2-4c37-8e5e-73a7989a8a2d shell=bind:/etc/wifi-cycle",
+      "wifi-bootstrap-v1 boot=16dacdda-bfb2-4c37-8e5e-73a7989a8a2d shell=readonly:/etc/wifi-cycle",
+      "wifi-bootstrap-v1 boot=16dacdda-bfb2-4c37-8e5e-73a7989a8a2d shell=bind:/opt/wifi-cycle",
+      "wifi-bootstrap-v1 boot=16dacdda-bfb2-4c37-8e5e-73a7989a8a2d shell=readonly:/opt/wifi-cycle",
+      "wifi-bootstrap-v1 boot=16dacdda-bfb2-4c37-8e5e-73a7989a8a2d shell=bind:/init",
+      "wifi-bootstrap-v1 boot=16dacdda-bfb2-4c37-8e5e-73a7989a8a2d shell=readonly:/init",
+      "wifi-bootstrap-v1 boot=16dacdda-bfb2-4c37-8e5e-73a7989a8a2d shell=python",
+      "wifi-bootstrap-v1 boot=16dacdda-bfb2-4c37-8e5e-73a7989a8a2d python=python-entry status=entered",
+      "wifi-bootstrap-v1 boot=16dacdda-bfb2-4c37-8e5e-73a7989a8a2d python=preflight status=passed",
+      "wifi-bootstrap-v1 boot=16dacdda-bfb2-4c37-8e5e-73a7989a8a2d python=snapshot status=entered",
+      "wifi-bootstrap-v1 boot=16dacdda-bfb2-4c37-8e5e-73a7989a8a2d python=usb-ownership status=entered",
+      "wifi-bootstrap-v1 boot=16dacdda-bfb2-4c37-8e5e-73a7989a8a2d python=host-request status=waiting",
+      "wifi-bootstrap-v1 boot=16dacdda-bfb2-4c37-8e5e-73a7989a8a2d python=host-request status=stopped"
+    ],
+    "normal_restart_after_marker": true,
+    "post_marker_fault_tokens": {
+      "Kernel panic": 0,
+      "BUG:": 0,
+      "WARNING:": 0,
+      "Unable to handle kernel": 0,
+      "Call trace:": 0
+    },
+    "cpu_online_failure_observations": [],
+    "cpu8_boot_failures": 0,
+    "hps_lines": 44,
+    "marker_kernel_seconds": "62.905521"
+  },
+  "timeline": [
+    {
+      "kernel_seconds": "2.574693",
+      "marker": "wifi-bootstrap-v1 boot=16dacdda-bfb2-4c37-8e5e-73a7989a8a2d python=python-entry status=entered"
+    },
+    {
+      "kernel_seconds": "2.656714",
+      "marker": "wifi-bootstrap-v1 boot=16dacdda-bfb2-4c37-8e5e-73a7989a8a2d python=preflight status=passed"
+    },
+    {
+      "kernel_seconds": "2.666962",
+      "marker": "wifi-bootstrap-v1 boot=16dacdda-bfb2-4c37-8e5e-73a7989a8a2d python=snapshot status=entered"
+    },
+    {
+      "kernel_seconds": "2.745677",
+      "marker": "wifi-bootstrap-v1 boot=16dacdda-bfb2-4c37-8e5e-73a7989a8a2d python=usb-ownership status=entered"
+    },
+    {
+      "kernel_seconds": "2.840765",
+      "marker": "wifi-bootstrap-v1 boot=16dacdda-bfb2-4c37-8e5e-73a7989a8a2d python=host-request status=waiting"
+    },
+    {
+      "kernel_seconds": "62.902708",
+      "marker": "wifi-bootstrap-v1 boot=16dacdda-bfb2-4c37-8e5e-73a7989a8a2d python=host-request status=stopped"
+    },
+    {
+      "kernel_seconds": "62.905521",
+      "marker": "wifi-export-return-v1 boot=16dacdda-bfb2-4c37-8e5e-73a7989a8a2d cycle=54efed5a-f015-4a0e-bd83-f59a0fa31097 outcome=stopped"
+    }
+  ],
+  "host_request_wait_seconds": 60.061943,
+  "stop_explanation": "Request timeout is inferred from retained timing, the fixed 60-second deadline and zero host receiver invocations; the device exception class is not retained.",
+  "source_stage_implications": {
+    "startup_source_sha256": "12276907513ac2902c8c24d57ef9163ac2908d4e69e711c3f1347d60170829d9",
+    "preflight_pass": "ordered maxcpus=5,8; HPS=0; actual CPU0-7; pinned config and isolation checks passed",
+    "usb_ownership_entered": "one complete 65536-byte immutable PMSG snapshot read returned",
+    "host_request_waiting": "three ACM configuration writes and terminal open completed; host enumeration/configuration unproved"
+  },
+  "host_usb_watcher_invocations": 1,
+  "host_usb_watcher_exit_status": 2,
+  "host_usb_detection_window_seconds": 180,
+  "host_receiver_invocations": 0,
+  "host_requests_sent": 0,
+  "host_acknowledgements_sent": 0,
+  "host_snapshot_preserved": false,
+  "gemian_return_collector_invocations": 1,
+  "gemian_return_collector_exit_status": 0,
+  "console_payload_reads": 1,
+  "additional_host_recovery_requests": 0,
+  "usb_inventories": {
+    "before": {
+      "inventory_sha256": "f96226d48534c89c98028286bd720a6796153c61269a9788cef6fd899463fb14",
+      "parents": 8,
+      "export_parents": 0,
+      "mediatek_products": [
+        "20ff"
+      ]
+    },
+    "final": {
+      "inventory_sha256": "b295cdc58a6186624c615a14c5388466d455ea92f80e63b7249ce99d2aa9d87b",
+      "parents": 7,
+      "export_parents": 0,
+      "mediatek_products": []
+    }
+  },
+  "usb_log_counters": {
+    "states": {
+      "DISCONNECTED": 0,
+      "CONNECTED": 0,
+      "CONFIGURED": 0
+    },
+    "functions": {
+      "mt_usb_connect": 0,
+      "mt_usb_disconnect": 0,
+      "musb_start": 0,
+      "musb_stop": 0,
+      "gserial_connect": 0,
+      "gserial_disconnect": 0,
+      "VBUS": 0
+    }
+  },
+  "derived_tools": {
+    "collect-return.py": {
+      "source_sha256": "7422f00b1a31c3c68bf3cd19019ce7c163574b455c02ccba3a29631aa3a9fa91",
+      "sha256": "7422f00b1a31c3c68bf3cd19019ce7c163574b455c02ccba3a29631aa3a9fa91",
+      "path_substitutions": 0,
+      "inverse_comparison": "pass"
+    },
+    "receive-when-present.py": {
+      "source_sha256": "39336cd3a285774a22c4f0a1da3f2567364a9eedb52ee0806083691a7613ec35",
+      "sha256": "39336cd3a285774a22c4f0a1da3f2567364a9eedb52ee0806083691a7613ec35",
+      "path_substitutions": 0,
+      "inverse_comparison": "pass"
+    },
+    "classify.py": {
+      "source_sha256": "790d28ff047733c3176e39f5abf89cf1c469ccc7f0a7dfa5bf52320765dcea9d",
+      "sha256": "e56af48a0936af32a57696f9125898d36cc3876f5525fc4d6da7fe39ad58e205",
+      "path_substitutions": 2,
+      "inverse_comparison": "pass"
+    }
+  },
+  "receiver_sha256": "8507ed9735f5d68ca90e946c6f67515e5c28b8d65f6d26fe5a27f9efd8464226",
+  "private_evidence_sha256": {
+    "armed.json": "85a35fcc5485da82c935e6bd5b6d2d82d4e7541affdee9d934af9daf52d9732c",
+    "classifier.stderr": "42bd4880c7f8cbec5da19dd614382ce4bd799ed03f0fe8c7461826d24681cb92",
+    "classifier.stdout": "0e080f01f7923ab7a9edc6d287579252145b15924d9a2ee1d10b5a8b241576d9",
+    "classify.py": "e56af48a0936af32a57696f9125898d36cc3876f5525fc4d6da7fe39ad58e205",
+    "collect-return.py": "7422f00b1a31c3c68bf3cd19019ce7c163574b455c02ccba3a29631aa3a9fa91",
+    "collector-processes.json": "ef3e7c5ca8a4516fa6e449adbb9abbb6be78a4e386addfffb9e76130d0e4d1e7",
+    "evidence-sha256.json": "2a7745d4265cab8f599db4ff63ef23bf38ffad3201012b0abb2a63637286fa5a",
+    "gemian-return/capture-receipt.json": "d4fa0f44501646a770f6df1e6c82e4268c3c118f13843814e13a3c96234e4cc2",
+    "gemian-return/console-ramoops": "4ad71cf157fbc8279ef9deed31ccabd05da07bbade36b714a207d42e8d5a2985",
+    "gemian-return/console-ramoops.stderr": "135c9d214dcd9f49627acb94e0fb5f565ad8bfca7de2aaf2494d398675286828",
+    "gemian-return/identity-attempts.stderr": "88677e23844f69b42031c0872a92b51d2f873a87ca20643fd87e0c4cc68de9d8",
+    "gemian-return/identity.stdout": "205b9260b72f1ec6638e4f6f8b48687893ed82e44a14db33cc07359706b10125",
+    "inspect-retained.py": "199e608fca33415d7f40feb0ef95713f548558cb5dd6065a33705f64f8285f02",
+    "owner-selection.json": "cdd6b88392176d148e76aadc5fcb3e01afe4cb0b03b45d50a3078004db4c67f8",
+    "receive-when-present.py": "39336cd3a285774a22c4f0a1da3f2567364a9eedb52ee0806083691a7613ec35",
+    "retained-detail.stderr": "0215ee3adb679ff20be2e5a60cb906874d86689f3352d284c774da2d2d4e7eda",
+    "retained-detail.stdout": "4be92f5918d737687276de25ecbcf6119003528d409ecc8796148f935b52f072",
+    "return-collector.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "return-collector.stdout": "ec434b847840440f01cbcf8ed38ae542e94d4d9045b87482a975b87b32ffcfdf",
+    "session.json": "a0d7547f6cee4ad86ee941c9b04f9e9a1ccdba8fc84bb8104e04a6a6c27471cd",
+    "usb-host-before.txt": "f96226d48534c89c98028286bd720a6796153c61269a9788cef6fd899463fb14",
+    "usb-observation-final.txt": "b295cdc58a6186624c615a14c5388466d455ea92f80e63b7249ce99d2aa9d87b",
+    "usb-watcher.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "usb-watcher.stdout": "c886cd0a1b29acc2a5382ef597b15989f06fa55f663dc9da8a08769b7e5a9e95"
+  },
+  "limitations": [
+    "The preceding Gemian binding uses the last authenticated boot and owner power-state report; no fresh pre-selection identity query was made.",
+    "Only pre-selection and final USB inventories were retained; transient or mismatched USB descriptors cannot be reconstructed.",
+    "A pre-selection 0e8d:20ff parent matches the inspected charging-mode descriptor pair; it does not prove candidate-time USB descriptors or uniquely identify the device.",
+    "Retained console has no selected USB state/function tokens; their absence does not prove missing controller events.",
+    "The initial PMSG snapshot was not exported; normal restart may change its header.",
+    "No Wi-Fi support, controller takeover, firmware teardown or clearing claim."
+  ],
+  "next_action": "Investigate native USB enumeration and host attribution using retained evidence and pinned source before any further physical selection; no unchanged retry.",
+  "device_custody": "released after changed-boot Gemian confirmation and private evidence preservation"
+}

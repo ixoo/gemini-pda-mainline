@@ -4,7 +4,7 @@
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
   "selected_item": null,
-  "selection_note": "The armed-1 preparation stopped at its initial SSH connection timeout before image verification or shutdown. No collectors or physical selection were requested. Establish current device/transport state before a fresh admission; no automatic retry.",
+  "selection_note": "The fresh pre-armed export measurement completed with no attributed USB terminal and a retained host-request stop. Changed-boot Gemian and one console capture are confirmed. Custody released; diagnose USB enumeration/attribution before any further physical selection.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -215,6 +215,21 @@
       "dependencies": [],
       "owner_task_id": null,
       "readiness_note": "Initial SSH preflight timed out before authentication, partition access, image verification or shutdown. Both collectors remain unused and no physical selection was requested. Session consumed without an export measurement; current device identity is unconfirmed. Preserve the preparation and failed attempt; establish device/transport state before fresh admission."
+    },
+    "wifi-export-maxcpus8-armed-2": {
+      "workstream": "wifi",
+      "preparation_state": "stale",
+      "device_state": "complete",
+      "owner": "primary integration coordinator",
+      "reviewer": "primary integration coordinator",
+      "device_custodian": null,
+      "experiment": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/README.md",
+      "session_packet": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/ARMED_EXPORT.md",
+      "candidate_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/maxcpus8.json",
+      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/armed-export-runtime-20260913.json",
+      "dependencies": [],
+      "owner_task_id": null,
+      "readiness_note": "At the owner request, reused the prior verified installation while powered off. Both fresh collectors armed before the one reported selection. Native CPU0-7 preflight passed and host-request waiting stopped after 60.061943 seconds. Host watcher found no attributed ACM terminal, invoked no receiver and sent no request/acknowledgement. One console preserved; changed-boot Gemian confirmed. Investigate native USB enumeration/attribution before another selection; no repeat selected."
     }
   }
 }

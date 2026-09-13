@@ -1,9 +1,11 @@
 # Pre-armed maxcpus8 snapshot export
 
-Status: session consumed at the initial SSH connection timeout, before guarded
-image confirmation, shutdown or collector arming. No physical selection requested.
-Queue item: `wifi-export-maxcpus8-armed-1`. The primary integration coordinator
-was the sole device custodian; custody is released. This record grants no WLAN
+Status: `armed-1` stopped before collection. The subsequent owner-requested
+`armed-2` selection completed with both collectors pre-armed: no attributed USB
+terminal, retained host-request stop and confirmed changed-boot Gemian.
+Queue items: `wifi-export-maxcpus8-armed-1` and `wifi-export-maxcpus8-armed-2`.
+The primary integration coordinator was the sole device custodian; custody is
+released. This record grants no WLAN
 or capture-clear action.
 
 ## Question and fixed inputs
@@ -93,3 +95,47 @@ host exchange or console read. The prior Gemian identity is no longer a current
 observation. Preserve the preparation and this failed attempt; establish present
 device and transport state before a fresh admission. Do not rerun this session's
 installer or collectors. The preparation sequence above is historical.
+
+## Fresh collection using the verified installation
+
+The owner then reported the PDA powered off and explicitly requested reusing
+the previous verification and arming the collectors immediately. Session
+`wifi-export-maxcpus8-armed-2` reused the existing verified image and deployment
+receipt. No new pre-selection identity query, partition access, write or
+shutdown was made.
+The preceding Gemian binding remained the last authenticated boot `db6b8120…`;
+its basis is that observation plus the owner's power-state report, without an
+independently refreshed identity. The full identifiers and input digests are in
+the [runtime result](results/armed-export-runtime-20260913.json).
+
+The USB watcher and return collector were byte-identical to the reviewed tools,
+in a fresh private directory. The classifier changed only its two evidence
+paths; inverse byte comparison passed. A pre-selection USB inventory was saved,
+both processes reported armed and their live handles were retained before the
+owner was directed to select boot2 once. No collection window was spent on
+installation or publication. One physical selection was reported.
+
+The native candidate passed the CPU0–7 preflight, completed snapshot acquisition
+and reached host-request waiting at `2.840765` kernel seconds. Its stopped stage
+appeared at `62.902708`, followed by the matching return marker at `62.905521`
+and a normal restart. The 60.061943-second wait and absent host request support
+a request-timeout inference; the exception class is not retained. The fresh
+candidate boot differs from the last authenticated and returned Gemian boots.
+
+The host watcher completed its 180-second observation window without finding
+an attributed ACM terminal. It invoked no receiver and sent no request or
+acknowledgement. Before selection the host saw one `0e8d:20ff` MediaTek parent,
+matching the inspected charging-mode descriptor pair; the final inventory had
+no MediaTek or expected export parent. These two inventories cannot reconstruct
+transient descriptors or uniquely identify the device. The retained console
+contains none of the selected USB state/function tokens; missing tokens do not
+prove missing controller events.
+
+The return collector authenticated changed-boot Gemian and preserved one
+65,524-byte console payload, SHA-256
+`4ad71cf157fbc8279ef9deed31ccabd05da07bbade36b714a207d42e8d5a2985`.
+Private RE-VM classification passed. No host snapshot was preserved; the normal
+restart may have changed its original PMSG header. This result rules out an
+unarmed host collector for this attempt and selects investigation of native USB
+enumeration and host attribution before another physical selection. No repeat,
+additional recovery, WLAN cycle or clearing action followed. Custody is released.
