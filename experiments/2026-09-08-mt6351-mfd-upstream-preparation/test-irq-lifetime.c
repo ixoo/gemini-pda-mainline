@@ -56,6 +56,15 @@ static void mutex_unlock(int *lock) { assert(*lock); *lock = 0; }
 static void *dev_fwnode(void *dev) { return dev; }
 static void *devm_kcalloc(void *dev, unsigned int n, unsigned int size, int flags)
 { return &allocation; }
+#if HAS_IRQ_INSTANCE_STATE
+static void *devm_kmemdup(void *dev, const void *src, unsigned int size, int flags)
+{
+    static struct pmic_irq_data copy;
+    assert(size == sizeof(copy));
+    memcpy(&copy, src, size);
+    return &copy;
+}
+#endif
 
 enum failure { NONE, DOMAIN, REQUEST, NOTIFIER, ACTION, WAKE, CHILD };
 static enum failure fail;

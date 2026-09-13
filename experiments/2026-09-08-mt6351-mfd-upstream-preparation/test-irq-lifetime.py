@@ -39,7 +39,8 @@ functions = ''.join([
 ])
 tokens = sorted(set(re.findall(r'\bMT\d+_(?:CHIP_ID|INT_[A-Z0-9_]+|IRQ_NR)\b', functions)))
 defines = [f'#define HAS_PM_NOTIFIER {int(has_notifier)}\n',
-           f'#define HAS_WAKE_CLEANUP {int(has_wake_cleanup)}\n']
+           f'#define HAS_WAKE_CLEANUP {int(has_wake_cleanup)}\n',
+           f'#define HAS_IRQ_INSTANCE_STATE {int("devm_kmemdup" in modern)}\n']
 for index, token in enumerate(tokens):
     if token.endswith('CHIP_ID'):
         value = int(re.match(r'MT(\d+)', token)[1][-2:], 16)

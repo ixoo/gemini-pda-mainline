@@ -1,0 +1,96 @@
+From 89a91e0f73defb0c6a4821d9926dae1b926727f9 Mon Sep 17 00:00:00 2001
+From: Gemini PDA Project <gemini-pda@example.invalid>
+Date: Sun, 13 Sep 2026 03:00:57 +0000
+Subject: [PATCH] mfd: mt6358: Keep IRQ state local to each device
+
+The chip-specific pmic_irq_data objects also hold pointers to the enable
+and cached IRQ masks allocated during probe. Initializing another device
+using the same object replaces the first device's pointers, including when
+the second allocation fails. Removing the second device can then free
+memory still referenced by the first. MT6358 and MT6366 also share one
+object despite having different chip IDs.
+
+Make the chip descriptions const templates and duplicate the selected
+template with device-managed lifetime before allocating either mask.
+Keep the immutable interrupt-bank descriptions shared.
+
+This is an unsigned internal preparation archive. Human authorship review
+and truthful DCO certification are required before upstream submission.
+---
+ drivers/mfd/mt6358-irq.c | 19 ++++++++++++-------
+ 1 file changed, 12 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/mfd/mt6358-irq.c b/drivers/mfd/mt6358-irq.c
+index aae3cff..f56d823 100644
+--- a/drivers/mfd/mt6358-irq.c
++++ b/drivers/mfd/mt6358-irq.c
+@@ -51,21 +51,21 @@ static const struct irq_top_t mt6359_ints[] = {
+ 	MT6359_TOP_GEN(MISC),
+ };
+ 
+-static struct pmic_irq_data mt6357_irqd = {
++static const struct pmic_irq_data mt6357_irqd = {
+ 	.num_top = ARRAY_SIZE(mt6357_ints),
+ 	.num_pmic_irqs = MT6357_IRQ_NR,
+ 	.top_int_status_reg = MT6357_TOP_INT_STATUS0,
+ 	.pmic_ints = mt6357_ints,
+ };
+ 
+-static struct pmic_irq_data mt6358_irqd = {
++static const struct pmic_irq_data mt6358_irqd = {
+ 	.num_top = ARRAY_SIZE(mt6358_ints),
+ 	.num_pmic_irqs = MT6358_IRQ_NR,
+ 	.top_int_status_reg = MT6358_TOP_INT_STATUS0,
+ 	.pmic_ints = mt6358_ints,
+ };
+ 
+-static struct pmic_irq_data mt6359_irqd = {
++static const struct pmic_irq_data mt6359_irqd = {
+ 	.num_top = ARRAY_SIZE(mt6359_ints),
+ 	.num_pmic_irqs = MT6359_IRQ_NR,
+ 	.top_int_status_reg = MT6359_TOP_INT_STATUS0,
+@@ -233,6 +233,7 @@ static void mt6358_irq_disable_wake(void *data)
+ 
+ int mt6358_irq_init(struct mt6397_chip *chip)
+ {
++	const struct pmic_irq_data *irqd_template;
+ 	struct irq_domain_info info = {
+ 		.fwnode = dev_fwnode(chip->dev),
+ 		.ops = &mt6358_irq_domain_ops,
+@@ -244,16 +245,16 @@ int mt6358_irq_init(struct mt6397_chip *chip)
+ 
+ 	switch (chip->chip_id) {
+ 	case MT6357_CHIP_ID:
+-		chip->irq_data = &mt6357_irqd;
++		irqd_template = &mt6357_irqd;
+ 		break;
+ 
+ 	case MT6358_CHIP_ID:
+ 	case MT6366_CHIP_ID:
+-		chip->irq_data = &mt6358_irqd;
++		irqd_template = &mt6358_irqd;
+ 		break;
+ 
+ 	case MT6359_CHIP_ID:
+-		chip->irq_data = &mt6359_irqd;
++		irqd_template = &mt6359_irqd;
+ 		break;
+ 
+ 	default:
+@@ -261,8 +262,12 @@ int mt6358_irq_init(struct mt6397_chip *chip)
+ 		return -ENODEV;
+ 	}
+ 
++	irqd = devm_kmemdup(chip->dev, irqd_template, sizeof(*irqd), GFP_KERNEL);
++	if (!irqd)
++		return -ENOMEM;
++
++	chip->irq_data = irqd;
+ 	mutex_init(&chip->irqlock);
+-	irqd = chip->irq_data;
+ 	irqd->enable_hwirq = devm_kcalloc(chip->dev,
+ 					  irqd->num_pmic_irqs,
+ 					  sizeof(*irqd->enable_hwirq),
+-- 
+2.39.5
+

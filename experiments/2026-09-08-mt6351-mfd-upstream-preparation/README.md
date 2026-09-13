@@ -440,3 +440,46 @@ object contains three calls to the kernel rate limiter for the changed paths.
 The source baseline, configuration, toolchain and first eleven patches match
 the parent. Unchanged PM/lifetime helper tests and bindings were not rerun.
 No device candidate is created.
+
+## MT6358-family interrupt state per device
+
+The [thirteenth patch](../../patches/upstream-4d7d9486/mt6351/0013-mfd-mt6358-keep-IRQ-state-local-to-each-device.patch)
+corrects the previously recorded shared mutable IRQ data. The chip descriptions
+contain the enable/cache pointers allocated during initialization. A second
+device using the same description overwrites those pointers in the first
+device, including when the second allocation fails. MT6358 and MT6366 share
+one description, so different chip IDs can also collide. Once the second
+device's managed allocations are freed, the first can retain dangling pointers.
+This is a reproduced source defect, not an observed Gemini failure.
+
+Each chip description is now a const template. The initializer duplicates its
+selected template with `devm_kmemdup()` before allocating the masks. Immutable
+bank descriptions remain shared. The new allocation fails before any register
+write or parent-handler registration. Managed allocations are released after
+the later parent handler; this patch adds no interrupt, voltage or wake policy.
+
+The [focused regression](test-irq-instances.py) compiles the actual chip
+descriptions, complete initializer and mask callbacks with modeled register
+geometry, allocation and IRQ services. All 16 pairs of supported chip IDs are
+tested with successful second initialization and failure at each of its three
+allocations: 64 cases, plus rejection of an unsupported chip. They verify mask
+independence, unchanged first-instance pointers/state after second-probe
+failure, and first-instance use after releasing the second's allocations.
+The unmodified twelve-patch source compiles and fails the overwritten-pointer
+assertion; the changed source passes. No physical multi-PMIC arrangement or
+kernel interrupt concurrency is modeled.
+
+The existing lifetime fixture also passes its current 58 cases against the
+changed initializer. Its single-instance allocation stub now accepts the
+managed duplicate; the separate new regression owns multi-instance and
+allocation-failure coverage. Strict checkpatch passes with only the unsigned
+archive's `MISSING_SIGN_OFF` exclusion. The current compile checkpoint is
+pending Buildbox validation; the first twelve patches, source pin, configuration
+and bindings are unchanged. Only `mt6351-regulator-compile` selects this addition;
+the separate key profile retains its existing inputs.
+
+This remains unsigned upstream preparation. Rebase the independent correction
+onto the target MFD tree and establish truthful authorship/certification before
+submission. Remove it when an accepted equivalent is in the selected upstream
+baseline. The legacy MT6351 initializer uses a different state model; VCN33
+ownership, transport-failure recovery and Gemini runtime admission remain open.
