@@ -4,7 +4,7 @@
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
   "selected_item": "wifi-export-usb-ethernet-diagnostics-1",
-  "selection_note": "Select the bounded USB decision diagnostic after the preceding corrected session preserved its console and returned to Gemian. Primary integration coordinator holds sole custody; guarded installation and clean shutdown precede arming and owner selection.",
+  "selection_note": "Bounded USB decision diagnostic is installed with matching full readback and clean shutdown. Primary integration coordinator holds sole custody. Both collectors must be armed before the owner physically selects boot2.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -264,7 +264,7 @@
     "wifi-export-usb-ethernet-diagnostics-1": {
       "workstream": "wifi",
       "preparation_state": "ready",
-      "device_state": "selected",
+      "device_state": "waiting-owner-boot",
       "owner": "primary integration coordinator",
       "reviewer": "primary integration coordinator",
       "device_custodian": "primary integration coordinator",
@@ -274,7 +274,7 @@
       "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-ethernet-diagnostics-session.json",
       "dependencies": [],
       "owner_task_id": null,
-      "readiness_note": "Complete 49-patch native build, configuration equality, linked one-line guard and pre-hardware shutdown report inspection passed. Container and filesystem independently validated. Exact protocol and derived installer reviewed; selected for guarded installation, no physical selection yet."
+      "readiness_note": "Exact candidate installed through live-GPT boot2 guard; full readback matched and clean shutdown confirmed. Original runtime is unchanged; late USB decision summary is the new observation. Arm both collectors before one physical owner selection; no selection reported yet."
     }
   }
 }

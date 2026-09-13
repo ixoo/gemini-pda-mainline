@@ -1,0 +1,33 @@
+{
+  "status": "installed with full readback; clean shutdown confirmed; collectors must arm before owner selection",
+  "recorded_utc": "2026-09-13T17:53:58.526132+00:00",
+  "kernel_build_commit": "895ecb5c16326f4e57970caed6ff2404edae2acb",
+  "cycle_id": "ba533dcc-3368-4cb6-aff1-fdc31bf9f4b1",
+  "session_sha256": "9f7735a2341a4a445e58d9c7f44a3a3c8bc67732b31dc1152679b049b5bf67e7",
+  "deployment_summary_sha256": "8b7045689255092c4ff6216c22e06be2d3f615e8e21fcbfc5826cdc21f3b166a",
+  "deployment": {
+    "experiment": "2026-09-07-mt6797-wifi-observer-feasibility",
+    "result": "write-synced-flushed-full-readback-verified",
+    "target_logical_name": "boot2",
+    "target": "/dev/mmcblk0p30",
+    "root": "/dev/mmcblk0p29",
+    "boot2_device_guard": "passed",
+    "boot2_device_guard_sha256": "0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf",
+    "target_major_minor": "179:30",
+    "root_major_minor": "179:29",
+    "predecessor_sha256": "ddcc4bf97fbe74af30e3561d3ff98cbd51693323868ef8a1967aca68c81f68e5",
+    "fresh_predecessor_backup": "no",
+    "candidate_sha256": "1aa06c9e63a277d62f5c813a8b88d1b9a8b86564e7f57c1fdd09fc92394b9917",
+    "readback_sha256": "1aa06c9e63a277d62f5c813a8b88d1b9a8b86564e7f57c1fdd09fc92394b9917",
+    "boot_id": "258eff5c-a742-4379-89e7-60e885eaf797",
+    "power": "1|97|Good|0",
+    "temporary_readback_removed": "yes",
+    "shutdown": "requested-after-evidence-flush",
+    "poweroff_ssh_rc": "255",
+    "post_shutdown_reachability": "unreachable",
+    "reboot": "no",
+    "next_action": "owner-physically-selects-boot2"
+  },
+  "owner_selection_reported": false,
+  "runtime_result": "not yet observed"
+}

@@ -137,6 +137,12 @@ its parent; inverse comparison, Bash syntax and ShellCheck pass. Installation
 must confirm the expected Gemian boot and finish with clean shutdown. The
 owner then selects boot2 physically after both collectors are armed.
 
+The [deployment receipt](results/usb-ethernet-diagnostics-deployment.json) now
+confirms the expected live Gemian boot, inactive GPT-selected boot2, matching
+full readback and clean shutdown. The previous boot's console was already
+preserved. No physical selection has yet been reported for this diagnostic.
+Its runtime result is pending; installation does not establish USB support.
+
 The return collector changes only the preceding boot UUID; its authenticated
 changed-boot checks and one console-read budget are unchanged. USB attribution,
 receiver and route helpers are byte-identical. Host configuration changes,

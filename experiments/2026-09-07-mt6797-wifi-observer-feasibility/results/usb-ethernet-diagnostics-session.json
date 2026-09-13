@@ -1,5 +1,5 @@
 {
-  "status": "validated and selected for guarded boot2 installation; not yet installed",
+  "status": "installed with full readback and clean shutdown; arm both collectors before owner selection",
   "preceding_gemian_boot": "258eff5c-a742-4379-89e7-60e885eaf797",
   "preceding_identity_record": "usb-ethernet-connect-window-2.json",
   "candidate_receipt": "usb-ethernet-diagnostics-candidate.json",
@@ -45,5 +45,6 @@
   "diagnostic_source_receipt": "usb-ethernet-diagnostics.json",
   "classifier_sha256": "52debac48c311e160654947a4c2dc3649fc7f408af8c31fa6729516201d1cea5",
   "usb_decoder_sha256": "431e8a2d7ac4aa6a02e2bdf7406bdc08a3f3e40325de9d03c71e8c457b9c3a80",
-  "usb_decoder_validation": "10 attribution and malformed/duplicate/reserved-bit cases passed; known packed cable fields checked"
+  "usb_decoder_validation": "10 attribution and malformed/duplicate/reserved-bit cases passed; known packed cable fields checked",
+  "deployment_receipt": "usb-ethernet-diagnostics-deployment.json"
 }
