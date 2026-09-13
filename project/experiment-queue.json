@@ -3,8 +3,8 @@
   "purpose": "Readiness inventory, not an executable queue or device authorization. Object order is not scheduling order; docs/ROADMAP.md alone owns priority. Exact inputs, budgets and chronology stay in linked experiments.",
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
-  "selected_item": null,
-  "selection_note": "The fresh pre-armed export measurement completed with no attributed USB terminal and a retained host-request stop. Changed-boot Gemian and one console capture are confirmed. Custody released; diagnose USB enumeration/attribution before any further physical selection.",
+  "selected_item": "wifi-export-usb-ethernet-1",
+  "selection_note": "Validated USB Ethernet candidate selected for guarded boot2 installation and one owner selection only after both fresh 600-second collectors are armed. The primary coordinator holds device custody.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -230,6 +230,21 @@
       "dependencies": [],
       "owner_task_id": null,
       "readiness_note": "At the owner request, reused the prior verified installation while powered off. Both fresh collectors armed before the one reported selection. Native CPU0-7 preflight passed and host-request waiting stopped after 60.061943 seconds. Host watcher found no attributed ACM terminal, invoked no receiver and sent no request/acknowledgement. One console preserved; changed-boot Gemian confirmed. Investigate native USB enumeration/attribution before another selection; no repeat selected."
+    },
+    "wifi-export-usb-ethernet-1": {
+      "workstream": "wifi",
+      "preparation_state": "ready",
+      "device_state": "unselected",
+      "owner": "primary integration coordinator",
+      "reviewer": "primary integration coordinator",
+      "device_custodian": "primary integration coordinator",
+      "experiment": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_ETHERNET.md",
+      "session_packet": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_ETHERNET_SESSION.md",
+      "candidate_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-ethernet-candidate.json",
+      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-ethernet-session-preparation.json",
+      "dependencies": [],
+      "owner_task_id": null,
+      "readiness_note": "Native g_ether build, TCP capture, private candidate and host attribution fixtures pass. Preceding Gemian authenticated; existing guarded installer adapted with exact inverse comparison. Installation and owner selection are not yet performed. Preserve the previous ACM timeout evidence; no WLAN cycle or clearing is selected."
     }
   }
 }

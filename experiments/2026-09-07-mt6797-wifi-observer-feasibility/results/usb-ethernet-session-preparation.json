@@ -1,0 +1,49 @@
+{
+  "preceding_gemian_boot": "efa64e7c-d039-400b-8042-fab762793f9d",
+  "padded_sha256": "94bb3c7864a8dfb11028e1d9bd90d0223b7eefa758d2753bc39656ea50d0967d",
+  "package_manifest_sha256": "89a026ebbd79cb97507a60824a4c210531c46a7d095cd6671e8fe1169ff62ae5",
+  "installer_parent_sha256": "f96a0cabb5ac3ba3d18f947b7d4d3c036ff31a7687de669764eef86a7e055c26",
+  "installer_sha256": "e3139c9f93097b745f0119aed85b1c953219906f3983c73574d64ba8c90689ce",
+  "inverse_derivation_exact": true,
+  "changed_installer_fields": [
+    "candidate digest",
+    "package manifest digest",
+    "package name",
+    "evidence directory",
+    "preceding Gemian boot"
+  ],
+  "bash_syntax": "pass",
+  "shellcheck": "pass",
+  "return_collector_parent_sha256": "7422f00b1a31c3c68bf3cd19019ce7c163574b455c02ccba3a29631aa3a9fa91",
+  "return_collector_sha256": "8e43e2058895e6f5e4dae10571648bf19408a81463ca37543bf8a3a619640fab",
+  "return_collector_change": "one preceding boot UUID and 180-to-600-second arming window; capture and identity logic unchanged",
+  "device_action": "one bounded read-only Gemian identity query; no partition access or installation yet",
+  "status": "prepared for guarded installation; no device selection yet",
+  "candidate_receipt": "usb-ethernet-candidate.json",
+  "cycle_id": "7b0fb0c8-cab8-405d-86f4-a85f2034f3c3",
+  "session_sha256": "f841038c68e91e0f564f5983ff4a521ac96d7fad98c933c8a030104c4e4466dd",
+  "host_collector_sha256": "3d500aba0bdc1a4db1c6532a4f9347b26eca5d8b2566199aa14bfe319a784aec",
+  "host_collector_tests_sha256": "6f5e6a0bd409bafe609672fbbbfcaef04554caa96b1f2e0a13df8889f43cf334",
+  "host_collector_tests": 4,
+  "host_receiver_sha256": "1222ed27a4e980a22d606c9251f9a187610fc4ab4195bf870b70fddef0183024",
+  "host_route_helper_sha256": "57491d7ac60a380ee85215e391274e5ced2733b33ab6df70e0757db7b67bf082",
+  "arming_seconds": 600,
+  "saved_host_network": {
+    "unique_protocol_mac_match": true,
+    "service_active_in_saved_configuration": true,
+    "ipv4_method": "Manual",
+    "address": "10.15.19.1",
+    "netmask": "255.255.255.0",
+    "router": "0.0.0.0",
+    "live_interface_absent_during_preparation": true,
+    "live_route_not_yet_admitted": true,
+    "configuration_changes": 0
+  },
+  "gemian_identity": {
+    "kernel": "Linux 3.18.41+ aarch64",
+    "model": "MT6797X",
+    "os": "debian 9",
+    "pid1": "systemd",
+    "system_state": "running"
+  }
+}
