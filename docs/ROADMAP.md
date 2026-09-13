@@ -109,7 +109,7 @@ now pairs that kernel with the accepted authenticated environment and passes
 offline packaging checks. Installation, bounded host execution, log preservation
 and return confirmation now pass offline fixtures. Its next step is the admitted
 board regression after current device custody is released and the live deployment
-inputs are bound. It remains unselected; the Wi-Fi Ethernet session retains custody.
+inputs are bound. It remains unselected; the completed Wi-Fi Ethernet session has released custody.
 
 The independent [MMC voltage-switch error fix](../experiments/2026-09-09-mtk-sd-pinctrl-errors/README.md)
 returns failed pin configuration to the MMC core. Its isolated Buildbox compile
@@ -404,9 +404,13 @@ The remaining preparation order is:
    the late return collector obtained no authenticated identity or log. A
    [later owner selection](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/BOOT_CPU_LIMIT.md#later-owner-selection)
    preserved the CPU0–7 preflight pass and a stop after 60 seconds waiting for
-   the unarmed host receiver. Gemian is confirmed. Prepare the distinguishing
-   acknowledged export with a fresh finite session and collectors armed before
-   physical selection; do not repeat an uncollected boot or weaken the CPU check.
+   the unarmed host receiver. The later pre-armed
+   [USB Ethernet session](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_ETHERNET_SESSION.md)
+   also passed preflight and started its listener, but never enumerated USB;
+   its stopped marker and changed-boot Gemian return are preserved. Correct the
+   [missing native connection step](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_ETHERNET_CONNECT.md)
+   before another finite export session. Require acknowledged preservation;
+   do not repeat unchanged inputs or weaken the CPU check.
    Exit order must not be inferred by reversing initialization, and the vendor
    WMT ioctl must not be copied merely to run the retained loader.
 4. **Preserve the bounded eMMC result:** the [closed session](../experiments/2026-09-05-owner-away-experiment-preparation/emmc/PAUSE_SESSION_PREPARATION.json)

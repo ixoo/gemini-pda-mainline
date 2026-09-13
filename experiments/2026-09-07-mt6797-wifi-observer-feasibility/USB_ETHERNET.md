@@ -13,7 +13,7 @@ enumeration and export had never been validated on this diagnostic. The capture
 exchange itself already accepts a duplex byte stream. Keeping serial introduced
 an unnecessary separate transport dependency.
 
-The next build selects the existing native g_ether implementation with ECM and
+The first Ethernet build selects the existing native g_ether implementation with ECM and
 RNDIS, matching the mainline gadget selection. Android USB is disabled so only
 one gadget owns the controller. The source is the already pinned native kernel
 revision in [full-kernel-inputs.json](full-kernel-inputs.json); no driver source
@@ -72,8 +72,10 @@ The header supplies the previously used local USB MAC pair and the synthetic
 serial `GEMINI_WIFI_EXPORT_TCP_1` for host attribution; neither identifies a
 physical unit by itself.
 
-Host collector preparation and guarded installation have now passed under the
-[selected session](USB_ETHERNET_SESSION.md). Both collectors were armed before
-the owner handoff. Hardware validation remains outstanding; its result must
-distinguish Ethernet enumeration, connection, preserved bytes and confirmed
-return to Gemian.
+The [physical session](USB_ETHERNET_SESSION.md) reached the listener with both
+collectors armed, but native USB did not enumerate. The 60-second wait stopped
+and returned normally to verified Gemian; the console was preserved, without
+an exported snapshot. The [source-bound diagnosis](USB_ETHERNET_CONNECT.md)
+identifies the missing post-bind connection in this Android-oriented kernel.
+A corrected candidate must distinguish enumeration, transfer, preservation
+acknowledgement and verified return before this transport is considered working.

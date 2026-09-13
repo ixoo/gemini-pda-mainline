@@ -191,6 +191,10 @@
     {
       "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/hps-default-off/0001-power-start-native-diagnostic-HPS-with-hotplug-disabled.patch",
       "sha256": "c014d765dd18638b9cb71e74301f4fdac6ab692809eac7a3ccd9225fcaeaf623"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/usb-ethernet-connect/0001-usb-connect-the-native-diagnostic-Ethernet-gadget-after-bind.patch",
+      "sha256": "80b00c9c4af5307bd2fe54ce9ba2bc44163a5d5e5e71477148ab0a84ab335988"
     }
   ],
   "purpose": "complete native kernel link; no boot candidate or device admission"

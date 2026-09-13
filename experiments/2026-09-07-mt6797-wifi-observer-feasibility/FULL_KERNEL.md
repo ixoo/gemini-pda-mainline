@@ -1,7 +1,7 @@
 # Complete native controller kernel link
 
 The [Buildbox-only builder](build-full-kernel.py) compiles the complete native
-kernel from [forty-seven pinned patches](full-kernel-inputs.json): the previously
+kernel from [forty-eight pinned patches](full-kernel-inputs.json): the previously
 compiled controller composition, the emergency reset correction, and historical
 patch 0001's A72 refusal/configuration declaration, plus the detector's watchdog
 header dependency, the [calibration open-error correction](CALIBRATION_OPEN.md)
@@ -9,7 +9,8 @@ and [native recovery-reset isolation](RESET_ISOLATION.md), followed by the
 [restart-wrapper correction](patches/restart-wrapper/0001-watchdog-bypass-RTC-mode-writes-in-captured-experiment.patch)
 and [earlier restart exclusion](RESTART_GATE.md), then the
 [raw PMSG reader correction](CAPTURE_DEVICE.md#raw-reader-correction), and the
-[native HPS startup policy](HPS_BOOT_POLICY.md).
+[native HPS startup policy](HPS_BOOT_POLICY.md) and the diagnostic
+[Ethernet connection correction](USB_ETHERNET_CONNECT.md).
 It does not select the old
 recovery trigger, profile or consumed artifact.
 
@@ -36,7 +37,7 @@ disabled-ANBOX serialization change. The native MU3D controller, board DT,
 capture patches and CPU policy remain the same. The fragment digest is recorded
 separately so this configuration change reuses the prepared source tree.
 The [transport decision](USB_ETHERNET.md) distinguishes prior mainline network
-validation from the native controller's outstanding hardware test. Build identity fields are
+validation from the native controller's failed first Ethernet test and pending correction. Build identity fields are
 fixed; two-build reproducibility has not been established.
 
 The link must contain the capture, recovery and request entry points, contain

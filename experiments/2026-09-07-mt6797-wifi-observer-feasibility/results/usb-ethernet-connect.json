@@ -1,0 +1,50 @@
+{
+  "status": "source-bound correction; patch checks passed; full build pending",
+  "runtime_record": "usb-ethernet-window-2.json",
+  "native_source_revision": "59e00a9144d782e148332009a835b99c43382467",
+  "source_sha256": {
+    "drivers/usb/gadget/udc/udc-core.c": "9db1f57c50c7ebec2ffb5688519fee9733c517f473ffcd65a835ed1ad012c3fe",
+    "drivers/misc/mediatek/mu3d/drv/mt_usb.c": "9972b1026f033076314cdeedaf01bc42dc054272180e86dab8e9e594d291e049",
+    "drivers/misc/mediatek/mu3d/drv/musb_gadget.c": "2bb0fb3c318838c2b41520b0e2beefdd39ae1f7b39ac77fd5f5ec69230deb597"
+  },
+  "tested_vmlinux_sha256": "2d8aaefbb98e10baefa9fb54e3f744469efcd4181bbb1d84eb3cc7957a670e6e",
+  "readiness_wait": {
+    "suppression_records": 51,
+    "first_kernel_seconds": "3.258328",
+    "last_kernel_seconds": "63.258325",
+    "suppressed_callbacks_total": 356,
+    "rate_limit_call_sites_in_selected_connection_work": 1
+  },
+  "linked_before": {
+    "tool": "RE VM ELF parsing and ARM64 instruction decoding",
+    "udc_bind_to_driver": {
+      "bytes": 264,
+      "sha256": "86e1817bc343c90236bb6e3af731742132b69ac0d8c4c943c796a25f3cb0bc9b",
+      "successful_udc_start_next_call": "kobject_uevent; no pullup"
+    },
+    "connection_work": {
+      "bytes": 720,
+      "sha256": "109b76df4dd58520be6b8c1cc7ef3b2fec0da35ca5d71fb22d56009fe4f76bb8",
+      "rate_limit_branch": "is_usb_rdy returned false; 100 ms reschedule then return"
+    }
+  },
+  "patch_path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/usb-ethernet-connect/0001-usb-connect-the-native-diagnostic-Ethernet-gadget-after-bind.patch",
+  "patch_sha256": "80b00c9c4af5307bd2fe54ce9ba2bc44163a5d5e5e71477148ab0a84ab335988",
+  "udc_after_sha256": "c3ba945e46a6f3eba8b08907e3df9926b978c585170c6a4691a3cd5076995124",
+  "selected_patches": 48,
+  "prior_manifest_sha256": "bc844c38321c2dc0f4c919bd1a4be4885b1296abd5b5bd94af93a5b3055d48bf",
+  "new_manifest_sha256": "afc6ae5ac29fe663b0f36fe2f3c1d3cfa22e79f905cd1fec987fe1996c1931e2",
+  "configuration_changes": 0,
+  "canonical_upstream_series_or_profile_changes": 0,
+  "source_license": "GPL-2.0 per inspected source header",
+  "patch_authorship": "assistant-generated native experiment; no DCO certification; not submission-ready",
+  "patch_apply_check": "passed against exact prepared 47-patch source",
+  "checkpatch": {
+    "source": "Linux 7.1.3",
+    "errors": 0,
+    "warnings": 0,
+    "checks": 0,
+    "signoff_check": "disabled for explicitly non-certifying experiment"
+  },
+  "hardware_validation": "pending corrected build, candidate and separate physical selection"
+}

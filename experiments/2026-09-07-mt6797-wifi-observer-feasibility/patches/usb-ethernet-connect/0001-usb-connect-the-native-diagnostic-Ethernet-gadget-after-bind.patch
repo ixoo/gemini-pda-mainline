@@ -1,0 +1,39 @@
+From 458481bd4cfaee5afe6815927a707557f6fc49bd Mon Sep 17 00:00:00 2001
+From: Codex native diagnostic <noreply@native-diagnostic.invalid>
+Date: Sun, 13 Sep 2026 10:26:56 -0400
+Subject: [PATCH] usb: connect the native diagnostic Ethernet gadget after bind
+
+The native UDC core suppresses the normal post-bind connection for Android,
+which enables its gadget later from userspace. The standalone g_ether
+diagnostic has no such owner. It registers usb0 and waits for TCP while
+MU3D connection_work repeatedly stops at !is_usb_rdy().
+
+Restore the existing gadget connect call after successful bind and UDC
+start only for the diagnostic with Ethernet enabled and Android disabled.
+The existing pullup callback owns readiness and the controller's normal
+role, cable and charging policy. Do not assign readiness or force a role.
+
+This is an assistant-generated native experiment correction, not an
+upstream submission. It contains no DCO certification.
+---
+ drivers/usb/gadget/udc/udc-core.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/drivers/usb/gadget/udc/udc-core.c b/drivers/usb/gadget/udc/udc-core.c
+index bfc6b58..bd5eaf4 100644
+--- a/drivers/usb/gadget/udc/udc-core.c
++++ b/drivers/usb/gadget/udc/udc-core.c
+@@ -411,6 +411,10 @@ static int udc_bind_to_driver(struct usb_udc *udc, struct usb_gadget_driver *dri
+ 	 * usb_gadget_connect(udc->gadget);
+ 	 */
+ 
++	/* The standalone diagnostic has no Android userspace to connect it. */
++	if (IS_ENABLED(CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR) &&
++	    IS_ENABLED(CONFIG_USB_ETH) && !IS_ENABLED(CONFIG_USB_G_ANDROID))
++		usb_gadget_connect(udc->gadget);
+ 
+ 	kobject_uevent(&udc->dev.kobj, KOBJ_CHANGE);
+ 	return 0;
+-- 
+2.54.0 (Apple Git-157)
+

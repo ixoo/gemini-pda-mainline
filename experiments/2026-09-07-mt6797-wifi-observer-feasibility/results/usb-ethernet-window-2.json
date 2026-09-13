@@ -1,0 +1,150 @@
+{
+  "status": "physical selection completed; native Ethernet did not enumerate; stopped return retained",
+  "recorded_utc": "2026-09-13T14:29:54.462993+00:00",
+  "deployment_record": "usb-ethernet-deployment.json",
+  "first_window_record": "usb-ethernet-window-1.json",
+  "cycle_id": "7b0fb0c8-cab8-405d-86f4-a85f2034f3c3",
+  "session_sha256": "f841038c68e91e0f564f5983ff4a521ac96d7fad98c933c8a030104c4e4466dd",
+  "previous_gemian_boot_id": "efa64e7c-d039-400b-8042-fab762793f9d",
+  "candidate_boot_id": "9446fcd0-7611-4dfd-8688-3f38ea8dc45b",
+  "returned_gemian_boot_id": "b2b6b2a3-2001-4ef0-a1c0-bc010f6ecfcf",
+  "installed_padded_sha256": "94bb3c7864a8dfb11028e1d9bd90d0223b7eefa758d2753bc39656ea50d0967d",
+  "preboot_binding": "Prior authenticated Gemian identity and verified deployment retained; owner reported shutdown. At owner request no repeated installation verification or partition write.",
+  "ethernet_armed_utc_seconds": 1789308912.9145348,
+  "both_collectors_ready_utc_seconds": 1789308940.7672489,
+  "owner_started_utc_seconds": 1789308973.918973,
+  "owner_selection_reported_for_ethernet_candidate": true,
+  "physical_selections_consumed": 1,
+  "collector_window_seconds": 600,
+  "ethernet_collector_exit": 143,
+  "return_collector_exit": 0,
+  "ethernet_collector_stop": "SIGTERM after changed-boot Gemian verification and retained console preservation; exact collector process selected. No final inventory after manual stop.",
+  "usb_inventory_changes_after_initial_sample": 0,
+  "attributed_ethernet_gadget_observed": false,
+  "receiver_invocations": 0,
+  "capture_requests": 0,
+  "acknowledgements": 0,
+  "snapshot_exported": false,
+  "cpu0_7_preflight_passed": true,
+  "snapshot_stage_entered": true,
+  "usb_ownership_stage_entered": true,
+  "host_request_waiting_kernel_seconds": "3.216118",
+  "host_request_stopped_kernel_seconds": "63.278038",
+  "wait_seconds": "60.061920",
+  "setup_inference": "Pinned capture-device.py reaches host-request waiting only after snapshot, checked usb0 configuration, bind-to-device, address bind and listen. With no receiver, the 60-second stop is consistent with accept timeout; exception text was not retained.",
+  "changed_boot_gemian_verified": true,
+  "retained_console_payload_reads": 1,
+  "retained_console_bytes": 65524,
+  "retained_console_sha256": "b10a9f9c1e86c32d5494b3fb4aeb27492e5d484740f00facdbf096bfa2bab8b7",
+  "captured_utc": "2026-09-13T14:17:20.455121+00:00",
+  "return_marker_count": 1,
+  "outcome": "stopped",
+  "normal_restart_after_marker": true,
+  "post_marker_fault_tokens": {
+    "Kernel panic": 0,
+    "BUG:": 0,
+    "WARNING:": 0,
+    "Unable to handle kernel": 0,
+    "Call trace:": 0
+  },
+  "limitations": [
+    "No capture frame or preservation acknowledgement was received. Preserving the console does not preserve the unretrieved snapshot.",
+    "Host observation establishes no inventory change during collection, not an electrical trace of every USB event.",
+    "Source-bound readiness diagnosis is recorded separately; later cable/role behavior remains untested."
+  ],
+  "next_decision": "Correct the missing post-bind gadget connection before a new candidate; do not repeat unchanged inputs.",
+  "private_evidence": {
+    "active.json": {
+      "bytes": 242,
+      "sha256": "2575b2bc41317e214e0a5c388f3d64a208d3097deddd14ec5f0e05bae265ce3d"
+    },
+    "classification.stderr": {
+      "bytes": 645,
+      "sha256": "d4f252bbd62afe6359f153c03415cb466254cec754c2872ae63a7d1c675abfac"
+    },
+    "classification.stdout": {
+      "bytes": 3108,
+      "sha256": "4baa98ed509f50c65faadee30e784359e2424d1e72883bd53352a2f11b9e3e9c"
+    },
+    "classify.py": {
+      "bytes": 3184,
+      "sha256": "072e71d033aa4a637895e65b8b319c025430d3fcbb12c26c83535d82873c26ff"
+    },
+    "collector-stop.json": {
+      "bytes": 247,
+      "sha256": "b45132e9093c5862f0a9e3628392e82a68349bcc38a86e352194a1867c28b4ed"
+    },
+    "ethernet-collector.stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "ethernet-collector.stdout": {
+      "bytes": 73,
+      "sha256": "3aec94f0e4ab9a427c09b8600d4344164ef5e99d4b55cb88bc8d673ff0107b38"
+    },
+    "ethernet-watch/armed.json": {
+      "bytes": 466,
+      "sha256": "a14d7822bb4a6d180020c696a5665353de7e133d66047adf36467d43d423baa6"
+    },
+    "ethernet-watch/usb-before.txt": {
+      "bytes": 938721,
+      "sha256": "e97224a0206fe555ef2bcbd468c9019aae8963ac18a66327dc1dcf47f72c88e2"
+    },
+    "ethernet-watch/usb-change-000.json": {
+      "bytes": 1507,
+      "sha256": "bbbef82dded0010239a50fd46e0643750078cbd84dec9da645d8e1d8ce3b5f5b"
+    },
+    "gemian-return/capture-receipt.json": {
+      "bytes": 252,
+      "sha256": "4b194c0dd6017f23a43f3ef7bc06ec0e35bfac035ba1709f0a3d61f2cac25c6a"
+    },
+    "gemian-return/console-ramoops": {
+      "bytes": 65524,
+      "sha256": "b10a9f9c1e86c32d5494b3fb4aeb27492e5d484740f00facdbf096bfa2bab8b7"
+    },
+    "gemian-return/console-ramoops.stderr": {
+      "bytes": 414,
+      "sha256": "7d4e8e813263cb76dab3779e9200a3a23f782dea0db6ebf09df4128b6666895c"
+    },
+    "gemian-return/identity-attempts.stderr": {
+      "bytes": 1478,
+      "sha256": "fd65c2d8a2049ddaebc1d71682517eab012f74e8f26346d8610060750baefc08"
+    },
+    "gemian-return/identity.stdout": {
+      "bytes": 187,
+      "sha256": "4e79f1017f2fb2cfa2cc300159be40de67c9aa87d42531438e159dd6062b8786"
+    },
+    "handoff.json": {
+      "bytes": 482,
+      "sha256": "d26c51b731b0d6891650824413b2673bf544ed9b302ee7e8bfa8362a3fb0b5d2"
+    },
+    "owner-return.json": {
+      "bytes": 98,
+      "sha256": "9a1669f7e1993374b7ddef161933a09bb3b3f230b4c7fb1e3294a062084b6a2c"
+    },
+    "owner-started.json": {
+      "bytes": 131,
+      "sha256": "17d8ad64ae54a5ff65e0766d90a6abf134765d3ed6af282b302805ef1482c185"
+    },
+    "return-collector.stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "return-collector.stdout": {
+      "bytes": 371,
+      "sha256": "361f0e27067a0cc69afb9cb33f9c2cf4df2e96afe538b0f6862e3e5609772197"
+    },
+    "run-return.py": {
+      "bytes": 326,
+      "sha256": "dee559dec18ef98a5595acefc3a9b2d9fedbe81dbd8a93b27a85795c0c7ce026"
+    },
+    "runtime-stages.stderr": {
+      "bytes": 645,
+      "sha256": "da46b1f397a3dc812a5078521f898300a8781a69a501d619204ddc9e8066dd8b"
+    },
+    "runtime-stages.stdout": {
+      "bytes": 5521,
+      "sha256": "62a86bc0ac3fd607ee85c54995564f1f800adb278b7934ff4fba83fc6a0464f3"
+    }
+  }
+}

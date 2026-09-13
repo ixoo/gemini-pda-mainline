@@ -1,19 +1,25 @@
 # One USB Ethernet capture and normal return
 
-Status: installed with matching full readback and clean shutdown. Both collectors
-were observed live before the owner was told to select boot2, then exhausted
-their 600-second windows. The [window result](results/usb-ethernet-window-1.json)
-records no USB inventory change, attributed Ethernet gadget, receiver invocation
-or verified changed-boot Gemian return. Physical selection of this Ethernet
-candidate has not been reported; this is not a confirmed failed boot. Both
-collectors are stopped, and current device state awaits the owner report.
-The [deployment receipt](results/usb-ethernet-deployment.json) retains the
-installation and initial handoff. The
-[candidate](results/usb-ethernet-candidate.json) is the independently validated
-USB Ethernet image that replaces the preceding ACM image.
-The [preparation receipt](results/usb-ethernet-session-preparation.json) binds
-the current tools and preceding authenticated Gemian boot. Preparation,
-installation and physical results are recorded separately.
+Status: one owner-reported physical selection completed with both collectors
+armed first. The [second window result](results/usb-ethernet-window-2.json)
+records CPU0–7 preflight success, a TCP listener waiting for 60.061920 seconds,
+no attributed USB Ethernet gadget or receiver invocation, and a retained
+`outcome=stopped`. Changed-boot Gemian is verified and one console is preserved.
+Both collectors are stopped. No capture snapshot was exported.
+
+The [first window](results/usb-ethernet-window-1.json) remains an expired
+observation without a reported physical selection. The owner later reported shutdown and requested reuse of
+the already verified installation; the second window made no partition write
+or repeated preboot verification. It bound the prior authenticated Gemian boot
+and [deployment receipt](results/usb-ethernet-deployment.json) to the owner report.
+The [candidate](results/usb-ethernet-candidate.json) and
+[preparation](results/usb-ethernet-session-preparation.json) remain unchanged.
+
+The retained console and pinned native source identify a missing post-bind USB
+connection in the Android-oriented UDC core. The
+[connection correction](USB_ETHERNET_CONNECT.md) owns the next change. Do not
+repeat this image: later cable and role checks were not reached by the observed
+readiness loop. Gemian remains running; this session's device custody is released.
 
 ## Hypothesis and decision
 
