@@ -1,5 +1,5 @@
 {
-  "status": "source-bound correction; patch checks passed; full build pending",
+  "status": "source-bound correction; complete build, linked callback inspection and candidate validation passed; device test pending",
   "runtime_record": "usb-ethernet-window-2.json",
   "native_source_revision": "59e00a9144d782e148332009a835b99c43382467",
   "source_sha256": {
@@ -46,5 +46,37 @@
     "checks": 0,
     "signoff_check": "disabled for explicitly non-certifying experiment"
   },
-  "hardware_validation": "pending corrected build, candidate and separate physical selection"
+  "hardware_validation": "pending one corrected physical session",
+  "build": {
+    "project_commit": "ef966869758e6f6b5751e36f0053ea935932efd8",
+    "inputs_sha256": "afc6ae5ac29fe663b0f36fe2f3c1d3cfa22e79f905cd1fec987fe1996c1931e2",
+    "source_integrity": "source_tree_integrity=e856af9e3a1287ecc57e3563ac56b46007cfe32641138f01de596846a3e550fb",
+    "compiler": "aarch64-linux-gnu-gcc-6 (Debian 6.3.0-18) 6.3.0 20170516",
+    "linker": "GNU ld (GNU Binutils for Debian) 2.28",
+    "config_sha256": "43222fdee6781f3bc51cb7e412c9f92372ecf8f78b8881b11d66b77f849d8eb8",
+    "usb_fragment_sha256": "46dafbfb7dea544de7b12cfbe4980fa4af97d6c74f51e76cad35a33ea22dc003",
+    "undefined_symbols": 0,
+    "diagnostic_lines": 1,
+    "package_files": 11,
+    "manifest_sha256": "ad746374a1e1bdf67cb60c3abd496642a9cedd2c5bd3f96504279c251d6fcc20",
+    "kernel_sha256": "15be5494cc39d1f614d885f2333a64629aa2f8b5ca79b132f0c25a403ec2bd9d",
+    "vmlinux_sha256": "3be45fdc59df3a43a79646b4ccf94cc17c0aecce8bf59da2797f3359ec20824d",
+    "config_identical_to_preceding_ethernet": true,
+    "all_remote_and_fetched_checksums_match": true,
+    "modpost_section_mismatches": 69,
+    "compiler_warning_limitation": "Native -w retained; individual section mismatch identities not compared.",
+    "hosted_checks": "https://github.com/ixoo/gemini-pda-mainline/actions/runs/34762966672"
+  },
+  "linked_after": {
+    "tool": "RE VM ELF/ARM64 decoding and GDB debug types",
+    "udc_bind_to_driver_bytes": 288,
+    "udc_bind_to_driver_sha256": "b3dc7ad1ed8b866f5f509f15930e94efc7b4e61cc0ab86dd4c79addfef382814",
+    "gadget_ops_offset": 32,
+    "pullup_offset": 40,
+    "compiled_pullup_argument": 1,
+    "successful_udc_start_next_call": "gadget ops pullup, then kobject_uevent",
+    "failed_bind_or_start_skips_pullup": true,
+    "musb_gadget_operations_pullup": "musb_gadget_pullup",
+    "limitation": "Compiled callback presence is not USB enumeration evidence."
+  }
 }

@@ -3,8 +3,8 @@
   "purpose": "Readiness inventory, not an executable queue or device authorization. Object order is not scheduling order; docs/ROADMAP.md alone owns priority. Exact inputs, budgets and chronology stay in linked experiments.",
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
-  "selected_item": null,
-  "selection_note": "USB Ethernet physical selection completed: no enumeration, retained stopped marker and verified changed-boot Gemian. Both collectors stopped and custody released. Correct the source-bound missing post-bind connection before selecting another candidate.",
+  "selected_item": "wifi-export-usb-ethernet-connect-1",
+  "selection_note": "Corrected USB connection candidate installed with full readback and clean shutdown; primary coordinator retains sole custody. Both collectors must arm before one owner boot2 selection. Previous stopped Ethernet session remains complete.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -245,6 +245,21 @@
       "dependencies": [],
       "owner_task_id": null,
       "readiness_note": "Owner selected the unchanged verified candidate after both fresh collectors armed. CPU0-7 preflight and TCP listener succeeded; no USB inventory change or receiver. A 60.061920-second wait stopped and returned to verified changed-boot Gemian with one console preserved. Native UDC omits the connection call required to set MU3D readiness; prepare the linked correction before any new selection. No snapshot exported; no repeat selected."
+    },
+    "wifi-export-usb-ethernet-connect-1": {
+      "workstream": "wifi",
+      "preparation_state": "ready",
+      "device_state": "waiting-owner-boot",
+      "owner": "primary integration coordinator",
+      "reviewer": "primary integration coordinator",
+      "device_custodian": "primary integration coordinator",
+      "experiment": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_ETHERNET_CONNECT.md",
+      "session_packet": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_ETHERNET_CONNECT.md#corrected-session",
+      "candidate_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-ethernet-connect-candidate.json",
+      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-ethernet-connect-session.json",
+      "dependencies": [],
+      "owner_task_id": null,
+      "readiness_note": "Corrected native kernel and independent container validation passed. Guarded live-GPT boot2 installation has matching full readback and clean shutdown. Arm both pinned collectors before asking the owner to select boot2 once; physical result outstanding."
     }
   }
 }
