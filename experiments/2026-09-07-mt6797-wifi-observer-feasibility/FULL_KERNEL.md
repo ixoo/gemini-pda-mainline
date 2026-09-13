@@ -28,8 +28,15 @@ builder uses the existing pinned Gemian source and GCC 6.3 toolchain. It reuses
 a prepared source tree keyed by the complete input manifest, verifies that tree
 with the repository's existing integrity tool, and builds in a separate
 managed temporary output. The generated DCT input must match the existing
-normalized checksum. Configuration permits only the experimental symbol and
-the established disabled-ANBOX serialization change. Build identity fields are
+normalized checksum. The [USB Ethernet fragment](usb-ethernet.fragment) now
+replaces Android USB with g_ether and its ECM/RNDIS functions. The builder
+requires the exact resulting configuration delta, including removal of unused
+Android functions, alongside the experimental symbol and established
+disabled-ANBOX serialization change. The native MU3D controller, board DT,
+capture patches and CPU policy remain the same. The fragment digest is recorded
+separately so this configuration change reuses the prepared source tree.
+The [transport decision](USB_ETHERNET.md) distinguishes prior mainline network
+validation from the native controller's outstanding hardware test. Build identity fields are
 fixed; two-build reproducibility has not been established.
 
 The link must contain the capture, recovery and request entry points, contain

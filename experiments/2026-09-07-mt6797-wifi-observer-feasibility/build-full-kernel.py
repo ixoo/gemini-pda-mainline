@@ -89,6 +89,11 @@ def main():
         shutil.copyfile(config, output / '.config')
         run([str(source / 'scripts/config'), '--file', str(output / '.config'),
              '--enable', 'MTK_A72_RECOVERY_DISCRIMINATOR'])
+        usb_fragment = HERE / 'usb-ethernet.fragment'
+        for name, value in native.symbols(usb_fragment).items():
+            assert value in ('y', 'n')
+            run([str(source / 'scripts/config'), '--file', str(output / '.config'),
+                 '--enable' if value == 'y' else '--disable', name.removeprefix('CONFIG_')])
         command = ['make', '-C', str(source), 'O=' + str(output), 'ARCH=arm64',
                    'CROSS_COMPILE=' + cross, 'python=' + str(toolchain / 'wrappers/python2.7'),
                    'KCFLAGS=-fstack-usage']
@@ -97,7 +102,23 @@ def main():
         before, after = native.symbols(config), native.symbols(output / '.config')
         delta = {key: [before.get(key), after.get(key)] for key in before.keys() | after.keys()
                  if before.get(key) != after.get(key)}
-        assert delta == {'CONFIG_ANBOX': [None, 'n'], 'CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR': [None, 'y']}, delta
+        expected_delta = {
+            'CONFIG_ANBOX': [None, 'n'],
+            'CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR': [None, 'y'],
+            'CONFIG_USB_G_ANDROID': ['y', 'n'],
+            'CONFIG_USB_ANDROID_RNDIS_DWORD_ALIGNED': ['n', None],
+            'CONFIG_USB_ETH': ['n', 'y'],
+            'CONFIG_USB_ETH_RNDIS': [None, 'y'],
+            'CONFIG_USB_ETH_EEM': [None, 'n'],
+        }
+        for name in ('USB_F_ACM', 'USB_U_SERIAL', 'USB_F_SERIAL',
+                     'USB_F_MASS_STORAGE', 'USB_F_FS', 'USB_F_AUDIO_SRC'):
+            expected_delta['CONFIG_' + name] = ['y', None]
+        for name in ('USB_U_ETHER', 'USB_F_ECM', 'USB_F_SUBSET', 'USB_F_RNDIS'):
+            expected_delta['CONFIG_' + name] = [None, 'y']
+        assert delta == expected_delta, delta
+        for name, value in native.symbols(usb_fragment).items():
+            assert after[name] == value, name
         for name in ('CONFIG_PSTORE_PMSG', 'CONFIG_CPU_IDLE', 'CONFIG_CRYPTO_SHA256', 'CONFIG_MTK_COMBO_WIFI'):
             assert after[name] == 'y', name
         assert after['CONFIG_MODULES'] == after['CONFIG_MTK_AEE_MRDUMP'] == 'n'
@@ -136,9 +157,11 @@ def main():
             result.check_returncode()
         symbol_map = (output / 'System.map').read_text()
         for name in ('mtk_wdt_capture_begin', 'mtk_wdt_recovery_arm', 'mt6797_wfc_request_begin',
-                     'mt6797_wfc_request_end', 'ramoops_capture_begin', 'ramoops_capture_append'):
+                     'mt6797_wfc_request_end', 'ramoops_capture_begin', 'ramoops_capture_append',
+                     'eth_bind', 'ecm_bind', 'rndis_bind', 'musb_gadget_pullup'):
             assert re.search(r' [Tt] ' + re.escape(name) + r'$', symbol_map, re.M), name
         assert 'recovery_discriminator_callback' not in symbol_map
+        assert not re.search(r' [Tt] android_bind$', symbol_map, re.M)
         assert not run([cross + 'nm', '-u', str(output / 'vmlinux')], env=environment)
         assert run(integrity + ['verify', str(source)]) == source_integrity
         with tempfile.TemporaryDirectory(prefix='wifi-controller-package-', dir=package.parent) as tmp_package:
@@ -156,6 +179,7 @@ def main():
             result = {'project_commit': commit, 'inputs_sha256': identity, 'inputs': pins,
                       'source_integrity': source_integrity, 'compiler': compiler, 'linker': linker,
                       'config_sha256': digest(output / '.config'), 'configuration_delta': delta,
+                      'usb_fragment_sha256': digest(usb_fragment),
                       'build_environment': {key: environment[key] for key in
                           ('HOST_EXTRACFLAGS', 'KBUILD_BUILD_USER', 'KBUILD_BUILD_HOST',
                            'KBUILD_BUILD_VERSION', 'KBUILD_BUILD_TIMESTAMP')},
