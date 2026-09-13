@@ -106,10 +106,10 @@ shutdown. Confirm distribution/storage inputs before creating a persistent-root
 candidate; none of this is a PDA distribution boot result.
 The separate [A53 RAM regression image](../experiments/2026-09-09-standard-kernel-package/A53_RAM_REGRESSION.md)
 now pairs that kernel with the accepted authenticated environment and passes
-offline packaging checks. Collection, recovery, installation and return
-confirmation bindings now pass offline fixtures. Finish the bounded host
-execution entry point before requesting a board regression; it remains
-unselected. Device custody remains with the current Wi-Fi Ethernet session.
+offline packaging checks. Installation, bounded host execution, log preservation
+and return confirmation now pass offline fixtures. Its next step is the admitted
+board regression after current device custody is released and the live deployment
+inputs are bound. It remains unselected; the Wi-Fi Ethernet session retains custody.
 
 The independent [MMC voltage-switch error fix](../experiments/2026-09-09-mtk-sd-pinctrl-errors/README.md)
 returns failed pin configuration to the MMC core. Its isolated Buildbox compile

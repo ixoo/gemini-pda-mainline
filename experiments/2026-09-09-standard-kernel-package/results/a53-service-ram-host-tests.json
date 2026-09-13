@@ -1,0 +1,103 @@
+{
+  "status": "offline-host-execution-preparation-pass",
+  "device_action": "none",
+  "physical_admission": false,
+  "runner_sha256": "4ed9e04e40f017296046dae452c6a6bc62feb3bd0b7f6f878e4dba1ae6ad858c",
+  "tests_sha256": "d9e54db52a6d740afce1ea95ddb397eac2c6833facc3386f8884995b56f97d10",
+  "candidate_sha256": "97c23e3f34686d8831e56f9903e109f6b9ba89cb121c88996f25411e86d5bec0",
+  "test_platforms": [
+    "macOS host",
+    "Linux RE VM"
+  ],
+  "test_groups_per_platform": 13,
+  "binding": {
+    "status": "real-candidate-host-binding-and-inert-session-pass",
+    "negative_cases": [
+      "wrong-candidate",
+      "wrong-readback",
+      "old-experiment",
+      "zero-boot",
+      "unsafe-power",
+      "public-receipt",
+      "consumed-session",
+      "changed-return-source",
+      "candidate-authorization",
+      "candidate-host-key",
+      "Gemian-return-trust"
+    ],
+    "candidate_sha256": "97c23e3f34686d8831e56f9903e109f6b9ba89cb121c88996f25411e86d5bec0",
+    "fixture_records": "synthetic; not deployment evidence",
+    "local_key_derivations": 8,
+    "device_access": "none",
+    "inert_phase_sequence": [
+      "observation",
+      "probe",
+      "log-export",
+      "native-reboot"
+    ],
+    "return_constructor": "real candidate, deployment and request validation; confirmation response injected",
+    "temporary_fixtures": "removed"
+  },
+  "scripts_match_prior_ARM64_test_receipt": "results/a53-service-ram-session-tests.json",
+  "script_sha256": {
+    "observe.sh": "3f1d7bdc3952d5d8361d9f3dbb17e96455a24820dc3a886f111341810abff147",
+    "probe.sh": "fac3442d5b9315ee90a0912ca4e780fe91977e16c7b6b494dccde0a3ba21ddfe",
+    "seal.sh": "6e9244f9987fe24a584b8f9263f1f778f3ef1e9784833e128d455708e3477876",
+    "recovery.sh": "a4e054008a95007acd1d299e9716ba51ee12f7cd465f709f61a7f8c873113032"
+  },
+  "coverage": [
+    "changed deployment receipt refuses before host inventory, claim or connection",
+    "one ordered observation, probe, log export and native request",
+    "direct USB route and unchanged USB/Gemian credentials required before each connection",
+    "bad observation or probe prevents later phases",
+    "partial log export retains available bytes and refuses recovery",
+    "manifest readback and reclassification precede recovery",
+    "changed log, observation, process counts or credentials prevent recovery",
+    "failed logger with complete preservation can return without a regression pass",
+    "returned helper or unconfirmed Gemian cannot pass regression",
+    "one consumed namespace refuses a repeated session"
+  ],
+  "limitations": [
+    "Device responses and the final Gemian confirmation are injected.",
+    "No A53 deployment, physical selection, board regression or distribution boot occurred.",
+    "Session execution needs actual deployment, owner selection and current device custody."
+  ],
+  "private_evidence": {
+    "host-reviewed.stdout": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "host-reviewed.stderr": {
+      "bytes": 1757,
+      "sha256": "0987a0dc4c00749990c337f43fa905ef524a8c91c82a6aa1feb02373badd404a"
+    },
+    "linux-reviewed.stdout": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "linux-reviewed.stderr": {
+      "bytes": 2402,
+      "sha256": "50a98d928d3ee2ec68bd9ab1b8f7e9283ffca66be461adc15fd012d54971b1fc"
+    },
+    "binding-reviewed.stdout": {
+      "bytes": 811,
+      "sha256": "2b502756bcdba014c2df099fe60eaf43e185c7fae439a5c677024a48d92737a9"
+    },
+    "binding-reviewed.stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "linux-binding-reviewed.stdout": {
+      "bytes": 811,
+      "sha256": "2b502756bcdba014c2df099fe60eaf43e185c7fae439a5c677024a48d92737a9"
+    },
+    "linux-binding-reviewed.stderr": {
+      "bytes": 645,
+      "sha256": "92519600e43377e962a5cfc74b47947d8707c243e8c2140f57fe1fe4e15bec61"
+    },
+    "test-binding.py": {
+      "bytes": 7185,
+      "sha256": "0e47e8fa843c56bb061e7c64ea9f86550a69fb79cfa63584d3ea274c58e3ac79"
+    }
+  }
+}

@@ -2,9 +2,9 @@
 
 Status: complete private image composed and validated; exact-shell and hosted
 Linux checks pass. No A53 deployment or physical session is selected.
-Offline collection/recovery, installation and return-confirmation bindings now
-pass their focused checks. The bounded host execution entry point and live
-session records remain required before device use. Device custody remains with
+Offline collection/recovery, installation, host execution and return confirmation
+now pass their focused checks. An actual deployment, owner selection and current
+session admission remain required before device use. Device custody remains with
 the [Wi-Fi Ethernet session](../2026-09-07-mt6797-wifi-observer-feasibility/USB_ETHERNET_SESSION.md).
 
 ## Purpose and bounded change
@@ -155,10 +155,12 @@ The generated installer bundle uses a synthetic fixture boot ID; it must never
 be executed against the PDA. The adapter CLI offers offline `prepare`,
 `validate` and `receipt` operations only. Preparation writes an exclusive private
 bundle and does not call SSH, execute the installer or supply a device budget.
-Actual execution still needs a fresh observed Gemian identity, the bounded host
-runner and the completed session preparation below.
+Actual installation still binds a fresh observed Gemian identity and uses the
+existing [bounded installer runner](../2026-09-05-owner-away-experiment-preparation/baseline/scripts/install-boot2.py).
+The host runner below begins only after its verified deployment receipt and the
+owner's physical selection are available.
 
-## Finite session and remaining live preparation
+## Finite session
 
 The proposed board question is whether the service configuration preserves
 CPU0–7 startup, authenticated USB, console availability and complete logging
@@ -185,9 +187,8 @@ they never select an automatic retry. A returned helper is not a successful
 restart. Confirm a changed boot in known-good Gemian afterward, independently
 of the USB connection's exit status.
 
-The one-shot host execution entry point still needs preparation. The separate
-return collector below is ready for binding to its eventual records. No keyboard
-event capture, eMMC partition read, namespace/BPF
+The host entry point and separate return collector below implement this sequence.
+No keyboard event capture, eMMC partition read, namespace/BPF
 operation or repetition is added to this session. Its success branch requires
 the attributable baseline observation, complete log and confirmed recovery;
 a refusal selects diagnosis from preserved evidence. Do not reactivate the
@@ -198,6 +199,41 @@ resolved the device state. Any later boot2 write still uses the reviewed
 live-GPT guard, full readback and clean
 shutdown, followed by owner-operated physical selection. No installation,
 collector or physical-selection budget is supplied by this preparation record.
+
+## Host execution and evidence preservation
+
+The [host runner](a53-ram-host.py) validates the exact candidate and guarded
+deployment receipt, verifies USB credentials against the packaged authorization
+and host key, and checks the Gemian return credentials. Its default is offline
+validation. After physical selection and session admission, execution requires
+the existing direct USB route before consuming one fixed private session.
+Each of the four phases uses the existing bounded host runner once, with the
+budgets above. Route and credential checks precede every connection; no phase
+is retried. Local route inventories add at most two five-second command bounds
+per phase and send no device packets.
+
+The runner saves the observation and probe before sealing and exporting the log.
+It retains the original streams and all decodable log files even when the export
+fails. Before requesting recovery it writes and reads back a checksum manifest,
+verifies every saved file, reclassifies the saved observation/probe/export and
+requires complete preservation. It then runs the unchanged native recovery
+script and the separate Gemian return collector. A failed logger can be fully
+preserved and safely returned without passing the regression; a partial export,
+changed saved evidence or failed identity stops before recovery.
+
+The [host test receipt](results/a53-service-ram-host-tests.json) records thirteen
+sequencing/refusal test groups and eleven real-candidate binding refusals on
+macOS and the Linux RE VM. The integrated fixture uses the real candidate,
+credential verification, script generators, parsers and return constructor;
+device responses are injected. All four generated scripts remain byte-identical
+to the earlier ARM64 shell-test receipt. No new kernel or remote shell behavior
+was introduced by the host runner.
+
+Actual execution binds the private `session-1/deployment-summary.txt` receipt
+before starting. An occupied or interrupted execution is consumed, and its
+evidence remains in place. The aggregate pass requires the baseline observation,
+complete sealed log and changed-boot Gemian confirmation. It does not establish
+Debian service behavior, a persistent filesystem or the ten-cold-boot release gate.
 
 ## Bounded Gemian return confirmation
 
@@ -226,5 +262,5 @@ forbidden during those binding tests. No test contacts the PDA.
 
 A confirmed return proves that known-good Gemian is running. It does not promote
 an incomplete baseline or log capture to success. Actual A53 session admission
-still requires the bounded observation, log-preservation and recovery host entry
-point, along with current device custody and the pre-boot handoff.
+still requires current device custody, the live deployment binding and the
+pre-boot handoff.
