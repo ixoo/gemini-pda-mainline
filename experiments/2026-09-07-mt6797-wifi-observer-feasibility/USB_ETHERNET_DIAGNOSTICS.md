@@ -22,8 +22,19 @@ not an upstream submission or a maintained driver interface. The
 and changed files, format-patch and ordered 49-patch native manifest. The first
 48 patches are unchanged. Exact inverse comparison, application against the
 prepared parent and strict Linux 7.1.3 Checkpatch pass; sign-off checking is
-disabled for this explicitly non-certifying archive. Full compilation, linked
-inspection and candidate admission are still pending.
+disabled for this explicitly non-certifying archive. Full compilation and the
+linked report inspection now pass at `895ecb5c16326f4e57970caed6ff2404edae2acb`.
+All eleven remote and fetched package files verify; configuration is identical
+to the preceding corrected candidate. The inherited 69 section mismatches and
+native compiler's `-w` limitation remain.
+
+The compiled shutdown's first call is the report. Its 72-byte body tests and
+sets bit 15, returns without printing when already set, and otherwise reaches
+one printk call. It calls no hardware accessor. The preceding direct callee
+sets and non-printk call-site counts remain present. Linear instruction order
+and printk site counts changed with compiler block layout/sharing; they are
+not runtime order or binary control-flow equivalence checks. The exact source
+inverse comparison separately preserves every original statement.
 
 ## Observation and bounds
 
@@ -107,3 +118,27 @@ the report before normal return; absence cannot be treated as all-zero state.
 
 Preserve negative results and the original private evidence. Do not clear the
 capture, add a radio cycle or repeat unchanged inputs on a timeout.
+
+## Selected session
+
+The [candidate receipt](results/usb-ethernet-diagnostics-candidate.json) binds
+the complete build, unchanged DT, 723-member filesystem and boot2 container.
+Only session metadata changed in the filesystem. Independent reassembly,
+seventeen container mutations and six input refusals pass. The runtime and
+startup code retain their prior ARM64 validation.
+
+The [session receipt](results/usb-ethernet-diagnostics-session.json) selects
+cycle `ba533dcc-3368-4cb6-aff1-fdc31bf9f4b1` from verified returned Gemian boot
+`258eff5c-a742-4379-89e7-60e885eaf797`. The primary integration coordinator
+holds sole device custody. The installer retains the reviewed device guard
+and all live identity, GPT, inactive/non-root, power, size and full-readback
+checks. Exactly five identity/destination substitutions distinguish it from
+its parent; inverse comparison, Bash syntax and ShellCheck pass. Installation
+must confirm the expected Gemian boot and finish with clean shutdown. The
+owner then selects boot2 physically after both collectors are armed.
+
+The return collector changes only the preceding boot UUID; its authenticated
+changed-boot checks and one console-read budget are unchanged. USB attribution,
+receiver and route helpers are byte-identical. Host configuration changes,
+radio requests and capture clears remain zero. The snapshot and log remain
+private; only validated identities and sanitized observations are publishable.

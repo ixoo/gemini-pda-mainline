@@ -109,9 +109,8 @@ now pairs that kernel with the accepted authenticated environment and passes
 offline packaging checks. Installation, bounded host execution, log preservation
 and return confirmation now pass offline fixtures. Its next step is the admitted
 board regression after current device custody is released and the live deployment
-inputs are bound. It remains unselected; the completed
-[corrected Wi-Fi export test](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_ETHERNET_CONNECT.md#physical-test-result)
-has released custody in verified Gemian.
+inputs are bound. It remains unselected; current device custody and admission
+are recorded in the [queue](../project/experiment-queue.json).
 
 The independent [MMC voltage-switch error fix](../experiments/2026-09-09-mtk-sd-pinctrl-errors/README.md)
 returns failed pin configuration to the MMC core. Its isolated Buildbox compile
@@ -412,8 +411,10 @@ The remaining preparation order is:
    its stopped marker and changed-boot Gemian return are preserved. The
    [connection correction and physical test](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_ETHERNET_CONNECT.md#physical-test-result)
    also ended without enumeration. Earlier readiness-loop messages did not
-   recur, but later role and cable decisions remain unobserved. Obtain bounded
-   evidence of those existing decisions before another behavioral change.
+   recur, but later role and cable decisions remain unobserved. The
+   [bounded late diagnostic](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_ETHERNET_DIAGNOSTICS.md)
+   has a complete build and validated candidate. Use its distinct physical
+   session to observe existing decisions before another behavioral change.
    Require acknowledged preservation; do not repeat unchanged inputs or weaken
    the CPU check.
    Exit order must not be inferred by reversing initialization, and the vendor

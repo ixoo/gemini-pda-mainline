@@ -1,0 +1,44 @@
+{
+  "assembler_sha256": "ca389521fa679679f108ab02bac12ed64221f2e69f91925052415416d3fcb4db",
+  "filesystem_sha256": "63b03aa72f36ee2fa0875a7d83f8550d85a8fb471a944d41a373619abd20995a",
+  "kernel_sha256": "6135c1812ef841b5c022eb294588d6e2341cd93f61aac53fa7c7b2d639fcbbd7",
+  "padded_bytes": 16777216,
+  "padded_sha256": "1aa06c9e63a277d62f5c813a8b88d1b9a8b86564e7f57c1fdd09fc92394b9917",
+  "parent_assembler_sha256": "532f6f0dec5030a7b066f3baefa53580ec148317f633d4dd8d43308d30ac03b3",
+  "raw_bytes": 16220160,
+  "raw_sha256": "e1e08f81d38cbc0cf2c880b68fed1b0cad57183a2dacebeac1b05dd1bca98a84",
+  "scope": "validated native diagnostic container; physical USB decision test outstanding",
+  "session_sha256": "9f7735a2341a4a445e58d9c7f44a3a3c8bc67732b31dc1152679b049b5bf67e7",
+  "startup_action": "export-tcp-return",
+  "manifest_sha256": "1c2dc4c0a34ffac6effe6400f4a98807637d81538b628d79626049c3f0a2adbb",
+  "kernel_build_commit": "895ecb5c16326f4e57970caed6ff2404edae2acb",
+  "cycle_id": "ba533dcc-3368-4cb6-aff1-fdc31bf9f4b1",
+  "kernel_inputs_sha256": "cbe6fb5b1b0abb8457c0f7d29a27a33d057d13ed3dcc1b3da85930bfa8863bc1",
+  "kernel_config_sha256": "43222fdee6781f3bc51cb7e412c9f92372ecf8f78b8881b11d66b77f849d8eb8",
+  "filesystem_verification": {
+    "archive_members": 723,
+    "removed_members": 0,
+    "changed_existing_members": [
+      "etc/wifi-cycle/session.json"
+    ],
+    "exact_current_startup_inputs_and_runtime": true,
+    "filesystem_bytes": 7848583,
+    "kernel_bytes": 8366292,
+    "page_bytes": 2048,
+    "projected_container_bytes": 16220160,
+    "limit_bytes": 16777216,
+    "spare_bytes": 557056
+  },
+  "container_verification": {
+    "raw_bytes": 16220160,
+    "padded_bytes": 16777216,
+    "binary_header_and_payloads": true,
+    "reassembled_identical": true,
+    "native_addresses_and_flags": true,
+    "split_capture_dt_reg_and_no_map": true,
+    "container_mutations_rejected": 17,
+    "input_refusals": 6
+  },
+  "runtime": "unchanged exact runtime and startup bytes; prior ARM64 tests retained",
+  "dtb": "130833 bytes; identical to preceding corrected Ethernet candidate"
+}

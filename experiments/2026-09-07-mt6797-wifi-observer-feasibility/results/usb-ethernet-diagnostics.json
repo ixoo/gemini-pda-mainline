@@ -13,7 +13,7 @@
   "checkpatch_exit": 0,
   "patch_sha256": "c4b8310018db2d4bd4b0acdbf8830a770922c6c33ef656dcf4fd63f4b6e69f4a",
   "patch_bytes": 8240,
-  "status": "source diagnostic prepared; no kernel build or device admission yet",
+  "status": "complete native build and linked diagnostic inspection passed; validated candidate; device test pending",
   "source_revision": "59e00a9144d782e148332009a835b99c43382467",
   "parent_runtime_record": "usb-ethernet-connect-window-2.json",
   "prior_manifest_sha256": "afc6ae5ac29fe663b0f36fe2f3c1d3cfa22e79f905cd1fec987fe1996c1931e2",
@@ -30,5 +30,70 @@
     "Cumulative path bits and latest cable sample are independent observations. Call order, counts and enumeration are not established.",
     "The cable mode field is an additional ordinary-memory sample at record time; concurrent mode changes can differ from preceding policy reads.",
     "Only a summary after this boot and cycle return marker is attributable to the completed runtime. A prior shutdown/remove/error-path report may consume the one-line budget."
-  ]
+  ],
+  "build": {
+    "project_commit": "895ecb5c16326f4e57970caed6ff2404edae2acb",
+    "inputs_sha256": "cbe6fb5b1b0abb8457c0f7d29a27a33d057d13ed3dcc1b3da85930bfa8863bc1",
+    "source_integrity": "source_tree_integrity=3599e5272ffcd886f4fcbc8ebc2eef76117b32443c90c1dd46caaeab886b627e",
+    "compiler": "aarch64-linux-gnu-gcc-6 (Debian 6.3.0-18) 6.3.0 20170516",
+    "linker": "GNU ld (GNU Binutils for Debian) 2.28",
+    "config_sha256": "43222fdee6781f3bc51cb7e412c9f92372ecf8f78b8881b11d66b77f849d8eb8",
+    "usb_fragment_sha256": "46dafbfb7dea544de7b12cfbe4980fa4af97d6c74f51e76cad35a33ea22dc003",
+    "undefined_symbols": 0,
+    "diagnostic_lines": 1,
+    "manifest_sha256": "7a25fa0143065cd90320276a6455d9b277406a0b6c2a0cf1a1bfa47bdab8d620",
+    "package_files": 11,
+    "kernel_sha256": "6135c1812ef841b5c022eb294588d6e2341cd93f61aac53fa7c7b2d639fcbbd7",
+    "kernel_bytes": 8366292,
+    "vmlinux_sha256": "9f997d8d91425232b9611cbebbc400fe380cc6ed7add059a306316d091c41efc",
+    "configuration_identical_to_parent": true,
+    "modpost_section_mismatches": 69,
+    "compiler_warning_limitation": "Inherited native -w retained; individual mismatch identities not compared.",
+    "remote_and_fetched_files_verified": true,
+    "hosted_checks": "https://github.com/ixoo/gemini-pda-mainline/actions/runs/34772220396"
+  },
+  "linked": {
+    "after": {
+      "connection_work": {
+        "bytes": 896,
+        "sha256": "a7ecb74ec648d356d46a967650e8baf6812f81e7c26a51cf94ceff660baa1ff6"
+      },
+      "musb_shutdown": {
+        "bytes": 164,
+        "sha256": "2c6e0952fb65b20a3eac4a72839ac8c75019f286741945750b58758d91d2089b"
+      },
+      "usb_cable_connected": {
+        "bytes": 604,
+        "sha256": "c318a7a5d205e3d5541dfd9aebe59d9fce68e18fad6ee08c57e082521c0d964b"
+      },
+      "usb_export_report": {
+        "bytes": 72,
+        "sha256": "63a87dcb1bf3f65cb54138661475c760033cf56f97abf07e052af2bd8c1e1bbb"
+      }
+    },
+    "before": {
+      "connection_work": {
+        "bytes": 720,
+        "sha256": "34ef2cbb72470533cc1cfa7de59f5a307541135c8959adefc7e227ab0b60ac4f"
+      },
+      "musb_shutdown": {
+        "bytes": 160,
+        "sha256": "45c70087bd71ddae66809833f089f2e6e352ade0e75c541ee19cc1192d68acc5"
+      },
+      "usb_cable_connected": {
+        "bytes": 488,
+        "sha256": "67e61b36c939bb5c2da8d0e7d5c627a0ae6ff6d9a6b6f1b3208992bb039b3ba2"
+      }
+    }
+  },
+  "linked_inspection": {
+    "report_first_call_in_shutdown": true,
+    "report_guard": "test_and_set_bit index 15; prior-set branch returns without printk",
+    "report_printk_call_sites": 1,
+    "prior_direct_callee_set_preserved": true,
+    "prior_non_printk_direct_callsite_counts_preserved": true,
+    "comparison_limitation": "Linear instruction order is not runtime call order. Compiler block layout and printk call-site sharing changed; no binary control-flow equivalence is claimed. Exact source inverse preserves all original statements.",
+    "report_body_hardware_accessor_calls": 0
+  },
+  "candidate_receipt": "usb-ethernet-diagnostics-candidate.json"
 }
