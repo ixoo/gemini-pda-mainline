@@ -1,0 +1,223 @@
+From 1f58cf523770f062acc079964193c12b4191552a Mon Sep 17 00:00:00 2001
+From: Codex native diagnostic <noreply@native-diagnostic.invalid>
+Date: Sun, 13 Sep 2026 17:35:02 +0000
+Subject: [PATCH] usb: retain bounded native export connection decisions
+
+The corrected Ethernet export reaches its listener, but still never
+enumerates. The readiness-loop summaries no longer recur. Native debug
+filtering hides the later role/cable decisions, and the retained console
+has already lost the earliest boot messages on return.
+
+Retain cumulative decision bits and one packed sample of the existing cable
+evaluation. Print one fixed summary from the existing USB shutdown path,
+before its hardware operations. Atomic bit operations bound reporting to
+one line even if multiple callers reach shutdown. No diagnostic invokes a
+hardware accessor, changes a decision, reschedules work or exposes a new
+userspace control. The sample and path bits are separate observations,
+not an atomic history or proof of enumeration.
+
+Gate diagnostic state and output to the existing recovery diagnostic with
+Ethernet enabled and Android disabled. Preserve every original statement
+and the existing role, charger, cable and controller policy.
+
+This assistant-generated native experiment carries no DCO certification
+and is not an upstream submission.
+---
+ drivers/misc/mediatek/mu3d/drv/mt_usb.c    | 69 ++++++++++++++++++++++
+ drivers/misc/mediatek/mu3d/drv/musb_core.c |  1 +
+ drivers/misc/mediatek/mu3d/drv/musb_core.h |  1 +
+ 3 files changed, 71 insertions(+)
+
+diff --git a/drivers/misc/mediatek/mu3d/drv/mt_usb.c b/drivers/misc/mediatek/mu3d/drv/mt_usb.c
+index dc87313..ae4d14d 100644
+--- a/drivers/misc/mediatek/mu3d/drv/mt_usb.c
++++ b/drivers/misc/mediatek/mu3d/drv/mt_usb.c
+@@ -11,6 +11,8 @@
+ * See http://www.gnu.org/licenses/gpl-2.0.html for more details.
+ */
+ 
++#include <linux/atomic.h>
++#include <linux/bitops.h>
+ #include <linux/module.h>
+ #include <linux/kernel.h>
+ #include <linux/workqueue.h>
+@@ -25,6 +27,52 @@
+ #endif
+ 
+ 
++/* Keep early decisions until shutdown, after the export runtime returns. */
++enum usb_export_path {
++	USB_EXPORT_ENTER,
++	USB_EXPORT_WAIT_READY,
++	USB_EXPORT_READY,
++	USB_EXPORT_HOST,
++	USB_EXPORT_DEVICE,
++	USB_EXPORT_CABLE_IN,
++	USB_EXPORT_CABLE_OUT,
++	USB_EXPORT_START,
++	USB_EXPORT_STARTED,
++	USB_EXPORT_STOP,
++	USB_EXPORT_STOPPED,
++	USB_EXPORT_STABLE,
++	USB_EXPORT_UART,
++	USB_EXPORT_KPOC,
++	USB_EXPORT_FORCE,
++	USB_EXPORT_REPORTED,
++};
++
++static unsigned long usb_export_paths;
++static atomic_t usb_export_cable = ATOMIC_INIT(-1);
++
++static bool usb_export_diagnostic(void)
++{
++	return IS_ENABLED(CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR) &&
++		IS_ENABLED(CONFIG_USB_ETH) && !IS_ENABLED(CONFIG_USB_G_ANDROID);
++}
++
++static void usb_export_mark(enum usb_export_path path)
++{
++	if (usb_export_diagnostic())
++		set_bit(path, &usb_export_paths);
++}
++
++void usb_export_report(void)
++{
++	if (!usb_export_diagnostic() ||
++	    test_and_set_bit(USB_EXPORT_REPORTED, &usb_export_paths))
++		return;
++
++	/* Cumulative paths and the latest cable sample are separate observations. */
++	pr_info("wifi-usb-v1 paths=%04lx cable=%08x\n",
++		READ_ONCE(usb_export_paths), atomic_read(&usb_export_cable));
++}
++
+ unsigned int cable_mode = CABLE_MODE_NORMAL;
+ #ifdef CONFIG_MTK_UART_USB_SWITCH
+ u32 port_mode = PORT_MODE_USB;
+@@ -89,6 +137,8 @@ void connection_work(struct work_struct *data)
+ #endif
+ 	static DEFINE_RATELIMIT_STATE(ratelimit, 1 * HZ, 5);
+ 
++	usb_export_mark(USB_EXPORT_ENTER);
++
+ 
+ #ifdef CONFIG_MTK_UART_USB_SWITCH
+ 	if (!usb_phy_check_in_uart_mode()) {
+@@ -99,6 +149,7 @@ void connection_work(struct work_struct *data)
+ 
+ 		/* delay 100ms if user space is not ready to set usb function */
+ 		if (!is_usb_rdy()) {
++			usb_export_mark(USB_EXPORT_WAIT_READY);
+ 			if (__ratelimit(&ratelimit))
+ 				os_printk(K_INFO, "%s, !is_usb_rdy, delay 100ms\n", __func__);
+ 			schedule_delayed_work(&musb->connection_work,
+@@ -106,7 +157,9 @@ void connection_work(struct work_struct *data)
+ 			return;
+ 		}
+ 
++		usb_export_mark(USB_EXPORT_READY);
+ 		if (!mt_usb_is_device()) {
++			usb_export_mark(USB_EXPORT_HOST);
+ 			connection_work_dev_status = OFF;
+ 			usb_fake_powerdown(musb->is_clk_on);
+ 			musb->is_clk_on = 0;
+@@ -115,7 +168,10 @@ void connection_work(struct work_struct *data)
+ 		}
+ #endif
+ 
++		usb_export_mark(USB_EXPORT_DEVICE);
+ 		is_usb_cable = usb_cable_connected();
++		usb_export_mark(is_usb_cable ? USB_EXPORT_CABLE_IN :
++				USB_EXPORT_CABLE_OUT);
+ 		os_printk(K_INFO, "%s musb %s, cable %s\n", __func__,
+ 			  ((connection_work_dev_status ==
+ 			    0) ? "INIT" : ((connection_work_dev_status == 1) ? "ON" : "OFF")),
+@@ -133,7 +189,9 @@ void connection_work(struct work_struct *data)
+ 
+ 			/* FIXME: Should use usb_udc_start() & usb_gadget_connect(), like usb_udc_softconn_store().
+ 			 * But have no time to think how to handle. However i think it is the correct way.*/
++			usb_export_mark(USB_EXPORT_START);
+ 			musb_start(musb);
++			usb_export_mark(USB_EXPORT_STARTED);
+ 
+ 			os_printk(K_INFO, "%s ----Connect----\n", __func__);
+ 		} else if ((is_usb_cable == false) && (connection_work_dev_status != OFF)) {
+@@ -145,13 +203,16 @@ void connection_work(struct work_struct *data)
+ 
+ 			/*FIXME: we should use usb_gadget_disconnect() & usb_udc_stop().  like usb_udc_softconn_store().
+ 			 * But have no time to think how to handle. However i think it is the correct way.*/
++			usb_export_mark(USB_EXPORT_STOP);
+ 			musb_stop(musb);
++			usb_export_mark(USB_EXPORT_STOPPED);
+ 
+ 			if (wake_lock_active(&musb->usb_wakelock))
+ 				wake_unlock(&musb->usb_wakelock);
+ 
+ 			os_printk(K_INFO, "%s ----Disconnect----\n", __func__);
+ 		} else {
++			usb_export_mark(USB_EXPORT_STABLE);
+ 			/* This if-elseif is to set wakelock when booting with USB cable.
+ 			 * Because battery driver does _NOT_ notify at this codition.*/
+ 			/* if( (is_usb_cable == true) && !wake_lock_active(&musb->usb_wakelock)) { */
+@@ -170,6 +231,7 @@ void connection_work(struct work_struct *data)
+ 		usb_fake_powerdown(musb->is_clk_on);
+ 		musb->is_clk_on = 0;
+ #else
++		usb_export_mark(USB_EXPORT_UART);
+ 		os_printk(K_INFO, "%s, in UART MODE!!!\n", __func__);
+ #endif
+ 	}
+@@ -261,12 +323,14 @@ bool usb_cable_connected(void)
+ #ifdef CONFIG_MTK_KERNEL_POWER_OFF_CHARGING
+ 	if (get_boot_mode() == KERNEL_POWER_OFF_CHARGING_BOOT
+ 			|| get_boot_mode() == LOW_POWER_OFF_CHARGING_BOOT) {
++		usb_export_mark(USB_EXPORT_KPOC);
+ 		os_printk(K_INFO, "%s, in KPOC, force USB on\n", __func__);
+ 		return true;
+ 	}
+ #endif
+ 
+ 	if (mu3d_force_on) {
++		usb_export_mark(USB_EXPORT_FORCE);
+ 		/* FORCE USB ON */
+ 		chg_type = _mu3d_musb->charger_mode = STANDARD_HOST;
+ 		vbus_exist = true;
+@@ -294,6 +358,11 @@ bool usb_cable_connected(void)
+ 	if (cable_mode == CABLE_MODE_CHRG_ONLY || (cable_mode == CABLE_MODE_HOST_ONLY && chg_type != CHARGING_HOST))
+ 		connected = false;
+ 
++	if (usb_export_diagnostic())
++		atomic_set(&usb_export_cable, (chg_type & 0xff) |
++			   (vbus_exist << 8) | (connected << 9) |
++			   ((cable_mode & 0xff) << 16));
++
+ 	os_printk(K_INFO, "%s, connected:%d, cable_mode:%d\n", __func__, connected, cable_mode);
+ 	return connected;
+ }
+diff --git a/drivers/misc/mediatek/mu3d/drv/musb_core.c b/drivers/misc/mediatek/mu3d/drv/musb_core.c
+index ebc4763..af8b251 100644
+--- a/drivers/misc/mediatek/mu3d/drv/musb_core.c
++++ b/drivers/misc/mediatek/mu3d/drv/musb_core.c
+@@ -1127,6 +1127,7 @@ static void musb_shutdown(struct platform_device *pdev)
+ 	struct musb *musb = dev_to_musb(&pdev->dev);
+ 	unsigned long flags;
+ 
++	usb_export_report();
+ 	pm_runtime_get_sync(musb->controller);
+ 	spin_lock_irqsave(&musb->lock, flags);
+ 	musb_platform_disable(musb);
+diff --git a/drivers/misc/mediatek/mu3d/drv/musb_core.h b/drivers/misc/mediatek/mu3d/drv/musb_core.h
+index a4a1c81..f349148 100644
+--- a/drivers/misc/mediatek/mu3d/drv/musb_core.h
++++ b/drivers/misc/mediatek/mu3d/drv/musb_core.h
+@@ -775,6 +775,7 @@ extern void usb_phy_savecurrent(unsigned int clk_on);
+ extern void usb_phy_recover(unsigned int clk_on);
+ extern void usb_fake_powerdown(unsigned int clk_on);
+ extern void connection_work(struct work_struct *data);
++void usb_export_report(void);
+ extern void check_ltssm_work(struct work_struct *data);
+ 
+ #ifndef CONFIG_USBIF_COMPLIANCE
+-- 
+2.39.5
+

@@ -46,7 +46,7 @@ def main():
         path = PROJECT / path
         assert path.is_file() and not path.is_symlink() and digest(path) == item['sha256']
         patches.append(path)
-    assert len(patches) == len(set(patches)) == 48
+    assert len(patches) == len(set(patches)) == 49
     identity = digest(HERE / 'full-kernel-inputs.json')
     source = ROOT / 'gemian-source' / ('wifi-controller-' + identity)
     baseline = ROOT / 'gemian-source/gemian-baseline' / native.REVISION
@@ -158,7 +158,8 @@ def main():
         symbol_map = (output / 'System.map').read_text()
         for name in ('mtk_wdt_capture_begin', 'mtk_wdt_recovery_arm', 'mt6797_wfc_request_begin',
                      'mt6797_wfc_request_end', 'ramoops_capture_begin', 'ramoops_capture_append',
-                     'eth_bind', 'ecm_bind', 'rndis_bind', 'musb_gadget_pullup'):
+                     'eth_bind', 'ecm_bind', 'rndis_bind', 'musb_gadget_pullup',
+                     'usb_export_report'):
             assert re.search(r' [Tt] ' + re.escape(name) + r'$', symbol_map, re.M), name
         assert 'recovery_discriminator_callback' not in symbol_map
         assert not re.search(r' [Tt] android_bind$', symbol_map, re.M)

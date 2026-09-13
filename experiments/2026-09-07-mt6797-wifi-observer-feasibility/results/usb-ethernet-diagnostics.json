@@ -1,0 +1,34 @@
+{
+  "before_sha256": {
+    "mt_usb.c": "9972b1026f033076314cdeedaf01bc42dc054272180e86dab8e9e594d291e049",
+    "musb_core.c": "0766d9fd33157f977ee914ba14307d577c3f99b37ffbb7ea761b087cacd08ca8",
+    "musb_core.h": "b1d9226268d34b9b1c959c21798d37adf0a5395db324cfaa769cf95ffd220ed0"
+  },
+  "after_sha256": {
+    "mt_usb.c": "ccd6f6bd753b4655fdd9eecee8008d41ad8bf1174a39bbd5614b0112ef1cc5d2",
+    "musb_core.c": "29ee3d2e15f41e3e16f7046137bf7bd8832edfd464c26db8b52231557abd6981",
+    "musb_core.h": "5fe5959d42da282a8fb4ccde5b677ed10450a18a3d9764dd106e9a43361804d1"
+  },
+  "inverse_exact": true,
+  "checkpatch_exit": 0,
+  "patch_sha256": "c4b8310018db2d4bd4b0acdbf8830a770922c6c33ef656dcf4fd63f4b6e69f4a",
+  "patch_bytes": 8240,
+  "status": "source diagnostic prepared; no kernel build or device admission yet",
+  "source_revision": "59e00a9144d782e148332009a835b99c43382467",
+  "parent_runtime_record": "usb-ethernet-connect-window-2.json",
+  "prior_manifest_sha256": "afc6ae5ac29fe663b0f36fe2f3c1d3cfa22e79f905cd1fec987fe1996c1931e2",
+  "manifest_sha256": "cbe6fb5b1b0abb8457c0f7d29a27a33d057d13ed3dcc1b3da85930bfa8863bc1",
+  "patch_path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/usb-ethernet-diagnostics/0001-usb-retain-bounded-native-export-connection-decisions.patch",
+  "selected_patches": 49,
+  "previous_48_patches_preserved": true,
+  "configuration_changes": 0,
+  "canonical_upstream_series_or_profile_changes": 0,
+  "diagnostic_log_budget": 1,
+  "diagnostic_output": "wifi-usb-v1 paths=hhhh cable=hhhhhhhh",
+  "limitations": [
+    "No new hardware read, policy override, radio operation, capture clear, work scheduling or userspace control.",
+    "Cumulative path bits and latest cable sample are independent observations. Call order, counts and enumeration are not established.",
+    "The cable mode field is an additional ordinary-memory sample at record time; concurrent mode changes can differ from preceding policy reads.",
+    "Only a summary after this boot and cycle return marker is attributable to the completed runtime. A prior shutdown/remove/error-path report may consume the one-line budget."
+  ]
+}

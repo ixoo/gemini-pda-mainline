@@ -125,6 +125,7 @@ later branch ran. Existing debug filtering leaves the native role, charger and
 cable decisions unobserved. Do not repeat the unchanged image or infer a cable
 fault from host silence. The next useful measurement is bounded logging of
 existing readiness, role and cable decisions, using already obtained values
-without new hardware reads or policy overrides. That diagnostic has not yet
-been implemented or admitted. This physical session is complete, its budget is
+without new hardware reads or policy overrides. The
+[bounded diagnostic](USB_ETHERNET_DIAGNOSTICS.md) is now source-prepared;
+compilation and candidate admission remain separate. This physical session is complete, its budget is
 consumed, both collectors are stopped and device custody is released in Gemian.
