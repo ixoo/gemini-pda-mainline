@@ -47,6 +47,18 @@ python3 capture-export.py --serial "$selected_serial_terminal" \
   "$private_parent/new-export"
 ```
 
+The [USB Ethernet revision](USB_ETHERNET.md) also accepts `--tcp` in place of
+`--serial TERMINAL`. It waits for the direct USB IPv4 endpoint
+`10.15.19.82:2323`, with at most 60 connection attempts before startup is ready.
+Only refusal, unreachable-host and connection timeout permit another attempt;
+after the first successful connection there is no retry. Connection, request,
+data and optional acknowledgement share one 60-second deadline.
+The host must first attribute and configure the direct
+USB interface. The receiver does not discover interfaces or change host routes.
+The same destination preflight, complete save/readback and acknowledgement
+ordering apply. TCP supplies no authentication or encryption; this private
+export is confined to the direct USB link and exposes no command shell.
+
 The selected terminal must be a character device and pass `isatty`; final
 symlinks are refused. Each endpoint uses one 60-second deadline for nonblocking
 request/data I/O and the optional acknowledgement. EOF, I/O failure, malformed

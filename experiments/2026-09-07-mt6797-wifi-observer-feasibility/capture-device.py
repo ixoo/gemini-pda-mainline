@@ -3,14 +3,17 @@
 """PID1-only preserved-snapshot export; no capture initialization or clearing."""
 import importlib.util
 import os
+import socket
 import stat
 import struct
+import subprocess
+import time
 import tty
 import uuid
 
 
-def check_capture(startup, session, boot_id):
-    startup.check_runtime(session)
+def check_capture(startup, session, boot_id, *, usb_export=False):
+    startup.check_runtime(session, usb_export=usb_export)
     startup.mark('capture-layout')
     if startup.text('proc/sys/kernel/random/boot_id') != boot_id:
         raise ValueError('capture boot identity changed')
@@ -77,6 +80,61 @@ def check_usb(startup, enabled, functions, instances):
             raise ValueError('USB function ownership mismatch')
 
 
+def configure_ethernet(startup):
+    """Bring up only the built-in Ethernet gadget; no role/charging overrides."""
+    if ((startup.ROOT / 'sys/class/android_usb/android0').exists() or
+            not (startup.ROOT / 'sys/module/g_ether').is_dir() or
+            startup.text('sys/class/net/usb0/type') != '1' or
+            int(startup.text('sys/class/net/usb0/flags'), 16) & 1 or
+            startup.text('proc/sys/net/ipv4/ip_forward') != '0'):
+        raise ValueError('expected isolated inactive Ethernet gadget')
+    startup.mark('usb-ipv6')
+    ipv6 = startup.ROOT / 'proc/sys/net/ipv6/conf/usb0/disable_ipv6'
+    fd = os.open(ipv6, os.O_WRONLY | os.O_NOFOLLOW | os.O_CLOEXEC)
+    try:
+        if os.write(fd, b'1\n') != 2:
+            raise OSError('incomplete IPv6 isolation write')
+    finally:
+        os.close(fd)
+    if startup.text('proc/sys/net/ipv6/conf/usb0/disable_ipv6') != '1':
+        raise ValueError('IPv6 isolation readback mismatch')
+    for arguments in (['addr', 'add', '10.15.19.82/24', 'dev', 'usb0'],
+                      ['link', 'set', 'dev', 'usb0', 'up']):
+        startup.mark('usb-' + arguments[0])
+        subprocess.run([str(startup.ROOT / 'bin/busybox'), 'ip'] + arguments,
+                       stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                       stderr=subprocess.DEVNULL, timeout=5, check=True)
+
+
+def export_tcp(startup, session, boot_id, session_sha256, snapshot, export):
+    configure_ethernet(startup)
+    check_capture(startup, session, boot_id, usb_export=True)
+    startup.mark('tcp-listen')
+    deadline = time.monotonic() + 60
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
+        listener.setsockopt(socket.SOL_SOCKET, socket.SO_BINDTODEVICE, b'usb0\0')
+        listener.bind(('10.15.19.82', 2323))
+        listener.listen(1)
+        listener.settimeout(max(0, deadline - time.monotonic()))
+        startup.mark('host-request')
+        startup.log_stage('waiting')
+        connection, _ = listener.accept()
+    try:
+        connection.setblocking(False)
+        stream = export.SerialStream(connection.fileno(), deadline - time.monotonic())
+        export.await_request(stream, boot_id, session_sha256)
+        check_capture(startup, session, boot_id, usb_export=True)
+        startup.mark('snapshot-send')
+        export.send_snapshot(stream, snapshot, boot_id, session_sha256)
+        check_capture(startup, session, boot_id, usb_export=True)
+        startup.mark('host-preservation')
+        export.await_preserved(stream, snapshot, boot_id, session_sha256)
+        return connection.detach()
+    except BaseException:
+        connection.close()
+        raise
+
+
 def export_snapshot(startup, session, identity):
     """Called only after the startup source/session checks; return the live fd.
 
@@ -84,7 +142,7 @@ def export_snapshot(startup, session, identity):
     establish host preservation; no clearing or controller call follows.
     """
     if (os.getpid() != 1 or os.geteuid() != 0 or len(identity) != 96 or
-            session.get('startup_action') not in ('export', 'export-return')):
+            session.get('startup_action') not in ('export', 'export-return', 'export-tcp-return')):
         raise ValueError('export requires the checked root PID1 session')
     boot_id = str(uuid.UUID(bytes=identity[48:64]))
     session_sha256 = identity[16:48].hex()
@@ -93,6 +151,11 @@ def export_snapshot(startup, session, identity):
     snapshot = read_snapshot(startup, session, boot_id)
     startup.mark('usb-ownership')
     startup.log_stage('entered')
+    if session['startup_action'] == 'export-tcp-return':
+        spec = importlib.util.spec_from_file_location('capture_export', startup.ROOT / 'opt/wifi-cycle/capture-export.py')
+        export = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(export)
+        return export_tcp(startup, session, boot_id, session_sha256, snapshot, export)
     check_usb(startup, '0', '', '0')
     startup.mark('acm-node')
     device = startup.ROOT / 'dev/ttyGS0'

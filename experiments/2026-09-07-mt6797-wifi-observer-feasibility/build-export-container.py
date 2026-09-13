@@ -16,6 +16,7 @@ HERE = Path(__file__).resolve().parent
 PARENT = HERE.parent / '2026-08-02-gemian-a72-bounded-observer-boot/scripts/assemble.py'
 PARENT_SHA256 = '532f6f0dec5030a7b066f3baefa53580ec148317f633d4dd8d43308d30ac03b3'
 KERNEL_SHA256 = '4fc02b373433bba5ca2ee8dc00990ea8698ad2d817ed7f7aa2e9fc7e08cda06b'
+TCP_KERNEL_SHA256 = '965e815c1641d30198aa265040cb9c00a60c0f9df4cadde97b51a3d785c0d901'
 
 
 def sha(data):
@@ -32,14 +33,16 @@ def load(name, path):
 def build(active, kernel, filesystem, session_raw):
     if sha(PARENT.read_bytes()) != PARENT_SHA256:
         raise ValueError('native parent assembler changed')
+    session = json.loads(session_raw)
+    load('startup', HERE / 'startup.py').validate_session(session)
+    tcp = session['startup_action'] == 'export-tcp-return'
+    selected_kernel = TCP_KERNEL_SHA256 if tcp else KERNEL_SHA256
     native = load('native_container', PARENT)
-    native.KERNEL_FIELD_SHA256 = KERNEL_SHA256
+    native.KERNEL_FIELD_SHA256 = selected_kernel
     # This validates the retained image, all native addresses, original ramdisk,
     # and the exact selected kernel without changing its native ARM64 header.
     baseline, _ = native.build(active, kernel)
-    session = json.loads(session_raw)
-    load('startup', HERE / 'startup.py').validate_session(session)
-    if session['startup_action'] not in ('export', 'export-return', 'boot-entry') or session['kernel_image_sha256'] != KERNEL_SHA256:
+    if session['startup_action'] not in ('export', 'export-return', 'export-tcp-return', 'boot-entry') or session['kernel_image_sha256'] != selected_kernel:
         raise ValueError('requires the selected export kernel and diagnostic action')
     if session['kernel_inputs_sha256'] != sha((HERE / 'full-kernel-inputs.json').read_bytes()):
         raise ValueError('kernel inputs changed')
@@ -55,7 +58,9 @@ def build(active, kernel, filesystem, session_raw):
         raise ValueError('filesystem session identity mismatch')
     command = (native.CMDLINE + ' rdinit=/init panic=0 cpuidle.off=1'
                ' ramoops.pmsg_capture=1 wifi_cycle=' + session['cycle_id'] +
-               (' wifi_return=1 maxcpus=8' if session['startup_action'] == 'export-return' else '')).encode('ascii')
+               (' wifi_return=1 maxcpus=8' if session['startup_action'] in ('export-return', 'export-tcp-return') else '') +
+               (' g_ether.dev_addr=42:00:15:19:82:01 g_ether.host_addr=42:00:15:19:82:00'
+                ' g_ether.iSerialNumber=GEMINI_WIFI_EXPORT_TCP_1' if tcp else '')).encode('ascii')
     if len(command) >= 512:
         raise ValueError('startup command line exceeds first header field')
     header = bytearray(baseline[:native.PAGE_SIZE])
@@ -107,7 +112,7 @@ def main():
         'startup_action': json.loads(session)['startup_action'],
         'assembler_sha256': sha(Path(__file__).read_bytes()),
         'parent_assembler_sha256': PARENT_SHA256,
-        'kernel_sha256': KERNEL_SHA256,
+        'kernel_sha256': json.loads(session)['kernel_image_sha256'],
         'filesystem_sha256': sha(filesystem), 'session_sha256': sha(session),
         'raw_sha256': sha(raw), 'padded_sha256': sha(padded),
         'raw_bytes': len(raw), 'padded_bytes': len(padded),

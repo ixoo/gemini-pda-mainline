@@ -1,0 +1,71 @@
+{
+  "status": "prepared; not selected or installed",
+  "cycle_id": "7b0fb0c8-cab8-405d-86f4-a85f2034f3c3",
+  "session_sha256": "f841038c68e91e0f564f5983ff4a521ac96d7fad98c933c8a030104c4e4466dd",
+  "startup_action": "export-tcp-return",
+  "kernel_build_commit": "d037e48b3a09c6b9a02f0db2f1e44ca295af42ab",
+  "kernel_image_sha256": "965e815c1641d30198aa265040cb9c00a60c0f9df4cadde97b51a3d785c0d901",
+  "kernel_config_sha256": "43222fdee6781f3bc51cb7e412c9f92372ecf8f78b8881b11d66b77f849d8eb8",
+  "kernel_inputs_sha256": "bc844c38321c2dc0f4c919bd1a4be4885b1296abd5b5bd94af93a5b3055d48bf",
+  "runtime_sha256": "16e8ab61ac39d3cf22146b0a945f5eea41c53fb67020a6fc2a6f30d50d51077f",
+  "startup_files": {
+    "init": "09f1104635469349a401139df46ca40ae55e27723643800b986dcaa009d2806d",
+    "opt/wifi-cycle/capture-device.py": "7305311bc2560a08a6d85f8ce9199af3d6649a7004034d1b806687f9aac572b8",
+    "opt/wifi-cycle/capture-export.py": "1222ed27a4e980a22d606c9251f9a187610fc4ab4195bf870b70fddef0183024",
+    "opt/wifi-cycle/check-retained-patches.py": "ad7d5e1cf03463ad80d11a23583e448a6fce6d54b4b1fd7c94566fa7d6f4fa50",
+    "opt/wifi-cycle/cycle-controller.py": "6a7d712927ec94ca36a87e69c25da85fc025f4f7a0eae5ec7d1999c13c767715",
+    "opt/wifi-cycle/respond-once.py": "88c45874db0dd745f2ec9ac1e81cadf7410608f1ba60287d36748d79620328e7",
+    "opt/wifi-cycle/startup.py": "077aeef28059019ac6fe0eb21c08d15748ac2f7c42500ff5e24860f573aca0ee"
+  },
+  "assembler_sha256": "c98bc12a6b7ebe55566a6e83c414eabc202ea2fdbb99cac840631eaba2fd9c6f",
+  "filesystem_sha256": "b5fbc0ba6de6a5fb2d1627d6bde87d9b570c20cd5299068a995dd97d0f29e5e5",
+  "raw_sha256": "8a021115ce1ef2f922270b32608b4ffd6b4aaaddb752354135bba9cfc77ab7ec",
+  "padded_sha256": "94bb3c7864a8dfb11028e1d9bd90d0223b7eefa758d2753bc39656ea50d0967d",
+  "filesystem_validation": {
+    "archive_members": 723,
+    "removed_members": 0,
+    "changed_existing_members": [
+      "etc/wifi-cycle/session.json",
+      "opt/wifi-cycle/capture-device.py",
+      "opt/wifi-cycle/capture-export.py",
+      "opt/wifi-cycle/startup.py"
+    ],
+    "exact_current_startup_inputs_and_runtime": true,
+    "filesystem_bytes": 7848635,
+    "kernel_bytes": 8367663,
+    "page_bytes": 2048,
+    "projected_container_bytes": 16220160,
+    "limit_bytes": 16777216,
+    "spare_bytes": 557056
+  },
+  "container_validation": {
+    "raw_bytes": 16220160,
+    "padded_bytes": 16777216,
+    "binary_header_and_payloads": true,
+    "reassembled_identical": true,
+    "native_addresses_and_flags": true,
+    "split_capture_dt_reg_and_no_map": true,
+    "container_mutations_rejected": 17,
+    "input_refusals": 6
+  },
+  "native_dtb_byte_identical_to_previous_kernel": true,
+  "tests": {
+    "host_and_packaged_arm64": {
+      "stream": 16,
+      "startup": 28,
+      "bridge": 7
+    },
+    "synthetic_only": true,
+    "sources": {
+      "test-capture-export.py": "c3eb69a3e45373c5e8e7dad7e7806351a1630d72a53eb675cb268ab809a9fa46",
+      "test-startup.py": "24314b410ec857052eec7641fac4d7484638b8fa7c40670c938e5e40922e8d08",
+      "test-capture-device.py": "eddfe5c9ac11c55d12dfd98a9cb74816ebde668cdf5a41032b08da3b28afa3c0"
+    }
+  },
+  "device_execution": false,
+  "outstanding": [
+    "host USB Ethernet collector preparation",
+    "guarded boot2 installation",
+    "physical selection and USB capture validation"
+  ]
+}

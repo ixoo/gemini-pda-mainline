@@ -119,7 +119,7 @@ def validate_session(session):
                 'startup_action'}
     if set(session) != required or session['schema'] != 2:
         raise ValueError('unknown session schema')
-    if session['startup_action'] not in ('export', 'export-return', 'cycle', 'boot-entry'):
+    if session['startup_action'] not in ('export', 'export-return', 'export-tcp-return', 'cycle', 'boot-entry'):
         raise ValueError('unknown startup action')
     if session['startup_action'] == 'boot-entry' and session['cycle_id'] != BOOT_ENTRY_CYCLE_ID:
         raise ValueError('boot-entry control identity mismatch')
@@ -144,7 +144,7 @@ def validate_session(session):
     return cycle.bytes
 
 
-def check_runtime(session):
+def check_runtime(session, *, usb_export=False):
     mark('kernel-identity')
     if platform.machine() != 'aarch64' or platform.release() != session['kernel_release']:
         raise ValueError('kernel ABI or release mismatch')
@@ -160,7 +160,7 @@ def check_runtime(session):
         matches = [word.partition('=')[2] for word in words if word.partition('=')[0] == key]
         if matches != [expected]:
             raise ValueError('boot parameter mismatch')
-    expected_return = ['1'] if session['startup_action'] == 'export-return' else []
+    expected_return = ['1'] if session['startup_action'] in ('export-return', 'export-tcp-return') else []
     if [word.partition('=')[2] for word in words if word.partition('=')[0] == 'wifi_return'] != expected_return:
         raise ValueError('return boot parameter mismatch')
     if expected_return and (os.environ.get('WIFI_EXPORT_RETURN_BOOT') != text('proc/sys/kernel/random/boot_id') or
@@ -208,9 +208,18 @@ def check_runtime(session):
         if not int(fields[6]) & 0x00200000:
             raise ValueError('another userspace process exists')
     mark('network-isolation')
+    if usb_export and session['startup_action'] != 'export-tcp-return':
+        raise ValueError('network exception requires the TCP export action')
     for interface in (ROOT / 'sys/class/net').iterdir():
+        if usb_export and interface.name == 'usb0':
+            continue
         if int((interface / 'flags').read_text(), 16) & 1:
             raise ValueError('a network interface is administratively up')
+    if usb_export:
+        if (not int(text('sys/class/net/usb0/flags'), 16) & 1 or
+                text('proc/sys/net/ipv4/ip_forward') != '0' or
+                text('proc/sys/net/ipv6/conf/usb0/disable_ipv6') != '1'):
+            raise ValueError('USB export network isolation mismatch')
 
 
 def prepare():
@@ -266,15 +275,15 @@ def main():
             raise ValueError('boot-entry control requires its dedicated init')
         mark('preflight')
         log_stage('passed')
-        if session['startup_action'] in ('export', 'export-return'):
+        if session['startup_action'] in ('export', 'export-return', 'export-tcp-return'):
             mark('export-import')
             spec = importlib.util.spec_from_file_location('capture_device', ROOT / 'opt/wifi-cycle/capture-device.py')
             device = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(device)
-            # Intentionally retain the open serial descriptor while PID1 parks.
+            # Intentionally retain the open transport descriptor while PID1 parks.
             device.export_snapshot(sys.modules[__name__], session, identity)
             mark('export')
-            if session['startup_action'] == 'export-return':
+            if session['startup_action'] in ('export-return', 'export-tcp-return'):
                 log_stage('preserved')
                 print('wifi-startup: host preservation acknowledged', flush=True)
                 return_once('preserved')

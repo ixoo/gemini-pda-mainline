@@ -120,6 +120,33 @@ class StartupTests(unittest.TestCase):
         startup.os.environ.update(WIFI_EXPORT_RETURN_BOOT='aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
                                   WIFI_EXPORT_RETURN_CYCLE=self.session['cycle_id'])
 
+    def test_usb_network_exception_is_limited_to_tcp_export_after_setup(self):
+        self.arm_return()
+        self.session['startup_action'] = 'export-tcp-return'
+        self.save_session()
+        self.write('sys/class/net/usb0/flags', '0x1002')
+        self.write('proc/sys/net/ipv4/ip_forward', '0')
+        self.write('proc/sys/net/ipv6/conf/usb0/disable_ipv6', '1')
+        startup.prepare()
+        with self.assertRaisesRegex(ValueError, 'USB export network'):
+            startup.check_runtime(self.session, usb_export=True)
+        self.write('sys/class/net/usb0/flags', '0x1003')
+        with self.assertRaisesRegex(ValueError, 'administratively up'):
+            startup.prepare()
+        startup.check_runtime(self.session, usb_export=True)
+        for path, bad in (('sys/class/net/lo/flags', '0x9'),
+                          ('proc/sys/net/ipv4/ip_forward', '1'),
+                          ('proc/sys/net/ipv6/conf/usb0/disable_ipv6', '0')):
+            old = (self.root / path).read_bytes()
+            self.write(path, bad)
+            with self.subTest(path=path), self.assertRaises(ValueError):
+                startup.check_runtime(self.session, usb_export=True)
+            self.write(path, old)
+        self.session['startup_action'] = 'export-return'
+        with self.assertRaisesRegex(ValueError, 'network exception'):
+            startup.check_runtime(self.session, usb_export=True)
+        self.restart.assert_not_called()
+
     def test_export_return_requires_ordered_boot_cpu_limit(self):
         self.arm_return()
         startup.prepare()
@@ -220,7 +247,15 @@ class StartupTests(unittest.TestCase):
         self.assertFalse(startup.RETURN_ATTEMPTED)
 
     def test_preserved_export_requests_return_without_importing_cycle(self):
+        self.preserved_export_returns('export-return')
+
+    def test_preserved_tcp_export_requests_return_without_importing_cycle(self):
+        self.preserved_export_returns('export-tcp-return')
+
+    def preserved_export_returns(self, action):
         self.arm_return()
+        self.session['startup_action'] = action
+        self.save_session()
         identity = startup.prepare()[1]
         device = SimpleNamespace(export_snapshot=lambda *args: 99)
         loader = SimpleNamespace(exec_module=lambda module: None)

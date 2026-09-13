@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import pty
+import socket
 import stat
 import tempfile
 import threading
@@ -99,6 +100,12 @@ class ExportTests(unittest.TestCase):
             with self.assertRaisesRegex(FileExistsError, 'snapshot output'):
                 export.main()
             raw.assert_not_called()
+        arguments = ['capture-export.py', '--tcp', '--previous-boot-id', PREVIOUS,
+                     '--session-sha256', SESSION, str(self.output)]
+        with patch('sys.argv', arguments), patch.object(export.socket, 'create_connection') as connect:
+            with self.assertRaises(FileExistsError):
+                export.main()
+            connect.assert_not_called()
         link = self.root / 'broken-link'
         link.symlink_to(self.root / 'absent')
         with self.assertRaises(FileExistsError):
@@ -197,6 +204,64 @@ class ExportTests(unittest.TestCase):
 
     def test_real_pseudoterminal_transfer_with_ack(self):
         self.pseudoterminal_transfer(True)
+
+    def test_tcp_cli_preserves_and_acknowledges_one_snapshot(self):
+        errors = []
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
+            listener.bind(('127.0.0.1', 0))
+            listener.listen(1)
+            listener.settimeout(3)
+            address = listener.getsockname()
+
+            def send():
+                try:
+                    connection, _ = listener.accept()
+                    with connection:
+                        connection.setblocking(False)
+                        stream = export.SerialStream(connection.fileno(), 3)
+                        export.await_request(stream, BOOT, SESSION)
+                        export.send_snapshot(stream, SNAPSHOT, BOOT, SESSION)
+                        export.await_preserved(stream, SNAPSHOT, BOOT, SESSION)
+                except Exception as error:
+                    errors.append(error)
+
+            original_connect = socket.create_connection
+
+            def connect(selected, timeout):
+                self.assertEqual(selected, ('10.15.19.82', 2323))
+                self.assertGreater(timeout, 0)
+                self.assertLessEqual(timeout, 1)
+                return original_connect(address, timeout=timeout)
+
+            sender = threading.Thread(target=send, daemon=True)
+            sender.start()
+            arguments = ['capture-export.py', '--tcp', '--acknowledge',
+                         '--previous-boot-id', PREVIOUS, '--session-sha256', SESSION, str(self.output)]
+            with patch('sys.argv', arguments), patch.object(export.socket, 'create_connection', side_effect=connect):
+                export.main()
+            sender.join(timeout=4)
+            self.assertFalse(sender.is_alive())
+            self.assertEqual(errors, [])
+        self.assertEqual((self.output / 'snapshot.raw').read_bytes(), SNAPSHOT)
+
+    def test_tcp_startup_wait_is_bounded_and_never_retries_a_request(self):
+        refused = ConnectionRefusedError(export.errno.ECONNREFUSED, 'fixture')
+        accepted = object()
+        with patch.object(export.time, 'monotonic', return_value=0), \
+                patch.object(export.time, 'sleep'), \
+                patch.object(export.socket, 'create_connection', side_effect=[refused, accepted]) as connect:
+            self.assertIs(export.connect_tcp(60), accepted)
+            self.assertEqual(connect.call_count, 2)
+        with patch.object(export.time, 'monotonic', return_value=0), \
+                patch.object(export.time, 'sleep'), \
+                patch.object(export.socket, 'create_connection', side_effect=refused) as connect:
+            with self.assertRaises(TimeoutError):
+                export.connect_tcp(60)
+            self.assertEqual(connect.call_count, 60)
+        with patch.object(export.socket, 'create_connection') as connect:
+            with self.assertRaises(TimeoutError):
+                export.connect_tcp(0)
+            connect.assert_not_called()
 
     def pseudoterminal_transfer(self, acknowledge):
         master, slave = pty.openpty()

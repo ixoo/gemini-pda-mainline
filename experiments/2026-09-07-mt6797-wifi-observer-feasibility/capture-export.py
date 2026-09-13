@@ -6,11 +6,13 @@ This module neither configures USB nor reads device memory. Its receiver may
 acknowledge durable preservation; that acknowledgement authorizes no clearing.
 """
 import argparse
+import errno
 import hashlib
 import json
 import os
 from pathlib import Path
 import select
+import socket
 import stat
 import struct
 import time
@@ -25,7 +27,7 @@ PRESERVED = struct.Struct('<4s16s32s32s')
 
 
 class SerialStream:
-    """Unbuffered I/O on an already open nonblocking terminal, one deadline."""
+    """Unbuffered I/O on a nonblocking terminal or socket, one deadline."""
     def __init__(self, fd, seconds=60):
         self.fd = fd
         self.deadline = time.monotonic() + seconds
@@ -51,7 +53,7 @@ class SerialStream:
         return self.transfer(data, True)
 
     def flush(self):
-        # No userspace buffer; this is not a USB drain/receipt acknowledgement.
+        # No userspace buffer; this is not a transport/receipt acknowledgement.
         pass
 
 
@@ -217,17 +219,47 @@ def save_snapshot(directory, snapshot, digest, boot_id, session_sha256):
     return receipt
 
 
+def connect_tcp(deadline):
+    """Wait for startup without sending the one application request early."""
+    for _ in range(60):
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            break
+        try:
+            return socket.create_connection(('10.15.19.82', 2323), timeout=min(1, remaining))
+        except OSError as error:
+            if not isinstance(error, TimeoutError) and error.errno not in (
+                    errno.ECONNREFUSED, errno.EHOSTUNREACH):
+                raise
+        time.sleep(min(1, max(0, deadline - time.monotonic())))
+    raise TimeoutError('USB capture connection deadline expired')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--previous-boot-id', required=True)
     parser.add_argument('--session-sha256', required=True)
-    parser.add_argument('--serial', required=True, help='explicit host USB serial terminal')
+    transport = parser.add_mutually_exclusive_group(required=True)
+    transport.add_argument('--serial', help='explicit host USB serial terminal')
+    transport.add_argument('--tcp', action='store_true',
+                           help='direct USB IPv4 capture at 10.15.19.82:2323')
     parser.add_argument('--acknowledge', action='store_true',
                         help='send one bound preservation acknowledgement after durable save')
     parser.add_argument('output', help='new directory below a private parent')
     args = parser.parse_args()
     identities(args.previous_boot_id, args.session_sha256)
     check_destination(args.output)
+    if args.tcp:
+        deadline = time.monotonic() + 60
+        with connect_tcp(deadline) as connection:
+            connection.setblocking(False)
+            stream = SerialStream(connection.fileno(), deadline - time.monotonic())
+            request_snapshot(stream, args.previous_boot_id, args.session_sha256)
+            receive_snapshot(stream, args.output, args.previous_boot_id, args.session_sha256,
+                             acknowledge=args.acknowledge)
+        print('snapshot preserved; acknowledgement sent' if args.acknowledge else
+              'snapshot preserved; no clearing command sent')
+        return
     fd = os.open(args.serial, os.O_RDWR | os.O_NONBLOCK | os.O_NOCTTY |
                  os.O_NOFOLLOW | os.O_CLOEXEC)
     try:

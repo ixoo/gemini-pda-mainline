@@ -5,13 +5,14 @@ import importlib.util
 import os
 from pathlib import Path
 import pty
+import socket
 import stat
 import struct
 import threading
 import tty
 from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 HERE = Path(__file__).resolve().parent
 
@@ -109,6 +110,70 @@ class DeviceTests(unittest.TestCase):
 
     def test_duplex_export_return_requires_preservation_ack(self):
         self.duplex_export(True)
+
+    def test_tcp_sender_requires_request_and_preservation_ack(self):
+        # A real socket pair exercises the sender. Only listener addressing,
+        # network configuration and runtime identity are injected here.
+        host, candidate = socket.socketpair()
+        self.addCleanup(host.close)
+        self.addCleanup(candidate.close)
+        host.setblocking(False)
+        listener = MagicMock()
+        listener.__enter__.return_value = listener
+        listener.accept.return_value = (candidate, ('10.15.19.1', 40000))
+        session_hash = self.identity[16:48].hex()
+        errors = []
+
+        def receive():
+            try:
+                stream = export.SerialStream(host.fileno(), 3)
+                export.request_snapshot(stream, PREVIOUS, session_hash)
+                # Read the complete frame without involving the fixture's uid.
+                header = export.HEADER.unpack(export.read_exact(stream, export.HEADER.size))
+                self.assertEqual(header[1], export.uuid.UUID(BOOT).bytes)
+                self.assertEqual(export.read_exact(stream, export.SIZE), SNAPSHOT)
+                stream.write(export.PRESERVED.pack(b'WFA1', header[1], header[2], header[3]))
+            except Exception as error:
+                errors.append(error)
+
+        receiver = threading.Thread(target=receive, daemon=True)
+        receiver.start()
+        with patch.object(device, 'configure_ethernet') as configure, \
+                patch.object(device, 'check_capture') as check, \
+                patch.object(device.socket, 'socket', return_value=listener), \
+                patch.object(device.socket, 'SO_BINDTODEVICE', 25, create=True):
+            fd = device.export_tcp(startup, self.session, BOOT, session_hash, SNAPSHOT, export)
+            self.addCleanup(os.close, fd)
+            configure.assert_called_once_with(startup)
+            listener.setsockopt.assert_called_once_with(socket.SOL_SOCKET, 25, b'usb0\0')
+            listener.bind.assert_called_once_with(('10.15.19.82', 2323))
+            listener.accept.assert_called_once_with()
+            self.assertEqual(check.call_count, 3)
+            for call in check.call_args_list:
+                self.assertEqual(call.kwargs, {'usb_export': True})
+        receiver.join(timeout=4)
+        self.assertFalse(receiver.is_alive())
+        self.assertEqual(errors, [])
+
+    def test_ethernet_setup_only_changes_usb0_and_stops_on_failure(self):
+        (self.root / 'sys/class/android_usb/android0/enable').unlink()
+        (self.root / 'sys/class/android_usb/android0/functions').unlink()
+        (self.root / 'sys/class/android_usb/android0').rmdir()
+        (self.root / 'sys/module/g_ether').mkdir()
+        self.write('sys/class/net/usb0/type', '1')
+        self.write('sys/class/net/usb0/flags', '0x1002')
+        self.write('proc/sys/net/ipv4/ip_forward', '0')
+        self.write('proc/sys/net/ipv6/conf/usb0/disable_ipv6', '0\n')
+        with patch.object(device.subprocess, 'run') as run:
+            device.configure_ethernet(startup)
+            self.assertEqual([call.args[0][1:] for call in run.call_args_list], [
+                ['ip', 'addr', 'add', '10.15.19.82/24', 'dev', 'usb0'],
+                ['ip', 'link', 'set', 'dev', 'usb0', 'up']])
+            self.assertEqual(startup.text('proc/sys/net/ipv6/conf/usb0/disable_ipv6'), '1')
+        with patch.object(device.subprocess, 'run', side_effect=OSError('injected')) as run:
+            with self.assertRaises(OSError):
+                device.configure_ethernet(startup)
+            self.assertEqual(run.call_count, 1)
 
     def duplex_export(self, acknowledge):
         if acknowledge:
