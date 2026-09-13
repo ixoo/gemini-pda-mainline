@@ -1,0 +1,155 @@
+From 500193e86b18a25762d2884bd0b8aa8005459997 Mon Sep 17 00:00:00 2001
+From: Codex native diagnostic <noreply@native-diagnostic.invalid>
+Date: Sun, 13 Sep 2026 19:03:34 +0000
+Subject: [PATCH] usb: retain native charger-detection rejection branches
+
+The retained export diagnostic reached readiness and the device path, but
+recorded cable false and no controller start. Its final cable sample has
+unknown charger type and false software VBUS detection. The selected
+battery helper has four different false-return branches, so the sample
+does not establish which existing check rejected the connection.
+
+Retain eight cumulative bits for entry, initialization/suspend refusals,
+the existing detector call and return, and absent/host/device outcomes.
+Append this independent mask to the existing single shutdown report.
+Keep the same diagnostic gate and all original decisions and operations;
+add no hardware read, charger write, role request or work scheduling.
+The masks do not record ordering or identify their independent callers.
+
+This assistant-generated native experiment carries no DCO certification
+and is not an upstream submission.
+---
+ .../misc/mediatek/include/mt-plat/charging.h  |  9 +++++
+ drivers/misc/mediatek/mu3d/drv/mt_usb.c       |  7 ++--
+ drivers/power/mediatek/battery_common_fg_20.c | 40 ++++++++++++++++++-
+ 3 files changed, 51 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/misc/mediatek/include/mt-plat/charging.h b/drivers/misc/mediatek/include/mt-plat/charging.h
+index c72c80f..0610852 100644
+--- a/drivers/misc/mediatek/include/mt-plat/charging.h
++++ b/drivers/misc/mediatek/include/mt-plat/charging.h
+@@ -650,4 +650,13 @@ extern int mtk_chr_enable_direct_charge(unsigned char charging_enable);
+ extern int mtk_chr_enable_charge(unsigned char charging_enable);
+ extern int mtk_chr_reset_aicr_upper_bound(void);
+ 
++#if defined(CONFIG_MTK_HAFG_20) && defined(CONFIG_MTK_SMART_BATTERY)
++unsigned long mt_usb_chrdet_paths(void);
++#else
++static inline unsigned long mt_usb_chrdet_paths(void)
++{
++	return 0;
++}
++#endif
++
+ #endif	/* #ifndef _CHARGING_H */
+diff --git a/drivers/misc/mediatek/mu3d/drv/mt_usb.c b/drivers/misc/mediatek/mu3d/drv/mt_usb.c
+index ae4d14d..eaffa37 100644
+--- a/drivers/misc/mediatek/mu3d/drv/mt_usb.c
++++ b/drivers/misc/mediatek/mu3d/drv/mt_usb.c
+@@ -68,9 +68,10 @@ void usb_export_report(void)
+ 	    test_and_set_bit(USB_EXPORT_REPORTED, &usb_export_paths))
+ 		return;
+ 
+-	/* Cumulative paths and the latest cable sample are separate observations. */
+-	pr_info("wifi-usb-v1 paths=%04lx cable=%08x\n",
+-		READ_ONCE(usb_export_paths), atomic_read(&usb_export_cable));
++	/* Each cumulative mask and the latest cable sample are independent. */
++	pr_info("wifi-usb-v2 paths=%04lx cable=%08x chrdet=%02lx\n",
++		READ_ONCE(usb_export_paths), atomic_read(&usb_export_cable),
++		mt_usb_chrdet_paths());
+ }
+ 
+ unsigned int cable_mode = CABLE_MODE_NORMAL;
+diff --git a/drivers/power/mediatek/battery_common_fg_20.c b/drivers/power/mediatek/battery_common_fg_20.c
+index 8b77a9d..65643bb 100644
+--- a/drivers/power/mediatek/battery_common_fg_20.c
++++ b/drivers/power/mediatek/battery_common_fg_20.c
+@@ -31,6 +31,7 @@
+  * Oscar Liu
+  *
+  ****************************************************************************/
++#include <linux/bitops.h>
+ #include <linux/init.h>		/* For init/exit macros */
+ #include <linux/module.h>	/* For MODULE_ marcros  */
+ #include <linux/fs.h>
+@@ -413,12 +414,39 @@ kal_bool bat_is_ext_power(void)
+ /* ///////////////////////////////////////////////////////////////////////////////////////// */
+ /* // PMIC PCHR Related APIs */
+ /* ///////////////////////////////////////////////////////////////////////////////////////// */
++enum usb_chrdet_path {
++	USB_CHRDET_ENTER,
++	USB_CHRDET_NOT_READY,
++	USB_CHRDET_SUSPENDED,
++	USB_CHRDET_DETECT,
++	USB_CHRDET_DETECTED,
++	USB_CHRDET_ABSENT,
++	USB_CHRDET_HOST,
++	USB_CHRDET_DEVICE,
++};
++
++static unsigned long usb_chrdet_paths;
++
++static void usb_chrdet_mark(enum usb_chrdet_path path)
++{
++	if (IS_ENABLED(CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR) &&
++	    IS_ENABLED(CONFIG_USB_ETH) && !IS_ENABLED(CONFIG_USB_G_ANDROID))
++		set_bit(path, &usb_chrdet_paths);
++}
++
++unsigned long mt_usb_chrdet_paths(void)
++{
++	return READ_ONCE(usb_chrdet_paths);
++}
++
+ kal_bool upmu_is_chr_det(void)
+ {
+ #if !defined(CONFIG_POWER_EXT)
+ 	unsigned int tmp32;
+ #endif
++	usb_chrdet_mark(USB_CHRDET_ENTER);
+ 	if (!g_bat_init_flag) {
++		usb_chrdet_mark(USB_CHRDET_NOT_READY);
+ 		battery_log(BAT_LOG_CRTI,
+ 			    "[upmu_is_chr_det] battery thread not ready, will do after bettery init.\n");
+ 		return KAL_FALSE;
+@@ -427,27 +455,35 @@ kal_bool upmu_is_chr_det(void)
+ 	/* return KAL_TRUE; */
+ 	return get_charger_detect_status();
+ #else
+-	if (suspend_discharging == 1)
++	if (suspend_discharging == 1) {
++		usb_chrdet_mark(USB_CHRDET_SUSPENDED);
+ 		return KAL_FALSE;
++	}
+ 
++	usb_chrdet_mark(USB_CHRDET_DETECT);
+ 	tmp32 = get_charger_detect_status();
++	usb_chrdet_mark(USB_CHRDET_DETECTED);
+ 
+ #ifdef CONFIG_MTK_POWER_EXT_DETECT
+ 	if (KAL_TRUE == bat_is_ext_power())
+ 		return tmp32;
+ #endif
+ 
+-	if (tmp32 == 0)
++	if (tmp32 == 0) {
++		usb_chrdet_mark(USB_CHRDET_ABSENT);
+ 		return KAL_FALSE;
++	}
+ 
+ 
+ #if !defined(CONFIG_MTK_DUAL_INPUT_CHARGER_SUPPORT)
+ 	if (mt_usb_is_device()) {
++		usb_chrdet_mark(USB_CHRDET_DEVICE);
+ 		battery_log(BAT_LOG_FULL, "[upmu_is_chr_det] Charger exist and USB is not host\n");
+ 
+ 		return KAL_TRUE;
+ 	}
+ 
++	usb_chrdet_mark(USB_CHRDET_HOST);
+ 	battery_log(BAT_LOG_CRTI, "[upmu_is_chr_det] Charger exist but USB is host\n");
+ 
+ 	return KAL_FALSE;
+-- 
+2.39.5
+

@@ -199,6 +199,10 @@
     {
       "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/usb-ethernet-diagnostics/0001-usb-retain-bounded-native-export-connection-decisions.patch",
       "sha256": "c4b8310018db2d4bd4b0acdbf8830a770922c6c33ef656dcf4fd63f4b6e69f4a"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/usb-chrdet-diagnostics/0001-usb-retain-native-charger-detection-rejection-branches.patch",
+      "sha256": "ebfb783806adfcf6c250d6909ecc40df0da1a32007fc065df61c70bb658ac423"
     }
   ],
   "purpose": "complete native kernel link; no boot candidate or device admission"

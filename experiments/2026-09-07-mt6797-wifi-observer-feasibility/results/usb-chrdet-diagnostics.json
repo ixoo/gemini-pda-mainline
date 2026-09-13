@@ -1,0 +1,36 @@
+{
+  "before_sha256": {
+    "drivers/misc/mediatek/mu3d/drv/mt_usb.c": "ccd6f6bd753b4655fdd9eecee8008d41ad8bf1174a39bbd5614b0112ef1cc5d2",
+    "drivers/power/mediatek/battery_common_fg_20.c": "cdd0c41c5b69afc6581bb780034722e07f745c983c36178dcd2e1b4eb417f4bc",
+    "drivers/misc/mediatek/include/mt-plat/charging.h": "b3a08891495b04b95b6ec4a6b9628d5ea11477d2c9ac3346794d987901fe2896"
+  },
+  "after_sha256": {
+    "drivers/misc/mediatek/mu3d/drv/mt_usb.c": "ed9d988cd781ec60a6da5e479529d89d1a17bf2badce71cb2b4f2256102b9a65",
+    "drivers/power/mediatek/battery_common_fg_20.c": "8dd9ca674a9860ffac9805977d1d364a34559243b1646a08d8a89e5182f6d01f",
+    "drivers/misc/mediatek/include/mt-plat/charging.h": "20539ce0140439973197e601ce9532ccee31a23ef8a53cc264944508318847a7"
+  },
+  "inverse_exact": true,
+  "replayed_exact": true,
+  "checkpatch_exit": 0,
+  "patch_sha256": "ebfb783806adfcf6c250d6909ecc40df0da1a32007fc065df61c70bb658ac423",
+  "patch_bytes": 5565,
+  "status": "source replay and style validation passed; full build and device admission pending",
+  "source_revision": "59e00a9144d782e148332009a835b99c43382467",
+  "parent_runtime_record": "usb-ethernet-diagnostics-window-2.json",
+  "provider_trace_record": "usb-ethernet-detection-providers.json",
+  "prior_manifest_sha256": "cbe6fb5b1b0abb8457c0f7d29a27a33d057d13ed3dcc1b3da85930bfa8863bc1",
+  "manifest_sha256": "1295fc3e453f94d4ae366b05af87eeb9ac6ef7d12e3b950f0a4bea32c9fd8bf8",
+  "patch_path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/usb-chrdet-diagnostics/0001-usb-retain-native-charger-detection-rejection-branches.patch",
+  "selected_patches": 50,
+  "previous_49_patches_preserved": true,
+  "configuration_changes": 0,
+  "canonical_upstream_series_or_profile_changes": 0,
+  "diagnostic_log_budget": 1,
+  "diagnostic_output": "wifi-usb-v2 paths=hhhh cable=hhhhhhhh chrdet=hh",
+  "limitations": [
+    "No additional hardware accessor, charger write, role request, radio operation, work scheduling or userspace control.",
+    "Each cumulative mask and the latest cable sample are independent; no call order, counts, shared caller or enumeration is implied.",
+    "The battery getter is an ordinary READ_ONCE of its diagnostic mask; unsupported battery configurations have a zero stub and are not selected for interpretation.",
+    "Existing single-report guard and placement remain unchanged. A missing or incorrectly placed report is inconclusive."
+  ]
+}
