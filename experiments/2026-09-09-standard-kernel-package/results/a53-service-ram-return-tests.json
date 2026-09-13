@@ -1,0 +1,97 @@
+{
+  "status": "offline-return-preparation-pass",
+  "device_action": "none",
+  "physical_admission": false,
+  "collector_sha256": "9813be751c161009aa667714f322b2b3b9fc13396dc4736736c18093f8b77f66",
+  "tests_sha256": "b7b74a1aefdef925223691959d7c79ba6aa7a24f7b9600fcf4ff899642e73d0b",
+  "installer_adapter_sha256": "ff7c560176c0d1dfd82adba200e8b673b2be2336a1359c99f3a70eb09af440c9",
+  "test_platforms": [
+    "macOS host",
+    "Linux RE VM"
+  ],
+  "test_groups_per_platform": 8,
+  "binding": {
+    "status": "offline-binding-pass",
+    "candidate_sha256": "97c23e3f34686d8831e56f9903e109f6b9ba89cb121c88996f25411e86d5bec0",
+    "fixture_previous_boot": "11111111-1111-4111-8111-111111111111",
+    "fixture_mainline_boot": "22222222-2222-4222-8222-222222222222",
+    "fixture_records": "synthetic; not deployment evidence",
+    "negative_cases": [
+      "wrong-deployment-candidate",
+      "old-experiment",
+      "wrong-command",
+      "duplicate-boot",
+      "zero-boot",
+      "unchanged-boot",
+      "truncated-frame",
+      "wrong-byte-count",
+      "interrupted-request",
+      "returned-helper",
+      "extra-request-file",
+      "public-receipt",
+      "changed-adapter",
+      "changed-trust"
+    ],
+    "device_access": "none",
+    "child_processes": "forbidden",
+    "temporary_fixtures": "removed"
+  },
+  "coverage": [
+    "changed nonzero canonical return boot distinct from preceding Gemian and mainline",
+    "exact Gemian identity, complete line framing and transport status",
+    "only five exact pre-authentication connection errors allow another scheduled slot",
+    "at most twelve 15-second slots in one 180-second window",
+    "consumed output namespace refuses a second invocation",
+    "credential changes stop before another connection",
+    "real bounded host runner with inert child and 4096-byte output cap",
+    "read-only shell probe against fixture files, with failing health command stopping the frame",
+    "private evidence checksums and readback"
+  ],
+  "fixes_from_unfinished_draft": [
+    "reject incomplete newline or CRLF framing",
+    "propagate systemctl failure before printing a complete probe frame"
+  ],
+  "limitations": [
+    "Injected responses and synthetic deployment/request records do not prove a PDA return.",
+    "Return confirmation alone does not classify baseline or log success.",
+    "Bounded observation, evidence preservation and recovery execution still need their host entry point before A53 device admission."
+  ],
+  "private_evidence": {
+    "binding.stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "binding.stdout": {
+      "bytes": 771,
+      "sha256": "f328866249614725a9cbd15f5dd7d7b74a091346e2133df67c796b00dd82b005"
+    },
+    "host.stderr": {
+      "bytes": 1116,
+      "sha256": "c37c15356ef3a55d2522182363ea50f48f67debbf1d6143f0278dcecd5565db8"
+    },
+    "host.stdout": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "linux-binding.stderr": {
+      "bytes": 645,
+      "sha256": "8404c30b57ef0322ba2fe8705d42bcb797debbfeedb5a69fb7e8dd989e9fc048"
+    },
+    "linux-binding.stdout": {
+      "bytes": 771,
+      "sha256": "f328866249614725a9cbd15f5dd7d7b74a091346e2133df67c796b00dd82b005"
+    },
+    "linux.stderr": {
+      "bytes": 1761,
+      "sha256": "ed7df44b53681aedb5acc09a68e7550e6c2faf078fa39172c60ca02c962522ff"
+    },
+    "linux.stdout": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "test-binding.py": {
+      "bytes": 5195,
+      "sha256": "3f27dd6f091a526015a43ef31c600bcafd3edacf4885112414129f641c682c86"
+    }
+  }
+}

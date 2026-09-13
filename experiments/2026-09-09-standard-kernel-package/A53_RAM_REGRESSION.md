@@ -1,11 +1,11 @@
 # A53 service-kernel RAM regression candidate
 
 Status: complete private image composed and validated; exact-shell and hosted
-Linux checks pass. No A53 deployment or physical session is selected. The latest
-Wi-Fi observation confirmed Gemian and preserved its retained console.
-Offline collection/recovery and installation
-bindings now pass their focused checks. Live execution records and return
-collection remain required before device use.
+Linux checks pass. No A53 deployment or physical session is selected.
+Offline collection/recovery, installation and return-confirmation bindings now
+pass their focused checks. The bounded host execution entry point and live
+session records remain required before device use. Device custody remains with
+the [Wi-Fi Ethernet session](../2026-09-07-mt6797-wifi-observer-feasibility/USB_ETHERNET_SESSION.md).
 
 ## Purpose and bounded change
 
@@ -185,8 +185,9 @@ they never select an automatic retry. A returned helper is not a successful
 restart. Confirm a changed boot in known-good Gemian afterward, independently
 of the USB connection's exit status.
 
-The one-shot host execution records and finite Gemian return collection still
-need preparation. No keyboard event capture, eMMC partition read, namespace/BPF
+The one-shot host execution entry point still needs preparation. The separate
+return collector below is ready for binding to its eventual records. No keyboard
+event capture, eMMC partition read, namespace/BPF
 operation or repetition is added to this session. Its success branch requires
 the attributable baseline observation, complete log and confirmed recovery;
 a refusal selects diagnosis from preserved evidence. Do not reactivate the
@@ -197,3 +198,33 @@ resolved the device state. Any later boot2 write still uses the reviewed
 live-GPT guard, full readback and clean
 shutdown, followed by owner-operated physical selection. No installation,
 collector or physical-selection budget is supplied by this preparation record.
+
+## Bounded Gemian return confirmation
+
+The [return helper](a53-ram-return.py) binds the exact candidate and installer
+adapter, guarded deployment receipt, preceding Gemian boot, native recovery
+script and request transcript before any connection. Its default operation is
+offline validation. An explicitly admitted execution consumes one fixed private
+output directory before starting the existing bounded SSH runner. It requests
+no restart and never replaces existing evidence.
+
+The helper allows at most twelve 15-second slots within a 180-second connection
+window. Only five exact pre-authentication connection failures permit the next
+scheduled slot. Authentication, host-key, partial-response and unknown failures
+stop the window. Credentials are checked before every connection. Each response
+is limited to 4 KiB stdout and 16 KiB stderr, and checks Gemian identity plus a
+stable nonzero boot UUID distinct from both preceding Gemian and mainline.
+The health command must succeed before the probe can finish its frame.
+
+The [test receipt](results/a53-service-ram-return-tests.json) records eight test
+groups passing on macOS and the Linux RE VM. These exercise the actual host
+runner with inert children, the probe shell with fixture files, consumed-window
+refusal, timing, credential changes, response limits and evidence readback.
+Fourteen altered deployment/request/source/trust cases also refuse on both
+platforms with the real candidate and synthetic receipts; child processes are
+forbidden during those binding tests. No test contacts the PDA.
+
+A confirmed return proves that known-good Gemian is running. It does not promote
+an incomplete baseline or log capture to success. Actual A53 session admission
+still requires the bounded observation, log-preservation and recovery host entry
+point, along with current device custody and the pre-boot handoff.
