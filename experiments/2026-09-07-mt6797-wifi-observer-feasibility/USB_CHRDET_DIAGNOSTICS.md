@@ -123,3 +123,11 @@ The return collector changes only the preceding Gemian UUID. Host attribution,
 receiver, route helper and transport budgets are unchanged. The v2 decoder
 passes 22 attribution, malformed-record and mask cases. No capture clear,
 radio action or host network change is added. Physical runtime is pending.
+
+The [deployment receipt](results/usb-chrdet-diagnostics-deployment.json) now
+confirms installation from the expected Gemian boot. Live GPT resolved inactive
+boot2, all guards passed, and both the remote full checksum and independent
+readback stream matched the candidate. Clean shutdown followed evidence
+preservation. Both collectors were observed armed before the owner handoff;
+physical start has not yet been reported. Hosted checks for the published
+candidate passed. This installation is not a USB runtime result.

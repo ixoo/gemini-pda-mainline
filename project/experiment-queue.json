@@ -4,7 +4,7 @@
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
   "selected_item": "wifi-export-usb-chrdet-diagnostics-1",
-  "selection_note": "The validated charger-detection diagnostic is selected for guarded boot2 installation. The primary integration coordinator holds sole custody; preserve prior evidence, require full readback and clean shutdown, then arm collectors before owner selection.",
+  "selection_note": "The charger-detection diagnostic is installed with full readback and clean shutdown. Both collectors were observed armed before the owner handoff. Sole custody remains with the primary coordinator pending one physical boot2 selection and its bounded result.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -286,10 +286,10 @@
       "experiment": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_CHRDET_DIAGNOSTICS.md",
       "session_packet": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_CHRDET_DIAGNOSTICS.md#selected-session",
       "candidate_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-chrdet-diagnostics-candidate.json",
-      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-chrdet-diagnostics-session.json",
+      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-chrdet-diagnostics-deployment.json",
       "dependencies": [],
       "owner_task_id": null,
-      "readiness_note": "Complete 50-patch native build and unchanged configuration passed. Compiled report retains its one-time guard, memory-only getter and eight branch markers; original operational calls remain. Filesystem/container independently validated, with only session metadata changed. Reviewed installer selected; no physical selection yet."
+      "readiness_note": "Guarded live-GPT boot2 installation, full readback and clean shutdown passed from the expected Gemian boot. Both host and return collectors observed armed. Await one owner physical selection; no runtime or USB export claim yet."
     }
   }
 }
