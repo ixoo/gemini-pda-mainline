@@ -108,8 +108,8 @@ The separate [A53 RAM regression image](../experiments/2026-09-09-standard-kerne
 now pairs that kernel with the accepted authenticated environment and passes
 offline packaging checks. Collection, recovery and installation bindings now
 pass offline fixtures. Finish the bounded host execution and return collection
-before requesting a board regression; it is not selected
-while the current Wi-Fi device state remains unresolved.
+before requesting a board regression; it remains unselected. The latest
+Wi-Fi observation confirmed Gemian and preserved its retained console.
 
 The independent [MMC voltage-switch error fix](../experiments/2026-09-09-mtk-sd-pinctrl-errors/README.md)
 returns failed pin configuration to the MMC core. Its isolated Buildbox compile
@@ -397,12 +397,14 @@ The remaining preparation order is:
    preserving the failure through normal return. The validated
    [initial CPU-limit correction](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/BOOT_CPU_LIMIT.md)
    overrides LK's five-CPU default and requires both exact arguments and actual
-   CPU0–7. Its one reported physical selection has an
+   CPU0–7. Its first reported physical selection has an
    [inconclusive return observation](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/BOOT_CPU_LIMIT.md#device-observation):
-   the late return collector obtained no authenticated identity or log. Resolve
-   the device state and preserve available evidence before selecting another
-   action. Acknowledged export remains outstanding; do not repeat either
-   consumed session or weaken the CPU check.
+   the late return collector obtained no authenticated identity or log. A
+   [later owner selection](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/BOOT_CPU_LIMIT.md#later-owner-selection)
+   preserved the CPU0–7 preflight pass and a stop after 60 seconds waiting for
+   the unarmed host receiver. Gemian is confirmed. Prepare the distinguishing
+   acknowledged export with a fresh finite session and collectors armed before
+   physical selection; do not repeat an uncollected boot or weaken the CPU check.
    Exit order must not be inferred by reversing initialization, and the vendor
    WMT ioctl must not be copied merely to run the retained loader.
 4. **Preserve the bounded eMMC result:** the [closed session](../experiments/2026-09-05-owner-away-experiment-preparation/emmc/PAUSE_SESSION_PREPARATION.json)

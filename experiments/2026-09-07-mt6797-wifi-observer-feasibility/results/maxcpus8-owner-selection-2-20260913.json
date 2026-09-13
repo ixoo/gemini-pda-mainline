@@ -1,0 +1,150 @@
+{
+  "status": "native-cpu0-7-preflight-passed-host-request-stopped-gemian-confirmed",
+  "date_utc": "2026-09-13",
+  "candidate_source_commit": "2c900749683cb5e0c621da9b66915b9989559156",
+  "padded_sha256": "d9334cba2f6ca5870d7004ecbf8c01b4e47b8004e00db3178f5098bdb4f6fb9d",
+  "session_sha256": "da877f7b2cfb49e9cd3c5d98fb03909d18047e35ea050cd4433cf1b22fb34779",
+  "prior_observation": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/maxcpus8-runtime-20260912.json",
+  "physical_selections_reported_total": 2,
+  "collectors_armed_before_second_selection": false,
+  "immediately_preceding_gemian_boot": null,
+  "last_verified_installation_gemian_boot": "0b7bd62b-20b3-4e28-aa9b-3ff92455678d",
+  "runtime": {
+    "session_id": "54efed5a-f015-4a0e-bd83-f59a0fa31097",
+    "previous_gemian_boot": null,
+    "returned_gemian_boot": "db6b8120-0d47-4d05-9519-665e4aa74663",
+    "console_bytes": 65524,
+    "console_sha256": "2d4175301dea331073a8ad9b170759e3ce776dfe27285cc65014771ccfc397d9",
+    "console_payload_reads": 1,
+    "captured_utc": "2026-09-13T00:16:21.086446+00:00",
+    "return_marker_count": 1,
+    "classification": "retained-stopped",
+    "candidate_boot": "48b970d5-dc39-4fba-91fb-663c4afb11fc",
+    "outcome": "stopped",
+    "marker_byte_offset": 60457,
+    "stages": [
+      "wifi-bootstrap-v1 boot=48b970d5-dc39-4fba-91fb-663c4afb11fc shell=sysfs",
+      "wifi-bootstrap-v1 boot=48b970d5-dc39-4fba-91fb-663c4afb11fc shell=pstore",
+      "wifi-bootstrap-v1 boot=48b970d5-dc39-4fba-91fb-663c4afb11fc shell=console",
+      "wifi-bootstrap-v1 boot=48b970d5-dc39-4fba-91fb-663c4afb11fc shell=sysrq",
+      "wifi-bootstrap-v1 boot=48b970d5-dc39-4fba-91fb-663c4afb11fc shell=run",
+      "wifi-bootstrap-v1 boot=48b970d5-dc39-4fba-91fb-663c4afb11fc shell=bind:/lib/firmware",
+      "wifi-bootstrap-v1 boot=48b970d5-dc39-4fba-91fb-663c4afb11fc shell=readonly:/lib/firmware",
+      "wifi-bootstrap-v1 boot=48b970d5-dc39-4fba-91fb-663c4afb11fc shell=bind:/vendor/firmware",
+      "wifi-bootstrap-v1 boot=48b970d5-dc39-4fba-91fb-663c4afb11fc shell=readonly:/vendor/firmware",
+      "wifi-bootstrap-v1 boot=48b970d5-dc39-4fba-91fb-663c4afb11fc shell=bind:/data/nvram",
+      "wifi-bootstrap-v1 boot=48b970d5-dc39-4fba-91fb-663c4afb11fc shell=readonly:/data/nvram",
+      "wifi-bootstrap-v1 boot=48b970d5-dc39-4fba-91fb-663c4afb11fc shell=bind:/etc/wifi-cycle",
+      "wifi-bootstrap-v1 boot=48b970d5-dc39-4fba-91fb-663c4afb11fc shell=readonly:/etc/wifi-cycle",
+      "wifi-bootstrap-v1 boot=48b970d5-dc39-4fba-91fb-663c4afb11fc shell=bind:/opt/wifi-cycle",
+      "wifi-bootstrap-v1 boot=48b970d5-dc39-4fba-91fb-663c4afb11fc shell=readonly:/opt/wifi-cycle",
+      "wifi-bootstrap-v1 boot=48b970d5-dc39-4fba-91fb-663c4afb11fc shell=bind:/init",
+      "wifi-bootstrap-v1 boot=48b970d5-dc39-4fba-91fb-663c4afb11fc shell=readonly:/init",
+      "wifi-bootstrap-v1 boot=48b970d5-dc39-4fba-91fb-663c4afb11fc shell=python",
+      "wifi-bootstrap-v1 boot=48b970d5-dc39-4fba-91fb-663c4afb11fc python=python-entry status=entered",
+      "wifi-bootstrap-v1 boot=48b970d5-dc39-4fba-91fb-663c4afb11fc python=preflight status=passed",
+      "wifi-bootstrap-v1 boot=48b970d5-dc39-4fba-91fb-663c4afb11fc python=snapshot status=entered",
+      "wifi-bootstrap-v1 boot=48b970d5-dc39-4fba-91fb-663c4afb11fc python=usb-ownership status=entered",
+      "wifi-bootstrap-v1 boot=48b970d5-dc39-4fba-91fb-663c4afb11fc python=host-request status=waiting",
+      "wifi-bootstrap-v1 boot=48b970d5-dc39-4fba-91fb-663c4afb11fc python=host-request status=stopped"
+    ],
+    "normal_restart_after_marker": true,
+    "post_marker_fault_tokens": {
+      "Kernel panic": 0,
+      "BUG:": 0,
+      "WARNING:": 0,
+      "Unable to handle kernel": 0,
+      "Call trace:": 0
+    },
+    "cpu_online_failure_observations": [],
+    "cpu8_boot_failures": 0,
+    "hps_lines": 44,
+    "marker_kernel_seconds": "62.891427"
+  },
+  "timeline": [
+    {
+      "kernel_seconds": "2.558855",
+      "marker": "wifi-bootstrap-v1 boot=48b970d5-dc39-4fba-91fb-663c4afb11fc python=python-entry status=entered"
+    },
+    {
+      "kernel_seconds": "2.640675",
+      "marker": "wifi-bootstrap-v1 boot=48b970d5-dc39-4fba-91fb-663c4afb11fc python=preflight status=passed"
+    },
+    {
+      "kernel_seconds": "2.650906",
+      "marker": "wifi-bootstrap-v1 boot=48b970d5-dc39-4fba-91fb-663c4afb11fc python=snapshot status=entered"
+    },
+    {
+      "kernel_seconds": "2.731282",
+      "marker": "wifi-bootstrap-v1 boot=48b970d5-dc39-4fba-91fb-663c4afb11fc python=usb-ownership status=entered"
+    },
+    {
+      "kernel_seconds": "2.826459",
+      "marker": "wifi-bootstrap-v1 boot=48b970d5-dc39-4fba-91fb-663c4afb11fc python=host-request status=waiting"
+    },
+    {
+      "kernel_seconds": "62.888514",
+      "marker": "wifi-bootstrap-v1 boot=48b970d5-dc39-4fba-91fb-663c4afb11fc python=host-request status=stopped"
+    },
+    {
+      "kernel_seconds": "62.891427",
+      "marker": "wifi-export-return-v1 boot=48b970d5-dc39-4fba-91fb-663c4afb11fc cycle=54efed5a-f015-4a0e-bd83-f59a0fa31097 outcome=stopped"
+    }
+  ],
+  "host_request_wait_seconds": 60.062055,
+  "stop_explanation": "A request timeout is inferred from the exact 60-second transport deadline, retained timing and absent host receiver; the exception class is not retained.",
+  "source_stage_implications": {
+    "startup_source_sha256": "12276907513ac2902c8c24d57ef9163ac2908d4e69e711c3f1347d60170829d9",
+    "preflight_pass": "ordered maxcpus=5,8; HPS=0; actual CPU0-7; pinned config and isolation checks passed",
+    "usb_ownership_entered": "one complete 65536-byte immutable PMSG snapshot read returned",
+    "host_request_waiting": "ACM setup and terminal open completed; host enumeration/configuration unproved"
+  },
+  "known_good_identity_invocations": 1,
+  "console_preservation_invocations": 1,
+  "host_usb_watcher_invocations": 0,
+  "host_receiver_invocations": 0,
+  "host_requests_sent": 0,
+  "host_acknowledgements_sent": 0,
+  "host_snapshot_preserved": false,
+  "additional_host_recovery_requests": 0,
+  "partition_access": false,
+  "candidate_installation": false,
+  "usb_after_selection": {
+    "inventory_sha256": "a66ee16ea7ab32163b517dbf353d3fdaf210ba86d80e6411e92ef5f48da91f6c",
+    "export_parents": 0,
+    "mediatek_parents": 0,
+    "limitation": "No pre-selection inventory; a single later observation proves no earlier USB state."
+  },
+  "classifier_sha256": "44a9e6927f14ef4f2140bdbf3b678e794038c9d07f463ee84a3600696e492d49",
+  "classifier_derivation": "Five exact path/predecessor-binding substitutions from the frozen classifier; preceding Gemian is explicitly unknown. No raw-content parsing on the host.",
+  "classifier_invocations": 1,
+  "private_evidence_sha256": {
+    "classifier.stderr": "77335e9f19f801d787d8b91145e82b7f3ffeb8cb5384ee0e0fda81d0a61e219c",
+    "classifier.stdout": "ac760fca4c94703654d07a1448f22346fd058fdb9d52d989dd88b846d6e1265b",
+    "classify.py": "44a9e6927f14ef4f2140bdbf3b678e794038c9d07f463ee84a3600696e492d49",
+    "console-preservation/SHA256SUMS": "3c9a4d8acca6dd1ab37e38b90ce21c23a8e6dfc37a1e12258704f96a8bf8e618",
+    "console-preservation/capture-receipt.json": "8ad549d447f152a8312448d770f4e2dbe13c7801a2ce6ddc7a1df87c8db96071",
+    "console-preservation/claim.json": "1a7b4c3c054e812a22daabd3764e66b0a60d04ebf030b6994614f81b64825339",
+    "console-preservation/command.sh": "d83feecd5d282ea432c73b50fe3e8667a6765e5576b3be5b88bc7b88e1c04817",
+    "console-preservation/process.json": "9f8607162f46375f6c24929c2dbce4948400e60c6d1d8eb933a8d1e0a9776612",
+    "console-preservation/stderr.txt": "32354b347767c827019415230125baf6e6cab648d767147a37c805a4e506b5b3",
+    "console-preservation/stdout.txt": "2d4175301dea331073a8ad9b170759e3ce776dfe27285cc65014771ccfc397d9",
+    "identity-1/command.sh": "71616085566a1b31ee16a67541ede28152a561c6afc5ee2bbaf2711eb034b2af",
+    "identity-1/process.json": "ba0e8ff05422059492c6b09f9aa49b2d051182f75add6c1464863f1a50062ff8",
+    "identity-1/stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "identity-1/stdout.txt": "591dd096b554c62d59ea6cb8ee78da376e5dd9e5d275f45b7ed602063935fab1",
+    "selection.json": "9999305fb320945f6f72dc9b3720f3b32ac9bd6c3097ec0c42ae0975c9900b84",
+    "stop-detail.stderr": "0d47fea57acc3b826cab98bd23b64d7695f95221fbdcbe3de0426418a779d6ab",
+    "stop-detail.stdout": "f32ca5e1e90b888930aac7d741a6124e1adba56d31c4cac6e591b9d20f09add3",
+    "timeline.stderr": "f4ed78e982bd8536e26f5bf8afc8de24fb5b623269c3f9fcb394ccbb94167994",
+    "timeline.stdout": "1cc787695ef624398088a91e53624974bdf811453ae8678582f5ca1b4d412aa5"
+  },
+  "limitations": [
+    "Immediately preceding Gemian boot unobserved; do not claim a complete three-boot identity chain.",
+    "Retained ring starts in a partial record; early boot arguments are absent.",
+    "No exported snapshot; normal restart may change the original PMSG header.",
+    "No Wi-Fi support or controller/firmware lifetime claim."
+  ],
+  "next_action": "Prepare a fresh bounded host export measurement with observed preceding Gemian and collectors armed before physical selection; no uncollected repeat.",
+  "device_custody": "released after known-good identity and private evidence preservation"
+}

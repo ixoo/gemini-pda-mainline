@@ -3,8 +3,8 @@
   "purpose": "Readiness inventory, not an executable queue or device authorization. Object order is not scheduling order; docs/ROADMAP.md alone owns priority. Exact inputs, budgets and chronology stay in linked experiments.",
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
-  "selected_item": "wifi-export-return-maxcpus8",
-  "selection_note": "The owner reported one maxcpus8 boot2 selection and an apparent return toward Gemian. The late return collector timed out without authenticated identity or a console payload. Selection and collector window are consumed; custody remains reserved until device state is resolved. No retry or new candidate is selected.",
+  "selected_item": null,
+  "selection_note": "The later owner-started maxcpus8 selection yielded a retained CPU0-7 preflight pass and host-request stop. Known-good Gemian is confirmed and its console preserved. No collector is running or new physical session selected; the next export needs freshly bound, pre-armed collectors.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -189,17 +189,17 @@
     "wifi-export-return-maxcpus8": {
       "workstream": "wifi",
       "preparation_state": "stale",
-      "device_state": "selected",
+      "device_state": "complete",
       "owner": "primary integration coordinator",
       "reviewer": "primary integration coordinator",
-      "device_custodian": "primary integration coordinator",
+      "device_custodian": null,
       "experiment": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/README.md",
       "session_packet": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/BOOT_CPU_LIMIT.md",
       "candidate_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/maxcpus8.json",
-      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/maxcpus8-runtime-20260912.json",
+      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/maxcpus8-owner-selection-2-20260913.json",
       "dependencies": [],
       "owner_task_id": null,
-      "readiness_note": "One physical selection was reported before collectors were armed. The sole 180-second Gemian return collector timed out after 25 failed connections, with no authenticated identity and zero console reads. USB watcher and receiver were not invoked. Runtime and recovery remain unverified; clarify the visible device state while retaining custody. No automatic retry, rearm or alternate recovery."
+      "readiness_note": "Two physical selections were reported before collectors were armed. The first remains inconclusive. The later retained candidate boot passed CPU0-7/HPS/argument preflight and stopped after about 60 seconds waiting for the host request. One console payload is preserved and current Gemian confirmed; immediately preceding Gemian is unknown. No snapshot export or WLAN cycle. Prepare a fresh distinguishing host exchange before any further physical selection."
     }
   }
 }

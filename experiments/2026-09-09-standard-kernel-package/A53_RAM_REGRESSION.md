@@ -1,8 +1,9 @@
 # A53 service-kernel RAM regression candidate
 
 Status: complete private image composed and validated; exact-shell and hosted
-Linux checks pass. No deployment or physical session is selected; the unresolved
-Wi-Fi boot retains device custody. Offline collection/recovery and installation
+Linux checks pass. No A53 deployment or physical session is selected. The latest
+Wi-Fi observation confirmed Gemian and preserved its retained console.
+Offline collection/recovery and installation
 bindings now pass their focused checks. Live execution records and return
 collection remain required before device use.
 
@@ -185,14 +186,14 @@ restart. Confirm a changed boot in known-good Gemian afterward, independently
 of the USB connection's exit status.
 
 The one-shot host execution records and finite Gemian return collection still
-need preparation after the current device state is
-resolved. No keyboard event capture, eMMC partition read, namespace/BPF
+need preparation. No keyboard event capture, eMMC partition read, namespace/BPF
 operation or repetition is added to this session. Its success branch requires
 the attributable baseline observation, complete log and confirmed recovery;
 a refusal selects diagnosis from preserved evidence. Do not reactivate the
 consumed baseline, keyboard or eMMC budgets.
 
-Resolve the currently selected Wi-Fi session before installation. Any later
-boot2 write still uses the reviewed live-GPT guard, full readback and clean
+The [later Wi-Fi observation](../2026-09-07-mt6797-wifi-observer-feasibility/BOOT_CPU_LIMIT.md#later-owner-selection)
+resolved the device state. Any later boot2 write still uses the reviewed
+live-GPT guard, full readback and clean
 shutdown, followed by owner-operated physical selection. No installation,
 collector or physical-selection budget is supplied by this preparation record.

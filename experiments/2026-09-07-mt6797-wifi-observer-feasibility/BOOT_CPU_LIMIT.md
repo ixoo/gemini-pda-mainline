@@ -1,9 +1,10 @@
 # Native export diagnostic initial CPU limit
 
-Status: the owner reported one physical selection and an apparent return toward
-Gemian. The return collector timed out without authenticated OS identity or a
-console payload; the outcome is inconclusive. The physical-selection budget is
-consumed. See [the observation result](#device-observation). The preceding
+Status: the later [owner selection](#later-owner-selection) yielded a retained
+preflight pass and a stop while waiting for the host request. Known-good Gemian
+is confirmed and its retained console preserved. USB export remains incomplete.
+Both reported selections are consumed; the first
+[observation result](#device-observation) remains inconclusive. The preceding
 [HPS-off session](HPS_BOOT_POLICY.md#device-result) is consumed and remains a
 CPU-online refusal.
 
@@ -144,3 +145,54 @@ a caught startup refusal or a kernel crash. Keep device custody reserved while
 the visible state is clarified; do not repeat this image, rearm the expired
 window or request another recovery action from this timeout alone. No new
 candidate or device action was selected.
+
+## Later owner selection
+
+The owner subsequently reported readiness, another boot2 start and return to
+Gemian. This second selection occurred before collectors were armed. No new
+image was installed and no third selection was requested. The
+[separate result](results/maxcpus8-owner-selection-2-20260913.json) preserves the
+original timed-out observation unchanged.
+
+One bounded identity probe verified running Gemian, boot
+`db6b8120-0d47-4d05-9519-665e4aa74663`. The existing console-preservation command
+then read one 65,524-byte payload, with the same Gemian identity before and
+after. Its SHA-256 is
+`2d4175301dea331073a8ad9b170759e3ce776dfe27285cc65014771ccfc397d9`.
+Raw streams, commands and process records were synced and read back privately;
+analysis ran in the RE VM. No recovery request or partition access occurred.
+
+The console contains one matching cycle return marker for candidate boot
+`48b970d5-dc39-4fba-91fb-663c4afb11fc`. The `python=preflight status=passed` stage at
+2.640675 kernel seconds follows the exact argument, HPS-zero, actual CPU0–7,
+kernel-configuration and process-isolation checks in the pinned startup source.
+This establishes the CPU-limit correction for that native diagnostic boot.
+The following USB-ownership marker proves that the one complete immutable
+PMSG snapshot read returned; the host-request marker follows gadget setup and
+opening its ACM terminal. It does not prove host enumeration or configuration.
+
+Host-request waiting began at 2.826459 seconds and stopped at 62.888514 seconds.
+The matching `outcome=stopped` marker at 62.891427 seconds is followed by the
+normal kernel restart message. No listed fault token occurs after that marker.
+The 60.062055-second interval matches the shared 60-second transport deadline;
+with no host receiver/request, timeout is the supported explanation. The exact
+exception class is absent from the retained log, so it remains an inference.
+
+No snapshot-send or host-preservation marker is present. No host request or
+acknowledgement was sent, and the snapshot was not saved on the host. The normal
+return may change the PMSG header; this unavailable snapshot is not a successful
+preservation result. No capture clear, WMT request, firmware load or WLAN cycle
+is reached by this export-only path.
+
+The immediately preceding Gemian boot was not observed before this second
+selection. The candidate marker and current Gemian boot differ, but the full
+preceding/candidate/returned triplet is unavailable. Do not retroactively assign
+this console to the first timed-out selection. The ring starts with a partial
+record and does not preserve the early boot arguments. A single later USB
+inventory found no export parent; it says nothing about earlier enumeration.
+
+Current device uncertainty is resolved and custody can be released. Export
+remains the next distinguishing measurement: prepare a fresh finite session
+with an observed preceding Gemian boot, pre-selection USB inventory and both
+collectors armed before the owner's physical action. Do not weaken the CPU
+gate, rebuild unchanged kernel inputs or repeat another uncollected boot.
