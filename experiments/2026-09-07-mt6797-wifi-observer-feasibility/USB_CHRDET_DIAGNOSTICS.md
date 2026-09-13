@@ -131,3 +131,25 @@ readback stream matched the candidate. Clean shutdown followed evidence
 preservation. Both collectors were observed armed before the owner handoff;
 physical start has not yet been reported. Hosted checks for the published
 candidate passed. This installation is not a USB runtime result.
+
+## First collection window
+
+Both collectors completed their 600-second windows. The
+[window receipt](results/usb-chrdet-diagnostics-window-1.json) preserves three
+host USB inventory changes: a `0e8d:2000` parent reporting `MT65xx Preloader`
+appeared and disappeared, followed by a `0e8d:20ff` parent reporting `Unknown`.
+None had an Ethernet child; the final sample matched the last change. No
+expected gadget, receiver, snapshot or acknowledgement was observed. The
+return collector obtained no authenticated changed-boot Gemian or console.
+
+These USB identifiers do not prove boot2 selection, candidate execution or the
+current OS. The latter pair has appeared in earlier
+[charging/intermediate-stage observations](ARMED_EXPORT.md#fresh-collection-using-the-verified-installation),
+without uniquely establishing their cause. No start report or diagnostic
+summary arrived in this window, so the new charger-branch hypothesis remains
+untested by attributable runtime evidence.
+
+The image remains installed and verified. Both collectors are stopped; await
+the owner's physical-start and current-screen report before another device
+action. Preserve this USB sequence and the original installation. No unchanged
+candidate repeat, recovery action, role override or capture clear is selected.

@@ -1,0 +1,178 @@
+{
+  "status": "collection window ended; nonmatching USB stages observed; candidate boot and current OS unresolved",
+  "recorded_utc": "2026-09-13T19:33:23.190486+00:00",
+  "deployment_record": "usb-chrdet-diagnostics-deployment.json",
+  "cycle_id": "87c24209-c8af-40e9-b443-7a0397fa185f",
+  "previous_gemian_boot_id": "d85f04b3-b24d-439b-b7cb-a6d11994c91f",
+  "session_sha256": "8d6d66e4fd2a1fb46c95a385558833e8aaf621987cc77f4e129e04e129ecdc3a",
+  "installed_padded_sha256": "25533368a1ef6f250cf63d8973fd4f9048122b09d74a3f975a94f844b6875a4c",
+  "armed_utc_seconds": 1789327227.725245,
+  "both_collectors_ready_utc_seconds": 1789327247.9594219,
+  "collector_window_seconds": 600,
+  "ethernet_collector_exit": 2,
+  "return_collector_exit": 1,
+  "usb_inventory_changes_after_initial_sample": 3,
+  "usb_observations": [
+    {
+      "file": "usb-change-000.json",
+      "initial": true,
+      "entries": 7,
+      "added": [],
+      "removed": [],
+      "modified": [],
+      "expected_usb_pair_present": false,
+      "saved_file_mtime_utc": "2026-09-13T19:20:27.863679+00:00"
+    },
+    {
+      "file": "usb-change-041.json",
+      "initial": false,
+      "entries": 8,
+      "added": [
+        {
+          "vendor_id": 3725,
+          "product_id": 8192,
+          "ethernet_children": 0,
+          "expected_usb_pair": false
+        }
+      ],
+      "removed": [],
+      "modified": [],
+      "expected_usb_pair_present": false,
+      "saved_file_mtime_utc": "2026-09-13T19:21:16.615503+00:00"
+    },
+    {
+      "file": "usb-change-044.json",
+      "initial": false,
+      "entries": 7,
+      "added": [],
+      "removed": [
+        {
+          "vendor_id": 3725,
+          "product_id": 8192,
+          "ethernet_children": 0,
+          "expected_usb_pair": false
+        }
+      ],
+      "modified": [],
+      "expected_usb_pair_present": false,
+      "saved_file_mtime_utc": "2026-09-13T19:21:20.174943+00:00"
+    },
+    {
+      "file": "usb-change-053.json",
+      "initial": false,
+      "entries": 8,
+      "added": [
+        {
+          "vendor_id": 3725,
+          "product_id": 8447,
+          "ethernet_children": 0,
+          "expected_usb_pair": false
+        }
+      ],
+      "removed": [],
+      "modified": [],
+      "expected_usb_pair_present": false,
+      "saved_file_mtime_utc": "2026-09-13T19:21:30.895175+00:00"
+    }
+  ],
+  "usb_final_matches_last_change": true,
+  "usb_sequence": "A 0e8d:2000 parent identifying its product as MT65xx Preloader appeared, disappeared, and a 0e8d:20ff parent with product Unknown appeared. None had an Ethernet child. No expected 0525:a4a2 pair appeared in the saved samples.",
+  "attributed_ethernet_gadget_observed": false,
+  "receiver_invocations": 0,
+  "capture_requests": 0,
+  "acknowledgements": 0,
+  "snapshot_exported": false,
+  "changed_boot_gemian_verified": false,
+  "retained_console_payload_reads": 0,
+  "owner_start_report_received": false,
+  "candidate_boot_id": null,
+  "usb_decision_summary_received": false,
+  "limitations": [
+    "The USB identifiers and product strings do not authenticate a candidate, prove physical boot2 selection or identify the current OS.",
+    "Saved-file timestamps approximate host preservation time, not electrical transition or kernel start time; polling is not a complete USB trace.",
+    "The 0e8d:20ff pair has appeared in earlier project charging/intermediate-stage observations; this does not prove the same cause here.",
+    "No candidate console, branch summary, snapshot frame or acknowledgement was received. Host silence does not establish whether the installed diagnostic reached its runtime.",
+    "Both collectors are terminal. No retry, replacement image, role/charger override or recovery action is selected."
+  ],
+  "next_step": "Await owner physical-start and current-screen report before fresh collection or device action. Preserve the installed candidate and unique USB evidence.",
+  "hosted_checks": {
+    "conclusion": "success",
+    "headSha": "9025040f54bfd686cf7201d5dd3976347f11fe0c",
+    "status": "completed",
+    "url": "https://github.com/ixoo/gemini-pda-mainline/actions/runs/34777557945"
+  },
+  "private_evidence": {
+    "active.json": {
+      "bytes": 691,
+      "sha256": "197f3dd0f21f5e1ae07bc4d92b6e0309af683af71dc3efea1baedabb7fd0078f"
+    },
+    "ethernet-collector.stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "ethernet-collector.stdout": {
+      "bytes": 137,
+      "sha256": "f1ebcbf35cd9a2d85e69525a262b3a2c28909b279f34161f9bb0ddb723db03d5"
+    },
+    "ethernet-watch/armed.json": {
+      "bytes": 465,
+      "sha256": "98a8c58bca3d0d543d5034422644637260b934a5c0ffd06b97d4992f4cbede9f"
+    },
+    "ethernet-watch/interfaces-final.txt": {
+      "bytes": 3825,
+      "sha256": "6e2babe336add76fbe3badecedaaa9ccc7f74688a8518b7c30a6ad8d2f798f2e"
+    },
+    "ethernet-watch/routes-final.txt": {
+      "bytes": 3292,
+      "sha256": "592698d2264a31de82b4c6c0b5943613630ff625afb3e1187dffc5f10cc31032"
+    },
+    "ethernet-watch/usb-before.txt": {
+      "bytes": 938731,
+      "sha256": "f0a1120046ff1d75050f9bc8de475f803f64186046470ccbe42907aead63c529"
+    },
+    "ethernet-watch/usb-change-000.json": {
+      "bytes": 1507,
+      "sha256": "bbbef82dded0010239a50fd46e0643750078cbd84dec9da645d8e1d8ce3b5f5b"
+    },
+    "ethernet-watch/usb-change-041.json": {
+      "bytes": 1718,
+      "sha256": "d00c012aba6b3fef6431465b7b1bcc3d97e7a2dc532e38979d8ff62cf12567c3"
+    },
+    "ethernet-watch/usb-change-044.json": {
+      "bytes": 1507,
+      "sha256": "bbbef82dded0010239a50fd46e0643750078cbd84dec9da645d8e1d8ce3b5f5b"
+    },
+    "ethernet-watch/usb-change-053.json": {
+      "bytes": 1714,
+      "sha256": "ec02efe67b2eb3915aa5ee7936290752a7495cfe58378c85abbaa44e9afe5962"
+    },
+    "ethernet-watch/usb-final.txt": {
+      "bytes": 942112,
+      "sha256": "e57c986dcb1ce8390aaa5dc85429bdae9b46dcdbda002b0b83c971ae0e6f17d8"
+    },
+    "gemian-return/identity-attempts.stderr": {
+      "bytes": 5152,
+      "sha256": "c2ad5962da18ed41ee3e140ebd8b87bf77bd330f2ac49e27d1ae92735a64621b"
+    },
+    "hosted-check-deployment.json": {
+      "bytes": 176,
+      "sha256": "b780fd19b3584283e58f110f7af13a639d8d35cf4e7e341e26133b192f9b198d"
+    },
+    "return-collector.stderr": {
+      "bytes": 529,
+      "sha256": "30bfa57e3990322338697c56fc0153c10ad4599963c661a685ca9bbd0167842b"
+    },
+    "return-collector.stdout": {
+      "bytes": 70,
+      "sha256": "9800a47baa9ad6e57bee3f8396d8b262a13a40a3c595c9a55a0df56cfe617444"
+    },
+    "terminal.json": {
+      "bytes": 365,
+      "sha256": "1943fe6d762a03f2af4365a5257d2be90304b2988039ade34dff75e568d220a4"
+    },
+    "usb-inventory-summary.json": {
+      "bytes": 1147,
+      "sha256": "5197933df731aec456925181c652ae949bb0d0386414ded9da2869d1a8ac413f"
+    }
+  }
+}
