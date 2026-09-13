@@ -4,8 +4,10 @@ Status: complete private image composed and validated; exact-shell and hosted
 Linux checks pass. No A53 deployment or physical session is selected.
 Offline collection/recovery, installation, host execution and return confirmation
 now pass their focused checks. An actual deployment, owner selection and current
-session admission remain required before device use. Device custody remains with
-the [Wi-Fi Ethernet session](../2026-09-07-mt6797-wifi-observer-feasibility/USB_ETHERNET_SESSION.md).
+session admission remain required before device use. The completed
+[corrected Wi-Fi export test](../2026-09-07-mt6797-wifi-observer-feasibility/USB_ETHERNET_CONNECT.md#physical-test-result)
+has released device custody in verified Gemian; this does not select the A53
+candidate or replace its deployment checks.
 
 ## Purpose and bounded change
 

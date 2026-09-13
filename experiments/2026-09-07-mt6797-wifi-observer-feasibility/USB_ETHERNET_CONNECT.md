@@ -54,7 +54,7 @@ remote and fetched verification. Configuration is byte-identical. The inherited
 inspection confirms the added pullup call with argument one after successful
 UDC start, its failure-path exclusion and the MU3D callback binding.
 
-The next candidate must test whether this connection permits attributed USB
+The corrected candidate tests whether this connection permits attributed USB
 enumeration and the existing bounded, acknowledged capture transfer. Reuse the
 [Ethernet protocol](USB_ETHERNET_SESSION.md) with a new cycle and exact build,
 package and deployment identities. Arm both collectors before the owner's one
@@ -88,10 +88,43 @@ before requesting the owner's one physical boot2 selection. The [deployment rece
 confirms the live-GPT boot2 write, matching full readback and clean shutdown.
 Both collectors were subsequently observed live before the owner handoff,
 then exhausted their 600-second windows. The
-[window result](results/usb-ethernet-connect-window-1.json) records no USB
+[first window result](results/usb-ethernet-connect-window-1.json) records no USB
 inventory change, receiver invocation, capture frame or verified changed-boot
-Gemian return. No physical-start report has been received for this corrected
-candidate. Its runtime result and current device state remain unresolved;
-this does not establish a failed boot. Both collectors are stopped. Retain the
-verified installation and await the owner report before another collection or
-device action. Hosted checks for the published candidate record also passed.
+Gemian return. No physical-start report had arrived during that window, so its
+silence did not establish a failed boot. Hosted checks for the published
+candidate record also passed.
+
+## Physical test result
+
+After the owner returned, both fresh collectors were armed before the reported
+boot2 selection. The verified installation was retained without another write
+or repeated preboot verification. The
+[second window result](results/usb-ethernet-connect-window-2.json) binds the
+corrected session to candidate boot `fda14d31-1e61-4c17-b06b-c44066dae46e` and
+returned Gemian boot `258eff5c-a742-4379-89e7-60e885eaf797`.
+
+The retained console records CPU0–7 preflight passing, snapshot and USB setup
+entry, then the host-request wait from kernel seconds 3.161565 to 63.223507.
+The 60.061942-second wait ended in one attributable `stopped` return marker,
+followed by normal restart. No targeted fault token appeared after the marker.
+The unchanged runtime reaches this wait only after checked interface setup,
+device/address binding and listening; the stop is consistent with its accept
+timeout, although the exception text was not retained.
+
+No matching gadget appeared and no receiver, capture request or acknowledgement
+ran. Host inventory changed once: one nonmatching USB device disappeared, with
+no new or changed remaining entry. This removal has no attributed cause. After
+authenticated changed-boot Gemian returned, the return collector saved one
+65,524-byte console and completed. The exact Ethernet collector was then
+stopped; no final inventory was taken. The snapshot was not exported, and
+console preservation does not establish snapshot preservation.
+
+The previous 51 readiness-loop suppression messages did not recur. This is a
+changed observation, but absence alone cannot prove readiness or identify which
+later branch ran. Existing debug filtering leaves the native role, charger and
+cable decisions unobserved. Do not repeat the unchanged image or infer a cable
+fault from host silence. The next useful measurement is bounded logging of
+existing readiness, role and cable decisions, using already obtained values
+without new hardware reads or policy overrides. That diagnostic has not yet
+been implemented or admitted. This physical session is complete, its budget is
+consumed, both collectors are stopped and device custody is released in Gemian.

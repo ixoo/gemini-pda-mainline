@@ -1,0 +1,168 @@
+{
+  "status": "physical selection completed; corrected native Ethernet did not enumerate; stopped return retained",
+  "recorded_utc": "2026-09-13T16:09:48.287571+00:00",
+  "deployment_record": "usb-ethernet-connect-deployment.json",
+  "first_window_record": "usb-ethernet-connect-window-1.json",
+  "cycle_id": "1070b099-11c0-4861-896f-7fd1fe6d9909",
+  "session_sha256": "9e32a76ea7d67047f077253ca04954703d1d85f513ba35c250620f2bb994dd2d",
+  "previous_gemian_boot_id": "b2b6b2a3-2001-4ef0-a1c0-bc010f6ecfcf",
+  "candidate_boot_id": "fda14d31-1e61-4c17-b06b-c44066dae46e",
+  "returned_gemian_boot_id": "258eff5c-a742-4379-89e7-60e885eaf797",
+  "installed_padded_sha256": "ddcc4bf97fbe74af30e3561d3ff98cbd51693323868ef8a1967aca68c81f68e5",
+  "preboot_binding": "Verified installation retained. Both fresh collectors armed before the owner start report; no repeated installation verification, partition write or host network change.",
+  "ethernet_armed_utc_seconds": 1789315150.227403,
+  "both_collectors_ready_utc_seconds": 1789315170.5185761,
+  "owner_started_utc_seconds": 1789315268.1366599,
+  "owner_selection_reported_for_corrected_candidate": true,
+  "physical_selections_consumed": 1,
+  "collector_window_seconds": 600,
+  "ethernet_collector_exit": 143,
+  "return_collector_exit": 0,
+  "ethernet_collector_stop": "Exact collector received SIGTERM after changed-boot Gemian verification and one retained console preservation. An earlier process lookup matched zero and sent no signal. No final inventory after manual stop.",
+  "usb_inventory_changes_after_initial_sample": 1,
+  "usb_inventory_change": "One nonmatching USB device disappeared; no device was added and remaining entries were unchanged. No cause attributed to this removal.",
+  "attributed_ethernet_gadget_observed": false,
+  "receiver_invocations": 0,
+  "capture_requests": 0,
+  "acknowledgements": 0,
+  "snapshot_exported": false,
+  "cpu0_7_preflight_passed": true,
+  "snapshot_stage_entered": true,
+  "usb_ownership_stage_entered": true,
+  "host_request_waiting_kernel_seconds": "3.161565",
+  "host_request_stopped_kernel_seconds": "63.223507",
+  "wait_seconds": "60.061942",
+  "setup_inference": "Unchanged pinned runtime reaches host-request waiting only after snapshot, checked usb0 configuration, bind-to-device, address bind and listen. No receiver and the 60-second stop are consistent with accept timeout; exception text was not retained.",
+  "changed_boot_gemian_verified": true,
+  "retained_console_payload_reads": 1,
+  "retained_console_bytes": 65524,
+  "retained_console_sha256": "797dca9fc96939e82067788d0833a0390ec8d572544b6548dd8f7f7b3c3d8fba",
+  "captured_utc": "2026-09-13T16:02:21.330160+00:00",
+  "return_marker_count": 1,
+  "outcome": "stopped",
+  "return_marker_kernel_seconds": "63.226364",
+  "normal_restart_after_marker": true,
+  "post_marker_fault_tokens": {
+    "Kernel panic": 0,
+    "BUG:": 0,
+    "WARNING:": 0,
+    "Unable to handle kernel": 0,
+    "Call trace:": 0
+  },
+  "readiness_comparison": {
+    "previous_suppression_lines": 51,
+    "previous_suppressed_callbacks": 356,
+    "corrected_suppression_lines": 0,
+    "corrected_suppressed_callbacks": 0,
+    "interpretation": "The earlier positive readiness-loop evidence did not recur. Its absence alone does not establish readiness, later branch execution or USB enumeration."
+  },
+  "limitations": [
+    "No capture frame or acknowledgement was received. Preserving the console does not preserve the unretrieved snapshot.",
+    "Host polling is not an electrical trace of every USB event. No final inventory was taken after the collector was stopped.",
+    "Existing debug filtering leaves readiness, device-role, charger/cable and controller-start decisions unresolved; no specific later failure is established.",
+    "No USB role, cable/charging override, radio request or capture clear was added for this session."
+  ],
+  "next_decision": "Do not repeat this unchanged candidate. Before another behavioral change, prepare a bounded observation of existing USB readiness, role and cable decisions without additional hardware reads or policy overrides.",
+  "private_evidence": {
+    "active.json": {
+      "bytes": 400,
+      "sha256": "5f87542e1599bd695c7219d14d3a7deca6ef5ae574060b2582f2b880ea83ddd4"
+    },
+    "classification.stderr": {
+      "bytes": 645,
+      "sha256": "f8077ac0f10816f1f3dde382fc2d654ae906bb54e9a375cbd95b2c1cc79bffb1"
+    },
+    "classification.stdout": {
+      "bytes": 3108,
+      "sha256": "feeaa55bf91a0b5340935f0132e85dbbe66b848cef82e7bef4110edf6a4bfdbc"
+    },
+    "classify.py": {
+      "bytes": 3261,
+      "sha256": "8a6d6174b70a7960208d6a982d9b5cbc2741643cca115242dc23c553f6beb1c9"
+    },
+    "collector-stop-2.json": {
+      "bytes": 271,
+      "sha256": "69d5eb253f8d19fbd361d5b5fe3aa5d16bc4123b59f27e378e57967f6301da92"
+    },
+    "collector-stop.json": {
+      "bytes": 189,
+      "sha256": "a7e2d913e4735a77e9c6f8d1e83eb0880c2a588c45e01c8cd603747a56dbd4bd"
+    },
+    "ethernet-collector.stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "ethernet-collector.stdout": {
+      "bytes": 73,
+      "sha256": "3aec94f0e4ab9a427c09b8600d4344164ef5e99d4b55cb88bc8d673ff0107b38"
+    },
+    "ethernet-watch/armed.json": {
+      "bytes": 465,
+      "sha256": "8ab3bc9bebdad28bd7cfefbd97b8095042d6fb9d9bc3d5e63a699b973054f7d0"
+    },
+    "ethernet-watch/usb-before.txt": {
+      "bytes": 942101,
+      "sha256": "f8476eb61e2822f66981ab6f167162203c30d0b76db2dc624f9ff10b1074d416"
+    },
+    "ethernet-watch/usb-change-000.json": {
+      "bytes": 1714,
+      "sha256": "4e9ed9dfd4052d45a9a43efbb2e42278675daa487fb0f8fcd2d97f422a63b340"
+    },
+    "ethernet-watch/usb-change-080.json": {
+      "bytes": 1507,
+      "sha256": "bbbef82dded0010239a50fd46e0643750078cbd84dec9da645d8e1d8ce3b5f5b"
+    },
+    "gemian-return/capture-receipt.json": {
+      "bytes": 252,
+      "sha256": "30d10f302a523c6e939f52f617500c614a936c8ceb086778e7a8b2ddacd7cc6d"
+    },
+    "gemian-return/console-ramoops": {
+      "bytes": 65524,
+      "sha256": "797dca9fc96939e82067788d0833a0390ec8d572544b6548dd8f7f7b3c3d8fba"
+    },
+    "gemian-return/console-ramoops.stderr": {
+      "bytes": 414,
+      "sha256": "1ede129d3c3f9217e3e1995c6e4135ec4807b6c7d8f7b8e59a175de754abbb37"
+    },
+    "gemian-return/identity-attempts.stderr": {
+      "bytes": 2119,
+      "sha256": "4ce40ceea06f723e36925fb4328dbf151ae66cc65d1bcb335aa3a77302936531"
+    },
+    "gemian-return/identity.stdout": {
+      "bytes": 187,
+      "sha256": "dfab57fd723240fff91500b2c9d640e2f31df34d5de727add9403bcc4f557ce3"
+    },
+    "owner-return.json": {
+      "bytes": 109,
+      "sha256": "5f952534ab8cec37701039b133d404c970566ed510f6ed15cb93aaff392a3262"
+    },
+    "owner-started.json": {
+      "bytes": 132,
+      "sha256": "e9d7c0c534e8eda037909c2ead3c338744f06cd98cb5767f1c055c774b0e9709"
+    },
+    "return-collector.stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "return-collector.stdout": {
+      "bytes": 371,
+      "sha256": "74928e260567c9635db495c6fd67d054fa49c79d920a1a96d6be6c9ec30d6467"
+    },
+    "run-return.py": {
+      "bytes": 330,
+      "sha256": "8a447fe6f4a9109d40e6f6b70b841190a1ae0c7542f1785f314a6ad372cc621c"
+    },
+    "runtime-usb-summary.json": {
+      "bytes": 1705,
+      "sha256": "a29926d8ffc287b15106a04348a92484fb2e85d6361abde7e6b925823197df95"
+    },
+    "runtime-usb-summary.stderr": {
+      "bytes": 645,
+      "sha256": "c6b216ce302ede7421f4816d1838b57ee8db582a50fc8e8416870ef31d0c95ec"
+    },
+    "terminal.json": {
+      "bytes": 307,
+      "sha256": "7fcffea12ca83b8930d86854217127e7abd9df0aeda2a1e7094df40947f9ab81"
+    }
+  }
+}

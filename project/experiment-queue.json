@@ -3,8 +3,8 @@
   "purpose": "Readiness inventory, not an executable queue or device authorization. Object order is not scheduling order; docs/ROADMAP.md alone owns priority. Exact inputs, budgets and chronology stay in linked experiments.",
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
-  "selected_item": "wifi-export-usb-ethernet-connect-1",
-  "selection_note": "Corrected USB connection candidate remains installed with verified full readback. Both 600-second collectors are terminal without a USB inventory change or verified Gemian return. Physical selection and current device state await the owner report; no new collection, candidate change or device action is selected.",
+  "selected_item": null,
+  "selection_note": "Corrected USB export session consumed one owner selection. Its 60-second listener wait stopped without enumeration; changed-boot Gemian and one retained console are preserved. Both collectors are stopped and custody is released. No unchanged repeat or successor device session is selected.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -249,17 +249,17 @@
     "wifi-export-usb-ethernet-connect-1": {
       "workstream": "wifi",
       "preparation_state": "stale",
-      "device_state": "unselected",
+      "device_state": "complete",
       "owner": "primary integration coordinator",
       "reviewer": "primary integration coordinator",
-      "device_custodian": "primary integration coordinator",
+      "device_custodian": null,
       "experiment": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_ETHERNET_CONNECT.md",
       "session_packet": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_ETHERNET_CONNECT.md#corrected-session",
       "candidate_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-ethernet-connect-candidate.json",
-      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-ethernet-connect-window-1.json",
+      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-ethernet-connect-window-2.json",
       "dependencies": [],
       "owner_task_id": null,
-      "readiness_note": "Verified installation and clean shutdown retained. Both collectors armed before handoff, then expired with no attributed link, receiver or changed-boot Gemian. No start report for this corrected candidate has arrived. Preserve this unresolved window and the installed image; await owner state before fresh arming. This is not a confirmed failed boot."
+      "readiness_note": "Owner selected the verified corrected candidate after both fresh collectors armed. CPU0-7 preflight and listener setup passed; no attributed USB gadget or receiver appeared. The 60.061942-second wait stopped and returned to verified changed-boot Gemian with one console preserved. Earlier readiness suppression messages did not recur, but later USB decisions remain unobserved. No snapshot exported; observation budget consumed. Prepare bounded branch evidence before any further behavioral change."
     }
   }
 }
