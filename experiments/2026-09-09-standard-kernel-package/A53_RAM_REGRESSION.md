@@ -2,9 +2,9 @@
 
 Status: complete private image composed and validated; exact-shell and hosted
 Linux checks pass. No deployment or physical session is selected; the unresolved
-Wi-Fi boot retains device custody. Offline collection/recovery script bindings
-now pass their focused checks. Live deployment and collection orchestration
-remain required before device use.
+Wi-Fi boot retains device custody. Offline collection/recovery and installation
+bindings now pass their focused checks. Live execution records and return
+collection remain required before device use.
 
 ## Purpose and bounded change
 
@@ -83,7 +83,7 @@ private permissions and exact zero padding. Inverting the one release-string
 change reproduces the original init member including metadata. All 46 other
 members and the device tree compare equal to the accepted parent. The packaged
 init hash matches the five-case fixture. Managed staging was removed; the final
-private candidate remains in the RE VM, with no host image fetch or installation.
+private candidate remained in the RE VM at this composition checkpoint.
 
 Local repository checks and the exact source commit's
 [hosted Linux checks](https://github.com/ixoo/gemini-pda-mainline/actions/runs/34725518175)
@@ -127,6 +127,36 @@ UUID is observed and verified. The returned historical collector/finisher CLI
 entry points still have their original admission contracts and are not new
 live entry points.
 
+## Offline installation binding
+
+The [installer adapter](a53-ram-installer.py) validates the exact candidate
+through the session binding and pins its private manifest, then derives the
+existing guarded installer. The new shell uses the distinct
+`a53-service-ram-deployment-1` receipt name and `a53-service-ram-regression`
+experiment field. It requires the supplied preceding Gemian boot ID before
+entering the device gate; its strict receipt parser also requires that boot ID.
+The historical installers and receipt parsers remain unchanged.
+
+The [focused tests](test-a53-ram-installer.py) pass on macOS and the Linux RE VM.
+Their inert transport covers three success/skip/shutdown-disconnect cases,
+21 failure/interruption cases, changed boot and old receipt-name refusals,
+changed local validator inputs and twelve receipt mutations. Reversing the
+adapter's six substitutions reproduces the entire original generated shell,
+including the live-GPT guard, private tmpfs staging, single write, independent
+full readback and clean-shutdown sequence. Shell syntax and full ShellCheck pass.
+The [test receipt](results/a53-service-ram-installer-tests.json) also records a
+passing real-candidate validation and eight negative candidate/UUID cases.
+
+The validated seven-file private candidate has now been fetched to the host.
+Its complete inventory, hashes, permissions and exact zero padding were checked
+again after transfer. Neither the image nor its embedded private key is published.
+The generated installer bundle uses a synthetic fixture boot ID; it must never
+be executed against the PDA. The adapter CLI offers offline `prepare`,
+`validate` and `receipt` operations only. Preparation writes an exclusive private
+bundle and does not call SSH, execute the installer or supply a device budget.
+Actual execution still needs a fresh observed Gemian identity, the bounded host
+runner and the completed session preparation below.
+
 ## Finite session and remaining live preparation
 
 The proposed board question is whether the service configuration preserves
@@ -154,8 +184,8 @@ they never select an automatic retry. A returned helper is not a successful
 restart. Confirm a changed boot in known-good Gemian afterward, independently
 of the USB connection's exit status.
 
-The one-shot host execution records, installation bindings and finite Gemian
-return collection still need preparation after the current device state is
+The one-shot host execution records and finite Gemian return collection still
+need preparation after the current device state is
 resolved. No keyboard event capture, eMMC partition read, namespace/BPF
 operation or repetition is added to this session. Its success branch requires
 the attributable baseline observation, complete log and confirmed recovery;

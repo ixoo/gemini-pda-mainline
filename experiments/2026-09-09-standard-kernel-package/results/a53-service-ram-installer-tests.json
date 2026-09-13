@@ -1,0 +1,67 @@
+{
+  "status": "offline-service-RAM-installer-tests-pass",
+  "adapter_sha256": "ff7c560176c0d1dfd82adba200e8b673b2be2336a1359c99f3a70eb09af440c9",
+  "host_fixture_sha256": "24f37e0f953584f5f0446554293d3133005cf0844b70b5eb0c5b4747a5d34a9a",
+  "source_sha256": {
+    "experiments/2026-09-05-owner-away-experiment-preparation/baseline/scripts/installer.py": "405749e387a5b4383b56a3073575f7a26b335a42f9ecafb22f126b5578973467",
+    "experiments/2026-09-05-owner-away-experiment-preparation/baseline/scripts/deployment_receipt.py": "a2dc643ddedf5c9c93ede43598208cafd17242fccbb45db6ddaf078f30ae6f23",
+    "experiments/2026-09-09-standard-kernel-package/a53-ram-session.py": "0955b3e035487d90d58d1688d9ea6c2350392e8f592fe0b862eecbb6d98a5629",
+    "experiments/2026-09-09-standard-kernel-package/results/a53-service-ram-candidate.json": "0c6df48ed7312d978d9ef6b650063af5a78db259d7e9831fb2c80eef9e65e46f"
+  },
+  "candidate_manifest_sha256": "e9126ef952c3174e047b7da6237366e6b2374df9d02de6dcea9f193b501d8255",
+  "candidate_validation": {
+    "positive_candidate": "pass",
+    "negative_cases": [
+      "invalid-boot-1",
+      "invalid-boot-2",
+      "invalid-boot-3",
+      "changed-kernel.config",
+      "changed-candidate.json",
+      "public-manifest",
+      "symlink-manifest",
+      "wrong-candidate-directory"
+    ],
+    "negative_count": 8,
+    "device_action": "none",
+    "temporary_copy_removed": true
+  },
+  "candidate_fixture_sha256": "4d6dff85d607bc1b33d8df8dcf4b0f6c6c07f18dd1b98463b76581ce0a8fc2e5",
+  "host_and_linux_fixture_methods": 7,
+  "success_cases": 3,
+  "failure_and_interruption_cases": 21,
+  "boot_or_receipt_namespace_refusals": 2,
+  "local_input_refusals": 2,
+  "receipt_refusals": 12,
+  "non_offline_cli_refusals": 3,
+  "inverse_delta": "six substitutions reversed; entire generated shell byte-identical to reviewed installer",
+  "shell_syntax": "pass",
+  "full_shellcheck": "pass",
+  "host_image_copy": {
+    "inventory": 7,
+    "payload_hashes_permissions_exact_padding": "pass",
+    "secret_bearing": true,
+    "published": false
+  },
+  "generated_bundle": {
+    "status": "offline-installer-preparation-only",
+    "device_action": "none",
+    "physical_admission": false,
+    "candidate_sha256": "97c23e3f34686d8831e56f9903e109f6b9ba89cb121c88996f25411e86d5bec0",
+    "previous_gemian_boot": "11111111-2222-3333-4444-555555555555",
+    "installer_sha256": "22b8b297a4508b4afd4b45391aa0fd2303f61937f0b5f88d81382c25b9df3e19",
+    "receipt_name": "a53-service-ram-deployment-1",
+    "identity_warning": "The supplied boot UUID is a binding, not an observation. No execution or selection budget is granted."
+  },
+  "private_log_sha256": {
+    "test-installer-2.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "test-installer-2.stderr": "2c92d769dfc2a7606ef13d1a16bba3d17ec02cc88f4f6c901c96b781a4b8d096",
+    "test-installer-linux.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "test-installer-linux.stderr": "4b80e2a159c008c29d06d3ee6f082054ab103cb15ee62d1a693feddd94fe9d9b",
+    "test-installer-candidate.stdout": "07b35e1dc08716a5f694510575f73e097831ef294fedba0e3e7a57d59484f896",
+    "test-installer-candidate.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "transport": "inert fixture only; no PDA access",
+  "device_action": "none",
+  "physical_admission": false,
+  "remaining": "Resolve Wi-Fi device state; prepare bounded execution records and finite return collection; bind fresh observed Gemian identity before any actual installation."
+}
