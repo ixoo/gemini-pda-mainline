@@ -148,3 +148,18 @@ changed-boot checks and one console-read budget are unchanged. USB attribution,
 receiver and route helpers are byte-identical. Host configuration changes,
 radio requests and capture clears remain zero. The snapshot and log remain
 private; only validated identities and sanitized observations are publishable.
+
+## First collection window
+
+Both collectors were observed live and armed before the owner handoff, then
+completed their 600-second windows. The
+[window result](results/usb-ethernet-diagnostics-window-1.json) records no USB
+inventory change, attributed gadget, receiver invocation or verified changed-boot
+Gemian return. No console or USB decision summary was received. No physical-start
+report arrived for this diagnostic image during the window, so silence does not
+establish that it booted or failed.
+
+The installation remains verified. Both collectors are stopped; current device
+state and physical selection require the owner report before fresh arming or
+another device action. Do not change the candidate on this evidence. Hosted
+checks for its published deployment record passed.

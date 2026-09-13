@@ -4,7 +4,7 @@
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
   "selected_item": "wifi-export-usb-ethernet-diagnostics-1",
-  "selection_note": "Bounded USB decision diagnostic is installed with matching full readback and clean shutdown. Primary integration coordinator holds sole custody. Both collectors must be armed before the owner physically selects boot2.",
+  "selection_note": "The verified diagnostic image remains installed. Both collection windows are terminal; physical selection and current device state are unreported. Retain sole custody and await the owner state before any fresh collection or device action.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -263,18 +263,18 @@
     },
     "wifi-export-usb-ethernet-diagnostics-1": {
       "workstream": "wifi",
-      "preparation_state": "ready",
-      "device_state": "waiting-owner-boot",
+      "preparation_state": "stale",
+      "device_state": "unselected",
       "owner": "primary integration coordinator",
       "reviewer": "primary integration coordinator",
       "device_custodian": "primary integration coordinator",
       "experiment": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_ETHERNET_DIAGNOSTICS.md",
       "session_packet": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_ETHERNET_DIAGNOSTICS.md#selected-session",
       "candidate_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-ethernet-diagnostics-candidate.json",
-      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-ethernet-diagnostics-session.json",
+      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-ethernet-diagnostics-window-1.json",
       "dependencies": [],
       "owner_task_id": null,
-      "readiness_note": "Exact candidate installed through live-GPT boot2 guard; full readback matched and clean shutdown confirmed. Original runtime is unchanged; late USB decision summary is the new observation. Arm both collectors before one physical owner selection; no selection reported yet."
+      "readiness_note": "Verified installation retained. Both pre-armed collectors exhausted their 600-second windows without USB inventory change, receiver or verified changed-boot Gemian. No owner start report or candidate diagnostic summary was received. Await current physical state before fresh arming; this is not a confirmed failed boot."
     }
   }
 }
