@@ -22,7 +22,9 @@ and linked gadget functions are checked by the existing Buildbox builder.
 
 This reuses the network method, but the native MU3D controller differs from
 mainline MTU3. A successful build does not establish enumeration on this kernel.
-The installed ACM image and its evidence remain unchanged.
+The preceding ACM attempt remains recorded in its own evidence. The
+[Ethernet session](USB_ETHERNET_SESSION.md) owns the replacement installation
+and physical test.
 
 The userspace change is one bounded capture transfer over the direct
 USB IPv4 link at 10.15.19.82, using the existing request, digest, private save,
@@ -70,8 +72,8 @@ The header supplies the previously used local USB MAC pair and the synthetic
 serial `GEMINI_WIFI_EXPORT_TCP_1` for host attribution; neither identifies a
 physical unit by itself.
 
-This is an incomplete preparation checkpoint. Host collector preparation,
-guarded installation and hardware validation remain outstanding. No new
-candidate is selected by this record. The next physical test must have its
-host collector armed before selection and distinguish Ethernet enumeration,
-connection, preserved bytes and confirmed return to Gemian.
+Host collector preparation and guarded installation have now passed under the
+[selected session](USB_ETHERNET_SESSION.md). Both collectors were armed before
+the owner handoff. Hardware validation remains outstanding; its result must
+distinguish Ethernet enumeration, connection, preserved bytes and confirmed
+return to Gemian.

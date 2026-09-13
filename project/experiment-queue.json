@@ -4,7 +4,7 @@
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
   "selected_item": "wifi-export-usb-ethernet-1",
-  "selection_note": "Validated USB Ethernet candidate selected for guarded boot2 installation and one owner selection only after both fresh 600-second collectors are armed. The primary coordinator holds device custody.",
+  "selection_note": "USB Ethernet candidate installed with matching full-partition readback and clean shutdown. Both 600-second collectors are armed and the owner has been told to select boot2. Await the physical selection/result; no additional device action is selected.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -241,10 +241,10 @@
       "experiment": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_ETHERNET.md",
       "session_packet": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_ETHERNET_SESSION.md",
       "candidate_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-ethernet-candidate.json",
-      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-ethernet-session-preparation.json",
+      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-ethernet-deployment.json",
       "dependencies": [],
       "owner_task_id": null,
-      "readiness_note": "Native g_ether build, TCP capture, private candidate and host attribution fixtures pass. Preceding Gemian authenticated; existing guarded installer adapted with exact inverse comparison. Installation and owner selection are not yet performed. Preserve the previous ACM timeout evidence; no WLAN cycle or clearing is selected."
+      "readiness_note": "Guarded installation passed on the bound Gemian boot, including stable power, inactive boot2 identity, full readback and clean poweroff. Both fresh collectors were observed live before the owner handoff. Physical selection and runtime results remain pending; retain the exact installed image and do not restart collectors solely because a wait yields."
     }
   }
 }

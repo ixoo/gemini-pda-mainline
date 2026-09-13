@@ -1,11 +1,14 @@
 # One USB Ethernet capture and normal return
 
-Status: selected for guarded installation and one owner boot2 selection after
-both collectors are armed. The [candidate](results/usb-ethernet-candidate.json)
-is the independently validated USB Ethernet image, not the installed ACM image.
+Status: installed with matching full readback and clean shutdown. Both collectors
+were observed live before the owner was told to select boot2. The
+[deployment receipt](results/usb-ethernet-deployment.json) records that handoff;
+physical selection and runtime results are pending. The
+[candidate](results/usb-ethernet-candidate.json) is the independently validated
+USB Ethernet image that replaces the preceding ACM image.
 The [preparation receipt](results/usb-ethernet-session-preparation.json) binds
-the current tools and preceding authenticated Gemian boot. Installation and
-physical results must be recorded separately; preparation is not either result.
+the current tools and preceding authenticated Gemian boot. Preparation,
+installation and physical results are recorded separately.
 
 ## Hypothesis and decision
 

@@ -1,0 +1,42 @@
+{
+  "status": "installed; collectors observed live; awaiting owner boot2 report",
+  "preparation_commit": "0ed661febc47b14add47916d9fd7c2794e6b26f9",
+  "cycle_id": "7b0fb0c8-cab8-405d-86f4-a85f2034f3c3",
+  "deployment_summary_sha256": "682f4e6aa6ec1dab68b7e2841877222cf57f64a72d5d2fd5c93b88c4a369348b",
+  "deployment": {
+    "experiment": "2026-09-07-mt6797-wifi-observer-feasibility",
+    "result": "write-synced-flushed-full-readback-verified",
+    "target_logical_name": "boot2",
+    "target": "/dev/mmcblk0p30",
+    "root": "/dev/mmcblk0p29",
+    "boot2_device_guard": "passed",
+    "boot2_device_guard_sha256": "0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf",
+    "target_major_minor": "179:30",
+    "root_major_minor": "179:29",
+    "predecessor_sha256": "d9334cba2f6ca5870d7004ecbf8c01b4e47b8004e00db3178f5098bdb4f6fb9d",
+    "fresh_predecessor_backup": "no",
+    "candidate_sha256": "94bb3c7864a8dfb11028e1d9bd90d0223b7eefa758d2753bc39656ea50d0967d",
+    "readback_sha256": "94bb3c7864a8dfb11028e1d9bd90d0223b7eefa758d2753bc39656ea50d0967d",
+    "boot_id": "efa64e7c-d039-400b-8042-fab762793f9d",
+    "power": "1|81|Good|0",
+    "temporary_readback_removed": "yes",
+    "shutdown": "requested-after-evidence-flush",
+    "poweroff_ssh_rc": "255",
+    "post_shutdown_reachability": "unreachable",
+    "reboot": "no",
+    "next_action": "owner-physically-selects-boot2"
+  },
+  "ethernet_arming": {
+    "utc_seconds": 1789264514.873896,
+    "seconds": 600,
+    "collector_sha256": "3d500aba0bdc1a4db1c6532a4f9347b26eca5d8b2566199aa14bfe319a784aec",
+    "network_helper_sha256": "57491d7ac60a380ee85215e391274e5ced2733b33ab6df70e0757db7b67bf082",
+    "receiver_sha256": "1222ed27a4e980a22d606c9251f9a187610fc4ab4195bf870b70fddef0183024",
+    "previous_boot_id": "efa64e7c-d039-400b-8042-fab762793f9d",
+    "session_sha256": "f841038c68e91e0f564f5983ff4a521ac96d7fad98c933c8a030104c4e4466dd"
+  },
+  "owner_selection_reported": false,
+  "runtime_result": "not yet observed",
+  "arming_receipt_recorded_utc": "2026-09-13T01:57:27.676124+00:00",
+  "both_collectors_observed_live": true
+}
