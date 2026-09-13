@@ -3,8 +3,8 @@
   "purpose": "Readiness inventory, not an executable queue or device authorization. Object order is not scheduling order; docs/ROADMAP.md alone owns priority. Exact inputs, budgets and chronology stay in linked experiments.",
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
-  "selected_item": null,
-  "selection_note": "The later owner-started maxcpus8 selection yielded a retained CPU0-7 preflight pass and host-request stop. Known-good Gemian is confirmed and its console preserved. No collector is running or new physical session selected; the next export needs freshly bound, pre-armed collectors.",
+  "selected_item": "wifi-export-maxcpus8-armed-1",
+  "selection_note": "A fresh host exchange is selected after the retained CPU0-7 preflight pass. Left-port connection and preceding Gemian are confirmed. Matching-image guard/readback, clean shutdown and both collector arming remain before owner selection; no physical action has yet been requested.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -200,6 +200,21 @@
       "dependencies": [],
       "owner_task_id": null,
       "readiness_note": "Two physical selections were reported before collectors were armed. The first remains inconclusive. The later retained candidate boot passed CPU0-7/HPS/argument preflight and stopped after about 60 seconds waiting for the host request. One console payload is preserved and current Gemian confirmed; immediately preceding Gemian is unknown. No snapshot export or WLAN cycle. Prepare a fresh distinguishing host exchange before any further physical selection."
+    },
+    "wifi-export-maxcpus8-armed-1": {
+      "workstream": "wifi",
+      "preparation_state": "conditional",
+      "device_state": "selected",
+      "owner": "primary integration coordinator",
+      "reviewer": "primary integration coordinator",
+      "device_custodian": "primary integration coordinator",
+      "experiment": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/README.md",
+      "session_packet": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/ARMED_EXPORT.md",
+      "candidate_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/maxcpus8.json",
+      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/armed-export-preparation-20260913.json",
+      "dependencies": [],
+      "owner_task_id": null,
+      "readiness_note": "Same exact image; distinguishing measurement is the pre-armed host snapshot exchange. One fresh selection/request/acknowledgement and console read. Installed mismatch refuses before write. Publish preparation, confirm full image and shutdown, then arm both exact collectors before physical selection."
     }
   }
 }

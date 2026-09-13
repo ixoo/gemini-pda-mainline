@@ -1,0 +1,73 @@
+{
+  "status": "prepared-unarmed-awaiting-guarded-confirmation",
+  "host_session": "wifi-export-maxcpus8-armed-1",
+  "preparation_parent_commit": "534ea75f24254d47be36c2004e56fef9cbb0181f",
+  "candidate_source_commit": "2c900749683cb5e0c621da9b66915b9989559156",
+  "preceding_gemian_boot": "db6b8120-0d47-4d05-9519-665e4aa74663",
+  "candidate_padded_sha256": "d9334cba2f6ca5870d7004ecbf8c01b4e47b8004e00db3178f5098bdb4f6fb9d",
+  "session_sha256": "da877f7b2cfb49e9cd3c5d98fb03909d18047e35ea050cd4433cf1b22fb34779",
+  "embedded_cycle_id": "54efed5a-f015-4a0e-bd83-f59a0fa31097",
+  "unique_observation": "Pre-armed, attributed host request; complete durable snapshot and acknowledgement; retained preserved marker and changed-boot Gemian. CPU-only repetition is not the measurement.",
+  "owner_left_usb_port_confirmation": true,
+  "physical_selection_budget": 1,
+  "physical_selections_consumed": 0,
+  "host_request_budget": 1,
+  "host_acknowledgement_budget": 1,
+  "console_payload_read_budget": 1,
+  "console_payload_byte_limit": 65536,
+  "usb_detection_window_seconds": 180,
+  "selected_receiver_deadline_seconds": 60,
+  "gemian_return_window_seconds": 180,
+  "collector_invocations": 0,
+  "device_writes_planned": 0,
+  "kernel_rebuild": false,
+  "package_inventory_hashes_modes_padding": "pass",
+  "receiver_sha256": "8507ed9735f5d68ca90e946c6f67515e5c28b8d65f6d26fe5a27f9efd8464226",
+  "private_derivation": {
+    "install-boot2.sh": {
+      "source_sha256": "f96a0cabb5ac3ba3d18f947b7d4d3c036ff31a7687de669764eef86a7e055c26",
+      "derived_sha256": "a9288c66dee3a69556efe36817652392f7e0b2d4737f6f03adda0decb979d4ab",
+      "inverse_byte_comparison": "pass",
+      "changes": "fresh preceding Gemian UUID; fresh evidence paths where fixed; installer refuses an unexpected installed image"
+    },
+    "collect-return.py": {
+      "source_sha256": "17f94439b7c1f5edf55cf7672afae6fbecc52dadd02cfbb4e90c6fbe0a3b2dbf",
+      "derived_sha256": "7422f00b1a31c3c68bf3cd19019ce7c163574b455c02ccba3a29631aa3a9fa91",
+      "inverse_byte_comparison": "pass",
+      "changes": "fresh preceding Gemian UUID and fixed classifier evidence paths only"
+    },
+    "receive-when-present.py": {
+      "source_sha256": "3c76eda2463ff9e1a8215a1cad3bc03b4f6ee9a52bcdc20eb70ba7324d1d771b",
+      "derived_sha256": "39336cd3a285774a22c4f0a1da3f2567364a9eedb52ee0806083691a7613ec35",
+      "inverse_byte_comparison": "pass",
+      "changes": "fresh preceding Gemian UUID and fixed classifier evidence paths only"
+    },
+    "classify.py": {
+      "source_sha256": "ff6b12eebb8faa6bc2340b2d5ecd0fec8aaefa859213a913fe70257730cd2747",
+      "derived_sha256": "790d28ff047733c3176e39f5abf89cf1c469ccc7f0a7dfa5bf52320765dcea9d",
+      "inverse_byte_comparison": "pass",
+      "changes": "fresh preceding Gemian UUID and fixed classifier evidence paths only"
+    }
+  },
+  "inert_installer_refusal_fixture": {
+    "inert_transport": "only",
+    "full_installer_mismatch": "refused before staging, write, readback or shutdown",
+    "actions": [
+      "preflight",
+      "boot-id",
+      "gate-probe"
+    ],
+    "guard_values_tested": 4,
+    "shell_syntax": "pass",
+    "shellcheck": "pass",
+    "device_access": "none",
+    "fixture_removed": true
+  },
+  "identity_evidence_sha256": {
+    "command.sh": "71616085566a1b31ee16a67541ede28152a561c6afc5ee2bbaf2711eb034b2af",
+    "process.json": "830256f6cd4bf7adb4d79504271cf441ee62c23fbbc0a6e0fd364085cd5c3594",
+    "stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout.txt": "591dd096b554c62d59ea6cb8ee78da376e5dd9e5d275f45b7ed602063935fab1"
+  },
+  "next_action": "Publish reviewed preparation; confirm matching boot2 with guard and full readback; shut down cleanly; save USB inventory; arm both collectors and verify live handles before asking for one physical selection."
+}
