@@ -1,0 +1,35 @@
+{
+  "host_session": "wifi-export-maxcpus8-armed-1",
+  "preparation_commit": "97ce1555fddbd9bba6987cef3b719498c0eb1050",
+  "date_utc": "2026-09-13",
+  "status": "stopped-at-initial-ssh-preflight",
+  "recorded_utc": "2026-09-13T00:42:54.855670+00:00",
+  "wrapper_exit_status": 1,
+  "installer_exit_status": 2,
+  "initial_ssh_error": "connect-timeout-before-authentication",
+  "ssh_invocations": 1,
+  "image_confirmation_completed": false,
+  "deployment_evidence_directory_created": false,
+  "partition_access": false,
+  "device_writes": 0,
+  "shutdown_requests": 0,
+  "collector_invocations": 0,
+  "host_requests": 0,
+  "host_acknowledgements": 0,
+  "console_payload_reads": 0,
+  "physical_selection_requested": false,
+  "current_device_identity": "unconfirmed",
+  "retry": false,
+  "logs": {
+    "confirmation.stdout": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "confirmation.stderr": {
+      "bytes": 1675,
+      "sha256": "1db2d349090408339407666111b820533f35865475a807c80026718d097f40ee"
+    }
+  },
+  "private_process_sha256": "b166e85a7e63e06ac8224cad5fc2b213dbfeb8578794e9d2d4fd68d6025bc8fa",
+  "next_action": "Establish present device and transport state before fresh admission. This host session is consumed; do not rerun its installer or collectors."
+}

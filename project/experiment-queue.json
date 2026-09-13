@@ -3,8 +3,8 @@
   "purpose": "Readiness inventory, not an executable queue or device authorization. Object order is not scheduling order; docs/ROADMAP.md alone owns priority. Exact inputs, budgets and chronology stay in linked experiments.",
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
-  "selected_item": "wifi-export-maxcpus8-armed-1",
-  "selection_note": "A fresh host exchange is selected after the retained CPU0-7 preflight pass. Left-port connection and preceding Gemian are confirmed. Matching-image guard/readback, clean shutdown and both collector arming remain before owner selection; no physical action has yet been requested.",
+  "selected_item": null,
+  "selection_note": "The armed-1 preparation stopped at its initial SSH connection timeout before image verification or shutdown. No collectors or physical selection were requested. Establish current device/transport state before a fresh admission; no automatic retry.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -203,18 +203,18 @@
     },
     "wifi-export-maxcpus8-armed-1": {
       "workstream": "wifi",
-      "preparation_state": "conditional",
-      "device_state": "selected",
+      "preparation_state": "stale",
+      "device_state": "complete",
       "owner": "primary integration coordinator",
       "reviewer": "primary integration coordinator",
-      "device_custodian": "primary integration coordinator",
+      "device_custodian": null,
       "experiment": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/README.md",
       "session_packet": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/ARMED_EXPORT.md",
       "candidate_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/maxcpus8.json",
-      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/armed-export-preparation-20260913.json",
+      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/armed-export-preflight-20260913.json",
       "dependencies": [],
       "owner_task_id": null,
-      "readiness_note": "Same exact image; distinguishing measurement is the pre-armed host snapshot exchange. One fresh selection/request/acknowledgement and console read. Installed mismatch refuses before write. Publish preparation, confirm full image and shutdown, then arm both exact collectors before physical selection."
+      "readiness_note": "Initial SSH preflight timed out before authentication, partition access, image verification or shutdown. Both collectors remain unused and no physical selection was requested. Session consumed without an export measurement; current device identity is unconfirmed. Preserve the preparation and failed attempt; establish device/transport state before fresh admission."
     }
   }
 }

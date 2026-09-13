@@ -1,9 +1,10 @@
 # Pre-armed maxcpus8 snapshot export
 
-Status: fresh host session prepared and reviewed; guarded image confirmation,
-clean shutdown and collector arming remain before physical selection.
+Status: session consumed at the initial SSH connection timeout, before guarded
+image confirmation, shutdown or collector arming. No physical selection requested.
 Queue item: `wifi-export-maxcpus8-armed-1`. The primary integration coordinator
-is the sole device custodian. This record grants no WLAN or capture-clear action.
+was the sole device custodian; custody is released. This record grants no WLAN
+or capture-clear action.
 
 ## Question and fixed inputs
 
@@ -82,3 +83,13 @@ Owner action: leave Gemian running during preparation. After the custodian
 confirms both collectors are armed, select boot2 once with the left-port cable
 connected. A normal return to Gemian is expected after the transfer or a caught
 failure; do not make another selection while the result is being collected.
+
+## Initial connection failure
+
+The single confirmation invocation stopped before authentication with an SSH
+connection timeout. Its [result](results/armed-export-preflight-20260913.json)
+records no partition access, image verification, shutdown, collector invocation,
+host exchange or console read. The prior Gemian identity is no longer a current
+observation. Preserve the preparation and this failed attempt; establish present
+device and transport state before a fresh admission. Do not rerun this session's
+installer or collectors. The preparation sequence above is historical.
