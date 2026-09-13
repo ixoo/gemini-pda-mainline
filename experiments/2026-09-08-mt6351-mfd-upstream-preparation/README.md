@@ -2,7 +2,7 @@
 
 Status: incomplete upstream-preparation checkpoint, 2026-09-08. A named
 compile-only topic has passed build and schema checks; it is not a device
-candidate or upstream submission. Existing profiles are unchanged. [Initial source receipts and
+candidate or upstream submission. Changes stay within named compile profiles. [Initial source receipts and
 check results](source-review.json) pin the individual public files inspected;
 Linux sources are not vendored here.
 
@@ -473,10 +473,16 @@ The existing lifetime fixture also passes its current 58 cases against the
 changed initializer. Its single-instance allocation stub now accepts the
 managed duplicate; the separate new regression owns multi-instance and
 allocation-failure coverage. Strict checkpatch passes with only the unsigned
-archive's `MISSING_SIGN_OFF` exclusion. The current compile checkpoint is
-pending Buildbox validation; the first twelve patches, source pin, configuration
-and bindings are unchanged. Only `mt6351-regulator-compile` selects this addition;
+archive's `MISSING_SIGN_OFF` exclusion. The first twelve patches, source pin,
+configuration and bindings are unchanged. Only `mt6351-regulator-compile` selects this addition;
 the separate key profile retains its existing inputs.
+
+The [thirteen-patch Buildbox compile](results/irq-instances-compile.json) from
+`90b2d5d8` passed with zero compiler warnings or errors, and its validated package
+was fetched and checked locally. The exact prepared IRQ source matches the
+tested replay and passes both regressions on Buildbox. Its compiled object
+contains the managed-duplication call. Unchanged bindings, PM mask/recovery
+callbacks and runtime transport diagnostics did not need repeated tests.
 
 This remains unsigned upstream preparation. Rebase the independent correction
 onto the target MFD tree and establish truthful authorship/certification before

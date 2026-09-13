@@ -1,0 +1,52 @@
+{
+  "repository_commit": "90b2d5d830bd0b1cc585aed180c02ebba03f4657",
+  "generated_utc": "2026-09-13T03:07:52Z",
+  "kernel_release": "7.3.0-rc1-mt6351-regulator-compile",
+  "build_profile": "mt6351-regulator-compile",
+  "patchset_sha256": "9ef5ca8e566fae2a1913751c3c5ded08e99cf721b974a938429d32ffd3b995c1",
+  "config_sha256": "662850a6e69fd56382898a73a1970040e65adf7053f2fd8004d839c7a5cc29fd",
+  "compiler": "aarch64-linux-gnu-gcc (Debian 12.2.0-14) 12.2.0",
+  "compiler_sha256": "c7b8890354c8ddc0364addfeb8968597e197627bd1e338fb6ed705b578803846",
+  "linker": "GNU ld (GNU Binutils for Debian) 2.40",
+  "linker_sha256": "e09a889c78a75e73ed096c9fa28905599e6813298b9ac839d10b02ffa96e7b08",
+  "status": "PASS",
+  "parent_compile_receipt": "irq-runtime-compile.json",
+  "source_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "package": "linux-7.3-rc1-gemini-10ae1d77f3804de4c0f27a657250591a545184d8f65805175c3a399d0314238c",
+  "package_inventory_sha256": "10ae1d77f3804de4c0f27a657250591a545184d8f65805175c3a399d0314238c",
+  "image_gzip_sha256": "efdfea7f4373f547e279afcc5c809fe1f6a524ff9495815cf360404ef79245b8",
+  "build_log_sha256": "0402c4ebee897d9b5a5fd3a8f8a173bed009eab337d57fc785aac92eee995d6d",
+  "compiler_warnings": 0,
+  "compiler_errors": 0,
+  "irq_source_sha256": "d21fdd7b6e2ddca3db1108c113cc1f1947e18f7f9fd2feb8063034fef4782094",
+  "irq_object_sha256": "eaa79bddd4447c47dc72942eefe68ea51f97f3003ffea42b5051aeb9c1bac424",
+  "compiled_allocation_relocation": "0x428: R_AARCH64_CALL26 devm_kmemdup",
+  "regression": {
+    "script_sha256": "f13902b2c21025d35b9b6ed27cfff5052d83dddcdbb49bec16e613b231a51cb8",
+    "two_instance_cases_passed": 64,
+    "unsupported_chip_cases_passed": 1,
+    "before_source_sha256": "9cefe32db1b9d43c42794037a59883314cab5a77ca048e00e119cf47c5aed18f",
+    "before_result": "Unmodified source compiles and fails the overwritten first-instance mask-pointer assertion.",
+    "runners": [
+      "local userspace compiler",
+      "Buildbox userspace compiler with exact prepared source"
+    ],
+    "scope": "Actual chip descriptions, initializer and mask callbacks; allocation failure, second-device allocation release and independent mask updates. Modeled register geometry and IRQ services; no live-kernel concurrency or hardware."
+  },
+  "lifetime_regression": {
+    "script_sha256": "cf8e3338c36952399eaafebb198866fd2bbddf205ba4ca87d360bdc5aa6b7afa",
+    "fixture_sha256": "62ff16855e5d9f4ca58e4f4342ac1b5d82331f7485f03e1b39df6daa9d3ec062",
+    "cases_passed": 58,
+    "runners": [
+      "local userspace compiler",
+      "Buildbox userspace compiler with exact prepared source"
+    ]
+  },
+  "first_twelve_patches_unchanged": true,
+  "upstream_source_configuration_and_toolchain_unchanged": true,
+  "other_profiles_unchanged": true,
+  "schema_checks": "Not repeated: bindings and source baseline unchanged; see schema.json.",
+  "other_tests": "PM mask/recovery and runtime transport callback tests not repeated: those source bodies are unchanged.",
+  "hardware_test": false,
+  "boot_candidate": false
+}

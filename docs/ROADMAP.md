@@ -188,13 +188,15 @@ does not, and Gemini's analog routes remain unestablished.
 
 The [MT6351 MFD preparation](../experiments/2026-09-08-mt6351-mfd-upstream-preparation/README.md)
 separates the existing MT6328 domain correction from MT6351 support. Its
-isolated twelve-patch core/regulator topic passes compilation and focused tests;
+isolated thirteen-patch core/regulator topic passes compilation and focused tests;
 the unchanged bindings retain their schema validation. IRQ domains and wake
 references have managed cleanup. Legacy wake masks are programmed after child
 suspend requests, and failed suspend programming attempts all-bank restoration
 before returning an error. The topic enables no Gemini board or unrelated PMIC
 children and is not a device candidate. Runtime IRQ transport failures now
 have bounded diagnostics, but persistent-fault recovery remains unproved.
+The shared MT6358-family initializer now keeps mutable interrupt state per
+device, with probe-failure and second-device teardown regression coverage.
 Next resolve the
 [shared VCN33 output/control contract](../experiments/2026-09-08-mt6351-mfd-upstream-preparation/VCN33.md).
 Attributable hardware evidence and truthful authorship/certification remain
