@@ -4,7 +4,7 @@
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
   "selected_item": "wifi-export-usb-ethernet-connect-1",
-  "selection_note": "Corrected USB connection candidate installed with full readback and clean shutdown; primary coordinator retains sole custody. Both collectors must arm before one owner boot2 selection. Previous stopped Ethernet session remains complete.",
+  "selection_note": "Corrected USB connection candidate remains installed with verified full readback. Both 600-second collectors are terminal without a USB inventory change or verified Gemian return. Physical selection and current device state await the owner report; no new collection, candidate change or device action is selected.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -248,18 +248,18 @@
     },
     "wifi-export-usb-ethernet-connect-1": {
       "workstream": "wifi",
-      "preparation_state": "ready",
-      "device_state": "waiting-owner-boot",
+      "preparation_state": "stale",
+      "device_state": "unselected",
       "owner": "primary integration coordinator",
       "reviewer": "primary integration coordinator",
       "device_custodian": "primary integration coordinator",
       "experiment": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_ETHERNET_CONNECT.md",
       "session_packet": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_ETHERNET_CONNECT.md#corrected-session",
       "candidate_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-ethernet-connect-candidate.json",
-      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-ethernet-connect-session.json",
+      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-ethernet-connect-window-1.json",
       "dependencies": [],
       "owner_task_id": null,
-      "readiness_note": "Corrected native kernel and independent container validation passed. Guarded live-GPT boot2 installation has matching full readback and clean shutdown. Arm both pinned collectors before asking the owner to select boot2 once; physical result outstanding."
+      "readiness_note": "Verified installation and clean shutdown retained. Both collectors armed before handoff, then expired with no attributed link, receiver or changed-boot Gemian. No start report for this corrected candidate has arrived. Preserve this unresolved window and the installed image; await owner state before fresh arming. This is not a confirmed failed boot."
     }
   }
 }

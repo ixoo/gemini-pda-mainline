@@ -1,0 +1,88 @@
+{
+  "status": "collector window ended; physical selection and runtime result unresolved",
+  "recorded_utc": "2026-09-13T14:56:52.159874+00:00",
+  "deployment_record": "usb-ethernet-connect-deployment.json",
+  "cycle_id": "1070b099-11c0-4861-896f-7fd1fe6d9909",
+  "previous_gemian_boot_id": "b2b6b2a3-2001-4ef0-a1c0-bc010f6ecfcf",
+  "session_sha256": "9e32a76ea7d67047f077253ca04954703d1d85f513ba35c250620f2bb994dd2d",
+  "installed_padded_sha256": "ddcc4bf97fbe74af30e3561d3ff98cbd51693323868ef8a1967aca68c81f68e5",
+  "armed_utc_seconds": 1789310722.4971688,
+  "both_collectors_ready_utc_seconds": 1789310734.641818,
+  "collector_window_seconds": 600,
+  "ethernet_collector_exit": 2,
+  "return_collector_exit": 1,
+  "usb_inventory_changed_during_window": false,
+  "attributed_ethernet_gadget_observed": false,
+  "receiver_invocations": 0,
+  "capture_requests": 0,
+  "acknowledgements": 0,
+  "changed_boot_gemian_verified": false,
+  "retained_console_payload_reads": 0,
+  "owner_selection_reported_for_corrected_candidate": false,
+  "candidate_boot_id": null,
+  "limitations": [
+    "Silence does not establish whether the corrected boot2 image was selected or ran.",
+    "No capture frame, candidate console or outcome was received during this window.",
+    "Installation remains verified. Current device state requires the owner report; neither a failed boot nor a still-powered-off state is established."
+  ],
+  "next_step": "Await physical-start/current-state report before fresh collection or device action. Do not change the candidate on this evidence.",
+  "hosted_checks": {
+    "project_commit": "e9b448acd43f1e7923f4ee42f6839e8f75128be0",
+    "conclusion": "success",
+    "url": "https://github.com/ixoo/gemini-pda-mainline/actions/runs/34763741726"
+  },
+  "private_evidence": {
+    "active.json": {
+      "bytes": 296,
+      "sha256": "d6320eabcfc3ced0119f85e9f788f5103409293d415c8cfcc82e01590a0e9785"
+    },
+    "terminal.json": {
+      "bytes": 267,
+      "sha256": "a7e0454199bdae619ec16f173f75053a8714e4aa481efd37f97c829e349e9d18"
+    },
+    "ethernet-collector.stdout": {
+      "bytes": 137,
+      "sha256": "f1ebcbf35cd9a2d85e69525a262b3a2c28909b279f34161f9bb0ddb723db03d5"
+    },
+    "ethernet-collector.stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "return-collector.stdout": {
+      "bytes": 70,
+      "sha256": "9800a47baa9ad6e57bee3f8396d8b262a13a40a3c595c9a55a0df56cfe617444"
+    },
+    "return-collector.stderr": {
+      "bytes": 525,
+      "sha256": "16144abd624edfb48566707ec305d4cefa3fc309c741bc223ee8133e25755209"
+    },
+    "ethernet-watch/armed.json": {
+      "bytes": 466,
+      "sha256": "d63bb332074704d545191d6a493df1f4a1c55d7fa29a43a887e3f98c81228f60"
+    },
+    "ethernet-watch/interfaces-final.txt": {
+      "bytes": 3825,
+      "sha256": "0a7f95104c835c9040221642c8977190083ee8cf5bf4d38c86a7aadaef9f31c3"
+    },
+    "ethernet-watch/routes-final.txt": {
+      "bytes": 1943,
+      "sha256": "d7c362e5163c574494d3c2b99f6396524bef776de8a3279bba1aa79ebe74c1f7"
+    },
+    "ethernet-watch/usb-before.txt": {
+      "bytes": 942109,
+      "sha256": "1bf9424a39fa617f96dfce525fcba3af29de1345b51f2061cc1e21b2d1327d29"
+    },
+    "ethernet-watch/usb-change-000.json": {
+      "bytes": 1714,
+      "sha256": "4e9ed9dfd4052d45a9a43efbb2e42278675daa487fb0f8fcd2d97f422a63b340"
+    },
+    "ethernet-watch/usb-final.txt": {
+      "bytes": 942108,
+      "sha256": "9a0403238dc303ce8d20664afefb2a2c4b211332bc158745cb36827b624f15df"
+    },
+    "gemian-return/identity-attempts.stderr": {
+      "bytes": 5722,
+      "sha256": "e1888ed20fe5e0e78592b404be40089b4d5277fe6ac4a32cdee83e151af6c23c"
+    }
+  }
+}

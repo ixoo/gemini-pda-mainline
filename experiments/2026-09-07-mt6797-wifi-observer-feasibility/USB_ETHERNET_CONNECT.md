@@ -86,5 +86,12 @@ retained. A successful installation ends with clean shutdown. The primary
 coordinator holds sole device custody and must observe both collectors armed
 before requesting the owner's one physical boot2 selection. The [deployment receipt](results/usb-ethernet-connect-deployment.json) now
 confirms the live-GPT boot2 write, matching full readback and clean shutdown.
-Collectors must be armed before the physical-selection handoff; the corrected
-candidate has not yet run on the PDA.
+Both collectors were subsequently observed live before the owner handoff,
+then exhausted their 600-second windows. The
+[window result](results/usb-ethernet-connect-window-1.json) records no USB
+inventory change, receiver invocation, capture frame or verified changed-boot
+Gemian return. No physical-start report has been received for this corrected
+candidate. Its runtime result and current device state remain unresolved;
+this does not establish a failed boot. Both collectors are stopped. Retain the
+verified installation and await the owner report before another collection or
+device action. Hosted checks for the published candidate record also passed.
