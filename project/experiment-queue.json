@@ -3,8 +3,8 @@
   "purpose": "Readiness inventory, not an executable queue or device authorization. Object order is not scheduling order; docs/ROADMAP.md alone owns priority. Exact inputs, budgets and chronology stay in linked experiments.",
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
-  "selected_item": null,
-  "selection_note": "Diagnostic candidate boot and normal changed-boot Gemian return are attributed; its console and USB summary are preserved. Both collectors are terminal and custody is released. Investigate the observed cable-detection refusal before selecting a successor.",
+  "selected_item": "wifi-export-usb-chrdet-diagnostics-1",
+  "selection_note": "The validated charger-detection diagnostic is selected for guarded boot2 installation. The primary integration coordinator holds sole custody; preserve prior evidence, require full readback and clean shutdown, then arm collectors before owner selection.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -275,6 +275,21 @@
       "dependencies": [],
       "owner_task_id": null,
       "readiness_note": "One candidate boot is attributed by its unique cycle and retained summary. Ready and device branches ran; cable false and controller stop were observed, with no controller-start bit. Latest charger/VBUS sample is unknown/false in normal mode. Normal return to changed-boot Gemian and one console preservation passed. Physical start time is unreported, so complete host coverage is not established. No snapshot exported; selection budget consumed and no repeat selected."
+    },
+    "wifi-export-usb-chrdet-diagnostics-1": {
+      "workstream": "wifi",
+      "preparation_state": "ready",
+      "device_state": "selected",
+      "owner": "primary integration coordinator",
+      "reviewer": "primary integration coordinator",
+      "device_custodian": "primary integration coordinator",
+      "experiment": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_CHRDET_DIAGNOSTICS.md",
+      "session_packet": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_CHRDET_DIAGNOSTICS.md#selected-session",
+      "candidate_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-chrdet-diagnostics-candidate.json",
+      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-chrdet-diagnostics-session.json",
+      "dependencies": [],
+      "owner_task_id": null,
+      "readiness_note": "Complete 50-patch native build and unchanged configuration passed. Compiled report retains its one-time guard, memory-only getter and eight branch markers; original operational calls remain. Filesystem/container independently validated, with only session metadata changed. Reviewed installer selected; no physical selection yet."
     }
   }
 }

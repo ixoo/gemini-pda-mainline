@@ -20,8 +20,10 @@ changed file, exact patch replay and reversal, and strict Linux 7.1.3 Checkpatch
 with sign-off checking disabled for this non-certifying archive. The first 49
 native patches remain byte-identical. The only builder change admits the exact
 50-patch count. Configuration and canonical upstream series/profiles are
-unchanged. Full compilation, linked inspection, packaging and device admission
-remain pending at source preparation.
+unchanged. Full compilation and linked inspection now pass at
+`520fddb9ef17eccb73ebf836e120a0e582ab7a21`; the selected candidate is described
+below. The inherited native compiler warning suppression and 69 section
+mismatches remain; this is not warning-clean or hardware-support evidence.
 
 ## Observation and effect budget
 
@@ -45,7 +47,7 @@ The new `chrdet` bits mean:
 The mask starts at zero. Each event atomically sets one bit; it allocates no
 memory, starts no work and creates no per-callback log. The getter performs one
 ordinary memory read. The source adds no hardware accessor, charging write,
-role request, radio operation, retained-slot write or userspace control. Two
+role request, radio operation, direct retained-slot write or userspace control. Two
 single-statement conditionals gain braces for their markers; every original
 decision, return and operational statement is preserved by exact reversal.
 The new mask uses the same recovery diagnostic plus Ethernet-without-Android
@@ -90,3 +92,34 @@ path and consume the report before normal return.
 
 No capture clear or radio cycle is added. A timeout does not select an unchanged
 retry. Source preparation alone does not authorize physical selection.
+
+## Selected session
+
+The [candidate receipt](results/usb-chrdet-diagnostics-candidate.json) binds the
+complete kernel package and independently verified container. All eleven remote
+and fetched package files match. Configuration and the 130833-byte DT are
+unchanged. The 723-member filesystem differs only in session metadata;
+independent reassembly, seventeen container mutations and six input refusals
+pass. Runtime and startup bytes retain their earlier ARM64 validation.
+
+Linked inspection confirms eight charger-marker calls and the one original
+indirect charger callback. Original operational call inventories remain. The
+16-byte getter contains address calculation, one ordinary mask load and return.
+The shutdown report still tests and sets bit 15 before reading that mask or
+printing, and returns directly when already consumed. The first private getter
+check expected one fewer address-calculation instruction; inspecting the emitted
+ADD corrected that expectation without changing the kernel. Call inventories
+are not a claim of complete binary control-flow equivalence.
+
+The [session receipt](results/usb-chrdet-diagnostics-session.json) selects cycle
+`87c24209-c8af-40e9-b443-7a0397fa185f` from the preserved changed-boot Gemian
+identity. The primary coordinator holds sole custody. The installer is unchanged
+after reversing five identity/destination substitutions; Bash and ShellCheck
+pass. It retains the live-GPT, block-identity, inactive/non-root, size, power and
+full-readback gates, followed by clean shutdown. The prior console is already
+preserved. Physical selection remains an owner action after collectors are armed.
+
+The return collector changes only the preceding Gemian UUID. Host attribution,
+receiver, route helper and transport budgets are unchanged. The v2 decoder
+passes 22 attribution, malformed-record and mask cases. No capture clear,
+radio action or host network change is added. Physical runtime is pending.

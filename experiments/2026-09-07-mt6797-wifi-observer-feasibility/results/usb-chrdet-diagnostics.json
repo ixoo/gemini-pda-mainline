@@ -14,7 +14,7 @@
   "checkpatch_exit": 0,
   "patch_sha256": "ebfb783806adfcf6c250d6909ecc40df0da1a32007fc065df61c70bb658ac423",
   "patch_bytes": 5565,
-  "status": "source replay and style validation passed; full build and device admission pending",
+  "status": "complete native build, linked inspection and independently validated candidate; physical charger-detection test pending",
   "source_revision": "59e00a9144d782e148332009a835b99c43382467",
   "parent_runtime_record": "usb-ethernet-diagnostics-window-2.json",
   "provider_trace_record": "usb-ethernet-detection-providers.json",
@@ -32,5 +32,105 @@
     "Each cumulative mask and the latest cable sample are independent; no call order, counts, shared caller or enumeration is implied.",
     "The battery getter is an ordinary READ_ONCE of its diagnostic mask; unsupported battery configurations have a zero stub and are not selected for interpretation.",
     "Existing single-report guard and placement remain unchanged. A missing or incorrectly placed report is inconclusive."
-  ]
+  ],
+  "build": {
+    "project_commit": "520fddb9ef17eccb73ebf836e120a0e582ab7a21",
+    "inputs_sha256": "1295fc3e453f94d4ae366b05af87eeb9ac6ef7d12e3b950f0a4bea32c9fd8bf8",
+    "source_integrity": "source_tree_integrity=9453a4d9aa420b732c6fb8a764580b9e975869cfc6013a331383c14a03587ca7",
+    "compiler": "aarch64-linux-gnu-gcc-6 (Debian 6.3.0-18) 6.3.0 20170516",
+    "linker": "GNU ld (GNU Binutils for Debian) 2.28",
+    "config_sha256": "43222fdee6781f3bc51cb7e412c9f92372ecf8f78b8881b11d66b77f849d8eb8",
+    "usb_fragment_sha256": "46dafbfb7dea544de7b12cfbe4980fa4af97d6c74f51e76cad35a33ea22dc003",
+    "undefined_symbols": 0,
+    "diagnostic_lines": 1,
+    "vmlinux_sha256": "147e70d8e960487aef18291df2b095e6b802505976fab9f6dacb998d97687aa5",
+    "config_identical_to_parent": true,
+    "manifest_sha256": "80e5663784df96df9ddebf516ca6a11ea203572682c5fac4ccd423f698218f36",
+    "kernel_sha256": "334a9dc8441753883b74d3d9283a3ec22a5b1bf4ad277a8470b8cf20f1d06c79",
+    "kernel_bytes": 8366739,
+    "package_files": 11,
+    "remote_and_fetched_files_verified": true,
+    "modpost_section_mismatches": 69,
+    "compiler_warning_limitation": "Inherited native -w and 69 section mismatches; individual mismatch identities not compared.",
+    "source_apply_mode_warnings": "Native executable-mode source files produce 100755-versus-100644 patch-context warnings; application and source-integrity checks pass.",
+    "hosted_checks": "https://github.com/ixoo/gemini-pda-mainline/actions/runs/34776692901"
+  },
+  "linked": {
+    "after": {
+      "connection_work": {
+        "bytes": 896,
+        "sha256": "3657e6c9b98fd16f0a6cf2e926e137017b24a5742b500cc9567b416c73c1a871",
+        "indirect_calls_and_branches": 0
+      },
+      "mt_usb_chrdet_paths": {
+        "bytes": 16,
+        "sha256": "ad925509abb1e2058ea9b8f2ed495ffd0b784637cbcbc992a21aec2109348c19",
+        "indirect_calls_and_branches": 0
+      },
+      "musb_shutdown": {
+        "bytes": 164,
+        "sha256": "580c21f41605580228a352e0d6a4e1b531faab975f8743cd48d8edeb4f8d25b7",
+        "indirect_calls_and_branches": 2
+      },
+      "upmu_is_chr_det": {
+        "bytes": 384,
+        "sha256": "443e31ef7d49afcfcd9e7fb87cc415a4ca2aca3ce43e85f323a93cec8a9dc2b5",
+        "indirect_calls_and_branches": 1
+      },
+      "usb_cable_connected": {
+        "bytes": 604,
+        "sha256": "0efabc52a248882db4c84998544166e024e65c7298ca0420612bde7e50643ae5",
+        "indirect_calls_and_branches": 0
+      },
+      "usb_export_report": {
+        "bytes": 88,
+        "sha256": "5a50c34f3641f6adb4b6c5f09cc92cddf363f20da5689622cfb693308454487a",
+        "indirect_calls_and_branches": 0
+      }
+    },
+    "before": {
+      "connection_work": {
+        "bytes": 896,
+        "sha256": "a7ecb74ec648d356d46a967650e8baf6812f81e7c26a51cf94ceff660baa1ff6",
+        "indirect_calls_and_branches": 0
+      },
+      "musb_shutdown": {
+        "bytes": 164,
+        "sha256": "2c6e0952fb65b20a3eac4a72839ac8c75019f286741945750b58758d91d2089b",
+        "indirect_calls_and_branches": 2
+      },
+      "upmu_is_chr_det": {
+        "bytes": 232,
+        "sha256": "5a9378dcb4d3661c72b036ad1a8f4a9b071abc9d25f3c51bff5762497b65b3fe",
+        "indirect_calls_and_branches": 1
+      },
+      "usb_cable_connected": {
+        "bytes": 604,
+        "sha256": "c318a7a5d205e3d5541dfd9aebe59d9fce68e18fad6ee08c57e082521c0d964b",
+        "indirect_calls_and_branches": 0
+      },
+      "usb_export_report": {
+        "bytes": 72,
+        "sha256": "63a87dcb1bf3f65cb54138661475c760033cf56f97abf07e052af2bd8c1e1bbb",
+        "indirect_calls_and_branches": 0
+      }
+    }
+  },
+  "linked_inspection": {
+    "report_first_call_in_shutdown": true,
+    "report_guard": "test_and_set_bit index 15 precedes getter and printk; prior-set branch returns without them",
+    "report_direct_callees": [
+      "test_and_set_bit",
+      "mt_usb_chrdet_paths",
+      "printk"
+    ],
+    "getter": "16 bytes: ADRP, ADD, LDR, RET; one 8-byte diagnostic-mask read and no calls",
+    "charger_marker_calls": 8,
+    "original_charger_callback_calls": 1,
+    "original_direct_callee_sets_and_non_printk_counts_preserved": true,
+    "indirect_callsite_counts_preserved": true,
+    "comparison_limitation": "Call inventories are not binary control-flow equivalence. Exact source reversal independently preserves original statements and decisions.",
+    "initial_inspection_correction": "The first private assertion expected no address ADD in the getter. Actual four-instruction address calculation was inspected and pinned in the corrected checker; kernel unchanged."
+  },
+  "candidate_receipt": "usb-chrdet-diagnostics-candidate.json"
 }

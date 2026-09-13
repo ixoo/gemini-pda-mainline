@@ -413,8 +413,9 @@ The remaining preparation order is:
    also ended without enumeration. Earlier readiness-loop messages did not
    recur. The [bounded late diagnostic's retained result](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_ETHERNET_DIAGNOSTICS.md#retained-physical-result)
    now establishes readiness and cable-false decisions, with no controller
-   start recorded. Trace the selected charger and host-role providers to
-   distinguish the software detection refusal before changing their policy.
+   start recorded. The [charger-detection discriminator](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_CHRDET_DIAGNOSTICS.md)
+   now has a validated build and candidate. Use its selected physical session
+   to distinguish the existing rejection branches before changing their policy.
    Require acknowledged preservation; do not repeat unchanged inputs or weaken
    the CPU check.
    Exit order must not be inferred by reversing initialization, and the vendor

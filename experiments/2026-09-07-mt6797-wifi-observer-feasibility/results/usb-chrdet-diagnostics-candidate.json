@@ -1,0 +1,44 @@
+{
+  "assembler_sha256": "b940f12b2063565840cb32c0c6a5448038f38869faef504f3115d2cb7c00ecf4",
+  "filesystem_sha256": "9aa1f7775abbec56c5b0088625caba8f7ece6365cc0c50f84e52819985d3dce4",
+  "kernel_sha256": "334a9dc8441753883b74d3d9283a3ec22a5b1bf4ad277a8470b8cf20f1d06c79",
+  "padded_bytes": 16777216,
+  "padded_sha256": "25533368a1ef6f250cf63d8973fd4f9048122b09d74a3f975a94f844b6875a4c",
+  "parent_assembler_sha256": "532f6f0dec5030a7b066f3baefa53580ec148317f633d4dd8d43308d30ac03b3",
+  "raw_bytes": 16220160,
+  "raw_sha256": "9480ba8846a2aad50c7684e012b8d8290fa410302a093c99f1f67708afa6a474",
+  "scope": "validated native diagnostic container; physical charger-detection test outstanding",
+  "session_sha256": "8d6d66e4fd2a1fb46c95a385558833e8aaf621987cc77f4e129e04e129ecdc3a",
+  "startup_action": "export-tcp-return",
+  "manifest_sha256": "9ca5e4cb9fa2ba6d8996be709ca7ea96a9627bf9d7de2d5042708757597f76de",
+  "kernel_build_commit": "520fddb9ef17eccb73ebf836e120a0e582ab7a21",
+  "cycle_id": "87c24209-c8af-40e9-b443-7a0397fa185f",
+  "kernel_inputs_sha256": "1295fc3e453f94d4ae366b05af87eeb9ac6ef7d12e3b950f0a4bea32c9fd8bf8",
+  "kernel_config_sha256": "43222fdee6781f3bc51cb7e412c9f92372ecf8f78b8881b11d66b77f849d8eb8",
+  "filesystem_verification": {
+    "archive_members": 723,
+    "removed_members": 0,
+    "changed_existing_members": [
+      "etc/wifi-cycle/session.json"
+    ],
+    "exact_current_startup_inputs_and_runtime": true,
+    "filesystem_bytes": 7848633,
+    "kernel_bytes": 8366739,
+    "page_bytes": 2048,
+    "projected_container_bytes": 16220160,
+    "limit_bytes": 16777216,
+    "spare_bytes": 557056
+  },
+  "container_verification": {
+    "raw_bytes": 16220160,
+    "padded_bytes": 16777216,
+    "binary_header_and_payloads": true,
+    "reassembled_identical": true,
+    "native_addresses_and_flags": true,
+    "split_capture_dt_reg_and_no_map": true,
+    "container_mutations_rejected": 17,
+    "input_refusals": 6
+  },
+  "runtime": "unchanged exact runtime and startup bytes; prior ARM64 tests retained",
+  "dtb": "130833 bytes; identical to preceding USB decision diagnostic"
+}
