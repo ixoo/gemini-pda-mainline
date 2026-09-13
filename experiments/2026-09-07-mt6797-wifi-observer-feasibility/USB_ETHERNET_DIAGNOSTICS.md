@@ -140,8 +140,8 @@ owner then selects boot2 physically after both collectors are armed.
 The [deployment receipt](results/usb-ethernet-diagnostics-deployment.json) now
 confirms the expected live Gemian boot, inactive GPT-selected boot2, matching
 full readback and clean shutdown. The previous boot's console was already
-preserved. No physical selection has yet been reported for this diagnostic.
-Its runtime result is pending; installation does not establish USB support.
+preserved. The subsequently retained diagnostic boot is recorded below;
+installation alone does not establish USB support.
 
 The return collector changes only the preceding boot UUID; its authenticated
 changed-boot checks and one console-read budget are unchanged. USB attribution,
@@ -159,7 +159,59 @@ Gemian return. No console or USB decision summary was received. No physical-star
 report arrived for this diagnostic image during the window, so silence does not
 establish that it booted or failed.
 
-The installation remains verified. Both collectors are stopped; current device
-state and physical selection require the owner report before fresh arming or
-another device action. Do not change the candidate on this evidence. Hosted
-checks for its published deployment record passed.
+At the end of that window, installation remained verified but current device
+state and physical selection were unresolved. No candidate change was made on
+host silence. Hosted checks for the published deployment record passed.
+
+## Retained physical result
+
+After the owner reported readiness, both collectors were armed again with the
+verified installation unchanged. The [second window](results/usb-ethernet-diagnostics-window-2.json)
+preserved one console from authenticated changed-boot Gemian, with the exact
+diagnostic cycle and candidate boot. This proves the diagnostic ran. The
+physical start time was not reported, and the return capture completed about
+twelve seconds after arming, so complete host coverage of that boot is not
+established. No receiver, capture frame or acknowledgement was obtained.
+
+CPU0–7 preflight passed. The native runtime waited 60.054821 seconds for the
+host request, then recorded `stopped` and restarted normally. Exactly one
+summary followed its return marker and preceded restart:
+`wifi-usb-v1 paths=8e5d cable=00010000`.
+
+The cumulative bits establish that connection work reached readiness, both
+host and device branches, a false cable result, controller stop entry/return
+and the stable branch. It never recorded cable true or controller start before
+the report. Readiness-false, UART, forced-cable and power-off-charging bits are
+also clear. The latest cable sample contains charger unknown, VBUS false and
+connected false with normal cable mode. This is positive branch evidence
+beyond the preceding test's absence of readiness-loop messages.
+
+The host/device bits do not give their order, and the latest cable sample is
+independent of the worker bits. VBUS here is a software detection result, not a
+voltage measurement or evidence of a defective cable. Trace the selected
+charger and role providers before changing policy. Console preservation does
+not preserve the unretrieved snapshot. Both collectors are stopped, known-good
+Gemian is confirmed, and this candidate's selection budget is consumed.
+
+## Detection provider trace
+
+The [source and linked-code trace](results/usb-ethernet-detection-providers.json)
+confirms the selected `battery_common_fg_20` implementation. Charger type is
+an ordinary read of the battery driver's cached type. The VBUS helper can
+return false because battery initialization has not completed, charging is
+suspended, the charger-detection callback reports zero, or a later role check
+reports host. The current summary does not distinguish these alternatives.
+
+The callback can use either native charger interface. Both linked detection
+implementations read the MT6351 charger-detect field through existing PMIC
+accessors; neither the active callback nor its returned value is retained.
+The linked USB role helper compares the software ID-pin state to host. The
+source's additional boost counter is absent from that compiled function with
+boost disabled. The observed host bit therefore establishes a software role
+decision, without establishing who selected it or when.
+
+The next useful discriminator is the existing charger-detection rejection
+branch. Record its execution without adding PMIC reads, role requests or
+charger writes. Preserve the limits of cumulative state across independent
+callers. This trace performs no device operation and supplies no evidence for
+forcing VBUS, charger type or a role.

@@ -1,0 +1,132 @@
+{
+  "status": "source and linked provider trace complete; exact runtime rejection branch unresolved",
+  "recorded_utc": "2026-09-13T18:58:21.447850+00:00",
+  "runtime_record": "usb-ethernet-diagnostics-window-2.json",
+  "native_manifest_sha256": "cbe6fb5b1b0abb8457c0f7d29a27a33d057d13ed3dcc1b3da85930bfa8863bc1",
+  "build_commit": "895ecb5c16326f4e57970caed6ff2404edae2acb",
+  "vmlinux_sha256": "9f997d8d91425232b9611cbebbc400fe380cc6ed7add059a306316d091c41efc",
+  "config_sha256": "43222fdee6781f3bc51cb7e412c9f92372ecf8f78b8881b11d66b77f849d8eb8",
+  "selected_configuration": {
+    "CONFIG_MTK_HAFG_20": true,
+    "CONFIG_MTK_SMART_BATTERY": true,
+    "CONFIG_MTK_BQ25896_SUPPORT": true,
+    "CONFIG_MTK_RT9466_SUPPORT": true,
+    "CONFIG_USB_XHCI_MTK": true,
+    "CONFIG_POWER_EXT": false,
+    "CONFIG_MTK_FPGA": false,
+    "CONFIG_MTK_POWER_EXT_DETECT": false,
+    "CONFIG_MTK_DUAL_INPUT_CHARGER_SUPPORT": false,
+    "CONFIG_MTK_OTG_PMIC_BOOST_5V": false
+  },
+  "source_files": {
+    "drivers/misc/mediatek/mu3d/drv/mt_usb.c": {
+      "bytes": 21060,
+      "sha256": "ccd6f6bd753b4655fdd9eecee8008d41ad8bf1174a39bbd5614b0112ef1cc5d2"
+    },
+    "drivers/misc/mediatek/xhci/xhci-mtk-driver.c": {
+      "bytes": 35100,
+      "sha256": "f58a440ee6569f70f3986025670d81fbe861c7da2c6b4f5c306bc6f32c83c090"
+    },
+    "drivers/power/mediatek/Makefile": {
+      "bytes": 3246,
+      "sha256": "372a4c53c36da04684d2121389367d66b836e62cd70f9de3a37b3acb95398a55"
+    },
+    "drivers/power/mediatek/battery_common_fg_20.c": {
+      "bytes": 151093,
+      "sha256": "cdd0c41c5b69afc6581bb780034722e07f745c983c36178dcd2e1b4eb417f4bc"
+    },
+    "drivers/misc/mediatek/power/mt6797/Makefile": {
+      "bytes": 2460,
+      "sha256": "1a270fd070e41fce76166a171c66a3230766515987ebf298719bde7f0d377bdf"
+    },
+    "drivers/misc/mediatek/power/mt6797/charging_hw_bq25890.c": {
+      "bytes": 41308,
+      "sha256": "7e4778e5534696b4870caa98bda34ed5e4e4c9685dde05c9faf4d33bffeb2e87"
+    },
+    "drivers/misc/mediatek/power/mt6797/mtk_charger_intf.c": {
+      "bytes": 30174,
+      "sha256": "452ee3a9e54cae4e14438b14532e22860097c04602ad9fe5462b819f4a58343c"
+    }
+  },
+  "linked_functions": {
+    "mt_get_charger_type": {
+      "bytes": 12,
+      "sha256": "1befdab7d3715a0c2e32b67ba4549e44d6c0e0d09c2833217b42cf21311ba583",
+      "direct_calls_and_tail_branches": []
+    },
+    "upmu_is_chr_det": {
+      "bytes": 232,
+      "sha256": "5a9378dcb4d3661c72b036ad1a8f4a9b071abc9d25f3c51bff5762497b65b3fe",
+      "direct_calls_and_tail_branches": [
+        "mt_usb_is_device",
+        "__dynamic_pr_debug",
+        "printk",
+        "printk"
+      ]
+    },
+    "mt_usb_is_device": {
+      "bytes": 88,
+      "sha256": "d1134b7989ccaed1e479c4b879e3d41bd406236239a59c1887eef2041736fd20",
+      "direct_calls_and_tail_branches": [
+        "mtk_is_host_mode",
+        "printk"
+      ]
+    },
+    "mtk_is_host_mode": {
+      "bytes": 20,
+      "sha256": "0205d5914b99834d0db7ec93f01469d6915aa600462980a7ab6eb0f487bcc3cb",
+      "direct_calls_and_tail_branches": []
+    },
+    "get_charger_detect_status": {
+      "bytes": 40,
+      "sha256": "f67543b89865690c63437b1fb1a2f761c6da596b3d1e501e393ea08ac10f593e",
+      "direct_calls_and_tail_branches": []
+    },
+    "charging_get_charger_det_status": {
+      "bytes": 48,
+      "sha256": "bc834fdbc57ed82bc6badbb0aac8364cbc1431bd87c2b470001dceef8b67c5a8",
+      "direct_calls_and_tail_branches": [
+        "pmic_get_register_value_nolock"
+      ]
+    },
+    "chr_control_interface": {
+      "bytes": 120,
+      "sha256": "26ebb63f97bba7fdbb011b146e8a280d90eebfd3130c72d80bf35f92e17cd477",
+      "direct_calls_and_tail_branches": [
+        "printk"
+      ]
+    },
+    "mtk_charger_get_charger_det_status": {
+      "bytes": 48,
+      "sha256": "49c2dfc92dff4032aaad2c5898934c273a611d6aa3f739b879cc2f18e8119e17",
+      "direct_calls_and_tail_branches": [
+        "pmic_get_register_value"
+      ]
+    }
+  },
+  "charger_type_provider": "mt_get_charger_type is a 12-byte ordinary load from BMT_status.charger_type; no direct hardware read. The cache can be unknown before detection or after detach.",
+  "vbus_provider": "The selected battery_common_fg_20 upmu_is_chr_det first rejects battery not initialized, then charging suspension, then a zero charger-detection result, then host role. These are alternative false-return paths, not all observed runtime causes.",
+  "charger_dispatch": "get_charger_detect_status uses an indirect battery_charging_control callback with command 12. Source selects the RT interface after RT hardware initialization, otherwise the BQ interface. Both detection implementations are linked and read MT6351_PMIC_RGS_CHRDET through their existing PMIC accessor; current callback selection and PMIC value are not captured.",
+  "role_provider": "The linked mt_usb_is_device calls mtk_is_host_mode and inverts it. In this configuration, the latter is a 20-byte comparison of mtk_idpin_cur_stat to IDPIN_IN_HOST (1). Its source also mentions vbus_on, but the compiled function has no such load and the boost configuration is disabled.",
+  "runtime_log_limits": "The retained console contains none of the selected battery initialization/role-rejection log phrases. Debug filtering and retention prevent treating that absence as proof of a specific branch.",
+  "next_observation": "Retain which existing upmu_is_chr_det rejection branches actually execute, without new PMIC reads, role requests or charger writes; preserve independent-caller and cumulative-state limits. Source/configuration alone does not justify a behavioral repair.",
+  "device_actions_during_trace": 0,
+  "private_analysis": {
+    "detection-linked.txt": {
+      "bytes": 7542,
+      "sha256": "c154de27e57f6fe526594a3b2592c6243eaf428b236c667b0ac2c15dd557dbe2"
+    },
+    "detection-state-symbols.json": {
+      "bytes": 541,
+      "sha256": "7d78eb3f0b6b1cf1e1362c0ce73d01ef9659e2b64c68a0040c1dc4d077795bdb"
+    },
+    "detection-source-identities.json": {
+      "bytes": 1111,
+      "sha256": "abd4a48dac72120c4e1968d0aebce9cbf5ae2f116b1e540ec87dcbc4c012214c"
+    },
+    "battery-log-summary.json": {
+      "bytes": 306,
+      "sha256": "8dae79e04aff831e1f6887b5a2df321e8446f40abc1409ff647d7ebdb65487df"
+    }
+  }
+}

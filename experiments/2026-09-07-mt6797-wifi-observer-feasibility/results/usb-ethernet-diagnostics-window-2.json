@@ -1,0 +1,176 @@
+{
+  "status": "diagnostic boot attributed; connection worker observed cable false and no controller start; stopped return retained",
+  "recorded_utc": "2026-09-13T18:55:13.449677+00:00",
+  "deployment_record": "usb-ethernet-diagnostics-deployment.json",
+  "first_window_record": "usb-ethernet-diagnostics-window-1.json",
+  "cycle_id": "ba533dcc-3368-4cb6-aff1-fdc31bf9f4b1",
+  "session_sha256": "9f7735a2341a4a445e58d9c7f44a3a3c8bc67732b31dc1152679b049b5bf67e7",
+  "previous_gemian_boot_id": "258eff5c-a742-4379-89e7-60e885eaf797",
+  "candidate_boot_id": "0c953e7b-887c-465b-bce8-a2428b3572e6",
+  "returned_gemian_boot_id": "d85f04b3-b24d-439b-b7cb-a6d11994c91f",
+  "installed_padded_sha256": "1aa06c9e63a277d62f5c813a8b88d1b9a8b86564e7f57c1fdd09fc92394b9917",
+  "preboot_binding": "Verified installation reused at owner readiness report; no repeated device verification, write or host network change. Physical start time is unreported. Host collection coverage of the complete candidate boot is not established.",
+  "ethernet_armed_utc_seconds": 1789325400.133436,
+  "both_collectors_ready_utc_seconds": 1789325411.9897852,
+  "owner_start_report_received": false,
+  "owner_started_utc_seconds": null,
+  "candidate_boots_attributed": 1,
+  "selection_budget_consumed": true,
+  "collector_window_seconds": 600,
+  "ethernet_collector_exit": 143,
+  "return_collector_exit": 0,
+  "ethernet_collector_stop": "Exact matching process stopped after authenticated changed-boot Gemian and one preserved console. No final inventory after SIGTERM.",
+  "usb_inventory_changes_after_initial_sample": 0,
+  "attributed_ethernet_gadget_observed": false,
+  "receiver_invocations": 0,
+  "capture_requests": 0,
+  "acknowledgements": 0,
+  "snapshot_exported": false,
+  "cpu0_7_preflight_passed": true,
+  "snapshot_stage_entered": true,
+  "usb_ownership_stage_entered": true,
+  "host_request_waiting_kernel_seconds": "3.155197",
+  "host_request_stopped_kernel_seconds": "63.210018",
+  "wait_seconds": "60.054821",
+  "setup_inference": "Pinned unchanged runtime reaches host-request waiting after snapshot, checked usb0 setup, bind-to-device, address bind and listen. The stop after about 60 seconds is consistent with its accept deadline; exception text was not retained.",
+  "changed_boot_gemian_verified": true,
+  "retained_console_payload_reads": 1,
+  "retained_console_bytes": 65524,
+  "retained_console_sha256": "db13fb8ef83db6ed088a34246fca06ff3bc482928463adf79934b6318791b03d",
+  "captured_utc": "2026-09-13T18:50:12.554359+00:00",
+  "return_marker_count": 1,
+  "outcome": "stopped",
+  "return_marker_kernel_seconds": "63.212987",
+  "normal_restart_after_marker": true,
+  "post_marker_fault_tokens": {
+    "Kernel panic": 0,
+    "BUG:": 0,
+    "WARNING:": 0,
+    "Unable to handle kernel": 0,
+    "Call trace:": 0
+  },
+  "usb_diagnostic": {
+    "classification": "retained-summary",
+    "paths_hex": "8e5d",
+    "paths": [
+      "entered",
+      "ready",
+      "host",
+      "device",
+      "cable_out",
+      "stop_called",
+      "stop_returned",
+      "stable",
+      "reported"
+    ],
+    "cable_hex": "00010000",
+    "cable_sample_present": true,
+    "limitation": "Cumulative paths and latest cable sample are separate observations; no call order, counts or enumeration inferred.",
+    "charger_type": 0,
+    "vbus": false,
+    "connected": false,
+    "cable_mode": 1
+  },
+  "diagnostic_kernel_seconds": "63.239969",
+  "readiness_suppression_lines": 0,
+  "observed_decisions": "Connection work reached ready, host and device branches; device work recorded cable false, stop entry/return and stable state. No readiness-false, cable-true, controller-start, UART, forced-cable or power-off-charging bit was set before the report. Latest cable sample: charger unknown, VBUS false, connected false, normal mode.",
+  "limitations": [
+    "Paths are cumulative; host and device branches are not simultaneous or ordered observations. Latest cable sample is independent and can come from another caller.",
+    "VBUS is the existing software detection result, not a measured physical voltage. It does not establish a cable fault or name the underlying rejection branch.",
+    "No frame or acknowledgement was received. Preserving the console does not preserve the unretrieved capture snapshot.",
+    "Return capture completed about 12 seconds after host arming. No physical-start report exists, so pre-arming before this boot and full host coverage cannot be claimed.",
+    "One attributed candidate boot does not establish the exact total number of physical selections. No unchanged-image retry is selected."
+  ],
+  "next_decision": "Trace the actual charger and host-role providers and their rejection branches before any behavior change. Keep native policy and radio/capture-clear budgets unchanged.",
+  "classifier_adapter": {
+    "parent_sha256": "52debac48c311e160654947a4c2dc3649fc7f408af8c31fa6729516201d1cea5",
+    "changes": "Exactly three input/output/decoder path substitutions; inverse comparison passed.",
+    "decoder_sha256": "431e8a2d7ac4aa6a02e2bdf7406bdc08a3f3e40325de9d03c71e8c457b9c3a80"
+  },
+  "private_evidence": {
+    "active.json": {
+      "bytes": 784,
+      "sha256": "8ead18273ac346fd1081e0e07b735417625272c2081406b7a12987f5d5a426cc"
+    },
+    "battery-log-summary.json": {
+      "bytes": 306,
+      "sha256": "8dae79e04aff831e1f6887b5a2df321e8446f40abc1409ff647d7ebdb65487df"
+    },
+    "classify.py": {
+      "bytes": 3583,
+      "sha256": "bb351e1fd323693c2ecd8ddc1e55b941f2f4647d6e1d258f37a2a88b3709792e"
+    },
+    "classify.stderr": {
+      "bytes": 645,
+      "sha256": "72f802ab81c498af3ab11189063c08898d953fda15db5f3ea19dbe14caecfa14"
+    },
+    "collector-stop.json": {
+      "bytes": 228,
+      "sha256": "ae579a666af4ec6a94b38625313dbc68b8589edc2e5ba16bb5546fec9a3e8f71"
+    },
+    "ethernet-collector.stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "ethernet-collector.stdout": {
+      "bytes": 73,
+      "sha256": "3aec94f0e4ab9a427c09b8600d4344164ef5e99d4b55cb88bc8d673ff0107b38"
+    },
+    "ethernet-watch/armed.json": {
+      "bytes": 465,
+      "sha256": "08c9970706b3219056dabf310f0415a45d707dbe13d9007b5cd5792e9e6eec25"
+    },
+    "ethernet-watch/usb-before.txt": {
+      "bytes": 938726,
+      "sha256": "0a3b29de04cbc9c2f1ed3c9d7776dad9e0b99edf751dc39d10b67f7b5ed4bb59"
+    },
+    "ethernet-watch/usb-change-000.json": {
+      "bytes": 1507,
+      "sha256": "bbbef82dded0010239a50fd46e0643750078cbd84dec9da645d8e1d8ce3b5f5b"
+    },
+    "gemian-return/capture-receipt.json": {
+      "bytes": 251,
+      "sha256": "b061ccdee3c96870263da417d6cf1d5c4b560a40526c3729fd47060d8c5c326d"
+    },
+    "gemian-return/console-ramoops": {
+      "bytes": 65524,
+      "sha256": "db13fb8ef83db6ed088a34246fca06ff3bc482928463adf79934b6318791b03d"
+    },
+    "gemian-return/console-ramoops.stderr": {
+      "bytes": 414,
+      "sha256": "a9bb4f078d390ec3966e6817cbc8315cf679f032fdac9c8cb2322ab99a1cb560"
+    },
+    "gemian-return/identity-attempts.stderr": {
+      "bytes": 355,
+      "sha256": "3577a2d36a45086fc7d83df349c3d46dca594b18075faa4b5202ef493dcfe689"
+    },
+    "gemian-return/identity.stdout": {
+      "bytes": 187,
+      "sha256": "fe4d59c2bc6faf7348e64d6976654d62a58eda1864cc652f56f39a54ff99b356"
+    },
+    "retained-summary.json": {
+      "bytes": 216,
+      "sha256": "606e3aa96be67c0fa64a8c1b59a6769dfb20144b1052590356beaf91dd7b5f4d"
+    },
+    "return-collector.stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "return-collector.stdout": {
+      "bytes": 370,
+      "sha256": "85a5408de5e17a521b372a0878418f116a4b6c37595cf4d8d65de3d3df7183bf"
+    },
+    "run-return.py": {
+      "bytes": 281,
+      "sha256": "805ef5ef7b4a69485f4f4c378cee23534c40b44aef28e2a648c672e62e862839"
+    },
+    "runtime-result.json": {
+      "bytes": 3667,
+      "sha256": "5a7c3903b50cdfe2231426c612120e12bae8204f1b42ca3e0274de6857236a2e"
+    },
+    "terminal.json": {
+      "bytes": 379,
+      "sha256": "04c9b5b3249f6dd4e496bd1f8fce1130849047eb2c16ac23e7bc33c29cddc19f"
+    }
+  }
+}

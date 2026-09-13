@@ -3,8 +3,8 @@
   "purpose": "Readiness inventory, not an executable queue or device authorization. Object order is not scheduling order; docs/ROADMAP.md alone owns priority. Exact inputs, budgets and chronology stay in linked experiments.",
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
-  "selected_item": "wifi-export-usb-ethernet-diagnostics-1",
-  "selection_note": "The verified diagnostic image remains installed. Both collection windows are terminal; physical selection and current device state are unreported. Retain sole custody and await the owner state before any fresh collection or device action.",
+  "selected_item": null,
+  "selection_note": "Diagnostic candidate boot and normal changed-boot Gemian return are attributed; its console and USB summary are preserved. Both collectors are terminal and custody is released. Investigate the observed cable-detection refusal before selecting a successor.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -264,17 +264,17 @@
     "wifi-export-usb-ethernet-diagnostics-1": {
       "workstream": "wifi",
       "preparation_state": "stale",
-      "device_state": "unselected",
+      "device_state": "complete",
       "owner": "primary integration coordinator",
       "reviewer": "primary integration coordinator",
-      "device_custodian": "primary integration coordinator",
+      "device_custodian": null,
       "experiment": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_ETHERNET_DIAGNOSTICS.md",
       "session_packet": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_ETHERNET_DIAGNOSTICS.md#selected-session",
       "candidate_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-ethernet-diagnostics-candidate.json",
-      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-ethernet-diagnostics-window-1.json",
+      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-ethernet-diagnostics-window-2.json",
       "dependencies": [],
       "owner_task_id": null,
-      "readiness_note": "Verified installation retained. Both pre-armed collectors exhausted their 600-second windows without USB inventory change, receiver or verified changed-boot Gemian. No owner start report or candidate diagnostic summary was received. Await current physical state before fresh arming; this is not a confirmed failed boot."
+      "readiness_note": "One candidate boot is attributed by its unique cycle and retained summary. Ready and device branches ran; cable false and controller stop were observed, with no controller-start bit. Latest charger/VBUS sample is unknown/false in normal mode. Normal return to changed-boot Gemian and one console preservation passed. Physical start time is unreported, so complete host coverage is not established. No snapshot exported; selection budget consumed and no repeat selected."
     }
   }
 }

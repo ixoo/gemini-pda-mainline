@@ -411,10 +411,10 @@ The remaining preparation order is:
    its stopped marker and changed-boot Gemian return are preserved. The
    [connection correction and physical test](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_ETHERNET_CONNECT.md#physical-test-result)
    also ended without enumeration. Earlier readiness-loop messages did not
-   recur, but later role and cable decisions remain unobserved. The
-   [bounded late diagnostic](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_ETHERNET_DIAGNOSTICS.md)
-   has a complete build and validated candidate. Use its distinct physical
-   session to observe existing decisions before another behavioral change.
+   recur. The [bounded late diagnostic's retained result](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_ETHERNET_DIAGNOSTICS.md#retained-physical-result)
+   now establishes readiness and cable-false decisions, with no controller
+   start recorded. Trace the selected charger and host-role providers to
+   distinguish the software detection refusal before changing their policy.
    Require acknowledged preservation; do not repeat unchanged inputs or weaken
    the CPU check.
    Exit order must not be inferred by reversing initialization, and the vendor
