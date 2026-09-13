@@ -1,9 +1,14 @@
 # One USB Ethernet capture and normal return
 
 Status: installed with matching full readback and clean shutdown. Both collectors
-were observed live before the owner was told to select boot2. The
-[deployment receipt](results/usb-ethernet-deployment.json) records that handoff;
-physical selection and runtime results are pending. The
+were observed live before the owner was told to select boot2, then exhausted
+their 600-second windows. The [window result](results/usb-ethernet-window-1.json)
+records no USB inventory change, attributed Ethernet gadget, receiver invocation
+or verified changed-boot Gemian return. Physical selection of this Ethernet
+candidate has not been reported; this is not a confirmed failed boot. Both
+collectors are stopped, and current device state awaits the owner report.
+The [deployment receipt](results/usb-ethernet-deployment.json) retains the
+installation and initial handoff. The
 [candidate](results/usb-ethernet-candidate.json) is the independently validated
 USB Ethernet image that replaces the preceding ACM image.
 The [preparation receipt](results/usb-ethernet-session-preparation.json) binds

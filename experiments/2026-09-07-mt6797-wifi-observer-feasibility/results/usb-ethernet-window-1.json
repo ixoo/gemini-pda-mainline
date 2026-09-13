@@ -1,0 +1,72 @@
+{
+  "status": "collector window ended; physical selection and runtime result unresolved",
+  "recorded_utc": "2026-09-13T02:07:09.321235+00:00",
+  "deployment_record": "usb-ethernet-deployment.json",
+  "cycle_id": "7b0fb0c8-cab8-405d-86f4-a85f2034f3c3",
+  "previous_gemian_boot_id": "efa64e7c-d039-400b-8042-fab762793f9d",
+  "session_sha256": "f841038c68e91e0f564f5983ff4a521ac96d7fad98c933c8a030104c4e4466dd",
+  "armed_utc_seconds": 1789264514.873896,
+  "collector_window_seconds": 600,
+  "ethernet_collector_exit": 2,
+  "return_collector_exit": 1,
+  "usb_inventory_changed_during_window": false,
+  "attributed_ethernet_gadget_observed": false,
+  "receiver_invocations": 0,
+  "capture_requests": 0,
+  "acknowledgements": 0,
+  "changed_boot_gemian_verified": false,
+  "retained_console_payload_reads": 0,
+  "owner_selection_reported_for_ethernet_candidate": false,
+  "candidate_boot_id": null,
+  "limitations": [
+    "Silence does not establish whether boot2 was selected or ran.",
+    "No snapshot, retained startup stage, or candidate outcome was captured.",
+    "The existing installation receipt remains valid; current device state awaits the owner report."
+  ],
+  "private_evidence": {
+    "ethernet-collector.stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "ethernet-collector.stdout": {
+      "bytes": 137,
+      "sha256": "f1ebcbf35cd9a2d85e69525a262b3a2c28909b279f34161f9bb0ddb723db03d5"
+    },
+    "ethernet-watch/armed.json": {
+      "bytes": 465,
+      "sha256": "a8d1f27bc135aef7b5b9695d756a419ac778490f9ded83073042e05f98b16705"
+    },
+    "ethernet-watch/interfaces-final.txt": {
+      "bytes": 3823,
+      "sha256": "918e45fdb13b77c8d56661b926eb224c54f620be71a04a13299b7dccda0abbf6"
+    },
+    "ethernet-watch/routes-final.txt": {
+      "bytes": 2227,
+      "sha256": "01ece443718652729edb8fe6d9a56bfa5cf0a0c6fbe9bd1601f9fb6409fa1ef3"
+    },
+    "ethernet-watch/usb-before.txt": {
+      "bytes": 942108,
+      "sha256": "c8da845aa80778595b920f0428af12a8be9584e842bed340482fa6765fa56a9b"
+    },
+    "ethernet-watch/usb-change-000.json": {
+      "bytes": 1714,
+      "sha256": "104ed6e4bb5693dbac937785891162cd7f0e4e9aad510f52830543c5ce2da52a"
+    },
+    "ethernet-watch/usb-final.txt": {
+      "bytes": 942108,
+      "sha256": "314e558140d723a8062ba51ff6fa63adb6a90dd4109d50075c6e902e52f14084"
+    },
+    "gemian-return/identity-attempts.stderr": {
+      "bytes": 5626,
+      "sha256": "836f00532445f502fe8fa61024727d039580222be114ac4c15df382f820a90d9"
+    },
+    "return-collector.stderr": {
+      "bytes": 509,
+      "sha256": "d1571c6f6bf4631f3d3513ca7cd108b7bf4632c9be158ea1926f36c08bd70959"
+    },
+    "return-collector.stdout": {
+      "bytes": 70,
+      "sha256": "9800a47baa9ad6e57bee3f8396d8b262a13a40a3c595c9a55a0df56cfe617444"
+    }
+  }
+}

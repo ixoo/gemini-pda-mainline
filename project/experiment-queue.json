@@ -4,7 +4,7 @@
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
   "selected_item": "wifi-export-usb-ethernet-1",
-  "selection_note": "USB Ethernet candidate installed with matching full-partition readback and clean shutdown. Both 600-second collectors are armed and the owner has been told to select boot2. Await the physical selection/result; no additional device action is selected.",
+  "selection_note": "USB Ethernet candidate remains installed with matching full-partition readback. Both 600-second collectors have stopped without an attributed link or verified Gemian return. Physical selection and current device state remain unresolved; await the owner report before another collection or device action.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -233,7 +233,7 @@
     },
     "wifi-export-usb-ethernet-1": {
       "workstream": "wifi",
-      "preparation_state": "ready",
+      "preparation_state": "stale",
       "device_state": "unselected",
       "owner": "primary integration coordinator",
       "reviewer": "primary integration coordinator",
@@ -241,10 +241,10 @@
       "experiment": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_ETHERNET.md",
       "session_packet": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_ETHERNET_SESSION.md",
       "candidate_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-ethernet-candidate.json",
-      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-ethernet-deployment.json",
+      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-ethernet-window-1.json",
       "dependencies": [],
       "owner_task_id": null,
-      "readiness_note": "Guarded installation passed on the bound Gemian boot, including stable power, inactive boot2 identity, full readback and clean poweroff. Both fresh collectors were observed live before the owner handoff. Physical selection and runtime results remain pending; retain the exact installed image and do not restart collectors solely because a wait yields."
+      "readiness_note": "Guarded installation and clean shutdown remain verified. Both collectors were armed before the owner handoff and have now exhausted their windows: no USB inventory change, attributed gadget, receiver invocation or verified changed-boot Gemian. No physical selection of this Ethernet candidate has been reported. Preserve the installed image and evidence; clarify current device state before fresh collector arming. This window does not establish a failed boot."
     }
   }
 }
