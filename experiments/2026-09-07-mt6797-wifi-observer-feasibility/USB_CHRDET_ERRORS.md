@@ -198,3 +198,10 @@ operation, capture clear or network configuration change is introduced. After
 verified installation and clean shutdown, both collectors must report readiness
 before the owner is told to select boot2. A refusal prevents that handoff; its
 guard is not bypassed. No physical selection is admitted by packaging alone.
+
+The [second deployment](results/usb-chrdet-errors-second-deployment.json)
+passed the live-GPT, inactive-device and stable-power guards. Full flushed
+checksum and independent streamed byte comparison match the candidate. The
+preceding Gemian identity stayed unchanged; evidence was flushed before clean
+shutdown, and subsequent SSH was unreachable. Collector arming remains the
+next gate before physical selection.

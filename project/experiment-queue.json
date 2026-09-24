@@ -4,7 +4,7 @@
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
   "selected_item": "wifi-export-usb-chrdet-errors-2",
-  "selection_note": "Second session selects the unchanged validated kernel after controller-start evidence. Primary coordinator retains sole custody. Guarded installation and successful collector arming must precede owner handoff.",
+  "selection_note": "Second export session installed and fully read back; clean shutdown confirmed. Sole primary custody; successful collector arming must precede physical handoff.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -316,10 +316,10 @@
       "experiment": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_CHRDET_ERRORS.md",
       "session_packet": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_CHRDET_ERRORS.md#second-export-session",
       "candidate_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-chrdet-errors-second-candidate.json",
-      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-chrdet-errors-second-session.json",
+      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-chrdet-errors-second-deployment.json",
       "dependencies": [],
       "owner_task_id": null,
-      "readiness_note": "Only session identity changes; kernel/runtime unchanged. Packaging and rejection checks passed. Guarded installation and collector arming pending."
+      "readiness_note": "Guarded installation and full independent readback passed; clean shutdown confirmed. Collectors not armed yet."
     }
   }
 }
