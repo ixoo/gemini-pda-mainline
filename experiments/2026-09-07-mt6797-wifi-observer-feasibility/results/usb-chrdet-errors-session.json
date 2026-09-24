@@ -1,5 +1,5 @@
 {
-  "status": "Validated and selected for guarded boot2 installation; collectors not yet armed",
+  "status": "Installed and fully read back; clean shutdown confirmed; awaiting collector arming and physical selection",
   "preceding_gemian_boot": "05eb32a4-0958-4f90-aef1-842d37a03928",
   "preceding_identity_record": "usb-chrdet-diagnostics-window-2.json",
   "candidate_receipt": "usb-chrdet-errors-candidate.json",
@@ -45,5 +45,6 @@
   "diagnostic_source_receipt": "usb-chrdet-errors.json",
   "classifier_sha256": "15ca516ab2109b72de14c0905a0ff3cf26a7a051811b76ab57e1ede0176eb93e",
   "usb_decoder_sha256": "db8ab119224b4aaae3ea7f29065a53646389c8f5ed6814b2ac58b7b88528d31a",
-  "usb_decoder_validation": "33 attribution, format and independent-mask cases passed"
+  "usb_decoder_validation": "33 attribution, format and independent-mask cases passed",
+  "deployment_receipt": "usb-chrdet-errors-deployment.json"
 }

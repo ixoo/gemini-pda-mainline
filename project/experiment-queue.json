@@ -4,7 +4,7 @@
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
   "selected_item": "wifi-export-usb-chrdet-errors-1",
-  "selection_note": "Primary coordinator retains sole custody. Select the validated read-status diagnostic for guarded installation from the preserved Gemian return; no physical selection until full readback, shutdown and collector readiness.",
+  "selection_note": "New read-status diagnostic installed with full readback and clean shutdown. Sole custody remains with primary coordinator; physical selection awaits fresh collector arming.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -301,10 +301,10 @@
       "experiment": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_CHRDET_ERRORS.md",
       "session_packet": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_CHRDET_ERRORS.md#selected-session",
       "candidate_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-chrdet-errors-candidate.json",
-      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-chrdet-errors-session.json",
+      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-chrdet-errors-deployment.json",
       "dependencies": [],
       "owner_task_id": null,
-      "readiness_note": "Full Buildbox build, linked status guards, 128 helper cases, 33 decoder cases, exact filesystem/container checks passed. Installer changes only five identity/destination fields; physical result pending."
+      "readiness_note": "Guarded live-GPT boot2 installation, full checksum and independent readback passed from the expected Gemian boot. Clean shutdown confirmed. No physical selection until collectors are armed."
     }
   }
 }

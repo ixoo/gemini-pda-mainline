@@ -138,3 +138,12 @@ attribution, receiver and finite transport budgets are unchanged. The v3 decoder
 is the one validated in the build receipt. Only after installation/readback,
 shutdown and both collectors being armed may the owner physically select boot2.
 This session adds no capture clear, radio operation or host network change.
+
+
+The [deployment receipt](results/usb-chrdet-errors-deployment.json) confirms
+installation from the expected Gemian boot. Live GPT resolved inactive boot2,
+all device/power guards passed, and the flushed full-partition checksum plus an
+independent streamed readback and byte comparison matched the exact candidate.
+Evidence was saved before clean shutdown; subsequent SSH was unreachable.
+No new partition backup was made. Collectors will be armed before the owner
+handoff. This verified installation is not a physical diagnostic result.
