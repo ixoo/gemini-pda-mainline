@@ -1,0 +1,45 @@
+{
+  "assembler_sha256": "36336f05a98794dece173edd70c5c7596928025f628118f036cd53c473ebe52b",
+  "filesystem_sha256": "a907086860d33327f140105258222336bc9521b205a89550f4be87fdfb3ce87e",
+  "kernel_sha256": "23ceb65dcc4aa3542267c151e44fde280d5e1ee60c4836d31d6477009be8e760",
+  "padded_bytes": 16777216,
+  "padded_sha256": "b8b510543968a5d525f868d6ebf1e0a926000fdd9b03bf74216d9df192ce3137",
+  "parent_assembler_sha256": "532f6f0dec5030a7b066f3baefa53580ec148317f633d4dd8d43308d30ac03b3",
+  "raw_bytes": 16220160,
+  "raw_sha256": "c16c4558da2ef7b73458b2c7a08096dfc62fd205565c953e83152c1cb3013f3a",
+  "scope": "validated native diagnostic container; physical read-status test outstanding",
+  "session_sha256": "a7cc30efff28ee94769c79b74c696f63afd8302ae02ef26cc7cfac507fd2eb23",
+  "startup_action": "export-tcp-return",
+  "manifest_sha256": "d214cc38cc92304eb3bfb48b2aa05144b13988667f09dbf533d1074824eb2380",
+  "kernel_build_commit": "0c02543ad35cb22fd8281ee5400aac0c01504c3d",
+  "cycle_id": "0e177bb1-5785-4473-89fc-c61c9b6d73cb",
+  "kernel_inputs_sha256": "f1933271c1010008f17e61e6ca4524e627792247f69e9fbeaf5db6585b47315a",
+  "kernel_config_sha256": "43222fdee6781f3bc51cb7e412c9f92372ecf8f78b8881b11d66b77f849d8eb8",
+  "filesystem_verification": {
+    "archive_members": 723,
+    "removed_members": 0,
+    "changed_existing_members": [
+      "etc/wifi-cycle/session.json"
+    ],
+    "exact_current_startup_inputs_and_runtime": true,
+    "filesystem_bytes": 7848647,
+    "kernel_bytes": 8367619,
+    "page_bytes": 2048,
+    "projected_container_bytes": 16220160,
+    "limit_bytes": 16777216,
+    "spare_bytes": 557056
+  },
+  "container_verification": {
+    "raw_bytes": 16220160,
+    "padded_bytes": 16777216,
+    "binary_header_and_payloads": true,
+    "reassembled_identical": true,
+    "native_addresses_and_flags": true,
+    "split_capture_dt_reg_and_no_map": true,
+    "container_mutations_rejected": 17,
+    "input_refusals": 6
+  },
+  "runtime": "Unchanged exact runtime and startup bytes; prior ARM64 validation retained",
+  "dtb": "130833 bytes, identical to tested parent",
+  "build_receipt": "usb-chrdet-errors-build.json"
+}

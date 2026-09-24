@@ -115,3 +115,26 @@ logic, not kernel atomic concurrency. The v3 decoder passed 33 format,
 attribution and independent-mask cases, including in-flight and mixed outcomes.
 Hosted checks for the published source passed. Boot-container construction,
 exact session metadata, deployment and a physical result remain pending.
+
+## Selected session
+
+The [candidate receipt](results/usb-chrdet-errors-candidate.json) binds the
+validated kernel to a fresh export-return container. Independent filesystem
+parsing confirms 723 members, with only `etc/wifi-cycle/session.json` changed
+from the tested parent. Runtime and startup bytes remain identical. Container
+reassembly is exact; seventeen container mutations and six input refusals pass.
+The assembler changes only its selected TCP kernel digest.
+
+The [session receipt](results/usb-chrdet-errors-session.json) selects cycle
+`0e177bb1-5785-4473-89fc-c61c9b6d73cb` from preserved Gemian boot
+`05eb32a4-0958-4f90-aef1-842d37a03928`. The primary coordinator holds sole
+custody. The installer is byte-identical to its reviewed parent after reversing
+five identity/destination substitutions; Bash syntax and ShellCheck pass. It
+retains live-GPT and inactive/non-root guards, stable-power checks, exact padded
+size, full readback and clean shutdown. The preceding console is preserved.
+
+The return collector changes only the preceding Gemian UUID. Ethernet
+attribution, receiver and finite transport budgets are unchanged. The v3 decoder
+is the one validated in the build receipt. Only after installation/readback,
+shutdown and both collectors being armed may the owner physically select boot2.
+This session adds no capture clear, radio operation or host network change.

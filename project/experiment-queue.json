@@ -3,8 +3,8 @@
   "purpose": "Readiness inventory, not an executable queue or device authorization. Object order is not scheduling order; docs/ROADMAP.md alone owns priority. Exact inputs, budgets and chronology stay in linked experiments.",
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
-  "selected_item": "wifi-export-usb-chrdet-diagnostics-1",
-  "selection_note": "The charger diagnostic completed with retained branch evidence and authenticated Gemian return. All collectors are terminal; primary coordinator retains custody, with no new physical test selected.",
+  "selected_item": "wifi-export-usb-chrdet-errors-1",
+  "selection_note": "Primary coordinator retains sole custody. Select the validated read-status diagnostic for guarded installation from the preserved Gemian return; no physical selection until full readback, shutdown and collector readiness.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -290,6 +290,21 @@
       "dependencies": [],
       "owner_task_id": null,
       "readiness_note": "Diagnostic consumed: chrdet=39 records callback return with zero detection result. Console preserved from authenticated changed-boot Gemian. Collectors terminal; no further physical selection. Next inspect callback/PMIC accessor contract."
+    },
+    "wifi-export-usb-chrdet-errors-1": {
+      "workstream": "wifi",
+      "preparation_state": "ready",
+      "device_state": "selected",
+      "owner": "primary integration coordinator",
+      "reviewer": "primary integration coordinator",
+      "device_custodian": "primary integration coordinator",
+      "experiment": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_CHRDET_ERRORS.md",
+      "session_packet": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_CHRDET_ERRORS.md#selected-session",
+      "candidate_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-chrdet-errors-candidate.json",
+      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-chrdet-errors-session.json",
+      "dependencies": [],
+      "owner_task_id": null,
+      "readiness_note": "Full Buildbox build, linked status guards, 128 helper cases, 33 decoder cases, exact filesystem/container checks passed. Installer changes only five identity/destination fields; physical result pending."
     }
   }
 }
