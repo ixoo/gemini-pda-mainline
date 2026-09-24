@@ -1,0 +1,252 @@
+{
+  "status": "Full build, validated package fetch and linked gates passed; boot container and physical admission pending",
+  "build_commit": "0c02543ad35cb22fd8281ee5400aac0c01504c3d",
+  "inputs_sha256": "f1933271c1010008f17e61e6ca4524e627792247f69e9fbeaf5db6585b47315a",
+  "source_receipt": "usb-chrdet-errors.json",
+  "runtime_motivation": "usb-chrdet-diagnostics-window-2.json",
+  "package": {
+    "package": "wifi-controller-kernel-0c02543ad35cb22fd8281ee5400aac0c01504c3d",
+    "manifest_sha256": "83a31d0f73b8a7551dba2765b2f5e1a5ed40c343a6a28461a38ee2385159b10d",
+    "files": 11,
+    "kernel_sha256": "23ceb65dcc4aa3542267c151e44fde280d5e1ee60c4836d31d6477009be8e760",
+    "kernel_bytes": 8367619
+  },
+  "vmlinux_sha256": "b30242147bec47a57e25eb21eb776154c5c034de700a5b3bd609b1ad8a0301d8",
+  "config_sha256": "43222fdee6781f3bc51cb7e412c9f92372ecf8f78b8881b11d66b77f849d8eb8",
+  "usb_fragment_sha256": "46dafbfb7dea544de7b12cfbe4980fa4af97d6c74f51e76cad35a33ea22dc003",
+  "source_integrity": "source_tree_integrity=4cc48fb3d30aa8676348c57bb72bda10b9ccbfa034a37b434b6ff9a5b2060ca8",
+  "undefined_symbols": 0,
+  "package_comparison": {
+    "configuration_byte_identical": true,
+    "cust_dtsi_byte_identical": true,
+    "appended_dtb_byte_identical": true,
+    "dtb_bytes": 130833,
+    "dtb_sha256": "f15b0840d7999a7c37b11017324de5c9f46d7d7f7b76b369aad337e453dc729f",
+    "selected_helper_and_diagnostic_configuration": "pass"
+  },
+  "linked_functions": {
+    "bc11_get_register_value": {
+      "bytes": 20,
+      "calls": [
+        "mt6351_get_register_value"
+      ],
+      "sha256": "3b34fc7d408a44da079c28251d341fcc1aa540f55f8929fc09b0aec141128f70"
+    },
+    "charging_get_charger_det_status": {
+      "bytes": 48,
+      "calls": [
+        "pmic_get_register_value_nolock"
+      ],
+      "sha256": "d43a8b3c664ec1e49d28191f44b9d6db240611d4f5046e5ee66fb1a41c05bce0"
+    },
+    "chr_control_interface": {
+      "bytes": 120,
+      "calls": [
+        "printk"
+      ],
+      "sha256": "63288ddd7c08abf8e5f0d2c60c9d66b03d9dc17e0f7c2fdb908311c4ffde2c4c"
+    },
+    "chr_control_interface_rt": {
+      "bytes": 284,
+      "calls": [
+        "printk",
+        "printk",
+        "printk",
+        "printk"
+      ],
+      "sha256": "940c7e61b8421642e858389d282f2f9dd11068ac2735404ef4b6de45a00a70cd"
+    },
+    "get_charger_detect_status": {
+      "bytes": 72,
+      "calls": [
+        "set_bit"
+      ],
+      "sha256": "53208bf089d5b094f56ac6ef7a80d071dbf03dfcca6ca5cb1835e24644e4ba7f"
+    },
+    "mt6351_get_register_value": {
+      "bytes": 148,
+      "calls": [
+        "pmic_read_interface",
+        "set_bit",
+        "set_bit"
+      ],
+      "sha256": "a2938ac2484c260f006ef901d8448214bcdff44969ce220953eb4d3dcc268328"
+    },
+    "mt6351_get_register_value_nolock": {
+      "bytes": 148,
+      "calls": [
+        "pmic_read_interface_nolock",
+        "set_bit",
+        "set_bit"
+      ],
+      "sha256": "72ea186df0ebd609dda7008064f74d2011edf5cfe3cbda27dbb3e66ea593f770"
+    },
+    "mt_usb_chrdet_paths": {
+      "bytes": 16,
+      "calls": [],
+      "sha256": "161620243a80e7152db780d63c67834befb26b71e2db862567532f3eefcbee95"
+    },
+    "mt_usb_chrdet_pmic_paths": {
+      "bytes": 12,
+      "calls": [],
+      "sha256": "3650d382127745f93af8ece7bc129c4a87890bea3200595fb53083644b1cdaef"
+    },
+    "mtk_charger_get_charger_det_status": {
+      "bytes": 48,
+      "calls": [
+        "pmic_get_register_value"
+      ],
+      "sha256": "b519fa127bc1ce4fd6fa8c079c3e8e9163bc9d29ec7a32cbf3da937dd829a48d"
+    },
+    "musb_shutdown": {
+      "bytes": 164,
+      "calls": [
+        "usb_export_report",
+        "_raw_spin_lock_irqsave",
+        "mu3d_hal_initr_dis",
+        "mu3d_hal_clear_intr",
+        "_raw_spin_unlock_irqrestore",
+        "usb_remove_hcd"
+      ],
+      "sha256": "783b7bc9b14a5c570e7f5bd25bc648d389948097c2cd38d2c1a8fdbd56ebbd1d"
+    },
+    "pmic_get_register_value": {
+      "bytes": 20,
+      "calls": [
+        "mt6351_get_register_value"
+      ],
+      "sha256": "1c0bd3f2ff5e49fe8eb23599d6ad659c16f319caf29de02f2b5e7ccf5ee16ac3"
+    },
+    "pmic_get_register_value_nolock": {
+      "bytes": 20,
+      "calls": [
+        "mt6351_get_register_value_nolock"
+      ],
+      "sha256": "8b0dabc27f8500bd53d64afa8b9d1427391a27f4ea07f8777085e2729cc31a7e"
+    },
+    "pmic_read_interface": {
+      "bytes": 288,
+      "calls": [
+        "mutex_lock",
+        "pwrap_wacs2",
+        "mutex_unlock",
+        "mutex_unlock",
+        "pwrap_wacs2"
+      ],
+      "sha256": "742f73602af903c53a6e9083d134179252e47bee0b21a2ad7579a7885d206d14"
+    },
+    "pmic_read_interface_nolock": {
+      "bytes": 88,
+      "calls": [
+        "pwrap_wacs2"
+      ],
+      "sha256": "e027880b73506147268cc85ac120874ce6d4d3ab2d7a6d00414e679b623c015a"
+    },
+    "pwrap_wacs2": {
+      "bytes": 52,
+      "calls": [
+        "printk"
+      ],
+      "sha256": "175d7cda4f2a754d1a813104dbd9c9090abebf2c92cf5745262931f3b667e25f"
+    },
+    "upmu_is_chr_det": {
+      "bytes": 376,
+      "calls": [
+        "set_bit",
+        "set_bit",
+        "get_charger_detect_status",
+        "set_bit",
+        "mt_usb_is_device",
+        "set_bit",
+        "__dynamic_pr_debug",
+        "set_bit",
+        "set_bit",
+        "set_bit",
+        "printk",
+        "set_bit",
+        "printk"
+      ],
+      "sha256": "614a3e87f441c8a47b462307e74c120f70d94ca3830afce081441ef078f3ee02"
+    },
+    "usb_export_report": {
+      "bytes": 108,
+      "calls": [
+        "test_and_set_bit",
+        "mt_usb_chrdet_paths",
+        "mt_usb_chrdet_pmic_paths",
+        "printk"
+      ],
+      "sha256": "6322cc6373cbb5ff9b09070a603adeca049a6da87165c1c90f94a843998d6e62"
+    }
+  },
+  "linked_checks": [
+    "The 108-byte USB report tests and sets bit 15 before its ordinary getters and printk. Already-consumed report returns before getters. musb_shutdown first calls that report.",
+    "The new 12-byte PMIC software getter is ADRP, LDR, RET with no calls.",
+    "The 72-byte command-12 caller retains one indirect callback and its original output return, adding a status-to-bit-8-or-9 operation.",
+    "Both 148-byte PMIC getters keep exactly one original accessor call and two atomic marker sites. Only flag 3371 reaches the markers. The nonzero-status branch jumps over the new 32-bit output load; original 16-bit return loads remain, including the pre-existing unwritten-output limitation.",
+    "Compiler folding changes wrapper targets and outlines get_charger_detect_status from upmu_is_chr_det; this is not an added callback or hardware read. The PMIC field table still maps flag 3371 to offset 0x0f78, mask 1, shift 5."
+  ],
+  "helper_validation": {
+    "cases": 128,
+    "actual_source_helper_sha256": "4d39eef7c3ac7c7ef2ea868df6a33a01417753a2af940dc8c8702a84aa0e10cb",
+    "result": "pass",
+    "coverage": "all gate combinations, CHRDET/other flag, error/success, zero/nonzero, normal/nolock; null output pointer on every error or excluded case",
+    "limitations": "hardware-free helper logic only; bitops stub does not test atomic concurrency or kernel linkage"
+  },
+  "decoder_cases_passed": 33,
+  "decoder_sha256": "db8ab119224b4aaae3ea7f29065a53646389c8f5ed6814b2ac58b7b88528d31a",
+  "build_limitations": [
+    "The inherited native -w compiler suppression remains.",
+    "The build retains 69 section mismatches; this is not warning-clean evidence.",
+    "Patch application reports inherited executable-mode versus patch-context file-mode warnings; application and source-integrity checks pass.",
+    "No new boot container, deployment, physical run or support claim is established by this build."
+  ],
+  "hosted_checks": {
+    "conclusion": "success",
+    "headSha": "0c02543ad35cb22fd8281ee5400aac0c01504c3d",
+    "status": "completed",
+    "url": "https://github.com/ixoo/gemini-pda-mainline/actions/runs/36062065595"
+  },
+  "private_evidence": {
+    "verify-linked.py": {
+      "bytes": 3989,
+      "sha256": "b8a5714de75bbfb644584fcfddeea20553d8ac168bb0a58537aed9df714338cc"
+    },
+    "linked-verified.txt": {
+      "bytes": 23893,
+      "sha256": "1aa8272ad6886feb40370af6d073addb5c632ebef2ff07c66d07aa906b57d4ae"
+    },
+    "check-helper.py": {
+      "bytes": 2286,
+      "sha256": "f05887b6f480d6edd2205ef4b66381f5adda4d5591bfa09034457fd707c537a5"
+    },
+    "helper-check.json": {
+      "bytes": 399,
+      "sha256": "a9271816df052cadfd2ea5f757347773112759052a85a1e86ef529d326ec7eb3"
+    },
+    "decode-usb.py": {
+      "bytes": 2578,
+      "sha256": "db8ab119224b4aaae3ea7f29065a53646389c8f5ed6814b2ac58b7b88528d31a"
+    },
+    "check-decoder.py": {
+      "bytes": 2232,
+      "sha256": "69ee0cd77dd3e661c9119f4a7eb82e19514793005f50d1ee311121cb7787cc5f"
+    },
+    "check-package.py": {
+      "bytes": 1198,
+      "sha256": "a98ab979c20961659af643749469214e2e1355c4ab372456b09bd41adf00317d"
+    },
+    "package-comparison.json": {
+      "bytes": 269,
+      "sha256": "cce970d98aee0c0664654d45d950076ed31c63dc213d5debb6a9a1d9582cff62"
+    },
+    "fetch-kernel.py": {
+      "bytes": 2510,
+      "sha256": "0aff8ef7ac468b7df52bbf9a01a346bff381ea921c5dddd0b10c6d5548e67fdf"
+    },
+    "fetch-kernel.json": {
+      "bytes": 289,
+      "sha256": "69423d1badf58fd42a67dbd67a1c610a1ef91e8a42ceb64c312be18f9a64b15a"
+    }
+  }
+}

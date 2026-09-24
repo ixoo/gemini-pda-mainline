@@ -14,7 +14,7 @@ the four source files retain their GPL version 2 headers. It is not an upstream
 submission or a production error-handling repair. The [source receipt](results/usb-chrdet-errors.json)
 pins four parent files, exact reversal and replay, and strict Checkpatch. The
 first fifty patches, configuration and canonical upstream series are unchanged.
-Compilation and linked inspection remain pending; no candidate is selected.
+Compilation and linked inspection now pass; no boot candidate is selected.
 
 ## Observations and bounds
 
@@ -88,3 +88,30 @@ Any physical session still needs an exact validated container and session,
 guarded boot2 installation/readback, clean shutdown, collectors armed and one
 owner physical selection. No capture clear, radio action, forced VBUS value or
 role override is admitted by this source record.
+
+
+## Validated build
+
+The [build receipt](results/usb-chrdet-errors-build.json) binds the complete
+51-patch Buildbox package at `0c02543ad35cb22fd8281ee5400aac0c01504c3d`.
+All eleven remote and fetched package files were verified. Configuration,
+`cust.dtsi` and the 130833-byte appended DTB are byte-identical to the tested
+parent. The inherited compiler warning suppression and 69 section mismatches
+remain; this is not a warning-clean or hardware-support claim.
+
+Linked inspection confirms that each CHRDET getter keeps one existing accessor
+call and that its new diagnostic output load is skipped on nonzero status.
+The original return loads and their error-handling limitation remain. The
+command-12 caller keeps one indirect callback and records its returned status.
+Compiler folding changes some wrapper targets and outlines the battery helper;
+there is no added callback or PMIC transaction. The PMIC software getter is one
+ordinary load with no calls. The first shutdown call still enters the report,
+whose consumed-bit guard precedes both getters and the single printk.
+
+A focused hardware-free test extracted the actual PMIC observation helper and
+passed 128 combinations of gates, field selection, status, output and lock mode.
+Every error or excluded case used a null output pointer. This checks helper
+logic, not kernel atomic concurrency. The v3 decoder passed 33 format,
+attribution and independent-mask cases, including in-flight and mixed outcomes.
+Hosted checks for the published source passed. Boot-container construction,
+exact session metadata, deployment and a physical result remain pending.
