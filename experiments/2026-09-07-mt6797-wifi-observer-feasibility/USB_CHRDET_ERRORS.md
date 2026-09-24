@@ -14,7 +14,8 @@ the four source files retain their GPL version 2 headers. It is not an upstream
 submission or a production error-handling repair. The [source receipt](results/usb-chrdet-errors.json)
 pins four parent files, exact reversal and replay, and strict Checkpatch. The
 first fifty patches, configuration and canonical upstream series are unchanged.
-Compilation and linked inspection now pass; no boot candidate is selected.
+Compilation, linked inspection and a physical diagnostic now pass; the export
+result and its host-arming limitation are recorded below.
 
 ## Observations and bounds
 
@@ -113,8 +114,8 @@ passed 128 combinations of gates, field selection, status, output and lock mode.
 Every error or excluded case used a null output pointer. This checks helper
 logic, not kernel atomic concurrency. The v3 decoder passed 33 format,
 attribution and independent-mask cases, including in-flight and mixed outcomes.
-Hosted checks for the published source passed. Boot-container construction,
-exact session metadata, deployment and a physical result remain pending.
+Hosted checks for the published source passed. Subsequent packaging, deployment
+and physical observations are recorded below.
 
 ## Selected session
 
@@ -147,3 +148,29 @@ independent streamed readback and byte comparison matched the exact candidate.
 Evidence was saved before clean shutdown; subsequent SSH was unreachable.
 No new partition backup was made. Collectors will be armed before the owner
 handoff. This verified installation is not a physical diagnostic result.
+
+## Retained physical result
+
+The [runtime receipt](results/usb-chrdet-errors-runtime.json) attributes one
+physical boot to the selected session and confirms changed-boot Gemian return.
+Its console was preserved in one bounded read. The retained summary is
+`paths=89b5 cable=00010302 chrdet=0199 pmic=13`: the existing reads recorded
+successful nonzero CHRDET, both accessor completion modes, and no error or
+successful-zero marker. Callback success, device/cable-present and controller
+start/return were recorded. These independent cumulative masks do not establish
+per-call association, order, or why the preceding run observed zero.
+
+The initial host USB inventory already contained the expected export gadget.
+The Ethernet collector therefore refused its fresh-boot attribution check before
+arming or invoking the receiver. The owner reported boot2 started before a ready
+handoff; no exact receipt timestamp is retained. The return collector completed
+normally. Native host-request wait stopped at about 63.25 seconds, followed by
+normal restart, with no checked post-marker fault token in the retained console.
+No snapshot request or acknowledgement occurred; export remains untested in this
+run. Both collectors are terminal.
+
+The next useful measurement is the existing bounded export with collectors
+successfully armed before physical selection. This result does not justify
+another kernel change, forced cable detection or clearing retained capture.
+A fresh session must bind the new preceding Gemian identity and preserve this
+consumed session's evidence.

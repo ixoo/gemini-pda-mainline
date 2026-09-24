@@ -1,0 +1,150 @@
+{
+  "session_id": "0e177bb1-5785-4473-89fc-c61c9b6d73cb",
+  "previous_gemian_boot": "05eb32a4-0958-4f90-aef1-842d37a03928",
+  "returned_gemian_boot": "fdcbec28-2d64-4f7b-baac-cd1146939feb",
+  "console_bytes": 65524,
+  "console_sha256": "0ce62656570d18c81dcf070e2f5c52e9a8a311a578dc8364e4be9692a5449096",
+  "console_payload_reads": 1,
+  "captured_utc": "2026-09-24T21:48:24.957379+00:00",
+  "return_marker_count": 1,
+  "classification": "retained-stopped",
+  "candidate_boot": "12790025-a76b-41d2-a5dc-bd8bcb08fabc",
+  "outcome": "stopped",
+  "marker_byte_offset": 60384,
+  "stages": [
+    "wifi-bootstrap-v1 boot=12790025-a76b-41d2-a5dc-bd8bcb08fabc shell=bind:/lib/firmware",
+    "wifi-bootstrap-v1 boot=12790025-a76b-41d2-a5dc-bd8bcb08fabc shell=readonly:/lib/firmware",
+    "wifi-bootstrap-v1 boot=12790025-a76b-41d2-a5dc-bd8bcb08fabc shell=bind:/vendor/firmware",
+    "wifi-bootstrap-v1 boot=12790025-a76b-41d2-a5dc-bd8bcb08fabc shell=readonly:/vendor/firmware",
+    "wifi-bootstrap-v1 boot=12790025-a76b-41d2-a5dc-bd8bcb08fabc shell=bind:/data/nvram",
+    "wifi-bootstrap-v1 boot=12790025-a76b-41d2-a5dc-bd8bcb08fabc shell=readonly:/data/nvram",
+    "wifi-bootstrap-v1 boot=12790025-a76b-41d2-a5dc-bd8bcb08fabc shell=bind:/etc/wifi-cycle",
+    "wifi-bootstrap-v1 boot=12790025-a76b-41d2-a5dc-bd8bcb08fabc shell=readonly:/etc/wifi-cycle",
+    "wifi-bootstrap-v1 boot=12790025-a76b-41d2-a5dc-bd8bcb08fabc shell=bind:/opt/wifi-cycle",
+    "wifi-bootstrap-v1 boot=12790025-a76b-41d2-a5dc-bd8bcb08fabc shell=readonly:/opt/wifi-cycle",
+    "wifi-bootstrap-v1 boot=12790025-a76b-41d2-a5dc-bd8bcb08fabc shell=bind:/init",
+    "wifi-bootstrap-v1 boot=12790025-a76b-41d2-a5dc-bd8bcb08fabc shell=readonly:/init",
+    "wifi-bootstrap-v1 boot=12790025-a76b-41d2-a5dc-bd8bcb08fabc shell=python",
+    "wifi-bootstrap-v1 boot=12790025-a76b-41d2-a5dc-bd8bcb08fabc python=python-entry status=entered",
+    "wifi-bootstrap-v1 boot=12790025-a76b-41d2-a5dc-bd8bcb08fabc python=preflight status=passed",
+    "wifi-bootstrap-v1 boot=12790025-a76b-41d2-a5dc-bd8bcb08fabc python=snapshot status=entered",
+    "wifi-bootstrap-v1 boot=12790025-a76b-41d2-a5dc-bd8bcb08fabc python=usb-ownership status=entered",
+    "wifi-bootstrap-v1 boot=12790025-a76b-41d2-a5dc-bd8bcb08fabc python=host-request status=waiting",
+    "wifi-bootstrap-v1 boot=12790025-a76b-41d2-a5dc-bd8bcb08fabc python=host-request status=stopped"
+  ],
+  "normal_restart_after_marker": true,
+  "post_marker_fault_tokens": {
+    "Kernel panic": 0,
+    "BUG:": 0,
+    "WARNING:": 0,
+    "Unable to handle kernel": 0,
+    "Call trace:": 0
+  },
+  "cpu_online_failure_observations": [],
+  "cpu8_boot_failures": 0,
+  "hps_lines": 24,
+  "marker_kernel_seconds": "63.245076",
+  "usb_diagnostic": {
+    "pmic_hex": "13",
+    "pmic": [
+      "normal_completed",
+      "nolock_completed",
+      "nonzero"
+    ],
+    "chrdet_hex": "0199",
+    "chrdet": [
+      "entered",
+      "detect_called",
+      "detect_returned",
+      "device",
+      "callback_ok"
+    ],
+    "classification": "retained-summary",
+    "paths_hex": "89b5",
+    "paths": [
+      "entered",
+      "ready",
+      "device",
+      "cable_in",
+      "start_called",
+      "start_returned",
+      "stable",
+      "reported"
+    ],
+    "cable_hex": "00010302",
+    "cable_sample_present": true,
+    "limitation": "Each cumulative mask and the latest cable sample are independent; no call order, counts, common caller or enumeration inferred.",
+    "charger_type": 2,
+    "vbus": true,
+    "connected": true,
+    "cable_mode": 1
+  },
+  "status": "Physical diagnostic completed; controller start observed; export not attempted by host",
+  "deployment_record": "usb-chrdet-errors-deployment.json",
+  "installed_padded_sha256": "b8b510543968a5d525f868d6ebf1e0a926000fdd9b03bf74216d9df192ce3137",
+  "session_sha256": "a7cc30efff28ee94769c79b74c696f63afd8302ae02ef26cc7cfac507fd2eb23",
+  "owner_start_report": "boot2 started",
+  "owner_start_receipt_timestamp": null,
+  "ethernet_collector_exit": 1,
+  "return_collector_exit": 0,
+  "ethernet_collector_armed": false,
+  "receiver_invocations": 0,
+  "capture_requests": 0,
+  "acknowledgements": 0,
+  "snapshot_exported": false,
+  "interpretation": "Successful nonzero CHRDET access was recorded, with both normal and nolock completion markers and no recorded accessor errors or successful-zero outcomes. Callback success, device/cable-present and controller start/return were recorded. The initial host inventory contained the expected gadget, so fresh-boot attribution refused before receiver invocation. Native host-request wait stopped and normal restart followed.",
+  "limitations": [
+    "Masks are cumulative across callers and independent; they do not establish order or per-call association.",
+    "The host collector found the gadget already present at baseline; no armed receipt or receiver exists. USB export was not tested.",
+    "The owner start report has no retained exact receipt timestamp; the record does not invent one.",
+    "This run does not explain the preceding zero detection result or demonstrate repeatability.",
+    "Console preservation and the attributed return marker do not establish snapshot export. Absence of fault tokens applies only to retained post-marker console."
+  ],
+  "next_step": "Prepare a fresh bounded export session with the validated candidate and host collectors successfully armed before owner selection. No kernel change is justified by this result; no capture clear is authorized.",
+  "private_evidence": {
+    "runtime-result.json": {
+      "bytes": 3530,
+      "sha256": "fa1aeb5f9e4ce2de2c6c0a8515abe4fcfc29aba397ad5e86996a0857c1ff703b"
+    },
+    "classify.py": {
+      "bytes": 3539,
+      "sha256": "15ca516ab2109b72de14c0905a0ff3cf26a7a051811b76ab57e1ede0176eb93e"
+    },
+    "decode-usb.py": {
+      "bytes": 2578,
+      "sha256": "db8ab119224b4aaae3ea7f29065a53646389c8f5ed6814b2ac58b7b88528d31a"
+    },
+    "ethernet-collector.stdout": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "ethernet-collector.stderr": {
+      "bytes": 558,
+      "sha256": "7db8f774cb7c99e2026fa271379f1bffd8f303c7249b5e1aec00c4309338c655"
+    },
+    "ethernet-watch/usb-before.txt": {
+      "bytes": 955082,
+      "sha256": "10cea4490eca119ae7e0945435f17bf2a8d0aa06714d25cbc65fb8c7ad562fa9"
+    },
+    "return-collector.stdout": {
+      "bytes": 370,
+      "sha256": "d2fedafe6bd48e6cdf242e18b63aadbdf42feb3fba934f1daffadea5b429511c"
+    },
+    "return-collector.stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "gemian-return/capture-receipt.json": {
+      "bytes": 251,
+      "sha256": "55802bdc62171665056704f996db4a22b8683bfb78374f6b0385e0a1a5d7521b"
+    },
+    "gemian-return/console-ramoops": {
+      "bytes": 65524,
+      "sha256": "0ce62656570d18c81dcf070e2f5c52e9a8a311a578dc8364e4be9692a5449096"
+    },
+    "gemian-return/identity.stdout": {
+      "bytes": 187,
+      "sha256": "1e5d7867234d3a9826f8b7d22742dc2d1a81a24f5daa6a532d01d226eeacef8e"
+    }
+  }
+}
