@@ -1,0 +1,63 @@
+{
+  "classification": "host-window-expired-without-attributed-device-result",
+  "cycle_id": "186b19d7-b2f6-41e7-8145-041efc7f79fe",
+  "previous_gemian_boot": "fdcbec28-2d64-4f7b-baac-cd1146939feb",
+  "session_sha256": "f18472a92cecc8d0f2f92f9a5ba56b4938ba105de4012b166a46bccb6fb70943",
+  "armed_utc_seconds": 1790287195.062886,
+  "collector_seconds": 600,
+  "ethernet_collector_exit": 2,
+  "return_collector_exit": 1,
+  "owner_start_report_received": false,
+  "receiver_invocations": 0,
+  "capture_requests": 0,
+  "acknowledgements": 0,
+  "snapshot_exported": false,
+  "candidate_boot_observed": false,
+  "changed_gemian_boot_observed": false,
+  "candidate_record": "usb-chrdet-errors-second-candidate.json",
+  "deployment_record": "usb-chrdet-errors-second-deployment.json",
+  "limitation": "No owner start report was received for this window. Host timeout does not establish whether boot2 ran or failed. No retry, recovery or new boot was performed. Await owner state before fresh collector admission.",
+  "hosted_checks": {
+    "head": "8839723df8a65a1fe0af4642ab06ba1665107595",
+    "run": 36065240698,
+    "conclusion": "success"
+  },
+  "private_evidence": {
+    "active.json": {
+      "bytes": 448,
+      "sha256": "021d8aea4ad3745a2419acd229763de48b4e6e58d8629b1b4224b82df09721f7"
+    },
+    "ethernet-watch/armed.json": {
+      "bytes": 465,
+      "sha256": "82a0e7926953d8bf8e4a090ece032c95506472b53bf0784f24d94629dee9073d"
+    },
+    "ethernet-watch/usb-before.txt": {
+      "bytes": 942135,
+      "sha256": "3c1090a6ec18e03eabfefc97f2f7ef5d0b9f85df51a6ee8139080f123ab31442"
+    },
+    "ethernet-watch/usb-final.txt": {
+      "bytes": 942137,
+      "sha256": "853f74322b99b6dbb7d66b2b411c6b699f9ef0116051a20042810ce79508c0d4"
+    },
+    "ethernet-collector.stdout": {
+      "bytes": 137,
+      "sha256": "f1ebcbf35cd9a2d85e69525a262b3a2c28909b279f34161f9bb0ddb723db03d5"
+    },
+    "ethernet-collector.stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "return-collector.stdout": {
+      "bytes": 70,
+      "sha256": "9800a47baa9ad6e57bee3f8396d8b262a13a40a3c595c9a55a0df56cfe617444"
+    },
+    "return-collector.stderr": {
+      "bytes": 519,
+      "sha256": "5bbf543521b4e07447d2fb6cb755ea2bbbacf7d7794852bc0f7868c20f0331e5"
+    },
+    "hosted-check.json": {
+      "bytes": 99,
+      "sha256": "1c01e1bb4a455d22311b195830fd31ab8402b1f32647b136121779cd982f15ae"
+    }
+  }
+}

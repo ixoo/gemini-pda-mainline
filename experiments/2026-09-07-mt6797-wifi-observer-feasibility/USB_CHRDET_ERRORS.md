@@ -205,3 +205,11 @@ checksum and independent streamed byte comparison match the candidate. The
 preceding Gemian identity stayed unchanged; evidence was flushed before clean
 shutdown, and subsequent SSH was unreachable. Collector arming remains the
 next gate before physical selection.
+
+The [first host window](results/usb-chrdet-errors-second-window-1.json)
+expired after successful arming. No owner start report, attributed Ethernet
+link, receiver invocation or authenticated changed-boot Gemian return was
+recorded. Both collectors are terminal. This is a host-window result, not
+evidence that the candidate booted or failed. Fresh arming waits for owner
+state; no reinstall, recovery or physical retry follows from the timeout.
+Hosted repository checks passed for the published deployment revision.

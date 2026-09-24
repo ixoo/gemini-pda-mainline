@@ -4,7 +4,7 @@
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
   "selected_item": "wifi-export-usb-chrdet-errors-2",
-  "selection_note": "Second export session installed and fully read back; clean shutdown confirmed. Sole primary custody; successful collector arming must precede physical handoff.",
+  "selection_note": "Second session installed; first host window expired without an owner start report or attributed device result. Both collectors terminal. Await owner state before fresh arming; no physical boot or failure inferred.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -308,7 +308,7 @@
     },
     "wifi-export-usb-chrdet-errors-2": {
       "workstream": "wifi",
-      "preparation_state": "ready",
+      "preparation_state": "conditional",
       "device_state": "selected",
       "owner": "primary integration coordinator",
       "reviewer": "primary integration coordinator",
@@ -316,10 +316,10 @@
       "experiment": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_CHRDET_ERRORS.md",
       "session_packet": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_CHRDET_ERRORS.md#second-export-session",
       "candidate_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-chrdet-errors-second-candidate.json",
-      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-chrdet-errors-second-deployment.json",
+      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-chrdet-errors-second-window-1.json",
       "dependencies": [],
       "owner_task_id": null,
-      "readiness_note": "Guarded installation and full independent readback passed; clean shutdown confirmed. Collectors not armed yet."
+      "readiness_note": "Verified installation remains recorded. Host window expired without attributed boot/result; owner state is required before admitting fresh collectors. No reinstall or recovery performed."
     }
   }
 }
