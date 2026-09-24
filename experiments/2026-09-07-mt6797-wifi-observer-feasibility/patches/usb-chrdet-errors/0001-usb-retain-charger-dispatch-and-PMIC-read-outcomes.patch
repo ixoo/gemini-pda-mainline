@@ -1,0 +1,205 @@
+From 736bdee413d874b22e687cc12eaf1bc49d71580a Mon Sep 17 00:00:00 2001
+From: Codex native diagnostic <noreply@native-diagnostic.invalid>
+Date: Thu, 24 Sep 2026 21:27:34 +0000
+Subject: [PATCH] usb: retain charger dispatch and PMIC read outcomes
+
+The charger diagnostic observed a zero detection result, but the battery
+helper and PMIC getters discard error statuses and can return an unwritten
+local output. This does not establish a successful zero hardware read.
+
+Retain command-12 callback success/failure and CHRDET-only PMIC accessor
+completion, error, and successful zero/nonzero outcomes. Inspect the PMIC
+output only on success. Append the independent masks to the existing
+one-shot shutdown report under the unchanged diagnostic gate. Preserve
+all original calls, output behavior and return values, including their
+existing error-handling limitations; add no hardware transactions.
+
+This assistant-generated native experiment carries no DCO certification
+and is not an upstream submission.
+---
+ .../misc/mediatek/include/mt-plat/charging.h  | 10 ++++
+ drivers/misc/mediatek/mu3d/drv/mt_usb.c       |  4 +-
+ .../misc/mediatek/power/mt6797/upmu_common.c  | 38 +++++++++++++++
+ drivers/power/mediatek/battery_common_fg_20.c | 47 ++++++++++---------
+ 4 files changed, 76 insertions(+), 23 deletions(-)
+
+diff --git a/drivers/misc/mediatek/include/mt-plat/charging.h b/drivers/misc/mediatek/include/mt-plat/charging.h
+index 0610852..dff3e87 100644
+--- a/drivers/misc/mediatek/include/mt-plat/charging.h
++++ b/drivers/misc/mediatek/include/mt-plat/charging.h
+@@ -659,4 +659,14 @@ static inline unsigned long mt_usb_chrdet_paths(void)
+ }
+ #endif
+ 
++#if defined(CONFIG_ARCH_MT6797) && defined(CONFIG_MTK_PMIC) && \
++	!defined(CONFIG_MTK_PMIC_NEW_ARCH)
++unsigned long mt_usb_chrdet_pmic_paths(void);
++#else
++static inline unsigned long mt_usb_chrdet_pmic_paths(void)
++{
++	return 0;
++}
++#endif
++
+ #endif	/* #ifndef _CHARGING_H */
+diff --git a/drivers/misc/mediatek/mu3d/drv/mt_usb.c b/drivers/misc/mediatek/mu3d/drv/mt_usb.c
+index eaffa37..831d0e9 100644
+--- a/drivers/misc/mediatek/mu3d/drv/mt_usb.c
++++ b/drivers/misc/mediatek/mu3d/drv/mt_usb.c
+@@ -69,9 +69,9 @@ void usb_export_report(void)
+ 		return;
+ 
+ 	/* Each cumulative mask and the latest cable sample are independent. */
+-	pr_info("wifi-usb-v2 paths=%04lx cable=%08x chrdet=%02lx\n",
++	pr_info("wifi-usb-v3 paths=%04lx cable=%08x chrdet=%04lx pmic=%02lx\n",
+ 		READ_ONCE(usb_export_paths), atomic_read(&usb_export_cable),
+-		mt_usb_chrdet_paths());
++		mt_usb_chrdet_paths(), mt_usb_chrdet_pmic_paths());
+ }
+ 
+ unsigned int cable_mode = CABLE_MODE_NORMAL;
+diff --git a/drivers/misc/mediatek/power/mt6797/upmu_common.c b/drivers/misc/mediatek/power/mt6797/upmu_common.c
+index 96a469f..35655a6 100644
+--- a/drivers/misc/mediatek/power/mt6797/upmu_common.c
++++ b/drivers/misc/mediatek/power/mt6797/upmu_common.c
+@@ -11,6 +11,7 @@
+  * GNU General Public License for more details.
+  */
+ 
++#include <linux/bitops.h>
+ #include <linux/kernel.h>
+ #include <linux/module.h>
+ 
+@@ -7355,6 +7356,41 @@ unsigned short mt6351_set_register_value(PMU_FLAGS_LIST_ENUM flagname, unsigned
+ }
+ 
+ 
++enum usb_chrdet_pmic_path {
++	USB_CHRDET_PMIC_NORMAL,
++	USB_CHRDET_PMIC_NOLOCK,
++	USB_CHRDET_PMIC_ERROR,
++	USB_CHRDET_PMIC_ZERO,
++	USB_CHRDET_PMIC_NONZERO,
++};
++
++static unsigned long usb_chrdet_pmic_paths;
++
++static void usb_chrdet_pmic_result(PMU_FLAGS_LIST_ENUM flag, unsigned int ret,
++				   const unsigned int *val, bool nolock)
++{
++	unsigned int path;
++
++	if (!IS_ENABLED(CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR) ||
++	    !IS_ENABLED(CONFIG_USB_ETH) || IS_ENABLED(CONFIG_USB_G_ANDROID) ||
++	    flag != MT6351_PMIC_RGS_CHRDET)
++		return;
++
++	set_bit(nolock ? USB_CHRDET_PMIC_NOLOCK : USB_CHRDET_PMIC_NORMAL,
++		&usb_chrdet_pmic_paths);
++	/* The original accessor leaves the output untouched on error. */
++	if (ret)
++		path = USB_CHRDET_PMIC_ERROR;
++	else
++		path = *val ? USB_CHRDET_PMIC_NONZERO : USB_CHRDET_PMIC_ZERO;
++	set_bit(path, &usb_chrdet_pmic_paths);
++}
++
++unsigned long mt_usb_chrdet_pmic_paths(void)
++{
++	return READ_ONCE(usb_chrdet_pmic_paths);
++}
++
+ unsigned short mt6351_get_register_value(PMU_FLAGS_LIST_ENUM flagname)
+ {
+ 	const PMU_FLAG_TABLE_ENTRY *pFlag = &pmu_flags_table[flagname];
+@@ -7365,6 +7401,7 @@ unsigned short mt6351_get_register_value(PMU_FLAGS_LIST_ENUM flagname)
+ 	    pmic_read_interface((unsigned int) pFlag->offset, &val, (unsigned int) (pFlag->mask),
+ 				(unsigned int) (pFlag->shift));
+ 
++	usb_chrdet_pmic_result(flagname, ret, &val, false);
+ 	return val;
+ }
+ 
+@@ -7398,6 +7435,7 @@ unsigned short mt6351_get_register_value_nolock(PMU_FLAGS_LIST_ENUM flagname)
+ 	    pmic_read_interface_nolock((unsigned int) pFlag->offset, &val, (unsigned int) (pFlag->mask),
+ 				(unsigned int) (pFlag->shift));
+ 
++	usb_chrdet_pmic_result(flagname, ret, &val, true);
+ 	return val;
+ }
+ 
+diff --git a/drivers/power/mediatek/battery_common_fg_20.c b/drivers/power/mediatek/battery_common_fg_20.c
+index 65643bb..74aed00 100644
+--- a/drivers/power/mediatek/battery_common_fg_20.c
++++ b/drivers/power/mediatek/battery_common_fg_20.c
+@@ -393,27 +393,6 @@ int read_tbat_value(void)
+ 	return BMT_status.temperature;
+ }
+ 
+-int get_charger_detect_status(void)
+-{
+-	kal_bool chr_status;
+-
+-	battery_charging_control(CHARGING_CMD_GET_CHARGER_DET_STATUS, &chr_status);
+-	return chr_status;
+-}
+-
+-#if defined(CONFIG_MTK_POWER_EXT_DETECT)
+-kal_bool bat_is_ext_power(void)
+-{
+-	kal_bool pwr_src = 0;
+-
+-	battery_charging_control(CHARGING_CMD_GET_POWER_SOURCE, &pwr_src);
+-	battery_log(BAT_LOG_FULL, "[BAT_IS_EXT_POWER] is_ext_power = %d\n", pwr_src);
+-	return pwr_src;
+-}
+-#endif
+-/* ///////////////////////////////////////////////////////////////////////////////////////// */
+-/* // PMIC PCHR Related APIs */
+-/* ///////////////////////////////////////////////////////////////////////////////////////// */
+ enum usb_chrdet_path {
+ 	USB_CHRDET_ENTER,
+ 	USB_CHRDET_NOT_READY,
+@@ -423,6 +402,8 @@ enum usb_chrdet_path {
+ 	USB_CHRDET_ABSENT,
+ 	USB_CHRDET_HOST,
+ 	USB_CHRDET_DEVICE,
++	USB_CHRDET_CALLBACK_OK,
++	USB_CHRDET_CALLBACK_ERROR,
+ };
+ 
+ static unsigned long usb_chrdet_paths;
+@@ -439,6 +420,30 @@ unsigned long mt_usb_chrdet_paths(void)
+ 	return READ_ONCE(usb_chrdet_paths);
+ }
+ 
++int get_charger_detect_status(void)
++{
++	kal_bool chr_status;
++	int ret;
++
++	ret = battery_charging_control(CHARGING_CMD_GET_CHARGER_DET_STATUS,
++				       &chr_status);
++	usb_chrdet_mark(ret ? USB_CHRDET_CALLBACK_ERROR : USB_CHRDET_CALLBACK_OK);
++	return chr_status;
++}
++
++#if defined(CONFIG_MTK_POWER_EXT_DETECT)
++kal_bool bat_is_ext_power(void)
++{
++	kal_bool pwr_src = 0;
++
++	battery_charging_control(CHARGING_CMD_GET_POWER_SOURCE, &pwr_src);
++	battery_log(BAT_LOG_FULL, "[BAT_IS_EXT_POWER] is_ext_power = %d\n", pwr_src);
++	return pwr_src;
++}
++#endif
++/* ///////////////////////////////////////////////////////////////////////////////////////// */
++/* // PMIC PCHR Related APIs */
++/* ///////////////////////////////////////////////////////////////////////////////////////// */
+ kal_bool upmu_is_chr_det(void)
+ {
+ #if !defined(CONFIG_POWER_EXT)
+-- 
+2.39.5
+

@@ -1,0 +1,32 @@
+{
+  "before_sha256": {
+    "drivers/misc/mediatek/mu3d/drv/mt_usb.c": "ed9d988cd781ec60a6da5e479529d89d1a17bf2badce71cb2b4f2256102b9a65",
+    "drivers/power/mediatek/battery_common_fg_20.c": "8dd9ca674a9860ffac9805977d1d364a34559243b1646a08d8a89e5182f6d01f",
+    "drivers/misc/mediatek/include/mt-plat/charging.h": "20539ce0140439973197e601ce9532ccee31a23ef8a53cc264944508318847a7",
+    "drivers/misc/mediatek/power/mt6797/upmu_common.c": "877b05c463b10695af59fbfe418b73aa21c58ac0cb93ae1237b63c3cd9a24e9b"
+  },
+  "after_sha256": {
+    "drivers/misc/mediatek/mu3d/drv/mt_usb.c": "397bcde2601dd4b72a1921e809352bac089caade8e0df1a8f5dbb216de868268",
+    "drivers/power/mediatek/battery_common_fg_20.c": "34c3bbe60fe9adfbc1a3032a00139e222759d8dbe3dc238982c35c4b6947d373",
+    "drivers/misc/mediatek/include/mt-plat/charging.h": "e5523d3350104e36f8b8dab892ec5e637b05825688bebc09145afacdbb9f649d",
+    "drivers/misc/mediatek/power/mt6797/upmu_common.c": "1e708254b9b083759e5f1c5d07205b825f5659008a37c49cecd407242816c514"
+  },
+  "inverse_exact": true,
+  "replayed_exact": true,
+  "checkpatch_exit": 0,
+  "patch_sha256": "2bd8264b49f28d0ab59f25cbdc1927a91f0565657a37673f5b0255777e5f8fbc",
+  "patch_bytes": 7093,
+  "status": "Source reviewed; compilation and linked validation pending; no candidate or physical selection",
+  "parent_build_commit": "520fddb9ef17eccb73ebf836e120a0e582ab7a21",
+  "parent_inputs_sha256": "1295fc3e453f94d4ae366b05af87eeb9ac6ef7d12e3b950f0a4bea32c9fd8bf8",
+  "inputs_sha256": "f1933271c1010008f17e61e6ca4524e627792247f69e9fbeaf5db6585b47315a",
+  "patch_count": 51,
+  "parent_50_patches_unchanged": true,
+  "canonical_upstream_series_and_profiles_unchanged": true,
+  "configuration_unchanged": true,
+  "source_trace": "usb-chrdet-provider-trace.json",
+  "patch_path": "patches/usb-chrdet-errors/0001-usb-retain-charger-dispatch-and-PMIC-read-outcomes.patch",
+  "checkpatch": "Linux 7.1.3 strict, no-tree, no-signoff: 0 errors, 0 warnings, 0 checks; non-certifying native experiment",
+  "generation_note": "Initial inverse check rejected a relocation encoded as an empty substitution. Re-expressing the same move as one whole-block substitution passed exact reversal. Two initial formatting findings were corrected; final strict check passed.",
+  "limits": "Original unwritten-output error behavior is preserved, not repaired. Instrumentation reads a PMIC output only when the original accessor succeeds. No hardware transaction, policy action, callback retry or new printk site added."
+}

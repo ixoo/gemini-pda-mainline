@@ -1,7 +1,7 @@
 # Complete native controller kernel link
 
 The [Buildbox-only builder](build-full-kernel.py) compiles the complete native
-kernel from [fifty pinned patches](full-kernel-inputs.json): the previously
+kernel from [fifty-one pinned patches](full-kernel-inputs.json): the previously
 compiled controller composition, the emergency reset correction, and historical
 patch 0001's A72 refusal/configuration declaration, plus the detector's watchdog
 header dependency, the [calibration open-error correction](CALIBRATION_OPEN.md)
@@ -117,3 +117,7 @@ The [47-patch HPS startup correction](HPS_BOOT_POLICY.md#validated-build-and-sel
 passes the complete Buildbox link, fetched checksum inventory and linked-code
 comparison. Its receipt and separately selected export-return candidate are
 owned by that experiment record; device execution remains outstanding there.
+
+The [charger error discriminator](USB_CHRDET_ERRORS.md) adds one observation-only
+patch after the first fifty unchanged inputs. It requires independent build and
+linked validation before candidate admission.
