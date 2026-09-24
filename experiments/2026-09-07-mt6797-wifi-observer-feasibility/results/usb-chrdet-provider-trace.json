@@ -1,0 +1,162 @@
+{
+  "status": "Exact-source and linked trace complete; successful PMIC read versus discarded error remains unresolved at runtime",
+  "recorded_utc": "2026-09-24T21:23:53.568546+00:00",
+  "runtime_record": "usb-chrdet-diagnostics-window-2.json",
+  "build_commit": "520fddb9ef17eccb73ebf836e120a0e582ab7a21",
+  "native_manifest_sha256": "1295fc3e453f94d4ae366b05af87eeb9ac6ef7d12e3b950f0a4bea32c9fd8bf8",
+  "vmlinux_sha256": "147e70d8e960487aef18291df2b095e6b802505976fab9f6dacb998d97687aa5",
+  "source_sha256": {
+    "drivers/power/mediatek/battery_common_fg_20.c": "8dd9ca674a9860ffac9805977d1d364a34559243b1646a08d8a89e5182f6d01f",
+    "drivers/misc/mediatek/power/mt6797/charging_hw_bq25890.c": "7e4778e5534696b4870caa98bda34ed5e4e4c9685dde05c9faf4d33bffeb2e87",
+    "drivers/misc/mediatek/power/mt6797/mtk_charger_intf.c": "452ee3a9e54cae4e14438b14532e22860097c04602ad9fe5462b819f4a58343c",
+    "drivers/misc/mediatek/power/mt6797/pmic.c": "c08786d5ad44006d1fdc0f885e43f6ca1e9398f9c6e5e14c4ec6fe167e3d143c",
+    "drivers/misc/mediatek/power/mt6797/upmu_common.c": "877b05c463b10695af59fbfe418b73aa21c58ac0cb93ae1237b63c3cd9a24e9b",
+    "drivers/misc/mediatek/pmic_wrap/mt_pmic_wrap.c": "8b1c1a0c174fc19c409b1a0c86ea979601180004284530a0322c15868b44e219",
+    "drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/upmu_hw.h": "e376d2835dd32812b52caf6a51139cc7fd541de18eaad0f30ecf8194f70cebbe"
+  },
+  "linked_functions": {
+    "bc11_get_register_value": {
+      "bytes": 60,
+      "calls": [
+        "pmic_read_interface"
+      ],
+      "sha256": "c81afa4820cae463fd19cb0280c86bd9bc23087c5f8c619b88bff9da4ebaac89"
+    },
+    "charging_get_charger_det_status": {
+      "bytes": 48,
+      "calls": [
+        "pmic_get_register_value_nolock"
+      ],
+      "sha256": "bc834fdbc57ed82bc6badbb0aac8364cbc1431bd87c2b470001dceef8b67c5a8"
+    },
+    "chr_control_interface": {
+      "bytes": 120,
+      "calls": [
+        "printk"
+      ],
+      "sha256": "d6a0f98ff9148c78fa6e2ce804df4c05a0d72bbbac1594dbfe36d5bbe3f8ad2b"
+    },
+    "chr_control_interface_rt": {
+      "bytes": 284,
+      "calls": [
+        "printk",
+        "printk",
+        "printk",
+        "printk"
+      ],
+      "sha256": "561936ea1bc9e80b1508ea4adfccfa59e4ce81ce13e197805d3d63e42e0e9197"
+    },
+    "get_charger_detect_status": {
+      "bytes": 40,
+      "calls": [],
+      "sha256": "f67543b89865690c63437b1fb1a2f761c6da596b3d1e501e393ea08ac10f593e"
+    },
+    "mt6351_get_register_value": {
+      "bytes": 20,
+      "calls": [
+        "bc11_get_register_value"
+      ],
+      "sha256": "eb733c498db9f4cda25b09a9109073320451a1fb67062611ba527bee04463ee3"
+    },
+    "mt6351_get_register_value_nolock": {
+      "bytes": 20,
+      "calls": [
+        "pmic_get_register_value_nolock"
+      ],
+      "sha256": "66e860bfdaa5c2ac41d7ae542342ec6086bf83e9f99807ab3eda2147e37ba91d"
+    },
+    "mtk_charger_get_charger_det_status": {
+      "bytes": 48,
+      "calls": [
+        "pmic_get_register_value"
+      ],
+      "sha256": "49c2dfc92dff4032aaad2c5898934c273a611d6aa3f739b879cc2f18e8119e17"
+    },
+    "pmic_get_register_value": {
+      "bytes": 20,
+      "calls": [
+        "bc11_get_register_value"
+      ],
+      "sha256": "66e860bfdaa5c2ac41d7ae542342ec6086bf83e9f99807ab3eda2147e37ba91d"
+    },
+    "pmic_get_register_value_nolock": {
+      "bytes": 60,
+      "calls": [
+        "pmic_read_interface_nolock"
+      ],
+      "sha256": "cdff0e9c4902f5f0063527c80ab8f3d06213121d3d95cfba8981173c3a1b2571"
+    },
+    "pmic_read_interface": {
+      "bytes": 288,
+      "calls": [
+        "mutex_lock",
+        "pwrap_wacs2",
+        "mutex_unlock",
+        "mutex_unlock",
+        "pwrap_wacs2"
+      ],
+      "sha256": "86c33475324d52ed2acc95cebdf7bb52d2d6ea719934b9bd9c3cbbb234d93f48"
+    },
+    "pmic_read_interface_nolock": {
+      "bytes": 88,
+      "calls": [
+        "pwrap_wacs2"
+      ],
+      "sha256": "267ada77ce69d76fc85a72f2888c58a4127faf58e1d41675553159598fd55aca"
+    },
+    "pwrap_wacs2": {
+      "bytes": 52,
+      "calls": [
+        "printk"
+      ],
+      "sha256": "438402e01d2e2cf65d182b47b7a3fe0745b1654e4fc8cf9e4e8bb10ba4d370fb"
+    }
+  },
+  "linked_chr_det_table_entry": {
+    "flag": 3371,
+    "offset": 3960,
+    "mask": 1,
+    "shift": 5
+  },
+  "retained_error_phrase_counts": {
+    "no charger is ready": 0,
+    "no ctrl intf is ready": 0,
+    "function 12 is not support": 0,
+    "function 12 failed": 0,
+    "pmic_wrap read data fail": 0,
+    "driver need registered!!": 0
+  },
+  "findings": [
+    "Command 12 calls battery_charging_control indirectly. get_charger_detect_status discards its return code and loads an uninitialized local output slot after the call. The binary confirms no preceding initialization or status test.",
+    "RT dispatch can return ENODEV/ENOTSUPP without writing the output. Source selects RT or BQ during initialization; mtk_charger_set_info can also assign the RT interface. The live pointer is not captured.",
+    "Both concrete charger-detection handlers pass flag 3371 to a PMIC getter, store its 16-bit result into the output and return success. The linked flag table maps to offset 0x0f78, mask 1, shift 5.",
+    "Both PMIC getters ignore the interface status and load a local output slot not initialized before the call. The compiler folds the normal implementation through bc11_get_register_value; this is not an extra BC1.1 hardware operation.",
+    "Both linked PMIC read interfaces call pwrap_wacs2 with read=0, write-data=0. They write the masked output only on success; errors leave that output untouched. Normal reads use a mutex except the existing suspend/reset with IRQ-disabled path; nolock still uses the existing PWRAP provider.",
+    "CONFIG_PMIC_HW_ACCESS_EN is defined locally in pmic.c; its absence from the kernel config does not disable reads. The emitted calls confirm reads are compiled.",
+    "pwrap_wacs2 returns -5 when its HAL pointer is absent; otherwise dispatches indirectly. This trace does not assert which error, if any, occurred on device.",
+    "The linked PMIC read interfaces have no printk call on their error paths. Zero matching log phrases cannot rule out a read failure."
+  ],
+  "interpretation": "chrdet=39 proves the existing battery helper observed zero after callback return. It does not establish that a successful PMIC read produced that zero. A behavior change or forced cable-present policy is not supported.",
+  "next_discriminator": {
+    "dispatch": "Retain whether the existing command-12 callback returns success or failure; preserve the original call and output behavior.",
+    "pmic": "For the existing CHRDET getter only, retain normal/nolock entry and whether the original accessor succeeds with zero/nonzero or fails. Inspect output only after a successful accessor return; never inspect an uninitialized value for instrumentation.",
+    "report": "Use the existing one-shot post-return USB summary and ordinary software getters. No new hardware read, register write, role action, retry, periodic printk or retained-slot writer.",
+    "limits": "Cumulative outcomes are independent across callers and are not a per-call join. Missing paths, mixed outcomes or missing summary remain ambiguous.",
+    "decisions": "Successful zero isolates the native detection bit path; accessor error isolates transport/access error handling; dispatch failure isolates charger registration/control; mixed outcomes require preserved ambiguity."
+  },
+  "device_actions_during_trace": 0,
+  "private_evidence": {
+    "analyze-complete.py": {
+      "bytes": 2587,
+      "sha256": "40ed7719f97fc98ba9487f699b5a38798b55505893cb51be66a078624daa5a26"
+    },
+    "linked-complete.txt": {
+      "bytes": 13949,
+      "sha256": "c8298aa0b533d2f45f2cbdba8a5d50dd0fff562e7fd9749a1959dd20169fa5be"
+    },
+    "source-identities.txt": {
+      "bytes": 1413,
+      "sha256": "b1d9b3a7265fc7fe79223c2406fbe2176b13e74502d3f976794bf51bb6fce3e1"
+    }
+  }
+}

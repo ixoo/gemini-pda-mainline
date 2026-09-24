@@ -190,3 +190,36 @@ zero-result branch. Next inspect the selected charger-detection callback and
 PMIC field/accessor ownership and error contract. Preserve the distinction
 between a zero software result and physical cable or VBUS conditions; no role
 override, constant VBUS value or unchanged-candidate repeat is selected.
+
+
+## Detection result and error contract
+
+The [exact-source and linked trace](results/usb-chrdet-provider-trace.json)
+shows that the zero observed above is not yet a confirmed zero PMIC reading.
+The battery helper ignores command 12's callback return code and returns its
+uninitialized local output if the callback does not write it. RT dispatch has
+such error paths. Both concrete detection handlers otherwise read flag 3371;
+the linked table maps it to PMIC offset `0x0f78`, mask `1`, shift `5`.
+
+The normal and nolock PMIC getters also ignore their accessor's return status.
+Their output locals are uninitialized, and the accessors write them only after
+a successful existing PWRAP read. The linked instructions confirm this contract,
+including the lack of a status check before loading the local output. The normal
+getter is compiler-folded through the identically implemented
+`bc11_get_register_value`; that symbol name adds no hardware operation. Hardware
+access is defined locally in the source and is compiled despite not appearing
+as a kernel configuration setting.
+
+None of the selected error phrases appears in the retained console. This is
+not evidence of successful reads: the linked PMIC accessor error paths contain
+no print call, and other logs are subject to filtering and retention. The
+current runtime therefore cannot distinguish a successful zero read from an
+unwritten output following dispatch or accessor failure.
+
+The next discriminator must retain the existing command-12 callback status and,
+for the CHRDET getter only, the existing accessor success/error outcome and its
+zero/nonzero output on success. It must not inspect an uninitialized output for
+instrumentation. Use the existing one-shot shutdown report, preserve original
+operations, and add no hardware transactions or policy changes. Independent
+cumulative outcomes remain distinct from a per-call history. This source trace
+performed no device operations and does not yet supply a new test candidate.
