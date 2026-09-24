@@ -174,3 +174,27 @@ successfully armed before physical selection. This result does not justify
 another kernel change, forced cable detection or clearing retained capture.
 A fresh session must bind the new preceding Gemian identity and preserve this
 consumed session's evidence.
+
+## Second export session
+
+The [second candidate](results/usb-chrdet-errors-second-candidate.json) keeps
+the validated 51-patch kernel, DT and runtime unchanged. A fresh cycle identity
+separates its evidence from the consumed diagnostic. Filesystem inspection
+permits only the session member to differ; exact container reassembly, seventeen
+container mutations and six input refusals pass. The
+[session receipt](results/usb-chrdet-errors-second-session.json) binds the
+preserved changed-boot Gemian identity and the unchanged finite budgets.
+
+Hypothesis: with host attribution armed before physical selection, the observed
+controller start can support the existing bounded export. The unique new
+measurement is an attributed request, validated snapshot and acknowledgement.
+Success requires the exact session/boot frame, saved bytes, acknowledgement,
+preserved return marker and changed-boot Gemian. Missing transport leaves export
+unproven; the existing v3 summary distinguishes detection and controller paths.
+
+The installer changes only its five identity/destination fields, with exact
+inverse comparison to the reviewed parent. No kernel rebuild, new hardware
+operation, capture clear or network configuration change is introduced. After
+verified installation and clean shutdown, both collectors must report readiness
+before the owner is told to select boot2. A refusal prevents that handoff; its
+guard is not bypassed. No physical selection is admitted by packaging alone.

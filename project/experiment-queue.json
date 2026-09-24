@@ -3,8 +3,8 @@
   "purpose": "Readiness inventory, not an executable queue or device authorization. Object order is not scheduling order; docs/ROADMAP.md alone owns priority. Exact inputs, budgets and chronology stay in linked experiments.",
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
-  "selected_item": "wifi-export-usb-chrdet-errors-1",
-  "selection_note": "Read-status session completed; changed-boot Gemian console preserved. USB controller started, but host fresh-boot guard refused before arming. No receiver ran. Sole custody remains with primary coordinator; no new physical selection admitted.",
+  "selected_item": "wifi-export-usb-chrdet-errors-2",
+  "selection_note": "Second session selects the unchanged validated kernel after controller-start evidence. Primary coordinator retains sole custody. Guarded installation and successful collector arming must precede owner handoff.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -305,6 +305,21 @@
       "dependencies": [],
       "owner_task_id": null,
       "readiness_note": "Consumed physical diagnostic: successful nonzero detection and controller start recorded. Host gadget already present at baseline; Ethernet collector refused and no export was attempted. Both collectors terminal. Fresh bounded export preparation is the next measurement."
+    },
+    "wifi-export-usb-chrdet-errors-2": {
+      "workstream": "wifi",
+      "preparation_state": "ready",
+      "device_state": "selected",
+      "owner": "primary integration coordinator",
+      "reviewer": "primary integration coordinator",
+      "device_custodian": "primary integration coordinator",
+      "experiment": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_CHRDET_ERRORS.md",
+      "session_packet": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_CHRDET_ERRORS.md#second-export-session",
+      "candidate_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-chrdet-errors-second-candidate.json",
+      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-chrdet-errors-second-session.json",
+      "dependencies": [],
+      "owner_task_id": null,
+      "readiness_note": "Only session identity changes; kernel/runtime unchanged. Packaging and rejection checks passed. Guarded installation and collector arming pending."
     }
   }
 }

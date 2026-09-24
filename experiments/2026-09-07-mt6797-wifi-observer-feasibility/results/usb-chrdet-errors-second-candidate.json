@@ -1,0 +1,42 @@
+{
+  "assembler_sha256": "36336f05a98794dece173edd70c5c7596928025f628118f036cd53c473ebe52b",
+  "filesystem_sha256": "7163fdf61a4ff22c0782c60bb7e24242996b4266b25c3d95e6a32352f17aff9e",
+  "kernel_sha256": "23ceb65dcc4aa3542267c151e44fde280d5e1ee60c4836d31d6477009be8e760",
+  "padded_bytes": 16777216,
+  "padded_sha256": "3da46f4b8d9d8bee4ade8977dfe37f9ddb277e706c5d247d0aecb381f1480c7c",
+  "parent_assembler_sha256": "532f6f0dec5030a7b066f3baefa53580ec148317f633d4dd8d43308d30ac03b3",
+  "raw_bytes": 16220160,
+  "raw_sha256": "6fd8a634c6d1e790443395f0c72884cfcd41c085879b73892ee7411b15a1eb52",
+  "scope": "Validated second export session; unchanged 51-patch kernel and runtime",
+  "session_sha256": "f18472a92cecc8d0f2f92f9a5ba56b4938ba105de4012b166a46bccb6fb70943",
+  "startup_action": "export-tcp-return",
+  "manifest_sha256": "dd003d306f03ffb8282e31d0f8de093ca0f3a793ee3aa416b510bdff31be84bf",
+  "kernel_build_commit": "0c02543ad35cb22fd8281ee5400aac0c01504c3d",
+  "cycle_id": "186b19d7-b2f6-41e7-8145-041efc7f79fe",
+  "build_receipt": "usb-chrdet-errors-build.json",
+  "parent_candidate_receipt": "usb-chrdet-errors-candidate.json",
+  "filesystem_verification": {
+    "archive_members": 723,
+    "removed_members": 0,
+    "changed_existing_members": [
+      "etc/wifi-cycle/session.json"
+    ],
+    "exact_current_startup_inputs_and_runtime": true,
+    "filesystem_bytes": 7848647,
+    "kernel_bytes": 8367619,
+    "page_bytes": 2048,
+    "projected_container_bytes": 16220160,
+    "limit_bytes": 16777216,
+    "spare_bytes": 557056
+  },
+  "container_verification": {
+    "raw_bytes": 16220160,
+    "padded_bytes": 16777216,
+    "binary_header_and_payloads": true,
+    "reassembled_identical": true,
+    "native_addresses_and_flags": true,
+    "split_capture_dt_reg_and_no_map": true,
+    "container_mutations_rejected": 17,
+    "input_refusals": 6
+  }
+}
