@@ -1,5 +1,5 @@
 {
-  "status": "installed; both collectors finished without attributed runtime; await owner current-state report",
+  "status": "Physical diagnostic captured: callback result zero; normal return to authenticated Gemian; USB export incomplete",
   "preceding_gemian_boot": "d85f04b3-b24d-439b-b7cb-a6d11994c91f",
   "preceding_identity_record": "usb-ethernet-diagnostics-window-2.json",
   "candidate_receipt": "usb-chrdet-diagnostics-candidate.json",
@@ -47,5 +47,5 @@
   "usb_decoder_sha256": "62021d9734e48bc07a148d80b4389efd3ef0f988d901ef5a2a9f52b31503b067",
   "usb_decoder_validation": "22 attribution, format and mask cases passed; cable and charger fields decoded",
   "deployment_receipt": "usb-chrdet-diagnostics-deployment.json",
-  "window_receipt": "usb-chrdet-diagnostics-window-1.json"
+  "window_receipt": "usb-chrdet-diagnostics-window-2.json"
 }

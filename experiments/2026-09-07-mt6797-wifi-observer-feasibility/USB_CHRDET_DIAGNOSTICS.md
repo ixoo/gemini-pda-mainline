@@ -122,7 +122,7 @@ preserved. Physical selection remains an owner action after collectors are armed
 The return collector changes only the preceding Gemian UUID. Host attribution,
 receiver, route helper and transport budgets are unchanged. The v2 decoder
 passes 22 attribution, malformed-record and mask cases. No capture clear,
-radio action or host network change is added. Physical runtime is pending.
+radio action or host network change is added. Physical runtime was pending at arming.
 
 The [deployment receipt](results/usb-chrdet-diagnostics-deployment.json) now
 confirms installation from the expected Gemian boot. Live GPT resolved inactive
@@ -153,3 +153,40 @@ The image remains installed and verified. Both collectors are stopped; await
 the owner's physical-start and current-screen report before another device
 action. Preserve this USB sequence and the original installation. No unchanged
 candidate repeat, recovery action, role override or capture clear is selected.
+
+
+## Retained physical result
+
+The owner returned on September 24, confirmed the PDA powered off with left
+USB-C connected, and reported physical start after fresh collectors were armed.
+The verified installation was reused without a reinstall or preboot device
+re-verification. The [second-window receipt](results/usb-chrdet-diagnostics-window-2.json)
+attributes candidate boot `d720e10f-30f9-499b-b8ca-87fd9f0590a2` and this cycle.
+CPU preflight passed; startup reached USB setup and waited for a host request,
+then recorded `stopped` and normal restart. The single retained summary reads
+`paths=865d cable=00010000 chrdet=39`.
+
+The charger helper entered its existing detection callback, returned, and
+recorded a zero detection result. Initialization-not-ready, charging-suspended,
+and the later host/device return bits were absent. These cumulative markers
+cover all callers: they do not identify the actual callback pointer or correlate
+a particular invocation with USB work. The independent USB mask records ready,
+host and device paths, cable false and controller stop; controller start is
+absent. Its last cable sample remains unknown charger type, false software VBUS,
+not connected and normal cable mode. This is not a physical voltage measurement.
+
+The owner start report arrived approximately 520 seconds after host arming.
+No expected Ethernet gadget or receiver was observed before the 600-second
+window expired; complete runtime coverage is not established. The initial return
+collector also expired. After the owner's Gemian return report, one fresh
+unchanged return collector authenticated changed Gemian boot
+`05eb32a4-0958-4f90-aef1-842d37a03928` and preserved one 65524-byte console.
+No new boot, capture clear or recovery action was performed. The retained
+console has no checked fault tokens after the return marker. No snapshot or
+acknowledgement was exported.
+
+The diagnostic resolves the previously ambiguous refusal to the callback's
+zero-result branch. Next inspect the selected charger-detection callback and
+PMIC field/accessor ownership and error contract. Preserve the distinction
+between a zero software result and physical cable or VBUS conditions; no role
+override, constant VBUS value or unchanged-candidate repeat is selected.

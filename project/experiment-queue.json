@@ -4,7 +4,7 @@
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
   "selected_item": "wifi-export-usb-chrdet-diagnostics-1",
-  "selection_note": "Both 600-second collectors are terminal. Nonmatching MediaTek USB stages were observed, but no candidate runtime or changed-boot Gemian was authenticated. Retain sole custody and await owner physical-start/current-state report before fresh collection or device action.",
+  "selection_note": "The charger diagnostic completed with retained branch evidence and authenticated Gemian return. All collectors are terminal; primary coordinator retains custody, with no new physical test selected.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -286,10 +286,10 @@
       "experiment": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_CHRDET_DIAGNOSTICS.md",
       "session_packet": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_CHRDET_DIAGNOSTICS.md#selected-session",
       "candidate_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-chrdet-diagnostics-candidate.json",
-      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-chrdet-diagnostics-window-1.json",
+      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-chrdet-diagnostics-window-2.json",
       "dependencies": [],
       "owner_task_id": null,
-      "readiness_note": "Verified installation retained. USB 0e8d:2000 appeared/disappeared, followed by 0e8d:20ff; no expected Ethernet gadget or receiver. Neither a start report nor changed-boot Gemian/console was obtained. Collectors are terminal and current PDA state is unresolved; no unchanged-candidate repeat or recovery selected."
+      "readiness_note": "Diagnostic consumed: chrdet=39 records callback return with zero detection result. Console preserved from authenticated changed-boot Gemian. Collectors terminal; no further physical selection. Next inspect callback/PMIC accessor contract."
     }
   }
 }
