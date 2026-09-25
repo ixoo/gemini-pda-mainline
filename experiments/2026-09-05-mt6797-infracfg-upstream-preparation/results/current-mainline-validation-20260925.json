@@ -1,0 +1,48 @@
+{
+  "purpose": "Validate the accepted six-patch reset topic on upstream mainline commit 165768bb70265b5c38cf0b73fafd75be235f8b14.",
+  "repository_commit": "18a238790c8e47b2357015a762f20782766ef916",
+  "upstream_commit": "165768bb70265b5c38cf0b73fafd75be235f8b14",
+  "profile": "mt6797-infracfg-current-mainline",
+  "source_archive_sha256": "0b93d1066473e53d981fdbad5ecd27831fb80ca08c0abea0884de214ced09412",
+  "buildbox": {
+    "result": "pass",
+    "kernel_release": "7.3.0-rc4-mt6797-infracfg-upstream-kunit",
+    "package_inventory_sha256": "7afbe62e9ba5935f2b3c1e0a7fa5b5fc92832d8d7e2b91a73927fe6fc0479bc5",
+    "package_members": 132,
+    "patch_count": 6,
+    "patchset_sha256": "ac0fcebf130032038c79215c99040168e67f754ebeb9b382bfcb5548e01a7bd5",
+    "config_sha256": "59dbc2234b4379c29e9cf7992405dbcf8a664719c851502e625fc88e5e45c62e",
+    "image_gzip_sha256": "f7841dfc104fc249169b4c8c1fb756e8c40349f65fa87f195820877325cf8788",
+    "dtb_count": 118,
+    "final_arm64_link": "pass",
+    "package_validation_and_fetch": "pass"
+  },
+  "qemu": {
+    "version": "11.1.1",
+    "binary_sha256": "45d74da57beb9be259ca3d6996e5c70d4ab14326ea59c3db3e80308859d91a3e",
+    "first_attempt": {
+      "command_line": "console=ttyAMA0 kunit.enable=1 kunit.autorun=1 kunit_shutdown=poweroff",
+      "exit": "guest-shutdown, status 0",
+      "target_cases_passed": 8,
+      "classification": "Strict two-suite classifier refused an additional unrelated refcount_interrupt suite; the eight target cases were present and passed.",
+      "private_serial_sha256": "b3b3459c7518d90289caf5e53d3ad6c59806abbecdfeae969de57644a6447ce9"
+    },
+    "filtered_attempt": {
+      "command_line": "console=ttyAMA0 kunit.enable=1 kunit.autorun=1 kunit_shutdown=poweroff kunit.filter_glob=*reset*",
+      "exit": "guest-shutdown, status 0",
+      "classifier": "pass",
+      "suites_passed": 2,
+      "cases_passed": 8,
+      "failures": 0,
+      "skips": 0,
+      "stderr_bytes": 0,
+      "private_serial_sha256": "cd03cddc77e5b879ccba6e6109681e4f0027b1ab9f4db3a92fb0ad49885a1586"
+    }
+  },
+  "schema_input_sha256": {
+    "Documentation/devicetree/bindings/clock/mediatek,infracfg.yaml": "0610f891e326d1e0a7ce9ffe3ef0513ab229bf37eee8177de0999cac17157c6f",
+    "arch/arm64/boot/dts/mediatek/mt6797.dtsi": "8bddb48d07e5d5af1ee4a1f0fc2369f4424f47881cc070342a74b684b028f353",
+    "include/dt-bindings/reset/mt6797-resets.h": "d83d278526a434d453f66235d28a737d4803fe315b82c6bea79d27ecb6c23269"
+  },
+  "limits": "QEMU tested reset translation and descriptor arithmetic only. No current-tree DT schema command or MT6797 hardware reset, provider failure path, maintainer ordering, authorship or DCO certification is established."
+}

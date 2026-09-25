@@ -6,10 +6,14 @@ with its synthetic unsigned metadata. The human authorship/certification and
 assistance disclosure must be finalized. Local preparation now explicitly
 selects the six-patch topic first because the overlapping MT6797 common-probe
 conversion is absent from the inspected current trees; that is not maintainer
-ordering agreement. No upstream message or new build is selected.
+ordering agreement. No upstream message is selected. A later
+[current-mainline build and QEMU validation](../CURRENT_MAINLINE_BUILD.md)
+passes the exact accepted series at upstream `165768bb70265b5c38cf0b73fafd75be235f8b14`;
+it does not resolve the human or maintainer decisions.
 [Integration](https://github.com/ixoo/gemini-pda-mainline/blob/538906df82588885e5f2606cf40901f354c90748/experiments/2026-09-05-mt6797-infracfg-upstream-preparation/revised-topic/INTEGRATION.md)
-limits inherited evidence: the newly named profile was not rebuilt or run on
-hardware. This review supersedes the old readiness packet's pending binding
+limits inherited evidence: the historical `mt6797-infracfg-revised-kunit`
+profile was not rebuilt or run on hardware. This review supersedes the old
+readiness packet's pending binding
 correction and compile-only common-cleanup proposals, not their original records.
 
 ## Fresh routing and overlap
@@ -36,11 +40,11 @@ The later [current-mainline patch-footprint replay](../results/current-mainline-
 fetched the five existing files touched by the accepted series at mainline
 `165768bb70265b5c38cf0b73fafd75be235f8b14`. All six patches passed
 `git apply --check` and applied in canonical order in disposable sparse source.
-This closes patch-context
-applicability on that mainline revision only. No current-tree compile, KUnit,
-schema or hardware check follows from a sparse replay; the clock and MediaTek
-trees were not replayed in this step. Maintainer ordering and human
-certification remain unresolved.
+This closes patch-context applicability on that mainline revision only. The
+subsequent current-tree Buildbox compile and filtered KUnit execution are
+recorded separately above; no current-tree schema or hardware check follows
+from this sparse replay. The clock and MediaTek trees were not replayed in this
+step. Maintainer ordering and human certification remain unresolved.
 
 For byte identity, the September 6 handoff claimed only the four paths
 independently verified by the coordinator: `clk-mt6797.c`, the supplemental

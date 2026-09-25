@@ -27,3 +27,30 @@ clock/reset configuration, ARM64 final link and complete package validation.
 The already tested `7.3-rc1` source state and default profiles are unchanged.
 Compilation does not establish reset-controller hardware behavior, provider
 failure unwinding, maintainer ordering or human DCO certification.
+
+## Completed validation
+
+The exact pushed revision `18a238790c8e47b2357015a762f20782766ef916`
+built on Buildbox with all six patches applied, a successful ARM64 final link,
+118 DTBs and a validated 132-member package. The package was fetched through
+the normal checksum and provenance gate. Its complete inventory digest is
+`7afbe62e9ba5935f2b3c1e0a7fa5b5fc92832d8d7e2b91a73927fe6fc0479bc5`.
+The [sanitized receipt](results/current-mainline-validation-20260925.json)
+pins source, patchset, configuration and image identities.
+
+One bounded QEMU boot of that exact package passed the eight intended reset
+cases and shut down normally, but the strict two-suite classifier refused an
+additional unrelated refcount suite. A distinct second boot used the current
+KUnit source's `kunit.filter_glob=*reset*` option to select the two target
+suites. Both suites and all eight cases passed with zero failures or skips; QMP
+recorded guest-requested shutdown, QEMU exited zero and stderr was empty.
+Private serial and QMP logs remain ignored; their serial digests are in the
+receipt. These are arithmetic and descriptor tests, not provider probe or
+hardware-reset tests.
+
+The current prepared tree's infracfg binding, MT6797 DTS and public reset
+header have the same complete hashes as the accepted optional-binding schema
+inputs. The package's DTBs also compiled. This supports reuse of the earlier
+focused schema result for those byte-identical inputs; no new `dt_binding_check`
+or `dtbs_check` was executed on the current tree. Final upstream submission
+still needs the actual authors' certification and maintainer ordering decision.
