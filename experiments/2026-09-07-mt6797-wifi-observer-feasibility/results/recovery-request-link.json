@@ -1,0 +1,28 @@
+{
+  "status": "complete native Buildbox link passed; compile-only",
+  "build_commit": "619f8760f3409db416c4aaa7323027ce5927c363",
+  "inputs_sha256": "893e77da6dbd6951da513cd2e6a66cf904ce777978a35d9c02df79ad05b6090d",
+  "patch_count": 53,
+  "package": {
+    "name": "wifi-controller-kernel-619f8760f3409db416c4aaa7323027ce5927c363",
+    "manifest_sha256": "ed3d371d659c3ec465c9d86308867ad8a155d6e3ddfb7187448ab2de42edf4af",
+    "files": 11,
+    "vmlinux_sha256": "06cbf25d8c84198ca2a130fedf07584e97ba47b9357e38e7dd100408ac3f05c1",
+    "system_map_sha256": "c6742680df9448deed54903cda06d5ca096c908f2598db905087f2d8d4755d72",
+    "kernel_sha256": "5f36d382d97409d0750c59e72b83189cb79362fe71b612f65f8372a5287c89e8"
+  },
+  "source_integrity": "source_tree_integrity=63501f72f7a9ed4fb4b65e45607a93b10da2cb3d60f2ba27618253630e7124dd",
+  "config_sha256": "43222fdee6781f3bc51cb7e412c9f92372ecf8f78b8881b11d66b77f849d8eb8",
+  "configuration_byte_identical_to_52_patch_parent": true,
+  "undefined_symbols": 0,
+  "linked_checks": [
+    "mtk_wdt_request_en_set and mtk_wdt_request_mode_set are linked text symbols.",
+    "Each setter checks recovery ownership after taking the register lock and before its first request-register read.",
+    "Each ownership branch reaches a spin-unlock path returning -EBUSY before any request-register write."
+  ],
+  "limitations": [
+    "The inherited native build retains 69 section mismatches.",
+    "The link does not identify all direct request writers or active clients.",
+    "No device execution, Wi-Fi cycle or boot-candidate admission is established."
+  ]
+}

@@ -51,6 +51,11 @@ manifest. No Android boot container or minimal filesystem is constructed.
 The retained configuration still contains unrelated vendor drivers; a successful
 link does not establish their exclusion or authorize running this kernel.
 
+The [53-patch link receipt](results/recovery-request-link.json) confirms that
+the watchdog request-routing guard is present in both linked setters. It is a
+compile-only result; direct writers and remaining recovery ownership are still
+open.
+
 This is an integration check toward a recoverable observation candidate.
 Filesystem construction, complete reset/resource isolation, capture preparation,
 independent reproduction, container validation and an approved device session

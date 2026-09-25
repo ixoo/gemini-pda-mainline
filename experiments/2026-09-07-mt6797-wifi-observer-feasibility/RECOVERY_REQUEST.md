@@ -30,8 +30,15 @@ retain the original writes. The exact patch replays and reverses byte-for-byte;
 strict Checkpatch reports zero findings with only the synthetic sign-off
 exception.
 
-This fixture does not prove real spinlock scheduling, register completion or
-which request clients can run during the cycle. Complete native object/link
-validation is pending. Direct request writers, caller/configuration isolation, shared
-subsystem reset ownership and the full recovery budget remain open. No radio,
-watchdog takeover, new boot image or device action is admitted by this patch.
+The [53-patch native link](results/recovery-request-link.json) passed on Buildbox.
+Its verified package contains both setter symbols and no unresolved symbols.
+In each linked setter, the ownership load follows the register spinlock and
+branches to an `-EBUSY` unlock before the first request-register read. The
+configuration is byte-identical to the 52-patch parent. The inherited build
+still reports 69 section mismatches.
+
+The fixture and link do not prove real spinlock scheduling, register completion
+or which request clients can run during the cycle. Direct request writers,
+caller/configuration isolation, shared subsystem reset ownership and the full
+recovery budget remain open. No radio, watchdog takeover, new boot image or
+device action is admitted by this patch.
