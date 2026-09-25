@@ -1,0 +1,47 @@
+{
+  "candidate": "cmdq-gate-boot-candidate.json",
+  "cycle_id": "6f6ed847-e4f1-40a6-a7d0-6d152c02f677",
+  "mainline_boot": "4a2bfb83-ac11-4fac-8346-2e76d85a5762",
+  "previous_gemian_boot": "8dfd528d-f1c9-4bf1-b615-3bdaae97d882",
+  "returned_gemian_boot": "6de05645-f34e-4288-92fc-e1716261bae8",
+  "retained_console": {
+    "bytes": 65524,
+    "sha256": "d03694f23fc725fe7a586f61027a805c382dbe714adf76b3eb69584b9739a7c7",
+    "payload_reads": 1,
+    "captured_utc": "2026-09-25T16:24:30.469542+00:00",
+    "startup_preflight": "passed",
+    "snapshot_stage": "entered and advanced to USB setup",
+    "host_request": "waited, then stopped",
+    "return_marker_kernel_seconds": "63.214055",
+    "normal_restart_after_marker": true,
+    "checked_post_marker_fault_tokens": 0,
+    "cmdq_refusal_warnings_in_retained_record": 0
+  },
+  "usb_diagnostic": {
+    "paths_mask": "800d",
+    "paths": ["entered", "ready", "host", "reported"],
+    "role_mask": "01",
+    "role": ["id_host"],
+    "charger_detection_mask": "0139",
+    "charger_detection": ["entered", "detect_called", "detect_returned", "absent", "callback_ok"],
+    "pmic_mask": "0b",
+    "pmic": ["normal_completed", "nolock_completed", "zero"],
+    "cable_sample_present": false,
+    "device_controller_start_seen": false
+  },
+  "host_observation": {
+    "collector_armed_after_owner_reported_boot2_start": true,
+    "attributed_export_gadget_seen_after_arming": false,
+    "capture_request_sent": false,
+    "snapshot_transferred": false
+  },
+  "classification": "mainline userspace and normal return demonstrated; USB export blocked by observed host-role path",
+  "limitations": [
+    "The host collector did not cover the interval before it was armed.",
+    "The cumulative USB masks and latest cable sample do not establish call order or count.",
+    "No charger-voltage value or ADC status was retained; the reason for the host-role decision remains unproven.",
+    "No CMDQ task submission was observed and GCE hardware idle was not measured; absence of a warning is limited to the retained console.",
+    "No radio action was attempted."
+  ],
+  "private_evidence": "ignored one-shot console, authenticated Gemian identity, host watcher records and RE VM classifications retained"
+}

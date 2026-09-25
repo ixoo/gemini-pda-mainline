@@ -51,8 +51,34 @@ the generic `0e8d:20ff` USB parent remained present. The selected kernel has
 `CONFIG_USB_G_ANDROID=n` and `CONFIG_USB_ETH=y`, so that parent is not the
 expected export gadget, but it does not identify the current OS.
 
-This boot-only diagnostic must establish that the headless startup and USB
-return remain serviceable. A later radio admission must independently verify
-GCE hardware is idle before the first
-Wi-Fi DMA effect. Shared clocks, CONSYS remap/protection and worker failure
-lifetime also remain open. This candidate is not a radio action.
+The [next physical selection](results/cmdq-gate-boot-window-2.json) resolved
+the boot identity from one retained console record and an authenticated,
+changed-boot Gemian return. The exact candidate reached userspace, passed
+startup preflight, entered the snapshot stage, advanced through USB setup,
+waited for a host request, stopped at 63.214055 kernel seconds, and restarted
+normally to Gemian. No checked fault token followed the return marker and no
+CMDQ refusal warning appeared in the retained record. This demonstrates
+boot-only userspace and return serviceability, but does not show that a CMDQ
+task was attempted or that GCE hardware was idle.
+
+The same retained record has one USB diagnostic summary: the connection path
+entered, was ready, selected `host`, and reported; the ID-pin delayed-work
+writer selected `id_host`. Charger detection returned absent, the PMIC
+read variants completed with zero, and no ordinary cable sample or device
+controller start was recorded. These are cumulative masks, not a call trace.
+The host collector was armed after the owner reported boot2 start and saw no
+attributable export gadget thereafter; it could have missed earlier USB
+events. No host request, snapshot transfer, or radio action occurred.
+
+In the selected source and configuration, the ID-pin mode switch tests
+`battery_meter_get_charger_voltage() > 4000` and otherwise chooses host.
+The selected `CONFIG_MTK_HAFG_20=y` getter obtains an ADC-derived charger
+voltage, discards its control-call status, and returns the value. The exact
+voltage and ADC status were not retained, so a low or failed reading is only
+a candidate explanation for the observed host branch. A decision-changing
+follow-up must measure that existing input and role choice without forcing
+USB role or changing detection policy.
+
+A later radio admission must independently verify GCE hardware is idle before
+the first Wi-Fi DMA effect. Shared clocks, CONSYS remap/protection and worker
+failure lifetime also remain open. This candidate is not a radio action.

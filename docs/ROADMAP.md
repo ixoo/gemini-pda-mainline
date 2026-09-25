@@ -448,10 +448,15 @@ The remaining preparation order is:
    A [headless submission gate](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/CMDQ_SUBMISSION_GATE.md)
    now links and refuses new CMDQ tasks before dispatch in the captured
    build. Its [first boot-only host window](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/cmdq-gate-boot-window-1.json)
-   saw no export gadget or verified Gemian return, so mainline execution, boot
-   serviceability and hardware-idle admission remain unverified.
-   Resolve those paths, then package and validate
-   the `cycle` action with shared ownership, post-reset capture preservation
+   saw no export gadget or verified Gemian return. A
+   [later physical selection](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/cmdq-gate-boot-window-2.json)
+   proved exact mainline userspace, preflight and normal Gemian return. Its
+   retained USB diagnostic selected the ID-pin host branch before a cable
+   sample or device-controller start; export still failed. Measure the
+   unretained charger-voltage input before changing that path. CMDQ task
+   execution, GCE hardware-idle admission and radio behavior remain unverified.
+   Resolve those paths, then package and validate the `cycle` action with
+   shared ownership, post-reset capture preservation
    and a finite radio-effect protocol before another physical Wi-Fi test. No
    role override, detection-policy change or weakened CPU check is supported
    by the evidence.
