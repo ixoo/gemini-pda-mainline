@@ -67,11 +67,11 @@ int get_retained(void) { return hif_probe_retained; }
 '''
 
 
-def build(path, mode, work):
+def build(path, mode, work, label):
     source = path.read_text()
     code = STUBS + fixture.function(source, 'HifAhbProbe')
     code += fixture.function(source, 'HifAhbRemove') + WRAPPER
-    output = work / (path.parent.name + '-' + mode)
+    output = work / (label + '-' + mode)
     output.with_suffix('.c').write_text(code)
     command = ['cc', '-std=gnu11', '-Wall', '-Wextra', '-Werror', '-Wno-unused-function',
                '-shared', '-fPIC']
@@ -101,9 +101,9 @@ def main():
     cases = 0
     with tempfile.TemporaryDirectory(prefix='wifi-paldo-fixture-') as directory:
         work = Path(directory)
-        old = build(args.parent, 'capture', work)
-        new = build(args.child, 'capture', work)
-        ordinary = build(args.child, 'ordinary', work)
+        old = build(args.parent, 'capture', work, 'parent')
+        new = build(args.child, 'capture', work, 'child')
+        ordinary = build(args.child, 'ordinary', work, 'child')
         assert old.run(-5, 0, 0) == new.run(-5, 0, 0) == -1
         assert state(old) == (1, 0, 1, 1, 0)
         assert state(new) == (1, 1, 1, 1, 0)
