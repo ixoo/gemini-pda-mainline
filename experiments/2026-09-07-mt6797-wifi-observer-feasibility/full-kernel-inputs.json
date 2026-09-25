@@ -227,6 +227,10 @@
     {
       "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/dma-clock-admission/0001-wlan-refuse-failed-DMA-clock-enable-before-port-comm.patch",
       "sha256": "ed2a52b8aa755a523e4db4d790cc5bfed038f773686a04bc74486158e871cbcf"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/cmdq-isolation/0001-smi-keep-debug-macro-arity-without-CMDQ.patch",
+      "sha256": "86c50717b1359964e598e8f75c2c3159a329d1b7683c8eab8e93e434419d82c2"
     }
   ],
   "purpose": "complete native kernel link; no boot candidate or device admission"
