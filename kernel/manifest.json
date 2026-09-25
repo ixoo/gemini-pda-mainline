@@ -174,6 +174,22 @@
         },
         "patch_series": "patches/series-mt6797-provider-compile"
       },
+      "mt6797-infracfg-current-mainline": {
+        "base": "allnoconfig",
+        "fragments": [
+          "configs/mt6797-infracfg-upstream-kunit.fragment"
+        ],
+        "kernel": {
+          "archive_format": "tar.gz",
+          "archive_root": "linux-165768bb70265b5c38cf0b73fafd75be235f8b14",
+          "git_commit": "165768bb70265b5c38cf0b73fafd75be235f8b14",
+          "released": "2026-09-25",
+          "sha256": "0b93d1066473e53d981fdbad5ecd27831fb80ca08c0abea0884de214ced09412",
+          "source_url": "https://codeload.github.com/torvalds/linux/tar.gz/165768bb70265b5c38cf0b73fafd75be235f8b14",
+          "version": "7.3-rc4"
+        },
+        "patch_series": "patches/series-mt6797-infracfg-revised-kunit"
+      },
       "mt6797-infracfg-revised-kunit": {
         "base": "allnoconfig",
         "fragments": [
