@@ -94,7 +94,11 @@ A [same-boot Type-C interrupt check](results/gemian-fusb301-irq-20260925.json)
 then found that Gemian's `FUSB301_0` probe logged an IRQ 0 registration failure
 (`-22`) while its I2C driver remained bound. The pinned Gemian source ignores
 that IRQ setup result in probe, explaining how the two observations can coexist.
-The other FUSB301-named driver registered IRQ 387. The physical-port mapping and
+A same-boot live device-tree read found that the unique `mediatek,fusb301-eint`
+node has only `compatible` and `name`, with no interrupt specification; this
+matches the source's IRQ parse and the observed failure. The other FUSB301-named
+driver registered IRQ 387, and its separate pseudo-node does supply an interrupt.
+The physical-port mapping and
 any dependency of charger detection on these interrupts remain unproved; this
 finding does not explain the zero power readings by itself. A second five-minute
 watch again saw no power-state change, but the owner did not confirm a charger

@@ -34,6 +34,27 @@
       "battery_status": "Not charging"
     }
   },
+  "live_device_tree_followup": {
+    "private_path": "artifacts/usb-power-charger-confirmed-20260925/gemian-live-fusb-dt.json",
+    "sha256": "fc25b7a497981fc1cd63f78765c986f67a37b48cf2a028f8f4915c1c02c69170",
+    "same_boot_identity_at_both_ends": true,
+    "fusb301_0_interrupt_node": {
+      "path": "/soc/fusb301@",
+      "compatible": "mediatek,fusb301-eint",
+      "properties": ["compatible", "name"],
+      "interrupts_present": false,
+      "interrupt_parent_present": false,
+      "debounce_present": false
+    },
+    "fusb301_1_interrupt_node": {
+      "path": "/soc/fusb301a@",
+      "compatible": "mediatek,fusb301a-pin",
+      "interrupts_cells_hex": "0000004000000008",
+      "interrupt_parent_present": true,
+      "debounce_cells_hex": "000000400003e800"
+    },
+    "finding": "The unique live mediatek,fusb301-eint node has no interrupt specification. The pinned FUSB301_0 source searches that compatible, parses its IRQ and then calls request_irq without rejecting IRQ zero; the live log's IRQ 0 and -22 failure match this missing property. This does not attest exact running source bytes or identify the physical port."
+  },
   "source_review": {
     "gemian_git_commit": "8cfe6596a503612e3332d9c26e292a19525a7f07",
     "path": "drivers/misc/mediatek/usb_c/fusb301/usb_typec.c",
