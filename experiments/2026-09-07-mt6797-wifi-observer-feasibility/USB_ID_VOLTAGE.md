@@ -89,3 +89,14 @@ boot, all with cached charger voltage zero, USB/AC offline and `Not charging`.
 The requested move to a known-good charger was not confirmed within the watch,
 so this is still not a charger-response result. Starting from the reported
 Mac connection, Gemian reported no power transition in that interval.
+
+A [same-boot Type-C interrupt check](results/gemian-fusb301-irq-20260925.json)
+then found that Gemian's `FUSB301_0` probe logged an IRQ 0 registration failure
+(`-22`) while its I2C driver remained bound. The pinned Gemian source ignores
+that IRQ setup result in probe, explaining how the two observations can coexist.
+The other FUSB301-named driver registered IRQ 387. The physical-port mapping and
+any dependency of charger detection on these interrupts remain unproved; this
+finding does not explain the zero power readings by itself. A second five-minute
+watch again saw no power-state change, but the owner did not confirm a charger
+move during that window either. The private trace remains retained; no further
+charger response or independent VBUS conclusion is claimed.

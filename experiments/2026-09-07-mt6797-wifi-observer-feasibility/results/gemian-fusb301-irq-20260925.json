@@ -1,0 +1,44 @@
+{
+  "purpose": "Check whether the known-good Gemian boot reports a Type-C controller interrupt failure after a reported left-port-to-Mac baseline and an unconfirmed charger-move window.",
+  "observation_utc": "2026-09-25T18:52:55Z",
+  "device": {
+    "kernel": "3.18.41+",
+    "boot_id": "a3eb4157-ef96-45d2-a8e0-405b1ef46572",
+    "identity_matched_before_and_after_read": true
+  },
+  "retained_private_capture": {
+    "path": "artifacts/usb-power-charger-confirmed-20260925/gemian-irq-read.txt",
+    "sha256": "aec0b80e974e8680f57a2eb67962130ac2496d5273083360f50679d67e4594bd"
+  },
+  "preceding_watch": {
+    "private_path": "artifacts/usb-power-charger-confirmed-20260925/trace.jsonl",
+    "sha256": "b9000ba75cf83ceb0acb5fec6f8201c706247126d893cfc1bd95fbbf068a3182",
+    "samples": 95,
+    "duration_seconds": 299.75,
+    "same_boot_samples": 95,
+    "usb_online": 0,
+    "ac_online": 0,
+    "battery_status": "Not charging",
+    "battery_ChargerVoltage": 0,
+    "battery_capacity_range_percent": [90, 91],
+    "physical_move_to_charger_confirmed_within_window": false
+  },
+  "observed": {
+    "i2c0_0x25": "fusb301a bound to FUSB301_1; boot log reports IRQ 0x183 (387)",
+    "i2c1_0x25": "fusb301 bound to FUSB301_0; boot log reports IRQ 0 and request_irq return -22",
+    "proc_interrupts": "fusb300-eint exists as MT-EINT 3 at IRQ 387, with zero counted interrupts at this snapshot",
+    "power_supply": {
+      "usb_online": 0,
+      "ac_online": 0,
+      "battery_ChargerVoltage": 0,
+      "battery_status": "Not charging"
+    }
+  },
+  "source_review": {
+    "gemian_git_commit": "8cfe6596a503612e3332d9c26e292a19525a7f07",
+    "path": "drivers/misc/mediatek/usb_c/fusb301/usb_typec.c",
+    "sha256": "de3196f5ab6b3fac53ee1900736330aa18ef160aad90ac59e25a97a585395d06",
+    "finding": "fusb301_eint_init returns request_irq's error, but fusb301_i2c_probe ignores that return and returns zero after a later register read. Thus the pinned source permits a bound I2C driver after interrupt setup failed. The live boot log and binding match this pattern, but the source commit is not an exact binary attestation of this boot."
+  },
+  "limits": "The two I2C devices have no proved mapping to the PDA's physical ports. An interrupt registration failure is not a direct VBUS measurement or proof that charger detection depends on this IRQ. The owner did not confirm a move from the Mac to the known-good charger during either five-minute watch; no charger-response conclusion follows. No I2C register, role, power or radio control was accessed."
+}
