@@ -213,3 +213,27 @@ recorded. Both collectors are terminal. This is a host-window result, not
 evidence that the candidate booted or failed. Fresh arming waits for owner
 state; no reinstall, recovery or physical retry follows from the timeout.
 Hosted repository checks passed for the published deployment revision.
+
+## Second session physical result
+
+After the owner reported the PDA shut down, fresh collectors armed successfully
+before the reported physical start. The
+[runtime receipt](results/usb-chrdet-errors-second-runtime.json) attributes
+the session and preserved console to a new candidate boot and changed-boot
+Gemian return. The unchanged kernel recorded
+`paths=800d cable=ffffffff chrdet=0139 pmic=0b`: successful-zero CHRDET,
+callback success and the host-role branch, with no ordinary cable sample or
+controller-start marker. This differs from the preceding successful-nonzero,
+device-role/controller-start result. No accessor error was recorded.
+
+Preflight passed; the host-request wait stopped and normal restart followed
+at about 63.24 seconds. No receiver ran and no acknowledgement was sent. The
+return collector preserved the console once; the exact Ethernet watcher was
+stopped after that verified return. No capture clear or reinstall occurred.
+Independent cumulative masks cannot establish ordering or per-call association;
+no cable sample must not be called a sampled cable-false result.
+
+Next inspect the existing host/device role decision and its relationship to
+detection using retained source and console evidence. This result supplies
+no basis to force a role or VBUS value, or to repeat the same boot without a
+new distinguishing measurement.
