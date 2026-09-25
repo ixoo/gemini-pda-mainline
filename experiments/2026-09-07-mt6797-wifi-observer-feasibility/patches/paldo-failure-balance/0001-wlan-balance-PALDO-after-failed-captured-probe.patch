@@ -1,0 +1,37 @@
+From de8d4eeee64111d64f21c0c58f2dabf0875d2115 Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <archive@example.invalid>
+Date: Fri, 25 Sep 2026 15:05:52 -0400
+Subject: [PATCH] wlan: balance PALDO after failed captured probe
+
+After an ordinary WLAN probe error, reuse normal removal so its
+successful cleanup also releases the Wi-Fi PALDO request. If removal
+fails, retain the failed state and refuse another probe.
+
+Preserve the original behavior outside the MT6797 captured diagnostic.
+Internal experiment only; synthetic author, no DCO or hardware claim.
+---
+ .../wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c             | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c
+index f61ee0a..aeff1e3 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c
+@@ -1618,7 +1618,15 @@ static int HifAhbProbe(VOID)
+ 		return Ret;
+ 	}
+ 	if (Ret != WLAN_STATUS_SUCCESS) {
++#if defined(CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR) && defined(MT6797)
++		/* Use normal removal to balance the Wi-Fi PALDO request. */
++		if (HifAhbRemove()) {
++			WRITE_ONCE(hif_probe_retained, true);
++			return -EUCLEAN;
++		}
++#else
+ 		pfWlanRemove();
++#endif
+ 		Ret = -1;
+ 	}
+ 
+-- 
+2.54.0 (Apple Git-157)

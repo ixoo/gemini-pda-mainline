@@ -235,6 +235,10 @@
     {
       "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/usb-id-voltage/0001-usb-retain-ID-pin-role-voltage.patch",
       "sha256": "a13f978b0f53496254ef4919bdd6ee97fd9ab7e50154fc6cb57ed6ef42625915"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/paldo-failure-balance/0001-wlan-balance-PALDO-after-failed-captured-probe.patch",
+      "sha256": "7d5b6b0e6bd72f87998b777cd27ee4d14ee0d7b484777ccb9a87b82bf28864aa"
     }
   ],
   "purpose": "complete native kernel link; no boot candidate or device admission"
