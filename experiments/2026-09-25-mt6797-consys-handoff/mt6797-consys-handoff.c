@@ -109,7 +109,7 @@ static int __init mt6797_consys_handoff_init(void)
 	pr_info("mt6797-consys-handoff: state=%s base=0x%llx size=0x%llx remap=0x%08x expected=0x%04x protect=0x%05x selector=%u samples=2 reads=%u power=0 reset=0 remap_write=0 protection_write=0 firmware=0 radio=0 dma=0\n",
 		state, (unsigned long long)base,
 		(unsigned long long)reserved->size, remap[1], expected,
-		protect[1] & MT6797_CONN_PROTECTION,
+		(unsigned int)(protect[1] & MT6797_CONN_PROTECTION),
 		!!(selector[1] & MT6797_SELECTOR_BIT), reads);
 	return 0;
 
