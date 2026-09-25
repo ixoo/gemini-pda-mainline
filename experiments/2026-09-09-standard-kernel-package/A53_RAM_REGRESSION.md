@@ -237,6 +237,14 @@ evidence remains in place. The aggregate pass requires the baseline observation,
 complete sealed log and changed-boot Gemian confirmation. It does not establish
 Debian service behavior, a persistent filesystem or the ten-cold-boot release gate.
 
+The [September 25 live preflight](results/a53-service-ram-live-preflight-20260925.json)
+revalidated the exact private candidate and generated the guarded installer
+bound to authenticated Gemian boot `a3eb4157-ef96-45d2-a8e0-405b1ef46572`.
+Syntax and ShellCheck passed. The device then reported 98% battery, `usb/online=0`
+and `ac/online=0`; cable-power and the direct USB host route remain unresolved.
+No installer ran, boot2 write or shutdown occurred, and no physical A53 session
+was selected. A fresh live power/route check remains necessary before deployment.
+
 ## Bounded Gemian return confirmation
 
 The [return helper](a53-ram-return.py) binds the exact candidate and installer

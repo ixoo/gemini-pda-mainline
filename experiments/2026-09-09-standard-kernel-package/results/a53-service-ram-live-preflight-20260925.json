@@ -1,0 +1,20 @@
+{
+  "date": "2026-09-25",
+  "candidate_boot_sha256": "97c23e3f34686d8831e56f9903e109f6b9ba89cb121c88996f25411e86d5bec0",
+  "candidate_padded_sha256": "f185a0f2f993f8c68227f2a6e225e951ee22487d418610b9156ee1e517f56cb0",
+  "current_gemian_boot": "a3eb4157-ef96-45d2-a8e0-405b1ef46572",
+  "current_gemian_identity": "authenticated Linux 3.18.41+ aarch64 MT6797X Debian 9",
+  "candidate_inventory_validation": "pass",
+  "bound_installer_sha256": "b7a3b07f7c8f479d9da2384c0e5bddc35a9d139e14ffd488de64b115c7ded137",
+  "bound_installer_syntax_and_shellcheck": "pass",
+  "live_power_observation": {
+    "battery_capacity_percent": 98,
+    "battery_status": "Not charging",
+    "usb_online": 0,
+    "ac_online": 0
+  },
+  "device_action": "none",
+  "deployment_receipt": null,
+  "physical_selection": false,
+  "status": "offline candidate and installer verified against the observed Gemian boot; live power and USB-route admission remain outstanding before any installation or physical selection"
+}
