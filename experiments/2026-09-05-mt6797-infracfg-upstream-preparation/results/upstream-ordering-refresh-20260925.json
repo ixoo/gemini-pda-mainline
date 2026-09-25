@@ -1,0 +1,245 @@
+{
+  "schema_version": 1,
+  "observed_at_utc": "2026-09-25T11:57:06.289995+00:00",
+  "purpose": "Read-only current-ref footprint refresh for the unsigned MT6797 infracfg reset topic",
+  "refs": {
+    "mainline": {
+      "remote": "https://github.com/torvalds/linux.git",
+      "ref": "refs/heads/master",
+      "revision": "165768bb70265b5c38cf0b73fafd75be235f8b14"
+    },
+    "clock": {
+      "remote": "https://git.kernel.org/pub/scm/linux/kernel/git/clk/linux.git",
+      "ref": "refs/heads/clk-next",
+      "revision": "3a7da2927834f9fbf79772e6418df0303877bcb8"
+    },
+    "mediatek": {
+      "remote": "https://git.kernel.org/pub/scm/linux/kernel/git/mediatek/linux.git",
+      "ref": "refs/heads/for-next",
+      "revision": "4bfec57314396c8c816ee78f4803987882b668a7"
+    }
+  },
+  "footprint": [
+    {
+      "path": "drivers/clk/mediatek/reset-internal.h",
+      "mainline": {
+        "status": 404,
+        "matches_september_6": true
+      },
+      "clock": {
+        "status": 404,
+        "matches_september_6": true
+      },
+      "mediatek": {
+        "status": 404,
+        "matches_september_6": true
+      }
+    },
+    {
+      "path": "drivers/clk/mediatek/reset.c",
+      "mainline": {
+        "status": 200,
+        "bytes": 4290,
+        "sha256": "8c1cdf2ad881dc20659340cd7f0244b8ff1a1b6d1d7b4cd1e74946533adcee76",
+        "matches_september_6": true
+      },
+      "clock": {
+        "status": 200,
+        "bytes": 4290,
+        "sha256": "8c1cdf2ad881dc20659340cd7f0244b8ff1a1b6d1d7b4cd1e74946533adcee76",
+        "matches_september_6": true
+      },
+      "mediatek": {
+        "status": 200,
+        "bytes": 4290,
+        "sha256": "8c1cdf2ad881dc20659340cd7f0244b8ff1a1b6d1d7b4cd1e74946533adcee76",
+        "matches_september_6": true
+      }
+    },
+    {
+      "path": "drivers/clk/mediatek/reset-test.c",
+      "mainline": {
+        "status": 404,
+        "matches_september_6": true
+      },
+      "clock": {
+        "status": 404,
+        "matches_september_6": true
+      },
+      "mediatek": {
+        "status": 404,
+        "matches_september_6": true
+      }
+    },
+    {
+      "path": "drivers/clk/mediatek/Kconfig",
+      "mainline": {
+        "status": 200,
+        "bytes": 34673,
+        "sha256": "6634c6e7c14ca9a72fc0a258ca9b8a575c53bc451919646feb644c7b9354c3c0",
+        "matches_september_6": true
+      },
+      "clock": {
+        "status": 200,
+        "bytes": 34688,
+        "sha256": "712eede24414e708c2b140e6860111b7f4f8f9f2ef356a2330286c3af1a2d351",
+        "matches_september_6": true
+      },
+      "mediatek": {
+        "status": 200,
+        "bytes": 34673,
+        "sha256": "6634c6e7c14ca9a72fc0a258ca9b8a575c53bc451919646feb644c7b9354c3c0",
+        "matches_september_6": false
+      }
+    },
+    {
+      "path": "drivers/clk/mediatek/Makefile",
+      "mainline": {
+        "status": 200,
+        "bytes": 10756,
+        "sha256": "6af23f8e56cbb5e9fdda850fb8201f384053f89e8b3347aa8a6cd98239678b11",
+        "matches_september_6": true
+      },
+      "clock": {
+        "status": 200,
+        "bytes": 10756,
+        "sha256": "6af23f8e56cbb5e9fdda850fb8201f384053f89e8b3347aa8a6cd98239678b11",
+        "matches_september_6": true
+      },
+      "mediatek": {
+        "status": 200,
+        "bytes": 10756,
+        "sha256": "6af23f8e56cbb5e9fdda850fb8201f384053f89e8b3347aa8a6cd98239678b11",
+        "matches_september_6": false
+      }
+    },
+    {
+      "path": "include/dt-bindings/reset/mt6797-resets.h",
+      "mainline": {
+        "status": 404,
+        "matches_september_6": true
+      },
+      "clock": {
+        "status": 404,
+        "matches_september_6": true
+      },
+      "mediatek": {
+        "status": 404,
+        "matches_september_6": true
+      }
+    },
+    {
+      "path": "Documentation/devicetree/bindings/clock/mediatek,infracfg.yaml",
+      "mainline": {
+        "status": 200,
+        "bytes": 2384,
+        "sha256": "0610f891e326d1e0a7ce9ffe3ef0513ab229bf37eee8177de0999cac17157c6f",
+        "matches_september_6": true
+      },
+      "clock": {
+        "status": 200,
+        "bytes": 2384,
+        "sha256": "0610f891e326d1e0a7ce9ffe3ef0513ab229bf37eee8177de0999cac17157c6f",
+        "matches_september_6": true
+      },
+      "mediatek": {
+        "status": 200,
+        "bytes": 2384,
+        "sha256": "0610f891e326d1e0a7ce9ffe3ef0513ab229bf37eee8177de0999cac17157c6f",
+        "matches_september_6": true
+      }
+    },
+    {
+      "path": "drivers/clk/mediatek/clk-mt6797-reset.h",
+      "mainline": {
+        "status": 404,
+        "matches_september_6": true
+      },
+      "clock": {
+        "status": 404,
+        "matches_september_6": true
+      },
+      "mediatek": {
+        "status": 404,
+        "matches_september_6": true
+      }
+    },
+    {
+      "path": "drivers/clk/mediatek/clk-mt6797.c",
+      "mainline": {
+        "status": 200,
+        "bytes": 23000,
+        "sha256": "eaad6324621679371f33bbb76e10bcb0d3374b1f2dbbd837323b3f9e8fee1534",
+        "matches_september_6": true
+      },
+      "clock": {
+        "status": 200,
+        "bytes": 23000,
+        "sha256": "eaad6324621679371f33bbb76e10bcb0d3374b1f2dbbd837323b3f9e8fee1534",
+        "matches_september_6": true
+      },
+      "mediatek": {
+        "status": 200,
+        "bytes": 23000,
+        "sha256": "eaad6324621679371f33bbb76e10bcb0d3374b1f2dbbd837323b3f9e8fee1534",
+        "matches_september_6": true
+      }
+    },
+    {
+      "path": "drivers/clk/mediatek/clk-mt6797-reset-test.c",
+      "mainline": {
+        "status": 404,
+        "matches_september_6": true
+      },
+      "clock": {
+        "status": 404,
+        "matches_september_6": true
+      },
+      "mediatek": {
+        "status": 404,
+        "matches_september_6": true
+      }
+    },
+    {
+      "path": "arch/arm64/boot/dts/mediatek/mt6797.dtsi",
+      "mainline": {
+        "status": 200,
+        "bytes": 11331,
+        "sha256": "798662eb7df0a7cf37cbc47d54d232bbf85fbc748afc63af2c373526a948af83",
+        "matches_september_6": true
+      },
+      "clock": {
+        "status": 200,
+        "bytes": 11331,
+        "sha256": "798662eb7df0a7cf37cbc47d54d232bbf85fbc748afc63af2c373526a948af83",
+        "matches_september_6": true
+      },
+      "mediatek": {
+        "status": 200,
+        "bytes": 11331,
+        "sha256": "798662eb7df0a7cf37cbc47d54d232bbf85fbc748afc63af2c373526a948af83",
+        "matches_september_6": true
+      }
+    }
+  ],
+  "summary": {
+    "paths": 11,
+    "mainline_unchanged_since_2026_09_06": true,
+    "clock_unchanged_since_2026_09_06": true,
+    "mediatek_changed_paths": [
+      "drivers/clk/mediatek/Kconfig",
+      "drivers/clk/mediatek/Makefile"
+    ],
+    "mediatek_changed_paths_now_match_mainline": [
+      "drivers/clk/mediatek/Kconfig",
+      "drivers/clk/mediatek/Makefile"
+    ],
+    "remaining_cross_tree_difference": "Clock clk-next Kconfig adds an unrelated MT8173 mfgtop OF dependency; all other footprint paths have identical present bytes or absence across the three refs.",
+    "topic_overlap_observed_in_footprint": false
+  },
+  "limits": [
+    "Only eleven patch-footprint paths were fetched, at exact refs; no full-tree ancestry, outgoing patch replay, build or hardware test.",
+    "No mailing-list or private-branch completeness claim.",
+    "Synthetic unsigned topic remains blocked on actual authorship, truthful DCO certification and reviewed assistance disclosure before submission."
+  ]
+}

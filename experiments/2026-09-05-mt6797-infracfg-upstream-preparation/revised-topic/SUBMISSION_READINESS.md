@@ -23,11 +23,20 @@ records the exact inspected refs. Mainline is
 
 The compact [refresh record](../results/upstream-ordering-refresh-20260906.json)
 enumerates all eleven patch-footprint paths against the three official refs.
-For byte identity, this handoff claims only the four paths independently
-verified by the coordinator: `clk-mt6797.c`, the supplemental `clk-mtk.c`, the
-infracfg binding, and `mt6797.dtsi`. The record retains the other path statuses
-without promoting them to an outgoing replay result. The MT6797 file still
-uses `mtk_infrasys_init()` and has no common-probe conversion symbol in the
+The [September 25 footprint refresh](../results/upstream-ordering-refresh-20260925.json)
+checks newer exact refs of the same three trees. All eleven mainline and clock
+paths retain their September 6 content or absence. The MediaTek tree's Kconfig
+and Makefile have changed since that review and now match mainline byte for
+byte; its other footprint paths remain unchanged. The clock tree's only
+cross-tree footprint difference is an unrelated MT8173 Kconfig dependency.
+This is a read-only file comparison, not a full current-tree replay or proof
+that no parallel review exists.
+
+For byte identity, the September 6 handoff claimed only the four paths
+independently verified by the coordinator: `clk-mt6797.c`, the supplemental
+`clk-mtk.c`, the infracfg binding, and `mt6797.dtsi`. The record retains the
+other path statuses without promoting them to an outgoing replay result. The
+MT6797 file still uses `mtk_infrasys_init()` and has no common-probe conversion symbol in the
 inspected mainline or clock snapshots. Exact outgoing replay on the final
 current tree remains required before send; these are not ancestry or rebase
 tests.
