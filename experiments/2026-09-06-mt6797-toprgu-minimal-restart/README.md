@@ -162,6 +162,11 @@ its first hunk expected stale source context. The corrected patch was replayed
 read-only against the effective single-file chain in a temporary Buildbox
 directory, proving preimage `9ee35ef` and postimage `cf093ee`.
 
+The later [upstream readiness check](UPSTREAM_READINESS.md) holds a new restart
+submission: current upstream lacks explicit MT6797 watchdog match data, local
+patch 0087 depends on patch 0081, and this minimal candidate did not execute
+its restart test. It does not select another physical attempt.
+
 Buildbox then applied all 530 patches, compiled `mtk_wdt.o`, linked Linux, and
 validated the package from exact repository commit `745ecaea21c004a377a01287bea8ac3b58c2d6e2`.
 The immutable build facts are in

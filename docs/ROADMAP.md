@@ -592,9 +592,11 @@ are shared by thermal and PMIC serviceability and have focused test evidence.
 Check current upstream and related Gemini efforts for overlap before new
 implementation. Review the final coherent change rather than submit the
 historical fix-on-fix chain. Confirm the appropriate current maintainer tree and binding conventions;
-obtain genuine author certification before sending. TOPRGU restart is the next
-candidate topic for independent readiness assessment, not an automatic combined
-series.
+obtain genuine author certification before sending. The separate
+[TOPRGU readiness assessment](../experiments/2026-09-06-mt6797-toprgu-minimal-restart/UPSTREAM_READINESS.md)
+holds restart submission until the current-base MT6797 match/firmware contract
+and the inconclusive minimal-candidate runtime result are resolved; it is not
+an automatic combined series.
 
 Every topic records target, actual authorship status, dependencies, tests,
 public review revision and deletion condition. Keep historical patches and
