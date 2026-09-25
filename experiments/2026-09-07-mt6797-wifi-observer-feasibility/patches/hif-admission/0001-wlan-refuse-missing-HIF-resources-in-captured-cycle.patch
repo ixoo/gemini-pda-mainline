@@ -1,0 +1,221 @@
+From ba7e886814fc81fc0c08ad8ee70b42cf2f0c46b2 Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <archive@example.invalid>
+Date: Fri, 25 Sep 2026 10:22:44 -0400
+Subject: [PATCH] wlan: refuse missing HIF resources in captured cycle
+
+Propagate selected HIF MMIO and wifi-dma clock acquisition failures
+through network-device creation before DMA operations become available.
+Correct the experimental error return so the caller sees a failed probe.
+
+Preserve ordinary build behavior outside the default-off recovery
+experiment. A later clock-enable failure and shared clock ownership
+remain separate. This archive has a synthetic identity and is not an
+upstream submission.
+---
+ .../connectivity/wlan/gen3/os/linux/gl_init.c | 10 ++++
+ .../wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c | 50 +++++++++++++++++++
+ .../gen3/os/linux/hif/ahb_sdioLike/ahb_pdma.c | 14 +++++-
+ .../os/linux/hif/ahb_sdioLike/include/hif.h   |  8 +++
+ 4 files changed, 81 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c
+index b6157aa..8e79ffd 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c
+@@ -1634,7 +1634,14 @@ static struct wireless_dev *wlanNetCreate(PVOID pvData)
+ 	init_waitqueue_head(&prGlueInfo->waitq);
+ 	QUEUE_INITIALIZE(&prGlueInfo->rCmdQueue);
+ 	QUEUE_INITIALIZE(&prGlueInfo->rTxQueue);
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++	if (!glSetHifInfo(prGlueInfo, (ULONG) pvData)) {
++		glClearHifInfo(prGlueInfo);
++		goto netcreate_err;
++	}
++#else
+ 	glSetHifInfo(prGlueInfo, (ULONG) pvData);
++#endif
+ 
+ 	/* main thread is created in this function */
+ #if CFG_SUPPORT_MULTITHREAD
+@@ -1660,6 +1667,9 @@ static struct wireless_dev *wlanNetCreate(PVOID pvData)
+ 	goto netcreate_done;
+ 
+ netcreate_err:
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++	prWdev = NULL;
++#endif
+ 	if (NULL != prAdapter) {
+ 		wlanAdapterDestroy(prAdapter);
+ 		prAdapter = NULL;
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c
+index 2a3587d..ebf1780 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c
+@@ -58,6 +58,9 @@
+ #include <mach/mt_gpt.h> */
+ 
+ #include "gl_os.h"
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++#include "hif_pdma.h"
++#endif
+ 
+ #if defined(MT6797)
+ #include "mt6630_reg.h"
+@@ -323,10 +326,17 @@ VOID glResetHif(GLUE_INFO_T *GlueInfo)
+ /*----------------------------------------------------------------------------*/
+ UINT_8 **g_pHifRegBaseAddr = NULL;
+ 
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++BOOLEAN glSetHifInfo(GLUE_INFO_T *GlueInfo, ULONG ulCookie)
++#else
+ VOID glSetHifInfo(GLUE_INFO_T *GlueInfo, ULONG ulCookie)
++#endif
+ {
+ 	GL_HIF_INFO_T *HifInfo;
+ 	UINT_32		   val = 0;
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++	bool mapped;
++#endif
+ 
+ 	/* Init HIF */
+ 	ASSERT(GlueInfo);
+@@ -355,6 +365,33 @@ VOID glSetHifInfo(GLUE_INFO_T *GlueInfo, ULONG ulCookie)
+ 	HifInfo->DmaRegBaseAddr = 0;
+ 	HifInfo->DmaOps = NULL;
+ 
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++	/* Refuse missing mappings before the first HIF register access. */
++	mapped = HifInfo->HifRegBaseAddr && HifInfo->McuRegBaseAddr;
++#if defined(MT6797)
++	mapped = mapped && HifInfo->confRegBaseAddr;
++#endif
++	if (!mapped) {
++		wfc_dma_abort();
++		return FALSE;
++	}
++#if defined(CONFIG_OF) && !defined(CONFIG_MTK_CLKMGR)
++	HifInfo->clk_wifi_dma = devm_clk_get(&HifAhbPDev->dev, "wifi-dma");
++	if (IS_ERR(HifInfo->clk_wifi_dma)) {
++		HifInfo->clk_wifi_dma = NULL;
++		wfc_dma_abort();
++		return FALSE;
++	}
++#endif
++#if (CONF_MTK_AHB_DMA == 1)
++	HifInfo->DmaRegBaseAddr = ioremap(AP_DMA_HIF_BASE, AP_DMA_HIF_0_LENGTH);
++	if (!HifInfo->DmaRegBaseAddr) {
++		wfc_dma_abort();
++		return FALSE;
++	}
++#endif
++#endif
++
+ #if defined(MT6797)
+ 	sdio_open();
+ #endif
+@@ -373,11 +410,13 @@ VOID glSetHifInfo(GLUE_INFO_T *GlueInfo, ULONG ulCookie)
+ 
+ #ifdef CONFIG_OF
+ #if !defined(CONFIG_MTK_CLKMGR)
++#ifndef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
+ 	HifInfo->clk_wifi_dma = devm_clk_get(&HifAhbPDev->dev, "wifi-dma");
+ 	if (IS_ERR(HifInfo->clk_wifi_dma)) {
+ 		DBGLOG(INIT, ERROR, "[WiFi/HIF][CCF]cannot get HIF clk_wifi_dma clock.\n");
+ 		/* return PTR_ERR(HifInfo->clk_wifi_dma); */
+ 	}
++#endif
+ 	DBGLOG(INIT, INFO, "[WiFi/HIF][CCF]HIF clk_wifi_dma=0x%p\n", HifInfo->clk_wifi_dma);
+ #endif
+ #endif
+@@ -388,7 +427,15 @@ VOID glSetHifInfo(GLUE_INFO_T *GlueInfo, ULONG ulCookie)
+ #if (CONF_MTK_AHB_DMA == 1)
+ 	spin_lock_init(&HifInfo->DdmaLock);
+ 
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++	if (!HifPdmaInit(HifInfo)) {
++		WlanDmaFatalErr = 1;
++		wfc_dma_abort();
++		return FALSE;
++	}
++#else
+ 	HifPdmaInit(HifInfo);
++#endif
+ 
+ 	pfWlanDmaOps = HifInfo->DmaOps;
+ #endif /* CONF_MTK_AHB_DMA */
+@@ -417,6 +464,9 @@ VOID glSetHifInfo(GLUE_INFO_T *GlueInfo, ULONG ulCookie)
+ 	HifInfo->HifDmaWaitFlg = 0;
+ #endif /* CONF_HIF_DMA_INT */
+ 
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++	return TRUE;
++#endif
+ }				/* end of glSetHifInfo() */
+ 
+ /*----------------------------------------------------------------------------*/
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb_pdma.c b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb_pdma.c
+index cd3a5ff..c9fc8c1 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb_pdma.c
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb_pdma.c
+@@ -184,10 +184,19 @@ GL_HIF_DMA_OPS_T HifPdmaOps = {
+ * \retval NONE
+ */
+ /*----------------------------------------------------------------------------*/
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++BOOLEAN HifPdmaInit(GL_HIF_INFO_T *HifInfo)
++#else
+ VOID HifPdmaInit(GL_HIF_INFO_T *HifInfo)
++#endif
+ {
+-	/* IO remap PDMA register memory */
++	/* Capture mode acquired the mapping before SDIO function enable. */
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++	if (!HifInfo->DmaRegBaseAddr)
++		return FALSE;
++#else
+ 	HifInfo->DmaRegBaseAddr = ioremap(AP_DMA_HIF_BASE, AP_DMA_HIF_0_LENGTH);
++#endif
+ 
+ 	/* assign PDMA operators */
+ 	HifInfo->DmaOps = &HifPdmaOps;
+@@ -212,6 +221,9 @@ VOID HifPdmaInit(GL_HIF_INFO_T *HifInfo)
+ #endif
+ 
+ 	PDMA_DBG("PDMA> HifPdmaInit ok!\n");
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++	return TRUE;
++#endif
+ }
+ 
+ /*******************************************************************************
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif.h b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif.h
+index c511366..ae70977 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif.h
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif.h
+@@ -293,7 +293,11 @@ VOID glResetHif(GLUE_INFO_T *GlueInfo);
+ BOOLEAN kalDevRegReadCapture(P_GLUE_INFO_T glue, UINT_32 offset,
+ 			     UINT_32 *value, struct wfc_stop_trace *trace);
+ 
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++BOOLEAN glSetHifInfo(P_GLUE_INFO_T prGlueInfo, ULONG ulCookie);
++#else
+ VOID glSetHifInfo(P_GLUE_INFO_T prGlueInfo, ULONG ulCookie);
++#endif
+ 
+ VOID glClearHifInfo(P_GLUE_INFO_T prGlueInfo);
+ 
+@@ -341,7 +345,11 @@ VOID HifGdmaInit(GL_HIF_INFO_T *HifInfo);
+ * \retval NONE
+ */
+ /*----------------------------------------------------------------------------*/
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++BOOLEAN HifPdmaInit(GL_HIF_INFO_T *HifInfo);
++#else
+ VOID HifPdmaInit(GL_HIF_INFO_T *HifInfo);
++#endif
+ 
+ /*******************************************************************************
+ *                              F U N C T I O N S
+-- 
+2.54.0 (Apple Git-157)
+

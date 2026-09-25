@@ -1,0 +1,29 @@
+{
+  "status": "exact source replay and strict style passed; native build pending",
+  "parent_54_patch_build_commit": "b2411bb2672b67dfb515ff24dabf76a5a75107c4",
+  "parent_inputs_sha256": "753cb0351ddbda8db9d3036465f23ccdff0cd1e1de4f18340bea263293143ebd",
+  "patch_path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/hif-admission/0001-wlan-refuse-missing-HIF-resources-in-captured-cycle.patch",
+  "patch_sha256": "e91f78258576a8252f57d321de160de78134e8e2d3aca173c1b3b5c1f31aa2e9",
+  "parent_sha256": {
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c": "961fb12ea7179701cf84791b1659cfc06437936c040a2b5ae8c59d7b179d916a",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c": "d63a8beae353355534ab9824357ac82253c301647d260196e3d307fbd56582b5",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb_pdma.c": "7f56585062ae6888e3aac419d4581121e3f58220652e1649487c1d00be3768b7",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif.h": "4d188ae15e82379860241da62717173c8979331b25906c454135f56b1b344807"
+  },
+  "output_sha256": {
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c": "85bafd272959137bf0cf537260a5f2f06b632454f34c468bbb8bb885de37f286",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c": "35541ea01b9697143a2bef8747a8f403ea2a5ff75158039fc49f910d4d928d72",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb_pdma.c": "a75bc42f63aa358e889d55e28b0de37cb1c9b8674bb93aca54996645f44d62df",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif.h": "a3e3e0d9115f8a5f727ab0cd99daf4d9db714e25c9d277c6d5a02d6f06189645"
+  },
+  "replay_check": "git apply --check on unchanged 54-patch prepared source passed",
+  "reverse_check": "git apply --reverse --check on exact four-file output passed",
+  "checkpatch": "Linux 7.1.3 strict: zero errors, warnings and checks; legacy CAMELCASE and synthetic MISSING_SIGN_OFF excluded",
+  "effect": "Capture-mode HIF refuses absent main, MCU, remap or AP-DMA mapping and failed wifi-dma clock acquisition before sdio_open; glSetHifInfo failure reaches wlanProbe as NET_CREATE_FAIL and aborts capture.",
+  "unchanged_build": "No acquisition-order or return behavior change when CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR is disabled.",
+  "limits": [
+    "Later clock-enable failure is not yet propagated.",
+    "Complete native compilation, worker/reset isolation and physical cycle validation remain pending.",
+    "No device action."
+  ]
+}
