@@ -1,8 +1,9 @@
 # Passive CONSYS power-status gate
 
-Status: kernel and private image validated; guarded boot2 installation and
-clean-shutdown request complete. Owner boot2 selection and mainline result are
-pending.
+Status: one guarded boot2 installation, owner selection, authenticated mainline
+observation, complete log preservation and independently verified changed-boot
+Gemian return. The CONN power-status pair was stably off; Wi-Fi remains
+unimplemented.
 
 The first Wi-Fi hardware question is whether retained firmware leaves CONSYS
 powered at mainline late init. The working Gemian boot is an active-WLAN
@@ -97,5 +98,25 @@ against a distinct root, battery was 94% with good health, and the prior full
 partition checksum matched the tested A53 service image. The new padded image
 was written, synced, flushed and fully read back with matching SHA-256. The
 installer requested clean shutdown and confirmed the host became unreachable.
-The private full deployment receipt remains ignored. The owner has not yet
-reported physical boot2 selection, and no mainline Wi-Fi status result exists.
+The private full deployment receipt remains ignored.
+
+## One-board result
+
+The owner selected boot2 once. Authenticated USB identified mainline boot
+`01bdb393-2fc8-4ed7-b615-a3da93523b12` and the exact release. The complete
+126,688-byte kernel log has one `mt6797-consys-status` record:
+`state=off samples=2 reads=4 power=0 reset=0 firmware=0 radio=0 dma=0`.
+The [sanitized runtime receipt](results/runtime-20260925.json) binds the boot,
+candidate, log hash and observation. The four register reads found both CONN
+bits off in each sample. This is a late-init status observation, not proof
+that no other retained agent can access or reactivate CONSYS.
+
+The native recovery request followed complete log preservation. Its automated
+return watcher classified the session inconclusive after a temporary SSH
+`Host is down` error. A separate read-only pinned-key check then verified a
+different Gemian boot, the expected 3.18.41+ kernel and board, Debian 9 and
+running systemd. The watcher limitation is preserved; no second boot2
+selection or recovery request was made. This candidate's installation and
+selection budgets are consumed. The result supports designing the next
+shared-owner gate, but establishes no active ownership, firmware load or Wi-Fi
+networking.

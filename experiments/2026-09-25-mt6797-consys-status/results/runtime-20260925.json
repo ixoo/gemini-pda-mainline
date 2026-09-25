@@ -1,0 +1,35 @@
+{
+  "classification": "passive-consys-status-off-observed",
+  "kernel_build_commit": "b3d26e15bc7f90049e919591b97ecf06f77fb0d3",
+  "candidate_boot2_sha256": "83cedf98881e05b4552cd5747611cc44a2b0bbc3feaa299a6ed8d92489175060",
+  "preceding_gemian_boot": "5302713c-4108-464e-b5e9-d975e6ba0164",
+  "mainline_boot": "01bdb393-2fc8-4ed7-b615-a3da93523b12",
+  "observation": {
+    "state": "off",
+    "samples": 2,
+    "reads": 4,
+    "power": 0,
+    "reset": 0,
+    "firmware": 0,
+    "radio": 0,
+    "dma": 0
+  },
+  "log": {
+    "classification": "complete-log-through-seal",
+    "bytes": 126688,
+    "records": 1826,
+    "sha256": "b7419780b231d01700c408beee7c81581dca9d69de171c3007d434c4d0f6c352"
+  },
+  "recovery": {
+    "native_request": "sent",
+    "automated_watcher": "inconclusive-after-Host-is-down",
+    "independent_pinned_key_check": "changed-boot-Gemian",
+    "returned_gemian_boot": "abf9441d-0903-4e9f-8a67-f5063e85ee7a",
+    "gemian_kernel": "3.18.41+",
+    "gemian_model": "MT6797X",
+    "gemian_os": "debian 9",
+    "gemian_state": "running"
+  },
+  "limitation": "Two late-init reads establish this boot status only; no resource owner or usable Wi-Fi is established.",
+  "private_raw_evidence": "retained-ignored"
+}

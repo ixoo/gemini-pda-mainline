@@ -249,7 +249,11 @@ reset/handoff attribution, shared remap identity, selector availability and
 client claims. Read only registers already safely accessible through their
 owners. If a DMA/CONSYS register is not safely accessible, report unavailable;
 do not turn on a clock/domain just to complete this gate. Its mutation counters
-must remain zero. This gate is designed here, not admitted or run.
+must remain zero. The full gate remains unrun. A narrower
+[authenticated status snapshot](../2026-09-25-mt6797-consys-status/results/runtime-20260925.json)
+observed CONN off in both SPM status registers twice at late init with zero
+effect calls; it did not establish reset/handoff attribution, shared remap,
+selector state or external-writer exclusion.
 
 The hypothesis is that a single manager can bind the real reserved resources
 without adopting unknown live firmware or changing another client. Matching
@@ -280,6 +284,6 @@ active binding entry continues to refuse at unresolved effect boundaries.
 Meaningful fixtures should exercise stale-plan/generation rejection, competing
 clients, partial effects, failed containment and retained lifetimes on the
 same implementation. They must not call a mock's result hardware support.
-This document changes no kernel source, manifest, series or hardware-support
-claim; kernel build and device validation were not performed. The roadmap
-alone owns ordering and admission of the proposed patches and gate.
+This document proposes the owner contract; the linked status snapshot is a
+separate kernel build and device observation, not validation of the full gate.
+The roadmap alone owns ordering and admission of the proposed patches and gate.

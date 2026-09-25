@@ -385,8 +385,14 @@ for the first Wi-Fi bring-up. The current preparation order is:
    it or promote the result to usable Wi-Fi. Before another candidate, define
    and validate shared CONSYS/EMI/AP-DMA ownership and an effect-bearing failure
    lifetime, while later lifecycle work still resolves an explicit gen3
-   teardown edge. The accepted no-database parser run establishes original
-   ordinary-global `T` linkage for all four required wrapper/init/exit targets
+   teardown edge. A later
+   [one-boot passive SPM snapshot](../experiments/2026-09-25-mt6797-consys-status/results/runtime-20260925.json)
+   found both CONN power-status bits off in two late-init reads with a complete
+   log and no effect call. This removes the live-powered-state branch for that
+   boot, but does not prove exclusive handoff, remap/EMI ownership or safe
+   activation. Do not repeat that candidate; the next device gate must measure
+   a new ownership premise. The accepted no-database parser run establishes
+   original ordinary-global `T` linkage for all four required wrapper/init/exit targets
    and conservative next-distinct-symbol inspection envelopes. The later
    retained-instruction observer/checker line is owner-closed without semantic
    execution and must not be resumed as another offline repair loop. A bounded
