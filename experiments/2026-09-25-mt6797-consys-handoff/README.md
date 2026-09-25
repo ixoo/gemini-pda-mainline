@@ -1,7 +1,8 @@
 # Passive CONSYS shared-handoff snapshot
 
 Status: one guarded boot2 installation and clean shutdown complete; physical
-selection and runtime observation are pending. The previous [authenticated status boot](../2026-09-25-mt6797-consys-status/README.md)
+selection is unconfirmed and runtime observation is pending. One bounded
+collector window expired without a USB route. The previous [authenticated status boot](../2026-09-25-mt6797-consys-status/README.md)
 found CONN off in both SPM status registers and logged the boot's allocated
 2 MiB no-map CONSYS reservation. It did not show the shared remap, EMI
 selector or CONN bus-protection state. That image's boot budget is consumed.
@@ -93,6 +94,11 @@ the complete independent readback to SHA-256
 Clean shutdown was requested and the host confirmed Gemian unreachable. The
 [sanitized deployment receipt](results/deployment.json) omits device paths and
 private raw evidence. The owner has not yet confirmed physical boot2 selection
-for this image. A bounded local USB-route watcher is armed; it sends no device
-packet until the route appears, then the authenticated collector will consume
-one observation/log/recovery session. No mainline runtime claim exists yet.
+for this image. The first bounded 900-second local USB-route watcher
+[expired without a route](results/collector-window-1.json). It made no device
+claim or SSH connection; the private session directory still contains only its
+deployment receipt. A subsequent pinned-key Gemian LAN check timed out,
+consistent with a powered-off PDA but not proof of its screen state. Re-arm a
+fresh local route watcher after the owner reports the screen state; the device
+observation/log/recovery session remains unconsumed. No mainline runtime claim
+exists yet.

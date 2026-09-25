@@ -1,0 +1,14 @@
+{
+  "candidate_boot2_sha256": "991144187d3aaed6cdccef8fe890fafa52b80cfb635fe95adc4dcf04025f5333",
+  "preceding_gemian_boot": "abf9441d-0903-4e9f-8a67-f5063e85ee7a",
+  "local_route_watch_seconds": 900,
+  "watch_terminal": "expired-without-route",
+  "watch_exit_status": 3,
+  "mainline_usb_route_seen": false,
+  "device_ssh_attempts": 0,
+  "authenticated_session_claim": "none",
+  "post_window_gemian_lan_check": "connection-timeout",
+  "physical_boot2_selection": "unconfirmed",
+  "pda_screen_state": "unknown",
+  "interpretation": "This host-only wait cannot establish a boot attempt or a mainline boot failure."
+}
