@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "purpose": "Sparse patch-footprint replay of the accepted six-patch reset topic against current mainline source; no Linux source tree retained",
+  "mainline_revision": "165768bb70265b5c38cf0b73fafd75be235f8b14",
+  "source": "https://raw.githubusercontent.com/torvalds/linux/165768bb70265b5c38cf0b73fafd75be235f8b14/",
+  "input_sha256": {
+    "drivers/clk/mediatek/reset.c": "8c1cdf2ad881dc20659340cd7f0244b8ff1a1b6d1d7b4cd1e74946533adcee76",
+    "drivers/clk/mediatek/Kconfig": "6634c6e7c14ca9a72fc0a258ca9b8a575c53bc451919646feb644c7b9354c3c0",
+    "drivers/clk/mediatek/Makefile": "6af23f8e56cbb5e9fdda850fb8201f384053f89e8b3347aa8a6cd98239678b11",
+    "drivers/clk/mediatek/clk-mt6797.c": "eaad6324621679371f33bbb76e10bcb0d3374b1f2dbbd837323b3f9e8fee1534",
+    "arch/arm64/boot/dts/mediatek/mt6797.dtsi": "798662eb7df0a7cf37cbc47d54d232bbf85fbc748afc63af2c373526a948af83"
+  },
+  "series": "patches/series-mt6797-infracfg-revised-kunit",
+  "patch_sha256_in_order": [
+    "ab875a831822e1809619f0034f29f8c068af133012da196ba59a62977b884fd5",
+    "211f2b95d24d7cb09085d99ade5bcd681254f55145e227920fd62b773f30d483",
+    "0c8af0a97f42424830d5c6b59f9830a42d4212b728507ea6f433f7a8713fff25",
+    "90a1d8aaff250e8b0086488138aec1527f535cde38aa2b6734c6b83344e41cc5",
+    "10961fd177b6584985c717a3cc99338571addeb5d898397b9bd4816e4a31c2cf",
+    "d7ccee4f2e8e3ae78cce2405c761bc1c76f915423a8b9ea8cbf22785c2e2bfbe"
+  ],
+  "result": "All six git apply --check and git apply operations passed in canonical order on the five fetched existing files; new files were created by their patches.",
+  "limits": "This is patch-context validation, not a full current-tree compile, KUnit run, DT schema check, maintainer ordering decision, authorship certification or hardware test."
+}

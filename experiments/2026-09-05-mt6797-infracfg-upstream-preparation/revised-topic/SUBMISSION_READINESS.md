@@ -32,6 +32,16 @@ cross-tree footprint difference is an unrelated MT8173 Kconfig dependency.
 This is a read-only file comparison, not a full current-tree replay or proof
 that no parallel review exists.
 
+The later [current-mainline patch-footprint replay](../results/current-mainline-replay-20260925.json)
+fetched the five existing files touched by the accepted series at mainline
+`165768bb70265b5c38cf0b73fafd75be235f8b14`. All six patches passed
+`git apply --check` and applied in canonical order in disposable sparse source.
+This closes patch-context
+applicability on that mainline revision only. No current-tree compile, KUnit,
+schema or hardware check follows from a sparse replay; the clock and MediaTek
+trees were not replayed in this step. Maintainer ordering and human
+certification remain unresolved.
+
 For byte identity, the September 6 handoff claimed only the four paths
 independently verified by the coordinator: `clk-mt6797.c`, the supplemental
 `clk-mtk.c`, the infracfg binding, and `mt6797.dtsi`. The record retains the
