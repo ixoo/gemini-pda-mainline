@@ -1,0 +1,54 @@
+From dcd17db57d3b9e8c31dc64d714a2ec2fb6ca6451 Mon Sep 17 00:00:00 2001
+From: MT6797 CONN order experiment <nobody@example.invalid>
+Date: Fri, 25 Sep 2026 16:34:00 -0400
+Subject: [PATCH] pmdomain: mediatek: allow CONN-compatible power-off order
+
+Keep the existing reset-before-clock order for all current domains.
+A future MT6797 CONN owner can select clock-before-reset, as
+attributed to the retained Gemini kernel. This patch alone selects
+no domain and performs no additional hardware operation.
+
+Internal compile experiment only; synthetic author, no DCO certification.
+---
+ drivers/pmdomain/mediatek/mtk-scpsys.c | 18 +++++++++++++-----
+ 1 file changed, 13 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/pmdomain/mediatek/mtk-scpsys.c b/drivers/pmdomain/mediatek/mtk-scpsys.c
+index d430670..b64c8ba 100644
+--- a/drivers/pmdomain/mediatek/mtk-scpsys.c
++++ b/drivers/pmdomain/mediatek/mtk-scpsys.c
+@@ -27,6 +27,8 @@
+ #define MTK_SCPD_FWAIT_SRAM		BIT(1)
+ /* Standalone domains only; requires an initially-off, Linux-owned island. */
+ #define MTK_SCPD_KEEP_DEFAULT_OFF	BIT(2)
++/* Select only for domains whose retained OFF order requires it. */
++#define MTK_SCPD_CLK_OFF_BEFORE_RESET	BIT(3)
+ #define MTK_SCPD_CAPS(_scpd, _x)	((_scpd)->data->caps & (_x))
+ 
+ #define SPM_VDE_PWR_CON			0x0210
+@@ -402,11 +404,17 @@ static int scpsys_power_off(struct generic_pm_domain *genpd)
+ 	val |= PWR_ISO_BIT;
+ 	writel(val, ctl_addr);
+ 
+-	val &= ~PWR_RST_B_BIT;
+-	writel(val, ctl_addr);
+-
+-	val |= PWR_CLK_DIS_BIT;
+-	writel(val, ctl_addr);
++	if (MTK_SCPD_CAPS(scpd, MTK_SCPD_CLK_OFF_BEFORE_RESET)) {
++		val |= PWR_CLK_DIS_BIT;
++		writel(val, ctl_addr);
++		val &= ~PWR_RST_B_BIT;
++		writel(val, ctl_addr);
++	} else {
++		val &= ~PWR_RST_B_BIT;
++		writel(val, ctl_addr);
++		val |= PWR_CLK_DIS_BIT;
++		writel(val, ctl_addr);
++	}
+ 
+ 	val &= ~PWR_ON_BIT;
+ 	writel(val, ctl_addr);
+-- 
+2.54.0 (Apple Git-157)
+
