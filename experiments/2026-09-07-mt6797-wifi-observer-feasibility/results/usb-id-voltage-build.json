@@ -1,0 +1,26 @@
+{
+  "status": "58-patch native kernel link passed; compile-only package",
+  "project_commit": "127eb2589a45c7679b8fee4606ab065e18e025b9",
+  "inputs_sha256": "d7b740890e7f74e61b9ee6f9dc3071eebbe72e7e0d3c76307f71b6047f27e734",
+  "patch_sha256": "a13f978b0f53496254ef4919bdd6ee97fd9ab7e50154fc6cb57ed6ef42625915",
+  "package": "wifi-controller-kernel-127eb2589a45c7679b8fee4606ab065e18e025b9",
+  "sha256sums_sha256": "88a234a78dc83fa049704dfe94226bef0b9a101b10b1a564bef6fbd60dac68c1",
+  "image_gz_dtb_sha256": "0a994ac4231a1d6145d08578eea830c8572939c5c8235afc77334ade201a9418",
+  "config_sha256": "43222fdee6781f3bc51cb7e412c9f92372ecf8f78b8881b11d66b77f849d8eb8",
+  "source_integrity": "source_tree_integrity=0535c54afc06f2da38a1ea13720d92701d1ecc8384ad8c0eadb95562195495bd",
+  "package_inventory": "all 10 listed files passed remote and fetched sha256sum --check --strict",
+  "undefined_symbols": 0,
+  "section_mismatches": 69,
+  "linked_observation": {
+    "v5_shutdown_format_count": 1,
+    "v4_shutdown_format_count": 0,
+    "usb_export_report_calls_retained_voltage_getter": true,
+    "existing_charger_getter_result_stored_before_4000_mv_comparison": true,
+    "retained_voltage_getter_address": "ffffffc0004ed820",
+    "mode_switch_address": "ffffffc0004edd98",
+    "one_shot_report_address": "ffffffc0004e3500"
+  },
+  "checkpatch": "Linux 7.3-rc1 strict: zero errors, warnings and checks; AVOID_EXTERNS excluded for the existing cross-translation-unit diagnostic pattern",
+  "boot_candidate": false,
+  "device_execution": false
+}

@@ -18,6 +18,16 @@ gate; it adds no ADC read, role request, controller start, retry or new report
 site. Ordinary builds do not retain the value. This is a native diagnostic,
 not an upstream submission or a radio action.
 
+The [58-patch Buildbox result](results/usb-id-voltage-build.json) linked with
+zero undefined symbols and the inherited 69 section mismatches. Its exact
+10-file package passed checksums remotely and after fetch. The selected
+configuration is unchanged from the 57-patch kernel. Linked inspection found
+one `wifi-usb-v5` format and no `v4` format; the mode-switch body stores the
+existing charger getter result before comparing it with 4001 mV, and the
+one-shot report calls the retained-value getter. Compilation does not establish
+runtime USB behavior. Strict Checkpatch passed with the native source's
+existing cross-file declaration pattern excluded.
+
 The next physical boot is justified only by this new measurement. Its
 hypothesis is that the observed `id_host` path follows the existing voltage
 threshold. An attributable `role=01` with `id_mv` at most 4000 supports that
