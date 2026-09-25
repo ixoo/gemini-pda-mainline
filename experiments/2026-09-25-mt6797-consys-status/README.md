@@ -1,7 +1,8 @@
 # Passive CONSYS power-status gate
 
-Status: kernel and private boot image built and validated offline; no new board
-result yet.
+Status: kernel and private image validated; guarded boot2 installation and
+clean-shutdown request complete. Owner boot2 selection and mainline result are
+pending.
 
 The first Wi-Fi hardware question is whether retained firmware leaves CONSYS
 powered at mainline late init. The working Gemian boot is an active-WLAN
@@ -64,8 +65,8 @@ is 9,132,032 bytes; the 16 MiB padded boot2 image has SHA-256
 The builder checked the package inventory, decompression, required symbols,
 complete parent identity, CPIO round trip, one-property DT delta, LK format,
 payload pairing and zero-padded partition size. The image contains a private
-authentication key and remains ignored under `artifacts/`; no installation or
-device action has occurred for this candidate.
+authentication key and remains ignored under `artifacts/`. Composition itself
+had no device effect.
 
 ## Bound deployment and collection
 
@@ -87,4 +88,14 @@ export (30 s) and recovery request (15 s), plus the reviewed 180 s Gemian
 return window. An occupied or interrupted session is consumed; a missing
 status line or incomplete log is inconclusive, not a reason to retry the same
 image. An offline synthetic receipt verified the new host binding without
-device access. The live result remains pending.
+device access.
+
+The [sanitized deployment receipt](results/deployment.json) records one
+installation from Gemian boot `5302713c-4108-464e-b5e9-d975e6ba0164`. The
+live GPT selected inactive `boot2`; the reviewed block-device guard passed
+against a distinct root, battery was 94% with good health, and the prior full
+partition checksum matched the tested A53 service image. The new padded image
+was written, synced, flushed and fully read back with matching SHA-256. The
+installer requested clean shutdown and confirmed the host became unreachable.
+The private full deployment receipt remains ignored. The owner has not yet
+reported physical boot2 selection, and no mainline Wi-Fi status result exists.

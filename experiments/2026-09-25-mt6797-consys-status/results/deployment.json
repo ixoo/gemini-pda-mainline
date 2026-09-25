@@ -1,0 +1,17 @@
+{
+  "experiment": "mt6797-consys-status-snapshot",
+  "result": "write-synced-flushed-full-readback-verified",
+  "target_logical_name": "boot2",
+  "boot2_device_guard": "passed",
+  "boot2_device_guard_sha256": "0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf",
+  "predecessor_sha256": "f185a0f2f993f8c68227f2a6e225e951ee22487d418610b9156ee1e517f56cb0",
+  "candidate_sha256": "83cedf98881e05b4552cd5747611cc44a2b0bbc3feaa299a6ed8d92489175060",
+  "readback_sha256": "83cedf98881e05b4552cd5747611cc44a2b0bbc3feaa299a6ed8d92489175060",
+  "boot_id": "5302713c-4108-464e-b5e9-d975e6ba0164",
+  "fresh_predecessor_backup": "no",
+  "shutdown": "requested-after-evidence-flush",
+  "post_shutdown_reachability": "unreachable",
+  "next_action": "owner-physically-selects-boot2",
+  "device_action": "guarded-boot2-installation-and-clean-shutdown",
+  "physical_selection": "pending"
+}
