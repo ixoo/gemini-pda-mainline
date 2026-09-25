@@ -66,3 +66,25 @@ complete parent identity, CPIO round trip, one-property DT delta, LK format,
 payload pairing and zero-padded partition size. The image contains a private
 authentication key and remains ignored under `artifacts/`; no installation or
 device action has occurred for this candidate.
+
+## Bound deployment and collection
+
+The [installer adapter](installer.py) derives the previously reviewed guarded
+boot2 installer for this exact receipt and a freshly observed Gemian boot ID.
+It verifies the seven private candidate files and full 16 MiB padding, then
+retains live-GPT selection, block identity guards, inactive target checks,
+stable-power check, predecessor hash, single write, full readback and clean
+shutdown. The generated shell passes `bash -n` and ShellCheck. Its default
+adapter actions only prepare or validate offline; execution is a separate
+explicit action after live identity checks.
+
+The [session binding](session.py) reuses the accepted authenticated RAM
+collector and exact kernel-release checks. The [host runner](host.py) calls the
+established bounded observation, identity probe, log seal/export, evidence
+readback, native recovery request and changed-boot Gemian watcher. Its one
+session has one connection each for observation (45 s), identity (15 s), log
+export (30 s) and recovery request (15 s), plus the reviewed 180 s Gemian
+return window. An occupied or interrupted session is consumed; a missing
+status line or incomplete log is inconclusive, not a reason to retry the same
+image. An offline synthetic receipt verified the new host binding without
+device access. The live result remains pending.
