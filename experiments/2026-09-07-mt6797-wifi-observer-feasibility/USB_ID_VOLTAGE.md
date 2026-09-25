@@ -48,8 +48,11 @@ getter discards the battery-meter control status. The meter's charger read
 uses PMIC AUXADC channel 2, scales the returned value by the configured
 divider, and reports success; the AUXADC routine can return register data
 after a readiness timeout. Thus the 28 mV value does not establish actual
-port power or ADC validity. A later read-only observation in the authenticated
-returned Gemian boot showed `usb/online=0`, `ac/online=0`, and battery status
+port power or ADC validity. A private scan of the retained console found no
+AUXADC timeout line, but the selected source compiles that debug print out;
+its absence does not establish a ready conversion. A later read-only
+observation in the authenticated returned Gemian boot showed `usb/online=0`,
+`ac/online=0`, and battery status
 `Not charging`. The owner had reported the left-port cable connected before
 this boot. The Gemian reading is from a different boot and is not an
 independent physical VBUS measurement. The masks
@@ -58,3 +61,8 @@ trace. Resolve power at the port and ADC readiness before any role-policy
 change; this result does not justify forcing device mode.
 There was no radio action or observed CMDQ task submission, and GCE
 hardware-idle and the separate Wi-Fi resource admissions remain open.
+
+A later [five-minute read-only Gemian watch](results/usb-power-watch.json)
+remained at `usb/online=0`, `ac/online=0` and `Not charging`. The requested
+physical charger change was not confirmed within that window, so the watch
+does not establish how the device responds to a known-good charger.

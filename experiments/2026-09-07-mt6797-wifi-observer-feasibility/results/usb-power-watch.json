@@ -1,0 +1,15 @@
+{
+  "purpose": "Determine whether Gemian reports a USB or AC power-state transition during a requested left-port charger change.",
+  "gemian_boot": "a3eb4157-ef96-45d2-a8e0-405b1ef46572",
+  "observation_seconds": 300,
+  "initial": {"usb_online": 0, "ac_online": 0, "battery_status": "Not charging"},
+  "final": {"usb_online": 0, "ac_online": 0, "battery_status": "Not charging"},
+  "intermediate_state_changes": 0,
+  "private_trace_sha256": "1f55598dafc2f3d7a6df190151e4980d6af5fa52f41f0daaf026c88dde619f73",
+  "physical_cable_change_confirmed": false,
+  "classification": "No reported power-state transition in this finite Gemian window; the requested physical charger change was not confirmed during the window, so it is not a charger-response test.",
+  "limitations": [
+    "The existing Gemian power-supply status is a software result, not an independent physical VBUS measurement.",
+    "This Gemian boot is later than the measured mainline 28 mV role decision."
+  ]
+}

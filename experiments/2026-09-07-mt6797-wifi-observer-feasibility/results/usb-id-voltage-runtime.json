@@ -55,6 +55,12 @@
     "battery_status": "Not charging",
     "scope": "one later read-only Gemian sysfs observation; the owner reported the left-port cable connected before mainline boot, but this is not a direct physical VBUS measurement during mainline"
   },
+  "adc_log_audit": {
+    "retained_console_auxadc_lines": 0,
+    "retained_console_timeout_lines": 0,
+    "selected_source_pmiclog2_enabled": false,
+    "interpretation": "The timeout diagnostic is compiled out; no retained timeout line does not prove ADC readiness."
+  },
   "classification": "The existing charger-voltage getter returned 28 mV at the ID-pin decision; the selected threshold chose host, preventing USB export in this boot. Mainline userspace and normal Gemian return were verified.",
   "limitations": [
     "The returned value does not establish physical VBUS, ADC validity or why the getter produced 28 mV; the selected helper discards its control-call status and the ADC routine returns data even after a readiness timeout.",
