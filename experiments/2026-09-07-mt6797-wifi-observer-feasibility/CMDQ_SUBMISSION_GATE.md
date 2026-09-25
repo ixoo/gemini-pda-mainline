@@ -40,7 +40,12 @@ previous boot-only runtime and changes only the session metadata. The
 16 MiB padded image and its three-file package passed exact checksums,
 container reconstruction and 17 mutation refusals before device selection.
 The guarded `boot2` installation passed a full-partition readback and a clean
-Gemian shutdown. Runtime serviceability and changed-boot return are pending.
+Gemian shutdown. In the [first finite observation window](results/cmdq-gate-boot-window-1.json),
+the host saw the preloader and a later generic MediaTek USB parent, but no
+attributable export gadget or authenticated changed-boot Gemian return within
+600 seconds. No snapshot request was sent. This does not establish that the
+mainline kernel ran, nor that the CMDQ gate was reached. The device state after
+the window remains to be confirmed before recovery or another boot.
 
 This boot-only diagnostic must establish that the headless startup and USB
 return remain serviceable. A later radio admission must independently verify

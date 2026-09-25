@@ -447,7 +447,9 @@ The remaining preparation order is:
    were restored. CMDQ cannot be excluded by configuration alone.
    A [headless submission gate](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/CMDQ_SUBMISSION_GATE.md)
    now links and refuses new CMDQ tasks before dispatch in the captured
-   build. Boot serviceability and hardware-idle admission remain unverified.
+   build. Its [first boot-only host window](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/cmdq-gate-boot-window-1.json)
+   saw no export gadget or verified Gemian return, so mainline execution, boot
+   serviceability and hardware-idle admission remain unverified.
    Resolve those paths, then package and validate
    the `cycle` action with shared ownership, post-reset capture preservation
    and a finite radio-effect protocol before another physical Wi-Fi test. No

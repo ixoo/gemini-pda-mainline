@@ -1,0 +1,22 @@
+{
+  "candidate": "cmdq-gate-boot-candidate.json",
+  "cycle_id": "6f6ed847-e4f1-40a6-a7d0-6d152c02f677",
+  "status": "finite host observation complete; device state not yet confirmed",
+  "ethernet_collector_seconds": 600,
+  "return_collector_seconds": 600,
+  "usb_sequence_after_arming": [
+    "baseline parent disappeared",
+    "0e8d:2000 MT65xx Preloader appeared and disappeared",
+    "0e8d:20ff generic MediaTek parent appeared"
+  ],
+  "attributed_export_gadget_seen": false,
+  "capture_request_sent": false,
+  "snapshot_preserved": false,
+  "authenticated_changed_boot_gemian_seen": false,
+  "known_good_gemian_ssh_after_timeout": "unreachable",
+  "mainline_boot_identity_verified": false,
+  "cmdq_gate_runtime_executed": "unproven",
+  "classification": "no USB export and no verified return in this window; reason unresolved",
+  "device_action_after_timeout": "none",
+  "private_evidence": "ignored host USB inventory and watcher logs retained"
+}
