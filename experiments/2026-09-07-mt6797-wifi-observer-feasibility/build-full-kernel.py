@@ -110,6 +110,7 @@ def main():
             'CONFIG_ANBOX': [None, 'n'],
             'CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR': [None, 'y'],
             'CONFIG_MTK_CMDQ': ['y', 'n'],
+            'CONFIG_MTK_CMDQ_MT2701': ['n', None],
             'CONFIG_USB_G_ANDROID': ['y', 'n'],
             'CONFIG_USB_ANDROID_RNDIS_DWORD_ALIGNED': ['n', None],
             'CONFIG_USB_ETH': ['n', 'y'],
