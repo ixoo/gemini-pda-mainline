@@ -1,0 +1,125 @@
+From 0000000000000000000000000000000000000545 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 25 Sep 2026 20:50:00 +0000
+Subject: [PATCH] soc: mediatek: observe MT6797 CONSYS power status
+
+Use the existing SPM syscon to read the two CONN status bits twice at late
+init. Report only off, on, mixed, moved or unavailable. No status is an
+ownership grant, and this diagnostic makes no power, reset or radio change.
+
+Internal experiment only; synthetic author, no DCO certification.
+---
+ drivers/soc/mediatek/Kconfig                 | 10 ++++
+ drivers/soc/mediatek/Makefile                |  1 +
+ drivers/soc/mediatek/mt6797-consys-status.c | 80 +++++++++++++++++++++++++++
+ 3 files changed, 91 insertions(+)
+ create mode 100644 drivers/soc/mediatek/mt6797-consys-status.c
+
+diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
+--- a/drivers/soc/mediatek/Kconfig
++++ b/drivers/soc/mediatek/Kconfig
+@@ -821,1 +821,11 @@
++config MTK_MT6797_CONSYS_STATUS_SNAPSHOT
++	bool "MediaTek MT6797 passive CONSYS power-status snapshot"
++	depends on ARM64 && ARCH_MEDIATEK && OF && MFD_SYSCON && REGMAP
++	default n
++	help
++	  On the Gemini PDA, read the existing SPM syscon's two CONN power
++	  status bits twice at late init and log a bounded classification.
++	  This read-only diagnostic does not power CONSYS, load firmware or
++	  grant any resource ownership. It is not a Wi-Fi driver.
++
+ config MTK_MT6797_A72_RESTORE_EXECUTOR
+diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
+--- a/drivers/soc/mediatek/Makefile
++++ b/drivers/soc/mediatek/Makefile
+@@ -42,1 +42,2 @@
+ obj-$(CONFIG_MTK_MT6797_A72_RESTORE_EXECUTOR) += mt6797-a72-restore-executor.o
++obj-$(CONFIG_MTK_MT6797_CONSYS_STATUS_SNAPSHOT) += mt6797-consys-status.o
+diff --git a/drivers/soc/mediatek/mt6797-consys-status.c b/drivers/soc/mediatek/mt6797-consys-status.c
+new file mode 100644
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-consys-status.c
+@@ -0,0 +1,80 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/* One bounded, read-only CONN status observation on the Gemini PDA. */
++#include <linux/bitops.h>
++#include <linux/err.h>
++#include <linux/init.h>
++#include <linux/mfd/syscon.h>
++#include <linux/of.h>
++#include <linux/printk.h>
++#include <linux/regmap.h>
++
++#define MT6797_SPM_PWR_STATUS		0x180
++#define MT6797_SPM_PWR_STATUS_2ND	0x184
++#define MT6797_CONN_STATUS		BIT(1)
++
++static int __init mt6797_consys_status_init(void)
++{
++	struct device_node *node;
++	struct regmap *spm;
++	u32 primary[2], secondary[2];
++	const char *state;
++	unsigned int reads = 0;
++	int error, i;
++
++	if (!of_machine_is_compatible("planet,gemini-pda"))
++		return 0;
++
++	node = of_find_compatible_node(NULL, NULL, "mediatek,mt6797-scpsys");
++	if (!node) {
++		pr_info("mt6797-consys-status: state=unavailable reason=node\n");
++		return 0;
++	}
++	if (!of_device_is_available(node) ||
++	    !of_device_is_compatible(node, "syscon")) {
++		of_node_put(node);
++		pr_info("mt6797-consys-status: state=unavailable reason=syscon\n");
++		return 0;
++	}
++
++	spm = syscon_node_to_regmap(node);
++	of_node_put(node);
++	if (IS_ERR(spm)) {
++		pr_info("mt6797-consys-status: state=unavailable reason=map error=%ld\n",
++			PTR_ERR(spm));
++		return 0;
++	}
++
++	for (i = 0; i < 2; i++) {
++		error = regmap_read(spm, MT6797_SPM_PWR_STATUS,
++				    &primary[i]);
++		if (error)
++			goto unavailable;
++		reads++;
++		error = regmap_read(spm, MT6797_SPM_PWR_STATUS_2ND,
++				    &secondary[i]);
++		if (error)
++			goto unavailable;
++		reads++;
++	}
++
++	if (((primary[0] ^ primary[1]) |
++	     (secondary[0] ^ secondary[1])) & MT6797_CONN_STATUS)
++		state = "moved";
++	else if ((primary[1] & MT6797_CONN_STATUS) &&
++		 (secondary[1] & MT6797_CONN_STATUS))
++		state = "on";
++	else if (!(primary[1] & MT6797_CONN_STATUS) &&
++		 !(secondary[1] & MT6797_CONN_STATUS))
++		state = "off";
++	else
++		state = "mixed";
++	pr_info("mt6797-consys-status: state=%s samples=2 reads=%u power=0 reset=0 firmware=0 radio=0 dma=0\n",
++		state, reads);
++	return 0;
++
++unavailable:
++	pr_info("mt6797-consys-status: state=unavailable reason=read error=%d reads=%u\n",
++		error, reads);
++	return 0;
++}
++late_initcall(mt6797_consys_status_init);
+-- 
+2.54.0

@@ -29,6 +29,25 @@
           "configs/gemini-a53-service-facilities.fragment"
         ]
       },
+      "mt6797-a53-consys-status-snapshot": {
+        "base": "defconfig",
+        "patch_series": "patches/series-a53-consys-status-snapshot",
+        "fragments": [
+          "configs/gemini-handoff.fragment",
+          "configs/gemini-usbdiag.fragment",
+          "configs/gemini-clk-ignore-unused.fragment",
+          "configs/gemini-observability.fragment",
+          "configs/gemini-fbcon-rotation.fragment",
+          "configs/gemini-keyboard.fragment",
+          "configs/gemini-keyboard-wrrd.fragment",
+          "configs/gemini-keyboard-manual-reboot.fragment",
+          "configs/gemini-smp8.fragment",
+          "configs/gemini-emmc-development.fragment",
+          "configs/gemini-mt6797-pwrap-reset-serviceability.fragment",
+          "configs/gemini-a53-service-facilities.fragment",
+          "configs/gemini-consys-status-snapshot.fragment"
+        ]
+      },
       "mt6397-rtc-wake": {
         "base": "allnoconfig",
         "fragments": [

@@ -1,0 +1,3 @@
+# One read-only CONSYS power-status snapshot on the Gemini PDA.
+CONFIG_MTK_MT6797_CONSYS_STATUS_SNAPSHOT=y
+CONFIG_LOCALVERSION="-gemini-consys-status-snapshot"
