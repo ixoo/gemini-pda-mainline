@@ -1,0 +1,48 @@
+{
+  "date": "2026-09-25",
+  "candidate_boot_sha256": "97c23e3f34686d8831e56f9903e109f6b9ba89cb121c88996f25411e86d5bec0",
+  "boot2_full_sha256": "f185a0f2f993f8c68227f2a6e225e951ee22487d418610b9156ee1e517f56cb0",
+  "embedded_keyboard_observer_sha256": "51ef03def5461b2c13367906b3184a2dae14ca2f7ba7e835740be6a7268fa223",
+  "preceding_gemian_boot": "e815c0bf-9f84-4ba6-82be-fc8af80a878d",
+  "physical_selection": "owner selected boot2 after an identity-checked clean Gemian shutdown",
+  "mainline": {
+    "boot_id": "1fb61249-f1a5-4a1f-8d4b-60663defa9a0",
+    "kernel_release": "7.1.3-gemini-a53-service-facilities",
+    "direct_usb_route": true,
+    "authenticated_observation": "baseline-observation-only-pass",
+    "observation_sha256": "888b5ba80ad2ab1cd111a1e55cd5806198cedab1183461ba79117237dc996c1b",
+    "identity_probe": "pass"
+  },
+  "keyboard": {
+    "command_sha256": "4527a681d684abac09dfb6d8a6dcb0bb4cd305074d29c5c81e4b6441fc865992",
+    "requested_mode": "--diagnose",
+    "process_exit": 2,
+    "stdout_sha256": "33f3ca8fa1db6de509a4b9b9287db9c1439ae32430253a1dd85a28b362d98bcb",
+    "stderr_sha256": "e63d6e4bc6456c471a3556f4b9c195ccee8419f97a60ae1a86bf2a4f05b1ddcf",
+    "stderr": "usage: keyboard-observe --capture eventN 13 MINOR",
+    "key_prompt_shown": false,
+    "input_observed": false,
+    "classification": "embedded-helper-mode-refusal"
+  },
+  "preservation": {
+    "log_export": "complete-log-through-seal",
+    "log_records": 1823,
+    "log_bytes": 126426,
+    "log_sha256": "0b7b1dff1a2a790a7e97df7000ceb2a67088f15df1d45c26444ba5f78dbd68e9",
+    "pre_recovery_manifest_sha256": "9c6cff94300be3c05608c321ef0769d20497e890600db6ce12eaef665c469745",
+    "native_recovery_requests": 1
+  },
+  "return": {
+    "classification": "changed-ID-Gemian",
+    "boot_id": "5302713c-4108-464e-b5e9-d975e6ba0164",
+    "kernel": "3.18.41+",
+    "system_state": "running"
+  },
+  "classification": "keyboard-method-refused-before-input",
+  "selection_budget": "consumed; no unchanged-image retry selected",
+  "limitations": [
+    "No physical key sequence was requested or captured on this A53 image.",
+    "The historical focused capture used a separately delivered reader; its offline repeat-aware result does not establish this image's reader mode.",
+    "Raw keyboard transport, kernel log and host evidence remain private."
+  ]
+}

@@ -11,9 +11,12 @@ confirmation satisfies that prerequisite, and freeze the per-cycle keyboard
 method before admitting this series; do not repeat the same boot to replace the
 result. This protocol defines what a later ten-boot result must prove; it does
 not admit ten physical selections, a persistent-root write or a new power action.
-The [keyboard method audit](A53_KEYBOARD_METHOD_AUDIT.md) shows that the exact
-image already contains the prior tested helper and its repeat-aware analysis
-passes offline checks. One A53-specific method trial remains before method freeze.
+The [keyboard method audit](A53_KEYBOARD_METHOD_AUDIT.md) and subsequent
+[A53 trial](results/a53-keyboard-method-trial-20260925.json) show that the
+embedded reader refuses the focused mode before a key prompt. Its logs and
+changed-boot Gemian return were preserved. The keyboard method still needs a
+compatible image or a separately reviewed capture method before this series
+can be selected.
 
 ## Frozen input and question
 
