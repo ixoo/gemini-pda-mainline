@@ -43,10 +43,20 @@
       "mtk_wmt": 1
     },
     "ap_dma_parent_bound": false,
+    "clock_snapshot": {
+      "host_recorded_at_utc": "2026-09-25T14:54:27Z",
+      "source": "/sys/kernel/debug/clk/clk_summary",
+      "clock": "infra_ap_dma",
+      "enable_count": 0,
+      "prepare_count": 1,
+      "rate_hz": 136500000,
+      "boot_identity_stable": true,
+      "effect": "read-only"
+    },
     "radio_or_register_action": false
   },
   "limits": [
-    "The live Gemian binding check does not attribute the compile-only candidate, clock reference counts, concurrent DMA traffic or a radio cycle.",
+    "The single live Gemian clock snapshot reports counts but cannot attribute the prepared reference to a consumer, establish concurrent DMA traffic or validate the compile-only candidate or a radio cycle.",
     "The source comparison covers named selected consumers, not every possible physical alias, firmware master or direct register writer.",
     "No hardware access to AP-DMA, EMI, clocks or radio was performed in this audit."
   ]
