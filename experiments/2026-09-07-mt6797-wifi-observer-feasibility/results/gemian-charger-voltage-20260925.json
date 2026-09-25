@@ -1,0 +1,20 @@
+{
+  "purpose": "Check Gemian's cached charger-voltage report without initiating a new ADC conversion.",
+  "gemian_kernel": "3.18.41+",
+  "gemian_boot": "a3eb4157-ef96-45d2-a8e0-405b1ef46572",
+  "observed": {
+    "battery_ChargerVoltage": 0,
+    "battery_status": "Not charging",
+    "battery_capacity_percent": 94,
+    "usb_online": 0,
+    "ac_online": 0
+  },
+  "source_audit": {
+    "repository": "https://github.com/gemian/gemini-linux-kernel-3.18",
+    "revision": "59e00a9144d782e148332009a835b99c43382467",
+    "file": "drivers/power/mediatek/battery_common.c",
+    "finding": "The power-supply ChargerVoltage getter returns the cached BAT_ChargerVoltage field; the battery update copies it from BMT_status.charger_vol, which is populated by the battery-meter charger-voltage getter. Reading this sysfs property does not itself request a conversion. The alternative battery_common_fg_20.c has the same cached-property behavior."
+  },
+  "physical_cable_destination_confirmed": false,
+  "classification": "Gemian reports no charger voltage or online power in this boot. This cached software report is not an independent port-voltage measurement or a confirmed charger-response test."
+}

@@ -66,3 +66,11 @@ A later [five-minute read-only Gemian watch](results/usb-power-watch.json)
 remained at `usb/online=0`, `ac/online=0` and `Not charging`. The requested
 physical charger change was not confirmed within that window, so the watch
 does not establish how the device responds to a known-good charger.
+
+A [later bounded Gemian read](results/gemian-charger-voltage-20260925.json)
+on the same boot also returned cached `ChargerVoltage=0`, with USB and AC
+offline and charging status unchanged. An audit of the pinned Gemian kernel
+source found that reading this property returns a previously updated value;
+it does not itself start an ADC conversion. The cable's destination was not
+confirmed for this read, and the software value is not an independent VBUS
+measurement. Port power and ADC readiness remain unresolved.
