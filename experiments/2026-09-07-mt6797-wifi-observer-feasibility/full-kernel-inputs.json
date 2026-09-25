@@ -231,6 +231,10 @@
     {
       "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/cmdq-submission-gate/0001-cmdq-refuse-task-submission-in-captured-diagnostic.patch",
       "sha256": "e38d1a0b94b10aed232b9dfb81c6150d7a42a13cb5048b36f2a22a482b43902b"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/usb-id-voltage/0001-usb-retain-ID-pin-role-voltage.patch",
+      "sha256": "a13f978b0f53496254ef4919bdd6ee97fd9ab7e50154fc6cb57ed6ef42625915"
     }
   ],
   "purpose": "complete native kernel link; no boot candidate or device admission"

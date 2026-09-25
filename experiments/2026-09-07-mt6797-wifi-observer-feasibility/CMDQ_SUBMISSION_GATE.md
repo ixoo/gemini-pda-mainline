@@ -77,7 +77,8 @@ voltage, discards its control-call status, and returns the value. The exact
 voltage and ADC status were not retained, so a low or failed reading is only
 a candidate explanation for the observed host branch. A decision-changing
 follow-up must measure that existing input and role choice without forcing
-USB role or changing detection policy.
+USB role or changing detection policy. The [voltage observation](USB_ID_VOLTAGE.md)
+prepares that discriminator.
 
 A later radio admission must independently verify GCE hardware is idle before
 the first Wi-Fi DMA effect. Shared clocks, CONSYS remap/protection and worker

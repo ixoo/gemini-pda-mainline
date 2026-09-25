@@ -1,0 +1,84 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Codex native diagnostic <noreply@native-diagnostic.invalid>
+Date: Fri, 25 Sep 2026 16:40:00 +0000
+Subject: [PATCH] usb: retain the ID-pin role voltage in export summary
+
+Retain the voltage already read for the native ID-pin role choice.
+Append its latest value to the existing one-shot shutdown summary.
+INT_MIN means no sample. No new PMIC read, role request, or report
+site is added.
+
+This assistant-generated native experiment carries no DCO certification
+and is not an upstream submission.
+---
+diff --git a/drivers/misc/mediatek/mu3d/drv/mt_usb.c b/drivers/misc/mediatek/mu3d/drv/mt_usb.c
+index 831e3e0..240158c 100644
+--- a/drivers/misc/mediatek/mu3d/drv/mt_usb.c
++++ b/drivers/misc/mediatek/mu3d/drv/mt_usb.c
+@@ -29,10 +29,16 @@
+ 
+ #ifdef CONFIG_USB_MTK_DUALMODE
+ unsigned long mt_usb_role_paths(void);
++int mt_usb_role_id_mv(void);
+ #else
+ static inline unsigned long mt_usb_role_paths(void)
+ {
+ 	return 0;
++}
++
++static inline int mt_usb_role_id_mv(void)
++{
++	return INT_MIN;
+ }
+ #endif
+ 
+@@ -78,10 +84,10 @@
+ 		return;
+ 
+ 	/* Each cumulative mask and the latest cable sample are independent. */
+-	pr_info("wifi-usb-v4 paths=%04lx cable=%08x chrdet=%04lx pmic=%02lx role=%02lx\n",
++	pr_info("wifi-usb-v5 paths=%04lx cable=%08x chrdet=%04lx pmic=%02lx role=%02lx id_mv=%d\n",
+ 		READ_ONCE(usb_export_paths), atomic_read(&usb_export_cable),
+ 		mt_usb_chrdet_paths(), mt_usb_chrdet_pmic_paths(),
+-		mt_usb_role_paths());
++		mt_usb_role_paths(), mt_usb_role_id_mv());
+ }
+ 
+ unsigned int cable_mode = CABLE_MODE_NORMAL;
+diff --git a/drivers/misc/mediatek/xhci/xhci-mtk-driver.c b/drivers/misc/mediatek/xhci/xhci-mtk-driver.c
+index 67b111f..b75c2ae 100755
+--- a/drivers/misc/mediatek/xhci/xhci-mtk-driver.c
++++ b/drivers/misc/mediatek/xhci/xhci-mtk-driver.c
+@@ -150,6 +150,7 @@
+ };
+ 
+ static unsigned long usb_role_paths;
++static int usb_role_id_mv = INT_MIN;
+ 
+ static void usb_role_mark(enum usb_role_path path)
+ {
+@@ -161,6 +162,11 @@
+ unsigned long mt_usb_role_paths(void)
+ {
+ 	return READ_ONCE(usb_role_paths);
++}
++
++int mt_usb_role_id_mv(void)
++{
++	return READ_ONCE(usb_role_id_mv);
+ }
+ 
+ static struct switch_dev mtk_otg_state;
+@@ -203,6 +209,10 @@
+ 	return false;
+ #else
+ 	int vol = battery_meter_get_charger_voltage();
++
++	if (IS_ENABLED(CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR) &&
++	    IS_ENABLED(CONFIG_USB_ETH) && !IS_ENABLED(CONFIG_USB_G_ANDROID))
++		WRITE_ONCE(usb_role_id_mv, vol);
+ 
+ 	mtk_xhci_mtk_printk(K_DEBUG, "voltage(%d)\n", vol);
+ 
+-- 
+2.39.5
