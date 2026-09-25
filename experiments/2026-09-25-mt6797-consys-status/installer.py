@@ -102,8 +102,7 @@ def adapt(source, candidate, previous):
     validator = BASELINE / 'validate-candidate.py'
     old = shlex.join(['python3', str(validator), '--foundation', str(candidate),
                       '--userspace', str(candidate)])
-    new = shlex.join(['python3', str(tool), 'validate', '--previous-gemian-boot',
-                      previous, '--candidate', str(candidate)])
+    new = shlex.join(['python3', str(tool), 'validate', '--previous-gemian-boot', previous])
     replace(old, new)
 
     def check(path):
