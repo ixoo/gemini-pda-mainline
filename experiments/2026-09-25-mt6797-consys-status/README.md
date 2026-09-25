@@ -111,6 +111,16 @@ candidate, log hash and observation. The four register reads found both CONN
 bits off in each sample. This is a late-init status observation, not proof
 that no other retained agent can access or reactivate CONSYS.
 
+The same complete log has exactly one `OF: reserved mem` line for
+`consys-reserve-memory`: this boot allocated `0xbfa00000..0xbfbfffff`
+(2 MiB), marked `nomap non-reusable`. The first 512 KiB WLAN extent is
+`0xbfa00000..0xbfa7ffff`; the next 512 KiB WMT extent is
+`0xbfa80000..0xbfafffff`. These are arithmetic subranges of the logged
+allocation, not observed firmware mappings or copy permission. The resource
+placement is a fact for this authenticated boot only; a future owner must
+resolve the live reservation again and still establish remap, selector and
+external-writer exclusion.
+
 The native recovery request followed complete log preservation. Its automated
 return watcher classified the session inconclusive after a temporary SSH
 `Host is down` error. A separate read-only pinned-key check then verified a

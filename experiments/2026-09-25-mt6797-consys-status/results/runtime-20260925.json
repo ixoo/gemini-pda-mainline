@@ -20,6 +20,16 @@
     "records": 1826,
     "sha256": "b7419780b231d01700c408beee7c81581dca9d69de171c3007d434c4d0f6c352"
   },
+  "reserved_memory": {
+    "source": "one OF reserved mem line in the complete authenticated mainline kernel log",
+    "name": "consys-reserve-memory",
+    "base": "0xbfa00000",
+    "end_inclusive": "0xbfbfffff",
+    "size_bytes": 2097152,
+    "classification": "nomap non-reusable",
+    "first_wlan_window": "0xbfa00000..0xbfa7ffff",
+    "next_wmt_window": "0xbfa80000..0xbfafffff"
+  },
   "recovery": {
     "native_request": "sent",
     "automated_watcher": "inconclusive-after-Host-is-down",
@@ -30,6 +40,6 @@
     "gemian_os": "debian 9",
     "gemian_state": "running"
   },
-  "limitation": "Two late-init reads establish this boot status only; no resource owner or usable Wi-Fi is established.",
+  "limitation": "Two late-init reads and the OF reservation log establish this boot's status and allocation only; no remap, selector, external-writer exclusion, active resource owner or usable Wi-Fi is established.",
   "private_raw_evidence": "retained-ignored"
 }

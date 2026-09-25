@@ -388,8 +388,10 @@ for the first Wi-Fi bring-up. The current preparation order is:
    teardown edge. A later
    [one-boot passive SPM snapshot](../experiments/2026-09-25-mt6797-consys-status/results/runtime-20260925.json)
    found both CONN power-status bits off in two late-init reads with a complete
-   log and no effect call. This removes the live-powered-state branch for that
-   boot, but does not prove exclusive handoff, remap/EMI ownership or safe
+   log and no effect call. The same log records this boot's 2 MiB no-map
+   CONSYS reservation at `0xbfa00000..0xbfbfffff`. These observations remove
+   the live-powered-state and unknown-allocation branches for that boot, but
+   do not prove exclusive handoff, remap/EMI ownership or safe
    activation. Do not repeat that candidate; the next device gate must measure
    a new ownership premise. The accepted no-database parser run establishes
    original ordinary-global `T` linkage for all four required wrapper/init/exit targets
