@@ -33,3 +33,22 @@ CONN owner still needs shared SPM key authority, rails, reset, confirmed-state
 and failure retention before this flag can be selected. The first complete
 firmware load also needs reserved EMI ownership; this patch does not permit
 firmware or radio effects.
+
+## Validation
+
+The focused callback fixture passed for default and opt-in write order.
+Pinned Linux `checkpatch.pl --no-tree --no-signoff` reported zero errors and
+zero warnings. `./scripts/check-repository` passed and audited all 209
+profiles after the canonical and isolated series changed.
+
+Buildbox compiled and linked the exact clean pushed revision `90030f22` with
+`KERNEL_PROFILE=mt6797-provider-compile`. It applied all 16 selected patches,
+including this one, and validated the ARM64 package with patchset SHA-256
+`fe4d31fdc81388528d6ea1b77aec603fe110b088ae63047f0d74ff3b4f8bfd14`.
+The fetched package inventory SHA-256 is
+`d1a452ee480c1b6b8caa290bc3146dea8df03463949853da0fe7a95aaccc3f43`.
+Its recorded config enables `MTK_SCPSYS` and generic PM domains; its linked
+`System.map` contains `scpsys_power_off`. Compilation and the host fixture do
+not validate a physical CONN transition. No boot2 candidate was constructed
+or tested on the device because no domain selects this capability and the
+shared owner remains incomplete.
