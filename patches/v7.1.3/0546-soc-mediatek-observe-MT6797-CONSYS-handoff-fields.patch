@@ -10,6 +10,12 @@ mismatch without inferring ownership or activating the radio.
 
 Internal experiment only; synthetic author, no DCO certification.
 ---
+ drivers/soc/mediatek/Kconfig                    |  12 +++
+ drivers/soc/mediatek/Makefile                   |   1 +
+ drivers/soc/mediatek/mt6797-consys-handoff.c | 121 ++++++++++++++++++++++
+ 3 files changed, 134 insertions(+)
+ create mode 100644 drivers/soc/mediatek/mt6797-consys-handoff.c
+
 diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
 --- a/drivers/soc/mediatek/Kconfig
 +++ b/drivers/soc/mediatek/Kconfig
@@ -37,7 +43,7 @@ diff --git a/drivers/soc/mediatek/mt6797-consys-handoff.c b/drivers/soc/mediatek
 new file mode 100644
 --- /dev/null
 +++ b/drivers/soc/mediatek/mt6797-consys-handoff.c
-@@ -0,0 +1,122 @@
+@@ -0,0 +1,121 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/* One passive snapshot of the Gemini CONSYS shared handoff fields. */
 +#include <linux/bitops.h>
@@ -95,8 +101,7 @@ new file mode 100644
 +	}
 +	of_node_put(memory);
 +
-+	infra_node = of_find_compatible_node(NULL, NULL,
-+					 "mediatek,mt6797-infracfg");
++	infra_node = of_find_compatible_node(NULL, NULL, "mediatek,mt6797-infracfg");
 +	if (!infra_node) {
 +		pr_info("mt6797-consys-handoff: state=unavailable reason=infra-node\n");
 +		return 0;

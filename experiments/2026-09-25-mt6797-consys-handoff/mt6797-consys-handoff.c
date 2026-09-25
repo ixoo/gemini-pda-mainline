@@ -55,8 +55,7 @@ static int __init mt6797_consys_handoff_init(void)
 	}
 	of_node_put(memory);
 
-	infra_node = of_find_compatible_node(NULL, NULL,
-					 "mediatek,mt6797-infracfg");
+	infra_node = of_find_compatible_node(NULL, NULL, "mediatek,mt6797-infracfg");
 	if (!infra_node) {
 		pr_info("mt6797-consys-handoff: state=unavailable reason=infra-node\n");
 		return 0;
