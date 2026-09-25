@@ -426,9 +426,13 @@ The remaining preparation order is:
    writer of the earlier host state remains unidentified. The second boot
    established an attributed USB Ethernet route, one acknowledged 64 KiB
    export and normal Gemian return. The exported region was entirely zero and
-   lacked the capture header, so it contains no Wi-Fi producer evidence. Next
-   define and validate the missing producer, shared ownership and finite
-   radio-effect protocol before another physical Wi-Fi test. No role override,
+   lacked the capture header, so it contains no Wi-Fi producer evidence. The
+   [linked-producer audit](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/cycle-producer-boundary.json)
+   confirms the kernel entry points exist; the selected export-only startup
+   never invoked the detector capture path. Next package and validate the
+   `cycle` action with
+   shared ownership, post-reset capture preservation and a finite radio-effect
+   protocol before another physical Wi-Fi test. No role override,
    detection-policy change or weakened CPU check is supported by the evidence.
    Exit order must not be inferred by reversing initialization, and the vendor
    WMT ioctl must not be copied merely to run the retained loader.

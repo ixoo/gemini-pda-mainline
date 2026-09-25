@@ -47,9 +47,13 @@ hardware agents.
 ## Remaining reset and resource ownership
 
 The linked `mtk_wdt_set_c2k_sysrst()` also writes `SWSYSRST` without the
-register lock. A source-name search found no selected in-tree call site, and
-modules are disabled in this configuration; its presence in the symbol map
-still prevents a general isolation claim. The non-DT direct CONSYS writes are
+register lock. A whole-tree source-name search found only its MT6797
+definition, dummy definition, a declaration with a different signature and
+two messages inside the function. It found no caller or symbol export. The
+exact configuration disables modules, so this entry is excluded from the
+selected in-tree call graph; the linked symbol alone does not make it active.
+This is a candidate-specific source/configuration exclusion, not a general
+guard or a claim about future callers. The non-DT direct CONSYS writes are
 excluded by `CONFIG_OF=y`, but other direct aliases and higher-level reset
 paths need their own audit. This patch does not stop a worker that ignores
 `-EBUSY`, prove shared CONSYS/EMI/AP-DMA ownership, or establish that the

@@ -1,0 +1,23 @@
+{
+  "status": "producer code linked; no effect-bearing startup candidate selected",
+  "kernel_build_commit": "b2411bb2672b67dfb515ff24dabf76a5a75107c4",
+  "kernel_inputs_sha256": "753cb0351ddbda8db9d3036465f23ccdff0cd1e1de4f18340bea263293143ebd",
+  "kernel_config_sha256": "43222fdee6781f3bc51cb7e412c9f92372ecf8f78b8881b11d66b77f849d8eb8",
+  "source_sha256": {
+    "drivers/watchdog/mediatek/wdk/wd_common_drv.c": "6f9e295d6e980505bc73105ef6693f5cdb111894aea9102fbed129c275875fed",
+    "drivers/misc/mediatek/connectivity/common/common_detect/wmt_detect.c": "de48fc9cbee37fb9a5634de23452e8f8dcee32c08f38953939cab98490956898"
+  },
+  "linked_entry_points": [
+    "ramoops_capture_begin",
+    "mtk_wdt_recovery_arm",
+    "do_connectivity_driver_init",
+    "mt6797_wfc_request_begin"
+  ],
+  "startup_sha256": "077aeef28059019ac6fe0eb21c08d15748ac2f7c42500ff5e24860f573aca0ee",
+  "cycle_controller_sha256": "6a7d712927ec94ca36a87e69c25da85fc025f4f7a0eae5ec7d1999c13c767715",
+  "last_physical_candidate": "usb-role-writers-candidate.json",
+  "last_physical_action": "export-tcp-return; detector and capture initializer intentionally not invoked",
+  "next_boundary": "candidate-specific cycle packaging, shared resource and reset isolation, current-zero capture admission, bounded recovery and post-reset PMSG preservation",
+  "device_access": false,
+  "boot_candidate": false
+}

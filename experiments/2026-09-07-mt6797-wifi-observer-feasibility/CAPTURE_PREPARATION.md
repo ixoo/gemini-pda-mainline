@@ -89,3 +89,11 @@ the predecessor; it does not trigger a clear, retry or alternate radio path.
 This avoids selecting a destructive preparation operation for a state that may
 already be empty. Recovery isolation, producer packaging and a separately
 reviewed effect-bearing cycle are still required before device execution.
+
+The [linked-producer audit](results/cycle-producer-boundary.json) distinguishes
+that packaging gap from absent kernel code. The 54-patch kernel links capture,
+recovery and controller entry points; the last physical image selected the
+export-only startup action and never called the detector capture path. A future
+`cycle` action must pass the boot-specific zero checks before any connectivity effect,
+and its recovery collector must preserve the resulting PMSG record after reset.
+The all-zero exported snapshot does not validate either later step.
