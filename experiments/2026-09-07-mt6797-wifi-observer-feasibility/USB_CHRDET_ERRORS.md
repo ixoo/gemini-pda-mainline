@@ -237,3 +237,8 @@ Next inspect the existing host/device role decision and its relationship to
 detection using retained source and console evidence. This result supplies
 no basis to force a role or VBUS value, or to repeat the same boot without a
 new distinguishing measurement.
+
+The [selected role trace](USB_ROLE_TRACE.md) now establishes that the host
+branch uses an internal ID-pin state and returns before the cable sample. Its
+possible writers remain indistinguishable in the retained console. The next
+measurement must mark those writers before another physical selection.

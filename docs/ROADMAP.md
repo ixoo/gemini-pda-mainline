@@ -417,12 +417,14 @@ The remaining preparation order is:
    and [read-status diagnostic](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_CHRDET_ERRORS.md#retained-physical-result)
    are now preserved. The latter reached controller start, but its host receiver
    did not arm. Next complete the
-   [bounded export session](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_CHRDET_ERRORS.md#second-export-session)
-   with collectors armed before physical selection; current window and device
-   admission state remain in the queue. Require acknowledged preservation before
-   advancing the retained-capture investigation. The missing transport measurement
-   justifies this session; no further detection-policy change or weakened CPU
-   check is supported by the evidence.
+   [bounded export session](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_CHRDET_ERRORS.md#second-session-physical-result)
+   had collectors armed before physical selection but recorded an early host
+   branch and no device-controller start. The
+   [selected role trace](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_ROLE_TRACE.md)
+   narrows that branch to internal ID-pin state; identify its active writer
+   before another physical selection. Require acknowledged preservation before
+   advancing the retained-capture investigation. No role override,
+   detection-policy change or weakened CPU check is supported by the evidence.
    Exit order must not be inferred by reversing initialization, and the vendor
    WMT ioctl must not be copied merely to run the retained loader.
 4. **Preserve the bounded eMMC result:** the [closed session](../experiments/2026-09-05-owner-away-experiment-preparation/emmc/PAUSE_SESSION_PREPARATION.json)

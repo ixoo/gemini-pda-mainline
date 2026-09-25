@@ -4,7 +4,7 @@
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
   "selected_item": "wifi-export-usb-chrdet-errors-2",
-  "selection_note": "Second export session completed with preserved changed-boot Gemian console. Successful-zero detection and host-role branch recorded; no export. Both collectors terminal. Inspect role decision before another physical test.",
+  "selection_note": "Second export session completed with preserved changed-boot Gemian console. Successful-zero detection and host-role branch recorded; no export. The selected role trace narrows the branch to internal ID-pin state; its active writer remains unobserved. No physical test selected.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -319,7 +319,7 @@
       "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-chrdet-errors-second-runtime.json",
       "dependencies": [],
       "owner_task_id": null,
-      "readiness_note": "Physical budget consumed. Pre-armed host did not receive USB; retained summary records successful-zero detection and host branch without cable sample. Console preserved; source/role diagnosis next."
+      "readiness_note": "Physical budget consumed. Pre-armed host did not receive USB; retained summary records successful-zero detection and host branch without cable sample. Console preserved; selected role trace identifies possible ID-pin state writers, but no active writer."
     }
   }
 }
