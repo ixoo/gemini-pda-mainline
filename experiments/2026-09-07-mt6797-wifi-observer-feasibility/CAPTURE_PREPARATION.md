@@ -97,3 +97,21 @@ export-only startup action and never called the detector capture path. A future
 `cycle` action must pass the boot-specific zero checks before any connectivity effect,
 and its recovery collector must preserve the resulting PMSG record after reset.
 The all-zero exported snapshot does not validate either later step.
+
+## Changed-boot PMSG preservation
+
+The [host collector](collect-gemian-pmsg.py) is prepared for a future admitted
+cycle. After Gemian returns, it requires a boot ID different from the Gemian
+boot preceding the test, the known-good MT6797X/ARM64/3.18.41+ identity, a
+pstore mount, and exactly one `pmsg-ramoops-0` of 65,524 bytes. It saves that
+old-log payload and a checksum receipt in a new private, ignored `artifacts/`
+directory, then checks the same boot and file again. A short read or identity
+change preserves the bytes but refuses classification. The collector only
+reads Gemian and has not yet preserved a capture produced by a cycle boot.
+
+This recovered old-log payload is distinct from the 65,536-byte raw snapshot
+exported by the mainline boot: Gemian omits the native 12-byte ring header.
+Decode only with independently expected
+cycle, candidate, boot and input identities and the matching old-log format.
+The current returned Gemian boot exposes `console-ramoops` alone, consistent
+with the zero-filled export; it supplies no PMSG sample for this collector.
