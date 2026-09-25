@@ -11,6 +11,9 @@ confirmation satisfies that prerequisite, and freeze the per-cycle keyboard
 method before admitting this series; do not repeat the same boot to replace the
 result. This protocol defines what a later ten-boot result must prove; it does
 not admit ten physical selections, a persistent-root write or a new power action.
+The [keyboard method audit](A53_KEYBOARD_METHOD_AUDIT.md) shows that the exact
+image already contains the prior tested helper and its repeat-aware analysis
+passes offline checks. One A53-specific method trial remains before method freeze.
 
 ## Frozen input and question
 

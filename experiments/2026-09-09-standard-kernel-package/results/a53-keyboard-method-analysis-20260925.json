@@ -1,0 +1,15 @@
+{
+  "date": "2026-09-25",
+  "candidate_padded_sha256": "f185a0f2f993f8c68227f2a6e225e951ee22487d418610b9156ee1e517f56cb0",
+  "embedded_keyboard_observer_sha256": "51ef03def5461b2c13367906b3184a2dae14ca2f7ba7e835740be6a7268fa223",
+  "embedded_keymap_sha256": "02f8048d76aa0cedf73617b13ea03a2a4e74de88222cb1922d9d19630906675c",
+  "analyzer_sha256": "f7c27f752a39f79c92ddb056d9b61cc1b564f77544512a01bf76edabd4794a58",
+  "analyzer_test_sha256": "dad5f4902a02540480df16c3686aa27a106a7e3dae81cbbc885160b3039586ce",
+  "validation": {
+    "synthetic_tests": "5 passed on macOS; repeat-aware matching retains strict mismatch and rejects wrong VT bytes and missing input",
+    "historical_capture_sha256": "1f916580b4d02e7787ca7c9e3ed1f0a2c12af441d0fd811d4a3b99a8b150948a",
+    "historical_capture": "both physical input sequences match; strict VT mismatch on repeated chord remains; repeat-aware VT matches both windows, including 51 repeats in the chord window",
+    "device_action": "none"
+  },
+  "next_gate": "One separately admitted keyboard-method trial on the exact A53 image, including console exclusivity, bounded capture, log preservation and changed-boot Gemian return."
+}

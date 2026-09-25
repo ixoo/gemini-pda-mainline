@@ -15,7 +15,8 @@ EXPECTED = [([[2, 1], [2, 0]], '31'),
             (V1['PROTOCOL']['steps'][0]['key_edges'], V1['PROTOCOL']['steps'][0]['vt_hex'])]
 
 
-def analyze(data, *, coverage=False):
+def analyze(data, *, coverage=False, repeat_aware=False):
+    require(not (coverage and repeat_aware), 'repeat-aware mode is focused-only')
     duration = 10000 if coverage else 15000
     expected = [(s["key_edges"], s["vt_hex"]) for s in V1["PROTOCOL"]["steps"]] if coverage else EXPECTED
     byte_limit = 1048576 if coverage else 98304
@@ -48,6 +49,7 @@ def analyze(data, *, coverage=False):
         for index, (expected_edges, expected_vt) in enumerate(expected):
             exact(f'step begin index={index}')
             edges, scans, vt = [], [], bytearray()
+            repeated_vt, repeated_valid = bytearray(), True
             held = set()
             pending_scan, frame, last_ms, count, repeats = None, None, -1, 0, 0
             while True:
@@ -73,6 +75,16 @@ def analyze(data, *, coverage=False):
                         pending_scan, frame = value, 'edge'
                     elif kind == 1:
                         require(code in V1['SCANS'], 'unexpected-key')
+                        if repeat_aware and value in (1, 2):
+                            modifiers = held & {42, 125}
+                            if code == 2 and modifiers == {42, 125}:
+                                repeated_vt.extend(b'\x1b[[A')
+                            elif code == 2 and not modifiers:
+                                repeated_vt.extend(b'1')
+                            elif code == 30 and not modifiers:
+                                repeated_vt.extend(b'a')
+                            elif code not in (42, 125):
+                                repeated_valid = False
                         if value == 2:
                             require(code in held and pending_scan is None and frame is None,
                                     'repeat-without-held-key-or-mixed-frame')
@@ -101,9 +113,13 @@ def analyze(data, *, coverage=False):
                     raise Refusal('unexpected-record')
             exact(f'step end index={index}')
             input_match = edges == expected_edges and scans == [V1['SCANS'][code] for code, _ in expected_edges]
-            cases.append({'index': index, 'input': 'match' if input_match else 'mismatch',
-                          'vt': 'match' if vt.hex() == expected_vt else 'mismatch',
-                          'physical_edges': len(edges), 'repeat_events': repeats})
+            case = {'index': index, 'input': 'match' if input_match else 'mismatch',
+                    'vt': 'match' if vt.hex() == expected_vt else 'mismatch',
+                    'physical_edges': len(edges), 'repeat_events': repeats}
+            if repeat_aware:
+                case['repeat_aware_vt'] = ('match' if repeated_valid and vt == repeated_vt
+                                           else 'mismatch')
+            cases.append(case)
         exact(f'complete steps={len(expected)} restored=1')
         require(next(lines, None) is None, 'trailing-record')
         result.update(outcome='observations-complete', cases=cases)
@@ -116,11 +132,14 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('capture', type=Path)
     parser.add_argument('--coverage', action='store_true')
+    parser.add_argument('--repeat-aware', action='store_true',
+                        help='also classify VT bytes against recorded repeats in the focused two-step mode')
     args = parser.parse_args()
+    require(not (args.coverage and args.repeat_aware), 'repeat-aware mode is focused-only')
     require(args.capture.is_file() and not args.capture.is_symlink(), 'capture-not-regular')
     with args.capture.open('rb') as stream:
         data = stream.read(1048577 if args.coverage else 98305)
-    result = analyze(data, coverage=args.coverage)
+    result = analyze(data, coverage=args.coverage, repeat_aware=args.repeat_aware)
     print(json.dumps(result, indent=2))
     return 0 if result['outcome'] == 'observations-complete' else 2
 

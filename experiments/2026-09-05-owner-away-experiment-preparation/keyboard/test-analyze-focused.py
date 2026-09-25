@@ -9,7 +9,7 @@ HERE = Path(__file__).resolve().parent
 MODULE = runpy.run_path(str(HERE/'analyze-focused.py'))
 
 
-def capture(*, repeat=True, wrong_vt=False, missing_digit=False):
+def capture(*, repeat=True, wrong_vt=False, missing_digit=False, digit_repeats=0):
     lines = ['keyboard-diagnostic version=1',
              'repeat delay_ms=250 period_ms=33 planned_events=974 limit=1024',
              'device event=event0 major=13 minor=64 name=keyboard-matrix',
@@ -24,8 +24,11 @@ def capture(*, repeat=True, wrong_vt=False, missing_digit=False):
             events += [(4, 4, MODULE['V1']['SCANS'][code]), (1, code, value), (0, 0, 0)]
             if repeat and index == 1 and code == 125 and value == 1:
                 events += [(1, 125, 2), (0, 0, 1)] * 80
+            if index == 1 and code == 2 and value == 1:
+                events += [(1, 2, 2), (0, 0, 1)] * digit_repeats
         lines += [f'event {i} {kind} {code} {value}' for i, (kind, code, value) in enumerate(events)]
-        actual_vt = '61' if wrong_vt and index == 1 else vt
+        actual_vt = '61' if wrong_vt and index == 1 else (
+            '1b5b5b41' * (digit_repeats + 1) + '61' if index == 1 else vt)
         lines += ['tty hex=' + actual_vt,
                   f'window elapsed_ms=15000 events={len(events)} bytes={len(actual_vt)//2} held=0',
                   f'step end index={index}']
@@ -43,6 +46,19 @@ class AnalysisTests(unittest.TestCase):
 
     def test_no_repeats(self):
         self.assertEqual(MODULE['analyze'](capture(repeat=False))['cases'][1]['repeat_events'], 0)
+
+    def test_repeat_aware_vt_keeps_strict_result_and_rejects_wrong_bytes(self):
+        repeated = MODULE['analyze'](capture(digit_repeats=2), repeat_aware=True)
+        self.assertEqual(repeated['outcome'], 'observations-complete')
+        self.assertEqual(repeated['cases'][1]['vt'], 'mismatch')
+        self.assertEqual(repeated['cases'][1]['repeat_aware_vt'], 'match')
+        self.assertEqual(repeated['cases'][1]['repeat_events'], 82)
+        self.assertEqual(repeated['cases'][0]['repeat_aware_vt'], 'match')
+        wrong = MODULE['analyze'](capture(digit_repeats=2, wrong_vt=True), repeat_aware=True)
+        self.assertEqual(wrong['cases'][1]['repeat_aware_vt'], 'mismatch')
+        missing = MODULE['analyze'](capture(missing_digit=True), repeat_aware=True)
+        self.assertEqual((missing['cases'][1]['input'], missing['cases'][1]['repeat_aware_vt']),
+                         ('mismatch', 'mismatch'))
 
     def test_input_and_vt_mismatches_are_separate(self):
         vt = MODULE['analyze'](capture(wrong_vt=True))['cases'][1]
