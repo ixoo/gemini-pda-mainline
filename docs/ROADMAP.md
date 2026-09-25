@@ -347,19 +347,16 @@ build speculative variants to fill it. More ideas may remain as cheap protocol
 or source research. Reuse frozen baseline inputs and prepared Buildbox sources;
 retain only artifacts needed by open items and verified recovery.
 
-The remaining preparation order is:
+The owner prioritizes usable mainline Wi-Fi before further A53 keyboard or
+storage development. Preserve the accepted A53 boot/recovery foundation for
+Wi-Fi tests, but do not turn its ten-cold-boot release series into a prerequisite
+for the first Wi-Fi bring-up. The current preparation order is:
 
 1. **Preserve the accepted baseline foundation:** reuse its exact candidate,
    authenticated userspace, logging and reviewed recovery closure. Repair only
    an identified invalidated prerequisite; a similarly named newer profile is
    not a replacement for recorded inputs. Do not spend a boot on another marker.
-2. **Keyboard coverage:** the [twenty-step attended capture](../experiments/2026-09-05-owner-away-experiment-preparation/keyboard/COVERAGE_TEST.md#attended-result)
-   completed with preserved evidence and correct translation of every observed
-   press/repeat. The owner accepts Ctrl+A as sufficient for this milestone and
-   requests moving on without another keyboard test. The recorded release-order
-   limitation remains evidence, not a gate on Wi-Fi or storage. Defer wider
-   physical coverage and reliability to a separately scoped session.
-3. **Wi-Fi:** compile the connected transfer components through the actual Linux
+2. **Wi-Fi:** compile the connected transfer components through the actual Linux
    interfaces, then complete a validated whole-image plan and shared EMI/AP-DMA
    ownership. Identify the retained calibration record's producer, restoration
    path and board/firmware applicability before admitting the first mainline
@@ -370,9 +367,11 @@ The remaining preparation order is:
    build-selected detector ioctl is the established kernel-side producer of
    `do_connectivity_driver_init` and returns its integer aggregate. The exact
    retained loader statically supplies a property/query-derived normalized
-   scalar after cleanup, then logs and discards the init result; this vendor
-   compatibility path neither forces an actual runtime `0x6797` value nor
-   defines a mainline ABI. The accepted
+   scalar after cleanup, then logs and discards the init result. A later
+   [read-only Gemian boot-log observation](../experiments/2026-09-05-mt6797-wifi-contract/results/gemian-wifi-init-20260925.json)
+   records an actual `0x6797` init argument and zero gen3 WLAN init result in
+   one boot; this vendor path does not define a mainline ABI or prove every
+   component's success. The accepted
    [standard interface/error design](../experiments/2026-09-06-mt6797-mainline-connectivity-interface-design/README.md)
    made the first slice an effect-free passive CONSYS descriptor plus opaque
    WLAN client binding. That [accepted implementation](../experiments/2026-09-06-mt6797-consys-passive-boot/README.md)
@@ -474,7 +473,7 @@ The remaining preparation order is:
    by the evidence.
    Exit order must not be inferred by reversing initialization, and the vendor
    WMT ioctl must not be copied merely to run the retained loader.
-4. **Preserve the bounded eMMC result:** the [closed session](../experiments/2026-09-05-owner-away-experiment-preparation/emmc/PAUSE_SESSION_PREPARATION.json)
+3. **Preserve the bounded eMMC result:** the [closed session](../experiments/2026-09-05-owner-away-experiment-preparation/emmc/PAUSE_SESSION_PREPARATION.json)
    completed its one 16 MiB read, matched the installed image, and preserved the
    controller log with zero targeted errors. Changed-ID Gemian return was
    confirmed separately; the native recovery transport remains inconclusive
@@ -483,8 +482,10 @@ The remaining preparation order is:
    pending work. Broader storage reliability and persistent-root writes require
    a distinct measurement and their own admission.
 
-Protocol work across these items can proceed concurrently within the three-worker
-limit. Wi-Fi has its own worker; keyboard and storage remain with serviceability. Items with unverified
+The [twenty-step keyboard capture](../experiments/2026-09-05-owner-away-experiment-preparation/keyboard/COVERAGE_TEST.md#attended-result)
+remains accepted for its stated scope. Its release-order limitation and the
+[A53 focused-mode refusal](../experiments/2026-09-09-standard-kernel-package/results/a53-keyboard-method-trial-20260925.json)
+remain recorded, without selecting another keyboard session now. Items with unverified
 candidate or protocol inputs remain planned/preparing. Conditional items have
 frozen validated inputs and await only an explicit runtime result predicate.
 The cumulative ten-cold-boot release gate remains distinct; schedule

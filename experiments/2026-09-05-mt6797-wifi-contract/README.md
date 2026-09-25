@@ -51,6 +51,11 @@ The [July connectivity experiment](../2026-07-12-connectivity-wmt-recovery/READM
 and its [post-reboot capture](../2026-07-12-connectivity-wmt-recovery/results/live-connectivity-postreboot-20260714.txt)
 are the named-device evidence, on vendor kernel `3.18.41+` build 7. Their
 observations are not a new measurement or evidence of mainline association.
+The later [read-only Gemian boot-log receipt](results/gemian-wifi-init-20260925.json)
+observes an actual `0x6797` module-init argument and zero gen3 WLAN init result
+on one changed boot. This closes the runtime value question for that boot only;
+it does not identify the loaded WLAN image or establish shared ownership,
+calibration application, teardown or mainline Wi-Fi.
 
 | Claim | Evidence and confidence | Limit |
 | --- | --- | --- |

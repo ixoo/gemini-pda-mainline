@@ -1,0 +1,23 @@
+{
+  "date": "2026-09-25",
+  "method": "one bounded, read-only, pinned-host-key Gemian LAN SSH capture of matching boot-log lines",
+  "gemian_boot": "5302713c-4108-464e-b5e9-d975e6ba0164",
+  "kernel": "3.18.41+",
+  "capture_sha256": "e0d9982c33be87915611e6541cdbdf9d638d1270633d068faeed084a84d13eae",
+  "observations": {
+    "dynamic_consys_reservation": "0xbfa00000..0xbfbfffff, 2 MiB, as reported by this boot",
+    "module_init_ioctl": "signed request -2147191036 (0x80047704), scalar argument 26519 (0x6797)",
+    "common_init": "do_common_drv_init logged finish:0",
+    "gen3_wlan_init": "do_wlan_drv_init logged WLAN-GEN3 driver init, ret:0",
+    "wlan_probe": "wmt_func_wifi_on logged wlan probe ok",
+    "netdev": "wlan0 later logged link becomes ready",
+    "nvram_daemon": "init logged start and later exit with status 0"
+  },
+  "classification": "runtime-0x6797-init-path-observed",
+  "limits": [
+    "The observation joins the logged request and selected init path for this one boot; it does not prove the same path on every boot.",
+    "The vendor aggregate and probe messages do not prove each component succeeded or establish firmware image identity, calibration application, safe radio policy, teardown or mainline support.",
+    "The filtered boot log is not a complete execution trace. A separate /proc/iomem read was denied and supplies no resource ownership evidence.",
+    "The raw boot-log capture and SSH transport remain private; no radio or device state was changed."
+  ]
+}
