@@ -33,8 +33,17 @@ name excluded. Native compilation still uses `-w`.
 
 This is not a runtime quiescence claim. The selected CMDQ initialization
 resets its software task lists but does not by itself prove that bootloader
-work is absent from GCE hardware. A boot-only diagnostic must establish that
-the headless startup and USB return remain serviceable, and a later radio
-admission must independently verify GCE hardware is idle before the first
+work is absent from GCE hardware. The [boot-only candidate](results/cmdq-gate-boot-candidate.json)
+uses this linked kernel with the existing `export-tcp-return` startup action;
+it does not enter the Wi-Fi cycle. Its 723-member filesystem retains the
+previous boot-only runtime and changes only the session metadata. The
+16 MiB padded image and its three-file package passed exact checksums,
+container reconstruction and 17 mutation refusals before device selection.
+The guarded `boot2` installation passed a full-partition readback and a clean
+Gemian shutdown. Runtime serviceability and changed-boot return are pending.
+
+This boot-only diagnostic must establish that the headless startup and USB
+return remain serviceable. A later radio admission must independently verify
+GCE hardware is idle before the first
 Wi-Fi DMA effect. Shared clocks, CONSYS remap/protection and worker failure
-lifetime also remain open. This link is not yet a boot image or a radio action.
+lifetime also remain open. This candidate is not a radio action.

@@ -1,0 +1,41 @@
+{
+  "status": "offline verified and guarded boot2 installed; physical selection and runtime result pending",
+  "kernel_project_commit": "119faf47308fdab9a47067bb4f6bbc6b7d760e9b",
+  "kernel_package_manifest_sha256": "3921ad61923f712cb06e445c44f1334f9c437a4a7189738e3f58341dea5046e1",
+  "kernel_image_sha256": "0db6cd7a0ed8e6f073258f055532890210c8cab020f0766a84eba198fe2d7629",
+  "kernel_inputs_sha256": "c4f92ef40cbe74d9fb470e6fb51354c3dd026f310e7af727c95d213e453ee0b6",
+  "kernel_config_sha256": "43222fdee6781f3bc51cb7e412c9f92372ecf8f78b8881b11d66b77f849d8eb8",
+  "startup_action": "export-tcp-return",
+  "radio_action": false,
+  "cycle_id": "6f6ed847-e4f1-40a6-a7d0-6d152c02f677",
+  "session_sha256": "40f232a2f4f08dd5b1a99c207a3694c8f47a0baa2e2fb7e9625f1fc18f73bffb",
+  "filesystem_sha256": "2fcbedecc661354c1ce58ccf9b7b7638df9867cacb85b710931cd7e58d5b7c50",
+  "filesystem_members": 723,
+  "filesystem_change_from_previous_boot_only_candidate": "etc/wifi-cycle/session.json only",
+  "container_raw_bytes": 16220160,
+  "container_padded_bytes": 16777216,
+  "container_padded_sha256": "b50b305b44d6e47da18905a89d1be0ab60ae131538f418d2fef79499f8c2b3f9",
+  "container_package_manifest_sha256": "e1898df780d054ff3c21d2dcd1ca9ebeba97c1362614cc859ce8961b4af53044",
+  "offline_validation": {
+    "package_inventory_and_checksums": "all three listed files passed in guest and after host export",
+    "container_reassembled_identical": true,
+    "container_mutations_rejected": 17,
+    "filesystem_inputs_and_runtime_exact": true,
+    "container_spare_bytes": 557056
+  },
+  "deployment": {
+    "logical_target": "boot2",
+    "boot2_device_guard": "passed at probe, immediately before write, and at post-write check",
+    "predecessor_sha256": "30e26613571647ba14fa993ea69120e7f60c7e8d8b764bde235d0cd4708febff",
+    "full_readback_sha256": "b50b305b44d6e47da18905a89d1be0ab60ae131538f418d2fef79499f8c2b3f9",
+    "shutdown": "clean, confirmed unreachable"
+  },
+  "hypothesis": "The gate preserves boot-only USB export and normal Gemian return while refusing new CMDQ task submission.",
+  "unique_observation": "One attributable changed mainline boot, one acknowledged 65536-byte snapshot, bounded CMDQ refusal marker if any, and authenticated changed-boot Gemian return.",
+  "decision_branches": {
+    "acknowledged_snapshot_and_changed_return": "classify boot serviceability; absence of a refusal marker does not establish GCE quiescence",
+    "no_usb_export": "preserve return console once and stop this attempt for startup or USB diagnosis",
+    "no_changed_return": "preserve available transport evidence and stop without an unreviewed recovery or retry"
+  },
+  "runtime_validation": "pending"
+}
