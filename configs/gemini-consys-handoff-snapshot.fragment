@@ -1,0 +1,3 @@
+# Passive CONSYS status and shared-handoff observation for one selected boot.
+CONFIG_MTK_MT6797_CONSYS_STATUS_SNAPSHOT=y
+CONFIG_MTK_MT6797_CONSYS_HANDOFF_SNAPSHOT=y
