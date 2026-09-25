@@ -45,7 +45,11 @@ the host saw the preloader and a later generic MediaTek USB parent, but no
 attributable export gadget or authenticated changed-boot Gemian return within
 600 seconds. No snapshot request was sent. This does not establish that the
 mainline kernel ran, nor that the CMDQ gate was reached. The device state after
-the window remains to be confirmed before recovery or another boot.
+the window remains to be confirmed before recovery or another boot. A second,
+passive 600-second Gemian return watch also found no changed boot or console;
+the generic `0e8d:20ff` USB parent remained present. The selected kernel has
+`CONFIG_USB_G_ANDROID=n` and `CONFIG_USB_ETH=y`, so that parent is not the
+expected export gadget, but it does not identify the current OS.
 
 This boot-only diagnostic must establish that the headless startup and USB
 return remain serviceable. A later radio admission must independently verify

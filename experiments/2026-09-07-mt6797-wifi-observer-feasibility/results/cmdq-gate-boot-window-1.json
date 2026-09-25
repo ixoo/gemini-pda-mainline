@@ -14,6 +14,12 @@
   "snapshot_preserved": false,
   "authenticated_changed_boot_gemian_seen": false,
   "known_good_gemian_ssh_after_timeout": "unreachable",
+  "passive_late_return_watch": {
+    "seconds": 600,
+    "authenticated_changed_boot_gemian_seen": false,
+    "console_captured": false,
+    "usb_parent_after_watch": "0e8d:20ff remained present"
+  },
   "mainline_boot_identity_verified": false,
   "cmdq_gate_runtime_executed": "unproven",
   "classification": "no USB export and no verified return in this window; reason unresolved",
