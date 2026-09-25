@@ -94,6 +94,10 @@ def main():
             assert value in ('y', 'n')
             run([str(source / 'scripts/config'), '--file', str(output / '.config'),
                  '--enable' if value == 'y' else '--disable', name.removeprefix('CONFIG_')])
+        cmdq_fragment = HERE / 'cmdq-isolation.fragment'
+        assert native.symbols(cmdq_fragment) == {'CONFIG_MTK_CMDQ': 'n'}
+        run([str(source / 'scripts/config'), '--file', str(output / '.config'),
+             '--disable', 'MTK_CMDQ'])
         command = ['make', '-C', str(source), 'O=' + str(output), 'ARCH=arm64',
                    'CROSS_COMPILE=' + cross, 'python=' + str(toolchain / 'wrappers/python2.7'),
                    'KCFLAGS=-fstack-usage']
@@ -105,6 +109,7 @@ def main():
         expected_delta = {
             'CONFIG_ANBOX': [None, 'n'],
             'CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR': [None, 'y'],
+            'CONFIG_MTK_CMDQ': ['y', 'n'],
             'CONFIG_USB_G_ANDROID': ['y', 'n'],
             'CONFIG_USB_ANDROID_RNDIS_DWORD_ALIGNED': ['n', None],
             'CONFIG_USB_ETH': ['n', 'y'],
@@ -119,6 +124,7 @@ def main():
         assert delta == expected_delta, delta
         for name, value in native.symbols(usb_fragment).items():
             assert after[name] == value, name
+        assert after['CONFIG_MTK_CMDQ'] == 'n'
         for name in ('CONFIG_PSTORE_PMSG', 'CONFIG_CPU_IDLE', 'CONFIG_CRYPTO_SHA256', 'CONFIG_MTK_COMBO_WIFI'):
             assert after[name] == 'y', name
         assert after['CONFIG_MODULES'] == after['CONFIG_MTK_AEE_MRDUMP'] == 'n'
@@ -181,6 +187,7 @@ def main():
                       'source_integrity': source_integrity, 'compiler': compiler, 'linker': linker,
                       'config_sha256': digest(output / '.config'), 'configuration_delta': delta,
                       'usb_fragment_sha256': digest(usb_fragment),
+                      'cmdq_fragment_sha256': digest(cmdq_fragment),
                       'build_environment': {key: environment[key] for key in
                           ('HOST_EXTRACFLAGS', 'KBUILD_BUILD_USER', 'KBUILD_BUILD_HOST',
                            'KBUILD_BUILD_VERSION', 'KBUILD_BUILD_TIMESTAMP')},
