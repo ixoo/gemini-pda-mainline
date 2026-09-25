@@ -105,12 +105,14 @@ passes Debian service isolation, IPv4 filtering and orderly virtual filesystem
 shutdown. Confirm distribution/storage inputs before creating a persistent-root
 candidate; none of this is a PDA distribution boot result.
 The separate [A53 RAM regression image](../experiments/2026-09-09-standard-kernel-package/A53_RAM_REGRESSION.md)
-now pairs that kernel with the accepted authenticated environment and passes
-offline packaging checks. Installation, bounded host execution, log preservation
-and return confirmation now pass offline fixtures. Its next step is the admitted
-board regression after current device custody is released and the live deployment
-inputs are bound. It remains unselected; current device custody and admission
-are recorded in the [queue](../project/experiment-queue.json).
+paired that kernel with the accepted authenticated environment. Its
+[first board session](../experiments/2026-09-09-standard-kernel-package/results/a53-service-ram-runtime-20260925.json)
+brought up CPU0–7, authenticated over USB and preserved a complete sealed log;
+an independent read-only check confirmed changed-boot Gemian return. The
+consumed host runner remains inconclusive because its first return timeout used
+an unrecognized CRLF ending; the narrow classifier correction now passes focused
+fixtures. Do not repeat the same boot. Review the remaining serviceability
+gates before selecting the ten-cold-boot protocol or persistent-root work.
 
 The independent [MMC voltage-switch error fix](../experiments/2026-09-09-mtk-sd-pinctrl-errors/README.md)
 returns failed pin configuration to the MMC core. Its isolated Buildbox compile

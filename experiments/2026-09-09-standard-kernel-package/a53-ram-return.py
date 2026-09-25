@@ -34,9 +34,10 @@ printf 'boot_after=%s\\n__A53_GEMIAN_RETURN_END__\\n' "$(cat /proc/sys/kernel/ra
 EXPECTED = {'kernel': '3.18.41+', 'architecture': 'aarch64', 'model': 'MT6797X',
             'os_id': 'debian', 'os_version': '9', 'pid1': 'systemd', 'system_state': 'running'}
 CONNECT_FAILURES = {
-    ('ssh: connect to host 192.168.1.50 port 22: ' + reason + '\n').encode()
+    ('ssh: connect to host 192.168.1.50 port 22: ' + reason + ending).encode()
     for reason in ('Connection refused', 'Connection timed out', 'Operation timed out',
                    'No route to host', 'Network is unreachable')
+    for ending in ('\n', '\r\n')
 }
 
 

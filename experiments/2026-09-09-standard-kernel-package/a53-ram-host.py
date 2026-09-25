@@ -17,7 +17,7 @@ BASELINE = REPO / 'experiments/2026-09-05-owner-away-experiment-preparation/base
 SESSION = REPO / 'artifacts/a53-service-ram/session-1'
 PINS = {
     HERE / 'a53-ram-installer.py': 'ff7c560176c0d1dfd82adba200e8b673b2be2336a1359c99f3a70eb09af440c9',
-    HERE / 'a53-ram-return.py': '9813be751c161009aa667714f322b2b3b9fc13396dc4736736c18093f8b77f66',
+    HERE / 'a53-ram-return.py': '0f6f20c324dc7bb4911c34a8e793b09a0af819ed46474ee996b723930bf5d081',
     BASELINE / 'validate-candidate.py': 'ef76e8b99aeb94dc56651752855efdb493bdfabbd31fbd91a0cba07f1a7f22bb',
     BASELINE.parent.parent / 'emmc/mainline_host.py': '57491d7ac60a380ee85215e391274e5ced2733b33ab6df70e0757db7b67bf082',
 }

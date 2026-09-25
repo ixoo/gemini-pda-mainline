@@ -1,0 +1,45 @@
+{
+  "date": "2026-09-25",
+  "candidate_boot_sha256": "97c23e3f34686d8831e56f9903e109f6b9ba89cb121c88996f25411e86d5bec0",
+  "candidate_padded_sha256": "f185a0f2f993f8c68227f2a6e225e951ee22487d418610b9156ee1e517f56cb0",
+  "deployment": {
+    "receipt_sha256": "e898ac2a5b56e7c59522f8981bea08b81778cafab3600d819c5c8c0f169382be",
+    "preceding_gemian_boot": "a3eb4157-ef96-45d2-a8e0-405b1ef46572",
+    "power": "1|85|Good|0",
+    "result": "write-synced-flushed-full-readback-verified",
+    "shutdown": "confirmed-unreachable"
+  },
+  "physical_selection": "one owner-reported boot2 start after the first host watcher timed out",
+  "mainline": {
+    "boot_id": "f632d8b0-58d4-488c-ab02-9206832fd6d3",
+    "kernel_release": "7.1.3-gemini-a53-service-facilities",
+    "direct_usb_route": true,
+    "authenticated_observation": "baseline-observation-only-pass",
+    "observation_connections": 1,
+    "cpu_count": 8,
+    "cpu_log": "CPU0 through CPU7 present; SMP activated 8 processors",
+    "identity_probe": "pass",
+    "log_export": "complete-log-through-seal",
+    "log_records": 1823,
+    "log_bytes": 126413,
+    "log_sha256": "7aa5a05a6f28dc5efba16193171e757004b08cd9e989a643b2e31b42e90fa3bc",
+    "native_recovery_requests": 1
+  },
+  "return": {
+    "session_runner_classification": "session-inconclusive",
+    "first_return_attempt": "pre-authentication SSH operation timeout with CRLF stderr; strict parser refused this otherwise recognized connection failure",
+    "first_attempt_stderr_sha256": "4d3691bfe31ef25d64d7a3d4794b2f28600bfe61805e03738d0d8ed34e9f7ad8",
+    "independent_read_only_probe": "changed-ID-Gemian",
+    "returned_gemian_boot": "e815c0bf-9f84-4ba6-82be-fc8af80a878d",
+    "identity": "Linux 3.18.41+ aarch64 MT6797X Debian 9, systemd running",
+    "probe_stdout_sha256": "d9e990351ae3ab17ab798b31f5150d9c7462b2c5d77db8349326da5782c4bfbe",
+    "probe_evidence": "private, pinned-host-key, byte-preserved and checksummed"
+  },
+  "classification": "first-board-regression-observed-with-inconclusive-aggregate",
+  "selection_budget": "consumed; no unchanged-image retry selected",
+  "limits": [
+    "No Debian service, persistent-root, owner-console or ten-cold-boot validation was performed.",
+    "The original session result remains inconclusive; the separate changed-boot Gemian probe does not rewrite its consumed return window.",
+    "Raw kernel log, authentication material and host captures remain private."
+  ]
+}

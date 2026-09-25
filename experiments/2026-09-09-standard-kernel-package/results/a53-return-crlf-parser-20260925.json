@@ -1,0 +1,14 @@
+{
+  "date": "2026-09-25",
+  "observed_failure": "The first Gemian return attempt timed out before authentication; OpenSSH emitted the exact named Operation timed out error with CRLF and the original classifier refused it.",
+  "observed_stderr_sha256": "4d3691bfe31ef25d64d7a3d4794b2f28600bfe61805e03738d0d8ed34e9f7ad8",
+  "change": "Accept LF or CRLF only for the five exact pre-authentication connection failures; keep successful identity frames and all other SSH failures strict.",
+  "return_source_sha256": "0f6f20c324dc7bb4911c34a8e793b09a0af819ed46474ee996b723930bf5d081",
+  "host_runner_sha256": "edba94181863d4e49ca9d7c5d3a6e5b8e638d8e6f140144f7d9238c0468e1bf0",
+  "validation": {
+    "return_fixture": "8 tests passed on macOS, including the observed CRLF timeout and CRLF authentication/host-key refusals",
+    "host_fixture": "13 tests passed on macOS",
+    "device_action": "none"
+  },
+  "scope": "Future return windows only; the consumed A53 session result is unchanged."
+}

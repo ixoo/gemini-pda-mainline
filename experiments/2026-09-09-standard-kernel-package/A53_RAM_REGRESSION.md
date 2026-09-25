@@ -1,13 +1,11 @@
 # A53 service-kernel RAM regression candidate
 
-Status: complete private image composed and validated; exact-shell and hosted
-Linux checks pass. No A53 deployment or physical session is selected.
-Offline collection/recovery, installation, host execution and return confirmation
-now pass their focused checks. An actual deployment, owner selection and current
-session admission remain required before device use. Current device custody
-and the selected session are recorded in the
-[queue](../../project/experiment-queue.json). Offline preparation does not
-select the A53 candidate or replace its deployment checks.
+Status: the first A53 board boot reached CPU0–7 and authenticated USB, and its
+complete kernel log was preserved. A separate read-only probe verified return
+to changed-boot Gemian. The consumed session runner remains inconclusive at its
+return phase; no unchanged-image retry is selected. Current device custody
+and the closed session are recorded in the
+[queue](../../project/experiment-queue.json).
 
 ## Purpose and bounded change
 
@@ -251,6 +249,42 @@ and `ac/online=0`; cable-power and the direct USB host route remain unresolved.
 No installer ran, boot2 write or shutdown occurred, and no physical A53 session
 was selected. A fresh live power/route check remains necessary before deployment.
 
+## September 25 first board session
+
+The [sanitized runtime receipt](results/a53-service-ram-runtime-20260925.json)
+pins the exact image, deployment receipt and boot identities. In Gemian, the
+reviewed installer passed the live-GPT and block-device guards with 85% battery,
+wrote boot2, matched a full independent readback, and shut down cleanly. The
+first armed host window expired before an owner start report and saw no new USB
+device. It made no mainline connection and consumed no physical selection.
+
+The owner then reported one boot2 start. A direct USB route and the expected
+gadget appeared, and the host runner used its one session. The authenticated
+observation and bound identity probe passed for release
+`7.1.3-gemini-a53-service-facilities`. The complete saved log covers sequence
+zero through explicit seal: 1,823 records and 126,413 bytes. Its startup record
+shows CPU0 through CPU7 and eight activated processors. The normal native
+recovery request was sent once after evidence preservation.
+
+The first Gemian return attempt timed out before authentication. Its SSH error
+ended in CRLF, which the then-pinned return classifier rejected because it
+accepted only LF for exact connection failures. The consumed runner result is
+`session-inconclusive`; it is not rewritten. A separate, read-only probe using
+the pinned Gemian host key verified Linux `3.18.41+`, the expected board and
+Debian identity, `systemd` running and a stable boot ID different from both
+the preceding Gemian and mainline boots. This confirms the actual return.
+The private request, response, process record and checksums remain retained.
+
+The [parser correction receipt](results/a53-return-crlf-parser-20260925.json)
+records the exact stderr digest and focused validation. The classifier now
+accepts LF and CRLF only for its five named pre-authentication connection
+failures. Authentication, host-key,
+partial-output and unknown failures still stop; the focused return and host
+fixtures pass. This repairs later sessions without replaying this consumed
+window. The device result establishes this kernel's first CPU/USB/log boot,
+not Debian services, owner console acceptance or the ten-cold-boot gate. No
+unchanged-image retry is selected.
+
 ## Bounded Gemian return confirmation
 
 The [return helper](a53-ram-return.py) binds the exact candidate and installer
@@ -277,6 +311,6 @@ platforms with the real candidate and synthetic receipts; child processes are
 forbidden during those binding tests. No test contacts the PDA.
 
 A confirmed return proves that known-good Gemian is running. It does not promote
-an incomplete baseline or log capture to success. Actual A53 session admission
-still requires current device custody, the live deployment binding and the
+an incomplete baseline or log capture to success. Any later device session
+requires current device custody, a fresh live deployment binding and its own
 pre-boot handoff.

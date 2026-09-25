@@ -102,12 +102,16 @@ class ReturnTests(unittest.TestCase):
                 R.classify(raw, b'', process(raw, **changes), PREVIOUS, MAINLINE)
 
     def test_only_pre_authentication_connect_failures_allow_waiting(self):
+        self.assertIn(b'ssh: connect to host 192.168.1.50 port 22: Operation timed out\r\n',
+                      R.CONNECT_FAILURES)
         for err in R.CONNECT_FAILURES:
             for reason in (None, 'stdin-closed'):
                 result = R.classify(b'', err, process(b'', err, exit_status=255, reason=reason,
                                                      stdin_complete=False), PREVIOUS, MAINLINE)
                 self.assertEqual(result['classification'], 'connection-unavailable')
-        for err in (b'Permission denied (publickey).\n', b'Host key verification failed.\n', b'unknown\n'):
+        for err in (b'Permission denied (publickey).\n', b'Permission denied (publickey).\r\n',
+                    b'Host key verification failed.\n', b'Host key verification failed.\r\n',
+                    b'unknown\n'):
             with self.assertRaises(ValueError):
                 R.classify(b'', err, process(b'', err, exit_status=255), PREVIOUS, MAINLINE)
         err = next(iter(R.CONNECT_FAILURES))

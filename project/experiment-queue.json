@@ -4,8 +4,23 @@
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
   "selected_item": null,
-  "selection_note": "The latest USB voltage boot completed and returned to verified Gemian; its 28 mV input selected host mode and no export. No physical boot is currently selected. Resolve left-port power and ADC readiness before another USB-role candidate; the A53 RAM regression remains offline-ready but unselected. See experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-id-voltage-runtime.json.",
+  "selection_note": "The A53 service RAM image completed one guarded boot2 deployment and one owner-reported physical selection. CPU0-7, authenticated USB and sealed log passed; a separate pinned read-only probe confirmed changed-boot Gemian after the runner's CRLF timeout-classifier refusal. The selection budget is consumed and no physical boot is currently selected. See experiments/2026-09-09-standard-kernel-package/results/a53-service-ram-runtime-20260925.json.",
   "items": {
+    "a53-service-ram-regression": {
+      "workstream": "serviceability",
+      "preparation_state": "stale",
+      "device_state": "complete",
+      "owner": "primary integration coordinator",
+      "reviewer": "primary integration coordinator",
+      "device_custodian": null,
+      "experiment": "experiments/2026-09-09-standard-kernel-package/A53_RAM_REGRESSION.md",
+      "session_packet": "experiments/2026-09-09-standard-kernel-package/A53_RAM_REGRESSION.md#finite-session",
+      "candidate_record": "experiments/2026-09-09-standard-kernel-package/results/a53-service-ram-candidate.json",
+      "readiness_record": "experiments/2026-09-09-standard-kernel-package/results/a53-service-ram-runtime-20260925.json",
+      "dependencies": [],
+      "owner_task_id": null,
+      "readiness_note": "One guarded boot2 installation and one physical selection are complete. Authenticated CPU0-7 observation and complete sealed log passed. The return watcher refused its first CRLF timeout and left the aggregate inconclusive; a separate pinned read-only probe confirmed changed-boot Gemian. No unchanged-image retry or ten-cold-boot session selected."
+    },
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
       "preparation_state": "stale",
