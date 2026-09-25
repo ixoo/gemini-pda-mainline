@@ -429,11 +429,14 @@ The remaining preparation order is:
    lacked the capture header, so it contains no Wi-Fi producer evidence. The
    [linked-producer audit](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/cycle-producer-boundary.json)
    confirms the kernel entry points exist; the selected export-only startup
-   never invoked the detector capture path. Next package and validate the
-   `cycle` action with
-   shared ownership, post-reset capture preservation and a finite radio-effect
-   protocol before another physical Wi-Fi test. No role override,
-   detection-policy change or weakened CPU check is supported by the evidence.
+   never invoked the detector capture path. The
+   [selected AP-DMA audit](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/shared-resource-boundary.json)
+   narrows channel overlap but finds a shared clock and unchecked WLAN HIF
+   clock/mapping admission. Resolve that failure path, then package and validate
+   the `cycle` action with shared ownership, post-reset capture preservation
+   and a finite radio-effect protocol before another physical Wi-Fi test. No
+   role override, detection-policy change or weakened CPU check is supported
+   by the evidence.
    Exit order must not be inferred by reversing initialization, and the vendor
    WMT ioctl must not be copied merely to run the retained loader.
 4. **Preserve the bounded eMMC result:** the [closed session](../experiments/2026-09-05-owner-away-experiment-preparation/emmc/PAUSE_SESSION_PREPARATION.json)

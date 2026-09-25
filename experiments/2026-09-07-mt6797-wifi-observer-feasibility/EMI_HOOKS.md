@@ -86,3 +86,11 @@ The [Linux repository check](https://github.com/ixoo/gemini-pda-mainline/actions
 passed at that input commit, including the required provenance fixture. No
 kernel image or device action ran. Controller, provider OFF, isolation, shared
 reservation/permission ownership and recovery admission remain open.
+
+The later [shared-resource audit](results/shared-resource-boundary.json) narrows
+the selected CONSYS layout. Its dynamic reservation is 2 MiB; the observed
+WLAN loader targets the first 512 KiB, while native WMT maps and clears 343 KiB
+starting at the next 512-KiB boundary. Those payload spans do not overlap in
+the compared source. WMT still changes shared remap and protection state during
+initialization, and separate offsets do not prove an exclusive lifecycle.
+The audit neither reads that reservation on the PDA nor validates a cycle.

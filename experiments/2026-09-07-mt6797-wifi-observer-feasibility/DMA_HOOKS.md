@@ -178,3 +178,26 @@ bytes are not a warning-clean claim. The changed HIF structure still requires
 all consumers to be rebuilt and linked in a full native kernel before deployment.
 Controller integration, watchdog recovery and candidate admission remain open;
 no candidate is selected.
+
+## Shared AP-DMA boundary in the 54-patch link
+
+The [bounded resource audit](results/shared-resource-boundary.json) compares the
+exact linked configuration and prepared source with one stable, read-only
+known-good Gemian binding check. The selected WLAN HIF maps channel offset
+`0x80..0xff`; the compared MT6797 I2C, UART and BTIF channel windows start at
+`0x180`, `0x600` and `0xa00`. Those separate channel starts narrow a direct
+register-overlap concern. They do not reserve the whole controller: WLAN,
+I2C, UART and BTIF all reference `INFRA_AP_DMA`. Live Gemian had ten bound I2C
+controllers, four UARTs, BTIF, WLAN and WMT on the same authenticated boot.
+The candidate's `CONFIG_MTK_CLKMGR` is off, so WLAN uses the shared clock
+framework path; a cycle must preserve the other users' clock references.
+
+The native WLAN HIF logs a failed `wifi-dma` clock lookup but continues into
+DMA initialization, whose register mapping is also unchecked. Its later
+clock-enable callback logs rather than propagates an error. A cycle candidate
+therefore needs a checked HIF clock/mapping admission and a failure path that
+ends normal requests before DMA access. The existing `glSetHifInfo()` returns
+`void`, so adding a return at the commented site is not a valid isolated fix.
+The native per-channel lifetime observer does not prove clock ownership or
+interference exclusion. No radio, DMA-register or clock action occurred in
+this audit.

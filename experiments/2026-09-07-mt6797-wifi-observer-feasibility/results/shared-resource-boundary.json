@@ -1,0 +1,53 @@
+{
+  "status": "bounded source and read-only Gemian resource audit; cycle not admitted",
+  "kernel_build_commit": "b2411bb2672b67dfb515ff24dabf76a5a75107c4",
+  "kernel_inputs_sha256": "753cb0351ddbda8db9d3036465f23ccdff0cd1e1de4f18340bea263293143ebd",
+  "kernel_config_sha256": "43222fdee6781f3bc51cb7e412c9f92372ecf8f78b8881b11d66b77f849d8eb8",
+  "selected_config": {
+    "CONFIG_OF": "y",
+    "CONFIG_MTK_CLKMGR": "n",
+    "CONFIG_MTK_CQDMA": "n",
+    "CONFIG_MTK_BTIF": "y",
+    "CONFIG_MTK_I2C": "y",
+    "CONFIG_MTK_COMBO_WIFI": "y",
+    "CONFIG_MTK_GPS_EMI": "n"
+  },
+  "prepared_source_sha256": {
+    "arch/arm64/boot/dts/mt6797.dtsi": "5e7809ca4ceb07c501a76b5c2f4d7d067ce11b092fa556b5893246831bd9330f",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c": "d63a8beae353355534ab9824357ac82253c301647d260196e3d307fbd56582b5",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb_pdma.c": "7f56585062ae6888e3aac419d4581121e3f58220652e1649487c1d00be3768b7",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_pdma.h": "898874f9f3180000a393fab0a13666fd4960364f3c4b7517a1f965f027213028",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c": "acd8685ad1a2b811a479a7b337cb87e8121df3dbc96351b2ef15bc6969aa919a",
+    "drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c": "bd17b2c83e0d9b115a54f54cb9b5daa43e748bab1a0a35c261dfa07ec762b979",
+    "drivers/misc/mediatek/i2c/mt6797/i2c.c": "de265a2c35814d80a53e785d4f47537f4ec42b9f7004fffa58879cfc76d421b5",
+    "drivers/misc/mediatek/uart/uart.c": "8f67be9e1fb381432e9cab7b82388460ef63ce0c292103d42a122918f0160188",
+    "drivers/misc/mediatek/btif/common/btif_dma_plat.c": "2f247d8a7a6ee60913f318a5db43da7813c047cb8980790d15073dd269ee693a"
+  },
+  "source_findings": [
+    "Selected gen3 WLAN HIF maps AP-DMA offset 0x80 for 0x80 bytes; DT names the shared INFRA_AP_DMA clock wifi-dma.",
+    "Selected MT6797 DT lists I2C DMA channel windows beginning at offset 0x180, UART DMA windows beginning at 0x600, and BTIF windows at 0xa00; these compared channel starts do not coincide with WLAN offset 0x80.",
+    "The same INFRA_AP_DMA clock is referenced by WLAN, I2C, UART and BTIF; per-channel addresses do not confer exclusive clock ownership.",
+    "With CONFIG_MTK_CLKMGR disabled, WLAN devm_clk_get(wifi-dma) logs IS_ERR but continues; HifPdmaInit also marks DMA enabled after an unchecked ioremap. Clock-enable failures are logged without propagating a status.",
+    "The dynamic 2 MiB CONSYS reservation feeds WLAN's first 512 KiB and WMT's separate 343 KiB mapping beginning at +512 KiB; WMT can write remap/protection state and clear its mapped part during native initialization. Separate payload offsets do not establish exclusive remap or lifetime ownership."
+  ],
+  "live_gemian": {
+    "boot_id": "8dfd528d-f1c9-4bf1-b615-3bdaae97d882",
+    "release": "3.18.41+",
+    "model": "MT6797X",
+    "boot_identity_stable_across_read": true,
+    "bound_platform_devices": {
+      "mt-i2c": 10,
+      "mtk-uart": 4,
+      "mtk_btif": 1,
+      "mt-wifi": 1,
+      "mtk_wmt": 1
+    },
+    "ap_dma_parent_bound": false,
+    "radio_or_register_action": false
+  },
+  "limits": [
+    "The live Gemian binding check does not attribute the compile-only candidate, clock reference counts, concurrent DMA traffic or a radio cycle.",
+    "The source comparison covers named selected consumers, not every possible physical alias, firmware master or direct register writer.",
+    "No hardware access to AP-DMA, EMI, clocks or radio was performed in this audit."
+  ]
+}
