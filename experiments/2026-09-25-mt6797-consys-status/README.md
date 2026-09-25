@@ -1,6 +1,7 @@
 # Passive CONSYS power-status gate
 
-Status: candidate preparation; no new board result yet.
+Status: kernel and private boot image built and validated offline; no new board
+result yet.
 
 The first Wi-Fi hardware question is whether retained firmware leaves CONSYS
 powered at mainline late init. The working Gemian boot is an active-WLAN
@@ -21,8 +22,11 @@ which retains the tested A53 service foundation and its RAM-boot facilities.
 ## One-boot decision
 
 Use one guarded boot2 image assembled from the validated package and the
-accepted RAM candidate, with only the kernel and its exact release gate
-changed. Authenticate the mainline boot and preserve its complete log before
+accepted RAM candidate. The previous board tree lacks the syscon compatible,
+so the [composition recipe](build-candidate.py) adds exactly that one property;
+its decoded-tree comparison rejects every other tree change. The kernel and
+exact RAM release gate also change; the other 46 RAM members remain byte-identical.
+Authenticate the mainline boot and preserve its complete log before
 recovery. The unique measurement is the single `mt6797-consys-status` line
 bound to that boot identity and candidate hash.
 
@@ -41,3 +45,24 @@ confirm changed-boot Gemian afterward.
 This gate establishes neither usable Wi-Fi nor the shared manager, firmware
 load, station association, or traffic. Those require separate implementation
 and measured device tests under the [shared owner contract](../2026-09-05-mt6797-wifi-contract/SHARED_OWNER_IMPLEMENTATION.md).
+
+## Offline result
+
+Buildbox built and validated commit `b3d26e15bc7f90049e919591b97ecf06f77fb0d3`
+for this profile against pinned Linux 7.1.3. The package inventory is
+`67e2a0b3110bab959e2d973de17686ae14bb43e69f22509faab51e4bf7192599`;
+the kernel release is `7.1.3-gemini-consys-status-snapshot`. Its configuration
+selects the observer and leaves `MTK_SCPSYS` disabled. The observer is present
+in the linked `System.map`. Pinned checkpatch passes with the internal patch's
+intentional non-certifying sign-off and new-file notices excluded. No DT schema
+changed in this selected series.
+
+The [private-image receipt](results/candidate.json) records the exact accepted
+parent, kernel package and output hashes. The validated Android-v0 boot image
+is 9,132,032 bytes; the 16 MiB padded boot2 image has SHA-256
+`83cedf98881e05b4552cd5747611cc44a2b0bbc3feaa299a6ed8d92489175060`.
+The builder checked the package inventory, decompression, required symbols,
+complete parent identity, CPIO round trip, one-property DT delta, LK format,
+payload pairing and zero-padded partition size. The image contains a private
+authentication key and remains ignored under `artifacts/`; no installation or
+device action has occurred for this candidate.

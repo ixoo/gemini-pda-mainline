@@ -1,0 +1,41 @@
+{
+  "status": "offline-consys-snapshot-composition-validated",
+  "kernel_build_commit": "b3d26e15bc7f90049e919591b97ecf06f77fb0d3",
+  "kernel_release": "7.1.3-gemini-consys-status-snapshot",
+  "kernel_package_sha256": "67e2a0b3110bab959e2d973de17686ae14bb43e69f22509faab51e4bf7192599",
+  "parent_boot_sha256": "97c23e3f34686d8831e56f9903e109f6b9ba89cb121c88996f25411e86d5bec0",
+  "files": {
+    "Image.gz": {
+      "sha256": "635a49b31801220346f2aa0dc29b4e54455b92cd916d7d11aca96d47cfb2b263",
+      "bytes": 6045630
+    },
+    "board.dtb": {
+      "sha256": "982bcc718bc4d2fc969883d8b6c358dc90e11be67e3d05d4eb035434612d155f",
+      "bytes": 26834
+    },
+    "boot.img": {
+      "sha256": "060499dc8efd62d32c908b74dc5656dd55769fa73efdafdd6a88077d41379b7c",
+      "bytes": 9132032
+    },
+    "boot2-padded.img": {
+      "sha256": "83cedf98881e05b4552cd5747611cc44a2b0bbc3feaa299a6ed8d92489175060",
+      "bytes": 16777216
+    },
+    "initramfs.img": {
+      "sha256": "3ce9968ec1df85d7aa640f122ae96eff3f71a9566f837e5991942f585a1be6ed",
+      "bytes": 3055463
+    },
+    "kernel.config": {
+      "sha256": "143abf50ba6fb51f25a42739ed2b9d9dbdbd2b881b729bfcd2f85dc7c9bc7384",
+      "bytes": 110522
+    }
+  },
+  "changed_ram_members": [
+    "init"
+  ],
+  "unchanged_ram_members": 46,
+  "device_tree_change": "SPM compatible adds syscon only",
+  "secret_bearing": true,
+  "device_action": "none",
+  "physical_admission": false
+}
