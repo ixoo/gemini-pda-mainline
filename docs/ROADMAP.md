@@ -435,8 +435,10 @@ The remaining preparation order is:
    clock/mapping admission. The compile-only
    [HIF admission patch](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/HIF_ADMISSION.md)
    now links and refuses missing mapping or clock acquisition before native
-   SDIO open; later clock-enable failure and shared ownership remain. Resolve
-   those paths, then package and validate
+   SDIO open. The [DMA clock refusal](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/DMA_CLOCK_ADMISSION.md)
+   also links and returns before HIF command setup if the selected CCF clock
+   enable fails. Shared ownership and a complete failure lifetime remain.
+   Resolve those paths, then package and validate
    the `cycle` action with shared ownership, post-reset capture preservation
    and a finite radio-effect protocol before another physical Wi-Fi test. No
    role override, detection-policy change or weakened CPU check is supported

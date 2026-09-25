@@ -140,3 +140,10 @@ The [55-patch HIF admission link](results/hif-admission-link.json) passed from
 source integrity passed, the configuration matches the 54-patch parent, and
 the link has no undefined symbols. It remains compile-only; a later DMA
 clock-enable failure and shared resource ownership still need resolution.
+
+The [56-patch DMA clock admission link](results/dma-clock-admission-link.json)
+passed from `ffd6e92e713a1f2fa829adfb1ada3fd38a8c8d37`. The focused
+clock-failure fixture passed on the exact prepared source, package checksums
+and source integrity passed, and the link has no undefined symbols. The
+selected CCF enable error now returns before HIF command setup; shared clock
+ownership and the radio-effect protocol remain open.

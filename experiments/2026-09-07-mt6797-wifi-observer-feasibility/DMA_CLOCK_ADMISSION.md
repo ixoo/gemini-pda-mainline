@@ -21,8 +21,11 @@ parent and output files. The patch replays against the 55-patch prepared
 source, reverses from the exact output, and passes strict Checkpatch. The
 [focused fixture](test-dma-clock-admission.py) runs the extracted native
 callback with injected clock success and failure and checks the two native
-port refusal sites precede command setup. The patch is the 56th compile-only
-input; a complete Buildbox link is pending.
+port refusal sites precede command setup. The fixture also passed against the
+exact prepared source on Buildbox. The patch is the 56th compile-only input;
+the [complete native link](results/dma-clock-admission-link.json) passed with a
+verified package inventory, zero undefined symbols and the inherited 69
+section mismatches.
 
 This does not establish concurrent AP-DMA ownership, all clock reference
 balances, an effect-bearing radio protocol or a boot candidate. No device

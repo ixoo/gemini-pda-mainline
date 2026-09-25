@@ -1,0 +1,29 @@
+{
+  "status": "complete native Buildbox link passed; compile-only",
+  "build_commit": "ffd6e92e713a1f2fa829adfb1ada3fd38a8c8d37",
+  "inputs_sha256": "7f07b3704b6d707a4d53b3d62743b493239e0217824eea1a25d8bfc43527054c",
+  "patch_count": 56,
+  "package": {
+    "name": "wifi-controller-kernel-ffd6e92e713a1f2fa829adfb1ada3fd38a8c8d37",
+    "manifest_sha256": "6b58ae1879c5c7165f7571c00541515def6b90593b8787a6be825180c434b95b",
+    "files": 10,
+    "vmlinux_sha256": "de4d3cf1d6bacc42b683d46d3c2d6d4cc349605ae5f2a8f175acb8dd4e727cda",
+    "system_map_sha256": "94f7de8e15a51d8b0837eef06f5c4cecebaf4693394739287e52da5b43aed554",
+    "kernel_sha256": "2c3e05a159bd0e0949d5f1d113fab2396dcd520bd5b7c4b6d720afde5abe00b2"
+  },
+  "source_integrity": "source_tree_integrity=3df82400405a9900591e514ffe55bc013c77230854515353cf6afbf4a6d29b09",
+  "config_sha256": "43222fdee6781f3bc51cb7e412c9f92372ecf8f78b8881b11d66b77f849d8eb8",
+  "configuration_byte_identical_to_55_patch_parent": true,
+  "undefined_symbols": 0,
+  "linked_checks": [
+    "HifPdmaClockCtrl, kalDevPortRead, kalDevPortWriteCapture and wfc_dma_abort are linked text symbols.",
+    "CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR=y and CONFIG_MTK_CLKMGR=n in the packaged configuration.",
+    "The remote package's ten listed files pass strict SHA256SUMS verification.",
+    "The focused failure fixture passes on the exact prepared Buildbox source."
+  ],
+  "limitations": [
+    "The inherited native build retains 69 section mismatches and -w compiler commands.",
+    "Shared AP-DMA/clock ownership, complete failure lifetime and a finite radio-effect protocol remain open.",
+    "No device execution, Wi-Fi cycle or boot-candidate admission is established."
+  ]
+}
