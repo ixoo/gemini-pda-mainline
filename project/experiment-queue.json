@@ -3,8 +3,8 @@
   "purpose": "Readiness inventory, not an executable queue or device authorization. Object order is not scheduling order; docs/ROADMAP.md alone owns priority. Exact inputs, budgets and chronology stay in linked experiments.",
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
-  "selected_item": "wifi-export-usb-chrdet-errors-2",
-  "selection_note": "Second export session completed with preserved changed-boot Gemian console. Successful-zero detection and host-role branch recorded; no export. The selected role trace narrows the branch to internal ID-pin state; its active writer remains unobserved. No physical test selected.",
+  "selected_item": "wifi-export-usb-role-writers-1",
+  "selection_note": "The 52-patch role-writer candidate passed offline build and container checks. Its first guarded install refused at 67% battery with no external supply; no write or physical boot occurred. Continue only after stable power, complete readback and pre-armed collectors.",
   "items": {
     "a53-authenticated-baseline": {
       "workstream": "serviceability",
@@ -320,6 +320,27 @@
       "dependencies": [],
       "owner_task_id": null,
       "readiness_note": "Physical budget consumed. Pre-armed host did not receive USB; retained summary records successful-zero detection and host branch without cable sample. Console preserved; selected role trace identifies possible ID-pin state writers, but no active writer."
+    },
+    "wifi-export-usb-role-writers-1": {
+      "workstream": "wifi",
+      "preparation_state": "ready",
+      "device_state": "unselected",
+      "owner": "primary integration coordinator",
+      "reviewer": "primary integration coordinator",
+      "device_custodian": "primary integration coordinator",
+      "experiment": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_ROLE_TRACE.md",
+      "session_packet": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_ROLE_TRACE.md#selected-session",
+      "candidate_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-role-writers-candidate.json",
+      "readiness_record": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-role-writers-install-refusal.json",
+      "dependencies": [
+        {
+          "item": "wifi-export-usb-chrdet-errors-2",
+          "required_result": "Retained host branch and successful-zero PMIC observation with changed-boot Gemian return, without asserting causality.",
+          "evidence": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/usb-chrdet-errors-second-runtime.json"
+        }
+      ],
+      "owner_task_id": null,
+      "readiness_note": "Offline role-writer candidate and single-session contract prepared. Initial guarded installation refused before upload or write because Gemian reported 67% battery and no external power. No boot admitted; await stable power."
     }
   }
 }

@@ -1,0 +1,21 @@
+{
+  "candidate_receipt": "usb-role-writers-candidate.json",
+  "candidate_sha256": "30e26613571647ba14fa993ea69120e7f60c7e8d8b764bde235d0cd4708febff",
+  "attempt_utc": "2026-09-25T11:47:29Z",
+  "installer_sha256": "2bc85e2d3ca31488020b2562b034604d28b330788e9fd9ac540d2d3d77f7d3d0",
+  "known_good_gemian_boot": "88644a8b-0f63-4813-a6a9-7a8393c92831",
+  "result": "initial guarded probe refused before write",
+  "refusal": "power gate failed",
+  "battery_capacity_percent": 67,
+  "battery_health": "Good",
+  "external_online": {
+    "ac": 0,
+    "usb": 0,
+    "wireless": 0
+  },
+  "installation_evidence_directory_created": false,
+  "candidate_upload_attempted": false,
+  "boot2_write_attempted": false,
+  "shutdown_requested": false,
+  "follow_up": "Wait for stable external power or battery capacity at least 80%; rerun complete guarded installer against newly verified live Gemian identity. No boot2 selection is admitted by this refusal."
+}

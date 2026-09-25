@@ -98,3 +98,30 @@ uses `-w` and reports 69 section mismatches. The
 image. Filesystem and container checks passed, including byte-identical
 reassembly and device-tree reservation checks. Installation and a new physical
 measurement remain separate gates.
+
+The first [guarded installation attempt](results/usb-role-writers-install-refusal.json)
+stopped at its power gate before candidate upload or any boot2 write. Gemian
+reported 67% battery with no external supply online. The same authenticated
+Gemian boot remains running; installation and physical selection wait for a
+stable admitted power state.
+
+## Selected session
+
+The single physical boot uses the exact
+[offline candidate](results/usb-role-writers-candidate.json), cycle
+`74fd02a7-8d63-4e0f-b209-690271f02d7d`. Its hypothesis is that one
+existing writer of the internal host state explains the prior host branch.
+The unique new observation is the seven-bit `role` mask in the retained
+one-shot shutdown summary. The host watcher may request one bounded snapshot
+only after identifying this boot's USB Ethernet gadget and direct route; it
+does not infer transport from the role mask. The return watcher preserves at
+most one console after a changed, authenticated Gemian boot.
+
+Install only through the guarded live-GPT boot2 path with stable power and
+matching full-partition readback. After clean shutdown, arm both 600-second
+collectors before the owner physically selects boot2 once. An attributable
+single host-writer bit narrows the responsible software path; mixed or missing
+bits remain inconclusive. Any export claim additionally requires the exact
+session frame, full snapshot verification and acknowledgement. A missing
+return, unexpected boot identity, guard refusal or incomplete evidence stops
+the session without a blind retry or alternate recovery path.
