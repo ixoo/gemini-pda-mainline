@@ -168,10 +168,12 @@ lifetime; missing attribution preserves the current two-clock contract.
 
 The independent [clock allocation fix](../experiments/2026-09-08-mt6797-clock-id-allocation/README.md)
 repairs the slot-count contract in four existing MT6797 providers and passes
-Buildbox compilation. Its [submission packet](../experiments/2026-09-08-mt6797-clock-id-allocation/SUBMISSION.md)
-now records current upstream compatibility, both introducing commits and the
-common-helper conversion overlap. Human authorship review and truthful
-certification are the next handoff before upstream submission. Historical
+Buildbox compilation. A [public MT6797 patch](https://lists.openwall.net/linux-kernel/2026/09/21/1197)
+now covers the same bounds defect with dummy ID-0 gates, whose lookup behavior
+differs from the local patch. Hold duplicate submission; follow upstream review
+and validate the selected baseline before deleting the local fix. The
+[submission packet](../experiments/2026-09-08-mt6797-clock-id-allocation/SUBMISSION.md)
+records the overlap and its limits. Historical
 camera or multimedia additions still need their own consumer-ownership review.
 
 The current [audio architecture refresh](../experiments/2026-09-07-mt6797-audio-upstream-architecture/README.md)

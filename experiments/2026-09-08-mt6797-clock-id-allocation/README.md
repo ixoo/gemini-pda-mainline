@@ -1,10 +1,12 @@
 # MT6797 clock provider allocation
 
-Status: compile and focused regression passed, 2026-09-08; current upstream
-submission preparation refreshed, 2026-09-12. The
-[review packet](SUBMISSION.md) records current source matches, both introducing
-commits, public overlap and prepared commit text. Human review and truthful
-certification remain required. This is not a boot candidate.
+Status: compile and focused regression passed, 2026-09-08; upstream review
+refreshed, 2026-09-25. A [public MT6797 fix](SUBMISSION.md#origins-and-overlap)
+posted on 21 September covers the same allocation defect by adding dummy ID-0
+gates. Hold the local submission while that series is reviewed. The
+[review packet](SUBMISSION.md) records source matches, both introducing
+commits, the ID-0 behavior difference and prepared commit text. This is not a
+boot candidate.
 
 ## Problem and fix
 
@@ -64,8 +66,9 @@ No DT/schema changes require validation. No device access or boot occurred.
 ## Upstream boundary
 
 The destination is the MediaTek common-clock subsystem. The
-[submission review](SUBMISSION.md) records exact current refs, recipients,
-bounded overlap findings, source-license review and AI attribution. The
-synthetic archive author provides no DCO sign-off; truthful authorship and
-certification remain required. No message was sent. Delete this local patch
-once an equivalent fix reaches the selected baseline and passes regression.
+[submission review](SUBMISSION.md) records inspected refs, recipients,
+public overlap, source-license review and AI attribution. The synthetic
+archive author provides no DCO sign-off; truthful authorship and certification
+remain required if this local approach is revived. No message was sent.
+Delete this local patch once the public fix reaches the selected baseline and
+passes regression, after reviewing its ID-0 behavior.

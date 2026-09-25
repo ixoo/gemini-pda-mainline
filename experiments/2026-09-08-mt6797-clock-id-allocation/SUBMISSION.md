@@ -1,13 +1,15 @@
 # Clock allocation submission preparation
 
-Technical review refreshed on 2026-09-12. The patch and its Buildbox inputs
-remain unchanged. This packet is ready for human review, not submission:
-the archive has a synthetic author and no DCO certification. No mail was sent.
+Technical review refreshed on 2026-09-25. The patch and its Buildbox inputs
+remain unchanged. A public MT6797 fix now overlaps this topic; hold the local
+submission while that series is reviewed. The archive also has a synthetic
+author and no DCO certification. No mail was sent.
 
-## Current source and target
+## Source and target at 12 September review
 
 The destination is the common-clock tree, with MediaTek review. The following
-refs were resolved from the official mainline and clock Git repositories:
+refs were resolved from the official mainline and clock Git repositories on
+12 September; they are no longer current heads:
 
 | Tree/ref | Inspected commit |
 | --- | --- |
@@ -62,12 +64,32 @@ adds PLL counts to the same allocation block. Neither supplies an explicit
 provider-ID capacity. [18/32](https://lists.infradead.org/pipermail/linux-mediatek/2026-August/111265.html)
 converts TOP, INFRA and APMIXED; it does not modify these four provider files.
 
-No equivalent fix was found in that bounded review. The public series was
-not replayed, and its other providers were not certified by this check.
-If it lands first, preserve the added default count terms when adapting the
-override and rerun the allocation regression and relevant compile checks.
-This ordinary helper-context overlap does not create a dependency on the
-separate infracfg reset topic's provider-ordering decision.
+That bounded review ended before the [21 September 2026 public series](https://lists.openwall.net/linux-kernel/2026/09/21/1194).
+Its [MT6797 patch 2/6](https://lists.openwall.net/linux-kernel/2026/09/21/1197),
+Message-ID `<20260921102522.1640072-3-akkun11.open@gmail.com>`, adds one
+`GATE_DUMMY(CLK_DUMMY, ...)` at ID 0 to each of these same four arrays. The
+posted diff applies cleanly to mainline `165768bb70265b5c38cf0b73fafd75be235f8b14`.
+Source-level validation of the applied arrays gives 5, 43, 5 and 5 unique
+IDs, exactly the four binding limits and `max(id) + 1`. Since the existing
+common probe allocates by descriptor gate count, the posted patch covers the
+same highest-ID bounds defect without changing the common helper. The
+existing dummy gate has no-op enable/disable callbacks, so it also makes ID 0
+resolve to a registered dummy clock; the local patch instead leaves ID 0 at
+`-ENOENT`. The published binding has no ID-0 name. This is a real behavior
+difference to consider in upstream review, not a reason to submit a duplicate
+allocation fix now.
+
+The four provider sources at the inspected 25 September mainline master above
+still have no dummy entries. Spot checks at `clk-next`
+`0f5cf38af7beb9dd3ca6fa468dd765bf54e9e249` and `clk-fixes`
+`81493c1dd1b1ebecb2843a7815973a5bd9a37e5a` also found no dummy entry
+in IMG/MM; the other remote provider reads returned HTTP 503. A bounded mail
+search found no newer revision or acceptance notice. These checks do not
+establish a global merge or review status. If the public fix lands, validate
+its selected baseline and decide whether to delete the local patch. If it
+stalls or ID-0 behavior is rejected, revisit the local approach with actual
+authorship, certification and current-tree checks. The separate infracfg reset
+topic has no dependency on this allocation decision.
 
 ## Recipients
 
