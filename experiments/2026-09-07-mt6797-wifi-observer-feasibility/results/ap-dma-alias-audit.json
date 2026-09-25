@@ -1,0 +1,37 @@
+{
+  "status": "bounded selected-source and read-only Gemian alias audit; cycle not admitted",
+  "selected_build_commit": "ffd6e92e713a1f2fa829adfb1ada3fd38a8c8d37",
+  "selected_inputs_sha256": "7f07b3704b6d707a4d53b3d62743b493239e0217824eea1a25d8bfc43527054c",
+  "selected_config_sha256": "43222fdee6781f3bc51cb7e412c9f92372ecf8f78b8881b11d66b77f849d8eb8",
+  "prepared_source_sha256": {
+    "arch/arm64/boot/dts/mt6797.dtsi": "5e7809ca4ceb07c501a76b5c2f4d7d067ce11b092fa556b5893246831bd9330f",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_pdma.h": "898874f9f3180000a393fab0a13666fd4960364f3c4b7517a1f965f027213028",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif.h": "023c3cac2a58cef7ac1f66ec1b8b3dbe3b8c562c003a7e09f898a267c0c7c0be",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb_pdma.c": "57ad7c91637ced19cf295da6b6e97a55d56c9761c109ece48ed9ebc663c89081",
+    "drivers/misc/mediatek/connectivity/wlan/gen2/os/linux/hif/ahb/include/hif_pdma.h": "28424fd8e1bff338ed9297709f990fe067c6ecc81b155a0f0fd80519d23930a8",
+    "drivers/misc/mediatek/i2c/mt6797/i2c.c": "de265a2c35814d80a53e785d4f47537f4ec42b9f7004fffa58879cfc76d421b5",
+    "drivers/misc/mediatek/cmdq/v2/cmdq_subsys_common.h": "e8a4b73131cb9e881cd3bd9f536dad9b58b2dc8ecc6f8d0263633ef026bb573a",
+    "drivers/misc/mediatek/cmdq/v2/cmdq_device.c": "01c858ec9d61b0c42bdfbe7b456b1b425fb3197e3b0b40c5be685ff883a240a1"
+  },
+  "selected_findings": [
+    "The gen3 WLAN HIF maps 0x11000080 through 0x110000ff; its named DMA register accesses are offsets 0x00 through 0x58, including a channel-local reset at offset 0x0c.",
+    "The selected MT6797 DT assigns ten I2C DMA windows of 0x80 bytes from 0x11000100 through 0x110005ff. Selected CONFIG_OF I2C code maps each platform device's second resource; the non-OF computed +0x180 formula is not its active path.",
+    "Named UART DMA windows begin at 0x11000600 and BTIF windows at 0x11000a00. None of those named starts or I2C windows overlaps WLAN's 0x80-byte channel, although the AP-DMA parent spans 0x11000000 through 0x11000fff.",
+    "The gen2 WLAN source also names 0x11000080, but its MT6797 ahb_pdma.c is absent from the selected build log; the gen3 ahb_pdma.c is present.",
+    "CONFIG_MTK_CMDQ=y. The linked cmdq_device.c consumes a subsystem table naming ap_dma_base at 0x11000000; a bounded exact-literal and CMDQ_SUBSYS_AP_DMA source search found no specific selected command targeting WLAN's channel. This is not proof that dynamic commands cannot target it."
+  ],
+  "live_gemian": {
+    "host_recorded_after_read_utc": "2026-09-25T15:00:30Z",
+    "boot_id": "8dfd528d-f1c9-4bf1-b615-3bdaae97d882",
+    "release": "3.18.41+",
+    "boot_id_stable_across_read": true,
+    "mtk_cmdq_bound_platform_devices": 1,
+    "effect": "read-only"
+  },
+  "decision": "Do not admit the next effect-bearing cycle on channel separation alone. Exclude or bound generic CMDQ access to the AP-DMA range and establish shared clock, CONSYS remap/protection and worker failure ownership in the exact candidate.",
+  "limits": [
+    "This audit covers named source and DT paths, not every computed address, firmware master, DMA transaction or CMDQ job.",
+    "The Gemian binding observation does not prove a CMDQ command accessed AP-DMA and does not validate the compile-only candidate.",
+    "No AP-DMA register access, radio action or new mainline boot occurred."
+  ]
+}

@@ -25,7 +25,7 @@
   },
   "source_findings": [
     "Selected gen3 WLAN HIF maps AP-DMA offset 0x80 for 0x80 bytes; DT names the shared INFRA_AP_DMA clock wifi-dma.",
-    "Selected MT6797 DT lists I2C DMA channel windows beginning at offset 0x180, UART DMA windows beginning at 0x600, and BTIF windows at 0xa00; these compared channel starts do not coincide with WLAN offset 0x80.",
+    "Selected MT6797 DT lists I2C DMA channel windows from offset 0x100 (i2c0) through 0x5ff, UART DMA windows beginning at 0x600, and BTIF windows at 0xa00; these compared named windows do not coincide with WLAN offset 0x80. The I2C driver uses the DT's second resource in the selected OF branch.",
     "The same INFRA_AP_DMA clock is referenced by WLAN, I2C, UART and BTIF; per-channel addresses do not confer exclusive clock ownership.",
     "With CONFIG_MTK_CLKMGR disabled, WLAN devm_clk_get(wifi-dma) logs IS_ERR but continues; HifPdmaInit also marks DMA enabled after an unchecked ioremap. Clock-enable failures are logged without propagating a status.",
     "The dynamic 2 MiB CONSYS reservation feeds WLAN's first 512 KiB and WMT's separate 343 KiB mapping beginning at +512 KiB; WMT can write remap/protection state and clear its mapped part during native initialization. Separate payload offsets do not establish exclusive remap or lifetime ownership."
