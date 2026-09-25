@@ -439,7 +439,10 @@ The remaining preparation order is:
    now links and refuses missing mapping or clock acquisition before native
    SDIO open. The [DMA clock refusal](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/DMA_CLOCK_ADMISSION.md)
    also links and returns before HIF command setup if the selected CCF clock
-   enable fails. The [AP-DMA alias audit](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/ap-dma-alias-audit.json)
+   enable fails. The [failed-probe PALDO balance](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/PALDO_FAILURE_BALANCE.md)
+   links and exercises cleanup or retained refusal after an ordinary WLAN
+   probe error; it does not settle shared rail ownership. The
+   [AP-DMA alias audit](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/ap-dma-alias-audit.json)
    corrects the first I2C channel to `0x11000100` and finds a selected CMDQ
    mapping of the whole AP-DMA block. Dynamic CMDQ access, shared ownership
    and a complete failure lifetime remain. A bounded

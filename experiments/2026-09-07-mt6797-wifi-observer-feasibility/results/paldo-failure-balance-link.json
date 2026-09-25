@@ -1,0 +1,28 @@
+{
+  "status": "complete native Buildbox link and corrected focused fixture passed; compile-only",
+  "build_commit": "a4810dec3e2b93de085ea0a8447acd1a4f1ce82a",
+  "fixture_correction_commit": "0b3315f38e395731a6d2b096eb23192249471501",
+  "inputs_sha256": "a6d9cd5150fa57c4dee802bb3f8f6d613eea6f68b970e92bef8e818e49c92832",
+  "patch_count": 59,
+  "source_integrity": "source_tree_integrity=d6224b8d947e5e33d6a606bc714b412ba7d8270297a85242cc222bbb5e72e2ba",
+  "output_ahb_sha256": "f31d11698de3e0afdde9bea64c0c4b5f189ad6ea7486db3b3af3b482114927bb",
+  "package": {
+    "name": "wifi-controller-kernel-a4810dec3e2b93de085ea0a8447acd1a4f1ce82a",
+    "sha256sums_sha256": "5ebfb2df5c8917aacafd48ad1f7de581881d3f688e00873c89c2600df8034836",
+    "inventory_files": 10,
+    "vmlinux_sha256": "35bdfdb8bd3c22aada37ea56cfb9c47054c6897e327e8533a1dadab6681432eb",
+    "system_map_sha256": "fedb13122bfca5c4bffc6a5067359064d907a0deca2e1193d9a7d447bf35c312",
+    "image_gz_dtb_sha256": "93c4d9b32633c9eaf58408f732d74171b26b9f73354db920cbf363120eb2d26e"
+  },
+  "config_sha256": "43222fdee6781f3bc51cb7e412c9f92372ecf8f78b8881b11d66b77f849d8eb8",
+  "undefined_symbols": 0,
+  "inherited_section_mismatches": 69,
+  "linked_function_check": "System.map contains HifAhbProbe, HifAhbRemove and the Wi-Fi PALDO helper. The linked HifAhbProbe error branch calls HifAhbRemove; a nonzero return stores the retained flag and returns -117.",
+  "focused_fixture": {
+    "sha256": "975778f4c3a9e58a4de662e84eaf14a5481e3f3bf8465dea18d51b0c64420bb0",
+    "host_cases": 5,
+    "buildbox_cases": 5,
+    "first_buildbox_attempt": "The original test used path.parent.name for temporary library names. The two Buildbox inputs shared the same parent name, causing one library path to be reused and the comparison to fail. The correction assigns distinct parent/child labels; the exact committed correction passed on the same Buildbox source files. This was a fixture defect, not a kernel build failure."
+  },
+  "limits": "The package is not a boot candidate and no PMIC or radio action occurred. The PALDO helper ignores regulator errors; shared VCN33 ownership, physical output behavior, CMDQ hardware idle and the full WLAN failure lifetime remain unproved."
+}

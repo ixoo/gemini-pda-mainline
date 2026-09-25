@@ -25,8 +25,15 @@ failure release, retained cleanup failure and retry refusal, pre-existing
 `-EUCLEAN` retention, normal success/removal and unchanged ordinary-build
 behavior. No PMIC transaction, kernel boot or radio operation occurred.
 
-The patch is selected as the 59th input of the complete vendor compile lane.
-A linked-kernel result is still required before using it in any device
-candidate. Even after a link, the PALDO helper's return value does not attest
-hardware success, and the physical VCN33 control contract, shared-resource
-ownership, CMDQ idle state and complete Wi-Fi cycle remain open.
+The [complete Buildbox link](results/paldo-failure-balance-link.json) passed with
+the patch as the 59th selected input, a validated ten-file package, zero
+undefined symbols and the inherited 69 section mismatches. The linked probe
+error branch calls normal removal and retains the failure if that call returns
+nonzero. The first Buildbox fixture attempt exposed a test-only temporary
+library-name collision when both source paths ended in `ahb_sdioLike`; the
+corrected, committed fixture passed all five cases on the exact Buildbox
+parent and output. No kernel input changed in that fixture correction.
+
+This link is not a boot-candidate admission. The PALDO helper's return value
+does not attest hardware success, and the physical VCN33 control contract,
+shared-resource ownership, CMDQ idle state and complete Wi-Fi cycle remain open.
