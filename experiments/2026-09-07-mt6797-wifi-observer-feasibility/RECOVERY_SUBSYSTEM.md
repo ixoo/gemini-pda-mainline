@@ -22,8 +22,12 @@ the lock. The child refuses after takeover without a register read or write;
 pre-takeover and configuration-disabled calls retain the original write.
 Strict Linux 7.1.3 Checkpatch reports zero findings except the intentionally
 ignored synthetic sign-off requirement. The patch is the 54th
-[compile-only input](full-kernel-inputs.json); native object/link validation
-is pending. It is not a boot candidate or upstream submission.
+[compile-only input](full-kernel-inputs.json). The
+[complete native Buildbox link](results/recovery-subsystem-link.json) passes
+with an unchanged configuration and no unresolved symbols. In the linked
+setter, the ownership branch unlocks and returns `-EBUSY` before the first
+`SWSYSRST` read. The inherited build still reports 69 section mismatches.
+This result is not a boot candidate or upstream submission.
 
 ## Request-route writer boundary
 

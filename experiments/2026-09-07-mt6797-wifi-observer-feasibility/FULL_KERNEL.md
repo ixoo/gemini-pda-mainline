@@ -56,6 +56,9 @@ The [53-patch link receipt](results/recovery-request-link.json) confirms that
 the watchdog request-routing guard is present in both linked setters. It is a
 compile-only result; direct writers and remaining recovery ownership are still
 open.
+The later [54-patch link receipt](results/recovery-subsystem-link.json) confirms
+the active subsystem-reset setter refuses writes after recovery takeover.
+The direct C2K writer and broader resource ownership remain open.
 
 This is an integration check toward a recoverable observation candidate.
 Filesystem construction, complete reset/resource isolation, capture preparation,

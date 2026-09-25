@@ -1,0 +1,29 @@
+{
+  "status": "complete native Buildbox link passed; compile-only",
+  "build_commit": "b2411bb2672b67dfb515ff24dabf76a5a75107c4",
+  "inputs_sha256": "753cb0351ddbda8db9d3036465f23ccdff0cd1e1de4f18340bea263293143ebd",
+  "patch_count": 54,
+  "package": {
+    "name": "wifi-controller-kernel-b2411bb2672b67dfb515ff24dabf76a5a75107c4",
+    "manifest_sha256": "7c00519346a175740f955c5f36466f6eb549bc384206b7927b54c7c2ba5be0eb",
+    "files": 11,
+    "vmlinux_sha256": "7ee4b6a27a429fed67d55a43fdbfdc9700f1cca0907398c47f75b77b843a5139",
+    "system_map_sha256": "fb7b1d66b94395232d98d5f679fe4d4199cc68a930964f6a796e3612f8f44c29",
+    "kernel_sha256": "18bc4d5f782b1edf5af46c3fbd3939676ca430939be457221620e1673bdde343"
+  },
+  "source_integrity": "source_tree_integrity=dd73e61344f2fd81a2228aef09dae287edaf9297261044eb66421fe8b18dc227",
+  "config_sha256": "43222fdee6781f3bc51cb7e412c9f92372ecf8f78b8881b11d66b77f849d8eb8",
+  "configuration_byte_identical_to_53_patch_parent": true,
+  "undefined_symbols": 0,
+  "linked_checks": [
+    "mtk_wdt_swsysret_config and both request-route setters are linked text symbols.",
+    "The subsystem-reset setter checks recovery ownership after taking the TOPRGU register lock and before the first SWSYSRST read.",
+    "The ownership branch unlocks and returns -EBUSY before any SWSYSRST write."
+  ],
+  "limitations": [
+    "The inherited native build retains 69 section mismatches.",
+    "The linked direct C2K SWSYSRST writer remains unguarded and has no identified selected in-tree caller.",
+    "Higher-level reset callers, shared CONSYS/EMI/AP-DMA ownership and recovery timing remain open.",
+    "No device execution, Wi-Fi cycle or boot-candidate admission is established."
+  ]
+}
