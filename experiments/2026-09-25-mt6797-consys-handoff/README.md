@@ -1,7 +1,7 @@
 # Passive CONSYS shared-handoff snapshot
 
-Status: validated offline boot image and guarded installer prepared; no device
-installation or runtime result exists yet. The previous [authenticated status boot](../2026-09-25-mt6797-consys-status/README.md)
+Status: one guarded boot2 installation and clean shutdown complete; physical
+selection and runtime observation are pending. The previous [authenticated status boot](../2026-09-25-mt6797-consys-status/README.md)
 found CONN off in both SPM status registers and logged the boot's allocated
 2 MiB no-map CONSYS reservation. It did not show the shared remap, EMI
 selector or CONN bus-protection state. That image's boot budget is consumed.
@@ -77,8 +77,22 @@ under `artifacts/`.
 The [installer adapter](installer.py) generated a candidate-bound script using
 the established live-GPT boot2 guard, inactive/root separation, power gate,
 full predecessor/readback hashes and clean shutdown. Bash syntax and ShellCheck
-passed; no installer command has run on the PDA. The [session binding](session.py)
-and [host runner](host.py) retain the authenticated USB observation, complete
-log preservation and reviewed native Gemian return flow. Their one-shot live
-session will require a fresh verified deployment receipt and a new mainline
-boot identity; it is not armed yet.
+passed. The [session binding](session.py) and [host runner](host.py) retain the
+authenticated USB observation, complete log preservation and reviewed native
+Gemian return flow.
+
+## Guarded installation and pending selection
+
+In Gemian boot `abf9441d-0903-4e9f-8a67-f5063e85ee7a`, the live GPT selected
+inactive boot2, distinct from the root partition. The reviewed block-device
+guard passed; external power was present, the battery was 100% and healthy,
+and the full predecessor checksum matched the consumed status candidate.
+The installer wrote the new padded image once, synced/flushed it, and matched
+the complete independent readback to SHA-256
+`991144187d3aaed6cdccef8fe890fafa52b80cfb635fe95adc4dcf04025f5333`.
+Clean shutdown was requested and the host confirmed Gemian unreachable. The
+[sanitized deployment receipt](results/deployment.json) omits device paths and
+private raw evidence. The owner has not yet confirmed physical boot2 selection
+for this image. A bounded local USB-route watcher is armed; it sends no device
+packet until the route appears, then the authenticated collector will consume
+one observation/log/recovery session. No mainline runtime claim exists yet.
