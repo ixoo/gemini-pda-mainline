@@ -223,6 +223,10 @@
     {
       "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/hif-admission/0001-wlan-refuse-missing-HIF-resources-in-captured-cycle.patch",
       "sha256": "e91f78258576a8252f57d321de160de78134e8e2d3aca173c1b3b5c1f31aa2e9"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/dma-clock-admission/0001-wlan-refuse-failed-DMA-clock-enable-before-port-comm.patch",
+      "sha256": "ed2a52b8aa755a523e4db4d790cc5bfed038f773686a04bc74486158e871cbcf"
     }
   ],
   "purpose": "complete native kernel link; no boot candidate or device admission"

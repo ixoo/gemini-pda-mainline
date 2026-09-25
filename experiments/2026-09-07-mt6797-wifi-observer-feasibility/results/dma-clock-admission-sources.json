@@ -1,0 +1,28 @@
+{
+  "status": "exact source replay, strict style and focused failure fixture passed; native build pending",
+  "parent_55_patch_build_commit": "170f4e734416ffccb4d91265553a3974e40349ff",
+  "parent_inputs_sha256": "d1ac6100995318beec4f36d8f9b5339c1e2e673e2b214816a77b7525aef367eb",
+  "patch_path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/dma-clock-admission/0001-wlan-refuse-failed-DMA-clock-enable-before-port-comm.patch",
+  "patch_sha256": "ed2a52b8aa755a523e4db4d790cc5bfed038f773686a04bc74486158e871cbcf",
+  "parent_sha256": {
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c": "35541ea01b9697143a2bef8747a8f403ea2a5ff75158039fc49f910d4d928d72",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb_pdma.c": "a75bc42f63aa358e889d55e28b0de37cb1c9b8674bb93aca54996645f44d62df",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif.h": "a3e3e0d9115f8a5f727ab0cd99daf4d9db714e25c9d277c6d5a02d6f06189645"
+  },
+  "output_sha256": {
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c": "cc6702c553f1bfe5fa8d46664e4178b8bedee0adef6ba00f84c8c37b13743c3f",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb_pdma.c": "57ad7c91637ced19cf295da6b6e97a55d56c9761c109ece48ed9ebc663c89081",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif.h": "023c3cac2a58cef7ac1f66ec1b8b3dbe3b8c562c003a7e09f898a267c0c7c0be"
+  },
+  "replay_check": "git apply --check on unchanged 55-patch prepared source passed",
+  "reverse_check": "git apply --reverse --check on exact three-file output passed",
+  "checkpatch": "Linux 7.1.3 strict: zero errors, warnings and checks; legacy CAMELCASE and synthetic MISSING_SIGN_OFF excluded",
+  "failure_fixture": "Extracted native clock callback returned FALSE on injected -5 without disabling the clock, returned TRUE on success, and balanced the successful disable; both selected port refusal branches precede CMD53 setup and HIF IRQ masking.",
+  "effect": "Selected WLAN data-port paths refuse absent callback or failed wifi-dma clock enable before CMD53 setup, HIF IRQ masking and DMA programming; capture aborts and port returns failure.",
+  "unchanged_build": "No callback type, call-site return or diagnostic change when CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR is disabled.",
+  "limits": [
+    "CONFIG_MTK_CLKMGR=y branch is not the selected experiment and does not propagate enable_clock failure.",
+    "Full native link, shared ownership and physical cycle validation remain pending.",
+    "No device action."
+  ]
+}

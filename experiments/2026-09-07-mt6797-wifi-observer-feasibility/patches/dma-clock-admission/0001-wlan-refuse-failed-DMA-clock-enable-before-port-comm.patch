@@ -1,0 +1,121 @@
+From c30081244258ff357f78e01e893874ec0a43e57b Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <archive@example.invalid>
+Date: Fri, 25 Sep 2026 10:43:17 -0400
+Subject: [PATCH] wlan: refuse failed DMA clock enable before port command
+
+Return selected CCF enable status through the HIF DMA callback. On a
+failed enable or absent callback, abort capture and return before CMD53
+setup, interrupt masking or DMA programming. Preserve ordinary build
+behavior. This archive has a synthetic identity and is not an upstream
+submission.
+---
+ .../wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c | 16 ++++++++++++++++
+ .../gen3/os/linux/hif/ahb_sdioLike/ahb_pdma.c | 19 ++++++++++++++++++-
+ .../os/linux/hif/ahb_sdioLike/include/hif.h   |  4 ++++
+ 3 files changed, 38 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c
+index ebf1780..f61ee0a 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c
+@@ -923,8 +923,16 @@ kalDevPortRead(IN P_GLUE_INFO_T GlueInfo, IN UINT_16 Port, IN UINT_32 Size, OUT
+ 	if (func->use_dma && (HifInfo->fgDmaEnable == TRUE) && (HifInfo->DmaOps != NULL)
+ 		&& ((Port == MCR_WRDR0) || (Port == MCR_WRDR1))) {
+ 
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++		if (!pfWlanDmaOps || !pfWlanDmaOps->DmaClockCtrl(TRUE)) {
++			WlanDmaFatalErr = 1;
++			wfc_dma_abort();
++			return FALSE;
++		}
++#else
+ 		if (pfWlanDmaOps != NULL)
+ 			pfWlanDmaOps->DmaClockCtrl(TRUE);
++#endif
+ 	}
+ #endif
+ 
+@@ -1231,8 +1239,16 @@ kalDevPortWriteCapture(IN P_GLUE_INFO_T GlueInfo, IN UINT_16 Port,
+ 		(Port == MCR_WTDR1))
+ 
+ 	{
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++		if (!pfWlanDmaOps || !pfWlanDmaOps->DmaClockCtrl(TRUE)) {
++			WlanDmaFatalErr = 1;
++			wfc_dma_abort();
++			return wfc_fw_tx_port_return(tx, FALSE);
++		}
++#else
+ 		if (pfWlanDmaOps != NULL)
+ 			pfWlanDmaOps->DmaClockCtrl(TRUE);
++#endif
+ 	}
+ #endif
+ 
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb_pdma.c b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb_pdma.c
+index c9fc8c1..a38d862 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb_pdma.c
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb_pdma.c
+@@ -142,7 +142,11 @@ static MTK_WCN_BOOL HifPdmaPollIntr(IN void *HifInfoSrc);
+ 
+ static VOID HifPdmaAckIntr(IN void *HifInfoSrc);
+ 
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++static BOOLEAN HifPdmaClockCtrl(IN UINT_32 FlgIsEnabled);
++#else
+ static VOID HifPdmaClockCtrl(IN UINT_32 FlgIsEnabled);
++#endif
+ 
+ static VOID HifPdmaRegDump(IN void *HifInfoSrc);
+ 
+@@ -433,7 +437,11 @@ static VOID HifPdmaAckIntr(IN void *HifInfoSrc)
+ * \retval NONE
+ */
+ /*----------------------------------------------------------------------------*/
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++static BOOLEAN HifPdmaClockCtrl(IN UINT_32 FlgIsEnabled)
++#else
+ static VOID HifPdmaClockCtrl(IN UINT_32 FlgIsEnabled)
++#endif
+ {
+ #if !defined(CONFIG_MTK_CLKMGR)
+ 	int ret = 0;
+@@ -447,12 +455,21 @@ static VOID HifPdmaClockCtrl(IN UINT_32 FlgIsEnabled)
+ #else
+ 	if (FlgIsEnabled == TRUE) {
+ 		ret = clk_prepare_enable(g_clk_wifi_pdma);
+-		if (ret)
++		if (ret) {
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++			DBGLOG(INIT, ERROR, "[CCF]clk_prepare_enable ret= %d\n", ret);
++			return FALSE;
++#else
+ 			DBGLOG(INIT, TRACE, "[CCF]clk_prepare_enable ret= %d\n", ret);
++#endif
++		}
+ 	} else {
+ 		clk_disable_unprepare(g_clk_wifi_pdma);
+ 	}
+ #endif
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++	return TRUE;
++#endif
+ }
+ 
+ /*----------------------------------------------------------------------------*/
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif.h b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif.h
+index ae70977..1498abd 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif.h
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif.h
+@@ -106,7 +106,11 @@ typedef struct _GL_HIF_DMA_OPS_T {	/* DMA Operators */
+ 
+ 	VOID (*DmaAckIntr)(IN VOID *HifInfo);
+ 
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++	BOOLEAN (*DmaClockCtrl)(IN UINT_32 FlgIsEnabled);
++#else
+ 	VOID (*DmaClockCtrl)(IN UINT_32 FlgIsEnabled);
++#endif
+ 
+ 	VOID (*DmaRegDump)(IN VOID *HifInfo);
+ 
