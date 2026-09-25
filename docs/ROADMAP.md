@@ -440,7 +440,11 @@ The remaining preparation order is:
    enable fails. The [AP-DMA alias audit](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/ap-dma-alias-audit.json)
    corrects the first I2C channel to `0x11000100` and finds a selected CMDQ
    mapping of the whole AP-DMA block. Dynamic CMDQ access, shared ownership
-   and a complete failure lifetime remain.
+   and a complete failure lifetime remain. A bounded
+   [CMDQ-off build attempt](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/CMDQ_ISOLATION.md)
+   compiled after a one-line SMI fix but failed final link across built-in
+   display, power and imaging clients; the successful 56-patch build inputs
+   were restored. CMDQ cannot be excluded by configuration alone.
    Resolve those paths, then package and validate
    the `cycle` action with shared ownership, post-reset capture preservation
    and a finite radio-effect protocol before another physical Wi-Fi test. No

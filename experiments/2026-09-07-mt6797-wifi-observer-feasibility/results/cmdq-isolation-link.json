@@ -1,0 +1,20 @@
+{
+  "status": "rejected: CMDQ-off native kernel does not link",
+  "config_guard_attempt_commit": "f44959369164ec526595f92896879593a2b250fb",
+  "first_compile_attempt_commit": "22a66ae9edb8c24fa3d4bc52ec479b0654dd946a",
+  "full_compile_link_attempt_commit": "1b69f91b7ff7755b9a5c3af58a94977576e38264",
+  "source_inputs_sha256": "0509b5cced970b4367d647e4abc33cbe51684cce92b7d939ebece8ae49cca3f0",
+  "failure_package": "wifi-controller-kernel-1b69f91b7ff7755b9a5c3af58a94977576e38264-failed",
+  "build_log_sha256": "abbd9fd3528eafcc4f10a4ee7f4bd4b41ef8b73d1c002eed6931cd0874588af0",
+  "build_exit_status": 2,
+  "undefined_reference_lines": 462,
+  "distinct_undefined_symbols": 34,
+  "examples": [
+    "cmdqRecWrite from power",
+    "cmdqRecFlush from external display",
+    "cmdqCoreRegisterCB from JPEG and camera"
+  ],
+  "last_successful_56_patch_commit": "ffd6e92e713a1f2fa829adfb1ada3fd38a8c8d37",
+  "decision": "restore the 56-patch builder; do not use either failure package on device",
+  "device_effect": "none"
+}

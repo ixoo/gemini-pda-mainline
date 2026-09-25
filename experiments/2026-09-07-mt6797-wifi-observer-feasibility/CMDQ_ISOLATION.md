@@ -1,27 +1,26 @@
-# Exclude the generic AP-DMA CMDQ alias from the native diagnostic build
+# CMDQ-off diagnostic build rejected
 
-The [bounded alias audit](results/ap-dma-alias-audit.json) found that the
-56-patch native link selects `CONFIG_MTK_CMDQ=y`. Its compiled subsystem table
-names the whole AP-DMA block, while the intended WLAN observation owns only
-the `0x11000080+0x80` channel. A source search found no explicit selected CMDQ
-job targeting that channel, but a static address search cannot exclude
-commands assembled dynamically. Read-only Gemian inspection confirmed one
-bound `mtk_cmdq` platform device; that is not evidence of an AP-DMA command.
+The [AP-DMA alias audit](results/ap-dma-alias-audit.json) found that the
+successful 56-patch native link includes `CONFIG_MTK_CMDQ=y`. Its selected
+CMDQ subsystem table names the whole AP-DMA block. No explicit selected CMDQ
+job targeting the WLAN channel was found, but a source search cannot exclude
+dynamically assembled commands. Read-only Gemian inspection found one bound
+`mtk_cmdq` platform device; that is not evidence of an AP-DMA command.
 
-The [experiment fragment](cmdq-isolation.fragment) requests only
-`CONFIG_MTK_CMDQ=n` for the headless native diagnostic kernel. The
-[Buildbox builder](build-full-kernel.py) requires that exact resolved change
-and records the fragment checksum. The first full compile found the native SMI
-debug macro has the wrong argument count when CMDQ is off. A one-line
-[experiment patch](patches/cmdq-isolation/0001-smi-keep-debug-macro-arity-without-CMDQ.patch)
-keeps the caller's output selector argument but ignores it in that configuration;
-the CMDQ-enabled branch is unchanged. The patch applies cleanly after the
-prior 56. This creates a 57-patch source identity. This is a
-candidate-isolation choice, not a board default or a change to the running
-Gemian system. Full native linking and package validation are pending.
+An experiment-only `CONFIG_MTK_CMDQ=n` fragment was tested on Buildbox. The
+first configuration guard rejected the dependent `CONFIG_MTK_CMDQ_MT2701`
+removal. After pinning that expected delta, compilation exposed a native SMI
+debug macro with the wrong argument count in the CMDQ-off branch. A one-line
+experimental correction allowed the complete source to compile, but the final
+link failed with 462 undefined-reference lines covering 34 CMDQ symbols.
+Display, power, camera, JPEG and other built-in drivers depend on CMDQ. The
+[failure receipt](results/cmdq-isolation-link.json) pins the exact commits,
+package and log checksum. Neither failed package is a boot candidate.
 
-Disabling the CMDQ driver excludes its compiled submission path from this
-kernel, but does not prove exclusive AP-DMA or clock ownership. Other kernel
-clients, firmware masters, CONSYS remap/protection changes and unfinished
-workers still need candidate-specific bounds before a radio cycle. No device
-write or CMDQ/radio action occurred.
+The fragment, correction patch and 57-patch selection were removed from the
+active builder. Its last successful 56-patch inputs and configuration are
+restored. Excluding CMDQ would require a broader client isolation that this
+headless diagnostic has not justified. Its AP-DMA alias remains an unresolved
+ownership path, alongside CONSYS remap/protection, shared clock ownership and
+worker failure lifetime. No device write, CMDQ command or radio action was
+performed in this build investigation.

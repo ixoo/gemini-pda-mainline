@@ -1,3 +1,0 @@
-# SPDX-License-Identifier: MIT
-# Exclude the generic AP-DMA-addressable CMDQ actor from this headless cycle.
-# CONFIG_MTK_CMDQ is not set

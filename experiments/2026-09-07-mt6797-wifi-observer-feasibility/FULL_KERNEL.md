@@ -1,7 +1,7 @@
 # Complete native controller kernel link
 
 The [Buildbox-only builder](build-full-kernel.py) compiles the complete native
-kernel from [57 pinned patches](full-kernel-inputs.json): the previously
+kernel from [56 pinned patches](full-kernel-inputs.json): the previously
 compiled controller composition, the emergency reset correction, and historical
 patch 0001's A72 refusal/configuration declaration, plus the detector's watchdog
 header dependency, the [calibration open-error correction](CALIBRATION_OPEN.md)
@@ -18,8 +18,6 @@ and [earlier restart exclusion](RESTART_GATE.md), then the
 [subsystem-reset guard](RECOVERY_SUBSYSTEM.md), and the compile-only
 [HIF resource admission check](HIF_ADMISSION.md) and the compile-only
 [DMA clock refusal](DMA_CLOCK_ADMISSION.md).
-The [CMDQ isolation fragment and SMI debug fix](CMDQ_ISOLATION.md) exclude the
-generic AP-DMA-addressable command-queue actor in this headless experiment.
 It does not select the old
 recovery trigger, profile or consumed artifact.
 
@@ -40,12 +38,11 @@ with the repository's existing integrity tool, and builds in a separate
 managed temporary output. The generated DCT input must match the existing
 normalized checksum. The [USB Ethernet fragment](usb-ethernet.fragment) now
 replaces Android USB with g_ether and its ECM/RNDIS functions. The builder
-also applies the [CMDQ isolation fragment](cmdq-isolation.fragment) and
 requires the exact resulting configuration delta, including removal of unused
 Android functions, alongside the experimental symbol and established
 disabled-ANBOX serialization change. The native MU3D controller, board DT,
-capture patches and CPU policy remain the same. The fragment digests are
-recorded separately so these configuration changes reuse the prepared source tree.
+capture patches and CPU policy remain the same. The fragment digest is recorded
+separately so this configuration change reuses the prepared source tree.
 The [transport decision](USB_ETHERNET.md) distinguishes prior mainline network
 validation from the native controller's failed first Ethernet test and pending correction. Build identity fields are
 fixed; two-build reproducibility has not been established.
