@@ -13,7 +13,7 @@ NETWORK = C.load('network', C.NETWORK)
 USB = '''+-o capture@1 <class IOUSBHostDevice, id 0x1001, registered>
   | "idVendor" = 1317
   | "idProduct" = 42146
-  | "USB Product Name" = "RNDIS/Ethernet Gadget"
+  | "USB Product Name" = "RNDIS_Ethernet Gadget"
   | "USB Serial Number" = "GEMINI_WIFI_EXPORT_TCP_1"
   +-o ethernet <class IOEthernetInterface, id 0x1002, registered>
       "BSD Name" = "en7"
@@ -54,6 +54,7 @@ class CollectorTests(unittest.TestCase):
     def test_old_ambiguous_or_mismatched_identity_refuses(self):
         for values in ({'before': {'0x1001'}}, {'usb': USB + USB.replace('0x1001', '0x3001')},
                        {'usb': USB.replace('42146', '42145')},
+                       {'usb': USB.replace('RNDIS_Ethernet', 'RNDIS/Ethernet')},
                        {'usb': USB.replace('Ethernet Gadget', 'Other Gadget')},
                        {'usb': USB + '      "BSD Name" = "en8"\n'},
                        {'interfaces': INTERFACES.replace('42:00:15:19:82:00', '42:00:15:19:83:00')}):

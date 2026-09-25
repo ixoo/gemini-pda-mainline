@@ -96,32 +96,68 @@ uses `-w` and reports 69 section mismatches. The
 [offline candidate receipt](results/usb-role-writers-candidate.json) pins the
 52-patch kernel, unchanged startup runtime, distinct cycle and exact 16 MiB
 image. Filesystem and container checks passed, including byte-identical
-reassembly and device-tree reservation checks. Installation and a new physical
-measurement remain separate gates.
+reassembly and device-tree reservation checks. Installation and physical
+measurement were separate gates.
 
 The first [guarded installation attempt](results/usb-role-writers-install-refusal.json)
 stopped at its power gate before candidate upload or any boot2 write. Gemian
-reported 67% battery with no external supply online. The same authenticated
-Gemian boot remains running; installation and physical selection wait for a
-stable admitted power state.
+reported 67% battery with no external supply online. No write occurred in that
+attempt; installation resumed only after stable admitted power was available.
 
-## Selected session
+## Physical results
 
-The single physical boot uses the exact
+After stable external power was established, the [guarded installer](results/usb-role-writers-deployment.json) resolved
+logical `boot2`, verified its inactive and non-root state, wrote the selected
+16 MiB image, and matched a full-partition readback to the candidate SHA-256.
+The previous image was recorded before the write; the verified project backup
+remained the recovery source. Gemian shut down cleanly before the owner selected
+boot2. The exact private deployment receipt is retained outside Git.
+
+The [first result](results/usb-role-writers-runtime-1.json) reached the TCP
+export wait and then stopped after its 60-second device deadline. A new USB
+Ethernet parent appeared, but the host collector refused before checking its
+route: macOS reported product `RNDIS_Ethernet Gadget`, while the collector
+required `RNDIS/Ethernet Gadget`. No snapshot request was sent. One console was
+preserved after changed-boot, authenticated Gemian return. Its retained summary
+was `paths=89b5 cable=00010302 chrdet=0199 pmic=13 role=00`: the device branch,
+cable-present sample and controller start were recorded, with none of the seven
+instrumented role writers marked.
+
+The exact host descriptor predicate was corrected and its focused test updated;
+all other USB, Ethernet address and route checks remain. This made an unchanged
+image retry decision-changing: the [second result](results/usb-role-writers-runtime-2.json)
+identified the new USB parent and direct host route, received one complete
+65,536-byte snapshot, verified its checksum, durably saved it and acknowledged
+it. The mainline return marker says `preserved`, and a changed authenticated
+Gemian boot supplied one retained console with a normal restart and the same
+`role=00` device-branch summary.
+
+Private offline analysis found all 65,536 exported bytes zero. The strict
+capture decoder refused the missing fixed header, so there is no attributable
+Wi-Fi producer record to analyze. The result validates the bounded USB export
+and return transport only. Neither device-branch role mask identifies the writer
+behind the earlier host branch, and neither run authorizes a role override,
+capture clear or radio action. Further physical selection of this image has no
+identified new measurement; the next Wi-Fi work must prepare an admitted
+capture producer and its ownership/lifetime contract separately.
+
+## Session protocol
+
+The selected physical boots used the exact
 [offline candidate](results/usb-role-writers-candidate.json), cycle
-`74fd02a7-8d63-4e0f-b209-690271f02d7d`. Its hypothesis is that one
+`74fd02a7-8d63-4e0f-b209-690271f02d7d`. Its hypothesis was that one
 existing writer of the internal host state explains the prior host branch.
-The unique new observation is the seven-bit `role` mask in the retained
-one-shot shutdown summary. The host watcher may request one bounded snapshot
+The unique new observation was the seven-bit `role` mask in the retained
+one-shot shutdown summary. The host watcher could request one bounded snapshot
 only after identifying this boot's USB Ethernet gadget and direct route; it
-does not infer transport from the role mask. The return watcher preserves at
+did not infer transport from the role mask. The return watcher preserved at
 most one console after a changed, authenticated Gemian boot.
 
-Install only through the guarded live-GPT boot2 path with stable power and
-matching full-partition readback. After clean shutdown, arm both 600-second
-collectors before the owner physically selects boot2 once. An attributable
-single host-writer bit narrows the responsible software path; mixed or missing
-bits remain inconclusive. Any export claim additionally requires the exact
-session frame, full snapshot verification and acknowledgement. A missing
-return, unexpected boot identity, guard refusal or incomplete evidence stops
-the session without a blind retry or alternate recovery path.
+The planned gates required guarded live-GPT boot2 installation with stable
+power and matching full-partition readback, followed by clean shutdown and
+both 600-second collectors armed before each owner selection. An attributable
+single host-writer bit would have narrowed the responsible software path;
+mixed or missing bits remain inconclusive. Export required the exact session
+frame, full snapshot verification and acknowledgement. Missing return,
+unexpected boot identity, guard refusal or incomplete evidence stopped a
+session without a blind retry or alternate recovery path.

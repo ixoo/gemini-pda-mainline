@@ -416,14 +416,19 @@ The remaining preparation order is:
    start recorded. The [charger-detection result](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_CHRDET_DIAGNOSTICS.md#retained-physical-result)
    and [read-status diagnostic](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_CHRDET_ERRORS.md#retained-physical-result)
    are now preserved. The latter reached controller start, but its host receiver
-   did not arm. Next complete the
+   did not arm. The later
    [bounded export session](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_CHRDET_ERRORS.md#second-session-physical-result)
    had collectors armed before physical selection but recorded an early host
    branch and no device-controller start. The
    [selected role trace](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_ROLE_TRACE.md)
-   narrows that branch to internal ID-pin state; identify its active writer
-   before another physical selection. Require acknowledged preservation before
-   advancing the retained-capture investigation. No role override,
+   narrows that branch to internal ID-pin state. Its two later physical boots
+   took the device branch and recorded no instrumented role writer; the active
+   writer of the earlier host state remains unidentified. The second boot
+   established an attributed USB Ethernet route, one acknowledged 64 KiB
+   export and normal Gemian return. The exported region was entirely zero and
+   lacked the capture header, so it contains no Wi-Fi producer evidence. Next
+   define and validate the missing producer, shared ownership and finite
+   radio-effect protocol before another physical Wi-Fi test. No role override,
    detection-policy change or weakened CPU check is supported by the evidence.
    Exit order must not be inferred by reversing initialization, and the vendor
    WMT ioctl must not be copied merely to run the retained loader.

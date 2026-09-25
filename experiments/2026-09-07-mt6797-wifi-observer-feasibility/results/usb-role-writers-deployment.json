@@ -1,0 +1,15 @@
+{
+  "candidate_receipt": "usb-role-writers-candidate.json",
+  "candidate_sha256": "30e26613571647ba14fa993ea69120e7f60c7e8d8b764bde235d0cd4708febff",
+  "known_good_gemian_boot": "88644a8b-0f63-4813-a6a9-7a8393c92831",
+  "target_logical_name": "boot2",
+  "target_major_minor": "179:30",
+  "root_major_minor": "179:29",
+  "device_guard": "passed",
+  "power": "external supply online, 84% battery, healthy",
+  "predecessor_sha256": "3da46f4b8d9d8bee4ade8977dfe37f9ddb277e706c5d247d0aecb381f1480c7c",
+  "full_partition_readback_sha256": "30e26613571647ba14fa993ea69120e7f60c7e8d8b764bde235d0cd4708febff",
+  "result": "write synced, flushed and independently read back; clean shutdown requested",
+  "fresh_predecessor_backup": false,
+  "scope": "Guarded boot2 installation only; physical results are recorded separately."
+}

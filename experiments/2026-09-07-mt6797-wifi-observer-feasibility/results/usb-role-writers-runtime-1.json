@@ -1,0 +1,24 @@
+{
+  "candidate_receipt": "usb-role-writers-candidate.json",
+  "candidate_sha256": "30e26613571647ba14fa993ea69120e7f60c7e8d8b764bde235d0cd4708febff",
+  "cycle_id": "74fd02a7-8d63-4e0f-b209-690271f02d7d",
+  "previous_gemian_boot": "88644a8b-0f63-4813-a6a9-7a8393c92831",
+  "candidate_boot": "58756bf3-df49-47e5-a89e-0047deab05ae",
+  "returned_gemian_boot": "e9e59028-b232-4286-adbd-60a7de810d06",
+  "retained_console_sha256": "c39ef83089f08c8f16f30f6c38b41bd419834cd0d5df0055f6e5296abcb62d8c",
+  "retained_console_bytes": 65524,
+  "retained_console_reads": 1,
+  "return_outcome": "stopped",
+  "normal_restart": true,
+  "usb_summary": {
+    "paths": "89b5",
+    "cable": "00010302",
+    "chrdet": "0199",
+    "pmic": "13",
+    "role": "00"
+  },
+  "host_observation": "A new matching USB Ethernet parent and one interface appeared, but the collector refused before checking the route because it expected a slash where the observed product label had an underscore.",
+  "snapshot_request_sent": false,
+  "snapshot_preserved": false,
+  "scope": "The role mask records no instrumented writer in this device-branch boot; it does not explain the earlier host-branch boot or establish that no other writer exists."
+}

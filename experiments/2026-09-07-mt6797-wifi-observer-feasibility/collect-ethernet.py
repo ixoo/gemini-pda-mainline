@@ -52,7 +52,7 @@ def select(records, before, interfaces, routes, network):
     if selected['registry_id'] in before:
         raise ValueError('capture parent predates this armed observation')
     if selected['usb'] != {'idVendor': 0x0525, 'idProduct': 0xa4a2,
-                           'USB Product Name': 'RNDIS/Ethernet Gadget', 'USB Serial Number': SERIAL}:
+                           'USB Product Name': 'RNDIS_Ethernet Gadget', 'USB Serial Number': SERIAL}:
         raise ValueError('USB capture descriptors changed')
     if not selected['interfaces']:
         return None

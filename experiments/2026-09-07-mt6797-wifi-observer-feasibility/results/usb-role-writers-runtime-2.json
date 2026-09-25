@@ -1,0 +1,28 @@
+{
+  "candidate_receipt": "usb-role-writers-candidate.json",
+  "candidate_sha256": "30e26613571647ba14fa993ea69120e7f60c7e8d8b764bde235d0cd4708febff",
+  "cycle_id": "74fd02a7-8d63-4e0f-b209-690271f02d7d",
+  "previous_gemian_boot": "e9e59028-b232-4286-adbd-60a7de810d06",
+  "candidate_boot": "5d774dba-78dc-4024-ad9e-9c8aa3fbb55a",
+  "returned_gemian_boot": "8dfd528d-f1c9-4bf1-b615-3bdaae97d882",
+  "retained_console_sha256": "e3e313a971023d0cc5f492f78ca6d78613daf5ef37f54f8edf0decfcefaae769",
+  "retained_console_bytes": 65524,
+  "retained_console_reads": 1,
+  "return_outcome": "preserved",
+  "normal_restart": true,
+  "usb_summary": {
+    "paths": "89b5",
+    "cable": "00010302",
+    "chrdet": "0199",
+    "pmic": "13",
+    "role": "00"
+  },
+  "host_observation": "A new exact USB Ethernet parent, active host interface, unique expected address and direct route were checked before one TCP request.",
+  "receiver_exit": 0,
+  "snapshot_acknowledged": true,
+  "snapshot_bytes": 65536,
+  "snapshot_sha256": "de2f256064a0af797747c2b97505dc0b9f3df0de4f489eac731c23ae9ca9cc31",
+  "snapshot_nonzero_bytes": 0,
+  "capture_decoder_result": "refused: fixed no-ECC capture header absent",
+  "scope": "The stream was durably preserved and acknowledged, but its all-zero payload contains no capture record. This proves the USB export path, not a Wi-Fi producer cycle, retention of older evidence or usable Wi-Fi."
+}

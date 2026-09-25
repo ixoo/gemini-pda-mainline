@@ -61,10 +61,13 @@ The [host collector](collect-ethernet.py) observes for at most 600 polls within 
 command timeouts. This longer arming window allows time for physical selection
 without extending native execution. Each poll reads only host USB, interface
 and route inventories. Descriptor/child changes are retained. It requires a new
-single USB parent with VID/PID `0525:a4a2`, product `RNDIS/Ethernet Gadget`, and
+single USB parent with VID/PID `0525:a4a2`, product `RNDIS_Ethernet Gadget`, and
 synthetic serial `GEMINI_WIFI_EXPORT_TCP_1`, plus one descendant Ethernet
 interface with the selected protocol MAC. These are attribution selectors, not
 cryptographic device authentication.
+
+The exact product spelling was corrected after a later enumerated
+[role-trace session](USB_ROLE_TRACE.md#physical-results) exposed the mismatch.
 
 The existing host route checker requires unique `10.15.19.1/24`, active carrier
 and an unconflicted direct route to `10.15.19.82` on that same interface. The
