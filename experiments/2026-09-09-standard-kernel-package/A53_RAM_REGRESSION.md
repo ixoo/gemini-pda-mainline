@@ -196,6 +196,12 @@ the attributable baseline observation, complete log and confirmed recovery;
 a refusal selects diagnosis from preserved evidence. Do not reactivate the
 consumed baseline, keyboard or eMMC budgets.
 
+If this first board regression passes, the conditional
+[ten-cold-boot protocol](A53_COLD_BOOT_PROTOCOL.md) defines the later repeated
+serviceability gate. This one session cannot count as that series: its selected
+kernel has no prior PDA runtime pass, and no per-cycle keyboard observation or
+cold-start sequence is admitted here.
+
 The [later Wi-Fi observation](../2026-09-07-mt6797-wifi-observer-feasibility/BOOT_CPU_LIMIT.md#later-owner-selection)
 resolved the device state. Any later boot2 write still uses the reviewed
 live-GPT guard, full readback and clean

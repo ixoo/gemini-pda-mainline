@@ -581,7 +581,9 @@ read-only eMMC packets may run once their first-baseline-boot dependencies pass;
 they need not wait for all ten cycles. Explicitly admitted persistent-root I/O
 and validated orderly restart/power-off remain separate steps. No daily-driver,
 storage-reliability or thermal-protection claim follows merely from the ten-boot
-gate.
+gate. The [conditional A53 cold-boot protocol](../experiments/2026-09-09-standard-kernel-package/A53_COLD_BOOT_PROTOCOL.md)
+defines per-cycle evidence and a stop rule; freeze its candidate and finite
+commands only after the first A53 board regression passes.
 
 ## Upstream delivery gate
 
