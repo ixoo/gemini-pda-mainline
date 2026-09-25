@@ -86,6 +86,15 @@ The [source receipt](results/usb-role-writers.json) pins both selected parent
 files, exact reversal and replay, and strict Checkpatch with zero findings.
 This assistant-generated, non-certifying native experiment is not an upstream
 submission. The first 51 patches and selected configuration are unchanged.
-Compilation, linked inspection, container construction, deployment and a new
-physical measurement are separate gates. No boot candidate is selected by this
-source record.
+The [Buildbox receipt](results/usb-role-writers-build.json) records a complete
+link with zero undefined symbols. Its package passed the full checksum
+inventory; the selected configuration and appended device tree are byte-identical
+to the preceding kernel. Linked inspection found a load-only role getter, all
+seven writer marks after their software-state assignments, and the original
+one-shot report guard before its getters. The inherited native build still
+uses `-w` and reports 69 section mismatches. The
+[offline candidate receipt](results/usb-role-writers-candidate.json) pins the
+52-patch kernel, unchanged startup runtime, distinct cycle and exact 16 MiB
+image. Filesystem and container checks passed, including byte-identical
+reassembly and device-tree reservation checks. Installation and a new physical
+measurement remain separate gates.

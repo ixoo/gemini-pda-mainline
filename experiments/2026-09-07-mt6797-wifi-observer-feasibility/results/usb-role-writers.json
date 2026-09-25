@@ -17,7 +17,7 @@
     "drivers/misc/mediatek/xhci/xhci-mtk-driver.c"
   ],
   "software_marks": 7,
-  "status": "Exact source replay and strict Checkpatch passed; compilation and linked validation pending; no candidate or device admission",
+  "status": "Exact source replay, strict Checkpatch, complete native Buildbox link and linked writer checks passed; offline candidate separately verified, device admission pending",
   "parent_build_commit": "0c02543ad35cb22fd8281ee5400aac0c01504c3d",
   "parent_inputs_sha256": "f1933271c1010008f17e61e6ca4524e627792247f69e9fbeaf5db6585b47315a",
   "inputs_sha256": "10786d4fec6e1fcb5eda6a1a802ba333575fd53df8f0e886fdbccdc243563a32",

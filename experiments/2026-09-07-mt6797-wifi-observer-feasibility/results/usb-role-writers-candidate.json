@@ -1,0 +1,42 @@
+{
+  "assembler_sha256": "8b8a75b8fb6d5154e07ac6bdc06dcf05b87ad3f943aeab558b1839dd253f4421",
+  "filesystem_sha256": "194521afa5fa32d7b2473491c1d78fa641aa38a6fb353e62044775a0ab337165",
+  "kernel_sha256": "afaf272dfb4fed96371ed10b3dc5d30d568f4a78583fb96e18fb1582f274db23",
+  "padded_bytes": 16777216,
+  "padded_sha256": "30e26613571647ba14fa993ea69120e7f60c7e8d8b764bde235d0cd4708febff",
+  "parent_assembler_sha256": "532f6f0dec5030a7b066f3baefa53580ec148317f633d4dd8d43308d30ac03b3",
+  "raw_bytes": 16220160,
+  "raw_sha256": "b6d28588836e3395d024bc90abb111e42cfb68f9defd9359ed05f817a95864b6",
+  "scope": "Validated offline role-writer diagnostic image; deployment and physical result pending",
+  "session_sha256": "c1876ceb8832d0bbf55689b59bbf095d3c11f4d04ab1a73b17dd6415b88b8b4b",
+  "startup_action": "export-tcp-return",
+  "manifest_sha256": "313d6e8cabfafce4d72723cd034d92933019ec7c9c2d09d887bee8b61759bc49",
+  "kernel_build_commit": "c83b737748043a9860e179ba65ef28210d2bfc99",
+  "cycle_id": "74fd02a7-8d63-4e0f-b209-690271f02d7d",
+  "build_receipt": "usb-role-writers-build.json",
+  "parent_candidate_receipt": "usb-chrdet-errors-second-candidate.json",
+  "container_verification": {
+    "raw_bytes": 16220160,
+    "padded_bytes": 16777216,
+    "binary_header_and_payloads": true,
+    "reassembled_identical": true,
+    "native_addresses_and_flags": true,
+    "split_capture_dt_reg_and_no_map": true,
+    "container_mutations_rejected": 17,
+    "input_refusals": 6
+  },
+  "filesystem_verification": {
+    "archive_members": 723,
+    "removed_members": 0,
+    "changed_existing_members": [
+      "etc/wifi-cycle/session.json"
+    ],
+    "exact_current_startup_inputs_and_runtime": true,
+    "filesystem_bytes": 7848633,
+    "kernel_bytes": 8367302,
+    "page_bytes": 2048,
+    "projected_container_bytes": 16220160,
+    "limit_bytes": 16777216,
+    "spare_bytes": 557056
+  }
+}

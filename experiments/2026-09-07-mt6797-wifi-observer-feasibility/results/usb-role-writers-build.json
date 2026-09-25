@@ -1,0 +1,38 @@
+{
+  "status": "Complete native Buildbox link, checksum inventory, selected configuration and linked role-writer checks passed; offline candidate separately verified, deployment and physical measurement pending",
+  "build_commit": "c83b737748043a9860e179ba65ef28210d2bfc99",
+  "inputs_sha256": "10786d4fec6e1fcb5eda6a1a802ba333575fd53df8f0e886fdbccdc243563a32",
+  "source_receipt": "usb-role-writers.json",
+  "package": {
+    "name": "wifi-controller-kernel-c83b737748043a9860e179ba65ef28210d2bfc99",
+    "manifest_sha256": "8a385a6778e7ec3f76f5b676b6568936d3e22c24bc98043504475fec923b3a20",
+    "files": 10,
+    "kernel_sha256": "afaf272dfb4fed96371ed10b3dc5d30d568f4a78583fb96e18fb1582f274db23",
+    "kernel_bytes": 8367302,
+    "vmlinux_sha256": "6ca445eb0f20b516f0e92c08e8bb80728506b748379471d682ce2bb2bf234a4f"
+  },
+  "source_integrity": "source_tree_integrity=2886f72ed0df202a3fafd9528c6dfe38383c10bb2ecae3bb583eab8efda81612",
+  "config_sha256": "43222fdee6781f3bc51cb7e412c9f92372ecf8f78b8881b11d66b77f849d8eb8",
+  "configuration_byte_identical_to_parent": true,
+  "cust_dtsi_byte_identical_to_parent": true,
+  "appended_dtb_byte_identical_to_parent": true,
+  "appended_dtb_bytes": 130833,
+  "appended_dtb_sha256": "f15b0840d7999a7c37b11017324de5c9f46d7d7f7b76b369aad337e453dc729f",
+  "undefined_symbols": 0,
+  "linked_checks": [
+    "mt_usb_role_paths is a load and return with no calls.",
+    "All seven writer marks appear after the corresponding software-state assignments in the linked functions; ID-pin host/device share one conditional mark.",
+    "mtk_is_host_mode remains an internal state compare with no calls.",
+    "usb_export_report still tests and sets its one-shot guard before calling getters and printk.",
+    "The selected role field adds no new hardware read, role request or printk site."
+  ],
+  "decoder": {
+    "private_sha256": "329208acc59d5e1c2cd9f83a61df9cf974e915db86ddff18c56ca767e0dbc27c",
+    "focused_cases_passed": 7
+  },
+  "limitations": [
+    "The inherited native build uses -w and retains 69 section mismatches.",
+    "A cumulative marker does not encode event order, counts or the role at an earlier check.",
+    "No new physical result or Wi-Fi support claim is established by this build."
+  ]
+}

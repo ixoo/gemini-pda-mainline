@@ -16,7 +16,7 @@ HERE = Path(__file__).resolve().parent
 PARENT = HERE.parent / '2026-08-02-gemian-a72-bounded-observer-boot/scripts/assemble.py'
 PARENT_SHA256 = '532f6f0dec5030a7b066f3baefa53580ec148317f633d4dd8d43308d30ac03b3'
 KERNEL_SHA256 = '4fc02b373433bba5ca2ee8dc00990ea8698ad2d817ed7f7aa2e9fc7e08cda06b'
-TCP_KERNEL_SHA256 = '23ceb65dcc4aa3542267c151e44fde280d5e1ee60c4836d31d6477009be8e760'
+TCP_KERNEL_SHA256 = 'afaf272dfb4fed96371ed10b3dc5d30d568f4a78583fb96e18fb1582f274db23'
 
 
 def sha(data):
