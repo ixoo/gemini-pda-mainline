@@ -127,3 +127,13 @@ their narrower scope. No device access, QEMU run, new schema execution, boot
 container or hardware-support promotion occurred. The one source state, build
 and validated package remain retained for open provider review; the older
 six-patch source and package are unchanged.
+
+On 2026-09-25, the same `clk-mtk.c` source was fetched from mainline master
+`165768bb70265b5c38cf0b73fafd75be235f8b14`: 16,200 bytes and SHA-256
+`e8a89dffaffedfce01489b0887fb425d64649d6fb841157bbcea5aac0fc93e59`,
+identical to this profile's pinned input. The unchanged cleanup patch passed
+`git apply --check` and applied in disposable sparse source; its result SHA-256
+`01f33c475e9bbe6ffef504d8247acd618bd53cc563de42abef4ada96b8344646`
+also matches the compiled file above. This establishes exact source-level
+applicability at that mainline revision, not a new full-tree build or runtime
+test. The separate SCPSYS proposal remains outside the reset topic.
