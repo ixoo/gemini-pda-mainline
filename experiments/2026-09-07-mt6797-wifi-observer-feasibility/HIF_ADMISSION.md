@@ -23,9 +23,11 @@ The [source receipt](results/hif-admission-sources.json) pins all four parent
 and output files. The patch replays against the unchanged 54-patch prepared
 source and reverses from its exact output. Linux 7.1.3 strict Checkpatch has
 zero findings with legacy CamelCase and the synthetic, non-certifying sign-off
-category excluded. The patch is selected as the 55th compile-only input. A
-complete Buildbox link and failure-injection review are still required before
-any boot candidate.
+category excluded. The patch is selected as the 55th compile-only input. The
+[complete Buildbox link](results/hif-admission-link.json) passed with a verified
+package inventory, zero undefined symbols and the inherited 69 section
+mismatches. Failure-injection review is still required before any boot
+candidate.
 
 This change does not propagate a later `clk_prepare_enable()` failure from the
 void DMA clock callback, guarantee clock reference balance, isolate other

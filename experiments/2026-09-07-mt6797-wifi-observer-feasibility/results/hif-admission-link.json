@@ -1,0 +1,27 @@
+{
+  "status": "complete native Buildbox link passed; compile-only",
+  "build_commit": "170f4e734416ffccb4d91265553a3974e40349ff",
+  "inputs_sha256": "d1ac6100995318beec4f36d8f9b5339c1e2e673e2b214816a77b7525aef367eb",
+  "patch_count": 55,
+  "package": {
+    "name": "wifi-controller-kernel-170f4e734416ffccb4d91265553a3974e40349ff",
+    "manifest_sha256": "e652310ee796804ac3f90deaa2f41194d779edd637204ade3e83adbdcda1e89e",
+    "files": 10,
+    "vmlinux_sha256": "3488a17ab93c75812dc3289d875b3cf11ed95812bd9e0dd996b7a702801a53f3",
+    "system_map_sha256": "3b1bf20bd77feed58fb45c20c08ceefcab9113b860f9b95a929535f33e4ec99b",
+    "kernel_sha256": "1e5910da0b4266984791a14c209a86c03f23f1e932a99777e8c86ec3c116c591"
+  },
+  "source_integrity": "source_tree_integrity=430ff1b8f126ce6280c82954404150947f45a2dfad37dffd1c123cdb81c28d6a",
+  "config_sha256": "43222fdee6781f3bc51cb7e412c9f92372ecf8f78b8881b11d66b77f849d8eb8",
+  "configuration_byte_identical_to_54_patch_parent": true,
+  "undefined_symbols": 0,
+  "linked_checks": [
+    "glSetHifInfo, HifPdmaInit and wfc_dma_abort are linked text symbols.",
+    "The experiment configuration is enabled and the remote package's ten listed files pass strict SHA256SUMS verification."
+  ],
+  "limitations": [
+    "The inherited native build retains 69 section mismatches and -w compiler commands.",
+    "Later DMA clock-enable failure, shared ownership and failure injection remain open.",
+    "No device execution, Wi-Fi cycle or boot-candidate admission is established."
+  ]
+}

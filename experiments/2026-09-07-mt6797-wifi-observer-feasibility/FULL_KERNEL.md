@@ -133,3 +133,9 @@ owned by that experiment record; device execution remains outstanding there.
 The [charger error discriminator](USB_CHRDET_ERRORS.md) adds one observation-only
 patch after the first fifty unchanged inputs. It requires independent build and
 linked validation before candidate admission.
+
+The [55-patch HIF admission link](results/hif-admission-link.json) passed from
+`170f4e734416ffccb4d91265553a3974e40349ff`. Its package inventory and
+source integrity passed, the configuration matches the 54-patch parent, and
+the link has no undefined symbols. It remains compile-only; a later DMA
+clock-enable failure and shared resource ownership still need resolution.

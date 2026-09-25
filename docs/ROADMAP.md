@@ -432,7 +432,11 @@ The remaining preparation order is:
    never invoked the detector capture path. The
    [selected AP-DMA audit](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/shared-resource-boundary.json)
    narrows channel overlap but finds a shared clock and unchecked WLAN HIF
-   clock/mapping admission. Resolve that failure path, then package and validate
+   clock/mapping admission. The compile-only
+   [HIF admission patch](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/HIF_ADMISSION.md)
+   now links and refuses missing mapping or clock acquisition before native
+   SDIO open; later clock-enable failure and shared ownership remain. Resolve
+   those paths, then package and validate
    the `cycle` action with shared ownership, post-reset capture preservation
    and a finite radio-effect protocol before another physical Wi-Fi test. No
    role override, detection-policy change or weakened CPU check is supported
