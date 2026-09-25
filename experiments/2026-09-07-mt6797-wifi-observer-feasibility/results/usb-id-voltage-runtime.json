@@ -1,0 +1,58 @@
+{
+  "kernel_project_commit": "127eb2589a45c7679b8fee4606ab065e18e025b9",
+  "kernel_package_manifest_sha256": "88a234a78dc83fa049704dfe94226bef0b9a101b10b1a564bef6fbd60dac68c1",
+  "kernel_image_sha256": "0a994ac4231a1d6145d08578eea830c8572939c5c8235afc77334ade201a9418",
+  "container_padded_sha256": "d348b2b78e8ef39a518cc08516ddbaee75684f1a7a0897938a3e464af19ccf1b",
+  "container_package_manifest_sha256": "81e0209fae9d8d5a0dd691acb5a2e9fa7451ec6f9c0ec46417f9a2c1e343a71c",
+  "deployment": {
+    "logical_target": "boot2",
+    "guarded_full_readback_sha256": "d348b2b78e8ef39a518cc08516ddbaee75684f1a7a0897938a3e464af19ccf1b",
+    "clean_shutdown_before_owner_selection": true
+  },
+  "cycle_id": "f7785b60-b476-4293-99c4-d482176f5aa5",
+  "previous_gemian_boot": "6de05645-f34e-4288-92fc-e1716261bae8",
+  "mainline_boot": "cb2620d0-4c56-4465-8401-9a877323fc0f",
+  "returned_gemian_boot": "a3eb4157-ef96-45d2-a8e0-405b1ef46572",
+  "retained_console": {
+    "bytes": 65524,
+    "sha256": "4d3c0ee2703bd1ec074991889b888a158d0cb6b75a9581d65edd950e123fe090",
+    "payload_reads": 1,
+    "captured_utc": "2026-09-25T17:01:33.960029+00:00",
+    "startup_preflight": "passed",
+    "snapshot_stage": "entered and advanced to USB setup",
+    "host_request": "waited, then stopped",
+    "normal_restart_after_return_marker": true,
+    "checked_post_marker_fault_tokens": 0,
+    "cmdq_refusal_warnings_in_retained_record": 0
+  },
+  "usb_diagnostic": {
+    "version": "wifi-usb-v5",
+    "summary_count": 1,
+    "paths_mask": "800d",
+    "paths": ["entered", "ready", "host", "reported"],
+    "role_mask": "01",
+    "role": ["id_host"],
+    "id_voltage_mv": 28,
+    "host_threshold_mv": 4000,
+    "charger_detection_mask": "0139",
+    "pmic_mask": "0b",
+    "cable_sample_present": false,
+    "device_controller_start_seen": false
+  },
+  "host_observation": {
+    "collector_armed_before_owner_selection": true,
+    "usb_change_records": 1,
+    "usb_change_record_empty": true,
+    "attributed_export_gadget_seen": false,
+    "capture_request_sent": false,
+    "snapshot_transferred": false
+  },
+  "classification": "The existing charger-voltage getter returned 28 mV at the ID-pin decision; the selected threshold chose host, preventing USB export in this boot. Mainline userspace and normal Gemian return were verified.",
+  "limitations": [
+    "The returned value does not establish physical VBUS, ADC validity or why the getter produced 28 mV; its lower-level control-call status is discarded.",
+    "The summary masks are cumulative and the voltage is the latest stored value; call counts and ordering are not retained.",
+    "No CMDQ task submission or GCE hardware-idle state was observed; absence of a warning is limited to the retained console.",
+    "No radio action was attempted."
+  ],
+  "private_evidence": "ignored boot package, guarded deployment receipt, host collector records, one-shot console, authenticated changed-boot Gemian identity, and RE VM classification retained"
+}

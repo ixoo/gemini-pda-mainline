@@ -28,19 +28,25 @@ one-shot report calls the retained-value getter. Compilation does not establish
 runtime USB behavior. Strict Checkpatch passed with the native source's
 existing cross-file declaration pattern excluded.
 
-The next physical boot is justified only by this new measurement. Its
-hypothesis is that the observed `id_host` path follows the existing voltage
-threshold. An attributable `role=01` with `id_mv` at most 4000 supports that
-software branch, while `INT_MIN`, mixed role bits or a conflicting value leaves
-the decision unresolved. A device branch and a complete authenticated USB
-export would also test transport serviceability, but no snapshot or gadget
-appearance is assumed. The returned value alone does not establish actual
-port power, ADC health, cable state or why the getter produced it. Do not force
-device mode or change charger detection based on this diagnostic.
+The [physical result](results/usb-id-voltage-runtime.json) resolves that
+specific software branch. The exact 58-patch kernel was packaged as a
+boot-only image, installed to guarded inactive `boot2` with matching full
+readback, and selected physically after a clean Gemian shutdown. Both host
+collectors were armed first. One retained console identifies mainline boot
+`cb2620d0-4c56-4465-8401-9a877323fc0f`: userspace passed preflight,
+entered the snapshot stage, waited for a host request, stopped, and restarted
+normally. Authenticated Gemian boot
+`a3eb4157-ef96-45d2-a8e0-405b1ef46572` confirms the changed-boot return.
+The single `wifi-usb-v5` summary reports `id_mv=28`, `role=01` (`id_host`),
+the host connection path, no cable sample, and no device-controller start.
+The prearmed host collector saw no export gadget, so no request or snapshot
+transfer occurred. No checked fault token followed the return marker.
 
-Before that boot, require an exact 58-patch Buildbox link, checked image and
-boot-only package, guarded inactive `boot2` installation with full readback,
-clean Gemian shutdown, and collectors armed before owner selection. The
-one-shot retained console and changed-boot Gemian return remain the fallback
-when USB export does not appear. GCE hardware-idle and the separate Wi-Fi
-resource admissions remain open.
+The existing getter's 28 mV return is below the 4000 mV threshold and thus
+supports the observed host choice. It does not establish actual port power,
+ADC validity, or why the getter returned 28: the lower-level control-call
+status is discarded. The masks are cumulative and the value is the latest
+stored sample, not an ordered trace. Diagnose that input and its status before
+any role-policy change; this result does not justify forcing device mode.
+There was no radio action or observed CMDQ task submission, and GCE
+hardware-idle and the separate Wi-Fi resource admissions remain open.
