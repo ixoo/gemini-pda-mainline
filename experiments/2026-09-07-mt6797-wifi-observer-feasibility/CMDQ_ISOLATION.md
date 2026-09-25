@@ -24,3 +24,6 @@ headless diagnostic has not justified. Its AP-DMA alias remains an unresolved
 ownership path, alongside CONSYS remap/protection, shared clock ownership and
 worker failure lifetime. No device write, CMDQ command or radio action was
 performed in this build investigation.
+
+The follow-on [submission gate](CMDQ_SUBMISSION_GATE.md) keeps the driver
+linked and tests a different, headless-only way to prevent new CMDQ tasks.

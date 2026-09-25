@@ -445,6 +445,10 @@ The remaining preparation order is:
    compiled after a one-line SMI fix but failed final link across built-in
    display, power and imaging clients; the successful 56-patch build inputs
    were restored. CMDQ cannot be excluded by configuration alone.
+   A [headless submission gate](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/CMDQ_SUBMISSION_GATE.md)
+   now refuses new CMDQ tasks before dispatch in the captured build; its
+   complete link, boot serviceability and hardware-idle admission remain
+   unverified.
    Resolve those paths, then package and validate
    the `cycle` action with shared ownership, post-reset capture preservation
    and a finite radio-effect protocol before another physical Wi-Fi test. No

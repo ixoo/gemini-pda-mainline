@@ -1,7 +1,7 @@
 # Complete native controller kernel link
 
 The [Buildbox-only builder](build-full-kernel.py) compiles the complete native
-kernel from [56 pinned patches](full-kernel-inputs.json): the previously
+kernel from [57 pinned patches](full-kernel-inputs.json): the previously
 compiled controller composition, the emergency reset correction, and historical
 patch 0001's A72 refusal/configuration declaration, plus the detector's watchdog
 header dependency, the [calibration open-error correction](CALIBRATION_OPEN.md)
@@ -17,7 +17,8 @@ and [earlier restart exclusion](RESTART_GATE.md), then the
 [request-routing guard](RECOVERY_REQUEST.md), and the
 [subsystem-reset guard](RECOVERY_SUBSYSTEM.md), and the compile-only
 [HIF resource admission check](HIF_ADMISSION.md) and the compile-only
-[DMA clock refusal](DMA_CLOCK_ADMISSION.md).
+[DMA clock refusal](DMA_CLOCK_ADMISSION.md), followed by the
+[CMDQ submission gate](CMDQ_SUBMISSION_GATE.md).
 It does not select the old
 recovery trigger, profile or consumed artifact.
 

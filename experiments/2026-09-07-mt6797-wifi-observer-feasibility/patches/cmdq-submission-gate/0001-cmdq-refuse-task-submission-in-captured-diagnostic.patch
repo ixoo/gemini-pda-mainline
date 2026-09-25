@@ -1,0 +1,43 @@
+From 73cae8bbb97eaa6b040b1601ff2b5e85a5a2550d Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <archive@example.invalid>
+Date: Fri, 25 Sep 2026 16:10:00 -0400
+Subject: [PATCH] cmdq: refuse tasks in captured headless diagnostic
+
+The native CMDQ block must stay linked for built-in clients, but its
+AP-DMA subsystem can address the WLAN channel. Refuse every task at the
+common submission entry in the default-off diagnostic. Clear the output
+task pointer and leave ordinary builds unchanged.
+
+This archive has a synthetic identity and is not an upstream submission.
+---
+ drivers/misc/mediatek/cmdq/v2/cmdq_core.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/drivers/misc/mediatek/cmdq/v2/cmdq_core.c b/drivers/misc/mediatek/cmdq/v2/cmdq_core.c
+index fc24d9b..98fc2b2 100644
+--- a/drivers/misc/mediatek/cmdq/v2/cmdq_core.c
++++ b/drivers/misc/mediatek/cmdq/v2/cmdq_core.c
+@@ -7642,6 +7642,13 @@ int32_t cmdqCoreSubmitTaskAsync(cmdqCommandStruct *pCommandDesc,
+ 				CmdqInterruptCB loopCB,
+ 				unsigned long loopData, TaskStruct **ppTaskOut)
+ {
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++	/* No GCE command submission in the captured headless experiment. */
++	if (ppTaskOut)
++		*ppTaskOut = NULL;
++	pr_warn_once("CMDQ submission refused in captured diagnostic\n");
++	return -EOPNOTSUPP;
++#else
+ 	int32_t status = 0;
+ 	TaskStruct *pTask = NULL;
+ 
+@@ -7656,6 +7663,7 @@ int32_t cmdqCoreSubmitTaskAsync(cmdqCommandStruct *pCommandDesc,
+ 		*ppTaskOut = pTask;
+ 
+ 	return status;
++#endif
+ }
+ 
+ int32_t cmdqCoreReleaseTask(TaskStruct *pTask)
+-- 
+2.54.0 (Apple Git-157)
