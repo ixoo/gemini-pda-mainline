@@ -215,6 +215,10 @@
     {
       "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/recovery-request/0001-watchdog-refuse-request-route-changes-after-capture.patch",
       "sha256": "d82bcd62a09b0f12e47fe0f5310e7321380ff6bea284ccd6624c3280c4e70112"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/recovery-subsystem/0001-watchdog-refuse-subsystem-reset-after-capture.patch",
+      "sha256": "d7d0a42cac41ab889966db273ab62a8defaa1c75aa0ca7cf116e9fe4312079ac"
     }
   ],
   "purpose": "complete native kernel link; no boot candidate or device admission"

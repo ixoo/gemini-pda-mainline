@@ -1,0 +1,13 @@
+{
+  "source_revision": "59e00a9144d782e148332009a835b99c43382467",
+  "parent_kernel_build_commit": "619f8760f3409db416c4aaa7323027ce5927c363",
+  "parent_inputs_sha256": "893e77da6dbd6951da513cd2e6a66cf904ce777978a35d9c02df79ad05b6090d",
+  "source_path": "drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c",
+  "parent_sha256": "d0efa3565ac6b44d774ce7f1a076f53376fcaf9657d62dd1dd3d6cf07983b289",
+  "child_sha256": "4b5e5b8c04493d978581f7e7e846584b33243ea8cef4a5ee0c477f919c39def0",
+  "header_sha256": "fdbd42a1e238cc5148486a0d765434bddf008808244ad76af77d9371a208fa30",
+  "patch": "patches/recovery-subsystem/0001-watchdog-refuse-subsystem-reset-after-capture.patch",
+  "patch_sha256": "d7d0a42cac41ab889966db273ab62a8defaa1c75aa0ca7cf116e9fe4312079ac",
+  "scope": "Compile-only SWSYSRST setter refusal after capture takeover; other direct writers and shared-resource ownership remain open",
+  "replay_and_reverse_verified": true
+}

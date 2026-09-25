@@ -1,0 +1,36 @@
+From ff1b047b727be6c408741bdff03c3e030856805b Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <archive@example.invalid>
+Date: Fri, 25 Sep 2026 09:35:21 -0400
+Subject: [PATCH] watchdog: refuse subsystem resets after recovery takeover
+
+A CONSYS caller can enter mtk_wdt_swsysret_config after timed capture
+claims TOPRGU. Check ownership under the existing register lock before
+reading or writing SWSYSRST. Preserve pre-takeover behavior.
+
+This experiment patch covers this setter only. Other direct reset writers
+and shared-resource ownership remain separate gates. It is not an upstream
+submission and carries no DCO certification.
+---
+ drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c b/drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c
+index 5c3d054..37f8249 100644
+--- a/drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c
++++ b/drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c
+@@ -528,6 +528,12 @@ int mtk_wdt_swsysret_config(int bit, int set_value)
+ 	unsigned int wdt_sys_val;
+ 
+ 	spin_lock(&rgu_reg_operation_spinlock);
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++	if (mtk_wdt_recovery_owned) {
++		spin_unlock(&rgu_reg_operation_spinlock);
++		return -EBUSY;
++	}
++#endif
+ 	wdt_sys_val = __raw_readl(MTK_WDT_SWSYSRST);
+ 	pr_debug("fwq2 before set wdt_sys_val =%x\n", wdt_sys_val);
+ 	wdt_sys_val |= MTK_WDT_SWSYS_RST_KEY;
+-- 
+2.54.0 (Apple Git-157)
+

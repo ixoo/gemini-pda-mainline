@@ -64,9 +64,11 @@ takeover, before its secure-firmware and PMIC calls. Higher-level reset effects,
 request routing and shared subsystem reset ownership remain unresolved.
 
 The later [request-route correction](RECOVERY_REQUEST.md) identifies two linked
-setters that could write after takeover and adds a locked refusal. It has
-focused host race evidence but is not selected into a kernel build. Other
-request writers, callers and shared reset ownership still require an audit.
+setters that could write after takeover and adds a locked refusal. The
+53-patch native link and a bounded selected-source writer audit pass. The
+[subsystem-reset correction](RECOVERY_SUBSYSTEM.md) addresses the active
+`SWSYSRST` setter next. Direct C2K writes, higher-level reset callers and
+shared resource ownership remain open.
 
 ## Retention callers: preserve the existing configuration exclusion
 

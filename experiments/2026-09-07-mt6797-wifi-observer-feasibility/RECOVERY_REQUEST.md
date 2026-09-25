@@ -42,3 +42,7 @@ or which request clients can run during the cycle. Direct request writers,
 caller/configuration isolation, shared subsystem reset ownership and the full
 recovery budget remain open. No radio, watchdog takeover, new boot image or
 device action is admitted by this patch.
+
+The later [selected-source audit](RECOVERY_SUBSYSTEM.md#request-route-writer-boundary)
+narrows the active request-route writers for this exact configuration. It does
+not turn the two-setter result into whole-TOPRGU ownership.
