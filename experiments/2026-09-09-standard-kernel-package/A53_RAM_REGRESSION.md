@@ -10,9 +10,9 @@ and the closed session are recorded in the
 ## Purpose and bounded change
 
 The [service-facilities kernel](A53_SERVICE_FACILITIES.md) passes the
-[Debian QEMU runtime](A53_DEBIAN_QEMU.md), but has not run on the PDA. Its
-first board regression can reuse the accepted authenticated RAM environment,
-independently of future persistent-root storage selection. This is a step
+[Debian QEMU runtime](A53_DEBIAN_QEMU.md). Its first board session reused the
+accepted authenticated RAM environment and reached CPU0–7, USB and complete
+logging, independently of future persistent-root storage selection. This is a step
 toward the A53 integration baseline, not a distribution installation or the
 ten-cold-boot release gate.
 
@@ -194,11 +194,11 @@ the attributable baseline observation, complete log and confirmed recovery;
 a refusal selects diagnosis from preserved evidence. Do not reactivate the
 consumed baseline, keyboard or eMMC budgets.
 
-If this first board regression passes, the conditional
+After a reviewed first board regression pass, the conditional
 [ten-cold-boot protocol](A53_COLD_BOOT_PROTOCOL.md) defines the later repeated
 serviceability gate. This one session cannot count as that series: its selected
-kernel has no prior PDA runtime pass, and no per-cycle keyboard observation or
-cold-start sequence is admitted here.
+kernel had no prior PDA runtime pass at selection, and no per-cycle keyboard
+observation or cold-start sequence was admitted here.
 
 The [later Wi-Fi observation](../2026-09-07-mt6797-wifi-observer-feasibility/BOOT_CPU_LIMIT.md#later-owner-selection)
 resolved the device state. Any later boot2 write still uses the reviewed

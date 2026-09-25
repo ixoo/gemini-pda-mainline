@@ -2,9 +2,15 @@
 
 Status: **conditional protocol, not a selected device session**. The
 [A53 RAM regression](A53_RAM_REGRESSION.md) must first pass on the PDA. Its
-candidate has not yet been installed or booted there. This protocol defines
-what a later ten-boot result must prove; it does not admit ten physical
-selections, a persistent-root write or a new power action.
+candidate completed one guarded installation and one owner-selected boot. The
+CPU0–7, authenticated USB and sealed-log observations passed, and a separate
+read-only probe confirmed changed-boot Gemian return. The consumed runner's
+aggregate remains inconclusive at its return classifier, so the first-regression
+pass required here has not been recorded. Decide whether the independent return
+confirmation satisfies that prerequisite, and freeze the per-cycle keyboard
+method before admitting this series; do not repeat the same boot to replace the
+result. This protocol defines what a later ten-boot result must prove; it does
+not admit ten physical selections, a persistent-root write or a new power action.
 
 ## Frozen input and question
 
