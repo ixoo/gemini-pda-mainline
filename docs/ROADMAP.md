@@ -356,12 +356,16 @@ for the first Wi-Fi bring-up. The current preparation order is:
    authenticated userspace, logging and reviewed recovery closure. Repair only
    an identified invalidated prerequisite; a similarly named newer profile is
    not a replacement for recorded inputs. Do not spend a boot on another marker.
-2. **Wi-Fi:** compile the connected transfer components through the actual Linux
-   interfaces, then complete a validated whole-image plan and shared EMI/AP-DMA
-   ownership. Identify the retained calibration record's producer, restoration
-   path and board/firmware applicability before admitting the first mainline
-   bring-up. Keep ordinary section submission distinct from firmware execution;
-   missing EMI ownership must not become a success flag or skipped section.
+2. **Wi-Fi:** use the compiled transfer components and validated whole-image
+   plan to implement a retained shared CONSYS/EMI owner and a complete firmware
+   executor. The first firmware load can use PIO; AP-DMA needs its own owner
+   before packet DMA is enabled. The retained local calibration record has an
+   identified producer family and remains a viable input candidate. Validate
+   its envelope, board/firmware pairing and actual application at the normal
+   command boundary; do not require its complete restoration history or
+   non-default RF bytes as a universal bring-up prerequisite. Keep ordinary
+   section submission distinct from firmware execution; missing EMI ownership
+   must not become a success flag or skipped section.
    Use the [Wi-Fi contract](hardware/mt6797-wifi.md) and existing private captures.
    Host fixtures and compile-only adapters do not establish usable Wi-Fi. The
    build-selected detector ioctl is the established kernel-side producer of
