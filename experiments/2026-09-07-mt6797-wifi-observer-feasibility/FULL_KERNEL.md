@@ -148,3 +148,10 @@ clock-failure fixture passed on the exact prepared source, package checksums
 and source integrity passed, and the link has no undefined symbols. The
 selected CCF enable error now returns before HIF command setup; shared clock
 ownership and the radio-effect protocol remain open.
+
+The [57-patch CMDQ submission gate link](results/cmdq-submission-gate-link.json)
+passed from `119faf47308fdab9a47067bb4f6bbc6b7d760e9b`. The linked
+wrapper refuses new CMDQ tasks in the captured configuration while the
+driver and its built-in clients remain linked. Package checksums, source
+integrity and the zero-undefined-symbol check passed. Hardware GCE idle
+state and boot serviceability remain untested.

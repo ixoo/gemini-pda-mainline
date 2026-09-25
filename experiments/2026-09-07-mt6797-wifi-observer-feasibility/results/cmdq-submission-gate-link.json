@@ -1,0 +1,37 @@
+{
+  "status": "complete native link passed; compile-only experiment",
+  "project_commit": "119faf47308fdab9a47067bb4f6bbc6b7d760e9b",
+  "inputs_sha256": "c4f92ef40cbe74d9fb470e6fb51354c3dd026f310e7af727c95d213e453ee0b6",
+  "source_integrity": "962d356c68ca8ad04083c16123f8ca49519eef9bf61766144afa3d2491a6b88e",
+  "selected_cmdq_core_sha256": "bccf13aea0ba106af01e7094f08aa192ff71283a5ce808c343fecea0102d03e8",
+  "patch_sha256": "e38d1a0b94b10aed232b9dfb81c6150d7a42a13cb5048b36f2a22a482b43902b",
+  "package": "wifi-controller-kernel-119faf47308fdab9a47067bb4f6bbc6b7d760e9b",
+  "sha256sums_sha256": "3921ad61923f712cb06e445c44f1334f9c437a4a7189738e3f58341dea5046e1",
+  "vmlinux_sha256": "6141e26c9e0f566e315d1264742014c46b9ec7938819d288f3137b640768ff0f",
+  "image_gz_dtb_sha256": "0db6cd7a0ed8e6f073258f055532890210c8cab020f0766a84eba198fe2d7629",
+  "config_sha256": "43222fdee6781f3bc51cb7e412c9f92372ecf8f78b8881b11d66b77f849d8eb8",
+  "config": {
+    "CONFIG_MTK_CMDQ": "y",
+    "CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR": "y",
+    "CONFIG_MTK_CLKMGR": "n"
+  },
+  "package_checksum_inventory": "all 10 listed files passed remote sha256sum --check --strict",
+  "undefined_symbols": 0,
+  "section_mismatches": 69,
+  "linked_entry": {
+    "symbol": "cmdqCoreSubmitTaskAsync",
+    "address": "ffffffc0004fb300",
+    "size_bytes": 72,
+    "effect": "clears nonnull output pointer; warns once; returns -95 without a call to task acquisition"
+  },
+  "source_caller_check": "selected v2 cmdqCoreSubmitTaskAsyncImpl is called only by the gated wrapper",
+  "checkpatch": "strict, no-tree, no-signoff: zero errors, warnings or checks with existing CamelCase parameter name excluded",
+  "boot_candidate": false,
+  "device_execution": false,
+  "remaining": [
+    "boot-only serviceability and changed-boot Gemian return",
+    "GCE hardware-idle admission before any radio effect",
+    "shared clock and CONSYS resource ownership",
+    "worker failure lifetime"
+  ]
+}

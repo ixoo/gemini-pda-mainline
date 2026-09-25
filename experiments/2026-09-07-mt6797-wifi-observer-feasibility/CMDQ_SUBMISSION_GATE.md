@@ -23,11 +23,18 @@ ordinary build retains the native function body. The guard covers new
 software submissions through this kernel path regardless of the command
 encoding, including raw buffers.
 
+The [57-patch Buildbox link](results/cmdq-submission-gate-link.json) passed
+with an exact 10-file checksum inventory, unchanged resolved configuration,
+zero undefined symbols and the inherited 69 section mismatches. In the
+linked ARM64 function, a non-null task output is zeroed, the first call
+prints one warning, and both paths return `-95` without a call to task
+acquisition. Strict Checkpatch passed with the existing CamelCase parameter
+name excluded. Native compilation still uses `-w`.
+
 This is not a runtime quiescence claim. The selected CMDQ initialization
 resets its software task lists but does not by itself prove that bootloader
 work is absent from GCE hardware. A boot-only diagnostic must establish that
 the headless startup and USB return remain serviceable, and a later radio
 admission must independently verify GCE hardware is idle before the first
 Wi-Fi DMA effect. Shared clocks, CONSYS remap/protection and worker failure
-lifetime also remain open. This patch is selected only for a full Buildbox
-link; it is not yet a boot image or a radio action.
+lifetime also remain open. This link is not yet a boot image or a radio action.
