@@ -93,6 +93,7 @@ These checks do not execute a PDA boot, validate Linux 3.18 mount behavior, or
 prove continuous kernel actor isolation. Remaining system restart/notifier and
 shared-resource control, capture zero-state preparation, complete packaging and
 the owner-approved radio/recovery session still precede device execution.
-The [live preparation inspection](CAPTURE_PREPARATION.md) found nonempty PMSG
-memory. The new export action implements a preservation path; actual device
-export and the clear operation remain unvalidated and unimplemented respectively.
+The earlier [live preparation inspection](CAPTURE_PREPARATION.md) found nonempty
+PMSG memory; a later mainline export preserved an all-zero initial copy. These
+are different boots, so capture admission still checks the actual candidate's
+initial snapshot and current zone. No clear operation is implemented or selected.

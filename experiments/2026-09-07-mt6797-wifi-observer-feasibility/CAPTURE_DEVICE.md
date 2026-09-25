@@ -6,7 +6,9 @@ either `export` or the existing `cycle` action explicitly. The export action
 does not open the detector, initialize capture, arm recovery, clear memory or
 start a radio cycle. After one transfer it parks PID1 with the serial descriptor
 open. There is no command receiver or automatic transition to the cycle action.
-This is an implemented preparation step, not a selected device session.
+The serial branch remains an unselected transport. A later
+[TCP export session](USB_ROLE_TRACE.md#physical-results) exercised the same
+read-only snapshot acquisition through USB Ethernet.
 
 ## Acquisition and USB ownership
 
@@ -82,8 +84,9 @@ configuration: its first patch rejects CPU8/9 before platform or firmware
 CPU-on. The [third assembly](STARTUP_ASSEMBLY.md#export-filesystem) uses `0-7`;
 that source expectation is still not an observed successful boot. It binds the
 seven startup files and schema-2 manifest to the validated 46-patch kernel.
-The [compact filesystem and native container](EXPORT_CONTAINER.md) now pass
-offline composition checks. Complete recovery and the physical USB-export
-protocol next. Clearing remains absent
-and requires separate owner approval after its implementation and preserved
-predecessor are reviewable.
+The [compact filesystem and native container](EXPORT_CONTAINER.md) passed
+offline composition checks. A later Ethernet implementation and
+[physical session](USB_ROLE_TRACE.md#physical-results) completed one
+acknowledged export with an all-zero snapshot. That tests the TCP branch, not
+this serial branch or an effect-bearing capture producer. Clearing remains
+absent and unselected.

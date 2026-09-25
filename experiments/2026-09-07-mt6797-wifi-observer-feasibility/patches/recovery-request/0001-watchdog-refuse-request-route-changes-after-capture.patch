@@ -1,0 +1,49 @@
+From df38130269c6875d535dee89c978accccca78978 Mon Sep 17 00:00:00 2001
+From: Gemini experiment archive <archive@example.invalid>
+Date: Fri, 25 Sep 2026 09:06:14 -0400
+Subject: [PATCH] watchdog: refuse request-route changes after capture takeover
+
+Check recovery ownership under the existing TOPRGU register lock in both
+request-route setters. A caller already waiting for that lock can no longer
+change request routing after timed capture claims it. Return EBUSY on
+refusal; preserve the original path before takeover.
+
+This is an unselected experiment patch. It does not complete watchdog or
+shared-resource isolation and carries no DCO certification.
+---
+ drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c b/drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c
+index a64d367..5c3d054 100644
+--- a/drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c
++++ b/drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c
+@@ -598,6 +598,12 @@ int mtk_wdt_request_en_set(int mark_bit, WD_REQ_CTL en)
+ 	}
+ 
+ 	spin_lock(&rgu_reg_operation_spinlock);
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++	if (mtk_wdt_recovery_owned) {
++		spin_unlock(&rgu_reg_operation_spinlock);
++		return -EBUSY;
++	}
++#endif
+ 	tmp = __raw_readl(MTK_WDT_REQ_MODE);
+ 	tmp |=  MTK_WDT_REQ_MODE_KEY;
+ 
+@@ -663,6 +669,12 @@ int mtk_wdt_request_mode_set(int mark_bit, WD_REQ_MODE mode)
+ 	}
+ 
+ 	spin_lock(&rgu_reg_operation_spinlock);
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++	if (mtk_wdt_recovery_owned) {
++		spin_unlock(&rgu_reg_operation_spinlock);
++		return -EBUSY;
++	}
++#endif
+ 	tmp = __raw_readl(MTK_WDT_REQ_IRQ_EN);
+ 	tmp |= MTK_WDT_REQ_IRQ_KEY;
+ 
+-- 
+2.54.0 (Apple Git-157)
+

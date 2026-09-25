@@ -1,0 +1,16 @@
+{
+  "source_revision": "59e00a9144d782e148332009a835b99c43382467",
+  "selected_kernel_build_commit": "c83b737748043a9860e179ba65ef28210d2bfc99",
+  "selected_prepared_inputs_sha256": "10786d4fec6e1fcb5eda6a1a802ba333575fd53df8f0e886fdbccdc243563a32",
+  "source_path": "drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c",
+  "parent_sha256": "96642a819b3fb1a3b76c266e722b5bdad06c530983637b63b49ee8a1cc788f46",
+  "child_sha256": "d0efa3565ac6b44d774ce7f1a076f53376fcaf9657d62dd1dd3d6cf07983b289",
+  "support": {
+    "mt_wdt.h": "fdbd42a1e238cc5148486a0d765434bddf008808244ad76af77d9371a208fa30",
+    "wd_api.h": "da711e704f392a52ad05f8b43f93bf1be7f0f35e3263591bad6910899a201a09"
+  },
+  "patch": "patches/recovery-request/0001-watchdog-refuse-request-route-changes-after-capture.patch",
+  "patch_sha256": "d82bcd62a09b0f12e47fe0f5310e7321380ff6bea284ccd6624c3280c4e70112",
+  "scope": "Unselected request-routing refusal after capture takeover; no complete watchdog ownership or device admission",
+  "replay_and_reverse_verified": true
+}

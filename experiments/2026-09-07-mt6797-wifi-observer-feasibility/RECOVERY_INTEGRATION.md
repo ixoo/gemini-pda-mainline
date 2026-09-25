@@ -63,6 +63,11 @@ serialization for the no-lock reload and parks direct low-level reset after
 takeover, before its secure-firmware and PMIC calls. Higher-level reset effects,
 request routing and shared subsystem reset ownership remain unresolved.
 
+The later [request-route correction](RECOVERY_REQUEST.md) identifies two linked
+setters that could write after takeover and adds a locked refusal. It has
+focused host race evidence but is not selected into a kernel build. Other
+request writers, callers and shared reset ownership still require an audit.
+
 ## Retention callers: preserve the existing configuration exclusion
 
 The [retained-build review](results/recovery-retention-exclusion.json) narrows

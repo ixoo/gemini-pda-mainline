@@ -1,4 +1,4 @@
-# Capture preparation: nonempty retained memory
+# Capture preparation: retained-memory state is boot-specific
 
 One bounded read on known-good Gemian found the selected PMSG range nonempty.
 The [sanitized receipt](results/capture-preparation-inspection.json) records
@@ -47,10 +47,11 @@ external private storage while ordinary writers remain excluded. Bind that
 export and any subsequent preparation request to the same boot and exact
 current bytes. Resolve the transport and failure recovery before selecting a
 candidate; the earlier minimal PID1 filesystem supplies no such export path.
-The [stream transfer implementation](CAPTURE_EXPORT.md) now supplies bounded
+The [stream transfer implementation](CAPTURE_EXPORT.md) supplies bounded
 framing and private host preservation. The [device bridge](CAPTURE_DEVICE.md)
-adds acquisition and USB integration; packaging and actual device export still
-precede any claim that this same-boot requirement has been satisfied.
+adds acquisition and USB integration. Its later physical result is recorded
+below. That result does not satisfy a future same-boot preservation requirement
+for nonempty bytes.
 
 Only after that contract is concrete can a separately reviewed operation
 compare the preserved predecessor, perform one bounded zero pass and require
@@ -65,3 +66,26 @@ candidate and recovery path are reviewable. No approval is requested here:
 those prerequisites are incomplete. The existing
 [capture admission](PERSISTENT_CAPTURE.md#native-acquisition-and-raw-recovery-integration)
 continues to require both the initial snapshot and current zone to be zero.
+
+## Later mainline export
+
+The second [role-trace boot](USB_ROLE_TRACE.md#physical-results) identified its
+USB Ethernet route, exported one 65,536-byte initial PMSG snapshot, received a
+host preservation acknowledgement and returned normally to authenticated
+Gemian. Private offline analysis verified that every exported byte was zero;
+the strict capture decoder refused the absent fixed header. The retained
+console shows the export action, not a capture producer. Neither the export nor
+the host collector cleared PMSG memory.
+
+This is an observation of that mainline boot's initial old-log copy. It does
+not prove why it differs from the earlier nonempty Gemian read, that the current
+zone was zero at a future capture-begin call, or that another boot will start
+empty. Do not infer that the earlier nonempty evidence was safely cleared.
+
+The next candidate can use the existing non-destructive capture-begin gate:
+require zero in both its initial snapshot and current raw zone, then write the
+fixed header and identity once. A nonzero byte remains a refusal and preserves
+the predecessor; it does not trigger a clear, retry or alternate radio path.
+This avoids selecting a destructive preparation operation for a state that may
+already be empty. Recovery isolation, producer packaging and a separately
+reviewed effect-bearing cycle are still required before device execution.
