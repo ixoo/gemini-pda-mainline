@@ -1,0 +1,41 @@
+{
+  "status": "offline-consys-handoff-composition-validated",
+  "kernel_build_commit": "2adf4c8df863870e3110590b6b8a35b14babd17e",
+  "kernel_release": "7.1.3-gemini-consys-handoff-snapshot",
+  "kernel_package_sha256": "3f5e1c51069bcd74f5e89529f55ed55e486eff6f1b4d8e7a39d75d33aa273697",
+  "parent_boot_sha256": "97c23e3f34686d8831e56f9903e109f6b9ba89cb121c88996f25411e86d5bec0",
+  "files": {
+    "Image.gz": {
+      "sha256": "08b13960784a6be89319b736aa5879eaeb6da8bd40edb1cf705af3edf0347dc9",
+      "bytes": 6047085
+    },
+    "board.dtb": {
+      "sha256": "982bcc718bc4d2fc969883d8b6c358dc90e11be67e3d05d4eb035434612d155f",
+      "bytes": 26834
+    },
+    "boot.img": {
+      "sha256": "afc225184c22707de23f8c71c629779724c3fac77ef7c72414bcdfded2ea4412",
+      "bytes": 9132032
+    },
+    "boot2-padded.img": {
+      "sha256": "991144187d3aaed6cdccef8fe890fafa52b80cfb635fe95adc4dcf04025f5333",
+      "bytes": 16777216
+    },
+    "initramfs.img": {
+      "sha256": "c1e702bd1e10bd0571b42176d9c8710151ad0b587404fa360ad5a9bd49a9b9ca",
+      "bytes": 3055468
+    },
+    "kernel.config": {
+      "sha256": "5df92c0df4a7f7e70f3baa4259dc49f3924a0669295097f729103d64c2ac6315",
+      "bytes": 110567
+    }
+  },
+  "changed_ram_members": [
+    "init"
+  ],
+  "unchanged_ram_members": 46,
+  "device_tree_change": "SPM compatible adds syscon only",
+  "secret_bearing": true,
+  "device_action": "none",
+  "physical_admission": false
+}
