@@ -456,9 +456,10 @@ The remaining preparation order is:
    [source-pinned voltage boot](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/USB_ID_VOLTAGE.md)
    then measured the existing getter at 28 mV during that decision and again
    returned normally to Gemian. This explains the selected software branch,
-   but not the low reading's physical cause or ADC status. Diagnose that input
-   before changing USB role policy. CMDQ task execution, GCE hardware-idle
-   admission and radio behavior remain unverified.
+   but not the low reading's physical cause or ADC readiness. The returned
+   Gemian boot reported USB and AC offline; independent port-power evidence is
+   still needed before changing USB role policy. CMDQ task execution, GCE
+   hardware-idle admission and radio behavior remain unverified.
    Resolve those paths, then package and validate the `cycle` action with
    shared ownership, post-reset capture preservation
    and a finite radio-effect protocol before another physical Wi-Fi test. No

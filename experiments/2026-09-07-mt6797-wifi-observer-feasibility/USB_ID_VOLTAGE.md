@@ -43,10 +43,18 @@ The prearmed host collector saw no export gadget, so no request or snapshot
 transfer occurred. No checked fault token followed the return marker.
 
 The existing getter's 28 mV return is below the 4000 mV threshold and thus
-supports the observed host choice. It does not establish actual port power,
-ADC validity, or why the getter returned 28: the lower-level control-call
-status is discarded. The masks are cumulative and the value is the latest
-stored sample, not an ordered trace. Diagnose that input and its status before
-any role-policy change; this result does not justify forcing device mode.
+supports the observed host choice. In the exact selected source, the fuel-gauge
+getter discards the battery-meter control status. The meter's charger read
+uses PMIC AUXADC channel 2, scales the returned value by the configured
+divider, and reports success; the AUXADC routine can return register data
+after a readiness timeout. Thus the 28 mV value does not establish actual
+port power or ADC validity. A later read-only observation in the authenticated
+returned Gemian boot showed `usb/online=0`, `ac/online=0`, and battery status
+`Not charging`. The owner had reported the left-port cable connected before
+this boot. The Gemian reading is from a different boot and is not an
+independent physical VBUS measurement. The masks
+are cumulative and the value is the latest stored sample, not an ordered
+trace. Resolve power at the port and ADC readiness before any role-policy
+change; this result does not justify forcing device mode.
 There was no radio action or observed CMDQ task submission, and GCE
 hardware-idle and the separate Wi-Fi resource admissions remain open.

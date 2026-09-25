@@ -47,9 +47,17 @@
     "capture_request_sent": false,
     "snapshot_transferred": false
   },
+  "returned_gemian_power_supply_observation": {
+    "boot_id_verified_before_and_after": "a3eb4157-ef96-45d2-a8e0-405b1ef46572",
+    "usb_online": 0,
+    "ac_online": 0,
+    "battery_present": 1,
+    "battery_status": "Not charging",
+    "scope": "one later read-only Gemian sysfs observation; the owner reported the left-port cable connected before mainline boot, but this is not a direct physical VBUS measurement during mainline"
+  },
   "classification": "The existing charger-voltage getter returned 28 mV at the ID-pin decision; the selected threshold chose host, preventing USB export in this boot. Mainline userspace and normal Gemian return were verified.",
   "limitations": [
-    "The returned value does not establish physical VBUS, ADC validity or why the getter produced 28 mV; its lower-level control-call status is discarded.",
+    "The returned value does not establish physical VBUS, ADC validity or why the getter produced 28 mV; the selected helper discards its control-call status and the ADC routine returns data even after a readiness timeout.",
     "The summary masks are cumulative and the voltage is the latest stored value; call counts and ordering are not retained.",
     "No CMDQ task submission or GCE hardware-idle state was observed; absence of a warning is limited to the retained console.",
     "No radio action was attempted."
