@@ -74,3 +74,10 @@ source found that reading this property returns a previously updated value;
 it does not itself start an ADC conversion. The cable's destination was not
 confirmed for this read, and the software value is not an independent VBUS
 measurement. Port power and ADC readiness remain unresolved.
+
+A [read-only Gemian interface inventory](results/gemian-typec-interface-20260925.json)
+found no Type-C, extcon, USB-role or dual-role class, and no status attribute
+on the two FUSB301 platform devices. The exposed OTG switch has not been
+established as a physical attachment signal. This inspection supplies no
+independent port-power evidence; it did not read controller registers or
+change device state.

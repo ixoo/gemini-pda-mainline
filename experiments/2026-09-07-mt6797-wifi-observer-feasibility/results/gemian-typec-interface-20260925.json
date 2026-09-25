@@ -1,0 +1,18 @@
+{
+  "purpose": "Find an already exposed, read-only USB-C attachment indication in the running Gemian boot without reading controller registers.",
+  "gemian_kernel": "3.18.41+",
+  "gemian_boot": "a3eb4157-ef96-45d2-a8e0-405b1ef46572",
+  "observed": {
+    "class_typec": "absent",
+    "class_extcon": "absent",
+    "class_usb_role": "absent",
+    "class_dual_role_usb": "absent",
+    "class_usb_phy": "absent",
+    "class_switch_otg_state": "present",
+    "platform_fusb301": "present",
+    "platform_fusb301a": "present",
+    "fusb_platform_device_status_files": "No controller-specific status attribute in either platform device's top-level regular files."
+  },
+  "classification": "The inspected Gemian class and platform interfaces provide no identified independent USB-C attachment or VBUS indication. The available OTG switch is not established as an independent physical signal. No I2C, debugfs, PMIC or other controller-register read was attempted.",
+  "limits": "Only the named sysfs directories and top-level regular files were enumerated; this does not prove no other software interface exists. Cable destination was not confirmed."
+}
