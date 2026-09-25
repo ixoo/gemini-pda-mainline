@@ -57,3 +57,35 @@ ran without a new PMIC read, role action or capture clear. Pin the selected
 source and linked writer paths, validate the exact added operations and a
 bounded return before admitting another physical selection. Mixed markers or
 missing output remain inconclusive; neither authorizes forcing device mode.
+
+## Prepared software discriminator
+
+The [experiment patch](patches/usb-role-writers/0001-usb-retain-host-state-writer-paths.patch)
+adds a seven-bit cumulative `role` field to the existing one-shot report:
+
+| Bit | Existing software-state write observed |
+| --- | --- |
+| 0 | ID-pin work selected host |
+| 1 | ID-pin work selected device |
+| 2 | ID-pin work returned to out |
+| 3 | Type-C host-enable callback selected host |
+| 4 | Type-C host-disable callback selected out |
+| 5 | Exported host setter selected host |
+| 6 | Exported out setter selected out |
+
+The report becomes `wifi-usb-v4 paths=hhhh cable=hhhhhhhh chrdet=hhhh pmic=hh role=hh`.
+Markers use the existing diagnostic configuration gate, add no hardware read,
+role request, scheduling action, retry or new reporting site, and leave every
+original assignment and return in place. The mask records whether each path
+ran at least once, not its order, count or value at the earlier role check.
+Only an unambiguous host-writer subset can identify a unique path; mixed bits
+remain inconclusive. A missing summary is also inconclusive because the
+original report guard can be consumed before the diagnostic.
+
+The [source receipt](results/usb-role-writers.json) pins both selected parent
+files, exact reversal and replay, and strict Checkpatch with zero findings.
+This assistant-generated, non-certifying native experiment is not an upstream
+submission. The first 51 patches and selected configuration are unchanged.
+Compilation, linked inspection, container construction, deployment and a new
+physical measurement are separate gates. No boot candidate is selected by this
+source record.

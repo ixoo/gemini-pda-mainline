@@ -1,0 +1,30 @@
+{
+  "before_sha256": {
+    "drivers/misc/mediatek/mu3d/drv/mt_usb.c": "397bcde2601dd4b72a1921e809352bac089caade8e0df1a8f5dbb216de868268",
+    "drivers/misc/mediatek/xhci/xhci-mtk-driver.c": "f58a440ee6569f70f3986025670d81fbe861c7da2c6b4f5c306bc6f32c83c090"
+  },
+  "after_sha256": {
+    "drivers/misc/mediatek/mu3d/drv/mt_usb.c": "b0ed99cac64d586c8999e69c1cc34f81049ca4ddbef634cf61af61fb17b0d064",
+    "drivers/misc/mediatek/xhci/xhci-mtk-driver.c": "2733943e3bb18fca9fcffaaa64fcd45c837bffb8f361a5c5bd77c19210ff61cc"
+  },
+  "inverse_exact": true,
+  "replayed_exact": true,
+  "checkpatch_exit": 0,
+  "patch_sha256": "a593cb402335fccfc9b9c9e7a4f775acf4773a902da0517b16cc39e1dfb2465b",
+  "patch_bytes": 4425,
+  "changed_files": [
+    "drivers/misc/mediatek/mu3d/drv/mt_usb.c",
+    "drivers/misc/mediatek/xhci/xhci-mtk-driver.c"
+  ],
+  "software_marks": 7,
+  "status": "Exact source replay and strict Checkpatch passed; compilation and linked validation pending; no candidate or device admission",
+  "parent_build_commit": "0c02543ad35cb22fd8281ee5400aac0c01504c3d",
+  "parent_inputs_sha256": "f1933271c1010008f17e61e6ca4524e627792247f69e9fbeaf5db6585b47315a",
+  "inputs_sha256": "10786d4fec6e1fcb5eda6a1a802ba333575fd53df8f0e886fdbccdc243563a32",
+  "patch_count": 52,
+  "parent_51_patches_unchanged": true,
+  "canonical_upstream_series_and_profiles_unchanged": true,
+  "configuration_unchanged": true,
+  "patch_path": "patches/usb-role-writers/0001-usb-retain-host-state-writer-paths.patch",
+  "effect": "Existing software state writers only; no new hardware read or role action; cumulative mask and existing one-shot report"
+}

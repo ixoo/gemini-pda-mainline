@@ -1,0 +1,144 @@
+From 0049dfe61d75216e5a276512cb979ce5abe69365 Mon Sep 17 00:00:00 2001
+From: Codex native diagnostic <noreply@native-diagnostic.invalid>
+Date: Fri, 25 Sep 2026 11:29:24 +0000
+Subject: [PATCH] usb: retain host-state writer paths in shutdown summary
+
+Mark the existing ID-pin and Type-C software-state writes and append their
+cumulative mask to the existing one-shot USB shutdown diagnostic. Do not
+change USB role decisions, charger reads, scheduling, or userspace
+interfaces.
+
+This assistant-generated native experiment carries no DCO certification
+and is not an upstream submission.
+---
+ drivers/misc/mediatek/mu3d/drv/mt_usb.c      | 14 +++++++--
+ drivers/misc/mediatek/xhci/xhci-mtk-driver.c | 33 ++++++++++++++++++++
+ 2 files changed, 45 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/misc/mediatek/mu3d/drv/mt_usb.c b/drivers/misc/mediatek/mu3d/drv/mt_usb.c
+index 831d0e9..831e3e0 100644
+--- a/drivers/misc/mediatek/mu3d/drv/mt_usb.c
++++ b/drivers/misc/mediatek/mu3d/drv/mt_usb.c
+@@ -27,6 +27,15 @@
+ #endif
+ 
+ 
++#ifdef CONFIG_USB_MTK_DUALMODE
++unsigned long mt_usb_role_paths(void);
++#else
++static inline unsigned long mt_usb_role_paths(void)
++{
++	return 0;
++}
++#endif
++
+ /* Keep early decisions until shutdown, after the export runtime returns. */
+ enum usb_export_path {
+ 	USB_EXPORT_ENTER,
+@@ -69,9 +78,10 @@ void usb_export_report(void)
+ 		return;
+ 
+ 	/* Each cumulative mask and the latest cable sample are independent. */
+-	pr_info("wifi-usb-v3 paths=%04lx cable=%08x chrdet=%04lx pmic=%02lx\n",
++	pr_info("wifi-usb-v4 paths=%04lx cable=%08x chrdet=%04lx pmic=%02lx role=%02lx\n",
+ 		READ_ONCE(usb_export_paths), atomic_read(&usb_export_cable),
+-		mt_usb_chrdet_paths(), mt_usb_chrdet_pmic_paths());
++		mt_usb_chrdet_paths(), mt_usb_chrdet_pmic_paths(),
++		mt_usb_role_paths());
+ }
+ 
+ unsigned int cable_mode = CABLE_MODE_NORMAL;
+diff --git a/drivers/misc/mediatek/xhci/xhci-mtk-driver.c b/drivers/misc/mediatek/xhci/xhci-mtk-driver.c
+index b688fea..67b111f 100644
+--- a/drivers/misc/mediatek/xhci/xhci-mtk-driver.c
++++ b/drivers/misc/mediatek/xhci/xhci-mtk-driver.c
+@@ -51,6 +51,7 @@
+ #include <linux/jiffies.h>
+ #include <linux/list.h>
+ #include <linux/atomic.h>
++#include <linux/bitops.h>
+ #include <linux/usb/hcd.h>
+ /*#include <mach/mt_chip.h>*/
+ 
+@@ -137,6 +138,31 @@ enum idpin_state {
+ 
+ static int mtk_idpin_irqnum;
+ static enum idpin_state mtk_idpin_cur_stat = IDPIN_OUT;
++
++enum usb_role_path {
++	USB_ROLE_ID_HOST,
++	USB_ROLE_ID_DEVICE,
++	USB_ROLE_ID_OUT,
++	USB_ROLE_TYPEC_HOST,
++	USB_ROLE_TYPEC_OUT,
++	USB_ROLE_SET_HOST,
++	USB_ROLE_SET_OUT,
++};
++
++static unsigned long usb_role_paths;
++
++static void usb_role_mark(enum usb_role_path path)
++{
++	if (IS_ENABLED(CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR) &&
++	    IS_ENABLED(CONFIG_USB_ETH) && !IS_ENABLED(CONFIG_USB_G_ANDROID))
++		set_bit(path, &usb_role_paths);
++}
++
++unsigned long mt_usb_role_paths(void)
++{
++	return READ_ONCE(usb_role_paths);
++}
++
+ static struct switch_dev mtk_otg_state;
+ 
+ static struct delayed_work mtk_xhci_delaywork;
+@@ -615,6 +641,8 @@ void mtk_xhci_mode_switch(struct work_struct *work)
+ 
+ 		/* expect next isr is for id-pin out action */
+ 		mtk_idpin_cur_stat = (mtk_is_charger_4_vol()) ? IDPIN_IN_DEVICE : IDPIN_IN_HOST;
++		usb_role_mark(mtk_idpin_cur_stat == IDPIN_IN_HOST ?
++			      USB_ROLE_ID_HOST : USB_ROLE_ID_DEVICE);
+ 		/* make id pin to detect the plug-out */
+ 		mtk_set_iddig_out_detect();
+ 
+@@ -656,6 +684,7 @@ void mtk_xhci_mode_switch(struct work_struct *work)
+ 
+ 		/* expect next isr is for id-pin in action */
+ 		mtk_idpin_cur_stat = IDPIN_OUT;
++		usb_role_mark(USB_ROLE_ID_OUT);
+ 		/* make id pin to detect the plug-in */
+ 		mtk_set_iddig_in_detect();
+ 	}
+@@ -773,11 +802,13 @@ void mtk_xhci_eint_iddig_deinit(void)
+ void mtk_set_host_mode_in_host(void)
+ {
+ 	mtk_idpin_cur_stat = IDPIN_IN_HOST;
++	usb_role_mark(USB_ROLE_SET_HOST);
+ }
+ 
+ void mtk_set_host_mode_out(void)
+ {
+ 	mtk_idpin_cur_stat = IDPIN_OUT;
++	usb_role_mark(USB_ROLE_SET_OUT);
+ }
+ 
+ bool mtk_is_host_mode(void)
+@@ -919,6 +950,7 @@ static int typec_otg_enable(void *data)
+ 	int ret = 0;
+ 
+ 	mtk_idpin_cur_stat = IDPIN_IN_HOST;
++	usb_role_mark(USB_ROLE_TYPEC_HOST);
+ 
+ 	ret = mtk_xhci_driver_load();
+ 	if (!ret) {
+@@ -937,6 +969,7 @@ static int typec_otg_disable(void *data)
+ 	switch_set_state(&mtk_otg_state, 0);
+ 	mtk_xhci_wakelock_unlock();
+ 	mtk_idpin_cur_stat = IDPIN_OUT;
++	usb_role_mark(USB_ROLE_TYPEC_OUT);
+ 
+ 	return 0;
+ }
+-- 
+2.39.5
+
