@@ -378,3 +378,8 @@ source comparison and full-tree replay. Those records supersede the pending
 execution status above. The [September 10 routing refresh](SUBMISSION_READINESS.md#september-10-refresh)
 records current selected upstream files and maintainer sections; authorship,
 certification and final submission coordination remain open.
+
+The [unsent ordering inquiry](ORDERING_INQUIRY_DRAFT.md) states the one
+maintainer decision needed before selecting reset-first or conversion-first
+integration. It is a draft for review, not an upstream message or patch
+submission.
