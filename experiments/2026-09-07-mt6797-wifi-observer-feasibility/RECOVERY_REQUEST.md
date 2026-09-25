@@ -10,12 +10,14 @@ waiting for that lock can therefore change request routing after the timed
 capture claims watchdog ownership. This is a source and linked-symbol finding,
 not an observation of such a call on the PDA.
 
-The unselected [patch](patches/recovery-request/0001-watchdog-refuse-request-route-changes-after-capture.patch)
+The [patch](patches/recovery-request/0001-watchdog-refuse-request-route-changes-after-capture.patch)
 checks ownership under that lock in both setters and returns `-EBUSY` before
 any register read or write. Before takeover, it retains the original operations.
 The flag and lock are provided by the existing recovery patches. This is one
 logical experiment change after the selected 52-patch parent; its synthetic
-archive identity is not a DCO sign-off or upstream submission.
+archive identity is not a DCO sign-off or upstream submission. It is the final
+entry in the 53-patch [compile-only input](full-kernel-inputs.json); this does
+not admit a new boot candidate or device action.
 
 The [focused fixture](test-recovery-request.py) compiles the two complete
 native function bodies from both source states. It injects register storage,
@@ -30,6 +32,6 @@ exception.
 
 This fixture does not prove real spinlock scheduling, register completion or
 which request clients can run during the cycle. Complete native object/link
-validation, direct request writers, caller/configuration isolation, shared
+validation is pending. Direct request writers, caller/configuration isolation, shared
 subsystem reset ownership and the full recovery budget remain open. No radio,
 watchdog takeover, new boot image or device action is admitted by this patch.

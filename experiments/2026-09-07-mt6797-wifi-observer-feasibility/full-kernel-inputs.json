@@ -211,6 +211,10 @@
     {
       "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/usb-role-writers/0001-usb-retain-host-state-writer-paths.patch",
       "sha256": "a593cb402335fccfc9b9c9e7a4f775acf4773a902da0517b16cc39e1dfb2465b"
+    },
+    {
+      "path": "experiments/2026-09-07-mt6797-wifi-observer-feasibility/patches/recovery-request/0001-watchdog-refuse-request-route-changes-after-capture.patch",
+      "sha256": "d82bcd62a09b0f12e47fe0f5310e7321380ff6bea284ccd6624c3280c4e70112"
     }
   ],
   "purpose": "complete native kernel link; no boot candidate or device admission"

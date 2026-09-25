@@ -1,7 +1,7 @@
 # Complete native controller kernel link
 
 The [Buildbox-only builder](build-full-kernel.py) compiles the complete native
-kernel from [fifty-one pinned patches](full-kernel-inputs.json): the previously
+kernel from [53 pinned patches](full-kernel-inputs.json): the previously
 compiled controller composition, the emergency reset correction, and historical
 patch 0001's A72 refusal/configuration declaration, plus the detector's watchdog
 header dependency, the [calibration open-error correction](CALIBRATION_OPEN.md)
@@ -12,7 +12,9 @@ and [earlier restart exclusion](RESTART_GATE.md), then the
 [native HPS startup policy](HPS_BOOT_POLICY.md) and the diagnostic
 [Ethernet connection correction](USB_ETHERNET_CONNECT.md), the
 [USB decision report](USB_ETHERNET_DIAGNOSTICS.md) and its
-[charger-detection discriminator](USB_CHRDET_DIAGNOSTICS.md).
+[charger-detection discriminator](USB_CHRDET_DIAGNOSTICS.md), retained
+[USB host-state writer paths](USB_ROLE_TRACE.md), and the
+[request-routing guard](RECOVERY_REQUEST.md).
 It does not select the old
 recovery trigger, profile or consumed artifact.
 
