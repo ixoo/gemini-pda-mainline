@@ -1,0 +1,22 @@
+{
+  "purpose": "Observe Gemian's existing power reports during a requested move of the left-port cable from the Mac to a known-good charger.",
+  "gemian_kernel": "3.18.41+",
+  "gemian_boot": "a3eb4157-ef96-45d2-a8e0-405b1ef46572",
+  "start_utc": "2026-09-25T18:14:56.321381+00:00",
+  "end_utc": "2026-09-25T18:19:56.353280+00:00",
+  "duration_seconds": 300.9,
+  "samples": 83,
+  "successful_samples": 83,
+  "initial_cable_destination_reported_by_owner": "Mac",
+  "physical_move_to_charger_confirmed_within_window": false,
+  "all_samples": {
+    "battery_ChargerVoltage": 0,
+    "battery_status": "Not charging",
+    "battery_capacity_percent": 93,
+    "usb_online": 0,
+    "ac_online": 0
+  },
+  "private_trace_sha256": "abd2cf13c4053b513303e27228bac1ca835af806fad040e88708f0f2368f9ff7",
+  "classification": "No software power-state transition was reported. The cable move has not been confirmed within the window, so this does not yet establish Gemian's response to the known-good charger.",
+  "limits": "The Gemian values are software reports, not independent physical VBUS measurements. This watch did not read controller registers or alter power settings."
+}

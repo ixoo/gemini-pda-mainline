@@ -81,3 +81,11 @@ on the two FUSB301 platform devices. The exposed OTG switch has not been
 established as a physical attachment signal. This inspection supplies no
 independent port-power evidence; it did not read controller registers or
 change device state.
+
+The owner then identified the cable's other end as the Mac. A
+[fresh five-minute Gemian watch](results/usb-power-mac-to-charger-watch-20260925.json)
+began from that reported connection and collected 83 successful samples on one
+boot, all with cached charger voltage zero, USB/AC offline and `Not charging`.
+The requested move to a known-good charger was not confirmed within the watch,
+so this is still not a charger-response result. Starting from the reported
+Mac connection, Gemian reported no power transition in that interval.
