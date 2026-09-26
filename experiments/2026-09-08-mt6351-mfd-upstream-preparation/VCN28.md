@@ -40,6 +40,12 @@ on-control or source-clock selection request. It returns zero even for a null
 handle or an enable error. Calling it is not equivalent to executing the
 common wrapper's mode transition.
 
+A later [instrumented Gemian boot](../2026-09-26-gemian-wifi-reference/results/runtime-1.json)
+recorded `co_clock_type=0` at WMT initialization and CONSYS power-on while
+WLAN subsequently reached carrier. This attributes the zero-argument source
+branch in that boot; it does not read back `0x0a0c`, prove that the requested
+mode took effect, or identify its source-clock input.
+
 ## Source-clock boundary
 
 The pinned Gemian header, whose complete digest is in the receipt, names
