@@ -393,8 +393,16 @@ for the first Wi-Fi bring-up. The current preparation order is:
    the live-powered-state and unknown-allocation branches for that boot, but
    do not prove exclusive handoff, remap/EMI ownership or safe
    activation. Do not repeat that candidate; the next device gate must measure
-   a new ownership premise. The accepted no-database parser run establishes
-   original ordinary-global `T` linkage for all four required wrapper/init/exit targets
+   a new ownership premise. An attended
+   [shared-handoff snapshot](../experiments/2026-09-25-mt6797-consys-handoff/results/runtime-20260926.json)
+   then captured a complete authenticated log: CONN remained off, but both
+   bus-protection status bits were clear, the common remap was disabled, and
+   EMI selector bit 13 was set. The device returned to Gemian. This refuses
+   adoption of an already protected/mapped shared handoff; it does not prove
+   the cold-off state is faulty. Next resolve actual writer exclusion and the
+   serialized protection/remap/power sequence before firmware effects, rather
+   than repeating either passive image. The accepted no-database parser run
+   establishes original ordinary-global `T` linkage for all four required wrapper/init/exit targets
    and conservative next-distinct-symbol inspection envelopes. The later
    retained-instruction observer/checker line is owner-closed without semantic
    execution and must not be resumed as another offline repair loop. A bounded

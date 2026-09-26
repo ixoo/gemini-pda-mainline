@@ -1,0 +1,25 @@
+{
+  "candidate_boot2_sha256": "991144187d3aaed6cdccef8fe890fafa52b80cfb635fe95adc4dcf04025f5333",
+  "owner_reported_boot2_selected": true,
+  "watch_start_utc": "2026-09-25T22:26:26Z",
+  "watch_end_utc": "2026-09-25T22:36:26Z",
+  "local_route_watch_seconds": 600,
+  "watch_terminal": "expired-without-route",
+  "watch_exit_status": 3,
+  "mainline_usb_route_seen": false,
+  "device_ssh_attempts": 0,
+  "authenticated_session_claim": "none",
+  "host_usb_sample_utc": "2026-09-25T22:31:01Z",
+  "host_usb_sample": {
+    "vendor_id": "0x0e8d",
+    "product_id": "0x20ff",
+    "vendor_string": "GNU/Linux Device",
+    "product_string": "Unknown",
+    "active_configuration": 1,
+    "macos_network_interface_seen": false
+  },
+  "expected_candidate_gadget_product_string": "Gemini-L-Observability",
+  "post_window_gemian_lan_check": "connection-timeout",
+  "pda_screen_state": "unknown",
+  "interpretation": "The watched interval did not expose the candidate USB network gadget. The observed USB identity differs from the candidate configuration; it does not identify the running boot stage or establish that the kernel never started. No runtime CONSYS result exists."
+}

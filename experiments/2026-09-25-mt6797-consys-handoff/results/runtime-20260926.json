@@ -1,0 +1,50 @@
+{
+  "classification": "passive-consys-handoff-unprotected-observed",
+  "kernel_build_commit": "2adf4c8df863870e3110590b6b8a35b14babd17e",
+  "candidate_boot2_sha256": "991144187d3aaed6cdccef8fe890fafa52b80cfb635fe95adc4dcf04025f5333",
+  "preceding_gemian_boot": "abf9441d-0903-4e9f-8a67-f5063e85ee7a",
+  "mainline_boot": "f755286e-bdf6-4458-b6c7-ab450bd78107",
+  "host_usb": {
+    "watch_armed_utc": "2026-09-26T11:10:26Z",
+    "prior_unknown_device_utc": "2026-09-26T11:10:26Z",
+    "no_device_utc": "2026-09-26T11:10:37Z",
+    "candidate_gadget_utc": "2026-09-26T11:10:46Z",
+    "candidate_gadget_product": "Gemini_L_Observability",
+    "direct_network_route_utc": "2026-09-26T11:10:48Z"
+  },
+  "observation": {
+    "conn_power_state": "off",
+    "conn_power_samples": 2,
+    "handoff_state": "unprotected",
+    "reservation_base": "0xbfa00000",
+    "reservation_size_bytes": 2097152,
+    "remap_register": "0x180e0000",
+    "expected_common_field": "0x1bfa",
+    "common_remap_enabled": false,
+    "conn_bus_protection_status_bits_17_18": "0x00000",
+    "emi_selector_bit_13": 1,
+    "handoff_samples": 2,
+    "handoff_reads": 6,
+    "power": 0,
+    "reset": 0,
+    "remap_write": 0,
+    "protection_write": 0,
+    "firmware": 0,
+    "radio": 0,
+    "dma": 0
+  },
+  "log": {
+    "classification": "complete-log-through-seal",
+    "bytes": 127086,
+    "records": 1829,
+    "sha256": "0f7cdbec794f77b913ac7f35f1b0a3b4bde304c4502083c5a0f403b268a33e01"
+  },
+  "recovery": {
+    "native_request": "sent",
+    "returned_gemian_boot": "b79541db-5e95-4a02-a32f-87fa18474b38",
+    "classification": "changed-ID-Gemian"
+  },
+  "decision": "The shared state cannot be adopted. CONN was off, but both bus-protection status bits were clear and the common remap was disabled. No active CONSYS or firmware action is admitted by this observation.",
+  "limitation": "Two late-init samples describe this boot only. They do not establish external-writer exclusion, reset attribution, secure MPU ownership, the active power sequence or usable Wi-Fi.",
+  "private_raw_evidence": "retained-ignored"
+}

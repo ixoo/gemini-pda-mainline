@@ -1670,6 +1670,14 @@ It is not a second boot, so cross-boot placement stability remains unproven.
 See the [memory carve-out recovery experiment](../../experiments/2026-07-13-memory-carveout-recovery/README.md)
 for the sanitized capture and Linux 7.1.3 comparison.
 
+An [authenticated mainline handoff snapshot](../../experiments/2026-09-25-mt6797-consys-handoff/results/runtime-20260926.json)
+resolved that boot's 2 MiB no-map reservation at `0xbfa00000` and found CONN
+power off. Two stable late-init samples found INFRACFG CONN bus-protection
+status bits 17/18 clear, common remap `0x180e0000` with its enable bit clear,
+and EMI selector bit 13 set. The reservation would require common remap field
+`0x1bfa` if enabled. These are observed register values, not an ownership or
+safe-activation claim; the image made no CONSYS, firmware, radio or DMA write.
+
 ## Cellular modem CCCI/CLDMA
 
 The live Gemian kernel exposes two CCCI domains: MD1 (major `237`) with

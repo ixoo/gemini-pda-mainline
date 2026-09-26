@@ -255,6 +255,14 @@ observed CONN off in both SPM status registers twice at late init with zero
 effect calls; it did not establish reset/handoff attribution, shared remap,
 selector state or external-writer exclusion.
 
+A subsequent [authenticated handoff snapshot](../2026-09-25-mt6797-consys-handoff/results/runtime-20260926.json)
+measured the boot's reservation, shared remap, EMI selector and CONN
+bus-protection status without effects. CONN was off, but protection status
+bits 17/18 were clear and the common remap was disabled. This refuses adoption
+of an already protected/mapped handoff; reset attribution, external-writer
+exclusion and the active sequence remain unresolved. The snapshot's one-boot
+budget is consumed.
+
 The hypothesis is that a single manager can bind the real reserved resources
 without adopting unknown live firmware or changing another client. Matching
 bounds plus a coherent attributable cold/handoff state permit construction

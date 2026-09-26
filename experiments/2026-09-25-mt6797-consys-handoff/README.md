@@ -1,8 +1,9 @@
 # Passive CONSYS shared-handoff snapshot
 
-Status: one guarded boot2 installation and clean shutdown complete; physical
-selection is unconfirmed and runtime observation is pending. One bounded
-collector window expired without a USB route. The previous [authenticated status boot](../2026-09-25-mt6797-consys-status/README.md)
+Status: one guarded boot2 installation and clean shutdown, an authenticated
+mainline observation with a complete log, and a verified changed-boot Gemian
+return. The shared handoff was unprotected and the common remap was disabled;
+Wi-Fi remains unimplemented. The previous [authenticated status boot](../2026-09-25-mt6797-consys-status/README.md)
 found CONN off in both SPM status registers and logged the boot's allocated
 2 MiB no-map CONSYS reservation. It did not show the shared remap, EMI
 selector or CONN bus-protection state. That image's boot budget is consumed.
@@ -82,7 +83,7 @@ passed. The [session binding](session.py) and [host runner](host.py) retain the
 authenticated USB observation, complete log preservation and reviewed native
 Gemian return flow.
 
-## Guarded installation and pending selection
+## Guarded installation and attempted observation
 
 In Gemian boot `abf9441d-0903-4e9f-8a67-f5063e85ee7a`, the live GPT selected
 inactive boot2, distinct from the root partition. The reviewed block-device
@@ -93,12 +94,49 @@ the complete independent readback to SHA-256
 `991144187d3aaed6cdccef8fe890fafa52b80cfb635fe95adc4dcf04025f5333`.
 Clean shutdown was requested and the host confirmed Gemian unreachable. The
 [sanitized deployment receipt](results/deployment.json) omits device paths and
-private raw evidence. The owner has not yet confirmed physical boot2 selection
-for this image. The first bounded 900-second local USB-route watcher
+private raw evidence. The owner had not confirmed physical boot2 selection
+for this image during the first bounded 900-second local USB-route watcher, which
 [expired without a route](results/collector-window-1.json). It made no device
-claim or SSH connection; the private session directory still contains only its
+claim or SSH connection; the private session directory then contained only its
 deployment receipt. A subsequent pinned-key Gemian LAN check timed out,
-consistent with a powered-off PDA but not proof of its screen state. Re-arm a
-fresh local route watcher after the owner reports the screen state; the device
-observation/log/recovery session remains unconsumed. No mainline runtime claim
-exists yet.
+consistent with a powered-off PDA but not proof of its screen state.
+
+The owner then reported selecting boot2. A [second 600-second local watcher](results/collector-window-2.json)
+was armed shortly afterward and expired without the `10.15.19.1/24` USB route.
+The Mac saw a stable USB device with vendor/product `0x0e8d:0x20ff` and product
+string `Unknown`, rather than the candidate's configured
+`Gemini-L-Observability` gadget. It exposed no macOS network interface. The
+known-good Gemian LAN endpoint also timed out. This host-side observation does
+not identify the boot stage or establish that the kernel never started. No
+device SSH attempt, authenticated claim or CONSYS runtime result occurred; the
+session remained unconsumed. That window began after the owner had selected
+boot2, so it could not distinguish a missed early gadget interval from a boot
+that never exposed the candidate gadget.
+
+## Authenticated runtime result
+
+For the next attended selection, a watcher began before the owner selected
+boot2. The Mac first saw the `Unknown` USB identity, then no device, then the
+candidate's `Gemini-L-Observability` gadget and its direct network route. The
+authenticated session consumed its one claim, preserved the complete 127,086
+byte kernel log through an explicit seal, and confirmed return to a new Gemian
+boot. The [sanitized runtime result](results/runtime-20260926.json) binds the
+candidate checksum, both boot IDs and the log digest; private raw captures
+remain under ignored `artifacts/`.
+
+The same mainline boot logged CONN power off in both SPM status registers and
+resolved the 2 MiB no-map CONSYS reservation at `0xbfa00000`. Two stable
+handoff samples read CONN bus-protection status bits 17/18 as clear, common
+remap register `0x180e0000` with its common-enable bit clear, and EMI selector
+bit 13 set. The reservation would require common remap field `0x1bfa` if
+enabled. All power, reset, remap-write, protection-write, firmware, radio and
+DMA counters stayed zero. The observer classified the state `unprotected`;
+that classification takes precedence over the separately observed disabled
+remap.
+
+This is a refusal to adopt the handoff as an already owned/ready shared
+resource. It does not prove that the two clear protection bits are erroneous
+for a cold, powered-off CONN island. The next shared owner must establish the
+actual writer exclusion and a safe serialized protection/remap/power sequence
+before any firmware or radio effect. This exact candidate's observation budget
+is consumed; repeating it would not answer those ownership questions.
