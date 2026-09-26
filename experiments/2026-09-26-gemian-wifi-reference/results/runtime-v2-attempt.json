@@ -6,8 +6,9 @@
   "owner_observation": "Gemian started after the boot2 handoff",
   "collector_result": "timeout without a changed-boot SSH connection",
   "lan_endpoint_observation": "known-good address unreachable during the collector window",
+  "later_host_usb_observation": "0x0e8d:0x20ff GNU/Linux Device, product Unknown, one unchanged macOS USB session with no exposed USB network interface",
   "kernel_release": null,
   "changed_boot_id": null,
   "wifi_state": "unverified",
-  "interpretation": "The installed image passed full readback, but this attempt does not establish whether boot2 ran or why LAN SSH was absent."
+  "interpretation": "The installed image passed full readback. The 0x20ff host identity also occurs at an intermediate stage in earlier project boots, but does not identify this boot stage or explain the absent LAN. This attempt does not establish whether boot2 ran."
 }

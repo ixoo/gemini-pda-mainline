@@ -229,4 +229,7 @@ Gemian started, the armed one-shot LAN collector timed out without a
 changed-boot SSH connection. The [attempt receipt](results/runtime-v2-attempt.json)
 records this separately: neither the running kernel nor Wi-Fi state is yet
 verified, so this is not a validated v2 boot or a Wi-Fi regression result.
-The device remains running pending screen-state and recovery-path inspection.
+The Mac later still saw one `0x0e8d:0x20ff` USB session without a network
+interface; that identity also appears as an intermediate stage in earlier
+project boots, but does not establish the stage here. The device remains
+running pending screen-state and recovery-path inspection.
