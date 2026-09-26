@@ -325,3 +325,15 @@ limit so its exit trap restores the `nop` tracer, all-function filter, local
 clock, 7 KiB buffer and tracing state even if SSH disconnects. A later
 instrumented kernel still needs typed native DMA register and idle-before-
 unmap evidence; function tracing cannot supply those values.
+
+The one admitted window completed in the same v2 boot. Exactly 4,096 zero
+bytes reached the Mac over authenticated SSH. A positive `vfs_read` control
+and 1,161 non-overrun function entries included 419 `kalDevPortRead`, 21
+`kalDevPortWrite`, 72 `HifPdmaConfig` and 72 `HifPdmaStart` lines. The service
+exited zero, carrier remained up, and the tracer, clock and buffer returned
+to their prior state. The [sanitized presence receipt](results/trace-dma-presence-v2-1.json)
+pins the private output. This demonstrates that the selected DMA config/start
+path was active during a window containing the SSH reply; background Wi-Fi
+traffic prevents attributing every call to that reply. It does not provide
+programmed addresses, raw poll progression or idle-before-unmap evidence.
+The one-window budget is consumed; do not replay it.

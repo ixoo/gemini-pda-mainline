@@ -429,11 +429,18 @@ for the first Wi-Fi bring-up. The current preparation order is:
    captured WLAN remove/probe and image mapping/load helper calls with Bluetooth
    still on and no selected common-block power call. Carrier returned, but a
    new cfg80211 removal warning occurred because the associated interface still
-   held a `current_bss` reference at unregister; DMA, firmware-stop completion and
-   effective EMI arbitration remain unresolved. A bounded [retained-evidence audit](../experiments/2026-09-07-mt6797-wifi-retained-lifetime-audit/README.md)
-   found no record that joins any required predicate to one successful WLAN
-   cycle. Select a focused measurement for the missing firmware-stop and DMA
-   predicates, and admit a disconnect state before another radio effect.
+   held a `current_bss` reference at unregister. The later
+   [v2 stop cycle](../experiments/2026-09-26-gemian-wifi-reference/results/trace-wmt-stop-v2-1.json)
+   first disconnected, then observed one successful firmware power-control
+   command, WCIR ready clear and completed worker waits without another warning;
+   carrier returned. A separate [bounded DMA-path trace](../experiments/2026-09-26-gemian-wifi-reference/results/trace-dma-presence-v2-1.json)
+   confirmed live WLAN DMA configuration/start calls. These results narrow the
+   earlier [retained-evidence audit](../experiments/2026-09-07-mt6797-wifi-retained-lifetime-audit/README.md):
+   positive DMA idle-before-unmap, programmed addresses/endpoint translation,
+   raw poll progression, coherent shared CONSYS shutdown and effective EMI
+   arbitration remain unresolved. Select typed native DMA observations and
+   shared-owner admission before another effect-bearing mainline candidate;
+   do not replay either single-use Gemian radio or DMA-presence cycle.
    See the
    [retained-ELF boundary](../experiments/2026-09-06-mt6797-wlan-final-linkage-teardown-attribution/README.md),
    [accepted database boundary](../experiments/2026-09-06-vmlinux-to-elf-kernel-db-provenance-v2/README.md)
