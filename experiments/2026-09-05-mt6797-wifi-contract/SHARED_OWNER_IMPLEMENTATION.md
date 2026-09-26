@@ -234,11 +234,11 @@ PIO does not program/enable/reset it. When DMA is eventually admitted, claim
 only the HIF channel, coordinate the shared clock/protection owner and I2C/BTIF
 users, and serialize HIF command setup with channel operation. Use the actual
 DMA master's translation domain, dedicated padded buffers and full-width DMA
-addresses. Resolve ADDR2/endpoint encoding before selecting any mask. Release
-buffers/mappings only after proven idle; timeout pins them with the poisoned
+addresses. Resolve the HIF endpoint's bit-32 routing before selecting any mask.
+Release buffers/mappings only after proven idle; timeout pins them with the poisoned
 channel owner. No whole-block reset or forced shared-clock shutdown is an
 unwind operation. [DMA contract](HIF_DMA_CONTRACT.md) and
-[unresolved translation](ADDR2_TRANSLATION.md) remain the exact effect boundary.
+[unresolved bus routing](ADDR2_TRANSLATION.md) remain the exact effect boundary.
 
 ## First device-observable gate and remaining effects
 
