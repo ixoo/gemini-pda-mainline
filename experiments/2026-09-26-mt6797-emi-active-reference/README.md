@@ -83,3 +83,24 @@ It does not establish the VCN28 hardware-control selector, the effective
 source-clock mode, the rail sequence, or which other connectivity clients hold
 votes. Those remain provider-design questions rather than permission to copy
 the vendor wrapper's unchecked return behavior.
+
+## Region-23 producer and CONNSYS master label
+
+A follow-up inspection of the [pinned public MT6797 EMI driver](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/emi_mpu/mt6797/emi_mpu.c), checksum
+`39921d80191b674940246425123b52fa140262a7e17022f90f02dd88389932b2`,
+found that its `protect_ap_region()` deliberately requests region 23 across
+DRAM with packed permission `0xba8b68`; the live sysfs readout matches that
+policy. This explains why the broad region is present in the reference, but
+does not establish which overlapping region wins an access. The same driver
+labels a CONNSYS master at peripheral port 6 with AXI ID match value `0x3`
+and mask `0x1ffb`. Its violation path decodes the domain ID from status bits
+23:21; the master-name table itself does not assign a domain.
+
+A bounded read-only filter of the current Gemian `dmesg` returned no matching
+EMI violation/master/domain lines and confirmed the same boot ID before and
+after. The private 74-byte response is ignored under `artifacts/`; the
+[sanitized receipt](results/master-routing.json) records its checksum. A quiet
+ring buffer neither proves that no violation occurred nor identifies a domain.
+No protection write, test violation or radio action was attempted. Mainline
+must account for region 23 without overwriting it and still determine effective
+CONNSYS/AP domain routing and overlap arbitration before writing region 18.

@@ -57,6 +57,14 @@ windows and reports domain 2 forbidden. The readout does not establish which
 region wins, the effective master/domain assignment or permission to reproduce
 the policy in mainline.
 
+The pinned public MT6797 EMI driver explicitly requests broad AP region 23
+with the same `0xba8b68` policy seen in Gemian. Its CONNSYS master-name table
+matches peripheral port 6, AXI ID `0x3` masked by `0x1ffb`; this is a decoder
+label, not a protection-domain assignment. The violation handler could report
+a domain ID, but a bounded filter of the active Gemian boot log found no
+matching event. The [source and live-log receipt](../../experiments/2026-09-26-mt6797-emi-active-reference/results/master-routing.json)
+does not resolve overlapping-region arbitration or grant a region-18 write.
+
 The selected producer family adds a two-byte storage envelope around the WIFI
 record; the kernel consumer reads the logical payload. Retained-file presence,
 static producer analysis and public configuration mapping are separately
