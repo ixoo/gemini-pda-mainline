@@ -3,7 +3,7 @@
 The [RE toolkit decision](RE_TOOLKIT.md) audits the current diagnostic
 capabilities and explains why Kprobes is deferred for this 3.18 arm64 tree.
 
-Status: four diagnostic Gemian revisions built and verified in changed boot2
+Status: five diagnostic Gemian revisions built and verified in changed boot2
 sessions. Wi-Fi carrier and bounded startup DMA observations are established;
 mainline shared ownership and later packet DMA completion remain open.
 
@@ -598,4 +598,23 @@ result, not permission to repeat the trigger. A boot or Wi-Fi regression uses
 the reviewed recovery path after evidence preservation. Even positive records
 prove only those final EN reads before unmap; low/ADDR2 register programming,
 clean completion and exclusive shared-DMA ownership remain separate gates.
-No v6 build or device action is claimed yet.
+The [v6 Buildbox receipt](results/build-v6.json) pins a full kernel link from
+clean pushed commit `250ef67905ab44ac587d400f556f964c793f8b2c`. The
+validated bundle contains the root-only parameter and both v6 record strings;
+its only diagnostic is the same 69-section-mismatch warning as v1–v5. The
+[offline candidate](results/candidate-v6.json) pins the unchanged ramdisk and
+appended DTB, a 14,995,456-byte raw Android-v0 image, and exact 16 MiB boot2
+image with SHA-256
+`f6218df7bc55b00218d2b9ac3e2cac61a1903486b753ff90bf51dcd1687eee7b`.
+The generated installer is bound to the observed v5 Gemian boot and v5 boot2
+predecessor. These receipts establish a prepared candidate, not v6 device
+execution.
+
+The [one-shot trigger](trigger-v6.py) runs only after a changed v6 boot is
+captured by the private collector and Wi-Fi carrier is stable. It verifies the
+pinned SSH identity and host trust, boot ID, release, parameter mode, initial
+false value and absence of earlier v6 DMA records immediately before its sole
+flag write. It saves the probe, reply, complete later logs and carrier samples
+under ignored, owner-only `artifacts/`. A timeout or incomplete result is
+preserved without a second write or reply. The 4 KiB reply is a bounded traffic
+window, not packet-level attribution.

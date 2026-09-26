@@ -1,0 +1,19 @@
+{
+  "repository_commit": "250ef67905ab44ac587d400f556f964c793f8b2c",
+  "package_inventory_sha256": "dd32bb7d0d61b1b98d1d451bbc884501b1e5291ab417ea5eaa452760b8a33c58",
+  "assembler_sha256": "532f6f0dec5030a7b066f3baefa53580ec148317f633d4dd8d43308d30ac03b3",
+  "active_boot_sha256": "1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513",
+  "kernel_field_sha256": "389298aa39da249fedda073375561cb35f9fbc8ac56b087226d95738f9d8ebaf",
+  "ramdisk_sha256": "a1ee05445e9a2bd8fbc1f75d7cda326b9ca7a6d3b644cbb1d5fc0ac167835be4",
+  "appended_dtb_sha256": "9e26929563f7682d1f7545d6007f0092c7e085a4edbd6e7be0ac8eaa5159b2f9",
+  "independent_v5_comparison": "Ramdisk and appended DTB bytes match v5; Android-v0 header differs only in kernel size and image ID; all post-field padding is zero.",
+  "raw_image_sha256": "18397ff69fc9546805f65a38cfff26f430fdd55683fe443166baa76da3de8d02",
+  "raw_image_bytes": 14995456,
+  "boot2_image_sha256": "f6218df7bc55b00218d2b9ac3e2cac61a1903486b753ff90bf51dcd1687eee7b",
+  "boot2_image_bytes": 16777216,
+  "candidate_manifest_sha256": "109cf4365427459a40765b61625e0cc3f5da45c6853c625effc0f9e9ce53fc90",
+  "boot_candidate": true,
+  "selected_for_installation": false,
+  "installed": false,
+  "device_execution": false
+}
