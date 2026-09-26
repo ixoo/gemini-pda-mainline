@@ -618,3 +618,9 @@ flag write. It saves the probe, reply, complete later logs and carrier samples
 under ignored, owner-only `artifacts/`. A timeout or incomplete result is
 preserved without a second write or reply. The 4 KiB reply is a bounded traffic
 window, not packet-level attribution.
+
+The [v6 deployment receipt](results/deployment-v6.json) records a guarded
+write from the verified v5 boot: boot2 was inactive, the v5 predecessor matched,
+the full v6 partition readback matched the candidate, and Gemian shut down
+cleanly. This establishes installed media, not a v6 runtime result; physical
+boot2 selection and changed-boot observation are the next gate.
