@@ -1,0 +1,16 @@
+{
+  "gemian_boot_id": "e5c5af64-22bb-4187-a482-964d9e70c052",
+  "gemian_kernel_release": "3.18.41+",
+  "target_logical_name": "boot2",
+  "boot2_device_guard": "passed at probe, write, and post-write",
+  "target_major_minor": "179:30",
+  "root_major_minor": "179:29",
+  "predecessor_sha256": "138e35e41fa12a3a0cdeca3660e42e291b5268814167c2857a7ad67cffe594b2",
+  "candidate_sha256": "4ec72c2012387a3f3f89b9272b357920507767ebbd76f4b66133293b12470f8e",
+  "readback_sha256": "4ec72c2012387a3f3f89b9272b357920507767ebbd76f4b66133293b12470f8e",
+  "power": "battery present, 100 percent, healthy; no external supply reported",
+  "private_deployment_summary_sha256": "7caa99dc12d5bda6895ffda9e1ad63632df11e7f2fd8ddc42fdb2f976d43a22f",
+  "result": "write-synced-flushed-full-readback-verified",
+  "clean_shutdown": "confirmed-unreachable",
+  "boot2_execution": "owner reported Gemian started after handoff; kernel identity unverified"
+}

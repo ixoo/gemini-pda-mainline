@@ -203,17 +203,30 @@ source, toolchain, ordered patches and linked kernel. The only recorded build
 diagnostic is the baseline 69-section-mismatch modpost warning. The
 [v2 offline candidate](results/candidate-v2.json) uses the same verified
 Gemian boot image, Android-v0 assembler and ramdisk as v1; only its kernel
-field changes. The private image and reviewed installer remain ignored.
+field changes. An independent parse also found the appended DTB identical and
+the header different only in kernel size and image ID; both images have zero
+post-field padding. The private image and reviewed installer remain ignored.
 
-Its next boot hypothesis is that
+The v2 boot hypothesis is that
 the unchanged Gemian setup will still reach WLAN carrier and expose both new
 diagnostic formats in the linked kernel. The unique first-boot observation is
 the exact boot2 image/readback identity, changed boot ID, kernel release,
 startup log and carrier state. If boot or carrier fails, preserve evidence and
 return to known-good Gemian; do not retry the same image. If startup succeeds,
 a separately bounded and recovery-ready off/on protocol can measure the stop
-decision after explicitly clearing association. No such radio cycle or boot2
-deployment follows from the build artifact alone. The current v1 device
-session and its private captures remain intact. Before a v2 boot2 write, the
-device must return to known-good primary Gemian so that boot2 is an inactive
-target for the reviewed GPT guard and full readback.
+decision after explicitly clearing association. No radio cycle follows from
+the build artifact alone. The v1 session and its private captures were
+preserved. Before the v2 boot2 write, the device returned to known-good
+primary Gemian so that boot2 was an inactive target for the reviewed GPT
+guard and full readback.
+
+The [v2 deployment receipt](results/deployment-v2.json) records a changed
+primary Gemian boot, root on p29, inactive boot2 on p30, the exact v1
+predecessor, three passing guard stages, full candidate readback, and a clean
+shutdown. The device reported a healthy full battery and no external supply;
+the reviewed power gate admitted this state. After the owner reported that
+Gemian started, the armed one-shot LAN collector timed out without a
+changed-boot SSH connection. The [attempt receipt](results/runtime-v2-attempt.json)
+records this separately: neither the running kernel nor Wi-Fi state is yet
+verified, so this is not a validated v2 boot or a Wi-Fi regression result.
+The device remains running pending screen-state and recovery-path inspection.

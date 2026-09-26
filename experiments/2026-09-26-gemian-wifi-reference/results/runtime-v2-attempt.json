@@ -1,0 +1,13 @@
+{
+  "candidate_sha256": "4ec72c2012387a3f3f89b9272b357920507767ebbd76f4b66133293b12470f8e",
+  "previous_gemian_boot_id": "e5c5af64-22bb-4187-a482-964d9e70c052",
+  "collector": "one-shot changed-boot Gemian LAN SSH observer",
+  "window_seconds": 600,
+  "owner_observation": "Gemian started after the boot2 handoff",
+  "collector_result": "timeout without a changed-boot SSH connection",
+  "lan_endpoint_observation": "known-good address unreachable during the collector window",
+  "kernel_release": null,
+  "changed_boot_id": null,
+  "wifi_state": "unverified",
+  "interpretation": "The installed image passed full readback, but this attempt does not establish whether boot2 ran or why LAN SSH was absent."
+}
