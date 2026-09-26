@@ -485,3 +485,8 @@ release; `count_escape=0` supports only a clear EN bit at the final read.
 One record per direction cannot establish every transfer's ownership or
 replace the native driver's full DMA sequencing. No v4 device boot has yet
 been observed.
+
+The [v4 deployment receipt](results/deployment-v4.json) records the guarded
+boot2 write, independent full-partition readback match, and clean shutdown.
+The owner physically selects boot2 while a finite LAN collector is armed;
+deployment alone is not a runtime result.
