@@ -26,3 +26,10 @@ OFF. Any future shared CONSYS owner must query the latch before each hardware
 use. The owner also needs SPM key and external rail/reset sequencing, writer
 exclusion, and EMI/remap policy before activation. No boot2 image or device
 test is admitted by this isolated compile profile.
+
+The [Buildbox result](results/build.json) records a full ARM64 kernel link
+from clean pushed commit `8b91121d08d4949026f364d549d5fe27dec2be14`.
+The fetched package passed its SHA256 inventory check. Its configuration
+builds the modern provider and disables the legacy one; `System.map` contains
+the modern direct-control ON/OFF callbacks. This proves compilation of the
+unselected capability, not its runtime fault behavior.

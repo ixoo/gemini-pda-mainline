@@ -421,8 +421,13 @@ for the first Wi-Fi bring-up. The current preparation order is:
    portability alone does not admit a device test. A
    [child-domain provider comparison](../experiments/2026-09-26-mt6797-conn-spm-register-control/README.md#child-domain-provider-comparison)
    finds that the newer provider can avoid unrelated probe activation, but
-   its default-off check and ON-error cleanup cannot yet retain a safe CONN
-   state. Migrate only with fail-closed status and failure lifetime. A later
+   its original default-off check and ON-error cleanup cannot retain a safe
+   CONN state. Isolated, compile-validated
+   [initial-OFF admission](../experiments/2026-09-26-mt6797-modern-provider-off-admission/README.md)
+   and [fault retention](../experiments/2026-09-26-mt6797-modern-provider-fault-retention/README.md)
+   proposals now address those provider prerequisites. Neither flag is selected
+   for CONN, and no child DT, fault-query client or shared owner is present;
+   these are not device candidates. A later
    [read-only Gemian EMI reference](../experiments/2026-09-26-mt6797-emi-active-reference/results/runtime.json)
    confirms the vendor-requested region-18/19 ranges and permission values in
    a boot where WLAN carrier was observed later, but also shows broad region 23
