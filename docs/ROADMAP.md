@@ -423,8 +423,9 @@ for the first Wi-Fi bring-up. The current preparation order is:
    finds that the newer provider can avoid unrelated probe activation, but
    its original default-off check and ON-error cleanup cannot retain a safe
    CONN state. Isolated, compile-validated
-   [initial-OFF admission](../experiments/2026-09-26-mt6797-modern-provider-off-admission/README.md)
-   and [fault retention](../experiments/2026-09-26-mt6797-modern-provider-fault-retention/README.md)
+   [initial-OFF admission](../experiments/2026-09-26-mt6797-modern-provider-off-admission/README.md),
+   [fault retention](../experiments/2026-09-26-mt6797-modern-provider-fault-retention/README.md)
+   and [checked status polling](../experiments/2026-09-26-mt6797-modern-provider-status-errors/README.md)
    proposals now address those provider prerequisites. Neither flag is selected
    for CONN, and no child DT, fault-query client or shared owner is present;
    these are not device candidates. A later

@@ -21,3 +21,10 @@ No domain selects the flag in this profile. The patch does not add MT6797
 domain data or a DT child, and it does not address SPM register-control
 authority, external rails/reset, power-bit OFF ordering, or shared EMI/remap
 ownership. It is not a boot2 candidate or evidence of usable Wi-Fi.
+
+The [Buildbox result](results/build.json) records a full ARM64 kernel link
+from clean pushed commit `f8b58cdbff09eb36b4574dee8810fa10eb332b1c`.
+The fetched package passed its SHA256 inventory check and contains the exact
+proposal patch. The resolved config builds the modern provider and disables
+the legacy one; `System.map` contains `scpsys_domain_state` and
+`scpsys_wait_for_state`. No fault was injected and no device ran this profile.
