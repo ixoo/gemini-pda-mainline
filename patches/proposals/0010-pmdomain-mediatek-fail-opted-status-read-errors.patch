@@ -1,0 +1,145 @@
+From 9ae8dff89ec855f485e9750121a09bac4d511d30 Mon Sep 17 00:00:00 2001
+From: MT6797 diagnostic experiment <nobody@example.invalid>
+Date: Sat, 26 Sep 2026 18:05:55 -0400
+Subject: [PATCH] pmdomain: mediatek: fail opted transitions on status read
+ errors
+
+The direct-control transition polls use a boolean status helper that
+ignores regmap read errors. An unreadable ACK can therefore be mistaken
+for a completed transition. This is unsafe for a future retained-fault
+MT6797 CONN domain.
+
+For opted domains, read both status registers with error checks and wait
+for a coherent requested state. Mixed status continues polling; a read
+error aborts immediately, so the existing opted failure latch retains
+the domain prerequisites. Reuse the same state read for initial-OFF
+admission. Existing domains keep their previous transition polls.
+
+Internal compile experiment only; synthetic author, no DCO
+certification.
+---
+ drivers/pmdomain/mediatek/mtk-pm-domains.c | 68 +++++++++++++++++-----
+ 1 file changed, 55 insertions(+), 13 deletions(-)
+
+diff --git a/drivers/pmdomain/mediatek/mtk-pm-domains.c b/drivers/pmdomain/mediatek/mtk-pm-domains.c
+index cff9edc..d61cca5 100644
+--- a/drivers/pmdomain/mediatek/mtk-pm-domains.c
++++ b/drivers/pmdomain/mediatek/mtk-pm-domains.c
+@@ -57,6 +57,12 @@
+ 
+ #define MTK_SIP_KERNEL_HWCCF_CONTROL	MTK_SIP_SMC_CMD(0x540)
+ 
++enum scpsys_power_state {
++	SCPSYS_STATE_OFF,
++	SCPSYS_STATE_ON,
++	SCPSYS_STATE_TRANSITION,
++};
++
+ struct scpsys_domain {
+ 	struct generic_pm_domain genpd;
+ 	const struct scpsys_domain_data *data;
+@@ -100,16 +106,14 @@ static bool scpsys_domain_is_on(struct scpsys_domain *pd)
+ 	return status && status2;
+ }
+ 
+-static int scpsys_require_initially_off(struct scpsys_domain *pd)
++/* Return OFF, ON, transitioning, or the first status-read error. */
++static int scpsys_domain_state(struct scpsys_domain *pd)
+ {
+ 	struct scpsys *scpsys = pd->scpsys;
+ 	u32 status, status2, mask2;
++	bool first, second;
+ 	int ret;
+ 
+-	if (!pd->data || !MTK_SCPD_CAPS(pd, MTK_SCPD_KEEP_DEFAULT_OFF) ||
+-	    !pd->data->sta_mask)
+-		return -EINVAL;
+-
+ 	mask2 = pd->data->sta2nd_mask ?: pd->data->sta_mask;
+ 	ret = regmap_read(scpsys->base, pd->data->pwr_sta_offs, &status);
+ 	if (ret)
+@@ -118,8 +122,37 @@ static int scpsys_require_initially_off(struct scpsys_domain *pd)
+ 	if (ret)
+ 		return ret;
+ 
+-	return (status & pd->data->sta_mask) || (status2 & mask2) ?
+-		-EBUSY : 0;
++	first = !!(status & pd->data->sta_mask);
++	second = !!(status2 & mask2);
++	if (first != second)
++		return SCPSYS_STATE_TRANSITION;
++
++	return first ? SCPSYS_STATE_ON : SCPSYS_STATE_OFF;
++}
++
++static int scpsys_require_initially_off(struct scpsys_domain *pd)
++{
++	int state;
++
++	if (!pd->data || !MTK_SCPD_CAPS(pd, MTK_SCPD_KEEP_DEFAULT_OFF) ||
++	    !pd->data->sta_mask)
++		return -EINVAL;
++
++	state = scpsys_domain_state(pd);
++	return state > 0 ? -EBUSY : state;
++}
++
++static int scpsys_wait_for_state(struct scpsys_domain *pd, int target)
++{
++	int state, ret;
++
++	ret = readx_poll_timeout(scpsys_domain_state, pd, state,
++				 state == target || state < 0,
++				 MTK_POLL_DELAY_US, MTK_POLL_TIMEOUT);
++	if (ret)
++		return ret;
++
++	return state < 0 ? state : 0;
+ }
+ 
+ static bool scpsys_hwv_domain_is_disable_done(struct scpsys_domain *pd)
+@@ -507,8 +540,11 @@ static int scpsys_ctl_pwrseq_on(struct scpsys_domain *pd)
+ 	regmap_set_bits(scpsys->base, pd->data->ctl_offs, PWR_ON_2ND_BIT);
+ 
+ 	/* wait until PWR_ACK = 1 */
+-	ret = readx_poll_timeout(scpsys_domain_is_on, pd, tmp, tmp, MTK_POLL_DELAY_US,
+-				 MTK_POLL_TIMEOUT);
++	if (MTK_SCPD_CAPS(pd, MTK_SCPD_RETAIN_FAILED_STATE))
++		ret = scpsys_wait_for_state(pd, SCPSYS_STATE_ON);
++	else
++		ret = readx_poll_timeout(scpsys_domain_is_on, pd, tmp, tmp,
++					 MTK_POLL_DELAY_US, MTK_POLL_TIMEOUT);
+ 	if (ret < 0)
+ 		return ret;
+ 
+@@ -629,8 +665,11 @@ static int scpsys_modem_pwrseq_on(struct scpsys_domain *pd)
+ 	regmap_set_bits(scpsys->base, pd->data->ctl_offs, PWR_ON_BIT);
+ 
+ 	/* wait until PWR_ACK = 1 */
+-	ret = readx_poll_timeout(scpsys_domain_is_on, pd, tmp, tmp, MTK_POLL_DELAY_US,
+-				 MTK_POLL_TIMEOUT);
++	if (MTK_SCPD_CAPS(pd, MTK_SCPD_RETAIN_FAILED_STATE))
++		ret = scpsys_wait_for_state(pd, SCPSYS_STATE_ON);
++	else
++		ret = readx_poll_timeout(scpsys_domain_is_on, pd, tmp, tmp,
++					 MTK_POLL_DELAY_US, MTK_POLL_TIMEOUT);
+ 	if (ret < 0)
+ 		return ret;
+ 
+@@ -774,8 +813,11 @@ static int scpsys_power_off(struct generic_pm_domain *genpd)
+ 		scpsys_ctl_pwrseq_off(pd);
+ 
+ 	/* wait until PWR_ACK = 0 */
+-	ret = readx_poll_timeout(scpsys_domain_is_on, pd, tmp, !tmp, MTK_POLL_DELAY_US,
+-				 MTK_POLL_TIMEOUT);
++	if (MTK_SCPD_CAPS(pd, MTK_SCPD_RETAIN_FAILED_STATE))
++		ret = scpsys_wait_for_state(pd, SCPSYS_STATE_OFF);
++	else
++		ret = readx_poll_timeout(scpsys_domain_is_on, pd, tmp, !tmp,
++					 MTK_POLL_DELAY_US, MTK_POLL_TIMEOUT);
+ 	if (ret < 0)
+ 		return scpsys_hold_fault(pd, ret);
+ 
+-- 
+2.54.0 (Apple Git-157)
+
