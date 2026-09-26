@@ -684,3 +684,14 @@ mismatch redirects source/PMIC ownership analysis. A boot or Wi-Fi regression
 requires preserved evidence and the reviewed Gemian recovery path. Do not
 repeat an identical image after any of those results without a measurement
 that would change the decision.
+
+The [v7 Buildbox receipt](results/build-v7.json) pins a full link from clean,
+pushed commit `d7e2e3c7c1feb2284425de943596695cc022ebcb`. The only reported
+diagnostic is the same 69-section-mismatch warning as v1–v6. The
+[offline candidate](results/candidate-v7.json) preserves the validated
+ramdisk and byte-identical appended DTB from v6. Its exact 16 MiB boot2
+checksum is `893a938ca1052310be0f91e0040eb45918b07c0e54919aafb6186922e774247d`.
+The reviewed generated installer pins the current v6 Gemian boot ID, the v6
+boot2 predecessor checksum and the candidate. The complete current v6 log was
+retained privately before installation. These are build and preparation
+results; v7 has not yet been installed or run on the PDA.
