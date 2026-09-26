@@ -4,9 +4,9 @@ The [RE toolkit decision](RE_TOOLKIT.md) audits the current diagnostic
 capabilities and explains why Kprobes is deferred for this 3.18 arm64 tree.
 
 Status: seven diagnostic Gemian revisions built and verified in changed boot2
-sessions. Wi-Fi carrier, bounded native DMA and one VCN28 PMIC readback are
-established; mainline shared ownership and later packet DMA completion remain
-open.
+sessions; an eighth reset-readback revision is being prepared. Wi-Fi carrier,
+bounded native DMA and one VCN28 PMIC readback are established; mainline shared
+ownership and later packet DMA completion remain open.
 
 The known-good Gemian 3.18 kernel brings up the MT6797 Wi-Fi hardware. Its
 normal console output does not establish which CONSYS clock mode was selected
@@ -719,3 +719,29 @@ vendor request, not the physical signal truth table, clock-source identity,
 exclusive votes or a safe mainline power-on sequence. The read-only diagnostic
 budget is consumed; repeating this image would not answer those remaining
 questions. The device remains in the working v7 Gemian boot.
+
+## V8 CONMCU reset readback candidate
+
+The [v8 patch](patches/0008-diagnostic-record-Gemian-CONMCU-reset-readbacks.patch)
+adds two MMIO reads in the first mapped WMT CONSYS on path: one immediately
+after its existing TOPRGU CONMCU reset-assert request and one immediately after
+its existing release request. A single record, emitted after the existing
+20 ms settling delay, includes both raw register values and the selected chip
+ID. The atomic claim prevents later on paths from adding reads or records.
+The reset calls, their ordering, timing, radio operations and return value are
+unchanged. This is private diagnostic source, not an upstream submission.
+
+The boot hypothesis is that a working Gemian startup will read bit 12 set
+after assert and clear after release, identify chip `0x0279`, and reach Wi-Fi
+carrier. Unique evidence is the exact built and padded boot2 image checksums,
+guarded full-partition readback, changed boot ID, release
+`3.18.41-gemini-wifi-ref8+`, complete startup log, both raw register values and
+carrier. A matching pair confirms logical register readback on the working
+path at those instants; it does not prove the physical reset signal, exclusive
+ownership or a safe mainline sequence. A mismatched bit redirects the reset
+provider or mapping diagnosis. An absent record despite carrier redirects the
+executed-path diagnosis. A boot or Wi-Fi regression requires preserving the
+available evidence and using the reviewed known-good recovery path. The test
+budget is one physical boot2 selection; do not repeat an identical image
+without a decision-changing measurement. Build, candidate assembly and
+guarded installation are separate gates before owner selection.
