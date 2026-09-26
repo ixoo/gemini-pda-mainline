@@ -442,13 +442,16 @@ for the first Wi-Fi bring-up. The current preparation order is:
    [post-carrier DMA records](../experiments/2026-09-26-gemian-wifi-reference/results/runtime-v5-return-1.json)
    then observed one RX and one TX idle poll with EN clear before unmap in a
    working Gemian boot. Both records followed link-ready by about one
-   millisecond, so packet-path attribution, programmed register addresses,
-   completion versus STOP/FLUSH/reset, coherent shared CONSYS shutdown and
-   effective EMI arbitration remain unresolved. Resolve shared-owner admission
-   and an effect-bearing failure lifetime before another mainline firmware
-   candidate. The first firmware load may use PIO; validate AP-DMA ownership
-   before enabling packet DMA. Do not replay consumed Gemian radio or DMA
-   cycles merely to repeat the same observation.
+   millisecond. A later [authenticated-window observation](../experiments/2026-09-26-gemian-wifi-reference/results/runtime-v6-return-1.json)
+   recorded the same first-poll EN-clear result in each direction after a
+   root-only trigger, about 51 seconds after link-ready. The records remain
+   window-attributed rather than tied to an individual SSH packet. Programmed
+   register addresses, completion versus STOP/FLUSH/reset, coherent shared
+   CONSYS shutdown and effective EMI arbitration remain unresolved. Resolve
+   shared-owner admission and an effect-bearing failure lifetime before
+   another mainline firmware candidate. The first firmware load may use PIO;
+   validate AP-DMA ownership before enabling packet DMA. Do not replay the
+   consumed Gemian radio or DMA cycles merely to repeat this observation.
    See the
    [retained-ELF boundary](../experiments/2026-09-06-mt6797-wlan-final-linkage-teardown-attribution/README.md),
    [accepted database boundary](../experiments/2026-09-06-vmlinux-to-elf-kernel-db-provenance-v2/README.md)

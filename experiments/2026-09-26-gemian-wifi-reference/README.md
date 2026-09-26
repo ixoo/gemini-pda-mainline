@@ -3,8 +3,8 @@
 The [RE toolkit decision](RE_TOOLKIT.md) audits the current diagnostic
 capabilities and explains why Kprobes is deferred for this 3.18 arm64 tree.
 
-Status: five diagnostic Gemian revisions built and verified in changed boot2
-sessions. Wi-Fi carrier and bounded startup DMA observations are established;
+Status: six diagnostic Gemian revisions built and verified in changed boot2
+sessions. Wi-Fi carrier and bounded native DMA observations are established;
 mainline shared ownership and later packet DMA completion remain open.
 
 The known-good Gemian 3.18 kernel brings up the MT6797 Wi-Fi hardware. Its
@@ -623,5 +623,20 @@ The 4 KiB reply is a bounded traffic window, not packet-level attribution.
 The [v6 deployment receipt](results/deployment-v6.json) records a guarded
 write from the verified v5 boot: boot2 was inactive, the v5 predecessor matched,
 the full v6 partition readback matched the candidate, and Gemian shut down
-cleanly. This establishes installed media, not a v6 runtime result; physical
-boot2 selection and changed-boot observation are the next gate.
+cleanly. The subsequent [v6 runtime receipt](results/runtime-v6-return-1.json)
+binds a changed boot, expected release, stable carrier and complete log chain
+to one root-only trigger write and an exact 4 KiB SSH reply. No v6 DMA record
+preceded the trigger. The first eligible TX and RX records appeared at 68.692
+and 68.697 seconds after boot, long after link-ready at 17.902 seconds. Each
+native idle poll saw EN clear on its first read before unmap, with no
+count-limit escape. Carrier remained present at both post-trigger samples,
+and warning/call-trace counts matched v5.
+
+This later window removes the v5 ambiguity about records occurring immediately
+at link-up. It does not attribute either transfer to the 4 KiB payload: the
+authenticated SSH exchange and flag write also create traffic. The logged
+endpoints are computed arguments rather than DMA-register readbacks, and EN
+clear cannot distinguish normal completion from STOP, FLUSH or reset. Shared
+AP-DMA ownership, packet-path completion and durable Wi-Fi behavior remain
+open. The single-use v6 trigger budget is consumed; do not replay it in this
+boot.
