@@ -574,3 +574,28 @@ the DMA engine's low/ADDR2 registers, distinguish completion from STOP/FLUSH/
 reset, or establish shared AP-DMA ownership for mainline. A future packet-DMA
 test needs an attributable post-link trigger and a distinct, bounded record;
 repeating this once-only image would not answer that question.
+
+## V6 authenticated-window DMA observer
+
+The [v6 patch](patches/0006-diagnostic-arm-Gemian-DMA-result-after-SSH-link.patch)
+keeps the same carrier gate and existing DMA idle-poll fields, but adds a
+root-only boolean diagnostic parameter, false by default. Each direction's
+once-only record is eligible only after that software flag is set. It adds no
+radio operation or DMA register read. This lets an authenticated SSH session
+arm the observer after link-up and request one bounded 4 KiB zero-data reply;
+it does not identify an individual packet within that window.
+
+The next boot hypothesis is that the v6 kernel retains working Wi-Fi and the
+post-trigger SSH window reaches one RX and one TX DMA poll without a count
+escape. Before any trigger write, the host must verify the exact image and
+changed boot ID, expected release, Wi-Fi carrier, a unique root-only parameter
+path reading false, and no prior v6 records. The effect budget is one write
+to that boolean and one bounded reply, followed by complete private log
+capture; the once-only call sites bound output to two records. A missing
+parameter, mismatched identity, preexisting record or absent carrier refuses
+the write. A missing direction after the one window is a preserved negative
+result, not permission to repeat the trigger. A boot or Wi-Fi regression uses
+the reviewed recovery path after evidence preservation. Even positive records
+prove only those final EN reads before unmap; low/ADDR2 register programming,
+clean completion and exclusive shared-DMA ownership remain separate gates.
+No v6 build or device action is claimed yet.
