@@ -1,0 +1,17 @@
+{
+  "repository_commit": "6f6487e7ace7d0af8135b9d5ba76b3bcd8066aeb",
+  "package_inventory_sha256": "49a4dca4703ad9a690b463f89552193018237353484a7bbdee60d8c337000e4b",
+  "active_boot_sha256": "1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513",
+  "kernel_field_sha256": "996135ddfa203e2bf61d826b5382b302c10195d7d03a9fe8c6f2843da408b21b",
+  "ramdisk_sha256": "a1ee05445e9a2bd8fbc1f75d7cda326b9ca7a6d3b644cbb1d5fc0ac167835be4",
+  "raw_image_sha256": "97319c0280ed642e0ff5beb4f5c495e75274181394db65341ba644e203bc59c9",
+  "raw_image_bytes": 14995456,
+  "boot2_image_sha256": "4ec72c2012387a3f3f89b9272b357920507767ebbd76f4b66133293b12470f8e",
+  "boot2_image_bytes": 16777216,
+  "candidate_manifest_sha256": "153724f726465273ef3aec836315014ee1e0e39da6c0a052e37ed79b94ba18ee",
+  "reviewed_installer_sha256": "89a6287d172eb857056f899f71b45f359dd4d9822b39bcf8ff0dc797d5b883be",
+  "expected_boot2_predecessor_sha256": "138e35e41fa12a3a0cdeca3660e42e291b5268814167c2857a7ad67cffe594b2",
+  "boot_candidate": true,
+  "installed": false,
+  "device_execution": false
+}

@@ -197,7 +197,15 @@ the native fallback loop is unchanged. A nonzero wait result is remaining
 timeout ticks, not an independent proof of adapter or DMA idle.
 
 The Buildbox recipe applies the setup and stop patches in order and gives this
-revision release `3.18.41-gemini-wifi-ref2+`. Its next boot hypothesis is that
+revision release `3.18.41-gemini-wifi-ref2+`. The
+[v2 Buildbox receipt](results/build-v2.json) pins its clean project commit,
+source, toolchain, ordered patches and linked kernel. The only recorded build
+diagnostic is the baseline 69-section-mismatch modpost warning. The
+[v2 offline candidate](results/candidate-v2.json) uses the same verified
+Gemian boot image, Android-v0 assembler and ramdisk as v1; only its kernel
+field changes. The private image and reviewed installer remain ignored.
+
+Its next boot hypothesis is that
 the unchanged Gemian setup will still reach WLAN carrier and expose both new
 diagnostic formats in the linked kernel. The unique first-boot observation is
 the exact boot2 image/readback identity, changed boot ID, kernel release,
@@ -205,5 +213,7 @@ startup log and carrier state. If boot or carrier fails, preserve evidence and
 return to known-good Gemian; do not retry the same image. If startup succeeds,
 a separately bounded and recovery-ready off/on protocol can measure the stop
 decision after explicitly clearing association. No such radio cycle or boot2
-deployment is authorized by the build artifact alone. The current v1 device
-session and its private captures remain intact.
+deployment follows from the build artifact alone. The current v1 device
+session and its private captures remain intact. Before a v2 boot2 write, the
+device must return to known-good primary Gemian so that boot2 is an inactive
+target for the reviewed GPT guard and full readback.
