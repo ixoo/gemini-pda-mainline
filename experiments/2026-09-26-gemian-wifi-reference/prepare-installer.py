@@ -31,6 +31,12 @@ INSTALLS = {
         'predecessor': '138e35e41fa12a3a0cdeca3660e42e291b5268814167c2857a7ad67cffe594b2',
         'deployment': 'gemian-wifi-reference-deployment-2',
     },
+    'v3': {
+        'candidate': '3e4663373b8b0519a06642ac5ddef4223f2a31b28aca8446bfbe2a59b6a456ea',
+        'manifest': '1499b7a3b5c83dd2d57203df77c3cdefd0dc871c2545965bb91b0500eab5b817',
+        'predecessor': '4ec72c2012387a3f3f89b9272b357920507767ebbd76f4b66133293b12470f8e',
+        'deployment': 'gemian-wifi-reference-deployment-3',
+    },
 }
 
 

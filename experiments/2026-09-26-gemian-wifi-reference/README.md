@@ -375,4 +375,17 @@ requires source-path diagnosis; a boot or Wi-Fi regression requires evidence
 preservation and reviewed known-good recovery. Do not repeat the same image
 without a decision-changing measurement. The record cannot prove achieved
 VCN28 hardware-control mode, SPM key exclusivity, reset readback or EMI
-arbitration. No v3 build or device test has yet been recorded here.
+arbitration.
+
+The [v3 Buildbox receipt](results/build-v3.json) pins the clean pushed source,
+ordered patches, linked kernel and package inventory. The sole build warning
+is the same 69-section-mismatch count as v1 and v2. The
+[v3 offline candidate](results/candidate-v3.json) was assembled from the
+verified known-good Gemian boot container. Independent parsing found the v2
+ramdisk and appended device tree byte-identical; the Android-v0 header changed
+only in kernel size and image ID. The raw image is 14,995,456 bytes and the
+exact 16 MiB boot2 image has SHA-256
+`3e4663373b8b0519a06642ac5ddef4223f2a31b28aca8446bfbe2a59b6a456ea`.
+The reviewed installer is bound to the observed v2 boot2 predecessor and
+repeats the live GPT, root/target, power and full-readback checks before
+clean shutdown. The v3 image has not yet been installed or booted.
