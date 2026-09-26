@@ -35,7 +35,7 @@ struct generic_pm_domain {
 	int (*power_on)(struct generic_pm_domain *);
 	int (*power_off)(struct generic_pm_domain *);
 };
-struct scp_domain_data { unsigned int caps; int ctl_offs; };
+struct scp_domain_data { unsigned int caps; int ctl_offs; u32 spm_poweron_config; };
 struct scp { struct device *dev; void *base; };
 struct scp_domain {
 	struct generic_pm_domain genpd;
@@ -46,18 +46,22 @@ struct scp_domain {
 	int fault_error;
 };
 
-static u32 ctl_word;
+static u32 registers[2];
+#define key_word registers[0]
+#define ctl_word registers[1]
 static struct device device;
-static struct scp scp = { .dev = &device, .base = &ctl_word };
+static struct scp scp = { .dev = &device, .base = registers };
 static struct scp_domain_data data;
 static struct scp_domain domain;
 static struct regulator supply;
 static struct clk clocks[2];
 static int ack_state, clock_error_at;
 static unsigned int supply_enables, supply_disables, clock_enables;
-static unsigned int clock_disables, writes, protection_calls, sram_calls;
+static unsigned int clock_disables, writes, key_writes, protection_calls, sram_calls;
 static unsigned int checks, cases;
 static const char *case_name;
+static char trace[32];
+static unsigned int trace_length;
 
 static void check(int condition, const char *expression, int line)
 {
@@ -69,6 +73,13 @@ static void check(int condition, const char *expression, int line)
 }
 #define CHECK(expr) check(!!(expr), #expr, __LINE__)
 
+static void record(char operation)
+{
+	CHECK(trace_length + 1 < sizeof(trace));
+	trace[trace_length++] = operation;
+	trace[trace_length] = 0;
+}
+
 static u32 readl(void *address)
 {
 	CHECK(address == &ctl_word);
@@ -77,9 +88,16 @@ static u32 readl(void *address)
 
 static void writel(u32 value, void *address)
 {
+	if (address == &key_word) {
+		key_writes++;
+		key_word = value;
+		record('K');
+		return;
+	}
 	CHECK(address == &ctl_word);
 	writes++;
 	ctl_word = value;
+	record('C');
 }
 
 static int regulator_enable(struct regulator *regulator)
@@ -144,6 +162,7 @@ static int scpsys_bus_protect_enable(struct scp_domain *scpd)
 {
 	CHECK(scpd == &domain);
 	protection_calls++;
+	record('P');
 	return 0;
 }
 
@@ -151,6 +170,7 @@ static int scpsys_bus_protect_disable(struct scp_domain *scpd)
 {
 	CHECK(scpd == &domain);
 	protection_calls++;
+	record('P');
 	return 0;
 }
 
@@ -160,8 +180,8 @@ static void reset(const char *name, unsigned int caps)
 {
 	case_name = name;
 	cases++;
-	ctl_word = 0;
-	data = (struct scp_domain_data) { .caps = caps };
+	key_word = ctl_word = 0;
+	data = (struct scp_domain_data) { .caps = caps, .ctl_offs = sizeof(u32) };
 	domain = (struct scp_domain) {
 		.genpd = { .name = "test", .power_on = scpsys_power_on,
 			   .power_off = scpsys_power_off },
@@ -174,7 +194,9 @@ static void reset(const char *name, unsigned int caps)
 	ack_state = 0;
 	clock_error_at = 0;
 	supply_enables = supply_disables = clock_enables = clock_disables = 0;
-	writes = protection_calls = sram_calls = 0;
+	writes = key_writes = protection_calls = sram_calls = 0;
+	trace_length = 0;
+	trace[0] = 0;
 }
 
 static void test_on_ack_fault(void)
@@ -254,6 +276,49 @@ static void test_fault_query(void)
 	CHECK(mtk_scpsys_domain_fault(&domain.genpd) == -EOPNOTSUPP);
 }
 
+static void test_spm_key_order(void)
+{
+	reset("CONN SPM key order", MTK_SCPD_KEEP_DEFAULT_OFF |
+		MTK_SCPD_RETAIN_FAILED_STATE | MTK_SCPD_CLK_OFF_BEFORE_RESET);
+	data.spm_poweron_config = 0x0b160001;
+	ack_state = 1;
+	CHECK(scpsys_power_on(&domain.genpd) == 0);
+	CHECK(key_writes == 1 && key_word == 0x0b160001);
+	CHECK(trace[0] == 'K' && trace[1] == 'C');
+	trace_length = 0;
+	trace[0] = 0;
+	ack_state = 0;
+	CHECK(scpsys_power_off(&domain.genpd) == 0);
+	CHECK(key_writes == 2 && key_word == 0x0b160001);
+	CHECK(trace[0] == 'K' && trace[1] == 'P');
+	CHECK(supply.vote == 0 && clocks[0].vote == 0 && clocks[1].vote == 0);
+}
+
+static void test_spm_key_refusals(void)
+{
+	reset("CONN SPM key early clock failure", MTK_SCPD_KEEP_DEFAULT_OFF |
+		MTK_SCPD_RETAIN_FAILED_STATE);
+	data.spm_poweron_config = 0x0b160001;
+	clock_error_at = 2;
+	CHECK(scpsys_power_on(&domain.genpd) == -EIO);
+	CHECK(key_writes == 0 && key_word == 0);
+	CHECK(scpsys_power_off(&domain.genpd) == -EIO);
+	CHECK(key_writes == 0);
+
+	reset("CONN SPM key retained fault", MTK_SCPD_KEEP_DEFAULT_OFF |
+		MTK_SCPD_RETAIN_FAILED_STATE);
+	data.spm_poweron_config = 0x0b160001;
+	CHECK(scpsys_power_on(&domain.genpd) == -ETIMEDOUT);
+	CHECK(key_writes == 1);
+	CHECK(scpsys_power_on(&domain.genpd) == -ETIMEDOUT);
+	CHECK(scpsys_power_off(&domain.genpd) == -ETIMEDOUT);
+	CHECK(key_writes == 1);
+
+	reset("unselected domain SPM key", 0);
+	CHECK(scpsys_power_on(&domain.genpd) == -ETIMEDOUT);
+	CHECK(key_writes == 0 && key_word == 0);
+}
+
 int main(void)
 {
 	test_on_ack_fault();
@@ -261,6 +326,8 @@ int main(void)
 	test_clock_failure();
 	test_off_ack_fault();
 	test_fault_query();
+	test_spm_key_order();
+	test_spm_key_refusals();
 	printf("fault_retention_cases=%u checks=%u pass\n", cases, checks);
 	return 0;
 }

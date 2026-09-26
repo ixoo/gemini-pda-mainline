@@ -21,6 +21,7 @@ PATCHES = (
     ("0003-pmdomain-mediatek-retain-failed-domain-resources.patch", "2ca761d5b8be64d70dc0a4ec88e9b406980a09379050f215a4853afe6f7bf824"),
     ("0005-pmdomain-mediatek-describe-mt6797-conn-island.patch", "2283af80b0c05863dea7119fe417bf1226d8a9afd90cc879bfbb6d0a733bad35"),
     ("0006-pmdomain-mediatek-expose-retained-domain-fault.patch", "220730ec4c4babcaa231ad96a5a93b8a6922e9bd18bd9b2507d5f0fed1fdcb79"),
+    ("0007-pmdomain-mediatek-enable-mt6797-conn-spm-register-control.patch", "ebd66e144d8f7ce7e41e54305c219b578ecc2153f5b1a86eabbc575d4d796270"),
 )
 FUNCTIONS = (
     "scpsys_hold_fault", "scpsys_regulator_enable", "scpsys_regulator_disable",

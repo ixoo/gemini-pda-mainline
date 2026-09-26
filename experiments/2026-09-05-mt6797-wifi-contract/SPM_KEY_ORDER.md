@@ -126,3 +126,8 @@ record stays under ignored, restricted artifacts. No raw retained binary was
 analyzed in this item and no private finding is promoted into this public
 source decision. In particular, there is no claimed proof that LK leaves the
 SPM enable set or that the upstream provider may rely on it across suspend.
+
+The later [compile-only CONN transition proposal](../2026-09-26-mt6797-conn-spm-register-control/README.md)
+models the source-attributed key write inside the existing SCPSYS mapping. It
+does not select a boot consumer or resolve the retained-firmware writer and
+shared-lifetime questions above; those still gate hardware admission.

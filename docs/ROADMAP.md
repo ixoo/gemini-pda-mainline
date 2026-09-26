@@ -409,7 +409,10 @@ for the first Wi-Fi bring-up. The current preparation order is:
    [fault-query proposal](../experiments/2026-09-26-mt6797-conn-fault-retention/README.md)
    lets the future owner check that latch even when genpd skips a callback;
    the owner still needs rail/reset sequencing and must call the query before
-   every hardware use. A later
+   every hardware use. A later [compile-only SPM preamble](../experiments/2026-09-26-mt6797-conn-spm-register-control/README.md)
+   links the selected CONN key write before ON/OFF register work; it is not a
+   boot candidate and does not settle retained-firmware writers or shared
+   rail/reset ownership. A later
    [read-only Gemian EMI reference](../experiments/2026-09-26-mt6797-emi-active-reference/results/runtime.json)
    confirms the vendor-requested region-18/19 ranges and permission values in
    a boot where WLAN carrier was observed later, but also shows broad region 23

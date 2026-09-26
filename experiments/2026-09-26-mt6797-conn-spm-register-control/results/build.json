@@ -1,0 +1,19 @@
+{
+  "status": "compile-only linked proposal",
+  "repository_commit": "c1202ce4470ec62986c0e4486ffcc751ad7ed69a",
+  "source_revision": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "source_sha256": "45590c057805bc9cf7281ce04d5dbde5316b7c8b017998cafac301f67e92682d",
+  "profile": "mt6797-provider-compile",
+  "kernel_release": "7.3.0-rc1-mt6797-provider-compile",
+  "patch_count": 21,
+  "patchset_sha256": "c12ebc2d721f4eaf87e44f68803d4579fc2404396675fc190ea27977927fb853",
+  "new_patch_sha256": "ebd66e144d8f7ce7e41e54305c219b578ecc2153f5b1a86eabbc575d4d796270",
+  "config_sha256": "3910887ce880cc55ab561819ec368756aaecf032663464d009ebea484b9af06d",
+  "package_inventory_sha256": "4383f831274701b635fe18a7591f109fdd8cfdab315385f4e3a969dfa31778ea",
+  "package_validator": "passed on Buildbox; validated fetch under ignored artifacts/buildbox/<commit>/",
+  "linked_symbols": ["scpsys_power_on", "scpsys_power_off", "mtk_scpsys_domain_fault"],
+  "selected_config": {"CONFIG_MTK_SCPSYS": "y", "CONFIG_PM_GENERIC_DOMAINS": "y", "CONFIG_ARCH_MEDIATEK": "y"},
+  "pinned_checkpatch": "0 errors, 0 warnings, 47 lines checked",
+  "host_callback_fixture": "10 cases, 222 checks passed against pinned source and ordered patches",
+  "device_test": "not run; no boot candidate or CONN consumer admitted"
+}
