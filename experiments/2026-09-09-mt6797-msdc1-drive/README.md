@@ -30,6 +30,16 @@ allows the missing 6, 10 and 14 mA settings for MT6797. Its shared schema keeps
 MT6779's original allowed values through the existing compatible conditional.
 No new binding property or pinctrl callback is introduced.
 
+A [September 2026 upstream proposal](https://lists.infradead.org/pipermail/linux-mediatek/2026-September/113827.html)
+changes the same schema's state and child-node match rules to admit the MT6797
+`*-pins` / `pins-*` layout. The local drive-strength patch was validated
+against the older numbered-state rules and copies those rules into its MT6779
+conditional. When refreshing the target baseline, rebase that conditional onto
+the selected upstream match rules and validate both compatibles with the actual
+state/child shapes. The existing 38-case matrix does not establish that
+composition. Our older full-board schema patch also changes these match rules;
+do not stack both fixes without resolving their overlap.
+
 The drive mask excludes the five-bit bias-tuning field at bits 20:16. This
 provider topic preserves that field; it does not implement the complete MMC
 pad/power sequence. No board state is selected, and none of this resolves the
