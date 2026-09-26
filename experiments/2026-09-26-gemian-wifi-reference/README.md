@@ -404,6 +404,16 @@ during this window and did not report a boot2 selection. This adds no v3
 boot or Wi-Fi observation. Arm a fresh finite collector when the owner is
 back and ready to select boot2 physically.
 
+## Retained 4G-mode observation
+
+A [read-only reanalysis](results/4g-mode-reference.json) of the preserved
+v1 and v2 boot logs found one `[EMI MPU] 4G mode` message in each exact,
+verified boot and no opposite message. The pinned Gemian early-init source
+emits that line after reading INFRACFG_AO bit 13 as set and assigning
+`enable_4gb=1`. This resolves the boot-time selector observation for those
+boots; it does not establish a stable selector during packet DMA, the v3
+state, or the HIF ADDR2 bus-address translation. No device access occurred.
+
 ## V4 DMA idle outcome observer
 
 The [v4 diagnostic patch](patches/0004-diagnostic-record-Gemian-AHB-DMA-idle-outcomes.patch)

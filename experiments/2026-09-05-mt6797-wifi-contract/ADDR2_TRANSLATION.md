@@ -80,20 +80,22 @@ No evidence here proves which alias reaches that endpoint or that an ordinary
 
 ## Exact remaining observation and decision boundary
 
-For a future independently authorized session on the exact retained kernel,
-the minimal mode observation is the existing boot log's `[EMI MPU] 4G mode`
-or `Not 4G mode` message, attributed to that kernel and boot. An absent message
-is inconclusive. If the log is unavailable, a separately reviewed read-only
-observation of INFRACFG_AO `0x10001f00` bit 13 resolves the hardware selector
-at the observation time; it does not prove its earlier value or HIF semantics.
-No register read was performed or scheduled by this investigation.
+The [retained Gemian reference](../2026-09-26-gemian-wifi-reference/results/4g-mode-reference.json)
+now resolves that minimal boot-time mode observation for two later,
+individually identified instrumented boots. Each checksum-bound log contains
+one `[EMI MPU] 4G mode` message and no `Not 4G mode` message. The exact
+Gemian source revision emits the positive message only after the early
+`dram_4gb_init` read finds INFRACFG_AO `0x10001f00` bit 13 set and assigns
+`enable_4gb=1`. This supports the global-mode assumption for those early
+boot moments, not selector stability through each transfer or the value in
+the pending v3 or any mainline boot. No new register read or device action
+was performed for this finding.
 
-A set selector would support the global-mode assumption; a clear selector
-would expose a mismatch with unconditional HIF programming. Neither result
-alone establishes effective DMA addresses. Passive ADDR2 readback would only
-confirm the already-attributed writes. Translation still requires a matching
-MT6797 HIF/APDMA register/fabric contract or independently attributable evidence
-correlating a known DMA address and endpoint with the actual transfer target.
+The set selector does not establish effective DMA addresses. Passive ADDR2
+readback would only confirm the already-attributed writes. Translation still
+requires a matching MT6797 HIF/APDMA register/fabric contract or
+independently attributable evidence correlating a known DMA address and
+endpoint with the actual transfer target.
 Such transfer evidence requires separate experimental admission, including
 ownership, quiescence and observation budgets; it is not requested here.
 
