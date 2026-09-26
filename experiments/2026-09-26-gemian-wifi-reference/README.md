@@ -534,5 +534,19 @@ If a record is absent despite carrier and authenticated traffic, inspect the
 corresponding path and trigger timing before changing instrumentation. If
 Wi-Fi or boot regresses, preserve the finite capture and use the reviewed
 recovery path. An escape or nonzero final return moves investigation to DMA
-lifetime and mapping release. No v5 build, installation or device result is
-claimed yet.
+lifetime and mapping release.
+
+The [v5 Buildbox receipt](results/build-v5.json) pins a full link from clean
+pushed commit `f514ea7a4bcd66be7f7ef8db921dcc251cdb55d3`. Its fetched
+inventory passed checksum validation, both v5 record strings and the expected
+release are linked, and the only warning retains the prior 69-section-mismatch
+count. The [offline candidate](results/candidate-v5.json) contains the same
+ramdisk and appended DTB bytes as v4; its Android-v0 header changes only in
+kernel size and image ID. The exact padded 16 MiB image is
+`cf9707c7b4259140f575568ddeec658065eae45bae2e4bd6811d5849a5df70ff`.
+V5 is selected as the next distinct boot2 test. The
+[installer derivation](prepare-installer.py) binds its private guarded script
+to the observed v4 boot ID and release, the installed v4 predecessor checksum,
+and the v5 candidate. The generated installer SHA-256 is
+`2b1b5e3c7ba7d2664928334247710379a13dc47700cc7fa527471344bfe7a660`.
+No v5 device write or boot has occurred yet.
