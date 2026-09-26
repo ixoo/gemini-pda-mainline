@@ -1,0 +1,14 @@
+{
+  "gemian_boot_id": "b79541db-5e95-4a02-a32f-87fa18474b38",
+  "target_logical_name": "boot2",
+  "boot2_device_guard": "passed",
+  "target_major_minor": "179:30",
+  "root_major_minor": "179:29",
+  "predecessor_sha256": "991144187d3aaed6cdccef8fe890fafa52b80cfb635fe95adc4dcf04025f5333",
+  "candidate_sha256": "138e35e41fa12a3a0cdeca3660e42e291b5268814167c2857a7ad67cffe594b2",
+  "readback_sha256": "138e35e41fa12a3a0cdeca3660e42e291b5268814167c2857a7ad67cffe594b2",
+  "power": "battery present, 100 percent, healthy, external power present",
+  "result": "write-synced-flushed-full-readback-verified",
+  "clean_shutdown": "confirmed-unreachable",
+  "device_execution": false
+}

@@ -1,0 +1,25 @@
+{
+  "candidate_sha256": "138e35e41fa12a3a0cdeca3660e42e291b5268814167c2857a7ad67cffe594b2",
+  "previous_gemian_boot_id": "b79541db-5e95-4a02-a32f-87fa18474b38",
+  "observed_boot_id": "a690b7e2-a35e-4732-95c1-ab6b7af97c2f",
+  "kernel_release": "3.18.41-gemini-wifi-ref+",
+  "full_early_dmesg_sha256": "c7b32daa9c12f51557d172e296fea389391545ec05d2e9561bbb9321aebbdb10",
+  "full_late_dmesg_sha256": "7ad35f2e4cb889ac9e97cdba3e56fb1948c2612149743c9ac7f7f91fed666347",
+  "late_dmesg_bytes": 382743,
+  "clock_init_co_clock_type": 0,
+  "consys_power_on_co_clock_type": 0,
+  "emi_secure_call_results": [
+    {"region": 23, "start": "0x0", "end": "0xffffffff", "permission": "0xba8b68", "status": 0},
+    {"region": 19, "start": "0xbfa80000", "end": "0xbfafffff", "permission": "0xb6da28", "status": 0},
+    {"region": 18, "start": "0xbfa00000", "end": "0xbfa7ffff", "permission": "0x000000", "status": 0},
+    {"region": 18, "start": "0xbfa00000", "end": "0xbfa7ffff", "permission": "0xb6da2d", "status": 0},
+    {"region": 18, "start": "0xbfa00000", "end": "0xbfa7ffff", "permission": "0x000000", "status": 0},
+    {"region": 18, "start": "0xbfa00000", "end": "0xbfa7ffff", "permission": "0xb6da2d", "status": 0}
+  ],
+  "wlan0_carrier": true,
+  "gemian_lan_ssh": "reachable",
+  "ftrace_available_tracers": ["function_graph", "function", "nop"],
+  "ftrace_current_tracer": "nop",
+  "diagnostic_functions_filterable": ["emi_mpu_set_region_protection", "mtk_wcn_consys_hw_reg_ctrl", "wmt_plat_soc_init"],
+  "limits": "Observed arguments and secure-call return codes do not establish effective EMI overlap arbitration, CONSYS master domain, exclusive ownership, or safe mainline writes."
+}

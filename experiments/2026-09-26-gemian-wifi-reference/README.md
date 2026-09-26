@@ -1,7 +1,7 @@
 # Gemian Wi-Fi reference kernel
 
-Status: full Buildbox kernel link and offline boot2 container review passed. No
-device execution has yet validated this kernel.
+Status: Buildbox kernel and boot2 packaging validated; one changed-boot
+diagnostic Gemian session confirmed Wi-Fi and available function tracing.
 
 The known-good Gemian 3.18 kernel brings up the MT6797 Wi-Fi hardware. Its
 normal console output does not establish which CONSYS clock mode was selected
@@ -61,3 +61,34 @@ The [installer preparation](prepare-installer.py) pins the reviewed guard and
 installer derivation, the image inventory, and the expected predecessor
 checksum. It generates a private shell script that rechecks the live GPT,
 root/target device identity, power and full readback before clean shutdown.
+
+## Device result
+
+In known-good Gemian boot `b79541db-5e95-4a02-a32f-87fa18474b38`, the
+live GPT identified inactive boot2. The installer confirmed a distinct root,
+100% healthy battery and external power, and the expected predecessor checksum.
+It wrote the padded image once, synced/flushed it, matched a full local stream
+readback byte for byte, and shut down cleanly. The
+[sanitized deployment receipt](results/deployment.json) records the exact
+checksums; raw evidence stays ignored.
+
+After the owner selected boot2, the LAN collector observed changed boot ID
+`a690b7e2-a35e-4732-95c1-ab6b7af97c2f` and release
+`3.18.41-gemini-wifi-ref+`. It preserved complete early and later kernel
+logs. In this boot WMT initialized with `co_clock_type=0`; the CONSYS power-on
+call received the same value. This is the source branch that requests VCN28
+HW control and enables its regulator. The instrumented EMI calls reported
+raw secure-call status zero for broad region 23, WMT region 19 and the four
+observed WLAN region-18 requests (clear, policy, clear, policy). The observed
+WLAN and WMT windows were the first and second 512 KiB of the 2 MiB CONSYS
+reservation. `wlan0` reached carrier and Gemian was reachable over its LAN
+address. The [runtime receipt](results/runtime-1.json) binds those facts to
+the boot and retained private log checksums.
+
+Function and function-graph tracers are available, the active tracer remains
+`nop`, and all three instrumented setup functions appear in ftrace's filterable
+function list. This kernel is therefore available for later bounded tracing
+without another build. The secure-call return codes do not resolve effective
+EMI overlap arbitration, master-domain routing, or exclusive resource
+ownership. The PDA currently remains in this diagnostic Gemian boot; mainline
+Wi-Fi remains unsupported.

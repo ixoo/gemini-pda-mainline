@@ -420,9 +420,13 @@ for the first Wi-Fi bring-up. The current preparation order is:
    and conservative next-distinct-symbol inspection envelopes. The later
    retained-instruction observer/checker line is owner-closed without semantic
    execution and must not be resumed as another offline repair loop. A bounded
-   [known-good Gemian observer check](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/README.md)
-   also found no live kprobe or function-tracing path for the required lifetime
-   evidence. A bounded [retained-evidence audit](../experiments/2026-09-07-mt6797-wifi-retained-lifetime-audit/README.md)
+   [stock Gemian observer check](../experiments/2026-09-07-mt6797-wifi-observer-feasibility/README.md)
+   found no live kprobe or function-tracing path for the required lifetime
+   evidence. A [boot2-tested Gemian reference kernel](../experiments/2026-09-26-gemian-wifi-reference/results/runtime-1.json)
+   now provides function and function-graph tracing, disabled by default, and
+   records co-clock mode zero plus successful raw EMI secure-call returns in a
+   working WLAN boot. It has not captured a shared-resource lifetime trace or
+   resolved effective EMI arbitration. A bounded [retained-evidence audit](../experiments/2026-09-07-mt6797-wifi-retained-lifetime-audit/README.md)
    found no record that joins any required predicate to one successful WLAN
    cycle. Next freeze and independently review a distinct non-replayed
    observation mechanism, including its acquisition effects, shared ownership,
