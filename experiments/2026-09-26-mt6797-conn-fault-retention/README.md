@@ -6,9 +6,11 @@ already been written and OFF has not been proved. For a future initially-off
 CONN domain, that cleanup could remove prerequisites from an uncertain island.
 
 The [one-change proposal](../../patches/proposals/0003-pmdomain-mediatek-retain-failed-domain-resources.patch)
-adds an opt-in failure latch to the existing provider. An opted domain keeps
-acquired prerequisites after an ON failure, records the first error, and
-refuses later ON/OFF callbacks. OFF errors also latch; the existing OFF path
+adds an opt-in failure latch to the existing provider. After an ON error past
+successful clock acquisition, an opted domain keeps its supply and clock
+votes, records the first error, and refuses later ON/OFF callbacks. An earlier
+clock-enable error still uses that helper's partial-enable rollback, but keeps
+the acquired supply vote. OFF errors also latch; the existing OFF path
 already retains clock and supply votes before a confirmed OFF ACK. Domains
 without the flag keep their previous cleanup behavior. The new flag requires
 the existing initially-off registration capability, so a flagged domain cannot
@@ -36,3 +38,19 @@ The isolated `mt6797-provider-compile` series selects this patch after its
 two prerequisites. Compilation can validate integration, but only a later
 admitted domain and owner-controlled device protocol can test failure
 retention on hardware. No boot2 candidate is admitted by this change.
+
+## Buildbox result
+
+`KERNEL_PROFILE=mt6797-provider-compile ./scripts/build-kernel --backend buildbox`
+compiled and linked clean pushed commit
+`9189676116147905aaad999de515596a6c337a25`. Buildbox applied all 17
+selected patches, including this patch with SHA-256
+`2ca761d5b8be64d70dc0a4ec88e9b406980a09379050f215a4853afe6f7bf824`.
+The validated package inventory is
+`1d6c63b992e2536793ffef6bbb9f7cf1c7468bfec7987ae76f61631792bf824d`,
+under ignored `artifacts/buildbox/<commit>/`. Its provenance reports a clean
+checkout, patchset SHA-256
+`efcca0eaf5a812ea6dd563d5fe22f33b690192e061f6d9a62007978838c095a7`,
+`CONFIG_MTK_SCPSYS=y` and `CONFIG_PM_GENERIC_DOMAINS=y`; `System.map`
+contains both `scpsys_power_on` and `scpsys_power_off`. No hardware test,
+domain activation, fault injection or device write was performed.
