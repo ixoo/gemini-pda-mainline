@@ -23,12 +23,18 @@
 #define MTK_POLL_TIMEOUT 10
 #define container_of(ptr, type, member) ((type *)((char *)(ptr) - offsetof(type, member)))
 #define dev_err(...) ((void)0)
+#define READ_ONCE(value) (value)
+#define WRITE_ONCE(value, new_value) ((value) = (new_value))
 
 typedef uint32_t u32;
 struct device { int unused; };
 struct regulator { int vote; };
 struct clk { int vote; int index; };
-struct generic_pm_domain { const char *name; };
+struct generic_pm_domain {
+	const char *name;
+	int (*power_on)(struct generic_pm_domain *);
+	int (*power_off)(struct generic_pm_domain *);
+};
 struct scp_domain_data { unsigned int caps; int ctl_offs; };
 struct scp { struct device *dev; void *base; };
 struct scp_domain {
@@ -157,7 +163,9 @@ static void reset(const char *name, unsigned int caps)
 	ctl_word = 0;
 	data = (struct scp_domain_data) { .caps = caps };
 	domain = (struct scp_domain) {
-		.genpd = { .name = "test" }, .scp = &scp, .data = &data,
+		.genpd = { .name = "test", .power_on = scpsys_power_on,
+			   .power_off = scpsys_power_off },
+		.scp = &scp, .data = &data,
 		.supply = &supply, .clk = { &clocks[0], &clocks[1], NULL },
 	};
 	supply = (struct regulator) { 0 };
@@ -230,12 +238,29 @@ static void test_off_ack_fault(void)
 	CHECK(writes == old_writes && protection_calls == 2 && sram_calls == 2);
 }
 
+static void test_fault_query(void)
+{
+	reset("fault query", MTK_SCPD_KEEP_DEFAULT_OFF |
+		MTK_SCPD_RETAIN_FAILED_STATE);
+	CHECK(mtk_scpsys_domain_fault(&domain.genpd) == 0);
+	ack_state = 1;
+	CHECK(scpsys_power_on(&domain.genpd) == 0);
+	CHECK(scpsys_power_off(&domain.genpd) == -ETIMEDOUT);
+	CHECK(mtk_scpsys_domain_fault(&domain.genpd) == -ETIMEDOUT);
+	CHECK(mtk_scpsys_domain_fault(NULL) == -EINVAL);
+	domain.genpd.power_on = NULL;
+	CHECK(mtk_scpsys_domain_fault(&domain.genpd) == -EINVAL);
+	reset("unflagged fault query", 0);
+	CHECK(mtk_scpsys_domain_fault(&domain.genpd) == -EOPNOTSUPP);
+}
+
 int main(void)
 {
 	test_on_ack_fault();
 	test_legacy_on_ack_cleanup();
 	test_clock_failure();
 	test_off_ack_fault();
+	test_fault_query();
 	printf("fault_retention_cases=%u checks=%u pass\n", cases, checks);
 	return 0;
 }

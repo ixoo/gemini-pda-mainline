@@ -26,6 +26,16 @@ software state ON, causing a later consumer resume to skip the power callback;
 the eventual shared owner must check the latched fault before **every** use.
 There is no automatic recovery or resource release from a latched fault.
 
+The later [fault-query proposal](../../patches/proposals/0006-pmdomain-mediatek-expose-retained-domain-fault.patch)
+exposes that first latched error to an attached, opted-in domain owner. It
+checks that the supplied generic domain uses this SCPSYS provider, returns
+`-EOPNOTSUPP` for an unflagged domain, and returns zero only when no fault has
+been latched. The owner must hold a valid domain association and check after
+resume and before every hardware use; a successful runtime resume alone is
+not admission after a failed OFF callback. The query does not acquire rails,
+release a latched fault, or make CONN activation safe. It is selected only by
+the isolated provider-compile series, with no consumer or boot candidate.
+
 The patch was exported from a temporary single-file Git tree using Linux
 `4d7d9486c04d917265f64c55bd23b2cc4fe7749c` SCPSYS source SHA-256
 `9ce2b2c95a38bc4c7b801aff9b7c26da2dc8ec2e3fd34199adaedf1db3007226`
@@ -70,3 +80,10 @@ enable failure rolled back the first clock while retaining the supply vote;
 and an opted OFF ACK timeout retained both votes and refused further callbacks.
 The test uses synthetic registers and does not establish hardware behavior or
 admit a boot2 candidate.
+
+The later query revision adds pinned source replay for the CONN table and
+query proposals and a query case that observes zero before any fault, the
+retained `-ETIMEDOUT` after a failed OFF, and rejection of invalid or
+unflagged domains. The host fixture passes six cases and 110 assertions. The
+new patch passes pinned `checkpatch.pl --no-tree --no-signoff` with zero errors
+and warnings. This remains host evidence, not a device result.

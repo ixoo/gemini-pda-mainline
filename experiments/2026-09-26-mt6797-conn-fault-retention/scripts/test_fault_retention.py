@@ -14,14 +14,18 @@ EXPERIMENT = Path(__file__).resolve().parents[1]
 PIN = "4d7d9486c04d917265f64c55bd23b2cc4fe7749c"
 SOURCE = "drivers/pmdomain/mediatek/mtk-scpsys.c"
 SOURCE_SHA256 = "9ce2b2c95a38bc4c7b801aff9b7c26da2dc8ec2e3fd34199adaedf1db3007226"
+MAINTAINERS_SHA256 = "39e65935b8f213dfa9b7a49a7341565855c6aec851288f0f32a0b2afcb35558a"
 PATCHES = (
     ("0001-pmdomain-mediatek-defer-initial-activation.patch", "e2338d566150a9e5a929b6a37e1bf76e356c4989391dd8549ed36b8e7554bc7f"),
     ("0002-pmdomain-mediatek-conn-off-clock-before-reset.patch", "bfbe2cf768bf6170cddef3dd6bbfeb2be3cb931e8f24404282ee5a7eabcf3acc"),
     ("0003-pmdomain-mediatek-retain-failed-domain-resources.patch", "2ca761d5b8be64d70dc0a4ec88e9b406980a09379050f215a4853afe6f7bf824"),
+    ("0005-pmdomain-mediatek-describe-mt6797-conn-island.patch", "2283af80b0c05863dea7119fe417bf1226d8a9afd90cc879bfbb6d0a733bad35"),
+    ("0006-pmdomain-mediatek-expose-retained-domain-fault.patch", "220730ec4c4babcaa231ad96a5a93b8a6922e9bd18bd9b2507d5f0fed1fdcb79"),
 )
 FUNCTIONS = (
     "scpsys_hold_fault", "scpsys_regulator_enable", "scpsys_regulator_disable",
     "scpsys_clk_disable", "scpsys_clk_enable", "scpsys_power_on", "scpsys_power_off",
+    "mtk_scpsys_domain_fault",
 )
 
 
@@ -39,7 +43,7 @@ def run(argv, cwd):
 
 
 def function(source, name):
-    match = re.search(r"(?m)^static [^\n]*\b" + re.escape(name) + r"\(", source)
+    match = re.search(r"(?m)^(?:static )?[^\n]*\b" + re.escape(name) + r"\(", source)
     require(match is not None, "missing function: " + name)
     end = source.find("\n}\n", match.start())
     require(end >= 0, "unterminated function: " + name)
@@ -51,11 +55,17 @@ def main():
     source = urllib.request.urlopen(url, timeout=45).read()
     require(hashlib.sha256(source).hexdigest() == SOURCE_SHA256,
             "upstream source digest mismatch")
+    maintainers = urllib.request.urlopen(
+        "https://raw.githubusercontent.com/torvalds/linux/" + PIN + "/MAINTAINERS",
+        timeout=45).read()
+    require(hashlib.sha256(maintainers).hexdigest() == MAINTAINERS_SHA256,
+            "upstream MAINTAINERS digest mismatch")
     with tempfile.TemporaryDirectory(prefix="gemini-scpsys-fault-") as directory:
         work = Path(directory)
         source_path = work / SOURCE
         source_path.parent.mkdir(parents=True)
         source_path.write_bytes(source)
+        (work / "MAINTAINERS").write_bytes(maintainers)
         for name, digest in PATCHES:
             patch = ROOT / "patches/proposals" / name
             data = patch.read_bytes()

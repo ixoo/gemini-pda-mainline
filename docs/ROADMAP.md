@@ -405,9 +405,11 @@ for the first Wi-Fi bring-up. The current preparation order is:
    [compile-validated SCPSYS failure latch](../experiments/2026-09-26-mt6797-conn-fault-retention/README.md)
    avoids post-request prerequisite cleanup after an opted ON error. An
    [isolated CONN domain-data proposal](../experiments/2026-09-26-mt6797-conn-domain-data/README.md)
-   now selects it only for compile validation; the owner still needs
-   rail/reset sequencing and an admission check that cannot be bypassed by
-   genpd state. A later
+   now selects it only for compile validation. A later
+   [fault-query proposal](../experiments/2026-09-26-mt6797-conn-fault-retention/README.md)
+   lets the future owner check that latch even when genpd skips a callback;
+   the owner still needs rail/reset sequencing and must call the query before
+   every hardware use. A later
    [read-only Gemian EMI reference](../experiments/2026-09-26-mt6797-emi-active-reference/results/runtime.json)
    confirms the vendor-requested region-18/19 ranges and permission values in
    a boot where WLAN carrier was observed later, but also shows broad region 23

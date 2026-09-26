@@ -1,0 +1,105 @@
+From abb624e1b4fb56630a0b4f78fda3f0f9281e2feb Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 26 Sep 2026 12:53:07 -0400
+Subject: [PATCH] pmdomain: mediatek: expose retained domain fault to owner
+
+After a failed OFF callback, generic PM domains can keep software state
+ON and skip the next power-on callback. Let the CONSYS owner query the
+retained SCPSYS fault before every hardware use. Read and write the latch
+with READ_ONCE/WRITE_ONCE across that callback boundary.
+
+No active consumer or hardware behavior changes. Internal compile
+experiment only; synthetic author, no DCO certification.
+---
+ MAINTAINERS                             |  1 +
+ drivers/pmdomain/mediatek/mtk-scpsys.c  | 23 +++++++++++++++++++++--
+ include/linux/soc/mediatek/mtk-scpsys.h | 10 ++++++++++
+ 3 files changed, 32 insertions(+), 2 deletions(-)
+ create mode 100644 include/linux/soc/mediatek/mtk-scpsys.h
+
+diff --git a/MAINTAINERS b/MAINTAINERS
+index 9fb50c3..604980d 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -11019,6 +11019,7 @@ F:	Documentation/devicetree/bindings/power/power?domain*
+ T:	git git://git.kernel.org/pub/scm/linux/kernel/git/ulfh/linux-pm.git
+ F:	drivers/pmdomain/
+ F:	include/linux/pm_domain.h
++F:	include/linux/soc/mediatek/mtk-scpsys.h
+ 
+ GENERIC RADIX TREE
+ M:	Kent Overstreet <kent.overstreet@linux.dev>
+diff --git a/drivers/pmdomain/mediatek/mtk-scpsys.c b/drivers/pmdomain/mediatek/mtk-scpsys.c
+index e1b0cdb..e878bd2 100644
+--- a/drivers/pmdomain/mediatek/mtk-scpsys.c
++++ b/drivers/pmdomain/mediatek/mtk-scpsys.c
+@@ -3,6 +3,8 @@
+  * Copyright (c) 2015 Pengutronix, Sascha Hauer <kernel@pengutronix.de>
+  */
+ #include <linux/clk.h>
++#include <linux/compiler.h>
++#include <linux/export.h>
+ #include <linux/init.h>
+ #include <linux/io.h>
+ #include <linux/iopoll.h>
+@@ -12,6 +14,7 @@
+ #include <linux/pm_domain.h>
+ #include <linux/regulator/consumer.h>
+ #include <linux/soc/mediatek/infracfg.h>
++#include <linux/soc/mediatek/mtk-scpsys.h>
+ 
+ #include <dt-bindings/power/mt2701-power.h>
+ #include <dt-bindings/power/mt2712-power.h>
+@@ -222,8 +225,8 @@ static void scpsys_withhold_domain(struct scp *scp, int index, int error)
+ static int scpsys_hold_fault(struct scp_domain *scpd, int error)
+ {
+ 	if (MTK_SCPD_CAPS(scpd, MTK_SCPD_RETAIN_FAILED_STATE) &&
+-	    !scpd->fault_error)
+-		scpd->fault_error = error;
++	    !READ_ONCE(scpd->fault_error))
++		WRITE_ONCE(scpd->fault_error, error);
+ 
+ 	return error;
+ }
+@@ -464,6 +467,22 @@ out:
+ 	return ret;
+ }
+ 
++int mtk_scpsys_domain_fault(struct generic_pm_domain *genpd)
++{
++	struct scp_domain *scpd;
++
++	if (!genpd || genpd->power_on != scpsys_power_on ||
++	    genpd->power_off != scpsys_power_off)
++		return -EINVAL;
++
++	scpd = container_of(genpd, struct scp_domain, genpd);
++	if (!MTK_SCPD_CAPS(scpd, MTK_SCPD_RETAIN_FAILED_STATE))
++		return -EOPNOTSUPP;
++
++	return READ_ONCE(scpd->fault_error);
++}
++EXPORT_SYMBOL_GPL(mtk_scpsys_domain_fault);
++
+ static void init_clks(struct platform_device *pdev, struct clk **clk)
+ {
+ 	int i;
+diff --git a/include/linux/soc/mediatek/mtk-scpsys.h b/include/linux/soc/mediatek/mtk-scpsys.h
+new file mode 100644
+index 0000000..2070da7
+--- /dev/null
++++ b/include/linux/soc/mediatek/mtk-scpsys.h
+@@ -0,0 +1,10 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __LINUX_SOC_MEDIATEK_MTK_SCPSYS_H
++#define __LINUX_SOC_MEDIATEK_MTK_SCPSYS_H
++
++struct generic_pm_domain;
++
++/* Call while the attached domain remains valid; zero means no latched fault. */
++int mtk_scpsys_domain_fault(struct generic_pm_domain *genpd);
++
++#endif /* __LINUX_SOC_MEDIATEK_MTK_SCPSYS_H */
+-- 
+2.54.0 (Apple Git-157)
+
