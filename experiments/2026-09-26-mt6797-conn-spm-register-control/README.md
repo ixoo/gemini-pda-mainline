@@ -55,3 +55,37 @@ define and validate the registration/consumer behavior of those domains as
 well as the CONN rail, reset and shared-writer owner. No such profile was made
 or installed. The running Gemian Wi-Fi reference was inspected read-only and
 was not changed by this source replay.
+
+## Child-domain provider comparison
+
+The exact prepared Linux 7.1.3 A53 source also contains
+`drivers/pmdomain/mediatek/mtk-pm-domains.c` (SHA-256
+`d9a2fc3d875ec737a01234109115db9d39779b64597c2888d6db631970184f3b`)
+and `mtk-pm-domains.h` (SHA-256
+`52f4d9b0780a4c4bf236e48ab8b513803865e636e91eb6507f3915e63715a5ab`).
+Unlike the legacy provider, `scpsys_probe()` calls `scpsys_add_one_domain()`
+only for available DT child nodes. Describing a CONN child alone can therefore
+avoid probe-time registration and power requests for unrelated MT6797 domains.
+The accepted DT instead has a legacy flat `mediatek,mt6797-scpsys` node, and
+the accepted A53 config disables both SCPSYS drivers; this is a migration
+direction, not a drop-in profile switch.
+
+The newer driver's existing `MTK_SCPD_KEEP_DEFAULT_OFF` branch merely warns
+if `scpsys_domain_is_on()` reports ON, then calls `pm_genpd_init(..., true)`
+anyway. That status helper ignores both `regmap_read()` return values and
+collapses mixed dual-status bits into OFF. A CONN domain must instead refuse
+ON, mixed or unreadable status before publication, as the legacy proposal
+already does. The newer ON callback also releases basic clocks and its
+optional supply after an ACK or later preparation error without proving OFF;
+its subsequent cleanup may issue further bus-protection or SRAM operations.
+It has no matching retained-fault query, MT6797 `0x32c` CONN data, selected
+SPM key preamble, or external VCN/reset sequence. The generic `SPM_CONN_PWR_CON`
+constant is `0x280`, which is not the selected MT6797 CONN offset.
+
+Accordingly, porting only the CONN table entry to this provider would avoid
+unrelated probe effects but would not admit activation. A useful migration
+must first make initially-off admission and post-request failure retention
+fail closed, then add MT6797 data and child DT, the rail/reset/key owner and
+the retained-writer and EMI contract. Preserve the accepted baseline until
+that complete effect-bearing path has a reviewable failure lifetime. This
+comparison was read-only on Buildbox; it made no build, device or radio change.

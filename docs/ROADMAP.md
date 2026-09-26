@@ -418,7 +418,11 @@ for the first Wi-Fi bring-up. The current preparation order is:
    but its selected configuration disables SCPSYS. Enabling the legacy
    provider as-is would activate other MT6797 domains during probe. Resolve
    that registration/consumer behavior before making a boot candidate; source
-   portability alone does not admit a device test. A later
+   portability alone does not admit a device test. A
+   [child-domain provider comparison](../experiments/2026-09-26-mt6797-conn-spm-register-control/README.md#child-domain-provider-comparison)
+   finds that the newer provider can avoid unrelated probe activation, but
+   its default-off check and ON-error cleanup cannot yet retain a safe CONN
+   state. Migrate only with fail-closed status and failure lifetime. A later
    [read-only Gemian EMI reference](../experiments/2026-09-26-mt6797-emi-active-reference/results/runtime.json)
    confirms the vendor-requested region-18/19 ranges and permission values in
    a boot where WLAN carrier was observed later, but also shows broad region 23
