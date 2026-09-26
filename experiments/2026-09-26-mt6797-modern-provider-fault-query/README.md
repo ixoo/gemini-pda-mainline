@@ -20,7 +20,15 @@ is unchanged. This is not a boot2 candidate. Pinned Linux checkpatch reports
 zero errors and warnings. The synthetic patch author makes no DCO claim or
 upstream submission.
 
-Buildbox compilation and symbol checks remain to be recorded. An owner-side
-failure-lifetime test needs the external VCN rail, CONMCU reset, SPM key,
-shared remap/EMI and writer-exclusion contracts first; repeatedly booting the
-existing passive image cannot test this API.
+The [Buildbox result](results/build.json) records a full ARM64 link from clean
+pushed commit `fe3016f4403175cf503b7706535a375d73ec240e`. The fetched
+package passed its SHA-256 inventory check and retains all seven selected
+patches. The resolved configuration builds the modern provider, not the
+legacy one; `System.map` contains `mtk_pm_domain_fault` and MT6797 domain
+data. Neither packaged MT6797 DTB has the new controller compatible. These
+checks establish source integration and linkage, not query behavior on the
+PDA. No device write or boot was performed for this result.
+
+An owner-side failure-lifetime test needs the external VCN rail, CONMCU
+reset, SPM key, shared remap/EMI and writer-exclusion contracts first;
+repeatedly booting the existing passive image cannot test this API.
