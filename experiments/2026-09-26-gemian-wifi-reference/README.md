@@ -233,3 +233,32 @@ The Mac later still saw one `0x0e8d:0x20ff` USB session without a network
 interface; that identity also appears as an intermediate stage in earlier
 project boots, but does not establish the stage here. The device remains
 running pending screen-state and recovery-path inspection.
+
+## Prepared v2 stop trace
+
+The [single-use v2 script](trace-wmt-stop-v2.sh) is prepared but has **not**
+been installed or run. Its SHA-256 is
+`36908f13f0d4c164f23d10c4609a621810314e90b1da23b2f1bdb21052b9331c`.
+It requires the exact v2 kernel release and a changed
+boot ID observed by the host before any effect. Its hypothesis is that one
+WMT Wi-Fi off/on cycle, after ConnMan has disconnected the associated
+interface, will execute the new `wlanAdapterStop` decision record and three
+worker waits without the prior associated-interface removal warning. Unique
+evidence is the positive-controlled function trace joined to the before/after
+kernel logs, stop/wait fields, carrier result and same-boot identity. A missing
+function, failed tracer control, absent clean disconnect or changed identity
+refuses before the WMT write. A completed cycle with no stop/wait record is a
+limited result, not evidence of firmware quiescence.
+
+The effect budget is one ConnMan disable, one WMT off, one WMT on and one
+ConnMan enable. The device-side exit handler attempts a WMT on only if off was
+attempted and no on was attempted, and attempts ConnMan enable only if disabled
+without an enable attempt. It always tries to restore the original `nop`
+tracer. No WMT write is admitted until carrier is down and `iw` reports three
+consecutive disconnected samples. Those observations reduce the known
+`current_bss` warning case but do not prove cfg80211's internal reference is
+clear. If the netdev or carrier does not return, preserve the private output
+and use the reviewed known-good boot recovery path; do not replay the cycle.
+The script's fixed output directory prevents a second use in the same rootfs.
+The PDA's current release and boot ID remain unverified, so this protocol is
+not yet admitted for execution.
