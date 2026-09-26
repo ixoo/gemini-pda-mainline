@@ -1,0 +1,46 @@
+{
+  "candidate_sha256": "b1916ae329cdd6a7672a138d3d9673749279678d975255496fa411283ea9a886",
+  "previous_boot_id": "b3c9ecab-08ae-4c08-9c6a-17ef92972c77",
+  "observed_boot_id": "d298cdbb-7d1f-450f-930a-d40068bde3fa",
+  "kernel_release": "3.18.41-gemini-wifi-ref4+",
+  "collector": "one-shot Gemian LAN observer",
+  "collector_result": "complete",
+  "private_collector_script_sha256": "dfacce2da190b4e022c6a47e11fe141e0a6f576686ebb3c9ce559a82ee37b648",
+  "private_result_sha256": "1b0c257c6850bdf864b2678edee1f0ba4b33b185a1931150a33f32b82233078d",
+  "private_early_dmesg_sha256": "33bccd1428dae0bc03405db351c37da93065d1fc923264cf30e7af7d9b76f67f",
+  "private_late_dmesg_sha256": "a33da70774cbecc6c03738ed9726d0d5945ef8354cafc4fbdd89784a7f94056c",
+  "early_log_is_prefix_of_late": true,
+  "diagnostic_records_per_log": {
+    "rx": 1,
+    "tx": 1
+  },
+  "first_tx": {
+    "port": 52,
+    "size": 20,
+    "dma_count": 20,
+    "mapped_source_address_bits": 32,
+    "configured_destination_address_bits": 29,
+    "idle_return": 0,
+    "idle_polls": 1,
+    "count_escape": 0
+  },
+  "first_rx": {
+    "port": 80,
+    "size": 32,
+    "dma_count": 32,
+    "configured_source_address_bits": 29,
+    "mapped_destination_address_bits": 32,
+    "idle_return": 0,
+    "idle_polls": 1,
+    "count_escape": 0
+  },
+  "records_before_first_wifi_link_event": true,
+  "carrier_early": 1,
+  "carrier_late_after_25_seconds": 1,
+  "early_4g_mode_message_count": 1,
+  "dma_timeout_message_count": 0,
+  "warning_and_call_trace_counts_match_v3": true,
+  "cmdline_read": "permission denied to unprivileged collector",
+  "result": "verified v4 boot and Wi-Fi carrier; first RX and TX DMA idle polls each saw EN clear without count escape",
+  "limits": "Both once-only records precede the first Wi-Fi link event and cannot establish later SSH packet DMA behavior. Computed endpoints are not register readbacks, EN clear does not distinguish completion from STOP, FLUSH or reset, and two carrier samples do not prove durable association."
+}

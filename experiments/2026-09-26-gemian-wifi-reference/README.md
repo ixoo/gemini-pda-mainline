@@ -441,6 +441,9 @@ DMA register read or transfer and leaves the existing timeout and
 unmap behavior intact. A zero `idle_return` with `count_escape=0`
 supports that this poll saw the channel EN bit clear; `count_escape=1`
 means the path reached unmap without that assurance.
+The source and destination are software configuration fields, not readback
+of the DMA low-address or ADDR2 registers. In particular, a wide mapped
+address here does not prove that its upper bits reached the engine.
 In the [pinned `ahb_pdma.c`](../2026-09-07-mt6797-wifi-observer-feasibility/results/dma-hook-sources.json),
 `HifPdmaStop` only masks the DMA interrupt:
 its STOP write and internal enable poll are compiled out. The existing
@@ -475,7 +478,7 @@ installer SHA-256 is
 `6146af35f8c8ee11c671ac5870188d3a99e63a98db5696fce42feb955d62c83e`.
 The boot hypothesis is that a working Wi-Fi connection will exercise both
 RX and TX data-port paths and record bounded idle-poll outcomes with their
-physical endpoints. A changed boot ID, expected v4 release, Wi-Fi carrier,
+computed endpoint fields. A changed boot ID, expected v4 release, Wi-Fi carrier,
 and both records would support that narrow result. If boot identity or Wi-Fi
 fails, preserve the finite capture and use the reviewed recovery path. If
 either direction has no record, preserve the negative result and inspect
@@ -483,10 +486,26 @@ whether that path was exercised before changing instrumentation. A
 `count_escape=1` would move investigation to the DMA lifetime and mapping
 release; `count_escape=0` supports only a clear EN bit at the final read.
 One record per direction cannot establish every transfer's ownership or
-replace the native driver's full DMA sequencing. No v4 device boot has yet
-been observed.
+replace the native driver's full DMA sequencing.
 
 The [v4 deployment receipt](results/deployment-v4.json) records the guarded
 boot2 write, independent full-partition readback match, and clean shutdown.
 The owner physically selects boot2 while a finite LAN collector is armed;
 deployment alone is not a runtime result.
+
+The owner selected boot2 with the one-shot LAN collector armed. The
+[v4 runtime receipt](results/runtime-v4-return-1.json) binds a changed boot ID
+to the expected release, complete early and late logs, and Wi-Fi carrier at
+two samples 25 seconds apart. Both logs contain exactly one RX and one TX
+record. Each first transfer's existing idle poll returned zero after one
+read, without reaching the count-limit escape; no DMA timeout message was
+found. The host-side fields contain mapped addresses below 4 GiB; the other
+fields describe the configured HIF endpoint.
+The records occurred just before the first Wi-Fi link event. They establish
+the first startup transfers' final EN reads, not the idle result for later
+SSH packet DMA. Neither the computed endpoints nor EN clearing proves the
+actual low/ADDR2 register values, clean completion or delivery. The next
+measurement must distinguish later packet traffic from these once-only
+startup records before using an idle observation to define mainline DMA
+ownership. The inherited warning and call-trace counts match v3; no new
+DMA timeout or kernel panic was observed in this boot.
