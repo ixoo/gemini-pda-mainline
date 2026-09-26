@@ -425,12 +425,16 @@ for the first Wi-Fi bring-up. The current preparation order is:
    evidence. A [boot2-tested Gemian reference kernel](../experiments/2026-09-26-gemian-wifi-reference/results/runtime-1.json)
    now provides function and function-graph tracing, disabled by default, and
    records co-clock mode zero plus successful raw EMI secure-call returns in a
-   working WLAN boot. It has not captured a shared-resource lifetime trace or
-   resolved effective EMI arbitration. A bounded [retained-evidence audit](../experiments/2026-09-07-mt6797-wifi-retained-lifetime-audit/README.md)
+   working WLAN boot. A [single direct WMT off/on trace](../experiments/2026-09-26-gemian-wifi-reference/results/trace-wmt-cycle-1.json)
+   captured WLAN remove/probe and image mapping/load helper calls with Bluetooth
+   still on and no selected common-block power call. Carrier returned, but a
+   new cfg80211 removal warning occurred because the associated interface still
+   held a `current_bss` reference at unregister; DMA, firmware-stop completion and
+   effective EMI arbitration remain unresolved. A bounded [retained-evidence audit](../experiments/2026-09-07-mt6797-wifi-retained-lifetime-audit/README.md)
    found no record that joins any required predicate to one successful WLAN
-   cycle. Next freeze and independently review a distinct non-replayed
-   observation mechanism, including its acquisition effects, shared ownership,
-   finite budget and recovery, before any radio or hardware action. See the
+   cycle. Select a focused measurement for the missing firmware-stop and DMA
+   predicates, and admit a disconnect state before another radio effect.
+   See the
    [retained-ELF boundary](../experiments/2026-09-06-mt6797-wlan-final-linkage-teardown-attribution/README.md),
    [accepted database boundary](../experiments/2026-09-06-vmlinux-to-elf-kernel-db-provenance-v2/README.md)
    and [accepted Kallsyms provenance](../experiments/2026-09-06-vmlinux-to-elf-symbol-provenance-v3/README.md).

@@ -127,6 +127,10 @@ called. ConnMan's technology toggle therefore did not establish the required
 firmware load/shutdown lifetime. The private trace and full logs are retained
 under ignored `artifacts/`. This cycle's effect and repeat budgets are
 consumed; a different control path is needed for the next discriminator.
+An independent [same-boot ftrace control](results/trace-selftest.json) later
+recorded 84 `vfs_read` calls with the tracer restored afterward. This proves
+that function tracing can record a known call in this kernel; it does not
+retroactively make the ConnMan trace a complete negative witness.
 
 ## Direct WMT cycle candidate
 
@@ -139,7 +143,7 @@ The source also has an optional whole-chip assertion on failed requests, so
 its effects and recovery need to be treated as a new test, not as a replay of
 the ConnMan cycle.
 
-The [direct WMT script](trace-wmt-cycle.sh) is a single-use candidate for this
+The [direct WMT script](trace-wmt-cycle.sh) was a single-use candidate for this
 same boot. Before any radio effect it checks the exact boot, live carrier,
 power, character-device identity and trace state, then requires a positive
 `vfs_read` function-tracer control. It filters `WIFI_write` and fourteen
@@ -149,5 +153,31 @@ trace, and restores ftrace. A complete successful callback/firmware trace
 would inform the mainline owner design; missing callbacks, an empty trace,
 device reset, or failed carrier restoration are refusal results. If LAN does
 not return, the device-side result is preserved on the shared Gemian rootfs
-for owner-operated known-good boot recovery. This direct WMT cycle has not
-been run; its effect budget is unspent.
+for owner-operated known-good boot recovery.
+
+The [result](results/trace-wmt-cycle-1.json) records one completed direct WMT
+off/on cycle in the same diagnostic boot. Its in-job positive control captured
+nine `vfs_read` calls; the bounded lifecycle trace captured 18 calls with no
+overrun. `WIFI_write`, WMT Wi-Fi off, `wlanRemove`, and `wlanStop` preceded one
+WMT Wi-Fi on, `wlanProbe`, `kalFirmwareOpen`, `kalFirmwareLoad`, four region-18
+EMI wrapper/secure-call pairs, and `kalFirmwareClose`. All four new region-18
+secure calls returned raw status zero. WMT logged Bluetooth on while Wi-Fi was
+off, then both on. None of the selected CONSYS power or register-control
+functions appeared in this positive-controlled trace. One enable restored
+carrier and LAN SSH; the service exited successfully and ftrace returned to
+`nop`. The complete logs and trace remain private under ignored `artifacts/`.
+
+The remove path also raised a new `cfg80211_netdev_notifier_call` warning from
+`wlanNetUnregister`. In the exact diagnostic source, `net/wireless/core.c:1042`
+warns when `wdev->current_bss` remains set during unregister, then releases
+that BSS reference. The Wi-Fi technology was connected before the direct WMT
+write, so this warning identifies an associated-interface removal case; it
+does not by itself show a failed remove or a lasting kernel fault. The cycle
+demonstrates the vendor WLAN callback and image
+mapping/load helper order while Bluetooth retains the common block. It does
+not prove successful firmware execution, DMA programming/idle, firmware-stop
+completion, exclusive CONSYS ownership, or safe teardown; the function trace
+contains no arguments or return values for those predicates. The direct WMT
+effect budget is consumed. A future radio cycle should first establish a
+separate, bounded disconnect state and a focused measurement for the missing
+firmware-stop and DMA predicates.

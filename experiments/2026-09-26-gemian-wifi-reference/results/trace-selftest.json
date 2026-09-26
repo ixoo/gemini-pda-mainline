@@ -1,0 +1,13 @@
+{
+  "boot_id": "a690b7e2-a35e-4732-95c1-ab6b7af97c2f",
+  "kernel_release": "3.18.41-gemini-wifi-ref+",
+  "private_script_sha256": "cc1d17b73c5335c0a4681f7d8a2e878e3bb90342775fbe4e8f78712e6adba7e2",
+  "private_trace_sha256": "00b5e1c1eae54d53c138a31483eae7a5f15aefccece7e85acd4570c0ed66d3b7",
+  "filtered_function": "vfs_read",
+  "function_lines": 84,
+  "tracer_restored": "nop",
+  "filter_restored": "all functions enabled",
+  "buffer_kb_restored": 7,
+  "radio_actions": 0,
+  "interpretation": "The function tracer recorded a known read path in this diagnostic boot. This later control does not retroactively prove that the earlier ConnMan cycle executed no WMT callbacks."
+}
