@@ -1,0 +1,85 @@
+From 373d71f2b94f0ef3fddd35386ce8c540dba00e49 Mon Sep 17 00:00:00 2001
+From: Gemini diagnostic experiment <nobody@example.invalid>
+Date: Sat, 26 Sep 2026 13:44:55 -0400
+Subject: [PATCH] diagnostic: record Gemian AHB DMA idle-poll outcomes
+
+Capture the existing poll callback result and loop-escape outcome at
+the two data-port DMA paths. Log the already configured physical
+endpoints for the first RX and TX transfer reaching unmap, without
+an extra hardware read.
+---
+ .../wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c | 20 +++++++++++++++++--
+ 1 file changed, 18 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c
+index 2baa623..cff68ff 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c
+@@ -768,6 +768,8 @@ kalDevPortRead(IN P_GLUE_INFO_T GlueInfo, IN UINT_16 Port, IN UINT_32 Size, OUT
+ #if (CONF_MTK_AHB_DMA == 1)
+ 	MTK_WCN_HIF_DMA_CONF DmaConf;
+ 	UINT_32 LoopCnt;
++	MTK_WCN_BOOL DmaStillRunning = FALSE;
++	BOOLEAN DmaIdleEscape = FALSE;
+ #endif /* CONF_MTK_AHB_DMA */
+ 	UINT_32 IdLoop, MaxLoop;
+ 	UINT_32 *LoopBuf;
+@@ -985,9 +987,11 @@ kalDevPortRead(IN P_GLUE_INFO_T GlueInfo, IN UINT_16 Port, IN UINT_32 Size, OUT
+ 			if (LoopCnt++ > 100000) {
+ 				/* TODO: impossible! reset DMA */
+ 				DBGLOG(RX, ERROR, "fatal error2! reset DMA!\n");
++				DmaIdleEscape = TRUE;
+ 				break;
+ 			}
+-		} while (HifInfo->DmaOps->DmaPollStart(HifInfo) != 0);
++			DmaStillRunning = HifInfo->DmaOps->DmaPollStart(HifInfo);
++		} while (DmaStillRunning != 0);
+ 
+ 		AP_DMA_HIF_UNLOCK(HifInfo);
+ 
+@@ -1005,6 +1009,10 @@ kalDevPortRead(IN P_GLUE_INFO_T GlueInfo, IN UINT_16 Port, IN UINT_32 Size, OUT
+ 		if (pfWlanDmaOps != NULL)
+ 			pfWlanDmaOps->DmaClockCtrl(FALSE);
+ 
++		pr_info_once("gemini-wifi-ref-v4: dma-rx port=%u size=%u count=%u src=0x%lx dst=0x%lx idle_return=%u idle_polls=%u count_escape=%u\n",
++			     Port, Size, count, DmaConf.Src, DmaConf.Dst,
++			     DmaStillRunning, LoopCnt, DmaIdleEscape);
++
+ 		HIF_DBG(("[WiFi/HIF] DMA RX OK!\n"));
+ 	} else
+ #endif /* CONF_MTK_AHB_DMA */
+@@ -1049,6 +1057,8 @@ kalDevPortWrite(IN P_GLUE_INFO_T GlueInfo, IN UINT_16 Port, IN UINT_32 Size, IN
+ #if (CONF_MTK_AHB_DMA == 1)
+ 	MTK_WCN_HIF_DMA_CONF DmaConf;
+ 	UINT_32 LoopCnt;
++	MTK_WCN_BOOL DmaStillRunning = FALSE;
++	BOOLEAN DmaIdleEscape = FALSE;
+ #endif /* CONF_MTK_AHB_DMA */
+ /* UINT8 *BufSrc, *BufLast; */
+ /* UINT8 Last4B[4]; */
+@@ -1250,9 +1260,11 @@ kalDevPortWrite(IN P_GLUE_INFO_T GlueInfo, IN UINT_16 Port, IN UINT_32 Size, IN
+ 		do {
+ 			if (LoopCnt++ > 100000) {
+ 				DBGLOG(TX, ERROR, "fatal error2! reset DMA!\n");
++				DmaIdleEscape = TRUE;
+ 				break;
+ 			}
+-		} while (HifInfo->DmaOps->DmaPollStart(HifInfo) != 0);
++			DmaStillRunning = HifInfo->DmaOps->DmaPollStart(HifInfo);
++		} while (DmaStillRunning != 0);
+ 
+ 		AP_DMA_HIF_UNLOCK(HifInfo);
+ 
+@@ -1266,6 +1278,10 @@ kalDevPortWrite(IN P_GLUE_INFO_T GlueInfo, IN UINT_16 Port, IN UINT_32 Size, IN
+ 		if (pfWlanDmaOps != NULL)
+ 			pfWlanDmaOps->DmaClockCtrl(FALSE);
+ 
++		pr_info_once("gemini-wifi-ref-v4: dma-tx port=%u size=%u count=%u src=0x%lx dst=0x%lx idle_return=%u idle_polls=%u count_escape=%u\n",
++			     Port, Size, count, DmaConf.Src, DmaConf.Dst,
++			     DmaStillRunning, LoopCnt, DmaIdleEscape);
++
+ 		HIF_DBG_TX(("[WiFi/HIF] DMA TX OK!\n"));
+ 	} else
+ #endif /* CONF_MTK_AHB_DMA */
+-- 
+2.54.0 (Apple Git-157)

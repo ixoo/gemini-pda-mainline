@@ -397,3 +397,27 @@ boot2 selection and changed-boot verification are still pending. The first
 changed-boot SSH connection or confirmed physical selection. This establishes
 no v3 boot or Wi-Fi result; rearm a fresh collector before the owner selects
 boot2 later.
+
+## V4 DMA idle outcome observer
+
+The [v4 diagnostic patch](patches/0004-diagnostic-record-Gemian-AHB-DMA-idle-outcomes.patch)
+uses the pinned Gemian AHB source (`ahb.c` SHA-256
+`d9b4e80fe98695284627e495ad640e39728ebe7df235df129f64d48e8a2e726b`).
+The v2 runtime trace established that `HifPdmaConfig` and `HifPdmaStart`
+run, but did not show the physical endpoints or whether the idle poll
+returned zero before the DMA mapping was released. In each data-port RX
+and TX path, this patch saves the return from the *existing*
+`DmaPollStart` call and records the poll count and count-limit escape.
+It logs the already computed source, destination, port and transfer size
+once per direction after the path releases its DMA mapping. It adds no
+DMA register read or transfer and leaves the existing timeout and
+unmap behavior intact. A zero `idle_return` with `count_escape=0`
+supports that this poll observed an idle engine; `count_escape=1`
+means the path reached unmap without that assurance.
+
+The records contain physical DMA addresses and belong in the ignored
+private runtime capture. Publish only interpreted, sanitized facts.
+This patch is a compile-only diagnostic preparation while the installed
+v3 boot is awaiting validation; it is not a boot2 candidate or evidence
+of DMA safety. One record per direction cannot establish every transfer's
+ownership or replace the native driver's full DMA sequencing.
