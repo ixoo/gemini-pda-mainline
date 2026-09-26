@@ -439,13 +439,16 @@ for the first Wi-Fi bring-up. The current preparation order is:
    carrier returned. A separate [bounded DMA-path trace](../experiments/2026-09-26-gemian-wifi-reference/results/trace-dma-presence-v2-1.json)
    confirmed live WLAN DMA configuration/start calls. These results narrow the
    earlier [retained-evidence audit](../experiments/2026-09-07-mt6797-wifi-retained-lifetime-audit/README.md):
-   positive DMA idle-before-unmap, programmed addresses/endpoint translation,
-   raw poll progression, coherent shared CONSYS shutdown and effective EMI
-   arbitration remain unresolved. Resolve shared-owner admission and an
-   effect-bearing failure lifetime before another mainline firmware candidate.
-   The first firmware load may use PIO; collect typed native DMA evidence and
-   validate AP-DMA ownership before enabling packet DMA. Do not replay either
-   single-use Gemian radio or DMA-presence cycle.
+   [post-carrier DMA records](../experiments/2026-09-26-gemian-wifi-reference/results/runtime-v5-return-1.json)
+   then observed one RX and one TX idle poll with EN clear before unmap in a
+   working Gemian boot. Both records followed link-ready by about one
+   millisecond, so packet-path attribution, programmed register addresses,
+   completion versus STOP/FLUSH/reset, coherent shared CONSYS shutdown and
+   effective EMI arbitration remain unresolved. Resolve shared-owner admission
+   and an effect-bearing failure lifetime before another mainline firmware
+   candidate. The first firmware load may use PIO; validate AP-DMA ownership
+   before enabling packet DMA. Do not replay consumed Gemian radio or DMA
+   cycles merely to repeat the same observation.
    See the
    [retained-ELF boundary](../experiments/2026-09-06-mt6797-wlan-final-linkage-teardown-attribution/README.md),
    [accepted database boundary](../experiments/2026-09-06-vmlinux-to-elf-kernel-db-provenance-v2/README.md)
