@@ -337,3 +337,19 @@ path was active during a window containing the SSH reply; background Wi-Fi
 traffic prevents attributing every call to that reply. It does not provide
 programmed addresses, raw poll progression or idle-before-unmap evidence.
 The one-window budget is consumed; do not replay it.
+
+## Boot2 update preflight from the instrumented Gemian boot
+
+The owner clarified that a later boot2 image may be installed while the
+instrumented Gemian kernel is running. A bounded read-only check in the
+verified v2 boot resolved logical `boot2` to `/dev/mmcblk0p30`, with root on
+`/dev/mmcblk0p29`. The reviewed device guard passed for target `179:30` and
+root `179:29`; the full partition still matched the installed v2 image.
+Battery presence, Good health and 100% capacity were observed. The
+[sanitized preflight receipt](results/boot2-self-update-preflight.json) records
+the exact boot identity and result. No write, shutdown or new boot occurred.
+
+This establishes that a return to primary Gemian is not required solely to
+make boot2 inactive in this session. It does not preapprove a future write:
+that installer must resolve the live GPT and repeat all identity, mount,
+power, candidate and full-readback checks at deployment time.
