@@ -1,0 +1,27 @@
+{
+  "observed_date_utc": "2026-09-26",
+  "path": "drivers/clk/mediatek/clk-mt6797.c",
+  "sha256": "eaad6324621679371f33bbb76e10bcb0d3374b1f2dbbd837323b3f9e8fee1534",
+  "bytes": 23000,
+  "refs": [
+    {
+      "tree": "mainline",
+      "commit": "fd179f8a05be3ccae366b9b96e176b51fbe54aab",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/fd179f8a05be3ccae366b9b96e176b51fbe54aab/drivers/clk/mediatek/clk-mt6797.c"
+    },
+    {
+      "tree": "clock-next",
+      "commit": "0f5cf38af7beb9dd3ca6fa468dd765bf54e9e249",
+      "url": "https://git.kernel.org/pub/scm/linux/kernel/git/clk/linux.git/plain/drivers/clk/mediatek/clk-mt6797.c?id=0f5cf38af7beb9dd3ca6fa468dd765bf54e9e249"
+    },
+    {
+      "tree": "mediatek-for-next",
+      "commit": "4bfec57314396c8c816ee78f4803987882b668a7",
+      "url": "https://git.kernel.org/pub/scm/linux/kernel/git/mediatek/linux.git/plain/drivers/clk/mediatek/clk-mt6797.c?id=4bfec57314396c8c816ee78f4803987882b668a7"
+    }
+  ],
+  "selected_file_matches_20260910": true,
+  "legacy_mtk_infrasys_init_present": true,
+  "common_infracfg_desc_present": false,
+  "scope": "One selected driver file at each advertised ref; not a full-tree rebase, merge-status proof, or validation of unmerged mailing-list revisions."
+}

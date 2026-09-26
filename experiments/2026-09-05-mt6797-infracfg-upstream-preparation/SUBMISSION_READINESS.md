@@ -4,6 +4,16 @@ The original packet below describes the September 5 snapshot. The
 [accepted revised series](revised-topic/INTEGRATION.md) subsequently resolved
 the patch-3 compatibility correction; see the refresh below for upstream state.
 
+## September 26 narrow overlap check
+
+The [selected-file receipt](results/mt6797-clock-overlap-20260926.json) records
+the advertised mainline, clock-next and MediaTek for-next tips and fetches
+`clk-mt6797.c` at each exact commit. All three files match the September 10
+hash and still use `mtk_infrasys_init()`; none contains the proposed common
+`infracfg_desc` conversion. This check does not establish the status of an
+unmerged revision or validate the full topic on a new base. The accepted
+revision and submission gates remain unchanged.
+
 ## September 10 refresh
 
 The [new receipt](results/submission-routing-refresh-20260910.json) records
