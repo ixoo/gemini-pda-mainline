@@ -404,6 +404,17 @@ during this window and did not report a boot2 selection. This adds no v3
 boot or Wi-Fi observation. Arm a fresh finite collector when the owner is
 back and ready to select boot2 physically.
 
+The owner later selected boot2 with a fresh collector armed. The
+[v3 runtime receipt](results/runtime-v3-return-1.json) records a changed boot ID,
+the expected diagnostic release, one complete set of power records in both
+saved logs, and Wi-Fi carrier at two samples 25 seconds apart. VCN18 and VCN28
+voltage/enable requests and CONN clock enable all returned zero; the source
+branch used `co_clock_type=0` and requested VCN28. The early boot also logged
+the 4G-mode branch. This satisfies the v3 request-outcome hypothesis for that
+boot. It does not prove hardware-control mode, exclusive shared-resource
+ownership, reset outcome or DMA idle. The unprivileged collector could not read
+`/proc/cmdline`; kernel release and changed boot ID were captured separately.
+
 ## Retained 4G-mode observation
 
 A [read-only reanalysis](results/4g-mode-reference.json) of the preserved

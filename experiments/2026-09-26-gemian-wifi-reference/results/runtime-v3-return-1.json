@@ -1,0 +1,32 @@
+{
+  "candidate_sha256": "3e4663373b8b0519a06642ac5ddef4223f2a31b28aca8446bfbe2a59b6a456ea",
+  "previous_boot_id": "7d372eb9-23ca-48af-91b3-8b5e9112c943",
+  "observed_boot_id": "b3c9ecab-08ae-4c08-9c6a-17ef92972c77",
+  "kernel_release": "3.18.41-gemini-wifi-ref3+",
+  "collector": "one-shot Gemian LAN observer",
+  "collector_result": "complete",
+  "private_collector_script_sha256": "f5f9697b006284b4d7f22d2987be394cbfc9a10d2f5c18670954eec2a500df5e",
+  "private_result_sha256": "0833299a796ca32f267bb662b7be3d734313cb79faa4c976d323a54e74b18400",
+  "private_early_dmesg_sha256": "b4c6f79d90abf287c1ba5b4829507e20a168c2d9c71776fc45aa1157ef95eb17",
+  "private_late_dmesg_sha256": "46be31300f8fc043a340e383d5f5e339cc0f726afb403900a7b16a643dcd254b",
+  "early_log_is_prefix_of_late": true,
+  "diagnostic_records_per_log": {
+    "conn": 1,
+    "vcn18": 1,
+    "vcn28": 1
+  },
+  "conn_enable_return": 0,
+  "chip_id": "0279",
+  "co_clock_type": 0,
+  "vcn18_voltage_return": 0,
+  "vcn18_enable_return": 0,
+  "vcn28_voltage_return": 0,
+  "vcn28_enable_return": 0,
+  "vcn28_requested": true,
+  "carrier_early": 1,
+  "carrier_late_after_25_seconds": 1,
+  "early_4g_mode_message_count": 1,
+  "cmdline_read": "permission denied to unprivileged collector",
+  "result": "verified v3 boot and Wi-Fi carrier with zero rail and clock request returns",
+  "limits": "Request returns do not prove achieved PMIC hardware-control mode, SPM exclusivity, reset readback, DMA idle or durable Wi-Fi association. Carrier is sampled twice in one boot."
+}
