@@ -111,6 +111,9 @@ Gemian source revision emits the positive message only after the early
 boot moments, not selector stability through each transfer or the value in
 the pending v3 or any mainline boot. No new register read or device action
 was performed for this finding.
+The same pinned register reference, PDF pages 187–188, independently identifies
+INFRACFG `0x10001f00` bit 13 as the DDR 4GB-support enable. It does not define
+the HIF FIFO's bus alias or the DMA master's address translation.
 
 The set selector and register bit labels do not establish effective bus
 addresses. Passive ADDR2 readback would only confirm the already-attributed
