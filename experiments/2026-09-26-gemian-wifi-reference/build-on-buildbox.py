@@ -22,7 +22,10 @@ SOURCE_REVISION = '59e00a9144d782e148332009a835b99c43382467'
 TOOLCHAIN = 'a45d945f092461a611d276ad7d0a0fea1ea8a7f93db413908bcb892c12817d14'
 CONFIG_SHA256 = '231d8a2ffe7afac3a4cc62c27d0eb6fe8bd9165ebd096e3e3346dd6df35c18f4'
 CUST_SHA256 = '7a7eb416499346afff30c15f967ccb9cf79323c076204b6a953515db74811632'
-PATCH = HERE / 'patches/0001-diagnostic-record-Gemian-Wi-Fi-setup-decisions.patch'
+PATCHES = (
+    HERE / 'patches/0001-diagnostic-record-Gemian-Wi-Fi-setup-decisions.patch',
+    HERE / 'patches/0002-diagnostic-record-Gemian-WLAN-stop-decisions.patch',
+)
 CONFIG = REPO / 'experiments/2026-07-23-gemian-a72-owner-observer/inputs/active-gemian.config'
 
 spec = importlib.util.spec_from_file_location(
@@ -41,8 +44,9 @@ def main():
     assert not run(['git', '-C', str(REPO), 'status', '--porcelain'])
     assert shutil.disk_usage(ROOT).free > 8 * 1024 ** 3
     assert digest(CONFIG) == CONFIG_SHA256
-    assert PATCH.is_file() and not PATCH.is_symlink()
-    patch_sha = digest(PATCH)
+    assert all(patch.is_file() and not patch.is_symlink() for patch in PATCHES)
+    patch_hashes = [digest(patch) for patch in PATCHES]
+    patch_sha = hashlib.sha256(''.join(patch_hashes).encode()).hexdigest()
     package = ROOT / 'gemian-artifacts' / ('gemian-wifi-reference-' + commit)
     if package.exists():
         result = json.loads((package / 'result.json').read_text())
@@ -62,8 +66,9 @@ def main():
             staged = Path(tmp) / 'source'
             run(['git', 'clone', '--quiet', '--shared', '--no-checkout', str(baseline), str(staged)])
             run(['git', '-C', str(staged), 'checkout', '--quiet', '--detach', SOURCE_REVISION])
-            run(['git', '-C', str(staged), 'apply', '--check', str(PATCH)])
-            run(['git', '-C', str(staged), 'apply', str(PATCH)])
+            for patch in PATCHES:
+                run(['git', '-C', str(staged), 'apply', '--check', str(patch)])
+                run(['git', '-C', str(staged), 'apply', str(patch)])
             run(['git', '-C', str(staged), 'diff', '--check'])
             (staged / '.gemini-source-state').write_text(patch_sha + '\n')
             run(integrity + ['write', str(staged)])
@@ -95,7 +100,7 @@ def main():
         for symbol in ('FUNCTION_TRACER', 'FUNCTION_GRAPH_TRACER', 'DYNAMIC_FTRACE'):
             run([str(script_config), '--file', str(output / '.config'), '--enable', symbol])
         run([str(script_config), '--file', str(output / '.config'), '--set-str',
-             'LOCALVERSION', '-gemini-wifi-ref'])
+             'LOCALVERSION', '-gemini-wifi-ref2'])
         command = ['make', '-C', str(source), 'O=' + str(output), 'ARCH=arm64',
                    'CROSS_COMPILE=' + cross, 'python=' + str(toolchain / 'wrappers/python2.7'),
                    'KCFLAGS=-fstack-usage']
@@ -115,10 +120,10 @@ def main():
             'CONFIG_FUNCTION_PROFILER': [None, 'n'],
             'CONFIG_FUNCTION_TRACER': ['n', 'y'],
             'CONFIG_GENERIC_TRACER': [None, 'y'],
-            'CONFIG_LOCALVERSION': ['""', '"-gemini-wifi-ref"'],
+            'CONFIG_LOCALVERSION': ['""', '"-gemini-wifi-ref2"'],
             'CONFIG_PSTORE_FTRACE': [None, 'n'],
         }, delta
-        assert after['CONFIG_LOCALVERSION'] == '"-gemini-wifi-ref"'
+        assert after['CONFIG_LOCALVERSION'] == '"-gemini-wifi-ref2"'
         for symbol in ('FUNCTION_TRACER', 'FUNCTION_GRAPH_TRACER', 'DYNAMIC_FTRACE'):
             assert after['CONFIG_' + symbol] == 'y'
         assert after['CONFIG_MTK_FTRACE_DEFAULT_ENABLE'] == 'n'
@@ -143,8 +148,12 @@ def main():
                                   stream, env=environment, timeout=3600)
         symbol_map = (output / 'System.map').read_text()
         for symbol in ('wmt_plat_soc_init', 'mtk_wcn_consys_hw_reg_ctrl',
-                       'emi_mpu_set_region_protection'):
+                       'emi_mpu_set_region_protection', 'wlanAdapterStop',
+                       'wlanRemove'):
             assert re.search(r' [Tt] ' + symbol + r'$', symbol_map, re.M), symbol
+        linked_image = (output / 'vmlinux').read_bytes()
+        assert b'gemini-wifi-ref-v2: stop command_attempted=' in linked_image
+        assert b'gemini-wifi-ref-v2: remove_wait hif=' in linked_image
         assert not run([cross + 'nm', '-u', str(output / 'vmlinux')], env=environment)
         assert run(integrity + ['verify', str(source)]) == source_integrity
         diagnostics = [line for line in (work / 'build.log').read_text().splitlines()
@@ -164,7 +173,8 @@ def main():
             (staged / 'diagnostics.txt').write_text('\n'.join(diagnostics) + '\n')
             result = {'repository_commit': commit, 'source_commit': SOURCE_REVISION,
                       'toolchain_sha256': TOOLCHAIN, 'baseline_config_sha256': CONFIG_SHA256,
-                      'patch_sha256': patch_sha, 'source_integrity': source_integrity,
+                      'patch_sha256': patch_sha, 'ordered_patch_sha256': patch_hashes,
+                      'source_integrity': source_integrity,
                       'config_delta': delta, 'cust_dtsi_sha256': CUST_SHA256,
                       'diagnostic_lines': len(diagnostics), 'full_kernel_link': True,
                       'boot_candidate': False, 'device_execution': False}

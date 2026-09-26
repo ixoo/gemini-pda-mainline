@@ -1,0 +1,146 @@
+From 19200ed70d8dbac36db916790d5591c7791cb058 Mon Sep 17 00:00:00 2001
+From: Gemini diagnostic experiment <nobody@example.invalid>
+Date: Sat, 26 Sep 2026 09:48:51 -0400
+Subject: [PATCH] diagnostic: record Gemian WLAN stop decisions
+
+Log the existing stop-command result, polling exit, and worker waits.
+A later bounded cycle can distinguish ready-clear from a skipped
+command, fallback, or reset request. Preserve native commands, waits,
+cleanup, and return value. Internal diagnostic archive only.
+---
+ .../connectivity/wlan/gen3/common/wlan_lib.c  | 23 +++++++++++++++++--
+ .../connectivity/wlan/gen3/os/linux/gl_init.c | 14 ++++++++---
+ 2 files changed, 32 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c b/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c
+index f876ed6..2a40b5b 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c
+@@ -29,6 +29,7 @@
+ ********************************************************************************
+ */
+ #include "precomp.h"
++#include <linux/printk.h>
+ #include "mgmt/ais_fsm.h"
+ #if defined(MT6797)
+ #include <mach/emi_mpu.h>
+@@ -942,6 +943,10 @@ WLAN_STATUS wlanAdapterStop(IN P_ADAPTER_T prAdapter)
+ {
+ 	UINT_32 i, u4Value = 0;
+ 	WLAN_STATUS u4Status = WLAN_STATUS_SUCCESS;
++	WLAN_STATUS stop_command_status = WLAN_STATUS_FAILURE;
++	const char *stop_reason = "gate-skipped";
++	BOOLEAN stop_command_attempted = FALSE;
++	UINT_32 stop_poll = 0;
+ 
+ 	ASSERT(prAdapter);
+ 
+@@ -963,6 +968,7 @@ WLAN_STATUS wlanAdapterStop(IN P_ADAPTER_T prAdapter)
+ 
+ 	if (prAdapter->rAcpiState == ACPI_STATE_D0 &&
+ 	    !wlanIsChipNoAck(prAdapter) && !kalIsCardRemoved(prAdapter->prGlueInfo)) {
++		stop_reason = "command-skipped";
+ 
+ 		/* 0. Disable interrupt, this can be done without Driver own */
+ 		nicDisableInterrupt(prAdapter);
+@@ -970,7 +976,12 @@ WLAN_STATUS wlanAdapterStop(IN P_ADAPTER_T prAdapter)
+ 		ACQUIRE_POWER_CONTROL_FROM_PM(prAdapter);
+ 
+ 		/* 1. Set CMD to FW to tell WIFI to stop (enter power off state) */
+-		if (prAdapter->fgIsFwOwn == FALSE && wlanSendNicPowerCtrlCmd(prAdapter, 1) == WLAN_STATUS_SUCCESS) {
++		if (!prAdapter->fgIsFwOwn) {
++			stop_command_attempted = TRUE;
++			stop_command_status = wlanSendNicPowerCtrlCmd(prAdapter, 1);
++		}
++		if (stop_command_attempted && stop_command_status == WLAN_STATUS_SUCCESS) {
++			stop_reason = "poll-unresolved";
+ 			/* 2. Clear pending interrupt */
+ 			i = 0;
+ 			while (i < CFG_IST_LOOP_COUNT && nicProcessIST(prAdapter) != WLAN_STATUS_NOT_INDICATING) {
+@@ -981,14 +992,19 @@ WLAN_STATUS wlanAdapterStop(IN P_ADAPTER_T prAdapter)
+ 			i = 0;
+ 			while (1) {
+ 				HAL_MCR_RD(prAdapter, MCR_WCIR, &u4Value);
++				stop_poll = i;
+ 
+ 				if ((u4Value & WCIR_WLAN_READY) == 0) {
++					stop_reason = "ready-clear";
+ 					break;
+ 				} else if (i >= CFG_RESPONSE_CLEAR_RDY_TIMEOUT && i < CFG_RESPONSE_POLLING_TIMEOUT) {
+-					if (wlanPowerOffInt(prAdapter) == WLAN_STATUS_SUCCESS)
++					if (wlanPowerOffInt(prAdapter) == WLAN_STATUS_SUCCESS) {
++						stop_reason = "fallback-success";
+ 						break;
++					}
+ 				} else if (kalIsCardRemoved(prAdapter->prGlueInfo)
+ 					 || fgIsBusAccessFailed || (i >= CFG_RESPONSE_POLLING_TIMEOUT)) {
++					stop_reason = "reset-requested";
+ 
+ 					DBGLOG(INIT, WARN,
+ 				       "%s: Failure to get RDY bit cleared! CardRemoved[%u] BusFailed[%u] Timeout[%u]",
+@@ -1025,6 +1041,9 @@ WLAN_STATUS wlanAdapterStop(IN P_ADAPTER_T prAdapter)
+ 
+ 		RECLAIM_POWER_CONTROL_TO_PM(prAdapter, FALSE);
+ 	}
++	pr_info("gemini-wifi-ref-v2: stop command_attempted=%u command_status=%u reason=%s poll=%u last_wcir=%08x\n",
++		stop_command_attempted, stop_command_status, stop_reason,
++		stop_poll, u4Value);
+ 
+ 	nicRxUninitialize(prAdapter);
+ 
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c
+index 9b62a50..8b8ac2c 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c
+@@ -37,6 +37,7 @@
+ #include "gl_wext.h"
+ #include "gl_cfg80211.h"
+ #include "precomp.h"
++#include <linux/printk.h>
+ #if CFG_SUPPORT_AGPS_ASSIST
+ #include "gl_kal.h"
+ #endif
+@@ -2274,6 +2275,8 @@ static VOID wlanRemove(VOID)
+ 	P_WLANDEV_INFO_T prWlandevInfo = NULL;
+ 	P_GLUE_INFO_T prGlueInfo = NULL;
+ 	P_ADAPTER_T prAdapter = NULL;
++	unsigned long timeout_jiffies = MSEC_TO_JIFFIES(KAL_WLAN_REMOVE_TIMEOUT_MSEC);
++	unsigned long wait_hif = 0, wait_rx = 0, wait_main;
+ 
+ 	DBGLOG(INIT, INFO, "Remove wlan!\n");
+ 
+@@ -2337,12 +2340,14 @@ static VOID wlanRemove(VOID)
+ 
+ #if CFG_SUPPORT_MULTITHREAD
+ 	wake_up_interruptible(&prGlueInfo->waitq_hif);
+-	if (!wait_for_completion_timeout(&prGlueInfo->rHifHaltComp, MSEC_TO_JIFFIES(KAL_WLAN_REMOVE_TIMEOUT_MSEC))) {
++	wait_hif = wait_for_completion_timeout(&prGlueInfo->rHifHaltComp, timeout_jiffies);
++	if (!wait_hif) {
+ 		DBGLOG(INIT, ERROR, "wait hif_thread exit timeout, longer than 3s, show backtrace of hif_thread\n");
+ 		show_stack(prGlueInfo->hif_thread, NULL);
+ 	}
+ 	wake_up_interruptible(&prGlueInfo->waitq_rx);
+-	if (!wait_for_completion_timeout(&prGlueInfo->rRxHaltComp, MSEC_TO_JIFFIES(KAL_WLAN_REMOVE_TIMEOUT_MSEC))) {
++	wait_rx = wait_for_completion_timeout(&prGlueInfo->rRxHaltComp, timeout_jiffies);
++	if (!wait_rx) {
+ 		DBGLOG(INIT, ERROR, "wait rx_thread exit timeout, longer than 3s, show backtrace of rx_thread\n");
+ 		show_stack(prGlueInfo->rx_thread, NULL);
+ 	}
+@@ -2351,10 +2356,13 @@ static VOID wlanRemove(VOID)
+ 	/* wake up main thread */
+ 	wake_up_interruptible(&prGlueInfo->waitq);
+ 	/* wait main thread stops */
+-	if (!wait_for_completion_timeout(&prGlueInfo->rHaltComp, MSEC_TO_JIFFIES(KAL_WLAN_REMOVE_TIMEOUT_MSEC))) {
++	wait_main = wait_for_completion_timeout(&prGlueInfo->rHaltComp, timeout_jiffies);
++	if (!wait_main) {
+ 		DBGLOG(INIT, ERROR, "wait tx_thread exit timeout, longer than 3s, show backtrace of tx_thread\n");
+ 		show_stack(prGlueInfo->main_thread, NULL);
+ 	}
++	pr_info("gemini-wifi-ref-v2: remove_wait hif=%lu rx=%lu main=%lu\n",
++		wait_hif, wait_rx, wait_main);
+ 
+ 	DBGLOG(INIT, TRACE, "mtk_sdiod stopped\n");
+ 
+-- 
+2.54.0 (Apple Git-157)
+

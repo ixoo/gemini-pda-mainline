@@ -181,3 +181,29 @@ contains no arguments or return values for those predicates. The direct WMT
 effect budget is consumed. A future radio cycle should first establish a
 separate, bounded disconnect state and a focused measurement for the missing
 firmware-stop and DMA predicates.
+
+## Stop-decision reference revision
+
+The first direct WMT trace shows that `wlanRemove` executed, but function
+tracing cannot distinguish a successful firmware stop from a skipped command,
+fallback, or reset request. The selected vendor `wlanAdapterStop` returns its
+initial success status even on these other paths. The separate
+[stop-decision patch](patches/0002-diagnostic-record-Gemian-WLAN-stop-decisions.patch)
+adds only diagnostic log fields for whether the power-control command was
+attempted, its result, the reason the ready polling ended, the last WCIR read,
+and the three existing worker-completion waits. The stop command remains one
+call at its original gate, the three waits each remain one call in order, and
+the native fallback loop is unchanged. A nonzero wait result is remaining
+timeout ticks, not an independent proof of adapter or DMA idle.
+
+The Buildbox recipe applies the setup and stop patches in order and gives this
+revision release `3.18.41-gemini-wifi-ref2+`. Its next boot hypothesis is that
+the unchanged Gemian setup will still reach WLAN carrier and expose both new
+diagnostic formats in the linked kernel. The unique first-boot observation is
+the exact boot2 image/readback identity, changed boot ID, kernel release,
+startup log and carrier state. If boot or carrier fails, preserve evidence and
+return to known-good Gemian; do not retry the same image. If startup succeeds,
+a separately bounded and recovery-ready off/on protocol can measure the stop
+decision after explicitly clearing association. No such radio cycle or boot2
+deployment is authorized by the build artifact alone. The current v1 device
+session and its private captures remain intact.
