@@ -65,6 +65,14 @@ a domain ID, but a bounded filter of the active Gemian boot log found no
 matching event. The [source and live-log receipt](../../experiments/2026-09-26-mt6797-emi-active-reference/results/master-routing.json)
 does not resolve overlapping-region arbitration or grant a region-18 write.
 
+A [retained boot-chain routing pass](../../experiments/2026-09-26-mt6797-emi-active-reference/README.md#retained-boot-chain-routing-pass)
+decoded preloader device-APC domain-setup writes, but found no MT6797 map
+joining those fields to the named CONNSYS EMI master. AP-DMA HIF0 separately
+has a programmable domain field in its global security register at
+`0x11000020`; that field applies to AP-DMA transactions, not by itself to
+CONNSYS firmware fetches. Neither result establishes the effective domain or
+region-18/23 overlap rule, so the mainline EMI policy remains unselected.
+
 The selected producer family adds a two-byte storage envelope around the WIFI
 record; the kernel consumer reads the logical payload. Retained-file presence,
 static producer analysis and public configuration mapping are separately

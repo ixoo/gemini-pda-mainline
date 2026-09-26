@@ -412,7 +412,10 @@ for the first Wi-Fi bring-up. The current preparation order is:
    a boot where WLAN carrier was observed later, but also shows broad region 23
    overlapping both. Use that exact reference for the private owner design; determine effective
    master routing and overlap applicability before choosing mainline protection
-   policy. The accepted no-database parser run
+   policy. The [retained boot-chain pass](../experiments/2026-09-26-mt6797-emi-active-reference/README.md#retained-boot-chain-routing-pass)
+   located preloader device-APC field writes and AP-DMA's separate per-channel
+   domain control, but neither assigns the CONSYS master or resolves the EMI
+   overlap. The accepted no-database parser run
    establishes original ordinary-global `T` linkage for all four required wrapper/init/exit targets
    and conservative next-distinct-symbol inspection envelopes. The later
    retained-instruction observer/checker line is owner-closed without semantic

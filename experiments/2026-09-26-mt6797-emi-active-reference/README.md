@@ -104,3 +104,52 @@ ring buffer neither proves that no violation occurred nor identifies a domain.
 No protection write, test violation or radio action was attempted. Mainline
 must account for region 23 without overwriting it and still determine effective
 CONNSYS/AP domain routing and overlap arbitration before writing region 18.
+
+## Retained boot-chain routing pass
+
+A renewed read-only RE-VM pass examined the privately retained preloader, LK
+and TEE images after the host boot2 observation window ended. The preloader
+SHA-256 was `25319ce877bd17b204fa264645aebf4583ec10ae2f05f6d8a7fff5efe4c06246`;
+LK and TEE matched the previously recorded digests
+`75ec9f0ba97af9e68d964b304e0de809f9b4546982570bd16b2e7fe88823282c`
+and `2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3`.
+The preloader was decoded as Thumb code with Capstone 4.0.2 and independently
+checked with GNU ARM objdump 2.42. Raw images and disassembly remain private.
+
+The preloader's device-APC domain-initialization path at file offset `0x276c`
+zeros `0x1000ef00` and makes masked four-bit-field writes to `0x1000ea04`,
+`0x1000ea08`, `0x1000ea0c` and `0x1000ea10`, using selected values 1, 2, 3,
+5 and 6. The path's own diagnostic strings
+identify this as device-APC domain setup. Those register-field writes are
+decoded firmware behavior, **not** a map from a named CONSYS AXI master to an
+EMI protection domain. The exact master-index meanings, later overrides and
+the executing preloader's identity remain unverified. The earlier
+[TEE EMI-set trace](../2026-09-05-mt6797-wifi-contract/RETAINED_EMI_SECURE_ABI.md)
+establishes writes to region-18/19 range and policy registers, not a routing
+or overlapping-region arbitration rule.
+
+The [MT6797 register table, page 401](https://www.96boards.org/documentation/consumer/mediatekx20/additional-docs/docs/MT6797_Register_Table_Part_1.pdf#page=401)
+places the AP-DMA HIF0 security/domain field at physical `0x11000020`, with
+domain in bits 3:1. Global security control is at `0x11000014`. The
+[functional specification, pages 143–144](https://www.96boards.org/documentation/consumer/mediatekx20/additional-docs/docs/MT6797_Functional_Specification_V1_0.pdf#page=143)
+describes per-transfer security/domain setup and reset to defaults after a DMA
+transfer. This governs **AP-DMA's own memory transactions**; it does not
+identify WLAN firmware fetches by the CONSYS master. The pinned selected
+[gen3 HIF DMA source](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb_pdma.c)
+maps only the HIF channel window beginning at `0x11000080`; its
+[header](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_pdma.h)
+defines local offset `0x20` as the destination address. Neither inspected file
+sets the global HIF0 security/domain register. Their SHA-256 values are
+`83c23a5582be2dcaa385359b7cd0f82af0ec9d6a4e102ea6faea57f59d75b480`
+and `898874f9f3180000a393fab0a13666fd4960364f3c4b7517a1f965f027213028`.
+
+The two MT6797 register-table parts were searched for the preloader's exact
+`0x1000ea00`/`0x1000ef00` addresses and master-domain labels without finding
+their master-index map; the EMI register pages were searched for a region-18/23
+overlap rule without finding one. This is a bounded negative search, not proof
+that the hardware has no rule. No current-boot register read, SMC, firmware
+execution, DMA, protection write or radio action occurred. The next
+decision-changing evidence is an exact MT6797 DEVAPC master-index/domain map
+and EMI overlap applicability for the CONSYS master, or a separately admitted
+attributable live transaction; AP-DMA's programmable field cannot substitute
+for either.
