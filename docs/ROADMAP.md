@@ -428,9 +428,10 @@ for the first Wi-Fi bring-up. The current preparation order is:
    and [checked status polling](../experiments/2026-09-26-mt6797-modern-provider-status-errors/README.md)
    proposals now address those provider prerequisites. The
    [isolated MT6797 CONN data](../experiments/2026-09-26-mt6797-modern-conn-data/README.md)
-   selects the flags and links in a compile-only profile. No child DT,
-   fault-query client or shared owner is present; these are not device
-   candidates. A later
+   selects the flags and links in a compile-only profile. A later
+   [modern-provider fault query](../experiments/2026-09-26-mt6797-modern-provider-fault-query/README.md)
+   exposes the retained error to a future owner. No child DT, query client or
+   shared owner is present; these are not device candidates. A later
    [read-only Gemian EMI reference](../experiments/2026-09-26-mt6797-emi-active-reference/results/runtime.json)
    confirms the vendor-requested region-18/19 ranges and permission values in
    a boot where WLAN carrier was observed later, but also shows broad region 23

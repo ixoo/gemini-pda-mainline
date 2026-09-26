@@ -1,0 +1,131 @@
+From ee432d391b71bb436cc25ee7cce1086651cb522d Mon Sep 17 00:00:00 2001
+From: MT6797 diagnostic experiment <nobody@example.invalid>
+Date: Sat, 26 Sep 2026 18:34:53 -0400
+Subject: [PATCH] pmdomain: mediatek: expose retained child-domain fault
+
+Let a future CONSYS owner observe a retained power-transition error even
+when genpd skips a callback. Use READ_ONCE and WRITE_ONCE for the latch
+across the callback and query boundary.
+
+No consumer or hardware behavior changes. Internal compile experiment
+only; synthetic author, no DCO certification.
+---
+ MAINTAINERS                                 |  1 +
+ drivers/pmdomain/mediatek/mtk-pm-domains.c  | 33 +++++++++++++++++----
+ include/linux/soc/mediatek/mtk-pm-domains.h | 13 ++++++++
+ 3 files changed, 41 insertions(+), 6 deletions(-)
+ create mode 100644 include/linux/soc/mediatek/mtk-pm-domains.h
+
+diff --git a/MAINTAINERS b/MAINTAINERS
+index c8d4b91..06d557f 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -10828,6 +10828,7 @@ F:	Documentation/devicetree/bindings/power/power?domain*
+ T:	git git://git.kernel.org/pub/scm/linux/kernel/git/ulfh/linux-pm.git
+ F:	drivers/pmdomain/
+ F:	include/linux/pm_domain.h
++F:	include/linux/soc/mediatek/mtk-pm-domains.h
+ 
+ GENERIC RADIX TREE
+ M:	Kent Overstreet <kent.overstreet@linux.dev>
+diff --git a/drivers/pmdomain/mediatek/mtk-pm-domains.c b/drivers/pmdomain/mediatek/mtk-pm-domains.c
+index 9c8dcc4..39b163f 100644
+--- a/drivers/pmdomain/mediatek/mtk-pm-domains.c
++++ b/drivers/pmdomain/mediatek/mtk-pm-domains.c
+@@ -5,6 +5,8 @@
+ #include <linux/arm-smccc.h>
+ #include <linux/clk.h>
+ #include <linux/clk-provider.h>
++#include <linux/compiler.h>
++#include <linux/export.h>
+ #include <linux/init.h>
+ #include <linux/io.h>
+ #include <linux/iopoll.h>
+@@ -16,6 +18,7 @@
+ #include <linux/regmap.h>
+ #include <linux/regulator/consumer.h>
+ #include <linux/soc/mediatek/infracfg.h>
++#include <linux/soc/mediatek/mtk-pm-domains.h>
+ #include <linux/soc/mediatek/mtk_sip_svc.h>
+ 
+ #include "mt6735-pm-domains.h"
+@@ -369,8 +372,8 @@ static int scpsys_regulator_disable(struct regulator *supply)
+ static int scpsys_hold_fault(struct scpsys_domain *pd, int error)
+ {
+ 	if (MTK_SCPD_CAPS(pd, MTK_SCPD_RETAIN_FAILED_STATE) &&
+-	    !pd->fault_error)
+-		pd->fault_error = error;
++	    !READ_ONCE(pd->fault_error))
++		WRITE_ONCE(pd->fault_error, error);
+ 
+ 	return error;
+ }
+@@ -693,8 +696,9 @@ static int scpsys_power_on(struct generic_pm_domain *genpd)
+ 	struct scpsys *scpsys = pd->scpsys;
+ 	int ret;
+ 
+-	if (pd->fault_error)
+-		return pd->fault_error;
++	ret = READ_ONCE(pd->fault_error);
++	if (ret)
++		return ret;
+ 
+ 	ret = scpsys_regulator_enable(pd->supply);
+ 	if (ret)
+@@ -787,8 +791,9 @@ static int scpsys_power_off(struct generic_pm_domain *genpd)
+ 	bool tmp;
+ 	int ret;
+ 
+-	if (pd->fault_error)
+-		return pd->fault_error;
++	ret = READ_ONCE(pd->fault_error);
++	if (ret)
++		return ret;
+ 
+ 	ret = scpsys_bus_protect_enable(pd, 0);
+ 	if (ret < 0)
+@@ -831,6 +836,22 @@ static int scpsys_power_off(struct generic_pm_domain *genpd)
+ 	return 0;
+ }
+ 
++int mtk_pm_domain_fault(struct generic_pm_domain *genpd)
++{
++	struct scpsys_domain *pd;
++
++	if (!genpd || genpd->power_on != scpsys_power_on ||
++	    genpd->power_off != scpsys_power_off)
++		return -EINVAL;
++
++	pd = to_scpsys_domain(genpd);
++	if (!MTK_SCPD_CAPS(pd, MTK_SCPD_RETAIN_FAILED_STATE))
++		return -EOPNOTSUPP;
++
++	return READ_ONCE(pd->fault_error);
++}
++EXPORT_SYMBOL_GPL(mtk_pm_domain_fault);
++
+ static struct
+ generic_pm_domain *scpsys_add_one_domain(struct scpsys *scpsys, struct device_node *node)
+ {
+diff --git a/include/linux/soc/mediatek/mtk-pm-domains.h b/include/linux/soc/mediatek/mtk-pm-domains.h
+new file mode 100644
+index 0000000..935c5e9
+--- /dev/null
++++ b/include/linux/soc/mediatek/mtk-pm-domains.h
+@@ -0,0 +1,13 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __LINUX_SOC_MEDIATEK_MTK_PM_DOMAINS_H
++#define __LINUX_SOC_MEDIATEK_MTK_PM_DOMAINS_H
++
++struct generic_pm_domain;
++
++/*
++ * Query after resume and before hardware use while the attached domain
++ * remains valid. Zero means no retained fault.
++ */
++int mtk_pm_domain_fault(struct generic_pm_domain *genpd);
++
++#endif /* __LINUX_SOC_MEDIATEK_MTK_PM_DOMAINS_H */
+-- 
+2.54.0 (Apple Git-157)
+

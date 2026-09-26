@@ -5,3 +5,4 @@ proposals/0009-pmdomain-mediatek-retain-opted-failed-domain-state.patch
 proposals/0010-pmdomain-mediatek-fail-opted-status-read-errors.patch
 proposals/0011-dt-bindings-power-admit-mt6797-child-domain-controller.patch
 proposals/0012-pmdomain-mediatek-describe-mt6797-conn-child-domain.patch
+proposals/0013-pmdomain-mediatek-expose-retained-child-domain-fault.patch
