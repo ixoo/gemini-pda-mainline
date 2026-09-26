@@ -420,6 +420,15 @@ DMA register read or transfer and leaves the existing timeout and
 unmap behavior intact. A zero `idle_return` with `count_escape=0`
 supports that this poll observed an idle engine; `count_escape=1`
 means the path reached unmap without that assurance.
+In the [pinned `ahb_pdma.c`](../2026-09-07-mt6797-wifi-observer-feasibility/results/dma-hook-sources.json),
+`HifPdmaStop` only masks the DMA interrupt:
+its STOP write and internal enable poll are compiled out. The existing
+`DmaPollStart` callback instead reads `AP_DMA_HIF_0_EN` and returns its
+enable-bit state. The v4 record therefore witnesses the final enable read
+and the loop's exit reason, not a successful hardware STOP command or
+every transfer's lifetime. On normal exit, `idle_polls` equals the
+callback count. On `count_escape=1`, the guard increments once more
+without a callback, so the callback count is `idle_polls - 1`.
 
 The records contain physical DMA addresses and belong in the ignored
 private runtime capture. Publish only interpreted, sanitized facts.
