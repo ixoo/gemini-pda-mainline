@@ -29,6 +29,7 @@ PATCHES = (
     HERE / 'patches/0004-diagnostic-record-Gemian-AHB-DMA-idle-outcomes.patch',
     HERE / 'patches/0005-diagnostic-record-Gemian-DMA-idle-after-WLAN-carrier.patch',
     HERE / 'patches/0006-diagnostic-arm-Gemian-DMA-result-after-SSH-link.patch',
+    HERE / 'patches/0007-diagnostic-sample-Gemian-VCN28-mode.patch',
 )
 CONFIG = REPO / 'experiments/2026-07-23-gemian-a72-owner-observer/inputs/active-gemian.config'
 
@@ -104,7 +105,7 @@ def main():
         for symbol in ('FUNCTION_TRACER', 'FUNCTION_GRAPH_TRACER', 'DYNAMIC_FTRACE'):
             run([str(script_config), '--file', str(output / '.config'), '--enable', symbol])
         run([str(script_config), '--file', str(output / '.config'), '--set-str',
-             'LOCALVERSION', '-gemini-wifi-ref6'])
+             'LOCALVERSION', '-gemini-wifi-ref7'])
         command = ['make', '-C', str(source), 'O=' + str(output), 'ARCH=arm64',
                    'CROSS_COMPILE=' + cross, 'python=' + str(toolchain / 'wrappers/python2.7'),
                    'KCFLAGS=-fstack-usage']
@@ -124,10 +125,10 @@ def main():
             'CONFIG_FUNCTION_PROFILER': [None, 'n'],
             'CONFIG_FUNCTION_TRACER': ['n', 'y'],
             'CONFIG_GENERIC_TRACER': [None, 'y'],
-            'CONFIG_LOCALVERSION': ['""', '"-gemini-wifi-ref6"'],
+            'CONFIG_LOCALVERSION': ['""', '"-gemini-wifi-ref7"'],
             'CONFIG_PSTORE_FTRACE': [None, 'n'],
         }, delta
-        assert after['CONFIG_LOCALVERSION'] == '"-gemini-wifi-ref6"'
+        assert after['CONFIG_LOCALVERSION'] == '"-gemini-wifi-ref7"'
         for symbol in ('FUNCTION_TRACER', 'FUNCTION_GRAPH_TRACER', 'DYNAMIC_FTRACE'):
             assert after['CONFIG_' + symbol] == 'y'
         assert after['CONFIG_MTK_FTRACE_DEFAULT_ENABLE'] == 'n'
@@ -164,6 +165,7 @@ def main():
         assert b'gemini-wifi-ref-v6: dma-rx trigger=1 carrier=1 port=' in linked_image
         assert b'gemini-wifi-ref-v6: dma-tx trigger=1 carrier=1 port=' in linked_image
         assert b'gemini_wifi_ref_capture' in linked_image
+        assert b'gemini-wifi-ref-v7: vcn28_con0 status=' in linked_image
         assert not run([cross + 'nm', '-u', str(output / 'vmlinux')], env=environment)
         assert run(integrity + ['verify', str(source)]) == source_integrity
         diagnostics = [line for line in (work / 'build.log').read_text().splitlines()

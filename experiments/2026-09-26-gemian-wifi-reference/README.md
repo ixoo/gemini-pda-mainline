@@ -659,3 +659,28 @@ host addresses were below 4 GiB, while the selected HIF start path issues
 unconditional ADDR2 bit-32 set writes. This narrows the executing mode
 assumption but does not resolve the FIFO bus alias or justify a mainline DMA
 mask or address transformation.
+
+## V7 VCN28 control readback candidate
+
+The [v7 patch](patches/0007-diagnostic-sample-Gemian-VCN28-mode.patch)
+adds one PMIC-wrap read of MT6351 `LDO_VCN28_CON0` (`0x0a0c`) after the
+selected `co_clock_type=0` WMT on path requests VCN28 hardware control and
+enables the regulator. An atomic claim limits the added transaction and log
+to the first such path in a boot. The existing `pmic_read_interface()` uses
+`pwrap_wacs2` with write flag zero and returns a transport status. The patch
+records that status and the 16-bit read value without changing the vendor
+return or adding a radio control, PMIC write or second boot-time probe.
+
+The boot hypothesis is that the same path will run in a changed Gemian boot,
+the read will succeed, bit 3 will reflect the requested control mode, and
+Wi-Fi will still reach carrier. The value also exposes the source-clock mode
+and enable selection fields (bits 7:5 and 13:11) at that instant; it does not
+identify their external signal truth table or prove stable ownership. One
+changed boot2 selection is the test budget. Require an exact built image,
+guarded boot2 install, full readback and clean shutdown before owner selection.
+Collect a complete startup log, changed boot ID, exact release, read status,
+raw value and carrier. A read failure or absent log is inconclusive; a bit-3
+mismatch redirects source/PMIC ownership analysis. A boot or Wi-Fi regression
+requires preserved evidence and the reviewed Gemian recovery path. Do not
+repeat an identical image after any of those results without a measurement
+that would change the decision.
