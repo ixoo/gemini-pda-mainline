@@ -1,0 +1,106 @@
+From ed4c2e45f3c0997e3351e7bc45dd3848877d0f1b Mon Sep 17 00:00:00 2001
+From: MT6797 diagnostic experiment <nobody@example.invalid>
+Date: Sat, 26 Sep 2026 18:44:50 -0400
+Subject: [PATCH] pmdomain: mediatek: select MT6797 CONN SPM preamble
+
+The selected MT6797 CONN CCF path writes 0x0b160001 at SPM +0 before
+both ON and OFF transitions. Add an optional per-domain value using the
+provider's existing SPM regmap and select it only for MT6797 CONN.
+
+Write after basic clock acquisition and before the ON request, and
+before OFF bus protection. Check the write result and retain a fault for
+the opted domain on error. Other domains have no added write.
+
+No DT child or client selects this domain. Retained-firmware writer
+exclusion, rail/reset ownership and shared EMI policy remain unresolved.
+Internal compile experiment only; synthetic author, no DCO certification.
+---
+ drivers/pmdomain/mediatek/mt6797-pm-domains.h |  2 ++
+ drivers/pmdomain/mediatek/mtk-pm-domains.c    | 14 ++++++++++++++
+ drivers/pmdomain/mediatek/mtk-pm-domains.h    |  4 ++++
+ 3 files changed, 20 insertions(+)
+
+diff --git a/drivers/pmdomain/mediatek/mt6797-pm-domains.h b/drivers/pmdomain/mediatek/mt6797-pm-domains.h
+index 15649f1..1449657 100644
+--- a/drivers/pmdomain/mediatek/mt6797-pm-domains.h
++++ b/drivers/pmdomain/mediatek/mt6797-pm-domains.h
+@@ -6,6 +6,7 @@
+ #include "mtk-pm-domains.h"
+ #include <dt-bindings/power/mt6797-power.h>
+ 
++#define MT6797_SPM_POWERON_CONFIG	0x0b160001
+ #define MT6797_SPM_CONN_PWR_CON		0x32c
+ #define MT6797_SPM_PWR_STATUS		0x180
+ #define MT6797_SPM_PWR_STATUS_2ND	0x184
+@@ -22,6 +23,7 @@ static const struct scpsys_domain_data scpsys_domain_data_mt6797[] = {
+ 		.ctl_offs = MT6797_SPM_CONN_PWR_CON,
+ 		.pwr_sta_offs = MT6797_SPM_PWR_STATUS,
+ 		.pwr_sta2nd_offs = MT6797_SPM_PWR_STATUS_2ND,
++		.spm_poweron_config = MT6797_SPM_POWERON_CONFIG,
+ 		.bp_cfg = {
+ 			BUS_PROT_INFRA_UPDATE_TOPAXI(MT6797_TOP_AXI_PROT_EN_CONN),
+ 		},
+diff --git a/drivers/pmdomain/mediatek/mtk-pm-domains.c b/drivers/pmdomain/mediatek/mtk-pm-domains.c
+index 39b163f..d8fae59 100644
+--- a/drivers/pmdomain/mediatek/mtk-pm-domains.c
++++ b/drivers/pmdomain/mediatek/mtk-pm-domains.c
+@@ -708,6 +708,13 @@ static int scpsys_power_on(struct generic_pm_domain *genpd)
+ 	if (ret)
+ 		goto err_reg;
+ 
++	if (pd->data->spm_poweron_config) {
++		ret = regmap_write(scpsys->base, SPM_POWERON_CONFIG_EN,
++				   pd->data->spm_poweron_config);
++		if (ret)
++			goto err_pwr_ack;
++	}
++
+ 	if (pd->data->ext_buck_iso_offs && MTK_SCPD_CAPS(pd, MTK_SCPD_EXT_BUCK_ISO))
+ 		regmap_clear_bits(scpsys->base, pd->data->ext_buck_iso_offs,
+ 				  pd->data->ext_buck_iso_mask);
+@@ -795,6 +802,13 @@ static int scpsys_power_off(struct generic_pm_domain *genpd)
+ 	if (ret)
+ 		return ret;
+ 
++	if (pd->data->spm_poweron_config) {
++		ret = regmap_write(scpsys->base, SPM_POWERON_CONFIG_EN,
++				   pd->data->spm_poweron_config);
++		if (ret)
++			return scpsys_hold_fault(pd, ret);
++	}
++
+ 	ret = scpsys_bus_protect_enable(pd, 0);
+ 	if (ret < 0)
+ 		return scpsys_hold_fault(pd, ret);
+diff --git a/drivers/pmdomain/mediatek/mtk-pm-domains.h b/drivers/pmdomain/mediatek/mtk-pm-domains.h
+index 0bbf7be..ae85255 100644
+--- a/drivers/pmdomain/mediatek/mtk-pm-domains.h
++++ b/drivers/pmdomain/mediatek/mtk-pm-domains.h
+@@ -25,6 +25,7 @@
+ 					 (_scpd)->data->caps & (_x) :	\
+ 					 (_scpd)->hwv_data->caps & (_x))
+ 
++#define SPM_POWERON_CONFIG_EN		0x0000
+ #define SPM_VDE_PWR_CON			0x0210
+ #define SPM_MFG_PWR_CON			0x0214
+ #define SPM_VEN_PWR_CON			0x0230
+@@ -162,6 +163,8 @@ enum scpsys_mtcmos_type {
+  * @caps: The flag for active wake-up action.
+  * @rtff_type: The power domain RTFF HW type
+  * @bp_cfg: bus protection configuration for any subsystem
++ * @spm_poweron_config: Optional SPM +0 register-control value before
++ *                      transitions.
+  */
+ struct scpsys_domain_data {
+ 	const char *name;
+@@ -177,6 +180,7 @@ struct scpsys_domain_data {
+ 	const struct scpsys_bus_prot_data bp_cfg[SPM_MAX_BUS_PROT_DATA];
+ 	int pwr_sta_offs;
+ 	int pwr_sta2nd_offs;
++	u32 spm_poweron_config;
+ };
+ 
+ /**
+-- 
+2.54.0 (Apple Git-157)
+
