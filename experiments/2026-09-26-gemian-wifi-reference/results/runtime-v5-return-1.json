@@ -1,0 +1,51 @@
+{
+  "candidate_sha256": "cf9707c7b4259140f575568ddeec658065eae45bae2e4bd6811d5849a5df70ff",
+  "previous_boot_id": "d298cdbb-7d1f-450f-930a-d40068bde3fa",
+  "observed_boot_id": "767b1414-855e-4060-ba19-a3458cad1268",
+  "kernel_release": "3.18.41-gemini-wifi-ref5+",
+  "collector": "one-shot Gemian LAN observer",
+  "collector_result": "complete",
+  "private_collector_script_sha256": "47fed4b150e506ce0aa1c7f6179296b711c304396de923233eb74c3e74e1a4ec",
+  "private_result_sha256": "250cd02d09975a47e9e7204d4fa080d7ed93552858962171b53637cdcdcbb13f",
+  "private_early_dmesg_sha256": "3c00ddd2c9fa6bcbb5a4db5d74455c0d7be75dd215a348d2245016500456efa9",
+  "private_late_dmesg_sha256": "4c3cc34f76bca5809d70793037896966aa2c291b5caeab96872883a64b010474",
+  "early_log_is_prefix_of_late": true,
+  "diagnostic_records_per_log": {
+    "rx": 1,
+    "tx": 1
+  },
+  "wifi_link_ready_seconds_since_boot": 17.67742,
+  "first_tx": {
+    "seconds_since_boot": 17.678089,
+    "carrier_gate": 1,
+    "port": 52,
+    "size": 52,
+    "dma_count": 52,
+    "mapped_host_address_bits": 32,
+    "configured_hif_address_bits": 29,
+    "idle_return": 0,
+    "idle_polls": 1,
+    "count_escape": 0
+  },
+  "first_rx": {
+    "seconds_since_boot": 17.67861,
+    "carrier_gate": 1,
+    "port": 80,
+    "size": 40,
+    "dma_count": 40,
+    "mapped_host_address_bits": 32,
+    "configured_hif_address_bits": 29,
+    "idle_return": 0,
+    "idle_polls": 1,
+    "count_escape": 0
+  },
+  "records_after_wifi_link_ready": true,
+  "carrier_early": 1,
+  "carrier_late_after_25_seconds": 1,
+  "early_4g_mode_message_count": 1,
+  "dma_timeout_message_count": 0,
+  "warning_and_call_trace_counts_match_v4": true,
+  "cmdline_read": "permission denied to unprivileged collector",
+  "result": "verified v5 boot and Wi-Fi carrier; first post-carrier RX and TX idle polls each saw EN clear before DMA unmap",
+  "limits": "Both once-only records followed the first link-ready message by about one millisecond and may be control traffic, not the later SSH packet path. Computed endpoints are not register readbacks, EN clear does not distinguish normal completion from STOP, FLUSH or reset, and two carrier samples do not prove durable association."
+}

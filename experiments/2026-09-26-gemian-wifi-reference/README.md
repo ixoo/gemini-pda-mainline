@@ -555,3 +555,22 @@ The [v5 deployment receipt](results/deployment-v5.json) records the later
 guarded boot2 write, independent full-partition readback match, and clean
 shutdown. A finite LAN collector is armed for owner selection of boot2;
 deployment alone does not establish a v5 runtime result.
+
+The armed collector then observed a changed boot with the expected v5 release.
+The [v5 runtime receipt](results/runtime-v5-return-1.json) pins complete early
+and late logs and Wi-Fi carrier at two samples 25 seconds apart. The first
+link-ready message occurred at 17.677420 seconds; the once-only TX and RX
+records followed at 17.678089 and 17.678610 seconds. Each existing idle
+poll read EN clear once, without a count-limit escape, before its DMA mapping
+was released. Both mapped host-side addresses were below 4 GiB. No DMA
+timeout or kernel panic was found, and the inherited warning/call-trace counts
+match v4.
+
+This resolves the narrow post-carrier idle question for those two transfers.
+Their proximity to link-up leaves packet identity unresolved: they may be
+control traffic and cannot prove the later SSH packet path or all DMA
+lifetimes. The software carrier gate and computed endpoints do not read back
+the DMA engine's low/ADDR2 registers, distinguish completion from STOP/FLUSH/
+reset, or establish shared AP-DMA ownership for mainline. A future packet-DMA
+test needs an attributable post-link trigger and a distinct, bounded record;
+repeating this once-only image would not answer that question.
