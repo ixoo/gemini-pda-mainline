@@ -421,7 +421,13 @@ The [v4 Buildbox receipt](results/build-v4.json) pins the clean pushed
 source, ordered patches, linked kernel and checked package inventory.
 Both new record strings are linked. The sole build warning is the same
 69-section-mismatch count as v1–v3. V4 remains an unrun diagnostic
-package while the installed v3 boot awaits validation; it is not a boot2
-candidate or evidence of DMA safety. One record per direction cannot
-establish every transfer's ownership or replace the native driver's
-full DMA sequencing.
+package while the installed v3 boot awaits validation. The
+[v4 offline candidate](results/candidate-v4.json) was assembled from the
+verified known-good Gemian boot container and remains unselected. Independent
+parsing found the v3 ramdisk and appended device tree byte-identical; the
+Android-v0 header changed only in kernel size and image ID. The raw image
+is 14,995,456 bytes and the padded 16 MiB image has SHA-256
+`b1916ae329cdd6a7672a138d3d9673749279678d975255496fa411283ea9a886`.
+No device write or v4 boot occurred. One record per direction cannot
+establish every transfer's ownership or replace the native driver's full
+DMA sequencing.
