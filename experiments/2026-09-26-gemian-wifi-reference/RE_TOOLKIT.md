@@ -13,7 +13,7 @@ This note applies to the pinned Gemian source `59e00a9144d782e148332009a835b99c4
 | Pstore console/pmsg | Built in | What survived a failure or reset? | Preserve the old boot's evidence before recovery; a missing record is not proof a path did not run. |
 | Focused vendor decision logs | Setup and stop patches; exercised in verified boots | What co-clock/EMI decisions occurred, and was the firmware stop attempted, ready-cleared, bypassed or reset-requested? | The v2 cycle observed `ready-clear`, but worker wait results are not DMA-idle proof. |
 
-The `trace-wmt-stop-v2.sh` cycle reached `ready-clear` with carrier restored and its single-use budget consumed. DMA idle is still unknown. The next source change should instrument the exact vendor DMA producer/consumer and IRQ-masking boundaries with bounded, typed records, rather than enable every tracer. Keep a distinct boot candidate and decision record for each revision.
+The `trace-wmt-stop-v2.sh` cycle reached `ready-clear` with carrier restored and its single-use budget consumed. DMA idle is still unknown. For later packet-DMA admission, instrument the exact vendor DMA producer/consumer and IRQ-masking boundaries with bounded, typed records, rather than enable every tracer. The earlier shared power owner first needs the rail and CONN clock outcomes captured by the v3 observer. Keep a distinct boot candidate and decision record for each revision.
 
 ## Kprobes decision
 

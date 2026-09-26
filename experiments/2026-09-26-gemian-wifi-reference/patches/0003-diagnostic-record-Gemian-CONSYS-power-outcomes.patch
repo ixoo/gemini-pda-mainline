@@ -1,0 +1,84 @@
+From 9f5154a1502ce020202551036f03f1fa458e5981 Mon Sep 17 00:00:00 2001
+From: Gemini diagnostic experiment <nobody@example.invalid>
+Date: Sat, 26 Sep 2026 13:04:17 -0400
+Subject: [PATCH] diagnostic: record Gemian CONSYS rail and clock outcomes
+
+Capture the existing regulator voltage and enable return values, plus
+the CONN clock-enable result, without changing the calls or their order.
+Emit the diagnostics after the existing 20 ms settle, outside the timed
+power sequence. These are request results, not proof of the achieved
+PMIC mode or exclusive SPM ownership.
+
+Internal diagnostic archive only; no DCO certification.
+---
+ .../common_main/mt6797/mtk_wcn_consys_hw.c    | 26 ++++++++++++++++---
+ 1 file changed, 22 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c b/drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c
+index ca9a02e..d0261ef 100644
+--- a/drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c
++++ b/drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c
+@@ -282,6 +282,11 @@ INT32 mtk_wcn_consys_hw_reg_ctrl(UINT32 on, UINT32 co_clock_type)
+ 	INT32 iRet = -1;
+ 	UINT32 retry = 10;
+ 	UINT32 consysHwChipId = 0;
++#if CONSYS_PMIC_CTRL_ENABLE && !defined(CONFIG_MTK_PMIC_LEGACY)
++	int vcn18_voltage_ret = -ENODEV, vcn18_enable_ret = -ENODEV;
++	int vcn28_voltage_ret = -ENODEV, vcn28_enable_ret = -ENODEV;
++#endif
++	int conn_enable_ret = -ENODEV;
+ #if CONSYS_AFE_REG_SETTING
+ 	UINT8 *consys_afe_reg_base = NULL;
+ 	UINT8 i = 0;
+@@ -302,8 +307,10 @@ INT32 mtk_wcn_consys_hw_reg_ctrl(UINT32 on, UINT32 co_clock_type)
+ 		hwPowerOn(MT6351_POWER_LDO_VCN18, VOL_1800, "wcn_drv");
+ #else
+ 		if (reg_VCN18) {
+-			regulator_set_voltage(reg_VCN18, 1800000, 1800000);
+-			if (regulator_enable(reg_VCN18))
++			vcn18_voltage_ret = regulator_set_voltage(reg_VCN18,
++							   1800000, 1800000);
++			vcn18_enable_ret = regulator_enable(reg_VCN18);
++			if (vcn18_enable_ret)
+ 				WMT_PLAT_ERR_FUNC("enable VCN18 fail\n");
+ 			else
+ 				WMT_PLAT_DBG_FUNC("enable VCN18 ok\n");
+@@ -319,8 +326,10 @@ INT32 mtk_wcn_consys_hw_reg_ctrl(UINT32 on, UINT32 co_clock_type)
+ 			hwPowerOn(MT6351_POWER_LDO_VCN28, VOL_2800, "wcn_drv");
+ #else
+ 			if (reg_VCN28) {
+-				regulator_set_voltage(reg_VCN28, 2800000, 2800000);
+-				if (regulator_enable(reg_VCN28))
++				vcn28_voltage_ret = regulator_set_voltage(reg_VCN28,
++							     2800000, 2800000);
++				vcn28_enable_ret = regulator_enable(reg_VCN28);
++				if (vcn28_enable_ret)
+ 					WMT_PLAT_INFO_FUNC("enable VCN_2V8 fail!\n");
+ 				else
+ 					WMT_PLAT_INFO_FUNC("enable VCN_2V8 ok\n");
+@@ -352,6 +361,7 @@ INT32 mtk_wcn_consys_hw_reg_ctrl(UINT32 on, UINT32 co_clock_type)
+ 		WMT_PLAT_DBG_FUNC("conn_power_on ok\n");
+ #else
+ 		iRet = clk_prepare_enable(clk_scp_conn_main);
++		conn_enable_ret = iRet;
+ 		if (iRet)
+ 			WMT_PLAT_ERR_FUNC("clk_prepare_enable(clk_scp_conn_main) fail(%d)\n", iRet);
+ 		WMT_PLAT_DBG_FUNC("clk_prepare_enable(clk_scp_conn_main) ok\n");
+@@ -610,6 +620,14 @@ INT32 mtk_wcn_consys_hw_reg_ctrl(UINT32 on, UINT32 co_clock_type)
+ 
+ #endif
+ 		msleep(20);
++		pr_info("gemini-wifi-ref-v3: conn_enable=%d chip_id=%04x mode=%u\n",
++			conn_enable_ret, consysHwChipId, co_clock_type);
++#if CONSYS_PMIC_CTRL_ENABLE && !defined(CONFIG_MTK_PMIC_LEGACY)
++		pr_info("gemini-wifi-ref-v3: vcn18 voltage=%d enable=%d\n",
++			vcn18_voltage_ret, vcn18_enable_ret);
++		pr_info("gemini-wifi-ref-v3: vcn28 voltage=%d enable=%d hw_request=%u\n",
++			vcn28_voltage_ret, vcn28_enable_ret, co_clock_type == 0);
++#endif
+ 
+ 	} else {
+ 
+-- 
+2.54.0 (Apple Git-157)
+

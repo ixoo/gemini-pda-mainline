@@ -353,3 +353,26 @@ This establishes that a return to primary Gemian is not required solely to
 make boot2 inactive in this session. It does not preapprove a future write:
 that installer must resolve the live GPT and repeat all identity, mount,
 power, candidate and full-readback checks at deployment time.
+
+## V3 rail and clock outcome observer
+
+The next [diagnostic patch](patches/0003-diagnostic-record-Gemian-CONSYS-power-outcomes.patch)
+captures the existing VCN18/VCN28 regulator voltage and enable return values,
+and the CONN clock-enable result in the common wrapper. It emits three bounded
+records after the existing 20 ms settling delay. It adds no regulator,
+register or radio operation and does not log inside the timed power sequence.
+The pinned Gemian source for this wrapper has SHA-256
+`0ec8e9c1594626d0b31f2d2623927d614f63af4437c16df838e10e11258663ce`.
+The patch is an internal diagnostic archive, not an upstream submission.
+
+The next boot hypothesis is that the working Gemian path returns zero for both
+rail voltage/enable operations and CONN clock enable. Unique evidence is the
+exact v3 boot2 image checksum, changed boot ID and release, complete startup
+log with all three typed records, and observed Wi-Fi carrier. If the operations
+return zero and Wi-Fi works, use those results when defining the mainline
+provider's strict rail/clock error gates. A negative result or absent record
+requires source-path diagnosis; a boot or Wi-Fi regression requires evidence
+preservation and reviewed known-good recovery. Do not repeat the same image
+without a decision-changing measurement. The record cannot prove achieved
+VCN28 hardware-control mode, SPM key exclusivity, reset readback or EMI
+arbitration. No v3 build or device test has yet been recorded here.
