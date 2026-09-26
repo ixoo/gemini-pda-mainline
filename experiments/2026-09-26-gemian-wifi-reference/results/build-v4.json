@@ -1,0 +1,26 @@
+{
+  "repository_commit": "2c7b503ec8191e9212781fd39ef1e53cced30b41",
+  "source_commit": "59e00a9144d782e148332009a835b99c43382467",
+  "toolchain_sha256": "a45d945f092461a611d276ad7d0a0fea1ea8a7f93db413908bcb892c12817d14",
+  "baseline_config_sha256": "231d8a2ffe7afac3a4cc62c27d0eb6fe8bd9165ebd096e3e3346dd6df35c18f4",
+  "ordered_patch_sha256": [
+    "f247bb039853e4c9d74828134d39b72ebc3e1844f99ea1a759bf754fc9988577",
+    "e3b21e6b40f2ead3c14d7044b695ea8b0c092724df2e2d5478763cd540c64244",
+    "0d32f9a3cef25aaf1ad70b5044d2774618e0da8d8385f02dc7195fa7ae1c9501",
+    "46ee59681e3dee1675434d801fbd5db155c433568834bb28aee7ed4372744c23"
+  ],
+  "patch_set_sha256": "d0e0f7d299b550382d854e04284528099238683c9a97810b137b67abbf21812d",
+  "package_inventory_sha256": "b2e4b1c42903e1d9069b96d965075a9b2bdf839c4baab960cb01d9f75cabcdbe",
+  "image_gz_dtb_sha256": "f5c7d1dc33ee5415426286e1df020e63f6e1edab58b9e5daa97effc1224f8738",
+  "vmlinux_sha256": "0768df3d8af2cc8b5a89470436e64c44432562a87417db8d232331d3008a24c3",
+  "config_sha256": "17be6410ed62a715cff073abf3c1cd7491d6c3c082e2e09a6c2cd068e5c5efeb",
+  "kernel_release_expected": "3.18.41-gemini-wifi-ref4+",
+  "full_kernel_link": true,
+  "v4_record_strings_linked": true,
+  "diagnostics": [
+    "WARNING: modpost: Found 69 section mismatch(es)."
+  ],
+  "diagnostic_warning_status": "same count as v1, v2 and v3 baseline builds",
+  "boot_candidate": false,
+  "device_execution": false
+}

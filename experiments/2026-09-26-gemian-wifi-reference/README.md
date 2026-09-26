@@ -417,7 +417,11 @@ means the path reached unmap without that assurance.
 
 The records contain physical DMA addresses and belong in the ignored
 private runtime capture. Publish only interpreted, sanitized facts.
-This patch is a compile-only diagnostic preparation while the installed
-v3 boot is awaiting validation; it is not a boot2 candidate or evidence
-of DMA safety. One record per direction cannot establish every transfer's
-ownership or replace the native driver's full DMA sequencing.
+The [v4 Buildbox receipt](results/build-v4.json) pins the clean pushed
+source, ordered patches, linked kernel and checked package inventory.
+Both new record strings are linked. The sole build warning is the same
+69-section-mismatch count as v1–v3. V4 remains an unrun diagnostic
+package while the installed v3 boot awaits validation; it is not a boot2
+candidate or evidence of DMA safety. One record per direction cannot
+establish every transfer's ownership or replace the native driver's
+full DMA sequencing.
