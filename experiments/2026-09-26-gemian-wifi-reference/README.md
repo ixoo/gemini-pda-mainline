@@ -757,3 +757,10 @@ image SHA-256 is `f106361945822b3d9093c10de8503901a51c310cfaa7beb87cc56c2152cae6
 The reviewed installer is pinned to that image, the current v7 boot identity,
 and the v7 boot2 predecessor checksum. These are preparation results; v8 has
 not yet been run on the PDA.
+
+The [v8 deployment receipt](results/deployment-v8.json) records the guarded
+write from that verified v7 boot: live GPT resolved inactive boot2, the
+predecessor matched, power was healthy, and the flushed full-partition
+readback matched the v8 candidate. Gemian shut down cleanly. The one-shot
+collector was armed before owner selection; changed-boot execution remains
+to be verified.

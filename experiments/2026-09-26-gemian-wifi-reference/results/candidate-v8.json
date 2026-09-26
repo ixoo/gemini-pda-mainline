@@ -14,7 +14,7 @@
   "candidate_manifest_sha256": "77815100b174f16b9bd848852c1b6897388da89adee02db8f11fbf6e80109c0e",
   "boot_candidate": true,
   "selected_for_installation": true,
-  "installed": false,
+  "installed": true,
   "device_execution": false,
   "installer_sha256": "e8fd4a85a10dd5c36a687ba4a8e7c7748878eba1552ab541db31ae7f554636d5"
 }
