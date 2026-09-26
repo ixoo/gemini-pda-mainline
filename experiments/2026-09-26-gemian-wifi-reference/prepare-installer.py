@@ -96,6 +96,17 @@ def main():
                      '[[ "$predecessor_sha256" == ' + selected['predecessor'] +
                      ' || "$predecessor_sha256" == "$CANDIDATE_SHA256" ]] ||\n' +
                      '\tdie \'unexpected boot2 predecessor\'\n')
+    if args.revision == 'v3':
+        source = replace(source,
+                         '[[ "$initial_boot_id" =~ ^[0-9a-f-]{36}$ ]] || die \'malformed initial boot ID\'\n',
+                         '[[ "$initial_boot_id" == 7d372eb9-23ca-48af-91b3-8b5e9112c943 ]] ||\n'
+                         '\tdie \'not the verified v2 Gemian boot\'\n')
+        source = replace(source,
+                         '[[ "$(id -u)" == 0 && "$(uname -m)" == aarch64 && "$(uname -r)" == 3.18.41+ ]] ||\n'
+                         "\tfail 'remote is not exact known-good Gemian'\n",
+                         '[[ "$(id -u)" == 0 && "$(uname -m)" == aarch64 &&\n'
+                         '   "$(uname -r)" == 3.18.41-gemini-wifi-ref2+ ]] ||\n'
+                         "\tfail 'remote is not the verified v2 Gemian release'\n")
     output = args.output
     assert output.parent.resolve(strict=True) == REPO / 'artifacts/gemian-wifi-reference/scripts'
     assert not output.exists() and not output.is_symlink()

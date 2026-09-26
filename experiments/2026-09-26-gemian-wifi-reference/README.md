@@ -386,6 +386,10 @@ ramdisk and appended device tree byte-identical; the Android-v0 header changed
 only in kernel size and image ID. The raw image is 14,995,456 bytes and the
 exact 16 MiB boot2 image has SHA-256
 `3e4663373b8b0519a06642ac5ddef4223f2a31b28aca8446bfbe2a59b6a456ea`.
-The reviewed installer is bound to the observed v2 boot2 predecessor and
-repeats the live GPT, root/target, power and full-readback checks before
-clean shutdown. The v3 image has not yet been installed or booted.
+The first installer preflight refused before writing because its historical
+release gate allowed only primary Gemian. The [v3 installer derivation](prepare-installer.py)
+now pins the exact verified v2 boot ID and release while retaining the live
+GPT, root/target, power and full-readback gates. The
+[deployment receipt](results/deployment-v3.json) records a guarded write to
+inactive boot2, a matching full 16 MiB readback and clean shutdown. Physical
+boot2 selection and changed-boot verification are still pending.
