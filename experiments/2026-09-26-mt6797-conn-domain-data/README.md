@@ -28,5 +28,14 @@ The two patches replay on the prepared provider-compile source in order,
 and each passes the pinned kernel's
 `checkpatch.pl --no-tree --no-signoff` with zero errors and warnings. They
 carry synthetic, non-certifying authorship and no DCO sign-off; they are not
-upstream submissions. Buildbox compilation and device execution have not
-yet been performed for this new pair.
+upstream submissions.
+
+Buildbox fetched clean pushed commit `32272b49cb8d73331f006fb9f8b1ef5a67e19633`,
+applied all 19 selected patches, and compiled and linked
+`mt6797-provider-compile`. The validated package inventory is
+`8ebdf147a8818da56c81ac7cebc94bd35e75b58c60d44775167edff6ba7356a0`;
+the [sanitized build result](buildbox-result.json) pins its source, patchset,
+config and linked SCPSYS symbols. No device execution or boot candidate was
+produced. The next implementation step is the common owner that keeps the
+external rail/reset resources and checks SCPSYS's latched fault before any
+firmware transaction.

@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "repository_commit": "32272b49cb8d73331f006fb9f8b1ef5a67e19633",
+  "profile": "mt6797-provider-compile",
+  "source_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "source_archive_sha256": "45590c057805bc9cf7281ce04d5dbde5316b7c8b017998cafac301f67e92682d",
+  "patches": {
+    "conn_domain_id_sha256": "b31d40d1dbd562050dfc0ba6d074f3a105321e542232932505ab5728acff72ca",
+    "conn_domain_data_sha256": "2283af80b0c05863dea7119fe417bf1226d8a9afd90cc879bfbb6d0a733bad35"
+  },
+  "patchset_sha256": "b93972b295ffa9ce70b13308759fde4e3e122d9068cc0b3c5fb0aca18b3dbdce",
+  "selected_patch_count": 19,
+  "kernel_release": "7.3.0-rc1-mt6797-provider-compile",
+  "config_sha256": "3910887ce880cc55ab561819ec368756aaecf032663464d009ebea484b9af06d",
+  "package_inventory_sha256": "8ebdf147a8818da56c81ac7cebc94bd35e75b58c60d44775167edff6ba7356a0",
+  "linked_system_map_symbols": [
+    "scp_domain_data_mt6797",
+    "scpsys_power_on",
+    "scpsys_power_off"
+  ],
+  "buildbox_package_validated": true,
+  "device_execution": false,
+  "boot_candidate": false,
+  "interpretation": "The two new patches replayed in the 19-patch compile profile and the MT6797 SCPSYS table linked. This does not establish safe CONN activation, shared-owner admission, firmware loading or Wi-Fi support."
+}
