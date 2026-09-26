@@ -1,0 +1,22 @@
+{
+  "classification": "gemian-read-only-wifi-rail-reference",
+  "boot_id": "b79541db-5e95-4a02-a32f-87fa18474b38",
+  "sample_start_utc": "2026-09-26T11:40:29Z",
+  "sample_finish_utc": "2026-09-26T11:40:29Z",
+  "source": "/sys/devices/platform/mt-pmic",
+  "read_cap_bytes": 2048,
+  "raw_bytes": 194,
+  "raw_sha256": "071b374979b6b673ff9f312e4b223dfbd9bbd75f9db9513e97fcb38bdf8dba53",
+  "ssh_exit": 0,
+  "boot_identity_stable": true,
+  "rail_status": {
+    "vcn18": 1,
+    "vcn28": 1,
+    "vcn33_wifi": 1
+  },
+  "wlan0_operstate": "up",
+  "wlan0_carrier": 1,
+  "observation": "Gemian reported all three named connectivity rail status values as 1 while wlan0 carrier was 1 in the same boot.",
+  "limits": "These sysfs values do not identify the physical mode selector, successful supply sequencing, all connected clients, or a safe mainline power-control recipe.",
+  "device_effects": "read-only"
+}

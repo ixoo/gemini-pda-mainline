@@ -61,3 +61,18 @@ The next implementation still needs a single owner for region 18 and the
 reserved range, attributable AP/CONSYS master routing, and an effective
 overlap rule or an equivalent owner-verified applicability check. Mainline
 firmware loading remains unimplemented; this inspection made no device change.
+
+## Same-boot connectivity rail status
+
+A later bounded read at `2026-09-26T11:40:29Z` found Gemian's named VCN18,
+VCN28 and Wi-Fi VCN33 sysfs status values all equal to `1`, while `wlan0`
+remained up with carrier `1`. The boot ID matched before and after the read.
+The [sanitized receipt](results/rail-status.json) binds the 194-byte private
+response and zero SSH exit; the raw response remains ignored under `artifacts/`.
+No PMIC register was written, and no radio action was requested.
+
+This is a same-boot reference for the three active supplies, including VCN28.
+It does not establish the VCN28 hardware-control selector, the effective
+source-clock mode, the rail sequence, or which other connectivity clients hold
+votes. Those remain provider-design questions rather than permission to copy
+the vendor wrapper's unchecked return behavior.
