@@ -1,0 +1,165 @@
+From d3eca6f52fb8339f78eb99dfe45accab51fb1a0d Mon Sep 17 00:00:00 2001
+From: MT6797 diagnostic experiment <nobody@example.invalid>
+Date: Sat, 26 Sep 2026 17:51:59 -0400
+Subject: [PATCH] pmdomain: mediatek: retain opted failed domain resources
+
+A power-on error after the request can leave a domain uncertain while
+normal unwind drops its supply and clocks. Add an opt-in fault latch for
+direct-control domains already requiring confirmed initial OFF.
+
+Retain acquired prerequisites and skip rollback on post-request ON
+errors. Latch OFF errors and refuse later callbacks. Existing domains
+keep their behavior.
+
+Internal compile experiment only; synthetic author, no DCO
+certification.
+---
+ drivers/pmdomain/mediatek/mtk-pm-domains.c | 49 +++++++++++++++++++---
+ drivers/pmdomain/mediatek/mtk-pm-domains.h |  2 +
+ 2 files changed, 46 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/pmdomain/mediatek/mtk-pm-domains.c b/drivers/pmdomain/mediatek/mtk-pm-domains.c
+index 5bcd4a8..c454591 100644
+--- a/drivers/pmdomain/mediatek/mtk-pm-domains.c
++++ b/drivers/pmdomain/mediatek/mtk-pm-domains.c
+@@ -67,6 +67,7 @@ struct scpsys_domain {
+ 	int num_subsys_clks;
+ 	struct clk_bulk_data *subsys_clks;
+ 	struct regulator *supply;
++	int fault_error;
+ };
+ 
+ struct scpsys {
+@@ -331,6 +332,15 @@ static int scpsys_regulator_disable(struct regulator *supply)
+ 	return supply ? regulator_disable(supply) : 0;
+ }
+ 
++static int scpsys_hold_fault(struct scpsys_domain *pd, int error)
++{
++	if (MTK_SCPD_CAPS(pd, MTK_SCPD_RETAIN_FAILED_STATE) &&
++	    !pd->fault_error)
++		pd->fault_error = error;
++
++	return error;
++}
++
+ static int scpsys_hwv_power_on(struct generic_pm_domain *genpd)
+ {
+ 	struct scpsys_domain *pd = container_of(genpd, struct scpsys_domain, genpd);
+@@ -643,6 +653,9 @@ static int scpsys_power_on(struct generic_pm_domain *genpd)
+ 	struct scpsys *scpsys = pd->scpsys;
+ 	int ret;
+ 
++	if (pd->fault_error)
++		return pd->fault_error;
++
+ 	ret = scpsys_regulator_enable(pd->supply);
+ 	if (ret)
+ 		return ret;
+@@ -702,18 +715,29 @@ static int scpsys_power_on(struct generic_pm_domain *genpd)
+ 	return 0;
+ 
+ err_enable_bus_protect:
++	if (MTK_SCPD_CAPS(pd, MTK_SCPD_RETAIN_FAILED_STATE))
++		goto err_retain;
+ 	scpsys_bus_protect_enable(pd, 0);
+ err_disable_sram:
++	if (MTK_SCPD_CAPS(pd, MTK_SCPD_RETAIN_FAILED_STATE))
++		goto err_retain;
+ 	scpsys_sram_disable(pd);
+ err_disable_subsys_clks:
++	if (MTK_SCPD_CAPS(pd, MTK_SCPD_RETAIN_FAILED_STATE))
++		goto err_retain;
+ 	if (!MTK_SCPD_CAPS(pd, MTK_SCPD_STRICT_BUS_PROTECTION))
+ 		clk_bulk_disable_unprepare(pd->num_subsys_clks,
+ 					   pd->subsys_clks);
+ err_pwr_ack:
++	if (MTK_SCPD_CAPS(pd, MTK_SCPD_RETAIN_FAILED_STATE))
++		goto err_retain;
+ 	clk_bulk_disable_unprepare(pd->num_clks, pd->clks);
+ err_reg:
+ 	scpsys_regulator_disable(pd->supply);
+ 	return ret;
++
++err_retain:
++	return scpsys_hold_fault(pd, ret);
+ }
+ 
+ static int scpsys_power_off(struct generic_pm_domain *genpd)
+@@ -723,13 +747,16 @@ static int scpsys_power_off(struct generic_pm_domain *genpd)
+ 	bool tmp;
+ 	int ret;
+ 
++	if (pd->fault_error)
++		return pd->fault_error;
++
+ 	ret = scpsys_bus_protect_enable(pd, 0);
+ 	if (ret < 0)
+-		return ret;
++		return scpsys_hold_fault(pd, ret);
+ 
+ 	ret = scpsys_sram_disable(pd);
+ 	if (ret < 0)
+-		return ret;
++		return scpsys_hold_fault(pd, ret);
+ 
+ 	if (pd->data->ext_buck_iso_offs && MTK_SCPD_CAPS(pd, MTK_SCPD_EXT_BUCK_ISO))
+ 		regmap_set_bits(scpsys->base, pd->data->ext_buck_iso_offs,
+@@ -739,7 +766,7 @@ static int scpsys_power_off(struct generic_pm_domain *genpd)
+ 
+ 	ret = scpsys_bus_protect_enable(pd, BUS_PROT_IGNORE_SUBCLK);
+ 	if (ret < 0)
+-		return ret;
++		return scpsys_hold_fault(pd, ret);
+ 
+ 	if (MTK_SCPD_CAPS(pd, MTK_SCPD_MODEM_PWRSEQ))
+ 		scpsys_modem_pwrseq_off(pd);
+@@ -750,11 +777,18 @@ static int scpsys_power_off(struct generic_pm_domain *genpd)
+ 	ret = readx_poll_timeout(scpsys_domain_is_on, pd, tmp, !tmp, MTK_POLL_DELAY_US,
+ 				 MTK_POLL_TIMEOUT);
+ 	if (ret < 0)
+-		return ret;
++		return scpsys_hold_fault(pd, ret);
++
++	if (MTK_SCPD_CAPS(pd, MTK_SCPD_RETAIN_FAILED_STATE)) {
++		ret = scpsys_regulator_disable(pd->supply);
++		if (ret)
++			return scpsys_hold_fault(pd, ret);
++	}
+ 
+ 	clk_bulk_disable_unprepare(pd->num_clks, pd->clks);
+ 
+-	scpsys_regulator_disable(pd->supply);
++	if (!MTK_SCPD_CAPS(pd, MTK_SCPD_RETAIN_FAILED_STATE))
++		scpsys_regulator_disable(pd->supply);
+ 
+ 	return 0;
+ }
+@@ -910,6 +944,11 @@ generic_pm_domain *scpsys_add_one_domain(struct scpsys *scpsys, struct device_no
+ 		ret = -EINVAL;
+ 		goto err_put_subsys_clocks;
+ 	}
++	if (MTK_SCPD_CAPS(pd, MTK_SCPD_RETAIN_FAILED_STATE) &&
++	    (!pd->data || !MTK_SCPD_CAPS(pd, MTK_SCPD_REQUIRE_INIT_OFF))) {
++		ret = -EINVAL;
++		goto err_put_subsys_clocks;
++	}
+ 	if (MTK_SCPD_CAPS(pd, MTK_SCPD_KEEP_DEFAULT_OFF)) {
+ 		if (MTK_SCPD_CAPS(pd, MTK_SCPD_REQUIRE_INIT_OFF)) {
+ 			ret = scpsys_require_initially_off(pd);
+diff --git a/drivers/pmdomain/mediatek/mtk-pm-domains.h b/drivers/pmdomain/mediatek/mtk-pm-domains.h
+index f552431..0bbf7be 100644
+--- a/drivers/pmdomain/mediatek/mtk-pm-domains.h
++++ b/drivers/pmdomain/mediatek/mtk-pm-domains.h
+@@ -19,6 +19,8 @@
+ #define MTK_SCPD_INFRA_PWR_CTL		BIT(12)
+ /* Fail registration unless both power-status bits are readable and clear. */
+ #define MTK_SCPD_REQUIRE_INIT_OFF	BIT(13)
++/* Keep acquired resources and reject reuse after an uncertain transition. */
++#define MTK_SCPD_RETAIN_FAILED_STATE	BIT(14)
+ #define MTK_SCPD_CAPS(_scpd, _x)	((_scpd)->data ?		\
+ 					 (_scpd)->data->caps & (_x) :	\
+ 					 (_scpd)->hwv_data->caps & (_x))
+-- 
+2.54.0 (Apple Git-157)
+

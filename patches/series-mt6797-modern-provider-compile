@@ -1,2 +1,3 @@
 # Compile-only Linux 7.1.3 child-domain admission proposal.
 proposals/0008-pmdomain-mediatek-require-confirmed-initial-off.patch
+proposals/0009-pmdomain-mediatek-retain-opted-failed-domain-state.patch
