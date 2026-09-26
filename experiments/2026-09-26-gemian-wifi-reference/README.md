@@ -116,3 +116,38 @@ observer. If the functions do not fire, CONSYS stays on, carrier does not
 return, the trace overruns, or boot identity changes, mark the result limited
 or inconclusive; do not replay the cycle. Preserve its private output before
 any reviewed recovery. The script is single-use in this boot.
+
+The [single-cycle result](results/trace-cycle-1.json) is limited. The systemd
+job completed one disable and one enable in the same boot; carrier returned and
+the active tracer was restored to `nop`. The appended kernel log contains only
+the `wlan0` not-ready and ready transitions for this cycle, with no new WMT or
+EMI setup lines. The filtered trace contained no function lines and had no
+positive tracer control; its emptiness cannot prove those functions were not
+called. ConnMan's technology toggle therefore did not establish the required
+firmware load/shutdown lifetime. The private trace and full logs are retained
+under ignored `artifacts/`. This cycle's effect and repeat budgets are
+consumed; a different control path is needed for the next discriminator.
+
+## Direct WMT cycle candidate
+
+The pinned vendor `wmt_chrdev_wifi.c` implements writes of `0` and `1` to
+`/dev/wmtWifi` as `mtk_wcn_wmt_func_off(WMTDRV_TYPE_WIFI)` and
+`mtk_wcn_wmt_func_on(WMTDRV_TYPE_WIFI)`. The off callback calls the registered
+WLAN remove function; the on callback calls its probe function. Unlike the
+ConnMan technology toggle, this is an explicit WLAN driver lifetime path.
+The source also has an optional whole-chip assertion on failed requests, so
+its effects and recovery need to be treated as a new test, not as a replay of
+the ConnMan cycle.
+
+The [direct WMT script](trace-wmt-cycle.sh) is a single-use candidate for this
+same boot. Before any radio effect it checks the exact boot, live carrier,
+power, character-device identity and trace state, then requires a positive
+`vfs_read` function-tracer control. It filters `WIFI_write` and fourteen
+selected lifecycle functions during one `0` write and at most two `1` writes.
+It runs as a device-side systemd job, preserves private before/after logs and
+trace, and restores ftrace. A complete successful callback/firmware trace
+would inform the mainline owner design; missing callbacks, an empty trace,
+device reset, or failed carrier restoration are refusal results. If LAN does
+not return, the device-side result is preserved on the shared Gemian rootfs
+for owner-operated known-good boot recovery. This direct WMT cycle has not
+been run; its effect budget is unspent.

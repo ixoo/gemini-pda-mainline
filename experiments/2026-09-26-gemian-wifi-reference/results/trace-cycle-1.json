@@ -1,0 +1,25 @@
+{
+  "boot_id": "a690b7e2-a35e-4732-95c1-ab6b7af97c2f",
+  "kernel_release": "3.18.41-gemini-wifi-ref+",
+  "script_sha256": "3a57d9cafa21949ffc28b62f270203620e125c513ee3451abb18f045d349045f",
+  "private_bundle_sha256": "935b31e5be7f738fdeb48fd6ee8cc36b403b3ba0cbc5b1bc20b0459c3fb80fde",
+  "before_dmesg_sha256": "7ba811c8677b2a983c3d1b92f69631bd0b8d6d6cb529771ac8e24f5a7337c377",
+  "after_dmesg_sha256": "cd63e10665e018cbfd95d9e303af052d1d580b768b2c25519bf45935bbc87c24",
+  "trace_sha256": "f257bd68f41d114afab20d9304623ff9c1a27dec17d7e5722781dceb5d41ceae",
+  "systemd_result": "success",
+  "script_exit_code": 0,
+  "connman_wifi_disable_calls": 1,
+  "connman_wifi_enable_calls": 1,
+  "carrier_restored": true,
+  "new_kernel_wifi_lines": [
+    "wlan0 link is not ready",
+    "wlan0 link becomes ready"
+  ],
+  "new_wmt_or_emi_log_lines": 0,
+  "trace_function_lines": 0,
+  "trace_positive_control": false,
+  "trace_overrun": 0,
+  "tracer_restored": "nop",
+  "interpretation": "ConnMan toggled link availability in this boot, but the capture does not establish a WMT firmware load/shutdown cycle. The empty trace lacks a positive function-tracer control, so absence of filtered calls is inconclusive.",
+  "repeat_budget": "consumed"
+}
