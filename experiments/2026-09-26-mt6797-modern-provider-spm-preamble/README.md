@@ -22,6 +22,15 @@ is present. The accepted A53 profile stays unchanged, and this is not a
 boot2 candidate. Pinned checkpatch reports zero errors and warnings. The
 synthetic patch author makes no DCO certification or upstream submission.
 
-Buildbox compilation remains to be recorded. A device transition still needs
-the external VCN rail, independent CONMCU reset, source-supported OFF order,
-shared remap/EMI policy, and retained-writer exclusion before admission.
+The [Buildbox result](results/build.json) records a full ARM64 link from clean
+pushed commit `491337ea401cdea2dbf66f796871f4861ff3820b`. The fetched
+package passed its SHA-256 inventory check and retains all eight selected
+patches. The resolved configuration builds the modern provider and disables
+the legacy one; `System.map` contains the CONN data and fault query. Neither
+packaged MT6797 DTB selects the new controller. No device write or boot was
+performed for this result.
+
+A device transition still needs the external VCN rail, independent CONMCU
+reset, source-supported OFF order, shared remap/EMI policy, and
+retained-writer exclusion before admission. This build does not establish
+hardware SPM key ownership or successful transition behavior.
