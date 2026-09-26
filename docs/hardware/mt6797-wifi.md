@@ -47,6 +47,15 @@ legacy upstream provider uses the opposite order. This supports a per-domain
 ordering distinction; it does not establish electrical equivalence, successful
 transitions or a reason to reorder unrelated domains.
 
+A [read-only Gemian EMI snapshot](../../experiments/2026-09-26-mt6797-emi-active-reference/results/runtime.json)
+reports region 18 over
+`0xbfa00000..0xbfa7ffff` with policy `0xb6da2d` and region 19 over
+`0xbfa80000..0xbfafffff` with policy `0xb6da28`. These exactly match the
+selected vendor WLAN/WMT source requests. Broad region 23 also spans both
+windows and reports domain 2 forbidden. The readout does not establish which
+region wins, the effective master/domain assignment or permission to reproduce
+the policy in mainline.
+
 The selected producer family adds a two-byte storage envelope around the WIFI
 record; the kernel consumer reads the logical payload. Retained-file presence,
 static producer analysis and public configuration mapping are separately

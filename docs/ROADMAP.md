@@ -401,7 +401,13 @@ for the first Wi-Fi bring-up. The current preparation order is:
    adoption of an already protected/mapped shared handoff; it does not prove
    the cold-off state is faulty. Next resolve actual writer exclusion and the
    serialized protection/remap/power sequence before firmware effects, rather
-   than repeating either passive image. The accepted no-database parser run
+   than repeating either passive image. A later
+   [read-only Gemian EMI reference](../experiments/2026-09-26-mt6797-emi-active-reference/results/runtime.json)
+   confirms the vendor-requested region-18/19 ranges and permission values in
+   a boot where WLAN carrier was observed later, but also shows broad region 23
+   overlapping both. Use that exact reference for the private owner design; determine effective
+   master routing and overlap applicability before choosing mainline protection
+   policy. The accepted no-database parser run
    establishes original ordinary-global `T` linkage for all four required wrapper/init/exit targets
    and conservative next-distinct-symbol inspection envelopes. The later
    retained-instruction observer/checker line is owner-closed without semantic
