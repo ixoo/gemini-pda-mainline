@@ -1,4 +1,4 @@
-From d3eca6f52fb8339f78eb99dfe45accab51fb1a0d Mon Sep 17 00:00:00 2001
+From 940c2b72f0dc7c7853df77206f36eb7b0a44d682 Mon Sep 17 00:00:00 2001
 From: MT6797 diagnostic experiment <nobody@example.invalid>
 Date: Sat, 26 Sep 2026 17:51:59 -0400
 Subject: [PATCH] pmdomain: mediatek: retain opted failed domain resources
@@ -14,12 +14,12 @@ keep their behavior.
 Internal compile experiment only; synthetic author, no DCO
 certification.
 ---
- drivers/pmdomain/mediatek/mtk-pm-domains.c | 49 +++++++++++++++++++---
+ drivers/pmdomain/mediatek/mtk-pm-domains.c | 44 +++++++++++++++++++---
  drivers/pmdomain/mediatek/mtk-pm-domains.h |  2 +
- 2 files changed, 46 insertions(+), 5 deletions(-)
+ 2 files changed, 41 insertions(+), 5 deletions(-)
 
 diff --git a/drivers/pmdomain/mediatek/mtk-pm-domains.c b/drivers/pmdomain/mediatek/mtk-pm-domains.c
-index 5bcd4a8..c454591 100644
+index 5bcd4a8..cff9edc 100644
 --- a/drivers/pmdomain/mediatek/mtk-pm-domains.c
 +++ b/drivers/pmdomain/mediatek/mtk-pm-domains.c
 @@ -67,6 +67,7 @@ struct scpsys_domain {
@@ -114,28 +114,23 @@ index 5bcd4a8..c454591 100644
  
  	if (MTK_SCPD_CAPS(pd, MTK_SCPD_MODEM_PWRSEQ))
  		scpsys_modem_pwrseq_off(pd);
-@@ -750,11 +777,18 @@ static int scpsys_power_off(struct generic_pm_domain *genpd)
+@@ -750,11 +777,13 @@ static int scpsys_power_off(struct generic_pm_domain *genpd)
  	ret = readx_poll_timeout(scpsys_domain_is_on, pd, tmp, !tmp, MTK_POLL_DELAY_US,
  				 MTK_POLL_TIMEOUT);
  	if (ret < 0)
 -		return ret;
 +		return scpsys_hold_fault(pd, ret);
-+
-+	if (MTK_SCPD_CAPS(pd, MTK_SCPD_RETAIN_FAILED_STATE)) {
-+		ret = scpsys_regulator_disable(pd->supply);
-+		if (ret)
-+			return scpsys_hold_fault(pd, ret);
-+	}
  
  	clk_bulk_disable_unprepare(pd->num_clks, pd->clks);
  
 -	scpsys_regulator_disable(pd->supply);
-+	if (!MTK_SCPD_CAPS(pd, MTK_SCPD_RETAIN_FAILED_STATE))
-+		scpsys_regulator_disable(pd->supply);
++	ret = scpsys_regulator_disable(pd->supply);
++	if (MTK_SCPD_CAPS(pd, MTK_SCPD_RETAIN_FAILED_STATE) && ret)
++		return scpsys_hold_fault(pd, ret);
  
  	return 0;
  }
-@@ -910,6 +944,11 @@ generic_pm_domain *scpsys_add_one_domain(struct scpsys *scpsys, struct device_no
+@@ -910,6 +939,11 @@ generic_pm_domain *scpsys_add_one_domain(struct scpsys *scpsys, struct device_no
  		ret = -EINVAL;
  		goto err_put_subsys_clocks;
  	}
