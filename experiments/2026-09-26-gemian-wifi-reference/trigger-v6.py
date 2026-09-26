@@ -66,6 +66,7 @@ printf '1\n' >"$path" || fail 'diagnostic trigger write failed'
 value=$(cat "$path") || fail 'diagnostic trigger readback failed'
 [[ "$value" == Y || "$value" == 1 ]] || fail 'diagnostic trigger did not read back'
 dd if=/dev/zero bs=4096 count=1 status=none
+[[ "$(cat /proc/sys/kernel/random/boot_id)" == "$EXPECTED_BOOT_ID" ]] || fail 'boot ID changed during reply'
 '''
 
 
@@ -76,6 +77,11 @@ def sha256(path):
 def require(condition, message):
     if not condition:
         raise SystemExit('refused: ' + message)
+
+
+def same_boot_command(boot_id, command):
+    identity = 'test "$(cat /proc/sys/kernel/random/boot_id)" = ' + shlex.quote(boot_id)
+    return identity + ' && ' + command + ' && ' + identity
 
 
 def deployment_values():
@@ -165,13 +171,22 @@ def main():
         result['reply_bytes'] = len(reply)
         result['reply_sha256'] = hashlib.sha256(reply).hexdigest()
         result['reply_matches_zero_4096'] = len(reply) == 4096 and result['reply_sha256'] == ZERO_REPLY_SHA256
-        result['early_dmesg_rc'] = capture('dmesg-early', 'sudo -n dmesg')
-        result['carrier_early_rc'] = capture('carrier-early', 'cat /sys/class/net/wlan0/carrier')
+        result['early_dmesg_rc'] = capture('dmesg-early',
+                                          same_boot_command(boot_id, 'sudo -n dmesg'))
+        result['carrier_early_rc'] = capture('carrier-early',
+                                            same_boot_command(boot_id,
+                                                              'cat /sys/class/net/wlan0/carrier'))
         time.sleep(25)
-        result['late_dmesg_rc'] = capture('dmesg-late', 'sudo -n dmesg')
-        result['carrier_late_rc'] = capture('carrier-late', 'cat /sys/class/net/wlan0/carrier')
+        result['late_dmesg_rc'] = capture('dmesg-late',
+                                         same_boot_command(boot_id, 'sudo -n dmesg'))
+        result['carrier_late_rc'] = capture('carrier-late',
+                                           same_boot_command(boot_id,
+                                                             'cat /sys/class/net/wlan0/carrier'))
+        result['carrier_early'] = (OUTPUT / 'carrier-early.out').read_text().strip()
+        result['carrier_late'] = (OUTPUT / 'carrier-late.out').read_text().strip()
         result['status'] = 'complete' if (result['trigger_rc'] == 0 and
                                          result['reply_matches_zero_4096'] and
+                                         result['carrier_early'] == result['carrier_late'] == '1' and
                                          all(result[name] == 0 for name in (
                                              'early_dmesg_rc', 'late_dmesg_rc',
                                              'carrier_early_rc', 'carrier_late_rc'))) else 'incomplete'
@@ -180,9 +195,7 @@ def main():
         result['timeout_phase'] = phase
         result['timeout_seconds'] = exc.timeout
         if phase == 'trigger':
-            read_only = ('sudo -n sh -c ' + shlex.quote(
-                'test "$(cat /proc/sys/kernel/random/boot_id)" = ' +
-                shlex.quote(boot_id) + ' && dmesg'))
+            read_only = same_boot_command(boot_id, 'sudo -n dmesg')
             try:
                 result['timeout_dmesg_rc'] = capture('dmesg-timeout', read_only)
             except subprocess.TimeoutExpired:

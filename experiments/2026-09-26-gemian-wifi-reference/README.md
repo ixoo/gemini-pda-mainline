@@ -616,8 +616,9 @@ pinned SSH identity and host trust, boot ID, release, parameter mode, initial
 false value and absence of earlier v6 DMA records immediately before its sole
 flag write. It saves the probe, reply, complete later logs and carrier samples
 under ignored, owner-only `artifacts/`. A timeout or incomplete result is
-preserved without a second write or reply. The 4 KiB reply is a bounded traffic
-window, not packet-level attribution.
+preserved without a second write or reply. Each post-trigger read checks the
+same boot ID before and after; the result requires carrier to remain present.
+The 4 KiB reply is a bounded traffic window, not packet-level attribution.
 
 The [v6 deployment receipt](results/deployment-v6.json) records a guarded
 write from the verified v5 boot: boot2 was inactive, the v5 predecessor matched,
