@@ -36,6 +36,16 @@ INSTALLS = {
         'manifest': '1499b7a3b5c83dd2d57203df77c3cdefd0dc871c2545965bb91b0500eab5b817',
         'predecessor': '4ec72c2012387a3f3f89b9272b357920507767ebbd76f4b66133293b12470f8e',
         'deployment': 'gemian-wifi-reference-deployment-3',
+        'boot_id': '7d372eb9-23ca-48af-91b3-8b5e9112c943',
+        'release': '3.18.41-gemini-wifi-ref2+',
+    },
+    'v4': {
+        'candidate': 'b1916ae329cdd6a7672a138d3d9673749279678d975255496fa411283ea9a886',
+        'manifest': 'ee2ba185ba1b1c800e3c26eddccf181689121225daa1870ff59b3474cf8d13c5',
+        'predecessor': '3e4663373b8b0519a06642ac5ddef4223f2a31b28aca8446bfbe2a59b6a456ea',
+        'deployment': 'gemian-wifi-reference-deployment-4',
+        'boot_id': 'b3c9ecab-08ae-4c08-9c6a-17ef92972c77',
+        'release': '3.18.41-gemini-wifi-ref3+',
     },
 }
 
@@ -96,17 +106,17 @@ def main():
                      '[[ "$predecessor_sha256" == ' + selected['predecessor'] +
                      ' || "$predecessor_sha256" == "$CANDIDATE_SHA256" ]] ||\n' +
                      '\tdie \'unexpected boot2 predecessor\'\n')
-    if args.revision == 'v3':
+    if args.revision in ('v3', 'v4'):
         source = replace(source,
                          '[[ "$initial_boot_id" =~ ^[0-9a-f-]{36}$ ]] || die \'malformed initial boot ID\'\n',
-                         '[[ "$initial_boot_id" == 7d372eb9-23ca-48af-91b3-8b5e9112c943 ]] ||\n'
-                         '\tdie \'not the verified v2 Gemian boot\'\n')
+                         '[[ "$initial_boot_id" == ' + selected['boot_id'] + ' ]] ||\n'
+                         '\tdie \'not the verified predecessor Gemian boot\'\n')
         source = replace(source,
                          '[[ "$(id -u)" == 0 && "$(uname -m)" == aarch64 && "$(uname -r)" == 3.18.41+ ]] ||\n'
                          "\tfail 'remote is not exact known-good Gemian'\n",
                          '[[ "$(id -u)" == 0 && "$(uname -m)" == aarch64 &&\n'
-                         '   "$(uname -r)" == 3.18.41-gemini-wifi-ref2+ ]] ||\n'
-                         "\tfail 'remote is not the verified v2 Gemian release'\n")
+                         '   "$(uname -r)" == ' + selected['release'] + ' ]] ||\n'
+                         "\tfail 'remote is not the verified predecessor Gemian release'\n")
     output = args.output
     assert output.parent.resolve(strict=True) == REPO / 'artifacts/gemian-wifi-reference/scripts'
     assert not output.exists() and not output.is_symlink()

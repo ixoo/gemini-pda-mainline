@@ -459,14 +459,29 @@ private runtime capture. Publish only interpreted, sanitized facts.
 The [v4 Buildbox receipt](results/build-v4.json) pins the clean pushed
 source, ordered patches, linked kernel and checked package inventory.
 Both new record strings are linked. The sole build warning is the same
-69-section-mismatch count as v1–v3. V4 remains an unrun diagnostic
-package while the installed v3 boot awaits validation. The
+69-section-mismatch count as v1–v3. The
 [v4 offline candidate](results/candidate-v4.json) was assembled from the
-verified known-good Gemian boot container and remains unselected. Independent
+verified known-good Gemian boot container. Independent
 parsing found the v3 ramdisk and appended device tree byte-identical; the
 Android-v0 header changed only in kernel size and image ID. The raw image
 is 14,995,456 bytes and the padded 16 MiB image has SHA-256
 `b1916ae329cdd6a7672a138d3d9673749279678d975255496fa411283ea9a886`.
-No device write or v4 boot occurred. One record per direction cannot
-establish every transfer's ownership or replace the native driver's full
-DMA sequencing.
+
+After the validated [v3 runtime](results/runtime-v3-return-1.json), v4 is
+selected for the next boot2 test. The [installer derivation](prepare-installer.py)
+binds the reviewed guard to that exact v3 boot ID and release, v3 boot2
+predecessor checksum, and v4 candidate checksum. Its generated private
+installer SHA-256 is
+`6146af35f8c8ee11c671ac5870188d3a99e63a98db5696fce42feb955d62c83e`.
+The boot hypothesis is that a working Wi-Fi connection will exercise both
+RX and TX data-port paths and record bounded idle-poll outcomes with their
+physical endpoints. A changed boot ID, expected v4 release, Wi-Fi carrier,
+and both records would support that narrow result. If boot identity or Wi-Fi
+fails, preserve the finite capture and use the reviewed recovery path. If
+either direction has no record, preserve the negative result and inspect
+whether that path was exercised before changing instrumentation. A
+`count_escape=1` would move investigation to the DMA lifetime and mapping
+release; `count_escape=0` supports only a clear EN bit at the final read.
+One record per direction cannot establish every transfer's ownership or
+replace the native driver's full DMA sequencing. No v4 device boot has yet
+been observed.
