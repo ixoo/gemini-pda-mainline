@@ -745,3 +745,15 @@ available evidence and using the reviewed known-good recovery path. The test
 budget is one physical boot2 selection; do not repeat an identical image
 without a decision-changing measurement. Build, candidate assembly and
 guarded installation are separate gates before owner selection.
+
+The [v8 Buildbox receipt](results/build-v8.json) pins the full link from clean,
+pushed commit `b56fac35bad60b67bb642b09577bd5e9eb20a75e`. The linked
+kernel contains release `3.18.41-gemini-wifi-ref8+` and the new record; the
+only build diagnostic is the baseline 69-section-mismatch warning. The
+[offline candidate receipt](results/candidate-v8.json) records independent
+comparison with v7: its ramdisk and appended DTB are byte-identical, and the
+Android-v0 layout and zero padding are preserved. The selected 16 MiB boot2
+image SHA-256 is `f106361945822b3d9093c10de8503901a51c310cfaa7beb87cc56c2152cae6b2`.
+The reviewed installer is pinned to that image, the current v7 boot identity,
+and the v7 boot2 predecessor checksum. These are preparation results; v8 has
+not yet been run on the PDA.
