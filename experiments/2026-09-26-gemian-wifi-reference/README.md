@@ -651,3 +651,11 @@ AP-DMA ownership, packet-level attribution and durable Wi-Fi behavior remain
 open. The single-use v6 trigger budget is consumed; do not replay it in this
 boot. A new kernel solely to log whether this interrupt poll succeeded would
 repeat what the existing source path already establishes.
+
+A separate [same-boot 4G/DMA join](results/4g-mode-v6-dma-join.json) found the
+positive early 4G-mode branch in the retained v6 log. The pinned source sets
+its file-static selector there and has no later writer. Both later mapped
+host addresses were below 4 GiB, while the selected HIF start path issues
+unconditional ADDR2 bit-32 set writes. This narrows the executing mode
+assumption but does not resolve the FIFO bus alias or justify a mainline DMA
+mask or address transformation.

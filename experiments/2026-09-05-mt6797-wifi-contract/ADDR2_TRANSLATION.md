@@ -128,3 +128,20 @@ applying an address offset, or borrowing another engine's mode policy would
 encode an unverified assumption. The earlier DMA and EMI
 admission gaps remain open. This record owns the bounded result, not roadmap
 ordering or a claim of hardware support.
+
+## V6 same-boot mode and DMA join
+
+The later [v6 join](../2026-09-26-gemian-wifi-reference/results/4g-mode-v6-dma-join.json)
+uses the already retained, checksum-bound instrumented Gemian log. Its early
+`[EMI MPU] 4G mode` message shows that the pinned initializer selected
+`enable_4gb=1` in the same boot as the later TX/RX DMA records. This variable
+is file-static, and the exact v6 source assigns it only in that early
+initializer. Both recorded mapped host-side addresses had bit length 32, so
+they were below 4 GiB. The selected `HifPdmaStart` nevertheless issues the
+unconditional ADDR2 bit-32 set writes for both endpoints on every start.
+
+This joins the selector, mapped-address range and driver write path in one
+boot; it does not read back ADDR2, prove the INFRACFG hardware bit stayed set,
+or identify the effective bus alias for the fixed HIF FIFO. The mainline DMA
+mask and address transformation remain unselected. No new device action was
+used for this join.

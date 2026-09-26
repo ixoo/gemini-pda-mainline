@@ -453,9 +453,13 @@ for the first Wi-Fi bring-up. The current preparation order is:
    captured interrupt-register value; stale flags and external STOP/FLUSH/
    reset remain possible. Programmed register addresses, data delivery,
    coherent shared CONSYS shutdown and effective EMI arbitration remain
-   unresolved. Resolve shared-owner admission and an effect-bearing failure
-   lifetime before
-   another mainline firmware candidate. The first firmware load may use PIO;
+   unresolved. The [same-boot 4G/DMA join](../experiments/2026-09-26-gemian-wifi-reference/results/4g-mode-v6-dma-join.json)
+   finds the positive early 4G selector and later mapped host addresses below
+   4 GiB while the selected HIF start path issues unconditional ADDR2 bit-32
+   set writes; it does not identify the effective bus alias or select a DMA
+   address policy. Resolve shared-owner admission and an effect-bearing failure
+   lifetime before another mainline firmware candidate. The first firmware
+   load may use PIO;
    validate AP-DMA ownership before enabling packet DMA. Do not replay the
    consumed Gemian radio or DMA cycles merely to repeat this observation.
    See the

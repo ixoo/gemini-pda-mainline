@@ -1,0 +1,31 @@
+{
+  "status": "same-boot retained-log and pinned-source join",
+  "source_revision": "59e00a9144d782e148332009a835b99c43382467",
+  "v6_patch_set_sha256": "97a0c15745cd6aaf148db91adbb717310490e714cb5050f0667d3fdefc78037e",
+  "candidate_sha256": "f6218df7bc55b00218d2b9ac3e2cac61a1903486b753ff90bf51dcd1687eee7b",
+  "boot_id": "b1fd6865-042c-4fc1-9b03-0477bf4f0670",
+  "kernel_release": "3.18.41-gemini-wifi-ref6+",
+  "private_posttrigger_log_sha256": "e2ccedada6a6182b51163eb5bdefd8fdc089c16f919fb592cbf485f32c647d6d",
+  "private_posttrigger_log_bytes": 425978,
+  "mode_observation": {
+    "line": 145,
+    "seconds_since_boot": 0.144213,
+    "on_messages": 1,
+    "off_messages": 0
+  },
+  "pinned_source_sha256": {
+    "drivers/misc/mediatek/emi_mpu/mt6797/emi_mpu.c": "0eace5c2284213ecd9c4899e61cf8eb86a6793f0966d579e3b112e65f8c625b5",
+    "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb_pdma.c": "83c23a5582be2dcaa385359b7cd0f82af0ec9d6a4e102ea6faea57f59d75b480"
+  },
+  "source_inference": "The early-init 4G-mode message follows an INFRACFG_AO bit-13 read and assignment of the file-static enable_4gb selector to 1. The selected source has no later writer to that variable. The v6 HifPdmaStart path issues read/OR/write of ADDR2 bit 0 for both endpoints on every start, independently of the mapped address and selector.",
+  "same_boot_dma_observation": {
+    "tx_seconds_since_boot": 68.692022,
+    "rx_seconds_since_boot": 68.697491,
+    "mapped_host_address_bits_each": 32,
+    "configured_hif_address_bits_each": 29,
+    "source": "runtime-v6-return-1.json"
+  },
+  "decision": "The v6 DMA window has a positive early 4G-mode selector and host-side mapped addresses below 4 GiB while the selected HIF start path issues unconditional ADDR2 bit-32 set writes. This join does not select a mainline DMA mask, offset or upper-bit policy.",
+  "limits": "The logs do not read back ADDR2 or prove the live INFRACFG bit remained set at transfer time. Source writes and a stable software selector do not identify the effective bus alias of the fixed HIF FIFO or prove transfer routing, data delivery or shared AP-DMA ownership.",
+  "device_action": "none; reanalysis of the retained private v6 log and exact prepared source"
+}
