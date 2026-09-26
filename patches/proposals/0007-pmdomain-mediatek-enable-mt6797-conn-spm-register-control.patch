@@ -1,0 +1,83 @@
+From da88bae188e74029c565653a0d25cf066e73b7eb Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 26 Sep 2026 16:35:52 -0400
+Subject: [PATCH] pmdomain: mediatek: enable MT6797 CONN SPM register control
+ on transition
+
+The selected MT6797 CONN provider writes the shared SPM register-control
+key before both ON and OFF transitions. The existing SCPSYS callback lacks
+that preamble. Add an optional per-domain value and select it for CONN;
+other domains keep their current behavior. ON writes only after successful
+clock acquisition and before the first power request. OFF writes before
+bus protection. Neither path clears the shared enable.
+
+This is an isolated compile experiment. No boot profile or consumer selects
+CONN, and this does not establish rail/reset preparation, firmware-side
+writer exclusion, or permission to activate the island. Do not deploy it
+until those shared-owner conditions have a reviewed protocol.
+
+Internal experiment only; synthetic non-certifying author, no DCO.
+---
+ drivers/pmdomain/mediatek/mtk-scpsys.c | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/drivers/pmdomain/mediatek/mtk-scpsys.c b/drivers/pmdomain/mediatek/mtk-scpsys.c
+index e878bd2..08bd708 100644
+--- a/drivers/pmdomain/mediatek/mtk-scpsys.c
++++ b/drivers/pmdomain/mediatek/mtk-scpsys.c
+@@ -36,6 +36,8 @@
+ #define MTK_SCPD_RETAIN_FAILED_STATE	BIT(4)
+ #define MTK_SCPD_CAPS(_scpd, _x)	((_scpd)->data->caps & (_x))
+ 
++#define MT6797_SPM_POWERON_CONFIG		0x0b160001
++
+ #define SPM_VDE_PWR_CON			0x0210
+ #define SPM_MFG_PWR_CON			0x0214
+ #define SPM_VEN_PWR_CON			0x0230
+@@ -127,6 +129,7 @@ static const char * const clk_names[] = {
+  * @bus_prot_mask: The mask for single step bus protection.
+  * @clk_id: The basic clocks required by this power domain.
+  * @caps: Domain capabilities and initial activation policy.
++ * @spm_poweron_config: Optional SPM register-control value for ON and OFF.
+  */
+ struct scp_domain_data {
+ 	const char *name;
+@@ -137,6 +140,7 @@ struct scp_domain_data {
+ 	u32 bus_prot_mask;
+ 	enum clk_id clk_id[MAX_CLKS];
+ 	u8 caps;
++	u32 spm_poweron_config;
+ };
+ 
+ struct scp;
+@@ -359,6 +363,9 @@ static int scpsys_power_on(struct generic_pm_domain *genpd)
+ 	if (ret)
+ 		goto err_clk;
+ 
++	if (scpd->data->spm_poweron_config)
++		writel(scpd->data->spm_poweron_config, scp->base);
++
+ 	/* subsys power on */
+ 	val = readl(ctl_addr);
+ 	val |= PWR_ON_BIT;
+@@ -415,6 +422,9 @@ static int scpsys_power_off(struct generic_pm_domain *genpd)
+ 	if (scpd->fault_error)
+ 		return scpd->fault_error;
+ 
++	if (scpd->data->spm_poweron_config)
++		writel(scpd->data->spm_poweron_config, scp->base);
++
+ 	ret = scpsys_bus_protect_enable(scpd);
+ 	if (ret < 0)
+ 		goto out;
+@@ -925,6 +935,7 @@ static const struct scp_domain_data scp_domain_data_mt6797[] = {
+ 		.sta_mask = PWR_STATUS_CONN,
+ 		.ctl_offs = 0x32c,
+ 		.bus_prot_mask = BIT(17) | BIT(18),
++		.spm_poweron_config = MT6797_SPM_POWERON_CONFIG,
+ 		.clk_id = {CLK_NONE},
+ 		.caps = MTK_SCPD_KEEP_DEFAULT_OFF |
+ 			MTK_SCPD_CLK_OFF_BEFORE_RESET |
+-- 
+2.54.0 (Apple Git-157)
+
