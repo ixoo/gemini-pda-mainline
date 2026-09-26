@@ -1,0 +1,78 @@
+From a5a5a10092d80e714d9f351be95db98cfb286b4a Mon Sep 17 00:00:00 2001
+From: Gemini diagnostic experiment <nobody@example.invalid>
+Date: Sat, 26 Sep 2026 08:50:08 -0400
+Subject: [PATCH] diagnostic: record Gemian Wi-Fi setup decisions
+
+---
+ .../common/common_main/mt6797/mtk_wcn_consys_hw.c         | 3 +++
+ .../common/common_main/mt6797/wmt_plat_alps.c             | 3 +++
+ drivers/misc/mediatek/emi_mpu/mt6797/emi_mpu.c            | 8 +++++++-
+ 3 files changed, 13 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c b/drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c
+index 045fc78..ca9a02e 100644
+--- a/drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c
++++ b/drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c
+@@ -41,6 +41,7 @@
+ #include <linux/clk.h>
+ #endif /* defined(CONFIG_MTK_CLKMGR) */
+ #include <linux/delay.h>
++#include <linux/printk.h>
+ #include <linux/memblock.h>
+ #include "osal_typedef.h"
+ #include "mtk_wcn_consys_hw.h"
+@@ -287,6 +288,8 @@ INT32 mtk_wcn_consys_hw_reg_ctrl(UINT32 on, UINT32 co_clock_type)
+ #endif
+ 
+ 	WMT_PLAT_DBG_FUNC("CONSYS-HW-REG-CTRL(0x%08x),start\n", on);
++	pr_info("gemini-wifi-ref-v1: consys on=%u co_clock_type=%u\n",
++		on, co_clock_type);
+ 
+ 	if (on) {
+ 		WMT_PLAT_DBG_FUNC("++\n");
+diff --git a/drivers/misc/mediatek/connectivity/common/common_main/mt6797/wmt_plat_alps.c b/drivers/misc/mediatek/connectivity/common/common_main/mt6797/wmt_plat_alps.c
+index 1a75b5a..cd57386 100644
+--- a/drivers/misc/mediatek/connectivity/common/common_main/mt6797/wmt_plat_alps.c
++++ b/drivers/misc/mediatek/connectivity/common/common_main/mt6797/wmt_plat_alps.c
+@@ -36,6 +36,7 @@
+ ********************************************************************************
+ */
+ #include <linux/delay.h>
++#include <linux/printk.h>
+ 
+ /* ALPS header files */
+ #include <mtk_rtc.h>
+@@ -326,6 +327,8 @@ INT32 wmt_plat_soc_init(UINT32 co_clock_type)
+ 	/*init wmt function ctrl wakelock if wake lock is supported by host platform */
+ 
+ 	wmt_plat_soc_co_clock_flag_set(co_clock_type);
++	pr_info("gemini-wifi-ref-v1: clock_init co_clock_type=%u\n",
++		co_clock_type);
+ 
+ 	stub_cb.aif_ctrl_cb = wmt_plat_audio_ctrl;
+ 	stub_cb.func_ctrl_cb = wmt_plat_func_ctrl;
+diff --git a/drivers/misc/mediatek/emi_mpu/mt6797/emi_mpu.c b/drivers/misc/mediatek/emi_mpu/mt6797/emi_mpu.c
+index 9612821..4022d56 100644
+--- a/drivers/misc/mediatek/emi_mpu/mt6797/emi_mpu.c
++++ b/drivers/misc/mediatek/emi_mpu/mt6797/emi_mpu.c
+@@ -1125,13 +1125,19 @@ int emi_mpu_set_region_protection(unsigned long long start,
+ unsigned long long end, int region, unsigned int access_permission)
+ {
+ 	int ret = 0;
++	int firmware_status;
+ 	unsigned long flags;
+ 
+ 	access_permission = access_permission & 0xFFFFFF;
+ 	access_permission = access_permission | ((region & 0x1F)<<27);
+ 	spin_lock_irqsave(&emi_mpu_lock, flags);
+-	mt_emi_mpu_set_region_protection(start, end, access_permission);
++	firmware_status = mt_emi_mpu_set_region_protection(start, end,
++		access_permission);
+ 	spin_unlock_irqrestore(&emi_mpu_lock, flags);
++	if (region == 18 || region == 19 || region == 23)
++		pr_info("gemini-wifi-ref-v1: emi region=%d start=%llx end=%llx permission=%06x firmware_status=%d\n",
++			region, start, end, access_permission & 0xffffff,
++			firmware_status);
+ 
+ 	return ret;
+ }

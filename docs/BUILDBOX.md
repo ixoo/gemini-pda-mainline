@@ -128,6 +128,13 @@ staging cleanup targets.
 
 ## Gemian observer compile-review lane
 
+The separate [Gemian Wi-Fi reference experiment](../experiments/2026-09-26-gemian-wifi-reference/README.md)
+uses the prepared pinned Gemian source, toolchain and live configuration from
+this lane to build an instrumented full kernel. Its `build-gemian-wifi-reference`
+and `fetch-gemian-wifi-reference` commands retain the clean pushed-commit gate;
+the fetched kernel bundle requires separate candidate assembly and review before
+any boot2 installation.
+
 The fixed MT6797 A72 owner-observer experiment has a separate compile-only
 Buildbox lane because its public Gemian 3.18 source and pinned Stretch
 cross-toolchain are not inputs to the upstream 7.1.3 manifest:
