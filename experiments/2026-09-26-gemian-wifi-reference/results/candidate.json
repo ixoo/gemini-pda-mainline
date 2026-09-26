@@ -1,0 +1,14 @@
+{
+  "repository_commit": "bf079c8be55e623b9fb5bc0e51a6a3feaed55f94",
+  "package_inventory_sha256": "7822d68966364b16e943f76d7e56f9ffaa3a5ebfa978bec09d366d466d480205",
+  "active_boot_sha256": "1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513",
+  "kernel_field_sha256": "327dd5e4e27632de69b8b578a7b51a9df9f110b843223fca45cc003e63e48473",
+  "ramdisk_sha256": "a1ee05445e9a2bd8fbc1f75d7cda326b9ca7a6d3b644cbb1d5fc0ac167835be4",
+  "raw_sha256": "3c97481985ee32dff890731b820b915a8aa1cdec3ff4e533667c1b06d82ceda5",
+  "raw_bytes": 14995456,
+  "boot2_sha256": "138e35e41fa12a3a0cdeca3660e42e291b5268814167c2857a7ad67cffe594b2",
+  "boot2_bytes": 16777216,
+  "candidate_inventory_sha256": "eb2443d00e6351290d171cef40550f773fddd31aec294476a36874ee308f1984",
+  "boot_candidate": true,
+  "device_execution": false
+}

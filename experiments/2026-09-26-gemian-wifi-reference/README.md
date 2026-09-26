@@ -1,7 +1,7 @@
 # Gemian Wi-Fi reference kernel
 
-Status: diagnostic source patch and reproducible Buildbox recipe. No device
-execution has yet validated this kernel.
+Status: full Buildbox kernel link and offline boot2 container review passed. No
+device execution has yet validated this kernel.
 
 The known-good Gemian 3.18 kernel brings up the MT6797 Wi-Fi hardware. Its
 normal console output does not establish which CONSYS clock mode was selected
@@ -41,3 +41,23 @@ container assembly from the hash-pinned known-good Gemian boot image, exact
 partition padding and review. Install only from verified Gemian through the
 reviewed live-GPT boot2 guard and full readback, then shut down cleanly; the
 owner selects boot2 physically. Primary boot is never a target.
+
+Buildbox linked project commit `bf079c8be55e623b9fb5bc0e51a6a3feaed55f94`.
+The [build receipt](results/build.json) pins the exact bundle inventory and
+kernel field. The final config has function, function-graph and dynamic ftrace
+enabled, with MTK default tracing disabled. The sole diagnostic is the same
+69-section-mismatch modpost warning present in prior baseline builds. The
+8.2 MiB kernel field contains release `3.18.41-gemini-wifi-ref+` and the
+three diagnostic call sites are linked.
+
+The [candidate recipe](build-candidate.py) reuses the hash-pinned Android-v0
+assembler and known-good Gemian boot input, changing only the kernel field.
+The [offline candidate receipt](results/candidate.json) records the unchanged
+ramdisk checksum, 14,995,456-byte raw image and exact 16 MiB padded image.
+The padded image SHA-256 is
+`138e35e41fa12a3a0cdeca3660e42e291b5268814167c2857a7ad67cffe594b2`.
+The private image stays ignored under `artifacts/gemian-wifi-reference/`.
+The [installer preparation](prepare-installer.py) pins the reviewed guard and
+installer derivation, the image inventory, and the expected predecessor
+checksum. It generates a private shell script that rechecks the live GPT,
+root/target device identity, power and full readback before clean shutdown.

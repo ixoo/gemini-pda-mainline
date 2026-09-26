@@ -1,0 +1,12 @@
+{
+  "repository_commit": "bf079c8be55e623b9fb5bc0e51a6a3feaed55f94",
+  "source_commit": "59e00a9144d782e148332009a835b99c43382467",
+  "patch_sha256": "f247bb039853e4c9d74828134d39b72ebc3e1844f99ea1a759bf754fc9988577",
+  "package_inventory_sha256": "7822d68966364b16e943f76d7e56f9ffaa3a5ebfa978bec09d366d466d480205",
+  "kernel_field_sha256": "327dd5e4e27632de69b8b578a7b51a9df9f110b843223fca45cc003e63e48473",
+  "kernel_release": "3.18.41-gemini-wifi-ref+",
+  "full_kernel_link": true,
+  "diagnostic": "WARNING: modpost: Found 69 section mismatch(es).",
+  "diagnostic_matches_prior_baseline": true,
+  "device_execution": false
+}
