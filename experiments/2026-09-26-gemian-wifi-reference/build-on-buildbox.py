@@ -105,10 +105,19 @@ def main():
         before, after = native.symbols(CONFIG), native.symbols(output / '.config')
         delta = {name: [before.get(name), after.get(name)]
                  for name in before.keys() | after.keys() if before.get(name) != after.get(name)}
-        assert set(delta) <= {'CONFIG_LOCALVERSION', 'CONFIG_ANBOX',
-                              'CONFIG_FUNCTION_TRACER', 'CONFIG_FUNCTION_GRAPH_TRACER',
-                              'CONFIG_DYNAMIC_FTRACE', 'CONFIG_GENERIC_TRACER',
-                              'CONFIG_CONTEXT_SWITCH_TRACER'}, delta
+        assert delta == {
+            'CONFIG_ANBOX': [None, 'n'],
+            'CONFIG_DYNAMIC_FTRACE': [None, 'y'],
+            'CONFIG_ENABLE_DEFAULT_TRACERS': ['y', None],
+            'CONFIG_FTRACE_MCOUNT_RECORD': [None, 'y'],
+            'CONFIG_FTRACE_STARTUP_TEST': [None, 'n'],
+            'CONFIG_FUNCTION_GRAPH_TRACER': [None, 'y'],
+            'CONFIG_FUNCTION_PROFILER': [None, 'n'],
+            'CONFIG_FUNCTION_TRACER': ['n', 'y'],
+            'CONFIG_GENERIC_TRACER': [None, 'y'],
+            'CONFIG_LOCALVERSION': ['""', '"-gemini-wifi-ref"'],
+            'CONFIG_PSTORE_FTRACE': [None, 'n'],
+        }, delta
         assert after['CONFIG_LOCALVERSION'] == '"-gemini-wifi-ref"'
         for symbol in ('FUNCTION_TRACER', 'FUNCTION_GRAPH_TRACER', 'DYNAMIC_FTRACE'):
             assert after['CONFIG_' + symbol] == 'y'
