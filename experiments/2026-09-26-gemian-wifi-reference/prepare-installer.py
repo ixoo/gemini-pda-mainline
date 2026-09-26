@@ -78,6 +78,7 @@ def main():
                      ' || "$predecessor_sha256" == "$CANDIDATE_SHA256" ]] ||\n' +
                      '\tdie \'unexpected boot2 predecessor\'\n')
     output = args.output
+    assert output.parent.resolve(strict=True) == REPO / 'artifacts/gemian-wifi-reference/scripts'
     assert not output.exists() and not output.is_symlink()
     output.write_text(source)
     output.chmod(0o700)
