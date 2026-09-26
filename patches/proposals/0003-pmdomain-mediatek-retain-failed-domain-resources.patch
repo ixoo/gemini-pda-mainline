@@ -1,0 +1,122 @@
+From 99dba857c12cea19d6bef69c2833f58a3b47dba5 Mon Sep 17 00:00:00 2001
+From: "MT6797 CONN experiment (non-certifying)" <nobody@example.invalid>
+Date: Sat, 26 Sep 2026 07:49:06 -0400
+Subject: [PATCH] pmdomain: mediatek: retain opt-in failed domain resources
+
+An ON error after a power request can leave the island uncertain. The
+legacy callback then releases clocks and its supply. For an initially-off
+opt-in domain, latch the first failure, retain acquired prerequisites,
+and refuse later power callbacks. Latch OFF failures too. Existing domains
+keep their current cleanup behavior.
+
+No domain selects this capability. Generic PM domain state may skip a
+callback after a failed OFF; a future CONN client must check the provider
+fault before use. This patch supplies neither CONN rail/reset sequencing
+nor EMI ownership.
+
+Internal compile experiment only; synthetic author, no DCO certification.
+---
+ drivers/pmdomain/mediatek/mtk-scpsys.c | 34 +++++++++++++++++++++++---
+ 1 file changed, 31 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/pmdomain/mediatek/mtk-scpsys.c b/drivers/pmdomain/mediatek/mtk-scpsys.c
+index b64c8ba..0e948f5 100644
+--- a/drivers/pmdomain/mediatek/mtk-scpsys.c
++++ b/drivers/pmdomain/mediatek/mtk-scpsys.c
+@@ -29,6 +29,8 @@
+ #define MTK_SCPD_KEEP_DEFAULT_OFF	BIT(2)
+ /* Select only for domains whose retained OFF order requires it. */
+ #define MTK_SCPD_CLK_OFF_BEFORE_RESET	BIT(3)
++/* Preserve prerequisites and refuse reuse after an uncertain transition. */
++#define MTK_SCPD_RETAIN_FAILED_STATE	BIT(4)
+ #define MTK_SCPD_CAPS(_scpd, _x)	((_scpd)->data->caps & (_x))
+ 
+ #define SPM_VDE_PWR_CON			0x0210
+@@ -142,6 +144,7 @@ struct scp_domain {
+ 	struct clk *clk[MAX_CLKS];
+ 	const struct scp_domain_data *data;
+ 	struct regulator *supply;
++	int fault_error;
+ };
+ 
+ struct scp_ctrl_reg {
+@@ -216,6 +219,15 @@ static void scpsys_withhold_domain(struct scp *scp, int index, int error)
+ 		 scp->domains[index].data->name, error);
+ }
+ 
++static int scpsys_hold_fault(struct scp_domain *scpd, int error)
++{
++	if (MTK_SCPD_CAPS(scpd, MTK_SCPD_RETAIN_FAILED_STATE) &&
++	    !scpd->fault_error)
++		scpd->fault_error = error;
++
++	return error;
++}
++
+ static int scpsys_regulator_enable(struct scp_domain *scpd)
+ {
+ 	if (!scpd->supply)
+@@ -333,9 +345,12 @@ static int scpsys_power_on(struct generic_pm_domain *genpd)
+ 	u32 val;
+ 	int ret, tmp;
+ 
++	if (scpd->fault_error)
++		return scpd->fault_error;
++
+ 	ret = scpsys_regulator_enable(scpd);
+ 	if (ret < 0)
+-		return ret;
++		return scpsys_hold_fault(scpd, ret);
+ 
+ 	ret = scpsys_clk_enable(scpd->clk, MAX_CLKS);
+ 	if (ret)
+@@ -374,10 +389,13 @@ static int scpsys_power_on(struct generic_pm_domain *genpd)
+ 	return 0;
+ 
+ err_pwr_ack:
+-	scpsys_clk_disable(scpd->clk, MAX_CLKS);
++	if (!MTK_SCPD_CAPS(scpd, MTK_SCPD_RETAIN_FAILED_STATE))
++		scpsys_clk_disable(scpd->clk, MAX_CLKS);
+ err_clk:
+-	scpsys_regulator_disable(scpd);
++	if (!MTK_SCPD_CAPS(scpd, MTK_SCPD_RETAIN_FAILED_STATE))
++		scpsys_regulator_disable(scpd);
+ 
++	scpsys_hold_fault(scpd, ret);
+ 	dev_err(scp->dev, "Failed to power on domain %s\n", genpd->name);
+ 
+ 	return ret;
+@@ -391,6 +409,9 @@ static int scpsys_power_off(struct generic_pm_domain *genpd)
+ 	u32 val;
+ 	int ret, tmp;
+ 
++	if (scpd->fault_error)
++		return scpd->fault_error;
++
+ 	ret = scpsys_bus_protect_enable(scpd);
+ 	if (ret < 0)
+ 		goto out;
+@@ -437,6 +458,7 @@ static int scpsys_power_off(struct generic_pm_domain *genpd)
+ 	return 0;
+ 
+ out:
++	scpsys_hold_fault(scpd, ret);
+ 	dev_err(scp->dev, "Failed to power off domain %s\n", genpd->name);
+ 
+ 	return ret;
+@@ -1187,6 +1209,12 @@ static int scpsys_check_deferred_topology(const struct scp_soc_data *soc)
+ 	const struct scp_subdomain *sd;
+ 	int i;
+ 
++	/* A retained failure must not arise during initial provider activation. */
++	for (i = 0; i < soc->num_domains; i++)
++		if ((soc->domains[i].caps & MTK_SCPD_RETAIN_FAILED_STATE) &&
++		    !(soc->domains[i].caps & MTK_SCPD_KEEP_DEFAULT_OFF))
++			return -EINVAL;
++
+ 	/* Withholding a linked domain could break another domain's dependency. */
+ 	for (i = 0, sd = soc->subdomains; i < soc->num_subdomains; i++, sd++) {
+ 		if ((soc->domains[sd->origin].caps |
+-- 
+2.54.0 (Apple Git-157)
+

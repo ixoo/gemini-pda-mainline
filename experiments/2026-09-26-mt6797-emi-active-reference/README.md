@@ -62,6 +62,13 @@ reserved range, attributable AP/CONSYS master routing, and an effective
 overlap rule or an equivalent owner-verified applicability check. Mainline
 firmware loading remains unimplemented; this inspection made no device change.
 
+The [exact MT6797 register table](https://www.96boards.org/documentation/consumer/mediatekx20/additional-docs/docs/MT6797_Register_Table_Part_1.pdf)
+describes per-domain violation-mask fields only through region 19. Reading
+those mask registers would therefore not settle whether broad region 23
+affects the WLAN window. The table also does not state an overlap arbitration
+rule or assign the observed WLAN traffic to an EMI domain. It supplies no
+reason to repeat boot2 merely to sample those mask fields.
+
 ## Same-boot connectivity rail status
 
 A later bounded read at `2026-09-26T11:40:29Z` found Gemian's named VCN18,
