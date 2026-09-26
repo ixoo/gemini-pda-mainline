@@ -1,5 +1,8 @@
 # Gemian Wi-Fi reference kernel
 
+The [RE toolkit decision](RE_TOOLKIT.md) audits the current diagnostic
+capabilities and explains why Kprobes is deferred for this 3.18 arm64 tree.
+
 Status: Buildbox kernel and boot2 packaging validated; one changed-boot
 diagnostic Gemian session confirmed Wi-Fi and available function tracing.
 
