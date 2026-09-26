@@ -413,6 +413,12 @@ for the first Wi-Fi bring-up. The current preparation order is:
    links the selected CONN key write before ON/OFF register work; it is not a
    boot candidate and does not settle retained-firmware writers or shared
    rail/reset ownership. A later
+   [accepted-A53 source replay](../experiments/2026-09-26-mt6797-conn-spm-register-control/README.md#accepted-a53-source-integration-gate)
+   applies all seven provider proposals cleanly to its Linux 7.1.3 source,
+   but its selected configuration disables SCPSYS. Enabling the legacy
+   provider as-is would activate other MT6797 domains during probe. Resolve
+   that registration/consumer behavior before making a boot candidate; source
+   portability alone does not admit a device test. A later
    [read-only Gemian EMI reference](../experiments/2026-09-26-mt6797-emi-active-reference/results/runtime.json)
    confirms the vendor-requested region-18/19 ranges and permission values in
    a boot where WLAN carrier was observed later, but also shows broad region 23

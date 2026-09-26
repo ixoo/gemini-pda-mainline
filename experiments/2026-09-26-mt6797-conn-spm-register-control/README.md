@@ -31,3 +31,27 @@ when a shared key write is safe on hardware. The provider fault latch remains
 required after any uncertain transition. A shared CONSYS owner must serialize
 those prerequisites and validate them before a first effect-bearing boot.
 There was no installation, power transition, firmware load or radio action.
+
+## Accepted A53 source integration gate
+
+The seven provider proposals in `patches/series-mt6797-provider-compile`
+were replayed in canonical order against the exact prepared Linux 7.1.3 source
+for `mt6797-a53-service-facilities`. Each `git apply --check` and apply
+succeeded without an edit or conflict. The source-state and integrity markers
+were `d6b5f84c94d546466c5c8d9afb003f2a12b99e26ca30c998933cb920`
+and `a00f12af87ce6b49cb20eb71659d5415c508f48cae9b22a1fbf720258579801d`;
+the preimage `mtk-scpsys.c` SHA-256 was
+`cc913ca5cc4e652a49c6cf4822131328fda41ce9fa3719f0279b77ccbd28ada6`.
+This establishes source-level portability onto the accepted boot foundation,
+not a kernel build or device result for that combined profile.
+
+The accepted A53 configuration explicitly has `# CONFIG_MTK_SCPSYS is not set`.
+Enabling the legacy provider would register every described MT6797 domain;
+`scpsys_register_domain()` calls `power_on()` for each domain without
+`MTK_SCPD_KEEP_DEFAULT_OFF`. The proposals select that cap only for CONN.
+Consequently a naive A53 profile enabling SCPSYS would introduce probe-time
+power transitions for unrelated domains. The next boot candidate must first
+define and validate the registration/consumer behavior of those domains as
+well as the CONN rail, reset and shared-writer owner. No such profile was made
+or installed. The running Gemian Wi-Fi reference was inspected read-only and
+was not changed by this source replay.
