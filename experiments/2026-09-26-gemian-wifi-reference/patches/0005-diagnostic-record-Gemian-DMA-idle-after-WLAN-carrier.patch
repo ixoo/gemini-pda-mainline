@@ -1,0 +1,60 @@
+From 14a25941922620e864224d29df7f575cc818bd39 Mon Sep 17 00:00:00 2001
+From: Gemini diagnostic experiment <nobody@example.invalid>
+Date: Sat, 26 Sep 2026 15:08:17 -0400
+Subject: [PATCH] diagnostic: record Gemian DMA idle after WLAN carrier
+
+The v4 once-only records were both emitted before the first link event.
+Gate the same per-direction records on the existing netdev carrier
+state so a later transfer can answer whether its idle poll saw EN clear.
+This reads only software state after the existing DMA unmap and adds
+no radio operation or DMA register access. An absent record remains
+inconclusive until the corresponding traffic path is confirmed.
+---
+ .../wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c   | 17 +++++++++++------
+ 1 file changed, 11 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c
+index cff68ff..a7a6b82 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c
+@@ -35,6 +35,7 @@
+ #include <linux/interrupt.h>
+ /* #include <linux/kernel.h> */
+ #include <linux/device.h>
++#include <linux/netdevice.h>
+ /* #include <linux/errno.h> */
+ #include <linux/platform_device.h>
+ /* #include <linux/fs.h> */
+@@ -1009,9 +1010,11 @@ kalDevPortRead(IN P_GLUE_INFO_T GlueInfo, IN UINT_16 Port, IN UINT_32 Size, OUT
+ 		if (pfWlanDmaOps != NULL)
+ 			pfWlanDmaOps->DmaClockCtrl(FALSE);
+ 
+-		pr_info_once("gemini-wifi-ref-v4: dma-rx port=%u size=%u count=%u src=0x%lx dst=0x%lx idle_return=%u idle_polls=%u count_escape=%u\n",
+-			     Port, Size, count, DmaConf.Src, DmaConf.Dst,
+-			     DmaStillRunning, LoopCnt, DmaIdleEscape);
++		if (GlueInfo->prDevHandler &&
++		    netif_carrier_ok(GlueInfo->prDevHandler))
++			pr_info_once("gemini-wifi-ref-v5: dma-rx carrier=1 port=%u size=%u count=%u src=0x%lx dst=0x%lx idle_return=%u idle_polls=%u count_escape=%u\n",
++				     Port, Size, count, DmaConf.Src, DmaConf.Dst,
++				     DmaStillRunning, LoopCnt, DmaIdleEscape);
+ 
+ 		HIF_DBG(("[WiFi/HIF] DMA RX OK!\n"));
+ 	} else
+@@ -1278,9 +1281,11 @@ kalDevPortWrite(IN P_GLUE_INFO_T GlueInfo, IN UINT_16 Port, IN UINT_32 Size, IN
+ 		if (pfWlanDmaOps != NULL)
+ 			pfWlanDmaOps->DmaClockCtrl(FALSE);
+ 
+-		pr_info_once("gemini-wifi-ref-v4: dma-tx port=%u size=%u count=%u src=0x%lx dst=0x%lx idle_return=%u idle_polls=%u count_escape=%u\n",
+-			     Port, Size, count, DmaConf.Src, DmaConf.Dst,
+-			     DmaStillRunning, LoopCnt, DmaIdleEscape);
++		if (GlueInfo->prDevHandler &&
++		    netif_carrier_ok(GlueInfo->prDevHandler))
++			pr_info_once("gemini-wifi-ref-v5: dma-tx carrier=1 port=%u size=%u count=%u src=0x%lx dst=0x%lx idle_return=%u idle_polls=%u count_escape=%u\n",
++				     Port, Size, count, DmaConf.Src, DmaConf.Dst,
++				     DmaStillRunning, LoopCnt, DmaIdleEscape);
+ 
+ 		HIF_DBG_TX(("[WiFi/HIF] DMA TX OK!\n"));
+ 	} else
+-- 
+2.54.0 (Apple Git-157)
+

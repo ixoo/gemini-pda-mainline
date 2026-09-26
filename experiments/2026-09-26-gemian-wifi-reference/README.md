@@ -3,8 +3,9 @@
 The [RE toolkit decision](RE_TOOLKIT.md) audits the current diagnostic
 capabilities and explains why Kprobes is deferred for this 3.18 arm64 tree.
 
-Status: Buildbox kernel and boot2 packaging validated; one changed-boot
-diagnostic Gemian session confirmed Wi-Fi and available function tracing.
+Status: four diagnostic Gemian revisions built and verified in changed boot2
+sessions. Wi-Fi carrier and bounded startup DMA observations are established;
+mainline shared ownership and later packet DMA completion remain open.
 
 The known-good Gemian 3.18 kernel brings up the MT6797 Wi-Fi hardware. Its
 normal console output does not establish which CONSYS clock mode was selected
@@ -505,7 +506,33 @@ The records occurred just before the first Wi-Fi link event. They establish
 the first startup transfers' final EN reads, not the idle result for later
 SSH packet DMA. Neither the computed endpoints nor EN clearing proves the
 actual low/ADDR2 register values, clean completion or delivery. The next
-measurement must distinguish later packet traffic from these once-only
-startup records before using an idle observation to define mainline DMA
-ownership. The inherited warning and call-trace counts match v3; no new
+measurement distinguishes transfers made while carrier is reported from
+these prelink startup records; packet attribution remains a separate gate.
+The inherited warning and call-trace counts match v3; no new
 DMA timeout or kernel panic was observed in this boot.
+
+## V5 post-carrier DMA observer
+
+The [v5 patch](patches/0005-diagnostic-record-Gemian-DMA-idle-after-WLAN-carrier.patch)
+keeps v4's existing idle-poll fields and once-only bounds, but emits each
+direction's record only when the WLAN netdev exists and reports carrier. It
+reads software link state after the existing DMA unmap; it adds no radio,
+transfer or DMA-register operation. This is a distinct observation because
+both v4 records preceded the first link event. The pinned Gemian source sets
+the WLAN netdev carrier off at creation, on for the media-connect indication,
+and off for disconnect. Carrier can precede a later
+link log or represent control traffic, so even a v5 record is not by itself
+proof of SSH packet DMA.
+
+The next boot hypothesis is that Wi-Fi remains functional and a bounded
+post-carrier RX and TX transfer each reaches an idle poll with no count-limit
+escape. Unique evidence is the exact v5 image checksum and changed boot ID,
+the expected release, carrier samples, and the timestamped records compared
+with the first link event. If both records appear after carrier and their
+idle polls return zero, that supports only those two EN-clear observations.
+If a record is absent despite carrier and authenticated traffic, inspect the
+corresponding path and trigger timing before changing instrumentation. If
+Wi-Fi or boot regresses, preserve the finite capture and use the reviewed
+recovery path. An escape or nonzero final return moves investigation to DMA
+lifetime and mapping release. No v5 build, installation or device result is
+claimed yet.
