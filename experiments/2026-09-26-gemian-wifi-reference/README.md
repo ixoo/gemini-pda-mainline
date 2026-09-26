@@ -428,7 +428,7 @@ It logs the already computed source, destination, port and transfer size
 once per direction after the path releases its DMA mapping. It adds no
 DMA register read or transfer and leaves the existing timeout and
 unmap behavior intact. A zero `idle_return` with `count_escape=0`
-supports that this poll observed an idle engine; `count_escape=1`
+supports that this poll saw the channel EN bit clear; `count_escape=1`
 means the path reached unmap without that assurance.
 In the [pinned `ahb_pdma.c`](../2026-09-07-mt6797-wifi-observer-feasibility/results/dma-hook-sources.json),
 `HifPdmaStop` only masks the DMA interrupt:
@@ -436,7 +436,10 @@ its STOP write and internal enable poll are compiled out. The existing
 `DmaPollStart` callback instead reads `AP_DMA_HIF_0_EN` and returns its
 enable-bit state. The v4 record therefore witnesses the final enable read
 and the loop's exit reason, not a successful hardware STOP command or
-every transfer's lifetime. On normal exit, `idle_polls` equals the
+every transfer's lifetime. The [MT6797 register reference](https://www.96boards.org/documentation/consumer/mediatekx20/additional-docs/docs/MT6797_Register_Table_Part_1.pdf),
+PDF pages 412–415, says EN clears after normal completion, STOP, FLUSH or
+reset; a clear bit alone cannot distinguish them or prove full data delivery.
+On normal exit, `idle_polls` equals the
 callback count. On `count_escape=1`, the guard increments once more
 without a callback, so the callback count is `idle_polls - 1`.
 

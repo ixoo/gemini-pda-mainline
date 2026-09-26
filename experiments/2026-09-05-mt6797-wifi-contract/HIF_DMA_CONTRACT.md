@@ -14,9 +14,10 @@ through the HIF data aperture. It does not allocate packet buffers from CONSYS
 reserved EMI. That reservation contains firmware and shared WMT state and
 cannot become a generic DMA pool.
 
-The channel and low address registers are attributable, but the meaning of its
-unconditionally enabled address-extension bits is not resolved. Consequently
-neither a 32-bit nor a 33-bit DMA mask/encoding is admitted by this record.
+The channel and low address registers are attributable. The HIF register
+reference now identifies each ADDR2 bit 0 as address bit 32, but the bus route
+of the fixed FIFO with that bit set is not resolved. Consequently neither a
+32-bit nor a 33-bit DMA mask/encoding is admitted by this record.
 A DMA backend also needs exclusive channel ownership and a proven quiescence
 path before it can safely release mappings after error or removal.
 
@@ -51,7 +52,7 @@ This is an SDIO-like command interface on AHB, not proof of a native SDIO bus
 or compatibility with an existing matching-family DMA/network driver.
 [Transfer selection](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c#L867).
 
-## Address width: real low registers, unresolved upper semantics
+## Address width: known bit-32 fields, unresolved bus route
 
 `HifPdmaConfig()` writes source/destination through 32-bit registers at
 channel `+0x1c/+0x20` and masks length to 20 bits at `+0x24`. Although its
@@ -59,7 +60,11 @@ software address members are `ULONG`, that does not preserve addresses above
 32 bits in those writes. `HifPdmaStart()` separately ORs bit 0 into **both**
 `+0x54/+0x58`, independent of the mapped address and including the HIF endpoint.
 The source names them address-extension fields but does not derive them from
-`upper_32_bits(dma_addr)` or explain their bus-alias semantics.
+`upper_32_bits(dma_addr)` or explain their bus-alias semantics. The
+[MT6797 HIF register-reference check](ADDR2_TRANSLATION.md#register-reference-check-2026-09-26)
+identifies these fields as source and destination address bit 32, with the
+memory/FIFO role changing by direction. It does not establish which bit-32
+alias reaches the fixed FIFO.
 [Configuration and start](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb_pdma.c#L232).
 
 The existing retained kernel's named `HifPdmaInit` confirms the channel mapping;
@@ -71,9 +76,9 @@ post-LK allocation. Private identity references, disassembly and selected DT
 blocks stay in `~/reverse-engineering/work/wifi-hif-dma-20260905/`.
 
 A same-valued extension bit or another MT6797 block's 4-GB mode cannot establish
-this channel's translation. The concrete missing evidence is how channel
-`ADDR2` changes the effective host-buffer and HIF-endpoint bus addresses,
-including the retained platform's DRAM alias mode and any DMA/IOMMU translation.
+this channel's bus routing. The concrete missing evidence is how the selected
+bit-32 values route the host buffer and HIF endpoint, including the retained
+platform's DRAM alias mode and any DMA/IOMMU translation.
 Refuse active DMA until that contract fixes the device mask and lossless address
 encoding. Truncation plus forced extension bits is not an acceptable substitute.
 
@@ -113,6 +118,11 @@ established by the selected single-transfer source. Do not invent one.
 A completion flag alone does not authorize freeing memory. The source's
 `HifPdmaStop()` only disables its interrupt; its stop/idle loop is compiled out.
 The caller separately polls EN, but can break and unmap without proving idle.
+The [HIF register reference](https://www.96boards.org/documentation/consumer/mediatekx20/additional-docs/docs/MT6797_Register_Table_Part_1.pdf),
+PDF pages 412–415, identifies EN as the channel's busy indicator and describes
+its clearing after normal completion, STOP, FLUSH or reset. A clear EN read
+therefore does not alone identify which terminal path occurred or prove that
+all requested data reached its destination.
 Its reset helper can escalate to a hard channel reset without a final idle
 proof. A new owner must serialize command setup, channel programming and
 completion; refuse new work after an uncertain transfer and retain the buffer,
