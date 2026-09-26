@@ -1,4 +1,7 @@
-# Compile-only Linux 7.1.3 child-domain admission proposal.
+# Compile-only Linux 7.1.3 child-domain CONN proposals.
+proposals/0004-dt-bindings-power-add-mt6797-conn-domain-id.patch
 proposals/0008-pmdomain-mediatek-require-confirmed-initial-off.patch
 proposals/0009-pmdomain-mediatek-retain-opted-failed-domain-state.patch
 proposals/0010-pmdomain-mediatek-fail-opted-status-read-errors.patch
+proposals/0011-dt-bindings-power-admit-mt6797-child-domain-controller.patch
+proposals/0012-pmdomain-mediatek-describe-mt6797-conn-child-domain.patch

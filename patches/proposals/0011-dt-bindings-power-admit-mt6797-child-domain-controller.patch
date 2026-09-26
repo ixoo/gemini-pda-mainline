@@ -1,0 +1,39 @@
+From 0563602959f5d12f6df5d1b5eebf547bbe36bc32 Mon Sep 17 00:00:00 2001
+From: MT6797 diagnostic experiment <nobody@example.invalid>
+Date: Sat, 26 Sep 2026 18:14:05 -0400
+Subject: [PATCH] dt-bindings: power: admit MT6797 child-domain controller
+
+Add the MT6797 compatible to the child-domain controller binding. The
+existing MT6797 power-domain IDs remain stable, with CONN appended as
+ID 12 by the preceding binding-header proposal. This patch adds no DT
+node and changes no device behavior.
+
+Internal compile experiment only; synthetic author, no DCO
+certification.
+---
+ .../devicetree/bindings/power/mediatek,power-controller.yaml    | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/Documentation/devicetree/bindings/power/mediatek,power-controller.yaml b/Documentation/devicetree/bindings/power/mediatek,power-controller.yaml
+index 07f0462..f60c7c4 100644
+--- a/Documentation/devicetree/bindings/power/mediatek,power-controller.yaml
++++ b/Documentation/devicetree/bindings/power/mediatek,power-controller.yaml
+@@ -25,6 +25,7 @@ properties:
+     enum:
+       - mediatek,mt6735-power-controller
+       - mediatek,mt6795-power-controller
++      - mediatek,mt6797-power-controller
+       - mediatek,mt6893-power-controller
+       - mediatek,mt8167-power-controller
+       - mediatek,mt8173-power-controller
+@@ -102,6 +103,7 @@ $defs:
+         description: |
+           Power domain index. Valid values are defined in:
+               "include/dt-bindings/power/mt6795-power.h" - for MT8167 type power domain.
++              "include/dt-bindings/power/mt6797-power.h" - for MT6797 type power domain.
+               "include/dt-bindings/power/mediatek,mt6893-power.h" - for MT6893 type power domain.
+               "include/dt-bindings/power/mt8167-power.h" - for MT8167 type power domain.
+               "include/dt-bindings/power/mt8173-power.h" - for MT8173 type power domain.
+-- 
+2.54.0 (Apple Git-157)
+

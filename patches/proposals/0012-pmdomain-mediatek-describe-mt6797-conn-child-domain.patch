@@ -1,0 +1,97 @@
+From 17c63ebfaf11cbb2925d208e8ca9f680043592a2 Mon Sep 17 00:00:00 2001
+From: MT6797 diagnostic experiment <nobody@example.invalid>
+Date: Sat, 26 Sep 2026 18:14:57 -0400
+Subject: [PATCH] pmdomain: mediatek: describe MT6797 CONN in child provider
+
+Add the source-backed MT6797 CONN control offset, dual status bit and
+infracfg protection mask to the child-domain provider. Select the
+confirmed-initial-OFF and failed-transition retention capabilities so
+a future CONN child is not powered during provider registration.
+
+Only the CONN slot is defined; other MT6797 IDs reject registration.
+This is an isolated compile proposal with no DT child or consumer. SPM
+key control, the selected OFF power-bit order, external rail/reset and
+shared EMI/remap ownership remain separate requirements before any
+power transition.
+
+Internal compile experiment only; synthetic author, no DCO
+certification.
+---
+ drivers/pmdomain/mediatek/mt6797-pm-domains.h | 41 +++++++++++++++++++
+ drivers/pmdomain/mediatek/mtk-pm-domains.c    |  5 +++
+ 2 files changed, 46 insertions(+)
+ create mode 100644 drivers/pmdomain/mediatek/mt6797-pm-domains.h
+
+diff --git a/drivers/pmdomain/mediatek/mt6797-pm-domains.h b/drivers/pmdomain/mediatek/mt6797-pm-domains.h
+new file mode 100644
+index 0000000..15649f1
+--- /dev/null
++++ b/drivers/pmdomain/mediatek/mt6797-pm-domains.h
+@@ -0,0 +1,41 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++
++#ifndef __SOC_MEDIATEK_MT6797_PM_DOMAINS_H
++#define __SOC_MEDIATEK_MT6797_PM_DOMAINS_H
++
++#include "mtk-pm-domains.h"
++#include <dt-bindings/power/mt6797-power.h>
++
++#define MT6797_SPM_CONN_PWR_CON		0x32c
++#define MT6797_SPM_PWR_STATUS		0x180
++#define MT6797_SPM_PWR_STATUS_2ND	0x184
++#define MT6797_TOP_AXI_PROT_EN_CONN	(BIT(17) | BIT(18))
++
++static enum scpsys_bus_prot_block scpsys_bus_prot_blocks_mt6797[] = {
++	BUS_PROT_BLOCK_INFRA,
++};
++
++static const struct scpsys_domain_data scpsys_domain_data_mt6797[] = {
++	[MT6797_POWER_DOMAIN_CONN] = {
++		.name = "conn",
++		.sta_mask = PWR_STATUS_CONN,
++		.ctl_offs = MT6797_SPM_CONN_PWR_CON,
++		.pwr_sta_offs = MT6797_SPM_PWR_STATUS,
++		.pwr_sta2nd_offs = MT6797_SPM_PWR_STATUS_2ND,
++		.bp_cfg = {
++			BUS_PROT_INFRA_UPDATE_TOPAXI(MT6797_TOP_AXI_PROT_EN_CONN),
++		},
++		.caps = MTK_SCPD_KEEP_DEFAULT_OFF |
++			MTK_SCPD_REQUIRE_INIT_OFF |
++			MTK_SCPD_RETAIN_FAILED_STATE,
++	},
++};
++
++static const struct scpsys_soc_data mt6797_scpsys_data = {
++	.domains_data = scpsys_domain_data_mt6797,
++	.num_domains = ARRAY_SIZE(scpsys_domain_data_mt6797),
++	.bus_prot_blocks = scpsys_bus_prot_blocks_mt6797,
++	.num_bus_prot_blocks = ARRAY_SIZE(scpsys_bus_prot_blocks_mt6797),
++};
++
++#endif /* __SOC_MEDIATEK_MT6797_PM_DOMAINS_H */
+diff --git a/drivers/pmdomain/mediatek/mtk-pm-domains.c b/drivers/pmdomain/mediatek/mtk-pm-domains.c
+index d61cca5..9c8dcc4 100644
+--- a/drivers/pmdomain/mediatek/mtk-pm-domains.c
++++ b/drivers/pmdomain/mediatek/mtk-pm-domains.c
+@@ -20,6 +20,7 @@
+ 
+ #include "mt6735-pm-domains.h"
+ #include "mt6795-pm-domains.h"
++#include "mt6797-pm-domains.h"
+ #include "mt6893-pm-domains.h"
+ #include "mt8167-pm-domains.h"
+ #include "mt8173-pm-domains.h"
+@@ -1264,6 +1265,10 @@ static const struct of_device_id scpsys_of_match[] = {
+ 		.compatible = "mediatek,mt6795-power-controller",
+ 		.data = &mt6795_scpsys_data,
+ 	},
++	{
++		.compatible = "mediatek,mt6797-power-controller",
++		.data = &mt6797_scpsys_data,
++	},
+ 	{
+ 		.compatible = "mediatek,mt6893-power-controller",
+ 		.data = &mt6893_scpsys_data,
+-- 
+2.54.0 (Apple Git-157)
+
