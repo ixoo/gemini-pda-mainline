@@ -1,0 +1,12 @@
+{
+  "boot2_image_sha256": "f106361945822b3d9093c10de8503901a51c310cfaa7beb87cc56c2152cae6b2",
+  "predecessor_boot_id": "678aad0e-34f5-4134-8ac1-92ee9feed207",
+  "collector_window_seconds": 1800,
+  "collector_result": "timeout_without_changed_boot_lan_connection",
+  "private_collector_result_sha256": "1d6b1277c48331c814c8987642d86b6f77d5aae8639cbfb1e96238f057c890f7",
+  "post_timeout_lan_ssh": "unreachable",
+  "post_timeout_mediatek_usb": "none_visible",
+  "physical_boot2_selection": "unconfirmed",
+  "v8_kernel_execution": "unverified",
+  "wifi_result": "unverified"
+}

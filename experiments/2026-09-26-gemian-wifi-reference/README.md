@@ -764,3 +764,10 @@ predecessor matched, power was healthy, and the flushed full-partition
 readback matched the v8 candidate. Gemian shut down cleanly. The one-shot
 collector was armed before owner selection; changed-boot execution remains
 to be verified.
+
+The [first v8 observation attempt](results/runtime-v8-attempt-1.json) ended
+after its 30-minute LAN window without a changed-boot connection. The PDA was
+still unreachable on the known-good Gemian endpoint, and the Mac showed no
+MediaTek USB device at the subsequent read-only check. Physical boot2 selection
+in that window is unconfirmed. This is not a v8 boot, reset-readback or Wi-Fi
+result; the installed candidate remains available for a later attended boot.
