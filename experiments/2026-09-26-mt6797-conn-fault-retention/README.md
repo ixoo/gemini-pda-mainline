@@ -16,8 +16,11 @@ without the flag keep their previous cleanup behavior. The new flag requires
 the existing initially-off registration capability, so a flagged domain cannot
 fail during provider-probe activation.
 
-No domain selects the flag, so this patch has no device effect. It does not
-acquire CONN rails, control independent CONMCU reset, enable the SPM key,
+At this patch's initial compile, no domain selected the flag, so it had no
+device effect. The later isolated
+[CONN domain-data proposal](../2026-09-26-mt6797-conn-domain-data/README.md)
+selects it in a compile-only profile; no boot candidate does. This latch does
+not acquire CONN rails, control independent CONMCU reset, enable the SPM key,
 choose an EMI policy or grant a WLAN transaction. A failed OFF can leave genpd
 software state ON, causing a later consumer resume to skip the power callback;
 the eventual shared owner must check the latched fault before **every** use.

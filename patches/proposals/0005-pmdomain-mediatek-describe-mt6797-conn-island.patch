@@ -1,0 +1,47 @@
+From 2831785a90425d641f112f78a1612eeb0f392c9d Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 26 Sep 2026 12:34:05 -0400
+Subject: [PATCH 2/2] pmdomain: mediatek: describe initially-off MT6797 CONN
+ island
+
+The selected MT6797 clock provider uses SPM offset 0x32c, dual status
+bit 1 and infracfg protection bits 17 and 18. Select the prior
+initially-off, clock-before-reset OFF and failed-transition retention
+capabilities so provider registration does not power an unprepared
+island and a failed transition does not release its prerequisites.
+
+This is an isolated compile experiment. It adds no DT consumer and
+does not perform a power transition. A shared CONSYS owner still needs
+to prepare the SPM key, external rails and CONMCU reset, arbitrate
+clients and EMI, and check the retained fault before every use.
+
+Internal experiment only; synthetic non-certifying author, no DCO.
+Assisted-by: LLM
+---
+ drivers/pmdomain/mediatek/mtk-scpsys.c | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/drivers/pmdomain/mediatek/mtk-scpsys.c b/drivers/pmdomain/mediatek/mtk-scpsys.c
+index 0e948f5..e1b0cdb 100644
+--- a/drivers/pmdomain/mediatek/mtk-scpsys.c
++++ b/drivers/pmdomain/mediatek/mtk-scpsys.c
+@@ -901,6 +901,16 @@ static const struct scp_domain_data scp_domain_data_mt6797[] = {
+ 		.sram_pdn_ack_bits = GENMASK(12, 12),
+ 		.clk_id = {CLK_NONE},
+ 	},
++	[MT6797_POWER_DOMAIN_CONN] = {
++		.name = "conn",
++		.sta_mask = PWR_STATUS_CONN,
++		.ctl_offs = 0x32c,
++		.bus_prot_mask = BIT(17) | BIT(18),
++		.clk_id = {CLK_NONE},
++		.caps = MTK_SCPD_KEEP_DEFAULT_OFF |
++			MTK_SCPD_CLK_OFF_BEFORE_RESET |
++			MTK_SCPD_RETAIN_FAILED_STATE,
++	},
+ };
+ 
+ #define SPM_PWR_STATUS_MT6797		0x0180
+-- 
+2.54.0 (Apple Git-157)
+

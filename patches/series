@@ -547,6 +547,8 @@ proposals/0001-clk-mediatek-remove-provider-on-reset-registration-error.patch
 proposals/0001-pmdomain-mediatek-defer-initial-activation.patch
 proposals/0002-pmdomain-mediatek-conn-off-clock-before-reset.patch
 proposals/0003-pmdomain-mediatek-retain-failed-domain-resources.patch
+proposals/0004-dt-bindings-power-add-mt6797-conn-domain-id.patch
+proposals/0005-pmdomain-mediatek-describe-mt6797-conn-island.patch
 proposals/0001-lib-mt6797-hif-compile.patch
 proposals/0001-wifi-mediatek-mt6797-private-hif-core.patch
 proposals/0002-wifi-mediatek-add-mtke-parser.patch

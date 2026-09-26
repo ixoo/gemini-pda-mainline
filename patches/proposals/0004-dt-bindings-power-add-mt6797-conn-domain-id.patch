@@ -1,0 +1,28 @@
+From 5dc3e87cfb22339be932b5cba621baf0cc80160b Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 26 Sep 2026 12:34:05 -0400
+Subject: [PATCH 1/2] dt-bindings: power: add MT6797 CONN domain ID
+
+Append ID 12 for the MT6797 CONN island. Keep the existing IDs stable;
+the vendor SCP_SYS_CONN clock number belongs to a different namespace.
+
+Internal experiment only; synthetic non-certifying author, no DCO.
+Assisted-by: LLM
+---
+ include/dt-bindings/power/mt6797-power.h | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/include/dt-bindings/power/mt6797-power.h b/include/dt-bindings/power/mt6797-power.h
+index bd451d8..3ab9738 100644
+--- a/include/dt-bindings/power/mt6797-power.h
++++ b/include/dt-bindings/power/mt6797-power.h
+@@ -19,5 +19,6 @@
+ #define MT6797_POWER_DOMAIN_MFG_CORE2		9
+ #define MT6797_POWER_DOMAIN_MFG_CORE3		10
+ #define MT6797_POWER_DOMAIN_MJC		11
++#define MT6797_POWER_DOMAIN_CONN		12
+ 
+ #endif /* _DT_BINDINGS_POWER_MT6797_POWER_H */
+-- 
+2.54.0 (Apple Git-157)
+
