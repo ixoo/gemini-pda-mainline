@@ -140,3 +140,17 @@ for a cold, powered-off CONN island. The next shared owner must establish the
 actual writer exclusion and a safe serialized protection/remap/power sequence
 before any firmware or radio effect. This exact candidate's observation budget
 is consumed; repeating it would not answer those ownership questions.
+
+## Later reported boot2 selection
+
+On 2026-09-26 the owner again reported selecting boot2 while the same image
+remained installed. A subsequent 18-sample host-only window from
+`12:17:47Z` to `12:19:14Z` saw a stable macOS `Unknown` USB entry and no
+mainline USB-network route. Six successful known-good Gemian LAN checks all
+returned the same boot ID, `b79541db-5e95-4a02-a32f-87fa18474b38`, as
+before the selection. The ignored 4,326-byte host record has SHA-256
+`6ec8cd5bef6726bd1e6f95d2ba5d0a026ffb9ceebed5d6ff79df0db4f3b7af7f`.
+The host window began after the reported selection, so it cannot establish
+which boot stage ran. It yielded no new authenticated mainline log or CONSYS
+measurement and does not change the earlier handoff result or justify another
+selection of this image.
