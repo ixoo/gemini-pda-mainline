@@ -22,6 +22,13 @@ A53 profile remains unchanged. Pinned checkpatch reports zero errors and
 warnings. The synthetic patch author makes no DCO certification or upstream
 submission.
 
-Buildbox compilation remains to be recorded. A hardware candidate still
-needs external VCN/CONMCU preparation, writer exclusion, remap/EMI ownership
-and a reviewed failure lifetime.
+The [Buildbox result](results/build.json) records a full ARM64 link from clean
+pushed commit `b50ddddfd849fd2fa716c3fc26acc260945c5985`. The fetched
+package passed its SHA-256 inventory check and contains all nine selected
+patches. The modern provider, CONN domain data and fault query are linked;
+the legacy provider is disabled. Neither packaged MT6797 DTB selects the
+new controller. No device write or boot was performed for this result.
+
+A hardware candidate still needs external VCN/CONMCU preparation, writer
+exclusion, remap/EMI ownership and a reviewed failure lifetime. This build
+does not prove the OFF sequence on hardware.

@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "result": "passed",
+  "scope": "compile-only",
+  "repository_commit": "b50ddddfd849fd2fa716c3fc26acc260945c5985",
+  "kernel_release": "7.1.3-mt6797-modern-provider-compile",
+  "source_sha256": "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc",
+  "off_order_patch_sha256": "9278a2b8b662d62450f0bc6bbb974985a795b00dc37532f782cbf4968edb3fbe",
+  "patchset_sha256": "1fadd8bc26bbc04263df63048135112cdd74bdb02ccfc0f900774ee04aaa95bb",
+  "config_sha256": "21ae626227c9e90898bb585a873d8d1ec81cdcaa3e37e913b75f9418f2b1cc50",
+  "package_inventory_sha256": "8416c5f7fb836c648a7fcec2d86c327b59091486076393fd2a5934c147515460",
+  "validation": {
+    "full_kernel_link": "passed",
+    "package_sha256_inventory": "passed",
+    "modern_provider_builtin": true,
+    "legacy_provider_enabled": false,
+    "fault_query_linked": true,
+    "mt6797_domain_data_linked": true,
+    "packaged_mt6797_dtbs_with_new_compatible": 0,
+    "checkpatch_errors": 0,
+    "checkpatch_warnings": 0
+  },
+  "device_write": false,
+  "device_boot": false
+}
