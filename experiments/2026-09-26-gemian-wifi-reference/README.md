@@ -263,5 +263,41 @@ consecutive disconnected samples. Those observations reduce the known
 clear. If the netdev or carrier does not return, preserve the private output
 and use the reviewed known-good boot recovery path; do not replay the cycle.
 The script's fixed output directory prevents a second use in the same rootfs.
-The PDA's current release and boot ID remain unverified, so this protocol is
-not yet admitted for execution.
+At preparation time the PDA's release and boot ID were unverified, so this
+protocol was not yet admitted for execution. The later verified boot and
+cycle are recorded below.
+
+## Verified v2 boot and stop cycle
+
+In a changed primary Gemian boot `a4863e48-fed8-4d5b-b532-2fc1be4de150`,
+the live inactive boot2 partition still matched the exact v2 candidate
+checksum. After clean shutdown and owner selection of boot2, authenticated
+Gemian LAN SSH reported changed boot ID
+`7d372eb9-23ca-48af-91b3-8b5e9112c943`, release
+`3.18.41-gemini-wifi-ref2+`, model `MT6797X` and `wlan0` carrier. The full
+startup log was retained privately and pinned in the [v2 runtime receipt](results/runtime-v2.json).
+This verifies the later v2 boot; it does not reinterpret the earlier
+inconclusive boot attempt.
+
+The previously prepared single-use script matched its tracked SHA-256 and
+passed boot, power, Wi-Fi, tracer, function and utility preflights. It ran
+under systemd so that transient LAN loss would not prevent its cleanup. Its
+positive control traced nine `vfs_read` calls; the filtered trace recorded
+one WMT Wi-Fi off and one on, WLAN remove/stop/adapter-stop, one power-control
+command, WLAN probe and firmware-image helpers. The ring reported zero
+overruns. ConnMan disconnected before WMT off, and carrier returned after
+WMT on. The service exited zero in the same boot, with `nop`, local trace
+clock and the original 7 KiB buffer restored. No new cfg80211 warning or
+worker-wait timeout appeared. The [sanitized cycle receipt](results/trace-wmt-stop-v2-1.json)
+pins the private logs and trace.
+
+The new stop record reports `command_attempted=1`, `command_status=0`,
+`reason=ready-clear`, poll index `1`, and final WCIR `0x00100279`. The three
+worker waits each returned 300 remaining jiffies. This establishes that the
+vendor path sent one accepted stop command, observed the ready bit clear, and
+completed its HIF/RX/main worker waits in this cycle. It does **not** establish
+firmware internal quiescence, positive AP-DMA idle before mapping release, or
+coherent shared CONSYS off while Bluetooth remains active. The radio cycle's
+single-use budget is consumed; do not replay it. A next observer needs a
+distinct DMA-idle/endpoint-transition measurement rather than another copy
+of this trace.

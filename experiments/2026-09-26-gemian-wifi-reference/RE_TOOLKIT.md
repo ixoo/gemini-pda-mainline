@@ -1,6 +1,6 @@
 # Gemian Wi-Fi reference: RE toolkit decision
 
-This note applies to the pinned Gemian source `59e00a9144d782e148332009a835b99c43382467` and the built v2 configuration in `results/build-v2.json`. It is a source and build audit, not evidence that the v2 image booted. The current device state and v2 Wi-Fi result remain unverified.
+This note applies to the pinned Gemian source `59e00a9144d782e148332009a835b99c43382467` and the built v2 configuration in `results/build-v2.json`. The v2 boot and single WMT Wi-Fi cycle were subsequently verified; see [the runtime](results/runtime-v2.json) and [cycle](results/trace-wmt-stop-v2-1.json) receipts.
 
 ## Use the instrumentation already present
 
@@ -11,9 +11,9 @@ This note applies to the pinned Gemian source `59e00a9144d782e148332009a835b99c4
 | Dynamic debug | `CONFIG_DYNAMIC_DEBUG=y` | Which existing vendor debug statements can be enabled for one bounded cycle? | Only compiled call sites and their existing fields are available; volume and sensitive output need review. |
 | Symbols and DWARF | `System.map`, unstripped `vmlinux`, `CONFIG_DEBUG_INFO=y` in the checksum-covered bundle | Which source and instruction implement an observed call path or return site? | Static analysis cannot prove the branch taken on the device. Use the RE VM for binary analysis. |
 | Pstore console/pmsg | Built in | What survived a failure or reset? | Preserve the old boot's evidence before recovery; a missing record is not proof a path did not run. |
-| Focused vendor decision logs | Setup and stop patches | What co-clock/EMI decisions occurred, and was the firmware stop attempted, ready-cleared, bypassed or reset-requested? | V2 stop records still need a verified boot and bounded cycle. A worker wait result is not DMA-idle proof. |
+| Focused vendor decision logs | Setup and stop patches; exercised in verified boots | What co-clock/EMI decisions occurred, and was the firmware stop attempted, ready-cleared, bypassed or reset-requested? | The v2 cycle observed `ready-clear`, but worker wait results are not DMA-idle proof. |
 
-The existing `trace-wmt-stop-v2.sh` is the next hardware discriminator only after the v2 boot identity and working Wi-Fi are verified. Its single-use and recovery limits still apply. The next source change should be selected from that result, not from a wish to enable every tracer. If the firmware stop reached `ready-clear` yet DMA idle is unknown, instrument the exact vendor DMA producer/consumer and IRQ-masking boundaries with bounded, typed records. If the stop was skipped or reset-requested, investigate that gate first. Keep a distinct boot candidate and decision record for each revision.
+The `trace-wmt-stop-v2.sh` cycle reached `ready-clear` with carrier restored and its single-use budget consumed. DMA idle is still unknown. The next source change should instrument the exact vendor DMA producer/consumer and IRQ-masking boundaries with bounded, typed records, rather than enable every tracer. Keep a distinct boot candidate and decision record for each revision.
 
 ## Kprobes decision
 
@@ -23,7 +23,7 @@ Reconsider Kprobes only if several independent unknown call sites remain after t
 
 ## Other possible additions
 
-- `CONFIG_TRACER_SNAPSHOT` could freeze a pre-failure ring buffer, but the current collector already captures a bounded trace and the v2 boot is not verified. Add it only for an observed overwrite or reset-loss problem.
+- `CONFIG_TRACER_SNAPSHOT` could freeze a pre-failure ring buffer, but the current collector captured a bounded, non-overrun trace. Add it only for an observed overwrite or reset-loss problem.
 - `CONFIG_FUNCTION_PROFILER` can count calls and durations; the existing function-graph tracer already addresses the present ordering question.
 - `CONFIG_FTRACE_SYSCALLS` or userspace `strace` may help attribute an unexpected control request, but the current question is the vendor kernel's firmware-stop and DMA state.
 - `CONFIG_DMA_API_DEBUG` detects API misuse; it does not prove the Mediatek DMA engine has stopped. `KGDB` requires a reliable interactive transport and can halt a live device. Neither belongs in the next reference revision without a concrete failure requiring it.
