@@ -66,12 +66,12 @@ def main():
                      'gemian-wifi-reference-deployment-1', 2)
     source = replace(source, 'gemian-wifi-reference-deployment-N',
                      'gemian-wifi-reference-deployment-1')
-    source = replace(source, 'ssh_command=(\n',
+    source = replace(source, 'ssh_command=(\n\tssh ',
                      'known_trust="$repo_root/artifacts/credentials/a53-recovery-known_hosts"\n'
                      '[[ -f "$known_trust" && ! -L "$known_trust" &&\n'
                      '   "$(sha256sum "$known_trust" | awk \'{print $1}\')" == ' + TRUST_SHA +
                      ' ]] || die \'Gemian host trust changed\'\n'
-                     'ssh_command=(\n\t-o UserKnownHostsFile="$known_trust"\n')
+                     'ssh_command=(\n\tssh -o UserKnownHostsFile="$known_trust" ')
     anchor = '[[ "$predecessor_sha256" =~ ^[0-9a-f]{64}$ && "$live_target" =~ ^/dev/mmcblk[0-9]+p[0-9]+$ ]] ||\n\tdie \'unsafe probe result\'\n'
     source = replace(source, anchor, anchor +
                      '[[ "$predecessor_sha256" == ' + PREDECESSOR +
