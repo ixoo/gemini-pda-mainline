@@ -1,0 +1,16 @@
+{
+  "gemian_boot_id": "d298cdbb-7d1f-450f-930a-d40068bde3fa",
+  "gemian_kernel_release": "3.18.41-gemini-wifi-ref4+",
+  "target_logical_name": "boot2",
+  "boot2_device_guard": "passed at probe, write, and post-write",
+  "target_major_minor": "179:30",
+  "root_major_minor": "179:29",
+  "predecessor_sha256": "b1916ae329cdd6a7672a138d3d9673749279678d975255496fa411283ea9a886",
+  "candidate_sha256": "cf9707c7b4259140f575568ddeec658065eae45bae2e4bd6811d5849a5df70ff",
+  "readback_sha256": "cf9707c7b4259140f575568ddeec658065eae45bae2e4bd6811d5849a5df70ff",
+  "power": "battery present, 100 percent, healthy; external supply reported",
+  "private_deployment_summary_sha256": "17aabaec01f30d1863493195f3393db758ba9b9f24c3385c97e30e9311e9a3dd",
+  "result": "write-synced-flushed-full-readback-verified",
+  "clean_shutdown": "confirmed-unreachable",
+  "boot2_execution": "pending owner physical selection and changed-boot verification"
+}

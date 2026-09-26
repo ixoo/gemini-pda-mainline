@@ -549,4 +549,9 @@ V5 is selected as the next distinct boot2 test. The
 to the observed v4 boot ID and release, the installed v4 predecessor checksum,
 and the v5 candidate. The generated installer SHA-256 is
 `2b1b5e3c7ba7d2664928334247710379a13dc47700cc7fa527471344bfe7a660`.
-No v5 device write or boot has occurred yet.
+At that offline checkpoint, no v5 device write or boot had occurred.
+
+The [v5 deployment receipt](results/deployment-v5.json) records the later
+guarded boot2 write, independent full-partition readback match, and clean
+shutdown. A finite LAN collector is armed for owner selection of boot2;
+deployment alone does not establish a v5 runtime result.
