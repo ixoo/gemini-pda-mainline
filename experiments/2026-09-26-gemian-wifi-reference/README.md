@@ -92,3 +92,27 @@ without another build. The secure-call return codes do not resolve effective
 EMI overlap arbitration, master-domain routing, or exclusive resource
 ownership. The PDA currently remains in this diagnostic Gemian boot; mainline
 Wi-Fi remains unsupported.
+
+## Single-cycle trace protocol
+
+The [bounded trace script](trace-cycle.sh) is pinned to the observed diagnostic
+boot ID and release. Its hypothesis is that ConnMan's Wi-Fi disable/enable
+will execute the WLAN stop/remove and probe/firmware paths, and may show whether
+the shared CONSYS block powers down while Bluetooth remains enabled. The
+unique observation is one private, timestamped function trace joined to this
+boot's before/after kernel logs, command results and carrier transition. It
+does not record DMA register arguments or prove all five firmware-lifetime
+predicates from the [retained audit](../2026-09-07-mt6797-wifi-retained-lifetime-audit/README.md).
+
+The script refuses a changed boot, absent initial carrier, another active
+tracer/filter or a missing required function. It filters only fourteen setup,
+firmware and teardown functions, uses a 128 KiB per-CPU ring, and restores the
+original `nop` tracer, local clock, 7 KiB per-CPU buffer and tracing state.
+Its effect budget is one ConnMan Wi-Fi disable and at most two enables, with
+bounded waits; no firmware, calibration or register file is written directly.
+It runs under systemd so loss of LAN SSH does not abort the re-enable. A
+successful off/on trace can identify executed ordering for a later focused
+observer. If the functions do not fire, CONSYS stays on, carrier does not
+return, the trace overruns, or boot identity changes, mark the result limited
+or inconclusive; do not replay the cycle. Preserve its private output before
+any reviewed recovery. The script is single-use in this boot.
