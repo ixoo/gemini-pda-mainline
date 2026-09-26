@@ -398,6 +398,12 @@ changed-boot SSH connection or confirmed physical selection. This establishes
 no v3 boot or Wi-Fi result; rearm a fresh collector before the owner selects
 boot2 later.
 
+The [rearmed 30-minute LAN collector](results/runtime-v3-rearm-1.json)
+also timed out without a changed-boot SSH connection. The owner was away
+during this window and did not report a boot2 selection. This adds no v3
+boot or Wi-Fi observation. Arm a fresh finite collector when the owner is
+back and ready to select boot2 physically.
+
 ## V4 DMA idle outcome observer
 
 The [v4 diagnostic patch](patches/0004-diagnostic-record-Gemian-AHB-DMA-idle-outcomes.patch)
