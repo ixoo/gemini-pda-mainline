@@ -53,4 +53,17 @@ checkout, patchset SHA-256
 `efcca0eaf5a812ea6dd563d5fe22f33b690192e061f6d9a62007978838c095a7`,
 `CONFIG_MTK_SCPSYS=y` and `CONFIG_PM_GENERIC_DOMAINS=y`; `System.map`
 contains both `scpsys_power_on` and `scpsys_power_off`. No hardware test,
-domain activation, fault injection or device write was performed.
+domain activation or device write was performed by this build.
+
+## Host fault-injection result
+
+`python3 scripts/test_fault_retention.py` fetched the pinned upstream SCPSYS
+source, verified its checksum, applied the three pinned provider proposals in
+series order, then compiled seven extracted, unmodified C callbacks against
+host-only resource and ACK spies. Four cases and 82 assertions passed: an
+opted ON ACK timeout retained both clock and supply votes and refused further
+callbacks; an unflagged domain performed its legacy cleanup; a second-clock
+enable failure rolled back the first clock while retaining the supply vote;
+and an opted OFF ACK timeout retained both votes and refused further callbacks.
+The test uses synthetic registers and does not establish hardware behavior or
+admit a boot2 candidate.
