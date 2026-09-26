@@ -30,3 +30,17 @@ the new SoC header produces only its generic MAINTAINERS-coverage warning.
 The pinned MAINTAINERS file already covers `drivers/pmdomain/` under GENERIC
 PM DOMAINS, so no new ownership entry is invented.
 No DCO certification is made by these internal proposals.
+
+The [Buildbox result](results/build.json) records a full ARM64 kernel link
+from clean pushed commit `7c8f349542c7ee20f7b2d035840430039bcd6112`.
+The fetched package passed its SHA256 inventory check and contains all six
+selected patches. The resolved configuration builds the modern provider and
+disables the legacy one; `System.map` contains `mt6797_scpsys_data`. Neither
+packaged MT6797 DTB contains the new compatible string. These are build and
+DTB-selection checks, not hardware activation.
+
+The patched source passed `make dt_binding_check` for the changed power
+controller schema on Buildbox. Isolated `dtschema` 2026.9 and `yamllint` 1.38.0
+also passed direct `dt-doc-validate` and YAML lint for that file. The direct
+checks matter because this kernel Makefile treats some schema-tool failures
+as warnings. No MT6797 child-node example or effect-bearing DT was added.

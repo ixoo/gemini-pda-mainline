@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "result": "passed",
+  "scope": "compile-only",
+  "repository_commit": "7c8f349542c7ee20f7b2d035840430039bcd6112",
+  "kernel_release": "7.1.3-mt6797-modern-provider-compile",
+  "source_sha256": "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc",
+  "binding_patch_sha256": "126415a78116f096ec596c3acfea4bbfa796a0d13d1338b59294c03da0505c50",
+  "data_patch_sha256": "67d9633d6a586f6d4c753aefa85c7100b6bbe642c29db9bee683016abbb81411",
+  "patchset_sha256": "5011e2843173fca0e4252ce44b9391c7fd51cad3b513718efdd5f2e3b067ec76",
+  "config_sha256": "21ae626227c9e90898bb585a873d8d1ec81cdcaa3e37e913b75f9418f2b1cc50",
+  "package_inventory_sha256": "9ec377f8b70240bf74644b7979fcaa42628be76e965b49767637613bf7a2bc89",
+  "validation": {
+    "full_kernel_link": "passed",
+    "package_sha256_inventory": "passed",
+    "modern_provider_builtin": true,
+    "legacy_provider_enabled": false,
+    "mt6797_domain_data_linked": true,
+    "packaged_mt6797_dtbs_with_new_compatible": 0,
+    "dt_binding_check": "passed",
+    "direct_dt_doc_validate": "passed",
+    "yamllint": "passed",
+    "dtschema_version": "2026.9",
+    "yamllint_version": "1.38.0"
+  },
+  "device_write": false,
+  "device_boot": false
+}
