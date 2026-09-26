@@ -301,3 +301,27 @@ coherent shared CONSYS off while Bluetooth remains active. The radio cycle's
 single-use budget is consumed; do not replay it. A next observer needs a
 distinct DMA-idle/endpoint-transition measurement rather than another copy
 of this trace.
+
+## Bounded DMA-path presence check
+
+The [single-use function trace](trace-dma-presence-v2.sh) has SHA-256
+`dcecacc3793503739786e80d04b95d1ba04cf434a019cbcdb5b3955a23e38919`.
+The pinned selected AHB source enables DMA and exposes `kalDevPortRead`,
+`kalDevPortWrite`, `HifPdmaConfig` and `HifPdmaStart` in the running v2
+kernel's ftrace filter list. The hypothesis is that a single 4 KiB zero-data
+reply over the existing authenticated Wi-Fi SSH link will execute at least
+one `HifPdmaConfig` and `HifPdmaStart` call. A positive, non-overrun trace
+would establish live packet DMA-path use in this boot, not register arguments,
+transfer completion or DMA idle before unmap. An empty trace, missing positive
+`vfs_read` control, overrun or changed boot is inconclusive and does not admit
+a replay.
+
+The exact effect budget is one 15-second filtered function trace and one
+4 KiB zero-data SSH reply to the Mac, with no Wi-Fi control, added register read,
+firmware request or external destination. The script requires the same v2
+boot ID/release, carrier, idle tracer and default buffer/clock; it refuses
+an occupied output directory. It runs under systemd with a 45-second outer
+limit so its exit trap restores the `nop` tracer, all-function filter, local
+clock, 7 KiB buffer and tracing state even if SSH disconnects. A later
+instrumented kernel still needs typed native DMA register and idle-before-
+unmap evidence; function tracing cannot supply those values.
