@@ -1,0 +1,117 @@
+From ce67979f61e8a402ec751e362ec98abdb4baf1fc Mon Sep 17 00:00:00 2001
+From: MT6797 diagnostic experiment <nobody@example.invalid>
+Date: Sat, 26 Sep 2026 18:53:04 -0400
+Subject: [PATCH] pmdomain: mediatek: clear MT6797 CONN primary request first
+
+The modern direct-control OFF path already disables the domain clock
+before asserting reset, as the retained MT6797 CONN kernel does. Its
+power-request order differs: it clears secondary before primary, while
+the selected CONN routine clears primary before secondary.
+
+Add an opt-in order for CONN. Check each selected register update and
+return its error so the existing fault latch retains prerequisites after
+an uncertain OFF. Domains without the flag keep their existing order and
+error behavior.
+
+No DT child or client selects CONN. This is an internal compile experiment
+with a synthetic author and no DCO certification.
+---
+ drivers/pmdomain/mediatek/mt6797-pm-domains.h |  3 +-
+ drivers/pmdomain/mediatek/mtk-pm-domains.c    | 30 +++++++++++++++----
+ drivers/pmdomain/mediatek/mtk-pm-domains.h    |  2 ++
+ 3 files changed, 28 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/pmdomain/mediatek/mt6797-pm-domains.h b/drivers/pmdomain/mediatek/mt6797-pm-domains.h
+index 1449657..b6f4d5f 100644
+--- a/drivers/pmdomain/mediatek/mt6797-pm-domains.h
++++ b/drivers/pmdomain/mediatek/mt6797-pm-domains.h
+@@ -29,7 +29,8 @@ static const struct scpsys_domain_data scpsys_domain_data_mt6797[] = {
+ 		},
+ 		.caps = MTK_SCPD_KEEP_DEFAULT_OFF |
+ 			MTK_SCPD_REQUIRE_INIT_OFF |
+-			MTK_SCPD_RETAIN_FAILED_STATE,
++			MTK_SCPD_RETAIN_FAILED_STATE |
++			MTK_SCPD_OFF_PRIMARY_FIRST,
+ 	},
+ };
+ 
+diff --git a/drivers/pmdomain/mediatek/mtk-pm-domains.c b/drivers/pmdomain/mediatek/mtk-pm-domains.c
+index d8fae59..9ffb681 100644
+--- a/drivers/pmdomain/mediatek/mtk-pm-domains.c
++++ b/drivers/pmdomain/mediatek/mtk-pm-domains.c
+@@ -621,9 +621,10 @@ static int scpsys_ctl_pwrseq_on(struct scpsys_domain *pd)
+ 	return 0;
+ }
+ 
+-static void scpsys_ctl_pwrseq_off(struct scpsys_domain *pd)
++static int scpsys_ctl_pwrseq_off(struct scpsys_domain *pd)
+ {
+ 	struct scpsys *scpsys = pd->scpsys;
++	int ret;
+ 
+ 	switch (pd->data->rtff_type) {
+ 	case SCPSYS_RTFF_TYPE_GENERIC:
+@@ -645,16 +646,30 @@ static void scpsys_ctl_pwrseq_off(struct scpsys_domain *pd)
+ 	}
+ 
+ 	/* subsys power off */
+-	regmap_set_bits(scpsys->base, pd->data->ctl_offs, PWR_ISO_BIT);
++	ret = regmap_set_bits(scpsys->base, pd->data->ctl_offs, PWR_ISO_BIT);
++	if (ret && MTK_SCPD_CAPS(pd, MTK_SCPD_OFF_PRIMARY_FIRST))
++		return ret;
+ 
+ 	/* Wait for RTFF HW to sync buck isolation state if this is PCIe PHY RTFF */
+ 	if (pd->data->rtff_type == SCPSYS_RTFF_TYPE_PCIE_PHY)
+ 		udelay(1);
+ 
+-	regmap_set_bits(scpsys->base, pd->data->ctl_offs, PWR_CLK_DIS_BIT);
+-	regmap_clear_bits(scpsys->base, pd->data->ctl_offs, PWR_RST_B_BIT);
++	ret = regmap_set_bits(scpsys->base, pd->data->ctl_offs, PWR_CLK_DIS_BIT);
++	if (ret && MTK_SCPD_CAPS(pd, MTK_SCPD_OFF_PRIMARY_FIRST))
++		return ret;
++	ret = regmap_clear_bits(scpsys->base, pd->data->ctl_offs, PWR_RST_B_BIT);
++	if (ret && MTK_SCPD_CAPS(pd, MTK_SCPD_OFF_PRIMARY_FIRST))
++		return ret;
++	if (MTK_SCPD_CAPS(pd, MTK_SCPD_OFF_PRIMARY_FIRST)) {
++		ret = regmap_clear_bits(scpsys->base, pd->data->ctl_offs, PWR_ON_BIT);
++		if (ret)
++			return ret;
++		return regmap_clear_bits(scpsys->base, pd->data->ctl_offs, PWR_ON_2ND_BIT);
++	}
+ 	regmap_clear_bits(scpsys->base, pd->data->ctl_offs, PWR_ON_2ND_BIT);
+ 	regmap_clear_bits(scpsys->base, pd->data->ctl_offs, PWR_ON_BIT);
++
++	return 0;
+ }
+ 
+ static int scpsys_modem_pwrseq_on(struct scpsys_domain *pd)
+@@ -829,8 +844,11 @@ static int scpsys_power_off(struct generic_pm_domain *genpd)
+ 
+ 	if (MTK_SCPD_CAPS(pd, MTK_SCPD_MODEM_PWRSEQ))
+ 		scpsys_modem_pwrseq_off(pd);
+-	else
+-		scpsys_ctl_pwrseq_off(pd);
++	else {
++		ret = scpsys_ctl_pwrseq_off(pd);
++		if (ret)
++			return scpsys_hold_fault(pd, ret);
++	}
+ 
+ 	/* wait until PWR_ACK = 0 */
+ 	if (MTK_SCPD_CAPS(pd, MTK_SCPD_RETAIN_FAILED_STATE))
+diff --git a/drivers/pmdomain/mediatek/mtk-pm-domains.h b/drivers/pmdomain/mediatek/mtk-pm-domains.h
+index ae85255..d7571b9 100644
+--- a/drivers/pmdomain/mediatek/mtk-pm-domains.h
++++ b/drivers/pmdomain/mediatek/mtk-pm-domains.h
+@@ -21,6 +21,8 @@
+ #define MTK_SCPD_REQUIRE_INIT_OFF	BIT(13)
+ /* Keep acquired resources and reject reuse after an uncertain transition. */
+ #define MTK_SCPD_RETAIN_FAILED_STATE	BIT(14)
++/* Clear the primary power request before the secondary one during OFF. */
++#define MTK_SCPD_OFF_PRIMARY_FIRST	BIT(15)
+ #define MTK_SCPD_CAPS(_scpd, _x)	((_scpd)->data ?		\
+ 					 (_scpd)->data->caps & (_x) :	\
+ 					 (_scpd)->hwv_data->caps & (_x))
+-- 
+2.54.0 (Apple Git-157)
+

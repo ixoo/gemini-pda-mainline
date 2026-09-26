@@ -432,8 +432,12 @@ for the first Wi-Fi bring-up. The current preparation order is:
    [modern-provider fault query](../experiments/2026-09-26-mt6797-modern-provider-fault-query/README.md)
    exposes the retained error to a future owner. The
    [modern CONN SPM preamble](../experiments/2026-09-26-mt6797-modern-provider-spm-preamble/README.md)
-   is selected only in that compile profile. No child DT, query client or
-   shared owner is present; these are not device candidates. A later
+   is selected only in that compile profile. The modern provider already
+   disables the domain clock before reset; an
+   [opted CONN OFF-order patch](../experiments/2026-09-26-mt6797-modern-provider-off-order/README.md)
+   instead clears the primary power request before the secondary one, as the
+   retained CONN routine does. No child DT, query client or shared owner is
+   present; these are not device candidates. A later
    [read-only Gemian EMI reference](../experiments/2026-09-26-mt6797-emi-active-reference/results/runtime.json)
    confirms the vendor-requested region-18/19 ranges and permission values in
    a boot where WLAN carrier was observed later, but also shows broad region 23
