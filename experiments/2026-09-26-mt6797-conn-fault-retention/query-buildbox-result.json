@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "repository_commit": "073187a12457bb60dac6f365251cd9a0536f1b38",
+  "profile": "mt6797-provider-compile",
+  "source_commit": "4d7d9486c04d917265f64c55bd23b2cc4fe7749c",
+  "source_archive_sha256": "45590c057805bc9cf7281ce04d5dbde5316b7c8b017998cafac301f67e92682d",
+  "fault_query_patch_sha256": "220730ec4c4babcaa231ad96a5a93b8a6922e9bd18bd9b2507d5f0fed1fdcb79",
+  "patchset_sha256": "065ac2771dbf5ad8706c9493de8570aa6bfd9ca0b927a459f112160ff7025272",
+  "selected_patch_count": 20,
+  "kernel_release": "7.3.0-rc1-mt6797-provider-compile",
+  "config_sha256": "3910887ce880cc55ab561819ec368756aaecf032663464d009ebea484b9af06d",
+  "package_inventory_sha256": "9d8a839168e58888ed0a86af9651b360b0f2e81c1a4eefb7c89d18c5d4f3940d",
+  "linked_system_map_symbols": [
+    "mtk_scpsys_domain_fault",
+    "scp_domain_data_mt6797"
+  ],
+  "buildbox_package_validated": true,
+  "host_fault_query_cases": 6,
+  "host_fault_query_assertions": 110,
+  "device_execution": false,
+  "boot_candidate": false,
+  "interpretation": "The selected provider profile compiles and links the fault query. The host fixture checks its failed-OFF result, but no kernel consumer, CONN activation or device behavior is validated."
+}

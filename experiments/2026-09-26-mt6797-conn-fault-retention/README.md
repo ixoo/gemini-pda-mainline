@@ -87,3 +87,12 @@ retained `-ETIMEDOUT` after a failed OFF, and rejection of invalid or
 unflagged domains. The host fixture passes six cases and 110 assertions. The
 new patch passes pinned `checkpatch.pl --no-tree --no-signoff` with zero errors
 and warnings. This remains host evidence, not a device result.
+
+The [query build result](query-buildbox-result.json) records clean pushed
+commit `073187a12457bb60dac6f365251cd9a0536f1b38`, the 20 selected patches,
+the validated fetched Buildbox package, and the linked
+`mtk_scpsys_domain_fault` symbol. The provider-compile configuration has
+`CONFIG_MTK_SCPSYS=y` and `CONFIG_PM_GENERIC_DOMAINS=y`. No kernel consumer
+called the query, and this package is not a boot candidate. The next shared
+owner still needs to hold the rail/reset prerequisites and call the query
+before admitting each firmware or HIF operation.
