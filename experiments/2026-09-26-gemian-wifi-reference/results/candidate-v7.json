@@ -15,6 +15,6 @@
   "installer_sha256": "30ec7cfd774ba828050448ebaeb89b55ef2da458a844b78e871c9e5d4f7a59b7",
   "boot_candidate": true,
   "selected_for_installation": true,
-  "installed": false,
+  "installed": true,
   "device_execution": false
 }

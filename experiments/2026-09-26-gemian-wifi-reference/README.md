@@ -694,4 +694,11 @@ checksum is `893a938ca1052310be0f91e0040eb45918b07c0e54919aafb6186922e774247d`.
 The reviewed generated installer pins the current v6 Gemian boot ID, the v6
 boot2 predecessor checksum and the candidate. The complete current v6 log was
 retained privately before installation. These are build and preparation
-results; v7 has not yet been installed or run on the PDA.
+results; v7 had not yet been run on the PDA at candidate assembly.
+
+The [v7 deployment receipt](results/deployment-v7.json) records the later
+guarded write from the verified v6 boot: live GPT resolved inactive boot2,
+power remained healthy, the exact v6 predecessor matched, and the flushed
+full-partition readback equaled the v7 candidate. Gemian then shut down
+cleanly. The one-shot LAN collector is armed for the owner-operated physical
+boot2 selection and changed-boot result.
