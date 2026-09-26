@@ -42,9 +42,11 @@ common wrapper's mode transition.
 
 A later [instrumented Gemian boot](../2026-09-26-gemian-wifi-reference/results/runtime-1.json)
 recorded `co_clock_type=0` at WMT initialization and CONSYS power-on while
-WLAN subsequently reached carrier. This attributes the zero-argument source
-branch in that boot; it does not read back `0x0a0c`, prove that the requested
-mode took effect, or identify its source-clock input.
+WLAN subsequently reached carrier. A [separate v7 boot](../2026-09-26-gemian-wifi-reference/results/runtime-v7-return-1.json)
+sampled `0x0a0c` once after that selected on path: the PMIC read returned
+status zero and `0xda6a`, with bit 3 set. This confirms the requested mode
+field at that instant; it does not prove the physical control signal or
+exclusive ownership.
 
 ## Source-clock boundary
 
@@ -53,7 +55,9 @@ The pinned Gemian header, whose complete digest is in the receipt, names
 and bits 13:11 as source-clock enable selection. The inspected compiled
 on-control requests have mask 1 and shift 3; they do not select those other
 fields. The source labels value 1 as hardware control, but this audit does
-not establish the signal truth table or the selected source-clock inputs.
+not establish the signal truth table or the selected source-clock inputs. The
+v7 readback found both source-clock fields equal to 3 in one working WLAN
+boot; their value's physical meaning and producer remain unresolved.
 
 Rejoining the previously decoded initializer call inventories to their
 reverified binary regions and PMU table found no `0x0a0c` target in

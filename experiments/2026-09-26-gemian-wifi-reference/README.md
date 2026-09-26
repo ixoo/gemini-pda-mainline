@@ -3,9 +3,10 @@
 The [RE toolkit decision](RE_TOOLKIT.md) audits the current diagnostic
 capabilities and explains why Kprobes is deferred for this 3.18 arm64 tree.
 
-Status: six diagnostic Gemian revisions built and verified in changed boot2
-sessions. Wi-Fi carrier and bounded native DMA observations are established;
-mainline shared ownership and later packet DMA completion remain open.
+Status: seven diagnostic Gemian revisions built and verified in changed boot2
+sessions. Wi-Fi carrier, bounded native DMA and one VCN28 PMIC readback are
+established; mainline shared ownership and later packet DMA completion remain
+open.
 
 The known-good Gemian 3.18 kernel brings up the MT6797 Wi-Fi hardware. Its
 normal console output does not establish which CONSYS clock mode was selected
@@ -700,5 +701,21 @@ The [v7 deployment receipt](results/deployment-v7.json) records the later
 guarded write from the verified v6 boot: live GPT resolved inactive boot2,
 power remained healthy, the exact v6 predecessor matched, and the flushed
 full-partition readback equaled the v7 candidate. Gemian then shut down
-cleanly. The one-shot LAN collector is armed for the owner-operated physical
-boot2 selection and changed-boot result.
+cleanly. The owner selected boot2. The
+[v7 runtime receipt](results/runtime-v7-return-1.json) records changed boot ID
+`678aad0e-34f5-4134-8ac1-92ee9feed207`, expected release
+`3.18.41-gemini-wifi-ref7+`, a complete early log that prefixes the later log,
+and one VCN28 sample in each. At 10.084186 seconds, following the
+`co_clock_type=0` on path, the read returned status zero and `0xda6a`. Bit 3
+was set, matching the requested hardware-control mode; the header-defined
+source-clock selection fields at bits 7:5 and 13:11 both read 3. WLAN reported
+link ready at 17.188697 seconds and carrier was 1 at both collector samples.
+The warning and call-trace counts matched the retained v6 predecessor log.
+The same v7 boot ID, release and carrier were rechecked over LAN SSH. Raw logs
+and the collector stay private under ignored `artifacts/`.
+
+This one instant of readback establishes the programmed PMIC state after the
+vendor request, not the physical signal truth table, clock-source identity,
+exclusive votes or a safe mainline power-on sequence. The read-only diagnostic
+budget is consumed; repeating this image would not answer those remaining
+questions. The device remains in the working v7 Gemian boot.

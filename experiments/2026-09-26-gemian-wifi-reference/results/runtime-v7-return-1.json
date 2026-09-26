@@ -1,0 +1,31 @@
+{
+  "candidate_sha256": "893a938ca1052310be0f91e0040eb45918b07c0e54919aafb6186922e774247d",
+  "previous_boot_id": "b1fd6865-042c-4fc1-9b03-0477bf4f0670",
+  "observed_boot_id": "678aad0e-34f5-4134-8ac1-92ee9feed207",
+  "kernel_release": "3.18.41-gemini-wifi-ref7+",
+  "collector_result": "complete",
+  "private_collector_script_sha256": "887b151773c127ff548c1cbeac4578fcd1c7e3965713737695b58cd1b927c29e",
+  "private_collector_result_sha256": "fd78ca131d3f4b9ff9b932a77f90ad2d8d65477fb31e53bbe975d5fff156a7cf",
+  "private_early_dmesg_sha256": "1129e9b5c1367052ea5a00216b0beed059e627c6be40a781e5ec28d96848143c",
+  "private_late_dmesg_sha256": "4dcfba6d3ce545a83934b77bd04101b6a5989f6b76f003e2392fc9ff120f1708",
+  "early_log_is_prefix_of_late": true,
+  "vcn28_records_per_log": {
+    "early": 1,
+    "late": 1
+  },
+  "wmt_co_clock_type": 0,
+  "vcn28_sample_seconds_since_boot": 10.084186,
+  "vcn28_con0_address": "0x0a0c",
+  "vcn28_read_status": 0,
+  "vcn28_con0_value": "0xda6a",
+  "vcn28_on_control_bit_3": 1,
+  "vcn28_source_clock_mode_bits_7_5": 3,
+  "vcn28_source_clock_enable_bits_13_11": 3,
+  "wifi_link_ready_seconds_since_boot": 17.188697,
+  "carrier_early": 1,
+  "carrier_late": 1,
+  "warnings_and_call_traces_match_predecessor_counts": true,
+  "cmdline_read": "permission denied to unprivileged collector",
+  "result": "Verified changed v7 boot and successful one-shot VCN28 read; bit 3 reflects the requested hardware-control mode and Wi-Fi reached carrier.",
+  "limits": "One boot-time register sample does not prove the physical control signal, source-clock truth table, stable state, exclusive votes or a safe mainline sequence. Carrier samples do not establish durable Wi-Fi operation."
+}

@@ -462,7 +462,11 @@ for the first Wi-Fi bring-up. The current preparation order is:
    captured interrupt-register value; stale flags and external STOP/FLUSH/
    reset remain possible. Programmed register addresses, data delivery,
    coherent shared CONSYS shutdown and effective EMI arbitration remain
-   unresolved. The [same-boot 4G/DMA join](../experiments/2026-09-26-gemian-wifi-reference/results/4g-mode-v6-dma-join.json)
+   unresolved. A [v7 read-only PMIC sample](../experiments/2026-09-26-gemian-wifi-reference/results/runtime-v7-return-1.json)
+   found VCN28 control bit 3 set after the working Gemian hardware-mode request;
+   both source-clock selection fields read 3. The physical clock/control
+   truth table and shared ownership remain open. The
+   [same-boot 4G/DMA join](../experiments/2026-09-26-gemian-wifi-reference/results/4g-mode-v6-dma-join.json)
    finds the positive early 4G selector and later mapped host addresses below
    4 GiB while the selected HIF start path issues unconditional ADDR2 bit-32
    set writes; it does not identify the effective bus alias or select a DMA
