@@ -18,6 +18,14 @@ against the pinned Linux 7.1.3 source without adding MT6797 data or a DT
 consumer. This is source preparation, not an admitted CONN transition or
 device candidate.
 
+The [Buildbox result](results/build.json) passed the full ARM64 kernel link
+from clean commit `21f19164d9bbcea5aa21bd8457c701c5288980e4`. The resolved
+configuration has `CONFIG_MTK_SCPSYS_PM_DOMAINS=y` and
+`CONFIG_MTK_SCPSYS` disabled; `System.map` contains the modern provider's
+`scpsys_add_one_domain` and `scpsys_probe`. The fetched package passed its
+SHA256 inventory check. No device image was installed or booted for this
+compile-only profile.
+
 The next integration step must select the capability in MT6797 CONN data and
 add its child binding, then address the provider's post-request cleanup,
 SPM key, external rail/reset and shared EMI/remap ownership before any
