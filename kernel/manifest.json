@@ -212,6 +212,13 @@
         },
         "patch_series": "patches/series-mt6797-provider-compile"
       },
+      "mt6797-modern-provider-compile": {
+        "base": "allnoconfig",
+        "fragments": [
+          "configs/mt6797-modern-provider-compile.fragment"
+        ],
+        "patch_series": "patches/series-mt6797-modern-provider-compile"
+      },
       "mt6797-infracfg-current-mainline": {
         "base": "allnoconfig",
         "fragments": [

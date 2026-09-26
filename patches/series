@@ -551,6 +551,7 @@ proposals/0004-dt-bindings-power-add-mt6797-conn-domain-id.patch
 proposals/0005-pmdomain-mediatek-describe-mt6797-conn-island.patch
 proposals/0006-pmdomain-mediatek-expose-retained-domain-fault.patch
 proposals/0007-pmdomain-mediatek-enable-mt6797-conn-spm-register-control.patch
+proposals/0008-pmdomain-mediatek-require-confirmed-initial-off.patch
 proposals/0001-lib-mt6797-hif-compile.patch
 proposals/0001-wifi-mediatek-mt6797-private-hif-core.patch
 proposals/0002-wifi-mediatek-add-mtke-parser.patch
