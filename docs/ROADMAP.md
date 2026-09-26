@@ -445,10 +445,16 @@ for the first Wi-Fi bring-up. The current preparation order is:
    millisecond. A later [authenticated-window observation](../experiments/2026-09-26-gemian-wifi-reference/results/runtime-v6-return-1.json)
    recorded the same first-poll EN-clear result in each direction after a
    root-only trigger, about 51 seconds after link-ready. The records remain
-   window-attributed rather than tied to an individual SSH packet. Programmed
-   register addresses, completion versus STOP/FLUSH/reset, coherent shared
-   CONSYS shutdown and effective EMI arbitration remain unresolved. Resolve
-   shared-owner admission and an effect-bearing failure lifetime before
+   window-attributed rather than tied to an individual SSH packet. The exact
+   v6 source also shows that its DMA interrupt-poll timeout returns before
+   logging, so each record implies an HIF0 interrupt-flag bit-0 read set
+   before acknowledgement and the EN-clear poll. The driver does not write
+   STOP in this compiled path. This is a source-derived inference, not a
+   captured interrupt-register value; stale flags and external STOP/FLUSH/
+   reset remain possible. Programmed register addresses, data delivery,
+   coherent shared CONSYS shutdown and effective EMI arbitration remain
+   unresolved. Resolve shared-owner admission and an effect-bearing failure
+   lifetime before
    another mainline firmware candidate. The first firmware load may use PIO;
    validate AP-DMA ownership before enabling packet DMA. Do not replay the
    consumed Gemian radio or DMA cycles merely to repeat this observation.

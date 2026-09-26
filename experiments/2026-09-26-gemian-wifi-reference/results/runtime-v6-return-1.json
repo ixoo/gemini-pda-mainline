@@ -55,6 +55,7 @@
   "carrier_posttrigger_early_late": [1, 1],
   "warnings_and_call_traces_match_v5_counts": true,
   "dma_timeout_message_count": 0,
+  "source_inference": "In the pinned v6 AHB build, CONF_HIF_DMA_INT=0, CONF_HIF_CONNSYS_DBG=1 and CONF_HIF_DMA_DBG=0. RX and TX return before the logged idle poll if the five-second DmaPollIntr loop times out. Reaching each record therefore implies that HifPdmaPollIntr read AP_DMA_HIF_0_INT_FLAG bit 0 set, then the path acknowledged it, masked the interrupt and read EN clear before unmap. The compiled HifPdmaStop does not write STOP.",
   "result": "verified v6 boot and authenticated post-link window; first recorded RX and TX DMA idle polls each saw EN clear before unmap",
-  "limits": "The flag gates the first later transfers but does not identify an individual SSH packet or prove that either record belongs to the 4096-byte reply. EN clear does not distinguish normal completion from STOP, FLUSH or reset. The logged endpoints are computed arguments, not register readbacks, and one boot does not establish shared AP-DMA ownership or durable Wi-Fi association."
+  "limits": "The flag gates the first later transfers but does not identify an individual SSH packet or prove that either record belongs to the 4096-byte reply. The interrupt-poll conclusion is derived from the pinned source path, not a logged interrupt-register value; a set flag and EN clear do not prove data delivery, rule out a stale flag or an external STOP/FLUSH/reset, or establish shared AP-DMA ownership. The logged endpoints are computed arguments, not register readbacks, and one boot does not establish durable Wi-Fi association."
 }

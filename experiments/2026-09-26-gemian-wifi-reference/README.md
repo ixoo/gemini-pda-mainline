@@ -596,7 +596,8 @@ parameter, mismatched identity, preexisting record or absent carrier refuses
 the write. A missing direction after the one window is a preserved negative
 result, not permission to repeat the trigger. A boot or Wi-Fi regression uses
 the reviewed recovery path after evidence preservation. Even positive records
-prove only those final EN reads before unmap; low/ADDR2 register programming,
+directly prove only those final EN reads before unmap; the selected source path
+may support a narrower control-flow inference. Low/ADDR2 register programming,
 clean completion and exclusive shared-DMA ownership remain separate gates.
 The [v6 Buildbox receipt](results/build-v6.json) pins a full kernel link from
 clean pushed commit `250ef67905ab44ac587d400f556f964c793f8b2c`. The
@@ -635,8 +636,18 @@ and warning/call-trace counts matched v5.
 This later window removes the v5 ambiguity about records occurring immediately
 at link-up. It does not attribute either transfer to the 4 KiB payload: the
 authenticated SSH exchange and flag write also create traffic. The logged
-endpoints are computed arguments rather than DMA-register readbacks, and EN
-clear cannot distinguish normal completion from STOP, FLUSH or reset. Shared
-AP-DMA ownership, packet-path completion and durable Wi-Fi behavior remain
+endpoints are computed arguments rather than DMA-register readbacks. A further
+source check of the exact [v6 build](results/build-v6.json) established that
+`CONF_HIF_DMA_INT=0`, `CONF_HIF_CONNSYS_DBG=1` and `CONF_HIF_DMA_DBG=0` in
+`os/linux/hif/ahb_sdioLike/include/hif.h`. In both `ahb.c` data-port paths,
+the five-second `DmaPollIntr` timeout returns before the idle poll and log.
+The records therefore imply that `HifPdmaPollIntr` read
+`AP_DMA_HIF_0_INT_FLAG` bit 0 set before the driver acknowledged it, masked
+the interrupt and read EN clear before unmap. This is a source-derived
+inference, not an interrupt-register value captured in the log. The compiled
+`HifPdmaStop` does not write STOP. A stale flag or an external STOP, FLUSH or
+reset remains possible; flag-plus-EN does not prove data delivery. Shared
+AP-DMA ownership, packet-level attribution and durable Wi-Fi behavior remain
 open. The single-use v6 trigger budget is consumed; do not replay it in this
-boot.
+boot. A new kernel solely to log whether this interrupt poll succeeded would
+repeat what the existing source path already establishes.
