@@ -392,4 +392,8 @@ now pins the exact verified v2 boot ID and release while retaining the live
 GPT, root/target, power and full-readback gates. The
 [deployment receipt](results/deployment-v3.json) records a guarded write to
 inactive boot2, a matching full 16 MiB readback and clean shutdown. Physical
-boot2 selection and changed-boot verification are still pending.
+boot2 selection and changed-boot verification are still pending. The first
+[one-shot LAN collector](results/runtime-v3-attempt.json) timed out without a
+changed-boot SSH connection or confirmed physical selection. This establishes
+no v3 boot or Wi-Fi result; rearm a fresh collector before the owner selects
+boot2 later.
