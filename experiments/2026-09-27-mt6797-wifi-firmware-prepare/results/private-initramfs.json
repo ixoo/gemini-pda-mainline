@@ -1,0 +1,13 @@
+{
+  "status": "private-firmware-initramfs-staged-no-device-action",
+  "parent_initramfs_sha256": "62619d682e79ba5df929b055df0de8e48ed68412b358fe8f82d2368f924623b1",
+  "firmware_sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
+  "firmware_bytes": 411632,
+  "firmware_member": "lib/firmware/mediatek/mt6797/WIFI_RAM_CODE_6797",
+  "inherited_members": 47,
+  "added_members": 5,
+  "output_initramfs_sha256": "d023fd7048189deed63c72346a9b0014cc3efbe3204458f787e6c2588ff31a73",
+  "output_bytes": 3266666,
+  "secret_bearing": true,
+  "physical_admission": false
+}

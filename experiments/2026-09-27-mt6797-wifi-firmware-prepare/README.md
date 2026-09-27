@@ -84,3 +84,22 @@ mainline firmware search path.
 
 To repeat the check locally with the retained image, run
 `python3 -B experiments/2026-09-27-mt6797-wifi-firmware-prepare/scripts/verify-retained-plan.py artifacts/firmware/gemian-2019-vendor/vendor/firmware/WIFI_RAM_CODE_6797`.
+
+## Private RAM-root staging
+
+The authenticated mainline service boot runs from a 47-member RAM root, with
+no persistent root mount. It lacks the file requested by the firmware helper.
+The [single-purpose staging script](scripts/stage-private-initramfs.py) pins
+that accepted initramfs and the exact private Gemian WLAN image by full SHA-256.
+It adds only four `/lib/firmware` directories and the image at
+`/lib/firmware/mediatek/mt6797/WIFI_RAM_CODE_6797`, preserving every inherited
+member byte and metadata. A parser round trip and repeat serialization passed;
+the [sanitized receipt](results/private-initramfs.json) records the private
+output identity and size. The output remains ignored under `artifacts/firmware/`
+because it contains both the retained firmware and inherited SSH credentials.
+
+This is an offline input for a later reviewed candidate, not an installed
+boot2 image. The current kernel has no caller of the firmware helper, and the
+staging check does not prove a Linux firmware request, a CONSYS transition or
+usable Wi-Fi. A future candidate must validate its exact kernel, DT,
+initramfs and LK container together before any device test.
