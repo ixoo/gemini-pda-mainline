@@ -41,3 +41,21 @@ requirement is now relaxed from `ARM64 && COMPILE_TEST` to `ARM64` by a
 [focused patch](../../patches/proposals/0013-wifi-mediatek-allow-mt6797-hif-without-compile-test.patch).
 The final fragment no longer sets global `COMPILE_TEST`. This is still a
 compile-only profile; removing the restriction adds no runtime caller.
+
+## Completed source integration
+
+Clean pushed commit `f339e104b0989e193a3d87b8f0324a5788dd7cc6` applied
+all 528 selected patches and linked the full ARM64 kernel. The fetched
+Buildbox package passed its checksum inventory; the [receipt](results/build.json)
+pins the inputs and package. The linked map contains the private HIF, image
+plan, retained binding, EMI, remap and ordinary-transfer functions alongside
+the modern CONN provider. All five Gemini DTBs are byte-identical to the
+provider-only integration build, so no active CONN child was added.
+
+The resolved configuration keeps `COMPILE_TEST=n` and enables the private HIF
+core. Opening the wireless menu also turns on several unrelated drivers from
+the base defconfig: 55 symbols become enabled and 91 symbols change relative
+to the provider-only integration config. The compressed kernel grows from
+6,057,984 to 7,112,658 bytes. A later device profile must select only the
+needed Wi-Fi stack before its package is considered as a boot2 candidate.
+This build exercises no resource manager, firmware execution or Wi-Fi hardware.

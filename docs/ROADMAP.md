@@ -452,6 +452,11 @@ for the first Wi-Fi bring-up. The current preparation order is:
    now compiles with that A53 provider and rejects ON, mixed, read-error and
    latched-fault states; it does not prove child quiescence or an exclusive
    handoff, so it cannot alone authorize outer-rail cleanup. A later
+   [A53 Wi-Fi core integration build](../experiments/2026-09-26-mt6797-a53-wifi-core-integration/README.md)
+   links the private HIF and whole-image components with the modern CONN
+   provider, but still has no shared owner, firmware executor or active child.
+   Its broad wireless defconfig selections need trimming for a device profile;
+   the next code work is the real resource manager and executor. The
    [read-only Gemian EMI reference](../experiments/2026-09-26-mt6797-emi-active-reference/results/runtime.json)
    confirms the vendor-requested region-18/19 ranges and permission values in
    a boot where WLAN carrier was observed later, but also shows broad region 23

@@ -1,0 +1,37 @@
+{
+  "result": "validated-compile-only",
+  "repository_commit": "f339e104b0989e193a3d87b8f0324a5788dd7cc6",
+  "repository_dirty": false,
+  "profile": "mt6797-a53-wifi-core-integration-compile",
+  "kernel_release": "7.1.3-gemini-a53-wifi-core-compile",
+  "source_sha256": "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc",
+  "patch_count": 528,
+  "patchset_sha256": "8c18f5519c88668b64d620f4641993b560628cdb76b6c5965ec39e92dcba614f",
+  "package_name": "linux-7.1.3-gemini-c6b6d6d03632eef2946101c69d99d90679dae38ab6967493a49c0bfc7e999776",
+  "package_inventory_sha256": "c6b6d6d03632eef2946101c69d99d90679dae38ab6967493a49c0bfc7e999776",
+  "package_validated": true,
+  "artifacts_sha256": {
+    "Image": "4e117e19d96d6fea4bdced4eb805db36e2eb19e681a680745853316f9d6f033f",
+    "Image.gz": "cf6b6e2aa14ad72836becc1b4f972dc09c677ba4cdb4aebc3faaafdf226c5939",
+    "System.map": "b26313182fc573d89a595d5e07d7daa0c44866164156012dd7b3a8ec03913721",
+    "kernel.config": "d70fa6bd8da2057560f8fbe58f92585b1e00a8049dcc509ce7ab19be146ebcc3",
+    "provenance/build.json": "558a547af4cab1ea38051f953acdcdd5000f981cfd5accb5fdbd6cc118b1cf45"
+  },
+  "linked_symbols": [
+    "mtk_pm_domain_confirmed_off",
+    "mt6797_hif_alloc",
+    "mt6797_image_plan_admit",
+    "mt6797_image_owner_bind_reserved",
+    "mt6797_emi_prepare",
+    "mt6797_remap_replace_common",
+    "mt6797_ordinary_transfer_execute"
+  ],
+  "config_compile_test": false,
+  "config_mt6797_hif_core": true,
+  "config_newly_enabled_symbols_from_provider_integration": 55,
+  "config_changed_symbols_from_provider_integration": 91,
+  "five_gemini_dtbs_byte_equal_to_provider_integration": true,
+  "modern_conn_compatible_in_gemini_dtbs": false,
+  "device_action": "none",
+  "limitation": "No shared owner, firmware executor or active CONN child; the wireless menu also selects unrelated defconfig drivers. This is not a boot2 candidate."
+}
