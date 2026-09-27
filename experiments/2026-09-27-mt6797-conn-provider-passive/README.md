@@ -64,9 +64,12 @@ project-wide backup remains in place. The first 300-second USB watcher then
 expired without a mainline route or SSH claim; the device session is unconsumed.
 The owner then reported selecting boot2. A second finite 300-second watcher
 also saw no direct mainline USB route; bounded Gemian LAN checks were
-unreachable. No boot identity, kernel log or provider result was obtained, so
-this observation does not establish whether the installed image booted. The
-device session remains unconsumed. Before another boot attempt, use the screen
+unreachable. A later Mac USB sample found `0x0e8d:0x20ff` with product
+`Unknown` and no network interface, the same intermediate identity observed
+in an earlier experiment before a later successful mainline boot. No boot
+identity, kernel log or provider result was obtained, so this observation
+does not establish whether the installed image booted. The device session
+remains unconsumed. Before another boot attempt, use the screen
 state and a decision-changing diagnostic; do not repeat an identical watcher
 or partition write.
 

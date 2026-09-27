@@ -27,6 +27,14 @@
     "mainline_usb_route": "not observed",
     "ssh_claim": "none",
     "gemian_lan_during_and_after_expiry": "unreachable on bounded TCP port 22 checks",
+    "host_usb_sample_utc": "2026-09-27T23:43:05Z",
+    "host_usb_sample": {
+      "vendor_id": "0x0e8d",
+      "product_id": "0x20ff",
+      "vendor_string": "GNU/Linux Device",
+      "product_string": "Unknown",
+      "macos_network_interface_seen": false
+    },
     "boot_identity": "not obtained",
     "provider_probe": "not run"
   },
