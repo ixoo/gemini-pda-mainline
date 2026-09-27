@@ -138,6 +138,7 @@ def main():
     config = regular(package / 'kernel.config')
     require(b'CONFIG_MTK_MT6797_CONSYS=y\n' in config and
             b'CONFIG_REGULATOR=y\n' in config and
+            b'CONFIG_REGULATOR_MT6351=y\n' in config and
             b'# CONFIG_MTK_SCPSYS is not set\n' in config,
             'owner config mismatch')
     require(b' mt6797_consys_probe\n' in regular(package / 'System.map'),

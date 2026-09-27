@@ -9,7 +9,7 @@
   "selected_patch_count": 538,
   "kernel_config_sha256": "6fd4c538eb3a56cc8f948d9c5bf0985e3b25789274940c21545157d852274e6e",
   "image_gzip_sha256": "e2d409518951030db50210ff56d63b4b6cd478930748406224c77cf6ea53a08f",
-  "validation": "Clean pushed Buildbox build and full package inventory passed. The owner probe is linked; the built Gemini DTB has three VCN phandles resolving to named MT6351 children. Focused dt-doc-validate, dt_binding_check including example compilation, and dt-validate on the built Gemini DTB all exited zero without diagnostics.",
+  "validation": "Clean pushed Buildbox build and full package inventory passed. CONFIG_REGULATOR_MT6351=y and the owner probe are linked; the built Gemini DTB has three VCN phandles resolving to named MT6351 children. Focused dt-doc-validate, dt_binding_check including example compilation, and dt-validate on the built Gemini DTB all exited zero without diagnostics.",
   "device_execution": false,
   "limitation": "The build and DT checks do not establish real regulator-provider registration or handle acquisition on the PDA."
 }
