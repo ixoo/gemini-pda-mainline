@@ -11,7 +11,7 @@ readonly output=/var/tmp/gemini-wifi-reference-shared-off-v8
 readonly wifi_device=/dev/wmtWifi
 readonly functions=(
   WIFI_write wmt_func_wifi_off wmt_func_wifi_on
-  wmt_func_bt_off wmt_func_bt_on
+  hci_stp_close hci_stp_open wmt_func_bt_off wmt_func_bt_on
   wlanRemove wlanStop wlanAdapterStop wlanSendNicPowerCtrlCmd wlanPowerOffInt
   wlanProbe kalFirmwareOpen kalFirmwareLoad kalFirmwareClose
   mtk_wcn_consys_hw_pwr_off mtk_wcn_consys_hw_pwr_on

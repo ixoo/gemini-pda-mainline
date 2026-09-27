@@ -800,7 +800,7 @@ and common-power functions traceable. Two read-only SPM status reads returned
 not alter a radio, register or boot partition.
 
 The [single-use script](trace-shared-off-v8.sh), SHA-256
-`0c4817cf91c7cf78e6530ba21c7e9b11c51c41fecfeb4fbb0c62fc93b4fd2506`,
+`5390e444998f19805227bcf97916035fa8ada44f8b30bbfa85e906c3990805fb`,
 requires that exact v8 release and a host-observed boot ID, starting WLAN
 carrier, up Bluetooth without an HCI connection, healthy battery, idle tracing,
 the WMT control node and the expected trace functions. It refuses before
@@ -816,6 +816,15 @@ off or a transition fault remains; do not infer safe mainline teardown. A
 traced off and clear status still would not prove exclusive Linux ownership,
 firmware quiescence, EMI policy or mainline release safety.
 
+The [exact v8 source](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/drv_bt/linux/hci_stp.c#L1273-L1440)
+assigns `hci_stp_open`/`hci_stp_close` to this HCI device. Close calls WMT
+Bluetooth off only after it clears `HCI_RUNNING`; open calls WMT Bluetooth on.
+Both functions appear in the live v8 ftrace filter list. The revised trace
+includes them, so a down HCI interface without the close or WMT-off call is
+distinguishable from a released BT vote. The source is pinned to the v8 build
+receipt's `59e00a9144d782e148332009a835b99c43382467` source commit; this
+audit did not change the radio or the running kernel.
+
 The finite effect budget is one ConnMan Wi-Fi disable, one HCI down, one WMT
 Wi-Fi off, one WMT on, one HCI up and one ConnMan enable, with six read-only
 SPM status reads. The device-side exit handler attempts each unattempted
@@ -826,8 +835,8 @@ HCI requires private evidence preservation and the reviewed known-good boot
 path, not a second radio cycle. The script has passed `bash -n` and ShellCheck;
 it is prepared, not yet executed. The device remains on working Gemian.
 
-The [staging receipt](results/shared-off-v8-staging.json) records that the
-root-owned device copy matches the reviewed script in this exact v8 boot.
-The single-use output directory was absent, WLAN carrier and Bluetooth were
-still up, and no radio or tracer action had begun. Execution awaits physical
-recovery availability; staging is not a trace result.
+The [initial staging receipt](results/shared-off-v8-staging.json) records the
+first script copy before the HCI close-path source audit. That copy was not
+run and is superseded by the revised script and
+[second staging receipt](results/shared-off-v8-staging-v2.json). Execution
+awaits physical recovery availability; staging is not a trace result.
