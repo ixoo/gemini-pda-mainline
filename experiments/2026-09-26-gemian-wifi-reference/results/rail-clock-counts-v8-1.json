@@ -1,0 +1,47 @@
+{
+  "result": "read-only-active-rail-clock-counts",
+  "device_boot_id": "61ed0033-8de7-42f4-b3c5-1082db8f2503",
+  "kernel_release": "3.18.41-gemini-wifi-ref8+",
+  "wlan0_carrier_before_after": [
+    1,
+    1
+  ],
+  "regulator_debugfs": {
+    "vcn18": {
+      "open_count": 1,
+      "use_count": 1,
+      "bypass_count": 0
+    },
+    "vcn28": {
+      "open_count": 1,
+      "use_count": 1,
+      "bypass_count": 0
+    },
+    "vcn33_wifi": {
+      "open_count": 1,
+      "use_count": 1,
+      "bypass_count": 0
+    },
+    "vcn33_bt": {
+      "open_count": 1,
+      "use_count": 1,
+      "bypass_count": 0
+    }
+  },
+  "clock_summary_selected": {
+    "infra_pmic_conn": {
+      "prepare_count": 0,
+      "enable_count": 0
+    },
+    "pg_conn": {
+      "prepare_count": 1,
+      "enable_count": 1
+    }
+  },
+  "device_action": "bounded read-only debugfs inspection; no rail, clock or radio control",
+  "private_capture": {
+    "location": "ignored artifacts/gemian-wifi-reference-v8/rail-clock-counts.txt",
+    "sha256": "0a1ac42b79d15710b235a1c34742551c19de838e5d9ca08ac2d83899966f2989"
+  },
+  "limitation": "Counts are one instant in one working Gemian boot. They do not identify every consumer, retained-firmware vote, VCN28 hardware-control input or safe mainline release sequence."
+}

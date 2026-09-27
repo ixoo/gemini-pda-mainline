@@ -858,3 +858,13 @@ reference boot, not an exclusive handoff contract for mainline. In particular,
 function votes do not prove firmware or AP-DMA quiescence, and SPM bits do not
 settle external writers, rail/reset sequencing or effective EMI policy. The
 single-use effect budget is consumed; do not repeat this script.
+
+## Same-boot read-only rail and clock counts
+
+A [bounded v8 snapshot](results/rail-clock-counts-v8-1.json) in the still
+working Gemian boot found debugfs `open_count=1`, `use_count=1` and
+`bypass_count=0` for VCN18, VCN28, VCN33-Wi-Fi and VCN33-BT. The selected
+clock-summary rows showed `pg_conn` prepared/enabled once and
+`infra_pmic_conn` zero. The boot ID and WLAN carrier were stable across the
+read. These counters identify neither all consumers nor retained writers,
+and do not authorize mainline rail release or settle VCN28 mode control.
