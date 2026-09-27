@@ -91,3 +91,11 @@ passed with root on a distinct partition, and the full boot2 checksum matched
 the installer-pinned predecessor. No write or shutdown occurred. These
 point-in-time observations must be repeated by the installer immediately
 before any write; they are not a deployment receipt.
+
+## Guarded deployment
+
+The [sanitized deployment result](results/deployment.json) records a matching
+predecessor, three passing live-GPT/block-identity gates, stable external
+power, a synced and flushed boot2 write, exact full-partition readback and
+clean Gemian shutdown. No new mainline boot is inferred from installation.
+The owner must select boot2 physically after the USB collector is armed.
