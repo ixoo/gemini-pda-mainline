@@ -630,7 +630,11 @@ for the first Wi-Fi bring-up. The current preparation order is:
 The [twenty-step keyboard capture](../experiments/2026-09-05-owner-away-experiment-preparation/keyboard/COVERAGE_TEST.md#attended-result)
 remains accepted for its stated scope. Its release-order limitation and the
 [A53 focused-mode refusal](../experiments/2026-09-09-standard-kernel-package/results/a53-keyboard-method-trial-20260925.json)
-remain recorded, without selecting another keyboard session now. Items with unverified
+remain recorded. One [focused A53 reader image](../experiments/2026-09-27-a53-focused-keyboard/README.md#device-deployment)
+is installed with full readback and clean shutdown, waiting for an owner-selected
+boot with a freshly armed collector; no keyboard result exists for it yet. This
+closes the already prepared method gate without moving further A53 development
+ahead of Wi-Fi. Items with unverified
 candidate or protocol inputs remain planned/preparing. Conditional items have
 frozen validated inputs and await only an explicit runtime result predicate.
 The cumulative ten-cold-boot release gate remains distinct; schedule
