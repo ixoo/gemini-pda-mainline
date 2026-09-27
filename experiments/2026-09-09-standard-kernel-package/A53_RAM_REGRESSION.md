@@ -314,3 +314,15 @@ A confirmed return proves that known-good Gemian is running. It does not promote
 an incomplete baseline or log capture to success. Any later device session
 requires current device custody, a fresh live deployment binding and its own
 pre-boot handoff.
+
+The later [passive VCN-handle boot](../2026-09-27-mt6797-consys-rails-passive/README.md#passive-device-result)
+exposed one additional exact pre-authentication SSH failure: `Host is down`.
+The original helper remains unchanged for its checksum-pinned sessions.
+[Return helper v2](a53-ram-return-v2.py) pins and reuses the original watcher,
+admitting that one message in either SSH line ending under the same
+empty-output, exit-255 and runner-reason checks.
+Its focused fixture confirms that a timeout followed by `Host is down` can
+reach changed-boot Gemian on the next scheduled slot; authentication, partial
+output and unknown failures still stop. Future adapters must pin v2 explicitly.
+This change did not contact or restart the PDA and does not alter the consumed
+VCN-handle session result.

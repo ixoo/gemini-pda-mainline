@@ -24,6 +24,7 @@ def load(name, path):
 
 
 R = load('service_return', HERE / 'a53-ram-return.py')
+R2 = load('service_return_v2', HERE / 'a53-ram-return-v2.py')
 BASELINE = HERE.parent / '2026-09-05-owner-away-experiment-preparation/baseline/scripts'
 C = load('return_runner', BASELINE / 'collect-baseline.py')
 F = load('return_finish', BASELINE / 'finish-baseline.py')
@@ -55,6 +56,10 @@ class ReturnTests(unittest.TestCase):
         self.trust_patch = patch.object(R, 'TRUST_SHA', R.sha(self.trust.read_bytes()))
         self.trust_patch.start()
         self.addCleanup(self.trust_patch.stop)
+        self.v2_trust_patch = patch.dict(R2.watch.__globals__,
+                                         {'TRUST_SHA': R.sha(self.trust.read_bytes())})
+        self.v2_trust_patch.start()
+        self.addCleanup(self.v2_trust_patch.stop)
         self.now = 0.0
         self.calls = []
         self.clock = SimpleNamespace(monotonic=lambda: self.now, sleep=self.sleep)
@@ -67,10 +72,10 @@ class ReturnTests(unittest.TestCase):
         self.assertGreaterEqual(seconds, 0)
         self.now += seconds
 
-    def collect(self, responses, change_credentials=False):
+    def collect(self, responses, change_credentials=False, runtime=R):
         def invoke(command, script, child, timeout, **limits):
             self.assertEqual(command, ['inert-transport'])
-            self.assertEqual(script, R.PROBE)
+            self.assertEqual(script, runtime.PROBE)
             self.assertEqual(limits, {'stdout_limit': 4096, 'stderr_limit': 16384})
             self.calls.append((self.now, timeout))
             raw, err, status = responses[min(len(self.calls) - 1, len(responses) - 1)]
@@ -79,8 +84,8 @@ class ReturnTests(unittest.TestCase):
             if change_credentials:
                 self.key.write_bytes(b'replaced fixture key\n')
             return status
-        with patch.object(R, 'time', self.clock), patch.object(C, 'run_once', invoke):
-            return R.watch(self.prepared)
+        with patch.dict(runtime.watch.__globals__, {'time': self.clock}), patch.object(C, 'run_once', invoke):
+            return runtime.watch(self.prepared)
 
     def test_changed_boot_and_identity_refusals(self):
         raw = frame()
@@ -118,6 +123,34 @@ class ReturnTests(unittest.TestCase):
         for raw, reason in ((b'partial frame', None), (b'', 'outer-timeout'), (b'', 'interrupted')):
             with self.assertRaises(ValueError):
                 R.classify(raw, err, process(raw, err, exit_status=255, reason=reason), PREVIOUS, MAINLINE)
+
+    def test_v2_observed_host_down_is_only_a_pre_authentication_wait(self):
+        self.assertNotIn(b'ssh: connect to host 192.168.1.50 port 22: Host is down\r\n',
+                         R.CONNECT_FAILURES)
+        for ending in (b'\n', b'\r\n'):
+            err = b'ssh: connect to host 192.168.1.50 port 22: Host is down' + ending
+            status = process(b'', err, exit_status=255)
+            self.assertEqual(R2.classify(b'', err, status, PREVIOUS, MAINLINE)['classification'],
+                             'connection-unavailable')
+            for raw, changes in ((b'partial', {}), (b'', {'reason': 'outer-timeout'}),
+                                 (b'', {'exit_status': 0})):
+                with self.assertRaises(ValueError):
+                    R2.classify(raw, err, process(raw, err, **{'exit_status': 255, **changes}),
+                                PREVIOUS, MAINLINE)
+        for err in (b'Permission denied (publickey).\n', b'Host key verification failed.\n',
+                    b'ssh: connect to host 192.168.1.50 port 22: Unknown failure\n'):
+            with self.assertRaises(ValueError):
+                R2.classify(b'', err, process(b'', err, exit_status=255), PREVIOUS, MAINLINE)
+
+    def test_v2_waits_through_observed_host_down_then_confirms_changed_boot(self):
+        timed_out = b'ssh: connect to host 192.168.1.50 port 22: Operation timed out\n'
+        host_down = b'ssh: connect to host 192.168.1.50 port 22: Host is down\r\n'
+        result = self.collect([(b'', timed_out, process(b'', timed_out, exit_status=255)),
+                               (b'', host_down, process(b'', host_down, exit_status=255)),
+                               (frame(), b'', process(frame()))], runtime=R2)
+        self.assertTrue(result['recovery_confirmed'], result)
+        self.assertEqual(result['attempts'], 3)
+        self.assertEqual(self.calls, [(0.0, 15), (15.0, 15), (30.0, 15)])
 
     def test_delayed_return_preservation_and_no_second_window(self):
         err = next(iter(R.CONNECT_FAILURES))
