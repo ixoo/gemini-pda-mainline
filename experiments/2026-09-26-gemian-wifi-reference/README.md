@@ -868,3 +868,24 @@ clock-summary rows showed `pg_conn` prepared/enabled once and
 `infra_pmic_conn` zero. The boot ID and WLAN carrier were stable across the
 read. These counters identify neither all consumers nor retained writers,
 and do not authorize mainline rail release or settle VCN28 mode control.
+
+## Same-boot VCN28 mode cycle
+
+The [single-use diagnostic](sample-vcn28-cycle-v8.sh) uses the pinned Gemian
+PMIC sysfs driver's exact three-byte address-only read branch for `0x0a0c`.
+Its hypothesis was that a last-client common power-off clears VCN28 on-control
+bit 3 and the reverse path sets it again, while the source-clock fields can be
+observed at each point. A persistent mode bit after off would redirect PMIC
+control analysis; a changed source-clock field would require its own owner
+audit. The budget was one cycle in the verified v8 boot, with bounded
+device-side radio restoration and no PMIC register write request. The script
+passed `bash -n` and ShellCheck before use.
+
+The [result](results/vcn28-cycle-v8-1.json) records `0xda6a` before off,
+`0x1a60` after off, and `0xda6a` after on and restoration. Four matching
+vendor kernel messages identify reads of `0x0a0c`; WLAN carrier and HCI
+returned in the same boot. Bit 3 followed 1→0→1, while bits 7:5 and 13:11
+remained 3. Raw device output and the full post-cycle log are private under
+ignored `artifacts/`. The single-use budget is consumed. The logical mode
+transition is now observed, but its physical input, independent writers and
+exclusive mainline ownership remain unresolved.

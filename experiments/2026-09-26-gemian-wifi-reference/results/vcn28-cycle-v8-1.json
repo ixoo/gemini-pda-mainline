@@ -1,0 +1,24 @@
+{
+  "result": "VCN28 mode readback followed the Gemian last-client off/on cycle",
+  "observed_utc": "2026-09-27T03:06:12Z",
+  "device_boot_id": "61ed0033-8de7-42f4-b3c5-1082db8f2503",
+  "kernel_release": "3.18.41-gemini-wifi-ref8+",
+  "boot2_candidate_sha256": "f106361945822b3d9093c10de8503901a51c310cfaa7beb87cc56c2152cae6b2",
+  "script_sha256": "fa5be80b1a0f1edf517a6b1bb31d2b2b166b74e6f1bd6bd5b9d5775815665936",
+  "register": "MT6351 LDO_VCN28_CON0 at 0x0a0c",
+  "samples": {
+    "before": {"value": "0xda6a", "mode_bit_3": 1, "source_mode_bits_7_5": 3, "source_enable_bits_13_11": 3},
+    "after_off": {"value": "0x1a60", "mode_bit_3": 0, "source_mode_bits_7_5": 3, "source_enable_bits_13_11": 3},
+    "after_on": {"value": "0xda6a", "mode_bit_3": 1, "source_mode_bits_7_5": 3, "source_enable_bits_13_11": 3},
+    "restored": {"value": "0xda6a", "mode_bit_3": 1, "source_mode_bits_7_5": 3, "source_enable_bits_13_11": 3}
+  },
+  "pmic_sysfs_transport": "The exact three-byte address input entered the pinned vendor driver's read branch. Four matching dmesg records say read PMU reg 0xa0c; no write record for that address was found in the retained post-cycle log. The sysfs store itself returns its input size even on a transport error, so the observed values and branch records are stronger than its return value.",
+  "radio_cycle": "One finite ConnMan disable, HCI down, WMT Wi-Fi off/on, HCI up and ConnMan enable; device-side cleanup was armed. The script exited zero in the same boot with WLAN carrier 1 and hci0 UP RUNNING.",
+  "private_evidence": {
+    "location": "ignored artifacts/gemian-wifi-reference/vcn28-cycle-v8-1/",
+    "device_output_tar_sha256": "a5cdfffb1d4b3010a80d6d7d17874c938d1bea725c148689755d2dc4d10a14c4",
+    "dmesg_after_sha256": "265dd3bfed94b0024a246385984879fa2c2184863d9d8a0ceab34abdcac84576"
+  },
+  "interpretation": "In this working Gemian boot, the common last-client transition cleared VCN28 on-control bit 3 and the reverse transition restored it. The two source-clock fields stayed at their prior encoded value 3 throughout the samples.",
+  "limitations": "These are four PMIC register instants in one reference-kernel cycle. They do not identify physical clock inputs, every other PMIC writer or retained client, electrical rail state, exclusive mainline handoff, or a safe new power sequence. The diagnostic is single-use and must not be replayed without a new decision-changing measurement."
+}
