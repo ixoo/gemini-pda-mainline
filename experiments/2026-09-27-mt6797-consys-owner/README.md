@@ -146,3 +146,13 @@ authenticated USB collection and reviewed Gemian return path after an owner
 selection. The unique on-device result remains the owner bind record in an
 authenticated complete log; an absent record or probe error is a negative
 result, not a reason to repeat the same image.
+
+The [guarded deployment](results/passive-deployment.json) resolved inactive
+boot2 from live GPT, matched the v8 Gemian predecessor, passed the device and
+power guards, wrote the exact 16 MiB candidate, and matched both the guarded
+and independent full readbacks. Gemian shut down cleanly. The first 180-second
+read-only Mac USB watcher saw no ready mainline USB route, claimed no device
+session and expired; Gemian LAN was also unreachable afterward. A second 180-second
+watcher likewise saw no ready mainline USB route. No boot2 execution or owner
+probe result is established yet. Confirm the screen state and physical boot2
+selection before deciding the next device action.
