@@ -1,0 +1,45 @@
+{
+  "result": "one-boot-last-client-common-power-off-observed",
+  "observed_utc": "2026-09-27T01:52:22Z",
+  "device_boot_id": "61ed0033-8de7-42f4-b3c5-1082db8f2503",
+  "kernel_release": "3.18.41-gemini-wifi-ref8+",
+  "script_sha256": "5390e444998f19805227bcf97916035fa8ada44f8b30bbfa85e906c3990805fb",
+  "systemd_unit_result": "success, exit 0",
+  "trace_positive_control": "vfs_read recorded before selected-function trace",
+  "trace_loss": "zero overruns and dropped events on all CPUs",
+  "ordered_trace": [
+    "hci_stp_close -> wmt_func_bt_off",
+    "WIFI_write -> wmt_func_wifi_off -> wlanRemove -> wlanAdapterStop",
+    "wmt_plat_pwr_ctrl -> mtk_wcn_consys_hw_pwr_off -> mtk_wcn_consys_hw_reg_ctrl",
+    "WIFI_write -> wmt_plat_pwr_ctrl -> mtk_wcn_consys_hw_pwr_on -> mtk_wcn_consys_hw_reg_ctrl",
+    "wmt_func_wifi_on -> wlanProbe -> kalFirmwareOpen/Load -> four EMI protection wrapper pairs -> kalFirmwareClose",
+    "hci_stp_open -> wmt_func_bt_on"
+  ],
+  "selected_call_counts": {
+    "hci_stp_close": 1,
+    "wmt_func_bt_off": 1,
+    "wmt_func_wifi_off": 1,
+    "mtk_wcn_consys_hw_pwr_off": 1,
+    "mtk_wcn_consys_hw_pwr_on": 1,
+    "wmt_func_wifi_on": 1,
+    "hci_stp_open": 1,
+    "wmt_func_bt_on": 1,
+    "emi_mpu_set_region_protection": 4
+  },
+  "spm_conn_status_bit_1": {
+    "before": "primary=1 secondary=1 (raw 0x3a000057, 0x3a000047)",
+    "after_off": "primary=0 secondary=0 (raw 0x3a000055, 0x3a000045)",
+    "restored": "primary=1 secondary=1 (raw 0x3a000057, 0x3a000047)"
+  },
+  "vendor_log_join": "WMT reported BT-off success, all function votes zero after WLAN off, and HW_PWR_OFF ok; WLAN stop command returned success with ready clear at poll 1.",
+  "post_cycle": "same boot; WLAN carrier 1; hci0 UP RUNNING; tracer nop; no new kernel WARNING or BUG line",
+  "private_evidence": {
+    "location": "ignored artifacts/gemian-wifi-reference-v8/shared-off-v8.tar",
+    "archive_sha256": "9473d318e6ad4284160cec0ed1f794d8cb2042a8ce54798840fec88d86d20c7b",
+    "trace_sha256": "ca1234c5805bb446161f471567cd268026cbb9e2553db714845a14816533895d",
+    "spm_status_sha256": "35166a96c83578c9877d68d27ae931545f76fa573f5221aa11f00fa3b7ed719f",
+    "result_sha256": "36e61731c124f0e5e0b81f92cba969fc7e0956e7480166a44fdfb996b421abbb"
+  },
+  "interpretation": "In this Gemian boot, removing the last observed BT and WLAN function votes reached common CONSYS power-off and both SPM CONN status bits cleared. The reverse path powered it on and restored both interfaces.",
+  "limitations": "One reference-kernel cycle does not prove exclusive mainline ownership, that all external clients were absent, firmware/DMA quiescence, safe rail/reset ordering, or effective EMI overlap/master policy. The single-use budget is consumed; do not replay this script."
+}

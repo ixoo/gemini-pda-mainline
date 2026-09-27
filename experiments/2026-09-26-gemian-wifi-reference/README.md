@@ -825,18 +825,36 @@ distinguishable from a released BT vote. The source is pinned to the v8 build
 receipt's `59e00a9144d782e148332009a835b99c43382467` source commit; this
 audit did not change the radio or the running kernel.
 
-The finite effect budget is one ConnMan Wi-Fi disable, one HCI down, one WMT
+The finite effect budget was one ConnMan Wi-Fi disable, one HCI down, one WMT
 Wi-Fi off, one WMT on, one HCI up and one ConnMan enable, with six read-only
 SPM status reads. The device-side exit handler attempts each unattempted
 restore at most once and restores the original tracer settings. It runs in a
 bounded systemd service so LAN loss cannot interrupt cleanup. The fixed root-
 only output path prevents replay in this boot. A failed return of carrier or
 HCI requires private evidence preservation and the reviewed known-good boot
-path, not a second radio cycle. The script has passed `bash -n` and ShellCheck;
-it is prepared, not yet executed. The device remains on working Gemian.
+path, not a second radio cycle. The script passed `bash -n` and ShellCheck
+before execution.
 
 The [initial staging receipt](results/shared-off-v8-staging.json) records the
 first script copy before the HCI close-path source audit. That copy was not
 run and is superseded by the revised script and
-[second staging receipt](results/shared-off-v8-staging-v2.json). Execution
-awaits physical recovery availability; staging is not a trace result.
+[second staging receipt](results/shared-off-v8-staging-v2.json). Neither staged
+copy was run before the owner was available for recovery.
+
+The [single-use runtime result](results/trace-shared-off-v8-1.json) records one
+completed cycle in the same v8 boot. Positive-controlled function tracing had
+zero overruns or dropped events. `hci_stp_close` called WMT BT-off; the later
+WLAN-off path called `mtk_wcn_consys_hw_pwr_off` once. WMT reported all function
+votes zero and `HW_PWR_OFF ok`. SPM CONN bit 1 cleared in both status registers
+after off (`0x3a000055`, `0x3a000045`) from the starting set state
+(`0x3a000057`, `0x3a000047`). The reverse path called common power-on once,
+then WLAN probe/firmware-load and BT-on; both status bits returned set. The
+service exited zero, WLAN carrier and HCI returned, and the tracer returned to
+`nop`. No new kernel warning or BUG line appeared in this cycle. Raw logs and
+the trace remain private under ignored `artifacts/`.
+
+This establishes a real last-client common power transition in one Gemian
+reference boot, not an exclusive handoff contract for mainline. In particular,
+function votes do not prove firmware or AP-DMA quiescence, and SPM bits do not
+settle external writers, rail/reset sequencing or effective EMI policy. The
+single-use effect budget is consumed; do not repeat this script.

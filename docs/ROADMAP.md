@@ -501,8 +501,13 @@ for the first Wi-Fi bring-up. The current preparation order is:
    STOP in this compiled path. This is a source-derived inference, not a
    captured interrupt-register value; stale flags and external STOP/FLUSH/
    reset remain possible. Programmed register addresses, data delivery,
-   coherent shared CONSYS shutdown and effective EMI arbitration remain
-   unresolved. A [v7 read-only PMIC sample](../experiments/2026-09-26-gemian-wifi-reference/results/runtime-v7-return-1.json)
+   effective EMI arbitration remain unresolved. A later
+   [single-use v8 last-client trace](../experiments/2026-09-26-gemian-wifi-reference/results/trace-shared-off-v8-1.json)
+   observed HCI close release BT's WMT vote, WLAN off invoke common CONSYS
+   power-off, both SPM CONN status bits clear, and the reverse power-on path
+   restore WLAN carrier and Bluetooth. This narrows shared sequencing in the
+   vendor reference but does not prove exclusive mainline handoff, firmware/
+   DMA quiescence or safe rail/reset release. A [v7 read-only PMIC sample](../experiments/2026-09-26-gemian-wifi-reference/results/runtime-v7-return-1.json)
    found VCN28 control bit 3 set after the working Gemian hardware-mode request;
    both source-clock selection fields read 3. The physical clock/control
    truth table and shared ownership remain open. A
