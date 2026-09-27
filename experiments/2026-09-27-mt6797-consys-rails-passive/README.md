@@ -33,7 +33,7 @@ Device hypothesis, conditional on a validated package and exact boot2 image:
 the owner binds all three *real provider handles* in one authenticated
 mainline boot while the A53 service baseline remains healthy. The unique
 observation is a changed-boot complete kernel log with one exact owner
-success record and no regulator dummy, deferred, or failed probe, joined to
+success record and no VCN dummy, deferred, or failed probe, joined to
 the DTB's three phandles and the selected build/package identities. An owner
 probe failure redirects DT/provider diagnosis; a boot or service regression
 stops this candidate and invokes the reviewed recovery path after preserving
@@ -84,6 +84,30 @@ The [deployment receipt](results/deployment.json) records an exact live-GPT
 the expected predecessor and matching full readback. Gemian shut down cleanly.
 The first bounded Mac USB watcher did not see the mainline route, and no
 authenticated session was claimed. A MediaTek `0e8d:20ff` “Unknown” descriptor
-was visible, but that alone does not identify the booted OS. Device execution
-and regulator-provider binding remain unobserved pending confirmation of the
-owner's physical boot2 selection and screen report.
+was visible, but that alone does not identify the booted OS. At that point,
+device execution and regulator-provider binding remained unobserved.
+
+## Passive device result
+
+The owner selected boot2 after a newly armed USB watcher. The authenticated
+[runtime result](results/runtime-1.json) identifies the exact deployed image,
+a changed mainline boot, a complete sequence-zero-through-seal kernel log and
+one owner record after a successful MT6351 regulator probe. The three VCN
+handles were acquired through optional-get, so missing providers could not be
+silently replaced with dummy handles. The A53 observation and probe stages
+passed. The only dummy-regulator warning in the log concerns USB `vusb33`, not
+one of the VCN supplies. That warning and the missing `regulatory.db` warning
+also occurred in the earlier passive owner boot.
+
+The reviewed native return request was accepted, but its automatic Gemian
+watch stopped when the second SSH attempt returned `Host is down`; that string
+was outside its accepted transient-connection set. The original session result
+remains inconclusive. A subsequent read-only probe using the pinned Gemian host
+trust passed the project's changed-boot identity classifier, with systemd
+running and WLAN carrier 1. No extra reboot or recovery request was issued.
+
+This consumes the passive rail-binding gate. It proves provider linkage and
+handle lifetime in one mainline boot, not rail state or usable Wi-Fi. The next
+owner slice must serialize rail/reset/remap/protection transitions with retained
+fault behavior and external-writer exclusion before child attachment or firmware
+execution. Repeating this same passive image would not answer those questions.

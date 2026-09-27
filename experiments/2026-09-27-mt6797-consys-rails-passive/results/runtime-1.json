@@ -1,0 +1,41 @@
+{
+  "status": "passive-vcn-handles-bound-and-changed-gemian-return-confirmed",
+  "candidate_boot_sha256": "5194a3a54df3bc7e16e66ec88081180a1fabd51c7b134cd4e80db66999438b6c",
+  "candidate_full_boot2_sha256": "da9a7cc465d6c7b3bf9d638dd6c2c364329f8617a2d5894cf4434f85b255dbfe",
+  "kernel_build_commit": "77098ff7ee82670fab9db21cfc0eb7209def5c73",
+  "previous_gemian_boot": "5a701930-7306-42cb-b890-a19f815423c0",
+  "mainline_boot": "156f9b18-e3e0-4d68-abc8-344a7b23fd32",
+  "returned_gemian_boot": "8bda7be0-2678-4092-b3e4-5b8b9a953505",
+  "mainline_observation": "baseline-observation-only-pass",
+  "authenticated_probe": "passed in one connection",
+  "pre_recovery_manifest_sha256": "9b88d795d4d59aaeb2c8fdd694da9cac0c6cd43b04fa2df3fbd261f960be0678",
+  "pre_recovery_snapshot_members_rechecked": 24,
+  "kernel_log": {
+    "classification": "complete-log-through-seal",
+    "sha256": "cfee4d7edb0e7f91128467e43225b58d4efda3bcd86ef3401dd5c5e83a629e85",
+    "bytes": 127944,
+    "records": 1842
+  },
+  "mt6351_regulator_probe": "returned 0",
+  "consys_owner_bind_records": 1,
+  "consys_owner_record": "mt6797-consys 10001340.consys: bound boot CONSYS reserve, remap register and VCN supply handles",
+  "vcn_dummy_or_get_failure": "none in complete log; optional-get cannot substitute a dummy provider",
+  "unrelated_dummy_supply": "USB 11271000.usb requested vusb33 and received a dummy regulator",
+  "prior_passive_log_comparison": "The USB vusb33 dummy-supply and missing regulatory.db warnings were also present in the earlier passive owner boot; neither first appeared in this rail-binding test.",
+  "native_recovery_request": "one valid request on the authenticated mainline boot",
+  "automated_return_collector": {
+    "classification": "return-unconfirmed",
+    "reason": "The first SSH attempt timed out; the second returned Host is down, which its connection-unavailable classifier does not accept. No third attempt was made by that collector."
+  },
+  "supplemental_read_only_gemian_confirmation": {
+    "classification": "changed-ID-Gemian",
+    "source_sha256": "0f6f20c324dc7bb4911c34a8e793b09a0af819ed46474ee996b723930bf5d081",
+    "probe_stdout_sha256": "dbf2b12e68b527a12dfb74c970be3ec3a1b3ef51de71c685b1bca734d2bfbce5",
+    "probe_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "kernel_release": "3.18.41+",
+    "system_state": "running",
+    "wlan_carrier": 1
+  },
+  "validation": "The passive VCN provider-handle gate passed. The A53 observation, authenticated probe and complete-log stages passed; changed-boot Gemian and WLAN carrier were confirmed afterward by read-only, pinned-host-trust checks. The original automated session result remains inconclusive and is not rewritten.",
+  "limitation": "Handle acquisition does not prove rail voltage, electrical state, exclusive votes, safe sequencing, EMI protection, firmware execution, radio operation or usable mainline Wi-Fi. The unrelated USB dummy-regulator warning is not a VCN result."
+}

@@ -462,7 +462,13 @@ for the first Wi-Fi bring-up. The current preparation order is:
    [successful authenticated device probe](../experiments/2026-09-27-mt6797-consys-owner/results/passive-runtime-1.json):
    it bound the boot reservation and claimed the shared remap word through the
    kernel resource tree. It has no remap write or shared power/EMI sequence.
-   The next code work is those owner transitions and the firmware executor. The
+   A [second authenticated boot](../experiments/2026-09-27-mt6797-consys-rails-passive/results/runtime-1.json)
+   then bound real MT6351 VCN18, VCN28 and VCN33-Wi-Fi handles without changing
+   rail state; its log and service phases completed, and a supplemental read-only
+   probe confirmed the changed-boot Gemian return after the automatic return
+   watcher rejected a transient `Host is down` message. This consumes the
+   passive rail gate, not rail sequencing or usable Wi-Fi. The next code work
+   is retained-fault owner transitions and the firmware executor. The
    [read-only Gemian EMI reference](../experiments/2026-09-26-mt6797-emi-active-reference/results/runtime.json)
    confirms the vendor-requested region-18/19 ranges and permission values in
    a boot where WLAN carrier was observed later, but also shows broad region 23
