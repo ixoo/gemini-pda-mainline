@@ -133,9 +133,14 @@ existing reservation, validated the LK Android-v0 container and padded it to
 records boot image SHA-256 `38ebcb1c…b54eb69` and full boot2 SHA-256
 `251449ff…2a29a`; the image and private authentication keys remain ignored.
 The [installer adapter](install-passive.py) reuses the reviewed live-GPT
-boot2 guard, exact predecessor/readback checks and clean shutdown. Its offline
-prepare passed with the current v8 Gemian boot identity; no write has been
-requested. The [session binding](passive-session.py) passed offline candidate
+boot2 guard, exact predecessor/readback checks and clean shutdown. Its first
+generated shell refused at the initial remote gate because the inherited
+baseline required release `3.18.41+`, while this verified Gemian boot runs
+`3.18.41-gemini-wifi-ref8+`. That refusal occurred before an evidence
+directory, write or shutdown; the same Gemian boot and WLAN carrier remained.
+The adapter now pins that exact v8 release as well as the boot ID, and the
+replacement shell passed offline preparation, syntax and ShellCheck. The
+[session binding](passive-session.py) passed offline candidate
 validation. The [host runner](passive-host.py) uses the established bounded
 authenticated USB collection and reviewed Gemian return path after an owner
 selection. The unique on-device result remains the owner bind record in an

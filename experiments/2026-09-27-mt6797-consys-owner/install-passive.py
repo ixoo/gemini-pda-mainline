@@ -117,6 +117,8 @@ def adapt(source, candidate, previous):
     replace('a53-authenticated-baseline-deployment-2', RECEIPT_NAME, 3)
     replace("printf 'experiment=a53-authenticated-baseline\\n",
             "printf 'experiment=" + EXPERIMENT + "\\n")
+    release_gate = '[[ "$(id -u)" == 0 && "$(uname -m)" == aarch64 && "$(uname -r)" == 3.18.41+ ]]'
+    replace(release_gate, release_gate.replace('3.18.41+', '3.18.41-gemini-wifi-ref8+'))
     anchor = "[[ \"$initial_boot_id\" =~ ^[0-9a-f-]{36}$ ]] || die 'malformed initial boot ID'\n"
     replace(anchor, anchor + '[[ "$initial_boot_id" == ' + shlex.quote(previous) +
             " ]] || die 'preceding Gemian boot changed'\n")
