@@ -4,7 +4,7 @@ The isolated modern MT6797 CONN child-domain proposals compile, but they have
 not been linked with the accepted A53 service foundation. This profile checks
 that exact integration before a shared CONSYS owner or effect-bearing DT child
 is added. It keeps the frozen A53 fragments and patch bytes, then selects the
-nine modern provider proposals in canonical series order. Only the modern
+modern provider proposals in canonical series order. Only the modern
 provider is enabled; the legacy SCPSYS provider remains disabled.
 
 The hypothesis is that the combined kernel links with the modern provider and
@@ -24,7 +24,7 @@ alone will not prove those contracts or Wi-Fi support.
 ## Build result
 
 The clean pushed commit `2f5f79c1d290e520ceee9d88010979df73f3b31d`
-applied all 514 selected patches and linked a full A53 kernel on Buildbox.
+applied its 514 selected patches and linked a full A53 kernel on Buildbox.
 The fetched package passed its checksum inventory. The
 [build receipt](results/build-a53-integration.json) pins the package and
 source/config identities. Relative to the accepted A53 service build, the
@@ -38,6 +38,10 @@ This passes the source-integration gate. It does not exercise provider probe,
 initial-OFF admission, a domain transition or any Wi-Fi operation on the PDA.
 The next code slice must add a real shared owner and its dependency/retention
 contract before an effect-bearing DT child or boot is considered.
+
+The profile later selected a [checked OFF query](../2026-09-26-mt6797-modern-provider-off-query/README.md)
+as an additional provider proposal. The build above predates that selection;
+it does not validate the new patch's integration.
 
 ## Domain attachment order found in the built source
 

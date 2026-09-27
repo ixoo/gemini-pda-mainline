@@ -1,0 +1,73 @@
+From d97e3c320ce5a2dd35e9eec747f84cfe9123d484 Mon Sep 17 00:00:00 2001
+From: MT6797 internal experiment <nobody@example.invalid>
+Date: Sat, 26 Sep 2026 20:43:23 -0400
+Subject: [PATCH] pmdomain: mediatek: report confirmed opted-domain OFF state
+
+Expose a checked OFF query for a valid direct-control domain with retained
+fault state. Reject a latched fault, either ON or mixed status, and
+status-read errors.
+
+This is necessary but insufficient for outer rail cleanup. Callers must
+also prove exclusive quiescence and no concurrent transition.
+
+Internal compile experiment only; synthetic author, no DCO certification.
+---
+ drivers/pmdomain/mediatek/mtk-pm-domains.c  | 25 +++++++++++++++++++++
+ include/linux/soc/mediatek/mtk-pm-domains.h |  7 ++++++
+ 2 files changed, 32 insertions(+)
+
+diff --git a/drivers/pmdomain/mediatek/mtk-pm-domains.c b/drivers/pmdomain/mediatek/mtk-pm-domains.c
+index 9ffb681..e196564 100644
+--- a/drivers/pmdomain/mediatek/mtk-pm-domains.c
++++ b/drivers/pmdomain/mediatek/mtk-pm-domains.c
+@@ -884,6 +884,31 @@ int mtk_pm_domain_fault(struct generic_pm_domain *genpd)
+ }
+ EXPORT_SYMBOL_GPL(mtk_pm_domain_fault);
+ 
++int mtk_pm_domain_confirmed_off(struct generic_pm_domain *genpd)
++{
++	struct scpsys_domain *pd;
++	int state, fault;
++
++	if (!genpd || genpd->power_on != scpsys_power_on ||
++	    genpd->power_off != scpsys_power_off)
++		return -EINVAL;
++
++	pd = to_scpsys_domain(genpd);
++	if (!MTK_SCPD_CAPS(pd, MTK_SCPD_RETAIN_FAILED_STATE))
++		return -EOPNOTSUPP;
++
++	fault = READ_ONCE(pd->fault_error);
++	if (fault)
++		return fault;
++
++	state = scpsys_domain_state(pd);
++	if (state < 0)
++		return state;
++
++	return state == SCPSYS_STATE_OFF ? 0 : -EBUSY;
++}
++EXPORT_SYMBOL_GPL(mtk_pm_domain_confirmed_off);
++
+ static struct
+ generic_pm_domain *scpsys_add_one_domain(struct scpsys *scpsys, struct device_node *node)
+ {
+diff --git a/include/linux/soc/mediatek/mtk-pm-domains.h b/include/linux/soc/mediatek/mtk-pm-domains.h
+index 935c5e9..d7f1fbe 100644
+--- a/include/linux/soc/mediatek/mtk-pm-domains.h
++++ b/include/linux/soc/mediatek/mtk-pm-domains.h
+@@ -10,4 +10,11 @@ struct generic_pm_domain;
+  */
+ int mtk_pm_domain_fault(struct generic_pm_domain *genpd);
+ 
++/*
++ * Return zero only when both hardware status bits are clear and no transition
++ * fault is latched. The caller must hold a valid domain association and exclude
++ * concurrent transitions; this does not prove client or firmware quiescence.
++ */
++int mtk_pm_domain_confirmed_off(struct generic_pm_domain *genpd);
++
+ #endif /* __LINUX_SOC_MEDIATEK_MTK_PM_DOMAINS_H */
+-- 
+2.54.0 (Apple Git-157)
+

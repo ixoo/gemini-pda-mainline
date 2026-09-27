@@ -515,3 +515,4 @@ proposals/0012-pmdomain-mediatek-describe-mt6797-conn-child-domain.patch
 proposals/0013-pmdomain-mediatek-expose-retained-child-domain-fault.patch
 proposals/0014-pmdomain-mediatek-select-mt6797-conn-spm-preamble.patch
 proposals/0015-pmdomain-mediatek-clear-mt6797-conn-primary-first.patch
+proposals/0016-pmdomain-mediatek-report-confirmed-opted-domain-off.patch
