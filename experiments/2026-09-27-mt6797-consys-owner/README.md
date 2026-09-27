@@ -36,3 +36,9 @@ links into the A53 integration image, while all Gemini DTBs remain unchanged.
 A failed patch, Kconfig resolution, binding check, C compile/link or DTB
 comparison refuses this slice. A successful build proves no device behavior;
 it must not be installed on boot2.
+
+The [validated Buildbox package](results/build.json) from the exact clean
+`d5617ec3` input links `mt6797_consys_probe` with the selected option. The
+focused binding/example check passed without diagnostics using dtschema 2026.9,
+and all five Gemini DTBs match the preceding focused A53 Wi-Fi build byte for
+byte. No device action was taken; this still is not a boot2 candidate.

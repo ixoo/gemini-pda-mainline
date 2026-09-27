@@ -1,0 +1,31 @@
+{
+  "result": "validated-compile-only",
+  "repository_commit": "d5617ec301f6265ee86a4dc68148d856eb1b3bb1",
+  "repository_dirty": false,
+  "profile": "mt6797-a53-consys-owner-compile",
+  "kernel_release": "7.1.3-gemini-a53-consys-owner-compile",
+  "source_sha256": "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc",
+  "patch_count": 530,
+  "patchset_sha256": "18ec7f26942f056119c76bc059bac8cb615104d4cb781264c3c3b31427673eef",
+  "package_name": "linux-7.1.3-gemini-55cb860772608c39ad1d39690b065b27546ca4eb0bbafac0c8a9df624f0846a2",
+  "package_inventory_sha256": "55cb860772608c39ad1d39690b065b27546ca4eb0bbafac0c8a9df624f0846a2",
+  "package_validated_and_fetched": true,
+  "artifacts_sha256": {
+    "Image.gz": "c8b5aea654b65ea00af932ae6176699ce25a4cb0914469ff21f6a53fc39da166",
+    "kernel.config": "e5431a1d32cfaf62fee3f25e7f159a130f865362b571197897aecf4fdc1315d0",
+    "System.map": "c718287be42e92dfebb61bea713b152f6b67c41505674624b3a0f42a6136cd13",
+    "provenance/build.json": "5f03ea6fe4a8fb4c25c190438f991e0d337a60ceb678705b020e26fa50a6debe"
+  },
+  "config": {
+    "CONFIG_MTK_MT6797_CONSYS": "y"
+  },
+  "linked_symbol": "mt6797_consys_probe",
+  "binding_check": {
+    "toolchain": "dtschema-2026.9",
+    "target": "Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml",
+    "result": "passed-without-diagnostics"
+  },
+  "five_gemini_dtbs_byte_equal_to_focused_a53_wifi_build": true,
+  "device_action": "none",
+  "limitation": "No active manager DT node, shared power/remap/EMI sequence, firmware executor or staged child; not a boot2 candidate."
+}
