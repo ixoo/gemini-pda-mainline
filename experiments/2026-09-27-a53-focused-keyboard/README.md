@@ -28,3 +28,19 @@ and changed-boot Gemian return before the method can be accepted. A new guarded
 installer/session binding and finite budget are required before deployment.
 No unchanged-image repeat or ten-cold-boot cycle is authorized by this
 offline candidate.
+
+## Offline composition result
+
+The recipe at clean pushed commit `0f24d026` produced a private candidate with
+boot SHA-256 `ea8adc12…18adac2` and exact 16 MiB boot2 SHA-256
+`34b56a58…780020`. The [sanitized receipt](results/candidate.json) pins the
+complete identities. An independent archive comparison found 47 matching
+member names with only `bin/keyboard-observe` changed; that member retained
+its mode. The kernel, Gemini DTB and config are byte-identical to the A53
+parent, the LK container validated, and the full-partition padding and file
+inventory rechecked. No device write, boot or keyboard action occurred.
+
+The next implementation step is an exact guarded installer and session binding
+for this new image. It must preserve the fresh Gemian predecessor, authenticated
+USB observation, finite focused capture, complete log and reviewed return
+requirements above. The private candidate is **not** selected for boot2 yet.

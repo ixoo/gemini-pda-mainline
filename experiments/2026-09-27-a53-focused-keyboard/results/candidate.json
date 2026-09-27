@@ -1,0 +1,29 @@
+{
+  "status": "offline-composition-validated-not-selected-for-boot2",
+  "repository_commit": "0f24d02683aaf0a0d8dc9f6cd2b1e302003bbbe4",
+  "kernel_release": "7.1.3-gemini-a53-service-facilities",
+  "parent_boot_sha256": "97c23e3f34686d8831e56f9903e109f6b9ba89cb121c88996f25411e86d5bec0",
+  "parent_receipt_sha256": "0c6df48ed7312d978d9ef6b650063af5a78db259d7e9831fb2c80eef9e65e46f",
+  "reader_package_inventory_sha256": "477db0d31c2d2a5d9830022e7dc63288a4e8cd48717aa3cee9b25d4043cc1927",
+  "focused_reader_sha256": "7d523b28edd51ed1fa393b8d8c8ade8315e40c4bae2edd8059e7b215d0084f51",
+  "private_candidate_manifest_sha256": "9624fa43d189a95ebdbee86582c388ca72b154a6ae9e32c2c1f82b9a84be589b",
+  "image_gzip_sha256": "f83db1b5d6d49a0e589e5353a570e971445fa3e14b04b2fe2cf3e970b273914e",
+  "gemini_dtb_sha256": "e1e4eca289320533bad5c879e78055eaa86a295080b1154c13debe29ddd8ee4a",
+  "kernel_config_sha256": "bae0155286a3172a4e3e690d6eec3f9c66981e83a2f24f30799a30f70f60247b",
+  "initramfs_sha256": "26b8876bbdcaf7795b36615dc9fd04d4179f4d56ca81b4122593950dfa0ac178",
+  "boot_image_sha256": "ea8adc121fdd2ee1008fe6cca852db4e05e35c0cb9698930b4ceb657018adac2",
+  "boot_image_bytes": 8833024,
+  "boot2_full_sha256": "34b56a58abe0932d1e7374ed7e668487518fa9d6067a9bf6d60c19d313780020",
+  "boot2_full_bytes": 16777216,
+  "initramfs_member_count": 47,
+  "only_changed_member": "bin/keyboard-observe",
+  "independent_checks": [
+    "reader package inventory and static AArch64 ELF",
+    "archive member and mode comparison",
+    "parent kernel, DTB and config byte identity",
+    "LK Android-v0 image validation",
+    "exact full-partition zero padding and inventory readback"
+  ],
+  "device_action": "none",
+  "limitation": "No guarded installer or live session has been bound to this image. It has not booted on the PDA, so keyboard method and A53 regression remain unverified."
+}
