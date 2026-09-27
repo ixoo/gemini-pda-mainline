@@ -1,0 +1,24 @@
+{
+  "status": "passive-conmcu-reset-handle-bound-and-changed-gemian-return-confirmed",
+  "candidate_boot_sha256": "bfdd4ca0b6bcbbaaa26ddaad0794f84c86bd3acd6ef9044209e45db88da14507",
+  "candidate_full_boot2_sha256": "9483e4bc1bb1882052a0158a024ddf20bff9018440aaa03b4a9bd3ad3abfc2de",
+  "kernel_build_commit": "766ada26f0ef52d46e5ce2daa8ea7132f7827a36",
+  "previous_gemian_boot": "b216072f-1231-4a17-b712-d483c9f27055",
+  "mainline_boot": "b6305003-6041-493a-b80a-5abbadff7daf",
+  "returned_gemian_boot": "680ac898-0c23-4b29-a89e-c8bed5e50acc",
+  "authenticated_session": "ram-service-regression-pass",
+  "consys_owner_bind_records": 1,
+  "consys_owner_record": "mt6797-consys 10001340.consys: bound boot CONSYS reserve, remap, VCN and CONMCU reset handles",
+  "initial_probe": "deferred with -517; later probe returned 0",
+  "kernel_log": {
+    "classification": "complete-log-through-seal",
+    "sha256": "f5a6593ad6fead2777946795333891442a369611c19d1057eedea4bc7751c8f2",
+    "bytes": 127932,
+    "records": 1842
+  },
+  "pre_recovery_manifest_sha256": "4baf41899735e913a05f030567e1c2a0c3a2e4c87863df18d629b78764dc9212",
+  "native_recovery_request": "one valid request on the authenticated mainline boot after evidence preservation",
+  "return": "changed-ID-Gemian confirmed by the finite return collector",
+  "validation": "The passive reset-provider handle gate passed. The mainline service regression, authenticated observation, complete-log export and changed-boot Gemian return all passed.",
+  "limitation": "Handle acquisition does not prove reset assertion/deassertion, rail sequencing, shared EMI/AP-DMA ownership, firmware execution, radio operation or usable mainline Wi-Fi. The initial deferred probe was followed by one successful owner bind."
+}

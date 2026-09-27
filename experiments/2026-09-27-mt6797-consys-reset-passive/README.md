@@ -106,4 +106,20 @@ repeat boot2 write. The host collector pins the tested
 [v2 Gemian return watcher](../2026-09-09-standard-kernel-package/a53-ram-return-v2.py)
 to accept the observed pre-authentication `Host is down` response within its
 finite return window. Its offline preparation and return-watcher tests passed;
-no new mainline or changed-boot Gemian result has been observed yet.
+no new mainline or changed-boot Gemian result was observed in that first window.
+
+## Passive runtime result
+
+One later owner-selected boot2 start reached the authenticated mainline USB
+session. The [sanitized runtime receipt](results/runtime-1.json) pins the exact
+image, kernel input and changed boot IDs. The complete, sealed kernel log has
+one successful CONSYS owner record binding the boot reservation, remap, VCN
+supplies and CONMCU reset handle. An initial `-517` deferred probe was followed
+by a successful probe. The A53 service regression passed, evidence was
+preserved before one reviewed native recovery request, and the finite return
+collector confirmed a new Gemian boot.
+
+This consumes the passive reset-handle gate. It does not exercise the reset
+line, a power transition, EMI/AP-DMA ownership, firmware loading or Wi-Fi.
+The next implementation needs a reviewed shared-resource and retained-fault
+owner transition before any active device boot.
