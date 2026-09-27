@@ -3,10 +3,12 @@
 """Collect one authenticated passive CONMCU reset-handle boot."""
 
 import argparse
+import hashlib
 import importlib.util
 import json
 import os
 from pathlib import Path
+import runpy
 
 
 HERE = Path(__file__).resolve().parent
@@ -19,6 +21,20 @@ HOST.HERE = HERE
 HOST.ROOT = ROOT
 HOST.__file__ = str(Path(__file__).resolve())
 MARKER = b'bound boot CONSYS reserve, remap, VCN and CONMCU reset handles'
+RETURN_V2 = HERE.parent / '2026-09-09-standard-kernel-package/a53-ram-return-v2.py'
+RETURN_V2_SHA = '4ef45cd11071a9de2e0c0b6cefbc9dfb1b5f75b6ca2b68f264bcf6f7e3522fe6'
+
+
+def prepare(candidate):
+    if RETURN_V2.is_symlink() or hashlib.sha256(RETURN_V2.read_bytes()).hexdigest() != RETURN_V2_SHA:
+        raise ValueError('Gemian return v2 source changed')
+    prepared = HOST.prepare(candidate)
+    returning = runpy.run_path(str(RETURN_V2))
+    if returning['TRUST_SHA'] != 'd43262bd1f9c76d02eb633900f5e5502e2342d6c1b41586a2d7e524a2293768f':
+        raise ValueError('Gemian return v2 trust changed')
+    prepared['returning'].watch = returning['watch']
+    prepared['claim']['gemian_return_v2_sha256'] = RETURN_V2_SHA
+    return prepared
 
 
 def main():
@@ -28,7 +44,7 @@ def main():
     args = parser.parse_args()
     os.umask(0o077)
     try:
-        prepared = HOST.prepare(args.candidate)
+        prepared = prepare(args.candidate)
         if not args.execute:
             print('offline-preparation=pass; device_action=none')
             return 0

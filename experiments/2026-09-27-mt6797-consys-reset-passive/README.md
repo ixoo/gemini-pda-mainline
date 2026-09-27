@@ -99,3 +99,11 @@ predecessor, three passing live-GPT/block-identity gates, stable external
 power, a synced and flushed boot2 write, exact full-partition readback and
 clean Gemian shutdown. No new mainline boot is inferred from installation.
 The owner must select boot2 physically after the USB collector is armed.
+The first bounded 300-second USB watcher expired without a mainline host route;
+it made no authenticated connection and consumed no device session. The image
+remains installed, so a later owner selection needs a fresh watcher but no
+repeat boot2 write. The host collector pins the tested
+[v2 Gemian return watcher](../2026-09-09-standard-kernel-package/a53-ram-return-v2.py)
+to accept the observed pre-authentication `Host is down` response within its
+finite return window. Its offline preparation and return-watcher tests passed;
+no new mainline or changed-boot Gemian result has been observed yet.
