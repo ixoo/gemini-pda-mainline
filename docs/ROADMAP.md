@@ -436,8 +436,11 @@ for the first Wi-Fi bring-up. The current preparation order is:
    disables the domain clock before reset; an
    [opted CONN OFF-order patch](../experiments/2026-09-26-mt6797-modern-provider-off-order/README.md)
    instead clears the primary power request before the secondary one, as the
-   retained CONN routine does. No child DT, query client or shared owner is
-   present; these are not device candidates. A later
+   retained CONN routine does. The
+   [A53 integration build](../experiments/2026-09-26-mt6797-modern-conn-data/A53_INTEGRATION.md)
+   now links these provider proposals with the accepted service foundation;
+   its Gemini DTBs are unchanged. No child DT, query client or shared owner is
+   present; this is not a device candidate. A later
    [read-only Gemian EMI reference](../experiments/2026-09-26-mt6797-emi-active-reference/results/runtime.json)
    confirms the vendor-requested region-18/19 ranges and permission values in
    a boot where WLAN carrier was observed later, but also shows broad region 23

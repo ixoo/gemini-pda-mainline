@@ -20,3 +20,21 @@ rail, reset, remap, EMI, firmware, radio or DMA action is requested. A later
 active candidate still needs one shared owner, external VCN/CONMCU sequencing,
 retained-writer exclusion, remap/EMI policy and failure retention. Build success
 alone will not prove those contracts or Wi-Fi support.
+
+## Build result
+
+The clean pushed commit `2f5f79c1d290e520ceee9d88010979df73f3b31d`
+applied all 514 selected patches and linked a full A53 kernel on Buildbox.
+The fetched package passed its checksum inventory. The
+[build receipt](results/build-a53-integration.json) pins the package and
+source/config identities. Relative to the accepted A53 service build, the
+resolved config changes only the release suffix and enables
+`MTK_SCPSYS_PM_DOMAINS`; the legacy provider remains disabled. The linked
+image contains MT6797 CONN domain data, the retained-fault query and the
+modern provider initcall. All five Gemini DTBs are byte-identical to the
+A53 service package and contain no modern CONN controller compatible.
+
+This passes the source-integration gate. It does not exercise provider probe,
+initial-OFF admission, a domain transition or any Wi-Fi operation on the PDA.
+The next code slice must add a real shared owner and its dependency/retention
+contract before an effect-bearing DT child or boot is considered.

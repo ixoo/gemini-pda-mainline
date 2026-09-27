@@ -1,0 +1,46 @@
+{
+  "result": "validated-compile-only",
+  "repository_commit": "2f5f79c1d290e520ceee9d88010979df73f3b31d",
+  "repository_dirty": false,
+  "profile": "mt6797-a53-modern-conn-provider-compile",
+  "kernel_release": "7.1.3-gemini-a53-modern-conn-compile",
+  "source_sha256": "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc",
+  "patch_count": 514,
+  "patchset_sha256": "04f203e4d6b5a08546510964304927afcfe9b2b4ae26d41b1cb0f80be25a0afa",
+  "package_name": "linux-7.1.3-gemini-b71f5a982e645d217b4b6355ea986b0bc0ed2e70e707d840e1963f88384a06e4",
+  "package_inventory_sha256": "b71f5a982e645d217b4b6355ea986b0bc0ed2e70e707d840e1963f88384a06e4",
+  "package_validated": true,
+  "artifacts_sha256": {
+    "Image": "4e4d8c43024973d0d6d41c927f0c8393ca0441832216c089a40168a5d89b307c",
+    "Image.gz": "ab899723b440843c92d726a9eba3e4aaeaab879bf6a5b3b7a97cdc3676e85db3",
+    "System.map": "cbefd69b4aa268244104d1214edc3ec1ec5c1302acdee010392ad0ad803741c9",
+    "kernel.config": "3f22f5f9e23313c0ac8a30fb6324a4e79847f99dd7cf0e00dd21a13b1573b83a",
+    "provenance/build.json": "ab61cae4b545e585f7c1263d8d91a232cc94048a5fa96268308c5f348a5f84fa"
+  },
+  "resolved_config_changes_from_a53_service": {
+    "CONFIG_LOCALVERSION": {
+      "a53_service": "\"-gemini-a53-service-facilities\"",
+      "integrated": "\"-gemini-a53-modern-conn-compile\""
+    },
+    "CONFIG_MTK_SCPSYS_PM_DOMAINS": {
+      "a53_service": "n",
+      "integrated": "y"
+    }
+  },
+  "legacy_scpsys_disabled": true,
+  "linked_symbols": [
+    "mt6797_scpsys_data",
+    "mtk_pm_domain_fault",
+    "__initcall__kmod_mtk_pm_domains"
+  ],
+  "gemini_dtbs_byte_equal_to_a53_service": {
+    "mt6797-gemini-pda-a72-admission.dtb": "cee2898e8b5985be0bbae481fe41fe0c49da85af65dd90b3ca47988644df8dfb",
+    "mt6797-gemini-pda-a72-physical-source.dtb": "c932c17e55e43886c3b4fde6da6a426920f4d1ef94fc052b53c0e37c1db2be56",
+    "mt6797-gemini-pda-clock-backend-entry.dtb": "3ac8033996e35117ed290b4873672d0b95bdf51d9d197c860d846cd83a118462",
+    "mt6797-gemini-pda-protected-readback.dtb": "417b2ca9caa9faecb264aa2af2b245fa3d24de888e87b8d916207d32200b6c55",
+    "mt6797-gemini-pda.dtb": "985a9c80d3d563990b5c2b4472e59aab3b1412d375f60228574335a421846e2f"
+  },
+  "modern_conn_compatible_in_gemini_dtbs": false,
+  "device_action": "none",
+  "limitation": "No modern CONN child, shared owner, rail/reset sequencing, remap/EMI policy, firmware executor or device validation is included."
+}
