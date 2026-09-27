@@ -22,3 +22,13 @@ executor. The Gemini DTBs remain without an active modern CONN child. This
 profile must not be installed on boot2; a device boot cannot answer an
 ownership or Wi-Fi question until a real manager and admitted failure lifetime
 are connected. The working Gemian kernel remains the hardware reference.
+
+## First configuration result
+
+Clean pushed commit `081c6f0ce2b6eb424b47360903efc46b7ea1e6c5` applied all
+selected patches, but Buildbox stopped before compilation: the accepted
+`gemini-usbdiag.fragment` requests `CONFIG_WIRELESS=n`, while the new final
+fragment requested `CONFIG_WLAN=y`. The profile's final fragment now
+explicitly selects `CONFIG_WIRELESS=y` as well. This is a profile-local
+integration change; the accepted baseline fragment is unchanged. The failed
+attempt produced no package or device candidate.
