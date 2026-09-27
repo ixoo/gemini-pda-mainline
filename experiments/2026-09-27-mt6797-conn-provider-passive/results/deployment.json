@@ -20,6 +20,16 @@
     "ssh_claim": "none",
     "gemian_lan_after_expiry": "unreachable on one bounded check"
   },
+  "second_watcher": {
+    "trigger": "owner reported physical boot2 selection after the first watcher expired",
+    "budget_seconds": 300,
+    "host_check_after_expiry_utc": "2026-09-27T23:40:58Z",
+    "mainline_usb_route": "not observed",
+    "ssh_claim": "none",
+    "gemian_lan_during_and_after_expiry": "unreachable on bounded TCP port 22 checks",
+    "boot_identity": "not obtained",
+    "provider_probe": "not run"
+  },
   "mainline_boot": "not yet observed",
   "private_evidence": "artifacts/device-install-evidence/mt6797-conn-provider-passive-deployment-1"
 }

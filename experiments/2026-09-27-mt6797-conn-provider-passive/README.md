@@ -62,8 +62,13 @@ stable external power, the exact predecessor, a synced write, full matching
 readback and clean shutdown. No fresh backup was needed because the verified
 project-wide backup remains in place. The first 300-second USB watcher then
 expired without a mainline route or SSH claim; the device session is unconsumed.
-There is no provider registration or runtime result yet. A later owner-selected
-boot2 start needs a fresh finite collector, not another partition write.
+The owner then reported selecting boot2. A second finite 300-second watcher
+also saw no direct mainline USB route; bounded Gemian LAN checks were
+unreachable. No boot identity, kernel log or provider result was obtained, so
+this observation does not establish whether the installed image booted. The
+device session remains unconsumed. Before another boot attempt, use the screen
+state and a decision-changing diagnostic; do not repeat an identical watcher
+or partition write.
 
 The [guarded installer](install-passive.py) pins the existing full boot2
 checksum as its predecessor and the [session](passive-host.py) extends the
