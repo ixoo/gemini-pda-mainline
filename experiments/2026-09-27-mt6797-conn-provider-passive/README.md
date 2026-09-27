@@ -73,6 +73,17 @@ remains unconsumed. Before another boot attempt, use the screen
 state and a decision-changing diagnostic; do not repeat an identical watcher
 or partition write.
 
+For a later attended boot, [the pre-armed watcher](watch-boot.py) first checks
+the exact candidate and the still-unclaimed session. Its default invocation
+does only offline preparation. With `--execute`, it records local preloader,
+`0x20ff` and candidate-gadget stage changes for at most 900 seconds. Only the
+exact direct mainline USB route starts the existing authenticated collector;
+an expired watch makes no device SSH claim. Start it before the owner selects
+boot2, after the current screen state and safe shutdown are established. A
+route and authenticated log would test provider registration; another stable
+`0x20ff` interval would redirect boot-stage diagnosis without implying a
+provider failure.
+
 The [guarded installer](install-passive.py) pins the existing full boot2
 checksum as its predecessor and the [session](passive-host.py) extends the
 accepted A53 service collector with one read-only, 15-second provider probe.
