@@ -1,0 +1,18 @@
+{
+  "observed_utc": "2026-09-27T03:47:10.392078+00:00",
+  "method": "read-only Mac ioreg USB, ifconfig and IPv4 route inventories",
+  "usb_parent": "0e8d:20ff",
+  "usb_product": "Unknown",
+  "usb_vendor_string": "GNU/Linux Device",
+  "usb_network_child_observed": false,
+  "expected_host_address_observed": false,
+  "expected_direct_route_observed": false,
+  "device_packets_sent": false,
+  "mainline_session_claimed": false,
+  "interpretation": "matches a previously observed charging/intermediate-stage descriptor; neither boot2 execution nor running OS is established",
+  "private_capture_sha256": {
+    "ioreg_usb": "6c7df44398a294cad7469829f1f1935b9df28fbc32d50c30ce75b92780d25251",
+    "ifconfig": "5bc8a9b2f162108de50a3f8cdace9b98d7564ff16f78d5e424103201cd2ac4b5",
+    "netstat_inet": "aa8314016bd619c4e1c0d4e8895606ed8846b4f82219470b1344bce83a87b98c"
+  }
+}

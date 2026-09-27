@@ -156,3 +156,10 @@ session and expired; Gemian LAN was also unreachable afterward. A second 180-sec
 watcher likewise saw no ready mainline USB route. No boot2 execution or owner
 probe result is established yet. Confirm the screen state and physical boot2
 selection before deciding the next device action.
+
+A later [read-only Mac host inventory](results/passive-host-usb-1.json) found
+one `0e8d:20ff` parent with product `Unknown`, no USB network child, and no
+`10.15.19.1/24` host address or direct route. This descriptor has appeared
+in earlier charging/intermediate-stage observations, so it cannot identify
+the running OS or establish that boot2 was selected. No device packet was
+sent. The collector remains unclaimed pending a screen-state report.
