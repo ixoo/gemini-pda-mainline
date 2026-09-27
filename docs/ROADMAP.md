@@ -473,7 +473,11 @@ for the first Wi-Fi bring-up. The current preparation order is:
    its immutable input, but has no runtime caller or WLAN child. The
    [retained-image C check](../experiments/2026-09-27-mt6797-wifi-firmware-prepare/results/retained-plan.json)
    accepts the actual four-section image yet refuses executable views without
-   an EMI owner. The next code
+   an EMI owner. A [compile-validated passive CONMCU reset binding](../experiments/2026-09-27-mt6797-consys-reset-passive/results/build.json)
+   now gives the shared owner an exclusive handle to TOPRGU bit 12 without
+   operating it. An [offline candidate](../experiments/2026-09-27-mt6797-consys-reset-passive/results/candidate.json)
+   retains the accepted board image and changes only the reset linkage; its
+   one-boot passive runtime binding gate remains. The next code
    work is retained-fault owner transitions and the firmware executor. The
    [read-only Gemian EMI reference](../experiments/2026-09-26-mt6797-emi-active-reference/results/runtime.json)
    confirms the vendor-requested region-18/19 ranges and permission values in

@@ -1,0 +1,34 @@
+{
+  "status": "compile-and-focused-dt-pass-no-device-candidate",
+  "repository_commit": "766ada26f0ef52d46e5ce2daa8ea7132f7827a36",
+  "profile": "mt6797-a53-consys-reset-passive",
+  "kernel_release": "7.1.3-gemini-a53-consys-owner-passive",
+  "source_sha256": "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc",
+  "patchset_sha256": "5a0df3137a76b874959904a09ba10f84602e372cbbc22387b6d4a2999fdb53aa",
+  "selected_patch_count": 540,
+  "config_sha256": "6fd4c538eb3a56cc8f948d9c5bf0985e3b25789274940c21545157d852274e6e",
+  "package_inventory_sha256": "9de5901f25a0ec584e70d36297dccb89399a571632af079b81737a604ec09724",
+  "gemini_dtb_sha256": "51a5203eaff53cd4210e79f3763eb5311b2d458ef64108b802e9cd5cca179250",
+  "resolved_config": {
+    "RESET_CONTROLLER": "y",
+    "MEDIATEK_WATCHDOG": "y",
+    "MTK_MT6797_CONSYS": "y",
+    "FW_LOADER": "y"
+  },
+  "linked_symbols": [
+    "mt6797_consys_probe",
+    "mtk_wdt_probe",
+    "mt6797_wlan_firmware_prepare"
+  ],
+  "gemini_owner_reset": {
+    "name": "con-mcu",
+    "provider": "watchdog@10007000",
+    "provider_phandle": "0x15",
+    "reset_cell": 12,
+    "provider_reset_cells": 1,
+    "owner_has_power_domains": false
+  },
+  "validation": "Clean pushed Buildbox build and fetched package inventory passed. Focused dt-doc-validate, dt_binding_check including example compilation, and dt-validate on the built Gemini DTB exited zero without diagnostics. Strict checkpatch had no source-style finding; its missing DCO error and DT binding split warning remain for this internal synthetic patch.",
+  "device_action": "none",
+  "limitation": "The build proves reset-controller linkage in source and DT only. It does not prove PDA runtime provider registration or handle acquisition, any reset transition, firmware execution or usable Wi-Fi. The built DTB is not an exact replacement for the previously boot-tested service board image."
+}
