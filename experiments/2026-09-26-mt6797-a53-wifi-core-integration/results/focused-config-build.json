@@ -1,0 +1,50 @@
+{
+  "result": "validated-compile-only",
+  "first_attempt": {
+    "commit": "e18cd731583fb32043aad523a32996f29f2569b4",
+    "result": "fragment-validation-refused",
+    "reason": "CONFIG_WLAN_VENDOR_ADMTEK=n was not retained; disabled Kconfig options require the # CONFIG_* is not set syntax",
+    "package": null
+  },
+  "repository_commit": "574a46456ad7dac2df35da4d1f1d8c7f60800b03",
+  "repository_dirty": false,
+  "profile": "mt6797-a53-wifi-core-integration-compile",
+  "kernel_release": "7.1.3-gemini-a53-wifi-core-compile",
+  "source_sha256": "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc",
+  "patch_count": 528,
+  "patchset_sha256": "8c18f5519c88668b64d620f4641993b560628cdb76b6c5965ec39e92dcba614f",
+  "package_name": "linux-7.1.3-gemini-fbdc982ffa66db8c43eebeefc563e6ae76d5a595811068ec2b13a671f41ac2aa",
+  "package_inventory_sha256": "fbdc982ffa66db8c43eebeefc563e6ae76d5a595811068ec2b13a671f41ac2aa",
+  "package_validated_and_fetched": true,
+  "artifacts_sha256": {
+    "Image.gz": "d2eae9de636815f33561e4aa27392ffbcf1dceb8aa6a3464f8a6f5aa13a1c0ef",
+    "kernel.config": "74b3bfd3673f29c918d097539e91de0ee1682abc08dcac9b86bc9d1b8e02f11c",
+    "System.map": "ce3661cacbbe0e4fc900e6d740eb1d61e7ff6540e602c7da613bdd6e1ec8b26f",
+    "provenance/build.json": "35ed317c79a139c67b7a9721d5de7e595709b88dcb0c816f7aa7be8562ebfa81"
+  },
+  "config": {
+    "enabled_wlan_vendor_selectors": ["CONFIG_WLAN_VENDOR_MEDIATEK"],
+    "cfg80211": true,
+    "mac80211": true,
+    "mt6797_hif_core": true,
+    "compile_test": false,
+    "unrelated_vendor_selectors_disabled": 17
+  },
+  "comparison_to_previous_integration": {
+    "previous_repository_commit": "f339e104b0989e193a3d87b8f0324a5788dd7cc6",
+    "previous_image_gzip_bytes": 7112658,
+    "current_image_gzip_bytes": 6472312,
+    "five_gemini_dtbs_byte_equal": true
+  },
+  "linked_symbols": [
+    "mtk_pm_domain_confirmed_off",
+    "mt6797_hif_alloc",
+    "mt6797_image_plan_admit",
+    "mt6797_image_owner_bind_reserved",
+    "mt6797_emi_prepare",
+    "mt6797_remap_replace_common",
+    "mt6797_ordinary_transfer_execute"
+  ],
+  "device_action": "none",
+  "limitation": "No shared CONSYS/EMI owner, firmware executor or active child; this is not a boot2 candidate."
+}

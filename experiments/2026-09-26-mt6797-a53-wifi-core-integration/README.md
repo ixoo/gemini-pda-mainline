@@ -56,6 +56,24 @@ The resolved configuration keeps `COMPILE_TEST=n` and enables the private HIF
 core. Opening the wireless menu also turns on several unrelated drivers from
 the base defconfig: 55 symbols become enabled and 91 symbols change relative
 to the provider-only integration config. The compressed kernel grows from
-6,057,984 to 7,112,658 bytes. A later device profile must select only the
-needed Wi-Fi stack before its package is considered as a boot2 candidate.
-This build exercises no resource manager, firmware execution or Wi-Fi hardware.
+6,057,984 to 7,112,658 bytes. This build exercises no resource manager,
+firmware execution or Wi-Fi hardware.
+
+## Focused wireless configuration
+
+The profile now explicitly disables the 17 unrelated WLAN vendor menus that
+the base defconfig re-enabled when `WLAN=y`. The first Buildbox attempt at
+commit `e18cd731583fb32043aad523a32996f29f2569b4` stopped at fragment
+validation because its `CONFIG_*=n` lines did not use the required Kconfig
+`# CONFIG_* is not set` form. It produced no new package. The corrected clean,
+pushed commit `574a46456ad7dac2df35da4d1f1d8c7f60800b03` passed a full
+Buildbox build, package validation and checked fetch. The
+[receipt](results/focused-config-build.json) pins its package and comparison.
+
+Only `WLAN_VENDOR_MEDIATEK=y` remains among enabled WLAN vendor selectors;
+`CFG80211`, `MAC80211` and `MT6797_HIF_CORE` remain enabled. The previously
+enabled ATH, Broadcom, Marvell, RSI, TI and other unrelated WLAN objects are
+absent. `Image.gz` shrank from 7,112,658 to 6,472,312 bytes. The five Gemini
+DTBs are byte-identical to the preceding integration package. This closes the
+known broad-wireless-selection issue, but does not add the shared owner,
+firmware executor or active CONN child. Neither package is a boot2 candidate.
