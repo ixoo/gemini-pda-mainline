@@ -787,3 +787,41 @@ not the physical reset signal, exclusive resource ownership or a safe
 mainline power/reset sequence. The one-selection test budget is consumed;
 another identical boot would not resolve those questions. Raw logs and the
 collector remain private under ignored `artifacts/`.
+
+## Prepared v8 last-client shutdown trace
+
+The working v8 boot permits a distinct shared-power question without another
+boot2 selection. The earlier WLAN-only stop trace left Bluetooth active and
+did not exercise `mtk_wcn_consys_hw_pwr_off`. A bounded read-only preflight in
+the same verified v8 boot found `hci0` up with no HCI connections, WLAN carrier
+up, battery present/Good at 94%, idle `nop` tracing, and all selected BT/WLAN
+and common-power functions traceable. Two read-only SPM status reads returned
+`0x3a000057` and `0x3a000047`; CONN bit 1 was set in both. These checks did
+not alter a radio, register or boot partition.
+
+The [single-use script](trace-shared-off-v8.sh), SHA-256
+`0c4817cf91c7cf78e6530ba21c7e9b11c51c41fecfeb4fbb0c62fc93b4fd2506`,
+requires that exact v8 release and a host-observed boot ID, starting WLAN
+carrier, up Bluetooth without an HCI connection, healthy battery, idle tracing,
+the WMT control node and the expected trace functions. It refuses before
+effects if any preflight fails. Its hypothesis is that taking Bluetooth down
+before the disconnected WLAN's WMT off request will reach the common CONSYS
+off path. Unique evidence is the function trace joined to SPM primary/secondary
+CONN status immediately before off, after off, and after restoration, plus
+same-boot radio and tracer state. A traced BT-off and WLAN-off with both status
+bits clear would support a real last-client transition in this reference boot.
+If BT-off is absent, `hciconfig down` did not demonstrate release of the WMT
+vote. If the path runs but status stays on or mixed, another claim, incomplete
+off or a transition fault remains; do not infer safe mainline teardown. A
+traced off and clear status still would not prove exclusive Linux ownership,
+firmware quiescence, EMI policy or mainline release safety.
+
+The finite effect budget is one ConnMan Wi-Fi disable, one HCI down, one WMT
+Wi-Fi off, one WMT on, one HCI up and one ConnMan enable, with six read-only
+SPM status reads. The device-side exit handler attempts each unattempted
+restore at most once and restores the original tracer settings. It runs in a
+bounded systemd service so LAN loss cannot interrupt cleanup. The fixed root-
+only output path prevents replay in this boot. A failed return of carrier or
+HCI requires private evidence preservation and the reviewed known-good boot
+path, not a second radio cycle. The script has passed `bash -n` and ShellCheck;
+it is prepared, not yet executed. The device remains on working Gemian.
