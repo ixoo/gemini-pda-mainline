@@ -470,7 +470,10 @@ for the first Wi-Fi bring-up. The current preparation order is:
    passive rail gate, not rail sequencing or usable Wi-Fi. A
    [compile-only firmware preparation build](../experiments/2026-09-27-mt6797-wifi-firmware-prepare/results/build.json)
    now links `request_firmware()` to the complete MTKE plan while retaining
-   its immutable input, but has no runtime caller or WLAN child. The next code
+   its immutable input, but has no runtime caller or WLAN child. The
+   [retained-image C check](../experiments/2026-09-27-mt6797-wifi-firmware-prepare/results/retained-plan.json)
+   accepts the actual four-section image yet refuses executable views without
+   an EMI owner. The next code
    work is retained-fault owner transitions and the firmware executor. The
    [read-only Gemian EMI reference](../experiments/2026-09-26-mt6797-emi-active-reference/results/runtime.json)
    confirms the vendor-requested region-18/19 ranges and permission values in

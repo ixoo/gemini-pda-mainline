@@ -1,0 +1,37 @@
+{
+  "image_sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
+  "image_bytes": 411632,
+  "planner_result": "complete-plan-valid",
+  "ordinary_sections": 2,
+  "emi_sections": 2,
+  "ordinary_bytes": 14832,
+  "emi_bytes": 396688,
+  "sections": [
+    {
+      "index": 0,
+      "route": "ordinary",
+      "length": 5840,
+      "encrypted": true
+    },
+    {
+      "index": 1,
+      "route": "ordinary",
+      "length": 8992,
+      "encrypted": true
+    },
+    {
+      "index": 2,
+      "route": "emi",
+      "length": 331296,
+      "encrypted": false
+    },
+    {
+      "index": 3,
+      "route": "emi",
+      "length": 65392,
+      "encrypted": false
+    }
+  ],
+  "admission_without_emi_owner": "refused-minus-3-no-executable-view",
+  "hardware_access": false
+}

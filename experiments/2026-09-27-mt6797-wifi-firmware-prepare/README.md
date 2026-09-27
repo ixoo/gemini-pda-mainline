@@ -61,3 +61,26 @@ internally authored proposal with synthetic, non-certifying identity. The
 first build from `4467d3ee` was superseded by this allocation-style correction;
 it is not the accepted package. No firmware blob was transferred, and no PDA
 boot or radio action occurred.
+
+## Retained-image C planner check
+
+The [sanitized check](results/retained-plan.json) ran the pinned C MTKE parser
+and complete-image planner against the exact private 411,632-byte Gemian WLAN
+image. The plan accepted all four sections: two ordinary sections totaling
+14,832 bytes and two EMI sections totaling 396,688 bytes. Without an EMI owner,
+admission returned the expected `-3` refusal and the first ordinary-section
+request yielded no executable view. This checks the actual image against the
+planner used by the compiled preparation helper; it does not call that Linux
+helper, touch the PDA, or establish firmware execution. The private bytes stay
+under ignored `artifacts/firmware/`.
+
+In a bounded read-only check of the changed-boot Gemian system, the
+[installed file identity](results/gemian-file-identity.json) matched the same
+retained SHA-256 and 411,632-byte length at
+`/vendor/firmware/WIFI_RAM_CODE_6797`; WLAN carrier was present. The boot ID
+was unchanged across the check. This connects the private input to the file
+currently installed on this PDA, not to a proven historical loader read or a
+mainline firmware search path.
+
+To repeat the check locally with the retained image, run
+`python3 -B experiments/2026-09-27-mt6797-wifi-firmware-prepare/scripts/verify-retained-plan.py artifacts/firmware/gemian-2019-vendor/vendor/firmware/WIFI_RAM_CODE_6797`.

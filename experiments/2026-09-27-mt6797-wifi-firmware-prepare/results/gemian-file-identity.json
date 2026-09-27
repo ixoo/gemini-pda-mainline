@@ -1,0 +1,12 @@
+{
+  "observation": "bounded-read-only-Gemian-file-identity",
+  "boot_id_before": "b216072f-1231-4a17-b712-d483c9f27055",
+  "boot_id_after": "b216072f-1231-4a17-b712-d483c9f27055",
+  "kernel_release": "3.18.41+",
+  "wlan_carrier_at_identity_probe": 1,
+  "path": "/vendor/firmware/WIFI_RAM_CODE_6797",
+  "file_bytes": 411632,
+  "file_sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
+  "matches_retained_private_image": true,
+  "scope": "This confirms the installed file's identity in one running Gemian boot. It does not prove which bytes the earlier WLAN initialization loaded or establish a mainline firmware search path. No file or radio write was requested."
+}
