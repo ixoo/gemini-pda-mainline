@@ -67,8 +67,9 @@ candidate inventory, exact decompiled tree additions, LK boot container and
 pins boot image SHA-256 `bfdd4ca0…8da14507` and full boot2 SHA-256
 `9483e4bc…abfc2de`. The image, initramfs and keys remain private. Composition
 took no device action. The [guarded installer](install-passive.py) is pinned to
-this manifest and Gemian boot identity; its generated shell passed syntax and
-ShellCheck offline. The [session wrapper](passive-session.py) accepted the
+this manifest, Gemian boot identity and observed keyboard-image predecessor
+SHA-256 `34b56a58…780020`; its generated shell passed syntax and ShellCheck
+offline. The [session wrapper](passive-session.py) accepted the
 candidate offline and the [host collector](passive-host.py) expects the new
 one-record reset-handle marker.
 
