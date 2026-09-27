@@ -55,8 +55,35 @@ The same source offers a separate non-powering attachment mechanism:
 `of_genpd_add_device()` calls `genpd_add_device()` without a power-on call;
 `dev_pm_domain_attach_by_id()` likewise passes `false` to the attachment
 helper. These are source-level options, not an implemented owner contract.
-The next implementation must select a reviewable DT relationship and prove
-that explicit attachment, runtime activation, fault queries and retained
-cleanup preserve the rail/reset-before-domain order. This finding changes
-the planned binding and activation path; it does not justify a device boot
-or CONN transition yet.
+The staged-child topology below uses the ordinary child attachment instead,
+after parent preparation. Runtime activation, fault queries and retained
+cleanup still need proof. This finding changes the planned binding and
+activation path; it does not justify a device boot or CONN transition yet.
+
+## Staged child population in the pinned source
+
+A parent/child topology provides the needed ordering without a new generic
+power-domain attach flag. In the exact prepared 7.1.3 source, the default OF
+population walk creates a device for a custom-compatible parent but recurses
+only into `simple-bus`, `simple-mfd`, `isa` and AMBA buses. A CONSYS manager
+parent without `power-domains` can therefore bind while its WLAN child remains
+uncreated. After the manager has established the real shared-resource handoff,
+asserted CONMCU reset and prepared the VCN rails, it can call
+`of_platform_populate()` on its own node. The child may then use the ordinary
+single CONN `power-domains` reference: the platform bus attaches and requests
+CONN power when that child's driver probes, after parent preparation. The
+child must leave MCU preparation and reset release under the manager's
+ordered control. This refines the earlier [direct-consumer audit](../2026-09-05-mt6797-wifi-contract/CONSUMER_ORDERING.md), which correctly rejects a
+single-domain reference on the *parent*.
+
+This is an ordering mechanism, not a completed ownership contract.
+`of_platform_populate()` creates devices rather than waiting for successful
+child probes, and its loop does not report a child probe failure. The parent
+must retain prerequisites while child binding is absent, deferred or failed,
+query the provider's retained fault before hardware use, and never infer a
+completed OFF transition from child unbind or runtime-PM suspend. In
+particular, automatic `devm_of_platform_populate()` teardown cannot be paired
+with unconditional rail cleanup: its release depopulates children without an
+attributable successful CONN OFF receipt. The manager's permanent lifetime,
+explicit client quiescence and fault-held cleanup remain required. No child
+DT node or hardware action is admitted by this source audit.

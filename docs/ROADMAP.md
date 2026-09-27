@@ -443,7 +443,12 @@ for the first Wi-Fi bring-up. The current preparation order is:
    present; this is not a device candidate. The built-source attach audit
    also shows that one ordinary `power-domains` reference would power CONN
    before the owner's platform probe can prepare VCN rails and CONMCU reset;
-   the owner needs an explicit deferred attachment design. A later
+   the owner needs an explicit deferred attachment design. A
+   [pinned-source child-population audit](../experiments/2026-09-26-mt6797-modern-conn-data/A53_INTEGRATION.md#staged-child-population-in-the-pinned-source)
+   identifies a parent that prepares the shared resources before creating a
+   child with the ordinary CONN domain reference. Implement that parent with
+   retained failure lifetime and prove the child/owner binding before any
+   effect-bearing boot. A later
    [read-only Gemian EMI reference](../experiments/2026-09-26-mt6797-emi-active-reference/results/runtime.json)
    confirms the vendor-requested region-18/19 ranges and permission values in
    a boot where WLAN carrier was observed later, but also shows broad region 23
