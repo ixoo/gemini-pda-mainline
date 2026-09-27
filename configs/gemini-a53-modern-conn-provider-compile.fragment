@@ -1,0 +1,5 @@
+# Compile the opted MT6797 CONN child-domain provider with the A53 foundation.
+# No child DT node or consumer requests a CONN power transition.
+CONFIG_MTK_SCPSYS_PM_DOMAINS=y
+# CONFIG_MTK_SCPSYS is not set
+CONFIG_LOCALVERSION="-gemini-a53-modern-conn-compile"
