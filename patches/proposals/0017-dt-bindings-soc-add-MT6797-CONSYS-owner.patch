@@ -1,6 +1,6 @@
-From c72cb64f1283f5a46dffd1bff18d5ac15c684bab Mon Sep 17 00:00:00 2001
+From ea9eeeaf06be9ea96142954105b229d91c8557dd Mon Sep 17 00:00:00 2001
 From: MT6797 internal experiment <nobody@example.invalid>
-Date: Sat, 26 Sep 2026 22:04:01 -0400
+Date: Sat, 26 Sep 2026 22:16:57 -0400
 Subject: [PATCH 1/2] dt-bindings: soc: add MT6797 CONSYS owner
 
 Describe an unpowered shared owner with one boot-allocated no-map memory
@@ -9,16 +9,16 @@ region. No device-tree node is enabled here.
 Internal experiment patch with a synthetic snapshot parent. No DCO
 certification.
 ---
- .../soc/mediatek/mediatek,mt6797-consys.yaml  | 52 +++++++++++++++++++
- 1 file changed, 52 insertions(+)
+ .../soc/mediatek/mediatek,mt6797-consys.yaml  | 55 +++++++++++++++++++
+ 1 file changed, 55 insertions(+)
  create mode 100644 Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
 
 diff --git a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
 new file mode 100644
-index 0000000..11ffa59
+index 0000000..16da7e8
 --- /dev/null
 +++ b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
-@@ -0,0 +1,52 @@
+@@ -0,0 +1,55 @@
 +# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
 +%YAML 1.2
 +---
@@ -53,6 +53,9 @@ index 0000000..11ffa59
 +examples:
 +  - |
 +    / {
++        #address-cells = <2>;
++        #size-cells = <2>;
++
 +        reserved-memory {
 +            #address-cells = <2>;
 +            #size-cells = <2>;

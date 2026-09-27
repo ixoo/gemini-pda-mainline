@@ -1,6 +1,6 @@
-From db9d372243f88122c52e3e04ca73b14194a031dd Mon Sep 17 00:00:00 2001
+From e259c8055dadd58c4a92bf952faf28c1fb1f483a Mon Sep 17 00:00:00 2001
 From: MT6797 internal experiment <nobody@example.invalid>
-Date: Sat, 26 Sep 2026 22:04:01 -0400
+Date: Sat, 26 Sep 2026 22:16:57 -0400
 Subject: [PATCH 2/2] soc: mediatek: claim MT6797 CONSYS reserve
 
 Bind a permanent owner to the boot-allocated no-map CONSYS range. Validate
