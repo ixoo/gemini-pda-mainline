@@ -3,7 +3,7 @@
 The [A53 modern CONN provider](../2026-09-26-mt6797-modern-conn-data/A53_INTEGRATION.md)
 links, while the private MT6797 WLAN transport and whole-image components have
 only been compiled in a separate minimal profile. This profile selects the
-same accepted A53 service and modern-provider patch foundation plus the twelve
+same accepted A53 service and modern-provider patch foundation plus the
 existing wireless proposals in canonical order. It enables the private HIF
 core for a full ARM64 link. The standalone `lib/mt6797-hif-compile` adapter is
 left out because the wireless tree already contains the production-side copy
@@ -32,3 +32,12 @@ fragment requested `CONFIG_WLAN=y`. The profile's final fragment now
 explicitly selects `CONFIG_WIRELESS=y` as well. This is a profile-local
 integration change; the accepted baseline fragment is unchanged. The failed
 attempt produced no package or device candidate.
+
+Clean pushed commit `9c7b301afd3ead91448e37089e4b6a9c938c2305`
+then passed the wireless menu check, but global `COMPILE_TEST=y` enabled the
+unrelated `USB_PHY` option and again failed the accepted fragment check. The
+correct fix is not another configuration override: the private HIF Kconfig
+requirement is now relaxed from `ARM64 && COMPILE_TEST` to `ARM64` by a
+[focused patch](../../patches/proposals/0013-wifi-mediatek-allow-mt6797-hif-without-compile-test.patch).
+The final fragment no longer sets global `COMPILE_TEST`. This is still a
+compile-only profile; removing the restriction adds no runtime caller.

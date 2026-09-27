@@ -1,6 +1,5 @@
 # Build the private WLAN transport and whole-image components with the A53
 # service foundation. They have no runtime caller or active DT child.
-CONFIG_COMPILE_TEST=y
 CONFIG_WIRELESS=y
 CONFIG_WLAN=y
 CONFIG_WLAN_VENDOR_MEDIATEK=y

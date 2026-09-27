@@ -528,3 +528,4 @@ proposals/0009-wifi-mediatek-compile-remap-fields.patch
 proposals/0010-wifi-mediatek-compile-resource-layout.patch
 proposals/0011-wifi-mediatek-compile-emi-service-gate.patch
 proposals/0012-wifi-mediatek-compile-ordinary-transfer-bridge.patch
+proposals/0013-wifi-mediatek-allow-mt6797-hif-without-compile-test.patch

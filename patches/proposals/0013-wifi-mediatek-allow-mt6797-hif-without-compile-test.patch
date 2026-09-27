@@ -1,0 +1,32 @@
+From a9a03c406be9bd7a31af7ccf12803eea03d25678 Mon Sep 17 00:00:00 2001
+From: MT6797 internal experiment <nobody@example.invalid>
+Date: Sat, 26 Sep 2026 21:00:43 -0400
+Subject: [PATCH] wifi: mediatek: allow MT6797 HIF core without COMPILE_TEST
+
+The private HIF code is needed in the A53 integration kernel. Requiring
+global COMPILE_TEST selects unrelated drivers and changes the accepted
+service configuration. Keep the core ARM64-specific but allow its explicit
+selection without that global diagnostic option.
+
+This only changes build admission. No platform caller or runtime device is
+registered. Internal integration patch; synthetic author, no DCO claim.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index 5859cdb..f6b3c96 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -1,7 +1,7 @@
+ # SPDX-License-Identifier: GPL-2.0-only
+ config MT6797_HIF_CORE
+ 	bool "MT6797 private WLAN HIF transport core"
+-	depends on ARM64 && COMPILE_TEST
++	depends on ARM64
+ 	select CRC32
+ 	default n
+ 	help
+-- 
+2.54.0 (Apple Git-157)
+
