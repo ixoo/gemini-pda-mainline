@@ -1,8 +1,14 @@
-From 2794338120a2ae7a7ebcab28d782a4611189678b Mon Sep 17 00:00:00 2001
+From 80c276302e63a55332ece09df8f4dc043f57e909 Mon Sep 17 00:00:00 2001
 From: MT6797 internal experiment <nobody@example.invalid>
-Date: Sun, 27 Sep 2026 13:57:08 -0400
+Date: Sun, 27 Sep 2026 14:07:47 -0400
 Subject: [PATCH] wifi: mediatek: prepare immutable MT6797 firmware plan
 
+Acquire the fixed MT6797 WLAN image through request_firmware and retain
+its immutable bytes through complete MTKE plan validation. Publish only
+descriptive metadata; no hardware action or runtime caller is added.
+
+Internal compile experiment with synthetic authorship. This patch is not
+DCO-certified or ready for upstream submission.
 ---
  drivers/net/wireless/mediatek/mt6797/Kconfig  |  2 +-
  drivers/net/wireless/mediatek/mt6797/Makefile |  1 +
@@ -36,7 +42,7 @@ index b5f43b1..be83c8a 100644
 +obj-y += firmware-prepare.o
 diff --git a/drivers/net/wireless/mediatek/mt6797/firmware-prepare.c b/drivers/net/wireless/mediatek/mt6797/firmware-prepare.c
 new file mode 100644
-index 0000000..5d74b58
+index 0000000..f2a9378
 --- /dev/null
 +++ b/drivers/net/wireless/mediatek/mt6797/firmware-prepare.c
 @@ -0,0 +1,69 @@
@@ -66,7 +72,7 @@ index 0000000..5d74b58
 +	if (!dev)
 +		return -EINVAL;
 +
-+	image = kzalloc(sizeof(*image), GFP_KERNEL);
++	image = kzalloc_obj(*image, GFP_KERNEL);
 +	if (!image)
 +		return -ENOMEM;
 +	ret = request_firmware(&image->blob, MT6797_WLAN_FIRMWARE_NAME, dev);
