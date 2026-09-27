@@ -1,0 +1,25 @@
+{
+  "status": "guarded-boot2-write-full-readback-and-clean-shutdown",
+  "gemian_boot_id": "680ac898-0c23-4b29-a89e-c8bed5e50acc",
+  "target": "boot2",
+  "target_device": "/dev/mmcblk0p30",
+  "target_major_minor": "179:30",
+  "root_device": "/dev/mmcblk0p29",
+  "root_major_minor": "179:29",
+  "power": "external power present, capacity 100 percent, battery Good",
+  "predecessor_full_sha256": "9483e4bc1bb1882052a0158a024ddf20bff9018440aaa03b4a9bd3ad3abfc2de",
+  "candidate_full_sha256": "99888ffbed5e3494377dbb7442e08ef20c2a7f6190922311ff8dc84bb05c4750",
+  "readback_full_sha256": "99888ffbed5e3494377dbb7442e08ef20c2a7f6190922311ff8dc84bb05c4750",
+  "device_guard": "passed at probe, write and post stages",
+  "fresh_predecessor_backup": false,
+  "shutdown": "requested after evidence flush and confirmed unreachable",
+  "first_watcher": {
+    "started_utc": "2026-09-27T23:25:55Z",
+    "budget_seconds": 300,
+    "mainline_usb_route": "not observed",
+    "ssh_claim": "none",
+    "gemian_lan_after_expiry": "unreachable on one bounded check"
+  },
+  "mainline_boot": "not yet observed",
+  "private_evidence": "artifacts/device-install-evidence/mt6797-conn-provider-passive-deployment-1"
+}

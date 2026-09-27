@@ -56,12 +56,14 @@ packaging the unchanged kernel and RAM root. The resulting
 `ae6767ee…0006fd3` and full padded boot2 image `99888ffb…05c4750`.
 The private image remains ignored under `artifacts/conn-provider/`.
 
-This is an offline composition pass only; no boot2 write, provider registration
-or runtime result has occurred. Before device use, validate the live Gemian
-and boot2 identities, use the reviewed block-device guard and full readback,
-then cleanly shut down. Arm a finite USB collector before the owner physically
-selects boot2. Preserve the provider probe and kernel log before the reviewed
-return to Gemian.
+The [deployment receipt](results/deployment.json) now confirms the live GPT
+resolution of logical `boot2` to `/dev/mmcblk0p30`, the inactive/root guard,
+stable external power, the exact predecessor, a synced write, full matching
+readback and clean shutdown. No fresh backup was needed because the verified
+project-wide backup remains in place. The first 300-second USB watcher then
+expired without a mainline route or SSH claim; the device session is unconsumed.
+There is no provider registration or runtime result yet. A later owner-selected
+boot2 start needs a fresh finite collector, not another partition write.
 
 The [guarded installer](install-passive.py) pins the existing full boot2
 checksum as its predecessor and the [session](passive-host.py) extends the
