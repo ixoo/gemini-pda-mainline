@@ -41,7 +41,8 @@ contract before an effect-bearing DT child or boot is considered.
 
 The profile later selected a [checked OFF query](../2026-09-26-mt6797-modern-provider-off-query/README.md)
 as an additional provider proposal. The build above predates that selection;
-it does not validate the new patch's integration.
+the [later A53 build](../2026-09-26-mt6797-modern-provider-off-query/results/build-a53.json)
+validates its source integration without adding an active DT child.
 
 ## Domain attachment order found in the built source
 

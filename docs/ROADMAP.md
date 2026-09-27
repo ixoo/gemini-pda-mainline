@@ -448,7 +448,10 @@ for the first Wi-Fi bring-up. The current preparation order is:
    identifies a parent that prepares the shared resources before creating a
    child with the ordinary CONN domain reference. Implement that parent with
    retained failure lifetime and prove the child/owner binding before any
-   effect-bearing boot. A later
+   effect-bearing boot. A [checked OFF query](../experiments/2026-09-26-mt6797-modern-provider-off-query/README.md)
+   now compiles with that A53 provider and rejects ON, mixed, read-error and
+   latched-fault states; it does not prove child quiescence or an exclusive
+   handoff, so it cannot alone authorize outer-rail cleanup. A later
    [read-only Gemian EMI reference](../experiments/2026-09-26-mt6797-emi-active-reference/results/runtime.json)
    confirms the vendor-requested region-18/19 ranges and permission values in
    a boot where WLAN carrier was observed later, but also shows broad region 23

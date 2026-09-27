@@ -1,0 +1,30 @@
+{
+  "result": "validated-compile-only",
+  "repository_commit": "603e024db107f799c1fff78d36b1dd8c08f5c3f4",
+  "repository_dirty": false,
+  "profile": "mt6797-a53-modern-conn-provider-compile",
+  "kernel_release": "7.1.3-gemini-a53-modern-conn-compile",
+  "source_sha256": "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc",
+  "patch_count": 515,
+  "patchset_sha256": "686def7b867e92d1957a5f35082ea7db700333b37e5e35ba5094933f0819f61e",
+  "package_name": "linux-7.1.3-gemini-fe024214317e7b2e36ae33ececa6df064f1940ebef7017ede54f5194b40c71b1",
+  "package_inventory_sha256": "fe024214317e7b2e36ae33ececa6df064f1940ebef7017ede54f5194b40c71b1",
+  "package_validated": true,
+  "artifacts_sha256": {
+    "Image": "d05e2caeecbc84ba3a81bbc0c4af2b2ca88ca4273f3069074f0a99bb2a2f7f13",
+    "Image.gz": "9f4ee282d5efa1ebbdd4723e9cfa1d78349dad070b2ade5c840d07fc2e813b4b",
+    "System.map": "4be5c31a0f4755a32417f2451ffc78a0e315ba4edd4e05eac6b4720b8a11c64d",
+    "kernel.config": "3f22f5f9e23313c0ac8a30fb6324a4e79847f99dd7cf0e00dd21a13b1573b83a",
+    "provenance/build.json": "97c95e462c1faf67782d5074925c55023d0e693848e1a1553892ac89c66374f3"
+  },
+  "linked_symbols": [
+    "mtk_pm_domain_confirmed_off",
+    "mtk_pm_domain_fault",
+    "mt6797_scpsys_data"
+  ],
+  "resolved_config_byte_equal_to_previous_a53_integration": true,
+  "five_gemini_dtbs_byte_equal_to_previous_a53_integration": true,
+  "modern_conn_compatible_in_gemini_dtbs": false,
+  "device_action": "none",
+  "limitation": "No child, shared owner, runtime caller, transition or Wi-Fi firmware test is included."
+}
