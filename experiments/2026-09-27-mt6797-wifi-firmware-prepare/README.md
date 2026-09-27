@@ -42,3 +42,22 @@ owner's serialized effect and retained-fault contract, followed by a staged
 WLAN child that can bind this preparation to an owned downloader epoch. EMI
 master routing, overlapping-region applicability and external-writer exclusion
 remain prerequisites for a firmware-execution device test.
+
+## Build result
+
+The corrected patch at clean pushed commit `0249ba91` applied as the last of
+539 selected patches. Buildbox linked Linux 7.1.3 and validated the complete
+package inventory; the fetched package rechecked with SHA-256 identity
+`becbee6a…ab3aacc7`. The [sanitized receipt](results/build.json) records the
+source, patchset, config, image and Gemini DTB checksums. `FW_LOADER`, the
+MT6797 wireless core and passive CONSYS owner all resolved to `y`, and
+`System.map` contains the three new helper functions. Decompiling the built
+Gemini DTB found the passive CONSYS owner and its three VCN supply links, with
+no WLAN child or modern CONN compatible. The patch adds no runtime caller.
+
+Strict Checkpatch has no remaining source-style finding. Its missing DCO
+sign-off error and MAINTAINERS warning are retained because this is an
+internally authored proposal with synthetic, non-certifying identity. The
+first build from `4467d3ee` was superseded by this allocation-style correction;
+it is not the accepted package. No firmware blob was transferred, and no PDA
+boot or radio action occurred.

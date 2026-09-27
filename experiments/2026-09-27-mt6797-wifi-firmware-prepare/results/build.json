@@ -1,0 +1,33 @@
+{
+  "status": "compile-integration-pass-no-runtime-caller",
+  "repository_commit": "0249ba9184650005b1d02ef608c21b1da9d8b305",
+  "repository_dirty": false,
+  "profile": "mt6797-a53-wifi-firmware-prepare-compile",
+  "kernel_release": "7.1.3-gemini-a53-consys-owner-passive",
+  "source_sha256": "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc",
+  "patchset_sha256": "3d645a897e0829215320f9de3baf09cce50a8d27cbad352a03036dc96066da5e",
+  "selected_patch_count": 539,
+  "config_sha256": "6fd4c538eb3a56cc8f948d9c5bf0985e3b25789274940c21545157d852274e6e",
+  "package_inventory_sha256": "becbee6ad9ce9d4d85e9d20170dd2f6b0ebf5a13cb9ac9560a4be6edab3aacc7",
+  "image_gzip_sha256": "de8ac1ab1c2cf9caf1fcfa59b43f747e12666ac99f2d9ca86e32b64dc80a2270",
+  "gemini_dtb_sha256": "f1df8a30122908565d7b67f88b1ed2fbaf176e22b9d307f350b30cb251f6c8a3",
+  "resolved_config": {
+    "FW_LOADER": "y",
+    "MT6797_HIF_CORE": "y",
+    "MTK_MT6797_CONSYS": "y"
+  },
+  "linked_symbols": [
+    "mt6797_wlan_firmware_prepare",
+    "mt6797_wlan_firmware_describe",
+    "mt6797_wlan_firmware_release"
+  ],
+  "gemini_dtb": {
+    "passive_consys_owner": true,
+    "vcn18_vcn28_vcn33_wifi_supply_links": true,
+    "wlan_child_count": 0,
+    "modern_conn_compatible_count": 0
+  },
+  "strict_checkpatch": "one expected missing-DCO error and one MAINTAINERS warning; no remaining source-style finding; internal synthetic patch is not upstream-submission-ready",
+  "device_action": "none",
+  "limitation": "No runtime caller, firmware file acquisition on device, shared-owner activation, hardware transfer, firmware execution, radio operation or usable Wi-Fi is demonstrated."
+}

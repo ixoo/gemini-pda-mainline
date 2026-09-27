@@ -467,8 +467,11 @@ for the first Wi-Fi bring-up. The current preparation order is:
    rail state; its log and service phases completed, and a supplemental read-only
    probe confirmed the changed-boot Gemian return after the automatic return
    watcher rejected a transient `Host is down` message. This consumes the
-   passive rail gate, not rail sequencing or usable Wi-Fi. The next code work
-   is retained-fault owner transitions and the firmware executor. The
+   passive rail gate, not rail sequencing or usable Wi-Fi. A
+   [compile-only firmware preparation build](../experiments/2026-09-27-mt6797-wifi-firmware-prepare/results/build.json)
+   now links `request_firmware()` to the complete MTKE plan while retaining
+   its immutable input, but has no runtime caller or WLAN child. The next code
+   work is retained-fault owner transitions and the firmware executor. The
    [read-only Gemian EMI reference](../experiments/2026-09-26-mt6797-emi-active-reference/results/runtime.json)
    confirms the vendor-requested region-18/19 ranges and permission values in
    a boot where WLAN carrier was observed later, but also shows broad region 23
