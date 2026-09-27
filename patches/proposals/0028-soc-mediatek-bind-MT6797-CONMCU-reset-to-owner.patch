@@ -1,0 +1,142 @@
+From 3de134cde7f402e47868f97ffdf69ac9cbd8e9cc Mon Sep 17 00:00:00 2001
+From: MT6797 internal experiment <nobody@example.invalid>
+Date: Sun, 27 Sep 2026 15:17:25 -0400
+Subject: [PATCH] soc: mediatek: bind MT6797 CONMCU reset to owner
+
+Require the existing TOPRGU CONMCU reset phandle and acquire its
+exclusive handle in the permanent shared owner. This makes the real
+reset authority available to a later ordered transition while leaving
+the reset line untouched during probe.
+
+Internal compile experiment with synthetic snapshot parent and author.
+No DCO certification or effect-bearing device admission.
+---
+ .../soc/mediatek/mediatek,mt6797-consys.yaml     | 16 ++++++++++++++++
+ .../boot/dts/mediatek/mt6797-gemini-pda.dts      |  3 +++
+ drivers/soc/mediatek/mt6797-consys.c             | 12 +++++++++++-
+ 3 files changed, 30 insertions(+), 1 deletion(-)
+
+diff --git a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
+index d54f8b0..2d17bc7 100644
+--- a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
++++ b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
+@@ -36,6 +36,12 @@ properties:
+   vcn33-wifi-supply:
+     description: Wi-Fi 3.3 V supply.
+ 
++  resets:
++    maxItems: 1
++
++  reset-names:
++    const: con-mcu
++
+ required:
+   - compatible
+   - reg
+@@ -43,6 +49,8 @@ required:
+   - vcn18-supply
+   - vcn28-supply
+   - vcn33-wifi-supply
++  - resets
++  - reset-names
+ 
+ additionalProperties: false
+ 
+@@ -80,6 +88,12 @@ examples:
+             regulator-name = "vcn33-wifi";
+         };
+ 
++        watchdog: watchdog@10007000 {
++            compatible = "mediatek,mt6797-wdt", "mediatek,mt6589-wdt";
++            reg = <0 0x10007000 0 0x100>;
++            #reset-cells = <1>;
++        };
++
+         consys@10001340 {
+             compatible = "mediatek,mt6797-consys";
+             reg = <0 0x10001340 0 4>;
+@@ -87,5 +101,7 @@ examples:
+             vcn18-supply = <&vcn18>;
+             vcn28-supply = <&vcn28>;
+             vcn33-wifi-supply = <&vcn33_wifi>;
++            resets = <&watchdog 12>;
++            reset-names = "con-mcu";
+         };
+     };
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+index 7c0864a..9f63077 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -9,6 +9,7 @@
+ #include <dt-bindings/gpio/gpio.h>
+ #include <dt-bindings/input/input.h>
+ #include <dt-bindings/interrupt-controller/irq.h>
++#include <dt-bindings/reset/mt6797-resets.h>
+ 
+ / {
+ 	model = "Planet Computers Gemini PDA";
+@@ -62,6 +63,8 @@
+ 		vcn18-supply = <&mt6351_vcn18_reg>;
+ 		vcn28-supply = <&mt6351_vcn28_reg>;
+ 		vcn33-wifi-supply = <&mt6351_vcn33_wifi_reg>;
++		resets = <&watchdog MT6797_TOPRGU_CONMCU_SW_RST>;
++		reset-names = "con-mcu";
+ 	};
+ 
+ 	reserved-memory {
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index b19bf33..e9dd873 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -12,6 +12,7 @@
+ #include <linux/of_reserved_mem.h>
+ #include <linux/platform_device.h>
+ #include <linux/regulator/consumer.h>
++#include <linux/reset.h>
+ #include <linux/sizes.h>
+ 
+ #define MT6797_CONSYS_REMAP_REG	0x10001340
+@@ -22,6 +23,7 @@ struct mt6797_consys {
+ 	struct regulator *vcn18;
+ 	struct regulator *vcn28;
+ 	struct regulator *vcn33_wifi;
++	struct reset_control *conmcu_reset;
+ 	bool bound;
+ };
+ 
+@@ -183,6 +185,7 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ {
+ 	struct resource *remap_resource;
+ 	struct regulator *vcn18, *vcn28, *vcn33_wifi;
++	struct reset_control *conmcu_reset;
+ 	void __iomem *remap;
+ 	u64 base;
+ 	int ret;
+@@ -219,6 +222,12 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 				    "failed to get VCN33 Wi-Fi supply\n");
+ 		goto out_unlock;
+ 	}
++	conmcu_reset = devm_reset_control_get_exclusive(&pdev->dev, "con-mcu");
++	if (IS_ERR(conmcu_reset)) {
++		ret = dev_err_probe(&pdev->dev, PTR_ERR(conmcu_reset),
++				    "failed to get CONMCU reset\n");
++		goto out_unlock;
++	}
+ 	remap_resource = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+ 	if (!remap_resource ||
+ 	    platform_get_resource(pdev, IORESOURCE_MEM, 1) ||
+@@ -237,10 +246,11 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 	mt6797_consys.vcn18 = vcn18;
+ 	mt6797_consys.vcn28 = vcn28;
+ 	mt6797_consys.vcn33_wifi = vcn33_wifi;
++	mt6797_consys.conmcu_reset = conmcu_reset;
+ 	mt6797_consys.bound = true;
+ 	platform_set_drvdata(pdev, &mt6797_consys);
+ 	dev_info(&pdev->dev,
+-		 "bound boot CONSYS reserve, remap register and VCN supply handles\n");
++		 "bound boot CONSYS reserve, remap, VCN and CONMCU reset handles\n");
+ out_unlock:
+ 	mutex_unlock(&mt6797_consys_lock);
+ 	return ret;
+-- 
+2.54.0 (Apple Git-157)
