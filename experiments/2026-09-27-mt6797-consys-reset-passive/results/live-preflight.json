@@ -1,0 +1,22 @@
+{
+  "status": "read-only-live-preflight-pass",
+  "observed_at_utc": "2026-09-27T19:49:14Z",
+  "gemian_boot_id": "b216072f-1231-4a17-b712-d483c9f27055",
+  "kernel_release": "3.18.41+",
+  "wlan0_carrier": 1,
+  "boot2": {
+    "gpt_label": "boot2",
+    "device": "/dev/mmcblk0p30",
+    "major_minor": "179:30",
+    "size_bytes": 16777216,
+    "read_only": false,
+    "full_partition_sha256": "34b56a58abe0932d1e7374ed7e668487518fa9d6067a9bf6d60c19d313780020",
+    "device_guard": "passed",
+    "root_device": "/dev/mmcblk0p29",
+    "root_major_minor": "179:29"
+  },
+  "guard_source_sha256": "0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf",
+  "installer_source_sha256": "6cb69e36bc4f32316b0667e56b61bc79cf0fae08602944c556436322ecf5ebbf",
+  "device_action": "none",
+  "limitation": "This point-in-time read does not replace the installer's fresh live-GPT, power, inactivity, identity, predecessor and full-readback gates. The candidate is not installed and no mainline runtime result exists."
+}

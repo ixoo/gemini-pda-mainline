@@ -81,3 +81,13 @@ may claim reset operation, active firmware loading or usable Wi-Fi. Installation
 still requires the reviewed live-GPT boot2 guard, predecessor verification,
 full-partition readback and clean shutdown. The owner selects boot2 physically
 after the collector is armed.
+
+## Live preflight
+
+A bounded read-only [Gemian check](results/live-preflight.json) in boot
+`b216072f…27055` found `wlan0` carrier 1 and the exact 16 MiB inactive
+`boot2` partition at `/dev/mmcblk0p30`. The reviewed block-identity guard
+passed with root on a distinct partition, and the full boot2 checksum matched
+the installer-pinned predecessor. No write or shutdown occurred. These
+point-in-time observations must be repeated by the installer immediately
+before any write; they are not a deployment receipt.
