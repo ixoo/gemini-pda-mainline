@@ -1,0 +1,44 @@
+From 73316582403749836d42c3de18322f0c34d2ae94 Mon Sep 17 00:00:00 2001
+From: MT6797 internal experiment <nobody@example.invalid>
+Date: Sat, 26 Sep 2026 23:10:31 -0400
+Subject: [PATCH] arm64: dts: mediatek: bind passive Gemini CONSYS owner
+
+Name the existing dynamic no-map reservation and bind the shared owner
+to its exact remap word. The owner probe checks resources only; it does
+not read or write the remap or activate CONN.
+
+Internal experiment patch with a synthetic snapshot parent. No DCO
+certification.
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+index 16cf297..bbc46a6 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -55,6 +55,12 @@
+ 		status = "disabled";
+ 	};
+ 
++	consys@10001340 {
++		compatible = "mediatek,mt6797-consys";
++		reg = <0 0x10001340 0 4>;
++		memory-region = <&consys_reserved>;
++	};
++
+ 	reserved-memory {
+ 		#address-cells = <2>;
+ 		#size-cells = <2>;
+@@ -127,7 +133,7 @@
+ 			alloc-ranges = <0 0x40000000 0 0x50000000>;
+ 		};
+ 
+-		consys-reserve-memory {
++		consys_reserved: consys-reserve-memory {
+ 			compatible = "mediatek,consys-reserve-memory";
+ 			no-map;
+ 			size = <0 0x200000>;
+-- 
+2.54.0 (Apple Git-157)
+

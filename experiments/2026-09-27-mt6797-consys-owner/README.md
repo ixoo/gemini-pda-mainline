@@ -1,6 +1,6 @@
 # MT6797 shared CONSYS reservation owner
 
-The first production owner slice establishes a boot reservation claim in
+The first production owner slice binds an existing boot reservation in
 `drivers/soc/mediatek`, outside the WLAN image parser. It is selected only by
 the `mt6797-a53-consys-owner-compile` profile. There is no active manager DT
 node, child population, CONN transition, remap write, EMI secure call, firmware
@@ -86,3 +86,22 @@ linked, and all five Gemini DTBs match the preceding owner package byte for
 byte. Patch 0021 passed checkpatch without findings. The binding YAML did not
 change after its clean dtschema 2026.9 check. No device action was taken; this
 remains a compile-only owner foundation, not a boot2 candidate.
+
+## Passive owner binding candidate
+
+The isolated `mt6797-a53-consys-owner-passive` profile adds [one DTS
+patch](../../patches/proposals/0022-arm64-dts-mediatek-bind-passive-Gemini-CONSYS-owner.patch)
+to the corrected owner series. It labels the existing dynamic no-map CONSYS
+reservation and gives the shared owner its exact four-byte remap resource.
+There is no power-domain attachment, child, remap read/write, rail vote,
+reset, EMI operation, firmware request or radio operation. The original
+compile profile and its DTBs stay unchanged.
+
+The device hypothesis is that the corrected probe can bind the initialized
+boot reservation and claim the disjoint remap resource in a mainline boot.
+The unique observation is one `mt6797-consys` bound record joined to the
+exact boot identity and reservation placement; a missing record, probe error
+or boot regression redirects resource/DT diagnosis before any active owner
+work. This candidate requires a clean Buildbox package, schema/DT checks,
+exact boot2 composition and guarded installation before owner-selected boot2.
+Until those gates pass, this profile is an input, not a device result.
