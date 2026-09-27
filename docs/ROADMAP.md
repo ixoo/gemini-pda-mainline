@@ -440,7 +440,10 @@ for the first Wi-Fi bring-up. The current preparation order is:
    [A53 integration build](../experiments/2026-09-26-mt6797-modern-conn-data/A53_INTEGRATION.md)
    now links these provider proposals with the accepted service foundation;
    its Gemini DTBs are unchanged. No child DT, query client or shared owner is
-   present; this is not a device candidate. A later
+   present; this is not a device candidate. The built-source attach audit
+   also shows that one ordinary `power-domains` reference would power CONN
+   before the owner's platform probe can prepare VCN rails and CONMCU reset;
+   the owner needs an explicit deferred attachment design. A later
    [read-only Gemian EMI reference](../experiments/2026-09-26-mt6797-emi-active-reference/results/runtime.json)
    confirms the vendor-requested region-18/19 ranges and permission values in
    a boot where WLAN carrier was observed later, but also shows broad region 23

@@ -38,3 +38,25 @@ This passes the source-integration gate. It does not exercise provider probe,
 initial-OFF admission, a domain transition or any Wi-Fi operation on the PDA.
 The next code slice must add a real shared owner and its dependency/retention
 contract before an effect-bearing DT child or boot is considered.
+
+## Domain attachment order found in the built source
+
+The exact prepared 7.1.3 source exposes an owner-ordering constraint.
+`drivers/base/platform.c` calls `dev_pm_domain_attach()` with
+`PD_FLAG_ATTACH_POWER_ON` before invoking a platform driver's probe.
+`drivers/pmdomain/core.c` attaches a device with exactly one
+`power-domains` entry through `__genpd_dev_pm_attach(..., true)`, which calls
+`genpd_power_on()`. A CONSYS owner node with a single ordinary
+`power-domains` reference would therefore request CONN power before its probe
+could assert independent CONMCU reset or prepare the VCN rails. Do not add
+that binding to an active candidate.
+
+The same source offers a separate non-powering attachment mechanism:
+`of_genpd_add_device()` calls `genpd_add_device()` without a power-on call;
+`dev_pm_domain_attach_by_id()` likewise passes `false` to the attachment
+helper. These are source-level options, not an implemented owner contract.
+The next implementation must select a reviewable DT relationship and prove
+that explicit attachment, runtime activation, fault queries and retained
+cleanup preserve the rail/reset-before-domain order. This finding changes
+the planned binding and activation path; it does not justify a device boot
+or CONN transition yet.
