@@ -79,3 +79,10 @@ and retains a single owner binding instead. It does not release or alter the
 boot reservation. The earlier compile receipts did not test this runtime
 condition and are superseded for boot selection. No owner DT node or hardware
 action has been added.
+
+The [corrected Buildbox package](results/build-reserve-corrected.json) from
+clean `6ee2850c` passed full package validation; the owner is selected and
+linked, and all five Gemini DTBs match the preceding owner package byte for
+byte. Patch 0021 passed checkpatch without findings. The binding YAML did not
+change after its clean dtschema 2026.9 check. No device action was taken; this
+remains a compile-only owner foundation, not a boot2 candidate.
