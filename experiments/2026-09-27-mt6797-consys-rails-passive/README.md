@@ -19,11 +19,15 @@ The original passive profile and candidate remain frozen.
 ## Build and device decision
 
 Compile hypothesis: the pinned Linux 7.1.3 kernel links the owner with
-`devm_regulator_get()` for all three named supplies, and the Gemini DTB
+`devm_regulator_get_optional()` for all three named supplies, and the Gemini DTB
 resolves them to MT6351 regulator nodes without adding a CONN consumer or
 regulator enable policy. A patch, config, schema, compile or DT error refuses
 candidate assembly. Build only from a clean pushed commit with
 `KERNEL_PROFILE=mt6797-a53-consys-rails-passive ./scripts/build-kernel --backend buildbox`.
+
+The optional-get API is intentional: the ordinary get API can substitute a
+dummy supply when constraints are complete. Missing real providers must defer
+or fail this gate, never produce a false success record.
 
 Device hypothesis, conditional on a validated package and exact boot2 image:
 the owner binds all three *real provider handles* in one authenticated

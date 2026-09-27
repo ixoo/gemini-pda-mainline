@@ -15,7 +15,7 @@ Internal experiment only; synthetic author, no DCO certification.
  1 file changed, 50 insertions(+), 1 deletion(-)
 
 diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
-index 19f5788..2d41094 100644
+index 19f5788..b19bf33 100644
 --- a/drivers/soc/mediatek/mt6797-consys.c
 +++ b/drivers/soc/mediatek/mt6797-consys.c
 @@ -5,11 +5,13 @@
@@ -81,19 +81,19 @@ index 19f5788..2d41094 100644
 +	ret = mt6797_consys_check_supplies(pdev->dev.of_node);
 +	if (ret)
 +		goto out_unlock;
-+	vcn18 = devm_regulator_get(&pdev->dev, "vcn18");
++	vcn18 = devm_regulator_get_optional(&pdev->dev, "vcn18");
 +	if (IS_ERR(vcn18)) {
 +		ret = dev_err_probe(&pdev->dev, PTR_ERR(vcn18),
 +				    "failed to get VCN18 supply\n");
 +		goto out_unlock;
 +	}
-+	vcn28 = devm_regulator_get(&pdev->dev, "vcn28");
++	vcn28 = devm_regulator_get_optional(&pdev->dev, "vcn28");
 +	if (IS_ERR(vcn28)) {
 +		ret = dev_err_probe(&pdev->dev, PTR_ERR(vcn28),
 +				    "failed to get VCN28 supply\n");
 +		goto out_unlock;
 +	}
-+	vcn33_wifi = devm_regulator_get(&pdev->dev, "vcn33-wifi");
++	vcn33_wifi = devm_regulator_get_optional(&pdev->dev, "vcn33-wifi");
 +	if (IS_ERR(vcn33_wifi)) {
 +		ret = dev_err_probe(&pdev->dev, PTR_ERR(vcn33_wifi),
 +				    "failed to get VCN33 Wi-Fi supply\n");
