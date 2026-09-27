@@ -62,6 +62,11 @@ get, which could accept dummy rails. It was superseded without device use. The
 passed package inventory, focused binding and example checks, and focused
 validation of the built Gemini DTB. Its three VCN phandles resolve to the
 three named MT6351 children; the corrected owner probe is linked.
+The pinned MT6351 driver has matching descriptors for all three child names
+and registers them after its E2 revision check. The earlier
+[live PMIC read](../../docs/hardware/gemini-gemian-baseline.md#power-pmic-and-thermal-data)
+matches that revision gate. This is source and reference-boot evidence, not
+proof that those providers registered in this mainline boot.
 
 The [candidate recipe](build-candidate.py) combined that kernel with the
 previously tested passive owner's authenticated RAM image. It retained all RAM
