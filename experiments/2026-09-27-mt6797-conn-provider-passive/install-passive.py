@@ -25,8 +25,10 @@ def adapt(source, candidate, previous):
              "'invalid current-state evidence'\n"
     if source.count(anchor) != 1:
         raise ValueError('predecessor-check anchor changed')
-    return source.replace(anchor, '[[ "$predecessor_sha256" == ' + PREDECESSOR_SHA +
-                          " ]] || die 'unexpected boot2 predecessor'\n" + anchor)
+    return source.replace(anchor,
+                          '[[ "$predecessor_sha256" == ' + PREDECESSOR_SHA +
+                          ' || "$predecessor_sha256" == "$CANDIDATE_SHA256" ]] || die '\
+                          "'unexpected boot2 predecessor'\n" + anchor)
 
 
 INSTALLER.adapt = adapt
