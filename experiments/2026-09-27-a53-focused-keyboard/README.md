@@ -40,7 +40,15 @@ its mode. The kernel, Gemini DTB and config are byte-identical to the A53
 parent, the LK container validated, and the full-partition padding and file
 inventory rechecked. No device write, boot or keyboard action occurred.
 
-The next implementation step is an exact guarded installer and session binding
-for this new image. It must preserve the fresh Gemian predecessor, authenticated
-USB observation, finite focused capture, complete log and reviewed return
-requirements above. The private candidate is **not** selected for boot2 yet.
+The [session binding](session.py) verifies every private candidate file and
+initramfs member against the parent. The [installer](installer.py) derives the
+reviewed boot2 guard, binds it to this image and a single preceding Gemian boot,
+requires a full-partition readback, then requests a clean poweroff. The
+[host session](host-session.py) allows one changed-boot USB observation, a
+55-second keyboard phase, complete RAM-log preservation and the reviewed
+changed-boot Gemian return. A keyboard-method failure after authenticated
+observation still proceeds to log export and return. The two input windows ask
+for **1 alone**, then **left Shift + Fn + 1 followed by A with no modifiers**;
+release all keys between presses. Each lasts 15 seconds after a two-second
+no-input preflight. The owner must physically select boot2 only after the host
+collector is armed. No ten-cold-boot cycle is included in this trial.
