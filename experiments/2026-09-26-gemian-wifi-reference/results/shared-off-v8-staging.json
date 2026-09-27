@@ -1,0 +1,14 @@
+{
+  "result": "staged-not-executed",
+  "observed_utc": "2026-09-27T01:36:59Z",
+  "device_boot_id": "61ed0033-8de7-42f4-b3c5-1082db8f2503",
+  "kernel_release": "3.18.41-gemini-wifi-ref8+",
+  "script": "trace-shared-off-v8.sh",
+  "script_sha256_local_and_device": "0c4817cf91c7cf78e6530ba21c7e9b11c51c41fecfeb4fbb0c62fc93b4fd2506",
+  "device_script_owner_mode": "root:root 0700",
+  "single_use_output_directory": "absent",
+  "wlan_carrier": 1,
+  "bluetooth_hci0": "UP RUNNING",
+  "device_effect": "none",
+  "next_gate": "Physical known-good recovery availability before the bounded radio trace."
+}

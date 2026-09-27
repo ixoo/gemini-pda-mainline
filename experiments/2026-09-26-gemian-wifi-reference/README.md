@@ -825,3 +825,9 @@ only output path prevents replay in this boot. A failed return of carrier or
 HCI requires private evidence preservation and the reviewed known-good boot
 path, not a second radio cycle. The script has passed `bash -n` and ShellCheck;
 it is prepared, not yet executed. The device remains on working Gemian.
+
+The [staging receipt](results/shared-off-v8-staging.json) records that the
+root-owned device copy matches the reviewed script in this exact v8 boot.
+The single-use output directory was absent, WLAN carrier and Bluetooth were
+still up, and no radio or tracer action had begun. Execution awaits physical
+recovery availability; staging is not a trace result.
