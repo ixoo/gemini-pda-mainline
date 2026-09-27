@@ -1,0 +1,84 @@
+From 06b9eed16b8fcbe7051da4644ec964c5afbede4b Mon Sep 17 00:00:00 2001
+From: MT6797 internal experiment <nobody@example.invalid>
+Date: Sat, 26 Sep 2026 22:35:40 -0400
+Subject: [PATCH 2/2] soc: mediatek: claim MT6797 CONSYS remap word
+
+Require the exact four-byte remap register resource and map it through the
+permanent CONSYS manager. Refuse another MMIO resource or an overlapping
+kernel resource claim. No register read or write is added.
+
+Internal experiment patch with a synthetic snapshot parent. No DCO
+certification.
+---
+ drivers/soc/mediatek/mt6797-consys.c | 23 +++++++++++++++++++++--
+ 1 file changed, 21 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index aad0c83..d739c41 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -3,6 +3,7 @@
+ 
+ #include <linux/align.h>
+ #include <linux/errno.h>
++#include <linux/io.h>
+ #include <linux/ioport.h>
+ #include <linux/limits.h>
+ #include <linux/mutex.h>
+@@ -12,8 +13,11 @@
+ #include <linux/platform_device.h>
+ #include <linux/sizes.h>
+ 
++#define MT6797_CONSYS_REMAP_REG	0x10001340
++
+ struct mt6797_consys {
+ 	struct resource *claimed;
++	void __iomem *remap;
+ 	phys_addr_t base;
+ };
+ 
+@@ -130,8 +134,9 @@ out:
+ 
+ static int mt6797_consys_probe(struct platform_device *pdev)
+ {
++	struct resource *remap_resource, *claim;
++	void __iomem *remap;
+ 	u64 base;
+-	struct resource *claim;
+ 	int ret;
+ 
+ 	mutex_lock(&mt6797_consys_lock);
+@@ -142,15 +147,29 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 	ret = mt6797_consys_resolve(pdev->dev.of_node, &base);
+ 	if (ret)
+ 		goto out_unlock;
++	remap_resource = platform_get_resource(pdev, IORESOURCE_MEM, 0);
++	if (!remap_resource ||
++	    platform_get_resource(pdev, IORESOURCE_MEM, 1) ||
++	    remap_resource->start != MT6797_CONSYS_REMAP_REG ||
++	    resource_size(remap_resource) != sizeof(u32)) {
++		ret = -EINVAL;
++		goto out_unlock;
++	}
++	remap = devm_platform_ioremap_resource(pdev, 0);
++	if (IS_ERR(remap)) {
++		ret = PTR_ERR(remap);
++		goto out_unlock;
++	}
+ 	claim = request_mem_region(base, SZ_1M, "mt6797-consys");
+ 	if (!claim) {
+ 		ret = -EBUSY;
+ 		goto out_unlock;
+ 	}
+ 	mt6797_consys.base = base;
++	mt6797_consys.remap = remap;
+ 	mt6797_consys.claimed = claim;
+ 	platform_set_drvdata(pdev, &mt6797_consys);
+-	dev_info(&pdev->dev, "claimed first MiB of boot CONSYS reservation\n");
++	dev_info(&pdev->dev, "claimed boot CONSYS MiB and shared remap register\n");
+ out_unlock:
+ 	mutex_unlock(&mt6797_consys_lock);
+ 	return ret;
+-- 
+2.54.0 (Apple Git-157)
+

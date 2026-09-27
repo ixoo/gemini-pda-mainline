@@ -23,7 +23,7 @@ power ordering, EMI policy/visibility, retained failure state and a staged
 child before an effect-bearing Wi-Fi boot. The [v8 last-client trace](../2026-09-26-gemian-wifi-reference/results/trace-shared-off-v8-1.json)
 supports the vendor reference off/on branch but does not supply those grants.
 
-The two internal format patches are [the binding](../../patches/proposals/0017-dt-bindings-soc-add-MT6797-CONSYS-owner.patch)
+The initial two internal format patches are [the binding](../../patches/proposals/0017-dt-bindings-soc-add-MT6797-CONSYS-owner.patch)
 and [the owner](../../patches/proposals/0018-soc-mediatek-claim-MT6797-CONSYS-reserve.patch).
 They were exported from a narrow synthetic snapshot of the prepared Linux
 7.1.3 Kconfig/Makefile inputs; their parent hashes are not upstream commits.
@@ -42,3 +42,16 @@ The [validated Buildbox package](results/build.json) from the exact clean
 focused binding/example check passed without diagnostics using dtschema 2026.9,
 and all five Gemini DTBs match the preceding focused A53 Wi-Fi build byte for
 byte. No device action was taken; this still is not a boot2 candidate.
+
+## Four-byte shared remap claim
+
+The [binding update](../../patches/proposals/0019-dt-bindings-soc-require-MT6797-CONSYS-remap-word.patch)
+and [owner update](../../patches/proposals/0020-soc-mediatek-claim-MT6797-CONSYS-remap-word.patch)
+require the actual TOPCKGEN remap word at `0x10001340` as one exact
+four-byte MMIO resource. The owner claims/maps it before retaining the boot
+reservation; another Linux resource-tree claimant or a mismatched DT address
+refuses probe. The existing topckgen clock node covers only
+`0x10000000..0x10000fff`, so this is a disjoint register claim rather than a
+second mapping of the clock provider's resource. There is still no remap
+read/write or external-writer exclusion. The selected A53 compile profile
+continues to have no active owner DT node.

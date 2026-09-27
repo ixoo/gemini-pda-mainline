@@ -1,0 +1,51 @@
+From e5c396c8d22797d7eb1b4281cb990c7b61aa99eb Mon Sep 17 00:00:00 2001
+From: MT6797 internal experiment <nobody@example.invalid>
+Date: Sat, 26 Sep 2026 22:35:40 -0400
+Subject: [PATCH 1/2] dt-bindings: soc: require MT6797 CONSYS remap word
+
+Describe the single shared remap register at TOPCKGEN 0x1340 as a required
+resource of the MT6797 CONSYS owner. The example keeps the owner disabled
+in real Gemini DTBs.
+
+Internal experiment patch with a synthetic snapshot parent. No DCO
+certification.
+---
+ .../bindings/soc/mediatek/mediatek,mt6797-consys.yaml     | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
+index 16da7e8..56af121 100644
+--- a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
++++ b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
+@@ -19,12 +19,17 @@ properties:
+   compatible:
+     const: mediatek,mt6797-consys
+ 
++  reg:
++    maxItems: 1
++    description: Four-byte shared remap register at TOPCKGEN 0x1340.
++
+   memory-region:
+     maxItems: 1
+     description: Boot-allocated no-map CONSYS firmware reservation.
+ 
+ required:
+   - compatible
++  - reg
+   - memory-region
+ 
+ additionalProperties: false
+@@ -48,8 +53,9 @@ examples:
+             };
+         };
+ 
+-        consys {
++        consys@10001340 {
+             compatible = "mediatek,mt6797-consys";
++            reg = <0 0x10001340 0 4>;
+             memory-region = <&consys_reserved>;
+         };
+     };
+-- 
+2.54.0 (Apple Git-157)
+
