@@ -1,0 +1,233 @@
+From db9d372243f88122c52e3e04ca73b14194a031dd Mon Sep 17 00:00:00 2001
+From: MT6797 internal experiment <nobody@example.invalid>
+Date: Sat, 26 Sep 2026 22:04:01 -0400
+Subject: [PATCH 2/2] soc: mediatek: claim MT6797 CONSYS reserve
+
+Bind a permanent owner to the boot-allocated no-map CONSYS range. Validate
+the live reserved-memory resource and reject overlaps with other
+reservations or kernel resource claims. Claim only the shared first MiB.
+
+No power, remap, EMI or child population action is added. Activation still
+needs external-writer and rail/reset contracts.
+
+Internal experiment patch with a synthetic snapshot parent. No DCO
+certification.
+---
+ drivers/soc/mediatek/Kconfig         |   8 ++
+ drivers/soc/mediatek/Makefile        |   1 +
+ drivers/soc/mediatek/mt6797-consys.c | 172 +++++++++++++++++++++++++++
+ 3 files changed, 181 insertions(+)
+ create mode 100644 drivers/soc/mediatek/mt6797-consys.c
+
+diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
+index 0ab2e06..7771dac 100644
+--- a/drivers/soc/mediatek/Kconfig
++++ b/drivers/soc/mediatek/Kconfig
+@@ -45,6 +45,14 @@ config MTK_INFRACFG
+ 	  INFRACFG controller contains various infrastructure registers not
+ 	  directly associated to any device.
+ 
++config MTK_MT6797_CONSYS
++	bool "MediaTek MT6797 shared CONSYS reservation owner"
++	depends on ARM64 && OF && OF_RESERVED_MEM
++	help
++	  Claim the boot-allocated no-map CONSYS firmware reservation on MT6797.
++	  The claim is retained for the built-in owner's lifetime. This does not
++	  power CONSYS, set a remap or grant a WLAN firmware load.
++
+ config MTK_MT6797_A72_POWER
+ 	bool "MediaTek MT6797 Cortex-A72 power resource observer"
+ 	depends on ARM64 && ARCH_MEDIATEK && OF
+diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
+index fedbe07..6dc3bbc 100644
+--- a/drivers/soc/mediatek/Makefile
++++ b/drivers/soc/mediatek/Makefile
+@@ -32,6 +32,7 @@ obj-$(CONFIG_MTK_CMDQ) += mtk-cmdq-helper.o
+ obj-$(CONFIG_MTK_DEVAPC) += mtk-devapc.o
+ obj-$(CONFIG_MTK_DVFSRC) += mtk-dvfsrc.o
+ obj-$(CONFIG_MTK_INFRACFG) += mtk-infracfg.o
++obj-$(CONFIG_MTK_MT6797_CONSYS) += mt6797-consys.o
+ obj-$(CONFIG_MTK_MT6797_A72_POWER) += mt6797-a72-power.o
+ obj-$(CONFIG_MTK_MT6797_A72_PLATFORM_STATE) += mt6797-a72-platform-state.o
+ obj-$(CONFIG_MTK_MT6797_A72_TRANSITION_EXECUTOR) += mt6797-a72-transition.o
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+new file mode 100644
+index 0000000..aad0c83
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -0,0 +1,172 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/* MT6797 shared CONSYS reservation owner. */
++
++#include <linux/align.h>
++#include <linux/errno.h>
++#include <linux/ioport.h>
++#include <linux/limits.h>
++#include <linux/mutex.h>
++#include <linux/of.h>
++#include <linux/of_address.h>
++#include <linux/of_reserved_mem.h>
++#include <linux/platform_device.h>
++#include <linux/sizes.h>
++
++struct mt6797_consys {
++	struct resource *claimed;
++	phys_addr_t base;
++};
++
++static DEFINE_MUTEX(mt6797_consys_lock);
++static struct mt6797_consys mt6797_consys;
++
++static int mt6797_consys_check_other_regions(struct device_node *root,
++					      struct device_node *target,
++					      u64 base, u64 end)
++{
++	struct device_node *node;
++	struct reserved_mem *other;
++	u64 other_end;
++
++	for_each_child_of_node(root, node) {
++		if (node == target)
++			continue;
++		other = of_reserved_mem_lookup(node);
++		if (!other || !other->size)
++			continue;
++		if (other->size - 1 > ~(u64)0 - other->base) {
++			of_node_put(node);
++			return -ERANGE;
++		}
++		other_end = other->base + other->size - 1;
++		if (base <= other_end && other->base <= end) {
++			of_node_put(node);
++			return -EBUSY;
++		}
++	}
++
++	return 0;
++}
++
++static int mt6797_consys_resolve(struct device_node *consumer, u64 *base)
++{
++	struct device_node *target, *parent, *root;
++	struct resource boot = {}, live = {};
++	struct reserved_mem *rmem;
++	u64 end;
++	int address_cells, size_cells;
++	int ret = -EINVAL;
++
++	if (of_reserved_mem_region_count(consumer) != 1 ||
++	    !of_device_is_available(consumer) ||
++	    of_node_check_flag(consumer, OF_DYNAMIC) ||
++	    of_node_check_flag(consumer, OF_DETACHED))
++		return -EINVAL;
++
++	target = of_parse_phandle(consumer, "memory-region", 0);
++	if (!target)
++		return -ENODEV;
++	parent = of_get_parent(target);
++	root = of_find_node_by_path("/reserved-memory");
++	if (!root || parent != root || !of_device_is_available(root) ||
++	    !of_device_is_available(target) ||
++	    of_node_check_flag(root, OF_DYNAMIC) ||
++	    of_node_check_flag(root, OF_DETACHED) ||
++	    of_node_check_flag(target, OF_DYNAMIC) ||
++	    of_node_check_flag(target, OF_DETACHED) ||
++	    !of_device_is_compatible(target, "mediatek,consys-reserve-memory") ||
++	    !of_property_read_bool(target, "no-map") ||
++	    of_property_read_bool(target, "reusable") ||
++	    of_property_read_bool(target, "no-map-fixup") ||
++	    of_device_is_compatible(target, "shared-dma-pool") ||
++	    of_device_is_compatible(target, "restricted-dma-pool"))
++		goto out;
++	address_cells = of_n_addr_cells(target);
++	size_cells = of_n_size_cells(target);
++	if (address_cells < 1 || address_cells > 2 ||
++	    size_cells < 1 || size_cells > 2 ||
++	    of_property_count_u32_elems(target, "reg") !=
++						address_cells + size_cells)
++		goto out;
++
++	rmem = of_reserved_mem_lookup(target);
++	if (!rmem) {
++		ret = -ENODEV;
++		goto out;
++	}
++	if (rmem->ops || rmem->priv) {
++		ret = -EOPNOTSUPP;
++		goto out;
++	}
++	if (rmem->size < SZ_1M || !IS_ALIGNED(rmem->base, SZ_1M) ||
++	    rmem->base > U32_MAX || SZ_1M - 1 > U32_MAX - rmem->base ||
++	    rmem->size - 1 > ~(u64)0 - rmem->base) {
++		ret = -ERANGE;
++		goto out;
++	}
++	end = rmem->base + rmem->size - 1;
++	ret = of_reserved_mem_region_to_resource(consumer, 0, &boot);
++	if (ret)
++		goto out;
++	ret = of_address_to_resource(target, 0, &live);
++	if (ret)
++		goto out;
++	if (resource_type(&boot) != IORESOURCE_MEM ||
++	    resource_type(&live) != IORESOURCE_MEM ||
++	    boot.start != rmem->base || boot.end != end ||
++	    live.start != rmem->base || live.end != end) {
++		ret = -ESTALE;
++		goto out;
++	}
++	ret = mt6797_consys_check_other_regions(root, target, rmem->base, end);
++	if (!ret)
++		*base = rmem->base;
++out:
++	of_node_put(root);
++	of_node_put(parent);
++	of_node_put(target);
++	return ret;
++}
++
++static int mt6797_consys_probe(struct platform_device *pdev)
++{
++	u64 base;
++	struct resource *claim;
++	int ret;
++
++	mutex_lock(&mt6797_consys_lock);
++	if (mt6797_consys.claimed) {
++		ret = -EBUSY;
++		goto out_unlock;
++	}
++	ret = mt6797_consys_resolve(pdev->dev.of_node, &base);
++	if (ret)
++		goto out_unlock;
++	claim = request_mem_region(base, SZ_1M, "mt6797-consys");
++	if (!claim) {
++		ret = -EBUSY;
++		goto out_unlock;
++	}
++	mt6797_consys.base = base;
++	mt6797_consys.claimed = claim;
++	platform_set_drvdata(pdev, &mt6797_consys);
++	dev_info(&pdev->dev, "claimed first MiB of boot CONSYS reservation\n");
++out_unlock:
++	mutex_unlock(&mt6797_consys_lock);
++	return ret;
++}
++
++static const struct of_device_id mt6797_consys_of_match[] = {
++	{ .compatible = "mediatek,mt6797-consys" },
++	{}
++};
++
++static struct platform_driver mt6797_consys_driver = {
++	.probe = mt6797_consys_probe,
++	.driver = {
++		.name = "mt6797-consys",
++		.of_match_table = mt6797_consys_of_match,
++		.suppress_bind_attrs = true,
++	},
++};
++builtin_platform_driver(mt6797_consys_driver);
+-- 
+2.54.0 (Apple Git-157)
+
