@@ -3,10 +3,10 @@
 The [RE toolkit decision](RE_TOOLKIT.md) audits the current diagnostic
 capabilities and explains why Kprobes is deferred for this 3.18 arm64 tree.
 
-Status: seven diagnostic Gemian revisions built and verified in changed boot2
-sessions; an eighth reset-readback revision is being prepared. Wi-Fi carrier,
-bounded native DMA and one VCN28 PMIC readback are established; mainline shared
-ownership and later packet DMA completion remain open.
+Status: eight diagnostic Gemian revisions built and verified in changed boot2
+sessions. Wi-Fi carrier, bounded native DMA, one VCN28 PMIC readback and one
+CONMCU reset-register pair are established; mainline shared ownership and
+later packet DMA completion remain open.
 
 The known-good Gemian 3.18 kernel brings up the MT6797 Wi-Fi hardware. Its
 normal console output does not establish which CONSYS clock mode was selected
@@ -718,7 +718,7 @@ This one instant of readback establishes the programmed PMIC state after the
 vendor request, not the physical signal truth table, clock-source identity,
 exclusive votes or a safe mainline power-on sequence. The read-only diagnostic
 budget is consumed; repeating this image would not answer those remaining
-questions. The device remains in the working v7 Gemian boot.
+questions. The device remained in the working v7 Gemian boot until v8 installation.
 
 ## V8 CONMCU reset readback candidate
 
@@ -754,20 +754,36 @@ only build diagnostic is the baseline 69-section-mismatch warning. The
 comparison with v7: its ramdisk and appended DTB are byte-identical, and the
 Android-v0 layout and zero padding are preserved. The selected 16 MiB boot2
 image SHA-256 is `f106361945822b3d9093c10de8503901a51c310cfaa7beb87cc56c2152cae6b2`.
-The reviewed installer is pinned to that image, the current v7 boot identity,
-and the v7 boot2 predecessor checksum. These are preparation results; v8 has
-not yet been run on the PDA.
+The reviewed installer is pinned to that image, the v7 boot identity,
+and the v7 boot2 predecessor checksum.
 
 The [v8 deployment receipt](results/deployment-v8.json) records the guarded
 write from that verified v7 boot: live GPT resolved inactive boot2, the
 predecessor matched, power was healthy, and the flushed full-partition
-readback matched the v8 candidate. Gemian shut down cleanly. The one-shot
-collector was armed before owner selection; changed-boot execution remains
-to be verified.
+readback matched the v8 candidate. Gemian shut down cleanly.
 
 The [first v8 observation attempt](results/runtime-v8-attempt-1.json) ended
 after its 30-minute LAN window without a changed-boot connection. The PDA was
 still unreachable on the known-good Gemian endpoint, and the Mac showed no
 MediaTek USB device at the subsequent read-only check. Physical boot2 selection
 in that window is unconfirmed. This is not a v8 boot, reset-readback or Wi-Fi
-result; the installed candidate remains available for a later attended boot.
+result; the installed candidate was available for a later attended boot.
+
+The subsequent attended selection produced a verified changed Gemian boot.
+The [v8 runtime receipt](results/runtime-v8-return-2.json) binds boot ID
+`61ed0033-8de7-42f4-b3c5-1082db8f2503`, release
+`3.18.41-gemini-wifi-ref8+` and a live read-only boot2 checksum to the exact
+installed candidate. The complete early kernel log prefixes the later log;
+each contains exactly one v8 record at 10.463824 seconds. TOPRGU
+`CONSYS_CPU_SW_RST` read `0x00011000` immediately after the vendor assert
+request and `0x00010000` immediately after release. Thus bit 12 was set then
+clear at the two observed instants; the record selected chip `0x0279`.
+`wlan0` became link-ready at 17.624061 seconds, and carrier was 1 in both
+collector samples. Warning and call-trace occurrence counts matched the v7
+predecessor. The device remains in this working v8 Gemian boot.
+
+The pair confirms logical register readback along the working vendor path,
+not the physical reset signal, exclusive resource ownership or a safe
+mainline power/reset sequence. The one-selection test budget is consumed;
+another identical boot would not resolve those questions. Raw logs and the
+collector remain private under ignored `artifacts/`.

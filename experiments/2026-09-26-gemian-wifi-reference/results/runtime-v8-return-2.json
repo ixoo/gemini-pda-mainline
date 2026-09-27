@@ -1,0 +1,31 @@
+{
+  "candidate_sha256": "f106361945822b3d9093c10de8503901a51c310cfaa7beb87cc56c2152cae6b2",
+  "live_boot2_sha256": "f106361945822b3d9093c10de8503901a51c310cfaa7beb87cc56c2152cae6b2",
+  "previous_boot_id": "678aad0e-34f5-4134-8ac1-92ee9feed207",
+  "observed_boot_id": "61ed0033-8de7-42f4-b3c5-1082db8f2503",
+  "kernel_release": "3.18.41-gemini-wifi-ref8+",
+  "collector_result": "complete",
+  "private_collector_script_sha256": "dc7fca4597f2f11672daa459d4454d7b8bc456a6eed349c6450232d6f399fcbe",
+  "private_collector_result_sha256": "b409f4b182778fa7d10e5bd660d08ac0f31daefb1f08f220984e00a5638168c6",
+  "private_early_dmesg_sha256": "dce0f0492c55ff9eddea4292076794fb0b1fae2fa89b98c831ae555d33cc80ac",
+  "private_late_dmesg_sha256": "71be74c8993771a0e999b5099046784ca5cda3f3572cd719fa39ee040a574c48",
+  "early_log_is_prefix_of_late": true,
+  "conmcu_reset_records_per_log": {
+    "early": 1,
+    "late": 1
+  },
+  "conmcu_reset_sample_seconds_since_boot": 10.463824,
+  "conmcu_reset_after_assert": "0x00011000",
+  "conmcu_reset_after_release": "0x00010000",
+  "conmcu_reset_bit_12_after_assert": 1,
+  "conmcu_reset_bit_12_after_release": 0,
+  "selected_chip_id": "0x0279",
+  "wifi_link_ready_seconds_since_boot": 17.624061,
+  "carrier_early": 1,
+  "carrier_late": 1,
+  "v7_and_v8_late_log_warning_occurrences": 20,
+  "v7_and_v8_late_log_call_trace_occurrences": 25,
+  "cmdline_read": "permission denied to unprivileged collector",
+  "result": "Verified changed v8 boot and one reset-register readback pair; bit 12 was set after assert and clear after release, and Wi-Fi reached carrier.",
+  "limits": "The two logical register readbacks do not prove the physical reset signal, exclusive ownership, or a safe mainline power/reset sequence. Carrier samples do not establish durable Wi-Fi operation."
+}

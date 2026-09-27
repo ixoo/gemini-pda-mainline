@@ -484,7 +484,11 @@ for the first Wi-Fi bring-up. The current preparation order is:
    unresolved. A [v7 read-only PMIC sample](../experiments/2026-09-26-gemian-wifi-reference/results/runtime-v7-return-1.json)
    found VCN28 control bit 3 set after the working Gemian hardware-mode request;
    both source-clock selection fields read 3. The physical clock/control
-   truth table and shared ownership remain open. The
+   truth table and shared ownership remain open. A
+   [v8 reset readback](../experiments/2026-09-26-gemian-wifi-reference/results/runtime-v8-return-2.json)
+   observed TOPRGU CONMCU reset bit 12 set after the vendor assert request and
+   clear after release in a working Gemian boot. Physical reset behavior,
+   exclusive ownership and safe mainline sequencing remain unproved. The
    [same-boot 4G/DMA join](../experiments/2026-09-26-gemian-wifi-reference/results/4g-mode-v6-dma-join.json)
    finds the positive early 4G selector and later mapped host addresses below
    4 GiB while the selected HIF start path issues unconditional ADDR2 bit-32
