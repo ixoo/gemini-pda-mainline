@@ -12,7 +12,7 @@
     "execution_state": "active-owner-available",
     "pause_record": "experiments/2026-09-05-owner-away-experiment-preparation/emmc/PAUSE_SESSION_PREPARATION.json"
   },
-  "active_device_experiment": "a53-focused-keyboard",
+  "active_device_experiment": null,
   "workstreams": [
     {
       "id": "integration",

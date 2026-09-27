@@ -61,3 +61,16 @@ and clean shutdown. The one armed 600-second USB collector expired without a
 new route or owner boot2 selection. No mainline boot or keyboard observation
 was made. A future trial requires a newly armed collector before physical
 selection; the installed image does not need another write unless boot2 changes.
+
+## Physical observation
+
+The owner selected boot2 with a fresh collector armed. The
+[sanitized runtime result](results/runtime-1.json) records a changed mainline
+boot, successful reader preflight, two complete 15-second input windows,
+restored console, complete sealed log and changed-ID Gemian return. Both
+windows contained zero input events and zero console bytes. The owner had not
+been explicitly given the key sequence before selection, so the empty capture
+does not establish a keyboard failure or a keyboard pass. The focused reader
+method reached the windows, but the physical-key question remains unanswered.
+This finite session is closed; no repeat is selected while Wi-Fi is the
+development priority.

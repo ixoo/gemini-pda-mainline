@@ -631,10 +631,12 @@ The [twenty-step keyboard capture](../experiments/2026-09-05-owner-away-experime
 remains accepted for its stated scope. Its release-order limitation and the
 [A53 focused-mode refusal](../experiments/2026-09-09-standard-kernel-package/results/a53-keyboard-method-trial-20260925.json)
 remain recorded. One [focused A53 reader image](../experiments/2026-09-27-a53-focused-keyboard/README.md#device-deployment)
-is installed with full readback and clean shutdown, waiting for an owner-selected
-boot with a freshly armed collector; no keyboard result exists for it yet. This
-closes the already prepared method gate without moving further A53 development
-ahead of Wi-Fi. Items with unverified
+was installed with full readback and clean shutdown. Its
+[physical observation](../experiments/2026-09-27-a53-focused-keyboard/results/runtime-1.json)
+reached both input windows but captured no key events or console bytes; no
+physical-key pass or hardware failure follows. Complete logs and changed-boot
+Gemian return were preserved. The session is closed, and no further A53
+keyboard test is selected ahead of Wi-Fi. Items with unverified
 candidate or protocol inputs remain planned/preparing. Conditional items have
 frozen validated inputs and await only an explicit runtime result predicate.
 The cumulative ten-cold-boot release gate remains distinct; schedule

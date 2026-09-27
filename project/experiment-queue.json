@@ -3,20 +3,20 @@
   "purpose": "Readiness inventory, not an executable queue or device authorization. Object order is not scheduling order; docs/ROADMAP.md alone owns priority. Exact inputs, budgets and chronology stay in linked experiments.",
   "roadmap": "docs/ROADMAP.md#owner-away-progress",
   "session_template": "project/DEVICE_SESSION.md",
-  "selected_item": "a53-focused-keyboard",
-  "selection_note": "The focused A53 keyboard image is installed on boot2 with matching full-partition readback and confirmed clean shutdown. One 600-second host USB collector expired without a new route or reported physical selection. No mainline observation budget was consumed; arm a fresh collector before the owner selects boot2. This closes an already prepared A53 serviceability method gate while Wi-Fi remains the higher development priority. See experiments/2026-09-27-a53-focused-keyboard/results/deployment.json.",
+  "selected_item": null,
+  "selection_note": "The focused A53 keyboard boot completed with successful reader preflight and two empty input windows, complete log preservation and changed-ID Gemian return. The method remains inconclusive for physical keys; its finite session is closed. No further A53 keyboard test is selected ahead of Wi-Fi. See experiments/2026-09-27-a53-focused-keyboard/results/runtime-1.json.",
   "items": {
     "a53-focused-keyboard": {
       "workstream": "serviceability",
-      "preparation_state": "ready",
-      "device_state": "waiting-owner-boot",
+      "preparation_state": "stale",
+      "device_state": "complete",
       "owner": "primary integration coordinator",
       "reviewer": "primary integration coordinator",
-      "device_custodian": "primary integration coordinator",
+      "device_custodian": null,
       "experiment": "experiments/2026-09-27-a53-focused-keyboard/README.md",
       "session_packet": "experiments/2026-09-27-a53-focused-keyboard/README.md",
       "candidate_record": "experiments/2026-09-27-a53-focused-keyboard/results/candidate.json",
-      "readiness_record": "experiments/2026-09-27-a53-focused-keyboard/results/deployment.json",
+      "readiness_record": "experiments/2026-09-27-a53-focused-keyboard/results/runtime-1.json",
       "dependencies": [
         {
           "item": "a53-service-ram-regression",
@@ -25,7 +25,7 @@
         }
       ],
       "owner_task_id": null,
-      "readiness_note": "The exact 16 MiB focused-reader image replaced only the A53 initramfs keyboard reader. The guarded boot2 write, full readback and clean shutdown passed. No owner-selected boot or keyboard observation occurred in the expired collector window; the installed image remains the selected candidate and needs a new finite host collector before physical selection."
+      "readiness_note": "One owner-selected boot2 test completed. The reader passed preflight and entered both 15-second windows, but recorded zero input events and zero console bytes; this establishes neither keyboard pass nor hardware fault because no key sequence was explicitly prompted before selection. Complete log and changed-ID Gemian return passed. Budget consumed; no unchanged-image retry selected while Wi-Fi retains priority."
     },
     "a53-service-ram-regression": {
       "workstream": "serviceability",

@@ -1,0 +1,21 @@
+{
+  "status": "complete-method-inconclusive-keyboard",
+  "candidate_full_sha256": "34b56a58abe0932d1e7374ed7e668487518fa9d6067a9bf6d60c19d313780020",
+  "mainline_boot_id": "c8bd6660-e981-40ab-9801-ccb829930395",
+  "keyboard_reader_exit_status": 0,
+  "reader_preflight": "pass",
+  "observation_windows": [
+    {"index": 0, "elapsed_ms": 15015, "input_events": 0, "console_bytes": 0},
+    {"index": 1, "elapsed_ms": 15015, "input_events": 0, "console_bytes": 0}
+  ],
+  "console_restored": true,
+  "keyboard_pass": false,
+  "keyboard_hardware_claim": false,
+  "complete_log_through_seal": true,
+  "pre_recovery_evidence_preserved": true,
+  "recovery": "one native request, changed-ID Gemian confirmed",
+  "returned_gemian_boot_id": "b216072f-1231-4a17-b712-d483c9f27055",
+  "private_session_result_sha256": "dddf9267d6be9ff37cd21be22e7d81856d1efb3c3cbeb470b944e83d7f631725",
+  "private_keyboard_capture_sha256": "3384c80b4dcfe6c5e4240fdaa03145d7844c715c92bb57de7803273ff6148580",
+  "limitation": "No physical key input was captured in either window. The owner was not explicitly prompted for the key sequence before boot2 selection, so the empty windows cannot distinguish missing user input from a device input failure. This candidate is not selected for an unchanged-image retry; Wi-Fi retains priority."
+}
