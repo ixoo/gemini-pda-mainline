@@ -1,0 +1,145 @@
+From 2794338120a2ae7a7ebcab28d782a4611189678b Mon Sep 17 00:00:00 2001
+From: MT6797 internal experiment <nobody@example.invalid>
+Date: Sun, 27 Sep 2026 13:57:08 -0400
+Subject: [PATCH] wifi: mediatek: prepare immutable MT6797 firmware plan
+
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig  |  2 +-
+ drivers/net/wireless/mediatek/mt6797/Makefile |  1 +
+ .../mediatek/mt6797/firmware-prepare.c        | 69 +++++++++++++++++++
+ .../mediatek/mt6797/firmware-prepare.h        | 25 +++++++
+ 4 files changed, 96 insertions(+), 1 deletion(-)
+ create mode 100644 drivers/net/wireless/mediatek/mt6797/firmware-prepare.c
+ create mode 100644 drivers/net/wireless/mediatek/mt6797/firmware-prepare.h
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index f6b3c96..14e0eb2 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -1,7 +1,7 @@
+ # SPDX-License-Identifier: GPL-2.0-only
+ config MT6797_HIF_CORE
+ 	bool "MT6797 private WLAN HIF transport core"
+-	depends on ARM64
++	depends on ARM64 && FW_LOADER
+ 	select CRC32
+ 	default n
+ 	help
+diff --git a/drivers/net/wireless/mediatek/mt6797/Makefile b/drivers/net/wireless/mediatek/mt6797/Makefile
+index b5f43b1..be83c8a 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Makefile
++++ b/drivers/net/wireless/mediatek/mt6797/Makefile
+@@ -8,3 +8,4 @@ obj-y += remap-fields.o
+ obj-y += resource-layout.o
+ obj-y += ordinary-transfer.o
+ obj-y += emi-service-gate.o
++obj-y += firmware-prepare.o
+diff --git a/drivers/net/wireless/mediatek/mt6797/firmware-prepare.c b/drivers/net/wireless/mediatek/mt6797/firmware-prepare.c
+new file mode 100644
+index 0000000..5d74b58
+--- /dev/null
++++ b/drivers/net/wireless/mediatek/mt6797/firmware-prepare.c
+@@ -0,0 +1,69 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/* Passive MT6797 WLAN firmware acquisition and complete-plan validation. */
++
++#include <linux/errno.h>
++#include <linux/firmware.h>
++#include <linux/slab.h>
++
++#include "firmware-prepare.h"
++
++struct mt6797_wlan_firmware {
++	const struct firmware *blob;
++	struct mt6797_image_plan plan;
++};
++
++int mt6797_wlan_firmware_prepare(struct device *dev,
++				 struct mt6797_wlan_firmware **out)
++{
++	struct mt6797_wlan_firmware *image;
++	int ret;
++
++	if (!out)
++		return -EINVAL;
++	*out = NULL;
++	if (!dev)
++		return -EINVAL;
++
++	image = kzalloc(sizeof(*image), GFP_KERNEL);
++	if (!image)
++		return -ENOMEM;
++	ret = request_firmware(&image->blob, MT6797_WLAN_FIRMWARE_NAME, dev);
++	if (ret)
++		goto free_image;
++	if (image->blob->size > MTKE_MAX_BYTES) {
++		ret = -EFBIG;
++		goto release_blob;
++	}
++	ret = mt6797_image_plan_prepare(&image->plan, image->blob->data,
++					image->blob->size);
++	if (ret) {
++		ret = ret == -2 ? -EOPNOTSUPP : -EINVAL;
++		goto release_blob;
++	}
++	*out = image;
++	return 0;
++
++release_blob:
++	release_firmware(image->blob);
++free_image:
++	kfree(image);
++	return ret;
++}
++
++int mt6797_wlan_firmware_describe(const struct mt6797_wlan_firmware *image,
++				  unsigned int index,
++				  struct mt6797_plan_section *section)
++{
++	if (!image || !section)
++		return -EINVAL;
++	return mt6797_image_plan_describe(&image->plan, index, section) ?
++		-EINVAL : 0;
++}
++
++void mt6797_wlan_firmware_release(struct mt6797_wlan_firmware *image)
++{
++	if (!image)
++		return;
++	release_firmware(image->blob);
++	kfree(image);
++}
+diff --git a/drivers/net/wireless/mediatek/mt6797/firmware-prepare.h b/drivers/net/wireless/mediatek/mt6797/firmware-prepare.h
+new file mode 100644
+index 0000000..671756e
+--- /dev/null
++++ b/drivers/net/wireless/mediatek/mt6797/firmware-prepare.h
+@@ -0,0 +1,25 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef MT6797_WLAN_FIRMWARE_PREPARE_H
++#define MT6797_WLAN_FIRMWARE_PREPARE_H
++
++#include <linux/device.h>
++
++#include "image-plan.h"
++
++#define MT6797_WLAN_FIRMWARE_NAME "mediatek/mt6797/WIFI_RAM_CODE_6797"
++
++struct mt6797_wlan_firmware;
++
++/* Passive only. The returned object owns immutable firmware bytes and its
++ * complete plan until release. No hardware admission or executable section
++ * view is exposed. A future executor must retain it across every effect and
++ * prove quiescence before calling release.
++ */
++int mt6797_wlan_firmware_prepare(struct device *dev,
++				 struct mt6797_wlan_firmware **out);
++int mt6797_wlan_firmware_describe(const struct mt6797_wlan_firmware *image,
++				  unsigned int index,
++				  struct mt6797_plan_section *section);
++void mt6797_wlan_firmware_release(struct mt6797_wlan_firmware *image);
++
++#endif
+-- 
+2.54.0 (Apple Git-157)
+
