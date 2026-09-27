@@ -534,3 +534,4 @@ proposals/0018-soc-mediatek-claim-MT6797-CONSYS-reserve.patch
 proposals/0019-dt-bindings-soc-require-MT6797-CONSYS-remap-word.patch
 proposals/0020-soc-mediatek-claim-MT6797-CONSYS-remap-word.patch
 proposals/0021-soc-mediatek-bind-existing-no-map-CONSYS-reserve.patch
+proposals/0023-soc-mediatek-resolve-dynamic-CONSYS-reservation.patch

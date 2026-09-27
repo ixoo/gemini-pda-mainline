@@ -1,16 +1,17 @@
 # MT6797 shared CONSYS reservation owner
 
 The first production owner slice binds an existing boot reservation in
-`drivers/soc/mediatek`, outside the WLAN image parser. It is selected only by
-the `mt6797-a53-consys-owner-compile` profile. There is no active manager DT
-node, child population, CONN transition, remap write, EMI secure call, firmware
-load, radio operation or device candidate in this profile.
+`drivers/soc/mediatek`, outside the WLAN image parser. The initial
+`mt6797-a53-consys-owner-compile` profile selects it without an active manager
+DT node, child population, CONN transition, remap write, EMI secure call,
+firmware load, radio operation or device candidate. The later passive profile
+adds a manager DT node without activating those effects.
 
 The driver requires one boot-allocated `memory-region` directly under
 `/reserved-memory`, with the MT6797 CONSYS compatible, `no-map`, no reusable or
 DMA-pool treatment, no region callback, at least 1 MiB, a 1 MiB-aligned base
 and an addressable first MiB below 4 GiB. It compares the initialized
-reserved-memory descriptor to both OF resource views and rejects overlap
+reserved-memory descriptor to the consumer resource view and rejects overlap
 with other initialized reservations. The later [binding correction](../../patches/proposals/0021-soc-mediatek-bind-existing-no-map-CONSYS-reserve.patch)
 requires the first MiB to be covered by ARM64's existing busy, non-System-RAM
 boot resource. A duplicate manager refuses. The boot reservation already
@@ -87,7 +88,17 @@ byte. Patch 0021 passed checkpatch without findings. The binding YAML did not
 change after its clean dtschema 2026.9 check. No device action was taken; this
 remains a compile-only owner foundation, not a boot2 candidate.
 
-## Passive owner binding candidate
+## Dynamic allocation correction and passive binding candidate
+
+The first owner probe checked a static `reg` property and used
+`of_address_to_resource()` on its target. Gemini's boot-allocated reservation
+has `size`, `alignment` and `alloc-ranges`, but no `reg`; the first active
+binding would therefore refuse before reaching the resource-tree check. The
+[dynamic correction](../../patches/proposals/0023-soc-mediatek-resolve-dynamic-CONSYS-reservation.patch)
+requires that dynamic form and compares the initialized `reserved_mem` with
+`of_reserved_mem_region_to_resource()`. It retains the busy boot-resource
+check and refuses a static replacement. Earlier compile receipts do not
+validate this active probe path and are superseded for boot selection.
 
 The isolated `mt6797-a53-consys-owner-passive` profile adds [one DTS
 patch](../../patches/proposals/0022-arm64-dts-mediatek-bind-passive-Gemini-CONSYS-owner.patch)

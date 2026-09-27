@@ -580,6 +580,7 @@ proposals/0019-dt-bindings-soc-require-MT6797-CONSYS-remap-word.patch
 proposals/0020-soc-mediatek-claim-MT6797-CONSYS-remap-word.patch
 proposals/0021-soc-mediatek-bind-existing-no-map-CONSYS-reserve.patch
 proposals/0022-arm64-dts-mediatek-bind-passive-Gemini-CONSYS-owner.patch
+proposals/0023-soc-mediatek-resolve-dynamic-CONSYS-reservation.patch
 upstream-4d7d9486/mt6351/0001-mfd-mt6397-size-the-MT6328-interrupt-domain-for-its-.patch
 upstream-4d7d9486/mt6351/0002-dt-bindings-regulator-describe-MediaTek-MT6351-rails.patch
 upstream-4d7d9486/mt6351/0003-dt-bindings-mfd-mediatek-describe-MT6351-regulator-p.patch

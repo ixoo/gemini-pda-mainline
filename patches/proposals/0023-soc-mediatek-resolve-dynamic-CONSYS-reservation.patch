@@ -1,0 +1,71 @@
+From 583104d7d7be6cd0570cfe42016c8a8a97119fd4 Mon Sep 17 00:00:00 2001
+From: MT6797 internal experiment <nobody@example.invalid>
+Date: Sat, 26 Sep 2026 23:16:43 -0400
+Subject: [PATCH] soc: mediatek: resolve dynamic CONSYS reservation
+
+Gemini uses a size/alignment/alloc-ranges reserved-memory node with no
+static reg property. Compare its initialized reserved-memory resource
+with the live descriptor and reject a static replacement.
+
+Internal experiment patch with a synthetic snapshot parent. No DCO
+certification.
+---
+ drivers/soc/mediatek/mt6797-consys.c | 16 +++++++---------
+ 1 file changed, 7 insertions(+), 9 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index d50497a..19f5788 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -8,7 +8,6 @@
+ #include <linux/limits.h>
+ #include <linux/mutex.h>
+ #include <linux/of.h>
+-#include <linux/of_address.h>
+ #include <linux/of_reserved_mem.h>
+ #include <linux/platform_device.h>
+ #include <linux/sizes.h>
+@@ -55,7 +54,7 @@ static int mt6797_consys_check_other_regions(struct device_node *root,
+ static int mt6797_consys_resolve(struct device_node *consumer, u64 *base)
+ {
+ 	struct device_node *target, *parent, *root;
+-	struct resource boot = {}, live = {};
++	struct resource boot = {};
+ 	struct reserved_mem *rmem;
+ 	u64 end;
+ 	int address_cells, size_cells;
+@@ -87,9 +86,13 @@ static int mt6797_consys_resolve(struct device_node *consumer, u64 *base)
+ 		goto out;
+ 	address_cells = of_n_addr_cells(target);
+ 	size_cells = of_n_size_cells(target);
++	/* Match the boot-allocated form, whose node has no static reg. */
+ 	if (address_cells < 1 || address_cells > 2 ||
+ 	    size_cells < 1 || size_cells > 2 ||
+-	    of_property_count_u32_elems(target, "reg") !=
++	    of_find_property(target, "reg", NULL) ||
++	    of_property_count_u32_elems(target, "size") != size_cells ||
++	    of_property_count_u32_elems(target, "alignment") != address_cells ||
++	    of_property_count_u32_elems(target, "alloc-ranges") !=
+ 						address_cells + size_cells)
+ 		goto out;
+ 
+@@ -110,15 +113,10 @@ static int mt6797_consys_resolve(struct device_node *consumer, u64 *base)
+ 	}
+ 	end = rmem->base + rmem->size - 1;
+ 	ret = of_reserved_mem_region_to_resource(consumer, 0, &boot);
+-	if (ret)
+-		goto out;
+-	ret = of_address_to_resource(target, 0, &live);
+ 	if (ret)
+ 		goto out;
+ 	if (resource_type(&boot) != IORESOURCE_MEM ||
+-	    resource_type(&live) != IORESOURCE_MEM ||
+-	    boot.start != rmem->base || boot.end != end ||
+-	    live.start != rmem->base || live.end != end) {
++	    boot.start != rmem->base || boot.end != end) {
+ 		ret = -ESTALE;
+ 		goto out;
+ 	}
+-- 
+2.54.0 (Apple Git-157)
+
