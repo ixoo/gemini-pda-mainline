@@ -36,9 +36,38 @@ alone cannot establish provider registration.
 - Any observed CONN power transition, A53 service regression or changed
   behavior of the legacy clients rejects this diagnostic candidate.
 
-The current patch and profile are source inputs awaiting a clean Buildbox
-package and candidate admission. There is no runtime result yet. Before a
-device test, pin the exact package and DTB, verify the legacy provider is
-disabled and that no consumer refers to the modern phandle, assemble the
-accepted RAM image with the same guarded boot2 procedure, state the finite
-collector and recovery budgets, and arm it before the owner selects boot2.
+## Build and composition
+
+Clean pushed commit `25eb161f34a61a7b15daf26f10d776e6d88b401e`
+applied all 541 selected patches and built a full kernel on Buildbox. Its
+immutable package inventory is `af8601b0…07c91f`; the fetched package passed
+its checksum inventory. The [build receipt](results/build.json) pins the
+selection. The resolved config still disables legacy `MTK_SCPSYS` and enables
+the modern provider. `Image.gz` and the config are byte-identical to the
+accepted passive-reset image.
+
+The raw built Gemini DTB contains unrelated source-tree defaults, including
+disabled USB and keyboard nodes, so it is not a boot2 candidate. The
+[candidate builder](build-candidate.py) verified the built provider subtree,
+then added only its SPM parent properties and CONN child to the boot-tested
+passive-reset DTB. It compared every preexisting node and property before
+packaging the unchanged kernel and RAM root. The resulting
+[sanitized receipt](results/candidate.json) pins boot image
+`ae6767ee…0006fd3` and full padded boot2 image `99888ffb…05c4750`.
+The private image remains ignored under `artifacts/conn-provider/`.
+
+This is an offline composition pass only; no boot2 write, provider registration
+or runtime result has occurred. Before device use, validate the live Gemian
+and boot2 identities, use the reviewed block-device guard and full readback,
+then cleanly shut down. Arm a finite USB collector before the owner physically
+selects boot2. Preserve the provider probe and kernel log before the reviewed
+return to Gemian.
+
+The [guarded installer](install-passive.py) pins the existing full boot2
+checksum as its predecessor and the [session](passive-host.py) extends the
+accepted A53 service collector with one read-only, 15-second provider probe.
+It checks the live boot ID and that exactly one modern CONN platform device
+is bound to `mtk-power-controller`. This probe runs after the authenticated
+A53 observation and before the pre-recovery evidence seal. Its failure does
+not skip log preservation or the reviewed Gemian return; it makes the provider
+gate fail separately from the A53 regression.
