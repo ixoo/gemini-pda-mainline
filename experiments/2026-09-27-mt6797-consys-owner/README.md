@@ -113,6 +113,31 @@ boot reservation and claim the disjoint remap resource in a mainline boot.
 The unique observation is one `mt6797-consys` bound record joined to the
 exact boot identity and reservation placement; a missing record, probe error
 or boot regression redirects resource/DT diagnosis before any active owner
-work. This candidate requires a clean Buildbox package, schema/DT checks,
-exact boot2 composition and guarded installation before owner-selected boot2.
-Until those gates pass, this profile is an input, not a device result.
+work.
+
+The first passive build from `52637bb2` linked successfully but still had
+the static-`reg` probe error described above. It was never made a boot2
+candidate. The [corrected Buildbox package](results/build-passive.json) from
+clean pushed `60b8972b` passed full inventory validation. The owner is linked,
+and the built Gemini tree has the exact four-byte remap resource and a phandle
+to the dynamic reservation. All five Gemini DTBs stayed byte-identical to the
+earlier passive build because the correction changed only C. The new DTS and
+driver patches passed checkpatch without findings; the focused binding YAML
+passed `dt-doc-validate`. No device action occurred during those builds.
+
+The [exact candidate recipe](build-passive-candidate.py) checked that package,
+the accepted A53 RAM parent and its 47-member archive. It changed only the
+init release gate, added one passive owner DT node and one phandle to the
+existing reservation, validated the LK Android-v0 container and padded it to
+16 MiB. The [sanitized candidate receipt](results/passive-candidate.json)
+records boot image SHA-256 `38ebcb1c…b54eb69` and full boot2 SHA-256
+`251449ff…2a29a`; the image and private authentication keys remain ignored.
+The [installer adapter](install-passive.py) reuses the reviewed live-GPT
+boot2 guard, exact predecessor/readback checks and clean shutdown. Its offline
+prepare passed with the current v8 Gemian boot identity; no write has been
+requested. The [session binding](passive-session.py) passed offline candidate
+validation. The [host runner](passive-host.py) uses the established bounded
+authenticated USB collection and reviewed Gemian return path after an owner
+selection. The unique on-device result remains the owner bind record in an
+authenticated complete log; an absent record or probe error is a negative
+result, not a reason to repeat the same image.

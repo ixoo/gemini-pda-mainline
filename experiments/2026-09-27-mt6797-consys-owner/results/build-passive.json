@@ -1,0 +1,16 @@
+{
+  "status": "validated-passive-owner-build",
+  "repository_commit": "60b8972ba1b9538256a7aad3faa76da98938eef4",
+  "profile": "mt6797-a53-consys-owner-passive",
+  "kernel_release": "7.1.3-gemini-a53-consys-owner-passive",
+  "package_inventory_sha256": "e3a6700ad42b357ac474acbf6e0863affc86173d8d583875b74dcc5903882846",
+  "source_sha256": "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc",
+  "patchset_sha256": "d802cb5ae8c4eced655cba9b42a77c8d21045933b6e0ab14bc678cdac77499af",
+  "selected_patch_count": 535,
+  "kernel_config_sha256": "6fd4c538eb3a56cc8f948d9c5bf0985e3b25789274940c21545157d852274e6e",
+  "image_gzip_sha256": "3ef2f47745a9fa70e1a13ec5e7b8993e59e981b5cd25794a561b1f2b4a1e952f",
+  "built_gemini_dtb_sha256": "960e6d37ddb4f7a8fa6b54cbbd0029de4e9f89163aa36ced2e474a05708b47fd",
+  "validation": "Clean pushed Buildbox build and full package inventory passed; CONFIG_MTK_MT6797_CONSYS=y and mt6797_consys_probe linked. The five Gemini DTBs were byte-identical to the preceding passive build because the correction changed only C. The new DTS patch and dynamic-reservation correction passed checkpatch with zero findings; the built Gemini DTB has the expected compatible, exact four-byte reg and matching reservation phandle.",
+  "device_execution": false,
+  "limitation": "This package alone does not show that the owner probe binds on the PDA. It has no radio or CONN activation path."
+}
