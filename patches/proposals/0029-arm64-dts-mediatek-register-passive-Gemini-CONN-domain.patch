@@ -1,0 +1,84 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: MT6797 diagnostic experiment <nobody@example.invalid>
+Date: Sun, 27 Sep 2026 19:06:00 -0400
+Subject: [PATCH] arm64: dts: mediatek: register passive Gemini CONN domain
+
+Populate the modern MT6797 CONN domain provider beneath the existing SPM
+syscon for a diagnostic profile. The legacy flat provider remains in the
+tree for its existing consumers but is disabled in this profile. Both
+providers refer to one SPM register map; no second register range is
+declared. There is no CONN consumer, so provider registration must only
+check the initial OFF state and leave the island off.
+
+This is a profile-isolated diagnostic, not a default board migration.
+The existing flat clients and the modern provider need a unified domain
+topology before this can enter the normal board description. Do not enable
+the legacy SCPSYS driver with this diagnostic DT.
+
+Internal experiment with synthetic author; no DCO certification.
+---
+ .../bindings/power/mediatek,mt6797-scpsys.yaml | 11 +++++++++++
+ .../boot/dts/mediatek/mt6797-gemini-pda.dts    | 20 ++++++++++++++++++++
+ 2 files changed, 31 insertions(+)
+
+diff --git a/Documentation/devicetree/bindings/power/mediatek,mt6797-scpsys.yaml b/Documentation/devicetree/bindings/power/mediatek,mt6797-scpsys.yaml
+--- a/Documentation/devicetree/bindings/power/mediatek,mt6797-scpsys.yaml
++++ b/Documentation/devicetree/bindings/power/mediatek,mt6797-scpsys.yaml
+@@ -22,7 +22,9 @@ properties:
+   compatible:
+     items:
+       - const: mediatek,mt6797-scpsys
+       - const: syscon
++      - const: simple-mfd
++    minItems: 2
+ 
+   reg:
+     maxItems: 1
+@@ -38,6 +40,15 @@ properties:
+   '#power-domain-cells':
+     const: 1
+ 
++  '#address-cells':
++    const: 1
++
++  '#size-cells':
++    const: 0
++
++  power-controller:
++    $ref: /schemas/power/mediatek,power-controller.yaml#
++
+   clocks:
+     minItems: 4
+     maxItems: 4
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -10,6 +10,26 @@
+ #include <dt-bindings/input/input.h>
+ #include <dt-bindings/interrupt-controller/irq.h>
++#include <dt-bindings/power/mt6797-power.h>
+ #include <dt-bindings/reset/mt6797-resets.h>
+ 
++&scpsys {
++	compatible = "mediatek,mt6797-scpsys", "syscon", "simple-mfd";
++	#address-cells = <1>;
++	#size-cells = <0>;
++
++	conn_power: power-controller {
++		compatible = "mediatek,mt6797-power-controller";
++		#address-cells = <1>;
++		#size-cells = <0>;
++		#power-domain-cells = <1>;
++		access-controllers = <&infrasys>;
++
++		power-domain@c {
++			reg = <MT6797_POWER_DOMAIN_CONN>;
++			#power-domain-cells = <0>;
++		};
++	};
++};
++
+ / {
+ 	model = "Planet Computers Gemini PDA";
+-- 
+2.54.0
