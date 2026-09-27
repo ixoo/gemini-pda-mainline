@@ -153,13 +153,30 @@ power guards, wrote the exact 16 MiB candidate, and matched both the guarded
 and independent full readbacks. Gemian shut down cleanly. The first 180-second
 read-only Mac USB watcher saw no ready mainline USB route, claimed no device
 session and expired; Gemian LAN was also unreachable afterward. A second 180-second
-watcher likewise saw no ready mainline USB route. No boot2 execution or owner
-probe result is established yet. Confirm the screen state and physical boot2
-selection before deciding the next device action.
+watcher likewise saw no ready mainline USB route. At that point no boot2
+execution or owner probe result was established, so the next device action
+waited for a physical screen-state report.
 
 A later [read-only Mac host inventory](results/passive-host-usb-1.json) found
 one `0e8d:20ff` parent with product `Unknown`, no USB network child, and no
 `10.15.19.1/24` host address or direct route. This descriptor has appeared
 in earlier charging/intermediate-stage observations, so it cannot identify
 the running OS or establish that boot2 was selected. No device packet was
-sent. The collector remains unclaimed pending a screen-state report.
+sent, and that window's collector remained unclaimed.
+
+## Passive device result
+
+After a later owner boot2 selection, the expected mainline USB route appeared.
+The [authenticated runtime result](results/passive-runtime-1.json) identifies
+the exact installed image and changed boot, a complete sequence-zero-through-
+seal kernel log, and one successful `10001340.consys` probe. The boot-allocated
+2 MiB reservation was at `0xbfa00000..0xbfbfffff`; the probe bound it and
+claimed the four-byte remap resource. The A53 service regression passed.
+The reviewed native return then confirmed a new Gemian boot with WLAN carrier.
+
+This consumes the passive candidate's device gate. It establishes Linux-side
+resource binding, not shared hardware ownership or Wi-Fi operation. No CONN,
+rail, reset, remap, EMI, firmware, radio or DMA effect was added by this owner.
+The next source slice can implement serialized transitions and retained fault
+handling; it must resolve external writers and EMI policy before an
+effect-bearing device candidate.

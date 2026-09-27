@@ -457,12 +457,12 @@ for the first Wi-Fi bring-up. The current preparation order is:
    provider, but still has no shared owner, firmware executor or active child.
    A later [focused configuration build](../experiments/2026-09-26-mt6797-a53-wifi-core-integration/README.md#focused-wireless-configuration)
    removes the unrelated WLAN vendor selections while preserving the private
-   core and standard wireless stack. A [compile-validated first CONSYS owner
-   slice](../experiments/2026-09-27-mt6797-consys-owner/README.md) now binds
-   the existing busy boot reservation and claims the shared remap word through
-   the kernel resource tree, but it has no active DT node, remap write or shared
-   power/EMI sequence. The next code work is
-   those owner transitions and the firmware executor. The
+   core and standard wireless stack. A [passive CONSYS owner
+   slice](../experiments/2026-09-27-mt6797-consys-owner/README.md) now has a
+   [successful authenticated device probe](../experiments/2026-09-27-mt6797-consys-owner/results/passive-runtime-1.json):
+   it bound the boot reservation and claimed the shared remap word through the
+   kernel resource tree. It has no remap write or shared power/EMI sequence.
+   The next code work is those owner transitions and the firmware executor. The
    [read-only Gemian EMI reference](../experiments/2026-09-26-mt6797-emi-active-reference/results/runtime.json)
    confirms the vendor-requested region-18/19 ranges and permission values in
    a boot where WLAN carrier was observed later, but also shows broad region 23

@@ -1,0 +1,41 @@
+{
+  "classification": "passive-consys-owner-bound",
+  "kernel_build_commit": "60b8972ba1b9538256a7aad3faa76da98938eef4",
+  "candidate_boot2_sha256": "251449ffb5ab66dba77ff8d4cb9489df0a618c9c94ef2654edc7d19ee902a29a",
+  "preceding_gemian_boot": "61ed0033-8de7-42f4-b3c5-1082db8f2503",
+  "mainline_boot": "edfb95ef-c588-4ca3-ac9d-aabd7a69fe66",
+  "mainline_release": "7.1.3-gemini-a53-consys-owner-passive",
+  "transport": "authenticated mainline USB SSH",
+  "reservation": {
+    "base": "0xbfa00000",
+    "end": "0xbfbfffff",
+    "size_bytes": 2097152,
+    "boot_log_attributes": "no-map non-reusable"
+  },
+  "owner": {
+    "platform_node": "10001340.consys",
+    "bind_record_count": 1,
+    "probe_return": 0,
+    "record": "bound boot CONSYS reserve and claimed shared remap register"
+  },
+  "log": {
+    "classification": "complete-log-through-seal",
+    "first_sequence": 0,
+    "last_sequence": 1840,
+    "records": 1841,
+    "bytes": 127870,
+    "sha256": "2e3dbcf7bb38612358a4480bd14f4b2408a1eceb8a229d8fd692905d0f836792"
+  },
+  "service_regression": "pass",
+  "recovery": {
+    "native_request": "sent after log preservation",
+    "classification": "changed-ID-Gemian",
+    "returned_gemian_boot": "5a701930-7306-42cb-b890-a19f815423c0",
+    "returned_gemian_release": "3.18.41+",
+    "returned_gemian_wlan_carrier": 1
+  },
+  "private_session_manifest_sha256": "efccc4bdbcd44df9b357229a3039abbc1049c24541d934c64a5495f8d2b85568",
+  "decision": "The passive owner probe bound the dynamic boot reservation and exact remap resource. Advance source work on serialized shared transitions; do not repeat this candidate.",
+  "limitation": "The passive owner did not read or write remap, switch CONN power, vote rails, change reset or EMI, load firmware, use radio or run WLAN networking. Resource binding does not exclude retained firmware or secure-world writers.",
+  "private_raw_evidence": "retained-ignored"
+}
