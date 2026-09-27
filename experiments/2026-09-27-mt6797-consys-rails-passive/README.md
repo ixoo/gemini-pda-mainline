@@ -53,3 +53,21 @@ does not prove voltage, electrical rail state, exclusive votes, safe ordering,
 external-writer exclusion, or an EMI policy. The next effect-bearing owner
 slice still needs those contracts and a retained failure path before child
 attachment or firmware execution.
+
+## Validated offline candidate
+
+The first Buildbox build from `3ec978a6` linked but used ordinary regulator
+get, which could accept dummy rails. It was superseded without device use. The
+[corrected Buildbox result](results/build.json) from clean pushed `77098ff7`
+passed package inventory, focused binding and example checks, and focused
+validation of the built Gemini DTB. Its three VCN phandles resolve to the
+three named MT6351 children; the corrected owner probe is linked.
+
+The [candidate recipe](build-candidate.py) combined that kernel with the
+previously tested passive owner's authenticated RAM image. It retained all RAM
+members and changed only the three rail nodes and three owner phandles in the
+accepted board DTB. The private LK image was validated and padded to exactly
+16 MiB. The [sanitized receipt](results/candidate.json) pins boot SHA-256
+`5194a3a5…9438b6c` and full boot2 SHA-256 `da9a7cc4…55dbfe`.
+The image and authentication material remain ignored. No device action has
+been taken with this candidate yet.
