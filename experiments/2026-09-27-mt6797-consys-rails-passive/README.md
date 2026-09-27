@@ -69,5 +69,16 @@ members and changed only the three rail nodes and three owner phandles in the
 accepted board DTB. The private LK image was validated and padded to exactly
 16 MiB. The [sanitized receipt](results/candidate.json) pins boot SHA-256
 `5194a3a5…9438b6c` and full boot2 SHA-256 `da9a7cc4…55dbfe`.
-The image and authentication material remain ignored. No device action has
-been taken with this candidate yet.
+The image and authentication material remain ignored. Composition itself took
+no device action.
+
+## Guarded deployment
+
+The [deployment receipt](results/deployment.json) records an exact live-GPT
+`boot2` write from Gemian boot `5a701930…` with stable power, inactive target,
+the expected predecessor and matching full readback. Gemian shut down cleanly.
+The first bounded Mac USB watcher did not see the mainline route, and no
+authenticated session was claimed. A MediaTek `0e8d:20ff` “Unknown” descriptor
+was visible, but that alone does not identify the booted OS. Device execution
+and regulator-provider binding remain unobserved pending confirmation of the
+owner's physical boot2 selection and screen report.

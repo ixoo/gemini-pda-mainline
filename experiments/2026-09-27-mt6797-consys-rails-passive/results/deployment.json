@@ -1,0 +1,20 @@
+{
+  "status": "guarded-boot2-write-and-full-readback-verified",
+  "source_gemian_boot_id": "5a701930-7306-42cb-b890-a19f815423c0",
+  "source_kernel_release": "3.18.41+",
+  "logical_target": "boot2",
+  "live_gpt_target": "/dev/mmcblk0p30",
+  "target_major_minor": "179:30",
+  "distinct_root": "/dev/mmcblk0p29",
+  "root_major_minor": "179:29",
+  "guard_result": "passed; target inactive, unmounted, non-root, writable and size-checked",
+  "power_gate": "battery present, 100%, Good, external power online",
+  "predecessor_sha256": "251449ffb5ab66dba77ff8d4cb9489df0a618c9c94ef2654edc7d19ee902a29a",
+  "candidate_manifest_sha256": "655d4f26b90fea910ca4b9c46dd94e14b897ced96f40caa1d9caef650d9dee1e",
+  "candidate_and_full_readback_sha256": "da9a7cc465d6c7b3bf9d638dd6c2c364329f8617a2d5894cf4434f85b255dbfe",
+  "write_result": "single write, sync, flush, guarded post-check, independent full readback and byte comparison passed",
+  "backup": "project-wide verified backup retained; no fresh per-write backup",
+  "shutdown": "clean poweroff requested; Gemian SSH became unreachable; no automatic reboot",
+  "private_deployment_summary_sha256": "7bd9c339c07589147bae4adfebb372e0e83187710e78a34c5846d85c107c4167",
+  "device_execution": "not yet observed; first 300-second USB watcher saw no ready mainline route and made no authenticated connection"
+}
