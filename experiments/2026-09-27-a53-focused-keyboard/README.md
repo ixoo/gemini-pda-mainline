@@ -52,3 +52,12 @@ for **1 alone**, then **left Shift + Fn + 1 followed by A with no modifiers**;
 release all keys between presses. Each lasts 15 seconds after a two-second
 no-input preflight. The owner must physically select boot2 only after the host
 collector is armed. No ten-cold-boot cycle is included in this trial.
+
+## Device deployment
+
+The [sanitized deployment result](results/deployment.json) records a guarded
+boot2 write from the identified Gemian boot, matching full-partition readback,
+and clean shutdown. The one armed 600-second USB collector expired without a
+new route or owner boot2 selection. No mainline boot or keyboard observation
+was made. A future trial requires a newly armed collector before physical
+selection; the installed image does not need another write unless boot2 changes.

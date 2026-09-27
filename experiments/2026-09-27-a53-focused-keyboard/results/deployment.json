@@ -1,0 +1,16 @@
+{
+  "status": "boot2-installed-verified-shutdown-boot-pending",
+  "installer_commit": "1c248793fbd786b7a5fb470a6acc36329a068e9f",
+  "preceding_gemian_boot": "8bda7be0-2678-4092-b3e4-5b8b9a953505",
+  "target_logical_name": "boot2",
+  "predecessor_full_sha256": "da9a7cc465d6c7b3bf9d638dd6c2c364329f8617a2d5894cf4434f85b255dbfe",
+  "candidate_full_sha256": "34b56a58abe0932d1e7374ed7e668487518fa9d6067a9bf6d60c19d313780020",
+  "full_readback_sha256": "34b56a58abe0932d1e7374ed7e668487518fa9d6067a9bf6d60c19d313780020",
+  "deployment_receipt_sha256": "b6d8ba20fbb86cc1be59548515d65402881d5d8f606c9824a41ddc5506e47b9b",
+  "power_at_guard": "external-present-battery-100-percent-good",
+  "shutdown": "confirmed-unreachable",
+  "owner_boot2_selection": "not_observed",
+  "mainline_usb_route": "not_observed_in_one_600_second_collector_window",
+  "keyboard_observation": "not_started",
+  "limitation": "The installation alone establishes no boot or keyboard support. The owner must select boot2 while a newly armed finite collector is waiting."
+}
