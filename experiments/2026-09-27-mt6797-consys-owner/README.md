@@ -55,3 +55,9 @@ refuses probe. The existing topckgen clock node covers only
 second mapping of the clock provider's resource. There is still no remap
 read/write or external-writer exclusion. The selected A53 compile profile
 continues to have no active owner DT node.
+
+The [remap-claim build](results/build-remap.json) from clean `aaa732e2`
+passed full Buildbox package validation and focused dtschema 2026.9
+binding/example checks. Both new patches passed checkpatch without findings.
+The owner remains linked, and all five Gemini DTBs remain byte-identical to
+the prior owner build. No device action was taken.

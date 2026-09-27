@@ -459,8 +459,9 @@ for the first Wi-Fi bring-up. The current preparation order is:
    removes the unrelated WLAN vendor selections while preserving the private
    core and standard wireless stack. A [compile-validated first CONSYS owner
    slice](../experiments/2026-09-27-mt6797-consys-owner/README.md) now claims
-   the live boot reservation through the kernel resource tree, but it has no
-   active DT node or shared power/remap/EMI sequence. The next code work is
+   the live boot reservation and the shared remap word through the kernel
+   resource tree, but it has no active DT node, remap write or shared
+   power/EMI sequence. The next code work is
    those owner transitions and the firmware executor. The
    [read-only Gemian EMI reference](../experiments/2026-09-26-mt6797-emi-active-reference/results/runtime.json)
    confirms the vendor-requested region-18/19 ranges and permission values in
