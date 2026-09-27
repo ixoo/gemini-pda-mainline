@@ -1,0 +1,46 @@
+From a70b93af14501ca67465900c581e8439a4ec9183 Mon Sep 17 00:00:00 2001
+From: MT6797 internal experiment <nobody@example.invalid>
+Date: Sun, 27 Sep 2026 08:20:52 -0400
+Subject: [PATCH] arm64: dts: mediatek: link Gemini CONSYS VCN supplies
+
+Describe the three MT6351 rail providers and connect them to the passive
+shared owner. No regulator-boot-on or consumer enable is added.
+
+Internal experiment only; synthetic author, no DCO certification.
+---
+ .../arm64/boot/dts/mediatek/mt6797-gemini-pda.dts | 15 +++++++++++++++
+ 1 file changed, 15 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+index bbc46a6..7c0864a 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -59,6 +59,9 @@
+ 		compatible = "mediatek,mt6797-consys";
+ 		reg = <0 0x10001340 0 4>;
+ 		memory-region = <&consys_reserved>;
++		vcn18-supply = <&mt6351_vcn18_reg>;
++		vcn28-supply = <&mt6351_vcn28_reg>;
++		vcn33-wifi-supply = <&mt6351_vcn33_wifi_reg>;
+ 	};
+ 
+ 	reserved-memory {
+@@ -200,6 +203,18 @@
+ };
+ 
+ &mt6351regulator {
++	mt6351_vcn18_reg: ldo-vcn18 {
++		regulator-name = "vcn18";
++	};
++
++	mt6351_vcn28_reg: ldo-vcn28 {
++		regulator-name = "vcn28";
++	};
++
++	mt6351_vcn33_wifi_reg: ldo-vcn33-wifi {
++		regulator-name = "vcn33-wifi";
++	};
++
+ 	mt6351_vemc_reg: ldo-vemc {
+ 		regulator-name = "vemc_3v3";
+ 		regulator-min-microvolt = <3000000>;

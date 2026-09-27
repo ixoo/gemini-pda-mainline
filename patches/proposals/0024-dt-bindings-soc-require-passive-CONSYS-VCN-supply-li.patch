@@ -1,0 +1,70 @@
+From 5bde5723d71372ad4bfe5264d83eaeff0dd38e9f Mon Sep 17 00:00:00 2001
+From: MT6797 internal experiment <nobody@example.invalid>
+Date: Sun, 27 Sep 2026 08:19:26 -0400
+Subject: [PATCH] dt-bindings: soc: require passive CONSYS VCN supply
+ links
+
+Describe the three VCN regulators needed by the Wi-Fi lifecycle owner.
+This changes no device behavior until a board node and consumer are
+selected.
+
+Internal experiment only; synthetic author, no DCO certification.
+---
+ .../soc/mediatek/mediatek,mt6797-consys.yaml  | 30 +++++++++++++++++++
+ 1 file changed, 30 insertions(+)
+
+diff --git a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
+index 56af121..d54f8b0 100644
+--- a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
++++ b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
+@@ -27,10 +27,22 @@ properties:
+     maxItems: 1
+     description: Boot-allocated no-map CONSYS firmware reservation.
+ 
++  vcn18-supply:
++    description: Common 1.8 V connectivity supply.
++
++  vcn28-supply:
++    description: Common 2.8 V connectivity supply.
++
++  vcn33-wifi-supply:
++    description: Wi-Fi 3.3 V supply.
++
+ required:
+   - compatible
+   - reg
+   - memory-region
++  - vcn18-supply
++  - vcn28-supply
++  - vcn33-wifi-supply
+ 
+ additionalProperties: false
+ 
+@@ -53,9 +65,27 @@ examples:
+             };
+         };
+ 
++        vcn18: regulator-vcn18 {
++            compatible = "regulator-fixed";
++            regulator-name = "vcn18";
++        };
++
++        vcn28: regulator-vcn28 {
++            compatible = "regulator-fixed";
++            regulator-name = "vcn28";
++        };
++
++        vcn33_wifi: regulator-vcn33-wifi {
++            compatible = "regulator-fixed";
++            regulator-name = "vcn33-wifi";
++        };
++
+         consys@10001340 {
+             compatible = "mediatek,mt6797-consys";
+             reg = <0 0x10001340 0 4>;
+             memory-region = <&consys_reserved>;
++            vcn18-supply = <&vcn18>;
++            vcn28-supply = <&vcn28>;
++            vcn33-wifi-supply = <&vcn33_wifi>;
+         };
+     };

@@ -1,0 +1,119 @@
+From 9e5ccee7e6e9af908dac18d3548ca0a11ac6ee42 Mon Sep 17 00:00:00 2001
+From: MT6797 internal experiment <nobody@example.invalid>
+Date: Sun, 27 Sep 2026 08:24:22 -0400
+Subject: [PATCH] soc: mediatek: acquire passive MT6797 CONSYS VCN
+ handles
+
+Require three real VCN phandles and hold their regulator handles with
+the permanent owner. Do not enable, disable or query the supplies during
+probe. This prepares the concrete rail dependencies for a later ordered
+transition.
+
+Internal experiment only; synthetic author, no DCO certification.
+---
+ drivers/soc/mediatek/mt6797-consys.c | 51 +++++++++++++++++++++++++++-
+ 1 file changed, 50 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index 19f5788..2d41094 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -5,11 +5,13 @@
+ #include <linux/errno.h>
+ #include <linux/io.h>
+ #include <linux/ioport.h>
++#include <linux/kernel.h>
+ #include <linux/limits.h>
+ #include <linux/mutex.h>
+ #include <linux/of.h>
+ #include <linux/of_reserved_mem.h>
+ #include <linux/platform_device.h>
++#include <linux/regulator/consumer.h>
+ #include <linux/sizes.h>
+ 
+ #define MT6797_CONSYS_REMAP_REG	0x10001340
+@@ -17,12 +19,33 @@
+ struct mt6797_consys {
+ 	void __iomem *remap;
+ 	phys_addr_t base;
++	struct regulator *vcn18;
++	struct regulator *vcn28;
++	struct regulator *vcn33_wifi;
+ 	bool bound;
+ };
+ 
+ static DEFINE_MUTEX(mt6797_consys_lock);
+ static struct mt6797_consys mt6797_consys;
+ 
++static int mt6797_consys_check_supplies(struct device_node *node)
++{
++	static const char * const names[] = {
++		"vcn18-supply", "vcn28-supply", "vcn33-wifi-supply",
++	};
++	struct device_node *supply;
++	unsigned int i;
++
++	for (i = 0; i < ARRAY_SIZE(names); i++) {
++		supply = of_parse_phandle(node, names[i], 0);
++		if (!supply)
++			return -EINVAL;
++		of_node_put(supply);
++	}
++
++	return 0;
++}
++
+ static int mt6797_consys_check_other_regions(struct device_node *root,
+ 					      struct device_node *target,
+ 					      u64 base, u64 end)
+@@ -159,6 +182,7 @@ static int mt6797_consys_boot_reserved(u64 base)
+ static int mt6797_consys_probe(struct platform_device *pdev)
+ {
+ 	struct resource *remap_resource;
++	struct regulator *vcn18, *vcn28, *vcn33_wifi;
+ 	void __iomem *remap;
+ 	u64 base;
+ 	int ret;
+@@ -174,6 +198,27 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 	ret = mt6797_consys_boot_reserved(base);
+ 	if (ret)
+ 		goto out_unlock;
++	ret = mt6797_consys_check_supplies(pdev->dev.of_node);
++	if (ret)
++		goto out_unlock;
++	vcn18 = devm_regulator_get(&pdev->dev, "vcn18");
++	if (IS_ERR(vcn18)) {
++		ret = dev_err_probe(&pdev->dev, PTR_ERR(vcn18),
++				    "failed to get VCN18 supply\n");
++		goto out_unlock;
++	}
++	vcn28 = devm_regulator_get(&pdev->dev, "vcn28");
++	if (IS_ERR(vcn28)) {
++		ret = dev_err_probe(&pdev->dev, PTR_ERR(vcn28),
++				    "failed to get VCN28 supply\n");
++		goto out_unlock;
++	}
++	vcn33_wifi = devm_regulator_get(&pdev->dev, "vcn33-wifi");
++	if (IS_ERR(vcn33_wifi)) {
++		ret = dev_err_probe(&pdev->dev, PTR_ERR(vcn33_wifi),
++				    "failed to get VCN33 Wi-Fi supply\n");
++		goto out_unlock;
++	}
+ 	remap_resource = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+ 	if (!remap_resource ||
+ 	    platform_get_resource(pdev, IORESOURCE_MEM, 1) ||
+@@ -189,9 +234,13 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 	}
+ 	mt6797_consys.base = base;
+ 	mt6797_consys.remap = remap;
++	mt6797_consys.vcn18 = vcn18;
++	mt6797_consys.vcn28 = vcn28;
++	mt6797_consys.vcn33_wifi = vcn33_wifi;
+ 	mt6797_consys.bound = true;
+ 	platform_set_drvdata(pdev, &mt6797_consys);
+-	dev_info(&pdev->dev, "bound boot CONSYS reserve and claimed shared remap register\n");
++	dev_info(&pdev->dev,
++		 "bound boot CONSYS reserve, remap register and VCN supply handles\n");
+ out_unlock:
+ 	mutex_unlock(&mt6797_consys_lock);
+ 	return ret;
