@@ -1,0 +1,2 @@
+# Identify the one-shot MT6797 CONN power-on candidate.
+CONFIG_LOCALVERSION="-gemini-a53-wifi-power-probe"

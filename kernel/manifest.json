@@ -277,7 +277,8 @@
           "configs/gemini-a53-modern-conn-provider-compile.fragment",
           "configs/gemini-a53-wifi-core-integration-compile.fragment",
           "configs/gemini-a53-consys-owner-passive.fragment",
-          "configs/gemini-a53-wifi-firmware-probe.fragment"
+          "configs/gemini-a53-wifi-firmware-probe.fragment",
+          "configs/gemini-a53-wifi-power-probe.fragment"
         ]
       },
       "mt6797-a53-vcn28-boot-observe": {

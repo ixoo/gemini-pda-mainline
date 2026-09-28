@@ -41,7 +41,7 @@ complete kernel-log collector preserve evidence before reviewed recovery.
   path and EMI owner before firmware execution. It does not demonstrate Wi-Fi.
 
 The implementation is [patch 0036](../../patches/proposals/0036-soc-mediatek-probe-one-retained-MT6797-CONN-power-on.patch)
-in the `mt6797-a53-wifi-power-probe` profile. Its synthetic author carries no
-DCO certification. The active DT property is confined to this named profile;
+in the `mt6797-a53-wifi-power-probe` profile, with a distinct kernel
+release. Its synthetic author carries no DCO certification. The active DT property is confined to this named profile;
 the passive firmware profile remains unchanged. A validated Buildbox package
 and exact boot2 candidate are prerequisites for any owner-selected device boot.
