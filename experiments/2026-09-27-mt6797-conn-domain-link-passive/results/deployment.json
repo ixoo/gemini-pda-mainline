@@ -1,0 +1,19 @@
+{
+  "status": "guarded-boot2-write-full-readback-and-clean-shutdown",
+  "gemian_boot_id": "443503aa-8b7a-49ef-a830-727d65e3a6e6",
+  "target": "boot2",
+  "target_device": "/dev/mmcblk0p30",
+  "target_major_minor": "179:30",
+  "root_device": "/dev/mmcblk0p29",
+  "root_major_minor": "179:29",
+  "power": "external power present, capacity 100 percent, battery Good",
+  "predecessor_full_sha256": "99888ffbed5e3494377dbb7442e08ef20c2a7f6190922311ff8dc84bb05c4750",
+  "candidate_full_sha256": "07dfcc16b6c66442f47c5540eb24a9c1e057c6827d20787b74f39fe945569230",
+  "readback_full_sha256": "07dfcc16b6c66442f47c5540eb24a9c1e057c6827d20787b74f39fe945569230",
+  "device_guard": "passed at probe, write and post stages",
+  "fresh_predecessor_backup": false,
+  "shutdown": "requested after evidence flush and confirmed unreachable",
+  "private_evidence": "artifacts/device-install-evidence/mt6797-conn-domain-link-passive-deployment-1",
+  "mainline_boot": "4f0f028b-ed25-4fb8-84ba-a1643950ece6",
+  "runtime_result": "results/runtime-1.json"
+}

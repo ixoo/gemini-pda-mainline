@@ -1,0 +1,16 @@
+{
+  "status": "clean-buildbox-package-validated",
+  "repository_commit": "ad6751b2e4e31495c3af6d0d024a0603e48bb841",
+  "profile": "mt6797-a53-conn-domain-link-passive",
+  "patch_count": 542,
+  "kernel_release": "7.1.3-gemini-a53-consys-owner-passive",
+  "package_inventory_sha256": "3fad062b895e86579a4df6e1867aeb32f7d5a5a96bc66be8532354e2b21ff406",
+  "image_gzip_sha256": "0df857489c524ce6d86c1c943f3884e5263e87e2e1c3df62bcdf8d11af8aa316",
+  "config_sha256": "6fd4c538eb3a56cc8f948d9c5bf0985e3b25789274940c21545157d852274e6e",
+  "legacy_scpsys_disabled": true,
+  "modern_scpsys_enabled": true,
+  "consys_owner_enabled": true,
+  "dt_doc_validate": "pass",
+  "dtb_link": "provider phandle 0x40, CONN id 12",
+  "hardware_action": "none"
+}

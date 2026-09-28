@@ -1,0 +1,56 @@
+{
+  "status": "passive-owner-domain-link-boot-passed",
+  "candidate_full_sha256": "07dfcc16b6c66442f47c5540eb24a9c1e057c6827d20787b74f39fe945569230",
+  "kernel_build_commit": "ad6751b2e4e31495c3af6d0d024a0603e48bb841",
+  "kernel_release": "7.1.3-gemini-a53-consys-owner-passive",
+  "previous_gemian_boot": "443503aa-8b7a-49ef-a830-727d65e3a6e6",
+  "mainline_boot": "4f0f028b-ed25-4fb8-84ba-a1643950ece6",
+  "returned_gemian_boot": "82f673dc-bde7-4e48-ae15-0314a63d4fb8",
+  "usb_watcher": {
+    "armed_utc": "2026-09-28T00:23:39Z",
+    "stages": [
+      "mediatek-20ff",
+      "other-or-absent",
+      "candidate-gadget"
+    ],
+    "mainline_route_utc": "2026-09-28T00:24:02Z",
+    "collector_exit": 0
+  },
+  "provider_probe": {
+    "platform_devices": 1,
+    "bound_to_mtk_power_controller": 1,
+    "boot_id": "4f0f028b-ed25-4fb8-84ba-a1643950ece6"
+  },
+  "owner_record": {
+    "count": 1,
+    "message": "bound boot CONSYS reserve, remap, VCN, CONMCU reset and checked-OFF CONN domain",
+    "checked_off_at_probe": true
+  },
+  "a53_service_regression": "pass",
+  "kernel_log": {
+    "complete_through_explicit_seal": true,
+    "records": 1845,
+    "bytes": 128185,
+    "sha256": "aa2a0a8a19bb064dd9e198c7b4d57e26752701e29488ee052179b184c13742f7"
+  },
+  "recovery": {
+    "reviewed_path_confirmed": true,
+    "changed_gemian_boot": true,
+    "separate_pinned_key_check": {
+      "boot_id": "82f673dc-bde7-4e48-ae15-0314a63d4fb8",
+      "kernel": "3.18.41+",
+      "wlan0_carrier": 1
+    }
+  },
+  "observed_scope": "provider registered and owner associated with selected CONN domain while checked OFF at probe",
+  "not_established": [
+    "later CONN status",
+    "active CONN transition",
+    "exclusive retained-writer handoff",
+    "safe rail or reset sequence",
+    "EMI protection policy",
+    "firmware execution",
+    "mainline Wi-Fi traffic"
+  ],
+  "private_evidence": "artifacts/conn-domain-link/session-1"
+}
