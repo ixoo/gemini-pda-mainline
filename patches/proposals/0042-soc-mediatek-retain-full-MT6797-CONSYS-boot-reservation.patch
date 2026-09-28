@@ -1,0 +1,120 @@
+From f4e37659cd048a3f19d4df347e5243b6c1a585cb Mon Sep 17 00:00:00 2001
+From: Gemini PDA experiment <experiment.invalid>
+Date: Mon, 28 Sep 2026 18:28:32 -0400
+Subject: [PATCH] soc: mediatek: retain the full MT6797 CONSYS boot reservation
+
+The passive owner validates a live reserved-memory resource but retains
+only its base and requires the busy iomem resource to be exactly one MiB.
+That rejects a valid larger reservation and leaves a future firmware
+owner without its full resource identity.
+
+Retain the complete resource and require the busy resource to match the
+same start and end. No firmware or protection operation is admitted by
+this change.
+
+This is an internal experiment with synthetic, non-certifying authorship.
+It is not an upstream submission.
+---
+ drivers/soc/mediatek/mt6797-consys.c | 27 +++++++++++++++------------
+ 1 file changed, 15 insertions(+), 12 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index 0335204..1345963 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -52,7 +52,7 @@ struct mt6797_consys {
+ 	void __iomem *chip_id;
+ 	void __iomem *mcu_acr;
+ 	void __iomem *hif;
+-	phys_addr_t base;
++	struct resource reservation;
+ 	struct regulator *vcn18;
+ 	struct regulator *vcn28;
+ 	struct regulator *vcn33_wifi;
+@@ -132,7 +132,8 @@ static int mt6797_consys_check_other_regions(struct device_node *root,
+ 	return 0;
+ }
+ 
+-static int mt6797_consys_resolve(struct device_node *consumer, u64 *base)
++static int mt6797_consys_resolve(struct device_node *consumer,
++				 struct resource *reservation)
+ {
+ 	struct device_node *target, *parent, *root;
+ 	struct resource boot = {};
+@@ -203,7 +204,7 @@ static int mt6797_consys_resolve(struct device_node *consumer, u64 *base)
+ 	}
+ 	ret = mt6797_consys_check_other_regions(root, target, rmem->base, end);
+ 	if (!ret)
+-		*base = rmem->base;
++		*reservation = boot;
+ out:
+ 	of_node_put(root);
+ 	of_node_put(parent);
+@@ -211,12 +212,13 @@ out:
+ 	return ret;
+ }
+ 
+-/* ARM64 already owns no-map boot memory as a busy reserved resource. */
++/* Match the entire no-map boot reservation, not just its first MiB. */
+ static int mt6797_consys_check_boot_resource(struct resource *res, void *arg)
+ {
+-	const u64 *base = arg;
++	const struct resource *reservation = arg;
+ 
+-	if (res->start != *base || res->end != *base + SZ_1M - 1 ||
++	if (res->start != reservation->start ||
++	    res->end != reservation->end ||
+ 	    resource_type(res) != IORESOURCE_MEM ||
+ 	    (res->flags & IORESOURCE_SYSRAM))
+ 		return -EBUSY;
+@@ -224,13 +226,14 @@ static int mt6797_consys_check_boot_resource(struct resource *res, void *arg)
+ 	return 1;
+ }
+ 
+-static int mt6797_consys_boot_reserved(u64 base)
++static int mt6797_consys_boot_reserved(struct resource *reservation)
+ {
+ 	int ret;
+ 
+ 	ret = walk_iomem_res_desc(IORES_DESC_NONE,
+ 				  IORESOURCE_MEM | IORESOURCE_BUSY,
+-				  base, base + SZ_1M - 1, &base,
++				  reservation->start, reservation->end,
++				  reservation,
+ 				  mt6797_consys_check_boot_resource);
+ 	if (ret == 1)
+ 		return 0;
+@@ -682,7 +685,7 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 	void __iomem *sleep_mask = NULL, *chip_id = NULL, *mcu_acr = NULL;
+ 	void __iomem *hif = NULL;
+ 	bool power_probe, chip_id_probe, reset_release_probe, hif_probe;
+-	u64 base;
++	struct resource reservation = {};
+ 	int ret;
+ 
+ 	mutex_lock(&mt6797_consys_lock);
+@@ -710,10 +713,10 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 		ret = -EBUSY;
+ 		goto out_unlock;
+ 	}
+-	ret = mt6797_consys_resolve(pdev->dev.of_node, &base);
++	ret = mt6797_consys_resolve(pdev->dev.of_node, &reservation);
+ 	if (ret)
+ 		goto out_unlock;
+-	ret = mt6797_consys_boot_reserved(base);
++	ret = mt6797_consys_boot_reserved(&reservation);
+ 	if (ret)
+ 		goto out_unlock;
+ 	ret = mt6797_consys_check_supplies(pdev->dev.of_node);
+@@ -825,7 +828,7 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 	ret = mt6797_consys_attach_off_domain(&pdev->dev, &conn_domain);
+ 	if (ret)
+ 		goto out_unlock;
+-	mt6797_consys.base = base;
++	mt6797_consys.reservation = reservation;
+ 	mt6797_consys.remap = remap;
+ 	mt6797_consys.sleep_mask = sleep_mask;
+ 	mt6797_consys.chip_id = chip_id;
+-- 
+2.54.0 (Apple Git-157)
+
