@@ -64,3 +64,6 @@ Buildbox package, retained firmware and DT delta before packaging. The
 `install-passive.py` wrapper derives the reviewed guarded boot2 installer and
 pins the predecessor; `passive-host.py` and `watch-boot.py` collect one
 attributable result and reviewed Gemian return.
+
+The parallel [HIF executor review](../2026-09-28-mt6797-hif-executor-review/README.md)
+records the caller-owned transport gaps after power and EMI admission.
