@@ -498,9 +498,15 @@ for the first Wi-Fi bring-up. The current preparation order is:
    in one complete, regression-passing mainline boot, then returned to
    carrier-up Gemian. This supports a settling interval in that boot, not a
    minimum delay or repeatability. It does not establish reset release,
-   shared writer/EMI ownership, firmware execution or mainline Wi-Fi. The
-   next code work is retained-fault owner transitions and the firmware
-   executor after those ownership gates are resolved. A
+   shared writer/EMI ownership, firmware execution or mainline Wi-Fi. A
+   [powered EMI read](../experiments/2026-09-28-mt6797-wifi-powered-emi/results/runtime-1.json)
+   then found nonzero region-1 control and zero region-18/19/23 ranges after
+   the delayed `0x0279` in one complete, regression-passing boot; changed-boot
+   Gemian Wi-Fi return also passed. This validates a point-in-time powered
+   empty-range premise, not writer exclusion or effective CONSYS/AP protection
+   domains. The next code work is a same-boot admission gate and retained-fault
+   owner transitions for the first firmware executor, without assuming that
+   an earlier boot's zeros authorize an EMI write. A
    [passive mainline EMI read](../experiments/2026-09-27-mt6797-emi-boot-observe/results/runtime-1.json)
    returned zero for region-18/19/23 range and policy registers in a
    complete, regression-passing boot. The returned carrier-up Gemian boot

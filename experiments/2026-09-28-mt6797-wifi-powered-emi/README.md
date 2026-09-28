@@ -63,3 +63,29 @@ comparison found the boot-tested board DTB unchanged and only the expected
 release-string replacement in the RAM root. Another identical host watch
 would not resolve the boot boundary; the next observation must establish the
 PDA's physical state or a changed authenticated boot.
+
+## Confirmed boot2 selection and powered result
+
+The owner confirmed the PDA was powered off while the unchanged `20ff` USB
+session was present. After the next collector was armed, the owner physically
+selected boot2. Its mainline gadget appeared 14 seconds after arming and the
+authenticated [runtime result](results/runtime-1.json) bound the installed
+candidate to changed boot ID `ea1ef07f-8e63-4926-91ca-0dde769b264f`.
+The complete sealed kernel log contains one confirmed-CONN-ON record with
+CONMCU reset held, chip ID zero immediately and `0x0279` after the requested
+20-ms delay. In that same powered state, region 1's range read returned
+`0x44604460`; region-23 range reads before and after the 18/19 reads returned
+zero, as did the 18/19 range and policy reads. Region-23 policy logged zero
+but its retained read-service path is cached, so it is not a direct policy
+register control. The four-section firmware plan was accepted but execution
+remained held. The A53 RAM-service regression passed, the reviewed return
+reached a changed Gemian boot, and an independent Gemian read found WLAN
+carrier 1.
+
+This establishes a positive-controlled, powered **point-in-time** empty-range
+observation and validates the read-only gate premise for one boot. A future
+first load must repeat the gate in its own boot immediately before effects,
+exclude conflicting writers for the effect lifetime, and choose a safe
+CONSYS/AP protection-domain policy. This result does not establish region
+priority, effective master-domain routing, permission to write EMI policy,
+firmware execution or usable mainline Wi-Fi.

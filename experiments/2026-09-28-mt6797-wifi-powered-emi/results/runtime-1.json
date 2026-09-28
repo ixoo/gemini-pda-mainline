@@ -1,0 +1,65 @@
+{
+  "status": "powered-emi-ranges-empty-with-control; a53-regression-pass; Gemian-return-confirmed",
+  "candidate_boot2_sha256": "31a7adaddbc5e1fbc7d5ddaedcd5507ccb89b5eca493ae2e9d723d9522f8c7ff",
+  "kernel_build_commit": "f0d0142aef65c917d6964828f1416d4d7fd335c0",
+  "kernel_release": "7.1.3-gemini-a53-wifi-powered-emi",
+  "deployment": {
+    "known_good_gemian_boot_id": "9e57b63b-13de-42b4-8b90-e8c57cd371d7",
+    "predecessor_full_sha256": "f218eaf4837a8e6025927b5d10425e4f2fb0de86259d49bdc6aefe484781feb1",
+    "boot2_guard_passed": true,
+    "write_synced_flushed_full_readback_matched": true,
+    "clean_shutdown_confirmed": true,
+    "private_summary_sha256": "c8117582e219b2fa53d908db57d34f5258f1780b7f76c3ac2c0a549ed97ab8c7"
+  },
+  "physical_handoff": {
+    "prior_20ff_state": "owner confirmed PDA powered off before this selection",
+    "owner_reported_boot2_selected_after_collector_armed": true,
+    "private_watch_events_sha256": "d5db3190358fe9bd313a426d529cb71f7159476c58fcd66c76337d14f9f2cdfb",
+    "mainline_usb_route_detected": true
+  },
+  "mainline_boot_id": "ea1ef07f-8e63-4926-91ca-0dde769b264f",
+  "observed": {
+    "provider_registered": true,
+    "firmware_plan_accepted": true,
+    "firmware_sections": 4,
+    "ordinary_sections": 2,
+    "ordinary_bytes": 14832,
+    "emi_sections": 2,
+    "emi_bytes": 396688,
+    "conn_domain_confirmed_on_reset_held_records": 1,
+    "chip_id_samples": [
+      {"after_requested_delay_ms": 0, "value": "0x00000000"},
+      {"after_requested_delay_ms": 20, "value": "0x00000279"}
+    ],
+    "emi_range_read_control_region1": "0x44604460",
+    "emi_region23_range_before": "0x00000000",
+    "emi_region18_range": "0x00000000",
+    "emi_region18_policy": "0x00000000",
+    "emi_region19_range": "0x00000000",
+    "emi_region19_policy": "0x00000000",
+    "emi_region23_policy_cached": "0x00000000",
+    "emi_region23_range_after": "0x00000000",
+    "a53_ram_service_regression_pass": true
+  },
+  "preserved_complete_kernel_log": {
+    "records": 1854,
+    "bytes": 129572,
+    "sha256": "5c2666f9c59f5e73733109068367e8abd97972ef4c6c49f0509fae9879a0e4e5"
+  },
+  "return": {
+    "reviewed_recovery_confirmed": true,
+    "changed_gemian_boot_id": "fcb8a468-5333-454a-8fca-c50fea118ccf",
+    "gemian_kernel": "3.18.41+",
+    "independent_gemian_wlan_carrier": 1
+  },
+  "limits": {
+    "same_boot_powered_range_snapshot": true,
+    "effective_region23_overlap_priority": "not-measured",
+    "effective_consys_master_domain": "not-measured",
+    "external_emi_writer_exclusion": "not-established",
+    "emi_protection_write": false,
+    "conn_reset_released": false,
+    "firmware_executed": false,
+    "mainline_wifi_operational": false
+  }
+}
