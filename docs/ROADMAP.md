@@ -476,8 +476,12 @@ for the first Wi-Fi bring-up. The current preparation order is:
    an EMI owner. A [passive CONMCU reset binding boot](../experiments/2026-09-27-mt6797-consys-reset-passive/results/runtime-1.json)
    confirmed that the shared owner acquired the TOPRGU bit-12 handle without
    operating it. Its complete log, A53 service regression and changed-boot
-   Gemian return passed. This consumes the passive reset-handle gate; the next
-   code work is retained-fault owner transitions and the firmware executor. The
+   Gemian return passed. A later [passive modern CONN provider boot](../experiments/2026-09-27-mt6797-conn-provider-passive/results/runtime-1.json)
+   registered one CONN child after its initial-OFF guard, preserved a complete
+   log, passed the A53 service regression and returned to a new Gemian boot.
+   This clears provider topology and initial-OFF registration only; no CONN
+   consumer or transition ran. The next code work is retained-fault owner
+   transitions and the firmware executor. The
    [read-only Gemian EMI reference](../experiments/2026-09-26-mt6797-emi-active-reference/results/runtime.json)
    confirms the vendor-requested region-18/19 ranges and permission values in
    a boot where WLAN carrier was observed later, but also shows broad region 23

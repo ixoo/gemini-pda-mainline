@@ -1,0 +1,45 @@
+{
+  "classification": "passive-modern-CONN-provider-registration-pass",
+  "device": "Gemini PDA MT6797X",
+  "kernel_build_commit": "25eb161f34a61a7b15daf26f10d776e6d88b401e",
+  "profile": "mt6797-a53-conn-provider-passive",
+  "kernel_release": "7.1.3-gemini-a53-consys-owner-passive",
+  "kernel_config_sha256": "6fd4c538eb3a56cc8f948d9c5bf0985e3b25789274940c21545157d852274e6e",
+  "installed_boot2_full_sha256": "99888ffbed5e3494377dbb7442e08ef20c2a7f6190922311ff8dc84bb05c4750",
+  "previous_gemian_boot": "680ac898-0c23-4b29-a89e-c8bed5e50acc",
+  "mainline_boot": "6e524790-fbcf-4a23-8f36-8720fe296b01",
+  "host_watch": {
+    "armed_utc": "2026-09-27T23:54:50Z",
+    "initial_stage": "mediatek-20ff",
+    "other_or_absent_utc": "2026-09-27T23:55:01Z",
+    "candidate_gadget_utc": "2026-09-27T23:55:09Z",
+    "exact_mainline_route_utc": "2026-09-27T23:55:11Z",
+    "collector_exit_utc": "2026-09-27T23:55:44Z",
+    "collector_exit_status": 0,
+    "private_trace_sha256": "a9488671092cfa33c91952241ec9b1234b6ac262a7ec88a33d5467f2ee9e560f"
+  },
+  "provider_probe": {
+    "compatible_devices": 1,
+    "bound_to_mtk_power_controller": 1,
+    "boot_id_matched_before_and_after": true,
+    "initial_off_admission": "Registration implies the selected provider's two CONN status reads were clear and successful at probe; no later power-status sample was taken.",
+    "probe_result_sha256": "7eed04c006e9858abb37e3b310d1383704cc92e5cdda12f2437165efaeec6eec"
+  },
+  "shared_owner_bound": true,
+  "a53_service_regression": "pass",
+  "kernel_log": {
+    "classification": "complete-log-through-seal",
+    "bytes": 128166,
+    "sha256": "5c9bb7cee9728d90388d94fd368c79503c4677f4f7b79e890e80911b92dcadcd",
+    "pre_recovery_manifest_sha256": "922a6983f28703cf1262ce641d1b6fda996ecb07743a34bfa28aa548b734d259"
+  },
+  "gemian_return": {
+    "classification": "changed-ID-Gemian",
+    "boot_id": "443503aa-8b7a-49ef-a830-727d65e3a6e6",
+    "kernel_release": "3.18.41+",
+    "independent_pinned_ssh_exit": 0,
+    "wlan0_carrier": 1
+  },
+  "limits": "This is a passive provider and A53 service result. The DT has no modern CONN consumer; no post-registration CONN status, shared hardware transition, remap or EMI ownership, firmware execution, radio association or mainline Wi-Fi traffic was tested.",
+  "private_evidence": "artifacts/conn-provider/session-1 and artifacts/conn-provider/watch-20260927T235450Z"
+}

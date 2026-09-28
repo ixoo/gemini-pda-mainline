@@ -38,6 +38,7 @@
     "boot_identity": "not obtained",
     "provider_probe": "not run"
   },
-  "mainline_boot": "not yet observed",
+  "mainline_boot": "6e524790-fbcf-4a23-8f36-8720fe296b01",
+  "runtime_result": "results/runtime-1.json",
   "private_evidence": "artifacts/device-install-evidence/mt6797-conn-provider-passive-deployment-1"
 }

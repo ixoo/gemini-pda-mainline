@@ -69,20 +69,15 @@ unreachable. A later Mac USB sample found `0x0e8d:0x20ff` with product
 in an earlier experiment before a later successful mainline boot. No boot
 identity, kernel log or provider result was obtained, so this observation
 does not establish whether the installed image booted. The device session
-remains unconsumed. Before another boot attempt, use the screen
-state and a decision-changing diagnostic; do not repeat an identical watcher
-or partition write.
+remained unconsumed at that point. A different start-boundary observation was
+needed, not another partition write.
 
-For a later attended boot, [the pre-armed watcher](watch-boot.py) first checks
-the exact candidate and the still-unclaimed session. Its default invocation
-does only offline preparation. With `--execute`, it records local preloader,
-`0x20ff` and candidate-gadget stage changes for at most 900 seconds. Only the
-exact direct mainline USB route starts the existing authenticated collector;
-an expired watch makes no device SSH claim. Start it before the owner selects
-boot2, after the current screen state and safe shutdown are established. A
-route and authenticated log would test provider registration; another stable
-`0x20ff` interval would redirect boot-stage diagnosis without implying a
-provider failure.
+The [pre-armed watcher](watch-boot.py) checked the exact candidate and
+unclaimed session, then started before the owner physically selected boot2.
+Its local stage record went from `0x20ff` through an unclassified-or-absent
+sample to the candidate gadget;
+the exact direct mainline route then invoked the authenticated collector. The
+watcher made no device connection before that route appeared.
 
 The [guarded installer](install-passive.py) pins the existing full boot2
 checksum as its predecessor and the [session](passive-host.py) extends the
@@ -92,3 +87,23 @@ is bound to `mtk-power-controller`. This probe runs after the authenticated
 A53 observation and before the pre-recovery evidence seal. Its failure does
 not skip log preservation or the reviewed Gemian return; it makes the provider
 gate fail separately from the A53 regression.
+
+## Passive device result
+
+The [sanitized runtime result](results/runtime-1.json) identifies the installed
+16 MiB boot2 image, a changed mainline boot ID, the host USB transition, a
+complete 128,166-byte kernel log through its explicit seal, and exactly one
+`mediatek,mt6797-power-controller` platform device bound to
+`mtk-power-controller`. The selected provider refuses registration unless both
+CONN power-status bits are readable and clear, so successful registration
+establishes the initial-OFF gate at probe. The shared CONSYS owner also bound,
+and the A53 service regression passed. Reviewed recovery reached a new Gemian
+boot; a separate pinned-key SSH read confirmed its boot ID, `3.18.41+` kernel
+and WLAN carrier.
+
+This consumes the passive provider registration test. It does not show a later
+CONN status, an active domain transition, exclusive retained-writer ownership,
+EMI policy, firmware execution or mainline Wi-Fi traffic. The next code work
+remains an owner-controlled transition with retained fault handling and the
+complete firmware executor; no ordinary CONN consumer is admitted by this
+result alone.
