@@ -1,0 +1,38 @@
+{
+  "status": "offline-gated-wifi-hif-probe-candidate-validated",
+  "kernel_build_commit": "e0a8f36fa0a59d98f6ca20ee8fe3c1ac1f4fa68d",
+  "kernel_release": "7.1.3-gemini-a53-wifi-hif-probe",
+  "kernel_package_sha256": "d4e691b8d9bf80c44d0e6db272af27cbf0ca26ecd0469dfce82ad151462c1f4c",
+  "parent_boot2_sha256": "4483a35bc23dc5d0bfca856848a70ca512e071caa89741098e0f461b65a9e141",
+  "firmware_sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
+  "files": {
+    "Image.gz": {
+      "sha256": "f5a27cc74f322562eb4796609252507cd395d8be4de1f63351e6ca97e4e2c691",
+      "bytes": 6478675
+    },
+    "board.dtb": {
+      "sha256": "4d75bd365d7235f69347619167ffc6a147158443819229b4376ea91ea8aaa0af",
+      "bytes": 27967
+    },
+    "boot.img": {
+      "sha256": "cb987f7128cd9c103a31120c74ff900e4b73718888de18af14853384fb0714df",
+      "bytes": 9779200
+    },
+    "boot2-padded.img": {
+      "sha256": "8e6d80e9c22b658ee8e79c7e4813d0ad80365d26907f2c374a69a2193c1c9049",
+      "bytes": 16777216
+    },
+    "initramfs.img": {
+      "sha256": "3ff87f9405b8dde5f09a61419845337903251e3dc34efa7b21e60d5b7551d4c4",
+      "bytes": 3266661
+    },
+    "kernel.config": {
+      "sha256": "651b20c64b3b7a193f101a35a72c6be2603cfea1b05d38affcd944b8aa361ef7",
+      "bytes": 112008
+    }
+  },
+  "device_tree_change": "CONSYS HIF resource and one-shot flag only",
+  "secret_bearing": true,
+  "device_action": "none",
+  "physical_admission": false
+}

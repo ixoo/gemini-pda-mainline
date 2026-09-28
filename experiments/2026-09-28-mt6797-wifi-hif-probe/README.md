@@ -42,3 +42,20 @@ Preserve the complete mainline log and regression checks, then return through
 the reviewed native recovery path and confirm a changed-boot Gemian Wi-Fi
 carrier. The format-patch has synthetic non-certifying authorship and is not
 an upstream submission.
+
+## Prepared candidate
+
+The clean pushed commit `e0a8f36fa0a59d98f6ca20ee8fe3c1ac1f4fa68d`
+built on Buildbox with `KERNEL_PROFILE=mt6797-a53-wifi-hif-probe`. Its
+validated package has inventory SHA-256
+`d4e691b8d9bf80c44d0e6db272af27cbf0ca26ecd0469dfce82ad151462c1f4c`.
+The focused binding/example check and compiled Gemini DTB schema check passed
+with the retained `dtschema-2026.9` environment. The private RAM root retains
+52 members and identical firmware bytes; only `init`'s release gate changed.
+The candidate preserves the observed reset-release board DTB and adds only the
+HIF resource and one-shot flag. The LK boot-container validator passed. Its
+full 16-MiB boot2 SHA-256 is
+`8e6d80e9c22b658ee8e79c7e4813d0ad80365d26907f2c374a69a2193c1c9049`.
+The [checksum-only receipt](results/candidate.json) pins all inputs. No device
+action has occurred for this candidate; `physical_admission` remains false
+until the guarded installer and collector are ready.
