@@ -77,3 +77,29 @@ post-watch Gemian LAN connection also timed out; that check does not establish
 the PDA's screen or boot state. This is not a tested failure of the CONN power
 sequence. A fresh physical handoff and newly armed collector are needed before
 another device observation; the expired watch itself does not authorize a retry.
+
+## Power-on runtime result
+
+The [sanitized runtime receipt](results/runtime-1.json) records a new,
+authenticated mainline boot after a fresh USB-stage transition. The complete
+private kernel log has one `domain confirmed ON, reset held` record, no
+`power probe stopped` record, one registered provider, and acceptance of all
+four retained-firmware sections as a plan. This confirms the provider's
+point-in-time dual-status ON check after the single power request. The CONMCU
+reset remained asserted; no CONSYS window read, firmware execution or mainline
+Wi-Fi operation was attempted.
+
+The host collector requested the reviewed Gemian return, but its return check
+looked for the private SSH key under the isolated source worktree. That key
+exists only in the primary ignored artifacts, so the collector marked the
+return and full A53 regression inconclusive. A separate bounded read-only
+connection using the primary pinned identity confirmed a changed Gemian boot
+with WLAN carrier. The host wrapper now binds the return collector to the
+primary private repository. This correction does not reclassify the original
+collector result as a passing full regression.
+
+The next distinct hardware observation must answer whether the CONSYS window
+can be read safely with the domain ON and reset held, using the source-defined
+chip-ID register as a positive control. Reset release, shared EMI ownership,
+firmware execution and networking need separate admission and evidence. The
+current boot image should not be rerun for an identical power observation.

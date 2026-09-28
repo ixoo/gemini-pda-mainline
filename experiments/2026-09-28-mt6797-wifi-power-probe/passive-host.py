@@ -49,6 +49,7 @@ def main():
     os.umask(0o077)
     try:
         prepared = PASSIVE.DOMAIN.prepare(args.candidate)
+        prepared['finish'].REPO = PRIVATE_REPO
         if not args.execute:
             print('offline-preparation=pass; device_action=none')
             return 0
