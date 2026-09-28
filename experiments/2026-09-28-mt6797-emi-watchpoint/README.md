@@ -77,3 +77,19 @@ would prove that this master accessed the watched address during WMT on, but
 the watchpoint cannot report its EMI domain or region-18/23 arbitration.
 The only next step then is a separately justified domain/overlap discriminator;
 the result does not authorize copying Gemian's EMI policy into mainline.
+
+The committed script `969c306d` passed its on-device `--preflight` and ran
+once as a transient systemd unit in the pinned primary Gemian boot. ConnMan
+disconnected before WMT off; WMT on returned and the retained kernel log
+shows WLAN probe. The watchpoint stayed enabled at `0x00880000` without a hit,
+type or address after WMT on. Cleanup restored all five words, carrier returned,
+and the boot ID remained unchanged. No new cfg80211 warning appeared. The
+[sanitized result](results/firmware-load.json) pins the private capture.
+
+This second no-hit is limited to the WMT-on interval. The stock kernel cannot
+prove that the exact later firmware section copied in this cycle, and the
+watchpoint has no positive hit control. Neither no-hit can establish absent
+CONSYS traffic, effective domain or overlap priority. Do not replay this
+radio cycle. The next investigation must resolve the observation path itself
+or obtain an exact hardware routing/arbitration source before any mainline EMI
+policy write.

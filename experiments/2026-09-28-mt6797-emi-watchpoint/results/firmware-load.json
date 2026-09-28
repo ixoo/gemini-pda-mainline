@@ -1,0 +1,29 @@
+{
+  "boot_id": "636e12fb-65de-4eb3-88c8-70c3e4cec71e",
+  "kernel_release": "3.18.41+",
+  "protocol_commit": "969c306d",
+  "script_sha256": "956ed687ecd0cbe5f21377527429bf8164129c27a60bee6c70b03fed0cd5727d",
+  "private_bundle_sha256": "df4a21352e527ae450a255843bc79aa5e11337936500e96284dca5d9fa2379c0",
+  "single_use_budget": "consumed",
+  "systemd_result": "success; ExecMainStatus=0",
+  "disconnected_before_wmt": true,
+  "wmt_on_returned": true,
+  "watchpoint": {
+    "address_register": "0x7fa00000",
+    "control_register": "0x000000d3",
+    "armed_checker": "0x00880000",
+    "hit_checker_after_wmt_on": "0x00880000",
+    "hit_type_after_wmt_on": "0x00000000",
+    "hit_address_after_wmt_on": "0x00000000",
+    "hit": false,
+    "restored_address": "0x00000000",
+    "restored_control": "0x00000000",
+    "restored_checker": "0x00800000",
+    "restored_type": "0x00000000",
+    "restored_hit_address": "0x00000000"
+  },
+  "same_boot": true,
+  "wifi_carrier_restored": true,
+  "new_cfg80211_warning": false,
+  "interpretation": "The disconnected WMT off/on cycle completed in the identified primary Gemian boot and the non-blocking region-18 watchpoint recorded no hit during WMT on. WMT on and WLAN probe appear in the retained kernel log, but this stock kernel has no per-section firmware-copy trace. The result does not prove that region 18 was untouched throughout firmware loading, that this watchpoint has a validated positive control, or any CONSYS master/domain or region-18/23 overlap rule. The exact radio/watchpoint cycle must not be repeated."
+}
