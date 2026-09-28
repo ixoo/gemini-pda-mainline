@@ -38,3 +38,23 @@ identifiers remain private; publish only sanitized results and hashes.
 
 This internal patch has synthetic non-certifying authorship and is not an
 upstream submission.
+
+## Built candidate
+
+Clean pushed commit `26f25c6a` built 543 selected patches on Buildbox. The
+immutable package passed complete inventory validation; the image and config
+identities are in the [build receipt](results/build.json). Strict checkpatch
+passed with the synthetic DCO omission explicitly excluded. The selected
+patch applies to the exact prior source and changes only the CONSYS driver.
+
+The [candidate builder](build-candidate.py) verified that package, reused the
+exact boot-tested DTB, initramfs and config, and changed only `Image.gz`. The
+Android LK container and exact 16 MiB padding passed validation. The
+[candidate receipt](results/candidate.json) pins full boot2 SHA-256
+`a592c6032e26da3fc6125d954a134a20a30072dbf0f550f585901869e2ce536b`.
+The reviewed [installer wrapper](install-passive.py) is pinned to the preceding
+boot2 checksum and current authenticated Gemian boot. The [host collector](passive-host.py)
+requires one internally consistent VCN28 record in a complete log, the A53
+regression and a single modern CONN provider. The [USB-stage watcher](watch-boot.py)
+is finite and performs no device action until the new candidate is installed
+and the owner physically selects boot2.

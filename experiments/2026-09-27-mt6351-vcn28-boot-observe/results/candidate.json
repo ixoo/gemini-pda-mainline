@@ -1,0 +1,37 @@
+{
+  "status": "offline-vcn28-boot-observer-composition-validated",
+  "kernel_build_commit": "26f25c6abcf0f546be6249e2ef200ac3a6043cec",
+  "kernel_release": "7.1.3-gemini-a53-consys-owner-passive",
+  "kernel_package_sha256": "cce5935cd8b4997d8d49ecda089694847ef60f428a61800bdc2486c619b7011e",
+  "parent_boot2_sha256": "07dfcc16b6c66442f47c5540eb24a9c1e057c6827d20787b74f39fe945569230",
+  "files": {
+    "Image.gz": {
+      "sha256": "0a7b788b8b43338b80e89cc32937af20464c9f3d7ac7d2475183a16ff5fd0e4c",
+      "bytes": 6475552
+    },
+    "board.dtb": {
+      "sha256": "0a06eb593c7bd59d529d3c38fb3c885b44ba32a5dcf61d742780bbcf64cc166b",
+      "bytes": 27611
+    },
+    "boot.img": {
+      "sha256": "bdea6636ba13f5320c1c99e1aa5b9f3f56f5e8cdaba38404c0c9f5cc14ced577",
+      "bytes": 9562112
+    },
+    "boot2-padded.img": {
+      "sha256": "a592c6032e26da3fc6125d954a134a20a30072dbf0f550f585901869e2ce536b",
+      "bytes": 16777216
+    },
+    "initramfs.img": {
+      "sha256": "62619d682e79ba5df929b055df0de8e48ed68412b358fe8f82d2368f924623b1",
+      "bytes": 3055468
+    },
+    "kernel.config": {
+      "sha256": "6fd4c538eb3a56cc8f948d9c5bf0985e3b25789274940c21545157d852274e6e",
+      "bytes": 112014
+    }
+  },
+  "device_tree_change": "none; exact boot-tested board DTB reused",
+  "secret_bearing": true,
+  "device_action": "none",
+  "physical_admission": false
+}
