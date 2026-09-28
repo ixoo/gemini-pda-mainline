@@ -76,3 +76,12 @@ There is no mainline boot ID, kernel log, HIF result, A53 regression or verified
 Gemian return. Do not infer an HIF failure from `20ff` or repeat an identical
 host-only watch without a decision-changing physical observation. The verified
 boot2 image remains installed; the device has not been otherwise manipulated.
+
+The owner later reported that boot2 started. A second finite watch was armed
+after that report, while the host still showed `20ff`. Its [receipt](results/attempt-2.json)
+records no USB-stage transition or mainline route over 900 seconds, and no
+device SSH attempt. Because the watch started after the reported selection, it
+cannot establish that this selection passed through preloader. The screen state
+remains pending. Neither attempt reached the kernel log, so the HIF hypothesis
+is still untested. Establish the device's physical state before any recovery or
+another boot; a third identical host-only watch has no decision value.

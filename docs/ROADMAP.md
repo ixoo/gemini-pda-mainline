@@ -508,8 +508,14 @@ for the first Wi-Fi bring-up. The current preparation order is:
    set MCU ACR bit 18 and released CONMCU reset once; chip ID remained `0x0279`
    with CONN ON. Its complete sealed log and changed-boot Gemian carrier return
    passed, but the collector was not armed before boot2 selection and the prior
-   clean shutdown was unconfirmed. The next code work is a same-boot admission
-   gate and retained-fault owner transitions for the first firmware executor,
+   clean shutdown was unconfirmed. A subsequent [gated HIF startup candidate](../experiments/2026-09-28-mt6797-wifi-hif-probe/README.md)
+   was built, validated, installed to boot2 with full readback, and cleanly shut
+   down. Its first finite watch ended at MediaTek `20ff` without a mainline route
+   or kernel log. The owner later reported boot2 started; a second watch began
+   after that report and saw the same `20ff` stage without a transition or route.
+   This is a host-stage limit, not an HIF result. Establish the screen state
+   before any further boot action or watcher. After an HIF result, add a same-boot
+   admission gate and retained-fault owner transitions for the first firmware executor,
    without assuming that an earlier boot's zeros authorize an EMI write. A
    [passive mainline EMI read](../experiments/2026-09-27-mt6797-emi-boot-observe/results/runtime-1.json)
    returned zero for region-18/19/23 range and policy registers in a

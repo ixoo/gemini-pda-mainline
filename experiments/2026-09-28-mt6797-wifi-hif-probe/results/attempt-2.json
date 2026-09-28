@@ -1,0 +1,33 @@
+{
+  "status": "post-selection-usb-watch-expired-before-mainline-route; hif-unobserved",
+  "candidate_boot2_sha256": "8e6d80e9c22b658ee8e79c7e4813d0ad80365d26907f2c374a69a2193c1c9049",
+  "kernel_build_commit": "e0a8f36fa0a59d98f6ca20ee8fe3c1ac1f4fa68d",
+  "kernel_release": "7.1.3-gemini-a53-wifi-hif-probe",
+  "owner_report": {
+    "boot2_started": true,
+    "report_preceded_watch": true,
+    "screen_state": "pending"
+  },
+  "watch": {
+    "armed_utc": "2026-09-28T21:02:53Z",
+    "expired_utc": "2026-09-28T21:17:54Z",
+    "budget_seconds": 900,
+    "initial_and_final_usb_stage": "mediatek-20ff",
+    "stage_transitions": 0,
+    "private_events_sha256": "90f74129a5cc553b31ba53233bc9a2b905b8457f10a6544ded402432059f297d",
+    "mainline_usb_route": false,
+    "device_ssh_attempts": 0
+  },
+  "post_watch": {
+    "known_good_gemian_lan_ssh": "unreachable"
+  },
+  "limits": {
+    "early_boot_stage": "not-captured; watch-armed-after-owner-report",
+    "mainline_boot_identity": "unobserved",
+    "kernel_log": "unavailable",
+    "hif_probe": "unobserved",
+    "a53_regression": "not-run",
+    "gemian_return": "not-yet-confirmed",
+    "wifi_operational": false
+  }
+}
