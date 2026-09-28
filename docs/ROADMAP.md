@@ -490,11 +490,19 @@ for the first Wi-Fi bring-up. The current preparation order is:
    found `0x1a60` after the checked-OFF query, with on-control clear and both
    source fields 3; its complete log, A53 regression and changed-boot Gemian
    Wi-Fi return passed. This establishes one initial register value, not the
-   physical inputs or exclusive writer handoff. No active CONN transition has
-   been tested. The next code work is retained-fault owner transitions and the
-   firmware executor, after shared writer and EMI ownership are resolved. A
+   physical inputs or exclusive writer handoff. A later
+   [guarded power probe](../experiments/2026-09-28-mt6797-wifi-power-probe/results/runtime-1.json)
+   confirmed one CONN ON transition with CONMCU reset held. The following
+   [delayed chip-ID probe](../experiments/2026-09-28-mt6797-wifi-chip-id-delay/results/runtime-1.json)
+   read zero after 30 microseconds and `0x0279` after a requested 20-ms wait
+   in one complete, regression-passing mainline boot, then returned to
+   carrier-up Gemian. This supports a settling interval in that boot, not a
+   minimum delay or repeatability. It does not establish reset release,
+   shared writer/EMI ownership, firmware execution or mainline Wi-Fi. The
+   next code work is retained-fault owner transitions and the firmware
+   executor after those ownership gates are resolved. A
    [passive mainline EMI read](../experiments/2026-09-27-mt6797-emi-boot-observe/results/runtime-1.json)
-   then returned zero for region-18/19/23 range and policy registers in a
+   returned zero for region-18/19/23 range and policy registers in a
    complete, regression-passing boot. The returned carrier-up Gemian boot
    reported those regions programmed. Do not adopt an assumed inherited
    protection state: design an owned region-18/19 transaction and validate its
