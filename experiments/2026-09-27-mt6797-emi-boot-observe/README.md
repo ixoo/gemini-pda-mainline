@@ -69,3 +69,37 @@ the existing passive owner/VCN28 evidence, exactly one record for each of EMI
 regions 18, 19 and 23, a complete sealed log, the A53 regression and one
 modern CONN provider. The finite [USB watcher](watch-boot.py) waits for the
 owner's physical boot2 selection after installation and clean shutdown.
+
+The [deployment receipt](results/deployment.json) records live-GPT `boot2`
+resolution, inactive root, stable power, exact predecessor, guarded write,
+matching full-partition readback and clean Gemian shutdown. The private
+installer and full deployment summary are pinned by checksums in that receipt.
+Collector and USB-watcher offline preflights passed; the physical boot2 result
+is separate.
+
+## Device result and decision
+
+The owner selected boot2 once after the 900-second USB watcher was armed. The
+authenticated changed-boot mainline session bound one modern CONN provider and
+one passive owner, retained VCN28 `0x1a60`, and logged exactly three EMI
+records. Every region-18, -19 and -23 range and policy read returned zero. The
+1,849-record kernel log sealed completely and the A53 service regression
+passed. The collector requested the reviewed native return only after sealing
+the evidence and confirmed a changed Gemian boot.
+
+In that returned Gemian boot, a bounded read of the existing EMI sysfs report
+found region 18 over `0xbfa00000..0xbfa7ffff`, region 19 over
+`0xbfa80000..0xbfafffff`, and broad region 23 over
+`0x00000000..0xffffffff`. The boot ID was stable around that read and `wlan0`
+had carrier. This positive control supports the conclusion that the Gemian
+policy is not visible to mainline at the owner's probe; it is not proof that
+every underlying register is zero, because the selected vendor SMC source is
+not byte-matched to the executing secure firmware. The two observations are in
+different boots.
+
+The sanitized [runtime receipt](results/runtime-1.json) pins the read values,
+candidate, boot identities, complete-log hash and returned-Gemian control. The
+complete logs and sysfs response remain ignored private evidence. The next
+owner cannot assume inherited region-18/19 protection. It needs an explicit
+owned protection transaction, plus master-domain/overlap validation, before
+firmware execution. This read-only test did not authorize an active transition.

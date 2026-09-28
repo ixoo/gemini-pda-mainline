@@ -1,0 +1,62 @@
+{
+  "status": "passive-mainline-emi-read-zero-with-gemian-positive-control",
+  "candidate_full_sha256": "0f2bb23cda82e8b119a823a4ffa68d6b60b0bd9399f592b5ee4d9db1909c7710",
+  "kernel_build_commit": "35465d470dbc7dbc3720a1b3436d8b2ff42d67e6",
+  "kernel_release": "7.1.3-gemini-a53-consys-owner-passive",
+  "previous_gemian_boot": "791fbb6f-59cb-4630-a8b7-d2f4d56c3161",
+  "mainline_boot": "ba073810-dc3f-4ebf-aeda-fc7c7b08f3d3",
+  "returned_gemian_boot": "3333cac5-13d7-4b9e-8e33-84ec236ead4a",
+  "usb_watcher": {
+    "armed_utc": "2026-09-28T01:16:33Z",
+    "stages": ["mediatek-20ff", "other-or-absent", "candidate-gadget"],
+    "collector_exit": 0
+  },
+  "provider_probe": {
+    "platform_devices": 1,
+    "bound_to_mtk_power_controller": 1,
+    "boot_id": "ba073810-dc3f-4ebf-aeda-fc7c7b08f3d3"
+  },
+  "passive_owner": "one bound owner with checked-OFF CONN domain",
+  "vcn28_boot_sample": {
+    "raw": "0x1a60",
+    "on_control_bit_3": 0,
+    "source_mode_bits_7_5": 3,
+    "source_enable_bits_13_11": 3
+  },
+  "emi_read_service": "MT6797 vendor-defined SMC 0x82000208, six probe-time reads",
+  "mainline_emi_raw": {
+    "18": {"range": "0x00000000", "policy": "0x00000000"},
+    "19": {"range": "0x00000000", "policy": "0x00000000"},
+    "23": {"range": "0x00000000", "policy": "0x00000000"}
+  },
+  "a53_service_regression": "pass",
+  "kernel_log": {
+    "complete_through_explicit_seal": true,
+    "records": 1849,
+    "bytes": 128824,
+    "sha256": "e03bbfcce636584855f443acc407591b9cb6235e70fec9e263f7b296df42e98d"
+  },
+  "recovery": {
+    "reviewed_path_confirmed": true,
+    "changed_gemian_boot": true
+  },
+  "returned_gemian_control": {
+    "boot_id_stable": true,
+    "kernel": "3.18.41+",
+    "wlan0_carrier": 1,
+    "region_18": "0xbfa00000..0xbfa7ffff; domain 2 No, all other domains FORBIDDEN",
+    "region_19": "0xbfa80000..0xbfafffff; domains 0 and 2 No, all others FORBIDDEN",
+    "region_23": "0x00000000..0xffffffff; domain 2 FORBIDDEN",
+    "private_response_bytes": 3443,
+    "private_response_sha256": "951093223b0047622520759724f2adbf33dea668f58d25e74a620fe0a99d25d5"
+  },
+  "inference": "Mainline did not read the Gemian-style region-18/19/23 configuration in this boot; inherited policy cannot be adopted from this evidence.",
+  "limits": [
+    "the selected vendor read-service source is not byte-matched to executing secure firmware",
+    "zero read responses are not independent proof of every EMI register's effective state",
+    "Gemian and mainline observations are separate boots",
+    "master-domain routing, region overlap arbitration and exclusive writers remain unknown",
+    "no active CONN transition, firmware execution or mainline Wi-Fi traffic occurred"
+  ],
+  "private_evidence": "artifacts/emi-boot-observe/session-1"
+}

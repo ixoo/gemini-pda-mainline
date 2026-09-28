@@ -489,7 +489,15 @@ for the first Wi-Fi bring-up. The current preparation order is:
    Wi-Fi return passed. This establishes one initial register value, not the
    physical inputs or exclusive writer handoff. No active CONN transition has
    been tested. The next code work is retained-fault owner transitions and the
-   firmware executor, after shared writer and EMI ownership are resolved. The
+   firmware executor, after shared writer and EMI ownership are resolved. A
+   [passive mainline EMI read](../experiments/2026-09-27-mt6797-emi-boot-observe/results/runtime-1.json)
+   then returned zero for region-18/19/23 range and policy registers in a
+   complete, regression-passing boot. The returned carrier-up Gemian boot
+   reported those regions programmed. Do not adopt an assumed inherited
+   protection state: design an owned region-18/19 transaction and validate its
+   readback and failure lifetime before firmware execution. The exact secure
+   read implementation, master-domain routing and region-23 overlap rule still
+   need validation. The
    [read-only Gemian EMI reference](../experiments/2026-09-26-mt6797-emi-active-reference/results/runtime.json)
    confirms the vendor-requested region-18/19 ranges and permission values in
    a boot where WLAN carrier was observed later, but also shows broad region 23
