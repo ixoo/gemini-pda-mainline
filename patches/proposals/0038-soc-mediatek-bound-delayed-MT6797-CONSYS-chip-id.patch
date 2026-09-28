@@ -1,0 +1,72 @@
+From 3bbc3d02a4079d29872b36322906078fb2f72ffa Mon Sep 17 00:00:00 2001
+From: MT6797 internal experiment <nobody@example.invalid>
+Date: Mon, 28 Sep 2026 13:03:38 -0400
+Subject: [PATCH] soc: mediatek: bound delayed MT6797 CONSYS chip-ID reads
+
+After an admitted powered read misses the expected ID, take at most
+two delayed read-only samples 20 ms apart. Recheck domain and held
+CONMCU reset before each read; retain all power effects. This
+distinguishes settling from persistent zero without releasing reset
+or executing firmware.
+
+Internal experiment; synthetic authorship, not DCO-certified.
+---
+ drivers/soc/mediatek/mt6797-consys.c | 42 ++++++++++++++++++++++++++++
+ 1 file changed, 42 insertions(+)
+
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index f7fbf60..ff5a013 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -365,6 +365,48 @@ static void mt6797_consys_probe_power_on(struct device *dev, struct mt6797_consy
+ 		}
+ 		chip_id = readl(owner->chip_id);
+ 		dev_info(dev, "one-shot CONN chip ID: 0x%08x, reset held\n", chip_id);
++		if (chip_id != 0x0279) {
++			msleep(20);
++			ret = mtk_pm_domain_confirmed_on(owner->conn_domain);
++			if (ret) {
++				dev_err(dev,
++					"one-shot CONN chip ID skipped: "
++					"delayed domain status %d\n", ret);
++				return;
++			}
++			ret = reset_control_status(owner->conmcu_reset);
++			if (ret != 1) {
++				dev_err(dev,
++					"one-shot CONN chip ID skipped: "
++					"delayed reset status %d\n", ret);
++				return;
++			}
++			chip_id = readl(owner->chip_id);
++			dev_info(dev,
++				 "one-shot CONN chip ID after 20 ms: 0x%08x, reset held\n",
++				 chip_id);
++		}
++		if (chip_id != 0x0279) {
++			msleep(20);
++			ret = mtk_pm_domain_confirmed_on(owner->conn_domain);
++			if (ret) {
++				dev_err(dev,
++					"one-shot CONN chip ID skipped: "
++					"final domain status %d\n", ret);
++				return;
++			}
++			ret = reset_control_status(owner->conmcu_reset);
++			if (ret != 1) {
++				dev_err(dev,
++					"one-shot CONN chip ID skipped: "
++					"final reset status %d\n", ret);
++				return;
++			}
++			chip_id = readl(owner->chip_id);
++			dev_info(dev,
++				 "one-shot CONN chip ID after 40 ms: 0x%08x, reset held\n",
++				 chip_id);
++		}
+ 	}
+ 	return;
+ 
+-- 
+2.54.0 (Apple Git-157)
+
