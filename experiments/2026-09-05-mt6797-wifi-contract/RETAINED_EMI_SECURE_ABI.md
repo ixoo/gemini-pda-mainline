@@ -16,11 +16,10 @@ retained analysis mapping was reused: analysis address = file offset +
 `0x000ff3c0`, payload file extent `[0x1000,0x17e00)`.
 
 The [July 23 retained slot-identity observation](../2026-07-22-a72-firmware-power-contract/results/live-tee-identity-20260723.txt)
-records both persistent TEE slots matching this image. It explicitly does not
-claim a runtime secure-memory dump. That historical observation and this
-retained-file hash do **not** prove today's active secure firmware identity,
-its mutable lock bytes or which slot was executed. No new live verification
-was attempted. The [earlier mapping audit](../2026-08-06-da921x-page-owner-audit/results/tee-owner-disassembly-20260806.txt)
+and [September 28 read-only repeat](../2026-09-28-mt6797-emi-owner-preflight/README.md)
+record both persistent TEE slots matching this image. Neither is a runtime
+secure-memory dump. The slot hashes do **not** prove which image executed,
+its mutable lock bytes or which slot was selected. The [earlier mapping audit](../2026-08-06-da921x-page-owner-audit/results/tee-owner-disassembly-20260806.txt)
 owns the retained mapping provenance.
 
 Capstone 4.0.2 AArch64 decoding established the dispatch and handler paths;

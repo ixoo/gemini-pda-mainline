@@ -509,8 +509,13 @@ for the first Wi-Fi bring-up. The current preparation order is:
    [retained-image read-path check](../experiments/2026-09-27-mt6797-emi-range-census/results/retained-read-service.json)
    confirms the 24 census offsets take direct register reads in that image,
    while the region-23 policy offset uses a cached word. The executing secure
-   firmware's identity, master-domain routing and region-23 overlap rule still
-   need validation. The
+   firmware's runtime identity, master-domain routing and region-23 overlap rule still
+   need validation. A [read-only owner preflight](../experiments/2026-09-28-mt6797-emi-owner-preflight/README.md)
+   reconfirmed both persistent TEE slots match the retained EMI-service image
+   and found the live Gemian GPS EMI option disabled; its apparent shared-remap
+   write is also compiled out in the pinned source. This narrows identity and
+   Linux-writer uncertainty without proving the executing secure image or
+   granting an EMI write. The
    [read-only Gemian EMI reference](../experiments/2026-09-26-mt6797-emi-active-reference/results/runtime.json)
    confirms the vendor-requested region-18/19 ranges and permission values in
    a boot where WLAN carrier was observed later, but also shows broad region 23

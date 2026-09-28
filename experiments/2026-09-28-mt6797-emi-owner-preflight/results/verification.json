@@ -1,0 +1,33 @@
+{
+  "status": "read-only-preflight-complete",
+  "gemian_boot_id": "636e12fb-65de-4eb3-88c8-70c3e4cec71e",
+  "gemian_kernel_release": "3.18.41+",
+  "boot_id_stable_across_partition_reads": true,
+  "live_gpt_labels": {
+    "tee1": {
+      "device": "/dev/mmcblk0p24",
+      "bytes": 5242880,
+      "mounted": false,
+      "sha256": "2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3"
+    },
+    "tee2": {
+      "device": "/dev/mmcblk0p25",
+      "bytes": 5242880,
+      "mounted": false,
+      "sha256": "2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3"
+    }
+  },
+  "live_proc_config": {
+    "CONFIG_MTK_COMBO_GPS": "y",
+    "CONFIG_MTK_GPS": "y",
+    "CONFIG_MTK_GPS_EMI": "n"
+  },
+  "source_commit": "59e00a9144d782e148332009a835b99c43382467",
+  "gps_emi_source_sha256": "1809b36948cdb333a3a2fa291a9addb589f5f65382ceaa96ae6b20c6ff5aa530",
+  "gps_remap_write_source_guard": "#if 0",
+  "partition_writes": 0,
+  "protection_calls": 0,
+  "device_restarts": 0,
+  "runtime_secure_image_identified": false,
+  "emi_write_admitted": false
+}
