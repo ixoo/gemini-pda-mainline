@@ -1,0 +1,28 @@
+{
+  "result": "narrow-temporary-region18-policy-accepted-with-wifi-carrier",
+  "candidate_sha256": "cad42c1fe0bfb2d099edbaf26322ef00da6452e3fdf4a41258e75d3b44b1803a",
+  "live_boot2_sha256": "cad42c1fe0bfb2d099edbaf26322ef00da6452e3fdf4a41258e75d3b44b1803a",
+  "previous_boot_id": "77d578c4-b0bf-458e-ae16-d002c86e784e",
+  "observed_boot_id": "2ef3f074-86ab-4e8a-8ff0-a38affd3a18f",
+  "kernel_release": "3.18.41-gemini-wifi-ref9+",
+  "collector_result": "complete",
+  "private_collector_result_sha256": "a6c34d4dae3de8974258aa5e7a08b241e6edd5067d9869c77b34a8cc5ec38235",
+  "private_early_dmesg_sha256": "e33a3df1ab191f2ca04e9543fb83e4dd720d5dd631abe263f29fc7651694b4e7",
+  "private_late_dmesg_sha256": "b16e2d04507be1d50c9755e3deca3a2ca96665ea73ebdedc3c97402473113371",
+  "early_log_is_prefix_of_late": true,
+  "region18_range_readback": "0xbfa00000..0xbfa7ffff",
+  "ordered_region18_requests_and_readbacks": [
+    {"request": "0xb6da28", "status": 0, "readback": "0x00b6da28"},
+    {"request": "0xb6da2d", "status": 0, "readback": "0x00b6da2d"},
+    {"request": "0xb6da28", "status": 0, "readback": "0x00b6da28"},
+    {"request": "0xb6da2d", "status": 0, "readback": "0x00b6da2d"}
+  ],
+  "wifi_link_ready_seconds_since_boot": 17.234522,
+  "carrier_early": 1,
+  "carrier_late": 1,
+  "late_log_warning_occurrences": 20,
+  "late_log_call_trace_occurrences": 25,
+  "cmdline_read": "permission denied to unprivileged collector",
+  "interpretation": "The Gemian WLAN loader completed both firmware-section copies with the temporary region-18 policy narrowed to domains 0 and 2, resealed after each copy, and reached Wi-Fi carrier in the changed v9 boot.",
+  "limits": "Register readback and carrier do not prove effective bus permissions, region overlap precedence, CONSYS domain routing, exclusive ownership, firmware execution details, durable networking or safe mainline reproduction. The prior v8 boot already had 20 warning and 25 call-trace occurrences."
+}

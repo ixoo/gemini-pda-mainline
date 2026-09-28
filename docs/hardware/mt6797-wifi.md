@@ -85,6 +85,16 @@ windows and reports domain 2 forbidden. The readout does not establish which
 region wins, the effective master/domain assignment or permission to reproduce
 the policy in mainline.
 
+A [changed-boot instrumented Gemian v9 test](../../experiments/2026-09-26-gemian-wifi-reference/results/runtime-v9-1.json)
+narrowed only the temporary region-18 WLAN firmware-copy policy to
+`0xb6da28` (domains 0 and 2 open). Both section copies read back that
+policy, both final seals read back `0xb6da2d`, all four secure-call statuses
+were zero, and WLAN reached carrier 1. The working Gemian boot therefore
+completed those copies while requesting the narrower temporary policy. The
+readbacks do not identify effective bus permissions, overlap precedence, the
+executing master domain, an independent writer, or permission for a mainline
+write.
+
 An [authenticated mainline EMI census](../../experiments/2026-09-27-mt6797-emi-range-census/results/runtime-1.json)
 returned nonzero range words for 12 of 24 regions in the same boot where
 regions 18, 19 and 23 read zero. In the carrier-up Gemian return boot, 20

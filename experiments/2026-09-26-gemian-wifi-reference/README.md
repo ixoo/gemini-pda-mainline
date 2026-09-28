@@ -933,3 +933,15 @@ single-candidate installer (private SHA-256
 pins the current known-good Gemian boot ID/release and the installed HIF-probe
 boot2 predecessor checksum. No v9 device execution is claimed by these offline
 checks.
+
+The [changed-boot v9 result](results/runtime-v9-1.json) verifies the installed
+16 MiB boot2 image by full readback and identifies release
+`3.18.41-gemini-wifi-ref9+`. Both firmware-section copies requested
+`0xb6da28` temporarily and immediately read it back over
+`0xbfa00000..0xbfa7ffff`; both final requests and readbacks were
+`0xb6da2d`. All four secure calls returned zero. `wlan0` became ready at
+17.235 seconds and carrier was 1 in both collector samples. The early log is
+a prefix of the late log; its 20 warnings and 25 call traces match the prior
+v8 count. The bounded one-boot test is complete. This supports D0+D2 as a
+working temporary *Gemian* copy policy, not effective permission precedence,
+exclusive ownership or a safe mainline EMI write. Raw logs remain private.
