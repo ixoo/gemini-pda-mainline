@@ -20,3 +20,16 @@ neighboring WMT half-MiB or exclude external firmware writers. Active image
 entry remains refused. The next implementation must bind the immutable whole
 image, prove same-boot ownership and protection policy, and retain resources
 through partial transfer or failure before START is allowed.
+
+## Compile result
+
+Clean pushed commit `26b8c7abf610bbb4ab99855923bf07f1209b64a6` built on
+Buildbox with `KERNEL_PROFILE=mt6797-a53-wifi-reservation-compile`. The
+validated package inventory SHA-256 is
+`c8ecb732793f618db6f5493444128ad735b03675cf6212239efe1ed50e4a71bc`.
+The fetched ignored package contains the exact selected patch bytes,
+`CONFIG_MTK_MT6797_CONSYS=y`, and `mt6797_consys_probe` in `System.map`.
+`./scripts/check-repository` passed. Strict checkpatch reported only the
+intentional missing DCO sign-off for synthetic experiment authorship. There
+was no device boot, EMI protection call, firmware transfer or Wi-Fi test for
+this change.
