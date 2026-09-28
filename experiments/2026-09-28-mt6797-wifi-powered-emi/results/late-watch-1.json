@@ -1,0 +1,37 @@
+{
+  "status": "same-session-20ff-through-additional-host-only-watch",
+  "candidate_boot2_sha256": "31a7adaddbc5e1fbc7d5ddaedcd5507ccb89b5eca493ae2e9d723d9522f8c7ff",
+  "prior_attempt": "attempt-1.json",
+  "watch": {
+    "armed_utc": "2026-09-28T18:20:50Z",
+    "expired_utc": "2026-09-28T18:35:50Z",
+    "budget_seconds": 900,
+    "initial_usb_stage": "mediatek-20ff",
+    "final_usb_stage": "mediatek-20ff",
+    "usb_stage_transitions": 0,
+    "mainline_usb_route": false,
+    "device_ssh_attempts": 0,
+    "private_events_sha256": "d7e8e4080d1bbdc616e16f6b4ad69caf9e9074a3ff5dc50a1d4b3b33e18ae4ce"
+  },
+  "post_watch": {
+    "usb_session_id": "36576030674742",
+    "same_session_id_as_during_watch": true,
+    "known_good_gemian_lan_ssh": "timed-out"
+  },
+  "offline_image_comparison": {
+    "reference": "boot-tested delayed-chip-ID image",
+    "board_dtb_byte_identical": true,
+    "ram_root_member_count_both": 52,
+    "ram_root_changed_members": ["init"],
+    "init_change": "exactly one old kernel-release string replaced by the new release string",
+    "substantive_image_change": "new kernel with powered-EMI read probe"
+  },
+  "limits": {
+    "screen_state": "pending",
+    "physical_boot2_selection_confirmation": "pending",
+    "candidate_kernel_execution": "unproved",
+    "kernel_log": "unavailable",
+    "emi_snapshot": "unavailable",
+    "next_identical_host_watch_decision_changing": false
+  }
+}

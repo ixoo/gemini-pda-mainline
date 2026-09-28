@@ -51,3 +51,15 @@ kernel log, EMI result, A53 regression result or verified Gemian return for
 this attempt. Do not treat the timeout as a failed EMI check or replay the
 same image without a decision-changing observation. Private firmware and logs
 stay under ignored `artifacts/`.
+
+Because an earlier EMI-census boot exposed its mainline gadget after a
+900-second watch expired, one additional [host-only watch](results/late-watch-1.json)
+was armed on the existing `20ff` session without requesting another boot or
+device action. It saw no transition or mainline route for another 900 seconds;
+the USB session ID remained unchanged and Gemian LAN still timed out. The
+screen state and physical boot2 selection remain unconfirmed, so this is a
+host-route limit, not proof of a kernel failure. An independent image
+comparison found the boot-tested board DTB unchanged and only the expected
+release-string replacement in the RAM root. Another identical host watch
+would not resolve the boot boundary; the next observation must establish the
+PDA's physical state or a changed authenticated boot.
