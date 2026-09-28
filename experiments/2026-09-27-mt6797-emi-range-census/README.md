@@ -144,5 +144,33 @@ installed census image. Gemian was then shut down cleanly. The third finite
 [USB watch](results/watch-3.json) recorded a fresh preloader enumeration after
 that shutdown, followed by `0e8d:20ff` and no mainline route through expiry.
 This establishes a new startup but does not establish physical boot2 selection
-or candidate execution. The owner's current screen observation is pending; no
-repeat boot or recovery action follows from the USB timeout alone.
+or candidate execution at expiry. The owner's screen observation was pending; no
+repeat boot or recovery action followed from the USB timeout alone. The owner
+subsequently confirmed boot2 selection, and its mainline USB gadget appeared
+after the watch had expired.
+
+## Authenticated census and return
+
+The [host collector](results/runtime-1.json) then claimed the exact installed
+candidate in mainline boot `79d60a88-fd9d-4986-aa81-f3cf8cefa506`. Its
+complete sealed kernel log contains exactly 24 unique range records. Twelve
+regions (1, 2, 7–14, 16 and 17) returned nonzero values through the secure
+read service in the same boot where regions 18, 19 and 23 returned zero for
+their range and sampled policy offsets. The VCN28 control remained `0x1a60`
+with on-control clear; the provider probe and A53 service regression passed.
+The reviewed native recovery returned to changed-boot Gemian.
+
+One bounded, read-only `mpu_config` read in that returned Gemian boot found
+`wlan0` up with carrier and the same boot ID before and after. Converting the
+reported 64-KiB range bounds to register words, 20 of 24 regions match the
+mainline census. Only regions 18, 19, 22 and 23 differ: they were zero in
+mainline and programmed in carrier-up Gemian. The raw log and Gemian response
+remain ignored private evidence with hashes in the sanitized receipt.
+
+This is a same-boot positive control for the mainline read path, so its zero
+region-18/19/23 values are not explained by a read service that uniformly
+returns zero. The Gemian comparison is across boots and does not identify the
+writer or timing of those regions, effective master/domain routing, overlap
+priority, or authority to write an EMI policy. Retained secure-firmware bytes
+still are not attested as the executing image. The next owner design must
+account for these unresolved facts before an effect-bearing Wi-Fi transition.

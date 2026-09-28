@@ -1,0 +1,48 @@
+{
+  "classification": "authenticated-mainline-emi-range-census-positive-control",
+  "candidate_full_sha256": "98269081c35d13476aaeb95f503f30a680dd2cb1ee8ad5766edae90e8a56a525",
+  "mainline_boot_id": "79d60a88-fd9d-4986-aa81-f3cf8cefa506",
+  "mainline_complete_log_sha256": "1ebeee4c431b24261d3b8b9b291f30edd9a6966908a75e113a39a056396ada6b",
+  "mainline_complete_log_bytes": 132266,
+  "census_records": 24,
+  "same_boot_nonzero_range_words": {
+    "1": "0x44604460",
+    "2": "0xbfdfbffe",
+    "7": "0x8800881f",
+    "8": "0x8840885f",
+    "9": "0x8820883f",
+    "10": "0xb883b9ff",
+    "11": "0xb400b560",
+    "12": "0xb561b745",
+    "13": "0xb746b882",
+    "14": "0xba00bbff",
+    "16": "0xbe00be40",
+    "17": "0xbe41bebf"
+  },
+  "same_boot_zero_range_regions": [0, 3, 4, 5, 6, 15, 18, 19, 20, 21, 22, 23],
+  "same_boot_region_18_19_23_policy_words": "all 0x00000000",
+  "vcn28_boot_control": "0x1a60",
+  "vcn28_on_control": 0,
+  "provider_registered": true,
+  "a53_service_regression": "pass",
+  "returned_gemian_boot_id": "636e12fb-65de-4eb3-88c8-70c3e4cec71e",
+  "reviewed_recovery": "confirmed changed-boot Gemian",
+  "returned_gemian_read_only_reference": {
+    "source": "/sys/bus/platform/drivers/emi_mpu_ctrl/mpu_config",
+    "private_response_sha256": "278bc3a37d17e15b53dcba1640e952d0826e90adae352be30e80d3ccadb22ecb",
+    "private_response_bytes": 3397,
+    "boot_id_matches_before_and_after": true,
+    "reported_regions": 24,
+    "wlan0_operstate": "up",
+    "wlan0_carrier": 1,
+    "range_words_equal_to_mainline": 20,
+    "range_words_differ_from_mainline": {
+      "18": {"mainline": "0x00000000", "gemian_from_range_bounds": "0xbfa0bfa7"},
+      "19": {"mainline": "0x00000000", "gemian_from_range_bounds": "0xbfa8bfaf"},
+      "22": {"mainline": "0x00000000", "gemian_from_range_bounds": "0x8f008fff"},
+      "23": {"mainline": "0x00000000", "gemian_from_range_bounds": "0x0000ffff"}
+    }
+  },
+  "observation": "The mainline secure read service returned nonzero range words for 12 regions in the same boot where regions 18, 19 and 23 read zero. After reviewed recovery, carrier-up Gemian reported programmed ranges for 18, 19, 22 and 23 while the other 20 range words matched after converting its 64-KiB range bounds.",
+  "limits": "These are separate boots. The result validates the mainline read path for the nonzero regions but does not identify the later range writer, attest the executing secure-firmware bytes, assign a CONSYS master/domain, resolve overlapping-region priority, or authorize an EMI write."
+}

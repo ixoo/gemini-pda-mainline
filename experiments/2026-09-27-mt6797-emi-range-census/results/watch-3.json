@@ -19,8 +19,9 @@
   "mainline_usb_route": false,
   "device_ssh_attempts": 0,
   "post_expiry_usb_id": "0e8d:20ff",
-  "owner_boot2_selection_and_current_screen": "pending",
+  "owner_boot2_selection_and_current_screen_at_expiry": "pending",
+  "post_expiry_followup": "owner confirmed boot2 selection; mainline USB gadget later appeared and an authenticated session was collected",
   "private_watch_events_sha256": "3371a2a413f671406a16d2b586bb014f35a11ed3721903f588a7c66b4058bd03",
-  "inference": "A new startup reached preloader after Gemian shutdown, then remained at the unidentified 20ff stage. Neither boot2 selection nor kernel execution is established without the owner's screen observation.",
-  "next_action": "preserve device state and obtain the owner's screen and selection observation before another boot or recovery action"
+  "inference_at_expiry": "A new startup reached preloader after Gemian shutdown, then remained at the unidentified 20ff stage. Selection and kernel execution were not established at the watch deadline.",
+  "next_action": "see runtime-1.json for the later authenticated mainline session and reviewed Gemian return"
 }

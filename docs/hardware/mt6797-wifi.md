@@ -79,6 +79,14 @@ windows and reports domain 2 forbidden. The readout does not establish which
 region wins, the effective master/domain assignment or permission to reproduce
 the policy in mainline.
 
+An [authenticated mainline EMI census](../../experiments/2026-09-27-mt6797-emi-range-census/results/runtime-1.json)
+returned nonzero range words for 12 of 24 regions in the same boot where
+regions 18, 19 and 23 read zero. In the carrier-up Gemian return boot, 20
+range words matched after decoding its sysfs bounds; 18, 19, 22 and 23 were
+programmed only in that separate snapshot. The mainline read path therefore
+has a same-boot positive control. These observations do not identify a writer
+or establish the effective protection policy.
+
 The pinned public MT6797 EMI driver explicitly requests broad AP region 23
 with the same `0xba8b68` policy seen in Gemian. Its CONNSYS master-name table
 matches peripheral port 6, AXI ID `0x3` masked by `0x1ffb`; this is a decoder
