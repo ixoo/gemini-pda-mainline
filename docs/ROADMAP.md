@@ -495,8 +495,11 @@ for the first Wi-Fi bring-up. The current preparation order is:
    complete, regression-passing boot. The returned carrier-up Gemian boot
    reported those regions programmed. Do not adopt an assumed inherited
    protection state: design an owned region-18/19 transaction and validate its
-   readback and failure lifetime before firmware execution. The exact secure
-   read implementation, master-domain routing and region-23 overlap rule still
+   readback and failure lifetime before firmware execution. A
+   [retained-image read-path check](../experiments/2026-09-27-mt6797-emi-range-census/results/retained-read-service.json)
+   confirms the 24 census offsets take direct register reads in that image,
+   while the region-23 policy offset uses a cached word. The executing secure
+   firmware's identity, master-domain routing and region-23 overlap rule still
    need validation. The
    [read-only Gemian EMI reference](../experiments/2026-09-26-mt6797-emi-active-reference/results/runtime.json)
    confirms the vendor-requested region-18/19 ranges and permission values in

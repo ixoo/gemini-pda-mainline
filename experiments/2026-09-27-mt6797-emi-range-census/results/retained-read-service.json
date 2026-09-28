@@ -1,0 +1,33 @@
+{
+  "classification": "retained-image static read-path attribution",
+  "retained_image_size": 5242880,
+  "retained_image_sha256": "2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3",
+  "analysis_address_mapping": "file offset + 0x000ff3c0",
+  "smc32_id": "0x82000208",
+  "argument": "low 32 bits of caller x1, interpreted as register offset",
+  "accepted_offset_inclusive": ["0x0160", "0x03bc"],
+  "out_of_range_low_word": "0xfffffffd",
+  "ordinary_read": "32-bit load from 0x10200000 plus the accepted offset, followed by a full-system data barrier",
+  "cached_read_offsets": ["0x03a4", "0x03ac", "0x03b4", "0x03bc"],
+  "census": {
+    "range_offsets": "0x0160, 0x0260 and 0x0360 banks, eight slots at stride 8 per bank",
+    "all_24_offsets_accepted": true,
+    "cached_read_offsets_used": 0
+  },
+  "prior_three_region_sample": {
+    "range_18_19_23": "ordinary register reads",
+    "policy_18_19": "ordinary register reads",
+    "policy_23": "cached read at offset 0x03bc; not a direct register read"
+  },
+  "private_window_hashes": [
+    {"purpose": "SMC32 dispatch", "file_start": "0x91c8", "file_end_exclusive": "0x9208", "sha256": "abfe85476894c8d92b537606e553da27393753221c386afc026a37dbd10cf3a7"},
+    {"purpose": "read-helper call", "file_start": "0x9ca8", "file_end_exclusive": "0x9cb4", "sha256": "f7c7c631cb40479d81eb12f560338b83fffb77d9bab90769e922317b750dd6fc"},
+    {"purpose": "offset gate and read helper", "file_start": "0x6904", "file_end_exclusive": "0x699c", "sha256": "327b6e7097d81f1fb56f8b0dfcad3b329464a962cbb658b6c76fa61ee37acbab"}
+  ],
+  "validation": "Capstone 4.0.2 control-flow inspection; independent GNU AArch64 objdump checks of the offset bounds, direct load and cached-offset branch; retained image hash matched; temporary check file removed",
+  "limitations": [
+    "The retained file and historical matching slot hashes do not identify the executing secure firmware in the tested boot.",
+    "Static code inspection does not prove that a particular SMC reached this handler or establish the live register contents.",
+    "No current-boot EMI protection policy, master routing or overlapping-region rule is established."
+  ]
+}

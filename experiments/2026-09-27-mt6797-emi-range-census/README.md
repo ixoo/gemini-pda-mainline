@@ -48,6 +48,27 @@ evidence; publish only sanitized receipts.
 The patch is an internal experiment with synthetic non-certifying authorship,
 not an upstream submission.
 
+## Retained secure-read path
+
+A bounded, read-only [static check](results/retained-read-service.json) of the
+hash-pinned retained TEE image found SMC32 `0x82000208` dispatching the low
+32 bits of x1 to an EMI read helper. The helper accepts offsets `0x160` through
+`0x3bc`. Ordinary offsets read the 32-bit register at `0x10200000 + offset`;
+four exception offsets (`0x3a4`, `0x3ac`, `0x3b4`, `0x3bc`) read cached words
+instead. All 24 census range offsets are accepted ordinary reads. The previous
+region-18/19/23 range samples were also ordinary reads, but its region-23
+policy sample at `0x3bc` was cached, so that policy value was not a direct
+hardware-register observation. Capstone decoding and independent GNU AArch64
+objdump checks agree on the bounds and read paths. The private image and
+disassembly remain in the RE VM; only window hashes and independently written
+semantics are published.
+
+This narrows interpretation **if** that exact secure handler ran in the
+mainline boot. The retained file and historical matching slot hashes do not
+establish the executing secure-firmware identity. Neither static analysis nor
+an all-zero census alone proves a mainline EMI protection policy, domain
+routing or overlap behavior.
+
 ## Built candidate
 
 Clean pushed commit `68e21a5f` built 545 selected patches on Buildbox. The
