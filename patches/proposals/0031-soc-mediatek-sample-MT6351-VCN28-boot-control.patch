@@ -1,0 +1,113 @@
+From 191b84fbde8c610c9a06139635ebe34fdfc512df Mon Sep 17 00:00:00 2001
+From: MT6797 internal experiment <nobody@example.invalid>
+Date: Sun, 27 Sep 2026 20:38:57 -0400
+Subject: [PATCH] soc: mediatek: observe MT6351 VCN28 boot control in passive
+ CONSYS owner
+
+Read the MT6351 VCN28 control register after the passive owner
+confirms that CONN is off. Check the supply-node ancestry before
+using the regulator-provided regmap. The raw value and decoded
+control fields distinguish boot inheritance from later Gemian
+setup. No register write, rail vote, reset or domain transition
+is requested.
+
+Internal experiment with synthetic author; no DCO
+certification or upstream submission.
+---
+ drivers/soc/mediatek/mt6797-consys.c | 47 ++++++++++++++++++++++++++++
+ 1 file changed, 47 insertions(+)
+
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index 2e5360a..110bb6c 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -7,12 +7,14 @@
+ #include <linux/ioport.h>
+ #include <linux/kernel.h>
+ #include <linux/limits.h>
++#include <linux/mfd/mt6351/registers.h>
+ #include <linux/mutex.h>
+ #include <linux/of.h>
+ #include <linux/of_reserved_mem.h>
+ #include <linux/pm_domain.h>
+ #include <linux/platform_device.h>
+ #include <linux/regulator/consumer.h>
++#include <linux/regmap.h>
+ #include <linux/reset.h>
+ #include <linux/sizes.h>
+ #include <linux/soc/mediatek/mtk-pm-domains.h>
+@@ -219,12 +221,47 @@ put_node:
+ 	return ret;
+ }
+ 
++/* Read only: identify the boot's VCN28 control state before any transition. */
++static int mt6797_consys_read_vcn28_control(struct device *dev,
++					    struct regulator *vcn28,
++					    unsigned int *value)
++{
++	struct device_node *supply, *regulators, *pmic = NULL;
++	struct regmap *map;
++	int ret = -EINVAL;
++
++	supply = of_parse_phandle(dev->of_node, "vcn28-supply", 0);
++	if (!supply)
++		return -EINVAL;
++	regulators = of_get_parent(supply);
++	if (!regulators)
++		goto out;
++	pmic = of_get_parent(regulators);
++	if (!of_node_name_eq(supply, "ldo-vcn28") ||
++	    !of_device_is_compatible(regulators, "mediatek,mt6351-regulator") ||
++	    !of_device_is_compatible(pmic, "mediatek,mt6351"))
++		goto out;
++
++	map = regulator_get_regmap(vcn28);
++	if (IS_ERR(map)) {
++		ret = PTR_ERR(map);
++		goto out;
++	}
++	ret = regmap_read(map, MT6351_LDO_VCN28_CON0, value);
++out:
++	of_node_put(pmic);
++	of_node_put(regulators);
++	of_node_put(supply);
++	return ret;
++}
++
+ static int mt6797_consys_probe(struct platform_device *pdev)
+ {
+ 	struct resource *remap_resource;
+ 	struct regulator *vcn18, *vcn28, *vcn33_wifi;
+ 	struct reset_control *conmcu_reset;
+ 	struct generic_pm_domain *conn_domain;
++	unsigned int vcn28_control;
+ 	void __iomem *remap;
+ 	u64 base;
+ 	int ret;
+@@ -283,6 +320,12 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 	ret = mt6797_consys_attach_off_domain(&pdev->dev, &conn_domain);
+ 	if (ret)
+ 		goto out_unlock;
++	ret = mt6797_consys_read_vcn28_control(&pdev->dev, vcn28,
++					       &vcn28_control);
++	if (ret) {
++		pm_genpd_remove_device(&pdev->dev);
++		goto out_unlock;
++	}
+ 	mt6797_consys.base = base;
+ 	mt6797_consys.remap = remap;
+ 	mt6797_consys.vcn18 = vcn18;
+@@ -294,6 +337,10 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 	platform_set_drvdata(pdev, &mt6797_consys);
+ 	dev_info(&pdev->dev,
+ 		 "bound boot CONSYS reserve, remap, VCN, CONMCU reset and checked-OFF CONN domain\n");
++	dev_info(&pdev->dev,
++		 "VCN28 boot control=0x%04x on=%u source-mode=%u source-enable=%u\n",
++		 vcn28_control, !!(vcn28_control & BIT(3)),
++		 (vcn28_control >> 5) & 7, (vcn28_control >> 11) & 7);
+ out_unlock:
+ 	mutex_unlock(&mt6797_consys_lock);
+ 	return ret;
+-- 
+2.54.0 (Apple Git-157)
+
