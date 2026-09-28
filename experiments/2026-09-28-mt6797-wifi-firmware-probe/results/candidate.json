@@ -15,16 +15,16 @@
       "bytes": 27663
     },
     "boot.img": {
-      "sha256": "8ed7d1c4042ac6f76b90fc87b73c21a260627486ca3a7c99e80f0ed0b58dee21",
+      "sha256": "377d1e20ca92a7b0cd38117f0fb65afd1c6fb134232b8baf09bc2b20716915be",
       "bytes": 9775104
     },
     "boot2-padded.img": {
-      "sha256": "2aa17d566a8de960f8a955324a530f56ffc7c252dd09a7f14d36c3f784d9cbec",
+      "sha256": "635af7ee9844da1eafd8f692492de018fcf021530213d86c198e8b5106aef6f1",
       "bytes": 16777216
     },
     "initramfs.img": {
-      "sha256": "d023fd7048189deed63c72346a9b0014cc3efbe3204458f787e6c2588ff31a73",
-      "bytes": 3266666
+      "sha256": "b4fc6ec679d9a8beb0678244354ae078c628e8c3ea6f68649234dfc237db2367",
+      "bytes": 3266656
     },
     "kernel.config": {
       "sha256": "2ecc32bc3c54ef98b28aa19808844d29dfe2b7f16e9d6069a8ff12c92217ff81",

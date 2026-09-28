@@ -1,0 +1,13 @@
+{
+  "status": "private-wlan-initramfs-retargeted-no-device-action",
+  "parent_initramfs_sha256": "d023fd7048189deed63c72346a9b0014cc3efbe3204458f787e6c2588ff31a73",
+  "firmware_sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
+  "changed_member": "init",
+  "old_release": "7.1.3-gemini-a53-consys-owner-passive",
+  "new_release": "7.1.3-gemini-a53-wifi-firmware-probe",
+  "member_count": 52,
+  "output_initramfs_sha256": "b4fc6ec679d9a8beb0678244354ae078c628e8c3ea6f68649234dfc237db2367",
+  "output_bytes": 3266656,
+  "secret_bearing": true,
+  "device_action": "none"
+}

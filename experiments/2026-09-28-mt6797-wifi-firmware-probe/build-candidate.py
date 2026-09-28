@@ -22,7 +22,7 @@ BUILD_COMMIT = '5b4e8726c6549b46a7e4046dc79c93e191785945'
 PACKAGE_ID = '4e6240a8346042a7c850c53143990e2bb22f278ee5f8a0f793d0ab30136dc73b'
 PROFILE = 'mt6797-a53-wifi-firmware-probe'
 RELEASE = '7.1.3-gemini-a53-wifi-firmware-probe'
-FIRMWARE_INITRAMFS_SHA256 = 'd023fd7048189deed63c72346a9b0014cc3efbe3204458f787e6c2588ff31a73'
+FIRMWARE_INITRAMFS_SHA256 = 'b4fc6ec679d9a8beb0678244354ae078c628e8c3ea6f68649234dfc237db2367'
 FIRMWARE_SHA256 = 'a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd'
 WIFI_NODE = '/consys@10001340/wifi'
 PARENT_BOOT2_SHA256 = '07dfcc16b6c66442f47c5540eb24a9c1e057c6827d20787b74f39fe945569230'
@@ -102,8 +102,12 @@ def main():
     parse = runpy.run_path(str(REPO /
         'experiments/2026-07-25-emmc-development/scripts/validate-emmc-initramfs.py'))['parse_newc']
     members = parse(initramfs)
-    require(sha(members['lib/firmware/mediatek/mt6797/WIFI_RAM_CODE_6797'].data) ==
-            FIRMWARE_SHA256, 'staged firmware member changed')
+    require(len(members) == 52 and
+            sha(members['lib/firmware/mediatek/mt6797/WIFI_RAM_CODE_6797'].data) ==
+            FIRMWARE_SHA256 and
+            b'7.1.3-gemini-a53-wifi-firmware-probe' in members['init'].data and
+            b'7.1.3-gemini-a53-consys-owner-passive' not in members['init'].data,
+            'staged firmware or RAM-root release gate changed')
 
     output = Path(os.path.abspath(args.output))
     require(output.parent.is_dir() and not output.exists() and not output.is_symlink() and

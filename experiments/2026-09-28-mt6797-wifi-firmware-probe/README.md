@@ -53,8 +53,13 @@ the example compilation passed. Strict Checkpatch has no source-style finding; s
 DCO, combined DT-binding, MAINTAINERS and long commit-description warnings
 remain for this internal proposal.
 
-The [candidate builder](build-candidate.py) verified that package, the pinned
-private firmware archive and its exact retained image, then added only the
+The first private composition was superseded before any device action: its
+RAM-root `init` still required the prior kernel release. The
+[retarget tool](retarget-initramfs.py) changed that one release gate, retained
+all other 51 archive members byte-for-byte, and verified the retained firmware
+hash and a serialization round trip; the [sanitized receipt](results/initramfs.json)
+pins its new identity. The [candidate builder](build-candidate.py)
+verified the corrected private archive and its exact retained image, then added only the
 `wifi` child to the previously boot-tested passive CONSYS DT. It checked all
 preexisting nodes and properties, parsed the LK boot image, and padded it to the
 16 MiB boot2 size. The [sanitized candidate receipt](results/candidate.json)
@@ -63,5 +68,10 @@ composition deliberately avoids carrying unrelated changes from the current
 full compiled board DT into this first on-device probe. The current Gemian
 boot reports live logical `boot2` at 16 MiB with the exact prior tested image
 checksum `98269081…a56a525`; the guarded installer pins that predecessor.
+
+The [session wrapper](passive-session.py), [USB collector](passive-host.py) and
+[stage watcher](watch-boot.py) pin the 52-member RAM root, the new release,
+the provider and owner records, exact four-section firmware plan, A53 service
+regression and changed-boot Gemian return.
 
 No boot2 installation or mainline runtime result has occurred yet.
