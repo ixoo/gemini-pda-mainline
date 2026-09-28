@@ -1,0 +1,26 @@
+{
+  "boot_id": "636e12fb-65de-4eb3-88c8-70c3e4cec71e",
+  "kernel_release": "3.18.41+",
+  "protocol_commit": "90a3ec84",
+  "script_sha256": "206ef620c2144f953da3ead1d6ab9c02ea5caffe88edab875f6dd43be4bfb18c",
+  "private_control_log_sha256": "c13056d7fd02bd695329179ca772a4f5a57f2a6a3b28f61caab6c9db92c86bd4",
+  "single_use_budget": "consumed",
+  "systemd_result": "success; ExecMainStatus=0",
+  "owned_page_physical_read_matches": 2,
+  "watchpoint": {
+    "range": "16 bytes",
+    "control_register": "0x000000c4",
+    "armed_checker": "0x00880000",
+    "checker_after_first_read": "0x00880000",
+    "checker_after_second_read": "0x00880000",
+    "hit": false,
+    "restored_address": "0x00000000",
+    "restored_control": "0x00000000",
+    "restored_checker": "0x00800000",
+    "restored_type": "0x00000000",
+    "restored_hit_address": "0x00000000"
+  },
+  "same_boot": true,
+  "wifi_carrier_unchanged": true,
+  "interpretation": "Two /dev/mem reads returned the expected bytes from the test-owned page while the non-blocking watchpoint was enabled, yet no hit latched. The register readback and independent post-test check matched the original idle state. The reads may have been served without a new EMI transaction, for example by CPU caching; the test therefore does not establish that the hardware watchpoint is broken. It supplies no positive observation control and prevents treating either WLAN no-hit as evidence that CONSYS made no region-18 access. Do not replay the identical owned-page window."
+}

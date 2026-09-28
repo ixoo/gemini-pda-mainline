@@ -122,3 +122,19 @@ an AP transaction and supplies an AXI ID to decode. No hit despite a matching
 read means the two WLAN no-hits cannot be interpreted as absence of traffic;
 it requires a new observer design, not replay of either radio window. A hit
 does not itself establish the CONSYS master/domain or region overlap rule.
+
+The committed script `90a3ec84` passed the live read-only preflight and ran
+once on the same primary Gemian boot. Both physical reads matched the owned
+page's pattern, but `CHKER` remained `0x00880000` with no hit, type or address.
+The device-side unit exited zero; an independent host check found all five
+registers at baseline, the original boot ID and Wi-Fi carrier 1. The raw
+mode-restricted log remains private; the [sanitized result](results/positive-control.json)
+pins its hash. The exact positive-control window is consumed.
+
+The register table confirms control value `0xc4` selects a 16-byte range and
+both read and write without interrupt, slave error or suppression. A matching
+`/dev/mem` read does not prove a new EMI bus transaction: CPU caching is one
+possible explanation for no hit. The observation path remains unvalidated.
+Do not interpret the two earlier WLAN no-hits as absent traffic or replay them.
+The next path needs a verified bus-level witness or an exact routing/overlap
+source before the mainline EMI policy can be chosen.
