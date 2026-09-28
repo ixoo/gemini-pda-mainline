@@ -175,6 +175,17 @@ priority, or authority to write an EMI policy. Retained secure-firmware bytes
 still are not attested as the executing image. The next owner design must
 account for these unresolved facts before an effect-bearing Wi-Fi transition.
 
+For an initial mainline WLAN load, the empty region-23 range offers a narrower
+admission path than proving a general region-18/23 priority rule. A future
+owner can require a same-boot positive-controlled read of region 23 immediately
+before the confined region-18 operation and refuse if it covers the WLAN
+window. This only removes overlap from that admitted state; it does not show
+which region would win if both were enabled. The owner must also exclude other
+writers through the transaction, check the exact live reservation and selector,
+and establish the AP and CONSYS protection domains before choosing a policy.
+The historical zero is evidence for designing this gate, not a value to cache
+or an authorization for a protection write.
+
 ## Pinned Gemian source attribution
 
 A read-only check of the prepared Gemian source tree at
