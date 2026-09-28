@@ -1,0 +1,149 @@
+From 10c72891ae29e6dedf9dbe1e88ac1082d0dfe38d Mon Sep 17 00:00:00 2001
+From: MT6797 internal experiment <nobody@example.invalid>
+Date: Sun, 27 Sep 2026 20:07:21 -0400
+Subject: [PATCH] soc: mediatek: attach MT6797 CONSYS owner to checked-OFF CONN
+ domain
+
+Associate the shared owner with the modern CONN domain through a
+non-powering probe-time attachment. Verify initial OFF state and retained
+fault before declaring the owner bound. No rail, reset or domain
+transition is requested.
+
+Internal experiment with synthetic author; no DCO certification or
+upstream submission.
+---
+ .../soc/mediatek/mediatek,mt6797-consys.yaml  |  9 ++++
+ .../boot/dts/mediatek/mt6797-gemini-pda.dts   |  1 +
+ drivers/soc/mediatek/mt6797-consys.c          | 45 ++++++++++++++++++-
+ 3 files changed, 54 insertions(+), 1 deletion(-)
+
+diff --git a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
+index 2d17bc7..6f64093 100644
+--- a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
++++ b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
+@@ -42,6 +42,15 @@ properties:
+   reset-names:
+     const: con-mcu
+ 
++  power-domains: false
++
++  mediatek,conn-power-domain:
++    $ref: /schemas/types.yaml#/definitions/phandle-array
++    maxItems: 1
++    description: |
++      Modern MT6797 CONN domain, attached by the manager during probe without
++      a power-on request. Do not use power-domains on the manager itself.
++
+ required:
+   - compatible
+   - reg
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+index f69d759..daaed1d 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -85,6 +85,7 @@
+ 		vcn33-wifi-supply = <&mt6351_vcn33_wifi_reg>;
+ 		resets = <&watchdog MT6797_TOPRGU_CONMCU_SW_RST>;
+ 		reset-names = "con-mcu";
++		mediatek,conn-power-domain = <&conn_power MT6797_POWER_DOMAIN_CONN>;
+ 	};
+ 
+ 	reserved-memory {
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index e9dd873..2e5360a 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -10,10 +10,13 @@
+ #include <linux/mutex.h>
+ #include <linux/of.h>
+ #include <linux/of_reserved_mem.h>
++#include <linux/pm_domain.h>
+ #include <linux/platform_device.h>
+ #include <linux/regulator/consumer.h>
+ #include <linux/reset.h>
+ #include <linux/sizes.h>
++#include <linux/soc/mediatek/mtk-pm-domains.h>
++#include <dt-bindings/power/mt6797-power.h>
+ 
+ #define MT6797_CONSYS_REMAP_REG	0x10001340
+ 
+@@ -24,6 +27,7 @@ struct mt6797_consys {
+ 	struct regulator *vcn28;
+ 	struct regulator *vcn33_wifi;
+ 	struct reset_control *conmcu_reset;
++	struct generic_pm_domain *conn_domain;
+ 	bool bound;
+ };
+ 
+@@ -181,11 +185,46 @@ static int mt6797_consys_boot_reserved(u64 base)
+ 	return ret < 0 ? ret : -ENODEV;
+ }
+ 
++/* Associate with CONN only after acquiring the independent shared resources. */
++static int mt6797_consys_attach_off_domain(struct device *dev,
++					   struct generic_pm_domain **domain)
++{
++	struct of_phandle_args spec;
++	int ret;
++
++	if (dev->pm_domain)
++		return -EINVAL;
++
++	ret = of_parse_phandle_with_args(dev->of_node,
++					 "mediatek,conn-power-domain",
++					 "#power-domain-cells", 0, &spec);
++	if (ret)
++		return ret;
++	if (spec.args_count != 1 || spec.args[0] != MT6797_POWER_DOMAIN_CONN ||
++	    !of_device_is_compatible(spec.np, "mediatek,mt6797-power-controller")) {
++		ret = -EINVAL;
++		goto put_node;
++	}
++	ret = of_genpd_add_device(&spec, dev);
++	if (ret == -ENOENT)
++		ret = -EPROBE_DEFER;
++	if (ret)
++		goto put_node;
++	*domain = pd_to_genpd(dev->pm_domain);
++	ret = mtk_pm_domain_confirmed_off(*domain);
++	if (ret)
++		pm_genpd_remove_device(dev);
++put_node:
++	of_node_put(spec.np);
++	return ret;
++}
++
+ static int mt6797_consys_probe(struct platform_device *pdev)
+ {
+ 	struct resource *remap_resource;
+ 	struct regulator *vcn18, *vcn28, *vcn33_wifi;
+ 	struct reset_control *conmcu_reset;
++	struct generic_pm_domain *conn_domain;
+ 	void __iomem *remap;
+ 	u64 base;
+ 	int ret;
+@@ -241,16 +280,20 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 		ret = PTR_ERR(remap);
+ 		goto out_unlock;
+ 	}
++	ret = mt6797_consys_attach_off_domain(&pdev->dev, &conn_domain);
++	if (ret)
++		goto out_unlock;
+ 	mt6797_consys.base = base;
+ 	mt6797_consys.remap = remap;
+ 	mt6797_consys.vcn18 = vcn18;
+ 	mt6797_consys.vcn28 = vcn28;
+ 	mt6797_consys.vcn33_wifi = vcn33_wifi;
+ 	mt6797_consys.conmcu_reset = conmcu_reset;
++	mt6797_consys.conn_domain = conn_domain;
+ 	mt6797_consys.bound = true;
+ 	platform_set_drvdata(pdev, &mt6797_consys);
+ 	dev_info(&pdev->dev,
+-		 "bound boot CONSYS reserve, remap, VCN and CONMCU reset handles\n");
++		 "bound boot CONSYS reserve, remap, VCN, CONMCU reset and checked-OFF CONN domain\n");
+ out_unlock:
+ 	mutex_unlock(&mt6797_consys_lock);
+ 	return ret;
+-- 
+2.54.0 (Apple Git-157)
+
