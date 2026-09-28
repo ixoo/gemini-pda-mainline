@@ -87,3 +87,27 @@ logs and device details remain in ignored private evidence. The result admits
 using bit 3 = 0 as this boot's observed initial state; it does not admit an
 active VCN28/CONN transition. Physical inputs, exclusive votes and writer
 handoff, retained-fault behavior and effective EMI ownership remain open.
+
+## Working-reference control split
+
+The pinned Gemian
+[`mtk_wcn_consys_hw.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c)
+(SHA-256 `0ec8e9c1594626d0b31f2d2623927d614f63af4437c16df838e10e11258663ce`)
+sets VCN28's hardware-control selector separately before the regulator vote
+on its `co_clock_type=0` power-on path. Its
+[header](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/common/common_main/mt6797/include/mtk_wcn_consys_hw.h)
+enables PMIC control, and
+an authenticated read of the currently working Gemian boot
+`4b606b20-14a4-40bf-aef9-cff65cc0a946` found
+no `CONFIG_MTK_PMIC_LEGACY` definition and WLAN carrier 1. Thus the selected source
+branch uses both the PMIC selector operation and `regulator_enable()`; source
+and running binary are not byte-attested.
+
+The selected mainline [MT6351 regulator patch](../../patches/v7.1.3/0015-regulator-mt6351-add-regulator-driver.patch)
+defines VCN28 enable as bit 1 of `LDO_VCN28_CON0` and uses regmap regulator
+enable/disable operations. It does not control the separately observed bit 3.
+Therefore a future CONSYS power-on cannot assume its VCN28 regulator vote
+also selects the working reference's hardware-control mode. The mode bit needs
+one explicitly owned, read-back-verified operation in the active sequence;
+its physical input, other writers and failure lifetime still need resolution.
+No PMIC write or radio action was made for this source comparison.
