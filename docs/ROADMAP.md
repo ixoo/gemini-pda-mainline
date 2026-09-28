@@ -482,9 +482,14 @@ for the first Wi-Fi bring-up. The current preparation order is:
    A [passive owner-domain association boot](../experiments/2026-09-27-mt6797-conn-domain-link-passive/results/runtime-1.json)
    then attached the manager without requesting power and passed its explicit
    checked-OFF query; one provider and one owner record, the complete log, A53
-   regression and changed-boot Gemian Wi-Fi return passed. This clears the
-   non-powering association gate only, with no active CONN transition. The next
-   code work is retained-fault owner transitions and the firmware executor. The
+   regression and changed-boot Gemian Wi-Fi return passed. A following
+   [read-only VCN28 boot sample](../experiments/2026-09-27-mt6351-vcn28-boot-observe/results/runtime-1.json)
+   found `0x1a60` after the checked-OFF query, with on-control clear and both
+   source fields 3; its complete log, A53 regression and changed-boot Gemian
+   Wi-Fi return passed. This establishes one initial register value, not the
+   physical inputs or exclusive writer handoff. No active CONN transition has
+   been tested. The next code work is retained-fault owner transitions and the
+   firmware executor, after shared writer and EMI ownership are resolved. The
    [read-only Gemian EMI reference](../experiments/2026-09-26-mt6797-emi-active-reference/results/runtime.json)
    confirms the vendor-requested region-18/19 ranges and permission values in
    a boot where WLAN carrier was observed later, but also shows broad region 23

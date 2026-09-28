@@ -1,0 +1,55 @@
+{
+  "status": "passive-vcn28-boot-observation-passed",
+  "candidate_full_sha256": "a592c6032e26da3fc6125d954a134a20a30072dbf0f550f585901869e2ce536b",
+  "kernel_build_commit": "26f25c6abcf0f546be6249e2ef200ac3a6043cec",
+  "kernel_release": "7.1.3-gemini-a53-consys-owner-passive",
+  "previous_gemian_boot": "82f673dc-bde7-4e48-ae15-0314a63d4fb8",
+  "mainline_boot": "4303dc19-2665-47b6-80ac-94046b9d1f35",
+  "returned_gemian_boot": "791fbb6f-59cb-4630-a8b7-d2f4d56c3161",
+  "usb_watcher": {
+    "armed_utc": "2026-09-28T00:52:21Z",
+    "stages": ["mediatek-20ff", "other-or-absent", "candidate-gadget"],
+    "collector_exit": 0
+  },
+  "provider_probe": {
+    "platform_devices": 1,
+    "bound_to_mtk_power_controller": 1,
+    "boot_id": "4303dc19-2665-47b6-80ac-94046b9d1f35"
+  },
+  "vcn28_boot_sample": {
+    "count": 1,
+    "register": "MT6351_LDO_VCN28_CON0",
+    "address": "0x0a0c",
+    "raw": "0x1a60",
+    "on_control_bit_3": 0,
+    "source_mode_bits_7_5": 3,
+    "source_enable_bits_13_11": 3,
+    "checked_off_conn_at_probe": true
+  },
+  "a53_service_regression": "pass",
+  "kernel_log": {
+    "complete_through_explicit_seal": true,
+    "records": 1846,
+    "bytes": 128344,
+    "sha256": "10363e4dd527c99baf3fa4424fac6aefa0614ada4455af0a507f9c5fe2d3a3df"
+  },
+  "recovery": {
+    "reviewed_path_confirmed": true,
+    "changed_gemian_boot": true,
+    "separate_pinned_key_check": {
+      "boot_id": "791fbb6f-59cb-4630-a8b7-d2f4d56c3161",
+      "kernel": "3.18.41+",
+      "wlan0_carrier": 1
+    }
+  },
+  "observed_scope": "one read-only VCN28 control sample after the passive owner attached to a checked-OFF CONN domain",
+  "not_established": [
+    "physical VCN28 control inputs or electrical rail state",
+    "exclusive PMIC or CONSYS writer handoff",
+    "later CONN or VCN28 state",
+    "safe active rail, reset or CONN transition",
+    "effective EMI overlap or master routing",
+    "firmware execution or mainline Wi-Fi traffic"
+  ],
+  "private_evidence": "artifacts/vcn28-boot-observe/session-1"
+}

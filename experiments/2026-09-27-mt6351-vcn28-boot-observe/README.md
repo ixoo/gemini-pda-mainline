@@ -67,3 +67,23 @@ manifest constant used by the existing receipt checker. The host-only export
 was corrected after deployment and offline preflight passed; the installer
 that performed the write remains pinned to source commit `55431148` and its
 private exact hash. No second write or boot has been requested by that fix.
+
+## Device result
+
+The owner selected boot2 once after the 900-second USB watcher was armed. The
+authenticated mainline session had a changed boot ID, one modern CONN provider,
+one internally consistent VCN28 sample and a complete sealed 1,846-record
+kernel log. The checked-OFF owner read `MT6351_LDO_VCN28_CON0` as `0x1a60`:
+on-control bit 3 was clear, while source-mode bits 7:5 and source-enable bits
+13:11 both read 3. This matches the value in the v8 Gemian last-client *off*
+sample, but it is one mainline probe-time observation, not a continuous state
+or evidence of an exclusive writer. The A53 service regression passed.
+
+The collector requested the reviewed native return only after sealing the log.
+It confirmed a changed Gemian boot; a separate pinned-key LAN check found
+kernel `3.18.41+` and `wlan0` carrier 1. The sanitized [runtime receipt](results/runtime-1.json)
+pins the candidate, boot identities, decoded fields and log checksum. Complete
+logs and device details remain in ignored private evidence. The result admits
+using bit 3 = 0 as this boot's observed initial state; it does not admit an
+active VCN28/CONN transition. Physical inputs, exclusive votes and writer
+handoff, retained-fault behavior and effective EMI ownership remain open.
