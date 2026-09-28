@@ -67,3 +67,13 @@ attributable result and reviewed Gemian return.
 
 The parallel [HIF executor review](../2026-09-28-mt6797-hif-executor-review/README.md)
 records the caller-owned transport gaps after power and EMI admission.
+
+## First watch
+
+The [first sanitized watcher result](results/watch-1.json) records an unchanged
+`mediatek-20ff` USB stage for the 900-second window and zero device SSH
+attempts. No mainline kernel log or power-probe outcome was obtained. A single
+post-watch Gemian LAN connection also timed out; that check does not establish
+the PDA's screen or boot state. This is not a tested failure of the CONN power
+sequence. A fresh physical handoff and newly armed collector are needed before
+another device observation; the expired watch itself does not authorize a retry.

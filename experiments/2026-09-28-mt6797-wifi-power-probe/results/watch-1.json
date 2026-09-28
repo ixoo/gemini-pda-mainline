@@ -1,0 +1,16 @@
+{
+  "candidate_boot2_sha256": "89bcf54f3df845bcfeab9821fdbbd96b8f5eb75abe47df884de4cc36cc2957f4",
+  "watch_armed_utc": "2026-09-28T15:52:58Z",
+  "watch_expired_utc": "2026-09-28T16:07:59Z",
+  "budget_seconds": 900,
+  "initial_usb_stage": "mediatek-20ff",
+  "terminal_usb_stage": "mediatek-20ff",
+  "usb_stage_changes": 0,
+  "mainline_usb_route_observed": false,
+  "device_ssh_attempts": 0,
+  "mainline_kernel_log_collected": false,
+  "post_watch_gemian_lan_check": "single bounded SSH connection timed out",
+  "boot_selection_observed": false,
+  "power_probe_result": "not observed",
+  "status": "watch expired without a mainline connection"
+}
