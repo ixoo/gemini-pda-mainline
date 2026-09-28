@@ -1,0 +1,2 @@
+# Identify the one-shot Wi-Fi HIF startup diagnostic.
+CONFIG_LOCALVERSION="-gemini-a53-wifi-hif-probe"
