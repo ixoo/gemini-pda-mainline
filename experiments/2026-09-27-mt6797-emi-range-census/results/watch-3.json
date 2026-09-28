@@ -1,0 +1,26 @@
+{
+  "status": "finite-watch-expired-without-mainline-route",
+  "candidate_full_sha256": "98269081c35d13476aaeb95f503f30a680dd2cb1ee8ad5766edae90e8a56a525",
+  "initial_owner_screen_observation": "black screen; owner identified device as powered off and charging",
+  "known_good_gemian_boot_id": "9b010bf6-dccf-43fd-9975-18069f9f3f7e",
+  "known_good_gemian_root": "/dev/mmcblk0p29",
+  "boot2_full_readback_sha256": "98269081c35d13476aaeb95f503f30a680dd2cb1ee8ad5766edae90e8a56a525",
+  "gemian_shutdown": "requested cleanly after matching boot2 readback; SSH closed and endpoint became unavailable",
+  "armed_utc": "2026-09-28T10:59:45Z",
+  "expired_utc": "2026-09-28T11:14:46Z",
+  "budget_seconds": 900,
+  "initial_usb_stage": "mediatek-20ff",
+  "observed_usb_transitions": [
+    {"utc": "2026-09-28T11:00:01Z", "stage": "other-or-absent"},
+    {"utc": "2026-09-28T11:03:16Z", "stage": "preloader"},
+    {"utc": "2026-09-28T11:03:19Z", "stage": "other-or-absent"},
+    {"utc": "2026-09-28T11:03:30Z", "stage": "mediatek-20ff"}
+  ],
+  "mainline_usb_route": false,
+  "device_ssh_attempts": 0,
+  "post_expiry_usb_id": "0e8d:20ff",
+  "owner_boot2_selection_and_current_screen": "pending",
+  "private_watch_events_sha256": "3371a2a413f671406a16d2b586bb014f35a11ed3721903f588a7c66b4058bd03",
+  "inference": "A new startup reached preloader after Gemian shutdown, then remained at the unidentified 20ff stage. Neither boot2 selection nor kernel execution is established without the owner's screen observation.",
+  "next_action": "preserve device state and obtain the owner's screen and selection observation before another boot or recovery action"
+}

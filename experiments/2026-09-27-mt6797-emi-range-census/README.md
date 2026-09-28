@@ -136,3 +136,13 @@ or device SSH attempt. The post-expiry USB ID remained `0e8d:20ff`, while the
 known-good Gemian LAN endpoint timed out. This does not establish the screen
 state or a candidate-kernel failure. No new boot or recovery action is selected
 without the owner's screen observation.
+
+The owner later identified the black screen and persistent `0e8d:20ff` as a
+powered-off charging state. A physical power-on reached a new known-good Gemian
+boot; its root was `/dev/mmcblk0p29`, and a full read of boot2 still matched the
+installed census image. Gemian was then shut down cleanly. The third finite
+[USB watch](results/watch-3.json) recorded a fresh preloader enumeration after
+that shutdown, followed by `0e8d:20ff` and no mainline route through expiry.
+This establishes a new startup but does not establish physical boot2 selection
+or candidate execution. The owner's current screen observation is pending; no
+repeat boot or recovery action follows from the USB timeout alone.
