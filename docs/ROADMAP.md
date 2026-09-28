@@ -504,9 +504,13 @@ for the first Wi-Fi bring-up. The current preparation order is:
    the delayed `0x0279` in one complete, regression-passing boot; changed-boot
    Gemian Wi-Fi return also passed. This validates a point-in-time powered
    empty-range premise, not writer exclusion or effective CONSYS/AP protection
-   domains. The next code work is a same-boot admission gate and retained-fault
-   owner transitions for the first firmware executor, without assuming that
-   an earlier boot's zeros authorize an EMI write. A
+   domains. A subsequent [gated reset-release boot](../experiments/2026-09-28-mt6797-wifi-reset-release/results/runtime-1.json)
+   set MCU ACR bit 18 and released CONMCU reset once; chip ID remained `0x0279`
+   with CONN ON. Its complete sealed log and changed-boot Gemian carrier return
+   passed, but the collector was not armed before boot2 selection and the prior
+   clean shutdown was unconfirmed. The next code work is a same-boot admission
+   gate and retained-fault owner transitions for the first firmware executor,
+   without assuming that an earlier boot's zeros authorize an EMI write. A
    [passive mainline EMI read](../experiments/2026-09-27-mt6797-emi-boot-observe/results/runtime-1.json)
    returned zero for region-18/19/23 range and policy registers in a
    complete, regression-passing boot. The returned carrier-up Gemian boot

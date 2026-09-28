@@ -1,0 +1,55 @@
+{
+  "status": "gated-CONMCU-reset-release-observed; Gemian-return-confirmed; collector-not-prearmed",
+  "candidate_boot2_sha256": "4483a35bc23dc5d0bfca856848a70ca512e071caa89741098e0f461b65a9e141",
+  "kernel_build_commit": "26951f2e23a7e920ef48238d5b624ea51db14d71",
+  "kernel_release": "7.1.3-gemini-a53-wifi-reset-release",
+  "deployment": {
+    "gemian_boot_id": "fcb8a468-5333-454a-8fca-c50fea118ccf",
+    "boot2_guard_passed": true,
+    "write_synced_flushed_full_readback_matched": true,
+    "clean_shutdown_confirmed": false,
+    "owner_later_reported_device_off": true
+  },
+  "physical_handoff": {
+    "owner_reported_boot2_selected": true,
+    "collector_armed_before_selection": false,
+    "mainline_usb_route_detected_after_selection": true
+  },
+  "mainline_boot_id": "f4d67dea-5db6-4c77-8afa-10868429cdd5",
+  "observed": {
+    "kernel_and_initramfs_authenticated": true,
+    "a53_baseline_observation": "pass",
+    "power_controller_provider_bound": true,
+    "firmware_plan_accepted": true,
+    "firmware_sections": 4,
+    "conn_domain_confirmed_on_reset_held_records": 1,
+    "chip_id_after_requested_20ms": "0x00000279",
+    "emi_region1_control": "0x44604460",
+    "emi_region18_19_23_ranges": "zero-in-same-boot-snapshot",
+    "acr_before": "0x00300002",
+    "acr_after": "0x00340002",
+    "reset_released_chip_id": "0x00000279",
+    "reset_released_domain_on": true,
+    "reset_release_stopped_records": 0
+  },
+  "preserved_complete_kernel_log": {
+    "method": "authenticated post-selection SSH and reviewed RAM logger seal",
+    "records": 1856,
+    "bytes": 129900,
+    "sha256": "4d9de7eb773f3d42d831e33bdeed281ea53b147c00d2c73b7953efc5479ca5e3"
+  },
+  "return": {
+    "reviewed_native_recovery_requested_once": true,
+    "changed_gemian_boot_id": "0dd84ec1-2e97-4f20-962d-b4edf0b22d0c",
+    "gemian_kernel": "3.18.41+",
+    "independent_gemian_wlan_carrier": 1
+  },
+  "limits": {
+    "prearmed_finite_collector_run": false,
+    "full_A53_regression_session_claimed": false,
+    "firmware_executed": false,
+    "emi_policy_written": false,
+    "hif_or_dma_used": false,
+    "mainline_wifi_operational": false
+  }
+}

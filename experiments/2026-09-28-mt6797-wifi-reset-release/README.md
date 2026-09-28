@@ -63,6 +63,21 @@ clean shutdown. A bounded read-only follow-up found the same Gemian boot ID,
 PID 1 in uninterruptible `tty_ldisc_ref_wait`, and a timed-out `systemctl`
 job query. Those observations do not prove the cause of the failed shutdown.
 The [sanitized receipt](results/install-attempt-1.json) pins the exact image
-and the private deployment-summary checksum. No reset-release boot has run.
-Physical power-off and a newly armed collector are required before the owner
-selects boot2.
+and the private deployment-summary checksum. At that checkpoint, no
+reset-release boot had run.
+
+The owner then reported the PDA off and selected boot2 before the collector was
+armed. The mainline USB route appeared and pinned-key SSH authenticated a new
+boot of the intended release. An authenticated A53 observation passed; the
+reviewed RAM logger seal preserved a complete sequence-zero log; the power
+controller provider was bound. The [sanitized runtime record](results/runtime-1.json)
+shows the one-shot same-boot gate passed, MCU ACR bit 18 changed from clear to
+set, CONMCU reset released, and chip ID remained `0x0279` with CONN ON. After
+evidence preservation, the reviewed native recovery request returned the PDA
+to a changed-boot Gemian desktop with `wlan0` carrier 1.
+
+This was a post-selection salvage, not a prearmed finite collector run. The
+prior clean-shutdown failure remains; do not relabel this as a complete A53
+session regression. Firmware execution, HIF/DMA use and mainline Wi-Fi remain
+untested. The next implementation step can build on the confirmed reset-release
+state, but needs its own admission for firmware and HIF effects.
