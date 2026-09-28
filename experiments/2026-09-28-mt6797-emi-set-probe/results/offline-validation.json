@@ -1,0 +1,19 @@
+{
+  "status": "offline-gated-wifi-emi-set-probe-candidate-validated",
+  "build_commit": "5b99ce59d0b39132a9aa434143f201d506d9e026",
+  "kernel_profile": "mt6797-a53-wifi-emi-set-probe",
+  "kernel_release": "7.1.3-gemini-a53-wifi-emi-set-probe",
+  "buildbox_package_inventory_sha256": "24af87310f1c74cbc56ad04f73b3fc356c144a0a94d1a0760f59f749d9c2eaec",
+  "validated_image_gzip_sha256": "e9fb7e4717518ca941dde1bbdf3521e8b767570e6ab44787d35ae54bf4a79cf4",
+  "schema": {
+    "binding_and_example": "pass",
+    "built_gemini_dtb": "pass",
+    "tool": "dtschema-2026.9",
+    "yamllint": "not-installed; skipped by kernel make"
+  },
+  "private_candidate_manifest_sha256": "e022d1aa8acfeef1d33b684ec6b0ce3601a1395d58fb602c11e6e7a3f6ada75c",
+  "boot2_padded_sha256": "4199be928613b2ec65b171bb2c9e27c98e8d434ac293fe3d8d9753a91c38d0f2",
+  "candidate_offline_validator": "pass",
+  "device_action": "none",
+  "mainline_wifi_working": false
+}

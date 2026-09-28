@@ -53,3 +53,19 @@ package inventory before composing a private boot2 candidate. Any later
 installation uses the reviewed live-GPT boot2 guard, predecessor/full readback
 and clean shutdown. The owner selects boot2 physically. Raw logs, firmware,
 credentials and the boot image stay under ignored `artifacts/`.
+
+## Prepared candidate
+
+The clean pushed commit `5b99ce59d0b39132a9aa434143f201d506d9e026`
+built on Buildbox under this named profile. Full package inventory, the focused
+binding/example check, and schema validation of the built Gemini DTB passed.
+The kernel schema target skipped optional `yamllint` because that package was
+not installed in the retained `dtschema-2026.9` environment. The private
+RAM root retains 52 members and identical firmware; only the release gate in
+`init` changed. The candidate preserves the observed HIF board DTB and adds
+only the EMI-selector resource and one-shot flag. LK boot-container validation
+and the pinned candidate validator passed. Its full 16-MiB boot2 SHA-256 is
+`4199be928613b2ec65b171bb2c9e27c98e8d434ac293fe3d8d9753a91c38d0f2`.
+[Offline validation](results/offline-validation.json) and the
+[checksum-only candidate receipt](results/candidate.json) pin the inputs;
+no device action has occurred for this candidate.
