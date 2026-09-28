@@ -39,10 +39,15 @@ The [sanitized candidate receipt](results/candidate.json) pins the private
 boot2 image and its predecessor. Assembly reused the exact boot-tested board
 DTB and firmware from the delayed-ID boot; the generic compiled DTB was not
 substituted. Offline candidate validation and installer generation passed,
-including `bash -n` and ShellCheck on the generated installer. No device action
-has occurred for this candidate yet.
+including `bash -n` and ShellCheck on the generated installer.
 
-The next test requires the guarded live-GPT boot2 installation in known-good
-Gemian, matching full-partition readback, clean shutdown, physical boot2
-selection, finite USB collection, A53 regression and reviewed Gemian return.
-Private firmware and logs stay under ignored `artifacts/`.
+The [first attempt](results/attempt-1.json) installed that image to boot2
+through the live-GPT guard, matched the full-partition readback, and shut down
+cleanly. A 900-second host watch then saw preloader and MediaTek `20ff`, but
+never saw the mainline USB route; the Gemian LAN endpoint was also unreachable
+at timeout. The watch made no device SSH attempt. Owner confirmation of physical
+boot2 selection and screen state is still pending. There is no mainline boot ID,
+kernel log, EMI result, A53 regression result or verified Gemian return for
+this attempt. Do not treat the timeout as a failed EMI check or replay the
+same image without a decision-changing observation. Private firmware and logs
+stay under ignored `artifacts/`.
