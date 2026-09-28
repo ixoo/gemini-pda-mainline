@@ -1,0 +1,73 @@
+From 828ad7291810d294c9218012dff4ca1e8bc28b95 Mon Sep 17 00:00:00 2001
+From: Gemini integration experiment <nobody@example.invalid>
+Date: Mon, 28 Sep 2026 08:11:37 -0400
+Subject: [PATCH] pmdomain: mediatek: report confirmed opted domain on
+
+A runtime-PM resume can return without rerunning the provider callback
+when genpd already records ON. Give the retained-fault CONN owner a
+checked dual-status witness before accessing powered hardware.
+
+Share the existing OFF-query validation and fault handling; only the
+expected status changes. This is an internal integration patch without
+DCO certification.
+---
+ drivers/pmdomain/mediatek/mtk-pm-domains.c  | 16 ++++++++++++++--
+ include/linux/soc/mediatek/mtk-pm-domains.h |  7 +++++++
+ 2 files changed, 21 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/pmdomain/mediatek/mtk-pm-domains.c b/drivers/pmdomain/mediatek/mtk-pm-domains.c
+index e196564..60c4b6b 100644
+--- a/drivers/pmdomain/mediatek/mtk-pm-domains.c
++++ b/drivers/pmdomain/mediatek/mtk-pm-domains.c
+@@ -884,7 +884,8 @@ int mtk_pm_domain_fault(struct generic_pm_domain *genpd)
+ }
+ EXPORT_SYMBOL_GPL(mtk_pm_domain_fault);
+ 
+-int mtk_pm_domain_confirmed_off(struct generic_pm_domain *genpd)
++static int mtk_pm_domain_confirmed_state(struct generic_pm_domain *genpd,
++					 int expected)
+ {
+ 	struct scpsys_domain *pd;
+ 	int state, fault;
+@@ -905,10 +906,21 @@ int mtk_pm_domain_confirmed_off(struct generic_pm_domain *genpd)
+ 	if (state < 0)
+ 		return state;
+ 
+-	return state == SCPSYS_STATE_OFF ? 0 : -EBUSY;
++	return state == expected ? 0 : -EBUSY;
++}
++
++int mtk_pm_domain_confirmed_off(struct generic_pm_domain *genpd)
++{
++	return mtk_pm_domain_confirmed_state(genpd, SCPSYS_STATE_OFF);
+ }
+ EXPORT_SYMBOL_GPL(mtk_pm_domain_confirmed_off);
+ 
++int mtk_pm_domain_confirmed_on(struct generic_pm_domain *genpd)
++{
++	return mtk_pm_domain_confirmed_state(genpd, SCPSYS_STATE_ON);
++}
++EXPORT_SYMBOL_GPL(mtk_pm_domain_confirmed_on);
++
+ static struct
+ generic_pm_domain *scpsys_add_one_domain(struct scpsys *scpsys, struct device_node *node)
+ {
+diff --git a/include/linux/soc/mediatek/mtk-pm-domains.h b/include/linux/soc/mediatek/mtk-pm-domains.h
+index d7f1fbe..0eee6bb 100644
+--- a/include/linux/soc/mediatek/mtk-pm-domains.h
++++ b/include/linux/soc/mediatek/mtk-pm-domains.h
+@@ -17,4 +17,11 @@ int mtk_pm_domain_fault(struct generic_pm_domain *genpd);
+  */
+ int mtk_pm_domain_confirmed_off(struct generic_pm_domain *genpd);
+ 
++/*
++ * Return zero only when both hardware status bits are set and no transition
++ * fault is latched. The caller must exclude concurrent transitions. This is a
++ * point-in-time power witness, not a grant to access CONSYS or its firmware.
++ */
++int mtk_pm_domain_confirmed_on(struct generic_pm_domain *genpd);
++
+ #endif /* __LINUX_SOC_MEDIATEK_MTK_PM_DOMAINS_H */
+-- 
+2.54.0 (Apple Git-157)
+

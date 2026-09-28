@@ -451,7 +451,10 @@ for the first Wi-Fi bring-up. The current preparation order is:
    effect-bearing boot. A [checked OFF query](../experiments/2026-09-26-mt6797-modern-provider-off-query/README.md)
    now compiles with that A53 provider and rejects ON, mixed, read-error and
    latched-fault states; it does not prove child quiescence or an exclusive
-   handoff, so it cannot alone authorize outer-rail cleanup. A later
+   handoff, so it cannot alone authorize outer-rail cleanup. A
+   [checked ON query](../experiments/2026-09-28-mt6797-conn-on-query/README.md)
+   provides the matching dual-status and retained-fault gate for a future
+   powered owner after runtime resume; no client calls it yet. A later
    [A53 Wi-Fi core integration build](../experiments/2026-09-26-mt6797-a53-wifi-core-integration/README.md)
    links the private HIF and whole-image components with the modern CONN
    provider, but still has no shared owner, firmware executor or active child.
