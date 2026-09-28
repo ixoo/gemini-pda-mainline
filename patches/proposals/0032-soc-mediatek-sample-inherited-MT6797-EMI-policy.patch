@@ -1,0 +1,82 @@
+From 3e5866e9792dba8c662879536dcef8fab5699918 Mon Sep 17 00:00:00 2001
+From: MT6797 internal experiment <nobody@example.invalid>
+Date: Sun, 27 Sep 2026 21:02:26 -0400
+Subject: [PATCH] soc: mediatek: sample inherited MT6797 EMI policy
+
+Read regions 18, 19 and 23 through the vendor-defined read-only EMI MPU
+secure service after the passive CONSYS owner verifies CONN OFF. Report
+raw range and policy registers once to distinguish inherited protection
+from Gemian-time programming. No write or power transition is requested.
+
+Internal experiment with synthetic author; no DCO certification or
+upstream submission.
+---
+ drivers/soc/mediatek/mt6797-consys.c | 34 ++++++++++++++++++++++++++++
+ 1 file changed, 34 insertions(+)
+
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index 110bb6c..f2fa667 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -2,6 +2,7 @@
+ /* MT6797 shared CONSYS reservation owner. */
+ 
+ #include <linux/align.h>
++#include <linux/arm-smccc.h>
+ #include <linux/errno.h>
+ #include <linux/io.h>
+ #include <linux/ioport.h>
+@@ -21,6 +22,7 @@
+ #include <dt-bindings/power/mt6797-power.h>
+ 
+ #define MT6797_CONSYS_REMAP_REG	0x10001340
++#define MT6797_EMI_MPU_READ	0x82000208
+ 
+ struct mt6797_consys {
+ 	void __iomem *remap;
+@@ -255,6 +257,37 @@ out:
+ 	return ret;
+ }
+ 
++/* The vendor's MT6797 EMI MPU read service takes a register offset. */
++static u32 mt6797_consys_read_emi(u32 offset)
++{
++	struct arm_smccc_res res;
++
++	arm_smccc_smc(MT6797_EMI_MPU_READ, offset, 0, 0, 0, 0, 0, 0, &res);
++	return (u32)res.a0;
++}
++
++static void mt6797_consys_sample_emi(struct device *dev)
++{
++	static const struct {
++		u8 region;
++		u32 range_offset;
++		u32 policy_offset;
++	} registers[] = {
++		{ 18, 0x0370, 0x03b0 },
++		{ 19, 0x0378, 0x03b8 },
++		{ 23, 0x0398, 0x03bc },
++	};
++	u32 range, policy;
++	unsigned int i;
++
++	for (i = 0; i < ARRAY_SIZE(registers); i++) {
++		range = mt6797_consys_read_emi(registers[i].range_offset);
++		policy = mt6797_consys_read_emi(registers[i].policy_offset);
++		dev_info(dev, "EMI boot region=%u range=0x%08x policy=0x%08x\n",
++			 registers[i].region, range, policy);
++	}
++}
++
+ static int mt6797_consys_probe(struct platform_device *pdev)
+ {
+ 	struct resource *remap_resource;
+@@ -341,6 +374,7 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 		 "VCN28 boot control=0x%04x on=%u source-mode=%u source-enable=%u\n",
+ 		 vcn28_control, !!(vcn28_control & BIT(3)),
+ 		 (vcn28_control >> 5) & 7, (vcn28_control >> 11) & 7);
++	mt6797_consys_sample_emi(&pdev->dev);
+ out_unlock:
+ 	mutex_unlock(&mt6797_consys_lock);
+ 	return ret;
