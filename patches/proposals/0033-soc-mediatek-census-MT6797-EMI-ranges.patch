@@ -1,0 +1,54 @@
+From 2aa7cd03958a2d947dac7a05f05aeb206a0c2da7 Mon Sep 17 00:00:00 2001
+From: MT6797 internal experiment <nobody@example.invalid>
+Date: Sun, 27 Sep 2026 21:27:19 -0400
+Subject: [PATCH] soc: mediatek: census MT6797 EMI range reads
+
+Read each range register once after the existing checked-OFF passive
+probe and EMI/VCN28 samples. A nonzero range is a same-boot positive
+control for the secure read service; zero values remain ambiguous.
+No write or power action is requested.
+
+Internal experiment with synthetic author; no DCO certification
+or upstream submission.
+---
+ drivers/soc/mediatek/mt6797-consys.c | 17 +++++++++++++++++
+ 1 file changed, 17 insertions(+)
+
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index f2fa667..399470c 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -288,6 +288,22 @@ static void mt6797_consys_sample_emi(struct device *dev)
+ 	}
+ }
+ 
++/* Read each range register once to check for a same-boot SMC positive control. */
++static void mt6797_consys_census_emi_ranges(struct device *dev)
++{
++	static const u32 bank_base[] = { 0x0160, 0x0260, 0x0360 };
++	unsigned int bank, slot;
++	u32 range;
++
++	for (bank = 0; bank < ARRAY_SIZE(bank_base); bank++) {
++		for (slot = 0; slot < 8; slot++) {
++			range = mt6797_consys_read_emi(bank_base[bank] + slot * 8);
++			dev_info(dev, "EMI range census region=%u raw=0x%08x\n",
++				 bank * 8 + slot, range);
++		}
++	}
++}
++
+ static int mt6797_consys_probe(struct platform_device *pdev)
+ {
+ 	struct resource *remap_resource;
+@@ -375,6 +391,7 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 		 vcn28_control, !!(vcn28_control & BIT(3)),
+ 		 (vcn28_control >> 5) & 7, (vcn28_control >> 11) & 7);
+ 	mt6797_consys_sample_emi(&pdev->dev);
++	mt6797_consys_census_emi_ranges(&pdev->dev);
+ out_unlock:
+ 	mutex_unlock(&mt6797_consys_lock);
+ 	return ret;
+-- 
+2.54.0 (Apple Git-157)
+
