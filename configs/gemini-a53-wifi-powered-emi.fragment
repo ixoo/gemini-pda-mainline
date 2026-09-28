@@ -1,0 +1,2 @@
+# Identify the bounded powered-CONN EMI read candidate.
+CONFIG_LOCALVERSION="-gemini-a53-wifi-powered-emi"

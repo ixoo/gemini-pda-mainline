@@ -1,0 +1,104 @@
+From aecbdbf1da882ca893c46fb3c1cfaa3d2db535b8 Mon Sep 17 00:00:00 2001
+From: MT6797 internal experiment <nobody@example.invalid>
+Date: Mon, 28 Sep 2026 13:39:54 -0400
+Subject: [PATCH] soc: mediatek: sample powered CONN EMI ranges
+
+After the guarded CONN power-on reaches chip ID 0x0279 with CONMCU reset held, read the region-18/19/23 EMI range and policy words. Bracket the sample with region-23 reads and use a known nonzero region-1 range as a same-boot secure-read control. Recheck power and reset on both sides. No protection write, reset release or firmware execution is added.
+
+Internal experiment; synthetic authorship, not DCO-certified.
+---
+ drivers/soc/mediatek/mt6797-consys.c | 57 ++++++++++++++++++++++++++++
+ 1 file changed, 57 insertions(+)
+
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index ff5a013..c0b66fa 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -2,6 +2,7 @@
+ /* MT6797 shared CONSYS reservation owner. */
+ 
+ #include <linux/align.h>
++#include <linux/arm-smccc.h>
+ #include <linux/delay.h>
+ #include <linux/errno.h>
+ #include <linux/io.h>
+@@ -27,6 +28,7 @@
+ #define MT6797_CONSYS_SLEEP_MASK_REG	0x10001350
+ #define MT6797_CONSYS_SLEEP_MASK	BIT(8)
+ #define MT6797_CONSYS_CHIP_ID_REG	0x18070008
++#define MT6797_EMI_MPU_READ	0x82000208
+ #define MT6351_VCN28_HW_CONTROL	BIT(3)
+ #define MT6351_VCN28_ENABLE	BIT(1)
+ #define MT6351_VCN28_CLOCK_SELECT	(GENMASK(7, 5) | GENMASK(13, 11))
+@@ -255,6 +257,59 @@ put_node:
+ 	return ret;
+ }
+ 
++/* This service reads one EMI MPU register; it does not change protection. */
++static u32 mt6797_consys_read_emi(u32 offset)
++{
++	struct arm_smccc_res res;
++
++	arm_smccc_smc(MT6797_EMI_MPU_READ, offset, 0, 0, 0, 0, 0, 0, &res);
++	return (u32)res.a0;
++}
++
++/* Sample the first-load protection premise only after powered ID admission. */
++static void mt6797_consys_probe_powered_emi(struct device *dev,
++					     struct mt6797_consys *owner)
++{
++	u32 region23_before, region23_after, control;
++	u32 region18, policy18, region19, policy19, policy23;
++	int ret;
++
++	ret = mtk_pm_domain_confirmed_on(owner->conn_domain);
++	if (ret)
++		goto skipped;
++	ret = reset_control_status(owner->conmcu_reset);
++	if (ret != 1) {
++		ret = ret < 0 ? ret : -EIO;
++		goto skipped;
++	}
++	region23_before = mt6797_consys_read_emi(0x0398);
++	control = mt6797_consys_read_emi(0x0168);
++	region18 = mt6797_consys_read_emi(0x0370);
++	policy18 = mt6797_consys_read_emi(0x03b0);
++	region19 = mt6797_consys_read_emi(0x0378);
++	policy19 = mt6797_consys_read_emi(0x03b8);
++	policy23 = mt6797_consys_read_emi(0x03bc);
++	region23_after = mt6797_consys_read_emi(0x0398);
++	ret = mtk_pm_domain_confirmed_on(owner->conn_domain);
++	if (ret)
++		goto skipped;
++	ret = reset_control_status(owner->conmcu_reset);
++	if (ret != 1) {
++		ret = ret < 0 ? ret : -EIO;
++		goto skipped;
++	}
++	dev_info(dev,
++		 "one-shot CONN EMI powered: control1=0x%08x region23-before=0x%08x region23-after=0x%08x\n",
++		 control, region23_before, region23_after);
++	dev_info(dev,
++		 "one-shot CONN EMI powered: region18=0x%08x policy18=0x%08x region19=0x%08x policy19=0x%08x policy23=0x%08x\n",
++		 region18, policy18, region19, policy19, policy23);
++	return;
++
++skipped:
++	dev_err(dev, "one-shot CONN EMI powered skipped: owner status %d\n", ret);
++}
++
+ /* One attempt per boot. Keep every acquired vote after any uncertain effect. */
+ static void mt6797_consys_probe_power_on(struct device *dev, struct mt6797_consys *owner,
+ 					 bool chip_id_probe)
+@@ -407,6 +462,8 @@ static void mt6797_consys_probe_power_on(struct device *dev, struct mt6797_consy
+ 				 "one-shot CONN chip ID after 40 ms: 0x%08x, reset held\n",
+ 				 chip_id);
+ 		}
++		if (chip_id == 0x0279)
++			mt6797_consys_probe_powered_emi(dev, owner);
+ 	}
+ 	return;
+ 
+-- 
+2.54.0 (Apple Git-157)
+
