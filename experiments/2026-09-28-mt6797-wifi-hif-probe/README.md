@@ -56,6 +56,23 @@ The candidate preserves the observed reset-release board DTB and adds only the
 HIF resource and one-shot flag. The LK boot-container validator passed. Its
 full 16-MiB boot2 SHA-256 is
 `8e6d80e9c22b658ee8e79c7e4813d0ad80365d26907f2c374a69a2193c1c9049`.
-The [checksum-only receipt](results/candidate.json) pins all inputs. No device
-action has occurred for this candidate; `physical_admission` remains false
-until the guarded installer and collector are ready.
+The [checksum-only receipt](results/candidate.json) pins all offline inputs.
+Its `physical_admission: false` records the pre-install preparation state;
+the later device attempt is reported separately below.
+
+## First host-stage attempt
+
+The reviewed installer resolved logical boot2 from the live GPT in Gemian boot
+`0dd84ec1-2e97-4f20-962d-b4edf0b22d0c`, passed the device guard, found the
+expected previous full checksum, wrote the new image, and matched its full
+readback. It confirmed clean shutdown. The 900-second watcher was then armed
+and observed preloader followed by the MediaTek `20ff` USB stage, which remained
+through expiry. It saw no mainline USB route and made no device SSH attempt;
+the Gemian LAN endpoint also timed out. The [sanitized attempt receipt](results/attempt-1.json)
+pins the private deployment and stage-log checksums.
+
+Physical boot2 selection and screen state remain unconfirmed for this attempt.
+There is no mainline boot ID, kernel log, HIF result, A53 regression or verified
+Gemian return. Do not infer an HIF failure from `20ff` or repeat an identical
+host-only watch without a decision-changing physical observation. The verified
+boot2 image remains installed; the device has not been otherwise manipulated.
