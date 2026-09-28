@@ -29,3 +29,26 @@ points to admission or power/reset state. A different ID is a hardware or
 source-contract discrepancy; do not release reset. A bus fault requires
 preserving available evidence and reviewed Gemian recovery, with no same-image
 retry. None of these outcomes alone demonstrates firmware execution or Wi-Fi.
+
+## Prepared candidate
+
+The clean Buildbox build of commit
+`82dfa4994b0f8df808bb33a1116dd74705a5a077` produced validated package
+`451a3794a51952ca879a495446101bb987dd037c29a081e5f0235fb597a37c41`
+with release `7.1.3-gemini-a53-wifi-chip-id-probe`. The exact binding passed
+`dt-doc-validate`, and the compiled Gemini DTB passed focused `dt-validate`
+against that binding. The DTB's `reg` and `reg-names` readback shows the
+additional four-byte `0x18070008` entry. The broader DT validator reported
+an unrelated `keyboard-matrix-col-pins` core-schema type warning; the focused
+CONSYS validation emitted no finding. A full `dt_binding_check` was not run
+because Buildbox lacks the dtschema tools; the separate validation VM supplied
+the focused schema tools, not a kernel build.
+
+The [checksum-only candidate receipt](results/candidate.json) pins the exact
+Buildbox package, parent power-on image, 52-member private RAM root, boot
+container and full boot2 padding. The padded boot2 SHA-256 is
+`18e21f27326a48681acb532080e84d6989276934ce645a9ce1d2fe2620fa2cb5`.
+Private image and retained firmware bytes remain ignored. The derived guarded
+installer passed offline syntax and ShellCheck, with the preceding installed
+power image pinned as its only permitted predecessor. No device action or
+chip-ID result is claimed by these preparation checks.
