@@ -889,3 +889,31 @@ remained 3. Raw device output and the full post-cycle log are private under
 ignored `artifacts/`. The single-use budget is consumed. The logical mode
 transition is now observed, but its physical input, independent writers and
 exclusive mainline ownership remain unresolved.
+
+## v9 bounded EMI copy-policy discriminator
+
+The working gen3 WLAN source requests region 18 with all eight domains open
+for each EMI-section copy, then seals it to domain 2 only. Its policy encoding
+is `0xb6da2d` after each copy. This leaves open whether the copy needs the
+other six domains. [Patch 0009](patches/0009-diagnostic-bound-Gemian-WLAN-EMI-copy-policy.patch)
+changes only the temporary request to `0xb6da28`, which leaves domains 0 and
+2 open and forbids the others. The final `0xb6da2d` request, image bytes,
+radio firmware, boot ramdisk and all earlier diagnostics remain unchanged.
+The existing secure-call log records the requested value and raw result;
+new immediate direct region-18 range/policy reads report what the register
+interface returns after each request. Register readback is evidence of a
+reported register value, not proof of every bus access or overlap rule.
+
+The one-boot hypothesis is that the CPU firmware copy and subsequent CONSYS
+execution can complete with the narrower temporary policy. Unique evidence
+is the exact v9 image/readback and changed boot identity, both section-pair
+request/readback records, complete kernel log and WLAN carrier. A matching
+`0xb6da28` readback during each copy, matching final `0xb6da2d`, zero
+secure-call status and carrier 1 support this narrower Gemian policy as a
+candidate for mainline owner design. A rejected or mismatching call, missing
+record, absent carrier, reset, or changed recovery behavior makes the test
+negative or inconclusive; preserve all available evidence and return through
+the reviewed known-good path. Do not repeat the same image without a new
+measurement. No separate WLAN off/on cycle is part of this test. The first
+mainline firmware loader still needs its own same-boot reservation, exclusion,
+readback, failure-retention and quiescence gates before issuing an EMI write.

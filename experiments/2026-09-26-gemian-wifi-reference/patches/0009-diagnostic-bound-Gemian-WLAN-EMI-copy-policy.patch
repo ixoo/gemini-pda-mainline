@@ -1,0 +1,51 @@
+From: Gemini PDA experiment <experiment@invalid.example>
+Subject: [PATCH] wifi: mediatek: bound Gemian EMI copy policy to D0 and D2
+
+The working reference opens WLAN region 18 to every EMI domain during
+each EMI firmware copy. Test the narrower D0+D2 policy in one isolated
+boot2 image, retaining the original D2-only final policy. Record the
+request and immediate direct register readback for both calls.
+
+This diagnostic changes only the transient copy policy. It does not
+prove master-domain routing, overlap arbitration or a reusable mainline
+policy.
+---
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c b/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c
+@@ -841,13 +841,18 @@
+ 
+ 			if (gConEmiPhyBase) {
+ 				UINT_8 __iomem *pWiFiEmibaseaddr;
++				const UINT_32 copy_permission =
++					SET_ACCESS_PERMISSON(FORBIDDEN, FORBIDDEN,
++							     FORBIDDEN, FORBIDDEN, FORBIDDEN,
++							     NO_PROTECTION, FORBIDDEN,
++							     NO_PROTECTION);
+ 
+ 				emi_mpu_set_region_protection(gConEmiPhyBase,
+ 					gConEmiPhyBase + 512 * 1024 - 1,
+ 					18,
+-					SET_ACCESS_PERMISSON(NO_PROTECTION, NO_PROTECTION, NO_PROTECTION,
+-					  NO_PROTECTION, NO_PROTECTION, NO_PROTECTION, NO_PROTECTION, NO_PROTECTION));
+-
++					copy_permission);
++
++				pr_info("gemini-wifi-ref-v9: region18 copy policy D0+D2 only\n");
+ 				pWiFiEmibaseaddr = ioremap_nocache(gConEmiPhyBase, WIFI_EMI_MEM_SIZE);
+ 				DBGLOG(INIT, INFO,
+ 					"gConEmiPhyBase %p, idx %d, pEmiWiFibaseaddr %p, Dst %p, SecOffset %x, SecLen %x, fgEmiDownloaded %d\n",
+diff --git a/drivers/misc/mediatek/emi_mpu/mt6797/emi_mpu.c b/drivers/misc/mediatek/emi_mpu/mt6797/emi_mpu.c
+--- a/drivers/misc/mediatek/emi_mpu/mt6797/emi_mpu.c
++++ b/drivers/misc/mediatek/emi_mpu/mt6797/emi_mpu.c
+@@ -1138,6 +1138,10 @@
+ 		pr_info("gemini-wifi-ref-v1: emi region=%d start=%llx end=%llx permission=%06x firmware_status=%d\n",
+ 			region, start, end, access_permission & 0xffffff,
+ 			firmware_status);
++	if (region == 18)
++		pr_info("gemini-wifi-ref-v9: region18 range=%08x policy=%08x\n",
++			mt_emi_reg_read(EMI_MPUC3),
++			mt_emi_reg_read(EMI_MPUK3));
+ 
+ 	return ret;
+ }
