@@ -40,4 +40,28 @@ it does **not** establish working Wi-Fi. Return through the reviewed recovery
 path only after preserving evidence and checking live identities; require a
 changed-boot Gemian return with WLAN carrier.
 
-No boot2 installation or mainline boot has occurred for this candidate yet.
+
+## Offline result
+
+The clean pushed commit `5b4e8726` applied all 544 selected patches and built
+Linux 7.1.3 and the Gemini DTB on Buildbox. The fetched immutable package passed
+its full checksum inventory; [build identity](results/build.json) records the
+exact inputs. `System.map` contains the owner probe, WLAN firmware probe and
+summary functions. The built DTB contains the single `wifi` child with no
+power-domain link. Focused `dt-doc-validate` and `dt_binding_check` including
+the example compilation passed. Strict Checkpatch has no source-style finding; synthetic
+DCO, combined DT-binding, MAINTAINERS and long commit-description warnings
+remain for this internal proposal.
+
+The [candidate builder](build-candidate.py) verified that package, the pinned
+private firmware archive and its exact retained image, then added only the
+`wifi` child to the previously boot-tested passive CONSYS DT. It checked all
+preexisting nodes and properties, parsed the LK boot image, and padded it to the
+16 MiB boot2 size. The [sanitized candidate receipt](results/candidate.json)
+records full checksums; the image and firmware stay ignored and private. This
+composition deliberately avoids carrying unrelated changes from the current
+full compiled board DT into this first on-device probe. The current Gemian
+boot reports live logical `boot2` at 16 MiB with the exact prior tested image
+checksum `98269081…a56a525`; the guarded installer pins that predecessor.
+
+No boot2 installation or mainline runtime result has occurred yet.

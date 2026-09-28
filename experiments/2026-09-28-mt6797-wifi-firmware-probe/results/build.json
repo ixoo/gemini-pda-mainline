@@ -1,0 +1,12 @@
+{
+  "repository_commit": "5b4e8726c6549b46a7e4046dc79c93e191785945",
+  "repository_dirty": false,
+  "kernel_release": "7.1.3-gemini-a53-wifi-firmware-probe",
+  "build_profile": "mt6797-a53-wifi-firmware-probe",
+  "source_sha256": "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc",
+  "patchset_sha256": "b3a642d38abdc283a458d81fc52a089d809e278e042dc5a8014f9f3ebcf339b7",
+  "config_sha256": "2ecc32bc3c54ef98b28aa19808844d29dfe2b7f16e9d6069a8ff12c92217ff81",
+  "modules_built": false,
+  "package_inventory_sha256": "4e6240a8346042a7c850c53143990e2bb22f278ee5f8a0f793d0ab30136dc73b",
+  "validation": "Buildbox kernel and Gemini DTB build passed; fetched package inventory revalidated. MT6797 firmware probe and summary linked; selected configuration enabled FW_LOADER, HIF core and CONSYS owner. Focused dt-doc-validate and dt_binding_check including example compilation passed."
+}
