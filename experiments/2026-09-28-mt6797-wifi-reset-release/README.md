@@ -32,3 +32,22 @@ and boot candidate, live-GPT guarded boot2 installation with matching full
 readback, clean shutdown, an armed finite USB collector, and physical boot2
 selection by the owner. Preserve the complete log and A53 regression, then
 confirm a changed-boot Gemian Wi-Fi return through the reviewed path.
+
+## Prepared candidate
+
+The clean pushed commit `26951f2e23a7e920ef48238d5b624ea51db14d71`
+built on Buildbox with `KERNEL_PROFILE=mt6797-a53-wifi-reset-release` and
+validated package digest
+`94ada6cf3a2dd56e20f0e83a2e6e821e05a71c351ee8b488ffdb268e9b8fb813`.
+The private RAM root retained the same 52 members and firmware bytes; only
+the release check in `init` changed. The candidate keeps the boot-tested
+board DTB and adds only the source-matching ACR resource and one-shot flag
+to its CONSYS node. The boot-container validator passed. Its full 16-MiB
+boot2 SHA-256 is
+`4483a35bc23dc5d0bfca856848a70ca512e071caa89741098e0f461b65a9e141`.
+The [checksum-only receipt](results/candidate.json) pins all inputs. No
+device action has been taken for this candidate. The guarded installer was
+generated offline against the matching previous image and passed `bash -n`
+and ShellCheck. A pinned-key read of the current Gemian boot found kernel
+`3.18.41+`, boot ID `fcb8a468-5333-454a-8fca-c50fea118ccf` and WLAN
+carrier 1 before installation.

@@ -1,0 +1,38 @@
+{
+  "status": "offline-gated-conmcu-reset-release-candidate-validated",
+  "kernel_build_commit": "26951f2e23a7e920ef48238d5b624ea51db14d71",
+  "kernel_release": "7.1.3-gemini-a53-wifi-reset-release",
+  "kernel_package_sha256": "94ada6cf3a2dd56e20f0e83a2e6e821e05a71c351ee8b488ffdb268e9b8fb813",
+  "parent_boot2_sha256": "31a7adaddbc5e1fbc7d5ddaedcd5507ccb89b5eca493ae2e9d723d9522f8c7ff",
+  "firmware_sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
+  "files": {
+    "Image.gz": {
+      "sha256": "6fe3e3c8e29d284db2a972cff55993ceaea08d6ad6217472cf4f4a5f6ad98f3c",
+      "bytes": 6479094
+    },
+    "board.dtb": {
+      "sha256": "80a01e7f1e3f351bad223b5c42764c68e05d6ff9ad62c16bb2cb637e527d3315",
+      "bytes": 27903
+    },
+    "boot.img": {
+      "sha256": "f34f412d42da48f6a348dff728acce01353958d26219e77f3831f1750859a661",
+      "bytes": 9779200
+    },
+    "boot2-padded.img": {
+      "sha256": "4483a35bc23dc5d0bfca856848a70ca512e071caa89741098e0f461b65a9e141",
+      "bytes": 16777216
+    },
+    "initramfs.img": {
+      "sha256": "5ae0c0fe388795475e3f3a4bf682d1cb09a847f53f089b8ad3e4115ba5264bf6",
+      "bytes": 3266660
+    },
+    "kernel.config": {
+      "sha256": "ce496014bb14c297c85dc83217772aa41f35ae50886a6c84c34d54b4e8e9b231",
+      "bytes": 112012
+    }
+  },
+  "device_tree_change": "CONSYS ACR resource and one-shot flag only",
+  "secret_bearing": true,
+  "device_action": "none",
+  "physical_admission": false
+}
