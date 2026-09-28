@@ -71,7 +71,7 @@ records in the complete log. Positive, all-zero, duplicate and uniform
 waits for the owner's physical boot2 selection after installation and clean
 shutdown.
 
-## Deployment and first USB watch
+## Deployment and USB watches
 
 The guarded installer resolved logical boot2 to `/dev/mmcblk0p30`, confirmed
 the known-good Gemian root was `/dev/mmcblk0p29`, stable power and the exact
@@ -88,3 +88,11 @@ log or EMI census exists for this attempt. USB enumeration alone cannot tell
 whether the owner reached the boot menu, selected boot2 or where startup
 stopped. The physical screen state is pending; a timeout does not authorize
 another boot, write or recovery path.
+
+The owner then reported boot2 started. A second 900-second
+[watch](results/watch-2.json) was armed after that report, already at
+`0e8d:20ff`. It recorded no USB transition and expired with no mainline route
+or device SSH attempt. The post-expiry USB ID remained `0e8d:20ff`, while the
+known-good Gemian LAN endpoint timed out. This does not establish the screen
+state or a candidate-kernel failure. No new boot or recovery action is selected
+without the owner's screen observation.
