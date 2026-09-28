@@ -93,3 +93,32 @@ CONSYS traffic, effective domain or overlap priority. Do not replay this
 radio cycle. The next investigation must resolve the observation path itself
 or obtain an exact hardware routing/arbitration source before any mainline EMI
 policy write.
+
+## Owned-page positive control
+
+Two no-hit windows do not validate the watchpoint as an observer. The
+[one-use positive control](positive-control.py) tests its ability to latch a
+known AP read without touching the CONSYS reservation or cycling the radio.
+On the exact carrier-up Gemian boot, it allocates and locks its own 4 KiB page,
+derives that page's physical frame through its own pagemap entry, and verifies
+an eight-byte pattern through read-only `/dev/mem` before any register write.
+The read-only feasibility probe already found a present nonzero frame with a
+matching physical read. The script requires that the page fit the watchpoint's
+32-bit offset from `0x40000000`; it refuses if that check,
+identity, carrier, idle watchpoint words or its fixed single-use output gate
+fails. Its `--preflight` mode stops there.
+
+The effect window watches 16 bytes of that owned page, with read/write
+selection and all error, suppression and interrupt controls clear. It makes
+two bounded physical reads, records the raw hit words after each, then
+disables, clears and verifies the original five register values. The budget is
+seven EMI watchpoint-register writes, three eight-byte reads of the owned
+page including preflight, and no radio, firmware, protection or partition
+operation. It runs in a device-side transient service so host loss does not
+interrupt cleanup; its mode-0700 output stays private under `/var/tmp`.
+
+A latched hit with the known read address validates this observation path for
+an AP transaction and supplies an AXI ID to decode. No hit despite a matching
+read means the two WLAN no-hits cannot be interpreted as absence of traffic;
+it requires a new observer design, not replay of either radio window. A hit
+does not itself establish the CONSYS master/domain or region overlap rule.
