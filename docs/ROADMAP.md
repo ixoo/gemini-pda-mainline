@@ -518,7 +518,9 @@ for the first Wi-Fi bring-up. The current preparation order is:
    reached the authenticated collector: IOEx/IORx changed from `00/00` to
    `02/02`, and WCIR read `0x00100279`. Its complete sealed log, A53 regression,
    reviewed recovery and independent changed-boot Gemian Wi-Fi carrier check
-   passed. This validates one pre-firmware HIF path, not usable mainline Wi-Fi.
+   passed. The passive WLAN child also accepted the staged image's four-section
+   plan in that boot. This validates one pre-firmware HIF path and live image
+   acquisition, not usable mainline Wi-Fi.
    Add a same-boot admission gate and retained-fault owner transitions for the first firmware executor,
    without assuming that an earlier boot's zeros authorize an EMI write. A
    [passive mainline EMI read](../experiments/2026-09-27-mt6797-emi-boot-observe/results/runtime-1.json)

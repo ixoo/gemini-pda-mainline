@@ -98,10 +98,14 @@ EMI and reset-release gates passed. Before function enable, BT and Wi-Fi VCN33
 control both read `0x1800`, and IOEx/IORx read `0x00/0x00`. After enabling Wi-Fi
 function 1, IOEx/IORx both read `0x02`; WCIR read `0x00100279`. There was one
 ready record and no HIF stop record. The A53 RAM-service regression passed.
+The passive WLAN child also requested the staged firmware and accepted its
+complete four-section plan: two ordinary sections of 14,832 bytes and two EMI
+sections of 396,688 bytes. No section was submitted to hardware.
 
 The reviewed recovery reached a changed Gemian boot, and an independent
 read-only check found `wlan0/carrier=1`. This validates the one-shot pre-firmware
 HIF sequence in one boot. It does not establish firmware execution, EMI writer
 exclusion or policy, AP-DMA ownership, radio operation, or usable mainline
 Wi-Fi. The next executor needs a same-boot admission gate, owned EMI protection
-transaction and retained-fault resource lifetime before a firmware transfer.
+transaction and retained-fault resource lifetime before a firmware transfer;
+another firmware-request-only probe is unnecessary.

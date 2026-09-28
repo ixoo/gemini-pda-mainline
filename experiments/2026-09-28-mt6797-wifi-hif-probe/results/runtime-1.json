@@ -26,6 +26,14 @@
     "wcir": "0x00100279",
     "hif_ready_records": 1,
     "hif_stopped_records": 0,
+    "passive_firmware_plan": {
+      "accepted": true,
+      "sections": 4,
+      "ordinary_sections": 2,
+      "ordinary_bytes": 14832,
+      "emi_sections": 2,
+      "emi_bytes": 396688
+    },
     "a53_ram_service_regression": "pass",
     "consys_provider_registered_and_bound": true
   },
