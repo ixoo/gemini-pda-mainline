@@ -31,10 +31,18 @@ decision-changing measurement.
 
 The incremental [format-patch](../../patches/proposals/0039-soc-mediatek-sample-powered-MT6797-EMI-ranges.patch)
 has synthetic non-certifying authorship and is not an upstream submission.
-Build from a clean pushed commit with
-`KERNEL_PROFILE=mt6797-a53-wifi-powered-emi ./scripts/build-kernel --backend buildbox`.
-A successful build is not a boot2 candidate or a hardware result. Candidate
-assembly, exact checksum admission, guarded live-GPT boot2 installation,
-finite USB collection, A53 regression and reviewed Gemian return remain
-separate required steps. Private firmware and logs stay under ignored
-`artifacts/`.
+The clean pushed commit `f0d0142aef65c917d6964828f1416d4d7fd335c0`
+built with `KERNEL_PROFILE=mt6797-a53-wifi-powered-emi
+./scripts/build-kernel --backend buildbox`. The validated package digest is
+`cf3266d52411b1d51ad71248c872fcb84146ce59c762ab3576091146e36ab0ad`.
+The [sanitized candidate receipt](results/candidate.json) pins the private
+boot2 image and its predecessor. Assembly reused the exact boot-tested board
+DTB and firmware from the delayed-ID boot; the generic compiled DTB was not
+substituted. Offline candidate validation and installer generation passed,
+including `bash -n` and ShellCheck on the generated installer. No device action
+has occurred for this candidate yet.
+
+The next test requires the guarded live-GPT boot2 installation in known-good
+Gemian, matching full-partition readback, clean shutdown, physical boot2
+selection, finite USB collection, A53 regression and reviewed Gemian return.
+Private firmware and logs stay under ignored `artifacts/`.
