@@ -87,6 +87,16 @@ programmed only in that separate snapshot. The mainline read path therefore
 has a same-boot positive control. These observations do not identify a writer
 or establish the effective protection policy.
 
+Pinned Gemian [SCP helper source](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/scp/mt6797/scp_helper.c#L743-L761)
+requests region 22 over the SCP shared-memory reservation, matching the
+separate `0x8f000000..0x8fffffff` Gemian range. Its
+[MT6797 permission table](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/eccci/mt6797/ccci_platform.c#L60-L130)
+labels domain 2 `CONN`. These are source-supported intent, not an
+authenticated writer trace or measured master-domain assignment; region 22
+does not overlap the WLAN reservation. The
+[census source audit](../../experiments/2026-09-27-mt6797-emi-range-census/README.md#pinned-gemian-source-attribution)
+keeps the provenance and limits.
+
 The pinned public MT6797 EMI driver explicitly requests broad AP region 23
 with the same `0xba8b68` policy seen in Gemian. Its CONNSYS master-name table
 matches peripheral port 6, AXI ID `0x3` masked by `0x1ffb`; this is a decoder

@@ -500,10 +500,12 @@ for the first Wi-Fi bring-up. The current preparation order is:
    supplied the missing same-boot secure-read positive control: 12 range words
    were nonzero while regions 18, 19 and 23 were zero. After a changed-boot
    Gemian return with WLAN carrier, 20 of 24 range words matched; regions 18,
-   19, 22 and 23 were programmed only in that separate Gemian snapshot. This
-   rules out a uniformly zero mainline read response but does not identify
-   a writer, effective policy, or permission to copy Gemian's protection
-   settings. A
+   19, 22 and 23 were programmed only in that separate Gemian snapshot.
+   Pinned Gemian source assigns region 22 to separate SCP shared memory and
+   labels permission domain 2 `CONN`; neither is an authenticated writer trace
+   or effective master routing. The census rules out a uniformly zero
+   mainline read response but does not establish an effective policy or
+   permission to copy Gemian's protection settings. A
    [retained-image read-path check](../experiments/2026-09-27-mt6797-emi-range-census/results/retained-read-service.json)
    confirms the 24 census offsets take direct register reads in that image,
    while the region-23 policy offset uses a cached word. The executing secure

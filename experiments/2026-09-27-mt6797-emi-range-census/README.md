@@ -174,3 +174,29 @@ writer or timing of those regions, effective master/domain routing, overlap
 priority, or authority to write an EMI policy. Retained secure-firmware bytes
 still are not attested as the executing image. The next owner design must
 account for these unresolved facts before an effect-bearing Wi-Fi transition.
+
+## Pinned Gemian source attribution
+
+A read-only check of the prepared Gemian source tree at
+`59e00a9144d782e148332009a835b99c43382467` found a likely producer for
+the fourth differing range. Its
+[`scp_helper.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/scp/mt6797/scp_helper.c#L743-L761)
+(SHA-256 `fa5778ab866b48da9fc83ff5e8a415eb9f21ca8604d285d0d4080e5182f3bbed`)
+assigns region 22 to SCP shared memory and requests protection over its
+reserved-memory base and size during SCP helper initialization. The
+[recorded Gemian reservation](../../docs/hardware/gemini-gemian-baseline.md#firmware-reserved-memory-observed-at-boot)
+is `0x8f000000+0x01000000`, exactly the `0x8f000000..0x8fffffff`
+region-22 bounds observed on return. The source-to-running-kernel match is
+not attested, and the sysfs range does not identify the writer by itself;
+region 22 does not overlap the CONSYS window.
+
+The same source tree's
+[`ccci_platform.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/eccci/mt6797/ccci_platform.c#L60-L130)
+(SHA-256 `d7092013b0fa14b12c37e96a973c3179c565c1a1e1ebef3a6c27ec38b566a156`)
+labels MPU permission domain 2 `CONN` in both its field-order comment and
+default-permission table. This identifies the vendor source's intended
+domain label, not the actual domain carried by a WLAN transaction. The
+current Gemian boot ID was unchanged across a bounded read-only search of its
+kernel log; no matching region-22/23 producer line appeared. That absence
+does not override the source or prove no write occurred. Master routing and
+region-23 applicability remain the decision gates for a mainline EMI writer.
