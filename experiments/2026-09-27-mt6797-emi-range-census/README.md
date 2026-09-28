@@ -70,3 +70,21 @@ records in the complete log. Positive, all-zero, duplicate and uniform
 `0xffffffff` parser fixtures passed. The finite [USB watcher](watch-boot.py)
 waits for the owner's physical boot2 selection after installation and clean
 shutdown.
+
+## Deployment and first USB watch
+
+The guarded installer resolved logical boot2 to `/dev/mmcblk0p30`, confirmed
+the known-good Gemian root was `/dev/mmcblk0p29`, stable power and the exact
+preceding EMI observer checksum, then wrote, flushed and fully read back the
+census image. The readback matched the candidate and Gemian shut down cleanly.
+The sanitized [deployment receipt](results/deployment.json) pins those facts;
+the full installer and deployment summary remain ignored private evidence.
+
+The first 900-second [USB watch](results/watch-1.json) saw MediaTek
+`0e8d:20ff` three seconds after arming, then expired at that stage with no
+mainline gadget and no device SSH attempt. A post-expiry host read still saw
+that USB ID, and the known-good Gemian LAN SSH endpoint timed out. No kernel
+log or EMI census exists for this attempt. USB enumeration alone cannot tell
+whether the owner reached the boot menu, selected boot2 or where startup
+stopped. The physical screen state is pending; a timeout does not authorize
+another boot, write or recovery path.

@@ -1,0 +1,17 @@
+{
+  "status": "finite-watch-expired-without-mainline-route",
+  "candidate_full_sha256": "98269081c35d13476aaeb95f503f30a680dd2cb1ee8ad5766edae90e8a56a525",
+  "armed_utc": "2026-09-28T01:41:59Z",
+  "expired_utc": "2026-09-28T01:56:59Z",
+  "budget_seconds": 900,
+  "initial_usb_stage": "other-or-absent",
+  "observed_usb_stage": "mediatek-20ff",
+  "mainline_usb_route": false,
+  "device_ssh_attempts": 0,
+  "post_expiry_usb_id": "0e8d:20ff",
+  "known_good_gemian_lan_ssh": "connection timed out after expiry",
+  "owner_screen_observation": "pending",
+  "private_watch_events_sha256": "059510973dce39b55bf4cfe01fadc0e4eba1ad0a43a96e5391afca7b1ffc36dc",
+  "inference": "No EMI census was collected; the physical device state is not established by USB enumeration alone.",
+  "next_action": "preserve device state and ask owner for the screen observation before a new boot or recovery action"
+}
