@@ -85,3 +85,23 @@ cannot establish that this selection passed through preloader. The screen state
 remains pending. Neither attempt reached the kernel log, so the HIF hypothesis
 is still untested. Establish the device's physical state before any recovery or
 another boot; a third identical host-only watch has no decision value.
+
+## Prearmed mainline result
+
+The owner then confirmed the PDA was powered off. With the same verified boot2
+image still installed, a fresh collector was armed before physical boot2
+selection. The stale `20ff` listing cleared, the mainline gadget appeared, and
+the authenticated collector obtained a changed mainline boot ID and complete
+sealed kernel log. The [sanitized runtime receipt](results/runtime-1.json) pins
+the private watch, log and result hashes. The same-boot power, chip-ID, powered
+EMI and reset-release gates passed. Before function enable, BT and Wi-Fi VCN33
+control both read `0x1800`, and IOEx/IORx read `0x00/0x00`. After enabling Wi-Fi
+function 1, IOEx/IORx both read `0x02`; WCIR read `0x00100279`. There was one
+ready record and no HIF stop record. The A53 RAM-service regression passed.
+
+The reviewed recovery reached a changed Gemian boot, and an independent
+read-only check found `wlan0/carrier=1`. This validates the one-shot pre-firmware
+HIF sequence in one boot. It does not establish firmware execution, EMI writer
+exclusion or policy, AP-DMA ownership, radio operation, or usable mainline
+Wi-Fi. The next executor needs a same-boot admission gate, owned EMI protection
+transaction and retained-fault resource lifetime before a firmware transfer.

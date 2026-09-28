@@ -1,0 +1,45 @@
+{
+  "status": "gated-hif-function-ready; firmware-and-dma-held",
+  "candidate_boot2_sha256": "8e6d80e9c22b658ee8e79c7e4813d0ad80365d26907f2c374a69a2193c1c9049",
+  "kernel_build_commit": "e0a8f36fa0a59d98f6ca20ee8fe3c1ac1f4fa68d",
+  "kernel_release": "7.1.3-gemini-a53-wifi-hif-probe",
+  "watch": {
+    "armed_utc": "2026-09-28T21:55:37Z",
+    "initial_usb_stage": "mediatek-20ff",
+    "usb_stage_cleared_utc": "2026-09-28T21:55:46Z",
+    "mainline_gadget_utc": "2026-09-28T21:55:54Z",
+    "mainline_route_utc": "2026-09-28T21:55:56Z",
+    "collector_exit_utc": "2026-09-28T21:56:29Z",
+    "collector_exit_status": 0,
+    "private_events_sha256": "08e3f096d967a6293695af617c99d326886dea75f0772575577aa716537d8fbf"
+  },
+  "mainline": {
+    "boot_id": "0293e03d-f5ae-4d00-939c-18ac9ce46237",
+    "complete_kernel_log_sha256": "c418b0bffa628d3e975a59b61f3c372587d3a272c97aa792620ad2b034a20898",
+    "pre_recovery_manifest_sha256": "c561bd2e531ca0cdd48159343f2a21959a00202464c4ea3c22af4a122ae0851a",
+    "private_hif_result_sha256": "2f5a379bb667c0110d59e825e4c24b53459fc5b92681247779f8c34760c44f9b",
+    "hif_timeline_valid": true,
+    "reset_release_accepted": true,
+    "vcn33_bt_wifi_before": ["0x1800", "0x1800"],
+    "ioex_iorx_before": ["0x00", "0x00"],
+    "ioex_iorx_after": ["0x02", "0x02"],
+    "wcir": "0x00100279",
+    "hif_ready_records": 1,
+    "hif_stopped_records": 0,
+    "a53_ram_service_regression": "pass",
+    "consys_provider_registered_and_bound": true
+  },
+  "gemian_return": {
+    "changed_boot_id": "77d578c4-b0bf-458e-ae16-d002c86e784e",
+    "kernel_release": "3.18.41+",
+    "recovery_confirmed": true,
+    "independent_wlan0_carrier": 1
+  },
+  "limits": {
+    "hif_result": "one function-enable and WCIR sample in one boot",
+    "firmware_execution": "not-attempted",
+    "emi_policy_write": "not-attempted",
+    "ap_dma": "not-attempted",
+    "mainline_wifi_operational": false
+  }
+}
