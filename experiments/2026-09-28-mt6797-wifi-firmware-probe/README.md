@@ -74,4 +74,23 @@ The [session wrapper](passive-session.py), [USB collector](passive-host.py) and
 the provider and owner records, exact four-section firmware plan, A53 service
 regression and changed-boot Gemian return.
 
-No boot2 installation or mainline runtime result has occurred yet.
+## On-device result
+
+The guarded Gemian installation wrote the exact 16 MiB candidate to logical
+`boot2`, synced and flushed it, and matched a full-partition readback. The
+[sanitized deployment receipt](results/deployment-1.json) pins the predecessor,
+candidate and readback checksums. After clean shutdown, the owner selected
+boot2 physically.
+
+On changed mainline boot `360dbb84-62f6-4e4c-8336-030387fbfa9f`, one WLAN
+child bound below the passive CONSYS owner. The sealed complete kernel log has
+one successful firmware validation record: four sections, comprising two
+ordinary sections (14,832 bytes) and two EMI sections (396,688 bytes). The A53
+service regression passed. The reviewed recovery returned to changed Gemian
+boot `4b606b20-14a4-40bf-aef9-cff65cc0a946`; a subsequent authenticated
+Gemian check found `wlan0` carrier up. See the [sanitized runtime receipt](results/runtime-1.json).
+
+This establishes on-device firmware acquisition and passive parsing, not a
+safe EMI policy, firmware transfer or execution, radio registration, or usable
+mainline Wi-Fi. The `-3` EMI-owner admission refusal remains the next gate.
+The raw log and private image remain in ignored local artifacts.

@@ -68,6 +68,9 @@ def adapt(source, candidate, previous):
 
 INSTALLER.validate = validate
 INSTALLER.adapt = adapt
+MANIFEST_SHA = INSTALLER.MANIFEST_SHA
+receipt = INSTALLER.receipt
+
 
 
 if __name__ == '__main__':

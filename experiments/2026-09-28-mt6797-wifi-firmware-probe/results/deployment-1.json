@@ -1,0 +1,14 @@
+{
+  "classification": "guarded-boot2-write-full-readback-verified",
+  "gemian_boot_id": "636e12fb-65de-4eb3-88c8-70c3e4cec71e",
+  "target_logical_name": "boot2",
+  "target_major_minor": "179:30",
+  "root_major_minor": "179:29",
+  "power": "AC online, battery 100%, Good",
+  "predecessor_sha256": "98269081c35d13476aaeb95f503f30a680dd2cb1ee8ad5766edae90e8a56a525",
+  "candidate_sha256": "635af7ee9844da1eafd8f692492de018fcf021530213d86c198e8b5106aef6f1",
+  "full_readback_sha256": "635af7ee9844da1eafd8f692492de018fcf021530213d86c198e8b5106aef6f1",
+  "bytes": 16777216,
+  "shutdown": "confirmed-unreachable-after-clean-shutdown",
+  "boot_selection": "owner-physical-boot2"
+}

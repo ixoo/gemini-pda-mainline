@@ -1,0 +1,33 @@
+{
+  "classification": "passive-wlan-firmware-plan-validated",
+  "candidate_boot2_sha256": "635af7ee9844da1eafd8f692492de018fcf021530213d86c198e8b5106aef6f1",
+  "kernel_release": "7.1.3-gemini-a53-wifi-firmware-probe",
+  "mainline_boot_id": "360dbb84-62f6-4e4c-8336-030387fbfa9f",
+  "provider_registered": true,
+  "provider_count": 1,
+  "provider_bound": 1,
+  "passive_owner_bind_records": 1,
+  "firmware_validation_records": 1,
+  "firmware_plan": {
+    "accepted": true,
+    "sections": 4,
+    "ordinary_sections": 2,
+    "ordinary_bytes": 14832,
+    "emi_sections": 2,
+    "emi_bytes": 396688,
+    "execution_held": true
+  },
+  "kernel_log": {
+    "coverage": "sequence-zero-through-explicit-seal",
+    "complete": true,
+    "sha256": "ff91847427bb8be767023da6c204d2f513684d539b0c649b707e9282276db93c"
+  },
+  "a53_service_regression": "pass",
+  "gemian_return": {
+    "classification": "changed-ID-Gemian",
+    "boot_id": "4b606b20-14a4-40bf-aef9-cff65cc0a946",
+    "kernel_release": "3.18.41+",
+    "wlan0_carrier": 1
+  },
+  "limitation": "Passive firmware acquisition and plan validation only; EMI ownership and policy, firmware transfer and execution, radio registration, and usable mainline Wi-Fi remain unproved."
+}
