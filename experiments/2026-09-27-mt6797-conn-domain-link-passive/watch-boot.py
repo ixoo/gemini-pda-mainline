@@ -63,8 +63,12 @@ def main():
     parser.add_argument('--execute', action='store_true')
     args = parser.parse_args()
     os.umask(0o077)
+    try:
+        candidate = args.candidate.resolve(strict=True)
+    except OSError as error:
+        parser.exit(2, 'candidate path unavailable: ' + str(error) + '\n')
     preflight = subprocess.run([sys.executable, str(HOST), '--candidate',
-                               str(args.candidate)], capture_output=True, text=True,
+                               str(candidate)], capture_output=True, text=True,
                               timeout=30)
     if preflight.returncode or preflight.stdout.strip() != \
             'offline-preparation=pass; device_action=none':
@@ -100,7 +104,7 @@ def main():
                 record(stream, 'mainline-route', stage=current)
                 print('mainline_usb_route=ready', flush=True)
                 result = subprocess.run([sys.executable, str(HOST), '--candidate',
-                                         str(args.candidate), '--execute'], cwd=REPO)
+                                         str(candidate), '--execute'], cwd=REPO)
                 record(stream, 'collector-exit', exit_status=result.returncode)
                 return result.returncode
             time.sleep(1)

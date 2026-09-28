@@ -1,0 +1,57 @@
+{
+  "status": "initial-chip-id-zero; delayed-chip-id-0279; a53-regression-pass; Gemian-return-confirmed",
+  "candidate_boot2_sha256": "f218eaf4837a8e6025927b5d10425e4f2fb0de86259d49bdc6aefe484781feb1",
+  "kernel_build_commit": "4de4921dc919ee2e23291e162c6464937b085a60",
+  "kernel_release": "7.1.3-gemini-a53-wifi-chip-id-delay",
+  "deployment": {
+    "known_good_gemian_boot_id": "4d6fe3bf-c67e-4a5d-a238-7336c1144e53",
+    "boot2_guard_passed": true,
+    "predecessor_full_sha256": "18e21f27326a48681acb532080e84d6989276934ce645a9ce1d2fe2620fa2cb5",
+    "write_synced_flushed_full_readback_matched": true,
+    "private_summary_sha256": "0469a0895a8b6d9f91270466689517ce420bbc2aa44b88e75d7c5a072411a9e0",
+    "clean_shutdown_confirmed": true
+  },
+  "mainline_boot_id": "95af79c4-c3ee-4cb7-9ebc-870da332b880",
+  "observed": {
+    "provider_registered": true,
+    "firmware_plan_accepted": true,
+    "firmware_sections": 4,
+    "ordinary_sections": 2,
+    "ordinary_bytes": 14832,
+    "emi_sections": 2,
+    "emi_bytes": 396688,
+    "conn_domain_confirmed_on_reset_held_records": 1,
+    "conn_power_probe_stopped_records": 0,
+    "chip_id_skipped_records": 0,
+    "initial_wait_us": 30,
+    "chip_id_samples": [
+      {"after_requested_delay_ms": 0, "value": "0x00000000"},
+      {"after_requested_delay_ms": 20, "value": "0x00000279"}
+    ],
+    "a53_ram_service_regression_pass": true
+  },
+  "preserved_complete_kernel_log": {
+    "bytes": 129143,
+    "records": 1852,
+    "sha256": "96ac17d5b1a4845a4b7f832ed68a123530332bebbcac02963d7c3c8d754ba52e"
+  },
+  "collector": {
+    "initial_watcher_route_detected": true,
+    "initial_watcher_launch_refused_relative_candidate_path": true,
+    "same_boot_absolute_path_collector_completed": true
+  },
+  "return": {
+    "collector_confirmed_recovery": true,
+    "changed_gemian_boot_id": "9e57b63b-13de-42b4-8b90-e8c57cd371d7",
+    "gemian_kernel": "3.18.41+",
+    "independent_gemian_wlan_carrier": 1
+  },
+  "limits": {
+    "minimum_settling_time_established": false,
+    "repeatability_established": false,
+    "conn_reset_released": false,
+    "firmware_executed": false,
+    "mainline_wifi_operational": false,
+    "shared_emi_ownership_established": false
+  }
+}

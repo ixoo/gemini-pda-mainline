@@ -42,3 +42,29 @@ image pinned as its only predecessor. Synthetic classifier checks accepted
 20-ms and 40-ms `0x0279` traces, classified a three-sample zero trace as a
 valid negative result, and rejected a missing delayed sample. No device
 action or delayed-ID hardware observation is claimed by these checks.
+
+## Hardware result
+
+The guarded boot2 installer matched the full-partition readback and shut the
+PDA down. The owner selected boot2. In changed mainline boot
+`95af79c4-c3ee-4cb7-9ebc-870da332b880`, the complete sealed kernel log
+recorded one confirmed CONN power-on with CONMCU reset held, chip ID
+`0x00000000` at the first read, then `0x00000279` after the requested 20-ms
+sleep. The probe stopped there; no 40-ms sample was needed. The four-section
+firmware plan passed without executing firmware. The A53 RAM-service
+regression passed. Reviewed recovery reached changed Gemian boot
+`9e57b63b-13de-42b4-8b90-e8c57cd371d7`, and an independent bounded read
+found `wlan0` carrier 1. The [sanitized runtime receipt](results/runtime-1.json)
+pins candidate, boot identities and complete private-log checksum.
+
+The USB watcher found the mainline route but its first collector launch used
+a relative candidate path under a different working directory and refused
+before device action. The same authenticated collector was immediately
+launched with the absolute path in that mainline boot, preserving the complete
+log and completing recovery. The shared watcher now resolves the candidate
+path before changing directories. No repeated boot was used.
+
+The contrast between the initial zero and delayed `0x0279` supports settling
+in this boot. It does not establish a minimum delay or repeatability. No
+CONMCU reset release, firmware execution, EMI handoff or Wi-Fi operation was
+tested; those require separate resource-ownership and runtime evidence.
