@@ -79,6 +79,14 @@ INSTALLS = {
         'boot_id': '678aad0e-34f5-4134-8ac1-92ee9feed207',
         'release': '3.18.41-gemini-wifi-ref7+',
     },
+    'v9': {
+        'candidate': 'cad42c1fe0bfb2d099edbaf26322ef00da6452e3fdf4a41258e75d3b44b1803a',
+        'manifest': '990139e768e27f92135662a3e57444038a7215652c05391bcaafdf3b23534fa2',
+        'predecessor': '8e6d80e9c22b658ee8e79c7e4813d0ad80365d26907f2c374a69a2193c1c9049',
+        'deployment': 'gemian-wifi-reference-deployment-9',
+        'boot_id': '77d578c4-b0bf-458e-ae16-d002c86e784e',
+        'release': '3.18.41+',
+    },
 }
 
 
@@ -138,7 +146,7 @@ def main():
                      '[[ "$predecessor_sha256" == ' + selected['predecessor'] +
                      ' || "$predecessor_sha256" == "$CANDIDATE_SHA256" ]] ||\n' +
                      '\tdie \'unexpected boot2 predecessor\'\n')
-    if args.revision in ('v3', 'v4', 'v5', 'v6', 'v7', 'v8'):
+    if args.revision in ('v3', 'v4', 'v5', 'v6', 'v7', 'v8', 'v9'):
         source = replace(source,
                          '[[ "$initial_boot_id" =~ ^[0-9a-f-]{36}$ ]] || die \'malformed initial boot ID\'\n',
                          '[[ "$initial_boot_id" == ' + selected['boot_id'] + ' ]] ||\n'

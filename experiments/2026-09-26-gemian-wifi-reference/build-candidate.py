@@ -56,6 +56,11 @@ BUILDS = {
         'inventory': '712c7c99d67782c25cff1f709f6c786f054e7b871acedb3e8cfa1c1a9bedc1f3',
         'kernel': 'cd0c7e8904c8f478c1736ca6bbf9fa704e61a3a5765bc3a9a6624d8df6c088b5',
     },
+    'v9': {
+        'commit': '399deefd67429d6d95582276478667e0ced8a3ae',
+        'inventory': 'b6d492f193788ae1e26ba91d14605943173f7f8940b0e6c954844b8ad272534c',
+        'kernel': 'd13e5fedc18aed0f2cd2de04d5f59eb72d8e60d145c7b2c8be04f774b64d46c8',
+    },
 }
 ASSEMBLER = (REPO / 'experiments/2026-08-02-gemian-a72-bounded-observer-boot'
              / 'scripts/assemble.py')

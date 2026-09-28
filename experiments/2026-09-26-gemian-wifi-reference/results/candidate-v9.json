@@ -1,0 +1,16 @@
+{
+  "experiment": "2026-09-26-gemian-wifi-reference",
+  "repository_commit": "399deefd67429d6d95582276478667e0ced8a3ae",
+  "source_commit": "59e00a9144d782e148332009a835b99c43382467",
+  "package_inventory_sha256": "b6d492f193788ae1e26ba91d14605943173f7f8940b0e6c954844b8ad272534c",
+  "assembler_sha256": "532f6f0dec5030a7b066f3baefa53580ec148317f633d4dd8d43308d30ac03b3",
+  "active_boot_sha256": "1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513",
+  "kernel_field_sha256": "d13e5fedc18aed0f2cd2de04d5f59eb72d8e60d145c7b2c8be04f774b64d46c8",
+  "raw_sha256": "2550a8e44b5ff2adb7781d31eb29eee8760a39d6667012a3aab11deca7766f9e",
+  "raw_bytes": 14997504,
+  "boot2_sha256": "cad42c1fe0bfb2d099edbaf26322ef00da6452e3fdf4a41258e75d3b44b1803a",
+  "boot2_bytes": 16777216,
+  "ramdisk_sha256": "a1ee05445e9a2bd8fbc1f75d7cda326b9ca7a6d3b644cbb1d5fc0ac167835be4",
+  "boot_candidate": true,
+  "device_execution": false
+}

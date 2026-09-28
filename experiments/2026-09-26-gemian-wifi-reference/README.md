@@ -917,3 +917,19 @@ the reviewed known-good path. Do not repeat the same image without a new
 measurement. No separate WLAN off/on cycle is part of this test. The first
 mainline firmware loader still needs its own same-boot reservation, exclusion,
 readback, failure-retention and quiescence gates before issuing an EMI write.
+
+Clean pushed commit `399deefd67429d6d95582276478667e0ced8a3ae` built
+v9 on Buildbox. The [build receipt](results/build-v9.json) pins package
+inventory `b6d492f193788ae1e26ba91d14605943173f7f8940b0e6c954844b8ad272534c`.
+The full kernel link passed; the sole diagnostic is the unchanged 69-section
+modpost warning. The [offline candidate](results/candidate-v9.json) has exact
+16 MiB boot2 SHA-256
+`cad42c1fe0bfb2d099edbaf26322ef00da6452e3fdf4a41258e75d3b44b1803a`.
+An independent Android-v0 parse found the known-good ramdisk and appended DTB
+unchanged; the header differs only in kernel size and image ID. The
+private candidate inventory passed its full SHA-256 check. The guarded
+single-candidate installer (private SHA-256
+`7f582030074d909f4e9dc82155b39a78c01398d11a15023ef5bb85a04cecec4c`)
+pins the current known-good Gemian boot ID/release and the installed HIF-probe
+boot2 predecessor checksum. No v9 device execution is claimed by these offline
+checks.
