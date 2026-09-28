@@ -1,0 +1,2 @@
+# Identify the passive on-device WLAN firmware acquisition candidate.
+CONFIG_LOCALVERSION="-gemini-a53-wifi-firmware-probe"

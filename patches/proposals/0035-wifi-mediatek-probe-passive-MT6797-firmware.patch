@@ -1,0 +1,242 @@
+From 6ba5e0a44ccbce0650de52033eb08cb8236d5ec4 Mon Sep 17 00:00:00 2001
+From: MT6797 internal experiment <nobody@example.invalid>
+Date: Mon, 28 Sep 2026 09:48:51 -0400
+Subject: [PATCH] wifi: mediatek: probe MT6797 firmware beneath passive CONSYS
+ owner
+
+Populate the WLAN child only after the shared owner has bound its resources and confirmed CONN off.
+
+Request and validate the retained image in the child, keeping execution gated.
+
+Internal experiment with synthetic authorship. Not DCO-certified or ready for upstream submission.
+---
+ .../soc/mediatek/mediatek,mt6797-consys.yaml  | 20 ++++++-
+ .../boot/dts/mediatek/mt6797-gemini-pda.dts   |  4 ++
+ drivers/net/wireless/mediatek/mt6797/Makefile |  1 +
+ .../mediatek/mt6797/firmware-prepare.c        | 15 +++++
+ .../mediatek/mt6797/firmware-prepare.h        | 10 ++++
+ .../wireless/mediatek/mt6797/firmware-probe.c | 60 +++++++++++++++++++
+ drivers/soc/mediatek/mt6797-consys.c          | 10 +++-
+ 7 files changed, 116 insertions(+), 4 deletions(-)
+ create mode 100644 drivers/net/wireless/mediatek/mt6797/firmware-probe.c
+
+diff --git a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
+index 6f64093..3534491 100644
+--- a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
++++ b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
+@@ -11,9 +11,9 @@ maintainers:
+ 
+ description: |
+   The CONSYS manager owns the boot-allocated no-map firmware reservation
+-  shared by WLAN and WMT. It does not attach to a power domain during probe;
+-  later children can be populated only after their common prerequisites are
+-  prepared.
++  shared by WLAN and WMT. It attaches to a confirmed-OFF CONN domain only
++  after acquiring the common resources, then populates the passive WLAN child.
++  The child has no direct power-domain attachment.
+ 
+ properties:
+   compatible:
+@@ -44,6 +44,16 @@ properties:
+ 
+   power-domains: false
+ 
++  wifi:
++    type: object
++    description: Passive WLAN firmware client populated after CONSYS binds.
++    properties:
++      compatible:
++        const: mediatek,mt6797-wlan
++    required:
++      - compatible
++    additionalProperties: false
++
+   mediatek,conn-power-domain:
+     $ref: /schemas/types.yaml#/definitions/phandle-array
+     maxItems: 1
+@@ -112,5 +122,9 @@ examples:
+             vcn33-wifi-supply = <&vcn33_wifi>;
+             resets = <&watchdog 12>;
+             reset-names = "con-mcu";
++
++            wifi {
++                compatible = "mediatek,mt6797-wlan";
++            };
+         };
+     };
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+index daaed1d..d9825be 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -86,6 +86,10 @@
+ 		resets = <&watchdog MT6797_TOPRGU_CONMCU_SW_RST>;
+ 		reset-names = "con-mcu";
+ 		mediatek,conn-power-domain = <&conn_power MT6797_POWER_DOMAIN_CONN>;
++
++		wifi {
++			compatible = "mediatek,mt6797-wlan";
++		};
+ 	};
+ 
+ 	reserved-memory {
+diff --git a/drivers/net/wireless/mediatek/mt6797/Makefile b/drivers/net/wireless/mediatek/mt6797/Makefile
+index 1bef1e9..3a40a47 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Makefile
++++ b/drivers/net/wireless/mediatek/mt6797/Makefile
+@@ -8,3 +8,4 @@ obj-y += resource-layout.o
+ obj-y += ordinary-transfer.o
+ obj-y += emi-service-gate.o
+ obj-y += firmware-prepare.o
++obj-y += firmware-probe.o
+diff --git a/drivers/net/wireless/mediatek/mt6797/firmware-prepare.c b/drivers/net/wireless/mediatek/mt6797/firmware-prepare.c
+index f2a9378..13b712b 100644
+--- a/drivers/net/wireless/mediatek/mt6797/firmware-prepare.c
++++ b/drivers/net/wireless/mediatek/mt6797/firmware-prepare.c
+@@ -60,6 +60,21 @@ int mt6797_wlan_firmware_describe(const struct mt6797_wlan_firmware *image,
+ 		-EINVAL : 0;
+ }
+ 
++int mt6797_wlan_firmware_summary(const struct mt6797_wlan_firmware *image,
++				 struct mt6797_wlan_firmware_summary *summary)
++{
++	if (!image || !summary || !image->plan.valid)
++		return -EINVAL;
++	*summary = (struct mt6797_wlan_firmware_summary) {
++		.sections = image->plan.sections,
++		.ordinary_sections = image->plan.ordinary_sections,
++		.emi_sections = image->plan.emi_sections,
++		.ordinary_bytes = image->plan.ordinary_bytes,
++		.emi_bytes = image->plan.emi_bytes,
++	};
++	return 0;
++}
++
+ void mt6797_wlan_firmware_release(struct mt6797_wlan_firmware *image)
+ {
+ 	if (!image)
+diff --git a/drivers/net/wireless/mediatek/mt6797/firmware-prepare.h b/drivers/net/wireless/mediatek/mt6797/firmware-prepare.h
+index 671756e..2fdedea 100644
+--- a/drivers/net/wireless/mediatek/mt6797/firmware-prepare.h
++++ b/drivers/net/wireless/mediatek/mt6797/firmware-prepare.h
+@@ -10,6 +10,14 @@
+ 
+ struct mt6797_wlan_firmware;
+ 
++struct mt6797_wlan_firmware_summary {
++	unsigned int sections;
++	unsigned int ordinary_sections;
++	unsigned int emi_sections;
++	size_t ordinary_bytes;
++	size_t emi_bytes;
++};
++
+ /* Passive only. The returned object owns immutable firmware bytes and its
+  * complete plan until release. No hardware admission or executable section
+  * view is exposed. A future executor must retain it across every effect and
+@@ -20,6 +28,8 @@ int mt6797_wlan_firmware_prepare(struct device *dev,
+ int mt6797_wlan_firmware_describe(const struct mt6797_wlan_firmware *image,
+ 				  unsigned int index,
+ 				  struct mt6797_plan_section *section);
++int mt6797_wlan_firmware_summary(const struct mt6797_wlan_firmware *image,
++				 struct mt6797_wlan_firmware_summary *summary);
+ void mt6797_wlan_firmware_release(struct mt6797_wlan_firmware *image);
+ 
+ #endif
+diff --git a/drivers/net/wireless/mediatek/mt6797/firmware-probe.c b/drivers/net/wireless/mediatek/mt6797/firmware-probe.c
+new file mode 100644
+index 0000000..b848e6f
+--- /dev/null
++++ b/drivers/net/wireless/mediatek/mt6797/firmware-probe.c
+@@ -0,0 +1,60 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/* Passive MT6797 WLAN firmware probe below the shared CONSYS owner. */
++
++#include <linux/errno.h>
++#include <linux/of.h>
++#include <linux/platform_device.h>
++
++#include "firmware-prepare.h"
++
++static void mt6797_wlan_firmware_cleanup(void *data)
++{
++	mt6797_wlan_firmware_release(data);
++}
++
++static int mt6797_wlan_firmware_probe(struct platform_device *pdev)
++{
++	struct mt6797_wlan_firmware_summary summary;
++	struct mt6797_wlan_firmware *image;
++	int ret;
++
++	if (!pdev->dev.parent ||
++	    !of_device_is_compatible(pdev->dev.parent->of_node,
++				     "mediatek,mt6797-consys") ||
++	    pdev->dev.pm_domain)
++		return -EINVAL;
++
++	ret = mt6797_wlan_firmware_prepare(&pdev->dev, &image);
++	if (ret)
++		return dev_err_probe(&pdev->dev, ret,
++				     "failed to prepare WLAN firmware\n");
++	ret = devm_add_action_or_reset(&pdev->dev,
++				       mt6797_wlan_firmware_cleanup, image);
++	if (ret)
++		return ret;
++	ret = mt6797_wlan_firmware_summary(image, &summary);
++	if (ret)
++		return ret;
++	platform_set_drvdata(pdev, image);
++	dev_info(&pdev->dev,
++		 "validated WLAN firmware: %u sections, ordinary %u/%zu bytes, EMI %u/%zu bytes; execution held\n",
++		 summary.sections, summary.ordinary_sections,
++		 summary.ordinary_bytes, summary.emi_sections,
++		 summary.emi_bytes);
++	return 0;
++}
++
++static const struct of_device_id mt6797_wlan_firmware_of_match[] = {
++	{ .compatible = "mediatek,mt6797-wlan" },
++	{}
++};
++
++static struct platform_driver mt6797_wlan_firmware_driver = {
++	.probe = mt6797_wlan_firmware_probe,
++	.driver = {
++		.name = "mt6797-wlan-firmware",
++		.of_match_table = mt6797_wlan_firmware_of_match,
++		.suppress_bind_attrs = true,
++	},
++};
++builtin_platform_driver(mt6797_wlan_firmware_driver);
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index 2e5360a..da2217c 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -10,6 +10,7 @@
+ #include <linux/mutex.h>
+ #include <linux/of.h>
+ #include <linux/of_reserved_mem.h>
++#include <linux/of_platform.h>
+ #include <linux/pm_domain.h>
+ #include <linux/platform_device.h>
+ #include <linux/regulator/consumer.h>
+@@ -292,8 +293,15 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 	mt6797_consys.conn_domain = conn_domain;
+ 	mt6797_consys.bound = true;
+ 	platform_set_drvdata(pdev, &mt6797_consys);
++	ret = devm_of_platform_populate(&pdev->dev);
++	if (ret) {
++		platform_set_drvdata(pdev, NULL);
++		memset(&mt6797_consys, 0, sizeof(mt6797_consys));
++		pm_genpd_remove_device(&pdev->dev);
++		goto out_unlock;
++	}
+ 	dev_info(&pdev->dev,
+-		 "bound boot CONSYS reserve, remap, VCN, CONMCU reset and checked-OFF CONN domain\n");
++		 "bound boot CONSYS reserve, remap, VCN, CONMCU reset and checked-OFF CONN domain; populated passive children\n");
+ out_unlock:
+ 	mutex_unlock(&mt6797_consys_lock);
+ 	return ret;
+-- 
+2.54.0 (Apple Git-157)
+
