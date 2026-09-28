@@ -26,3 +26,13 @@ exercise this API.
 
 This is an internal integration patch with a synthetic author and no DCO
 certification or upstream-submission claim.
+
+## Validation
+
+The exact pushed commit `fb14a119d34af8dc119a5c2d49c2583b18af783b`
+built on Buildbox with this profile. Its fetched package passed the full
+inventory and checksum validator. `System.map` contains both
+`mtk_pm_domain_confirmed_off` and `mtk_pm_domain_confirmed_on`, and the Gemini
+DTB SHA-256 matches the prior passive CONN-domain build. See
+[the build receipt](results/build.json). No device boot or Wi-Fi test was
+performed for this compile-only profile.
