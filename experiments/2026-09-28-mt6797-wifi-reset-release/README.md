@@ -51,3 +51,18 @@ generated offline against the matching previous image and passed `bash -n`
 and ShellCheck. A pinned-key read of the current Gemian boot found kernel
 `3.18.41+`, boot ID `fcb8a468-5333-454a-8fca-c50fea118ccf` and WLAN
 carrier 1 before installation.
+
+## Installation and shutdown limit
+
+The guarded installer resolved logical `boot2` from the live GPT in that
+Gemian boot, verified the expected predecessor and stable power, wrote the
+new image, flushed it and matched an independent full-partition readback.
+It then requested `systemctl poweroff`, but Gemian remained reachable through
+the bounded shutdown check; the installer exited 2 rather than claiming a
+clean shutdown. A bounded read-only follow-up found the same Gemian boot ID,
+PID 1 in uninterruptible `tty_ldisc_ref_wait`, and a timed-out `systemctl`
+job query. Those observations do not prove the cause of the failed shutdown.
+The [sanitized receipt](results/install-attempt-1.json) pins the exact image
+and the private deployment-summary checksum. No reset-release boot has run.
+Physical power-off and a newly armed collector are required before the owner
+selects boot2.

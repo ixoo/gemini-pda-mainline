@@ -1,0 +1,27 @@
+{
+  "status": "boot2-full-readback-matched; clean-shutdown-not-confirmed",
+  "candidate_boot2_sha256": "4483a35bc23dc5d0bfca856848a70ca512e071caa89741098e0f461b65a9e141",
+  "previous_boot2_sha256": "31a7adaddbc5e1fbc7d5ddaedcd5507ccb89b5eca493ae2e9d723d9522f8c7ff",
+  "gemian_boot_id": "fcb8a468-5333-454a-8fca-c50fea118ccf",
+  "boot2_guard_passed": true,
+  "stable_power_reported": "1|100|Good|1",
+  "write_synced_flushed": true,
+  "target_full_sha256": "4483a35bc23dc5d0bfca856848a70ca512e071caa89741098e0f461b65a9e141",
+  "independent_full_readback_sha256": "4483a35bc23dc5d0bfca856848a70ca512e071caa89741098e0f461b65a9e141",
+  "private_deployment_summary_sha256": "23c29ea7fd162d6b0fb0747dd8b0fdfca5d8988dcd1ad1913761e3ab79c5576e",
+  "shutdown": {
+    "systemctl_poweroff_requested": true,
+    "installer_exit_status": 2,
+    "post_request_gemian_reachable": true,
+    "changed_boot_id": false,
+    "read_only_followup": {
+      "pid1_comm": "systemd",
+      "pid1_state": "D",
+      "pid1_wait_channel": "tty_ldisc_ref_wait",
+      "systemctl_is_system_running": "unknown",
+      "systemctl_list_jobs": "timed-out"
+    },
+    "interpretation": "Clean shutdown was not confirmed; the PID 1 wait-state observation does not by itself establish its cause."
+  },
+  "mainline_test_performed": false
+}
