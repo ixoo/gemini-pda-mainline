@@ -1,0 +1,2 @@
+# Identify the one-shot mainline EMI region-18 policy diagnostic.
+CONFIG_LOCALVERSION="-gemini-a53-wifi-emi-set-probe"

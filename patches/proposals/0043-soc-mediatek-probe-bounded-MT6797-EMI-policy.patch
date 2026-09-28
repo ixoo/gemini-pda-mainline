@@ -1,0 +1,355 @@
+From 7366489b3a85c6ba8d15c2763c6de54d868640af Mon Sep 17 00:00:00 2001
+From: Gemini PDA experiment <experiment.invalid>
+Date: Mon, 28 Sep 2026 19:34:05 -0400
+Subject: [PATCH] soc: mediatek: probe one bounded MT6797 EMI policy pair
+
+After the previously tested CONN and HIF startup, require a same-boot
+selector, nonzero EMI read control and empty WLAN/WMT/broad ranges. Request
+region 18 with the narrower Gemian-v9 copy policy, verify the direct
+range/policy readback, then request and verify the final seal. Retain the
+powered owner and record the attempted/sealed state on every outcome.
+
+This one-boot secure-call diagnostic transfers no firmware and does not
+establish effective master routing, overlapping-region arbitration or
+usable Wi-Fi. It is an internal experiment with synthetic, non-certifying
+authorship, not an upstream submission.
+
+---
+ .../soc/mediatek/mediatek,mt6797-consys.yaml  |  21 +++
+ .../boot/dts/mediatek/mt6797-gemini-pda.dts   |   5 +-
+ drivers/soc/mediatek/mt6797-consys.c          | 143 ++++++++++++++++--
+ 3 files changed, 158 insertions(+), 11 deletions(-)
+
+diff --git a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
+index 4374294..f9456ca 100644
+--- a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
++++ b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
+@@ -27,6 +27,7 @@ properties:
+       - description: Read-only CONSYS chip ID at 0x18070008.
+       - description: CONSYS MCU ACR at 0x18070110.
+       - description: AHB SDIO-like Wi-Fi HIF at 0x180f0000.
++      - description: Read-only EMI address-translation selector at 0x10001f00.
+ 
+   reg-names:
+     minItems: 1
+@@ -36,6 +37,7 @@ properties:
+       - const: chip-id
+       - const: mcu-acr
+       - const: wifi-hif
++      - const: emi-selector
+ 
+   memory-region:
+     maxItems: 1
+@@ -84,6 +86,13 @@ properties:
+       perform one function-enable CMD52 exchange and read WCIR once through
+       the exclusively claimed AHB HIF. No firmware or DMA transfer occurs.
+ 
++  mediatek,one-shot-emi-set-probe:
++    type: boolean
++    description: |
++      After successful HIF startup, require same-boot empty EMI ranges and
++      selector state, then request and read back one region-18 writable/final
++      policy pair. Retain all effects until reboot. No firmware is transferred.
++
+   wifi:
+     type: object
+     description: Passive WLAN firmware client populated after CONSYS binds.
+@@ -161,6 +170,18 @@ allOf:
+       required:
+         - mediatek,one-shot-reset-release-probe
+         - reg-names
++  - if:
++      required:
++        - mediatek,one-shot-emi-set-probe
++    then:
++      properties:
++        reg:
++          minItems: 6
++        reg-names:
++          minItems: 6
++      required:
++        - mediatek,one-shot-hif-probe
++        - reg-names
+ 
+ examples:
+   - |
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+index 6336bcf..06071b0 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -80,13 +80,14 @@
+ 		compatible = "mediatek,mt6797-consys";
+ 		reg = <0 0x10001340 0 4>, <0 0x10001350 0 4>,
+ 		      <0 0x18070008 0 4>, <0 0x18070110 0 4>,
+-		      <0 0x180f0000 0 0x1100>;
++		      <0 0x180f0000 0 0x1100>, <0 0x10001f00 0 4>;
+ 		reg-names = "remap", "conn2ap-sleep-mask", "chip-id", "mcu-acr",
+-			    "wifi-hif";
++			    "wifi-hif", "emi-selector";
+ 		mediatek,one-shot-power-probe;
+ 		mediatek,one-shot-chip-id-probe;
+ 		mediatek,one-shot-reset-release-probe;
+ 		mediatek,one-shot-hif-probe;
++		mediatek,one-shot-emi-set-probe;
+ 		memory-region = <&consys_reserved>;
+ 		vcn18-supply = <&mt6351_vcn18_reg>;
+ 		vcn28-supply = <&mt6351_vcn28_reg>;
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index 1345963..25c0ba6 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -32,6 +32,7 @@
+ #define MT6797_CONSYS_MCU_ACR_MBIST	BIT(18)
+ #define MT6797_CONSYS_HIF_REG	0x180f0000
+ #define MT6797_CONSYS_HIF_SIZE	0x1100
++#define MT6797_CONSYS_EMI_SELECTOR_REG	0x10001f00
+ #define MT6797_HIF_CMD_SETUP	0x0000
+ #define MT6797_HIF_CMD52_DATA	0x0004
+ #define MT6797_HIF_CMD53_DATA	0x1000
+@@ -40,6 +41,16 @@
+ #define MT6797_HIF_WIFI_FUNCTION	BIT(1)
+ #define MT6797_HIF_WCIR_ID	0x0279
+ #define MT6797_EMI_MPU_READ	0x82000208
++#define MT6797_EMI_MPU_SET	0x82000209
++#define MT6797_EMI_REGION18	18U
++#define MT6797_EMI_REGION18_RANGE	0x0370
++#define MT6797_EMI_REGION18_POLICY	0x03b0
++#define MT6797_EMI_REGION19_RANGE	0x0378
++#define MT6797_EMI_REGION19_POLICY	0x03b8
++#define MT6797_EMI_REGION23_RANGE	0x0398
++#define MT6797_EMI_REGION1_RANGE	0x0168
++#define MT6797_EMI_COPY_POLICY	0x00b6da28
++#define MT6797_EMI_FINAL_POLICY	0x00b6da2d
+ #define MT6351_VCN33_ACTIVE	(BIT(3) | BIT(1))
+ #define MT6351_VCN28_HW_CONTROL	BIT(3)
+ #define MT6351_VCN28_ENABLE	BIT(1)
+@@ -52,6 +63,7 @@ struct mt6797_consys {
+ 	void __iomem *chip_id;
+ 	void __iomem *mcu_acr;
+ 	void __iomem *hif;
++	void __iomem *emi_selector;
+ 	struct resource reservation;
+ 	struct regulator *vcn18;
+ 	struct regulator *vcn28;
+@@ -59,6 +71,8 @@ struct mt6797_consys {
+ 	struct reset_control *conmcu_reset;
+ 	struct generic_pm_domain *conn_domain;
+ 	bool bound;
++	bool emi_set_attempted;
++	bool emi_sealed;
+ };
+ 
+ static DEFINE_MUTEX(mt6797_consys_lock);
+@@ -406,8 +420,8 @@ static void mt6797_consys_hif_cccr_write(struct mt6797_consys *owner,
+ }
+ 
+ /* Match only the Gemian PALDO, function-enable and pre-DMA WCIR path. */
+-static void mt6797_consys_probe_hif(struct device *dev,
+-				   struct mt6797_consys *owner)
++static bool mt6797_consys_probe_hif(struct device *dev,
++				    struct mt6797_consys *owner)
+ {
+ 	struct regmap *pmic;
+ 	unsigned int bt_control, wifi_control;
+@@ -495,16 +509,100 @@ static void mt6797_consys_probe_hif(struct device *dev,
+ 		goto stopped;
+ 	}
+ 	dev_info(dev, "one-shot HIF function ready; firmware and DMA held\n");
+-	return;
++	return true;
+ 
+ stopped:
+ 	dev_err(dev, "one-shot HIF stopped (%d); state retained\n", ret);
++	return false;
++}
++
++/* One diagnostic SMC pair; retain the reserved window and powered owner. */
++static void mt6797_consys_probe_emi_set(struct device *dev,
++					struct mt6797_consys *owner)
++{
++	struct arm_smccc_res res;
++	phys_addr_t start = owner->reservation.start;
++	phys_addr_t end = start + SZ_512K - 1;
++	u32 expected = ((u32)(start >> 16) << 16) | (u32)(end >> 16);
++	u32 before18, before19, before23, range, policy;
++	u32 selector;
++	unsigned long raw;
++	int ret;
++
++	ret = mtk_pm_domain_confirmed_on(owner->conn_domain);
++	if (ret)
++		goto stopped;
++	ret = reset_control_status(owner->conmcu_reset);
++	if (ret != 0) {
++		ret = ret < 0 ? ret : -EIO;
++		goto stopped;
++	}
++	selector = readl(owner->emi_selector);
++	if (readl(owner->chip_id) != MT6797_HIF_WCIR_ID ||
++	    !(selector & BIT(13)) ||
++	    mt6797_consys_read_emi(MT6797_EMI_REGION1_RANGE) != 0x44604460) {
++		ret = -ENODEV;
++		goto stopped;
++	}
++	before18 = mt6797_consys_read_emi(MT6797_EMI_REGION18_RANGE);
++	before19 = mt6797_consys_read_emi(MT6797_EMI_REGION19_RANGE);
++	before23 = mt6797_consys_read_emi(MT6797_EMI_REGION23_RANGE);
++	if (before18 || before19 || before23 ||
++	    mt6797_consys_read_emi(MT6797_EMI_REGION18_POLICY) ||
++	    mt6797_consys_read_emi(MT6797_EMI_REGION19_POLICY)) {
++		ret = -EBUSY;
++		goto stopped;
++	}
++	dev_info(dev,
++		 "one-shot EMI before: selector=0x%08x region18=0x%08x region19=0x%08x region23=0x%08x\n",
++		 selector, before18, before19, before23);
++	owner->emi_set_attempted = true;
++	arm_smccc_smc(MT6797_EMI_MPU_SET, start, end,
++		      (MT6797_EMI_REGION18 << 27) | MT6797_EMI_COPY_POLICY,
++		      0, 0, 0, 0, &res);
++	raw = res.a0;
++	ret = (s32)(u32)raw;
++	range = mt6797_consys_read_emi(MT6797_EMI_REGION18_RANGE);
++	policy = mt6797_consys_read_emi(MT6797_EMI_REGION18_POLICY);
++	dev_info(dev,
++		 "one-shot EMI copy policy: raw=0x%016lx status=%d range=0x%08x policy=0x%08x\n",
++		 raw, ret, range, policy);
++	if (ret || range != expected || policy != MT6797_EMI_COPY_POLICY) {
++		ret = ret ?: -EIO;
++		goto stopped;
++	}
++	arm_smccc_smc(MT6797_EMI_MPU_SET, start, end,
++		      (MT6797_EMI_REGION18 << 27) | MT6797_EMI_FINAL_POLICY,
++		      0, 0, 0, 0, &res);
++	raw = res.a0;
++	ret = (s32)(u32)raw;
++	range = mt6797_consys_read_emi(MT6797_EMI_REGION18_RANGE);
++	policy = mt6797_consys_read_emi(MT6797_EMI_REGION18_POLICY);
++	dev_info(dev,
++		 "one-shot EMI final policy: raw=0x%016lx status=%d range=0x%08x policy=0x%08x\n",
++		 raw, ret, range, policy);
++	if (ret || range != expected || policy != MT6797_EMI_FINAL_POLICY ||
++	    mt6797_consys_read_emi(MT6797_EMI_REGION19_RANGE) != before19 ||
++	    mt6797_consys_read_emi(MT6797_EMI_REGION19_POLICY) ||
++	    mt6797_consys_read_emi(MT6797_EMI_REGION23_RANGE) != before23 ||
++	    readl(owner->emi_selector) != selector) {
++		ret = ret ?: -EIO;
++		goto stopped;
++	}
++	owner->emi_sealed = true;
++	dev_info(dev, "one-shot EMI region 18 sealed; firmware and DMA held\n");
++	return;
++
++stopped:
++	dev_err(dev,
++		"one-shot EMI set stopped (%d); attempted=%d sealed=%d, state retained\n",
++		ret, owner->emi_set_attempted, owner->emi_sealed);
+ }
+ 
+ /* One attempt per boot. Keep every acquired vote after any uncertain effect. */
+ static void mt6797_consys_probe_power_on(struct device *dev, struct mt6797_consys *owner,
+ 					 bool chip_id_probe, bool reset_release_probe,
+-					 bool hif_probe)
++					 bool hif_probe, bool emi_set_probe)
+ {
+ 	struct regmap *pmic;
+ 	unsigned int vcn28;
+@@ -661,8 +759,10 @@ static void mt6797_consys_probe_power_on(struct device *dev, struct mt6797_consy
+ 				bool released;
+ 
+ 				released = mt6797_consys_probe_reset_release(dev, owner);
+-				if (hif_probe && released)
+-					mt6797_consys_probe_hif(dev, owner);
++				if (hif_probe && released &&
++				    mt6797_consys_probe_hif(dev, owner) &&
++				    emi_set_probe)
++					mt6797_consys_probe_emi_set(dev, owner);
+ 			}
+ 			else if (reset_release_probe)
+ 				dev_err(dev, "one-shot CONN MCU reset release skipped: EMI gate\n");
+@@ -678,13 +778,15 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ {
+ 	struct resource *remap_resource, *sleep_resource, *chip_resource, *acr_resource;
+ 	struct resource *hif_resource;
++	struct resource *selector_resource;
+ 	struct regulator *vcn18, *vcn28, *vcn33_wifi;
+ 	struct reset_control *conmcu_reset;
+ 	struct generic_pm_domain *conn_domain;
+ 	void __iomem *remap;
+ 	void __iomem *sleep_mask = NULL, *chip_id = NULL, *mcu_acr = NULL;
+-	void __iomem *hif = NULL;
++	void __iomem *hif = NULL, *emi_selector = NULL;
+ 	bool power_probe, chip_id_probe, reset_release_probe, hif_probe;
++	bool emi_set_probe;
+ 	struct resource reservation = {};
+ 	int ret;
+ 
+@@ -697,6 +799,8 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 					      "mediatek,one-shot-reset-release-probe");
+ 	hif_probe = of_property_read_bool(pdev->dev.of_node,
+ 					  "mediatek,one-shot-hif-probe");
++	emi_set_probe = of_property_read_bool(pdev->dev.of_node,
++					      "mediatek,one-shot-emi-set-probe");
+ 	if (chip_id_probe && !power_probe) {
+ 		ret = -EINVAL;
+ 		goto out_unlock;
+@@ -709,6 +813,10 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 		ret = -EINVAL;
+ 		goto out_unlock;
+ 	}
++	if (emi_set_probe && !hif_probe) {
++		ret = -EINVAL;
++		goto out_unlock;
++	}
+ 	if (mt6797_consys.bound) {
+ 		ret = -EBUSY;
+ 		goto out_unlock;
+@@ -813,7 +921,8 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 	if (hif_probe) {
+ 		hif_resource = platform_get_resource(pdev, IORESOURCE_MEM, 4);
+ 		if (!hif_resource ||
+-		    platform_get_resource(pdev, IORESOURCE_MEM, 5) ||
++		    (!emi_set_probe &&
++		     platform_get_resource(pdev, IORESOURCE_MEM, 5)) ||
+ 		    hif_resource->start != MT6797_CONSYS_HIF_REG ||
+ 		    resource_size(hif_resource) != MT6797_CONSYS_HIF_SIZE) {
+ 			ret = -EINVAL;
+@@ -825,6 +934,21 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 			goto out_unlock;
+ 		}
+ 	}
++	if (emi_set_probe) {
++		selector_resource = platform_get_resource(pdev, IORESOURCE_MEM, 5);
++		if (!selector_resource ||
++		    platform_get_resource(pdev, IORESOURCE_MEM, 6) ||
++		    selector_resource->start != MT6797_CONSYS_EMI_SELECTOR_REG ||
++		    resource_size(selector_resource) != sizeof(u32)) {
++			ret = -EINVAL;
++			goto out_unlock;
++		}
++		emi_selector = devm_platform_ioremap_resource(pdev, 5);
++		if (IS_ERR(emi_selector)) {
++			ret = PTR_ERR(emi_selector);
++			goto out_unlock;
++		}
++	}
+ 	ret = mt6797_consys_attach_off_domain(&pdev->dev, &conn_domain);
+ 	if (ret)
+ 		goto out_unlock;
+@@ -834,6 +958,7 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 	mt6797_consys.chip_id = chip_id;
+ 	mt6797_consys.mcu_acr = mcu_acr;
+ 	mt6797_consys.hif = hif;
++	mt6797_consys.emi_selector = emi_selector;
+ 	mt6797_consys.vcn18 = vcn18;
+ 	mt6797_consys.vcn28 = vcn28;
+ 	mt6797_consys.vcn33_wifi = vcn33_wifi;
+@@ -853,7 +978,7 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 	if (power_probe)
+ 		mt6797_consys_probe_power_on(&pdev->dev, &mt6797_consys,
+ 					    chip_id_probe, reset_release_probe,
+-					    hif_probe);
++					    hif_probe, emi_set_probe);
+ out_unlock:
+ 	mutex_unlock(&mt6797_consys_lock);
+ 	return ret;
