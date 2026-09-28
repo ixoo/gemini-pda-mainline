@@ -45,3 +45,22 @@ in the `mt6797-a53-wifi-power-probe` profile, with a distinct kernel
 release. Its synthetic author carries no DCO certification. The active DT property is confined to this named profile;
 the passive firmware profile remains unchanged. A validated Buildbox package
 and exact boot2 candidate are prerequisites for any owner-selected device boot.
+
+## Prepared candidate
+
+The clean Buildbox build of commit `0d7f1582f4822c97b2c9803c9e1836485eab5364`
+produced kernel package inventory
+`47c065fdf0a54dac7d38ec1f1e62d51726d03bd8934a8d4219951c21bace1ab7`.
+The exact binding passed `dt-doc-validate` and focused `dt_binding_check`;
+the compiled Gemini DTB passed `dt-validate` against that schema. The
+[checksum-only candidate receipt](results/candidate.json) identifies the
+boot image and full boot2 padding. Private image bytes and the retained
+firmware remain in ignored artifacts. No active-power device result is claimed
+by this preparation.
+
+`retarget-initramfs.py` changes only the authenticated RAM-root release
+string. `build-candidate.py` checks the boot-tested passive parent, immutable
+Buildbox package, retained firmware and DT delta before packaging. The
+`install-passive.py` wrapper derives the reviewed guarded boot2 installer and
+pins the predecessor; `passive-host.py` and `watch-boot.py` collect one
+attributable result and reviewed Gemian return.

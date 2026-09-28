@@ -1,0 +1,38 @@
+{
+  "status": "offline-one-shot-conn-power-candidate-validated",
+  "kernel_build_commit": "0d7f1582f4822c97b2c9803c9e1836485eab5364",
+  "kernel_release": "7.1.3-gemini-a53-wifi-power-probe",
+  "kernel_package_sha256": "47c065fdf0a54dac7d38ec1f1e62d51726d03bd8934a8d4219951c21bace1ab7",
+  "parent_boot2_sha256": "635af7ee9844da1eafd8f692492de018fcf021530213d86c198e8b5106aef6f1",
+  "firmware_sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
+  "files": {
+    "Image.gz": {
+      "sha256": "c89281fbff26e0d2d0ab0878b1eedd167ca5718f916dc5969adaf1bcfbbd7552",
+      "bytes": 6476416
+    },
+    "board.dtb": {
+      "sha256": "9de2356ea4db397737396ab0529de8bb1aead39e48a836240d076a6d818441a7",
+      "bytes": 27761
+    },
+    "boot.img": {
+      "sha256": "ed4d5702bf1515e1ab5f0ac417ae77f7429286f0d017683951f9859d0e7a498e",
+      "bytes": 9775104
+    },
+    "boot2-padded.img": {
+      "sha256": "89bcf54f3df845bcfeab9821fdbbd96b8f5eb75abe47df884de4cc36cc2957f4",
+      "bytes": 16777216
+    },
+    "initramfs.img": {
+      "sha256": "53edd8fb924cd72d63f9edde81463aebd5313bfc556f5e0a35a34f93c9683b0d",
+      "bytes": 3266660
+    },
+    "kernel.config": {
+      "sha256": "01be06f4163dc514117f0463043d4c1720d17785969a41e286dfcc7b64f32140",
+      "bytes": 112010
+    }
+  },
+  "device_tree_change": "CONSYS sleep-mask resource and one-shot power probe",
+  "secret_bearing": true,
+  "device_action": "none",
+  "physical_admission": false
+}
