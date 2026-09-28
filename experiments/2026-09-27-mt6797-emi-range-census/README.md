@@ -69,6 +69,25 @@ establish the executing secure-firmware identity. Neither static analysis nor
 an all-zero census alone proves a mainline EMI protection policy, domain
 routing or overlap behavior.
 
+The pinned Gemian Wi-Fi reference source at
+`59e00a9144d782e148332009a835b99c43382467` already implements its
+`mpu_config` reader through `mt_emi_reg_read()`. For MPU offsets, the
+[`emi_reg_rw.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/emi_mpu/emi_reg_rw.c)
+implementation (SHA-256
+`da41e7d325aa4d3207a38bd566f39680a3b2275db87b4ba0919d266375d858e0`)
+routes that call to
+[`emi_mpu_smc_read()`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/mt_secure_api.h),
+which uses the same SMC32
+`0x82000208` with the offset in x1. The selected configuration has
+`CONFIG_MTK_PSCI=y`, and the header bounds its MPU offsets to `0x160..0x3bc`.
+The earlier [carrier-up Gemian sysfs reference](../2026-09-26-mt6797-emi-active-reference/results/runtime.json)
+therefore has a source-supported secure-read path and nonzero range values;
+its stock running kernel was not byte-matched to that source, so this is not
+an authenticated SMC-call trace for that boot. A new instrumented Gemian
+kernel solely to invoke the same read service is not selected. The installed
+mainline census still supplies the missing same-boot range control if its
+device session can be established.
+
 ## Built candidate
 
 Clean pushed commit `68e21a5f` built 545 selected patches on Buildbox. The
