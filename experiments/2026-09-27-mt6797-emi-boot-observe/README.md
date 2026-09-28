@@ -47,3 +47,25 @@ remain private; publish only sanitized values and evidence checksums.
 
 The internal patch has synthetic non-certifying authorship and is not an
 upstream submission.
+
+## Built candidate
+
+Clean pushed commit `35465d47` built the 544 selected patches on Buildbox. The
+complete package inventory passed validation, with image and config identities
+in the [build receipt](results/build.json). Strict Checkpatch found no source
+warning or check; the intentionally absent synthetic DCO sign-off remains an
+error for upstream submission. The [candidate builder](build-candidate.py)
+verified the package, reused the exact boot-tested VCN28 DTB, initramfs and
+config, and replaced only `Image.gz`. The Android LK container and exact 16 MiB
+padding passed validation. The [candidate receipt](results/candidate.json)
+pins full boot2 SHA-256
+`0f2bb23cda82e8b119a823a4ffa68d6b60b0bd9399f592b5ee4d9db1909c7710`.
+No device action is implied by the build or candidate validation.
+
+The [installer wrapper](install-passive.py) checks that the current logical
+boot2 predecessor is the VCN28 image and uses the reviewed live-GPT device
+guard and full-partition readback. The [host collector](passive-host.py) requires
+the existing passive owner/VCN28 evidence, exactly one record for each of EMI
+regions 18, 19 and 23, a complete sealed log, the A53 regression and one
+modern CONN provider. The finite [USB watcher](watch-boot.py) waits for the
+owner's physical boot2 selection after installation and clean shutdown.
