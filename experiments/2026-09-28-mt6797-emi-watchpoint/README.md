@@ -50,3 +50,30 @@ window. A decision-changing successor must place the non-blocking watchpoint
 at an attributable firmware-load or active data interval and retain the same
 non-disruptive bit and cleanup checks. No mainline EMI write is admitted by
 this result.
+
+## Firmware-load window
+
+The [single-use firmware-load script](firmware-load.sh) tests the narrower
+hypothesis that the WLAN WMT-on firmware-load path accesses region 18 and can
+latch an AXI master ID. It is pinned to the still-running primary Gemian boot
+above. The earlier instrumented-Gemian disconnected WMT off/on cycle reached
+`kalFirmwareLoad`, restored carrier, and produced no new cfg80211 warning.
+This successor disconnects with ConnMan and waits for three carrier-down,
+unassociated samples before WMT off. It arms the same non-blocking watchpoint
+only after the WLAN netdev disappears, then requests one WMT on and immediately
+records the latched registers. A device-side exit handler records any pending
+hit, restores and verifies the five watchpoint words, requests WMT on only if
+off was attempted without an on attempt, enables ConnMan and waits up to 90
+seconds for carrier. The script runs as a transient systemd unit so LAN SSH
+loss does not interrupt cleanup. It retains private logs under a fixed,
+single-use mode-0700 directory in `/var/tmp`.
+
+The effect budget is one ConnMan disable/enable, one WMT off/on pair, seven
+watchpoint register writes, and no EMI MPU protection writes. A failed identity,
+power, association, WMT-node, region or idle-register gate refuses before any
+effect; `--preflight` exercises those gates without changing the radio. A
+non-CONSYS master or no hit leaves CONSYS routing unresolved. A CONSYS hit
+would prove that this master accessed the watched address during WMT on, but
+the watchpoint cannot report its EMI domain or region-18/23 arbitration.
+The only next step then is a separately justified domain/overlap discriminator;
+the result does not authorize copying Gemian's EMI policy into mainline.
