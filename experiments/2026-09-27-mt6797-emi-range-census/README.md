@@ -47,3 +47,26 @@ evidence; publish only sanitized receipts.
 
 The patch is an internal experiment with synthetic non-certifying authorship,
 not an upstream submission.
+
+## Built candidate
+
+Clean pushed commit `68e21a5f` built 545 selected patches on Buildbox. The
+fetched package passed its full inventory validation; the [build receipt](results/build.json)
+pins the package, Image.gz and unchanged configuration identities. Strict
+Checkpatch found no source warning or check; the synthetic patch intentionally
+lacks a certifying DCO sign-off. The [candidate builder](build-candidate.py)
+verified the package and reused the exact boot-tested EMI observer DTB,
+initramfs and configuration while replacing only `Image.gz`. The LK container
+and exact 16 MiB padding passed validation. The sanitized
+[candidate receipt](results/candidate.json) pins full boot2 SHA-256
+`98269081c35d13476aaeb95f503f30a680dd2cb1ee8ad5766edae90e8a56a525`.
+These checks do not imply a device installation.
+
+The [installer wrapper](install-passive.py) requires the exact preceding EMI
+observer image and uses the reviewed live-GPT boot2 guard and full-partition
+readback. The [host collector](passive-host.py) preserves the existing owner,
+VCN28, three EMI and A53 checks and requires exactly 24 unique census
+records in the complete log. Positive, all-zero, duplicate and uniform
+`0xffffffff` parser fixtures passed. The finite [USB watcher](watch-boot.py)
+waits for the owner's physical boot2 selection after installation and clean
+shutdown.

@@ -1,0 +1,37 @@
+{
+  "status": "offline-emi-range-census-composition-validated",
+  "kernel_build_commit": "68e21a5f40836730bcbba79682ca44f4228cc411",
+  "kernel_release": "7.1.3-gemini-a53-consys-owner-passive",
+  "kernel_package_sha256": "3bcd7f49d790dad975d0d653ab081c8933938d975897c2e023c4d54854c4294c",
+  "parent_boot2_sha256": "0f2bb23cda82e8b119a823a4ffa68d6b60b0bd9399f592b5ee4d9db1909c7710",
+  "files": {
+    "Image.gz": {
+      "sha256": "74e4f85ff75bb7b7c8397c92adefae93f0a15cb0b0eab1ecd8c8e8b87e1888b6",
+      "bytes": 6475348
+    },
+    "board.dtb": {
+      "sha256": "0a06eb593c7bd59d529d3c38fb3c885b44ba32a5dcf61d742780bbcf64cc166b",
+      "bytes": 27611
+    },
+    "boot.img": {
+      "sha256": "bc88b37a3d3c95766c764fcfb392f888f7bcdf4124ee6949568f0abbe1c6572e",
+      "bytes": 9562112
+    },
+    "boot2-padded.img": {
+      "sha256": "98269081c35d13476aaeb95f503f30a680dd2cb1ee8ad5766edae90e8a56a525",
+      "bytes": 16777216
+    },
+    "initramfs.img": {
+      "sha256": "62619d682e79ba5df929b055df0de8e48ed68412b358fe8f82d2368f924623b1",
+      "bytes": 3055468
+    },
+    "kernel.config": {
+      "sha256": "6fd4c538eb3a56cc8f948d9c5bf0985e3b25789274940c21545157d852274e6e",
+      "bytes": 112014
+    }
+  },
+  "device_tree_change": "none; exact boot-tested board DTB reused",
+  "secret_bearing": true,
+  "device_action": "none",
+  "physical_admission": false
+}

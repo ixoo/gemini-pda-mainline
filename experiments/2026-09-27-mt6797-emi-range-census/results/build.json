@@ -1,0 +1,15 @@
+{
+  "status": "clean-buildbox-package-validated",
+  "repository_commit": "68e21a5f40836730bcbba79682ca44f4228cc411",
+  "profile": "mt6797-a53-emi-range-census",
+  "patch_count": 545,
+  "kernel_release": "7.1.3-gemini-a53-consys-owner-passive",
+  "package_inventory_sha256": "3bcd7f49d790dad975d0d653ab081c8933938d975897c2e023c4d54854c4294c",
+  "image_gzip_sha256": "74e4f85ff75bb7b7c8397c92adefae93f0a15cb0b0eab1ecd8c8e8b87e1888b6",
+  "config_sha256": "6fd4c538eb3a56cc8f948d9c5bf0985e3b25789274940c21545157d852274e6e",
+  "parent_boot2_sha256": "0f2bb23cda82e8b119a823a4ffa68d6b60b0bd9399f592b5ee4d9db1909c7710",
+  "boot2_image_sha256": "98269081c35d13476aaeb95f503f30a680dd2cb1ee8ad5766edae90e8a56a525",
+  "checkpatch": "0 source warnings/checks; only intentionally absent synthetic DCO sign-off error",
+  "device_tree_change": "none; exact boot-tested board DTB reused",
+  "hardware_action": "none"
+}
