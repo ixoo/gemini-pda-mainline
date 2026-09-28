@@ -1,0 +1,38 @@
+{
+  "status": "offline-bounded-delayed-conn-chip-id-candidate-validated",
+  "kernel_build_commit": "4de4921dc919ee2e23291e162c6464937b085a60",
+  "kernel_release": "7.1.3-gemini-a53-wifi-chip-id-delay",
+  "kernel_package_sha256": "53e534c4b6c7893775dd7bd32504019d9fc94adbf575d88f5d775d73ec66e8ba",
+  "parent_boot2_sha256": "18e21f27326a48681acb532080e84d6989276934ce645a9ce1d2fe2620fa2cb5",
+  "firmware_sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
+  "files": {
+    "Image.gz": {
+      "sha256": "30c27500e7747fac7cdb60371c4d5f96d18af1388cb1ce28ccee077afc035694",
+      "bytes": 6476702
+    },
+    "board.dtb": {
+      "sha256": "c353fe769be229bbb98b6d3e2124c84809ed105c4857be13bb72c5f22e125364",
+      "bytes": 27829
+    },
+    "boot.img": {
+      "sha256": "2bc6e72321e044663c12564cf16b5cb202013ff92ff4011f34060a94e0c13f3b",
+      "bytes": 9777152
+    },
+    "boot2-padded.img": {
+      "sha256": "f218eaf4837a8e6025927b5d10425e4f2fb0de86259d49bdc6aefe484781feb1",
+      "bytes": 16777216
+    },
+    "initramfs.img": {
+      "sha256": "ecadcfa8de4eddac65bc0c892163025c02e63f2e373c43a110b03fbce1f435ce",
+      "bytes": 3266666
+    },
+    "kernel.config": {
+      "sha256": "1d9532d6602016f4f2ed9317ee9b3004fce825ae3772a02ab104a11c07f7e393",
+      "bytes": 112012
+    }
+  },
+  "device_tree_change": "none versus boot-tested chip-ID image",
+  "secret_bearing": true,
+  "device_action": "none",
+  "physical_admission": false
+}
