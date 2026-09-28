@@ -1,0 +1,221 @@
+From d4536881b34d4b8e2cb2a31f89206221e4e12c91 Mon Sep 17 00:00:00 2001
+From: MT6797 internal experiment <nobody@example.invalid>
+Date: Mon, 28 Sep 2026 12:31:27 -0400
+Subject: [PATCH] soc: mediatek: sample powered MT6797 CONSYS chip ID once
+
+After an admitted one-shot power-on, verify ON and held CONMCU reset
+again, then read the source-defined chip ID once. Retain all effects;
+do not release reset or execute firmware.
+
+Internal diagnostic experiment with synthetic authorship; not DCO-certified.
+---
+ .../soc/mediatek/mediatek,mt6797-consys.yaml  | 20 +++++++
+ .../boot/dts/mediatek/mt6797-gemini-pda.dts   |  6 ++-
+ drivers/soc/mediatek/mt6797-consys.c          | 54 ++++++++++++++++---
+ 3 files changed, 71 insertions(+), 9 deletions(-)
+
+diff --git a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
+index c14bb42..3bcf8fe 100644
+--- a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
++++ b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
+@@ -24,12 +24,14 @@ properties:
+     items:
+       - description: Four-byte shared remap register at TOPCKGEN 0x1340.
+       - description: Four-byte CONN-to-AP sleep mask at TOPCKGEN 0x1350.
++      - description: Read-only CONSYS chip ID at 0x18070008.
+ 
+   reg-names:
+     minItems: 1
+     items:
+       - const: remap
+       - const: conn2ap-sleep-mask
++      - const: chip-id
+ 
+   memory-region:
+     maxItems: 1
+@@ -58,6 +60,12 @@ properties:
+       Experimental one-boot CONN power-on observation. The owner retains all
+       acquired votes and domain state until reboot; firmware remains inactive.
+ 
++  mediatek,one-shot-chip-id-probe:
++    type: boolean
++    description: |
++      After one confirmed CONN power-on, read the chip ID once while the
++      independent CONMCU reset stays asserted. No MCU register is written.
++
+   wifi:
+     type: object
+     description: Passive WLAN firmware client populated after CONSYS binds.
+@@ -99,6 +107,18 @@ allOf:
+           minItems: 2
+       required:
+         - reg-names
++  - if:
++      required:
++        - mediatek,one-shot-chip-id-probe
++    then:
++      properties:
++        reg:
++          minItems: 3
++        reg-names:
++          minItems: 3
++      required:
++        - mediatek,one-shot-power-probe
++        - reg-names
+ 
+ examples:
+   - |
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+index b7b05c0..54f0577 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -78,9 +78,11 @@
+ 
+ 	consys@10001340 {
+ 		compatible = "mediatek,mt6797-consys";
+-		reg = <0 0x10001340 0 4>, <0 0x10001350 0 4>;
+-		reg-names = "remap", "conn2ap-sleep-mask";
++		reg = <0 0x10001340 0 4>, <0 0x10001350 0 4>,
++		      <0 0x18070008 0 4>;
++		reg-names = "remap", "conn2ap-sleep-mask", "chip-id";
+ 		mediatek,one-shot-power-probe;
++		mediatek,one-shot-chip-id-probe;
+ 		memory-region = <&consys_reserved>;
+ 		vcn18-supply = <&mt6351_vcn18_reg>;
+ 		vcn28-supply = <&mt6351_vcn28_reg>;
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index 0d1dbce..f7fbf60 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -26,6 +26,7 @@
+ #define MT6797_CONSYS_REMAP_REG	0x10001340
+ #define MT6797_CONSYS_SLEEP_MASK_REG	0x10001350
+ #define MT6797_CONSYS_SLEEP_MASK	BIT(8)
++#define MT6797_CONSYS_CHIP_ID_REG	0x18070008
+ #define MT6351_VCN28_HW_CONTROL	BIT(3)
+ #define MT6351_VCN28_ENABLE	BIT(1)
+ #define MT6351_VCN28_CLOCK_SELECT	(GENMASK(7, 5) | GENMASK(13, 11))
+@@ -34,6 +35,7 @@
+ struct mt6797_consys {
+ 	void __iomem *remap;
+ 	void __iomem *sleep_mask;
++	void __iomem *chip_id;
+ 	phys_addr_t base;
+ 	struct regulator *vcn18;
+ 	struct regulator *vcn28;
+@@ -254,11 +256,12 @@ put_node:
+ }
+ 
+ /* One attempt per boot. Keep every acquired vote after any uncertain effect. */
+-static void mt6797_consys_probe_power_on(struct device *dev, struct mt6797_consys *owner)
++static void mt6797_consys_probe_power_on(struct device *dev, struct mt6797_consys *owner,
++					 bool chip_id_probe)
+ {
+ 	struct regmap *pmic;
+ 	unsigned int vcn28;
+-	u32 sleep_mask;
++	u32 sleep_mask, chip_id;
+ 	int ret;
+ 
+ 	ret = mtk_pm_domain_confirmed_off(owner->conn_domain);
+@@ -348,6 +351,21 @@ static void mt6797_consys_probe_power_on(struct device *dev, struct mt6797_consy
+ 		goto held;
+ 
+ 	dev_info(dev, "one-shot CONN power probe: domain confirmed ON, reset held\n");
++	if (chip_id_probe) {
++		udelay(30);
++		ret = mtk_pm_domain_confirmed_on(owner->conn_domain);
++		if (ret) {
++			dev_err(dev, "one-shot CONN chip ID skipped: domain status %d\n", ret);
++			return;
++		}
++		ret = reset_control_status(owner->conmcu_reset);
++		if (ret != 1) {
++			dev_err(dev, "one-shot CONN chip ID skipped: reset status %d\n", ret);
++			return;
++		}
++		chip_id = readl(owner->chip_id);
++		dev_info(dev, "one-shot CONN chip ID: 0x%08x, reset held\n", chip_id);
++	}
+ 	return;
+ 
+ held:
+@@ -356,19 +374,25 @@ held:
+ 
+ static int mt6797_consys_probe(struct platform_device *pdev)
+ {
+-	struct resource *remap_resource, *sleep_resource;
++	struct resource *remap_resource, *sleep_resource, *chip_resource;
+ 	struct regulator *vcn18, *vcn28, *vcn33_wifi;
+ 	struct reset_control *conmcu_reset;
+ 	struct generic_pm_domain *conn_domain;
+ 	void __iomem *remap;
+-	void __iomem *sleep_mask = NULL;
+-	bool power_probe;
++	void __iomem *sleep_mask = NULL, *chip_id = NULL;
++	bool power_probe, chip_id_probe;
+ 	u64 base;
+ 	int ret;
+ 
+ 	mutex_lock(&mt6797_consys_lock);
+ 	power_probe = of_property_read_bool(pdev->dev.of_node,
+ 					    "mediatek,one-shot-power-probe");
++	chip_id_probe = of_property_read_bool(pdev->dev.of_node,
++					      "mediatek,one-shot-chip-id-probe");
++	if (chip_id_probe && !power_probe) {
++		ret = -EINVAL;
++		goto out_unlock;
++	}
+ 	if (mt6797_consys.bound) {
+ 		ret = -EBUSY;
+ 		goto out_unlock;
+@@ -421,7 +445,7 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 	sleep_resource = platform_get_resource(pdev, IORESOURCE_MEM, 1);
+ 	if (power_probe) {
+ 		if (!sleep_resource ||
+-		    platform_get_resource(pdev, IORESOURCE_MEM, 2) ||
++		    (!chip_id_probe && platform_get_resource(pdev, IORESOURCE_MEM, 2)) ||
+ 		    sleep_resource->start != MT6797_CONSYS_SLEEP_MASK_REG ||
+ 		    resource_size(sleep_resource) != sizeof(u32)) {
+ 			ret = -EINVAL;
+@@ -439,12 +463,28 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 		ret = -EINVAL;
+ 		goto out_unlock;
+ 	}
++	if (chip_id_probe) {
++		chip_resource = platform_get_resource(pdev, IORESOURCE_MEM, 2);
++		if (!chip_resource ||
++		    platform_get_resource(pdev, IORESOURCE_MEM, 3) ||
++		    chip_resource->start != MT6797_CONSYS_CHIP_ID_REG ||
++		    resource_size(chip_resource) != sizeof(u32)) {
++			ret = -EINVAL;
++			goto out_unlock;
++		}
++		chip_id = devm_platform_ioremap_resource(pdev, 2);
++		if (IS_ERR(chip_id)) {
++			ret = PTR_ERR(chip_id);
++			goto out_unlock;
++		}
++	}
+ 	ret = mt6797_consys_attach_off_domain(&pdev->dev, &conn_domain);
+ 	if (ret)
+ 		goto out_unlock;
+ 	mt6797_consys.base = base;
+ 	mt6797_consys.remap = remap;
+ 	mt6797_consys.sleep_mask = sleep_mask;
++	mt6797_consys.chip_id = chip_id;
+ 	mt6797_consys.vcn18 = vcn18;
+ 	mt6797_consys.vcn28 = vcn28;
+ 	mt6797_consys.vcn33_wifi = vcn33_wifi;
+@@ -462,7 +502,7 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 	dev_info(&pdev->dev,
+ 		 "bound boot CONSYS reserve, remap, VCN, CONMCU reset and checked-OFF CONN domain; populated passive children\n");
+ 	if (power_probe)
+-		mt6797_consys_probe_power_on(&pdev->dev, &mt6797_consys);
++		mt6797_consys_probe_power_on(&pdev->dev, &mt6797_consys, chip_id_probe);
+ out_unlock:
+ 	mutex_unlock(&mt6797_consys_lock);
+ 	return ret;
+-- 
+2.54.0 (Apple Git-157)
+

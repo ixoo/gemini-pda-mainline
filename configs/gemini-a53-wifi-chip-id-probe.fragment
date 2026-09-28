@@ -1,0 +1,2 @@
+# Identify the one-shot powered CONSYS chip-ID candidate.
+CONFIG_LOCALVERSION="-gemini-a53-wifi-chip-id-probe"
