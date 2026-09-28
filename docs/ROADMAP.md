@@ -522,7 +522,12 @@ for the first Wi-Fi bring-up. The current preparation order is:
    [read-only Gemian EMI reference](../experiments/2026-09-26-mt6797-emi-active-reference/results/runtime.json)
    confirms the vendor-requested region-18/19 ranges and permission values in
    a boot where WLAN carrier was observed later, but also shows broad region 23
-   overlapping both. Use that exact reference for the private owner design; determine effective
+   overlapping both. A [one-use, non-blocking EMI watchpoint](../experiments/2026-09-28-mt6797-emi-watchpoint/results/runtime.json)
+   on a later carrier-up Gemian boot produced no hit during one second of
+   connected idle traffic, then restored every observed register. That window
+   cannot identify the master; do not repeat it unchanged. A successor must
+   observe an attributable firmware-load or active data interval. Use the
+   exact reference for the private owner design; determine effective
    master routing and overlap applicability before choosing mainline protection
    policy. The [retained boot-chain pass](../experiments/2026-09-26-mt6797-emi-active-reference/README.md#retained-boot-chain-routing-pass)
    located preloader device-APC field writes and AP-DMA's separate per-channel

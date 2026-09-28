@@ -1,0 +1,31 @@
+{
+  "status": "one-use-no-hit-restored",
+  "script_commit": "1b6da20a",
+  "script_sha256": "467459996b7df3a82928ea4686413e9c737441576642d6faacf876a82c40177d",
+  "gemian_boot_id": "636e12fb-65de-4eb3-88c8-70c3e4cec71e",
+  "kernel_release": "3.18.41+",
+  "wlan_carrier_before": 1,
+  "read_only_preflight": "pass",
+  "pre_registers": {
+    "wp_adr": "0x00000000",
+    "wp_ctrl": "0x00000000",
+    "chker": "0x00800000",
+    "chker_type": "0x00000000",
+    "chker_adr": "0x00000000"
+  },
+  "active_window_seconds": 1,
+  "window_registers": {
+    "chker": "0x00880000",
+    "chker_type": "0x00000000",
+    "chker_adr": "0x00000000"
+  },
+  "watchpoint_hit": false,
+  "post_registers_match_pre": true,
+  "host_command_exit": 0,
+  "followup_same_boot": true,
+  "followup_wlan_carrier": 1,
+  "one_use_marker_present": true,
+  "private_capture_sha256": "3ccefb9946b48cbc59d36a5f58fc2984ebcc58eb85bf779ff4eaf9ff61b82b11",
+  "interpretation": "No master attribution in a connected idle one-second window; no domain or overlap result.",
+  "repeat_same_window": false
+}

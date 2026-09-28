@@ -31,5 +31,22 @@ zero writes; an unexpected hit identity or incomplete restoration stops the
 Wi-Fi investigation for review. No protection setter, SMC, firmware load,
 radio-cycle request or partition operation is in this protocol.
 
-This source-derived diagnostic is a planned test, not evidence that a
-particular master hit occurred or that the EMI policy is safe for mainline.
+## Device result
+
+The reviewed script from commit `1b6da20a` passed its root-only read-only
+`--preflight` and ran exactly once in the named Gemian boot. The one-second
+window returned `CHKER=0x00880000`, `TYPE=0`, and `ADR=0`: the enable bit was
+set but no watchpoint hit or master ID was latched. Its cleanup restored all
+five observed words to their preflight values; the host command exited zero.
+A separate authenticated check found the same boot ID, WLAN carrier 1,
+`CHKER=0x00800000` and the one-use marker present. The raw host capture
+remains ignored and private; its SHA-256 is recorded in the
+[sanitized result](results/runtime.json).
+
+This negative result covers connected idle traffic during this one-second
+window only. It neither excludes CONSYS accesses at firmware load nor
+establishes routing, domain or overlap priority. Do not repeat the same
+window. A decision-changing successor must place the non-blocking watchpoint
+at an attributable firmware-load or active data interval and retain the same
+non-disruptive bit and cleanup checks. No mainline EMI write is admitted by
+this result.
