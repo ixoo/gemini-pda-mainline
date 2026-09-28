@@ -33,6 +33,7 @@ def adapt(source, candidate, previous):
 
 
 INSTALLER.adapt = adapt
+MANIFEST_SHA = INSTALLER.MANIFEST_SHA
 validate = INSTALLER.validate
 receipt = INSTALLER.receipt
 

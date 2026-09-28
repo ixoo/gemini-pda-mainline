@@ -58,3 +58,12 @@ requires one internally consistent VCN28 record in a complete log, the A53
 regression and a single modern CONN provider. The [USB-stage watcher](watch-boot.py)
 is finite and performs no device action until the new candidate is installed
 and the owner physically selects boot2.
+
+The [deployment receipt](results/deployment.json) records live-GPT `boot2`
+resolution, inactive root, stable power, exact predecessor, guarded write,
+matching full-partition readback and clean Gemian shutdown. The initial host
+collector preflight found that the new installer wrapper omitted the exported
+manifest constant used by the existing receipt checker. The host-only export
+was corrected after deployment and offline preflight passed; the installer
+that performed the write remains pinned to source commit `55431148` and its
+private exact hash. No second write or boot has been requested by that fix.

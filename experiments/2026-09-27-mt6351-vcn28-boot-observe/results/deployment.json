@@ -1,0 +1,18 @@
+{
+  "status": "guarded-boot2-write-full-readback-and-clean-shutdown",
+  "candidate_boot2_sha256": "a592c6032e26da3fc6125d954a134a20a30072dbf0f550f585901869e2ce536b",
+  "previous_boot2_sha256": "07dfcc16b6c66442f47c5540eb24a9c1e057c6827d20787b74f39fe945569230",
+  "readback_boot2_sha256": "a592c6032e26da3fc6125d954a134a20a30072dbf0f550f585901869e2ce536b",
+  "target_logical_name": "boot2",
+  "target_major_minor": "179:30",
+  "root_major_minor": "179:29",
+  "known_good_gemian_boot_id": "82f673dc-bde7-4e48-ae15-0314a63d4fb8",
+  "power_gate": "1|100|Good|1",
+  "device_guard": "passed at probe, write and post-readback",
+  "predecessor_backup": "existing verified project-wide backup; no per-write backup",
+  "shutdown": "confirmed unreachable after evidence flush",
+  "private_deployment_summary_sha256": "94b60dc5de413dbab6653d91a06a3df6577b68d3436ad8318b25d980e217c4d5",
+  "private_installer_sha256": "e1b075037b29029cb68bf7dfb70465b7b2195b746a11e8a567097b42fed6cee3",
+  "installer_source_commit": "55431148",
+  "device_boot_test": "pending physical boot2 selection"
+}
