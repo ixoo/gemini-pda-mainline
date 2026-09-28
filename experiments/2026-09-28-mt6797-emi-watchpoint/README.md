@@ -138,3 +138,37 @@ possible explanation for no hit. The observation path remains unvalidated.
 Do not interpret the two earlier WLAN no-hits as absent traffic or replay them.
 The next path needs a verified bus-level witness or an exact routing/overlap
 source before the mainline EMI policy can be chosen.
+
+## Bus-monitor successor preflight
+
+The [MT6797 register table](https://www.96boards.org/documentation/consumer/mediatekx20/additional-docs/docs/MT6797_Register_Table_Part_1.pdf#page=344),
+pages 344–361, describes a separate EMI bus monitor. Its selected-master
+counters can filter the peripheral port and an AXI ID; this is a possible
+positive witness for traffic from the source-labeled CONSYS master. The table
+does not say that those counters report an EMI protection domain or resolve
+overlapping-region arbitration. The apparent overlap reference on page 309
+describes a test-mode monitor clear, not MPU-region priority. No register was
+programmed in this preflight.
+
+The pinned Gemian
+[`mt_emi_bm.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/emi_mbw/mt_emi_bm.c)
+at `59e00a9144d782e148332009a835b99c43382467`
+(SHA-256 `2964650c7dc547c27652a0a16c5e33f863b25860d18160f25783f8dc1e110445`)
+provides bus-monitor controls. Its
+[`mt_mem_bw.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/emi_mbw/mt_mem_bw.c)
+caller (SHA-256
+`6c5e54cc0854c9e3a3ef64701e9719d850821aab640fdc13be1bfb176010f0d8`)
+enables the monitor at init and can disable/restart it while sampling memory
+bandwidth, clearing counters. In changed Gemian boot
+`4b606b20-14a4-40bf-aef9-cff65cc0a946`, a bounded authenticated read found
+`CONFIG_MTK_EMI_MBW=y`, the `mt-mem_bw` platform device, `BM_Enable` and
+`get_mem_bw` symbols, and `wlan0` carrier 1 with the boot ID unchanged. The
+source-to-running-binary match is not attested, but a second uncoordinated
+owner of these registers is inadmissible.
+
+An ID-filtered counter would still need a single owner and an attributable
+traffic window; a positive count would identify bus activity, not its MPU
+domain or the region-18/23 decision. Do not program the monitor directly from
+`/dev/mem` or replay the consumed WLAN cycles. The next observer design must
+coordinate with the existing bandwidth owner or find a separate hardware
+witness, while the EMI policy refusal remains in place.
