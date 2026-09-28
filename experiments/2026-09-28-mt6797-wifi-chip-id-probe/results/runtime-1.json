@@ -1,0 +1,49 @@
+{
+  "status": "powered-chip-id-zero; a53-regression-pass; Gemian-return-confirmed",
+  "candidate_boot2_sha256": "18e21f27326a48681acb532080e84d6989276934ce645a9ce1d2fe2620fa2cb5",
+  "kernel_build_commit": "82dfa4994b0f8df808bb33a1116dd74705a5a077",
+  "kernel_release": "7.1.3-gemini-a53-wifi-chip-id-probe",
+  "deployment": {
+    "known_good_gemian_boot_id": "a58fa737-a5f9-41d3-85ac-6eddd4137624",
+    "boot2_guard_passed": true,
+    "predecessor_full_sha256": "89bcf54f3df845bcfeab9821fdbbd96b8f5eb75abe47df884de4cc36cc2957f4",
+    "write_synced_flushed_full_readback_matched": true,
+    "private_summary_sha256": "070f6a3f3e8e6859d6871340fee1a92d18e7621bf69941ccdc4c9b57d82da7ac",
+    "clean_shutdown_requested": true
+  },
+  "mainline_boot_id": "aec46336-db37-43e1-8c8f-181166b07649",
+  "observed": {
+    "provider_registered": true,
+    "firmware_plan_accepted": true,
+    "firmware_sections": 4,
+    "ordinary_sections": 2,
+    "ordinary_bytes": 14832,
+    "emi_sections": 2,
+    "emi_bytes": 396688,
+    "conn_domain_confirmed_on_reset_held_records": 1,
+    "conn_power_probe_stopped_records": 0,
+    "chip_id_records": 1,
+    "chip_id": "0x00000000",
+    "chip_id_skipped_records": 0,
+    "a53_ram_service_regression_pass": true
+  },
+  "preserved_complete_kernel_log": {
+    "bytes": 128983,
+    "records": 1851,
+    "sha256": "5f6c474317c372596849e01ca40e52d56566a011b156c44260a7e8e9a4d80b3d"
+  },
+  "return": {
+    "collector_confirmed_recovery": true,
+    "changed_gemian_boot_id": "4d6fe3bf-c67e-4a5d-a238-7336c1144e53",
+    "gemian_kernel": "3.18.41+",
+    "independent_gemian_wlan_carrier": 1
+  },
+  "limits": {
+    "expected_chip_id_observed": false,
+    "delayed_chip_id_sampled": false,
+    "conn_reset_released": false,
+    "firmware_executed": false,
+    "mainline_wifi_operational": false,
+    "shared_emi_ownership_established": false
+  }
+}

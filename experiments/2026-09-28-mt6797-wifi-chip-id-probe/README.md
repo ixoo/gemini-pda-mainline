@@ -52,3 +52,24 @@ Private image and retained firmware bytes remain ignored. The derived guarded
 installer passed offline syntax and ShellCheck, with the preceding installed
 power image pinned as its only permitted predecessor. No device action or
 chip-ID result is claimed by these preparation checks.
+
+## Hardware result
+
+The guarded boot2 installer matched the full candidate readback and shut down
+the PDA. The owner selected boot2. In changed mainline boot
+`aec46336-db37-43e1-8c8f-181166b07649`, one complete sealed kernel log
+recorded the CONN domain confirmed ON with CONMCU reset held, followed by one
+chip-ID read of `0x00000000`. There was no power-probe stop or chip-ID skip.
+The four-section retained-firmware plan passed without executing firmware.
+The A53 RAM-service regression passed, and the reviewed return reached changed
+Gemian boot `4d6fe3bf-c67e-4a5d-a238-7336c1144e53`; an independent bounded
+read found `wlan0` carrier 1. The [sanitized runtime receipt](results/runtime-1.json)
+pins the candidate, boot identities, deployment summary and complete private
+log checksum. Raw logs and firmware remain outside Git.
+
+The zero is a negative result for this exact one-shot 30-µs sample, not proof
+that the register stays zero. The selected Gemian source permits delayed
+20-ms retry reads after an initial miss. No delayed sample, reset release,
+firmware execution or mainline Wi-Fi operation was tested. A follow-up must
+distinguish settling from a power, clock or bus-access discrepancy before any
+reset or firmware step.
