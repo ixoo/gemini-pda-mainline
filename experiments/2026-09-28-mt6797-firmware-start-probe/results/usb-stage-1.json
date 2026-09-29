@@ -1,0 +1,29 @@
+{
+  "status": "mainline-route-not-observed",
+  "kernel_build_commit": "ce652b16f4c19f7f21fdd947639fb4e886ecbaec",
+  "candidate_boot2_sha256": "3590bddf2e4ddbc21923bab0ccf18b36c90e365935dca0bafcbdd09aaf6140a6",
+  "boot2_install": {
+    "predecessor_sha256": "8c852a7ec221d33ac44610eaad497c7b3a1ff218ea1153c4930adc4a574c579a",
+    "logical_partition": "boot2",
+    "root_partition": "/dev/mmcblk0p29",
+    "target_partition": "/dev/mmcblk0p30",
+    "full_readback_sha256": "3590bddf2e4ddbc21923bab0ccf18b36c90e365935dca0bafcbdd09aaf6140a6",
+    "clean_shutdown_confirmed": true
+  },
+  "watch": {
+    "armed_utc": "2026-09-29T02:04:15Z",
+    "preloader_utc": "2026-09-29T02:05:27Z",
+    "mediatek_20ff_utc": "2026-09-29T02:05:41Z",
+    "expired_utc": "2026-09-29T02:19:16Z",
+    "budget_seconds": 900,
+    "mainline_usb_route": false,
+    "device_ssh_attempts": 0
+  },
+  "gemian_lan_ssh_after_watch": false,
+  "mainline_boot_id": null,
+  "kernel_log_collected": false,
+  "firmware_start_result": "unknown",
+  "screen_state": "awaiting-owner-observation",
+  "recovery": "not_attempted_without_live-mainline-identity",
+  "limits": "USB stages do not establish that the firmware-start code ran. No repeated boot or alternate recovery was attempted."
+}
