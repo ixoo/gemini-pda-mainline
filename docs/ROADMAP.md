@@ -554,6 +554,15 @@ for the first Wi-Fi bring-up. The current preparation order is:
    initialization a concrete source/runtime difference, not an explanation
    yet for the workqueue fault or proof of the required contents. Preserve
    any diagnostic records before a future clear.
+   A [passive mainline region-19 boot](../experiments/2026-09-29-mt6797-region19-mainline-observe/results/runtime-2.json)
+   then found 267 nonzero bytes across 110 pages before CONN power or firmware
+   activity; its complete log and A53 regression passed. The changed-boot
+   Gemian return had 54,453 nonzero bytes across 54 pages in the same window
+   with Wi-Fi carrier. The selected WMT source protects that 512 KiB window,
+   programs the shared remap and clears only its first 343 KiB. Attribute and
+   preserve those contents before designing an owned initialization sequence;
+   the separate-boot counts do not establish a writer or explain the START
+   panic.
    Add a same-boot admission gate and retained-fault owner transitions for the first firmware executor,
    without assuming that an earlier boot's zeros authorize an EMI write. A
    [passive mainline EMI read](../experiments/2026-09-27-mt6797-emi-boot-observe/results/runtime-1.json)

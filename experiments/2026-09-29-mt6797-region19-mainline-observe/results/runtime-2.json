@@ -1,0 +1,44 @@
+{
+  "status": "passive-region19-observation-complete",
+  "candidate_boot2_sha256": "b35f5ea717f9b4909f4743a92255baedb16a307723c4c4590f90f1e03052b2c5",
+  "kernel_build_commit": "2fa985d299264c1b3ea59ba3a1391472db9dc46c",
+  "kernel_release": "7.1.3-gemini-a53-wifi-region19-observe",
+  "mainline_boot_id": "72a2b117-a81a-49db-9cda-d5aa85076d51",
+  "mainline_observation": {
+    "physical_window": "0xbfa80000..0xbfafffff",
+    "bytes_read": 524288,
+    "nonzero_bytes": 267,
+    "nonzero_4096_byte_pages": 110,
+    "first_nonzero_page": 0,
+    "last_nonzero_page": 127,
+    "records": 1,
+    "active_probe_records": 0,
+    "CONN_power_or_firmware_requested": false
+  },
+  "mainline_service_regression": "pass",
+  "mainline_provider_bound": true,
+  "kernel_log": {
+    "classification": "complete-through-seal",
+    "sha256": "46e5237ce2bdde8f2d66b22b06c5ee79a5f3e0521606278795d66fb1d3533aee"
+  },
+  "gemian_return": {
+    "confirmed": true,
+    "boot_id": "27cdda0e-645d-479f-a218-748aa8814100",
+    "kernel_release": "3.18.41+",
+    "root_source": "/dev/mmcblk0p29",
+    "wlan_carrier": 1
+  },
+  "read_only_return_boot_reference": {
+    "same_physical_window": true,
+    "boot_id_stable_across_read": true,
+    "wlan_carrier_before_and_after": 1,
+    "sha256": "85ab04591fb624596cad08b091d968585a9866b51037255143d488a35a0c0e63",
+    "nonzero_bytes": 54453,
+    "nonzero_4096_byte_pages": 54,
+    "first_nonzero_page": 0,
+    "last_nonzero_page": 127,
+    "raw_memory_exported": false
+  },
+  "interpretation": "The WMT window was not empty before mainline CONN power. Its different post-return Gemian population belongs to another boot and cannot identify a writer or required firmware state.",
+  "decision": "Preserve and attribute WMT control memory, policy and remap behavior before another firmware START; do not replay the prior START image."
+}

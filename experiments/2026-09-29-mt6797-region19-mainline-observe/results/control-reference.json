@@ -1,0 +1,46 @@
+{
+  "status": "private-read-only-gemian-region19-layout-analyzed",
+  "boot": {
+    "id": "27cdda0e-645d-479f-a218-748aa8814100",
+    "kernel_release": "3.18.41+",
+    "wlan_carrier_before_and_after": 1
+  },
+  "private_snapshot": {
+    "physical_start": "0xbfa80000",
+    "bytes": 524288,
+    "sha256": "ea028745708c8544f3efad12942f0f21f647dbf295f86b9164020275451acd99",
+    "first_343k_nonzero_bytes": 54656,
+    "remaining_169k_nonzero_bytes": 87,
+    "published": false
+  },
+  "control_header": {
+    "print_buffer_start_at_offset_0x1c": "0xf0080400",
+    "print_buffer_length_at_offset_0x20": 32768,
+    "print_buffer_index_at_offset_0x24": 12982,
+    "other_named_32bit_words_nonzero": 0
+  },
+  "print_buffer": {
+    "physical_offset_in_region19": "0x400",
+    "bytes_inspected": 32768,
+    "nonzero_bytes": 12982,
+    "nonzero_bytes_printable_ascii_or_whitespace": 12982,
+    "nonzero_bytes_before_header_index": 12982,
+    "nonzero_bytes_after_header_index": 0,
+    "linefeeds_before_header_index": 396,
+    "ascii_runs_of_at_least_eight_bytes": 215,
+    "longest_ascii_run_bytes": 125,
+    "raw_text_published": false
+  },
+  "source_mapping": {
+    "gemian_source_commit": "59e00a9144d782e148332009a835b99c43382467",
+    "header_sha256": "3ee7631a95a12f5cddd860c213e51e75e1cb3146ca858a892aaae55b4d22fad1",
+    "wmt_platform_sha256": "b81db9778bfebf0230cf67a924f25270112ef2c369fb221328f3f4aef3bea1ec",
+    "stp_debug_sha256": "fbfe76285d712dfd789da73fe55071cb2ce0383d0660a5894d1e7ee85e38a776",
+    "firmware_window_base": "0xf0080000",
+    "paged_trace_offset": "0x400",
+    "header_fields": ["EXP_APMEM_CTRL_CHIP_PRINT_BUFF_START", "EXP_APMEM_CTRL_CHIP_PRINT_BUFF_LEN", "EXP_APMEM_CTRL_CHIP_PRINT_BUFF_IDX"],
+    "consumer": "stp_dbg_soc_paged_trace reads the start and index through the WMT platform dump-info accessor"
+  },
+  "inference": "The live Gemian header and contiguous printable prefix agree with the vendor WMT firmware-print-buffer layout; the header index equals the prefix length. They do not identify the writer of every byte, prove mainline startup requirements or explain the earlier workqueue panic.",
+  "device_write_or_radio_action": false
+}

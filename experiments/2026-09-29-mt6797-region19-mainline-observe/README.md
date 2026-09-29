@@ -62,3 +62,24 @@ a fresh Gemian boot ID and a matching full readback before clean shutdown.
 The second session's watcher collects one authenticated boot log and service
 regression, then uses the reviewed Gemian return. Neither image enables
 firmware START.
+
+The [second boot](results/runtime-2.json) recorded 267 nonzero bytes across
+110 pages of region 19 before CONN power, firmware or EMI actions. The complete
+log, provider probe, A53 regression and changed-boot Gemian Wi-Fi return all
+passed. A separate read-only sample in that returned Gemian boot found 54,453
+nonzero bytes across 54 pages in the same physical window. These distinct
+boots demonstrate that the mainline pre-power window is not empty and that
+the carrier-up Gemian window has a different population; they do not identify
+a writer, required contents or the cause of the earlier workqueue panic.
+The selected WMT source requests region-19 protection, sets the shared remap
+and clears only the first 343 KiB of the 512 KiB window during initialization.
+No future candidate should clear the full window or repeat START on these
+counts alone.
+
+A private read-only [control-layout analysis](results/control-reference.json)
+of the returned Gemian boot found WMT's print-buffer start `0xf0080400`, length
+32 KiB and index 12,982 in the documented header slots. The mapped buffer has
+exactly 12,982 contiguous nonzero printable/whitespace bytes, then zeros. The
+selected WMT platform and STP debug source name these fields and consume the
+start/index as a paged trace. This supports a live firmware trace-buffer role
+for part of the window; the raw snapshot and text remain ignored and private.
