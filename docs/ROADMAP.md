@@ -539,6 +539,15 @@ for the first Wi-Fi bring-up. The current preparation order is:
    must submit both ordinary HIF sections and test firmware start under retained
    shared ownership. CONSYS fetch permissions and actual execution remain
    unproved until that distinct test.
+   The [first firmware-start runtime record](../experiments/2026-09-28-mt6797-firmware-start-probe/results/runtime-1.json)
+   shows successful driver ownership, both ordinary CONFIG/PDA sections and
+   one START submission, followed about 0.58 seconds later by a fatal CPU7
+   workqueue NULL-pointer panic. Persistent RAM recovered the result after
+   the host collector failed; no WLAN-ready result was logged. Stop START
+   testing and do not replay this image. Resolve the invalid workqueue pool
+   and the region-19/23/shared-memory ownership and protection gap before a
+   distinct, reviewed candidate. The temporal association does not establish
+   that WLAN firmware wrote the invalid pointer.
    Add a same-boot admission gate and retained-fault owner transitions for the first firmware executor,
    without assuming that an earlier boot's zeros authorize an EMI write. A
    [passive mainline EMI read](../experiments/2026-09-27-mt6797-emi-boot-observe/results/runtime-1.json)

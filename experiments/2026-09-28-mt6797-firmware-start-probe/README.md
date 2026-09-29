@@ -61,6 +61,21 @@ attributing the stall or using the reviewed recovery path. Do not replay the
 same image without a distinct
 measurement.
 
+In the next owner-confirmed boot2 selection, the gadget appeared but a macOS
+`ifconfig -a` timeout stopped the host collector before device SSH. The
+subsequent Gemian boot exposed a persistent-RAM record from the exact
+firmware-start kernel release. Its [sanitized result](results/runtime-1.json)
+shows driver ownership, two successful ordinary CONFIG/PDA sections totaling
+14,832 bytes, and one successful START submission. A CPU7 NULL dereference
+in delayed-work scheduling caused a fatal interrupt panic about 0.58 seconds
+later. There was no WLAN-ready result, service regression or mainline Wi-Fi
+claim. The raw pstore archive is retained privately. A disassembly joins the
+NULL spin-lock argument to `pool_workqueue.pool`; it does not identify the
+writer or prove that WLAN firmware caused the invalid pointer. The device
+returned to a new carrier-up Gemian boot, and read-only boot2 hashing still
+matched the candidate. Stop START testing and do not replay this image while
+the crash and firmware-memory protection/ownership are unresolved.
+
 Build only the clean pushed commit with
 `KERNEL_PROFILE=mt6797-a53-wifi-firmware-start-probe ./scripts/build-kernel --backend buildbox`.
 Validate the package, binding, built Gemini DTB, private RAM root and LK
