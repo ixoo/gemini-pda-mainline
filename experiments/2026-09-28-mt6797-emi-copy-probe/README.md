@@ -50,6 +50,14 @@ missing identity, regression failure or recovery mismatch stops this
 candidate. Preserve available evidence before the already reviewed native
 recovery. Do not use an automatic boot2 reboot or an alternate partition.
 
+The [release-bound collector](passive-host.py) reuses the validated A53
+regression and native Gemian recovery path, and additionally requires exactly
+one successful two-section, 396,688-byte copy record and both region-18
+readbacks. The [USB watcher](watch-boot.py) must be armed before physical
+boot2 selection; a late USB route can still be inspected in the same live
+boot without repeating the image. A stopped diagnostic is retained as a
+negative result, never treated as a Wi-Fi pass.
+
 Build only the clean pushed commit with `./scripts/build-kernel --backend
 buildbox` and the exact named profile. Validate the full package, DT binding
 and built Gemini DTB before assembling a private boot2 candidate with the
