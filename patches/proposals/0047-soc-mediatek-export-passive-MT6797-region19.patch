@@ -1,0 +1,104 @@
+From 0000000000000000000000000000000000000047 Mon Sep 17 00:00:00 2001
+From: Gemini PDA experiment <experiment.invalid>
+Date: Tue, 29 Sep 2026 22:10:00 +0000
+Subject: [PATCH] soc: mediatek: privately export passive MT6797 region 19
+
+The no-map CONSYS control window cannot be read through arm64 /dev/mem.
+Expose exactly its second 512 KiB as a root-only, read-only sysfs binary
+attribute in the existing passive observer profile, after validating the
+boot reservation and checked-OFF owner. Keep the mapping for that boot;
+export no bytes to the kernel log and make no power, EMI or radio request.
+
+Internal experiment only; synthetic non-certifying author, no DCO.
+---
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -23,6 +23,7 @@
+ #include <linux/reset.h>
+ #include <linux/sizes.h>
+ #include <linux/string.h>
++#include <linux/sysfs.h>
+ #include <linux/soc/mediatek/mtk-pm-domains.h>
+ #include <dt-bindings/power/mt6797-power.h>
+ 
+@@ -75,6 +76,7 @@
+ 	void __iomem *hif;
+ 	void __iomem *emi_selector;
+ 	void __iomem *emi_window;
++	u8 __iomem *region19_window;
+ 	struct mt6797_wlan_firmware *wlan_image;
+ 	struct resource reservation;
+ 	struct regulator *vcn18;
+@@ -272,9 +274,9 @@
+ 
+ /* Sample only the neighboring WMT window; preserve every byte for its owner. */
+ static int mt6797_consys_observe_region19(struct device *dev,
+-					  const struct resource *reservation)
+-{
+-	phys_addr_t start = reservation->start + SZ_512K;
++					  struct mt6797_consys *owner)
++{
++	phys_addr_t start = owner->reservation.start + SZ_512K;
+ 	u8 __iomem *window;
+ 	u32 nonzero_bytes = 0;
+ 	unsigned int populated_pages = 0, page, offset;
+@@ -296,13 +298,31 @@
+ 			last_page = page;
+ 		}
+ 	}
+-	iounmap(window);
++	owner->region19_window = window;
+ 	dev_info(dev,
+ 		 "one-shot region 19 read-only: start=%pa bytes=%u nonzero=%u pages=%u first=%d last=%d\n",
+ 		 &start, SZ_512K, nonzero_bytes, populated_pages,
+ 		 first_page, last_page);
+ 	return 0;
+ }
++
++/* Root-only private export of the same validated, passive no-map window. */
++static ssize_t region19_snapshot_read(struct file *file, struct kobject *kobj,
++				      const struct bin_attribute *attr, char *buf,
++				      loff_t off, size_t count)
++{
++	struct mt6797_consys *owner = dev_get_drvdata(kobj_to_dev(kobj));
++
++	if (!owner || !owner->region19_window || off < 0)
++		return -ENODEV;
++	if (off >= SZ_512K)
++		return 0;
++	count = min_t(size_t, count, SZ_512K - off);
++	memcpy_fromio(buf, owner->region19_window + off, count);
++	return count;
++}
++
++static BIN_ATTR_ADMIN_RO(region19_snapshot, SZ_512K);
+ 
+ /* Associate with CONN only after acquiring the independent shared resources. */
+ static int mt6797_consys_attach_off_domain(struct device *dev,
+@@ -1278,11 +1298,19 @@
+ 	}
+ 	if (region19_observe) {
+ 		int observed = mt6797_consys_observe_region19(&pdev->dev,
+-							&reservation);
+-
+-		if (observed)
++							&mt6797_consys);
++
++		if (!observed)
++			observed = device_create_bin_file(&pdev->dev,
++							  &bin_attr_region19_snapshot);
++		if (observed) {
++			if (mt6797_consys.region19_window) {
++				iounmap(mt6797_consys.region19_window);
++				mt6797_consys.region19_window = NULL;
++			}
+ 			dev_err(&pdev->dev,
+-				"one-shot region 19 read-only failed (%d)\n", observed);
++				"one-shot region 19 private export failed (%d)\n", observed);
++		}
+ 	}
+ 	dev_info(&pdev->dev,
+ 		 "bound boot CONSYS reserve, remap, VCN, CONMCU reset and checked-OFF CONN domain; populated passive children\n");
+-- 
+2.43.0

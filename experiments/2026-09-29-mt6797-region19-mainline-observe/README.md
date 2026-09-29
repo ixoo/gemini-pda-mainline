@@ -83,3 +83,26 @@ exactly 12,982 contiguous nonzero printable/whitespace bytes, then zeros. The
 selected WMT platform and STP debug source name these fields and consume the
 start/index as a paged trace. This supports a live firmware trace-buffer role
 for part of the window; the raw snapshot and text remain ignored and private.
+
+## Private pre-power export successor
+
+The 267-byte pre-power count cannot distinguish a structured retained record
+from scattered residual bytes. Arm64 `/dev/mem` read rejects this no-map boot
+reservation, so the separate `mt6797-a53-wifi-region19-export` profile adds a
+root-only, read-only 512 KiB sysfs binary attribute to the already validated
+passive owner. It retains the region-19 mapping for the boot, exports no bytes
+to the kernel log, and retains the same DT gate against CONN power, firmware,
+EMI and radio effects. This is a private diagnostic, not a board interface.
+
+The one-boot hypothesis is that an authenticated mainline session can export
+the exact pre-power window twice without changing its contents. The unique
+measurement will join the exact image/readback and boot identity to one
+complete kernel log, two bounded private captures with hashes and aggregate
+comparison, A53 service regression, and a changed-boot Gemian Wi-Fi return.
+Matching captures permit private RE of layout before a future WMT-style clear.
+Missing export, differing captures, a changed log identity, or regression
+failure stop the candidate and redirect attribution; none admits firmware
+START or a clear. Raw memory stays ignored and private.
+
+Only the source profile and patch are prepared so far. No export candidate has
+been built, installed, or tested on the device.
