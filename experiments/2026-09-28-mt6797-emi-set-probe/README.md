@@ -69,3 +69,11 @@ and the pinned candidate validator passed. Its full 16-MiB boot2 SHA-256 is
 [Offline validation](results/offline-validation.json) and the
 [checksum-only candidate receipt](results/candidate.json) pin the inputs;
 no device action has occurred for this candidate.
+
+The release-bound [collector](passive-host.py) records the complete mainline
+log, parses both signed secure-call statuses and immediate range/policy
+readbacks, runs the A53 service regression, and follows the reviewed native
+Gemian return. The [USB watcher](watch-boot.py) has a 900-second budget and
+requires the installer's deployment summary before it can arm. A refusal is
+recorded as a completed diagnostic with `accepted: false`; it is not a Wi-Fi
+pass and must not be replayed without a changed hypothesis.
