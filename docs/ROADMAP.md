@@ -548,6 +548,12 @@ for the first Wi-Fi bring-up. The current preparation order is:
    and the region-19/23/shared-memory ownership and protection gap before a
    distinct, reviewed candidate. The temporal association does not establish
    that WLAN firmware wrote the invalid pointer.
+   A subsequent [read-only Gemian region-19 memory sample](../experiments/2026-09-29-mt6797-region19-live-reference/results/runtime-1.json)
+   found the neighboring 512 KiB window populated and changing on two pages
+   over ten seconds with WLAN carrier. This makes its missing mainline
+   initialization a concrete source/runtime difference, not an explanation
+   yet for the workqueue fault or proof of the required contents. Preserve
+   any diagnostic records before a future clear.
    Add a same-boot admission gate and retained-fault owner transitions for the first firmware executor,
    without assuming that an earlier boot's zeros authorize an EMI write. A
    [passive mainline EMI read](../experiments/2026-09-27-mt6797-emi-boot-observe/results/runtime-1.json)

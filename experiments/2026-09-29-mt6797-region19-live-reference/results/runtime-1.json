@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "kind": "read-only-known-good-gemian-region19-memory",
+  "boot": {
+    "kernel_release": "3.18.41+",
+    "boot_id": "84119e90-08f7-4754-a1d7-0df3c7b21c2c",
+    "root_source": "/dev/mmcblk0p29",
+    "wlan_carrier_before_and_after": 1
+  },
+  "window": {
+    "physical_start": "0xbfa80000",
+    "bytes": 524288,
+    "source": "root read-only /dev/mem mmap, copied to process memory; no raw export",
+    "reservation_cross_check": "/proc/iomem excludes 0xbfa00000..0xbfbfffff from System RAM"
+  },
+  "population_snapshot": {
+    "utc": "2026-09-29T20:49:15Z",
+    "sha256": "5a1622213475be011a1b23ecc2ddba9813f17642e6b7b1532bd954bf7c89bc1c",
+    "nonzero_bytes": 74457,
+    "nonzero_4096_byte_pages": 37,
+    "first_nonzero_page": 0,
+    "last_nonzero_page": 127
+  },
+  "one_second_pair": {
+    "first_utc": "2026-09-29T20:49:30Z",
+    "second_utc": "2026-09-29T20:49:31Z",
+    "sha256_both": "da78035a26a3bd032abaf9111ff132812b1873b28216c118aaef57c4626d73da",
+    "changed_bytes": 0
+  },
+  "ten_second_pair": {
+    "first_utc": "2026-09-29T20:49:45Z",
+    "second_utc": "2026-09-29T20:49:55Z",
+    "first_sha256": "b95ee2e28664ffeddbf8f26213b289d2535a51b344342597ca7a4038532dc46a",
+    "second_sha256": "d5054ea40b716dd49c86b911a5af0d71caa43522369fda4ff5c5fdf2f3685e13",
+    "changed_bytes": 29,
+    "changed_page_indexes": [0, 4],
+    "boot_id_unchanged": true
+  },
+  "limitations": [
+    "The read-only copy is not atomic against concurrent writers.",
+    "Writer identity, data semantics, effective EMI permissions and startup necessity are not established.",
+    "The result does not attribute the separate mainline workqueue panic."
+  ],
+  "raw_memory_exported": false,
+  "device_write_or_radio_action": false
+}
