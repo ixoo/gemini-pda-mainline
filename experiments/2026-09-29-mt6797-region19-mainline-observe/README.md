@@ -104,5 +104,6 @@ Missing export, differing captures, a changed log identity, or regression
 failure stop the candidate and redirect attribution; none admits firmware
 START or a clear. Raw memory stays ignored and private.
 
-Only the source profile and patch are prepared so far. No export candidate has
-been built, installed, or tested on the device.
+The separate [private-export successor](../2026-09-29-mt6797-region19-private-export/README.md)
+owns its candidate, capture and device chronology. It has not been installed
+or tested on the device.
