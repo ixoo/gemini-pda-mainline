@@ -1,0 +1,63 @@
+From 0fbb973198e9132f3e6a9264e1b2127d643d0e6c Mon Sep 17 00:00:00 2001
+From: Gemini PDA experiment <experiment.invalid>
+Date: Tue, 29 Sep 2026 19:40:40 -0400
+Subject: [PATCH 1/3] dt-bindings: allow deferred MT6797 WMT and WLAN
+ diagnostic
+
+Permit the region-19 observer with active resources only when the new
+deferred-start property is present. Require the existing firmware-start
+chain for that property.
+
+Internal experiment only; synthetic non-certifying author, no DCO.
+---
+ .../soc/mediatek/mediatek,mt6797-consys.yaml  | 20 ++++++++++++++++++-
+ 1 file changed, 19 insertions(+), 1 deletion(-)
+
+diff --git a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
+index 30ce9bd..9abdf2f 100644
+--- a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
++++ b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
+@@ -115,7 +115,15 @@ properties:
+     description: |
+       After validating the boot reservation, count nonzero bytes and pages
+       in its second 512 KiB through a read-only mapping. No memory contents
+-      are exported and no CONN power, firmware or EMI transition is made.
++      are exported. Without the deferred-start property, no CONN power,
++      firmware or EMI transition is made.
++
++  mediatek,deferred-wmt-firmware-start:
++    type: boolean
++    description: |
++      Keep the active diagnostic resources idle at probe. Permit one root
++      request for bounded firmware start only after a separate one-shot WMT
++      memory preparation. The host preserves the private window first.
+ 
+   wifi:
+     type: object
+@@ -221,6 +229,9 @@ allOf:
+   - if:
+       required:
+         - mediatek,one-shot-region19-observe
++      not:
++        required:
++          - mediatek,deferred-wmt-firmware-start
+     then:
+       properties:
+         reg:
+@@ -232,6 +243,13 @@ allOf:
+       not:
+         required:
+           - mediatek,one-shot-power-probe
++  - if:
++      required:
++        - mediatek,deferred-wmt-firmware-start
++    then:
++      required:
++        - mediatek,one-shot-region19-observe
++        - mediatek,one-shot-firmware-start-probe
+ 
+ examples:
+   - |
+-- 
+2.54.0 (Apple Git-157)
+

@@ -1,0 +1,2 @@
+# One-shot private WMT preparation before a separately triggered WLAN START.
+CONFIG_LOCALVERSION="-gemini-a53-wifi-wmt-start"

@@ -1,0 +1,31 @@
+From 35c889e2a1642ee5992be938c2a20115f5e48c46 Mon Sep 17 00:00:00 2001
+From: Gemini PDA experiment <experiment.invalid>
+Date: Tue, 29 Sep 2026 19:40:40 -0400
+Subject: [PATCH 3/3] workqueue: name a null pool after WLAN START
+
+The first START was followed by a delayed-work NULL pool panic. Print
+the workqueue name and work function if that fault recurs, then leave
+the existing fatal behavior unchanged for private pstore recovery.
+
+Internal diagnostic only; synthetic non-certifying author, no DCO.
+---
+ kernel/workqueue.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/kernel/workqueue.c b/kernel/workqueue.c
+index 33b721a..25558c7 100644
+--- a/kernel/workqueue.c
++++ b/kernel/workqueue.c
+@@ -2322,6 +2322,9 @@ retry:
+ 
+ 	pwq = rcu_dereference(*per_cpu_ptr(wq->cpu_pwq, cpu));
+ 	pool = pwq->pool;
++	if (unlikely(!pool))
++		pr_emerg("Gemini WLAN diagnostic: null workqueue pool wq=%s work=%ps cpu=%d\n",
++			 wq->name, work->func, cpu);
+ 
+ 	/*
+ 	 * If @work was previously on a different pool, it might still be
+-- 
+2.54.0 (Apple Git-157)
+
