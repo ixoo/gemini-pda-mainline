@@ -69,3 +69,15 @@ full-partition readback and clean shutdown remain required; the owner selects
 boot2 physically. Raw logs, firmware, credentials and the boot image remain
 ignored under `artifacts/`. The patch is an internal experiment with synthetic,
 non-certifying authorship, not an upstream submission.
+
+## Device result
+
+The [sanitized runtime receipt](results/runtime-1.json) records one guarded
+boot2 installation with matching full readback, clean Gemian shutdown, a
+prearmed USB watch, changed mainline boot ID and complete retained kernel log.
+Both EMI sections were copied and read back byte-for-byte (396,688/396,688
+bytes), and region 18 read back the requested temporary and final policies
+with zero secure-call statuses. The A53 RAM-service regression passed, and the
+reviewed return reached a new Gemian boot with `wlan0/carrier=1`. The
+one-shot candidate is consumed. This proves the AP copy path in that boot,
+not CONSYS firmware fetch, firmware execution or usable mainline Wi-Fi.

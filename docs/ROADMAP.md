@@ -531,6 +531,14 @@ for the first Wi-Fi bring-up. The current preparation order is:
    policy-only candidate has no decision value. Effective bus permissions,
    master-domain routing, external-writer exclusion and any future firmware
    fetch remain unproved.
+   The following [bounded mainline EMI-copy probe](../experiments/2026-09-28-mt6797-emi-copy-probe/results/runtime-1.json)
+   copied and read back both pinned EMI sections (396,688 bytes), then sealed
+   region 18 with matching status and direct readback. Its full log, A53
+   regression and changed-boot Gemian Wi-Fi return passed. The one-shot image
+   is consumed. AP copy is no longer the blocking question; the next executor
+   must submit both ordinary HIF sections and test firmware start under retained
+   shared ownership. CONSYS fetch permissions and actual execution remain
+   unproved until that distinct test.
    Add a same-boot admission gate and retained-fault owner transitions for the first firmware executor,
    without assuming that an earlier boot's zeros authorize an EMI write. A
    [passive mainline EMI read](../experiments/2026-09-27-mt6797-emi-boot-observe/results/runtime-1.json)
