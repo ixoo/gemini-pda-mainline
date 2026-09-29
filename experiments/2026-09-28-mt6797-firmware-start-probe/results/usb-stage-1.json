@@ -20,6 +20,7 @@
     "device_ssh_attempts": 0
   },
   "gemian_lan_ssh_after_watch": false,
+  "physical_boot2_selection_confirmed": null,
   "mainline_boot_id": null,
   "kernel_log_collected": false,
   "firmware_start_result": "unknown",

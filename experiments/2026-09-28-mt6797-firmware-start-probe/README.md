@@ -50,14 +50,15 @@ recovery; it cannot authorize another submission, fresh credit seed,
 automatic reset or replay. Raw logs, firmware and credentials stay ignored
 under `artifacts/`.
 
-The [first boot's USB-stage record](results/usb-stage-1.json) has a matching
+The [first watch's USB-stage record](results/usb-stage-1.json) has a matching
 full boot2 readback and clean shutdown. The Mac then observed preloader and
 MediaTek 20ff, but no mainline USB route during the 900-second watch. Gemian
 LAN SSH was unavailable at checks during and after the watch. There is no
 mainline boot ID or kernel log, so
-this run does not answer the firmware-start hypothesis. The device screen
-state and live identity are needed before attributing the stall or using the
-reviewed recovery path. Do not replay the same image without a distinct
+this watch does not answer the firmware-start hypothesis. The owner's physical
+selection report, device screen state and live identity are needed before
+attributing the stall or using the reviewed recovery path. Do not replay the
+same image without a distinct
 measurement.
 
 Build only the clean pushed commit with
