@@ -1,0 +1,146 @@
+From 0000000000000000000000000000000000000046 Mon Sep 17 00:00:00 2001
+From: Gemini PDA experiment <experiment.invalid>
+Date: Tue, 29 Sep 2026 20:55:00 +0000
+Subject: [PATCH] soc: mediatek: observe reserved MT6797 region 19 without power
+
+The firmware-start image omitted the neighboring WMT control-memory setup.
+The returned Gemian boot had live data in that window. Count only nonzero
+bytes and pages in the exact boot-reserved second 512 KiB before any power
+request; never log or alter its contents. Make this a passive one-shot DT
+profile by removing the previous active diagnostic flags. Refuse to combine
+this observation with a power probe.
+
+Internal experiment only; synthetic non-certifying author, no DCO.
+---
+diff --git a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
+--- a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
++++ b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
+@@ -109,6 +109,13 @@
+       CONFIG/ACK/PDA, and make one WIFI_START request with a finite ready
+       observation. Retain all resources until reboot. No packet DMA, scan,
+       calibration, association or network interface is enabled.
++
++  mediatek,one-shot-region19-observe:
++    type: boolean
++    description: |
++      After validating the boot reservation, count nonzero bytes and pages
++      in its second 512 KiB through a read-only mapping. No memory contents
++      are exported and no CONN power, firmware or EMI transition is made.
+ 
+   wifi:
+     type: object
+@@ -211,6 +218,13 @@
+     then:
+       required:
+         - mediatek,one-shot-emi-copy-probe
++  - if:
++      required:
++        - mediatek,one-shot-region19-observe
++    then:
++      not:
++        required:
++          - mediatek,one-shot-power-probe
+ 
+ examples:
+   - |
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -83,13 +83,7 @@
+ 		      <0 0x180f0000 0 0x1100>, <0 0x10001f00 0 4>;
+ 		reg-names = "remap", "conn2ap-sleep-mask", "chip-id", "mcu-acr",
+ 			    "wifi-hif", "emi-selector";
+-		mediatek,one-shot-power-probe;
+-		mediatek,one-shot-chip-id-probe;
+-		mediatek,one-shot-reset-release-probe;
+-		mediatek,one-shot-hif-probe;
+-		mediatek,one-shot-emi-set-probe;
+-		mediatek,one-shot-emi-copy-probe;
+-		mediatek,one-shot-firmware-start-probe;
++		mediatek,one-shot-region19-observe;
+ 		memory-region = <&consys_reserved>;
+ 		vcn18-supply = <&mt6351_vcn18_reg>;
+ 		vcn28-supply = <&mt6351_vcn28_reg>;
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -269,7 +269,41 @@
+ 		return 0;
+ 	return ret < 0 ? ret : -ENODEV;
+ }
++
++/* Sample only the neighboring WMT window; preserve every byte for its owner. */
++static int mt6797_consys_observe_region19(struct device *dev,
++					  const struct resource *reservation)
++{
++	phys_addr_t start = reservation->start + SZ_512K;
++	u8 __iomem *window;
++	u32 nonzero_bytes = 0;
++	unsigned int populated_pages = 0, page, offset;
++	int first_page = -1, last_page = -1;
++
++	window = ioremap(start, SZ_512K);
++	if (!window)
++		return -ENOMEM;
++	for (page = 0; page < SZ_512K / SZ_4K; page++) {
++		unsigned int page_nonzero = 0;
+ 
++		for (offset = 0; offset < SZ_4K; offset++)
++			page_nonzero += !!readb(window + page * SZ_4K + offset);
++		nonzero_bytes += page_nonzero;
++		if (page_nonzero) {
++			populated_pages++;
++			if (first_page < 0)
++				first_page = page;
++			last_page = page;
++		}
++	}
++	iounmap(window);
++	dev_info(dev,
++		 "one-shot region 19 read-only: start=%pa bytes=%u nonzero=%u pages=%u first=%d last=%d\n",
++		 &start, SZ_512K, nonzero_bytes, populated_pages,
++		 first_page, last_page);
++	return 0;
++}
++
+ /* Associate with CONN only after acquiring the independent shared resources. */
+ static int mt6797_consys_attach_off_domain(struct device *dev,
+ 					   struct generic_pm_domain **domain)
+@@ -1036,6 +1070,7 @@
+ 	void __iomem *hif = NULL, *emi_selector = NULL;
+ 	bool power_probe, chip_id_probe, reset_release_probe, hif_probe;
+ 	bool emi_set_probe, emi_copy_probe, firmware_start_probe;
++	bool region19_observe;
+ 	struct resource reservation = {};
+ 	int ret;
+ 
+@@ -1054,6 +1089,12 @@
+ 					       "mediatek,one-shot-emi-copy-probe");
+ 	firmware_start_probe = of_property_read_bool(pdev->dev.of_node,
+ 						   "mediatek,one-shot-firmware-start-probe");
++	region19_observe = of_property_read_bool(pdev->dev.of_node,
++						 "mediatek,one-shot-region19-observe");
++	if (region19_observe && power_probe) {
++		ret = -EINVAL;
++		goto out_unlock;
++	}
+ 	if (chip_id_probe && !power_probe) {
+ 		ret = -EINVAL;
+ 		goto out_unlock;
+@@ -1235,6 +1276,14 @@
+ 		pm_genpd_remove_device(&pdev->dev);
+ 		goto out_unlock;
+ 	}
++	if (region19_observe) {
++		int observed = mt6797_consys_observe_region19(&pdev->dev,
++							&reservation);
++
++		if (observed)
++			dev_err(&pdev->dev,
++				"one-shot region 19 read-only failed (%d)\n", observed);
++	}
+ 	dev_info(&pdev->dev,
+ 		 "bound boot CONSYS reserve, remap, VCN, CONMCU reset and checked-OFF CONN domain; populated passive children\n");
+ 	if (power_probe)
+-- 
+2.43.0

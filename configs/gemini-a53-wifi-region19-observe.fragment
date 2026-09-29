@@ -1,0 +1,2 @@
+# Identify the passive mainline CONSYS region-19 memory observation.
+CONFIG_LOCALVERSION="-gemini-a53-wifi-region19-observe"
