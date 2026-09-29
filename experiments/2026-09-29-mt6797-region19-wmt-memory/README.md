@@ -34,5 +34,25 @@ would establish only AP-visible setup and readback, not effective CONSYS
 permissions, region-overlap priority or Wi-Fi support. Those unresolved facts
 must inform a distinct, reviewed firmware candidate.
 
-Build, candidate assembly and device observations are pending. Raw window
-contents, firmware, credentials and full logs stay in ignored private artifacts.
+The named profile built from clean pushed commit
+`41541e37fd451ff45ec0b8a0c0df0ddc1ed4d190` on Buildbox. The validated
+package inventory is
+`433d441def588063ee1aa5dfa5ddb8982114e78ae9a6cd1ff623c5aa21f8369c`.
+The compiled Gemini DTB matches the preceding passive profile byte for byte;
+the new kernel contains `region19_prepare`. The private RAM root changed only
+its release gate. The [candidate receipt](results/candidate.json) pins the
+checked LK container and full boot2 image SHA-256
+`0083834cea0e62d004dc92bf087c8167dfcf6dbbe6cf764a3e8d04d487261b8f`.
+
+The [guarded installer](install-passive.py) accepts only the preceding boot2
+checksum, resolves logical `boot2` from live GPT and uses the project device
+guard. A matching full-partition readback precedes a clean shutdown; the owner
+selects boot2 physically. The [watcher](watch-boot.py) pre-arms the direct USB
+route. Its [collector](capture-private.py) verifies release and boot ID, saves
+two identical private pre-write windows, sends one sysfs trigger, then saves a
+full post-attempt window after a reported trigger error when USB SSH remains
+available. The
+[session collector](passive-host.py) seals the log, checks exact WMT records,
+runs the A53 regression and uses the reviewed return to Gemian. Device
+observations are pending. Raw window contents, firmware, credentials and full
+logs stay in ignored private artifacts.
