@@ -50,7 +50,9 @@ missing identity, regression failure or recovery mismatch stops this
 candidate. Preserve available evidence before the already reviewed native
 recovery. Do not use an automatic boot2 reboot or an alternate partition.
 
-The [release-bound collector](passive-host.py) reuses the validated A53
+The [offline validation record](results/offline-validation.json) pins the
+Buildbox package, schema checks and private candidate checksums. The
+[release-bound collector](passive-host.py) reuses the validated A53
 regression and native Gemian recovery path, and additionally requires exactly
 one successful two-section, 396,688-byte copy record and both region-18
 readbacks. The [USB watcher](watch-boot.py) must be armed before physical
@@ -61,7 +63,8 @@ negative result, never treated as a Wi-Fi pass.
 Build only the clean pushed commit with `./scripts/build-kernel --backend
 buildbox` and the exact named profile. Validate the full package, DT binding
 and built Gemini DTB before assembling a private boot2 candidate with the
-same retained firmware and RAM root. The reviewed live-GPT guard, predecessor,
+same retained firmware and RAM root. The [guarded installer](install-passive.py)
+requires the published candidate checksum receipt. The reviewed live-GPT guard, predecessor,
 full-partition readback and clean shutdown remain required; the owner selects
 boot2 physically. Raw logs, firmware, credentials and the boot image remain
 ignored under `artifacts/`. The patch is an internal experiment with synthetic,

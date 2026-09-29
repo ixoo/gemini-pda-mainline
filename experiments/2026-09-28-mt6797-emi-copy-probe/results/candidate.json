@@ -1,0 +1,38 @@
+{
+  "status": "offline-gated-wifi-emi-copy-probe-candidate-validated",
+  "kernel_build_commit": "9f45d6359cadf8605394b618cd0e6c101db960f9",
+  "kernel_release": "7.1.3-gemini-a53-wifi-emi-copy-probe",
+  "kernel_package_sha256": "fab46f7ce7c622109e54046d4ea3ca099f09b961430a4dea14228ab84d42f886",
+  "parent_boot2_sha256": "4199be928613b2ec65b171bb2c9e27c98e8d434ac293fe3d8d9753a91c38d0f2",
+  "firmware_sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
+  "files": {
+    "Image.gz": {
+      "sha256": "a185052c5b695e25d3f8c14bf888388bf3ec703d9b9b4a449fcd8fbffa15a065",
+      "bytes": 6478392
+    },
+    "board.dtb": {
+      "sha256": "b140a55db4384bc832a14ea5acbfdcf77cfa54d0ae337db1c8ce91ec8ada21f7",
+      "bytes": 28084
+    },
+    "boot.img": {
+      "sha256": "bc1cb7184ee9aee5878d7773e43f4de8792402fda6480ab6378ccfe621c57b37",
+      "bytes": 9777152
+    },
+    "boot2-padded.img": {
+      "sha256": "8c852a7ec221d33ac44610eaad497c7b3a1ff218ea1153c4930adc4a574c579a",
+      "bytes": 16777216
+    },
+    "initramfs.img": {
+      "sha256": "557ed0996f7843b26d1bee00d001333fab435ac5ce87869a601d5bdf3edda7fb",
+      "bytes": 3266661
+    },
+    "kernel.config": {
+      "sha256": "b516df9beff5867aee7efaf284d7731150a11bda66b07a8f4ca085f37117df3d",
+      "bytes": 112013
+    }
+  },
+  "device_tree_change": "one-shot EMI copy flag only",
+  "secret_bearing": true,
+  "device_action": "none",
+  "physical_admission": false
+}
