@@ -1,0 +1,2 @@
+# Identify the one-shot mainline WLAN EMI copy diagnostic.
+CONFIG_LOCALVERSION="-gemini-a53-wifi-emi-copy-probe"

@@ -1,0 +1,395 @@
+From 54985c06366fd697d1e73682eb7473ec475d92d6 Mon Sep 17 00:00:00 2001
+From: Gemini PDA experiment <experiment.invalid>
+Date: Mon, 28 Sep 2026 21:01:14 -0400
+Subject: [PATCH] soc: mediatek: copy bounded MT6797 WLAN EMI sections
+
+After validated CONN/HIF startup and region-18 writable policy, copy
+both parsed EMI sections into the reserved WLAN window. Compare each
+byte before requesting the final policy. Retain the firmware, mapping
+and powered owner after any effect. Do not issue firmware START or DMA.
+
+This one-boot diagnostic tests AP copy/readback, not effective CONSYS
+fetch permissions, firmware execution or usable Wi-Fi. Synthetic
+authorship is not DCO certification or an upstream submission.
+---
+ .../soc/mediatek/mediatek,mt6797-consys.yaml  |  14 ++
+ .../boot/dts/mediatek/mt6797-gemini-pda.dts   |   1 +
+ .../mediatek/mt6797/firmware-prepare.c        |  32 +++++
+ .../mediatek/mt6797/firmware-prepare.h        |  23 +++-
+ drivers/soc/mediatek/mt6797-consys.c          | 127 ++++++++++++++++--
+ 5 files changed, 182 insertions(+), 15 deletions(-)
+
+diff --git a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
+index f9456ca..9870169 100644
+--- a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
++++ b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
+@@ -93,6 +93,14 @@ properties:
+       selector state, then request and read back one region-18 writable/final
+       policy pair. Retain all effects until reboot. No firmware is transferred.
+ 
++  mediatek,one-shot-emi-copy-probe:
++    type: boolean
++    description: |
++      After the bounded region-18 writable policy readback, copy and verify
++      both EMI sections of the pinned firmware in the reserved WLAN window,
++      then request the final policy. Retain all effects until reboot; do not
++      start firmware or use DMA.
++
+   wifi:
+     type: object
+     description: Passive WLAN firmware client populated after CONSYS binds.
+@@ -182,6 +190,12 @@ allOf:
+       required:
+         - mediatek,one-shot-hif-probe
+         - reg-names
++  - if:
++      required:
++        - mediatek,one-shot-emi-copy-probe
++    then:
++      required:
++        - mediatek,one-shot-emi-set-probe
+ 
+ examples:
+   - |
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+index 06071b0..919f979 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -88,6 +88,7 @@
+ 		mediatek,one-shot-reset-release-probe;
+ 		mediatek,one-shot-hif-probe;
+ 		mediatek,one-shot-emi-set-probe;
++		mediatek,one-shot-emi-copy-probe;
+ 		memory-region = <&consys_reserved>;
+ 		vcn18-supply = <&mt6351_vcn18_reg>;
+ 		vcn28-supply = <&mt6351_vcn28_reg>;
+diff --git a/drivers/net/wireless/mediatek/mt6797/firmware-prepare.c b/drivers/net/wireless/mediatek/mt6797/firmware-prepare.c
+index 13b712b..5cefb10 100644
+--- a/drivers/net/wireless/mediatek/mt6797/firmware-prepare.c
++++ b/drivers/net/wireless/mediatek/mt6797/firmware-prepare.c
+@@ -75,6 +75,38 @@ int mt6797_wlan_firmware_summary(const struct mt6797_wlan_firmware *image,
+ 	return 0;
+ }
+ 
++int mt6797_wlan_firmware_copy_emi(const struct mt6797_wlan_firmware *image,
++				  int (*copy)(void *owner, unsigned int index,
++					      u32 offset, const u8 *data, size_t bytes),
++				  void *owner,
++				  struct mt6797_wlan_emi_copy_result *result)
++{
++	struct mtke_view section;
++	unsigned int i;
++	int ret;
++
++	if (!image || !image->plan.valid || !copy || !owner || !result)
++		return -EINVAL;
++	*result = (struct mt6797_wlan_emi_copy_result){0};
++	for (i = 0; i < image->plan.sections; i++) {
++		ret = mtke_get(&image->plan.image, i, &section);
++		if (ret)
++			return -EINVAL;
++		if (!section.emi)
++			continue;
++		ret = copy(owner, i, section.emi_offset,
++			   section.data, section.length);
++		if (ret)
++			return ret;
++		result->sections++;
++		result->bytes += section.length;
++	}
++	if (result->sections != image->plan.emi_sections ||
++	    result->bytes != image->plan.emi_bytes)
++		return -EIO;
++	return 0;
++}
++
+ void mt6797_wlan_firmware_release(struct mt6797_wlan_firmware *image)
+ {
+ 	if (!image)
+diff --git a/drivers/net/wireless/mediatek/mt6797/firmware-prepare.h b/drivers/net/wireless/mediatek/mt6797/firmware-prepare.h
+index 2fdedea..2c1270d 100644
+--- a/drivers/net/wireless/mediatek/mt6797/firmware-prepare.h
++++ b/drivers/net/wireless/mediatek/mt6797/firmware-prepare.h
+@@ -18,10 +18,15 @@ struct mt6797_wlan_firmware_summary {
+ 	size_t emi_bytes;
+ };
+ 
+-/* Passive only. The returned object owns immutable firmware bytes and its
+- * complete plan until release. No hardware admission or executable section
+- * view is exposed. A future executor must retain it across every effect and
+- * prove quiescence before calling release.
++struct mt6797_wlan_emi_copy_result {
++	unsigned int sections;
++	size_t bytes;
++};
++
++/* Preparation alone is passive. The returned object owns immutable firmware
++ * bytes and its complete plan until release. No hardware admission or
++ * executable section view is exposed by preparation. An effectful caller
++ * retains it until quiescence is proved.
+  */
+ int mt6797_wlan_firmware_prepare(struct device *dev,
+ 				 struct mt6797_wlan_firmware **out);
+@@ -30,6 +35,16 @@ int mt6797_wlan_firmware_describe(const struct mt6797_wlan_firmware *image,
+ 				  struct mt6797_plan_section *section);
+ int mt6797_wlan_firmware_summary(const struct mt6797_wlan_firmware *image,
+ 				 struct mt6797_wlan_firmware_summary *summary);
++/* The caller must hold the powered CONSYS/EMI owner and a writable WLAN
++ * window throughout this call. Every callback may have a partial effect;
++ * neither failure nor success permits replay or firmware START. No physical
++ * destination or protection control is exposed by the image object.
++ */
++int mt6797_wlan_firmware_copy_emi(const struct mt6797_wlan_firmware *image,
++				  int (*copy)(void *owner, unsigned int index,
++					      u32 offset, const u8 *data, size_t bytes),
++				  void *owner,
++				  struct mt6797_wlan_emi_copy_result *result);
+ void mt6797_wlan_firmware_release(struct mt6797_wlan_firmware *image);
+ 
+ #endif
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index 25c0ba6..87a2699 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -21,9 +21,12 @@
+ #include <linux/regulator/consumer.h>
+ #include <linux/reset.h>
+ #include <linux/sizes.h>
++#include <linux/string.h>
+ #include <linux/soc/mediatek/mtk-pm-domains.h>
+ #include <dt-bindings/power/mt6797-power.h>
+ 
++#include "../../net/wireless/mediatek/mt6797/firmware-prepare.h"
++
+ #define MT6797_CONSYS_REMAP_REG	0x10001340
+ #define MT6797_CONSYS_SLEEP_MASK_REG	0x10001350
+ #define MT6797_CONSYS_SLEEP_MASK	BIT(8)
+@@ -64,6 +67,8 @@ struct mt6797_consys {
+ 	void __iomem *mcu_acr;
+ 	void __iomem *hif;
+ 	void __iomem *emi_selector;
++	void __iomem *emi_window;
++	struct mt6797_wlan_firmware *wlan_image;
+ 	struct resource reservation;
+ 	struct regulator *vcn18;
+ 	struct regulator *vcn28;
+@@ -73,6 +78,7 @@ struct mt6797_consys {
+ 	bool bound;
+ 	bool emi_set_attempted;
+ 	bool emi_sealed;
++	bool emi_copy_attempted;
+ };
+ 
+ static DEFINE_MUTEX(mt6797_consys_lock);
+@@ -517,17 +523,49 @@ stopped:
+ }
+ 
+ /* One diagnostic SMC pair; retain the reserved window and powered owner. */
++#if IS_ENABLED(CONFIG_MT6797_HIF_CORE)
++static int mt6797_consys_copy_emi_section(void *context, unsigned int index,
++					 u32 offset, const u8 *data, size_t bytes)
++{
++	struct mt6797_consys *owner = context;
++	u8 verify[256];
++	size_t done = 0;
++
++	if (!owner || !owner->emi_window || !data || index < 2 || index > 3 ||
++	    offset >= SZ_512K || !bytes || bytes > SZ_512K - offset)
++		return -EINVAL;
++	while (done < bytes) {
++		size_t length = min(sizeof(verify), bytes - done);
++		void __iomem *destination = (u8 __iomem *)owner->emi_window +
++					    offset + done;
++
++		owner->emi_copy_attempted = true;
++		memcpy_toio(destination, data + done, length);
++		/* Complete these AP stores before checking the reserved window. */
++		wmb();
++		memcpy_fromio(verify, destination, length);
++		if (memcmp(verify, data + done, length))
++			return -EIO;
++		done += length;
++	}
++	return 0;
++}
++#endif
++
+ static void mt6797_consys_probe_emi_set(struct device *dev,
+-					struct mt6797_consys *owner)
++					struct mt6797_consys *owner,
++					bool copy_probe)
+ {
+ 	struct arm_smccc_res res;
++	struct mt6797_wlan_firmware_summary summary;
++	struct mt6797_wlan_emi_copy_result copied = {};
+ 	phys_addr_t start = owner->reservation.start;
+ 	phys_addr_t end = start + SZ_512K - 1;
+ 	u32 expected = ((u32)(start >> 16) << 16) | (u32)(end >> 16);
+ 	u32 before18, before19, before23, range, policy;
+ 	u32 selector;
+ 	unsigned long raw;
+-	int ret;
++	int ret, copy_ret = 0;
+ 
+ 	ret = mtk_pm_domain_confirmed_on(owner->conn_domain);
+ 	if (ret)
+@@ -553,6 +591,30 @@ static void mt6797_consys_probe_emi_set(struct device *dev,
+ 		ret = -EBUSY;
+ 		goto stopped;
+ 	}
++	if (copy_probe) {
++#if IS_ENABLED(CONFIG_MT6797_HIF_CORE)
++		ret = mt6797_wlan_firmware_prepare(dev, &owner->wlan_image);
++		if (ret)
++			goto stopped;
++		ret = mt6797_wlan_firmware_summary(owner->wlan_image, &summary);
++		if (ret || summary.sections != 4 ||
++		    summary.ordinary_sections != 2 ||
++		    summary.ordinary_bytes != 14832 ||
++		    summary.emi_sections != 2 ||
++		    summary.emi_bytes != 396688) {
++			ret = ret ?: -EINVAL;
++			goto stopped;
++		}
++		owner->emi_window = ioremap(start, SZ_512K);
++		if (!owner->emi_window) {
++			ret = -ENOMEM;
++			goto stopped;
++		}
++#else
++		ret = -EOPNOTSUPP;
++		goto stopped;
++#endif
++	}
+ 	dev_info(dev,
+ 		 "one-shot EMI before: selector=0x%08x region18=0x%08x region19=0x%08x region23=0x%08x\n",
+ 		 selector, before18, before19, before23);
+@@ -571,6 +633,24 @@ static void mt6797_consys_probe_emi_set(struct device *dev,
+ 		ret = ret ?: -EIO;
+ 		goto stopped;
+ 	}
++	if (copy_probe) {
++#if IS_ENABLED(CONFIG_MT6797_HIF_CORE)
++		copy_ret = mt6797_wlan_firmware_copy_emi(owner->wlan_image,
++					      mt6797_consys_copy_emi_section,
++					      owner, &copied);
++		dev_info(dev,
++			 "one-shot EMI firmware copy: status=%d completed=%u/%u bytes=%zu/%zu attempted=%d\n",
++			 copy_ret, copied.sections, summary.emi_sections,
++			 copied.bytes, summary.emi_bytes,
++			 owner->emi_copy_attempted);
++		/* After an admitted copy attempt, seal even if readback failed. */
++		if (copy_ret)
++			goto seal;
++		/* Publish the verified bytes before the secure policy transition. */
++		mb();
++#endif
++	}
++seal:
+ 	arm_smccc_smc(MT6797_EMI_MPU_SET, start, end,
+ 		      (MT6797_EMI_REGION18 << 27) | MT6797_EMI_FINAL_POLICY,
+ 		      0, 0, 0, 0, &res);
+@@ -581,28 +661,45 @@ static void mt6797_consys_probe_emi_set(struct device *dev,
+ 	dev_info(dev,
+ 		 "one-shot EMI final policy: raw=0x%016lx status=%d range=0x%08x policy=0x%08x\n",
+ 		 raw, ret, range, policy);
+-	if (ret || range != expected || policy != MT6797_EMI_FINAL_POLICY ||
++	if (ret || copy_ret || (copy_probe &&
++	    (copied.sections != summary.emi_sections ||
++	     copied.bytes != summary.emi_bytes)) ||
++	    range != expected || policy != MT6797_EMI_FINAL_POLICY ||
+ 	    mt6797_consys_read_emi(MT6797_EMI_REGION19_RANGE) != before19 ||
+ 	    mt6797_consys_read_emi(MT6797_EMI_REGION19_POLICY) ||
+ 	    mt6797_consys_read_emi(MT6797_EMI_REGION23_RANGE) != before23 ||
+ 	    readl(owner->emi_selector) != selector) {
+-		ret = ret ?: -EIO;
++		ret = ret ?: (copy_ret ?: -EIO);
+ 		goto stopped;
+ 	}
+ 	owner->emi_sealed = true;
+-	dev_info(dev, "one-shot EMI region 18 sealed; firmware and DMA held\n");
++	dev_info(dev,
++		 "one-shot EMI region 18 sealed; copy=%d, firmware start and DMA held\n",
++		 copy_probe);
+ 	return;
+ 
+ stopped:
++	if (!owner->emi_set_attempted) {
++		if (owner->emi_window) {
++			iounmap(owner->emi_window);
++			owner->emi_window = NULL;
++		}
++#if IS_ENABLED(CONFIG_MT6797_HIF_CORE)
++		mt6797_wlan_firmware_release(owner->wlan_image);
++		owner->wlan_image = NULL;
++#endif
++	}
+ 	dev_err(dev,
+-		"one-shot EMI set stopped (%d); attempted=%d sealed=%d, state retained\n",
+-		ret, owner->emi_set_attempted, owner->emi_sealed);
++		"one-shot EMI set stopped (%d); attempted=%d copied=%d sealed=%d, state retained\n",
++		ret, owner->emi_set_attempted, owner->emi_copy_attempted,
++		owner->emi_sealed);
+ }
+ 
+ /* One attempt per boot. Keep every acquired vote after any uncertain effect. */
+ static void mt6797_consys_probe_power_on(struct device *dev, struct mt6797_consys *owner,
+ 					 bool chip_id_probe, bool reset_release_probe,
+-					 bool hif_probe, bool emi_set_probe)
++					 bool hif_probe, bool emi_set_probe,
++					 bool emi_copy_probe)
+ {
+ 	struct regmap *pmic;
+ 	unsigned int vcn28;
+@@ -762,7 +859,8 @@ static void mt6797_consys_probe_power_on(struct device *dev, struct mt6797_consy
+ 				if (hif_probe && released &&
+ 				    mt6797_consys_probe_hif(dev, owner) &&
+ 				    emi_set_probe)
+-					mt6797_consys_probe_emi_set(dev, owner);
++					mt6797_consys_probe_emi_set(dev, owner,
++							     emi_copy_probe);
+ 			}
+ 			else if (reset_release_probe)
+ 				dev_err(dev, "one-shot CONN MCU reset release skipped: EMI gate\n");
+@@ -786,7 +884,7 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 	void __iomem *sleep_mask = NULL, *chip_id = NULL, *mcu_acr = NULL;
+ 	void __iomem *hif = NULL, *emi_selector = NULL;
+ 	bool power_probe, chip_id_probe, reset_release_probe, hif_probe;
+-	bool emi_set_probe;
++	bool emi_set_probe, emi_copy_probe;
+ 	struct resource reservation = {};
+ 	int ret;
+ 
+@@ -801,6 +899,8 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 					  "mediatek,one-shot-hif-probe");
+ 	emi_set_probe = of_property_read_bool(pdev->dev.of_node,
+ 					      "mediatek,one-shot-emi-set-probe");
++	emi_copy_probe = of_property_read_bool(pdev->dev.of_node,
++					       "mediatek,one-shot-emi-copy-probe");
+ 	if (chip_id_probe && !power_probe) {
+ 		ret = -EINVAL;
+ 		goto out_unlock;
+@@ -817,6 +917,10 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 		ret = -EINVAL;
+ 		goto out_unlock;
+ 	}
++	if (emi_copy_probe && !emi_set_probe) {
++		ret = -EINVAL;
++		goto out_unlock;
++	}
+ 	if (mt6797_consys.bound) {
+ 		ret = -EBUSY;
+ 		goto out_unlock;
+@@ -978,7 +1082,8 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 	if (power_probe)
+ 		mt6797_consys_probe_power_on(&pdev->dev, &mt6797_consys,
+ 					    chip_id_probe, reset_release_probe,
+-					    hif_probe, emi_set_probe);
++					    hif_probe, emi_set_probe,
++					    emi_copy_probe);
+ out_unlock:
+ 	mutex_unlock(&mt6797_consys_lock);
+ 	return ret;
+-- 
+2.54.0 (Apple Git-157)
+
