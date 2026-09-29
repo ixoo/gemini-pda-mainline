@@ -1,0 +1,2 @@
+# Identify the one-shot mainline WLAN firmware start diagnostic.
+CONFIG_LOCALVERSION="-gemini-a53-wifi-firmware-start-probe"
