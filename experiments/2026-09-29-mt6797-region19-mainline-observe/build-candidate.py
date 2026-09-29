@@ -82,6 +82,8 @@ def main():
     built = nodes(package / 'dtbs/mediatek/mt6797-gemini-pda.dtb')
     require(OWNER in built and WIFI in built and
             built[WIFI] == {'compatible': '"mediatek,mt6797-wlan"'} and
+            built[OWNER]['reg'] == '<0x00 0x10001340 0x00 0x04>' and
+            built[OWNER]['reg-names'] == '"remap"' and
             'mediatek,one-shot-region19-observe' in built[OWNER] and
             built[OWNER]['mediatek,one-shot-region19-observe'] is None and
             not any(key.startswith('mediatek,one-shot-') and
@@ -118,18 +120,24 @@ def main():
                  'mediatek,one-shot-reset-release-probe', 'mediatek,one-shot-hif-probe',
                  'mediatek,one-shot-emi-set-probe', 'mediatek,one-shot-emi-copy-probe',
                  'mediatek,one-shot-firmware-start-probe'} and
-                all(before[OWNER][key] == built[OWNER][key] for key in
-                    ('compatible', 'reg', 'reg-names')),
+                before[OWNER]['compatible'] == built[OWNER]['compatible'] and
+                before[OWNER]['reg-names'] ==
+                '"remap", "conn2ap-sleep-mask", "chip-id", "mcu-acr", "wifi-hif", "emi-selector"',
                 'firmware-start parent DT contract changed')
         for flag in sorted(key for key in before[OWNER]
                            if key.startswith('mediatek,one-shot-')):
             run('fdtput', '-d', str(board), OWNER, flag)
+        run('fdtput', '-t', 'x', str(board), OWNER, 'reg',
+            '0', '0x10001340', '0', '4')
+        run('fdtput', '-t', 's', str(board), OWNER, 'reg-names', 'remap')
         run('fdtput', str(board), OWNER, 'mediatek,one-shot-region19-observe')
         after = nodes(board)
         expected_owner = dict(before[OWNER])
         for flag in tuple(expected_owner):
             if flag.startswith('mediatek,one-shot-'):
                 del expected_owner[flag]
+        expected_owner['reg'] = built[OWNER]['reg']
+        expected_owner['reg-names'] = built[OWNER]['reg-names']
         expected_owner['mediatek,one-shot-region19-observe'] = None
         require(set(after) == set(before) and after[OWNER] == expected_owner and
                 all(after[name] == props for name, props in before.items()
@@ -164,7 +172,7 @@ def main():
                   'firmware_sha256': FIRMWARE_SHA256,
                   'files': {p.name: {'sha256': sha(regular(p)), 'bytes': p.stat().st_size}
                             for p in sorted(stage.iterdir())},
-                  'device_tree_change': 'remove seven active probes; add passive region19 observer',
+                  'device_tree_change': 'remove seven active probes and five unused MMIO ranges; add passive region19 observer',
                   'secret_bearing': True, 'device_action': 'none',
                   'physical_admission': False}
         (stage / 'candidate.json').write_text(json.dumps(result, indent=2) + '\n')

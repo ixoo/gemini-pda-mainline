@@ -7,8 +7,8 @@ The firmware-start image omitted the neighboring WMT control-memory setup.
 The returned Gemian boot had live data in that window. Count only nonzero
 bytes and pages in the exact boot-reserved second 512 KiB before any power
 request; never log or alter its contents. Make this a passive one-shot DT
-profile by removing the previous active diagnostic flags. Refuse to combine
-this observation with a power probe.
+profile by removing the previous active diagnostic flags and their unused
+MMIO resources. Refuse to combine this observation with a power probe.
 
 Internal experiment only; synthetic non-certifying author, no DCO.
 ---
@@ -29,7 +29,7 @@ diff --git a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-cons
  
    wifi:
      type: object
-@@ -211,6 +218,13 @@
+@@ -211,6 +218,20 @@
      then:
        required:
          - mediatek,one-shot-emi-copy-probe
@@ -37,6 +37,13 @@ diff --git a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-cons
 +      required:
 +        - mediatek,one-shot-region19-observe
 +    then:
++      properties:
++        reg:
++          maxItems: 1
++        reg-names:
++          maxItems: 1
++      required:
++        - reg-names
 +      not:
 +        required:
 +          - mediatek,one-shot-power-probe
@@ -46,10 +53,14 @@ diff --git a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-cons
 diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
 --- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
 +++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
-@@ -83,13 +83,7 @@
- 		      <0 0x180f0000 0 0x1100>, <0 0x10001f00 0 4>;
- 		reg-names = "remap", "conn2ap-sleep-mask", "chip-id", "mcu-acr",
- 			    "wifi-hif", "emi-selector";
+@@ -81,15 +81,6 @@
+-		reg = <0 0x10001340 0 4>, <0 0x10001350 0 4>,
+-		      <0 0x18070008 0 4>, <0 0x18070110 0 4>,
+-		      <0 0x180f0000 0 0x1100>, <0 0x10001f00 0 4>;
+-		reg-names = "remap", "conn2ap-sleep-mask", "chip-id", "mcu-acr",
+-			    "wifi-hif", "emi-selector";
++		reg = <0 0x10001340 0 4>;
++		reg-names = "remap";
 -		mediatek,one-shot-power-probe;
 -		mediatek,one-shot-chip-id-probe;
 -		mediatek,one-shot-reset-release-probe;

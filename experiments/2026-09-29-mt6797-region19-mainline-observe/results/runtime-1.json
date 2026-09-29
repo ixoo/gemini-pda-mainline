@@ -1,0 +1,20 @@
+{
+  "status": "passive-region19-observation-not-reached",
+  "candidate_boot2_sha256": "e16e89389b1d10017bbe76b160cc10648e83c3b0cb10542761f7e9161b1fb951",
+  "kernel_release": "7.1.3-gemini-a53-wifi-region19-observe",
+  "mainline_boot_id": "2e30f0bd-7c69-49e4-b4f6-85946d804b05",
+  "observation": {
+    "region19_records": 0,
+    "driver_probe_error": -22,
+    "cause": "The passive DT retained six MMIO reg entries; the driver rejects the second entry when one-shot power probe is disabled."
+  },
+  "service_regression": "pass",
+  "kernel_log": "complete-through-seal",
+  "provider_bound": true,
+  "gemian_return": {
+    "confirmed": true,
+    "boot_id": "ef6f5c7e-41b9-4584-bf3b-e79826cf0513"
+  },
+  "device_effect": "No CONN power request, firmware transfer or region19 read was reached.",
+  "decision": "Do not replay this image; remove unused MMIO entries from the passive DT and rebuild."
+}
