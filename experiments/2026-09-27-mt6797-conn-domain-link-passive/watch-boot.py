@@ -45,6 +45,8 @@ def stage():
 def ready(network):
     try:
         return network.require_ready()
+    except subprocess.TimeoutExpired:
+        return None
     except ValueError as error:
         if str(error) != ABSENT:
             raise
