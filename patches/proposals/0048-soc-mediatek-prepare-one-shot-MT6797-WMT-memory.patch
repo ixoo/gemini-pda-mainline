@@ -1,0 +1,174 @@
+From a36e4624362ff683ca0f51eeec1c39f25fc7b1a6 Mon Sep 17 00:00:00 2001
+From: Gemini PDA experiment <experiment.invalid>
+Date: Tue, 29 Sep 2026 18:56:41 -0400
+Subject: [PATCH] soc: mediatek: prepare MT6797 WMT memory in a one-shot
+ diagnostic
+
+Require confirmed-OFF CONN, the observed remap baseline and unused EMI
+regions. On a root-only trigger, protect region 19, set the shared remap,
+then clear and verify the first 343 KiB of its reserved control window.
+Retain state on an uncertain result. Do not power CONN or start firmware.
+
+Internal experiment only; synthetic non-certifying author, no DCO.
+---
+ drivers/soc/mediatek/mt6797-consys.c | 120 +++++++++++++++++++++++++++
+ 1 file changed, 120 insertions(+)
+
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index 85d0a8e..a36c117 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -59,9 +59,13 @@
+ #define MT6797_EMI_REGION19_RANGE	0x0378
+ #define MT6797_EMI_REGION19_POLICY	0x03b8
+ #define MT6797_EMI_REGION23_RANGE	0x0398
++#define MT6797_EMI_REGION23_POLICY	0x03bc
+ #define MT6797_EMI_REGION1_RANGE	0x0168
++#define MT6797_EMI_REGION19	19U
+ #define MT6797_EMI_COPY_POLICY	0x00b6da28
+ #define MT6797_EMI_FINAL_POLICY	0x00b6da2d
++#define MT6797_WMT_CLEAR_BYTES	(343 * SZ_1K)
++#define MT6797_REMAP_OFF_VALUE	0x180e0000
+ #define MT6351_VCN33_ACTIVE	(BIT(3) | BIT(1))
+ #define MT6351_VCN28_HW_CONTROL	BIT(3)
+ #define MT6351_VCN28_ENABLE	BIT(1)
+@@ -91,6 +95,7 @@ struct mt6797_consys {
+ 	struct mt6797_init_transaction fw_transaction;
+ 	struct mt6797_hif *fw_hif;
+ 	bool fw_start_attempted;
++	bool wmt_init_attempted;
+ };
+ 
+ static DEFINE_MUTEX(mt6797_consys_lock);
+@@ -324,6 +329,114 @@ static ssize_t region19_snapshot_read(struct file *file, struct kobject *kobj,
+ 
+ static BIN_ATTR_ADMIN_RO(region19_snapshot, SZ_512K);
+ 
++static u32 mt6797_consys_read_emi(u32 offset);
++
++/* A root-triggered, single-use memory setup; no CONN power or firmware action. */
++static ssize_t region19_prepare_store(struct device *dev,
++				      struct device_attribute *attr,
++				      const char *buf, size_t count)
++{
++	struct mt6797_consys *owner = dev_get_drvdata(dev);
++	struct arm_smccc_res res;
++	phys_addr_t start, end;
++	u32 remap_before, remap_after, requested, expected_range;
++	u32 region1, range18, policy18, range19, policy19;
++	u32 range23, policy23, range, policy;
++	unsigned int i;
++	int ret;
++
++	if (count != 2 || memcmp(buf, "1\n", 2))
++		return -EINVAL;
++	mutex_lock(&mt6797_consys_lock);
++	if (owner != &mt6797_consys || !owner->bound ||
++	    !owner->region19_window || owner->wmt_init_attempted) {
++		ret = -ENODEV;
++		goto out;
++	}
++	ret = mtk_pm_domain_confirmed_off(owner->conn_domain);
++	if (ret)
++		goto out;
++	remap_before = readl(owner->remap);
++	region1 = mt6797_consys_read_emi(MT6797_EMI_REGION1_RANGE);
++	range18 = mt6797_consys_read_emi(MT6797_EMI_REGION18_RANGE);
++	policy18 = mt6797_consys_read_emi(MT6797_EMI_REGION18_POLICY);
++	range19 = mt6797_consys_read_emi(MT6797_EMI_REGION19_RANGE);
++	policy19 = mt6797_consys_read_emi(MT6797_EMI_REGION19_POLICY);
++	range23 = mt6797_consys_read_emi(MT6797_EMI_REGION23_RANGE);
++	policy23 = mt6797_consys_read_emi(MT6797_EMI_REGION23_POLICY);
++	dev_info(dev, "one-shot WMT before: remap=0x%08x region1=0x%08x region18=0x%08x/0x%08x\n",
++		 remap_before, region1, range18, policy18);
++	dev_info(dev, "one-shot WMT before: region19=0x%08x/0x%08x region23=0x%08x/0x%08x CONN=off\n",
++		 range19, policy19, range23, policy23);
++	if (remap_before != MT6797_REMAP_OFF_VALUE ||
++	    region1 != 0x44604460 || range18 || policy18 || range19 ||
++	    policy19 || range23 || policy23) {
++		ret = -EBUSY;
++		goto out;
++	}
++	start = owner->reservation.start + SZ_512K;
++	end = start + SZ_512K - 1;
++	expected_range = ((u32)(start >> 16) << 16) | (u32)(end >> 16);
++	requested = ((u32)owner->reservation.start >> 20) | BIT(12);
++	owner->wmt_init_attempted = true;
++	arm_smccc_smc(MT6797_EMI_MPU_SET, start, end,
++		      (MT6797_EMI_REGION19 << 27) | MT6797_EMI_COPY_POLICY,
++		      0, 0, 0, 0, &res);
++	ret = (s32)(u32)res.a0;
++	range = mt6797_consys_read_emi(MT6797_EMI_REGION19_RANGE);
++	policy = mt6797_consys_read_emi(MT6797_EMI_REGION19_POLICY);
++	dev_info(dev, "one-shot WMT region19: status=%d range=0x%08x policy=0x%08x\n",
++		 ret, range, policy);
++	if (ret || range != expected_range ||
++	    policy != MT6797_EMI_COPY_POLICY) {
++		ret = ret ?: -EIO;
++		goto stopped;
++	}
++	ret = mtk_pm_domain_confirmed_off(owner->conn_domain);
++	if (ret)
++		goto stopped;
++	writel(remap_before | requested, owner->remap);
++	remap_after = readl(owner->remap);
++	dev_info(dev, "one-shot WMT remap: before=0x%08x after=0x%08x expected=0x%08x\n",
++		 remap_before, remap_after, remap_before | requested);
++	if (remap_after != (remap_before | requested)) {
++		ret = -EIO;
++		goto stopped;
++	}
++	ret = mtk_pm_domain_confirmed_off(owner->conn_domain);
++	if (ret)
++		goto stopped;
++	memset_io(owner->region19_window, 0, MT6797_WMT_CLEAR_BYTES);
++	/* Complete the AP clear before checking every byte through the mapping. */
++	mb();
++	for (i = 0; i < MT6797_WMT_CLEAR_BYTES; i++) {
++		if (readb(owner->region19_window + i)) {
++			ret = -EIO;
++			goto stopped;
++		}
++	}
++	ret = mtk_pm_domain_confirmed_off(owner->conn_domain);
++	if (ret || readl(owner->remap) != remap_after ||
++	    mt6797_consys_read_emi(MT6797_EMI_REGION19_RANGE) != expected_range ||
++	    mt6797_consys_read_emi(MT6797_EMI_REGION19_POLICY) !=
++						MT6797_EMI_COPY_POLICY) {
++		ret = ret ?: -EIO;
++		goto stopped;
++	}
++	dev_info(dev, "one-shot WMT setup complete: clear=%u verified, CONN held off\n",
++		 MT6797_WMT_CLEAR_BYTES);
++	ret = count;
++	goto out;
++
++stopped:
++	dev_err(dev, "one-shot WMT setup stopped (%d); state retained\n", ret);
++out:
++	mutex_unlock(&mt6797_consys_lock);
++	return ret;
++}
++
++static DEVICE_ATTR_WO(region19_prepare);
++
+ /* Associate with CONN only after acquiring the independent shared resources. */
+ static int mt6797_consys_attach_off_domain(struct device *dev,
+ 					   struct generic_pm_domain **domain)
+@@ -1303,6 +1416,13 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 		if (!observed)
+ 			observed = device_create_bin_file(&pdev->dev,
+ 							  &bin_attr_region19_snapshot);
++		if (!observed) {
++			observed = device_create_file(&pdev->dev,
++						      &dev_attr_region19_prepare);
++			if (observed)
++				device_remove_bin_file(&pdev->dev,
++						       &bin_attr_region19_snapshot);
++		}
+ 		if (observed) {
+ 			if (mt6797_consys.region19_window) {
+ 				iounmap(mt6797_consys.region19_window);
+-- 
+2.54.0 (Apple Git-157)
+

@@ -1,0 +1,2 @@
+# One-shot root-triggered WMT memory setup; no CONN activation.
+CONFIG_LOCALVERSION="-gemini-a53-wifi-region19-wmtmem"
