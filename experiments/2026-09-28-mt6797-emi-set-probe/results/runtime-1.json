@@ -1,0 +1,43 @@
+{
+  "result": "one-shot-mainline-region18-policy-pair-accepted; firmware-execution-held",
+  "candidate_boot2_sha256": "4199be928613b2ec65b171bb2c9e27c98e8d434ac293fe3d8d9753a91c38d0f2",
+  "mainline_boot_id": "c806394d-d01d-4dd8-b7f5-0a759bf27bd6",
+  "kernel_release": "7.1.3-gemini-a53-wifi-emi-set-probe",
+  "capture": "late USB route after prearmed watcher expiry; complete sealed kernel log",
+  "private_complete_kernel_log_sha256": "0afed83b57e19a74ae6c3abada22a376fa209b6dcfaa5a49d19feb74c8075de4",
+  "private_collector_result_sha256": "ab00720ee0dcd0ac7aaadba1c395567b707af2f94c991c2fdae4feec89243bf9",
+  "owner_screen_observation": "mainline console visible",
+  "same_boot_gates": {
+    "powered_emi": true,
+    "chip_id": "0x0279",
+    "reset_release": true,
+    "hif_ioex_iorx_after": "0x02/0x02",
+    "wcir": "0x00100279"
+  },
+  "emi": {
+    "selector": "0x11403200",
+    "initial_region18_range": "0x00000000",
+    "initial_region19_range": "0x00000000",
+    "initial_region23_range": "0x00000000",
+    "region18_range_readback": "0xbfa0bfa7",
+    "copy": {
+      "smc_raw": "0x0000000000000000",
+      "signed_status": 0,
+      "policy_readback": "0x00b6da28"
+    },
+    "final": {
+      "smc_raw": "0x0000000000000000",
+      "signed_status": 0,
+      "policy_readback": "0x00b6da2d"
+    },
+    "sealed_record": true,
+    "stopped_records": 0
+  },
+  "a53_ram_service_regression": "pass",
+  "recovery": {
+    "changed_boot_gemian_id": "d4600ac2-c5ab-4325-9ea7-976c9686e834",
+    "kernel_release": "3.18.41+",
+    "wlan0_carrier": 1
+  },
+  "limits": "Secure-call status and direct register readback do not prove effective bus permissions, master domain, overlap priority, external-writer exclusion, firmware execution, or working mainline Wi-Fi."
+}

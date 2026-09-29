@@ -1,0 +1,38 @@
+{
+  "status": "prearmed-usb-watch-expired-before-late-mainline-route",
+  "candidate_boot2_sha256": "4199be928613b2ec65b171bb2c9e27c98e8d434ac293fe3d8d9753a91c38d0f2",
+  "kernel_build_commit": "5b99ce59d0b39132a9aa434143f201d506d9e026",
+  "kernel_release": "7.1.3-gemini-a53-wifi-emi-set-probe",
+  "deployment": {
+    "gemian_boot_id": "27784c9e-5f97-44c4-ae4b-f03849bca6a0",
+    "target": "logical boot2, /dev/mmcblk0p30",
+    "root": "/dev/mmcblk0p29",
+    "predecessor_sha256": "cad42c1fe0bfb2d099edbaf26322ef00da6452e3fdf4a41258e75d3b44b1803a",
+    "guard": "pass",
+    "full_readback_sha256": "4199be928613b2ec65b171bb2c9e27c98e8d434ac293fe3d8d9753a91c38d0f2",
+    "clean_shutdown": "confirmed-unreachable"
+  },
+  "watch": {
+    "armed_utc": "2026-09-29T00:26:44Z",
+    "expired_utc": "2026-09-29T00:41:45Z",
+    "budget_seconds": 900,
+    "initial_and_final_usb_stage": "mediatek-20ff",
+    "stage_transitions": 0,
+    "mainline_usb_route": false,
+    "device_ssh_attempts": 0,
+    "private_events_sha256": "5d114c92711c935eb59c16b07f779e78987c39be3e7baca05d29ce97bb0f7a08"
+  },
+  "physical_boot2_selection": "owner-confirmed after watch; mainline console visible",
+  "post_watch": {
+    "mainline_usb_route": "appeared after watch expiry; enumeration time not recorded",
+    "captured_session": "runtime-1.json"
+  },
+  "watch_limits": {
+    "mainline_boot_id": "not captured during the 900-second watch; later captured",
+    "kernel_log": "not captured during the 900-second watch; later captured",
+    "emi_policy_result": "not captured during the 900-second watch; later captured",
+    "a53_regression": "not-run",
+    "gemian_return": "not-yet-confirmed",
+    "mainline_wifi_operational": false
+  }
+}

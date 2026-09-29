@@ -77,3 +77,34 @@ Gemian return. The [USB watcher](watch-boot.py) has a 900-second budget and
 requires the installer's deployment summary before it can arm. A refusal is
 recorded as a completed diagnostic with `accepted: false`; it is not a Wi-Fi
 pass and must not be replayed without a changed hypothesis.
+
+## First device attempt and late capture
+
+The reviewed installer ran from changed known-good Gemian boot
+`27784c9e-5f97-44c4-ae4b-f03849bca6a0`, resolved inactive logical
+`boot2` from the live GPT, passed its block-identity and stable-power gates,
+and found the expected v9 Gemian predecessor. It wrote the candidate, matched
+the full 16-MiB readback, and confirmed a clean shutdown. The prearmed
+900-second USB watcher stayed at the MediaTek `20ff` stage through expiry.
+The owner then confirmed boot2 selection and a visible mainline console. The
+[watch receipt](results/attempt-1.json) records that host-only limit.
+
+After watcher expiry, the Mac enumerated the mainline gadget with its expected
+direct USB route. The validated collector captured a changed mainline boot ID,
+complete sealed log, and the [positive one-boot result](results/runtime-1.json).
+The same-boot power, chip-ID, reset-release and HIF gates passed. Immediately
+before the secure calls, the selector was `0x11403200`, region-1 was the
+expected nonzero control, and region-18/19/23 ranges were empty. Both bounded
+region-18 SMC32 calls returned raw zero. The direct range readback was
+`0xbfa0bfa7` for the first 512 KiB of the boot reservation; the policy
+readback was `0x00b6da28` after the copy request and `0x00b6da2d` after the
+final request. The owner logged the sealed state and made no firmware transfer.
+The A53 RAM-service regression passed. Reviewed recovery returned a changed
+Gemian boot with independently observed `wlan0/carrier=1`.
+
+This establishes that this mainline boot can request and read back the two
+region-18 policy values. It does not establish effective bus permissions,
+master-domain mapping, region-overlap priority, external-writer exclusion,
+firmware execution or usable mainline Wi-Fi. The next executor must own the
+firmware-copy transaction and retain protection/resource lifetime through
+handoff or failure; another secure-set-only boot has no decision value.
