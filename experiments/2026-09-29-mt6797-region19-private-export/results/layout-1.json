@@ -1,0 +1,22 @@
+{
+  "status": "private-mainline-region19-layout-analyzed",
+  "analysis_environment": "project RE VM",
+  "mainline_boot_id": "2edd163e-25aa-488c-82d1-e2b9dfc0f4ba",
+  "private_snapshot_sha256": "2f1b2365c4ebf9be526d54d7530aba308c20210b708ae926d1b47642a33e5c51",
+  "physical_window": "0xbfa80000..0xbfafffff",
+  "bytes": 524288,
+  "nonzero_bytes": 370,
+  "populated_4096_byte_pages": 117,
+  "maximum_nonzero_bytes_per_page": 8,
+  "nonzero_bytes_in_first_343_kib": 256,
+  "nonzero_bytes_in_remaining_169_kib": 114,
+  "nonzero_bytes_in_first_0x400": 2,
+  "nonzero_bytes_in_wmt_print_buffer_extent": 27,
+  "header_words_at_offsets_0x1c_0x20_0x24": [0, 0, 0],
+  "all_nonzero_bytes_single_bit_values": true,
+  "all_nonzero_runs_one_byte": true,
+  "gemian_control_reference": "../../2026-09-29-mt6797-region19-mainline-observe/results/control-reference.json",
+  "comparison": "The separate carrier-up Gemian control boot had populated WMT print-buffer fields and a contiguous printable prefix. The passive mainline boot had neither layout feature.",
+  "inference": "The mainline snapshot is consistent with an uninitialized WMT control window; the isolated bits do not establish their source or whether the contents were retained across reset. This does not identify the prior workqueue fault or authorize firmware START.",
+  "raw_memory_published": false
+}

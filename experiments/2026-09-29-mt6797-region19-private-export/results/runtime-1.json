@@ -1,0 +1,39 @@
+{
+  "status": "passive-region19-private-export-complete",
+  "candidate_boot2_sha256": "99d1f2db38ae01049aaa5346eb9c45d519dea675f8188db88ce9370b1f939430",
+  "kernel_build_commit": "b489c1cd9fa91c63a6119ee2c009ca951373489b",
+  "kernel_release": "7.1.3-gemini-a53-wifi-region19-export",
+  "deployment": {
+    "previous_gemian_boot": "27cdda0e-645d-479f-a218-748aa8814100",
+    "predecessor_boot2_sha256": "b35f5ea717f9b4909f4743a92255baedb16a307723c4c4590f90f1e03052b2c5",
+    "logical_target": "boot2",
+    "full_partition_readback_matches": true,
+    "summary_sha256": "cd36341c4224641232b1e4db5250703414f1bf43b98fc2cdde4b0b3681a98186",
+    "clean_shutdown_confirmed": true
+  },
+  "mainline": {
+    "boot_id": "2edd163e-25aa-488c-82d1-e2b9dfc0f4ba",
+    "same_boot_private_reads": 2,
+    "bytes_per_read": 524288,
+    "read_1_sha256": "2f1b2365c4ebf9be526d54d7530aba308c20210b708ae926d1b47642a33e5c51",
+    "read_2_sha256": "2f1b2365c4ebf9be526d54d7530aba308c20210b708ae926d1b47642a33e5c51",
+    "reads_equal": true,
+    "kernel_observation": {
+      "nonzero_bytes": 370,
+      "populated_4096_byte_pages": 117,
+      "active_probe_records": 0
+    },
+    "complete_kernel_log_sha256": "9f9237ddc92f0283d220b4e83cc5584ce11062fc5c1794ded0942b5456f50ecc",
+    "a53_regression": "pass",
+    "CONN_power_or_firmware_requested": false
+  },
+  "gemian_return": {
+    "confirmed": true,
+    "boot_id": "d651b0b4-11de-4306-8079-c267a3625d30",
+    "kernel_release": "3.18.41+",
+    "root_source": "/dev/mmcblk0p29",
+    "wlan_carrier": 1
+  },
+  "raw_memory_published": false,
+  "decision": "The passive export is complete. Do not replay the prior firmware-START image; resolve region-19/23 ownership and the unattributed workqueue fault before a distinct active candidate."
+}

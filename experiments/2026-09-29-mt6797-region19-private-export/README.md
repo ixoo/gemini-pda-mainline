@@ -29,7 +29,17 @@ kernel contains the read-only binary attribute. The private RAM root changed
 only its release gate. [Candidate receipt](results/candidate.json) pins the
 checked LK boot container and full 16-MiB padded image SHA-256
 `99d1f2db38ae01049aaa5346eb9c45d519dea675f8188db88ce9370b1f939430`.
-No device installation or boot has occurred for this candidate.
+The [single boot result](results/runtime-1.json) now records a guarded boot2
+write with matching full readback, a changed-boot mainline capture, complete
+log and A53 regression, and a confirmed changed-boot Gemian return with Wi-Fi
+carrier. Both private 512 KiB reads in the mainline boot were byte-identical.
+The [sanitized layout analysis](results/layout-1.json), performed in the RE VM,
+found no WMT print-buffer header: all 370 nonzero bytes were isolated
+single-bit values across 117 pages. The earlier carrier-up Gemian control
+snapshot had a populated WMT header and print buffer. These are different
+boots; the sparse mainline bytes neither identify their writer nor explain the
+prior firmware-START workqueue panic. This passive image remains installed on
+boot2, but it has no active Wi-Fi path.
 
 The [guarded installer](install-passive.py) accepts only the preceding passive
 boot2 checksum, uses the live GPT and project device guard, requires a matching

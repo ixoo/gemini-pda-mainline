@@ -563,6 +563,15 @@ for the first Wi-Fi bring-up. The current preparation order is:
    preserve those contents before designing an owned initialization sequence;
    the separate-boot counts do not establish a writer or explain the START
    panic.
+   A [subsequent passive private-export boot](../experiments/2026-09-29-mt6797-region19-private-export/results/runtime-1.json)
+   captured two identical 512 KiB reads in one mainline boot. Private RE-VM
+   analysis found 370 isolated single-bit bytes across 117 pages and zero WMT
+   print-buffer header words, unlike the populated header in the separate
+   Gemian control boot. Its complete log, A53 regression and changed-boot
+   carrier-up Gemian return passed. Treat the WMT control window as requiring
+   explicit owned initialization; neither these bits nor the missing header
+   attribute the earlier workqueue panic. Continue static ownership and
+   workqueue analysis before any new firmware START candidate.
    Add a same-boot admission gate and retained-fault owner transitions for the first firmware executor,
    without assuming that an earlier boot's zeros authorize an EMI write. A
    [passive mainline EMI read](../experiments/2026-09-27-mt6797-emi-boot-observe/results/runtime-1.json)
