@@ -521,6 +521,16 @@ for the first Wi-Fi bring-up. The current preparation order is:
    passed. The passive WLAN child also accepted the staged image's four-section
    plan in that boot. This validates one pre-firmware HIF path and live image
    acquisition, not usable mainline Wi-Fi.
+   A later [one-shot mainline EMI policy probe](../experiments/2026-09-28-mt6797-emi-set-probe/results/runtime-1.json)
+   reached the same power/reset/HIF gates and received zero status with matching
+   direct region-18 readback for both temporary `0xb6da28` and final
+   `0xb6da2d` requests. It transferred no firmware. That closes the secure
+   request/readback question for this boot; build the owned complete-section
+   transaction next, retaining the firmware source, mapping and powered
+   resources through any failed copy or later execution. A repeat of the
+   policy-only candidate has no decision value. Effective bus permissions,
+   master-domain routing, external-writer exclusion and any future firmware
+   fetch remain unproved.
    Add a same-boot admission gate and retained-fault owner transitions for the first firmware executor,
    without assuming that an earlier boot's zeros authorize an EMI write. A
    [passive mainline EMI read](../experiments/2026-09-27-mt6797-emi-boot-observe/results/runtime-1.json)
