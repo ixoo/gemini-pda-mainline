@@ -40,3 +40,14 @@ kernel release, initramfs and LK container before guarded boot2 installation.
 The owner physically selects boot2 after the host collector is armed. The
 previous firmware-start image must not be replayed. Raw evidence, firmware
 and credentials remain ignored under `artifacts/`.
+
+The offline [candidate receipt](results/candidate.json) pins the Buildbox
+package and the full 16 MiB image. The private candidate directory is named
+`candidate-dab18287447bd3c7040b37db952f8096058d462f750efc13e0146a92a5b3ed6b`;
+its padded boot2 checksum is
+`e16e89389b1d10017bbe76b160cc10648e83c3b0cb10542761f7e9161b1fb951`.
+The installer accepts only the preceding firmware-start image's full checksum
+or an already matching passive image, and requires a fresh Gemian boot ID,
+guarded live-GPT target, stable power and matching full readback. The watcher
+collects one authenticated mainline log and service regression, then uses the
+reviewed Gemian return. Neither helper enables firmware START.
