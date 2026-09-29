@@ -1,0 +1,48 @@
+{
+  "status": "one-shot-WMT-memory-setup-complete",
+  "candidate_boot2_sha256": "0083834cea0e62d004dc92bf087c8167dfcf6dbbe6cf764a3e8d04d487261b8f",
+  "kernel_build_commit": "41541e37fd451ff45ec0b8a0c0df0ddc1ed4d190",
+  "kernel_release": "7.1.3-gemini-a53-wifi-region19-wmtmem",
+  "deployment": {
+    "previous_gemian_boot": "d651b0b4-11de-4306-8079-c267a3625d30",
+    "logical_target": "boot2",
+    "full_partition_readback_matches": true,
+    "summary_sha256": "8d2591ec55bda166153b2ab282e7ebba905ee14368146581f3afac596ce7f40d",
+    "clean_shutdown_confirmed": true
+  },
+  "mainline": {
+    "boot_id": "565fd2b0-af8e-4654-96c0-39ef5bf2d0c6",
+    "pre_window_bytes": 524288,
+    "pre_window_sha256": "61969f642f3f8eab6764566d5141790f95ade78a78e60a4cd0d61c6be3f7d7eb",
+    "read_only_sysfs_refusal": {
+      "store_invoked": false,
+      "post_attempt_window_unchanged": true
+    },
+    "same_boot_continuation": {
+      "temporary_sysfs_remount": "rw-then-ro-verified",
+      "store_invocations": 1,
+      "secure_status": 0,
+      "region19_range": "0xbfa8bfaf",
+      "region19_policy": "0x00b6da28",
+      "remap_before": "0x180e0000",
+      "remap_after": "0x180e1bfa",
+      "cleared_prefix_bytes": 351232,
+      "cleared_prefix_zero": true,
+      "remaining_suffix_unchanged": true,
+      "post_window_sha256": "fab07e0bf72a4b8ff77ee87558046748a9a24de58fe6f94564f4c082751f1a57",
+      "expected_WMT_record_counts": [1, 1, 1, 1, 1],
+      "CONN_held_off": true,
+      "firmware_start": false,
+      "radio_action": false
+    },
+    "complete_kernel_log_sha256": "200e60078443e4c59f9b3a0e37d3048b7d6708e7af9b4725c154541bab1680c0",
+    "a53_regression": "pass",
+    "provider_bound": true
+  },
+  "gemian_return": {
+    "confirmed": true,
+    "boot_id": "8dcdeaf4-cf2e-4fd1-8f75-cb47ccbde660"
+  },
+  "raw_memory_published": false,
+  "interpretation": "The bounded AP-visible region-19 policy, remap and WMT clear read back in one mainline boot. Effective CONSYS permissions, region-23 overlap behavior and the earlier firmware-START workqueue panic remain unresolved; mainline Wi-Fi is not functional."
+}

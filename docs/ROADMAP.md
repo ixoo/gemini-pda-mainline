@@ -572,6 +572,17 @@ for the first Wi-Fi bring-up. The current preparation order is:
    explicit owned initialization; neither these bits nor the missing header
    attribute the earlier workqueue panic. Continue static ownership and
    workqueue analysis before any new firmware START candidate.
+   A [one-shot WMT memory setup](../experiments/2026-09-29-mt6797-region19-wmt-memory/results/runtime-1.json)
+   subsequently returned secure status zero and read back region 19 and the
+   shared remap in one mainline boot with CONN held off. A same-boot private
+   before/after read proved the first 343 KiB cleared and the rest of the
+   512 KiB window unchanged. The initial sysfs write never reached the kernel
+   because `/sys` was read-only; a bounded temporary remount admitted the
+   single actual store and was restored to read-only. The complete log, A53
+   regression and changed-boot Gemian return passed. This closes the
+   AP-visible WMT initialization gap, but neither establishes effective CONN
+   permissions nor explains the earlier workqueue panic. Resolve the region-23
+   overlap and invalid-workqueue ownership before a distinct firmware START.
    Add a same-boot admission gate and retained-fault owner transitions for the first firmware executor,
    without assuming that an earlier boot's zeros authorize an EMI write. A
    [passive mainline EMI read](../experiments/2026-09-27-mt6797-emi-boot-observe/results/runtime-1.json)

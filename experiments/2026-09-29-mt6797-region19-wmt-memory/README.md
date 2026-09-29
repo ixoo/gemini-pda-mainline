@@ -53,6 +53,17 @@ two identical private pre-write windows, sends one sysfs trigger, then saves a
 full post-attempt window after a reported trigger error when USB SSH remains
 available. The
 [session collector](passive-host.py) seals the log, checks exact WMT records,
-runs the A53 regression and uses the reviewed return to Gemian. Device
-observations are pending. Raw window contents, firmware, credentials and full
-logs stay in ignored private artifacts.
+runs the A53 regression and uses the reviewed return to Gemian. The
+[runtime result](results/runtime-1.json) records a same-boot correction after
+the first trigger was blocked by the baseline initramfs's read-only `/sys`
+mount. That failed shell redirection never invoked the store, and a complete
+post-attempt memory read matched both pre-reads. With exact boot and window
+identity rechecked, a temporary `rw` remount admitted one trigger; `/sys` was
+immediately restored to `ro`. The secure call returned zero, the region-19
+range and policy and shared remap read back as requested, the first 343 KiB
+cleared, and the rest of the captured window was unchanged. The full log had
+one of each expected WMT record and no firmware START. The A53 regression and
+changed-boot Gemian return passed. This establishes the bounded AP-visible
+setup, not effective master permissions, region-23 overlap behavior or working
+Wi-Fi. Raw window contents, firmware, credentials and full logs stay in ignored
+private artifacts.
