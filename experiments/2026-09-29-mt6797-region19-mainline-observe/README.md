@@ -41,7 +41,7 @@ The owner physically selects boot2 after the host collector is armed. The
 previous firmware-start image must not be replayed. Raw evidence, firmware
 and credentials remain ignored under `artifacts/`.
 
-The first offline [candidate receipt](results/candidate.json) pins the Buildbox
+The first offline [candidate receipt](results/candidate-1.json) pins the Buildbox
 package and the full 16 MiB image. Its private candidate directory is named
 `candidate-dab18287447bd3c7040b37db952f8096058d462f750efc13e0146a92a5b3ed6b`;
 its padded boot2 checksum is
@@ -50,6 +50,15 @@ The [first boot](results/runtime-1.json) passed the service regression but
 CONSYS refused probe with `-EINVAL`: the passive DT still listed the active
 probe's five extra MMIO ranges. No region-19 sample occurred. Its complete
 log was preserved and a changed-boot Gemian return confirmed. Do not replay
-this image. Patch 0046 now reduces the passive node to its remap register;
-a corrected build and candidate are pending. Neither image enables firmware
-START.
+this image. Patch 0046 now reduces the passive node to its remap register.
+
+The corrected [candidate receipt](results/candidate.json) pins Buildbox commit
+`2fa985d299264c1b3ea59ba3a1391472db9dc46c`. The new 16 MiB boot2 checksum
+is `b35f5ea717f9b4909f4743a92255baedb16a307723c4c4590f90f1e03052b2c5`.
+The compiled DT and boot image contain only the remap register and passive
+observer flag; all seven active probes and their five unused MMIO ranges are
+absent. The guarded installer requires the first passive image as predecessor,
+a fresh Gemian boot ID and a matching full readback before clean shutdown.
+The second session's watcher collects one authenticated boot log and service
+regression, then uses the reviewed Gemian return. Neither image enables
+firmware START.

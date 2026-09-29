@@ -1,8 +1,8 @@
 {
   "status": "offline-gated-passive-region19-observe-candidate-validated",
-  "kernel_build_commit": "2fa985d299264c1b3ea59ba3a1391472db9dc46c",
+  "kernel_build_commit": "13f2e94ea8b33b52e46ce98c6ea6bfef242d6eef",
   "kernel_release": "7.1.3-gemini-a53-wifi-region19-observe",
-  "kernel_package_sha256": "65b85badf16b15585158a6741dbfbc40dfc63721a11934e26be6f5207b6c829d",
+  "kernel_package_sha256": "6edd6a4a24f62704b89371f21e51acb070de2e23af1706b7d4b8d55a2c7f272a",
   "parent_boot2_sha256": "3590bddf2e4ddbc21923bab0ccf18b36c90e365935dca0bafcbdd09aaf6140a6",
   "firmware_sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
   "files": {
@@ -11,15 +11,15 @@
       "bytes": 6480652
     },
     "board.dtb": {
-      "sha256": "f81f1297ffb59f290d5881124f5e911debee43f3c0e7b15afbcf96b09454e9b6",
-      "bytes": 27962
+      "sha256": "679f07717051a6aa4274fd75d5e02528114faad88b7fcc80d341776f22e9c8f8",
+      "bytes": 28098
     },
     "boot.img": {
-      "sha256": "2ac98b71a64c388c9cfa6a45606b765bf8e51d232f456a47b65f8acc737077b9",
+      "sha256": "dab18287447bd3c7040b37db952f8096058d462f750efc13e0146a92a5b3ed6b",
       "bytes": 9781248
     },
     "boot2-padded.img": {
-      "sha256": "b35f5ea717f9b4909f4743a92255baedb16a307723c4c4590f90f1e03052b2c5",
+      "sha256": "e16e89389b1d10017bbe76b160cc10648e83c3b0cb10542761f7e9161b1fb951",
       "bytes": 16777216
     },
     "initramfs.img": {
@@ -31,7 +31,7 @@
       "bytes": 112015
     }
   },
-  "device_tree_change": "remove seven active probes and five unused MMIO ranges; add passive region19 observer",
+  "device_tree_change": "remove seven active probes; add passive region19 observer",
   "secret_bearing": true,
   "device_action": "none",
   "physical_admission": false

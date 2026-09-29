@@ -14,7 +14,7 @@ import sys
 sys.dont_write_bytecode = True
 HERE = Path(__file__).resolve().parent
 PRIVATE_REPO = Path(os.environ['GEMINI_PRIVATE_REPO']).resolve(strict=True)
-ROOT = PRIVATE_REPO / 'artifacts/region19-observe/session-1'
+ROOT = PRIVATE_REPO / 'artifacts/region19-observe/session-2'
 SOURCE = HERE.parent / '2026-09-28-mt6797-firmware-start-probe/passive-host.py'
 SPEC = importlib.util.spec_from_file_location('firmware_start_host', SOURCE)
 START = importlib.util.module_from_spec(SPEC)

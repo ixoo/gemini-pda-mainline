@@ -23,7 +23,7 @@ OLD = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(OLD)
 BOOT = REPO / 'experiments/2026-07-12-boot-contract-recovery/scripts'
 PARENT_RECEIPT = HERE.parent / '2026-09-28-mt6797-firmware-start-probe/results/candidate.json'
-BUILD_COMMIT = '13f2e94ea8b33b52e46ce98c6ea6bfef242d6eef'
+BUILD_COMMIT = '2fa985d299264c1b3ea59ba3a1391472db9dc46c'
 PROFILE = 'mt6797-a53-wifi-region19-observe'
 RELEASE = '7.1.3-gemini-a53-wifi-region19-observe'
 PARENT_BOOT2_SHA256 = '3590bddf2e4ddbc21923bab0ccf18b36c90e365935dca0bafcbdd09aaf6140a6'
