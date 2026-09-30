@@ -561,3 +561,4 @@ proposals/0048-soc-mediatek-prepare-one-shot-MT6797-WMT-memory.patch
 proposals/0049-dt-bindings-allow-deferred-MT6797-WMT-and-WLAN-diagnostic.patch
 proposals/0050-soc-mediatek-defer-WLAN-START-until-WMT-setup.patch
 proposals/0051-workqueue-name-null-pool-after-WLAN-START.patch
+proposals/0052-soc-mediatek-admit-verified-WMT-region19-for-WLAN-start.patch

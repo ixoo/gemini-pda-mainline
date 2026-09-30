@@ -1,0 +1,98 @@
+From f9cf502d3e7d51f52b14544f2d6f366f4fd5f6dd Mon Sep 17 00:00:00 2001
+From: Gemini PDA experiment <experiment.invalid>
+Date: Tue, 29 Sep 2026 20:40:50 -0400
+Subject: [PATCH] soc: mediatek: admit verified WMT region 19 through WLAN
+ start gates
+
+The deferred WMT setup leaves region 19 programmed. The older powered EMI and region-18 copy gates still required region 19 to be empty, so reset release and firmware transfer never ran. Admit only the exact WMT range and policy in the one-shot deferred path, and verify that policy remains unchanged after the EMI copy. Preserve the empty-region requirement for earlier probes.
+
+Internal experiment only; synthetic non-certifying author, no DCO.
+---
+ drivers/soc/mediatek/mt6797-consys.c | 28 +++++++++++++++++++++++-----
+ 1 file changed, 23 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index 465e2b0..8b3e2b8 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -492,12 +492,27 @@ static u32 mt6797_consys_read_emi(u32 offset)
+ 	return (u32)res.a0;
+ }
+ 
++/* WMT leaves region 19 protected; the earlier probe expects it unused. */
++static bool mt6797_consys_region19_admitted(struct mt6797_consys *owner,
++					     u32 range, u32 policy)
++{
++	if (!owner->deferred_start_armed)
++		return !range && !policy;
++
++	return owner->wmt_init_complete && owner->deferred_start_attempted &&
++	       range ==
++	       (((u32)((owner->reservation.start + SZ_512K) >> 16) << 16) |
++		(u32)((owner->reservation.start + SZ_1M - 1) >> 16)) &&
++	       policy == MT6797_EMI_COPY_POLICY;
++}
++
+ /* Sample the first-load protection premise only after powered ID admission. */
+ static bool mt6797_consys_probe_powered_emi(struct device *dev,
+ 					     struct mt6797_consys *owner)
+ {
+ 	u32 region23_before, region23_after, control;
+ 	u32 region18, policy18, region19, policy19, policy23;
++	bool region19_admitted;
+ 	int ret;
+ 
+ 	ret = mtk_pm_domain_confirmed_on(owner->conn_domain);
+@@ -524,6 +539,8 @@ static bool mt6797_consys_probe_powered_emi(struct device *dev,
+ 		ret = ret < 0 ? ret : -EIO;
+ 		goto skipped;
+ 	}
++	region19_admitted = mt6797_consys_region19_admitted(owner, region19,
++							   policy19);
+ 	dev_info(dev,
+ 		 "one-shot CONN EMI powered: control1=0x%08x region23-before=0x%08x region23-after=0x%08x\n",
+ 		 control, region23_before, region23_after);
+@@ -531,7 +548,7 @@ static bool mt6797_consys_probe_powered_emi(struct device *dev,
+ 		 "one-shot CONN EMI powered: region18=0x%08x policy18=0x%08x region19=0x%08x policy19=0x%08x policy23=0x%08x\n",
+ 		 region18, policy18, region19, policy19, policy23);
+ 	return control == 0x44604460 && !region23_before && !region23_after &&
+-	       !region18 && !policy18 && !region19 && !policy19;
++	       !region18 && !policy18 && !policy23 && region19_admitted;
+ 
+ skipped:
+ 	dev_err(dev, "one-shot CONN EMI powered skipped: owner status %d\n", ret);
+@@ -883,7 +900,7 @@ static void mt6797_consys_probe_emi_set(struct device *dev,
+ 	phys_addr_t start = owner->reservation.start;
+ 	phys_addr_t end = start + SZ_512K - 1;
+ 	u32 expected = ((u32)(start >> 16) << 16) | (u32)(end >> 16);
+-	u32 before18, before19, before23, range, policy;
++	u32 before18, before19, before19_policy, before23, range, policy;
+ 	u32 selector;
+ 	unsigned long raw;
+ 	int ret, copy_ret = 0;
+@@ -905,10 +922,11 @@ static void mt6797_consys_probe_emi_set(struct device *dev,
+ 	}
+ 	before18 = mt6797_consys_read_emi(MT6797_EMI_REGION18_RANGE);
+ 	before19 = mt6797_consys_read_emi(MT6797_EMI_REGION19_RANGE);
++	before19_policy = mt6797_consys_read_emi(MT6797_EMI_REGION19_POLICY);
+ 	before23 = mt6797_consys_read_emi(MT6797_EMI_REGION23_RANGE);
+-	if (before18 || before19 || before23 ||
++	if (before18 || before23 ||
+ 	    mt6797_consys_read_emi(MT6797_EMI_REGION18_POLICY) ||
+-	    mt6797_consys_read_emi(MT6797_EMI_REGION19_POLICY)) {
++	    !mt6797_consys_region19_admitted(owner, before19, before19_policy)) {
+ 		ret = -EBUSY;
+ 		goto stopped;
+ 	}
+@@ -987,7 +1005,7 @@ seal:
+ 	     copied.bytes != summary.emi_bytes)) ||
+ 	    range != expected || policy != MT6797_EMI_FINAL_POLICY ||
+ 	    mt6797_consys_read_emi(MT6797_EMI_REGION19_RANGE) != before19 ||
+-	    mt6797_consys_read_emi(MT6797_EMI_REGION19_POLICY) ||
++	    mt6797_consys_read_emi(MT6797_EMI_REGION19_POLICY) != before19_policy ||
+ 	    mt6797_consys_read_emi(MT6797_EMI_REGION23_RANGE) != before23 ||
+ 	    readl(owner->emi_selector) != selector) {
+ 		ret = ret ?: (copy_ret ?: -EIO);
+-- 
+2.54.0 (Apple Git-157)
+

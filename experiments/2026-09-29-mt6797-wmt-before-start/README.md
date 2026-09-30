@@ -68,4 +68,16 @@ remount for WMT preparation, restores read-only, validates the full post-window
 and five kernel records, then makes one separately remounted START request.
 If the boot survives, `passive-host.py` preserves the complete session and
 uses the reviewed return path. A crash instead requires retained-pstore
-inspection from known-good Gemian. Runtime outcome is pending.
+inspection from known-good Gemian.
+
+The [corrected candidate's boot](results/runtime-2.json) reached mainline. Two
+full private region-19 reads matched; WMT preparation verified the 343 KiB clear,
+and the one-time START sysfs write returned success. The complete kernel log
+shows only prepower admission and a powered chip ID of `0x0279`: CONMCU reset
+release stopped at the older EMI gate because it still required region 19 to
+be empty. No firmware transfer or WLAN-ready event occurred. The A53 regression
+passed and a changed-boot Gemian return was confirmed. A separate later EMI
+copy gate also requires empty region 19, so patch 0052 admits the exact WMT
+range and policy at both gates while preserving the zero-only requirement for
+other profiles and checking that the policy is unchanged after the copy.
+This patch requires a new Buildbox image and one fresh boot observation.

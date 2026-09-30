@@ -1,0 +1,43 @@
+{
+  "status": "stopped-before-CONMCU-reset-release-at-legacy-EMI-gate",
+  "candidate_boot2_sha256": "d693e23ced511d6473a81d25e7c30eb792a7328b570755325b4492bb9bac1749",
+  "mainline_boot_id": "cdc4ac8e-cbc5-4a86-a70e-9a5e1ef5912c",
+  "kernel_release": "7.1.3-gemini-a53-wifi-wmt-start",
+  "region19_preservation": {
+    "two_full_512KiB_reads_equal": true,
+    "wmt_setup_accepted": true,
+    "clear_bytes_verified": 351232,
+    "five_wmt_records_each_once": true
+  },
+  "firmware_start_request": {
+    "sent_once": true,
+    "sysfs_exit_status": 0,
+    "prepower_admission_count": 1
+  },
+  "powered_emi_observation": {
+    "chip_id_after_20ms": "0x0279",
+    "region1": "0x44604460",
+    "region18": "0x00000000",
+    "policy18": "0x00000000",
+    "region19": "0xbfa8bfaf",
+    "policy19": "0x00b6da28",
+    "region23": "0x00000000",
+    "policy23": "0x00000000",
+    "mcu_reset_release": "skipped: older EMI gate required region19 range and policy to be zero"
+  },
+  "firmware_transfer": {
+    "submit_count": 0,
+    "ready_count": 0,
+    "null_workqueue_pool_count": 0
+  },
+  "mainline_session": {
+    "complete_log_preserved_privately": true,
+    "a53_regression_pass": true
+  },
+  "gemian_return": {
+    "confirmed": true,
+    "changed_boot_id": "79e20065-17eb-452d-9daa-389fba09e027"
+  },
+  "interpretation": "The host START write succeeded, but this boot did not release CONMCU reset or start WLAN firmware. The powered EMI gate ignored the verified WMT region19 policy; the later region18 copy gate has the same zero-only premise.",
+  "next_candidate": "Admit only the exact prepared WMT region19 range and policy at both gates, retaining the zero-only premise for non-deferred probes; rebuild and retest once."
+}
