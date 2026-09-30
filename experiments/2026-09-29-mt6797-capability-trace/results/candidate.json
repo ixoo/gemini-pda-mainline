@@ -1,0 +1,38 @@
+{
+  "status": "offline-gated-capability-trace-candidate-validated",
+  "kernel_build_commit": "3801d1d814144f804f288287d79d89a0e4aaceba",
+  "kernel_release": "7.1.3-gemini-a53-wifi-capability-trace",
+  "kernel_package_sha256": "e2a32d5c8bb71eb88f4f7206a1c4d5035b772841bd2146034a3d561a924f28f3",
+  "parent_boot2_sha256": "0083834cea0e62d004dc92bf087c8167dfcf6dbbe6cf764a3e8d04d487261b8f",
+  "firmware_sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
+  "files": {
+    "Image.gz": {
+      "sha256": "d04b1e8e5d94cf832e59431232a266594c372f3e8bbaa7ad68dcc925beaeea06",
+      "bytes": 6483646
+    },
+    "board.dtb": {
+      "sha256": "cef9373ea3aa0e1a8a45a13b953ae95e48939b211e41a73052543be784ee3214",
+      "bytes": 28231
+    },
+    "boot.img": {
+      "sha256": "52daca609d8b50870715b1a2e493435d5c73cfdbc53ac2158c120994a2982d7a",
+      "bytes": 9783296
+    },
+    "boot2-padded.img": {
+      "sha256": "201aef55fdad77dedd07c1fd4837df96e048936ab99da0d717ce05812a86e8f5",
+      "bytes": 16777216
+    },
+    "initramfs.img": {
+      "sha256": "29cfa7a5d99cb2ffa7336f718832c56f69cdf61d6cf2cb80acf383a4151f0673",
+      "bytes": 3266669
+    },
+    "kernel.config": {
+      "sha256": "31e3b4e8e0611776c2e5fff5ac00251143b7924764a521c05d83511b7151c1ef",
+      "bytes": 112015
+    }
+  },
+  "device_tree_change": "only CONSYS resources and deferred flags on booted parent DT",
+  "secret_bearing": true,
+  "device_action": "none",
+  "physical_admission": false
+}

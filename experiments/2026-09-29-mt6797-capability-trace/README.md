@@ -35,6 +35,22 @@ The actual patched HIF core passes the focused host test under strict C11,
 ASan and UBSan, including the one successful exchange, all 69 scalar access
 faults, stale queue, wrong length/sequence and missing-reply deadline. The
 patch applies to the pinned prepared source and `checkpatch.pl --no-signoff`
-reports zero errors and warnings. The test source is in
-[`tests/test-capability.c`](tests/test-capability.c). This simulation cannot
-establish a device response. Build and physical result are pending.
+reports zero errors and warnings. The [host validation receipt](results/host-validation.json)
+and [test source](tests/test-capability.c) record the checks. This simulation
+cannot establish a device response.
+
+The [Buildbox build and offline candidate](results/build.json) passed for
+commit `3801d1d814144f804f288287d79d89a0e4aaceba`. The fetched package
+inventory is `e2a32d5c8bb71eb88f4f7206a1c4d5035b772841bd2146034a3d561a924f28f3`.
+The private RAM root changed only `/init`'s release gate; its 52-member round
+trip preserved the firmware hash. The [sanitized candidate receipt](results/candidate.json)
+pins full boot2 SHA-256
+`201aef55fdad77dedd07c1fd4837df96e048936ab99da0d717ce05812a86e8f5`
+and the previously booted board DT SHA-256
+`cef9373ea3aa0e1a8a45a13b953ae95e48939b211e41a73052543be784ee3214`.
+The device has not been changed by this candidate.
+
+The guarded installer binds the authenticated Gemian boot ID,
+validated candidate receipt and prior full boot2 checksum. Offline installer
+validation, Bash syntax and ShellCheck passed. It has not been run on the
+device; physical selection and runtime observation remain pending.

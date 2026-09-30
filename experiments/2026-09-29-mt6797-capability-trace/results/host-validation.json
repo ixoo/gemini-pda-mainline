@@ -1,0 +1,14 @@
+{
+  "status": "offline-diagnostic-and-installer-validation-passed",
+  "patch_sha256": "746f06d021a67b9355aa0f9934cf9af2b06ea21775dbb019833c42e7cbe7b00b",
+  "test_sha256": "6ed17c837ff174243ed86d4e9ff27e68f9c6074cbe7d0ee8aadc83d7c8b52269",
+  "host_test": "strict C11, ASan and UBSan: success, all 69 injected scalar access faults, stale queue, bad length/sequence, missing-reply deadline and one-attempt refusal passed",
+  "prepared_source_apply_check": "passed on pinned patch-0053 Buildbox source",
+  "checkpatch": "0 errors, 0 warnings with --no-signoff; no DCO sign-off invented",
+  "repository_check": "passed for 242 profile-order audit at build-input commit",
+  "installer_validate": "passed for exact candidate and live known-good Gemian boot ID",
+  "installer_syntax": "bash -n passed",
+  "installer_shellcheck": "passed",
+  "candidate_build": "passed with validated Buildbox package",
+  "device_action": "none"
+}
