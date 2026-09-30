@@ -11,15 +11,15 @@
       "bytes": 6481219
     },
     "board.dtb": {
-      "sha256": "cef9373ea3aa0e1a8a45a13b953ae95e48939b211e41a73052543be784ee3214",
-      "bytes": 28231
+      "sha256": "5abe5d14ddb424c5939e7ac6f6303210774f85e6be1413f2730f31804df046ca",
+      "bytes": 29413
     },
     "boot.img": {
-      "sha256": "01ad97d57a8b079c94135266aaa449d54905a94af971a650a74ad430b1441998",
-      "bytes": 9781248
+      "sha256": "dbdf6e78fb916a52b97fc77d57f75aeb9a32d3f8e30d2548f1ce03fadc5c39ef",
+      "bytes": 9783296
     },
     "boot2-padded.img": {
-      "sha256": "d693e23ced511d6473a81d25e7c30eb792a7328b570755325b4492bb9bac1749",
+      "sha256": "1eb217b99c76d6057ab785869590c2a4a5044ce8d3f9edaed73e2e1a32954a76",
       "bytes": 16777216
     },
     "initramfs.img": {
@@ -31,7 +31,7 @@
       "bytes": 112008
     }
   },
-  "device_tree_change": "only CONSYS resources and deferred flags on booted parent DT",
+  "device_tree_change": "deferred active resources and trigger",
   "secret_bearing": true,
   "device_action": "none",
   "physical_admission": false

@@ -46,7 +46,7 @@ def main():
             return 0
         wmt = json.loads((CAPTURE / 'wmt-result.json').read_text())
         start = json.loads((CAPTURE / 'start-result.json').read_text())
-        candidate = json.loads((HERE / 'results/candidate-2.json').read_text())
+        candidate = json.loads((HERE / 'results/candidate.json').read_text())
         digest = candidate['files']['boot2-padded.img']['sha256']
         require(wmt.get('accepted') is True and
                 wmt.get('candidate_boot2_sha256') == digest and

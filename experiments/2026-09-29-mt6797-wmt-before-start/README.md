@@ -45,7 +45,7 @@ firmware image identity on the coprocessor, calibration, radio operation or
 working mainline Wi-Fi. No packet DMA, association or network interface is
 enabled by this profile.
 
-The [first candidate](results/candidate.json) used Buildbox commit
+The [first candidate](results/candidate-1.json) used Buildbox commit
 `d4849f689d35c034468d4bb786306f403ead6ed0` and release
 `7.1.3-gemini-a53-wifi-wmt-start`, but its [two physical boot attempts](results/attempt-1.json)
 returned to Gemian before a mainline USB route. The second boot2 selection was
@@ -55,7 +55,7 @@ assembler had used the full compiled DT, changing unrelated board nodes,
 including disabling USB and keyboard paths. This is a concrete candidate
 defect; the exact reset cause remains unobserved.
 
-The [corrected candidate](results/candidate-2.json) retains the same compiled
+The [corrected candidate](results/candidate.json) retains the same compiled
 kernel and private RAM root while modifying only the CONSYS node in the last
 booting parent DT. A 180-node semantic comparison proves no other DT node
 changed. Its full boot2 SHA-256 is

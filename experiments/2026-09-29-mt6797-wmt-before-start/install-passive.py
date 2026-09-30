@@ -25,7 +25,7 @@ ADAPTER.MANIFEST_SHA = ADAPTER.INSTALLER.MANIFEST_SHA
 def validate(candidate, previous):
     ADAPTER.INSTALLER.boot_uuid(previous)
     candidate = Path(os.path.abspath(candidate))
-    published = HERE / 'results/candidate-2.json'
+    published = HERE / 'results/candidate.json'
     ADAPTER.INSTALLER.require(candidate.is_dir() and not candidate.is_symlink() and
                               ADAPTER.INSTALLER.digest(published.read_bytes()) ==
                               ADAPTER.MANIFEST_SHA, 'candidate receipt changed')

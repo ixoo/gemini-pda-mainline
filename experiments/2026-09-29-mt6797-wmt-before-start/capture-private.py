@@ -24,7 +24,7 @@ SPEC.loader.exec_module(CAPTURE)
 CAPTURE.ROOT = ROOT
 CAPTURE.CAPTURE = CAPTURE_DIR
 CAPTURE.DEPLOYMENT = ROOT / 'session-2/deployment-summary.txt'
-CAPTURE.RECEIPT = HERE / 'results/candidate-2.json'
+CAPTURE.RECEIPT = HERE / 'results/candidate.json'
 CAPTURE.MANIFEST_SHA = '3d895eb3d47c67db7c60c6868293bba7bf62073d1c1023c7eb058677f2f515c5'
 CAPTURE.RELEASE = '7.1.3-gemini-a53-wifi-wmt-start'
 RELEASE = CAPTURE.RELEASE
