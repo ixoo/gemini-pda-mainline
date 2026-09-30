@@ -55,13 +55,12 @@ assembler had used the full compiled DT, changing unrelated board nodes,
 including disabling USB and keyboard paths. This is a concrete candidate
 defect; the exact reset cause remains unobserved.
 
-The [corrected candidate](results/candidate.json) retains the same compiled
+The [second candidate](results/candidate-2.json) retains the same compiled
 kernel and private RAM root while modifying only the CONSYS node in the last
 booting parent DT. A 180-node semantic comparison proves no other DT node
 changed. Its full boot2 SHA-256 is
 `d693e23ced511d6473a81d25e7c30eb792a7328b570755325b4492bb9bac1749`.
-The private firmware remains excluded from the repository. `install-passive.py`
-pins this candidate and the predecessor full-partition digest; `watch-boot.py`
+The private firmware remains excluded from the repository. `watch-boot.py`
 runs `capture-private.py` once the direct USB route appears. That capture verifies
 two identical pre-write 512 KiB reads, uses a temporary `/sys` read-write
 remount for WMT preparation, restores read-only, validates the full post-window
@@ -80,4 +79,10 @@ passed and a changed-boot Gemian return was confirmed. A separate later EMI
 copy gate also requires empty region 19, so patch 0052 admits the exact WMT
 range and policy at both gates while preserving the zero-only requirement for
 other profiles and checking that the policy is unchanged after the copy.
-This patch requires a new Buildbox image and one fresh boot observation.
+The [third candidate](results/candidate.json) contains patch 0052 from Buildbox
+commit `c36ea4925d6acc8c16f6e6b639ffa22260a56864`. The same 180-node booting
+DT and private RAM root are retained. Its full boot2 SHA-256 is
+`42c3c298b88e31757a7d1c8e785afe3494a10937e70bb87d2e6bb31704f2073e`.
+The installer pins the second candidate as predecessor; the fresh capture and
+session directories are numbered 3. Offline image validation passed. Device
+installation and runtime observation are pending.

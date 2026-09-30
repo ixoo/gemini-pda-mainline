@@ -16,16 +16,16 @@ HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[1]
 PRIVATE_REPO = Path(os.environ['GEMINI_PRIVATE_REPO']).resolve(strict=True)
 ROOT = PRIVATE_REPO / 'artifacts/wmt-before-start'
-CAPTURE_DIR = ROOT / 'capture-2'
+CAPTURE_DIR = ROOT / 'capture-3'
 SOURCE = HERE.parent / '2026-09-29-mt6797-region19-wmt-memory/capture-private.py'
 SPEC = importlib.util.spec_from_file_location('wmt_memory_capture', SOURCE)
 CAPTURE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(CAPTURE)
 CAPTURE.ROOT = ROOT
 CAPTURE.CAPTURE = CAPTURE_DIR
-CAPTURE.DEPLOYMENT = ROOT / 'session-2/deployment-summary.txt'
+CAPTURE.DEPLOYMENT = ROOT / 'session-3/deployment-summary.txt'
 CAPTURE.RECEIPT = HERE / 'results/candidate.json'
-CAPTURE.MANIFEST_SHA = '3d895eb3d47c67db7c60c6868293bba7bf62073d1c1023c7eb058677f2f515c5'
+CAPTURE.MANIFEST_SHA = '5c2a1d6e65db746dfd62a8da13535ab55e95c72043cf4c42623e095b6c514131'
 CAPTURE.RELEASE = '7.1.3-gemini-a53-wifi-wmt-start'
 RELEASE = CAPTURE.RELEASE
 WINDOW = CAPTURE.WINDOW
