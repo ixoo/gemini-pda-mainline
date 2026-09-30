@@ -44,3 +44,17 @@ establishes effective CONSYS permissions, the region-23 overlap rule,
 firmware image identity on the coprocessor, calibration, radio operation or
 working mainline Wi-Fi. No packet DMA, association or network interface is
 enabled by this profile.
+
+The [validated candidate](results/candidate.json) uses Buildbox commit
+`d4849f689d35c034468d4bb786306f403ead6ed0`, release
+`7.1.3-gemini-a53-wifi-wmt-start`, and full boot2 SHA-256
+`1eb217b99c76d6057ab785869590c2a4a5044ce8d3f9edaed73e2e1a32954a76`.
+The private firmware remains excluded from the repository. `install-passive.py`
+pins the candidate and previous full-partition digest; `watch-boot.py` runs
+`capture-private.py` once the direct USB route appears. That capture verifies
+two identical pre-write 512 KiB reads, uses a temporary `/sys` read-write
+remount for WMT preparation, restores read-only, validates the full post-window
+and five kernel records, then makes one separately remounted START request.
+If the boot survives, `passive-host.py` preserves the complete session and
+uses the reviewed return path. A crash instead requires retained-pstore
+inspection from known-good Gemian. Runtime outcome is pending.

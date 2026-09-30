@@ -1,0 +1,38 @@
+{
+  "status": "offline-gated-deferred-wmt-start-candidate-validated",
+  "kernel_build_commit": "d4849f689d35c034468d4bb786306f403ead6ed0",
+  "kernel_release": "7.1.3-gemini-a53-wifi-wmt-start",
+  "kernel_package_sha256": "fa400879a70dda51fd02ac883cbd86d505a38f72ecb89e37de5fe7415b1c0b25",
+  "parent_boot2_sha256": "0083834cea0e62d004dc92bf087c8167dfcf6dbbe6cf764a3e8d04d487261b8f",
+  "firmware_sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
+  "files": {
+    "Image.gz": {
+      "sha256": "4276616f3e0b6ae615414e588c3af8a2a85fe0234f4d8fd46637f79688806bd7",
+      "bytes": 6481219
+    },
+    "board.dtb": {
+      "sha256": "5abe5d14ddb424c5939e7ac6f6303210774f85e6be1413f2730f31804df046ca",
+      "bytes": 29413
+    },
+    "boot.img": {
+      "sha256": "dbdf6e78fb916a52b97fc77d57f75aeb9a32d3f8e30d2548f1ce03fadc5c39ef",
+      "bytes": 9783296
+    },
+    "boot2-padded.img": {
+      "sha256": "1eb217b99c76d6057ab785869590c2a4a5044ce8d3f9edaed73e2e1a32954a76",
+      "bytes": 16777216
+    },
+    "initramfs.img": {
+      "sha256": "9802557c5b7201fb9921b6ec0b1a60e45fffbcb97735ae47eb8bb5956784f3c2",
+      "bytes": 3266663
+    },
+    "kernel.config": {
+      "sha256": "d027374b32fdf3c89b0be2369f3da980e4ee7fc0f0ed72a49e818fa8cf9d2e3e",
+      "bytes": 112008
+    }
+  },
+  "device_tree_change": "deferred active resources and trigger",
+  "secret_bearing": true,
+  "device_action": "none",
+  "physical_admission": false
+}
