@@ -1,0 +1,28 @@
+{
+  "status": "firmware-ready-capability-query-returned-EIO",
+  "candidate_boot2_sha256": "fb7f09828cbc32da40f4110c5f84fca3ba85d1fc71be57f877e43d658c485bb5",
+  "kernel_build_commit": "870cf3653783537ae15a4383cf5bd89e0b430e05",
+  "kernel_release": "7.1.3-gemini-a53-wifi-capability",
+  "mainline_boot_id": "3be539f2-3d43-4bc2-8758-148f1af0656b",
+  "known_good_gemian_before": "2a58b4d3-9bb7-4844-9bea-1effc72122a1",
+  "known_good_gemian_after": "0ac851eb-493e-4fd3-a58c-d7df93d56cf9",
+  "boot2_installation": "live-GPT p30 distinct from root p29; full checksum readback matched; clean shutdown",
+  "wmt_window": "two equal private prewrite reads; 343 KiB clear and suffix preservation passed",
+  "emi_firmware_copy": "two of two sections, 396688 bytes; final region-18 policy matched",
+  "ordinary_transfer": "two of two sections, 14832 bytes",
+  "firmware_start": "one request, submit status 0, WCIR 0x00300279 ready",
+  "capability_query": {
+    "attempts": 1,
+    "kernel_status": -5,
+    "parsed_reply": false,
+    "failure_stage": "unobserved; length, header and transport remain distinct possibilities"
+  },
+  "null_workqueue_pool_record_count": 0,
+  "kernel_panic_observed": false,
+  "a53_regression": "passed",
+  "complete_private_log_sha256": "1082601c160f85bdb05cba50d49a07b283de07ffc334483f308c3c5cb5fb4f52",
+  "recovery": "reviewed return confirmed changed-boot Gemian",
+  "network_interface_or_traffic": "not demonstrated",
+  "radio_or_packet_dma_action": false,
+  "raw_evidence": "ignored private artifacts; not published"
+}

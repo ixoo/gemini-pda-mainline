@@ -1,0 +1,208 @@
+From 58476ed098078625a7772599dbb0a25e4b7206b2 Mon Sep 17 00:00:00 2001
+From: Codex native diagnostic <noreply@native-diagnostic.invalid>
+Date: Tue, 29 Sep 2026 21:52:14 -0400
+Subject: [PATCH] wifi: mediatek: trace bounded capability exchange stages
+
+The first post-START capability query returned -EIO after firmware
+readiness, but its single status did not identify whether the
+pre-existing queue, TX, reply length, RX, or event header failed.
+Record bounded stage, transfer counts, WRPLR values and only the
+non-private event header fields from a complete RX. Keep the same
+one-shot command and deadline; no extra bus access is introduced.
+---
+ drivers/net/wireless/mediatek/mt6797/hif.c | 34 ++++++++++++++++++++--
+ drivers/net/wireless/mediatek/mt6797/hif.h | 23 ++++++++++++++-
+ drivers/soc/mediatek/mt6797-consys.c       | 15 +++++++++-
+ 3 files changed, 68 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 44aa5a7..6f18599 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -316,7 +316,8 @@ out:
+ 
+ int mt6797_hif_query_capability(struct mt6797_hif *hif, unsigned int sequence,
+ 				u64 deadline_ns,
+-				struct mt6797_normal_capability *capability)
++				struct mt6797_normal_capability *capability,
++				struct mt6797_capability_trace *trace)
+ {
+ 	struct mt6797_normal_transaction normal = {0};
+ 	struct mt6797_hif_pio_result transfer;
+@@ -324,13 +325,15 @@ int mt6797_hif_query_capability(struct mt6797_hif *hif, unsigned int sequence,
+ 	u32 lengths;
+ 	int error;
+ 
+-	if (!capability)
++	if (!capability || !trace)
+ 		return -EINVAL;
+ 	*capability = (struct mt6797_normal_capability){0};
++	*trace = (struct mt6797_capability_trace){0};
+ 	if (!hif || sequence > 255)
+ 		return -EINVAL;
+ 	if (!mutex_trylock(&hif->mutex))
+ 		return -EBUSY;
++	trace->stage = MT6797_CAP_ENTER;
+ 	if (!hif->firmware_ready || hif->capability_attempted ||
+ 	    hif->transaction->phase != MT6797_START_READY) {
+ 		error = -EIO;
+@@ -343,37 +346,52 @@ int mt6797_hif_query_capability(struct mt6797_hif *hif, unsigned int sequence,
+ 	/* The source reset is a software ledger reset; the sole normal user in
+ 	 * this driver starts with its selected 26-page default, not INIT TC4.
+ 	 */
++	trace->stage = MT6797_CAP_ADMIT;
+ 	error = mt6797_normal_admit(&normal, 26, 26,
+ 				    hif->transaction->used_sequences);
+ 	if (error)
+ 		goto out;
+ 	/* A pre-existing event would make a reply's owner ambiguous. */
++	trace->stage = MT6797_CAP_PRE_WRPLR;
+ 	error = mt6797_hif_read32_locked(hif, 0x90, &lengths);
+ 	if (error)
+ 		goto out;
++	trace->pre_valid = true;
++	trace->pre_wrplr = lengths;
+ 	if (lengths) {
+ 		error = -EBUSY;
+ 		goto out;
+ 	}
++	trace->stage = MT6797_CAP_PREPARE;
+ 	error = mt6797_normal_prepare(&normal, MT6797_NORMAL_CAPABILITY,
+ 				      sequence, NULL, 0, hif->scratch,
+ 				      sizeof(hif->scratch), &command);
+ 	if (error)
+ 		goto out;
++	trace->stage = MT6797_CAP_TX;
+ 	error = mt6797_hif_pio_transfer(&hif->io, 0x34, MT6797_HIF_WRITE,
+ 					hif->scratch, MT6797_NORMAL_CAP_BYTES,
+ 					sizeof(hif->scratch), &transfer);
++	trace->tx_setup = transfer.setup_submitted;
++	trace->tx_complete = transfer.transfer_complete;
++	trace->tx_bytes = transfer.data_bytes;
++	if (!error)
++		trace->stage = MT6797_CAP_SUBMIT;
+ 	error = mt6797_normal_submitted(&normal, error);
+ 	if (error)
+ 		goto out;
+ 	for (;;) {
++		trace->stage = MT6797_CAP_POST_WRPLR;
+ 		error = mt6797_hif_read32_locked(hif, 0x90, &lengths);
+ 		if (error)
+ 			goto out;
++		trace->post_valid = true;
++		trace->post_wrplr = lengths;
+ 		if (lengths & 0xffff) {
+ 			error = -EPROTO;
+ 			goto out;
+ 		}
++		trace->stage = MT6797_CAP_REPLY_SPAN;
+ 		error = mt6797_normal_reply_span(&normal, lengths >> 16,
+ 						 sizeof(hif->scratch), &command);
+ 		if (error != -EAGAIN)
+@@ -385,17 +403,29 @@ int mt6797_hif_query_capability(struct mt6797_hif *hif, unsigned int sequence,
+ 	}
+ 	if (error)
+ 		goto out;
++	trace->stage = MT6797_CAP_RX;
+ 	error = mt6797_hif_pio_transfer(&hif->io, 0x54, MT6797_HIF_READ,
+ 					hif->scratch, command.transfer_bytes,
+ 					sizeof(hif->scratch), &transfer);
++	trace->rx_setup = transfer.setup_submitted;
++	trace->rx_complete = transfer.transfer_complete;
++	trace->rx_bytes = transfer.data_bytes;
+ 	if (error)
+ 		goto out;
++	trace->event_length = mt6797_normal_le16(hif->scratch);
++	trace->packet_type = mt6797_normal_le16(hif->scratch + 2);
++	trace->event_id = hif->scratch[4];
++	trace->event_sequence = hif->scratch[5];
++	trace->stage = MT6797_CAP_RX_GUARD;
+ 	error = mt6797_hif_guard(hif);
+ 	if (error)
+ 		goto out;
++	trace->stage = MT6797_CAP_PARSE;
+ 	error = mt6797_normal_accept_capability(&normal, hif->scratch,
+ 						MT6797_NORMAL_CAP_BYTES,
+ 						capability);
++	if (!error)
++		trace->stage = MT6797_CAP_DONE;
+ out:
+ 	if (error) {
+ 		*capability = (struct mt6797_normal_capability){0};
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index fd8c6fc..863dc94 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -27,6 +27,26 @@ struct mt6797_hif_section_result {
+ 	unsigned int firmware_status;
+ };
+ 
++enum mt6797_capability_stage {
++	MT6797_CAP_ENTER, MT6797_CAP_ADMIT, MT6797_CAP_PRE_WRPLR,
++	MT6797_CAP_PREPARE, MT6797_CAP_TX, MT6797_CAP_SUBMIT,
++	MT6797_CAP_POST_WRPLR, MT6797_CAP_REPLY_SPAN, MT6797_CAP_RX,
++	MT6797_CAP_RX_GUARD, MT6797_CAP_PARSE, MT6797_CAP_DONE,
++};
++
++/* Header fields only: no MAC, date, reserved bytes or payload. Values are
++ * meaningful only when the corresponding read/transfer completed.
++ */
++struct mt6797_capability_trace {
++	enum mt6797_capability_stage stage;
++	u32 pre_wrplr, post_wrplr;
++	size_t tx_bytes, rx_bytes;
++	unsigned int event_length, packet_type;
++	u8 event_id, event_sequence;
++	bool pre_valid, post_valid, tx_setup, tx_complete;
++	bool rx_setup, rx_complete;
++};
++
+ /* Allocation owns memory only. Caller retains the real powered mapping,
+  * transaction, exclusive driver ownership, IRQ quiescence and reset exclusion
+  * through all calls. No ownership acquisition, INIT seeding or reset occurs.
+@@ -75,6 +95,7 @@ int mt6797_hif_start_observe_ready(struct mt6797_hif *hif, u32 *wcir);
+  */
+ int mt6797_hif_query_capability(struct mt6797_hif *hif, unsigned int sequence,
+ 				u64 deadline_ns,
+-				struct mt6797_normal_capability *capability);
++				struct mt6797_normal_capability *capability,
++				struct mt6797_capability_trace *trace);
+ 
+ #endif
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index 8ade16a..468946f 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -753,6 +753,7 @@ static void mt6797_consys_probe_firmware_start(struct device *dev,
+ 	};
+ 	struct mt6797_wlan_ordinary_result ordinary = {};
+ 	struct mt6797_normal_capability capability;
++	struct mt6797_capability_trace cap_trace;
+ 	u64 deadline;
+ 	u32 whlpcr, wrplr, wcir = 0;
+ 	unsigned int i;
+@@ -854,8 +855,20 @@ static void mt6797_consys_probe_firmware_start(struct device *dev,
+ 	dev_info(dev, "one-shot WLAN firmware ready; radio commands and DMA held\n");
+ 	ret = mt6797_hif_query_capability(owner->fw_hif, 4,
+ 					  ktime_get_ns() + NSEC_PER_SEC,
+-					  &capability);
++					  &capability, &cap_trace);
+ 	dev_info(dev, "one-shot WLAN capability query: status=%d\n", ret);
++	dev_info(dev,
++		 "one-shot WLAN capability trace: stage=%u pre_valid=%d pre=0x%08x tx_setup=%d tx_complete=%d tx_bytes=%zu post_valid=%d post=0x%08x rx_setup=%d rx_complete=%d rx_bytes=%zu\n",
++		 (unsigned int)cap_trace.stage, cap_trace.pre_valid, cap_trace.pre_wrplr,
++		 cap_trace.tx_setup, cap_trace.tx_complete, cap_trace.tx_bytes,
++		 cap_trace.post_valid, cap_trace.post_wrplr, cap_trace.rx_setup,
++		 cap_trace.rx_complete, cap_trace.rx_bytes);
++	if (cap_trace.rx_complete)
++		dev_info(dev,
++			 "one-shot WLAN capability event header: len=%u type=0x%04x id=%u seq=%u\n",
++			 cap_trace.event_length, cap_trace.packet_type,
++			 (unsigned int)cap_trace.event_id,
++			 (unsigned int)cap_trace.event_sequence);
+ 	if (!ret)
+ 		dev_info(dev,
+ 			 "one-shot WLAN capability: product=0x%04x own=0x%04x peer=0x%04x 5g_disabled=%u eeprom_used=%u rf_fail=%u bb_fail=%u\n",
+-- 
+2.54.0 (Apple Git-157)
+
