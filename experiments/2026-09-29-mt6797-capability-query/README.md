@@ -56,3 +56,17 @@ receive queue, malformed lengths and sequence, a missing-reply timeout and
 one-attempt behavior. The existing HIF core host suite also passes with the
 patched source. These tests simulate ordered MMIO and cannot prove hardware
 response or calibration. Kernel build and device result are pending.
+
+The [Buildbox package and offline candidate](results/build.json) passed for
+commit `870cf3653783537ae15a4383cf5bd89e0b430e05`. The private RAM root
+changed only `/init`'s expected release; its 52-member round trip preserved
+the firmware hash. The resulting [sanitized candidate receipt](results/candidate.json)
+pins full boot2 SHA-256
+`fb7f09828cbc32da40f4110c5f84fca3ba85d1fc71be57f877e43d658c485bb5`
+and the same booted board DT SHA-256
+`cef9373ea3aa0e1a8a45a13b953ae95e48939b211e41a73052543be784ee3214`.
+The guarded installer is bound to the last verified boot2 predecessor
+`42c3c298b88e31757a7d1c8e785afe3494a10937e70bb87d2e6bb31704f2073e`
+and live known-good Gemian boot `2a58b4d3-9bb7-4844-9bea-1effc72122a1`.
+Its offline validation, Bash syntax and ShellCheck pass. Installation, physical
+selection and runtime observation remain pending.

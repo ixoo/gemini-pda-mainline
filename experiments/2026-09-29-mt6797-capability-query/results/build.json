@@ -1,0 +1,17 @@
+{
+  "status": "buildbox-kernel-and-offline-candidate-validated",
+  "repository_commit": "870cf3653783537ae15a4383cf5bd89e0b430e05",
+  "profile": "mt6797-a53-wifi-capability-probe",
+  "kernel_release": "7.1.3-gemini-a53-wifi-capability",
+  "kernel_package_inventory_sha256": "0264f1e86b3e1b66a4e71a53b17cc9f74c677636a4cd683cb36a66870c8df50e",
+  "image_gzip_sha256": "5e3aa8ca4eb511fbaaaec89a7f561289fe9eb8e3433f176ff11f38bf876deb60",
+  "compiled_board_dtb_sha256": "5abe5d14ddb424c5939e7ac6f6303210774f85e6be1413f2730f31804df046ca",
+  "booted_board_dtb_sha256": "cef9373ea3aa0e1a8a45a13b953ae95e48939b211e41a73052543be784ee3214",
+  "candidate_manifest_sha256": "9c91f1da426a3512dd0581c77f596a34ac56000ceefa7d934974fe66fea16908",
+  "boot2_full_sha256": "fb7f09828cbc32da40f4110c5f84fca3ba85d1fc71be57f877e43d658c485bb5",
+  "initramfs_changed_member": "init release gate only",
+  "kernel_build": "passed",
+  "package_validation": "passed",
+  "candidate_validation": "passed",
+  "device_action": "none"
+}
