@@ -1,0 +1,20 @@
+{
+  "status": "watch-expired-without-mainline-route",
+  "candidate_boot2_sha256": "f066866c178e38d77f18722f9e3286a6e98316997e28f2157c62f434f1aa1d4b",
+  "watch_started_utc": "2026-09-30T10:52:49Z",
+  "watch_ended_utc": "2026-09-30T11:07:49Z",
+  "budget_seconds": 900,
+  "usb_stages_observed": [
+    "other-or-absent",
+    "preloader",
+    "other-or-absent",
+    "mediatek-20ff"
+  ],
+  "usb_stage_at_expiry": "mediatek-20ff",
+  "mainline_route_observed": false,
+  "device_ssh_attempts": 0,
+  "wmt_start_capability_actions": 0,
+  "physical_boot2_selection_confirmed": false,
+  "runtime_result": "none; installed image was not observed booting",
+  "raw_watch_evidence": "ignored private artifacts; not published"
+}

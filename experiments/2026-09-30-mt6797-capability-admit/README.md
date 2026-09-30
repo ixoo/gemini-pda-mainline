@@ -43,5 +43,17 @@ previous boot2 checksum. Offline candidate validation, Bash syntax and
 ShellCheck passed. It will resolve logical boot2 from live GPT, recheck the
 reviewed device guard, skip a matching full-partition checksum or otherwise
 write, flush and require a matching full readback before clean shutdown. The
-owner then selects boot2 physically. This candidate has not yet been installed
-or booted; no mainline capability exchange is claimed.
+owner then selects boot2 physically. The guarded installation completed, but
+the candidate has not been observed booting; no mainline capability exchange is
+claimed.
+
+## First handoff watch
+
+The [first 900-second watch](results/watch-1.json) was armed after the guarded
+boot2 write, full readback and clean Gemian shutdown. It saw preloader activity
+and then remained at MediaTek `20ff` until expiry. No mainline gadget route or
+device SSH attempt occurred. Physical boot2 selection was not confirmed in this
+window, and the one-shot WMT, START and capability test did not run. The image
+remains the last verified boot2 installation, but there is no runtime result.
+Resume only with a new attributable physical handoff and capture window; do not
+repeat the firmware action on the basis of this timeout.
