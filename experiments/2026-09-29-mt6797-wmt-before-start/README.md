@@ -83,6 +83,21 @@ The [third candidate](results/candidate.json) contains patch 0052 from Buildbox
 commit `c36ea4925d6acc8c16f6e6b639ffa22260a56864`. The same 180-node booting
 DT and private RAM root are retained. Its full boot2 SHA-256 is
 `42c3c298b88e31757a7d1c8e785afe3494a10937e70bb87d2e6bb31704f2073e`.
-The installer pins the second candidate as predecessor; the fresh capture and
-session directories are numbered 3. Offline image validation passed. Device
-installation and runtime observation are pending.
+The installer pinned the second candidate as predecessor, wrote only the
+live-GPT `boot2` partition after the identity and power gates passed, and
+verified its full-partition readback before a clean shutdown. The owner
+selected boot2 before the watcher armed; the already-present direct USB route
+was authenticated to a fresh mainline boot before `capture-private.py` ran
+directly. The fresh capture and session directories are numbered 3.
+
+The [third runtime result](results/runtime-3.json) verified two equal private
+prewrite reads and the same WMT clear. Region 19 retained its expected range
+and policy while the corrected gate admitted CONMCU reset release. The Wi-Fi HIF
+function became ready, two EMI sections totaling 396,688 bytes were copied
+and sealed, two ordinary sections totaling 14,832 bytes transferred, and a single
+START reached WCIR `0x00300279` with the firmware-ready record. There was no
+null-workqueue-pool record or kernel panic. The complete log, A53 regression
+and changed-boot Gemian return passed. This candidate held radio commands
+and packet DMA, so it demonstrates neither a network interface nor
+association or traffic. The executing firmware image, region overlap and
+effective bus permissions remain distinct questions.

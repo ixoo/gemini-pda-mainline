@@ -1,0 +1,49 @@
+{
+  "status": "one-shot-WMT-and-WLAN-firmware-ready-radio-and-DMA-held",
+  "candidate_boot2_sha256": "42c3c298b88e31757a7d1c8e785afe3494a10937e70bb87d2e6bb31704f2073e",
+  "mainline_boot_id": "4479bf76-0100-4716-8458-abf64723f060",
+  "kernel_release": "7.1.3-gemini-a53-wifi-wmt-start",
+  "region19": {
+    "two_full_512KiB_prewrite_reads_equal": true,
+    "wmt_setup_accepted": true,
+    "clear_bytes_verified": 351232,
+    "suffix_unchanged": true
+  },
+  "one_shot_start_request": {
+    "sent_once": true,
+    "sysfs_exit_status": 0
+  },
+  "observed_kernel_records_once": {
+    "mcu_reset_released": 1,
+    "hif_ready": 1,
+    "emi_sealed": 1,
+    "ordinary_transfer": 1,
+    "start_submitted": 1,
+    "start_ready": 1,
+    "firmware_ready": 1
+  },
+  "emi": {
+    "region19_range": "0xbfa8bfaf",
+    "region19_policy": "0x00b6da28",
+    "region18_copy_policy": "0x00b6da28",
+    "region18_final_policy": "0x00b6da2d",
+    "emi_section_copy": "2/2, 396688/396688 bytes"
+  },
+  "wlan": {
+    "ordinary_sections": "2/2, 14832/14832 bytes",
+    "start_status": 0,
+    "ready_wcir": "0x00300279",
+    "null_workqueue_pool_count": 0,
+    "radio_commands_enabled": false,
+    "packet_dma_enabled": false,
+    "network_interface_demonstrated": false
+  },
+  "session": {
+    "full_log_preserved_privately": true,
+    "a53_regression_pass": true,
+    "gemian_return_confirmed": true,
+    "changed_gemian_boot_id": "2a58b4d3-9bb7-4844-9bea-1effc72122a1"
+  },
+  "interpretation": "The corrected gate admitted the verified WMT region19 state; reset, HIF, EMI copies, ordinary firmware transfers and a single START reached the WCIR firmware-ready check. This is a bounded firmware-start result, not demonstrated image identity on the coprocessor, packet DMA, radio operation, cfg80211 registration, association or traffic.",
+  "next": "Establish owned command/event, interrupt and packet-DMA paths and a bounded radio-effect protocol before claiming working Wi-Fi."
+}

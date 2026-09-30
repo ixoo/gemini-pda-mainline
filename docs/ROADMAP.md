@@ -581,10 +581,19 @@ for the first Wi-Fi bring-up. The current preparation order is:
    single actual store and was restored to read-only. The complete log, A53
    regression and changed-boot Gemian return passed. This closes the
    AP-visible WMT initialization gap, but neither establishes effective CONN
-   permissions nor explains the earlier workqueue panic. Resolve the region-23
-   overlap and invalid-workqueue ownership before a distinct firmware START.
-   Add a same-boot admission gate and retained-fault owner transitions for the first firmware executor,
-   without assuming that an earlier boot's zeros authorize an EMI write. A
+   permissions nor explains the earlier workqueue panic. The later
+   [WMT-prepared START](../experiments/2026-09-29-mt6797-wmt-before-start/results/runtime-3.json)
+   admitted the exact region-19 state, released reset, completed both EMI and
+   ordinary section transfers, and read WCIR ready after one START. Its full
+   log, A53 regression and changed-boot Gemian return passed with no repeat
+   of the workqueue panic. This is one firmware-ready diagnostic, not proof
+   of the earlier panic's cause or of packet networking. Radio commands and
+   DMA remained held. The next steps are an owned normal command/event path,
+   calibration applicability, packet-DMA address and lifetime admission, and
+   a bounded interface/association/traffic protocol. The region-23 overlap
+   and effective master permissions remain unproved.
+   A same-boot admission gate is required for every active firmware executor;
+   an earlier boot's zeros cannot authorize an EMI write. A
    [passive mainline EMI read](../experiments/2026-09-27-mt6797-emi-boot-observe/results/runtime-1.json)
    returned zero for region-18/19/23 range and policy registers in a
    complete, regression-passing boot. The returned carrier-up Gemian boot
