@@ -1,0 +1,2 @@
+# Correct post-START capability admission without enabling radio or DMA.
+CONFIG_LOCALVERSION="-gemini-a53-wifi-capability-admit"

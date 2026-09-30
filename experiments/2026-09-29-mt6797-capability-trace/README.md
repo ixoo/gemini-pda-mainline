@@ -48,16 +48,23 @@ pins full boot2 SHA-256
 `201aef55fdad77dedd07c1fd4837df96e048936ab99da0d717ce05812a86e8f5`
 and the previously booted board DT SHA-256
 `cef9373ea3aa0e1a8a45a13b953ae95e48939b211e41a73052543be784ee3214`.
-The device has not been changed by this candidate.
+The device was tested with this candidate; see the
+[runtime result](results/runtime-1.json).
 
 The guarded installer binds the authenticated Gemian boot ID,
 validated candidate receipt and prior full boot2 checksum. Offline installer
-validation, Bash syntax and ShellCheck passed. It has not been run on the
-device; physical selection and runtime observation remain pending.
+validation, Bash syntax and ShellCheck passed. The guarded write and full
+readback passed on the device. The owner selected boot2, and the session
+returned to changed-boot Gemian.
 
 The [first physical handoff watch](results/watch-1.json) expired after 900
-seconds at the same preloader USB stage. No mainline route or device SSH attempt
-occurred, so the candidate has no runtime result. The guarded boot2 write and
-full readback passed; the owner still needs to physically select boot2 while a
-new finite watch is armed. This timeout is not a reason to repeat the query or
-change recovery method.
+seconds at the same preloader USB stage, without a mainline route or device
+SSH attempt. A later owner selection started a new authenticated mainline boot;
+direct capture preserved the WMT and
+START records, and the complete log and A53 regression were collected before
+reviewed return to changed-boot Gemian. The one capability query returned
+`-EIO` at trace stage 0 with no WRPLR read or TX setup. Source inspection
+identified the admission mismatch: successful START readiness moves the INIT
+transaction to `INIT_IDLE`, but this query still requires `START_READY`. The
+next candidate must correct this gate and exercise the command path; the same
+image must not be repeated.

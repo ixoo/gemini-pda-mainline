@@ -1,0 +1,32 @@
+From 4ad78d39740b931a7bf73bbd5ccf2c29b7fc4d0e Mon Sep 17 00:00:00 2001
+From: Codex native diagnostic <noreply@native-diagnostic.invalid>
+Date: Wed, 30 Sep 2026 06:18:05 -0400
+Subject: [PATCH] wifi: mediatek: admit capability after START readiness
+
+START readiness transitions the INIT transaction from START_READY to
+INIT_IDLE. The capability gate still required START_READY, so the
+first query returned -EIO before any HIF access. Accept only the
+post-readiness idle phase while retaining the firmware-ready and
+one-attempt guards.
+
+This is an internal diagnostic patch, not an upstream submission.
+---
+ drivers/net/wireless/mediatek/mt6797/hif.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 6f18599..7c58127 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -335,7 +335,7 @@ int mt6797_hif_query_capability(struct mt6797_hif *hif, unsigned int sequence,
+ 		return -EBUSY;
+ 	trace->stage = MT6797_CAP_ENTER;
+ 	if (!hif->firmware_ready || hif->capability_attempted ||
+-	    hif->transaction->phase != MT6797_START_READY) {
++	    hif->transaction->phase != MT6797_INIT_IDLE) {
+ 		error = -EIO;
+ 		goto unlock;
+ 	}
+-- 
+2.54.0 (Apple Git-157)
+
