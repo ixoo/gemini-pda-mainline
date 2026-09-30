@@ -1,0 +1,31 @@
+{
+  "status": "candidate-returned-to-gemian-before-mainline-capture",
+  "candidate_boot2_sha256": "1eb217b99c76d6057ab785869590c2a4a5044ce8d3f9edaed73e2e1a32954a76",
+  "installation": "live-GPT boot2 guard, full readback and clean shutdown passed",
+  "first_boot": {
+    "physical_boot2_selection": "owner uncertain",
+    "usb_stages": ["preloader", "mediatek-20ff", "preloader"],
+    "gemian_boot_id": "5959ba54-13e4-4b4f-abe1-bf288c2c5ccd",
+    "pstore_entries": 0
+  },
+  "second_boot": {
+    "physical_boot2_selection": "owner confirmed",
+    "screen": "no candidate console; returned to Gemian without a manual Gemian selection",
+    "usb_stages": ["preloader"],
+    "gemian_boot_id": "fef705d0-9a4e-4a45-99c6-2b41643bfc01",
+    "pstore_entries": 0
+  },
+  "mainline_usb_route": false,
+  "mainline_boot_id": null,
+  "region19_wmt_trigger_attempted": false,
+  "firmware_start_trigger_attempted": false,
+  "boot2_checksum_after_first_return": "1eb217b99c76d6057ab785869590c2a4a5044ce8d3f9edaed73e2e1a32954a76",
+  "offline_diagnosis": {
+    "assembled_dtb_source": "full compiled DT instead of the last booting parent DT",
+    "parent_dtb_nodes": 180,
+    "assembled_dtb_nodes": 196,
+    "unrelated_changes": "USB and keyboard status became disabled among other board changes",
+    "inference": "The DT drift is a concrete candidate defect and could explain the absent console and USB route; the exact reset cause is not established without a candidate log."
+  },
+  "next_candidate": "Use the same compiled kernel and RAM root with only the compiled CONSYS resources and flags applied to the last booting parent DT; reject any other DT node change."
+}

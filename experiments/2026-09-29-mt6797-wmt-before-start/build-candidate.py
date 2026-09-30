@@ -71,7 +71,6 @@ def main():
             b'# CONFIG_MTK_SCPSYS is not set\n' in config and
             b'CONFIG_LOCALVERSION="-gemini-a53-wifi-wmt-start"\n' in config,
             'kernel image or required configuration changed')
-    board = regular(package / 'dtbs/mediatek/mt6797-gemini-pda.dtb')
     built = nodes(package / 'dtbs/mediatek/mt6797-gemini-pda.dtb')
     previous = nodes(parent / 'board.dtb')
     phandles = {'memory-region', 'vcn18-supply', 'vcn28-supply',
@@ -120,7 +119,33 @@ def main():
     with tempfile.TemporaryDirectory(prefix='.wifi-wmt-start-stage-', dir=output.parent) as tmp:
         stage = Path(tmp)
         (stage / 'Image.gz').write_bytes(image)
-        (stage / 'board.dtb').write_bytes(board)
+        board = stage / 'board.dtb'
+        board.write_bytes(regular(parent / 'board.dtb'))
+        before = nodes(board)
+        require(before == previous and OWNER in before and
+                set(built[OWNER]) == set(before[OWNER]) | added and
+                built[OWNER]['compatible'] == before[OWNER]['compatible'],
+                'booted parent DT or compiled CONSYS contract changed')
+        subprocess.run(['fdtput', '-t', 'x', str(board), OWNER, 'reg',
+                        '0', '10001340', '0', '4', '0', '10001350', '0', '4',
+                        '0', '18070008', '0', '4', '0', '18070110', '0', '4',
+                        '0', '180f0000', '0', '1100', '0', '10001f00', '0', '4'],
+                       check=True, stdout=subprocess.DEVNULL)
+        subprocess.run(['fdtput', '-t', 's', str(board), OWNER, 'reg-names',
+                        'remap', 'conn2ap-sleep-mask', 'chip-id', 'mcu-acr',
+                        'wifi-hif', 'emi-selector'],
+                       check=True, stdout=subprocess.DEVNULL)
+        for name in sorted(added):
+            subprocess.run(['fdtput', str(board), OWNER, name],
+                           check=True, stdout=subprocess.DEVNULL)
+        after = nodes(board)
+        expected_owner = dict(before[OWNER])
+        expected_owner.update({key: built[OWNER][key] for key in
+                               added | {'reg', 'reg-names'}})
+        require(set(after) == set(before) and after[OWNER] == expected_owner and
+                all(after[name] == props for name, props in before.items()
+                    if name != OWNER),
+                'unrelated boot DT change or compiled CONSYS fields mismatch')
         (stage / 'kernel.config').write_bytes(config)
         (stage / 'initramfs.img').write_bytes(initramfs)
         boot = stage / 'boot.img'
@@ -150,7 +175,8 @@ def main():
                   'firmware_sha256': FIRMWARE_SHA256,
                   'files': {p.name: {'sha256': sha(regular(p)), 'bytes': p.stat().st_size}
                             for p in sorted(stage.iterdir())},
-                  'device_tree_change': 'deferred active resources and trigger', 'secret_bearing': True,
+                  'device_tree_change': 'only CONSYS resources and deferred flags on booted parent DT',
+                  'secret_bearing': True,
                   'device_action': 'none', 'physical_admission': False}
         (stage / 'candidate.json').write_text(json.dumps(result, indent=2) + '\n')
         stage.rename(output)

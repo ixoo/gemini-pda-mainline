@@ -14,18 +14,18 @@ SPEC = importlib.util.spec_from_file_location('region19_passive_installer', SOUR
 ADAPTER = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(ADAPTER)
 ADAPTER.HERE = HERE
-ADAPTER.PREDECESSOR_SHA = '0083834cea0e62d004dc92bf087c8167dfcf6dbbe6cf764a3e8d04d487261b8f'
+ADAPTER.PREDECESSOR_SHA = '1eb217b99c76d6057ab785869590c2a4a5044ce8d3f9edaed73e2e1a32954a76'
 ADAPTER.INSTALLER.HERE = HERE
 ADAPTER.INSTALLER.EXPERIMENT = 'mt6797-wmt-before-start'
-ADAPTER.INSTALLER.RECEIPT_NAME = 'mt6797-wmt-before-start-deployment-1'
-ADAPTER.INSTALLER.MANIFEST_SHA = 'fe3088ac7049060420de779d407b8e4c822734aa150a1fcb14aa537a5ee3f728'
+ADAPTER.INSTALLER.RECEIPT_NAME = 'mt6797-wmt-before-start-deployment-2'
+ADAPTER.INSTALLER.MANIFEST_SHA = '3d895eb3d47c67db7c60c6868293bba7bf62073d1c1023c7eb058677f2f515c5'
 ADAPTER.MANIFEST_SHA = ADAPTER.INSTALLER.MANIFEST_SHA
 
 
 def validate(candidate, previous):
     ADAPTER.INSTALLER.boot_uuid(previous)
     candidate = Path(os.path.abspath(candidate))
-    published = HERE / 'results/candidate.json'
+    published = HERE / 'results/candidate-2.json'
     ADAPTER.INSTALLER.require(candidate.is_dir() and not candidate.is_symlink() and
                               ADAPTER.INSTALLER.digest(published.read_bytes()) ==
                               ADAPTER.MANIFEST_SHA, 'candidate receipt changed')

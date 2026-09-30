@@ -11,8 +11,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 PRIVATE_REPO = Path(os.environ['GEMINI_PRIVATE_REPO']).resolve(strict=True)
-ROOT = PRIVATE_REPO / 'artifacts/wmt-before-start/session-1'
-CAPTURE = PRIVATE_REPO / 'artifacts/wmt-before-start/capture-1'
+ROOT = PRIVATE_REPO / 'artifacts/wmt-before-start/session-2'
+CAPTURE = PRIVATE_REPO / 'artifacts/wmt-before-start/capture-2'
 SOURCE = HERE.parent / '2026-09-29-mt6797-region19-mainline-observe/passive-host.py'
 SPEC = importlib.util.spec_from_file_location('region19_passive_host', SOURCE)
 HOST = importlib.util.module_from_spec(SPEC)
@@ -46,7 +46,7 @@ def main():
             return 0
         wmt = json.loads((CAPTURE / 'wmt-result.json').read_text())
         start = json.loads((CAPTURE / 'start-result.json').read_text())
-        candidate = json.loads((HERE / 'results/candidate.json').read_text())
+        candidate = json.loads((HERE / 'results/candidate-2.json').read_text())
         digest = candidate['files']['boot2-padded.img']['sha256']
         require(wmt.get('accepted') is True and
                 wmt.get('candidate_boot2_sha256') == digest and
