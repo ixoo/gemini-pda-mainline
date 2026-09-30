@@ -54,3 +54,10 @@ The guarded installer binds the authenticated Gemian boot ID,
 validated candidate receipt and prior full boot2 checksum. Offline installer
 validation, Bash syntax and ShellCheck passed. It has not been run on the
 device; physical selection and runtime observation remain pending.
+
+The [first physical handoff watch](results/watch-1.json) expired after 900
+seconds at the same preloader USB stage. No mainline route or device SSH attempt
+occurred, so the candidate has no runtime result. The guarded boot2 write and
+full readback passed; the owner still needs to physically select boot2 while a
+new finite watch is armed. This timeout is not a reason to repeat the query or
+change recovery method.

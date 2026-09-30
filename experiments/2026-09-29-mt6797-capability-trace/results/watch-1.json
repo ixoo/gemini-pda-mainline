@@ -1,0 +1,17 @@
+{
+  "status": "physical-boot2-selection-not-observed-in-watch-window",
+  "candidate_boot2_sha256": "201aef55fdad77dedd07c1fd4837df96e048936ab99da0d717ce05812a86e8f5",
+  "known_good_gemian_boot_id_before_install": "0ac851eb-493e-4fd3-a58c-d7df93d56cf9",
+  "boot2_installation": "live-GPT p30, full readback matched, clean shutdown confirmed",
+  "deployment_summary_sha256": "7325c139307f3e623167afb2699a5b1179197a9cd94899c738d46cfc45ad5838",
+  "watch_armed_utc": "2026-09-30T02:30:30Z",
+  "watch_expired_utc": "2026-09-30T02:45:31Z",
+  "usb_stage_at_arm_and_expiry": "mediatek-20ff",
+  "mainline_usb_route": false,
+  "device_ssh_attempts": 0,
+  "watch_events_sha256": "373966955fa6fe890713358f0c79c13ee9d01959b12e8eaf6b32404916002c20",
+  "mainline_boot_id": null,
+  "capability_query_observed": false,
+  "interpretation": "no physical boot2 transition was observed; this is not a firmware result",
+  "next_action": "owner physical boot2 selection with a newly armed finite watch"
+}
