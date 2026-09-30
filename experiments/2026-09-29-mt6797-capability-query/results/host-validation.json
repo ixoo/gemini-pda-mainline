@@ -1,0 +1,14 @@
+{
+  "status": "offline-host-validation-passed",
+  "patch_sha256": "ce04eee34a99dc13558c39b7300849fdfa142f510ade605cefd76cb9ea5a05d6",
+  "test_sha256": "abd7887f52156ede83a93e82d4d2c77cdb17e6bf276c46a3ce8a86cf869b8d66",
+  "compiler": "Homebrew clang version 23.1.2",
+  "flags": "-std=c11 -Wall -Wextra -Werror -pedantic -fsanitize=address,undefined -fno-omit-frame-pointer",
+  "host_test": "literal query/reply trace, 69 injected scalar failures, stale queue, bad reply length/sequence, missing-reply deadline and one-attempt refusal passed",
+  "existing_hif_host_suite": "passed with patched hif.c",
+  "prepared_source_apply_check": "passed on linux-7.1.3-series-a53-wifi-wmt-start-source",
+  "checkpatch": "0 errors, 1 generic MAINTAINERS warning for a new experimental header",
+  "repository_check": "passed including 241 profile order audit",
+  "kernel_build": "pending",
+  "device": "not accessed"
+}
