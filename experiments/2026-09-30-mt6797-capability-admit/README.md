@@ -10,11 +10,13 @@ firmware-ready, one-attempt, deadline and transport guards. There is no new
 radio, calibration or packet DMA action.
 
 The [focused host test](tests/test-capability.c) exercises the actual patched
-HIF source. It first runs the START state transition before each query, then
-checks the existing successful exchange, all 69 injected scalar access faults,
-stale queue, malformed reply and deadline. It also proves the pre-readiness
-phase is refused without HIF access. The previous test had incorrectly set
-`START_READY` and `firmware_ready` together, hiding the live mismatch.
+HIF source. It checks the START state transition before each query, including
+one end-to-end START submission, WCIR readiness and capability exchange on the
+same HIF object. It also checks all 69 injected scalar access faults, stale
+queue, malformed reply, deadline and pre-readiness refusal without HIF access.
+The previous test had incorrectly set `START_READY` and `firmware_ready`
+together, hiding the live mismatch. The combined host path passed after the
+boot2 installation; it is still no substitute for a device observation.
 
 The next physical boot will test whether the corrected gate admits the one
 bounded command and, if submitted, whether firmware returns a valid capability

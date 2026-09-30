@@ -33,7 +33,17 @@ static int access_io(bool write, void *address, unsigned int *value)
 	bool expected_write = true;
 	unsigned int offset = 0;
 
-	if (fake.mode == 4 && i >= 34) {
+	if (fake.mode == 5) {
+		static const unsigned int start_words[7] = {
+			0x90006810, 0x80000010, 0x0300a002, 0, 0,
+			0x10000004, 0x00300279,
+		};
+
+		assert(i < 7);
+		expected_write = i != 6;
+		offset = i == 0 || i == 5 ? 0 : 0x1000;
+		expected = start_words[i];
+	} else if (fake.mode == 4 && i >= 34) {
 		assert(i < 38);
 		expected_write = !(i & 1);
 		offset = expected_write ? 0 : 0x1000;
@@ -158,6 +168,44 @@ static void exercise(unsigned int mode, unsigned int fail_at)
 	mt6797_hif_free(hif);
 	free(fake.mapping);
 }
+static void start_then_capability(void)
+{
+	static const u8 start[16] = { 16, 0, 0, 0x80, 2, 0xa0, 0, 3 };
+	struct mt6797_init_transaction transaction = {
+		.phase = MT6797_INIT_IDLE,
+		.free_pages = 102, .start_free_pages = 104,
+	};
+	struct mt6797_normal_capability capability;
+	struct mt6797_capability_trace trace;
+	struct mt6797_hif *hif;
+	u32 wcir = 0;
+
+	memset(&fake, 0, sizeof(fake));
+	fake.mapping = calloc(1, 0x1004);
+	assert(fake.mapping);
+	fake.now = 1000;
+	fake.mode = 5;
+	transaction.used_sequences[0] = 0x06;
+	hif = mt6797_hif_alloc(fake.mapping, 0x1004, &transaction);
+	assert(!IS_ERR(hif));
+	assert(!mt6797_hif_start_submit(hif, start, sizeof(start), 3,
+					    1000001000ULL));
+	assert(fake.calls == 5 && !hif->firmware_ready);
+	assert(!mt6797_hif_start_observe_ready(hif, &wcir));
+	assert(fake.calls == 7 && wcir == 0x00300279);
+	assert(hif->firmware_ready && transaction.phase == MT6797_INIT_IDLE);
+	assert(transaction.start_free_pages == 103 &&
+	       transaction.used_sequences[0] == 0x0e);
+	fake.mode = 0;
+	fake.calls = 0;
+	assert(!mt6797_hif_query_capability(hif, 4, 1000001000ULL,
+					     &capability, &trace));
+	assert(fake.calls == 69 && trace.stage == MT6797_CAP_DONE);
+	assert(capability.product == 0x1234);
+	mt6797_hif_free(hif);
+	free(fake.mapping);
+}
+
 static void reject_unready_phase(bool firmware_ready)
 {
 	struct mt6797_init_transaction transaction = {
@@ -191,6 +239,7 @@ int main(void)
 
 	reject_unready_phase(false);
 	reject_unready_phase(true);
+	start_then_capability();
 	exercise(0, 0);
 	for (i = 1; i <= 69; i++)
 		exercise(0, i);
