@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-01",
+  "scope": "read-only comparison of installed WIFI storage file with verified retained nvdata file",
+  "gemian_boot_id": "19fbba30-27a4-4689-8252-8c0ab8d5ca70",
+  "gemian_release": "3.18.41+",
+  "live_record_bytes": 514,
+  "live_storage_envelope": "matched",
+  "selected_source_record_version_predicate": "compatible",
+  "observed_mainline_firmware_version_predicate": "compatible",
+  "retained_nvdata_partition_image_verified": true,
+  "retained_record_bytes": 514,
+  "live_record_byte_identical_to_retained": true,
+  "mainline_firmware_own_version": "0x0403",
+  "mainline_firmware_peer_version": "0x0000",
+  "live_record_submitted_to_mainline_firmware": false,
+  "calibration_application_observed": false,
+  "record_contents_or_private_hashes_published": false,
+  "device_effects": "one bounded read-only file capture; no radio, calibration command, resource write or reboot",
+  "limits": [
+    "byte identity does not establish record provenance or factory calibration",
+    "source version predicates do not prove RF applicability or firmware application",
+    "normal host setup has conditional commands before complete-record submission"
+  ]
+}

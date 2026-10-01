@@ -40,6 +40,26 @@ binary listings or private filesystem paths are published. No image or record
 was copied/exported, no vendor API ran, and no VM file was created. The RE shell
 was closed. Prior backup/source hashes were not recomputed.
 
+## Live record identity follow-up — 2026-10-01
+
+After the [bounded capability reply](../2026-09-30-mt6797-capability-port0/results/runtime-1.json)
+and reviewed return to Gemian, one read-only snapshot of the installed
+`/nvdata/APCFG/APRDEB/WIFI` file was captured through the observed Android
+init-parent root. Its boot identity was stable before and after the read. The
+514-byte file passed the established storage-envelope and selected-source
+version predicates. Read-only `debugfs` inspection of the independently
+manifest-verified retained `nvdata` image returned a 514-byte WIFI file that
+was byte-for-byte identical to the live snapshot. The observed firmware
+version also passes the source's narrow version predicate.
+[Sanitized comparison](results/live-record-identity.json).
+
+This connects the current installed file to the exact retained record already
+analyzed here. It does not show that mainline submitted the record or that
+firmware applied any calibration. The selected host path conditionally issues
+power-related commands before the full record; a standalone `0x48` command
+would omit that sequence. Raw record bytes, identifiers and private hashes
+remain outside Git. No radio or calibration command ran in this follow-up.
+
 ## Exact selected host branches
 
 All source references below use Planet
