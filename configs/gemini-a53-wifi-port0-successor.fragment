@@ -1,0 +1,2 @@
+# One source-gated port-0 successor header diagnostic; no RF or DMA.
+CONFIG_LOCALVERSION="-gemini-a53-wifi-port0-successor"

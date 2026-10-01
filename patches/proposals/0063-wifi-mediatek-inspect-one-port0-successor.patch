@@ -1,0 +1,53 @@
+From ab4514987cebde2e90e67fa8e05a4d66e74c2cee Mon Sep 17 00:00:00 2001
+From: Codex native diagnostic <noreply@native-diagnostic.invalid>
+Date: Thu, 1 Oct 2026 09:18:46 -0400
+Subject: [PATCH] wifi: inspect one queued port-zero successor
+
+The previous authenticated boot observed an 80-byte port-zero packet
+queued after the first firmware debug event. If that same queue state
+occurs, read one bounded successor through the retained PIO owner and
+report only its header and event identity. Keep the payload private
+and retain the existing one-shot failure lifetime.
+---
+ drivers/soc/mediatek/mt6797-consys.c | 25 +++++++++++++++++++++++++
+ 1 file changed, 25 insertions(+)
+
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index 94ed33b..a85b603 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -892,6 +892,31 @@ static void mt6797_consys_probe_firmware_start(struct device *dev,
+ 		dev_info(dev, "one-shot WLAN port0 event: id=%u seq=%u\n",
+ 			 (unsigned int)port0.event_id,
+ 			 (unsigned int)port0.event_sequence);
++	/* The previous complete boot left exactly 80 bytes queued on port 0.
++	 * Read that one successor only if this boot reproduces the same state.
++	 */
++	if (!ret && port0.post_valid && port0.post_wrplr == 80U) {
++		struct mt6797_hif_rx_result next = {};
++		u8 packet[80] = {};
++		int next_ret;
++
++		next_ret = mt6797_hif_receive_packet(owner->fw_hif, 0,
++					ktime_get_ns() + NSEC_PER_SEC,
++					packet, sizeof(packet), &next);
++		dev_info(dev,
++			 "one-shot WLAN port0 successor: status=%d pre_valid=%d pre=0x%08x rx_setup=%d rx_complete=%d bytes=%zu post_valid=%d post=0x%08x len=%zu type=0x%04x\n",
++			 next_ret, next.pre_valid, next.pre_wrplr,
++			 next.rx_setup, next.rx_complete, next.staging_bytes,
++			 next.post_valid, next.post_wrplr, next.logical_bytes,
++			 next.packet_type);
++		if (!next_ret && next.logical_bytes >= 6 &&
++		    next.packet_type == 0xe000)
++			dev_info(dev,
++				 "one-shot WLAN port0 successor event: id=%u seq=%u\n",
++				 (unsigned int)packet[4],
++				 (unsigned int)packet[5]);
++		memzero_explicit(packet, sizeof(packet));
++	}
+ 	return;
+ 
+ stopped:
+-- 
+2.54.0 (Apple Git-157)
+

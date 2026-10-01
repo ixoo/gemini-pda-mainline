@@ -1,0 +1,13 @@
+{
+  "source_profile": "mt6797-a53-wifi-pio-rx",
+  "source_commit": "a4933a933152705187d906505e3a7ac5db6f9034",
+  "source_file": "drivers/soc/mediatek/mt6797-consys.c",
+  "source_file_sha256": "4b19afd05cb0e021c9e79cc19e06dab34d8d399258bccab6e51dca0ea5142099",
+  "patch": "proposals/0063-wifi-mediatek-inspect-one-port0-successor.patch",
+  "patch_sha256": "ea9ae53f58526970948dba7cf95db0408d3b619c6c56087c3dfc5746d351f93a",
+  "selected_source_git_apply_check": "pass",
+  "linux_checkpatch": "7.1.3 --no-tree --no-signoff: 0 errors, 0 warnings",
+  "effect_budget": "at most one 80-byte successor read after the existing one-shot start, capability and first event; no RF or DMA action",
+  "buildbox_compile": "pending clean pushed checkout",
+  "device_test": "not run"
+}
