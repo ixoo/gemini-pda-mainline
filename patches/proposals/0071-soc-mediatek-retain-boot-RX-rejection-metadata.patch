@@ -1,0 +1,41 @@
+From caf1b1f270f7f286228e02c82098e281a7b954b3 Mon Sep 17 00:00:00 2001
+From: Codex <codex@native-diagnostic.invalid>
+Date: Thu, 1 Oct 2026 19:46:42 -0400
+Subject: [PATCH] soc: mediatek: retain bounded boot RX rejection metadata
+
+The returned-page observation boot stopped after two debug events with
+EPROTO but no failed-packet identity. Record only the existing transfer
+flags and accepted header metadata before class rejection. Keep the same
+packet and deadline limits, refusal rules and private event bodies. No
+additional HIF read or retry occurs.
+---
+ drivers/soc/mediatek/mt6797-consys.c | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index 4d4f256..09894ac 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -805,6 +805,19 @@ static int mt6797_consys_drain_boot_debug(struct device *dev,
+ 		ret = mt6797_hif_receive_packet(owner->fw_hif, 0, deadline,
+ 						packet, MT6797_HIF_RX_MAX_PACKET,
+ 						&rx);
++		/* Keep metadata from this existing read before admission refuses it.
++		 * Do not dump event bodies or consume another packet for diagnosis.
++		 */
++		dev_info(dev,
++			 "one-shot WLAN boot RX: attempt=%u status=%d pre_valid=%u pre=0x%08x setup=%u complete=%u staging=%zu post_valid=%u post=0x%08x len=%zu type=0x%04x\n",
++			 count + 1, ret, rx.pre_valid, rx.pre_wrplr,
++			 rx.rx_setup, rx.rx_complete, rx.staging_bytes,
++			 rx.post_valid, rx.post_wrplr, rx.logical_bytes,
++			 rx.packet_type);
++		if (!ret && rx.logical_bytes >= 8 && rx.packet_type == 0xe000)
++			dev_info(dev,
++				 "one-shot WLAN boot event: attempt=%u id=0x%02x seq=%u\n",
++				 count + 1, packet[4], packet[5]);
+ 		if (ret == -EAGAIN) {
+ 			last = rx.pre_wrplr;
+ 			ret = last >> 16 ? -EBUSY : 0;
+-- 
+2.54.0 (Apple Git-157)
+
