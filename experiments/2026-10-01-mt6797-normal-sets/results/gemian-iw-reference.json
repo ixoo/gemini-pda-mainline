@@ -1,0 +1,20 @@
+{
+  "method": "bounded read-only /sbin/iw reg get and /sbin/iw phy phy0 info on authenticated Gemian",
+  "boot_id": "37602366-2e40-42ca-a05f-ec12a3026614",
+  "kernel_release": "3.18.41+",
+  "tool": "iw 4.9-0.1 already installed at /sbin/iw; no package installation",
+  "global_regulatory_domain": "00 (DFS-UNSET)",
+  "global_5ghz_ranges": "passive scan in 5170-5250 and 5735-5835 MHz; DFS and passive scan in 5250-5330 and 5490-5730 MHz",
+  "phy0_band1": {
+    "enabled_channels": "1-13",
+    "disabled_channels": "14",
+    "reported_enabled_channel_power_dbm": 30.0
+  },
+  "phy0_band2": {
+    "enabled_channels": "36,40,44,48,52,56,60,64,100,104,108,112,116,120,124,128,132,136,140,149,153,157,161,165",
+    "disabled_channels": "34,38,42,46,169,173,184,188,192,196,200,204,208,212,216",
+    "reported_enabled_channel_power_dbm": 30.0
+  },
+  "raw_private_capture_sha256": "31f4b8111f13c7ee8d23f2df60decc7825172358dcfb9059c9e7cab95fd3f0ce",
+  "limitations": "One Gemian reference snapshot. The global regulatory ranges and driver-reported per-channel power are separate outputs; this does not establish actual transmit permissions or mainline firmware policy. No radio control or package change was made."
+}

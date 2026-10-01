@@ -4,4 +4,6 @@ The [retained normal-command owner](../2026-10-01-mt6797-normal-owner/README.md)
 
 The caller still owns command order, payload provenance, regulatory policy, calibration admission and radio state. This profile introduces no caller, firmware command sequence or RF action. Its fragment changes only the local version; earlier profile series remain unchanged. A clean [Buildbox compile](results/build.json) passed for `347feb78`; no device test has been run for this profile. Wi-Fi support is not demonstrated.
 
+A later [read-only Gemian `iw` snapshot](results/gemian-iw-reference.json) recorded the vendor reference `phy0` and global regulatory domain. The utility was already installed at `/sbin/iw`; no package or radio state was changed. The snapshot does not substitute for cfg80211 policy ownership in this mainline driver.
+
 [Focused host tests](tests/) exercised the exact two-patch result on the prepared 0058 predecessor, including configuration framing refusals, persistent post-START ownership and port-0 handling. They used synthetic payloads and a mocked HIF, not the physical controller. The [host receipt](results/host-validation.json) records source hashes and validation limits. The experiment [source contract](../2026-09-05-mt6797-wifi-contract/NORMAL_COMMAND.md) and private calibration analysis remain prerequisites for any actual command sequence.
