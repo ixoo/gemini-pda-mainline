@@ -87,6 +87,24 @@ excluded by this selected 5GHz configuration.
 | Mapping pointer exists and `uc11AcTxPwrValid2G != 0` | At 4224–4236, submit `CMD_ID_SET_80211AC_TX_PWR` for 2.4GHz. |
 | After these branches | At 4240–4249, submit the complete 512-byte record using `CMD_ID_SET_NVRAM_SETTINGS` (public command ID `0x48`). |
 
+The selected path also calls `rlmDomainSendCmd(prAdapter, FALSE)` at
+`wlan_lib.c:4203`, before the 2.4GHz edge/11ac commands and full record.
+[The pinned domain source](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/rlm_domain.c#L842)
+(SHA-256 `8f3ff17db935ca1e47943a5437ca788a9fa8fa585bbb7c6f8c2a7f4f87612650`)
+expands that call, in order, into passive-scan domain information, ordinary
+domain information, and—because pinned `config.h:709` selects
+`CFG_SUPPORT_PWR_LIMIT_COUNTRY=1`—a country power-limit command. The first
+two use CID `0x0f`; the last uses CID `0x49`. All are set commands with no
+requested reply. The first two carry a 56-byte domain structure with six
+subband slots; the power-limit length depends on the selected country table.
+The source's country lookup includes a permissive fallback and its power
+limits come from vendor tables. Those tables cannot be replayed as mainline
+regulatory authority: a future cfg80211 owner must derive and enforce the
+effective channel and power limits, including before any RF operation.
+Consequently the existing two-command capability/NVRAM helper does not model
+the complete selected initialization sequence. Sending `0x48` alone would
+claim neither source-equivalent configuration nor safe RF admission.
+
 [The TX-power wrapper](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic.c#L2247)
 confirms the normal command and no-response setting.
 
