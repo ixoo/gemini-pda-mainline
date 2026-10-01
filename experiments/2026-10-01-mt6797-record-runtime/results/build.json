@@ -1,0 +1,17 @@
+{
+  "status": "Buildbox-package-and-offline-candidate-validated",
+  "repository_commit": "baaa47f8e95e1b0edfd41783e1aa75d40fff7d81",
+  "profile": "mt6797-a53-wifi-record-runtime",
+  "kernel_release": "7.1.3-gemini-a53-wifi-record-runtime",
+  "package_inventory_sha256": "4f4e90c3781c46e93fb3422a2f4fae6d947adf52750ee36a6e4d9c314363cb49",
+  "source_sha256": "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc",
+  "patchset_sha256": "b82577d610f590477c8271d6403e51c0c4ac07dff9f471ef84f6a18c08659947",
+  "image_gzip_sha256": "9a0314e5bd53f53985e2a8f9b2809f26cff87c4b5b0087996bbd6663121b5677",
+  "config_sha256": "0b829a28d9e843310054cb94186056b812d1b406fffa31553e9683047cfcf351",
+  "booted_board_dtb_sha256": "cef9373ea3aa0e1a8a45a13b953ae95e48939b211e41a73052543be784ee3214",
+  "compiled_board_dtb_sha256": "5abe5d14ddb424c5939e7ac6f6303210774f85e6be1413f2730f31804df046ca",
+  "private_initramfs_sha256": "15873ba61f25e51350ddfe53058f15eba0e8115fcce5dec832d76a1f6e9531df",
+  "candidate_manifest_sha256": "403d5c95c358433f8dc2bbd4da6cdeb9ad2d09a3e52c6a444631a31a0734bd9e",
+  "candidate_boot2_sha256": "fbbf87b751dc159402461cdcda13d349cc6cd969987bf0db6938dc324b885e1a",
+  "device_action": "none"
+}
