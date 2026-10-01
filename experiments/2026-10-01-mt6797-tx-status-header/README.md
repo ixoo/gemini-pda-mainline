@@ -40,5 +40,9 @@ Linux 7.1.3 checkpatch on the exported patch reports zero errors and warnings
 with `--no-tree --no-signoff`; its optional spelling and const-structure lists
 were unavailable. No DCO certification or submission readiness is claimed.
 The change records existing results only, so no synthetic transport behavior
-is introduced or claimed. The clean pushed Buildbox build and candidate
-validation remain required before a device test. No runtime result exists yet.
+is introduced or claimed. The [clean pushed Buildbox build](results/build.json) and
+[candidate validation](results/candidate.json) passed. The
+[offline preflight](results/preflight.json) records the wrapper, installer and
+A53 recovery dependency checks. Six Python AST checks, bounded metadata
+classifier fixtures and generated installer/wiphy shell syntax and ShellCheck
+passed. No runtime result exists yet.

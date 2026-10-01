@@ -1,0 +1,18 @@
+{
+  "status": "Buildbox-package-and-offline-candidate-validated",
+  "repository_commit": "9a271f7affba67af7cc17d038cf4bd571811f4c5",
+  "profile": "mt6797-a53-wifi-tx-status-header",
+  "kernel_release": "7.1.3-gemini-a53-wifi-tx-status-header",
+  "package_inventory_sha256": "0d689eb124d5fba4cac2f82c9a04956ac0583c965b561f6b22d0c774fc26a418",
+  "source_sha256": "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc",
+  "image_gzip_sha256": "dc3f99372fbfe9ac58065dab17da1577ef10909225433f5e863be4a8ed092798",
+  "config_sha256": "1fde088529c3b5828ddc0b9a2019466a81442cc85b3c6d51d03a9895ab62a207",
+  "booted_board_dtb_sha256": "cef9373ea3aa0e1a8a45a13b953ae95e48939b211e41a73052543be784ee3214",
+  "compiled_board_dtb_sha256": "5abe5d14ddb424c5939e7ac6f6303210774f85e6be1413f2730f31804df046ca",
+  "private_initramfs_sha256": "5785184408bc777b56f1eb88aad04d02dfaa184af84f492c8d4b59e662b56585",
+  "candidate_manifest_sha256": "d570d4597240d2398d6b193f4d703e111893bcc72a641650b4278c3afb5f127c",
+  "candidate_boot2_sha256": "03bf92938dfef805769aff33bbdbb9cca41f2b06414488beeb78cd4e535cde66",
+  "prepared_consys_source_sha256": "d2a2fb8693606ba29e74e792512fdc9ed41f54f45680d32fff3514d8bf8a847e",
+  "prepared_hif_source_sha256": "7184f54440d17874b3bc6c4eb72441b7496ed86febdbd9e1ff91192b02344a17",
+  "device_action": "none"
+}
