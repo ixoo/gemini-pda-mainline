@@ -13,8 +13,10 @@
     "limitations": "spelling and const-struct auxiliary lists unavailable"
   },
   "repository_checks": "pass, 255-profile canonical-order audit",
-  "kernel_build": "pending",
+  "kernel_build": "corrected clean Buildbox build and validated package fetch passed",
   "device_action": "none",
   "serialization": "post-record pair in one HIF lock; RTNL excludes the sole regulatory notifier sender",
-  "fatal_status_checks": "abnormal WHISR bit 6 and firmware-assert bit 31 stop immediately after WHISR"
+  "fatal_status_checks": "abnormal WHISR bit 6 and firmware-assert bit 31 stop immediately after WHISR",
+  "compiled_hif_c_sha256": "7184f54440d17874b3bc6c4eb72441b7496ed86febdbd9e1ff91192b02344a17",
+  "counter_classifier": "complete, missing, duplicate, reordered, failure, zero and repeated-value fixtures pass"
 }

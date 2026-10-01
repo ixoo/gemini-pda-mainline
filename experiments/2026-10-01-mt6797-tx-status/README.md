@@ -4,7 +4,10 @@ The [configuration boot](../2026-10-01-mt6797-regulatory-config/results/runtime-
 registered a CONSYS-bound wiphy and submitted supported configuration through
 PIO. Its finite debit-only TC4 ledger cannot sustain command or packet traffic.
 Patch 0070 adds the missing counter observation before implementing refill.
-There is no device result or kernel build for this successor yet.
+The [initial build](results/build-1.json) passed but was superseded before a
+device test to add fatal-status refusal. The [corrected build](results/build.json)
+and [offline candidate](results/candidate.json) passed. There is no device
+result yet.
 
 The [pinned source identities](results/sources.json) cover the selected gen3
 register map, HAL, AHB access and page accountant. `hal.h:488–514` reads all
