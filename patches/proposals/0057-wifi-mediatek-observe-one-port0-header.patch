@@ -1,0 +1,215 @@
+From 8f372ec27e7d3e36d90b4965ff02b6374a3f9410 Mon Sep 17 00:00:00 2001
+From: Codex native diagnostic <noreply@native-diagnostic.invalid>
+Date: Wed, 30 Sep 2026 21:37:16 -0400
+Subject: [PATCH] wifi: mediatek: observe one guarded port-0 header
+
+The capability reply completed on port 1 while port 0 still reported
+an unread 89-byte packet. Read one port-0 packet after that reply only
+if its length remains 89 and port 1 is empty. Report header metadata
+without logging payload or issuing radio commands.
+---
+ drivers/net/wireless/mediatek/mt6797/hif.c | 97 +++++++++++++++++++++-
+ drivers/net/wireless/mediatek/mt6797/hif.h | 23 +++++
+ drivers/soc/mediatek/mt6797-consys.c       | 16 ++++
+ 3 files changed, 135 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 4e98ecf..3407ac7 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -13,6 +13,11 @@
+ 
+ #define MT6797_HIF_MAX_NS 1000000000ULL
+ #define MT6797_HIF_MAX_SECTION (1024U * 1024U)
++#define MT6797_PORT0_EXPECTED_BYTES 89U
++#define MT6797_RX_SW_MASK 0xe00fU
++#define MT6797_RX_SW_EVENT 0xe000U
++#define MT6797_RX_SW_FRAME 0xe001U
++#define MT6797_RX_DATA_TYPE 2U
+ 
+ struct mt6797_hif {
+ 	void __iomem *base;
+@@ -25,6 +30,9 @@ struct mt6797_hif {
+ 	bool start_attempted;
+ 	bool firmware_ready;
+ 	bool capability_attempted;
++	bool capability_complete;
++	bool port0_reported;
++	bool port0_attempted;
+ 	int first_error;
+ 	u8 scratch[2560];
+ };
+@@ -422,8 +430,13 @@ int mt6797_hif_query_capability(struct mt6797_hif *hif, unsigned int sequence,
+ 	error = mt6797_normal_accept_capability(&normal, hif->scratch,
+ 						MT6797_NORMAL_CAP_BYTES,
+ 						capability);
+-	if (!error)
++	if (!error) {
+ 		trace->stage = MT6797_CAP_DONE;
++		hif->capability_complete = true;
++		hif->port0_reported = trace->pre_valid && trace->post_valid &&
++			(trace->pre_wrplr & 0xffffU) == MT6797_PORT0_EXPECTED_BYTES &&
++			(trace->post_wrplr & 0xffffU) == MT6797_PORT0_EXPECTED_BYTES;
++	}
+ out:
+ 	if (error) {
+ 		*capability = (struct mt6797_normal_capability){0};
+@@ -434,3 +447,85 @@ unlock:
+ 	mutex_unlock(&hif->mutex);
+ 	return error;
+ }
++
++/* Read one port-0 packet only when its earlier 89-byte length is unchanged.
++ * Keep all payload bytes private to the HIF scratch buffer.
++ */
++int mt6797_hif_observe_port0(struct mt6797_hif *hif, u64 deadline_ns,
++			     struct mt6797_port0_observation *observation)
++{
++	struct mt6797_hif_pio_result transfer;
++	u32 lengths;
++	int error;
++
++	if (!observation)
++		return -EINVAL;
++	*observation = (struct mt6797_port0_observation){0};
++	if (!hif)
++		return -EINVAL;
++	if (!mutex_trylock(&hif->mutex))
++		return -EBUSY;
++	if (!hif->capability_complete || !hif->port0_reported ||
++	    hif->port0_attempted ||
++	    hif->transaction->phase != MT6797_INIT_IDLE) {
++		error = -EIO;
++		goto unlock;
++	}
++	hif->port0_attempted = true;
++	error = mt6797_hif_enter(hif, deadline_ns);
++	if (error)
++		goto out;
++	error = mt6797_hif_read32_locked(hif, 0x90, &lengths);
++	if (error)
++		goto out;
++	observation->pre_valid = true;
++	observation->pre_wrplr = lengths;
++	if (lengths != MT6797_PORT0_EXPECTED_BYTES) {
++		error = -EBUSY;
++		goto out;
++	}
++	/* Pinned gen3 RX asks for the logical packet length plus four bytes. */
++	error = mt6797_hif_pio_transfer(&hif->io, 0x50, MT6797_HIF_READ,
++					hif->scratch,
++					MT6797_PORT0_EXPECTED_BYTES + 4U,
++					sizeof(hif->scratch), &transfer);
++	observation->rx_setup = transfer.setup_submitted;
++	observation->rx_complete = transfer.transfer_complete;
++	observation->rx_bytes = transfer.data_bytes;
++	if (error)
++		goto out;
++	error = mt6797_hif_guard(hif);
++	if (error)
++		goto out;
++	observation->length = mt6797_normal_le16(hif->scratch);
++	observation->packet_type = mt6797_normal_le16(hif->scratch + 2);
++	observation->header_valid = true;
++	error = mt6797_hif_read32_locked(hif, 0x90, &lengths);
++	if (error)
++		goto out;
++	observation->post_valid = true;
++	observation->post_wrplr = lengths;
++	if (observation->length != MT6797_PORT0_EXPECTED_BYTES) {
++		error = -EPROTO;
++		goto out;
++	}
++	if ((observation->packet_type & MT6797_RX_SW_MASK) ==
++	    MT6797_RX_SW_EVENT) {
++		observation->kind = MT6797_PORT0_EVENT;
++		observation->event_id = hif->scratch[4];
++		observation->event_sequence = hif->scratch[5];
++	} else if ((observation->packet_type & MT6797_RX_SW_MASK) ==
++		   MT6797_RX_SW_FRAME) {
++		observation->kind = MT6797_PORT0_MANAGEMENT;
++	} else if ((observation->packet_type >> 13) == MT6797_RX_DATA_TYPE) {
++		observation->kind = MT6797_PORT0_DATA;
++	} else {
++		error = -EPROTO;
++	}
++out:
++	if (error)
++		error = mt6797_hif_fail(hif, error);
++unlock:
++	mutex_unlock(&hif->mutex);
++	return error;
++}
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index 863dc94..38a02de 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -47,6 +47,23 @@ struct mt6797_capability_trace {
+ 	bool rx_setup, rx_complete;
+ };
+ 
++enum mt6797_port0_kind {
++	MT6797_PORT0_UNKNOWN, MT6797_PORT0_EVENT,
++	MT6797_PORT0_MANAGEMENT, MT6797_PORT0_DATA,
++};
++
++/* Only header metadata crosses this interface. Event fields are valid solely
++ * for an event packet after a complete read.
++ */
++struct mt6797_port0_observation {
++	u32 pre_wrplr, post_wrplr;
++	size_t rx_bytes;
++	unsigned int length, packet_type;
++	enum mt6797_port0_kind kind;
++	u8 event_id, event_sequence;
++	bool pre_valid, post_valid, rx_setup, rx_complete, header_valid;
++};
++
+ /* Allocation owns memory only. Caller retains the real powered mapping,
+  * transaction, exclusive driver ownership, IRQ quiescence and reset exclusion
+  * through all calls. No ownership acquisition, INIT seeding or reset occurs.
+@@ -98,4 +115,10 @@ int mt6797_hif_query_capability(struct mt6797_hif *hif, unsigned int sequence,
+ 				struct mt6797_normal_capability *capability,
+ 				struct mt6797_capability_trace *trace);
+ 
++/* One read after a successful capability query on this same owner. Refuse
++ * changed/other queue lengths and report no payload bytes.
++ */
++int mt6797_hif_observe_port0(struct mt6797_hif *hif, u64 deadline_ns,
++			     struct mt6797_port0_observation *observation);
++
+ #endif
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index 468946f..94ed33b 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -754,6 +754,7 @@ static void mt6797_consys_probe_firmware_start(struct device *dev,
+ 	struct mt6797_wlan_ordinary_result ordinary = {};
+ 	struct mt6797_normal_capability capability;
+ 	struct mt6797_capability_trace cap_trace;
++	struct mt6797_port0_observation port0;
+ 	u64 deadline;
+ 	u32 whlpcr, wrplr, wcir = 0;
+ 	unsigned int i;
+@@ -876,6 +877,21 @@ static void mt6797_consys_probe_firmware_start(struct device *dev,
+ 			 capability.firmware_peer, capability.hw_5g_disabled,
+ 			 capability.eeprom_used, capability.rf_cal_fail,
+ 			 capability.bb_cal_fail);
++	if (ret || !cap_trace.post_valid ||
++	    (cap_trace.post_wrplr & 0xffffU) != 89U)
++		return;
++	ret = mt6797_hif_observe_port0(owner->fw_hif,
++					  ktime_get_ns() + NSEC_PER_SEC, &port0);
++	dev_info(dev,
++		 "one-shot WLAN port0: status=%d pre_valid=%d pre=0x%08x rx_setup=%d rx_complete=%d rx_bytes=%zu header_valid=%d length=%u type=0x%04x kind=%u post_valid=%d post=0x%08x\n",
++		 ret, port0.pre_valid, port0.pre_wrplr, port0.rx_setup,
++		 port0.rx_complete, port0.rx_bytes, port0.header_valid,
++		 port0.length, port0.packet_type, (unsigned int)port0.kind,
++		 port0.post_valid, port0.post_wrplr);
++	if (port0.kind == MT6797_PORT0_EVENT)
++		dev_info(dev, "one-shot WLAN port0 event: id=%u seq=%u\n",
++			 (unsigned int)port0.event_id,
++			 (unsigned int)port0.event_sequence);
+ 	return;
+ 
+ stopped:
