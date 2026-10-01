@@ -1,0 +1,2 @@
+# Prepare a private Wi-Fi record through request_firmware; no caller or RF action.
+CONFIG_LOCALVERSION="-gemini-a53-wifi-record-provider"

@@ -1,0 +1,14 @@
+{
+  "profile": "mt6797-a53-wifi-record-provider",
+  "patch": "patches/proposals/0061-wifi-mediatek-prepare-private-board-record.patch",
+  "patch_sha256": "ae0fb5e8bf70c70ba518fa66ea2a6b7b3af2b190d54927326ef238fa5b957233",
+  "prepared_makefile_sha256_before_patch": "d7ffefd68812082591c0ce37355f76a3c0265c0a4d3a7e7cf8712bf0ddc87ed1",
+  "record_prepare_c_sha256": "ae1ae6e90856e650e89ef39dd9bafabadcf9c2113c9e94ee516f336f74235dd3",
+  "record_prepare_h_sha256": "2c5b20480db3ff9c439ca2212156ef9084bcc3d7339b6587b2957d72f7def0f7",
+  "synthetic_test_sha256": "14c2aa8a1c409d064aaec884066d4441c716399215de1c86af1884eb50842470",
+  "selected_source_git_apply_check": "pass",
+  "synthetic_test": "clang C11 -Wall -Wextra -Werror -Wconversion, AddressSanitizer and UndefinedBehaviorSanitizer: pass",
+  "private_record_test": "prior retained manifest and exact 514-byte length verified; same parser accepted four supported conditional branches with fixed pass output; no bytes emitted",
+  "checkpatch": "Linux 7.1.3 --no-tree --no-signoff: 0 errors, 1 generic MAINTAINERS warning for added files, 0 checks",
+  "runtime": "not tested; provider has no caller and cannot submit a command or enable RF"
+}

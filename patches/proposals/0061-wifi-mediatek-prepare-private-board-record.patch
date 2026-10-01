@@ -1,0 +1,215 @@
+From 3a7a29b737f09a9a9c4bf00a3ed1955a4c34fffb Mon Sep 17 00:00:00 2001
+From: Codex native diagnostic <noreply@native-diagnostic.invalid>
+Date: Thu, 1 Oct 2026 08:22:28 -0400
+Subject: [PATCH] wifi: mediatek: prepare private board record
+
+Read one complete firmware-class WIFI.storage record, check its storage
+trailer and selected source-version predicate, and frame only the
+supported conditional power payloads. Keep the original bytes immutable
+for later normal-command submission. Preparation has no controller or
+radio effect; provenance, regulatory policy and actual firmware
+application remain caller responsibilities.
+---
+ drivers/net/wireless/mediatek/mt6797/Makefile |   1 +
+ .../wireless/mediatek/mt6797/record-prepare.c |  66 +++++++++++
+ .../wireless/mediatek/mt6797/record-prepare.h | 106 ++++++++++++++++++
+ 3 files changed, 173 insertions(+)
+ create mode 100644 drivers/net/wireless/mediatek/mt6797/record-prepare.c
+ create mode 100644 drivers/net/wireless/mediatek/mt6797/record-prepare.h
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Makefile b/drivers/net/wireless/mediatek/mt6797/Makefile
+index b17c455..516f8e4 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Makefile
++++ b/drivers/net/wireless/mediatek/mt6797/Makefile
+@@ -10,3 +10,4 @@ obj-y += ordinary-transfer.o
+ obj-y += emi-service-gate.o
+ obj-y += firmware-prepare.o
+ obj-y += firmware-probe.o
++obj-y += record-prepare.o
+diff --git a/drivers/net/wireless/mediatek/mt6797/record-prepare.c b/drivers/net/wireless/mediatek/mt6797/record-prepare.c
+new file mode 100644
+index 0000000..e8e561a
+--- /dev/null
++++ b/drivers/net/wireless/mediatek/mt6797/record-prepare.c
+@@ -0,0 +1,66 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/* Private board record acquisition; no command or radio action here. */
++#include <linux/firmware.h>
++#include <linux/slab.h>
++
++#include "record-prepare.h"
++
++#define MT6797_WIFI_RECORD_NAME "mediatek/mt6797/WIFI.storage"
++
++struct mt6797_wifi_record {
++	const struct firmware *blob;
++	struct mt6797_record_commands commands;
++};
++
++int mt6797_wifi_record_prepare(struct device *dev,
++			       struct mt6797_wifi_record **out)
++{
++	struct mt6797_wifi_record *record;
++	int ret;
++
++	if (!out)
++		return -EINVAL;
++	*out = NULL;
++	if (!dev)
++		return -EINVAL;
++	record = kzalloc_obj(*record, GFP_KERNEL);
++	if (!record)
++		return -ENOMEM;
++	ret = request_firmware(&record->blob, MT6797_WIFI_RECORD_NAME, dev);
++	if (ret)
++		goto free_record;
++	ret = mt6797_record_commands_from_storage(record->blob->data,
++						  record->blob->size,
++						  &record->commands);
++	if (ret)
++		goto release_blob;
++	*out = record;
++	return 0;
++
++release_blob:
++	release_firmware(record->blob);
++free_record:
++	memzero_explicit(&record->commands, sizeof(record->commands));
++	kfree(record);
++	return ret;
++}
++
++const u8 *mt6797_wifi_record_data(const struct mt6797_wifi_record *record)
++{
++	return record ? record->blob->data : NULL;
++}
++
++const struct mt6797_record_commands *
++mt6797_wifi_record_commands(const struct mt6797_wifi_record *record)
++{
++	return record ? &record->commands : NULL;
++}
++
++void mt6797_wifi_record_release(struct mt6797_wifi_record *record)
++{
++	if (!record)
++		return;
++	release_firmware(record->blob);
++	memzero_explicit(&record->commands, sizeof(record->commands));
++	kfree(record);
++}
+diff --git a/drivers/net/wireless/mediatek/mt6797/record-prepare.h b/drivers/net/wireless/mediatek/mt6797/record-prepare.h
+new file mode 100644
+index 0000000..6d7912d
+--- /dev/null
++++ b/drivers/net/wireless/mediatek/mt6797/record-prepare.h
+@@ -0,0 +1,106 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef MT6797_WIFI_RECORD_PREPARE_H
++#define MT6797_WIFI_RECORD_PREPARE_H
++
++#ifdef MT6797_RECORD_HOST_TEST
++#include "test-compat.h"
++#include <string.h>
++#else
++#include <linux/device.h>
++#include <linux/errno.h>
++#include <linux/string.h>
++#include <linux/types.h>
++#endif
++
++#define MT6797_WIFI_STORAGE_BYTES 514U
++#define MT6797_WIFI_RECORD_BYTES 512U
++
++/* Opaque command bytes from the selected host branches. This is format
++ * preparation, not calibration applicability or permission to transmit.
++ */
++struct mt6797_record_commands {
++	bool base_power, edge_5g, ac_5g, edge_2g;
++	u8 base_power_bytes[40];
++	u8 edge_5g_bytes[4];
++	u8 ac_5g_bytes[12];
++	u8 edge_2g_bytes[4];
++};
++
++static inline unsigned int mt6797_record_le16(const u8 *p)
++{
++	return (unsigned int)p[0] | ((unsigned int)p[1] << 8);
++}
++
++/* The selected driver has own/peer versions 0x0200/0. Its peer-version
++ * predicate and the storage trailer detect incompatibility/corruption, not
++ * factory provenance. Offsets were checked against pinned CFG_Wifi_File.h.
++ * Regulatory payloads and RF admission remain outside this adapter.
++ */
++static inline int
++mt6797_record_commands_from_storage(const u8 *storage, size_t length,
++				    struct mt6797_record_commands *result)
++{
++	struct mt6797_record_commands built = {0};
++	u8 check = 0;
++	size_t i;
++
++	if (!result)
++		return -EINVAL;
++	memset(result, 0, sizeof(*result));
++	if (!storage || length != MT6797_WIFI_STORAGE_BYTES ||
++	    storage[512] != 0xaa)
++		return -EINVAL;
++	for (i = 0; i < MT6797_WIFI_RECORD_BYTES; i++)
++		check = (u8)(i & 1 ? check ^ storage[i] :
++			     check + storage[i]);
++	if (check != storage[513])
++		return -EILSEQ;
++	if (mt6797_record_le16(storage + 2) > 0x0200 ||
++	    mt6797_record_le16(storage + 258) > 0x0200)
++		return -EPROTONOSUPPORT;
++
++	/* A different selected command branch cannot be silently dropped. */
++	if (storage[83] || storage[104] || storage[155] || storage[266])
++		return -EOPNOTSUPP;
++
++	built.base_power = mt6797_record_le16(storage) != 1 && storage[196];
++	if (built.base_power)
++		memcpy(built.base_power_bytes, storage + 12, 40);
++	if (storage[262]) {
++		built.edge_5g = !!storage[62];
++		if (built.edge_5g) {
++			built.edge_5g_bytes[0] = 0;
++			memcpy(built.edge_5g_bytes + 1, storage + 63, 3);
++		}
++		built.ac_5g = !!storage[123];
++		if (built.ac_5g) {
++			built.ac_5g_bytes[0] = 2;
++			memcpy(built.ac_5g_bytes + 1, storage + 112, 11);
++		}
++	}
++	built.edge_2g = !!storage[198];
++	if (built.edge_2g) {
++		memcpy(built.edge_2g_bytes, storage + 199, 3);
++		/* The selected source does not initialize its fourth byte. */
++		built.edge_2g_bytes[3] = 0;
++	}
++	*result = built;
++	return 0;
++}
++
++#ifndef MT6797_RECORD_HOST_TEST
++struct mt6797_wifi_record;
++
++/* The caller retains this immutable object through every normal command.
++ * Preparation reads one complete private firmware-class file and is passive.
++ * The first 512 bytes are the opaque NVRAM command payload; never the trailer.
++ */
++int mt6797_wifi_record_prepare(struct device *dev,
++			       struct mt6797_wifi_record **out);
++const u8 *mt6797_wifi_record_data(const struct mt6797_wifi_record *record);
++const struct mt6797_record_commands *
++mt6797_wifi_record_commands(const struct mt6797_wifi_record *record);
++void mt6797_wifi_record_release(struct mt6797_wifi_record *record);
++#endif
++
++#endif
+-- 
+2.54.0 (Apple Git-157)
+
