@@ -7,7 +7,7 @@ Patch 0070 adds the missing counter observation before implementing refill.
 The [initial build](results/build-1.json) passed but was superseded before a
 device test to add fatal-status refusal. The [corrected build](results/build.json)
 and [offline candidate](results/candidate.json) passed. There is no device
-result yet.
+runtime result yet.
 
 The [pinned source identities](results/sources.json) cover the selected gen3
 register map, HAL, AHB access and page accountant. `hal.h:488–514` reads all
@@ -73,3 +73,12 @@ credits and all 60 read/setup fault positions in pre-normal/post-record state.
 Fatal interrupt flags and invalid deadlines also stop before further I/O.
 Strict C11 warnings and address/undefined sanitizers pass. It neither emulates
 counter consumption nor proves hardware behavior.
+
+## Deployment handoff
+
+The [boot2 deployment](results/deployment.json) passed the live-GPT guard,
+full padded readback and clean shutdown. Exact candidate/session/capture and
+reviewed recovery preflights passed. No WMT or START has been issued. The
+device is off; physical boot2 selection with the console enabled is the next
+owner action. Then run the one-shot capture and preserve the full private
+status log and wiphy query before reviewed recovery. No watcher is armed.

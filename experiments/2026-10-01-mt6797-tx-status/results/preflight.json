@@ -18,5 +18,8 @@
   "serialization": "post-record pair in one HIF lock; RTNL excludes the sole regulatory notifier sender",
   "fatal_status_checks": "abnormal WHISR bit 6 and firmware-assert bit 31 stop immediately after WHISR",
   "compiled_hif_c_sha256": "7184f54440d17874b3bc6c4eb72441b7496ed86febdbd9e1ff91192b02344a17",
-  "counter_classifier": "complete, missing, duplicate, reordered, failure, zero and repeated-value fixtures pass"
+  "counter_classifier": "complete, missing, duplicate, reordered, failure, zero and repeated-value fixtures pass",
+  "offline_session": "exact candidate, 53-member private RAM root and reviewed recovery dependencies: pass",
+  "offline_capture_and_host": "both full preparation checks passed after verified deployment; no WMT or START issued",
+  "shell_validation": "generated installer: bash -n and ShellCheck; wiphy query: sh -n and ShellCheck"
 }
