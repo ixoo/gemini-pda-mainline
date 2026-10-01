@@ -1,0 +1,100 @@
+From f2f3077789a89cacef786bbd3d32f9bf2865e789 Mon Sep 17 00:00:00 2001
+From: Codex native diagnostic <noreply@native-diagnostic.invalid>
+Date: Thu, 1 Oct 2026 06:17:17 -0400
+Subject: [PATCH] wifi: mediatek: retain normal command state after capability
+
+The one-shot capability query discards its normal TC4 ledger and phase
+when it returns. Later ordered commands must share its credit and
+sequence history.
+
+Keep the transaction in the serialized HIF context and poison it with
+the HIF on failure. Wire behavior is unchanged.
+---
+ drivers/net/wireless/mediatek/mt6797/hif.c | 15 ++++++++-------
+ 1 file changed, 8 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 3407ac7..b520b2b 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -24,6 +24,7 @@ struct mt6797_hif {
+ 	/* Serializes this context, transaction and scratch; never external owners. */
+ 	struct mutex mutex;
+ 	struct mt6797_init_transaction *transaction;
++	struct mt6797_normal_transaction normal;
+ 	struct mt6797_hif_pio_io io;
+ 	u64 deadline_ns;
+ 	u64 start_deadline_ns;
+@@ -42,6 +43,8 @@ static int mt6797_hif_fail(struct mt6797_hif *hif, int error)
+ 	if (!hif->first_error)
+ 		hif->first_error = error;
+ 	mt6797_init_abort(hif->transaction);
++	if (hif->normal.phase != MT6797_NORMAL_COLD)
++		mt6797_normal_abort(&hif->normal);
+ 	return hif->first_error;
+ }
+ 
+@@ -327,7 +330,6 @@ int mt6797_hif_query_capability(struct mt6797_hif *hif, unsigned int sequence,
+ 				struct mt6797_normal_capability *capability,
+ 				struct mt6797_capability_trace *trace)
+ {
+-	struct mt6797_normal_transaction normal = {0};
+ 	struct mt6797_hif_pio_result transfer;
+ 	struct mt6797_hif_command command;
+ 	u32 lengths;
+@@ -355,7 +357,7 @@ int mt6797_hif_query_capability(struct mt6797_hif *hif, unsigned int sequence,
+ 	 * this driver starts with its selected 26-page default, not INIT TC4.
+ 	 */
+ 	trace->stage = MT6797_CAP_ADMIT;
+-	error = mt6797_normal_admit(&normal, 26, 26,
++	error = mt6797_normal_admit(&hif->normal, 26, 26,
+ 				    hif->transaction->used_sequences);
+ 	if (error)
+ 		goto out;
+@@ -373,7 +375,7 @@ int mt6797_hif_query_capability(struct mt6797_hif *hif, unsigned int sequence,
+ 		goto out;
+ 	}
+ 	trace->stage = MT6797_CAP_PREPARE;
+-	error = mt6797_normal_prepare(&normal, MT6797_NORMAL_CAPABILITY,
++	error = mt6797_normal_prepare(&hif->normal, MT6797_NORMAL_CAPABILITY,
+ 				      sequence, NULL, 0, hif->scratch,
+ 				      sizeof(hif->scratch), &command);
+ 	if (error)
+@@ -387,7 +389,7 @@ int mt6797_hif_query_capability(struct mt6797_hif *hif, unsigned int sequence,
+ 	trace->tx_bytes = transfer.data_bytes;
+ 	if (!error)
+ 		trace->stage = MT6797_CAP_SUBMIT;
+-	error = mt6797_normal_submitted(&normal, error);
++	error = mt6797_normal_submitted(&hif->normal, error);
+ 	if (error)
+ 		goto out;
+ 	for (;;) {
+@@ -398,7 +400,7 @@ int mt6797_hif_query_capability(struct mt6797_hif *hif, unsigned int sequence,
+ 		trace->post_valid = true;
+ 		trace->post_wrplr = lengths;
+ 		trace->stage = MT6797_CAP_REPLY_SPAN;
+-		error = mt6797_normal_reply_span(&normal, lengths >> 16,
++		error = mt6797_normal_reply_span(&hif->normal, lengths >> 16,
+ 						 sizeof(hif->scratch), &command);
+ 		if (error != -EAGAIN)
+ 			break;
+@@ -427,7 +429,7 @@ int mt6797_hif_query_capability(struct mt6797_hif *hif, unsigned int sequence,
+ 	if (error)
+ 		goto out;
+ 	trace->stage = MT6797_CAP_PARSE;
+-	error = mt6797_normal_accept_capability(&normal, hif->scratch,
++	error = mt6797_normal_accept_capability(&hif->normal, hif->scratch,
+ 						MT6797_NORMAL_CAP_BYTES,
+ 						capability);
+ 	if (!error) {
+@@ -440,7 +442,6 @@ int mt6797_hif_query_capability(struct mt6797_hif *hif, unsigned int sequence,
+ out:
+ 	if (error) {
+ 		*capability = (struct mt6797_normal_capability){0};
+-		mt6797_normal_abort(&normal);
+ 		error = mt6797_hif_fail(hif, error);
+ 	}
+ unlock:
+-- 
+2.54.0 (Apple Git-157)
+

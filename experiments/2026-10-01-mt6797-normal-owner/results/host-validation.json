@@ -1,0 +1,13 @@
+{
+  "baseline_hif_sha256": "27533f0c6057a6edffbd30b99cbf50e26e832b2cdbc23de6765e45bd864556a4",
+  "patched_hif_sha256": "5718fa8673c1bafdd078b1ea0e707ccf15694fb21a73309e4b6efe8532f09972",
+  "patch_sha256": "3f18d746b278dc595d1675786796d650eead3d2631d7a88c5b2a7d06ec997534",
+  "test_sha256": "0ef97517c0b21cc9d993a47bb2a34294c302845fde54e20f2b769f3962668a69",
+  "host_compiler": "Homebrew clang 23.1.2",
+  "host_flags": "-std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer",
+  "host_result": "pass",
+  "coverage": "same-object START then capability; persisted normal phase, 25-page balance and shared history; one port0 read; 69 capability and 29 port0 scalar faults; pre-admission refusal and malformed/deadline cases",
+  "linux_checkpatch": "7.1.3 --no-tree --no-signoff: 0 errors, 0 warnings",
+  "prepared_source_apply_check": "pass",
+  "device_action": "none"
+}
