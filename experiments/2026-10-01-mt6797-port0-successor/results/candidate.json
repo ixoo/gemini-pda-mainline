@@ -1,0 +1,39 @@
+{
+  "status": "offline-gated-port0-successor-candidate-validated",
+  "kernel_build_commit": "ecad532e68fae6ee6030ae909af5945ab10d8f44",
+  "kernel_release": "7.1.3-gemini-a53-wifi-port0-successor",
+  "kernel_package_sha256": "8f0f97aeafb4e53a4712515bc35b61ed126314253352c1e16908344f4ccab750",
+  "parent_boot2_sha256": "fa7dc1a6a96f7b2e8c7e875271882b27f7e73148508a0ae4ae2880e32802165d",
+  "booted_dtb_sha256": "cef9373ea3aa0e1a8a45a13b953ae95e48939b211e41a73052543be784ee3214",
+  "firmware_sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
+  "files": {
+    "Image.gz": {
+      "sha256": "14a6bc974a6daa2e24a4fd6502047cfe572dd0cf304a29f19a67dcf94eca00f1",
+      "bytes": 6485937
+    },
+    "board.dtb": {
+      "sha256": "cef9373ea3aa0e1a8a45a13b953ae95e48939b211e41a73052543be784ee3214",
+      "bytes": 28231
+    },
+    "boot.img": {
+      "sha256": "856cac3ce53eafbd35600e1ad1eb4f2c45b2d603ceed7891d13db90d99254a46",
+      "bytes": 9785344
+    },
+    "boot2-padded.img": {
+      "sha256": "7a7a2249db9221dae7fd29b18ba0dd5887974fd43aece68478640592dffe42cd",
+      "bytes": 16777216
+    },
+    "initramfs.img": {
+      "sha256": "ca3d874c546601418ec7700d7b06480657556a11697fee4a6c704dd93f38c3c7",
+      "bytes": 3266665
+    },
+    "kernel.config": {
+      "sha256": "d47495ac6bd824b1bc1feab11ef264b69bddde714482a8b03f4fea6bb37555a4",
+      "bytes": 112014
+    }
+  },
+  "device_tree_change": "none from proven booted board DT",
+  "secret_bearing": true,
+  "device_action": "none",
+  "physical_admission": false
+}
