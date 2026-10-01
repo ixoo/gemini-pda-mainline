@@ -70,6 +70,21 @@ direct-flow walk exhausts with 20 calls, no invalid instructions and no
 unresolved non-call transfers; callees are skipped under an assumed return.
 No filter command, register access, radio action or firmware execution occurred.
 
+## BASIC_CONFIG native-format field follow-up
+
+Pinned `nic_cmd_event.h:422–427` declares `ucNative80211` at byte 0 of the
+8-byte BASIC_CONFIG payload. `wlan_lib.c:3218` sets it to zero; the source
+therefore supplies no selected nonzero managed-mode contract.
+
+A [retained mapped-handler follow-up](results/firmware-basic-config.json)
+found one CID `0x02` target in the 81-entry normal table. Its complete bounded
+direct-flow walk has 34 instructions and three calls, with no invalid or
+unresolved non-call transfer. The mapped body reads set/query and the checksum
+halfwords at payload offsets 4 and 6, but does not read `ucNative80211`.
+Callees remain outside this walk. That field cannot justify a native receive
+mode in this retained image; this is not proof of firmware-wide absence of
+another control. No BASIC_CONFIG command or radio action was issued.
+
 ## Receive representation
 
 The base RX descriptor is 16 bytes. Its optional groups are selected by the

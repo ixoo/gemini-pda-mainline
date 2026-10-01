@@ -1,0 +1,7 @@
+# Three bounded snapshots; reads may consume interrupt/returned-page status.
+# No credit refill, IRQ enable, interface, packet DMA or explicit RF request.
+CONFIG_LOCALVERSION="-gemini-a53-wifi-tx-status"
+CONFIG_CFG80211=y
+CONFIG_MAC80211=y
+CONFIG_MT6797_MAC80211=y
+CONFIG_MT6797_HIF_TX_STATUS_PROBE=y

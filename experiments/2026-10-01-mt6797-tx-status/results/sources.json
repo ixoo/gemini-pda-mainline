@@ -1,0 +1,36 @@
+{
+  "repository": "lineage-geminipda/android_kernel_planet_mt6797",
+  "revision": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+  "sources": [
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/include/nic/hal.h",
+      "bytes": 18239,
+      "sha256": "24b9bce2fc8b331d75a330cae8c9291816bb90cff8078200cd7ecb719f180ee0"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/include/nic/mt6630_reg.h",
+      "bytes": 10576,
+      "sha256": "06aefcafb733ef5fba79e8d6cb2dd71d315b48caec7fa421a78c2214ad40d50f"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/include/nic/hif_rx.h",
+      "bytes": 4367,
+      "sha256": "051bf372cdae931a4659b50304012a1876b1ae7a96b25135d741c26d17b8bb3e"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/include/nic/nic_tx.h",
+      "bytes": 59012,
+      "sha256": "a51b8357b2a5fc0fdff095866d693194274f552cb2e722016bb1ce7c81612db7"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c",
+      "bytes": 49595,
+      "sha256": "d9b4e80fe98695284627e495ad640e39728ebe7df235df129f64d48e8a2e726b"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic_tx.c",
+      "bytes": 104350,
+      "sha256": "1f479d41bab8e2b5bba68eb6514f3e977559d31d97c39c7833f3dc9f111cd1ed"
+    }
+  ]
+}

@@ -1,0 +1,235 @@
+From d1a7bc12fac57975ccdd47ba42b260af09eebc1c Mon Sep 17 00:00:00 2001
+From: Codex <codex@native-diagnostic.invalid>
+Date: Thu, 1 Oct 2026 18:49:51 -0400
+Subject: [PATCH] wifi: mediatek: observe bounded returned-page status
+
+Observe WHCR, WHISR and all eight WTQCR words once before normal commands
+and twice after configuration. The default-off probe consumes status only
+under the retained exclusive PIO owner and never replenishes credits.
+Preserve completed-word validity on partial failure, poison the session,
+and bound both acquisition and replay.
+
+This supplies the missing counter observation before sustained accounting;
+it does not establish a read-clear hardware contract.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig | 10 +++
+ drivers/net/wireless/mediatek/mt6797/hif.c   | 64 ++++++++++++++++++++
+ drivers/net/wireless/mediatek/mt6797/hif.h   | 20 ++++++
+ drivers/soc/mediatek/mt6797-consys.c         | 42 +++++++++++++
+ 4 files changed, 136 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index ea198b1..1d51110 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -19,3 +19,13 @@ config MT6797_MAC80211
+ 	  retained configuration under cfg80211 regulatory ownership.
+ 	  Radio and packet operations remain unavailable. This experimental
+ 	  option does not yet provide a usable station interface.
++
++config MT6797_HIF_TX_STATUS_PROBE
++	bool "MT6797 bounded WLAN returned-page observation"
++	depends on MT6797_MAC80211
++	default n
++	help
++	  Read interrupt/control and returned-page counters once before normal
++	  commands and twice after configuration, with no intervening commands.
++	  These reads may consume hardware status. No credit refund, IRQ enable,
++	  radio request or packet DMA is performed. Experimental diagnostic only.
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 35d5b95..2febc6b 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -34,6 +34,8 @@ struct mt6797_hif {
+ 	bool firmware_ready;
+ 	bool capability_attempted;
+ 	bool capability_complete;
++	bool tx_status_boot_attempted;
++	bool tx_status_normal_attempted;
+ 	bool port0_reported;
+ 	bool port0_attempted;
+ 	int first_error;
+@@ -327,6 +329,68 @@ out:
+ 	return error;
+ }
+ 
++int mt6797_hif_observe_tx_status(struct mt6797_hif *hif, u64 deadline_ns,
++				 unsigned int count,
++				 struct mt6797_hif_tx_status *status)
++{
++	unsigned int n, i;
++	int error;
++
++	if (!status || !count || count > 2)
++		return -EINVAL;
++	memset(status, 0, count * sizeof(*status));
++	if (!hif)
++		return -EINVAL;
++	if (!mutex_trylock(&hif->mutex))
++		return -EBUSY;
++	if (!hif->firmware_ready ||
++	    hif->transaction->phase != MT6797_INIT_IDLE) {
++		error = -EIO;
++		goto unlock;
++	}
++	if (count == 1 && hif->normal.phase == MT6797_NORMAL_COLD &&
++	    !hif->capability_attempted && !hif->tx_status_boot_attempted) {
++		hif->tx_status_boot_attempted = true;
++	} else if (count == 2 &&
++		   hif->normal.phase == MT6797_NORMAL_NVRAM_SUBMITTED &&
++		   hif->tx_status_boot_attempted && hif->capability_complete &&
++		   !hif->tx_status_normal_attempted) {
++		hif->tx_status_normal_attempted = true;
++	} else {
++		error = -EIO;
++		goto unlock;
++	}
++	error = mt6797_hif_enter(hif, deadline_ns);
++	if (error)
++		goto poison;
++	/* Keep both post-record acquisitions in one serialization window. A
++	 * regulatory notifier cannot submit a command between these reads.
++	 */
++	for (n = 0; n < count; n++) {
++		error = mt6797_hif_read32_locked(hif, 0x0c, &status[n].whcr);
++		if (error)
++			goto poison;
++		status[n].valid_words |= 1U;
++		error = mt6797_hif_read32_locked(hif, 0x10, &status[n].whisr);
++		if (error)
++			goto poison;
++		status[n].valid_words |= 2U;
++		for (i = 0; i < 8; i++) {
++			error = mt6797_hif_read32_locked(hif, 0x130 + 4 * i,
++							 &status[n].wtqcr[i]);
++			if (error)
++				goto poison;
++			status[n].valid_words |= 1U << (i + 2);
++		}
++	}
++	goto unlock;
++poison:
++	error = mt6797_hif_fail(hif, error);
++unlock:
++	mutex_unlock(&hif->mutex);
++	return error;
++}
++
+ int mt6797_hif_query_capability(struct mt6797_hif *hif, unsigned int sequence,
+ 				u64 deadline_ns,
+ 				struct mt6797_normal_capability *capability,
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index 79cce93..b90d591 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -76,6 +76,16 @@ struct mt6797_hif_rx_result {
+ 	bool pre_valid, rx_setup, rx_complete, post_valid;
+ };
+ 
++/* One interrupt/control and eight returned-page register reads. WHISR and
++ * returned counts may be read-consuming; this is not a passive MMIO dump.
++ * Each valid bit names a completed word (WHCR, WHISR, then WTQCR0..7).
++ * Counts are observations only: no credit is replenished by this interface.
++ */
++struct mt6797_hif_tx_status {
++	u32 whcr, whisr, wtqcr[8];
++	unsigned int valid_words;
++};
++
+ /* Allocation owns memory only. Caller retains the real powered mapping,
+  * transaction, exclusive driver ownership, IRQ quiescence and reset exclusion
+  * through all calls. No ownership acquisition, INIT seeding or reset occurs.
+@@ -116,6 +126,16 @@ int mt6797_hif_start_submit(struct mt6797_hif *hif, const u8 *command,
+  */
+ int mt6797_hif_start_observe_ready(struct mt6797_hif *hif, u32 *wcir);
+ 
++/* At most one pre-normal snapshot and two post-record snapshots per boot.
++ * Requires ready firmware, the retained exclusive HIF owner, disabled IRQs
++ * and no competing counter reader. The post-record pair holds one HIF lock.
++ * count=1 before normal commands, count=2 after record; status has count
++ * elements. Partial acquisition poisons the session.
++ */
++int mt6797_hif_observe_tx_status(struct mt6797_hif *hif, u64 deadline_ns,
++				 unsigned int count,
++				 struct mt6797_hif_tx_status *status);
++
+ /* Exactly one post-START capability query on this exclusive PIO owner.
+  * The selected gen3 default normal TC4 allocation is 26 pages; this driver
+  * has no Tc4Page override or competing normal command user. One page is
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index 63b65fe..4d4f256 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -21,6 +21,7 @@
+ #include <linux/regmap.h>
+ #include <linux/regulator/consumer.h>
+ #include <linux/reset.h>
++#include <linux/rtnetlink.h>
+ #include <linux/sizes.h>
+ #include <linux/slab.h>
+ #include <linux/string.h>
+@@ -755,6 +756,34 @@ static void mt6797_consys_hif_f1_write(struct mt6797_consys *owner,
+ 	writel(value, owner->hif + MT6797_HIF_CMD53_DATA);
+ }
+ 
++#if IS_ENABLED(CONFIG_MT6797_HIF_TX_STATUS_PROBE)
++static int mt6797_consys_observe_tx_status(struct device *dev,
++					struct mt6797_consys *owner, bool post)
++{
++	struct mt6797_hif_tx_status status[2];
++	unsigned int count = post ? 2 : 1;
++	unsigned int n, i, snapshot;
++	int ret;
++
++	ret = mt6797_hif_observe_tx_status(owner->fw_hif,
++					  ktime_get_ns() + NSEC_PER_SEC,
++					  count, status);
++	for (n = 0; n < count; n++) {
++		snapshot = n + (post ? 1 : 0);
++		dev_info(dev,
++			 "one-shot WLAN TX status: snapshot=%u status=%d valid=0x%03x WHCR=0x%08x WHISR=0x%08x\n",
++			 snapshot, ret, status[n].valid_words,
++			 status[n].whcr, status[n].whisr);
++		for (i = 0; i < 8; i++)
++			if (status[n].valid_words & (1U << (i + 2)))
++				dev_info(dev,
++					 "one-shot WLAN returned pages: snapshot=%u word=%u value=0x%08x\n",
++					 snapshot, i, status[n].wtqcr[i]);
++	}
++	return ret;
++}
++#endif
++
+ /* The selected firmware queues debug events ahead of normal configuration.
+  * The pinned gen3 handler only prints their bodies. Consume only that known
+  * event class; an unknown packet stops this one-shot session.
+@@ -915,6 +944,11 @@ static void mt6797_consys_probe_firmware_start(struct device *dev,
+ 		goto stopped;
+ 	}
+ 	dev_info(dev, "one-shot WLAN firmware ready; radio commands and DMA held\n");
++#if IS_ENABLED(CONFIG_MT6797_HIF_TX_STATUS_PROBE)
++	ret = mt6797_consys_observe_tx_status(dev, owner, false);
++	if (ret)
++		goto stopped;
++#endif
+ 	ret = mt6797_hif_query_capability(owner->fw_hif, 4,
+ 					  ktime_get_ns() + NSEC_PER_SEC,
+ 					  &capability, &cap_trace);
+@@ -956,6 +990,14 @@ static void mt6797_consys_probe_firmware_start(struct device *dev,
+ 	mt6797_wifi_record_release(record);
+ 	if (ret)
+ 		goto stopped;
++#if IS_ENABLED(CONFIG_MT6797_HIF_TX_STATUS_PROBE)
++	/* The only later normal sender is the RTNL-serialized notifier. */
++	rtnl_lock();
++	ret = mt6797_consys_observe_tx_status(dev, owner, true);
++	rtnl_unlock();
++	if (ret)
++		goto stopped;
++#endif
+ 	return;
+ 
+ stopped:
+-- 
+2.54.0 (Apple Git-157)
+

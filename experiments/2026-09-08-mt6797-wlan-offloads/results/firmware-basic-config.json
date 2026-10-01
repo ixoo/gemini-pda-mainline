@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "analysis": "Mapped BASIC_CONFIG input fields",
+  "firmware_sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
+  "firmware_bytes": 411632,
+  "tool": "Ghidra 12.1.2; retained RE-VM project",
+  "method": "NDS32 BE-instruction/LE-data direct-flow walk; callees skipped under assumed return; one mapped normal dispatcher target.",
+  "dispatch": {
+    "table_entries": 81,
+    "selected_matches": 1,
+    "script_sha256": "dd8f1112fe0573a1a021aa514a9bbc5064083d863aedd6dbdb170518f9f447c3",
+    "listing_sha256": "8eee9935b74e49622e72f57284d1db45062ff21b2e9f6b13fe15c6950615f4a6",
+    "log_sha256": "25a735738982a81ffecc223c0f1c8ceae90dbfca9815cc612ec51cecc90e4acd"
+  },
+  "handler": {
+    "node_cap": 1024,
+    "nodes": 34,
+    "calls": 3,
+    "queue_exhausted": true,
+    "invalid": 0,
+    "unresolved_noncall_computed": 0,
+    "terminals": 1,
+    "script_sha256": "3588884963d439c635f7d066787049c0ee8c6e21f4d8da2f874b59a637ec52dc",
+    "listing_sha256": "8e88cfdad6f22434a37a5880aecac768ac72a325483f6a245c47100cccb10837",
+    "log_sha256": "17b812ff61211a887e881707b66057a7f31b6b36045614fe6c1de3004affdb78"
+  },
+  "observation": "The mapped body reads command set/query and checksum halfwords at payload offsets 4 and 6. It does not read payload byte 0 (ucNative80211). Callees and firmware-wide receive controls are not established.",
+  "hardware_test": false,
+  "firmware_execution": false,
+  "radio_action": false
+}
