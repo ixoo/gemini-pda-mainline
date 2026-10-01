@@ -1,0 +1,14 @@
+{
+  "status": "Buildbox-package-and-offline-candidate-validated",
+  "repository_commit": "3f2a0903d7e8631d561a08c6539ef4f0a0ff9bab",
+  "profile": "mt6797-a53-wifi-capability-port0",
+  "kernel_release": "7.1.3-gemini-a53-wifi-capability-port0",
+  "package_inventory_sha256": "70d910c493c9a0973e8506e7d0afb9e0a9544926136d44a8720e949b79834db9",
+  "image_gzip_sha256": "0cf6e7f39c419902f80e7dce491cf7fd17edaf6d3f31729a0f8bccff8d2955d0",
+  "config_sha256": "d07ca1c92318a30784cd952925ec0ba57c8d4de64ba6d83e76260d493534bce9",
+  "board_dtb_sha256": "cef9373ea3aa0e1a8a45a13b953ae95e48939b211e41a73052543be784ee3214",
+  "private_initramfs_sha256": "e77410c8135ac62f95c15b7bd5c69367821dfd1e06dcc20ac1effbe26cab5e33",
+  "candidate_manifest_sha256": "c7cb83d932c04e3c0ffb34f5c7af30e41f823af60f0ffa67ac6c82a40a28c9f1",
+  "candidate_boot2_sha256": "503126de747a15bc922d845dd4cfe6709eb6ba30ea5b150b62d051b9b6a20f39",
+  "device_action": "none"
+}

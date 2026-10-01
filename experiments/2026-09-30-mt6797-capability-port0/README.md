@@ -33,9 +33,26 @@ case; the corrected guard passes with C11, warnings as errors, ASan and UBSan.
 [Validation details](results/host-validation.json). No live capability reply
 has yet been observed.
 
-The next candidate must use the exact pinned profile and validated boot2
-package, with the same WMT, START, A53 regression, evidence-preservation and
-reviewed-return gates as the preceding experiment. Its unique question is
-whether port 1 receives a valid capability response while port 0 remains
-unread. A valid response permits later planning for calibration, standard
-wireless interfaces and packet transport; it is not usable Wi-Fi by itself.
+## Build and candidate
+
+The clean pushed kernel-input commit `3f2a0903d7e8631d561a08c6539ef4f0a0ff9bab`
+built on Buildbox as profile `mt6797-a53-wifi-capability-port0`, release
+`7.1.3-gemini-a53-wifi-capability-port0`. Its validated package inventory
+is SHA-256 `70d910c493c9a0973e8506e7d0afb9e0a9544926136d44a8720e949b79834db9`.
+The 52-member private RAM root changed only `/init`'s release gate; firmware
+remained hash-identical. The board DT matches the previously booted candidate
+at SHA-256 `cef9373ea3aa0e1a8a45a13b953ae95e48939b211e41a73052543be784ee3214`.
+The [sanitized candidate receipt](results/candidate.json) pins the 16 MiB
+boot2 image at SHA-256 `503126de747a15bc922d845dd4cfe6709eb6ba30ea5b150b62d051b9b6a20f39`.
+The [build receipt](results/build.json) records the package and candidate identities.
+No device write or boot has yet occurred with this candidate.
+
+The guarded installer is bound to known-good Gemian boot
+`064c5064-690b-46e1-9673-3f78eb802831` and previous boot2 checksum
+`f066866c178e38d77f18722f9e3286a6e98316997e28f2157c62f434f1aa1d4b`.
+It resolves logical boot2 from live GPT, checks the device guard, then writes,
+flushes and verifies a full readback before clean shutdown. The owner selects
+boot2 physically. The next boot will test whether port 1 receives a valid
+capability response while port 0 remains unread. A valid response permits
+later planning for calibration, standard wireless interfaces and packet
+transport; it is not usable Wi-Fi by itself.
