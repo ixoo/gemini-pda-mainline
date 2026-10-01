@@ -5,7 +5,8 @@ completed a bounded PIO submission on hardware. The successor’s
 [host checks](results/preflight.json), [corrected clean Buildbox build](results/build.json)
 and [offline candidate](results/candidate.json) passed. The
 [first compile failure](results/build-failure-1.json) was a missing radio-index
-callback argument, now corrected. There is no device result yet.
+callback argument, now corrected. The [one-shot device result](results/runtime-1.json)
+now records successful configuration submission and one CONSYS-bound wiphy.
 
 Patches 0067–0069 register a real mac80211 wiphy with channels 1–13, 20 MHz,
 legacy rates and a conservative 20 dBm driver ceiling. Effective cfg80211
@@ -85,3 +86,18 @@ No timeout permits an identical retry. Configuration
 submission success would justify packet/event implementation; an error or
 unexpected effect stops the candidate. Neither branch demonstrates usable
 Wi-Fi, association, traffic or calibration accuracy.
+
+## Observed result
+
+The [guarded deployment](results/deployment.json) passed full padded readback
+and clean shutdown. After owner selection, the authenticated mainline boot
+returned configuration status zero and the same-boot sysfs query found one
+wiphy, index 0, bound to CONSYS. The complete private log, A53 RAM service
+regression and provider check passed. Reviewed recovery and an independent
+check confirmed a changed Gemian boot with WLAN carrier. The one-shot budget
+is consumed.
+
+These observations establish PIO submission and wiphy registration. They do
+not establish firmware application, effective runtime channel limits, measured
+RF power, an interface, scan, association or traffic. Next implement bounded
+receive/event ownership and credit accounting before interface operation.

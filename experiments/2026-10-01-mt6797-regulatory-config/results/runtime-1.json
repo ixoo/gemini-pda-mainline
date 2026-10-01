@@ -1,0 +1,43 @@
+{
+  "status": "one-shot-regulatory-configuration-submitted",
+  "candidate_boot2_sha256": "1df769dd4ce39e75d7a02b87e308e108eb94002e9e1ba0fd0cd2c3cd8eb65c4c",
+  "kernel_release": "7.1.3-gemini-a53-wifi-regulatory-config",
+  "mainline_boot_id": "d16f3260-5bf4-476c-9c76-7e22b635c581",
+  "complete_private_log_sha256": "c919bc67f1bbdbc361c97f34114925800fb830dfd3d5c28fd4c06c267c68c63b",
+  "complete_private_log_bytes": 135448,
+  "fatal_marker_count": 0,
+  "capability": {
+    "bb_cal_fail": 0,
+    "eeprom_used": 0,
+    "firmware_own": 1027,
+    "firmware_peer": 0,
+    "hw_5g_disabled": 0,
+    "product": 26519,
+    "rf_cal_fail": 0
+  },
+  "capability_query_status": 0,
+  "boot_debug_drain": {
+    "count": 2,
+    "post_wrplr": 0,
+    "status": 0
+  },
+  "private_record_prepare_status": 0,
+  "regulatory_configuration_submit_status": 0,
+  "wiphy_registered": true,
+  "wiphy_count": 1,
+  "wiphy_index": 0,
+  "wiphy_consys_bound": true,
+  "submission_only": true,
+  "firmware_application_observed": false,
+  "radio_or_dma_enabled": false,
+  "network_interface_registered": false,
+  "a53_ram_service_regression": true,
+  "provider_registered": true,
+  "reviewed_recovery_confirmed": true,
+  "returned_gemian_boot_id": "1d588e39-c36f-43bb-b9b3-915ee2a97350",
+  "independent_return": {
+    "kernel_release": "3.18.41+",
+    "wlan0_carrier": 1
+  },
+  "wifi_operational": false
+}
