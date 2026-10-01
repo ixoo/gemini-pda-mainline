@@ -5,7 +5,7 @@
 #include "hif.c"
 
 static struct {
- unsigned int calls, fail_at, reads;
+ unsigned int calls, fail_at, reads, fatal;
  unsigned char *mapping;
 } fake;
 u64 ktime_get_ns(void) { return 1000; }
@@ -26,6 +26,7 @@ int mt6797_test_read(void *address, unsigned int *value)
  assert((unsigned char *)address-fake.mapping == 0x1000);
  if(fake.calls == fake.fail_at) return -EIO;
  *value=0x76540000U+n/2;
+ if(n%20==3) *value |= fake.fatal;
  fake.reads++;
  return 0;
 }
@@ -72,6 +73,18 @@ static void exercise(unsigned int fail_at, bool post_record)
  }
  mt6797_hif_free(hif); free(fake.mapping);
 }
+static void fatal_status(unsigned int flag)
+{
+ struct mt6797_init_transaction transaction={.phase=MT6797_INIT_IDLE};
+ struct mt6797_hif_tx_status status;
+ memset(&fake,0,sizeof(fake)); fake.mapping=calloc(1,0x1004); assert(fake.mapping);
+ struct mt6797_hif *hif=mt6797_hif_alloc(fake.mapping,0x1004,&transaction); assert(!IS_ERR(hif));
+ hif->firmware_ready=true; fake.fatal=flag;
+ assert(mt6797_hif_observe_tx_status(hif,1000001000ULL,1,&status)==-EIO);
+ assert(status.valid_words==3 && fake.calls==4 && transaction.phase==MT6797_INIT_POISONED);
+ assert(status.whisr & flag);
+ mt6797_hif_free(hif); free(fake.mapping);
+}
 static void deadline_refusal(u64 deadline)
 {
  struct mt6797_init_transaction transaction={.phase=MT6797_INIT_IDLE};
@@ -108,6 +121,7 @@ static void refusal(void)
 }
 int main(void)
 {
+ fatal_status(1U<<6); fatal_status(1U<<31);
  refusal(); deadline_refusal(1000); deadline_refusal(1000001001ULL); exercise(0,false); exercise(0,true);
  for(unsigned int i=1;i<=20;i++) exercise(i,false);
  for(unsigned int i=1;i<=40;i++) exercise(i,true);

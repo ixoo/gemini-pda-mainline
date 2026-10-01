@@ -34,7 +34,9 @@ Budget: the predecessor's one WMT/START/capability, at most eight boot-debug
 packets, private-record acquisition and supported configuration sequence;
 plus exactly three snapshots of ten four-byte registers. The pre-normal
 acquisition and combined post-record pair each have a one-second absolute
-deadline. The pair holds one HIF lock and RTNL excludes the only later sender,
+deadline. Abnormal WHISR bit 6 or firmware-assert bit 31 stops acquisition
+before any further read or command. The pair holds one HIF lock and RTNL
+excludes the only later sender,
 the regulatory notifier. The HIF permits one pre-normal and two post-record
 attempts, with no retry or partial-snapshot replay. A transport or deadline
 failure poisons the session and retains the owner. Valid-word bits distinguish
@@ -65,5 +67,6 @@ firmware application of configuration.
 It verifies all ten literal register commands, output validity, the three
 attempt limits, refusal of premature/competing callers, unchanged normal
 credits and all 60 read/setup fault positions in pre-normal/post-record state.
+Fatal interrupt flags and invalid deadlines also stop before further I/O.
 Strict C11 warnings and address/undefined sanitizers pass. It neither emulates
 counter consumption nor proves hardware behavior.

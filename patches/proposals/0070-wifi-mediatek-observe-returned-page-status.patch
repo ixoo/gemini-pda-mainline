@@ -1,4 +1,4 @@
-From d1a7bc12fac57975ccdd47ba42b260af09eebc1c Mon Sep 17 00:00:00 2001
+From 3a006d9e48860b8f25651aea4d2a1c885dd334a0 Mon Sep 17 00:00:00 2001
 From: Codex <codex@native-diagnostic.invalid>
 Date: Thu, 1 Oct 2026 18:49:51 -0400
 Subject: [PATCH] wifi: mediatek: observe bounded returned-page status
@@ -13,10 +13,10 @@ This supplies the missing counter observation before sustained accounting;
 it does not establish a read-clear hardware contract.
 ---
  drivers/net/wireless/mediatek/mt6797/Kconfig | 10 +++
- drivers/net/wireless/mediatek/mt6797/hif.c   | 64 ++++++++++++++++++++
+ drivers/net/wireless/mediatek/mt6797/hif.c   | 71 ++++++++++++++++++++
  drivers/net/wireless/mediatek/mt6797/hif.h   | 20 ++++++
- drivers/soc/mediatek/mt6797-consys.c         | 42 +++++++++++++
- 4 files changed, 136 insertions(+)
+ drivers/soc/mediatek/mt6797-consys.c         | 42 ++++++++++++
+ 4 files changed, 143 insertions(+)
 
 diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
 index ea198b1..1d51110 100644
@@ -37,7 +37,7 @@ index ea198b1..1d51110 100644
 +	  These reads may consume hardware status. No credit refund, IRQ enable,
 +	  radio request or packet DMA is performed. Experimental diagnostic only.
 diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
-index 35d5b95..2febc6b 100644
+index 35d5b95..9c4fad8 100644
 --- a/drivers/net/wireless/mediatek/mt6797/hif.c
 +++ b/drivers/net/wireless/mediatek/mt6797/hif.c
 @@ -34,6 +34,8 @@ struct mt6797_hif {
@@ -49,7 +49,7 @@ index 35d5b95..2febc6b 100644
  	bool port0_reported;
  	bool port0_attempted;
  	int first_error;
-@@ -327,6 +329,68 @@ out:
+@@ -327,6 +329,75 @@ out:
  	return error;
  }
  
@@ -99,6 +99,13 @@ index 35d5b95..2febc6b 100644
 +		if (error)
 +			goto poison;
 +		status[n].valid_words |= 2U;
++		/* Pinned WHISR: abnormal status bit 6, firmware assert bit 31.
++		 * Do not proceed to another read or command after either signal.
++		 */
++		if (status[n].whisr & ((1U << 6) | (1U << 31))) {
++			error = -EIO;
++			goto poison;
++		}
 +		for (i = 0; i < 8; i++) {
 +			error = mt6797_hif_read32_locked(hif, 0x130 + 4 * i,
 +							 &status[n].wtqcr[i]);

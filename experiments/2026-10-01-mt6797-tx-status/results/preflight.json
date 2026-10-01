@@ -1,6 +1,6 @@
 {
   "status": "focused-host-validation-pass",
-  "patch_sha256": "40438373bfa97ded675898a554aa66513430de1abae0bfa6c9fe947903ec017f",
+  "patch_sha256": "011739bea0882f4cd2dfc862d32c2ad7bdbe3fcbd8e1e289bcedd853913516a6",
   "test": "tests/tx-status-test.c",
   "test_result": "pass, actual patched hif.c; ten literal register reads; finite attempts; state/deadline/lock refusal; no credit refund",
   "fault_positions": 60,
@@ -15,5 +15,6 @@
   "repository_checks": "pass, 255-profile canonical-order audit",
   "kernel_build": "pending",
   "device_action": "none",
-  "serialization": "post-record pair in one HIF lock; RTNL excludes the sole regulatory notifier sender"
+  "serialization": "post-record pair in one HIF lock; RTNL excludes the sole regulatory notifier sender",
+  "fatal_status_checks": "abnormal WHISR bit 6 and firmware-assert bit 31 stop immediately after WHISR"
 }
