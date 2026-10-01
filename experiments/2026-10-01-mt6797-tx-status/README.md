@@ -6,8 +6,9 @@ PIO. Its finite debit-only TC4 ledger cannot sustain command or packet traffic.
 Patch 0070 adds the missing counter observation before implementing refill.
 The [initial build](results/build-1.json) passed but was superseded before a
 device test to add fatal-status refusal. The [corrected build](results/build.json)
-and [offline candidate](results/candidate.json) passed. There is no device
-runtime result yet.
+and [offline candidate](results/candidate.json) passed. The
+[runtime test](results/runtime-1.json) stopped at the debug drain before
+configuration; the post-configuration counters were not acquired.
 
 The [pinned source identities](results/sources.json) cover the selected gen3
 register map, HAL, AHB access and page accountant. `hal.h:488–514` reads all
@@ -74,11 +75,20 @@ Fatal interrupt flags and invalid deadlines also stop before further I/O.
 Strict C11 warnings and address/undefined sanitizers pass. It neither emulates
 counter consumption nor proves hardware behavior.
 
-## Deployment handoff
+## Runtime result
 
-The [boot2 deployment](results/deployment.json) passed the live-GPT guard,
-full padded readback and clean shutdown. Exact candidate/session/capture and
-reviewed recovery preflights passed. No WMT or START has been issued. The
-device is off; physical boot2 selection with the console enabled is the next
-owner action. Then run the one-shot capture and preserve the full private
-status log and wiphy query before reviewed recovery. No watcher is armed.
+The exact candidate completed one WMT/START and capability query. The initial
+status snapshot completed without a fatal interrupt flag; its raw status and
+counter values remain private. The boot-debug drain recognized two debug
+events, then returned `-EPROTO` with final WRPLR zero. The failed packet header
+was not recorded, so its identity and the reason it differs from the earlier
+configuration boot remain unresolved. No private-record preparation,
+configuration, wiphy registration or post-configuration snapshot occurred.
+
+The complete private log was preserved. The A53 RAM-service regression and
+provider query passed. Reviewed recovery returned a changed Gemian boot;
+independent SSH confirmed the recorded boot, `3.18.41+` and WLAN carrier 1.
+This single-use candidate is consumed. No credit-refund implementation follows
+from the initial snapshot alone. The next diagnostic must retain bounded RX
+header metadata at the rejection boundary, keeping the existing refusal, to
+identify the unexpected packet before changing receive admission.

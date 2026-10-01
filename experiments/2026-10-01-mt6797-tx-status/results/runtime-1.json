@@ -1,0 +1,33 @@
+{
+  "status": "stopped-at-boot-debug-drain-before-configuration",
+  "candidate_boot2_sha256": "ec2d2ce359277a031730b8db93b63ff0531f52907585f716acfcd9f798339c06",
+  "kernel_release": "7.1.3-gemini-a53-wifi-tx-status",
+  "mainline_boot_id": "a454c872-6dad-4e0a-a39a-ab2a97368830",
+  "complete_private_log_sha256": "e72f6c474f2889f5be15cefc1d1e21fbb057bdd0c130e2af1beb22101a40b109",
+  "complete_private_log_bytes": 136723,
+  "fatal_marker_count": 0,
+  "capability_query_status": 0,
+  "initial_tx_status_complete": true,
+  "post_configuration_tx_status_collected": false,
+  "counter_consumption_witness": false,
+  "credit_refill_enabled": false,
+  "boot_debug_drain": {
+    "count": 2,
+    "post_wrplr": 0,
+    "status": -71
+  },
+  "rejected_packet_header_recorded": false,
+  "private_record_prepare_attempted": false,
+  "regulatory_configuration_attempted": false,
+  "wiphy_registered": false,
+  "radio_or_dma_enabled": false,
+  "a53_ram_service_regression": true,
+  "provider_registered": true,
+  "reviewed_recovery_confirmed": true,
+  "returned_gemian_boot_id": "d5a2585d-86c6-4f38-89dc-d267eb35fb9b",
+  "independent_return": {
+    "kernel_release": "3.18.41+",
+    "wlan0_carrier": 1
+  },
+  "wifi_operational": false
+}

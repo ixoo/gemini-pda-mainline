@@ -15,6 +15,6 @@
   "private_summary_sha256": "b1d7aaf9a0bbf0f3898d1fdc9c3d1cb924c619a41640252ca6c66316273f276c",
   "shutdown_confirmed_unreachable": true,
   "reboot": false,
-  "physical_boot2_selection": "owner-action-pending",
-  "mainline_test": "not-started"
+  "physical_boot2_selection": "owner-confirmed",
+  "mainline_test": "completed-once-stopped-before-configuration"
 }
