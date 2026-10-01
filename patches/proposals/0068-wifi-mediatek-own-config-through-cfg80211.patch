@@ -1,0 +1,514 @@
+From 12c00389708fe980fb928e69a310f099b9115fa7 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Thu, 1 Oct 2026 18:03:17 -0400
+Subject: [PATCH] wifi: mediatek: own configuration through cfg80211 channels
+
+Register a 2.4 GHz mac80211 channel inventory. Encode effective cfg80211
+restrictions in supported firmware domain and power commands, after the
+source-ordered retained configuration. Refuse interface start and RF.
+Keep failed sessions closed and preserve the finite command ledger.
+This internal experiment is not an upstream submission or usable WLAN.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig  |  10 +
+ drivers/net/wireless/mediatek/mt6797/Makefile |   1 +
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 314 ++++++++++++++++++
+ drivers/net/wireless/mediatek/mt6797/mac.h    |  22 ++
+ .../mediatek/mt6797/regulatory-encode.h       | 109 ++++++
+ 5 files changed, 456 insertions(+)
+ create mode 100644 drivers/net/wireless/mediatek/mt6797/mac.c
+ create mode 100644 drivers/net/wireless/mediatek/mt6797/mac.h
+ create mode 100644 drivers/net/wireless/mediatek/mt6797/regulatory-encode.h
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index 14e0eb2..ea198b1 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -9,3 +9,13 @@ config MT6797_HIF_CORE
+ 	  section implementation. There is no platform probe or runtime caller
+ 	  until a real CONSYS owner supplies the required powered mapping and
+ 	  exclusion. This option does not provide a usable Wi-Fi device.
++
++config MT6797_MAC80211
++	bool "MT6797 WLAN regulatory configuration integration"
++	depends on MT6797_HIF_CORE && MAC80211
++	default n
++	help
++	  Register the 2.4 GHz channel inventory with mac80211 and submit
++	  retained configuration under cfg80211 regulatory ownership.
++	  Radio and packet operations remain unavailable. This experimental
++	  option does not yet provide a usable station interface.
+diff --git a/drivers/net/wireless/mediatek/mt6797/Makefile b/drivers/net/wireless/mediatek/mt6797/Makefile
+index 516f8e4..497d0ae 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Makefile
++++ b/drivers/net/wireless/mediatek/mt6797/Makefile
+@@ -11,3 +11,4 @@ obj-y += emi-service-gate.o
+ obj-y += firmware-prepare.o
+ obj-y += firmware-probe.o
+ obj-y += record-prepare.o
++obj-$(CONFIG_MT6797_MAC80211) += mac.o
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+new file mode 100644
+index 0000000..031d22a
+--- /dev/null
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -0,0 +1,314 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/* MT6797 gen3 configuration and cfg80211 regulatory ownership. */
++#include <linux/etherdevice.h>
++#include <linux/ktime.h>
++#include <linux/mutex.h>
++#include <linux/rtnetlink.h>
++#include <net/mac80211.h>
++
++#include "hif.h"
++#include "mac.h"
++#include "record-prepare.h"
++#include "regulatory-encode.h"
++
++struct mt6797_mac {
++	struct mt6797_hif *hif;
++	/* Order: RTNL -> this mutex -> HIF mutex. No CONSYS callback here. */
++	struct mutex mutex;
++	struct ieee80211_supported_band band;
++	struct ieee80211_channel channels[MT6797_2G_CHANNELS];
++	struct ieee80211_rate rates[12];
++	char alpha2[2];
++	unsigned int sequence;
++	bool configured, closing;
++	int first_error;
++};
++
++static int mt6797_mac_send(struct mt6797_mac *mac,
++			   enum mt6797_normal_config_kind kind,
++			   const u8 *payload, size_t bytes)
++{
++	int ret;
++
++	if (mac->first_error)
++		return mac->first_error;
++	/* The finite retained history is not reset or treated as a refill. */
++	if (mac->sequence > 255)
++		ret = -ENOSPC;
++	else
++		ret = mt6797_hif_send_config(mac->hif, kind, mac->sequence++,
++					     payload, bytes,
++					     ktime_get_ns() + NSEC_PER_SEC);
++	if (ret)
++		mac->first_error = ret;
++	return ret;
++}
++
++static int mt6797_mac_policy(struct mt6797_mac *mac,
++			     struct mt6797_regulatory_payloads *payloads)
++{
++	struct mt6797_channel_limit limits[MT6797_2G_CHANNELS] = {0};
++	struct ieee80211_channel *channel;
++	unsigned int i;
++
++	ASSERT_RTNL();
++	for (i = 0; i < MT6797_2G_CHANNELS; i++) {
++		channel = &mac->channels[i];
++		limits[i].enabled = !(channel->flags &
++			(IEEE80211_CHAN_DISABLED | IEEE80211_CHAN_NO_20MHZ |
++			 IEEE80211_CHAN_RADAR));
++		limits[i].no_ir = !!(channel->flags & IEEE80211_CHAN_NO_IR);
++		limits[i].max_power_dbm = channel->max_power;
++	}
++	return mt6797_regulatory_encode(limits, mac->alpha2, payloads);
++}
++
++static int mt6797_mac_domains(struct mt6797_mac *mac,
++			      const struct mt6797_regulatory_payloads *policy)
++{
++	int ret;
++
++	ret = mt6797_mac_send(mac, MT6797_NORMAL_DOMAIN,
++			      policy->passive, sizeof(policy->passive));
++	if (!ret)
++		ret = mt6797_mac_send(mac, MT6797_NORMAL_DOMAIN,
++				      policy->domain, sizeof(policy->domain));
++	return ret;
++}
++
++static void mt6797_mac_regulatory(struct wiphy *wiphy,
++				  struct regulatory_request *request)
++{
++	struct ieee80211_hw *hw = wiphy_to_ieee80211_hw(wiphy);
++	struct mt6797_mac *mac = hw->priv;
++	struct mt6797_regulatory_payloads policy;
++	int ret;
++
++	/* cfg80211 updates the channel flags/power before this RTNL callback.
++	 * It may also call us before ieee80211_register_hw() returns.
++	 */
++	ASSERT_RTNL();
++	mutex_lock(&mac->mutex);
++	if (mac->closing || mac->first_error)
++		goto out;
++	if ((request->alpha2[0] >= 'A' && request->alpha2[0] <= 'Z' &&
++	     request->alpha2[1] >= 'A' && request->alpha2[1] <= 'Z') ||
++	    (request->alpha2[0] == '0' && request->alpha2[1] == '0'))
++		memcpy(mac->alpha2, request->alpha2, 2);
++	else
++		memcpy(mac->alpha2, "00", 2);
++	/* Before configuration, save the tag only. The initial transaction
++	 * reads the effective channels again under RTNL, after registration.
++	 */
++	if (!mac->configured)
++		goto out;
++	ret = mt6797_mac_policy(mac, &policy);
++	if (!ret)
++		ret = mt6797_mac_domains(mac, &policy);
++	if (!ret)
++		ret = mt6797_mac_send(mac, MT6797_NORMAL_TX_CTRL,
++				      policy.power, sizeof(policy.power));
++	if (ret) {
++		mac->first_error = ret;
++		dev_err(wiphy_dev(wiphy), "regulatory submission stopped (%d)\n", ret);
++	}
++out:
++	mutex_unlock(&mac->mutex);
++}
++
++/* No radio, packet, station or key operation is admitted by this integration.
++ * In particular, registering this wiphy is not a usable station interface.
++ */
++static int mt6797_mac_start(struct ieee80211_hw *hw)
++{
++	return -EOPNOTSUPP;
++}
++
++static void mt6797_mac_stop(struct ieee80211_hw *hw, bool suspend)
++{
++}
++
++static int mt6797_mac_add_interface(struct ieee80211_hw *hw,
++				    struct ieee80211_vif *vif)
++{
++	return -EOPNOTSUPP;
++}
++
++static void mt6797_mac_remove_interface(struct ieee80211_hw *hw,
++					struct ieee80211_vif *vif)
++{
++}
++
++static int mt6797_mac_config(struct ieee80211_hw *hw, u32 changed)
++{
++	return -EOPNOTSUPP;
++}
++
++static void mt6797_mac_filter(struct ieee80211_hw *hw, unsigned int changed,
++			      unsigned int *total, u64 multicast)
++{
++	*total = 0;
++}
++
++static void mt6797_mac_tx(struct ieee80211_hw *hw,
++			  struct ieee80211_tx_control *control, struct sk_buff *skb)
++{
++	ieee80211_free_txskb(hw, skb);
++}
++
++static const struct ieee80211_ops mt6797_mac_ops = {
++	.tx = mt6797_mac_tx,
++	.start = mt6797_mac_start,
++	.stop = mt6797_mac_stop,
++	.add_interface = mt6797_mac_add_interface,
++	.remove_interface = mt6797_mac_remove_interface,
++	.config = mt6797_mac_config,
++	.configure_filter = mt6797_mac_filter,
++	.wake_tx_queue = ieee80211_handle_wake_tx_queue,
++	.add_chanctx = ieee80211_emulate_add_chanctx,
++	.remove_chanctx = ieee80211_emulate_remove_chanctx,
++	.change_chanctx = ieee80211_emulate_change_chanctx,
++};
++
++static int mt6797_mac_load_record(struct mt6797_mac *mac,
++				  const struct mt6797_wifi_record *record)
++{
++	const struct mt6797_record_commands *commands;
++	struct mt6797_regulatory_payloads policy;
++	int ret;
++
++	ASSERT_RTNL();
++	commands = mt6797_wifi_record_commands(record);
++	ret = mt6797_mac_policy(mac, &policy);
++	if (ret)
++		return ret;
++	if (commands->base_power) {
++		ret = mt6797_mac_send(mac, MT6797_NORMAL_TX_PWR,
++				      commands->base_power_bytes,
++				      sizeof(commands->base_power_bytes));
++		if (ret)
++			return ret;
++	}
++	if (commands->edge_5g) {
++		ret = mt6797_mac_send(mac, MT6797_NORMAL_EDGE_5G,
++				      commands->edge_5g_bytes,
++				      sizeof(commands->edge_5g_bytes));
++		if (ret)
++			return ret;
++	}
++	if (commands->ac_5g) {
++		ret = mt6797_mac_send(mac, MT6797_NORMAL_AC_PWR,
++				      commands->ac_5g_bytes,
++				      sizeof(commands->ac_5g_bytes));
++		if (ret)
++			return ret;
++	}
++	ret = mt6797_mac_domains(mac, &policy);
++	if (ret)
++		return ret;
++	/* The retained firmware's mapped normal table has no CID 0x49.
++	 * Do not replay the newer host's country-power table or claim its
++	 * enforcement. Apply supported per-channel CID 0x38 after NVRAM.
++	 */
++	if (commands->edge_2g) {
++		ret = mt6797_mac_send(mac, MT6797_NORMAL_EDGE_2G,
++				      commands->edge_2g_bytes,
++				      sizeof(commands->edge_2g_bytes));
++		if (ret)
++			return ret;
++	}
++	ret = mt6797_mac_send(mac, MT6797_NORMAL_NVRAM_SETTINGS,
++			      mt6797_wifi_record_data(record), 512);
++	if (!ret)
++		ret = mt6797_mac_send(mac, MT6797_NORMAL_TX_CTRL,
++				      policy.power, sizeof(policy.power));
++	if (!ret)
++		mac->configured = true;
++	return ret;
++}
++
++int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
++			const struct mt6797_normal_capability *capability,
++			const struct mt6797_wifi_record *record,
++			struct ieee80211_hw **out)
++{
++	static const int bitrates[] = {
++		10, 20, 55, 110, 60, 90, 120, 180, 240, 360, 480, 540,
++	};
++	struct ieee80211_hw *hw;
++	struct mt6797_mac *mac;
++	const u8 *data;
++	unsigned int i;
++	int ret;
++
++	if (!out)
++		return -EINVAL;
++	*out = NULL;
++	if (!dev || !hif || !capability || !record)
++		return -EINVAL;
++	if (capability->product != 0x6797 || capability->firmware_own != 0x0403 ||
++	    capability->firmware_peer || capability->rf_cal_fail ||
++	    capability->bb_cal_fail || !mt6797_wifi_record_commands(record))
++		return -EOPNOTSUPP;
++	data = mt6797_wifi_record_data(record);
++	if (!data || !is_valid_ether_addr(data + 4))
++		return -EINVAL;
++	hw = ieee80211_alloc_hw(sizeof(*mac), &mt6797_mac_ops);
++	if (!hw)
++		return -ENOMEM;
++	mac = hw->priv;
++	mac->hif = hif;
++	mac->sequence = 5;
++	memcpy(mac->alpha2, "00", 2);
++	mutex_init(&mac->mutex);
++	SET_IEEE80211_DEV(hw, dev);
++	SET_IEEE80211_PERM_ADDR(hw, data + 4);
++	ieee80211_hw_set(hw, NO_AUTO_VIF);
++	hw->queues = 4;
++	hw->wiphy->interface_modes = BIT(NL80211_IFTYPE_STATION);
++	hw->wiphy->reg_notifier = mt6797_mac_regulatory;
++	/* No private country hint, custom regdomain or self-managed flag. */
++	for (i = 0; i < MT6797_2G_CHANNELS; i++) {
++		mac->channels[i].band = NL80211_BAND_2GHZ;
++		mac->channels[i].hw_value = i + 1;
++		mac->channels[i].center_freq = 2412 + 5 * i;
++		/* Conservative initial driver ceiling, not measured RF output. */
++		mac->channels[i].max_power = 20;
++		mac->channels[i].flags = IEEE80211_CHAN_NO_HT40 |
++			IEEE80211_CHAN_NO_80MHZ | IEEE80211_CHAN_NO_160MHZ;
++	}
++	for (i = 0; i < ARRAY_SIZE(bitrates); i++) {
++		mac->rates[i].bitrate = bitrates[i];
++		mac->rates[i].hw_value = i;
++	}
++	mac->band.band = NL80211_BAND_2GHZ;
++	mac->band.channels = mac->channels;
++	mac->band.n_channels = ARRAY_SIZE(mac->channels);
++	mac->band.bitrates = mac->rates;
++	mac->band.n_bitrates = ARRAY_SIZE(mac->rates);
++	hw->wiphy->bands[NL80211_BAND_2GHZ] = &mac->band;
++	ret = ieee80211_register_hw(hw);
++	if (ret)
++		goto free_hw;
++	/* Serialize with cfg80211's global channel updates, including a
++	 * notifier arriving between registration and this initial sequence.
++	 */
++	rtnl_lock();
++	mutex_lock(&mac->mutex);
++	ret = mt6797_mac_load_record(mac, record);
++	if (ret) {
++		mac->first_error = ret;
++		mac->closing = true;
++	}
++	mutex_unlock(&mac->mutex);
++	rtnl_unlock();
++	if (ret) {
++		ieee80211_unregister_hw(hw);
++		goto free_hw;
++	}
++	*out = hw;
++	return 0;
++free_hw:
++	ieee80211_free_hw(hw);
++	return ret;
++}
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.h b/drivers/net/wireless/mediatek/mt6797/mac.h
+new file mode 100644
+index 0000000..9ef8bd1
+--- /dev/null
++++ b/drivers/net/wireless/mediatek/mt6797/mac.h
+@@ -0,0 +1,22 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef MT6797_MAC_H
++#define MT6797_MAC_H
++
++#include <linux/types.h>
++
++struct device;
++struct ieee80211_hw;
++struct mt6797_hif;
++struct mt6797_normal_capability;
++struct mt6797_wifi_record;
++
++/* Register a real regulatory owner and submit the supported configuration.
++ * This first integration deliberately refuses interface start and all RF.
++ * The shared CONSYS owner retains the successful object until shutdown.
++ */
++int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
++			const struct mt6797_normal_capability *capability,
++			const struct mt6797_wifi_record *record,
++			struct ieee80211_hw **out);
++
++#endif
+diff --git a/drivers/net/wireless/mediatek/mt6797/regulatory-encode.h b/drivers/net/wireless/mediatek/mt6797/regulatory-encode.h
+new file mode 100644
+index 0000000..a6bbe55
+--- /dev/null
++++ b/drivers/net/wireless/mediatek/mt6797/regulatory-encode.h
+@@ -0,0 +1,109 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef MT6797_REGULATORY_ENCODE_H
++#define MT6797_REGULATORY_ENCODE_H
++
++#ifdef __KERNEL__
++#include <linux/errno.h>
++#include <linux/string.h>
++#include <linux/types.h>
++#else
++#include <errno.h>
++#include <stdbool.h>
++#include <string.h>
++#endif
++
++#define MT6797_2G_CHANNELS 13U
++
++/* An effective cfg80211 channel snapshot, never private record subbands. */
++struct mt6797_channel_limit {
++	bool enabled, no_ir;
++	int max_power_dbm;
++};
++
++struct mt6797_regulatory_payloads {
++	unsigned char passive[56], domain[56], power[32];
++};
++
++static inline int
++mt6797_regulatory_ranges(const struct mt6797_channel_limit *channels,
++			 bool passive, unsigned char *output)
++{
++	unsigned int i = 0, slot = 0, first, count;
++	unsigned char *band;
++
++	while (i < MT6797_2G_CHANNELS) {
++		if (!channels[i].enabled || (passive && !channels[i].no_ir)) {
++			i++;
++			continue;
++		}
++		first = i++;
++		while (i < MT6797_2G_CHANNELS && channels[i].enabled &&
++		       (!passive || channels[i].no_ir))
++			i++;
++		count = i - first;
++		if (slot == 6)
++			return -E2BIG;
++		band = output + 4 + 8 * slot++;
++		band[0] = 81; /* 2.4 GHz, channels 1-13, 20 MHz operating class. */
++		band[1] = 1;  /* Selected gen3 BAND_2G4. */
++		band[2] = 1;  /* Channel numbering advances in 5 MHz steps. */
++		band[3] = first + 1;
++		band[4] = count;
++	}
++	return 0;
++}
++
++/* Source wire layouts: two 56-byte domains and CID 0x38's 32-byte control.
++ * Only 2.4 GHz / 20 MHz is represented. Disabled channels are absent from
++ * both domain lists; their minimum power byte is not an RF-disable mechanism.
++ * NO_IR channels appear in the passive list as well as the ordinary list.
++ * A complete failed encoding returns a zero result and must gate all RF.
++ */
++static inline int
++mt6797_regulatory_encode(const struct mt6797_channel_limit *channels,
++			 const char alpha2[2],
++			 struct mt6797_regulatory_payloads *result)
++{
++	struct mt6797_regulatory_payloads built = {0};
++	unsigned int i;
++	int error, power;
++
++	if (!result)
++		return -EINVAL;
++	memset(result, 0, sizeof(*result));
++	if (!channels || !alpha2)
++		return -EINVAL;
++	if (!((alpha2[0] >= 'A' && alpha2[0] <= 'Z' &&
++	       alpha2[1] >= 'A' && alpha2[1] <= 'Z') ||
++	      (alpha2[0] == '0' && alpha2[1] == '0')))
++		return -EINVAL;
++	built.domain[0] = alpha2[1];
++	built.passive[0] = alpha2[1];
++	built.domain[1] = alpha2[0];
++	built.passive[1] = alpha2[0];
++	built.passive[2] = 1;
++	built.domain[52] = 1;
++	built.passive[52] = 1; /* 20 MHz only. */
++	built.domain[53] = 1;
++	built.passive[53] = 1;
++	/* Source concurrency policy 1 selects the lower power, not the higher. */
++	built.power[8] = 1;
++	memset(built.power + 12, 0xc0, 18); /* -64 half-dBm units. */
++	for (i = 0; i < MT6797_2G_CHANNELS; i++) {
++		if (!channels[i].enabled)
++			continue;
++		power = channels[i].max_power_dbm;
++		if (power < -32 || power > 31)
++			return -ERANGE;
++		built.power[12 + i] = (unsigned char)(2 * power);
++	}
++	error = mt6797_regulatory_ranges(channels, true, built.passive);
++	if (!error)
++		error = mt6797_regulatory_ranges(channels, false, built.domain);
++	if (error)
++		return error;
++	*result = built;
++	return 0;
++}
++
++#endif
+-- 
+2.54.0 (Apple Git-157)
+

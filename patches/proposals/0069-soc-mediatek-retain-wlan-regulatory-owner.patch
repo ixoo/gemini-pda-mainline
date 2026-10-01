@@ -1,0 +1,55 @@
+From 83a3654c72804a8acd55dfe7784e9ecc2a6ed49d Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Thu, 1 Oct 2026 18:03:17 -0400
+Subject: [PATCH] soc: mediatek: retain WLAN regulatory configuration owner
+
+Invoke the default-off mac80211 configuration path after the private record
+is prepared. Retain the wiphy alongside the powered HIF for this built-in
+owner lifetime. Older profiles keep the passive prepare/release behavior.
+---
+ drivers/soc/mediatek/mt6797-consys.c | 15 +++++++++++++++
+ 1 file changed, 15 insertions(+)
+
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index f1ebf3d..63b65fe 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -31,6 +31,9 @@
+ #include "../../net/wireless/mediatek/mt6797/firmware-prepare.h"
+ #include "../../net/wireless/mediatek/mt6797/hif.h"
+ #include "../../net/wireless/mediatek/mt6797/record-prepare.h"
++#if IS_ENABLED(CONFIG_MT6797_MAC80211)
++#include "../../net/wireless/mediatek/mt6797/mac.h"
++#endif
+ 
+ #define MT6797_CONSYS_REMAP_REG	0x10001340
+ #define MT6797_CONSYS_SLEEP_MASK_REG	0x10001350
+@@ -77,6 +80,10 @@
+ #define MT6351_VCN28_CLOCK_EXPECTED	((3 << 5) | (3 << 11))
+ 
+ struct mt6797_consys {
++#if IS_ENABLED(CONFIG_MT6797_MAC80211)
++	/* Built-in owner retains powered HIF and wiphy for the whole boot. */
++	struct ieee80211_hw *wlan_hw;
++#endif
+ 	void __iomem *remap;
+ 	void __iomem *sleep_mask;
+ 	void __iomem *chip_id;
+@@ -938,6 +945,14 @@ static void mt6797_consys_probe_firmware_start(struct device *dev,
+ 		goto stopped;
+ 	ret = mt6797_wifi_record_prepare(dev, &record);
+ 	dev_info(dev, "one-shot WLAN private record prepare: status=%d\n", ret);
++#if IS_ENABLED(CONFIG_MT6797_MAC80211)
++	if (!ret) {
++		ret = mt6797_mac_register(dev, owner->fw_hif, &capability,
++					 record, &owner->wlan_hw);
++		dev_info(dev, "one-shot WLAN regulatory configuration: status=%d\n",
++			 ret);
++	}
++#endif
+ 	mt6797_wifi_record_release(record);
+ 	if (ret)
+ 		goto stopped;
+-- 
+2.54.0 (Apple Git-157)
+

@@ -1,0 +1,135 @@
+From 3c41a65f0d6b10d602b7c8138bdd3d071fb2b3b1 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Thu, 1 Oct 2026 18:03:17 -0400
+Subject: [PATCH] wifi: mediatek: submit record and retained regulatory power
+ sets
+
+Frame the immutable 512-byte record and supported 32-byte power control.
+Preserve the submitted-record phase across later domain and power updates;
+refuse record replay. Retain sequence history and the finite TC4 ledger.
+Success remains PIO submission, without an invented application reply.
+---
+ drivers/net/wireless/mediatek/mt6797/hif.c    |  3 +-
+ .../wireless/mediatek/mt6797/normal_command.h | 42 +++++++++++++++----
+ 2 files changed, 36 insertions(+), 9 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 7b64b3c..35d5b95 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -466,7 +466,8 @@ int mt6797_hif_send_config(struct mt6797_hif *hif,
+ 		return -EBUSY;
+ 	if (!hif->firmware_ready || !hif->capability_complete ||
+ 	    hif->transaction->phase != MT6797_INIT_IDLE ||
+-	    hif->normal.phase != MT6797_NORMAL_CAP_RECEIVED) {
++	    (hif->normal.phase != MT6797_NORMAL_CAP_RECEIVED &&
++	     hif->normal.phase != MT6797_NORMAL_NVRAM_SUBMITTED)) {
+ 		error = -EIO;
+ 		goto unlock;
+ 	}
+diff --git a/drivers/net/wireless/mediatek/mt6797/normal_command.h b/drivers/net/wireless/mediatek/mt6797/normal_command.h
+index 51a3957..0e4bb38 100644
+--- a/drivers/net/wireless/mediatek/mt6797/normal_command.h
++++ b/drivers/net/wireless/mediatek/mt6797/normal_command.h
+@@ -8,15 +8,17 @@
+ #define MT6797_NORMAL_NVRAM_BYTES 520U
+ 
+ enum mt6797_normal_kind { MT6797_NORMAL_CAPABILITY, MT6797_NORMAL_NVRAM };
+-/* Only the set commands used by the selected manufacture-data path. */
++/* Selected manufacture-data sets and per-channel regulatory power limits. */
+ enum mt6797_normal_config_kind {
+ 	MT6797_NORMAL_DOMAIN = 0x0f,
+ 	MT6797_NORMAL_TX_PWR = 0x24,
+ 	MT6797_NORMAL_EDGE_2G = 0x36,
++	MT6797_NORMAL_TX_CTRL = 0x38,
+ 	MT6797_NORMAL_EDGE_5G = 0x40,
+ 	MT6797_NORMAL_CHANNEL_OFFSET = 0x41,
+ 	MT6797_NORMAL_AC_PWR = 0x42,
+ 	MT6797_NORMAL_RSSI = 0x43,
++	MT6797_NORMAL_NVRAM_SETTINGS = 0x48,
+ 	MT6797_NORMAL_COUNTRY_POWER = 0x49,
+ };
+ enum mt6797_normal_phase {
+@@ -28,7 +30,7 @@ enum mt6797_normal_phase {
+ };
+ 
+ struct mt6797_normal_transaction {
+-	enum mt6797_normal_phase phase;
++	enum mt6797_normal_phase phase, config_return_phase;
+ 	unsigned int tc4_limit, tc4_free, expected_sequence;
+ 	/* Shared adapter-session history, including INIT. Never cleared here. */
+ 	unsigned char *used_sequences;
+@@ -180,13 +182,23 @@ mt6797_normal_prepare_config(struct mt6797_normal_transaction *t,
+ 			     size_t capacity,
+ 			     struct mt6797_hif_command *command)
+ {
++	enum mt6797_normal_phase previous, tx_phase;
+ 	size_t required;
++	int error;
+ 
+ 	if (command)
+ 		*command = (struct mt6797_hif_command){0};
+ 	if (!t || !output || !command)
+ 		return -EINVAL;
+-	if (t->phase != MT6797_NORMAL_CAP_RECEIVED)
++	previous = t->phase;
++	if (previous != MT6797_NORMAL_CAP_RECEIVED &&
++	    previous != MT6797_NORMAL_NVRAM_SUBMITTED)
++		return mt6797_normal_abort(t);
++	/* After the immutable record, only regulatory domain/power updates
++	 * remain in this configuration API. Never replay manufacture data.
++	 */
++	if (previous == MT6797_NORMAL_NVRAM_SUBMITTED &&
++	    kind != MT6797_NORMAL_DOMAIN && kind != MT6797_NORMAL_TX_CTRL)
+ 		return mt6797_normal_abort(t);
+ 	if (!payload)
+ 		return -EINVAL;
+@@ -205,6 +217,12 @@ mt6797_normal_prepare_config(struct mt6797_normal_transaction *t,
+ 	case MT6797_NORMAL_AC_PWR:
+ 		required = 12;
+ 		break;
++	case MT6797_NORMAL_TX_CTRL:
++		required = 32;
++		break;
++	case MT6797_NORMAL_NVRAM_SETTINGS:
++		required = 512;
++		break;
+ 	case MT6797_NORMAL_RSSI:
+ 		required = 2;
+ 		break;
+@@ -219,9 +237,14 @@ mt6797_normal_prepare_config(struct mt6797_normal_transaction *t,
+ 	}
+ 	if (payload_bytes != required)
+ 		return -EINVAL;
+-	return mt6797_normal_encode(t, kind, 1, sequence, payload,
+-		payload_bytes, 8 + payload_bytes, MT6797_NORMAL_CONFIG_TX,
++	tx_phase = kind == MT6797_NORMAL_NVRAM_SETTINGS ?
++		MT6797_NORMAL_NVRAM_TX : MT6797_NORMAL_CONFIG_TX;
++	error = mt6797_normal_encode(t, kind, 1, sequence, payload,
++				     payload_bytes, 8 + payload_bytes, tx_phase,
+ 		output, capacity, command);
++	if (!error)
++		t->config_return_phase = previous;
++	return error;
+ }
+ 
+ /* Feedback from the actual ordered transport. Failure may have side effects. */
+@@ -234,9 +257,12 @@ mt6797_normal_submitted(struct mt6797_normal_transaction *t, int transport_error
+ 		return mt6797_normal_abort(t);
+ 	if (t->phase == MT6797_NORMAL_CAP_TX)
+ 		t->phase = MT6797_NORMAL_CAP_WAIT;
+-	else if (t->phase == MT6797_NORMAL_CONFIG_TX)
+-		t->phase = MT6797_NORMAL_CAP_RECEIVED;
+-	else if (t->phase == MT6797_NORMAL_NVRAM_TX)
++	else if (t->phase == MT6797_NORMAL_CONFIG_TX) {
++		if (t->config_return_phase != MT6797_NORMAL_CAP_RECEIVED &&
++		    t->config_return_phase != MT6797_NORMAL_NVRAM_SUBMITTED)
++			return mt6797_normal_abort(t);
++		t->phase = t->config_return_phase;
++	} else if (t->phase == MT6797_NORMAL_NVRAM_TX)
+ 		t->phase = MT6797_NORMAL_NVRAM_SUBMITTED;
+ 	else
+ 		return mt6797_normal_abort(t);
+-- 
+2.54.0 (Apple Git-157)
+
