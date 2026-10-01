@@ -1,0 +1,56 @@
+From 867dad79a1ce2eefa9e450167a79c4f14ece0c0d Mon Sep 17 00:00:00 2001
+From: Codex <codex@native-diagnostic.invalid>
+Date: Thu, 1 Oct 2026 17:03:23 -0400
+Subject: [PATCH] wifi: mediatek: probe first selected normal power set
+
+After the proven post-START capability, debug drain and private record
+preparation, submit only the selected source's first conditional base-power
+normal set. Refuse unexpected firmware identity, calibration failure flags
+or an absent record branch. This is one bounded command-submission probe:
+no regulatory, full-record, DMA or RF operation follows it.
+
+---
+ drivers/soc/mediatek/mt6797-consys.c | 20 ++++++++++++++++++++
+ 1 file changed, 20 insertions(+)
+
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index f1ebf3d..ae1dfb1 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -803,6 +803,7 @@ static void mt6797_consys_probe_firmware_start(struct device *dev,
+ 					       struct mt6797_consys *owner)
+ {
+ 	struct mt6797_wifi_record *record = NULL;
++	const struct mt6797_record_commands *commands;
+ 	static const u8 start[16] = {
+ 		16, 0, 0, 0x80, 2, 0xa0, 0, 3,
+ 	};
+@@ -938,6 +939,25 @@ static void mt6797_consys_probe_firmware_start(struct device *dev,
+ 		goto stopped;
+ 	ret = mt6797_wifi_record_prepare(dev, &record);
+ 	dev_info(dev, "one-shot WLAN private record prepare: status=%d\n", ret);
++	if (ret)
++		goto stopped;
++	/* This is the first selected manufacture-data command. It changes only
++	 * the firmware's configured power parameters; no RF or DMA is started.
++	 * A different capability or record branch needs a new admission review.
++	 */
++	commands = mt6797_wifi_record_commands(record);
++	if (capability.product != 0x6797 || capability.firmware_own != 0x0403 ||
++	    capability.firmware_peer || capability.rf_cal_fail ||
++	    capability.bb_cal_fail || !commands || !commands->base_power) {
++		ret = -EOPNOTSUPP;
++		goto release_record;
++	}
++	ret = mt6797_hif_send_config(owner->fw_hif, MT6797_NORMAL_TX_PWR,
++				     5, commands->base_power_bytes,
++				     sizeof(commands->base_power_bytes),
++				     ktime_get_ns() + NSEC_PER_SEC);
++	dev_info(dev, "one-shot WLAN base-power submit: status=%d\n", ret);
++release_record:
+ 	mt6797_wifi_record_release(record);
+ 	if (ret)
+ 		goto stopped;
+-- 
+2.54.0 (Apple Git-157)
+

@@ -1,0 +1,2 @@
+# One bounded post-capability normal base-power submission; no RF or DMA.
+CONFIG_LOCALVERSION="-gemini-a53-wifi-first-normal-set"
