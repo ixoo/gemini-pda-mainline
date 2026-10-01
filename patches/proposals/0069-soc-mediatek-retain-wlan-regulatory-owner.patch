@@ -1,7 +1,7 @@
-From 83a3654c72804a8acd55dfe7784e9ecc2a6ed49d Mon Sep 17 00:00:00 2001
-From: Julien Etienne <julien.etienne@gmail.com>
+From 047e513a378b91d605dc707066045b4aef106c68 Mon Sep 17 00:00:00 2001
+From: Codex <codex@native-diagnostic.invalid>
 Date: Thu, 1 Oct 2026 18:03:17 -0400
-Subject: [PATCH] soc: mediatek: retain WLAN regulatory configuration owner
+Subject: [PATCH 3/3] soc: mediatek: retain WLAN regulatory configuration owner
 
 Invoke the default-off mac80211 configuration path after the private record
 is prepared. Retain the wiphy alongside the powered HIF for this built-in

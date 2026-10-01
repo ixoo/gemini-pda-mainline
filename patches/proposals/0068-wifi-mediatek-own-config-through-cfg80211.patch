@@ -1,7 +1,8 @@
-From 12c00389708fe980fb928e69a310f099b9115fa7 Mon Sep 17 00:00:00 2001
-From: Julien Etienne <julien.etienne@gmail.com>
+From a142f65e138420208c6bfe709a41843d005e6607 Mon Sep 17 00:00:00 2001
+From: Codex <codex@native-diagnostic.invalid>
 Date: Thu, 1 Oct 2026 18:03:17 -0400
-Subject: [PATCH] wifi: mediatek: own configuration through cfg80211 channels
+Subject: [PATCH 2/3] wifi: mediatek: own configuration through cfg80211
+ channels
 
 Register a 2.4 GHz mac80211 channel inventory. Encode effective cfg80211
 restrictions in supported firmware domain and power commands, after the
