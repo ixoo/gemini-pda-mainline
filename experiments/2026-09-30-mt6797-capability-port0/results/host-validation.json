@@ -1,0 +1,10 @@
+{
+  "patch_sha256": "2bcf7e713f0b721125ffc772064a8e62a26668065dfeb9e92f5aef30bdcd0850",
+  "test_source_sha256": "85efa5fc3dbddf61c0a028297edc6e75e2402440031aa142a2975288c0d500dc",
+  "compiler": "Homebrew clang 23.1.2",
+  "flags": "-std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer",
+  "result": "pass",
+  "prior_all_ports_guard": "fails pending-port0 success assertion",
+  "coverage": "literal START and capability on one HIF object; pending port0 before and after port1 reply; pre-existing port1 refusal; 69 scalar access faults; malformed reply and deadline",
+  "device_action": "none"
+}

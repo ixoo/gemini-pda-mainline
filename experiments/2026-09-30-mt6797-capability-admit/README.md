@@ -45,9 +45,8 @@ previous boot2 checksum. Offline candidate validation, Bash syntax and
 ShellCheck passed. It will resolve logical boot2 from live GPT, recheck the
 reviewed device guard, skip a matching full-partition checksum or otherwise
 write, flush and require a matching full readback before clean shutdown. The
-owner then selects boot2 physically. The guarded installation completed, but
-the candidate has not been observed booting; no mainline capability exchange is
-claimed.
+owner then selects boot2 physically. The guarded installation completed. The
+later authenticated runtime is recorded below; no capability exchange completed.
 
 ## First handoff watch
 
@@ -59,3 +58,16 @@ window, and the one-shot WMT, START and capability test did not run. The image
 remains the last verified boot2 installation, but there is no runtime result.
 Resume only with a new attributable physical handoff and capture window; do not
 repeat the firmware action on the basis of this timeout.
+
+## Authenticated runtime
+
+After the owner selected boot2, [one mainline boot](results/runtime-1.json)
+reached WCIR firmware-ready `0x00300279` and entered the capability query.
+Its first WRPLR read was `0x00000059`: 89 bytes on receive port 0, zero on
+receive port 1. The all-ports-empty guard returned `-EBUSY` at trace stage 2
+before TX or RX. The port-0 packet was not read or classified. The complete
+private log was preserved, A53 RAM service passed, and reviewed recovery
+returned to a changed Gemian boot with Wi-Fi carrier 1. This is a transport
+guard result, not a capability or usable mainline Wi-Fi result. The
+[next experiment](../2026-09-30-mt6797-capability-port0/README.md) tests
+the port-1-specific admission supported by the pinned gen3 source.

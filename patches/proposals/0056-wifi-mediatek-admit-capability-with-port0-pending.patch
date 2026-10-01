@@ -1,0 +1,51 @@
+From 37c8e748e20dbbad7118153e4d7153d3d6149d68 Mon Sep 17 00:00:00 2001
+From: Codex native diagnostic <noreply@native-diagnostic.invalid>
+Date: Wed, 30 Sep 2026 20:45:51 -0400
+Subject: [PATCH] wifi: mediatek: admit capability with port 0 pending
+
+WRPLR has separate 16-bit lengths for RX ports 0 and 1. A live
+post-START boot had 89 bytes queued on port 0 while port 1 was empty.
+Rejecting the whole word prevented the port-1 capability query before
+it could send a command.
+
+Gate on a pre-existing port-1 packet and use only port 1 when awaiting
+the reply. Leave the unknown port-0 packet untouched. Radio and DMA
+remain held. Internal diagnostic only; not an upstream submission.
+---
+ drivers/net/wireless/mediatek/mt6797/hif.c | 10 ++++------
+ 1 file changed, 4 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 7c58127..4e98ecf 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -351,14 +351,16 @@ int mt6797_hif_query_capability(struct mt6797_hif *hif, unsigned int sequence,
+ 				    hif->transaction->used_sequences);
+ 	if (error)
+ 		goto out;
+-	/* A pre-existing event would make a reply's owner ambiguous. */
++	/* A pre-existing port-1 event would make its reply owner ambiguous.
++	 * Port 0 has a separate FIFO and may hold a post-START packet.
++	 */
+ 	trace->stage = MT6797_CAP_PRE_WRPLR;
+ 	error = mt6797_hif_read32_locked(hif, 0x90, &lengths);
+ 	if (error)
+ 		goto out;
+ 	trace->pre_valid = true;
+ 	trace->pre_wrplr = lengths;
+-	if (lengths) {
++	if (lengths & 0xffff0000U) {
+ 		error = -EBUSY;
+ 		goto out;
+ 	}
+@@ -387,10 +389,6 @@ int mt6797_hif_query_capability(struct mt6797_hif *hif, unsigned int sequence,
+ 			goto out;
+ 		trace->post_valid = true;
+ 		trace->post_wrplr = lengths;
+-		if (lengths & 0xffff) {
+-			error = -EPROTO;
+-			goto out;
+-		}
+ 		trace->stage = MT6797_CAP_REPLY_SPAN;
+ 		error = mt6797_normal_reply_span(&normal, lengths >> 16,
+ 						 sizeof(hif->scratch), &command);
