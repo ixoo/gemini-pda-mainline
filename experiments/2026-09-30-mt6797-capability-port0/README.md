@@ -30,8 +30,8 @@ port-0 length before and after a successful port-1 capability reply, refusal
 of a pre-existing port-1 packet, all 69 scalar access faults and the prior
 malformed/deadline cases. The former all-ports guard fails the new success
 case; the corrected guard passes with C11, warnings as errors, ASan and UBSan.
-[Validation details](results/host-validation.json). No live capability reply
-has yet been observed.
+[Validation details](results/host-validation.json). A live capability reply is
+recorded below.
 
 ## Build and candidate
 
@@ -45,14 +45,33 @@ at SHA-256 `cef9373ea3aa0e1a8a45a13b953ae95e48939b211e41a73052543be784ee3214`.
 The [sanitized candidate receipt](results/candidate.json) pins the 16 MiB
 boot2 image at SHA-256 `503126de747a15bc922d845dd4cfe6709eb6ba30ea5b150b62d051b9b6a20f39`.
 The [build receipt](results/build.json) records the package and candidate identities.
-No device write or boot has yet occurred with this candidate.
+The guarded installation and one authenticated boot are recorded below.
 
-The guarded installer is bound to known-good Gemian boot
+The guarded installer was bound to known-good Gemian boot
 `064c5064-690b-46e1-9673-3f78eb802831` and previous boot2 checksum
 `f066866c178e38d77f18722f9e3286a6e98316997e28f2157c62f434f1aa1d4b`.
-It resolves logical boot2 from live GPT, checks the device guard, then writes,
-flushes and verifies a full readback before clean shutdown. The owner selects
-boot2 physically. The next boot will test whether port 1 receives a valid
-capability response while port 0 remains unread. A valid response permits
-later planning for calibration, standard wireless interfaces and packet
-transport; it is not usable Wi-Fi by itself.
+It resolved logical boot2 from live GPT, checked the device guard, wrote,
+flushed and verified a full readback before clean shutdown. The owner
+selected boot2 physically. The unique test was whether port 1 would receive
+a valid capability response while port 0 remained unread.
+
+## Authenticated runtime
+
+The [one boot](results/runtime-1.json) reached firmware-ready and completed
+one capability command/reply exchange. WRPLR was `0x00000059` before TX and
+`0x007c0059` afterward: port 0 reported 89 bytes at both reads, while port 1
+reported a 124-byte reply. The host read 128 bytes from port 1, including the
+transport prefix, and did not read port 0. The response header reported type
+`0xe000`, event ID 1 and sequence 4. Parsed product ID was `0x6797`,
+firmware-own `0x0403`, firmware-peer `0x0000`, with zero values in the four
+reported feature/calibration flags. These values are firmware output, not
+proof that board calibration was applied.
+
+The full private log was preserved at SHA-256
+`48bbf6e4c612cff00fa78f5665589a8b8c7ac20dd766986fb11d2f52a7c32608`.
+The A53 RAM-service regression passed, and reviewed recovery confirmed a
+changed Gemian boot with Wi-Fi carrier 1. No radio command, packet DMA,
+mainline network interface, scan, association or traffic test ran. The next
+step is to settle the retained calibration envelope and normal command
+contract before a new active firmware transaction; this image should not be
+repeated without a decision-changing measurement.

@@ -1,0 +1,47 @@
+{
+  "status": "one-bounded-capability-command-reply-pass",
+  "candidate_boot2_sha256": "503126de747a15bc922d845dd4cfe6709eb6ba30ea5b150b62d051b9b6a20f39",
+  "mainline_boot": "09b8c889-c6df-4dbe-a9c7-1f570b396122",
+  "kernel_release": "7.1.3-gemini-a53-wifi-capability-port0",
+  "one_host_start_attempt": true,
+  "capability_query_status": 0,
+  "capability_trace": {
+    "post_valid": 1,
+    "post_wrplr": 8126553,
+    "pre_valid": 1,
+    "pre_wrplr": 89,
+    "rx_bytes": 128,
+    "rx_complete": 1,
+    "rx_setup": 1,
+    "stage": 11,
+    "tx_bytes": 124,
+    "tx_complete": 1,
+    "tx_setup": 1
+  },
+  "capability_event_header": {
+    "event_id": 1,
+    "length": 124,
+    "packet_type": 57344,
+    "sequence": 4
+  },
+  "capability_fields": {
+    "bb_cal_fail": 0,
+    "eeprom_used": 0,
+    "firmware_own": 1027,
+    "firmware_peer": 0,
+    "hw_5g_disabled": 0,
+    "product": 26519,
+    "rf_cal_fail": 0
+  },
+  "complete_log_sha256": "48bbf6e4c612cff00fa78f5665589a8b8c7ac20dd766986fb11d2f52a7c32608",
+  "complete_log_preserved": true,
+  "a53_ram_service_regression_pass": true,
+  "recovery_confirmed": true,
+  "returned_gemian_boot": "19fbba30-27a4-4689-8252-8c0ab8d5ca70",
+  "returned_gemian_release": "3.18.41+",
+  "returned_gemian_wlan_carrier": 1,
+  "port0_host_read": false,
+  "radio_commands_or_packet_dma_enabled": false,
+  "network_interface_association_traffic_tested": false,
+  "private_evidence": "retained outside Git"
+}
