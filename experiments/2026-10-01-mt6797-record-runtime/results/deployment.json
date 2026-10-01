@@ -1,0 +1,20 @@
+{
+  "status": "boot2-full-readback-verified-clean-shutdown",
+  "candidate_boot2_sha256": "fbbf87b751dc159402461cdcda13d349cc6cd969987bf0db6938dc324b885e1a",
+  "candidate_manifest_sha256": "403d5c95c358433f8dc2bbd4da6cdeb9ad2d09a3e52c6a444631a31a0734bd9e",
+  "known_good_gemian_boot_id": "095aa1c7-609e-48e8-bc97-c93aeb403635",
+  "target_logical_name": "boot2",
+  "target_device": "/dev/mmcblk0p30",
+  "target_major_minor": "179:30",
+  "root_device": "/dev/mmcblk0p29",
+  "root_major_minor": "179:29",
+  "predecessor_full_sha256": "7a7a2249db9221dae7fd29b18ba0dd5887974fd43aece68478640592dffe42cd",
+  "guard": "passed",
+  "stable_power": true,
+  "write_synced_flushed_full_readback_matched": true,
+  "private_summary_sha256": "b053fed7a59fa596a91ceced78d146fb03cfa415062e3396e916ddbe698e8611",
+  "shutdown_confirmed_unreachable": true,
+  "reboot": false,
+  "physical_boot2_selection": "pending",
+  "mainline_test": "not run"
+}
