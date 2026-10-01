@@ -2,7 +2,9 @@
 
 The [first normal set](../2026-10-01-mt6797-first-normal-set/README.md)
 completed a bounded PIO submission on hardware. This successor currently has
-host validation only; it has no kernel build or device result yet.
+host validation only. The first Buildbox compile caught the new radio-index
+argument in mac80211’s config callback; the corrected build is pending.
+There is no device result yet.
 
 Patches 0067–0069 register a real mac80211 wiphy with channels 1–13, 20 MHz,
 legacy rates and a conservative 20 dBm driver ceiling. Effective cfg80211

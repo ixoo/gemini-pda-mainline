@@ -1,8 +1,7 @@
-From a142f65e138420208c6bfe709a41843d005e6607 Mon Sep 17 00:00:00 2001
+From 90e603147fabae4bb583053c17b9ec5269fdc6db Mon Sep 17 00:00:00 2001
 From: Codex <codex@native-diagnostic.invalid>
 Date: Thu, 1 Oct 2026 18:03:17 -0400
-Subject: [PATCH 2/3] wifi: mediatek: own configuration through cfg80211
- channels
+Subject: [PATCH] wifi: mediatek: own configuration through cfg80211 channels
 
 Register a 2.4 GHz mac80211 channel inventory. Encode effective cfg80211
 restrictions in supported firmware domain and power commands, after the
@@ -49,7 +48,7 @@ index 516f8e4..497d0ae 100644
 +obj-$(CONFIG_MT6797_MAC80211) += mac.o
 diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
 new file mode 100644
-index 0000000..031d22a
+index 0000000..fcd3517
 --- /dev/null
 +++ b/drivers/net/wireless/mediatek/mt6797/mac.c
 @@ -0,0 +1,314 @@
@@ -194,7 +193,7 @@ index 0000000..031d22a
 +{
 +}
 +
-+static int mt6797_mac_config(struct ieee80211_hw *hw, u32 changed)
++static int mt6797_mac_config(struct ieee80211_hw *hw, int radio_idx, u32 changed)
 +{
 +	return -EOPNOTSUPP;
 +}
