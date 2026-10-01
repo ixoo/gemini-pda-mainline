@@ -75,3 +75,34 @@ A53 regression or verified Gemian return for this attempt. The verified image
 remains installed; `20ff` alone does not establish a kernel failure or even a
 live boot. Do not repeat an identical watch without a decision-changing
 physical observation.
+
+## Confirmed later boot2 handoff
+
+The owner later confirmed physical boot2 selection with the console on. A new
+mainline USB gadget route was already present, so no second watch was started.
+The exact installed image booted as
+`126ba4cd-08f2-4104-b7d3-b2c3ae1c4f53`, release
+`7.1.3-gemini-a53-wifi-port0-header`. The [runtime receipt](results/runtime-1.json)
+pins the complete private log and the following single-boot observations.
+
+WMT setup and START completed once. Firmware-ready WCIR was `0x00300279`.
+The capability command again received a valid 124-byte port-1 reply while
+port 0 reported 89 bytes. The guarded port-0 read transferred 96 padded bytes
+for that 89-byte packet. Its header was type `0xe000`, event ID `0x27`,
+sequence 0. The pinned gen3 event enumeration labels `0x27`
+`EVENT_ID_DEBUG_MSG`, and its handler forwards the event body to the firmware
+log printer. This is source-supported classification of the observed header;
+the body was not logged or published. Post-read WRPLR reported another 80-byte
+packet on port 0, which this one-read diagnostic left untouched. It does not
+show whether that packet is also a debug event or whether the debug stream is
+continuous.
+
+The full log was preserved privately at SHA-256
+`33ba77f23979ff7548889232975a61a1a36d8d6cd4591847c8546586d3aa704c`.
+No bounded search hit a kernel panic, BUG, WARNING, unhandled fault or call
+trace. The A53 RAM-service regression passed. Reviewed recovery confirmed a
+changed Gemian boot `37602366-2e40-42ca-a05f-ec12a3026614`, release
+`3.18.41+`, with `wlan0` carrier 1. No mainline radio command, calibration
+application, packet DMA, network interface, scan, association or traffic was
+demonstrated. The debug event shows asynchronous port-0 traffic, but it does
+not establish an operational receive path or usable Wi-Fi.
