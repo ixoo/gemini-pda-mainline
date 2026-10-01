@@ -1,0 +1,25 @@
+{
+  "buildbox_compile": "pending clean pushed checkout",
+  "compat_header_sha256": "1d4dcb7f9285414ea68dc3b8a7279fa9e5b221ea2a84ba15ca66838959353e25",
+  "config_test": "pass: selected normal configuration framing and refusals",
+  "config_test_sha256": "7ea39607ac1c6c3c0defd0d5a3faed4e29ac875fb788f42a046e0175ee79039d",
+  "device_action": "none",
+  "fragment_sha256": "6c21c696ae485a01b74e3f87c325754dd30528c860170a0a48e24627a1948f8c",
+  "hif_test": "pass: persistent post-START normal owner and port-0 header; synthetic payloads, mocked HIF",
+  "hif_test_sha256": "b595b4a097e3df3ecc3ff2f6a034c744435ec60c34948f31f32696b7cae63e50",
+  "host_compiler": "clang C11 -Wall -Wextra -Werror -fsanitize=address,undefined -fno-sanitize-recover=all",
+  "linux_checkpatch": "7.1.3 --no-tree --no-signoff: 0059 and 0060 each 0 errors, 0 warnings",
+  "patch_0059_sha256": "87f36ca120124ae40a2139365f70a3efeb8f39e653fbe0fb99431bb60d75eceb",
+  "patch_0060_sha256": "13bc101eee35924e07211f44f6656b3ba54ac03196df18c11fa103471e02842a",
+  "patched_source_sha256": {
+    "hif.c": "5597cba8bda62d242c7b4bd25ea66127637f114e969226c5ecbcabe0e0a5ff32",
+    "hif.h": "765c65043df048d897668956e381827783499f4c1bb24e9cc6f10a0a01eb6079",
+    "normal_command.h": "1a22158b89b03edb306509cd83d31cebcd90d1a48a79cd99c62f099120c6745d"
+  },
+  "prepared_predecessor": "d19be860 0058 exact prepared host source",
+  "prepared_source_apply_check": "0059 and 0060 sequential git apply --check and apply: pass",
+  "radio_action": "none",
+  "readme_sha256": "6c78f3c8980b29055b48f86e1391473d80242a91d2096b5544e5fd9e3ff1f70c",
+  "series_sha256": "9bdff2ddde70cba648286a2aa45abd492d5a163e5a8add96ef2097c7f4d3ca82",
+  "wifi_support": "not demonstrated"
+}

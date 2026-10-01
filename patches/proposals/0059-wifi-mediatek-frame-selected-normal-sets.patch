@@ -1,0 +1,235 @@
+From b41cc2c37a3c3ba8babc68ac5711eca7be58058c Mon Sep 17 00:00:00 2001
+From: Codex native diagnostic <noreply@native-diagnostic.invalid>
+Date: Thu, 1 Oct 2026 06:30:05 -0400
+Subject: [PATCH] wifi: mediatek: frame selected normal configuration sets
+
+The selected manufacture-data path uses bounded normal TC4 set
+commands before its final NVRAM record. Frame only the source-identified
+CIDs and payload lengths, using the retained capability ledger and
+sequence history.
+
+The caller owns order, policy, and payload provenance. This helper sends
+no command.
+---
+ .../wireless/mediatek/mt6797/normal_command.h | 151 ++++++++++++++----
+ 1 file changed, 121 insertions(+), 30 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/normal_command.h b/drivers/net/wireless/mediatek/mt6797/normal_command.h
+index bf003ab..51a3957 100644
+--- a/drivers/net/wireless/mediatek/mt6797/normal_command.h
++++ b/drivers/net/wireless/mediatek/mt6797/normal_command.h
+@@ -8,9 +8,21 @@
+ #define MT6797_NORMAL_NVRAM_BYTES 520U
+ 
+ enum mt6797_normal_kind { MT6797_NORMAL_CAPABILITY, MT6797_NORMAL_NVRAM };
++/* Only the set commands used by the selected manufacture-data path. */
++enum mt6797_normal_config_kind {
++	MT6797_NORMAL_DOMAIN = 0x0f,
++	MT6797_NORMAL_TX_PWR = 0x24,
++	MT6797_NORMAL_EDGE_2G = 0x36,
++	MT6797_NORMAL_EDGE_5G = 0x40,
++	MT6797_NORMAL_CHANNEL_OFFSET = 0x41,
++	MT6797_NORMAL_AC_PWR = 0x42,
++	MT6797_NORMAL_RSSI = 0x43,
++	MT6797_NORMAL_COUNTRY_POWER = 0x49,
++};
+ enum mt6797_normal_phase {
+ 	MT6797_NORMAL_COLD, MT6797_NORMAL_IDLE, MT6797_NORMAL_CAP_TX,
+ 	MT6797_NORMAL_CAP_WAIT, MT6797_NORMAL_CAP_RECEIVED,
++	MT6797_NORMAL_CONFIG_TX,
+ 	MT6797_NORMAL_NVRAM_TX, MT6797_NORMAL_NVRAM_SUBMITTED,
+ 	MT6797_NORMAL_FAILED,
+ };
+@@ -62,19 +74,20 @@ mt6797_normal_admit(struct mt6797_normal_transaction *t, unsigned int limit,
+ 	return 0;
+ }
+ 
+-/* Distinct immutable payload, output and state storage. No output bytes are
+- * changed on refusal. CAP's unused request tail and all HIF padding are zero.
+- * Returned command describes WTDR1 PIO; no I/O occurs in this helper.
++/* Shared normal-TC4 framing and debit. Callers validate phase and payload
++ * contract first. A transport failure never refunds this debit.
+  */
+ static inline int
+-mt6797_normal_prepare(struct mt6797_normal_transaction *t,
+-		      enum mt6797_normal_kind kind, unsigned int sequence,
+-		      const unsigned char *payload, size_t payload_bytes,
+-		      unsigned char *output, size_t capacity,
+-		      struct mt6797_hif_command *command)
++mt6797_normal_encode(struct mt6797_normal_transaction *t,
++		     unsigned int cid, unsigned int is_set,
++		     unsigned int sequence, const unsigned char *payload,
++		     size_t payload_bytes, size_t bytes,
++		     enum mt6797_normal_phase tx_phase,
++		     unsigned char *output, size_t capacity,
++		     struct mt6797_hif_command *command)
+ {
+ 	struct mt6797_hif_command encoded;
+-	size_t bytes, i;
++	size_t i;
+ 	unsigned int pages;
+ 	int error;
+ 
+@@ -85,21 +98,9 @@ mt6797_normal_prepare(struct mt6797_normal_transaction *t,
+ 	if (!t->used_sequences || !t->tc4_limit || t->tc4_limit > 0xffffU ||
+ 	    t->tc4_free > t->tc4_limit)
+ 		return mt6797_normal_abort(t);
+-	if (kind == MT6797_NORMAL_CAPABILITY) {
+-		if (t->phase != MT6797_NORMAL_IDLE)
+-			return mt6797_normal_abort(t);
+-		if (payload || payload_bytes)
+-			return -EINVAL;
+-		bytes = MT6797_NORMAL_CAP_BYTES;
+-	} else if (kind == MT6797_NORMAL_NVRAM) {
+-		if (t->phase != MT6797_NORMAL_CAP_RECEIVED)
+-			return mt6797_normal_abort(t);
+-		if (!payload || payload_bytes != 512)
+-			return -EINVAL;
+-		bytes = MT6797_NORMAL_NVRAM_BYTES;
+-	} else {
++	if (bytes < 8 || payload_bytes > bytes - 8 ||
++	    (payload_bytes && !payload) || cid > 255 || is_set > 1)
+ 		return -EINVAL;
+-	}
+ 	if (sequence > 255)
+ 		return -EINVAL;
+ 	if (t->used_sequences[sequence / 8] & (1U << (sequence % 8)))
+@@ -109,9 +110,7 @@ mt6797_normal_prepare(struct mt6797_normal_transaction *t,
+ 					  &encoded);
+ 	if (error)
+ 		return error;
+-	/* Source normal GENERAL/NETWORK IOCTL uses ceil(logical length/128),
+-	 * with no additional TX descriptor and no charge for HIF block padding.
+-	 */
++	/* No separate TX descriptor or HIF padding charge. */
+ 	pages = (unsigned int)((bytes + 127) / 128);
+ 	if (t->tc4_free < pages)
+ 		return -ENOSPC;
+@@ -120,21 +119,111 @@ mt6797_normal_prepare(struct mt6797_normal_transaction *t,
+ 	output[0] = (unsigned char)bytes;
+ 	output[1] = (unsigned char)(bytes >> 8);
+ 	output[3] = 0x80;
+-	output[4] = kind == MT6797_NORMAL_CAPABILITY ? 0x80 : 0x48;
++	output[4] = (unsigned char)cid;
+ 	output[5] = 0xa0;
+-	output[6] = kind == MT6797_NORMAL_NVRAM ? 1 : 0;
++	output[6] = (unsigned char)is_set;
+ 	output[7] = (unsigned char)sequence;
+ 	for (i = 0; i < payload_bytes; i++)
+ 		output[8 + i] = payload[i];
+ 	t->tc4_free -= pages;
+ 	t->used_sequences[sequence / 8] |= (unsigned char)(1U << (sequence % 8));
+ 	t->expected_sequence = sequence;
+-	t->phase = kind == MT6797_NORMAL_CAPABILITY ? MT6797_NORMAL_CAP_TX :
+-		MT6797_NORMAL_NVRAM_TX;
++	t->phase = tx_phase;
+ 	*command = encoded;
+ 	return 0;
+ }
+ 
++/* Distinct immutable payload, output and state storage. No output bytes are
++ * changed on refusal. CAP's unused request tail and HIF padding are zero.
++ */
++static inline int
++mt6797_normal_prepare(struct mt6797_normal_transaction *t,
++		      enum mt6797_normal_kind kind, unsigned int sequence,
++		      const unsigned char *payload, size_t payload_bytes,
++		      unsigned char *output, size_t capacity,
++		      struct mt6797_hif_command *command)
++{
++	if (command)
++		*command = (struct mt6797_hif_command){0};
++	if (!t || !output || !command)
++		return -EINVAL;
++	if (kind == MT6797_NORMAL_CAPABILITY) {
++		if (t->phase != MT6797_NORMAL_IDLE)
++			return mt6797_normal_abort(t);
++		if (payload || payload_bytes)
++			return -EINVAL;
++		return mt6797_normal_encode(t, 0x80, 0, sequence,
++			NULL, 0, MT6797_NORMAL_CAP_BYTES, MT6797_NORMAL_CAP_TX,
++			output, capacity, command);
++	}
++	if (kind == MT6797_NORMAL_NVRAM) {
++		if (t->phase != MT6797_NORMAL_CAP_RECEIVED)
++			return mt6797_normal_abort(t);
++		if (!payload || payload_bytes != 512)
++			return -EINVAL;
++		return mt6797_normal_encode(t, 0x48, 1, sequence,
++			payload, payload_bytes, MT6797_NORMAL_NVRAM_BYTES,
++			MT6797_NORMAL_NVRAM_TX, output, capacity, command);
++	}
++	return -EINVAL;
++}
++
++/* Selected no-reply configuration commands. The caller owns their order,
++ * payload content, regulatory policy and calibration provenance.
++ */
++static inline int
++mt6797_normal_prepare_config(struct mt6797_normal_transaction *t,
++			     enum mt6797_normal_config_kind kind,
++			     unsigned int sequence,
++			     const unsigned char *payload,
++			     size_t payload_bytes, unsigned char *output,
++			     size_t capacity,
++			     struct mt6797_hif_command *command)
++{
++	size_t required;
++
++	if (command)
++		*command = (struct mt6797_hif_command){0};
++	if (!t || !output || !command)
++		return -EINVAL;
++	if (t->phase != MT6797_NORMAL_CAP_RECEIVED)
++		return mt6797_normal_abort(t);
++	if (!payload)
++		return -EINVAL;
++	switch (kind) {
++	case MT6797_NORMAL_DOMAIN:
++		required = 56;
++		break;
++	case MT6797_NORMAL_TX_PWR:
++		required = 40;
++		break;
++	case MT6797_NORMAL_EDGE_2G:
++	case MT6797_NORMAL_EDGE_5G:
++		required = 4;
++		break;
++	case MT6797_NORMAL_CHANNEL_OFFSET:
++	case MT6797_NORMAL_AC_PWR:
++		required = 12;
++		break;
++	case MT6797_NORMAL_RSSI:
++		required = 2;
++		break;
++	case MT6797_NORMAL_COUNTRY_POWER:
++		if (payload_bytes < 16 || payload_bytes > 528 ||
++		    (payload_bytes - 16) % 8)
++			return -EINVAL;
++		required = payload_bytes;
++		break;
++	default:
++		return -EINVAL;
++	}
++	if (payload_bytes != required)
++		return -EINVAL;
++	return mt6797_normal_encode(t, kind, 1, sequence, payload,
++		payload_bytes, 8 + payload_bytes, MT6797_NORMAL_CONFIG_TX,
++		output, capacity, command);
++}
++
+ /* Feedback from the actual ordered transport. Failure may have side effects. */
+ static inline int
+ mt6797_normal_submitted(struct mt6797_normal_transaction *t, int transport_error)
+@@ -145,6 +234,8 @@ mt6797_normal_submitted(struct mt6797_normal_transaction *t, int transport_error
+ 		return mt6797_normal_abort(t);
+ 	if (t->phase == MT6797_NORMAL_CAP_TX)
+ 		t->phase = MT6797_NORMAL_CAP_WAIT;
++	else if (t->phase == MT6797_NORMAL_CONFIG_TX)
++		t->phase = MT6797_NORMAL_CAP_RECEIVED;
+ 	else if (t->phase == MT6797_NORMAL_NVRAM_TX)
+ 		t->phase = MT6797_NORMAL_NVRAM_SUBMITTED;
+ 	else
+-- 
+2.54.0 (Apple Git-157)
+

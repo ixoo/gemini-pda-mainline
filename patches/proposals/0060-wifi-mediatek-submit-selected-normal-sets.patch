@@ -1,0 +1,89 @@
+From 3d2b911a3e38e2aff3f87d16bb4452b3c91d3b93 Mon Sep 17 00:00:00 2001
+From: Codex native diagnostic <noreply@native-diagnostic.invalid>
+Date: Thu, 1 Oct 2026 06:39:49 -0400
+Subject: [PATCH] wifi: mediatek: submit selected normal set commands
+
+Use the retained post-capability normal ledger to frame and submit one
+caller-owned no-reply set command over the existing bounded PIO HIF. A
+failed or uncertain transfer poisons the session; a successful return
+means submission only. Payload provenance, command order, regulatory
+policy and radio admission stay with the caller.
+---
+ drivers/net/wireless/mediatek/mt6797/hif.c | 42 ++++++++++++++++++++++
+ drivers/net/wireless/mediatek/mt6797/hif.h |  9 +++++
+ 2 files changed, 51 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index b520b2b..c1a5e7c 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -449,6 +449,48 @@ unlock:
+ 	return error;
+ }
+ 
++int mt6797_hif_send_config(struct mt6797_hif *hif,
++			   enum mt6797_normal_config_kind kind,
++			   unsigned int sequence, const u8 *payload,
++			   size_t payload_bytes, u64 deadline_ns)
++{
++	struct mt6797_hif_pio_result transfer;
++	struct mt6797_hif_command command;
++	int error;
++
++	if (!hif || !payload || sequence > 255)
++		return -EINVAL;
++	if (!mutex_trylock(&hif->mutex))
++		return -EBUSY;
++	if (!hif->firmware_ready || !hif->capability_complete ||
++	    hif->transaction->phase != MT6797_INIT_IDLE ||
++	    hif->normal.phase != MT6797_NORMAL_CAP_RECEIVED) {
++		error = -EIO;
++		goto unlock;
++	}
++	error = mt6797_hif_enter(hif, deadline_ns);
++	if (error)
++		goto out;
++	error = mt6797_normal_prepare_config(&hif->normal, kind, sequence,
++					     payload, payload_bytes,
++					     hif->scratch, sizeof(hif->scratch),
++					     &command);
++	if (error)
++		goto out;
++	error = mt6797_hif_pio_transfer(&hif->io, 0x34, MT6797_HIF_WRITE,
++					hif->scratch, 8 + payload_bytes,
++					sizeof(hif->scratch), &transfer);
++	error = mt6797_normal_submitted(&hif->normal, error);
++	if (!error)
++		error = mt6797_hif_guard(hif);
++out:
++	if (error)
++		error = mt6797_hif_fail(hif, error);
++unlock:
++	mutex_unlock(&hif->mutex);
++	return error;
++}
++
+ /* Read one port-0 packet only when its earlier 89-byte length is unchanged.
+  * Keep all payload bytes private to the HIF scratch buffer.
+  */
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index 38a02de..27e2b50 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -121,4 +121,13 @@ int mt6797_hif_query_capability(struct mt6797_hif *hif, unsigned int sequence,
+ int mt6797_hif_observe_port0(struct mt6797_hif *hif, u64 deadline_ns,
+ 			     struct mt6797_port0_observation *observation);
+ 
++/* Send one selected no-reply configuration command on the retained normal
++ * owner. The caller owns payload provenance, ordering and regulatory policy.
++ * A successful return proves only PIO submission, not firmware application.
++ */
++int mt6797_hif_send_config(struct mt6797_hif *hif,
++			   enum mt6797_normal_config_kind kind,
++			   unsigned int sequence, const u8 *payload,
++			   size_t payload_bytes, u64 deadline_ns);
++
+ #endif
+-- 
+2.54.0 (Apple Git-157)
+
