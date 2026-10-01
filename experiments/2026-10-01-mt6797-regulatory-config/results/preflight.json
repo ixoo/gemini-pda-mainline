@@ -1,0 +1,33 @@
+{
+  "status": "focused-host-validation-pass",
+  "kernel_version": "7.1.3",
+  "source_retrieval_profile": "mt6797-a53-wifi-first-normal-set",
+  "source_parent_files_sha256": {
+    "drivers/net/wireless/mediatek/mt6797/normal_command.h": "1a22158b89b03edb306509cd83d31cebcd90d1a48a79cd99c62f099120c6745d",
+    "drivers/net/wireless/mediatek/mt6797/hif.c": "e74790844a47a3ee0188ce5fa93a2eb40d733387306d6d4a1ddbe6d9f9a67b29",
+    "drivers/net/wireless/mediatek/mt6797/hif.h": "8df7e2e4aa44d69e8a4410c0383b68ad55891e6914d3b99f53a454ccc2904be3",
+    "drivers/net/wireless/mediatek/mt6797/Makefile": "b2b1260ceea0088e75a76f5765033fcf91a2b973178294d861ad37f23e5f2980",
+    "drivers/net/wireless/mediatek/mt6797/Kconfig": "0c1b0f52167b439f632930cfdfda8a554f0f9b00e64f3561587ffd634bd95280",
+    "drivers/soc/mediatek/mt6797-consys.c": "5d8a8e4bed5d5113a257b1c20f19162f3421b3a53740945fa9c5dd77547e3260"
+  },
+  "caller_parent": "0065, by exact reversal of the retrieved 0066 caller",
+  "patches_sha256": {
+    "patches/proposals/0067-wifi-mediatek-submit-record-and-regulatory-power.patch": "74c6a9097e981f97b0dff7577961cab5ad2311a10f7bb242b717d95aa26f3615",
+    "patches/proposals/0068-wifi-mediatek-own-config-through-cfg80211.patch": "260427821291b3e429b786bc9e149788cc4199bdb2c4135634b32af7620da96c",
+    "patches/proposals/0069-soc-mediatek-retain-wlan-regulatory-owner.patch": "4a2d592d23c7295f413a2d65fa1534b5fc31b9227800b37f7dab5f45ae0bac21"
+  },
+  "patch_hunks_unchanged_by_authorship_correction": true,
+  "test": "tests/regulatory-test.c",
+  "test_result": "pass, -std=c11 -Wall -Wextra -Werror",
+  "checkpatch": {
+    "errors": 0,
+    "warnings": 1,
+    "checks": 0,
+    "warning": "new files: MAINTAINERS inquiry; no upstream owner entry yet"
+  },
+  "repository_checks": "pass, including 254-profile canonical-order audit",
+  "device_action": "none",
+  "kernel_build": "corrected clean Buildbox build passed",
+  "transport_test": "pass: real hif.c, record/domain/control sequence, block padding and 268 injected write failures",
+  "host_sanitizers": "address,undefined; no recovery"
+}

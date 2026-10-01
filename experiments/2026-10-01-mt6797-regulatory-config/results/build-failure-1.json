@@ -1,0 +1,8 @@
+{
+  "status": "compile-failed-no-package",
+  "repository_commit": "8580137fa396b2fbc640de445bc7f3bb7b406ab5",
+  "profile": "mt6797-a53-wifi-regulatory-config",
+  "failure": "mac80211 config callback missing radio_idx argument",
+  "repair_commit": "23e9fd2bf773f56d752ab49e08bf24d29edbc874",
+  "device_action": "none"
+}

@@ -1,10 +1,11 @@
 # MT6797 regulatory configuration
 
 The [first normal set](../2026-10-01-mt6797-first-normal-set/README.md)
-completed a bounded PIO submission on hardware. This successor currently has
-host validation only. The first Buildbox compile caught the new radio-index
-argument in mac80211’s config callback; the corrected build is pending.
-There is no device result yet.
+completed a bounded PIO submission on hardware. The successor’s
+[host checks](results/preflight.json), [corrected clean Buildbox build](results/build.json)
+and [offline candidate](results/candidate.json) passed. The
+[first compile failure](results/build-failure-1.json) was a missing radio-index
+callback argument, now corrected. There is no device result yet.
 
 Patches 0067–0069 register a real mac80211 wiphy with channels 1–13, 20 MHz,
 legacy rates and a conservative 20 dBm driver ceiling. Effective cfg80211
@@ -53,13 +54,34 @@ headers. It covers world/US tags, NO_IR, gaps, disabled channels, signed power,
 slot/range refusal with zero output, exact record/control lengths, retained
 post-record phase/credits/history, transport failure and record replay refusal.
 Compile using `cc -std=c11 -Wall -Wextra -Werror -I <prepared-source>/drivers/net/wireless/mediatek/mt6797 tests/regulatory-test.c`.
-It uses no physical controller. Checkpatch has zero errors and style checks;
+The separate `tests/regulatory-hif-test.c` includes actual `hif.c`, reuses the
+prior test compatibility header and checks the 1024-byte record transfer’s
+zero padding plus retained state and credit accounting. All 268 setup/data
+write fault positions close the session without a refund or retry. Both tests
+use no physical controller. Checkpatch has zero errors and style checks;
 its new-file MAINTAINERS warning remains because this experimental directory
 has no upstream maintainer entry.
 
-A future device protocol must pin the built candidate, admit one WMT/START
-sequence, preserve the full private log, inspect effective wiphy channels
-without creating an interface, and use reviewed recovery. Configuration
+The one-boot protocol tests whether the supported configuration can follow
+START/capability and leave a registered CONSYS-owned wiphy without a kernel or
+transport fault. Its unique observations are the configuration status in the
+complete private log and one identity-checked read-only sysfs wiphy query.
+No channel-detail query tool is present in this RAM root; effective restriction
+encoding is established by source/host tests, not claimed as runtime channel
+or RF measurement. Budget: one WMT, one START, one capability query, up to eight
+boot-debug packets, one record acquisition, up to eight initialization sets,
+and the same finite normal TC4 ledger with 25 remaining pages and no refill.
+Only domain/power notifier updates may use any remaining credits. Configuration
+may change firmware-owned power/feature settings; it does not write the stored
+record, partitions or calibration storage. No interface, scan or explicit RF
+request is issued.
+
+The RAM root differs only in its release gate; the board DT, firmware and exact
+private record remain unchanged. The candidate must pass guarded live-GPT boot2
+installation, complete padded readback and clean shutdown. Physical boot2
+selection belongs to the owner. Preserve the private log and wiphy query before
+reviewed recovery, then verify the changed Gemian boot and known WLAN carrier.
+No timeout permits an identical retry. Configuration
 submission success would justify packet/event implementation; an error or
 unexpected effect stops the candidate. Neither branch demonstrates usable
 Wi-Fi, association, traffic or calibration accuracy.
