@@ -1,0 +1,25 @@
+{
+  "repository_commit": "dd0fc9d6e71f19874ce584afe7a25f71ff8dcfc2",
+  "repository_clean_and_pushed": true,
+  "backend": "buildbox",
+  "kernel_release": "7.1.3-gemini-a53-wifi-record-provider",
+  "profile": "mt6797-a53-wifi-record-provider",
+  "source_sha256": "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc",
+  "patch_series": "patches/series-a53-wifi-record-provider",
+  "patch_count": 570,
+  "patchset_sha256": "8722b1276d86bd60deea12e9e2bb63f937c57008199f38f50671e20255320ee8",
+  "config_sha256": "75aa42338fd1ae29ca9c42d54475bc46b160c872fc022f4ac76a5885ed8288bc",
+  "image_gzip_sha256": "e753a46822d5f4635058f80b178229844261ba45a5c73d3cbd040809511744f9",
+  "package_inventory_sha256": "a98d4a8dc1e8129714891e92d95b7e4886e938a10c8674fb916220be93cf0446",
+  "package_fetched_and_validated": true,
+  "configuration": "CONFIG_MT6797_HIF_CORE=y, CONFIG_CFG80211=y, CONFIG_MAC80211=y",
+  "linked_symbols": [
+    "mt6797_wifi_record_prepare",
+    "mt6797_wifi_record_data",
+    "mt6797_wifi_record_commands",
+    "mt6797_wifi_record_release"
+  ],
+  "result": "arm64 Image.gz and DTB build passed; package validation passed",
+  "device_test": "not run: provider has no caller and the profile does not admit radio or calibration commands",
+  "wifi_working": false
+}
