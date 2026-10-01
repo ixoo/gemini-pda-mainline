@@ -1,0 +1,165 @@
+From 47cd1d6d509be552f9348f376f3dd23fe7dda12f Mon Sep 17 00:00:00 2001
+From: Codex native diagnostic <noreply@native-diagnostic.invalid>
+Date: Thu, 1 Oct 2026 08:55:11 -0400
+Subject: [PATCH] wifi: read one bounded PIO receive packet
+
+Read one queued port-0 or port-1 packet with the selected PIO
+transfer path. Check the reported length against the pinned receive
+bound before consuming the FIFO, keep incomplete bytes in private
+scratch storage, and copy the logical packet only after a complete read
+and post-read register check. A malformed or partial transfer poisons
+the session; empty queues and short caller buffers remain non-consuming
+refusals.
+---
+ drivers/net/wireless/mediatek/mt6797/hif.c | 85 ++++++++++++++++++++++
+ drivers/net/wireless/mediatek/mt6797/hif.h | 22 ++++++
+ 2 files changed, 107 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index c1a5e7c..7b64b3c 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -1,6 +1,7 @@
+ // SPDX-License-Identifier: GPL-2.0-only
+ #ifdef MT6797_HIF_HOST_TEST
+ #include "test-compat.h"
++#include <string.h>
+ #else
+ #include <linux/align.h>
+ #include <linux/delay.h>
+@@ -8,6 +9,7 @@
+ #include <linux/ktime.h>
+ #include <linux/mutex.h>
+ #include <linux/slab.h>
++#include <linux/string.h>
+ #endif
+ #include "hif.h"
+ 
+@@ -572,3 +574,86 @@ unlock:
+ 	mutex_unlock(&hif->mutex);
+ 	return error;
+ }
++
++/* The selected gen3 host also permits the data ports through PIO. Keep the
++ * full packet private to the caller; a parsed header alone is insufficient
++ * for later event or mac80211 delivery.
++ */
++int mt6797_hif_receive_packet(struct mt6797_hif *hif, unsigned int port,
++			      u64 deadline_ns, u8 *buffer, size_t capacity,
++			      struct mt6797_hif_rx_result *result)
++{
++	struct mt6797_hif_pio_result transfer = {0};
++	u32 lengths;
++	unsigned int logical;
++	int error;
++
++	if (!result)
++		return -EINVAL;
++	*result = (struct mt6797_hif_rx_result){0};
++	if (!hif || !buffer || port > 1)
++		return -EINVAL;
++	if (!mutex_trylock(&hif->mutex))
++		return -EBUSY;
++	if (!hif->firmware_ready || !hif->capability_complete ||
++	    hif->transaction->phase != MT6797_INIT_IDLE ||
++	    (hif->normal.phase != MT6797_NORMAL_CAP_RECEIVED &&
++	     hif->normal.phase != MT6797_NORMAL_NVRAM_SUBMITTED)) {
++		error = -EIO;
++		goto unlock;
++	}
++	error = mt6797_hif_enter(hif, deadline_ns);
++	if (error)
++		goto poison;
++	error = mt6797_hif_read32_locked(hif, 0x90, &lengths);
++	if (error)
++		goto poison;
++	result->pre_valid = true;
++	result->pre_wrplr = lengths;
++	logical = port ? lengths >> 16 : lengths & 0xffffU;
++	if (!logical) {
++		error = -EAGAIN;
++		goto unlock;
++	}
++	if (logical < 4 || logical > MT6797_HIF_RX_MAX_PACKET) {
++		error = -EPROTO;
++		goto poison;
++	}
++	if (capacity < logical) {
++		error = -ENOSPC;
++		goto unlock;
++	}
++	/* The selected RX path stages four extra bytes. The PIO encoder rounds
++	 * to its block transfer span, bounded by the 2560-byte scratch buffer.
++	 */
++	error = mt6797_hif_pio_transfer(&hif->io, port ? 0x54 : 0x50,
++					MT6797_HIF_READ, hif->scratch,
++					logical + 4U, sizeof(hif->scratch),
++					&transfer);
++	result->rx_setup = transfer.setup_submitted;
++	result->rx_complete = transfer.transfer_complete;
++	result->staging_bytes = transfer.data_bytes;
++	if (error)
++		goto poison;
++	error = mt6797_hif_guard(hif);
++	if (error)
++		goto poison;
++	if (mt6797_normal_le16(hif->scratch) != logical) {
++		error = -EPROTO;
++		goto poison;
++	}
++	error = mt6797_hif_read32_locked(hif, 0x90, &lengths);
++	if (error)
++		goto poison;
++	result->post_valid = true;
++	result->post_wrplr = lengths;
++	result->packet_type = mt6797_normal_le16(hif->scratch + 2);
++	memcpy(buffer, hif->scratch, logical);
++	result->logical_bytes = logical;
++	goto unlock;
++poison:
++	error = mt6797_hif_fail(hif, error);
++unlock:
++	mutex_unlock(&hif->mutex);
++	return error;
++}
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index 27e2b50..79cce93 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -64,6 +64,18 @@ struct mt6797_port0_observation {
+ 	bool pre_valid, post_valid, rx_setup, rx_complete, header_valid;
+ };
+ 
++/* Pinned CFG_RX_MAX_PKT_SIZE = 28 + 2312 + 12. The extra four-byte read
++ * and block rounding fit the retained 2560-byte HIF scratch buffer.
++ */
++#define MT6797_HIF_RX_MAX_PACKET 2352U
++
++struct mt6797_hif_rx_result {
++	u32 pre_wrplr, post_wrplr;
++	size_t staging_bytes, logical_bytes;
++	unsigned int packet_type;
++	bool pre_valid, rx_setup, rx_complete, post_valid;
++};
++
+ /* Allocation owns memory only. Caller retains the real powered mapping,
+  * transaction, exclusive driver ownership, IRQ quiescence and reset exclusion
+  * through all calls. No ownership acquisition, INIT seeding or reset occurs.
+@@ -130,4 +142,14 @@ int mt6797_hif_send_config(struct mt6797_hif *hif,
+ 			   unsigned int sequence, const u8 *payload,
+ 			   size_t payload_bytes, u64 deadline_ns);
+ 
++/* Read one complete queued port-0 or port-1 packet through the exclusive
++ * PIO owner. A zero WRPLR length returns -EAGAIN without consumption. Output
++ * bytes are unchanged unless the full packet and post-read WRPLR succeed.
++ * A partial bus read or malformed packet poisons this firmware session.
++ * The caller owns event/data decoding and never treats this as radio approval.
++ */
++int mt6797_hif_receive_packet(struct mt6797_hif *hif, unsigned int port,
++			      u64 deadline_ns, u8 *buffer, size_t capacity,
++			      struct mt6797_hif_rx_result *result);
++
+ #endif
+-- 
+2.54.0 (Apple Git-157)
+

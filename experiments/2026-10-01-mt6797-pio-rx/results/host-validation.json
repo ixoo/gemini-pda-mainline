@@ -1,0 +1,15 @@
+{
+  "profile": "mt6797-a53-wifi-pio-rx",
+  "patch": "proposals/0062-wifi-mediatek-read-one-bounded-PIO-packet.patch",
+  "patch_sha256": "7ba57b7a74588012a9eea8e7845cb78123414b333f790c5bec326ab62b60f742",
+  "selected_predecessor": "mt6797-a53-wifi-record-provider",
+  "selected_source_git_apply_check": "pass",
+  "linux_checkpatch": "7.1.3 --no-tree --no-signoff: 0 errors, 0 warnings, 0 checks",
+  "host_compiler": "clang C11 -Wall -Wextra -Werror -fsanitize=address,undefined -fno-sanitize-recover=all",
+  "host_test": "pass: bounded PIO RX, synthetic mocked HIF, both ports, 4 and 2352-byte bounds, empty and capacity refusals, malformed lengths, 26 bus fault points",
+  "host_test_sha256": "6a39c08aec9fa459f28bafdc4e6135830108b2a3922461d95d5d2c8881f1fec6",
+  "source_backend": "prepared pinned Linux 7.1.3 on Buildbox",
+  "buildbox_compile": "pending clean pushed checkout",
+  "device_action": "none",
+  "wifi_support": "not demonstrated"
+}

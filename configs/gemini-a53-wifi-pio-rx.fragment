@@ -1,0 +1,2 @@
+# Read one bounded PIO packet; no caller, firmware command or RF action.
+CONFIG_LOCALVERSION="-gemini-a53-wifi-pio-rx"

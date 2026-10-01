@@ -1,0 +1,7 @@
+# Bounded PIO receive packet
+
+[Patch 0062](../../patches/proposals/0062-wifi-mediatek-read-one-bounded-PIO-packet.patch) adds one packet read on the retained, exclusive HIF owner. It reads the selected port's WRPLR length, refuses an empty queue or insufficient caller capacity without consuming it, and bounds the logical packet to the pinned 2,352-byte receive maximum. The gen3 extra-four-byte read and block padding fit the existing 2,560-byte scratch buffer. A complete post-read WRPLR access is required before any packet bytes reach the caller. Partial I/O and malformed length headers poison the session.
+
+The pinned vendor HIF has a PIO fallback for data ports when DMA is disabled. This function uses the already selected PIO encoder and does not enable AP-DMA. Its four-byte common header check is transport validation; event, management and data decoding remain the caller's responsibility. The function has no caller in this profile, so it performs no packet read, firmware command or radio action on a device. A compile cannot demonstrate Wi-Fi support.
+
+The [host result](results/host-validation.json) covers both ports, empty and short-buffer refusals, minimum and maximum packet sizes, malformed lengths, and injected failures at each bus access of an 80-byte read. It uses synthetic bytes and mocked register access. The profile changes only the local version and appends the one logical patch after the [record-provider profile](../2026-10-01-mt6797-record-provider/README.md); its kernel build result is recorded separately.
