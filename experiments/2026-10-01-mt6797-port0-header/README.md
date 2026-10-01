@@ -44,6 +44,18 @@ In every branch, preserve private evidence and return through the reviewed
 Gemian recovery path. This image is not to be repeated without a
 new decision-changing measurement.
 
-Build, candidate and device result: pending. A host test is not hardware
-support. The preceding boot returned to authenticated Gemian with its Wi-Fi
-carrier intact.
+The clean pushed input commit `a26d68dcf2489f807a765277800d53f7c1d8bac9`
+built on Buildbox as profile `mt6797-a53-wifi-port0-header`, release
+`7.1.3-gemini-a53-wifi-port0-header`. The validated package inventory is
+SHA-256 `329ee08938421543c5baf84d0b5520f6ea25f64be3b79bd0f369e67ad47b25f3`.
+The private 52-member RAM root changed only `/init`'s release gate; retained
+firmware remained hash-identical. The assembled board DT matches the
+previously booted candidate at SHA-256
+`cef9373ea3aa0e1a8a45a13b953ae95e48939b211e41a73052543be784ee3214`.
+The [sanitized candidate receipt](results/candidate.json) pins the exact
+16 MiB boot2 checksum
+`fa7dc1a6a96f7b2e8c7e875271882b27f7e73148508a0ae4ae2880e32802165d`.
+[Build details](results/build.json) preserve the package and candidate
+identities. Installation and device result are pending. A build is not
+hardware support; the preceding boot returned to authenticated Gemian with
+its Wi-Fi carrier intact.
