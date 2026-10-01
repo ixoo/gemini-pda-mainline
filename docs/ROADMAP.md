@@ -366,6 +366,13 @@ for the first Wi-Fi bring-up. The current preparation order is:
    non-default RF bytes as a universal bring-up prerequisite. Keep ordinary
    section submission distinct from firmware execution; missing EMI ownership
    must not become a success flag or skipped section.
+   The [first normal-set boot](../experiments/2026-10-01-mt6797-first-normal-set/results/runtime-1.json)
+   now proves one source-ordered base-power PIO submission after capability,
+   bounded debug drain and private-record preparation. Complete the ordered
+   configuration under cfg80211 regulatory ownership and the event/data
+   lifetime, then demonstrate a standard station interface, scan, association
+   and bounded traffic. Submission status alone does not prove firmware
+   application. The consumed one-shot candidate is not a repeat test.
    Use the [Wi-Fi contract](hardware/mt6797-wifi.md) and existing private captures.
    Host fixtures and compile-only adapters do not establish usable Wi-Fi. The
    build-selected detector ioctl is the established kernel-side producer of
