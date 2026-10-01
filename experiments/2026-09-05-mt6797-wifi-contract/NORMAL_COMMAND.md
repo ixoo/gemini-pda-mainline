@@ -26,6 +26,27 @@ All source references below use Planet
 | Capability reply | `nic_cmd_event.h:307–315,496–516`: eight-byte event header plus 116-byte capability body, event ID 1, packet type `0xe000`. No response-status byte is defined. |
 | Reply port/staging | `wlan_lib.c:3775–3789`, `nic_rx.c:3635–3708`: port 1, WRPLR high half. Selected extra-four-byte read stages **128 bytes**, preserving logical length 124. Proper HIF logical-register access is required; this helper accepts the supplied port-1 length, not a raw MMIO mapping. |
 
+A source-bound upper bound is useful for the next owner. With pinned
+`config.h` selecting NVRAM-5G and country power limits but not FCC-adjust or
+RDD test mode, `wlanLoadManufactureData` can queue at most eight conditional
+power/offset commands, two 56-byte domain commands, one country power-limit
+command and the 512-byte record. The conditional commands and domain commands
+each cost one TC4 page. [Pinned `rlm_domain.h`](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/include/mgmt/rlm_domain.h#L315)
+(SHA-256 `b0d57b3bcc6a071592b138a868ed6892c1272914327fd2dd45dc624a3f3eb4ec`)
+caps power-limit entries at 64; its `16 + 8 * 64`-byte payload plus the
+eight-byte command header costs at most
+five pages. The record costs five, and the earlier capability query costs one:
+**at most 21 of the default 26 normal TC4 pages** for this selected sequence.
+This is an inference from the pinned structures and call sites, conditional on
+a fresh, exclusive 26-page normal ledger and no other commands. It is not a
+measured live credit count. A single bounded initialization therefore need not
+invent a release-counter replenishment path, but the real owner must retain the
+ledger and sequence history across all submissions. The current helper accepts
+only capability and NVRAM and cannot yet issue the intervening commands.
+[The ordered domain commands](CALIBRATION_APPLICABILITY.md#exact-selected-host-branches)
+also need a cfg80211-derived regulatory owner before RF use; the vendor's
+fallback tables cannot supply one.
+
 Both normal constructors use the adapter's `nicIncreaseCmdSeqNum`, shared with
 INIT. The helper accepts a caller-owned 32-byte sequence-use bitmap without
 clearing it; INIT and other users must retain/share the same session history
