@@ -1,0 +1,155 @@
+From 35cae33dd426d1d9c8b60f4dbf7492eb33fe0fc7 Mon Sep 17 00:00:00 2001
+From: Codex <codex@native-diagnostic.invalid>
+Date: Thu, 1 Oct 2026 16:20:15 -0400
+Subject: [PATCH] soc: mediatek: drain bounded MT6797 boot debug events
+
+The selected Gemini boot emits two debug events after the normal
+capability response. Consume only the known event class under one
+deadline and stop on an unknown or port-1 packet before normal
+configuration can be attempted. Log metadata only; keep firmware
+event bodies private.
+---
+ drivers/soc/mediatek/mt6797-consys.c | 99 ++++++++++++++++------------
+ 1 file changed, 58 insertions(+), 41 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index a85b603..e389bdf 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -22,6 +22,7 @@
+ #include <linux/regulator/consumer.h>
+ #include <linux/reset.h>
+ #include <linux/sizes.h>
++#include <linux/slab.h>
+ #include <linux/string.h>
+ #include <linux/sysfs.h>
+ #include <linux/soc/mediatek/mtk-pm-domains.h>
+@@ -51,6 +52,8 @@
+ #define MT6797_HIF_DRIVER_OWN	BIT(8)
+ #define MT6797_HIF_DRIVER_OWN_REQUEST	BIT(9)
+ #define MT6797_HIF_WLAN_READY	BIT(21)
++#define MT6797_BOOT_DEBUG_MAX	8U
++#define MT6797_BOOT_DEBUG_EVENT	0x27U
+ #define MT6797_EMI_MPU_READ	0x82000208
+ #define MT6797_EMI_MPU_SET	0x82000209
+ #define MT6797_EMI_REGION18	18U
+@@ -744,6 +747,56 @@ static void mt6797_consys_hif_f1_write(struct mt6797_consys *owner,
+ 	writel(value, owner->hif + MT6797_HIF_CMD53_DATA);
+ }
+ 
++/* The selected firmware queues debug events ahead of normal configuration.
++ * The pinned gen3 handler only prints their bodies. Consume only that known
++ * event class; an unknown packet stops this one-shot session.
++ */
++static int mt6797_consys_drain_boot_debug(struct device *dev,
++					   struct mt6797_consys *owner)
++{
++	struct mt6797_hif_rx_result rx;
++	u64 deadline = ktime_get_ns() + NSEC_PER_SEC;
++	u8 *packet;
++	u32 last = 0;
++	unsigned int count = 0;
++	int ret = -E2BIG;
++
++	packet = kmalloc(MT6797_HIF_RX_MAX_PACKET, GFP_KERNEL);
++	if (!packet)
++		return -ENOMEM;
++	while (count < MT6797_BOOT_DEBUG_MAX) {
++		ret = mt6797_hif_receive_packet(owner->fw_hif, 0, deadline,
++						packet, MT6797_HIF_RX_MAX_PACKET,
++						&rx);
++		if (ret == -EAGAIN) {
++			last = rx.pre_wrplr;
++			ret = last >> 16 ? -EBUSY : 0;
++			break;
++		}
++		if (ret)
++			break;
++		last = rx.post_wrplr;
++		if (rx.logical_bytes < 8 || rx.packet_type != 0xe000 ||
++		    packet[4] != MT6797_BOOT_DEBUG_EVENT) {
++			ret = -EPROTO;
++			break;
++		}
++		count++;
++		if (!last)
++			break;
++		if (last >> 16) {
++			ret = -EBUSY;
++			break;
++		}
++	}
++	if (!ret && count == MT6797_BOOT_DEBUG_MAX && last)
++		ret = -E2BIG;
++	dev_info(dev, "one-shot WLAN boot debug drain: status=%d count=%u post=0x%08x\n",
++		 ret, count, last);
++	kfree_sensitive(packet);
++	return ret;
++}
++
+ /* No IRQ consumer or competing HIF driver is registered in this one-shot boot. */
+ static void mt6797_consys_probe_firmware_start(struct device *dev,
+ 					       struct mt6797_consys *owner)
+@@ -754,7 +807,6 @@ static void mt6797_consys_probe_firmware_start(struct device *dev,
+ 	struct mt6797_wlan_ordinary_result ordinary = {};
+ 	struct mt6797_normal_capability capability;
+ 	struct mt6797_capability_trace cap_trace;
+-	struct mt6797_port0_observation port0;
+ 	u64 deadline;
+ 	u32 whlpcr, wrplr, wcir = 0;
+ 	unsigned int i;
+@@ -877,46 +929,11 @@ static void mt6797_consys_probe_firmware_start(struct device *dev,
+ 			 capability.firmware_peer, capability.hw_5g_disabled,
+ 			 capability.eeprom_used, capability.rf_cal_fail,
+ 			 capability.bb_cal_fail);
+-	if (ret || !cap_trace.post_valid ||
+-	    (cap_trace.post_wrplr & 0xffffU) != 89U)
+-		return;
+-	ret = mt6797_hif_observe_port0(owner->fw_hif,
+-					  ktime_get_ns() + NSEC_PER_SEC, &port0);
+-	dev_info(dev,
+-		 "one-shot WLAN port0: status=%d pre_valid=%d pre=0x%08x rx_setup=%d rx_complete=%d rx_bytes=%zu header_valid=%d length=%u type=0x%04x kind=%u post_valid=%d post=0x%08x\n",
+-		 ret, port0.pre_valid, port0.pre_wrplr, port0.rx_setup,
+-		 port0.rx_complete, port0.rx_bytes, port0.header_valid,
+-		 port0.length, port0.packet_type, (unsigned int)port0.kind,
+-		 port0.post_valid, port0.post_wrplr);
+-	if (port0.kind == MT6797_PORT0_EVENT)
+-		dev_info(dev, "one-shot WLAN port0 event: id=%u seq=%u\n",
+-			 (unsigned int)port0.event_id,
+-			 (unsigned int)port0.event_sequence);
+-	/* The previous complete boot left exactly 80 bytes queued on port 0.
+-	 * Read that one successor only if this boot reproduces the same state.
+-	 */
+-	if (!ret && port0.post_valid && port0.post_wrplr == 80U) {
+-		struct mt6797_hif_rx_result next = {};
+-		u8 packet[80] = {};
+-		int next_ret;
+-
+-		next_ret = mt6797_hif_receive_packet(owner->fw_hif, 0,
+-					ktime_get_ns() + NSEC_PER_SEC,
+-					packet, sizeof(packet), &next);
+-		dev_info(dev,
+-			 "one-shot WLAN port0 successor: status=%d pre_valid=%d pre=0x%08x rx_setup=%d rx_complete=%d bytes=%zu post_valid=%d post=0x%08x len=%zu type=0x%04x\n",
+-			 next_ret, next.pre_valid, next.pre_wrplr,
+-			 next.rx_setup, next.rx_complete, next.staging_bytes,
+-			 next.post_valid, next.post_wrplr, next.logical_bytes,
+-			 next.packet_type);
+-		if (!next_ret && next.logical_bytes >= 6 &&
+-		    next.packet_type == 0xe000)
+-			dev_info(dev,
+-				 "one-shot WLAN port0 successor event: id=%u seq=%u\n",
+-				 (unsigned int)packet[4],
+-				 (unsigned int)packet[5]);
+-		memzero_explicit(packet, sizeof(packet));
+-	}
++	if (ret)
++		goto stopped;
++	ret = mt6797_consys_drain_boot_debug(dev, owner);
++	if (ret)
++		goto stopped;
+ 	return;
+ 
+ stopped:
+-- 
+2.54.0 (Apple Git-157)
+

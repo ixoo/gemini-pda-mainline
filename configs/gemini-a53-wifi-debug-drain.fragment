@@ -1,0 +1,2 @@
+# Bounded post-capability debug-event drain; no RF or DMA.
+CONFIG_LOCALVERSION="-gemini-a53-wifi-debug-drain"

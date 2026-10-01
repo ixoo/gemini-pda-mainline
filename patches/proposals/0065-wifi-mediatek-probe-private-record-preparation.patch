@@ -1,0 +1,50 @@
+From 8920b8c86a915ed70cc76e2aa68f98ea6f47588b Mon Sep 17 00:00:00 2001
+From: Codex <codex@native-diagnostic.invalid>
+Date: Thu, 1 Oct 2026 16:24:05 -0400
+Subject: [PATCH] soc: mediatek: test private MT6797 record preparation after
+ boot
+
+After the bounded debug queue is empty, ask the existing record provider
+to parse the local WIFI.storage file. Report only the result and release
+the record without sending a configuration command. This tests the
+provider's live firmware-class lookup and admission path before any
+calibration or radio action.
+---
+ drivers/soc/mediatek/mt6797-consys.c | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index e389bdf..f1ebf3d 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -30,6 +30,7 @@
+ 
+ #include "../../net/wireless/mediatek/mt6797/firmware-prepare.h"
+ #include "../../net/wireless/mediatek/mt6797/hif.h"
++#include "../../net/wireless/mediatek/mt6797/record-prepare.h"
+ 
+ #define MT6797_CONSYS_REMAP_REG	0x10001340
+ #define MT6797_CONSYS_SLEEP_MASK_REG	0x10001350
+@@ -801,6 +802,7 @@ static int mt6797_consys_drain_boot_debug(struct device *dev,
+ static void mt6797_consys_probe_firmware_start(struct device *dev,
+ 					       struct mt6797_consys *owner)
+ {
++	struct mt6797_wifi_record *record = NULL;
+ 	static const u8 start[16] = {
+ 		16, 0, 0, 0x80, 2, 0xa0, 0, 3,
+ 	};
+@@ -932,6 +934,11 @@ static void mt6797_consys_probe_firmware_start(struct device *dev,
+ 	if (ret)
+ 		goto stopped;
+ 	ret = mt6797_consys_drain_boot_debug(dev, owner);
++	if (ret)
++		goto stopped;
++	ret = mt6797_wifi_record_prepare(dev, &record);
++	dev_info(dev, "one-shot WLAN private record prepare: status=%d\n", ret);
++	mt6797_wifi_record_release(record);
+ 	if (ret)
+ 		goto stopped;
+ 	return;
+-- 
+2.54.0 (Apple Git-157)
+
