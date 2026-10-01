@@ -56,6 +56,22 @@ The [sanitized candidate receipt](results/candidate.json) pins the exact
 16 MiB boot2 checksum
 `fa7dc1a6a96f7b2e8c7e875271882b27f7e73148508a0ae4ae2880e32802165d`.
 [Build details](results/build.json) preserve the package and candidate
-identities. Installation and device result are pending. A build is not
-hardware support; the preceding boot returned to authenticated Gemian with
-its Wi-Fi carrier intact.
+identities. A build is not hardware support.
+
+The guarded boot2 installer ran from authenticated Gemian boot
+`19fbba30-27a4-4689-8252-8c0ab8d5ca70`, with Wi-Fi carrier 1. It resolved
+logical boot2 to p30, separate from root p29, checked stable power and the
+previous full checksum `503126de747a15bc922d845dd4cfe6709eb6ba30ea5b150b62d051b9b6a20f39`.
+It wrote, synced, flushed and matched the new full readback, then shut down
+cleanly. The [sanitized watch receipt](results/watch-1.json) pins the private
+deployment and USB-event evidence.
+
+The 900-second watch was armed before the physical handoff. It observed
+preloader activity and then MediaTek `20ff`, which remained through expiry.
+No mainline USB gadget route or device SSH attempt occurred; the known-good
+Gemian LAN endpoint also timed out. Physical boot2 selection and screen state
+remain unconfirmed. There is no mainline boot ID, kernel log, port-0 header,
+A53 regression or verified Gemian return for this attempt. The verified image
+remains installed; `20ff` alone does not establish a kernel failure or even a
+live boot. Do not repeat an identical watch without a decision-changing
+physical observation.
