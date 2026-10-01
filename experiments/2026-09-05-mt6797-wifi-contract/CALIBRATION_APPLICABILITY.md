@@ -82,9 +82,12 @@ question, not a reason to infer an uncalibrated device.
 The runtime NIC capability event supplies firmware/product version, hardware
 5GHz-disable state and RF/BB calibration-failure fields; `wlan_lib.c:3793–3821`
 records versions and logs the latter when `CFG_ENABLE_CAL_LOG=1` (selected at
-`config.h:223`). Such a response has not been attributed for this exact retained
-record/firmware pair by this task. MTKE container major/minor fields are not a
-substitute for those capability fields. No new query is requested or performed.
+`config.h:223`). A later [bounded mainline query](../2026-09-30-mt6797-capability-port0/results/runtime-1.json)
+returned product `0x6797`, firmware own `0x0403`, firmware peer `0x0000`,
+and zero in those four reported flags. The retained WIFI record was not
+submitted in that boot, so the response does not establish record/firmware
+application or calibration success. MTKE container major/minor fields are
+not a substitute for these runtime capability fields.
 
 The optional override and full-record submissions request no reply in this
 source. That is a protocol property, not proof that loading cannot work and not
