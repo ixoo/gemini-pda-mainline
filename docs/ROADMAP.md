@@ -375,10 +375,16 @@ for the first Wi-Fi bring-up. The current preparation order is:
    now admits its exact layout, retains driver ownership, completes configuration
    and witnesses consumable post-configuration TC4/free-pool counters. The [TC4 successor](../experiments/2026-10-01-mt6797-tc4-reconcile/results/runtime-1.json)
    now demonstrates bounded matched credit return and retained pending counts
-   for that pair. Implement runtime receive/event ownership, ongoing credit
-   recycling and the packet lifetime,
-   then demonstrate a standard station
-   interface, scan, association and bounded traffic. Submission status alone
+   for that pair. The [passive-scan successor](../experiments/2026-10-01-mt6797-passive-scan/results/runtime-4.json)
+   now creates a standard station-type interface, completes one firmware scan
+   through iw and witnesses runtime credit return, but receives no BSS result.
+   Its 2.4 GHz-only advertisement omits the band used by the [known-good
+   connection](../experiments/2026-10-01-mt6797-passive-scan/results/band-context-4.json).
+   Extend the source-derived channel/domain/power and receive validation to
+   supported non-DFS 5 GHz, retain ordinary userspace compatibility, and
+   establish management reception. Continue runtime receive/event ownership,
+   credit recycling and packet lifetime toward association and bounded traffic.
+   Submission status alone
    does not prove firmware application or effective runtime RF restrictions.
    The consumed one-shot candidate is not a repeat test.
    Use the [Wi-Fi contract](hardware/mt6797-wifi.md) and existing private captures.

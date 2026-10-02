@@ -238,4 +238,27 @@ new; never retry within the third firmware lifetime. No firmware scan has yet
 been submitted. The [fourth guarded handoff](results/deployment-4.json) skipped
 the already matching image, independently verified full readback and confirmed
 shutdown. The [fourth preflight](results/preflight-4.json) passed against that
-actual receipt. Await the owner's next physical boot2 selection.
+actual receipt. The [fourth runtime](results/runtime-4.json) admitted exactly
+one passive scan, received its matching 24-byte completion, witnessed runtime
+credit return and completed the standard iw command with exit zero. No
+non-event management packet or BSS result was received. Full log preservation,
+A53 regression and reviewed recovery passed; changed-boot Gemian carrier was
+independently confirmed. The wire lifetime remains retired, with no second
+scan in this firmware session.
+
+The [known-good band context](results/band-context-4.json) records a single
+read-only frequency query: Gemian is connected at 5200 MHz. A separate bounded
+read of its existing cache found one 5 GHz BSS and no 2.4 GHz entries, last seen
+337990 ms earlier. No scan was triggered. This cache does not prove that 2.4 GHz
+APs are absent. It does show that the current 2.4 GHz-only experiment misses
+the band used by the known-good connection. Firmware scan completion is
+established; management reception, association and traffic remain unproved.
+
+The next candidate must extend the cfg80211-derived domain and power policy,
+scan request and receive channel validation to the supported non-DFS 5 GHz
+band before testing that connection's band. Do not diagnose missing RX solely
+from the empty 2.4 GHz result or add an unproved receive-filter command. Also
+accept the ordinary colocated-6GHz hint only when every actual channel remains
+within supported bands; it must not enable 6 GHz, active probes or random MACs.
+The device has returned to Gemian for preparation; no new boot is admitted by
+this completed session.

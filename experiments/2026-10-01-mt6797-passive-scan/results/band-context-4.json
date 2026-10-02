@@ -1,0 +1,16 @@
+{
+  "status": "bounded-read-only-known-good-band-context",
+  "gemian_release": "3.18.41+",
+  "gemian_boot": "5977c0c0-43e4-408e-981f-8c3e2b69f1e9",
+  "carrier_present": true,
+  "frequency_query": "one standard SIOCGIWFREQ read with same-boot guards",
+  "connected_frequency_mhz": 5200,
+  "cache_query": "iw dev wlan0 scan dump under a five-second limit; no scan trigger",
+  "cached_bss_records": 1,
+  "cached_2ghz_bss_records": 0,
+  "cached_5ghz_bss_records": 1,
+  "cached_last_seen_age_ms": 337990,
+  "radio_request_sent": false,
+  "raw_cache_published": false,
+  "limitation": "An old cache entry and no cached 2.4 GHz BSS do not establish the absence of 2.4 GHz APs. The known-good connection itself uses a band not exposed by this experimental wiphy."
+}

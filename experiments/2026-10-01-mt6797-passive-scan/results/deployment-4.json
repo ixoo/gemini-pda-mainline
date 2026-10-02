@@ -15,6 +15,6 @@
   "reboot": "no",
   "next_action": "owner-physically-selects-boot2",
   "private_deployment_receipt_sha256": "01b1be8b0baf78f811e9098d65e3e77ffccb8b2265b84f580798455c181f922a",
-  "device_test": "not-run-awaiting-owner-physical-boot2-selection",
+  "device_test": "completed; see runtime-4.json",
   "partition_write_performed": false
 }
