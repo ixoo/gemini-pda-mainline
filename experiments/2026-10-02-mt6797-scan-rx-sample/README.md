@@ -1,7 +1,8 @@
 # MT6797 early receive statistic samples
 
-Status: Buildbox package, private candidate and offline preflight validated;
-guarded installation and hardware observation remain. No hardware result yet.
+Status: one diagnostic lifetime consumed; all four early samples and the
+ordinary management count were zero, with no host frame or BSS. Changed-boot
+Gemian recovery confirmed.
 This is a measurement toward receive support, not working Wi-Fi.
 
 The [tuning sample](../2026-10-02-mt6797-scan-tuning-sample/results/runtime-1.json)
@@ -96,3 +97,42 @@ RAM-root transform reproduces byte-identical bytes. Full capture/host preparatio
 remains pending actual deployment evidence and private session setup. No fake
 receipt was supplied. The offline installer must be regenerated against fresh
 live Gemian identity before execution.
+
+## Deployment and physical handoff
+
+The [deployment receipt](results/deployment-1.json) records the live-GPT guard,
+exact predecessor, independent full-partition byte comparison and matching
+checksum. Stable power was present; boot2 was separate from the live Gemian root.
+The reviewed installer requested clean shutdown and confirmed LAN unreachability,
+without reboot. Capture and host offline preparation now pass against this actual
+receipt and private authentication, candidate and recovery inputs. Neither START
+nor scan has been consumed.
+
+The owner physically selects boot2 for release
+`7.1.3-gemini-a53-wifi-scan-rx-sample`, boot image
+`1be497945a2b9f01eaaf3632739d16e35741a19c12a8019596a789374718f48f`
+and padded partition
+`4a9499f1861dbc899edb7ebcdf54cf08e8c52a727794870469f13f686397385a`.
+Verify a changed live boot and this release, then use the prepared capture once
+for WMT/START and the prepared host once for the scan, evidence sealing and
+reviewed Gemian recovery. The hypothesis and decision branches above remain the
+pre-boot contract. Installation does not establish receive support.
+
+## Runtime result and next decision
+
+The [single runtime](results/runtime-1.json) completed on the exact candidate.
+Four replies matched before DONE: probe-response/beacon values were both zero
+in both pairs. The ordinary management count was also zero. The scan finished
+after 528683 us with returned credit, no host management frame and no standard
+BSS result. A53 serviceability checks passed. The complete log was sealed before
+one reviewed native recovery; changed-boot Gemian and carrier were confirmed.
+The host exit status was 1 because reception acceptance failed, while diagnostic
+completion and recovery passed.
+
+This does not support the specific alternative of observed early bytes bypassing
+a later ordinary-counter gate. It also does not prove absence of RF reception: byte
+wrap, resets, timing and unresolved earlier dispatch/filtering remain alternatives.
+Inspect the path into the selected receive routine and earlier receive enabling
+using retained firmware and vendor evidence before designing another measurement.
+This boot and scan budget is consumed; do not repeat it. Mainline association
+and traffic remain unproved.

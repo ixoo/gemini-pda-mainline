@@ -402,10 +402,12 @@ for the first Wi-Fi bring-up. The current preparation order is:
    actual passive equivalence unverified; its associated state and default dwell
    differ. Do not infer mainline beacon reception or add probe transmission from
    this reference. The [early-receive diagnostic](../experiments/2026-10-02-mt6797-scan-rx-sample/README.md)
-   now has a validated build, candidate and offline preflight for four read-only
-   samples of two fixed earlier statistic words. Installation and hardware
-   observation remain. Byte wrap, resets and later processing gates remain
-   alternatives to radio silence; no receive proof follows from this preparation.
+   completed all four replies before DONE, with both earlier statistic bytes
+   zero in both pairs, ordinary management count zero and no host frame or BSS.
+   The complete log was preserved and changed-boot Gemian recovery passed.
+   This does not support observed early processing bypassing a later count gate.
+   Resolve earlier firmware dispatch and receive enabling/filter gates before
+   another candidate; byte wrap, resets and unsampled intervals remain unresolved.
    Do not repeat the consumed lifetimes. Establish management
    reception, then continue runtime receive/event ownership,
    credit recycling and packet lifetime toward association and bounded traffic.
