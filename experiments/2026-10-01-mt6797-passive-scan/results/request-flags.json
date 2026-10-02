@@ -1,0 +1,20 @@
+{
+  "status": "source-bound-request-flag-diagnosis",
+  "iw_version": "5.19-1",
+  "upstream_archive_url": "https://www.kernel.org/pub/software/network/iw/iw-5.19.tar.xz",
+  "upstream_archive_sha256": "f167bbe947dd53bb9ebc0c1dcef5db6ad73ac1d6084f2c6f9376c5c360cc4d4e",
+  "scan_c_sha256": "9a1dfb78a40de12599c260102466cf9255b530fe1d98b758eeaaf8f5549fdec0",
+  "debian_source_description_url": "https://deb.debian.org/debian/pool/main/i/iw/iw_5.19-1.dsc",
+  "debian_packaging_sha256": "b7b129bc93a12a492cdcea5b4d858830cfd30237d1f7855532ee4b27e53831aa",
+  "source_archives_match_dsc_checksums": true,
+  "debian_patch_inventory": [],
+  "dsc_signature_verified": false,
+  "source_observation": "scan.c:516-521 adds NL80211_SCAN_FLAG_COLOCATED_6GHZ when no explicit frequencies are provided; explicit frequencies leave flags zero without a separate flag option",
+  "driver_observation": "0075 hw_scan refuses every nonzero request flag before retiring or writing a wire slot",
+  "runtime_observation": "standard interface created/up; iw returned EOPNOTSUPP; no admitted or terminal firmware scan record",
+  "inference": "the standard iw default flag is sufficient to reject this request; no live netlink attribute capture was made",
+  "successor_request": "iw dev wlan0 scan freq 2412 2417 2422 2427 2432 2437 2442 2447 2452 2457 2462 2467 2472 passive",
+  "kernel_candidate_changed": false,
+  "policy": "cfg80211 retains current channel filtering; passive request, no SSID, no random address, no duration override and one firmware lifetime",
+  "device_action": "none"
+}

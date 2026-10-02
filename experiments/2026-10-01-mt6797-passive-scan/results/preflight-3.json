@@ -1,0 +1,20 @@
+{
+  "status": "in-memory-prerequisite-and-third-installer-preflight-passed",
+  "candidate_manifest_sha256": "971c311d99832c0577510ef2944f1e00dcda06e157fdc75f381c99e42c3919e6",
+  "candidate_boot2_sha256": "d008bfa1485b47362afeeafa761b45ff51a15e67795973ee3e0efd008e31a2e4",
+  "previous_gemian_boot": "7d4f3ed9-f3a1-4ab6-8886-2a8e94b50416",
+  "bound_scan_script_sha256": "f7ceb0245dfe56b9c74d9c5adac655d492bc7ce91503ad59eed17f4081e9b438",
+  "generated_installer_sha256": "baf269d7a395c56671242c448035592862e8cbe061681323dc29de0ec48245ef",
+  "kernel_candidate_changed": false,
+  "RAM_parent_gate": "missing parent created; occupied leaf, symlink and file refused",
+  "scan_script_sh_syntax": "passed",
+  "scan_script_shellcheck": "passed",
+  "generated_installer_bash_syntax": "passed",
+  "generated_installer_shellcheck": "passed",
+  "exact_capture_and_host_preflight_after_deployment": "passed",
+  "device_action": "none",
+  "capture_receipt": "matching skip accepted; foreign predecessor, readback and duplicate result refused",
+  "prerequisite_log_file_limit_bytes": 131072,
+  "retained_log_fixture_bytes": 142066,
+  "retained_log_fixture": "accepted without regular-file write; missing, duplicate and stopped records refused"
+}

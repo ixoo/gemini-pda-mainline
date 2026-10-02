@@ -161,8 +161,8 @@ No kernel change or hardware result follows from that host failure.
 The standard [scan command](passive-scan.sh) verifies the authenticated boot,
 sole CONSYS-bound wiphy, initial configuration/accounting and all six ELF hashes
 before creating one permanent-address station-type interface and raising it.
-It invokes one `iw dev wlan0 scan passive` under a twelve-second userspace
-limit. There is no second request after a refused, failed or timed-out command.
+It invokes one standard iw passive scan with explicit 2.4 GHz frequencies
+under a twelve-second userspace limit. There is no second request after a refused, failed or timed-out command.
 The [host runner](passive-host.py) inserts that phase before the existing log
 seal/export, saves raw scan output privately, then preserves it with the
 complete kernel log before reviewed recovery. A failed scan remains negative
@@ -210,4 +210,28 @@ limits or change the kernel/image. A focused check uses the actual retained log
 under a 128 KiB file ceiling and verifies acceptance plus missing, duplicate and
 stopped-record refusals. Session three reserves fresh capture, execution and
 deployment paths; the one-use leaf still refuses a second attempt in a boot.
-No scan has yet been submitted.
+The [third guarded deployment](results/deployment-3.json) skipped the matching
+image, independently verified its full readback and shut down cleanly. The
+[third preflight](results/preflight-3.json) passed against that actual receipt.
+The [third runtime](results/runtime-3.json) created the permanent-address
+station-type interface and brought it up. The standard passive scan returned
+EOPNOTSUPP; no firmware scan was admitted. Configuration/accounting, complete
+log preservation, A53 regression and changed-boot Gemian recovery passed.
+
+The [request source receipt](results/request-flags.json) joins iw 5.19's
+`scan.c:516–521` with the selected hw_scan guard. With no explicit frequencies,
+iw adds `NL80211_SCAN_FLAG_COLOCATED_6GHZ`. mac80211 copies the request flags,
+and this driver refuses nonzero flags before any scan wire admission. This
+source path explains the observed rejection; the live netlink attributes were
+not captured. The upstream archive matches Debian's 5.19-1 source checksum,
+and the Debian packaging archive contains no source patches. The source
+checksums were compared; the dsc signature was not separately verified.
+
+Use the explicit channel-1-through-13 frequencies with passive last, as the
+standard parser requires. This leaves flags zero without widening the kernel
+guard or changing its candidate. cfg80211 continues to filter prohibited
+channels. Keep the single request, no SSID/probe/random address, default dwell,
+closing budgets, evidence and recovery rules. Session four reserves fresh
+capture, execution and deployment paths. This frequency-form observation is
+new; never retry within the third firmware lifetime. No firmware scan has yet
+been submitted.

@@ -55,7 +55,9 @@ $BB ip link set wlan0 up
 [ "$($BB cat /proc/sys/kernel/random/boot_id)" = "$EXPECTED_BOOT" ]
 $BB printf 'boot_before=%s\nkernel=%s\ninterface_created=1\ninterface_up=1\n__IW_PASSIVE_BEGIN__\n' "$boot_before" "$kernel"
 set +e
-$BB timeout 12 /lib/ld-linux-aarch64.so.1 --library-path /lib /bin/iw dev wlan0 scan passive
+# Explicit frequencies avoid iw 5.19's implicit colocated-6GHz scan flag.
+# cfg80211 still filters channels against the current permissions.
+$BB timeout 12 /lib/ld-linux-aarch64.so.1 --library-path /lib /bin/iw dev wlan0 scan freq 2412 2417 2422 2427 2432 2437 2442 2447 2452 2457 2462 2467 2472 passive
 scan_exit=$?
 set -e
 boot_after=$($BB cat /proc/sys/kernel/random/boot_id)

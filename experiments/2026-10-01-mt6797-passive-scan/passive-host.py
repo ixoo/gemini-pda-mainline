@@ -14,8 +14,8 @@ import sys
 sys.dont_write_bytecode = True
 HERE = Path(__file__).resolve().parent
 PRIVATE_REPO = Path(os.environ['GEMINI_PRIVATE_REPO']).resolve(strict=True)
-ROOT = PRIVATE_REPO / 'artifacts/passive-scan/session-3'
-CAPTURE = PRIVATE_REPO / 'artifacts/passive-scan/capture-3'
+ROOT = PRIVATE_REPO / 'artifacts/passive-scan/session-4'
+CAPTURE = PRIVATE_REPO / 'artifacts/passive-scan/capture-4'
 SOURCE = HERE.parent / '2026-10-01-mt6797-tc4-reconcile/passive-host.py'
 SPEC = importlib.util.spec_from_file_location('tc4_scan_parent', SOURCE)
 PARENT = importlib.util.module_from_spec(SPEC)
