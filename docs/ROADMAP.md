@@ -396,6 +396,13 @@ for the first Wi-Fi bring-up. The current preparation order is:
    completion, with management count zero and no host frame or BSS. Prioritize
    receive enabling, filtering and preprocessing before that counter in the
    selected contract; caches do not prove RF tuning or calibration application.
+   The [Gemian reference](../experiments/2026-10-02-gemian-passive-scan-reference/README.md)
+   returned three recent channel-40 BSS entries from one requested-passive scan.
+   Probe-response metadata and the pinned vendor passive-support setting leave
+   actual passive equivalence unverified; its associated state and default dwell
+   differ. Do not infer mainline beacon reception or add probe transmission from
+   this reference. Establish an earlier receive observation and retain the
+   counter's processing gates as alternatives to radio silence.
    Do not repeat the consumed lifetimes. Establish management
    reception, then continue runtime receive/event ownership,
    credit recycling and packet lifetime toward association and bounded traffic.

@@ -105,3 +105,20 @@ or RF dwell; there was no pre-scan baseline or complete writer/callback audit.
 Prioritize receive enabling, filtering and preprocessing before the management
 counter in the selected contract. This lifetime is consumed; another scan must
 provide a different decision-changing measurement.
+
+## Earlier receive boundary
+
+The [follow-up analysis](results/receive-boundary-analysis.json) identifies
+beacon/probe-response byte updates earlier in the selected receive routine than
+the scan-management counter. Later mode and processing gates can bypass that
+counter. Its zero result therefore cannot distinguish absence of entry into
+this routine from rejection later in it. Two data-pointer candidates reference
+the routine; runtime dispatch and the complete writer/reset set remain unproved.
+
+The early statistics wrap at 256, and selected scan-state paths clear them.
+A next diagnostic needs attributable timing and reset/writer limits; unchanged
+samples cannot prove radio silence. No query of these bytes, new runtime
+candidate, filter change or radio-setting change is admitted by this analysis.
+The [Gemian reference](../2026-10-02-gemian-passive-scan-reference/README.md)
+provides recent BSS output with different scan/association conditions, not an
+ordinary firmware-counter comparison.

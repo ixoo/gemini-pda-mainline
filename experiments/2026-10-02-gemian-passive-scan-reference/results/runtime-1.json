@@ -1,0 +1,83 @@
+{
+  "schema": 1,
+  "status": "one requested-passive reference scan completed; actual passive firmware mode unverified",
+  "live_release": "3.18.41+",
+  "boot_id": "3d12a7db-182c-42a8-a599-93e6cf939f84",
+  "interface": "wlan0",
+  "wiphy": "phy0",
+  "request": {
+    "tool": "iw 5.19",
+    "command": "iw dev wlan0 scan freq 5200 passive",
+    "attempts": 1,
+    "timeout_seconds": 12,
+    "frequency_mhz": 5200,
+    "explicit_probe_or_association_request": false,
+    "driver_controlled_dwell": true,
+    "firmware_command_captured": false
+  },
+  "result": {
+    "scan_exit": 0,
+    "ssh_exit": 0,
+    "uptime_elapsed_ms_approx": 380,
+    "cache_before_bss_count": 1,
+    "scan_result_bss_count": 3,
+    "result_frequencies_mhz": [
+      5200,
+      5200,
+      5200
+    ],
+    "reported_last_seen_ms": [
+      20,
+      20,
+      20
+    ],
+    "reported_information_element_origin": [
+      "probe response",
+      "probe response",
+      "probe response"
+    ],
+    "reported_tsf_changed_for_preexisting_entry": true,
+    "new_bss_entries_relative_to_cache": 2,
+    "associated_before": true,
+    "associated_after": true,
+    "carrier_before": true,
+    "carrier_after": true,
+    "same_boot_after": true,
+    "kernel_log_delta_lines": 29,
+    "scan_completion_counter_in_delta": false,
+    "firmware_management_count": null,
+    "temporary_tool_stage_removed": true
+  },
+  "source_comparison": {
+    "vendor_commit": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+    "ais_path": "drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/ais_fsm.c",
+    "ais_sha256": "738b8fcf0d34098fef986c1dba4963ebe0676665b0a914d7a712a50e814838ba",
+    "ais_lines": [
+      1328,
+      1341
+    ],
+    "config_path": "drivers/misc/mediatek/connectivity/wlan/gen3/include/config.h",
+    "config_sha256": "c773b8e5e07978d60565c2eeee976dae3e285ecb9152062fe3bb50b1358a1c32",
+    "config_line": 734,
+    "passive_support_define": 0,
+    "behavior": "The selected online/ordinary scan branch maps zero SSIDs to active wildcard scan when passive support is disabled. The request uses driver default dwell.",
+    "running_binary_equivalence_verified": false
+  },
+  "private_evidence_sha256": {
+    "scan.sh": "81c2609512455082eb4dd0e662c798051fac77ffda368ae7a22fe93d4b888df3",
+    "scan.stdout": "f51ad8657067e1b2588b36150cb99dd53ecf6786f26866f3ad390b137edcc266",
+    "scan.stderr": "048e2ba89ae430962e02f5341cf60c694fb7e131cb417790075a56b32ca09992",
+    "scan-process.json": "2ef0f0b92b8511fb7e89f97d40b2d37903d7ba2e7e476aa5cc4933698fdd480b",
+    "interface-preflight.stdout": "86e70172f9494f1c846988fe134ae7cee899b60d3d6b5f444a2c2009e60352dc",
+    "cleanup.stdout": "867c709456ddf7b6a27228101b650de8803cf49ca57c7a69e3428a6891a738b6"
+  },
+  "limitations": [
+    "Requested passive is not proof of passive firmware execution. Probe-response metadata does not prove that this host sent a probe request.",
+    "The reference was already associated, with connection-manager and supplicant processes running; concurrent receive activity is not excluded.",
+    "Result cache freshness is reported by the vendor driver; no independent over-air capture or frame-byte validation was performed.",
+    "The approximately 380 ms host interval is not measured RF dwell and differs from the unassociated mainline 500 ms candidate.",
+    "No firmware scan-management count was visible in the captured log delta; absence of logging is not a zero counter.",
+    "No connection, calibration, filter, regulatory, power-save or logging setting was changed."
+  ],
+  "sanitization": "Peer addresses, SSIDs, raw logs, uploaded binaries, credentials and personal host paths omitted."
+}

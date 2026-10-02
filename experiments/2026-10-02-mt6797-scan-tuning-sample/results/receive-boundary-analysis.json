@@ -1,0 +1,87 @@
+{
+  "schema": 1,
+  "firmware_sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
+  "firmware_bytes": 411632,
+  "method": "Read-only Ghidra 12.1.2 pseudo-disassembly in the RE VM under the retained NDS32 instruction/data premise. Existing bounded direct-flow walk skips callees under assumed return. Halfword scans find candidates, not a complete data-flow or writer audit.",
+  "receive_routine": {
+    "entry": "0xf0031e7c",
+    "nodes": 400,
+    "queue_exhausted": true,
+    "skipped_calls": 22,
+    "unresolved_noncall_computed": 0,
+    "invalid": 0,
+    "listing_sha256": "e8abb98760519c5b220f92f63178c13027d07e0752d1431482ede46516b3c157",
+    "early_updates": [
+      {
+        "address": "0xf006bf3c",
+        "bytes": 1,
+        "condition": "Frame-control masked by 0xfc equals beacon subtype 0x80."
+      },
+      {
+        "address": "0xf006bf3b",
+        "bytes": 1,
+        "condition": "Frame-control masked by 0xfc equals probe-response subtype 0x50."
+      },
+      {
+        "address": "0xf006bf37",
+        "bytes": 1,
+        "condition": "After the selected packet diagnostic/log branch, before later management-processing gates."
+      }
+    ],
+    "scan_counter_gate": "The later root-relative +0x2890 increment requires root mode +0x2370 equal zero and reaching that branch after intervening checks/callees. Earlier byte updates do not require reaching this increment.",
+    "reset_candidate": "Selected scan-state graph contains zero stores to all three early bytes after setting root mode zero. This does not establish runtime execution or exclude other writers/resets."
+  },
+  "context_selector": {
+    "entry": "0xf0032648",
+    "nodes": 10,
+    "queue_exhausted": true,
+    "skipped_calls": 0,
+    "unresolved_noncall_computed": 0,
+    "invalid": 0,
+    "behavior": "Modes 1 and 3 select root +0x3f84; other modes select root +0x2374.",
+    "listing_sha256": "b440f723c542e39d693251c999d7ca6748675b8905f0bb07cdd77f7c3f5c434d"
+  },
+  "management_helper": {
+    "entry": "0xf0035068",
+    "nodes": 133,
+    "queue_exhausted": true,
+    "skipped_calls": 8,
+    "unresolved_noncall_computed": 0,
+    "invalid": 0,
+    "behavior": "The selected helper returns zero unless root byte +0x3078 is nonzero and root mode +0x2370 equals 2, before further subtype/processing checks. This helper is not the sole gate on the ordinary scan counter.",
+    "listing_sha256": "7fc8f7d75540fa5c9db157582c266e0cbbc72664175318eeccf85fa441814ad4"
+  },
+  "reference_searches": {
+    "halfword_candidates": 165648,
+    "undecodable_candidates": 3327,
+    "root_mode_offset_windows": 63,
+    "direct_receive_entry_flow_candidates": 0,
+    "immediate_pair_receive_entry_candidates": 0,
+    "receive_entry_little_endian_pointer_candidates": 2,
+    "receive_entry_pointer_addresses": [
+      "0xf00634f0",
+      "0xf00634fc"
+    ],
+    "statistic_offset_windows": 20,
+    "behavior": "Two data-pointer candidates reference the receive entry. The selected offset windows include early updates, scan-state resets and readers comparing current beacon/probe bytes with saved bytes. Callers and callback/table dispatch remain unresolved.",
+    "script_sha256": {
+      "boundary": "c8263d67572f869f55be6de6b5888859a19855787c9dfee47f6b51d00ddc0808",
+      "entry_pairs": "3d0b633eef251a1a4a050beddd12d181b93b324080a18d9aebd54bd88924f15b",
+      "early": "fa0b3cab6c6dde9e84a9f83c343170ded265eb7bbba457557f63f6b7989aa1db"
+    },
+    "listing_sha256": {
+      "boundary": "8f5f32c91620f61495d72de4bb96ab07829f5bb7aab7c58d3ec210ff1d150040",
+      "entry_pairs": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "early": "37b717e5c2bea7abd61602374192badf4afeb5dbb771bcb267ef633988211a29"
+    }
+  },
+  "decision": "Zero ordinary scan-management count cannot distinguish no entry into the selected receive routine from later processing rejection. Establish an earlier receive observation before changing filters, calibration or radio setup.",
+  "limitations": [
+    "Eight-bit statistics wrap at 256. Unchanged samples cannot prove no receive activity without bounds on increments and reset/writer behavior.",
+    "Positive byte change alone is not a unique frame count, valid beacon, RF dwell measurement or host delivery proof.",
+    "No complete caller, table, callback, writer or bulk-reset audit; no live values from these early byte addresses have been queried.",
+    "Ordinary read-only firmware query semantics were reviewed previously, but these words have not been admitted to a runtime candidate."
+  ],
+  "hardware_test": false,
+  "raw_evidence_published": false
+}
