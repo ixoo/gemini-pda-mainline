@@ -1,7 +1,7 @@
 # MT6797 passive scan tuning samples
 
-Status: clean pushed source built and package/candidate validated; no installation
-or hardware result yet.
+Status: one tuning-sample lifetime consumed; requested software state matched,
+zero management count and no BSS; changed-boot Gemian recovery verified.
 
 The [consumed counter scan](../2026-10-02-mt6797-passive-scan-count/results/runtime-1.json)
 reported zero firmware management-processing count and no host frame or BSS.
@@ -77,5 +77,31 @@ diagnostic evidence; it never converts matching software state into RF proof.
 
 The [offline preflight](results/preflight.json) validates the candidate, pinned
 private record, authentication, reviewed recovery binary and generated installer.
-Capture and host execution still require actual verified deployment evidence.
-The reference installer must be regenerated against fresh live Gemian identity.
+The reference installer was regenerated against fresh live Gemian identity.
+Actual deployment evidence then admitted capture and host execution.
+
+The [deployment receipt](results/deployment.json) records guarded live-GPT boot2
+selection, stable power, matching full-partition readback and clean shutdown.
+Capture and host preparation passed against the actual receipt. That receipt
+preserves the pre-selection state; the owner selected boot2 and the sole START
+and channel-40 scan were subsequently consumed as recorded below.
+
+## Runtime result
+
+The [runtime receipt](results/runtime-1.json) binds the exact candidate and boot.
+All four matched replies arrived before completion, within their 100 ms limits.
+Both pairs reported band base 5000000, requested/center channel 40, fixed override
+0 and bandwidth value 0. The scan completed after 515703 us with returned credit,
+version 3 management count 0 and PNO 0. No host frame, valid beacon or BSS appeared.
+The diagnostic is complete; passive reception and working Wi-Fi are not proved.
+
+A53 checks passed and logs were sealed before the reviewed single recovery.
+Changed-boot Gemian returned with carrier at 5200 MHz. Raw captures, private
+record and peer identifiers remain private. Host exit 1 reflects missing BSS.
+
+These non-atomic software samples make different channel state a weaker
+explanation for this scan. They do not prove RF tuning, calibration application
+or RF dwell; there was no pre-scan baseline or complete writer/callback audit.
+Prioritize receive enabling, filtering and preprocessing before the management
+counter in the selected contract. This lifetime is consumed; another scan must
+provide a different decision-changing measurement.

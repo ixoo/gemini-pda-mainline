@@ -391,10 +391,11 @@ for the first Wi-Fi bring-up. The current preparation order is:
    completed with version 3 management count zero and no host frame or BSS.
    Prioritize channel setup and receive paths before that firmware processing
    point; zero does not prove radio silence or a filter cause. The
-   [tuning-sample diagnostic](../experiments/2026-10-02-mt6797-scan-tuning-sample/README.md)
-   defines four read-only samples of two fixed firmware RAM words to distinguish
-   channel software state from an earlier receive failure. Its candidate is
-   built and validated but untested; matching state will not prove RF tuning.
+   [tuning-sample result](../experiments/2026-10-02-mt6797-scan-tuning-sample/results/runtime-1.json)
+   matched the requested band/channel software state in both sample pairs before
+   completion, with management count zero and no host frame or BSS. Prioritize
+   receive enabling, filtering and preprocessing before that counter in the
+   selected contract; caches do not prove RF tuning or calibration application.
    Do not repeat the consumed lifetimes. Establish management
    reception, then continue runtime receive/event ownership,
    credit recycling and packet lifetime toward association and bounded traffic.
