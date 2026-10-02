@@ -85,6 +85,15 @@ parent, exact package, unchanged proven booted DT, Android container and full
 ELFs are byte-identical. The published RAM transform reproduced that output.
 The [offline preflight](results/preflight.json) covers candidate/session
 identity, private authentication, the reviewed recovery closure, generated
-installer guards and shell checks. Capture/host preparation against the actual
-deployment receipt remains pending, as does owner physical selection. No
-runtime scan or radio operation has been performed for this candidate.
+installer guards and shell checks. That initial preflight preceded deployment;
+the actual deployment follow-up is recorded below. No runtime scan or radio
+operation has been performed for this candidate.
+
+The [actual boot2 deployment](results/deployment-1.json) resolved inactive boot2
+from the live GPT in known-good Gemian and verified identity, distinct root,
+unmounted state, exact size and stable power. It preserved the predecessor
+checksum, wrote/synced/flushed the exact padded image, matched the full 16 MiB
+readback and confirmed clean shutdown. It relied on the verified project-wide
+backup and made no fresh predecessor backup. The [deployed preflights](results/preflight-deployed-1.json)
+pass against that actual receipt. Capture and firmware START remain unconsumed;
+physical owner selection and the one scan remain pending.

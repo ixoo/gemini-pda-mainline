@@ -1,0 +1,21 @@
+{
+  "experiment": "mt6797-passive-scan-broadcast",
+  "candidate_manifest_sha256": "38f65da82e9e12248e908ca446aa39edd62da2dcac2d913938fc7cacae843faf",
+  "result": "write-synced-flushed-full-readback-verified",
+  "target_logical_name": "boot2",
+  "boot2_device_guard": "passed",
+  "boot2_device_guard_sha256": "0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf",
+  "target_major_minor": "179:30",
+  "root_major_minor": "179:29",
+  "predecessor_sha256": "1bc49b93cc399262b2347d930802eea160c8e3ade0c2afb1f561acf781665b63",
+  "candidate_sha256": "7612ec125cc1f14f0560a6b35c33ab763ebeb72dc6a4c3af6c4c3564c8e9aa5f",
+  "readback_sha256": "7612ec125cc1f14f0560a6b35c33ab763ebeb72dc6a4c3af6c4c3564c8e9aa5f",
+  "boot_id": "c304e7d6-1b0a-4c84-9c82-59efd730a5ab",
+  "power": "1|100|Good|1",
+  "fresh_predecessor_backup": "no",
+  "reboot": "no",
+  "shutdown_confirmed_unreachable": true,
+  "private_receipt_sha256": "b76915d699b2797cb36e1db304591f4415aa05792d436d8ffa1d300cc9499747",
+  "next_action": "owner physically selects boot2; one fresh capture and broadcast scan session",
+  "hardware_support_claim": "none from installation; runtime pending"
+}

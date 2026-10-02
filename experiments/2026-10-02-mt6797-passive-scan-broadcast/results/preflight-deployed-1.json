@@ -1,0 +1,16 @@
+{
+  "status": "offline-preflights-against-actual-verified-deployment-passed",
+  "candidate_manifest_sha256": "38f65da82e9e12248e908ca446aa39edd62da2dcac2d913938fc7cacae843faf",
+  "deployment_receipt_sha256": "b76915d699b2797cb36e1db304591f4415aa05792d436d8ffa1d300cc9499747",
+  "capture_private_preparation": true,
+  "host_preparation": true,
+  "candidate_and_recovery_identity_checks": true,
+  "fresh_capture_absent": true,
+  "session_inventory": [
+    "deployment-summary.txt"
+  ],
+  "firmware_start_consumed": false,
+  "passive_scan_consumed": false,
+  "physical_boot2_selection": false,
+  "device_action": "none in these offline preflights"
+}
