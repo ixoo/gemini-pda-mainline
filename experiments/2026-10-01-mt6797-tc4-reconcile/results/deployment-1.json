@@ -1,0 +1,19 @@
+{
+  "experiment": "mt6797-tc4-reconcile",
+  "result": "write-synced-flushed-full-readback-verified",
+  "target_logical_name": "boot2",
+  "target": "/dev/mmcblk0p30",
+  "root": "/dev/mmcblk0p29",
+  "boot2_device_guard": "passed",
+  "boot2_device_guard_sha256": "0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf",
+  "predecessor_sha256": "6db2d056819007896852bc66cb697dee92fe2d2ebef66814b8712ef1f07faee0",
+  "candidate_sha256": "54953d9011be46f347755917c0bf48ea4aee46df5860edfdf471237f9a805187",
+  "readback_sha256": "54953d9011be46f347755917c0bf48ea4aee46df5860edfdf471237f9a805187",
+  "boot_id": "634a5477-e743-4626-a9aa-d10de30d5484",
+  "fresh_predecessor_backup": "no",
+  "post_shutdown_reachability": "unreachable",
+  "reboot": "no",
+  "next_action": "owner-physically-selects-boot2",
+  "private_deployment_receipt_sha256": "62ed5527a679fbba5edfd31a3fbb4864fc409712742f963166812ab8b4d76a70",
+  "device_test": "completed-once-see-runtime-1.json"
+}

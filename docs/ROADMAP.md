@@ -373,9 +373,10 @@ for the first Wi-Fi bring-up. The current preparation order is:
    stopped before configuration. The [header successor](../experiments/2026-10-01-mt6797-tx-status-header/results/runtime-1.json)
    identified an unsolicited sleepy notification. The [boot-sleepy successor](../experiments/2026-10-01-mt6797-boot-sleepy/results/runtime-1.json)
    now admits its exact layout, retains driver ownership, completes configuration
-   and witnesses consumable post-configuration TC4/free-pool counters. Implement
-   bounded source-derived reconciliation of the retained normal credit ledger.
-   Implement receive/event ownership, credit recycling and the packet lifetime,
+   and witnesses consumable post-configuration TC4/free-pool counters. The [TC4 successor](../experiments/2026-10-01-mt6797-tc4-reconcile/results/runtime-1.json)
+   now demonstrates bounded matched credit return and retained pending counts
+   for that pair. Implement runtime receive/event ownership, ongoing credit
+   recycling and the packet lifetime,
    then demonstrate a standard station
    interface, scan, association and bounded traffic. Submission status alone
    does not prove firmware application or effective runtime RF restrictions.

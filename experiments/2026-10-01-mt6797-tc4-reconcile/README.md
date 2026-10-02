@@ -85,10 +85,30 @@ optional spelling and const lists were unavailable. No synthetic DCO sign-off
 or upstream submission readiness is claimed. The [clean pushed Buildbox build](results/build.json),
 [candidate validation](results/candidate.json) and [offline tooling/session preflight](results/preflight.json)
 passed. Both fixtures also passed against the actual prepared source on Buildbox.
-No device test has run for this candidate.
+The [guarded boot2 deployment](results/deployment-1.json) passed full-partition
+readback and clean shutdown. The owner selected boot2 for the one admitted test.
 
 Set `GEMINI_PRIVATE_REPO` to the checkout holding ignored private artifacts for
 installer preparation and session tools. The first offline installer generation
 failed before output because that caller setting was missing; supplying it
-produced the validated installer. The exact capture/host preflight remains
-pending a real deployment receipt.
+produced the validated installer. The exact capture/host preflight passed
+against the real deployment receipt.
+
+
+## Runtime result
+
+The [one admitted boot](results/runtime-1.json) passed capability, retained
+ownership through the exact sleepy notice, completed configuration and
+registered one CONSYS-bound wiphy. All three snapshots and reconciliation
+records were complete. Replaying the private snapshots confirmed only matched
+CPU/free-pool returns restored credit within the retained debit; unmatched
+returns stayed pending and the second read produced no new refund. No sequence
+history or quota was reset. Raw counter and ledger values remain private.
+
+A53 regression, complete evidence preservation and reviewed recovery passed.
+Independent changed-boot Gemian verification confirmed its known-good release
+and Wi-Fi carrier. This one-shot budget is consumed. This witnesses the bounded
+configuration credit boundary; it does not provide an ongoing IRQ or runtime
+recycling worker, command acknowledgement, effective RF measurement, station
+interface, scan, association or traffic. Continue with runtime receive/event,
+scan and packet lifetimes under the same owner.

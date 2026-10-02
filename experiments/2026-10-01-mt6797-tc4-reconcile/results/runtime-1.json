@@ -1,0 +1,32 @@
+{
+  "status": "bounded-normal-TC4-reconciliation-witnessed",
+  "candidate_boot2_sha256": "54953d9011be46f347755917c0bf48ea4aee46df5860edfdf471237f9a805187",
+  "kernel_release": "7.1.3-gemini-a53-wifi-tc4-reconcile",
+  "mainline_boot_id": "f184f315-8fb3-47e9-9823-1944dec7097f",
+  "complete_private_log_sha256": "fce87d82c5c4df3a74ed268c5f522d683859fe6413304128d3286a765b2039d3",
+  "complete_private_log_bytes": 142049,
+  "fatal_marker_count": 0,
+  "capability_query_status": 0,
+  "boot_receive_metadata_complete": true,
+  "decoded_notice_admitted": true,
+  "driver_ownership_retained": true,
+  "private_record_prepare_status": 0,
+  "regulatory_configuration_status": 0,
+  "tx_status_snapshots_complete": true,
+  "counter_consumption_witness": true,
+  "tc4_reconciliation_complete": true,
+  "bounded_matched_refund_observed": true,
+  "unmatched_returns_retained": true,
+  "credit_refill_enabled": true,
+  "wiphy_registered": true,
+  "radio_or_dma_enabled": false,
+  "a53_ram_service_regression": true,
+  "provider_registered": true,
+  "reviewed_recovery_confirmed": true,
+  "returned_gemian_boot_id": "4efa81b8-a587-45f6-9d45-b93645bc2751",
+  "independent_return": {
+    "kernel_release": "3.18.41+",
+    "wlan0_carrier": 1
+  },
+  "wifi_operational": false
+}
