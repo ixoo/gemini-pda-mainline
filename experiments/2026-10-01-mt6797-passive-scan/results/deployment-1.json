@@ -1,0 +1,19 @@
+{
+  "experiment": "mt6797-passive-scan",
+  "result": "write-synced-flushed-full-readback-verified",
+  "target_logical_name": "boot2",
+  "target": "/dev/mmcblk0p30",
+  "root": "/dev/mmcblk0p29",
+  "boot2_device_guard": "passed",
+  "boot2_device_guard_sha256": "0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf",
+  "predecessor_sha256": "54953d9011be46f347755917c0bf48ea4aee46df5860edfdf471237f9a805187",
+  "candidate_sha256": "d008bfa1485b47362afeeafa761b45ff51a15e67795973ee3e0efd008e31a2e4",
+  "readback_sha256": "d008bfa1485b47362afeeafa761b45ff51a15e67795973ee3e0efd008e31a2e4",
+  "boot_id": "4efa81b8-a587-45f6-9d45-b93645bc2751",
+  "fresh_predecessor_backup": "no",
+  "post_shutdown_reachability": "unreachable",
+  "reboot": "no",
+  "next_action": "owner-physically-selects-boot2",
+  "private_deployment_receipt_sha256": "5b7ed8e58b0a88aa4f81d7dc0ea9df1f5fb1cbe604778f6bc6392f9ba9c20b8c",
+  "device_test": "not-run-awaiting-owner-physical-boot2-selection"
+}

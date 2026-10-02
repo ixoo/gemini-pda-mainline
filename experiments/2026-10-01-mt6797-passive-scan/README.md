@@ -170,5 +170,7 @@ evidence and still permits ordinary evidence preservation and recovery.
 Its focused pure check covers scan-before-export ordering and duplicate refusal;
 classification covers successful synthetic output, six transport/identity refusals and absent
 BSS output. The [installer](install-passive.py) retains the reviewed guard,
-full-partition readback and clean shutdown. Exact capture/host preflight after
-deployment remains pending. No device scan has run for this candidate.
+full-partition readback and clean shutdown. The [deployment receipt](results/deployment-1.json)
+records successful full readback and confirmed shutdown. Exact capture and
+host preflights pass against that real deployment. Await the owner’s physical
+boot2 selection; no device scan has run for this candidate.

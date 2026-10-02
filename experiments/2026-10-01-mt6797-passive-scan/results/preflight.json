@@ -22,6 +22,7 @@
     "lib/libnl-genl-3.so.200"
   ],
   "a53_candidate_and_reviewed_recovery_dependencies": "passed",
-  "exact_capture_and_host_preflight_after_deployment": "pending",
-  "device_action": "none"
+  "exact_capture_and_host_preflight_after_deployment": "passed",
+  "device_action": "none",
+  "bound_scan_script_sha256": "47ba18913f7aad90fae7907e24be286fc3464ba828f7e9d95fdba291999201fe"
 }
