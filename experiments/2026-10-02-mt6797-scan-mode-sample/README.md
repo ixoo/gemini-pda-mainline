@@ -149,3 +149,15 @@ word. Inspect earlier receive queue/descriptor admission and receive enabling
 or filter ownership. Mode continuity, byte wrap/reset, unresolved callees and
 RF reception remain unproved. This scan and START budget is consumed; do not
 repeat it. Management reception, association and traffic remain required.
+
+## Earlier object and descriptor admission
+
+The [retained-firmware follow-up](results/receive-admission-analysis.json)
+identifies an earlier empty-descriptor return and a fixed object free list.
+The selected getter returns null when its list head equals its sentinel; its
+initializer builds 32 objects. Allocation and retirement decrement/increment
+the list count. Descriptor lookup/removal and index-to-pointer conversion use
+unmapped callbacks. These are source inferences, with no live pool or callback
+values. Audit initialization callers, shared users and query-induced allocation
+effects before proposing another measurement. Do not interpret free-object
+changes as RF packets or write the list, count, mode or callback table.

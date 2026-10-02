@@ -1,0 +1,86 @@
+{
+  "schema": 1,
+  "status": "retained-firmware receive admission inference after mode-five runtime; no new diagnostic admitted",
+  "firmware_sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
+  "analysis_method": "Retained RE VM, Ghidra 12.1.2; BE-instruction/LE-data pseudo-disassembly, selected direct-flow graphs, callees skipped under assumed return.",
+  "graph_budget_nodes": 2048,
+  "selected_graphs": [
+    {
+      "entry": "0xf000aba8",
+      "meaning": "take object from selected free list and bind a descriptor index",
+      "nodes": 30,
+      "calls": 1,
+      "queue_exhausted": true,
+      "invalid": 0,
+      "unresolved_noncall_computed": 0,
+      "listing_sha256": "b0417b945796cc07d6a2ff33049e85e9ae3f4a6fae3aa5143913ade14d633e32"
+    },
+    {
+      "entry": "0xf000bbe4",
+      "meaning": "selected object/frame retirement and list return",
+      "nodes": 76,
+      "calls": 5,
+      "queue_exhausted": true,
+      "invalid": 0,
+      "unresolved_noncall_computed": 0,
+      "listing_sha256": "daca61ef67fed94a6f1f9fcb401a25d4552d6ed86abd786fa62d5b743bcc83c0"
+    },
+    {
+      "entry": "0xf000ab14",
+      "meaning": "three fixed free-list initializers; selected second list has 32 objects",
+      "nodes": 59,
+      "calls": 0,
+      "queue_exhausted": true,
+      "invalid": 0,
+      "unresolved_noncall_computed": 0,
+      "listing_sha256": "63e55c7167e8b96c3d84747b10b7761961b87839285a73601639f021e23bfb31"
+    }
+  ],
+  "root_preconditions": {
+    "descriptor_lookup": "0xf0027058 loads callback from 0x1b490; arguments include queue selector 1. Return 0xfff bypasses this processing loop. Callback implementation remains unmapped.",
+    "object_take": "0xf002707a calls 0xf000aba8; null return bypasses descriptor processing.",
+    "descriptor_remove": "0xf00270a0 loads callback from 0x1b498 and compares its returned index against the object halfword at +0xc; exact API semantics remain inferred."
+  },
+  "selected_object_pool": {
+    "head_and_empty_sentinel": "0xf0073680",
+    "free_count_word": "0xf0073688",
+    "first_object": "0xf007368c",
+    "object_stride_bytes": 88,
+    "initialized_objects": 32,
+    "init_loop": "head + 0xc through head + 0xb0c exclusive, step 0x58; clears object +8 and appends each object while incrementing head +8.",
+    "take": "head equal to sentinel returns null; otherwise unlink first object, decrement free count, call 0x1b554 callback with the descriptor index, store pointer at object +8 and index at +0xc.",
+    "return": "selected pointer range chooses this list, clears object +8, appends object and increments head +8; conditional frame-index release through 0xf000b9ec is not traced.",
+    "runtime_values_observed": false,
+    "initialization_execution_proved": false,
+    "all_users_and_writers_audited": false
+  },
+  "bounded_reference_searches": {
+    "callback_base_candidates": 542,
+    "callback_offset_windows": 20,
+    "callback_search_limit": "Sixteen linear instructions after each selected immediate sethi. Includes duplicate/false-base windows; no complete writer or caller audit.",
+    "pool_base_candidates": 19,
+    "pool_offset_windows": 5,
+    "pool_search_limit": "Same local-window method; aliased or computed references may be missed."
+  },
+  "private_scripts_sha256": {
+    "ScanRxRootFlow.java": "2152d975ab64b0eb1b880806be1bd7c6c60b742e0451eb9c97c328f1160db29a",
+    "ReceiveQueueCallbackRefs.java": "6f1ec2a38bcb304c06a3ae25871519b60b15c6fb0a875bfacd3b5653efc60d9a",
+    "ReceiveObjectPoolRefs.java": "2e57cce875cd43965b81c4d5032e006e5832a693bff0cacdf3ef23e463be6542",
+    "ReceiveObjectPoolPrefix.java": "1cf41e1eab190f5c1c1b092cfbe613f5621c9490613ac3167607ae622c7862ff"
+  },
+  "private_reference_listings_sha256": {
+    "receive-queue-callback-refs-private.txt": "e80ef0f5e96d414bb90646dc31e36f3fe5e6e34328eb5f229add4d09d06fa229",
+    "receive-object-pool-refs-private.txt": "f675369a5a6601bdea9632036f67c55d465ea76d962bc5abf0bb9d1685b38444",
+    "receive-object-pool-prefix-private.txt": "8ad2043f195bdae55a12d8ef5953c8e6bdfe0552fcd73e09279e0a8b66f4905f",
+    "receive-object-pool-init-tail-private.txt": "664425880be01f792f64da8c96698f507b30720ba1ae8b47f2e0474825959d0f"
+  },
+  "limitations": [
+    "Neither fixed RAM state nor pseudo-disassembled behavior proves RF reception, effective filtering or descriptor arrival.",
+    "The callback targets and ROM-side behavior are not mapped; an immediate table load is not a live target value.",
+    "Initialization execution, all shared pool users and query-induced allocation effects remain unaudited.",
+    "Do not convert object-count changes into RF packet counts or write the list, count, mode or callback table."
+  ],
+  "next_action": "Audit selected pool users and initialization callers and resolve callback ownership before admitting a distinct bounded object-availability or receive-enabling measurement.",
+  "device_action": "none",
+  "sanitization": "Raw firmware and disassembly stay private; only addresses, bounded analysis counts and independent summaries are published."
+}
