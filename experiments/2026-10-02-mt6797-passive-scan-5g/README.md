@@ -122,4 +122,11 @@ before reporting this band's scan demonstration. The focused
 band, 2.4 GHz-only BSS, missing BSS and failed/incomplete transport cases without
 credentials or device access.
 
-Deployment and hardware result are pending.
+The [guarded deployment](results/deployment-1.json) wrote logical boot2 from
+the verified Gemian boot, matched the complete 16 MiB readback and confirmed
+clean shutdown. It preserved the exact predecessor checksum and used the
+project-wide backup; no fresh predecessor backup was made. The
+[post-install preflights](results/preflight-deployed-1.json) pass against that
+actual receipt. Capture and firmware lifetime are unconsumed. Physical boot2
+selection and hardware reception remain pending; no automatic reboot replaces
+the owner handoff.

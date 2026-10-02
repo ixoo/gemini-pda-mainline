@@ -1,0 +1,15 @@
+{
+  "status": "capture-and-host-preflight-pass-against-actual-deployment",
+  "candidate_manifest_sha256": "22379cc6153f7735780361689d62bc5ae80a1ef4815c42bf84f1fba71b8bed3c",
+  "candidate_boot2_sha256": "1bc49b93cc399262b2347d930802eea160c8e3ade0c2afb1f561acf781665b63",
+  "previous_gemian_boot": "5977c0c0-43e4-408e-981f-8c3e2b69f1e9",
+  "deployment_receipt_validated": true,
+  "capture_preparation_pass": true,
+  "host_preparation_pass": true,
+  "one_scan_phase_connections": 1,
+  "fresh_capture_path": "artifacts/passive-scan-5g/capture-1",
+  "fresh_host_path": "artifacts/passive-scan-5g/session-1",
+  "physical_boot_selected": false,
+  "runtime_triggered": false,
+  "device_action": "none by these preflights"
+}
