@@ -58,5 +58,10 @@ the fixture with that temporary include directory and
 then execute it and remove the temporary include/binary. No kernel source tree
 is stored here. Linux 7.1.3 checkpatch reports zero errors/warnings with
 `--no-tree --no-signoff`; optional spelling and const lists were unavailable.
-No DCO certification or upstream submission readiness is claimed. Buildbox,
-offline candidate and device validation remain pending.
+No DCO certification or upstream submission readiness is claimed. The [clean pushed Buildbox build](results/build.json),
+[candidate validation](results/candidate.json) and
+[offline tooling/session preflight](results/preflight.json) passed. The actual
+prepared-source fixture also passed with sanitizers on Buildbox. Six Python
+AST checks, decoded-notice classification fixtures, installer shell syntax
+and ShellCheck, and the read-only wiphy query checks passed. No device test
+has run for this candidate.
