@@ -1,6 +1,6 @@
 # MT6797 passive scan on the known-good connection band
 
-Status: planned. The fourth [2.4 GHz scan](../2026-10-01-mt6797-passive-scan/results/runtime-4.json)
+Status: inconclusive for management reception; the single session is completed. The fourth [2.4 GHz scan](../2026-10-01-mt6797-passive-scan/results/runtime-4.json)
 completed with no management packet or BSS result. A bounded read-only
 [Gemian inspection](../2026-10-01-mt6797-passive-scan/results/band-context-4.json)
 found the current connection at 5200 MHz. Its stale cache does not establish
@@ -127,6 +127,21 @@ the verified Gemian boot, matched the complete 16 MiB readback and confirmed
 clean shutdown. It preserved the exact predecessor checksum and used the
 project-wide backup; no fresh predecessor backup was made. The
 [post-install preflights](results/preflight-deployed-1.json) pass against that
-actual receipt. Capture and firmware lifetime are unconsumed. Physical boot2
-selection and hardware reception remain pending; no automatic reboot replaces
-the owner handoff.
+actual receipt. The owner selected boot2 physically and the authenticated
+[runtime](results/runtime-1.json) consumed this one firmware lifetime. Channel 40
+was present and permitted; one ordinary passive scan completed through iw with
+a matching firmware event and returned credit. No non-event management packet
+or BSS result arrived. The complete private log, wiphy output and scan output
+were preserved before reviewed recovery. A53/provider regression passed.
+An independent changed-boot Gemian query confirmed carrier and 5200 MHz again,
+without triggering a scan. The exact candidate must not be repeated merely
+because scan completion succeeded.
+
+The missing advertised band is resolved for this test, while RF tuning and
+management reception remain unproved. The next discriminating work is to
+attribute receive setup/delivery, including the retained filter callbacks and
+selected host initialization sequence. The [existing filter analysis](../2026-09-08-mt6797-wlan-offloads/RECEIVE.md#retained-packet-filter-handler)
+leaves those callbacks unresolved; do not turn callback value bits into an
+invented register write. Admit any successor operation with its exact wire
+contract and finite effects before a fresh build/boot. Association and traffic
+remain later verification requirements.

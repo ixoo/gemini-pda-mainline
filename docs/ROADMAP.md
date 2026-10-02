@@ -380,8 +380,11 @@ for the first Wi-Fi bring-up. The current preparation order is:
    through iw and witnesses runtime credit return, but receives no BSS result.
    Its 2.4 GHz-only advertisement omits the band used by the [known-good
    connection](../experiments/2026-10-01-mt6797-passive-scan/results/band-context-4.json).
-   Validate the [non-DFS 5 GHz successor](../experiments/2026-10-02-mt6797-passive-scan-5g/README.md),
-   retain ordinary userspace compatibility and establish management reception. Continue runtime receive/event ownership,
+   The [non-DFS 5 GHz successor](../experiments/2026-10-02-mt6797-passive-scan-5g/results/runtime-1.json)
+   now exposes permitted channel 40 and completes an ordinary passive scan,
+   again without management packets or BSS output. Attribute receive setup
+   and delivery from the selected host/retained firmware contract before the
+   next diagnostic, and establish management reception. Continue runtime receive/event ownership,
    credit recycling and packet lifetime toward association and bounded traffic.
    Submission status alone
    does not prove firmware application or effective runtime RF restrictions.

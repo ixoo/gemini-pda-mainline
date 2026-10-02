@@ -20,6 +20,6 @@
   "shutdown_confirmed_unreachable": true,
   "reboot": false,
   "private_receipt_sha256": "95aa1a7bc98d662dc2870ff4fa703eb02424dfb11e271354a632e470a04063bf",
-  "next_action": "owner physically selects boot2; one fresh capture and scan session",
-  "hardware_support_claim": "none from installation; runtime pending"
+  "next_action": "handoff consumed by the exact mainline boot in runtime-1.json; session recovered to changed-boot Gemian",
+  "hardware_support_claim": "matching scan completion only; no management reception, association or traffic"
 }
