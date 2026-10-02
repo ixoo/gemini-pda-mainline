@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "profile": "mt6797-a53-wifi-scan-rx-sample",
+  "prior_profiles": 264,
+  "all_prior_profile_objects_unchanged": true,
+  "selected_series_parent": "patches/series-a53-wifi-scan-tuning-sample",
+  "selected_series_delta": [
+    "proposals/0082-wifi-mediatek-sample-early-scan-receive.patch"
+  ],
+  "old_canonical_order_preserved": true,
+  "lifecycle_reverse_normalization": "After reversing experiment names and ignoring indentation/line wrapping, hif.c, hif.h and mac.c equal the validated parent. No query timing, sequence, credit, packet limit, deadline, terminal, cancellation or recovery change.",
+  "whitelist": [
+    {
+      "role": 0,
+      "address": "0xf006bf38",
+      "selected_byte_address": "0xf006bf3b",
+      "selected_bits": "31:24",
+      "meaning": "early probe-response subtype statistic"
+    },
+    {
+      "role": 1,
+      "address": "0xf006bf3c",
+      "selected_byte_address": "0xf006bf3c",
+      "selected_bits": "7:0",
+      "meaning": "early beacon subtype statistic"
+    }
+  ],
+  "expected_source_sha256": {
+    "Kconfig": "cb709144e772df0dfdc75ddd810ac85f8855db9c499777d91c05e903a16bde0d",
+    "hif.c": "a796ac0b953b2ed8ecff55a2645840ab85bd0d339065e8a45a1f1b7a21b7f00a",
+    "hif.h": "9af15d30ad1576d20a2f798793f914febcb1181f3e658bc16bc9999025184876",
+    "mac.c": "dd41752adeba86105b5553b20c73ae7f89600dd1fb307df67dcd3659e575d07c",
+    "normal_command.h": "6f7f15140bbaa7a6a694097ef0c7ea6d7207bc9d6ee1902d3a1d38ea1dde3df4",
+    "scan-wire.h": "bd1af70733011e505fbd95342b0194f7ba2cbb0ae5224580a9abe12f3c21d94c"
+  },
+  "runtime_effect_budget": {
+    "maximum_queries": 4,
+    "pairs_not_before_us": [
+      100000,
+      300000
+    ],
+    "maximum_outstanding": 1,
+    "per_reply_deadline_us": 100000,
+    "scan_deadline_seconds": 5,
+    "max_polls": 256,
+    "max_packets_per_tick": 16,
+    "max_packets_total": 4096,
+    "target_writes": 0,
+    "arbitrary_addresses": false,
+    "new_probe_tx": false
+  },
+  "checkpatch": "Strict patch check has one CONFIG_DESCRIPTION warning from replacing a config symbol across unchanged help markers. The entire resulting Kconfig passes strict --file with no warnings. Ignore only this verified parser false positive and MISSING_SIGN_OFF for the synthetic non-certifying archive author.",
+  "hardware_test": false,
+  "candidate_prepared": false,
+  "focused_wire_test": "C11 -Wall -Wextra -Werror: pass",
+  "classifier_test": "Wrap/modulo, unchanged zero, unrelated packed bytes, malformed, duplicate, timing and post-DONE fixtures: pass; receive proof remains false.",
+  "profiles_after": 265
+}

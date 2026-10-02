@@ -1,0 +1,508 @@
+From c9fbd501a941f4b0c56c46d7243608c433166a60 Mon Sep 17 00:00:00 2001
+From: Gemini bring-up archive <archive@example.invalid>
+Date: Fri, 2 Oct 2026 18:36:03 -0400
+Subject: [PATCH] wifi: mediatek: retarget isolated scan samples to early
+ receive bytes
+
+Use the existing bounded read-only sampler for two fixed early
+management statistic words. Preserve its four-query limit, timings,
+reply checks, credit accounting and retired scan lifetime.
+
+The byte counters can wrap or reset; unchanged samples do not prove
+radio silence and positive values do not prove host delivery.
+
+Synthetic archive author; no DCO certification.
+This is not an upstream submission.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig  | 16 ++--
+ drivers/net/wireless/mediatek/mt6797/hif.c    | 12 +--
+ drivers/net/wireless/mediatek/mt6797/hif.h    |  6 +-
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 77 ++++++++++---------
+ .../wireless/mediatek/mt6797/normal_command.h | 27 +++----
+ 5 files changed, 71 insertions(+), 67 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index 5b49f43..5549c1e 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -45,22 +45,24 @@ config MT6797_PASSIVE_SCAN
+ 	bool "MT6797 one-shot passive mac80211 scan"
+ 	depends on MT6797_HIF_TC4_RECONCILE
+ 	default n
+ 	help
+ 	  Admit one standard station-type interface for one passive 2.4 GHz
+ 	  hardware scan, bounded to permitted channels with no probe requests.
+ 	  Poll RX and fresh TC4 accounting under the retained exclusive PIO
+ 	  owner while IRQs stay disabled. Validate native beacon descriptors and
+ 	  report them through cfg80211. Cancellation, timeout and failure abort
+ 	  the host request and retire its wire lifetime; they are not firmware
+ 	  stop acknowledgements. No association, key, data TX or DMA is provided.
+ 
+-config MT6797_SCAN_TUNING_SAMPLE
+-	bool "MT6797 bounded read-only scan tuning samples"
++config MT6797_SCAN_RX_SAMPLE
++	bool "MT6797 bounded read-only early receive samples"
+ 	depends on MT6797_PASSIVE_SCAN
+ 	default n
+ 	help
+-	  During the sole passive scan, issue at most four read-only firmware
+-	  RAM queries for two fixed channel-state words. Match exact replies
+-	  within 100 ms using fresh shared command sequences. Samples are
+-	  non-atomic software state, not proof of RF tuning or listening time.
+-	  No arbitrary register access or register write interface is exposed.
++	  Read two fixed ordinary firmware RAM statistic words during one
++	  passive scan. Issue at most four queries with fresh shared command
++	  sequences and require each exact reply within 100 ms. These separate
++	  software samples contain eight-bit counters that can wrap or reset.
++	  Unchanged values cannot prove radio silence. Positive values cannot
++	  prove host delivery, frame validity or measured RF listening time.
++	  There is no arbitrary address or register write interface.
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 889d5e7..871101f 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -630,47 +630,47 @@ int mt6797_hif_send_config(struct mt6797_hif *hif,
+ 					sizeof(hif->scratch), &transfer);
+ 	error = mt6797_normal_submitted(&hif->normal, error);
+ 	if (!error)
+ 		error = mt6797_hif_guard(hif);
+ out:
+ 	if (error)
+ 		error = mt6797_hif_fail(hif, error);
+ unlock:
+ 	mutex_unlock(&hif->mutex);
+ 	return error;
+ }
+ 
+-#if IS_ENABLED(CONFIG_MT6797_SCAN_TUNING_SAMPLE)
+-int mt6797_hif_send_scan_tuning(struct mt6797_hif *hif, unsigned int role,
+-				unsigned int sequence, u64 deadline_ns)
++#if IS_ENABLED(CONFIG_MT6797_SCAN_RX_SAMPLE)
++int mt6797_hif_send_scan_early_rx(struct mt6797_hif *hif, unsigned int role,
++				  unsigned int sequence, u64 deadline_ns)
+ {
+ 	struct mt6797_hif_pio_result transfer;
+ 	struct mt6797_hif_command command;
+ 	int error;
+ 
+-	if (!hif || !mt6797_scan_tuning_address(role) || sequence > 255)
++	if (!hif || !mt6797_scan_early_rx_address(role) || sequence > 255)
+ 		return -EINVAL;
+ 	if (!mutex_trylock(&hif->mutex))
+ 		return -EBUSY;
+ 	if (!hif->firmware_ready || !hif->capability_complete ||
+ 	    hif->transaction->phase != MT6797_INIT_IDLE ||
+ 	    hif->normal.phase != MT6797_NORMAL_NVRAM_SUBMITTED) {
+ 		error = -EIO;
+ 		goto unlock;
+ 	}
+ 	error = mt6797_hif_enter(hif, deadline_ns);
+ 	if (error)
+ 		goto out;
+-	error = mt6797_normal_prepare_scan_tuning(&hif->normal, role, sequence,
+-						  hif->scratch, sizeof(hif->scratch), &command);
++	error = mt6797_normal_prepare_scan_early_rx(&hif->normal, role, sequence,
++						    hif->scratch, sizeof(hif->scratch), &command);
+ 	if (error)
+ 		goto out;
+ 	error = mt6797_hif_pio_transfer(&hif->io, 0x34, MT6797_HIF_WRITE,
+ 					hif->scratch, 16, sizeof(hif->scratch), &transfer);
+ 	error = mt6797_normal_submitted(&hif->normal, error);
+ 	if (!error)
+ 		error = mt6797_hif_guard(hif);
+ out:
+ 	if (error)
+ 		error = mt6797_hif_fail(hif, error);
+ unlock:
+ 	mutex_unlock(&hif->mutex);
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index 1f811e6..331c711 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -169,27 +169,27 @@ int mt6797_hif_query_capability(struct mt6797_hif *hif, unsigned int sequence,
+ 				struct mt6797_capability_trace *trace);
+ 
+ /* One read after a successful capability query on this same owner. Refuse
+  * changed/other queue lengths and report no payload bytes.
+  */
+ int mt6797_hif_observe_port0(struct mt6797_hif *hif, u64 deadline_ns,
+ 			     struct mt6797_port0_observation *observation);
+ 
+ /* Send one selected no-reply configuration or bounded scan command on the
+  * retained normal owner. The caller owns payload provenance, ordering and regulatory policy.
+  * A successful return proves only PIO submission, not firmware application.
+  */
+-#if IS_ENABLED(CONFIG_MT6797_SCAN_TUNING_SAMPLE)
+-int mt6797_hif_send_scan_tuning(struct mt6797_hif *hif, unsigned int role,
+-				unsigned int sequence, u64 deadline_ns);
++#if IS_ENABLED(CONFIG_MT6797_SCAN_RX_SAMPLE)
++int mt6797_hif_send_scan_early_rx(struct mt6797_hif *hif, unsigned int role,
++				  unsigned int sequence, u64 deadline_ns);
+ #endif
+ 
+ int mt6797_hif_send_config(struct mt6797_hif *hif,
+ 			   enum mt6797_normal_config_kind kind,
+ 			   unsigned int sequence, const u8 *payload,
+ 			   size_t payload_bytes, u64 deadline_ns);
+ 
+ /* Read one complete queued port-0 or port-1 packet through the exclusive
+  * PIO owner. A zero WRPLR length returns -EAGAIN without consumption. Output
+  * bytes are unchanged unless the full packet and post-read WRPLR succeed.
+  * A partial bus read or malformed packet poisons this firmware session.
+  * The caller owns event/data decoding and never treats this as radio approval.
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index f2748fa..a578614 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -24,28 +24,28 @@ struct mt6797_mac {
+ 	char alpha2[2];
+ 	unsigned int sequence;
+ 	bool configured, closing;
+ 	int first_error;
+ #if IS_ENABLED(CONFIG_MT6797_PASSIVE_SCAN)
+ 	struct ieee80211_hw *hw;
+ 	struct ieee80211_vif *vif;
+ 	struct delayed_work scan_work;
+ 	u64 scan_deadline, scan_started_ns;
+ 	unsigned int scan_channels, scan_count, scan_polls, scan_packets;
+ 	bool scan_ready, started, scan_used, scan_active, bss_active;
+ 	bool scan_beacon, scan_credit, scan_frame_seen;
+-#if IS_ENABLED(CONFIG_MT6797_SCAN_TUNING_SAMPLE)
+-	u64 tuning_sent_ns, tuning_deadline;
+-	unsigned int tuning_submitted, tuning_received, tuning_sequence;
+-	bool tuning_pending;
++#if IS_ENABLED(CONFIG_MT6797_SCAN_RX_SAMPLE)
++	u64 early_rx_sent_ns, early_rx_deadline;
++	unsigned int early_rx_submitted, early_rx_received, early_rx_sequence;
++	bool early_rx_pending;
+ #endif
+ 	u8 scan_packet[MT6797_HIF_RX_MAX_PACKET] __aligned(2);
+ #endif
+ };
+ 
+ #if IS_ENABLED(CONFIG_MT6797_PASSIVE_SCAN)
+ static bool mt6797_mac_finish_scan(struct mt6797_mac *mac, int *status,
+ 				   bool cancel);
+ #endif
+ 
+ static int mt6797_mac_send(struct mt6797_mac *mac,
+ 			   enum mt6797_normal_config_kind kind,
+@@ -184,28 +184,28 @@ static bool mt6797_mac_finish_scan(struct mt6797_mac *mac, int *status,
+ 	u8 bss[12], abort[4] = {1, 0, 0, 0};
+ 	int ret;
+ 
+ 	if (!mac->scan_active)
+ 		return false;
+ 	mac->scan_active = false;
+ 	/* Host elapsed time includes setup and delivery; it is not RF dwell. */
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+ 		 "one-shot passive WLAN timing: requested_ms=%u elapsed_us=%llu channels=%u\n",
+ 		 MT6797_PASSIVE_SCAN_DWELL_MS,
+ 		 (ktime_get_ns() - mac->scan_started_ns) / NSEC_PER_USEC,
+ 		 mac->scan_count);
+-#if IS_ENABLED(CONFIG_MT6797_SCAN_TUNING_SAMPLE)
++#if IS_ENABLED(CONFIG_MT6797_SCAN_RX_SAMPLE)
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+-		 "one-shot passive WLAN tuning summary: submitted=%u received=%u pending=%u atomic=0 rf_proven=0\n",
+-		 mac->tuning_submitted, mac->tuning_received, mac->tuning_pending);
++		 "one-shot passive WLAN early_rx summary: submitted=%u received=%u pending=%u atomic=0 rf_proven=0\n",
++		 mac->early_rx_submitted, mac->early_rx_received, mac->early_rx_pending);
+ #endif
+ 	if (cancel && !mac->first_error) {
+ 		ret = mt6797_mac_send(mac, MT6797_NORMAL_SCAN_CANCEL,
+ 				      abort, sizeof(abort));
+ 		if (ret)
+ 			*status = ret;
+ 	}
+ 	if (mac->bss_active && !mac->first_error) {
+ 		mt6797_scan_bss(mac->hw->wiphy->perm_addr, false, bss);
+ 		ret = mt6797_mac_send(mac, MT6797_NORMAL_BSS_ACTIVE,
+ 				      bss, sizeof(bss));
+ 		if (ret)
+@@ -232,42 +232,42 @@ static int mt6797_mac_scan_packet(struct mt6797_mac *mac, size_t bytes,
+ 	u8 *packet = mac->scan_packet;
+ 	u32 own;
+ 	unsigned int type;
+ 	int ret, slot;
+ 
+ 	if (bytes < 4)
+ 		return -EPROTO;
+ 	type = mt6797_normal_le16(packet + 2);
+ 	if (type == 0xe000) {
+ 		if (bytes < 8)
+ 			return -EPROTO;
+ 		switch (packet[4]) {
+-#if IS_ENABLED(CONFIG_MT6797_SCAN_TUNING_SAMPLE)
++#if IS_ENABLED(CONFIG_MT6797_SCAN_RX_SAMPLE)
+ 		case 5: {
+-			unsigned int value, index = mac->tuning_received;
++			unsigned int value, index = mac->early_rx_received;
+ 			u64 now = ktime_get_ns();
+ 
+-			if (!mac->tuning_pending || now >= mac->tuning_deadline)
++			if (!mac->early_rx_pending || now >= mac->early_rx_deadline)
+ 				return -EPROTO;
+-			ret = mt6797_scan_tuning_reply(packet, bytes, index % 2,
+-						       mac->tuning_sequence, &value);
++			ret = mt6797_scan_early_rx_reply(packet, bytes, index % 2,
++							 mac->early_rx_sequence, &value);
+ 			if (ret)
+ 				return ret;
+ 			dev_info(wiphy_dev(mac->hw->wiphy),
+-				 "one-shot passive WLAN tuning sample: sample=%u role=%u value=%u sent_us=%llu received_us=%llu post_done=%u\n",
++				 "one-shot passive WLAN early_rx sample: sample=%u role=%u value=%u sent_us=%llu received_us=%llu post_done=%u\n",
+ 				 index / 2, index % 2, value,
+-				 (mac->tuning_sent_ns - mac->scan_started_ns) / NSEC_PER_USEC,
++				 (mac->early_rx_sent_ns - mac->scan_started_ns) / NSEC_PER_USEC,
+ 				 (now - mac->scan_started_ns) / NSEC_PER_USEC, *done);
+-			mac->tuning_received++;
+-			mac->tuning_pending = false;
++			mac->early_rx_received++;
++			mac->early_rx_pending = false;
+ 			return 0;
+ 		}
+ #endif
+ 		case 0x0d:
+ 			dev_info(wiphy_dev(mac->hw->wiphy),
+ 				 "one-shot passive WLAN done header: len=%zu seq=%u payload_seq=%u\n",
+ 				 bytes, packet[5], bytes >= 9 ? packet[8] : 0);
+ 			ret = mt6797_scan_done(packet, bytes, 1, mac->scan_count);
+ 			if (ret == -EAGAIN)
+ 				return 0;
+ 			if (!ret) {
+ 				dev_info(wiphy_dev(mac->hw->wiphy),
+@@ -333,64 +333,65 @@ static void mt6797_mac_scan_work(struct work_struct *work)
+ 	struct cfg80211_scan_info info = {0};
+ 	u64 deadline, now;
+ 	unsigned int n, port;
+ 	bool done = false, notify = false, cancel = false;
+ 	int ret = 0;
+ 
+ 	mutex_lock(&mac->mutex);
+ 	if (!mac->scan_active)
+ 		goto out;
+ 	now = ktime_get_ns();
+ 	if (now >= mac->scan_deadline || ++mac->scan_polls > 256) {
+ 		ret = -ETIMEDOUT;
+-#if IS_ENABLED(CONFIG_MT6797_SCAN_TUNING_SAMPLE)
+-		if (mac->tuning_pending)
++#if IS_ENABLED(CONFIG_MT6797_SCAN_RX_SAMPLE)
++		if (mac->early_rx_pending)
+ 			goto failed;
+ #endif
+ 		cancel = true;
+ 		goto finish;
+ 	}
+-#if IS_ENABLED(CONFIG_MT6797_SCAN_TUNING_SAMPLE)
+-	if (mac->tuning_pending && now >= mac->tuning_deadline) {
++#if IS_ENABLED(CONFIG_MT6797_SCAN_RX_SAMPLE)
++	if (mac->early_rx_pending && now >= mac->early_rx_deadline) {
+ 		ret = -ETIMEDOUT;
+ 		goto failed;
+ 	}
+ #endif
+ 	deadline = min_t(u64, now + 100 * NSEC_PER_MSEC, mac->scan_deadline);
+-#if IS_ENABLED(CONFIG_MT6797_SCAN_TUNING_SAMPLE)
+-	if (mac->tuning_pending)
+-		deadline = min(deadline, mac->tuning_deadline);
++#if IS_ENABLED(CONFIG_MT6797_SCAN_RX_SAMPLE)
++	if (mac->early_rx_pending)
++		deadline = min(deadline, mac->early_rx_deadline);
+ #endif
+ 	ret = mt6797_mac_scan_guard(mac, deadline);
+ 	if (ret)
+ 		goto failed;
+-#if IS_ENABLED(CONFIG_MT6797_SCAN_TUNING_SAMPLE)
+-	if (!mac->tuning_pending && mac->tuning_submitted < 4 &&
++#if IS_ENABLED(CONFIG_MT6797_SCAN_RX_SAMPLE)
++	if (!mac->early_rx_pending && mac->early_rx_submitted < 4 &&
+ 	    now - mac->scan_started_ns >=
+-	    (mac->tuning_submitted < 2 ? 100 : 300) * NSEC_PER_MSEC) {
++	    (mac->early_rx_submitted < 2 ? 100 : 300) * NSEC_PER_MSEC) {
+ 		if (mac->sequence > 255) {
+ 			ret = -ENOSPC;
+ 			goto failed;
+ 		}
+-		mac->tuning_sequence = mac->sequence++;
+-		mac->tuning_sent_ns = ktime_get_ns();
+-		mac->tuning_deadline = min_t(u64, mac->scan_deadline,
+-					     mac->tuning_sent_ns + 100 * NSEC_PER_MSEC);
+-		ret = mt6797_hif_send_scan_tuning(mac->hif,
+-						  mac->tuning_submitted % 2, mac->tuning_sequence,
+-						  mac->tuning_deadline);
++		mac->early_rx_sequence = mac->sequence++;
++		mac->early_rx_sent_ns = ktime_get_ns();
++		mac->early_rx_deadline = min_t(u64, mac->scan_deadline,
++					       mac->early_rx_sent_ns + 100 * NSEC_PER_MSEC);
++		ret = mt6797_hif_send_scan_early_rx(mac->hif,
++						    mac->early_rx_submitted % 2,
++						    mac->early_rx_sequence,
++						    mac->early_rx_deadline);
+ 		if (ret)
+ 			goto failed;
+-		mac->tuning_submitted++;
+-		mac->tuning_pending = true;
++		mac->early_rx_submitted++;
++		mac->early_rx_pending = true;
+ 	}
+ #endif
+ 	/* Alternate ports, at most sixteen packets per tick and 4096 overall.
+ 	 * Finish this bounded tick after a done event so the other port is not
+ 	 * skipped. This is not an event-drain fence. Empty polls consume no RX.
+ 	 */
+ 	for (n = 0; n < 8; n++) {
+ 		bool received = false;
+ 
+ 		for (port = 0; port < 2; port++) {
+ 			ret = mt6797_hif_receive_packet(mac->hif, port, deadline,
+ 							mac->scan_packet,
+@@ -404,29 +405,29 @@ static void mt6797_mac_scan_work(struct work_struct *work)
+ 			if (++mac->scan_packets > 4096) {
+ 				ret = -E2BIG;
+ 				goto failed;
+ 			}
+ 			received = true;
+ 			ret = mt6797_mac_scan_packet(mac, rx.logical_bytes, deadline, &done);
+ 			if (ret)
+ 				goto failed;
+ 		}
+ 		if (!received)
+ 			break;
+ 	}
+-#if IS_ENABLED(CONFIG_MT6797_SCAN_TUNING_SAMPLE)
++#if IS_ENABLED(CONFIG_MT6797_SCAN_RX_SAMPLE)
+ 	/* A pending query gets only this existing bounded RX tick after DONE.
+ 	 * Do not extend the scan lifetime or submit any query after DONE.
+ 	 */
+-	if (mac->tuning_pending && (done || ktime_get_ns() >= mac->tuning_deadline)) {
++	if (mac->early_rx_pending && (done || ktime_get_ns() >= mac->early_rx_deadline)) {
+ 		ret = -ETIMEDOUT;
+ 		goto failed;
+ 	}
+ #endif
+ 	if (done)
+ 		goto finish;
+ 	schedule_delayed_work(&mac->scan_work, msecs_to_jiffies(20));
+ 	goto out;
+ failed:
+ 	/* Unknown wire state, failed read or lost ownership: no further I/O. */
+ 	mac->first_error = ret;
+ finish:
+@@ -607,25 +608,25 @@ static void mt6797_mac_remove_interface(struct ieee80211_hw *hw,
+ 	mutex_unlock(&mac->mutex);
+ #endif
+ }
+ 
+ static int mt6797_mac_config(struct ieee80211_hw *hw, int radio_idx, u32 changed)
+ {
+ #if IS_ENABLED(CONFIG_MT6797_PASSIVE_SCAN)
+ 	struct mt6797_mac *mac = hw->priv;
+ 	int ret = 0;
+ 
+ 	mutex_lock(&mac->mutex);
+ 	/* No operating channel or host TX is established by this scan-only
+-	 * interface. Firmware owns tuning only during the admitted hw_scan.
++	 * interface. Firmware owns early_rx only during the admitted hw_scan.
+ 	 */
+ 	if (!mac->scan_ready || mac->first_error || mac->closing || radio_idx ||
+ 	    (hw->conf.flags & (IEEE80211_CONF_PS | IEEE80211_CONF_MONITOR)))
+ 		ret = -EOPNOTSUPP;
+ 	mutex_unlock(&mac->mutex);
+ 	return ret;
+ #else
+ 	return -EOPNOTSUPP;
+ #endif
+ }
+ 
+ static int mt6797_mac_sta_state(struct ieee80211_hw *hw,
+diff --git a/drivers/net/wireless/mediatek/mt6797/normal_command.h b/drivers/net/wireless/mediatek/mt6797/normal_command.h
+index 4c43e99..85a0217 100644
+--- a/drivers/net/wireless/mediatek/mt6797/normal_command.h
++++ b/drivers/net/wireless/mediatek/mt6797/normal_command.h
+@@ -219,39 +219,40 @@ mt6797_normal_prepare(struct mt6797_normal_transaction *t,
+ 		if (t->phase != MT6797_NORMAL_CAP_RECEIVED)
+ 			return mt6797_normal_abort(t);
+ 		if (!payload || payload_bytes != 512)
+ 			return -EINVAL;
+ 		return mt6797_normal_encode(t, 0x48, 1, sequence,
+ 			payload, payload_bytes, MT6797_NORMAL_NVRAM_BYTES,
+ 			MT6797_NORMAL_NVRAM_TX, output, capacity, command);
+ 	}
+ 	return -EINVAL;
+ }
+ 
+ /* Read-only scan diagnostic: exactly two ordinary firmware RAM words.
+- * Role 0 is the completed tuning band cache; role 1 contains requested channel
+- * metadata. No hardware, special command prefix or arbitrary address is admitted.
++ * Role 0 includes the probe-response byte at bits 31:24; role 1 includes
++ * the beacon byte at bits 7:0. Other packed bytes are not interpreted here.
++ * No hardware, special command prefix or arbitrary address is admitted.
+  */
+-static inline unsigned int mt6797_scan_tuning_address(unsigned int role)
++static inline unsigned int mt6797_scan_early_rx_address(unsigned int role)
+ {
+-	return role == 0 ? 0xf006c040U : role == 1 ? 0xf006bf7cU : 0;
++	return role == 0 ? 0xf006bf38U : role == 1 ? 0xf006bf3cU : 0;
+ }
+ 
+ static inline int
+-mt6797_normal_prepare_scan_tuning(struct mt6797_normal_transaction *t,
+-				  unsigned int role, unsigned int sequence,
+-				  unsigned char *output, size_t capacity,
+-				  struct mt6797_hif_command *command)
++mt6797_normal_prepare_scan_early_rx(struct mt6797_normal_transaction *t,
++				    unsigned int role, unsigned int sequence,
++				    unsigned char *output, size_t capacity,
++				    struct mt6797_hif_command *command)
+ {
+-	unsigned int address = mt6797_scan_tuning_address(role);
++	unsigned int address = mt6797_scan_early_rx_address(role);
+ 	unsigned char payload[8] = {0};
+ 	int error;
+ 
+ 	if (!t || !command || !output)
+ 		return -EINVAL;
+ 	*command = (struct mt6797_hif_command){0};
+ 	if (!address)
+ 		return -EINVAL;
+ 	if (t->phase != MT6797_NORMAL_NVRAM_SUBMITTED)
+ 		return mt6797_normal_abort(t);
+ 	payload[0] = (unsigned char)address;
+ 	payload[1] = (unsigned char)(address >> 8);
+@@ -259,29 +260,29 @@ mt6797_normal_prepare_scan_tuning(struct mt6797_normal_transaction *t,
+ 	payload[3] = (unsigned char)(address >> 24);
+ 	error = mt6797_normal_encode(t, 0xc0, 0, sequence, payload, 8, 16,
+ 				     MT6797_NORMAL_CONFIG_TX, output, capacity, command);
+ 	if (!error)
+ 		t->config_return_phase = MT6797_NORMAL_NVRAM_SUBMITTED;
+ 	return error;
+ }
+ 
+ /* Caller owns the single outstanding query and retires it on any error.
+  * Matching a reply does not refund TC4 credit or authorize another lifetime.
+  */
+ static inline int
+-mt6797_scan_tuning_reply(const unsigned char *packet, size_t bytes,
+-			 unsigned int role, unsigned int sequence,
+-			 unsigned int *value)
++mt6797_scan_early_rx_reply(const unsigned char *packet, size_t bytes,
++			   unsigned int role, unsigned int sequence,
++			   unsigned int *value)
+ {
+-	unsigned int address = mt6797_scan_tuning_address(role);
++	unsigned int address = mt6797_scan_early_rx_address(role);
+ 	unsigned int reflected;
+ 
+ 	if (!packet || !value || !address || sequence > 255)
+ 		return -EINVAL;
+ 	*value = 0;
+ 	if (bytes != 16 || mt6797_normal_le16(packet) != 16 ||
+ 	    mt6797_normal_le16(packet + 2) != 0xe000 || packet[4] != 5 ||
+ 	    packet[5] != sequence)
+ 		return -EPROTO;
+ 	reflected = (unsigned int)packet[8] | ((unsigned int)packet[9] << 8) |
+ 		((unsigned int)packet[10] << 16) | ((unsigned int)packet[11] << 24);
+ 	if (reflected != address)
+-- 
+2.54.0 (Apple Git-157)
+
