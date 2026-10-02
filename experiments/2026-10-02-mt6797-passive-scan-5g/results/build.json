@@ -1,0 +1,27 @@
+{
+  "status": "Buildbox-package-and-offline-candidate-validated",
+  "repository_commit": "dfa7ad35f4664416bfb1900633c3f2a1c0b80023",
+  "profile": "mt6797-a53-wifi-passive-scan-5g",
+  "kernel_release": "7.1.3-gemini-a53-wifi-passive-scan-5g",
+  "package_inventory_sha256": "39e5495ab3041a033a900fcfb047024c8464508da32c2d18c543852489760bc7",
+  "source_sha256": "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc",
+  "patchset_sha256": "20ff09fd4dcc38f263ecda3e55e4f67ec65c980c24942e7ce7779d9ff178a353",
+  "image_gzip_sha256": "6c7f341e9ec5e59ea3cde424f490346874cb964eee3559614f33c95816f3a017",
+  "config_sha256": "299d3c0cf78ba0d569c2ee28c0937d3db5c6b4e58f291b62ad19e3a97f238023",
+  "booted_board_dtb_sha256": "cef9373ea3aa0e1a8a45a13b953ae95e48939b211e41a73052543be784ee3214",
+  "compiled_board_dtb_sha256": "5abe5d14ddb424c5939e7ac6f6303210774f85e6be1413f2730f31804df046ca",
+  "private_initramfs_sha256": "fe009b4193c25d8f3ac0d4755c7e2c2754ee077e555156152f0b4de740291178",
+  "candidate_manifest_sha256": "22379cc6153f7735780361689d62bc5ae80a1ef4815c42bf84f1fba71b8bed3c",
+  "candidate_boot2_sha256": "1bc49b93cc399262b2347d930802eea160c8e3ade0c2afb1f561acf781665b63",
+  "prepared_sources": {
+    "mac.c": "b54a5e30f791ffd81141d0c7bdec456362a0519f4b09475bdf30ed2d10c85f61",
+    "regulatory-encode.h": "b148e80e07ab436c40a4d6349ca6489ae2ad69a563f2af82dd533953cbee2d92",
+    "scan-wire.h": "b6e9521a048c7df0fc9d85717fb94b5aa2f5ff5e9c7e34a2a11a917b34fa84bf",
+    "fixed-channels.h": "77d0b68b865520864e12fd93e7066e5a87846814681a4e516d78ab236666c0af",
+    "normal_command.h": "b9602d88ceb37ed84d734e5c17e89f6920e22e488ec253d5dbf45ab7248243d1"
+  },
+  "prepared_source_validation": "Individual prepared Buildbox file hashes match the locally tested headers and MAC source. Actual MAC compile passed. Strict host C11/ASan/UBSan fixtures passed.",
+  "build_diagnostics": "One existing kernel/cpu.c unused-function warning and a historical patch whitespace warning; no new MT6797 MAC compile diagnostic.",
+  "device_tree_change": "none; candidate reuses the previously booted board DTB",
+  "device_action": "none"
+}

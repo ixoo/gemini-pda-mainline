@@ -93,4 +93,33 @@ checkpatch reports zero errors/checks on both patches, zero warnings on 0076
 and one new-file MAINTAINERS reminder on 0077. Optional spelling/const lists
 were unavailable. No new upstream maintainer claim is made.
 
-Kernel compilation, candidate/deployment and hardware result are pending.
+The [clean pushed Buildbox build](results/build.json) and [offline candidate](results/candidate.json)
+pass. The compiled DTB matches its predecessor; the boot image keeps the exact
+previously booted DTB. The [preflight receipt](results/preflight.json) binds the
+59-member RAM root, private source identities, rendered installer and session
+closure. Its synthetic deployment fixture tests dependencies only. The actual
+live deployment receipt and post-install capture/host preflights remain pending.
+No hardware reception claim follows from these checks.
+
+The [candidate builder](build-candidate.py) validates the exact clean build,
+previous scan candidate, release-only RAM change, existing ELF hashes, boot
+container and full-partition padding. The small [retarget adapter](retarget-initramfs.py)
+reuses the pinned parent transform; its second output matches byte for byte.
+The [installer adapter](install-passive.py) retains the reviewed GPT/device
+identity guard, exact predecessor, inactive/unmounted checks, stable power,
+full readback, no fresh backup and clean shutdown. Fresh ignored paths use
+`artifacts/passive-scan-5g/installer-1`, `capture-1` and `session-1`.
+
+The [capture adapter](capture-private.py), [session adapter](passive-session.py)
+and [host runner](passive-host.py) reuse the existing finite WMT/START,
+provider/A53, log export and reviewed recovery paths. The [scan command](passive-scan.sh)
+queries host cfg80211 state once and refuses a missing, duplicate or disabled
+5200 MHz channel before interface creation. It preserves that wiphy output
+privately and sends one ordinary passive scan. Its result classifier requires
+a permitted channel 40 and an actual BSS block with an admitted 5 GHz frequency
+before reporting this band's scan demonstration. The focused
+[classification fixture](tests/userspace-result-test.py) passes absent/disabled
+band, 2.4 GHz-only BSS, missing BSS and failed/incomplete transport cases without
+credentials or device access.
+
+Deployment and hardware result are pending.
