@@ -25,6 +25,6 @@
   "changed_ram_root_members": [
     "init"
   ],
-  "exact_capture_and_host_preflight_after_deployment": "pending-real-deployment-receipt",
+  "exact_capture_and_host_preflight_after_deployment": "passed",
   "device_action": "none"
 }

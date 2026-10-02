@@ -371,9 +371,10 @@ for the first Wi-Fi bring-up. The current preparation order is:
    and one CONSYS-bound mac80211 wiphy after capability, bounded debug drain
    and private-record preparation. The [counter probe](../experiments/2026-10-01-mt6797-tx-status/results/runtime-1.json)
    stopped before configuration. The [header successor](../experiments/2026-10-01-mt6797-tx-status-header/results/runtime-1.json)
-   identified an unsolicited sleepy notification. Admit its exact source-defined
-   layout while retaining active host ownership, verify that ownership before
-   continuing, and then obtain the post-configuration page-counter witness.
+   identified an unsolicited sleepy notification. The [boot-sleepy successor](../experiments/2026-10-01-mt6797-boot-sleepy/results/runtime-1.json)
+   now admits its exact layout, retains driver ownership, completes configuration
+   and witnesses consumable post-configuration TC4/free-pool counters. Implement
+   bounded source-derived reconciliation of the retained normal credit ledger.
    Implement receive/event ownership, credit recycling and the packet lifetime,
    then demonstrate a standard station
    interface, scan, association and bounded traffic. Submission status alone

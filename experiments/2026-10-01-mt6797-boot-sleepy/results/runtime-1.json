@@ -1,0 +1,38 @@
+{
+  "status": "boot-sleepy-accepted-configuration-and-counter-witness",
+  "candidate_boot2_sha256": "6db2d056819007896852bc66cb697dee92fe2d2ebef66814b8712ef1f07faee0",
+  "kernel_release": "7.1.3-gemini-a53-wifi-boot-sleepy",
+  "mainline_boot_id": "bc6335e1-208e-4941-8a70-d903eb5b5237",
+  "complete_private_log_sha256": "e3051ab6394da0c56abd3d8b68bd88b66e1d7550618e3859a408d732ab615103",
+  "complete_private_log_bytes": 141448,
+  "fatal_marker_count": 0,
+  "capability_query_status": 0,
+  "boot_receive_metadata_complete": true,
+  "boot_drain": {
+    "count": 3,
+    "debug": 2,
+    "post_wrplr": 0,
+    "sleepy": 1,
+    "status": 0
+  },
+  "sleepy_notice_records": 1,
+  "decoded_notice_admitted": true,
+  "driver_ownership_retained": true,
+  "private_record_prepare_status": 0,
+  "regulatory_configuration_status": 0,
+  "tx_status_snapshots_complete": true,
+  "counter_consumption_witness": true,
+  "post_tc4_ffa_observed": true,
+  "credit_refill_enabled": false,
+  "wiphy_registered": true,
+  "radio_or_dma_enabled": false,
+  "a53_ram_service_regression": true,
+  "provider_registered": true,
+  "reviewed_recovery_confirmed": true,
+  "returned_gemian_boot_id": "634a5477-e743-4626-a9aa-d10de30d5484",
+  "independent_return": {
+    "kernel_release": "3.18.41+",
+    "wlan0_carrier": 1
+  },
+  "wifi_operational": false
+}

@@ -63,5 +63,21 @@ No DCO certification or upstream submission readiness is claimed. The [clean pus
 [offline tooling/session preflight](results/preflight.json) passed. The actual
 prepared-source fixture also passed with sanitizers on Buildbox. Six Python
 AST checks, decoded-notice classification fixtures, installer shell syntax
-and ShellCheck, and the read-only wiphy query checks passed. No device test
-has run for this candidate.
+and ShellCheck, and the read-only wiphy query checks passed. The [guarded boot2 deployment](results/deployment-1.json)
+passed full-partition readback and clean shutdown. Capture and recovery
+preflight passed against that real receipt.
+
+## Runtime result
+
+The [one admitted boot](results/runtime-1.json) handled one exact sleepy notice
+under retained driver ownership after two debug events, completed configuration
+with status zero and registered one CONSYS-bound wiphy. All three status
+snapshots were complete. The first post-configuration snapshot contained only
+TC4/free-pool returned-page deltas; the immediate second read was zero. Raw
+state, ownership words and counter arrays remain private. This is a witnessed
+consumable-counter boundary, not implemented credit recycling or proof of
+configuration application. A53 regression and reviewed recovery passed; an
+independent changed-boot Gemian check confirmed Wi-Fi carrier. This candidate
+has consumed its boot budget. Next implement bounded, source-derived credit
+reconciliation, then receive/event and station packet lifetimes. No interface,
+scan, association or traffic is yet demonstrated.
