@@ -1,7 +1,8 @@
 # MT6797 early receive statistic samples
 
-Status: isolated source diagnostic prepared; no runtime candidate or hardware
-result yet. This is a measurement toward receive support, not working Wi-Fi.
+Status: Buildbox package, private candidate and offline preflight validated;
+guarded installation and hardware observation remain. No hardware result yet.
+This is a measurement toward receive support, not working Wi-Fi.
 
 The [tuning sample](../2026-10-02-mt6797-scan-tuning-sample/results/runtime-1.json)
 matched channel software state while the ordinary scan counter and host BSS
@@ -77,3 +78,21 @@ nonzero nor changed bytes set a receive-proof flag. Strict resulting-Kconfig
 checking passes; the patch
 check needs a documented config-description parser exclusion. Synthetic archive
 authorship supplies no DCO certification; this is not submission-ready.
+
+## Build and candidate
+
+The [build receipt](results/build.json) binds the clean pushed source commit,
+validated package and six independently matched Buildbox source files. The
+[candidate receipt](results/candidate.json) binds the existing proven booted DT,
+unchanged firmware/private record/userspace, release-only RAM-root transform and
+exact 16 MiB boot2 padding. Physical admission remains false. Runtime wrappers
+are retargeted to this manifest and release, with the standalone classifier's
+source hash pinned. Complete their offline preflight and installer review before
+any device write, then record the actual guarded deployment separately.
+
+The [offline preflight](results/preflight.json) validates the private record,
+authentication, reviewed recovery binary and generated installer. The published
+RAM-root transform reproduces byte-identical bytes. Full capture/host preparation
+remains pending actual deployment evidence and private session setup. No fake
+receipt was supplied. The offline installer must be regenerated against fresh
+live Gemian identity before execution.

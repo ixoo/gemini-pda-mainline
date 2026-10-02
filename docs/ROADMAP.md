@@ -401,8 +401,11 @@ for the first Wi-Fi bring-up. The current preparation order is:
    Probe-response metadata and the pinned vendor passive-support setting leave
    actual passive equivalence unverified; its associated state and default dwell
    differ. Do not infer mainline beacon reception or add probe transmission from
-   this reference. Establish an earlier receive observation and retain the
-   counter's processing gates as alternatives to radio silence.
+   this reference. The [early-receive diagnostic](../experiments/2026-10-02-mt6797-scan-rx-sample/README.md)
+   now has a validated build, candidate and offline preflight for four read-only
+   samples of two fixed earlier statistic words. Installation and hardware
+   observation remain. Byte wrap, resets and later processing gates remain
+   alternatives to radio silence; no receive proof follows from this preparation.
    Do not repeat the consumed lifetimes. Establish management
    reception, then continue runtime receive/event ownership,
    credit recycling and packet lifetime toward association and bounded traffic.

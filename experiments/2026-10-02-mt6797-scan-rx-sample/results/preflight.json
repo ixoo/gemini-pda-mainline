@@ -1,0 +1,39 @@
+{
+  "status": "offline-candidate-installer-authentication-and-recovery-preflight-passed",
+  "candidate_manifest_sha256": "edb7a480a4352b3cf65a2cbc5cc42603670517ac5c98228f4689d7762fa7e6a1",
+  "candidate_boot2_sha256": "4a9499f1861dbc899edb7ebcdf54cf08e8c52a727794870469f13f686397385a",
+  "kernel_build_commit": "47adc14bd05ace720c174a7d2e9a70d27ca7dee4",
+  "candidate_composition_validated": true,
+  "published_ram_transform_reproduced": true,
+  "installer_validate_and_prepare_pass": true,
+  "generated_installer_bash_and_shellcheck_pass": true,
+  "passive_scan_bash_and_shellcheck_pass": true,
+  "early_rx_classifier_pass": true,
+  "offline_generated_installer_sha256": "5cb4fbbb5b41121fa974e2827fc18b02f243da949e132501984c2265692df848",
+  "offline_installer_reference_gemian_boot": "3d12a7db-182c-42a8-a599-93e6cf939f84",
+  "boot2_guard_sha256": "0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf",
+  "source_sha256": {
+    "build-candidate.py": "5b8969aba50a3b5cbb13968ca8d5f9c53d8f5495b3a00bd618c6cda373ab7f02",
+    "retarget-initramfs.py": "3385dc16ef6844abfa29c06b275659432da6e433bd60f9dc3b24e4de85906b02",
+    "install-passive.py": "507193adb18d26768396a8b8fc7bdd26058b9c6760ef9329b86b2ff1e0babd67",
+    "capture-private.py": "7312c08c9d889f308954927645549fd5e9911dffc00ba46c66aacf928871b06c",
+    "passive-host.py": "5f6a7e3a7b36a386d23d8551ba612886288d2615a097cd4b6976b858ec81f4c5",
+    "passive-session.py": "9d2e6bcea248b6dbdc0af4f154016750defab8c2e8ea3354cf5436e962935870",
+    "passive-scan.sh": "3f3d719ecbfbf99867a7ee830084635a00eea2606b30b01e5ee2d766d9264112",
+    "early-rx-result.py": "94c5afc8ed1ec6f2e9c764ecd3ab2e9b98a9f3e2027dd06cbfb754beed8c6b36"
+  },
+  "deployment_performed": false,
+  "firmware_start_consumed": false,
+  "scan_consumed": false,
+  "limitation": "The generated installer is an offline reference bound to the last verified Gemian boot. Obtain fresh live identity and regenerate before execution. No placeholder deployment receipt was supplied to capture or host preparation.",
+  "next_action": "Fresh Gemian identity, reviewed guarded logical boot2 installation and full readback; clean shutdown and owner physical selection of the exact early-receive candidate.",
+  "candidate_source_and_private_record_pins_validated": true,
+  "private_authentication_matches_candidate": true,
+  "reviewed_recovery_binary_matches_candidate": true,
+  "predeployment_runners_refused_without_session_receipt": {
+    "capture-private.py": "FileNotFoundError",
+    "passive-host.py": "ValueError"
+  },
+  "full_deployed_capture_and_host_preflight": "pending actual verified deployment receipt and private session setup",
+  "device_action": "none"
+}
