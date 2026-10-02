@@ -1,0 +1,19 @@
+{
+  "status": "offline-candidate-installer-session-preflight-passed",
+  "candidate_manifest_sha256": "fb791cb2e3ad41d2e2407c219fdac9ed64e29a2838cfadb6119cec32a313c603",
+  "candidate_boot2_sha256": "54953d9011be46f347755917c0bf48ea4aee46df5860edfdf471237f9a805187",
+  "generated_installer_sha256": "96716fe48d918c56952a73d85f1f708796d09f011a19928f66d6a16305d927c3",
+  "python_AST_files": 6,
+  "tc4_classifier": "valid-staggered-pair-14-refusals-and-zero-not-positive-passed",
+  "generated_installer_bash_syntax": "passed",
+  "generated_installer_shellcheck": "passed",
+  "wiphy_query_sh_syntax": "passed",
+  "wiphy_query_shellcheck": "passed",
+  "a53_candidate_and_reviewed_recovery_dependencies": "passed",
+  "private_ram_root_members": 53,
+  "changed_ram_root_members": [
+    "init"
+  ],
+  "exact_capture_and_host_preflight_after_deployment": "pending-real-deployment-receipt",
+  "device_action": "none"
+}

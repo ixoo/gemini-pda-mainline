@@ -1,0 +1,21 @@
+{
+  "status": "Buildbox-package-and-offline-candidate-validated",
+  "repository_commit": "5b1e2c88ac3751a92cbb083dd428499422ada09d",
+  "profile": "mt6797-a53-wifi-tc4-reconcile",
+  "kernel_release": "7.1.3-gemini-a53-wifi-tc4-reconcile",
+  "package_inventory_sha256": "45f442cff5d638d9333016ef623e0e27605370e960a67f7769be77030b30a82b",
+  "source_sha256": "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc",
+  "image_gzip_sha256": "a8c9c9fa0177805525b651cf0d799b164f0550297036f6b3b3306add470d9075",
+  "config_sha256": "19595b6f8e6e1f7e8fe7d78916b4d88fe2658f7397dbd39b18806126b48f39e9",
+  "booted_board_dtb_sha256": "cef9373ea3aa0e1a8a45a13b953ae95e48939b211e41a73052543be784ee3214",
+  "compiled_board_dtb_sha256": "5abe5d14ddb424c5939e7ac6f6303210774f85e6be1413f2730f31804df046ca",
+  "private_initramfs_sha256": "3607de75fdcd15f8ff723b122f72e5244ea07e6ea176b26ce89e55c33aef2976",
+  "candidate_manifest_sha256": "fb791cb2e3ad41d2e2407c219fdac9ed64e29a2838cfadb6119cec32a313c603",
+  "candidate_boot2_sha256": "54953d9011be46f347755917c0bf48ea4aee46df5860edfdf471237f9a805187",
+  "prepared_hif_source_sha256": "c84ce8d98a3b120c2f863eaf4631065f482fd81d25aac8d046560d82e9bde6c7",
+  "prepared_normal_command_source_sha256": "c0514827de0d348d4a112c5f6b7c5a7d3cc889f360059a5a2ae72883ca77b716",
+  "prepared_consys_source_sha256": "fa414292729fd33b81a6750f95db2437636a660cc99703704370bc30fe559413",
+  "actual_prepared_source_fixture_sanitizers": "passed-local-and-Buildbox",
+  "historical_observation_only_fixture": "passed-unchanged-local-and-Buildbox",
+  "device_action": "none"
+}

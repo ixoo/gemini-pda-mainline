@@ -82,5 +82,13 @@ the linked existing shim. Use a managed temporary output and remove it afterward
 These callbacks do not emulate hardware bus exceptions or firmware timing.
 Linux 7.1.3 checkpatch reports zero errors/warnings with `--no-tree --no-signoff`;
 optional spelling and const lists were unavailable. No synthetic DCO sign-off
-or upstream submission readiness is claimed. Buildbox, candidate and device
-validation are pending.
+or upstream submission readiness is claimed. The [clean pushed Buildbox build](results/build.json),
+[candidate validation](results/candidate.json) and [offline tooling/session preflight](results/preflight.json)
+passed. Both fixtures also passed against the actual prepared source on Buildbox.
+No device test has run for this candidate.
+
+Set `GEMINI_PRIVATE_REPO` to the checkout holding ignored private artifacts for
+installer preparation and session tools. The first offline installer generation
+failed before output because that caller setting was missing; supplying it
+produced the validated installer. The exact capture/host preflight remains
+pending a real deployment receipt.
