@@ -1,6 +1,7 @@
 # MT6797 passive scan tuning samples
 
-Status: source diagnostic drafted; no build, candidate or hardware result yet.
+Status: clean pushed source built and package/candidate validated; no installation
+or hardware result yet.
 
 The [consumed counter scan](../2026-10-02-mt6797-passive-scan-count/results/runtime-1.json)
 reported zero firmware management-processing count and no host frame or BSS.
@@ -61,5 +62,20 @@ changed-boot Gemian. A source analysis or successful build is not hardware suppo
 
 The focused wire test checks the two-address whitelist, query flag, packet
 extents, fresh sequence history, command-credit debit with no reply refund,
-transport failure, wrong address/sequence/event and truncated replies. Kernel
-compilation and lifecycle review remain required before candidate admission.
+transport failure, wrong address/sequence/event and truncated replies. The kernel
+compiled without a changed Wi-Fi diagnostic. Lifecycle review verified fresh
+shared sequences, one outstanding query, four-query limit, deadline checks
+before subsequent I/O, terminal failure and no polling extension after DONE.
+All 263 existing profile inputs are preserved and all 264 series are canonical.
+
+The [build receipt](results/build.json) records the clean Buildbox inputs and
+independently matched compiled source. The [candidate receipt](results/candidate.json)
+binds the proven booted board DT, unchanged firmware/private record/userspace,
+release-only RAM-root transform and exact 16 MiB padding. The runtime classifier
+rejects missing, duplicate, late, malformed and post-DONE samples as incomplete
+diagnostic evidence; it never converts matching software state into RF proof.
+
+The [offline preflight](results/preflight.json) validates the candidate, pinned
+private record, authentication, reviewed recovery binary and generated installer.
+Capture and host execution still require actual verified deployment evidence.
+The reference installer must be regenerated against fresh live Gemian identity.

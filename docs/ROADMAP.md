@@ -390,9 +390,12 @@ for the first Wi-Fi bring-up. The current preparation order is:
    remain unverified. The [firmware-counter observation](../experiments/2026-10-02-mt6797-passive-scan-count/results/runtime-1.json)
    completed with version 3 management count zero and no host frame or BSS.
    Prioritize channel setup and receive paths before that firmware processing
-   point; zero does not prove radio silence or a filter cause. Define a new
-   discriminator from the selected Gemian/retained-firmware contract before
-   another scan; do not repeat these consumed lifetimes. Establish management
+   point; zero does not prove radio silence or a filter cause. The
+   [tuning-sample diagnostic](../experiments/2026-10-02-mt6797-scan-tuning-sample/README.md)
+   defines four read-only samples of two fixed firmware RAM words to distinguish
+   channel software state from an earlier receive failure. Its candidate is
+   built and validated but untested; matching state will not prove RF tuning.
+   Do not repeat the consumed lifetimes. Establish management
    reception, then continue runtime receive/event ownership,
    credit recycling and packet lifetime toward association and bounded traffic.
    Submission status alone

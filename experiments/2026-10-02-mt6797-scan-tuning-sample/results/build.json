@@ -1,0 +1,40 @@
+{
+  "repository_commit": "514bba8f3857c14ac9e5b7277630260147596b63",
+  "repository_dirty": false,
+  "kernel_release": "7.1.3-gemini-a53-wifi-scan-tuning-sample",
+  "build_profile": "mt6797-a53-wifi-scan-tuning-sample",
+  "source_sha256": "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc",
+  "patchset_sha256": "7d518148b7d497a7606915e68706097b3e85ddc8b077582dbf553e7a67ec5829",
+  "config_sha256": "e5ed771226c3d8f0baafd950366f6cba209ff49f8abb6a654f803bb2d0b948b4",
+  "compiler": "aarch64-linux-gnu-gcc (Debian 12.2.0-14) 12.2.0",
+  "compiler_full_version": "12.2.0",
+  "compiler_target": "aarch64-linux-gnu",
+  "compiler_sha256": "c7b8890354c8ddc0364addfeb8968597e197627bd1e338fb6ed705b578803846",
+  "linker": "GNU ld (GNU Binutils for Debian) 2.40",
+  "linker_sha256": "e09a889c78a75e73ed096c9fa28905599e6813298b9ac839d10b02ffa96e7b08",
+  "status": "buildbox-compile-and-package-validation-passed",
+  "package_inventory_sha256": "99c0b85382273a038c69e020492b20a2ae0767e0931f45afc102c3b50e978ba9",
+  "image_gzip_sha256": "7cfa75dd2370512cca23faf4c807e9c7ca0f9ec8d316ce700daafa299632d825",
+  "compiled_board_dtb_sha256": "5abe5d14ddb424c5939e7ac6f6303210774f85e6be1413f2730f31804df046ca",
+  "hardware_test": false,
+  "compiled_source_sha256": {
+    "Kconfig": "3761b9e8e216218903e0a7b6c9f1e4a8c8e5be5d6178a4176ac40d07c534e22e",
+    "hif.c": "dd034902ec9b0b2412d19896e6e9185cd62e02c2c8f8c30b4c832d406610b659",
+    "hif.h": "0d1e9ec0174c00c34820822388c5c34090063203f029495e39fe2888d11a0675",
+    "mac.c": "cc59f791b03537480de3a9107731b55c0467073f86a44a271b3bb990a89fab30",
+    "normal_command.h": "8c19e1470d40547c77d3a78da9d9eb9ea67b9f65b80cda47c8f8f4499c5b866a",
+    "scan-wire.h": "bd1af70733011e505fbd95342b0194f7ba2cbb0ae5224580a9abe12f3c21d94c"
+  },
+  "validation": {
+    "checkpatch_errors": 0,
+    "checkpatch_warnings": 0,
+    "checkpatch_checks": 0,
+    "checkpatch_signoff_check": "excluded: synthetic non-certifying archive",
+    "all_profiles_checked": 264,
+    "existing_profiles_preserved": 263,
+    "repository_checks_pass": true,
+    "focused_wire_tests_pass": true,
+    "tuning_classifier_tests_pass": true
+  },
+  "build_diagnostics": "Historical patch whitespace and unused CPU-helper warnings; no changed HIF or MAC diagnostic."
+}
