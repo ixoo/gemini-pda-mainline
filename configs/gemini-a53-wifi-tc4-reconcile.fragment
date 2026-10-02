@@ -1,0 +1,9 @@
+# Reconcile only the sole normal TC4 owner from the existing counter pair.
+# Require a zero baseline; retain CPU/FFA deltas separately within the debit.
+# No extra HIF read, IRQ enable, radio command, interface or packet DMA.
+CONFIG_LOCALVERSION="-gemini-a53-wifi-tc4-reconcile"
+CONFIG_CFG80211=y
+CONFIG_MAC80211=y
+CONFIG_MT6797_MAC80211=y
+CONFIG_MT6797_HIF_TX_STATUS_PROBE=y
+CONFIG_MT6797_HIF_TC4_RECONCILE=y

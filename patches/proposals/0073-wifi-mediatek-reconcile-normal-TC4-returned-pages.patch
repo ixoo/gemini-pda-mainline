@@ -1,0 +1,311 @@
+From dc341cd989aee0a3f41a64cd2b179beb8457064d Mon Sep 17 00:00:00 2001
+From: "Codex (synthetic experiment author)" <codex-experiment@invalid.example>
+Date: Thu, 1 Oct 2026 20:48:22 -0400
+Subject: [PATCH] wifi: mediatek: reconcile exclusive normal TC4 returned pages
+
+The boot-sleepy candidate witnessed independently arriving CPU and
+free-pool returned pages and their read consumption. Retain both pending
+counts and return only their minimum within the outstanding normal debit.
+
+Use the existing pre-normal and post-record acquisition budgets, requiring
+a zero baseline. Validate a shadow ledger for the complete serialized pair
+before committing any refund. Refuse foreign queues, over-release or
+partial acquisition. Preserve observation-only profiles and keep the new
+integration default off; no new I/O, IRQ, RF or packet operation is added.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig  | 11 ++++
+ drivers/net/wireless/mediatek/mt6797/hif.c    | 60 ++++++++++++++++++-
+ drivers/net/wireless/mediatek/mt6797/hif.h    | 11 ++++
+ .../wireless/mediatek/mt6797/normal_command.h | 55 ++++++++++++++++-
+ drivers/soc/mediatek/mt6797-consys.c          | 19 +++++-
+ 5 files changed, 149 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index 1d51110..a1ed30c 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -29,3 +29,14 @@ config MT6797_HIF_TX_STATUS_PROBE
+ 	  commands and twice after configuration, with no intervening commands.
+ 	  These reads may consume hardware status. No credit refund, IRQ enable,
+ 	  radio request or packet DMA is performed. Experimental diagnostic only.
++
++config MT6797_HIF_TC4_RECONCILE
++	bool "MT6797 bounded normal TC4 credit reconciliation"
++	depends on MT6797_HIF_TX_STATUS_PROBE
++	default n
++	help
++	  Require a zero returned-page baseline and reconcile the complete
++	  post-configuration counter pair against the sole normal TC4 ledger.
++	  Retain separate CPU and free-pool pending counts, refunding only their
++	  minimum within the outstanding debit. No extra completion estimate,
++	  IRQ enable, radio request or packet DMA is performed.
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 9c4fad8..6f0b70e 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -36,6 +36,7 @@ struct mt6797_hif {
+ 	bool capability_complete;
+ 	bool tx_status_boot_attempted;
+ 	bool tx_status_normal_attempted;
++	bool tx_status_accounting_baseline;
+ 	bool port0_reported;
+ 	bool port0_attempted;
+ 	int first_error;
+@@ -329,16 +330,20 @@ out:
+ 	return error;
+ }
+ 
+-int mt6797_hif_observe_tx_status(struct mt6797_hif *hif, u64 deadline_ns,
+-				 unsigned int count,
+-				 struct mt6797_hif_tx_status *status)
++static int mt6797_hif_tx_status(struct mt6797_hif *hif, u64 deadline_ns,
++				unsigned int count,
++				struct mt6797_hif_tx_status *status,
++				struct mt6797_normal_release *account)
+ {
++	struct mt6797_normal_transaction reconciled;
+ 	unsigned int n, i;
+ 	int error;
+ 
+ 	if (!status || !count || count > 2)
+ 		return -EINVAL;
+ 	memset(status, 0, count * sizeof(*status));
++	if (account)
++		memset(account, 0, count * sizeof(*account));
+ 	if (!hif)
+ 		return -EINVAL;
+ 	if (!mutex_trylock(&hif->mutex))
+@@ -356,6 +361,10 @@ int mt6797_hif_observe_tx_status(struct mt6797_hif *hif, u64 deadline_ns,
+ 		   hif->tx_status_boot_attempted && hif->capability_complete &&
+ 		   !hif->tx_status_normal_attempted) {
+ 		hif->tx_status_normal_attempted = true;
++		if (account && !hif->tx_status_accounting_baseline) {
++			error = -EIO;
++			goto poison;
++		}
+ 	} else {
+ 		error = -EIO;
+ 		goto unlock;
+@@ -363,6 +372,7 @@ int mt6797_hif_observe_tx_status(struct mt6797_hif *hif, u64 deadline_ns,
+ 	error = mt6797_hif_enter(hif, deadline_ns);
+ 	if (error)
+ 		goto poison;
++	reconciled = hif->normal;
+ 	/* Keep both post-record acquisitions in one serialization window. A
+ 	 * regulatory notifier cannot submit a command between these reads.
+ 	 */
+@@ -389,15 +399,59 @@ int mt6797_hif_observe_tx_status(struct mt6797_hif *hif, u64 deadline_ns,
+ 				goto poison;
+ 			status[n].valid_words |= 1U << (i + 2);
+ 		}
++		if (account && count == 2) {
++			error = mt6797_normal_reconcile(&reconciled,
++							status[n].wtqcr, &account[n]);
++			if (error)
++				goto poison;
++		}
++	}
++	if (account) {
++		error = mt6797_hif_guard(hif);
++		if (error)
++			goto poison;
++	}
++	if (account && count == 1) {
++		for (i = 0; i < 8; i++) {
++			if (status[0].wtqcr[i]) {
++				error = -EIO;
++				goto poison;
++			}
++		}
++		hif->tx_status_accounting_baseline = true;
++	} else if (account) {
++		/* Commit only after the complete pair validates. A bad later
++		 * snapshot cannot leave an earlier partial refund usable.
++		 */
++		hif->normal = reconciled;
+ 	}
+ 	goto unlock;
+ poison:
++	if (account)
++		memset(account, 0, count * sizeof(*account));
+ 	error = mt6797_hif_fail(hif, error);
+ unlock:
+ 	mutex_unlock(&hif->mutex);
+ 	return error;
+ }
+ 
++int mt6797_hif_observe_tx_status(struct mt6797_hif *hif, u64 deadline_ns,
++				 unsigned int count,
++				 struct mt6797_hif_tx_status *status)
++{
++	return mt6797_hif_tx_status(hif, deadline_ns, count, status, NULL);
++}
++
++int mt6797_hif_account_tx_status(struct mt6797_hif *hif, u64 deadline_ns,
++				 unsigned int count,
++				 struct mt6797_hif_tx_status *status,
++				 struct mt6797_normal_release *account)
++{
++	if (!account)
++		return -EINVAL;
++	return mt6797_hif_tx_status(hif, deadline_ns, count, status, account);
++}
++
+ int mt6797_hif_query_capability(struct mt6797_hif *hif, unsigned int sequence,
+ 				u64 deadline_ns,
+ 				struct mt6797_normal_capability *capability,
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index b90d591..963c651 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -136,6 +136,17 @@ int mt6797_hif_observe_tx_status(struct mt6797_hif *hif, u64 deadline_ns,
+ 				 unsigned int count,
+ 				 struct mt6797_hif_tx_status *status);
+ 
++/* Same acquisition budgets and exclusive owner as observation, but require
++ * zero returned-page baseline before normal commands. Account both complete
++ * post-record snapshots atomically against the retained TC4 ledger. Non-CPU
++ * counts, over-release or any partial acquisition poison without refund.
++ * account has count elements; no added I/O, IRQ, radio or sequence mutation.
++ */
++int mt6797_hif_account_tx_status(struct mt6797_hif *hif, u64 deadline_ns,
++				 unsigned int count,
++				 struct mt6797_hif_tx_status *status,
++				 struct mt6797_normal_release *account);
++
+ /* Exactly one post-START capability query on this exclusive PIO owner.
+  * The selected gen3 default normal TC4 allocation is 26 pages; this driver
+  * has no Tc4Page override or competing normal command user. One page is
+diff --git a/drivers/net/wireless/mediatek/mt6797/normal_command.h b/drivers/net/wireless/mediatek/mt6797/normal_command.h
+index 0e4bb38..44d66a9 100644
+--- a/drivers/net/wireless/mediatek/mt6797/normal_command.h
++++ b/drivers/net/wireless/mediatek/mt6797/normal_command.h
+@@ -32,10 +32,15 @@ enum mt6797_normal_phase {
+ struct mt6797_normal_transaction {
+ 	enum mt6797_normal_phase phase, config_return_phase;
+ 	unsigned int tc4_limit, tc4_free, expected_sequence;
++	unsigned int tc4_pending_cpu, tc4_pending_ffa;
+ 	/* Shared adapter-session history, including INIT. Never cleared here. */
+ 	unsigned char *used_sequences;
+ };
+ 
++struct mt6797_normal_release {
++	unsigned int released_pages, tc4_free, pending_cpu, pending_ffa;
++};
++
+ /* No MAC, date string or raw event is copied into this result. */
+ struct mt6797_normal_capability {
+ 	unsigned int product, firmware_own, firmware_peer;
+@@ -56,7 +61,7 @@ static inline int mt6797_normal_abort(struct mt6797_normal_transaction *t)
+ }
+ 
+ /* Only the actual post-START resource owner may supply these normal-TC4 facts.
+- * No default quota, hardware reset, INIT-credit reuse or refill is provided.
++ * No default quota, hardware reset or INIT-credit reuse is provided.
+  * history must cover 32 bytes and outlive this serialized bounded transaction.
+  */
+ static inline int
+@@ -71,11 +76,59 @@ mt6797_normal_admit(struct mt6797_normal_transaction *t, unsigned int limit,
+ 		return -EINVAL;
+ 	t->tc4_limit = limit;
+ 	t->tc4_free = available;
++	t->tc4_pending_cpu = 0;
++	t->tc4_pending_ffa = 0;
+ 	t->used_sequences = history;
+ 	t->phase = MT6797_NORMAL_IDLE;
+ 	return 0;
+ }
+ 
++/* Caller supplies one fresh, complete consumable WTQCR0..7 snapshot under
++ * the same exclusive owner as command submission. Only CPU/TC4 and FFA are
++ * attributable here. Source nicTxCalculateResource retains both independently;
++ * release their minimum, without speculative extra-TX completion or reset.
++ * No pages beyond the current debit may enter either pending counter.
++ */
++static inline int
++mt6797_normal_reconcile(struct mt6797_normal_transaction *t,
++			const unsigned int *words,
++			struct mt6797_normal_release *result)
++{
++	unsigned int i, debt, cpu, ffa, released;
++
++	if (result)
++		*result = (struct mt6797_normal_release){0};
++	if (!t || !words || !result)
++		return -EINVAL;
++	if ((t->phase != MT6797_NORMAL_CAP_RECEIVED &&
++	     t->phase != MT6797_NORMAL_NVRAM_SUBMITTED) ||
++	    !t->used_sequences || !t->tc4_limit || t->tc4_limit > 0xffffU ||
++	    t->tc4_free > t->tc4_limit)
++		return mt6797_normal_abort(t);
++	debt = t->tc4_limit - t->tc4_free;
++	if (t->tc4_pending_cpu > debt || t->tc4_pending_ffa > debt)
++		return mt6797_normal_abort(t);
++	for (i = 0; i < 7; i++)
++		if (words[i])
++			return mt6797_normal_abort(t);
++	cpu = words[7] >> 16;
++	ffa = words[7] & 0xffffU;
++	if (cpu > debt - t->tc4_pending_cpu ||
++	    ffa > debt - t->tc4_pending_ffa)
++		return mt6797_normal_abort(t);
++	cpu += t->tc4_pending_cpu;
++	ffa += t->tc4_pending_ffa;
++	released = cpu < ffa ? cpu : ffa;
++	t->tc4_free += released;
++	t->tc4_pending_cpu = cpu - released;
++	t->tc4_pending_ffa = ffa - released;
++	result->released_pages = released;
++	result->tc4_free = t->tc4_free;
++	result->pending_cpu = t->tc4_pending_cpu;
++	result->pending_ffa = t->tc4_pending_ffa;
++	return 0;
++}
++
+ /* Shared normal-TC4 framing and debit. Callers validate phase and payload
+  * contract first. A transport failure never refunds this debit.
+  */
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index 23acdd4..2117714 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -762,13 +762,18 @@ static int mt6797_consys_observe_tx_status(struct device *dev,
+ 					struct mt6797_consys *owner, bool post)
+ {
+ 	struct mt6797_hif_tx_status status[2];
++	struct mt6797_normal_release account[2];
+ 	unsigned int count = post ? 2 : 1;
+ 	unsigned int n, i, snapshot;
+ 	int ret;
+ 
+-	ret = mt6797_hif_observe_tx_status(owner->fw_hif,
+-					  ktime_get_ns() + NSEC_PER_SEC,
+-					  count, status);
++	if (IS_ENABLED(CONFIG_MT6797_HIF_TC4_RECONCILE))
++		ret = mt6797_hif_account_tx_status(owner->fw_hif,
++				ktime_get_ns() + NSEC_PER_SEC, count, status,
++				account);
++	else
++		ret = mt6797_hif_observe_tx_status(owner->fw_hif,
++				ktime_get_ns() + NSEC_PER_SEC, count, status);
+ 	for (n = 0; n < count; n++) {
+ 		snapshot = n + (post ? 1 : 0);
+ 		dev_info(dev,
+@@ -781,6 +786,14 @@ static int mt6797_consys_observe_tx_status(struct device *dev,
+ 					 "one-shot WLAN returned pages: snapshot=%u word=%u value=0x%08x\n",
+ 					 snapshot, i, status[n].wtqcr[i]);
+ 	}
++	if (IS_ENABLED(CONFIG_MT6797_HIF_TC4_RECONCILE)) {
++		for (n = 0; n < count; n++)
++			dev_info(dev,
++				 "one-shot WLAN TC4 reconciliation: snapshot=%u status=%d released=%u free=%u pending_cpu=%u pending_ffa=%u\n",
++				 n + (post ? 1 : 0), ret,
++				 account[n].released_pages, account[n].tc4_free,
++				 account[n].pending_cpu, account[n].pending_ffa);
++	}
+ 	return ret;
+ }
+ #endif
+-- 
+2.54.0 (Apple Git-157)
+
