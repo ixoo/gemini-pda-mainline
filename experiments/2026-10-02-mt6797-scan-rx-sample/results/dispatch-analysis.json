@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "status": "retained-firmware-dispatch-path-narrowed-no-new-device-action",
+  "firmware_sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
+  "method": "Read-only RE VM Ghidra 12.1.2 pseudo-disassembly under retained NDS32 instruction/data premise. Bounded direct-flow walk skips callees under assumed return; immediate-pair searches are candidates, not exhaustive data-flow.",
+  "dispatcher": {
+    "entry": "0xf00269b8",
+    "nodes": 116,
+    "queue_exhausted": true,
+    "skipped_calls": 11,
+    "unresolved_noncall_computed": 0,
+    "invalid": 0,
+    "entry_statistic_byte": "0xf006bf38",
+    "entry_statistic_behavior": "Selected graph increments this byte before subtype table selection, after an optional diagnostic/log callback. Complete writer/reset audit remains absent.",
+    "packet_field_checks": "Packet pointer and packet-relative +0x34/+0x38 fields have diagnostic checks before the selected dispatch. Their callback failure behavior is not completely audited.",
+    "table_base": "0xf00634dc",
+    "table_index": "High nibble of first byte at packet-relative +0x34 pointer.",
+    "probe_response_index": 5,
+    "beacon_index": 8,
+    "probe_response_slot": "0xf00634f0",
+    "beacon_slot": "0xf00634fc",
+    "both_target": "0xf0031e7c",
+    "caller_pair_candidate": "0xf002795a",
+    "caller_selected_call": "0xf0027962",
+    "caller_entry_and_preceding_admission_gates": "unresolved"
+  },
+  "retrospective_observation": {
+    "source": "results/runtime-1.json",
+    "existing_word_address": "0xf006bf38",
+    "existing_word_values": [
+      0,
+      0
+    ],
+    "newly_identified_low_byte_values": [
+      0,
+      0
+    ],
+    "interpretation": "No sampled nonzero dispatcher-entry statistic. This is a post-runtime interpretation of retained packed words, outside the original beacon/probe-byte classifier. It supplies neither a packet count nor RF proof.",
+    "additional_device_queries": 0
+  },
+  "searches": {
+    "table_window_bytes": 96,
+    "table_range_code_pair_candidates": 1,
+    "dispatcher_immediate_pair_candidates": 1,
+    "dispatcher_direct_flow_candidates": 0,
+    "direct_flow_halfword_candidates": 165648,
+    "direct_flow_undecodable_candidates": 3327,
+    "aligned_table_pointer_candidates_in_code_block": 0
+  },
+  "private_evidence_sha256": {
+    "ScanReceiveTableRefs.java": "36db5702e7174eea99ef5809edf51ecee283c357442fd57787153b3560308d95",
+    "scan-receive-table-refs-private.txt": "08e4ca5bc67533478e86c50ec8e8965da18f51dba64135ca6b03e47de36ccec8",
+    "ScanReceiveDispatchPrefix.java": "5c4c6d694ff1bf9dd9dcd8baa9a2efcfdf02f18becebbc944aa3cacb31406c8d",
+    "scan-receive-dispatch-prefix-private.txt": "30e8bf46f98fb2077165bb9e75db28cec0ef069c151e2c8c4ccb1989c4534941",
+    "StationDispatchCallers.java": "2efce21970a2830e20fac166455a3c3ebcfee2a8a0e41bd3acab006927ad44c5",
+    "scan-receive-dispatch-private.txt": "84bcce080350c8c0e242cbb179efeb7f767a483526d34291dbe35011bb4dd86f",
+    "ScanDispatcherPairRefs.java": "da7d914fef2ae10bda666b6a02d6c241232811eb8172cd8bbfda0a0dc952a132",
+    "scan-dispatcher-pair-refs-private.txt": "052a8d937fa378c07f88075e6424c1e88b1f6990bade080d5e4df8c75f70a544",
+    "ScanDispatcherCallerWindow.java": "3d02a4a133e2bad4a261eb999dc097b3907f2c100d3b66ab55bef5d35c730e41",
+    "scan-dispatcher-caller-window-private.txt": "e22aa0d30325a3f8d0aadaf4f84bc39ab1638d1449359c60c8c34ad51ee42fef"
+  },
+  "next_action": "Resolve caller entry and admission/classification/receive-enabling gates before this dispatcher; do not repeat the zero-statistic candidate or change later gates based on this observation.",
+  "limitations": [
+    "No complete ROM/callback, caller, table-writer or statistic-writer/reset audit.",
+    "Optional diagnostic callbacks and null-field paths are not validated as harmless.",
+    "Unchanged byte values may wrap/reset or miss transient activity; no over-air or valid-frame proof.",
+    "Candidate search absence is not proof that another caller or table reference is absent."
+  ],
+  "device_action": "none",
+  "raw_firmware_or_listing_published": false
+}

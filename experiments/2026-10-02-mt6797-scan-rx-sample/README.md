@@ -136,3 +136,14 @@ Inspect the path into the selected receive routine and earlier receive enabling
 using retained firmware and vendor evidence before designing another measurement.
 This boot and scan budget is consumed; do not repeat it. Mainline association
 and traffic remain unproved.
+
+## Earlier dispatch analysis
+
+The [retained-firmware analysis](results/dispatch-analysis.json) identifies the
+subtype table selecting the early receive routine for both beacons and probe
+responses. Its dispatcher increments another statistic byte before selection.
+That byte is the low byte of the already sampled word `0xf006bf38`, whose two
+retained values were zero. This retrospective interpretation adds no device read
+and leaves the original classifier intact. It is not a packet count or RF proof.
+One immediate-pair caller is identified; its entry and preceding admission gates
+remain unresolved. Resolve those gates before changing later management logic.
