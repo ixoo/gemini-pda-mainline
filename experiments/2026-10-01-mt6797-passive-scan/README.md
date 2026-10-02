@@ -192,5 +192,7 @@ previously unreached interface/scan phase under the same one-boot protocol;
 ordinary guards skip rewriting boot2 when the full checksum already matches.
 The capture receipt accepts that existing skip result only with matching
 predecessor, candidate and full readback identities.
-A new guarded shutdown and owner boot2 selection are required. Session-two
-preflight and deployment are pending; no scan has yet been submitted.
+The [second deployment](results/deployment-2.json) skipped the matching image,
+verified an independent full readback and shut down cleanly. The [second
+preflight](results/preflight-2.json) passes against that actual skip receipt.
+Await the owner’s next physical boot2 selection. No scan has yet been submitted.

@@ -11,6 +11,7 @@
   "scan_script_shellcheck": "passed",
   "generated_installer_bash_syntax": "passed",
   "generated_installer_shellcheck": "passed",
-  "exact_capture_and_host_preflight_after_deployment": "pending",
-  "device_action": "none"
+  "exact_capture_and_host_preflight_after_deployment": "passed",
+  "device_action": "none",
+  "capture_receipt": "matching skip accepted; foreign predecessor, readback and duplicate result refused"
 }
