@@ -1,0 +1,27 @@
+{
+  "status": "offline-candidate-installer-session-dependencies-passed",
+  "candidate_manifest_sha256": "971c311d99832c0577510ef2944f1e00dcda06e157fdc75f381c99e42c3919e6",
+  "candidate_boot2_sha256": "d008bfa1485b47362afeeafa761b45ff51a15e67795973ee3e0efd008e31a2e4",
+  "generated_installer_sha256": "2ee9e46a660ff90b4153bd79cf5ae0a9daed9a2adb6839d449e858825381e53f",
+  "generated_installer_bash_syntax": "passed",
+  "generated_installer_shellcheck": "passed",
+  "scan_script_sh_syntax": "passed",
+  "scan_script_shellcheck": "passed",
+  "scan_classifier": "valid synthetic result, six transport/identity refusals and absent BSS not positive passed",
+  "scan_phase_order": "scan precedes log export; duplicate phase refused",
+  "private_ram_root_members": 59,
+  "changed_ram_root_members": [
+    "init"
+  ],
+  "added_ram_root_members": [
+    "bin/iw",
+    "lib/libc.so.6",
+    "lib/ld-linux-aarch64.so.1",
+    "lib/libgcc_s.so.1",
+    "lib/libnl-3.so.200",
+    "lib/libnl-genl-3.so.200"
+  ],
+  "a53_candidate_and_reviewed_recovery_dependencies": "passed",
+  "exact_capture_and_host_preflight_after_deployment": "pending",
+  "device_action": "none"
+}

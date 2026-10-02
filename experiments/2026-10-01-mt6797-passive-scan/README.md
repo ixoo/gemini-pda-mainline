@@ -151,5 +151,24 @@ mode-0600 immutable private record remain byte-identical. Canonical archive
 round-trip and isolation checks pass with 59 members. No package or private
 RAM-root bytes are published.
 
-A clean pushed Buildbox build, final candidate validation and exact
-session preflight are still pending. No device scan has run for this candidate.
+The [clean pushed Buildbox build](results/build.json), [offline candidate](results/candidate.json)
+and [installer/session dependency preflight](results/preflight.json) pass.
+The actual prepared-source fixtures pass strict warnings and UBSan; ASan/UBSan
+passes with `-no-pie` after a PIE-instrumented startup failure before ASan's
+thread-stack/init-done record. This changes only host test executable layout.
+No kernel change or hardware result follows from that host failure.
+
+The standard [scan command](passive-scan.sh) verifies the authenticated boot,
+sole CONSYS-bound wiphy, initial configuration/accounting and all six ELF hashes
+before creating one permanent-address station-type interface and raising it.
+It invokes one `iw dev wlan0 scan passive` under a twelve-second userspace
+limit. There is no second request after a refused, failed or timed-out command.
+The [host runner](passive-host.py) inserts that phase before the existing log
+seal/export, saves raw scan output privately, then preserves it with the
+complete kernel log before reviewed recovery. A failed scan remains negative
+evidence and still permits ordinary evidence preservation and recovery.
+Its focused pure check covers scan-before-export ordering and duplicate refusal;
+classification covers successful synthetic output, six transport/identity refusals and absent
+BSS output. The [installer](install-passive.py) retains the reviewed guard,
+full-partition readback and clean shutdown. Exact capture/host preflight after
+deployment remains pending. No device scan has run for this candidate.
