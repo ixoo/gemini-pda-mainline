@@ -1,0 +1,37 @@
+From 35e0cd2847b2ae2631391497f7a031e2c83808aa Mon Sep 17 00:00:00 2001
+From: "Codex (synthetic experiment author)" <codex-experiment@invalid.example>
+Date: Thu, 1 Oct 2026 23:41:51 -0400
+Subject: [PATCH] wifi: mediatek: accept inert colocated scan hint
+
+iw 5.19 adds the colocated-6GHz flag when no frequency list is supplied,
+including for passive scans on a 2.4GHz-only wiphy. Rejecting all flags
+makes the normal userspace command fail before firmware admission.
+Accept that hint while still rejecting every other flag, any 6GHz
+parameter and every unsupported channel. This changes no scan wire
+payload or RF budget. This internal experiment archive is not an
+upstream submission.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index deccc15..c7c42d4 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -366,7 +366,12 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ 	/* mac80211 may append supported-rate IEs internally. There are no
+ 	 * probe requests in this passive form, so no IEs are transmitted.
+ 	 */
+-	if (request->req.n_ssids || request->req.flags || request->req.duration ||
++	/* This hint only selects a 6 GHz follow-up. No 6 GHz channel or
++	 * parameter is admitted below, so it adds no firmware operation.
++	 */
++	if (request->req.n_ssids ||
++	    (request->req.flags & ~NL80211_SCAN_FLAG_COLOCATED_6GHZ) ||
++	    request->req.duration ||
+ 	    request->req.duration_mandatory || request->req.scan_6ghz ||
+ 	    request->req.n_6ghz_params ||
+ 	    !is_broadcast_ether_addr(request->req.bssid) ||
+-- 
+2.54.0 (Apple Git-157)
+

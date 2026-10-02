@@ -1,0 +1,40 @@
+{
+  "vendor_commit": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+  "vendor_files": [
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/include/CFG_Wifi_File.h",
+      "sha256": "f65877529e37df1f63792f59b538f16980af47bdbe4d51cbce47ce8738cd9dbd",
+      "bytes": 9536,
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/include/CFG_Wifi_File.h"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c",
+      "sha256": "56bf99536fcb96de5a5198943aec96c9efccb8af89261b29c62046e6560c422f",
+      "bytes": 215814,
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/rlm_domain.c",
+      "sha256": "8f3ff17db935ca1e47943a5437ca788a9fa8fa585bbb7c6f8c2a7f4f87612650",
+      "bytes": 58505,
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/rlm_domain.c"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/include/mgmt/rlm_domain.h",
+      "sha256": "b0d57b3bcc6a071592b138a868ed6892c1272914327fd2dd45dc624a3f3eb4ec",
+      "bytes": 34682,
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/include/mgmt/rlm_domain.h"
+    }
+  ],
+  "prior_scan_source_receipt": "experiments/2026-10-01-mt6797-passive-scan/results/sources.json",
+  "prior_request_flag_receipt": "experiments/2026-10-01-mt6797-passive-scan/results/request-flags.json",
+  "source_rights": "Individual public sources declare GPL version 2; inspected as protocol evidence. No vendor implementation is copied into the new patch.",
+  "joins": {
+    "record_5g_gate": "CFG_Wifi_File.h packed 512-byte record: support offset 197, enable offset 262; wlan_lib.c:4118-4128 also requires no firmware hardware-disable flag.",
+    "domain": "rlm_domain.c:203 non-DFS class 115, BAND_5G, span 20 MHz, first channel 36, count 4; rlm_domain.h:350 encodes span as 4.",
+    "power": "nic_cmd_event.h:1494-1512: CID 0x38 four 5GHz UNII limits at bytes 26-29 in half-dBm, concurrency policy 1 selects lower power.",
+    "scan": "scan_fsm.c:283-356 copies channel band/number into the fixed V2 request.",
+    "receive": "nic_rx.h:784-792: byte channel <=14 means 2.4GHz; ordinary 5GHz channel numbers remain native below the alternate 4.9GHz range."
+  },
+  "private_record": "Support/enable gate inspected privately; raw flags and record identity omitted. This establishes admission inputs, not measured RF behavior."
+}

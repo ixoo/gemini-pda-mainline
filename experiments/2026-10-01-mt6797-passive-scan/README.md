@@ -262,3 +262,6 @@ accept the ordinary colocated-6GHz hint only when every actual channel remains
 within supported bands; it must not enable 6 GHz, active probes or random MACs.
 The device has returned to Gemian for preparation; no new boot is admitted by
 this completed session.
+
+The isolated [5 GHz successor](../2026-10-02-mt6797-passive-scan-5g/README.md)
+owns that candidate and its new band observation.
