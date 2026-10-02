@@ -1,0 +1,132 @@
+From f573f72dd99bc8b2638c2d594926da5046fc63eb Mon Sep 17 00:00:00 2001
+From: Codex <codex@native-diagnostic.invalid>
+Date: Thu, 1 Oct 2026 20:14:30 -0400
+Subject: [PATCH] soc: mediatek: admit boot sleepy notice under active host
+ ownership
+
+The bounded receive-metadata boot identified a 12-byte event 0x07 after
+two debug events. The pinned host source handles it as a sleep-state
+notification, handing ownership back only after active power references
+are released. Initialization still owns those resources here.
+
+Accept only the exact notice and boolean states in the existing eight
+packet budget. Reuse the serialized logical WHLPCR reader and stop on a
+missing driver-own bit. Do not request firmware ownership, enable IRQs,
+refund credits or admit another event class. Retain decoded metadata and
+the existing configuration/status observation after this boundary.
+---
+ drivers/soc/mediatek/mt6797-consys.c | 56 +++++++++++++++++++++-------
+ 1 file changed, 43 insertions(+), 13 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index 09894ac..23acdd4 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -57,8 +57,9 @@
+ #define MT6797_HIF_DRIVER_OWN	BIT(8)
+ #define MT6797_HIF_DRIVER_OWN_REQUEST	BIT(9)
+ #define MT6797_HIF_WLAN_READY	BIT(21)
+-#define MT6797_BOOT_DEBUG_MAX	8U
++#define MT6797_BOOT_EVENT_MAX	8U
+ #define MT6797_BOOT_DEBUG_EVENT	0x27U
++#define MT6797_BOOT_SLEEPY_EVENT	0x07U
+ #define MT6797_EMI_MPU_READ	0x82000208
+ #define MT6797_EMI_MPU_SET	0x82000209
+ #define MT6797_EMI_REGION18	18U
+@@ -784,24 +785,25 @@ static int mt6797_consys_observe_tx_status(struct device *dev,
+ }
+ #endif
+ 
+-/* The selected firmware queues debug events ahead of normal configuration.
+- * The pinned gen3 handler only prints their bodies. Consume only that known
+- * event class; an unknown packet stops this one-shot session.
++/* Debug and sleepy notices precede normal configuration. Keep active host
++ * ownership through the exact sleepy notice; no low-power handoff is made.
++ * Any other event or malformed notice stops this bounded session.
+  */
+-static int mt6797_consys_drain_boot_debug(struct device *dev,
++static int mt6797_consys_drain_boot_events(struct device *dev,
+ 					   struct mt6797_consys *owner)
+ {
+ 	struct mt6797_hif_rx_result rx;
+ 	u64 deadline = ktime_get_ns() + NSEC_PER_SEC;
+ 	u8 *packet;
+-	u32 last = 0;
++	u32 last = 0, whlpcr;
+ 	unsigned int count = 0;
++	unsigned int debug = 0, sleepy = 0;
+ 	int ret = -E2BIG;
+ 
+ 	packet = kmalloc(MT6797_HIF_RX_MAX_PACKET, GFP_KERNEL);
+ 	if (!packet)
+ 		return -ENOMEM;
+-	while (count < MT6797_BOOT_DEBUG_MAX) {
++	while (count < MT6797_BOOT_EVENT_MAX) {
+ 		ret = mt6797_hif_receive_packet(owner->fw_hif, 0, deadline,
+ 						packet, MT6797_HIF_RX_MAX_PACKET,
+ 						&rx);
+@@ -826,8 +828,35 @@ static int mt6797_consys_drain_boot_debug(struct device *dev,
+ 		if (ret)
+ 			break;
+ 		last = rx.post_wrplr;
+-		if (rx.logical_bytes < 8 || rx.packet_type != 0xe000 ||
+-		    packet[4] != MT6797_BOOT_DEBUG_EVENT) {
++		if (rx.logical_bytes < 8 || rx.packet_type != 0xe000) {
++			ret = -EPROTO;
++			break;
++		}
++		if (packet[4] == MT6797_BOOT_DEBUG_EVENT) {
++			debug++;
++		} else if (packet[4] == MT6797_BOOT_SLEEPY_EVENT) {
++			if (rx.logical_bytes != 12) {
++				ret = -EPROTO;
++				break;
++			}
++			/* Admit only boolean state values; retain the active owner.
++			 * Reserved bytes and unsolicited sequence are not an ACK.
++			 */
++			whlpcr = 0;
++			ret = -EPROTO;
++			if (packet[8] <= 1)
++				ret = mt6797_hif_read32(owner->fw_hif,
++						       MT6797_HIF_WHLPCR,
++						       deadline, &whlpcr);
++			if (!ret && !(whlpcr & MT6797_HIF_DRIVER_OWN))
++				ret = -EACCES;
++			dev_info(dev,
++				 "one-shot WLAN boot sleepy: status=%d state=%u WHLPCR=0x%08x\n",
++				 ret, packet[8], whlpcr);
++			if (ret)
++				break;
++			sleepy++;
++		} else {
+ 			ret = -EPROTO;
+ 			break;
+ 		}
+@@ -839,10 +868,11 @@ static int mt6797_consys_drain_boot_debug(struct device *dev,
+ 			break;
+ 		}
+ 	}
+-	if (!ret && count == MT6797_BOOT_DEBUG_MAX && last)
++	if (!ret && count == MT6797_BOOT_EVENT_MAX && last)
+ 		ret = -E2BIG;
+-	dev_info(dev, "one-shot WLAN boot debug drain: status=%d count=%u post=0x%08x\n",
+-		 ret, count, last);
++	dev_info(dev,
++		 "one-shot WLAN boot event drain: status=%d count=%u debug=%u sleepy=%u post=0x%08x\n",
++		 ret, count, debug, sleepy, last);
+ 	kfree_sensitive(packet);
+ 	return ret;
+ }
+@@ -987,7 +1017,7 @@ static void mt6797_consys_probe_firmware_start(struct device *dev,
+ 			 capability.bb_cal_fail);
+ 	if (ret)
+ 		goto stopped;
+-	ret = mt6797_consys_drain_boot_debug(dev, owner);
++	ret = mt6797_consys_drain_boot_events(dev, owner);
+ 	if (ret)
+ 		goto stopped;
+ 	ret = mt6797_wifi_record_prepare(dev, &record);
+-- 
+2.54.0 (Apple Git-157)
+

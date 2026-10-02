@@ -1,0 +1,8 @@
+# Admit the exact sleepy notice without releasing host ownership.
+# One bounded logical WHLPCR read per admitted notice, within eight packets.
+# Retain the three status snapshots; no credit refill, IRQ enable or new RF.
+CONFIG_LOCALVERSION="-gemini-a53-wifi-boot-sleepy"
+CONFIG_CFG80211=y
+CONFIG_MAC80211=y
+CONFIG_MT6797_MAC80211=y
+CONFIG_MT6797_HIF_TX_STATUS_PROBE=y
