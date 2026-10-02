@@ -162,7 +162,8 @@ The standard [scan command](passive-scan.sh) verifies the authenticated boot,
 sole CONSYS-bound wiphy, initial configuration/accounting and all six ELF hashes
 before creating one permanent-address station-type interface and raising it.
 It invokes one standard iw passive scan with explicit 2.4 GHz frequencies
-under a twelve-second userspace limit. There is no second request after a refused, failed or timed-out command.
+under a twelve-second userspace limit. There is no second request after a
+refused, failed or timed-out command.
 The [host runner](passive-host.py) inserts that phase before the existing log
 seal/export, saves raw scan output privately, then preserves it with the
 complete kernel log before reviewed recovery. A failed scan remains negative
@@ -234,4 +235,7 @@ channels. Keep the single request, no SSID/probe/random address, default dwell,
 closing budgets, evidence and recovery rules. Session four reserves fresh
 capture, execution and deployment paths. This frequency-form observation is
 new; never retry within the third firmware lifetime. No firmware scan has yet
-been submitted.
+been submitted. The [fourth guarded handoff](results/deployment-4.json) skipped
+the already matching image, independently verified full readback and confirmed
+shutdown. The [fourth preflight](results/preflight-4.json) passed against that
+actual receipt. Await the owner's next physical boot2 selection.

@@ -1,0 +1,22 @@
+{
+  "status": "explicit-frequency-request-and-fourth-installer-preflight-passed",
+  "candidate_manifest_sha256": "971c311d99832c0577510ef2944f1e00dcda06e157fdc75f381c99e42c3919e6",
+  "candidate_boot2_sha256": "d008bfa1485b47362afeeafa761b45ff51a15e67795973ee3e0efd008e31a2e4",
+  "previous_gemian_boot": "fe6d0e91-7ed6-48ed-a1fc-fe050f68b91c",
+  "bound_scan_script_sha256": "1e5fe658bdfc94b6c8b436da7ce1cf4da8fa654c8adb4e6cf21ffd0972fa8593",
+  "generated_installer_sha256": "b47aab33f556d16d5b0a11da64623ac87084ec361801fe736862dff9a3a18f15",
+  "kernel_candidate_changed": false,
+  "RAM_parent_gate": "missing parent created; occupied leaf, symlink and file refused",
+  "scan_script_sh_syntax": "passed",
+  "scan_script_shellcheck": "passed",
+  "generated_installer_bash_syntax": "passed",
+  "generated_installer_shellcheck": "passed",
+  "exact_capture_and_host_preflight_after_deployment": "passed",
+  "device_action": "none",
+  "capture_receipt": "matching skip accepted; foreign predecessor, readback and duplicate result refused",
+  "prerequisite_log_file_limit_bytes": 131072,
+  "retained_log_fixture_bytes": 142066,
+  "retained_log_fixture": "accepted without regular-file write; missing, duplicate and stopped records refused",
+  "request_source_audit": "iw 5.19-1 explicit frequency branch emits no scan flags or SSID attribute in passive form",
+  "hardware_validation_of_frequency_form": "not-run-awaiting-owner-physical-boot2-selection"
+}
