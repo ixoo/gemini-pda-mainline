@@ -1,0 +1,32 @@
+{
+  "vendor_commit": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+  "vendor_files": [
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c",
+      "sha256": "8a644f0c9f3e37c6f66654cf3aeecb8e5f4cd71405e67f79105da7c8f87a7665",
+      "bytes": 76036,
+      "lines": [
+        832,
+        885,
+        1387,
+        1389
+      ],
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_oid.c",
+      "sha256": "ebfc83d78f86c4cee23207901d8cefbbdaa7b6939c8e078c28e46e703932f5d3",
+      "bytes": 383605,
+      "lines": [
+        6077,
+        6168
+      ],
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_oid.c"
+    }
+  ],
+  "prior_receive_contract": "experiments/2026-09-08-mt6797-wlan-offloads/RECEIVE.md",
+  "prior_scan_graph": "experiments/2026-09-08-mt6797-wlan-offloads/results/firmware-scan-lifetime.json",
+  "source_rights": "Each inspected public source declares GPL version 2. Protocol facts only; no vendor implementation copied.",
+  "hardware_test": false,
+  "firmware_execution": false
+}

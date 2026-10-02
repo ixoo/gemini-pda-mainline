@@ -1,0 +1,11 @@
+# Request supported broadcast RX once before the one passive scan.
+# One passive 2.4 GHz / non-DFS UNII-1 scan with no host or probe TX, current cfg80211 permissions.
+# Retain exclusive PIO ownership; bounded RX polling and fresh TC4 accounting.
+# No IRQ enable, packet DMA, association, keys or reuse after completion/abort.
+CONFIG_LOCALVERSION="-gemini-a53-wifi-passive-scan-broadcast"
+CONFIG_CFG80211=y
+CONFIG_MAC80211=y
+CONFIG_MT6797_MAC80211=y
+CONFIG_MT6797_HIF_TX_STATUS_PROBE=y
+CONFIG_MT6797_HIF_TC4_RECONCILE=y
+CONFIG_MT6797_PASSIVE_SCAN=y
