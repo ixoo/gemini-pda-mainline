@@ -1,6 +1,7 @@
 # MT6797 passive scan with normal broadcast reception
 
-Status: source-reviewed successor; build and candidate validated, runtime pending. The consumed
+Status: source-reviewed successor; build and candidate validated, runtime pending
+channel-dwell review. The consumed
 [non-DFS scan](../2026-10-02-mt6797-passive-scan-5g/results/runtime-1.json)
 exposed channel 40 and completed without any management packet or BSS result.
 Changed-boot Gemian remained connected at 5200 MHz.
@@ -39,6 +40,35 @@ cfg80211 restrictions, private board record, firmware and receive parser remain
 the parent's. The focused C test covers wire bytes, invalid filter words and
 lengths, phase gating, sequence reuse and transport failure.
 
+## Channel-dwell requirement before the next scan
+
+The owner raised insufficient beacon-listening time as an alternative
+explanation for an empty scan. The request retains zero/default dwell. The
+[parent source review](../2026-10-01-mt6797-passive-scan/README.md#protocol-inputs)
+records conflicting legacy milliseconds and V2 TU comments; the effective
+firmware default and its units remain unverified. The five-second host deadline
+bounds the entire request, not listening time on each channel. Waiting after
+SCAN_DONE does not extend that listening time.
+
+Before consuming firmware START or the next one-shot scan, establish the
+requested and effective per-channel dwell and its units from the pinned source,
+retained firmware analysis or an admitted bounded timing observation. Target
+the permitted channel used by the known-good Gemian connection and record its
+current frequency and beacon interval where available, keeping peer identifiers
+private. Require a listening window covering multiple beacon intervals with
+margin, and document the finite whole-scan deadline including channel-switch
+and completion overhead. Total scan elapsed time alone cannot establish that
+window on the target channel.
+
+If the default cannot be shown to provide that window, prepare a separately
+validated successor with an explicit, source-verified dwell value before the
+scan. Do not guess units, change the installed candidate's contract, or extend
+only the host timeout. The current candidate remains installed and unconsumed;
+its prior deployment/preflight receipts do not close this timing requirement.
+An empty result with unverified dwell is inconclusive about the filter and
+beacon reception. Preserve dwell uncertainty separately from transport, tuning
+and receive-delivery observations.
+
 ## One-boot hypothesis and branches
 
 Hypothesis: the missing broadcast-filter setup prevents delivery of native
@@ -55,11 +85,12 @@ allowed. No monitor/promiscuous mode, active probe, peer TX, association, key,
 packet DMA, IRQ or direct filter-register operation is admitted.
 
 A valid beacon/BSS result supports management reception for the exact candidate
-and permits the next association design. Completion without management packets
-refutes this as a sufficient fix and requires a different receive/tuning
-measurement before another boot. Submission, transport, ownership or protocol
-failure stops I/O and keeps the lifetime consumed. Preserve the complete private
-log and standard output before the already reviewed recovery; require changed
+and permits the next association design. Completion without management packets,
+after the dwell requirement above is satisfied, shows that the filter addition
+is insufficient under those tested conditions and requires a different receive/tuning measurement before another
+boot. An unmet timing requirement leaves the negative result inconclusive.
+Submission, transport, ownership or protocol failure stops I/O and keeps the
+lifetime consumed. Preserve the complete private log and standard output before the already reviewed recovery; require changed
 Gemian boot, carrier and A53/provider regression. No working Wi-Fi claim follows
 from filter submission alone.
 
