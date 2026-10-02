@@ -1,5 +1,5 @@
 From 71d8314d716e00d2d13fc2dbfdb4de27852aa17b Mon Sep 17 00:00:00 2001
-From: Julien Etienne <julien.etienne@gmail.com>
+From: "Codex (synthetic experiment author)" <codex-experiment@invalid.example>
 Date: Thu, 1 Oct 2026 21:51:21 -0400
 Subject: [PATCH] wifi: mt6797: connect one bounded passive scan to mac80211
 

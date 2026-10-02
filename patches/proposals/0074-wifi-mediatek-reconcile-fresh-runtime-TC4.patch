@@ -1,5 +1,5 @@
 From 6b87028222697a8f9879f9e4e9a4727f33e2ccac Mon Sep 17 00:00:00 2001
-From: Julien Etienne <julien.etienne@gmail.com>
+From: "Codex (synthetic experiment author)" <codex-experiment@invalid.example>
 Date: Thu, 1 Oct 2026 21:28:00 -0400
 Subject: [PATCH] wifi: mt6797: reconcile fresh runtime TC4 snapshots
 
