@@ -1,0 +1,120 @@
+{
+  "schema": 1,
+  "release_sha256": "77737fa4b34f2693e982cc9ee35736816c35a7778fc2d326cc1bbf5b301fe1aa",
+  "index_sha256": "2ddb1737692e8c45c53e8d57c0ce4cd21c78c5703b830c3226b1423566a06c00",
+  "keyring_sha256": "506b815cbb32d9b6066b4a2aa524071e071761e7e7f68c3ac74f3061ba852017",
+  "verified_bookworm_signatures": [
+    "4CB50190207B4758A3F73A796ED0E7B82643E131",
+    "4D64FEC119C2029067D6E791F8D2585B8783D481",
+    "B8E5F13176D2A7A75220028078DBA3BC47EF2265"
+  ],
+  "packages": [
+    {
+      "name": "iw",
+      "version": "5.19-1",
+      "url": "https://deb.debian.org/debian/pool/main/i/iw/iw_5.19-1_arm64.deb",
+      "sha256": "f7f8441ceba4898a1456372e79cf061d09f8406aa0bbac4dd6201305a0fb90b6",
+      "bytes": 99840,
+      "depends": "libc6 (>= 2.17), libnl-3-200 (>= 3.2.7), libnl-genl-3-200 (>= 3.2.7)"
+    },
+    {
+      "name": "libc6",
+      "version": "2.36-9+deb12u14",
+      "url": "https://deb.debian.org/debian/pool/main/g/glibc/libc6_2.36-9+deb12u14_arm64.deb",
+      "sha256": "01f4330719fd4f65580e16ea5a0527f372fca750e8f588d26deaf09f2d3b1cf4",
+      "bytes": 2324660,
+      "depends": "libgcc-s1"
+    },
+    {
+      "name": "libgcc-s1",
+      "version": "12.2.0-14+deb12u1",
+      "url": "https://deb.debian.org/debian/pool/main/g/gcc-12/libgcc-s1_12.2.0-14+deb12u1_arm64.deb",
+      "sha256": "576926b283613db80168ddf76380a3bd877602778cf0d226caa7bfbfa71eacf3",
+      "bytes": 34816,
+      "depends": "gcc-12-base (= 12.2.0-14+deb12u1), libc6 (>= 2.35)"
+    },
+    {
+      "name": "libnl-3-200",
+      "version": "3.7.0-0.2+b1",
+      "url": "https://deb.debian.org/debian/pool/main/libn/libnl3/libnl-3-200_3.7.0-0.2+b1_arm64.deb",
+      "sha256": "72b85c8d07ddfd135a9a372f156500961f95ce109474e95a76e4de2a96f94401",
+      "bytes": 60172,
+      "depends": "libc6 (>= 2.34)"
+    },
+    {
+      "name": "libnl-genl-3-200",
+      "version": "3.7.0-0.2+b1",
+      "url": "https://deb.debian.org/debian/pool/main/libn/libnl3/libnl-genl-3-200_3.7.0-0.2+b1_arm64.deb",
+      "sha256": "5e8a3d1881f003badc7ba25cfe022798f3c3498493056a404ea17423b7b7432d",
+      "bytes": 21292,
+      "depends": "libnl-3-200 (= 3.7.0-0.2+b1), libc6 (>= 2.17)"
+    }
+  ],
+  "files": [
+    {
+      "path": "bin/iw",
+      "source_package": "iw",
+      "member": "./sbin/iw",
+      "sha256": "a244c8cc1740d8e3e92589dfd1b9527dbbfc97692cc23e8cfb96cd9d10d8d7da",
+      "bytes": 342952,
+      "needed": [
+        "libnl-genl-3.so.200",
+        "libnl-3.so.200",
+        "libc.so.6",
+        "ld-linux-aarch64.so.1"
+      ]
+    },
+    {
+      "path": "lib/libc.so.6",
+      "source_package": "libc6",
+      "member": "./lib/aarch64-linux-gnu/libc.so.6",
+      "sha256": "e4ac8ae1d81e4865e3aadedb962879cf9415903b3f2ba81ec75e9962b86ab8b0",
+      "bytes": 1651408,
+      "needed": [
+        "ld-linux-aarch64.so.1"
+      ]
+    },
+    {
+      "path": "lib/ld-linux-aarch64.so.1",
+      "source_package": "libc6",
+      "member": "./lib/aarch64-linux-gnu/ld-linux-aarch64.so.1",
+      "sha256": "17538b8f9889a470c061f69a8fea8124da89627311cd16546c133a89f09056df",
+      "bytes": 202912,
+      "needed": []
+    },
+    {
+      "path": "lib/libgcc_s.so.1",
+      "source_package": "libgcc-s1",
+      "member": "./lib/aarch64-linux-gnu/libgcc_s.so.1",
+      "sha256": "046856f95f4636f1fc7c3a12bf4f3cd5634c2fc5145c3fdf7395d4f349fa69c7",
+      "bytes": 133448,
+      "needed": [
+        "libc.so.6"
+      ]
+    },
+    {
+      "path": "lib/libnl-3.so.200",
+      "source_package": "libnl-3-200",
+      "member": "./lib/aarch64-linux-gnu/libnl-3.so.200.26.0",
+      "sha256": "b6152b2f0ef8c2e09de975cd938273db8ad4a33f41dc398945e7081bd4ea6dd4",
+      "bytes": 200480,
+      "needed": [
+        "libc.so.6",
+        "ld-linux-aarch64.so.1"
+      ]
+    },
+    {
+      "path": "lib/libnl-genl-3.so.200",
+      "source_package": "libnl-genl-3-200",
+      "member": "./lib/aarch64-linux-gnu/libnl-genl-3.so.200.26.0",
+      "sha256": "08f2d205cb25b90a1a0271a58f9cbfd91810d8067b1b4ebbefa6ba85e83320c9",
+      "bytes": 68840,
+      "needed": [
+        "libnl-3.so.200",
+        "libc.so.6",
+        "ld-linux-aarch64.so.1"
+      ]
+    }
+  ],
+  "native_arm64_version_check": "passed"
+}

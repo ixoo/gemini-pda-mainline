@@ -139,5 +139,17 @@ driver archive, with no new maintainership or upstream submission readiness
 claim. Optional spelling/const lists were unavailable. No synthetic DCO
 sign-off is added.
 
-A clean pushed Buildbox build, private userspace/candidate validation and exact
+The [userspace receipt](results/userspace.json) pins five Debian Bookworm ARM64
+packages against the retained signed index and two required Debian signatures.
+Only the six ELF files in that receipt are admitted: iw 5.19, its loader,
+libc, libnl, libnl-genl and libc's libgcc dependency. Their dynamic dependencies
+close within the bundle; a native RE-VM loader/version check passes without
+radio access. The [RAM-root transform](retarget-initramfs.py) verifies that
+receipt and each ELF, changes only the kernel release gate, and preserves all
+53 parent members while adding exactly six regular files. Firmware and the
+mode-0600 immutable private record remain byte-identical. Canonical archive
+round-trip and isolation checks pass with 59 members. No package or private
+RAM-root bytes are published.
+
+A clean pushed Buildbox build, final candidate validation and exact
 session preflight are still pending. No device scan has run for this candidate.
