@@ -1,6 +1,7 @@
 # MT6797 passive scan with explicit channel dwell
 
-Status: source-reviewed timing successor; build, candidate and runtime pending.
+Status: source review, Buildbox build, candidate and offline preflight validated;
+installation and runtime pending.
 The installed [broadcast parent](../2026-10-02-mt6797-passive-scan-broadcast/README.md)
 remains unconsumed and is superseded for the next scan by this timing candidate.
 
@@ -65,3 +66,28 @@ invalid requests without output mutation. Compile it with the selected patched
 C11, Werror, ASan and UBSan. Kernel builds use
 `./scripts/build-kernel --backend buildbox` from clean committed/pushed inputs.
 No build or host fixture establishes Wi-Fi support.
+
+## Build and offline preparation
+
+The [build receipt](results/build.json) records the clean pushed kernel commit,
+validated package and exact compiled MAC/wire/helper identities. The focused C
+wire test passed with C11/Werror/ASan/UBSan. Strict checkpatch reported zero
+errors, warnings and checks, excluding synthetic-signoff checking; optional
+spelling/const lists were unavailable. All 262 profiles preserve canonical order
+and the 261 existing profiles retain their inputs. Only the historical whitespace
+and unused CPU-helper diagnostics remained; the changed MAC compiled cleanly.
+
+The [candidate](results/candidate.json) preserves the proven booted board DT,
+firmware, private board record, authentication and six userspace ELFs. Its RAM
+root changes only the release gate; the published transform reproduced it byte
+for byte. Container composition and full 16 MiB padding passed validation.
+The [offline preflight](results/preflight.json) validates candidate/session
+source pins, private authentication, reviewed recovery binary, exact tool
+identities and generated installer/scan shell checks. Classifier fixtures retain
+shortening, missing/duplicate timing and unknown RF dwell as distinct states.
+
+The offline installer is bound to the last known Gemian boot for review. Fresh
+live identity and a regenerated installer are required before writing. Capture
+and host preparation require an actual verified deployment receipt; none has
+been fabricated. The older broadcast image is still the last verified installed
+image. No dwell-candidate installation, firmware START or scan has occurred.

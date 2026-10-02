@@ -1,0 +1,38 @@
+{
+  "repository_commit": "09f14e8bea63eff2c12f73a1f38704adf1431c76",
+  "repository_dirty": false,
+  "kernel_release": "7.1.3-gemini-a53-wifi-passive-scan-dwell",
+  "build_profile": "mt6797-a53-wifi-passive-scan-dwell",
+  "source_sha256": "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc",
+  "patchset_sha256": "aaa70bfb94ea2dee40329551bdec56c4bcb3c33fee044f14960ac59f1c97ee43",
+  "config_sha256": "2dbaf10fbf0023521bcdd0fd6b1fd0c10995058032bf1e14e282ed01c1270987",
+  "compiler": "aarch64-linux-gnu-gcc (Debian 12.2.0-14) 12.2.0",
+  "compiler_full_version": "12.2.0",
+  "compiler_target": "aarch64-linux-gnu",
+  "compiler_sha256": "c7b8890354c8ddc0364addfeb8968597e197627bd1e338fb6ed705b578803846",
+  "linker": "GNU ld (GNU Binutils for Debian) 2.40",
+  "linker_sha256": "e09a889c78a75e73ed096c9fa28905599e6813298b9ac839d10b02ffa96e7b08",
+  "status": "buildbox-compile-and-package-validation-passed",
+  "package_inventory_sha256": "cc3a6a82e408075d6c4861cb3f2c5695722f7aea2aabc8690284f32ffe6559b9",
+  "image_gzip_sha256": "7d57cc4b5444e441dd3554cee361189fbf1889397d65510571b731b68fdfb927",
+  "compiled_board_dtb_sha256": "5abe5d14ddb424c5939e7ac6f6303210774f85e6be1413f2730f31804df046ca",
+  "hardware_test": false,
+  "compiled_source_sha256": {
+    "mac.c": "f6074b140a180967e9f2e05c4bb4d2075d3eb9461d554812a64904790bcee09e",
+    "scan-wire.h": "bd1af70733011e505fbd95342b0194f7ba2cbb0ae5224580a9abe12f3c21d94c",
+    "normal_command.h": "f11adc7a3eb9e899b8ec0572270da5e227cd60d6aa64e20efd46b23c5fed634a",
+    "hif_command.h": "db29df931113f5c1e734b8fae28544148ad4087add6912b021c06590b47b3cdd",
+    "hif_transfer_size.h": "5e2b2737fc45fc968b09a28f701fd694d6fbcfdcde6e76256ced2ab3f7ed0945"
+  },
+  "validation": {
+    "dwell_wire_c11_werror_asan_ubsan": true,
+    "checkpatch_errors": 0,
+    "checkpatch_warnings": 0,
+    "checkpatch_checks": 0,
+    "checkpatch_signoff_check": "excluded: explicitly synthetic non-certifying archive",
+    "checkpatch_optional_lists": "unavailable: spelling and const_structs",
+    "all_profiles_checked": 262,
+    "existing_profiles_preserved": 261
+  },
+  "build_diagnostics": "Historical patch whitespace warning and existing unused CPU helper warning; no changed MAC diagnostic."
+}

@@ -1,0 +1,39 @@
+{
+  "status": "offline-gated-passive-scan-dwell-candidate-validated",
+  "kernel_build_commit": "09f14e8bea63eff2c12f73a1f38704adf1431c76",
+  "kernel_release": "7.1.3-gemini-a53-wifi-passive-scan-dwell",
+  "kernel_package_sha256": "cc3a6a82e408075d6c4861cb3f2c5695722f7aea2aabc8690284f32ffe6559b9",
+  "parent_boot2_sha256": "7612ec125cc1f14f0560a6b35c33ab763ebeb72dc6a4c3af6c4c3564c8e9aa5f",
+  "booted_dtb_sha256": "cef9373ea3aa0e1a8a45a13b953ae95e48939b211e41a73052543be784ee3214",
+  "firmware_sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
+  "files": {
+    "Image.gz": {
+      "sha256": "7d57cc4b5444e441dd3554cee361189fbf1889397d65510571b731b68fdfb927",
+      "bytes": 6492276
+    },
+    "board.dtb": {
+      "sha256": "cef9373ea3aa0e1a8a45a13b953ae95e48939b211e41a73052543be784ee3214",
+      "bytes": 28231
+    },
+    "boot.img": {
+      "sha256": "5ecff495e78b5d208110aa3739a3a66ea65011d2750b67b2ff04ce84f03654fb",
+      "bytes": 10881024
+    },
+    "boot2-padded.img": {
+      "sha256": "2dee113fa8d7ec021f7e803e6b9d8c719939f65cc76643836003906a16864999",
+      "bytes": 16777216
+    },
+    "initramfs.img": {
+      "sha256": "80ced80eb3c5fd81f8612c9e4c329cf8269b374ef94b59f81cb8ceb762f4a893",
+      "bytes": 4356831
+    },
+    "kernel.config": {
+      "sha256": "2dbaf10fbf0023521bcdd0fd6b1fd0c10995058032bf1e14e282ed01c1270987",
+      "bytes": 112141
+    }
+  },
+  "device_tree_change": "none from proven booted board DT",
+  "secret_bearing": true,
+  "device_action": "none",
+  "physical_admission": false
+}
