@@ -1,8 +1,9 @@
 # MT6797 receive mode samples
 
 Status: Buildbox compilation/package validation and offline candidate composition
-passed; no installation or runtime claim yet. Mainline beacon reception, association and traffic remain
-unproved.
+passed; guarded boot2 installation and clean shutdown complete. Runtime is
+pending physical owner selection. Mainline beacon reception, association and
+traffic remain unproved.
 
 The consumed [early receive experiment](../2026-10-02-mt6797-scan-rx-sample/README.md)
 returned zero early statistic bytes and no BSS. Its retained dispatcher word
@@ -100,13 +101,31 @@ package and six independently matched source hashes. The
 unchanged private firmware/record/authenticated userspace and exact 16 MiB
 padding. The release-only RAM-root transform reproduced byte-identical bytes
 and independently matched the tested early-RX parent at all other members.
-Runtime wrappers are pinned to this candidate and classifier. Complete offline
-preflight and regenerate the guarded installer against fresh live Gemian
-identity before deployment. Capture/host preparation additionally require a
-real deployment receipt; do not supply a synthetic one.
+Runtime wrappers are pinned to this candidate and classifier. At composition,
+offline preflight and fresh-identity installer regeneration remained prerequisites
+to deployment. Capture/host preparation additionally requires a real deployment
+receipt; do not supply a synthetic one.
 
 The [offline preflight](results/preflight.json) validates source/private record,
 authentication, native recovery and generated guarded installer syntax and
-ShellCheck. Both full runners refuse without real deployment evidence. The
-installer still needs regeneration against fresh live Gemian identity before
-execution; neither firmware START nor scan has been consumed.
+ShellCheck. Both full runners refused without real deployment evidence. The
+installer was regenerated against fresh live Gemian identity for the deployment
+below; neither firmware START nor scan has been consumed.
+
+## Deployment and physical handoff
+
+The [deployment receipt](results/deployment-1.json) records the exact live-GPT
+guard, predecessor, stable power, full readback checksum and independent byte
+comparison. Boot2 was separate from the live Gemian root. The installer then
+requested clean shutdown and confirmed LAN unreachability without reboot.
+Capture and host offline preparation now pass using the actual receipt and
+private session inputs. No START or scan has been consumed.
+
+Physically select boot2 for release `7.1.3-gemini-a53-wifi-scan-mode-sample`,
+boot image `1af714ac3945ea690977ed386635e0e06318681e84ac9b6cb513929116e5f4b4`
+and padded partition
+`a485859e52abd1eb9e8c5aaf11aee2196bd779e308e4fe14a90236dcca4fb571`.
+Verify a changed live boot and this release before the sole capture/START and
+scan. Use the hypothesis and decision branches above, preserve evidence before
+reviewed recovery, and confirm changed-boot Gemian. This installation alone
+establishes no management reception, association or traffic.
