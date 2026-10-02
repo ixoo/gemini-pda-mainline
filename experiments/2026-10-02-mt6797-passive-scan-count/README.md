@@ -1,6 +1,7 @@
 # MT6797 passive scan firmware counter
 
-Status: source preparation; kernel build, candidate and runtime pending.
+Status: source review, Buildbox build and candidate validated; deployment and
+runtime pending.
 
 The [500 ms parent](../2026-10-02-mt6797-passive-scan-dwell/results/runtime-1.json)
 completed after 513501 us with returned credit and no management frame or BSS.
@@ -49,3 +50,21 @@ A repeated empty result must change the diagnosis rather than justify an
 identical re-run. The old parent lifetime remains consumed. Build and package
 validation, guarded live-GPT boot2 installation, full readback and owner physical
 selection precede hardware testing. Source analysis and a build are not support.
+
+## Build and candidate
+
+The [build receipt](results/build.json) records clean pushed inputs, validated
+package and independently checked compiled-source hashes. The MAC compiled
+without a new diagnostic; strict checkpatch and repository checks passed. All
+263 profiles preserve canonical order and the 262 existing profiles retain
+their inputs. No kernel/DT change beyond the diagnostic and release is added.
+
+The [candidate receipt](results/candidate.json) binds the proven booted board
+DT, parent firmware and private record, authenticated userspace and exact
+16 MiB padding. The published RAM-root transform reproduced its output byte
+for byte; only the release gate changes relative to the consumed dwell parent.
+The focused classifier checks positive/zero counters, duplicate/missing records,
+version and integer bounds, PNO extent and unchanged RF-dwell limitations.
+The [offline preflight](results/preflight.json) also verifies private authentication
+and the reviewed recovery binary against the RAM root. Capture and host
+execution still require actual verified deployment evidence.
