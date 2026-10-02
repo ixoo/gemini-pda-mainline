@@ -382,11 +382,13 @@ for the first Wi-Fi bring-up. The current preparation order is:
    connection](../experiments/2026-10-01-mt6797-passive-scan/results/band-context-4.json).
    The [non-DFS 5 GHz successor](../experiments/2026-10-02-mt6797-passive-scan-5g/results/runtime-1.json)
    now exposes permitted channel 40 and completes an ordinary passive scan,
-   again without management packets or BSS output. The next
-   [timing observation](../experiments/2026-10-02-mt6797-passive-scan-dwell/README.md)
-   requests a longer dwell on the known-good channel with normal broadcast setup;
-   account for firmware shortening and actual listening-time uncertainty before
-   interpreting an empty result. Attribute receive setup and delivery from the
+   again without management packets or BSS output. The single
+   [500 ms timing observation](../experiments/2026-10-02-mt6797-passive-scan-dwell/results/runtime-1.json)
+   completed after 513501 us with returned credit and normal broadcast submission,
+   but still no management frame or BSS. Changed-boot Gemian returned with carrier
+   at 5200 MHz. Nominal command timing is consistent; actual RF dwell and tuning
+   remain unverified. Define a decision-changing observation of channel tuning,
+   receive setup or delivery before another scan; do not repeat this consumed image. Attribute receive setup and delivery from the
    selected host/retained firmware contract and establish management reception. Continue runtime receive/event ownership,
    credit recycling and packet lifetime toward association and bounded traffic.
    Submission status alone

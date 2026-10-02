@@ -1,9 +1,10 @@
 # MT6797 passive scan with explicit channel dwell
 
-Status: source review, Buildbox build, candidate and offline preflight validated;
-installation and runtime pending.
-The installed [broadcast parent](../2026-10-02-mt6797-passive-scan-broadcast/README.md)
-remains unconsumed and is superseded for the next scan by this timing candidate.
+Status: installed with full-partition readback; one scan consumed and evidence
+preserved; reviewed recovery to changed-boot Gemian confirmed. The scan completed
+with timing consistent with the request but received no management frame or BSS.
+This candidate supersedes the unconsumed
+[broadcast parent](../2026-10-02-mt6797-passive-scan-broadcast/README.md).
 
 ## Listening-time evidence
 
@@ -86,8 +87,31 @@ source pins, private authentication, reviewed recovery binary, exact tool
 identities and generated installer/scan shell checks. Classifier fixtures retain
 shortening, missing/duplicate timing and unknown RF dwell as distinct states.
 
-The offline installer is bound to the last known Gemian boot for review. Fresh
-live identity and a regenerated installer are required before writing. Capture
-and host preparation require an actual verified deployment receipt; none has
-been fabricated. The older broadcast image is still the last verified installed
-image. No dwell-candidate installation, firmware START or scan has occurred.
+The [offline preflight](results/preflight.json) is historical preparation evidence
+from before installation. Its reference installer was not executed: a fresh live
+Gemian identity bound the regenerated installer. Capture and host preparation
+then passed against the actual full-readback deployment receipt. Installation,
+START and the single scan are recorded below; the offline receipt remains unchanged.
+
+## Runtime result
+
+The [single runtime receipt](results/runtime-1.json) binds the validated candidate,
+guarded boot2 installation, exact mainline boot and changed-boot Gemian return.
+Gemian reported carrier and a 5200 MHz connection before installation and after
+recovery. Pre-install cached beacon interval was 100 TU; its last-seen age was
+95580 ms, so the cache is not a fresh beacon measurement.
+
+WMT pre-start preservation and the single firmware START passed. The standard
+passive scan on permitted channel 40 returned success, matching completion and
+runtime credit. Requested dwell was 500 ms; host elapsed time was 513501 us.
+No native management frame, validated beacon or standard BSS result appeared.
+A53 service and provider checks passed; logs were sealed before reviewed recovery.
+Raw captures and peer identifiers remain private. The host command exits 1 because
+passive reception was not demonstrated, despite successful scan completion and
+recovery.
+
+This result supports nominal command timing, not measured RF listening time. It
+does not establish whether channel tuning, firmware shortening, receive setup or
+delivery caused the empty result. The next observation must distinguish those
+paths using the selected Gemian/firmware contract; do not repeat this consumed
+one-shot image or infer a filter cause from the empty scan alone.
