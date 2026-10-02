@@ -413,6 +413,12 @@ for the first Wi-Fi bring-up. The current preparation order is:
    earlier receive queue/descriptor admission and receive enabling/filter
    ownership. Mode continuity, byte wrap/reset and unsampled intervals remain
    unresolved. Do not force the mode word.
+   The [native receive-pool diagnostic](../experiments/2026-10-02-mt6797-scan-pool-sample/README.md)
+   now has reviewed source and a finite four-read protocol. Selected firmware
+   analysis places pool initialization in the mode-2 branch and command input
+   in other object pools; live native-pool state remains unobserved. Build and
+   validate this distinct head/count measurement before another physical boot.
+   Separate reads and indirect query effects prohibit RF packet-count claims.
    Do not repeat the consumed lifetimes. Establish management
    reception, then continue runtime receive/event ownership,
    credit recycling and packet lifetime toward association and bounded traffic.

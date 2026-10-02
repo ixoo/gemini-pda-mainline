@@ -1,0 +1,134 @@
+{
+  "schema": 1,
+  "status": "selected initializer and command-object ownership traced; live native-pool state remains unobserved",
+  "firmware_sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
+  "method": "Retained RE VM Ghidra 12.1.2 BE-instruction/LE-data pseudo-disassembly. Callees skipped assuming return; selected state cases stop at common redispatch 0xf000ee30.",
+  "references": {
+    "halfword_candidates": 165648,
+    "decode_failures": 3327,
+    "exact_immediate_pairs": 49,
+    "initializer_pairs": 1,
+    "native_getter_pairs": 1,
+    "retirement_pairs": 47,
+    "direct_flow_matches": 0,
+    "aligned_pointer_matches": 0,
+    "initialized_blocks": 2,
+    "block_byte_cap": 2097152
+  },
+  "initialization": {
+    "caller_pair": "0xf000ea5c",
+    "call": "0xf000ea64",
+    "target": "0xf000ab14",
+    "containing_state_entry": "0xf000e7b0",
+    "selected_case": "incoming mode 2 branches at 0xf000e7d8 to 0xf000e7fa; pool call is reachable in this case.",
+    "mode4_case": "0xf000edec calls 0xf00453e4 then joins redispatch; skipped callee may have other effects.",
+    "mode5_case": "0xf000edd4 may clear 0xf006bff8 and select mode 4 before joining redispatch; no local pool-init call.",
+    "conclusion": "Observed mode 5 alone does not prove initialization execution. Local mode 2 reaches initialization assuming prior calls return; live execution and unmapped callees remain unproved."
+  },
+  "graphs": [
+    {
+      "entry": "0xf000e7fa",
+      "nodes": 466,
+      "calls": 86,
+      "stop": "0xf000ee30",
+      "invalid": 0,
+      "unresolved_noncall_computed": 0,
+      "queue_exhausted": true
+    },
+    {
+      "entry": "0xf000edec",
+      "nodes": 5,
+      "calls": 1,
+      "stop": "0xf000ee30",
+      "invalid": 0,
+      "unresolved_noncall_computed": 0,
+      "queue_exhausted": true
+    },
+    {
+      "entry": "0xf000edd4",
+      "nodes": 10,
+      "calls": 0,
+      "stop": "0xf000ee30",
+      "invalid": 0,
+      "unresolved_noncall_computed": 0,
+      "queue_exhausted": true
+    },
+    {
+      "entry": "0xf004d928",
+      "nodes": 93,
+      "calls": 8,
+      "stop": "terminal",
+      "invalid": 0,
+      "unresolved_noncall_computed": 0,
+      "queue_exhausted": true
+    },
+    {
+      "entry": "0xf000b230",
+      "nodes": 39,
+      "calls": 2,
+      "stop": "terminal",
+      "invalid": 0,
+      "unresolved_noncall_computed": 0,
+      "queue_exhausted": true
+    },
+    {
+      "entry": "0xf000f3a8",
+      "nodes": 142,
+      "calls": 8,
+      "stop": "terminal",
+      "invalid": 0,
+      "unresolved_noncall_computed": 0,
+      "queue_exhausted": true
+    },
+    {
+      "entry": "0xf00265e8",
+      "nodes": 59,
+      "calls": 6,
+      "stop": "terminal",
+      "invalid": 0,
+      "unresolved_noncall_computed": 0,
+      "queue_exhausted": true
+    },
+    {
+      "entry": "0xf0026468",
+      "nodes": 62,
+      "calls": 7,
+      "stop": "terminal",
+      "invalid": 0,
+      "unresolved_noncall_computed": 0,
+      "queue_exhausted": true
+    }
+  ],
+  "command_object_path": {
+    "ingress": "0xf004d928 calls 0xf000b230 at 0xf004d978, then calls command dispatcher 0xf000f3a8 at 0xf004d9c8 or queues the same object.",
+    "getter": "0xf000b230 selects head 0xf007418c or 0xf006c7b8 by its second argument; neither is native RX head 0xf0073680. It unlinks and decrements selected head+8, clears 92-byte object and binds descriptor through ROM table 0x1b554.",
+    "dispatch": "0xf000f3a8 searches 81 entries starting 0xf005e8cc, with CID 0xc0 leading to the previously selected query handler 0xf000e4e4.",
+    "query": "Handler saves the input object and builds the reply in its existing object+8 buffer; ordinary RAM query loads the requested word. No new object allocation identified in this handler.",
+    "reply": "0xf00265e8 hands the input object to 0xf0026468; the latter calls ROM table 0x1b4a0 then retires the same object through 0xf000bbe4 with argument 0.",
+    "conclusion": "Selected command path uses other fixed pools and shared retirement. No direct native-pool metadata mutation identified along these selected paths. This is not proof that queries have no indirect or ROM-side effects."
+  },
+  "private_scripts_sha256": {
+    "ReceivePoolOwnershipRefs.java": "59c275c4cd05b9c55cad6989ab3fb95c391d26ea7aa23d3c6d7dee0b57b96d0a",
+    "ReceiveStateCaseFlow.java": "dfce14c38fd244b1c7e6d93d80043f839c3f1d651a9ca02c44ee18d7d7fce47a",
+    "ScanRxRootFlow.java": "2152d975ab64b0eb1b880806be1bd7c6c60b742e0451eb9c97c328f1160db29a"
+  },
+  "private_listing_sha256": {
+    "receive-pool-ownership-refs-private.txt": "be7bdb4591a0461a09795b85a0308f8f96f4d563641967bc14a7e9a8ca622899",
+    "mode2-local-private.txt": "1d6ca11596ee9c68b9acbac6de9cc9b075222eef50cc8aa35289864547ec8fe1",
+    "mode4-local-private.txt": "4bc8773f078102905169f1d45181fb0bc31f28b4e30149f1d5ffcecfd81d18aa",
+    "mode5-local-private.txt": "903d7be22abbc085d876cce00598a7b5b9cdf61ed8d341ef4864ce71339e2acf",
+    "command-ingress-private.txt": "243c597419ce85910e4abeca51546791ec28e8f7d3bed256fa67138ba653cb25",
+    "command-object-get-private.txt": "dd164e922cb1a0663122754b5ff19876ccf161f37f6078295beb241ee6889b94",
+    "command-dispatch-private.txt": "82eb32c2d700d04370101896648cebed28a25d8c4e0281f15c6b7993a0c3e4cd",
+    "query-reply-queue-private.txt": "d7477a8cf5dfef59b2783292f0b636d92a02df9a2107ad6c6b715fd046b7e25e",
+    "query-reply-enqueue-private.txt": "17c6aa95a9d03f686b6ca636bcdcc0d5604cc2f22fc2b2225fb02ee93fa4ec73"
+  },
+  "limitations": [
+    "Immediate pairs, aligned pointers and direct flow searches miss aliases, computed targets and ROM paths.",
+    "Graphs from case entries without a stop boundary reach the redispatch loop and other modes; these were unsuitable for per-case claims and replaced by bounded local case graphs.",
+    "Live pool availability is not initialized-pool proof, continuous availability or RF reception; head/count reads are non-atomic.",
+    "Shared retirement and unmapped ROM effects prohibit attributing pool changes to RF packets."
+  ],
+  "device_action": "none",
+  "sanitization": "Raw firmware and private disassembly omitted; independent summaries, addresses and digests only."
+}

@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "profile": "mt6797-a53-wifi-scan-pool-sample",
+  "prior_profiles": 266,
+  "profiles_after": 267,
+  "all_prior_profile_objects_unchanged": true,
+  "old_canonical_order_preserved": true,
+  "selected_series_parent": "patches/series-a53-wifi-scan-mode-sample",
+  "selected_series_delta": [
+    "proposals/0084-wifi-mediatek-sample-scan-receive-pool.patch"
+  ],
+  "whitelist": [
+    {
+      "role": 0,
+      "address": "0xf0073680",
+      "meaning": "selected native receive free-list head"
+    },
+    {
+      "role": 1,
+      "address": "0xf0073688",
+      "meaning": "selected native receive free-object count"
+    }
+  ],
+  "expected_source_sha256": {
+    "Kconfig": "f31f3717c694f1314ba71f8df0dc01ec3217a76ca6b333dd080a8b72553d968d",
+    "hif.c": "5b1af9d6e824f0a706a3aeea989c5f31df65465e3d1118db79f1b56830d33b23",
+    "hif.h": "6987ae53fcc7b368f6df6d707ad8e17f855993b28e0249d45235a3e240966b31",
+    "mac.c": "9d2ce9f62dd617a39554d6d3608982da04016ad4fa162d247abce847518a5f59",
+    "normal_command.h": "bd4ba4e56d4b09179e0481cbb007568184f17915ca9e5131899e21d20e9512bc",
+    "scan-wire.h": "bd1af70733011e505fbd95342b0194f7ba2cbb0ae5224580a9abe12f3c21d94c"
+  },
+  "runtime_effect_budget": {
+    "maximum_queries": 4,
+    "pairs_not_before_us": [
+      100000,
+      300000
+    ],
+    "maximum_outstanding": 1,
+    "per_reply_deadline_us": 100000,
+    "scan_deadline_seconds": 5,
+    "max_polls": 256,
+    "max_packets_per_tick": 16,
+    "max_packets_total": 4096,
+    "target_writes": 0,
+    "arbitrary_addresses": false,
+    "new_probe_tx": false
+  },
+  "lifecycle_reverse_normalization": "hif.c, hif.h and mac.c equal the mode parent after sampler symbol/name reversal and whitespace normalization; no operational change.",
+  "checkpatch": "Strict patch check passes with MISSING_SIGN_OFF and CONFIG_DESCRIPTION exclusions; full resulting Kconfig passes strict with no exclusions. Archive is non-certifying and not submission-ready.",
+  "hardware_test": false,
+  "candidate_prepared": false
+}

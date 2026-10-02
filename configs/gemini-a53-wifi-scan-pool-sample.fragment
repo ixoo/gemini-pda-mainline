@@ -1,0 +1,13 @@
+# Sample the fixed native receive free-list head and free-object count during the passive scan.
+# Request broadcast RX and 500 ms passive dwell on one permitted channel.
+# One passive channel per lifetime, no host or probe TX, current cfg80211 permissions.
+# Retain exclusive PIO ownership; bounded RX polling and fresh TC4 accounting.
+# No IRQ enable, packet DMA, association, keys or reuse after completion/abort.
+CONFIG_LOCALVERSION="-gemini-a53-wifi-scan-pool-sample"
+CONFIG_CFG80211=y
+CONFIG_MAC80211=y
+CONFIG_MT6797_MAC80211=y
+CONFIG_MT6797_HIF_TX_STATUS_PROBE=y
+CONFIG_MT6797_HIF_TC4_RECONCILE=y
+CONFIG_MT6797_PASSIVE_SCAN=y
+CONFIG_MT6797_SCAN_POOL_SAMPLE=y

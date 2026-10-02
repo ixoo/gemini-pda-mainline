@@ -1,0 +1,292 @@
+From 825f071b53ad5696480bde2296a8179db181d825 Mon Sep 17 00:00:00 2001
+From: Gemini bring-up archive <archive@example.invalid>
+Date: Fri, 2 Oct 2026 19:50:02 -0400
+Subject: [PATCH] wifi: mediatek: sample native receive object availability
+
+Retarget the finite passive-scan sampler to the selected native receive
+free-list head and free-object count. Preserve the four-query timing,
+sequence, credit, parsing and retirement limits. Separate samples neither
+prove RF reception nor identify all pool users.
+
+This internal experiment archive is not submission-ready and carries no
+certifying sign-off.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig  | 13 ++--
+ drivers/net/wireless/mediatek/mt6797/hif.c    |  8 +-
+ drivers/net/wireless/mediatek/mt6797/hif.h    |  4 +-
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 76 +++++++++----------
+ .../wireless/mediatek/mt6797/normal_command.h | 16 ++--
+ 5 files changed, 59 insertions(+), 58 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index 38285f3..e54dff1 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -54,14 +54,15 @@ config MT6797_PASSIVE_SCAN
+ 	  the host request and retire its wire lifetime; they are not firmware
+ 	  stop acknowledgements. No association, key, data TX or DMA is provided.
+ 
+-config MT6797_SCAN_MODE_SAMPLE
+-	bool "MT6797 bounded read-only receive mode samples"
++config MT6797_SCAN_POOL_SAMPLE
++	bool "MT6797 bounded read-only receive pool samples"
+ 	depends on MT6797_PASSIVE_SCAN
+ 	default n
+ 	help
+ 	  Read two fixed ordinary firmware RAM words during one passive scan:
+-	  the selected receive-mode gate and earlier dispatcher statistics.
++	  the selected native receive free-list head and free-object count.
+ 	  Issue at most four queries with fresh shared command sequences and
+-	  require each exact reply within 100 ms. Separate mode samples do not
+-	  prove packet reception or RF listening time. Eight-bit statistics can
+-	  wrap or reset. No arbitrary address or register write is admitted.
++	  require each exact reply within 100 ms. Separate samples are not atomic
++	  and do not prove packet reception or RF listening time. Command and
++	  other activity may affect objects. No arbitrary address or register
++	  write is admitted.
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 424b1a1..05c4cc4 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -639,15 +639,15 @@ unlock:
+ 	return error;
+ }
+ 
+-#if IS_ENABLED(CONFIG_MT6797_SCAN_MODE_SAMPLE)
+-int mt6797_hif_send_scan_mode_sample(struct mt6797_hif *hif, unsigned int role,
++#if IS_ENABLED(CONFIG_MT6797_SCAN_POOL_SAMPLE)
++int mt6797_hif_send_scan_pool_sample(struct mt6797_hif *hif, unsigned int role,
+ 				     unsigned int sequence, u64 deadline_ns)
+ {
+ 	struct mt6797_hif_pio_result transfer;
+ 	struct mt6797_hif_command command;
+ 	int error;
+ 
+-	if (!hif || !mt6797_scan_mode_sample_address(role) || sequence > 255)
++	if (!hif || !mt6797_scan_pool_sample_address(role) || sequence > 255)
+ 		return -EINVAL;
+ 	if (!mutex_trylock(&hif->mutex))
+ 		return -EBUSY;
+@@ -660,7 +660,7 @@ int mt6797_hif_send_scan_mode_sample(struct mt6797_hif *hif, unsigned int role,
+ 	error = mt6797_hif_enter(hif, deadline_ns);
+ 	if (error)
+ 		goto out;
+-	error = mt6797_normal_prepare_scan_mode_sample(&hif->normal, role, sequence,
++	error = mt6797_normal_prepare_scan_pool_sample(&hif->normal, role, sequence,
+ 						       hif->scratch, sizeof(hif->scratch),
+ 						       &command);
+ 	if (error)
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index 52239d9..e6d8a5d 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -178,8 +178,8 @@ int mt6797_hif_observe_port0(struct mt6797_hif *hif, u64 deadline_ns,
+  * retained normal owner. The caller owns payload provenance, ordering and regulatory policy.
+  * A successful return proves only PIO submission, not firmware application.
+  */
+-#if IS_ENABLED(CONFIG_MT6797_SCAN_MODE_SAMPLE)
+-int mt6797_hif_send_scan_mode_sample(struct mt6797_hif *hif, unsigned int role,
++#if IS_ENABLED(CONFIG_MT6797_SCAN_POOL_SAMPLE)
++int mt6797_hif_send_scan_pool_sample(struct mt6797_hif *hif, unsigned int role,
+ 				     unsigned int sequence, u64 deadline_ns);
+ #endif
+ 
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index c5ae79b..6c58d35 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -33,10 +33,10 @@ struct mt6797_mac {
+ 	unsigned int scan_channels, scan_count, scan_polls, scan_packets;
+ 	bool scan_ready, started, scan_used, scan_active, bss_active;
+ 	bool scan_beacon, scan_credit, scan_frame_seen;
+-#if IS_ENABLED(CONFIG_MT6797_SCAN_MODE_SAMPLE)
+-	u64 mode_sample_sent_ns, mode_sample_deadline;
+-	unsigned int mode_sample_submitted, mode_sample_received, mode_sample_sequence;
+-	bool mode_sample_pending;
++#if IS_ENABLED(CONFIG_MT6797_SCAN_POOL_SAMPLE)
++	u64 pool_sample_sent_ns, pool_sample_deadline;
++	unsigned int pool_sample_submitted, pool_sample_received, pool_sample_sequence;
++	bool pool_sample_pending;
+ #endif
+ 	u8 scan_packet[MT6797_HIF_RX_MAX_PACKET] __aligned(2);
+ #endif
+@@ -193,10 +193,10 @@ static bool mt6797_mac_finish_scan(struct mt6797_mac *mac, int *status,
+ 		 MT6797_PASSIVE_SCAN_DWELL_MS,
+ 		 (ktime_get_ns() - mac->scan_started_ns) / NSEC_PER_USEC,
+ 		 mac->scan_count);
+-#if IS_ENABLED(CONFIG_MT6797_SCAN_MODE_SAMPLE)
++#if IS_ENABLED(CONFIG_MT6797_SCAN_POOL_SAMPLE)
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+-		 "one-shot passive WLAN mode_sample summary: submitted=%u received=%u pending=%u atomic=0 rf_proven=0\n",
+-		 mac->mode_sample_submitted, mac->mode_sample_received, mac->mode_sample_pending);
++		 "one-shot passive WLAN pool_sample summary: submitted=%u received=%u pending=%u atomic=0 rf_proven=0\n",
++		 mac->pool_sample_submitted, mac->pool_sample_received, mac->pool_sample_pending);
+ #endif
+ 	if (cancel && !mac->first_error) {
+ 		ret = mt6797_mac_send(mac, MT6797_NORMAL_SCAN_CANCEL,
+@@ -241,24 +241,24 @@ static int mt6797_mac_scan_packet(struct mt6797_mac *mac, size_t bytes,
+ 		if (bytes < 8)
+ 			return -EPROTO;
+ 		switch (packet[4]) {
+-#if IS_ENABLED(CONFIG_MT6797_SCAN_MODE_SAMPLE)
++#if IS_ENABLED(CONFIG_MT6797_SCAN_POOL_SAMPLE)
+ 		case 5: {
+-			unsigned int value, index = mac->mode_sample_received;
++			unsigned int value, index = mac->pool_sample_received;
+ 			u64 now = ktime_get_ns();
+ 
+-			if (!mac->mode_sample_pending || now >= mac->mode_sample_deadline)
++			if (!mac->pool_sample_pending || now >= mac->pool_sample_deadline)
+ 				return -EPROTO;
+-			ret = mt6797_scan_mode_sample_reply(packet, bytes, index % 2,
+-							    mac->mode_sample_sequence, &value);
++			ret = mt6797_scan_pool_sample_reply(packet, bytes, index % 2,
++							    mac->pool_sample_sequence, &value);
+ 			if (ret)
+ 				return ret;
+ 			dev_info(wiphy_dev(mac->hw->wiphy),
+-				 "one-shot passive WLAN mode_sample sample: sample=%u role=%u value=%u sent_us=%llu received_us=%llu post_done=%u\n",
++				 "one-shot passive WLAN pool_sample sample: sample=%u role=%u value=%u sent_us=%llu received_us=%llu post_done=%u\n",
+ 				 index / 2, index % 2, value,
+-				 (mac->mode_sample_sent_ns - mac->scan_started_ns) / NSEC_PER_USEC,
++				 (mac->pool_sample_sent_ns - mac->scan_started_ns) / NSEC_PER_USEC,
+ 				 (now - mac->scan_started_ns) / NSEC_PER_USEC, *done);
+-			mac->mode_sample_received++;
+-			mac->mode_sample_pending = false;
++			mac->pool_sample_received++;
++			mac->pool_sample_pending = false;
+ 			return 0;
+ 		}
+ #endif
+@@ -342,47 +342,47 @@ static void mt6797_mac_scan_work(struct work_struct *work)
+ 	now = ktime_get_ns();
+ 	if (now >= mac->scan_deadline || ++mac->scan_polls > 256) {
+ 		ret = -ETIMEDOUT;
+-#if IS_ENABLED(CONFIG_MT6797_SCAN_MODE_SAMPLE)
+-		if (mac->mode_sample_pending)
++#if IS_ENABLED(CONFIG_MT6797_SCAN_POOL_SAMPLE)
++		if (mac->pool_sample_pending)
+ 			goto failed;
+ #endif
+ 		cancel = true;
+ 		goto finish;
+ 	}
+-#if IS_ENABLED(CONFIG_MT6797_SCAN_MODE_SAMPLE)
+-	if (mac->mode_sample_pending && now >= mac->mode_sample_deadline) {
++#if IS_ENABLED(CONFIG_MT6797_SCAN_POOL_SAMPLE)
++	if (mac->pool_sample_pending && now >= mac->pool_sample_deadline) {
+ 		ret = -ETIMEDOUT;
+ 		goto failed;
+ 	}
+ #endif
+ 	deadline = min_t(u64, now + 100 * NSEC_PER_MSEC, mac->scan_deadline);
+-#if IS_ENABLED(CONFIG_MT6797_SCAN_MODE_SAMPLE)
+-	if (mac->mode_sample_pending)
+-		deadline = min(deadline, mac->mode_sample_deadline);
++#if IS_ENABLED(CONFIG_MT6797_SCAN_POOL_SAMPLE)
++	if (mac->pool_sample_pending)
++		deadline = min(deadline, mac->pool_sample_deadline);
+ #endif
+ 	ret = mt6797_mac_scan_guard(mac, deadline);
+ 	if (ret)
+ 		goto failed;
+-#if IS_ENABLED(CONFIG_MT6797_SCAN_MODE_SAMPLE)
+-	if (!mac->mode_sample_pending && mac->mode_sample_submitted < 4 &&
++#if IS_ENABLED(CONFIG_MT6797_SCAN_POOL_SAMPLE)
++	if (!mac->pool_sample_pending && mac->pool_sample_submitted < 4 &&
+ 	    now - mac->scan_started_ns >=
+-	    (mac->mode_sample_submitted < 2 ? 100 : 300) * NSEC_PER_MSEC) {
++	    (mac->pool_sample_submitted < 2 ? 100 : 300) * NSEC_PER_MSEC) {
+ 		if (mac->sequence > 255) {
+ 			ret = -ENOSPC;
+ 			goto failed;
+ 		}
+-		mac->mode_sample_sequence = mac->sequence++;
+-		mac->mode_sample_sent_ns = ktime_get_ns();
+-		mac->mode_sample_deadline = min_t(u64, mac->scan_deadline,
+-						  mac->mode_sample_sent_ns + 100 * NSEC_PER_MSEC);
+-		ret = mt6797_hif_send_scan_mode_sample(mac->hif,
+-						       mac->mode_sample_submitted % 2,
+-						       mac->mode_sample_sequence,
+-						       mac->mode_sample_deadline);
++		mac->pool_sample_sequence = mac->sequence++;
++		mac->pool_sample_sent_ns = ktime_get_ns();
++		mac->pool_sample_deadline = min_t(u64, mac->scan_deadline,
++						  mac->pool_sample_sent_ns + 100 * NSEC_PER_MSEC);
++		ret = mt6797_hif_send_scan_pool_sample(mac->hif,
++						       mac->pool_sample_submitted % 2,
++						       mac->pool_sample_sequence,
++						       mac->pool_sample_deadline);
+ 		if (ret)
+ 			goto failed;
+-		mac->mode_sample_submitted++;
+-		mac->mode_sample_pending = true;
++		mac->pool_sample_submitted++;
++		mac->pool_sample_pending = true;
+ 	}
+ #endif
+ 	/* Alternate ports, at most sixteen packets per tick and 4096 overall.
+@@ -414,11 +414,11 @@ static void mt6797_mac_scan_work(struct work_struct *work)
+ 		if (!received)
+ 			break;
+ 	}
+-#if IS_ENABLED(CONFIG_MT6797_SCAN_MODE_SAMPLE)
++#if IS_ENABLED(CONFIG_MT6797_SCAN_POOL_SAMPLE)
+ 	/* A pending query gets only this existing bounded RX tick after DONE.
+ 	 * Do not extend the scan lifetime or submit any query after DONE.
+ 	 */
+-	if (mac->mode_sample_pending && (done || ktime_get_ns() >= mac->mode_sample_deadline)) {
++	if (mac->pool_sample_pending && (done || ktime_get_ns() >= mac->pool_sample_deadline)) {
+ 		ret = -ETIMEDOUT;
+ 		goto failed;
+ 	}
+diff --git a/drivers/net/wireless/mediatek/mt6797/normal_command.h b/drivers/net/wireless/mediatek/mt6797/normal_command.h
+index ba6992d..abd7ebc 100644
+--- a/drivers/net/wireless/mediatek/mt6797/normal_command.h
++++ b/drivers/net/wireless/mediatek/mt6797/normal_command.h
+@@ -228,22 +228,22 @@ mt6797_normal_prepare(struct mt6797_normal_transaction *t,
+ }
+ 
+ /* Read-only scan diagnostic: exactly two ordinary firmware RAM words.
+- * Role 0 is the mode word used by the selected native receive dispatch;
+- * role 1 includes its dispatcher byte at bits 7:0 and probe byte at 31:24.
++ * Role 0 is the selected native receive free-list head;
++ * role 1 is its free-object count. Separate reads are not atomic.
+  * No hardware, special command prefix or arbitrary address is admitted.
+  */
+-static inline unsigned int mt6797_scan_mode_sample_address(unsigned int role)
++static inline unsigned int mt6797_scan_pool_sample_address(unsigned int role)
+ {
+-	return role == 0 ? 0xf006bffcU : role == 1 ? 0xf006bf38U : 0;
++	return role == 0 ? 0xf0073680U : role == 1 ? 0xf0073688U : 0;
+ }
+ 
+ static inline int
+-mt6797_normal_prepare_scan_mode_sample(struct mt6797_normal_transaction *t,
++mt6797_normal_prepare_scan_pool_sample(struct mt6797_normal_transaction *t,
+ 				       unsigned int role, unsigned int sequence,
+ 				       unsigned char *output, size_t capacity,
+ 				       struct mt6797_hif_command *command)
+ {
+-	unsigned int address = mt6797_scan_mode_sample_address(role);
++	unsigned int address = mt6797_scan_pool_sample_address(role);
+ 	unsigned char payload[8] = {0};
+ 	int error;
+ 
+@@ -269,11 +269,11 @@ mt6797_normal_prepare_scan_mode_sample(struct mt6797_normal_transaction *t,
+  * Matching a reply does not refund TC4 credit or authorize another lifetime.
+  */
+ static inline int
+-mt6797_scan_mode_sample_reply(const unsigned char *packet, size_t bytes,
++mt6797_scan_pool_sample_reply(const unsigned char *packet, size_t bytes,
+ 			      unsigned int role, unsigned int sequence,
+ 			      unsigned int *value)
+ {
+-	unsigned int address = mt6797_scan_mode_sample_address(role);
++	unsigned int address = mt6797_scan_pool_sample_address(role);
+ 	unsigned int reflected;
+ 
+ 	if (!packet || !value || !address || sequence > 255)
+-- 
+2.54.0 (Apple Git-157)
+
