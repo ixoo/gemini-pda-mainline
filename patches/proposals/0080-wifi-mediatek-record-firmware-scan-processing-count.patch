@@ -1,0 +1,49 @@
+From 8dfc03a0bb7b4330bac99826c7702b675935c2d1 Mon Sep 17 00:00:00 2001
+From: Codex experiment archive <codex@invalid>
+Date: Fri, 2 Oct 2026 17:15:35 -0400
+Subject: [PATCH] wifi: mediatek: record firmware scan processing count
+
+A passive scan can complete with no host management frame even after an
+explicit 500 ms request. Record the counter and version from the already
+validated 24-byte completion, before the packet buffer is cleared.
+
+The retained ordinary constructor copies its scan management-processing
+counter into these bytes. A positive counter without host frames narrows
+receive-delivery diagnosis; zero does not prove absent RF reception. No
+new command, register read, scan duration or effect budget is introduced.
+
+Internal experiment archive only; synthetic author, no DCO certification.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 89edf87..3bec915 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -4,6 +4,7 @@
+ #include <linux/ktime.h>
+ #include <linux/mutex.h>
+ #include <linux/rtnetlink.h>
++#include <linux/unaligned.h>
+ #include <linux/workqueue.h>
+ #include <net/mac80211.h>
+ 
+@@ -237,8 +238,13 @@ static int mt6797_mac_scan_packet(struct mt6797_mac *mac, size_t bytes,
+ 			ret = mt6797_scan_done(packet, bytes, 1, mac->scan_count);
+ 			if (ret == -EAGAIN)
+ 				return 0;
+-			if (!ret)
++			if (!ret) {
++				dev_info(wiphy_dev(mac->hw->wiphy),
++					 "one-shot passive WLAN firmware scan count: version=%u management=%u pno=%u\n",
++					 packet[14], get_unaligned_le32(packet + 16),
++					 packet[20]);
+ 				*done = true;
++			}
+ 			return ret;
+ 		case 0x27: /* debug: retain no body or diagnostic strings */
+ 			return 0;
+-- 
+2.54.0 (Apple Git-157)
+

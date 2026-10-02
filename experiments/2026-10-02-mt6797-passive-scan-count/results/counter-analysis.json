@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "firmware_sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
+  "firmware_bytes": 411632,
+  "tool": "Ghidra 12.1.2; existing RE-VM project; read-only analysis",
+  "method": "Pseudo-disassembly under the retained NDS32 BE-instruction/LE-data premise. Offset searches produce candidates, not a complete data-flow/writer audit. Selected 400-node direct graph skips 22 callees under assumed return.",
+  "prior_constructor_receipt": "experiments/2026-09-08-mt6797-wlan-offloads/results/firmware-scan-lifetime.json",
+  "ordinary_completion": {
+    "event_bytes": 24,
+    "event_id": 13,
+    "counter_packet_offset": 16,
+    "counter_bytes": 4,
+    "counter_endian": "little",
+    "version_packet_offset": 14,
+    "pno_packet_offset": 20,
+    "behavior": "Copies the mode-zero scan-context counter into the ordinary completion payload and clears the context counter. The selected start branch also clears that field."
+  },
+  "writer": {
+    "instructions": 400,
+    "queue_exhausted": true,
+    "invalid": 0,
+    "unresolved_noncall_computed": 0,
+    "skipped_calls": 22,
+    "frame_control_tests": [
+      128,
+      80
+    ],
+    "behavior": "The selected routine reads frame-control through its input packet context, tests beacon and probe-response subtype values, and increments the same mode-zero counter on applicable branches. Probe-response paths can increment twice; this is not an exact unique-beacon count.",
+    "listing_sha256": "e8abb98760519c5b220f92f63178c13027d07e0752d1431482ede46516b3c157",
+    "walk_script_sha256": "2efce21970a2830e20fac166455a3c3ebcfee2a8a0e41bd3acab006927ad44c5"
+  },
+  "reference_searches": {
+    "halfword_candidates_per_search": 165648,
+    "undecodable_candidates_per_search": 3327,
+    "relative_counter_windows": 17,
+    "mode_zero_counter_windows": 5,
+    "relative_script_sha256": "ebffa99e2f6fa7bf595f4ef7b7c08cd1a84da2dc0a9e58ecf369d051aabac2cd",
+    "relative_listing_sha256": "4f3cceb0196ad05587574ffe6b21df7b4acb73c20672a2a1655eedadaca23d75",
+    "mode_zero_script_sha256": "2ed46e66debeebd66394c1e7cad4b663aa31314064e6d0f1e6d215c3816fd067",
+    "mode_zero_listing_sha256": "d6e53ffaf079b8d25112ee48e3122eec2db08a0b32396c4ff3450f55464703e1"
+  },
+  "public_source": {
+    "commit": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+    "header_path": "drivers/misc/mediatek/connectivity/wlan/gen3/include/nic_cmd_event.h",
+    "header_sha256": "93c8d67b1bc039a8db5b635e5a00975f2b9e408f4ab1bc8a384f5db49bf00a3a",
+    "header_lines": [
+      1204,
+      1217
+    ],
+    "handler_path": "drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/scan_fsm.c",
+    "handler_sha256": "f14bd3421fb7cae2d8879d7eaf8237c8837b0ced79e41310b4fd2b417bb66758",
+    "handler_lines": [
+      693,
+      712
+    ],
+    "source_name": "u4ScanDurBcnCnt",
+    "source_version_gate": "Host debug output interprets the counter when scan-done version exceeds 2."
+  },
+  "limitations": [
+    "Positive means execution of an applicable firmware management-processing path; it does not measure RF dwell, identify a peer, count unique beacons, establish frame validity or prove host delivery.",
+    "Zero leaves tuning, radio reception, filtering and the counter path itself unresolved.",
+    "Not all writers, callback effects or firmware runtime paths have been audited.",
+    "No new Gemian scan was issued. A bounded read of existing Gemian scan-completion debug lines returned none; that is not a zero counter."
+  ],
+  "hardware_test": false,
+  "firmware_execution": false,
+  "raw_evidence_published": false
+}
