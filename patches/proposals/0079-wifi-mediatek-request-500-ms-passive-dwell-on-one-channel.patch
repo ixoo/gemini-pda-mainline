@@ -1,0 +1,112 @@
+From 4896567ff832f1735a4427fadd9ff0c1e329a3c5 Mon Sep 17 00:00:00 2001
+From: Codex <codex-experiment@invalid.example>
+Date: Fri, 2 Oct 2026 07:37:07 -0400
+Subject: [PATCH] wifi: mediatek: request a longer passive dwell on one channel
+
+The retained V2 passive decoder carries the dwell halfword into a
+millisecond-to-tick timer. Its nominal 100 ms default is shorter than
+the known-good AP's cached 100 TU beacon interval. Request 500 ms on
+exactly one currently permitted channel, preserving the five-second
+whole-scan deadline and the one-shot lifecycle.
+
+Record host elapsed time before cleanup as a timing sanity check. It
+includes setup and delivery and cannot prove actual RF dwell; firmware
+shortening branches remain a limitation on interpreting empty scans.
+
+Synthetic experiment archive; no DCO certification or upstream submission.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 12 +++++++++---
+ .../net/wireless/mediatek/mt6797/scan-wire.h  | 19 ++++++++-----------
+ 2 files changed, 17 insertions(+), 14 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index c6967b2..89edf87 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -28,7 +28,7 @@ struct mt6797_mac {
+ 	struct ieee80211_hw *hw;
+ 	struct ieee80211_vif *vif;
+ 	struct delayed_work scan_work;
+-	u64 scan_deadline;
++	u64 scan_deadline, scan_started_ns;
+ 	unsigned int scan_channels, scan_count, scan_polls, scan_packets;
+ 	bool scan_ready, started, scan_used, scan_active, bss_active;
+ 	bool scan_beacon, scan_credit, scan_frame_seen;
+@@ -181,6 +181,12 @@ static bool mt6797_mac_finish_scan(struct mt6797_mac *mac, int *status,
+ 	if (!mac->scan_active)
+ 		return false;
+ 	mac->scan_active = false;
++	/* Host elapsed time includes setup and delivery; it is not RF dwell. */
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot passive WLAN timing: requested_ms=%u elapsed_us=%llu channels=%u\n",
++		 MT6797_PASSIVE_SCAN_DWELL_MS,
++		 (ktime_get_ns() - mac->scan_started_ns) / NSEC_PER_USEC,
++		 mac->scan_count);
+ 	if (cancel && !mac->first_error) {
+ 		ret = mt6797_mac_send(mac, MT6797_NORMAL_SCAN_CANCEL,
+ 				      abort, sizeof(abort));
+@@ -377,8 +383,7 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ 	    request->req.duration_mandatory || request->req.scan_6ghz ||
+ 	    request->req.n_6ghz_params ||
+ 	    !is_broadcast_ether_addr(request->req.bssid) ||
+-	    !request->req.n_channels ||
+-	    request->req.n_channels > MT6797_PASSIVE_SCAN_CHANNELS)
++	    request->req.n_channels != 1)
+ 		goto out;
+ 	for (i = 0; i < request->req.n_channels; i++) {
+ 		channel = request->req.channels[i];
+@@ -419,6 +424,7 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ 	if (ret)
+ 		goto out;
+ 	mac->bss_active = true;
++	mac->scan_started_ns = ktime_get_ns();
+ 	ret = mt6797_mac_send(mac, MT6797_NORMAL_SCAN_V2, payload, sizeof(payload));
+ 	if (ret)
+ 		goto out;
+diff --git a/drivers/net/wireless/mediatek/mt6797/scan-wire.h b/drivers/net/wireless/mediatek/mt6797/scan-wire.h
+index d4d8aa9..33e4bcb 100644
+--- a/drivers/net/wireless/mediatek/mt6797/scan-wire.h
++++ b/drivers/net/wireless/mediatek/mt6797/scan-wire.h
+@@ -7,6 +7,7 @@
+ #include "fixed-channels.h"
+ 
+ #define MT6797_PASSIVE_SCAN_BYTES 226U
++#define MT6797_PASSIVE_SCAN_DWELL_MS 500U
+ #define MT6797_PASSIVE_SCAN_CHANNELS MT6797_CHANNELS
+ 
+ /* One exclusive AIS BSS (0), own-MAC slot 1, unencrypted BMC slot 0.
+@@ -33,24 +34,20 @@ static inline int
+ mt6797_scan_request(unsigned int sequence, const unsigned int *channels,
+ 		    unsigned int count, unsigned char *output)
+ {
+-	unsigned int i, j;
++	unsigned int i;
+ 
+ 	if (!output || !channels || !sequence || sequence > 255 ||
+-	    !count || count > MT6797_PASSIVE_SCAN_CHANNELS)
++	    count != 1 || mt6797_channel_slot(channels[0]) < 0)
+ 		return -EINVAL;
+-	for (i = 0; i < count; i++) {
+-		if (mt6797_channel_slot(channels[i]) < 0)
+-			return -EINVAL;
+-		for (j = 0; j < i; j++)
+-			if (channels[i] == channels[j])
+-				return -EINVAL;
+-	}
+ 	for (i = 0; i < MT6797_PASSIVE_SCAN_BYTES; i++)
+ 		output[i] = 0;
+ 	output[0] = sequence;
+-	/* Retain the firmware default dwell. The selected host comments disagree
+-	 * on nonzero V2 units; the host independently bounds the whole scan.
++	/* The retained passive decoder carries this halfword into a timer
++	 * that converts milliseconds to 32768 Hz ticks. Request several
++	 * beacon intervals on one channel; this does not prove RF tuning.
+ 	 */
++	output[154] = MT6797_PASSIVE_SCAN_DWELL_MS & 0xff;
++	output[155] = MT6797_PASSIVE_SCAN_DWELL_MS >> 8;
+ 	output[158] = 4; /* SCAN_CHANNEL_SPECIFIED */
+ 	output[159] = count;
+ 	for (i = 0; i < count; i++) {
+-- 
+2.54.0 (Apple Git-157)
+

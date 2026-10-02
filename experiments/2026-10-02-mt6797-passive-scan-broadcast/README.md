@@ -1,7 +1,8 @@
 # MT6797 passive scan with normal broadcast reception
 
 Status: source-reviewed successor; build and candidate validated, runtime pending
-channel-dwell review. The consumed
+channel-dwell review. The [explicit dwell successor](../2026-10-02-mt6797-passive-scan-dwell/README.md)
+supersedes this unconsumed candidate for the next scan. The consumed
 [non-DFS scan](../2026-10-02-mt6797-passive-scan-5g/results/runtime-1.json)
 exposed channel 40 and completed without any management packet or BSS result.
 Changed-boot Gemian remained connected at 5200 MHz.

@@ -1,0 +1,65 @@
+{
+  "schema": 1,
+  "firmware_sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
+  "tool": "Ghidra 12.1.2; existing RE-VM project; read-only timer follow-up",
+  "method": "Direct-flow walks under the existing NDS32 BE-instruction/LE-data mapping premise skip callees assuming return. A bounded local-reference search produces candidate windows, not a complete writer audit.",
+  "prior_scan_receipt": "experiments/2026-09-08-mt6797-wlan-offloads/results/firmware-scan-lifetime.json",
+  "retained_findings": {
+    "v2_dwell_payload_offset": 154,
+    "v2_dwell_bytes": 2,
+    "passive_zero_dwell_nominal_value": 100,
+    "passive_nonzero_dwell": "The request halfword is stored without a TU conversion and propagated through the selected passive dwell state to the timer argument.",
+    "timer_minute_split": 60000,
+    "timer_conversion": "Local arithmetic multiplies the remainder by 32768, adds 999 and calls an unmapped arithmetic helper with divisor 1000 before adding the returned result to the tick counter.",
+    "unit_assessment": "Milliseconds are supported by the unconverted passive path and the matching millisecond timer implementation in pinned gen3 source. The arithmetic helper and physical tick clock were not independently decoded or measured.",
+    "shortening_branch": "A nonzero internal state byte caps dwell above 18 at 18 before the same timer call. The candidate-window search found an incrementing writer; initialization, all writers and live state remain unproved.",
+    "other_limit": "A separate state branch can select a shorter duration when a matching operating-channel context exists; a fresh unassociated BSS is intended, not proved by host submission."
+  },
+  "timer_walk": {
+    "instructions": 119,
+    "queue_exhausted": true,
+    "call_sites": 9,
+    "unresolved_noncall_computed": 0,
+    "terminal": 1,
+    "invalid": 0,
+    "private_listing_sha256": "7721d363fb1826da4200325301612730aec4bb3332f6a0db805ae2a78eacc089",
+    "script_sha256": "2efce21970a2830e20fac166455a3c3ebcfee2a8a0e41bd3acab006927ad44c5"
+  },
+  "clamp_reference_search": {
+    "base_candidates": 596,
+    "candidate_windows": 5,
+    "private_listing_sha256": "c67879e93c9cb04f77c82b3896f4c43d2be643bb80fdcfc9c426e54a4e538f0b",
+    "script_sha256": "b212f87cd43bd42aca7e7dbff3d2e5acf3f793a5f0612dad6c2c795d763eca53"
+  },
+  "request_decoder_private_sha256": "779ebb6b917ae142b7d778535375e53404a30c4ea9d689135895b5b0e4d832f1",
+  "request_core_private_sha256": "fe424988f0e21965897e6bc4b0a7680f7fb3c54571ab008bb7e5e7574474c9b0",
+  "scan_state_private_sha256": "b715801ecf4da6c5b1466c8dbc840d4b097d0f16849bb3c01e12fc332f53ac7a",
+  "context_selector_private_sha256": "b440f723c542e39d693251c999d7ca6748675b8905f0bb07cdd77f7c3f5c434d",
+  "timer_source": {
+    "vendor_commit": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+    "path": "drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/cnm_timer.c",
+    "sha256": "3bcf6b2043b1618ca9d2b6432082c753ae75afbd8e4a3f62f3967c95a0ede1b4",
+    "lines": [
+      286,
+      342
+    ],
+    "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/cnm_timer.c",
+    "rights": "Source declares GPL version 2. Protocol facts only; no implementation copied."
+  },
+  "cached_beacon_context": {
+    "source_sha256": "452cd09880ce69f0e2b5fe5682d62101f9a3e391373ded2c013f4ad77f68c3bb",
+    "source_context": "experiments/2026-10-01-mt6797-passive-scan/results/band-context-4.json",
+    "frequency_mhz": 5200,
+    "beacon_interval_tu": 100,
+    "beacon_interval_us": 102400,
+    "last_seen_age_ms": 337990,
+    "limitation": "Retained stale cache, not a new beacon observation or proof of unchanged AP configuration; peer identifiers withheld."
+  },
+  "requested_dwell_ms": 500,
+  "requested_channel_count": 1,
+  "nominal_cached_beacon_intervals": 4.8828125,
+  "hardware_test": false,
+  "firmware_execution": false,
+  "effective_rf_dwell_verified": false,
+  "decision": "Use a separately validated one-channel 500 ms candidate for bounded timing and reception observation. Host elapsed time includes setup and delivery, so an empty scan alone does not close firmware shortening or RF-tuning uncertainty."
+}
