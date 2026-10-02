@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "firmware_sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
+  "firmware_bytes": 411632,
+  "tool": "Ghidra 12.1.2; existing RE-VM project; read-only analysis",
+  "method": "Direct selected-entry walks under the retained NDS32 BE-instruction/LE-data premise. Skipped callees and computed callbacks are limitations, not audited bodies.",
+  "scan_state": {
+    "behavior": "Selected SET_CHANNEL path passes band base and channel to tuning and advances toward passive LISTEN without checking its return. Completion alone does not prove tuning success."
+  },
+  "tuning": {
+    "instructions": 961,
+    "queue_exhausted": true,
+    "invalid": 0,
+    "skipped_calls": 80,
+    "unresolved_noncall_computed": 1,
+    "listing_sha256": "9b08b99c30019e24c1d2bedf2dfaf914af3b9127c968be1d11868fc4b75be210",
+    "behavior": "Writes channel metadata before an internal return-value failure branch. The selected failure path returns zero before storing the completed band-base cache. Other selected successful and cached-identical paths return one."
+  },
+  "read_query": {
+    "command_id": 192,
+    "is_set": 0,
+    "command_bytes": 16,
+    "payload_bytes": 8,
+    "reply_event_id": 5,
+    "reply_bytes": 16,
+    "instructions": 164,
+    "queue_exhausted": true,
+    "invalid": 0,
+    "skipped_calls": 13,
+    "unresolved_noncall_computed": 1,
+    "listing_sha256": "d8b944e287becde82a7d2627ddfff1a54ad200b89b28386ad47d3eb88eec24e6",
+    "dispatch_listing_sha256": "847aa723bdc0f3c365d16e46a17d803c09a617a2e6da81e384eaadea75b310af",
+    "behavior": "Ordinary address query branch loads one 32-bit word without a target write, copies address and value to a 16-byte event and preserves the command sequence. Special prefixes and the set branch have different effects and are prohibited."
+  },
+  "whitelist": [
+    {
+      "role": 0,
+      "address": "0xf006c040",
+      "meaning": "completed tuning band-base cache",
+      "known_band_bases": [
+        2407000,
+        5000000
+      ]
+    },
+    {
+      "role": 1,
+      "address": "0xf006bf7c",
+      "meaning": "four bytes: fixed override, requested channel, center channel, bandwidth"
+    }
+  ],
+  "walk_script_sha256": "2efce21970a2830e20fac166455a3c3ebcfee2a8a0e41bd3acab006927ad44c5",
+  "dispatch_script_sha256": "3884edb0d97d328fc33d32ce32d57f7ee5c19031f2ccd37c276c0435706b0cdf",
+  "public_source": {
+    "commit": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+    "header_path": "drivers/misc/mediatek/connectivity/wlan/gen3/include/nic_cmd_event.h",
+    "header_sha256": "93c8d67b1bc039a8db5b635e5a00975f2b9e408f4ab1bc8a384f5db49bf00a3a",
+    "contract": "CMD_ID_ACCESS_REG query, CMD_ACCESS_REG address/data pair, EVENT_ID_ACCESS_REG reply"
+  },
+  "limitations": [
+    "Words are non-atomic software state; matching band and channel do not establish RF tuning, dwell, reception, frame validity or a peer.",
+    "No complete writer or callback audit; stale/unchanged cache may predate the scan.",
+    "Queries add bounded event traffic and perturb scan timing; missing replies are inconclusive.",
+    "No firmware execution, Gemian scan, register write or hardware test was performed in this analysis."
+  ],
+  "hardware_test": false,
+  "firmware_execution": false,
+  "raw_evidence_published": false
+}

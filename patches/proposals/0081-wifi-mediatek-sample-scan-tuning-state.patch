@@ -1,0 +1,305 @@
+From ac18207b925164e16dca904a3cd077e0167262d3 Mon Sep 17 00:00:00 2001
+From: Gemini bring-up archive <archive@example.invalid>
+Date: Fri, 2 Oct 2026 17:57:07 -0400
+Subject: [PATCH] wifi: mediatek: sample two firmware channel-state words
+ during one scan
+
+Allow four bounded read-only queries in an isolated default-off diagnostic.
+Match exact address and fresh sequence replies without refunding TC4,
+extending scan lifetime, or exposing arbitrary register access. Software
+samples are non-atomic and do not prove RF tuning.
+
+Synthetic archive author; no DCO certification.
+This is not an upstream submission.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig  | 11 +++
+ drivers/net/wireless/mediatek/mt6797/hif.c    | 39 ++++++++++
+ drivers/net/wireless/mediatek/mt6797/hif.h    |  5 ++
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 75 +++++++++++++++++++
+ .../wireless/mediatek/mt6797/normal_command.h | 64 ++++++++++++++++
+ 5 files changed, 194 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index abeca9e..5b49f43 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -53,3 +53,14 @@ config MT6797_PASSIVE_SCAN
+ 	  report them through cfg80211. Cancellation, timeout and failure abort
+ 	  the host request and retire its wire lifetime; they are not firmware
+ 	  stop acknowledgements. No association, key, data TX or DMA is provided.
++
++config MT6797_SCAN_TUNING_SAMPLE
++	bool "MT6797 bounded read-only scan tuning samples"
++	depends on MT6797_PASSIVE_SCAN
++	default n
++	help
++	  During the sole passive scan, issue at most four read-only firmware
++	  RAM queries for two fixed channel-state words. Match exact replies
++	  within 100 ms using fresh shared command sequences. Samples are
++	  non-atomic software state, not proof of RF tuning or listening time.
++	  No arbitrary register access or register write interface is exposed.
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index d1c2e1a..889d5e7 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -639,6 +639,45 @@ unlock:
+ 	return error;
+ }
+ 
++#if IS_ENABLED(CONFIG_MT6797_SCAN_TUNING_SAMPLE)
++int mt6797_hif_send_scan_tuning(struct mt6797_hif *hif, unsigned int role,
++				unsigned int sequence, u64 deadline_ns)
++{
++	struct mt6797_hif_pio_result transfer;
++	struct mt6797_hif_command command;
++	int error;
++
++	if (!hif || !mt6797_scan_tuning_address(role) || sequence > 255)
++		return -EINVAL;
++	if (!mutex_trylock(&hif->mutex))
++		return -EBUSY;
++	if (!hif->firmware_ready || !hif->capability_complete ||
++	    hif->transaction->phase != MT6797_INIT_IDLE ||
++	    hif->normal.phase != MT6797_NORMAL_NVRAM_SUBMITTED) {
++		error = -EIO;
++		goto unlock;
++	}
++	error = mt6797_hif_enter(hif, deadline_ns);
++	if (error)
++		goto out;
++	error = mt6797_normal_prepare_scan_tuning(&hif->normal, role, sequence,
++						  hif->scratch, sizeof(hif->scratch), &command);
++	if (error)
++		goto out;
++	error = mt6797_hif_pio_transfer(&hif->io, 0x34, MT6797_HIF_WRITE,
++					hif->scratch, 16, sizeof(hif->scratch), &transfer);
++	error = mt6797_normal_submitted(&hif->normal, error);
++	if (!error)
++		error = mt6797_hif_guard(hif);
++out:
++	if (error)
++		error = mt6797_hif_fail(hif, error);
++unlock:
++	mutex_unlock(&hif->mutex);
++	return error;
++}
++#endif
++
+ /* Read one port-0 packet only when its earlier 89-byte length is unchanged.
+  * Keep all payload bytes private to the HIF scratch buffer.
+  */
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index 664b08d..1f811e6 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -178,6 +178,11 @@ int mt6797_hif_observe_port0(struct mt6797_hif *hif, u64 deadline_ns,
+  * retained normal owner. The caller owns payload provenance, ordering and regulatory policy.
+  * A successful return proves only PIO submission, not firmware application.
+  */
++#if IS_ENABLED(CONFIG_MT6797_SCAN_TUNING_SAMPLE)
++int mt6797_hif_send_scan_tuning(struct mt6797_hif *hif, unsigned int role,
++				unsigned int sequence, u64 deadline_ns);
++#endif
++
+ int mt6797_hif_send_config(struct mt6797_hif *hif,
+ 			   enum mt6797_normal_config_kind kind,
+ 			   unsigned int sequence, const u8 *payload,
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 3bec915..f2748fa 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -33,6 +33,11 @@ struct mt6797_mac {
+ 	unsigned int scan_channels, scan_count, scan_polls, scan_packets;
+ 	bool scan_ready, started, scan_used, scan_active, bss_active;
+ 	bool scan_beacon, scan_credit, scan_frame_seen;
++#if IS_ENABLED(CONFIG_MT6797_SCAN_TUNING_SAMPLE)
++	u64 tuning_sent_ns, tuning_deadline;
++	unsigned int tuning_submitted, tuning_received, tuning_sequence;
++	bool tuning_pending;
++#endif
+ 	u8 scan_packet[MT6797_HIF_RX_MAX_PACKET] __aligned(2);
+ #endif
+ };
+@@ -188,6 +193,11 @@ static bool mt6797_mac_finish_scan(struct mt6797_mac *mac, int *status,
+ 		 MT6797_PASSIVE_SCAN_DWELL_MS,
+ 		 (ktime_get_ns() - mac->scan_started_ns) / NSEC_PER_USEC,
+ 		 mac->scan_count);
++#if IS_ENABLED(CONFIG_MT6797_SCAN_TUNING_SAMPLE)
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot passive WLAN tuning summary: submitted=%u received=%u pending=%u atomic=0 rf_proven=0\n",
++		 mac->tuning_submitted, mac->tuning_received, mac->tuning_pending);
++#endif
+ 	if (cancel && !mac->first_error) {
+ 		ret = mt6797_mac_send(mac, MT6797_NORMAL_SCAN_CANCEL,
+ 				      abort, sizeof(abort));
+@@ -231,6 +241,27 @@ static int mt6797_mac_scan_packet(struct mt6797_mac *mac, size_t bytes,
+ 		if (bytes < 8)
+ 			return -EPROTO;
+ 		switch (packet[4]) {
++#if IS_ENABLED(CONFIG_MT6797_SCAN_TUNING_SAMPLE)
++		case 5: {
++			unsigned int value, index = mac->tuning_received;
++			u64 now = ktime_get_ns();
++
++			if (!mac->tuning_pending || now >= mac->tuning_deadline)
++				return -EPROTO;
++			ret = mt6797_scan_tuning_reply(packet, bytes, index % 2,
++						       mac->tuning_sequence, &value);
++			if (ret)
++				return ret;
++			dev_info(wiphy_dev(mac->hw->wiphy),
++				 "one-shot passive WLAN tuning sample: sample=%u role=%u value=%u sent_us=%llu received_us=%llu post_done=%u\n",
++				 index / 2, index % 2, value,
++				 (mac->tuning_sent_ns - mac->scan_started_ns) / NSEC_PER_USEC,
++				 (now - mac->scan_started_ns) / NSEC_PER_USEC, *done);
++			mac->tuning_received++;
++			mac->tuning_pending = false;
++			return 0;
++		}
++#endif
+ 		case 0x0d:
+ 			dev_info(wiphy_dev(mac->hw->wiphy),
+ 				 "one-shot passive WLAN done header: len=%zu seq=%u payload_seq=%u\n",
+@@ -311,13 +342,48 @@ static void mt6797_mac_scan_work(struct work_struct *work)
+ 	now = ktime_get_ns();
+ 	if (now >= mac->scan_deadline || ++mac->scan_polls > 256) {
+ 		ret = -ETIMEDOUT;
++#if IS_ENABLED(CONFIG_MT6797_SCAN_TUNING_SAMPLE)
++		if (mac->tuning_pending)
++			goto failed;
++#endif
+ 		cancel = true;
+ 		goto finish;
+ 	}
++#if IS_ENABLED(CONFIG_MT6797_SCAN_TUNING_SAMPLE)
++	if (mac->tuning_pending && now >= mac->tuning_deadline) {
++		ret = -ETIMEDOUT;
++		goto failed;
++	}
++#endif
+ 	deadline = min_t(u64, now + 100 * NSEC_PER_MSEC, mac->scan_deadline);
++#if IS_ENABLED(CONFIG_MT6797_SCAN_TUNING_SAMPLE)
++	if (mac->tuning_pending)
++		deadline = min(deadline, mac->tuning_deadline);
++#endif
+ 	ret = mt6797_mac_scan_guard(mac, deadline);
+ 	if (ret)
+ 		goto failed;
++#if IS_ENABLED(CONFIG_MT6797_SCAN_TUNING_SAMPLE)
++	if (!mac->tuning_pending && mac->tuning_submitted < 4 &&
++	    now - mac->scan_started_ns >=
++	    (mac->tuning_submitted < 2 ? 100 : 300) * NSEC_PER_MSEC) {
++		if (mac->sequence > 255) {
++			ret = -ENOSPC;
++			goto failed;
++		}
++		mac->tuning_sequence = mac->sequence++;
++		mac->tuning_sent_ns = ktime_get_ns();
++		mac->tuning_deadline = min_t(u64, mac->scan_deadline,
++					     mac->tuning_sent_ns + 100 * NSEC_PER_MSEC);
++		ret = mt6797_hif_send_scan_tuning(mac->hif,
++						  mac->tuning_submitted % 2, mac->tuning_sequence,
++						  mac->tuning_deadline);
++		if (ret)
++			goto failed;
++		mac->tuning_submitted++;
++		mac->tuning_pending = true;
++	}
++#endif
+ 	/* Alternate ports, at most sixteen packets per tick and 4096 overall.
+ 	 * Finish this bounded tick after a done event so the other port is not
+ 	 * skipped. This is not an event-drain fence. Empty polls consume no RX.
+@@ -347,6 +413,15 @@ static void mt6797_mac_scan_work(struct work_struct *work)
+ 		if (!received)
+ 			break;
+ 	}
++#if IS_ENABLED(CONFIG_MT6797_SCAN_TUNING_SAMPLE)
++	/* A pending query gets only this existing bounded RX tick after DONE.
++	 * Do not extend the scan lifetime or submit any query after DONE.
++	 */
++	if (mac->tuning_pending && (done || ktime_get_ns() >= mac->tuning_deadline)) {
++		ret = -ETIMEDOUT;
++		goto failed;
++	}
++#endif
+ 	if (done)
+ 		goto finish;
+ 	schedule_delayed_work(&mac->scan_work, msecs_to_jiffies(20));
+diff --git a/drivers/net/wireless/mediatek/mt6797/normal_command.h b/drivers/net/wireless/mediatek/mt6797/normal_command.h
+index 7c4ce40..4c43e99 100644
+--- a/drivers/net/wireless/mediatek/mt6797/normal_command.h
++++ b/drivers/net/wireless/mediatek/mt6797/normal_command.h
+@@ -227,6 +227,70 @@ mt6797_normal_prepare(struct mt6797_normal_transaction *t,
+ 	return -EINVAL;
+ }
+ 
++/* Read-only scan diagnostic: exactly two ordinary firmware RAM words.
++ * Role 0 is the completed tuning band cache; role 1 contains requested channel
++ * metadata. No hardware, special command prefix or arbitrary address is admitted.
++ */
++static inline unsigned int mt6797_scan_tuning_address(unsigned int role)
++{
++	return role == 0 ? 0xf006c040U : role == 1 ? 0xf006bf7cU : 0;
++}
++
++static inline int
++mt6797_normal_prepare_scan_tuning(struct mt6797_normal_transaction *t,
++				  unsigned int role, unsigned int sequence,
++				  unsigned char *output, size_t capacity,
++				  struct mt6797_hif_command *command)
++{
++	unsigned int address = mt6797_scan_tuning_address(role);
++	unsigned char payload[8] = {0};
++	int error;
++
++	if (!t || !command || !output)
++		return -EINVAL;
++	*command = (struct mt6797_hif_command){0};
++	if (!address)
++		return -EINVAL;
++	if (t->phase != MT6797_NORMAL_NVRAM_SUBMITTED)
++		return mt6797_normal_abort(t);
++	payload[0] = (unsigned char)address;
++	payload[1] = (unsigned char)(address >> 8);
++	payload[2] = (unsigned char)(address >> 16);
++	payload[3] = (unsigned char)(address >> 24);
++	error = mt6797_normal_encode(t, 0xc0, 0, sequence, payload, 8, 16,
++				     MT6797_NORMAL_CONFIG_TX, output, capacity, command);
++	if (!error)
++		t->config_return_phase = MT6797_NORMAL_NVRAM_SUBMITTED;
++	return error;
++}
++
++/* Caller owns the single outstanding query and retires it on any error.
++ * Matching a reply does not refund TC4 credit or authorize another lifetime.
++ */
++static inline int
++mt6797_scan_tuning_reply(const unsigned char *packet, size_t bytes,
++			 unsigned int role, unsigned int sequence,
++			 unsigned int *value)
++{
++	unsigned int address = mt6797_scan_tuning_address(role);
++	unsigned int reflected;
++
++	if (!packet || !value || !address || sequence > 255)
++		return -EINVAL;
++	*value = 0;
++	if (bytes != 16 || mt6797_normal_le16(packet) != 16 ||
++	    mt6797_normal_le16(packet + 2) != 0xe000 || packet[4] != 5 ||
++	    packet[5] != sequence)
++		return -EPROTO;
++	reflected = (unsigned int)packet[8] | ((unsigned int)packet[9] << 8) |
++		((unsigned int)packet[10] << 16) | ((unsigned int)packet[11] << 24);
++	if (reflected != address)
++		return -EPROTO;
++	*value = (unsigned int)packet[12] | ((unsigned int)packet[13] << 8) |
++		((unsigned int)packet[14] << 16) | ((unsigned int)packet[15] << 24);
++	return 0;
++}
++
+ /* Selected no-reply configuration commands. The caller owns their order,
+  * payload content, regulatory policy and calibration provenance.
+  */
+-- 
+2.54.0 (Apple Git-157)
+
