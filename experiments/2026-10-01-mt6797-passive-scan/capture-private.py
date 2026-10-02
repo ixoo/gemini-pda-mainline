@@ -55,7 +55,10 @@ def prepare(candidate):
     WMT.require(fields.get('experiment') == 'mt6797-passive-scan' and
                 fields.get('candidate_manifest_sha256') == WMT.CAPTURE.MANIFEST_SHA and
                 fields.get('target_logical_name') == 'boot2' and
-                fields.get('result') == 'write-synced-flushed-full-readback-verified' and
+                fields.get('result') in ('write-synced-flushed-full-readback-verified',
+                                         'skipped-already-matching') and
+                (fields['result'] != 'skipped-already-matching' or
+                 fields.get('predecessor_sha256') == expected['files']['boot2-padded.img']['sha256']) and
                 fields.get('candidate_sha256') == expected['files']['boot2-padded.img']['sha256'] and
                 fields.get('readback_sha256') == fields['candidate_sha256'] and
                 fields.get('reboot') == 'no', 'deployment not admitted')

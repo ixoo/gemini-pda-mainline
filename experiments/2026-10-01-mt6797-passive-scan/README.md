@@ -190,5 +190,7 @@ record, DT or image to address this host prerequisite. Session two reserves new
 capture, execution and deployment evidence paths. Its new measurement is the
 previously unreached interface/scan phase under the same one-boot protocol;
 ordinary guards skip rewriting boot2 when the full checksum already matches.
+The capture receipt accepts that existing skip result only with matching
+predecessor, candidate and full readback identities.
 A new guarded shutdown and owner boot2 selection are required. Session-two
 preflight and deployment are pending; no scan has yet been submitted.
