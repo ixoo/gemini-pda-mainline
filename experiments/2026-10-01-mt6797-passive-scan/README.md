@@ -195,4 +195,19 @@ predecessor, candidate and full readback identities.
 The [second deployment](results/deployment-2.json) skipped the matching image,
 verified an independent full readback and shut down cleanly. The [second
 preflight](results/preflight-2.json) passes against that actual skip receipt.
-Await the owner’s next physical boot2 selection. No scan has yet been submitted.
+The [second runtime](results/runtime-2.json) passed the missing-parent gate,
+but its pre-scan dmesg file exceeded the authenticated shell's inherited
+131072-byte regular-file limit. The complete preserved log is 142066 bytes.
+The command terminated with exit 153 before interface creation; no scan was
+admitted. Initial configuration, TC4 accounting, A53 regression and reviewed
+recovery passed. Independent changed-boot Gemian inspection confirmed carrier.
+This is another host prerequisite failure, not firmware/RX negative evidence.
+
+Keep the prerequisite dmesg snapshot in shell memory, preserving the exact
+three count checks and firmware-stop refusal. The existing bounded parent log
+export continues to preserve the complete log. Do not raise inherited resource
+limits or change the kernel/image. A focused check uses the actual retained log
+under a 128 KiB file ceiling and verifies acceptance plus missing, duplicate and
+stopped-record refusals. Session three reserves fresh capture, execution and
+deployment paths; the one-use leaf still refuses a second attempt in a boot.
+No scan has yet been submitted.

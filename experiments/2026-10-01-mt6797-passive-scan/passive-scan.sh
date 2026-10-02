@@ -25,11 +25,13 @@ if [ ! -e /tmp ]; then
 fi
 [ -d /tmp ] && [ ! -L /tmp ]
 $BB mkdir /tmp/mt6797-passive-scan-1
-$BB dmesg > /tmp/mt6797-passive-scan-1/pre-scan.log
-[ "$($BB grep -c 'one-shot WLAN TC4 reconciliation: snapshot=2 status=0 ' /tmp/mt6797-passive-scan-1/pre-scan.log)" = 1 ]
-[ "$($BB grep -c 'one-shot WLAN regulatory configuration: status=0' /tmp/mt6797-passive-scan-1/pre-scan.log)" = 1 ]
-[ "$($BB grep -c 'one-shot WLAN private record prepare: status=0' /tmp/mt6797-passive-scan-1/pre-scan.log)" = 1 ]
-if $BB grep -q 'one-shot WLAN firmware stopped (' /tmp/mt6797-passive-scan-1/pre-scan.log; then
+# The authenticated shell limits regular files to 128 KiB. Keep this
+# prerequisite snapshot in memory; the parent exports the complete log later.
+pre_scan_log=$($BB dmesg)
+[ "$(printf '%s\n' "$pre_scan_log" | $BB grep -c 'one-shot WLAN TC4 reconciliation: snapshot=2 status=0 ')" = 1 ]
+[ "$(printf '%s\n' "$pre_scan_log" | $BB grep -c 'one-shot WLAN regulatory configuration: status=0')" = 1 ]
+[ "$(printf '%s\n' "$pre_scan_log" | $BB grep -c 'one-shot WLAN private record prepare: status=0')" = 1 ]
+if printf '%s\n' "$pre_scan_log" | $BB grep -q 'one-shot WLAN firmware stopped ('; then
     exit 1
 fi
 cd /
