@@ -370,10 +370,12 @@ for the first Wi-Fi bring-up. The current preparation order is:
    now proves supported configuration PIO submission under a cfg80211 owner
    and one CONSYS-bound mac80211 wiphy after capability, bounded debug drain
    and private-record preparation. The [counter probe](../experiments/2026-10-01-mt6797-tx-status/results/runtime-1.json)
-   stopped on an unidentified receive packet before configuration; retain its
-   bounded header metadata at rejection before changing admission or credit
-   accounting. Implement receive/event ownership, credit recycling and the
-   packet lifetime, then demonstrate a standard station
+   stopped before configuration. The [header successor](../experiments/2026-10-01-mt6797-tx-status-header/results/runtime-1.json)
+   identified an unsolicited sleepy notification. Admit its exact source-defined
+   layout while retaining active host ownership, verify that ownership before
+   continuing, and then obtain the post-configuration page-counter witness.
+   Implement receive/event ownership, credit recycling and the packet lifetime,
+   then demonstrate a standard station
    interface, scan, association and bounded traffic. Submission status alone
    does not prove firmware application or effective runtime RF restrictions.
    The consumed one-shot candidate is not a repeat test.

@@ -45,4 +45,33 @@ is introduced or claimed. The [clean pushed Buildbox build](results/build.json) 
 [offline preflight](results/preflight.json) records the wrapper, installer and
 A53 recovery dependency checks. Six Python AST checks, bounded metadata
 classifier fixtures and generated installer/wiphy shell syntax and ShellCheck
-passed. No runtime result exists yet.
+passed. The [runtime result](results/runtime-1.json) identified the refused
+packet without changing admission.
+
+## Runtime and selected-source result
+
+The [deployed candidate](results/deployment.json) completed one WMT/START and
+capability. The existing reads returned 89-byte and 80-byte debug events,
+then a complete 12-byte `0xe000` event, ID `0x07`, sequence 0. The drain refused
+that third event with `-EPROTO`; its post-read WRPLR was zero. The metadata
+witness distinguishes class refusal from transport/header failure. The
+sleepy-state payload byte was not logged, so its value is not established.
+Configuration, wiphy registration and post-configuration counters did not run.
+
+The [pinned source receipt](results/sleepy-sources.json) identifies `0x07` as
+unsolicited `EVENT_ID_SLEEPY_INFO`: an eight-byte event header plus a four-byte
+body containing one sleep-state byte and three reserved bytes. The RX handler
+records this state and, in the multithreaded path, wakes the HIF worker for a
+nonzero state. That worker marks the request and releases its power reference.
+The PM macro only calls firmware-own when the sleepy state is set and the
+active power-reference count is zero; the firmware-own function then writes
+WHLPCR. The event itself is neither a host ownership-release command nor an
+observed ownership readback. The next bounded initialization can retain its
+active host ownership, accept only this exact notice and verify WHLPCR's driver
+ownership before continuing. No implicit low-power handoff is justified.
+
+Complete private evidence was preserved, the A53 RAM-service regression and
+provider query passed, and reviewed recovery returned a changed Gemian boot.
+Independent SSH confirmed the recorded identity, `3.18.41+` and WLAN carrier 1.
+This candidate is consumed. No packet bodies, private record bytes or raw
+returned-page counters are published. Wi-Fi remains unusable in mainline.

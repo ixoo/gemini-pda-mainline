@@ -1,0 +1,55 @@
+{
+  "status": "identified-sleepy-notification-refused-before-configuration",
+  "candidate_boot2_sha256": "03bf92938dfef805769aff33bbdbb9cca41f2b06414488beeb78cd4e535cde66",
+  "kernel_release": "7.1.3-gemini-a53-wifi-tx-status-header",
+  "mainline_boot_id": "d112ed05-f510-41d4-b6bc-45308c857458",
+  "complete_private_log_sha256": "c66b0cd9847dc30b55e195f522880633279449dc028cf420d88468a0c8e9ef7a",
+  "complete_private_log_bytes": 137928,
+  "fatal_marker_count": 0,
+  "capability_query_status": 0,
+  "boot_receive_metadata_complete": true,
+  "boot_events": [
+    {
+      "logical_bytes": 89,
+      "packet_type": "0xe000",
+      "event_id": "0x27",
+      "sequence": 0
+    },
+    {
+      "logical_bytes": 80,
+      "packet_type": "0xe000",
+      "event_id": "0x27",
+      "sequence": 0
+    },
+    {
+      "logical_bytes": 12,
+      "packet_type": "0xe000",
+      "event_id": "0x07",
+      "sequence": 0
+    }
+  ],
+  "rejected_event": "0x07",
+  "sleepy_state_payload_recorded": false,
+  "boot_debug_drain": {
+    "count": 2,
+    "post_wrplr": 0,
+    "status": -71
+  },
+  "initial_tx_status_complete": true,
+  "post_configuration_tx_status_collected": false,
+  "counter_consumption_witness": false,
+  "credit_refill_enabled": false,
+  "private_record_prepare_attempted": false,
+  "regulatory_configuration_attempted": false,
+  "wiphy_registered": false,
+  "radio_or_dma_enabled": false,
+  "a53_ram_service_regression": true,
+  "provider_registered": true,
+  "reviewed_recovery_confirmed": true,
+  "returned_gemian_boot_id": "c025810e-0e7e-40b1-a260-c4f1217eff40",
+  "independent_return": {
+    "kernel_release": "3.18.41+",
+    "wlan0_carrier": 1
+  },
+  "wifi_operational": false
+}
