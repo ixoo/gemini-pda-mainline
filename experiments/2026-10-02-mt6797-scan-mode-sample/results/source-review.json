@@ -1,0 +1,55 @@
+{
+  "schema": 1,
+  "profile": "mt6797-a53-wifi-scan-mode-sample",
+  "prior_profiles": 265,
+  "profiles_after": 266,
+  "all_prior_profile_objects_unchanged": true,
+  "old_canonical_order_preserved": true,
+  "selected_series_parent": "patches/series-a53-wifi-scan-rx-sample",
+  "selected_series_delta": [
+    "proposals/0083-wifi-mediatek-sample-scan-receive-mode.patch"
+  ],
+  "whitelist": [
+    {
+      "role": 0,
+      "address": "0xf006bffc",
+      "meaning": "selected native receive mode gate, whole word"
+    },
+    {
+      "role": 1,
+      "address": "0xf006bf38",
+      "meaning": "dispatcher statistic bits 7:0; probe-response statistic bits 31:24"
+    }
+  ],
+  "expected_source_sha256": {
+    "Kconfig": "9c5a30dee4013192ea5ae0e26ac90fa581b9ad1af95df6dac8cf52a41a911722",
+    "hif.c": "ecdd2ec6d13e8c70d39a85f12506a99b64ba735b050789c2ff6cc8ed2d46fe0f",
+    "hif.h": "2f2ce8a24921f6c4cb73153caab11d57814a069eb83ae1722abe39ea0c138774",
+    "mac.c": "62f3e8b3221aa0426b4708dff439641d58b0220ff08e38d74ade5d6bfe784d0e",
+    "normal_command.h": "3074df826c3d53e6fd5435590b689843ec2db7db5414f060bc88035f3703b5cc",
+    "scan-wire.h": "bd1af70733011e505fbd95342b0194f7ba2cbb0ae5224580a9abe12f3c21d94c"
+  },
+  "runtime_effect_budget": {
+    "maximum_queries": 4,
+    "pairs_not_before_us": [
+      100000,
+      300000
+    ],
+    "maximum_outstanding": 1,
+    "per_reply_deadline_us": 100000,
+    "scan_deadline_seconds": 5,
+    "max_polls": 256,
+    "max_packets_per_tick": 16,
+    "max_packets_total": 4096,
+    "target_writes": 0,
+    "arbitrary_addresses": false,
+    "new_probe_tx": false
+  },
+  "checkpatch": "Strict patch check passes excluding MISSING_SIGN_OFF for the explicit non-certifying archive and CONFIG_DESCRIPTION for the replaced symbol across help markers; strict entire resulting Kconfig has no exclusions and passes.",
+  "hardware_test": false,
+  "candidate_prepared": false,
+  "lifecycle_reverse_normalization": "hif.c, hif.h and mac.c equal the parent after names/whitespace and one channel-selection comment correction; no operational timing, sequence, credit, bounds or retirement change.",
+  "focused_wire_test": "C11 -Wall -Wextra -Werror: pass",
+  "classifier_test": "Mode predicate, transition, wrap, unrelated bytes, malformed, timing and post-DONE fixtures: pass; receive proof remains false.",
+  "patch_replay": "Parent six source hashes match the validated early-RX review; applying exported patch to an independent temporary Git index exactly reproduces the new source tree."
+}

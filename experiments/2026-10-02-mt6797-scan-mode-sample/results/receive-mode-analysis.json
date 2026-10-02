@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "status": "retained firmware inference; no live mode value yet",
+  "firmware_sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
+  "root_entry_candidate": "0xf0027040",
+  "selected_graph": {
+    "budget_nodes": 2048,
+    "observed_nodes": 1140,
+    "queue_exhausted": true,
+    "skipped_calls": 56,
+    "invalid": 0,
+    "unresolved_noncall_computed": 0
+  },
+  "native_descriptor_class": "descriptor halfword +2 bits 15:13 equals 2 on the selected path",
+  "mode_load": "0xf00272be loads 0xf006bffc",
+  "mode_branch": {
+    "comparison": "0xf00272c2 compares mode against 5",
+    "value_5": "continues descriptor admission toward the selected native management dispatcher",
+    "value_4": "calls 0xf0042894, then loops or joins the bypass path",
+    "other_values": "joins 0xf0027c3a, calls 0xf000bbe4 with packet and argument 1, then loops",
+    "management_dispatch_call": "0xf0027962"
+  },
+  "selected_mode_writers": {
+    "state_entry": "0xf000e7b0 stores its incoming argument to 0xf006bffc at 0xf000e7d6, saves preceding value to 0xf006c000",
+    "reset": "0xf000ef72 stores zero",
+    "mode_4_transition": "selected state-entry path ends with argument 5 to an unresolved ROM callback from 0x1ac0c; actual transition unproved",
+    "complete_writer_audit": false
+  },
+  "private_analysis_sha256": {
+    "ScanRxRootFlow.java": "2152d975ab64b0eb1b880806be1bd7c6c60b742e0451eb9c97c328f1160db29a",
+    "scan-rx-root-expanded-private.txt": "88cdc11490eb2edf6be103e070401be4d50b408791a31121a5801be7c1228da4",
+    "ReceiveModeWordRefs.java": "3688e14c30d90a985d5c187f5c14d7c4a6a9e93596c4fbb49891be06b4837805",
+    "receive-mode-word-refs-private.txt": "7c9ec09aabb34836795d50c0c2b49464f24b538c75b04c0d6510f5e0013c29ad",
+    "StateEntryInspect.java": "15ae1e54d40ba8415cd24055c234b0f5606aa8e6a6dcf81f2ccd8307270f1cd3",
+    "state-entry-private.txt": "92a212ea5ccd34775fad525b475577b701395dd6440210b36d5211eb82429df5"
+  },
+  "limitations": [
+    "Analysis performed in retained RE VM with big-endian instruction/little-endian data pseudo-disassembly premise.",
+    "Calls were skipped assuming they return; ROM callbacks and callee side effects remain unresolved.",
+    "The first 1024-node walk was incomplete; only the expanded walk exhausted the selected graph.",
+    "Value 5 is necessary on this selected route, not sufficient for RF reception or host delivery; alternate entry paths and complete writers remain unaudited.",
+    "Offset-only references with a different 0xf007d base are excluded; a matching offset alone does not identify this mode word."
+  ],
+  "device_action": "none",
+  "sanitization": "Raw firmware, disassembly and private host paths remain outside Git."
+}

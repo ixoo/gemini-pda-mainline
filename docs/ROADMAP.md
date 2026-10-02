@@ -406,8 +406,11 @@ for the first Wi-Fi bring-up. The current preparation order is:
    zero in both pairs, ordinary management count zero and no host frame or BSS.
    The complete log was preserved and changed-boot Gemian recovery passed.
    This does not support observed early processing bypassing a later count gate.
-   Resolve earlier firmware dispatch and receive enabling/filter gates before
-   another candidate; byte wrap, resets and unsampled intervals remain unresolved.
+   The [receive-mode diagnostic](../experiments/2026-10-02-mt6797-scan-mode-sample/README.md)
+   targets a retained-firmware mode prerequisite before native management
+   dispatch. Build and validate this distinct bounded measurement, then use
+   its sampled mode to prioritize initialization/state transitions or earlier
+   receive admission. Byte wrap, resets and unsampled intervals remain unresolved.
    Do not repeat the consumed lifetimes. Establish management
    reception, then continue runtime receive/event ownership,
    credit recycling and packet lifetime toward association and bounded traffic.

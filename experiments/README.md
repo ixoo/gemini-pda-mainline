@@ -15,6 +15,10 @@ the loop. Positive identity-gated observations are unaffected.
 
 ## Index
 
+- [MT6797 receive mode samples](2026-10-02-mt6797-scan-mode-sample/README.md)
+  — fixed read-only mode prerequisite and dispatcher statistics; source
+  preparation only.
+
 ### Current repository audit
 
 - [2026-09-05 agent routing and workflow pilot 01](2026-09-05-agent-routing-pilot/README.md)
