@@ -387,9 +387,13 @@ for the first Wi-Fi bring-up. The current preparation order is:
    completed after 513501 us with returned credit and normal broadcast submission,
    but still no management frame or BSS. Changed-boot Gemian returned with carrier
    at 5200 MHz. Nominal command timing is consistent; actual RF dwell and tuning
-   remain unverified. Define a decision-changing observation of channel tuning,
-   receive setup or delivery before another scan; do not repeat this consumed image. Attribute receive setup and delivery from the
-   selected host/retained firmware contract and establish management reception. Continue runtime receive/event ownership,
+   remain unverified. The [firmware-counter observation](../experiments/2026-10-02-mt6797-passive-scan-count/results/runtime-1.json)
+   completed with version 3 management count zero and no host frame or BSS.
+   Prioritize channel setup and receive paths before that firmware processing
+   point; zero does not prove radio silence or a filter cause. Define a new
+   discriminator from the selected Gemian/retained-firmware contract before
+   another scan; do not repeat these consumed lifetimes. Establish management
+   reception, then continue runtime receive/event ownership,
    credit recycling and packet lifetime toward association and bounded traffic.
    Submission status alone
    does not prove firmware application or effective runtime RF restrictions.

@@ -1,7 +1,7 @@
 # MT6797 passive scan firmware counter
 
-Status: source review, Buildbox build and candidate validated; deployment and
-runtime pending.
+Status: one scan-counter lifetime consumed; zero firmware management count, no
+host management frame or BSS, and verified changed-boot Gemian recovery.
 
 The [500 ms parent](../2026-10-02-mt6797-passive-scan-dwell/results/runtime-1.json)
 completed after 513501 us with returned credit and no management frame or BSS.
@@ -68,3 +68,27 @@ version and integer bounds, PNO extent and unchanged RF-dwell limitations.
 The [offline preflight](results/preflight.json) also verifies private authentication
 and the reviewed recovery binary against the RAM root. Capture and host
 execution still require actual verified deployment evidence.
+
+The [deployment receipt](results/deployment.json) records guarded live-GPT boot2
+selection, stable power and matching device and host full-partition readback.
+Gemian shut down cleanly. Capture and host preparation passed against the actual
+receipt. That receipt preserves the pre-selection state; the owner selected boot2
+and the single START and scan were subsequently consumed as recorded below.
+
+## Runtime result
+
+The [runtime receipt](results/runtime-1.json) binds the exact candidate and boot.
+WMT preservation and one firmware START passed. The permitted channel-40 passive
+scan completed after 530870 us with matching completion and returned credit.
+Completion version 3 reported management count 0 and PNO 0. No native management
+frame, validated beacon or standard BSS appeared. A53 service checks passed;
+logs were sealed before reviewed recovery. Changed-boot Gemian returned with
+carrier at 5200 MHz. Raw captures and peer identifiers remain private. The host
+exits 1 because passive reception was not demonstrated.
+
+The counter diagnostic is complete but does not prove RF silence, a filter
+cause, effective RF listening time or correct tuning. The zero counter leaves
+channel setup and receive paths before the firmware processing point open.
+Prioritize those paths over a delivery-only explanation, using the selected
+Gemian and retained-firmware contract. This lifetime is consumed; another scan
+requires a new decision-changing observation.
