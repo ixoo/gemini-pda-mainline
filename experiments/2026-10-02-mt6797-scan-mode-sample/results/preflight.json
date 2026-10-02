@@ -1,0 +1,39 @@
+{
+  "status": "offline-candidate-installer-authentication-and-recovery-preflight-passed",
+  "candidate_manifest_sha256": "5ab002a5cd356f6f6a8784f001b24f47dd4f56019e2cd0218e01bc24f2340514",
+  "candidate_boot2_sha256": "a485859e52abd1eb9e8c5aaf11aee2196bd779e308e4fe14a90236dcca4fb571",
+  "kernel_build_commit": "669cfbc9e801ab42ed9af06a3e55bbfad3e38f14",
+  "candidate_composition_validated": true,
+  "published_ram_transform_reproduced": true,
+  "installer_validate_and_prepare_pass": true,
+  "generated_installer_bash_and_shellcheck_pass": true,
+  "passive_scan_bash_and_shellcheck_pass": true,
+  "mode_classifier_pass": true,
+  "offline_generated_installer_sha256": "420807a595b7d5ab5f2cf208992fa97271a594471176ab2b73d433a375ea4d21",
+  "offline_installer_reference_gemian_boot": "b23f2234-584b-4643-a428-3762a7ec19ca",
+  "boot2_guard_sha256": "0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf",
+  "source_sha256": {
+    "build-candidate.py": "6cccc00ad9e2de327397dd038e426e00273a3fdb5dc32254dd8de0458e7b4744",
+    "retarget-initramfs.py": "b2466bb336b23e0482f97bad6752ba1093724403593b2752e9ee41a9e7f92b1d",
+    "install-passive.py": "69f53f0f254e342ff60668e3145e0e3d0ec88bda5ee2dd6a0e623c023274dcf6",
+    "capture-private.py": "6d7d9c75b33efebdcb85dc2adb69fe8c3c3a4813e35def6d0bbc616b7484058c",
+    "passive-host.py": "1e980b36083b045475ea8bf14c526bfd2dde6b273b0b9cd4260cd4212c7680d9",
+    "passive-session.py": "65483d11118cc5239452e6d029e0514bcee2f540817171a5e2a6b04ed2d1aad5",
+    "passive-scan.sh": "a87d99e0950c134106d824dcda86d087d495e8c4fbce634edd5119507da4d488",
+    "mode-result.py": "b220c53fb7620cb021e0c56cd9a6ac8cb06ac2b1f358960866f31c46cac4d962"
+  },
+  "deployment_performed": false,
+  "firmware_start_consumed": false,
+  "scan_consumed": false,
+  "limitation": "Offline installer is bound to the last observed Gemian boot. Obtain fresh live identity and regenerate before execution. No placeholder receipt was supplied.",
+  "next_action": "Fresh live Gemian identity, guarded boot2 installation and full readback, clean shutdown and physical owner selection.",
+  "candidate_source_and_private_record_pins_validated": true,
+  "private_authentication_matches_candidate": true,
+  "reviewed_recovery_binary_matches_candidate": true,
+  "predeployment_runners_refused_without_session_receipt": {
+    "capture-private.py": "FileNotFoundError",
+    "passive-host.py": "ValueError"
+  },
+  "full_deployed_capture_and_host_preflight": "pending actual verified deployment receipt and private session setup",
+  "device_action": "none"
+}

@@ -1,7 +1,7 @@
 # MT6797 receive mode samples
 
-Status: source diagnostic prepared and fixture-tested; no build, installation or
-runtime claim yet. Mainline beacon reception, association and traffic remain
+Status: Buildbox compilation/package validation and offline candidate composition
+passed; no installation or runtime claim yet. Mainline beacon reception, association and traffic remain
 unproved.
 
 The consumed [early receive experiment](../2026-10-02-mt6797-scan-rx-sample/README.md)
@@ -91,3 +91,22 @@ KERNEL_PROFILE=mt6797-a53-wifi-scan-mode-sample ./scripts/build-kernel --backend
 After validated compilation, compose the exact candidate and retarget runtime
 wrappers before admission. An upstream removal condition is replacement of this
 isolated bring-up sampler with normal management reception/event handling.
+
+## Build and candidate
+
+The [build receipt](results/build.json) binds clean pushed commit, validated
+package and six independently matched source hashes. The
+[candidate receipt](results/candidate.json) binds the proven booted board DT,
+unchanged private firmware/record/authenticated userspace and exact 16 MiB
+padding. The release-only RAM-root transform reproduced byte-identical bytes
+and independently matched the tested early-RX parent at all other members.
+Runtime wrappers are pinned to this candidate and classifier. Complete offline
+preflight and regenerate the guarded installer against fresh live Gemian
+identity before deployment. Capture/host preparation additionally require a
+real deployment receipt; do not supply a synthetic one.
+
+The [offline preflight](results/preflight.json) validates source/private record,
+authentication, native recovery and generated guarded installer syntax and
+ShellCheck. Both full runners refuse without real deployment evidence. The
+installer still needs regeneration against fresh live Gemian identity before
+execution; neither firmware START nor scan has been consumed.

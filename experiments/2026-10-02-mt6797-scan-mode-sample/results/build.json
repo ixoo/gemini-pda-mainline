@@ -1,0 +1,42 @@
+{
+  "repository_commit": "669cfbc9e801ab42ed9af06a3e55bbfad3e38f14",
+  "repository_dirty": false,
+  "kernel_release": "7.1.3-gemini-a53-wifi-scan-mode-sample",
+  "build_profile": "mt6797-a53-wifi-scan-mode-sample",
+  "source_sha256": "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc",
+  "patchset_sha256": "a5df5c19082bb4c64d7d23a88cd6006be46ad1e8d05286981df76a103a98c931",
+  "config_sha256": "6a342d06019029dcc4b4f41a6c790c341722109a2cd8e8a90206f6b25c6a7395",
+  "compiler": "aarch64-linux-gnu-gcc (Debian 12.2.0-14) 12.2.0",
+  "compiler_full_version": "12.2.0",
+  "compiler_target": "aarch64-linux-gnu",
+  "compiler_sha256": "c7b8890354c8ddc0364addfeb8968597e197627bd1e338fb6ed705b578803846",
+  "linker": "GNU ld (GNU Binutils for Debian) 2.40",
+  "linker_sha256": "e09a889c78a75e73ed096c9fa28905599e6813298b9ac839d10b02ffa96e7b08",
+  "status": "buildbox-compile-and-package-validation-passed",
+  "package_inventory_sha256": "0e18c8fcdf9c2fe1bd35ef2715b9ed1d084306887f9859827412487ad22af57b",
+  "image_gzip_sha256": "0347605ed1861a8cfef798f2282bf8c817e29e43ffd97305be73da554be896db",
+  "compiled_board_dtb_sha256": "5abe5d14ddb424c5939e7ac6f6303210774f85e6be1413f2730f31804df046ca",
+  "compiled_source_sha256": {
+    "Kconfig": "9c5a30dee4013192ea5ae0e26ac90fa581b9ad1af95df6dac8cf52a41a911722",
+    "hif.c": "ecdd2ec6d13e8c70d39a85f12506a99b64ba735b050789c2ff6cc8ed2d46fe0f",
+    "hif.h": "2f2ce8a24921f6c4cb73153caab11d57814a069eb83ae1722abe39ea0c138774",
+    "mac.c": "62f3e8b3221aa0426b4708dff439641d58b0220ff08e38d74ade5d6bfe784d0e",
+    "normal_command.h": "3074df826c3d53e6fd5435590b689843ec2db7db5414f060bc88035f3703b5cc",
+    "scan-wire.h": "bd1af70733011e505fbd95342b0194f7ba2cbb0ae5224580a9abe12f3c21d94c"
+  },
+  "hardware_test": false,
+  "validation": {
+    "all_profiles_checked": 266,
+    "prior_profile_objects_preserved": 265,
+    "repository_checks_pass": true,
+    "focused_wire_tests_pass": true,
+    "mode_classifier_tests_pass": true,
+    "exact_patch_replay_matches": true,
+    "checkpatch_resulting_kconfig_pass": true,
+    "checkpatch_patch_exclusions": [
+      "MISSING_SIGN_OFF: synthetic non-certifying archive",
+      "CONFIG_DESCRIPTION: verified diff-parser false positive"
+    ]
+  },
+  "build_diagnostics": "Historical patch whitespace and unused CPU-helper warning; no changed Wi-Fi diagnostic warning."
+}
