@@ -19,12 +19,12 @@ WMT = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(WMT)
 WMT.HERE = HERE
 WMT.ROOT = ROOT
-WMT.CAPTURE_DIR = ROOT / 'capture-1'
+WMT.CAPTURE_DIR = ROOT / 'capture-2'
 WMT.RELEASE = '7.1.3-gemini-a53-wifi-passive-scan'
 WMT.CAPTURE.HERE = HERE
 WMT.CAPTURE.ROOT = ROOT
 WMT.CAPTURE.CAPTURE = WMT.CAPTURE_DIR
-WMT.CAPTURE.DEPLOYMENT = ROOT / 'session-1/deployment-summary.txt'
+WMT.CAPTURE.DEPLOYMENT = ROOT / 'session-2/deployment-summary.txt'
 WMT.CAPTURE.RECEIPT = HERE / 'results/candidate.json'
 WMT.CAPTURE.MANIFEST_SHA = '971c311d99832c0577510ef2944f1e00dcda06e157fdc75f381c99e42c3919e6'
 WMT.CAPTURE.RELEASE = WMT.RELEASE

@@ -1,0 +1,16 @@
+{
+  "status": "corrected-host-prerequisite-and-second-installer-preflight-passed",
+  "candidate_manifest_sha256": "971c311d99832c0577510ef2944f1e00dcda06e157fdc75f381c99e42c3919e6",
+  "candidate_boot2_sha256": "d008bfa1485b47362afeeafa761b45ff51a15e67795973ee3e0efd008e31a2e4",
+  "previous_gemian_boot": "9b22b832-a663-4850-9d3b-352dd88681ea",
+  "bound_scan_script_sha256": "95704c867028a60f16995f72ccc217e8b68c3ea02abd0d9a6f7d60759f3ef433",
+  "generated_installer_sha256": "da9cd69db3cea51465c9e28448c77dc2ba7af2a21809fc05f30740e7692eff97",
+  "kernel_candidate_changed": false,
+  "RAM_parent_gate": "missing parent created; occupied leaf, symlink and file refused",
+  "scan_script_sh_syntax": "passed",
+  "scan_script_shellcheck": "passed",
+  "generated_installer_bash_syntax": "passed",
+  "generated_installer_shellcheck": "passed",
+  "exact_capture_and_host_preflight_after_deployment": "pending",
+  "device_action": "none"
+}

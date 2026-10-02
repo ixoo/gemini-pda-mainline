@@ -19,6 +19,11 @@ for phy in /sys/class/ieee80211/phy*; do
 done
 [ "$count" = 1 ]
 [ ! -e /sys/class/net/wlan0 ]
+# This small RAM root may omit /tmp. Preserve the one-use leaf refusal.
+if [ ! -e /tmp ]; then
+    $BB mkdir /tmp
+fi
+[ -d /tmp ] && [ ! -L /tmp ]
 $BB mkdir /tmp/mt6797-passive-scan-1
 $BB dmesg > /tmp/mt6797-passive-scan-1/pre-scan.log
 [ "$($BB grep -c 'one-shot WLAN TC4 reconciliation: snapshot=2 status=0 ' /tmp/mt6797-passive-scan-1/pre-scan.log)" = 1 ]

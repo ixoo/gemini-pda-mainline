@@ -15,5 +15,5 @@
   "reboot": "no",
   "next_action": "owner-physically-selects-boot2",
   "private_deployment_receipt_sha256": "5b7ed8e58b0a88aa4f81d7dc0ea9df1f5fb1cbe604778f6bc6392f9ba9c20b8c",
-  "device_test": "not-run-awaiting-owner-physical-boot2-selection"
+  "device_test": "completed-once-see-runtime-1.json"
 }

@@ -172,5 +172,23 @@ classification covers successful synthetic output, six transport/identity refusa
 BSS output. The [installer](install-passive.py) retains the reviewed guard,
 full-partition readback and clean shutdown. The [deployment receipt](results/deployment-1.json)
 records successful full readback and confirmed shutdown. Exact capture and
-host preflights pass against that real deployment. Await the owner’s physical
-boot2 selection; no device scan has run for this candidate.
+host preflights passed against that real deployment.
+
+## First runtime and corrected host prerequisite
+
+The [first runtime](results/runtime-1.json) reproduced initial configuration,
+matched TC4 accounting, the sole CONSYS-bound wiphy and the A53 regression.
+The scan script stopped at its one-use temporary directory: this minimal RAM
+root has no /tmp parent. No interface was created and no scan request was sent;
+this gives no negative firmware/RX result. The complete log was preserved and
+reviewed recovery returned to a changed Gemian boot with Wi-Fi carrier present.
+
+Create the missing RAM-only /tmp parent, reject a non-directory or symlink,
+and keep the existing one-use leaf mkdir refusal. This is the only command
+behavior change. Do not reset an attempted scan or change the kernel, firmware,
+record, DT or image to address this host prerequisite. Session two reserves new
+capture, execution and deployment evidence paths. Its new measurement is the
+previously unreached interface/scan phase under the same one-boot protocol;
+ordinary guards skip rewriting boot2 when the full checksum already matches.
+A new guarded shutdown and owner boot2 selection are required. Session-two
+preflight and deployment are pending; no scan has yet been submitted.
