@@ -1,0 +1,131 @@
+From 6b87028222697a8f9879f9e4e9a4727f33e2ccac Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Thu, 1 Oct 2026 21:28:00 -0400
+Subject: [PATCH] wifi: mt6797: reconcile fresh runtime TC4 snapshots
+
+Continue the mature exclusive command owner with a fresh complete
+returned-page snapshot. Require the accounting baseline and post-
+configuration pair; retain pending CPU/free-pool counts and commit no
+refund after a partial read or expired deadline. Historical diagnostic
+budgets and observation-only callers stay unchanged. The caller retains
+disabled IRQs and owns its runtime budget; no RF or packet operation is
+added by this helper. Internal experiment archive only, with synthetic
+non-certifying authorship and no DCO sign-off.
+---
+ drivers/net/wireless/mediatek/mt6797/hif.c | 36 +++++++++++++++++-----
+ drivers/net/wireless/mediatek/mt6797/hif.h | 10 ++++++
+ 2 files changed, 38 insertions(+), 8 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 6f0b70e..d1c2e1a 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -333,7 +333,7 @@ out:
+ static int mt6797_hif_tx_status(struct mt6797_hif *hif, u64 deadline_ns,
+ 				unsigned int count,
+ 				struct mt6797_hif_tx_status *status,
+-				struct mt6797_normal_release *account)
++				struct mt6797_normal_release *account, bool runtime)
+ {
+ 	struct mt6797_normal_transaction reconciled;
+ 	unsigned int n, i;
+@@ -353,7 +353,18 @@ static int mt6797_hif_tx_status(struct mt6797_hif *hif, u64 deadline_ns,
+ 		error = -EIO;
+ 		goto unlock;
+ 	}
+-	if (count == 1 && hif->normal.phase == MT6797_NORMAL_COLD &&
++	if (runtime) {
++		/* A mature accounting owner, never an observation-only baseline.
++		 * Every call consumes a new snapshot under the retained HIF lock.
++		 */
++		if (count != 1 || !account ||
++		    !hif->tx_status_accounting_baseline ||
++		    !hif->tx_status_normal_attempted || !hif->capability_complete ||
++		    hif->normal.phase != MT6797_NORMAL_NVRAM_SUBMITTED) {
++			error = -EIO;
++			goto unlock;
++		}
++	} else if (count == 1 && hif->normal.phase == MT6797_NORMAL_COLD &&
+ 	    !hif->capability_attempted && !hif->tx_status_boot_attempted) {
+ 		hif->tx_status_boot_attempted = true;
+ 	} else if (count == 2 &&
+@@ -399,7 +410,7 @@ static int mt6797_hif_tx_status(struct mt6797_hif *hif, u64 deadline_ns,
+ 				goto poison;
+ 			status[n].valid_words |= 1U << (i + 2);
+ 		}
+-		if (account && count == 2) {
++		if (account && (count == 2 || runtime)) {
+ 			error = mt6797_normal_reconcile(&reconciled,
+ 							status[n].wtqcr, &account[n]);
+ 			if (error)
+@@ -411,7 +422,7 @@ static int mt6797_hif_tx_status(struct mt6797_hif *hif, u64 deadline_ns,
+ 		if (error)
+ 			goto poison;
+ 	}
+-	if (account && count == 1) {
++	if (account && count == 1 && !runtime) {
+ 		for (i = 0; i < 8; i++) {
+ 			if (status[0].wtqcr[i]) {
+ 				error = -EIO;
+@@ -420,8 +431,8 @@ static int mt6797_hif_tx_status(struct mt6797_hif *hif, u64 deadline_ns,
+ 		}
+ 		hif->tx_status_accounting_baseline = true;
+ 	} else if (account) {
+-		/* Commit only after the complete pair validates. A bad later
+-		 * snapshot cannot leave an earlier partial refund usable.
++		/* Commit only after the complete acquisition validates. A bad
++		 * later snapshot cannot leave an earlier partial refund usable.
+ 		 */
+ 		hif->normal = reconciled;
+ 	}
+@@ -439,7 +450,7 @@ int mt6797_hif_observe_tx_status(struct mt6797_hif *hif, u64 deadline_ns,
+ 				 unsigned int count,
+ 				 struct mt6797_hif_tx_status *status)
+ {
+-	return mt6797_hif_tx_status(hif, deadline_ns, count, status, NULL);
++	return mt6797_hif_tx_status(hif, deadline_ns, count, status, NULL, false);
+ }
+ 
+ int mt6797_hif_account_tx_status(struct mt6797_hif *hif, u64 deadline_ns,
+@@ -449,7 +460,16 @@ int mt6797_hif_account_tx_status(struct mt6797_hif *hif, u64 deadline_ns,
+ {
+ 	if (!account)
+ 		return -EINVAL;
+-	return mt6797_hif_tx_status(hif, deadline_ns, count, status, account);
++	return mt6797_hif_tx_status(hif, deadline_ns, count, status, account, false);
++}
++
++int mt6797_hif_reconcile_runtime(struct mt6797_hif *hif, u64 deadline_ns,
++				 struct mt6797_hif_tx_status *status,
++				 struct mt6797_normal_release *account)
++{
++	if (!account)
++		return -EINVAL;
++	return mt6797_hif_tx_status(hif, deadline_ns, 1, status, account, true);
+ }
+ 
+ int mt6797_hif_query_capability(struct mt6797_hif *hif, unsigned int sequence,
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index 963c651..87371bc 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -147,6 +147,16 @@ int mt6797_hif_account_tx_status(struct mt6797_hif *hif, u64 deadline_ns,
+ 				 struct mt6797_hif_tx_status *status,
+ 				 struct mt6797_normal_release *account);
+ 
++/* One fresh runtime snapshot on the mature exclusive TC4 owner. Requires
++ * the accounting baseline and complete post-configuration pair. No diagnostic
++ * budget is reset. Caller bounds its runtime work and retains IRQ exclusion;
++ * other traffic classes are still forbidden. A partial/invalid snapshot poisons
++ * without committing credit, and separate pending CPU/FFA counts are retained.
++ */
++int mt6797_hif_reconcile_runtime(struct mt6797_hif *hif, u64 deadline_ns,
++				 struct mt6797_hif_tx_status *status,
++				 struct mt6797_normal_release *account);
++
+ /* Exactly one post-START capability query on this exclusive PIO owner.
+  * The selected gen3 default normal TC4 allocation is 26 pages; this driver
+  * has no Tc4Page override or competing normal command user. One page is
+-- 
+2.54.0 (Apple Git-157)
+

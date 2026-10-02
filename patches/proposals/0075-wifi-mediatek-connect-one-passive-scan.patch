@@ -1,0 +1,813 @@
+From 71d8314d716e00d2d13fc2dbfdb4de27852aa17b Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Thu, 1 Oct 2026 21:51:21 -0400
+Subject: [PATCH] wifi: mt6797: connect one bounded passive scan to mac80211
+
+After the complete initial accounting pair, admit one station-type
+interface and one passive V2 scan through standard mac80211 callbacks.
+Reserve the source-derived AIS/BMC slots for this firmware lifetime,
+obey current channel permissions and transmit no host or probe frames.
+Poll retained readiness/ownership, fresh TC4 snapshots and complete PIO
+RX under finite budgets; validate native beacon metadata before cfg80211
+delivery. Complete an accepted request once, with abort status on
+failure, cancellation or timeout. No cancellation acknowledgement,
+cross-request drain fence or sequence reuse is inferred. Firmware
+default dwell is retained because the pinned host comments disagree
+about nonzero V2 units. Association, keys and packet TX remain refused.
+Internal experiment archive only, synthetic non-certifying authorship
+and no DCO sign-off.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig  |  15 +-
+ drivers/net/wireless/mediatek/mt6797/hif.h    |   4 +-
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 415 +++++++++++++++++-
+ drivers/net/wireless/mediatek/mt6797/mac.h    |   9 +-
+ .../wireless/mediatek/mt6797/normal_command.h |  26 +-
+ .../net/wireless/mediatek/mt6797/scan-wire.h  | 145 ++++++
+ drivers/soc/mediatek/mt6797-consys.c          |   3 +
+ 7 files changed, 607 insertions(+), 10 deletions(-)
+ create mode 100644 drivers/net/wireless/mediatek/mt6797/scan-wire.h
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index a1ed30c..abeca9e 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -17,7 +17,7 @@ config MT6797_MAC80211
+ 	help
+ 	  Register the 2.4 GHz channel inventory with mac80211 and submit
+ 	  retained configuration under cfg80211 regulatory ownership.
+-	  Radio and packet operations remain unavailable. This experimental
++	  By itself radio and packet operations remain unavailable. This experimental
+ 	  option does not yet provide a usable station interface.
+ 
+ config MT6797_HIF_TX_STATUS_PROBE
+@@ -40,3 +40,16 @@ config MT6797_HIF_TC4_RECONCILE
+ 	  Retain separate CPU and free-pool pending counts, refunding only their
+ 	  minimum within the outstanding debit. No extra completion estimate,
+ 	  IRQ enable, radio request or packet DMA is performed.
++
++config MT6797_PASSIVE_SCAN
++	bool "MT6797 one-shot passive mac80211 scan"
++	depends on MT6797_HIF_TC4_RECONCILE
++	default n
++	help
++	  Admit one standard station-type interface for one passive 2.4 GHz
++	  hardware scan, bounded to permitted channels with no probe requests.
++	  Poll RX and fresh TC4 accounting under the retained exclusive PIO
++	  owner while IRQs stay disabled. Validate native beacon descriptors and
++	  report them through cfg80211. Cancellation, timeout and failure abort
++	  the host request and retire its wire lifetime; they are not firmware
++	  stop acknowledgements. No association, key, data TX or DMA is provided.
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index 87371bc..664b08d 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -174,8 +174,8 @@ int mt6797_hif_query_capability(struct mt6797_hif *hif, unsigned int sequence,
+ int mt6797_hif_observe_port0(struct mt6797_hif *hif, u64 deadline_ns,
+ 			     struct mt6797_port0_observation *observation);
+ 
+-/* Send one selected no-reply configuration command on the retained normal
+- * owner. The caller owns payload provenance, ordering and regulatory policy.
++/* Send one selected no-reply configuration or bounded scan command on the
++ * retained normal owner. The caller owns payload provenance, ordering and regulatory policy.
+  * A successful return proves only PIO submission, not firmware application.
+  */
+ int mt6797_hif_send_config(struct mt6797_hif *hif,
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index fcd3517..deccc15 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -4,12 +4,14 @@
+ #include <linux/ktime.h>
+ #include <linux/mutex.h>
+ #include <linux/rtnetlink.h>
++#include <linux/workqueue.h>
+ #include <net/mac80211.h>
+ 
+ #include "hif.h"
+ #include "mac.h"
+ #include "record-prepare.h"
+ #include "regulatory-encode.h"
++#include "scan-wire.h"
+ 
+ struct mt6797_mac {
+ 	struct mt6797_hif *hif;
+@@ -22,8 +24,23 @@ struct mt6797_mac {
+ 	unsigned int sequence;
+ 	bool configured, closing;
+ 	int first_error;
++#if IS_ENABLED(CONFIG_MT6797_PASSIVE_SCAN)
++	struct ieee80211_hw *hw;
++	struct ieee80211_vif *vif;
++	struct delayed_work scan_work;
++	u64 scan_deadline;
++	unsigned int scan_channels, scan_count, scan_polls, scan_packets;
++	bool scan_ready, started, scan_used, scan_active, bss_active;
++	bool scan_beacon, scan_credit, scan_frame_seen;
++	u8 scan_packet[MT6797_HIF_RX_MAX_PACKET] __aligned(2);
++#endif
+ };
+ 
++#if IS_ENABLED(CONFIG_MT6797_PASSIVE_SCAN)
++static bool mt6797_mac_finish_scan(struct mt6797_mac *mac, int *status,
++				   bool cancel);
++#endif
++
+ static int mt6797_mac_send(struct mt6797_mac *mac,
+ 			   enum mt6797_normal_config_kind kind,
+ 			   const u8 *payload, size_t bytes)
+@@ -91,6 +108,19 @@ static void mt6797_mac_regulatory(struct wiphy *wiphy,
+ 	mutex_lock(&mac->mutex);
+ 	if (mac->closing || mac->first_error)
+ 		goto out;
++#if IS_ENABLED(CONFIG_MT6797_PASSIVE_SCAN)
++	/* Regulatory changes retire an accepted scan before submitting updates.
++	 * Host completion does not claim firmware cancellation or queue drain.
++	 */
++	if (mac->scan_active) {
++		struct cfg80211_scan_info info = {.aborted = true};
++		int cancelled = -ECANCELED;
++
++		mt6797_mac_finish_scan(mac, &cancelled, true);
++		ieee80211_scan_completed(mac->hw, &info);
++		goto out;
++	}
++#endif
+ 	if ((request->alpha2[0] >= 'A' && request->alpha2[0] <= 'Z' &&
+ 	     request->alpha2[1] >= 'A' && request->alpha2[1] <= 'Z') ||
+ 	    (request->alpha2[0] == '0' && request->alpha2[1] == '0'))
+@@ -116,30 +146,387 @@ out:
+ 	mutex_unlock(&mac->mutex);
+ }
+ 
+-/* No radio, packet, station or key operation is admitted by this integration.
+- * In particular, registering this wiphy is not a usable station interface.
++#if IS_ENABLED(CONFIG_MT6797_PASSIVE_SCAN)
++static int mt6797_mac_scan_guard(struct mt6797_mac *mac, u64 deadline)
++{
++	struct mt6797_hif_tx_status status;
++	struct mt6797_normal_release account;
++	u32 wcir, own;
++	int ret;
++
++	ret = mt6797_hif_read32(mac->hif, 0, deadline, &wcir);
++	if (!ret && ((wcir & 0xffff) != 0x0279 || !(wcir & BIT(21))))
++		ret = -EIO;
++	if (!ret)
++		ret = mt6797_hif_read32(mac->hif, 4, deadline, &own);
++	if (!ret && !(own & BIT(8)))
++		ret = -EACCES;
++	if (!ret)
++		ret = mt6797_hif_reconcile_runtime(mac->hif, deadline, &status, &account);
++	if (!ret)
++		mac->scan_credit |= !!account.released_pages;
++	return ret;
++}
++
++/* Stop exactly one accepted host request. The scan/BSS slots remain retired
++ * even after normal completion: no unproved cancellation/reuse fence is used.
++ * Never submit cleanup after a transport, ownership or protocol failure.
+  */
++static bool mt6797_mac_finish_scan(struct mt6797_mac *mac, int *status,
++				   bool cancel)
++{
++	u8 bss[12], abort[4] = {1, 0, 0, 0};
++	int ret;
++
++	if (!mac->scan_active)
++		return false;
++	mac->scan_active = false;
++	if (cancel && !mac->first_error) {
++		ret = mt6797_mac_send(mac, MT6797_NORMAL_SCAN_CANCEL,
++				      abort, sizeof(abort));
++		if (ret)
++			*status = ret;
++	}
++	if (mac->bss_active && !mac->first_error) {
++		mt6797_scan_bss(mac->hw->wiphy->perm_addr, false, bss);
++		ret = mt6797_mac_send(mac, MT6797_NORMAL_BSS_ACTIVE,
++				      bss, sizeof(bss));
++		if (ret)
++			*status = ret;
++		else
++			mac->bss_active = false;
++	}
++	if (*status && !mac->first_error)
++		mac->first_error = *status;
++	memzero_explicit(mac->scan_packet, sizeof(mac->scan_packet));
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot passive WLAN scan: status=%d complete=%u frame=%u beacon=%u credit=%u retired=1\n",
++		 *status, !*status, mac->scan_frame_seen, mac->scan_beacon, mac->scan_credit);
++	return true;
++}
++
++static int mt6797_mac_scan_packet(struct mt6797_mac *mac, size_t bytes,
++				  u64 deadline, bool *done)
++{
++	struct cfg80211_inform_bss data = {0};
++	struct mt6797_scan_frame frame;
++	struct cfg80211_bss *bss;
++	struct ieee80211_mgmt *mgmt;
++	u8 *packet = mac->scan_packet;
++	u32 own;
++	unsigned int type;
++	int ret;
++
++	if (bytes < 4)
++		return -EPROTO;
++	type = mt6797_normal_le16(packet + 2);
++	if (type == 0xe000) {
++		if (bytes < 8)
++			return -EPROTO;
++		switch (packet[4]) {
++		case 0x0d:
++			dev_info(wiphy_dev(mac->hw->wiphy),
++				 "one-shot passive WLAN done header: len=%zu seq=%u payload_seq=%u\n",
++				 bytes, packet[5], bytes >= 9 ? packet[8] : 0);
++			ret = mt6797_scan_done(packet, bytes, 1, mac->scan_count);
++			if (ret == -EAGAIN)
++				return 0;
++			if (!ret)
++				*done = true;
++			return ret;
++		case 0x27: /* debug: retain no body or diagnostic strings */
++			return 0;
++		case 0x07: /* sleepy notification, never a handoff request */
++			if (bytes != 12 || packet[8] > 1)
++				return -EPROTO;
++			ret = mt6797_hif_read32(mac->hif, 4, deadline, &own);
++			if (ret)
++				return ret;
++			return own & BIT(8) ? 0 : -EACCES;
++		default:
++			dev_info(wiphy_dev(mac->hw->wiphy),
++				 "one-shot passive WLAN unknown event: len=%zu id=0x%02x seq=%u\n",
++				 bytes, packet[4], packet[5]);
++			return -EPROTO;
++		}
++	}
++	if (!mac->scan_frame_seen) {
++		mac->scan_frame_seen = true;
++		dev_info(wiphy_dev(mac->hw->wiphy),
++			 "one-shot passive WLAN first frame header: len=%zu type=0x%04x\n",
++			 bytes, type);
++	}
++	ret = mt6797_scan_frame(packet, bytes, &frame);
++	if (ret == -EOPNOTSUPP)
++		return 0; /* unsupported data/control frames are never delivered */
++	if (ret)
++		return ret;
++	if (!(mac->scan_channels & BIT(frame.channel - 1)))
++		return -EPROTO;
++	data.chan = &mac->channels[frame.channel - 1];
++	if (data.chan->flags & (IEEE80211_CHAN_DISABLED |
++				IEEE80211_CHAN_NO_20MHZ | IEEE80211_CHAN_RADAR))
++		return -EACCES;
++	/* RCPI half-dBm units; preserve the source-defined measurement. No
++	 * receive rate or hardware timestamp is invented for this scan result.
++	 */
++	data.signal = (int)frame.rcpi * 50 - 11000;
++	mgmt = (struct ieee80211_mgmt *)(packet + frame.offset);
++	bss = cfg80211_inform_bss_frame_data(mac->hw->wiphy, &data, mgmt,
++					     frame.bytes, GFP_KERNEL);
++	if (bss) {
++		mac->scan_beacon = true;
++		cfg80211_put_bss(mac->hw->wiphy, bss);
++	}
++	return 0;
++}
++
++static void mt6797_mac_scan_work(struct work_struct *work)
++{
++	struct mt6797_mac *mac = container_of(to_delayed_work(work),
++						struct mt6797_mac, scan_work);
++	struct mt6797_hif_rx_result rx;
++	struct cfg80211_scan_info info = {0};
++	u64 deadline, now;
++	unsigned int n, port;
++	bool done = false, notify = false, cancel = false;
++	int ret = 0;
++
++	mutex_lock(&mac->mutex);
++	if (!mac->scan_active)
++		goto out;
++	now = ktime_get_ns();
++	if (now >= mac->scan_deadline || ++mac->scan_polls > 256) {
++		ret = -ETIMEDOUT;
++		cancel = true;
++		goto finish;
++	}
++	deadline = min_t(u64, now + 100 * NSEC_PER_MSEC, mac->scan_deadline);
++	ret = mt6797_mac_scan_guard(mac, deadline);
++	if (ret)
++		goto failed;
++	/* Alternate ports, at most sixteen packets per tick and 4096 overall.
++	 * Finish this bounded tick after a done event so the other port is not
++	 * skipped. This is not an event-drain fence. Empty polls consume no RX.
++	 */
++	for (n = 0; n < 8; n++) {
++		bool received = false;
++
++		for (port = 0; port < 2; port++) {
++			ret = mt6797_hif_receive_packet(mac->hif, port, deadline,
++							mac->scan_packet,
++							sizeof(mac->scan_packet), &rx);
++			if (ret == -EAGAIN) {
++				ret = 0;
++				continue;
++			}
++			if (ret)
++				goto failed;
++			if (++mac->scan_packets > 4096) {
++				ret = -E2BIG;
++				goto failed;
++			}
++			received = true;
++			ret = mt6797_mac_scan_packet(mac, rx.logical_bytes, deadline, &done);
++			if (ret)
++				goto failed;
++		}
++		if (!received)
++			break;
++	}
++	if (done)
++		goto finish;
++	schedule_delayed_work(&mac->scan_work, msecs_to_jiffies(20));
++	goto out;
++failed:
++	/* Unknown wire state, failed read or lost ownership: no further I/O. */
++	mac->first_error = ret;
++finish:
++	notify = mt6797_mac_finish_scan(mac, &ret, cancel);
++	info.aborted = !!ret;
++out:
++	mutex_unlock(&mac->mutex);
++	if (notify)
++		ieee80211_scan_completed(mac->hw, &info);
++}
++
++static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
++			      struct ieee80211_scan_request *request)
++{
++	struct mt6797_mac *mac = hw->priv;
++	struct ieee80211_channel *channel;
++	unsigned int channels[MT6797_PASSIVE_SCAN_CHANNELS], mask = 0, i;
++	u8 payload[MT6797_PASSIVE_SCAN_BYTES], bss[12];
++	int ret = -EOPNOTSUPP;
++
++	mutex_lock(&mac->mutex);
++	if (!mac->scan_ready || !mac->started || mac->vif != vif ||
++	    mac->closing || mac->first_error || mac->scan_used)
++		goto out;
++	/* mac80211 may append supported-rate IEs internally. There are no
++	 * probe requests in this passive form, so no IEs are transmitted.
++	 */
++	if (request->req.n_ssids || request->req.flags || request->req.duration ||
++	    request->req.duration_mandatory || request->req.scan_6ghz ||
++	    request->req.n_6ghz_params ||
++	    !is_broadcast_ether_addr(request->req.bssid) ||
++	    !request->req.n_channels ||
++	    request->req.n_channels > MT6797_PASSIVE_SCAN_CHANNELS)
++		goto out;
++	for (i = 0; i < request->req.n_channels; i++) {
++		channel = request->req.channels[i];
++		if (!channel || channel->band != NL80211_BAND_2GHZ ||
++		    !channel->hw_value || channel->hw_value > MT6797_PASSIVE_SCAN_CHANNELS ||
++		    channel != &mac->channels[channel->hw_value - 1] ||
++		    (channel->flags & (IEEE80211_CHAN_DISABLED |
++				      IEEE80211_CHAN_NO_20MHZ | IEEE80211_CHAN_RADAR)))
++			goto out;
++		channels[i] = channel->hw_value;
++		mask |= BIT(channel->hw_value - 1);
++	}
++	ret = mt6797_scan_request(1, channels, request->req.n_channels, payload);
++	if (ret)
++		goto out;
++	/* Retire before the first write: an uncertain activation/submission
++	 * cannot be retried or treated as an effect-free rejection.
++	 */
++	mac->scan_used = true;
++	ret = mt6797_mac_scan_guard(mac, ktime_get_ns() + NSEC_PER_SEC);
++	if (ret) {
++		mac->first_error = ret;
++		goto out;
++	}
++	mt6797_scan_bss(hw->wiphy->perm_addr, true, bss);
++	ret = mt6797_mac_send(mac, MT6797_NORMAL_BSS_ACTIVE, bss, sizeof(bss));
++	if (ret)
++		goto out;
++	mac->bss_active = true;
++	ret = mt6797_mac_send(mac, MT6797_NORMAL_SCAN_V2, payload, sizeof(payload));
++	if (ret)
++		goto out;
++	mac->scan_channels = mask;
++	mac->scan_count = request->req.n_channels;
++	mac->scan_deadline = ktime_get_ns() + 5 * NSEC_PER_SEC;
++	mac->scan_active = true;
++	dev_info(wiphy_dev(hw->wiphy), "one-shot passive WLAN scan: admitted=1\n");
++	schedule_delayed_work(&mac->scan_work, 0);
++out:
++	if (ret && mac->scan_used)
++		dev_err(wiphy_dev(hw->wiphy),
++			"one-shot passive WLAN submission stopped: status=%d\n", ret);
++	mutex_unlock(&mac->mutex);
++	return ret;
++}
++
++static void mt6797_mac_cancel_scan(struct ieee80211_hw *hw,
++				   struct ieee80211_vif *vif)
++{
++	struct mt6797_mac *mac = hw->priv;
++	struct cfg80211_scan_info info = {.aborted = true};
++	bool notify;
++	int ret = -ECANCELED;
++
++	mutex_lock(&mac->mutex);
++	notify = mt6797_mac_finish_scan(mac, &ret, true);
++	mutex_unlock(&mac->mutex);
++	cancel_delayed_work_sync(&mac->scan_work);
++	if (notify)
++		ieee80211_scan_completed(hw, &info);
++}
++#endif
++
++/* A passive scan interface is not an associated station or a data path. */
+ static int mt6797_mac_start(struct ieee80211_hw *hw)
+ {
++#if IS_ENABLED(CONFIG_MT6797_PASSIVE_SCAN)
++	struct mt6797_mac *mac = hw->priv;
++	int ret = -EOPNOTSUPP;
++
++	mutex_lock(&mac->mutex);
++	if (mac->scan_ready && mac->configured && !mac->closing && !mac->first_error) {
++		mac->started = true;
++		ret = 0;
++	}
++	mutex_unlock(&mac->mutex);
++	return ret;
++#else
+ 	return -EOPNOTSUPP;
++#endif
+ }
+ 
+ static void mt6797_mac_stop(struct ieee80211_hw *hw, bool suspend)
+ {
++#if IS_ENABLED(CONFIG_MT6797_PASSIVE_SCAN)
++	struct mt6797_mac *mac = hw->priv;
++
++	mt6797_mac_cancel_scan(hw, NULL);
++	mutex_lock(&mac->mutex);
++	mac->started = false;
++	mutex_unlock(&mac->mutex);
++#endif
+ }
+ 
+ static int mt6797_mac_add_interface(struct ieee80211_hw *hw,
+ 				    struct ieee80211_vif *vif)
+ {
++#if IS_ENABLED(CONFIG_MT6797_PASSIVE_SCAN)
++	struct mt6797_mac *mac = hw->priv;
++	int ret = -EOPNOTSUPP;
++
++	mutex_lock(&mac->mutex);
++	if (mac->scan_ready && !mac->vif && !mac->scan_used &&
++	    !mac->closing && !mac->first_error &&
++	    vif->type == NL80211_IFTYPE_STATION &&
++	    ether_addr_equal(vif->addr, hw->wiphy->perm_addr)) {
++		mac->vif = vif;
++		ret = 0;
++	}
++	mutex_unlock(&mac->mutex);
++	return ret;
++#else
+ 	return -EOPNOTSUPP;
++#endif
+ }
+ 
+ static void mt6797_mac_remove_interface(struct ieee80211_hw *hw,
+ 					struct ieee80211_vif *vif)
+ {
++#if IS_ENABLED(CONFIG_MT6797_PASSIVE_SCAN)
++	struct mt6797_mac *mac = hw->priv;
++
++	mt6797_mac_cancel_scan(hw, vif);
++	mutex_lock(&mac->mutex);
++	mac->vif = NULL;
++	/* Retain the wire BSS lifetime through recovery, never reuse its slot. */
++	mac->closing = true;
++	mutex_unlock(&mac->mutex);
++#endif
+ }
+ 
+ static int mt6797_mac_config(struct ieee80211_hw *hw, int radio_idx, u32 changed)
++{
++#if IS_ENABLED(CONFIG_MT6797_PASSIVE_SCAN)
++	struct mt6797_mac *mac = hw->priv;
++	int ret = 0;
++
++	mutex_lock(&mac->mutex);
++	/* No operating channel or host TX is established by this scan-only
++	 * interface. Firmware owns tuning only during the admitted hw_scan.
++	 */
++	if (!mac->scan_ready || mac->first_error || mac->closing || radio_idx ||
++	    (hw->conf.flags & (IEEE80211_CONF_PS | IEEE80211_CONF_MONITOR)))
++		ret = -EOPNOTSUPP;
++	mutex_unlock(&mac->mutex);
++	return ret;
++#else
++	return -EOPNOTSUPP;
++#endif
++}
++
++static int mt6797_mac_sta_state(struct ieee80211_hw *hw,
++				struct ieee80211_vif *vif, struct ieee80211_sta *sta,
++				enum ieee80211_sta_state old,
++				enum ieee80211_sta_state new)
+ {
+ 	return -EOPNOTSUPP;
+ }
+@@ -164,6 +551,11 @@ static const struct ieee80211_ops mt6797_mac_ops = {
+ 	.remove_interface = mt6797_mac_remove_interface,
+ 	.config = mt6797_mac_config,
+ 	.configure_filter = mt6797_mac_filter,
++	.sta_state = mt6797_mac_sta_state,
++#if IS_ENABLED(CONFIG_MT6797_PASSIVE_SCAN)
++	.hw_scan = mt6797_mac_hw_scan,
++	.cancel_hw_scan = mt6797_mac_cancel_scan,
++#endif
+ 	.wake_tx_queue = ieee80211_handle_wake_tx_queue,
+ 	.add_chanctx = ieee80211_emulate_add_chanctx,
+ 	.remove_chanctx = ieee80211_emulate_remove_chanctx,
+@@ -261,6 +653,13 @@ int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+ 	mac->sequence = 5;
+ 	memcpy(mac->alpha2, "00", 2);
+ 	mutex_init(&mac->mutex);
++#if IS_ENABLED(CONFIG_MT6797_PASSIVE_SCAN)
++	mac->hw = hw;
++	INIT_DELAYED_WORK(&mac->scan_work, mt6797_mac_scan_work);
++	hw->wiphy->max_scan_ssids = 0;
++	hw->wiphy->max_scan_ie_len = 0;
++	ieee80211_hw_set(hw, SIGNAL_DBM);
++#endif
+ 	SET_IEEE80211_DEV(hw, dev);
+ 	SET_IEEE80211_PERM_ADDR(hw, data + 4);
+ 	ieee80211_hw_set(hw, NO_AUTO_VIF);
+@@ -312,3 +711,15 @@ free_hw:
+ 	ieee80211_free_hw(hw);
+ 	return ret;
+ }
++
++void mt6797_mac_scan_ready(struct ieee80211_hw *hw)
++{
++#if IS_ENABLED(CONFIG_MT6797_PASSIVE_SCAN)
++	struct mt6797_mac *mac = hw->priv;
++
++	mutex_lock(&mac->mutex);
++	if (mac->configured && !mac->closing && !mac->first_error)
++		mac->scan_ready = true;
++	mutex_unlock(&mac->mutex);
++#endif
++}
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.h b/drivers/net/wireless/mediatek/mt6797/mac.h
+index 9ef8bd1..6fa6aa9 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.h
++++ b/drivers/net/wireless/mediatek/mt6797/mac.h
+@@ -11,7 +11,8 @@ struct mt6797_normal_capability;
+ struct mt6797_wifi_record;
+ 
+ /* Register a real regulatory owner and submit the supported configuration.
+- * This first integration deliberately refuses interface start and all RF.
++ * By itself this integration refuses interface start and all RF; the
++ * default-off passive-scan option has a separately bounded runtime lifetime.
+  * The shared CONSYS owner retains the successful object until shutdown.
+  */
+ int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+@@ -19,4 +20,10 @@ int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+ 			const struct mt6797_wifi_record *record,
+ 			struct ieee80211_hw **out);
+ 
++/* Called by the retained CONSYS owner only after the complete initial TC4
++ * accounting pair. A default-off passive-scan profile can then open one
++ * standard station-type scan interface. Other profiles stay unavailable.
++ */
++void mt6797_mac_scan_ready(struct ieee80211_hw *hw);
++
+ #endif
+diff --git a/drivers/net/wireless/mediatek/mt6797/normal_command.h b/drivers/net/wireless/mediatek/mt6797/normal_command.h
+index 44d66a9..2081986 100644
+--- a/drivers/net/wireless/mediatek/mt6797/normal_command.h
++++ b/drivers/net/wireless/mediatek/mt6797/normal_command.h
+@@ -8,8 +8,11 @@
+ #define MT6797_NORMAL_NVRAM_BYTES 520U
+ 
+ enum mt6797_normal_kind { MT6797_NORMAL_CAPABILITY, MT6797_NORMAL_NVRAM };
+-/* Selected manufacture-data sets and per-channel regulatory power limits. */
++/* Selected configuration sets and the bounded passive-scan command owner. */
+ enum mt6797_normal_config_kind {
++	MT6797_NORMAL_SCAN_V2 = 0x03,
++	MT6797_NORMAL_BSS_ACTIVE = 0x11,
++	MT6797_NORMAL_SCAN_CANCEL = 0x1b,
+ 	MT6797_NORMAL_DOMAIN = 0x0f,
+ 	MT6797_NORMAL_TX_PWR = 0x24,
+ 	MT6797_NORMAL_EDGE_2G = 0x36,
+@@ -247,15 +250,30 @@ mt6797_normal_prepare_config(struct mt6797_normal_transaction *t,
+ 	if (previous != MT6797_NORMAL_CAP_RECEIVED &&
+ 	    previous != MT6797_NORMAL_NVRAM_SUBMITTED)
+ 		return mt6797_normal_abort(t);
+-	/* After the immutable record, only regulatory domain/power updates
+-	 * remain in this configuration API. Never replay manufacture data.
++	/* After the immutable record, admit regulatory updates and the
++	 * bounded scan owner only. Never replay manufacture data.
+ 	 */
+ 	if (previous == MT6797_NORMAL_NVRAM_SUBMITTED &&
+-	    kind != MT6797_NORMAL_DOMAIN && kind != MT6797_NORMAL_TX_CTRL)
++	    kind != MT6797_NORMAL_DOMAIN && kind != MT6797_NORMAL_TX_CTRL &&
++	    kind != MT6797_NORMAL_SCAN_V2 && kind != MT6797_NORMAL_BSS_ACTIVE &&
++	    kind != MT6797_NORMAL_SCAN_CANCEL)
+ 		return mt6797_normal_abort(t);
+ 	if (!payload)
+ 		return -EINVAL;
++	if ((kind == MT6797_NORMAL_SCAN_V2 || kind == MT6797_NORMAL_BSS_ACTIVE ||
++	     kind == MT6797_NORMAL_SCAN_CANCEL) &&
++	    previous != MT6797_NORMAL_NVRAM_SUBMITTED)
++		return mt6797_normal_abort(t);
+ 	switch (kind) {
++	case MT6797_NORMAL_SCAN_V2:
++		required = 226;
++		break;
++	case MT6797_NORMAL_BSS_ACTIVE:
++		required = 12;
++		break;
++	case MT6797_NORMAL_SCAN_CANCEL:
++		required = 4;
++		break;
+ 	case MT6797_NORMAL_DOMAIN:
+ 		required = 56;
+ 		break;
+diff --git a/drivers/net/wireless/mediatek/mt6797/scan-wire.h b/drivers/net/wireless/mediatek/mt6797/scan-wire.h
+new file mode 100644
+index 0000000..60d5365
+--- /dev/null
++++ b/drivers/net/wireless/mediatek/mt6797/scan-wire.h
+@@ -0,0 +1,145 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/* Original encoders/decoder from the pinned gen3 scan and RX contracts. */
++#ifndef MT6797_SCAN_WIRE_H
++#define MT6797_SCAN_WIRE_H
++
++#include "normal_command.h"
++
++#define MT6797_PASSIVE_SCAN_BYTES 226U
++#define MT6797_PASSIVE_SCAN_CHANNELS 13U
++
++/* One exclusive AIS BSS (0), own-MAC slot 1, unencrypted BMC slot 0.
++ * These slots remain reserved until the retained firmware session ends.
++ * This is a submission layout, never an activation acknowledgement.
++ */
++static inline void
++mt6797_scan_bss(const unsigned char *mac, bool active, unsigned char output[12])
++{
++	unsigned int i;
++
++	for (i = 0; i < 12; i++)
++		output[i] = 0;
++	output[1] = active;
++	output[3] = 1;
++	for (i = 0; i < 6; i++)
++		output[4 + i] = mac[i];
++}
++
++/* Passive-only V2, no SSID, probe, IE, random address or reserved extension.
++ * Caller has checked each channel against current cfg80211 permissions.
++ */
++static inline int
++mt6797_scan_request(unsigned int sequence, const unsigned int *channels,
++		    unsigned int count, unsigned char *output)
++{
++	unsigned int i, j;
++
++	if (!output || !channels || !sequence || sequence > 255 ||
++	    !count || count > MT6797_PASSIVE_SCAN_CHANNELS)
++		return -EINVAL;
++	for (i = 0; i < count; i++) {
++		if (!channels[i] || channels[i] > MT6797_PASSIVE_SCAN_CHANNELS)
++			return -EINVAL;
++		for (j = 0; j < i; j++)
++			if (channels[i] == channels[j])
++				return -EINVAL;
++	}
++	for (i = 0; i < MT6797_PASSIVE_SCAN_BYTES; i++)
++		output[i] = 0;
++	output[0] = sequence;
++	/* Retain the firmware default dwell. The selected host comments disagree
++	 * on nonzero V2 units; the host independently bounds the whole scan.
++	 */
++	output[158] = 4; /* SCAN_CHANNEL_SPECIFIED */
++	output[159] = count;
++	for (i = 0; i < count; i++) {
++		output[160 + 2 * i] = 1; /* BAND_2G4 */
++		output[161 + 2 * i] = channels[i];
++	}
++	return 0;
++}
++
++/* Match the payload scan sequence before any caller state changes. The
++ * retained image's ordinary constructor emits 24 bytes and outer sequence 0.
++ * A normal completion is not a cancellation or event-drain acknowledgement.
++ */
++static inline int
++mt6797_scan_done(const unsigned char *packet, size_t bytes,
++		 unsigned int sequence, unsigned int channel_count)
++{
++	if (!packet || bytes != 24 || mt6797_normal_le16(packet) != bytes ||
++	    mt6797_normal_le16(packet + 2) != 0xe000 || packet[4] != 0x0d ||
++	    packet[5] || !sequence || sequence > 255 ||
++	    !channel_count || channel_count > MT6797_PASSIVE_SCAN_CHANNELS)
++		return -EPROTO;
++	if (packet[8] != sequence)
++		return -EAGAIN;
++	if (packet[13] != 7 || packet[12] != channel_count)
++		return -EPROTO;
++	return 0;
++}
++
++struct mt6797_scan_frame {
++	size_t offset, bytes;
++	unsigned int channel, rcpi;
++};
++
++/* Only native unprotected beacon/probe-response management frames. The RX
++ * groups occur in wire order 4,1,2,3, with source-defined sizes 16,16,8,24.
++ * Never reinterpret translated Ethernet data or incomplete metadata as 802.11.
++ */
++static inline int
++mt6797_scan_frame(const unsigned char *packet, size_t bytes,
++		  struct mt6797_scan_frame *frame)
++{
++	unsigned int type, groups, fc, flags, rcpi;
++	size_t offset = 16, vector = 0;
++
++	if (!frame)
++		return -EINVAL;
++	*frame = (struct mt6797_scan_frame){0};
++	if (!packet || bytes < 16 || mt6797_normal_le16(packet) != bytes)
++		return -EPROTO;
++	type = mt6797_normal_le16(packet + 2);
++	if ((type & 0xe00f) != 0xe001)
++		return -EOPNOTSUPP;
++	groups = (type >> 9) & 15;
++	if (groups & 8)
++		offset += 16;
++	if (groups & 1)
++		offset += 16;
++	if (groups & 2)
++		offset += 8;
++	if (groups & 4) {
++		vector = offset;
++		offset += 24;
++	}
++	if (offset > bytes)
++		return -EPROTO;
++	if (packet[6] & 0x40)
++		offset += 2;
++	if (offset > bytes || bytes - offset < 36)
++		return -EPROTO;
++	flags = mt6797_normal_le16(packet + 10);
++	if ((packet[6] & 0x80) || (packet[6] & 0x3f) != 24 ||
++	    (packet[9] & 0xf0) || (packet[7] & 3) || (flags & 0x07fe))
++		return -EOPNOTSUPP;
++	fc = mt6797_normal_le16(packet + offset);
++	if ((fc & 0x00ff) != 0x0080 && (fc & 0x00ff) != 0x0050)
++		return -EOPNOTSUPP;
++	if ((fc & 0xc700) || (mt6797_normal_le16(packet + offset + 22) & 15))
++		/* No DS, fragmentation, protection or HT-control interpretation. */
++		return -EOPNOTSUPP;
++	if (!vector)
++		return -EOPNOTSUPP;
++	rcpi = packet[vector + 9];
++	if (rcpi > 220 || !packet[5] || packet[5] > MT6797_PASSIVE_SCAN_CHANNELS)
++		return -EOPNOTSUPP;
++	frame->offset = offset;
++	frame->bytes = bytes - offset;
++	frame->channel = packet[5];
++	frame->rcpi = rcpi;
++	return 0;
++}
++
++#endif
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index 2117714..edd3992 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -1053,6 +1053,9 @@ static void mt6797_consys_probe_firmware_start(struct device *dev,
+ 	rtnl_unlock();
+ 	if (ret)
+ 		goto stopped;
++#if IS_ENABLED(CONFIG_MT6797_PASSIVE_SCAN)
++	mt6797_mac_scan_ready(owner->wlan_hw);
++#endif
+ #endif
+ 	return;
+ 
+-- 
+2.54.0 (Apple Git-157)
+

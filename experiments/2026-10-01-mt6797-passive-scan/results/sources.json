@@ -1,0 +1,82 @@
+{
+  "vendor_commit": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+  "vendor_files": [
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/scan_fsm.c",
+      "sha256": "f14bd3421fb7cae2d8879d7eaf8237c8837b0ced79e41310b4fd2b417bb66758",
+      "bytes": 61447,
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/scan_fsm.c"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/ais_fsm.c",
+      "sha256": "738b8fcf0d34098fef986c1dba4963ebe0676665b0a914d7a712a50e814838ba",
+      "bytes": 164281,
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/ais_fsm.c"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/cnm.c",
+      "sha256": "5833d3bbf58fb4e27e897de7f304a1607fa4237ee41b6d067cddb98912878114",
+      "bytes": 29813,
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/cnm.c"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/privacy.c",
+      "sha256": "cd644912f4351756de2e145784fd611e20165a1f75e1299c18e02f1565b8407d",
+      "bytes": 38074,
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/privacy.c"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic.c",
+      "sha256": "6ccae6fbbd21287df1247720f2056c3961a5d1cdeeba5bcc2246a6e8de4b0ce4",
+      "bytes": 123091,
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic.c"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic_rx.c",
+      "sha256": "a844bdf75065a152e78d30c789aabb398b0d0f336d30d6ffd028793bf091412b",
+      "bytes": 126321,
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic_rx.c"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/include/nic_cmd_event.h",
+      "sha256": "93c8d67b1bc039a8db5b635e5a00975f2b9e408f4ab1bc8a384f5db49bf00a3a",
+      "bytes": 60516,
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/include/nic_cmd_event.h"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/include/nic/nic_rx.h",
+      "sha256": "0645985217a887e6c2d367955fa656b45f716a6aeeee13a29a2b462eb8dea5cb",
+      "bytes": 33559,
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/include/nic/nic_rx.h"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/include/mgmt/scan.h",
+      "sha256": "6e20c21a1e7e69d02b01a5f5d292ea5ec653540abd8920d44d13e7d1d081ea30",
+      "bytes": 26058,
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/include/mgmt/scan.h"
+    },
+    {
+      "path": "drivers/misc/mediatek/connectivity/wlan/gen3/include/mgmt/privacy.h",
+      "sha256": "6387512054b6154eb905b6ce35c1fbedc4f3c49e70f616e73a694d4d581cceeb",
+      "bytes": 10314,
+      "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/include/mgmt/privacy.h"
+    }
+  ],
+  "acquisition": "individual public files; scan and security objects matched retained complete hashes",
+  "kernel_version": "7.1.3",
+  "kernel_source_sha256": "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc",
+  "upstream_headers": [
+    {
+      "path": "include/net/mac80211.h",
+      "sha256": "bc2cfea5976ba788e437b3293b324cd156471c6dcd1df17d43519215c7b0f6fd",
+      "bytes": 324118,
+      "method": "read-only exact prepared Buildbox source"
+    },
+    {
+      "path": "include/net/cfg80211.h",
+      "sha256": "1036b505199169bf01b880ce1c1e9bba806ebe34289c67ba6dec6350e54c8c65",
+      "bytes": 389881,
+      "method": "read-only exact prepared Buildbox source"
+    }
+  ]
+}

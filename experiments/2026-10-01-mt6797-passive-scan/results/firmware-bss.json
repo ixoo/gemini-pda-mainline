@@ -1,0 +1,26 @@
+{
+  "firmware_sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
+  "firmware_bytes": 411632,
+  "tool": "Ghidra 12.1.2; existing RE-VM model",
+  "command": "0x11",
+  "dispatch_entries": 81,
+  "selected_matches": 1,
+  "dispatch_script": "BssActivationDispatch.java",
+  "dispatch_script_sha256": "ad9d9e8cddb8f12f8c4bd82a22e14956faf2fe73598237bbcde3c31704eed75e",
+  "walk_script": "BssActivationWalk.java",
+  "walk_script_sha256": "0aeb11a40a7103b8054571b95ca875099be249849d02220b72429ca39059bf4b",
+  "node_cap": 1024,
+  "nodes": 186,
+  "calls": 13,
+  "queue_exhausted": true,
+  "invalid_instructions": 0,
+  "unresolved_noncall_computed": 0,
+  "private_listing_sha256": "d6a8d59c69a39b492a0d7f7e6e63cfb251e0c7eb6a4da4e9f1e4a716bfc822d7",
+  "method": "NDS32 mapping premise; selected direct graph, callees skipped under assumed return",
+  "device_access": false,
+  "firmware_execution": false,
+  "limitations": [
+    "Payload field attribution, not successful firmware application or RF observation.",
+    "No cancellation, deactivation or event-drain acknowledgement is established."
+  ]
+}
