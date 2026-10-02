@@ -16,8 +16,8 @@ the loop. Positive identity-gated observations are unaffected.
 ## Index
 
 - [MT6797 receive mode samples](2026-10-02-mt6797-scan-mode-sample/README.md)
-  — fixed read-only mode prerequisite and dispatcher statistics; source
-  preparation only.
+  — consumed fixed read-only mode samples equal 5; dispatcher bytes and BSS
+  remain zero, with verified Gemian recovery.
 
 ### Current repository audit
 

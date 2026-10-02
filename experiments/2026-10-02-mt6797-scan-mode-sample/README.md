@@ -1,9 +1,9 @@
 # MT6797 receive mode samples
 
-Status: Buildbox compilation/package validation and offline candidate composition
-passed; guarded boot2 installation and clean shutdown complete. Runtime is
-pending physical owner selection. Mainline beacon reception, association and
-traffic remain unproved.
+Status: one diagnostic lifetime consumed. Both mode samples equal 5, both
+packed dispatcher-statistic words are zero, and the scan returns no BSS.
+Changed-boot Gemian recovery and carrier are confirmed. Working Wi-Fi remains
+unproved.
 
 The consumed [early receive experiment](../2026-10-02-mt6797-scan-rx-sample/README.md)
 returned zero early statistic bytes and no BSS. Its retained dispatcher word
@@ -129,3 +129,23 @@ Verify a changed live boot and this release before the sole capture/START and
 scan. Use the hypothesis and decision branches above, preserve evidence before
 reviewed recovery, and confirm changed-boot Gemian. This installation alone
 establishes no management reception, association or traffic.
+
+## Runtime result and next decision
+
+The [single runtime](results/runtime-1.json) matched the exact candidate and
+changed boot. All four replies arrived before DONE: mode 5 in both pairs and
+zero dispatcher/probe-response bytes. The ordinary management count was zero.
+The scan completed after 513213 us with returned credit, no host management
+frame and no standard BSS. A53 serviceability passed. The complete log and
+pre-recovery manifest were preserved and every sealed checksum passed. One
+reviewed native recovery request had an outer observation timeout; the existing
+return watcher subsequently confirmed changed-boot Gemian and carrier. No
+restart retry was issued. Host exit 1 reflects failed reception acceptance,
+while diagnostic completion and recovery passed.
+
+The selected native-dispatch mode prerequisite holds at the two sampled instants.
+This does not support a sampled non-5-mode explanation or justify forcing that
+word. Inspect earlier receive queue/descriptor admission and receive enabling
+or filter ownership. Mode continuity, byte wrap/reset, unresolved callees and
+RF reception remain unproved. This scan and START budget is consumed; do not
+repeat it. Management reception, association and traffic remain required.
