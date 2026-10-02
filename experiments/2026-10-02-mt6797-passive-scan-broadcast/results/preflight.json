@@ -1,0 +1,25 @@
+{
+  "status": "offline-candidate-and-installer-preflight-passed",
+  "candidate_manifest_sha256": "38f65da82e9e12248e908ca446aa39edd62da2dcac2d913938fc7cacae843faf",
+  "generated_installer_sha256": "6d64e360d0df9305db8ea7a20fd490e7b357f5a176ba8e033abdac03e4768400",
+  "installer_source_sha256": "845ab6523ed9b932b398bba7fc1175f2fd4dfeada655ba821827fd02bd94bec3",
+  "checks": {
+    "candidate_package_and_complete_parent_inventory": true,
+    "same_proven_booted_dtb": true,
+    "ram_root_delta_only_release_gate": true,
+    "firmware_record_and_six_userspace_elfs_byte_identical": true,
+    "published_ram_transform_reproduced": true,
+    "installer_identity_guard_and_candidate_validation": true,
+    "generated_installer_bash_syntax_shellcheck": true,
+    "session_candidate_identity": true,
+    "private_authentication_and_reviewed_recovery_closure": true,
+    "userspace_bss_classification_and_refusals": true,
+    "python_json_syntax_and_scan_shellcheck": true
+  },
+  "capture_and_host_preflight_against_actual_deployment": false,
+  "pending": "Requires the actual verified boot2 deployment receipt; no synthetic receipt is treated as deployment.",
+  "live_gemian_identity_and_carrier_confirmed": true,
+  "device_actions": "bounded read-only Gemian identity query; no deployment, radio or recovery",
+  "physical_boot2_selection": false,
+  "runtime_scan_executed": false
+}

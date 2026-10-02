@@ -1,0 +1,35 @@
+{
+  "repository_commit": "74b4814a6afa94febc1311d1483c7a661f825f5c",
+  "repository_dirty": false,
+  "kernel_release": "7.1.3-gemini-a53-wifi-passive-scan-broadcast",
+  "build_profile": "mt6797-a53-wifi-passive-scan-broadcast",
+  "source_sha256": "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc",
+  "patchset_sha256": "485d37e6532bdd9238fa756b22fe2d3518fa08f0b64e734cb91b12e0012a2ba6",
+  "config_sha256": "a6ef0769ce045b64760010ed19ab814d1d61fbc2c74a42e993ff532bc8c9c8d8",
+  "compiler": "aarch64-linux-gnu-gcc (Debian 12.2.0-14) 12.2.0",
+  "compiler_full_version": "12.2.0",
+  "compiler_target": "aarch64-linux-gnu",
+  "compiler_sha256": "c7b8890354c8ddc0364addfeb8968597e197627bd1e338fb6ed705b578803846",
+  "linker": "GNU ld (GNU Binutils for Debian) 2.40",
+  "linker_sha256": "e09a889c78a75e73ed096c9fa28905599e6813298b9ac839d10b02ffa96e7b08",
+  "status": "buildbox-compile-and-package-validation-passed",
+  "package_inventory_sha256": "e1a531b39057433c998baf4af2cf9b896c5a422af61d3c1b7e1014aa4b766fff",
+  "image_gzip_sha256": "2408120fb0b426b65b81ac35f650caae3d5841c592b006dee2c47dbcde5f42f3",
+  "compiled_board_dtb_sha256": "5abe5d14ddb424c5939e7ac6f6303210774f85e6be1413f2730f31804df046ca",
+  "hardware_test": false,
+  "compiled_source_sha256": {
+    "mac.c": "30a84e0f6d7e28ec026f86194286171eee22bf0d174ef43a0daddd868dcf2d9c",
+    "normal_command.h": "f11adc7a3eb9e899b8ec0572270da5e227cd60d6aa64e20efd46b23c5fed634a"
+  },
+  "validation": {
+    "broadcast_filter_c11_asan_ubsan": true,
+    "inherited_scan_wire_c11_asan_ubsan": true,
+    "checkpatch_errors": 0,
+    "checkpatch_warnings": 0,
+    "checkpatch_checks": 0,
+    "checkpatch_signoff_check": "excluded: explicitly synthetic non-certifying archive",
+    "checkpatch_optional_lists": "unavailable: spelling and const_structs",
+    "all_profiles_checked": 261
+  },
+  "build_diagnostics": "Historical patch whitespace warning and existing unused cpuhp_rollback_callback_inventory; no changed-MAC diagnostic."
+}

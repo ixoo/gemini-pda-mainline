@@ -1,6 +1,6 @@
 # MT6797 passive scan with normal broadcast reception
 
-Status: source-reviewed successor; build and runtime pending. The consumed
+Status: source-reviewed successor; build and candidate validated, runtime pending. The consumed
 [non-DFS scan](../2026-10-02-mt6797-passive-scan-5g/results/runtime-1.json)
 exposed channel 40 and completed without any management packet or BSS result.
 Changed-boot Gemian remained connected at 5200 MHz.
@@ -67,3 +67,24 @@ Build with `./scripts/build-kernel --backend buildbox` from committed, pushed,
 clean inputs. Candidate composition, guarded boot2 installation, full readback,
 clean shutdown and owner physical selection remain separate mandatory steps.
 Raw firmware, calibration, captures, SSIDs and peer addresses stay private.
+
+## Build and candidate preparation
+
+The [Buildbox receipt](results/build.json) records the exact clean pushed
+compile, package validation and source identities. The changed MAC compiled
+without diagnostics; historical whitespace and unused CPU-helper warnings
+remain. C11/Werror ASan/UBSan filter and inherited scan tests pass. Checkpatch
+reports zero errors, warnings and checks with synthetic-signoff checking
+intentionally excluded; its optional spelling/const lists were unavailable.
+All 261 manifest profiles preserve canonical series order.
+
+The [candidate](results/candidate.json) validates the complete tested 5 GHz
+parent, exact package, unchanged proven booted DT, Android container and full
+16 MiB padding. Its 59-member RAM root changes only the release string in
+`init`; firmware, private board record, authentication and all six userspace
+ELFs are byte-identical. The published RAM transform reproduced that output.
+The [offline preflight](results/preflight.json) covers candidate/session
+identity, private authentication, the reviewed recovery closure, generated
+installer guards and shell checks. Capture/host preparation against the actual
+deployment receipt remains pending, as does owner physical selection. No
+runtime scan or radio operation has been performed for this candidate.
