@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-03-mt6797-wmt-identity-capture` |
-| Status | compiled and schema-checked; candidate/runtime pending |
+| Status | candidate and tooling validated offline; deployment/runtime pending |
 | Subsystem | MT6797 CONSYS, BTIF and WMT |
 | Device | Project Gemini PDA |
 | Profile | `mt6797-a53-wmt-identity-capture-compile` |
@@ -63,3 +63,18 @@ remain outside the selected CONSYS scope. The independent schema output DTB
 matches the package digest. Candidate composition and its reproduction oracle,
 finite runtime protocol, guarded deployment and actual reply capture remain
 unproved; this is not Wi-Fi support.
+
+## Candidate and runtime preparation
+
+The [candidate receipt](results/candidate.json) and
+[tooling validation](results/tooling-validation.json) now pin two identical
+constructions, the composed-DTB schema check, actual-candidate refusal checks
+and focused evidence/restoration fixtures. The [runtime protocol](RUNTIME_PROTOCOL.md)
+selects one chip read before negotiation with finite effects and mandatory
+preservation/recovery. No deployment or measured chip identity is claimed.
+
+Use the private repository root through `GEMINI_PRIVATE_REPO`. The installer
+binds the reviewed device guard; capture and passive-host preparation require
+its actual deployment receipt. `passive-session.py` can validate the inherited
+private RAM root offline without claiming deployment. No new kernel build is
+needed for these host-only tools; the selected kernel inputs remain `8956fbc1`.

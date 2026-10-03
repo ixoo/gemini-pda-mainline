@@ -1,0 +1,45 @@
+{
+  "status": "offline-candidate-and-tooling-validated",
+  "device_action": "none",
+  "physical_admission": false,
+  "candidate_manifest_sha256": "47bfd8b8e2ba75097e1b5ee676e1b50e3bc484c6aff84df9b3dcd1a1240b9422",
+  "candidate_reproduction": {
+    "independent_constructions": 2,
+    "byte_identical_members": 7
+  },
+  "composed_dtb_schema": {
+    "sha256": "84256f20d76afc214ef3fbba3154b615ecab109a2264be99c442ff494286f5f2",
+    "processed_schema_sha256": "20ce564b178b5e44b232fbb3a24486a4e15c66a819094b3237da6eba0ff76244",
+    "selected_diagnostics": "empty"
+  },
+  "installer": {
+    "positive": "actual candidate accepted offline",
+    "refusals": 10,
+    "mutations": [
+      "all seven members changed",
+      "board DT symlink",
+      "manifest symlink",
+      "extra inventory member"
+    ]
+  },
+  "private_session": "actual unchanged RAM root accepted offline",
+  "runtime_guard_fixture_tests": 9,
+  "classifier_fixture_tests": 3,
+  "identity_accepted": false,
+  "not_tested": [
+    "live installation",
+    "live chip reply",
+    "common initialization",
+    "Wi-Fi reception association or traffic"
+  ],
+  "repository_checks": "pass",
+  "syntax_checks": [
+    "all Python AST parse",
+    "runtime guard sh -n and ShellCheck",
+    "generated installer bash -n and ShellCheck"
+  ],
+  "repository_check_limits": [
+    "Linux-only package/provenance tests skipped on macOS",
+    "no new kernel build: selected compiled inputs unchanged"
+  ]
+}
