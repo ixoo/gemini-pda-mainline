@@ -66,3 +66,7 @@ The [receipt](results/btif-transfer-review.json) pins source hashes and findings
 The installed [default query](../2026-10-03-mt6797-wmt-default-query/SESSION.md)
 remains the first hardware gate. Full common initialization is not ready until
 that result and the remaining firmware/calibration/resource contracts exist.
+
+The [TX submission draft](FULL_STP_TX.md) now checks bounded batch reservations,
+exact commit counts and terminal partial/late writes off device. It does not
+implement the remaining kernel IRQ/resource owner or admit a transfer.

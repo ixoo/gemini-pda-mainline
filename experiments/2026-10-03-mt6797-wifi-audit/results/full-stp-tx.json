@@ -1,0 +1,32 @@
+{
+  "status": "host-only TX progress draft; kernel owner and admission absent",
+  "source_contract": "btif-transfer-review.json",
+  "authored_sha256": {
+    "tests/wmt-full-stp-tx.h": "5b1644829ae5d2872dc2dea1c7537260938f412b979367e9d009f0cf079d7724",
+    "tests/wmt-full-stp-tx-test.c": "dddbd3866c49d83e4bdf15cf618413ab29c3df2271db946bb8b09093d7e4c436"
+  },
+  "limits": {
+    "frame_bytes": 1011,
+    "TEMT_batch": 16,
+    "THRE_batch": 8,
+    "room_observations_per_span": 256
+  },
+  "limit_scope": "offline proposed accounting bound; not measured hardware timing or an admitted effect budget",
+  "checks": {
+    "maximum_frame_exact_bytes": "pass",
+    "no_sent_state_before_full_submission": "pass",
+    "submission_collector_event_ACK_composition": "pass",
+    "partial_and_late_commit_retirement": "pass",
+    "room_reuse_and_no_progress_limit_refusal": "pass",
+    "strict_warnings_and_sanitizers": "pass"
+  },
+  "not_tested": [
+    "MMIO ordering or observed FIFO room",
+    "real deadlines, interrupts or concurrency",
+    "peer behavior and firmware applicability",
+    "kernel build/integration",
+    "hardware query, calibration, reception, association or traffic"
+  ],
+  "device_action": "none",
+  "sanitization": "Independently authored code and protocol/accounting facts only; private firmware, vendor source and raw captures excluded."
+}
