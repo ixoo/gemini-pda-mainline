@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-03-mt6797-wmt-versions` |
-| Status | candidate validated; deployment/runtime pending |
+| Status | installed and shut down; physical boot2 selection pending |
 | Profile | `mt6797-a53-wmt-versions-compile` |
 | Subsystem | MT6797 CONSYS, BTIF and WMT |
 
@@ -50,3 +50,8 @@ measurement must preserve the first unknown reply without retries, seal the full
 session, run the established A53 regression and confirm changed-boot Gemian
 recovery. Working Wi-Fi still requires common initialization, calibrated
 management reception, association and traffic.
+
+[Deployment](results/deployment-1.json) resolved inactive logical boot2 from live
+Gemian GPT, verified the guarded full-partition write/readback and confirmed
+clean shutdown. Capture and preservation/recovery preparation pass offline.
+The owner must physically select boot2 before any runtime measurement.

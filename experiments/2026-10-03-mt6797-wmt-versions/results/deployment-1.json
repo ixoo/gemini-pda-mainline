@@ -1,0 +1,30 @@
+{
+  "experiment": "mt6797-wmt-versions",
+  "candidate_manifest_sha256": "d6a22f27246ea98632fb11f057249fc6ff254f3e5a0f4a08d09e76b390b93b53",
+  "result": "write-synced-flushed-full-readback-verified",
+  "target_logical_name": "boot2",
+  "target": "/dev/mmcblk0p30",
+  "target_major_minor": "179:30",
+  "root": "/dev/mmcblk0p29",
+  "root_major_minor": "179:29",
+  "boot2_device_guard": "passed",
+  "boot2_device_guard_sha256": "0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf",
+  "predecessor_sha256": "7e7134923871220062c55ff652754aac5f7ae842c57d4aaa6dedce2ced5dcd69",
+  "candidate_sha256": "391f44a8f5c79467f3a2741bcad51c95ea34791248585baae69b0a19f852ac73",
+  "readback_sha256": "391f44a8f5c79467f3a2741bcad51c95ea34791248585baae69b0a19f852ac73",
+  "boot_id": "c9274575-f278-4b3d-87e0-d2fa410c6b2e",
+  "fresh_predecessor_backup": "no",
+  "temporary_readback_removed": "yes",
+  "shutdown": "requested-after-evidence-flush",
+  "post_shutdown_reachability": "unreachable",
+  "reboot": "no",
+  "next_action": "owner-physically-selects-boot2",
+  "status": "installed and shut down; physical boot2 selection pending",
+  "private_receipt_sha256": "1dacffe4784653e91ae9695cdc420cc671570ccc87925d7a9fba396170e88bc2",
+  "not_established": [
+    "actual chip/HW/ROM tuple",
+    "common initialization",
+    "Wi-Fi reception/association/traffic"
+  ],
+  "redactions": "private paths and power telemetry omitted"
+}
