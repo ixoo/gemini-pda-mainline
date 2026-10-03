@@ -84,3 +84,34 @@ the fixed default query and matched-event parser under the existing CONSYS
 owner, with focused split-response/malformed/deadline fixtures. Complete
 Buildbox and candidate/deployment gates before one physical test. No patch,
 calibration or full-mode negotiation belongs to that first query lifetime.
+
+## Register-table cross-check and fixed wire helper
+
+The retained MT6797 register table part 1, SHA-256
+`e8ef503a32a8bb318a000fe6727d2bcdaa3557992a0ffed344e9de37acc2caff`,
+was checked by extraction and visual inspection of pages 1371–1372. Page 1371
+assigns RX interrupt enable to bit 1 and TX to bit 0, while the selected vendor
+header assigns RX to bit 0 and TX to bit 1. Its FIFO-clear assignment likewise
+reverses the source's RX/TX bits, and describes a FAKELCR-dependent control mode
+that the source initializer does not select. These conflicts are real page
+content, not extraction errors. The document cannot select new bit values by
+itself; retain the discrepancy until revision-matched behavior resolves it.
+
+Page 1372 agrees on LSR bits 0/5/6 but describes DR in terms of an RX buffer
+becoming full; that does not independently prove byte-by-byte readiness with
+IRQs masked. Page 1373 corroborates the timeout-reset side effect of reading
+local DMA_EN. No new register operation follows from these documentary claims.
+
+The independently authored [fixed wire helper](tests/wmt-default-query.h)
+contains only the 11-byte default query and a byte-fed exact reply validator.
+It accepts the source's sync/sequence variation, but rejects incorrect task,
+length, opcode, status, options or zero trailer. Failure is sticky and extra
+input after completion is rejected. The caller still owns timing, read budgets,
+single-use lifetime and recovery; the helper claims none of those mechanisms.
+
+[Host tests](tests/wmt-default-query-test.c) passed with AddressSanitizer and
+UndefinedBehaviorSanitizer, covering every two-chunk split and incomplete prefix,
+all sync bytes, every replacement value for each remaining frame byte, null
+input, sticky failure and extra input after completion. Strict file style
+checks also passed. No kernel build, transport implementation or device test
+was performed. This helper is not a boot candidate.

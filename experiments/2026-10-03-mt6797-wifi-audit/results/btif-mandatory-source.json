@@ -79,5 +79,36 @@
     "sha256": "f0ed75c1de8a08bcf543975c927078be5d8de988bb25bc37898a8c37a29914af",
     "matching_shape": "four-byte header, prefix 0x80, big-endian 12-bit length plus task nibble, zero checksum and two zero trailer bytes",
     "mismatch": "send prepends H:4 and fixes task type 0; RX routes payload to H:4; transport is serdev. Selected first WMT exchange is raw task 4 through BTIF. Whole-driver reuse is not established."
+  },
+  "register_document_crosscheck": {
+    "sha256": "e8ef503a32a8bb318a000fe6727d2bcdaa3557992a0ffed344e9de37acc2caff",
+    "document": "MT6797 register table part 1",
+    "pages": [
+      1371,
+      1372,
+      1373
+    ],
+    "visual_pages": [
+      1371,
+      1372
+    ],
+    "conflicts": [
+      "RX/TX IER bits swapped relative to vendor header",
+      "RX/TX FIFO-clear bits swapped relative to vendor header",
+      "FAKELCR-dependent FIFO-control mode differs from vendor initializer"
+    ],
+    "corroboration": [
+      "LSR bits 0,5,6",
+      "DMA_EN read can reset timeout when automatic reset disabled"
+    ],
+    "resolved": false
+  },
+  "fixed_wire_helper": {
+    "header_sha256": "1632997d80009ffa67081c8c58831c5a99e1500a9c91c83d6d970cf6dd4bf147",
+    "test_sha256": "2315a0b1014a2069c0748a3ae2041e293806d12a2e4e1551957eb71118c88071",
+    "host_test": "pass with -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined",
+    "coverage": "all splits/prefixes, 256 sync bytes, 3825 non-prefix single-byte mutations, sticky failure, null and post-completion input",
+    "kernel_build": false,
+    "hardware_test": false
   }
 }
