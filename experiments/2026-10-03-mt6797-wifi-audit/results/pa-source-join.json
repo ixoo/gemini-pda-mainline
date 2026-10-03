@@ -1,0 +1,38 @@
+{
+  "status": "offline PA source/config join; no PA operation admitted",
+  "source_commit": "59e00a9144d782e148332009a835b99c43382467",
+  "prepared_patch_set": "d6a6547d27254377172dc75254a6ccda5d6db2e232e91c8b781c8bf2e6a5b32e",
+  "source_sha256": {
+    "drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c": "e7089b6d61a7d4bcc07867c561c3c0a0ead36950ac0c659915a42c73697ad37f",
+    "drivers/misc/mediatek/connectivity/common/common_main/mt6797/include/mtk_wcn_consys_hw.h": "3ee7631a95a12f5cddd860c213e51e75e1cb3146ca858a892aaae55b4d22fad1"
+  },
+  "gemian_v8_config_sha256": "a2240c7f23e13766ed9e789c5b7d43aa9d8826ce2094d4a0f6fb2df7af88e6ae",
+  "selection": {
+    "CONFIG_MTK_PLATFORM": "mt6797",
+    "CONSYS_PMIC_CTRL_ENABLE": 1,
+    "CONSYS_BT_WIFI_SHARE_V33": 0,
+    "CONFIG_MTK_PMIC_LEGACY": "absent from pinned configuration; no selected legacy branch shown"
+  },
+  "source_behavior": {
+    "enable": "Separate BT and Wi-Fi regulator handles; each requests 3300000 uV and enables its rail. Voltage-setting return is ignored; enable failure is logged. Function still returns zero.",
+    "disable": "Separate regulator_disable calls; returns ignored. No complete outcome propagation.",
+    "not_selected": "Shared BT/Wi-Fi software counter and legacy direct PMIC-control writes are separate conditional branches."
+  },
+  "current_mainline_description": {
+    "patch": "patches/v7.1.3/0015-regulator-mt6351-add-regulator-driver.patch",
+    "patch_sha256": "7dce9720c8944271d0166d4647f7988140fb2a846a7b3cae5b27964edc59e3cb",
+    "BT_enable_register": "0x0a98",
+    "WiFi_enable_register": "0x0a9a",
+    "shared_voltage_selector_register": "0x0ada",
+    "shared_voltage_selector_mask": "bits 10:9",
+    "claim_scope": "Current driver descriptions only; not new hardware validation."
+  },
+  "executor_implication": "Acquire both standard regulator handles; account for shared voltage selector and per-rail enable votes. Propagate each operation result and retain uncertain powered lifetime. Do not substitute a legacy PMIC write or shared-counter branch.",
+  "limitations": [
+    "Not preprocessed/binary equivalence proof.",
+    "No new PMIC register observation, voltage change, PA enable/disable, calibration or radio action.",
+    "Physical rail ownership, checked calibration response and complete effect admission remain separate."
+  ],
+  "device_action": "none",
+  "sanitization": "Independent facts and hashes only; no source, raw capture, private host path or calibration data."
+}

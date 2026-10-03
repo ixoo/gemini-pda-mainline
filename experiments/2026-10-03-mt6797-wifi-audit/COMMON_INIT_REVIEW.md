@@ -81,3 +81,23 @@ and powered failure handling remain separate before a candidate.
 The [full-STP framing follow-up](FULL_STP.md) now supplies a hardware-free WMT
 codec and corruption/boundary fixtures. ACK state, reset epochs, FIFO progress
 and hardware acceptance remain unresolved; the codec does not admit transfer.
+
+## PA source/config follow-up
+
+The [PA source join](results/pa-source-join.json) pins the selected Gemian
+platform implementation and header to the same prepared source and v8
+configuration. The header selects separate BT and Wi-Fi VCN33 controls, with
+PMIC control enabled; the configuration contains no legacy PMIC option. In
+that source branch each enable requests 3.3 V through its regulator handle
+and calls regulator_enable. Voltage-setting failures are ignored, enable
+failures are only logged, and the wrapper returns zero. Each disable also
+ignores its regulator result. These policies cannot establish checked rail
+transitions and must not be copied into the future executor.
+
+The current mainline driver describes distinct BT/Wi-Fi enable registers but
+a shared voltage-selector register and mask. This is a driver-description
+fact, not new hardware validation. The future owner needs both standard
+regulator handles, shared-selector accounting and per-operation failure
+records. The unselected shared software counter and legacy PMIC-control
+writes are not substitutes. This review performs no rail or calibration
+action and supplies no live calibration-event or voltage-transition proof.
