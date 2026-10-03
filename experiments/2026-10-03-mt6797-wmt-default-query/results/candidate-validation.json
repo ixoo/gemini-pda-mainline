@@ -1,0 +1,12 @@
+{
+  "composed_dtb_consys_schema": "passed with empty diagnostics",
+  "schema_tool_version": "2026.9",
+  "private_schema_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "candidate_builder_sha256": "8cd462f1c58194d411dc5cc2528560697f9a0fa0b526ab2bb33da12c015a00f7",
+  "schema": 1,
+  "candidate_dtb_sha256": "3658840a0f8df97e714038b98bef573927ec165a56d18c2652e8321fe835807d",
+  "status": "composed candidate DT validated; runtime admission incomplete",
+  "candidate_reproduction": "exact generated receipt and all member hashes match",
+  "occupied_output_test": "refused without changing verified candidate manifest",
+  "validation_scope": "offline assembly, member isolation and selected composed-DT schema; no device result"
+}

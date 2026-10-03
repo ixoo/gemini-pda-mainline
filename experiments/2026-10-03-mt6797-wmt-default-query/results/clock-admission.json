@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "status": "candidate-specific AP-DMA clock ordering supported by active UART console vote; live preflight required",
+  "kernel_build_commit": "127166e4099a6eccc1172aae3e529db40450a0df",
+  "compiled_source_sha256": {
+    "drivers/tty/serial/8250/8250_mtk.c": "9ed47647ccf4c2cada2b09d61d088b04cbc80b92f9455673b41fd645e5dfe821",
+    "drivers/tty/serial/serial_core.c": "e71496771882d4638dfb0786e3a04f4d692255de95bf1087bbeb2db59f0a8501",
+    "drivers/clk/clk.c": "a26af5a1ea1626c8010898fb0c751664b60134a7f05231140fc4e2349042ec48",
+    "drivers/clk/mediatek/clk-mt6797.c": "321d99b4c1ce8e317498a669345645147743e65c06cf7899fb40f417f2f2fa95"
+  },
+  "parent_dtb_sha256": "cef9373ea3aa0e1a8a45a13b953ae95e48939b211e41a73052543be784ee3214",
+  "candidate_dtb_sha256": "3658840a0f8df97e714038b98bef573927ec165a56d18c2652e8321fe835807d",
+  "uart0_binding": "enabled UART0; baud clock ID 22 and bus clock ID 46 from the same infracfg provider; serial0 stdout",
+  "query_clock": "same infracfg provider, AP-DMA ID 46",
+  "retained_parent_log_sha256": "af687e0c09b44a4d8ad1210153ee89adb4c504df3b44938b7341a2fb4bcf7c69",
+  "retained_parent_observations": [
+    "serial console argument ttyS0,921600n8",
+    "UART0 identified as ttyS0",
+    "final ttyS0 console enabled"
+  ],
+  "source_join": [
+    "MediaTek 8250 clock lookup obtains enabled bus clock",
+    "MediaTek UART ON callback gets runtime PM reference",
+    "serial core excludes active console from default OFF transition",
+    "CCF invokes hardware gate enable only when the shared enable count is zero",
+    "Per-clock debugfs clk_prepare_count and clk_enable_count expose core RAM u32 counters without a hardware callback"
+  ],
+  "required_live_gates": [
+    "exact candidate release and boot identity",
+    "serial-console argument and enabled ttyS0 entry",
+    "UART0 selected driver still bound and runtime status active",
+    "positive infra_ap_dma prepare and enable RAM counters from the two per-clock debugfs files; no global summary walk",
+    "retain console; no suspend, unbind, close or concurrent diagnostic before evidence sealing"
+  ],
+  "conclusion": "With the active console vote retained, query clk_prepare_enable adds a reference without a new AP-DMA gate transition. Channel-local idle refusals still apply. Another profile or absent console does not inherit this conclusion.",
+  "hardware_action": "none",
+  "remaining": "implement host preflight and preservation; validate deployment and live state before a query"
+}

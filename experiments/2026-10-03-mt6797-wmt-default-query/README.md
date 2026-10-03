@@ -68,7 +68,7 @@ The [channel-register review](results/dma-read-review.json) corroborates the
 selected EN/STOP/FLUSH and buffer-count fields without documented read-clear
 effects. It does not establish clock-off access, shared-clock enable safety or
 live writer exclusion.
-Before any boot candidate, review the finite MMIO/IRQ effects, FIFO alias writes,
+Before device admission, review the finite MMIO/IRQ effects, FIFO alias writes,
 the initial DMA_EN timeout acknowledgment, shared AP-DMA clock-enable effects,
 channel exclusion and power-retaining failure/recovery lifetime. Host fixtures
 do not model real MMIO or IRQ concurrency. Do not use this record as a hardware
@@ -78,3 +78,23 @@ A later admitted test will consume one exact query lifetime: a matched response
 establishes transport liveness; timeout or malformed/extra data stops without
 retry and keeps the transport question open. Neither outcome establishes RF
 calibration, reception, association or working Wi-Fi.
+
+## Candidate and runtime follow-up
+
+The [candidate builder](build-candidate.py) pins the exact fetched package and
+proven pool-sample parent, preserves all 178 unrelated DT nodes, disables the
+WLAN child and changes only CONSYS transport properties. The private RAM root
+changes only its release gate; unused retained WLAN inputs remain private and
+are not transferred to the MCU. The [candidate receipt](results/candidate.json)
+records a validated LK container and 16-MiB padded image. The
+[offline checks](results/candidate-validation.json) reproduce every member hash
+and refuse an occupied output without mutation. Direct selected-schema
+validation of the composed booted DT passed with empty diagnostics.
+
+The [clock source join](results/clock-admission.json) resolves the AP-DMA ordering
+for this candidate only: the active UART0 console retains a vote on the same
+clock, so the query adds a reference rather than ungating the engine. The
+[runtime protocol](RUNTIME_PROTOCOL.md) requires that live console/runtime state
+and confines one query and retained-power recovery. Host enforcement and
+deployment remain unfinished; no device action or hardware admission follows
+from offline candidate construction.
