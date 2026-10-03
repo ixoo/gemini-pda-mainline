@@ -1,0 +1,33 @@
+{
+  "status": "Buildbox compile/package and focused schema pass; runtime not tested",
+  "repository_commit": "720269885122a88e0d9b175783c26199f7956e05",
+  "profile": "mt6797-a53-wmt-versions-compile",
+  "kernel_release": "7.1.3-gemini-a53-wmt-versions",
+  "package_inventory_sha256": "e1318646e301a7a95b0514c736239cbd9f13f452b91ab4da8f60709241c84f09",
+  "patch_count": 576,
+  "configuration_fragments": 24,
+  "compiled_dtb_sha256": "734ca989517806a7f1e55a2a4ed881d014b5b26e57e44db9eda196fbe292b591",
+  "composed_dtb_sha256": "84256f20d76afc214ef3fbba3154b615ecab109a2264be99c442ff494286f5f2",
+  "schema_version": "2026.9",
+  "binding_make": "pass",
+  "focused_board_dt_check": "pass",
+  "composed_dt_direct_validation": "pass, no output",
+  "unchanged_binding_constraints": "description-only change; existing selector/resource exclusions retained",
+  "private_schema_log_sha256": {
+    "binding-check.log": "eaece59366b25310d6ca9f89fa2e4537fc54b0ea30da6c78e610ff4713f3a702",
+    "config.log": "63f642156945ab99720beca0202dc519434d60a5b91773319d0e5f8a8e7bc7d6",
+    "dtb-check.log": "a18d7f439ce730d590fd370c6b904a8575d702641a985db9a3d33564deca9f83"
+  },
+  "warnings": [
+    "inherited kernel unused cpuhp_rollback_callback_inventory",
+    "inherited USB ranges address/size-cell warnings",
+    "schema-only defconfig reports assembler .inst detection warning; no disassembly claim"
+  ],
+  "candidate_construction": "exact parent, package inventory, RAM archive, DT composition, Android container and full-size padding pass",
+  "device_action": "none",
+  "not_established": [
+    "live HW/ROM tuple",
+    "common initialization/calibration",
+    "Wi-Fi reception, association and traffic"
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "status": "offline-gated-wmt-versions-candidate-validated",
+  "kernel_build_commit": "720269885122a88e0d9b175783c26199f7956e05",
+  "kernel_release": "7.1.3-gemini-a53-wmt-versions",
+  "kernel_package_sha256": "e1318646e301a7a95b0514c736239cbd9f13f452b91ab4da8f60709241c84f09",
+  "parent_boot2_sha256": "3d9186a96f4000d318f5615746257bcb83d3bb58e6aca74928f1e69106476d79",
+  "parent_dtb_sha256": "cef9373ea3aa0e1a8a45a13b953ae95e48939b211e41a73052543be784ee3214",
+  "unchanged_dt_nodes": 178,
+  "ram_root_changed_members": [
+    "init release gate only"
+  ],
+  "firmware_sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
+  "files": {
+    "Image.gz": {
+      "sha256": "e150f075244e7d1aa52218cf83e54f31343ed8610d34b82633beda02c0ede573",
+      "bytes": 6594389
+    },
+    "board.dtb": {
+      "sha256": "84256f20d76afc214ef3fbba3154b615ecab109a2264be99c442ff494286f5f2",
+      "bytes": 28458
+    },
+    "boot.img": {
+      "sha256": "05d605e5021808ec96db6d79924cc1752d1551fac22541e511cb356002c53a28",
+      "bytes": 10983424
+    },
+    "boot2-padded.img": {
+      "sha256": "391f44a8f5c79467f3a2741bcad51c95ea34791248585baae69b0a19f852ac73",
+      "bytes": 16777216
+    },
+    "initramfs.img": {
+      "sha256": "059c62f7e3dca63df72cd94c1ad0af312834323e17f755838801e836aa6c5f6e",
+      "bytes": 4356813
+    },
+    "kernel.config": {
+      "sha256": "00a83bffec515ba7eb68ad61b411050cca8aa2e66a543338ffaf5a05ded72a8e",
+      "bytes": 112887
+    }
+  },
+  "device_tree_change": "only CONSYS transport resources/identity-capture property and WLAN disabled; all other nodes unchanged",
+  "secret_bearing": true,
+  "device_action": "none",
+  "physical_admission": false
+}

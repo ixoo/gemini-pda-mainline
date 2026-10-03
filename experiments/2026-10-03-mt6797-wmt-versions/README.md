@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-03-mt6797-wmt-versions` |
-| Status | kernel integration checkpoint; build/schema pending |
+| Status | candidate validated; deployment/runtime pending |
 | Profile | `mt6797-a53-wmt-versions-compile` |
 | Subsystem | MT6797 CONSYS, BTIF and WMT |
 
@@ -43,8 +43,9 @@ KERNEL_PROFILE=mt6797-a53-wmt-versions-compile \
   ./scripts/build-kernel --backend buildbox
 ```
 
-Focused binding/DT validation, candidate construction, finite runtime protocol,
-guarded deployment and physical owner boot2 selection remain required. A future
+[Build and focused schema validation](results/build-schema.json) passed. The
+[candidate](results/candidate.json), [finite protocol](PROTOCOL.md), and adapted
+guards are ready for guarded deployment and physical owner boot2 selection. A future
 measurement must preserve the first unknown reply without retries, seal the full
 session, run the established A53 regression and confirm changed-boot Gemian
 recovery. Working Wi-Fi still requires common initialization, calibrated
