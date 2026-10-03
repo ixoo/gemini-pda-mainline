@@ -1,0 +1,36 @@
+{
+  "status": "host-tested kernel-style IRQ draft; no kernel caller or device admission",
+  "authored_sha256": {
+    "tests/mt6797-wmt-full-io.h": "f26e15a54a2311e62c61a90ecfacad06e8e78f43b14472e3c1ad9c8b8b489976",
+    "tests/wmt-full-io-test.c": "53490ed1a9b593af8bf969c2eac27f0cea2dd6c0d668269f196c0f9738b7e64c",
+    "tests/run-wmt-full-io-test.py": "69571f316b0a10d3c254d6bfb7fc822329a16c78d742779fdb5edc7db2c50747"
+  },
+  "command_limits": {
+    "services_including_initial_kick": 512,
+    "RX_reads_per_service": 8,
+    "total_RX_bytes": 1043,
+    "received_frames": 8,
+    "maximum_THR_writes": 1015,
+    "room_observations_per_TX_span": 256
+  },
+  "limit_scope": "offline proposed command bounds; whole-init effect/time budgets not selected",
+  "checks": {
+    "actual_draft_under_mocked_MMIO": "pass",
+    "maximum_command_and_late_ACK": "pass",
+    "RX_quota_and_TX_progress_under_continuous_RX": "pass",
+    "overflow_and_partial_TX_expiry": "pass",
+    "failed_context_reuse_and_terminal_no_write": "pass",
+    "completion_boundary_expiry_and_extra_input": "pass",
+    "strict_warnings_and_sanitizers": "pass"
+  },
+  "not_tested": [
+    "actual Linux kernel compilation",
+    "real IRQ concurrency, MMIO or FIFO timing",
+    "setup, IRQ enable/free sequencing or resource integration",
+    "peer protocol and firmware applicability",
+    "hardware query, calibration, reception, association or traffic"
+  ],
+  "device_action": "none",
+  "profile_or_installed_image_changed": false,
+  "sanitization": "Independent draft and synthetic fixture inputs only; no private captures, calibration, vendor code or firmware."
+}

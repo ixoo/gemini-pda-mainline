@@ -62,3 +62,7 @@ The [receipt](results/full-stp-tx.json) pins authored files. There is no kernel
 integration, FIFO timing, IRQ-concurrency, peer-response or Wi-Fi result. First
 [default-query liveness](../2026-10-03-mt6797-wmt-default-query/SESSION.md) remains
 the hardware gate before further transport effects.
+
+The [composed IRQ draft](FULL_STP_IO.md) now exercises these helpers through
+bounded mocked MMIO services. Kernel/resource integration, real concurrency
+and hardware admission remain unverified.
