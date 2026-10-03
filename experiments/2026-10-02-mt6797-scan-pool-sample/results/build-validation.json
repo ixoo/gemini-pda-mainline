@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "status": "Buildbox package and offline candidate validated; not deployed or hardware tested",
+  "kernel_build_commit": "7f8d2fe050d306100d3a688e2c0bb7bad4a29abd",
+  "profile": "mt6797-a53-wifi-scan-pool-sample",
+  "buildbox_package_sha256": "628e39aa77be34fe564fff8f3fb6e20009c85a639dd0dda8f9ee6e59a68e24c0",
+  "buildbox_validation_pass": true,
+  "fetch_inventory_pass": true,
+  "six_compiled_source_hashes_match_source_review": true,
+  "private_ram_root_sha256": "6eeae9ddad5cc54543a3be0e79b3af6d22d3cc238d0495b8cc0366c15eac8225",
+  "candidate_manifest_sha256": "ce01cc501b6e40132cc04a7affee6bfd7a79fb55091810ec8c98980d74a998ba",
+  "candidate_padding_bytes": 16777216,
+  "proven_booted_dtb_unchanged": true,
+  "private_root_member_count": 59,
+  "private_root_change_from_mode_parent": [
+    "init release gate only"
+  ],
+  "kernel_configuration_pass": true,
+  "lk_container_validation_pass": true,
+  "wire_tests_pass": true,
+  "classifier_tests_pass": true,
+  "python_syntax_pass": true,
+  "shell_syntax_and_shellcheck_pass": true,
+  "installer_preparation_pass": true,
+  "generated_installer_sha256": "9e6e34bde1eeb22e250c9bb8c6ee60aa0a853388993e861ff6eac2d8bc00bfad",
+  "guard_sha256": "0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf",
+  "installer_operational_equivalence": "Byte-identical to the mode installer after simultaneous substitution of experiment/release, candidate/manifest/predecessor, previous boot ID and validation-tool digest. The guard and write/readback/shutdown operations are unchanged.",
+  "not_run": [
+    "live boot2 installation",
+    "post-deployment offline capture and host preparation",
+    "physical boot",
+    "WMT/START",
+    "scan",
+    "RF reception",
+    "association",
+    "traffic"
+  ],
+  "sanitization": "Private inputs, installer host paths and binary evidence omitted; only checksums and independent validation summaries."
+}

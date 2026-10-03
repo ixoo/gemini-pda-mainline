@@ -1,6 +1,7 @@
 # Native receive object availability during one passive scan
 
-Status: source diagnostic prepared; no build, candidate or hardware lifetime yet.
+Status: Buildbox package and offline candidate validated; runtime tools bound.
+No installation or hardware lifetime yet.
 
 The consumed [mode sample](../2026-10-02-mt6797-scan-mode-sample/README.md)
 observed mode 5 twice, with zero dispatcher/probe statistics and no BSS.
@@ -78,3 +79,26 @@ non-atomic disagreement, unexpected values and post-DONE handling. Strict
 Checkpatch excludes only the explicit non-certifying archive sign-off and
 Kconfig diff-description artifact; full resulting Kconfig passes without
 exclusions. This patch is an internal archive, not an upstream submission.
+
+## Validated candidate and runtime binding
+
+[Build validation](results/build-validation.json) records the clean pushed
+input, validated package inventory and matching six compiled-source hashes.
+The [candidate receipt](results/candidate.json) pins the exact kernel, config,
+proven booted DT, private root, boot container and full 16 MiB padding. The
+root has the same 59 members as the mode parent, with only its init release
+gate changed. Firmware, private storage record and userspace remain unchanged.
+
+`build-candidate.py` validates and composes that package and root;
+`retarget-initramfs.py` reuses the pinned original RAM-root transform.
+`install-passive.py`, `capture-private.py`, `passive-session.py` and
+`passive-host.py` bind the exact receipt, predecessor, release and classifier.
+The generated installer is operationally identical to its reviewed parent
+under the recorded binding substitutions. It resolves logical boot2 from live
+GPT, enforces the device guard and stable power, requires full independent
+readback and clean shutdown, and never selects boot2 automatically.
+
+Candidate preparation performs no device action. Capture and host offline
+preparation require the real verified deployment receipt; do not fabricate a
+receipt to pass that gate. Installation, real-receipt preparation, physical
+selection and the single hardware lifetime remain outstanding at this record.
