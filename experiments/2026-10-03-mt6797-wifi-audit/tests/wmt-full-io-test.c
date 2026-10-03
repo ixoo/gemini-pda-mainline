@@ -7,6 +7,7 @@
 #define __iomem
 #define IRQ_NONE 0
 #define IRQ_HANDLED 1
+#define IRQF_NO_AUTOEN 1
 typedef int irqreturn_t;
 typedef int spinlock_t;
 struct completion { int complete; };
@@ -21,7 +22,48 @@ static uint32_t registers[32];
 static unsigned char outgoing[1200], incoming[1200];
 static unsigned int written, read_count, input_length, fifo_used, disabled, ier;
 static unsigned int expire_at, stuck, expire_on_empty, service_calls;
-static void disable_irq_nosync(int irq) { assert(irq == 130); disabled++; }
+static unsigned int irq_depth, requested, enabled, synchronized, freed, wait_mode;
+static int request_result, expire_on_enable;
+static irqreturn_t (*registered_handler)(int, void *);
+static void *registered_data;
+static int request_irq(int irq, irqreturn_t (*handler)(int, void *),
+	unsigned long flags, const char *name, void *data)
+{
+	assert(irq == 130 && handler && flags == IRQF_NO_AUTOEN && name && data);
+	requested++;
+	registered_handler = handler;
+	registered_data = data;
+	if (!request_result)
+		irq_depth = 1;
+	return request_result;
+}
+static void disable_irq_nosync(int irq)
+{
+	assert(irq == 130);
+	disabled++;
+	irq_depth++;
+}
+static void enable_irq(int irq)
+{
+	assert(irq == 130 && irq_depth == 1);
+	irq_depth--;
+	enabled++;
+	if (expire_on_enable) {
+		jiffies = 1000;
+		registered_handler(irq, registered_data);
+	}
+}
+static void synchronize_irq(int irq)
+{
+	assert(irq == 130 && irq_depth == 1);
+	synchronized++;
+}
+static void free_irq(int irq, void *data)
+{
+	assert(irq == 130 && data && irq_depth == 1);
+	freed++;
+}
+static unsigned long wait_for_completion_timeout(struct completion *, unsigned long);
 static uint32_t readl(const void *p)
 {
 	if (p == (unsigned char *)registers + 8 && expire_on_empty &&
@@ -67,6 +109,8 @@ static void fresh(void)
 		command[i] = i;
 	written = read_count = input_length = fifo_used = disabled = expire_at = stuck = expire_on_empty = 0;
 	service_calls = 0;
+	irq_depth = requested = enabled = synchronized = freed = wait_mode = 0;
+	request_result = expire_on_enable = 0;
 	jiffies = 0;
 	ier = 3;
 	wmt_full_state_init(&link);
@@ -82,8 +126,32 @@ static void service(void)
 	/* Independently modeled hardware drains eight bytes between services. */
 	fifo_used = fifo_used > 8 ? fifo_used - 8 : 0;
 	jiffies++;
+	if (!io.terminal)
+		io.irq_armed = 1;
 	assert(mt6797_wmt_full_irq(130, &io) == IRQ_HANDLED);
 	assert(read_count - before <= WMT_FULL_IO_RX_QUOTA);
+}
+
+static unsigned long wait_for_completion_timeout(struct completion *done,
+	unsigned long remaining)
+{
+	assert(done == &io.done && remaining <= io.deadline);
+	if (done->complete) {
+		assert(irq_depth == 1);
+		return 1;
+	}
+	assert(irq_depth == 0);
+	if (!wait_mode) {
+		jiffies = io.deadline;
+		return 0;
+	}
+	while (!io.sent && !io.terminal)
+		service();
+	input_length = wmt_full_encode(incoming, sizeof(incoming),
+		event, sizeof(event), 0, 0);
+	while (!io.terminal)
+		service();
+	return io.done.complete ? 1 : 0;
 }
 
 int main(void)
@@ -188,6 +256,37 @@ int main(void)
 	io.services = WMT_FULL_IO_SERVICES;
 	mt6797_wmt_full_service(&io, 0);
 	assert(io.result == -ETIMEDOUT && !written && !read_count);
-	puts("full_stp_io_draft=pass; hardware_actions=none");
+	/* Actual caller joins/frees once, with balanced CPU IRQ depth. */
+	fresh();
+	wait_mode = 1;
+	assert(mt6797_wmt_full_exchange(&io) == 0);
+	assert(requested == 1 && enabled == 1 && disabled == 1);
+	assert(synchronized == 1 && freed == 1 && irq_depth == 1);
+	assert(io.terminal && !io.irq_armed && !link.active && written == 1015);
+	assert(mt6797_wmt_full_exchange(&io) == -EINVAL && requested == 1);
+	fresh();
+	assert(mt6797_wmt_full_exchange(&io) == -ETIMEDOUT);
+	assert(enabled == 1 && disabled == 1 && synchronized == 1 && freed == 1);
+	assert(io.terminal && written == 16 && io.tx.written == 16);
+	fresh();
+	expire_at = 7;
+	assert(mt6797_wmt_full_exchange(&io) == -ETIMEDOUT);
+	assert(!enabled && !disabled && irq_depth == 1);
+	assert(synchronized == 1 && freed == 1 && written == 7);
+	fresh();
+	input_length = 1;
+	assert(mt6797_wmt_full_exchange(&io) == -EPROTO);
+	assert(!enabled && !disabled && !written && !read_count && freed == 1);
+	fresh();
+	expire_on_enable = 1;
+	assert(mt6797_wmt_full_exchange(&io) == -ETIMEDOUT);
+	assert(enabled == 1 && disabled == 1 && synchronized == 1 && freed == 1);
+	assert(io.terminal && written == 16 && !io.irq_armed);
+	fresh();
+	request_result = -EBUSY;
+	assert(mt6797_wmt_full_exchange(&io) == -EBUSY);
+	assert(requested == 1 && !enabled && !disabled && !synchronized && !freed);
+	assert(!io.services && !written && ier == 3);
+	puts("full_stp_io_draft=pass; irq_lifecycle=pass; hardware_actions=none");
 	return 0;
 }

@@ -4,7 +4,8 @@ The [kernel-style draft](tests/mt6797-wmt-full-io.h) composes the codec,
 [exchange state](FULL_STP_STATE.md), [collector](FULL_STP_STREAM.md) and
 [TX accounting](FULL_STP_TX.md). The [fixture](tests/wmt-full-io-test.c) invokes
 that actual draft with mocked MMIO, time, IRQ masking and locking.
-There is no kernel caller, profile change, build package or hardware admission.
+A process-context exchange wrapper is now included in the host-tested draft.
+There is no integrated kernel caller, profile change, build package or hardware admission.
 
 ## Ownership and setup boundary
 
@@ -18,13 +19,25 @@ After successful retirement, seal the command evidence and synchronize the IRQ
 before preparing the next command; preparation clears the previous context.
 
 The future caller must establish exact full-mode negotiation, retained clocks,
-normal register bank, DMA exclusion and exclusive registered IRQ ownership.
-It must check empty entry RX, configure the selected source enables and perform
-the initial locked service with CPU IRQ disabled, then enable CPU delivery only
-for a nonterminal context. IRQ enable/disable/free sequencing, initial-kick
-failure cleanup and resource lifetime remain integration work. The draft does
-not acquire clocks, request/free IRQs or select/reset transport mode. Never call
-it against arbitrary register mappings or use it as a standalone device test.
+normal register bank, DMA exclusion and exclusive IRQ availability.
+The wrapper requests the exclusive IRQ with `IRQF_NO_AUTOEN`, enables the local
+RX/TX sources and performs the first bounded locked service while CPU delivery
+remains disabled. Initial failure masks the local source without adding another
+CPU disable depth. A nonterminal kick marks the IRQ armed before enabling CPU
+delivery; no other start/timeout caller may run concurrently. Handler retirement
+adds one CPU disable only while armed. The process samples jiffies once for the
+remaining wait, retires a missing completion under the same lock, then joins the
+handler with `synchronize_irq()` before freeing its registration. Every completed
+registration is freed once; request failure performs no transport MMIO.
+
+This addresses a concrete composition gap: the earlier service draft disabled
+CPU delivery unconditionally, including failure before the initial enable. The
+old fixture counted disable calls but did not model nested depth. That contract
+could not be used safely as a reusable command wrapper without explicit depth
+ownership. The new fixtures retain depth one on initial failure and after normal
+retirement; an unconditional-disable mutation fails their terminal depth check.
+The wrapper retains transport clocks, power, link state and evidence. It does
+not select/reset transport mode or supply the resource prerequisites above.
 
 ## Finite progress
 
@@ -48,7 +61,7 @@ budgets retire without retry. Once both exact event and peer credit are known,
 queued or partial further input is refused before issuing host ACK writes.
 Late peer ACK is supported while waiting for credit. Timeout retirement must
 hold the same lock as IRQ progress. Retirement masks the local source, disables
-CPU IRQ delivery once and signals completion; clocks/power and private bytes
+CPU IRQ delivery once when armed and signals completion; clocks/power and private bytes
 remain for evidence and reviewed recovery. No speculative FIFO clear, wake,
 DMA request or calibration operation occurs inside this draft.
 
@@ -64,13 +77,20 @@ fixture models a 16-byte FIFO draining eight bytes between services and verifies
 maximum-command bytes, late ACK, host ACK completion, RX quota under continuous
 input, total-RX overflow, partial TX on expiry, failed-context reuse refusal,
 expiry at final completion, queued extra input, wrong IRQ identity, initial RX
-refusal, aggregate service limit and no writes after retirement.
+refusal, aggregate service limit and no writes after retirement. Wrapper checks cover
+matched success, wait expiry, initial partial-TX expiry, pending entry RX, IRQ
+request failure, a callback retiring during enable and repeated-call refusal.
+Each acquired registration is synchronized and freed exactly once. Tests model
+nested IRQ depth; an unconditional initial-disable mutation is rejected.
 
 The fixtures do not model real spinlocks, IRQ races, posted MMIO, system-time
 behavior or a physical FIFO. Their FIFO/status model follows the pinned source;
 it cannot settle the contrary register-table assignments. No Linux kernel
 compile, device exchange, ROM patch applicability, calibration or RF reception
-is established. Review kernel integration, setup/cleanup and complete command
+is established. Review actual kernel compilation, resource setup and complete command
 budgets after [first-query liveness](../2026-10-03-mt6797-wmt-default-query/SESSION.md),
 then use the required clean pushed Buildbox workflow before any candidate.
 The [receipt](results/full-stp-io.json) pins all authored inputs.
+
+The [lifecycle receipt](results/full-stp-irq-lifecycle.json) pins the revised
+draft and fixture; the earlier receipt remains historical.

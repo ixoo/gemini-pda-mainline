@@ -18,8 +18,8 @@
 #define WMT_FULL_IO_RX_BYTES (WMT_FULL_MAX_FRAME + 32U)
 
 /* CONSYS-owned persistent storage, never stack allocated. Caller establishes
- * full mode, clocks, DMA exclusion, normal bank and exclusive registered IRQ.
- * This draft supplies no such setup or admission and has no kernel caller.
+ * full mode, clocks, DMA exclusion, normal bank and exclusive IRQ availability.
+ * The wrapper owns registration; resource setup/admission has no kernel caller.
  */
 struct mt6797_wmt_full_io {
 	void __iomem *btif;
@@ -33,7 +33,7 @@ struct mt6797_wmt_full_io {
 	unsigned long deadline;
 	spinlock_t lock;
 	struct completion done;
-	int irq, ack_phase, sent, terminal, result, prepared;
+	int irq, ack_phase, sent, terminal, result, prepared, irq_armed;
 };
 
 /* No effects; caller provides fresh/synchronized storage and an inactive link.
@@ -81,7 +81,10 @@ static void mt6797_wmt_full_retire(struct mt6797_wmt_full_io *io, int result)
 	writel(0, io->btif + 4);
 	io->result = result;
 	io->terminal = 1;
-	disable_irq_nosync(io->irq);
+	if (io->irq_armed) {
+		disable_irq_nosync(io->irq);
+		io->irq_armed = 0;
+	}
 	complete(&io->done);
 }
 
@@ -244,5 +247,47 @@ static irqreturn_t mt6797_wmt_full_irq(int irq, void *data)
 	mt6797_wmt_full_service(io, 0);
 	spin_unlock_irqrestore(&io->lock, flags);
 	return IRQ_HANDLED;
+}
+/* Process-context caller; exclusive resources and full mode are prerequisites.
+ * NO_AUTOEN owns the initial disabled depth. No other timeout/start caller may
+ * run concurrently. Evidence/storage and transport clocks outlive this call.
+ */
+static int mt6797_wmt_full_exchange(struct mt6797_wmt_full_io *io)
+{
+	unsigned long flags, now, remaining;
+	int ret;
+
+	if (!io || !io->prepared || io->services || io->terminal || io->irq_armed)
+		return -EINVAL;
+	ret = request_irq(io->irq, mt6797_wmt_full_irq, IRQF_NO_AUTOEN,
+			  "mt6797-wmt-full", io);
+	if (ret)
+		return ret;
+	spin_lock_irqsave(&io->lock, flags);
+	writel(3, io->btif + 4);
+	mt6797_wmt_full_service(io, 1);
+	if (!io->terminal)
+		io->irq_armed = 1;
+	spin_unlock_irqrestore(&io->lock, flags);
+	/* Only this process can retire between initial kick and CPU IRQ enable.
+	 * It does not start timeout retirement until after enable_irq returns.
+	 */
+	if (io->irq_armed) {
+		enable_irq(io->irq);
+		now = jiffies;
+		remaining = time_after_eq(now, io->deadline) ? 0 : io->deadline - now;
+		wait_for_completion_timeout(&io->done, remaining);
+		spin_lock_irqsave(&io->lock, flags);
+		if (!io->terminal)
+			mt6797_wmt_full_retire(io, -ETIMEDOUT);
+		spin_unlock_irqrestore(&io->lock, flags);
+	}
+	/* Handler may have completed while still holding its lock. Join it before
+	 * freeing the registration or allowing the caller to inspect/reuse data.
+	 */
+	synchronize_irq(io->irq);
+	ret = io->result;
+	free_irq(io->irq, io);
+	return ret;
 }
 #endif

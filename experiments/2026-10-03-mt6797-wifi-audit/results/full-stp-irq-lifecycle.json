@@ -1,0 +1,23 @@
+{
+  "scope": "offline IRQ lifecycle draft; no kernel integration or hardware actions",
+  "parent_commit": "2f0edfc0",
+  "validation": {
+    "strict_c11_warnings": "pass",
+    "address_undefined_sanitizers": "pass",
+    "nested_irq_depth_and_registration_cleanup": "pass",
+    "unconditional_initial_disable_mutation": "refused",
+    "mainline_usb_prerequisite": "absent; no connection"
+  },
+  "not_verified": [
+    "real IRQ concurrency and posted MMIO",
+    "Linux compilation",
+    "transport resource setup and full-mode negotiation",
+    "device WMT response",
+    "Wi-Fi reception association or traffic"
+  ],
+  "sha256": {
+    "tests/mt6797-wmt-full-io.h": "032550fe8966adb20558c500bc87fd67f760dd17037164aad37039b063e87296",
+    "tests/wmt-full-io-test.c": "ec64500f7f8071335a22aab3bcdc153a10ccd08254b2ece13b76bcffadf1fd8b",
+    "tests/run-wmt-full-io-test.py": "69571f316b0a10d3c254d6bfb7fc822329a16c78d742779fdb5edc7db2c50747"
+  }
+}
