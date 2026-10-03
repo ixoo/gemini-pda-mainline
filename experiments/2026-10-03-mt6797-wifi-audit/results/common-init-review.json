@@ -1,0 +1,36 @@
+{
+  "status": "offline selected-build and failure-policy review; no full-init candidate admission",
+  "gemian_source_commit": "59e00a9144d782e148332009a835b99c43382467",
+  "prepared_patch_set": "d6a6547d27254377172dc75254a6ccda5d6db2e232e91c8b781c8bf2e6a5b32e",
+  "source_sha256": {
+    "drivers/misc/mediatek/connectivity/Makefile": "bcb9f2545c5a95cc16af92e90e59d2f975853b6a5c7a657a15a5bf8a46cc7b2c",
+    "drivers/misc/mediatek/connectivity/common/Makefile": "26c2cab7990c92943fc4d62bda85d1aa8b7c6769e1e90554e7706ccede450124",
+    "drivers/misc/mediatek/connectivity/common/common_main/Makefile": "bfb5c9f3f0d44987cf0622ca15fea66f74ac68779453affae7ffa5f39e3985e1",
+    "drivers/misc/mediatek/connectivity/common/common_main/include/wmt_plat.h": "4358b52302c65d24951bf9f379043bd29fef793b3abdb8141008415869912c22",
+    "drivers/misc/mediatek/connectivity/common/common_main/include/stp_exp.h": "9c1daca8fa5e30468865d42fb778bf070ac09e0adebf6735852631d5dc89ec42",
+    "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_ic_soc.c": "22d98e9e5f0c9c3cae36a3099e57315ed7808524239a061bf9ab0cf97379e66f",
+    "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c": "e9f438c5c6033f0bf831347c69d656ec917b3e705648d3d27fb1b27409334f1e"
+  },
+  "gemian_v8_config_sha256": "a2240c7f23e13766ed9e789c5b7d43aa9d8826ce2094d4a0f6fb2df7af88e6ae",
+  "source_config_join": {
+    "CONFIG_ARCH_MT6797": "y",
+    "CONFIG_MTK_COMBO_CHIP": "CONSYS_6797",
+    "CONFIG_MTK_CONN_LTE_IDC_SUPPORT": "y",
+    "WMT_IDC_SUPPORT": 1,
+    "CFG_WMT_LTE_COEX_HANDLING": 1,
+    "CFG_WMT_FILTER_MODE_SETTING": 1,
+    "CFG_WMT_READ_EFUSE_VCN33": "not selected; common_main Makefile defines only for CONFIG_ARCH_MT6580=y",
+    "MTK_WCN_CMB_MERGE_INTERFACE_SUPPORT": 0,
+    "proof_scope": "source/config and inherited Makefile flags; not a preprocessed translation unit or exact binary equivalence proof"
+  },
+  "findings": {
+    "dlm": "Three ordered masked WMT register writes to 0x80100060, value zero, masks 0x00000f00 then 0x000000f0 then 0x00000008. sw_init logs failure but continues and overwrites return. Register bit meanings/read-write side effects remain unverified.",
+    "calibration": "wmt_core_init_script checks transport and expected receive size, but skips complete event comparison when received byte 1 is 0x14. Reaching coexistence supports vendor script completion under the source path, not checked calibration status or measured RF performance.",
+    "pa_control": "Return from BT PA on is overwritten by Wi-Fi PA on, then calibration. Calibration failure returns before the paired off requests. A future owner must retain per-step outcomes and reviewed failure lifetime.",
+    "mcu_clock": "Selected 0x0279 enable/restore scripts log errors without aborting; do not inherit this failure policy.",
+    "patch_transport": "Each patch needs two address commands/events, then <=1000-byte body fragments with flags first/middle/last and a checked five-byte event per fragment, followed by reset. 28-byte source header stripped; last-only flag for a one-fragment body. Private file identity/order/address selection and firmware rights remain separate."
+  },
+  "runtime_dependency": "One matched default query on installed candidate before admitting further transport effects",
+  "device_action": "none",
+  "sanitization": "Independent facts and digests only. No vendor source, firmware, calibration records, raw captures or personal host paths."
+}

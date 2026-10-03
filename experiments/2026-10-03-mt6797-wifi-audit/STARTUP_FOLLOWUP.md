@@ -31,7 +31,9 @@ WMT source at that revision matches the vendor source byte for byte.
 
 Under that selected source path, a calibration-script failure returns before
 coexistence initialization. Reaching coexistence therefore supports prior
-calibration-script success. This is a source-conditioned inference: no explicit
+completion of the vendor calibration script. The [script-helper review](COMMON_INIT_REVIEW.md)
+finds that opcode `0x14` skips event-content comparison; this does not establish
+a checked calibration-success status. This is a source-conditioned inference: no explicit
 calibration completion event was recovered, exact compiled-function equivalence
 has not been checked, and successful calibration is not measured RF performance.
 The absence of an explicit log is not evidence of failure.
@@ -53,3 +55,10 @@ calibration, register writes or a boot by itself.
 The [BTIF mandatory-mode review](BTIF_MANDATORY.md) now pins framing vectors
 and selected FIFO/register behavior. IRQ-masked polling, aliased FIFO control,
 read effects and DMA exclusion still require resolution before implementation.
+
+
+The [common-initialization review](COMMON_INIT_REVIEW.md) now joins the selected
+v8 configuration and inherited Makefile flags: LTE filtering is selected, while
+the MT6580-only efuse voltage branch and merged PCM are not. It records DLM,
+MCU-clock and PA-control error handling that a new owner must not silently reuse.
+No additional command or full initialization candidate is admitted.

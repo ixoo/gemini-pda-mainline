@@ -191,3 +191,11 @@ remain to be reviewed before a candidate.
 The [query integration](../2026-10-03-mt6797-wmt-default-query/README.md) now
 records implementation and a successful fetched compile package. It does not
 admit a device test or establish transport, calibration or Wi-Fi reception.
+
+
+The [common-initialization review](COMMON_INIT_REVIEW.md) narrows the selected
+LTE/efuse/merged-interface branches and qualifies the calibration inference:
+the vendor helper skips opcode-0x14 event-content comparison. It also records
+ignored DLM/MCU-clock errors and overwritten PA-control outcomes. These remain
+explicit design inputs for a checked, finite common-init owner after query
+liveness; no new hardware action or candidate follows from the review.
