@@ -1,25 +1,28 @@
 # One WMT query session
 
-State: `waiting-owner-boot`; custodian: root integration agent.
+State: `completed-query-lifetime`; custodian: root integration agent.
 [Runtime 1](results/runtime-1.json) records the exact boot, clock-guard refusal,
 sealed evidence, passing A53 regression and confirmed changed-boot Gemian return.
 No region-19 preparation or query occurred. The first candidate lacks DEBUG_FS
 and must not be selected again. The corrected build and offline candidate now pass;
 [Deployment 2](results/deployment-2.json) passed live guards, full readback and
 clean shutdown. Both capture and preservation/recovery offline preparation passed
-against the real receipt. The query lifetime itself remains unconsumed.
+against the real receipt. Runtime 2 consumed the query lifetime successfully.
 
 [Candidate](results/candidate.json), [offline validation](results/candidate-validation-2.json),
 [tool validation](results/tooling-validation.json) and [runtime protocol](RUNTIME_PROTOCOL.md)
 freeze the inputs, admitted effects, prerequisite checks and finite budgets.
 
-## Owner action
+## Completed owner action and result
 
-Runtime 1 is closed. With the USB cable attached, physically select boot2 with
-the silver button and leave the console on. This fresh selection boots the
-corrected image installed after the previous session. Report when it has started.
+The owner started the corrected boot2 image with the console on. [Runtime 2](results/runtime-2.json)
+records one matched 16-byte default WMT response, two IRQ entries and retained
+clocks. Region-19 preparation, complete sealed log, A53 regression and reviewed
+changed-boot Gemian recovery passed. This lifetime is retired; do not repeat it.
+No further physical selection is requested for this image. Full-mode negotiation,
+ROM patch transfer, RF calibration and Wi-Fi reception remain unproved.
 
-## Custodian execution
+## Historical custodian execution
 
 Confirm the exact release `7.1.3-gemini-a53-wmt-query` and a mainline boot identity
 changed from the Gemian deployment predecessor. Require the local direct USB

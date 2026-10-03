@@ -1,0 +1,61 @@
+{
+  "classification": "default-wmt-transport-liveness-pass",
+  "mainline_boot": "b5a8eaf1-6fb3-45e0-9184-9a5268c9c342",
+  "returned_gemian_boot": "b56d6c83-6924-414d-b556-d7e8d43a7e08",
+  "release": "7.1.3-gemini-a53-wmt-query",
+  "candidate_manifest_sha256": "fc6f457d353ef7cadae83d8842e82383333f81d27a85ff5df1dd1d9fbc59b309",
+  "candidate_boot2_sha256": "d922ad959fa378c6298f9786804d965d6c3ca1a70bd0ef91382b995113f4d1b5",
+  "region19_preparation": {
+    "accepted": true,
+    "clear_prefix_zero": true,
+    "suffix_equal": true,
+    "preimage_bytes": 524288,
+    "equal_preimages": true
+  },
+  "query": {
+    "one_host_query_attempt": true,
+    "query_status": 0,
+    "rx_bytes": 16,
+    "irq_entries": 2,
+    "clocks_held": true,
+    "matched_response": true,
+    "query_record_count": 1,
+    "transport_liveness": true
+  },
+  "query_process": {
+    "exit_status": 0,
+    "reason": null,
+    "stdin_complete": true,
+    "stdout_bytes": 36,
+    "stderr_bytes": 0,
+    "elapsed_seconds": 0.28
+  },
+  "regression_pass": true,
+  "log_complete": true,
+  "sealed_log": {
+    "bytes": 133574,
+    "classification": "complete-log-through-seal",
+    "coverage": "sequence-zero-through-explicit-seal",
+    "records": 1898,
+    "sha256": "f7120501e3e52b8a8f9e2309448377241323e07774ce5619ecbb601567e2e427",
+    "status_sha256": "a94e7478e1c0f1c08055366bbd336be61f7cb336c2607f75b4726bef075a78de"
+  },
+  "preservation_manifest_sha256": "9f30b8d4a4cd704094c9f87001ad6be5c8381385f67185ca2ad4783423f77f16",
+  "recovery_requested": true,
+  "recovery_confirmed": true,
+  "return": {
+    "attempts": 4,
+    "baseline_success": "not-classified-by-return-collector",
+    "boot_id": "b56d6c83-6924-414d-b556-d7e8d43a7e08",
+    "classification": "changed-ID-Gemian",
+    "elapsed_seconds": 45.33,
+    "recovery_confirmed": true
+  },
+  "radio_action": false,
+  "full_mode_negotiated": false,
+  "rom_patch_transferred": false,
+  "calibration_completed": false,
+  "wifi_reception_established": false,
+  "next_action": "Prepare checked mandatory set-options and full-STP boundary/query integration before ROM patch/common initialization; retire this query-only lifetime without retry.",
+  "sanitization": "Raw logs, private preimages, credentials, firmware and personal host paths excluded."
+}

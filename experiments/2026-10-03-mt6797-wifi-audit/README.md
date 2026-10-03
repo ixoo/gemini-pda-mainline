@@ -199,3 +199,12 @@ the vendor helper skips opcode-0x14 event-content comparison. It also records
 ignored DLM/MCU-clock errors and overwritten PA-control outcomes. These remain
 explicit design inputs for a checked, finite common-init owner after query
 liveness; no new hardware action or candidate follows from the review.
+
+## Default transport runtime follow-up
+
+[Runtime 2](../2026-10-03-mt6797-wmt-default-query/results/runtime-2.json) now proves
+one mainline default WMT query/event round trip with retained clocks, complete
+preservation, passing regression and confirmed Gemian return. Earlier no-device
+statements above describe the audit date/checkpoints. Continue step 4 by preparing
+the checked mandatory set-options/full-mode boundary and its command owner;
+ROM patch, calibration and reception remain unproved.

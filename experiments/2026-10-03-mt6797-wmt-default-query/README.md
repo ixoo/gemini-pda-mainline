@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-03-mt6797-wmt-default-query` |
-| Status | `in-progress` (corrected DEBUG_FS candidate installed and verified; waiting for physical boot2 selection) |
+| Status | `completed` (default WMT transport exchange only; Wi-Fi remains unverified) |
 | Subsystem | CONSYS / BTIF / WMT |
 | Device | Project Gemini PDA |
 | Investigator | Codex, under owner standing authorization |
@@ -186,5 +186,17 @@ and query effects are unchanged.
 inactive/unmounted target and stable-power guards. The new full-partition hash
 matched both remote and independent 16-MiB host readback. Temporary readback was
 removed and clean shutdown confirmed unreachable. Both session-2 offline tools
-accepted the actual private receipt. A fresh physical boot2 selection is pending;
-no query or Wi-Fi reception is established.
+accepted the actual private receipt. The owner completed the fresh physical boot2 selection.
+
+## Corrected runtime result
+
+[Runtime 2](results/runtime-2.json) passed region-19 preparation and one default
+WMT query: exactly one matched 16-byte response, two IRQ entries, successful
+trigger transport and clocks held. The complete log through explicit seal and
+bounded A53 regression passed. Reviewed native recovery confirmed a changed
+Gemian boot. The query-only lifetime is retired without retry.
+
+This establishes default BTIF/mandatory-STP liveness. It does not establish full
+STP negotiation, ROM patch download, calibration, management reception,
+association or traffic. Next prepare the checked full-mode boundary and command
+owner, then the selected common initialization before returning to WLAN scan.

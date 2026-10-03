@@ -431,7 +431,9 @@ for the first Wi-Fi bring-up. The current preparation order is:
    sits upstream of every receive gate sampled so far. **Current Wi-Fi order:**
    (a) map the vendor power-on sequence against mainline, offline;
    (b) confirm in Gemian, read-only, that those steps ran on this device;
-   (c) one boot proving a BTIF/STP WMT query/event round trip;
+   (c) [completed default-query round trip](../experiments/2026-10-03-mt6797-wmt-default-query/results/runtime-2.json):
+   matched 16-byte event, two IRQ entries, retained clocks, complete preservation
+   and confirmed Gemian return; full-mode negotiation remains to be integrated;
    (d) one boot adding ROM patch, WMT reset, RF calibration and coexistence
    settings before the existing START and one channel-40 passive scan.
    Park the unfinished cached event-mask diagnostic (proposal 0085); revisit it

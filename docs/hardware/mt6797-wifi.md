@@ -173,3 +173,13 @@ generic cfg80211 modules, successful compilation or a downstream driver port
 do not establish runtime support. Current support claims remain in the
 [support matrix](../HARDWARE_SUPPORT.md); ordered work remains in the
 [roadmap](../ROADMAP.md).
+
+## Mainline default WMT transport exchange
+
+The [corrected query runtime](../../experiments/2026-10-03-mt6797-wmt-default-query/results/runtime-2.json)
+observed one matched 16-byte default WMT event through BTIF mandatory STP, with
+two IRQ entries and clocks retained. Complete log preservation, the A53 regression
+and reviewed recovery to a changed Gemian boot passed. This establishes the
+initial transport exchange only. Full-mode negotiation, ROM patch transfer,
+RF calibration, management reception, association and traffic remain unproved.
+The experiment owns the exact candidate, boot identities and chronology.
