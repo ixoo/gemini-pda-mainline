@@ -1,7 +1,9 @@
 # First WMT query runtime protocol
 
-Status: reviewed bounded effects and offline candidate; host enforcement and
-installation are not yet ready. This record alone is not a deployment command.
+Status: bounded effects, candidate and host enforcement checked; installation
+pending. Complete final publication checks before deployment. This record alone
+is not a deployment command. The [tooling receipt](results/tooling-validation.json)
+distinguishes synthetic/offline checks from actual device evidence.
 The [candidate receipt](results/candidate.json) selects build `127166e4`, release
 `7.1.3-gemini-a53-wmt-query`, padded boot2 SHA-256
 `1b4f1064ab1e6a166b4e7cfa4dc1523b0e1923be0b3286614733454d189bc4ba`.

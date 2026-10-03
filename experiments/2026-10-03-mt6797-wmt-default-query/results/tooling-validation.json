@@ -1,0 +1,42 @@
+{
+  "status": "host-tooling-validated; deployment-pending",
+  "candidate_manifest_sha256": "2de60b6209c6195437360dc3cc325a8f2ac8d6ebbe1f57d9d77118dd041699b3",
+  "source_sha256": {
+    "capture-private.py": "b8d88a0d6f8f0b26f308cd872fe42d09c95e3ab7ec00c827835099c20181ec1b",
+    "install-passive.py": "6924254af4ba0b8829f25f0ed980546e3c2c842979b6c5d91c9d9807ec933187",
+    "passive-host.py": "c3d7f08816a35666545f9e556a95254669fa91d6797a0ab962c9450e8e5a6aad",
+    "passive-session.py": "9827ce635e745e7edb42e2e6177482bbac46e844f06ced8224c99224e015e62e",
+    "runtime-guard.sh": "8254c16f9de45becff7b88abb2d5a672a28622b4143dd7177f66157510f4eb29",
+    "tests/runtime-guard-test.py": "3918596ce5d8ba876131c0318dff1aaf818f549354283159af2a1f12999154b7"
+  },
+  "runtime_guard_tests": {
+    "methods_passed": 9,
+    "includes": [
+      "prerequisite refusals before trigger",
+      "partial read-write remount failure restores read-only",
+      "late restoration trap negative control",
+      "restoration failure retains EXIT trap",
+      "read-only debugfs mount confined to initial identify",
+      "missing/duplicate/partial/timeout query record refuses success",
+      "full deployment receipt acceptance and altered fields refusal"
+    ]
+  },
+  "offline_private_candidate_preparation": {
+    "capture": "passed",
+    "regression_preservation_recovery": "passed",
+    "deployment_receipts": "temporary synthetic write and matching-skip receipts; no canonical receipt created",
+    "execute_called": false
+  },
+  "shell_checks": {
+    "guard": "sh -n and ShellCheck passed",
+    "generated_trigger": "sh -n and ShellCheck --shell=sh passed",
+    "generated_installer": "bash -n and ShellCheck passed"
+  },
+  "repository_checks": "passed on nine staged files; final changed-boot guard and receipt checked with the same file inspector and staged diff check",
+  "limitations": [
+    "No actual deployment or WMT query",
+    "Fixtures do not establish real MMIO or IRQ behavior",
+    "Linux-only artifact provenance fixture skipped on macOS; mandatory in CI"
+  ],
+  "device_action": "none from tooling validation"
+}

@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-03-mt6797-wmt-default-query` |
-| Status | `in-progress` (compiled and fetched; no device admission) |
+| Status | `in-progress` (candidate and host tooling checked; deployment pending) |
 | Subsystem | CONSYS / BTIF / WMT |
 | Device | Project Gemini PDA |
 | Investigator | Codex, under owner standing authorization |
@@ -95,6 +95,42 @@ The [clock source join](results/clock-admission.json) resolves the AP-DMA orderi
 for this candidate only: the active UART0 console retains a vote on the same
 clock, so the query adds a reference rather than ungating the engine. The
 [runtime protocol](RUNTIME_PROTOCOL.md) requires that live console/runtime state
-and confines one query and retained-power recovery. Host enforcement and
-deployment remain unfinished; no device action or hardware admission follows
-from offline candidate construction.
+and confines one query and retained-power recovery. The [host-tooling validation](results/tooling-validation.json) now records nine
+synthetic guard/receipt tests, shell checks and offline capture/recovery preparation
+against temporary synthetic receipts. Deployment remains pending; a real full
+readback/shutdown receipt and changed-boot identity are still required. The
+candidate receipt retains its historical offline-only admission field.
+
+
+## Host execution order
+
+The [installer adapter](install-passive.py) pins the existing full live-GPT/block
+identity guard, predecessor or already-matching checksum, stable-power gates,
+independent full partition readback and clean shutdown. It uses the project-wide
+backup; it writes only logical boot2. Prepare its generated installer for the
+freshly verified Gemian boot identity, review it, and publish intended tools
+before execution. Installation is followed by owner-operated boot2 selection.
+
+After a real deployment receipt is copied privately into `session-1`, run offline
+preparation for both [capture](capture-private.py) and
+[preservation/recovery](passive-host.py). Verify the exact new mainline identity,
+then execute capture once: two identical private preimages, one region-19 setup,
+one default query. Run the preservation/recovery host after capture regardless
+of capture's return status; a failed query does not skip evidence sealing or
+admit a retry. Stop on a missing identity/evidence/recovery prerequisite.
+
+The [session adapter](passive-session.py) validates the retained authenticated
+RAM environment and existing bounded A53 regression. It sends no WLAN firmware
+or radio command. The capture rechecks the UART console, driver/runtime state and
+positive RAM clock counters before each trigger. Its read-only restoration trap
+is installed before the read-write remount, including that remount's failure
+path. Both newly written and already-matching installations require the reviewed
+complete deployment receipt; matching-skip additionally requires the predecessor
+to equal the candidate. Raw captures, generated installers and credentials stay
+private under ignored `artifacts/`.
+
+Run the hardware-free guard/receipt checks with:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 experiments/2026-10-03-mt6797-wmt-default-query/tests/runtime-guard-test.py
+```
