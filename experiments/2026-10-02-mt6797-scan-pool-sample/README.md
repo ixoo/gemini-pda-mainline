@@ -1,7 +1,7 @@
 # Native receive object availability during one passive scan
 
-Status: Buildbox package and offline candidate validated; runtime tools bound.
-No installation or hardware lifetime yet.
+Status: guarded boot2 deployment and full readback verified; clean shutdown
+confirmed. Ready for owner physical boot2 selection. No START or scan consumed.
 
 The consumed [mode sample](../2026-10-02-mt6797-scan-mode-sample/README.md)
 observed mode 5 twice, with zero dispatcher/probe statistics and no BSS.
@@ -102,3 +102,18 @@ Candidate preparation performs no device action. Capture and host offline
 preparation require the real verified deployment receipt; do not fabricate a
 receipt to pass that gate. Installation, real-receipt preparation, physical
 selection and the single hardware lifetime remain outstanding at this record.
+
+## Verified deployment and owner handoff
+
+[Deployment 1](results/deployment-1.json) records exact known-good Gemian
+identity, live GPT/guard separation from root, stable power, predecessor,
+write/sync/flush and independent full-partition checksum plus byte comparison.
+The project backup was reused and temporary readback removed. Clean shutdown
+was confirmed; no automatic reboot or other boot slot was used.
+
+Offline capture and host preparation passed against the real deployment
+receipt. Physically select boot2 for release
+`7.1.3-gemini-a53-wifi-scan-pool-sample`. Before execution verify the live OS,
+exact release and a boot ID changed from the recorded Gemian predecessor.
+Then root alone owns one capture/START and scan, evidence sealing and the
+reviewed native recovery. No lifetime is consumed by this deployment record.

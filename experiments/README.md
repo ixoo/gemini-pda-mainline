@@ -16,7 +16,8 @@ the loop. Positive identity-gated observations are unaffected.
 ## Index
 
 - [MT6797 native receive pool samples](2026-10-02-mt6797-scan-pool-sample/README.md)
-  — source-prepared four-read head/count diagnostic; no hardware result yet.
+  — guarded deployment verified; owner boot2 selection pending for one
+  four-read head/count diagnostic. No hardware receive result yet.
 - [MT6797 receive mode samples](2026-10-02-mt6797-scan-mode-sample/README.md)
   — consumed fixed read-only mode samples equal 5; dispatcher bytes and BSS
   remain zero, with verified Gemian recovery.
