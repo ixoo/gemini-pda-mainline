@@ -1,0 +1,53 @@
+{
+  "repository_commit": "c13487137d74d5c798bb7df987d9c9b5acd66b57",
+  "kernel_release": "7.1.3-gemini-a53-wmt-negotiate",
+  "build_profile": "mt6797-a53-wmt-negotiate-compile",
+  "source_sha256": "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc",
+  "patchset_sha256": "3baadf7f52d7d09565a2f8352a607d79777bdd4ca2ffd07870d93f56937b0dbf",
+  "config_sha256": "33ffe7a8ecafdb63f0e2d5cf93381cc4c19aaf010805f86259b31bf4bbefd5c2",
+  "compiler": "aarch64-linux-gnu-gcc (Debian 12.2.0-14) 12.2.0",
+  "linker": "GNU ld (GNU Binutils for Debian) 2.40",
+  "modules_built": false,
+  "classification": "Buildbox compile and remote/local package validation pass including bounded private wire-evidence export",
+  "package_name": "linux-7.1.3-gemini-af634ba87d46c6f399f0452509dec3f5d2749b4fa4c59499172e8b1335c57de3",
+  "package_inventory_sha256": "af634ba87d46c6f399f0452509dec3f5d2749b4fa4c59499172e8b1335c57de3",
+  "patch_count": 571,
+  "config_fragment_count": 22,
+  "validation": {
+    "kernel_compile": "pass",
+    "remote_package": "pass",
+    "local_fetch_inventory_and_provenance": "pass",
+    "focused_schema": "schema-1.json reused: exact binding and compiled board DTB byte identities unchanged",
+    "DEBUG_FS": "enabled",
+    "wire_evidence_source": "retained buffers only; original one RBR read retained per received byte",
+    "linked_trigger": "wmt_negotiate_store and dev_attr_wmt_negotiate present in System.map"
+  },
+  "files": {
+    "Image": {
+      "sha256": "784f0cb402b575b933a9f0998d3e562e9224a4c39cb06df150cd098bc132291f",
+      "bytes": 15892488
+    },
+    "Image.gz": {
+      "sha256": "64c6175648123ad7297d7b0c98a62083a5e59993c2ab3205aec406ce719c0d83",
+      "bytes": 6593700
+    },
+    "kernel.config": {
+      "sha256": "33ffe7a8ecafdb63f0e2d5cf93381cc4c19aaf010805f86259b31bf4bbefd5c2",
+      "bytes": 112888
+    },
+    "System.map": {
+      "sha256": "2c22477c9e5b845ffbea5bbed947b2abc3f9843c4881d1cc5b99e38b977c582e",
+      "bytes": 2677229
+    },
+    "dtbs/mediatek/mt6797-gemini-pda.dtb": {
+      "sha256": "9868f732e45d3f3f5db292a60228c41c5f8ecfc4b5baa2d8a607d139285d6744",
+      "bytes": 29633
+    }
+  },
+  "candidate_eligible": false,
+  "next_action": "Prepare validated candidate and finite runtime protocol before any device effects.",
+  "schema_reuse": {
+    "binding_sha256": "f1230a372fca58545ca8f469f734858ad2714b1c6bab284ca9310364ce3bb2d4",
+    "board_dtb_sha256": "9868f732e45d3f3f5db292a60228c41c5f8ecfc4b5baa2d8a607d139285d6744"
+  }
+}

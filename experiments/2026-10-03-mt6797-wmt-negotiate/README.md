@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-03-mt6797-wmt-negotiate` |
-| Status | `in-progress` (first integration compile/schema passed; wire-evidence follow-up compile pending) |
+| Status | `in-progress` (wire-evidence integration compile and package validation passed; candidate/protocol pending) |
 | Subsystem | CONSYS / BTIF / STP |
 | Device | Project Gemini PDA |
 | Investigator | Codex under owner standing authorization |
@@ -65,5 +65,8 @@ The first caller logged counts but kept raw reply bytes only in owner memory.
 The [selected follow-up](results/wire-evidence-inputs.json) retains malformed
 initial-query input and exports bounded per-phase TX/RX bytes into the private
 complete kernel log before recovery. It performs no additional device reads.
-That follow-up needs exact compilation before candidate preparation. Raw bytes,
+[Build 2](results/build-2.json) compiled the exact follow-up and passed package validation.
+The binding and compiled board DTB are byte-identical to Schema 1, so those
+focused checks remain applicable. Candidate and runtime protocol preparation
+are still required before device effects. Raw bytes,
 firmware and private logs must not be published with sanitized runtime receipts.
