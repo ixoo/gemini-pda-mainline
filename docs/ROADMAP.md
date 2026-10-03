@@ -1075,10 +1075,15 @@ and bsg100). The SoC and X20 material is marked confidential and most
 datasheets have no redistribution grant, so cite them by name only. They are
 leads to check against this unit, not facts:
 
-- **Display and touch may be one chip.** A Solomon brochure lists SSD2092 as a
-  single-chip display and touch driver. bsg100 reports I2C4 `0x53` answering
-  and nothing at `0x62`. If confirmed, it replaces both the NT36672 panel and
-  NT36772 touch assumptions, so make the step 3a read check `0x53`.
+- **Two panel/touch variants are likely.** A Solomon brochure lists SSD2092 as
+  a single-chip display and touch driver, and bsg100 reports I2C4 `0x53`
+  answering with nothing at `0x62` on its unit. The retained 2019 vendor
+  `novatek_ts_fw.bin` (see the [firmware boundary](hardware/firmware.md)) is
+  however a Novatek NT36xxx-layout image whose info block encodes a 1080x2160
+  touch area, with no chip name, panel vendor or I2C address inside. So the
+  Gemian-era unit used Novatek touch at `0x62` while other units may carry
+  SSD2092 at `0x53`. Make the step 3a read probe both addresses with touch
+  reset released, and plan the board description for both variants.
 - **Panel bias.** The TPS65132 datasheet gives fixed address `0x3e`, VPOS/VNEG
   at registers `0x00`/`0x01` and a ±5.4 V reset value, which fits the vendor
   writes. The functional specification places LCM_RST on GPIO180 (EINT105)
@@ -1096,7 +1101,13 @@ leads to check against this unit, not facts:
   pin is strapped high on both buses.
 - **Connectivity.** On the X20 the MT6631 integrates FM, with VCN18 feeding
   the Wi-Fi/BT and GPS 1.8 V supplies, VCN33 the Wi-Fi/BT 3.3 V supply and
-  VCN28 the FM supply. That suggests no separate FM chip on the Gemini.
+  VCN28 the FM supply. The retained vendor FM patch and coefficient files are
+  named for the MT6631 and `fm_cust.cfg` selects a 26 MHz oscillator, so no
+  separate FM chip is expected. The retained `WMT_SOC.cfg` holds only four
+  keys: shared Wi-Fi/BT antenna (`coex_wmt_ant_mode=1`), no firmware-driven
+  GPS LNA pin, and `co_clock_flag=0`; it carries no voltage, trim or
+  calibration setting. The second ROMv3 patch carries GPS code. Any GPIO69
+  LNA control therefore belongs to the host, not the WMT layer.
 - **Board differences.** X20 addresses do not carry over: its `0x6b` is an
   MT6313 buck, while the Gemini has a BQ25896 there.
 
