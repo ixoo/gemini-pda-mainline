@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "status": "incomplete source checkpoint; not admitted for build or device execution",
+  "parent_patch": "proposals/0084-wifi-mediatek-sample-scan-receive-pool.patch",
+  "patch_sha256": "bb5ce2a86b69c9dd6848528856240659995ef6d9405d1ed649c53a40521ef125",
+  "roles": [
+    {
+      "role": 0,
+      "address": "0xf007e28c",
+      "meaning": "cached raw pending mask"
+    },
+    {
+      "role": 1,
+      "address": "0xf007e2a0",
+      "meaning": "cached raw enable mask"
+    }
+  ],
+  "source_sha256": {
+    "Kconfig": "0a7c8ab131ced87b08f3e040fde9f1573467da1144700ed720d672ac8e6f1557",
+    "hif.c": "be2d123bd54a1e97f7cdc66b86269440f9a6203c8c5827a1d730da2c63143654",
+    "hif.h": "94c5a296a11db72c26bd96c09de29e15e33f727ab38c5a4c69e36871c65499e9",
+    "mac.c": "4be8f57fb5f0eb717e8e06bf46b72f39324b9cc803e216d787809ef2b157e877",
+    "normal_command.h": "84838bbd49f262c73c0526a2a1c0eca9d2b19f23ca5860661a92c1c4ce50ad7c",
+    "scan-wire.h": "bd1af70733011e505fbd95342b0194f7ba2cbb0ae5224580a9abe12f3c21d94c"
+  },
+  "checks": {
+    "wire_test": "pass; exact addresses, sequence, lengths, credit retirement and malformed replies",
+    "lifecycle_reverse_normalization": "pass; hif.c, hif.h and mac.c equal parent after sampler-name reversal and whitespace normalization",
+    "strict_patch_check": "pass with only MISSING_SIGN_OFF and CONFIG_DESCRIPTION exclusions",
+    "full_kconfig_strict_check": "pass without exclusions",
+    "exported_patch_replay": "pass; independent index equals committed source tree 2be2b2c6ca6f76a1416dd7c4cb90742a08677376"
+  },
+  "not_completed": [
+    "classifier and fixture coverage",
+    "named profile and canonical series admission",
+    "runtime tooling",
+    "Buildbox compile and package validation",
+    "candidate and guarded deployment",
+    "hardware reception, association and traffic"
+  ],
+  "device_action": "none",
+  "sanitization": "No private firmware, disassembly, calibration, peer identifiers, credentials or personal host paths."
+}

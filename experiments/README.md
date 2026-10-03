@@ -15,6 +15,9 @@ the loop. Positive identity-gated observations are unaffected.
 
 ## Index
 
+- [2026-10-02 cached receive event sample checkpoint](2026-10-02-mt6797-scan-event-sample/README.md)
+  — incomplete source diagnostic; no build or device admission.
+
 - [MT6797 native receive pool samples](2026-10-02-mt6797-scan-pool-sample/README.md)
   — consumed four-read diagnostic: valid head and 32 free objects in both
   sample pairs, zero BSS, sealed evidence and verified Gemian recovery.
