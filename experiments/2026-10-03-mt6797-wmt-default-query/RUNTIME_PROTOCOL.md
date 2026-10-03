@@ -1,15 +1,14 @@
 # First WMT query runtime protocol
 
-Status: bounded effects, candidate and host enforcement checked; guarded
-installation and clean shutdown completed in [deployment 1](results/deployment-1.json).
-[Runtime 1](results/runtime-1.json) retired that selection before any trigger
-because the candidate omitted DEBUG_FS. Corrected inputs and deployment are
-required before another physical selection. This record alone is not a
-deployment command. The [tooling receipt](results/tooling-validation.json)
-distinguishes synthetic/offline checks from actual device evidence.
-The [candidate receipt](results/candidate.json) selects build `127166e4`, release
-`7.1.3-gemini-a53-wmt-query`, padded boot2 SHA-256
-`1b4f1064ab1e6a166b4e7cfa4dc1523b0e1923be0b3286614733454d189bc4ba`.
+Status: corrected DEBUG_FS candidate constructed and checked offline; replacement
+deployment and physical selection are pending. [Runtime 1](results/runtime-1.json)
+retired the [first candidate](results/candidate-1.json) before any trigger.
+The [corrected build](results/build-3.json), [candidate](results/candidate.json)
+and [offline validation](results/candidate-validation-2.json) select build
+`28500dbb`, release `7.1.3-gemini-a53-wmt-query`, padded boot2 SHA-256
+`d922ad959fa378c6298f9786804d965d6c3ca1a70bd0ef91382b995113f4d1b5`.
+This record is not a deployment receipt. The original tooling validation remains
+historical; the revised guard/receipt tests also pass for these adapters.
 
 ## Hypothesis and decision
 
@@ -106,5 +105,5 @@ boot afterward. A host timeout does not admit another trigger or recovery path.
 
 A boot2 deployment must use the reviewed live-GPT guard, exact image and full
 partition readback, then clean shutdown. Physical boot2 selection remains the
-owner's action. Installation is recorded separately; no mainline query has yet occurred for
-this candidate. See the [session packet](SESSION.md) for the physical handoff.
+owner's action. Installation is recorded separately; the corrected candidate is not yet
+installed and no mainline query has occurred. See the [session packet](SESSION.md) for the physical handoff.

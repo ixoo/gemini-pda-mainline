@@ -1,13 +1,14 @@
 # One WMT query session
 
-State: `retired-pre-trigger-refusal`; custodian: root integration agent.
+State: `preparing-corrected-replacement`; custodian: root integration agent.
 [Runtime 1](results/runtime-1.json) records the exact boot, clock-guard refusal,
 sealed evidence, passing A53 regression and confirmed changed-boot Gemian return.
-No region-19 preparation or query occurred. The candidate lacks DEBUG_FS and
-must not be selected again. A corrected build/deployment is required before a
-new physical handoff; the query lifetime itself remains unconsumed.
+No region-19 preparation or query occurred. The first candidate lacks DEBUG_FS
+and must not be selected again. The corrected build and offline candidate now pass;
+replacement deployment is required before a new physical handoff. The query
+lifetime itself remains unconsumed.
 
-[Candidate](results/candidate.json), [offline validation](results/candidate-validation.json),
+[Candidate](results/candidate.json), [offline validation](results/candidate-validation-2.json),
 [tool validation](results/tooling-validation.json) and [runtime protocol](RUNTIME_PROTOCOL.md)
 freeze the inputs, admitted effects, prerequisite checks and finite budgets.
 

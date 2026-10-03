@@ -21,7 +21,7 @@ BASE = runpy.run_path(str(HERE.parent / '2026-09-28-mt6797-emi-set-probe/build-c
 require, regular, sha, nodes = (BASE[name] for name in ('require', 'regular', 'sha', 'nodes'))
 BOOT = REPO / 'experiments/2026-07-12-boot-contract-recovery/scripts'
 PARENT_RECEIPT = HERE.parent / '2026-10-02-mt6797-scan-pool-sample/results/candidate.json'
-COMMIT = '127166e4099a6eccc1172aae3e529db40450a0df'
+COMMIT = '28500dbb27a6b9add21659732d8ef52f1e59e9ef'
 PROFILE = 'mt6797-a53-wmt-default-query-compile'
 RELEASE = '7.1.3-gemini-a53-wmt-query'
 PARENT_BOOT2_SHA256 = '3d9186a96f4000d318f5615746257bcb83d3bb58e6aca74928f1e69106476d79'
@@ -60,7 +60,7 @@ def main():
             package.name.startswith('linux-7.1.3-gemini-'), 'package location changed')
     package_id = package.name.removeprefix('linux-7.1.3-gemini-')
     require(package_id ==
-            'a321adf20d737bc2bfef98be561199943977efe35115efb05c0eecf8bcfe0147',
+            'c6beed6c5ab6f03a7b73b34cc873acfb935bebe3936abfd66e7191ca01fb9c88',
             'not the selected validated package')
     audit = runpy.run_path(str(REPO /
         'experiments/2026-09-05-owner-away-experiment-preparation/baseline/audit_foundation.py'))

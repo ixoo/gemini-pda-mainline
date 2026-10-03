@@ -1,0 +1,24 @@
+{
+  "status": "corrected candidate offline checks passed; no installation or query",
+  "manifest_sha256": "fc6f457d353ef7cadae83d8842e82383333f81d27a85ff5df1dd1d9fbc59b309",
+  "candidate_boot2_sha256": "d922ad959fa378c6298f9786804d965d6c3ca1a70bd0ef91382b995113f4d1b5",
+  "member_hashes_and_sizes": "pass",
+  "android_lk_container_validation": "pass",
+  "unchanged_composed_dtb_vs_candidate_1": "byte-identical; existing schema validation reused",
+  "unchanged_private_ram_root_vs_candidate_1": "byte-identical",
+  "debugfs_config": "CONFIG_DEBUG_FS=y; CONFIG_DEBUG_FS_ALLOW_ALL=y",
+  "occupied_output_refusal": "pass; every existing member digest unchanged",
+  "runtime_guard_and_receipt_tests": {
+    "passed": 9,
+    "scope": "synthetic; no device effects"
+  },
+  "generated_installer": {
+    "sha256": "c847a562df3721e77d72457ca011340549cd0faa2df35c1d239ed56c0b579f19",
+    "bash_syntax": "pass",
+    "shellcheck": "pass",
+    "expected_gemian_boot": "3c786d51-eb68-4120-9756-2f487e590d5d",
+    "admitted_live_predecessor_sha256": "1b4f1064ab1e6a166b4e7cfa4dc1523b0e1923be0b3286614733454d189bc4ba",
+    "fresh_backup": false
+  },
+  "hardware_action": "none"
+}

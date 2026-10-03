@@ -11,8 +11,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 PRIVATE_REPO = Path(os.environ['GEMINI_PRIVATE_REPO']).resolve(strict=True)
-ROOT = PRIVATE_REPO / 'artifacts/wmt-default-query/session-1'
-CAPTURE = PRIVATE_REPO / 'artifacts/wmt-default-query/capture-1'
+ROOT = PRIVATE_REPO / 'artifacts/wmt-default-query/session-2'
+CAPTURE = PRIVATE_REPO / 'artifacts/wmt-default-query/capture-2'
 SOURCE = HERE.parent / '2026-09-29-mt6797-region19-mainline-observe/passive-host.py'
 SPEC = importlib.util.spec_from_file_location('region19_passive_host', SOURCE)
 HOST = importlib.util.module_from_spec(SPEC)

@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-03-mt6797-wmt-default-query` |
-| Status | `in-progress` (first runtime refused before trigger; correcting DEBUG_FS prerequisite) |
+| Status | `in-progress` (corrected DEBUG_FS candidate validated offline; replacement deployment pending) |
 | Subsystem | CONSYS / BTIF / WMT |
 | Device | Project Gemini PDA |
 | Investigator | Codex, under owner standing authorization |
@@ -147,8 +147,8 @@ and readback were removed; the project backup was reused. Clean shutdown was
 confirmed unreachable; no automatic reboot occurred.
 
 Capture and regression/preservation/recovery preparation passed against that
-real deployment receipt. The [session packet](SESSION.md) now requests one
-physical boot2 selection. No query, RF scan or mainline runtime result follows
+real deployment receipt. That packet requested one physical boot2 selection;
+[Runtime 1](results/runtime-1.json) below retired it. No query, RF scan or mainline runtime result follows
 from deployment. The first query lifetime remains unconsumed.
 
 ## Runtime 1: prerequisite refusal
@@ -162,3 +162,23 @@ This establishes a missing candidate prerequisite, not a BTIF transport failure.
 The old session is retired. The isolated profile now requests DEBUG_FS and the
 candidate builder requires it. Build, package, schema/candidate and guarded
 replacement deployment checks remain before another owner handoff.
+
+## Corrected candidate preparation
+
+[Build 3](results/build-3.json) enables DEBUG_FS in the isolated profile and
+passes Buildbox compilation/package validation and local inventory/provenance
+checks. Query source and compiled DTB are byte-identical to build 2, so the
+existing focused schema result applies to those exact unchanged bytes.
+Only DEBUG_FS changes among previously present configuration keys; its newly
+visible/default options include DEBUG_FS_ALLOW_ALL, BLK_DEBUG_FS and
+CROS_EC_DEBUGFS. Newly visible diagnostic/test options remain off.
+
+The [corrected candidate validation](results/candidate-validation-2.json) checks
+all members, exact full-partition padding, the unchanged composed DTB and private
+RAM root, and occupied-output refusal without mutation. [Candidate 1](results/candidate-1.json)
+preserves the first receipt. The selected candidate receipt now describes the
+corrected image. Capture/session 2 and deployment 2 use fresh private directories.
+The installer admits the first query image as its live predecessor, separately
+from the scan-pool image used as the reconstruction foundation. Guard budgets
+and query effects are unchanged. Replacement deployment/readback and a new
+physical handoff are still pending; no query or Wi-Fi reception is established.

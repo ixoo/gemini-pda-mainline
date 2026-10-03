@@ -15,11 +15,11 @@ ADAPTER = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(ADAPTER)
 ADAPTER = ADAPTER.ADAPTER
 ADAPTER.HERE = HERE
-ADAPTER.PREDECESSOR_SHA = '3d9186a96f4000d318f5615746257bcb83d3bb58e6aca74928f1e69106476d79'
+ADAPTER.PREDECESSOR_SHA = '1b4f1064ab1e6a166b4e7cfa4dc1523b0e1923be0b3286614733454d189bc4ba'
 ADAPTER.INSTALLER.HERE = HERE
 ADAPTER.INSTALLER.EXPERIMENT = 'mt6797-wmt-default-query'
-ADAPTER.INSTALLER.RECEIPT_NAME = 'mt6797-wmt-default-query-deployment-1'
-ADAPTER.INSTALLER.MANIFEST_SHA = '2de60b6209c6195437360dc3cc325a8f2ac8d6ebbe1f57d9d77118dd041699b3'
+ADAPTER.INSTALLER.RECEIPT_NAME = 'mt6797-wmt-default-query-deployment-2'
+ADAPTER.INSTALLER.MANIFEST_SHA = 'fc6f457d353ef7cadae83d8842e82383333f81d27a85ff5df1dd1d9fbc59b309'
 ADAPTER.MANIFEST_SHA = ADAPTER.INSTALLER.MANIFEST_SHA
 
 
@@ -33,7 +33,8 @@ def validate(candidate, previous):
     expected = json.loads(published.read_text())
     ADAPTER.INSTALLER.require(expected['kernel_release'] ==
                               '7.1.3-gemini-a53-wmt-query' and
-                              expected['parent_boot2_sha256'] == ADAPTER.PREDECESSOR_SHA and
+                              expected['parent_boot2_sha256'] ==
+                              '3d9186a96f4000d318f5615746257bcb83d3bb58e6aca74928f1e69106476d79' and
                               expected['physical_admission'] is False and
                               candidate.name == 'candidate-' +
                               expected['files']['boot.img']['sha256'],

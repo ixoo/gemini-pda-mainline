@@ -1,8 +1,8 @@
 {
   "status": "offline-gated-wmt-default-query-candidate-validated",
-  "kernel_build_commit": "28500dbb27a6b9add21659732d8ef52f1e59e9ef",
+  "kernel_build_commit": "127166e4099a6eccc1172aae3e529db40450a0df",
   "kernel_release": "7.1.3-gemini-a53-wmt-query",
-  "kernel_package_sha256": "c6beed6c5ab6f03a7b73b34cc873acfb935bebe3936abfd66e7191ca01fb9c88",
+  "kernel_package_sha256": "a321adf20d737bc2bfef98be561199943977efe35115efb05c0eecf8bcfe0147",
   "parent_boot2_sha256": "3d9186a96f4000d318f5615746257bcb83d3bb58e6aca74928f1e69106476d79",
   "parent_dtb_sha256": "cef9373ea3aa0e1a8a45a13b953ae95e48939b211e41a73052543be784ee3214",
   "unchanged_dt_nodes": 178,
@@ -12,19 +12,19 @@
   "firmware_sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
   "files": {
     "Image.gz": {
-      "sha256": "a4d805ccceb6e8f259fb3de94b50bb246970a60b750c70f268a646a0da834d29",
-      "bytes": 6589364
+      "sha256": "7c06731fa26fe1a7516c33fdd8a458911e4d934fe773129159f14dc6579c7dca",
+      "bytes": 6484316
     },
     "board.dtb": {
       "sha256": "3658840a0f8df97e714038b98bef573927ec165a56d18c2652e8321fe835807d",
       "bytes": 28455
     },
     "boot.img": {
-      "sha256": "2b83d726a7444867f4e6a808f5ddd15a7611dd959f7e6533927fa4f4b067ee7f",
-      "bytes": 10979328
+      "sha256": "ae11bd3d1bc3b8168c2f884559b14e0bb3f7f1304856c0a7355fcd4e5d2a24fc",
+      "bytes": 10874880
     },
     "boot2-padded.img": {
-      "sha256": "d922ad959fa378c6298f9786804d965d6c3ca1a70bd0ef91382b995113f4d1b5",
+      "sha256": "1b4f1064ab1e6a166b4e7cfa4dc1523b0e1923be0b3286614733454d189bc4ba",
       "bytes": 16777216
     },
     "initramfs.img": {
@@ -32,8 +32,8 @@
       "bytes": 4356820
     },
     "kernel.config": {
-      "sha256": "8ace9eed1cc9cc582691735f18e58ce29b0c4a01482aeba8ab8f2a5f6479df7d",
-      "bytes": 112884
+      "sha256": "f78587920643a2aa9c91aa87100090d19c21cfe60a0d4969abb8b5f2e8514f16",
+      "bytes": 112003
     }
   },
   "device_tree_change": "only CONSYS transport resources/query property and WLAN disabled; all other nodes unchanged",
