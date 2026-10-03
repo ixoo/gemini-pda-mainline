@@ -73,3 +73,7 @@ FIFO progress, IRQ races or working Wi-Fi.
 The [receipt](results/full-stp-state.json) pins the selected prepared source and
 authored files. First [default-query liveness](../2026-10-03-mt6797-wmt-default-query/SESSION.md)
 remains required before admitting the mode switch or further device effects.
+
+The [frame-collection follow-up](FULL_STP_STREAM.md) adds bounded byte assembly
+and distinguishes software enqueue from hardware FIFO progress. The full
+transport owner and its hardware admission remain incomplete.

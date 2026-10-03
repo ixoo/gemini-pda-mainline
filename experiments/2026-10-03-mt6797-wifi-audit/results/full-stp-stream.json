@@ -1,0 +1,46 @@
+{
+  "status": "host-only frame collector; transport owner not implemented",
+  "authored_sha256": {
+    "tests/wmt-full-stp-stream.h": "bd7f46dc1a6d9ed07a70404e363aa26e48d8ee6bffc945456aff158ccc403a40",
+    "tests/wmt-full-stp-stream-test.c": "e3ca2d3ca875a9aeb52edc78ea539edc7b62cef2ceccea3a30fa9dd4d1850ef4"
+  },
+  "fifo_source_receipt": "btif-mandatory-source.json",
+  "fifo_source_sha256": {
+    "btif_plat.c": "91744beb769a3414cba3cfc2920fffd7b2254b8e6a7861ea0abafa37e90c5872",
+    "btif_priv.h": "3cb7cc939b2d59be36f48f6c0d4093acd552e7cd7058bf736ec83c398db82110"
+  },
+  "findings": [
+    "Selected send returns software enqueue count; FIFO submission progresses through TX interrupts.",
+    "TX handler uses TEMT for <=16 writes, otherwise THRE for <=8 writes; source facts do not admit new device effects.",
+    "Complete ACK and data frames require separate acceptance boundaries."
+  ],
+  "checks": {
+    "payload_lengths": [
+      1,
+      5,
+      10,
+      255,
+      256,
+      1000,
+      1005
+    ],
+    "oversized_header_lengths": [
+      1006,
+      4095
+    ],
+    "oversized_header_rejection_byte": 4,
+    "partial_result_suppression": "pass",
+    "bad_crc_terminal": "pass",
+    "ack_event_state_composition": "pass",
+    "strict_warnings_and_sanitizers": "pass"
+  },
+  "not_tested": [
+    "MMIO read/write effects and FIFO timing",
+    "TX/RX IRQ handling and concurrent progress",
+    "peer timing or firmware acceptance",
+    "kernel integration or build",
+    "hardware query, calibration, reception, association or traffic"
+  ],
+  "device_action": "none",
+  "sanitization": "Authored code and independently described protocol facts only; private inputs and raw vendor source excluded."
+}
