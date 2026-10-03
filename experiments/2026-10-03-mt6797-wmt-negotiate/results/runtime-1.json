@@ -1,0 +1,105 @@
+{
+  "classification": "checked-default-set-full-WMT-negotiation-pass; Wi-Fi incomplete",
+  "mainline_boot": "fee541b3-eb58-4d5a-9c41-6ff4924e5c83",
+  "returned_gemian_boot": "d18da7fc-97cb-4ffc-b352-9bbdcd424092",
+  "release": "7.1.3-gemini-a53-wmt-negotiate",
+  "kernel_input_commit": "c13487137d74d5c798bb7df987d9c9b5acd66b57",
+  "candidate_manifest_sha256": "0c41f5c8d005392f1211ff866693c8973b2f5cbee731b459195feae717b39b62",
+  "candidate_boot2_sha256": "ed4503ebf70a41a024bda42f4cb4b1244013bec6dcbd8bea1df4a403dc4ef9f2",
+  "region19_preparation": {
+    "accepted": true,
+    "clear_prefix_zero": true,
+    "suffix_equal": true,
+    "preimage_bytes": 524288,
+    "equal_preimages": true
+  },
+  "negotiation": {
+    "matched_response": true,
+    "radio_action": false,
+    "status": 0,
+    "phase": 5,
+    "clocks_held": true,
+    "default_rx": 16,
+    "default_irqs": 2,
+    "set_tx": 15,
+    "set_rx": 12,
+    "set_services": 3,
+    "full_tx": 15,
+    "full_rx": 20,
+    "full_services": 5,
+    "full_frames": 2,
+    "tx_sequence": 1,
+    "rx_sequence": 1,
+    "peer_ack": 0,
+    "local_ack": 0,
+    "checks": {
+      "terminal": true,
+      "bounded_counts": true,
+      "final_state": true,
+      "default_wire": true,
+      "set_wire": true,
+      "full_command": true,
+      "full_event_and_credit": true,
+      "host_ACK": true,
+      "no_WLAN_continuation": true
+    }
+  },
+  "full_RX_frame_order": [
+    {
+      "kind": "ACK",
+      "sequence": 0,
+      "peer_ack": 0
+    },
+    {
+      "kind": "matched-options-event",
+      "sequence": 0,
+      "peer_ack": 0,
+      "payload_bytes": 10
+    }
+  ],
+  "negotiation_process": {
+    "exit_status": 0,
+    "reason": null,
+    "stdin_complete": true,
+    "stdout_bytes": 36,
+    "stderr_bytes": 0,
+    "elapsed_seconds": 0.31
+  },
+  "one_host_negotiation_attempt": true,
+  "original_classifier_match": false,
+  "offline_classifier_review": "classifier-review.json; original private records unchanged",
+  "regression_pass": true,
+  "log_complete": true,
+  "sealed_log": {
+    "bytes": 134673,
+    "classification": "complete-log-through-seal",
+    "coverage": "sequence-zero-through-explicit-seal",
+    "records": 1908,
+    "sha256": "fcbbfee8f5b98af3cc18ac5a5125d6f0f7643e3ce49b569ccf3e872c34912e3b",
+    "status_sha256": "4523ddf296b5103c4866dd2f3d6a4b7517839b98a12679f29f093ce1c4e566ba"
+  },
+  "preservation_manifest_sha256": "eb64f5326f164749d93dfa0fa855ac4d7d002b2ceebaddeea98f92a0ead0b61a",
+  "provider_probe": {
+    "boot_id": "fee541b3-eb58-4d5a-9c41-6ff4924e5c83",
+    "provider_bound": 1,
+    "provider_count": 1,
+    "registered": true
+  },
+  "recovery_requested": true,
+  "recovery_confirmed": true,
+  "return": {
+    "attempts": 2,
+    "baseline_success": "not-classified-by-return-collector",
+    "boot_id": "d18da7fc-97cb-4ffc-b352-9bbdcd424092",
+    "classification": "changed-ID-Gemian",
+    "elapsed_seconds": 15.365,
+    "recovery_confirmed": true
+  },
+  "radio_action": false,
+  "full_mode_negotiated": true,
+  "rom_patch_transferred": false,
+  "calibration_completed": false,
+  "wifi_reception_established": false,
+  "next_action": "Resolve ROM applicability and remaining common-init contracts, then prepare a checked bounded ROM/common-init owner before another device candidate. This negotiation lifetime is retired.",
+  "sanitization": "Raw wire bytes, kernel logs, private region images, firmware, calibration, credentials and private host paths excluded."
+}

@@ -1,0 +1,17 @@
+{
+  "scope": "offline classifier correction and unchanged sealed-log reclassification; no new device action",
+  "problem": "The original no_WLAN_continuation check treated admitted CONSYS power/reset setup records as WLAN continuation. All wire, terminal and state checks already passed.",
+  "original_classifier_sha256": "b5bc9748370c2e0081d31410218694533ec61ddd9ec1b0f9e02d2de1276c33b1",
+  "corrected_classifier_sha256": "fb2c5be858cd6fe4cb135b1824b1efcc9f4b3f23d423e778315ef751a50d6242",
+  "compiled_CONSYS_source_sha256": "9795102dc3f32c042ed92861888cb7dc6e38781af2c5507d71c137674dc2c39b",
+  "source_review": "Negotiation supplies false for HIF/EMI-set/EMI-copy/WLAN-start arguments and returns immediately after the exchange. CONN power, chip-ID, powered-EMI and reset-release records are admitted prerequisite effects. WLAN child remains disabled.",
+  "tests": {
+    "methods_passed": 7,
+    "new_cases": "admitted CONSYS setup accepted; WLAN/HIF/EMI continuation still refused"
+  },
+  "kernel_candidate_changed": false,
+  "original_capture_and_session_results": "retained unchanged with false classification and process exit 1",
+  "sealed_log_sha256": "fcbbfee8f5b98af3cc18ac5a5125d6f0f7643e3ce49b569ccf3e872c34912e3b",
+  "reclassified_match": true,
+  "publication_checks": "repository gate passed across nine intended paths; staged diff/syntax/license/privacy checks passed; Linux-only provenance fixture skipped locally and mandatory in CI"
+}

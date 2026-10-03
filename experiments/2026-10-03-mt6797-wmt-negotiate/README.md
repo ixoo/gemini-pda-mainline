@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-03-mt6797-wmt-negotiate` |
-| Status | `in-progress` (wire-evidence integration compile and package validation passed; guarded installation passed; awaiting fresh physical boot2) |
+| Status | `completed` (bounded negotiation passed; working Wi-Fi remains incomplete) |
 | Subsystem | CONSYS / BTIF / STP |
 | Device | Project Gemini PDA |
 | Investigator | Codex under owner standing authorization |
@@ -15,8 +15,8 @@ permits preparing the next source-matched boundary: a checked mandatory
 set-options event, host full-STP reseed, source-matched switch wait and checked
 full-mode query including peer credit and host ACK. This compile selection is
 not hardware admission. No ROM patch, DLM operation, calibration, WLAN start or
-RF scan is selected. The selected candidate and runtime protocol are now prepared; verified
-deployment and fresh owner boot remain required before device effects.
+RF scan is selected. The selected candidate, runtime protocol and verified deployment below
+attribute the completed single device test.
 
 ## Selected kernel inputs
 
@@ -68,7 +68,7 @@ complete kernel log before recovery. It performs no additional device reads.
 [Build 2](results/build-2.json) compiled the exact follow-up and passed package validation.
 The binding and compiled board DTB are byte-identical to Schema 1, so those
 focused checks remain applicable. Candidate and runtime protocol preparation
-are still required before device effects. Raw bytes,
+followed before the completed device test. Raw bytes,
 firmware and private logs must not be published with sanitized runtime receipts.
 
 ## Candidate and runtime packet
@@ -82,4 +82,21 @@ preparation, and generated installer/trigger shell checks.
 The [runtime protocol](RUNTIME_PROTOCOL.md) and [session packet](SESSION.md)
 select one new negotiation lifetime and preservation/recovery on every outcome.
 [Deployment 1](results/deployment-1.json) passed live guards, full readback and
-clean shutdown. No runtime negotiation result is recorded yet.
+clean shutdown. Runtime 1 below records the consumed negotiation lifetime.
+
+## Runtime result
+
+[Runtime 1](results/runtime-1.json) establishes the checked mandatory default and
+set events, full-STP options event, peer credit and transmitted host ACK. Full RX
+contained a peer ACK followed by the matching event. Complete sealed-log
+preservation, A53 regression and changed-boot Gemian recovery passed.
+
+The original offline classifier rejected the admitted CONSYS power/reset log
+records as WLAN continuation. [Review](results/classifier-review.json) confirms
+the exact compiled owner returns before HIF/WLAN continuation; corrected fixtures
+accept those prerequisite records while still rejecting WLAN/HIF/EMI actions.
+Reclassification used the unchanged sealed log; no hardware retry occurred.
+
+This closes the negotiation boundary only. ROM applicability, remaining common
+initialization, calibration and Wi-Fi reception are still open. The consumed
+candidate is not selected for another boot.

@@ -435,7 +435,10 @@ for the first Wi-Fi bring-up. The current preparation order is:
    (b) confirm in Gemian, read-only, that those steps ran on this device;
    (c) [completed default-query round trip](../experiments/2026-10-03-mt6797-wmt-default-query/results/runtime-2.json):
    matched 16-byte event, two IRQ entries, retained clocks, complete preservation
-   and confirmed Gemian return; full-mode negotiation remains to be integrated;
+   and confirmed Gemian return; [completed checked negotiation](../experiments/2026-10-03-mt6797-wmt-negotiate/results/runtime-1.json)
+   now proves mandatory set-options, full-STP event, peer credit and host ACK;
+   resolve ROM applicability, DLM/register contracts and checked calibration
+   results before selecting the remaining common-init owner;
    (d) one boot adding ROM patch, WMT reset, RF calibration and coexistence
    settings before the existing START and one channel-40 passive scan.
    Park the unfinished cached event-mask diagnostic (proposal 0085); revisit it

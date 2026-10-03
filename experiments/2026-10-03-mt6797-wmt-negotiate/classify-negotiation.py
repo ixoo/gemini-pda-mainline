@@ -115,7 +115,7 @@ def classify(log):
         'full_event_and_credit': full_ok,
         'host_ACK': wire['full ACK TX'] == bytes.fromhex('80000080'),
         'no_WLAN_continuation': not any(marker in log for marker in
-            [b'one-shot WLAN ', b'one-shot EMI ', b'one-shot HIF ', b'one-shot CONN ']),
+            [b'one-shot WLAN ', b'one-shot EMI ', b'one-shot HIF ']),
     }
     result['checks'] = {key: bool(value) for key, value in checks.items()}
     result['matched_response'] = all(checks.values())

@@ -70,9 +70,16 @@ class Classification(unittest.TestCase):
         for changed in [good.replace(b'00000000:', b'00000001:', 1),
                         good.replace(b'80 40 05', b'zz 40 05', 1),
                         good + b'one-shot WLAN started\n',
+                        good + b'one-shot HIF function ready\n',
+                        good + b'one-shot EMI region 18 sealed\n',
                         good + b'one-shot WMT negotiation: malformed\n',
                         good + b'WMT negotiation full ACK TX: 00000000: 80 00 00 80\n']:
             self.assertFalse(classify(changed)['matched_response'])
+
+    def test_admitted_CONSYS_setup_is_not_WLAN_continuation(self):
+        setup = (b'one-shot CONN power probe: domain confirmed ON, reset held\n'
+                 b'one-shot CONN MCU reset released: chip-id=0x00000279, domain ON\n')
+        self.assertTrue(classify(setup + log())['matched_response'])
 
     def test_private_bytes_not_returned(self):
         result = classify(log())

@@ -1,21 +1,19 @@
-# Negotiation session packet
+# Completed negotiation session
 
-State: `waiting-owner-physical-boot2`; root is the sole device custodian.
+State: `completed-negotiation-lifetime`; root was the sole device custodian.
 
-The [runtime protocol](RUNTIME_PROTOCOL.md) selects the exact validated
-[candidate](results/candidate.json) and finite default/set/full negotiation.
-[Deployment 1](results/deployment-1.json) records guarded installation, full
-readback and clean shutdown. Capture and preservation/recovery preparation passed
-against the real receipt. A fresh physical boot2 selection is now required.
-Earlier default-query boot reports do not satisfy this new handoff. The consumed
-default-query lifetime remains closed.
+[Runtime 1](results/runtime-1.json) records one checked default/set/full exchange,
+complete sealed-log preservation, passing A53 regression and confirmed changed-boot
+Gemian recovery. All wire, terminal and final-state checks passed. The original
+classifier falsely counted admitted CONSYS setup as WLAN continuation; its
+original failure records remain private and unchanged. [Classifier review](results/classifier-review.json)
+records the source-grounded offline correction and reclassification of the same log.
+No second trigger or hardware retry occurred.
 
-After a verified installation, the owner physically selects boot2 with console
-and USB connected. Root then verifies live release and changed boot identity,
-runs one admitted preparation/negotiation capture, preserves the complete sealed
-log, performs the established A53 regression and reviewed native recovery, and
-confirms changed-boot Gemian. Capture failure still requires preservation and
-reviewed recovery; missing identity/evidence blocks dependent actions.
+The [candidate](results/candidate.json), [deployment](results/deployment-1.json)
+and [runtime protocol](RUNTIME_PROTOCOL.md) remain exact evidence for this consumed
+lifetime. No further physical selection is requested for this image.
 
-Success permits common-init preparation, not a working-Wi-Fi claim. Retire the
-lifetime after every outcome; no identical retry is selected.
+Successful negotiation permits common-init preparation. ROM patch applicability,
+DLM/register contracts, calibration, reception, association and traffic remain
+unproved. Do not repeat this lifetime or add another command to it.

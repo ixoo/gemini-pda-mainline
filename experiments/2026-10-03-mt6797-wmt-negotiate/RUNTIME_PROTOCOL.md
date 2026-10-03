@@ -1,11 +1,14 @@
 # One checked WMT negotiation lifetime
 
-Status: guarded installation, full readback and clean shutdown verified; fresh
-physical boot pending. [Deployment 1](results/deployment-1.json) records the handoff.
-This packet selects [candidate](results/candidate.json), exact kernel inputs `c1348713`,
-release `7.1.3-gemini-a53-wmt-negotiate`, and padded boot2 SHA-256
+Status: completed negotiation lifetime. [Runtime 1](results/runtime-1.json)
+records successful default/set/full wire exchanges, preservation, regression
+and changed-boot Gemian recovery. [Classifier review](results/classifier-review.json)
+records an offline false-positive correction; the original results remain unchanged.
+
+This historical packet selected [candidate](results/candidate.json), kernel inputs
+`c1348713`, release `7.1.3-gemini-a53-wmt-negotiate`, and padded boot2 SHA-256
 `ed4503ebf70a41a024bda42f4cb4b1244013bec6dcbd8bea1df4a403dc4ef9f2`.
-No runtime negotiation result is recorded.
+The lifetime is retired and must not be repeated.
 
 ## Hypothesis and unique observation
 

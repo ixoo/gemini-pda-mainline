@@ -180,6 +180,12 @@ The [corrected query runtime](../../experiments/2026-10-03-mt6797-wmt-default-qu
 observed one matched 16-byte default WMT event through BTIF mandatory STP, with
 two IRQ entries and clocks retained. Complete log preservation, the A53 regression
 and reviewed recovery to a changed Gemian boot passed. This establishes the
-initial transport exchange only. Full-mode negotiation, ROM patch transfer,
-RF calibration, management reception, association and traffic remain unproved.
+initial transport exchange. The [checked negotiation](../../experiments/2026-10-03-mt6797-wmt-negotiate/results/runtime-1.json)
+subsequently matched mandatory set-options and full-STP options events, received
+peer credit and transmitted the host ACK with checked final sequence state.
+Complete preservation, A53 regression and changed-boot Gemian recovery passed.
+This establishes the isolated mode boundary only; it does not establish larger
+fragment transfers, generic TX interrupt service or production transport ownership.
+ROM patch transfer, RF calibration, management reception, association and traffic
+remain unproved.
 The experiment owns the exact candidate, boot identities and chronology.
