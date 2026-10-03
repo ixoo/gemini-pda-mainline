@@ -1,0 +1,59 @@
+{
+  "source_sha256": "22d98e9e5f0c9c3cae36a3099e57315ed7808524239a061bf9ab0cf97379e66f",
+  "source_vectors": "pass",
+  "commands": [
+    {
+      "ordinal": 0,
+      "command_hex": "01081000010100010805090200000000ffffffff",
+      "event_hex": "0208040000000001"
+    },
+    {
+      "ordinal": 1,
+      "command_hex": "01081000010100012c0b090200000af0ffffffff",
+      "event_hex": "0208040000000001"
+    },
+    {
+      "ordinal": 49,
+      "command_hex": "0107010004",
+      "event_hex": "0207010000"
+    },
+    {
+      "ordinal": 50,
+      "command_hex": "01081000010100010805090200000000ffffffff",
+      "event_hex": "0208040000000001"
+    },
+    {
+      "ordinal": 51,
+      "command_hex": "01081000010100012c0b090200000900ffffffff",
+      "event_hex": "0208040000000001"
+    },
+    {
+      "ordinal": 263,
+      "command_hex": "0107010004",
+      "event_hex": "0207010000"
+    }
+  ],
+  "scope": "offline selected-pair 264-command construction; no transfer or hardware admission",
+  "parent_commit": "0ca67f34",
+  "validation": {
+    "strict_warnings_address_undefined_sanitizers": "pass",
+    "selected_command_count": 264,
+    "addresses": 4,
+    "fragments": 258,
+    "ordinary_wmt_resets": 2,
+    "full_stp_epoch_continuity": "pass; synthetic exact events and peer ACKs",
+    "second_patch_boundary_mutation": "refused",
+    "refusal_output_preservation": "pass"
+  },
+  "not_verified": [
+    "firmware digest authentication and live hardware/ROM applicability",
+    "firmware register effects",
+    "mode handoff and complete common initialization",
+    "IRQ/FIFO execution of this sequence",
+    "device reception association or traffic"
+  ],
+  "sha256": {
+    "tests/wmt-rom-patch.h": "8ac6135758ec9b7f0039f0fc83523e701097df5c1d615ffbe6f279cc795c5bfd",
+    "tests/wmt-rom-patch-test.c": "0b907946f8e7a769f03b390a1290b3086e2ff8d3d3ff096ccbf34ac63bb8c76a"
+  }
+}

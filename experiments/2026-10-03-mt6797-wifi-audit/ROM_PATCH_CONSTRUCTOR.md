@@ -62,3 +62,38 @@ There is no installed-file attribution, new chip-version selection, Linux
 integration, device exchange, RF calibration or Wi-Fi claim. First
 [default-query liveness](../2026-10-03-mt6797-wmt-default-query/SESSION.md) and
 [the common-init contracts](COMMON_INIT_REVIEW.md) still precede a candidate.
+
+## Complete selected patch command order
+
+`mt6797_wmt_rom_step()` now constructs the selected pair's complete 264-command
+patch sequence: two address exchanges, 47 fragments and one reset for sequence
+1, then two address exchanges, 211 fragments and one reset for sequence 2.
+Ordinals 0/1 and 50/51 are addresses; 49 and 263 are ordinary WMT resets.
+The helper requires both selected body lengths, metadata addresses and sequence
+identities before writing any output. Short output, invalid ordinal or invalid
+pair preserves command, expected-event buffer and expected-event length.
+Inputs and all output objects must be disjoint and remain owned by the caller.
+
+Each address payload is 20 bytes: opcode 8, 16-byte operation payload, one
+masked firmware register write and an all-ones mask. For selected chip 0x0279,
+the first operation carries wire register field `0x02090508` with zero value;
+the second carries `0x02090b2c` with the selected patch's four address bytes.
+Both expect exact event `02 08 04 00 00 00 00 01`. These values are firmware
+command fields, not AP MMIO operations. Their effective register semantics and
+live hardware/ROM applicability remain outside construction validation.
+
+A source oracle verified the selected SoC source digest and reconstructed both
+address templates with its 0x0279-specific field assignments. All four generated
+address commands/events and both reset commands/events matched byte-for-byte.
+The [sequence receipt](results/rom-patch-sequence.json) pins that source and the
+independently authored helper/fixtures; raw vendor source stays private.
+
+Synthetic checks construct every ordinal and join each command/event to the
+existing full-STP exchange-state helper. They check four addresses, 258 fragments,
+two resets, first/last boundaries and sequence wrapping without reseeding at
+ordinary WMT resets. An incorrect second-patch boundary mutation is refused.
+This does not execute the IRQ wrapper or prove actual FIFO/peer progress.
+The caller advances ordinal only after a fully completed checked exchange,
+seals evidence before reuse and retires the powered lifetime on failure without
+retry. Full-mode negotiation, DLM, MCU-clock enable/restore and calibration are
+outside this 264-command sequence and remain required for common initialization.

@@ -4,7 +4,78 @@
 #include <stdlib.h>
 #include <string.h>
 #include "wmt-rom-patch.h"
-#include "wmt-full-stp.h"
+#include "wmt-full-stp-state.h"
+
+static void selected_sequence(void)
+{
+	static unsigned char bodies[2][210876];
+	struct wmt_rom_patch pair[2] = {
+		{ bodies[0], 46444, 1, { 0, 0, 10, 240 } },
+		{ bodies[1], 210876, 2, { 0, 0, 9, 0 } }
+	};
+	struct wmt_full_state link;
+	unsigned char command[1005], frame[1011], event[8], saved[1005], saved_event[8];
+	unsigned int ordinal, i, event_bytes, saved_length, addresses = 0, fragments = 0, resets = 0;
+	int bytes, encoded;
+
+	wmt_full_state_init(&link);
+	for (ordinal = 0; ordinal < 264; ordinal++) {
+		bytes = mt6797_wmt_rom_step(pair, ordinal, command, sizeof(command), event, &event_bytes);
+		assert(bytes > 0 && (unsigned int)(command[2] | command[3] << 8) == (unsigned int)bytes - 4);
+		if (ordinal == 0 || ordinal == 1 || ordinal == 50 || ordinal == 51) {
+			unsigned int register_address = command[8] | command[9] << 8 |
+				command[10] << 16 | command[11] << 24;
+
+			addresses++;
+			assert(bytes == 20 && event_bytes == 8 && event[7] == 1);
+			assert(register_address == ((ordinal == 0 || ordinal == 50) ? 0x02090508U : 0x02090b2cU));
+			for (i = 16; i < 20; i++)
+				assert(command[i] == 255);
+			assert(command[12] == 0);
+			if (ordinal == 1)
+				assert(!memcmp(command + 12, pair[0].address, 4));
+			if (ordinal == 51)
+				assert(!memcmp(command + 12, pair[1].address, 4));
+		} else if (ordinal == 49 || ordinal == 263) {
+			resets++;
+			assert(bytes == 5 && command[1] == 7 && command[4] == 4);
+			assert(event_bytes == 5 && event[1] == 7 && !event[4]);
+		} else {
+			fragments++;
+			assert(command[1] == 1 && event_bytes == 5 && event[1] == 1 && !event[4]);
+			assert(command[4] == ((ordinal == 2 || ordinal == 52) ? 1 :
+				(ordinal == 48 || ordinal == 262) ? 3 : 2));
+		}
+		/* Host epoch continues across both ordinary WMT resets. */
+		assert(link.tx_next == (ordinal & 7) && link.rx_next == (ordinal & 7));
+		encoded = wmt_full_encode(frame, sizeof(frame), command, bytes, link.tx_next, link.local_ack);
+		assert(encoded == bytes + 6 && wmt_full_sent(&link, link.tx_next) == 0);
+		encoded = wmt_full_encode(frame, sizeof(frame), event, event_bytes, link.rx_next, ordinal & 7);
+		assert(wmt_full_receive(&link, frame, encoded, event, event_bytes) == 1);
+		assert(wmt_full_ack_sent(&link, link.local_ack) == 0);
+		assert(wmt_full_finish(&link) == 0);
+	}
+	assert(addresses == 4 && fragments == 258 && resets == 2 && !link.active);
+	memset(command, 0xa5, sizeof(command));
+	memset(event, 0x5a, sizeof(event));
+	memcpy(saved, command, sizeof(command));
+	memcpy(saved_event, event, sizeof(event));
+	event_bytes = saved_length = 99;
+	assert(mt6797_wmt_rom_step(pair, 264, command, sizeof(command), event, &event_bytes) == -1);
+	assert(mt6797_wmt_rom_step(pair, 0, command, 19, event, &event_bytes) == -1);
+	assert(mt6797_wmt_rom_step(pair, 2, command, 1004, event, &event_bytes) == -1);
+	assert(mt6797_wmt_rom_step(pair, 49, command, 4, event, &event_bytes) == -1);
+	pair[0].sequence = 2;
+	assert(mt6797_wmt_rom_step(pair, 0, command, sizeof(command), event, &event_bytes) == -1);
+	pair[0].sequence = 1;
+	pair[1].address[3] = 1;
+	assert(mt6797_wmt_rom_step(pair, 50, command, sizeof(command), event, &event_bytes) == -1);
+	pair[1].address[3] = 0;
+	pair[1].length--;
+	assert(mt6797_wmt_rom_step(pair, 50, command, sizeof(command), event, &event_bytes) == -1);
+	assert(!memcmp(command, saved, sizeof(command)) && !memcmp(event, saved_event, sizeof(event)));
+	assert(event_bytes == saved_length);
+}
 
 int main(void)
 {
@@ -65,6 +136,7 @@ int main(void)
 	patch.length = 1;
 	assert(wmt_rom_patch_fragment(&patch, 0, command, sizeof(command)) == 6);
 	assert(command[2] == 2 && command[3] == 0 && command[4] == 3 && command[5] == 17);
-	puts("rom_patch_constructor=pass; synthetic_inputs_only; hardware_actions=none");
+	selected_sequence();
+	puts("rom_patch_sequence=pass; rom_patch_constructor=pass; synthetic_inputs_only; hardware_actions=none");
 	return 0;
 }

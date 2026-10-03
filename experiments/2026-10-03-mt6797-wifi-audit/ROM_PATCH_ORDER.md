@@ -53,3 +53,7 @@ The [strict constructor](ROM_PATCH_CONSTRUCTOR.md) now validates the selected
 metadata and builds every fragment without mutating firmware input. Synthetic
 sanitizer tests and native retained-file checks in the RE VM passed; installed
 attribution, hardware applicability and transfer admission remain unproved.
+
+The same constructor now includes the complete selected address/fragment/reset
+order, with exact pinned-source vector comparison and 264 synthetic full-STP
+state exchanges. See [the construction boundary](ROM_PATCH_CONSTRUCTOR.md#complete-selected-patch-command-order).

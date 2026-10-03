@@ -63,4 +63,83 @@ static inline int wmt_rom_patch_fragment(const struct wmt_rom_patch *patch,
 		out[5 + i] = patch->body[offset + i];
 	return length + 5;
 }
+/* MT6797 selected pair: two addresses, body fragments, ordinary WMT reset,
+ * then the second patch. Constructor only; ordinal advances after a complete
+ * checked transport exchange, never on construction or partial submission.
+ * Caller supplies disjoint immutable inputs and separate command/event output.
+ */
+static inline int mt6797_wmt_rom_step(const struct wmt_rom_patch pair[2],
+		unsigned int ordinal, unsigned char *out, unsigned int capacity,
+		unsigned char expected[8], unsigned int *expected_length)
+{
+	static const unsigned int lengths[2] = { 46444, 210876 };
+	static const unsigned char addresses[2][4] = {
+		{ 0, 0, 10, 240 }, { 0, 0, 9, 0 }
+	};
+	unsigned int i, j, sequence, step, count, bytes, event_bytes;
+
+	if (!pair || !out || !expected || !expected_length || ordinal >= 264)
+		return -1;
+	for (i = 0; i < 2; i++) {
+		if (!pair[i].body || pair[i].sequence != i + 1 ||
+		    pair[i].length != lengths[i])
+			return -1;
+		for (j = 0; j < 4; j++)
+			if (pair[i].address[j] != addresses[i][j])
+				return -1;
+	}
+	sequence = ordinal < 50 ? 0 : 1;
+	step = sequence ? ordinal - 50 : ordinal;
+	count = (lengths[sequence] + 999) / 1000;
+	if (step < 2) {
+		if (capacity < 20)
+			return -1;
+		/* Opcode 8, one masked firmware register operation. */
+		out[0] = 1;
+		out[1] = 8;
+		out[2] = 16;
+		out[3] = 0;
+		out[4] = 1;
+		out[5] = 1;
+		out[6] = 0;
+		out[7] = 1;
+		out[8] = step ? 0x2c : 8;
+		out[9] = step ? 0x0b : 5;
+		out[10] = 9;
+		out[11] = 2;
+		for (i = 0; i < 4; i++) {
+			out[12 + i] = step ? pair[sequence].address[i] : 0;
+			out[16 + i] = 255;
+		}
+		bytes = 20;
+		event_bytes = 8;
+	} else if (step < count + 2) {
+		int result = wmt_rom_patch_fragment(&pair[sequence], step - 2, out, capacity);
+
+		if (result < 0)
+			return -1;
+		bytes = result;
+		event_bytes = 5;
+	} else {
+		if (capacity < 5)
+			return -1;
+		out[0] = 1;
+		out[1] = 7;
+		out[2] = 1;
+		out[3] = 0;
+		out[4] = 4;
+		bytes = 5;
+		event_bytes = 5;
+	}
+	expected[0] = 2;
+	expected[1] = out[1];
+	expected[2] = event_bytes - 4;
+	expected[3] = 0;
+	for (i = 4; i < event_bytes; i++)
+		expected[i] = 0;
+	if (event_bytes == 8)
+		expected[7] = 1;
+	*expected_length = event_bytes;
+	return bytes;
+}
 #endif
