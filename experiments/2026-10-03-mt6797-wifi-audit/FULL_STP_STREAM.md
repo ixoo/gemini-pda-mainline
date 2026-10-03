@@ -67,3 +67,7 @@ behavior sanitizers pass. The [receipt](results/full-stp-stream.json) pins the
 files. Real FIFO timing, interrupts, peer behavior, kernel integration and Wi-Fi
 reception remain untested. The installed [default query session](../2026-10-03-mt6797-wmt-default-query/SESSION.md)
 still precedes any additional transport effects.
+
+The [transfer-owner source review](BTIF_TRANSFER_REVIEW.md) identifies unbounded
+RX-before-TX handling and incomplete returned RX byte accounting. It defines
+the required bounded service ordering without admitting new device effects.

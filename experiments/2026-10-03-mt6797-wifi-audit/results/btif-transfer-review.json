@@ -1,0 +1,37 @@
+{
+  "status": "offline source review; transfer owner and effect protocol incomplete",
+  "source_receipt": "btif-mandatory-source.json",
+  "source_sha256": {
+    "btif_plat.c": "91744beb769a3414cba3cfc2920fffd7b2254b8e6a7861ea0abafa37e90c5872",
+    "btif_priv.h": "3cb7cc939b2d59be36f48f6c0d4093acd552e7cd7058bf736ec83c398db82110"
+  },
+  "selected_functions": [
+    "hal_btif_irq_handler",
+    "btif_rx_irq_handler",
+    "btif_tx_irq_handler",
+    "hal_btif_send_data"
+  ],
+  "findings": [
+    "The selected outer RX loop and resetting inner 256-byte buffer have no finite total RX budget before TX service.",
+    "The RX helper zeroes its local count before accumulating full-block counts; callback delivery still occurs, so returned undercount does not prove data loss.",
+    "TX enqueue count, hardware submission, hardware empty status and peer ACK require separate accounting."
+  ],
+  "source_interrupt_fields": {
+    "IER_RX": "bit 0",
+    "IER_TX": "bit 1",
+    "IIR_TX": "0x02",
+    "IIR_RX_timeout_mask": "0x44",
+    "LSR_TEMT_room": 16,
+    "LSR_THRE_room": 8
+  },
+  "unresolved": "Contrary document IER/FIFO-clear assignments remain; no new revision-matched hardware observation.",
+  "required_owner_order": "Finite RX quota, then TX opportunity with fresh status; commit complete TX before processing buffered events; finish only after peer ACK, exact event and host ACK submission.",
+  "validation": "Selected retained source reviewed against existing pinned hashes; documentation-only repository checks required before publication.",
+  "device_action": "none",
+  "not_tested": [
+    "new IRQ owner",
+    "MMIO effects or peer behavior",
+    "firmware transfer, calibration or Wi-Fi"
+  ],
+  "sanitization": "Independent source-behavior descriptions and digests; no source excerpts, raw captures, firmware or identifiers."
+}
