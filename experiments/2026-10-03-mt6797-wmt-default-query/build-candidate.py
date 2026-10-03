@@ -77,6 +77,7 @@ def main():
             b'CONFIG_MTK_MT6797_CONSYS=y\n' in config and
             b'CONFIG_MT6797_HIF_CORE=y\n' in config and
             b'CONFIG_SERIAL_8250_CONSOLE=y\n' in config and
+            b'CONFIG_DEBUG_FS=y\n' in config and
             b'CONFIG_SERIAL_8250_MT6577=y\n' in config and
             ('CONFIG_LOCALVERSION="-' + RELEASE.split('-', 1)[1] + '"\n').encode() in config,
             'kernel image or configuration changed')

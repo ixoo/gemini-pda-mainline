@@ -1,22 +1,21 @@
 # One WMT query session
 
-State: `waiting-owner-boot`; custodian: root integration agent. One physical
-selection, one region-19 preparation and one query lifetime are selected.
-[Deployment](results/deployment-1.json) records the completed full readback and
-clean shutdown. Tooling is published at `5cbe2110`; kernel inputs are `127166e4`.
+State: `retired-pre-trigger-refusal`; custodian: root integration agent.
+[Runtime 1](results/runtime-1.json) records the exact boot, clock-guard refusal,
+sealed evidence, passing A53 regression and confirmed changed-boot Gemian return.
+No region-19 preparation or query occurred. The candidate lacks DEBUG_FS and
+must not be selected again. A corrected build/deployment is required before a
+new physical handoff; the query lifetime itself remains unconsumed.
+
 [Candidate](results/candidate.json), [offline validation](results/candidate-validation.json),
 [tool validation](results/tooling-validation.json) and [runtime protocol](RUNTIME_PROTOCOL.md)
 freeze the inputs, admitted effects, prerequisite checks and finite budgets.
 
-## Owner action
+## Previous owner action (completed)
 
-Keep the established USB cable attached. Power on and physically select boot2
-using the established silver-button method during LK selection. Report when the
-console is on. Expect the existing console and authenticated USB gadget; no
-network credentials, scan command or keyboard test is needed. Do not repeat
-boot selection if the expected console/USB does not appear; report the observed
-screen so the custodian can preserve evidence and check the recovery path.
-Stop on unexpected heat or power behavior under the project safety rules.
+The owner selected boot2 and reported the console on. Runtime 1 is closed;
+no new physical selection is requested until a corrected candidate is installed
+and its replacement session packet is published.
 
 ## Custodian execution
 

@@ -1,2 +1,4 @@
 # Isolated root-triggered default WMT query; compile review only.
 CONFIG_LOCALVERSION="-gemini-a53-wmt-query"
+# Required for read-only CCF counters in the pre-trigger clock guard.
+CONFIG_DEBUG_FS=y

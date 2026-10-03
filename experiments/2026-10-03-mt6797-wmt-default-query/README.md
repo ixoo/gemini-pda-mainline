@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-03-mt6797-wmt-default-query` |
-| Status | `in-progress` (installed and readback verified; waiting-owner-boot) |
+| Status | `in-progress` (first runtime refused before trigger; correcting DEBUG_FS prerequisite) |
 | Subsystem | CONSYS / BTIF / WMT |
 | Device | Project Gemini PDA |
 | Investigator | Codex, under owner standing authorization |
@@ -150,3 +150,15 @@ Capture and regression/preservation/recovery preparation passed against that
 real deployment receipt. The [session packet](SESSION.md) now requests one
 physical boot2 selection. No query, RF scan or mainline runtime result follows
 from deployment. The first query lifetime remains unconsumed.
+
+## Runtime 1: prerequisite refusal
+
+The [first board session](results/runtime-1.json) reached the expected kernel,
+but the runtime guard exited 25 because `/sys/kernel/debug` did not exist.
+The exact candidate configuration confirms DEBUG_FS was disabled. No region-19
+preparation or WMT query occurred. Complete log preservation and the bounded A53
+regression passed; reviewed native recovery confirmed a changed Gemian boot.
+This establishes a missing candidate prerequisite, not a BTIF transport failure.
+The old session is retired. The isolated profile now requests DEBUG_FS and the
+candidate builder requires it. Build, package, schema/candidate and guarded
+replacement deployment checks remain before another owner handoff.

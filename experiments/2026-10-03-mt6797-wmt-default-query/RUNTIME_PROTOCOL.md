@@ -2,7 +2,9 @@
 
 Status: bounded effects, candidate and host enforcement checked; guarded
 installation and clean shutdown completed in [deployment 1](results/deployment-1.json).
-One owner-operated boot2 selection is pending. This record alone is not a
+[Runtime 1](results/runtime-1.json) retired that selection before any trigger
+because the candidate omitted DEBUG_FS. Corrected inputs and deployment are
+required before another physical selection. This record alone is not a
 deployment command. The [tooling receipt](results/tooling-validation.json)
 distinguishes synthetic/offline checks from actual device evidence.
 The [candidate receipt](results/candidate.json) selects build `127166e4`, release
