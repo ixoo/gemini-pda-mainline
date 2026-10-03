@@ -94,3 +94,36 @@ The [receipt](results/full-stp-io.json) pins all authored inputs.
 
 The [lifecycle receipt](results/full-stp-irq-lifecycle.json) pins the revised
 draft and fixture; the earlier receipt remains historical.
+
+## Mandatory set-options integration checkpoint
+
+After the [successful default query](../2026-10-03-mt6797-wmt-default-query/results/runtime-2.json),
+the same authored IRQ/FIFO draft now prepares one fixed mandatory set-options
+request using separate persistent context storage. It reuses TX byte accounting
+but does not pass mandatory bytes through the full-frame CRC/checksum validator.
+The strict [set reply parser](tests/wmt-stp-options.h) handles the distinct
+12-byte frame; no full-STP peer sequence or host ACK is applied to that event.
+
+The set path requires initially empty RX/TX in the normal bank and checks that
+TX observation in the initial service. It admits at most 32 services including
+the kick, 13 RBR reads and 15 THR writes, with eight RX reads per service and the
+caller-supplied deadline checked before every effect/parsing step and successful
+retirement. Malformed/extra data, exhaustion or expiry retires without retry.
+The caller must prove the completed default query, retained clocks and DMA
+exclusion; this preparation helper does not establish those prerequisites.
+
+The actual service/wrapper fixtures pass the matched response, malformed status,
+extra input, exact receive exhaustion, initial nonempty FIFO, request failure,
+partial TX, missing reply, final-observation expiry and repeated-call refusal.
+IRQ depth, synchronization and registration cleanup remain balanced. A separate
+full-mode query uses the existing event/credit/host-ACK path in the same fixture.
+All earlier full-STP fixtures still pass under strict warnings and address/undefined
+sanitizers; the changed header passes strict kernel style. The
+[receipt](results/mandatory-set-io.json) pins these final bytes. Earlier receipts
+remain historical and no longer identify the current draft.
+
+This remains an incomplete integration checkpoint. Next connect fresh resource
+setup, checked initial query, this set exchange, source-matched full-mode reseed
+and 10-ms wait, and the full-query wrapper under one CONSYS owner with an explicit
+whole-negotiation budget and preserved phase evidence. No new candidate, kernel
+build, mode-switch device test or common-initialization effect is admitted here.

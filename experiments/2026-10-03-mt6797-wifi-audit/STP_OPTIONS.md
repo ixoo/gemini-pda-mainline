@@ -52,3 +52,7 @@ command, or clear FIFOs between commands. Preserve phase, actual TX/RX bytes,
 sequence/ACK state and failure evidence before reviewed recovery. No Linux
 build, hardware negotiation or complete common initialization follows from
 these host fixtures.
+
+The [mandatory IRQ/FIFO integration](FULL_STP_IO.md#mandatory-set-options-integration-checkpoint)
+now exercises the fixed set exchange through the existing service/process wrapper.
+The combined CONSYS caller and hardware transition remain incomplete.

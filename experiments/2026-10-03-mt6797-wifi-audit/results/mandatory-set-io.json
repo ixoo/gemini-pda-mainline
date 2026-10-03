@@ -1,0 +1,40 @@
+{
+  "scope": "shared IRQ/FIFO draft extended for one fixed mandatory set-options exchange; no selected kernel profile or hardware admission",
+  "parent_commit": "baf0919e",
+  "prerequisite_runtime": "../2026-10-03-mt6797-wmt-default-query/results/runtime-2.json",
+  "validation": {
+    "actual_service_and_process_wrapper": "pass",
+    "strict_c11_warnings": "pass",
+    "address_undefined_sanitizers": "pass",
+    "strict_kernel_style_header": "pass; zero errors, warnings or checks",
+    "mandatory_set_matched_12_byte_reply": "pass; 15 TX bytes, no host ACK",
+    "malformed_extra_receive_exhaustion": "refused; at most 13 RBR reads",
+    "initial_nonempty_tx_or_rx": "refused before THR writes",
+    "partial_tx_timeout_and_final_observation_expiry": "refused with exact evidence retained",
+    "request_failure_and_irq_depth_cleanup": "pass; exactly one synchronization/free per acquired registration",
+    "full_query_existing_ack_path": "pass; 11 command bytes plus 4 host ACK bytes, 16 RX bytes",
+    "all_previous_full_stp_fixtures": "pass"
+  },
+  "mandatory_budgets": {
+    "services_including_initial": 32,
+    "rx_bytes": 13,
+    "tx_bytes": 15,
+    "rx_per_service": 8,
+    "deadline": "caller supplied; checked before RX, TX, parsing and terminal success"
+  },
+  "not_verified": [
+    "combined initial-query/set/full-query CONSYS caller and whole-session budget",
+    "Linux compilation, binding/profile integration or candidate",
+    "real IRQ concurrency, posted MMIO or physical FIFO",
+    "peer transition delay/ACK timing and full-mode device response",
+    "DLM/ROM patch/PA/calibration/coexistence effects",
+    "Wi-Fi reception, association or traffic"
+  ],
+  "sha256": {
+    "tests/mt6797-wmt-full-io.h": "0f2af3ae97705ecc447c921471da4680651ddc324a291acbac210c35d9b3778e",
+    "tests/wmt-full-io-test.c": "dd64908124d4c9e858d1e57a3f7bdb4a6c2ce2a119ec050ff3123359410d7d9a",
+    "tests/run-wmt-full-io-test.py": "69571f316b0a10d3c254d6bfb7fc822329a16c78d742779fdb5edc7db2c50747",
+    "tests/wmt-stp-options.h": "a72cf57a2d134e99af72977dd93ca179ea9cc089a10649226471e9efce758168",
+    "tests/wmt-full-stp-tx.h": "5b1644829ae5d2872dc2dea1c7537260938f412b979367e9d009f0cf079d7724"
+  }
+}

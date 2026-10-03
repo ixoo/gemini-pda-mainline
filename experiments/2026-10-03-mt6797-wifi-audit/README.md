@@ -212,3 +212,8 @@ ROM patch, calibration and reception remain unproved.
 The [checked STP option preparation](STP_OPTIONS.md) supplies the fixed mandatory
 set-options request/reply and distinct full-query payloads. Source-vector and
 sanitizer fixtures pass; owner integration, build and hardware negotiation remain.
+
+The [mandatory set-options IRQ/FIFO checkpoint](results/mandatory-set-io.json)
+now passes actual service/wrapper fixtures with fixed TX/RX/service limits and
+balanced IRQ retirement. It is not a kernel candidate; the combined negotiation
+owner, build and hardware transition remain incomplete.

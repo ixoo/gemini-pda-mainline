@@ -11,8 +11,11 @@
 #include "wmt-full-stp-state.h"
 #include "wmt-full-stp-stream.h"
 #include "wmt-full-stp-tx.h"
+#include "wmt-stp-options.h"
 
 #define WMT_FULL_IO_SERVICES 512U
+#define WMT_SET_IO_SERVICES 32U
+#define WMT_SET_IO_RX_BYTES 13U
 #define WMT_FULL_IO_RX_QUOTA 8U
 #define WMT_FULL_IO_FRAMES 8U
 #define WMT_FULL_IO_RX_BYTES (WMT_FULL_MAX_FRAME + 32U)
@@ -26,11 +29,14 @@ struct mt6797_wmt_full_io {
 	struct wmt_full_state *link;
 	struct wmt_full_stream stream;
 	struct wmt_full_tx tx;
+	struct wmt_stp_set_reply set_reply;
+	int mandatory_set;
 	unsigned char command[WMT_FULL_MAX_FRAME], ack[4];
 	unsigned char received[WMT_FULL_IO_RX_BYTES];
 	const unsigned char *expected;
 	unsigned int expected_length, rx_count, consumed, frames, services, tx_count;
 	unsigned long deadline;
+	/* Serializes FIFO progress, terminal state and process timeout. */
 	spinlock_t lock;
 	struct completion done;
 	int irq, ack_phase, sent, terminal, result, prepared, irq_armed;
@@ -40,7 +46,7 @@ struct mt6797_wmt_full_io {
  * Expected event storage remains immutable throughout this command lifetime.
  */
 static int mt6797_wmt_full_prepare(struct mt6797_wmt_full_io *io,
-		void __iomem *btif, int irq, struct wmt_full_state *link,
+				   void __iomem *btif, int irq, struct wmt_full_state *link,
 		const unsigned char *command, unsigned int length,
 		const unsigned char *expected, unsigned int expected_length,
 		unsigned long deadline)
@@ -65,10 +71,39 @@ static int mt6797_wmt_full_prepare(struct mt6797_wmt_full_io *io,
 	spin_lock_init(&io->lock);
 	wmt_full_stream_init(&io->stream);
 	bytes = wmt_full_encode(io->command, sizeof(io->command), command, length,
-			       link->tx_next, link->local_ack);
+				link->tx_next, link->local_ack);
 	if (bytes < 0)
 		return -EINVAL;
 	return wmt_full_tx_init(&io->tx, io->command, bytes) ? -EINVAL : 0;
+}
+
+/* Fixed next mandatory exchange only, after a successful initial query.
+ * The owner proves retained clocks, DMA exclusion, empty RX/TX and normal bank.
+ * Separate persistent storage preserves both command records across the switch.
+ * No clock setup, mode change or FIFO clear occurs here.
+ */
+static int mt6797_wmt_set_prepare(struct mt6797_wmt_full_io *io,
+				  void __iomem *btif, int irq, unsigned long deadline)
+{
+	if (!io || !btif || irq <= 0)
+		return -EINVAL;
+	if (io->prepared)
+		return -EBUSY;
+	memset(io, 0, sizeof(*io));
+	io->prepared = 1;
+	io->mandatory_set = 1;
+	io->btif = btif;
+	io->irq = irq;
+	io->deadline = deadline;
+	init_completion(&io->done);
+	spin_lock_init(&io->lock);
+	memcpy(io->command, wmt_stp_set_options, sizeof(wmt_stp_set_options));
+	/* The fixed source-checked mandatory frame has no full-STP CRC/checksum.
+	 * Reuse byte accounting, not the full-frame validator at TX initialization.
+	 */
+	io->tx.frame = io->command;
+	io->tx.length = sizeof(wmt_stp_set_options);
+	return 0;
 }
 
 /* Caller holds the same lock used by IRQ progress. Resources remain retained;
@@ -100,7 +135,7 @@ static int mt6797_wmt_full_tx_progress(struct mt6797_wmt_full_io *io)
 		return -ETIMEDOUT;
 	lsr = readl(io->btif + 0x14);
 	offered = wmt_full_tx_batch(&io->tx, lsr,
-				  time_after_eq(jiffies, io->deadline), &bytes);
+				    time_after_eq(jiffies, io->deadline), &bytes);
 	if (offered < 0)
 		return -ETIMEDOUT;
 	while (actual < (unsigned int)offered) {
@@ -110,7 +145,7 @@ static int mt6797_wmt_full_tx_progress(struct mt6797_wmt_full_io *io)
 		io->tx_count++;
 	}
 	if (offered && wmt_full_tx_commit(&io->tx, actual,
-					time_after_eq(jiffies, io->deadline)))
+					  time_after_eq(jiffies, io->deadline)))
 		return -ETIMEDOUT;
 	return 0;
 }
@@ -128,12 +163,18 @@ static void mt6797_wmt_full_service(struct mt6797_wmt_full_io *io, int initial)
 	if (io->terminal)
 		return;
 	if (time_after_eq(jiffies, io->deadline) ||
-	    io->services == WMT_FULL_IO_SERVICES) {
+	    io->services == (io->mandatory_set ? WMT_SET_IO_SERVICES :
+			    WMT_FULL_IO_SERVICES)) {
 		mt6797_wmt_full_retire(io, -ETIMEDOUT);
 		return;
 	}
 	if (initial && io->services) {
 		mt6797_wmt_full_retire(io, -EPROTO);
+		return;
+	}
+	if (initial && io->mandatory_set &&
+	    (readl(io->btif + 0x14) & 0x61) != 0x60) {
+		mt6797_wmt_full_retire(io, -EBUSY);
 		return;
 	}
 	io->services++;
@@ -143,7 +184,8 @@ static void mt6797_wmt_full_service(struct mt6797_wmt_full_io *io, int initial)
 		return;
 	}
 	while ((iir & 0x44) && quota < WMT_FULL_IO_RX_QUOTA) {
-		if (io->rx_count == sizeof(io->received)) {
+		if (io->rx_count == (io->mandatory_set ? WMT_SET_IO_RX_BYTES :
+				     sizeof(io->received))) {
 			mt6797_wmt_full_retire(io, -EOVERFLOW);
 			return;
 		}
@@ -159,7 +201,8 @@ static void mt6797_wmt_full_service(struct mt6797_wmt_full_io *io, int initial)
 	if (ret)
 		goto fail;
 	if (!io->sent && wmt_full_tx_done(&io->tx)) {
-		if (wmt_full_sent(io->link, (io->command[0] >> 3) & 7)) {
+		if (!io->mandatory_set &&
+		    wmt_full_sent(io->link, (io->command[0] >> 3) & 7)) {
 			ret = -EPROTO;
 			goto fail;
 		}
@@ -168,13 +211,42 @@ static void mt6797_wmt_full_service(struct mt6797_wmt_full_io *io, int initial)
 	}
 	if (!io->sent)
 		return;
+	if (io->mandatory_set) {
+		while (io->consumed < io->rx_count) {
+			if (time_after_eq(jiffies, io->deadline)) {
+				ret = -ETIMEDOUT;
+				goto fail;
+			}
+			parsed = wmt_stp_set_reply_byte(&io->set_reply,
+							io->received[io->consumed++]);
+			if (parsed < 0) {
+				ret = -EPROTO;
+				goto fail;
+			}
+			if (!parsed)
+				continue;
+			if (io->consumed != io->rx_count ||
+			    (readl(io->btif + 8) & 0x44)) {
+				ret = -EPROTO;
+				goto fail;
+			}
+			if (time_after_eq(jiffies, io->deadline)) {
+				ret = -ETIMEDOUT;
+				goto fail;
+			}
+			io->frames = 1;
+			mt6797_wmt_full_retire(io, 0);
+			return;
+		}
+		return;
+	}
 	while (io->consumed < io->rx_count) {
 		if (time_after_eq(jiffies, io->deadline)) {
 			ret = -ETIMEDOUT;
 			goto fail;
 		}
 		parsed = wmt_full_stream_byte(&io->stream,
-				io->received[io->consumed++], &frame);
+					      io->received[io->consumed++], &frame);
 		if (parsed < 0 || (parsed && io->frames == WMT_FULL_IO_FRAMES)) {
 			ret = -EPROTO;
 			goto fail;
@@ -248,7 +320,8 @@ static irqreturn_t mt6797_wmt_full_irq(int irq, void *data)
 	spin_unlock_irqrestore(&io->lock, flags);
 	return IRQ_HANDLED;
 }
-/* Process-context caller; exclusive resources and full mode are prerequisites.
+
+/* Process-context caller; exclusive resources and the selected transport mode are prerequisites.
  * NO_AUTOEN owns the initial disabled depth. No other timeout/start caller may
  * run concurrently. Evidence/storage and transport clocks outlive this call.
  */
