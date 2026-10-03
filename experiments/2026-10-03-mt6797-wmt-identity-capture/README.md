@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-03-mt6797-wmt-identity-capture` |
-| Status | integrated compile-review checkpoint; build pending |
+| Status | compiled and schema-checked; candidate/runtime pending |
 | Subsystem | MT6797 CONSYS, BTIF and WMT |
 | Device | Project Gemini PDA |
 | Profile | `mt6797-a53-wmt-identity-capture-compile` |
@@ -52,3 +52,14 @@ private evidence and return through reviewed recovery. No HW/ROM read, patch,
 PA/calibration or WLAN continuation follows from the capture. Working Wi-Fi
 still requires checked common initialization, management reception, association
 and traffic; this experiment resolves one prerequisite.
+
+## Build and schema follow-up
+
+[Build 1](results/build-1.json) now records the exact compiled/fetched package
+and clean pushed input. The [schema checks](results/schema-1.json) validate its
+exact board DTB, reject seven invalid resource/selector variants and retain
+both earlier selector variants. Two existing USB `ranges_format` warnings
+remain outside the selected CONSYS scope. The independent schema output DTB
+matches the package digest. Candidate composition and its reproduction oracle,
+finite runtime protocol, guarded deployment and actual reply capture remain
+unproved; this is not Wi-Fi support.

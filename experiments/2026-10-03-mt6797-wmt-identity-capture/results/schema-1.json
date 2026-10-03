@@ -1,0 +1,85 @@
+{
+  "scope": "selected CONSYS binding and exact package-matching capture board DTB; not unrestricted board validation or hardware support",
+  "repository_commit": "8956fbc1b8bf14a04c2f67ca092fb7419d2dd78b",
+  "profile": "mt6797-a53-wmt-identity-capture-compile",
+  "dtschema_version": "2026.9",
+  "binding_sha256": "8747c3d63579f658a647f81dd83d4f5a0f4fa97e746da6fea85b48a07285e7f5",
+  "processed_schema_sha256": "20ce564b178b5e44b232fbb3a24486a4e15c66a819094b3237da6eba0ff76244",
+  "validated_dtb_sha256": "734ca989517806a7f1e55a2a4ed881d014b5b26e57e44db9eda196fbe292b591",
+  "checks": {
+    "dt_doc_validate": "pass; empty diagnostics",
+    "dt_binding_check_selected_schema": "pass",
+    "selected_board_CHECK_DTBS": "pass with two existing USB ranges_format warnings",
+    "direct_dt_validate_selected_CONSYS": "pass; empty diagnostics",
+    "missing_clocks_clock_names_interrupts": "each refused",
+    "all_pairwise_selectors_and_all_three": "refused",
+    "default_only_and_negotiate_only_variants": "pass; empty diagnostics",
+    "independent_schema_DTB_vs_package": "byte digest match"
+  },
+  "execution": "separate schema output; binding and board checks sequential; direct validation and nine variants afterward",
+  "private_log_sha256": {
+    "identity-plus-default.log": "d3d94e83675888a7259c50d60041d44e0bc03814e931cebc77efa7488db170bf",
+    "default-plus-negotiate.log": "40cc43a9caec59fa9b6ebf9281aada98f4e43dc873df20403fbe98528bb0a659",
+    "binding-check.log": "f0a2ae0e08d66ca3c8f9039a6f8781b6407e487f02ef4daea0c8f5253fc06078",
+    "missing-clock-names.log": "c561c22452a296ff4cc0d09f6ec0b65873cf91a9906c7275ed183f3194ef49ff",
+    "direct-check.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "missing-interrupts.log": "0db67d8f4ecc949ab06b90b21f9e1241e88b7b809ed6e0ed980f0738d664e3ab",
+    "missing-clocks.log": "8b21cde24591cb16adaec864549308c3c7caa45dcea0c6bc7977bd745ff02d78",
+    "mutations.json": "79086751945f42d38d47690a5597f023f46831d17eab80a52dc195e42d5a3dd8",
+    "default-only.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "config.log": "702d74356d39520897372ec6d94e4cfb5d5f1d621b66d5ccb003faef3bde4f87",
+    "negotiate-only.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "all-three.log": "cc773edeef06301140fbade7d816a15907202b6a89569f06e3615f4b5e20a520",
+    "identity-plus-negotiate.log": "61df48ed04ac217cdf1a8cd76bd19314b81c38c74fcaca7aa3b709581c63ec70",
+    "doc-validate.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "dtb-check.log": "fc623187c289df5c9e3b9b56059d5f2c9cd5e63d0ea52de43ae3bd0eb016e50a"
+  },
+  "mutation_results": [
+    {
+      "case": "missing-clocks",
+      "expected": "refused",
+      "log_sha256": "8b21cde24591cb16adaec864549308c3c7caa45dcea0c6bc7977bd745ff02d78"
+    },
+    {
+      "case": "missing-clock-names",
+      "expected": "refused",
+      "log_sha256": "c561c22452a296ff4cc0d09f6ec0b65873cf91a9906c7275ed183f3194ef49ff"
+    },
+    {
+      "case": "missing-interrupts",
+      "expected": "refused",
+      "log_sha256": "0db67d8f4ecc949ab06b90b21f9e1241e88b7b809ed6e0ed980f0738d664e3ab"
+    },
+    {
+      "case": "identity-plus-default",
+      "expected": "refused",
+      "log_sha256": "d3d94e83675888a7259c50d60041d44e0bc03814e931cebc77efa7488db170bf"
+    },
+    {
+      "case": "identity-plus-negotiate",
+      "expected": "refused",
+      "log_sha256": "61df48ed04ac217cdf1a8cd76bd19314b81c38c74fcaca7aa3b709581c63ec70"
+    },
+    {
+      "case": "default-plus-negotiate",
+      "expected": "refused",
+      "log_sha256": "40cc43a9caec59fa9b6ebf9281aada98f4e43dc873df20403fbe98528bb0a659"
+    },
+    {
+      "case": "all-three",
+      "expected": "refused",
+      "log_sha256": "cc773edeef06301140fbade7d816a15907202b6a89569f06e3615f4b5e20a520"
+    },
+    {
+      "case": "default-only",
+      "expected": "accepted",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "case": "negotiate-only",
+      "expected": "accepted",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "device_action": "none"
+}
