@@ -1,0 +1,38 @@
+{
+  "status": "kernel integration checkpoint; Linux compile and schema pending",
+  "parent_project_commit": "fce77b11",
+  "foundation_profile": "mt6797-a53-wmt-negotiate-compile",
+  "selected_profile": "mt6797-a53-wmt-identity-capture-compile",
+  "parent_consys_sha256": "9795102dc3f32c042ed92861888cb7dc6e38781af2c5507d71c137674dc2c39b",
+  "validation": {
+    "exact_scoped_replay": "pass; six final files byte-identical",
+    "reverse_apply_check": "pass",
+    "strict_checkpatch": "zero errors, warnings and checks",
+    "checkpatch_exclusions": [
+      "MISSING_SIGN_OFF: internal non-certifying archive, no invented DCO",
+      "FILE_PATH_CHANGES: new internal headers under existing temporary diagnostic owner"
+    ],
+    "query_setup_regression": "pass with actual transport fixtures and sanitizers",
+    "full_io_negotiation_capture_regressions": "pass with strict warnings and sanitizers",
+    "Linux_compile": "pending",
+    "focused_schema": "pending",
+    "candidate_device": "not admitted"
+  },
+  "patch_sha256": {
+    "proposals/0096-soc-mediatek-capture-one-bounded-pre-patch-WMT-chip-reply.patch": "4289e05b8f7776a63f52a0f664373556eeb4dfe585fe0b3100a12aadff229970",
+    "proposals/0097-dt-bindings-soc-mediatek-describe-isolated-WMT-chip-capture.patch": "15515d9f8f07954cb84cdd14edaddd097e1989a1c2a5d02388df65ed566a750d",
+    "proposals/0098-arm64-dts-mediatek-select-isolated-Gemini-WMT-chip-capture.patch": "8eae6ffbe4f075fae881498a0693faf5f890d2dcf5d119da248e892c1297c6da"
+  },
+  "host_header_sha256": {
+    "mt6797-wmt-query.h": "2a1a5eccf3dddca1e5353e3e01c3277d916fb7c5b91c5583587cd087993771b5",
+    "mt6797-wmt-identity-io.h": "9119902595de5e59d79a1e12fd006aafe49b49165f3844f6e6eab5e2bedb5a13",
+    "wmt-identity-read.h": "963ea8e4f1baef7adbae761db35b8af68808c2b6e9ab823f2d367679cfc61a7a"
+  },
+  "device_action": "none",
+  "not_established": [
+    "actual chip reply framing and status",
+    "checked HW/ROM applicability",
+    "ROM patch or calibration",
+    "Wi-Fi reception, association or traffic"
+  ]
+}

@@ -1,0 +1,31 @@
+From 196c5c47a53c6702c9430e933396beb2c137398e Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 3 Oct 2026 14:46:49 +0000
+Subject: [PATCH 98/98] arm64: dts: mediatek: select isolated Gemini WMT chip
+ capture
+
+Keep WLAN disabled and select only the pre-patch chip response
+measurement.
+
+Internal experiment archive; synthetic non-certifying author, no DCO. No
+hardware result.
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+index 2c51e3f..66629bd 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -89,7 +89,7 @@
+ 		clocks = <&infrasys CLK_INFRA_BTIF>, <&infrasys CLK_INFRA_AP_DMA>;
+ 		clock-names = "btif", "ap-dma";
+ 		interrupts = <GIC_SPI 130 IRQ_TYPE_LEVEL_LOW>;
+-		mediatek,one-shot-wmt-negotiate;
++		mediatek,one-shot-wmt-identity-capture;
+ 		mediatek,one-shot-power-probe;
+ 		mediatek,one-shot-chip-id-probe;
+ 		mediatek,one-shot-reset-release-probe;
+-- 
+2.39.5
+

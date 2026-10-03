@@ -1,0 +1,59 @@
+From a7752205aaa92172c11ecb96b8b53fe7a7f968a7 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 3 Oct 2026 14:46:49 +0000
+Subject: [PATCH 97/98] dt-bindings: soc: mediatek: describe isolated WMT chip
+ capture
+
+Require exclusive selection and existing deferred BTIF resources.
+
+Internal experiment archive; synthetic non-certifying author, no DCO. No
+hardware result.
+---
+ .../soc/mediatek/mediatek,mt6797-consys.yaml  | 22 ++++++++++++++++---
+ 1 file changed, 19 insertions(+), 3 deletions(-)
+
+diff --git a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
+index e4fc230..e9f5671 100644
+--- a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
++++ b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
+@@ -77,6 +77,13 @@ properties:
+       Clocks and power remain retained until reviewed recovery. No ROM patch,
+       calibration, WLAN firmware start or RF operation is selected.
+ 
++  mediatek,one-shot-wmt-identity-capture:
++    type: boolean
++    description: |
++      Experimental deferred chip-read capture before negotiation and patch
++      loading. Preserves a bounded raw mandatory-STP response without accepting
++      identity or continuing initialization. Clocks/power remain retained.
++
+   memory-region:
+     maxItems: 1
+     description: Boot-allocated no-map CONSYS firmware reservation.
+@@ -200,11 +207,20 @@ allOf:
+             - mediatek,one-shot-wmt-default-query
+         - required:
+             - mediatek,one-shot-wmt-negotiate
++        - required:
++            - mediatek,one-shot-wmt-identity-capture
+     then:
+       not:
+-        required:
+-          - mediatek,one-shot-wmt-default-query
+-          - mediatek,one-shot-wmt-negotiate
++        anyOf:
++          - required:
++              - mediatek,one-shot-wmt-default-query
++              - mediatek,one-shot-wmt-negotiate
++          - required:
++              - mediatek,one-shot-wmt-default-query
++              - mediatek,one-shot-wmt-identity-capture
++          - required:
++              - mediatek,one-shot-wmt-negotiate
++              - mediatek,one-shot-wmt-identity-capture
+       properties:
+         reg:
+           minItems: 9
+-- 
+2.39.5
+

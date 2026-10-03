@@ -134,11 +134,9 @@ static void mt6797_wmt_fifo_clear(void __iomem *base)
  * before HIF or a sleep command. No transport retry or shutdown is attempted.
  * After any clock enable, retain acquired clocks for reviewed system recovery.
  */
-static int mt6797_wmt_query_once(struct mt6797_wmt_query *query)
+static int mt6797_wmt_query_setup(struct mt6797_wmt_query *query)
 {
-	unsigned long flags;
-	unsigned int i, dma;
-	unsigned long now, remaining;
+	unsigned int dma;
 	int ret;
 
 	if (query->attempted)
@@ -181,6 +179,20 @@ static int mt6797_wmt_query_once(struct mt6797_wmt_query *query)
 	writel(dma | BIT(2), query->btif + WMT_BTIF_DMA_EN);
 	if ((readl(query->btif + WMT_BTIF_LSR) & 0x61) != 0x60)
 		return -EBUSY;
+
+	return 0;
+}
+
+static int mt6797_wmt_query_once(struct mt6797_wmt_query *query)
+{
+	unsigned long flags;
+	unsigned int i;
+	unsigned long now, remaining;
+	int ret;
+
+	ret = mt6797_wmt_query_setup(query);
+	if (ret)
+		return ret;
 
 	ret = request_irq(query->irq, mt6797_wmt_query_irq, IRQF_NO_AUTOEN,
 			  "mt6797-wmt-query", query);

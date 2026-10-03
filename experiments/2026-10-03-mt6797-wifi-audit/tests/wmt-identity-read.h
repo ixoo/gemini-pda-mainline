@@ -7,7 +7,7 @@
  * Refusal leaves output unchanged. No caller-supplied register or write op.
  */
 static inline int wmt_identity_read(unsigned int ordinal, unsigned char *out,
-                                  unsigned int capacity)
+				    unsigned int capacity)
 {
 	static const unsigned char offsets[3] = { 8, 0, 4 };
 	static const unsigned char frame[26] = {

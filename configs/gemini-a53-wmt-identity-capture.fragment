@@ -1,0 +1,2 @@
+# Isolated pre-patch mandatory-STP chip reply capture; compile review only.
+CONFIG_LOCALVERSION="-gemini-a53-wmt-identity-capture"

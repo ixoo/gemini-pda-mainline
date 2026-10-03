@@ -242,3 +242,8 @@ The [mandatory chip-reply capture leaf](IDENTITY_CAPTURE.md) now has bounded
 FIFO progress, raw-byte retention and one-shot IRQ retirement. Actual-service
 sanitizer fixtures pass; kernel caller integration, Buildbox compilation and
 an attributable pre-patch reply remain incomplete.
+
+The [isolated capture integration](../2026-10-03-mt6797-wmt-identity-capture/README.md)
+now selects the actual kernel caller, exclusive binding and disabled-WLAN board
+profile. Exact scoped replay and strict Checkpatch pass. Linux compilation,
+schema validation and candidate/runtime admission remain separate gates.

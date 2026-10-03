@@ -26,13 +26,14 @@ struct mt6797_wmt_identity_io {
 	struct wmt_full_tx tx;
 	unsigned int rx_count, tx_count, services;
 	unsigned long deadline;
+	/* Serializes FIFO progress, terminal state and timeout retirement. */
 	spinlock_t lock;
 	struct completion done;
 	int irq, prepared, attempted, armed, terminal, result;
 };
 
 static int mt6797_wmt_identity_prepare(struct mt6797_wmt_identity_io *io,
-		void __iomem *btif, int irq, unsigned long deadline)
+				       void __iomem *btif, int irq, unsigned long deadline)
 {
 	unsigned long now = jiffies;
 
@@ -84,7 +85,7 @@ static void mt6797_wmt_identity_service(struct mt6797_wmt_identity_io *io, int i
 		return;
 	}
 	if (initial && (io->services ||
-	    (readl(io->btif + 0x14) & 0x61) != 0x60)) {
+			(readl(io->btif + 0x14) & 0x61) != 0x60)) {
 		mt6797_wmt_identity_retire(io, -EBUSY);
 		return;
 	}
@@ -110,7 +111,7 @@ static void mt6797_wmt_identity_service(struct mt6797_wmt_identity_io *io, int i
 	}
 	if (!wmt_full_tx_done(&io->tx)) {
 		offered = wmt_full_tx_batch(&io->tx, readl(io->btif + 0x14),
-				time_after_eq(jiffies, io->deadline), &bytes);
+					    time_after_eq(jiffies, io->deadline), &bytes);
 		if (offered < 0) {
 			mt6797_wmt_identity_retire(io, -ETIMEDOUT);
 			return;
@@ -121,7 +122,7 @@ static void mt6797_wmt_identity_service(struct mt6797_wmt_identity_io *io, int i
 			io->tx_count++;
 		}
 		if (offered && wmt_full_tx_commit(&io->tx, actual,
-					 time_after_eq(jiffies, io->deadline))) {
+						  time_after_eq(jiffies, io->deadline))) {
 			mt6797_wmt_identity_retire(io, -ETIMEDOUT);
 			return;
 		}
