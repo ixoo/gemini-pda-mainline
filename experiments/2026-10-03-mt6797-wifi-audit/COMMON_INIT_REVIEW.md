@@ -69,3 +69,11 @@ Complete the selected LTE, PA/calibration, coexistence and FM-strap contracts
 before composing common initialization with the existing WLAN START/scan path.
 These are preparation requirements for the existing roadmap step, not new
 physical tests or permission to bypass first-query liveness.
+
+
+The [retained patch-order analysis](ROM_PATCH_ORDER.md) now identifies the
+source/loader metadata order and address bytes for the exact private pair.
+Sequence 1 is filename suffix `1_1`, then sequence 2 is `1_0`; lexical order
+would be wrong. Its fragment arithmetic matches the retained Gemian summaries.
+Installed attribution, hardware/ROM-version applicability, full-STP transport
+and powered failure handling remain separate before a candidate.
