@@ -1,0 +1,1122 @@
+From 28959091e4b10b9e3542d6e3d517a7ee1a7c64b8 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 3 Oct 2026 12:11:55 +0000
+Subject: [PATCH 92/94] soc: mediatek: compose bounded WMT mode negotiation
+
+Keep separate persistent default, set and full query records under the
+shared CONSYS owner. Retain clocks/power and stop at the first failed
+phase. Select the extra exchanges only through a distinct deferred
+diagnostic property.
+
+Internal experiment archive; synthetic non-certifying author, no DCO.
+Compile-review only; no hardware result.
+---
+ drivers/soc/mediatek/mt6797-consys.c        |  71 +++-
+ drivers/soc/mediatek/mt6797-wmt-full-io.h   | 366 ++++++++++++++++++++
+ drivers/soc/mediatek/mt6797-wmt-negotiate.h | 111 ++++++
+ drivers/soc/mediatek/mt6797-wmt-query.h     |   9 +-
+ drivers/soc/mediatek/wmt-full-stp-state.h   |  92 +++++
+ drivers/soc/mediatek/wmt-full-stp-stream.h  |  58 ++++
+ drivers/soc/mediatek/wmt-full-stp-tx.h      |  84 +++++
+ drivers/soc/mediatek/wmt-full-stp.h         | 100 ++++++
+ drivers/soc/mediatek/wmt-stp-options.h      |  56 +++
+ 9 files changed, 933 insertions(+), 14 deletions(-)
+ create mode 100644 drivers/soc/mediatek/mt6797-wmt-full-io.h
+ create mode 100644 drivers/soc/mediatek/mt6797-wmt-negotiate.h
+ create mode 100644 drivers/soc/mediatek/wmt-full-stp-state.h
+ create mode 100644 drivers/soc/mediatek/wmt-full-stp-stream.h
+ create mode 100644 drivers/soc/mediatek/wmt-full-stp-tx.h
+ create mode 100644 drivers/soc/mediatek/wmt-full-stp.h
+ create mode 100644 drivers/soc/mediatek/wmt-stp-options.h
+
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index 111cc70..18234bc 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -31,7 +31,7 @@
+ 
+ #include "../../net/wireless/mediatek/mt6797/firmware-prepare.h"
+ #include "../../net/wireless/mediatek/mt6797/hif.h"
+-#include "mt6797-wmt-query.h"
++#include "mt6797-wmt-negotiate.h"
+ 
+ #define MT6797_CONSYS_REMAP_REG	0x10001340
+ #define MT6797_CONSYS_SLEEP_MASK_REG	0x10001350
+@@ -77,6 +77,8 @@
+ 
+ struct mt6797_consys {
+ 	struct mt6797_wmt_query wmt_query;
++	struct mt6797_wmt_negotiate wmt_negotiate;
++	bool wmt_negotiate_only;
+ 	bool wmt_query_only;
+ 	int wmt_query_result;
+ 	void __iomem *remap;
+@@ -1048,6 +1050,40 @@ stopped:
+ }
+ 
+ /* One attempt per boot. Keep every acquired vote after any uncertain effect. */
++static int mt6797_consys_wmt_exchange(struct device *dev,
++				      struct mt6797_consys *owner)
++{
++	struct mt6797_wmt_negotiate *n = &owner->wmt_negotiate;
++	int ret;
++
++	ret = platform_get_irq(to_platform_device(dev), 0);
++	if (ret < 0)
++		return ret;
++	owner->wmt_query.irq = ret;
++	if (!owner->wmt_negotiate_only) {
++		ret = mt6797_wmt_query_once(&owner->wmt_query);
++		dev_info(dev,
++			 "one-shot WMT default query: result=%d rx=%u irqs=%u clocks-held=%d\n",
++			 ret, owner->wmt_query.rx_count,
++			 owner->wmt_query.irq_count, owner->wmt_query.clocks_held);
++		return ret;
++	}
++	n->first = owner->wmt_query;
++	ret = mt6797_wmt_negotiate_once(n);
++	dev_info(dev,
++		 "one-shot WMT negotiation: result=%d phase=%u clocks-held=%d\n",
++		 ret, (unsigned int)n->phase, n->first.clocks_held);
++	dev_info(dev,
++		 "WMT negotiation mandatory: default-rx=%u default-irqs=%u set-tx=%u set-rx=%u set-services=%u\n",
++		 n->first.rx_count, n->first.irq_count,
++		 n->set.tx_count, n->set.rx_count, n->set.services);
++	dev_info(dev,
++		 "WMT negotiation full: tx=%u rx=%u services=%u frames=%u tx-seq=%u rx-seq=%u peer-ack=%u local-ack=%u\n",
++		 n->full.tx_count, n->full.rx_count, n->full.services, n->full.frames,
++		 n->link.tx_next, n->link.rx_next, n->link.peer_ack, n->link.local_ack);
++	return ret;
++}
++
+ static void mt6797_consys_probe_power_on(struct device *dev, struct mt6797_consys *owner,
+ 					 bool chip_id_probe, bool reset_release_probe,
+ 					 bool hif_probe, bool emi_set_probe,
+@@ -1210,17 +1246,8 @@ static void mt6797_consys_probe_power_on(struct device *dev, struct mt6797_consy
+ 
+ 				released = mt6797_consys_probe_reset_release(dev, owner);
+ 				if (released && owner->wmt_query_only) {
+-					ret = platform_get_irq(to_platform_device(dev), 0);
+-					if (ret >= 0) {
+-						owner->wmt_query.irq = ret;
+-						ret = mt6797_wmt_query_once(&owner->wmt_query);
+-					}
+-					owner->wmt_query_result = ret;
+-					dev_info(dev,
+-						 "one-shot WMT default query: result=%d rx=%u irqs=%u clocks-held=%d\n",
+-						 ret, owner->wmt_query.rx_count,
+-						 owner->wmt_query.irq_count,
+-						 owner->wmt_query.clocks_held);
++					owner->wmt_query_result =
++						mt6797_consys_wmt_exchange(dev, owner);
+ 					return;
+ 				}
+ 				if (hif_probe && released &&
+@@ -1298,6 +1325,15 @@ static ssize_t wmt_default_query_store(struct device *dev,
+ 
+ static DEVICE_ATTR_WO(wmt_default_query);
+ 
++static ssize_t wmt_negotiate_store(struct device *dev,
++				   struct device_attribute *attr,
++				   const char *buf, size_t count)
++{
++	return firmware_start_after_wmt_store(dev, attr, buf, count);
++}
++
++static DEVICE_ATTR_WO(wmt_negotiate);
++
+ static int mt6797_consys_probe(struct platform_device *pdev)
+ {
+ 	struct resource *remap_resource, *sleep_resource, *chip_resource, *acr_resource;
+@@ -1311,7 +1347,7 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 	void __iomem *hif = NULL, *emi_selector = NULL;
+ 	bool power_probe, chip_id_probe, reset_release_probe, hif_probe;
+ 	bool emi_set_probe, emi_copy_probe, firmware_start_probe;
+-	bool region19_observe, deferred_start, wmt_query;
++	bool region19_observe, deferred_start, wmt_query, wmt_negotiate;
+ 	struct resource reservation = {};
+ 	int ret;
+ 
+@@ -1336,6 +1372,13 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 						"mediatek,deferred-wmt-firmware-start");
+ 	wmt_query = of_property_read_bool(pdev->dev.of_node,
+ 					  "mediatek,one-shot-wmt-default-query");
++	wmt_negotiate = of_property_read_bool(pdev->dev.of_node,
++					      "mediatek,one-shot-wmt-negotiate");
++	if (wmt_query && wmt_negotiate) {
++		ret = -EINVAL;
++		goto out_unlock;
++	}
++	wmt_query |= wmt_negotiate;
+ 	if (wmt_query && !deferred_start) {
+ 		ret = -EINVAL;
+ 		goto out_unlock;
+@@ -1569,6 +1612,7 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 		mt6797_consys.wmt_query.dma_rx = mapped[2];
+ 	}
+ 	mt6797_consys.wmt_query_only = wmt_query;
++	mt6797_consys.wmt_negotiate_only = wmt_negotiate;
+ 	mt6797_consys.vcn18 = vcn18;
+ 	mt6797_consys.vcn28 = vcn28;
+ 	mt6797_consys.vcn33_wifi = vcn33_wifi;
+@@ -1609,6 +1653,7 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 	}
+ 	if (deferred_start && mt6797_consys.region19_window) {
+ 		ret = device_create_file(&pdev->dev,
++					 wmt_negotiate ? &dev_attr_wmt_negotiate :
+ 					 wmt_query ? &dev_attr_wmt_default_query :
+ 					 &dev_attr_firmware_start_after_wmt);
+ 		if (ret)
+diff --git a/drivers/soc/mediatek/mt6797-wmt-full-io.h b/drivers/soc/mediatek/mt6797-wmt-full-io.h
+new file mode 100644
+index 0000000..cedbf05
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-wmt-full-io.h
+@@ -0,0 +1,366 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef MT6797_WMT_FULL_IO_H
++#define MT6797_WMT_FULL_IO_H
++#include <linux/completion.h>
++#include <linux/errno.h>
++#include <linux/interrupt.h>
++#include <linux/io.h>
++#include <linux/jiffies.h>
++#include <linux/spinlock.h>
++#include <linux/string.h>
++#include "wmt-full-stp-state.h"
++#include "wmt-full-stp-stream.h"
++#include "wmt-full-stp-tx.h"
++#include "wmt-stp-options.h"
++
++#define WMT_FULL_IO_SERVICES 512U
++#define WMT_SET_IO_SERVICES 32U
++#define WMT_SET_IO_RX_BYTES 13U
++#define WMT_FULL_IO_RX_QUOTA 8U
++#define WMT_FULL_IO_FRAMES 8U
++#define WMT_FULL_IO_RX_BYTES (WMT_FULL_MAX_FRAME + 32U)
++
++/* CONSYS-owned persistent storage, never stack allocated. Caller establishes
++ * full mode, clocks, DMA exclusion, normal bank and exclusive IRQ availability.
++ * The wrapper owns registration; resource setup/admission has no kernel caller.
++ */
++struct mt6797_wmt_full_io {
++	void __iomem *btif;
++	struct wmt_full_state *link;
++	struct wmt_full_stream stream;
++	struct wmt_full_tx tx;
++	struct wmt_stp_set_reply set_reply;
++	int mandatory_set;
++	unsigned char command[WMT_FULL_MAX_FRAME], ack[4];
++	unsigned char received[WMT_FULL_IO_RX_BYTES];
++	const unsigned char *expected;
++	unsigned int expected_length, rx_count, consumed, frames, services, tx_count;
++	unsigned long deadline;
++	/* Serializes FIFO progress, terminal state and process timeout. */
++	spinlock_t lock;
++	struct completion done;
++	int irq, ack_phase, sent, terminal, result, prepared, irq_armed;
++};
++
++/* No effects; caller provides fresh/synchronized storage and an inactive link.
++ * Expected event storage remains immutable throughout this command lifetime.
++ */
++static int mt6797_wmt_full_prepare(struct mt6797_wmt_full_io *io,
++				   void __iomem *btif, int irq, struct wmt_full_state *link,
++				   const unsigned char *command, unsigned int length,
++				   const unsigned char *expected, unsigned int expected_length,
++				   unsigned long deadline)
++{
++	int bytes;
++
++	if (!io || !btif || irq <= 0 || !link || link->active || !command || !length ||
++	    length > WMT_FULL_MAX_PAYLOAD || !expected || !expected_length ||
++	    expected_length > WMT_FULL_MAX_PAYLOAD)
++		return -EINVAL;
++	if (io->prepared && (!io->terminal || io->result))
++		return -EBUSY;
++	memset(io, 0, sizeof(*io));
++	io->prepared = 1;
++	io->btif = btif;
++	io->irq = irq;
++	io->link = link;
++	io->expected = expected;
++	io->expected_length = expected_length;
++	io->deadline = deadline;
++	init_completion(&io->done);
++	spin_lock_init(&io->lock);
++	wmt_full_stream_init(&io->stream);
++	bytes = wmt_full_encode(io->command, sizeof(io->command), command, length,
++				link->tx_next, link->local_ack);
++	if (bytes < 0)
++		return -EINVAL;
++	return wmt_full_tx_init(&io->tx, io->command, bytes) ? -EINVAL : 0;
++}
++
++/* Fixed next mandatory exchange only, after a successful initial query.
++ * The owner proves retained clocks, DMA exclusion, empty RX/TX and normal bank.
++ * Separate persistent storage preserves both command records across the switch.
++ * No clock setup, mode change or FIFO clear occurs here.
++ */
++static int mt6797_wmt_set_prepare(struct mt6797_wmt_full_io *io,
++				  void __iomem *btif, int irq, unsigned long deadline)
++{
++	if (!io || !btif || irq <= 0)
++		return -EINVAL;
++	if (io->prepared)
++		return -EBUSY;
++	memset(io, 0, sizeof(*io));
++	io->prepared = 1;
++	io->mandatory_set = 1;
++	io->btif = btif;
++	io->irq = irq;
++	io->deadline = deadline;
++	init_completion(&io->done);
++	spin_lock_init(&io->lock);
++	memcpy(io->command, wmt_stp_set_options, sizeof(wmt_stp_set_options));
++	/* The fixed source-checked mandatory frame has no full-STP CRC/checksum.
++	 * Reuse byte accounting, not the full-frame validator at TX initialization.
++	 */
++	io->tx.frame = io->command;
++	io->tx.length = sizeof(wmt_stp_set_options);
++	return 0;
++}
++
++/* Caller holds the same lock used by IRQ progress. Resources remain retained;
++ * caller synchronizes/frees the IRQ only after evidence and terminal state.
++ */
++static void mt6797_wmt_full_retire(struct mt6797_wmt_full_io *io, int result)
++{
++	if (io->terminal)
++		return;
++	writel(0, io->btif + 4);
++	io->result = result;
++	io->terminal = 1;
++	if (io->irq_armed) {
++		disable_irq_nosync(io->irq);
++		io->irq_armed = 0;
++	}
++	complete(&io->done);
++}
++
++static int mt6797_wmt_full_tx_progress(struct mt6797_wmt_full_io *io)
++{
++	const unsigned char *bytes;
++	unsigned int actual = 0, lsr;
++	int offered;
++
++	if (wmt_full_tx_done(&io->tx))
++		return 0;
++	if (time_after_eq(jiffies, io->deadline))
++		return -ETIMEDOUT;
++	lsr = readl(io->btif + 0x14);
++	offered = wmt_full_tx_batch(&io->tx, lsr,
++				    time_after_eq(jiffies, io->deadline), &bytes);
++	if (offered < 0)
++		return -ETIMEDOUT;
++	while (actual < (unsigned int)offered) {
++		if (time_after_eq(jiffies, io->deadline))
++			break;
++		writeb(bytes[actual++], io->btif);
++		io->tx_count++;
++	}
++	if (offered && wmt_full_tx_commit(&io->tx, actual,
++					  time_after_eq(jiffies, io->deadline)))
++		return -ETIMEDOUT;
++	return 0;
++}
++
++/* One bounded service, caller holds lock. Initial kick occurs with CPU IRQ
++ * disabled after reviewed empty-RX/setup checks. Subsequent calls are IRQs.
++ * Per-service RX quota gives TX an opportunity despite continuously pending RX.
++ */
++static void mt6797_wmt_full_service(struct mt6797_wmt_full_io *io, int initial)
++{
++	struct wmt_full_frame frame;
++	unsigned int iir, quota = 0;
++	int ret, parsed;
++
++	if (io->terminal)
++		return;
++	if (time_after_eq(jiffies, io->deadline) ||
++	    io->services == (io->mandatory_set ? WMT_SET_IO_SERVICES :
++			    WMT_FULL_IO_SERVICES)) {
++		mt6797_wmt_full_retire(io, -ETIMEDOUT);
++		return;
++	}
++	if (initial && io->services) {
++		mt6797_wmt_full_retire(io, -EPROTO);
++		return;
++	}
++	if (initial && io->mandatory_set &&
++	    (readl(io->btif + 0x14) & 0x61) != 0x60) {
++		mt6797_wmt_full_retire(io, -EBUSY);
++		return;
++	}
++	io->services++;
++	iir = readl(io->btif + 8);
++	if ((initial && (iir & 0x44)) || (!initial && !(iir & 0x46))) {
++		mt6797_wmt_full_retire(io, -EPROTO);
++		return;
++	}
++	while ((iir & 0x44) && quota < WMT_FULL_IO_RX_QUOTA) {
++		if (io->rx_count == (io->mandatory_set ? WMT_SET_IO_RX_BYTES :
++				     sizeof(io->received))) {
++			mt6797_wmt_full_retire(io, -EOVERFLOW);
++			return;
++		}
++		if (time_after_eq(jiffies, io->deadline)) {
++			mt6797_wmt_full_retire(io, -ETIMEDOUT);
++			return;
++		}
++		io->received[io->rx_count++] = readb(io->btif);
++		quota++;
++		iir = readl(io->btif + 8);
++	}
++	ret = mt6797_wmt_full_tx_progress(io);
++	if (ret)
++		goto fail;
++	if (!io->sent && wmt_full_tx_done(&io->tx)) {
++		if (!io->mandatory_set &&
++		    wmt_full_sent(io->link, (io->command[0] >> 3) & 7)) {
++			ret = -EPROTO;
++			goto fail;
++		}
++		io->sent = 1;
++		writel(1, io->btif + 4);
++	}
++	if (!io->sent)
++		return;
++	if (io->mandatory_set) {
++		while (io->consumed < io->rx_count) {
++			if (time_after_eq(jiffies, io->deadline)) {
++				ret = -ETIMEDOUT;
++				goto fail;
++			}
++			parsed = wmt_stp_set_reply_byte(&io->set_reply,
++							io->received[io->consumed++]);
++			if (parsed < 0) {
++				ret = -EPROTO;
++				goto fail;
++			}
++			if (!parsed)
++				continue;
++			if (io->consumed != io->rx_count ||
++			    (readl(io->btif + 8) & 0x44)) {
++				ret = -EPROTO;
++				goto fail;
++			}
++			if (time_after_eq(jiffies, io->deadline)) {
++				ret = -ETIMEDOUT;
++				goto fail;
++			}
++			io->frames = 1;
++			mt6797_wmt_full_retire(io, 0);
++			return;
++		}
++		return;
++	}
++	while (io->consumed < io->rx_count) {
++		if (time_after_eq(jiffies, io->deadline)) {
++			ret = -ETIMEDOUT;
++			goto fail;
++		}
++		parsed = wmt_full_stream_byte(&io->stream,
++					      io->received[io->consumed++], &frame);
++		if (parsed < 0 || (parsed && io->frames == WMT_FULL_IO_FRAMES)) {
++			ret = -EPROTO;
++			goto fail;
++		}
++		if (!parsed)
++			continue;
++		io->frames++;
++		if (wmt_full_receive(io->link, io->stream.frame, io->stream.used,
++				     io->expected, io->expected_length) < 0) {
++			ret = -EPROTO;
++			goto fail;
++		}
++		wmt_full_stream_init(&io->stream);
++	}
++	/* Once both reply and peer credit are known, further input is unexpected.
++	 * Refuse it before adding host ACK writes to a failed lifetime.
++	 */
++	if (io->link->acknowledged && io->link->event_seen &&
++	    (io->stream.used || (readl(io->btif + 8) & 0x44))) {
++		ret = -EPROTO;
++		goto fail;
++	}
++	if (io->link->ack_owed && !io->ack_phase) {
++		if (wmt_full_ack(io->ack, sizeof(io->ack), io->link->local_ack) != 4 ||
++		    wmt_full_tx_init(&io->tx, io->ack, sizeof(io->ack))) {
++			ret = -EPROTO;
++			goto fail;
++		}
++		io->ack_phase = 1;
++		writel(3, io->btif + 4);
++	}
++	if (io->ack_phase && io->link->ack_owed) {
++		ret = mt6797_wmt_full_tx_progress(io);
++		if (ret)
++			goto fail;
++		if (wmt_full_tx_done(&io->tx)) {
++			if (wmt_full_ack_sent(io->link, io->link->local_ack)) {
++				ret = -EPROTO;
++				goto fail;
++			}
++			writel(1, io->btif + 4);
++		}
++	}
++	if (io->link->acknowledged && io->link->event_seen && !io->link->ack_owed) {
++		/* Refuse queued or partial extra data before successful retirement. */
++		if (io->stream.used || (readl(io->btif + 8) & 0x44)) {
++			ret = -EPROTO;
++			goto fail;
++		}
++		if (time_after_eq(jiffies, io->deadline)) {
++			ret = -ETIMEDOUT;
++			goto fail;
++		}
++		ret = wmt_full_finish(io->link) ? -EPROTO : 0;
++		mt6797_wmt_full_retire(io, ret);
++	}
++	return;
++fail:
++	mt6797_wmt_full_retire(io, ret);
++}
++
++static irqreturn_t mt6797_wmt_full_irq(int irq, void *data)
++{
++	struct mt6797_wmt_full_io *io = data;
++	unsigned long flags;
++
++	if (irq != io->irq)
++		return IRQ_NONE;
++	spin_lock_irqsave(&io->lock, flags);
++	mt6797_wmt_full_service(io, 0);
++	spin_unlock_irqrestore(&io->lock, flags);
++	return IRQ_HANDLED;
++}
++
++/* Process-context caller; exclusive resources and the selected transport mode are prerequisites.
++ * NO_AUTOEN owns the initial disabled depth. No other timeout/start caller may
++ * run concurrently. Evidence/storage and transport clocks outlive this call.
++ */
++static int mt6797_wmt_full_exchange(struct mt6797_wmt_full_io *io)
++{
++	unsigned long flags, now, remaining;
++	int ret;
++
++	if (!io || !io->prepared || io->services || io->terminal || io->irq_armed)
++		return -EINVAL;
++	ret = request_irq(io->irq, mt6797_wmt_full_irq, IRQF_NO_AUTOEN,
++			  "mt6797-wmt-full", io);
++	if (ret)
++		return ret;
++	spin_lock_irqsave(&io->lock, flags);
++	writel(3, io->btif + 4);
++	mt6797_wmt_full_service(io, 1);
++	if (!io->terminal)
++		io->irq_armed = 1;
++	spin_unlock_irqrestore(&io->lock, flags);
++	/* Only this process can retire between initial kick and CPU IRQ enable.
++	 * It does not start timeout retirement until after enable_irq returns.
++	 */
++	if (io->irq_armed) {
++		enable_irq(io->irq);
++		now = jiffies;
++		remaining = time_after_eq(now, io->deadline) ? 0 : io->deadline - now;
++		wait_for_completion_timeout(&io->done, remaining);
++		spin_lock_irqsave(&io->lock, flags);
++		if (!io->terminal)
++			mt6797_wmt_full_retire(io, -ETIMEDOUT);
++		spin_unlock_irqrestore(&io->lock, flags);
++	}
++	/* Handler may have completed while still holding its lock. Join it before
++	 * freeing the registration or allowing the caller to inspect/reuse data.
++	 */
++	synchronize_irq(io->irq);
++	ret = io->result;
++	free_irq(io->irq, io);
++	return ret;
++}
++#endif
+diff --git a/drivers/soc/mediatek/mt6797-wmt-negotiate.h b/drivers/soc/mediatek/mt6797-wmt-negotiate.h
+new file mode 100644
+index 0000000..75e6529
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-wmt-negotiate.h
+@@ -0,0 +1,111 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef MT6797_WMT_NEGOTIATE_H
++#define MT6797_WMT_NEGOTIATE_H
++
++#include <linux/delay.h>
++#include "mt6797-wmt-query.h"
++#include "mt6797-wmt-full-io.h"
++#include "wmt-stp-options.h"
++
++#define WMT_NEGOTIATE_BUDGET_MS 1600U
++#define WMT_NEGOTIATE_EXCHANGE_MS 500U
++
++enum mt6797_wmt_phase {
++	WMT_PHASE_UNUSED,
++	WMT_PHASE_DEFAULT,
++	WMT_PHASE_SET,
++	WMT_PHASE_SWITCH,
++	WMT_PHASE_FULL,
++	WMT_PHASE_DONE,
++};
++
++/* Zeroed persistent CONSYS-owned storage. Caller fills the first query's exact
++ * mappings, clock handles and exclusive IRQ, after fresh power/reset release.
++ * Its shared owner lock serializes this entire lifetime. All records/resources
++ * survive failure for preservation and reviewed recovery, never stack allocated.
++ */
++struct mt6797_wmt_negotiate {
++	struct mt6797_wmt_query first;
++	struct mt6797_wmt_full_io set, full;
++	struct wmt_full_state link;
++	unsigned long deadline;
++	enum mt6797_wmt_phase phase;
++	int attempted, full_initialized, result;
++};
++
++static unsigned long mt6797_wmt_phase_deadline(struct mt6797_wmt_negotiate *owner)
++{
++	unsigned long end = jiffies + msecs_to_jiffies(WMT_NEGOTIATE_EXCHANGE_MS);
++
++	return time_before(owner->deadline, end) ? owner->deadline : end;
++}
++
++/* Software framing changes only at the checked set event. There is no mode
++ * register write, repeated FIFO clear, wake, patch, calibration or WLAN start.
++ */
++static int mt6797_wmt_negotiate_once(struct mt6797_wmt_negotiate *owner)
++{
++	int ret;
++
++	if (!owner || !owner->first.btif || !owner->first.dma_tx ||
++	    !owner->first.dma_rx || !owner->first.btif_clk ||
++	    !owner->first.dma_clk || owner->first.irq <= 0)
++		return -EINVAL;
++	if (owner->attempted || owner->first.attempted || owner->set.prepared ||
++	    owner->full.prepared)
++		return -EALREADY;
++	owner->attempted = 1;
++	owner->deadline = jiffies + msecs_to_jiffies(WMT_NEGOTIATE_BUDGET_MS);
++	owner->phase = WMT_PHASE_DEFAULT;
++	owner->first.deadline = mt6797_wmt_phase_deadline(owner);
++	owner->first.deadline_supplied = true;
++	ret = mt6797_wmt_query_once(&owner->first);
++	if (ret)
++		goto out;
++	if (!owner->first.clocks_held || owner->first.rx_count != 16 ||
++	    !owner->first.irq_count || owner->first.irq_count >= 32) {
++		ret = -EPROTO;
++		goto out;
++	}
++	if (time_after_eq(jiffies, owner->deadline)) {
++		ret = -ETIMEDOUT;
++		goto out;
++	}
++	owner->phase = WMT_PHASE_SET;
++	ret = mt6797_wmt_set_prepare(&owner->set, owner->first.btif,
++				     owner->first.irq, mt6797_wmt_phase_deadline(owner));
++	if (!ret)
++		ret = mt6797_wmt_full_exchange(&owner->set);
++	if (ret)
++		goto out;
++	if (time_after_eq(jiffies, owner->deadline)) {
++		ret = -ETIMEDOUT;
++		goto out;
++	}
++	owner->phase = WMT_PHASE_SWITCH;
++	wmt_full_state_init(&owner->link);
++	owner->full_initialized = 1;
++	/* Selected source delay, not a measured peer timing guarantee. */
++	usleep_range(10000, 11000);
++	if (time_after_eq(jiffies, owner->deadline)) {
++		ret = -ETIMEDOUT;
++		goto out;
++	}
++	owner->phase = WMT_PHASE_FULL;
++	ret = mt6797_wmt_full_prepare(&owner->full, owner->first.btif,
++				      owner->first.irq, &owner->link,
++				      wmt_stp_full_query, sizeof(wmt_stp_full_query),
++				      wmt_stp_full_options, sizeof(wmt_stp_full_options),
++				      mt6797_wmt_phase_deadline(owner));
++	if (!ret)
++		ret = mt6797_wmt_full_exchange(&owner->full);
++	if (!ret && time_after_eq(jiffies, owner->deadline))
++		ret = -ETIMEDOUT;
++	if (!ret)
++		owner->phase = WMT_PHASE_DONE;
++out:
++	owner->result = ret;
++	return ret;
++}
++
++#endif
+diff --git a/drivers/soc/mediatek/mt6797-wmt-query.h b/drivers/soc/mediatek/mt6797-wmt-query.h
+index 3aea3de..3d99bb6 100644
+--- a/drivers/soc/mediatek/mt6797-wmt-query.h
++++ b/drivers/soc/mediatek/mt6797-wmt-query.h
+@@ -37,6 +37,7 @@ struct mt6797_wmt_query {
+ 	unsigned int irq_count;
+ 	unsigned int rx_count;
+ 	unsigned long deadline;
++	bool deadline_supplied;
+ 	int irq;
+ 	int result;
+ 	bool attempted;
+@@ -144,6 +145,8 @@ static int mt6797_wmt_query_once(struct mt6797_wmt_query *query)
+ 	init_completion(&query->done);
+ 	spin_lock_init(&query->lock);
+ 	query->result = -ETIMEDOUT;
++	if (query->deadline_supplied && time_after_eq(jiffies, query->deadline))
++		return -ETIMEDOUT;
+ 
+ 	ret = clk_prepare_enable(query->dma_clk);
+ 	if (ret)
+@@ -156,6 +159,9 @@ static int mt6797_wmt_query_once(struct mt6797_wmt_query *query)
+ 	if (ret)
+ 		return ret;
+ 
++	if (query->deadline_supplied && time_after_eq(jiffies, query->deadline))
++		return -ETIMEDOUT;
++
+ 	/* Normal bank first; reject nonempty FIFOs before any clear. */
+ 	writel(0, query->btif + WMT_BTIF_FAKELCR);
+ 	if ((readl(query->btif + WMT_BTIF_LSR) & 0x41) != 0x40)
+@@ -178,7 +184,8 @@ static int mt6797_wmt_query_once(struct mt6797_wmt_query *query)
+ 			  "mt6797-wmt-query", query);
+ 	if (ret)
+ 		return ret;
+-	query->deadline = jiffies + msecs_to_jiffies(500);
++	if (!query->deadline_supplied)
++		query->deadline = jiffies + msecs_to_jiffies(500);
+ 	/* RX only, as in the revision-matched PIO path. */
+ 	writel(BIT(0), query->btif + WMT_BTIF_IER);
+ 	if (readl(query->btif + WMT_BTIF_IIR) & WMT_BTIF_RX_CAUSE) {
+diff --git a/drivers/soc/mediatek/wmt-full-stp-state.h b/drivers/soc/mediatek/wmt-full-stp-state.h
+new file mode 100644
+index 0000000..4962639
+--- /dev/null
++++ b/drivers/soc/mediatek/wmt-full-stp-state.h
+@@ -0,0 +1,92 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef GEMINI_WMT_FULL_STP_STATE_H
++#define GEMINI_WMT_FULL_STP_STATE_H
++#include "wmt-full-stp.h"
++
++/* Single-owner, one-command window. Initialize only at an admitted full-mode
++ * boundary, never because an ordinary WMT reset event was received.
++ */
++struct wmt_full_state {
++	unsigned int tx_next, rx_next, peer_ack, local_ack;
++	unsigned int active, sent_sequence, acknowledged, event_seen, ack_owed;
++};
++
++static inline void wmt_full_state_init(struct wmt_full_state *state)
++{
++	struct wmt_full_state initial = { .peer_ack = 7, .local_ack = 7 };
++
++	*state = initial;
++}
++
++/* Call only after all encoded command bytes were transmitted successfully.
++ * A partial TX must retire the caller's lifetime without this transition.
++ */
++static inline int wmt_full_sent(struct wmt_full_state *state, unsigned int sequence)
++{
++	if (!state || state->active || sequence != state->tx_next)
++		return -1;
++	state->active = 1;
++	state->sent_sequence = sequence;
++	state->tx_next = (sequence + 1) & 7;
++	state->acknowledged = 0;
++	state->event_seen = 0;
++	return 0;
++}
++
++/* Exact event comparison precedes all state mutation. An ACK can precede or
++ * follow the event, or be piggybacked on it. Repeated previous ACKs consume no
++ * credit; caller bounds total frames/time and retires on every refusal.
++ */
++static inline int wmt_full_receive(struct wmt_full_state *state,
++				   const unsigned char *frame, unsigned int bytes,
++				   const unsigned char *expected, unsigned int expected_length)
++{
++	struct wmt_full_frame decoded;
++	unsigned int i;
++	int kind;
++
++	if (!state || !state->active)
++		return -1;
++	kind = wmt_full_decode(frame, bytes, &decoded);
++	if (kind < 0 || (decoded.acknowledgement != state->peer_ack &&
++			 decoded.acknowledgement != state->sent_sequence))
++		return -1;
++	if (kind) {
++		if (!expected || state->event_seen || decoded.sequence != state->rx_next ||
++		    decoded.length != expected_length)
++			return -1;
++		for (i = 0; i < expected_length; i++)
++			if (decoded.payload[i] != expected[i])
++				return -1;
++	}
++	if (decoded.acknowledgement == state->sent_sequence) {
++		state->peer_ack = decoded.acknowledgement;
++		state->acknowledged = 1;
++	}
++	if (kind) {
++		state->local_ack = decoded.sequence;
++		state->rx_next = (decoded.sequence + 1) & 7;
++		state->event_seen = 1;
++		state->ack_owed = 1;
++	}
++	return kind;
++}
++
++/* Call only after the four-byte host ACK was transmitted completely. */
++static inline int wmt_full_ack_sent(struct wmt_full_state *state, unsigned int ack)
++{
++	if (!state || !state->active || !state->ack_owed || ack != state->local_ack)
++		return -1;
++	state->ack_owed = 0;
++	return 0;
++}
++
++static inline int wmt_full_finish(struct wmt_full_state *state)
++{
++	if (!state || !state->active || !state->acknowledged ||
++	    !state->event_seen || state->ack_owed)
++		return -1;
++	state->active = 0;
++	return 0;
++}
++#endif
+diff --git a/drivers/soc/mediatek/wmt-full-stp-stream.h b/drivers/soc/mediatek/wmt-full-stp-stream.h
+new file mode 100644
+index 0000000..73bfb1f
+--- /dev/null
++++ b/drivers/soc/mediatek/wmt-full-stp-stream.h
+@@ -0,0 +1,58 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef GEMINI_WMT_FULL_STP_STREAM_H
++#define GEMINI_WMT_FULL_STP_STREAM_H
++#include "wmt-full-stp.h"
++
++/* Persistent caller storage; decoded payload aliases this buffer. Consume the
++ * completed frame before initializing for the next frame. No resynchronization.
++ */
++struct wmt_full_stream {
++	unsigned char frame[WMT_FULL_MAX_FRAME];
++	unsigned int used, needed;
++	int terminal;
++};
++
++static inline void wmt_full_stream_init(struct wmt_full_stream *stream)
++{
++	stream->used = 0;
++	stream->needed = 4;
++	stream->terminal = 0;
++}
++
++/* 0: incomplete, 1: ACK, 2: data, -1: terminal refusal. The owner also limits
++ * aggregate bytes, frame count, IRQ work and elapsed time across exchanges.
++ */
++static inline int wmt_full_stream_byte(struct wmt_full_stream *stream,
++				       unsigned char byte, struct wmt_full_frame *result)
++{
++	unsigned int length;
++	int kind;
++
++	if (!stream || !result)
++		return -1;
++	if (stream->terminal || stream->used >= sizeof(stream->frame))
++		goto refuse;
++	stream->frame[stream->used++] = byte;
++	if (stream->used == 4) {
++		const unsigned char *h = stream->frame;
++
++		length = ((h[1] & 15) << 8) | h[2];
++		if ((h[0] & 0xc0) != 0x80 || (h[1] & 0x80) ||
++		    ((h[0] + h[1] + h[2]) & 255) != h[3] ||
++		    length > WMT_FULL_MAX_PAYLOAD ||
++		    (!length && h[1]) || (length && (h[1] & 0x70) != 0x40))
++			goto refuse;
++		stream->needed = length ? length + 6 : 4;
++	}
++	if (stream->used < stream->needed)
++		return 0;
++	kind = wmt_full_decode(stream->frame, stream->used, result);
++	if (kind < 0)
++		goto refuse;
++	stream->terminal = 1;
++	return kind + 1;
++refuse:
++	stream->terminal = -1;
++	return -1;
++}
++#endif
+diff --git a/drivers/soc/mediatek/wmt-full-stp-tx.h b/drivers/soc/mediatek/wmt-full-stp-tx.h
+new file mode 100644
+index 0000000..e41258a
+--- /dev/null
++++ b/drivers/soc/mediatek/wmt-full-stp-tx.h
+@@ -0,0 +1,84 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef GEMINI_WMT_FULL_STP_TX_H
++#define GEMINI_WMT_FULL_STP_TX_H
++#include "wmt-full-stp.h"
++
++#define WMT_FULL_TX_OBSERVATIONS 256U
++
++/* Caller owns immutable encoded bytes throughout this span. Serial access;
++ * no MMIO, retries, timers or IRQ masking are performed by this helper.
++ */
++struct wmt_full_tx {
++	const unsigned char *frame;
++	unsigned int length, written, offered, observations;
++	int retired;
++};
++
++static inline int wmt_full_tx_init(struct wmt_full_tx *tx,
++				   const unsigned char *frame, unsigned int length)
++{
++	struct wmt_full_frame decoded;
++	struct wmt_full_tx initial = { .frame = frame, .length = length };
++
++	if (!tx || wmt_full_decode(frame, length, &decoded) < 0)
++		return -1;
++	*tx = initial;
++	return 0;
++}
++
++static inline int wmt_full_tx_done(const struct wmt_full_tx *tx)
++{
++	return tx && !tx->retired && !tx->offered && tx->written == tx->length;
++}
++
++/* Fresh, normal-bank LSR observation for exactly one batch. Caller checks its
++ * deadline under the ownership lock and supplies the corresponding expiry.
++ * Returns offered bytes, zero for no room/completion, or terminal -1.
++ */
++static inline int wmt_full_tx_batch(struct wmt_full_tx *tx, unsigned int lsr,
++				    int expired, const unsigned char **bytes)
++{
++	unsigned int room, remaining;
++
++	if (!tx || !bytes)
++		return -1;
++	if (tx->retired || tx->offered || expired)
++		goto retire;
++	if (wmt_full_tx_done(tx))
++		return 0;
++	if (tx->observations == WMT_FULL_TX_OBSERVATIONS)
++		goto retire;
++	tx->observations++;
++	room = lsr & 0x40 ? 16 : lsr & 0x20 ? 8 : 0;
++	if (!room)
++		return 0;
++	remaining = tx->length - tx->written;
++	tx->offered = remaining < room ? remaining : room;
++	*bytes = tx->frame + tx->written;
++	return tx->offered;
++retire:
++	tx->retired = 1;
++	return -1;
++}
++
++/* Report actual THR writes once. Partial or late completion preserves its byte
++ * count but retires without claiming command submission or replaying a suffix.
++ */
++static inline int wmt_full_tx_commit(struct wmt_full_tx *tx,
++				     unsigned int actual, int expired)
++{
++	if (!tx)
++		return -1;
++	if (tx->retired || !tx->offered || actual > tx->offered) {
++		tx->retired = 1;
++		return -1;
++	}
++	tx->written += actual;
++	if (actual != tx->offered || expired) {
++		tx->retired = 1;
++		return -1;
++	}
++	tx->offered = 0;
++	return 0;
++}
++#endif
+diff --git a/drivers/soc/mediatek/wmt-full-stp.h b/drivers/soc/mediatek/wmt-full-stp.h
+new file mode 100644
+index 0000000..fbf15c1
+--- /dev/null
++++ b/drivers/soc/mediatek/wmt-full-stp.h
+@@ -0,0 +1,100 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef GEMINI_WMT_FULL_STP_H
++#define GEMINI_WMT_FULL_STP_H
++
++/* Selected WMT command limit: five-byte patch header plus 1000-byte body. */
++#define WMT_FULL_MAX_PAYLOAD 1005U
++#define WMT_FULL_MAX_FRAME (WMT_FULL_MAX_PAYLOAD + 6U)
++
++struct wmt_full_frame {
++	unsigned int sequence;
++	unsigned int acknowledgement;
++	unsigned int length;
++	const unsigned char *payload;
++};
++
++/* CRC-16 polynomial 0x8005, reflected, initial value zero; payload only. */
++static inline unsigned int wmt_full_crc(const unsigned char *data,
++					unsigned int length)
++{
++	unsigned int crc = 0;
++	unsigned int i, bit;
++
++	for (i = 0; i < length; i++) {
++		crc ^= data[i];
++		for (bit = 0; bit < 8; bit++)
++			crc = (crc >> 1) ^ ((crc & 1) ? 0xa001U : 0);
++	}
++	return crc;
++}
++
++/* Caller supplies disjoint buffers and owns FIFO progress and transport state.
++ * Returns frame bytes or -1 before modifying output on invalid arguments.
++ */
++static inline int wmt_full_encode(unsigned char *out, unsigned int capacity,
++				  const unsigned char *payload, unsigned int length,
++				  unsigned int sequence, unsigned int acknowledgement)
++{
++	unsigned int crc, i;
++
++	if (!out || !payload || !length || length > WMT_FULL_MAX_PAYLOAD ||
++	    sequence > 7 || acknowledgement > 7 || capacity < length + 6)
++		return -1;
++	crc = wmt_full_crc(payload, length);
++	out[0] = 0x80 | (sequence << 3) | acknowledgement;
++	out[1] = 0x40 | (length >> 8);
++	out[2] = length & 0xff;
++	out[3] = (out[0] + out[1] + out[2]) & 0xff;
++	for (i = 0; i < length; i++)
++		out[i + 4] = payload[i];
++	out[length + 4] = crc & 0xff;
++	out[length + 5] = crc >> 8;
++	return length + 6;
++}
++
++static inline int wmt_full_ack(unsigned char *out, unsigned int capacity,
++			       unsigned int acknowledgement)
++{
++	if (!out || capacity < 4 || acknowledgement > 7)
++		return -1;
++	out[0] = 0x80 | acknowledgement;
++	out[1] = 0;
++	out[2] = 0;
++	out[3] = out[0];
++	return 4;
++}
++
++/* One complete frame; no scan/resynchronization or state advancement.
++ * Returns 0 for ACK, 1 for WMT data, -1 without modifying result on failure.
++ * Result aliases input: caller retains it and validates sequence/ack and WMT
++ * event contents before accepting an exchange or advancing an epoch.
++ */
++static inline int wmt_full_decode(const unsigned char *frame, unsigned int bytes,
++				  struct wmt_full_frame *result)
++{
++	unsigned int length, crc;
++
++	if (!frame || !result || bytes < 4 || (frame[0] & 0xc0) != 0x80 ||
++	    (frame[1] & 0x80) ||
++	    ((frame[0] + frame[1] + frame[2]) & 0xff) != frame[3])
++		return -1;
++	length = ((frame[1] & 0x0f) << 8) | frame[2];
++	if (!length) {
++		if (frame[1] || bytes != 4)
++			return -1;
++	} else {
++		if ((frame[1] & 0x70) != 0x40 || length > WMT_FULL_MAX_PAYLOAD ||
++		    bytes != length + 6)
++			return -1;
++		crc = frame[length + 4] | (frame[length + 5] << 8);
++		if (crc != wmt_full_crc(frame + 4, length))
++			return -1;
++	}
++	result->sequence = (frame[0] >> 3) & 7;
++	result->acknowledgement = frame[0] & 7;
++	result->length = length;
++	result->payload = length ? frame + 4 : 0;
++	return length ? 1 : 0;
++}
++
++#endif
+diff --git a/drivers/soc/mediatek/wmt-stp-options.h b/drivers/soc/mediatek/wmt-stp-options.h
+new file mode 100644
+index 0000000..c3c71e5
+--- /dev/null
++++ b/drivers/soc/mediatek/wmt-stp-options.h
+@@ -0,0 +1,56 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef GEMINI_WMT_STP_OPTIONS_H
++#define GEMINI_WMT_STP_OPTIONS_H
++
++/* Fixed mandatory-mode set request. The selected mandatory TX path does not
++ * increment its debug sequence; full-mode enable separately reseeds state.
++ * No register, mode, clock, IRQ or transport operations are performed here.
++ */
++static const unsigned char wmt_stp_set_options[15] = {
++	0x80, 0x40, 0x09, 0x00, 0x01, 0x04, 0x05, 0x00,
++	0x03, 0xdf, 0x0e, 0x68, 0x01, 0x00, 0x00
++};
++
++/* Payloads for the existing full-STP codec/owner after the checked set event,
++ * admitted full-mode boundary, sequence initialization and switch delay.
++ */
++static const unsigned char wmt_stp_full_query[5] = {
++	0x01, 0x04, 0x01, 0x00, 0x04
++};
++
++static const unsigned char wmt_stp_full_options[10] = {
++	0x02, 0x04, 0x06, 0x00, 0x00, 0x04, 0xdf, 0x0e, 0x68, 0x01
++};
++
++struct wmt_stp_set_reply {
++	unsigned int received;
++	int failed;
++};
++
++/* One consumed byte: 1 complete, 0 incomplete, -1 failed. Caller enforces
++ * finite byte/time/IRQ budgets and retires on refusal or extra input.
++ */
++static inline int wmt_stp_set_reply_byte(struct wmt_stp_set_reply *reply,
++					 unsigned char byte)
++{
++	static const unsigned char suffix[11] = {
++		0x40, 0x06, 0x00, 0x02, 0x04, 0x02, 0x00, 0x00,
++		0x03, 0x00, 0x00
++	};
++
++	if (!reply || reply->failed)
++		return -1;
++	if (reply->received >= 12) {
++		reply->failed = 1;
++		return -1;
++	}
++	if (reply->received ? byte != suffix[reply->received - 1] :
++	    !(byte & 0x80)) {
++		reply->failed = 1;
++		return -1;
++	}
++	reply->received++;
++	return reply->received == 12;
++}
++
++#endif
+-- 
+2.39.5
+

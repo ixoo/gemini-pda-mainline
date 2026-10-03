@@ -1,0 +1,2 @@
+# Isolated deferred WMT default/set/full negotiation; compile review only.
+CONFIG_LOCALVERSION="-gemini-a53-wmt-negotiate"

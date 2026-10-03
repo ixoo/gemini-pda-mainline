@@ -1,0 +1,59 @@
+From 515d6224260f44086358e526fdb4c17e4d727694 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 3 Oct 2026 12:11:56 +0000
+Subject: [PATCH 93/94] dt-bindings: soc: mediatek: describe isolated WMT
+ negotiation
+
+Describe the separate negotiation diagnostic while preserving exact
+resources and excluding simultaneous query-only and negotiation
+selectors.
+
+Internal experiment archive; synthetic non-certifying author, no DCO.
+Compile-review only; no hardware result.
+---
+ .../soc/mediatek/mediatek,mt6797-consys.yaml  | 21 +++++++++++++++++--
+ 1 file changed, 19 insertions(+), 2 deletions(-)
+
+diff --git a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
+index 0eef74d..e4fc230 100644
+--- a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
++++ b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
+@@ -67,6 +67,16 @@ properties:
+       stops before WLAN HIF, firmware loading, full-mode negotiation or RF
+       calibration. All clocks and power remain retained until reviewed recovery.
+ 
++  mediatek,one-shot-wmt-negotiate:
++    type: boolean
++    description: |
++      Experimental deferred alternative to the default-query-only lifetime.
++      After private WMT memory preparation, one root request powers CONSYS,
++      releases reset, checks the default query and mandatory set-options event,
++      then checks the full-STP query including peer credit and host ACK.
++      Clocks and power remain retained until reviewed recovery. No ROM patch,
++      calibration, WLAN firmware start or RF operation is selected.
++
+   memory-region:
+     maxItems: 1
+     description: Boot-allocated no-map CONSYS firmware reservation.
+@@ -185,9 +195,16 @@ additionalProperties: false
+ 
+ allOf:
+   - if:
+-      required:
+-        - mediatek,one-shot-wmt-default-query
++      anyOf:
++        - required:
++            - mediatek,one-shot-wmt-default-query
++        - required:
++            - mediatek,one-shot-wmt-negotiate
+     then:
++      not:
++        required:
++          - mediatek,one-shot-wmt-default-query
++          - mediatek,one-shot-wmt-negotiate
+       properties:
+         reg:
+           minItems: 9
+-- 
+2.39.5
+

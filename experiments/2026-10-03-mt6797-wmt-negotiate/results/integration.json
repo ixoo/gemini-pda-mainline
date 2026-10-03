@@ -1,0 +1,29 @@
+{
+  "scope": "isolated kernel integration selection; no candidate or hardware admission",
+  "header_input_commit": "c83a467124ff31e597d4abc844f08b6f9b823d10",
+  "foundation_profile": "mt6797-a53-wmt-default-query-compile",
+  "selected_profile": "mt6797-a53-wmt-negotiate-compile",
+  "validation": {
+    "exact_baseline_subset_patch_apply": "pass",
+    "eight_exported_headers_vs_host_tested_inputs": "match except whitespace",
+    "strict_checkpatch": "pass with documented exclusions",
+    "checkpatch_exclusions": {
+      "MISSING_SIGN_OFF": "explicit internal non-certifying experiment archive; no invented DCO",
+      "TYPO_SPELLING": "existing British spelling of acknowledgement in wire codec",
+      "FILE_PATH_CHANGES": "new internal transport headers belong to the existing temporary CONSYS diagnostic owner"
+    },
+    "Linux_compile": "pending",
+    "focused_schema": "pending",
+    "candidate_and_device": "not admitted"
+  },
+  "patch_sha256": {
+    "proposals/0092-soc-mediatek-compose-bounded-WMT-mode-negotiation.patch": "e37bb6a65d63990ce1bedf4984a267bee83f05200865d61d5931b190fa891b8b",
+    "proposals/0093-dt-bindings-soc-mediatek-describe-isolated-WMT-negotiation.patch": "1385d9d4f8ea1c5f35743674343efe16371e9efe166b453da25b739ca8540b77",
+    "proposals/0094-arm64-dts-mediatek-select-isolated-Gemini-WMT-negotiation.patch": "b2a149d2d1d0baffcb63425b47dee87ac9793d0b0a3580542e99b814b272c9f6"
+  },
+  "not_established": [
+    "full-mode device response and peer timing",
+    "ROM patch, DLM, PA, calibration or coexistence",
+    "Wi-Fi reception, association or traffic"
+  ]
+}

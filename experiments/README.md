@@ -15,6 +15,10 @@ the loop. Positive identity-gated observations are unaffected.
 
 ## Index
 
+- [Checked WMT mode negotiation](2026-10-03-mt6797-wmt-negotiate/README.md)
+  — isolated kernel integration after the observed default exchange; build,
+  schema, candidate and hardware negotiation remain pending.
+
 - [2026-10-03 MT6797 Wi-Fi implementation audit](2026-10-03-mt6797-wifi-audit/README.md)
   — offline review: the WMT common power-on (BTIF/STP, ROM patch, RF
   calibration) is missing before WLAN start; sets the next Wi-Fi order.
