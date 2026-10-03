@@ -60,3 +60,8 @@ This is preparation, not an admitted runtime protocol. The kernel executor,
 fixtures of its actual IRQ/FIFO path, default-off selector, Buildbox build,
 validated candidate, guarded deployment and attributable capture remain to do.
 It does not change the Wi-Fi support claim or establish calibration/reception.
+
+The subsequent [capture leaf](IDENTITY_CAPTURE.md) now implements bounded
+FIFO/IRQ progress and preservation with actual-service fixtures. It remains
+unintegrated: no kernel caller, candidate or live response follows from these
+tests. The incomplete steps above remain the admission boundary.

@@ -237,3 +237,8 @@ The [identity-read request preparation](IDENTITY_READ_PREPARATION.md) passes
 source-vector and sanitizer checks. Reply acceptance remains unimplemented;
 a capture-only chip read needs reviewed 26-byte TX FIFO progress before build
 or deployment. It will stop before any ROM patch or calibration effect.
+
+The [mandatory chip-reply capture leaf](IDENTITY_CAPTURE.md) now has bounded
+FIFO progress, raw-byte retention and one-shot IRQ retirement. Actual-service
+sanitizer fixtures pass; kernel caller integration, Buildbox compilation and
+an attributable pre-patch reply remain incomplete.

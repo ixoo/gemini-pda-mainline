@@ -1,0 +1,39 @@
+{
+  "status": "offline actual-service/IRQ capture draft; no kernel caller or candidate",
+  "command": "one chip read at firmware address 0x80000008, mandatory STP before negotiation/patches",
+  "budgets": {
+    "max_deadline_ms": 500,
+    "services_including_initial": 64,
+    "THR_writes": 26,
+    "RBR_reads": 32,
+    "RBR_per_service": 8,
+    "attempts": 1
+  },
+  "normal_stop": "deadline expiry returns -ETIMEDOUT, not accepted identity",
+  "validation": {
+    "strict_c11_warnings": "pass",
+    "address_undefined_sanitizers": "pass",
+    "raw_byte_values": 256,
+    "TX_byte_expiry_positions": 26,
+    "RX_byte_expiry_positions": 32,
+    "receive_limits": "32 preserved; 33rd refused before RBR",
+    "failure_paths": "early/stale RX, nonempty/stuck TX, service cap, enable expiry, no reply, expired pre-kick, IRQ registration failure, wrong IRQ and consumed attempt",
+    "IRQ_lifetime": "every registered path disabled at join/free; armed retirement disables once; request failure does not join/free",
+    "regressions": "existing full-STP actual-service and negotiation mocked-leaf fixtures pass"
+  },
+  "sha256": {
+    "tests/mt6797-wmt-identity-io.h": "18d822854ad5549043490c511f6d52babe937a8ca05837fc3ccf12360c58ba49",
+    "tests/wmt-identity-io-test.c": "5f9e45e118fe7770f297ad14672f67401b1662fcc1e68b89af29b92cc910defd",
+    "tests/run-wmt-full-io-test.py": "7b6e680bf99438093af8d22e68940749ff534ac595f08cd267377d18f525d762"
+  },
+  "not_tested": [
+    "kernel caller and resource/setup admission",
+    "kernel compilation",
+    "real FIFO/IRQ/deadline behavior",
+    "actual register reply encoding",
+    "ROM applicability, transfer or calibration",
+    "Wi-Fi reception, association or traffic"
+  ],
+  "device_action": "none",
+  "sanitization": "Independent code and metadata only; no raw firmware, captures, credentials or personal paths."
+}

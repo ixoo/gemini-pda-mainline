@@ -17,7 +17,7 @@ with tempfile.TemporaryDirectory(prefix="gemini-wmt-full-") as temporary:
     (includes / "errno.h").write_text(
         "#ifdef __linux__\n#include_next <linux/errno.h>\n#endif\n"
     )
-    for fixture in ("wmt-full-io-test.c", "wmt-negotiate-test.c"):
+    for fixture in ("wmt-full-io-test.c", "wmt-negotiate-test.c", "wmt-identity-io-test.c"):
         binary = work / fixture.removesuffix(".c")
         subprocess.run([
             os.environ.get("CC", "cc"), "-std=c11", "-Wall", "-Wextra", "-Werror",
