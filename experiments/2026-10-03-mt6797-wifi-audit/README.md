@@ -247,3 +247,8 @@ The [isolated capture integration](../2026-10-03-mt6797-wmt-identity-capture/REA
 now selects the actual kernel caller, exclusive binding and disabled-WLAN board
 profile. Exact scoped replay and strict Checkpatch pass. Linux compilation,
 schema validation and candidate/runtime admission remain separate gates.
+
+The [measured chip response](CHIP_REPLY.md) and strict offline matcher now resolve
+the contradictory read-event length for the chip exchange. The capture lifetime
+is retired after complete preservation, A53 regression and changed Gemian return.
+HW/ROM and ROM applicability remain unmeasured; no patch/calibration follows.

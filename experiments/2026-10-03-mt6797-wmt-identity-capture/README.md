@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-03-mt6797-wmt-identity-capture` |
-| Status | installed with full readback; owner boot2 selection pending |
+| Status | one chip reply captured; recovered to Gemian; lifetime retired |
 | Subsystem | MT6797 CONSYS, BTIF and WMT |
 | Device | Project Gemini PDA |
 | Profile | `mt6797-a53-wmt-identity-capture-compile` |
@@ -86,3 +86,11 @@ reviewed guard, stable power, matching complete device/host readback and clean
 shutdown. Both capture and session tools accept the actual deployment receipt
 offline. The owner must physically select boot2 with console enabled. No chip
 request has run; no identity, reception or Wi-Fi support is yet demonstrated.
+
+## Runtime result
+
+The [completed session](SESSION.md) and [runtime receipt](results/runtime-1.json)
+record one 22-byte chip reply, exact retained counters, complete log preservation,
+A53 regression and changed-boot Gemian recovery. The measured inner length is
+12 bytes. The shell write status discrepancy remains explicit; no retry occurred.
+HW/ROM identities, common initialization and Wi-Fi support remain unproved.

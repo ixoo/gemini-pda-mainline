@@ -1,0 +1,66 @@
+{
+  "status": "one-bounded-chip-reply-capture-complete-lifetime-retired",
+  "kernel_inputs": "8956fbc1b8bf14a04c2f67ca092fb7419d2dd78b",
+  "candidate_boot2_sha256": "7e7134923871220062c55ff652754aac5f7ae842c57d4aaa6dedce2ced5dcd69",
+  "mainline_boot": "fc62d4aa-7905-4461-a896-5fc221827837",
+  "returned_gemian_boot": "c9274575-f278-4b3d-87e0-d2fa410c6b2e",
+  "capture": {
+    "capture_complete": true,
+    "checks": {
+      "bounded_counts": true,
+      "command_prefix": true,
+      "exact_logged_counts": true,
+      "no_other_transport_or_WLAN": true,
+      "terminal_retained": true
+    },
+    "clocks_held": true,
+    "evidence_consistent": true,
+    "identity_accepted": false,
+    "next_action": "review captured encoding privately",
+    "radio_action": false,
+    "rx": 22,
+    "rx_sha256": "91d762e55d398679e9363bfeafdbc8d4156c72b1ccdc779866eca77086e5dfb8",
+    "services": 6,
+    "status": -110,
+    "terminal": true,
+    "tx": 26
+  },
+  "host_trigger": {
+    "exit_status": 0,
+    "reported_printf_status": 0,
+    "stdin_complete": true,
+    "sysfs_read_only_restored": true,
+    "original_bounded_measurement_classification": false,
+    "interpretation": "unexpected shell write status; kernel terminal and sealed wire evidence are separate",
+    "automatic_retry": false
+  },
+  "sealed_log": {
+    "bytes": 133980,
+    "classification": "complete-log-through-seal",
+    "coverage": "sequence-zero-through-explicit-seal",
+    "records": 1902,
+    "sha256": "b6b1e70fb46fef1a3c43913f001b70a1ecd6cb92e41cf45f382ebba18c96f888",
+    "status_sha256": "24cb4c2c138d1599f8baec8d3a87cb72921f8d042e7063216155716c28b3b1b8"
+  },
+  "provider_registered": true,
+  "a53_regression_pass": true,
+  "recovery_confirmed": true,
+  "observation": {
+    "mandatory_frame_bytes": 22,
+    "outer_payload_bytes": 16,
+    "inner_payload_bytes": 12,
+    "event_opcode": 8,
+    "status": 0,
+    "count": 1,
+    "returned_address": "0x80000008",
+    "returned_value": "0x00000279"
+  },
+  "not_proved": [
+    "HW/ROM reply encoding and values",
+    "ROM applicability",
+    "common initialization",
+    "calibration",
+    "Wi-Fi reception association or traffic"
+  ],
+  "raw_capture_published": false
+}

@@ -1,7 +1,8 @@
 # One pre-patch chip-reply capture lifetime
 
-Status: [guarded deployment verified](results/deployment-1.json); owner physical
-boot2 selection and runtime capture pending.
+Status: [completed capture and recovery](results/runtime-1.json). This lifetime
+is retired. The rules below record its admitted scope; they do not authorize
+an identical repeat.
 
 ## Hypothesis and decision
 

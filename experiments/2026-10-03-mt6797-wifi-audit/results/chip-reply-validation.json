@@ -1,0 +1,41 @@
+{
+  "status": "strict-measured-chip-reply-matcher-offline-validated",
+  "capture_receipt": "../../2026-10-03-mt6797-wmt-identity-capture/results/runtime-1.json",
+  "reply_sha256": "91d762e55d398679e9363bfeafdbc8d4156c72b1ccdc779866eca77086e5dfb8",
+  "actual_sealed_reply_matched": true,
+  "semantic_fixture_matched": true,
+  "refusals": {
+    "byte_substitutions": 5610,
+    "nonmatching_lengths": 64,
+    "null_input": 1,
+    "total": 5675
+  },
+  "compiler_flags": [
+    "-std=c11",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-Wconversion",
+    "-Wshadow",
+    "-pedantic",
+    "-fsanitize=address,undefined",
+    "-fno-omit-frame-pointer"
+  ],
+  "source": "tests/wmt-chip-reply.h",
+  "kernel_integration": false,
+  "new_device_action": "none",
+  "HW_ROM_claim": "unmeasured",
+  "ROM_applicability_claim": false,
+  "checkpatch": {
+    "scope": "matcher header only",
+    "strict": true,
+    "errors": 0,
+    "warnings": 0,
+    "checks": 0
+  },
+  "repository_checks": "pass",
+  "limits": [
+    "Linux-only provenance/package checks skipped on macOS",
+    "matcher is not selected by a kernel profile; no kernel build or DT change"
+  ]
+}

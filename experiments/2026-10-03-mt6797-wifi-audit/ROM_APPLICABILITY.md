@@ -60,3 +60,9 @@ The [request preparation](IDENTITY_READ_PREPARATION.md) now constructs the three
 selected read requests with deterministic value bytes. It records why the next
 measurement needs a bounded mandatory-mode FIFO executor and a capture-only
 stop; it implements no reply acceptance or hardware action.
+
+The [completed chip-reply measurement](CHIP_REPLY.md) now resolves this encoding
+for one actual pre-patch chip read: a 22-byte mandatory frame carries a 16-byte
+WMT event with declared inner payload length 12 and chip value 0x0279. The strict
+matcher recognizes only that measured response. HW/ROM encoding and values,
+full tuple applicability, DLM effects and calibration remain unresolved.
