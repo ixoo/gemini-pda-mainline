@@ -222,3 +222,13 @@ The [combined negotiation caller](NEGOTIATION_OWNER.md) now connects the three
 checked exchanges with separate persistent records and one owner deadline.
 Orchestration/mocked-leaf and actual leaf tests pass. Binding it into the CONSYS
 kernel profile and validating the Buildbox package remain incomplete.
+
+## Negotiation runtime and ROM applicability follow-up
+
+The [negotiation runtime](../2026-10-03-mt6797-wmt-negotiate/results/runtime-1.json)
+now proves the scoped mandatory set-options/full-mode exchange, peer credit and
+host ACK. The [installed-pair review](ROM_APPLICABILITY.md) attributes both
+retained ROM files to the installed Gemian pair and places checked chip/HW/ROM
+reads before negotiation in the complete common-init owner. Exact register-read
+reply encoding, DLM effects and calibration semantics remain unresolved. These
+follow-ups do not establish management reception, association or traffic.

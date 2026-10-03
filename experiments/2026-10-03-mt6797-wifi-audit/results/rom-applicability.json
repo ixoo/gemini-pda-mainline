@@ -1,0 +1,67 @@
+{
+  "status": "installed pair attributed; checked mainline version applicability remains open",
+  "inspection": {
+    "kernel_release": "3.18.41+",
+    "boot_id": "d18da7fc-97cb-4ffc-b352-9bbdcd424092",
+    "identity_checked_before_and_after": true,
+    "exit_status": 0,
+    "private_receipt_manifest_sha256": "17a409244c4b91dadea96e2811acdd8b84cf5b11dc5cae82055b58b43d1f6fad",
+    "effects": "two exact file size/digest reads and bounded existing dmesg filter; no WMT command or radio control"
+  },
+  "installed_patches": [
+    {
+      "path": "/vendor/firmware/ROMv3_patch_1_1_hdr.bin",
+      "bytes": 46472,
+      "sha256": "5732c0730380e937b48ad169f2805b65e8d4a178265566c5083cb2cc2d249f1e",
+      "matches_retained_sequence": 1
+    },
+    {
+      "path": "/vendor/firmware/ROMv3_patch_1_0_hdr.bin",
+      "bytes": 210904,
+      "sha256": "450c2b0949cf879217ac9aef81b18b860982f0e69340784b448b54365d8cf630",
+      "matches_retained_sequence": 2
+    }
+  ],
+  "logged_selection": {
+    "chip_id": "0x0279",
+    "hardware_version": "0x8a00",
+    "rom_version": "0x8a00",
+    "chip_revision": "E1",
+    "patch_extension": "_e1",
+    "checked_rom_success_proved": false
+  },
+  "source_commit": "59e00a9144d782e148332009a835b99c43382467",
+  "source_sha256": {
+    "common_main/core/include/wmt_ic.h": "b835386fe5ac36591df6bad21c0e89c80e4245e4354c5dfeef7f4d730a5d45ca",
+    "common_main/core/include/wmt_core.h": "da51f1389115bf5f0ee14d42c1a9d6d516097cdbae563e0fba0b63adf85d4094",
+    "common_main/core/wmt_core.c": "e9f438c5c6033f0bf831347c69d656ec917b3e705648d3d27fb1b27409334f1e",
+    "common_main/core/wmt_ic_soc.c": "22d98e9e5f0c9c3cae36a3099e57315ed7808524239a061bf9ab0cf97379e66f"
+  },
+  "register_read_contract": {
+    "command_bytes": 20,
+    "opcode": "0x08",
+    "operation": 2,
+    "register_type": 1,
+    "register_count": 1,
+    "mask": "0x0000ffff",
+    "ordered_firmware_addresses": [
+      "0x80000008",
+      "0x80000000",
+      "0x80000004"
+    ],
+    "source_order": "default mandatory STP enabled, chip/HW/ROM checks, then sw_init including set-options/full-mode negotiation",
+    "event_bytes_received": 16,
+    "template_payload_length": 4,
+    "template_length_matches_event_size": false,
+    "observed_wire_reply": false,
+    "source_value_input": "copied from caller output storage; chip initialized zero, HW/ROM uninitialized",
+    "future_value_input": 0
+  },
+  "limitations": [
+    "Installed hashes do not prove which files were loaded in this boot or applicability in a new power lifetime.",
+    "Vendor ROM read return is ignored; vendor register helper does not validate event header or status.",
+    "Read-event template length contradicts its 16-byte size; exact wire length/status must be resolved before a strict reply validator.",
+    "No new candidate, firmware transfer, calibration, scan, association or traffic."
+  ],
+  "sanitization": "Only independent facts, checksums and sanitized boot identity; raw source, private logs, firmware and credentials excluded."
+}

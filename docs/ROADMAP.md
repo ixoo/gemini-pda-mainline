@@ -437,8 +437,11 @@ for the first Wi-Fi bring-up. The current preparation order is:
    matched 16-byte event, two IRQ entries, retained clocks, complete preservation
    and confirmed Gemian return; [completed checked negotiation](../experiments/2026-10-03-mt6797-wmt-negotiate/results/runtime-1.json)
    now proves mandatory set-options, full-STP event, peer credit and host ACK;
-   resolve ROM applicability, DLM/register contracts and checked calibration
-   results before selecting the remaining common-init owner;
+   the [installed ROM pair and version review](../experiments/2026-10-03-mt6797-wifi-audit/ROM_APPLICABILITY.md)
+   now attributes both installed files, but checked chip/HW/ROM reads must precede
+   negotiation in the complete owner. Resolve the inconsistent register-read
+   event length, exact applicability, DLM/register contracts and checked
+   calibration results before selecting the remaining common-init owner;
    (d) one boot adding ROM patch, WMT reset, RF calibration and coexistence
    settings before the existing START and one channel-40 passive scan.
    Park the unfinished cached event-mask diagnostic (proposal 0085); revisit it

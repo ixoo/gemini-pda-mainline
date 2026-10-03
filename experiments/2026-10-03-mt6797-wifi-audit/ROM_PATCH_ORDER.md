@@ -57,3 +57,9 @@ attribution, hardware applicability and transfer admission remain unproved.
 The same constructor now includes the complete selected address/fragment/reset
 order, with exact pinned-source vector comparison and 264 synthetic full-STP
 state exchanges. See [the construction boundary](ROM_PATCH_CONSTRUCTOR.md#complete-selected-patch-command-order).
+
+The later [installed-pair review](ROM_APPLICABILITY.md) establishes exact
+installed hashes for both retained files on one checked Gemian boot. It also
+identifies unchecked ROM returns and an inconsistent register-read event
+length, so checked mainline applicability remains open. Earlier statements
+above describe the retained-file-only checkpoint.
