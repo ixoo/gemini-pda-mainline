@@ -1,0 +1,2 @@
+# Isolated root-triggered default WMT query; compile review only.
+CONFIG_LOCALVERSION="-gemini-a53-wmt-query"

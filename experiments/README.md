@@ -2337,3 +2337,5 @@ When an experiment establishes a durable fact, summarize it in
 `docs/hardware/` and link back to the experiment. When it changes runtime support,
 update `docs/HARDWARE_SUPPORT.md` with the exact evidence. When it produces a
 kernel change, export the logical commit into `patches/` and link all three.
+
+- [First MT6797 WMT default query](2026-10-03-mt6797-wmt-default-query/README.md): isolated CONSYS/BTIF integration and compile preparation; no device admission.

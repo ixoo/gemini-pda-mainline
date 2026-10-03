@@ -1,0 +1,104 @@
+From ecdcad1a90689252b96d5e8c097c7a38fc323260 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 2 Oct 2026 21:17:24 -0400
+Subject: [PATCH] dt-bindings: soc: mediatek: allow isolated WMT query
+
+Describe exact BTIF and AP-DMA channel resources, clocks and one
+interrupt for the experimental query-only deferred lifetime. Existing
+profiles retain their six-resource limit.
+
+Internal experiment archive; synthetic non-certifying author, no DCO.
+Compile-review only; no hardware result.
+---
+ .../soc/mediatek/mediatek,mt6797-consys.yaml  | 54 +++++++++++++++++++
+ 1 file changed, 54 insertions(+)
+
+diff --git a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
+index 9abdf2f..0eef74d 100644
+--- a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
++++ b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
+@@ -28,6 +28,9 @@ properties:
+       - description: CONSYS MCU ACR at 0x18070110.
+       - description: AHB SDIO-like Wi-Fi HIF at 0x180f0000.
+       - description: Read-only EMI address-translation selector at 0x10001f00.
++      - description: BTIF controller at 0x1100c000.
++      - description: BTIF AP-DMA TX channel at 0x11000a00.
++      - description: BTIF AP-DMA RX channel at 0x11000a80.
+ 
+   reg-names:
+     minItems: 1
+@@ -38,6 +41,31 @@ properties:
+       - const: mcu-acr
+       - const: wifi-hif
+       - const: emi-selector
++      - const: btif
++      - const: btif-dma-tx
++      - const: btif-dma-rx
++
++  clocks:
++    items:
++      - description: BTIF controller clock.
++      - description: Shared AP-DMA clock for channel idle observations.
++
++  clock-names:
++    items:
++      - const: btif
++      - const: ap-dma
++
++  interrupts:
++    maxItems: 1
++
++  mediatek,one-shot-wmt-default-query:
++    type: boolean
++    description: |
++      Experimental alternative to the deferred WLAN trigger. After private
++      WMT memory preparation, one root request powers CONSYS, releases reset
++      and sends one BTIF mandatory-mode default WMT query by PIO. The query
++      stops before WLAN HIF, firmware loading, full-mode negotiation or RF
++      calibration. All clocks and power remain retained until reviewed recovery.
+ 
+   memory-region:
+     maxItems: 1
+@@ -129,6 +157,7 @@ properties:
+     type: object
+     description: Passive WLAN firmware client populated after CONSYS binds.
+     properties:
++      status: true
+       compatible:
+         const: mediatek,mt6797-wlan
+     required:
+@@ -155,6 +184,31 @@ required:
+ additionalProperties: false
+ 
+ allOf:
++  - if:
++      required:
++        - mediatek,one-shot-wmt-default-query
++    then:
++      properties:
++        reg:
++          minItems: 9
++          maxItems: 9
++        reg-names:
++          minItems: 9
++          maxItems: 9
++      required:
++        - mediatek,deferred-wmt-firmware-start
++        - clocks
++        - clock-names
++        - interrupts
++    else:
++      properties:
++        reg:
++          maxItems: 6
++        reg-names:
++          maxItems: 6
++        clocks: false
++        clock-names: false
++        interrupts: false
+   - if:
+       required:
+         - mediatek,one-shot-power-probe
+-- 
+2.54.0 (Apple Git-157)
+

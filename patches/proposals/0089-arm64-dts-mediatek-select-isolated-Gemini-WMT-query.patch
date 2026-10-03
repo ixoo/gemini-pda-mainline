@@ -1,0 +1,49 @@
+From a281be41b7cb36ef453216179e6a89de38446343 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 2 Oct 2026 21:17:24 -0400
+Subject: [PATCH] arm64: dts: mediatek: select isolated Gemini WMT query
+
+Bind source-matched BTIF clocks, channel windows and level-low sysirq.
+Disable the WLAN child and select the deferred query-only lifetime; no
+automatic query at probe.
+
+Internal experiment archive; synthetic non-certifying author, no DCO.
+Compile-review only; no hardware result.
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts | 12 ++++++++++--
+ 1 file changed, 10 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+index df06404..092c7d8 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -80,9 +80,16 @@
+ 		compatible = "mediatek,mt6797-consys";
+ 		reg = <0 0x10001340 0 4>, <0 0x10001350 0 4>,
+ 		      <0 0x18070008 0 4>, <0 0x18070110 0 4>,
+-		      <0 0x180f0000 0 0x1100>, <0 0x10001f00 0 4>;
++		      <0 0x180f0000 0 0x1100>, <0 0x10001f00 0 4>,
++		      <0 0x1100c000 0 0x1000>, <0 0x11000a00 0 0x80>,
++		      <0 0x11000a80 0 0x80>;
+ 		reg-names = "remap", "conn2ap-sleep-mask", "chip-id", "mcu-acr",
+-			    "wifi-hif", "emi-selector";
++			    "wifi-hif", "emi-selector",
++			    "btif", "btif-dma-tx", "btif-dma-rx";
++		clocks = <&infracfg CLK_INFRA_BTIF>, <&infracfg CLK_INFRA_AP_DMA>;
++		clock-names = "btif", "ap-dma";
++		interrupts = <GIC_SPI 130 IRQ_TYPE_LEVEL_LOW>;
++		mediatek,one-shot-wmt-default-query;
+ 		mediatek,one-shot-power-probe;
+ 		mediatek,one-shot-chip-id-probe;
+ 		mediatek,one-shot-reset-release-probe;
+@@ -102,6 +109,7 @@
+ 
+ 		wifi {
+ 			compatible = "mediatek,mt6797-wlan";
++			status = "disabled";
+ 		};
+ 	};
+ 
+-- 
+2.54.0 (Apple Git-157)
+
