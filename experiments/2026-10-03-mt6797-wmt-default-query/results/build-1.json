@@ -1,0 +1,12 @@
+{
+  "status": "failed; no validated package",
+  "repository_commit": "3bedd47d11763cb2a87a738488947fe4075485ed",
+  "profile": "mt6797-a53-wmt-default-query-compile",
+  "backend": "buildbox",
+  "terminal_exit_code": 2,
+  "failure": "DT phandle_references: BTIF clocks reference nonexistent infracfg label; pinned provider label is infrasys",
+  "build_log_sha256": "3518016dcb7dfe032ffc5337a1c30d3ae2a59783e496663ed3316ffea3ebcb90",
+  "fix": "proposal 0091",
+  "separate_review_fix": "proposal 0090 snapshots jiffies before remaining-time subtraction",
+  "hardware_action": "none"
+}

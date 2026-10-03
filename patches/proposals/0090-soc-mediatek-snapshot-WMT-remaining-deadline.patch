@@ -1,0 +1,42 @@
+From e2c94c996f7fb099f53143fe1718635b32b2ce67 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 2 Oct 2026 21:21:37 -0400
+Subject: [PATCH] soc: mediatek: snapshot the WMT remaining deadline
+
+Snapshot jiffies once before calculating the remaining wait. A tick
+between the old comparison and subtraction could underflow the unsigned
+remaining time and turn the finite query wait into a very long one.
+
+Internal experiment archive; synthetic non-certifying author, no DCO.
+Host deadline-drift fixture required; no hardware result.
+---
+ drivers/soc/mediatek/mt6797-wmt-query.h | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-wmt-query.h b/drivers/soc/mediatek/mt6797-wmt-query.h
+index c00dfa5..3aea3de 100644
+--- a/drivers/soc/mediatek/mt6797-wmt-query.h
++++ b/drivers/soc/mediatek/mt6797-wmt-query.h
+@@ -135,7 +135,7 @@ static int mt6797_wmt_query_once(struct mt6797_wmt_query *query)
+ {
+ 	unsigned long flags;
+ 	unsigned int i, dma;
+-	unsigned long remaining;
++	unsigned long now, remaining;
+ 	int ret;
+ 
+ 	if (query->attempted)
+@@ -197,8 +197,8 @@ static int mt6797_wmt_query_once(struct mt6797_wmt_query *query)
+ 		query->tx_written = true;
+ 	}
+ 	spin_unlock_irqrestore(&query->lock, flags);
+-	remaining = time_before(jiffies, query->deadline) ?
+-		    query->deadline - jiffies : 0;
++	now = jiffies;
++	remaining = time_before(now, query->deadline) ? query->deadline - now : 0;
+ 	wait_for_completion_timeout(&query->done, remaining);
+ 	/* Synchronize before reading result or releasing handler storage. */
+ 	disable_irq(query->irq);
+-- 
+2.54.0 (Apple Git-157)
+

@@ -1,0 +1,32 @@
+From 9a5cad3026623353a07b7874f063ddee9021080d Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 2 Oct 2026 21:22:40 -0400
+Subject: [PATCH] arm64: dts: mediatek: use existing MT6797 clock provider
+ label
+
+The pinned SoC DTS names the infracfg provider infrasys. Fix the two
+BTIF query clock references that used an absent infracfg label and
+failed the first Buildbox DT compile.
+
+Internal experiment archive; synthetic non-certifying author, no DCO.
+No hardware result.
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+index 092c7d8..7a44ddd 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -86,7 +86,7 @@
+ 		reg-names = "remap", "conn2ap-sleep-mask", "chip-id", "mcu-acr",
+ 			    "wifi-hif", "emi-selector",
+ 			    "btif", "btif-dma-tx", "btif-dma-rx";
+-		clocks = <&infracfg CLK_INFRA_BTIF>, <&infracfg CLK_INFRA_AP_DMA>;
++		clocks = <&infrasys CLK_INFRA_BTIF>, <&infrasys CLK_INFRA_AP_DMA>;
+ 		clock-names = "btif", "ap-dma";
+ 		interrupts = <GIC_SPI 130 IRQ_TYPE_LEVEL_LOW>;
+ 		mediatek,one-shot-wmt-default-query;
+-- 
+2.54.0 (Apple Git-157)
+

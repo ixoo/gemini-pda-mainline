@@ -16,7 +16,15 @@ typedef int irqreturn_t;
 typedef int spinlock_t;
 struct completion { int complete; };
 struct clk { int unused; };
-static unsigned long jiffies;
+static unsigned long jiffies_value, waited;
+static int drift, time_reads;
+static unsigned long read_jiffies(void)
+{
+	if (drift && ++time_reads >= 3)
+		return 499 + 2 * (unsigned long)(time_reads - 3);
+	return jiffies_value;
+}
+#define jiffies read_jiffies()
 #define msecs_to_jiffies(n) (n)
 #define time_after_eq(a, b) ((long)((a) - (b)) >= 0)
 #define time_before(a, b) (!time_after_eq(a, b))
@@ -75,7 +83,7 @@ static void enable_irq(int irq)
 	if (early_irq)
 		handler(irq, irq_data);
 	if (expire_before_tx)
-		jiffies = 500;
+		jiffies_value = 500;
 }
 static void free_irq(int irq, void *data)
 {
@@ -85,10 +93,11 @@ static void free_irq(int irq, void *data)
 static unsigned long wait_for_completion_timeout(struct completion *c,
 						 unsigned long timeout)
 {
+	waited = timeout;
 	if (length || spurious)
 		handler(130, irq_data);
 	if (!c->complete)
-		jiffies += timeout;
+		jiffies_value += timeout;
 	return c->complete;
 }
 #include "mt6797-wmt-query.h"
@@ -105,7 +114,8 @@ static struct mt6797_wmt_query fresh(void)
 	sent_count = cursor = clocks = writes = freed = 0;
 	fail_clock = fail_irq = early_irq = spurious = expire_before_tx = 0;
 	length = sizeof(event);
-	jiffies = 0;
+	jiffies_value = waited = 0;
+	drift = time_reads = 0;
 	return (struct mt6797_wmt_query) {
 		.btif = btif, .dma_tx = tx, .dma_rx = rx, .irq = 130
 	};
@@ -158,8 +168,10 @@ int main(void)
 	q = fresh(); q.tx_written = true; q.deadline = 1000; q.irq_count = 31;
 	mt6797_wmt_query_irq(130, &q);
 	assert(q.terminal && q.result == -ETIMEDOUT && q.irq_count == 32);
-	q = fresh(); q.tx_written = true; q.deadline = 1; jiffies = 1;
+	q = fresh(); q.tx_written = true; q.deadline = 1; jiffies_value = 1;
 	mt6797_wmt_query_irq(130, &q);
 	assert(q.terminal && q.result == -ETIMEDOUT && !cursor);
+	q = fresh(); length = 0; drift = 1;
+	assert(mt6797_wmt_query_once(&q) == -ETIMEDOUT && waited == 1);
 	puts("WMT transport fixtures pass; IRQ concurrency and MMIO semantics not modeled");
 }

@@ -20,7 +20,7 @@ owns integration, build and any later exact candidate/runtime receipt.
 ## Selected compile inputs
 
 Profile `mt6797-a53-wmt-default-query-compile` uses the existing WMT-before-start
-foundation through proposal 0052, followed by proposals 0086–0089. It does not
+foundation through proposal 0052, followed by proposals 0086–0091. It does not
 select the later receive-sampling stack or parked proposal 0085. The executor
 and wire helper are byte-identical to the host-tested drafts. The binding and
 CONSYS owner acquire exact BTIF/channel resources and existing upstream clocks.
@@ -50,7 +50,12 @@ KERNEL_PROFILE=mt6797-a53-wmt-default-query-compile ./scripts/build-kernel --bac
 
 Exact five-file replay, byte equality with both host-tested helpers,
 sanitizer-backed host fixtures, strict patch style and repository checks pass.
-Compilation and DT/schema checks remain unperformed at initial publication.
+The [first Buildbox attempt](results/build-1.json) failed DT compilation on
+two clock references to an absent `infracfg` label. Proposal 0091 uses the
+existing `infrasys` label. No validated package was produced. The complete
+private log is retained by digest; DT/schema validation remains incomplete.
+Proposal 0090 also fixes a reviewed deadline-underflow race by sampling
+`jiffies` once, with a deadline-drift fixture that rejects the older executor.
 Before any boot candidate, review the finite MMIO/IRQ effects, FIFO alias writes,
 the initial DMA_EN timeout acknowledgment, shared AP-DMA clock-enable effects,
 channel exclusion and power-retaining failure/recovery lifetime. Host fixtures

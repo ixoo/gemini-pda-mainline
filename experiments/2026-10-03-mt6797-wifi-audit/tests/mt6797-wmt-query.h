@@ -135,7 +135,7 @@ static int mt6797_wmt_query_once(struct mt6797_wmt_query *query)
 {
 	unsigned long flags;
 	unsigned int i, dma;
-	unsigned long remaining;
+	unsigned long now, remaining;
 	int ret;
 
 	if (query->attempted)
@@ -197,8 +197,8 @@ static int mt6797_wmt_query_once(struct mt6797_wmt_query *query)
 		query->tx_written = true;
 	}
 	spin_unlock_irqrestore(&query->lock, flags);
-	remaining = time_before(jiffies, query->deadline) ?
-		    query->deadline - jiffies : 0;
+	now = jiffies;
+	remaining = time_before(now, query->deadline) ? query->deadline - now : 0;
 	wait_for_completion_timeout(&query->done, remaining);
 	/* Synchronize before reading result or releasing handler storage. */
 	disable_irq(query->irq);

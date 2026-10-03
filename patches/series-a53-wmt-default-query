@@ -566,3 +566,5 @@ proposals/0086-soc-mediatek-add-bounded-first-WMT-query.patch
 proposals/0087-dt-bindings-soc-mediatek-allow-isolated-WMT-query.patch
 proposals/0088-soc-mediatek-bind-default-WMT-query-to-CONSYS.patch
 proposals/0089-arm64-dts-mediatek-select-isolated-Gemini-WMT-query.patch
+proposals/0090-soc-mediatek-snapshot-WMT-remaining-deadline.patch
+proposals/0091-arm64-dts-mediatek-fix-WMT-clock-provider-label.patch
