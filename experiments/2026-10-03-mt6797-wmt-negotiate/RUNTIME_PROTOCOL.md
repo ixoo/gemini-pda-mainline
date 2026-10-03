@@ -1,10 +1,11 @@
 # One checked WMT negotiation lifetime
 
-Status: offline candidate and tooling validated; deployment pending. This packet
-selects [candidate](results/candidate.json), exact kernel inputs `c1348713`,
+Status: guarded installation, full readback and clean shutdown verified; fresh
+physical boot pending. [Deployment 1](results/deployment-1.json) records the handoff.
+This packet selects [candidate](results/candidate.json), exact kernel inputs `c1348713`,
 release `7.1.3-gemini-a53-wmt-negotiate`, and padded boot2 SHA-256
 `ed4503ebf70a41a024bda42f4cb4b1244013bec6dcbd8bea1df4a403dc4ef9f2`.
-It does not record an installation or hardware result.
+No runtime negotiation result is recorded.
 
 ## Hypothesis and unique observation
 

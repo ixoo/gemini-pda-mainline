@@ -1,12 +1,14 @@
 # Negotiation session packet
 
-State: `offline-prepared-deployment-pending`; root is the sole device custodian.
+State: `waiting-owner-physical-boot2`; root is the sole device custodian.
 
 The [runtime protocol](RUNTIME_PROTOCOL.md) selects the exact validated
 [candidate](results/candidate.json) and finite default/set/full negotiation.
-No new physical boot is requested until guarded installation, full readback and
-clean shutdown are recorded. Earlier default-query boot reports do not satisfy
-this new handoff. Its consumed lifetime remains closed.
+[Deployment 1](results/deployment-1.json) records guarded installation, full
+readback and clean shutdown. Capture and preservation/recovery preparation passed
+against the real receipt. A fresh physical boot2 selection is now required.
+Earlier default-query boot reports do not satisfy this new handoff. The consumed
+default-query lifetime remains closed.
 
 After a verified installation, the owner physically selects boot2 with console
 and USB connected. Root then verifies live release and changed boot identity,

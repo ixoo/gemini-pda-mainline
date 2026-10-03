@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-03-mt6797-wmt-negotiate` |
-| Status | `in-progress` (wire-evidence integration compile and package validation passed; candidate and finite protocol prepared; deployment pending) |
+| Status | `in-progress` (wire-evidence integration compile and package validation passed; guarded installation passed; awaiting fresh physical boot2) |
 | Subsystem | CONSYS / BTIF / STP |
 | Device | Project Gemini PDA |
 | Investigator | Codex under owner standing authorization |
@@ -81,4 +81,5 @@ preparation, and generated installer/trigger shell checks.
 
 The [runtime protocol](RUNTIME_PROTOCOL.md) and [session packet](SESSION.md)
 select one new negotiation lifetime and preservation/recovery on every outcome.
-No deployment or runtime result is recorded yet.
+[Deployment 1](results/deployment-1.json) passed live guards, full readback and
+clean shutdown. No runtime negotiation result is recorded yet.
