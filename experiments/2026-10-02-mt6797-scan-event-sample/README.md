@@ -2,6 +2,8 @@
 
 Status: unfinished source diagnostic, published as a checkpoint only.
 No build profile, candidate, deployment or hardware lifetime is admitted.
+Parked by the [2026-10-03 Wi-Fi audit](../2026-10-03-mt6797-wifi-audit/README.md)
+until the missing WMT common power-on has been tested.
 
 The consumed [pool experiment](../2026-10-02-mt6797-scan-pool-sample/README.md)
 found its selected receive pool available twice, with zero reception and no BSS.

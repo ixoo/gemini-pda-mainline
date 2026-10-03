@@ -15,6 +15,10 @@ the loop. Positive identity-gated observations are unaffected.
 
 ## Index
 
+- [2026-10-03 MT6797 Wi-Fi implementation audit](2026-10-03-mt6797-wifi-audit/README.md)
+  — offline review: the WMT common power-on (BTIF/STP, ROM patch, RF
+  calibration) is missing before WLAN start; sets the next Wi-Fi order.
+
 - [2026-10-02 cached receive event sample checkpoint](2026-10-02-mt6797-scan-event-sample/README.md)
   — incomplete source diagnostic; no build or device admission.
 

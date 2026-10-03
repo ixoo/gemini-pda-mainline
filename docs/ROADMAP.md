@@ -82,7 +82,7 @@ when it can resolve a supported interface or measurement dependency.
 | A72 and power | Resolve a supported measurement or production-ownership contract; completed V4 is not a repeat queue item | Source/math review, fake-hardware tests, ownership design | Exact experiment admission; broader load waits for defensible thermal observation/protection gates |
 | Upstream preparation | Extract and review a minimal MT6797 infracfg reset topic from the corrected implementation | Authorship audit, dependency reduction, binding review, maintainer-target discovery | Truthful certification, focused compile/schema checks and existing exact runtime evidence before submission |
 | A53 serviceability | Specify and freeze an integration baseline and a ten-cold-boot regression protocol | Authenticated USB userspace, keyboard test plan, log separation, read-only storage tests | One scheduled device slot; persistent writes and power-off need their own reviewed protocols |
-| Wi-Fi | Specify shared CONSYS/EMI/AP-DMA ownership and implement the gen3 AHB command/firmware contract | Protocol/resource analysis, retained-capture calibration research, implementation and refusal fixtures | First mainline session needs a frozen recoverable baseline and attributable logs; no dependency on A72 completion or all ten cold boots |
+| Wi-Fi | Add the missing WMT common power-on (BTIF/STP, ROM patch, RF calibration) before WLAN start and obtain the first received management frame; see the [Wi-Fi audit](../experiments/2026-10-03-mt6797-wifi-audit/README.md) | Vendor power-on sequence mapping, read-only Gemian confirmation, BTIF/STP/WMT implementation and fixtures | Two decision-changing boots (WMT round trip, then calibrated scan); no dependency on A72 completion or all ten cold boots |
 | Display, touch and GPU | Map the minimal DRM/panel dependency graph and resolve panel/backlight ownership | Compare current upstream bindings, documented resources and historical evidence | Shared clocks/resets/PMIC reviewed with power; GPU load waits for power/thermal prerequisites |
 | Bluetooth, GNSS, FM, audio and sensors | Produce protocol/resource and firmware-rights decisions for each component | Identity matching, transport feasibility and upstream reuse research | Separate subsystem profiles and later runtime slots; no assumed vendor-ABI compatibility |
 | Cellular and cameras | Identify upstream transport/pipeline feasibility and the irreducible blockers | Public interface, resource, licensing and existing-effort research | Shared-memory/crash isolation and radio or imaging-specific safety review before hardware work |
@@ -422,10 +422,19 @@ for the first Wi-Fi bring-up. The current preparation order is:
    effects remain unresolved. Do not turn pool observations into RF counts.
    The [event admission trace](../experiments/2026-10-02-mt6797-scan-pool-sample/results/receive-event-admission-analysis.json)
    identifies a masked pending bit-3 route and two ordinary-RAM raw snapshots.
-   Prepare a distinct bounded cached pending/enable measurement to separate
-   sampled mask state from pending/descriptor production; retain cache freshness
-   and ROM/caller limitations. No direct MMIO or mask write is admitted.
-   Do not repeat the consumed lifetimes. Establish management
+   The [2026-10-03 Wi-Fi audit](../experiments/2026-10-03-mt6797-wifi-audit/README.md)
+   finds that no mainline boot has run the vendor WMT common power-on over
+   BTIF/STP: ROM patch download, RF calibration with the PA LDOs, coexistence
+   and crystal settings all precede WLAN start in the pinned source. That gap
+   sits upstream of every receive gate sampled so far. **Current Wi-Fi order:**
+   (a) map the vendor power-on sequence against mainline, offline;
+   (b) confirm in Gemian, read-only, that those steps ran on this device;
+   (c) one boot proving a BTIF/STP WMT query/event round trip;
+   (d) one boot adding ROM patch, WMT reset, RF calibration and coexistence
+   settings before the existing START and one channel-40 passive scan.
+   Park the unfinished cached event-mask diagnostic (proposal 0085); revisit it
+   only if (d) still shows zero firmware management frames. Do not repeat the
+   consumed lifetimes. Establish management
    reception, then continue runtime receive/event ownership,
    credit recycling and packet lifetime toward association and bounded traffic.
    Submission status alone
