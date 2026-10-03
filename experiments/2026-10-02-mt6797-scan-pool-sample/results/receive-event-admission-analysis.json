@@ -1,0 +1,179 @@
+{
+  "schema": 1,
+  "status": "retained-firmware receive event admission traced after available-pool runtime; no new device diagnostic admitted",
+  "firmware_sha256": "a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd",
+  "method": "RE VM Ghidra 12.1.2, BE-instruction/LE-data pseudo-disassembly; selected direct-flow graphs skip callees assuming return. Instruction pcode checked for multi-register base writeback.",
+  "graph_budget_nodes": 2048,
+  "graphs": [
+    {
+      "entry": "0xf00453e4",
+      "nodes": 185,
+      "calls": 21,
+      "queue_exhausted": true,
+      "invalid": 0,
+      "unresolved_noncall_computed": 0
+    },
+    {
+      "entry": "0xf0027e04",
+      "nodes": 126,
+      "calls": 23,
+      "queue_exhausted": true,
+      "invalid": 0,
+      "unresolved_noncall_computed": 0
+    },
+    {
+      "entry": "0xf004da34",
+      "nodes": 372,
+      "calls": 33,
+      "queue_exhausted": true,
+      "invalid": 0,
+      "unresolved_noncall_computed": 0
+    },
+    {
+      "entry": "0xf0042ecc",
+      "nodes": 2048,
+      "calls": 119,
+      "queue_exhausted": false,
+      "invalid": 0,
+      "unresolved_noncall_computed": 0
+    },
+    {
+      "entry": "0xf000c05c",
+      "nodes": 26,
+      "calls": 2,
+      "queue_exhausted": true,
+      "invalid": 0,
+      "unresolved_noncall_computed": 0
+    },
+    {
+      "entry": "0xf000bd28",
+      "nodes": 119,
+      "calls": 9,
+      "queue_exhausted": true,
+      "invalid": 0,
+      "unresolved_noncall_computed": 0
+    }
+  ],
+  "native_receive_entry": "0xf0027040",
+  "native_entry_selected_references": [
+    {
+      "pair": "0xf0027d9c",
+      "call": "0xf0027da4",
+      "context": "wrapper 0xf0027d94 passes argument 3 to native receive entry"
+    },
+    {
+      "pair": "0xf0043212",
+      "call": "0xf004321a",
+      "context": "selected local path in the budget-limited state graph sets argument 3; complete containing-graph claims withheld"
+    },
+    {
+      "pair": "0xf004db2c",
+      "call": "0xf004db34",
+      "context": "event loop 0xf004da34 dispatches argument 3 when its masked pending bit 3 is set"
+    }
+  ],
+  "work_initialization": {
+    "mode2_call": "0xf000eb48 calls 0xf0027e04 from previously selected mode-2 case",
+    "work_pointer_word": "0xf006be9c",
+    "callback": "0xf0027d94",
+    "registration_call": "0xf0027e22 calls 0xf000c05c with the work pointer, callback and argument 0",
+    "registration_helper": "Stores argument at object+0x10 and callback at object+0x14; clears object+0 and +4. Non-null input is assumed on the successful path.",
+    "native_setup": "Selected initializer invokes multiple unmapped ROM callbacks, including table 0x1ae38 with argument 0xcef1b. Names and complete effects remain unproved.",
+    "live_execution_proven": false
+  },
+  "event_dispatch": {
+    "entry": "0xf004da34",
+    "pending_logical_read": "0xf004ddf0 loads firmware logical address 0xa0000008",
+    "enable_logical_read": "0xf004de0e loads firmware logical address 0xa0000004",
+    "selected_mask": "0xf004de20 computes pending & enable; 0xf004de4c stores result in stack+0x4c",
+    "native_gate": "0xf004db16 tests bit 3 of this masked pending word; clear bypasses native entry. Set path writes acknowledgement value 8 to firmware logical address 0xa0000008, clears bit 3 in the local pending word and calls native entry with argument 3.",
+    "command_gate": "Earlier local bits 0/1 call the selected command ingress 0xf004d928 with argument 0/1. This does not by itself prove live event-loop execution from command replies.",
+    "loop_budget": "Selected source cycles at most three local rounds before return; existing MCU scheduling and all other caller behavior remain outside the graph.",
+    "device_register_actions_admitted": false
+  },
+  "ordinary_ram_snapshots": {
+    "pending_word": "0xf007e28c",
+    "enable_word": "0xf007e2a0",
+    "writes": {
+      "pending": "0xf004de3c stores raw pending loaded from stack+0x4c through fp after the four-word write advanced fp from 0xf007e27c by 16 bytes.",
+      "enable": "0xf004de3a stores raw enable through s0 after its four-word write advanced s0 from 0xf007e290 by 16 bytes."
+    },
+    "ordering": "Raw snapshots are stored before masked pending is written back to the local stack and dispatched. These RAM words are not the live hardware registers.",
+    "freshness_proven": false,
+    "atomic_snapshot_proven": false,
+    "all_writers_audited": false,
+    "reference_windows": "Eighteen selected page-base candidates, two 16-instruction matching windows; both identify the selected event-loop stores. Aliases and ROM writers may be missed."
+  },
+  "reference_searches": {
+    "native_entry_and_mode4_setup": {
+      "halfword_candidates": 165648,
+      "decode_failures": 3327,
+      "exact_immediate_pairs": 4,
+      "direct_flows": 0,
+      "aligned_pointer_matches": 0,
+      "initialized_blocks": 2
+    },
+    "work_init_wrapper_and_event_loop": {
+      "halfword_candidates": 165648,
+      "decode_failures": 3327,
+      "exact_immediate_pairs": 2,
+      "direct_flows": 0,
+      "aligned_pointer_matches": 0,
+      "initialized_blocks": 2,
+      "event_loop_exact_reference_matches": 0,
+      "limitation": "No matched reference to the event-loop entry does not prove it is uncalled; computed, aliased and ROM paths are not covered."
+    }
+  },
+  "private_scripts_sha256": {
+    "ScanRxRootFlow.java": "2152d975ab64b0eb1b880806be1bd7c6c60b742e0451eb9c97c328f1160db29a",
+    "ReceiveAdmissionEntryRefs.java": "f866485ddb69c81389d6d183ada0fed0ebfa39e36a32d2c576ffa6d76d51701d",
+    "ReceiveAdmissionCallerPrefix.java": "5b0a81be64549cb3a534e0ff46fd5d81035e786752797a5327fe15ad01c9bee0",
+    "ReceiveWorkOwnershipRefs.java": "5e65ed24612603604770e2c7bb089313f7f6b36222b0c40b78410ef21b1cc3bc",
+    "ReceiveEventMirrorRefs.java": "7d689a24535d392555025c2ba154f943b672d250135a662c1c857e808ee0e944"
+  },
+  "private_listing_sha256": {
+    "receive-mode4-work-private.txt": "2e8d7bc6a958239ab3394cc4198dc700b9424b11e76556e0ecbc5ae94368fe97",
+    "receive-admission-entry-refs-private.txt": "071aeb127618bf1657f009c51ea85569ab755468335d384e4ba5e76877056354",
+    "receive-admission-caller-prefix-private.txt": "47eed98b0aef48d4d279956f8bd2ac9cf098ec73e9bf97e5895979c17ac3ee5b",
+    "receive-work-init-private.txt": "e6874b413a5c3756180c0a10571e9a07c17cc2b08a40460a0af0fd1e52fdb9ee",
+    "receive-event-loop-private.txt": "d60f7727348338c1d8b60d976691d95cb7ba18e276624f0fe74772deb753d195",
+    "receive-mode4-state-private.txt": "72af0132cd16a445e7807d3d696d383f875ae83bcc5be49f4212b2b0a6d25f08",
+    "receive-work-ownership-refs-private.txt": "fa63eca311181f242fee77c6879cb7ca44b7bf060b9995911c63dce9549f7210",
+    "receive-event-mirror-refs-private.txt": "3a0006de18f489bd940d21b7895e727512ae4475893f3d4f9168620f9a17e533",
+    "receive-work-register-private.txt": "8fb264f0ec00aebdf2789fbc0bb0aeb108ee082c9e28af30e0eda1074f9d56b9",
+    "receive-work-schedule-private.txt": "7721d363fb1826da4200325301612730aec4bb3332f6a0db805ae2a78eacc089"
+  },
+  "next_measurement_proposal": {
+    "roles": [
+      {
+        "role": 0,
+        "address": "0xf007e28c",
+        "meaning": "cached raw pending word, selected native bit 3"
+      },
+      {
+        "role": 1,
+        "address": "0xf007e2a0",
+        "meaning": "cached raw enable word, selected native bit 3"
+      }
+    ],
+    "protocol": "Retarget, do not expand, the established four-query ordinary-RAM sampler at 100/300 ms during one 500 ms passive channel-40 scan. Complete source/wire/classifier, build, candidate, guarded deployment and changed-boot gates before any execution.",
+    "branches": [
+      "Cached enable bit clear: investigate selected receive initialization and mask ownership; not proof that live hardware is disabled.",
+      "Cached enable set and pending clear: prioritize pending/descriptor production and RF receive enabling; not proof of absence throughout scan.",
+      "Cached native pending seen: prioritize dispatch/descriptor lookup and scheduling, with snapshot timing and freshness limitations.",
+      "Missing, late or post-DONE observations: no before-DONE conclusion."
+    ],
+    "no_rf_proof": true,
+    "no_direct_mmio_query": true,
+    "no_target_write": true,
+    "not_yet_admitted": true
+  },
+  "limitations": [
+    "Mode-4 containing state graph hit its node budget; only inspected local paths are used and no complete-writer claim follows.",
+    "ROM callbacks and computed/aliased callers remain unresolved; no function pointer, mask, filter or firmware RAM write is justified.",
+    "Cached words may be stale and are non-atomic when queried; they cannot prove continuous IRQ availability, RF listening or packet counts.",
+    "Firmware logical register addresses are not AP physical addresses and are not admitted live read/write targets."
+  ],
+  "device_action": "none",
+  "sanitization": "Private firmware, disassembly and binary inputs omitted; independent source summaries, addresses, bounded counts and hashes only."
+}

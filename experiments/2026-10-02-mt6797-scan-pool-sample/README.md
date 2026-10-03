@@ -141,3 +141,26 @@ confirmed. Its request's SSH outer timeout did not cause a restart retry.
 This START/scan lifetime is consumed and must not be repeated. The next
 source investigation targets descriptor arrival and receive enabling/filter
 ownership before the sampled mode and dispatcher gates.
+
+## Receive event admission after the available-pool result
+
+The [selected event admission analysis](results/receive-event-admission-analysis.json)
+traces mode-2 setup of a deferred native receive wrapper and a distinct firmware
+event-loop branch that calls native receive for masked pending bit 3. The work
+registration helper stores its callback and argument; live initialization and
+execution remain unproved. The selected mode-4 setup and ROM effects remain
+partly unresolved, and its containing state graph reached the node budget.
+
+The event loop stores ordinary-RAM copies of raw pending at `0xf007e28c` and
+raw enable at `0xf007e2a0` before masking and dispatch. Multi-register base
+writeback was checked in instruction pcode to derive these fifth-word addresses.
+They are cached RAM, not live hardware-register addresses. No direct MMIO or
+mask write is admitted. Two matching local reference windows do not establish
+complete writer coverage or cache freshness.
+
+A distinct future diagnostic can replace the pool reads with these two cached
+words within the same four-query budget. Cached bit-3 enable/pending states
+would separate sampled masking from pending/descriptor arrival hypotheses.
+They cannot prove RF reception, continuous IRQ activity or packet counts.
+Source/wire/classifier and candidate gates remain required before that
+measurement; this analysis has performed no device action.

@@ -420,6 +420,11 @@ for the first Wi-Fi bring-up. The current preparation order is:
    at the sampled instants; trace descriptor arrival and receive enabling/filter
    ownership. Continuous availability, initializer execution and indirect query
    effects remain unresolved. Do not turn pool observations into RF counts.
+   The [event admission trace](../experiments/2026-10-02-mt6797-scan-pool-sample/results/receive-event-admission-analysis.json)
+   identifies a masked pending bit-3 route and two ordinary-RAM raw snapshots.
+   Prepare a distinct bounded cached pending/enable measurement to separate
+   sampled mask state from pending/descriptor production; retain cache freshness
+   and ROM/caller limitations. No direct MMIO or mask write is admitted.
    Do not repeat the consumed lifetimes. Establish management
    reception, then continue runtime receive/event ownership,
    credit recycling and packet lifetime toward association and bounded traffic.
