@@ -36,6 +36,7 @@ struct mt6797_wmt_query {
 	struct wmt_default_reply reply;
 	unsigned int irq_count;
 	unsigned int rx_count;
+	unsigned char received[WMT_BTIF_RX_BUDGET];
 	unsigned long deadline;
 	bool deadline_supplied;
 	int irq;
@@ -95,8 +96,9 @@ static irqreturn_t mt6797_wmt_query_irq(int irq, void *data)
 			mt6797_wmt_query_finish(query, -EOVERFLOW);
 			goto out;
 		}
-		query->rx_count++;
-		parsed = wmt_default_reply_byte(&query->reply, readb(query->btif));
+		query->received[query->rx_count++] = readb(query->btif);
+		parsed = wmt_default_reply_byte(&query->reply,
+						query->received[query->rx_count - 1]);
 		if (parsed < 0) {
 			mt6797_wmt_query_finish(query, -EPROTO);
 			goto out;

@@ -1,0 +1,88 @@
+From 3e586fddd9ba7e79c3cdfdc09a22998327a11d47 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 3 Oct 2026 12:20:36 +0000
+Subject: [PATCH] soc: mediatek: preserve bounded WMT negotiation wire evidence
+
+Export per-phase actual TX/RX bytes into the private sealed kernel log
+before reviewed recovery. Retain malformed initial-query input in
+bounded owner storage; do not perform additional device reads or retries
+to reconstruct a failed exchange.
+
+Internal experiment archive; synthetic non-certifying author, no DCO.
+Compile-review only; no hardware result.
+---
+ drivers/soc/mediatek/mt6797-consys.c    | 25 +++++++++++++++++++++++++
+ drivers/soc/mediatek/mt6797-wmt-query.h |  6 ++++--
+ 2 files changed, 29 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index 18234bc..a82c2ad 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -10,7 +10,9 @@
+ #include <linux/kernel.h>
+ #include <linux/ktime.h>
+ #include <linux/limits.h>
++#include <linux/minmax.h>
+ #include <linux/mutex.h>
++#include <linux/printk.h>
+ #include <linux/mfd/mt6351/registers.h>
+ #include <linux/of.h>
+ #include <linux/of_reserved_mem.h>
+@@ -1081,6 +1083,29 @@ static int mt6797_consys_wmt_exchange(struct device *dev,
+ 		 "WMT negotiation full: tx=%u rx=%u services=%u frames=%u tx-seq=%u rx-seq=%u peer-ack=%u local-ack=%u\n",
+ 		 n->full.tx_count, n->full.rx_count, n->full.services, n->full.frames,
+ 		 n->link.tx_next, n->link.rx_next, n->link.peer_ack, n->link.local_ack);
++	/* These bounded raw bytes belong to the private sealed session log.
++	 * No extra hardware reads occur after the exchange has retired.
++	 */
++	print_hex_dump(KERN_INFO, "WMT negotiation default TX: ", DUMP_PREFIX_OFFSET,
++		       16, 1, wmt_default_query,
++		       n->first.tx_written ? sizeof(wmt_default_query) : 0, false);
++	print_hex_dump(KERN_INFO, "WMT negotiation default RX: ", DUMP_PREFIX_OFFSET,
++		       16, 1, n->first.received, n->first.rx_count, false);
++	print_hex_dump(KERN_INFO, "WMT negotiation set TX: ", DUMP_PREFIX_OFFSET,
++		       16, 1, n->set.command, n->set.tx_count, false);
++	print_hex_dump(KERN_INFO, "WMT negotiation set RX: ", DUMP_PREFIX_OFFSET,
++		       16, 1, n->set.received, n->set.rx_count, false);
++	print_hex_dump(KERN_INFO, "WMT negotiation full TX: ", DUMP_PREFIX_OFFSET,
++		       16, 1, n->full.command,
++		       min_t(unsigned int, n->full.tx_count,
++			     sizeof(wmt_stp_full_query) + 6), false);
++	if (n->full.tx_count > sizeof(wmt_stp_full_query) + 6)
++		print_hex_dump(KERN_INFO, "WMT negotiation full ACK TX: ",
++			       DUMP_PREFIX_OFFSET, 16, 1, n->full.ack,
++			       n->full.tx_count - (sizeof(wmt_stp_full_query) + 6),
++			       false);
++	print_hex_dump(KERN_INFO, "WMT negotiation full RX: ", DUMP_PREFIX_OFFSET,
++		       16, 1, n->full.received, n->full.rx_count, false);
+ 	return ret;
+ }
+ 
+diff --git a/drivers/soc/mediatek/mt6797-wmt-query.h b/drivers/soc/mediatek/mt6797-wmt-query.h
+index 3d99bb6..b21d5cd 100644
+--- a/drivers/soc/mediatek/mt6797-wmt-query.h
++++ b/drivers/soc/mediatek/mt6797-wmt-query.h
+@@ -36,6 +36,7 @@ struct mt6797_wmt_query {
+ 	struct wmt_default_reply reply;
+ 	unsigned int irq_count;
+ 	unsigned int rx_count;
++	unsigned char received[WMT_BTIF_RX_BUDGET];
+ 	unsigned long deadline;
+ 	bool deadline_supplied;
+ 	int irq;
+@@ -95,8 +96,9 @@ static irqreturn_t mt6797_wmt_query_irq(int irq, void *data)
+ 			mt6797_wmt_query_finish(query, -EOVERFLOW);
+ 			goto out;
+ 		}
+-		query->rx_count++;
+-		parsed = wmt_default_reply_byte(&query->reply, readb(query->btif));
++		query->received[query->rx_count++] = readb(query->btif);
++		parsed = wmt_default_reply_byte(&query->reply,
++						query->received[query->rx_count - 1]);
+ 		if (parsed < 0) {
+ 			mt6797_wmt_query_finish(query, -EPROTO);
+ 			goto out;
+-- 
+2.39.5
+

@@ -682,3 +682,4 @@ proposals/0091-arm64-dts-mediatek-fix-WMT-clock-provider-label.patch
 proposals/0092-soc-mediatek-compose-bounded-WMT-mode-negotiation.patch
 proposals/0093-dt-bindings-soc-mediatek-describe-isolated-WMT-negotiation.patch
 proposals/0094-arm64-dts-mediatek-select-isolated-Gemini-WMT-negotiation.patch
+proposals/0095-soc-mediatek-preserve-bounded-WMT-negotiation-wire-evidence.patch

@@ -1,0 +1,25 @@
+{
+  "scope": "bounded private wire-evidence export; no new register accesses, retries, candidate or hardware action",
+  "parent_kernel_input_commit": "52d5875b9e451316f18b4e1dfb17fe28ae5ff0f8",
+  "patch_sha256": "7991c7b804590a23fbfd909c3a6d0df3318cb91613a6c8793f18009ce5678ba2",
+  "validation": {
+    "initial_query_actual_matched_and_malformed_reply_retention": "pass under strict warnings/address/undefined sanitizers",
+    "strict_checkpatch": "pass; only MISSING_SIGN_OFF excluded for internal non-certifying archive",
+    "Linux_compile": "pending"
+  },
+  "maximum_raw_byte_evidence": {
+    "default_TX": 11,
+    "default_RX": 17,
+    "set_TX": 15,
+    "set_RX": 13,
+    "full_command_TX": 11,
+    "full_ACK_TX": 4,
+    "full_RX": 1043
+  },
+  "privacy": "raw wire bytes are exported only into the private complete sealed session log; public runtime receipts must sanitize them",
+  "sha256": {
+    "tests/mt6797-wmt-query.h": "bd31ed5b0680cc75d6be29f007a3beb8e58aa96ae54dda3899cddd6ac4a25f4a",
+    "tests/wmt-query-transport-test.c": "649000e65cb2f649c8157145167b981c26aac98658aa038505e5508d476543fe"
+  },
+  "remaining": "Compile exact selected follow-up, verify unchanged DTB/schema applicability, then prepare validated candidate and finite device protocol."
+}

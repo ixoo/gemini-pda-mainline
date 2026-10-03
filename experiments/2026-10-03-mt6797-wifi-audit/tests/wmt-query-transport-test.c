@@ -130,8 +130,13 @@ int main(void)
 	assert(!mt6797_wmt_query_once(&q));
 	assert(sent_count == 11 && !memcmp(sent, wmt_default_query, 11));
 	assert(cursor == 16 && freed == 1 && !btif[1]);
+	assert(!memcmp(q.received, response, cursor));
 	before = writes;
 	assert(mt6797_wmt_query_once(&q) == -EALREADY && writes == before);
+	q = fresh();
+	response[8] = 1;
+	assert(mt6797_wmt_query_once(&q) == -EPROTO && cursor == 9);
+	assert(!memcmp(q.received, response, cursor));
 	q = fresh();
 	q.deadline_supplied = true;
 	q.deadline = 0;

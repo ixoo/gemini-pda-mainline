@@ -1,0 +1,47 @@
+{
+  "repository_commit": "52d5875b9e451316f18b4e1dfb17fe28ae5ff0f8",
+  "kernel_release": "7.1.3-gemini-a53-wmt-negotiate",
+  "build_profile": "mt6797-a53-wmt-negotiate-compile",
+  "source_sha256": "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc",
+  "patchset_sha256": "b6d45f2928a1abcf2792dc172e07dd2d7a1f30709102625e084d18cdd179cb65",
+  "config_sha256": "33ffe7a8ecafdb63f0e2d5cf93381cc4c19aaf010805f86259b31bf4bbefd5c2",
+  "compiler": "aarch64-linux-gnu-gcc (Debian 12.2.0-14) 12.2.0",
+  "linker": "GNU ld (GNU Binutils for Debian) 2.40",
+  "modules_built": false,
+  "classification": "Buildbox compile and remote/local package validation pass; wire-evidence follow-up not yet compiled",
+  "package_name": "linux-7.1.3-gemini-b9432fa2353df39a28e5479a4f4cef273a93f831a95450b9900e3384c79ee980",
+  "package_inventory_sha256": "b9432fa2353df39a28e5479a4f4cef273a93f831a95450b9900e3384c79ee980",
+  "patch_count": 570,
+  "config_fragment_count": 22,
+  "validation": {
+    "kernel_compile": "pass",
+    "remote_package": "pass",
+    "local_fetch_inventory_and_provenance": "pass",
+    "focused_schema": "pass; schema-1.json",
+    "DEBUG_FS": "enabled"
+  },
+  "files": {
+    "Image": {
+      "sha256": "feaf429afb0938ae1739c98c7ab9df35acc8391770441fe2d4fa71c31d707251",
+      "bytes": 15892488
+    },
+    "Image.gz": {
+      "sha256": "efe0e3f11d9b3a2a3f563e454235e58230ad9c1d9744bb699d445505f762ba89",
+      "bytes": 6593237
+    },
+    "kernel.config": {
+      "sha256": "33ffe7a8ecafdb63f0e2d5cf93381cc4c19aaf010805f86259b31bf4bbefd5c2",
+      "bytes": 112888
+    },
+    "System.map": {
+      "sha256": "78e1692ce3c145b517f35f2681cf680cdecd2c3a091e0bc58fa4e2da348296fd",
+      "bytes": 2677184
+    },
+    "dtbs/mediatek/mt6797-gemini-pda.dtb": {
+      "sha256": "9868f732e45d3f3f5db292a60228c41c5f8ecfc4b5baa2d8a607d139285d6744",
+      "bytes": 29633
+    }
+  },
+  "candidate_eligible": false,
+  "next_action": "Compile the selected bounded wire-evidence follow-up before candidate/protocol preparation."
+}

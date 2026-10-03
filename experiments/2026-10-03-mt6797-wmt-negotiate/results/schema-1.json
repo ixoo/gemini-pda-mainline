@@ -1,0 +1,29 @@
+{
+  "scope": "selected CONSYS binding and exact package-matching negotiation board DTB; not unrestricted board validation or hardware support",
+  "repository_commit": "52d5875b9e451316f18b4e1dfb17fe28ae5ff0f8",
+  "profile": "mt6797-a53-wmt-negotiate-compile",
+  "dtschema_version": "2026.9",
+  "binding_sha256": "f1230a372fca58545ca8f469f734858ad2714b1c6bab284ca9310364ce3bb2d4",
+  "processed_schema_sha256": "620e3991fed018ff0fdabd41eefa3334ad5a4f1cf5861507f6fe59346319baee",
+  "validated_dtb_sha256": "9868f732e45d3f3f5db292a60228c41c5f8ecfc4b5baa2d8a607d139285d6744",
+  "checks": {
+    "dt_doc_validate": "pass; empty diagnostics",
+    "dt_binding_check_selected_schema": "pass",
+    "selected_board_CHECK_DTBS": "pass with two existing USB ranges_format warnings",
+    "direct_dt_validate_selected_CONSYS": "pass; empty diagnostics",
+    "missing_clocks_clock_names_interrupts": "each refused as required property",
+    "both_diagnostic_selectors": "refused by mutual exclusion",
+    "old_default_query_DTB_against_new_binding": "pass; empty diagnostics"
+  },
+  "execution": "make binding check and board check sequential in separate output from kernel compilation; direct validation and mutations afterward",
+  "private_log_sha256": {
+    "binding-check.log": "7d9dcc7f339829345e231acd095ad26706dd29ee4ae2751c32fb352f12fbb30e",
+    "both-selectors.log": "cc3ead6893a23be4f7fdeaf3b8cfed6b72d237277001b1b701e5ab604b726e51",
+    "direct-check.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "doc-validate.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "dtb-check.log": "9b380384ffc443038b60b251a27eb0c315024153b2803bcb4c80721854e13328",
+    "missing-clock-names.log": "18fa706bebce46b82e8cfae67e1dae052298f3214ea36f877d4e5ed6517aabf8",
+    "missing-clocks.log": "a312e4f6145f504f14e6180f2dc75623a5441ee7371c625472882391ccc0d28f",
+    "missing-interrupts.log": "237cdde9d46c704d9531ebdd53bd7c8f14c8ce7bfef4b46c9d06b9d3e68eab0c"
+  }
+}
