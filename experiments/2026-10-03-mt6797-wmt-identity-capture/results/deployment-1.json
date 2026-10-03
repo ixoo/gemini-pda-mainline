@@ -1,0 +1,32 @@
+{
+  "status": "guarded-boot2-deployment-verified-owner-selection-pending",
+  "receipt_sha256": "ea6c12d9063cf49d971304fc7a3bf34ac60fe202f1d16ac8e24b6a21a73d992a",
+  "deployment": {
+    "experiment": "mt6797-wmt-identity-capture",
+    "candidate_manifest_sha256": "47bfd8b8e2ba75097e1b5ee676e1b50e3bc484c6aff84df9b3dcd1a1240b9422",
+    "result": "write-synced-flushed-full-readback-verified",
+    "target_logical_name": "boot2",
+    "target": "/dev/mmcblk0p30",
+    "root": "/dev/mmcblk0p29",
+    "boot2_device_guard": "passed",
+    "boot2_device_guard_sha256": "0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf",
+    "target_major_minor": "179:30",
+    "root_major_minor": "179:29",
+    "predecessor_sha256": "ed4503ebf70a41a024bda42f4cb4b1244013bec6dcbd8bea1df4a403dc4ef9f2",
+    "fresh_predecessor_backup": "no",
+    "candidate_sha256": "7e7134923871220062c55ff652754aac5f7ae842c57d4aaa6dedce2ced5dcd69",
+    "readback_sha256": "7e7134923871220062c55ff652754aac5f7ae842c57d4aaa6dedce2ced5dcd69",
+    "boot_id": "d18da7fc-97cb-4ffc-b352-9bbdcd424092",
+    "power": "1|100|Good|1",
+    "temporary_readback_removed": "yes",
+    "shutdown": "requested-after-evidence-flush",
+    "poweroff_ssh_rc": "255",
+    "post_shutdown_reachability": "unreachable",
+    "reboot": "no",
+    "next_action": "owner-physically-selects-boot2"
+  },
+  "offline_capture_preparation": "pass against actual deployment receipt",
+  "offline_session_preparation": "pass against actual deployment receipt",
+  "runtime_tested": false,
+  "wifi_support": false
+}

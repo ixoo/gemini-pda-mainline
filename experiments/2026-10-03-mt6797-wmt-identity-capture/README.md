@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-03-mt6797-wmt-identity-capture` |
-| Status | candidate and tooling validated offline; deployment/runtime pending |
+| Status | installed with full readback; owner boot2 selection pending |
 | Subsystem | MT6797 CONSYS, BTIF and WMT |
 | Device | Project Gemini PDA |
 | Profile | `mt6797-a53-wmt-identity-capture-compile` |
@@ -78,3 +78,11 @@ binds the reviewed device guard; capture and passive-host preparation require
 its actual deployment receipt. `passive-session.py` can validate the inherited
 private RAM root offline without claiming deployment. No new kernel build is
 needed for these host-only tools; the selected kernel inputs remain `8956fbc1`.
+
+## Deployment handoff
+
+[Deployment 1](results/deployment-1.json) records the live GPT-selected boot2,
+reviewed guard, stable power, matching complete device/host readback and clean
+shutdown. Both capture and session tools accept the actual deployment receipt
+offline. The owner must physically select boot2 with console enabled. No chip
+request has run; no identity, reception or Wi-Fi support is yet demonstrated.

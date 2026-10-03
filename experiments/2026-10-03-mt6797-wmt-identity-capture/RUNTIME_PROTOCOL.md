@@ -1,6 +1,7 @@
 # One pre-patch chip-reply capture lifetime
 
-Status: offline candidate and tooling validated; deployment and runtime pending.
+Status: [guarded deployment verified](results/deployment-1.json); owner physical
+boot2 selection and runtime capture pending.
 
 ## Hypothesis and decision
 
