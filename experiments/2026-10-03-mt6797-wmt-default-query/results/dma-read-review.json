@@ -1,0 +1,81 @@
+{
+  "schema": 1,
+  "status": "channel-local register semantics corroborated; shared-clock admission unresolved",
+  "document": "MT6797 register table part 1",
+  "document_sha256": "e8ef503a32a8bb318a000fe6727d2bcdaa3557992a0ffed344e9de37acc2caff",
+  "pages": [
+    391,
+    392,
+    397,
+    522,
+    523,
+    525,
+    526,
+    559,
+    560,
+    561,
+    563,
+    564
+  ],
+  "visually_checked_pages": [
+    526,
+    563
+  ],
+  "vendor_header_sha256": "29aaaaeb938323f3738223dfd6320d30c525475248fa5dce34b3771435952e4e",
+  "channels": {
+    "tx_base": "0x11000a00",
+    "rx_base": "0x11000a80",
+    "bytes_each": 128
+  },
+  "selected_reads": [
+    {
+      "offset": "0x08",
+      "field": "EN",
+      "bits": "0",
+      "access": "RW",
+      "documented_reset": 0,
+      "interpretation": "setting enables DMA; documented busy state keeps EN set"
+    },
+    {
+      "offset": "0x10",
+      "field": "STOP",
+      "bits": "0",
+      "access": "RW",
+      "documented_reset": 0,
+      "interpretation": "stop handshake; no write admitted"
+    },
+    {
+      "offset": "0x14",
+      "field": "FLUSH",
+      "bits": "0",
+      "access": "RW",
+      "documented_reset": 0,
+      "interpretation": "flush control; no write admitted"
+    },
+    {
+      "offset": "0x38",
+      "field": "INT_BUF_SIZE",
+      "bits": "4:0",
+      "access": "RO",
+      "documented_reset": 0,
+      "interpretation": "internal buffered byte count"
+    },
+    {
+      "offset": "0x3c",
+      "field": "VFF_VALID_SIZE",
+      "bits": "15:0",
+      "access": "RO",
+      "documented_reset": 0,
+      "interpretation": "virtual FIFO valid byte count"
+    }
+  ],
+  "read_effect_review": "The selected channel-local entries do not describe read-clear or interrupt acknowledgment. This narrows the documentary contract; it is not empirical validation or proof of clock-off accessibility. The executor refuses any nonzero whole word, including undocumented bits, rather than masking them away.",
+  "global_status_boundary": "Global running status has a separate secure-engine visibility limitation; global zero is not used as a replacement for the selected channel-local observations. Channel visibility and resource ownership still require review.",
+  "remaining": [
+    "The current executor enables the shared AP-DMA clock before channel observations; prove or revise this ordering before device admission.",
+    "Source matching and documented reset values do not establish live entry state or absence of another writer.",
+    "No new DMA control, reset, descriptor, stop, flush or acknowledgment write is admitted by this review."
+  ],
+  "hardware_action": "none",
+  "sanitization": "Independently summarized register facts and source digests only; no document excerpts, source images or raw device data."
+}

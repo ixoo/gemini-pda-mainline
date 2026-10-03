@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-03-mt6797-wmt-default-query` |
-| Status | `in-progress` (compile preparation; no device admission) |
+| Status | `in-progress` (compiled and fetched; no device admission) |
 | Subsystem | CONSYS / BTIF / WMT |
 | Device | Project Gemini PDA |
 | Investigator | Codex, under owner standing authorization |
@@ -52,10 +52,22 @@ Exact five-file replay, byte equality with both host-tested helpers,
 sanitizer-backed host fixtures, strict patch style and repository checks pass.
 The [first Buildbox attempt](results/build-1.json) failed DT compilation on
 two clock references to an absent `infracfg` label. Proposal 0091 uses the
-existing `infrasys` label. No validated package was produced. The complete
-private log is retained by digest; DT/schema validation remains incomplete.
+existing `infrasys` label. That attempt produced no validated package. The corrected
+[second build](results/build-2.json) passed and its exact inventory and clean
+commit/profile provenance passed local fetch validation. Compiled owner/helper
+hashes match the reviewed integration, and the linked kernel contains the
+query store and IRQ handler. Complete private logs are retained by digest.
+The [focused schema checks](results/schema-2.json) pass binding lint/example
+compilation and direct validation of the exact package DTB. Removing each of
+clocks, clock-names and interrupts is rejected. Two DTC USB ranges warnings
+remain outside the selected CONSYS node; this is not an all-bindings board
+validation or a validated booted-DT candidate.
 Proposal 0090 also fixes a reviewed deadline-underflow race by sampling
 `jiffies` once, with a deadline-drift fixture that rejects the older executor.
+The [channel-register review](results/dma-read-review.json) corroborates the
+selected EN/STOP/FLUSH and buffer-count fields without documented read-clear
+effects. It does not establish clock-off access, shared-clock enable safety or
+live writer exclusion.
 Before any boot candidate, review the finite MMIO/IRQ effects, FIFO alias writes,
 the initial DMA_EN timeout acknowledgment, shared AP-DMA clock-enable effects,
 channel exclusion and power-retaining failure/recovery lifetime. Host fixtures

@@ -194,3 +194,11 @@ the actual draft but do not model IRQ concurrency, real MMIO semantics or clock
 framework lifetimes. Strict kernel style passes for the executor. No driver
 caller, format-patch, selected series/profile, kernel compile or device test is
 added yet. This checkpoint is incomplete and is not a boot candidate.
+
+## Integration follow-up
+
+The [isolated query experiment](../2026-10-03-mt6797-wmt-default-query/README.md)
+now owns the CONSYS caller, binding, selected profile and successful fetched
+Buildbox package. The earlier no-caller/no-build statements above describe their
+checkpoint dates. Finite hardware effect admission, shared AP-DMA clock ordering,
+candidate construction and a device round trip remain incomplete.

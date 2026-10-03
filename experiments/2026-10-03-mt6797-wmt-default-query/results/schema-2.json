@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "status": "focused binding and selected query DTB passed; hardware admission incomplete",
+  "repository_commit": "127166e4099a6eccc1172aae3e529db40450a0df",
+  "profile": "mt6797-a53-wmt-default-query-compile",
+  "dtschema_version": "2026.9",
+  "binding_sha256": "01194054795dc2284f6e4bb7a1551457265f2aaff93786f85bed7b8986a2537d",
+  "processed_schema_sha256": "d50a7303b804dbb6c3b07d50491b95326c0263f19733f04fbb602c3ba2d47bad",
+  "validated_dtb_sha256": "1bd2fffc78902460261881e2b0a939b1be26d90d448ce472a0a13540c2371b44",
+  "checks": [
+    {
+      "check": "dt-doc-validate selected binding",
+      "terminal_exit_code": 0,
+      "diagnostics": "empty"
+    },
+    {
+      "check": "make dt_binding_check with DT_SCHEMA_FILES=Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml",
+      "terminal_exit_code": 0,
+      "completion_markers": [
+        "SCHEMA",
+        "CHKDT",
+        "LINT",
+        "DTEX",
+        "DTC [C]"
+      ],
+      "binding_diagnostics": "empty"
+    },
+    {
+      "check": "make CHECK_DTBS=y mediatek/mt6797-gemini-pda.dtb with selected binding",
+      "terminal_exit_code": 0,
+      "dtc_warnings": [
+        "USB node empty ranges differs from root address-cells",
+        "USB node empty ranges differs from root size-cells"
+      ]
+    },
+    {
+      "check": "direct dt-validate -s processed-schema.json -l mediatek,mt6797-consys on the actual query DTB",
+      "terminal_exit_code": 0,
+      "diagnostics": "empty"
+    },
+    {
+      "check": "remove clocks, clock-names and interrupts separately from copies of the actual query DTB",
+      "expected": "each missing resource rejected as required property",
+      "observed": "all three rejected"
+    }
+  ],
+  "execution_note": "The two make checks initially overlapped schema generation in the same output tree. After both were terminal, sequential direct validation parsed the completed schema, checked the exact package-matching DTB and exercised the three negative fixtures.",
+  "scope": "Selected CONSYS binding and query DTB node only; not an unrestricted all-bindings board pass, booted DT candidate validation or hardware result.",
+  "private_log_sha256": {
+    "wmt-query-binding-check.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "wmt-query-dt-binding-check.log": "62e47e2871f6be9ddb9a71ccb5f365ddae775ad96d49a76c9cf256d95eb4fb9d",
+    "wmt-query-dtb-check.log": "70c1f42d10b1bf8901d47cd25cb47ded0f0d3d731bf04fc380b3e209fddd6615",
+    "wmt-query-dtb-direct-check.log": "a1ffe418127a7e7cf710e63e033092b2dc5bfd7e3b1d71aff851d3972e883d39",
+    "wmt-query-schema-negative-check.log": "d25b7850cc8866fae9b6c6956dbe23277e6d5d6473d4cf9370aec0b5eeaf7486"
+  },
+  "hardware_action": "none"
+}

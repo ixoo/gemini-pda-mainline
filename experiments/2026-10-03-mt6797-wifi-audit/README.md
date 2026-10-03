@@ -153,12 +153,16 @@ In order. Steps 1–2 need no mainline boot.
    in `init_table_1_2`). Decision: an event comes back (link alive) or not
    (fix the transport before anything else). Check whether upstream
    `btmtkuart` STP framing and the `btmtk` WMT helpers can be reused.
-4. **Second boot: patch, calibration, then scan.** Add ROM patch download,
-   WMT reset, the PA-LDO/RF calibration step (with VCN33-BT enabled as in the
-   vendor order) and the coexistence/crystal settings, then the existing
-   Wi-Fi START and one passive channel-40 scan. Decision: a nonzero firmware
+4. **After transport liveness: common initialization, then scan.** Review and
+   add the selected default/full-mode negotiation, enabled DLM script, ordered
+   ROM patch download and WMT resets, selected conditional settings, PA-LDO/RF
+   calibration (with VCN33-BT enabled as in the vendor order) and coexistence,
+   then the existing Wi-Fi START and one passive channel-40 scan. Decision: a nonzero firmware
    management count or a BSS means reception is unblocked; still zero means
-   compare the remaining vendor steps one at a time.
+   compare the remaining vendor steps one at a time. The
+   [source follow-up](STARTUP_FOLLOWUP.md) finds crystal trimming disabled and
+   Gemian co-clock disabled; do not add those unselected branches. These boots
+   are decision milestones, not a promise of completion in two attempts.
 5. **After reception works:** association through mac80211 host MLME, then
    bounded traffic over PIO, then packet DMA and interrupts, then teardown and
    restart, then fold the diagnostics into one driver.
@@ -183,3 +187,7 @@ and coexistence observations, identifies the initial STP mandatory mode and
 enabled DLM branch, and corrects the crystal-trim assumption: that branch is
 disabled in both selected source files. BTIF PIO and complete failure handling
 remain to be reviewed before a candidate.
+
+The [query integration](../2026-10-03-mt6797-wmt-default-query/README.md) now
+records implementation and a successful fetched compile package. It does not
+admit a device test or establish transport, calibration or Wi-Fi reception.
