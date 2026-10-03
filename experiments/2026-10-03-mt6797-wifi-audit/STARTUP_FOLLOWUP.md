@@ -49,3 +49,7 @@ steps and STP mandatory framing/parser before implementing the isolated query.
 Resolve enabled DLM and build-conditional scripts before any full calibrated
 scan candidate. Proposal 0085 remains parked. No source review here authorizes
 calibration, register writes or a boot by itself.
+
+The [BTIF mandatory-mode review](BTIF_MANDATORY.md) now pins framing vectors
+and selected FIFO/register behavior. IRQ-masked polling, aliased FIFO control,
+read effects and DMA exclusion still require resolution before implementation.

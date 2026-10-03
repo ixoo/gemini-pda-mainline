@@ -1,0 +1,83 @@
+{
+  "schema": 1,
+  "status": "source contract narrowed; polling and resource admission incomplete",
+  "source_commit": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+  "source_sha256": {
+    "btif_plat.c": "91744beb769a3414cba3cfc2920fffd7b2254b8e6a7861ea0abafa37e90c5872",
+    "mtk_btif.c": "53b2d8400f5a468efc1ac8b111056a1b0a214ab1328a9f635284402ca00258fc",
+    "btif_dma_plat.c": "2f247d8a7a6ee60913f318a5db43da7813c047cb8980790d15073dd269ee693a",
+    "btif_priv.h": "3cb7cc939b2d59be36f48f6c0d4093acd552e7cd7058bf736ec83c398db82110",
+    "btif_dma_priv.h": "29aaaaeb938323f3738223dfd6320d30c525475248fa5dce34b3771435952e4e",
+    "plat_common.h": "0393dd551c37e542b1804a75c89c9fd989ad185537263f12c156e58711efd31e",
+    "stp_core.c": "7bc7a5bf3f2231b6fca8eac1fa8744eb792de75c79f6e859f6109a50008956ea",
+    "stp_core.h": "78abfa5601723b0dd2aac93b2c79d5e7fb6a75a948aa06d516df7dfc5102b30f",
+    "stp_exp.h": "9c1daca8fa5e30468865d42fb778bf070ac09e0adebf6735852631d5dc89ec42",
+    "stp_btif.c": "cadce8870cf8b1933862064ea91832a37abd071663c88d9c38c204ead5774b34",
+    "wmt_core.c": "e9f438c5c6033f0bf831347c69d656ec917b3e705648d3d27fb1b27409334f1e"
+  },
+  "mandatory_stp": {
+    "task": 4,
+    "header_bytes": 4,
+    "trailer_bytes": 2,
+    "length_bits": 12,
+    "header_checksum": 0,
+    "trailer_crc": 0,
+    "tx_initial_sequence": 0,
+    "query_payload_hex": "0104010004",
+    "query_frame_hex": "8040050001040100040000",
+    "expected_event_payload_hex": "02040600000411000000",
+    "expected_event_frame_example_hex": "80400a00020406000004110000000000",
+    "event_first_byte_is_example": "mandatory parser accepts bit7 set and ignores low sequence bits; do not constrain response to the example sequence without independent proof",
+    "padding": "no SDIO alignment padding in BTIF mandatory branch",
+    "framing_hardware_proven": false
+  },
+  "btif": {
+    "tx_fifo_bytes": 16,
+    "rx_fifo_bytes": 8,
+    "data_port": {
+      "offset": "0x00",
+      "rx_read_bits": 8,
+      "tx_write_bits": 8
+    },
+    "registers": {
+      "IER": "0x04",
+      "IIR_read_FIFOCTRL_write": "0x08",
+      "FAKELCR": "0x0c",
+      "LSR": "0x14",
+      "SLEEP_EN": "0x48",
+      "DMA_EN": "0x4c",
+      "RTOCNT": "0x54",
+      "TRI_LVL": "0x60",
+      "WAK": "0x64",
+      "WAT_TIME": "0x68",
+      "HANDSHAKE": "0x6c"
+    },
+    "line_status_bits": {
+      "receive_data": 0,
+      "tx_threshold": 5,
+      "tx_empty": 6
+    },
+    "selected_tx_handling": "NEW_TX_HANDLING_SUPPORT is locally 1; normal send enqueues then enables TX interrupts. Inactive direct-write branch is not a proven live polling path.",
+    "selected_rx_handling": "receive helper delegates to interrupt-status-based byte drain; RX PIO setup enables interrupt. Fully IRQ-masked receive remains unverified.",
+    "aliased_control": "Vendor bit-set/clear macros read-modify-write offset 0x08, whose read identity is IIR and write identity FIFOCTRL. Do not copy this as a control-value readback.",
+    "dma_enable_read_effect": "Header says reading offset 0x4c resets timeout interrupt when automatic reset disabled; not an unconditionally passive observation.",
+    "dma_engine_enable_offsets": "TX and RX AP-DMA channel EN offsets are +0x08; separate from BTIF local DMA request bits. Clearing local request bits does not prove engine quiescence."
+  },
+  "open_gates": [
+    "selected MT6797 resource/clock binding and shared-owner exclusion",
+    "FIFO control writes and polling readiness with CPU IRQs masked",
+    "BTIF/AP-DMA inactive-state observations with read effects reviewed",
+    "initial wake/handshake/sleep timing and failure recovery",
+    "bounded source/fixture review, Buildbox compile and exact candidate/deployment before live query",
+    "selected raw WMT task-4 helper reuse and integration; generic HCI wrapper is not the same boundary"
+  ],
+  "device_action": "none",
+  "sanitization": "Public-source identities and independent protocol/register summaries only; no source excerpts or private device bytes.",
+  "upstream_comparison": {
+    "version": "v7.1.3",
+    "path": "drivers/bluetooth/btmtkuart.c",
+    "sha256": "f0ed75c1de8a08bcf543975c927078be5d8de988bb25bc37898a8c37a29914af",
+    "matching_shape": "four-byte header, prefix 0x80, big-endian 12-bit length plus task nibble, zero checksum and two zero trailer bytes",
+    "mismatch": "send prepends H:4 and fixes task type 0; RX routes payload to H:4; transport is serdev. Selected first WMT exchange is raw task 4 through BTIF. Whole-driver reuse is not established."
+  }
+}
