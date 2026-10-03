@@ -1,0 +1,36 @@
+{
+  "status": "host-only framing draft; no kernel integration or hardware admission",
+  "gemian_source_commit": "59e00a9144d782e148332009a835b99c43382467",
+  "prepared_patch_set": "d6a6547d27254377172dc75254a6ccda5d6db2e232e91c8b781c8bf2e6a5b32e",
+  "source_sha256": {
+    "drivers/misc/mediatek/connectivity/common/common_main/core/stp_core.c": "79d03346c95e2d233f2a384fa4490d3b89acdfd1c1d6b9c2026709358dbcbf65",
+    "drivers/misc/mediatek/connectivity/common/common_main/linux/osal.c": "e092adc17a3092a8cacaa04975bad49c57ff0dd191fb60195e426e49c764f3db"
+  },
+  "authored_sha256": {
+    "tests/wmt-full-stp.h": "a3b2f15e1625ed06cfa64271e643f1ddd303eb8038c56cca9a38afbd19d00272",
+    "tests/wmt-full-stp-test.c": "414e761ed8f2d18249317796e1ffa867d763717c46a47ebf130c686e53ef801f"
+  },
+  "independent_osal_table_crc_vectors": {
+    "digits_123456789": "bb3d",
+    "query_0104010004": "f36c",
+    "reply_02040600000411000000": "dce7",
+    "bytes_0_through_255": "bad3",
+    "1005_bytes_index_modulo_256": "c159"
+  },
+  "checks": {
+    "strict_c11_warnings": "pass",
+    "address_and_undefined_behavior_sanitizers": "pass",
+    "golden_frames_corruption_truncation_bounds": "pass"
+  },
+  "selected_max_payload": 1005,
+  "source_difference": "Selected Gemian STP parser braces the NAK condition so task and length processing still runs with NAK disabled; earlier vendor copy lacks these braces. Framing source is otherwise unchanged in the observed file diff.",
+  "not_tested": [
+    "BTIF FIFO or IRQ concurrency",
+    "peer ACK/state/reset epochs",
+    "kernel integration or build",
+    "firmware transfer or calibration",
+    "reception, association or traffic"
+  ],
+  "device_action": "none",
+  "sanitization": "Independent protocol facts, authored codec and software digests only; raw vendor source, firmware and private captures excluded."
+}

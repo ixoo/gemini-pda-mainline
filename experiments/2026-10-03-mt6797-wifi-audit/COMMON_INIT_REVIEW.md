@@ -77,3 +77,7 @@ Sequence 1 is filename suffix `1_1`, then sequence 2 is `1_0`; lexical order
 would be wrong. Its fragment arithmetic matches the retained Gemian summaries.
 Installed attribution, hardware/ROM-version applicability, full-STP transport
 and powered failure handling remain separate before a candidate.
+
+The [full-STP framing follow-up](FULL_STP.md) now supplies a hardware-free WMT
+codec and corruption/boundary fixtures. ACK state, reset epochs, FIFO progress
+and hardware acceptance remain unresolved; the codec does not admit transfer.
