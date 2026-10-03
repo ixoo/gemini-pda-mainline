@@ -424,8 +424,10 @@ for the first Wi-Fi bring-up. The current preparation order is:
    identifies a masked pending bit-3 route and two ordinary-RAM raw snapshots.
    The [2026-10-03 Wi-Fi audit](../experiments/2026-10-03-mt6797-wifi-audit/README.md)
    finds that no mainline boot has run the vendor WMT common power-on over
-   BTIF/STP: ROM patch download, RF calibration with the PA LDOs, coexistence
-   and crystal settings all precede WLAN start in the pinned source. That gap
+   BTIF/STP: ROM patch download, RF calibration with the PA LDOs and coexistence
+   precede WLAN start in the pinned source. The [startup follow-up](../experiments/2026-10-03-mt6797-wifi-audit/STARTUP_FOLLOWUP.md)
+   finds crystal trimming disabled and Gemian co-clock disabled; retain enabled
+   DLM and actual build-conditional branches rather than assuming every setting. That gap
    sits upstream of every receive gate sampled so far. **Current Wi-Fi order:**
    (a) map the vendor power-on sequence against mainline, offline;
    (b) confirm in Gemian, read-only, that those steps ran on this device;

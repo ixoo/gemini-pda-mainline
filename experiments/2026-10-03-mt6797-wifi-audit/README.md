@@ -175,3 +175,11 @@ or the device. Finding 1 is a source-order inference that steps 2–4 must test.
 ROM patches and `WMT_SOC.cfg` are retained privately; their use in private
 tests follows the existing firmware boundary and redistribution remains
 separate.
+
+## Startup follow-up
+
+The [partial startup mapping](STARTUP_FOLLOWUP.md) adds retained Gemian patch
+and coexistence observations, identifies the initial STP mandatory mode and
+enabled DLM branch, and corrects the crystal-trim assumption: that branch is
+disabled in both selected source files. BTIF PIO and complete failure handling
+remain to be reviewed before a candidate.

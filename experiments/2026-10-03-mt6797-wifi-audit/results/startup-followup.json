@@ -1,0 +1,51 @@
+{
+  "schema": 1,
+  "status": "partial startup mapping and retained Gemian corroboration; transport contract incomplete",
+  "source_commits": {
+    "vendor": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+    "gemian_v8": "59e00a9144d782e148332009a835b99c43382467"
+  },
+  "source_sha256": {
+    "wmt_ic_soc.c": "22d98e9e5f0c9c3cae36a3099e57315ed7808524239a061bf9ab0cf97379e66f",
+    "gemian-wmt_ic_soc.c": "22d98e9e5f0c9c3cae36a3099e57315ed7808524239a061bf9ab0cf97379e66f",
+    "mtk_wcn_consys_hw.c": "0ec8e9c1594626d0b31f2d2623927d614f63af4437c16df838e10e11258663ce"
+  },
+  "wmt_ic_soc_sources_byte_identical": true,
+  "selected_local_defines": {
+    "CFG_WMT_MULTI_PATCH": 1,
+    "CFG_WMT_CRYSTAL_TIMING_SET": 0,
+    "CFG_WMT_PATCH_DL_OPTM": 1,
+    "CFG_WMT_POWER_ON_DLM": 1,
+    "CFG_WMT_FILTER_MODE_SETTING": "depends on CFG_WMT_LTE_COEX_HANDLING; selected build preprocessor value not yet checked"
+  },
+  "gemian_log_sha256": "a058ddf2ad21b8db48e7b2e39d488d0c0baffc59fa322ee314bc75718f6a6707",
+  "gemian_observations": {
+    "successful_patch_download_logs": 2,
+    "patch_fragment_summaries": [
+      [
+        47,
+        444
+      ],
+      [
+        211,
+        876
+      ]
+    ],
+    "coexistence_config_lookup_logged": true,
+    "co_clock_disabled_logged": true,
+    "explicit_calibration_completion_logged": false
+  },
+  "calibration_inference": "Selected sw_init returns before wmt_stp_init_coex if calibration_table fails. The two source files are byte-identical, and the v8 receipt pins the Gemian source revision. Reaching coexistence supports calibration-script success under this source path; exact compiled-function equivalence and over-air/RF effectiveness are not proved. No absence-of-log conclusion.",
+  "transport_discovery": {
+    "vendor_directory": "drivers/misc/mediatek/btif/common",
+    "source_files": [
+      "mtk_btif.c",
+      "btif_plat.c",
+      "btif_dma_plat.c"
+    ],
+    "register_and_pio_contract_reviewed": false,
+    "initial_stp_mode": "wmt_core_stp_init selects BTIF mandatory mode before sw_init queries defaults; sw_init then switches chip/host to full mode"
+  },
+  "device_action": "none",
+  "sanitization": "Independent summaries and file digests only; raw logs, source excerpts, pointers, firmware and calibration bytes omitted."
+}
