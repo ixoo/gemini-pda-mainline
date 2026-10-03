@@ -1,0 +1,2 @@
+# Isolated checked pre-negotiation chip/HW/ROM reads; compile review only.
+CONFIG_LOCALVERSION="-gemini-a53-wmt-versions"

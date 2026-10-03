@@ -1,0 +1,35 @@
+From da7087d1a7d007da807039e86980c89c3efeefd3 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 3 Oct 2026 15:43:01 +0000
+Subject: [PATCH 100/100] dt-bindings: soc: mediatek: describe checked WMT
+ versions
+
+Reuse the existing identity diagnostic selection for checked chip
+hardware and ROM reads. Preserve its resources and mutual exclusions.
+
+Internal experiment archive; synthetic non-certifying author, no DCO. No
+hardware result.
+---
+ .../bindings/soc/mediatek/mediatek,mt6797-consys.yaml       | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
+index e9f5671..0dca9dc 100644
+--- a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
++++ b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
+@@ -80,9 +80,9 @@ properties:
+   mediatek,one-shot-wmt-identity-capture:
+     type: boolean
+     description: |
+-      Experimental deferred chip-read capture before negotiation and patch
+-      loading. Preserves a bounded raw mandatory-STP response without accepting
+-      identity or continuing initialization. Clocks/power remain retained.
++      Experimental deferred identity diagnostic before negotiation and patch
++      loading. Supports bounded raw chip capture or checked chip, hardware and
++      ROM reads. No further initialization follows; clocks/power stay retained.
+ 
+   memory-region:
+     maxItems: 1
+-- 
+2.39.5
+

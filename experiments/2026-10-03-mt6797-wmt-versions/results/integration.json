@@ -1,0 +1,52 @@
+{
+  "status": "kernel integration checkpoint; build and schema pending",
+  "parent_project_commit": "7204fe2ae731e86ba1ab6ac3910c0c160ad134c1",
+  "foundation_profile": "mt6797-a53-wmt-identity-capture-compile",
+  "selected_profile": "mt6797-a53-wmt-versions-compile",
+  "validation": {
+    "reverse_check": "pass",
+    "exact_forward_replay_files": 6,
+    "files": {
+      "drivers/soc/mediatek/mt6797-consys.c": "610eee5c625d4a0130531d545c5f57b32067c8ef545a535d3c5e7769bfbae1ec",
+      "Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml": "10830407932eceb8eae5cffc7a4f86004308b67aad2fa7efeeacca635092c8e9",
+      "arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts": "b0279ee2803c2ac71c8a5786ba3feecb027129fe3cc6d641e25c668b040a5e6f",
+      "drivers/soc/mediatek/mt6797-wmt-version-io.h": "ee395075de8e2413a12f073b531045f5ccfaf66747f58443c650ecfc04c39d7f",
+      "drivers/soc/mediatek/mt6797-wmt-versions.h": "88d5df8f5051ae0a3a4bdf953abf0e55985944f7b21adde0f3399603ae6783df",
+      "drivers/soc/mediatek/wmt-version-reply.h": "d747008801f5decf2d49396b61f0276b16315fcd2f4d177af4df62df4fdfd486"
+    }
+  },
+  "strict_checkpatch": {
+    "patches": 2,
+    "errors": 0,
+    "warnings": 0,
+    "checks": 0,
+    "exclusions": [
+      "MISSING_SIGN_OFF: internal non-certifying archive, no invented DCO",
+      "FILE_PATH_CHANGES: new authored diagnostic headers"
+    ]
+  },
+  "patch_sha256": {
+    "proposals/0099-soc-mediatek-check-pre-negotiation-WMT-version-reads.patch": "a59bbdd15ec0866102b0bf5e54e314bcb0b4029fcbb37ed10fbda3a97bb01382",
+    "proposals/0100-dt-bindings-soc-mediatek-describe-checked-WMT-versions.patch": "ca9f213731c4c31b42b2ba818fd8c9046a8ac60ba575ed6c1ea5ebd2b35da776"
+  },
+  "device_action": "none",
+  "not_established": [
+    "Linux compile",
+    "focused binding/schema",
+    "candidate/deployment",
+    "actual HW/ROM replies and tuple",
+    "common init/calibration",
+    "Wi-Fi reception association traffic"
+  ],
+  "repository_checks": {
+    "result": "pass",
+    "profiles_checked": 271,
+    "canonical_order": "pass",
+    "existing_metadata_debt": 37,
+    "limitations": [
+      "Linux-only provenance/package checks deferred to Linux",
+      "kernel build, DT schema and live device test not performed at this checkpoint"
+    ]
+  },
+  "selector": "existing mediatek,one-shot-wmt-identity-capture; no new selector"
+}
