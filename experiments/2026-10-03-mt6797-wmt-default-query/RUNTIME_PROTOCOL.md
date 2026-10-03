@@ -1,8 +1,9 @@
 # First WMT query runtime protocol
 
-Status: bounded effects, candidate and host enforcement checked; installation
-pending. Complete final publication checks before deployment. This record alone
-is not a deployment command. The [tooling receipt](results/tooling-validation.json)
+Status: bounded effects, candidate and host enforcement checked; guarded
+installation and clean shutdown completed in [deployment 1](results/deployment-1.json).
+One owner-operated boot2 selection is pending. This record alone is not a
+deployment command. The [tooling receipt](results/tooling-validation.json)
 distinguishes synthetic/offline checks from actual device evidence.
 The [candidate receipt](results/candidate.json) selects build `127166e4`, release
 `7.1.3-gemini-a53-wmt-query`, padded boot2 SHA-256
@@ -103,4 +104,5 @@ boot afterward. A host timeout does not admit another trigger or recovery path.
 
 A boot2 deployment must use the reviewed live-GPT guard, exact image and full
 partition readback, then clean shutdown. Physical boot2 selection remains the
-owner's action. No installation or device test has occurred for this candidate.
+owner's action. Installation is recorded separately; no mainline query has yet occurred for
+this candidate. See the [session packet](SESSION.md) for the physical handoff.

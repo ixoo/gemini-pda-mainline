@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-03-mt6797-wmt-default-query` |
-| Status | `in-progress` (candidate and host tooling checked; deployment pending) |
+| Status | `in-progress` (installed and readback verified; waiting-owner-boot) |
 | Subsystem | CONSYS / BTIF / WMT |
 | Device | Project Gemini PDA |
 | Investigator | Codex, under owner standing authorization |
@@ -97,8 +97,8 @@ clock, so the query adds a reference rather than ungating the engine. The
 [runtime protocol](RUNTIME_PROTOCOL.md) requires that live console/runtime state
 and confines one query and retained-power recovery. The [host-tooling validation](results/tooling-validation.json) now records nine
 synthetic guard/receipt tests, shell checks and offline capture/recovery preparation
-against temporary synthetic receipts. Deployment remains pending; a real full
-readback/shutdown receipt and changed-boot identity are still required. The
+against temporary synthetic receipts. Deployment is recorded below; changed-boot mainline identity is still required
+before the query. The
 candidate receipt retains its historical offline-only admission field.
 
 
@@ -134,3 +134,19 @@ Run the hardware-free guard/receipt checks with:
 ```sh
 PYTHONDONTWRITEBYTECODE=1 python3 experiments/2026-10-03-mt6797-wmt-default-query/tests/runtime-guard-test.py
 ```
+
+
+## Deployment and owner handoff
+
+[Deployment 1](results/deployment-1.json) resolved logical boot2 from the live
+Gemian GPT to `/dev/mmcblk0p30`, with root `/dev/mmcblk0p29`. The block identity,
+mount/holder/swap, target size/writability, predecessor and stable-power checks
+passed. One write, synchronization/flush, full remote checksum and independent
+16-MiB byte-for-byte readback matched the selected candidate. Temporary staging
+and readback were removed; the project backup was reused. Clean shutdown was
+confirmed unreachable; no automatic reboot occurred.
+
+Capture and regression/preservation/recovery preparation passed against that
+real deployment receipt. The [session packet](SESSION.md) now requests one
+physical boot2 selection. No query, RF scan or mainline runtime result follows
+from deployment. The first query lifetime remains unconsumed.

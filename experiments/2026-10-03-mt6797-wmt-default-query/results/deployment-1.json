@@ -1,0 +1,33 @@
+{
+  "status": "waiting-owner-boot",
+  "tooling_commit": "5cbe2110",
+  "result": "write-synced-flushed-full-readback-verified",
+  "target_logical_name": "boot2",
+  "target": "/dev/mmcblk0p30",
+  "root": "/dev/mmcblk0p29",
+  "target_major_minor": "179:30",
+  "root_major_minor": "179:29",
+  "boot2_device_guard": "passed",
+  "boot2_device_guard_sha256": "0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf",
+  "predecessor_sha256": "3d9186a96f4000d318f5615746257bcb83d3bb58e6aca74928f1e69106476d79",
+  "candidate_sha256": "1b4f1064ab1e6a166b4e7cfa4dc1523b0e1923be0b3286614733454d189bc4ba",
+  "readback_sha256": "1b4f1064ab1e6a166b4e7cfa4dc1523b0e1923be0b3286614733454d189bc4ba",
+  "candidate_manifest_sha256": "2de60b6209c6195437360dc3cc325a8f2ac8d6ebbe1f57d9d77118dd041699b3",
+  "previous_gemian_boot_id": "2c0d41ae-f998-420d-a456-6d2e854d5c08",
+  "power": "1|100|Good|1",
+  "fresh_predecessor_backup": "no",
+  "independent_full_partition_readback_bytes": 16777216,
+  "temporary_readback_removed": "yes",
+  "shutdown": "requested-after-evidence-flush",
+  "post_shutdown_reachability": "unreachable",
+  "poweroff_ssh_rc": "0",
+  "reboot": "no",
+  "receipt_sha256": "213d48276743c7e1a175337d64ae23b4a92f8967060990df8e0dd4be2cdb2d0f",
+  "installer_sha256": "e6829fcf3caf834a8167e7004eb0507794c719d5950564931b71c015751b37ef",
+  "real_receipt_offline_preparation": {
+    "capture": "pass",
+    "regression_preservation_recovery": "pass"
+  },
+  "runtime_query_attempted": false,
+  "sanitization": "Generated installer, private host paths, SSH trust/key inputs and raw logs excluded; boot identity and deployment checksums retained."
+}
