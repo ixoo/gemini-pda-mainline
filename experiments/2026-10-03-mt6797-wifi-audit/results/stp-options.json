@@ -1,0 +1,31 @@
+{
+  "scope": "fixed mandatory set-options wire/reply helper and full-query payloads; offline only",
+  "parent_commit": "f9453748",
+  "source_commit": "59e00a9144d782e148332009a835b99c43382467",
+  "source_sha256": {
+    "gemian-wmt_ic_soc.c": "22d98e9e5f0c9c3cae36a3099e57315ed7808524239a061bf9ab0cf97379e66f",
+    "gemian-stp_core.c": "79d03346c95e2d233f2a384fa4490d3b89acdfd1c1d6b9c2026709358dbcbf65"
+  },
+  "source_vector_comparison": "all four authored wire/payload arrays match selected source fields and mandatory framing",
+  "mandatory_debug_sequence": "selected mandatory TX branch does not increment sequence; set request remains sync 0x80 after initial query",
+  "validation": {
+    "strict_c11_warnings": "pass",
+    "address_undefined_sanitizers": "pass",
+    "set_reply_all_splits_and_prefixes": "pass",
+    "all_12_byte_positions_all_256_values": "pass; sync bit-7 variants accepted, every other mutation refused",
+    "sticky_failure_and_extra_input": "pass",
+    "synthetic_full_query_host_ack_obligation": "pass",
+    "strict_kernel_style": "pass; zero errors, warnings or checks"
+  },
+  "not_verified": [
+    "mandatory set-options FIFO/IRQ executor integration",
+    "real switch delay or peer ACK timing",
+    "Linux compilation or candidate admission",
+    "full-mode hardware exchange",
+    "ROM patch application, calibration or Wi-Fi reception"
+  ],
+  "sha256": {
+    "tests/wmt-stp-options.h": "a72cf57a2d134e99af72977dd93ca179ea9cc089a10649226471e9efce758168",
+    "tests/wmt-stp-options-test.c": "f15e54f3f5d83a955734246b709964e6d9d0f73329ccec20a9c5c98f6474e942"
+  }
+}

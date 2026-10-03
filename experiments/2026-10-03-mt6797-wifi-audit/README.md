@@ -208,3 +208,7 @@ preservation, passing regression and confirmed Gemian return. Earlier no-device
 statements above describe the audit date/checkpoints. Continue step 4 by preparing
 the checked mandatory set-options/full-mode boundary and its command owner;
 ROM patch, calibration and reception remain unproved.
+
+The [checked STP option preparation](STP_OPTIONS.md) supplies the fixed mandatory
+set-options request/reply and distinct full-query payloads. Source-vector and
+sanitizer fixtures pass; owner integration, build and hardware negotiation remain.
