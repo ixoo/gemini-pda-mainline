@@ -1,0 +1,47 @@
+{
+  "status": "offline-candidate-and-tooling-validated; deployment-pending",
+  "candidate_manifest_sha256": "0c41f5c8d005392f1211ff866693c8973b2f5cbee731b459195feae717b39b62",
+  "candidate_reconstruction": "two independent constructor executions; every member and receipt byte-identical",
+  "candidate_mutations": {
+    "accepted_exact": true,
+    "refused": 9,
+    "scope": "each of seven members changed, added file, Image.gz symlink"
+  },
+  "runtime_guard_tests": {
+    "methods_passed": 8,
+    "scope": "actual generated prerequisite/trigger, restoration and deployment receipt guards"
+  },
+  "private_wire_classifier_tests": {
+    "methods_passed": 6,
+    "scope": "golden piggyback/prior/following peer-credit paths, previous ACKs, terminal/count/wire mutations, duplicate/malformed/missing/truncated evidence and no raw bytes returned"
+  },
+  "offline_private_preparation": {
+    "capture": "pass",
+    "regression_preservation_recovery": "pass",
+    "deployment_receipt": "temporary synthetic receipt only; canonical receipt absent",
+    "execute_called": false
+  },
+  "shell_checks": {
+    "runtime_guard": "sh -n and ShellCheck pass",
+    "generated_trigger": "sh -n and ShellCheck pass",
+    "generated_installer": "bash -n and ShellCheck pass"
+  },
+  "source_sha256": {
+    "build-candidate.py": "53ba88c355bb9e3697df5ed53542ef243dce7adcb1ad812aff0ba8d4cfe1daae",
+    "capture-private.py": "86e78beb1cbb02764c1ff3cd545299dafc0d26548d52411e535017c4cca863c1",
+    "classify-negotiation.py": "b5bc9748370c2e0081d31410218694533ec61ddd9ec1b0f9e02d2de1276c33b1",
+    "install-passive.py": "a47733235727961be1eadf4ea003b0071ade6802f49dbcdb951996fbe3b09a8c",
+    "passive-host.py": "ab18c43416d73f9544bcbb28e3be433197a455077843e79a05e7b4528779f302",
+    "passive-session.py": "8bb55e73f9663c3c50472a124efe35e7f3f8c4f3418da1c3d856362a4e2d2ebc",
+    "runtime-guard.sh": "8254c16f9de45becff7b88abb2d5a672a28622b4143dd7177f66157510f4eb29",
+    "tests/runtime-guard-test.py": "8f9c370ab72fe61ce67cbd88c259f1a158ced50cf3472335f26b4fc4851e682e",
+    "tests/classification-test.py": "5c2bd010f2f01ae427af841e0107467546ec427b15f643f6426bb5319f8f21c0"
+  },
+  "limitations": [
+    "No new installation or runtime negotiation",
+    "Fixture checks do not establish real MMIO or IRQ behavior",
+    "Full mode is a prerequisite to common initialization, not working Wi-Fi"
+  ],
+  "device_action": "none",
+  "repository_checks": "pass on complete 14-file packet; Linux-only provenance fixture skipped locally and mandatory in CI"
+}

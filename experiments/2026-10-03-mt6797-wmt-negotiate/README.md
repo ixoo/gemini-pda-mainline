@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-03-mt6797-wmt-negotiate` |
-| Status | `in-progress` (wire-evidence integration compile and package validation passed; candidate/protocol pending) |
+| Status | `in-progress` (wire-evidence integration compile and package validation passed; candidate and finite protocol prepared; deployment pending) |
 | Subsystem | CONSYS / BTIF / STP |
 | Device | Project Gemini PDA |
 | Investigator | Codex under owner standing authorization |
@@ -15,8 +15,8 @@ permits preparing the next source-matched boundary: a checked mandatory
 set-options event, host full-STP reseed, source-matched switch wait and checked
 full-mode query including peer credit and host ACK. This compile selection is
 not hardware admission. No ROM patch, DLM operation, calibration, WLAN start or
-RF scan is selected. A new runtime protocol and validated candidate are still
-required before any device effects.
+RF scan is selected. The selected candidate and runtime protocol are now prepared; verified
+deployment and fresh owner boot remain required before device effects.
 
 ## Selected kernel inputs
 
@@ -70,3 +70,15 @@ The binding and compiled board DTB are byte-identical to Schema 1, so those
 focused checks remain applicable. Candidate and runtime protocol preparation
 are still required before device effects. Raw bytes,
 firmware and private logs must not be published with sanitized runtime receipts.
+
+## Candidate and runtime packet
+
+[Candidate](results/candidate.json) was reconstructed twice with identical bytes;
+only the RAM-root release gate and selected transport owner/WLAN nodes change
+from the proven foundation. [Validation](results/tooling-validation.json) covers
+actual guard/trigger fixtures, private wire classification, exact candidate
+preparation, and generated installer/trigger shell checks.
+
+The [runtime protocol](RUNTIME_PROTOCOL.md) and [session packet](SESSION.md)
+select one new negotiation lifetime and preservation/recovery on every outcome.
+No deployment or runtime result is recorded yet.
