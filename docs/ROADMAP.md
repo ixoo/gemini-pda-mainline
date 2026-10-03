@@ -414,13 +414,12 @@ for the first Wi-Fi bring-up. The current preparation order is:
    ownership. Mode continuity, byte wrap/reset and unsampled intervals remain
    unresolved. Do not force the mode word.
    The [native receive-pool diagnostic](../experiments/2026-10-02-mt6797-scan-pool-sample/README.md)
-   has passed Buildbox, candidate validation and guarded boot2 full readback.
-   Clean shutdown is confirmed; physical owner selection is pending. Its finite
-   four-read lifetime remains unconsumed. Selected firmware
-   analysis places pool initialization in the mode-2 branch and command input
-   in other object pools; live native-pool state remains unobserved. Execute
-   this distinct head/count measurement only after exact changed-boot identity.
-   Separate reads and indirect query effects prohibit RF packet-count claims.
+   completed with a valid head and all 32 objects free at both non-atomic
+   sample pairs, while management count and BSS remained zero. Evidence was
+   sealed and changed-boot Gemian recovery passed. Deprioritize pool depletion
+   at the sampled instants; trace descriptor arrival and receive enabling/filter
+   ownership. Continuous availability, initializer execution and indirect query
+   effects remain unresolved. Do not turn pool observations into RF counts.
    Do not repeat the consumed lifetimes. Establish management
    reception, then continue runtime receive/event ownership,
    credit recycling and packet lifetime toward association and bounded traffic.

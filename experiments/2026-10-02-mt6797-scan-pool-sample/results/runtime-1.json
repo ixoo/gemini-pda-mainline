@@ -1,0 +1,130 @@
+{
+  "a53_regression_pass": true,
+  "channel40_permitted": true,
+  "complete_log_sha256": "af687e0c09b44a4d8ad1210153ee89adb4c504df3b44938b7341a2fb4bcf7c69",
+  "counter_diagnosis": "no-firmware-management-count",
+  "counter_diagnostic_complete": true,
+  "effective_rf_dwell_verified": false,
+  "firmware_count_observation_complete": true,
+  "firmware_management_processing_count": 0,
+  "firmware_management_processing_seen": false,
+  "firmware_scan_done_version": 3,
+  "firmware_scan_pno": 0,
+  "gemian_recovery_confirmed": true,
+  "host_elapsed_us": 518603,
+  "initial_configuration_and_accounting_pass": true,
+  "kernel_release": "7.1.3-gemini-a53-wifi-scan-pool-sample",
+  "matching_done_header": true,
+  "native_management_frame_seen": false,
+  "nominal_dwell_timing_consistent": true,
+  "passive_scan_demonstrated": false,
+  "pool_sample_diagnosis": "available_at_separate_reads",
+  "pool_sample_diagnostic_complete": true,
+  "pool_sample_pairs": [
+    {
+      "free_count": 32,
+      "head": 4027004556,
+      "head_is_empty_sentinel": false,
+      "head_is_pool_member": true,
+      "state": "available_at_separate_reads"
+    },
+    {
+      "free_count": 32,
+      "head": 4027004556,
+      "head_is_empty_sentinel": false,
+      "head_is_pool_member": true,
+      "state": "available_at_separate_reads"
+    }
+  ],
+  "pool_sample_receive_proven": false,
+  "pool_sample_samples": [
+    {
+      "post_done": false,
+      "received_us": 132076,
+      "role": 0,
+      "sample": 0,
+      "sent_us": 108198,
+      "value": 4027004556
+    },
+    {
+      "post_done": false,
+      "received_us": 179996,
+      "role": 1,
+      "sample": 0,
+      "sent_us": 155991,
+      "value": 32
+    },
+    {
+      "post_done": false,
+      "received_us": 347997,
+      "role": 0,
+      "sample": 1,
+      "sent_us": 323992,
+      "value": 4027004556
+    },
+    {
+      "post_done": false,
+      "received_us": 395989,
+      "role": 1,
+      "sample": 1,
+      "sent_us": 371991,
+      "value": 32
+    }
+  ],
+  "pool_sample_samples_atomic": false,
+  "pool_sample_samples_before_done": true,
+  "pool_sample_samples_complete": true,
+  "pool_sample_values_changed": false,
+  "requested_channel_dwell_ms": 500,
+  "runtime_credit_returned": true,
+  "scan_channel_count": 1,
+  "scan_completed": true,
+  "single_scan_admitted": true,
+  "standard_5g_bss_result": false,
+  "standard_bss_result": false,
+  "standard_scan_succeeded": true,
+  "supported_broadcast_filter_submitted": true,
+  "timing_observation_complete": true,
+  "validated_beacon_reported": false,
+  "wifi_operational": false,
+  "wire_lifetime_retired": true,
+  "schema": 1,
+  "status": "single admitted pool-sample lifetime consumed; native pool available at separate reads; no received management frame or BSS",
+  "kernel_build_commit": "7f8d2fe050d306100d3a688e2c0bb7bad4a29abd",
+  "candidate_manifest_sha256": "ce01cc501b6e40132cc04a7affee6bfd7a79fb55091810ec8c98980d74a998ba",
+  "candidate_boot_sha256": "78fa13d05d9e3473782cbfec10a4b6f15c710e508503aafa017de54db2db65e1",
+  "candidate_boot2_sha256": "3d9186a96f4000d318f5615746257bcb83d3bb58e6aca74928f1e69106476d79",
+  "mainline_boot_id": "5acd89e2-9189-49fc-8af6-6a6470706fe9",
+  "returned_gemian_boot_id": "2c0d41ae-f998-420d-a456-6d2e854d5c08",
+  "returned_gemian_release": "3.18.41+",
+  "returned_gemian_carrier": true,
+  "one_start_and_scan_lifetime_consumed": true,
+  "four_queries_before_done": true,
+  "sampled_head_hex": "0xf007368c",
+  "sampled_free_counts": [
+    32,
+    32
+  ],
+  "native_recovery_requests": 1,
+  "native_recovery_request_process": {
+    "elapsed_seconds": 14.018,
+    "exit_status": 255,
+    "reason": "outer-timeout",
+    "stderr_bytes": 0,
+    "stdin_complete": true,
+    "stdout_bytes": 305
+  },
+  "recovery_watch_observations": 2,
+  "recovery_watch_elapsed_seconds": 15.494,
+  "sealed_manifest_sha256": "14ceb5fe2d911c80584c93efbe01e8b449fc9e5b6e4ba549ee61df5e7b6f1221",
+  "sealed_manifest_verification_pass": true,
+  "gemian_confirmation_stdout_sha256": "533768ebf08962f39520b342045d0e48d76e11cd9a8b90b1a536bb0c70683cd3",
+  "limitations": [
+    "Head and count are separate samples, not an atomic or continuous availability proof.",
+    "Full free count and unchanged head do not prove no allocation between samples or successful initialization execution.",
+    "RF listening, descriptor arrival, effective filter state and calibration application remain unverified.",
+    "Neither pool changes nor their absence are RF packet counts; indirect command/ROM effects remain unresolved."
+  ],
+  "next_action": "Trace selected descriptor lookup and receive enabling/filter ownership; do not repeat this consumed pool-sample lifetime.",
+  "sanitization": "Raw logs, firmware, calibration, peer identifiers, credentials and personal host paths omitted; checksums and sanitized boot identities retained."
+}

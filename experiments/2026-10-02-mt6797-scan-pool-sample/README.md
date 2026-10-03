@@ -1,7 +1,8 @@
 # Native receive object availability during one passive scan
 
-Status: guarded boot2 deployment and full readback verified; clean shutdown
-confirmed. Ready for owner physical boot2 selection. No START or scan consumed.
+Status: one hardware lifetime consumed. Both sample pairs show a valid native
+pool head and 32 free objects; no management frame or BSS. Evidence sealed and
+changed-boot Gemian recovery confirmed.
 
 The consumed [mode sample](../2026-10-02-mt6797-scan-mode-sample/README.md)
 observed mode 5 twice, with zero dispatcher/probe statistics and no BSS.
@@ -117,3 +118,26 @@ receipt. Physically select boot2 for release
 exact release and a boot ID changed from the recorded Gemian predecessor.
 Then root alone owns one capture/START and scan, evidence sealing and the
 reviewed native recovery. No lifetime is consumed by this deployment record.
+
+## Single runtime and decision
+
+[Runtime 1](results/runtime-1.json) verified the exact release and changed boot
+identity, then completed one WMT/START and one permitted channel-40 scan.
+All four query responses preceded DONE: both heads were `0xf007368c`, the
+first valid native-pool member, and both free counts were 32. The selected
+pool prerequisite was available at these separate instants. This deprioritizes
+sampled pool depletion; it does not prove continuous availability, execution
+of the initializer, or absence of allocations between samples.
+
+The 500 ms request completed in 518603 us. Ordinary management count remained
+zero, no native frame or validated beacon was seen, and iw returned no BSS.
+TC4 credit returned and the scan wire lifetime retired. A53, provider and
+wiphy checks passed. No receive or operational Wi-Fi claim follows.
+
+The complete log and pre-recovery manifest were sealed and locally verified.
+One reviewed native recovery request was followed by two bounded return
+observations; changed-boot Gemian and Wi-Fi carrier were independently
+confirmed. Its request's SSH outer timeout did not cause a restart retry.
+This START/scan lifetime is consumed and must not be repeated. The next
+source investigation targets descriptor arrival and receive enabling/filter
+ownership before the sampled mode and dispatcher gates.
