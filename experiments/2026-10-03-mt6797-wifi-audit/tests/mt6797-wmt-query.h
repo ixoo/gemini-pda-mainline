@@ -37,6 +37,7 @@ struct mt6797_wmt_query {
 	unsigned int irq_count;
 	unsigned int rx_count;
 	unsigned long deadline;
+	bool deadline_supplied;
 	int irq;
 	int result;
 	bool attempted;
@@ -144,6 +145,8 @@ static int mt6797_wmt_query_once(struct mt6797_wmt_query *query)
 	init_completion(&query->done);
 	spin_lock_init(&query->lock);
 	query->result = -ETIMEDOUT;
+	if (query->deadline_supplied && time_after_eq(jiffies, query->deadline))
+		return -ETIMEDOUT;
 
 	ret = clk_prepare_enable(query->dma_clk);
 	if (ret)
@@ -155,6 +158,9 @@ static int mt6797_wmt_query_once(struct mt6797_wmt_query *query)
 	ret = clk_prepare_enable(query->btif_clk);
 	if (ret)
 		return ret;
+
+	if (query->deadline_supplied && time_after_eq(jiffies, query->deadline))
+		return -ETIMEDOUT;
 
 	/* Normal bank first; reject nonempty FIFOs before any clear. */
 	writel(0, query->btif + WMT_BTIF_FAKELCR);
@@ -178,7 +184,8 @@ static int mt6797_wmt_query_once(struct mt6797_wmt_query *query)
 			  "mt6797-wmt-query", query);
 	if (ret)
 		return ret;
-	query->deadline = jiffies + msecs_to_jiffies(500);
+	if (!query->deadline_supplied)
+		query->deadline = jiffies + msecs_to_jiffies(500);
 	/* RX only, as in the revision-matched PIO path. */
 	writel(BIT(0), query->btif + WMT_BTIF_IER);
 	if (readl(query->btif + WMT_BTIF_IIR) & WMT_BTIF_RX_CAUSE) {

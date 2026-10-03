@@ -132,6 +132,15 @@ int main(void)
 	assert(cursor == 16 && freed == 1 && !btif[1]);
 	before = writes;
 	assert(mt6797_wmt_query_once(&q) == -EALREADY && writes == before);
+	q = fresh();
+	q.deadline_supplied = true;
+	q.deadline = 0;
+	assert(mt6797_wmt_query_once(&q) == -ETIMEDOUT);
+	assert(!clocks && !writes && !sent_count && q.attempted);
+	q = fresh();
+	q.deadline_supplied = true;
+	q.deadline = 100;
+	assert(mt6797_wmt_query_once(&q) == 0 && q.deadline == 100);
 	for (i = 0; i < 2; i++) {
 		for (j = 0; j < 5; j++) {
 			q = fresh();

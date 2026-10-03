@@ -217,3 +217,8 @@ The [mandatory set-options IRQ/FIFO checkpoint](results/mandatory-set-io.json)
 now passes actual service/wrapper fixtures with fixed TX/RX/service limits and
 balanced IRQ retirement. It is not a kernel candidate; the combined negotiation
 owner, build and hardware transition remain incomplete.
+
+The [combined negotiation caller](NEGOTIATION_OWNER.md) now connects the three
+checked exchanges with separate persistent records and one owner deadline.
+Orchestration/mocked-leaf and actual leaf tests pass. Binding it into the CONSYS
+kernel profile and validating the Buildbox package remain incomplete.

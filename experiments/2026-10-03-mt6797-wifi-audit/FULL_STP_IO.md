@@ -127,3 +127,8 @@ setup, checked initial query, this set exchange, source-matched full-mode reseed
 and 10-ms wait, and the full-query wrapper under one CONSYS owner with an explicit
 whole-negotiation budget and preserved phase evidence. No new candidate, kernel
 build, mode-switch device test or common-initialization effect is admitted here.
+
+The [combined negotiation caller draft](NEGOTIATION_OWNER.md) now supplies the
+phase ordering, clipped exchange deadlines, software reseed/wait and retained
+records. Its orchestration tests mock the exchange leaves; CONSYS binding,
+selected profile, Linux compilation and hardware transition remain incomplete.

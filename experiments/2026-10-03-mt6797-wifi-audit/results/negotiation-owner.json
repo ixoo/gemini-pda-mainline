@@ -1,0 +1,46 @@
+{
+  "scope": "concrete combined negotiation caller draft; not bound into a selected Linux profile or admitted candidate",
+  "parent_commit": "7aaf0208",
+  "validation": {
+    "actual_orchestration_with_mock_leaf_exchanges": "pass",
+    "actual_query_leaf_regressions_and_supplied_deadline": "pass",
+    "actual_set_full_fifo_irq_leaf_regressions": "pass",
+    "strict_c11_warnings_and_address_undefined_sanitizers": "pass",
+    "strict_kernel_style_changed_headers": "pass; zero errors, warnings or checks",
+    "ordering_and_first_failure_retention": "pass; default then set then reseed/wait then full, no later phase on failure",
+    "whole_deadline_default_set_wait_full_expiry": "pass",
+    "timer_wrap": "pass",
+    "repeated_lifetime_and_missing_resource_refusal": "pass"
+  },
+  "timing": {
+    "whole_negotiation_ms": 1600,
+    "exchange_deadline_ms": 500,
+    "first_query_deadline": "explicit owner phase deadline supplied before clock setup",
+    "switch_wait_us": [
+      10000,
+      11000
+    ],
+    "limitations": "scheduler and clock framework calls are not hard real-time bounded; deadline checks prevent later phase advancement and transport services enforce their own finite work"
+  },
+  "linux_irq_handoff": {
+    "source": "pinned Linux 7.1.3 prepared default-query source",
+    "manage_c_sha256": "01b56c004e65a01a98f3fb39d9f95a95f5ff7faf1c14bd820a7bc8e990a7e6ba",
+    "chip_c_sha256": "d08cf00842a367be2d1753b0d8e14a5bf4c3f7269d979f2d19979d9ac75f3457",
+    "observation": "exclusive fresh NO_AUTOEN action setup resets nested disable depth to one in manage.c lines 1763-1775; shutdown itself increments depth in chip.c lines 324-343",
+    "limitation": "source behavior does not establish real IRQ concurrency or hardware handoff timing"
+  },
+  "not_verified": [
+    "single combined real-MMIO fixture or Linux compile",
+    "CONSYS member/caller, binding, DTS and profile integration",
+    "mode-switch peer delay and full query on hardware",
+    "ROM patch/calibration/coexistence effects or working Wi-Fi"
+  ],
+  "sha256": {
+    "tests/mt6797-wmt-negotiate.h": "4c00f0f3ae0be0abcdbdef84cc9c507f456844a9a74f594102a515447402d3e9",
+    "tests/wmt-negotiate-test.c": "ed3082569913186d659ee2edfd458b614a422d389d3e07c261652d72b7e96f91",
+    "tests/mt6797-wmt-query.h": "5835f202ff5982133208b19bb9fe220faf12bcb0ddead9f084d8a12116345fd6",
+    "tests/wmt-query-transport-test.c": "c16a97254ae62c94d821a8aa6363c64480ac147cbb81783df90198ab99f711ca",
+    "tests/run-wmt-full-io-test.py": "617a87ea8b4b93007953d890572a999cb22fdb89819725b9a0e85559735ee7bf",
+    "tests/mt6797-wmt-full-io.h": "0f2af3ae97705ecc447c921471da4680651ddc324a291acbac210c35d9b3778e"
+  }
+}
