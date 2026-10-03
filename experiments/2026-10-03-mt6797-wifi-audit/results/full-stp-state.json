@@ -1,0 +1,40 @@
+{
+  "status": "host-only one-command state draft; no effect admission",
+  "gemian_source_commit": "59e00a9144d782e148332009a835b99c43382467",
+  "prepared_patch_set": "d6a6547d27254377172dc75254a6ccda5d6db2e232e91c8b781c8bf2e6a5b32e",
+  "source_sha256": {
+    "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_ctrl.c": "4fdc36fab251ba206c580268be73d9b9161005821bffe0ad01f3bf8a6b8800ec",
+    "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c": "e9f438c5c6033f0bf831347c69d656ec917b3e705648d3d27fb1b27409334f1e",
+    "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_ic_soc.c": "22d98e9e5f0c9c3cae36a3099e57315ed7808524239a061bf9ab0cf97379e66f",
+    "drivers/misc/mediatek/connectivity/common/common_main/core/stp_core.c": "79d03346c95e2d233f2a384fa4490d3b89acdfd1c1d6b9c2026709358dbcbf65"
+  },
+  "authored_sha256": {
+    "tests/wmt-full-stp-state.h": "2781d99e8c260548a489f0b8239f4d0139449c8ddd81acf0b9afe7c138edba34",
+    "tests/wmt-full-stp-state-test.c": "850f9b20f3abefd60a30696483f2c9334e85438f4092485651faf4921156b9c2"
+  },
+  "selected_source_findings": [
+    "Full-mode enable resets host sequence/ACK context; mode selection alone does not.",
+    "Ordinary per-patch WMT reset command/event does not reseed host STP context.",
+    "Separate STP in-band reset is outside the one-command helper."
+  ],
+  "checks": {
+    "synthetic_exchanges": 264,
+    "ack_orders": [
+      "piggyback",
+      "before-event",
+      "after-event"
+    ],
+    "modulo_eight_wrap": "pass",
+    "refusals_leave_state_unchanged": "pass",
+    "strict_warnings_and_sanitizers": "pass"
+  },
+  "not_tested": [
+    "peer timing and firmware acceptance",
+    "FIFO progress and interrupt synchronization",
+    "kernel integration",
+    "hardware query or patch transfer",
+    "calibration, reception, association, traffic"
+  ],
+  "device_action": "none",
+  "sanitization": "Independent descriptions and authored state helper only; vendor source, firmware and private captures excluded."
+}

@@ -72,3 +72,7 @@ or Wi-Fi support is established by these host tests.
 
 The [receipt](results/full-stp-codec.json) pins source and authored file digests.
 Raw vendor source and private inputs remain outside Git.
+
+The [state follow-up](FULL_STP_STATE.md) now traces the full-mode boundary and
+per-patch WMT reset distinction and tests a one-command window. Peer timing,
+FIFO/IRQ integration and device admission remain separate.
