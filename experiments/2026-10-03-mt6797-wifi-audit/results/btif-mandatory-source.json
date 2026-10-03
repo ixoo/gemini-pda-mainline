@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "status": "source contract narrowed; polling and resource admission incomplete",
+  "status": "source contract narrowed; resource integration and FIFO/DMA/IRQ lifetime incomplete",
   "source_commit": "c5b0be85017ad0c599725e8273842efdbecdd88a",
   "source_sha256": {
     "btif_plat.c": "91744beb769a3414cba3cfc2920fffd7b2254b8e6a7861ea0abafa37e90c5872",
@@ -64,10 +64,10 @@
     "dma_engine_enable_offsets": "TX and RX AP-DMA channel EN offsets are +0x08; separate from BTIF local DMA request bits. Clearing local request bits does not prove engine quiescence."
   },
   "open_gates": [
-    "selected MT6797 resource/clock binding and shared-owner exclusion",
-    "FIFO control writes and polling readiness with CPU IRQs masked",
+    "BTIF resource binding and shared-owner integration using existing upstream clocks",
+    "FIFO control writes and bounded interrupt-based RX PIO lifecycle",
     "BTIF/AP-DMA inactive-state observations with read effects reviewed",
-    "initial wake/handshake/sleep timing and failure recovery",
+    "fresh-power startup state and finite failure recovery; no speculative wake retry",
     "bounded source/fixture review, Buildbox compile and exact candidate/deployment before live query",
     "selected raw WMT task-4 helper reuse and integration; generic HCI wrapper is not the same boundary"
   ],
@@ -110,5 +110,34 @@
     "coverage": "all splits/prefixes, 256 sync bytes, 3825 non-prefix single-byte mutations, sticky failure, null and post-completion input",
     "kernel_build": false,
     "hardware_test": false
+  },
+  "resource_followup": {
+    "gemian_commit": "59e00a9144d782e148332009a835b99c43382467",
+    "gemian_source_sha256": {
+      "btif_plat.c": "91744beb769a3414cba3cfc2920fffd7b2254b8e6a7861ea0abafa37e90c5872",
+      "btif_priv.h": "3cb7cc939b2d59be36f48f6c0d4093acd552e7cd7058bf736ec83c398db82110",
+      "mtk_btif.c": "53b2d8400f5a468efc1ac8b111056a1b0a214ab1328a9f635284402ca00258fc",
+      "mtk_btif_exp.c": "43a94ad6a65aec468fa1d539df7241a4ccff16f7602502317d3b229d2516ec2c",
+      "mt6797.dtsi": "eaac86c8752ebd8ddf18b831eb3bc52a08f87475a213bb521650bf95dabb3e5e",
+      "clk-mt6797.c": "d4bc12ed162488b1df787eaf5a97364f080b0c847d57188686514b0cb11e1473",
+      "mt6797-clk.h": "e0be7f014dbdffd6ca46acef1bb87d7aceae04921f78c60ddca93e6afc01bb96",
+      "wmt_ctrl.c": "4fdc36fab251ba206c580268be73d9b9161005821bffe0ad01f3bf8a6b8800ec"
+    },
+    "upstream_version": "v7.1.3",
+    "upstream_source_sha256": {
+      "drivers/clk/mediatek/clk-mt6797.c": "eaad6324621679371f33bbb76e10bcb0d3374b1f2dbbd837323b3f9e8fee1534",
+      "include/dt-bindings/clock/mt6797-clk.h": "73ef029a8a51216697d7384a360ac94b714a6fea83e5bd8c4e2a5f78f2a48a63"
+    },
+    "replayed_mainline_through": "proposal 0084",
+    "replayed_file_sha256": {
+      "drivers/soc/mediatek/mt6797-consys.c": "4ffb6a39bd8e7890bb3a8a223fe176ec7b3d620fe754e2141265b0bec2edc532",
+      "Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml": "4f38571e226e397e382bd208c31d508469180ac90178b50eaf21b7cfc11a9f48"
+    },
+    "clock_mapping": "BTIF bank0 bit31; AP-DMA bank1 bit18; both axi_sel; existing upstream IDs 30 and 46",
+    "binding_gap": "Current CONSYS owner has no BTIF resource/clock acquisition",
+    "reset_boundary": "0514 removes unsourced BTIF reset identifier; do not use old number",
+    "wake_boundary": "Inspected startup chain has no wake pulse; exported pulse belongs to sleep/wakeup handling, not a speculative startup retry",
+    "implementation_direction": "Interrupt-based RX PIO; no requirement to prove masked-IRQ polling before implementing this path",
+    "device_action": "none"
   }
 }

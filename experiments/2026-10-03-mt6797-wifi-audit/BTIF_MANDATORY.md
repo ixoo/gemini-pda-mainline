@@ -77,9 +77,9 @@ HCI-wrapped WMT path for common startup. The receipt pins the upstream file.
 
 ## Next implementation gates
 
-Resolve exact mainline clock/resource binding, shared ownership, DMA exclusion,
-polling readiness and initial wake/handshake timing. Compare upstream STP/WMT
-helpers for actual framing and ownership compatibility. Then implement only
+Integrate the source-matched clock/resources, shared ownership and DMA exclusion,
+and resolve FIFO writes and bounded IRQ receive handling. Compare upstream
+STP/WMT helpers for actual framing and ownership compatibility. Then implement only
 the fixed default query and matched-event parser under the existing CONSYS
 owner, with focused split-response/malformed/deadline fixtures. Complete
 Buildbox and candidate/deployment gates before one physical test. No patch,
@@ -115,3 +115,45 @@ all sync bytes, every replacement value for each remaining frame byte, null
 input, sticky failure and extra input after completion. Strict file style
 checks also passed. No kernel build, transport implementation or device test
 was performed. This helper is not a boot candidate.
+
+## Revision-matched resources and wake boundary
+
+The Gemian-v8 revision supplies byte-identical `mtk_btif.c`, `btif_plat.c`
+and `btif_priv.h` to the selected vendor files. This narrows the source match;
+it does not prove that the PIO fallback ran or resolve the register-table
+conflicts. The selected Gemian DTS names BTIF at `0x1100c000`, size `0x1000`,
+SPI 130 with level-low polarity, and separate TX/RX AP-DMA windows at
+`0x11000a00`/`0x11000a80`, each size `0x80`, SPIs 116/117. Retained v8 boot
+logging corroborates these physical bases and mapped IRQs. No FIFO/control
+register values were found in that log.
+
+Gemian and upstream v7.1.3 both map BTIF to infracfg gate bank 0 bit 31,
+parent `axi_sel`, with set/clear/status offsets `0x80`/`0x84`/`0x90`. AP-DMA
+is bank 1 bit 18, the same parent, with offsets `0x88`/`0x8c`/`0x94`.
+Upstream already exports `CLK_INFRA_BTIF` (30) and `CLK_INFRA_AP_DMA` (46);
+use the clock framework rather than new raw clock writes. The vendor prepares
+both clocks, but enables the AP-DMA clock for DMA modes. PIO does not itself
+establish a need to enable that engine clock.
+
+The selected CONSYS owner and binding were replayed from file creation through
+proposal 0084. They currently have no BTIF resources or clock acquisition;
+the query requires explicit binding and owner integration. Canonical patch
+0514 removed the unsourced `MT6797_INFRA_BTIF_RST` identifier. Do not restore
+or use the old reset number for this experiment. The inspected vendor
+controller initializer uses FIFO clears, with no BTIF reset-controller call.
+
+The exported wake API is documented for use after a CONSYS sleep command. Its
+WMT caller is the full-mode power-saving WAKEUP branch. The inspected startup
+chain opens BTIF, initializes its controller and enters mandatory-mode `sw_init`
+without that wake call. Consequently the first fresh-power query should not
+add a speculative wake pulse. This is a source-path conclusion, not a measured
+wake-state guarantee; any unexpected asleep state is a terminal observation,
+not permission to pulse and retry.
+
+Implement RX using the selected interrupt-based PIO boundary unless further
+evidence justifies polling. PIO excludes packet DMA, not interrupts. This
+avoids making unproved IRQ-masked LSR readiness a prerequisite. The IRQ handler
+still needs a finite byte budget, exclusive ownership, malformed/extra-byte
+terminal handling, and synchronized shutdown. FIFO alias writes, DMA-state
+exclusion and failure power retention remain implementation gates. No transport
+implementation or hardware candidate is added by this review.
