@@ -73,6 +73,8 @@ not the starting point for unreviewed deployments.
 ## Parallel delivery
 
 Prioritize upstream preparation, A53 serviceability and Wi-Fi support.
+The order for non-Wi-Fi gaps once Wi-Fi lands is in
+[After Wi-Fi](#after-wi-fi-remaining-driver-gaps).
 Keep keyboard/storage preparation with A53 work. Offline power work continues
 when it can resolve a supported interface or measurement dependency.
 
@@ -953,6 +955,115 @@ inconclusive outcomes too. Patch, build and document counts are not progress
 measures. Review priorities weekly or when a decisive result changes a
 workstream's dependencies. Scheduled continuations are managed separately in
 the app and use this roadmap; the document itself is not a scheduler.
+
+## After Wi-Fi: remaining driver gaps
+
+This section orders the non-Wi-Fi gaps so work can start as soon as the Wi-Fi
+station milestone lands. It reflects the 2026-10-03 survey of the
+[support matrix](HARDWARE_SUPPORT.md), the recovery records and the
+architecture refreshes linked below. It does not change the Wi-Fi order above
+and admits no device test; each runtime step still needs its own reviewed
+experiment. Steps marked **(local)** need Julien's machine, because Buildbox
+and the device are not reachable from cloud sessions. Everything else is
+offline review, design, schema or documentation work that can start now.
+
+Ranking rule: first remove dependencies shared by several subsystems, then
+deliver the two usability blockers (battery/charging and native display), then
+reuse the finished Wi-Fi connectivity core for Bluetooth and GNSS, then the
+remaining peripherals.
+
+### Shared dependencies
+
+| Shared piece | Used by | Relation to Wi-Fi | Open item |
+| --- | --- | --- | --- |
+| MT6351 MFD, IRQ domain and regulators (0008–0015, 0062) | Wi-Fi rails, power keys, RTC, charger IRQ path, audio codec, microSD rails, touch/panel I/O rails | Every Wi-Fi candidate carries this stack; a change here invalidates Wi-Fi candidates | [VCN33 contract](../experiments/2026-09-08-mt6351-mfd-upstream-preparation/VCN33.md): one voltage selector serves BT and Wi-Fi with no arbitration; [VCN28](../experiments/2026-09-08-mt6351-mfd-upstream-preparation/VCN28.md) on-control sits outside the regulator vote |
+| CONSYS/WMT core: power-on, BTIF, STP, WMT common init | Wi-Fi, Bluetooth, GNSS, FM | Built by the Wi-Fi workstream now; [common init](../experiments/2026-10-03-mt6797-wifi-audit/COMMON_INIT_REVIEW.md) runs RF calibration with the BT PA rail involved | Keep it one owner with per-task STP channels so BT/GNSS consume it rather than re-power the block |
+| Clock and power-domain ownership (`clk_ignore_unused`, `regulator_ignore_unused`) | Retained simplefb console, display PWM, Wi-Fi profiles, GPU | All current profiles, Wi-Fi included, rely on both flags | Remove only per consumer, after its clocks and rails have a real owner |
+| SPM block `0x10006000` | CONN power status/control (Wi-Fi), display PWM oscillator at `+0x458` ([PWM oscillator](../experiments/2026-09-07-mt6797-display-upstream-architecture/PWM_OSCILLATOR.md)) | Shared with the CONSYS owner | Agree one register owner before a backlight driver writes there |
+| EINT controller (0005/0006) | PMIC (EINT176), touch (EINT8), card detect (EINT6), lid (EINT5), Type-C | None | No dedicated EINT consumer acceptance yet; make the first one cheap (lid or card detect) |
+| I2C0/I2C1 | Charger, FAN49101, both FUSB301 (I2C0/I2C1); panel bias, BMI160, STK3x1x (I2C1) | None | I2C1 is disabled in the board DT; enabling it serves display bias and sensors together |
+
+### Ordered gaps
+
+1. **PMIC foundation (offline now).** Finish the MT6351 VCN33 arbitration and
+   VCN28 control decisions in the
+   [MFD topic](../experiments/2026-09-08-mt6351-mfd-upstream-preparation/README.md)
+   with the Wi-Fi owner, since BT and Wi-Fi share them. Resolve the RTC BBPU
+   reload question in the
+   [RTC source audit](../experiments/2026-07-11-mt6351-pmic-recovery/results/rtc-source-audit-20260908.md)
+   and write the power-key long-press reset policy in the
+   [keys topic](../experiments/2026-09-08-mt6351-keys-preparation/RESET_POLICY.md).
+   Then one combined runtime packet **(local)**: power-key events, RTC
+   read/set/alarm and a reviewed power-off path. These close the M2 PMIC items
+   and give every later boot a clean shutdown.
+2. **Battery and charging (first usability blocker).** The charger is a
+   BQ25896 on I2C0 `0x6b` ([identity](../experiments/2026-07-12-charger-power-recovery/CHARGER_ID.md));
+   upstream `bq25890_charger` matches, so this is board description, not a new
+   driver. Missing inputs: the charger IRQ line, conservative charge limits and
+   the fuel-gauge source. No separate gauge chip has been found; whether the
+   vendor gauge is MT6351-internal is inferred, not recorded. Next steps:
+   (a) **(local)** one bounded read-only Gemian inspection for the charger IRQ
+   GPIO/EINT, the gauge's register source and live power-supply telemetry,
+   without repeating the consumed `0x14` read;
+   (b) offline, a disabled BQ25896 node with limits taken from the
+   [mainline design](../experiments/2026-07-12-charger-power-recovery/results/mt6797-charger-mainline-design.md)
+   and the pending [IRQ preflight fix](../experiments/2026-09-12-bq25890-irq-preflight/README.md);
+   (c) **(local)** a first mainline boot that only probes the charger and reads
+   telemetry, with charging left in its loader state. Charging control and a
+   gauge driver follow as separate steps. Charge state also gates device
+   sessions: the 2026-09-12 inspection saw 31 % and "Not charging".
+3. **Native display (second usability blocker).** Panel identity is
+   contradictory (vendor NT36672 descriptor versus SSD2092 in the
+   [bsg100 comparison](../experiments/2026-07-13-bsg100-gemini-linux-comparison/README.md)),
+   and the bias chip and reset path are unproved. Keep the console on
+   simplefb meanwhile. Next steps, in order:
+   (a) **(local)** the already-specified bounded Gemian trace of display PWM
+   clocks, parents and MM-domain lifetime from the
+   [display refresh](../experiments/2026-09-07-mt6797-display-upstream-architecture/README.md),
+   extended to read the panel ID and bias-chip identity read-only;
+   (b) offline, rebase and split 0028–0044 per that refresh's verdicts and
+   convert 0041 to OF-graph;
+   (c) backlight first: display PWM with a truthful clock contract is the
+   smallest consumer and makes the screen dimmable under simplefb;
+   (d) DSI/panel bring-up **(local)** only after identity and reset are known.
+   Touch (NT36772 on I2C4 `0x62`, [design](../experiments/2026-07-12-input-backlight-recovery/results/nt36xxx-mainline-design.md))
+   follows the panel because its suspend/resume is coupled to LCD state and its
+   rail is unidentified.
+4. **Bluetooth, then GNSS (reuse the Wi-Fi core).** These start the moment the
+   WMT common init in the Wi-Fi order is proven, because BTIF, STP, the ROM
+   patches and calibration are the same. Offline now: design the STP task
+   demultiplexer and channel API, and map the vendor BT and GPS function-on
+   sequences against the common init. Upstream shape: a `hci_dev` over the
+   shared BTIF/STP channel reusing `btmtk` helpers (`btmtkuart` matches only
+   the framing), and a `gnss` device fed by the STP GPS task plus the LNA on
+   GPIO69. First runtime test **(local)**: one HCI reset and version read.
+   FM comes last; no upstream driver exists and its fitment is unknown.
+5. **Small standalone wins (any free slot).** Lid switch (GPIO66/EINT5, patch
+   0074) needs one attended transition **(local)** to confirm polarity and
+   wake. microSD at 3.0 V needs the VMCH/VMC entry trim from the
+   [microSD contract](../experiments/2026-07-12-mt6797-msdc-recovery/MICROSD_CONTRACT.md)
+   before a card test **(local)**. USB VBUS/role ownership needs one session
+   tying connector, role, GPIO94 and the charger boost
+   ([VBUS record](../experiments/2026-09-08-usb-vbus-ownership/README.md)).
+6. **Audio.** Upstream drivers exist (`mt6797-afe-pcm`, `mt6351`,
+   `mt6797-mt6351`). Offline: the AFE YAML topic awaits truthful authorship.
+   Before a card: identify the speaker amplifier at I2C0 `0x31` and the jack
+   detection wiring **(local, read-only Gemian)**, then a bounded low-volume
+   playback test **(local)**. Depends on step 1 for the MT6351 codec child.
+7. **Sensors.** BMI160 (I2C1 `0x69`) has an upstream driver; STK3x1x product
+   ID `0x11` is not in the `stk3310` table. Enabling I2C1 is shared with the
+   display bias chip, so do it once. Rails, interrupts and mount orientation
+   need a read-only Gemian check **(local)**. See the
+   [sensors refresh](../experiments/2026-09-07-gemini-sensors-upstream-architecture/README.md).
+8. **GPU.** Panfrost (Mali-T880) needs the MFG power domains, the RT5735 VGPU
+   regulator ([record](../experiments/2026-07-12-rt5735-vgpu-recovery/README.md))
+   and safe OPPs. It waits for native display and for thermal protection.
+9. **Cellular and cameras.** Unchanged: feasibility work only, per the
+   cellular and camera records referenced in the parallel-delivery table.
+
+The [workstream registry](../project/workstreams.json) keeps owners; this
+section only orders the work. When Wi-Fi reaches station association, start
+with steps 1 and 2, and begin step 4's offline design in parallel.
 
 ## A53 development-system release gate
 
