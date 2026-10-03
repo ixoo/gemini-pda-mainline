@@ -157,3 +157,40 @@ still needs a finite byte budget, exclusive ownership, malformed/extra-byte
 terminal handling, and synchronized shutdown. FIFO alias writes, DMA-state
 exclusion and failure power retention remain implementation gates. No transport
 implementation or hardware candidate is added by this review.
+
+## Query executor draft (incomplete checkpoint)
+
+The independently authored [query executor](tests/mt6797-wmt-query.h) now
+implements one fixed PIO request and a bounded IRQ receive lifetime. It requires
+zeroed persistent CONSYS-owned storage and validated mappings/clocks/IRQ. It
+rejects active channel EN/STOP/FLUSH or nonempty internal/virtual DMA buffers,
+nonempty BTIF FIFOs, preexisting local DMA requests and startup interrupts.
+It sends at most eleven bytes, consumes at most sixteen reply bytes, rejects
+an immediately queued extra byte, and retires at 32 IRQ entries or a 500 ms
+deadline. Malformed data and timeouts never resynchronize or retry. Terminal
+handling disables the local source and CPU IRQ and synchronizes before freeing
+the IRQ. Acquired clocks and CONSYS power remain held for reviewed recovery,
+including failures; this is not reusable teardown.
+
+The draft deliberately reproduces the revision-matched source's four aliased
+FIFO clear operations, rather than treating IIR as a control readback. Its one
+initial local DMA_EN read admits the documented timeout acknowledgment effect;
+it then preserves unrelated fields while setting automatic reset. These are
+explicit draft effects, not resolved empirical register semantics or an admitted
+hardware protocol. Exact effects, initial-state observations, recovery and
+owner/binding integration must be reviewed before selecting a build/candidate.
+
+The existing upstream MT6797 DTS supplies the sysirq polarity provider, and the
+upstream driver translates level-low into polarity inversion plus a level-high
+parent interrupt. A BTIF child should inherit that provider; it must not attach
+a level-low IRQ directly to GIC or add raw polarity writes.
+
+Run `python3 experiments/2026-10-03-mt6797-wifi-audit/tests/run-wmt-query-transport-test.py`.
+The sanitizer-backed [host fixtures](tests/wmt-query-transport-test.c) pass the
+matched event, ten channel-busy cases, clock/request failures, nonempty startup,
+local DMA requests, pre-TX IRQ, partial/malformed/extra reply, spurious IRQ,
+deadline and IRQ-budget terminals, and no-write repeat refusal. They exercise
+the actual draft but do not model IRQ concurrency, real MMIO semantics or clock
+framework lifetimes. Strict kernel style passes for the executor. No driver
+caller, format-patch, selected series/profile, kernel compile or device test is
+added yet. This checkpoint is incomplete and is not a boot candidate.

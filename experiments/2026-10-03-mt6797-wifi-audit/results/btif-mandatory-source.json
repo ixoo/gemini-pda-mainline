@@ -139,5 +139,30 @@
     "wake_boundary": "Inspected startup chain has no wake pulse; exported pulse belongs to sleep/wakeup handling, not a speculative startup retry",
     "implementation_direction": "Interrupt-based RX PIO; no requirement to prove masked-IRQ polling before implementing this path",
     "device_action": "none"
+  },
+  "query_executor_draft": {
+    "status": "incomplete checkpoint; no kernel caller, profile or candidate",
+    "file_sha256": {
+      "tests/mt6797-wmt-query.h": "6e71b817f1886c41017242363ccefdc67c2494f890ae2b744003370bf93f86ec",
+      "tests/wmt-query-transport-test.c": "30e35de702aeba4433f6781926ccd65066d7aa8549d4ce15122f583f183ede37",
+      "tests/run-wmt-query-transport-test.py": "f3c793a3ae233e494f35dd7db6829e2093885bf14a1619bf6a1be9802cad9e70"
+    },
+    "host_fixtures": "pass with AddressSanitizer and UndefinedBehaviorSanitizer; actual executor compiled against host MMIO/IRQ model",
+    "style": "executor strict checkpatch pass",
+    "not_modeled": [
+      "IRQ concurrency",
+      "real MMIO semantics",
+      "clock framework lifetime"
+    ],
+    "not_done": [
+      "CONSYS resource/caller integration",
+      "hardware effect admission",
+      "kernel build",
+      "device test"
+    ],
+    "upstream_irq_source_sha256": {
+      "drivers/irqchip/irq-mtk-sysirq.c": "c9e2c2f6c7802453d9fed86224cb2047785c469abb9a79e0400d0e5012717795",
+      "arch/arm64/boot/dts/mediatek/mt6797.dtsi": "798662eb7df0a7cf37cbc47d54d232bbf85fbc748afc63af2c373526a948af83"
+    }
   }
 }
