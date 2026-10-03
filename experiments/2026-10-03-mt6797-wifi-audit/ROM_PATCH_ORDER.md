@@ -48,3 +48,8 @@ full-STP acknowledgements/checksums, reset epochs and every failure lifetime.
 Firmware remains private with unresolved redistribution rights. First-query
 liveness and the remaining [common-init contracts](COMMON_INIT_REVIEW.md) still
 precede any effect-bearing patch-transfer candidate.
+
+The [strict constructor](ROM_PATCH_CONSTRUCTOR.md) now validates the selected
+metadata and builds every fragment without mutating firmware input. Synthetic
+sanitizer tests and native retained-file checks in the RE VM passed; installed
+attribution, hardware applicability and transfer admission remain unproved.

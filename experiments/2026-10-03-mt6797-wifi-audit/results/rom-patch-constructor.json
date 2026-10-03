@@ -1,0 +1,61 @@
+{
+  "status": "host/RE-VM constructor validation; no transfer admission",
+  "authored_sha256": {
+    "tests/wmt-rom-patch.h": "00d6826bc1091c4c9b10445da0b32c2ac6b85d1755f2a54bd64166ce1a5ba095",
+    "tests/wmt-rom-patch-test.c": "255a0ce1342c0a15aa33f4cb0c1d84d829e3e568f263fbf562970fc8236451a6"
+  },
+  "source_sha256": {
+    "wmt_ic_soc.c": "22d98e9e5f0c9c3cae36a3099e57315ed7808524239a061bf9ab0cf97379e66f"
+  },
+  "selected_pair_metadata": "rom-patch-order.json",
+  "synthetic_checks": {
+    "fragments": 258,
+    "flags_lengths_body_coverage_and_STP_encoding": "pass",
+    "metadata_capacity_index_refusals": "pass",
+    "unchanged_outputs_on_refusal": "pass",
+    "strict_warnings_and_sanitizers": "pass"
+  },
+  "RE_VM_checks": {
+    "environment": "project RE VM",
+    "header_sha256": "00d6826bc1091c4c9b10445da0b32c2ac6b85d1755f2a54bd64166ce1a5ba095",
+    "retained_manifest_entries_verified": 2,
+    "ordered_patches": [
+      {
+        "sequence": 1,
+        "sha256": "5732c0730380e937b48ad169f2805b65e8d4a178265566c5083cb2cc2d249f1e",
+        "bytes": 46472,
+        "fragments": 47,
+        "constructor": "pass",
+        "short_input_refusal": "pass",
+        "wrong_sequence_refusal": "pass"
+      },
+      {
+        "sequence": 2,
+        "sha256": "450c2b0949cf879217ac9aef81b18b860982f0e69340784b448b54365d8cf630",
+        "bytes": 210904,
+        "fragments": 211,
+        "constructor": "pass",
+        "short_input_refusal": "pass",
+        "wrong_sequence_refusal": "pass"
+      }
+    ],
+    "native_constructor_checks": "pass",
+    "temporary_compile_files": "removed",
+    "firmware_executed": false,
+    "device_action": "none",
+    "scope": "retained input parsing and fragment construction; not installed attribution or hardware applicability"
+  },
+  "required_external_checks": [
+    "full-file digest before constructing a device candidate",
+    "installed-file and live hardware/ROM-version applicability",
+    "ordered address exchanges and event-checked fragments",
+    "whole-init effect/time budgets and failure recovery"
+  ],
+  "not_tested": [
+    "Linux kernel integration",
+    "BTIF transfer or WMT reset",
+    "calibration, reception, association or traffic"
+  ],
+  "device_action": "none",
+  "sanitization": "Authored parser and synthetic data only; software hashes and construction summaries retained; firmware bytes and private script excluded."
+}
