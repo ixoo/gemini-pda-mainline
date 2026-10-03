@@ -1,0 +1,78 @@
+{
+  "status": "hardware-free-checked-version-owner-draft-validated",
+  "kernel_integration": false,
+  "device_action": "none",
+  "chip_evidence": "CHIP_REPLY.md",
+  "HW_ROM_hypothesis": {
+    "same_read_event_format_as_chip": true,
+    "HW": "0x00008a00",
+    "ROM": "0x00008a00",
+    "live_verified": false
+  },
+  "sources": [
+    "tests/wmt-version-reply.h",
+    "tests/mt6797-wmt-version-io.h",
+    "tests/mt6797-wmt-versions.h"
+  ],
+  "bounds": {
+    "reads": 3,
+    "whole_ms": 1500,
+    "per_read_ms": 500,
+    "per_read_THR": 26,
+    "per_read_RBR": 22,
+    "per_read_services": 64,
+    "RX_per_service": 8,
+    "IRQ_registrations": 3
+  },
+  "actual_leaf_fixtures": {
+    "variants": 3,
+    "byte_corruptions_rejected": 16830,
+    "fragmented_arrival_steps": 22,
+    "TX_expiry_positions": 26,
+    "RX_expiry_positions": 22,
+    "short_reply_lengths": 22,
+    "queued_trailing_at_quota_boundary": "refused",
+    "last_IIR_expiry": "refused",
+    "lifecycle": "balanced/no retry; all outcomes retained"
+  },
+  "owner_fixture": "ordering, first prepare/exchange failure at each ordinal, whole deadlines, prerequisites and no retry; leaves mocked",
+  "regressions": [
+    "existing full IO",
+    "existing negotiation",
+    "original chip capture"
+  ],
+  "sanitizers": [
+    "address",
+    "undefined"
+  ],
+  "fixture_flags": [
+    "-std=c11",
+    "-Wall",
+    "-Wextra",
+    "-Werror"
+  ],
+  "pure_matcher": {
+    "strict_C11_conversion_shadow_pedantic": "pass",
+    "chip_fixture_refusals": 5675,
+    "private_sealed_chip_reply": "matched"
+  },
+  "additional_IRQ_strict_mode": "fails on inherited codec conversion warnings, GNU void-MMIO arithmetic and completion-return conversion; no suppressions or unrelated repair",
+  "strict_checkpatch": {
+    "headers": 3,
+    "errors": 0,
+    "warnings": 0,
+    "checks": 0
+  },
+  "not_tested": [
+    "kernel build/integration",
+    "HW/ROM live reply",
+    "ROM applicability",
+    "common init/calibration",
+    "Wi-Fi reception association traffic"
+  ],
+  "repository_checks": "pass",
+  "repository_check_limits": [
+    "Linux-only package/provenance checks skipped on macOS",
+    "no kernel build or device test for unintegrated draft"
+  ]
+}

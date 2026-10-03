@@ -252,3 +252,8 @@ The [measured chip response](CHIP_REPLY.md) and strict offline matcher now resol
 the contradictory read-event length for the chip exchange. The capture lifetime
 is retired after complete preservation, A53 regression and changed Gemian return.
 HW/ROM and ROM applicability remain unmeasured; no patch/calibration follows.
+
+The [checked version-read owner draft](VERSION_READ_OWNER.md) now supplies a
+strict reader and chip/HW/ROM first-error-stop sequence with finite budgets and
+retained resources. Its actual IRQ fixtures pass; HW/ROM variants remain explicit
+hypotheses for an identity-only live measurement. No new candidate is admitted.
