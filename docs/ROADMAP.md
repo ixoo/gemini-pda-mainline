@@ -1029,7 +1029,8 @@ remaining peripherals.
    (c) backlight first: display PWM with a truthful clock contract is the
    smallest consumer and makes the screen dimmable under simplefb;
    (d) DSI/panel bring-up **(local)** only after identity and reset are known.
-   Touch (NT36772 on I2C4 `0x62`, [design](../experiments/2026-07-12-input-backlight-recovery/results/nt36xxx-mainline-design.md))
+   Touch (vendor NT36772 on I2C4 `0x62`, possibly SSD2092 at `0x53`; see the
+   leads below and the [design](../experiments/2026-07-12-input-backlight-recovery/results/nt36xxx-mainline-design.md))
    follows the panel because its suspend/resume is coupled to LCD state and its
    rail is unidentified.
 4. **Bluetooth, then GNSS (reuse the Wi-Fi core).** These start the moment the
@@ -1063,6 +1064,41 @@ remaining peripherals.
    and safe OPPs. It waits for native display and for thermal protection.
 9. **Cellular and cameras.** Unchanged: feasibility work only, per the
    cellular and camera records referenced in the parallel-delivery table.
+
+### Leads from owner-held reference documents
+
+The owner keeps a local set of reference documents that is not in Git: the
+public 96Boards X20 (MT6797) functional specification, schematic and BOM,
+vendor datasheets (BQ25896, TPS65132, FUSB301A, DA9213/14/15, AW9523B),
+2017 MT6351 mailing-list patches, and third-party Gemini notes (Gemian wiki
+and bsg100). The SoC and X20 material is marked confidential and most
+datasheets have no redistribution grant, so cite them by name only. They are
+leads to check against this unit, not facts:
+
+- **Display and touch may be one chip.** A Solomon brochure lists SSD2092 as a
+  single-chip display and touch driver. bsg100 reports I2C4 `0x53` answering
+  and nothing at `0x62`. If confirmed, it replaces both the NT36672 panel and
+  NT36772 touch assumptions, so make the step 3a read check `0x53`.
+- **Panel bias.** The TPS65132 datasheet gives fixed address `0x3e`, VPOS/VNEG
+  at registers `0x00`/`0x01` and a ±5.4 V reset value, which fits the vendor
+  writes. The functional specification places LCM_RST on GPIO180 (EINT105)
+  and DISP_PWM on GPIO178.
+- **Charger.** bsg100 reports boost enable on GPIO107 in addition to
+  OTG_CONFIG. The BQ25896 watchdog reverts settings to defaults unless the
+  host services it or disables it, which the charger limits must account
+  for. The interrupt is an active-low 256 µs pulse.
+- **Fuel gauge.** bsg100 names the MT6351 internal gauge (FGADC registers),
+  for which mainline has no driver. Confirm it in step 2a before planning one.
+- **Audio jack.** The X20 detects the jack through MT6351 ACCDET. The
+  speaker amplifier at I2C0 `0x31` is named in none of the documents.
+- **USB.** GPIO93 (EINT16) has IDDIG as an alternate function, a candidate
+  for the unidentified second switch. FUSB301A at `0x25` implies its address
+  pin is strapped high on both buses.
+- **Connectivity.** On the X20 the MT6631 integrates FM, with VCN18 feeding
+  the Wi-Fi/BT and GPS 1.8 V supplies, VCN33 the Wi-Fi/BT 3.3 V supply and
+  VCN28 the FM supply. That suggests no separate FM chip on the Gemini.
+- **Board differences.** X20 addresses do not carry over: its `0x6b` is an
+  MT6313 buck, while the Gemini has a BQ25896 there.
 
 The [workstream registry](../project/workstreams.json) keeps owners; this
 section only orders the work. When Wi-Fi reaches station association, start
