@@ -22,7 +22,51 @@ rejected branches. The pre-consolidation roadmap is retained through an
 [immutable history reference](../experiments/2026-09-05-project-corrective-review/results/roadmap-history.json).
 Historical instructions never select a new boot.
 
-## Current decision
+## Current plan (2026-10-03 review)
+
+The [overall project review](../experiments/2026-10-03-project-review/README.md)
+owns the reasoning behind this order. Where it differs from older text below,
+this section wins. Steps marked **(local)** need Julien's machine, because
+Buildbox and the device are not reachable from cloud sessions.
+
+**Phase A: first received Wi-Fi frame.**
+
+1. Measured HW/ROM register reads with independent reply checks, then one
+   boot **(local)** to settle ROM-pair applicability.
+2. A re-triggerable common-init executor driven from userspace over USB SSH:
+   ordered ROM patch download, WMT reset, selected DLM/MCU-clock writes, both
+   PA LDOs on, RF calibration, PA LDOs back, coexistence. No crystal trim or
+   co-clock. No new one-shot selectors.
+3. One boot **(local)**: common init, existing START, one channel-40 passive
+   scan. Decision: nonzero firmware management count or BSS, or still zero;
+   if zero, try the remaining vendor differences in the same boot.
+4. One HCI reset and version read over the STP Bluetooth channel as the
+   Wi-Fi-independent proof of common init.
+
+**Phase B: usable Wi-Fi.** Association through mac80211, PIO traffic, packet
+DMA and interrupts, unbind/restart without a fault (closes #34). Usable means
+WPA2 association, DHCP, ping and a ten-minute SSH session on the default
+profile. Then fold the `series-a53-wifi-*` profiles into one owner, one
+driver and one profile, and delete retired diagnostics from the series.
+
+**Phase C: offline now, in parallel.** Disabled BQ25896 charger node with
+conservative limits; MT6351 keys/RTC/power-off decisions; two upstream
+submissions with a real author and sign-off (infracfg reset plus one small
+fix), after checking the kernel's current rules on assisted contributions;
+cut this roadmap to the plan and move chronology to experiments; close or
+retitle the stale issues.
+
+**Phase D: device sessions after the first frame.** Charger telemetry boot
+**(local)** then reviewed charging; one clean-profile boot **(local)** with
+no diagnostics to learn whether the product configuration boots; power keys,
+RTC and power-off **(local)**; display, Bluetooth, GNSS and the rest in the
+[After Wi-Fi](#after-wi-fi-remaining-driver-gaps) order.
+
+**Parked.** A72 default integration, cpufreq and thermal protection; DA9214
+beyond the read-only contract; receive-path firmware RAM sampling (proposal
+0085); loader replacement. Keep the evidence, stop extending the patches.
+
+## A72 and thermal decision (2026-09-04, historical)
 
 Isolated dual-A72 execution, topology, CPU9 down/restore and one integrated
 frequency/thermal/bounded-load result are established. They do not establish

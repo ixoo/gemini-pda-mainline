@@ -15,6 +15,9 @@ the loop. Positive identity-gated observations are unaffected.
 
 ## Index
 
+- [2026-10-03 overall project review](2026-10-03-project-review/README.md)
+  — offline review of plan, patch layer, evidence and process; sets the
+  roadmap's current plan and parks the A72 workstream.
 - [Checked WMT mode negotiation](2026-10-03-mt6797-wmt-negotiate/README.md)
   — isolated kernel integration after the observed default exchange; build,
   schema, candidate and hardware negotiation remain pending.
