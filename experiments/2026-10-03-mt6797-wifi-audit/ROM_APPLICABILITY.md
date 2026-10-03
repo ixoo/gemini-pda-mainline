@@ -45,7 +45,9 @@ This inconsistency is source evidence only: neither a four-byte nor a twelve-byt
 payload length is established on the wire by that template. Do not fix or loosen
 a validator based on an assumption. Resolve the exact reply encoding from
 attributable retained wire evidence or the selected firmware implementation
-before admitting the first version exchange. Require exact transport framing,
+before using a version exchange to admit patch download. A separately reviewed
+capture-only diagnostic can measure the unknown reply and stop without
+accepting applicability. Require exact transport framing,
 event size, header/status/count, address and checked value; preserve failure
 outcomes without proceeding to patch download.
 
@@ -53,3 +55,8 @@ The remaining common-init gates include DLM register effects, checked MCU-clock
 changes, PA ownership and calibration-result semantics. No candidate or support
 claim follows from this review. Firmware remains private; file attribution does
 not grant redistribution rights.
+
+The [request preparation](IDENTITY_READ_PREPARATION.md) now constructs the three
+selected read requests with deterministic value bytes. It records why the next
+measurement needs a bounded mandatory-mode FIFO executor and a capture-only
+stop; it implements no reply acceptance or hardware action.

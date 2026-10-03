@@ -232,3 +232,8 @@ retained ROM files to the installed Gemian pair and places checked chip/HW/ROM
 reads before negotiation in the complete common-init owner. Exact register-read
 reply encoding, DLM effects and calibration semantics remain unresolved. These
 follow-ups do not establish management reception, association or traffic.
+
+The [identity-read request preparation](IDENTITY_READ_PREPARATION.md) passes
+source-vector and sanitizer checks. Reply acceptance remains unimplemented;
+a capture-only chip read needs reviewed 26-byte TX FIFO progress before build
+or deployment. It will stop before any ROM patch or calibration effect.

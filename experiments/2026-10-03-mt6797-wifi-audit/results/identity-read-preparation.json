@@ -1,0 +1,39 @@
+{
+  "status": "request construction only; capture executor and strict reply selection incomplete",
+  "source_commit": "59e00a9144d782e148332009a835b99c43382467",
+  "source_sha256": {
+    "wmt_core.c": "e9f438c5c6033f0bf831347c69d656ec917b3e705648d3d27fb1b27409334f1e",
+    "wmt_ic.h": "b835386fe5ac36591df6bad21c0e89c80e4245e4354c5dfeef7f4d730a5d45ca",
+    "stp_core.c": "79d03346c95e2d233f2a384fa4490d3b89acdfd1c1d6b9c2026709358dbcbf65"
+  },
+  "validation": {
+    "strict_c11_warnings": "pass",
+    "address_undefined_sanitizers": "pass",
+    "selected_requests": 3,
+    "refusal_cases": 29,
+    "source_vector_comparison": "all three complete frames match independently extracted command fields and selected mandatory framing; HW/ROM input values deliberately initialized to zero"
+  },
+  "mandatory_frame_bytes": 26,
+  "receive_format_proved": false,
+  "re_vm_pattern_search": {
+    "files": "both exact retained ROMv3 patch bodies",
+    "complete_source_len4_prefix_matches": 0,
+    "complete_consistent_len12_prefix_matches": 0,
+    "opcode_only_matches": "non-authoritative; code/data coincidences possible",
+    "limitation": "Absence is not proof of encoding; selected version reads precede patch download."
+  },
+  "sha256": {
+    "tests/wmt-identity-read.h": "3c708be905bf9e4731d785ad6dad957014f776667ccc45047a0ce4396f88a65e",
+    "tests/wmt-identity-read-test.c": "6bf2585e1a6b0038a0ce0b378994ce6ca06bfef22beaf3cf9b648a80546300e6"
+  },
+  "device_action": "none",
+  "not_tested": [
+    "kernel compile",
+    "actual identity-request FIFO/IRQ executor",
+    "register reply wire format/status",
+    "patch selection or transfer",
+    "calibration",
+    "Wi-Fi reception, association or traffic"
+  ],
+  "sanitization": "Independently authored helper and metadata only; firmware, raw source, binary extracts and private captures excluded."
+}
