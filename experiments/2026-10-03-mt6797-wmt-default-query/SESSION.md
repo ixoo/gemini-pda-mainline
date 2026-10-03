@@ -1,22 +1,23 @@
 # One WMT query session
 
-State: `preparing-corrected-replacement`; custodian: root integration agent.
+State: `waiting-owner-boot`; custodian: root integration agent.
 [Runtime 1](results/runtime-1.json) records the exact boot, clock-guard refusal,
 sealed evidence, passing A53 regression and confirmed changed-boot Gemian return.
 No region-19 preparation or query occurred. The first candidate lacks DEBUG_FS
 and must not be selected again. The corrected build and offline candidate now pass;
-replacement deployment is required before a new physical handoff. The query
-lifetime itself remains unconsumed.
+[Deployment 2](results/deployment-2.json) passed live guards, full readback and
+clean shutdown. Both capture and preservation/recovery offline preparation passed
+against the real receipt. The query lifetime itself remains unconsumed.
 
 [Candidate](results/candidate.json), [offline validation](results/candidate-validation-2.json),
 [tool validation](results/tooling-validation.json) and [runtime protocol](RUNTIME_PROTOCOL.md)
 freeze the inputs, admitted effects, prerequisite checks and finite budgets.
 
-## Previous owner action (completed)
+## Owner action
 
-The owner selected boot2 and reported the console on. Runtime 1 is closed;
-no new physical selection is requested until a corrected candidate is installed
-and its replacement session packet is published.
+Runtime 1 is closed. With the USB cable attached, physically select boot2 with
+the silver button and leave the console on. This fresh selection boots the
+corrected image installed after the previous session. Report when it has started.
 
 ## Custodian execution
 

@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-03-mt6797-wmt-default-query` |
-| Status | `in-progress` (corrected DEBUG_FS candidate validated offline; replacement deployment pending) |
+| Status | `in-progress` (corrected DEBUG_FS candidate installed and verified; waiting for physical boot2 selection) |
 | Subsystem | CONSYS / BTIF / WMT |
 | Device | Project Gemini PDA |
 | Investigator | Codex, under owner standing authorization |
@@ -111,7 +111,7 @@ backup; it writes only logical boot2. Prepare its generated installer for the
 freshly verified Gemian boot identity, review it, and publish intended tools
 before execution. Installation is followed by owner-operated boot2 selection.
 
-After a real deployment receipt is copied privately into `session-1`, run offline
+After a real deployment receipt is copied privately into `session-2`, run offline
 preparation for both [capture](capture-private.py) and
 [preservation/recovery](passive-host.py). Verify the exact new mainline identity,
 then execute capture once: two identical private preimages, one region-19 setup,
@@ -160,8 +160,8 @@ preparation or WMT query occurred. Complete log preservation and the bounded A53
 regression passed; reviewed native recovery confirmed a changed Gemian boot.
 This establishes a missing candidate prerequisite, not a BTIF transport failure.
 The old session is retired. The isolated profile now requests DEBUG_FS and the
-candidate builder requires it. Build, package, schema/candidate and guarded
-replacement deployment checks remain before another owner handoff.
+candidate builder requires it. The corrected build, package, schema/candidate and guarded replacement
+deployment checks now pass.
 
 ## Corrected candidate preparation
 
@@ -180,5 +180,11 @@ preserves the first receipt. The selected candidate receipt now describes the
 corrected image. Capture/session 2 and deployment 2 use fresh private directories.
 The installer admits the first query image as its live predecessor, separately
 from the scan-pool image used as the reconstruction foundation. Guard budgets
-and query effects are unchanged. Replacement deployment/readback and a new
-physical handoff are still pending; no query or Wi-Fi reception is established.
+and query effects are unchanged.
+
+[Deployment 2](results/deployment-2.json) passed fresh live identity, GPT,
+inactive/unmounted target and stable-power guards. The new full-partition hash
+matched both remote and independent 16-MiB host readback. Temporary readback was
+removed and clean shutdown confirmed unreachable. Both session-2 offline tools
+accepted the actual private receipt. A fresh physical boot2 selection is pending;
+no query or Wi-Fi reception is established.

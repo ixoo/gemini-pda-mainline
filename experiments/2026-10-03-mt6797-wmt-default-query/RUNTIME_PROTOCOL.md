@@ -1,7 +1,7 @@
 # First WMT query runtime protocol
 
-Status: corrected DEBUG_FS candidate constructed and checked offline; replacement
-deployment and physical selection are pending. [Runtime 1](results/runtime-1.json)
+Status: corrected DEBUG_FS candidate installed with matching full-partition
+readback and clean shutdown; physical selection is pending. [Runtime 1](results/runtime-1.json)
 retired the [first candidate](results/candidate-1.json) before any trigger.
 The [corrected build](results/build-3.json), [candidate](results/candidate.json)
 and [offline validation](results/candidate-validation-2.json) select build
@@ -105,5 +105,6 @@ boot afterward. A host timeout does not admit another trigger or recovery path.
 
 A boot2 deployment must use the reviewed live-GPT guard, exact image and full
 partition readback, then clean shutdown. Physical boot2 selection remains the
-owner's action. Installation is recorded separately; the corrected candidate is not yet
-installed and no mainline query has occurred. See the [session packet](SESSION.md) for the physical handoff.
+owner's action. [Deployment 2](results/deployment-2.json) records the verified
+installation. No mainline query has occurred. See the [session packet](SESSION.md)
+for the physical handoff.
