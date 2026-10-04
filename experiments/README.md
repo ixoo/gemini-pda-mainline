@@ -15,6 +15,18 @@ the loop. Positive identity-gated observations are unaffected.
 
 ## Index
 
+- [2026-10-04 MT6797 STP task routing](2026-10-04-mt6797-stp-task-routing/README.md)
+  — drafts 0105–0106: ignore out-of-window ACK credit, route ordinary tasks
+  before committing credit; host checks pass, Buildbox pending, no hardware.
+- [2026-10-04 MT6797 shared STP link state](2026-10-04-mt6797-stp-link-state/README.md)
+  — draft 0104: one seven-frame cumulative ACK window and receive sequence
+  shared across tasks; host and Buildbox checks pass, no hardware.
+- [2026-10-04 MT6797 shared STP task framing](2026-10-04-mt6797-stp-task-framing/README.md)
+  — draft 0103: task-aware full-STP codec for Bluetooth and WMT; host and
+  Buildbox checks pass, no hardware.
+- [2026-10-04 MT6797 connectivity AFE preparation](2026-10-04-mt6797-afe-preparation/README.md)
+  — drafts 0101–0102: eleven AFE writes before MCU release behind an optional
+  resource; compile and schema checks pass, no board DT or hardware result.
 - [2026-10-04 Gemini Bluetooth path reverse engineering](2026-10-04-gemini-bluetooth-re/README.md)
   — offline source review: Bluetooth is WMT function 0 plus VCN33-BT, raw H:4
   HCI on STP task 0, Gemian runs an in-kernel BlueZ `hci_stp`; `btmtkuart`
@@ -63,8 +75,8 @@ the loop. Positive identity-gated observations are unaffected.
   — offline review of plan, patch layer, evidence and process; sets the
   roadmap's current plan and parks the A72 workstream.
 - [Checked WMT mode negotiation](2026-10-03-mt6797-wmt-negotiate/README.md)
-  — isolated kernel integration after the observed default exchange; build,
-  schema, candidate and hardware negotiation remain pending.
+  — isolated kernel integration after the observed default exchange; bounded
+  negotiation passed on hardware; working Wi-Fi remains incomplete.
 
 - [2026-10-03 MT6797 Wi-Fi implementation audit](2026-10-03-mt6797-wifi-audit/README.md)
   — offline review: the WMT common power-on (BTIF/STP, ROM patch, RF

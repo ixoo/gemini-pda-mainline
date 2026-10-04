@@ -29,6 +29,102 @@ owns the reasoning behind this order. Where it differs from older text below,
 this section wins. Steps marked **(local)** need Julien's machine, because
 Buildbox and the device are not reachable from cloud sessions.
 
+### Review of work landed after the plan rewrite (2026-10-04)
+
+Source and commit-level review of `1fc7fc0..fcca630` against this plan and the
+`2026-10-04-gemini-*-re` records. No build, boot or device access was part of
+this review; the texts below that it corrected are marked in place.
+
+**Done (draft, compile-checked, no hardware result).**
+The [follow-up review](../experiments/2026-10-03-project-review/NEXT_STEPS_2026-10-04.md)
+recorded five corrections to this plan. The CONSYS AFE stage was joined into
+the [common-init review](../experiments/2026-10-03-mt6797-wifi-audit/COMMON_INIT_REVIEW.md)
+and drafted as patches 0101–0102 ([AFE preparation](../experiments/2026-10-04-mt6797-afe-preparation/README.md)):
+eleven writes after the MCU ACR update and before reset release, behind an
+optional `afe` resource that no board DT carries yet. The shared STP transport
+was drafted as 0103–0106: task-aware framing ([0103](../experiments/2026-10-04-mt6797-stp-task-framing/README.md)),
+one shared sequence/ACK window ([0104](../experiments/2026-10-04-mt6797-stp-link-state/README.md)),
+then an ACK-credit correction and task routing before credit commitment
+([0105–0106](../experiments/2026-10-04-mt6797-stp-task-routing/README.md)).
+Host fixtures pass for all; Buildbox passed for 0101–0104 and is still
+pending for 0105–0106. The installed version-read candidate is unchanged and
+still waits for physical boot2 selection.
+
+**What changed or was invalidated.**
+
+- *Charger first boot.* `linux,read-back-settings` makes the upstream driver
+  skip the DT limits, and `linux,skip-reset` makes probe enable charging. The
+  planned "4.2 V / 500 mA" node would therefore not enforce either limit
+  (follow-up review, correction 1). Step 2 and boot C2 below are corrected.
+- *Bluetooth before common init* is a hypothesis, not a finding: Bluetooth
+  H1 has medium confidence. The AFE join adds a reason for caution: five of the eleven AFE writes are named `BT_RX`/`BT_TX`
+  settings, written by the vendor before every MCU release. HCI Reset is ROM
+  command handling and should not need them, but the first Bluetooth boot
+  should carry the AFE stage so it matches the vendor power-on order.
+- *GNSS AFE item is done offline.* The AFE stage is common power-on, not a
+  GNSS step; GPS H2 is now owned by the common-init owner.
+- *Gemian session A is not uniformly passive.* Logs, live DT and sysfs come
+  first; PMIC, I2C and MMIO register reads need a reviewed access path each
+  (follow-up review, correction 4). The AFE window read (A11) is only safe
+  while CONSYS is powered, so take it with Wi-Fi on or drop it.
+- *Power-off.* Boot C1 first measures the existing PSCI power-off with the
+  cable detached; `mt6351-pwrc` is added only if that fails (PMIC H2).
+
+**Risky or wrong in the new work.**
+
+1. *Transport generality is running ahead of evidence.* Four transport
+   patches exist and none has run on hardware; the READMEs name retransmission
+   storage, timers, reset epochs and client lifetime as next. None of those
+   is needed to decide Bluetooth H1. Stop generalizing at what boot C3 needs.
+2. *0106 rewires the only hardware-proven path.* The WMT command matcher now
+   goes through the new routing and link code, so the negotiation and version
+   reads proven on hardware run through untested code in any candidate built
+   on 0104–0106. The first such candidate must repeat the version read as its
+   control, before any Bluetooth step; a regression branches to a comparison
+   with the version-read candidate, not to more transport work.
+3. *0105 reverses part of 0104 within the hour.* Squash 0104 and 0105 before
+   any boot candidate so the series does not carry a known-wrong
+   intermediate. Out-of-window ACK behavior is source-derived, not observed.
+4. *Delivery before credit differs from the vendor order.* A refused packet
+   is left for firmware retransmission, which has never been observed. Keep
+   C3 to single command/response exchanges so no refusal can occur.
+5. *Profile growth.* One draft added four chained compile-only profiles, each
+   a full 580-line series copy (113 series files now). Once 0105–0106 pass
+   Buildbox, keep only `mt6797-a53-stp-task-routing-compile` and retire the
+   AFE, task and link intermediates, per the Phase B fold-in goal.
+6. *AFE is gated on the `wmt_query` diagnostic property.* Acceptable for the
+   draft; the common-init executor must own the AFE stage unconditionally
+   rather than through another DT-selected mode.
+7. *The Wi-Fi-independent offline items have not started.* Nothing landed for
+   the PMIC keys policy, the charger correction or the lid node, which gate
+   boot C1, the cheapest boot that does not depend on Wi-Fi.
+
+**Adjusted next steps (offline, in order).**
+
+1. Run the pending Buildbox build for 0105–0106 **(local)**, then squash
+   0104+0105 and retire the intermediate compile profiles.
+2. Prepare boot C1: keys node with explicit long-press policy (needs the
+   `TOP_RST_MISC` read), RTC and lid (0074) nodes, the nine-register PMIC read,
+   PSCI power-off baseline, and a userspace read-only REG00–REG14 charger dump
+   with no charger node bound (C2a below).
+3. Wire the smallest Bluetooth path for C3: one task-0 binding in the existing
+   IRQ owner with a single-event buffer, BT function-on/off and VCN33-BT over
+   the existing WMT client, HCI Reset, Read Local Version and Read BD_ADDR.
+   No `hci_dev`, retransmission timers or reset epochs until H1 is answered.
+4. Continue the common-init executor (Phase A step 2) with the AFE stage owned
+   unconditionally.
+5. Charger driver review: every probe and notifier write in the pinned
+   `bq25890` driver and how conservative limits get programmed and verified
+   before charging can start; then the C2b profile.
+
+**Adjusted device order.** 0) Physical boot2 selection for the installed
+version-read candidate; no new write before its measurement is consumed.
+1) Gemian session A, logs and live DT first, then reviewed register reads.
+2) Boot C1 with C2a riding on it. 3) Boot C3 (Bluetooth, AFE resource
+present, version read as control). 4) Phase A step 3 Wi-Fi common-init boot
+when the executor exists. 5) Boot C2b, charge policy. Then C4 onward as
+listed below.
+
 **Phase A: first received Wi-Fi frame.**
 
 1. Measured HW/ROM register reads with independent reply checks, then one
@@ -53,10 +149,11 @@ driver and one profile, and delete retired diagnostics from the series.
 records settled the open questions from source; the
 [After Wi-Fi](#after-wi-fi-remaining-driver-gaps) section now lists the
 concrete patches per block. Start with its steps 1, 2 and 6: the MT6351 keys
-node with an explicit long-press policy, the `mt6351-pwrc` power-off cell, the
-regulator constraint set, the disabled BQ25896 node with 4.2 V and 500 mA
-limits, and the STP task demultiplexer with a small Bluetooth `hci_dev`. Feed
-the CONSYS AFE register block to the common-init owner (GPS record H2). Two
+node with an explicit long-press policy, the regulator constraint set, the
+charger driver review (the DT limits are not enforced in read-back mode; see
+the review above), and the smallest task-0 Bluetooth path on the drafted STP
+transport. The CONSYS AFE stage (GPS H2) is drafted as 0101–0102; the
+`mt6351-pwrc` power-off cell waits for the PSCI baseline from boot C1. Two
 upstream submissions with a real author and sign-off (infracfg reset plus one
 small fix), after checking the kernel's current rules on assisted
 contributions; cut this roadmap to the plan and move chronology to
@@ -1053,11 +1150,13 @@ one boot or one Gemian session answers several records at once.
    over-charging a 4.35 V cell. One read-only Gemian kernel-log check of the
    periodic `[bq25890 reg@]` dump (REG06) decides it **(local)** and should be
    the first item of the next Gemian session. Until then, avoid long unattended
-   charge sessions under Gemian. On mainline, the first charger boot uses
-   `VREG` 4.2 V, `IINLIM` 500 mA, `linux,skip-reset` and
-   `linux,read-back-settings`; nothing writes `VREG` above 4.2 V before that
-   boot is reviewed, and Pump Express, OTG boost and VBUS role changes stay out
-   (charging H3, H4, H9).
+   charge sessions under Gemian. On mainline, the first charger observation
+   is a userspace read-only register dump with no charger node bound. The
+   upstream driver ignores DT limits under `linux,read-back-settings` and
+   enables charging under `linux,skip-reset`, so binding it is a separate,
+   reviewed charge-policy stage that must program and verify `VREG` 4.2 V and
+   `IINLIM` 500 mA before charging starts. Pump Express, OTG boost and VBUS
+   role changes stay out (charging H3, H4, H9).
 2. **Battery floor during mainline sessions.** Mainline has no low-battery
    protection and relies on the PMIC hardware UVLO alone
    ([PMIC H10](../experiments/2026-10-04-gemini-pmic-basics-re/README.md#part-2-hypotheses-ranked-by-value-per-device-minute)).
@@ -1073,7 +1172,7 @@ one boot or one Gemian session answers several records at once.
 | MT6351 MFD interrupt domain (0008–0015, 0062) | Power key (EINT176), RTC alarm (IRQ 9), `CHRDET` (46) for cable and USB device-port role, ACCDET jack detection (12/13) | Never exercised on mainline; every record that needs a PMIC interrupt names it | First proof is the power key (PMIC H1); it validates the path for charging H2, audio H5 and lid/USB H2 at once |
 | MT6351 regulator constraints | Dropping `regulator_ignore_unused`; VCORE/VSRAM_PROC hardware control, VDRAM, VS1/VS2, modem bucks, VSIM1/2 | Vendor constraint set decoded (PMIC F8–F10, cellular H8) | Offline: write `always-on`/`boot-on` set and keep VCORE off-limits (PMIC H7); drop the flag only in a later reviewed boot |
 | Power-off and restart | Every boot's clean shutdown | Restart proven (TOPRGU). Vendor power-off is an RTC BBPU write that bypasses PSCI; mainline PSCI `SYSTEM_OFF` is untested and probably wrong | New: `mt6351-pwrc` MFD cell plus a small `mt6323-poweroff` extension (PMIC H2) |
-| CONSYS/WMT owner (BTIF, STP, common init) | Wi-Fi, Bluetooth, GNSS, FM | The repository's STP code speaks only the WMT task (GPS F18). Vendor power-on writes the AFE block at `0x180b6000` that no mainline candidate writes (GPS F12, H2) | Add the AFE writes to the Wi-Fi common-init owner now and re-run the passive scan; generalize STP to a task demultiplexer before BT/GNSS share it |
+| CONSYS/WMT owner (BTIF, STP, common init) | Wi-Fi, Bluetooth, GNSS, FM | Drafted 2026-10-04: AFE stage before MCU release (0101–0102); task framing, shared sequence/ACK and task routing (0103–0106). No task-0/2 client wired; no hardware result | Squash 0104+0105; wire one task-0 binding for boot C3; executor owns AFE unconditionally |
 | Clock and power-domain ownership (`clk_ignore_unused`) | Retained simplefb, display PWM, Wi-Fi, GPU | Display H2 gives the first removal path: a `simple-framebuffer` node carrying the MM domain and root clocks | Missing clocks: `CLK_MM_DSI0_INTERFACE_CLOCK` gate (display F19, H7); `mfg_52m_sel` parent and `INFRA_MFG_VCG` for the GPU (GPU H5) |
 | Bus protection and resets | MFG (GPU), MD1 (modem) | Local MFG domain (0047) has no `bus_prot_mask`; vendor asserts INFRA_TOPAXI bits 21/23 and writes GPU SRAM LDO words `0x10001fbc–0xfe4`; TOPRGU `MFG_RST` is not exposed (GPU H1, H2, H4). MD1 domain is absent from mainline (cellular H2) | Offline patches to 0047 and `mtk_wdt`; two Gemian reads decide the LDO words |
 | I2C1 (disabled in the board DT) | Panel bias at `0x3e`, BMI160 `0x69`, STK3x1x `0x48`, candidate MMC35240 `0x30` | Pin pair unconfirmed, probably `SCL1_0/SDA1_0` GPIO55/56 (sensors H8) | One Gemian pinmux read, then one boot serves display bias and all sensors |
@@ -1099,9 +1198,11 @@ one boot or one Gemian session answers several records at once.
   read (`TOP_RST_MISC`) decides the value (PMIC F11–F13, H3).
 - **RTC reload** is a vendor convention shared with MT6323, which mainline
   already serves; considered answered pending one read test (PMIC H5).
-- **Bluetooth needs no common init to start.** The HCI parser lives in ROM, so
-  BT-on, HCI Reset and version/address reads can run on the already negotiated
-  full-mode STP session before ROM patches or calibration (Bluetooth H1, H2).
+- **Bluetooth may not need common init to start (hypothesis).** The HCI
+  parser lives in ROM, so BT-on, HCI Reset and version/address reads may run
+  on the already negotiated full-mode STP session before ROM patches or
+  calibration (Bluetooth H1, H2, medium confidence). Boot C3 decides it, with
+  the AFE stage present.
   `btmtkuart` contributes framing and `btmtk_set_bdaddr` only.
 - **GNSS has a userspace cost.** The kernel shape holds (one function-control
   command, GPIO69, a `gnss` device over task 2), but the stock position engine
@@ -1147,6 +1248,9 @@ one boot or one Gemian session answers several records at once.
    and `linux,read-back-settings`, interrupt per charging H1 or a small
    `bq25890` change to accept `CHRDET` plus polling; the pending
    [IRQ preflight fix](../experiments/2026-09-12-bq25890-irq-preflight/README.md).
+   Correction (2026-10-04 review): read-back mode skips these DT limits and
+   skip-reset enables charging at probe, so the node is bound only in a
+   reviewed charge-policy stage that programs and verifies the limits first.
    Device order: Gemian reads (VREG dump, adapter type and PE+ log, live
    `bat_meter` DT; charging H10, H6, H7) **(local)**; `CHRDET` count in the
    step 1 boot (H2); a charger probe boot that dumps REG00–REG14 first and
@@ -1186,19 +1290,21 @@ one boot or one Gemian session answers several records at once.
    Record: [lid/microSD/USB](../experiments/2026-10-04-gemini-lid-microsd-usb-re/README.md),
    [microSD contract](../experiments/2026-07-12-mt6797-msdc-recovery/MICROSD_CONTRACT.md),
    [VBUS record](../experiments/2026-09-08-usb-vbus-ownership/README.md).
-6. **Bluetooth (can start before common init is complete).** Offline: STP task
-   demultiplexer and channel API in the CONSYS owner (GPS F18); a small
+6. **Bluetooth (may start before common init is complete).** Offline: STP task
+   framing, shared link state and routing are drafted (0103–0106); next is one
+   task-0 binding for boot C3, and only after H1 passes a small
    `hci_dev` over task 0 reusing `btmtk_set_bdaddr` and the H:4 receive helper,
    no vendor sleep parameters at first (Bluetooth H4, H5); `mtk-btcvsd` node
    later (H9). Device: one Gemian read of the `hci0` address decides whether
    mainline must supply a `local-bd-address` (H6) **(local)**; one boot on the
    negotiated full-mode session with VCN33-BT at 3.3 V, function-control BT-on,
-   HCI Reset, version and BD_ADDR reads, a zero-CRC frame probe and a `0xfc6f`
-   probe (H1–H5) **(local)**. Coexistence and radio trims come later (H7, H10).
+   HCI Reset, version and BD_ADDR reads, with the AFE resource present and the
+   version read as control (H1–H3, H5) **(local)**; the zero-CRC frame and
+   `0xfc6f` probes (H4) only after Reset passes. Coexistence and radio trims come later (H7, H10).
    Record: [Bluetooth](../experiments/2026-10-04-gemini-bluetooth-re/README.md).
-7. **GNSS (after proven common init).** Offline now: feed the AFE register
-   block to the Wi-Fi common-init owner (GPS H2); design the `gnss` device over
-   task 2 with the GPIO69 pinctrl state and VCN28 from the common power-on
+7. **GNSS (after proven common init).** The AFE register block is drafted
+   in the common-init owner (0101–0102, GPS H2). Offline now: design the
+   `gnss` device over task 2 with the GPIO69 pinctrl state and VCN28 from the common power-on
    (H1, H3, H6). Device: the Gemian trace of the first `/dev/stpgps` bytes in
    one stock GNSS session (H4) must precede any mainline GNSS boot, because it
    decides NMEA versus binary MNL (H5); then one boot sending GPS function-on
@@ -1258,7 +1364,12 @@ Deduplicated from the eleven records so Julien can batch them. Every test is
 bounded and read-only in intent unless marked; none is admitted by this list
 and each still needs its reviewed experiment with identity checks.
 
-**A. One read-only Gemian session (known-good LAN SSH).** Order by value:
+**A. One read-only Gemian session (known-good LAN SSH).** Order by value.
+Take the log, live DT and sysfs items (1, 3, 5, 9, 13's ring) first. Items 7
+and 12 change hardware state (OTG attach, slider, camera open) and belong
+with group B. PMIC, I2C and MMIO reads (2, 4, 6, 8, 10, 11, 13's pinmux)
+each need a reviewed access path; read the AFE window (11) only with CONSYS
+powered:
 
 1. Kernel-log `[bq25890 reg@]` dump, REG06 `VREG` (charging H10, safety).
 2. `TOP_RST_MISC` `0x2b6` through the bounded `pmic_access` path, read twice
@@ -1306,15 +1417,21 @@ device; each is one short action):
    MT6351 irqchip visible in `/proc/interrupts`, the nine-register PMIC read,
    `TOP_RST_MISC` read before any write. Attended: one power-key press, one lid
    close/open, one cable plug/unplug (`CHRDET`, `VBATON_UNDET`), `rtcwake` 10 s,
-   then `poweroff` with the charger detached (PMIC H1, H4, H5, H6, H8, H2a;
-   charging H2; lid H1; USB H2).
-2. **Charger probe.** Disabled-by-default node enabled in a named profile,
-   REG00–REG14 dump first, telemetry unplugged and plugged, gadget idle then
-   enumerated (charging H3, H8, H4). Later: gauge driver boot comparing BATSNS
-   with the charger ADC (H5).
-3. **Bluetooth on the negotiated session.** VCN33-BT on, BT-on, HCI Reset,
-   version and BD_ADDR, second Reset after 2 s, zero-CRC frame, `0xfc6f` query,
-   BT off (Bluetooth H1–H5). Independent of ROM patches.
+   then the existing PSCI `poweroff` with the charger detached; `mt6351-pwrc`
+   only if that fails (PMIC H1, H4, H5, H6, H8, H2a; charging H2; lid H1;
+   USB H2). C2a rides here.
+2. **Charger.** (a) Read-only REG00–REG14 dump from userspace with no charger
+   node bound, unplugged and plugged (charging H3, H8, H4), riding on C1.
+   (b) Later, a named profile binding the driver only after the reviewed
+   sequence programs and verifies the conservative limits; telemetry, gadget
+   idle then enumerated. Gauge driver boot comparing BATSNS with the charger
+   ADC follows (H5).
+3. **Bluetooth on the negotiated session.** Candidate on the squashed
+   0101–0106 chain with the AFE resource present. Control first: repeat the
+   checked version read; stop on any regression. Then VCN33-BT on, BT-on,
+   HCI Reset, version and BD_ADDR, second Reset after 2 s, BT off (Bluetooth
+   H1–H3, H5). The zero-CRC frame and `0xfc6f` probe (H4) wait until Reset
+   has passed and their effects are reviewed.
 4. **Display adoption and backlight.** simplefb node with MM domain and
    `clk_ignore_unused` removed (display H2); then display PWM plus
    `pwm-backlight` under simplefb with `CON_0`/`CON_1` readback (H8).
@@ -1338,8 +1455,10 @@ device; each is one short action):
 11. **Cellular observation** (tags, SPM status, boot status; cellular H1) and
     **camera probe** (`hi556` one-register read, I2C3; camera H1b, H6).
 
-Boots 1–3 need nothing from the Wi-Fi order; boot 4 removes a global flag and
-should precede 5–9; boot 10 waits for common init.
+Boots 1–3 need nothing from the Wi-Fi order, but the installed version-read
+candidate is consumed first; boot 4 removes a global flag and should precede
+5–9; boot 10 waits for common init. Current order after review: version
+read, Gemian A, C1 (with C2a), C3, Wi-Fi common-init boot, C2b.
 
 ### Leads from owner-held reference documents
 
@@ -1381,7 +1500,8 @@ settled from source are dropped here; what remains:
 
 The [workstream registry](../project/workstreams.json) keeps owners; this
 section only orders the work. Start now with the offline items of steps 1, 2
-and 6 and the Gemian session A; schedule boot C1 first.
+and 6 and the Gemian session A; consume the installed version-read candidate,
+then schedule boot C1 (see the 2026-10-04 review under Current plan).
 
 ## A53 development-system release gate
 
