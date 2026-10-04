@@ -1,0 +1,141 @@
+From 156c0b1e8964e29732d65176e0f4604aebfdf5e5 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 4 Oct 2026 11:48:24 -0400
+Subject: [PATCH] soc: mediatek: initialize MT6797 AFE before MCU release
+
+Apply the eleven selected connectivity analog writes after the checked MCU
+ACR update and before reset deassertion. Acquire the optional named AFE
+resource exclusively at probe; reject wrong ranges, sizes and extra windows.
+
+Keep the existing path when the resource is absent. Do not copy unselected
+GPS_SINGLE, commented WF_TX_02 or vendor bulk debug read operations.
+MMIO completion does not prove analog state or radio reception.
+
+Internal preparation archive; synthetic non-certifying author, no DCO.
+No hardware result; not a boot candidate.
+---
+ drivers/soc/mediatek/mt6797-consys.c | 54 ++++++++++++++++++++++++++--
+ 1 file changed, 51 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index ae01980..660c8ab 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -42,6 +42,8 @@
+ #define MT6797_CONSYS_CHIP_ID_REG	0x18070008
+ #define MT6797_CONSYS_MCU_ACR_REG	0x18070110
+ #define MT6797_CONSYS_MCU_ACR_MBIST	BIT(18)
++#define MT6797_CONSYS_AFE_REG	0x180b6000
++#define MT6797_CONSYS_AFE_SIZE	0x100
+ #define MT6797_CONSYS_HIF_REG	0x180f0000
+ #define MT6797_CONSYS_HIF_SIZE	0x1100
+ #define MT6797_CONSYS_EMI_SELECTOR_REG	0x10001f00
+@@ -90,6 +92,7 @@ struct mt6797_consys {
+ 	void __iomem *sleep_mask;
+ 	void __iomem *chip_id;
+ 	void __iomem *mcu_acr;
++	void __iomem *afe;
+ 	void __iomem *hif;
+ 	void __iomem *emi_selector;
+ 	void __iomem *emi_window;
+@@ -568,6 +571,34 @@ skipped:
+ 	return false;
+ }
+ 
++/* Caller has confirmed CONN power, chip identity and asserted MCU reset. */
++static void mt6797_consys_init_afe(struct mt6797_consys *owner)
++{
++	static const struct {
++		u32 offset;
++		u32 value;
++	} settings[] = {
++		{ 0x20, 0x180b0160 },
++		{ 0x50, 0xb8925421 },
++		{ 0x54, 0x00006401 },
++		{ 0x60, 0xb8925421 },
++		{ 0x64, 0x00006401 },
++		{ 0x68, 0x08400000 },
++		{ 0x6c, 0x0c110200 },
++		{ 0x70, 0x012a020a },
++		{ 0x84, 0x00006401 },
++		{ 0x88, 0x08400000 },
++		{ 0x90, 0x012a020a },
++	};
++	unsigned int i;
++
++	if (!owner->afe)
++		return;
++
++	for (i = 0; i < ARRAY_SIZE(settings); i++)
++		writel(settings[i].value, owner->afe + settings[i].offset);
++}
++
+ /* Do not undo an uncertain MCU write or reset transition in this one-shot boot. */
+ static bool mt6797_consys_probe_reset_release(struct device *dev,
+ 					       struct mt6797_consys *owner)
+@@ -597,6 +628,7 @@ static bool mt6797_consys_probe_reset_release(struct device *dev,
+ 		ret = -EIO;
+ 		goto stopped;
+ 	}
++	mt6797_consys_init_afe(owner);
+ 	ret = reset_control_deassert(owner->conmcu_reset);
+ 	if (ret)
+ 		goto stopped;
+@@ -1414,13 +1446,13 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ {
+ 	struct resource *remap_resource, *sleep_resource, *chip_resource, *acr_resource;
+ 	struct resource *hif_resource;
+-	struct resource *selector_resource;
++	struct resource *selector_resource, *afe_resource;
+ 	struct regulator *vcn18, *vcn28, *vcn33_wifi;
+ 	struct reset_control *conmcu_reset;
+ 	struct generic_pm_domain *conn_domain;
+ 	void __iomem *remap;
+ 	void __iomem *sleep_mask = NULL, *chip_id = NULL, *mcu_acr = NULL;
+-	void __iomem *hif = NULL, *emi_selector = NULL;
++	void __iomem *hif = NULL, *emi_selector = NULL, *afe = NULL;
+ 	bool power_probe, chip_id_probe, reset_release_probe, hif_probe;
+ 	bool emi_set_probe, emi_copy_probe, firmware_start_probe;
+ 	bool region19_observe, deferred_start, wmt_query, wmt_negotiate, wmt_identity;
+@@ -1628,6 +1660,21 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 			goto out_unlock;
+ 		}
+ 	}
++	afe_resource = platform_get_resource(pdev, IORESOURCE_MEM, 9);
++	if (afe_resource) {
++		if (!wmt_query || !afe_resource->name ||
++		    strcmp(afe_resource->name, "afe") ||
++		    afe_resource->start != MT6797_CONSYS_AFE_REG ||
++		    resource_size(afe_resource) != MT6797_CONSYS_AFE_SIZE) {
++			ret = -EINVAL;
++			goto out_unlock;
++		}
++		afe = devm_platform_ioremap_resource(pdev, 9);
++		if (IS_ERR(afe)) {
++			ret = PTR_ERR(afe);
++			goto out_unlock;
++		}
++	}
+ 	ret = mt6797_consys_attach_off_domain(&pdev->dev, &conn_domain);
+ 	if (ret)
+ 		goto out_unlock;
+@@ -1646,7 +1693,7 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 		void __iomem *mapped[3];
+ 		unsigned int i;
+ 
+-		if (platform_get_resource(pdev, IORESOURCE_MEM, 9) ||
++		if (platform_get_resource(pdev, IORESOURCE_MEM, 10) ||
+ 		    of_irq_count(pdev->dev.of_node) != 1) {
+ 			ret = -EINVAL;
+ 			goto out_unlock;
+@@ -1690,6 +1737,7 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 		mt6797_consys.wmt_query.dma_tx = mapped[1];
+ 		mt6797_consys.wmt_query.dma_rx = mapped[2];
+ 	}
++	mt6797_consys.afe = afe;
+ 	mt6797_consys.wmt_query_only = wmt_query;
+ 	mt6797_consys.wmt_negotiate_only = wmt_negotiate;
+ 	mt6797_consys.wmt_identity_only = wmt_identity;
+-- 
+2.54.0 (Apple Git-157)
+

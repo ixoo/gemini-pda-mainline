@@ -127,3 +127,7 @@ The receipt records independent register facts, not copied source. Hash
 verification, extraction count and aligned offsets within the mapped window
 passed offline. Register meanings, safe readback behavior and the effect on
 Wi-Fi reception remain unproved; no hardware operation or build occurred.
+
+The [AFE driver preparation](../2026-10-04-mt6797-afe-preparation/README.md)
+implements this sequence behind an explicitly claimed optional resource;
+compile/schema validation and hardware admission remain separate gates.

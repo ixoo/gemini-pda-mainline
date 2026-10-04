@@ -1,0 +1,51 @@
+From 6a9697e31b8728eb07545456e7facda7645b2403 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 4 Oct 2026 11:48:24 -0400
+Subject: [PATCH] dt-bindings: soc: mediatek: describe optional MT6797 AFE
+ resource
+
+Describe the analog resource needed before CONMCU reset release. Existing
+nine-resource diagnostics remain unchanged. No board enables this resource.
+
+Internal preparation archive; synthetic non-certifying author, no DCO.
+No hardware result.
+---
+ .../bindings/soc/mediatek/mediatek,mt6797-consys.yaml       | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
+index 0dca9dc..70e3eea 100644
+--- a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
++++ b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
+@@ -31,6 +31,7 @@ properties:
+       - description: BTIF controller at 0x1100c000.
+       - description: BTIF AP-DMA TX channel at 0x11000a00.
+       - description: BTIF AP-DMA RX channel at 0x11000a80.
++      - description: Optional connectivity analog front-end at 0x180b6000.
+ 
+   reg-names:
+     minItems: 1
+@@ -44,6 +45,7 @@ properties:
+       - const: btif
+       - const: btif-dma-tx
+       - const: btif-dma-rx
++      - const: afe
+ 
+   clocks:
+     items:
+@@ -224,10 +226,10 @@ allOf:
+       properties:
+         reg:
+           minItems: 9
+-          maxItems: 9
++          maxItems: 10
+         reg-names:
+           minItems: 9
+-          maxItems: 9
++          maxItems: 10
+       required:
+         - mediatek,deferred-wmt-firmware-start
+         - clocks
+-- 
+2.54.0 (Apple Git-157)
+
