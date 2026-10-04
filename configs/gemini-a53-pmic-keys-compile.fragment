@@ -1,5 +1,0 @@
-# Reviewed key fixes on the selected A53 foundation; no enabled key child.
-CONFIG_INPUT=y
-CONFIG_INPUT_KEYBOARD=y
-CONFIG_KEYBOARD_MTK_PMIC=y
-CONFIG_LOCALVERSION="-gemini-a53-pmic-keys-compile"

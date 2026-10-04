@@ -1,0 +1,24 @@
+{
+  "status": "host RTC fixtures pass; Buildbox validation pending; no device action",
+  "profile": "mt6797-a53-c1-compile",
+  "replaces_profile": "mt6797-a53-pmic-keys-compile",
+  "patches": [
+    "upstream-4d7d9486/rtc/0001-rtc-mt6397-preserve-interrupt-enables-on-alarm.patch",
+    "upstream-4d7d9486/rtc/0002-rtc-mt6397-report-alarm-IRQ-wake-errors.patch"
+  ],
+  "selected_patch_count": 511,
+  "rtc_parent_sha256": "f548df9120e32677bee446f7683b6b79dd1a0df1b8ff021ae2ab933fa1f75f4f",
+  "rtc_source_sha256": "3caf869e5b0229ee577a209274c525132e11283ce8407e942706db7e99f27e1f",
+  "host_checks": {
+    "alarm_mask_cases": 160,
+    "wake_error_cases": 16,
+    "patch_replay": "Existing two patches apply unchanged to selected Linux 7.1.3 RTC source"
+  },
+  "configuration": "RTC and gpio-keys built in; automatic RTC time synchronisation disabled; PM/suspend compiled only to cover wake callbacks",
+  "dt_changes": "none; RTC node already exists, key child absent, hall disabled",
+  "limitations": [
+    "No RTC time/alarm/lid observation or boot candidate",
+    "Selected MFD IRQ error handling still requires integration audit",
+    "Physical wake and long-press policy remain unadmitted"
+  ]
+}

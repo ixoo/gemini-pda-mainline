@@ -1,0 +1,14 @@
+# C1 driver preparation only; no key child or enabled lid candidate.
+CONFIG_INPUT=y
+CONFIG_INPUT_KEYBOARD=y
+CONFIG_KEYBOARD_MTK_PMIC=y
+CONFIG_KEYBOARD_GPIO=y
+CONFIG_RTC_CLASS=y
+CONFIG_RTC_DRV_MT6397=y
+# Time synchronisation is outside the first RTC observation protocol.
+# CONFIG_RTC_HCTOSYS is not set
+# CONFIG_RTC_SYSTOHC is not set
+# Compile IRQ wake-error handling; suspend/wake testing remains separate.
+CONFIG_PM=y
+CONFIG_SUSPEND=y
+CONFIG_LOCALVERSION="-gemini-a53-c1-compile"

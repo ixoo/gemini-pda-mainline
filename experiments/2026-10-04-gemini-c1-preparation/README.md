@@ -94,7 +94,7 @@ The subsequent key integration results below are separate from that audit.
 
 The four existing key error/duration patches apply unchanged to the selected
 Linux 7.1.3 driver and binding. The new
-[compile series](../../patches/series-a53-pmic-keys-compile) extends the service
+[original compile series](https://github.com/ixoo/gemini-pda-mainline/blob/052f59375abca9ce0abd927d553e89f94b50a003/patches/series-a53-pmic-keys-compile) extends the service
 foundation with only those four patches in canonical order. It omits the
 independent topic's duplicate chip data and MFD additions. All 94 actual-function
 regression cases pass against this integrated source; source hashes and limits
@@ -132,3 +132,26 @@ so no new board `dtbs_check` was run. The Linux-only repository provenance
 fixture is skipped on macOS; the actual package passed the remote Linux
 validator. No boot image, installation, register access or physical reset was
 performed. The live policy observation still gates key-node admission.
+
+## RTC and lid compilation
+
+The narrower key profile above is retired in favor of
+`mt6797-a53-c1-compile`; its commands and receipt retain their original commit
+identities. The current [series](../../patches/series-a53-c1-compile) selects the
+same four key fixes and two existing RTC fixes in canonical order. Both RTC
+patches apply unchanged; the actual alarm handler passes 160 cases and the
+wake callbacks pass 16 cases. The [RTC receipt](results/rtc-integration.json)
+pins the integrated source. Buildbox validation is pending.
+
+The current [fragment](../../configs/gemini-a53-c1-compile.fragment) builds
+RTC and gpio-keys in and compiles the PM callbacks. It disables automatic RTC
+system-clock synchronization so that a future test can classify the RTC first.
+Suspend compilation is not suspend admission. DT remains unchanged: no key
+child, disabled lid candidate, and the existing RTC child. This is a compile
+checkpoint, not a deployable C1 packet. MFD IRQ/error integration, the bounded
+PMIC observation and each runtime protocol still need completion.
+
+```sh
+KERNEL_PROFILE=mt6797-a53-c1-compile ./scripts/build-kernel --backend buildbox
+KERNEL_PROFILE=mt6797-a53-c1-compile ./scripts/buildbox fetch-package
+```

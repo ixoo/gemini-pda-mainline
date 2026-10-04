@@ -5935,9 +5935,9 @@
           "configs/gemini-a53-wmt-versions.fragment"
         ]
       },
-      "mt6797-a53-pmic-keys-compile": {
+      "mt6797-a53-c1-compile": {
         "base": "defconfig",
-        "patch_series": "patches/series-a53-pmic-keys-compile",
+        "patch_series": "patches/series-a53-c1-compile",
         "fragments": [
           "configs/gemini-handoff.fragment",
           "configs/gemini-usbdiag.fragment",
@@ -5951,7 +5951,7 @@
           "configs/gemini-emmc-development.fragment",
           "configs/gemini-mt6797-pwrap-reset-serviceability.fragment",
           "configs/gemini-a53-service-facilities.fragment",
-          "configs/gemini-a53-pmic-keys-compile.fragment"
+          "configs/gemini-a53-c1-compile.fragment"
         ]
       }
     }
