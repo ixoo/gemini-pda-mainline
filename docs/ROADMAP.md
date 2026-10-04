@@ -1074,15 +1074,25 @@ remaining peripherals.
    telemetry, with charging left in its loader state. Charging control and a
    gauge driver follow as separate steps. Charge state also gates device
    sessions: the 2026-09-12 inspection saw 31 % and "Not charging".
-3. **Native display (second usability blocker).** Panel identity is
+3. **Native display (second usability blocker).** Panel identity was
    contradictory (vendor NT36672 descriptor versus SSD2092 in the
-   [bsg100 comparison](../experiments/2026-07-13-bsg100-gemini-linux-comparison/README.md)),
-   and the bias chip and reset path are unproved. Keep the console on
+   [bsg100 comparison](../experiments/2026-07-13-bsg100-gemini-linux-comparison/README.md)).
+   The
+   [display reverse-engineering record](../experiments/2026-10-04-gemini-display-re/README.md)
+   (2026-10-04) resolves this from source: the loader's NT36672 probe only
+   succeeds on a real ID read while the SSD2092 probe always succeeds, so the
+   live `nt36672` name on this device is a positive identification. It also
+   fixes the panel power/reset/timing contract (lane rate 880 Mbit/s, the
+   retained 435 MHz is integer truncation), confirms the display-PWM register
+   layout and single-clock contract, and finds that mainline lacks the
+   `DSI0_INTERFACE` clock gate patch 0040 relies on. The bias chip remains
+   named but unproved (LP3101 label, TPS65132 protocol). Keep the console on
    simplefb meanwhile. Next steps, in order:
    (a) **(local)** the already-specified bounded Gemian trace of display PWM
    clocks, parents and MM-domain lifetime from the
    [display refresh](../experiments/2026-09-07-mt6797-display-upstream-architecture/README.md),
-   extended to read the panel ID and bias-chip identity read-only;
+   extended with the record's read-only loader-log and bias-chip reads
+   (hypotheses H1, H5, H6);
    (b) offline, rebase and split 0028–0044 per that refresh's verdicts and
    convert 0041 to OF-graph;
    (c) backlight first: display PWM with a truthful clock contract is the

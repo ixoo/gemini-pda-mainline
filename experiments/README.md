@@ -15,6 +15,10 @@ the loop. Positive identity-gated observations are unaffected.
 
 ## Index
 
+- [2026-10-04 Gemini display path reverse engineering](2026-10-04-gemini-display-re/README.md)
+  — offline source review of loader, vendor kernel and mainline: panel identity
+  resolved from the LK probe asymmetry, panel power/reset/timing contract,
+  display PWM and clock gaps; 27 cited facts, ranked device hypotheses.
 - [2026-10-04 Gemini camera path reverse engineering](2026-10-04-gemini-camera-re/README.md)
   — offline source review: the front "SP5509" is a Hynix Hi-556 register map
   on I2C3 with MT6351 rails; receiver programming lives in the vendor HAL;

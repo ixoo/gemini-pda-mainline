@@ -1,0 +1,585 @@
+{
+  "purpose": "Exact public inputs inspected for experiments/2026-10-04-gemini-display-re; no file content is copied into the repository.",
+  "vendor": {
+    "repository": "https://github.com/gemian/gemini-linux-kernel-3.18",
+    "commit": "8cfe6596a503612e3332d9c26e292a19525a7f07",
+    "files": [
+      {
+        "path": "arch/arm64/boot/dts/aeon6797_6m_n.dts",
+        "size": 38242,
+        "sha256": "d1bd9d83941dffb44615f69e9113c7b79d87b3e9e87057619c70370f56456f5a",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon6797_6m_n.dts"
+      },
+      {
+        "path": "arch/arm64/configs/aeon6797_6m_n_defconfig",
+        "size": 14304,
+        "sha256": "83f33ed07c17abe8dceaee64afd26de0cc970c0bae93681b68906636e21e883f",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/configs/aeon6797_6m_n_defconfig"
+      },
+      {
+        "path": "arch/arm64/boot/dts/aeon_gpio.dtsi",
+        "size": 6761,
+        "sha256": "86d248e602a2cad2b213c58a4e4d8525402f38e42b284dc1e896d9d6eb5aa95a",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon_gpio.dtsi"
+      },
+      {
+        "path": "drivers/misc/mediatek/lcm/aeon_nt36672_fhd_dsi_vdo_x600_xinli/aeon_nt36672_fhd_dsi_vdo_x600_xinli.c",
+        "size": 21838,
+        "sha256": "bc7b69c98dd0c55f370957a4e2cae6b347681d9e7956397950ede07b6f9859e5",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/lcm/aeon_nt36672_fhd_dsi_vdo_x600_xinli/aeon_nt36672_fhd_dsi_vdo_x600_xinli.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/lcm/aeon_ssd2092_fhd_dsi_solomon/aeon_ssd2092_fhd_dsi_solomon.c",
+        "size": 22846,
+        "sha256": "c60634f8095e2ee778f419ddd283d4ed55eae51d608d75dfd33c453c5071e533",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/lcm/aeon_ssd2092_fhd_dsi_solomon/aeon_ssd2092_fhd_dsi_solomon.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/video/mt6797/dispsys/ddp_clkmgr.c",
+        "size": 3847,
+        "sha256": "9c89a4be7b8a7874f203776ccf96987715fb38f3e9eedfae1e259f4fe9990d59",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/mt6797/dispsys/ddp_clkmgr.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/video/mt6797/dispsys/ddp_clkmgr.h",
+        "size": 1914,
+        "sha256": "9993fe2bfdfe3c5c7e048980f8eedaa3c2128704f74a66869aa289a3262317d8",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/mt6797/dispsys/ddp_clkmgr.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/video/mt6797/dispsys/ddp_dpi.c",
+        "size": 26443,
+        "sha256": "53228353d1fbe61dc5a601f77875acb09c0dc05cd7d868c282656af03249543e",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/mt6797/dispsys/ddp_dpi.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/video/mt6797/dispsys/ddp_dsi.c",
+        "size": 165983,
+        "sha256": "ec0b82046ecd14b5cbfaafc8ba5beff1d678c0304ca1c90552a4b3975dcc1aa8",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/mt6797/dispsys/ddp_dsi.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/video/mt6797/dispsys/ddp_dsi.h",
+        "size": 5240,
+        "sha256": "1eef1b88d6f10fa518ed4fa1a59d4d58c68a1bde64c0a296acfff97340772d4b",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/mt6797/dispsys/ddp_dsi.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/video/mt6797/dispsys/ddp_hal.h",
+        "size": 3319,
+        "sha256": "a5e635a0ac06d89d848e37ee051afd1b1de6b214e48c69bae790e9eb03d2e765",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/mt6797/dispsys/ddp_hal.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/video/mt6797/dispsys/ddp_info.h",
+        "size": 13592,
+        "sha256": "2b8b9c436e13d6a6bb65d935c739b29adb75693c9bdec42d22b5bd92ebee1423",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/mt6797/dispsys/ddp_info.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/video/mt6797/dispsys/ddp_manager.c",
+        "size": 54111,
+        "sha256": "ea4eeb4c8e48cca9e30b66cea5b4eb81fa1614491752006a3f8f87a88b9dacb6",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/mt6797/dispsys/ddp_manager.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/video/mt6797/dispsys/ddp_path.c",
+        "size": 41501,
+        "sha256": "bebc688b004754231b335a9fa91dcab3568c3fffca10518f5acd0ef1da9e43eb",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/mt6797/dispsys/ddp_path.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/video/common/aal20/ddp_pwm.c",
+        "size": 22522,
+        "sha256": "45208a0418a36566bbfef7589362eb10ae81e4692645de30e53c301322ef26fb",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/common/aal20/ddp_pwm.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/video/include/ddp_pwm.h",
+        "size": 1355,
+        "sha256": "189f3101ea4fb6cb3d5d4a455016a3296b44c95522080ec0b845dcfbc6ceb2ab",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/include/ddp_pwm.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/video/mt6797/dispsys/ddp_pwm_mux.c",
+        "size": 7811,
+        "sha256": "dade939679d1ba3576ff7c15e55e00f09ee69b6ae0e9d82fd8edb5c22646a5aa",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/mt6797/dispsys/ddp_pwm_mux.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/video/mt6797/dispsys/ddp_reg.h",
+        "size": 127217,
+        "sha256": "92df6c7e44188b49841cad00c009c61acad72cd8932b48948c43aabba7f9f055",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/mt6797/dispsys/ddp_reg.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/video/mt6797/videox/disp_assert_layer.c",
+        "size": 9899,
+        "sha256": "1255d994b43de9a6d63ba2dec1960d87cce7091b118a2746d4251950ce27e505",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/mt6797/videox/disp_assert_layer.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/video/mt6797/videox/disp_drv_platform.h",
+        "size": 2188,
+        "sha256": "877a187929047e5302e76dc549079749a1cc60027f9c94646061fa72822f1c86",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/mt6797/videox/disp_drv_platform.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/video/mt6797/videox/disp_helper.c",
+        "size": 9821,
+        "sha256": "20970cf582626f30f48c61ee70e6c85ee3138b6143d8b19b7431a907fb7531c6",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/mt6797/videox/disp_helper.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/video/mt6797/videox/disp_lcm.c",
+        "size": 43809,
+        "sha256": "23c0b1c7902f4f1c1cca747513e7671ed2c567e9742a7f0952eb0e49a3fa4898",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/mt6797/videox/disp_lcm.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/video/mt6797/videox/disp_recovery.c",
+        "size": 19905,
+        "sha256": "ef9fdb4f702a4d2382b4495f2c65e8e6aad5b1c49ead3d215c14c85c38e8f4ef",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/mt6797/videox/disp_recovery.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/video/include/disp_session.h",
+        "size": 12990,
+        "sha256": "ebee331161d4bb46434d52bee255efd7a196f905ae8a04ed5128b87ef0533cfe",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/include/disp_session.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/lcm/inc/lcm_drv.h",
+        "size": 22362,
+        "sha256": "ec913bf2f20d8e1efc805c167d71c4c68c93e521bbab93cfacb85745e390e23f",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/lcm/inc/lcm_drv.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/leds/mt6797/leds.c",
+        "size": 35480,
+        "sha256": "0e282f4ee94c37c28c7aa385919d55e80f5cad86765279e909352db04ee01761",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/leds/mt6797/leds.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/leds/leds_drv.c",
+        "size": 23520,
+        "sha256": "8bc66a8a7190ff2bfbe02f63a7a54d2931f4d4ef4f34a71fdcaeaeff941a1f23",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/leds/leds_drv.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/leds/leds_drv.h",
+        "size": 1097,
+        "sha256": "345108fb3f8102e91460894e2aba37ac48fb4b59a05768564b9967baad595938",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/leds/leds_drv.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/leds/mt6797/leds_hal.h",
+        "size": 2657,
+        "sha256": "9075a78e57ace98f9d2cb2e3accbf7979f04fcdcd6cbf94c9f0b9efca59e48dd",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/leds/mt6797/leds_hal.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/leds/mt6797/leds_sw.h",
+        "size": 4732,
+        "sha256": "19825fa92b4e8822939ac258b9142386a6d40463f38aad04dcdc99b92ce8de0c",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/leds/mt6797/leds_sw.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/gpio/lp3101.c",
+        "size": 4037,
+        "sha256": "9b27de871f113379d7f1bf7b2d6437747aab1d1c987dc8d84c9b2f34926d04ff",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/gpio/lp3101.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/lcm/mt65xx_lcm_list.c",
+        "size": 8074,
+        "sha256": "5262dc3732a3b9c5f057762e867d0cda30a48ff0d2a2083ea9909ed286316692",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/lcm/mt65xx_lcm_list.c"
+      },
+      {
+        "path": "include/dt-bindings/pinctrl/mt6797-pinfunc.h",
+        "size": 67114,
+        "sha256": "634bd693136a05fd6e927ade213958e87b2490a9eb3804be7ed95912f07d5c82",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/include/dt-bindings/pinctrl/mt6797-pinfunc.h"
+      },
+      {
+        "path": "arch/arm64/boot/dts/mt6797.dtsi",
+        "size": 104424,
+        "sha256": "eaac86c8752ebd8ddf18b831eb3bc52a08f87475a213bb521650bf95dabb3e5e",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi"
+      },
+      {
+        "path": "drivers/misc/mediatek/video/common/mtkfb.c",
+        "size": 73301,
+        "sha256": "6a69fc745d787fecdcd676173d93c16c545f0cc37ae33d9836aaf1cbf914fd6f",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/common/mtkfb.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/video/include/mtkfb.h",
+        "size": 15078,
+        "sha256": "f028a0608a80f4821c0287ea17c3e24c4a734e587d7ffb05d8ba2f7a65c88ef5",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/include/mtkfb.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/video/mt6797/videox/mtkfb_console.c",
+        "size": 13603,
+        "sha256": "d7e0e51c2629d3784cd963056f623ab73e2d48d153e19871e51a4d94728cc903",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/mt6797/videox/mtkfb_console.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/video/mt6797/videox/primary_display.c",
+        "size": 215939,
+        "sha256": "aece2292cdc18d9dd930f52b6182998cc649a6a78b1015c86463f0d076c9bad7",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/mt6797/videox/primary_display.c"
+      }
+    ]
+  },
+  "loader": {
+    "repository": "https://github.com/dguidipc/gemini-lk-android8",
+    "commit": "f4988d74bb70a0a15d7f362f412afba7e7fcda46",
+    "files": [
+      {
+        "path": "lk/dev/lcm/aeon_nt36672_fhd_dsi_vdo_x600_xinli/aeon_nt36672_fhd_dsi_vdo_x600_xinli.c",
+        "size": 22430,
+        "sha256": "29b6c0b5d46dabd711afa1eaee941ae1a91386c66cbd87726be372e5660a9e20",
+        "url": "https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/dev/lcm/aeon_nt36672_fhd_dsi_vdo_x600_xinli/aeon_nt36672_fhd_dsi_vdo_x600_xinli.c"
+      },
+      {
+        "path": "lk/dev/lcm/aeon_ssd2092_fhd_dsi_solomon/aeon_ssd2092_fhd_dsi_solomon.c",
+        "size": 19410,
+        "sha256": "7e109b42215e4eacfe4722a591f8d7053014c31e3eab724d5a7937a9ba734877",
+        "url": "https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/dev/lcm/aeon_ssd2092_fhd_dsi_solomon/aeon_ssd2092_fhd_dsi_solomon.c"
+      },
+      {
+        "path": "lk/target/k97v1_64_bsp/cust_display.c",
+        "size": 3177,
+        "sha256": "c08a27d6ea2a6776a89388c3b8be1f16ed8ef0662d5c2166728a56288820cec4",
+        "url": "https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/target/k97v1_64_bsp/cust_display.c"
+      },
+      {
+        "path": "lk/target/k97v1_64_bsp/cust_leds.c",
+        "size": 1491,
+        "sha256": "1292efdb831b624d5d4c580b215265e8a6af7bc56fca7e9e2ddb499670a6f4cd",
+        "url": "https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/target/k97v1_64_bsp/cust_leds.c"
+      },
+      {
+        "path": "lk/platform/mt6797/ddp_dsi.c",
+        "size": 100189,
+        "sha256": "f3c91bb48f2c757f2f8e7da6aa25af6ef81ff5bc3ecdc67ae22cd2d5df6874b1",
+        "url": "https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/ddp_dsi.c"
+      },
+      {
+        "path": "lk/platform/mt6797/disp_lcm.c",
+        "size": 42878,
+        "sha256": "0b57366bb76a83b908cbba1a73458fe10e6cbfd3d2be2af55d92c5ae026d7268",
+        "url": "https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/disp_lcm.c"
+      },
+      {
+        "path": "lk/target/k97v1_64_bsp/init.c",
+        "size": 2942,
+        "sha256": "b6efd8c0e1ec6184386c2634da8ab20f69733730b75c3caa8b9dbed4145d7491",
+        "url": "https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/target/k97v1_64_bsp/init.c"
+      },
+      {
+        "path": "lk/project/k97v1_64_bsp.mk",
+        "size": 963,
+        "sha256": "5779c860eefa7e799ca068eb1687f64bc8c68b48027c28d5d934e15e5e79866b",
+        "url": "https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/project/k97v1_64_bsp.mk"
+      },
+      {
+        "path": "lk/dev/lcm/inc/lcm_define.h",
+        "size": 3251,
+        "sha256": "a24664e742f42f4854ef917f15fd08b1d0c5db6b31a851aad0365bdcd668ce3b",
+        "url": "https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/dev/lcm/inc/lcm_define.h"
+      },
+      {
+        "path": "lk/dev/lcm/inc/lcm_drv.h",
+        "size": 23616,
+        "sha256": "eba59a4f6d77dfaebf571f08effdcf03d4775e9f75c30b4867c30e757d560d79",
+        "url": "https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/dev/lcm/inc/lcm_drv.h"
+      },
+      {
+        "path": "lk/dev/lcm/mt65xx_lcm_list.c",
+        "size": 49436,
+        "sha256": "f6ffd3396c0a1b75280096ae524db79a714bdee43f148f443d2fdfc4e68b88ff",
+        "url": "https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/dev/lcm/mt65xx_lcm_list.c"
+      },
+      {
+        "path": "lk/app/mt_boot/mt_boot.c",
+        "size": 76085,
+        "sha256": "9380b89d367770acf29f1c5b7f4856cc87bc4b64afd17aa9fa1fd621c213ecda",
+        "url": "https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/app/mt_boot/mt_boot.c"
+      },
+      {
+        "path": "lk/platform/mt6797/mt_disp_drv.c",
+        "size": 14818,
+        "sha256": "be131b451e21eaf9b385deccee462710f3a50127a94c55e46347c7207f258d7a",
+        "url": "https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/mt_disp_drv.c"
+      },
+      {
+        "path": "lk/platform/mt6797/include/platform/mt_disp_drv.h",
+        "size": 4154,
+        "sha256": "e09bd4aee7894ba1a525d80699734f4e0d15f132b57810ba4e39dc4d502237d6",
+        "url": "https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/include/platform/mt_disp_drv.h"
+      },
+      {
+        "path": "lk/platform/mt6797/mt_gpio.c",
+        "size": 26583,
+        "sha256": "b62530be3ecb8e657e93e1ffd1916750195d22cc2019a34605ff9d8dd3cc8832",
+        "url": "https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/mt_gpio.c"
+      },
+      {
+        "path": "lk/platform/mt6797/mt_gpt.c",
+        "size": 8277,
+        "sha256": "f8a6f3d3060dfc3f9ade39997c6a3b921daca1d6314d948cdbe497118c22651e",
+        "url": "https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/mt_gpt.c"
+      },
+      {
+        "path": "lk/platform/mt6797/mt_leds.c",
+        "size": 19596,
+        "sha256": "310d9d9ade529c7d505e3fd68fe959f62907d23a3f2bb8dbfd8c4692ddd06251",
+        "url": "https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/mt_leds.c"
+      },
+      {
+        "path": "lk/platform/mt6797/mt_logo.c",
+        "size": 6542,
+        "sha256": "09074e2b2c0f4f20c8b2eb30434cb4418db104f817e79ec3b782ad7db76e5a50",
+        "url": "https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/mt_logo.c"
+      },
+      {
+        "path": "lk/platform/mt6797/platform.c",
+        "size": 29855,
+        "sha256": "08dff18ccfd6fcf5812ae59f8898650f37c5deaf94fe9f6fb1b79643631acfb4",
+        "url": "https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/platform.c"
+      },
+      {
+        "path": "lk/platform/mt6797/primary_display.c",
+        "size": 33097,
+        "sha256": "317dea1e7b2ffe32c4316e57c4164f78dbe0a65d7cdbb953f03d4cafb51b7c14",
+        "url": "https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/primary_display.c"
+      },
+      {
+        "path": "lk/target/k97v1_64_bsp/rules.mk",
+        "size": 1714,
+        "sha256": "c995936f3707bc5af930c18ba6858517f4cf640e974255ffaf18f50ad9826d22",
+        "url": "https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/target/k97v1_64_bsp/rules.mk"
+      }
+    ]
+  },
+  "linux": {
+    "repository": "https://github.com/gregkh/linux",
+    "tag": "v7.1.3",
+    "files": [
+      {
+        "path": "Documentation/devicetree/bindings/display/mediatek/mediatek,dsi.yaml",
+        "size": 3599,
+        "sha256": "d4186b1c32ed07e6e428fabe5137e1be00d3a569eac0c4407a6f0e047783cb25",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/Documentation/devicetree/bindings/display/mediatek/mediatek,dsi.yaml"
+      },
+      {
+        "path": "Documentation/devicetree/bindings/display/panel/novatek,nt36672e.yaml",
+        "size": 1292,
+        "sha256": "2756d7f39ca896ca38a507b8e3888a64c85c314b9c5c31b88ba6d21c62a36d24",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/Documentation/devicetree/bindings/display/panel/novatek,nt36672e.yaml"
+      },
+      {
+        "path": "Documentation/devicetree/bindings/display/panel/panel-simple-dsi.yaml",
+        "size": 2893,
+        "sha256": "2f13fd6bd11648c55f32d1dd705fb88f2f5b95e10f63d0516627997842bfc5ff",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/Documentation/devicetree/bindings/display/panel/panel-simple-dsi.yaml"
+      },
+      {
+        "path": "Documentation/devicetree/bindings/display/simple-framebuffer.yaml",
+        "size": 6862,
+        "sha256": "021e9990eb37b83b548a379e218043e1a6c324182e2e16ffc49365f4a807a871",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/Documentation/devicetree/bindings/display/simple-framebuffer.yaml"
+      },
+      {
+        "path": "Documentation/devicetree/bindings/leds/backlight/pwm-backlight.yaml",
+        "size": 2173,
+        "sha256": "83bf7bd777342e2f0ec134a85dd8b42e6d2bde4745ec46a73b0038d35666d820",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/Documentation/devicetree/bindings/leds/backlight/pwm-backlight.yaml"
+      },
+      {
+        "path": "Documentation/devicetree/bindings/phy/mediatek,dsi-phy.yaml",
+        "size": 2328,
+        "sha256": "4b67f5e3b2028255bbf0d64f47fc15e69456ee0cc4368ea47415e86942aa081c",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/Documentation/devicetree/bindings/phy/mediatek,dsi-phy.yaml"
+      },
+      {
+        "path": "Documentation/devicetree/bindings/pwm/mediatek,pwm-disp.yaml",
+        "size": 1795,
+        "sha256": "d1515e23b821111c514b88bff1c6109973605a0c56f47dcef19d77444471aa7f",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/Documentation/devicetree/bindings/pwm/mediatek,pwm-disp.yaml"
+      },
+      {
+        "path": "Documentation/devicetree/bindings/regulator/ti,tps65132.yaml",
+        "size": 1990,
+        "sha256": "e8c672ca60a8a9124579278c2d8ebc386481fb9179a0b787b850ef2e5ea9e108",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/Documentation/devicetree/bindings/regulator/ti,tps65132.yaml"
+      },
+      {
+        "path": "arch/arm64/boot/dts/mediatek/mt6797-x20-dev.dts",
+        "size": 1297,
+        "sha256": "65ff8e775ecf330e4d3fd21ae16ce0e4d714272c4592472df52dcc9259adbc07",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/arch/arm64/boot/dts/mediatek/mt6797-x20-dev.dts"
+      },
+      {
+        "path": "arch/arm64/boot/dts/mediatek/mt6797.dtsi",
+        "size": 11331,
+        "sha256": "798662eb7df0a7cf37cbc47d54d232bbf85fbc748afc63af2c373526a948af83",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/arch/arm64/boot/dts/mediatek/mt6797.dtsi"
+      },
+      {
+        "path": "drivers/clk/mediatek/clk-mt6797-mm.c",
+        "size": 4126,
+        "sha256": "60c7ccbc28dc6356632fe1d8ae4bd653b571bc789553aa1f19d6304e000b13fa",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/clk/mediatek/clk-mt6797-mm.c"
+      },
+      {
+        "path": "drivers/clk/mediatek/clk-mt6797.c",
+        "size": 23000,
+        "sha256": "eaad6324621679371f33bbb76e10bcb0d3374b1f2dbbd837323b3f9e8fee1534",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/clk/mediatek/clk-mt6797.c"
+      },
+      {
+        "path": "drivers/firmware/sysfb_simplefb.c",
+        "size": 3818,
+        "sha256": "f2e01aebeca5f5c5bf3412120d3fadae2fe3835e7c89d6119c5f81a38970be30",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/firmware/sysfb_simplefb.c"
+      },
+      {
+        "path": "drivers/gpu/drm/mediatek/mtk_drm_drv.c",
+        "size": 35930,
+        "sha256": "1ea0f57933d22f72a7d8ac12ce8810ae3d6f7d742fb94a257382767d5fd1587e",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/gpu/drm/mediatek/mtk_drm_drv.c"
+      },
+      {
+        "path": "drivers/gpu/drm/mediatek/mtk_dsi.c",
+        "size": 34783,
+        "sha256": "5710189fdc60129a6cf91ca09726fe10ded666e69d002af30ae2dc8f02493d21",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/gpu/drm/mediatek/mtk_dsi.c"
+      },
+      {
+        "path": "drivers/gpu/drm/panel/Kconfig",
+        "size": 41666,
+        "sha256": "c6efdb028746a1b56299636f0ede8703cb04f506d769dabfab8ab513ce052b44",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/gpu/drm/panel/Kconfig"
+      },
+      {
+        "path": "drivers/gpu/drm/panel/Makefile",
+        "size": 8849,
+        "sha256": "63964efbfb9a22940952606a8d79b765dfeeac664e6632ce425360d838f69366",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/gpu/drm/panel/Makefile"
+      },
+      {
+        "path": "drivers/gpu/drm/panel/panel-novatek-nt36672a.c",
+        "size": 17257,
+        "sha256": "e363ac17fa464ae4a3ea1664e91693f5f966608c527ad929082e1a5cb3f57c0c",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/gpu/drm/panel/panel-novatek-nt36672a.c"
+      },
+      {
+        "path": "drivers/gpu/drm/panel/panel-novatek-nt36672e.c",
+        "size": 22086,
+        "sha256": "24b8b0b4184c7f25fd86fb06721cfe4a97af6476e2b9ce24297e86c7f11e70a3",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/gpu/drm/panel/panel-novatek-nt36672e.c"
+      },
+      {
+        "path": "drivers/gpu/drm/solomon/Kconfig",
+        "size": 1033,
+        "sha256": "57d887a8e823710b89d6808bafc2002a5a50d16164b16c580c1032c65bebb74c",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/gpu/drm/solomon/Kconfig"
+      },
+      {
+        "path": "drivers/iommu/mtk_iommu.c",
+        "size": 61804,
+        "sha256": "756b37fbdb043aea97b28d588a13850007d96c1db6fcae76fc0b6abfe7ccd571",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/iommu/mtk_iommu.c"
+      },
+      {
+        "path": "drivers/memory/mtk-smi.c",
+        "size": 33672,
+        "sha256": "6425b65c76b78b527faa3c1526f3282767ce44257b77a4936b32284d92e0ed8f",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/memory/mtk-smi.c"
+      },
+      {
+        "path": "drivers/phy/mediatek/phy-mtk-mipi-dsi-mt8173.c",
+        "size": 8951,
+        "sha256": "5f4f3ce70aab3fe641dff1569feb9bdf916d48fd8f5b695ffbf25f2b22221f85",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/phy/mediatek/phy-mtk-mipi-dsi-mt8173.c"
+      },
+      {
+        "path": "drivers/phy/mediatek/phy-mtk-mipi-dsi.c",
+        "size": 5419,
+        "sha256": "22cd8bea37a7663052a5576c37d1fd68712d98fc8c45f4c0754547539cb3aded",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/phy/mediatek/phy-mtk-mipi-dsi.c"
+      },
+      {
+        "path": "drivers/phy/mediatek/phy-mtk-mipi-dsi.h",
+        "size": 1225,
+        "sha256": "e2bc2b68cfad1e061eb61f27847fbac8c840db0597b4eccd4284d15c90e5e2b7",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/phy/mediatek/phy-mtk-mipi-dsi.h"
+      },
+      {
+        "path": "drivers/pinctrl/mediatek/pinctrl-mt6797.c",
+        "size": 2216,
+        "sha256": "6952509b34cff64b9da264ab5854ee6ffdcb808a02c4cb03c7c391196e75dbe3",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/pinctrl/mediatek/pinctrl-mt6797.c"
+      },
+      {
+        "path": "drivers/pmdomain/mediatek/mtk-scpsys.c",
+        "size": 29139,
+        "sha256": "9ce2b2c95a38bc4c7b801aff9b7c26da2dc8ec2e3fd34199adaedf1db3007226",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/pmdomain/mediatek/mtk-scpsys.c"
+      },
+      {
+        "path": "drivers/pwm/pwm-mtk-disp.c",
+        "size": 8532,
+        "sha256": "b5d96101164845e366ff0527ee82640a29a7f9760c9396f46fb429e0381589a6",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/pwm/pwm-mtk-disp.c"
+      },
+      {
+        "path": "drivers/regulator/tps65132-regulator.c",
+        "size": 8110,
+        "sha256": "c1e5785f0dea09610e7f8d42ee3846f6ee4d5735066f9cb224bd1bd72fe0ffe2",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/regulator/tps65132-regulator.c"
+      },
+      {
+        "path": "drivers/soc/mediatek/mtk-mmsys.c",
+        "size": 15830,
+        "sha256": "6f959cf51269bd1e1cf2895c38962bec5341a53e4f189681ff0db75e960e3dac",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/soc/mediatek/mtk-mmsys.c"
+      },
+      {
+        "path": "drivers/soc/mediatek/mtk-mutex.c",
+        "size": 43592,
+        "sha256": "3d62c9f315dc53c189f97febb3aaaea9a76528c84bf42515cf572c5f5f11f2e3",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/soc/mediatek/mtk-mutex.c"
+      },
+      {
+        "path": "drivers/video/fbdev/simplefb.c",
+        "size": 17863,
+        "sha256": "eff6e1d197f851e9360f7d5ec5f3d6081384d26dbdc0e78fd92e9b81f11c7f80",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/video/fbdev/simplefb.c"
+      },
+      {
+        "path": "include/dt-bindings/clock/mt6797-clk.h",
+        "size": 8183,
+        "sha256": "73ef029a8a51216697d7384a360ac94b714a6fea83e5bd8c4e2a5f78f2a48a63",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/include/dt-bindings/clock/mt6797-clk.h"
+      },
+      {
+        "path": "include/dt-bindings/pinctrl/mt6797-pinfunc.h",
+        "size": 65776,
+        "sha256": "0694be7b7bfe080044a015d9374da88e116fae176c057fd942bff4b32e373f03",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/include/dt-bindings/pinctrl/mt6797-pinfunc.h"
+      },
+      {
+        "path": "include/dt-bindings/power/mt6797-power.h",
+        "size": 721,
+        "sha256": "201e215b5f058fbb043c6f3503e8ab42c8caab0ae41a7b634024f88cef4c4034",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/include/dt-bindings/power/mt6797-power.h"
+      }
+    ]
+  }
+}
