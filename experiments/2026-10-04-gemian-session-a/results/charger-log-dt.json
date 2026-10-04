@@ -1,0 +1,77 @@
+{
+  "status": "passive charger log and static battery DT capture passed; REG06 hardware state and remaining Gemian A items unresolved",
+  "boot_id": "c52cec49-a635-45c3-af32-aba3b95b4c1c",
+  "kernel_release": "3.18.41+",
+  "model": "MT6797X",
+  "os": "debian9",
+  "identity_checked_before_and_after": true,
+  "log": {
+    "bytes": 444588,
+    "sha256": "3bd29831caf432f6c089751486a444bba996a9e305b72c0639a47e53638437ce",
+    "cv_record_count": 25,
+    "first_uptime_seconds": "2.361397",
+    "last_uptime_seconds": "217.400403",
+    "logged_register_value": "0x1f",
+    "logged_request_uV": 4340000,
+    "logged_selection_uV": 4336000,
+    "bq25890_reg_dump_present": false,
+    "scope": "One dmesg snapshot; not a sequence-zero sealed logger or proof of hardware readback"
+  },
+  "dt": {
+    "battery_node": "/soc/battery",
+    "battery_compatible": "mediatek,battery",
+    "meter_node": "/soc/bat_metter",
+    "meter_compatible": "mediatek,bat_meter",
+    "encoding": "four-byte big-endian unsigned cells",
+    "values": {
+      "ac_charger_current": 80000,
+      "usb_charger_current": 50000,
+      "usb_charger_current_configured": 50000,
+      "usb_charger_current_unconfigured": 7000,
+      "high_battery_voltage_support": 0,
+      "max_charge_temperature": 50,
+      "min_charge_temperature": 0,
+      "rbat_pull_up_r": 24000,
+      "rbat_pull_up_volt": 1800,
+      "car_tune_value": 118
+    },
+    "interpreted_ac_limit_mA": 800,
+    "current_units": "vendor source uses 0.01 mA; DT values do not prove effective programming"
+  },
+  "capture": {
+    "charger-log-dt-1": {
+      "script_sha256": "b7c0833656a86a5c127b135a108dd1f864f3ebcaa494a3db2240d6da60507282",
+      "private_manifest_sha256": "40d022fa3f7728effebb63990ac1cfc68016ee3b4637351e66bb8f3d0a0b1c47",
+      "process": {
+        "exit_status": 0,
+        "reason": null,
+        "stdin_complete": true,
+        "stdout_bytes": 451421,
+        "stderr_bytes": 0,
+        "elapsed_seconds": 1.3
+      }
+    },
+    "battery-meter-dt-1": {
+      "script_sha256": "fe0bad9cbd77767c75b877fa4820568d4f2362dfb35cfbf1cdcb5f4117c99aec",
+      "private_manifest_sha256": "0fc2c8050c73e1b5cbcf44899c063e70d14df953dbe88b774312de1c4755a6f4",
+      "process": {
+        "exit_status": 0,
+        "reason": null,
+        "stdin_complete": true,
+        "stdout_bytes": 9636,
+        "stderr_bytes": 0,
+        "elapsed_seconds": 0.957
+      }
+    }
+  },
+  "effects": "Two identity-checked LAN SSH connections: one existing dmesg snapshot and bounded static DT traversal; no charger register access, sysfs telemetry, radio control, camera open, writes or restart",
+  "limitations": [
+    "Logged selection is not a successful hardware readback or calibrated measurement",
+    "No battery chemistry or maximum safe cell voltage established",
+    "Missing register dump does not prove none was ever emitted",
+    "DT policy does not prove which values the running binary uses",
+    "Other session-A targets and per-register access admission remain incomplete"
+  ],
+  "next_action": "Attribute the running charging_set_cv_voltage log/write path in the RE VM; retain conservative 4.2 V / 500 mA mainline policy and review charger access separately.",
+  "redactions": "Raw dmesg, full static DT extracts and local host paths remain private; only selected numeric facts, checksums and sanitized boot identity are published."
+}

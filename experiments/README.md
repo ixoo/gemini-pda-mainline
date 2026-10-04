@@ -15,6 +15,10 @@ the loop. Positive identity-gated observations are unaffected.
 
 ## Index
 
+- [2026-10-04 Gemian session A passive baseline](2026-10-04-gemian-session-a/README.md)
+  — charger logs name selector `0x1f` / 4.336 V selection; static meter DT
+  has high-voltage flag zero and 800 mA AC policy input. No register readback
+  or charger action; session A remains incomplete.
 - [2026-10-04 Gemini C1 preparation](2026-10-04-gemini-c1-preparation/README.md)
   — selected-foundation audit and key error/duration integration,
   ten-register PMIC inventory, RTC configuration and existing lid-node reuse.

@@ -144,6 +144,9 @@ passed with sealed evidence, A53 regression and changed-boot Gemian recovery.
 **Adjusted device order.** 0) Complete: the installed version-read candidate
 measured `0279/8a00/8a00` and returned to changed-boot Gemian.
 1) Gemian session A, logs and live DT first, then reviewed register reads.
+The [charger log/DT subset](../experiments/2026-10-04-gemian-session-a/README.md)
+is collected; session A is incomplete. Attribute the running CV setter offline
+before treating the logged selection as latched REG06 state.
 2) Boot C1 with C2a riding on it. 3) Boot C3 (Bluetooth, AFE resource
 present, version baseline followed by full-mode WMT query/negotiation
 control). 4) Phase A step 3 Wi-Fi common-init boot when the executor exists. 5) Boot C2b, charge policy. Then C4 onward as
@@ -1173,7 +1176,12 @@ one boot or one Gemian session answers several records at once.
    If the running binary matches the public source, the stock kernel is
    over-charging a 4.35 V cell. One read-only Gemian kernel-log check of the
    periodic `[bq25890 reg@]` dump (REG06) decides it **(local)** and should be
-   the first item of the next Gemian session. Until then, avoid long unattended
+   the first item of the next Gemian session. The
+   [passive successor](../experiments/2026-10-04-gemian-session-a/README.md)
+   found selector `0x1f` / 4.336 V selection logs, no REG06 dump, a zero
+   high-voltage DT flag and an 800 mA AC policy cell. Hardware readback and
+   the running setter path remain unresolved; attribute the retained binary
+   before further register observation. Until then, avoid long unattended
    charge sessions under Gemian. On mainline, the first charger observation
    is a userspace read-only register dump with no charger node bound. The
    upstream driver ignores DT limits under `linux,read-back-settings` and

@@ -463,3 +463,16 @@ candidate, hypothesis and stop conditions. None is admitted by this record.
 Documentation-only change: `./scripts/check-repository` and link checks apply;
 no kernel build, DT check or device action was performed. Line numbers were
 taken from the exact fetched files recorded in `source-inputs.json`.
+
+## Live passive baseline successor (2026-10-04)
+
+The [identity-checked log/DT subset](../2026-10-04-gemian-session-a/README.md)
+records logged selector `0x1f`, request 4.340 V and selection 4.336 V, without
+a REG06 dump. `/soc/bat_metter` has `high_battery_voltage_support=0` and
+`ac_charger_current=80000` (800 mA in the vendor's units). H7 now has an
+attributable AC-current difference; other table differences remain unreviewed.
+H10 remains open: selected-value logs do not prove hardware readback. Inspect
+the retained running setter binary before asserting either the public fixed
+`0x24` write or physical `0x1f` state. The current roadmap's separate read-only
+C2a and programmed-limit C2b stages supersede the earlier H3/roadmap-consequence
+suggestion to combine `skip-reset`/`read-back-settings` with DT limits.
