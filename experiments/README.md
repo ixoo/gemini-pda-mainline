@@ -15,6 +15,11 @@ the loop. Positive identity-gated observations are unaffected.
 
 ## Index
 
+- [2026-10-04 Gemini GPU reverse engineering](2026-10-04-gemini-gpu-re/README.md)
+  — offline source review: vendor MFG power-on sequence (bus protection, GPU
+  SRAM LDO words, 52 MHz pre-clock, RT5735 VGPU timing), MFGPLL/DVFS tables
+  and EEM calibration versus mainline Panfrost and local patches; 22 cited
+  facts, ranked device hypotheses.
 - [2026-10-04 Gemini PMIC basics reverse engineering](2026-10-04-gemini-pmic-basics-re/README.md)
   — offline source review of PWRAP init, the vendor's 245-field MT6351 boot
   table, interrupts, keys, RTC, restart and power-off; 22 cited facts, ranked

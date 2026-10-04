@@ -1160,7 +1160,12 @@ remaining peripherals.
    unbuilt "MMC3530" driver is the mainline `mmc35240` register family.
 8. **GPU.** Panfrost (Mali-T880) needs the MFG power domains, the RT5735 VGPU
    regulator ([record](../experiments/2026-07-12-rt5735-vgpu-recovery/README.md))
-   and safe OPPs. It waits for native display and for thermal protection.
+   and safe OPPs. It waits for native display and for thermal protection. The
+   [GPU reverse-engineering record](../experiments/2026-10-04-gemini-gpu-re/README.md)
+   (2026-10-04) lists what the vendor power-on sequence does that the local
+   patches do not (bus protection, GPU SRAM LDO words, pre-clock, regulator
+   timing), derives a first fixed OPP of 520 MHz at 1.000 V, and ranks the
+   device tests.
 9. **Cellular and cameras.** Unchanged: feasibility work only, per the
    cellular and camera records referenced in the parallel-delivery table.
    The [camera reverse-engineering record](../experiments/2026-10-04-gemini-camera-re/README.md)

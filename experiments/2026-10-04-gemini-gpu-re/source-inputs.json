@@ -1,0 +1,291 @@
+{
+  "purpose": "Exact public inputs inspected for experiments/2026-10-04-gemini-gpu-re; no file content is copied into the repository.",
+  "vendor": {
+    "repository": "https://github.com/gemian/gemini-linux-kernel-3.18",
+    "commit": "8cfe6596a503612e3332d9c26e292a19525a7f07",
+    "files": [
+      {
+        "path": "arch/arm64/boot/dts/aeon6797_6m_n.dts",
+        "size": 38242,
+        "sha256": "d1bd9d83941dffb44615f69e9113c7b79d87b3e9e87057619c70370f56456f5a",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon6797_6m_n.dts"
+      },
+      {
+        "path": "arch/arm64/boot/dts/mt6797.dtsi",
+        "size": 104424,
+        "sha256": "eaac86c8752ebd8ddf18b831eb3bc52a08f87475a213bb521650bf95dabb3e5e",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi"
+      },
+      {
+        "path": "arch/arm64/configs/aeon6797_6m_n_defconfig",
+        "size": 14304,
+        "sha256": "83f33ed07c17abe8dceaee64afd26de0cc970c0bae93681b68906636e21e883f",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/configs/aeon6797_6m_n_defconfig"
+      },
+      {
+        "path": "drivers/clk/mediatek/clk-mt6797-pg.c",
+        "size": 88028,
+        "sha256": "4a661ed078bddaba15b7a7a2db27ca59ced8883a1b71c545bbbe24cddd64d58f",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/clk/mediatek/clk-mt6797-pg.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/base/power/mt6797/Makefile",
+        "size": 2657,
+        "sha256": "64a1f784e7df01e445d8a2d77a40a9537b1978275b668520d3d4974719a0c74f",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/base/power/mt6797/Makefile"
+      },
+      {
+        "path": "drivers/misc/mediatek/base/power/mt6797/mt_clkmgr.c",
+        "size": 41477,
+        "sha256": "676965631144df839bdb2088413742ed3c5205fee4e8d6ea34ef0ba0e1014b5f",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/base/power/mt6797/mt_clkmgr.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/base/power/mt6797/mt_eem.c",
+        "size": 193218,
+        "sha256": "7c81d95bc571025d2b68097f5757190e65c017859b85df0759f499dfece1b06e",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/base/power/mt6797/mt_eem.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/base/power/mt6797/mt_gpufreq.c",
+        "size": 120280,
+        "sha256": "45634b5c9c54c27c1409da2758a5c157152fcc2507177b68abd85c26931d6c46",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/base/power/mt6797/mt_gpufreq.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/base/power/mt6797/mt_gpufreq.h",
+        "size": 4026,
+        "sha256": "13d6787c447b311b414098a350205c03174cbf1160301932ca55b60f1d97b8e8",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/base/power/mt6797/mt_gpufreq.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/base/power/mt6797/mt_spm_mtcmos.c",
+        "size": 52231,
+        "sha256": "9c01fba4209ef3cab233425f2fdf2ad6dacabbf77a0b722c4af79b06c1a3a6b0",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/base/power/mt6797/mt_spm_mtcmos.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/base/power/mt6797/mt_spm_mtcmos.h",
+        "size": 2836,
+        "sha256": "63fcecffb01a58e90916a8aff3a4de204354bdcdaef5ffd0dd607917a9e392c7",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/base/power/mt6797/mt_spm_mtcmos.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/devinfo/v1/devinfo.c",
+        "size": 9998,
+        "sha256": "c0dd0eae8390b7a5af960981577ce0aa44a8b50f54cb166512369cc65a64bd05",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/devinfo/v1/devinfo.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/devinfo/v2/devinfo.c",
+        "size": 9666,
+        "sha256": "6e7f61b770289e43ca1f1f54c56da4fcd75b24af85e89333b7f136a53bab6e03",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/devinfo/v2/devinfo.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/gpu/gpu_mali/mali_midgard/mali-r12p1/drivers/gpu/arm/midgard/platform/mt6797/Kbuild",
+        "size": 359,
+        "sha256": "ae82ea62090b0ecf64ab06ca3ebaf39bb4a63a013a87d95bdb5a95f2091e4d54",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/gpu/gpu_mali/mali_midgard/mali-r12p1/drivers/gpu/arm/midgard/platform/mt6797/Kbuild"
+      },
+      {
+        "path": "drivers/misc/mediatek/gpu/gpu_mali/mali_midgard/mali-r12p1/drivers/gpu/arm/midgard/platform/mt6797/mali_kbase_config_platform.h",
+        "size": 2259,
+        "sha256": "d8a26ca20958a7b7ef1cce9f1609f84dd6903de6f824221899e7efb9b6c22c4f",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/gpu/gpu_mali/mali_midgard/mali-r12p1/drivers/gpu/arm/midgard/platform/mt6797/mali_kbase_config_platform.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/gpu/gpu_mali/mali_midgard/mali-r12p1/drivers/gpu/arm/midgard/platform/mt6797/mtk_config_platform.c",
+        "size": 19502,
+        "sha256": "39b859ad88cfb9c66ccfbf825e9a2785564001514fa31ea5c3d04fe7095f1a7e",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/gpu/gpu_mali/mali_midgard/mali-r12p1/drivers/gpu/arm/midgard/platform/mt6797/mtk_config_platform.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/gpu/gpu_mali/mali_midgard/mali-r12p1/drivers/gpu/arm/midgard/platform/mt6797/mtk_kbase_spm.c",
+        "size": 8297,
+        "sha256": "f7e69e7c32b6bd53d6171449f15d30f6597f3c666d893cf80affb1feabad3283",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/gpu/gpu_mali/mali_midgard/mali-r12p1/drivers/gpu/arm/midgard/platform/mt6797/mtk_kbase_spm.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/gpu/gpu_mali/mali_midgard/mali-r12p1/drivers/gpu/arm/midgard/platform/mt6797/mtk_kbase_spm.h",
+        "size": 8106,
+        "sha256": "f1ca82195179cb3ccb4d5be3df9f8f02cbdbecc8a401e7d20f78c1085e824409",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/gpu/gpu_mali/mali_midgard/mali-r12p1/drivers/gpu/arm/midgard/platform/mt6797/mtk_kbase_spm.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/gpu/gpu_mali/mali_midgard/mali-r12p1/drivers/gpu/arm/midgard/platform/mtk_platform_common.h",
+        "size": 1830,
+        "sha256": "a273811d7d1036f3927ba00662c906080017920f14cb7f5a0d8b0fb729cd1728",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/gpu/gpu_mali/mali_midgard/mali-r12p1/drivers/gpu/arm/midgard/platform/mtk_platform_common.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/mt_spm_mtcmos_internal.h",
+        "size": 3783,
+        "sha256": "4a591d4f8b18d7c2ebcc705665e70f362918868dfe52ec1649f6ebd5eef062db",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/mt_spm_mtcmos_internal.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/power/mt6797/Makefile",
+        "size": 2460,
+        "sha256": "1a270fd070e41fce76166a171c66a3230766515987ebf298719bde7f0d377bdf",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/Makefile"
+      },
+      {
+        "path": "drivers/misc/mediatek/power/mt6797/fan53555.c",
+        "size": 14225,
+        "sha256": "96b1fcabde51408cb36ace4302422050ec48659feb127da6d19a83223a561b9f",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/fan53555.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/power/mt6797/fan53555.h",
+        "size": 1515,
+        "sha256": "ee0637e0aaf97adc34853a414ade0f21b8d21fcd012825f44aacfd091ff7b170",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/fan53555.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/power/mt6797/mtk_gpuregulator_intf.c",
+        "size": 10670,
+        "sha256": "45e684836d4d13771c94a20c694fd6e787e26bc4bc78380f13107b7a3eb5cd05",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/mtk_gpuregulator_intf.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/power/mt6797/mtk_gpuregulator_intf.h",
+        "size": 3244,
+        "sha256": "622d25440b2e715aea43df3001738b6c6ae510ed217c679a5aa8c79590637355",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/mtk_gpuregulator_intf.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/power/mt6797/rt5735.c",
+        "size": 22880,
+        "sha256": "763f85dd582b301708c77206f8bef37f02aa6828fba39e818917248868475865",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/rt5735.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/power/mt6797/rt5735.h",
+        "size": 2148,
+        "sha256": "d1a28740a94c0c928e7f77c2399e9f187b7ad407588c7525ae5819faf7d12a24",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/rt5735.h"
+      }
+    ]
+  },
+  "linux": {
+    "repository": "https://github.com/gregkh/linux",
+    "tag": "v7.1.3",
+    "files": [
+      {
+        "path": "Documentation/devicetree/bindings/gpu/arm,mali-midgard.yaml",
+        "size": 4674,
+        "sha256": "29cc039197bf174115d4889bc449e6c6070cafee35a0337fed658eb2eeb5182e",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/Documentation/devicetree/bindings/gpu/arm,mali-midgard.yaml"
+      },
+      {
+        "path": "Documentation/devicetree/bindings/regulator/fcs,fan53555.yaml",
+        "size": 1738,
+        "sha256": "c2f3a680863753f8be1949e3a6b5dc711dd5f1ab34715bf8d6e5a1239738531b",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/Documentation/devicetree/bindings/regulator/fcs,fan53555.yaml"
+      },
+      {
+        "path": "arch/arm64/boot/dts/mediatek/mt6797.dtsi",
+        "size": 11331,
+        "sha256": "798662eb7df0a7cf37cbc47d54d232bbf85fbc748afc63af2c373526a948af83",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/arch/arm64/boot/dts/mediatek/mt6797.dtsi"
+      },
+      {
+        "path": "drivers/clk/mediatek/clk-mt6797.c",
+        "size": 23000,
+        "sha256": "eaad6324621679371f33bbb76e10bcb0d3374b1f2dbbd837323b3f9e8fee1534",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/clk/mediatek/clk-mt6797.c"
+      },
+      {
+        "path": "drivers/gpu/drm/panfrost/panfrost_devfreq.c",
+        "size": 7149,
+        "sha256": "487a584113d8642575fe367f1c98e579c05bdb4edfeb54b53f1da10c24caa010",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/gpu/drm/panfrost/panfrost_devfreq.c"
+      },
+      {
+        "path": "drivers/gpu/drm/panfrost/panfrost_device.c",
+        "size": 13885,
+        "sha256": "1c0ab83e272b1e8d726717eeee529d83107fcb4e11c532587ec7703167b068c0",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/gpu/drm/panfrost/panfrost_device.c"
+      },
+      {
+        "path": "drivers/gpu/drm/panfrost/panfrost_device.h",
+        "size": 9779,
+        "sha256": "310eaa1cc3ee9fb7f0e5beef9d129fd84119af97c3b0b2c5b21c800a64ef3f95",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/gpu/drm/panfrost/panfrost_device.h"
+      },
+      {
+        "path": "drivers/gpu/drm/panfrost/panfrost_drv.c",
+        "size": 32887,
+        "sha256": "5ae7dbc98fcf7c6b0ffd89b749873c57715ca036cc5f1cbb5b6fe869f3c2f82b",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/gpu/drm/panfrost/panfrost_drv.c"
+      },
+      {
+        "path": "drivers/gpu/drm/panfrost/panfrost_gpu.c",
+        "size": 17136,
+        "sha256": "8e6d54ce0e726d4b083589fbf75408e6ebb124c7ea69702ff9ee664e9de34e8f",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/gpu/drm/panfrost/panfrost_gpu.c"
+      },
+      {
+        "path": "drivers/gpu/drm/panfrost/panfrost_regs.h",
+        "size": 18440,
+        "sha256": "a11d09f281dd79976b35273627be3ff1857911506e2637510b9a9098bc6ceb18",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/gpu/drm/panfrost/panfrost_regs.h"
+      },
+      {
+        "path": "drivers/pmdomain/mediatek/mtk-pm-domains.c",
+        "size": 36044,
+        "sha256": "d9a2fc3d875ec737a01234109115db9d39779b64597c2888d6db631970184f3b",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/pmdomain/mediatek/mtk-pm-domains.c"
+      },
+      {
+        "path": "drivers/pmdomain/mediatek/mtk-scpsys.c",
+        "size": 29139,
+        "sha256": "9ce2b2c95a38bc4c7b801aff9b7c26da2dc8ec2e3fd34199adaedf1db3007226",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/pmdomain/mediatek/mtk-scpsys.c"
+      },
+      {
+        "path": "drivers/regulator/fan53555.c",
+        "size": 19323,
+        "sha256": "85d81789a5fe438d544c13726d4b61c4cadb4131359d9d274a06531b47155af9",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/regulator/fan53555.c"
+      },
+      {
+        "path": "drivers/soc/mediatek/mtk-infracfg.c",
+        "size": 2840,
+        "sha256": "f2ae233096fc7c284f9170a91a1dc37151ad4268f976f679620f6431492096de",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/soc/mediatek/mtk-infracfg.c"
+      },
+      {
+        "path": "drivers/thermal/mediatek/auxadc_thermal.c",
+        "size": 36490,
+        "sha256": "7b4a7ae9956f95a2eacae5d5448fe528c32c53498600d8bd96c15dd8adeb0312",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/thermal/mediatek/auxadc_thermal.c"
+      },
+      {
+        "path": "drivers/watchdog/mtk_wdt.c",
+        "size": 13667,
+        "sha256": "6e8230dff7db590f16bdc83918220da48be57c8a594cd3f0917f4c0e0018da9b",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/watchdog/mtk_wdt.c"
+      },
+      {
+        "path": "include/dt-bindings/clock/mt6797-clk.h",
+        "size": 8183,
+        "sha256": "73ef029a8a51216697d7384a360ac94b714a6fea83e5bd8c4e2a5f78f2a48a63",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/include/dt-bindings/clock/mt6797-clk.h"
+      },
+      {
+        "path": "include/dt-bindings/power/mt6797-power.h",
+        "size": 721,
+        "sha256": "201e215b5f058fbb043c6f3503e8ab42c8caab0ae41a7b634024f88cef4c4034",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/include/dt-bindings/power/mt6797-power.h"
+      },
+      {
+        "path": "include/linux/soc/mediatek/infracfg.h",
+        "size": 22134,
+        "sha256": "c77c59cc8e8d0e91a5b6d1eb52cb236fda4ae1709bbffc84fe1020d701d112b9",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/include/linux/soc/mediatek/infracfg.h"
+      }
+    ]
+  }
+}
