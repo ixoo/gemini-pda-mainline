@@ -16,7 +16,7 @@ falls back to the VM. Use the VM only for an explicitly owner-requested build.
 Environment:
   GEMINI_BUILD_BACKEND  buildbox, auto, or vm (default: buildbox)
   KERNEL_PROFILE       Manifest profile
-  GEMINI_BUILD_EXPERIMENT=wifi-controller  Native observation kernel (Buildbox only)
+  GEMINI_BUILD_EXPERIMENT=wifi-controller|gemian-reg06  Native diagnostic (Buildbox only)
   BUILD_MODULES=1      Build and package modules
   KERNEL_JOBS=N        Parallel build jobs
 EOF
@@ -48,10 +48,10 @@ fi
 experiment="${GEMINI_BUILD_EXPERIMENT:-}"
 case "${experiment}" in
   "") ;;
-  wifi-controller)
-    [[ "${backend}" != vm ]] || die "native Wi-Fi experiment requires buildbox"
+  wifi-controller|gemian-reg06)
+    [[ "${backend}" != vm ]] || die "native diagnostic experiment requires buildbox"
     [[ -z "${KERNEL_PROFILE:-}" && "${BUILD_MODULES:-0}" == 0 ]] || \
-      die "native Wi-Fi experiment does not accept manifest profiles or modules"
+      die "native diagnostic experiment does not accept manifest profiles or modules"
     ;;
   *) die "unknown build experiment: ${experiment}" ;;
 esac
@@ -70,6 +70,9 @@ case "${backend}" in
   buildbox)
     if [[ "${experiment}" == wifi-controller ]]; then
       exec "${SCRIPT_DIR}/buildbox" build-wifi-controller-kernel
+    fi
+    if [[ "${experiment}" == gemian-reg06 ]]; then
+      exec "${SCRIPT_DIR}/buildbox" build-gemian-reg06-observer
     fi
     exec "${SCRIPT_DIR}/buildbox" build-kernel
     ;;

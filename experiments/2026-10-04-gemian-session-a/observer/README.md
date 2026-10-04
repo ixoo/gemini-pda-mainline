@@ -63,5 +63,8 @@ kernel integration, mutex ownership, sysfs behavior or physical transport.
 
 Next generate/replay the patch from clean pushed inputs on Buildbox, inspect
 its exact diff and run relevant compile/negative integration checks. Kernel
-builds must use `./scripts/build-kernel --backend buildbox` through a focused
-Gemian experiment selector; that compile integration is not implemented yet.
+builds must use `GEMINI_BUILD_EXPERIMENT=gemian-reg06
+./scripts/build-kernel --backend buildbox`. The compile lane is prepared, but remains blocked until the final reviewed patch is admitted at
+`../patches/0001-diagnostic-observe-existing-REG06-read.patch`. It uses only that
+patch and the pinned native config, with a distinct kernel release name.
+This checkpoint has not compiled a kernel.

@@ -1,5 +1,5 @@
 {
-  "status": "implementation-input checkpoint; generated draft replayed; style corrections awaiting successor generation and compile",
+  "status": "incomplete checkpoint; successor draft replayed; final alignment and compile lane prepared, awaiting final patch admission",
   "input_commit": "92fb4da89680169046d42122a4095cefd8bee609",
   "draft_patch_sha256": "63b3608972328f4fb0b62023454e4dd6bc6675276498541168b8ad5baf675a2c",
   "source_revision": "59e00a9144d782e148332009a835b99c43382467",
@@ -22,5 +22,23 @@
     "candidate and device protocol"
   ],
   "device_actions": "none during implementation/generation",
-  "redactions": "Normalized facts and hashes only; superseded draft and check logs retained privately."
+  "redactions": "Normalized facts and hashes only; superseded draft and check logs retained privately.",
+  "successor_draft": {
+    "input_commit": "93643ac9dbeae016f4ddd03e4527dafa67e8f923",
+    "patch_sha256": "446bdbb38026c3158424ac8a9608a2824d774297e99620b5f7ef8ade082f61ac",
+    "replay": "all four transformed files match exact-parent replay",
+    "style_errors": 0,
+    "style_warnings": 2,
+    "style_checks": 5,
+    "remaining_alignment": "two checks corrected in successor inputs; regenerate before admission"
+  },
+  "compile_lane": {
+    "selector": "GEMINI_BUILD_EXPERIMENT=gemian-reg06",
+    "backend": "buildbox only",
+    "dispatch_cases": 22,
+    "dispatch_result": "pass",
+    "shell_syntax_and_shellcheck": "pass",
+    "kernel_build": "pending final patch admission",
+    "native_selection": "CONFIG_MTK_SMART_BATTERY selects bq25890 in pinned mt6797 Makefile; dedicated BQ25890 option remains disabled"
+  }
 }

@@ -23,7 +23,7 @@ def main() -> None:
             'printf "buildbox %s\\n" "$*" >> "$TEST_CALLS"\n'
             'case "$1" in\n'
             'available) exit "$TEST_AVAILABLE" ;;\n'
-            'build-kernel|build-wifi-controller-kernel) exit "$TEST_BUILD_RESULT" ;;\n'
+            'build-kernel|build-wifi-controller-kernel|build-gemian-reg06-observer) exit "$TEST_BUILD_RESULT" ;;\n'
             '*) exit 99 ;;\n'
             'esac\n',
             encoding="ascii",
@@ -54,6 +54,14 @@ def main() -> None:
              ["buildbox available", "buildbox build-wifi-controller-kernel"], "wifi-controller"),
             ("wifi-unavailable", [], None, 1, 0, 1, ["buildbox available"], "wifi-controller"),
             ("wifi-vm-refused", ["--backend", "vm"], None, 0, 0, 1, [], "wifi-controller"),
+            ("reg06-ready", [], None, 0, 0, 0,
+             ["buildbox available", "buildbox build-gemian-reg06-observer"], "gemian-reg06"),
+            ("reg06-unavailable", [], None, 1, 0, 1, ["buildbox available"], "gemian-reg06"),
+            ("reg06-vm-refused", ["--backend", "vm"], None, 0, 0, 1, [], "gemian-reg06"),
+            ("reg06-build-failure", [], None, 0, 42, 42,
+             ["buildbox available", "buildbox build-gemian-reg06-observer"], "gemian-reg06"),
+            ("reg06-profile-refused", [], None, 0, 0, 1, [], "gemian-reg06"),
+            ("reg06-modules-refused", [], None, 0, 0, 1, [], "gemian-reg06"),
             ("unknown-experiment", [], None, 0, 0, 1, [], "unknown"),
         ]
         for name, arguments, backend, available, build_result, expected_status, expected_calls, experiment in cases:
@@ -65,6 +73,10 @@ def main() -> None:
                 "TEST_BUILD_RESULT": str(build_result),
                 "GEMINI_BUILD_EXPERIMENT": experiment,
             }
+            if name == "reg06-profile-refused":
+                environment["KERNEL_PROFILE"] = "unrelated"
+            if name == "reg06-modules-refused":
+                environment["BUILD_MODULES"] = "1"
             if backend is not None:
                 environment["GEMINI_BUILD_BACKEND"] = backend
             result = subprocess.run(

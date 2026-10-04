@@ -24,15 +24,15 @@ static ssize_t reg06_observe_show(struct device *dev,
 		size = scnprintf(buf, PAGE_SIZE, "pending\n");
 	} else if (gemini_reg06_valid(r)) {
 		size = scnprintf(buf, PAGE_SIZE,
-				"ok ret=%d calls=%d transfers=%d irq=%x fifo=%u value=%02x\n",
-				r->result, r->master_calls, r->transfers, r->irq,
-				r->fifo_count, r->value);
+				 "ok ret=%d calls=%d transfers=%d irq=%x fifo=%u value=%02x\n",
+				 r->result, r->master_calls, r->transfers, r->irq,
+				 r->fifo_count, r->value);
 	} else {
 		size = scnprintf(buf, PAGE_SIZE,
-				"failed ret=%d calls=%d transfers=%d irq=%x fifo_seen=%u fifo=%u controller=%u fifo_path=%u wrrd=%u\n",
-				r->result, r->master_calls, r->transfers, r->irq,
-				r->fifo_seen, r->fifo_count, r->controller_ok,
-				r->fifo_path, r->wrrd);
+				 "failed ret=%d calls=%d transfers=%d irq=%x fifo_seen=%u fifo=%u controller=%u fifo_path=%u wrrd=%u\n",
+				 r->result, r->master_calls, r->transfers, r->irq,
+				 r->fifo_seen, r->fifo_count, r->controller_ok,
+				 r->fifo_path, r->wrrd);
 	}
 	mutex_unlock(&bq25890_i2c_access);
 	return size;

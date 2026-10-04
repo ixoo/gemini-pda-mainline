@@ -33,7 +33,10 @@ Commands:
                         Build the pinned native Wi-Fi observation kernel
   build-gemian-wifi-reference
                         Build the Gemian Wi-Fi diagnostic kernel
+  build-gemian-reg06-observer
+                        Compile the passive Gemian REG06 diagnostic kernel
   fetch-gemian-wifi-reference
+  fetch-gemian-reg06-observer
                         Fetch its validated kernel bundle
   fetch-package         Fetch the validated package for HEAD and the profile
   generate-mt6797-thermal-calibration-patches
@@ -1120,7 +1123,7 @@ build_gemian_observer() {
   local sha
 
   case "${mode}" in
-    observer|rollback|recovery|one-way|held|late|cpu9|window|terminal|coherence|multiline|parallel|scheduler|register|pmsg|wifi-controller|wifi-reference) ;;
+    observer|rollback|recovery|one-way|held|late|cpu9|window|terminal|coherence|multiline|parallel|scheduler|register|pmsg|wifi-controller|wifi-reference|reg06-observer) ;;
     *) die "invalid Gemian compile-review mode: ${mode}" ;;
   esac
 
@@ -1130,7 +1133,8 @@ build_gemian_observer() {
   identity="$(require_clean_pushed_head)"
   IFS=$'\t' read -r sha branch <<< "${identity}"
   jobs="$(job_count)"
-  if [[ "${mode}" == wifi-controller || "${mode}" == wifi-reference ]] &&
+  if [[ "${mode}" == wifi-controller || "${mode}" == wifi-reference ||
+    "${mode}" == reg06-observer ]] &&
     [[ -z "${KERNEL_JOBS:-}" ]]; then jobs=8; fi
   printf -v remote_command 'bash -s -- %q %q %q %q %q %q %q' \
     "${sha}" "${branch}" "${jobs}" "${mode}" \
@@ -1166,6 +1170,11 @@ case "${mode}" in
     readonly job_suffix=wifi-controller-kernel
     readonly job_purpose=wifi-controller-kernel-compile-only
     readonly build_script=experiments/2026-09-07-mt6797-wifi-observer-feasibility/build-full-kernel.py
+    ;;
+  reg06-observer)
+    readonly job_suffix=gemian-reg06-observer
+    readonly job_purpose=gemian-reg06-observer-compile-only
+    readonly build_script=experiments/2026-10-04-gemian-session-a/build-on-buildbox.py
     ;;
   wifi-reference)
     readonly job_suffix=gemian-wifi-reference
@@ -1288,7 +1297,8 @@ fi
 [[ "$(git -C "${checkout}" rev-parse HEAD)" == "${commit}" ]]
 [[ -z "$(git -C "${checkout}" status --porcelain)" ]]
 
-if [[ "${mode}" == wifi-controller || "${mode}" == wifi-reference ]]; then
+if [[ "${mode}" == wifi-controller || "${mode}" == wifi-reference ||
+    "${mode}" == reg06-observer ]]; then
   python3 -B "${checkout}/${build_script}" "${commit}" "${jobs}" 2>&1 | tee "${job_log}"
   exit 0
 fi
@@ -1899,8 +1909,13 @@ printf 'buildbox_package=%s\n' "${package}"
 REMOTE
 }
 
-fetch_gemian_wifi_reference() {
+fetch_gemian_native_kernel() {
   local destination package_name remote_command sha temporary
+  local mode="${1:-wifi-reference}"
+  case "${mode}" in
+    wifi-reference|reg06-observer) ;;
+    *) die "invalid native Gemian package mode" ;;
+  esac
 
   require_command git
   require_command jq
@@ -1909,18 +1924,20 @@ fetch_gemian_wifi_reference() {
   require_command tar
   sha="$(git -C "${REPO_DIR}" rev-parse HEAD)"
   [[ "${sha}" =~ ^[0-9a-f]{40}$ ]] || die "invalid HEAD commit"
-  package_name="gemian-wifi-reference-${sha}"
+  package_name="gemian-${mode}-${sha}"
   destination="${REPO_DIR}/artifacts/buildbox/${sha}/${package_name}"
   [[ ! -e "${destination}" ]] || die "refusing to overwrite ${destination}"
   mkdir -p "$(dirname "${destination}")"
   temporary="$(mktemp -d "$(dirname "${destination}")/.fetch.XXXXXX")"
   trap 'test -n "${temporary:-}" && test -d "${temporary}" && rm -rf -- "${temporary}"' EXIT
-  printf -v remote_command 'bash -s -- %q' "${sha}"
+  printf -v remote_command 'bash -s -- %q %q' "${sha}" "${mode}"
   ssh_buildbox "${remote_command}" <<'REMOTE' | tar -C "${temporary}" -xf -
 set -euo pipefail
 readonly commit="$1"
+readonly mode="$2"
+case "${mode}" in wifi-reference|reg06-observer) ;; *) exit 2 ;; esac
 [[ "${commit}" =~ ^[0-9a-f]{40}$ ]]
-readonly package="/workspace/gemini-pda/gemian-artifacts/gemian-wifi-reference-${commit}"
+readonly package="/workspace/gemini-pda/gemian-artifacts/gemian-${mode}-${commit}"
 [[ -d "${package}" && ! -L "${package}" ]]
 (
   cd "${package}"
@@ -1928,6 +1945,11 @@ readonly package="/workspace/gemini-pda/gemian-artifacts/gemian-wifi-reference-$
   jq -e --arg commit "${commit}" \
     '.repository_commit == $commit and .full_kernel_link == true and
      .boot_candidate == false and .device_execution == false' result.json >/dev/null
+  if [[ "${mode}" == reg06-observer ]]; then
+    jq -e '.source_commit == "59e00a9144d782e148332009a835b99c43382467" and
+      .observer_default_enabled == false and .added_charger_requests == 0 and
+      (.ordered_patch_sha256 | length) == 1' result.json >/dev/null
+  fi
 )
 tar -C "$(dirname "${package}")" -cf - -- "$(basename "${package}")"
 REMOTE
@@ -1938,6 +1960,12 @@ REMOTE
     jq -e --arg commit "${sha}" \
       '.repository_commit == $commit and .full_kernel_link == true and
        .boot_candidate == false and .device_execution == false' result.json >/dev/null
+    if [[ "${mode}" == reg06-observer ]]; then
+      jq -e --arg patch "$(sha256sum "${REPO_DIR}/experiments/2026-10-04-gemian-session-a/patches/0001-diagnostic-observe-existing-REG06-read.patch" | cut -d ' ' -f 1)" \
+        '.source_commit == "59e00a9144d782e148332009a835b99c43382467" and
+         .observer_default_enabled == false and .added_charger_requests == 0 and
+         .ordered_patch_sha256 == [$patch]' result.json >/dev/null
+    fi
   )
   mv "${temporary}/${package_name}" "${destination}"
   rmdir "${temporary}"
@@ -17729,7 +17757,9 @@ case "${COMMAND}" in
   build-gemian-pmsg-witness-compile) build_gemian_observer pmsg ;;
   build-wifi-controller-kernel) build_gemian_observer wifi-controller ;;
   build-gemian-wifi-reference) build_gemian_observer wifi-reference ;;
-  fetch-gemian-wifi-reference) fetch_gemian_wifi_reference ;;
+  build-gemian-reg06-observer) build_gemian_observer reg06-observer ;;
+  fetch-gemian-wifi-reference) fetch_gemian_native_kernel wifi-reference ;;
+  fetch-gemian-reg06-observer) fetch_gemian_native_kernel reg06-observer ;;
   fetch-gemian-pmsg-witness-compile) fetch_gemian_observer pmsg ;;
   help|-h|--help) usage ;;
   *) usage >&2; exit 2 ;;
