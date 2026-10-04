@@ -1,5 +1,10 @@
 # MT6797 shared STP task framing preparation
 
+Historical compile checkpoint: this intermediate profile and series have been
+retired after the [task-routing consolidation](../2026-10-04-mt6797-stp-task-routing/README.md#consolidation-after-validation).
+Receipts and commands below refer to their original input commits. Current
+compile reproduction uses `mt6797-a53-stp-task-routing-compile`.
+
 ## Record
 
 | Field | Value |

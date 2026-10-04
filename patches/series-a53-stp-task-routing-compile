@@ -581,5 +581,4 @@ proposals/0101-dt-bindings-soc-mediatek-describe-MT6797-AFE-resource.patch
 proposals/0102-soc-mediatek-initialize-MT6797-AFE-before-MCU-release.patch
 proposals/0103-soc-mediatek-extract-task-aware-full-STP-framing.patch
 proposals/0104-soc-mediatek-share-full-STP-sequence-and-ACK-state.patch
-proposals/0105-soc-mediatek-ignore-out-of-window-full-STP-ACK-credit.patch
 proposals/0106-soc-mediatek-route-full-STP-tasks-before-committing-credit.patch

@@ -20,7 +20,7 @@ queue can lose a packet that the peer believes was accepted.
 
 Two logical patches prepare that boundary:
 
-- [0105](../../patches/proposals/0105-soc-mediatek-ignore-out-of-window-full-STP-ACK-credit.patch)
+- [original 0105](https://github.com/ixoo/gemini-pda-mainline/blob/fcca630d04918a30dd3038e3ca46301798ce19d5/patches/proposals/0105-soc-mediatek-ignore-out-of-window-full-STP-ACK-credit.patch)
   corrects the earlier helper's strict out-of-window ACK refusal. The selected
   Gemian `stp_process_rxack()` grants credit only when an ACK matches a transmitted
   sequence. Its caller still accepts a new receive sequence when that ACK grants
@@ -56,7 +56,8 @@ publishing its link state. The current production IRQ path remains WMT-only
 with one-command lifetime. The BT/GPS callbacks in the fixture demonstrate
 routing, not registered kernel clients. Real receive queues, long-lived IRQ
 ownership, retransmission, client/reset lifetime and a standard HCI device are
-still next work. This patch adds no resource, power or radio operation and does
+unimplemented. The roadmap limits the next Bluetooth draft to its bounded
+positive-control path. This patch adds no resource, power or radio operation and does
 not implement NAK, resynchronization or firmware-message tasks.
 
 The isolated `mt6797-a53-stp-task-routing-compile` profile extends the previous
@@ -110,3 +111,23 @@ on macOS; the package itself passed the remote Linux validator.
 The later receipt update changes documentation only; the package remains
 attributed to its original input commit. No device access, candidate construction,
 installation or hardware support is claimed.
+
+## Consolidation after validation
+
+The corrected link state is now one [0104 patch](../../patches/proposals/0104-soc-mediatek-share-full-STP-sequence-and-ACK-state.patch),
+combining the original 0104 and 0105. The original receipt above remains
+attributed to `fcca630d`; its package is not relabeled. The
+[consolidation receipt](results/consolidation.json) records replay of the new
+0104 followed by unchanged 0106 onto the exact pre-link parent. The complete
+tracked driver/header tree is byte-identical to the previously built child.
+Every other selected patch and all retained profile settings are unchanged.
+The focused host runner passes again; consolidated 0104 passes strict
+checkpatch with the same exclusions. No kernel rebuild was run for this
+source-identical consolidation, and no device action occurred.
+
+The AFE, task-framing and link-state compile profiles and their series copies
+are retired. Their historical receipts and commands describe the original
+commits. Current reproduction uses only
+`mt6797-a53-stp-task-routing-compile`, now selecting 581 patches. All 272
+remaining profiles must preserve canonical series order. New packages built
+from this inventory need their own build provenance before candidate selection.

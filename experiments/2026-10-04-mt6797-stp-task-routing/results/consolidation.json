@@ -1,0 +1,39 @@
+{
+  "status": "consolidated patch replay and host fixtures pass; no new kernel build or hardware test",
+  "historical_build_input_commit": "fcca630d04918a30dd3038e3ca46301798ce19d5",
+  "historical_validation": "validation.json",
+  "consolidated_patch_sha256": "a512780ea52c5a1105df8571d1377ecfc44c0f0df049b019ea45d25eadb0d4e6",
+  "replayed_authored_tree": "9125eec461ea662f30aa119a1ddb35ef7a261c84",
+  "comparison": "Complete tracked driver/header tree equals the original 0104+0105+0106 child; other selected patch bytes, order and profile configuration unchanged.",
+  "source_sha256": {
+    "drivers/soc/mediatek/mt6797-consys.c": "b1d64fbff113ee3b59c0e2540314448377dc8d7c7812148ad9437bccfff010df",
+    "drivers/soc/mediatek/mt6797-wmt-full-io.h": "61a747eca950006b25a2b48827a769e44138d38c3892a036924fc889609d6708",
+    "drivers/soc/mediatek/stp-full-link.h": "7c1b5c18ebe7f3ffa934646ecaeade730d9a6c0b178b76e3f030450acd6c785e",
+    "drivers/soc/mediatek/stp-full-stream.h": "002209f6292849f5eb758a1e6f6a3225f364c21404fd2ecf994293254f191c47",
+    "drivers/soc/mediatek/stp-full-task.h": "bfe06cbc378bb5b830a5bd1e2267431c406e0d41551a2e0ffcda05acf2b1d7a9",
+    "drivers/soc/mediatek/stp-full.h": "80c5ff5e242b5c3ed6bdb52a3148b49b78f67fe41eade8414e022217fcba7dfd",
+    "drivers/soc/mediatek/wmt-full-stp-state.h": "4fb032d217fbfea53ca890ca2d4372af97a7a649f5fbc542464b84f90a6c0aff",
+    "drivers/soc/mediatek/wmt-full-stp-stream.h": "6dfbac71ec6462f17e135b583e0dbc6d8bc4be24d71693a5e8bb29c51928d5db",
+    "drivers/soc/mediatek/wmt-full-stp-tx.h": "1416a261b6071d3df560d18c17d2531bdf74e22ad6da3c2f89d10f6c59770a9b",
+    "drivers/soc/mediatek/wmt-full-stp.h": "022121caab6ac24bfe8c3fa0f8489e9003c1218385741cdffd6226e30b753502"
+  },
+  "retired_profiles": [
+    "mt6797-a53-consys-afe-compile",
+    "mt6797-a53-stp-task-compile",
+    "mt6797-a53-stp-link-compile"
+  ],
+  "retained_profile": "mt6797-a53-stp-task-routing-compile",
+  "selected_patch_count": 581,
+  "profile_count": 272,
+  "checks": {
+    "replay": "pass",
+    "host_fixtures": "strict C11, ASan/UBSan pass; nine WMT fixtures, 512-case ACK oracle, framing and task routing",
+    "checkpatch": "0 errors, warnings and checks; MISSING_SIGN_OFF, TYPO_SPELLING, FILE_PATH_CHANGES excluded",
+    "retained_manifest_and_series": "Exact comparison passes: only the three retired profiles and the removed 0105 inventory entry differ",
+    "historical_prepared_source": "All ten replayed driver/header SHA-256 values match the exact historical Buildbox prepared source"
+  },
+  "limitations": [
+    "Historical Buildbox package remains attributed to fcca630d and its original 582-patch inventory; consolidation does not relabel it as a new package.",
+    "No candidate, device access or hardware acceptance."
+  ]
+}

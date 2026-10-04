@@ -1,6 +1,6 @@
-From cc0164e127aed88f01f3c7771c9f38b8bf87979d Mon Sep 17 00:00:00 2001
+From 6a7cedc5af8777099430291897ac7280da889d67 Mon Sep 17 00:00:00 2001
 From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
-Date: Sun, 4 Oct 2026 12:22:10 -0400
+Date: Sun, 4 Oct 2026 12:59:16 -0400
 Subject: [PATCH] soc: mediatek: share full STP sequence and cumulative ACK
  state
 
@@ -9,21 +9,25 @@ tasks. Track cumulative TX credit independently of RX delivery and
 complete host ACK credit only after its bytes are sent. Duplicate data
 requests a repeat ACK without redelivery or piggyback credit.
 
-Place the existing one-command WMT client on that link helper. Keep
-exact-event validation before mutation and preserve its existing IRQ
-lifetime and command completion rules. No task client, retransmission
-engine, power operation or reset recovery is added.
+ACKs outside the transmitted window grant no credit without refusing
+valid new data. This includes retries after separate ACK traffic advances
+the TX window, following the selected Gemian receive path. Keep the WMT
+command client's independent exact ACK/reply checks.
 
-Strict host fixtures and sanitizers pass for window/wrap/duplicate/ACK
-ordering plus the existing WMT framing, state and IRQ transport cases.
+Place the existing one-command WMT client on that link helper. Preserve
+its existing IRQ lifetime and command completion rules. No task client,
+retransmission engine, power operation or reset recovery is added.
+
+This consolidates the original link draft and its ACK-credit correction.
+Host fixtures and Buildbox compile the identical resulting source.
 Internal unsigned preparation draft with a synthetic non-certifying
 author; not submission-ready or hardware-tested.
 ---
  drivers/soc/mediatek/mt6797-consys.c      |   3 +-
- drivers/soc/mediatek/mt6797-wmt-full-io.h |  14 +--
- drivers/soc/mediatek/stp-full-link.h      | 124 ++++++++++++++++++++++
+ drivers/soc/mediatek/mt6797-wmt-full-io.h |  14 ++-
+ drivers/soc/mediatek/stp-full-link.h      | 127 ++++++++++++++++++++++
  drivers/soc/mediatek/wmt-full-stp-state.h |  58 +++++-----
- 4 files changed, 162 insertions(+), 37 deletions(-)
+ 4 files changed, 165 insertions(+), 37 deletions(-)
  create mode 100644 drivers/soc/mediatek/stp-full-link.h
 
 diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
@@ -91,10 +95,10 @@ index cedbf05..05ed912 100644
  			ret = -EPROTO;
 diff --git a/drivers/soc/mediatek/stp-full-link.h b/drivers/soc/mediatek/stp-full-link.h
 new file mode 100644
-index 0000000..2185660
+index 0000000..d025314
 --- /dev/null
 +++ b/drivers/soc/mediatek/stp-full-link.h
-@@ -0,0 +1,124 @@
+@@ -0,0 +1,127 @@
 +/* SPDX-License-Identifier: GPL-2.0-only */
 +#ifndef MT6797_STP_FULL_LINK_H
 +#define MT6797_STP_FULL_LINK_H
@@ -166,7 +170,8 @@ index 0000000..2185660
 + * cumulative ACK but never redelivers payload or grants piggyback TX credit.
 + * Caller reserves delivery storage before this transition, or explicitly drops
 + * an inactive task. Results alias input; consume them before buffer reuse.
-+ * Every refusal leaves link and result unchanged; there is no implicit reset.
++ * ACKs outside the transmitted window grant no credit, including stale ACKs
++ * on retried data. Every refusal leaves link/result unchanged; no implicit reset.
 + */
 +static inline int stp_full_link_receive(struct stp_full_link *link,
 +					const unsigned char *frame, unsigned int bytes,
@@ -193,10 +198,12 @@ index 0000000..2185660
 +		return 2;
 +	}
 +	credit = (decoded.acknowledgement - link->peer_ack) & 7;
-+	if (credit > link->tx_pending || (kind && link->rx_pending == STP_FULL_WINDOW))
++	if (kind && link->rx_pending == STP_FULL_WINDOW)
 +		return -1;
-+	next.peer_ack = decoded.acknowledgement;
-+	next.tx_pending -= credit;
++	if (credit <= link->tx_pending) {
++		next.peer_ack = decoded.acknowledgement;
++		next.tx_pending -= credit;
++	}
 +	if (kind) {
 +		next.local_ack = decoded.sequence;
 +		next.rx_next = (decoded.sequence + 1) & 7;
@@ -341,6 +348,3 @@ index 4962639..9a73c4f 100644
  		return -1;
  	state->active = 0;
  	return 0;
--- 
-2.54.0 (Apple Git-157)
-

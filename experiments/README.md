@@ -18,6 +18,8 @@ the loop. Positive identity-gated observations are unaffected.
 - [2026-10-04 MT6797 STP task routing](2026-10-04-mt6797-stp-task-routing/README.md)
   — drafts 0105–0106: ignore out-of-window ACK credit, route ordinary tasks
   before committing credit; host and Buildbox checks pass, no hardware.
+  Original 0104+0105 are now consolidated with identical source; three
+  intermediate compile profiles retired. Historical receipts preserved.
 - [2026-10-04 MT6797 shared STP link state](2026-10-04-mt6797-stp-link-state/README.md)
   — draft 0104: one seven-frame cumulative ACK window and receive sequence
   shared across tasks; host and Buildbox checks pass, no hardware.

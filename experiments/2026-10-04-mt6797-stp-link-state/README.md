@@ -1,5 +1,10 @@
 # MT6797 shared STP link-state preparation
 
+Historical compile checkpoint: this intermediate profile and series have been
+retired after the [task-routing consolidation](../2026-10-04-mt6797-stp-task-routing/README.md#consolidation-after-validation).
+Receipts and commands below refer to their original input commits. Current
+compile reproduction uses `mt6797-a53-stp-task-routing-compile`.
+
 ## Record
 
 | Field | Value |
@@ -20,7 +25,7 @@ A Bluetooth event must not create a separate sequence epoch or require an
 active WMT command. The [receipt](results/validation.json) pins both the selected
 STP implementation and its seven-frame window definition.
 
-Patch [0104](../../patches/proposals/0104-soc-mediatek-share-full-STP-sequence-and-ACK-state.patch)
+Patch [original 0104](https://github.com/ixoo/gemini-pda-mainline/blob/fcca630d04918a30dd3038e3ca46301798ce19d5/patches/proposals/0104-soc-mediatek-share-full-STP-sequence-and-ACK-state.patch)
 introduces a serialized link helper and places the existing WMT command client
 on it. The production WMT IRQ owner and diagnostic access paths now use the
 embedded shared state. WMT still validates the exact event before mutation,

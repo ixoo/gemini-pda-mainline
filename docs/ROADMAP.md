@@ -85,16 +85,17 @@ candidate is unchanged and still waits for physical boot2 selection.
    WMT query/negotiation as the router control before Bluetooth. Stop on a
    regression and compare with the corresponding prior candidate before
    more transport work.
-3. *0105 reverses part of 0104 within the hour.* Squash 0104 and 0105 before
-   any boot candidate so the series does not carry a known-wrong
-   intermediate. Out-of-window ACK behavior is source-derived, not observed.
+3. *0105 corrected part of 0104.* The [consolidation](../experiments/2026-10-04-mt6797-stp-task-routing/README.md#consolidation-after-validation)
+   now folds both into corrected 0104, removing the known-wrong intermediate.
+   Replay preserves the validated source. Out-of-window ACK behavior remains
+   source-derived, not observed.
 4. *Delivery before credit differs from the vendor order.* A refused packet
    is left for firmware retransmission, which has never been observed. Keep
    C3 to single command/response exchanges so no refusal can occur.
 5. *Profile growth.* One draft added four chained compile-only profiles, each
-   a full 580-line series copy (113 series files at review). With 0105–0106
-   now passing Buildbox, keep only `mt6797-a53-stp-task-routing-compile` and
-   retire the AFE, task and link intermediates, per the Phase B fold-in goal.
+   a full 580-line series copy (113 series files at review). After Buildbox
+   validation, the AFE, task and link intermediates were retired; only
+   `mt6797-a53-stp-task-routing-compile` remains from that chain.
 6. *AFE is gated on the `wmt_query` diagnostic property.* Acceptable for the
    draft; the common-init executor must own the AFE stage unconditionally
    rather than through another DT-selected mode.
@@ -104,8 +105,9 @@ candidate is unchanged and still waits for physical boot2 selection.
 
 **Adjusted next steps (offline, in order).**
 
-1. Buildbox validation for 0105–0106 is complete **(local)**. Squash
-   0104+0105 and retire the intermediate compile profiles.
+1. Complete: Buildbox validation of original 0105–0106, source-identical
+   consolidation of 0104+0105, and retirement of intermediate compile profiles.
+   The historical build receipt retains its original input identity.
 2. Prepare boot C1: keys node with explicit long-press policy (needs the
    `TOP_RST_MISC` read), RTC and lid (0074) nodes, the nine-register PMIC read,
    PSCI power-off baseline, and a userspace read-only REG00–REG14 charger dump
@@ -1175,7 +1177,7 @@ one boot or one Gemian session answers several records at once.
 | MT6351 MFD interrupt domain (0008–0015, 0062) | Power key (EINT176), RTC alarm (IRQ 9), `CHRDET` (46) for cable and USB device-port role, ACCDET jack detection (12/13) | Never exercised on mainline; every record that needs a PMIC interrupt names it | First proof is the power key (PMIC H1); it validates the path for charging H2, audio H5 and lid/USB H2 at once |
 | MT6351 regulator constraints | Dropping `regulator_ignore_unused`; VCORE/VSRAM_PROC hardware control, VDRAM, VS1/VS2, modem bucks, VSIM1/2 | Vendor constraint set decoded (PMIC F8–F10, cellular H8) | Offline: write `always-on`/`boot-on` set and keep VCORE off-limits (PMIC H7); drop the flag only in a later reviewed boot |
 | Power-off and restart | Every boot's clean shutdown | Restart proven (TOPRGU). Vendor power-off is an RTC BBPU write that bypasses PSCI; mainline PSCI `SYSTEM_OFF` is untested and probably wrong | New: `mt6351-pwrc` MFD cell plus a small `mt6323-poweroff` extension (PMIC H2) |
-| CONSYS/WMT owner (BTIF, STP, common init) | Wi-Fi, Bluetooth, GNSS, FM | Drafted 2026-10-04: AFE stage before MCU release (0101–0102); task framing, shared sequence/ACK and task routing (0103–0106). No task-0/2 client wired; no hardware result | Squash 0104+0105; wire one task-0 binding for boot C3; executor owns AFE unconditionally |
+| CONSYS/WMT owner (BTIF, STP, common init) | Wi-Fi, Bluetooth, GNSS, FM | Drafted 2026-10-04: AFE stage before MCU release (0101–0102); task framing, shared sequence/ACK and task routing (0103–0106). No task-0/2 client wired; no hardware result | 0104+0105 consolidated; wire one task-0 binding for boot C3; executor owns AFE unconditionally |
 | Clock and power-domain ownership (`clk_ignore_unused`) | Retained simplefb, display PWM, Wi-Fi, GPU | Display H2 gives the first removal path: a `simple-framebuffer` node carrying the MM domain and root clocks | Missing clocks: `CLK_MM_DSI0_INTERFACE_CLOCK` gate (display F19, H7); `mfg_52m_sel` parent and `INFRA_MFG_VCG` for the GPU (GPU H5) |
 | Bus protection and resets | MFG (GPU), MD1 (modem) | Local MFG domain (0047) has no `bus_prot_mask`; vendor asserts INFRA_TOPAXI bits 21/23 and writes GPU SRAM LDO words `0x10001fbc–0xfe4`; TOPRGU `MFG_RST` is not exposed (GPU H1, H2, H4). MD1 domain is absent from mainline (cellular H2) | Offline patches to 0047 and `mtk_wdt`; two Gemian reads decide the LDO words |
 | I2C1 (disabled in the board DT) | Panel bias at `0x3e`, BMI160 `0x69`, STK3x1x `0x48`, candidate MMC35240 `0x30` | Pin pair unconfirmed, probably `SCL1_0/SDA1_0` GPIO55/56 (sensors H8) | One Gemian pinmux read, then one boot serves display bias and all sensors |
