@@ -109,8 +109,9 @@ candidate is unchanged and still waits for physical boot2 selection.
    consolidation of 0104+0105, and retirement of intermediate compile profiles.
    The historical build receipt retains its original input identity.
 2. Prepare boot C1 using the [integration audit](../experiments/2026-10-04-gemini-c1-preparation/README.md):
-   first integrate the reviewed key error/duration fixes onto the selected
-   foundation, then a keys node with explicit long-press policy (needs the
+   the reviewed key error/duration fixes now replay on the selected foundation
+   and pass host regression; finish Buildbox/schema validation, then a keys
+   node with explicit long-press policy (needs the
    `TOP_RST_MISC` read), RTC and lid (0074) nodes, the ten-register PMIC read,
    PSCI power-off baseline, and a userspace read-only REG00–REG14 charger dump
    with no charger node bound (C2a below).

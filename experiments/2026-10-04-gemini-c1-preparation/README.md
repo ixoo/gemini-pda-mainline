@@ -88,3 +88,26 @@ functions/MFD resources, and parsed a ten-entry unique-address inventory.
 Historical Buildbox receipts are evidence for their exact original inputs only.
 No new build, schema test or hardware measurement was performed. Repository
 publication checks apply to these documentation and JSON changes.
+
+## Selected key integration
+
+The four existing key error/duration patches apply unchanged to the selected
+Linux 7.1.3 driver and binding. The new
+[compile series](../../patches/series-a53-pmic-keys-compile) extends the service
+foundation with only those four patches in canonical order. It omits the
+independent topic's duplicate chip data and MFD additions. All 94 actual-function
+regression cases pass against this integrated source; source hashes and limits
+are in the [integration receipt](results/key-integration.json).
+
+`mt6797-a53-pmic-keys-compile` adds only input/key compilation settings and a
+release suffix to the service profile. DT is unchanged, with no enabled PMIC
+key child; this does not select a hardware long-press policy. Buildbox and
+integrated binding checks remain pending. The existing patches retain their
+synthetic non-certifying authorship and do not become submission-ready by
+integration. Their upstream destination and deletion condition remain those
+of the independent key topic.
+
+```sh
+KERNEL_PROFILE=mt6797-a53-pmic-keys-compile ./scripts/build-kernel --backend buildbox
+KERNEL_PROFILE=mt6797-a53-pmic-keys-compile ./scripts/buildbox fetch-package
+```

@@ -1,0 +1,24 @@
+{
+  "status": "94-case host regression pass; Buildbox and integrated schema checks pending; no device action",
+  "profile": "mt6797-a53-pmic-keys-compile",
+  "parent_profile": "mt6797-a53-service-facilities",
+  "patches": [
+    "upstream-4d7d9486/keys/0001-Input-mtk-pmic-keys-ignore-failed-state-reads.patch",
+    "upstream-4d7d9486/keys/0002-Input-mtk-pmic-keys-propagate-reset-setup-errors.patch",
+    "upstream-4d7d9486/keys/0006-dt-bindings-input-mediatek-pmic-keys-constrain-MT635.patch",
+    "upstream-4d7d9486/keys/0007-Input-mtk-pmic-keys-convert-MT6351-timeout-seconds.patch"
+  ],
+  "patch_replay": "All four existing patches apply unchanged to the selected prepared source; no duplicate chip data or MFD resources",
+  "source_sha256": {
+    "drivers/input/keyboard/mtk-pmic-keys.c": "4bdb1a37eed1c53996b0580898ec18d7f69a78847e3fc57f3908e4a03ac007b7",
+    "include/linux/mfd/mt6351/registers.h": "12c336181c8971a1ffe40f8c982bf891fa9ccb60d4f999a6e541ab0dc127f4a8",
+    "Documentation/devicetree/bindings/input/mediatek,pmic-keys.yaml": "623b322cc6afafe35d7f0c03b833d4dfcdecd6dc02bc41455c0e9fd12bb1d0fc"
+  },
+  "host_fixture": "../2026-09-08-mt6351-keys-preparation/test-key-state.py",
+  "cases_passed": 94,
+  "limitations": [
+    "Actual reset and IRQ functions tested; full probe and physical behavior untested",
+    "Board key child remains absent; live reset-policy observation still required",
+    "Build/package/schema validation pending"
+  ]
+}
