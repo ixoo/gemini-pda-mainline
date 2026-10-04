@@ -15,6 +15,9 @@ the loop. Positive identity-gated observations are unaffected.
 
 ## Index
 
+- [2026-10-04 Gemini lid, microSD and USB-role reverse engineering](2026-10-04-gemini-lid-microsd-usb-re/README.md)
+  — offline source review of the hall input, MSDC1 slot power/card detect and
+  the FUSB301A/GPIO94/IDDIG USB role paths; 19 cited facts, 9 ranked hypotheses.
 - [2026-10-04 Gemini charging path reverse engineering](2026-10-04-gemini-charging-re/README.md)
   — offline source review: vendor uses MT6351 CHRDET/BC1.1/FGADC/AUXADC around
   an un-interrupted BQ25896; 22 cited facts, ranked device hypotheses.

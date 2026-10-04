@@ -1101,6 +1101,8 @@ remaining peripherals.
    before a card test **(local)**. USB VBUS/role ownership needs one session
    tying connector, role, GPIO94 and the charger boost
    ([VBUS record](../experiments/2026-09-08-usb-vbus-ownership/README.md)).
+   The [lid/microSD/USB source record](../experiments/2026-10-04-gemini-lid-microsd-usb-re/README.md)
+   ranks the device tests for all three.
 6. **Audio.** Upstream drivers exist (`mt6797-afe-pcm`, `mt6351`,
    `mt6797-mt6351`). Offline: the AFE YAML topic awaits truthful authorship.
    Before a card: identify the speaker amplifier at I2C0 `0x31` and the jack

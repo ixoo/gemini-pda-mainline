@@ -1,0 +1,203 @@
+{
+  "purpose": "Exact public inputs inspected for experiments/2026-10-04-gemini-lid-microsd-usb-re; no file content is copied into the repository.",
+  "vendor": {
+    "repository": "https://github.com/gemian/gemini-linux-kernel-3.18",
+    "commit": "8cfe6596a503612e3332d9c26e292a19525a7f07",
+    "files": [
+      {
+        "path": "arch/arm64/boot/dts/aeon6797_6m_n.dts",
+        "size": 38242,
+        "sha256": "d1bd9d83941dffb44615f69e9113c7b79d87b3e9e87057619c70370f56456f5a",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon6797_6m_n.dts"
+      },
+      {
+        "path": "arch/arm64/boot/dts/aeon_gpio.dtsi",
+        "size": 6761,
+        "sha256": "86d248e602a2cad2b213c58a4e4d8525402f38e42b284dc1e896d9d6eb5aa95a",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon_gpio.dtsi"
+      },
+      {
+        "path": "arch/arm64/boot/dts/mt6797.dtsi",
+        "size": 104424,
+        "sha256": "eaac86c8752ebd8ddf18b831eb3bc52a08f87475a213bb521650bf95dabb3e5e",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi"
+      },
+      {
+        "path": "arch/arm64/boot/dts/cust_eint.dtsi",
+        "size": 1631,
+        "sha256": "e86279c1593bca98ce39ec9771dac184682ff3d95a0a038f1c704c2909e4300d",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/cust_eint.dtsi"
+      },
+      {
+        "path": "arch/arm64/configs/aeon6797_6m_n_defconfig",
+        "size": 14304,
+        "sha256": "83f33ed07c17abe8dceaee64afd26de0cc970c0bae93681b68906636e21e883f",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/configs/aeon6797_6m_n_defconfig"
+      },
+      {
+        "path": "drivers/input/hall/hall.c",
+        "size": 10725,
+        "sha256": "c5fa300f9c7f5ede4015f04e86da57165b2cf6302b191c9d311ace0bae119727",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/input/hall/hall.c"
+      },
+      {
+        "path": "drivers/input/switch/switch.c",
+        "size": 9946,
+        "sha256": "c69ea8d153edadf7a67a0cb839ffb23c9a47f4479e5fee49e04979b91fe56d97",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/input/switch/switch.c"
+      },
+      {
+        "path": "include/soc/mediatek/hall.h",
+        "size": 874,
+        "sha256": "a0030d6068b2f66ad80d1f3f89c4cbed7e91a09229fdd030d6aa44cbe29bb70a",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/include/soc/mediatek/hall.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/aw9523/aw9523_key.c",
+        "size": 41023,
+        "sha256": "165920e8db939a486d0a280d30f9b479e650425a9eeabdfed17032a37469871e",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/aw9523/aw9523_key.c"
+      },
+      {
+        "path": "drivers/input/keyboard/mediatek/kpd.c",
+        "size": 31336,
+        "sha256": "6f238c2d5ff73de257f285b714ac687fdb6e7baf7a1a1149e7a0416f6e50154c",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/input/keyboard/mediatek/kpd.c"
+      },
+      {
+        "path": "drivers/mmc/host/mediatek/mt6797/sd.c",
+        "size": 162031,
+        "sha256": "e8cc38b57f18b0a8c8e6476d3c11c333f999326297538d35e7f93585daf63cba",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/mmc/host/mediatek/mt6797/sd.c"
+      },
+      {
+        "path": "drivers/mmc/host/mediatek/mt6797/msdc_io.c",
+        "size": 40904,
+        "sha256": "b87966fb3bb7be7e9c7c273cc58e92e7c19ed6a3b09a503afbaedb529c890e07",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/mmc/host/mediatek/mt6797/msdc_io.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/usb_c/fusb301/usb_typec.c",
+        "size": 7474,
+        "sha256": "de3196f5ab6b3fac53ee1900736330aa18ef160aad90ac59e25a97a585395d06",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/usb_c/fusb301/usb_typec.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/usb_c/fusb302/usb_typec.c",
+        "size": 9498,
+        "sha256": "5ac1fa7dd1224fb4527a563d21943a6afdbf9e25c8ce60ea72a5b7cd12d6dba6",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/usb_c/fusb302/usb_typec.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/xhci/xhci-mtk-driver.c",
+        "size": 35100,
+        "sha256": "f58a440ee6569f70f3986025670d81fbe861c7da2c6b4f5c306bc6f32c83c090",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/xhci/xhci-mtk-driver.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/mu3d/drv/mt_usb.c",
+        "size": 19118,
+        "sha256": "9972b1026f033076314cdeedaf01bc42dc054272180e86dab8e9e594d291e049",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/mu3d/drv/mt_usb.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/usb11/mt6797/musbfsh_mt65xx.c",
+        "size": 32442,
+        "sha256": "2553a10ddb2a01b02ae08b9b614a808f2024aaea1bedc340c78ff7816c1e2f0f",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/usb11/mt6797/musbfsh_mt65xx.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/gpio/aeon_gpio.c",
+        "size": 5252,
+        "sha256": "1b496f7741eeba615653a8eddd1b1ee3545b5d05535ef8ae0731255610f76583",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/gpio/aeon_gpio.c"
+      },
+      {
+        "path": "include/dt-bindings/pinctrl/mt6797-pinfunc.h",
+        "size": 67114,
+        "sha256": "634bd693136a05fd6e927ade213958e87b2490a9eb3804be7ed95912f07d5c82",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/include/dt-bindings/pinctrl/mt6797-pinfunc.h"
+      }
+    ]
+  },
+  "mainline": {
+    "repository": "https://github.com/gregkh/linux",
+    "tag": "v7.1.3",
+    "manifest": "kernel/manifest.json",
+    "files": [
+      {
+        "path": "drivers/mmc/host/mtk-sd.c",
+        "size": 101041,
+        "sha256": "64eecabd54fe93637d814e072ade95ad4dac3d3f8a9c9461c15866f0467efa80",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/mmc/host/mtk-sd.c"
+      },
+      {
+        "path": "Documentation/devicetree/bindings/mmc/mtk-sd.yaml",
+        "size": 11400,
+        "sha256": "5d8411255796e897764b3b120d65e991cda3a61ef5ccab861be6795143f1c3a1",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/Documentation/devicetree/bindings/mmc/mtk-sd.yaml"
+      },
+      {
+        "path": "drivers/usb/mtu3/mtu3_dr.c",
+        "size": 8533,
+        "sha256": "a5976bd429c6e556a7840d9893ef13df410482622141b7390332f2502436d66d",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/usb/mtu3/mtu3_dr.c"
+      },
+      {
+        "path": "drivers/usb/mtu3/mtu3_plat.c",
+        "size": 14511,
+        "sha256": "905e47f5c64c8410e8b9f4142249857143c5b10f5f5cd99b483070446ea90482",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/usb/mtu3/mtu3_plat.c"
+      },
+      {
+        "path": "Documentation/devicetree/bindings/usb/mediatek,mtu3.yaml",
+        "size": 10786,
+        "sha256": "48c96112e5b178af97f100e767bd303f68e32a2adaac4ae15fc8c3aeb93fd176",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/Documentation/devicetree/bindings/usb/mediatek,mtu3.yaml"
+      },
+      {
+        "path": "drivers/phy/mediatek/phy-mtk-tphy.c",
+        "size": 46878,
+        "sha256": "f5b70dbbd62024552a96b3823c94e6e05974ef398be07fcb4126e97ce5b1db97",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/phy/mediatek/phy-mtk-tphy.c"
+      },
+      {
+        "path": "drivers/input/keyboard/gpio_keys.c",
+        "size": 28443,
+        "sha256": "f5c19f940479ec0f2a92dcb6da3f8c59d9e29de071f206289b3e56bbc5232b2a",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/input/keyboard/gpio_keys.c"
+      },
+      {
+        "path": "Documentation/devicetree/bindings/input/gpio-keys.yaml",
+        "size": 4606,
+        "sha256": "4a0cfafc66eb6ff27616c3e24ee57e4cd10df1ca677c8e35b137db8fbd20a62e",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/Documentation/devicetree/bindings/input/gpio-keys.yaml"
+      },
+      {
+        "path": "drivers/pinctrl/mediatek/pinctrl-mtk-mt6797.h",
+        "size": 60271,
+        "sha256": "e0bd6e683dc0b25d7bf955ba862f911bd79eeb1e33d0bc05caf41fec7981fbca",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/pinctrl/mediatek/pinctrl-mtk-mt6797.h"
+      },
+      {
+        "path": "drivers/usb/common/usb-conn-gpio.c",
+        "size": 9351,
+        "sha256": "499502631211c08058e75983b1111fb9ec6742661fc535e61f2d148fe99f0c04",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/usb/common/usb-conn-gpio.c"
+      },
+      {
+        "path": "Documentation/devicetree/bindings/connector/usb-connector.yaml",
+        "size": 20214,
+        "sha256": "9729a1748f45dfd35d5d8f045bbf082fb85d67fd7ab3de89a2a93b47f4a727a1",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/Documentation/devicetree/bindings/connector/usb-connector.yaml"
+      },
+      {
+        "path": "drivers/usb/musb/mediatek.c",
+        "size": 13649,
+        "sha256": "33502cc67a3853560a26439fb93a81e034fdd519cb89ffb2dd0e9c2d069137f2",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/usb/musb/mediatek.c"
+      }
+    ]
+  },
+  "method": "Blobless git fetches of the exact commit and tag; files read with git show; sizes and SHA-256 computed over the blob content. Line numbers in README.md refer to these revisions."
+}
