@@ -141,7 +141,10 @@ identities. The current [series](../../patches/series-a53-c1-compile) selects th
 same four key fixes and two existing RTC fixes in canonical order. Both RTC
 patches apply unchanged; the actual alarm handler passes 160 cases and the
 wake callbacks pass 16 cases. The [RTC receipt](results/rtc-integration.json)
-pins the integrated source. Buildbox validation is pending.
+pins the integrated source. The initial build `9e2f9277` stopped before
+compilation: RTC_NVMEM defaults on with RTC_CLASS and selected NVMEM despite
+the foundation exclusion. The fragment now disables RTC_NVMEM; the time/alarm
+packet needs no RTC storage window. Buildbox validation is pending.
 
 The current [fragment](../../configs/gemini-a53-c1-compile.fragment) builds
 RTC and gpio-keys in and compiles the PM callbacks. It disables automatic RTC
