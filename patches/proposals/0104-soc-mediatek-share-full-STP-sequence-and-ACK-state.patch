@@ -1,0 +1,346 @@
+From cc0164e127aed88f01f3c7771c9f38b8bf87979d Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 4 Oct 2026 12:22:10 -0400
+Subject: [PATCH] soc: mediatek: share full STP sequence and cumulative ACK
+ state
+
+Prepare one seven-frame link window across ordinary Bluetooth and WMT
+tasks. Track cumulative TX credit independently of RX delivery and
+complete host ACK credit only after its bytes are sent. Duplicate data
+requests a repeat ACK without redelivery or piggyback credit.
+
+Place the existing one-command WMT client on that link helper. Keep
+exact-event validation before mutation and preserve its existing IRQ
+lifetime and command completion rules. No task client, retransmission
+engine, power operation or reset recovery is added.
+
+Strict host fixtures and sanitizers pass for window/wrap/duplicate/ACK
+ordering plus the existing WMT framing, state and IRQ transport cases.
+Internal unsigned preparation draft with a synthetic non-certifying
+author; not submission-ready or hardware-tested.
+---
+ drivers/soc/mediatek/mt6797-consys.c      |   3 +-
+ drivers/soc/mediatek/mt6797-wmt-full-io.h |  14 +--
+ drivers/soc/mediatek/stp-full-link.h      | 124 ++++++++++++++++++++++
+ drivers/soc/mediatek/wmt-full-stp-state.h |  58 +++++-----
+ 4 files changed, 162 insertions(+), 37 deletions(-)
+ create mode 100644 drivers/soc/mediatek/stp-full-link.h
+
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index 660c8ab..1d2e0b8 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -1156,7 +1156,8 @@ static int mt6797_consys_wmt_exchange(struct device *dev,
+ 	dev_info(dev,
+ 		 "WMT negotiation full: tx=%u rx=%u services=%u frames=%u tx-seq=%u rx-seq=%u peer-ack=%u local-ack=%u\n",
+ 		 n->full.tx_count, n->full.rx_count, n->full.services, n->full.frames,
+-		 n->link.tx_next, n->link.rx_next, n->link.peer_ack, n->link.local_ack);
++		 n->link.transport.tx_next, n->link.transport.rx_next,
++		 n->link.transport.peer_ack, n->link.transport.local_ack);
+ 	/* These bounded raw bytes belong to the private sealed session log.
+ 	 * No extra hardware reads occur after the exchange has retired.
+ 	 */
+diff --git a/drivers/soc/mediatek/mt6797-wmt-full-io.h b/drivers/soc/mediatek/mt6797-wmt-full-io.h
+index cedbf05..05ed912 100644
+--- a/drivers/soc/mediatek/mt6797-wmt-full-io.h
++++ b/drivers/soc/mediatek/mt6797-wmt-full-io.h
+@@ -71,7 +71,7 @@ static int mt6797_wmt_full_prepare(struct mt6797_wmt_full_io *io,
+ 	spin_lock_init(&io->lock);
+ 	wmt_full_stream_init(&io->stream);
+ 	bytes = wmt_full_encode(io->command, sizeof(io->command), command, length,
+-				link->tx_next, link->local_ack);
++				link->transport.tx_next, link->transport.local_ack);
+ 	if (bytes < 0)
+ 		return -EINVAL;
+ 	return wmt_full_tx_init(&io->tx, io->command, bytes) ? -EINVAL : 0;
+@@ -269,8 +269,9 @@ static void mt6797_wmt_full_service(struct mt6797_wmt_full_io *io, int initial)
+ 		ret = -EPROTO;
+ 		goto fail;
+ 	}
+-	if (io->link->ack_owed && !io->ack_phase) {
+-		if (wmt_full_ack(io->ack, sizeof(io->ack), io->link->local_ack) != 4 ||
++	if (io->link->transport.ack_owed && !io->ack_phase) {
++		if (wmt_full_ack(io->ack, sizeof(io->ack),
++				 io->link->transport.local_ack) != 4 ||
+ 		    wmt_full_tx_init(&io->tx, io->ack, sizeof(io->ack))) {
+ 			ret = -EPROTO;
+ 			goto fail;
+@@ -278,19 +279,20 @@ static void mt6797_wmt_full_service(struct mt6797_wmt_full_io *io, int initial)
+ 		io->ack_phase = 1;
+ 		writel(3, io->btif + 4);
+ 	}
+-	if (io->ack_phase && io->link->ack_owed) {
++	if (io->ack_phase && io->link->transport.ack_owed) {
+ 		ret = mt6797_wmt_full_tx_progress(io);
+ 		if (ret)
+ 			goto fail;
+ 		if (wmt_full_tx_done(&io->tx)) {
+-			if (wmt_full_ack_sent(io->link, io->link->local_ack)) {
++			if (wmt_full_ack_sent(io->link, io->link->transport.local_ack)) {
+ 				ret = -EPROTO;
+ 				goto fail;
+ 			}
+ 			writel(1, io->btif + 4);
+ 		}
+ 	}
+-	if (io->link->acknowledged && io->link->event_seen && !io->link->ack_owed) {
++	if (io->link->acknowledged && io->link->event_seen &&
++	    !io->link->transport.ack_owed) {
+ 		/* Refuse queued or partial extra data before successful retirement. */
+ 		if (io->stream.used || (readl(io->btif + 8) & 0x44)) {
+ 			ret = -EPROTO;
+diff --git a/drivers/soc/mediatek/stp-full-link.h b/drivers/soc/mediatek/stp-full-link.h
+new file mode 100644
+index 0000000..2185660
+--- /dev/null
++++ b/drivers/soc/mediatek/stp-full-link.h
+@@ -0,0 +1,124 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef MT6797_STP_FULL_LINK_H
++#define MT6797_STP_FULL_LINK_H
++#include "stp-full.h"
++
++#define STP_FULL_WINDOW 7U
++
++/*
++ * One serialized owner for every task. Initialize only at an admitted full-mode
++ * boundary after retiring the old transport; ordinary WMT reset is not one.
++ * TX bytes, retransmission storage/timers, client queues and IRQ lifetime are
++ * owned by the transport, not this pure sequence/credit helper.
++ */
++struct stp_full_link {
++	unsigned int tx_next, rx_next, peer_ack, local_ack;
++	unsigned int tx_pending, rx_pending, host_ack, rx_history, ack_owed;
++};
++
++static inline void stp_full_link_init(struct stp_full_link *link)
++{
++	struct stp_full_link initial = {
++		.peer_ack = 7, .local_ack = 7, .host_ack = 7,
++	};
++
++	*link = initial;
++}
++
++/*
++ * Completion of an actual wire ACK, including a piggyback ACK. An older ACK
++ * snapshot may complete while newer RX data is already accepted. It returns
++ * only its own credit; the latest ACK remains owed until transmitted.
++ */
++static inline int stp_full_link_ack_complete(struct stp_full_link *link,
++					     unsigned int ack)
++{
++	unsigned int credit;
++
++	if (ack > 7)
++		return -1;
++	credit = (ack - link->host_ack) & 7;
++	if (credit > link->rx_pending)
++		return -1;
++	link->rx_pending -= credit;
++	link->host_ack = ack;
++	if (ack == link->local_ack)
++		link->ack_owed = 0;
++	return 0;
++}
++
++/* Call only after a new complete data frame, never a retransmitted copy. */
++static inline int stp_full_link_sent(struct stp_full_link *link,
++				     unsigned int sequence, unsigned int ack)
++{
++	struct stp_full_link next;
++
++	if (!link || sequence != link->tx_next || link->tx_pending == STP_FULL_WINDOW)
++		return -1;
++	next = *link;
++	if (stp_full_link_ack_complete(&next, ack))
++		return -1;
++	next.tx_next = (sequence + 1) & 7;
++	next.tx_pending++;
++	*link = next;
++	return 0;
++}
++
++/*
++ * ACK=0, new data=1, duplicate data=2, refusal=-1. A duplicate requests another
++ * cumulative ACK but never redelivers payload or grants piggyback TX credit.
++ * Caller reserves delivery storage before this transition, or explicitly drops
++ * an inactive task. Results alias input; consume them before buffer reuse.
++ * Every refusal leaves link and result unchanged; there is no implicit reset.
++ */
++static inline int stp_full_link_receive(struct stp_full_link *link,
++					const unsigned char *frame, unsigned int bytes,
++					struct stp_full_frame *result)
++{
++	struct stp_full_frame decoded;
++	struct stp_full_link next;
++	unsigned int credit, age;
++	int kind;
++
++	if (!link || !result)
++		return -1;
++	kind = stp_full_decode(frame, bytes, &decoded);
++	if (kind < 0)
++		return -1;
++	next = *link;
++	if (kind && decoded.sequence != link->rx_next) {
++		age = (link->rx_next - decoded.sequence) & 7;
++		if (!age || age > link->rx_history)
++			return -1;
++		next.ack_owed = 1;
++		*link = next;
++		*result = decoded;
++		return 2;
++	}
++	credit = (decoded.acknowledgement - link->peer_ack) & 7;
++	if (credit > link->tx_pending || (kind && link->rx_pending == STP_FULL_WINDOW))
++		return -1;
++	next.peer_ack = decoded.acknowledgement;
++	next.tx_pending -= credit;
++	if (kind) {
++		next.local_ack = decoded.sequence;
++		next.rx_next = (decoded.sequence + 1) & 7;
++		next.rx_pending++;
++		if (next.rx_history < STP_FULL_WINDOW)
++			next.rx_history++;
++		next.ack_owed = 1;
++	}
++	*link = next;
++	*result = decoded;
++	return kind;
++}
++
++/* Standalone ACK completes only after all four bytes reach the transport. */
++static inline int stp_full_link_ack_sent(struct stp_full_link *link,
++					 unsigned int ack)
++{
++	if (!link || !link->ack_owed)
++		return -1;
++	return stp_full_link_ack_complete(link, ack);
++}
++#endif
+diff --git a/drivers/soc/mediatek/wmt-full-stp-state.h b/drivers/soc/mediatek/wmt-full-stp-state.h
+index 4962639..9a73c4f 100644
+--- a/drivers/soc/mediatek/wmt-full-stp-state.h
++++ b/drivers/soc/mediatek/wmt-full-stp-state.h
+@@ -2,89 +2,87 @@
+ #ifndef GEMINI_WMT_FULL_STP_STATE_H
+ #define GEMINI_WMT_FULL_STP_STATE_H
+ #include "wmt-full-stp.h"
++#include "stp-full-link.h"
+ 
+-/* Single-owner, one-command window. Initialize only at an admitted full-mode
+- * boundary, never because an ordinary WMT reset event was received.
++/*
++ * Single WMT command client over one shared link. The current IRQ owner still
++ * admits only WMT; this adapter does not register a Bluetooth or GPS client.
+  */
+ struct wmt_full_state {
+-	unsigned int tx_next, rx_next, peer_ack, local_ack;
+-	unsigned int active, sent_sequence, acknowledged, event_seen, ack_owed;
++	struct stp_full_link transport;
++	unsigned int active, sent_sequence, acknowledged, event_seen;
+ };
+ 
+ static inline void wmt_full_state_init(struct wmt_full_state *state)
+ {
+-	struct wmt_full_state initial = { .peer_ack = 7, .local_ack = 7 };
++	struct wmt_full_state initial = { 0 };
+ 
++	stp_full_link_init(&initial.transport);
+ 	*state = initial;
+ }
+ 
+-/* Call only after all encoded command bytes were transmitted successfully.
+- * A partial TX must retire the caller's lifetime without this transition.
+- */
++/* Call only after all encoded command bytes were transmitted successfully. */
+ static inline int wmt_full_sent(struct wmt_full_state *state, unsigned int sequence)
+ {
+-	if (!state || state->active || sequence != state->tx_next)
++	if (!state || state->active ||
++	    stp_full_link_sent(&state->transport, sequence, state->transport.local_ack))
+ 		return -1;
+ 	state->active = 1;
+ 	state->sent_sequence = sequence;
+-	state->tx_next = (sequence + 1) & 7;
+ 	state->acknowledged = 0;
+ 	state->event_seen = 0;
+ 	return 0;
+ }
+ 
+-/* Exact event comparison precedes all state mutation. An ACK can precede or
+- * follow the event, or be piggybacked on it. Repeated previous ACKs consume no
+- * credit; caller bounds total frames/time and retires on every refusal.
+- */
++/* WMT event validation stays a client rule, before shared link mutation. */
+ static inline int wmt_full_receive(struct wmt_full_state *state,
+ 				   const unsigned char *frame, unsigned int bytes,
+-				   const unsigned char *expected, unsigned int expected_length)
++				   const unsigned char *expected,
++				   unsigned int expected_length)
+ {
+ 	struct wmt_full_frame decoded;
++	struct stp_full_frame received;
+ 	unsigned int i;
+ 	int kind;
+ 
+ 	if (!state || !state->active)
+ 		return -1;
+ 	kind = wmt_full_decode(frame, bytes, &decoded);
+-	if (kind < 0 || (decoded.acknowledgement != state->peer_ack &&
+-			 decoded.acknowledgement != state->sent_sequence))
++	if (kind < 0)
++		return -1;
++	if (decoded.acknowledgement != state->transport.peer_ack &&
++	    decoded.acknowledgement != state->sent_sequence)
+ 		return -1;
+ 	if (kind) {
+-		if (!expected || state->event_seen || decoded.sequence != state->rx_next ||
++		if (!expected || state->event_seen ||
++		    decoded.sequence != state->transport.rx_next ||
+ 		    decoded.length != expected_length)
+ 			return -1;
+ 		for (i = 0; i < expected_length; i++)
+ 			if (decoded.payload[i] != expected[i])
+ 				return -1;
+ 	}
+-	if (decoded.acknowledgement == state->sent_sequence) {
+-		state->peer_ack = decoded.acknowledgement;
++	if (stp_full_link_receive(&state->transport, frame, bytes, &received) != kind)
++		return -1;
++	if (state->transport.peer_ack == state->sent_sequence)
+ 		state->acknowledged = 1;
+-	}
+-	if (kind) {
+-		state->local_ack = decoded.sequence;
+-		state->rx_next = (decoded.sequence + 1) & 7;
++	if (kind)
+ 		state->event_seen = 1;
+-		state->ack_owed = 1;
+-	}
+ 	return kind;
+ }
+ 
+ /* Call only after the four-byte host ACK was transmitted completely. */
+ static inline int wmt_full_ack_sent(struct wmt_full_state *state, unsigned int ack)
+ {
+-	if (!state || !state->active || !state->ack_owed || ack != state->local_ack)
++	if (!state || !state->active || ack != state->transport.local_ack)
+ 		return -1;
+-	state->ack_owed = 0;
+-	return 0;
++	return stp_full_link_ack_sent(&state->transport, ack);
+ }
+ 
+ static inline int wmt_full_finish(struct wmt_full_state *state)
+ {
+ 	if (!state || !state->active || !state->acknowledged ||
+-	    !state->event_seen || state->ack_owed)
++	    !state->event_seen || state->transport.ack_owed)
+ 		return -1;
+ 	state->active = 0;
+ 	return 0;
+-- 
+2.54.0 (Apple Git-157)
+

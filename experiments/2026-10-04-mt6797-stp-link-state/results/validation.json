@@ -1,0 +1,48 @@
+{
+  "status": "offline shared-link driver draft; host checks pass; kernel build pending",
+  "parent_profile": "mt6797-a53-stp-task-compile",
+  "profile": "mt6797-a53-stp-link-compile",
+  "reference": {
+    "gemian_commit": "59e00a9144d782e148332009a835b99c43382467",
+    "stp_core_c_sha256": "79d03346c95e2d233f2a384fa4490d3b89acdfd1c1d6b9c2026709358dbcbf65",
+    "stp_core_h_sha256": "78abfa5601723b0dd2aac93b2c79d5e7fb6a75a948aa06d516df7dfc5102b30f",
+    "window": 7,
+    "sequence_modulus": 8,
+    "source_findings": [
+      "One global TX window and cumulative ACK range across ordinary tasks.",
+      "Expected RX sequence is shared across task routing.",
+      "Mismatched RX sequence repeats the last ACK and does not process piggyback credit.",
+      "Host full-mode enable seeds TX/RX sequence 0 and initial ACK 7; ordinary WMT reset does not reseed."
+    ]
+  },
+  "parent_source_sha256": {
+    "drivers/soc/mediatek/mt6797-consys.c": "2296ea5895fd6c320807de5fb41adc24b78d0a07a7c59283b1703a80b64d6a69",
+    "drivers/soc/mediatek/mt6797-wmt-full-io.h": "538f9d1881c9fcab5ed594e773097a27c9d98d8103acfc13fe01f387b6ba3867",
+    "drivers/soc/mediatek/wmt-full-stp-state.h": "ec0e09eea20c4c48f3bc0d30a6e6391c4ae108ceb5e527c0765dcd65ad2988a3"
+  },
+  "authored_source_sha256": {
+    "drivers/soc/mediatek/mt6797-consys.c": "b1d64fbff113ee3b59c0e2540314448377dc8d7c7812148ad9437bccfff010df",
+    "drivers/soc/mediatek/mt6797-wmt-full-io.h": "61a747eca950006b25a2b48827a769e44138d38c3892a036924fc889609d6708",
+    "drivers/soc/mediatek/wmt-full-stp-state.h": "71acb4b8f206cdad649237e2e2b47dd44ea6390e1e0fb4b17fd45c7d2ccc900e",
+    "drivers/soc/mediatek/stp-full-link.h": "53b557951efb58fd52e6b8bec3b7a30ab5dad64e9f0a21226e82c13c2db63988"
+  },
+  "fixture_sha256": {
+    "test-link.c": "ce7111c7a368ddfcc9c2ebe90004477d63b4d88611cdec94e326842773899403",
+    "test-link.py": "3ab716d6e2674b4b5c1da73eae687e5cf43cc4e6ba2c4ad35884d0c39ae9381d"
+  },
+  "checks": {
+    "shared_link": "strict warnings, ASan/UBSan pass; all 512 window/start/ACK combinations checked against transmitted-entry queue oracle; task alternation, duplicate suppression and ACK snapshot completion",
+    "wmt_compatibility": "nine existing framing/state/IRQ/negotiation/version fixtures pass; only member access paths mechanically adapted in temporary copies; historical sources unchanged",
+    "framing": "previous task codec fixture passes against actual authored headers",
+    "checkpatch": "zero errors/warnings/checks; MISSING_SIGN_OFF, TYPO_SPELLING and FILE_PATH_CHANGES excluded"
+  },
+  "limitations": [
+    "Current production IRQ owner still admits only WMT data; no Bluetooth/GPS client or dispatch queue is wired.",
+    "Shared helper requires serialized access and reserved receive storage before accepting new data.",
+    "Retransmission engine, aggregate service budgets, reset epochs and client/IRQ lifetime remain owner work.",
+    "NAK, resynchronization and firmware-message tasks remain unsupported.",
+    "Kernel build and device behavior are not yet validated."
+  ],
+  "device_access": "none",
+  "sanitization": "Independent protocol facts and authored source/software digests only; vendor source and captures remain private."
+}
