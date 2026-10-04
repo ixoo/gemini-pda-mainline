@@ -25,7 +25,7 @@ the loop. Positive identity-gated observations are unaffected.
   and transport fixtures and Buildbox/package validation. Observation review
   found RTC retry/error-reporting gaps; successors pass focused host regression
   and Buildbox/package validation. Standard alarm cancellation now has a tested
-  callback draft, pending Buildbox validation; tool and inherited-alarm gates
+  callback draft with Buildbox/package validation; tool and inherited-alarm gates
   remain. PMIC target access remains unadmitted.
   No device access.
 

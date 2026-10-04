@@ -271,7 +271,12 @@ The [receipt](results/rtc-alarm-enable.json) records 111 callback/class cases,
 timer-removal model reproduces the old failure and two possible callback
 invocations per explicit disable. No physical cancellation is claimed.
 
-Buildbox validation of the 521-patch C1 profile is pending. The unsigned draft
+Buildbox compilation, Linux package validation and fetch pass for input
+`a7dba295`. The actual RTC source matches the host-tested hash and the callback
+is present in the compiled object. All local package checksums pass; configuration
+and all 123 DTBs match the prior C1 package. Only inherited patch-0261 whitespace
+and unused CPU callback warnings appear. No DT or binding changed, so no new
+schema check was run. The unsigned draft
 targets the RTC subsystem and is removed when equivalent callback support
 enters the pinned upstream baseline. Board nodes and configuration are unchanged.
 BusyBox's reviewed source has an unbounded awake wait and cleanup paths that

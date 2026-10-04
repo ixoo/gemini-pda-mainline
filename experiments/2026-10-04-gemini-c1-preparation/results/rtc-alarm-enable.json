@@ -1,5 +1,5 @@
 {
-  "status": "111 callback/class cases and unchanged 226 RTC cases pass; exact replay and strict checkpatch pass; Buildbox pending; no device action",
+  "status": "111 callback/class cases and unchanged 226 RTC cases pass; exact replay and strict checkpatch pass; Buildbox/package/fetch pass; no device action",
   "profile": "mt6797-a53-c1-compile",
   "selected_patch_count": 521,
   "patch": "v7.1.3/c1/0005-rtc-mt6397-implement-alarm-IRQ-enable.patch",
@@ -22,5 +22,23 @@
     "No hardware alarm cancellation or wake proof",
     "Callback adds hardware operations to core paths that formerly skipped them; final candidate effect budget and inherited-alarm admission remain required",
     "Board nodes and configuration unchanged; no candidate or device operation"
+  ],
+  "build_input_commit": "a7dba295550dcb58b70aa4791ba3e7b2c418f142",
+  "package_inventory_sha256": "691061b5d7757365b8278336f67c93eaa1040720f4b48704477433a31997cb8c",
+  "patchset_sha256": "5784bfe926b22688d2215b38479f310538e2e250001d2a82302b8fbdcf724f86",
+  "config_sha256": "01dc95f3e8f1d4366d466b2ef4165fb8577c625c7bc3eb7bd596dd6d2695737e",
+  "Image_gz_sha256": "df6b3fd5b06368e523d77558edf4e9091a87e78585a558a09af8ddeb869e4b0d",
+  "rtc_object_sha256": "180933d26e6ca695a422f22bc04b94f18d4f20cfe0ed51db89d59d1252974dbe",
+  "build_log_sha256": "fd84b1bf394b6c8a4aaa4776222133dd78da4f69c440c9dd769594fb50240e37",
+  "compiler": "aarch64-linux-gnu-gcc (Debian 12.2.0-14) 12.2.0",
+  "build_validation": "Remote Linux package validator, fetch and all local package checksums pass; compiled RTC source matches tested hash; alarm_irq_enable symbol present in object",
+  "comparison": "Resolved configuration and 123 DTB paths/content hashes unchanged from the bounded-read RTC C1 package",
+  "inherited_warnings": [
+    "Patch 0261 trailing whitespace",
+    "Unused cpuhp_rollback_callback_inventory in kernel/cpu.c"
+  ],
+  "not_run": [
+    "New DT schema check: no DT or binding changes",
+    "Device alarm enable/disable, freshness, wake or concurrency tests"
   ]
 }

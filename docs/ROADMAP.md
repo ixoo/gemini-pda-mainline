@@ -120,7 +120,7 @@ candidate is unchanged and still waits for physical boot2 selection.
    regression and C1 Buildbox/package checks. The
    [alarm-tool review](../experiments/2026-10-04-gemini-c1-preparation/ALARM_TOOL_REVIEW.md)
    found a missing standard alarm-disable callback; its successor passes host
-   regression and needs C1 Buildbox validation next. Then select a finite alarm
+   regression and C1 Buildbox/package checks. Next offline: select a finite alarm
    tool with checked cleanup, finish inherited-alarm admission and callback
    effect budgeting, and resolve per-register semantics
    for the ten-register PMIC observer before creating
