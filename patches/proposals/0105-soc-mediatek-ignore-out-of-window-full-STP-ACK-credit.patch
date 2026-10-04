@@ -1,0 +1,50 @@
+From ded73c71d4cef7e4f2261d0cd232128a39d10cfe Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 4 Oct 2026 12:38:01 -0400
+Subject: [PATCH] soc: mediatek: ignore out-of-window full STP ACK credit
+
+The selected Gemian receive path does not treat an ACK outside the sent
+window as a data failure. Such an ACK grants no credit, but a new data
+sequence can still advance. Preserve this behavior for queued task data,
+including a retry after separate ACK traffic advances the TX window.
+
+Keep the WMT command client's independent exact ACK/reply checks. This
+is an unsigned internal driver preparation draft with a synthetic,
+non-certifying author, not submission-ready or hardware-tested.
+---
+ drivers/soc/mediatek/stp-full-link.h | 11 +++++++----
+ 1 file changed, 7 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/soc/mediatek/stp-full-link.h b/drivers/soc/mediatek/stp-full-link.h
+index 2185660..d025314 100644
+--- a/drivers/soc/mediatek/stp-full-link.h
++++ b/drivers/soc/mediatek/stp-full-link.h
+@@ -69,7 +69,8 @@ static inline int stp_full_link_sent(struct stp_full_link *link,
+  * cumulative ACK but never redelivers payload or grants piggyback TX credit.
+  * Caller reserves delivery storage before this transition, or explicitly drops
+  * an inactive task. Results alias input; consume them before buffer reuse.
+- * Every refusal leaves link and result unchanged; there is no implicit reset.
++ * ACKs outside the transmitted window grant no credit, including stale ACKs
++ * on retried data. Every refusal leaves link/result unchanged; no implicit reset.
+  */
+ static inline int stp_full_link_receive(struct stp_full_link *link,
+ 					const unsigned char *frame, unsigned int bytes,
+@@ -96,10 +97,12 @@ static inline int stp_full_link_receive(struct stp_full_link *link,
+ 		return 2;
+ 	}
+ 	credit = (decoded.acknowledgement - link->peer_ack) & 7;
+-	if (credit > link->tx_pending || (kind && link->rx_pending == STP_FULL_WINDOW))
++	if (kind && link->rx_pending == STP_FULL_WINDOW)
+ 		return -1;
+-	next.peer_ack = decoded.acknowledgement;
+-	next.tx_pending -= credit;
++	if (credit <= link->tx_pending) {
++		next.peer_ack = decoded.acknowledgement;
++		next.tx_pending -= credit;
++	}
+ 	if (kind) {
+ 		next.local_ack = decoded.sequence;
+ 		next.rx_next = (decoded.sequence + 1) & 7;
+-- 
+2.54.0 (Apple Git-157)
+

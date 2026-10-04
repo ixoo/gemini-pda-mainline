@@ -1,0 +1,41 @@
+{
+  "status": "offline task-routing draft; host checks pass; kernel build pending",
+  "parent_profile": "mt6797-a53-stp-link-compile",
+  "profile": "mt6797-a53-stp-task-routing-compile",
+  "reference": {
+    "repository": "https://github.com/gemian/gemini-linux-kernel-3.18",
+    "gemian_commit": "59e00a9144d782e148332009a835b99c43382467",
+    "stp_core_c_sha256": "79d03346c95e2d233f2a384fa4490d3b89acdfd1c1d6b9c2026709358dbcbf65",
+    "finding": "stp_process_rxack only updates credit for a matching transmitted sequence; stp_process_packet still advances expected RX on new data when that ACK grants no credit."
+  },
+  "parent_source_sha256": {
+    "drivers/soc/mediatek/stp-full-link.h": "53b557951efb58fd52e6b8bec3b7a30ab5dad64e9f0a21226e82c13c2db63988",
+    "drivers/soc/mediatek/wmt-full-stp-state.h": "71acb4b8f206cdad649237e2e2b47dd44ea6390e1e0fb4b17fd45c7d2ccc900e"
+  },
+  "authored_source_sha256": {
+    "drivers/soc/mediatek/stp-full-link.h": "7c1b5c18ebe7f3ffa934646ecaeade730d9a6c0b178b76e3f030450acd6c785e",
+    "drivers/soc/mediatek/wmt-full-stp-state.h": "4fb032d217fbfea53ca890ca2d4372af97a7a649f5fbc542464b84f90a6c0aff",
+    "drivers/soc/mediatek/stp-full-task.h": "bfe06cbc378bb5b830a5bd1e2267431c406e0d41551a2e0ffcda05acf2b1d7a9"
+  },
+  "fixture_sha256": {
+    "test-link.c": "63db79a484b92e8796afbc12b2908a18706722c896e12a0711cdd5bcd225cdae",
+    "test-tasks.c": "f389e72ee4bd891f36763793804c614880b85b12eaca1bce3466bd2795596265",
+    "test-tasks.py": "0211f90ee1df981aabc821cb9710231b06588f8967d612fb513926bad4f4a2af"
+  },
+  "checks": {
+    "task_routing": "strict C11 warnings, ASan/UBSan pass; queue refusal, stale-ACK retry, asynchronous BT/WMT/GPS task alternation, duplicates after unbind, maximum payload, malformed bindings and no credit before callback",
+    "cumulative_ack_matrix": "512 combinations pass against a transmitted-entry queue oracle; out-of-window ACKs grant no credit without rejecting data",
+    "wmt_compatibility": "all nine existing framing/state/IRQ/negotiation/version fixtures pass with only historical member-access paths adapted in temporary copies",
+    "framing": "prior task-framing fixture passes against actual headers",
+    "checkpatch": "both patches zero errors/warnings/checks; MISSING_SIGN_OFF, TYPO_SPELLING and FILE_PATH_CHANGES excluded"
+  },
+  "limitations": [
+    "Current production IRQ owner still routes only WMT and has one-command lifetime; Bluetooth/GPS bindings are host fixtures only.",
+    "Owner must serialize binding lifetime and provide a non-sleeping, non-reentrant callback that publishes no packet on refusal.",
+    "Long-lived IRQ owner, real receive queues, retransmission, reset lifetime and HCI device remain unwired.",
+    "NAK/resync and firmware-message tasks remain unsupported.",
+    "Kernel build and device behavior pending."
+  ],
+  "device_access": "none",
+  "sanitization": "Independent protocol facts, authored source and software digests only; raw source and captures excluded."
+}

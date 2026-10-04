@@ -1,0 +1,190 @@
+From 13dfe1285572f2d69ca1d0d47994d3a356eab528 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 4 Oct 2026 12:39:42 -0400
+Subject: [PATCH] soc: mediatek: route full STP tasks before committing credit
+
+Route ordinary task payloads to a unique immutable binding. Validate the
+complete binding set and publish link sequence/ACK credit only after the
+client consumes or copies the whole packet. A queue refusal or unknown
+task grants no credit; duplicates never call the client again.
+
+Move the current WMT command matcher through that routing path. Keep its
+exact reply, command ACK and duplicate refusal policies; its validation
+callback has no publication effects. Decode each state transition once.
+
+Host queue-full/retry, task alternation, duplicate and maximum-payload
+fixtures pass under strict warnings and sanitizers, as do the nine
+existing WMT framing/state/IRQ transport fixtures. This unsigned internal
+preparation draft has a synthetic non-certifying author. It adds no
+Bluetooth device or long-lived IRQ owner and is not submission-ready.
+---
+ drivers/soc/mediatek/stp-full-task.h      | 72 +++++++++++++++++++++++
+ drivers/soc/mediatek/wmt-full-stp-state.h | 54 +++++++++++------
+ 2 files changed, 107 insertions(+), 19 deletions(-)
+ create mode 100644 drivers/soc/mediatek/stp-full-task.h
+
+diff --git a/drivers/soc/mediatek/stp-full-task.h b/drivers/soc/mediatek/stp-full-task.h
+new file mode 100644
+index 0000000..a1baade
+--- /dev/null
++++ b/drivers/soc/mediatek/stp-full-task.h
+@@ -0,0 +1,72 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef MT6797_STP_FULL_TASK_H
++#define MT6797_STP_FULL_TASK_H
++#include "stp-full-link.h"
++
++#define STP_FULL_MAX_CLIENTS 6U
++
++/*
++ * Immutable bindings during one serialized receive call. Context and callback
++ * must outlive that call; IRQ callers permit neither sleep nor owner reentry.
++ * Callback returns zero only after consuming/copying the whole packet, or an
++ * explicit discard decision. A refusal
++ * must publish no packet, because link credit will remain unchanged.
++ */
++struct stp_full_client {
++	unsigned int task;
++	int (*receive)(void *context, const unsigned char *payload, unsigned int length);
++	void *context;
++};
++
++/* Validate the complete binding set before calling a unique ordinary task. */
++static inline int stp_full_task_deliver(const struct stp_full_frame *frame,
++					const struct stp_full_client *clients,
++					unsigned int count)
++{
++	const struct stp_full_client *selected = 0;
++	unsigned int i, j;
++
++	if (!frame || !frame->payload || !frame->length ||
++	    frame->length > STP_FULL_MAX_PAYLOAD || !stp_full_task(frame->task) ||
++	    !clients || !count || count > STP_FULL_MAX_CLIENTS)
++		return -1;
++	for (i = 0; i < count; i++) {
++		if (!stp_full_task(clients[i].task) || !clients[i].receive)
++			return -1;
++		for (j = 0; j < i; j++)
++			if (clients[j].task == clients[i].task)
++				return -1;
++		if (clients[i].task == frame->task)
++			selected = &clients[i];
++	}
++	if (!selected || selected->receive(selected->context, frame->payload, frame->length))
++		return -1;
++	return 0;
++}
++
++/*
++ * Same result kinds as link receive. Only new data reaches the task callback.
++ * Unknown/new task or queue refusal grants no TX or RX credit. Duplicate data
++ * is not redelivered even after its task unbinds; ACK traffic needs no client.
++ * Caller owns binding lifetime, serialization and explicit inactive-task policy.
++ */
++static inline int stp_full_task_receive(struct stp_full_link *link,
++					const unsigned char *wire, unsigned int bytes,
++					const struct stp_full_client *clients,
++					unsigned int count, struct stp_full_frame *result)
++{
++	struct stp_full_link next;
++	struct stp_full_frame decoded;
++	int kind;
++
++	if (!link || !result)
++		return -1;
++	next = *link;
++	kind = stp_full_link_receive(&next, wire, bytes, &decoded);
++	if (kind < 0 || (kind == 1 && stp_full_task_deliver(&decoded, clients, count)))
++		return -1;
++	*link = next;
++	*result = decoded;
++	return kind;
++}
++#endif
+diff --git a/drivers/soc/mediatek/wmt-full-stp-state.h b/drivers/soc/mediatek/wmt-full-stp-state.h
+index 9a73c4f..248ec7b 100644
+--- a/drivers/soc/mediatek/wmt-full-stp-state.h
++++ b/drivers/soc/mediatek/wmt-full-stp-state.h
+@@ -2,7 +2,7 @@
+ #ifndef GEMINI_WMT_FULL_STP_STATE_H
+ #define GEMINI_WMT_FULL_STP_STATE_H
+ #include "wmt-full-stp.h"
+-#include "stp-full-link.h"
++#include "stp-full-task.h"
+ 
+ /*
+  * Single WMT command client over one shared link. The current IRQ owner still
+@@ -34,36 +34,52 @@ static inline int wmt_full_sent(struct wmt_full_state *state, unsigned int seque
+ 	return 0;
+ }
+ 
+-/* WMT event validation stays a client rule, before shared link mutation. */
++/* Immutable expected event, valid throughout the serialized IRQ exchange. */
++struct wmt_full_expect {
++	const struct wmt_full_state *state;
++	const unsigned char *payload;
++	unsigned int length;
++};
++
++static inline int wmt_full_event(void *context, const unsigned char *payload,
++				 unsigned int length)
++{
++	const struct wmt_full_expect *expected = context;
++	unsigned int i;
++
++	if (!expected->payload || expected->state->event_seen ||
++	    length > WMT_FULL_MAX_PAYLOAD || length != expected->length)
++		return -1;
++	for (i = 0; i < length; i++)
++		if (payload[i] != expected->payload[i])
++			return -1;
++	return 0;
++}
++
++/* WMT validation uses the task router before committing shared link credit. */
+ static inline int wmt_full_receive(struct wmt_full_state *state,
+ 				   const unsigned char *frame, unsigned int bytes,
+ 				   const unsigned char *expected,
+ 				   unsigned int expected_length)
+ {
+-	struct wmt_full_frame decoded;
++	struct wmt_full_expect event = { state, expected, expected_length };
++	struct stp_full_client client = {
++		.task = STP_FULL_TASK_WMT, .receive = wmt_full_event, .context = &event,
++	};
++	struct stp_full_link next;
+ 	struct stp_full_frame received;
+-	unsigned int i;
+ 	int kind;
+ 
+ 	if (!state || !state->active)
+ 		return -1;
+-	kind = wmt_full_decode(frame, bytes, &decoded);
+-	if (kind < 0)
+-		return -1;
+-	if (decoded.acknowledgement != state->transport.peer_ack &&
+-	    decoded.acknowledgement != state->sent_sequence)
++	next = state->transport;
++	kind = stp_full_task_receive(&next, frame, bytes, &client, 1, &received);
++	if (kind < 0 || kind == 2)
+ 		return -1;
+-	if (kind) {
+-		if (!expected || state->event_seen ||
+-		    decoded.sequence != state->transport.rx_next ||
+-		    decoded.length != expected_length)
+-			return -1;
+-		for (i = 0; i < expected_length; i++)
+-			if (decoded.payload[i] != expected[i])
+-				return -1;
+-	}
+-	if (stp_full_link_receive(&state->transport, frame, bytes, &received) != kind)
++	if (received.acknowledgement != state->transport.peer_ack &&
++	    received.acknowledgement != state->sent_sequence)
+ 		return -1;
++	state->transport = next;
+ 	if (state->transport.peer_ack == state->sent_sequence)
+ 		state->acknowledged = 1;
+ 	if (kind)
+-- 
+2.54.0 (Apple Git-157)
+
