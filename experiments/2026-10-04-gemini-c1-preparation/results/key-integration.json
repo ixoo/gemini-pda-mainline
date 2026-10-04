@@ -1,5 +1,5 @@
 {
-  "status": "94-case host regression pass; Buildbox and integrated schema checks pending; no device action",
+  "status": "94-case host regression, Buildbox/package and focused kernel binding checks pass; no device action",
   "profile": "mt6797-a53-pmic-keys-compile",
   "parent_profile": "mt6797-a53-service-facilities",
   "patches": [
@@ -19,6 +19,90 @@
   "limitations": [
     "Actual reset and IRQ functions tested; full probe and physical behavior untested",
     "Board key child remains absent; live reset-policy observation still required",
-    "Build/package/schema validation pending"
-  ]
+    "No complete probe or hardware test; no enabled key child or board DT delta"
+  ],
+  "build_input_commit": "052f59375abca9ce0abd927d553e89f94b50a003",
+  "package_inventory_sha256": "48ee93015a24b4dabab33b0040996ae1179d37364b64a7dadd5f96239ea6d91a",
+  "patchset_sha256": "ea4efeaf9137763d360f1354bdb4c3e7dc6d995649717a61eef5bbe89f68e5ab",
+  "config_sha256": "99fd6b4ec7c5c6ee26b568380c48f8f9aa789cdde4d4f265753f91dac3efa8a7",
+  "selected_patch_count": 509,
+  "config_fragment_count": 13,
+  "Image_gz_sha256": "222d86e5c714af8aadfd691724b2887138a4b232529b0f08a538f4748aeb9643",
+  "key_object_sha256": "cec4f06e6c3a8ff169903c820de38303dd82cf04fd75252f5b15da0bddfa1177",
+  "build_log_sha256": "c99b2e7f72753f70c4dbb651c0e0d948712305d53b177a5743532b530fdca702",
+  "build_validation": "Image, Image.gz, 123 DTBs and remote Linux package validator pass; fetch inventory and local Image.gz rehash match; actual prepared driver/binding hashes match host-tested source",
+  "compiler": "aarch64-linux-gnu-gcc (Debian 12.2.0-14) 12.2.0",
+  "inherited_warnings": [
+    "Historical patch 0261 whitespace",
+    "Unused cpuhp_rollback_callback_inventory in kernel/cpu.c"
+  ],
+  "schema_validation": {
+    "host_tools_version": "dtschema 2026.6",
+    "host_meta_schema": "pass with the selected input.yaml reference",
+    "host_compiled_dt_fixtures": [
+      {
+        "compatible": "mt6351",
+        "duration": 5,
+        "mode": 1,
+        "result": "accepted",
+        "diagnostics": []
+      },
+      {
+        "compatible": "mt6351",
+        "duration": 8,
+        "mode": 1,
+        "result": "accepted",
+        "diagnostics": []
+      },
+      {
+        "compatible": "mt6351",
+        "duration": 11,
+        "mode": 1,
+        "result": "accepted",
+        "diagnostics": []
+      },
+      {
+        "compatible": "mt6351",
+        "duration": 14,
+        "mode": 1,
+        "result": "accepted",
+        "diagnostics": []
+      },
+      {
+        "compatible": "mt6351",
+        "duration": 1,
+        "mode": 1,
+        "result": "rejected",
+        "diagnostics": [
+          "1 is not one of [5, 8, 11, 14]"
+        ]
+      },
+      {
+        "compatible": "mt6331",
+        "duration": 1,
+        "mode": 1,
+        "result": "accepted",
+        "diagnostics": []
+      },
+      {
+        "compatible": "mt6351",
+        "duration": 11,
+        "mode": 3,
+        "result": "rejected",
+        "diagnostics": [
+          "3 is greater than the maximum of 2"
+        ]
+      },
+      {
+        "compatible": "mt6351",
+        "duration": null,
+        "mode": 1,
+        "result": "accepted",
+        "diagnostics": []
+      }
+    ],
+    "kernel_dt_binding_check": "pass: DT_SCHEMA_FILES=input/mediatek,pmic-keys.yaml dt_binding_check on exact prepared source, separate temporary output, PYTHONDONTWRITEBYTECODE=1",
+    "kernel_tools_version": "dtschema 2026.9",
+    "kernel_log_sha256": "6b42be4596dd28af74466d12ab703a817f8f1c97ed51fca996df1b1702fa6997"
+  }
 }

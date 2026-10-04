@@ -1,7 +1,8 @@
 # Gemini C1 PMIC, RTC and lid preparation
 
-Offline integration audit, 2026-10-04. No patch, profile, build, candidate or
-device operation is admitted by this record. The [roadmap](../../docs/ROADMAP.md)
+Initial offline integration audit, 2026-10-04, followed by the selected key
+compile integration below. No boot candidate or device operation is admitted
+by this record. The [roadmap](../../docs/ROADMAP.md)
 owns priorities. The [source audit](results/source-audit.json) pins the selected
 prepared driver files and the proposed baseline inventory.
 
@@ -86,8 +87,8 @@ provided by this preparation record.
 The audit checked selected manifest/series membership and actual prepared key
 functions/MFD resources, and parsed a ten-entry unique-address inventory.
 Historical Buildbox receipts are evidence for their exact original inputs only.
-No new build, schema test or hardware measurement was performed. Repository
-publication checks apply to these documentation and JSON changes.
+The initial audit performed no build, schema test or hardware measurement.
+The subsequent key integration results below are separate from that audit.
 
 ## Selected key integration
 
@@ -101,8 +102,9 @@ are in the [integration receipt](results/key-integration.json).
 
 `mt6797-a53-pmic-keys-compile` adds only input/key compilation settings and a
 release suffix to the service profile. DT is unchanged, with no enabled PMIC
-key child; this does not select a hardware long-press policy. Buildbox and
-integrated binding checks remain pending. The existing patches retain their
+key child; this does not select a hardware long-press policy. Buildbox
+compilation, package validation and focused binding checks pass for input
+`052f5937`. The existing patches retain their
 synthetic non-certifying authorship and do not become submission-ready by
 integration. Their upstream destination and deletion condition remain those
 of the independent key topic.
@@ -111,3 +113,22 @@ of the independent key topic.
 KERNEL_PROFILE=mt6797-a53-pmic-keys-compile ./scripts/build-kernel --backend buildbox
 KERNEL_PROFILE=mt6797-a53-pmic-keys-compile ./scripts/buildbox fetch-package
 ```
+
+The [receipt](results/key-integration.json) pins the compiled key object,
+configuration, Image.gz, build log and validated package inventory. The driver
+and binding in the exact prepared source match the host-tested hashes. Fetch
+verification and local inventory/Image.gz rehashes pass. Input, keyboard and the
+PMIC key driver are built in. DT and the installed candidate remain unchanged.
+Only the inherited patch-0261 whitespace and unused CPU rollback callback
+warnings appear; there is no new key-driver warning.
+
+Focused kernel `dt_binding_check` passes with dtschema 2026.9 and separate
+managed temporary output, which was removed afterward. The local binding
+meta-schema and eight dtc-compiled fixture cases pass with dtschema 2026.6:
+four MT6351 durations accepted, duration 1 rejected, legacy MT6331 duration 1
+accepted, mode 3 rejected, and absent duration accepted. These schema fixtures
+are offline descriptions, not admitted Gemini key nodes. No board DT changed,
+so no new board `dtbs_check` was run. The Linux-only repository provenance
+fixture is skipped on macOS; the actual package passed the remote Linux
+validator. No boot image, installation, register access or physical reset was
+performed. The live policy observation still gates key-node admission.
