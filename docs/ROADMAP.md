@@ -286,6 +286,13 @@ must be resolved before defining a loadable firmware bundle.
 The [retained modem MPU paths](../experiments/2026-09-07-mt6797-cellular-upstream-architecture/SECURE_MPU.md)
 establish region-7/13 lock-denial and store behavior; current acceptance and
 ownership remain unproved because the host wrapper discards the secure result.
+The [cellular feasibility record](../experiments/2026-10-04-gemini-cellular-re/README.md)
+adds the AP-side power, PLL and release sequence, shows that LK already loads
+and protects MD1 before a mainline kernel runs, separates the HS1 milestone
+(no file server, NVRAM, SIM or radio) from HS2, and names a read-only mainline
+boot (LK tags, SPM status offsets, boot-status registers) as the cheapest first
+experiment. SIM and RF stay modem-internal; voice audio maps onto the existing
+MT6797 AFE PCM DAIs.
 Do not repeat unchanged OS metadata for those gaps. Missing attribution preserves
 the stop; queue/DMA, framing/channel and full boot/crash teardown remain later gates.
 

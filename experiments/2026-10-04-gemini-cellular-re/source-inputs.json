@@ -1,0 +1,429 @@
+{
+  "purpose": "Exact public inputs inspected for experiments/2026-10-04-gemini-cellular-re; no file content is copied into the repository.",
+  "vendor": {
+    "repository": "https://github.com/gemian/gemini-linux-kernel-3.18",
+    "commit": "8cfe6596a503612e3332d9c26e292a19525a7f07",
+    "files": [
+      {
+        "path": "arch/arm64/boot/dts/aeon6797_6m_n.dts",
+        "size": 38242,
+        "sha256": "d1bd9d83941dffb44615f69e9113c7b79d87b3e9e87057619c70370f56456f5a",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon6797_6m_n.dts"
+      },
+      {
+        "path": "arch/arm64/boot/dts/aeon_gpio.dtsi",
+        "size": 6761,
+        "sha256": "86d248e602a2cad2b213c58a4e4d8525402f38e42b284dc1e896d9d6eb5aa95a",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon_gpio.dtsi"
+      },
+      {
+        "path": "arch/arm64/boot/dts/cust_eint.dtsi",
+        "size": 1631,
+        "sha256": "e86279c1593bca98ce39ec9771dac184682ff3d95a0a038f1c704c2909e4300d",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/cust_eint.dtsi"
+      },
+      {
+        "path": "arch/arm64/boot/dts/mt6797.dtsi",
+        "size": 104424,
+        "sha256": "eaac86c8752ebd8ddf18b831eb3bc52a08f87475a213bb521650bf95dabb3e5e",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi"
+      },
+      {
+        "path": "arch/arm64/configs/aeon6797_6m_n_defconfig",
+        "size": 14304,
+        "sha256": "83f33ed07c17abe8dceaee64afd26de0cc970c0bae93681b68906636e21e883f",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/configs/aeon6797_6m_n_defconfig"
+      },
+      {
+        "path": "drivers/misc/mediatek/base/power/mt6797/mt_clkbuf_ctl.c",
+        "size": 32358,
+        "sha256": "94a1f609f56709f4b1ff18521a57721f9e061530c2ef145db32f92afd2c18b39",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/base/power/mt6797/mt_clkbuf_ctl.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/base/power/mt6797/mt_spm_mtcmos.c",
+        "size": 52231,
+        "sha256": "9c01fba4209ef3cab233425f2fdf2ad6dacabbf77a0b722c4af79b06c1a3a6b0",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/base/power/mt6797/mt_spm_mtcmos.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/ccci_util/ccci_util_lib_fo.c",
+        "size": 51429,
+        "sha256": "9c35f3fd4e0ea394f6eec3d87f86d6f42ebb0f76aa6b8116f216f646dce3a7e4",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/ccci_util/ccci_util_lib_fo.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/ccci_util/ccci_util_lib_load_img.c",
+        "size": 36023,
+        "sha256": "c85068e5dc7c55239dc93c62e0e3a854c739a005e53942cf9d9a52f2bc6261dc",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/ccci_util/ccci_util_lib_load_img.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/ccci_util/ccci_util_lib_main.c",
+        "size": 1290,
+        "sha256": "ab01a512080fc019757b96a7bdc647a39dfc0e6977f7c3ecbc81cbc695d3654a",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/ccci_util/ccci_util_lib_main.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/ccci_util/ccci_util_lib_sys.c",
+        "size": 9568,
+        "sha256": "bb5547f2e6da4a23c339e51e84f918d194d0685b6b4767cf59993f77ea6c92e0",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/ccci_util/ccci_util_lib_sys.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/ccmni/ccmni.c",
+        "size": 33811,
+        "sha256": "66df5ea2170245fb9588c3a8cf4db62e309677f1b91dcad2e4f9a232ddf6f883",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/ccmni/ccmni.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/eccci/Kconfig",
+        "size": 1937,
+        "sha256": "9d94b31434949044252bd76072cb63c68c875d8d0157af88679a982645adacb1",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/Kconfig"
+      },
+      {
+        "path": "drivers/misc/mediatek/eccci/Makefile",
+        "size": 2214,
+        "sha256": "c666dfd5ecbeadf90bedc4065f21e20fdc03aa32719a151fcdb4aed6945f303a",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/Makefile"
+      },
+      {
+        "path": "drivers/misc/mediatek/eccci/ccci_core.c",
+        "size": 14822,
+        "sha256": "5278e5520dbc630ddbbe4aebe6f33f3f8ca197c09f8695e56c20509087b99796",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/ccci_core.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/eccci/ccci_core.h",
+        "size": 29214,
+        "sha256": "fca1f5e06f5353967dd8782a2e42fcbaa712f167180e436a1ff6d0d013cee697",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/ccci_core.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/eccci/ccci_fsm.c",
+        "size": 16229,
+        "sha256": "f03caf0d7d63f7e2bf9d70fe15efe6d252588ff5c185a60b1f91540f8684be03",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/ccci_fsm.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/eccci/ccci_fsm.h",
+        "size": 2739,
+        "sha256": "cc8858df3daad667212127d8f2a4ae485137da2c180deb80e373752b052fd0d6",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/ccci_fsm.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/eccci/ccci_modem.c",
+        "size": 36318,
+        "sha256": "5cbc4e9e23f76040356ee0c70b088d06f02c840e0cbece4318573e597297c281",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/ccci_modem.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/eccci/ccci_support.c",
+        "size": 1495,
+        "sha256": "776832608b88af15596e8123b91e65849fa44599b5c99a7df8c688f0f59311d9",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/ccci_support.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/eccci/modem_ccif_c2k.c",
+        "size": 60716,
+        "sha256": "e4d29f28c88d7ef9db0e2f93e9450d8c275cde0c8a50a9077a888fea90d479aa",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/modem_ccif_c2k.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/eccci/modem_cldma.c",
+        "size": 142203,
+        "sha256": "142ffb743fb62b6962164a2caa4506e3a2c97696615892383bd2bd5c90d9d34b",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/modem_cldma.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/eccci/modem_cldma.h",
+        "size": 11568,
+        "sha256": "e056e5d15e7f1725c66bc7a98e763ef8e78a81ababcbb5608b8030ed89d9402b",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/modem_cldma.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/eccci/mt6797/ccci_config.h",
+        "size": 7156,
+        "sha256": "b357a3315115cc62c2e240d357eb1635ae4f308e32e4fccb1d310cf91d94c56e",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/mt6797/ccci_config.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/eccci/mt6797/ccci_platform.c",
+        "size": 38764,
+        "sha256": "d7092013b0fa14b12c37e96a973c3179c565c1a1e1ebef3a6c27ec38b566a156",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/mt6797/ccci_platform.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/eccci/mt6797/ccci_platform.h",
+        "size": 2915,
+        "sha256": "ea9bbefef867f8a097428bb2fc3bf336b767b4f1064dc2f554e1dfc11cb48fa7",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/mt6797/ccci_platform.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/eccci/mt6797/ccif_c2k_platform.c",
+        "size": 18446,
+        "sha256": "4d1c22c9e271224ca37ff0327bbf210ffa8f165d7b566f858666df026e398ea4",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/mt6797/ccif_c2k_platform.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/eccci/mt6797/cldma_platform.c",
+        "size": 45810,
+        "sha256": "ada25c673de99cf648955cc782fabf7ab98af1c6bf3227ca7883d5ff44792125",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/mt6797/cldma_platform.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/eccci/mt6797/cldma_platform.h",
+        "size": 11147,
+        "sha256": "23a72967d1650c00b3f1b7e353d208c2aa600315138596ad9e176091b041d63a",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/mt6797/cldma_platform.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/eccci/mt6797/modem_reg_base.h",
+        "size": 3689,
+        "sha256": "5d923dc4eca7c724b6bbd8d238f61cae69afe8810afb5039b5895d5f843541f8",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/mt6797/modem_reg_base.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/eccci/port_cfg.c",
+        "size": 13264,
+        "sha256": "feabc1a20dd4a149daeac5d275b4894e9b13ef6cdd1a1afc1dd46458db213a8f",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/port_cfg.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/eccci/port_cfg.h",
+        "size": 964,
+        "sha256": "51b96b141a8999890876b849419b4f77c25d32f3138df1f0fe2c58b9b01c1d82",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/port_cfg.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/eccci/port_ctlmsg.c",
+        "size": 4507,
+        "sha256": "7aed9f58bddac5ff1db7a1d5290c13703acd1069dbd1873e07bf4338d3d52b66",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/port_ctlmsg.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/eccci/port_proxy.c",
+        "size": 58719,
+        "sha256": "e03981f121869a87baf8001d092b46669813f2b10382027d357836263cb46979",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/port_proxy.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/eccci/port_rpc.c",
+        "size": 42828,
+        "sha256": "feef3656a560246261911466880b06422a42d7b2fd17a4dde911b79847ea4b97",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/port_rpc.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/eccci/port_sysmsg.c",
+        "size": 5355,
+        "sha256": "a742c26b9a05b0466547ab22dd443b9d09e975d7819688480d8e0d71df2ee3a4",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/port_sysmsg.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/emi_mpu/mt6797/emi_mpu.c",
+        "size": 93439,
+        "sha256": "39921d80191b674940246425123b52fa140262a7e17022f90f02dd88389932b2",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/emi_mpu/mt6797/emi_mpu.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/emi_mpu.h",
+        "size": 9747,
+        "sha256": "a59c8a9a3e6fbb6889d131e23a413597f7bf5f188d82c4e953a66ce2a5aed68d",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/emi_mpu.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/mt_spm.h",
+        "size": 14476,
+        "sha256": "19772f9800a190fcf28686ed0dc81984b1426d06e821260bd5806be1c255035b",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/mt_spm.h"
+      },
+      {
+        "path": "include/dt-bindings/pinctrl/mt6797-pinfunc.h",
+        "size": 67114,
+        "sha256": "634bd693136a05fd6e927ade213958e87b2490a9eb3804be7ed95912f07d5c82",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/include/dt-bindings/pinctrl/mt6797-pinfunc.h"
+      },
+      {
+        "path": "sound/soc/mediatek/mt_soc_audio_6797/AudDrv_Common.h",
+        "size": 3799,
+        "sha256": "59f157b41aef7c150d84423f8c4e345104e2d67a7572ad57b0aae97d4b94f108",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/AudDrv_Common.h"
+      },
+      {
+        "path": "sound/soc/mediatek/mt_soc_audio_6797/AudDrv_Def.h",
+        "size": 15623,
+        "sha256": "11c3eb21582eaa6c1e69272700597b7b59155de83ecb15da80df51e483a1c490",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/AudDrv_Def.h"
+      },
+      {
+        "path": "sound/soc/mediatek/mt_soc_audio_6797/mt_soc_afe_connection.c",
+        "size": 5325,
+        "sha256": "1c63ab9e969028d5cce761d931ca7c2337df01f40dec63e10e919056f74271cd",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/mt_soc_afe_connection.c"
+      },
+      {
+        "path": "sound/soc/mediatek/mt_soc_audio_6797/mt_soc_afe_control.c",
+        "size": 147584,
+        "sha256": "d550c28bb71a5024953e4ef42af4a0b0646e2512fbbec341f5cbf12d5192b94e",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/mt_soc_afe_control.c"
+      },
+      {
+        "path": "sound/soc/mediatek/mt_soc_audio_6797/mt_soc_pcm_voice_md1.c",
+        "size": 15583,
+        "sha256": "d4dc128fdf39eea536fd614ed2b6f5a37a45fb2e567853a38aef56c66f912acf",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/mt_soc_pcm_voice_md1.c"
+      }
+    ]
+  },
+  "mainline": {
+    "version": "7.1.3",
+    "reference": "https://github.com/gregkh/linux/tree/v7.1.3",
+    "files": [
+      {
+        "path": "arch/arm64/boot/dts/mediatek/mt6797.dtsi",
+        "size": 11331,
+        "sha256": "798662eb7df0a7cf37cbc47d54d232bbf85fbc748afc63af2c373526a948af83",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/arch/arm64/boot/dts/mediatek/mt6797.dtsi"
+      },
+      {
+        "path": "drivers/clk/mediatek/clk-mt6797.c",
+        "size": 23000,
+        "sha256": "eaad6324621679371f33bbb76e10bcb0d3374b1f2dbbd837323b3f9e8fee1534",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/clk/mediatek/clk-mt6797.c"
+      },
+      {
+        "path": "drivers/net/wwan/Kconfig",
+        "size": 4241,
+        "sha256": "afb8ac60dc1fecd9cba3a183d821b29782e39832302598017dea2ead243c0e57",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/net/wwan/Kconfig"
+      },
+      {
+        "path": "drivers/net/wwan/Makefile",
+        "size": 435,
+        "sha256": "dd80a596b8454b1e09c18d01d46ac5abcba40057c339c07dfc9b7f2e612d8724",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/net/wwan/Makefile"
+      },
+      {
+        "path": "drivers/pmdomain/mediatek/mtk-scpsys.c",
+        "size": 29139,
+        "sha256": "9ce2b2c95a38bc4c7b801aff9b7c26da2dc8ec2e3fd34199adaedf1db3007226",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/pmdomain/mediatek/mtk-scpsys.c"
+      },
+      {
+        "path": "include/dt-bindings/clock/mt6797-clk.h",
+        "size": 8183,
+        "sha256": "73ef029a8a51216697d7384a360ac94b714a6fea83e5bd8c4e2a5f78f2a48a63",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/include/dt-bindings/clock/mt6797-clk.h"
+      },
+      {
+        "path": "include/dt-bindings/pinctrl/mt6797-pinfunc.h",
+        "size": 65776,
+        "sha256": "0694be7b7bfe080044a015d9374da88e116fae176c057fd942bff4b32e373f03",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/include/dt-bindings/pinctrl/mt6797-pinfunc.h"
+      },
+      {
+        "path": "include/dt-bindings/power/mt6797-power.h",
+        "size": 721,
+        "sha256": "201e215b5f058fbb043c6f3503e8ab42c8caab0ae41a7b634024f88cef4c4034",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/include/dt-bindings/power/mt6797-power.h"
+      },
+      {
+        "path": "include/linux/wwan.h",
+        "size": 6219,
+        "sha256": "77f02cee70fbae531a45677c3f6eddaabd7d3951949f89218c293ed484a6303c",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/include/linux/wwan.h"
+      },
+      {
+        "path": "sound/soc/mediatek/mt6797/mt6797-afe-common.h",
+        "size": 1271,
+        "sha256": "0c842f0bc2aa3dc256963f3aced3299b7e85de11cb2caf53a800fe38ebd41e7d",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/sound/soc/mediatek/mt6797/mt6797-afe-common.h"
+      },
+      {
+        "path": "sound/soc/mediatek/mt6797/mt6797-afe-pcm.c",
+        "size": 23420,
+        "sha256": "ed52674d150c7d49bcaace00b6742390ba37de89a96a1720bf2df62674169f84",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/sound/soc/mediatek/mt6797/mt6797-afe-pcm.c"
+      },
+      {
+        "path": "sound/soc/mediatek/mt6797/mt6797-dai-hostless.c",
+        "size": 3423,
+        "sha256": "a8f47bdb094a7c8b31b427fd20bbbb32bd3637895db1df58b9c4bfc8572011ec",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/sound/soc/mediatek/mt6797/mt6797-dai-hostless.c"
+      },
+      {
+        "path": "sound/soc/mediatek/mt6797/mt6797-dai-pcm.c",
+        "size": 8993,
+        "sha256": "80f432a7be4e9d5a3ef1b6a7b246b5c7dd317fde8f1174c7bc7f40f1d1af58b2",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/sound/soc/mediatek/mt6797/mt6797-dai-pcm.c"
+      },
+      {
+        "path": "sound/soc/mediatek/mt6797/mt6797-interconnection.h",
+        "size": 753,
+        "sha256": "c394770db9c039829f2e96fa989cd6a4dd81b2a712aca82b9769bca5e081e083",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/sound/soc/mediatek/mt6797/mt6797-interconnection.h"
+      },
+      {
+        "path": "sound/soc/mediatek/mt6797/mt6797-mt6351.c",
+        "size": 6384,
+        "sha256": "61e3007631fdc0904d6725718e7afe71932de5bc697bdbc71583d8083f9bd179",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/sound/soc/mediatek/mt6797/mt6797-mt6351.c"
+      },
+      {
+        "path": "sound/soc/mediatek/mt6797/mt6797-reg.h",
+        "size": 57695,
+        "sha256": "e726058dfdc8acc7e6384ef0f70a6ee8e39aae967cbb618e12390005f075b016",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/sound/soc/mediatek/mt6797/mt6797-reg.h"
+      }
+    ]
+  },
+  "external": [
+    {
+      "name": "MT6895-Mainline/mtk-ccci-userspace README",
+      "url": "https://raw.githubusercontent.com/MT6895-Mainline/mtk-ccci-userspace/HEAD/README.md",
+      "fetched": "2026-10-04",
+      "size": 2684,
+      "sha256": "538f85b922524910986f791e6d0d2590b152ef5e28f3eb9af829c0798742fb7d"
+    },
+    {
+      "name": "MT6895-Mainline/mtk-ccci-userspace docs/ARCHITECTURE.md",
+      "url": "https://raw.githubusercontent.com/MT6895-Mainline/mtk-ccci-userspace/HEAD/docs/ARCHITECTURE.md",
+      "fetched": "2026-10-04",
+      "size": 1074,
+      "sha256": "00548400aa7b6b752fdf02cef0b413a92d63442967b55adb190f7b525d6b23c3"
+    },
+    {
+      "name": "MT6895-Mainline/mtk-ccci-userspace docs/DEPLOYMENT.md",
+      "url": "https://raw.githubusercontent.com/MT6895-Mainline/mtk-ccci-userspace/HEAD/docs/DEPLOYMENT.md",
+      "fetched": "2026-10-04",
+      "size": 1828,
+      "sha256": "3fe98d244bcae5af6ff3fe70abd4d9a51a5da4d5d5e0be3badaf35e5f8dcc0e2"
+    },
+    {
+      "name": "MT6895-Mainline/modemmanager-mtk-soc docs/MTK-SOC.md",
+      "url": "https://raw.githubusercontent.com/MT6895-Mainline/modemmanager-mtk-soc/HEAD/docs/MTK-SOC.md",
+      "fetched": "2026-10-04",
+      "size": 2212,
+      "sha256": "aa81dfecd8dd33300167a85a7b8e44e91335aa2f7e3c6afde78cfd3d653d3489"
+    },
+    {
+      "name": "cyrozap/mediatek-lte-baseband-re General-Notes.adoc",
+      "url": "https://raw.githubusercontent.com/cyrozap/mediatek-lte-baseband-re/master/General-Notes.adoc",
+      "fetched": "2026-10-04",
+      "size": 17256,
+      "sha256": "9c8a1b7ec72a71ca7493ed41dccb0ba1674f670e793aca6d1a883b9b6829355d"
+    }
+  ],
+  "repository_evidence": [
+    "experiments/2026-07-13-modem-ccci-recovery/",
+    "experiments/2026-09-07-mt6797-cellular-upstream-architecture/",
+    "experiments/2026-07-24-mt6797-dvfsp-handoff-observer/results/runtime-candidate-an-attempt-1-20260724.txt",
+    "experiments/2026-07-24-mt6797-dvfsp-handoff-observer/scripts/validate-live-fdt-delta.py",
+    "patches/v7.1.3/0015-regulator-mt6351-add-regulator-driver.patch",
+    "patches/v7.1.3/0020-arm64-dts-mediatek-add-Planet-Gemini-PDA.patch",
+    "docs/hardware/gemini-gemian-baseline.md",
+    "docs/hardware/vendor-userspace.md",
+    "docs/hardware/firmware.md"
+  ]
+}

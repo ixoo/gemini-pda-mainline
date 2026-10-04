@@ -15,6 +15,10 @@ the loop. Positive identity-gated observations are unaffected.
 
 ## Index
 
+- [2026-10-04 Gemini cellular modem reverse engineering](2026-10-04-gemini-cellular-re/README.md)
+  — offline source review: LK already loads and protects MD1 before mainline;
+  the AP-side power/PLL/release sequence, HS1/HS2 gates, SIM, voice and RF
+  ownership; 20 cited facts, ranked hypotheses, cheapest first experiment.
 - [2026-10-04 Gemini audio path reverse engineering](2026-10-04-gemini-audio-re/README.md)
   — offline source review: stock speaker path is MT6351 line-out plus
   pulse-enabled GPIO243/244 amplifiers, the I2C0 `0x31` node is an unbound
