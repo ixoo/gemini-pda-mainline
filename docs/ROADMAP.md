@@ -1050,8 +1050,13 @@ remaining peripherals.
    BQ25896 on I2C0 `0x6b` ([identity](../experiments/2026-07-12-charger-power-recovery/CHARGER_ID.md));
    upstream `bq25890_charger` matches, so this is board description, not a new
    driver. Missing inputs: the charger IRQ line, conservative charge limits and
-   the fuel-gauge source. No separate gauge chip has been found; whether the
-   vendor gauge is MT6351-internal is inferred, not recorded. Next steps:
+   the fuel-gauge source. The
+   [charging reverse-engineering record](../experiments/2026-10-04-gemini-charging-re/README.md)
+   (2026-10-04) answers these from source: the vendor requests no charger
+   interrupt and relies on the MT6351 `CHRDET` line, the gauge is the MT6351
+   internal FGADC plus PMIC AUXADC, and the vendor register configuration gives
+   a conservative starting set; its ranked hypotheses order the next device
+   tests. Next steps:
    (a) **(local)** one bounded read-only Gemian inspection for the charger IRQ
    GPIO/EINT, the gauge's register source and live power-supply telemetry,
    without repeating the consumed `0x14` read;

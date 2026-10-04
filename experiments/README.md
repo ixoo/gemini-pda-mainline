@@ -15,6 +15,9 @@ the loop. Positive identity-gated observations are unaffected.
 
 ## Index
 
+- [2026-10-04 Gemini charging path reverse engineering](2026-10-04-gemini-charging-re/README.md)
+  — offline source review: vendor uses MT6351 CHRDET/BC1.1/FGADC/AUXADC around
+  an un-interrupted BQ25896; 22 cited facts, ranked device hypotheses.
 - [2026-10-03 overall project review](2026-10-03-project-review/README.md)
   — offline review of plan, patch layer, evidence and process; sets the
   roadmap's current plan and parks the A72 workstream.
