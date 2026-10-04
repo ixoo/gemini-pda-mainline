@@ -211,3 +211,13 @@ are included. The earlier RTC build receipt retains its original inputs.
 The superseded key-only prepared source and build outputs are removed after
 integrity verification; its validated package and log remain retained. The
 active C1 and STP source/build trees are kept.
+
+## Observation protocol review
+
+The [observation review](OBSERVATION_REVIEW.md) separates uncached wrapper
+transport success from per-register read semantics and drafts the RTC/lid
+packet. The actual RTC counter callback has no rollover-attempt limit; a host
+probe reaches a fourth attempt. Class registration can inherit existing alarms,
+and the IRQ handler still ignores alarm-disable/trigger failures. These
+concrete gaps must be resolved before a bounded RTC packet is admitted. No
+observer, tool, candidate or device access is added by this review.

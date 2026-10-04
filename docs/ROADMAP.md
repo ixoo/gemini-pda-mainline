@@ -113,8 +113,12 @@ candidate is unchanged and still waits for physical boot2 selection.
    corrected RTC and gpio-keys now also pass host and Buildbox/package checks
    in the consolidated C1 compile profile. The MFD IRQ lifetime, mask,
    acknowledgement and wake-recovery corrections now replay and pass focused
-   host tests and Buildbox/package checks on that foundation. Next offline: review the
-   ten-register PMIC observation and bounded RTC/lid protocols before creating
+   host tests and Buildbox/package checks on that foundation. The
+   [observation review](../experiments/2026-10-04-gemini-c1-preparation/OBSERVATION_REVIEW.md)
+   found unbounded RTC counter retries and unreported IRQ transport
+   failures. Next offline: fix and test those driver paths, review inherited
+   alarms and the exact userspace alarm tool, and resolve per-register semantics
+   for the ten-register PMIC observer before creating
    a candidate. The key node still needs an explicit long-press policy from an
    attributable live `TOP_RST_MISC` observation; the lid node remains disabled.
    When the owner returns, consume the installed candidate and Gemian baseline

@@ -1,0 +1,32 @@
+{
+  "status": "Offline source and host review; protocols drafted, not admitted; no device access",
+  "build_input": "c2eeeb8a534544258e073e0f69478d1be6bfbc3c",
+  "source_sha256": {
+    "drivers/soc/mediatek/mtk-pmic-wrap.c": "80173dd03ba85c5f900d27d35a2b6d0bd60bb5cf4bd801295e9953a0e4eaec12",
+    "drivers/rtc/rtc-mt6397.c": "3caf869e5b0229ee577a209274c525132e11283ce8407e942706db7e99f27e1f",
+    "drivers/rtc/class.c": "7a380ec8b4296d00ebad6fb75b72f51bbe377f992f03f89a5c132e1593bb7958",
+    "drivers/rtc/interface.c": "dc18e82cc747c47cdcef927fdec76e0b06671367db24fef8d0e2d2c2ff6c6d67",
+    "include/linux/mfd/mt6397/rtc.h": "6cc6002d16d882c4d5239c5f7dd2b1c7e8e5ade4b6343d9b7011264f2a8486ab",
+    "drivers/input/keyboard/gpio_keys.c": "f5c19f940479ec0f2a92dcb6da3f8c59d9e29de071f206289b3e56bbc5232b2a"
+  },
+  "pmic_inventory": {
+    "count": 10,
+    "cache": "REGCACHE_NONE",
+    "transport": "checked completion and propagated error; includes wrapper command/valid-clear writes",
+    "read_semantics": "per-target admission unresolved; all ten remain unadmitted"
+  },
+  "rtc_host_probe": {
+    "function": "Actual mtk_rtc_read_time extracted from pinned selected source",
+    "injection": "Three seconds-rollover pairs, then one coherent pair",
+    "result": "returns success after four helper calls; no attempt limit",
+    "compiler": "host cc -std=c11 -Wall -Wextra -Werror -Wno-unused-parameter",
+    "hardware_claim": "none"
+  },
+  "new_gates": [
+    "Bound RTC coherent-counter attempts and test exhaustion/error propagation",
+    "Review inherited RTC alarms, core timer retries and exact alarm tool effects",
+    "Report RTC IRQ alarm-disable/trigger errors without automatic retry",
+    "Establish PMIC target read semantics before implementing observer"
+  ],
+  "sanitization": "Source digests and independent control-flow facts only; no raw document, vendor code, firmware or device identifiers"
+}
