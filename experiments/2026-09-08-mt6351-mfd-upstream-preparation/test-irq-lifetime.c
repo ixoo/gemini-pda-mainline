@@ -193,6 +193,13 @@ int main(void)
                            fail == REQUEST ? -EBUSY : fail == NOTIFIER ? -EIO : 0;
             assert(ret == expected);
             if (!ret) {
+                if (i < 6) {
+                    const unsigned int bank_span[] = { 32, 48, 32, 64, 32, 32 };
+                    unsigned int expected_span = bank_span[i];
+                    if (!HAS_BANK_DOMAIN_SPAN && i == 1)
+                        expected_span = 47;
+                    assert(domain.revmap_size == expected_span);
+                }
                 assert(notifier_live == (HAS_PM_NOTIFIER && i < 6));
                 assert(wake_live == (i >= 6 && fail != WAKE));
                 const unsigned int positions[] = { 0, domain.revmap_size / 2,

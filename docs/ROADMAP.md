@@ -111,9 +111,9 @@ candidate is unchanged and still waits for physical boot2 selection.
 2. Prepare boot C1 using the [integration audit](../experiments/2026-10-04-gemini-c1-preparation/README.md):
    key error/duration fixes pass host, Buildbox and focused binding checks;
    corrected RTC and gpio-keys now also pass host and Buildbox/package checks
-   in the consolidated C1 compile profile. Next offline: adapt the MFD IRQ
-   lifetime fix to the selected domain span, then integrate and test mask,
-   acknowledgement, wake-error recovery and cleanup corrections. Review the
+   in the consolidated C1 compile profile. The MFD IRQ lifetime, mask,
+   acknowledgement and wake-recovery corrections now replay and pass focused
+   host tests on that foundation; their Buildbox compilation is next. Review the
    ten-register PMIC observation and bounded RTC/lid protocols before creating
    a candidate. The key node still needs an explicit long-press policy from an
    attributable live `TOP_RST_MISC` observation; the lid node remains disabled.

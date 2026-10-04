@@ -177,3 +177,31 @@ The selected tree uses `chip->num_irq_regs * 16` for the domain span; the
 independent patch expects a different local variable. Integration must preserve
 that span, then replay and test the remaining error, wake recovery and cleanup
 changes. No MFD patch was selected by this audit.
+
+## MFD corrections selected for C1 compilation
+
+The [MFD integration receipt](results/mfd-integration.json) pins seven selected
+corrections and all four tested driver/header files. Two format patches adapt
+the domain-lifetime and child-suspend ordering drafts to the selected foundation;
+the bank-derived domain size remains unchanged. The other five existing patches
+apply unchanged: initial mask failure, notifier lifetime, modern-family parent
+wake ownership, legacy suspend recovery and runtime transport diagnostics.
+The ordering successor removes the intermediate notifier, retaining device PM
+callbacks that run after child suspend and before child resume.
+
+Exact replay passes. The existing actual-function fixtures pass 58 lifetime,
+77 suspend/recovery and 21 runtime-error cases, plus late-child wake ordering
+for two, three and four banks. The lifetime fixture now checks domain size for
+each legacy chip; an injected wrong size is rejected. Strict checkpatch passes
+for both adaptations with only `MISSING_SIGN_OFF` excluded: these remain
+unsigned internal drafts, with the original synthetic authorship retained.
+The adaptations retain the independent topic's MFD subsystem destination and
+deletion condition: remove them when the corresponding lifetime and PM-ordering
+fixes are in the selected upstream baseline. No new contributor certification
+is asserted. Buildbox validation of this 518-patch C1 series is pending. No binding or DT
+changes, enabled key/lid node, candidate, register access or physical PM test
+are included. The earlier RTC build receipt retains its original inputs.
+
+The superseded key-only prepared source and build outputs are removed after
+integrity verification; its validated package and log remain retained. The
+active C1 and STP source/build trees are kept.

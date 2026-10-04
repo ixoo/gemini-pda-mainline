@@ -21,7 +21,8 @@ the loop. Positive identity-gated observations are unaffected.
   Four existing key fixes now selected on the A53 foundation; 94 host cases,
   Buildbox/package and focused binding checks pass. The consolidated C1 profile
   also compiles corrected RTC and gpio-keys; 176 RTC host cases and package
-  checks pass. Selected MFD IRQ integration is next. No candidate or device access.
+  checks pass. MFD IRQ corrections replay and pass focused lifetime, recovery
+  and transport fixtures; their Buildbox validation is pending. No device access.
 
 - [2026-10-04 MT6797 STP task routing](2026-10-04-mt6797-stp-task-routing/README.md)
   — drafts 0105–0106: ignore out-of-window ACK credit, route ordinary tasks

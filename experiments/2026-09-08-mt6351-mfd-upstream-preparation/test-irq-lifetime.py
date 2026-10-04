@@ -38,7 +38,8 @@ functions = ''.join([
     function(modern, 'int mt6358_irq_init('),
 ])
 tokens = sorted(set(re.findall(r'\bMT\d+_(?:CHIP_ID|INT_[A-Z0-9_]+|IRQ_NR)\b', functions)))
-defines = [f'#define HAS_PM_NOTIFIER {int(has_notifier)}\n',
+defines = [f'#define HAS_BANK_DOMAIN_SPAN {int("info.size = chip->num_irq_regs * 16;" in legacy)}\n',
+           f'#define HAS_PM_NOTIFIER {int(has_notifier)}\n',
            f'#define HAS_WAKE_CLEANUP {int(has_wake_cleanup)}\n',
            f'#define HAS_IRQ_INSTANCE_STATE {int("devm_kmemdup" in modern)}\n']
 for index, token in enumerate(tokens):

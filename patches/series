@@ -596,9 +596,11 @@ upstream-4d7d9486/mt6351/0004-mfd-mt6397-add-MT6351-interrupt-banks-and-regulato
 upstream-4d7d9486/mt6351/0005-regulator-mt6351-add-E2-rails-with-device-local-desc.patch
 upstream-4d7d9486/mt6351/0006-mfd-mt6397-stop-on-interrupt-mask-failure.patch
 upstream-4d7d9486/mt6351/0007-mfd-mt6397-manage-IRQ-domain-lifetime.patch
+v7.1.3/c1/0001-mfd-mt6397-manage-IRQ-domain-lifetime.patch
 upstream-4d7d9486/mt6351/0008-mfd-mt6397-manage-PM-notifier-lifetime.patch
 upstream-4d7d9486/mt6351/0009-mfd-mt6358-balance-IRQ-wake-reference.patch
 upstream-4d7d9486/mt6351/0010-mfd-mt6397-order-wake-masks-after-child-suspend.patch
+v7.1.3/c1/0002-mfd-mt6397-order-wake-masks-after-child-suspend.patch
 upstream-4d7d9486/mt6351/0011-mfd-mt6397-recover-suspend-mask-failures.patch
 upstream-4d7d9486/mt6351/0012-mfd-mt6397-report-runtime-IRQ-transport-errors.patch
 upstream-4d7d9486/mt6351/0013-mfd-mt6358-keep-IRQ-state-local-to-each-device.patch
