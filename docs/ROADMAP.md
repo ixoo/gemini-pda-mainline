@@ -129,8 +129,8 @@ passed with sealed evidence, A53 regression and changed-boot Gemian recovery.
    attributable live `TOP_RST_MISC` observation; the lid node remains disabled.
    The installed identity candidate is consumed. Complete the reviewed Gemian
    baseline before C1 short-key/lid/awake-alarm and PSCI power-off tests. C2a's read-only
-   REG00–REG14 charger dump needs its separate access review, with no charger
-   node bound. No device operation is scheduled while the owner is unavailable.
+   REG00–REG14 charger dump needs its separate access review, including REG0C
+   fault-history consumption, with no charger node bound. No device operation is scheduled while the owner is unavailable.
 3. Wire the smallest Bluetooth path for C3: one task-0 binding in the existing
    IRQ owner with a single-event buffer, BT function-on/off and VCN33-BT over
    the existing WMT client, HCI Reset, Read Local Version and Read BD_ADDR.
@@ -148,7 +148,9 @@ The [charger log/DT subset](../experiments/2026-10-04-gemian-session-a/README.md
 is collected; session A is incomplete. The
 [matched-boot setter audit](../experiments/2026-10-04-gemian-session-a/CHARGER_CV_BINARY.md)
 shows computed-only logs followed by fixed `0x24` write requests with discarded
-results. A reviewed attributable REG06 read remains necessary.
+results. The [REG06 access review](../experiments/2026-10-04-gemian-session-a/REG06_ACCESS_REVIEW.md)
+rejects shared sysfs/dump paths and finds I2C-dev disabled. Next pin transport
+budgets and prepare one driver-owned byte/status observation before a candidate.
 2) Boot C1 with C2a riding on it. 3) Boot C3 (Bluetooth, AFE resource
 present, version baseline followed by full-mode WMT query/negotiation
 control). 4) Phase A step 3 Wi-Fi common-init boot when the executor exists. 5) Boot C2b, charge policy. Then C4 onward as

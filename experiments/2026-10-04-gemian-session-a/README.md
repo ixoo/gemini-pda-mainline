@@ -63,3 +63,8 @@ The [matched-boot binary follow-up](CHARGER_CV_BINARY.md) now attributes the
 log as computed-only: both branches request fixed VREG selector `0x24` afterward
 and ignore the write result. Thus the logs do not contradict that fixed write
 request. Physical REG06 state and other session-A work remain unresolved.
+
+The [REG06 access review](REG06_ACCESS_REVIEW.md) rejects the shared sysfs cache
+and vendor dump as attributable single-read paths. The matched kernel disables
+I2C-dev. A driver-owned one-shot byte/status observation needs transport-budget
+review and implementation; C2a must separately admit REG0C fault-history reads.

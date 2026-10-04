@@ -1,0 +1,93 @@
+{
+  "image_sha256": "0570480c28bce1583636a240904df8da3af0b5e5b4bcc6254f5719b42bd723d0",
+  "elf_sha256": "cc66df06194d3315335462760962165e1dcb2e50221574aeb45a0805bb17a162",
+  "elf_kernel_section_equals_image": true,
+  "instruction_spans": {
+    "show_bq25890_access": {
+      "start": "0xffffffc0004c3360",
+      "end_exclusive": "0xffffffc0004c33c0",
+      "bytes": 96,
+      "sha256": "0c9bfb66a13e5ab395414a9777fe23942239966118c29cce4f0d19a24af05944",
+      "all_instruction_words_checked": true
+    },
+    "store_bq25890_access": {
+      "start": "0xffffffc0004c3790",
+      "end_exclusive": "0xffffffc0004c3900",
+      "bytes": 368,
+      "sha256": "8b6c679a16d84a5d878b6d4adbb4d9f484dbde54b3992195ffbde2f6d582fe31",
+      "all_instruction_words_checked": true
+    },
+    "bq25890_read_interface": {
+      "start": "0xffffffc0004c35d0",
+      "end_exclusive": "0xffffffc0004c36b0",
+      "bytes": 224,
+      "sha256": "7367a764f1df960aa52587195f065ebb4af5313ded247eceafcbdf9fa1173c47",
+      "all_instruction_words_checked": true
+    },
+    "bq25890_read_byte": {
+      "start": "0xffffffc0004c33c0",
+      "end_exclusive": "0xffffffc0004c34b8",
+      "bytes": 248,
+      "sha256": "f783afae42d7ec0575e21eb81e621974d289694cd9889020afa5abf0f1473fef",
+      "all_instruction_words_checked": true
+    },
+    "bq25890_dump_register": {
+      "start": "0xffffffc0004c4338",
+      "end_exclusive": "0xffffffc0004c45f8",
+      "bytes": 704,
+      "sha256": "2bd124b28235ab947af370682afc5a7db38d406350cd750f807b6db23562eafc",
+      "all_instruction_words_checked": true
+    }
+  },
+  "status": "REG06 target semantics reviewed; existing sysfs/cache and dump paths rejected; executable device protocol not admitted",
+  "datasheet": {
+    "url": "https://www.ti.com/lit/ds/symlink/bq25896.pdf",
+    "document": "SLUSC76C, revised May 2018",
+    "sha256": "f45ec93b7e7dbcd1b1df3997283474f6d2b7ada65c0332af09dcd356dbbb0bc2",
+    "bytes": 1675426,
+    "printed_pages": [
+      30,
+      31,
+      38
+    ],
+    "facts": [
+      "REG06 fields are R/W configuration, with no documented read-clear behavior in its table",
+      "VREG bits 7:2, offset 3840000 uV, step 16000 uV, clamped at code 48",
+      "REG0C fault history changes on read; broad register dumps require that admitted effect separately"
+    ]
+  },
+  "retained_configuration": {
+    "sha256": "231d8a2ffe7afac3a4cc62c27d0eb6fe8bd9165ebd096e3e3346dd6df35c18f4",
+    "CONFIG_I2C_CHARDEV": "not set",
+    "scope": "configuration retained with the matched captured boot kernel; no current module loading or device enumeration"
+  },
+  "compiled_read_paths": {
+    "show": "prints shared cached byte; no I2C transaction",
+    "store_read": "nonempty byte count <=3 selects parse/read branch; ignores parse and read-interface return and returns original byte count",
+    "store_write": "count >3 selects config update branch; not admitted",
+    "read_interface": "starts temporary byte at zero, calls byte reader, writes masked result to caller even on error, returns byte-reader status",
+    "read_byte": "two-message one-byte address-pointer / one-byte read request through i2c_transfer under driver I2C mutex; exactly two completed messages maps to 1, other results to -1",
+    "cached_result_address": "0xffffffc001404ec8",
+    "dump": "starts REG02 bit7 ADC conversion on both paths; full branch reads REG00..REG14 including read-sensitive REG0C; returned read results ignored"
+  },
+  "proposed_observer": {
+    "status": "design only, not implemented or device-admitted",
+    "owner": "existing bound Gemian charger driver",
+    "target": "one REG06 byte through bq25890_read_byte, not read_interface or sysfs shared cache",
+    "result": "retain the helper return beside its own byte; value absent unless return equals 1; no retry or policy write",
+    "pending": [
+      "Pin exact transport implementation, internal retry/timeouts and resource effects",
+      "Default-off one-shot entry and attributable boot/driver identity",
+      "Focused failure/short-transfer tests and clean pushed Buildbox compile",
+      "Validated candidate and evidence-preservation/recovery packet"
+    ]
+  },
+  "c2a_implication": "The planned full REG00..REG14 map includes REG0C fault-history consumption; admit that effect and preserve the first result without treating it as uniformly passive. Do not invoke the vendor dump or discard REG0C silently.",
+  "limitations": [
+    "No live charger transaction or latched REG06 state established",
+    "Register read semantics do not prove adapter ownership, timeout or retry budgets",
+    "Read does not establish cell chemistry or safety of a charging policy",
+    "User-space timeout does not bound a kernel I2C transaction or establish successful cleanup"
+  ],
+  "redactions": "Normalized facts and checksums only; binary/disassembly, PDF bytes, configuration and raw captures remain private."
+}

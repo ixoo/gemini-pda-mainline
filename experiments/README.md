@@ -19,7 +19,9 @@ the loop. Positive identity-gated observations are unaffected.
   — charger logs name selector `0x1f` / 4.336 V selection; static meter DT
   has high-voltage flag zero and 800 mA AC policy input. No register readback
   or charger action; matched-boot binary audit shows the log precedes a fixed
-  `0x24` write request with discarded result. Session A remains incomplete.
+  `0x24` write request with discarded result. REG06 access review rejects
+  cached sysfs/dump paths; a driver-owned observer is not yet implemented.
+  Session A remains incomplete.
 - [2026-10-04 Gemini C1 preparation](2026-10-04-gemini-c1-preparation/README.md)
   — selected-foundation audit and key error/duration integration,
   ten-register PMIC inventory, RTC configuration and existing lid-node reuse.
