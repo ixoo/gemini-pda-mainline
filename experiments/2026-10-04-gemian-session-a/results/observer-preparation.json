@@ -1,5 +1,5 @@
 {
-  "status": "final patch admitted for compile only; kernel build and runtime validation pending",
+  "status": "parked by roadmap review 06769f76; compile attempt linked but package validation failed; corrected validator not rerun",
   "input_commit": "92fb4da89680169046d42122a4095cefd8bee609",
   "draft_patch_sha256": "63b3608972328f4fb0b62023454e4dd6bc6675276498541168b8ad5baf675a2c",
   "source_revision": "59e00a9144d782e148332009a835b99c43382467",
@@ -37,7 +37,7 @@
     "dispatch_cases": 22,
     "dispatch_result": "pass",
     "shell_syntax_and_shellcheck": "pass",
-    "kernel_build": "ready; not executed yet",
+    "kernel_build": "parked; corrected validator not rerun",
     "native_selection": "CONFIG_MTK_SMART_BATTERY selects bq25890 in pinned mt6797 Makefile; dedicated BQ25890 option remains disabled"
   },
   "final_patch": {
@@ -58,6 +58,17 @@
     "failure": "incorrect MODULE_PARM_DESC string expectation; pinned built-in __MODULE_INFO expands to unused struct",
     "corrective_check": "actual bq25890.reg06_observer boot parameter string and __param symbol",
     "logs": "temporary output was cleaned by original lane; terminal failure retained, no package produced",
-    "device_execution": false
+    "device_execution": false,
+    "patch_mode": "Git warned that generated patch describes bq25890.c as 100644; exact prepared vendor source retains 100755. Generator mode fidelity remains pending before reuse."
+  },
+  "parking_decision": {
+    "roadmap_commit": "06769f76761d05bcf186f63f168bbed7912b2e06",
+    "reason": "REG06 observation changes no current mainline decision; C1 no longer waits on Gemian session A",
+    "device_execution": false,
+    "remaining_if_resumed": [
+      "format-patch mode fidelity",
+      "successful validated compile package",
+      "runtime protocol and candidate admission"
+    ]
   }
 }

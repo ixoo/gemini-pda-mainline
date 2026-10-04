@@ -1,4 +1,4 @@
-# Passive REG06 observer inputs — incomplete checkpoint
+# Passive REG06 observer inputs — parked checkpoint
 
 These independently written GPL-2.0-only snippets implement the
 [adapter review](../REG06_ADAPTER_REVIEW.md) design. The MIT generator applies
@@ -11,9 +11,11 @@ The [final patch](../patches/0001-diagnostic-observe-existing-REG06-read.patch)
 replayed exactly against its pinned parents on Buildbox. Style review reports
 zero errors; intentional findings are recorded in the
 [preparation receipt](../results/observer-preparation.json). Static review
-checked pointer ownership and the shared transfer core. Kernel compilation and
-runtime locking/sysfs validation remain pending. This is an incomplete
-checkpoint, with no deployable candidate or admitted device test.
+checked pointer ownership and the shared transfer core. The first compile
+attempt linked, then failed an incorrect built-in metadata package check. That check is corrected but has not been rerun. The roadmap
+review in `06769f76` parks this observer because it changes no current mainline
+decision; C1 does not wait on it. Patch mode fidelity and runtime validation
+remain pending, with no deployable candidate or admitted device test.
 
 ## Entry and scope
 

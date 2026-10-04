@@ -163,10 +163,11 @@ confirms static I2C0 ownership and SCP effects. The
 are **parked**: the REG06 byte changes no mainline decision (mainline starts
 at 4.2 V regardless), and the hook needs a rebuilt Gemian kernel. Treat stock
 Gemian as requesting 4.416 V and keep its charging attended. If the value is
-still wanted, two reads through the vendor sysfs read branch (a 1–3 byte
-store such as `printf 6`, then `cat`) suffice: zero is the failure
-signature, a nonzero byte decodes directly. Remaining session A items no
-longer gate C1.
+still wanted, first resolve an attributable read protocol. The existing
+[access review](../experiments/2026-10-04-gemian-session-a/REG06_ACCESS_REVIEW.md)
+and transport review reject the shared cache as proof: zero is a legitimate
+register value, and a positive transfer return alone does not establish FIFO
+completion or count. Remaining session A items no longer gate C1.
 2) Boot C1 with C2a riding on it. 3) Boot C3 (Bluetooth, AFE resource
 present, version baseline followed by full-mode WMT query/negotiation
 control). 4) Phase A step 3 Wi-Fi common-init boot when the executor exists. 5) Boot C2b, charge policy. Then C4 onward as
