@@ -1128,6 +1128,17 @@ remaining peripherals.
    userspace, so one bounded read-only Gemian trace of the first `/dev/stpgps`
    bytes **(local)** must precede any mainline GNSS boot to learn whether the
    receiver speaks NMEA or the binary MNL protocol.
+   The [Bluetooth reverse-engineering record](../experiments/2026-10-04-gemini-bluetooth-re/README.md)
+   (2026-10-04) confirms the `hci_dev`-over-task-0 shape from source and from
+   Gemian's own in-kernel `hci_stp` driver: BT-on is the function-control
+   command for type 0 with VCN33-BT at 3.3 V, the BT task carries unmodified
+   H:4 packets, and `btmtkuart` shares only the frame layout (its WMT runs
+   inside HCI `0xfc6f`, which the vendor never uses). Its first device test
+   is one boot on the already-negotiated full-mode session: BT-on, HCI Reset,
+   version and address reads, no ROM patch or calibration required, so it can
+   run before the Wi-Fi common-init owner is complete. A read-only Gemian
+   check of the `hci0` address decides whether this unit has a factory BD
+   address **(local)**.
    FM comes last; no upstream driver exists and its fitment is unknown.
 5. **Small standalone wins (any free slot).** Lid switch (GPIO66/EINT5, patch
    0074) needs one attended transition **(local)** to confirm polarity and

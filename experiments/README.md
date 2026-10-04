@@ -15,6 +15,11 @@ the loop. Positive identity-gated observations are unaffected.
 
 ## Index
 
+- [2026-10-04 Gemini Bluetooth path reverse engineering](2026-10-04-gemini-bluetooth-re/README.md)
+  — offline source review: Bluetooth is WMT function 0 plus VCN33-BT, raw H:4
+  HCI on STP task 0, Gemian runs an in-kernel BlueZ `hci_stp`; `btmtkuart`
+  shares only the framing; 21 cited facts, 10 ranked hypotheses, one-boot
+  HCI Reset test that needs no ROM patch.
 - [2026-10-04 Gemini GPU reverse engineering](2026-10-04-gemini-gpu-re/README.md)
   — offline source review: vendor MFG power-on sequence (bus protection, GPU
   SRAM LDO words, 52 MHz pre-clock, RT5735 VGPU timing), MFGPLL/DVFS tables
