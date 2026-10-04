@@ -1,0 +1,286 @@
+{
+  "purpose": "Exact public inputs inspected for experiments/2026-10-04-gemini-gps-re; no file content is copied into the repository.",
+  "vendor": {
+    "repository": "https://github.com/gemian/gemini-linux-kernel-3.18",
+    "commit": "8cfe6596a503612e3332d9c26e292a19525a7f07",
+    "files": [
+      {
+        "path": "arch/arm64/boot/dts/aeon6797_6m_n.dts",
+        "size": 38242,
+        "sha256": "d1bd9d83941dffb44615f69e9113c7b79d87b3e9e87057619c70370f56456f5a",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon6797_6m_n.dts"
+      },
+      {
+        "path": "arch/arm64/boot/dts/mt6797.dtsi",
+        "size": 104424,
+        "sha256": "eaac86c8752ebd8ddf18b831eb3bc52a08f87475a213bb521650bf95dabb3e5e",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi"
+      },
+      {
+        "path": "arch/arm64/configs/aeon6797_6m_n_defconfig",
+        "size": 14304,
+        "sha256": "83f33ed07c17abe8dceaee64afd26de0cc970c0bae93681b68906636e21e883f",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/configs/aeon6797_6m_n_defconfig"
+      },
+      {
+        "path": "drivers/misc/mediatek/connectivity/Kconfig",
+        "size": 8616,
+        "sha256": "285fd2994b14dc55b9ea2769be54936e40b068cd32f25a26bb310e1b7ab7e0cc",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/Kconfig"
+      },
+      {
+        "path": "drivers/misc/mediatek/connectivity/Makefile",
+        "size": 1516,
+        "sha256": "bcb9f2545c5a95cc16af92e90e59d2f975853b6a5c7a657a15a5bf8a46cc7b2c",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/Makefile"
+      },
+      {
+        "path": "drivers/misc/mediatek/connectivity/gps/Makefile",
+        "size": 1141,
+        "sha256": "b6ff1d0c825df2eeb8d3028030c8e26ca80b20c33ee023a2156fbd9083e45d2d",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/gps/Makefile"
+      },
+      {
+        "path": "drivers/misc/mediatek/connectivity/gps/gps.c",
+        "size": 32323,
+        "sha256": "e8cff970f66f86c41318db448ac3f3c9e82d02fc9cbe637926e66278813e49b4",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/gps/gps.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/connectivity/gps/gps.h",
+        "size": 799,
+        "sha256": "c709dbba2cce3345ebbd4802ff530f5c13336e0052b08533d52e70174b33e3a5",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/gps/gps.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/connectivity/gps/gps_emi.c",
+        "size": 10495,
+        "sha256": "1809b36948cdb333a3a2fa291a9addb589f5f65382ceaa96ae6b20c6ff5aa530",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/gps/gps_emi.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/connectivity/gps/stp_chrdev_gps.c",
+        "size": 16478,
+        "sha256": "0cd498a248dce5dd0a0809ab884229c3d034a4e8f0299caea78ba34abcbb8fb7",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/gps/stp_chrdev_gps.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/connectivity/common/common_detect/drv_init/gps_drv_init.c",
+        "size": 1078,
+        "sha256": "86542221e015f61e79c2b521d440d8e170bd07c497fc0aedfba098d7ea6cb831",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_detect/drv_init/gps_drv_init.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/connectivity/common/common_main/core/include/wmt_core.h",
+        "size": 13831,
+        "sha256": "da51f1389115bf5f0ee14d42c1a9d6d516097cdbae563e0fba0b63adf85d4094",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/core/include/wmt_core.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/connectivity/common/common_main/core/include/wmt_ctrl.h",
+        "size": 4717,
+        "sha256": "087c94e35a9b186f1d407bb1baa87acb4df37d80f7c68ade4933091b4ac61409",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/core/include/wmt_ctrl.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/connectivity/common/common_main/core/include/wmt_func.h",
+        "size": 4422,
+        "sha256": "6150d7df15455a08fb58fd894ab6dfe0dd6805d01a4be0ee28731264e71e9f59",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/core/include/wmt_func.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/connectivity/common/common_main/core/stp_core.c",
+        "size": 110325,
+        "sha256": "79d03346c95e2d233f2a384fa4490d3b89acdfd1c1d6b9c2026709358dbcbf65",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/core/stp_core.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_conf.c",
+        "size": 13055,
+        "sha256": "25a9b92f28ebfd1e37f5988406849b7cfcd91569886f8ef34044d2a9fe954361",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_conf.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c",
+        "size": 93721,
+        "sha256": "e9f438c5c6033f0bf831347c69d656ec917b3e705648d3d27fb1b27409334f1e",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_ctrl.c",
+        "size": 31505,
+        "sha256": "4fdc36fab251ba206c580268be73d9b9161005821bffe0ad01f3bf8a6b8800ec",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_ctrl.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_exp.c",
+        "size": 20731,
+        "sha256": "9ee1dfe7f361c02d24b1c443d2e1ef13d7b054509feb2d5dfc00f2620a5d6b12",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_exp.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_func.c",
+        "size": 20783,
+        "sha256": "c57079b29491338fa635dd36f550f3be53b4a2cee343b1dce1c9e4d365b4589d",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_func.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_ic_soc.c",
+        "size": 86140,
+        "sha256": "22d98e9e5f0c9c3cae36a3099e57315ed7808524239a061bf9ab0cf97379e66f",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_ic_soc.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/connectivity/common/common_main/include/stp_exp.h",
+        "size": 9556,
+        "sha256": "9c1daca8fa5e30468865d42fb778bf070ac09e0adebf6735852631d5dc89ec42",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/include/stp_exp.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/connectivity/common/common_main/include/wmt_exp.h",
+        "size": 14698,
+        "sha256": "1075776ee00218e66941eabdc42e81277f84acb1c7d42de9cfb49df4e8b6763d",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/include/wmt_exp.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/connectivity/common/common_main/include/wmt_plat.h",
+        "size": 11075,
+        "sha256": "4358b52302c65d24951bf9f379043bd29fef793b3abdb8141008415869912c22",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/include/wmt_plat.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_dev.c",
+        "size": 39254,
+        "sha256": "d7be291ca5e2962be24def406260b5bb21a4b85438f64a1064944686a84fd62e",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_dev.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/connectivity/common/common_main/mt6797/include/mtk_wcn_consys_hw.h",
+        "size": 12181,
+        "sha256": "3ee7631a95a12f5cddd860c213e51e75e1cb3146ca858a892aaae55b4d22fad1",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/mt6797/include/mtk_wcn_consys_hw.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c",
+        "size": 42002,
+        "sha256": "0ec8e9c1594626d0b31f2d2623927d614f63af4437c16df838e10e11258663ce",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/connectivity/common/common_main/mt6797/wmt_plat_alps.c",
+        "size": 30244,
+        "sha256": "b81db9778bfebf0230cf67a924f25270112ef2c369fb221328f3f4aef3bea1ec",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/mt6797/wmt_plat_alps.c"
+      }
+    ]
+  },
+  "vendor_comparison": {
+    "repository": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797",
+    "commit": "c5b0be85017ad0c599725e8273842efdbecdd88a",
+    "note": "Same files fetched from the Wi-Fi audit's pinned Planet tree; identical_to_gemian compares SHA-256 with the Gemian commit above.",
+    "files": [
+      {
+        "path": "arch/arm64/boot/dts/aeon6797_6m_n.dts",
+        "size": 38242,
+        "sha256": "d1bd9d83941dffb44615f69e9113c7b79d87b3e9e87057619c70370f56456f5a",
+        "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/arch/arm64/boot/dts/aeon6797_6m_n.dts",
+        "identical_to_gemian": true
+      },
+      {
+        "path": "arch/arm64/configs/aeon6797_6m_n_defconfig",
+        "size": 14304,
+        "sha256": "83f33ed07c17abe8dceaee64afd26de0cc970c0bae93681b68906636e21e883f",
+        "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/arch/arm64/configs/aeon6797_6m_n_defconfig",
+        "identical_to_gemian": true
+      },
+      {
+        "path": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_func.c",
+        "size": 20783,
+        "sha256": "c57079b29491338fa635dd36f550f3be53b4a2cee343b1dce1c9e4d365b4589d",
+        "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_func.c",
+        "identical_to_gemian": true
+      },
+      {
+        "path": "drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c",
+        "size": 42002,
+        "sha256": "0ec8e9c1594626d0b31f2d2623927d614f63af4437c16df838e10e11258663ce",
+        "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c",
+        "identical_to_gemian": true
+      },
+      {
+        "path": "drivers/misc/mediatek/connectivity/common/common_main/mt6797/wmt_plat_alps.c",
+        "size": 30244,
+        "sha256": "b81db9778bfebf0230cf67a924f25270112ef2c369fb221328f3f4aef3bea1ec",
+        "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/mt6797/wmt_plat_alps.c",
+        "identical_to_gemian": true
+      },
+      {
+        "path": "drivers/misc/mediatek/connectivity/gps/gps.c",
+        "size": 32323,
+        "sha256": "e8cff970f66f86c41318db448ac3f3c9e82d02fc9cbe637926e66278813e49b4",
+        "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/gps/gps.c",
+        "identical_to_gemian": true
+      },
+      {
+        "path": "drivers/misc/mediatek/connectivity/gps/gps_emi.c",
+        "size": 10495,
+        "sha256": "1809b36948cdb333a3a2fa291a9addb589f5f65382ceaa96ae6b20c6ff5aa530",
+        "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/gps/gps_emi.c",
+        "identical_to_gemian": true
+      },
+      {
+        "path": "drivers/misc/mediatek/connectivity/gps/stp_chrdev_gps.c",
+        "size": 16478,
+        "sha256": "0cd498a248dce5dd0a0809ab884229c3d034a4e8f0299caea78ba34abcbb8fb7",
+        "url": "https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/gps/stp_chrdev_gps.c",
+        "identical_to_gemian": true
+      }
+    ]
+  },
+  "mainline": {
+    "repository": "https://github.com/gregkh/linux",
+    "tag": "v7.1.3",
+    "files": [
+      {
+        "path": "drivers/gnss/Kconfig",
+        "size": 1555,
+        "sha256": "481ec160d3151146ef7d96be878396645373ae114fcac9aaed172e3d21684520",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/gnss/Kconfig"
+      },
+      {
+        "path": "drivers/gnss/core.c",
+        "size": 8419,
+        "sha256": "7ceba1c04205c554bd0fed614c225284e2b2c6898d84715e6fd5477cf06872b4",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/gnss/core.c"
+      },
+      {
+        "path": "drivers/gnss/mtk.c",
+        "size": 3118,
+        "sha256": "662889ca84f6b703a8a9e802501a0fb30994fff9edd5b348902e164551f790bb",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/gnss/mtk.c"
+      },
+      {
+        "path": "drivers/gnss/serial.c",
+        "size": 6339,
+        "sha256": "7d31d9d0cf622a18e88080b62fd39aa910bfaf98a06fcd866dafa7881111799b",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/gnss/serial.c"
+      },
+      {
+        "path": "include/linux/gnss.h",
+        "size": 1601,
+        "sha256": "2eb4bd46f5f66438c8b29c38e3db5a99603cac31c22011f799118876395cae4e",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/include/linux/gnss.h"
+      }
+    ]
+  },
+  "repository_evidence": [
+    "experiments/2026-07-12-connectivity-wmt-recovery/results/runtime-summary.txt",
+    "experiments/2026-07-12-connectivity-wmt-recovery/results/wmt-config-summary.txt",
+    "experiments/2026-07-12-connectivity-wmt-recovery/results/userspace-binary-audit.txt",
+    "experiments/2026-07-12-connectivity-wmt-recovery/results/live-connectivity-rerun-20260713.txt",
+    "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/cycle-control-gemian-metadata.json",
+    "experiments/2026-09-07-mt6797-wifi-observer-feasibility/results/shared-resource-boundary.json",
+    "experiments/2026-10-03-mt6797-wifi-audit/ROM_PATCH_ORDER.md",
+    "patches/proposals/0092-soc-mediatek-compose-bounded-WMT-mode-negotiation.patch"
+  ]
+}

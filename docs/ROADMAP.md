@@ -1100,6 +1100,17 @@ remaining peripherals.
    shared BTIF/STP channel reusing `btmtk` helpers (`btmtkuart` matches only
    the framing), and a `gnss` device fed by the STP GPS task plus the LNA on
    GPIO69. First runtime test **(local)**: one HCI reset and version read.
+   The [GPS reverse-engineering record](../experiments/2026-10-04-gemini-gps-re/README.md)
+   (2026-10-04) confirms that shape from source: GNSS-on is the WMT
+   function-control command for type 2 plus GPIO69 high, VCN28 and the ROM
+   patches come from the common power-on, and the current mainline STP code
+   accepts only the WMT task. Its two actionable findings: the vendor power-on
+   writes the CONSYS AFE block at `0x180b6000` (GPS, BT and Wi-Fi receive
+   registers) that no mainline candidate writes, to be reviewed in the Wi-Fi
+   common-init owner now; and the stock position engine is proprietary
+   userspace, so one bounded read-only Gemian trace of the first `/dev/stpgps`
+   bytes **(local)** must precede any mainline GNSS boot to learn whether the
+   receiver speaks NMEA or the binary MNL protocol.
    FM comes last; no upstream driver exists and its fitment is unknown.
 5. **Small standalone wins (any free slot).** Lid switch (GPIO66/EINT5, patch
    0074) needs one attended transition **(local)** to confirm polarity and

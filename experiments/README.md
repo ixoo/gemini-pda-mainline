@@ -15,6 +15,10 @@ the loop. Positive identity-gated observations are unaffected.
 
 ## Index
 
+- [2026-10-04 Gemini GPS/GNSS path reverse engineering](2026-10-04-gemini-gps-re/README.md)
+  — offline source review: GNSS is one WMT function-control command plus GPIO69
+  over the STP GPS task after common init; position engine is proprietary
+  userspace; 18 cited facts, 8 ranked hypotheses, AFE-register finding for Wi-Fi.
 - [2026-10-04 Gemini cellular modem reverse engineering](2026-10-04-gemini-cellular-re/README.md)
   — offline source review: LK already loads and protects MD1 before mainline;
   the AP-side power/PLL/release sequence, HS1/HS2 gates, SIM, voice and RF
