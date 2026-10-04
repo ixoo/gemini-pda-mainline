@@ -1146,6 +1146,11 @@ remaining peripherals.
    and safe OPPs. It waits for native display and for thermal protection.
 9. **Cellular and cameras.** Unchanged: feasibility work only, per the
    cellular and camera records referenced in the parallel-delivery table.
+   The [camera reverse-engineering record](../experiments/2026-10-04-gemini-camera-re/README.md)
+   (2026-10-04) narrows the camera question: the built-in front sensor
+   matches the upstream `hi556` register map, bus, rails and pins are
+   known, and the irreducible blocker is the SENINF/CSI-2 programming held
+   in the vendor HAL; its ranked hypotheses name the first read-only tests.
 
 ### Leads from owner-held reference documents
 

@@ -15,6 +15,10 @@ the loop. Positive identity-gated observations are unaffected.
 
 ## Index
 
+- [2026-10-04 Gemini camera path reverse engineering](2026-10-04-gemini-camera-re/README.md)
+  — offline source review: the front "SP5509" is a Hynix Hi-556 register map
+  on I2C3 with MT6351 rails; receiver programming lives in the vendor HAL;
+  18 cited facts, ranked device hypotheses.
 - [2026-10-04 Gemini sensor path reverse engineering](2026-10-04-gemini-sensors-re/README.md)
   — offline source review: vendor drives one BMI160 at `0x69` with no IMU
   interrupt, STK3X1X on GPIO88/EINT11, and ships no magnetometer, barometer

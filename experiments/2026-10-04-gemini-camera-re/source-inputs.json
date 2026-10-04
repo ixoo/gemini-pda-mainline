@@ -1,0 +1,342 @@
+{
+  "purpose": "Exact public inputs inspected for experiments/2026-10-04-gemini-camera-re; no file content is copied into the repository.",
+  "vendor": {
+    "repository": "https://github.com/gemian/gemini-linux-kernel-3.18",
+    "commit": "8cfe6596a503612e3332d9c26e292a19525a7f07",
+    "files": [
+      {
+        "path": "arch/arm64/boot/dts/aeon6797_6m_n.dts",
+        "size": 38242,
+        "sha256": "d1bd9d83941dffb44615f69e9113c7b79d87b3e9e87057619c70370f56456f5a",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon6797_6m_n.dts"
+      },
+      {
+        "path": "arch/arm64/boot/dts/aeon_gpio.dtsi",
+        "size": 6761,
+        "sha256": "86d248e602a2cad2b213c58a4e4d8525402f38e42b284dc1e896d9d6eb5aa95a",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon_gpio.dtsi"
+      },
+      {
+        "path": "arch/arm64/boot/dts/cust_i2c.dtsi",
+        "size": 1069,
+        "sha256": "76a27f0415d13f2a4e8a4e6f63a99d6e8afcffd18f293d57a2745129e5e8433c",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/cust_i2c.dtsi"
+      },
+      {
+        "path": "arch/arm64/boot/dts/mt6797.dtsi",
+        "size": 104424,
+        "sha256": "eaac86c8752ebd8ddf18b831eb3bc52a08f87475a213bb521650bf95dabb3e5e",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi"
+      },
+      {
+        "path": "arch/arm64/configs/aeon6797_6m_n_defconfig",
+        "size": 14304,
+        "sha256": "83f33ed07c17abe8dceaee64afd26de0cc970c0bae93681b68906636e21e883f",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/configs/aeon6797_6m_n_defconfig"
+      },
+      {
+        "path": "drivers/misc/mediatek/cameraisp/src/mt6797/Makefile",
+        "size": 1269,
+        "sha256": "1453df2a2dd16398bc4c3eee921bf45919717fa83fcb98485e9476e0dccded3d",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/cameraisp/src/mt6797/Makefile"
+      },
+      {
+        "path": "drivers/misc/mediatek/cameraisp/src/mt6797/camera_isp.c",
+        "size": 618085,
+        "sha256": "b64e2eec47c891e9a94f166576167f90d3a643a6f58eaae63a6112e58799acea",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/cameraisp/src/mt6797/camera_isp.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/cameraisp/src/mt6797/inc/camera_isp.h",
+        "size": 22440,
+        "sha256": "8e2341024a19087077222baa04c1c54c0a6318bc5b5d26a4cf6ca513e48ce979",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/cameraisp/src/mt6797/inc/camera_isp.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/flashlight/Kconfig",
+        "size": 579,
+        "sha256": "6fc362894bac235b56255780c4780b477fd662d8412ac1c340dc5c99b8962d58",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/flashlight/Kconfig"
+      },
+      {
+        "path": "drivers/misc/mediatek/flashlight/src/mt6797/Makefile",
+        "size": 1321,
+        "sha256": "387ecb2bb274ec2c120ac7e0bbd2ec6a97d20fc0f955f423ce1f31dd4b813db3",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/flashlight/src/mt6797/Makefile"
+      },
+      {
+        "path": "drivers/misc/mediatek/flashlight/src/mt6797/dummy_flashlight/dummy_flashlight.c",
+        "size": 8213,
+        "sha256": "03813ef4d934dcc1eaed8e2744132bbf810f008b2d5a870b8254faf94075cd1d",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/flashlight/src/mt6797/dummy_flashlight/dummy_flashlight.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/flashlight/src/mt6797/kd_flashlightlist.c",
+        "size": 25119,
+        "sha256": "7a83120c9019ce5baf4d29f8439d9ee958c38c32eeb3520628ce1dd726284098",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/flashlight/src/mt6797/kd_flashlightlist.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/imgsensor/inc/kd_imgsensor.h",
+        "size": 23021,
+        "sha256": "82225c583ef763879a2c54d654352068c7b56a1a197cfc04bb70ae474a7f0e20",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/imgsensor/inc/kd_imgsensor.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/imgsensor/src/mt6797/Makefile",
+        "size": 1961,
+        "sha256": "ad08ddbe8d39f995cb246ae9d525dac32a0efa3d60454d742b380d5124bdb2e2",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/imgsensor/src/mt6797/Makefile"
+      },
+      {
+        "path": "drivers/misc/mediatek/imgsensor/src/mt6797/camera_hw/kd_camera_hw.c",
+        "size": 38430,
+        "sha256": "980af99f799e2f29df6df62dbdde2234201e5da88262326331aff127218d25dd",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/imgsensor/src/mt6797/camera_hw/kd_camera_hw.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/imgsensor/src/mt6797/camera_hw/kd_camera_hw.h",
+        "size": 2348,
+        "sha256": "74791a9d5c4ab1d094f78e72ec52e0b2d86716938dc9089ccf9cf3e5259bfa48",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/imgsensor/src/mt6797/camera_hw/kd_camera_hw.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/imgsensor/src/mt6797/kd_sensorlist.c",
+        "size": 192209,
+        "sha256": "6d43b9b2acb1d71d99aa426692570692d54addeff010d187170971cbce0c831f",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/imgsensor/src/mt6797/kd_sensorlist.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/imgsensor/src/mt6797/kd_sensorlist.h",
+        "size": 9884,
+        "sha256": "fedf343729550cfebd95bc84ba1c76530b02ba649748467909ff32271c69a5f8",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/imgsensor/src/mt6797/kd_sensorlist.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/imgsensor/src/mt6797/sp5509_main_mipi_raw/sp5509mainmipiraw_Sensor.c",
+        "size": 89088,
+        "sha256": "8aa97c9b021503c18d95b968668df6dc20d82f254fc67c830df3993694bb3992",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/imgsensor/src/mt6797/sp5509_main_mipi_raw/sp5509mainmipiraw_Sensor.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/imgsensor/src/mt6797/sp5509_mipi_raw_sls/sp5509mipiraw_Sensor.c",
+        "size": 88530,
+        "sha256": "45d22368f7fc5dd0bc3a7546d7257e5857a69956b28f3d3b7bafa5235d1bd291",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/imgsensor/src/mt6797/sp5509_mipi_raw_sls/sp5509mipiraw_Sensor.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/imgsensor/src/mt6797/sp5509_mipi_raw_sls/sp5509mipiraw_Sensor.h",
+        "size": 6772,
+        "sha256": "8aac6fc619431666e22acbb8596d973a21eca2d236b60f06b049f3fdd075228f",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/imgsensor/src/mt6797/sp5509_mipi_raw_sls/sp5509mipiraw_Sensor.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/lens/Kconfig",
+        "size": 7566,
+        "sha256": "82e89259ac312035c6e3f689999fdedca9ac7cd00c7159ad5c9821133cac77af",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/lens/Kconfig"
+      },
+      {
+        "path": "drivers/misc/mediatek/lens/Makefile",
+        "size": 171,
+        "sha256": "3c239bc4f5c9ab2dc4fb68dd106dfa90549737237858070ebca9ba789a12bb6f",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/lens/Makefile"
+      },
+      {
+        "path": "drivers/misc/mediatek/lens/main/common/dw9714af/DW9714AF.c",
+        "size": 5350,
+        "sha256": "9de3f8637ac3d9bc564f5168b7478a1898040bf053b549a5dbee8a42e4f137ae",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/lens/main/common/dw9714af/DW9714AF.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/lens/main/inc/lens_info.h",
+        "size": 3256,
+        "sha256": "6159f8d734a48675b707d3514e29c337eb1af9551f6b56c398abd6ea720822da",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/lens/main/inc/lens_info.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/lens/main/main_lens.c",
+        "size": 10943,
+        "sha256": "f5207c72e0c11635da531affc6bdac201b8097c278c41eb8320ba4c0b3f36f7a",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/lens/main/main_lens.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/lens/sub/sub_lens.c",
+        "size": 9627,
+        "sha256": "68e62fef85dd4a57e32d17843bf3486bee80552004d06d39957704ec3bbfd6b8",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/lens/sub/sub_lens.c"
+      },
+      {
+        "path": "include/dt-bindings/pinctrl/mt6797-pinfunc.h",
+        "size": 67114,
+        "sha256": "634bd693136a05fd6e927ade213958e87b2490a9eb3804be7ed95912f07d5c82",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/include/dt-bindings/pinctrl/mt6797-pinfunc.h"
+      }
+    ]
+  },
+  "mainline": {
+    "tree": "Linux 7.1.3 (kernel/manifest.json pin), read through the gregkh/linux v7.1.3 tag",
+    "files": [
+      {
+        "path": "Documentation/devicetree/bindings/media/i2c/dongwoon,dw9714.yaml",
+        "size": 950,
+        "sha256": "b87f73c80d8e5eeda18bfcbd98023a2212bafbc149c8eca93b5a7ab53f24490f",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/Documentation/devicetree/bindings/media/i2c/dongwoon,dw9714.yaml"
+      },
+      {
+        "path": "MAINTAINERS",
+        "size": 904378,
+        "sha256": "627cb08ddedd9e95fc69fb65f52620f34ef061dc19d7cec14644f11460a79053",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/MAINTAINERS"
+      },
+      {
+        "path": "arch/arm64/boot/dts/mediatek/mt6797.dtsi",
+        "size": 11331,
+        "sha256": "798662eb7df0a7cf37cbc47d54d232bbf85fbc748afc63af2c373526a948af83",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/arch/arm64/boot/dts/mediatek/mt6797.dtsi"
+      },
+      {
+        "path": "drivers/clk/mediatek/Makefile",
+        "size": 10694,
+        "sha256": "d4938ae54d40715d3cec345b5d4b441fcd8c28ea34d9f520a3a5b9b6205b5288",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/clk/mediatek/Makefile"
+      },
+      {
+        "path": "drivers/clk/mediatek/clk-mt6797-img.c",
+        "size": 1432,
+        "sha256": "cb9e25f289cbbad70541a89734862ddf8d44f1b142dc10a1b6f58cf31ae52a10",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/clk/mediatek/clk-mt6797-img.c"
+      },
+      {
+        "path": "drivers/iommu/Kconfig",
+        "size": 12465,
+        "sha256": "5d1a15a48f7d61ebfaf23cce710abee6110b6930c7d6b63dfabe0ff66f26088b",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/iommu/Kconfig"
+      },
+      {
+        "path": "drivers/iommu/mtk_iommu.c",
+        "size": 61804,
+        "sha256": "756b37fbdb043aea97b28d588a13850007d96c1db6fcae76fc0b6abfe7ccd571",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/iommu/mtk_iommu.c"
+      },
+      {
+        "path": "drivers/media/i2c/Kconfig",
+        "size": 47793,
+        "sha256": "9e43d2afbfa0ced6c02eae5429ff6d4bae6fcf9f4e918892aa58ec6cd245d9ed",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/media/i2c/Kconfig"
+      },
+      {
+        "path": "drivers/media/i2c/Makefile",
+        "size": 6928,
+        "sha256": "42851b3f9e22ea40b859d6d3115e71c59852337601991b18dd43bbe33f745eab",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/media/i2c/Makefile"
+      },
+      {
+        "path": "drivers/media/i2c/dw9714.c",
+        "size": 9074,
+        "sha256": "440fc84b4aa59e5bd1e37704123b35647cd5a843805b22e22531a72684d009c3",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/media/i2c/dw9714.c"
+      },
+      {
+        "path": "drivers/media/i2c/hi556.c",
+        "size": 33417,
+        "sha256": "50fe41ab9d4f896c35318ba2e5b3cd13148b7320b9808f3c19f7265eed62a821",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/media/i2c/hi556.c"
+      },
+      {
+        "path": "drivers/media/i2c/ov5675.c",
+        "size": 32067,
+        "sha256": "960a3e74ab044a77458aeb2171434c12ec298e01c853b6fb90a73b78f2ebe333",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/media/i2c/ov5675.c"
+      },
+      {
+        "path": "drivers/media/platform/mediatek/Kconfig",
+        "size": 354,
+        "sha256": "cb182c3514e52f4d8c3d3bdef9144654762d851fe1b37123b7e3aa6798f2136b",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/media/platform/mediatek/Kconfig"
+      },
+      {
+        "path": "drivers/media/platform/mediatek/Makefile",
+        "size": 115,
+        "sha256": "518a7344a9f68a3ac0382af9ece4e3fd637f6091802aa6bc39d3ce0fac98d2dd",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/media/platform/mediatek/Makefile"
+      },
+      {
+        "path": "drivers/media/v4l2-core/v4l2-common.c",
+        "size": 38491,
+        "sha256": "eef5279e90bc16a1d1420e9e756e4c91a3ea66eca586c69e21cc5f6bb9c8e233",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/media/v4l2-core/v4l2-common.c"
+      },
+      {
+        "path": "drivers/memory/mtk-smi.c",
+        "size": 33672,
+        "sha256": "6425b65c76b78b527faa3c1526f3282767ce44257b77a4936b32284d92e0ed8f",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/memory/mtk-smi.c"
+      },
+      {
+        "path": "drivers/regulator/Makefile",
+        "size": 11540,
+        "sha256": "353dd81f8bd7c37c4dc61fe226202d372995ce85b2f53ec225dd86d404b0d870",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/regulator/Makefile"
+      },
+      {
+        "path": "include/dt-bindings/clock/mt6797-clk.h",
+        "size": 8183,
+        "sha256": "73ef029a8a51216697d7384a360ac94b714a6fea83e5bd8c4e2a5f78f2a48a63",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/include/dt-bindings/clock/mt6797-clk.h"
+      },
+      {
+        "path": "include/dt-bindings/power/mt6797-power.h",
+        "size": 721,
+        "sha256": "201e215b5f058fbb043c6f3503e8ab42c8caab0ae41a7b634024f88cef4c4034",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/include/dt-bindings/power/mt6797-power.h"
+      }
+    ]
+  },
+  "mainline_absent": [
+    "drivers/clk/mediatek/clk-mt6797-cam.c",
+    "drivers/regulator/mt6351-regulator.c",
+    "Documentation/devicetree/bindings/media/i2c/hynix,hi556.yaml",
+    "drivers/media/platform/mediatek/isp/ (any file)",
+    "Documentation/devicetree/bindings/media/mediatek,mt8365-seninf.yaml",
+    "Documentation/devicetree/bindings/media/mediatek,mt8365-camsv.yaml"
+  ],
+  "vendor_absent": [
+    "drivers/misc/mediatek/imgsensor/src/mt6797/sp5506_mipi_raw/",
+    "drivers/misc/mediatek/imgsensor/src/mt6797/st55a_mipi_raw/",
+    "drivers/misc/mediatek/cam_cal/ (any file)"
+  ],
+  "libcamera": {
+    "repository": "https://github.com/libcamera-org/libcamera (mirror of git.libcamera.org)",
+    "branch": "master",
+    "inspected_utc": "2026-10-04",
+    "files": [
+      {
+        "path": "src/libcamera/sensor/camera_sensor_properties.cpp",
+        "size": 17303,
+        "sha256": "e37f6f54ed0cdaf4f6501b6368480bb26ebc74a995710284d2f86b55fd0ea8ff",
+        "url": "https://github.com/libcamera-org/libcamera/blob/master/src/libcamera/sensor/camera_sensor_properties.cpp"
+      },
+      {
+        "path": "src/libcamera/pipeline/simple/simple.cpp",
+        "size": 63867,
+        "sha256": "0bde2e414e4e509eda8cc8aaaf34da0ec4383619ed20933537708b26fb561466",
+        "url": "https://github.com/libcamera-org/libcamera/blob/master/src/libcamera/pipeline/simple/simple.cpp"
+      }
+    ]
+  },
+  "web": [
+    {
+      "url": "https://en.wikipedia.org/wiki/Gemini_PDA",
+      "used_for": "F1 front/rear camera product facts"
+    },
+    {
+      "url": "https://www.theregister.com/2018/04/27/gemini_camera_esim_software_updates/",
+      "used_for": "F1 rear accessory, no flash"
+    },
+    {
+      "url": "https://lkml.iu.edu/hypermail/linux/kernel/2501.2/06543.html",
+      "used_for": "F14 MT8365 ISP3.0 v8 cover letter"
+    }
+  ]
+}
