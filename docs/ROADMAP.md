@@ -149,8 +149,11 @@ is collected; session A is incomplete. The
 [matched-boot setter audit](../experiments/2026-10-04-gemian-session-a/CHARGER_CV_BINARY.md)
 shows computed-only logs followed by fixed `0x24` write requests with discarded
 results. The [REG06 access review](../experiments/2026-10-04-gemian-session-a/REG06_ACCESS_REVIEW.md)
-rejects shared sysfs/dump paths and finds I2C-dev disabled. Next pin transport
-budgets and prepare one driver-owned byte/status observation before a candidate.
+rejects shared sysfs/dump paths and finds I2C-dev disabled. The
+[transport review](../experiments/2026-10-04-gemian-session-a/REG06_TRANSPORT_REVIEW.md)
+finds unchecked FIFO completion and controller/DMA failure resets. Next resolve
+bound adapter/semaphore effects and prepare a driver-owned observation with
+same-operation completion/count evidence; byte/status alone is insufficient.
 2) Boot C1 with C2a riding on it. 3) Boot C3 (Bluetooth, AFE resource
 present, version baseline followed by full-mode WMT query/negotiation
 control). 4) Phase A step 3 Wi-Fi common-init boot when the executor exists. 5) Boot C2b, charge policy. Then C4 onward as

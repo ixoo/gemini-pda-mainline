@@ -1,0 +1,90 @@
+{
+  "image_sha256": "0570480c28bce1583636a240904df8da3af0b5e5b4bcc6254f5719b42bd723d0",
+  "elf_sha256": "cc66df06194d3315335462760962165e1dcb2e50221574aeb45a0805bb17a162",
+  "elf_kernel_section_equals_image": true,
+  "instruction_spans": {
+    "__i2c_transfer": {
+      "start": "0xffffffc000905d00",
+      "end_exclusive": "0xffffffc0009061e8",
+      "bytes": 1256,
+      "sha256": "2fc05883a662e4403aea6a9ddf426ac90054c802a3c321a7a5a73f2fe270e37f",
+      "all_instruction_words_checked": true
+    },
+    "i2c_transfer": {
+      "start": "0xffffffc0009061e8",
+      "end_exclusive": "0xffffffc0009062b8",
+      "bytes": 208,
+      "sha256": "dd849c98a52476b9b467c18eb4485ff523412646a6ee5a6929249048897758a5",
+      "all_instruction_words_checked": true
+    },
+    "mt_i2c_probe": {
+      "start": "0xffffffc000907e50",
+      "end_exclusive": "0xffffffc000908590",
+      "bytes": 1856,
+      "sha256": "6a5aa9b87ce99895ddbd6ca8e72cadb254e8ab6061a413c7dfcea7eb41bd576b",
+      "all_instruction_words_checked": true
+    },
+    "__mt_i2c_transfer": {
+      "start": "0xffffffc000908b40",
+      "end_exclusive": "0xffffffc000909a28",
+      "bytes": 3816,
+      "sha256": "6ae75cf089200df86b9bd78a490cc9d80a65a8f557a44cab26b065b58c50cbc6",
+      "all_instruction_words_checked": true
+    },
+    "mt_i2c_transfer": {
+      "start": "0xffffffc000909a28",
+      "end_exclusive": "0xffffffc000909aa0",
+      "bytes": 120,
+      "sha256": "74f0e2daa00894a34759a993de48bc18ccc216b69499c7a7d62a4a096e9ab34f",
+      "all_instruction_words_checked": true
+    },
+    "mt_i2c_irq": {
+      "start": "0xffffffc000909aa0",
+      "end_exclusive": "0xffffffc000909c60",
+      "bytes": 448,
+      "sha256": "2fcf800f081ca27383723329e1fbc5a181848c49c37dd89065f426cd6ae33196",
+      "all_instruction_words_checked": true
+    }
+  },
+  "status": "Transport audit complete at core/controller level; byte/status-only observer design insufficient; no device admission",
+  "source": {
+    "revision": "59e00a9144d782e148332009a835b99c43382467",
+    "files": {
+      "drivers/i2c/i2c-core.c": "d6018f0739e111a9be1f04f579181b5dd8df328fd9d852f1b728a2dfc32c2692",
+      "drivers/i2c/busses/i2c-mtk.c": "7624af7e123ab907ee6e649e09b6d3e2a1c06c34e91755145faf4065ce3fa3d8",
+      "drivers/misc/mediatek/power/mt6797/bq25890.c": "01f79a7dba68dd916e7fbc1bd20be448d10ff6706521112a7904cdb86900add6"
+    }
+  },
+  "transport": {
+    "CONFIG_HZ": 100,
+    "adapter_timeout_jiffies": 200,
+    "adapter_retries": 1,
+    "core_retry_condition": "Only -EAGAIN retries; at most two master calls with default retries. Timeout checked after a call, not a lock deadline.",
+    "selected_master_errors": [
+      "-EBUSY",
+      "-EINVAL",
+      "-ETIMEDOUT",
+      "-EREMOTEIO"
+    ],
+    "selected_master_retry": "Examined selected master does not return -EAGAIN; no core retry for its reported errors. This is not a claim about a different adapter or modified implementation.",
+    "request": "Same-address one-byte write then one-byte read combined into one WRRD hardware transaction",
+    "data_path": "FIFO for both lengths <=8; coherent DMA allocation reused as staging buffer; DMA engine not started for this short success path",
+    "fifo_result": "Reads 4-bit FIFO count and drains that many bytes without equality check against requested length; zero count skips drain but transport may return num=2",
+    "irq_result": "IRQ handler records status and sets trans_stop; normal success path rejects ACK/NACK bits but does not explicitly require completion bit",
+    "scp_loop": "For adapter IDs 0 or 1, outer loop can invoke get_scp_semaphore 101 times because call precedes count>0 check; nested helper cost not reviewed here",
+    "failure_effects": "ACK error or wait timeout resets I2C, reapplies configuration/timing, warm-resets DMA, waits 5 us, and BUGs if DMA EN remains nonzero. Conditional appm semaphore exhaustion can also BUG.",
+    "latency_limit": "200-jiffy hardware wait is not an end-to-end deadline: charger mutex, adapter rt_mutex, controller mutex, clock operations and nested semaphore helpers remain outside it."
+  },
+  "decision": {
+    "rejected": "A new local result beside bq25890_read_byte return alone cannot prove actual one-byte FIFO completion",
+    "next": "Prepare narrowly scoped default-off observer with same-operation controller completion/FIFO count attribution; require count=1, completion bit, no ACK/NACK, FIFO/WRRD path and successful helper return before publishing REG06 value. Resolve bound adapter identity and nested semaphore budget first.",
+    "prohibited": "No extra diagnostic read, broad dump, alternate raw transport, global retry setting change, policy write, or unreviewed reset bypass."
+  },
+  "limitations": [
+    "No live charger transaction or abnormal FIFO/IRQ result observed",
+    "No observer implementation, compile, candidate or device admission",
+    "Retained binary/setup evidence does not establish live adapter fields or binding",
+    "No global wall-clock bound or successful cleanup claimed"
+  ],
+  "redactions": "Facts and hashes only; source/binary/disassembly and raw captures remain private"
+}

@@ -69,6 +69,10 @@ a kernel effect budget. There is no executable or deployable candidate here.
 The subsequent value will describe one instant while vendor policy continues;
 it will not establish continuous safety or authorize changing CV limits.
 
+The subsequent [transport review](REG06_TRANSPORT_REVIEW.md) finds that helper
+success alone does not establish exact FIFO completion. It supersedes the
+byte/status-only design above and records controller/DMA failure effects.
+
 ## Validation
 
 The full ELF kernel section matches the pinned Image; all instruction words

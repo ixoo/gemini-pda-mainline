@@ -68,3 +68,7 @@ The [REG06 access review](REG06_ACCESS_REVIEW.md) rejects the shared sysfs cache
 and vendor dump as attributable single-read paths. The matched kernel disables
 I2C-dev. A driver-owned one-shot byte/status observation needs transport-budget
 review and implementation; C2a must separately admit REG0C fault-history reads.
+
+The [transport review](REG06_TRANSPORT_REVIEW.md) identifies unchecked FIFO
+completion and controller/DMA resets on failures. The successor must retain
+same-operation completion/count evidence before accepting a REG06 value.
