@@ -117,7 +117,7 @@ candidate is unchanged and still waits for physical boot2 selection.
    [observation review](../experiments/2026-10-04-gemini-c1-preparation/OBSERVATION_REVIEW.md)
    found unbounded RTC counter retries and unreported IRQ transport
    failures. The bounded-read and IRQ-diagnostic successors now pass host
-   regression; their C1 Buildbox compilation is next. Then review inherited
+   regression and C1 Buildbox/package checks. Next offline: review inherited
    alarms and the exact userspace alarm tool, and resolve per-register semantics
    for the ten-register PMIC observer before creating
    a candidate. The key node still needs an explicit long-press policy from an

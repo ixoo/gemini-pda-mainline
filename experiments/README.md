@@ -23,8 +23,8 @@ the loop. Positive identity-gated observations are unaffected.
   also compiles corrected RTC and gpio-keys; 176 RTC host cases and package
   checks pass. MFD IRQ corrections replay and pass focused lifetime, recovery
   and transport fixtures and Buildbox/package validation. Observation review
-  found RTC retry/error-reporting gaps; successors pass focused host regression,
-  with Buildbox pending. PMIC target access remains unadmitted.
+  found RTC retry/error-reporting gaps; successors pass focused host regression
+  and Buildbox/package validation. PMIC target access remains unadmitted.
   No device access.
 
 - [2026-10-04 MT6797 STP task routing](2026-10-04-mt6797-stp-task-routing/README.md)

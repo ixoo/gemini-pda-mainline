@@ -1,5 +1,5 @@
 {
-  "status": "Host regression and exact replay pass; Buildbox pending; no device action",
+  "status": "Host regression and exact replay pass; Buildbox/package/fetch pass; no device action",
   "profile": "mt6797-a53-c1-compile",
   "selected_patch_count": 520,
   "parent_source_sha256": "3caf869e5b0229ee577a209274c525132e11283ce8407e942706db7e99f27e1f",
@@ -24,6 +24,25 @@
     "No hardware freshness, alarm, wake or concurrency proof",
     "Existing trigger-helper busy-poll diagnostic is retained; new IRQ reports are rate-limited",
     "RTC core timer behavior, exact userspace tool and PMIC target read semantics remain review gates",
-    "No key or hall node enabled; no candidate or device operation"
+    "No key or hall node enabled; no candidate or device operation",
+    "Host regmap/IRQ/logging services are modeled; real logging rate limits and physical completion are not tested"
+  ],
+  "build_input_commit": "45143bfc88cfd1792155f1c389eaf41c2cc5093a",
+  "package_inventory_sha256": "51455867b94eeda64505b8f0c3534c430351e92ab2d914e0e82265e2233c347e",
+  "patchset_sha256": "a1b5799eb06de746639a9a6a07667c935ed49e51de2085aad1db1910f3ccfe4f",
+  "config_sha256": "01dc95f3e8f1d4366d466b2ef4165fb8577c625c7bc3eb7bd596dd6d2695737e",
+  "Image_gz_sha256": "2c1c7a5d69c53d76bc6057b755cb3a3e0adf46cf95bd179ee75440d4666711e0",
+  "rtc_object_sha256": "a777fba3708e3a6e34947d2b8aab47dcfae8b6514c821c93d737f462a19cf794",
+  "build_log_sha256": "6714b4397bf57ac78b3992d7b9bd06f1a26f2a0944b215e258edd5b8cbfbdc7d",
+  "compiler": "aarch64-linux-gnu-gcc (Debian 12.2.0-14) 12.2.0",
+  "build_validation": "Remote Linux package validator, fetch and all local inventory checksums pass; compiled RTC source matches tested hash; three IRQ error messages present in the object",
+  "comparison": "Resolved configuration and all 123 DTB paths/content hashes unchanged from the MFD-integrated C1 package",
+  "inherited_warnings": [
+    "Patch 0261 trailing whitespace",
+    "Unused cpuhp_rollback_callback_inventory in kernel/cpu.c"
+  ],
+  "not_run": [
+    "New DT schema check: no DT or binding changes",
+    "Device time/alarm, wake and concurrency tests"
   ]
 }

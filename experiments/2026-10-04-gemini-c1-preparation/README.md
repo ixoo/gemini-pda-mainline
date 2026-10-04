@@ -216,9 +216,10 @@ active C1 and STP source/build trees are kept.
 
 The [observation review](OBSERVATION_REVIEW.md) separates uncached wrapper
 transport success from per-register read semantics and drafts the RTC/lid
-packet. The actual RTC counter callback has no rollover-attempt limit; a host
+packet. At the review's `c2eeeb8a` input, the RTC callback has no rollover-attempt
+limit; a host
 probe reaches a fourth attempt. Class registration can inherit existing alarms,
-and the IRQ handler still ignores alarm-disable/trigger failures. These
+and that IRQ handler ignores alarm-disable/trigger failures. These
 concrete gaps must be resolved before a bounded RTC packet is admitted. No
 observer, tool, candidate or device access is added by this review.
 
@@ -247,7 +248,12 @@ archive's missing-sign-off exclusion. These internal drafts target the RTC
 subsystem and are removed when equivalent fixes enter the pinned upstream
 baseline; no certifying author or sign-off is invented.
 
-Buildbox validation of the 520-patch C1 profile is pending. The previous
+Buildbox compilation, Linux package validation and fetch pass for input
+`45143bfc`. The actual RTC source matches the host-tested hash; the object
+contains all three IRQ error messages. All local package checksums pass. The
+resolved configuration and all 123 DTBs match the prior C1 package. Only the
+inherited patch-0261 whitespace and unused CPU callback warnings remain. No
+DT or binding changed, so no new schema check was run. The previous
 518-patch receipt remains evidence for its original inputs. RTC core timer
 behavior, inherited alarms, the exact userspace tool, PMIC target read semantics
 and live key policy remain gates before an attended candidate. No board node,
