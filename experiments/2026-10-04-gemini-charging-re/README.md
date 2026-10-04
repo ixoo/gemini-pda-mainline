@@ -476,3 +476,9 @@ the retained running setter binary before asserting either the public fixed
 `0x24` write or physical `0x1f` state. The current roadmap's separate read-only
 C2a and programmed-limit C2b stages supersede the earlier H3/roadmap-consequence
 suggestion to combine `skip-reset`/`read-back-settings` with DT limits.
+
+The [matched-primary-boot binary audit](../2026-10-04-gemian-session-a/CHARGER_CV_BINARY.md)
+resolves the log ambiguity: the computed `0x1f` value is printed before both
+branches call the setter with fixed `0x24`, ignoring its result. The apparent
+log/source discrepancy is not evidence of a different setter. H10's physical
+REG06 state remains open; nominal `0x24` is 4.416 V in the binary table.

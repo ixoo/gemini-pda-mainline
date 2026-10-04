@@ -58,3 +58,8 @@ stderr. Saved private inventories rehash exactly. Public facts are derived
 from exact numeric log patterns and four-byte big-endian cells, excluding raw
 logs, tables, firmware, credentials and personal identifiers. Documentation
 and JSON checks apply; no kernel, DT binding or device driver change is made.
+
+The [matched-boot binary follow-up](CHARGER_CV_BINARY.md) now attributes the
+log as computed-only: both branches request fixed VREG selector `0x24` afterward
+and ignore the write result. Thus the logs do not contradict that fixed write
+request. Physical REG06 state and other session-A work remain unresolved.

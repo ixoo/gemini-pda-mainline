@@ -1,0 +1,104 @@
+{
+  "image_sha256": "0570480c28bce1583636a240904df8da3af0b5e5b4bcc6254f5719b42bd723d0",
+  "elf_sha256": "cc66df06194d3315335462760962165e1dcb2e50221574aeb45a0805bb17a162",
+  "image_bytes": 20013248,
+  "elf_kernel_section_equals_image": true,
+  "virtual_base": "0xffffffc000080000",
+  "instruction_spans": {
+    "charging_set_cv_voltage": {
+      "start": "0xffffffc0004c5b50",
+      "end_exclusive": "0xffffffc0004c5be0",
+      "bytes": 144,
+      "sha256": "25955cd3013ae57f0701b6d9d212c8fe5c1301ce2cb2f28d8fb44cb39e506982"
+    },
+    "bq25890_set_vreg": {
+      "start": "0xffffffc0004c3c00",
+      "end_exclusive": "0xffffffc0004c3c28",
+      "bytes": 40,
+      "sha256": "f826a41c18ecb6bab11eeb80599c0dbb4d02be3405baa445b64534b37174dde6"
+    },
+    "bq25890_config_interface": {
+      "start": "0xffffffc0004c36b0",
+      "end_exclusive": "0xffffffc0004c3790",
+      "bytes": 224,
+      "sha256": "5bd43f441ceb79b9ecfa3bc2c5c2a02d515ce628080887e11fb1e20d78b27d75"
+    },
+    "bq25890_write_byte": {
+      "start": "0xffffffc0004c34b8",
+      "end_exclusive": "0xffffffc0004c35d0",
+      "bytes": 280,
+      "sha256": "c923ede5a3cbda1643409818b369b0d8dfbec153ce2b3901d5fd3b60722d7d8d"
+    },
+    "bmt_find_closest_level": {
+      "start": "0xffffffc0004c5248",
+      "end_exclusive": "0xffffffc0004c5398",
+      "bytes": 336,
+      "sha256": "7b9594f108830e5959d66e642ed1bc506f3861243b4a7eab96884e7599cd849b"
+    },
+    "charging_parameter_to_value": {
+      "start": "0xffffffc0004c5760",
+      "end_exclusive": "0xffffffc0004c5828",
+      "bytes": 200,
+      "sha256": "44c78eafa6ce19cbaf8643b3b4813d79540083eb28b90b5cb34d1633c13b5334"
+    }
+  },
+  "cv_table": {
+    "address": "0xffffffc000d25580",
+    "bytes": 196,
+    "entries": 49,
+    "sha256": "f6c07e2da877ca8eb30f825f31ed3e567a21097882f1447b3b3f10c929bda0d5",
+    "index_0x1f_uV": 4336000,
+    "index_0x24_uV": 4416000
+  },
+  "format_string": {
+    "address": "0xffffffc000f8ef40",
+    "bytes": 52,
+    "sha256": "2da6e2d973cea0d66b133f7583ec46ac5c567649d99a2adc89414000c2ecc0e5",
+    "computed_selector_requested_selected_fields": true
+  },
+  "disassembler": "GNU objdump (GNU Binutils for Ubuntu) 2.42",
+  "status": "matched primary boot image contains computed-only CV log followed by fixed 0x24 VREG write request; physical readback remains unresolved",
+  "live_primary_boot": {
+    "boot_id": "c52cec49-a635-45c3-af32-aba3b95b4c1c",
+    "release": "3.18.41+",
+    "logical_partition": "boot",
+    "partition_bytes": "16777216",
+    "sha256": "1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513",
+    "resolved_by": "unique live lsblk PARTLABEL boot row; by-partlabel resolved target agreement; block device and exact size checked",
+    "identity_checked_before_and_after": true,
+    "process": {
+      "exit_status": 0,
+      "reason": null,
+      "stdin_complete": true,
+      "stdout_bytes": 182,
+      "stderr_bytes": 0,
+      "elapsed_seconds": 0.791
+    },
+    "script_sha256": "4fa513f9abfe5a685b9426b9bd7398362bdba194d98230122bd185182c89487e",
+    "private_manifest_sha256": "cd7442c791b3d7995a8053b3efaefcfc4f4ce744630abca820f9bf887ea5b50e",
+    "effects": "One finite read-only hash of the full 16 MiB logical boot partition via sudo -n; no bytes transferred and no write"
+  },
+  "compiled_contract": {
+    "log_describes": "computed table index, caller request and closest selected voltage; emitted before setter call, not readback",
+    "both_logging_branches_reach_fixed_selector": "0x24",
+    "fixed_selector_table_uV": 4416000,
+    "setter_target": {
+      "register": "0x06",
+      "unshifted_mask": "0x3f",
+      "shift": 2
+    },
+    "read_modify_write": "config helper initializes temporary byte zero, calls read helper, does not check its return, masks and merges requested VREG bits, then calls write helper",
+    "cv_callback_checks_write_result": false,
+    "cv_callback_return": 0,
+    "register_readback_after_write": false,
+    "write_helper": "one two-byte I2C message; maps transfer result equal to one to 1 and other results to -1; outer CV callback discards result"
+  },
+  "limitations": [
+    "Matching stored primary boot and observed Gemian identity support attribution, not a checksum of all live instruction memory",
+    "No actual I2C transaction, REG06 readback, successful write or latched setting proved",
+    "No battery chemistry or maximum safe cell voltage established",
+    "Other writers, adapter policy and reset/watchdog behavior remain separate"
+  ],
+  "next_action": "Review a bounded attributable REG06 read before a live charger observation; do not use computed CV logs as safety evidence or import the fixed vendor policy. First mainline programmed-limit stage remains 4.2 V / 500 mA with checked writes/readback.",
+  "redactions": "Normalized facts, instruction/table/format hashes and sanitized identity only. Binary, disassembly, raw logs and private host paths are excluded."
+}

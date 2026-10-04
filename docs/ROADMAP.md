@@ -145,8 +145,10 @@ passed with sealed evidence, A53 regression and changed-boot Gemian recovery.
 measured `0279/8a00/8a00` and returned to changed-boot Gemian.
 1) Gemian session A, logs and live DT first, then reviewed register reads.
 The [charger log/DT subset](../experiments/2026-10-04-gemian-session-a/README.md)
-is collected; session A is incomplete. Attribute the running CV setter offline
-before treating the logged selection as latched REG06 state.
+is collected; session A is incomplete. The
+[matched-boot setter audit](../experiments/2026-10-04-gemian-session-a/CHARGER_CV_BINARY.md)
+shows computed-only logs followed by fixed `0x24` write requests with discarded
+results. A reviewed attributable REG06 read remains necessary.
 2) Boot C1 with C2a riding on it. 3) Boot C3 (Bluetooth, AFE resource
 present, version baseline followed by full-mode WMT query/negotiation
 control). 4) Phase A step 3 Wi-Fi common-init boot when the executor exists. 5) Boot C2b, charge policy. Then C4 onward as
@@ -1179,9 +1181,11 @@ one boot or one Gemian session answers several records at once.
    the first item of the next Gemian session. The
    [passive successor](../experiments/2026-10-04-gemian-session-a/README.md)
    found selector `0x1f` / 4.336 V selection logs, no REG06 dump, a zero
-   high-voltage DT flag and an 800 mA AC policy cell. Hardware readback and
-   the running setter path remain unresolved; attribute the retained binary
-   before further register observation. Until then, avoid long unattended
+   high-voltage DT flag and an 800 mA AC policy cell. The
+   [matched-boot binary audit](../experiments/2026-10-04-gemian-session-a/CHARGER_CV_BINARY.md)
+   proves computed-only logging followed by fixed `0x24` (4.416 V nominal)
+   VREG write requests; errors are ignored and hardware readback remains
+   unresolved. Review a bounded attributable REG06 read next. Until then, avoid long unattended
    charge sessions under Gemian. On mainline, the first charger observation
    is a userspace read-only register dump with no charger node bound. The
    upstream driver ignores DT limits under `linux,read-back-settings` and
