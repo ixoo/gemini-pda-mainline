@@ -1,0 +1,107 @@
+{
+  "status": "offline selected-source AFE join; no device access or hardware-effect admission",
+  "source_commit": "59e00a9144d782e148332009a835b99c43382467",
+  "prepared_patch_set": "d6a6547d27254377172dc75254a6ccda5d6db2e232e91c8b781c8bf2e6a5b32e",
+  "source_sha256": {
+    "drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c": "e7089b6d61a7d4bcc07867c561c3c0a0ead36950ac0c659915a42c73697ad37f",
+    "drivers/misc/mediatek/connectivity/common/common_main/mt6797/include/mtk_wcn_consys_hw.h": "3ee7631a95a12f5cddd860c213e51e75e1cb3146ca858a892aaae55b4d22fad1"
+  },
+  "gemian_v8_config_sha256": "a2240c7f23e13766ed9e789c5b7d43aa9d8826ce2094d4a0f6fb2df7af88e6ae",
+  "selection": {
+    "CONSYS_AFE_REG_SETTING": 1,
+    "GPS_SINGLE": "conditional on CONFIG_MTK_GPS_REGISTER_SETTING; exclude unless selected configuration independently confirms it",
+    "WF_TX_02": "commented out in selected source; no write at offset 0x8c"
+  },
+  "resource": {
+    "base": "0x180b6000",
+    "size": "0x100",
+    "owner": "CONSYS hardware power-on before MCU reset release"
+  },
+  "writes": [
+    {
+      "order": 1,
+      "offset": "0x20",
+      "physical_address": "0x180b6020",
+      "value": "0x180b0160",
+      "source_register": "CONSYS_AFE_REG_WBG_RCK_01_OFFSET"
+    },
+    {
+      "order": 2,
+      "offset": "0x50",
+      "physical_address": "0x180b6050",
+      "value": "0xb8925421",
+      "source_register": "CONSYS_AFE_REG_WBG_GPS_01_OFFSET"
+    },
+    {
+      "order": 3,
+      "offset": "0x54",
+      "physical_address": "0x180b6054",
+      "value": "0x00006401",
+      "source_register": "CONSYS_AFE_REG_WBG_GPS_02_OFFSET"
+    },
+    {
+      "order": 4,
+      "offset": "0x60",
+      "physical_address": "0x180b6060",
+      "value": "0xb8925421",
+      "source_register": "CONSYS_AFE_REG_WBG_BT_RX_01_OFFSET"
+    },
+    {
+      "order": 5,
+      "offset": "0x64",
+      "physical_address": "0x180b6064",
+      "value": "0x00006401",
+      "source_register": "CONSYS_AFE_REG_WBG_BT_RX_02_OFFSET"
+    },
+    {
+      "order": 6,
+      "offset": "0x68",
+      "physical_address": "0x180b6068",
+      "value": "0x08400000",
+      "source_register": "CONSYS_AFE_REG_WBG_BT_TX_01_OFFSET"
+    },
+    {
+      "order": 7,
+      "offset": "0x6c",
+      "physical_address": "0x180b606c",
+      "value": "0x0c110200",
+      "source_register": "CONSYS_AFE_REG_WBG_BT_TX_02_OFFSET"
+    },
+    {
+      "order": 8,
+      "offset": "0x70",
+      "physical_address": "0x180b6070",
+      "value": "0x012a020a",
+      "source_register": "CONSYS_AFE_REG_WBG_BT_TX_03_OFFSET"
+    },
+    {
+      "order": 9,
+      "offset": "0x84",
+      "physical_address": "0x180b6084",
+      "value": "0x00006401",
+      "source_register": "CONSYS_AFE_REG_WBG_WF_RX_02_OFFSET"
+    },
+    {
+      "order": 10,
+      "offset": "0x88",
+      "physical_address": "0x180b6088",
+      "value": "0x08400000",
+      "source_register": "CONSYS_AFE_REG_WBG_WF_TX_01_OFFSET"
+    },
+    {
+      "order": 11,
+      "offset": "0x90",
+      "physical_address": "0x180b6090",
+      "value": "0x012a020a",
+      "source_register": "CONSYS_AFE_REG_WBG_WF_TX_03_OFFSET"
+    }
+  ],
+  "excluded_diagnostic": "64-word vendor debug read loop is not a production initialization requirement",
+  "error_policy": "Vendor does not check ioremap result or MMIO-write outcome. Future driver must claim/map resource before power-on, fail before writes on mapping conflict/failure, and retain attributable powered lifetime after uncertain outcome. Do not invent readback equivalence for undocumented analog registers.",
+  "limitations": [
+    "Exact source order, not register semantic or binary equivalence proof.",
+    "No analog register capture, AFE write, calibration, RF or firmware transfer performed.",
+    "Selected power/reset order and resource ownership require kernel integration review."
+  ],
+  "sanitization": "Independent register facts and source digests only; no raw vendor source, firmware or personal identifiers."
+}

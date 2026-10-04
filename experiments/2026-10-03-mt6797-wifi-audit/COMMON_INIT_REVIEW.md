@@ -101,3 +101,29 @@ regulator handles, shared-selector accounting and per-operation failure
 records. The unselected shared software counter and legacy PMIC-control
 writes are not substitutes. This review performs no rail or calibration
 action and supplies no live calibration-event or voltage-transition proof.
+
+## Connectivity AFE power-on stage
+
+The [AFE source join](results/afe-source-join.json) independently checks the
+same selected platform source and header hashes as the PA review and extracts
+eleven active, ordered writes within `0x180b6000 + 0x100`. This resolves the
+revision difference between the [GNSS finding](../2026-10-04-gemini-gps-re/README.md)
+and the current Wi-Fi reference: the stage exists in `59e00a91` too. It runs
+after the chip-ID poll and MCU ACR update, before MCU reset release. A future
+CONSYS implementation must place it there rather than append it to GNSS-on
+or to a running WMT session.
+
+The selected source does not write WF_TX_02 at offset `0x8c`; that operation
+is commented out. GPS_SINGLE at `0x14` is conditional on
+`CONFIG_MTK_GPS_REGISTER_SETTING` and is outside the eleven-write list. Do
+not enable it from a header constant alone. The vendor's 64-word debug read
+loop and unchecked `ioremap_nocache` failure handling are not requirements
+to reproduce. Claim and map the analog resource before any power-on writes,
+reject missing or conflicting ownership, and preserve the existing reset and
+powered failure contracts. Do not assume readback proves undocumented analog
+effects or add broad register dumps to production initialization.
+
+The receipt records independent register facts, not copied source. Hash
+verification, extraction count and aligned offsets within the mapped window
+passed offline. Register meanings, safe readback behavior and the effect on
+Wi-Fi reception remain unproved; no hardware operation or build occurred.
