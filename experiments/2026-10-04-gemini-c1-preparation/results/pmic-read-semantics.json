@@ -1,0 +1,108 @@
+{
+  "status": "offline read-semantics evidence; no new device admission",
+  "roadmap_commit": "06769f76761d05bcf186f63f168bbed7912b2e06",
+  "datasheet_sha256": "05bd18e2ff98d9c887a97759d50343080ad0202d06fbff9ce308568cd019508a",
+  "datasheet_pages": 322,
+  "method": "Digest-checked private PDF; text extraction plus visual inspection of reset, LDO and charger tables; no private material published",
+  "registers": [
+    {
+      "name": "TOP_RST_MISC",
+      "address": "0x02b6",
+      "pages": [
+        118,
+        119
+      ],
+      "finding": "RW reset-enable/mode fields; source-defined timeout field omitted",
+      "device_access_admitted": false
+    },
+    {
+      "name": "STRUP_CON15",
+      "address": "0x001e",
+      "pages": [],
+      "finding": "not covered at this address; vendor header names power-off sequence controls",
+      "device_access_admitted": false
+    },
+    {
+      "name": "TOP_CKPDN_CON0",
+      "address": "0x023a",
+      "pages": [
+        96,
+        97
+      ],
+      "finding": "RW clock-control word; SET/CLR aliases excluded",
+      "device_access_admitted": false
+    },
+    {
+      "name": "TOP_CKPDN_CON1",
+      "address": "0x0240",
+      "pages": [
+        98,
+        99
+      ],
+      "finding": "RW clock-control word; SET/CLR aliases excluded",
+      "device_access_admitted": false
+    },
+    {
+      "name": "TOP_CKPDN_CON2",
+      "address": "0x0246",
+      "pages": [
+        100,
+        101
+      ],
+      "finding": "RW clock-control word; SET/CLR aliases excluded",
+      "device_access_admitted": false
+    },
+    {
+      "name": "BUCK_VCORE_CON0",
+      "address": "0x0600",
+      "pages": [],
+      "finding": "not covered at this address; source defines enable/selector ownership controls",
+      "device_access_admitted": false
+    },
+    {
+      "name": "LDO_VDRAM_CON0",
+      "address": "0x0a74",
+      "pages": [
+        175,
+        176
+      ],
+      "finding": "RW enable/mode controls and RO state; source-defined fields also omitted",
+      "device_access_admitted": false
+    },
+    {
+      "name": "CHR_CON1",
+      "address": "0x0f7a",
+      "pages": [
+        302,
+        303
+      ],
+      "finding": "RW threshold fields",
+      "device_access_admitted": false
+    },
+    {
+      "name": "CHR_CON6",
+      "address": "0x0f84",
+      "pages": [
+        304,
+        305
+      ],
+      "finding": "RW threshold/detection controls and RO detection state",
+      "device_access_admitted": false
+    },
+    {
+      "name": "CHR_CON13",
+      "address": "0x0f92",
+      "pages": [
+        306,
+        307
+      ],
+      "finding": "RW watchdog controls; write effects do not establish read effects",
+      "device_access_admitted": false
+    }
+  ],
+  "coverage": "Eight exact addresses covered by ordinary RW/RO fields. Two addresses absent; omitted fields and exact E2 applicability remain limitations. No read-clear annotation found in inspected target fields; this is not proof for undocumented bits.",
+  "ordering": "Successful chip ID, then ordered observer, then IRQ initialization and MFD child registration; TOP_RST_MISC therefore precedes key probe writes. Label loader-inherited state after wrapper setup.",
+  "policy": "Roadmap replaces the historical Gemian prerequisite with C1 pre-child attribution. Explicit one-key, eleven-second intent follows retained compiled policy; no timed long-press test is planned.",
+  "next": "Compile C1 key/lid board settings; finish source evidence for the two uncovered words and observer read semantics before device use. No additional RTC polishing or Gemian baseline prerequisite.",
+  "device_actions": "none"
+}

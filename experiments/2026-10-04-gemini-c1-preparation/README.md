@@ -283,3 +283,12 @@ BusyBox's reviewed source has an unbounded awake wait and cleanup paths that
 can be skipped; the retained ram-root has no verified alarm executable. The
 final tool, inherited-alarm admission and callback effect budget still gate
 the candidate. No device operation was performed.
+
+## Updated C1 order and PMIC field evidence
+
+The roadmap review in `06769f76` removes Gemian session A as a prerequisite.
+The [read-semantics review](PMIC_READ_REVIEW.md) records eight document-covered
+words and the two source-only addresses that still need read-effects evidence.
+C1's observer must precede key probe writes; explicit key reset policy and the
+lid node are the next board settings. The historical reviews above retain
+their original inputs and gaps rather than overriding the updated priority.
