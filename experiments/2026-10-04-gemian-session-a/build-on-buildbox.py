@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 """Build the isolated passive Gemian REG06 observer on Buildbox."""
 
+from contextlib import contextmanager
 import hashlib
 import importlib.util
 import json
@@ -30,6 +31,18 @@ spec = importlib.util.spec_from_file_location(
 native = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(native)
 run, digest = native.run, native.digest
+
+
+@contextmanager
+def build_workspace():
+    work = Path(tempfile.mkdtemp(prefix='gemian-reg06-observer-', dir=ROOT / 'build'))
+    try:
+        yield work
+    except BaseException:
+        print('failed_build_evidence=' + str(work), file=sys.stderr)
+        raise
+    else:
+        shutil.rmtree(work)
 
 
 def main():
@@ -88,8 +101,7 @@ def main():
     assert run([cross + 'ld', '--version'], env=environment).splitlines()[0] == (
         'GNU ld (GNU Binutils for Debian) 2.28')
 
-    with tempfile.TemporaryDirectory(prefix='gemian-reg06-observer-', dir=ROOT / 'build') as tmp:
-        work = Path(tmp)
+    with build_workspace() as work:
         output = work / 'output'
         output.mkdir()
         shutil.copyfile(CONFIG, output / '.config')
@@ -137,7 +149,9 @@ def main():
         assert re.search(r' b reg06_observer$', symbol_map, re.M)
         linked_image = (output / 'vmlinux').read_bytes()
         assert b'reg06_observe' in linked_image
-        assert b'Allow one passive REG06 observation' in linked_image
+        # Built-in MODULE_PARM_DESC emits no text in this pinned kernel.
+        assert b'bq25890.reg06_observer\0' in linked_image
+        assert re.search(r' [rRdD] __param_reg06_observer$', symbol_map, re.M)
         assert b'fifo_seen=%u fifo=%u controller=%u fifo_path=%u wrrd=%u' in linked_image
         assert not run([cross + 'nm', '-u', str(output / 'vmlinux')], env=environment)
         assert run(integrity + ['verify', str(source)]) == source_integrity

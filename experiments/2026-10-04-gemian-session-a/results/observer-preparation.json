@@ -51,5 +51,13 @@
       "intentional": "0400 root-only attribute, inherited vendor CamelCase, internal header without upstream MAINTAINERS or DCO claim"
     },
     "static_lock_review": "Charger I2C mutex owns arm/consume/result; adapter lock owns pending/request pointers; controller mutex owns active pointer and copied FIFO/IRQ metadata. Same __i2c_transfer core preserves quirks and retries. The existing charger path already takes sleeping mutexes. No added device read/write."
+  },
+  "compile_attempt": {
+    "input_commit": "a9ea7613a126691ea8c2e6e3acbb1d7706fb6a93",
+    "kernel_link": "completed before package validator failure; full success not admitted",
+    "failure": "incorrect MODULE_PARM_DESC string expectation; pinned built-in __MODULE_INFO expands to unused struct",
+    "corrective_check": "actual bq25890.reg06_observer boot parameter string and __param symbol",
+    "logs": "temporary output was cleaned by original lane; terminal failure retained, no package produced",
+    "device_execution": false
   }
 }
