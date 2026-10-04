@@ -805,12 +805,7 @@ Its [experiment builder and scope](../experiments/2026-09-07-mt6797-wifi-observe
 pin the separate native inputs and validate the resulting compile-only package.
 This selector cannot be combined with a manifest profile, modules or VM backend.
 
-The Buildbox build backend does not use device credentials and performs no
-candidate installation or hardware writes. Separately, the development users
-on `buildbox-1`, `buildbox-2` and `buildbox-3` have dedicated Gemian Wi-Fi SSH
-access. This does not give those hosts direct access to the laptop-attached
-mainline USB gadget. Follow the [device transport and custodian rules](SAFETY.md#device-transports-and-remote-agents);
-remote builds and coordination may continue without the laptop, but USB-gadget
-tests require it online. Candidate construction, pre-boot hypotheses, runtime
-evidence, and guarded `boot2` deployment remain separate experiment-owned steps
-governed by the existing safety policy.
+Buildbox has no device credentials and performs no candidate installation or
+hardware writes. Candidate construction, pre-boot hypotheses, runtime evidence,
+and guarded `boot2` deployment remain separate experiment-owned steps governed
+by the existing safety policy.

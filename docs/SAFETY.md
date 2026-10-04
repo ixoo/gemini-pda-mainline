@@ -89,39 +89,6 @@ owner-operated physical selection remain the installation handoff; standing
 authorization does not supply a missing physical action or permit guessed
 bootloader controls. A timeout alone does not authorize an unreviewed retry.
 
-## Device transports and remote agents
-
-The configured development fleet has two distinct device-access paths:
-
-| Transport | Access host | Availability requirement |
-| --- | --- | --- |
-| Known-good Gemian Wi-Fi SSH | Laptop or `buildbox-1`, `buildbox-2`, `buildbox-3` | Device running Gemian, reachable Wi-Fi endpoint, and verified live identity |
-| Mainline USB-gadget Ethernet SSH | Laptop physically connected to the Gemini PDA | Laptop online, USB connection present, and an attributable mainline gadget session |
-
-Each Buildbox has `gemini` and `gemian` SSH aliases for the Gemian Wi-Fi
-endpoint, a dedicated mode-0600 key at `~/.ssh/gemini_ed25519`, and a pinned
-host key. Their public keys were authorized separately; the laptop's existing
-access is preserved. Connection settings and private keys remain outside Git.
-Use the configured laptop identity rather than assuming the current checkout
-contains a copy. Project helpers requiring an explicit identity file must be
-given the host's actual key path.
-
-Verify live OS, kernel and boot identity before inspection, testing or recovery;
-an alias, remembered boot identity or successful authentication is not sufficient.
-The Wi-Fi alias is not a mainline USB route, and lack of a USB connection from a
-Buildbox does not establish that Gemian SSH is unavailable.
-
-Buildbox-1 hosts continuing remote coordination; hardware-free builds do not
-require the laptop. USB-gadget testing does require it. When that physical path
-is unavailable, defer the USB-dependent action rather than guessing a network,
-boot-selection or recovery substitute. Remote coordination does not grant direct
-access to the laptop-attached USB device.
-
-All hosts and both transports share one device custodian and one physical-access
-queue, including read-only Wi-Fi inspection. SSH credentials do not admit an
-experiment, authorize concurrent device actions, relax installation/recovery
-gates, or replace owner-operated physical boot2 selection.
-
 ## Standing Gemian inspection authorization
 
 The owner authorizes use of existing private firmware/partition/userspace

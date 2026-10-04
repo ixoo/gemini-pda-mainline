@@ -65,15 +65,9 @@ repository a small patch, tooling and evidence layer; do not vendor Linux.
   firmware may support private tests; redistribution rights remain separate.
 - Verify live OS and boot identity. Gemian LAN SSH and mainline USB SSH are
   separate paths; check the known-good Gemian endpoint before declaring SSH
-  unavailable. Mainline USB-gadget Ethernet is physically connected to the
-  laptop, so those tests require it online. Each Buildbox has `gemini`/`gemian`
-  SSH aliases for Gemian Wi-Fi, not mainline USB; all transports share one device
-  custodian. See [device transports](docs/SAFETY.md#device-transports-and-remote-agents).
-  Use the configured mode-0600 device key: the ignored
-  `artifacts/credentials/gemini_ed25519` on the device-access laptop or
-  `~/.ssh/gemini_ed25519` on a Buildbox, with `IdentitiesOnly=yes` and
-  `IdentityAgent=none`. Do not assume a repository-local key exists on Buildbox
-  or copy private keys between hosts; never expose them.
+  unavailable. Prefer the ignored mode-0600 key
+  `artifacts/credentials/gemini_ed25519` with `IdentitiesOnly=yes` and
+  `IdentityAgent=none`; never expose it.
 - Standing boot2 installation approval remains: resolve logical `boot2` from
   live GPT in known-good Gemian, use the reviewed device guard, verify identity,
   inactive/unmounted/non-root state, size, writability and stable power.
