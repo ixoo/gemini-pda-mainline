@@ -14,6 +14,9 @@
 
 ## Question
 
+Follow-up: [2026-10-04 plan and peripheral RE review](NEXT_STEPS_2026-10-04.md)
+records implementation gates and the prepared next steps after pulling origin.
+
 Where does the project really stand after three months, what is solid versus
 assumed, which turns were wrong or risky, and what order of work gets the most
 working hardware soonest? The answer sets the
