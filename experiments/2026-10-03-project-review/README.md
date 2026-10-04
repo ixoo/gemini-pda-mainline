@@ -132,6 +132,13 @@ These have identity-gated runtime evidence, usually repeated across many boots.
 
 ## Recommended order
 
+Update 2026-10-04: the eleven source-only reverse-engineering records
+(`experiments/2026-10-04-gemini-*-re/`) revised Phase C and Phase D below;
+the roadmap's [current plan](../../docs/ROADMAP.md#current-plan-2026-10-03-review)
+and [After Wi-Fi](../../docs/ROADMAP.md#after-wi-fi-remaining-driver-gaps)
+sections own the revised order. The text below is kept as written on
+2026-10-03.
+
 The ordering rule: first finish the one chain that unlocks a whole family of
 hardware (CONSYS common init unlocks Wi-Fi, Bluetooth, GNSS and FM), then
 protect the lab (charging), then the two usability blockers (power keys and

@@ -49,18 +49,30 @@ WPA2 association, DHCP, ping and a ten-minute SSH session on the default
 profile. Then fold the `series-a53-wifi-*` profiles into one owner, one
 driver and one profile, and delete retired diagnostics from the series.
 
-**Phase C: offline now, in parallel.** Disabled BQ25896 charger node with
-conservative limits; MT6351 keys/RTC/power-off decisions; two upstream
-submissions with a real author and sign-off (infracfg reset plus one small
-fix), after checking the kernel's current rules on assisted contributions;
-cut this roadmap to the plan and move chronology to experiments; close or
-retitle the stale issues.
+**Phase C: offline now, in parallel.** The 2026-10-04 reverse-engineering
+records settled the open questions from source; the
+[After Wi-Fi](#after-wi-fi-remaining-driver-gaps) section now lists the
+concrete patches per block. Start with its steps 1, 2 and 6: the MT6351 keys
+node with an explicit long-press policy, the `mt6351-pwrc` power-off cell, the
+regulator constraint set, the disabled BQ25896 node with 4.2 V and 500 mA
+limits, and the STP task demultiplexer with a small Bluetooth `hci_dev`. Feed
+the CONSYS AFE register block to the common-init owner (GPS record H2). Two
+upstream submissions with a real author and sign-off (infracfg reset plus one
+small fix), after checking the kernel's current rules on assisted
+contributions; cut this roadmap to the plan and move chronology to
+experiments; close or retitle the stale issues.
 
-**Phase D: device sessions after the first frame.** Charger telemetry boot
-**(local)** then reviewed charging; one clean-profile boot **(local)** with
-no diagnostics to learn whether the product configuration boots; power keys,
-RTC and power-off **(local)**; display, Bluetooth, GNSS and the rest in the
-[After Wi-Fi](#after-wi-fi-remaining-driver-gaps) order.
+**Phase D: device sessions.** Not all of these wait for the first frame.
+The [After Wi-Fi](#after-wi-fi-remaining-driver-gaps) section groups every
+device test the records ask for into one read-only Gemian session (its first
+item is the charger `VREG` safety check), the attended actions inside it, and
+an ordered list of mainline boots **(local)**. Boots 1 to 3 (PMIC, charging and
+lid packet; charger probe; Bluetooth HCI reset on the already negotiated STP
+session) need nothing from the Wi-Fi order and can be scheduled now; one
+clean-profile boot **(local)** with no diagnostics still belongs early, to
+learn whether the product configuration boots; display adoption, I2C1,
+microSD/USB, audio, panel and GPU follow in that section's order; GNSS waits
+for proven common init.
 
 **Parked.** A72 default integration, cpufreq and thermal protection; DA9214
 beyond the read-only contract; receive-path firmware RAM sampling (proposal
@@ -1015,175 +1027,319 @@ the app and use this roadmap; the document itself is not a scheduler.
 
 ## After Wi-Fi: remaining driver gaps
 
-This section orders the non-Wi-Fi gaps so work can start as soon as the Wi-Fi
-station milestone lands. It reflects the 2026-10-03 survey of the
-[support matrix](HARDWARE_SUPPORT.md), the recovery records and the
-architecture refreshes linked below. It does not change the Wi-Fi order above
-and admits no device test; each runtime step still needs its own reviewed
-experiment. Steps marked **(local)** need Julien's machine, because Buildbox
-and the device are not reachable from cloud sessions. Everything else is
-offline review, design, schema or documentation work that can start now.
+This section orders the non-Wi-Fi gaps. It was rewritten on 2026-10-04 from
+the eleven source-only reverse-engineering records under
+`experiments/2026-10-04-gemini-*-re/` (charging, display, PMIC basics,
+Bluetooth, GPS, lid/microSD/USB, audio, sensors, GPU, cellular, camera); each
+record owns its facts (F) and ranked hypotheses (H), and this section only
+orders them. It does not change the Wi-Fi order above and admits no device
+test; each runtime step still needs its own reviewed experiment. Steps marked
+**(local)** need Julien's machine, because Buildbox and the device are not
+reachable from cloud sessions. Everything else is offline patch, schema or
+documentation work that can start now.
 
-Ranking rule: first remove dependencies shared by several subsystems, then
-deliver the two usability blockers (battery/charging and native display), then
-reuse the finished Wi-Fi connectivity core for Bluetooth and GNSS, then the
-remaining peripherals.
+Ranking rule, unchanged in spirit: first the item that protects the battery
+and the lab, then the shared foundations (PMIC interrupt path, CONSYS task
+demultiplexer, I2C1), then the two usability blockers (charging, native
+display), then the blocks that ride on finished foundations, grouped so that
+one boot or one Gemian session answers several records at once.
 
-### Shared dependencies
+### Safety first
 
-| Shared piece | Used by | Relation to Wi-Fi | Open item |
+1. **Charger regulation voltage discrepancy.** The public Gemian source
+   writes a fixed `VREG` of `0x24` (4.416 V) while the 2026-07-14 live capture
+   read back 4.336 V ([charging F11, H10](../experiments/2026-10-04-gemini-charging-re/README.md#part-2-hypotheses-ranked-by-value-per-device-minute)).
+   If the running binary matches the public source, the stock kernel is
+   over-charging a 4.35 V cell. One read-only Gemian kernel-log check of the
+   periodic `[bq25890 reg@]` dump (REG06) decides it **(local)** and should be
+   the first item of the next Gemian session. Until then, avoid long unattended
+   charge sessions under Gemian. On mainline, the first charger boot uses
+   `VREG` 4.2 V, `IINLIM` 500 mA, `linux,skip-reset` and
+   `linux,read-back-settings`; nothing writes `VREG` above 4.2 V before that
+   boot is reviewed, and Pump Express, OTG boost and VBUS role changes stay out
+   (charging H3, H4, H9).
+2. **Battery floor during mainline sessions.** Mainline has no low-battery
+   protection and relies on the PMIC hardware UVLO alone
+   ([PMIC H10](../experiments/2026-10-04-gemini-pmic-basics-re/README.md#part-2-hypotheses-ranked-by-value-per-device-minute)).
+   Keep mainline sessions on external power or above the vendor's 3.4 V first
+   threshold until the gauge driver (step 3) exists. A mainline power-off with
+   the cable attached re-enters LK charging mode and looks like a reboot
+   (PMIC H11); judge power-off results with the cable detached.
+
+### Shared dependencies and missing mainline pieces
+
+| Shared piece | Used by | Status after the records | Open item |
 | --- | --- | --- | --- |
-| MT6351 MFD, IRQ domain and regulators (0008–0015, 0062) | Wi-Fi rails, power keys, RTC, charger IRQ path, audio codec, microSD rails, touch/panel I/O rails | Every Wi-Fi candidate carries this stack; a change here invalidates Wi-Fi candidates | [VCN33 contract](../experiments/2026-09-08-mt6351-mfd-upstream-preparation/VCN33.md): one voltage selector serves BT and Wi-Fi with no arbitration; [VCN28](../experiments/2026-09-08-mt6351-mfd-upstream-preparation/VCN28.md) on-control sits outside the regulator vote |
-| CONSYS/WMT core: power-on, BTIF, STP, WMT common init | Wi-Fi, Bluetooth, GNSS, FM | Built by the Wi-Fi workstream now; [common init](../experiments/2026-10-03-mt6797-wifi-audit/COMMON_INIT_REVIEW.md) runs RF calibration with the BT PA rail involved | Keep it one owner with per-task STP channels so BT/GNSS consume it rather than re-power the block |
-| Clock and power-domain ownership (`clk_ignore_unused`, `regulator_ignore_unused`) | Retained simplefb console, display PWM, Wi-Fi profiles, GPU | All current profiles, Wi-Fi included, rely on both flags | Remove only per consumer, after its clocks and rails have a real owner |
-| SPM block `0x10006000` | CONN power status/control (Wi-Fi), display PWM oscillator at `+0x458` ([PWM oscillator](../experiments/2026-09-07-mt6797-display-upstream-architecture/PWM_OSCILLATOR.md)) | Shared with the CONSYS owner | Agree one register owner before a backlight driver writes there |
-| EINT controller (0005/0006) | PMIC (EINT176), touch (EINT8), card detect (EINT6), lid (EINT5), Type-C | None | No dedicated EINT consumer acceptance yet; make the first one cheap (lid or card detect) |
-| I2C0/I2C1 | Charger, FAN49101, both FUSB301 (I2C0/I2C1); panel bias, BMI160, STK3x1x (I2C1) | None | I2C1 is disabled in the board DT; enabling it serves display bias and sensors together |
+| MT6351 MFD interrupt domain (0008–0015, 0062) | Power key (EINT176), RTC alarm (IRQ 9), `CHRDET` (46) for cable and USB device-port role, ACCDET jack detection (12/13) | Never exercised on mainline; every record that needs a PMIC interrupt names it | First proof is the power key (PMIC H1); it validates the path for charging H2, audio H5 and lid/USB H2 at once |
+| MT6351 regulator constraints | Dropping `regulator_ignore_unused`; VCORE/VSRAM_PROC hardware control, VDRAM, VS1/VS2, modem bucks, VSIM1/2 | Vendor constraint set decoded (PMIC F8–F10, cellular H8) | Offline: write `always-on`/`boot-on` set and keep VCORE off-limits (PMIC H7); drop the flag only in a later reviewed boot |
+| Power-off and restart | Every boot's clean shutdown | Restart proven (TOPRGU). Vendor power-off is an RTC BBPU write that bypasses PSCI; mainline PSCI `SYSTEM_OFF` is untested and probably wrong | New: `mt6351-pwrc` MFD cell plus a small `mt6323-poweroff` extension (PMIC H2) |
+| CONSYS/WMT owner (BTIF, STP, common init) | Wi-Fi, Bluetooth, GNSS, FM | The repository's STP code speaks only the WMT task (GPS F18). Vendor power-on writes the AFE block at `0x180b6000` that no mainline candidate writes (GPS F12, H2) | Add the AFE writes to the Wi-Fi common-init owner now and re-run the passive scan; generalize STP to a task demultiplexer before BT/GNSS share it |
+| Clock and power-domain ownership (`clk_ignore_unused`) | Retained simplefb, display PWM, Wi-Fi, GPU | Display H2 gives the first removal path: a `simple-framebuffer` node carrying the MM domain and root clocks | Missing clocks: `CLK_MM_DSI0_INTERFACE_CLOCK` gate (display F19, H7); `mfg_52m_sel` parent and `INFRA_MFG_VCG` for the GPU (GPU H5) |
+| Bus protection and resets | MFG (GPU), MD1 (modem) | Local MFG domain (0047) has no `bus_prot_mask`; vendor asserts INFRA_TOPAXI bits 21/23 and writes GPU SRAM LDO words `0x10001fbc–0xfe4`; TOPRGU `MFG_RST` is not exposed (GPU H1, H2, H4). MD1 domain is absent from mainline (cellular H2) | Offline patches to 0047 and `mtk_wdt`; two Gemian reads decide the LDO words |
+| I2C1 (disabled in the board DT) | Panel bias at `0x3e`, BMI160 `0x69`, STK3x1x `0x48`, candidate MMC35240 `0x30` | Pin pair unconfirmed, probably `SCL1_0/SDA1_0` GPIO55/56 (sensors H8) | One Gemian pinmux read, then one boot serves display bias and all sensors |
+| EINT controller (0005/0006) | Lid (EINT5), card detect (EINT6), ALS/PS (EINT11), IMU candidate (EINT4), FUSB301 ID (EINT3), toggle (EINT16) | No dedicated consumer accepted yet | Lid (patch 0074 as-is) is the cheapest first consumer and can ride any boot |
+| Gauge and ADC | Battery telemetry, temperature, low-battery threshold | Vendor gauge is the MT6351 FGADC coulomb counter plus AUXADC; mainline has no MT6351 ADC or gauge driver (charging F15–F18, F21) | New small IIO driver modelled on MT6357–MT6373 with MT6351 offsets (charging H5) |
+
+### Corrected assumptions
+
+- **Panel identity is settled, not contradictory.** The loader's NT36672 probe
+  succeeds only on a real ID read while the SSD2092 probe always succeeds, so
+  the live `nt36672` name is a positive identification pending one LK-log read
+  (display F2–F4, H1). The SSD2092 variant question remains for other units.
+- **Display clock.** The vendor lane rate is 880 Mbit/s; the retained 435 MHz
+  is integer truncation and patch 0043's 138.839 MHz mode clock implies
+  833 Mbit/s. The mode clock should become 146.667 MHz (display H3).
+- **Charger interrupt.** The vendor never uses the BQ25896 `INT` pin; cable
+  events come from PMIC `CHRDET`. The upstream driver requires an IRQ at probe,
+  so either a real EINT is found or a small driver change is needed
+  (charging H1, H2).
+- **Power key and reset.** Public Gemian delivers `KEY_ESC`; mainline should
+  use `KEY_POWER`. Mainline `mtk-pmic-keys` always writes the reset register,
+  so the key node must state the long-press policy explicitly; one register
+  read (`TOP_RST_MISC`) decides the value (PMIC F11–F13, H3).
+- **RTC reload** is a vendor convention shared with MT6323, which mainline
+  already serves; considered answered pending one read test (PMIC H5).
+- **Bluetooth needs no common init to start.** The HCI parser lives in ROM, so
+  BT-on, HCI Reset and version/address reads can run on the already negotiated
+  full-mode STP session before ROM patches or calibration (Bluetooth H1, H2).
+  `btmtkuart` contributes framing and `btmtk_set_bdaddr` only.
+- **GNSS has a userspace cost.** The kernel shape holds (one function-control
+  command, GPIO69, a `gnss` device over task 2), but the stock position engine
+  is proprietary; whether the receiver speaks NMEA or binary MNL decides if
+  mainline GNSS ends at raw frames or at positions (GPS H4, H5).
+- **Speaker path.** The stock path is MT6351 line-out plus pulse-enabled
+  GPIO243/244 amplifiers; the `0x31` MAX98926 node is unbound in the stock
+  kernel. Jack detection is PMIC ACCDET, no AP EINT (audio H1, H2, H5).
+- **Sensors.** No controlled rail, no vendor IMU interrupt (GPIO65 is the only
+  candidate), ALS/PS on GPIO88, STK `0x11` is a naming problem that
+  `sensortek,stk3311` already drives, and the magnetometer is reopened because
+  the vendor's unbuilt driver is the mainline `mmc35240` register family
+  (sensors H1–H6).
+- **GPU.** The missing pieces are specific and small (bus protection, LDO
+  words, `mfg_52m` parent, optional reset, regulator timing), the safe first
+  operating point is 520 MHz at 1.000 V, and the GPU does not depend on the
+  PMIC step (GPU H1–H5, H8).
+- **Camera.** The front sensor matches upstream `hi556`; the irreducible
+  blocker is the SENINF/CSI-2 programming held in the proprietary HAL
+  (camera H1, H4, H5). **Cellular:** the AP-side bring-up is a short register
+  sequence over resources mainline mostly names, but no redistributable
+  CLDMA/CCCI transport exists anywhere (cellular H1–H4).
 
 ### Ordered gaps
 
-1. **PMIC foundation (offline now).** Finish the MT6351 VCN33 arbitration and
-   VCN28 control decisions in the
-   [MFD topic](../experiments/2026-09-08-mt6351-mfd-upstream-preparation/README.md)
-   with the Wi-Fi owner, since BT and Wi-Fi share them. Resolve the RTC BBPU
-   reload question in the
-   [RTC source audit](../experiments/2026-07-11-mt6351-pmic-recovery/results/rtc-source-audit-20260908.md)
-   and write the power-key long-press reset policy in the
-   [keys topic](../experiments/2026-09-08-mt6351-keys-preparation/RESET_POLICY.md).
-   The [PMIC basics reverse-engineering record](../experiments/2026-10-04-gemini-pmic-basics-re/README.md)
-   (2026-10-04) answers these from source: the vendor reads the RTC without a
-   chip-specific requirement that mainline lacks on sibling PMICs, the retained
-   configuration requests one-key 11 s reset while mainline disables reset
-   unless the key node says otherwise, and vendor power-off is an RTC BBPU
-   write that bypasses PSCI, so the reviewed path is an MT6351 `pwrc` cell
-   reusing `mt6323-poweroff`; its ranked hypotheses order the next tests.
-   Then one combined runtime packet **(local)**: power-key events, RTC
-   read/set/alarm and a reviewed power-off path. These close the M2 PMIC items
-   and give every later boot a clean shutdown.
-2. **Battery and charging (first usability blocker).** The charger is a
-   BQ25896 on I2C0 `0x6b` ([identity](../experiments/2026-07-12-charger-power-recovery/CHARGER_ID.md));
-   upstream `bq25890_charger` matches, so this is board description, not a new
-   driver. Missing inputs: the charger IRQ line, conservative charge limits and
-   the fuel-gauge source. The
-   [charging reverse-engineering record](../experiments/2026-10-04-gemini-charging-re/README.md)
-   (2026-10-04) answers these from source: the vendor requests no charger
-   interrupt and relies on the MT6351 `CHRDET` line, the gauge is the MT6351
-   internal FGADC plus PMIC AUXADC, and the vendor register configuration gives
-   a conservative starting set; its ranked hypotheses order the next device
-   tests. Next steps:
-   (a) **(local)** one bounded read-only Gemian inspection for the charger IRQ
-   GPIO/EINT, the gauge's register source and live power-supply telemetry,
-   without repeating the consumed `0x14` read;
-   (b) offline, a disabled BQ25896 node with limits taken from the
-   [mainline design](../experiments/2026-07-12-charger-power-recovery/results/mt6797-charger-mainline-design.md)
-   and the pending [IRQ preflight fix](../experiments/2026-09-12-bq25890-irq-preflight/README.md);
-   (c) **(local)** a first mainline boot that only probes the charger and reads
-   telemetry, with charging left in its loader state. Charging control and a
-   gauge driver follow as separate steps. Charge state also gates device
-   sessions: the 2026-09-12 inspection saw 31 % and "Not charging".
-3. **Native display (second usability blocker).** Panel identity was
-   contradictory (vendor NT36672 descriptor versus SSD2092 in the
-   [bsg100 comparison](../experiments/2026-07-13-bsg100-gemini-linux-comparison/README.md)).
-   The
-   [display reverse-engineering record](../experiments/2026-10-04-gemini-display-re/README.md)
-   (2026-10-04) resolves this from source: the loader's NT36672 probe only
-   succeeds on a real ID read while the SSD2092 probe always succeeds, so the
-   live `nt36672` name on this device is a positive identification. It also
-   fixes the panel power/reset/timing contract (lane rate 880 Mbit/s, the
-   retained 435 MHz is integer truncation), confirms the display-PWM register
-   layout and single-clock contract, and finds that mainline lacks the
-   `DSI0_INTERFACE` clock gate patch 0040 relies on. The bias chip remains
-   named but unproved (LP3101 label, TPS65132 protocol). Keep the console on
-   simplefb meanwhile. Next steps, in order:
-   (a) **(local)** the already-specified bounded Gemian trace of display PWM
-   clocks, parents and MM-domain lifetime from the
-   [display refresh](../experiments/2026-09-07-mt6797-display-upstream-architecture/README.md),
-   extended with the record's read-only loader-log and bias-chip reads
-   (hypotheses H1, H5, H6);
-   (b) offline, rebase and split 0028–0044 per that refresh's verdicts and
-   convert 0041 to OF-graph;
-   (c) backlight first: display PWM with a truthful clock contract is the
-   smallest consumer and makes the screen dimmable under simplefb;
-   (d) DSI/panel bring-up **(local)** only after identity and reset are known.
-   Touch (vendor NT36772 on I2C4 `0x62`, possibly SSD2092 at `0x53`; see the
-   leads below and the [design](../experiments/2026-07-12-input-backlight-recovery/results/nt36xxx-mainline-design.md))
-   follows the panel because its suspend/resume is coupled to LCD state and its
-   rail is unidentified.
-4. **Bluetooth, then GNSS (reuse the Wi-Fi core).** These start the moment the
-   WMT common init in the Wi-Fi order is proven, because BTIF, STP, the ROM
-   patches and calibration are the same. Offline now: design the STP task
-   demultiplexer and channel API, and map the vendor BT and GPS function-on
-   sequences against the common init. Upstream shape: a `hci_dev` over the
-   shared BTIF/STP channel reusing `btmtk` helpers (`btmtkuart` matches only
-   the framing), and a `gnss` device fed by the STP GPS task plus the LNA on
-   GPIO69. First runtime test **(local)**: one HCI reset and version read.
-   The [GPS reverse-engineering record](../experiments/2026-10-04-gemini-gps-re/README.md)
-   (2026-10-04) confirms that shape from source: GNSS-on is the WMT
-   function-control command for type 2 plus GPIO69 high, VCN28 and the ROM
-   patches come from the common power-on, and the current mainline STP code
-   accepts only the WMT task. Its two actionable findings: the vendor power-on
-   writes the CONSYS AFE block at `0x180b6000` (GPS, BT and Wi-Fi receive
-   registers) that no mainline candidate writes, to be reviewed in the Wi-Fi
-   common-init owner now; and the stock position engine is proprietary
-   userspace, so one bounded read-only Gemian trace of the first `/dev/stpgps`
-   bytes **(local)** must precede any mainline GNSS boot to learn whether the
-   receiver speaks NMEA or the binary MNL protocol.
-   The [Bluetooth reverse-engineering record](../experiments/2026-10-04-gemini-bluetooth-re/README.md)
-   (2026-10-04) confirms the `hci_dev`-over-task-0 shape from source and from
-   Gemian's own in-kernel `hci_stp` driver: BT-on is the function-control
-   command for type 0 with VCN33-BT at 3.3 V, the BT task carries unmodified
-   H:4 packets, and `btmtkuart` shares only the frame layout (its WMT runs
-   inside HCI `0xfc6f`, which the vendor never uses). Its first device test
-   is one boot on the already-negotiated full-mode session: BT-on, HCI Reset,
-   version and address reads, no ROM patch or calibration required, so it can
-   run before the Wi-Fi common-init owner is complete. A read-only Gemian
-   check of the `hci0` address decides whether this unit has a factory BD
-   address **(local)**.
-   FM comes last; no upstream driver exists and its fitment is unknown.
-5. **Small standalone wins (any free slot).** Lid switch (GPIO66/EINT5, patch
-   0074) needs one attended transition **(local)** to confirm polarity and
-   wake. microSD at 3.0 V needs the VMCH/VMC entry trim from the
-   [microSD contract](../experiments/2026-07-12-mt6797-msdc-recovery/MICROSD_CONTRACT.md)
-   before a card test **(local)**. USB VBUS/role ownership needs one session
-   tying connector, role, GPIO94 and the charger boost
-   ([VBUS record](../experiments/2026-09-08-usb-vbus-ownership/README.md)).
-   The [lid/microSD/USB source record](../experiments/2026-10-04-gemini-lid-microsd-usb-re/README.md)
-   ranks the device tests for all three.
-6. **Audio.** Upstream drivers exist (`mt6797-afe-pcm`, `mt6351`,
-   `mt6797-mt6351`). Offline: the AFE YAML topic awaits truthful authorship.
-   Before a card: identify the speaker amplifier at I2C0 `0x31` and the jack
-   detection wiring **(local, read-only Gemian)**, then a bounded low-volume
-   playback test **(local)**. Depends on step 1 for the MT6351 codec child.
-   The [audio reverse-engineering record](../experiments/2026-10-04-gemini-audio-re/README.md)
-   narrows this: the stock speaker path is MT6351 line-out plus pulse-enabled
-   GPIO243/244, the `0x31` node is an unbound MAX98926, and jack detection is
-   MT6351 ACCDET on the PMIC's internal EINT; its H1 Gemian read decides the
-   amplifier before any card is built.
-7. **Sensors.** BMI160 (I2C1 `0x69`) has an upstream driver; STK3x1x product
-   ID `0x11` is not in the `stk3310` table. Enabling I2C1 is shared with the
-   display bias chip, so do it once. Rails, interrupts and mount orientation
-   need a read-only Gemian check **(local)**. See the
-   [sensors refresh](../experiments/2026-09-07-gemini-sensors-upstream-architecture/README.md).
-   The [sensor reverse-engineering record](../experiments/2026-10-04-gemini-sensors-re/README.md)
-   (2026-10-04) answers these from source: no controlled rail, no IMU
-   interrupt used by the vendor (GPIO65/EINT4 is the candidate), ALS/PS on
-   GPIO88/EINT11, `0x11` handled generically by the vendor, and the vendor's
-   unbuilt "MMC3530" driver is the mainline `mmc35240` register family.
-8. **GPU.** Panfrost (Mali-T880) needs the MFG power domains, the RT5735 VGPU
-   regulator ([record](../experiments/2026-07-12-rt5735-vgpu-recovery/README.md))
-   and safe OPPs. It waits for native display and for thermal protection. The
-   [GPU reverse-engineering record](../experiments/2026-10-04-gemini-gpu-re/README.md)
-   (2026-10-04) lists what the vendor power-on sequence does that the local
-   patches do not (bus protection, GPU SRAM LDO words, pre-clock, regulator
-   timing), derives a first fixed OPP of 520 MHz at 1.000 V, and ranks the
-   device tests.
-9. **Cellular and cameras.** Unchanged: feasibility work only, per the
-   cellular and camera records referenced in the parallel-delivery table.
-   The [camera reverse-engineering record](../experiments/2026-10-04-gemini-camera-re/README.md)
-   (2026-10-04) narrows the camera question: the built-in front sensor
-   matches the upstream `hi556` register map, bus, rails and pins are
-   known, and the irreducible blocker is the SENINF/CSI-2 programming held
-   in the vendor HAL; its ranked hypotheses name the first read-only tests.
+1. **PMIC foundation (offline now, one boot).** Patches: `mediatek,mt6351-keys`
+   child with `KEY_POWER` and an explicit long-press policy; `mt6351-pwrc` cell
+   and `mt6323-poweroff` compatible extension (`0x4309`, RTC base `0x4000`);
+   regulator constraint set from PMIC H7 while keeping `regulator_ignore_unused`
+   and logging `regulator_summary`; a probe-time read of the nine
+   decision-changing PMIC registers (PMIC H8). Needs the `TOP_RST_MISC` Gemian
+   read first (PMIC H3, H4). One combined boot **(local)** then covers key
+   events, RTC read and alarm, and a power-off attempt with the charger
+   detached (PMIC H1, H2a, H5, H6). This boot also carries step 2's `CHRDET`
+   count and step 5's lid test.
+   Records: [PMIC basics](../experiments/2026-10-04-gemini-pmic-basics-re/README.md);
+   earlier topics [MFD](../experiments/2026-09-08-mt6351-mfd-upstream-preparation/README.md),
+   [keys](../experiments/2026-09-08-mt6351-keys-preparation/RESET_POLICY.md).
+2. **Battery and charging (first usability blocker).** Patches: disabled
+   BQ25896 node at I2C0 `0x6b` with the conservative set from charging H3
+   (4.2 V first, `ICHG` 512 mA, `IINLIM` 500 mA, `IPRECHG`/`ITERM` 128 mA,
+   `SYS_MIN` 3.5 V, `ti,use-ilim-pin`, no Pump Express), `linux,skip-reset`
+   and `linux,read-back-settings`, interrupt per charging H1 or a small
+   `bq25890` change to accept `CHRDET` plus polling; the pending
+   [IRQ preflight fix](../experiments/2026-09-12-bq25890-irq-preflight/README.md).
+   Device order: Gemian reads (VREG dump, adapter type and PE+ log, live
+   `bat_meter` DT; charging H10, H6, H7) **(local)**; `CHRDET` count in the
+   step 1 boot (H2); a charger probe boot that dumps REG00–REG14 first and
+   reads telemetry unplugged and plugged (H3, H8, H4) **(local)**; a reviewed
+   charging enable after that.
+3. **Gauge and ADC driver (offline, after step 2's first read).** New MT6351
+   AUXADC/FGADC IIO driver (channels BATSNS/ISENSE/VCDT/BATON, `FGADC_CON0`),
+   `simple-battery` with design voltages only, and a low-battery threshold
+   (charging H5, PMIC H10). First boot compares BATSNS with the charger ADC.
+4. **Native display (second usability blocker).** Offline, in dependency order
+   ([display Part 3](../experiments/2026-10-04-gemini-display-re/README.md#part-3-what-mainline-needs-beyond-the-retained-simplefb)):
+   (a) `simple-framebuffer` node with MM power domain and root clocks so
+   `clk_ignore_unused` can go (H2); (b) add the `DSI0_INTERFACE_CLOCK` gate to
+   `clk-mt6797-mm` before patch 0040 can probe (H7); (c) rebase and split
+   0028–0044 per the [architecture refresh](../experiments/2026-09-07-mt6797-display-upstream-architecture/README.md),
+   OF-graph for 0041, display PWM as an MT6797 variant with one `main` clock
+   plus the MM domain and a `pwm-backlight` (H8); (d) board nodes: TPS65132
+   bias at I2C1 `0x3e` with `outp`/`outn` 5.5 V and enable GPIOs 60/251
+   (H5), panel `planet,gemini-pda-nt36672` with `reset-gpios` GPIO180 (H4),
+   mode clock 146.667 MHz (H3), no `vddi` (H6), portrait rotation; (e) an
+   MT6797 IOMMU/SMI decision for the first OVL/RDMA path. Device order
+   **(local)**: Gemian reads of the LK log, bias registers, VIO18/LDO states
+   and pin 180 across a display cycle (H1, H5, H6, H4a); simplefb adoption
+   boot (H2); backlight boot under simplefb (H8); panel bring-up with a `0xDB`/
+   `0xF4` read before any init table (H1, H3, H4, H9). Touch follows the panel
+   (H10). Keep the console on simplefb meanwhile.
+5. **Small standalone wins (ride other boots).** Lid: enable patch 0074 as-is,
+   one attended close/open, no `wakeup-source` (lid H1, H8). microSD: add
+   `ldo-vmch`/`ldo-vmc` regulator nodes and an `&mmc1` node (GPIO67
+   active-high card detect, `no-1-8-v`, ≤ 50 MHz, pinmux-only pads), read PMIC
+   trim fields `0xACE`/`0xAE2` on Gemian first, never port the trim arithmetic
+   (H3, H9). USB: device-port role from `CHRDET` through a small `extcon`/
+   `usb-conn` consumer so forced B-session (0077) becomes conditional (H2);
+   host-port VBUS is GPIO94, whose source a USB meter decides before any
+   `regulator-fixed` toggle (H4); FUSB301A ID on GPIO64 as `id-gpios` (H5);
+   the toggle on GPIO93 needs an owner observation (H7).
+   Record: [lid/microSD/USB](../experiments/2026-10-04-gemini-lid-microsd-usb-re/README.md),
+   [microSD contract](../experiments/2026-07-12-mt6797-msdc-recovery/MICROSD_CONTRACT.md),
+   [VBUS record](../experiments/2026-09-08-usb-vbus-ownership/README.md).
+6. **Bluetooth (can start before common init is complete).** Offline: STP task
+   demultiplexer and channel API in the CONSYS owner (GPS F18); a small
+   `hci_dev` over task 0 reusing `btmtk_set_bdaddr` and the H:4 receive helper,
+   no vendor sleep parameters at first (Bluetooth H4, H5); `mtk-btcvsd` node
+   later (H9). Device: one Gemian read of the `hci0` address decides whether
+   mainline must supply a `local-bd-address` (H6) **(local)**; one boot on the
+   negotiated full-mode session with VCN33-BT at 3.3 V, function-control BT-on,
+   HCI Reset, version and BD_ADDR reads, a zero-CRC frame probe and a `0xfc6f`
+   probe (H1–H5) **(local)**. Coexistence and radio trims come later (H7, H10).
+   Record: [Bluetooth](../experiments/2026-10-04-gemini-bluetooth-re/README.md).
+7. **GNSS (after proven common init).** Offline now: feed the AFE register
+   block to the Wi-Fi common-init owner (GPS H2); design the `gnss` device over
+   task 2 with the GPIO69 pinctrl state and VCN28 from the common power-on
+   (H1, H3, H6). Device: the Gemian trace of the first `/dev/stpgps` bytes in
+   one stock GNSS session (H4) must precede any mainline GNSS boot, because it
+   decides NMEA versus binary MNL (H5); then one boot sending GPS function-on
+   and counting task-2 frames (H1) **(local)**. FM stays last.
+   Record: [GPS](../experiments/2026-10-04-gemini-gps-re/README.md).
+8. **Sensors (first I2C1 boot, shared with display bias).** Patches: enable
+   I2C1 on the confirmed pin pair (H8); BMI160 node at `0x69` as in patch 0052
+   with the direction-7 mount matrix and no interrupt (H1); `sensortek,stk3311`
+   at `0x48` (H4); then `interrupts` GPIO65/EINT4 for the IMU (H2) and
+   GPIO88/EINT11 level-low for proximity (H5). Device: Gemian pinmux read of
+   GPIO53–60 first; one boot reads accel/gyro/ALS/PS and performs four single
+   ID reads (`0x30` reg `0x20`, `0x77` reg `0xD0`, `0x5f` reg `0x0F`) that close
+   the magnetometer, barometer and humidity questions (H6, H7) **(local)**. No
+   upstream ID-table change for STK `0x11` until the marketed part name is
+   known. Record: [sensors](../experiments/2026-10-04-gemini-sensors-re/README.md).
+9. **Audio (after step 1's `mt6351-sound` child).** Offline: AFE node, MT6351
+   codec child and `mt6797-mt6351` card routed to headphones only, line-out
+   muted, amplifier GPIOs untouched (H3); a small MT6351 ACCDET driver modelled
+   on `mt6359-accdet` with the F10/F12 parameters (H5); the AFE YAML topic.
+   Device: Gemian reads of GPIO243/244 during a low-volume tone, an `0x31`
+   probe, ACCDET interrupt counts across a headset plug and the live audio DT
+   (H1, H2, H5, H6, H7) **(local)**; then a −40 dB headphone tone and an AIN0
+   capture boot (H3, H4) **(local)**. An external-amplifier widget or MAX98926
+   node comes only after H1/H2; if H2 wins, an MT6797 I2S DAI becomes its own
+   topic. Record: [audio](../experiments/2026-10-04-gemini-audio-re/README.md).
+10. **GPU (after display, before sustained load needs thermal).** Patches:
+    `bus_prot_mask = BIT(21) | BIT(23)` on the MFG domain in 0047 (H1); an
+    infracfg write of the GPU SRAM LDO words before MFG powers on if the
+    Gemian read shows reset values (H2); `assigned-clock-parents` for
+    `mfg_52m_sel` and `clocks = core (MFG_BG3D), bus (INFRA_MFG_VCG)` (H5);
+    MT6797 `mtk_wdt` reset entry and `resets = <&watchdog 2>` (H4); RT5735
+    `enable_time` 350 µs and `ramp_delay` (H8); a named profile (not
+    `gemini.fragment`) enabling `DRM`, `DRM_PANFROST`, `mfgsys`, `i2c7` and the
+    RT5735 fixed at 1.000 V. Device: Gemian reads of the LDO words, `CLK_CFG`
+    bits for `mfg_52m_sel` and the decoded devinfo speed bin (H2a, H5, H7)
+    **(local)**; one probe-and-power-cycle boot at a fixed 520 MHz with a
+    serial console or pstore (H3) **(local)**. DVFS is clock flags plus the
+    uncalibrated type-12 table below 780 MHz (H6), after H3 and the thermal
+    step (H9). Record: [GPU](../experiments/2026-10-04-gemini-gpu-re/README.md).
+11. **Cellular and cameras (feasibility only).** Cellular: a read-only
+    observation boot printing the LK `ccci` tags, SPM MD1 status at both offset
+    pairs and `MD1_CFG_BOOT_STATS0/1` (cellular H1) **(local)**; a Gemian
+    `ccci_dump` read of the CLDMA queue-0 ring (H5) and SIM pinmux/LDO states
+    (H8). MD1 domain, PLL replay and boot-vector release (H2–H4) each need their
+    own reviewed experiment, and H4 is the first to run proprietary modem code.
+    Camera: Gemian log read of the SLS sensor-ID line and `camtg_sel` clock
+    summary (camera H1a, H2a); then a mainline `hi556` probe boot reading one
+    register with an OF match, 24 MHz PLL entry and PDN GPIO (H1b) **(local)**;
+    the receiver path waits for the MT8365 SENINF/CAMSV comparison (H4) and the
+    bounded register-window capture during a stock stream (H5).
+    Records: [cellular](../experiments/2026-10-04-gemini-cellular-re/README.md),
+    [camera](../experiments/2026-10-04-gemini-camera-re/README.md).
+
+### Device tests, grouped by session type
+
+Deduplicated from the eleven records so Julien can batch them. Every test is
+bounded and read-only in intent unless marked; none is admitted by this list
+and each still needs its reviewed experiment with identity checks.
+
+**A. One read-only Gemian session (known-good LAN SSH).** Order by value:
+
+1. Kernel-log `[bq25890 reg@]` dump, REG06 `VREG` (charging H10, safety).
+2. `TOP_RST_MISC` `0x2b6` through the bounded `pmic_access` path, read twice
+   with another register between (PMIC H3, H4).
+3. LK log lines for the NT36672 ID and `we will use lcm` (display H1).
+4. I2C1 `0x3e` registers `0x00`, `0x01`, `0x03`, `0xFF` (display H5); live
+   pinmux of GPIO53–60 (sensors H8).
+5. `hciconfig hci0` / `btmgmt info`, `BT.cfg`, `[HCI-STP]` log (Bluetooth H6).
+6. PMIC `0xACE`/`0xAE2` bits 4:0 (microSD H3); GPIO69 state (GPS H6).
+7. `/proc/interrupts` `iddig_eint` count across one OTG-adapter attach
+   (USB H6); EINT16 count and `switch` state across one slider flip (toggle
+   H7).
+8. `i2cdetect -y -r 0` restricted to `0x31`, and register `0xFF` if it ACKs
+   (audio H1b, H2); GPIO234/235 levels idle (audio H6).
+9. Live DT nodes: `bat_meter` and `battery` (charging H7), audio section and
+   `accdet` (audio H7), `i2c@11010000` children (GPU H7), `chosen/atag,devinfo`
+   words 8, 22, 61 and EEM words, decoded values only (GPU H7).
+10. INFRACFG `0x10001fbc–0x10001fe4` with the GPU idle (GPU H2a); `CLK_CFG`
+    `0x10000104` bits 2:1 and `clk_summary` for `mfg_52m_sel` (GPU H5).
+11. AFE window `0x180b6000+0x100`, 64 words (GPS H2); charger battery log with
+    the bundled adapter attached (charging H6).
+12. Camera: SLS `ReadOut sensor id` log line after one camera-app open,
+    `camtg_sel` in `clk_summary`, `SUBAF` log errors (camera H1a, H2a, H6).
+13. Cellular: `/proc/ccci_dump` queue-0 ring (H5); SIM pinmux GPIO126–128/
+    155–157 and VSIM1/2 enable bits with and without a SIM (H8).
+
+**B. Attended hardware actions inside that Gemian session** (owner at the
+device; each is one short action):
+
+- Display off/on cycle while sampling pin 180 state and MT6351 LDO enable
+  states (display H4a, H6, H10).
+- Low-volume tone through the stock stack while sampling GPIO243/244 (audio
+  H1a); headset plug/unplug while counting ACCDET sources 12/13 and reading
+  `switch`/key events (audio H5); record from the headset mic while sampling
+  GPIO234/235 (audio H6).
+- One stock GNSS session capturing lengths and first 16 bytes of the first
+  `/dev/stpgps` writes and reads (GPS H4); this decides the GNSS plan.
+- USB meter on the host port with a known hub attached and with nothing
+  attached, GPIO94 low (USB H4a); no device write.
+- Optional: short GPU load while re-reading `0x10001fbc` (GPU H2a).
+
+**C. Mainline boots** (each a reviewed experiment with its own candidate):
+
+1. **PMIC, charging and lid packet.** Key node, RTC node, lid node (0074),
+   MT6351 irqchip visible in `/proc/interrupts`, the nine-register PMIC read,
+   `TOP_RST_MISC` read before any write. Attended: one power-key press, one lid
+   close/open, one cable plug/unplug (`CHRDET`, `VBATON_UNDET`), `rtcwake` 10 s,
+   then `poweroff` with the charger detached (PMIC H1, H4, H5, H6, H8, H2a;
+   charging H2; lid H1; USB H2).
+2. **Charger probe.** Disabled-by-default node enabled in a named profile,
+   REG00–REG14 dump first, telemetry unplugged and plugged, gadget idle then
+   enumerated (charging H3, H8, H4). Later: gauge driver boot comparing BATSNS
+   with the charger ADC (H5).
+3. **Bluetooth on the negotiated session.** VCN33-BT on, BT-on, HCI Reset,
+   version and BD_ADDR, second Reset after 2 s, zero-CRC frame, `0xfc6f` query,
+   BT off (Bluetooth H1–H5). Independent of ROM patches.
+4. **Display adoption and backlight.** simplefb node with MM domain and
+   `clk_ignore_unused` removed (display H2); then display PWM plus
+   `pwm-backlight` under simplefb with `CON_0`/`CON_1` readback (H8).
+5. **I2C1 bus boot.** BMI160, STK3311, bias chip if not read on Gemian, four
+   single ID reads at `0x30`/`0x77`/`0x5f`, device flat and on each edge
+   (sensors H1, H4, H6, H7; display H5 fallback). Then interrupts (H2, H5).
+6. **microSD and USB host.** `&mmc1` with VMCH/VMC, trim and IOCFG_B fields
+   read at entry, one known file read (microSD H3, H9); GPIO94
+   `regulator-fixed` toggled once with the meter on the port and charger
+   unplugged, GPIO64 and FUSB301 status with and without a partner
+   (USB H4b, H5).
+7. **Audio card.** Headphone-only card, −40 dB tone, AIN0 then AIN2 capture,
+   `AUDDEC_ANA_CON0` readback (audio H3, H4, H8).
+8. **Panel bring-up.** `0xDB`/`0xF4` DCS read before any init table, PCW
+   readback and vblank-derived refresh, two DPMS cycles reading `0x0A`
+   (display H1, H3, H4b, H9). Touch probe at `0x62` and `0x53` after.
+9. **GPU probe.** Fixed 520 MHz at 1.000 V, `clk_summary` before probe,
+   INFRA_TOPAXI bits 21/23 and LDO words read, probe line, one runtime
+   suspend/resume cycle; stop on any SCPSYS or TOPAXI timeout (GPU H1–H3).
+10. **GNSS first frames** after proven common init (GPS H1, H3).
+11. **Cellular observation** (tags, SPM status, boot status; cellular H1) and
+    **camera probe** (`hi556` one-register read, I2C3; camera H1b, H6).
+
+Boots 1–3 need nothing from the Wi-Fi order; boot 4 removes a global flag and
+should precede 5–9; boot 10 waits for common init.
 
 ### Leads from owner-held reference documents
 
@@ -1193,47 +1349,39 @@ vendor datasheets (BQ25896, TPS65132, FUSB301A, DA9213/14/15, AW9523B),
 2017 MT6351 mailing-list patches, and third-party Gemini notes (Gemian wiki
 and bsg100). The SoC and X20 material is marked confidential and most
 datasheets have no redistribution grant, so cite them by name only. They are
-leads to check against this unit, not facts:
+leads to check against this unit, not facts. Items the 2026-10-04 records
+settled from source are dropped here; what remains:
 
-- **Two panel/touch variants are likely.** A Solomon brochure lists SSD2092 as
-  a single-chip display and touch driver, and bsg100 reports I2C4 `0x53`
-  answering with nothing at `0x62` on its unit. The retained 2019 vendor
-  `novatek_ts_fw.bin` (see the [firmware boundary](hardware/firmware.md)) is
-  however a Novatek NT36xxx-layout image whose info block encodes a 1080x2160
-  touch area, with no chip name, panel vendor or I2C address inside. So the
-  Gemian-era unit used Novatek touch at `0x62` while other units may carry
-  SSD2092 at `0x53`. Make the step 3a read probe both addresses with touch
-  reset released, and plan the board description for both variants.
+- **Two panel/touch variants are likely.** bsg100 reports I2C4 `0x53`
+  answering with nothing at `0x62` on its unit, while the retained 2019
+  `novatek_ts_fw.bin` (see the [firmware boundary](hardware/firmware.md)) is a
+  Novatek NT36xxx-layout image. Make the touch probe read both addresses with
+  touch reset released, and plan the board description for both variants.
 - **Panel bias.** The TPS65132 datasheet gives fixed address `0x3e`, VPOS/VNEG
-  at registers `0x00`/`0x01` and a ±5.4 V reset value, which fits the vendor
-  writes. The functional specification places LCM_RST on GPIO180 (EINT105)
-  and DISP_PWM on GPIO178.
+  at `0x00`/`0x01` and a ±5.4 V reset value, consistent with display H5.
 - **Charger.** bsg100 reports boost enable on GPIO107 in addition to
-  OTG_CONFIG. The BQ25896 watchdog reverts settings to defaults unless the
-  host services it or disables it, which the charger limits must account
-  for. The interrupt is an active-low 256 µs pulse.
-- **Fuel gauge.** bsg100 names the MT6351 internal gauge (FGADC registers),
-  for which mainline has no driver. Confirm it in step 2a before planning one.
-- **Audio jack.** The X20 detects the jack through MT6351 ACCDET. The
-  speaker amplifier at I2C0 `0x31` is named in none of the documents.
-- **USB.** GPIO93 (EINT16) has IDDIG as an alternate function, a candidate
-  for the unidentified second switch. FUSB301A at `0x25` implies its address
-  pin is strapped high on both buses.
-- **Connectivity.** On the X20 the MT6631 integrates FM, with VCN18 feeding
-  the Wi-Fi/BT and GPS 1.8 V supplies, VCN33 the Wi-Fi/BT 3.3 V supply and
-  VCN28 the FM supply. The retained vendor FM patch and coefficient files are
-  named for the MT6631 and `fm_cust.cfg` selects a 26 MHz oscillator, so no
-  separate FM chip is expected. The retained `WMT_SOC.cfg` holds only four
-  keys: shared Wi-Fi/BT antenna (`coex_wmt_ant_mode=1`), no firmware-driven
-  GPS LNA pin, and `co_clock_flag=0`; it carries no voltage, trim or
-  calibration setting. The second ROMv3 patch carries GPS code. Any GPIO69
-  LNA control therefore belongs to the host, not the WMT layer.
+  `OTG_CONFIG`; the BQ25896 watchdog reverts settings unless serviced or
+  disabled (charging H8); the interrupt is an active-low 256 µs pulse
+  (charging H1).
+- **Sensors.** The marketed name of the STK `0x11` part may be in the Planet
+  BOM notes; it is the discriminator for an upstream ID-table change
+  (sensors H4).
+- **USB.** GPIO93 (EINT16) has IDDIG as an alternate function; the records
+  instead find the toggle there (lid/USB H7). FUSB301A at `0x25` implies its
+  address pin is strapped high on both buses.
+- **Connectivity.** MT6631 integrates FM; VCN18 feeds Wi-Fi/BT and GPS 1.8 V,
+  VCN33 the Wi-Fi/BT 3.3 V supply, VCN28 the FM supply. The retained
+  `WMT_SOC.cfg` holds four keys (shared antenna, no firmware GPS LNA pin,
+  `co_clock_flag=0`) and no voltage, trim or calibration setting; GPIO69 LNA
+  control belongs to the host (GPS H6).
+- **GPU.** If the documents cover INFRACFG `0x10001fbc–0xfe4` or the
+  `0x180b6000` AFE block, they settle GPU H2 and GPS H2 without a device read.
 - **Board differences.** X20 addresses do not carry over: its `0x6b` is an
   MT6313 buck, while the Gemini has a BQ25896 there.
 
 The [workstream registry](../project/workstreams.json) keeps owners; this
-section only orders the work. When Wi-Fi reaches station association, start
-with steps 1 and 2, and begin step 4's offline design in parallel.
+section only orders the work. Start now with the offline items of steps 1, 2
+and 6 and the Gemian session A; schedule boot C1 first.
 
 ## A53 development-system release gate
 
