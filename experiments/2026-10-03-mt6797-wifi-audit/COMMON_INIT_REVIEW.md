@@ -131,3 +131,11 @@ Wi-Fi reception remain unproved; no hardware operation or build occurred.
 The [AFE driver preparation](../2026-10-04-mt6797-afe-preparation/README.md)
 implements this sequence behind an explicitly claimed optional resource;
 compile/schema validation and hardware admission remain separate gates.
+
+## Shared task framing preparation
+
+The [task framing checkpoint](../2026-10-04-mt6797-stp-task-framing/README.md)
+extracts the ordinary task codec for Bluetooth while preserving the existing
+WMT API and command ceiling. Host and Buildbox checks pass. Shared task delivery,
+sequence/ACK ownership, IRQ lifetime and reset epochs remain separate transport
+work; this checkpoint supplies no Bluetooth or GNSS hardware result.

@@ -1,5 +1,5 @@
 {
-  "status": "offline framing draft; host pass; kernel build pending",
+  "status": "offline host/build/package pass; no runtime acceptance or candidate",
   "parent_profile": "mt6797-a53-consys-afe-compile",
   "profile": "mt6797-a53-stp-task-compile",
   "parent_wmt_header_sha256": "72ba1180b1783e5f0dba16436d196159ac3796e639d7a826b2a1ed5659801270",
@@ -24,14 +24,33 @@
   "checks": {
     "task_framing": "strict C11 warnings, ASan/UBSan pass",
     "wmt_compatibility": "existing codec, state, stream and TX tests compiled against authored kernel headers pass",
-    "checkpatch": "zero errors/warnings/checks with MISSING_SIGN_OFF, TYPO_SPELLING and FILE_PATH_CHANGES excluded"
+    "checkpatch": "zero errors/warnings/checks with MISSING_SIGN_OFF, TYPO_SPELLING and FILE_PATH_CHANGES excluded",
+    "exported_patch_replay": "exact parent replay matches all three authored kernel headers",
+    "prepared_source": "all three header SHA-256 values match host-tested child",
+    "kernel_build": "Image, Image.gz and DTBs pass through standard Buildbox backend; shared codec compiled by existing WMT callers",
+    "package": "remote validator and fetched inventory/provenance pass",
+    "linux_artifact_provenance_fixture": "six positive cases and 28 invalid mutations pass on Buildbox",
+    "repository_checks": "pass; all 273 profile series preserve canonical order"
   },
   "not_tested": [
     "Shared task delivery and sequence/ACK state",
     "IRQ concurrency, client lifetime and reset epochs",
-    "Kernel build (pending)",
-    "Physical Bluetooth or GPS operation"
+    "Physical Bluetooth or GPS operation",
+    "Generic byte parser has no kernel caller and remains host-tested only"
   ],
   "device_access": "none",
-  "sanitization": "Independent protocol facts, authored source and software digests only; raw vendor source and captures excluded."
+  "sanitization": "Independent protocol facts, authored source and software digests only; raw vendor source and captures excluded.",
+  "build_input_commit": "0fa95ab0ea794c4a76f6adcd05e3314f795e8867",
+  "package_inventory_sha256": "9b8cca8589ea9d19be2623e2c1d4878485d34c795c770da57ed6881bdd983ee4",
+  "patchset_sha256": "b8cc883e847bdd5015ef46313fff5c759b5cbdcd7171925d283d1352264dcc74",
+  "selected_patch_count": 579,
+  "config_fragment_count": 24,
+  "config_sha256": "00a83bffec515ba7eb68ad61b411050cca8aa2e66a543338ffaf5a05ded72a8e",
+  "Image_gz_sha256": "19d33a96b36cc4e6a7ed2add8813c3f2ad1f18b8b154fb0af7171fbfee1ea0ed",
+  "consys_object_sha256": "4b656a671a76209d88c53680413e4c1586b5312c216d334f333e560666955910",
+  "build_log_sha256": "daef0fbacd7b91dd94b86eb807968de83fba7b16c61a2cb3ebc749983b3338dc",
+  "inherited_warnings": [
+    "Historical patch 0261 trailing whitespace.",
+    "kernel/cpu.c unused cpuhp_rollback_callback_inventory; also in parent AFE build."
+  ]
 }

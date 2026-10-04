@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-04-mt6797-stp-task-framing` |
-| Status | Driver dependency draft; host checks pass; Buildbox compile pending |
+| Status | Driver dependency draft; host and Buildbox checks pass; runtime untested |
 | Subsystem | Shared Bluetooth/WMT STP framing |
 | Date | 2026-10-04 |
 | Device action | None; owner unavailable; runtime testing deferred |
@@ -77,6 +77,17 @@ KERNEL_PROFILE=mt6797-a53-stp-task-compile ./scripts/build-kernel --backend buil
 KERNEL_PROFILE=mt6797-a53-stp-task-compile ./scripts/buildbox fetch-package
 ```
 
-Buildbox compilation and package checks are pending. The new generic byte
-parser is host-tested only. No device access, radio operation, boot candidate
-construction or installation has occurred.
+The full Buildbox build, remote package validator and fetched inventory checks
+pass for input commit `0fa95ab0`. All three prepared header hashes match the
+host-tested child. The shared codec is compiled through existing WMT callers;
+the generic byte parser still has no kernel caller and remains host-tested
+only. Configuration is byte-identical to the parent AFE compile profile.
+The Linux artifact-provenance fixture passes six positive cases and rejects
+28 mutations. Repository checks pass, including all 273 profile series.
+No new compiler warning appears; historical patch 0261 whitespace and the
+unused CPU rollback callback warning are inherited from the parent build.
+No binding or DT content changed, so no additional schema check was run.
+
+No device access, radio operation, boot candidate construction or installation
+has occurred. The receipt binds the package to its original input commit;
+this later documentation update does not change kernel inputs.
