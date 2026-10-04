@@ -1,0 +1,46 @@
+From bd0725dffe9e6421956102d675d66cce29ad3321 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 4 Oct 2026 13:48:12 -0400
+Subject: [PATCH] rtc: mt6397: bound coherent-counter read attempts
+
+The time reader retries second rollover without an attempt limit.
+Repeated inconsistent counter pairs can keep a class time or alarm
+operation in the kernel indefinitely. Limit a callback to three pairs
+and return EAGAIN on exhaustion, retaining immediate transport errors
+and calendar conversion only after a coherent pair.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/rtc/rtc-mt6397.c | 12 +++++++++---
+ 1 file changed, 9 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/rtc/rtc-mt6397.c b/drivers/rtc/rtc-mt6397.c
+index d3ccc17..d1f2f18 100644
+--- a/drivers/rtc/rtc-mt6397.c
++++ b/drivers/rtc/rtc-mt6397.c
+@@ -87,13 +87,19 @@ exit:
+ static int mtk_rtc_read_time(struct device *dev, struct rtc_time *tm)
+ {
+ 	struct mt6397_rtc *rtc = dev_get_drvdata(dev);
+-	int sec, ret;
++	int sec, ret, attempt;
+ 
+-	do {
++	for (attempt = 0; attempt < 3; attempt++) {
+ 		ret = __mtk_rtc_read_time(rtc, tm, &sec);
+ 		if (ret < 0)
+ 			goto exit;
+-	} while (sec < tm->tm_sec);
++		if (sec >= tm->tm_sec)
++			break;
++	}
++	if (attempt == 3) {
++		ret = -EAGAIN;
++		goto exit;
++	}
+ 
+ 	/* HW register start mon/wday from one, but tm_mon/tm_wday start from zero. */
+ 	tm->tm_mon--;
+-- 
+2.54.0 (Apple Git-157)
+

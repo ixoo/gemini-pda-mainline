@@ -1,0 +1,29 @@
+{
+  "status": "Host regression and exact replay pass; Buildbox pending; no device action",
+  "profile": "mt6797-a53-c1-compile",
+  "selected_patch_count": 520,
+  "parent_source_sha256": "3caf869e5b0229ee577a209274c525132e11283ce8407e942706db7e99f27e1f",
+  "rtc_source_sha256": "5a1a23c6e02dad44229724754be25e1a2ccdab966f99696e3b67ccbe3e224f1e",
+  "patches": [
+    "v7.1.3/c1/0003-rtc-mt6397-bound-counter-rollover-retries.patch",
+    "v7.1.3/c1/0004-rtc-mt6397-report-IRQ-transport-errors.patch"
+  ],
+  "tests": {
+    "read_bound_cases": 10,
+    "alarm_error_cases": 200,
+    "wake_cases": 16,
+    "negative_checks": [
+      "Unbounded parent rejected by counter fixture",
+      "Removed IRQ status error report rejected with --require-reports"
+    ],
+    "exact_replay": "byte-identical RTC source",
+    "checkpatch": "strict passes with only MISSING_SIGN_OFF excluded"
+  },
+  "behavior": "At most three coherent-counter pairs; EAGAIN on exhaustion; immediate transport errors; no new IRQ retries or transaction/dispatch changes",
+  "limitations": [
+    "No hardware freshness, alarm, wake or concurrency proof",
+    "Existing trigger-helper busy-poll diagnostic is retained; new IRQ reports are rate-limited",
+    "RTC core timer behavior, exact userspace tool and PMIC target read semantics remain review gates",
+    "No key or hall node enabled; no candidate or device operation"
+  ]
+}

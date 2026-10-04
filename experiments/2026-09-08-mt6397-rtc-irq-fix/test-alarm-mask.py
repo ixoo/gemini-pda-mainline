@@ -8,15 +8,22 @@ import tempfile
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("source", type=Path, help="prepared drivers/rtc/rtc-mt6397.c")
+parser.add_argument("--require-reports", action="store_true",
+                    help="require the IRQ error-reporting successor")
 args = parser.parse_args()
 source = args.source.read_text()
 start = source.index("static irqreturn_t mtk_rtc_irq_handler_thread(")
 end = source.index("\n}\n", start) + 3
 handler = source[start:end]
+has_reports = "dev_err_ratelimited" in handler
+if args.require_reports and not has_reports:
+    raise SystemExit("IRQ error reporting is required")
 
 prefix = r'''
 #include <assert.h>
 #include <stdio.h>
+#define HAS_REPORTS REPORT_FLAG
+#define dev_err_ratelimited(dev, ...) ((void)(dev), (void)reports++)
 typedef unsigned int u32;
 typedef int irqreturn_t;
 #define RTC_IRQ_STA 2
@@ -27,9 +34,12 @@ typedef int irqreturn_t;
 #define RTC_AF 0x20
 #define IRQ_NONE 0
 #define IRQ_HANDLED 1
-struct mt6397_rtc { void *regmap, *rtc_dev; unsigned int addr_base; int lock; };
-static struct mt6397_rtc rtc = { .addr_base = 0x4000 };
-static unsigned int status, enables, reads, writes, triggers, notifications;
+struct device { void *parent; };
+struct rtc_device { struct device dev; };
+static struct rtc_device rtc_dev;
+struct mt6397_rtc { void *regmap; struct rtc_device *rtc_dev; unsigned int addr_base; int lock; };
+static struct mt6397_rtc rtc = { .addr_base = 0x4000, .rtc_dev = &rtc_dev };
+static unsigned int status, enables, reads, writes, triggers, notifications, reports;
 static int fault;
 static void mutex_lock(int *lock) { assert(!*lock); *lock = 1; }
 static void mutex_unlock(int *lock) { assert(*lock); *lock = 0; }
@@ -67,7 +77,7 @@ static int mtk_rtc_write_trigger(struct mt6397_rtc *data)
 {
     assert(data == &rtc && rtc.lock);
     triggers++;
-    return 0;
+    return fault == 4 ? -110 : 0;
 }
 static void rtc_update_irq(void *dev, int count, int flags)
 {
@@ -84,11 +94,11 @@ int main(void)
     unsigned int cases = 0;
     for (unsigned int i = 0; i < sizeof(initial) / sizeof(initial[0]); i++) {
         for (unsigned int j = 0; j < sizeof(statuses) / sizeof(statuses[0]); j++) {
-            for (fault = 0; fault < 4; fault++) {
+            for (fault = 0; fault < 5; fault++) {
                 unsigned int original = initial[i];
                 enables = original;
                 status = statuses[j];
-                reads = writes = triggers = notifications = 0;
+                reads = writes = triggers = notifications = reports = 0;
                 int handled = fault != 1 && (status & 1);
                 int update_ok = handled && fault != 2 &&
                                 (fault != 3 || !(original & 1));
@@ -97,6 +107,10 @@ int main(void)
                 assert(!rtc.lock && notifications == (unsigned int)handled);
                 assert(enables == (update_ok ? (original & ~1u) : original));
                 assert(triggers == (unsigned int)update_ok);
+                unsigned int expected_reports = fault == 1 ||
+                    (handled && (fault == 2 || (fault == 3 && (original & 1)) ||
+                                 fault == 4));
+                assert(reports == (HAS_REPORTS ? expected_reports : 0));
                 assert(reads == (handled ? 2u : 1u));
                 assert(writes == (unsigned int)(handled && fault != 2 && (original & 1)));
                 cases++;
@@ -109,7 +123,7 @@ int main(void)
 '''
 with tempfile.TemporaryDirectory(prefix="mt6397-alarm-mask-") as directory:
     path = Path(directory)
-    (path / "test.c").write_text(prefix + handler + tests)
+    (path / "test.c").write_text(prefix.replace("REPORT_FLAG", str(int(has_reports))) + handler + tests)
     subprocess.run([
         "cc", "-std=c11", "-Wall", "-Wextra", "-Werror",
         "-Wno-unused-parameter", "-Wno-unused-function",

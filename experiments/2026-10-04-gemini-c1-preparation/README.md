@@ -221,3 +221,34 @@ probe reaches a fourth attempt. Class registration can inherit existing alarms,
 and the IRQ handler still ignores alarm-disable/trigger failures. These
 concrete gaps must be resolved before a bounded RTC packet is admitted. No
 observer, tool, candidate or device access is added by this review.
+
+## Bounded RTC reads and IRQ diagnostics
+
+Two logical [C1 series](../../patches/series-a53-c1-compile) additions address
+the observation review's driver gaps. Counter reads allow at most three
+bulk/seconds pairs, returning `-EAGAIN` when all are inconsistent. A successful
+third pair still returns normally; transport errors return immediately, and
+month/weekday conversion occurs only after a coherent result. No RELOAD or
+time-setting write is added.
+
+The IRQ successor reports status-read, alarm-disable and trigger failures with
+rate-limited messages. It retains the existing alarm-only mask update, event
+delivery, IRQ returns and register-operation counts. It adds no transport retry
+and does not label a failed alarm disable recovered. The trigger helper retains
+its existing busy-poll diagnostic; that helper's earlier log is not made
+rate-limited by this change.
+
+The [follow-up receipt](results/rtc-followup.json) pins the exact parent/child
+source and patches. Ten actual-function counter cases, 200 alarm cases with
+`--require-reports`, and the existing 16 wake cases pass. The old unbounded
+parent fails the counter fixture, and a removed status-error report fails the
+alarm fixture. Exact replay and strict checkpatch pass with only the unsigned
+archive's missing-sign-off exclusion. These internal drafts target the RTC
+subsystem and are removed when equivalent fixes enter the pinned upstream
+baseline; no certifying author or sign-off is invented.
+
+Buildbox validation of the 520-patch C1 profile is pending. The previous
+518-patch receipt remains evidence for its original inputs. RTC core timer
+behavior, inherited alarms, the exact userspace tool, PMIC target read semantics
+and live key policy remain gates before an attended candidate. No board node,
+candidate or device operation is added.
