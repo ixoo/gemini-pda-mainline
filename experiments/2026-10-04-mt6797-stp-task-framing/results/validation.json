@@ -1,0 +1,37 @@
+{
+  "status": "offline framing draft; host pass; kernel build pending",
+  "parent_profile": "mt6797-a53-consys-afe-compile",
+  "profile": "mt6797-a53-stp-task-compile",
+  "parent_wmt_header_sha256": "72ba1180b1783e5f0dba16436d196159ac3796e639d7a826b2a1ed5659801270",
+  "authored_source_sha256": {
+    "drivers/soc/mediatek/wmt-full-stp.h": "022121caab6ac24bfe8c3fa0f8489e9003c1218385741cdffd6226e30b753502",
+    "drivers/soc/mediatek/stp-full-stream.h": "002209f6292849f5eb758a1e6f6a3225f364c21404fd2ecf994293254f191c47",
+    "drivers/soc/mediatek/stp-full.h": "80c5ff5e242b5c3ed6bdb52a3148b49b78f67fe41eade8414e022217fcba7dfd"
+  },
+  "test_sha256": "c09e1a878d2ccae04057106f423057ed21131a571d489f1da95d00fa70351db7",
+  "reference": {
+    "gemian_commit": "59e00a9144d782e148332009a835b99c43382467",
+    "stp_core_sha256": "79d03346c95e2d233f2a384fa4490d3b89acdfd1c1d6b9c2026709358dbcbf65",
+    "full_mode_length_limit": 2048,
+    "linux_crc16_source": "Linux 7.1.3 lib/crc/crc16.c",
+    "linux_crc16_sha256": "e2916771fef3d5a2bc6ae18740dffb2ded44e1e08e117a9c7d4b8bd27cd45fda",
+    "independent_crc_vectors": {
+      "HCI_reset": "fcf4",
+      "HCI_reset_complete": "d241",
+      "2048_bytes_index_modulo_256": "d7dd"
+    }
+  },
+  "checks": {
+    "task_framing": "strict C11 warnings, ASan/UBSan pass",
+    "wmt_compatibility": "existing codec, state, stream and TX tests compiled against authored kernel headers pass",
+    "checkpatch": "zero errors/warnings/checks with MISSING_SIGN_OFF, TYPO_SPELLING and FILE_PATH_CHANGES excluded"
+  },
+  "not_tested": [
+    "Shared task delivery and sequence/ACK state",
+    "IRQ concurrency, client lifetime and reset epochs",
+    "Kernel build (pending)",
+    "Physical Bluetooth or GPS operation"
+  ],
+  "device_access": "none",
+  "sanitization": "Independent protocol facts, authored source and software digests only; raw vendor source and captures excluded."
+}
