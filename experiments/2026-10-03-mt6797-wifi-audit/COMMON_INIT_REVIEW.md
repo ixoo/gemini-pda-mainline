@@ -145,3 +145,9 @@ now prepares the seven-frame cumulative ACK window and shared receive sequence,
 and moves the existing WMT client onto it. Host and Buildbox checks pass;
 production Bluetooth/GPS delivery, retransmission and client/reset lifetime
 remain unwired and untested on hardware.
+
+The [task-routing checkpoint](../2026-10-04-mt6797-stp-task-routing/README.md)
+adds delivery before credit commitment and corrects the shared helper to ignore
+out-of-window ACK credit without rejecting new data. Its WMT client retains
+strict command ACK/reply checks. Host and Buildbox checks pass; real task queues,
+long-lived IRQ ownership, retransmission and hardware acceptance remain later work.

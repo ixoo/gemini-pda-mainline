@@ -1,5 +1,5 @@
 {
-  "status": "offline task-routing draft; host checks pass; kernel build pending",
+  "status": "offline host/build/package pass; no hardware acceptance or candidate",
   "parent_profile": "mt6797-a53-stp-link-compile",
   "profile": "mt6797-a53-stp-task-routing-compile",
   "reference": {
@@ -27,15 +27,33 @@
     "cumulative_ack_matrix": "512 combinations pass against a transmitted-entry queue oracle; out-of-window ACKs grant no credit without rejecting data",
     "wmt_compatibility": "all nine existing framing/state/IRQ/negotiation/version fixtures pass with only historical member-access paths adapted in temporary copies",
     "framing": "prior task-framing fixture passes against actual headers",
-    "checkpatch": "both patches zero errors/warnings/checks; MISSING_SIGN_OFF, TYPO_SPELLING and FILE_PATH_CHANGES excluded"
+    "checkpatch": "both patches zero errors/warnings/checks; MISSING_SIGN_OFF, TYPO_SPELLING and FILE_PATH_CHANGES excluded",
+    "exported_patch_replay": "both patches exactly replay to the authored child",
+    "prepared_source": "all three changed headers match host-tested source SHA-256 values",
+    "kernel_build": "Image, Image.gz and DTBs pass through the standard Buildbox backend; production WMT callers compile through the task router",
+    "package": "remote Linux validator and fetched inventory/provenance pass",
+    "repository_checks": "pass; all 275 profile series preserve canonical order"
   },
   "limitations": [
     "Current production IRQ owner still routes only WMT and has one-command lifetime; Bluetooth/GPS bindings are host fixtures only.",
     "Owner must serialize binding lifetime and provide a non-sleeping, non-reentrant callback that publishes no packet on refusal.",
     "Long-lived IRQ owner, real receive queues, retransmission, reset lifetime and HCI device remain unwired.",
     "NAK/resync and firmware-message tasks remain unsupported.",
-    "Kernel build and device behavior pending."
+    "Kernel IRQ concurrency, queue-full behavior and firmware acceptance remain untested on hardware."
   ],
   "device_access": "none",
-  "sanitization": "Independent protocol facts, authored source and software digests only; raw source and captures excluded."
+  "sanitization": "Independent protocol facts, authored source and software digests only; raw source and captures excluded.",
+  "build_input_commit": "fcca630d04918a30dd3038e3ca46301798ce19d5",
+  "package_inventory_sha256": "1b713274489e67bdc958a7683ed29d66cd13fe6ae97f1af8e2ef732ab738b0b1",
+  "patchset_sha256": "e38b47e7e3754885e1bbcb7c9edae0f6bb483f31aebdce86063f95d994f53a5e",
+  "selected_patch_count": 582,
+  "config_fragment_count": 24,
+  "config_sha256": "00a83bffec515ba7eb68ad61b411050cca8aa2e66a543338ffaf5a05ded72a8e",
+  "Image_gz_sha256": "91c2b8d3fd3048d8cf8b8279509d55b8d586ae54e6609cee5e3ecb71cf8f7c3d",
+  "consys_object_sha256": "27e081ee9437da52cc88b9c8dbcc695a00b52ac76808854a3512e3e52d21e80a",
+  "build_log_sha256": "084e5279f47dbd6dba67eeb4c4a25a16ba92c2aba185c91c7c5d3bf8b770ed18",
+  "inherited_warnings": [
+    "Historical patch 0261 trailing whitespace.",
+    "kernel/cpu.c unused cpuhp_rollback_callback_inventory; also present in the parent link-state build."
+  ]
 }

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-04-mt6797-stp-task-routing` |
-| Status | Driver dependency draft; host checks pass; Buildbox build pending |
+| Status | Driver dependency draft; host and Buildbox checks pass; runtime untested |
 | Subsystem | Shared STP task delivery before sequence/ACK commitment |
 | Date | 2026-10-04 |
 | Device action | None; owner unavailable; hardware testing deferred |
@@ -94,6 +94,19 @@ KERNEL_PROFILE=mt6797-a53-stp-task-routing-compile ./scripts/buildbox fetch-pack
 
 Both patches pass strict checkpatch with only the established draft exclusions:
 `MISSING_SIGN_OFF`, inherited API `TYPO_SPELLING`, and `FILE_PATH_CHANGES` for
-the new temporary header's absent upstream maintainer entry. Buildbox build and
-package checks are pending. No binding or DT content changes, so no additional
-schema check is needed. No device access or hardware support is claimed.
+the new temporary header's absent upstream maintainer entry.
+
+The full Buildbox build and remote package validator pass for input commit
+`fcca630d`. All three changed headers in the prepared kernel match the host-tested
+source hashes. The production WMT path compiles through the new task router.
+The fetched inventory, Image.gz and configuration identities are recorded in
+the receipt. Configuration is byte-identical to the parent link-state profile.
+No new compiler warning appears; historical patch 0261 whitespace and the
+unused CPU rollback callback warning are inherited. Repository checks pass
+across all 275 manifest profiles. No binding or DT content changed, so no
+additional schema check was run. The Linux-only provenance fixture is skipped
+on macOS; the package itself passed the remote Linux validator.
+
+The later receipt update changes documentation only; the package remains
+attributed to its original input commit. No device access, candidate construction,
+installation or hardware support is claimed.
