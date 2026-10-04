@@ -1,0 +1,124 @@
+{
+  "image_sha256": "0570480c28bce1583636a240904df8da3af0b5e5b4bcc6254f5719b42bd723d0",
+  "instruction_spans": {
+    "get_scp_semaphore": {
+      "start": "0xffffffc000826bf0",
+      "end_exclusive": "0xffffffc000826cd8",
+      "bytes": 232,
+      "sha256": "e314f02a86d82fa5f8d26e7e1a01dd6149a9d451a6535b08e5c0662c71aeaef0",
+      "all_instruction_words_checked": true
+    },
+    "release_scp_semaphore": {
+      "start": "0xffffffc000826cd8",
+      "end_exclusive": "0xffffffc000826d98",
+      "bytes": 192,
+      "sha256": "61dbb608d27894f4083ef1c1fcd1c18e75b7ef1d0495b9d58facbd3d3d5c8907",
+      "all_instruction_words_checked": true
+    }
+  },
+  "status": "Static adapter ownership confirmed; SCP finite MMIO budget reviewed; passive existing-request observer selected, implementation pending",
+  "source_revision": "59e00a9144d782e148332009a835b99c43382467",
+  "scp_helper_source_sha256": "fa5778ab866b48da9fc83ff5e8a415eb9f21ca8604d285d0d4080e5182f3bbed",
+  "live_metadata": {
+    "adapter_name": "mt-i2c",
+    "adapter_of_node": "/soc/i2c@11007000",
+    "boot_after": "c52cec49-a635-45c3-af32-aba3b95b4c1c",
+    "boot_before": "c52cec49-a635-45c3-af32-aba3b95b4c1c",
+    "client": "0-006b",
+    "client_compatible": "6d6564696174656b2c73775f6368617267657200",
+    "driver": "bq25890",
+    "name": "sw_charger",
+    "properties": {
+      "clock-div": {
+        "bytes": 4,
+        "hex": "0000000a"
+      },
+      "clock-frequency": {
+        "bytes": 4,
+        "hex": "00061a80"
+      },
+      "clock-names": {
+        "bytes": 9,
+        "hex": "6d61696e00646d6100"
+      },
+      "compatible": {
+        "bytes": 20,
+        "hex": "6d6564696174656b2c6d74363739372d69326300"
+      },
+      "id": {
+        "bytes": 4,
+        "hex": "00000000"
+      },
+      "mediatek,appm_used": null,
+      "mediatek,buffermode_used": null,
+      "mediatek,gpupm_used": null,
+      "mediatek,have-dcm": null,
+      "mediatek,have-pmic": null,
+      "mediatek,use-push-pull": null,
+      "reg": {
+        "bytes": 16,
+        "hex": "11007000000010001100010000000080"
+      }
+    },
+    "release": "3.18.41+"
+  },
+  "private_packets": {
+    "charger-adapter-metadata-1": {
+      "process": {
+        "exit_status": 1,
+        "reason": null,
+        "stdin_complete": true,
+        "stdout_bytes": 0,
+        "stderr_bytes": 579,
+        "elapsed_seconds": 0.529
+      },
+      "command_sha256": "f66d81c3ce8cae852f15507a8a1aa5383d170e4725250e98898dcc922dc6eb19",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "f924681b801bf2f82c8dc7e418f82bfe4c077a32348930407a9a3c30149b92ea",
+      "manifest_sha256": "163e042f68111edb266741a64153b0f315020a40588d5e3198b085a5b37d4f07"
+    },
+    "charger-adapter-metadata-2": {
+      "process": {
+        "exit_status": 0,
+        "reason": null,
+        "stdin_complete": true,
+        "stdout_bytes": 861,
+        "stderr_bytes": 0,
+        "elapsed_seconds": 0.551
+      },
+      "command_sha256": "6eac4a1226cf3ee15cf4d92d1efdc66838aeb82b7d8936fd72c1fb07e2c02cc2",
+      "stdout_sha256": "6fb7917402fa95591226ecea38c67bf7c39259e8840b156b2426f98b3e5549b2",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "manifest_sha256": "ea7564b0940730105541facce6608725ed4e9f5c51c341b54a119acb11de2369"
+    }
+  },
+  "semaphore_budget": {
+    "id": 0,
+    "helper_flag": 2,
+    "bit": 5,
+    "get_max_reads": 5001,
+    "get_max_writes": 5001,
+    "outer_max_get_calls": 101,
+    "outer_max_acquisition_reads": 505101,
+    "outer_max_acquisition_writes": 505101,
+    "release_max_reads": 2,
+    "release_max_writes": 1,
+    "scope": "Static MMIO operation counts excluding diagnostic printk and memory accesses; not a latency or live activity measurement",
+    "failure_ownership": "Last helper write has no subsequent readback; outer loop can acquire on count==0 then report -EBUSY without releasing. Failure does not prove semaphore unowned."
+  },
+  "decision": {
+    "selected": "Default-off observation of one already-occurring bound-driver REG06 read, not a new charger request",
+    "why": "Existing CV config path reads REG06 periodically. Observing it can supply byte/completion/count evidence without adding pointer/read traffic or another semaphore/reset opportunity.",
+    "entry": "One explicit diagnostic arm, consume before observing first matching driver request, retain one result; no repeat or policy change",
+    "identity": "Bound I2C0 0x6b driver, expected controller, same request pointer and same controller-owned completion metadata",
+    "acceptance": "Require exact two-message shape, FIFO/WRRD, completion bit, no ACK/NACK, FIFO count=1 and successful helper result; omit value on failure",
+    "pending": "Implement minimal driver/controller hook and result ownership; test refusal/error/short-FIFO paths; clean pushed Buildbox compile; candidate/recovery admission"
+  },
+  "limitations": [
+    "Metadata reads did not access charger registers, MMIO, power telemetry or primary boot storage",
+    "DT flags describe inputs; observer must validate actual controller fields, clock/resource mode and request ownership",
+    "No observed semaphore failure or cleanup defect on device",
+    "No implementation, build, boot candidate or mainline charger support claim"
+  ],
+  "redactions": "Sanitized binding/DT facts, boot ID, hashes and process counts only. Raw capture, source and disassembly remain private."
+}

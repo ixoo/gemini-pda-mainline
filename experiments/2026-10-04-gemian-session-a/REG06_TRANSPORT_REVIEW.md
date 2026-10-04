@@ -73,3 +73,7 @@ separately, and configuration establishes HZ. Public output contains independent
 described facts and hashes only. Binary analysis ran in the RE VM; raw source,
 disassembly and firmware remain private. These checks establish the examined
 implementation, not live binding, hardware behavior or successful recovery.
+
+The subsequent [adapter review](REG06_ADAPTER_REVIEW.md) pins the live static
+mapping and nested SCP operation counts, and selects capture of one existing
+policy read without adding a charger transaction.

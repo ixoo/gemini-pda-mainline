@@ -72,3 +72,7 @@ review and implementation; C2a must separately admit REG0C fault-history reads.
 The [transport review](REG06_TRANSPORT_REVIEW.md) identifies unchecked FIFO
 completion and controller/DMA resets on failures. The successor must retain
 same-operation completion/count evidence before accepting a REG06 value.
+
+The [adapter review](REG06_ADAPTER_REVIEW.md) confirms the static I2C0 binding
+and SCP effects. It selects observation of one existing periodic REG06 read
+instead of submitting an additional request; implementation is pending.
