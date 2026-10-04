@@ -32,6 +32,6 @@ static inline bool gemini_reg06_valid(const struct gemini_reg06_record *r)
 }
 
 int gemini_reg06_transfer(struct i2c_adapter *adap, struct i2c_msg *msgs,
-			 struct gemini_reg06_record *record);
+			  struct gemini_reg06_record *record);
 
 #endif

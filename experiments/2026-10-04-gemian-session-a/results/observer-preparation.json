@@ -1,0 +1,26 @@
+{
+  "status": "implementation-input checkpoint; generated draft replayed; style corrections awaiting successor generation and compile",
+  "input_commit": "92fb4da89680169046d42122a4095cefd8bee609",
+  "draft_patch_sha256": "63b3608972328f4fb0b62023454e4dd6bc6675276498541168b8ad5baf675a2c",
+  "source_revision": "59e00a9144d782e148332009a835b99c43382467",
+  "replay": "Generated draft applies to exact parent files and matches all four transformed files byte-for-byte; temporary replay cleaned",
+  "host_predicate_cases": 159,
+  "host_predicate_result": "pass",
+  "style_review": {
+    "gemian_3_18_checker": "Not executed successfully: retained script is incompatible with current Perl regex parsing",
+    "linux_7_1_3_checker_sha256": "e34bf5cec12c1a208b601cd863dd17536710a68e3f11c6e0d4fb4bf72243902e",
+    "draft_errors": 0,
+    "draft_warnings": 6,
+    "draft_checks": 11,
+    "corrections": "New-code alignment, embedded SPDX placement, description wrapping and split output string corrected in successor inputs; new generation/style check pending",
+    "intentional": "Root-only 0400 diagnostic attribute; inherited vendor CamelCase fields; internal new header without upstream MAINTAINERS claim or DCO certification"
+  },
+  "not_validated": [
+    "corrected patch generation and replay",
+    "kernel compilation/linking",
+    "locking/sysfs integration tests",
+    "candidate and device protocol"
+  ],
+  "device_actions": "none during implementation/generation",
+  "redactions": "Normalized facts and hashes only; superseded draft and check logs retained privately."
+}

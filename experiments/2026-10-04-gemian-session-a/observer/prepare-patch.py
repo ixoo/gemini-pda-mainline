@@ -47,7 +47,7 @@ def transform(files):
     body = s[start:end]
     body = replace(body, marker,
                    'static unsigned int bq25890_read_byte_observed(unsigned char cmd,\n'
-                   '\t\tunsigned char *returnData, bool eligible)')
+                   '\t\t\t\t\t       unsigned char *returnData, bool eligible)')
     body = replace(body, '\tint ret, retries = 1;',
                    '\tint ret, retries = 1;\n\tbool observe;')
     body = replace(body, '\tmutex_lock(&bq25890_i2c_access);',
@@ -72,13 +72,14 @@ def transform(files):
                    '\tmutex_unlock(&bq25890_i2c_access);')
     body += ('unsigned int bq25890_read_byte(unsigned char cmd, unsigned char *data)\n'
              '{\n\treturn bq25890_read_byte_observed(cmd, data, false);\n}\n\n')
-    snippet = (HERE / 'driver.inc').read_text()
+    body = body.replace('returnData', 'data')
+    snippet = (HERE / 'driver.inc').read_text().split('\n', 1)[1]
     s = s[:start] + snippet + '\n' + body + s[end:]
     s = replace(s, '\tmutex_lock(&bq25890_access_mutex);\n'
                 '\tret = bq25890_read_byte(RegNum, &bq25890_reg);',
                 '\tmutex_lock(&bq25890_access_mutex);\n'
                 '\tret = bq25890_read_byte_observed(RegNum, &bq25890_reg,\n'
-                '\t\t\tRegNum == 6 && MASK == 0x3f && SHIFT == 2);')
+                '\t\t\t\t\t RegNum == 6 && MASK == 0x3f && SHIFT == 2);')
     s = replace(s, '\tret_device_file = device_create_file(&(dev->dev), &dev_attr_bq25890_access);',
                 '\tret_device_file = device_create_file(&(dev->dev), &dev_attr_bq25890_access);\n'
                 '\tif (reg06_observer &&\n'
@@ -86,7 +87,8 @@ def transform(files):
                 '\t\tdev_warn(&dev->dev, "REG06 observer unavailable\\n");')
     files[driver] = s
     s = files[header]
-    s = replace(s, 'struct mt_i2c {', '#include <linux/gemini-reg06-observer.h>\n\nstruct mt_i2c {')
+    s = replace(s, '#define __I2C_MTK_H__',
+                '#define __I2C_MTK_H__\n\n#include <linux/gemini-reg06-observer.h>')
     s = replace(s, '\tstruct mt_i2c_ext ext_data;',
                 '\tstruct gemini_reg06_record *reg06_pending;\n'
                 '\tstruct gemini_reg06_record *reg06_active;\n'
@@ -134,7 +136,7 @@ def transform(files):
                    '\tmutex_unlock(&i2c->i2c_mutex);')
     s = s[:start] + body + s[end:]
     start = s.index('static int mt_i2c_probe(')
-    s = s[:start] + (HERE / 'controller.inc').read_text() + '\n' + s[start:]
+    s = s[:start] + (HERE / 'controller.inc').read_text().split('\n', 1)[1] + '\n' + s[start:]
     files[controller] = s
     files['include/linux/gemini-reg06-observer.h'] = (HERE / 'gemini-reg06-observer.h').read_text()
     return files
@@ -171,7 +173,7 @@ def main():
         run(['git', '-C', str(work), 'add', '.'])
         run(['git', '-C', str(work)] + identity + ['commit', '-q', '-m',
             'diagnostic: observe one existing Gemian REG06 read', '-m',
-            'Default-off internal experiment; synthetic non-certifying author. '
+            'Default-off internal experiment; synthetic non-certifying author.\n'
             'No added charger transaction or changed policy/transfer result.'])
         patch = subprocess.check_output(['git', '-C', str(work), 'format-patch', '-1', '--stdout'])
         sha = hashlib.sha256(patch).hexdigest()

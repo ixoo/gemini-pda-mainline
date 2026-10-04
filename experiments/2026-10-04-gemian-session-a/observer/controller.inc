@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /* Caller owns the bound charger's existing read; no additional transaction. */
 int gemini_reg06_transfer(struct i2c_adapter *adap, struct i2c_msg *msgs,
-			 struct gemini_reg06_record *record)
+			  struct gemini_reg06_record *record)
 {
 	struct mt_i2c *i2c;
 	int ret;

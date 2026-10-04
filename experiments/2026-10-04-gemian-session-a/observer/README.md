@@ -7,9 +7,12 @@ Buildbox and emits an internal format patch. It does not build or install a
 kernel. The synthetic patch author is explicitly non-certifying, without a
 DCO sign-off; this is diagnostic preparation, not an upstream submission.
 
-The implementation inputs and host result predicate are ready. Generated-patch
-replay, kernel integration/locking review, style checks and Buildbox compile
-remain pending. No deployable candidate or device test is admitted.
+The implementation inputs and host result predicate are ready. The first
+[generated draft](../results/observer-preparation.json) replayed exactly on
+Buildbox. Style review identified new-code formatting/tag placement issues, now
+corrected in successor inputs; regenerate/replay before accepting a patch.
+Kernel integration/locking validation and Buildbox compile remain pending.
+No deployable candidate or device test is admitted.
 
 ## Entry and scope
 
