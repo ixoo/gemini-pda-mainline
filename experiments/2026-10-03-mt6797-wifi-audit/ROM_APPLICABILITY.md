@@ -66,3 +66,15 @@ for one actual pre-patch chip read: a 22-byte mandatory frame carries a 16-byte
 WMT event with declared inner payload length 12 and chip value 0x0279. The strict
 matcher recognizes only that measured response. HW/ROM encoding and values,
 full tuple applicability, DLM effects and calibration remain unresolved.
+
+## Checked mainline tuple successor
+
+The [2026-10-04 measurement](../2026-10-03-mt6797-wmt-versions/results/runtime-1.json)
+now checks chip/HW/ROM independently as `0279/8a00/8a00` on one attributable
+mainline power lifetime. All three replies use the exact 22-byte mandatory
+frame and 16-byte event with inner payload length 12, checked header/status/count,
+address and value. Full evidence was sealed before confirmed Gemian recovery.
+This resolves the HW/ROM wire and tuple uncertainty described above for this
+boot. The matching vendor `_e1` selection and retained installed pair support
+the proposed selection; they do not prove patch application or safe subsequent
+DLM, MCU-clock, PA or calibration effects. Those gates remain.

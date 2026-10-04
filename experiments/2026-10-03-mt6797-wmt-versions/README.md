@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-03-mt6797-wmt-versions` |
-| Status | installed and shut down; physical boot2 selection pending |
+| Status | one checked tuple passed; evidence sealed, A53 regression and Gemian recovery passed |
 | Profile | `mt6797-a53-wmt-versions-compile` |
 | Subsystem | MT6797 CONSYS, BTIF and WMT |
 
@@ -55,3 +55,20 @@ management reception, association and traffic.
 Gemian GPT, verified the guarded full-partition write/readback and confirmed
 clean shutdown. Capture and preservation/recovery preparation pass offline.
 The owner must physically select boot2 before any runtime measurement.
+
+## Runtime measurement (2026-10-04)
+
+The [runtime receipt](results/runtime-1.json) records one changed mainline boot
+with checked chip/HW/ROM replies `0279/8a00/8a00`. Each exchange sent 26 and
+received 22 bytes in six services; all three terminal results were zero. WMT
+setup preserved the suffix and verified the cleared prefix before the sole
+version trigger. The independent classifier accepts the sealed full log, not
+merely the trigger exit. Sysfs returned read-only, the A53 service regression
+passed, and the reviewed native recovery confirmed a changed-boot Gemian.
+
+This candidate is consumed; do not repeat it without a decision-changing
+measurement. The tuple resolves checked version selection for this power
+lifetime. It does not prove patch applicability/application, common init,
+calibration, Bluetooth or Wi-Fi support. Raw logs and memory remain private.
+The next device packet is Gemian session A, beginning with passive logs/live
+DT; every register read still needs its own admitted access path.

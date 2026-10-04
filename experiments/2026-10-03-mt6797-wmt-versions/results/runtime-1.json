@@ -1,0 +1,113 @@
+{
+  "experiment": "mt6797-wmt-versions",
+  "date": "2026-10-04",
+  "status": "one checked version measurement passed; sealed evidence, A53 regression and changed-boot Gemian recovery passed; candidate consumed",
+  "candidate_manifest_sha256": "d6a22f27246ea98632fb11f057249fc6ff254f3e5a0f4a08d09e76b390b93b53",
+  "build_input_commit": "720269885122a88e0d9b175783c26199f7956e05",
+  "candidate_boot2_sha256": "391f44a8f5c79467f3a2741bcad51c95ea34791248585baae69b0a19f852ac73",
+  "release": "7.1.3-gemini-a53-wmt-versions",
+  "mainline_boot_id": "0ff9b8d6-dedf-42f4-9f95-659177907ce5",
+  "returned_gemian_boot_id": "c52cec49-a635-45c3-af32-aba3b95b4c1c",
+  "identity": {
+    "chip": "0x0279",
+    "hw": "0x8a00",
+    "rom": "0x8a00"
+  },
+  "classification": {
+    "identity_accepted": true,
+    "radio_action": false,
+    "reads": [
+      {
+        "ordinal": 0,
+        "status": 0,
+        "tx": 26,
+        "rx": 22,
+        "services": 6,
+        "terminal": true,
+        "rx_sha256": "91d762e55d398679e9363bfeafdbc8d4156c72b1ccdc779866eca77086e5dfb8",
+        "checked_reply": true,
+        "bounded": true
+      },
+      {
+        "ordinal": 1,
+        "status": 0,
+        "tx": 26,
+        "rx": 22,
+        "services": 6,
+        "terminal": true,
+        "rx_sha256": "54bba9ab37f2d89072b97f05eb0dbcb9e4b41f2999b641f8001e4778411b6fab",
+        "checked_reply": true,
+        "bounded": true
+      },
+      {
+        "ordinal": 2,
+        "status": 0,
+        "tx": 26,
+        "rx": 22,
+        "services": 6,
+        "terminal": true,
+        "rx_sha256": "ca829bba15ae2ef60c5e5b0732377b5a0927647eaf7c264ab6524b3e8d2c70d2",
+        "checked_reply": true,
+        "bounded": true
+      }
+    ],
+    "status": 0,
+    "completed": 3,
+    "clocks_held": true,
+    "no_continuation": true,
+    "evidence_consistent": true,
+    "reason": "checked tuple 0279/8a00/8a00"
+  },
+  "capture_process": {
+    "exit_status": 0,
+    "reason": null,
+    "stdin_complete": true,
+    "stdout_bytes": 57,
+    "stderr_bytes": 0,
+    "elapsed_seconds": 0.324
+  },
+  "trigger_preserved": true,
+  "wmt_setup": {
+    "accepted": true,
+    "clear_prefix_zero": true,
+    "suffix_equal": true,
+    "post_bytes": 524288,
+    "wmt_record_counts": [
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "no_other_active_records": true
+  },
+  "preservation": {
+    "complete": true,
+    "log_bytes": 135072,
+    "log_records": 1913,
+    "log_sha256": "2561828e35dc90bde8529cfc517d4ae775dbc65477bca6dcb1732885ee574407",
+    "coverage": "sequence-zero-through-explicit-seal"
+  },
+  "regression_pass": true,
+  "provider_probe": {
+    "boot_id": "0ff9b8d6-dedf-42f4-9f95-659177907ce5",
+    "provider_bound": 1,
+    "provider_count": 1,
+    "registered": true
+  },
+  "recovery": {
+    "classification": "changed-ID-Gemian",
+    "attempts": 2,
+    "elapsed_seconds": 15.351,
+    "recovery_confirmed": true
+  },
+  "not_established": [
+    "Patch download or application",
+    "DLM/MCU-clock changes, common initialization or calibration",
+    "Bluetooth HCI functionality",
+    "Wi-Fi reception, association or traffic",
+    "Repeatability across boots"
+  ],
+  "next_action": "Gemian session A: passive logs and live DT first; admit each register access separately. Prepare C1 independently; reconcile the measured tuple with the private installed ROM pair before common-init writes.",
+  "redactions": "Raw kernel logs, memory snapshots, firmware and host paths remain private; only selected result fields, sanitized boot IDs and hashes are published."
+}

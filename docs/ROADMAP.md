@@ -49,7 +49,8 @@ then an ACK-credit correction and task routing before credit commitment
 Host fixtures and Buildbox compilation pass for 0101–0106; the
 [task-routing receipt](../experiments/2026-10-04-mt6797-stp-task-routing/results/validation.json)
 records the validated build of input `fcca630d`. The installed version-read
-candidate is unchanged and still waits for physical boot2 selection.
+candidate is now consumed: [one checked tuple](../experiments/2026-10-03-mt6797-wmt-versions/results/runtime-1.json)
+passed with sealed evidence, A53 regression and changed-boot Gemian recovery.
 
 **What changed or was invalidated.**
 
@@ -126,8 +127,8 @@ candidate is unchanged and still waits for physical boot2 selection.
    for the ten-register PMIC observer before creating
    a candidate. The key node still needs an explicit long-press policy from an
    attributable live `TOP_RST_MISC` observation; the lid node remains disabled.
-   When the owner returns, consume the installed candidate and Gemian baseline
-   before C1 short-key/lid/awake-alarm and PSCI power-off tests. C2a's read-only
+   The installed identity candidate is consumed. Complete the reviewed Gemian
+   baseline before C1 short-key/lid/awake-alarm and PSCI power-off tests. C2a's read-only
    REG00–REG14 charger dump needs its separate access review, with no charger
    node bound. No device operation is scheduled while the owner is unavailable.
 3. Wire the smallest Bluetooth path for C3: one task-0 binding in the existing
@@ -140,8 +141,8 @@ candidate is unchanged and still waits for physical boot2 selection.
    `bq25890` driver and how conservative limits get programmed and verified
    before charging can start; then the C2b profile.
 
-**Adjusted device order.** 0) Physical boot2 selection for the installed
-version-read candidate; no new write before its measurement is consumed.
+**Adjusted device order.** 0) Complete: the installed version-read candidate
+measured `0279/8a00/8a00` and returned to changed-boot Gemian.
 1) Gemian session A, logs and live DT first, then reviewed register reads.
 2) Boot C1 with C2a riding on it. 3) Boot C3 (Bluetooth, AFE resource
 present, version baseline followed by full-mode WMT query/negotiation
@@ -1480,8 +1481,8 @@ device; each is one short action):
 11. **Cellular observation** (tags, SPM status, boot status; cellular H1) and
     **camera probe** (`hi556` one-register read, I2C3; camera H1b, H6).
 
-Boots 1–3 need nothing from the Wi-Fi order, but the installed version-read
-candidate is consumed first; boot 4 removes a global flag and should precede
+Boots 1–3 need nothing from the Wi-Fi order; the installed version-read
+candidate has been consumed successfully; boot 4 removes a global flag and should precede
 5–9; boot 10 waits for common init. Current order after review: version
 read, Gemian A, C1 (with C2a), C3, Wi-Fi common-init boot, C2b.
 
@@ -1525,8 +1526,8 @@ settled from source are dropped here; what remains:
 
 The [workstream registry](../project/workstreams.json) keeps owners; this
 section only orders the work. Start now with the offline items of steps 1, 2
-and 6 and the Gemian session A; consume the installed version-read candidate,
-then schedule boot C1 (see the 2026-10-04 review under Current plan).
+and 6 and the Gemian session A; the installed version-read candidate is consumed,
+so complete the baseline before scheduling boot C1 (see the 2026-10-04 review under Current plan).
 
 ## A53 development-system release gate
 

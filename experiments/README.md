@@ -90,6 +90,10 @@ the loop. Positive identity-gated observations are unaffected.
 - [2026-10-03 overall project review](2026-10-03-project-review/README.md)
   — offline review of plan, patch layer, evidence and process; sets the
   roadmap's current plan and parks the A72 workstream.
+- [Checked WMT chip/HW/ROM versions](2026-10-03-mt6797-wmt-versions/README.md)
+  — one hardware measurement passed with tuple `0279/8a00/8a00`; sealed log,
+  A53 service regression and changed-boot Gemian recovery passed. Candidate
+  consumed; no common-init or Wi-Fi support claim.
 - [Checked WMT mode negotiation](2026-10-03-mt6797-wmt-negotiate/README.md)
   — isolated kernel integration after the observed default exchange; bounded
   negotiation passed on hardware; working Wi-Fi remains incomplete.

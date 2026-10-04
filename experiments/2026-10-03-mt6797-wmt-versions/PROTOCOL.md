@@ -1,6 +1,8 @@
 # Checked pre-negotiation identity measurement
 
-Status: validated candidate and offline protocol; deployment pending.
+Status: consumed by the [successful runtime measurement](results/runtime-1.json).
+The protocol below records the single admitted attempt; it does not authorize
+repetition.
 
 Hypothesis: the measured chip framing also carries HW and ROM register replies
 with the Gemian-reported 0x8a00 values. The unique observation is the attributable

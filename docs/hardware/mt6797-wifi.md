@@ -7,6 +7,7 @@ descriptions are evidence, not measured electrical behavior.
 
 | Fact | Method / confidence | Contradictions and limits |
 | --- | --- | --- |
+| Mainline independently checked firmware chip/HW/ROM as `0279/8a00/8a00` before negotiation | One attributable power lifetime, exact checked command/reply bytes and sealed full log; [runtime receipt](../../experiments/2026-10-03-mt6797-wmt-versions/results/runtime-1.json); observed | Matching the vendor tuple does not prove patch application, calibration, common initialization, Bluetooth or Wi-Fi support. |
 | `wlan0` has platform parent `180f0000.wifi` and driver `mt-wifi` | Named-device sysfs capture; observed | Exact parent/subsystem/driver links observed in the bounded follow-up; OF metadata link unavailable |
 | Gemian reports global regulatory domain `00` and a `phy0` with channels 1–13 and 24 listed 5 GHz channels enabled | Authenticated, read-only [`iw` reference snapshot](../../experiments/2026-10-01-mt6797-normal-sets/results/gemian-iw-reference.json); observed | This is one vendor-kernel view. Its per-channel 30 dBm display and separate global regulatory rules do not establish transmit permissions or the policy to apply in mainline. |
 | HIF resource is `0x180f0000+0x1100`, level-low SPI 283, `wifi-dma` / `INFRA_AP_DMA` | Live DT and matching Planet source; observed | Does not include every resource hard-coded by the vendor driver |
