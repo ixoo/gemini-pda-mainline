@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-04-mt6797-afe-preparation` |
-| Status | Offline driver draft; host checks pass, Buildbox validation pending |
+| Status | Driver draft; host, Buildbox compile/package and focused schema checks pass; runtime untested |
 | Subsystem | CONSYS analog initialization before MCU release |
 | Date | 2026-10-04 |
 | Device action | None; no candidate construction or installation |
@@ -65,9 +65,23 @@ KERNEL_PROFILE=mt6797-a53-consys-afe-compile ./scripts/build-kernel --backend bu
 KERNEL_PROFILE=mt6797-a53-consys-afe-compile ./scripts/buildbox fetch-package
 ```
 
-The host fixture passes. Buildbox compilation, strict checkpatch and binding/DT
-validation remain pending at this input checkpoint. No kernel build or hardware
-acceptance is claimed. Before any later boot candidate, review the effects and
-resource ownership, integrate the selected common-init steps, and state the
-unique observation and decision branches. Preserve the currently installed
-version-read candidate until its measurement is consumed.
+The [validation receipt](results/validation.json) binds the full Buildbox build
+and validated fetched package to input commit `de521d6a`. The driver and binding
+hashes in the prepared kernel exactly match the host-tested child. Both patches
+pass strict checkpatch with only `MISSING_SIGN_OFF` excluded, because this is a
+non-certifying draft. One patch-description line was wrapped after the build;
+the kernel diff bytes and resulting source are unchanged, so this metadata-only
+repair does not require another kernel build. The original package retains its
+original patch inventory and commit identity.
+
+Focused `dt_binding_check` passes. Direct DT validation accepts both the actual
+nine-resource node and a temporary ten-resource fixture with AFE, and rejects a
+wrong AFE name. The fetched package's board DT still has nine resources and no
+AFE window. Two inherited warnings remain: trailing whitespace in historical
+patch 0261 and an unused CPU rollback callback already reported by the parent
+version-read build. Neither is an AFE driver warning.
+
+No hardware acceptance is claimed. Before any later boot candidate, review the
+effects and resource ownership, integrate the selected common-init steps, and
+state the unique observation and decision branches. Preserve the currently
+installed version-read candidate until its measurement is consumed.

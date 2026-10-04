@@ -5,7 +5,8 @@ Subject: [PATCH] soc: mediatek: initialize MT6797 AFE before MCU release
 
 Apply the eleven selected connectivity analog writes after the checked MCU
 ACR update and before reset deassertion. Acquire the optional named AFE
-resource exclusively at probe; reject wrong ranges, sizes and extra windows.
+resource exclusively at probe; reject wrong ranges, sizes and extra
+windows.
 
 Keep the existing path when the resource is absent. Do not copy unselected
 GPS_SINGLE, commented WF_TX_02 or vendor bulk debug read operations.

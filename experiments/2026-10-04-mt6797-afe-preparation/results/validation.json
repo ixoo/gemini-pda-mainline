@@ -1,0 +1,41 @@
+{
+  "status": "offline compile/schema pass; no runtime acceptance or candidate",
+  "build_input_commit": "de521d6a20a1e3d37e9d3b96d196955cbe7cfc3e",
+  "profile": "mt6797-a53-consys-afe-compile",
+  "package_inventory_sha256": "0f2e993408447eb0caa3bc77bde9ace7966971df17def0a9d0aaa31e03cd67fb",
+  "patchset_sha256": "b3d51f9798eaa8facba8744e4f7e1dd96f01d30fd884a3edfa94a6bf76b6670b",
+  "selected_patch_count": 578,
+  "config_fragment_count": 24,
+  "config_sha256": "00a83bffec515ba7eb68ad61b411050cca8aa2e66a543338ffaf5a05ded72a8e",
+  "Image_gz_sha256": "9dd309c66d3903cf401d301d9de5253482a40938a60c15e32b1d99e637bca4d0",
+  "prepared_source_sha256": {
+    "drivers/soc/mediatek/mt6797-consys.c": "2296ea5895fd6c320807de5fb41adc24b78d0a07a7c59283b1703a80b64d6a69",
+    "Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml": "3929d8b83dbea3f828cac8e44cf26747e361f163c88847e7633b0bb98ffced69"
+  },
+  "consys_object_sha256": "838ba6e37d9f371596a9b28434084466cc45b3fe0645c5d9a29ef70caf46ef2b",
+  "build_log_sha256": "a7dc1b6383bcd718522d6ccb95f874cfc7f0398d57ca7bee5c68423f546b1c23",
+  "checks": {
+    "exported_patch_replay": "exact reconstructed parent and authored child match",
+    "existing_manifest_profiles": "unchanged; one isolated compile profile added",
+    "host_fixture": "strict C warnings, ASan and UBSan pass; absent resource zero writes and present resource eleven source-backed writes",
+    "kernel_build": "Image, Image.gz and DTBs pass through standard Buildbox backend",
+    "package": "remote validator and fetched inventory/provenance pass",
+    "checkpatch": "both patches: zero errors, warnings or checks; only MISSING_SIGN_OFF excluded",
+    "dt_binding_check": "focused mediatek,mt6797-consys.yaml pass, dtschema 2026.9",
+    "direct_dt_validation": "existing nine-resource node pass; synthetic ten-resource AFE node pass; wrong AFE name rejected",
+    "packaged_DT": "nine reg-names; AFE resource absent"
+  },
+  "post_build_metadata_repair": "Only wrapping one driver patch-description line. Bytes after the format-patch separator are identical to build input; prepared-source hashes unchanged. Package remains attributed to de521d6a.",
+  "inherited_warnings": [
+    "Historical patch 0261 trailing whitespace.",
+    "kernel/cpu.c unused cpuhp_rollback_callback_inventory; same warning appears in parent version-read build."
+  ],
+  "not_tested": [
+    "Physical AFE state or Wi-Fi reception",
+    "Actual probe failure injection, MMIO effects and reset sequencing on hardware",
+    "Re-triggerable common-init integration"
+  ],
+  "device_access": "none",
+  "installed_candidate_change": "none",
+  "sanitization": "Facts, source/software digests and non-personal build identities only."
+}
