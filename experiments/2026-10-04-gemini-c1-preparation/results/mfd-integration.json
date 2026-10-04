@@ -1,5 +1,5 @@
 {
-  "status": "Exact replay, 58 lifetime, 77 PM recovery and 21 runtime error cases pass; child wake ordering passes for 2/3/4 banks; Buildbox pending; no device action",
+  "status": "Exact replay, 58 lifetime, 77 PM recovery and 21 runtime error cases pass; child wake ordering passes for 2/3/4 banks; Buildbox/package/fetch pass; no device action",
   "profile": "mt6797-a53-c1-compile",
   "selected_patch_count": 518,
   "patches": [
@@ -41,5 +41,27 @@
     "Fixtures model transport, IRQ and devres services; no real hardware or concurrency test",
     "Key child absent and hall disabled; live key policy and bounded observation still gate candidate",
     "Suspend/resume callbacks compiled for coverage; no physical wake test admitted"
+  ],
+  "build_input_commit": "c2eeeb8a534544258e073e0f69478d1be6bfbc3c",
+  "package_inventory_sha256": "b29bd0185719b7dd0273f9aa86472ee015d1e79b581adad3972741682fe8b188",
+  "patchset_sha256": "7aa17f933b59593f00441767c9e03760cb5539d8dcaa275bcfb5e41a656bfdb2",
+  "config_sha256": "01dc95f3e8f1d4366d466b2ef4165fb8577c625c7bc3eb7bd596dd6d2695737e",
+  "Image_gz_sha256": "3062548a2ed4b5d9ed40219e69e27c225477832e2cacde7a35e4e5cd2665740c",
+  "build_log_sha256": "570bd25729a477ee7b6bbd2a66fb15080b84ae001c4a45c17b62c9c1ab3db042",
+  "compiler": "aarch64-linux-gnu-gcc (Debian 12.2.0-14) 12.2.0",
+  "object_sha256": {
+    "drivers/mfd/mt6397-irq.o": "5f93626990a51a771d80714a971ed57be96f9f00f660eaa3e3ad730fb7c8d33d",
+    "drivers/mfd/mt6358-irq.o": "46188da3940b89426c82a295331c4212f175a025937398dbd8dd80ec02f84357",
+    "drivers/mfd/mt6397-core.o": "cbef4e378bfa09fbee304a71ca7e14dbb33442f36bb1b9d6d03ebdfb92867ae2"
+  },
+  "build_validation": "Remote Linux package validator passes; fetch and all local package checksums pass; all four prepared source hashes match tested source; domain exit and suspend/resume callbacks present in compiled IRQ object",
+  "dtb_comparison": "123 paths and content hashes unchanged from the previous RTC/key/lid C1 package",
+  "inherited_warnings": [
+    "Patch 0261 trailing whitespace",
+    "Unused cpuhp_rollback_callback_inventory in kernel/cpu.c"
+  ],
+  "not_run": [
+    "New DT schema check: no DT or binding changes",
+    "Device, interrupt injection or suspend/wake tests"
   ]
 }

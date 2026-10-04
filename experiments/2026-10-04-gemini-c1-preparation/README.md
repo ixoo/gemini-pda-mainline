@@ -157,8 +157,9 @@ RTC and gpio-keys in and compiles the PM callbacks. It disables automatic RTC
 system-clock synchronization so that a future test can classify the RTC first.
 Suspend compilation is not suspend admission. DT remains unchanged: no key
 child, disabled lid candidate, and the existing RTC child. This is a compile
-checkpoint, not a deployable C1 packet. MFD IRQ/error integration, the bounded
-PMIC observation and each runtime protocol still need completion.
+checkpoint, not a deployable C1 packet. MFD IRQ/error integration was still
+missing at this input; the later section records its compiled successor.
+The bounded PMIC observation and runtime protocols remain incomplete.
 
 ```sh
 KERNEL_PROFILE=mt6797-a53-c1-compile ./scripts/build-kernel --backend buildbox
@@ -198,7 +199,12 @@ unsigned internal drafts, with the original synthetic authorship retained.
 The adaptations retain the independent topic's MFD subsystem destination and
 deletion condition: remove them when the corresponding lifetime and PM-ordering
 fixes are in the selected upstream baseline. No new contributor certification
-is asserted. Buildbox validation of this 518-patch C1 series is pending. No binding or DT
+is asserted. Buildbox compilation and Linux package validation pass for input
+`c2eeeb8a`. Fetch and all local checksums pass; the four prepared source files
+match the host-tested hashes. Both IRQ variants and the shared core compile,
+including domain cleanup and device PM callbacks. All 123 DTBs are unchanged
+from the prior C1 package. Only inherited patch-0261 whitespace and unused CPU
+rollback callback warnings appear. No binding or DT
 changes, enabled key/lid node, candidate, register access or physical PM test
 are included. The earlier RTC build receipt retains its original inputs.
 
