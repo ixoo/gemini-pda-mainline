@@ -1136,6 +1136,11 @@ remaining peripherals.
    display bias chip, so do it once. Rails, interrupts and mount orientation
    need a read-only Gemian check **(local)**. See the
    [sensors refresh](../experiments/2026-09-07-gemini-sensors-upstream-architecture/README.md).
+   The [sensor reverse-engineering record](../experiments/2026-10-04-gemini-sensors-re/README.md)
+   (2026-10-04) answers these from source: no controlled rail, no IMU
+   interrupt used by the vendor (GPIO65/EINT4 is the candidate), ALS/PS on
+   GPIO88/EINT11, `0x11` handled generically by the vendor, and the vendor's
+   unbuilt "MMC3530" driver is the mainline `mmc35240` register family.
 8. **GPU.** Panfrost (Mali-T880) needs the MFG power domains, the RT5735 VGPU
    regulator ([record](../experiments/2026-07-12-rt5735-vgpu-recovery/README.md))
    and safe OPPs. It waits for native display and for thermal protection.

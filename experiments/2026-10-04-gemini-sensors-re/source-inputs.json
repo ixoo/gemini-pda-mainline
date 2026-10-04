@@ -1,0 +1,265 @@
+{
+  "purpose": "Exact public inputs inspected for experiments/2026-10-04-gemini-sensors-re; no file content is copied into the repository.",
+  "vendor": {
+    "repository": "https://github.com/gemian/gemini-linux-kernel-3.18",
+    "commit": "8cfe6596a503612e3332d9c26e292a19525a7f07",
+    "files": [
+      {
+        "path": "arch/arm64/boot/dts/Makefile",
+        "size": 444,
+        "sha256": "0969221d9bb35db1e3d9b5a2b206d2c445afc04b95f9e58ff866d4c886590e62",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/Makefile"
+      },
+      {
+        "path": "arch/arm64/boot/dts/aeon6797_6m_n.dts",
+        "size": 38242,
+        "sha256": "d1bd9d83941dffb44615f69e9113c7b79d87b3e9e87057619c70370f56456f5a",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon6797_6m_n.dts"
+      },
+      {
+        "path": "arch/arm64/boot/dts/mt6797.dtsi",
+        "size": 104424,
+        "sha256": "eaac86c8752ebd8ddf18b831eb3bc52a08f87475a213bb521650bf95dabb3e5e",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi"
+      },
+      {
+        "path": "arch/arm64/boot/dts/cust_eint.dtsi",
+        "size": 1631,
+        "sha256": "e86279c1593bca98ce39ec9771dac184682ff3d95a0a038f1c704c2909e4300d",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/cust_eint.dtsi"
+      },
+      {
+        "path": "arch/arm64/boot/dts/cust_i2c.dtsi",
+        "size": 1069,
+        "sha256": "76a27f0415d13f2a4e8a4e6f63a99d6e8afcffd18f293d57a2745129e5e8433c",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/cust_i2c.dtsi"
+      },
+      {
+        "path": "arch/arm64/configs/aeon6797_6m_n_defconfig",
+        "size": 14304,
+        "sha256": "83f33ed07c17abe8dceaee64afd26de0cc970c0bae93681b68906636e21e883f",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/configs/aeon6797_6m_n_defconfig"
+      },
+      {
+        "path": "drivers/misc/mediatek/accelerometer/Makefile",
+        "size": 1587,
+        "sha256": "daaf8547429bc9e75d2fafd22c09dee83b40e1f892398935a7fb02ae02ff5110",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/accelerometer/Makefile"
+      },
+      {
+        "path": "drivers/misc/mediatek/accelerometer/bmi160_acc/bmi160_acc.c",
+        "size": 104163,
+        "sha256": "cc1cff339d25ba5657063f3ba9b71c3c3e79cb5ec474ecb88ca8be387e16043a",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/accelerometer/bmi160_acc/bmi160_acc.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/accelerometer/bmi160_acc/bmi160_acc.h",
+        "size": 37773,
+        "sha256": "e17d655120a2af38036b250f488edf3b98029c12798693502428369a40ef6de4",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/accelerometer/bmi160_acc/bmi160_acc.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/accelerometer/lsm6ds3-new/lsm6ds3-int.c",
+        "size": 137009,
+        "sha256": "7c218c2970043bc4d0414482809d8b3eb83c9eb2b669dd139a5c00f2e6e92185",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/accelerometer/lsm6ds3-new/lsm6ds3-int.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/accelerometer/lsm6ds3-new/lsm6ds3-int.h",
+        "size": 18788,
+        "sha256": "680823454ebcfb26ffd72c2171644851d06945f86dbc363f0c3980f805fd3cc6",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/accelerometer/lsm6ds3-new/lsm6ds3-int.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/gyroscope/bmi160_gyro/bmi160_gyro.c",
+        "size": 46138,
+        "sha256": "7342660a497848e4f2f2753319f7637ef8dc4b882136e2b7dea1c05d84d93845",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/gyroscope/bmi160_gyro/bmi160_gyro.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/gyroscope/lsm6ds3-new/lsm6ds3_gy.c",
+        "size": 66461,
+        "sha256": "fced33ea9f9a3ff471a863280cdd02f53d50b2649809ffe20b9138026e183e57",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/gyroscope/lsm6ds3-new/lsm6ds3_gy.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/alsps/stk3x1x-new/stk3x1x.c",
+        "size": 137268,
+        "sha256": "06525bcb8107ff25ee85c1ba847c78b3d9e0ea1d9342c92ceeb60acda06b75a0",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/alsps/stk3x1x-new/stk3x1x.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/alsps/stk3x1x-new/stk3x1x.h",
+        "size": 6035,
+        "sha256": "c61036f6a633bb7529d4b493823e8ed1b3dd2eb25fcf91556b565056fdfea0b7",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/alsps/stk3x1x-new/stk3x1x.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/magnetometer/Makefile",
+        "size": 2055,
+        "sha256": "10e27631f3ed0cee7faf137547c45f7be78cc1ddb60cd594403c3cf42c2e8fe2",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/magnetometer/Makefile"
+      },
+      {
+        "path": "drivers/misc/mediatek/magnetometer/mmc3524xd/mmc3524xd.c",
+        "size": 74350,
+        "sha256": "e66fa9ecbaf82ee85aa1f4cd6f19bf2699a77113060cec9b096ccccfa84de8b7",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/magnetometer/mmc3524xd/mmc3524xd.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/magnetometer/mmc3524xd/mmc3524xd.h",
+        "size": 2402,
+        "sha256": "844f376169e4ff3b19bd0635b654194754f2a0292bf282943b794f8eccb051d1",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/magnetometer/mmc3524xd/mmc3524xd.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/hwmon/sensor_dts/sensor_dts.c",
+        "size": 12471,
+        "sha256": "bb9925a2a58bbae235e0a6ead19fe43f8e91956c9a9ec65bb73177a657c3e4b7",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/hwmon/sensor_dts/sensor_dts.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/hwmon/hwmsen/hwmsen_helper.c",
+        "size": 16633,
+        "sha256": "e4fcb7e9928844cca3869be138a38a9613a5c4d069667140f5552ff7ddffffc7",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/hwmon/hwmsen/hwmsen_helper.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/step_counter/Makefile",
+        "size": 844,
+        "sha256": "d71a05a0bac6f1c8a3164e08ed7e7e4d33ec4499371ee3b2cce8e5653a9b7426",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/step_counter/Makefile"
+      },
+      {
+        "path": "drivers/misc/mediatek/step_counter/bmi160_stc/bmi160_stc.c",
+        "size": 40054,
+        "sha256": "d7d7a6d913e60b2931d7dbfe2acbaf87536cc0e0d2980bc40aef17fb8a9ccc5a",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/step_counter/bmi160_stc/bmi160_stc.c"
+      }
+    ]
+  },
+  "mainline": {
+    "repository": "https://github.com/gregkh/linux",
+    "tag": "v7.1.3",
+    "files": [
+      {
+        "path": "Documentation/devicetree/bindings/iio/imu/bosch,bmi160.yaml",
+        "size": 2380,
+        "sha256": "91163985f18028ebd979c1adcb72bcd351f012fb9a411519dc126ab0561dcd73",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/Documentation/devicetree/bindings/iio/imu/bosch,bmi160.yaml"
+      },
+      {
+        "path": "Documentation/devicetree/bindings/iio/light/stk33xx.yaml",
+        "size": 1215,
+        "sha256": "da26973c53cc9ba3780d5f614f55a018677c2c781223f9bfdadfd2826ae50bf9",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/Documentation/devicetree/bindings/iio/light/stk33xx.yaml"
+      },
+      {
+        "path": "Documentation/devicetree/bindings/trivial-devices.yaml",
+        "size": 22302,
+        "sha256": "47e2fd7fca1101428b119f5268d001b42fa32a0ec7ec75b98c0bc04169ab5a1a",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/Documentation/devicetree/bindings/trivial-devices.yaml"
+      },
+      {
+        "path": "arch/arm64/boot/dts/mediatek/mt6797.dtsi",
+        "size": 11331,
+        "sha256": "798662eb7df0a7cf37cbc47d54d232bbf85fbc748afc63af2c373526a948af83",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/arch/arm64/boot/dts/mediatek/mt6797.dtsi"
+      },
+      {
+        "path": "drivers/iio/humidity/hts221.h",
+        "size": 1068,
+        "sha256": "c1a41b75e5bf115dccbebb61f37f212e877e5213c8658f9efab7c40deccc833e",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/iio/humidity/hts221.h"
+      },
+      {
+        "path": "drivers/iio/humidity/hts221_core.c",
+        "size": 15423,
+        "sha256": "2e79aa4a5cc506d93ae3fa134d29daf89af4155e84fa504b66469215f171ebe7",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/iio/humidity/hts221_core.c"
+      },
+      {
+        "path": "drivers/iio/humidity/hts221_i2c.c",
+        "size": 1865,
+        "sha256": "5cb0802169debcf4787d143378c89e3e05899e29291a47dbad1ddd96a880569a",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/iio/humidity/hts221_i2c.c"
+      },
+      {
+        "path": "drivers/iio/imu/bmi160/bmi160.h",
+        "size": 956,
+        "sha256": "bb225bfc0f772eeb0ec930a80693aa0b4f899267c165e1b151982477b660f536",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/iio/imu/bmi160/bmi160.h"
+      },
+      {
+        "path": "drivers/iio/imu/bmi160/bmi160_core.c",
+        "size": 22613,
+        "sha256": "eef24ff00f6aa6886ae7c1e6104cc17f46cba6576cee44d919865c1b75250dff",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/iio/imu/bmi160/bmi160_core.c"
+      },
+      {
+        "path": "drivers/iio/imu/bmi160/bmi160_i2c.c",
+        "size": 2169,
+        "sha256": "92c117ca7d2c7d8958220c9d225eca8c4c90a2600c2438ff6d5fd123d33580bb",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/iio/imu/bmi160/bmi160_i2c.c"
+      },
+      {
+        "path": "drivers/iio/imu/st_lsm6dsx/st_lsm6dsx_i2c.c",
+        "size": 4838,
+        "sha256": "5eb78097c924b998a36c0b1ded02d17e3aff3de33f6b9c51210be2406b6ec90c",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/iio/imu/st_lsm6dsx/st_lsm6dsx_i2c.c"
+      },
+      {
+        "path": "drivers/iio/light/Kconfig",
+        "size": 22328,
+        "sha256": "33e03ed575220bad312fa26b5cc02f27c90972c0bf7aad85b8a7d22e4a82a150",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/iio/light/Kconfig"
+      },
+      {
+        "path": "drivers/iio/light/stk3310.c",
+        "size": 19021,
+        "sha256": "f763d70ff4246de0ea81ceee45a70823ff669e29dbea79dfdf4c9cfc8f52383f",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/iio/light/stk3310.c"
+      },
+      {
+        "path": "drivers/iio/magnetometer/Kconfig",
+        "size": 8651,
+        "sha256": "551ac60ac718b7506653c079021ea5cef9d6f4fefd4a9599dd37507901dc72d3",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/iio/magnetometer/Kconfig"
+      },
+      {
+        "path": "drivers/iio/magnetometer/mmc35240.c",
+        "size": 14232,
+        "sha256": "6f68f38769554dd4754955d725f5506d6a90b2998e45f1241c9e2c497bd1b3d9",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/iio/magnetometer/mmc35240.c"
+      },
+      {
+        "path": "drivers/iio/pressure/bmp280-i2c.c",
+        "size": 2022,
+        "sha256": "21ef952a35f63f80ff07a9077fe05116b29e6c30605f4a68080cc827f50134d7",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/iio/pressure/bmp280-i2c.c"
+      },
+      {
+        "path": "drivers/iio/pressure/bmp280.h",
+        "size": 15632,
+        "sha256": "b9684db7e87eeaba51401dd9e7b949eeab37b7bd4deb5bd8b8ad25489e69d6ef",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/iio/pressure/bmp280.h"
+      },
+      {
+        "path": "include/dt-bindings/pinctrl/mt6797-pinfunc.h",
+        "size": 65776,
+        "sha256": "0694be7b7bfe080044a015d9374da88e116fae176c057fd942bff4b32e373f03",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/include/dt-bindings/pinctrl/mt6797-pinfunc.h"
+      }
+    ]
+  },
+  "other_public_references": [
+    {
+      "url": "https://lkml.iu.edu/hypermail/linux/kernel/2405.2/04552.html",
+      "use": "stk3310 unknown-ID relaxation (F18)"
+    },
+    {
+      "url": "https://lkml.iu.edu/hypermail/linux/kernel/2405.2/04554.html",
+      "use": "stk3310 added chip IDs 0x15/0x1E; 0x11 absent (F18)"
+    }
+  ]
+}

@@ -15,6 +15,10 @@ the loop. Positive identity-gated observations are unaffected.
 
 ## Index
 
+- [2026-10-04 Gemini sensor path reverse engineering](2026-10-04-gemini-sensors-re/README.md)
+  — offline source review: vendor drives one BMI160 at `0x69` with no IMU
+  interrupt, STK3X1X on GPIO88/EINT11, and ships no magnetometer, barometer
+  or humidity driver; 21 cited facts, ranked device hypotheses.
 - [2026-10-04 Gemini GPS/GNSS path reverse engineering](2026-10-04-gemini-gps-re/README.md)
   — offline source review: GNSS is one WMT function-control command plus GPIO69
   over the STP GPS task after common init; position engine is proprietary
