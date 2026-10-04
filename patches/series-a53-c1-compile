@@ -519,3 +519,4 @@ upstream-4d7d9486/keys/0007-Input-mtk-pmic-keys-convert-MT6351-timeout-seconds.p
 upstream-4d7d9486/rtc/0002-rtc-mt6397-report-alarm-IRQ-wake-errors.patch
 v7.1.3/c1/0003-rtc-mt6397-bound-counter-rollover-retries.patch
 v7.1.3/c1/0004-rtc-mt6397-report-IRQ-transport-errors.patch
+v7.1.3/c1/0005-rtc-mt6397-implement-alarm-IRQ-enable.patch

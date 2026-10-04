@@ -24,7 +24,9 @@ the loop. Positive identity-gated observations are unaffected.
   checks pass. MFD IRQ corrections replay and pass focused lifetime, recovery
   and transport fixtures and Buildbox/package validation. Observation review
   found RTC retry/error-reporting gaps; successors pass focused host regression
-  and Buildbox/package validation. PMIC target access remains unadmitted.
+  and Buildbox/package validation. Standard alarm cancellation now has a tested
+  callback draft, pending Buildbox validation; tool and inherited-alarm gates
+  remain. PMIC target access remains unadmitted.
   No device access.
 
 - [2026-10-04 MT6797 STP task routing](2026-10-04-mt6797-stp-task-routing/README.md)

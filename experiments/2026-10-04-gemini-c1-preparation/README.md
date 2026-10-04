@@ -258,3 +258,23 @@ DT or binding changed, so no new schema check was run. The previous
 behavior, inherited alarms, the exact userspace tool, PMIC target read semantics
 and live key policy remain gates before an attended candidate. No board node,
 candidate or device operation is added.
+
+## Standard RTC alarm cancellation
+
+The [alarm-tool review](ALARM_TOOL_REVIEW.md) found that the selected driver
+lacks `alarm_irq_enable`: class timer removal can be followed by `-EINVAL`
+without a hardware disable, and file close leaves the alarm armed. The new
+standard callback uses the existing alarm/one-shot mask and trigger, returns
+transport errors and reports them when core cleanup discards the return.
+The [receipt](results/rtc-alarm-enable.json) records 111 callback/class cases,
+226 unchanged RTC regressions, exact replay and strict checkpatch. The single
+timer-removal model reproduces the old failure and two possible callback
+invocations per explicit disable. No physical cancellation is claimed.
+
+Buildbox validation of the 521-patch C1 profile is pending. The unsigned draft
+targets the RTC subsystem and is removed when equivalent callback support
+enters the pinned upstream baseline. Board nodes and configuration are unchanged.
+BusyBox's reviewed source has an unbounded awake wait and cleanup paths that
+can be skipped; the retained ram-root has no verified alarm executable. The
+final tool, inherited-alarm admission and callback effect budget still gate
+the candidate. No device operation was performed.

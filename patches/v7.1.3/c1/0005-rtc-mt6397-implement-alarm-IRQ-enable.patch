@@ -1,0 +1,59 @@
+From ee5f97c41153e0f10211e3db11ee02eaa7041abb Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 4 Oct 2026 14:01:41 -0400
+Subject: [PATCH] rtc: mt6397: implement alarm IRQ enable callback
+
+RTC_AIE_OFF removes the class timer but returns EINVAL because this
+driver has no alarm_irq_enable callback. The hardware alarm remains
+enabled when no alarm IRQ has fired. Closing the RTC file also leaves
+alarms alone, so a timed-out awake-alarm test cannot rely on close for
+cancellation.
+
+Implement the standard callback with the same alarm/one-shot mask and
+write trigger as set_alarm. Preserve unrelated interrupt bits and
+propagate read/update/trigger failures without retry. Report errors
+from the callback because core timer cleanup can discard its result.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/rtc/rtc-mt6397.c | 19 +++++++++++++++++++
+ 1 file changed, 19 insertions(+)
+
+diff --git a/drivers/rtc/rtc-mt6397.c b/drivers/rtc/rtc-mt6397.c
+index 7747e36..faa95fd 100644
+--- a/drivers/rtc/rtc-mt6397.c
++++ b/drivers/rtc/rtc-mt6397.c
+@@ -252,11 +252,30 @@ exit:
+ 	return ret;
+ }
+ 
++static int mtk_rtc_alarm_irq_enable(struct device *dev, unsigned int enabled)
++{
++	struct mt6397_rtc *rtc = dev_get_drvdata(dev);
++	int ret;
++
++	mutex_lock(&rtc->lock);
++	ret = regmap_update_bits(rtc->regmap, rtc->addr_base + RTC_IRQ_EN,
++				 RTC_IRQ_EN_ONESHOT_AL,
++				 enabled ? RTC_IRQ_EN_ONESHOT_AL : 0);
++	if (!ret)
++		ret = mtk_rtc_write_trigger(rtc);
++	mutex_unlock(&rtc->lock);
++	if (ret)
++		dev_err_ratelimited(dev, "Failed to change alarm IRQ enable: %d\n", ret);
++
++	return ret;
++}
++
+ static const struct rtc_class_ops mtk_rtc_ops = {
+ 	.read_time  = mtk_rtc_read_time,
+ 	.set_time   = mtk_rtc_set_time,
+ 	.read_alarm = mtk_rtc_read_alarm,
+ 	.set_alarm  = mtk_rtc_set_alarm,
++	.alarm_irq_enable = mtk_rtc_alarm_irq_enable,
+ };
+ 
+ static int mtk_rtc_probe(struct platform_device *pdev)
+-- 
+2.54.0 (Apple Git-157)
+

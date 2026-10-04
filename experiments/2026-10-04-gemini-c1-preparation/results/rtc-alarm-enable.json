@@ -1,0 +1,26 @@
+{
+  "status": "111 callback/class cases and unchanged 226 RTC cases pass; exact replay and strict checkpatch pass; Buildbox pending; no device action",
+  "profile": "mt6797-a53-c1-compile",
+  "selected_patch_count": 521,
+  "patch": "v7.1.3/c1/0005-rtc-mt6397-implement-alarm-IRQ-enable.patch",
+  "parent_source_sha256": "5a1a23c6e02dad44229724754be25e1a2ccdab966f99696e3b67ccbe3e224f1e",
+  "rtc_source_sha256": "b0ae409c2cdb8bf96dc1866dc383a62fcae968c94e64370d746894bf094f8658",
+  "core_interface_sha256": "dc18e82cc747c47cdcef927fdec76e0b06671367db24fef8d0e2d2c2ff6c6d67",
+  "tests": {
+    "alarm_enable_cases": 111,
+    "counter_cases": 10,
+    "alarm_handler_cases": 200,
+    "wake_cases": 16,
+    "negative": "Callback registration removed: fixture refuses",
+    "exact_replay": "RTC source byte-identical to tested child",
+    "checkpatch": "Strict pass with MISSING_SIGN_OFF excluded for unsigned archive"
+  },
+  "effect": "AIE_ON/OFF now delegates to a checked, mutex-serialized alarm/one-shot mask update and write trigger, preserving unrelated IRQ bits; no driver retry",
+  "core_effect": "Removing the sole enabled class timer calls the callback once through rtc_alarm_disable, then the explicit AIE_OFF path calls it again; the void helper discards errors, so callback diagnostics are retained",
+  "limitations": [
+    "Timer queue removal, transport, IRQ and logging services are modeled; core delegation and disable helper are actual extracted functions",
+    "No hardware alarm cancellation or wake proof",
+    "Callback adds hardware operations to core paths that formerly skipped them; final candidate effect budget and inherited-alarm admission remain required",
+    "Board nodes and configuration unchanged; no candidate or device operation"
+  ]
+}

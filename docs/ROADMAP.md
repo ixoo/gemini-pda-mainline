@@ -117,8 +117,12 @@ candidate is unchanged and still waits for physical boot2 selection.
    [observation review](../experiments/2026-10-04-gemini-c1-preparation/OBSERVATION_REVIEW.md)
    found unbounded RTC counter retries and unreported IRQ transport
    failures. The bounded-read and IRQ-diagnostic successors now pass host
-   regression and C1 Buildbox/package checks. Next offline: review inherited
-   alarms and the exact userspace alarm tool, and resolve per-register semantics
+   regression and C1 Buildbox/package checks. The
+   [alarm-tool review](../experiments/2026-10-04-gemini-c1-preparation/ALARM_TOOL_REVIEW.md)
+   found a missing standard alarm-disable callback; its successor passes host
+   regression and needs C1 Buildbox validation next. Then select a finite alarm
+   tool with checked cleanup, finish inherited-alarm admission and callback
+   effect budgeting, and resolve per-register semantics
    for the ten-register PMIC observer before creating
    a candidate. The key node still needs an explicit long-press policy from an
    attributable live `TOP_RST_MISC` observation; the lid node remains disabled.
