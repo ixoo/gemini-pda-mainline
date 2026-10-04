@@ -446,7 +446,7 @@ hypothesis and stop conditions. None is admitted by this record.
    the vendor's 245-field refresh, so mainline needs no init table (F5).**
    The decision-changing subset is small: `TOP_RST_MISC`, `STRUP_CON15`
    (`PWROFF_SEQ_EN`), `TOP_CKPDN_CON0–2`, `BUCK_VCORE_CON0`, `LDO_VDRAM_CON0`,
-   `CHR_CON1/6/13`. Test: a mainline boot reading those nine registers through
+   `CHR_CON1/6/13`. Test: a mainline boot reading those ten registers through
    the MFD regmap at probe time and diffing against the decoded table; any
    difference becomes a single reviewed write, not a port of the table.
    Confidence: medium.

@@ -15,6 +15,11 @@ the loop. Positive identity-gated observations are unaffected.
 
 ## Index
 
+- [2026-10-04 Gemini C1 preparation](2026-10-04-gemini-c1-preparation/README.md)
+  — selected-foundation audit: key error/duration fixes need integration,
+  ten-register PMIC inventory, RTC configuration and existing lid-node reuse.
+  No new build, candidate or device access.
+
 - [2026-10-04 MT6797 STP task routing](2026-10-04-mt6797-stp-task-routing/README.md)
   — drafts 0105–0106: ignore out-of-window ACK credit, route ordinary tasks
   before committing credit; host and Buildbox checks pass, no hardware.

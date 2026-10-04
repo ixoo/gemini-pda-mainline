@@ -1,0 +1,70 @@
+{
+  "status": "offline source audit; C1 integration not implemented or admitted",
+  "reviewed_origin_commit": "89ccbdd0",
+  "historical_prepared_source_build_input": "fcca630d04918a30dd3038e3ca46301798ce19d5",
+  "prepared_source_sha256": {
+    "drivers/input/keyboard/mtk-pmic-keys.c": "cd3b26c1e04755f1d3f2f94b494407ef7c9c32a68cf5932c14ba9ea247e6e415",
+    "drivers/mfd/mt6397-core.c": "a2c9d6ac7f5c884b7d47c5be69e485d12c2e730f050974223c3b1be9601a07d3",
+    "include/linux/mfd/mt6351/registers.h": "12c336181c8971a1ffe40f8c982bf891fa9ccb60d4f999a6e541ab0dc127f4a8"
+  },
+  "pmic_baseline": [
+    {
+      "register": "TOP_RST_MISC",
+      "address": "0x02b6",
+      "access_admitted": false
+    },
+    {
+      "register": "STRUP_CON15",
+      "address": "0x001e",
+      "access_admitted": false
+    },
+    {
+      "register": "TOP_CKPDN_CON0",
+      "address": "0x023a",
+      "access_admitted": false
+    },
+    {
+      "register": "TOP_CKPDN_CON1",
+      "address": "0x0240",
+      "access_admitted": false
+    },
+    {
+      "register": "TOP_CKPDN_CON2",
+      "address": "0x0246",
+      "access_admitted": false
+    },
+    {
+      "register": "BUCK_VCORE_CON0",
+      "address": "0x0600",
+      "access_admitted": false
+    },
+    {
+      "register": "LDO_VDRAM_CON0",
+      "address": "0x0a74",
+      "access_admitted": false
+    },
+    {
+      "register": "CHR_CON1",
+      "address": "0x0f7a",
+      "access_admitted": false
+    },
+    {
+      "register": "CHR_CON6",
+      "address": "0x0f84",
+      "access_admitted": false
+    },
+    {
+      "register": "CHR_CON13",
+      "address": "0x0f92",
+      "access_admitted": false
+    }
+  ],
+  "register_inventory_source": "../2026-10-04-gemini-pmic-basics-re/results/pmic-init-setting-decoded.tsv; TOP_RST_MISC also confirmed by selected register header",
+  "findings": [
+    "Selected key driver ignores register-read and reset-update failures, and shifts seconds directly into the selector; corrected independent key topic has not been selected by the service foundation.",
+    "Named nine-register baseline contains ten distinct registers.",
+    "RTC DT child exists, but handoff fragment disables RTC_CLASS; gpio-keys hall candidate is disabled."
+  ],
+  "device_access": "none",
+  "sanitization": "software hashes and independent register facts; no captures, calibration or device identifiers"
+}

@@ -108,8 +108,10 @@ candidate is unchanged and still waits for physical boot2 selection.
 1. Complete: Buildbox validation of original 0105–0106, source-identical
    consolidation of 0104+0105, and retirement of intermediate compile profiles.
    The historical build receipt retains its original input identity.
-2. Prepare boot C1: keys node with explicit long-press policy (needs the
-   `TOP_RST_MISC` read), RTC and lid (0074) nodes, the nine-register PMIC read,
+2. Prepare boot C1 using the [integration audit](../experiments/2026-10-04-gemini-c1-preparation/README.md):
+   first integrate the reviewed key error/duration fixes onto the selected
+   foundation, then a keys node with explicit long-press policy (needs the
+   `TOP_RST_MISC` read), RTC and lid (0074) nodes, the ten-register PMIC read,
    PSCI power-off baseline, and a userspace read-only REG00–REG14 charger dump
    with no charger node bound (C2a below).
 3. Wire the smallest Bluetooth path for C3: one task-0 binding in the existing
@@ -1234,10 +1236,11 @@ one boot or one Gemian session answers several records at once.
 ### Ordered gaps
 
 1. **PMIC foundation (offline now, one boot).** Patches: `mediatek,mt6351-keys`
-   child with `KEY_POWER` and an explicit long-press policy; `mt6351-pwrc` cell
-   and `mt6323-poweroff` compatible extension (`0x4309`, RTC base `0x4000`);
-   regulator constraint set from PMIC H7 while keeping `regulator_ignore_unused`
-   and logging `regulator_summary`; a probe-time read of the nine
+   child with `KEY_POWER` and an explicit long-press policy after integrating
+   the reviewed key fixes. Preserve PSCI power-off for C1; an `mt6351-pwrc`
+   cell and `mt6323-poweroff` extension wait for that baseline to fail.
+   Regulator constraint set from PMIC H7 while keeping `regulator_ignore_unused`
+   and logging `regulator_summary`; a probe-time read of the ten
    decision-changing PMIC registers (PMIC H8). Needs the `TOP_RST_MISC` Gemian
    read first (PMIC H3, H4). One combined boot **(local)** then covers key
    events, RTC read and alarm, and a power-off attempt with the charger
@@ -1419,7 +1422,7 @@ device; each is one short action):
 **C. Mainline boots** (each a reviewed experiment with its own candidate):
 
 1. **PMIC, charging and lid packet.** Key node, RTC node, lid node (0074),
-   MT6351 irqchip visible in `/proc/interrupts`, the nine-register PMIC read,
+   MT6351 irqchip visible in `/proc/interrupts`, the ten-register PMIC read,
    `TOP_RST_MISC` read before any write. Attended: one power-key press, one lid
    close/open, one cable plug/unplug (`CHRDET`, `VBATON_UNDET`), `rtcwake` 10 s,
    then the existing PSCI `poweroff` with the charger detached; `mt6351-pwrc`
