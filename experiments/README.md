@@ -15,6 +15,10 @@ the loop. Positive identity-gated observations are unaffected.
 
 ## Index
 
+- [2026-10-04 Gemini PMIC basics reverse engineering](2026-10-04-gemini-pmic-basics-re/README.md)
+  — offline source review of PWRAP init, the vendor's 245-field MT6351 boot
+  table, interrupts, keys, RTC, restart and power-off; 22 cited facts, ranked
+  device hypotheses (vendor bypasses PSCI; power-off is an RTC BBPU write).
 - [2026-10-04 Gemini display path reverse engineering](2026-10-04-gemini-display-re/README.md)
   — offline source review of loader, vendor kernel and mainline: panel identity
   resolved from the LK probe asymmetry, panel power/reset/timing contract,

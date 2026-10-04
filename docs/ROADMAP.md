@@ -1050,6 +1050,13 @@ remaining peripherals.
    [RTC source audit](../experiments/2026-07-11-mt6351-pmic-recovery/results/rtc-source-audit-20260908.md)
    and write the power-key long-press reset policy in the
    [keys topic](../experiments/2026-09-08-mt6351-keys-preparation/RESET_POLICY.md).
+   The [PMIC basics reverse-engineering record](../experiments/2026-10-04-gemini-pmic-basics-re/README.md)
+   (2026-10-04) answers these from source: the vendor reads the RTC without a
+   chip-specific requirement that mainline lacks on sibling PMICs, the retained
+   configuration requests one-key 11 s reset while mainline disables reset
+   unless the key node says otherwise, and vendor power-off is an RTC BBPU
+   write that bypasses PSCI, so the reviewed path is an MT6351 `pwrc` cell
+   reusing `mt6323-poweroff`; its ranked hypotheses order the next tests.
    Then one combined runtime packet **(local)**: power-key events, RTC
    read/set/alarm and a reviewed power-off path. These close the M2 PMIC items
    and give every later boot a clean shutdown.
