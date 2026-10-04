@@ -153,9 +153,12 @@ rejects shared sysfs/dump paths and finds I2C-dev disabled. The
 [transport review](../experiments/2026-10-04-gemian-session-a/REG06_TRANSPORT_REVIEW.md)
 finds unchecked FIFO completion and controller/DMA failure resets. The
 [adapter review](../experiments/2026-10-04-gemian-session-a/REG06_ADAPTER_REVIEW.md)
-confirms static I2C0 ownership and SCP effects. Next implement a default-off
-observation of one existing policy REG06 read with same-operation completion/count
-evidence, adding no charger request; byte/status alone is insufficient.
+confirms static I2C0 ownership and SCP effects. The
+[observer inputs](../experiments/2026-10-04-gemian-session-a/observer/README.md)
+implement a default-off existing-policy-read hook and pass host acceptance cases.
+Next generate/replay the patch, validate integration/locking and compile on
+Buildbox before candidate admission. No charger request is added; byte/status
+alone is insufficient.
 2) Boot C1 with C2a riding on it. 3) Boot C3 (Bluetooth, AFE resource
 present, version baseline followed by full-mode WMT query/negotiation
 control). 4) Phase A step 3 Wi-Fi common-init boot when the executor exists. 5) Boot C2b, charge policy. Then C4 onward as

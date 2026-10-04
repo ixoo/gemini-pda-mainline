@@ -76,3 +76,7 @@ same-operation completion/count evidence before accepting a REG06 value.
 The [adapter review](REG06_ADAPTER_REVIEW.md) confirms the static I2C0 binding
 and SCP effects. It selects observation of one existing periodic REG06 read
 instead of submitting an additional request; implementation is pending.
+
+The [observer inputs](observer/README.md) now implement the default-off passive
+hook and pass 159 host acceptance cases. Patch generation/replay, integration
+validation and kernel compilation remain pending; no candidate is admitted.
