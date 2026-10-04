@@ -1,5 +1,5 @@
 {
-  "status": "incomplete checkpoint; successor draft replayed; final alignment and compile lane prepared, awaiting final patch admission",
+  "status": "final patch admitted for compile only; kernel build and runtime validation pending",
   "input_commit": "92fb4da89680169046d42122a4095cefd8bee609",
   "draft_patch_sha256": "63b3608972328f4fb0b62023454e4dd6bc6675276498541168b8ad5baf675a2c",
   "source_revision": "59e00a9144d782e148332009a835b99c43382467",
@@ -16,9 +16,8 @@
     "intentional": "Root-only 0400 diagnostic attribute; inherited vendor CamelCase fields; internal new header without upstream MAINTAINERS claim or DCO certification"
   },
   "not_validated": [
-    "corrected patch generation and replay",
     "kernel compilation/linking",
-    "locking/sysfs integration tests",
+    "runtime locking/sysfs behavior",
     "candidate and device protocol"
   ],
   "device_actions": "none during implementation/generation",
@@ -38,7 +37,19 @@
     "dispatch_cases": 22,
     "dispatch_result": "pass",
     "shell_syntax_and_shellcheck": "pass",
-    "kernel_build": "pending final patch admission",
+    "kernel_build": "ready; not executed yet",
     "native_selection": "CONFIG_MTK_SMART_BATTERY selects bq25890 in pinned mt6797 Makefile; dedicated BQ25890 option remains disabled"
+  },
+  "final_patch": {
+    "input_commit": "004ebbd886a8405f8a9b9cf22bc9fc4ae8f3f76f",
+    "sha256": "649a65a73cdd0693b5c75098899f51ce34097048df7ba18dbb1204ee35694b36",
+    "exact_parent_replay": "pass; all four transformed files match",
+    "checkpatch": {
+      "errors": 0,
+      "warnings": 2,
+      "checks": 3,
+      "intentional": "0400 root-only attribute, inherited vendor CamelCase, internal header without upstream MAINTAINERS or DCO claim"
+    },
+    "static_lock_review": "Charger I2C mutex owns arm/consume/result; adapter lock owns pending/request pointers; controller mutex owns active pointer and copied FIFO/IRQ metadata. Same __i2c_transfer core preserves quirks and retries. The existing charger path already takes sleeping mutexes. No added device read/write."
   }
 }

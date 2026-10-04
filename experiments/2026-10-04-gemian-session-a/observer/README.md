@@ -7,12 +7,13 @@ Buildbox and emits an internal format patch. It does not build or install a
 kernel. The synthetic patch author is explicitly non-certifying, without a
 DCO sign-off; this is diagnostic preparation, not an upstream submission.
 
-The implementation inputs and host result predicate are ready. The first
-[generated draft](../results/observer-preparation.json) replayed exactly on
-Buildbox. Style review identified new-code formatting/tag placement issues, now
-corrected in successor inputs; regenerate/replay before accepting a patch.
-Kernel integration/locking validation and Buildbox compile remain pending.
-No deployable candidate or device test is admitted.
+The [final patch](../patches/0001-diagnostic-observe-existing-REG06-read.patch)
+replayed exactly against its pinned parents on Buildbox. Style review reports
+zero errors; intentional findings are recorded in the
+[preparation receipt](../results/observer-preparation.json). Static review
+checked pointer ownership and the shared transfer core. Kernel compilation and
+runtime locking/sysfs validation remain pending. This is an incomplete
+checkpoint, with no deployable candidate or admitted device test.
 
 ## Entry and scope
 
@@ -61,10 +62,12 @@ negative/partial transfer returns, completion/error combinations, missing
 controller metadata and duplicate/missing transfer entries. It does not test
 kernel integration, mutex ownership, sysfs behavior or physical transport.
 
-Next generate/replay the patch from clean pushed inputs on Buildbox, inspect
-its exact diff and run relevant compile/negative integration checks. Kernel
-builds must use `GEMINI_BUILD_EXPERIMENT=gemian-reg06
-./scripts/build-kernel --backend buildbox`. The compile lane is prepared, but remains blocked until the final reviewed patch is admitted at
-`../patches/0001-diagnostic-observe-existing-REG06-read.patch`. It uses only that
-patch and the pinned native config, with a distinct kernel release name.
-This checkpoint has not compiled a kernel.
+Compile the admitted single patch with:
+
+```sh
+GEMINI_BUILD_EXPERIMENT=gemian-reg06 ./scripts/build-kernel --backend buildbox
+```
+
+The lane uses the pinned native config and toolchain with a distinct kernel
+release name. It excludes the separate Wi-Fi diagnostic patches. Successful
+compilation will not admit a boot candidate or prove device behavior.
