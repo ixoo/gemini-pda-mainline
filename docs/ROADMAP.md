@@ -46,9 +46,10 @@ was drafted as 0103–0106: task-aware framing ([0103](../experiments/2026-10-04
 one shared sequence/ACK window ([0104](../experiments/2026-10-04-mt6797-stp-link-state/README.md)),
 then an ACK-credit correction and task routing before credit commitment
 ([0105–0106](../experiments/2026-10-04-mt6797-stp-task-routing/README.md)).
-Host fixtures pass for all; Buildbox passed for 0101–0104 and is still
-pending for 0105–0106. The installed version-read candidate is unchanged and
-still waits for physical boot2 selection.
+Host fixtures and Buildbox compilation pass for 0101–0106; the
+[task-routing receipt](../experiments/2026-10-04-mt6797-stp-task-routing/results/validation.json)
+records the validated build of input `fcca630d`. The installed version-read
+candidate is unchanged and still waits for physical boot2 selection.
 
 **What changed or was invalidated.**
 
@@ -76,12 +77,14 @@ still waits for physical boot2 selection.
    patches exist and none has run on hardware; the READMEs name retransmission
    storage, timers, reset epochs and client lifetime as next. None of those
    is needed to decide Bluetooth H1. Stop generalizing at what boot C3 needs.
-2. *0106 rewires the only hardware-proven path.* The WMT command matcher now
-   goes through the new routing and link code, so the negotiation and version
-   reads proven on hardware run through untested code in any candidate built
-   on 0104–0106. The first such candidate must repeat the version read as its
-   control, before any Bluetooth step; a regression branches to a comparison
-   with the version-read candidate, not to more transport work.
+2. *0106 changes the hardware-proven full-mode WMT path.* Negotiation and
+   its full-mode query now use the new routing and link code. The checked
+   pre-negotiation version-read path bypasses that code; its installed
+   candidate still awaits measurement. Retain the version read as a power,
+   BTIF and AFE baseline, then repeat the previously validated full-mode
+   WMT query/negotiation as the router control before Bluetooth. Stop on a
+   regression and compare with the corresponding prior candidate before
+   more transport work.
 3. *0105 reverses part of 0104 within the hour.* Squash 0104 and 0105 before
    any boot candidate so the series does not carry a known-wrong
    intermediate. Out-of-window ACK behavior is source-derived, not observed.
@@ -89,9 +92,9 @@ still waits for physical boot2 selection.
    is left for firmware retransmission, which has never been observed. Keep
    C3 to single command/response exchanges so no refusal can occur.
 5. *Profile growth.* One draft added four chained compile-only profiles, each
-   a full 580-line series copy (113 series files now). Once 0105–0106 pass
-   Buildbox, keep only `mt6797-a53-stp-task-routing-compile` and retire the
-   AFE, task and link intermediates, per the Phase B fold-in goal.
+   a full 580-line series copy (113 series files at review). With 0105–0106
+   now passing Buildbox, keep only `mt6797-a53-stp-task-routing-compile` and
+   retire the AFE, task and link intermediates, per the Phase B fold-in goal.
 6. *AFE is gated on the `wmt_query` diagnostic property.* Acceptable for the
    draft; the common-init executor must own the AFE stage unconditionally
    rather than through another DT-selected mode.
@@ -101,7 +104,7 @@ still waits for physical boot2 selection.
 
 **Adjusted next steps (offline, in order).**
 
-1. Run the pending Buildbox build for 0105–0106 **(local)**, then squash
+1. Buildbox validation for 0105–0106 is complete **(local)**. Squash
    0104+0105 and retire the intermediate compile profiles.
 2. Prepare boot C1: keys node with explicit long-press policy (needs the
    `TOP_RST_MISC` read), RTC and lid (0074) nodes, the nine-register PMIC read,
@@ -121,8 +124,8 @@ still waits for physical boot2 selection.
 version-read candidate; no new write before its measurement is consumed.
 1) Gemian session A, logs and live DT first, then reviewed register reads.
 2) Boot C1 with C2a riding on it. 3) Boot C3 (Bluetooth, AFE resource
-present, version read as control). 4) Phase A step 3 Wi-Fi common-init boot
-when the executor exists. 5) Boot C2b, charge policy. Then C4 onward as
+present, version baseline followed by full-mode WMT query/negotiation
+control). 4) Phase A step 3 Wi-Fi common-init boot when the executor exists. 5) Boot C2b, charge policy. Then C4 onward as
 listed below.
 
 **Phase A: first received Wi-Fi frame.**
@@ -1299,8 +1302,8 @@ one boot or one Gemian session answers several records at once.
    mainline must supply a `local-bd-address` (H6) **(local)**; one boot on the
    negotiated full-mode session with VCN33-BT at 3.3 V, function-control BT-on,
    HCI Reset, version and BD_ADDR reads, with the AFE resource present and the
-   version read as control (H1–H3, H5) **(local)**; the zero-CRC frame and
-   `0xfc6f` probes (H4) only after Reset passes. Coexistence and radio trims come later (H7, H10).
+   version baseline and full-mode WMT query/negotiation control (H1–H3, H5)
+   **(local)**; the zero-CRC frame and `0xfc6f` probes (H4) only after Reset passes. Coexistence and radio trims come later (H7, H10).
    Record: [Bluetooth](../experiments/2026-10-04-gemini-bluetooth-re/README.md).
 7. **GNSS (after proven common init).** The AFE register block is drafted
    in the common-init owner (0101–0102, GPS H2). Offline now: design the
@@ -1427,8 +1430,9 @@ device; each is one short action):
    idle then enumerated. Gauge driver boot comparing BATSNS with the charger
    ADC follows (H5).
 3. **Bluetooth on the negotiated session.** Candidate on the squashed
-   0101–0106 chain with the AFE resource present. Control first: repeat the
-   checked version read; stop on any regression. Then VCN33-BT on, BT-on,
+   0101–0106 chain with the AFE resource present. Controls first: repeat the
+   checked version baseline and the previously validated full-mode WMT
+   query/negotiation; stop on any regression. Then VCN33-BT on, BT-on,
    HCI Reset, version and BD_ADDR, second Reset after 2 s, BT off (Bluetooth
    H1–H3, H5). The zero-CRC frame and `0xfc6f` probe (H4) wait until Reset
    has passed and their effects are reviewed.
