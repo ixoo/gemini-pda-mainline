@@ -1,0 +1,446 @@
+{
+  "purpose": "Exact public inputs inspected for experiments/2026-10-04-gemini-audio-re; no file content is copied into the repository.",
+  "vendor": {
+    "repository": "https://github.com/gemian/gemini-linux-kernel-3.18",
+    "commit": "8cfe6596a503612e3332d9c26e292a19525a7f07",
+    "files": [
+      {
+        "path": "arch/arm64/boot/dts/aeon6797_6m_n.dts",
+        "size": 38242,
+        "sha256": "d1bd9d83941dffb44615f69e9113c7b79d87b3e9e87057619c70370f56456f5a",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon6797_6m_n.dts"
+      },
+      {
+        "path": "arch/arm64/boot/dts/aeon_gpio.dtsi",
+        "size": 6761,
+        "sha256": "86d248e602a2cad2b213c58a4e4d8525402f38e42b284dc1e896d9d6eb5aa95a",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon_gpio.dtsi"
+      },
+      {
+        "path": "arch/arm64/boot/dts/cust_eint.dtsi",
+        "size": 1631,
+        "sha256": "e86279c1593bca98ce39ec9771dac184682ff3d95a0a038f1c704c2909e4300d",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/cust_eint.dtsi"
+      },
+      {
+        "path": "arch/arm64/boot/dts/cust_i2c.dtsi",
+        "size": 1069,
+        "sha256": "76a27f0415d13f2a4e8a4e6f63a99d6e8afcffd18f293d57a2745129e5e8433c",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/cust_i2c.dtsi"
+      },
+      {
+        "path": "arch/arm64/boot/dts/mt6351.dtsi",
+        "size": 10180,
+        "sha256": "d5898a3f0ba4be3f2440193e0df78a8ba782957004b95a1b6597fdb248c6746c",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6351.dtsi"
+      },
+      {
+        "path": "arch/arm64/boot/dts/mt6797.dtsi",
+        "size": 104424,
+        "sha256": "eaac86c8752ebd8ddf18b831eb3bc52a08f87475a213bb521650bf95dabb3e5e",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi"
+      },
+      {
+        "path": "drivers/misc/mediatek/accdet/Kconfig",
+        "size": 2441,
+        "sha256": "9c9118aea8970538afb02ce18e3e51b59ad8c389c660469b0ede45bc3167fd15",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/accdet/Kconfig"
+      },
+      {
+        "path": "drivers/misc/mediatek/accdet/Makefile",
+        "size": 273,
+        "sha256": "94ecefb70d9fd1d7624dbc8e80707f2aea9fe3bff6fb4e8ec341e040c4e523e1",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/accdet/Makefile"
+      },
+      {
+        "path": "drivers/misc/mediatek/accdet/accdet_drv.c",
+        "size": 4111,
+        "sha256": "35668793ae35824a3a2b0fdb809951ceb2bc8dc4f9ea247fcc0996763b436641",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/accdet/accdet_drv.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/accdet/mt6797/accdet.c",
+        "size": 63611,
+        "sha256": "7af0b8291bd3a090669e61f469f6e90bd1c126bbf1cdfe18ae75a8166e0b3238",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/accdet/mt6797/accdet.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/accdet/mt6797/accdet.h",
+        "size": 4330,
+        "sha256": "8ce7e993e4aa11182c4c863589a4f0ccd0f1590d7e05b1d4861c2c5c919f18b3",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/accdet/mt6797/accdet.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/accdet/mt6797/reg_accdet.h",
+        "size": 5942,
+        "sha256": "f7d86499d7e76837a87cbfedcff8e30369317569c7b8c6daad1a000c7731fa38",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/accdet/mt6797/reg_accdet.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/upmu_hw.h",
+        "size": 1232296,
+        "sha256": "e376d2835dd32812b52caf6a51139cc7fd541de18eaad0f30ecf8194f70cebbe",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/upmu_hw.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/smartpa/Kconfig",
+        "size": 111,
+        "sha256": "471672a26a5c6e211acb09a365569563c650b3cc324d2fc5663c8e1f7c7df4ac",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/smartpa/Kconfig"
+      },
+      {
+        "path": "drivers/misc/mediatek/smartpa/Makefile",
+        "size": 101,
+        "sha256": "53857c56b4e27be037d6154c432a60847fa2edb160fce186e60c90aff8b7dc5d",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/smartpa/Makefile"
+      },
+      {
+        "path": "sound/soc/codecs/Kconfig",
+        "size": 17199,
+        "sha256": "38cc3fbb66e0e8a36af935ae20438fa850ea1562f3df5a9a4b7db7d7c8545e88",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/codecs/Kconfig"
+      },
+      {
+        "path": "sound/soc/codecs/Makefile",
+        "size": 15280,
+        "sha256": "8d44cb79dcebda21540008254558f3b0ea5e4e930c33908d51d7365b39d0340f",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/codecs/Makefile"
+      },
+      {
+        "path": "sound/soc/codecs/max98926.c",
+        "size": 32237,
+        "sha256": "bfdcc5c86054c2b81dc46aee7e71960b7b6fec353fc809ce3bcb56418ca4c7e0",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/codecs/max98926.c"
+      },
+      {
+        "path": "sound/soc/mediatek/Kconfig",
+        "size": 5548,
+        "sha256": "841ca015a5db11496df082af1106720a2e141a7b8fb67699f373846ad30ded8f",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/Kconfig"
+      },
+      {
+        "path": "sound/soc/mediatek/Makefile",
+        "size": 2517,
+        "sha256": "adeb38773c50e0ee2c37e1212e7020f50243ab1ffe9c580cf9c4e464fcf138d9",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/Makefile"
+      },
+      {
+        "path": "sound/soc/mediatek/codec/mt6351/Makefile",
+        "size": 112,
+        "sha256": "b815254580d0b9ae4ec1c0e2c46a9a9b73673061a3dc0cd057e6a587233182db",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/codec/mt6351/Makefile"
+      },
+      {
+        "path": "sound/soc/mediatek/codec/mt6351/mt_soc_codec_6351.c",
+        "size": 187833,
+        "sha256": "40817e56e34a2a1aed5d722b353b32830e4ba061ee34412f70a65d40b721edd7",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/codec/mt6351/mt_soc_codec_6351.c"
+      },
+      {
+        "path": "sound/soc/mediatek/mt_soc_audio_6797/AudDrv_Afe.h",
+        "size": 23532,
+        "sha256": "a5fe6913e04de159c8c32d6a9f29f04b6f916d0ea44a33803f8edaf8a8979a66",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/AudDrv_Afe.h"
+      },
+      {
+        "path": "sound/soc/mediatek/mt_soc_audio_6797/AudDrv_Ana.c",
+        "size": 12229,
+        "sha256": "6d868407857b018e3fbc454d7e2236b4989ede732c9394eb0a38efc3c9c2136f",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/AudDrv_Ana.c"
+      },
+      {
+        "path": "sound/soc/mediatek/mt_soc_audio_6797/AudDrv_Ana.h",
+        "size": 18319,
+        "sha256": "cdd20ce3e90149445105b0049b1242cd28eab5c274948923d59beb994e2dd137",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/AudDrv_Ana.h"
+      },
+      {
+        "path": "sound/soc/mediatek/mt_soc_audio_6797/AudDrv_Clk.c",
+        "size": 54500,
+        "sha256": "d4e6970b98168d7c04c4ad3ac8aa0ee7121fcbc760a7fdc042e14d27ce813e00",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/AudDrv_Clk.c"
+      },
+      {
+        "path": "sound/soc/mediatek/mt_soc_audio_6797/AudDrv_Gpio.c",
+        "size": 15742,
+        "sha256": "9ffc0c86a78e8c0031f271a440fcc10ab92e46dfe2498219e5dc51ac00140564",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/AudDrv_Gpio.c"
+      },
+      {
+        "path": "sound/soc/mediatek/mt_soc_audio_6797/AudDrv_Gpio.h",
+        "size": 2818,
+        "sha256": "088dc2a5cc769d257bee6f95372d4adda86c093a46b07fced2f292c992fc68f4",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/AudDrv_Gpio.h"
+      },
+      {
+        "path": "sound/soc/mediatek/mt_soc_audio_6797/Makefile",
+        "size": 2849,
+        "sha256": "0c6ab3f83682b4cf2aa7bc011f864ac81e300c6d76ba7a6089697beec31ba665",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/Makefile"
+      },
+      {
+        "path": "sound/soc/mediatek/mt_soc_audio_6797/mt_soc_afe_control.c",
+        "size": 147584,
+        "sha256": "d550c28bb71a5024953e4ef42af4a0b0646e2512fbbec341f5cbf12d5192b94e",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/mt_soc_afe_control.c"
+      },
+      {
+        "path": "sound/soc/mediatek/mt_soc_audio_6797/mt_soc_analog_type.h",
+        "size": 7303,
+        "sha256": "6ac87a190ba80cfca8149ae5d588cf0fe42e65b73d8a76ed363bf16c2ad41a21",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/mt_soc_analog_type.h"
+      },
+      {
+        "path": "sound/soc/mediatek/mt_soc_audio_6797/mt_soc_codec_63xx.c",
+        "size": 185164,
+        "sha256": "5006c9ba0f93b5e712c30bf8ebb6394f2db0ff75e9dccfe78696496d5329205a",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/mt_soc_codec_63xx.c"
+      },
+      {
+        "path": "sound/soc/mediatek/mt_soc_audio_6797/mt_soc_codec_63xx.h",
+        "size": 1833,
+        "sha256": "9565b5b731505b1f168e0d10fc21bc55347650b05cfe865775d21b7ed104ebf0",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/mt_soc_codec_63xx.h"
+      },
+      {
+        "path": "sound/soc/mediatek/mt_soc_audio_6797/mt_soc_codec_speaker_63xx.c",
+        "size": 6957,
+        "sha256": "6071f3f8d2e522a50931098ea33e2873887eec1828e8863cd898dfc9ff2d2910",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/mt_soc_codec_speaker_63xx.c"
+      },
+      {
+        "path": "sound/soc/mediatek/mt_soc_audio_6797/mt_soc_machine.c",
+        "size": 56967,
+        "sha256": "f067eba71be95dec9972db9c6c775b923d7a1aa72bf3f97fce6c7d4b5cfe3cd0",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/mt_soc_machine.c"
+      },
+      {
+        "path": "sound/soc/mediatek/mt_soc_audio_6797/mt_soc_pcm_capture.c",
+        "size": 22511,
+        "sha256": "5f9ad37df745a662243fea40886e55639f24c90c3508d2bbfe431ce21bda9d59",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/mt_soc_pcm_capture.c"
+      },
+      {
+        "path": "sound/soc/mediatek/mt_soc_audio_6797/mt_soc_pcm_dl1.c",
+        "size": 24609,
+        "sha256": "2030a800d4ae1d15ca7b160fed48a9f5b59ae5440a102268b32beba3353f9d3a",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/mt_soc_pcm_dl1.c"
+      },
+      {
+        "path": "sound/soc/mediatek/mt_soc_audio_6797/mt_soc_pcm_dl1_i2s0.c",
+        "size": 28946,
+        "sha256": "df79fc0d67e1c7a00ffb6a2f6868903f6fc24044a52f9b7ea394b1edc5506e1a",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/mt_soc_pcm_dl1_i2s0.c"
+      },
+      {
+        "path": "sound/soc/mediatek/mt_soc_audio_6797/mt_soc_pcm_dl1_i2s0Dl1.c",
+        "size": 29104,
+        "sha256": "0a0796974135731d5d11cc52214605cc2e5cef1e6156dce9c517273c594cb528",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/mt_soc_pcm_dl1_i2s0Dl1.c"
+      },
+      {
+        "path": "sound/soc/mediatek/mt_soc_audio_6797/mt_soc_pcm_hp_impedance.c",
+        "size": 22351,
+        "sha256": "7d11eaac694ad5b502cf131a7f2edf93d9dca7a323922b83d60c5eb9719ecc2b",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/mt_soc_pcm_hp_impedance.c"
+      }
+    ]
+  },
+  "mainline": {
+    "repository": "https://github.com/gregkh/linux",
+    "tag": "v7.1.3",
+    "files": [
+      {
+        "path": "Documentation/devicetree/bindings/mfd/mediatek,mt6397.yaml",
+        "size": 16750,
+        "sha256": "a61b17c83146db12db3b5ff22cdb10779b65fa764042fc68321ad9bdba1bf2cc",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/Documentation/devicetree/bindings/mfd/mediatek,mt6397.yaml"
+      },
+      {
+        "path": "Documentation/devicetree/bindings/sound/mt6351.txt",
+        "size": 339,
+        "sha256": "2da9f61e8b293b822804555fd97f7878ef1ace6ecbf85930b0c33c050d67c57f",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/Documentation/devicetree/bindings/sound/mt6351.txt"
+      },
+      {
+        "path": "Documentation/devicetree/bindings/sound/mt6359.yaml",
+        "size": 1775,
+        "sha256": "4dd55ef17d91873901bbf6855ca1b888b045d94d187a5ae94557bad46190d97f",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/Documentation/devicetree/bindings/sound/mt6359.yaml"
+      },
+      {
+        "path": "Documentation/devicetree/bindings/sound/mt6797-afe-pcm.txt",
+        "size": 1256,
+        "sha256": "3ee4a94768158f942bd1faadc3a260cafb252f9a7a8d1010951df9614bcef062",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/Documentation/devicetree/bindings/sound/mt6797-afe-pcm.txt"
+      },
+      {
+        "path": "Documentation/devicetree/bindings/sound/mt6797-mt6351.txt",
+        "size": 343,
+        "sha256": "2a4a8fcb3449d5701119ad203ffccf414b48b1a12d4fc05ab50aac06586719ad",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/Documentation/devicetree/bindings/sound/mt6797-mt6351.txt"
+      },
+      {
+        "path": "arch/arm64/boot/dts/mediatek/mt6797-evb.dts",
+        "size": 524,
+        "sha256": "ace973acc8e7b761e83cf8d3095dcdffa5f8d872a8ab53400f2a86c2b920fa2a",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/arch/arm64/boot/dts/mediatek/mt6797-evb.dts"
+      },
+      {
+        "path": "arch/arm64/boot/dts/mediatek/mt6797-x20-dev.dts",
+        "size": 1297,
+        "sha256": "65ff8e775ecf330e4d3fd21ae16ce0e4d714272c4592472df52dcc9259adbc07",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/arch/arm64/boot/dts/mediatek/mt6797-x20-dev.dts"
+      },
+      {
+        "path": "arch/arm64/boot/dts/mediatek/mt6797.dtsi",
+        "size": 11331,
+        "sha256": "798662eb7df0a7cf37cbc47d54d232bbf85fbc748afc63af2c373526a948af83",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/arch/arm64/boot/dts/mediatek/mt6797.dtsi"
+      },
+      {
+        "path": "drivers/mfd/mt6397-core.c",
+        "size": 11924,
+        "sha256": "3642c30bc125001b3e2ee3563900567e927dc04d963ef0b7f8e1d79a352c0ff6",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/drivers/mfd/mt6397-core.c"
+      },
+      {
+        "path": "sound/soc/codecs/Kconfig",
+        "size": 69181,
+        "sha256": "caf6e515b4a2a375ccfa743bba4b4b35c38a44ae8dad8646b55447a8449958c1",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/sound/soc/codecs/Kconfig"
+      },
+      {
+        "path": "sound/soc/codecs/max98926.c",
+        "size": 16376,
+        "sha256": "f8c054e8da0391993e2836a6bf61cbc47f1b3f1b37bac28d71a40c60d936bf69",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/sound/soc/codecs/max98926.c"
+      },
+      {
+        "path": "sound/soc/codecs/mt6351.c",
+        "size": 41644,
+        "sha256": "b6e3dd7764e0b405fe8293993ffb2a5ac8cbe3f75010ed08eec31add0b797d32",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/sound/soc/codecs/mt6351.c"
+      },
+      {
+        "path": "sound/soc/codecs/mt6351.h",
+        "size": 4766,
+        "sha256": "b50b014f3ab6e74df40c69fbd210e637ffcf7a0316772f046541e809580e3240",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/sound/soc/codecs/mt6351.h"
+      },
+      {
+        "path": "sound/soc/codecs/mt6358.c",
+        "size": 70340,
+        "sha256": "1db50e136b2f26fb98cecebbd82a3f03d2c6fa5877560f5bbe15366a0b3c9dfd",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/sound/soc/codecs/mt6358.c"
+      },
+      {
+        "path": "sound/soc/codecs/mt6359-accdet.c",
+        "size": 32180,
+        "sha256": "199df2bf5ecb83ffe220812756b4a3daeb2f3096ddf0a3919d8c90a842e9677a",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/sound/soc/codecs/mt6359-accdet.c"
+      },
+      {
+        "path": "sound/soc/codecs/mt6359-accdet.h",
+        "size": 3040,
+        "sha256": "7fe39fc5f87a31432d6dd53fc1ce8c79221a2c847a389192eba3b444e480de7a",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/sound/soc/codecs/mt6359-accdet.h"
+      },
+      {
+        "path": "sound/soc/mediatek/Kconfig",
+        "size": 10647,
+        "sha256": "da2993f6b8f6a4fa232eec19e63eb415b0a5008bf4714484026ad7aa6358d439",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/sound/soc/mediatek/Kconfig"
+      },
+      {
+        "path": "sound/soc/mediatek/common/mtk-afe-fe-dai.c",
+        "size": 16344,
+        "sha256": "0a07923255e76b3d331370fa8f2f6c2840a0cd780be5e8cb088af9d7dffaeb94",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/sound/soc/mediatek/common/mtk-afe-fe-dai.c"
+      },
+      {
+        "path": "sound/soc/mediatek/common/mtk-afe-platform-driver.c",
+        "size": 4475,
+        "sha256": "88c8a6a076226fdc66d28f9e5ecc500e9422873052b69a1390d26b48aa2f26de",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/sound/soc/mediatek/common/mtk-afe-platform-driver.c"
+      },
+      {
+        "path": "sound/soc/mediatek/mt6797/Makefile",
+        "size": 311,
+        "sha256": "d7f5e9d96d3df019cc0c5e44f33ae0f397e99c4754a2030dfe572e41ed4b5cf7",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/sound/soc/mediatek/mt6797/Makefile"
+      },
+      {
+        "path": "sound/soc/mediatek/mt6797/mt6797-afe-clk.c",
+        "size": 3333,
+        "sha256": "0d1ec1ae44312c6eab43d7c0835307f6f3e9d622abe9ab79e1bb074b775438a0",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/sound/soc/mediatek/mt6797/mt6797-afe-clk.c"
+      },
+      {
+        "path": "sound/soc/mediatek/mt6797/mt6797-afe-clk.h",
+        "size": 453,
+        "sha256": "58d85747b320959a26d5563d92cc9e37e870c206320c59045a2abe09aa1defe6",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/sound/soc/mediatek/mt6797/mt6797-afe-clk.h"
+      },
+      {
+        "path": "sound/soc/mediatek/mt6797/mt6797-afe-common.h",
+        "size": 1271,
+        "sha256": "0c842f0bc2aa3dc256963f3aced3299b7e85de11cb2caf53a800fe38ebd41e7d",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/sound/soc/mediatek/mt6797/mt6797-afe-common.h"
+      },
+      {
+        "path": "sound/soc/mediatek/mt6797/mt6797-afe-pcm.c",
+        "size": 23420,
+        "sha256": "ed52674d150c7d49bcaace00b6742390ba37de89a96a1720bf2df62674169f84",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/sound/soc/mediatek/mt6797/mt6797-afe-pcm.c"
+      },
+      {
+        "path": "sound/soc/mediatek/mt6797/mt6797-dai-adda.c",
+        "size": 9266,
+        "sha256": "1f8a3db8ef1bef3eb92f54a5dedae56ec635e855034f163a6c771e2bc01ea5dd",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/sound/soc/mediatek/mt6797/mt6797-dai-adda.c"
+      },
+      {
+        "path": "sound/soc/mediatek/mt6797/mt6797-dai-hostless.c",
+        "size": 3423,
+        "sha256": "a8f47bdb094a7c8b31b427fd20bbbb32bd3637895db1df58b9c4bfc8572011ec",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/sound/soc/mediatek/mt6797/mt6797-dai-hostless.c"
+      },
+      {
+        "path": "sound/soc/mediatek/mt6797/mt6797-dai-pcm.c",
+        "size": 8993,
+        "sha256": "80f432a7be4e9d5a3ef1b6a7b246b5c7dd317fde8f1174c7bc7f40f1d1af58b2",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/sound/soc/mediatek/mt6797/mt6797-dai-pcm.c"
+      },
+      {
+        "path": "sound/soc/mediatek/mt6797/mt6797-mt6351.c",
+        "size": 6384,
+        "sha256": "61e3007631fdc0904d6725718e7afe71932de5bc697bdbc71583d8083f9bd179",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/sound/soc/mediatek/mt6797/mt6797-mt6351.c"
+      },
+      {
+        "path": "sound/soc/mediatek/mt6797/mt6797-reg.h",
+        "size": 57695,
+        "sha256": "e726058dfdc8acc7e6384ef0f70a6ee8e39aae967cbb618e12390005f075b016",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/sound/soc/mediatek/mt6797/mt6797-reg.h"
+      },
+      {
+        "path": "sound/soc/mediatek/mt8183/mt8183-dai-i2s.c",
+        "size": 32189,
+        "sha256": "bbcc3f75e8c7d274f3949d221ba6dedc39d3cbc58c4b0bc2dd3f12383b2da31a",
+        "url": "https://github.com/gregkh/linux/blob/v7.1.3/sound/soc/mediatek/mt8183/mt8183-dai-i2s.c"
+      }
+    ]
+  },
+  "repository_evidence": [
+    "experiments/2026-07-12-audio-afe-recovery/results/runtime-summary.txt",
+    "experiments/2026-07-14-upstream-mt6797-coverage-audit/results/i2c-mt6797-controller-reuse-20260714.txt",
+    "experiments/2026-07-11-mt6351-pmic-recovery/README.md",
+    "docs/hardware/gemini-gemian-baseline.md",
+    "patches/v7.1.3/0007-arm64-dts-mediatek-mt6797-add-PMIC-wrapper.patch",
+    "patches/v7.1.3/0008-dt-bindings-mfd-mediatek-add-MT6351-PMIC.patch",
+    "patches/v7.1.3/0010-mfd-mt6397-add-MT6351-core-and-interrupt-support.patch",
+    "patches/v7.1.3/0045-arm64-dts-mediatek-mt6797-add-disabled-audio-afe.patch",
+    "configs/gemini.fragment"
+  ]
+}

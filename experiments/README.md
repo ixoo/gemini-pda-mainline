@@ -15,6 +15,10 @@ the loop. Positive identity-gated observations are unaffected.
 
 ## Index
 
+- [2026-10-04 Gemini audio path reverse engineering](2026-10-04-gemini-audio-re/README.md)
+  — offline source review: stock speaker path is MT6351 line-out plus
+  pulse-enabled GPIO243/244 amplifiers, the I2C0 `0x31` node is an unbound
+  MAX98926, jack detection is MT6351 ACCDET; 16 cited facts, ranked tests.
 - [2026-10-04 Gemini lid, microSD and USB-role reverse engineering](2026-10-04-gemini-lid-microsd-usb-re/README.md)
   — offline source review of the hall input, MSDC1 slot power/card detect and
   the FUSB301A/GPIO94/IDDIG USB role paths; 19 cited facts, 9 ranked hypotheses.

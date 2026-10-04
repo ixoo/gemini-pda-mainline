@@ -1108,6 +1108,11 @@ remaining peripherals.
    Before a card: identify the speaker amplifier at I2C0 `0x31` and the jack
    detection wiring **(local, read-only Gemian)**, then a bounded low-volume
    playback test **(local)**. Depends on step 1 for the MT6351 codec child.
+   The [audio reverse-engineering record](../experiments/2026-10-04-gemini-audio-re/README.md)
+   narrows this: the stock speaker path is MT6351 line-out plus pulse-enabled
+   GPIO243/244, the `0x31` node is an unbound MAX98926, and jack detection is
+   MT6351 ACCDET on the PMIC's internal EINT; its H1 Gemian read decides the
+   amplifier before any card is built.
 7. **Sensors.** BMI160 (I2C1 `0x69`) has an upstream driver; STK3x1x product
    ID `0x11` is not in the `stk3310` table. Enabling I2C1 is shared with the
    display bias chip, so do it once. Rails, interrupts and mount orientation
