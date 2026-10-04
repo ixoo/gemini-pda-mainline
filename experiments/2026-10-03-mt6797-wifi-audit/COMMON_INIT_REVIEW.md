@@ -139,3 +139,9 @@ extracts the ordinary task codec for Bluetooth while preserving the existing
 WMT API and command ceiling. Host and Buildbox checks pass. Shared task delivery,
 sequence/ACK ownership, IRQ lifetime and reset epochs remain separate transport
 work; this checkpoint supplies no Bluetooth or GNSS hardware result.
+
+The [shared link-state checkpoint](../2026-10-04-mt6797-stp-link-state/README.md)
+now prepares the seven-frame cumulative ACK window and shared receive sequence,
+and moves the existing WMT client onto it. Host and Buildbox checks pass;
+production Bluetooth/GPS delivery, retransmission and client/reset lifetime
+remain unwired and untested on hardware.

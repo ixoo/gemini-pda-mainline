@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-04-mt6797-stp-link-state` |
-| Status | Driver dependency draft; host checks pass; Buildbox build pending |
+| Status | Driver dependency draft; host and Buildbox checks pass; runtime untested |
 | Subsystem | Shared STP sequence and cumulative ACK ownership |
 | Date | 2026-10-04 |
 | Device action | None; runtime testing deferred until owner returns |
@@ -88,6 +88,17 @@ KERNEL_PROFILE=mt6797-a53-stp-link-compile ./scripts/buildbox fetch-package
 Strict checkpatch passes with the same internal-draft exclusions as the preceding
 framing checkpoint: `MISSING_SIGN_OFF`, inherited API `TYPO_SPELLING`, and
 `FILE_PATH_CHANGES` for the temporary new header's absent maintainer entry.
-Buildbox compilation and package checks are pending. No DT or binding content
-changed; no additional schema check is needed. No device access, candidate
-construction, installation or hardware result is claimed.
+The full Buildbox build and remote package validation pass for input commit
+`f2138c82`; the fetched inventory, Image.gz and configuration hashes match the
+receipt. All four changed files in the prepared source match the host-tested
+child. The production WMT path compiles against the new state layout. The
+configuration is byte-identical to the parent task-framing compile profile.
+Repository checks pass, including all 274 manifest profiles. No new compiler
+warning appears: historical patch 0261 whitespace and the unused CPU rollback
+callback warning are inherited from the parent build. No DT or binding content
+changed, so no additional schema check was run. The local Linux-only provenance
+fixture is skipped on macOS; the package itself passed the remote Linux validator.
+
+The later receipt update changes documentation only; the package retains its
+original input-commit identity. No device access, candidate construction,
+installation or hardware result is claimed.

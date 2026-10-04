@@ -1,5 +1,5 @@
 {
-  "status": "offline shared-link driver draft; host checks pass; kernel build pending",
+  "status": "offline host/build/package pass; no runtime acceptance or candidate",
   "parent_profile": "mt6797-a53-stp-task-compile",
   "profile": "mt6797-a53-stp-link-compile",
   "reference": {
@@ -34,15 +34,33 @@
     "shared_link": "strict warnings, ASan/UBSan pass; all 512 window/start/ACK combinations checked against transmitted-entry queue oracle; task alternation, duplicate suppression and ACK snapshot completion",
     "wmt_compatibility": "nine existing framing/state/IRQ/negotiation/version fixtures pass; only member access paths mechanically adapted in temporary copies; historical sources unchanged",
     "framing": "previous task codec fixture passes against actual authored headers",
-    "checkpatch": "zero errors/warnings/checks; MISSING_SIGN_OFF, TYPO_SPELLING and FILE_PATH_CHANGES excluded"
+    "checkpatch": "zero errors/warnings/checks; MISSING_SIGN_OFF, TYPO_SPELLING and FILE_PATH_CHANGES excluded",
+    "exported_patch_replay": "exact reconstructed parent and authored child match",
+    "prepared_source": "all four changed files match the host-tested source SHA-256 values",
+    "kernel_build": "Image, Image.gz and DTBs pass through the standard Buildbox backend; production WMT callers compile against shared link state",
+    "package": "remote validator and fetched inventory/provenance pass",
+    "repository_checks": "pass; all 274 profile series preserve canonical order"
   },
   "limitations": [
     "Current production IRQ owner still admits only WMT data; no Bluetooth/GPS client or dispatch queue is wired.",
     "Shared helper requires serialized access and reserved receive storage before accepting new data.",
     "Retransmission engine, aggregate service budgets, reset epochs and client/IRQ lifetime remain owner work.",
     "NAK, resynchronization and firmware-message tasks remain unsupported.",
-    "Kernel build and device behavior are not yet validated."
+    "Physical Bluetooth/GPS/WMT behavior and kernel IRQ concurrency remain untested."
   ],
   "device_access": "none",
-  "sanitization": "Independent protocol facts and authored source/software digests only; vendor source and captures remain private."
+  "sanitization": "Independent protocol facts and authored source/software digests only; vendor source and captures remain private.",
+  "build_input_commit": "f2138c82f5c657b3e85a0057fb4029e74ddb0e1a",
+  "package_inventory_sha256": "54ab89345dc7c47a6996f9f326a9074b74c28abb28aea31b3eb08317a28d021a",
+  "patchset_sha256": "7fa2dfb518a47cf8d952973ce447a3fca99ae28656d3bbab2a43271d702cb409",
+  "selected_patch_count": 580,
+  "config_fragment_count": 24,
+  "config_sha256": "00a83bffec515ba7eb68ad61b411050cca8aa2e66a543338ffaf5a05ded72a8e",
+  "Image_gz_sha256": "3ab6acb06685949061e87954d92ac13c3fe417a63ea7a2993c3ee68566735309",
+  "consys_object_sha256": "199c39f60efd0bdf214b9abd49fb5b81fb3aaf6c9930c75bc0729786f63233eb",
+  "build_log_sha256": "6e9eefecd962d0452131f50d1dd3522656980223215f08757813115e8e7c8e80",
+  "inherited_warnings": [
+    "Historical patch 0261 trailing whitespace.",
+    "kernel/cpu.c unused cpuhp_rollback_callback_inventory; also reported by the parent task-framing build."
+  ]
 }
