@@ -121,16 +121,21 @@ passed with sealed evidence, A53 regression and changed-boot Gemian recovery.
    regression and C1 Buildbox/package checks. The
    [alarm-tool review](../experiments/2026-10-04-gemini-c1-preparation/ALARM_TOOL_REVIEW.md)
    found a missing standard alarm-disable callback; its successor passes host
-   regression and C1 Buildbox/package checks. Next offline: select a finite alarm
-   tool with checked cleanup, finish inherited-alarm admission and callback
-   effect budgeting, and resolve per-register semantics
-   for the ten-register PMIC observer before creating
-   a candidate. The key node still needs an explicit long-press policy from an
-   attributable live `TOP_RST_MISC` observation; the lid node remains disabled.
-   The installed identity candidate is consumed. Complete the reviewed Gemian
-   baseline before C1 short-key/lid/awake-alarm and PSCI power-off tests. C2a's read-only
-   REG00–REG14 charger dump needs its separate access review, including REG0C
-   fault-history consumption, with no charger node bound. No device operation is scheduled while the owner is unavailable.
+   regression and C1 Buildbox/package checks. These driver corrections are
+   sufficient for C1; further RTC/alarm polish does not gate the candidate.
+   Next (review of 2026-10-04 evening): build the C1 candidate with this
+   scope only: the ten-register PMIC observer, ordered to read before the key
+   child probes; the key child with an explicit `mediatek,long-press-mode`
+   (one-key) and `power-off-time-sec` that keep a long-press hard reset;
+   the lid node; one short key press, one lid close/open, `rtcwake` 10 s and
+   PSCI power-off with the cable detached. The observer's attributed
+   `TOP_RST_MISC` value replaces the Gemian read as the inherited-policy
+   record, so C1 no longer waits on Gemian session A. The key properties
+   must be explicit regardless: upstream `mtk-pmic-keys` writes the reset
+   register at probe and selects `LP_DISABLE` (no long-press reset) when
+   `mediatek,long-press-mode` is absent. C2a's read-only REG00–REG14 charger
+   dump rides on C1 with no charger node bound; read REG0C once and keep that
+   first result, since the read consumes its fault history.
 3. Wire the smallest Bluetooth path for C3: one task-0 binding in the existing
    IRQ owner with a single-event buffer, BT function-on/off and VCN33-BT over
    the existing WMT client, HCI Reset, Read Local Version and Read BD_ADDR.
@@ -143,7 +148,7 @@ passed with sealed evidence, A53 regression and changed-boot Gemian recovery.
 
 **Adjusted device order.** 0) Complete: the installed version-read candidate
 measured `0279/8a00/8a00` and returned to changed-boot Gemian.
-1) Gemian session A, logs and live DT first, then reviewed register reads.
+1) Gemian session A (no longer gating C1).
 The [charger log/DT subset](../experiments/2026-10-04-gemian-session-a/README.md)
 is collected; session A is incomplete. The
 [matched-boot setter audit](../experiments/2026-10-04-gemian-session-a/CHARGER_CV_BINARY.md)
@@ -155,10 +160,13 @@ finds unchecked FIFO completion and controller/DMA failure resets. The
 [adapter review](../experiments/2026-10-04-gemian-session-a/REG06_ADAPTER_REVIEW.md)
 confirms static I2C0 ownership and SCP effects. The
 [observer inputs](../experiments/2026-10-04-gemian-session-a/observer/README.md)
-implement a default-off existing-policy-read hook and pass host acceptance cases.
-Next generate/replay the patch, validate integration/locking and compile on
-Buildbox before candidate admission. No charger request is added; byte/status
-alone is insufficient.
+are **parked**: the REG06 byte changes no mainline decision (mainline starts
+at 4.2 V regardless), and the hook needs a rebuilt Gemian kernel. Treat stock
+Gemian as requesting 4.416 V and keep its charging attended. If the value is
+still wanted, two reads through the vendor sysfs read branch (a 1–3 byte
+store such as `printf 6`, then `cat`) suffice: zero is the failure
+signature, a nonzero byte decodes directly. Remaining session A items no
+longer gate C1.
 2) Boot C1 with C2a riding on it. 3) Boot C3 (Bluetooth, AFE resource
 present, version baseline followed by full-mode WMT query/negotiation
 control). 4) Phase A step 3 Wi-Fi common-init boot when the executor exists. 5) Boot C2b, charge policy. Then C4 onward as
@@ -1195,8 +1203,9 @@ one boot or one Gemian session answers several records at once.
    [matched-boot binary audit](../experiments/2026-10-04-gemian-session-a/CHARGER_CV_BINARY.md)
    proves computed-only logging followed by fixed `0x24` (4.416 V nominal)
    VREG write requests; errors are ignored and hardware readback remains
-   unresolved. Review a bounded attributable REG06 read next. Until then, avoid long unattended
-   charge sessions under Gemian. On mainline, the first charger observation
+   unresolved. Treat stock Gemian as requesting 4.416 V and avoid long
+   unattended charge sessions under it; the Gemian-kernel REG06 observer is
+   parked because the answer changes no mainline decision. On mainline, the first charger observation
    is a userspace read-only register dump with no charger node bound. The
    upstream driver ignores DT limits under `linux,read-back-settings` and
    enables charging under `linux,skip-reset`, so binding it is a separate,
@@ -1280,8 +1289,9 @@ one boot or one Gemian session answers several records at once.
    cell and `mt6323-poweroff` extension wait for that baseline to fail.
    Regulator constraint set from PMIC H7 while keeping `regulator_ignore_unused`
    and logging `regulator_summary`; a probe-time read of the ten
-   decision-changing PMIC registers (PMIC H8). Needs the `TOP_RST_MISC` Gemian
-   read first (PMIC H3, H4). One combined boot **(local)** then covers key
+   decision-changing PMIC registers (PMIC H8), ordered before the key child
+   probes so it records the inherited `TOP_RST_MISC` before the key driver
+   writes it (PMIC H3, H4); no Gemian read is needed first. One combined boot **(local)** then covers key
    events, RTC read and alarm, and a power-off attempt with the charger
    detached (PMIC H1, H2a, H5, H6). This boot also carries step 2's `CHRDET`
    count and step 5's lid test.
@@ -1505,8 +1515,9 @@ device; each is one short action):
 
 Boots 1–3 need nothing from the Wi-Fi order; the installed version-read
 candidate has been consumed successfully; boot 4 removes a global flag and should precede
-5–9; boot 10 waits for common init. Current order after review: version
-read, Gemian A, C1 (with C2a), C3, Wi-Fi common-init boot, C2b.
+5–9; boot 10 waits for common init. Current order after review: C1 (with
+C2a), C3, Wi-Fi common-init boot, C2b; remaining Gemian A items run when
+convenient and gate none of these.
 
 ### Leads from owner-held reference documents
 
@@ -1548,8 +1559,8 @@ settled from source are dropped here; what remains:
 
 The [workstream registry](../project/workstreams.json) keeps owners; this
 section only orders the work. Start now with the offline items of steps 1, 2
-and 6 and the Gemian session A; the installed version-read candidate is consumed,
-so complete the baseline before scheduling boot C1 (see the 2026-10-04 review under Current plan).
+and 6; the installed version-read candidate is consumed, so build and
+schedule boot C1 next (see the 2026-10-04 review under Current plan).
 
 ## A53 development-system release gate
 
