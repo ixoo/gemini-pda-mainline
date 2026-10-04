@@ -109,12 +109,18 @@ candidate is unchanged and still waits for physical boot2 selection.
    consolidation of 0104+0105, and retirement of intermediate compile profiles.
    The historical build receipt retains its original input identity.
 2. Prepare boot C1 using the [integration audit](../experiments/2026-10-04-gemini-c1-preparation/README.md):
-   the reviewed key error/duration fixes now replay on the selected foundation
-   and pass host regression, Buildbox and focused binding checks. Next: a keys
-   node with explicit long-press policy (needs the
-   `TOP_RST_MISC` read), RTC and lid (0074) nodes, the ten-register PMIC read,
-   PSCI power-off baseline, and a userspace read-only REG00–REG14 charger dump
-   with no charger node bound (C2a below).
+   key error/duration fixes pass host, Buildbox and focused binding checks;
+   corrected RTC and gpio-keys now also pass host and Buildbox/package checks
+   in the consolidated C1 compile profile. Next offline: adapt the MFD IRQ
+   lifetime fix to the selected domain span, then integrate and test mask,
+   acknowledgement, wake-error recovery and cleanup corrections. Review the
+   ten-register PMIC observation and bounded RTC/lid protocols before creating
+   a candidate. The key node still needs an explicit long-press policy from an
+   attributable live `TOP_RST_MISC` observation; the lid node remains disabled.
+   When the owner returns, consume the installed candidate and Gemian baseline
+   before C1 short-key/lid/awake-alarm and PSCI power-off tests. C2a's read-only
+   REG00–REG14 charger dump needs its separate access review, with no charger
+   node bound. No device operation is scheduled while the owner is unavailable.
 3. Wire the smallest Bluetooth path for C3: one task-0 binding in the existing
    IRQ owner with a single-event buffer, BT function-on/off and VCN33-BT over
    the existing WMT client, HCI Reset, Read Local Version and Read BD_ADDR.

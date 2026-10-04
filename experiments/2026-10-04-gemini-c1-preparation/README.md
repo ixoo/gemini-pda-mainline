@@ -1,7 +1,7 @@
 # Gemini C1 PMIC, RTC and lid preparation
 
 Initial offline integration audit, 2026-10-04, followed by the selected key
-compile integration below. No boot candidate or device operation is admitted
+and RTC/lid compile integrations below. No boot candidate or device operation is admitted
 by this record. The [roadmap](../../docs/ROADMAP.md)
 owns priorities. The [source audit](results/source-audit.json) pins the selected
 prepared driver files and the proposed baseline inventory.
@@ -144,7 +144,13 @@ wake callbacks pass 16 cases. The [RTC receipt](results/rtc-integration.json)
 pins the integrated source. The initial build `9e2f9277` stopped before
 compilation: RTC_NVMEM defaults on with RTC_CLASS and selected NVMEM despite
 the foundation exclusion. The fragment now disables RTC_NVMEM; the time/alarm
-packet needs no RTC storage window. Buildbox validation is pending.
+packet needs no RTC storage window. Corrected input `fcd8c161` passes Buildbox
+compilation and remote Linux package validation. Fetch and all local package
+checksums pass; all 123 DTBs match the earlier key-only package. The compiled
+RTC source matches the 176-case host-tested source, including suspend/resume
+callbacks, and gpio-keys compiles. Only the inherited unused CPU rollback
+callback warning remains. No DT or binding changed, so no new schema check
+was run.
 
 The current [fragment](../../configs/gemini-a53-c1-compile.fragment) builds
 RTC and gpio-keys in and compiles the PM callbacks. It disables automatic RTC
@@ -158,3 +164,16 @@ PMIC observation and each runtime protocol still need completion.
 KERNEL_PROFILE=mt6797-a53-c1-compile ./scripts/build-kernel --backend buildbox
 KERNEL_PROFILE=mt6797-a53-c1-compile ./scripts/buildbox fetch-package
 ```
+
+## Selected MFD integration gap
+
+The selected IRQ driver checks status-read failures but ignores initial/normal
+mask and acknowledgement write failures. Its PM notifier also ignores wake-mask
+and parent IRQ wake errors, and lifetime handling lacks the independent topic's
+corrections. The [RTC receipt](results/rtc-integration.json) records the source
+identity and bounded private replay. Initial-mask fix 0006 applies unchanged;
+lifetime fix 0007 fails against the selected IRQ-domain context, so replay stopped.
+The selected tree uses `chip->num_irq_regs * 16` for the domain span; the
+independent patch expects a different local variable. Integration must preserve
+that span, then replay and test the remaining error, wake recovery and cleanup
+changes. No MFD patch was selected by this audit.

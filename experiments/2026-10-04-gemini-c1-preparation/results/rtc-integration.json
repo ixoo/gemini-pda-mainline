@@ -1,5 +1,5 @@
 {
-  "status": "host RTC fixtures pass; Buildbox validation pending; no device action",
+  "status": "176-case RTC host regression and Buildbox/package validation pass; no device action",
   "profile": "mt6797-a53-c1-compile",
   "replaces_profile": "mt6797-a53-pmic-keys-compile",
   "patches": [
@@ -18,7 +18,7 @@
   "dt_changes": "none; RTC node already exists, key child absent, hall disabled",
   "limitations": [
     "No RTC time/alarm/lid observation or boot candidate",
-    "Selected MFD IRQ error handling still requires integration audit",
+    "Selected MFD IRQ errors and resource lifetime need integration before a C1 candidate",
     "Physical wake and long-press policy remain unadmitted"
   ],
   "initial_build": {
@@ -26,5 +26,25 @@
     "result": "configuration validator refused before compilation",
     "cause": "RTC_NVMEM defaults to RTC_CLASS and selects NVMEM, violating the existing explicit NVMEM exclusion",
     "correction": "Disable RTC_NVMEM; C1 only needs time/alarm APIs"
+  },
+  "build_input_commit": "fcd8c1615351ffd541389b90849bfb0fd74bd34f",
+  "package_inventory_sha256": "798b888b927bae3537ea58195300ed47dc8d0100dafea6b2d21260603a1adff2",
+  "config_sha256": "01dc95f3e8f1d4366d466b2ef4165fb8577c625c7bc3eb7bd596dd6d2695737e",
+  "Image_gz_sha256": "bb7153b0067c9d28f2d9f27f10c91f6655256fdcc08adbbd5a3e1527e2da4f40",
+  "build_log_sha256": "6aeb1e29c0f3d314b80288242da86f3a57d3f429f1aca555b954996a2a2322c7",
+  "build_validation": "Image, Image.gz, 123 DTBs and remote Linux package validator pass; fetch and all local inventory checksums match; RTC source matches host-tested hash; RTC suspend/resume and gpio-keys compiled",
+  "dtb_comparison": "All 123 DTB paths and content hashes equal the prior validated key-only package",
+  "inherited_warnings": [
+    "Unused cpuhp_rollback_callback_inventory in kernel/cpu.c"
+  ],
+  "mfd_integration_audit": {
+    "source_sha256": "d3ad66804d1b53df0a6a77fdeec406c863cf536f69eb55a33e7486ee694ab53d",
+    "findings": [
+      "Initial and normal IRQ mask writes ignore transport errors",
+      "Status read failures are checked, but acknowledgement write failures are ignored",
+      "PM notifier wake-mask writes and parent wake operations ignore errors; registration and cleanup need correction"
+    ],
+    "private_replay": "Existing initial-mask fix 0006 applies unchanged; lifetime fix 0007 fails against selected IRQ-domain context, so replay stopped",
+    "next_change": "Adapt lifetime fix preserving chip->num_irq_regs * 16 domain span; replay and test subsequent error/recovery fixes before selection"
   }
 }
