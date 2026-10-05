@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-05-repository-consolidation` |
-| Status | `completed` for the documentation, index and hygiene changes; profile retirement, the issue pass and the commit itself await the owner (see below) |
+| Status | `completed` for the documentation, index and hygiene changes; profile retirement awaits the owner (see below) |
 | Subsystem | Repository organization: roadmap, experiments index, manifest profiles, hygiene, tracker |
 | Device variant | No device, build or Buildbox action |
 | Date(s) | 2026-10-05 |
@@ -62,10 +62,8 @@ label and milestone inventories and the issue backlog were last meaningful in
 September and are replaced by the roadmap; their final copies are at
 [commit 164c2d3f](https://github.com/ixoo/gemini-pda-mainline/tree/164c2d3f/project),
 and the documents that linked to them now point there. GitHub issues #1–#30,
-untouched since 2026-07-11, should be closed in one pass with a pointer to the
-roadmap, and #34 downgraded from P0 to a watch item. Closing them from this
-session was refused by the auto-mode permission classifier (external system
-write), so that pass is the owner's.
+untouched since 2026-07-11, were closed on 2026-10-05 with a pointer to the
+roadmap and the historical backlog; #34 went from P0 to P2 as a watch item.
 
 ## Profile retirement, proposed
 

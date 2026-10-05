@@ -165,9 +165,9 @@ of Wi-Fi.
 | M7: distribution | Released host support, standard artifacts, maintained loader path, distro packaging, tested updates |
 | Full variant coverage | Cellular and cameras on equipped variants, or explicit feasibility and rights blockers |
 
-Issue seeds #1–#30 on GitHub, untouched since July, are superseded by this
-file and should be closed in one pass; their links stay stable. #34 is a watch
-item until Phase B, not a P0.
+Issue seeds #1–#30 on GitHub, untouched since July, were closed on 2026-10-05
+in favour of this file; their links stay stable. #34 is a P2 watch item until
+Phase B.
 
 ## Historical anchors
 
