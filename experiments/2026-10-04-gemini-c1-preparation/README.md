@@ -413,3 +413,17 @@ so it gives no signal on this change.
 
 A short follow-up boot would test only the new measurements: event delivery,
 the RTC alarm and the lid. It is worth running once this profile is rebuilt.
+
+Buildbox compilation on buildbox-2 and remote package validation pass for
+input `6bcff5a5`. Fetch and all local checksums pass. The configuration is
+identical to the `300c4244` package; only the board DTB
+and the pinctrl object change.
+
+| Item | SHA-256 |
+| --- | --- |
+| Package inventory | `d697d6398d0fa1577a01d87f9eafa12577ad10ea0f37680ff2db85c11256b420` |
+| Board DTB | `bb10a7daac6a27387eeddc4cef286e686d2ea8671221530ae49dd7f08c49f235` |
+
+The lid pin group in the DTB carries `bias-pull-up` and `input-enable`. Only
+the inherited unused CPU rollback callback warning appears. A follow-up
+candidate needs the same private parent and the fixed `rtc-alarm.sh`.
