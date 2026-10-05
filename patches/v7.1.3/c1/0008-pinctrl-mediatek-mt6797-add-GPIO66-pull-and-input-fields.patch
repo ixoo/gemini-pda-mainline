@@ -1,0 +1,67 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 6 Oct 2026 10:00:00 +0000
+Subject: [PATCH 8/9] pinctrl: mediatek: mt6797: add GPIO66 pull and input
+ fields
+
+The Gemini lid sensor on GPIO66 produced no interrupt in a mainline
+close/open cycle. The vendor kernel's active state for this pin uses GPIO
+mode with a pull-up, which mainline cannot express because MT6797 has no
+pull or input-enable maps.
+
+Map GPIO66's independent pull-up, pull-down and input-enable bits in
+IOCFG_R at 0xe0, 0xc0 and 0x10, bit 13, as the vendor GPIO table lists
+them, and select the PU/PD pull type for it. Other pins keep unsupported
+pull and input-enable configuration.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/pinctrl/mediatek/pinctrl-mt6797.c | 23 +++++++++++++++++++++++
+ 1 file changed, 23 insertions(+)
+
+diff --git a/drivers/pinctrl/mediatek/pinctrl-mt6797.c b/drivers/pinctrl/mediatek/pinctrl-mt6797.c
+index ff8f0e0b9..2e7442865 100644
+--- a/drivers/pinctrl/mediatek/pinctrl-mt6797.c
++++ b/drivers/pinctrl/mediatek/pinctrl-mt6797.c
+@@ -36,11 +36,31 @@ static const struct mtk_pin_field_calc mt6797_pin_do_range[] = {
+ 	PIN_FIELD(0, 261, 0x100, 0x10, 0, 1),
+ };
+ 
++/* GPIO66 (lid) only: independent pull-up, pull-down and input enable. */
++static const struct mtk_pin_field_calc mt6797_pin_ies_range[] = {
++	PIN_FIELD_CALC(66, 66, 3, 0x10, 0x10, 13, 1, 32, 0),
++};
++
++static const struct mtk_pin_field_calc mt6797_pin_pu_range[] = {
++	PIN_FIELD_CALC(66, 66, 3, 0xe0, 0x10, 13, 1, 32, 0),
++};
++
++static const struct mtk_pin_field_calc mt6797_pin_pd_range[] = {
++	PIN_FIELD_CALC(66, 66, 3, 0xc0, 0x10, 13, 1, 32, 0),
++};
++
+ static const struct mtk_pin_reg_calc mt6797_reg_cals[PINCTRL_PIN_REG_MAX] = {
+ 	[PINCTRL_PIN_REG_MODE] = MTK_RANGE(mt6797_pin_mode_range),
+ 	[PINCTRL_PIN_REG_DIR] = MTK_RANGE(mt6797_pin_dir_range),
+ 	[PINCTRL_PIN_REG_DI] = MTK_RANGE(mt6797_pin_di_range),
+ 	[PINCTRL_PIN_REG_DO] = MTK_RANGE(mt6797_pin_do_range),
++	[PINCTRL_PIN_REG_IES] = MTK_RANGE(mt6797_pin_ies_range),
++	[PINCTRL_PIN_REG_PU] = MTK_RANGE(mt6797_pin_pu_range),
++	[PINCTRL_PIN_REG_PD] = MTK_RANGE(mt6797_pin_pd_range),
++};
++
++static const unsigned int mt6797_pull_type[ARRAY_SIZE(mtk_pins_mt6797)] = {
++	[66] = MTK_PULL_PU_PD_TYPE,
+ };
+ 
+ static const char * const mt6797_pinctrl_register_base_names[] = {
+@@ -66,6 +86,9 @@ static const struct mtk_pin_soc mt6797_data = {
+ 	.ngrps = ARRAY_SIZE(mtk_pins_mt6797),
+ 	.eint_hw = &mt6797_eint_hw,
+ 	.gpio_m = 0,
++	.pull_type = mt6797_pull_type,
++	.bias_set_combo = mtk_pinconf_bias_set_combo,
++	.bias_get_combo = mtk_pinconf_bias_get_combo,
+ 	.base_names = mt6797_pinctrl_register_base_names,
+ 	.nbase_names = ARRAY_SIZE(mt6797_pinctrl_register_base_names),
+ };

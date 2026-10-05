@@ -354,3 +354,62 @@ that has a DT node, is not `regulator-always-on` and has no enabled consumer.
 Rails without a node get no status-change permission and are left alone. The
 C1 board DT describes only VEMC, enabled by the eMMC, and always-on VIO18, so
 no MT6351 rail is switched off at late init.
+
+## First C1 boot (2026-10-06)
+
+Status: partial pass. The laptop device custodian ran the boot. The figures
+below are from its report; its runtime receipt, regulator inventory and sealed
+kernel log stay private on the owner's machine.
+
+| Item | Value |
+| --- | --- |
+| Candidate boot2 SHA-256 | `732e525ef99ffc5efb7c8b3922eeb7769495ed26328fccb27461bca879e2cff2` |
+| Mainline boot ID | `bb7616e9-640e-40f4-9a2e-9c9adc85798d` |
+| Release | `7.1.3-gemini-a53-c1-compile` |
+| Sealed kernel log SHA-256 | `4902429496493970fadf98b8b8c41c6944ea5afbe527742c4690b118beb31f1b` |
+| Gemian boot ID after recovery | `e67b8a0b-6838-431a-a991-d9f287bb8d30` |
+
+Observations:
+
+- **PMIC baseline.** All ten reads returned 0 and the completion line was
+  logged. The values are in the private log.
+- **Bindings.** The PMIC key, RTC and gpio-keys devices bound. Regulator
+  names and states were recorded.
+- **Power key.** One short press raised the PMIC parent interrupt count from
+  0 to 2, and the key interrupt counts from 0 to 2 and 0 to 1. The PMIC
+  interrupt path to the AP works.
+- **Input events.** Both captured event files were empty after the timeout
+  killed `hexdump`. Delivery to userspace is unproven; output buffering is the
+  likely cause.
+- **Lid.** One close/open left the Hall interrupt count at zero.
+- **RTC alarm.** Not tested. The script refused before arming, because it
+  required `rtc0/name` to be exactly `mt6397-rtc`, while the RTC core prints
+  the driver and device name, `mt6397-rtc mt6351-rtc`.
+- **Power-off.** A delayed `poweroff -f` with the cable detached powered the
+  device off, as the owner observed. PSCI power-off is the working baseline.
+- **Recovery.** The owner started Gemian normally; SSH confirmed a changed
+  boot.
+
+## Follow-up fixes (2026-10-06)
+
+- [rtc-alarm.sh](rtc-alarm.sh) now checks the RTC's bound driver instead of
+  the name string. ShellCheck and the fixture pass for the right and the
+  wrong driver.
+- The [protocol](PROTOCOL.md) captures events with `cat` and decodes them
+  afterwards.
+- **Lid.** The vendor kernel's active state for GPIO66 is GPIO mode with a
+  pull-up, per the [lid recovery record](../2026-07-12-hall-lid-switch-recovery/README.md#live-observations).
+  Mainline MT6797 pinctrl had no pull maps, so the pad kept whatever the loader
+  left. Patch [0008](../../patches/v7.1.3/c1/0008-pinctrl-mediatek-mt6797-add-GPIO66-pull-and-input-fields.patch)
+  maps GPIO66's pull-up, pull-down and input-enable bits from the public
+  vendor GPIO table. They are bit 13 of IOCFG_R at `0xe0`, `0xc0` and `0x10`.
+  Patch [0009](../../patches/v7.1.3/c1/0009-arm64-dts-mediatek-gemini-pull-up-the-lid-sensor-input.patch)
+  sets `bias-pull-up` and `input-enable` on the lid pins. A missing pull-up is
+  the leading hypothesis, not a measured cause.
+
+Both patches pass strict checkpatch with only the missing sign-off excluded.
+The pinctrl schema rejects every existing MT6797 pin group in the same way,
+so it gives no signal on this change.
+
+A short follow-up boot would test only the new measurements: event delivery,
+the RTC alarm and the lid. It is worth running once this profile is rebuilt.

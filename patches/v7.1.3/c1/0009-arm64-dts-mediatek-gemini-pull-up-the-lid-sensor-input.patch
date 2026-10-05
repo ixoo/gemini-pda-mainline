@@ -1,0 +1,29 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 6 Oct 2026 10:01:00 +0000
+Subject: [PATCH 9/9] arm64: dts: mediatek: gemini: pull up the lid sensor
+ input
+
+Match the vendor kernel's active state for GPIO66: GPIO mode, pull-up
+and input enabled. Without the pull-up the lid input produced no
+interrupt across a close/open cycle.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+index 9ce9f1f81..8d91a299b 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -264,6 +264,9 @@ pins-rst {
+ 	hall_pins: hall-pins {
+ 		pins-hall {
+ 			pinmux = <MT6797_GPIO66__FUNC_GPIO66>;
++			/* Vendor active state: GPIO mode with pull-up. */
++			bias-pull-up;
++			input-enable;
+ 		};
+ 	};
+ };

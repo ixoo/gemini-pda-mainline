@@ -13,7 +13,9 @@ irq_count() {
         END { if (!f) print "absent" }' /proc/interrupts
 }
 
-[ "$($BB cat "$RTC/name" 2>/dev/null)" = mt6397-rtc ] || { echo "result=refused reason=rtc0-not-mt6397"; exit 10; }
+# The name file prints "<driver> <device>"; check the bound driver instead.
+driver=$($BB readlink -f "$RTC/device/driver" 2>/dev/null)
+[ "${driver##*/}" = mt6397-rtc ] || { echo "result=refused reason=rtc0-not-mt6397 driver=$driver"; exit 10; }
 inherited=$($BB cat "$RTC/wakealarm") || { echo "result=refused reason=wakealarm-unreadable"; exit 11; }
 [ -z "$inherited" ] || { echo "result=refused reason=inherited-alarm value=$inherited"; exit 12; }
 before=$(irq_count)

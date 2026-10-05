@@ -40,8 +40,10 @@ All steps run over the authenticated USB SSH session.
    no debugfs, so the regulator summary file is not available. See the
    [H7 ordering refinement](../2026-10-04-gemini-pmic-basics-re/README.md#h7-ordering-refinement-2026-10-05).
 4. For the key and the lid input devices, start one background
-   `busybox timeout 60 busybox hexdump -C /dev/input/eventN` each, writing
-   to a file. Resolve N from `/proc/bus/input/devices` by device name.
+   `busybox timeout 60 busybox cat /dev/input/eventN > FILE` each. Resolve N
+   from `/proc/bus/input/devices` by device name. Decode the raw events
+   afterwards; `hexdump` buffered its output and lost it when the first boot's
+   timeout killed it.
 5. The owner presses the power key once, briefly. Then the owner closes and
    opens the lid once.
 6. Run `rtc-alarm.sh` once. Exit 0 means fired and cancelled. Exit 10 to 13
