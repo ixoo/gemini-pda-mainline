@@ -1,0 +1,7 @@
+# Board services: keep the C1 RTC service; suspend, debugfs and observers stay out.
+CONFIG_RTC_CLASS=y
+CONFIG_RTC_DRV_MT6397=y
+# CONFIG_RTC_NVMEM is not set
+# CONFIG_RTC_HCTOSYS is not set
+# CONFIG_RTC_SYSTOHC is not set
+CONFIG_LOCALVERSION="-gemini-a53-board-services-compile"
