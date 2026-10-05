@@ -582,3 +582,7 @@ proposals/0102-soc-mediatek-initialize-MT6797-AFE-before-MCU-release.patch
 proposals/0103-soc-mediatek-extract-task-aware-full-STP-framing.patch
 proposals/0104-soc-mediatek-share-full-STP-sequence-and-ACK-state.patch
 proposals/0106-soc-mediatek-route-full-STP-tasks-before-committing-credit.patch
+proposals/0107-soc-mediatek-select-the-task-of-one-full-STP-exchange.patch
+proposals/0108-dt-bindings-soc-mediatek-mt6797-consys-add-one-shot-BT-reset.patch
+proposals/0109-soc-mediatek-add-a-one-shot-MT6797-Bluetooth-positive-control.patch
+proposals/0110-arm64-dts-mediatek-gemini-describe-the-VCN33-BT-supply.patch

@@ -1,0 +1,297 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 5 Oct 2026 22:32:00 +0000
+Subject: [PATCH 109/110] soc: mediatek: add a one-shot MT6797 Bluetooth
+ positive control
+
+After a successful one-shot negotiation, enable VCN33-BT at 3.3 V and
+run five exchanges on the same full-STP link: WMT Bluetooth function
+on, HCI Reset, Read Local Version, Read BD_ADDR and function off. Each
+exchange has a 600 ms deadline inside a 3 s budget. The first failure
+stops the sequence and keeps every resource for reviewed recovery.
+VCN33-BT is switched off only after a successful function-off.
+
+Log per-step results and the bounded raw bytes for the private session
+log. No ROM patch, calibration, sleep, wake or radio setting command is
+sent, and no HCI device is registered.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/soc/mediatek/mt6797-bt-h1.h  | 132 +++++++++++++++++++++++++++
+ drivers/soc/mediatek/mt6797-consys.c |  60 +++++++++++-
+ 2 files changed, 191 insertions(+), 1 deletion(-)
+ create mode 100644 drivers/soc/mediatek/mt6797-bt-h1.h
+
+diff --git a/drivers/soc/mediatek/mt6797-bt-h1.h b/drivers/soc/mediatek/mt6797-bt-h1.h
+new file mode 100644
+index 000000000..7a049a4b3
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-bt-h1.h
+@@ -0,0 +1,132 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef MT6797_BT_H1_H
++#define MT6797_BT_H1_H
++
++#include <linux/regulator/consumer.h>
++#include "mt6797-wmt-negotiate.h"
++
++#define BT_H1_BUDGET_MS 3000U
++#define BT_H1_EXCHANGE_MS 600U
++#define BT_H1_STEPS 5U
++
++/*
++ * One bounded Bluetooth positive control on the negotiated full-mode session:
++ * BT function on (WMT task 4), HCI Reset, Read Local Version and Read BD_ADDR
++ * (task 0), then BT function off. The first failure stops the sequence and
++ * retains every resource for reviewed recovery. VCN33-BT is switched off only
++ * after a successful BT-off. No patch, calibration, sleep, wake or radio
++ * setting command is sent.
++ */
++struct bt_h1_step {
++	const char *name;
++	unsigned int task;
++	const unsigned char *command, *expected;
++	unsigned int length, prefix, expected_length;
++};
++
++static const unsigned char bt_h1_on[] = { 0x01, 0x06, 0x02, 0x00, 0x00, 0x01 };
++static const unsigned char bt_h1_off[] = { 0x01, 0x06, 0x02, 0x00, 0x00, 0x00 };
++static const unsigned char bt_h1_func_event[] = { 0x02, 0x06, 0x01, 0x00, 0x00 };
++static const unsigned char bt_h1_reset[] = { 0x01, 0x03, 0x0c, 0x00 };
++static const unsigned char bt_h1_reset_event[] = {
++	0x04, 0x0e, 0x04, 0x01, 0x03, 0x0c, 0x00,
++};
++
++static const unsigned char bt_h1_version[] = { 0x01, 0x01, 0x10, 0x00 };
++static const unsigned char bt_h1_version_event[] = {
++	0x04, 0x0e, 0x0c, 0x01, 0x01, 0x10, 0x00,
++};
++
++static const unsigned char bt_h1_bdaddr[] = { 0x01, 0x09, 0x10, 0x00 };
++static const unsigned char bt_h1_bdaddr_event[] = {
++	0x04, 0x0e, 0x0a, 0x01, 0x09, 0x10, 0x00,
++};
++
++static const struct bt_h1_step bt_h1_steps[BT_H1_STEPS] = {
++	{ "bt-on", STP_FULL_TASK_WMT, bt_h1_on, bt_h1_func_event,
++	  sizeof(bt_h1_on), sizeof(bt_h1_func_event), sizeof(bt_h1_func_event) },
++	{ "hci-reset", STP_FULL_TASK_BT, bt_h1_reset, bt_h1_reset_event,
++	  sizeof(bt_h1_reset), sizeof(bt_h1_reset_event), sizeof(bt_h1_reset_event) },
++	/* Status zero, then HCI/LMP versions and manufacturer: 15 bytes. */
++	{ "read-version", STP_FULL_TASK_BT, bt_h1_version, bt_h1_version_event,
++	  sizeof(bt_h1_version), sizeof(bt_h1_version_event), 15 },
++	/* Status zero, then the six-byte address: 13 bytes. */
++	{ "read-bdaddr", STP_FULL_TASK_BT, bt_h1_bdaddr, bt_h1_bdaddr_event,
++	  sizeof(bt_h1_bdaddr), sizeof(bt_h1_bdaddr_event), 13 },
++	{ "bt-off", STP_FULL_TASK_WMT, bt_h1_off, bt_h1_func_event,
++	  sizeof(bt_h1_off), sizeof(bt_h1_func_event), sizeof(bt_h1_func_event) },
++};
++
++/* Zeroed persistent CONSYS-owned storage; records survive for the log. */
++struct mt6797_bt_h1 {
++	struct mt6797_wmt_full_io io[BT_H1_STEPS];
++	unsigned int completed;
++	int attempted, regulator_on, result;
++};
++
++static unsigned long bt_h1_deadline(unsigned long budget)
++{
++	unsigned long end = jiffies + msecs_to_jiffies(BT_H1_EXCHANGE_MS);
++
++	return time_before(budget, end) ? budget : end;
++}
++
++/* Caller holds the CONSYS lock and passes a negotiation that reached DONE. */
++static int mt6797_bt_h1_once(struct mt6797_bt_h1 *bt,
++			     struct mt6797_wmt_negotiate *n,
++			     struct regulator *vcn33_bt)
++{
++	unsigned long budget;
++	unsigned int i;
++	int ret;
++
++	if (!bt || !n || !vcn33_bt)
++		return -EINVAL;
++	if (bt->attempted)
++		return -EALREADY;
++	bt->attempted = 1;
++	if (n->phase != WMT_PHASE_DONE || n->result || n->link.active) {
++		ret = -EPROTO;
++		goto out;
++	}
++	budget = jiffies + msecs_to_jiffies(BT_H1_BUDGET_MS);
++	ret = regulator_is_enabled(vcn33_bt);
++	if (ret) {
++		ret = ret < 0 ? ret : -EBUSY;
++		goto out;
++	}
++	ret = regulator_set_voltage(vcn33_bt, 3300000, 3300000);
++	if (ret)
++		goto out;
++	ret = regulator_enable(vcn33_bt);
++	if (ret)
++		goto out;
++	bt->regulator_on = 1;
++	for (i = 0; i < BT_H1_STEPS; i++) {
++		const struct bt_h1_step *step = &bt_h1_steps[i];
++
++		if (time_after_eq(jiffies, budget)) {
++			ret = -ETIMEDOUT;
++			goto out;
++		}
++		ret = mt6797_stp_task_prepare(&bt->io[i], n->first.btif,
++					      n->first.irq, &n->link, step->task,
++					      step->command, step->length,
++					      step->expected, step->prefix,
++					      step->expected_length,
++					      bt_h1_deadline(budget));
++		if (!ret)
++			ret = mt6797_wmt_full_exchange(&bt->io[i]);
++		if (ret)
++			goto out;
++		bt->completed = i + 1;
++	}
++	ret = regulator_disable(vcn33_bt);
++	if (!ret)
++		bt->regulator_on = 0;
++out:
++	bt->result = ret;
++	return ret;
++}
++
++#endif
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index 1d2e0b86e..7283ad2ec 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -34,6 +34,7 @@
+ #include "../../net/wireless/mediatek/mt6797/firmware-prepare.h"
+ #include "../../net/wireless/mediatek/mt6797/hif.h"
+ #include "mt6797-wmt-negotiate.h"
++#include "mt6797-bt-h1.h"
+ #include "mt6797-wmt-versions.h"
+ 
+ #define MT6797_CONSYS_REMAP_REG	0x10001340
+@@ -83,7 +84,9 @@
+ struct mt6797_consys {
+ 	struct mt6797_wmt_query wmt_query;
+ 	struct mt6797_wmt_negotiate wmt_negotiate;
++	struct mt6797_bt_h1 bt_h1;
+ 	struct mt6797_wmt_versions wmt_versions;
++	bool bt_h1_after_negotiate;
+ 	bool wmt_identity_only;
+ 	bool wmt_negotiate_only;
+ 	bool wmt_query_only;
+@@ -102,6 +105,7 @@ struct mt6797_consys {
+ 	struct regulator *vcn18;
+ 	struct regulator *vcn28;
+ 	struct regulator *vcn33_wifi;
++	struct regulator *vcn33_bt;
+ 	struct reset_control *conmcu_reset;
+ 	struct generic_pm_domain *conn_domain;
+ 	bool bound;
+@@ -1124,6 +1128,41 @@ static int mt6797_consys_wmt_versions(struct device *dev,
+ 	return ret;
+ }
+ 
++static int mt6797_consys_bt_h1(struct device *dev, struct mt6797_consys *owner)
++{
++	struct mt6797_bt_h1 *bt = &owner->bt_h1;
++	struct mt6797_wmt_full_io *io;
++	char prefix[32];
++	unsigned int i;
++	int ret;
++
++	ret = mt6797_bt_h1_once(bt, &owner->wmt_negotiate, owner->vcn33_bt);
++	dev_info(dev,
++		 "one-shot BT H1: result=%d completed=%u/%u vcn33-bt-held=%d tx-seq=%u rx-seq=%u peer-ack=%u local-ack=%u\n",
++		 ret, bt->completed, BT_H1_STEPS, bt->regulator_on,
++		 owner->wmt_negotiate.link.transport.tx_next,
++		 owner->wmt_negotiate.link.transport.rx_next,
++		 owner->wmt_negotiate.link.transport.peer_ack,
++		 owner->wmt_negotiate.link.transport.local_ack);
++	/* Bounded raw bytes for the private sealed session log only. */
++	for (i = 0; i < BT_H1_STEPS && bt->io[i].prepared; i++) {
++		io = &bt->io[i];
++		dev_info(dev,
++			 "BT H1 %s: result=%d tx=%u rx=%u services=%u frames=%u\n",
++			 bt_h1_steps[i].name, io->result, io->tx_count,
++			 io->rx_count, io->services, io->frames);
++		snprintf(prefix, sizeof(prefix), "BT H1 %u TX: ", i);
++		print_hex_dump(KERN_INFO, prefix, DUMP_PREFIX_OFFSET, 16, 1,
++			       io->command,
++			       min_t(unsigned int, io->tx_count,
++				     bt_h1_steps[i].length + 6), false);
++		snprintf(prefix, sizeof(prefix), "BT H1 %u RX: ", i);
++		print_hex_dump(KERN_INFO, prefix, DUMP_PREFIX_OFFSET, 16, 1,
++			       io->received, io->rx_count, false);
++	}
++	return ret;
++}
++
+ static int mt6797_consys_wmt_exchange(struct device *dev,
+ 				      struct mt6797_consys *owner)
+ {
+@@ -1181,6 +1220,8 @@ static int mt6797_consys_wmt_exchange(struct device *dev,
+ 			       false);
+ 	print_hex_dump(KERN_INFO, "WMT negotiation full RX: ", DUMP_PREFIX_OFFSET,
+ 		       16, 1, n->full.received, n->full.rx_count, false);
++	if (!ret && owner->bt_h1_after_negotiate)
++		ret = mt6797_consys_bt_h1(dev, owner);
+ 	return ret;
+ }
+ 
+@@ -1448,7 +1489,7 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 	struct resource *remap_resource, *sleep_resource, *chip_resource, *acr_resource;
+ 	struct resource *hif_resource;
+ 	struct resource *selector_resource, *afe_resource;
+-	struct regulator *vcn18, *vcn28, *vcn33_wifi;
++	struct regulator *vcn18, *vcn28, *vcn33_wifi, *vcn33_bt = NULL;
+ 	struct reset_control *conmcu_reset;
+ 	struct generic_pm_domain *conn_domain;
+ 	void __iomem *remap;
+@@ -1457,6 +1498,7 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 	bool power_probe, chip_id_probe, reset_release_probe, hif_probe;
+ 	bool emi_set_probe, emi_copy_probe, firmware_start_probe;
+ 	bool region19_observe, deferred_start, wmt_query, wmt_negotiate, wmt_identity;
++	bool bt_h1;
+ 	struct resource reservation = {};
+ 	int ret;
+ 
+@@ -1485,6 +1527,12 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 					      "mediatek,one-shot-wmt-negotiate");
+ 	wmt_identity = of_property_read_bool(pdev->dev.of_node,
+ 					     "mediatek,one-shot-wmt-identity-capture");
++	bt_h1 = of_property_read_bool(pdev->dev.of_node,
++				      "mediatek,one-shot-bt-reset");
++	if (bt_h1 && !wmt_negotiate) {
++		ret = -EINVAL;
++		goto out_unlock;
++	}
+ 	if ((wmt_query && wmt_negotiate) ||
+ 	    (wmt_identity && (wmt_query || wmt_negotiate))) {
+ 		ret = -EINVAL;
+@@ -1560,6 +1608,14 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 				    "failed to get VCN33 Wi-Fi supply\n");
+ 		goto out_unlock;
+ 	}
++	if (bt_h1) {
++		vcn33_bt = devm_regulator_get(&pdev->dev, "vcn33-bt");
++		if (IS_ERR(vcn33_bt)) {
++			ret = dev_err_probe(&pdev->dev, PTR_ERR(vcn33_bt),
++					    "failed to get VCN33 BT supply\n");
++			goto out_unlock;
++		}
++	}
+ 	conmcu_reset = devm_reset_control_get_exclusive(&pdev->dev, "con-mcu");
+ 	if (IS_ERR(conmcu_reset)) {
+ 		ret = dev_err_probe(&pdev->dev, PTR_ERR(conmcu_reset),
+@@ -1745,6 +1801,8 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 	mt6797_consys.vcn18 = vcn18;
+ 	mt6797_consys.vcn28 = vcn28;
+ 	mt6797_consys.vcn33_wifi = vcn33_wifi;
++	mt6797_consys.vcn33_bt = vcn33_bt;
++	mt6797_consys.bt_h1_after_negotiate = bt_h1;
+ 	mt6797_consys.conmcu_reset = conmcu_reset;
+ 	mt6797_consys.conn_domain = conn_domain;
+ 	mt6797_consys.bound = true;

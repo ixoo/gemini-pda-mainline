@@ -1,0 +1,269 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 5 Oct 2026 22:30:00 +0000
+Subject: [PATCH 107/110] soc: mediatek: select the task of one full-STP
+ exchange
+
+The single-command full-STP exchange encodes, parses and validates WMT
+task 4 only. A Bluetooth positive control needs the same bounded
+exchange on task 0, and its replies carry controller values that cannot
+be matched byte for byte.
+
+Give the exchange a task, limited to WMT and Bluetooth, and an exact
+reply prefix with a fixed total length. The receive stream refuses data
+for any other task. The WMT prepare and receive helpers keep their exact
+whole-event contract as wrappers. Link sequence and credit handling are
+unchanged.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/soc/mediatek/mt6797-wmt-full-io.h  | 40 +++++++++++++++------
+ drivers/soc/mediatek/wmt-full-stp-state.h  | 42 +++++++++++++++-------
+ drivers/soc/mediatek/wmt-full-stp-stream.h | 30 +++++++++++-----
+ 3 files changed, 81 insertions(+), 31 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-wmt-full-io.h b/drivers/soc/mediatek/mt6797-wmt-full-io.h
+index 05ed912f5..7be589e61 100644
+--- a/drivers/soc/mediatek/mt6797-wmt-full-io.h
++++ b/drivers/soc/mediatek/mt6797-wmt-full-io.h
+@@ -34,6 +34,7 @@ struct mt6797_wmt_full_io {
+ 	unsigned char command[WMT_FULL_MAX_FRAME], ack[4];
+ 	unsigned char received[WMT_FULL_IO_RX_BYTES];
+ 	const unsigned char *expected;
++	unsigned int task, prefix;
+ 	unsigned int expected_length, rx_count, consumed, frames, services, tx_count;
+ 	unsigned long deadline;
+ 	/* Serializes FIFO progress, terminal state and process timeout. */
+@@ -43,19 +44,23 @@ struct mt6797_wmt_full_io {
+ };
+ 
+ /* No effects; caller provides fresh/synchronized storage and an inactive link.
+- * Expected event storage remains immutable throughout this command lifetime.
++ * Expected reply storage remains immutable throughout this command lifetime.
++ * The reply must have expected_length bytes and match its first prefix bytes.
+  */
+-static int mt6797_wmt_full_prepare(struct mt6797_wmt_full_io *io,
++static int mt6797_stp_task_prepare(struct mt6797_wmt_full_io *io,
+ 				   void __iomem *btif, int irq, struct wmt_full_state *link,
++				   unsigned int task,
+ 				   const unsigned char *command, unsigned int length,
+-				   const unsigned char *expected, unsigned int expected_length,
+-				   unsigned long deadline)
++				   const unsigned char *expected, unsigned int prefix,
++				   unsigned int expected_length, unsigned long deadline)
+ {
+ 	int bytes;
+ 
+ 	if (!io || !btif || irq <= 0 || !link || link->active || !command || !length ||
+ 	    length > WMT_FULL_MAX_PAYLOAD || !expected || !expected_length ||
+-	    expected_length > WMT_FULL_MAX_PAYLOAD)
++	    expected_length > WMT_FULL_MAX_PAYLOAD || !prefix ||
++	    prefix > expected_length || (task != STP_FULL_TASK_WMT &&
++					task != STP_FULL_TASK_BT))
+ 		return -EINVAL;
+ 	if (io->prepared && (!io->terminal || io->result))
+ 		return -EBUSY;
+@@ -65,18 +70,32 @@ static int mt6797_wmt_full_prepare(struct mt6797_wmt_full_io *io,
+ 	io->irq = irq;
+ 	io->link = link;
+ 	io->expected = expected;
++	io->task = task;
++	io->prefix = prefix;
+ 	io->expected_length = expected_length;
+ 	io->deadline = deadline;
+ 	init_completion(&io->done);
+ 	spin_lock_init(&io->lock);
+ 	wmt_full_stream_init(&io->stream);
+-	bytes = wmt_full_encode(io->command, sizeof(io->command), command, length,
+-				link->transport.tx_next, link->transport.local_ack);
++	bytes = stp_full_encode(io->command, sizeof(io->command), command, length,
++				task, link->transport.tx_next, link->transport.local_ack);
+ 	if (bytes < 0)
+ 		return -EINVAL;
+ 	return wmt_full_tx_init(&io->tx, io->command, bytes) ? -EINVAL : 0;
+ }
+ 
++/* Exact whole-event WMT command; unchanged contract for existing callers. */
++static int mt6797_wmt_full_prepare(struct mt6797_wmt_full_io *io,
++				   void __iomem *btif, int irq, struct wmt_full_state *link,
++				   const unsigned char *command, unsigned int length,
++				   const unsigned char *expected, unsigned int expected_length,
++				   unsigned long deadline)
++{
++	return mt6797_stp_task_prepare(io, btif, irq, link, STP_FULL_TASK_WMT,
++				       command, length, expected, expected_length,
++				       expected_length, deadline);
++}
++
+ /* Fixed next mandatory exchange only, after a successful initial query.
+  * The owner proves retained clocks, DMA exclusion, empty RX/TX and normal bank.
+  * Separate persistent storage preserves both command records across the switch.
+@@ -245,7 +264,7 @@ static void mt6797_wmt_full_service(struct mt6797_wmt_full_io *io, int initial)
+ 			ret = -ETIMEDOUT;
+ 			goto fail;
+ 		}
+-		parsed = wmt_full_stream_byte(&io->stream,
++		parsed = stp_task_stream_byte(&io->stream, io->task,
+ 					      io->received[io->consumed++], &frame);
+ 		if (parsed < 0 || (parsed && io->frames == WMT_FULL_IO_FRAMES)) {
+ 			ret = -EPROTO;
+@@ -254,8 +273,9 @@ static void mt6797_wmt_full_service(struct mt6797_wmt_full_io *io, int initial)
+ 		if (!parsed)
+ 			continue;
+ 		io->frames++;
+-		if (wmt_full_receive(io->link, io->stream.frame, io->stream.used,
+-				     io->expected, io->expected_length) < 0) {
++		if (wmt_full_receive_task(io->link, io->stream.frame,
++					  io->stream.used, io->task, io->expected,
++					  io->prefix, io->expected_length) < 0) {
+ 			ret = -EPROTO;
+ 			goto fail;
+ 		}
+diff --git a/drivers/soc/mediatek/wmt-full-stp-state.h b/drivers/soc/mediatek/wmt-full-stp-state.h
+index 248ec7bb3..cea04d8de 100644
+--- a/drivers/soc/mediatek/wmt-full-stp-state.h
++++ b/drivers/soc/mediatek/wmt-full-stp-state.h
+@@ -5,8 +5,8 @@
+ #include "stp-full-task.h"
+ 
+ /*
+- * Single WMT command client over one shared link. The current IRQ owner still
+- * admits only WMT; this adapter does not register a Bluetooth or GPS client.
++ * Single command client over one shared link: one outstanding command on one
++ * ordinary task at a time. No queue, retransmission or long-lived client.
+  */
+ struct wmt_full_state {
+ 	struct stp_full_link transport;
+@@ -34,11 +34,14 @@ static inline int wmt_full_sent(struct wmt_full_state *state, unsigned int seque
+ 	return 0;
+ }
+ 
+-/* Immutable expected event, valid throughout the serialized IRQ exchange. */
++/*
++ * Immutable expected reply, valid throughout the serialized IRQ exchange.
++ * The first prefix bytes must match exactly; the rest are captured as sent.
++ */
+ struct wmt_full_expect {
+ 	const struct wmt_full_state *state;
+ 	const unsigned char *payload;
+-	unsigned int length;
++	unsigned int prefix, length;
+ };
+ 
+ static inline int wmt_full_event(void *context, const unsigned char *payload,
+@@ -48,23 +51,27 @@ static inline int wmt_full_event(void *context, const unsigned char *payload,
+ 	unsigned int i;
+ 
+ 	if (!expected->payload || expected->state->event_seen ||
+-	    length > WMT_FULL_MAX_PAYLOAD || length != expected->length)
++	    length > WMT_FULL_MAX_PAYLOAD || length != expected->length ||
++	    expected->prefix > length)
+ 		return -1;
+-	for (i = 0; i < length; i++)
++	for (i = 0; i < expected->prefix; i++)
+ 		if (payload[i] != expected->payload[i])
+ 			return -1;
+ 	return 0;
+ }
+ 
+-/* WMT validation uses the task router before committing shared link credit. */
+-static inline int wmt_full_receive(struct wmt_full_state *state,
+-				   const unsigned char *frame, unsigned int bytes,
+-				   const unsigned char *expected,
+-				   unsigned int expected_length)
++/*
++ * One reply on one ordinary task, routed before committing shared link credit.
++ * WMT keeps its exact whole-event match through wmt_full_receive().
++ */
++static inline int wmt_full_receive_task(struct wmt_full_state *state,
++					const unsigned char *frame, unsigned int bytes,
++					unsigned int task, const unsigned char *expected,
++					unsigned int prefix, unsigned int expected_length)
+ {
+-	struct wmt_full_expect event = { state, expected, expected_length };
++	struct wmt_full_expect event = { state, expected, prefix, expected_length };
+ 	struct stp_full_client client = {
+-		.task = STP_FULL_TASK_WMT, .receive = wmt_full_event, .context = &event,
++		.task = task, .receive = wmt_full_event, .context = &event,
+ 	};
+ 	struct stp_full_link next;
+ 	struct stp_full_frame received;
+@@ -87,6 +94,15 @@ static inline int wmt_full_receive(struct wmt_full_state *state,
+ 	return kind;
+ }
+ 
++static inline int wmt_full_receive(struct wmt_full_state *state,
++				   const unsigned char *frame, unsigned int bytes,
++				   const unsigned char *expected,
++				   unsigned int expected_length)
++{
++	return wmt_full_receive_task(state, frame, bytes, STP_FULL_TASK_WMT,
++				     expected, expected_length, expected_length);
++}
++
+ /* Call only after the four-byte host ACK was transmitted completely. */
+ static inline int wmt_full_ack_sent(struct wmt_full_state *state, unsigned int ack)
+ {
+diff --git a/drivers/soc/mediatek/wmt-full-stp-stream.h b/drivers/soc/mediatek/wmt-full-stp-stream.h
+index 73bfb1fbe..f6a7b90d6 100644
+--- a/drivers/soc/mediatek/wmt-full-stp-stream.h
++++ b/drivers/soc/mediatek/wmt-full-stp-stream.h
+@@ -19,16 +19,19 @@ static inline void wmt_full_stream_init(struct wmt_full_stream *stream)
+ 	stream->terminal = 0;
+ }
+ 
+-/* 0: incomplete, 1: ACK, 2: data, -1: terminal refusal. The owner also limits
+- * aggregate bytes, frame count, IRQ work and elapsed time across exchanges.
++/* 0: incomplete, 1: ACK, 2: data, -1: terminal refusal. Data must carry the
++ * caller's single expected task. The owner also limits aggregate bytes, frame
++ * count, IRQ work and elapsed time across exchanges.
+  */
+-static inline int wmt_full_stream_byte(struct wmt_full_stream *stream,
+-				       unsigned char byte, struct wmt_full_frame *result)
++static inline int stp_task_stream_byte(struct wmt_full_stream *stream,
++				       unsigned int task, unsigned char byte,
++				       struct wmt_full_frame *result)
+ {
++	struct stp_full_frame decoded;
+ 	unsigned int length;
+ 	int kind;
+ 
+-	if (!stream || !result)
++	if (!stream || !result || (task != STP_FULL_TASK_WMT && task != STP_FULL_TASK_BT))
+ 		return -1;
+ 	if (stream->terminal || stream->used >= sizeof(stream->frame))
+ 		goto refuse;
+@@ -40,19 +43,30 @@ static inline int wmt_full_stream_byte(struct wmt_full_stream *stream,
+ 		if ((h[0] & 0xc0) != 0x80 || (h[1] & 0x80) ||
+ 		    ((h[0] + h[1] + h[2]) & 255) != h[3] ||
+ 		    length > WMT_FULL_MAX_PAYLOAD ||
+-		    (!length && h[1]) || (length && (h[1] & 0x70) != 0x40))
++		    (!length && h[1]) || (length && ((h[1] >> 4) & 7) != task))
+ 			goto refuse;
+ 		stream->needed = length ? length + 6 : 4;
+ 	}
+ 	if (stream->used < stream->needed)
+ 		return 0;
+-	kind = wmt_full_decode(stream->frame, stream->used, result);
+-	if (kind < 0)
++	kind = stp_full_decode(stream->frame, stream->used, &decoded);
++	if (kind < 0 || decoded.length > WMT_FULL_MAX_PAYLOAD ||
++	    (kind && decoded.task != task))
+ 		goto refuse;
++	result->sequence = decoded.sequence;
++	result->acknowledgement = decoded.acknowledgement;
++	result->length = decoded.length;
++	result->payload = decoded.payload;
+ 	stream->terminal = 1;
+ 	return kind + 1;
+ refuse:
+ 	stream->terminal = -1;
+ 	return -1;
+ }
++
++static inline int wmt_full_stream_byte(struct wmt_full_stream *stream,
++				       unsigned char byte, struct wmt_full_frame *result)
++{
++	return stp_task_stream_byte(stream, STP_FULL_TASK_WMT, byte, result);
++}
+ #endif

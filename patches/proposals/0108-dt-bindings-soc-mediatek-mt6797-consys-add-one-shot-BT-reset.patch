@@ -1,0 +1,59 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 5 Oct 2026 22:31:00 +0000
+Subject: [PATCH 108/110] dt-bindings: soc: mediatek: mt6797-consys: add
+ one-shot BT reset
+
+Describe the Bluetooth 3.3 V supply and an experimental flag that
+extends the one-shot WMT negotiation with one bounded Bluetooth
+function-on, HCI Reset, version and address read, and function-off.
+The flag requires the negotiation flag and the Bluetooth supply.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ .../soc/mediatek/mediatek,mt6797-consys.yaml   | 18 ++++++++++++++++++
+ 1 file changed, 18 insertions(+)
+
+diff --git a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
+index 70e3eeaa8..7978605f0 100644
+--- a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
++++ b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
+@@ -79,6 +79,16 @@ properties:
+       Clocks and power remain retained until reviewed recovery. No ROM patch,
+       calibration, WLAN firmware start or RF operation is selected.
+ 
++  mediatek,one-shot-bt-reset:
++    type: boolean
++    description: |
++      Experimental extension of the one-shot WMT negotiation. After the
++      checked full-STP query, enable the Bluetooth 3.3 V rail, switch the
++      WMT Bluetooth function on, send HCI Reset, Read Local Version and
++      Read BD_ADDR on STP task 0, then switch the function and rail off.
++      The first failure stops the sequence with resources retained. No ROM
++      patch, calibration, sleep or RF setting command is sent.
++
+   mediatek,one-shot-wmt-identity-capture:
+     type: boolean
+     description: |
+@@ -99,6 +109,9 @@ properties:
+   vcn33-wifi-supply:
+     description: Wi-Fi 3.3 V supply.
+ 
++  vcn33-bt-supply:
++    description: Bluetooth 3.3 V supply.
++
+   resets:
+     maxItems: 1
+ 
+@@ -202,6 +215,11 @@ required:
+ 
+ additionalProperties: false
+ 
++dependentRequired:
++  mediatek,one-shot-bt-reset:
++    - mediatek,one-shot-wmt-negotiate
++    - vcn33-bt-supply
++
+ allOf:
+   - if:
+       anyOf:

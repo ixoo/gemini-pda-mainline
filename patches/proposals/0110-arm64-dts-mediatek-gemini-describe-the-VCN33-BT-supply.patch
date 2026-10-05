@@ -1,0 +1,38 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 5 Oct 2026 22:33:00 +0000
+Subject: [PATCH 110/110] arm64: dts: mediatek: gemini: describe the VCN33-BT
+ supply
+
+Add the MT6351 VCN33-BT regulator and connect it to CONSYS. The
+one-shot Bluetooth flag stays out of the board file; a candidate adds
+it explicitly.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+index 66629bd2b..27074f58d 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -103,6 +103,7 @@ consys@10001340 {
+ 		vcn18-supply = <&mt6351_vcn18_reg>;
+ 		vcn28-supply = <&mt6351_vcn28_reg>;
+ 		vcn33-wifi-supply = <&mt6351_vcn33_wifi_reg>;
++		vcn33-bt-supply = <&mt6351_vcn33_bt_reg>;
+ 		resets = <&watchdog MT6797_TOPRGU_CONMCU_SW_RST>;
+ 		reset-names = "con-mcu";
+ 		mediatek,conn-power-domain = <&conn_power MT6797_POWER_DOMAIN_CONN>;
+@@ -260,6 +261,10 @@ mt6351_vcn28_reg: ldo-vcn28 {
+ 		regulator-name = "vcn28";
+ 	};
+ 
++	mt6351_vcn33_bt_reg: ldo-vcn33-bt {
++		regulator-name = "vcn33-bt";
++	};
++
+ 	mt6351_vcn33_wifi_reg: ldo-vcn33-wifi {
+ 		regulator-name = "vcn33-wifi";
+ 	};
