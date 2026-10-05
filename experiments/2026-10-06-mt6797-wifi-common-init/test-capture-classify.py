@@ -48,4 +48,12 @@ for bad in (GOOD.replace(b'bt-rail=0 wifi-rail=0', b'bt-rail=1 wifi-rail=0'),
             GOOD.replace(b'snapshot=2 status=0', b'snapshot=2 status=-5'),
             GOOD + DEV + b'one-shot WMT common init: result=0 completed=285/285 bt-rail=0 wifi-rail=0 link=3/7/2/6\n'):
     assert not capture.classify(bad)['ready_for_scan']
-print('phase-a classifier: pass, step failure, odd calibration, rails, stop, BT, duplicates')
+# Every line present but out of protocol order is refused.
+lines = GOOD.rstrip(b'\n').split(b'\n')
+for i, j in ((0, 1), (1, 3), (3, 4), (4, 6)):
+    swapped = list(lines)
+    swapped[i], swapped[j] = swapped[j], swapped[i]
+    r = capture.classify(b'\n'.join(swapped) + b'\n')
+    assert not r['prerequisites_in_order'] and not r['ready_for_scan'], (i, j)
+assert capture.classify(GOOD)['prerequisites_in_order']
+print('phase-a classifier: pass, step failure, odd calibration, rails, stop, BT, duplicates, order')

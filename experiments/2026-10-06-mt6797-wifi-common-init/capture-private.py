@@ -46,6 +46,22 @@ WLAN_READY = (
 )
 
 
+CONTINUE = b'WMT common init complete; continuing to WLAN HIF'
+
+
+def ordered(lines):
+    """Each prerequisite exactly once, in protocol order."""
+    patterns = [NEGOTIATION, COMMON, re.compile(re.escape(CONTINUE))] + [
+        re.compile(re.escape(line)) for line in WLAN_READY]
+    positions = []
+    for pattern in patterns:
+        found = [i for i, line in enumerate(lines) if pattern.search(line)]
+        if len(found) != 1:
+            return False
+        positions.append(found[0])
+    return positions == sorted(positions)
+
+
 def classify(log):
     """Phase A kernel-log result; raw calibration bytes stay in the private log."""
     lines = log.splitlines()
@@ -61,8 +77,8 @@ def classify(log):
         'pa_rails_off_after': len(common) == 1 and common[0][3] == b'0' and common[0][4] == b'0',
         'calibration_reply_bytes': len(status),
         'calibration_status_vendor_expected': status == [b'02', b'14', b'02', b'00', b'00', b'01'],
-        'continued_to_wlan': sum(b'WMT common init complete; continuing to WLAN HIF' in line
-                                 for line in lines) == 1,
+        'continued_to_wlan': sum(CONTINUE in line for line in lines) == 1,
+        'prerequisites_in_order': ordered(lines),
         'wlan_ready_lines': {line.decode(): sum(line in raw for raw in lines) == 1
                              for line in WLAN_READY},
         'wlan_firmware_stopped': any(b'one-shot WLAN firmware stopped (' in line
@@ -74,6 +90,7 @@ def classify(log):
                                      result['pa_rails_off_after'])
     result['ready_for_scan'] = (result['negotiation_passed'] and result['common_init_passed'] and
                                 result['continued_to_wlan'] and
+                                result['prerequisites_in_order'] and
                                 all(result['wlan_ready_lines'].values()) and
                                 not result['wlan_firmware_stopped'] and result['bt_h1_absent'])
     return result

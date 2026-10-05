@@ -219,7 +219,15 @@ The trigger write carries negotiation (1.6 s), common init (2 s per exchange,
 keeps the existing 500 ms dwell, five-second kernel deadline and 30 s session
 phase. The host runs the scan only if the capture classified the lifetime as
 ready: negotiation and common init passed, both rails off, continuation logged,
-the three WLAN readiness lines present, and no firmware stop or BT H1 line.
+the three WLAN readiness lines present, every prerequisite exactly once and in
+protocol order (negotiation, common init, continuation, record, regulatory,
+TC4), and no firmware stop or BT H1 line.
+
+If the lifetime is not ready, or the capture never classified it, the host
+still runs the same session without the scan: it selects the wiphy-probe
+prepare that the scan-tuning host wrapped, so observation, log sealing, the A53
+regression and reviewed recovery all run. The wiphy probe records an absent
+wiphy without failing the session.
 
 ### Checks run here
 
@@ -232,8 +240,12 @@ the three WLAN readiness lines present, and no firmware stop or BT H1 line.
   synthetic logs: a pass, a step failure, an unexpected calibration status,
   rails left on, a firmware stop, a BT H1 line, a failed TC4 line and a
   duplicate common-init line.
-- All adapters compile and import with an empty private repository, and the
-  overrides reach every level of the host chain.
+- [test-capture-classify.py](test-capture-classify.py) also swaps adjacent
+  prerequisite lines and requires each order violation to be refused.
+- [test-host-select.py](test-host-select.py) checks the release, path and
+  scan-script overrides at every host level, and that the scan prepare is chosen
+  only for a ready lifetime.
+- All adapters compile and import with an empty private repository.
 
 ### Gates before composition and the run
 

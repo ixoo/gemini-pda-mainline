@@ -42,6 +42,18 @@ HOST.DOMAIN.HOST.REPO = PRIVATE_REPO
 HOST.DOMAIN.HOST.__file__ = str(Path(__file__).resolve())
 
 
+def select_prepare(ready):
+    """Scan only after a ready lifetime; otherwise the same session without it.
+
+    SCAN.PREPARE is the wiphy-probe prepare the scan-tuning host wrapped. It
+    keeps observation, log sealing, the A53 regression and reviewed recovery,
+    and injects no scan. Its wiphy probe records an absent wiphy without
+    failing the session.
+    """
+    HOST.DOMAIN.prepare = SCAN.prepare if ready else SCAN.PREPARE
+    return HOST.DOMAIN.prepare
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--candidate', required=True, type=Path)
@@ -49,18 +61,21 @@ def main():
     args = parser.parse_args()
     os.umask(0o077)
     phase_a = CAPTURE / 'phase-a-result.json'
+    ready = (phase_a.is_file() and
+             json.loads(phase_a.read_bytes()).get('ready_for_scan') is True)
     if args.execute:
-        # The scan follows only a classified, ready common-init lifetime.
-        HOST.require(phase_a.is_file() and
-                     json.loads(phase_a.read_bytes()).get('ready_for_scan') is True,
-                     'Phase A capture did not admit the scan')
+        # A failed or unclassified lifetime still gets sealing, the A53
+        # regression and reviewed recovery; only the scan is withheld.
+        select_prepare(ready)
     sys.argv = [sys.argv[0], '--candidate', str(args.candidate)] + (
         ['--execute'] if args.execute else [])
     rc = SCAN.main()
     if not args.execute:
         return rc
     result_path = ROOT / 'passive-scan-result.json'
-    combined = {'phase_a_capture': json.loads(phase_a.read_bytes()),
+    combined = {'phase_a_capture': (json.loads(phase_a.read_bytes())
+                                    if phase_a.is_file() else None),
+                'scan_attempted': ready,
                 'scan': json.loads(result_path.read_bytes()) if result_path.is_file() else None,
                 'kernel_release': RELEASE}
     with (ROOT / 'phase-a-session-result.json').open('x') as stream:
