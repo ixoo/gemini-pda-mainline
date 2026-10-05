@@ -85,3 +85,12 @@ no retry, no event capture needed.
   unmask offline.
 - **EINT176 bits inconsistent with its working interrupt.** The reader or the
   offsets are wrong; stop and recheck before interpreting EINT5.
+
+## Build
+
+The C1 profile with the reader (input `8306e268`) builds on buildbox-2 and
+passes remote validation, fetch and local checksums, with no new warning.
+`CONFIG_EINT_MTK_SNAPSHOT=y` and `CONFIG_DEBUG_FS=y` are set, and the image
+contains the debugfs file name and its output format. Package inventory:
+`e33ebb3564bf3cf407221eb52937b465b1019382314de97aa6b5f9f4c60eefe2`. No
+candidate has been composed from it.
