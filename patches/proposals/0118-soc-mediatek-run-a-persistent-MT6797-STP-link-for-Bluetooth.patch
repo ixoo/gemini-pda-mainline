@@ -22,13 +22,13 @@ retry or resynchronization.
 
 Unsigned experiment draft; archive identity is non-certifying.
 ---
- drivers/soc/mediatek/mt6797-consys.c   | 366 ++++++++++++++++++++++++-
+ drivers/soc/mediatek/mt6797-consys.c   | 372 ++++++++++++++++++++++++-
  include/linux/soc/mediatek/mt6797-bt.h |  22 ++
- 2 files changed, 385 insertions(+), 3 deletions(-)
+ 2 files changed, 391 insertions(+), 3 deletions(-)
  create mode 100644 include/linux/soc/mediatek/mt6797-bt.h
 
 diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
-index c5680910c..595255771 100644
+index c5680910c..356a3e6c5 100644
 --- a/drivers/soc/mediatek/mt6797-consys.c
 +++ b/drivers/soc/mediatek/mt6797-consys.c
 @@ -45,6 +45,8 @@
@@ -75,7 +75,7 @@ index c5680910c..595255771 100644
  	struct {
  		struct mt6797_wmt_full_io io;
  		unsigned char command[WMT_FULL_MAX_PAYLOAD];
-@@ -1518,6 +1541,335 @@ static int mt6797_consys_common_init(struct device *dev, struct mt6797_consys *o
+@@ -1518,6 +1541,341 @@ static int mt6797_consys_common_init(struct device *dev, struct mt6797_consys *o
  	return ret;
  }
  
@@ -136,8 +136,8 @@ index c5680910c..595255771 100644
 +	ops = s->bt_ops;
 +	context = s->bt_context;
 +	spin_unlock_irqrestore(&s->lock, flags);
-+	pr_err("mt6797-consys: persistent STP link stopped (%d): rx=%u refused=%u dup=%u tx=%u acks=%u wmt-discarded=%u\n",
-+	       s->engine.failed, s->engine.rx_frames, s->engine.rx_refused,
++	pr_err("mt6797-consys: persistent STP link stopped (%d): rx=%u discarded=%u dup=%u tx=%u acks=%u wmt-discarded=%u\n",
++	       s->engine.failed, s->engine.rx_frames, s->engine.rx_discarded,
 +	       s->engine.rx_duplicates, s->engine.tx_frames, s->engine.tx_acks,
 +	       s->wmt_discarded);
 +	if (ops)
@@ -371,6 +371,12 @@ index c5680910c..595255771 100644
 +	s->bt_ops = NULL;
 +	s->bt_context = NULL;
 +	spin_unlock_irqrestore(&s->lock, flags);
++	/*
++	 * A stop already in progress may have read the old client before the
++	 * clear; wait for it so the client can be freed after detach returns.
++	 * stop_work never takes cmd_lock.
++	 */
++	flush_work(&s->stop_work);
 +	if (!mt6797_stp_wmt_cmd(s, bt_h1_off, sizeof(bt_h1_off), bt_h1_func_event,
 +				sizeof(bt_h1_func_event), sizeof(bt_h1_func_event)))
 +		regulator_disable(mt6797_consys.vcn33_bt);
@@ -411,7 +417,7 @@ index c5680910c..595255771 100644
  static int mt6797_consys_wmt_exchange(struct device *dev,
  				      struct mt6797_consys *owner)
  {
-@@ -1579,6 +1931,8 @@ static int mt6797_consys_wmt_exchange(struct device *dev,
+@@ -1579,6 +1937,8 @@ static int mt6797_consys_wmt_exchange(struct device *dev,
  		ret = mt6797_consys_bt_h1(dev, owner);
  	if (!ret && owner->common_init.enabled)
  		ret = mt6797_consys_common_init(dev, owner);
@@ -420,7 +426,7 @@ index c5680910c..595255771 100644
  	return ret;
  }
  
-@@ -1859,7 +2213,7 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+@@ -1859,7 +2219,7 @@ static int mt6797_consys_probe(struct platform_device *pdev)
  	bool power_probe, chip_id_probe, reset_release_probe, hif_probe;
  	bool emi_set_probe, emi_copy_probe, firmware_start_probe;
  	bool region19_observe, deferred_start, wmt_query, wmt_negotiate, wmt_identity;
@@ -429,7 +435,7 @@ index c5680910c..595255771 100644
  	u32 antenna_mode = 0;
  	struct resource reservation = {};
  	int ret;
-@@ -1893,7 +2247,12 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+@@ -1893,7 +2253,12 @@ static int mt6797_consys_probe(struct platform_device *pdev)
  				      "mediatek,one-shot-bt-reset");
  	common_init = of_property_read_bool(pdev->dev.of_node,
  					    "mediatek,one-shot-wmt-common-init");
@@ -443,7 +449,7 @@ index c5680910c..595255771 100644
  		ret = -EINVAL;
  		goto out_unlock;
  	}
-@@ -1982,7 +2341,7 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+@@ -1982,7 +2347,7 @@ static int mt6797_consys_probe(struct platform_device *pdev)
  		ret = -EINVAL;
  		goto out_unlock;
  	}
@@ -452,7 +458,7 @@ index c5680910c..595255771 100644
  		vcn33_bt = devm_regulator_get(&pdev->dev, "vcn33-bt");
  		if (IS_ERR(vcn33_bt)) {
  			ret = dev_err_probe(&pdev->dev, PTR_ERR(vcn33_bt),
-@@ -2183,6 +2542,7 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+@@ -2183,6 +2548,7 @@ static int mt6797_consys_probe(struct platform_device *pdev)
  	mt6797_consys.vcn33_bt = vcn33_bt;
  	mt6797_consys.bt_h1_after_negotiate = bt_h1;
  	mt6797_consys.common_init.enabled = common_init;

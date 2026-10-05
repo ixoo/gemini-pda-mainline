@@ -8,21 +8,23 @@ Register one HCI device on the btmt6797 platform device that the CONSYS
 owner creates. Open attaches to the persistent STP link and close
 detaches. Send passes the H:4 packet, type byte first, to STP task 0,
 waiting up to 1 s for queue room. Received task-0 payloads are copied in
-hard IRQ context into a bounded 16-slot ring, refused when it is full so
-the controller resends, and reassembled into events, ACL and SCO in a
-work item, since H:4 packets need not align with STP frames.
+hard IRQ context into a bounded 16-slot ring and reassembled into
+events, ACL and SCO in a work item, since H:4 packets need not align
+with STP frames. A full ring refuses the frame, which stops the link;
+nothing relies on the controller resending.
 
-A link failure or a malformed H:4 stream is reported to the core as a
-hardware error. No vendor init script, sleep, radio setting or address
+A link failure, a malformed H:4 stream or a failed buffer allocation is
+reported to the core as a hardware error; acknowledged data is never
+dropped silently. No vendor init script, sleep, radio setting or address
 write is sent; there is no set_bdaddr hook.
 
 Unsigned experiment draft; archive identity is non-certifying.
 ---
  drivers/bluetooth/Kconfig       |  11 ++
  drivers/bluetooth/Makefile      |   1 +
- drivers/bluetooth/btmt6797-h4.h |  87 +++++++++++++
- drivers/bluetooth/btmt6797.c    | 222 ++++++++++++++++++++++++++++++++
- 4 files changed, 321 insertions(+)
+ drivers/bluetooth/btmt6797-h4.h |  87 ++++++++++++
+ drivers/bluetooth/btmt6797.c    | 229 ++++++++++++++++++++++++++++++++
+ 4 files changed, 328 insertions(+)
  create mode 100644 drivers/bluetooth/btmt6797-h4.h
  create mode 100644 drivers/bluetooth/btmt6797.c
 
@@ -155,10 +157,10 @@ index 000000000..4382caea2
 +#endif
 diff --git a/drivers/bluetooth/btmt6797.c b/drivers/bluetooth/btmt6797.c
 new file mode 100644
-index 000000000..0f812df90
+index 000000000..ed55982d0
 --- /dev/null
 +++ b/drivers/bluetooth/btmt6797.c
-@@ -0,0 +1,222 @@
+@@ -0,0 +1,229 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/*
 + * Experimental Bluetooth HCI driver for the MT6797 CONSYS controller, carried
@@ -195,7 +197,11 @@ index 000000000..0f812df90
 +	u8 tx[BTMT6797_RX_MAX];
 +};
 +
-+/* Hard IRQ context: copy one task-0 payload or refuse it (peer resends). */
++/*
++ * Hard IRQ context: copy one task-0 payload. A full ring refuses it, which
++ * stops the link (the engine never relies on the controller resending), and
++ * the core then sees a hardware error through the failed callback.
++ */
 +static int btmt6797_rx(void *context, const u8 *payload, unsigned int length)
 +{
 +	struct btmt6797 *bt = context;
@@ -226,7 +232,7 @@ index 000000000..0f812df90
 +	skb = bt_skb_alloc(length, GFP_KERNEL);
 +	if (!skb) {
 +		bt->hdev->stat.err_rx++;
-+		return 0;
++		return -ENOMEM;
 +	}
 +	hci_skb_pkt_type(skb) = type;
 +	skb_put_data(skb, p, length);
@@ -249,8 +255,9 @@ index 000000000..0f812df90
 +		slot = &bt->rx[bt->rx_head];
 +		spin_unlock_irqrestore(&bt->rx_lock, flags);
 +		/* The slot is ours until rx_head advances. */
++		/* Data here was already acknowledged: any loss is reported, never silent. */
 +		if (bt_h4_feed(&bt->h4, slot->data, slot->length, btmt6797_emit, bt)) {
-+			bt_dev_err(bt->hdev, "malformed H:4 stream; reporting hardware error");
++			bt_dev_err(bt->hdev, "H:4 data lost (malformed or no memory); reporting hardware error");
 +			bt_h4_reset(&bt->h4);
 +			hci_reset_dev(bt->hdev);
 +		}
@@ -298,6 +305,8 @@ index 000000000..0f812df90
 +	mt6797_consys_bt_detach();
 +	cancel_work_sync(&bt->rx_work);
 +	spin_lock_irqsave(&bt->rx_lock, flags);
++	if (bt->rx_count)
++		bt_dev_warn(hdev, "discarding %u received frames at close", bt->rx_count);
 +	bt->rx_head = 0;
 +	bt->rx_count = 0;
 +	spin_unlock_irqrestore(&bt->rx_lock, flags);

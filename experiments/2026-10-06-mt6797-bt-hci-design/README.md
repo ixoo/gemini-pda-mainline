@@ -156,3 +156,59 @@ checksums pass for input `cfde4c33`, with no new compiler warning.
 
 `CONFIG_BT`, `CONFIG_BT_BREDR` and `CONFIG_BT_MT6797` are built in, and the
 image contains the link and driver log strings.
+
+## Review follow-up: refusal policy and lifetimes (2026-10-07)
+
+The coordinator rejected the first version's ring-full refusal, which counted
+on the controller resending: the first version has no retransmission, so a
+resend cannot be assumed.
+
+### Receive policy now
+
+- **Bound task, client accepts.** Delivered and acknowledged.
+- **Bound task, client refuses** (for example the 16-slot ring is full). The
+  link fail-stops with `ENOSPC`. The frame is not acknowledged, queued frames
+  are dropped, waiters fail, and the HCI core gets a hardware error.
+- **Link state refuses** (sequence outside the window). Fail-stop, `EPROTO`.
+- **Unbound task.** Acknowledged and discarded explicitly, counted in
+  `rx_discarded` and logged at stop, so a departed consumer cannot stall the
+  link.
+- **After acknowledgement.** A malformed H:4 stream or a failed buffer
+  allocation in the driver is reported as a hardware error; frames left in the
+  ring at close are logged. No acknowledged data is dropped silently.
+
+### Lifetimes
+
+- **IRQ.** Requested once when the link starts and kept for the power
+  lifetime; the built-in owner never frees it. After a stop the handler only
+  clears `IER` and returns.
+- **Client calls.** The handler calls clients only under the link spinlock.
+  Detach clears the client under the same lock, so no call is in flight
+  afterwards.
+- **Stop work.** It reads the client under the lock and calls `failed` after
+  unlocking. Detach now waits for it with `flush_work()` after clearing the
+  client, so the driver can be freed once detach returns; stop work never takes
+  the command mutex that detach holds.
+- **Driver work.** `close` detaches first, then cancels `rx_work` and clears
+  the ring; `remove` unregisters the HCI device (which closes it) and cancels
+  `rx_work` and `fail_work` before freeing.
+- **Timer.** It re-arms only while the link runs and stops re-arming after a
+  stop.
+
+### Tests
+
+[run-tests.sh](run-tests.sh) compiles three fixtures against a prepared source
+tree's actual headers and the driver's own receive callback:
+
+- `test-stp-engine.c` now also covers unbound-task discard with ACK, a
+  refusing client failing the link with `ENOSPC` and no ACK, and an
+  out-of-window sequence failing it with `EPROTO`.
+- `test-bt-rx.c` drives the real engine into the real `btmt6797_rx()`: sixteen
+  frames fill the ring and are kept, the seventeenth stops the link with
+  `ENOSPC`. Under the old policy it would continue silently, which fails this
+  test.
+- `test-bt-h4.c` is unchanged.
+
+The full 622-patch series applies to pinned 7.1.3 and reproduces the tested
+tree exactly. All four patches pass strict checkpatch with the established
+exclusions. Still no device test.

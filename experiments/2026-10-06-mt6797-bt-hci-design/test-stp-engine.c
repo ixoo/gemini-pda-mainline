@@ -127,22 +127,21 @@ int main(void)
 	assert(!e.link.ack_owed && e.count == 0 && e.link.tx_pending == 5);
 	assert(peer_ack(&e, 0, 12) == 0 && e.link.tx_pending == 0);
 
-	/* Unbound task: refused, not delivered, no credit, link continues. */
+	/* Unbound task: ACKed and discarded explicitly, counted, link continues. */
 	assert(stp_engine_unbind(&e, STP_FULL_TASK_BT) == 0);
 	assert(stp_engine_unbind(&e, STP_FULL_TASK_BT) == STP_ENGINE_EINVAL);
 	i = e.link.rx_next;
 	assert(peer_send(&e, STP_FULL_TASK_BT, ev1, sizeof(ev1), 0, 13) == 0);
-	assert(e.rx_refused == 1 && e.link.rx_next == i && bt.packets == 3);
-	/* The peer resends the same sequence once the client is back. */
-	peer_seq = (peer_seq - 1) & 7;
+	assert(e.rx_discarded == 1 && e.link.rx_next == ((i + 1) & 7) && bt.packets == 3);
+	assert(e.link.ack_owed && !e.failed);
+	/* A task never bound (GPS) is discarded the same way. */
+	assert(peer_send(&e, STP_FULL_TASK_GPS, ev1, sizeof(ev1), 0, 13) == 0);
+	assert(e.rx_discarded == 2 && !e.failed);
+	assert(drain(&e, f, store, 16, 14) == 1 && !e.link.ack_owed);
+	/* Rebound client receives again. */
 	assert(stp_engine_bind(&e, STP_FULL_TASK_BT, deliver, &bt) == 0);
-	bt.refuse = 1;
-	assert(peer_send(&e, STP_FULL_TASK_BT, ev1, sizeof(ev1), 0, 14) == 0);
-	assert(e.rx_refused == 2 && e.link.rx_next == i);
-	bt.refuse = 0;
-	peer_seq = (peer_seq - 1) & 7;
 	assert(peer_send(&e, STP_FULL_TASK_BT, ev1, sizeof(ev1), 0, 15) == 0);
-	assert(bt.packets == 4 && e.link.rx_next == ((i + 1) & 7));
+	assert(bt.packets == 4 && e.rx_discarded == 2);
 	assert(drain(&e, f, store, 16, 16) == 1);
 
 	/* ACK timeout is terminal and drops the queue; later calls report it. */
@@ -154,6 +153,27 @@ int main(void)
 	assert(e.count == 0 && stp_engine_tx_pending(&e) == 0);
 	assert(stp_engine_queue_msg(&e, STP_FULL_TASK_WMT, cmd, 4) == STP_ENGINE_EIO);
 	assert(stp_engine_rx(&e, 0x80, 121) == STP_ENGINE_ETIMEDOUT);
+
+	/* A refusing client (full ring) stops the link with ENOSPC: no reliance
+	 * on a resend, the frame is not acknowledged, the queue is dropped.
+	 */
+	stp_engine_init(&e, 0);
+	peer_seq = 0;
+	assert(stp_engine_bind(&e, STP_FULL_TASK_BT, deliver, &bt) == 0);
+	assert(stp_engine_queue_msg(&e, STP_FULL_TASK_BT, cmd, sizeof(cmd)) == 0);
+	bt.refuse = 1;
+	i = e.link.rx_next;
+	assert(peer_send(&e, STP_FULL_TASK_BT, ev1, sizeof(ev1), 7, 1) == STP_ENGINE_ENOSPC);
+	assert(e.failed == STP_ENGINE_ENOSPC && e.link.rx_next == i && !e.link.ack_owed);
+	assert(e.count == 0 && stp_engine_tx_pending(&e) == 0);
+	bt.refuse = 0;
+
+	/* An out-of-window sequence is a protocol refusal: EPROTO. */
+	stp_engine_init(&e, 0);
+	assert(stp_engine_bind(&e, STP_FULL_TASK_BT, deliver, &bt) == 0);
+	peer_seq = 5;
+	assert(peer_send(&e, STP_FULL_TASK_BT, ev1, sizeof(ev1), 7, 1) == STP_ENGINE_EPROTO);
+	assert(e.failed == STP_ENGINE_EPROTO);
 
 	/* Malformed input is terminal. */
 	stp_engine_init(&e, 0);
