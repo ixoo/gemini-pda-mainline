@@ -17,4 +17,6 @@ CONFIG_SUSPEND=y
 CONFIG_MFD_MT6351_BASELINE_OBSERVER=y
 # GPIO66 level for the lid test through /sys/kernel/debug/gpio.
 CONFIG_DEBUG_FS=y
+# Read-only EINT register snapshot for the lid test.
+CONFIG_EINT_MTK_SNAPSHOT=y
 CONFIG_LOCALVERSION="-gemini-a53-c1-compile"

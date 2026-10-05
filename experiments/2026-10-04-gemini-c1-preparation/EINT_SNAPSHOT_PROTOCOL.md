@@ -1,7 +1,7 @@
 # EINT5 read-only snapshot protocol (C1-5)
 
-Status: draft for coordinator review, 2026-10-07. No kernel change, candidate
-or device action yet. A software-triggered EINT is not part of this protocol.
+Status: draft for coordinator review, 2026-10-07. Reader patch c1/0012
+implemented; no candidate or device action yet. A software-triggered EINT is not part of this protocol.
 
 ## Question
 
@@ -55,8 +55,10 @@ consulted for this protocol.
 
 ## Sequence
 
-On the C1-4 package plus only the reader patch, a new release, otherwise the
-same candidate composition:
+On the C1-4 package plus only the reader patch (c1/0012, file
+), otherwise the same candidate
+composition; identify it by boot2 SHA-256 and package inventory, since the
+release string is unchanged:
 
 1. Confirm boot identity, release and USB SSH; mount debugfs read-only if
    needed.

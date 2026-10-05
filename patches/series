@@ -631,6 +631,7 @@ v7.1.3/c1/0008-pinctrl-mediatek-mt6797-add-GPIO66-pull-and-input-fields.patch
 v7.1.3/c1/0009-arm64-dts-mediatek-gemini-pull-up-the-lid-sensor-input.patch
 v7.1.3/c1/0010-arm64-dts-mediatek-gemini-disable-lid-debounce-for-the-EINT-test.patch
 v7.1.3/c1/0011-pinctrl-mediatek-mt6797-add-the-GPIO66-Schmitt-trigger-field.patch
+v7.1.3/c1/0012-pinctrl-mediatek-eint-add-a-read-only-register-snapshot.patch
 proposals/0032-soc-mediatek-sample-inherited-MT6797-EMI-policy.patch
 proposals/0033-soc-mediatek-census-MT6797-EMI-ranges.patch
 proposals/0034-pmdomain-mediatek-report-confirmed-opted-domain-on.patch
