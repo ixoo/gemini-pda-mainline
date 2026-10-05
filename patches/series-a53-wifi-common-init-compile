@@ -589,3 +589,4 @@ proposals/0110-arm64-dts-mediatek-gemini-describe-the-VCN33-BT-supply.patch
 proposals/0111-dt-bindings-soc-mediatek-mt6797-consys-add-one-shot-common-init.patch
 proposals/0112-soc-mediatek-add-one-shot-MT6797-WMT-common-initialization.patch
 proposals/0113-soc-mediatek-wait-the-vendor-2-s-for-each-MT6797-WMT-event.patch
+proposals/0114-soc-mediatek-accept-non-WMT-frames-at-full-STP-TX-init.patch

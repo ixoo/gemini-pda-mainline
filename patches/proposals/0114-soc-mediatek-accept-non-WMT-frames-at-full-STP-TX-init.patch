@@ -1,0 +1,40 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 6 Oct 2026 19:00:00 +0000
+Subject: [PATCH] soc: mediatek: accept non-WMT frames at full-STP TX init
+
+The second Bluetooth H1 boot got its BT function-on event, then failed
+to prepare HCI Reset with -EINVAL before any byte was sent. The TX
+initializer validated the encoded frame with the WMT-only decoder, which
+refuses every task other than WMT, so no task-0 command could be sent.
+
+Validate with the shared full-STP decoder and keep the WMT command size
+limit. The caller still selects and checks the task.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/soc/mediatek/wmt-full-stp-tx.h | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/soc/mediatek/wmt-full-stp-tx.h b/drivers/soc/mediatek/wmt-full-stp-tx.h
+index e41258abf..f7248a2cd 100644
+--- a/drivers/soc/mediatek/wmt-full-stp-tx.h
++++ b/drivers/soc/mediatek/wmt-full-stp-tx.h
+@@ -14,13 +14,15 @@ struct wmt_full_tx {
+ 	int retired;
+ };
+ 
++/* Any ordinary-task full-STP frame or ACK; the caller selects the task. */
+ static inline int wmt_full_tx_init(struct wmt_full_tx *tx,
+ 				   const unsigned char *frame, unsigned int length)
+ {
+-	struct wmt_full_frame decoded;
++	struct stp_full_frame decoded;
+ 	struct wmt_full_tx initial = { .frame = frame, .length = length };
+ 
+-	if (!tx || wmt_full_decode(frame, length, &decoded) < 0)
++	if (!tx || stp_full_decode(frame, length, &decoded) < 0 ||
++	    decoded.length > WMT_FULL_MAX_PAYLOAD)
+ 		return -1;
+ 	*tx = initial;
+ 	return 0;
