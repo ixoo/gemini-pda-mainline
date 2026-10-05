@@ -30,7 +30,11 @@ Keep this file under 200 lines; move anything else to an experiment record.
   [pass](../experiments/2026-10-05-mt6797-bt-h1/RUNTIME_3.md) without a ROM patch.
 - **C1, partial.** PMIC baseline read, PMIC key interrupts and PSCI power-off
   [work](../experiments/2026-10-04-gemini-c1-preparation/README.md#first-c1-boot-2026-10-06).
-- **Open.** No Wi-Fi frame received. No charging, RTC alarm or lid.
+- **Wi-Fi Phase A.** With WMT common init, one channel-40 passive scan
+  received management frames and a 5 GHz BSS
+  ([runtime 3](../experiments/2026-10-06-mt6797-wifi-common-init/RUNTIME_3.md)).
+  No association or transmit data yet.
+- **Open.** No Wi-Fi association or traffic. No charging, RTC alarm or lid.
   The `full` profile has never booted. No upstream submission. A72 and thermal
   protection are parked.
 - **Device.** The last session returned to changed-boot Gemian. Nothing is
@@ -56,7 +60,9 @@ budgets and stop conditions under the [safety rules](SAFETY.md). Steps marked
    HCI Reset, Read Local Version, Read BD_ADDR. Decides Bluetooth H1 and proves
    common init without depending on Wi-Fi RF
    ([Bluetooth record](../experiments/2026-10-04-gemini-bluetooth-re/README.md)).
-2. **Phase A: first received Wi-Fi frame (local).** The common-init executor
+2. **Phase A: first received Wi-Fi frame (local). Reached** in
+   [runtime 3](../experiments/2026-10-06-mt6797-wifi-common-init/RUNTIME_3.md):
+   management count 15 and a 5 GHz BSS on channel 40. Next is Phase B. The common-init executor
    (ROM patch download, WMT reset, DLM and MCU clock writes, both PA LDOs, RF
    calibration, coexistence), re-triggerable from userspace over USB SSH, then
    the existing START and one channel-40 passive scan. Decision: nonzero

@@ -71,6 +71,33 @@ def run_without_scan(candidate):
     return 0 if (result.get('regression_pass') and result.get('recovery_confirmed')) else 1
 
 
+SETUP_MARKER = b'one-shot WMT setup complete: clear=351232 verified, CONN held off'
+# The Phase A kernel names this CONSYS; the inherited host counts the old WLAN name.
+PREPOWER_MARKER = b'one-shot CONSYS after WMT: prepower admission passed'
+
+
+def phase_a_success(root):
+    """Phase A success from the session's own records, with the renamed marker.
+
+    Mirrors the inherited host's exit condition and replaces only its obsolete
+    'one-shot WLAN after WMT' count; the scan must also be demonstrated.
+    """
+    try:
+        deferred = json.loads((root / 'deferred-start-result.json').read_bytes())
+        scan = json.loads((root / 'passive-scan-result.json').read_bytes())
+        records = deferred['deferred_start_records']
+        lines = ((root / 'kmsg.log').read_bytes().splitlines()
+                 if deferred.get('preservation', {}).get('log_complete') else [])
+    except (OSError, ValueError, KeyError, TypeError):
+        return False
+    return bool(deferred.get('regression_pass') and
+                deferred.get('preservation', {}).get('provider_probe', {}).get('registered') and
+                deferred.get('recovery_confirmed') and lines and
+                records.get('record_counts', {}).get(SETUP_MARKER.decode()) == 1 and
+                sum(PREPOWER_MARKER in line for line in lines) == 1 and
+                scan.get('passive_scan_demonstrated') is True)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--candidate', required=True, type=Path)
@@ -100,6 +127,8 @@ def main():
     rc = SCAN.main()
     if not args.execute:
         return rc
+    if rc == 1 and ready and phase_a_success(ROOT):
+        rc = 0
     result_path = ROOT / 'passive-scan-result.json'
     combined = {'phase_a_capture': (json.loads(phase_a.read_bytes())
                                     if phase_a.is_file() else None),

@@ -3,11 +3,19 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-06-mt6797-wifi-common-init` |
-| Status | Driver draft; host and schema checks pass; runtime untested |
+| Status | Phase A runtime 3: common init completed and one channel-40 passive scan returned a 5 GHz BSS; no association or data |
 | Profile | `mt6797-a53-wifi-common-init-compile` |
 | Subsystem | MT6797 CONSYS WMT common initialization |
 | Date | 2026-10-06 |
-| Device action | None |
+| Device action | Three Phase A boots by the laptop custodian ([1](RUNTIME_1.md), [2](RUNTIME_2.md), [3](RUNTIME_3.md)) |
+
+## Runtime results
+
+| Run | Candidate boot2 | Outcome | Record |
+| --- | --- | --- | --- |
+| 1 | `c04915b2…` | Common init refused a mistyped ROM patch digest before step 0 | [RUNTIME_1.md](RUNTIME_1.md) |
+| 2 | `7cfd2852…` | Steps 0–280 passed; the calibration data event was refused | [RUNTIME_2.md](RUNTIME_2.md) |
+| 3 | `827a6582…` | 285/285 steps; one channel-40 passive scan, management count 15, a 5 GHz BSS | [RUNTIME_3.md](RUNTIME_3.md) |
 
 ## Decision and purpose
 

@@ -1,0 +1,38 @@
+{
+  "classification": "ram-service-regression-pass",
+  "mainline_boot": "a4e42f30-47f6-4b3b-876e-eae821e0ac3b",
+  "phase": "gemian-return",
+  "preservation": {
+    "log_complete": true,
+    "manifest_sha256": "dc6589f704a7a3ccfa3f215b9409839ef459fd6e667e5210138d5f7338f2a5ce",
+    "provider_probe": {
+      "boot_id": "a4e42f30-47f6-4b3b-876e-eae821e0ac3b",
+      "provider_bound": 1,
+      "provider_count": 1,
+      "registered": true
+    },
+    "wiphy_probe": {
+      "fields": {
+        "boot_after": "a4e42f30-47f6-4b3b-876e-eae821e0ac3b",
+        "boot_before": "a4e42f30-47f6-4b3b-876e-eae821e0ac3b",
+        "kernel": "7.1.3-gemini-a53-wifi-phase-a",
+        "wiphy_bound": "1",
+        "wiphy_count": "1",
+        "wiphy_index": "0"
+      },
+      "registered": true
+    }
+  },
+  "recovery_confirmed": true,
+  "recovery_requested": true,
+  "regression_pass": true,
+  "return": {
+    "attempts": 2,
+    "baseline_success": "not-classified-by-return-collector",
+    "boot_id": "efd5f643-f459-44d7-97e7-93f7e23685ac",
+    "classification": "changed-ID-Gemian",
+    "elapsed_seconds": 15.354,
+    "recovery_confirmed": true
+  },
+  "returned_gemian_boot": "efd5f643-f459-44d7-97e7-93f7e23685ac"
+}
