@@ -427,3 +427,58 @@ and the pinctrl object change.
 The lid pin group in the DTB carries `bias-pull-up` and `input-enable`. Only
 the inherited unused CPU rollback callback warning appears. A follow-up
 candidate needs the same private parent and the fixed `rtc-alarm.sh`.
+
+## C1 follow-up boot (2026-10-06)
+
+Status: complete. Power key, RTC alarm and PSCI power-off pass; the lid stays
+negative. The laptop device custodian ran one attended boot with the follow-up
+fixes. Figures are from its report; the sealed log and raw captures stay
+private on the owner's machine.
+
+| Item | Value |
+| --- | --- |
+| Candidate padded boot2 SHA-256 | `190fc7f270a31213cc2202eaa4495995dfdd1f47962fd16200726a1f406bc464` |
+| Candidate receipt SHA-256 | `d66772be24567b4851abfd813a9ae64c0d442bed21afdc79711e837fc6a30329` |
+| Package | commit `6bcff5a5`, inventory `d697d639…` |
+| Mainline boot ID | `0b65772f-3bb9-4fa7-b477-b2e852a420e4` |
+| Sealed log SHA-256 | `fdaa35d46b2a2a9d3d51bd0ab29290215c10500fb541f0eb249bd7935ccc7f1e` |
+| Gemian boot ID after recovery | `267f40f2-9a9a-4f64-a072-653a350f8d13`, `3.18.41+`, Debian 9.13 |
+
+Observations:
+
+- **PMIC baseline.** All ten reads returned 0, with the completion line.
+- **Power key.** The `cat` capture held 96 bytes: `KEY_POWER` (116) press and
+  release with their sync events. The key interrupt counts rose to 2 and 1.
+  Key events reach userspace.
+- **RTC alarm.** The fixed script armed one ten-second alarm, which fired after
+  10 s; the RTC interrupt count went from 0 to 1, cleanup passed and the
+  script exited 0. Sysfs was mounted read-only in the RAM root, so the session
+  remounted it read-write for the `wakealarm` write only, with a trap that
+  restored read-only.
+- **Lid.** The capture was empty and the Hall interrupt count stayed at zero
+  across one close/open, despite the GPIO66 pull-up and input enable. There was
+  no repeat.
+- **Power-off.** After identity checks, one delayed power-off with the shared
+  USB/charger cable detached turned the unit off, as the owner observed.
+- **Recovery.** The owner started Gemian normally; a changed boot was
+  independently confirmed.
+
+## Lid diagnosis (offline)
+
+The PMIC interrupt reaches the AP through the same EINT controller (EINT176)
+and works, so the controller and its parent interrupt are sound. What is
+specific to the lid is its pin, its line and the debounce:
+
+1. **Hardware debounce on a dual-edge line.** gpio-keys sets the debounce
+   before it requests the interrupt. Mainline `mtk_eint_can_en_debounce()`
+   decides from the line's current sensitivity register, which at that moment
+   still holds the loader's setting. If the loader left EINT5 level-sensitive,
+   as the vendor configures it, hardware debounce is enabled and the line is
+   then switched to dual edge. The vendor EINT driver
+   (`irq-mt-eic.c`, `mt_can_en_debounce()`) never enables hardware debounce on
+   an edge-sensitive line. This is a hypothesis.
+2. **The pin level never changes.** A sensor supply, a stronger pull or a
+   different magnet position could leave GPIO66 constant.
+
+Neither C1 boot could separate these: the C1 kernel has no debugfs, so the
+GPIO66 level was never read. The lid record's own branches need that level.
