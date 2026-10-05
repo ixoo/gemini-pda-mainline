@@ -32,7 +32,11 @@ All steps run over the authenticated USB SSH session.
    `ret=0` and `c1-baseline complete 10`. A failed read ends with `stop`;
    record it and continue without retry.
 3. Record bindings for the keys, RTC and gpio-keys devices, the input
-   devices, and `/proc/interrupts`.
+   devices, and `/proc/interrupts`. Save `name` and `state` for every
+   `/sys/class/regulator/regulator.*`; this shows which MT6351 rails the
+   loader left on and feeds the regulator constraint set. The C1 kernel has
+   no debugfs, so the regulator summary file is not available. See the
+   [H7 ordering refinement](../2026-10-04-gemini-pmic-basics-re/README.md#h7-ordering-refinement-2026-10-05).
 4. For the key and the lid input devices, start one background
    `busybox timeout 60 busybox hexdump -C /dev/input/eventN` each, writing
    to a file. Resolve N from `/proc/bus/input/devices` by device name.

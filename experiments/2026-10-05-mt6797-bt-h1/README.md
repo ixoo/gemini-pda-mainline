@@ -88,3 +88,22 @@ sign-off, the new temporary header's maintainer entry and the inherited
 `acknowledgement` spelling. The updated binding passes `dt-doc-validate`.
 The board DT validates against it, and the flag is rejected without the
 negotiation flag or without the supply.
+
+## Build
+
+Buildbox compilation on buildbox-3 and remote package validation pass for
+input `9a1230ca`. Fetch and all local checksums pass.
+
+| Item | SHA-256 |
+| --- | --- |
+| Package inventory | `172c1565465941ff7d7e9daae4c00d5cc20f79ecab7a927e5c6645d00d10202a` |
+| Board DTB | `07b097d581cae6208eea8387d534e14bb2c2bc30752b0d4b783f711284284734` |
+
+The board DTB carries `vcn33-bt-supply` and no Bluetooth flag. The image
+contains the sequence's log strings. Only the inherited patch-0261 whitespace
+and unused CPU rollback callback warnings appear.
+
+A C3 candidate still needs the private RAM root and the last booted WMT
+parent, a protocol, and the owner's physical boot2 selection. It is composed
+like the [WMT version candidate](../2026-10-03-mt6797-wmt-versions/README.md),
+adding the negotiation and Bluetooth flags to the consys node.

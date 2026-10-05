@@ -67,7 +67,10 @@ budgets and stop conditions under the [safety rules](SAFETY.md). Steps marked
    [Wi-Fi audit](../experiments/2026-10-03-mt6797-wifi-audit/README.md).
 4. **Clean-profile boot (local).** `full`, or a new board-only profile with no
    diagnostics, once. Decides whether the product configuration boots at all;
-   every later upstream claim depends on it.
+   every later upstream claim depends on it. The canonical series behind
+   `full` does not apply as of 2026-10-05: it stops at
+   `upstream-4d7d9486/0001-clk-mediatek-reject-out-of-bank-SET-CLEAR-reset-IDs.patch`,
+   so a board-only profile is the practical route.
 5. **C2b: charge policy (local).** A named profile binding `bq25890` only
    after the reviewed sequence programs and verifies 4.2 V and 500 mA before
    charging starts. Then the gauge/ADC comparison boot.
@@ -80,19 +83,26 @@ budgets and stop conditions under the [safety rules](SAFETY.md). Steps marked
 
 ## Offline work now, in parallel
 
-1. Build and validate the C1 candidate on Buildbox. Nothing else gates it.
-2. Wire the smallest task-0 Bluetooth path on the drafted STP transport: one
-   binding in the existing IRQ owner, a single-event buffer, BT on/off,
-   VCN33-BT, HCI Reset, version and BD_ADDR. No `hci_dev`, retransmission
-   timers or reset epochs until H1 is answered.
+1. **C1 candidate composition.** The C1 kernel with the PMIC observer, key
+   child and lid node is built and validated
+   ([C1 record](../experiments/2026-10-04-gemini-c1-preparation/README.md),
+   [protocol](../experiments/2026-10-04-gemini-c1-preparation/PROTOCOL.md)).
+   Composing the boot image needs the private RAM root and parent candidate,
+   which live only on the owner's machine.
+2. **C3 candidate composition.** The bounded task-0 Bluetooth sequence is
+   built into `mt6797-a53-stp-task-routing-compile`
+   ([BT H1 record](../experiments/2026-10-05-mt6797-bt-h1/README.md)). It
+   needs the same private inputs and a protocol.
 3. The common-init executor, with the AFE stage owned unconditionally; see the
    [common-init review](../experiments/2026-10-03-mt6797-wifi-audit/COMMON_INIT_REVIEW.md).
-4. Charger driver review: every probe and notifier write in the pinned
-   `bq25890` driver, and how conservative limits are programmed and verified
-   ([charging record](../experiments/2026-10-04-gemini-charging-re/README.md)).
-   Then the C2b profile.
-5. The MT6351 regulator constraint set (`always-on`, `boot-on`, VCORE off
-   limits), keeping `regulator_ignore_unused` until a reviewed boot drops it.
+   Its interface needs an owner decision: a fixed in-kernel sequence, or a
+   userspace-driven command channel.
+4. **C2b charger.** The [driver review](../experiments/2026-10-04-gemini-charging-re/DRIVER_REVIEW.md)
+   found the unmodified `bq25890` driver cannot meet the gate, and the charger
+   INT wiring is unknown. Both must be resolved before a C2b profile.
+5. The MT6351 regulator constraint set waits for C1's inherited rail states;
+   writing it blind would switch on rails the loader left off
+   ([H7 refinement](../experiments/2026-10-04-gemini-pmic-basics-re/README.md#h7-ordering-refinement-2026-10-05)).
 6. **Upstream, owner action.** Pick two small topics, take authorship and sign
    off: the [MT6797 infracfg reset](../experiments/2026-09-05-mt6797-infracfg-upstream-preparation/README.md)
    topic and one fix, either the

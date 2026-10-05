@@ -488,3 +488,24 @@ apply; no kernel build, DT check or device action was performed. Line
 numbers were taken from the exact fetched files recorded in
 `source-inputs.json`; the decoded init table was produced by a throwaway
 script over those files and is not itself a tool of this repository.
+
+## H7 ordering refinement (2026-10-05)
+
+Writing the constraint set before any observation is not write-free. In pinned
+Linux 7.1.3, `set_machine_constraints()` calls `_regulator_do_enable()` for
+every rail marked `regulator-always-on` or `regulator-boot-on`. The MT6351
+regmap update writes only when the enable bit differs, so a rail the loader
+left on sees no write, but a rail it left off is switched on. That would turn
+on modem bucks with no modem running, and for VDRAM it would set the software
+enable that the vendor init clears (F10). `regulator_ignore_unused` does not
+prevent these enables.
+
+The order therefore changes. The C1 boot records each regulator's sysfs
+`state` with no constraint nodes added. That shows each rail's inherited
+enable state without any new PMIC write; the C1 kernel has no debugfs for
+`regulator_summary`. Its baseline observer already captures `LDO_VDRAM_CON0` and
+`BUCK_VCORE_CON0` before the regulator child probes. The constraint set is then
+written so that `always-on` and `boot-on` mark only rails observed on, plus
+any rail with a reviewed reason to switch on. VCORE and VSRAM_PROC get no
+voltage range, so no consumer can change them. Dropping
+`regulator_ignore_unused` stays a later reviewed boot.
