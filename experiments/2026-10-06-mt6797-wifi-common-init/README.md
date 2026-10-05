@@ -122,3 +122,8 @@ applies that wait to the Bluetooth sequence and to every common-init exchange,
 with budgets of 12 s and 60 s. It is in this profile only; the consumed C3
 profile is unchanged. A Bluetooth retry uses this profile with the Bluetooth
 flag and without the common-init flag.
+
+The rebuilt package for input `025b2667` passes Buildbox compilation, remote
+package validation, fetch and all local checksums, with no new warning.
+Package inventory: `adda8f2de1ec2a3ad157676eb2103673e8e79d5f711d862a30aef829c62ca111`.
+The board DTB is unchanged from the earlier package.
