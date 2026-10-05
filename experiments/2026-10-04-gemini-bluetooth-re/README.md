@@ -492,3 +492,22 @@ Documentation-only change: `./scripts/check-repository` and link checks
 apply; no kernel build, DT check or device action was performed. Line
 numbers were taken from the exact fetched files recorded in
 [`source-inputs.json`](source-inputs.json).
+
+## H6 Gemian read (2026-10-05)
+
+One bounded read-only inspection over the known-good Gemian Wi-Fi SSH path
+checked boot ID `c52cec49-a635-45c3-af32-aba3b95b4c1c` and kernel `3.18.41+`
+before and after. It read `hci0`'s sysfs address and name and looked for
+`/data/BT.cfg`, `/data/bluetooth/BT.cfg` and address-related kernel log lines.
+No HCI command, management request or radio action was issued.
+
+Neither configuration file exists, and the kernel log has no matching lines.
+Per F15, Gemian's driver therefore started from the compiled placeholder and
+issued Read BD_ADDR. The address `hci0` reports is not the placeholder, so
+it is the controller's own reply. The value is a device identifier and is
+kept in private storage only.
+
+H6 is answered for this unit: the controller supplies a non-placeholder
+address, so a first mainline driver does not need to set one. Whether that
+address is unique per unit cannot be shown from one device. The controller
+may hold a programmed eFUSE value or a ROM-derived default.

@@ -316,3 +316,29 @@ adds the MT6351 key child with only the power key, one-key long-press mode and
 an eleven-second duration, and enables the existing hall node without a wake
 source. Both patches pass strict checkpatch with only the missing sign-off
 excluded, and the board DT compiles. Only the C1 profile selects them.
+
+Buildbox compilation on buildbox-2 and remote package validation pass for
+input `300c4244`. Fetch and all local checksums pass.
+
+| Item | SHA-256 |
+| --- | --- |
+| Package inventory | `5aa0594bb6c44f0d88b0aae7ddeb9c4974aff1c6171131db46c31d4996756cba` |
+| Board DTB | `a3f612a797ee0d0d33061cbbb787ec22f0e0609c2f95d5b29553761b4424a11c` |
+
+The configuration builds the observer, the PMIC key driver, gpio-keys and the
+RTC driver in. The board DTB carries the key child and an enabled lid node.
+Only the inherited patch-0261 whitespace and unused CPU rollback callback
+warnings appear. `dt-validate` against the input and MT6397 MFD bindings
+reports no key or lid error. Its one complaint is the existing MT6351 RTC child
+from SoC patch 0013, which this change does not touch.
+
+The [protocol draft](PROTOCOL.md) and the finite [RTC alarm script](rtc-alarm.sh)
+cover the boot. The script uses the standard sysfs `wakealarm` file, so no new
+binary is needed. Writing a relative time refuses an already enabled alarm
+with `EBUSY`, and writing zero removes the class timer through the new
+disable callback. It passes ShellCheck and a plain-file fixture of the refusal
+and timeout paths; the fired path needs real sysfs.
+
+Candidate composition is still open. It needs the private A53 RAM root and the
+last booted parent candidate, which are not on the Buildboxes. C2a stays out
+of this boot until its I2C transport review exists.
