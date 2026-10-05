@@ -60,15 +60,14 @@ budgets and stop conditions under the [safety rules](SAFETY.md). Steps marked
    HCI Reset, Read Local Version, Read BD_ADDR. Decides Bluetooth H1 and proves
    common init without depending on Wi-Fi RF
    ([Bluetooth record](../experiments/2026-10-04-gemini-bluetooth-re/README.md)).
-2. **Phase A: first received Wi-Fi frame (local). Reached** in
-   [runtime 3](../experiments/2026-10-06-mt6797-wifi-common-init/RUNTIME_3.md):
-   management count 15 and a 5 GHz BSS on channel 40. Next is Phase B. The common-init executor
-   (ROM patch download, WMT reset, DLM and MCU clock writes, both PA LDOs, RF
-   calibration, coexistence), re-triggerable from userspace over USB SSH, then
-   the existing START and one channel-40 passive scan. Decision: nonzero
-   firmware management count or a BSS. If zero, try the remaining vendor
-   differences in the same boot. Hypothesis and sequence:
-   [Wi-Fi audit](../experiments/2026-10-03-mt6797-wifi-audit/README.md).
+2. **Phase A: first received Wi-Fi frame (local). Reached.** One boot-time,
+   one-shot WMT common init (285 steps: ROM patches, coexistence, PA rails, RF
+   calibration, antenna mode), then the existing START and one channel-40
+   passive scan: firmware management count 15 and a standard 5 GHz BSS
+   ([runtime 3](../experiments/2026-10-06-mt6797-wifi-common-init/RUNTIME_3.md)).
+   No association or data. Next bounded step: an offline Phase B design and
+   protocol-gap audit for a minimal standard mac80211 authentication and
+   association path, with no DMA or IRQ expansion and no assumed AP credentials.
 3. **Clean-profile boot (local).** `full`, or a new board-only profile with no
    diagnostics, once. Decides whether the product configuration boots at all;
    every later upstream claim depends on it. `full` cannot build: the
