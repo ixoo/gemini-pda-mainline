@@ -63,10 +63,10 @@ budgets and stop conditions under the [safety rules](SAFETY.md). Steps marked
    [Wi-Fi audit](../experiments/2026-10-03-mt6797-wifi-audit/README.md).
 3. **Clean-profile boot (local).** `full`, or a new board-only profile with no
    diagnostics, once. Decides whether the product configuration boots at all;
-   every later upstream claim depends on it. The canonical series behind
-   `full` does not apply as of 2026-10-05: it stops at
-   `upstream-4d7d9486/0001-clk-mediatek-reject-out-of-bank-SET-CLEAR-reset-IDs.patch`,
-   so a board-only profile is the practical route.
+   every later upstream claim depends on it. `full` cannot build: the
+   canonical series holds alternative topics, such as local 0515 and the
+   revised upstream infracfg reset fix, which both edit
+   `drivers/clk/mediatek/reset.c`. A board-only profile is the route.
 4. **C2b: charge policy (local).** A named profile binding `bq25890` only
    after the reviewed sequence programs and verifies 4.2 V and 500 mA before
    charging starts. Then the gauge/ADC comparison boot.
