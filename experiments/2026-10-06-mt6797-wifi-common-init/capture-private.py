@@ -20,7 +20,7 @@ WMT = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(WMT)
 RELEASE = '7.1.3-gemini-a53-wifi-phase-a'
 # Slot filled from the committed results/candidate.json after composition.
-MANIFEST_SHA = None
+MANIFEST_SHA = '28e6b6df119c30c8c9e91ab9bd7c08cbaaef64504167265d6d74e7bde6aa4f1c'
 START_TIMEOUT_S = 120
 WMT.HERE = HERE
 WMT.ROOT = ROOT
@@ -38,7 +38,39 @@ WMT.CAPTURE.RELEASE = RELEASE
 COMMON = re.compile(rb'one-shot WMT common init: result=(-?\d+) completed=(\d+)/285 '
                     rb'bt-rail=([01]) wifi-rail=([01]) link=(\d+)/(\d+)/(\d+)/(\d+)$')
 NEGOTIATION = re.compile(rb'one-shot WMT negotiation: result=(-?\d+) phase=(\d+) clocks-held=([01])$')
-CALIBRATION = re.compile(rb'WMT common init calibration RX: [0-9a-f]+: ((?:[0-9a-f]{2} ?)+)$')
+CALIBRATION = re.compile(rb'WMT common init calibration RX: ([0-9a-f]{8}): ((?:[0-9a-f]{2} ?)+)$')
+
+
+def calibration_metadata(matches):
+    """Framing metadata of the captured calibration RX; no event byte is kept.
+
+    The driver dumps the first raw bytes received for the calibration command,
+    possibly over several lines. They hold STP framing: zero or more four-byte
+    ACK frames, then the header of the task-4 data frame whose length is the
+    WMT event size.
+    """
+    data, offset = b'', 0
+    for match in matches:
+        if int(match[1], 16) != offset:
+            return {'calibration_capture_bytes': None, 'calibration_ack_frames': None,
+                    'calibration_event_task': None, 'calibration_reply_bytes': None}
+        chunk = bytes.fromhex(match[2].decode())
+        data += chunk
+        offset += len(chunk)
+    acks, task, length, i = 0, None, None, 0
+    while i + 4 <= len(data):
+        h = data[i:i + 4]
+        if h[0] & 0xc0 != 0x80 or h[1] & 0x80 or (h[0] + h[1] + h[2]) & 255 != h[3]:
+            break
+        size = (h[1] & 15) << 8 | h[2]
+        if not size and not h[1]:
+            acks += 1
+            i += 4
+            continue
+        task, length = (h[1] >> 4) & 7, size
+        break
+    return {'calibration_capture_bytes': len(data), 'calibration_ack_frames': acks,
+            'calibration_event_task': task, 'calibration_reply_bytes': length}
 WLAN_READY = (
     b'one-shot WLAN private record prepare: status=0',
     b'one-shot WLAN regulatory configuration: status=0',
@@ -68,15 +100,13 @@ def classify(log):
     negotiation = [m for line in lines if (m := NEGOTIATION.search(line))]
     common = [m for line in lines if (m := COMMON.search(line))]
     calibration = [m for line in lines if (m := CALIBRATION.search(line))]
-    status = calibration[0][1].split() if len(calibration) == 1 else []
     result = {
         'negotiation_passed': len(negotiation) == 1 and negotiation[0][1] == b'0',
         'common_init_lines': len(common),
         'common_init_result': int(common[0][1]) if len(common) == 1 else None,
         'common_init_completed': int(common[0][2]) if len(common) == 1 else None,
         'pa_rails_off_after': len(common) == 1 and common[0][3] == b'0' and common[0][4] == b'0',
-        'calibration_reply_bytes': len(status),
-        'calibration_status_vendor_expected': status == [b'02', b'14', b'02', b'00', b'00', b'01'],
+        **calibration_metadata(calibration),
         'continued_to_wlan': sum(CONTINUE in line for line in lines) == 1,
         'prerequisites_in_order': ordered(lines),
         'wlan_ready_lines': {line.decode(): sum(line in raw for raw in lines) == 1

@@ -9,7 +9,7 @@ Earlier scan boots started WLAN firmware and completed passive scans with a
 zero firmware management count and no frame or BSS. None of them ran the WMT
 common initialization: ROM patches, MCU clock, LTE coexistence, PA rails and
 RF calibration. The hypothesis is that common init is what the receive path
-lacks. The unique observations are the calibration status bytes and, after the
+lacks. The unique observations are the calibration event's size and, after the
 same scan as before, a nonzero management count or a BSS.
 
 ## Artifact
@@ -84,8 +84,11 @@ reviewed recovery. A WLAN-stage failure behaves as in the earlier scan boots.
 - **Negotiation fails.** Control regression; stop.
 - **Common init fails at step N.** Record the step, its raw reply and the
   link counters privately; diagnose that step offline. No WLAN result.
-- **Calibration replies with unexpected status bytes.** Common init continues
-  by design; treat calibration as unverified when interpreting the scan.
+- **Calibration replies with a data event.** Since [runtime 2](RUNTIME_2.md)
+  this is the expected form; common init continues by design. The classifier
+  records only framing metadata: captured bytes, ACK frames, task and event
+  size. Calibration content is not checked, so treat calibration as unverified
+  when interpreting the scan.
 - **Common init passes, scan finds a BSS or a nonzero management count.**
   Phase A's receive question is answered; Phase B starts.
 - **Common init passes, scan still zero.** Common init is not sufficient on its

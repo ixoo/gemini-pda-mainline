@@ -242,8 +242,8 @@ The wiphy probe records an absent wiphy without failing the session.
   unchanged, and refusal of a second application. The edited DT validates
   against the Phase A CONSYS binding.
 - [test-capture-classify.py](test-capture-classify.py) checks the classifier on
-  synthetic logs: a pass, a step failure, an unexpected calibration status,
-  rails left on, a firmware stop, a BT H1 line, a failed TC4 line and a
+  synthetic logs: a pass, a step failure, calibration framing metadata from a
+  single or split dump (with gaps, a short form and bad framing), rails left on, a firmware stop, a BT H1 line, a failed TC4 line and a
   duplicate common-init line.
 - [test-capture-classify.py](test-capture-classify.py) also swaps adjacent
   prerequisite lines and requires each order violation to be refused.
@@ -254,9 +254,10 @@ The wiphy probe records an absent wiphy without failing the session.
 
 ### Gates before composition and the run
 
-1. Fill `MANIFEST_SHA` in `capture-private.py` and `install-passive.py` with
-   the SHA-256 of the committed `results/candidate.json`; both refuse until
-   then. The builder pins package `3013daa6…` from input `097c113c`. Receipts
+1. Done for candidate 3: the receipt is committed as
+   [results/candidate.json](results/candidate.json), SHA-256 `28e6b6df…`, and
+   both `MANIFEST_SHA` slots carry it. Candidate 3 boot.img is `0321f5db…` and
+   padded boot2 `827a6582…`. The builder pins package `3013daa6…` from input `097c113c`. Receipts
    of consumed candidates are kept: candidate 2 (`72fe8965…`) as
    [results/runtime-2-candidate.json](results/runtime-2-candidate.json), see
    [RUNTIME_2.md](RUNTIME_2.md). The runtime-1 receipt (`169cd7a7…`, boot2 `c04915b2…`) is kept as

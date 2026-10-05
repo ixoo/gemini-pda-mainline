@@ -3,15 +3,21 @@
 Status: consumed, 2026-10-07. The laptop device custodian ran one boot of
 candidate 2 under [PROTOCOL.md](PROTOCOL.md). The raw log contains RF
 calibration data and stays private; no calibration byte is reproduced here.
-Recovery runs through the reviewed no-scan failure path and is the custodian's
-to confirm.
+Recovery ran through the reviewed no-scan failure path. The custodian confirmed
+changed-boot Gemian (boot ID `1155ba09-cca5-4823-8e30-c23beffb347d`) and a
+passing A53 regression.
 
 | Item | Value |
 | --- | --- |
 | Candidate padded boot2 SHA-256 | `7cfd2852e3e4fe60e2aef74da3e2fce74f325712d0ba0e859a42b1c713ca423e` |
 | Candidate receipt SHA-256 | `72fe89659e3ad0bd9bd9f7a2fa516a85051634ab8820eba5b6ed758500c1af28` |
 | Mainline boot ID | `5956f283-3513-47e1-9d6d-3b56f4fa620f` |
-| Private log copy analysed | 133927 bytes, SHA-256 `cca623283a2a5edf82a27078f9ea7575387f55a7ebade38042c2e6691586c3c9` |
+| Complete sealed log (custodian) | 137876 bytes, SHA-256 `04ea47b6519ba1ecd005f054850fc74371d4b33dbfe09308ee4ef8b5f777d794` |
+| Pre-seal capture analysed here | 133927 bytes, SHA-256 `cca623283a2a5edf82a27078f9ea7575387f55a7ebade38042c2e6691586c3c9` |
+
+The analysis used the earlier pre-seal capture, a prefix-length copy taken
+before the session sealed the log. Every line cited here is in it; the sealed
+log is the authoritative record.
 
 ## Observations
 
@@ -84,4 +90,12 @@ The Phase A DTB is unchanged (`07b097d5…`). The builder now pins this package.
 This run's receipt is kept as
 [results/runtime-2-candidate.json](results/runtime-2-candidate.json), and both
 receipt slots are reset for candidate 3. The installer's predecessor is the
-runtime-2 candidate `7cfd2852…`, pending the custodian's boot2 confirmation.
+runtime-2 candidate `7cfd2852…`.
+
+The classifier's calibration fields were also corrected. The driver dumps the
+first raw bytes received for calibration, which are STP framing rather than
+the WMT event, and a dump can span several lines. The old classifier read
+exactly one line and compared it with the vendor status bytes, so it reported
+zero bytes for a split dump and could never have matched. It now joins
+contiguous dump lines and reports the capture size, ACK frames, data task and
+event size from the frame header. It keeps no event byte and adds no scan gate.

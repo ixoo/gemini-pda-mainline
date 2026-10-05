@@ -18,7 +18,8 @@ DEV = b'[   60.1] mt6797-consys 10001340.consys: '
 GOOD = b'\n'.join([
     DEV + b'one-shot WMT negotiation: result=0 phase=5 clocks-held=1',
     DEV + b'one-shot WMT common init: result=0 completed=285/285 bt-rail=0 wifi-rail=0 link=3/7/2/6',
-    b'[   60.2] WMT common init calibration RX: 00000000: 02 14 02 00 00 01',
+    # ACK frame, then a task-4 data frame header announcing a 382-byte event.
+    b'[   60.2] WMT common init calibration RX: 00000000: 80 00 00 80 80 41 7e 3f',
     DEV + b'WMT common init complete; continuing to WLAN HIF',
     DEV + b'one-shot WLAN private record prepare: status=0',
     DEV + b'one-shot WLAN regulatory configuration: status=0',
@@ -26,8 +27,9 @@ GOOD = b'\n'.join([
 ]) + b'\n'
 
 r = capture.classify(GOOD)
-assert r['ready_for_scan'] and r['common_init_passed'] and r['calibration_status_vendor_expected']
-assert r['calibration_reply_bytes'] == 6
+assert r['ready_for_scan'] and r['common_init_passed']
+assert (r['calibration_capture_bytes'], r['calibration_ack_frames'],
+        r['calibration_event_task'], r['calibration_reply_bytes']) == (8, 1, 4, 382)
 
 # Failure at step 40: no continuation, no WLAN lines, scan refused.
 fail = GOOD.replace(b'result=0 completed=285/285 bt-rail=0',
@@ -36,10 +38,23 @@ fail = b'\n'.join(l for l in fail.split(b'\n') if b'continuing' not in l and b'W
 r = capture.classify(fail)
 assert not r['ready_for_scan'] and r['common_init_result'] == -110 and r['common_init_completed'] == 40
 
-# Unexpected calibration status is recorded, not fatal by itself.
-odd = GOOD.replace(b'02 14 02 00 00 01', b'02 14 02 00 00 07')
-r = capture.classify(odd)
-assert r['ready_for_scan'] and not r['calibration_status_vendor_expected']
+# A dump split over several lines is joined; offsets must be contiguous.
+split = GOOD.replace(
+    b'00000000: 80 00 00 80 80 41 7e 3f',
+    b'00000000: 80 00 00 80\n[   60.2] WMT common init calibration RX: 00000004: 80 41 7e 3f')
+r = capture.classify(split)
+assert (r['calibration_capture_bytes'], r['calibration_reply_bytes']) == (8, 382)
+gap = split.replace(b'RX: 00000004:', b'RX: 00000005:')
+assert capture.classify(gap)['calibration_reply_bytes'] is None
+# The vendor's short form without a leading ACK, and unparseable framing.
+r = capture.classify(GOOD.replace(b'80 00 00 80 80 41 7e 3f', b'80 40 06 c6 02 14 02 00'))
+assert (r['calibration_ack_frames'], r['calibration_reply_bytes']) == (0, 6)
+r = capture.classify(GOOD.replace(b'80 00 00 80 80 41 7e 3f', b'80 00 00 81 80 41 7e 3f'))
+assert r['calibration_reply_bytes'] is None
+# Calibration metadata is recorded, never a scan gate.
+assert r['ready_for_scan']
+assert capture.classify(b'\n'.join(l for l in GOOD.split(b'\n')
+                                   if b'calibration RX' not in l))['ready_for_scan']
 
 # Rails left on, a stopped firmware or a BT H1 line refuse the scan.
 for bad in (GOOD.replace(b'bt-rail=0 wifi-rail=0', b'bt-rail=1 wifi-rail=0'),
