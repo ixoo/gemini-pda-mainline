@@ -1,7 +1,7 @@
 # C1-4 lid test protocol: Schmitt trigger on GPIO66
 
-Status: draft for coordinator review, 2026-10-07. Package pending; no
-candidate composed and no device action taken under this protocol.
+Status: draft for coordinator review, 2026-10-07. No candidate composed and
+no device action taken under this protocol.
 
 C1-3 under [LID_PROTOCOL.md](LID_PROTOCOL.md) is consumed. It showed GPIO66
 following the lid with EINT5 silent, with and without debounce; see the
@@ -13,6 +13,17 @@ When GPIO66 becomes an EINT, the common code tries to enable its Schmitt
 trigger and silently skips it because MT6797 maps no SMT field. Patch c1/0011
 maps GPIO66's SMT bit, so the same claim now enables it. The unique
 observation is whether EINT5 fires once the pad has Schmitt conditioning.
+
+## Artifact
+
+| Item | Value |
+| --- | --- |
+| Profile | `mt6797-a53-c1-compile` |
+| Commit | `c466d2094f1fa751e36fcd1c43ee51daa5744c1b` |
+| Package inventory | `cbdebc197c62273298881890f04dca722662d7daa2e82c93376953af30094d15` |
+| Release | `7.1.3-gemini-a53-c1-compile`, as in earlier C1 packages |
+| Built board DTB | `3ffa3c59001c0b4a39f6889fdfa9eaf92295702fbe787b3f44fdf49e49916d44`, unchanged from C1-3 |
+| Builder | buildbox-3; validation, fetch and checksums passed, no new warning |
 
 ## Artifact changes from C1-3
 
