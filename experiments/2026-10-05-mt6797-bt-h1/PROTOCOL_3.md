@@ -37,10 +37,17 @@ behaviour, evidence and recovery gates are exactly those of
 therefore expected to match C3-2's (`c8e1b98c…`), and the RAM root stays
 byte-identical to the parent. One `wmt_negotiate` write, no retry.
 
-Expected counters for a passing step, if the classifier checks them: TX is the
-command frame plus an optional 4-byte host ACK, RX the reply frame plus an
-optional 4-byte chip ACK. See the table in the laptop mailbox message of
-2026-10-06 and in [RUNTIME_2.md](RUNTIME_2.md)'s byte accounting.
+Expected counters for a passing step, if the classifier checks them. TX is the
+command frame (payload plus 6) plus an optional 4-byte host ACK. RX is the reply
+frame (payload plus 6) plus the chip's 4-byte ACK unless it is piggybacked, so
+frames is 1 or 2.
+
+| Step | Payload out / in | TX | RX |
+| --- | --- | --- | --- |
+| BT-on, BT-off | 6 / 5 | 12 or 16 | 11 or 15 |
+| HCI Reset | 4 / 7 | 10 or 14 | 13 or 17 |
+| Read Local Version | 4 / 15 | 10 or 14 | 21 or 25 |
+| Read BD_ADDR | 4 / 13 | 10 or 14 | 19 or 23 |
 
 ## Decision branches
 
