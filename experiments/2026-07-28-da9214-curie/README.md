@@ -74,9 +74,9 @@ analysis after capture, not an additional in-kernel acceptance gate.
   `observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-observer-initcall-blacklist-dvfsp-handoff-owner-i2c6-consumer-ap-dma-preserve-curie`.
 - Curie policy: `configs/gemini-i2c6-curie.fragment`.
 - Completed build environment: two independent recovery-VM roots
-  `/home/julien.guest/src/linux-7.1.3-curie-{a,b}-20260728`,
-  `/home/julien.guest/build/linux-7.1.3-curie-{a,b}-20260728`, and
-  `/home/julien.guest/artifacts/curie-kernel-{a,b}-20260728`, through
+  `~/src/linux-7.1.3-curie-{a,b}-20260728`,
+  `~/build/linux-7.1.3-curie-{a,b}-20260728`, and
+  `~/artifacts/curie-kernel-{a,b}-20260728`, through
   `./scripts/dev-vm build-kernel`.
 - Completed assembly: both packages crossed with independently retained
   Cassini/Hubble A and B foundations in

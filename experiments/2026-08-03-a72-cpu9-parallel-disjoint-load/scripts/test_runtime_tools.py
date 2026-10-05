@@ -135,7 +135,7 @@ def main() -> int:
         "pl_hash8w=X pl_hash8r=Y pl_hash9w=Y pl_hash9r=X",
         "gemini-a72-pair-v6 result=fault",
         "AUTOMATIC RESTART WITH NO PAIR-V6",
-        "collect-device-pstore --target gemini@192.168.1.50 --wait-for-cycle",
+        "collect-device-pstore --target gemini@GEMIAN_HOST --wait-for-cycle",
         "One exact repeat is then earned",
     ):
         require(token in plan, f"runtime decision missing: {token}")

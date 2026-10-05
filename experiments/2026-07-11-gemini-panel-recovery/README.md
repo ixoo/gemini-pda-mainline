@@ -186,7 +186,7 @@ interface.
 
 ## Live pin-control cross-check
 
-On the named Gemian device (`gemini@192.168.1.50`), the vendor pinctrl debug
+On the named Gemian device (`gemini@GEMIAN_HOST`), the vendor pinctrl debug
 state reports:
 
 | Pin | Live observation | Interpretation |

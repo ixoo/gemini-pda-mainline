@@ -1,6 +1,6 @@
 # MT6797 passive scan with normal broadcast reception
 
-Status: source-reviewed successor; build and candidate validated, runtime pending
+Status: `parked` (was: source-reviewed successor; build and candidate validated, runtime pending; closed by the [2026-10-05 consolidation](../2026-10-05-repository-consolidation/README.md))
 channel-dwell review. The [explicit dwell successor](../2026-10-02-mt6797-passive-scan-dwell/README.md)
 supersedes this unconsumed candidate for the next scan. The consumed
 [non-DFS scan](../2026-10-02-mt6797-passive-scan-5g/results/runtime-1.json)

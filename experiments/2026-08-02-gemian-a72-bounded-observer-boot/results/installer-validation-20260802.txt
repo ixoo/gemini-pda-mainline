@@ -11,7 +11,7 @@ artifact_manifest_sha256=880fa678eff2641a1559e65aef1f6904d608a49507285e3ef77de88
 expected_predecessor_sha256=805c3c1ce28131847924679a70186a75d277da3ab2be9565cea02bf546150f28
 candidate_sha256=33ace2c30a8877be2a4b917135aa994ad718201f98ec36d8506a3b1f1d03a7aa
 candidate_size=16777216
-target=gemini@192.168.1.50
+target=gemini@GEMIAN_HOST
 target_logical_name=boot2
 
 Static validation
@@ -27,7 +27,7 @@ partition_write=none
 
 Guarded behavior retained from the source-pinned installer
 -----------------------------------------------------------
-- accepts only exact target `gemini@192.168.1.50` and the ignored local key;
+- accepts only exact target `gemini@GEMIAN_HOST` and the ignored local key;
 - requires known-good AArch64 Gemian `3.18.41+`, unchanged boot ID,
   passwordless sudo, and systemd poweroff;
 - resolves exactly one live-GPT `boot2` row and checks the by-partlabel link,

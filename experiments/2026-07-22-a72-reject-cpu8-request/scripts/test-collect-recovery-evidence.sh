@@ -87,7 +87,7 @@ cat >"$fake_bin/ssh" <<'EOF'
 set -euo pipefail
 printf '%s\n' "$*" >>"$AJ_RECOVERY_SSH_LOG"
 arguments=" $* "
-for required in '-o BatchMode=yes' '-o IdentitiesOnly=yes' '-o IdentityAgent=none' '-o StrictHostKeyChecking=yes' "-i $AJ_RECOVERY_IDENTITY" 'gemini@192.168.1.50'; do
+for required in '-o BatchMode=yes' '-o IdentitiesOnly=yes' '-o IdentityAgent=none' '-o StrictHostKeyChecking=yes' "-i $AJ_RECOVERY_IDENTITY" 'gemini@GEMIAN_HOST'; do
 	case "$arguments" in *" $required "*) ;; *) exit 91 ;; esac
 done
 last=${!#}

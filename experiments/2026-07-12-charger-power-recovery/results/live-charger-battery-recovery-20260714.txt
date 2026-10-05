@@ -1,6 +1,6 @@
 validation=gemini-vendor-charger-battery-recovery
 generated_utc=2026-07-14T16:25:00Z
-target=gemini@192.168.1.50
+target=gemini@GEMIAN_HOST
 collector=experiments/2026-07-12-charger-power-recovery/scripts/collect-live-charger.sh
 collector_sha256=bc0ad515a3f3bd73421449cd17d342535ea82912cd06b05b0655e480347ada7e
 artifact=artifacts/device-inventory/20260714T162500Z-battery-recovery-charger/charger-power.txt

@@ -24,8 +24,8 @@ resolved_config_delta_from_candidate_x_z=none
 modules_built=false
 
 [package]
-path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-observability-fbcon-rotation-keyboard-wrrd-manual-reboot-efb79d0c-c811a159
-preserved_copy=/home/julien.guest/artifacts/boot-candidates/candidate-AB-kernel-build1/linux-7.1.3-gemini-observability-fbcon-rotation-keyboard-wrrd-manual-reboot-efb79d0c-c811a159
+path=~/artifacts/gemini-pda/linux-7.1.3-gemini-observability-fbcon-rotation-keyboard-wrrd-manual-reboot-efb79d0c-c811a159
+preserved_copy=~/artifacts/boot-candidates/candidate-AB-kernel-build1/linux-7.1.3-gemini-observability-fbcon-rotation-keyboard-wrrd-manual-reboot-efb79d0c-c811a159
 generated_utc=2026-07-21T03:22:11Z
 package_sha256s_sha256=f81e23918cc66b2bdd03b1747320c31c11aadffea93701369c8a6869224ce992
 image_sha256=1df5d92bf6535bac0cfda744ea10c0c10d9e224ac6891216305338c0db8de1cc

@@ -34,7 +34,7 @@ reconstruction is independently recorded in
   full_boot_partition_sha256=1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513
   kernel_field_sha256=b53d191dc41d3f7364b0fa62b4bc920b1d013a1942b2e6b06727263fc56fcf4d
   reconstructed_vmlinux_sha256=cc66df06194d3315335462760962165e1dcb2e50221574aeb45a0805bb17a162
-  private_vm_workspace=/home/julien.guest/reverse-engineering/work/gemian-boot-primary-20260726/
+  private_vm_workspace=~/reverse-engineering/work/gemian-boot-primary-20260726/
 
 No private boot image, binary, source dump, full log, serial, credential, or
 other personal/device identifier is copied into Git.

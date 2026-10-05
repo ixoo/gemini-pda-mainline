@@ -1,7 +1,7 @@
 Pre-ramoops stage ledger: live predeployment read-only gate
 Date: 2026-08-16 America/New_York
 
-target=gemini@192.168.1.50
+target=gemini@GEMIAN_HOST
 known_good_kernel=3.18.41+
 boot_id=2f308b03-2e2e-42a4-840a-03f43fd48014
 read_operation=12-bytes-per-slot-read-only-devmem

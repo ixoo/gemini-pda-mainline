@@ -13,11 +13,11 @@ hardware_write=none
 
 [captured_audit_output]
 validation=mt6797-mainline-module-closure-current-72
-package=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa
+package=~/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa
 package_image_sha256=3fb6ac3043dff85dc2b6e68a2bba26d36fedf748e6f7c1bf6b6630f87446be7c
 package_config_sha256=831289dd3b53c6cec09e6c614fd83d3ab5988a4c30090bf9ec172348ec9487d5
 package_system_map_sha256=c883efb3c8b09166a0765017712ec79e182f929ee50b3907f0279384ab2a22b2
-module_root=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa/modules/lib/modules/7.1.3-gemini
+module_root=~/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa/modules/lib/modules/7.1.3-gemini
 modules_builtin_sha256=885031ee8a358ecea04083cddfb21b432bb44466f8e8e143d62a6a2c4b32ee71
 modules_dep_sha256=d834eb2bbe9701d30385ffa507cb7b70323466579099d9b22fcf517bc6264585
 modules_order_sha256=967ae04919fde4426be9cf6cee9286ffb5068c0805f119792c0d5fb2b167ce16

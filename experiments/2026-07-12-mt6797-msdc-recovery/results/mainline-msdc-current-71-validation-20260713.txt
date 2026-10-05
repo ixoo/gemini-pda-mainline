@@ -4,11 +4,11 @@ Current Linux 7.1.3 MT6797 MSDC validation
 Date: 2026-07-13
 VM: gemini-pda-dev
 Vendor tree commit: c5b0be85017ad0c599725e8273842efdbecdd88a
-Linux source: /home/julien.guest/src/gemini-pda/linux-7.1.3
+Linux source: ~/src/gemini-pda/linux-7.1.3
 Linux source SHA-256: be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
 Patch count: 71
 Patchset SHA-256: 86145c09fc00fd3c65fb822f7834c5bb3dc08eb76f5117b90538141a429a1623
-Package: /home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-86145c09fc00
+Package: ~/artifacts/gemini-pda/linux-7.1.3-gemini-86145c09fc00
 Package Image SHA-256: bb326cfc3189828ff623a224dbc65aa9aace32474109dc116cd915d7bea4a09a
 Package Image.gz SHA-256: e99d3d74c88ce657ef73da4c7aafe8d3bb3567d837b692adf9414bd99d1f194b
 Package config SHA-256: c11ddd57c1fc643202b15bcfac9564edbba61e42a0a08879369b52592ba31d7a

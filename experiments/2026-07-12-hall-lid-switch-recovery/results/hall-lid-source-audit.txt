@@ -1,8 +1,8 @@
 audit=mt6797-hall-lid-switch-contract
 execution=none
-vendor_tree=/home/julien.guest/src/reference/planet-mt6797-3.18
+vendor_tree=~/src/reference/planet-mt6797-3.18
 vendor_commit=c5b0be85017ad0c599725e8273842efdbecdd88a
-linux_tree=/home/julien.guest/src/gemini-pda/linux-7.1.3
+linux_tree=~/src/gemini-pda/linux-7.1.3
 
 [vendor_sources]
 path=drivers/input/hall/hall.c

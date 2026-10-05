@@ -28,7 +28,7 @@ done
 
 [[ "$tag" =~ ^[a-z0-9][a-z0-9-]{0,63}$ ]] || die 'tag is absent or unsafe'
 
-readonly TARGET=gemini@192.168.1.50
+readonly TARGET=gemini@GEMIAN_HOST
 readonly IDENTITY_RELATIVE=artifacts/credentials/gemini_ed25519
 readonly OBSERVER_SAMPLES=70
 readonly OBSERVER_REMOTE_TIMEOUT=95

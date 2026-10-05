@@ -2,7 +2,7 @@ Read-only live connectivity inventory rerun
 ===========================================
 
 Date: 2026-07-13
-Target: gemini@192.168.1.50 (Gemian, authorized lab device)
+Target: gemini@GEMIAN_HOST (Gemian, authorized lab device)
 Collector: scripts/collect-live-connectivity.sh
 Raw capture: Git-ignored artifacts/device-inventory/20260713-connectivity-live/connectivity-capture.txt
 Raw capture SHA-256: b0df5e72646ba97bc22cf8bc0fca943891463fc94c8ab6537c5c6f07401fce24

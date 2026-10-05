@@ -7,9 +7,9 @@
 set -eu
 export LC_ALL=C
 
-vendor_tree=${VENDOR_TREE:-/home/julien.guest/src/reference/planet-mt6797-3.18}
-linux_tree=${LINUX_TREE:-/home/julien.guest/src/gemini-pda/linux-7.1.3}
-userspace=${VENDOR_USERSPACE:-/home/julien.guest/reverse-engineering/gemini-vendor}
+vendor_tree=${VENDOR_TREE:-~/src/reference/planet-mt6797-3.18}
+linux_tree=${LINUX_TREE:-~/src/gemini-pda/linux-7.1.3}
+userspace=${VENDOR_USERSPACE:-~/reverse-engineering/gemini-vendor}
 
 [[ -d "$vendor_tree" ]] || { printf 'missing vendor tree: %s\n' "$vendor_tree" >&2; exit 1; }
 [[ -d "$linux_tree" ]] || { printf 'missing Linux tree: %s\n' "$linux_tree" >&2; exit 1; }

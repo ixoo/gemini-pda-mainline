@@ -72,7 +72,7 @@ for required in \
 	'-o IdentityAgent=none' \
 	'-o StrictHostKeyChecking=yes' \
 	"-i $AI_TEST_IDENTITY" \
-	'gemini@192.168.1.50'; do
+	'gemini@GEMIAN_HOST'; do
 	case "$arguments" in
 	*" $required "*) ;;
 	*) printf 'mock ssh missing exact contract: %s\n' "$required" >&2; exit 97 ;;
@@ -230,7 +230,7 @@ strict_calls="$(grep -c -- '-o StrictHostKeyChecking=yes' "$ssh_log")"
 	die 'an SSH call used an agent'
 [[ "$(grep -c -- "-i $identity" "$ssh_log")" == "$ssh_calls" ]] || \
 	die 'an SSH call omitted the exact private key'
-[[ "$(grep -c -- 'gemini@192.168.1.50' "$ssh_log")" == "$ssh_calls" ]] || \
+[[ "$(grep -c -- 'gemini@GEMIAN_HOST' "$ssh_log")" == "$ssh_calls" ]] || \
 	die 'an SSH call changed the exact target'
 if grep -Eq 'reboot|shutdown|poweroff|/sys/fs/pstore/.+rm| dd ' "$ssh_log" "$remote_stdin"; then
 	die 'mocked remote command stream contains a reboot, write, or pstore deletion'

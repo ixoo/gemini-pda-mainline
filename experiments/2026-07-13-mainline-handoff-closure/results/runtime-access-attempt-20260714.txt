@@ -1,6 +1,6 @@
 validation=gemini-mainline-runtime-access-attempt
 generated_utc=2026-07-14T08:27:12Z
-target=gemini@192.168.1.50
+target=gemini@GEMIAN_HOST
 transport=ssh_tcp_22
 identity=artifacts/credentials/gemini_ed25519
 ssh_options=IdentitiesOnly=yes,IdentityAgent=none,BatchMode=yes,ConnectTimeout=8

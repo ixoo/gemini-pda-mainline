@@ -6,7 +6,7 @@ export LC_ALL=C
 export PYTHONDONTWRITEBYTECODE=1
 umask 077
 
-readonly TARGET=gemini@192.168.1.50
+readonly TARGET=gemini@GEMIAN_HOST
 readonly EXPECTED_ORIGIN=https://github.com/ixoo/gemini-pda-mainline.git
 readonly BUILD_COMMIT=b66b03c722cd67584fb8fb15de493ebb084954b4
 readonly CANDIDATE_DIR=candidate-mt6797-thermal-serviceability-dt-repair-dd7a6ec4
@@ -183,7 +183,7 @@ grep -Fqx 'shutdown_requested=yes-after-verified-readback' "$evidence" || die 's
 
 closed_samples=0
 for _ in {1..30}; do
-	if nc -G 1 -z 192.168.1.50 22 >/dev/null 2>&1; then
+	if nc -G 1 -z GEMIAN_HOST 22 >/dev/null 2>&1; then
 		closed_samples=0
 	else
 		closed_samples=$((closed_samples + 1))

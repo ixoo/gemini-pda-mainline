@@ -18,7 +18,7 @@ sys.dont_write_bytecode = True
 
 
 EXPERIMENT = "2026-07-22-a72-reject-gate-kernel-split"
-TARGET = "gemini@192.168.1.50"
+TARGET = "gemini@GEMIAN_HOST"
 IDENTITY_RELATIVE = "artifacts/credentials/gemini_ed25519"
 RECOVERY_KERNEL = "3.18.41+"
 RECOVERY_ARCH = "aarch64"

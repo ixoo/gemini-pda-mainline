@@ -48,7 +48,7 @@ RECOVERY_HOSTS_SHA256 = "d43262bd1f9c76d02eb633900f5e5502e2342d6c1b41586a2d7e524
 RECOVERY_KEY = REPO / "artifacts/credentials/gemini_ed25519"
 CANDIDATE_CREDS = REPO / "artifacts/credentials/a53-auth"
 TARGET = "root@10.15.19.82"
-RECOVERY_TARGET = "gemini@192.168.1.50"
+RECOVERY_TARGET = "gemini@GEMIAN_HOST"
 SELECT_PHRASE = "boot2-selected-once"
 SELECTION_CHECKPOINT = "selection-consumed"
 SELECTION_CHECKPOINT_BYTES = b"selection-consumed=true\n"

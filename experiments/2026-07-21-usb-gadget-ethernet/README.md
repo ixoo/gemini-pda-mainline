@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-21-usb-gadget-ethernet` |
-| Status | `running`: built, validated, and installed; attended runtime pending |
+| Status | `superseded` (was: `running`: built, validated, and installed; attended runtime pending; closed by the [2026-10-05 consolidation](../2026-10-05-repository-consolidation/README.md)) |
 | Subsystem | MT6797 MTU3/T-PHY, legacy `g_ether`, IPv4, early userspace |
 | Device variant | Current named Gemini PDA unit; exact retail sub-variant not independently established |
 | Date(s) | 2026-07-21 |

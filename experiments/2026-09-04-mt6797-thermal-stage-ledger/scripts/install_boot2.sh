@@ -6,7 +6,7 @@ set -euo pipefail
 export LC_ALL=C
 umask 077
 
-readonly TARGET=gemini@192.168.1.50
+readonly TARGET=gemini@GEMIAN_HOST
 readonly EXPECTED_ORIGIN=https://github.com/ixoo/gemini-pda-mainline.git
 readonly BUILD_COMMIT=b66b03c722cd67584fb8fb15de493ebb084954b4
 readonly CANDIDATE_DIR=candidate-mt6797-thermal-stage-ledger-c015bc24

@@ -2,7 +2,7 @@
 
 generated_utc=2026-08-11T04:48:18Z
 claim=READ_ONLY_GEMIAN_DVFSP_EEM_PPM_IDENTITY_SURFACE_REVIEW
-target=gemini@192.168.1.50
+target=gemini@GEMIAN_HOST
 transport=ssh
 os=Gemian
 kernel=3.18.41+

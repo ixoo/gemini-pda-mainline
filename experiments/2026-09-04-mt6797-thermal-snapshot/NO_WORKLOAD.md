@@ -138,7 +138,7 @@ After publication, from the repository root:
 
 ```sh
 experiments/2026-09-04-mt6797-thermal-snapshot/scripts/install-no-workload-boot2.sh --execute \
-  --target gemini@192.168.1.50 \
+  --target gemini@GEMIAN_HOST \
   --candidate-dir artifacts/thermal-snapshot-composition/candidate-c2ddeea9 \
   --evidence-dir artifacts/device-install-evidence/thermal-snapshot-deployment-1
 ```

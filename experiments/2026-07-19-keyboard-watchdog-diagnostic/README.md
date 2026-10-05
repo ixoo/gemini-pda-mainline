@@ -195,9 +195,9 @@ package, exact Candidate P artifact, and a new output directory:
 
 ```sh
 experiments/2026-07-19-keyboard-watchdog-diagnostic/scripts/build-keyboard-watchdog-candidate.sh \
-  --package /home/julien.guest/artifacts/gemini-pda/EXACT-CORRECTED-PACKAGE \
-  --baseline /home/julien.guest/artifacts/boot-candidates/candidate-P-fbcon-rotation-170a640 \
-  --output /home/julien.guest/artifacts/boot-candidates/candidate-V-keyboard-watchdog
+  --package ~/artifacts/gemini-pda/EXACT-CORRECTED-PACKAGE \
+  --baseline ~/artifacts/boot-candidates/candidate-P-fbcon-rotation-170a640 \
+  --output ~/artifacts/boot-candidates/candidate-V-keyboard-watchdog
 ```
 
 The builder has no caller-provided hash overrides. It hard-pins the source,

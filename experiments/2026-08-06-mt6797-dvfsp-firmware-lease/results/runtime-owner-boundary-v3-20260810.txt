@@ -2,7 +2,7 @@
 
 generated_utc=2026-08-10T14:49:06Z
 claim=READ_ONLY_GEMIAN_DVFSP_RUNTIME_OWNER_BOUNDARY_V3
-target=gemini@192.168.1.50
+target=gemini@GEMIAN_HOST
 transport=ssh
 os=Gemian
 kernel=3.18.41+

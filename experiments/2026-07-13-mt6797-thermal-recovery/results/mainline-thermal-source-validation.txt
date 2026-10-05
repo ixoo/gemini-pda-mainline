@@ -1,7 +1,7 @@
 MT6797 thermal and AUXADC contract audit
-vendor_tree=/home/julien.guest/src/reference/planet-mt6797-3.18
+vendor_tree=~/src/reference/planet-mt6797-3.18
 vendor_commit=c5b0be85017ad0c599725e8273842efdbecdd88a
-linux_tree=/home/julien.guest/src/gemini-pda/linux-7.1.3
+linux_tree=~/src/gemini-pda/linux-7.1.3
 linux_version=7.1.3
 
 [source hashes]

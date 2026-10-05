@@ -150,7 +150,7 @@ Run in the existing AArch64 Linux development VM from a clean repository:
 ```sh
 DEV_VM_NAME=gemini-pda-build-recovery-20260717 ./scripts/dev-vm run \
   /mnt/gemini-pda-mainline/experiments/2026-07-18-cortex-a53-sweep-diagnostic/scripts/build-cortex-a53-sweep-candidate.sh \
-  --baseline /home/julien.guest/artifacts/boot-candidates/candidate-N-cpu1-online-7cdb4b99
+  --baseline ~/artifacts/boot-candidates/candidate-N-cpu1-online-7cdb4b99
 ```
 
 The builder rejects any unpinned baseline, unexpected baseline file, dirty

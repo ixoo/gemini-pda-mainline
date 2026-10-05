@@ -200,12 +200,12 @@ The frozen R3 source identities are:
    roots:
 
    ```text
-   /home/julien.guest/src/candidate-ap-kernel-build1-exact-20260724
-   /home/julien.guest/build/candidate-ap-kernel-build1-exact-20260724
-   /home/julien.guest/artifacts/candidate-ap-kernel-build1-exact-20260724
-   /home/julien.guest/src/candidate-ap-kernel-build2-exact-20260724
-   /home/julien.guest/build/candidate-ap-kernel-build2-exact-20260724
-   /home/julien.guest/artifacts/candidate-ap-kernel-build2-exact-20260724
+   ~/src/candidate-ap-kernel-build1-exact-20260724
+   ~/build/candidate-ap-kernel-build1-exact-20260724
+   ~/artifacts/candidate-ap-kernel-build1-exact-20260724
+   ~/src/candidate-ap-kernel-build2-exact-20260724
+   ~/build/candidate-ap-kernel-build2-exact-20260724
+   ~/artifacts/candidate-ap-kernel-build2-exact-20260724
    ```
 
    Invoke only `./scripts/dev-vm build-kernel` with the exact main profile.

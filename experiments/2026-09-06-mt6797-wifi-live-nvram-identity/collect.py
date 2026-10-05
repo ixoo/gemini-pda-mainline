@@ -37,7 +37,7 @@ WIFI_SIZE = 514
 KEY_RELATIVE = Path("artifacts/credentials/gemini_ed25519")
 RECOVERY_HOSTS_RELATIVE = Path("artifacts/credentials/a53-recovery-known_hosts")
 RECOVERY_HOSTS_SHA256 = "d43262bd1f9c76d02eb633900f5e5502e2342d6c1b41586a2d7e524a2293768f"
-REMOTE_HOST = "gemini@192.168.1.50"
+REMOTE_HOST = "gemini@GEMIAN_HOST"
 PREAMBLE_PREFIXES = (
     "** WARNING: connection is not using a post-quantum key exchange algorithm.",
     "** This session may be vulnerable to \"store now, decrypt later\" attacks.",

@@ -2,11 +2,11 @@ audit_script_sha256=5ec9aa877413e0f8ba18ded90dafde76469fc4f518d4ccdcc00d7802900f
 normalized_audit_output_sha256=7d43762ab7ac94e86ed248962c040cbe50cbfddf4960c63483804f0086545484
 rerun_comparison=byte-identical
 validation=mt6797-thermal-safety-contract-audit
-package=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-ca17601dcdeb
+package=~/artifacts/gemini-pda/linux-7.1.3-gemini-ca17601dcdeb
 package_image_sha256=6d162f2d729827ecadfa5640d16f9e4c8325e67817d9c638b0cb1fcc9670bef4
 package_config_sha256=60a84aa5ac3b3aeb17d5357508ac123089d97d7d5ed9164458dee3ce6ded8159
 package_dtb_sha256=fb910c8d96b7d4f533c750ce0717ced8998c992834abc44a4ed86ec5a9cf1f97
-linux_tree=/home/julien.guest/src/gemini-pda/linux-7.1.3
+linux_tree=~/src/gemini-pda/linux-7.1.3
 linux_version=7.1.3
 
 [configuration_and_modules]
@@ -15,12 +15,12 @@ CONFIG_THERMAL_OF=y
 CONFIG_MTK_THERMAL=m
 CONFIG_MTK_SOC_THERMAL=m
 CONFIG_MEDIATEK_MT6577_AUXADC=m
-module=auxadc_thermal|path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-ca17601dcdeb/modules/lib/modules/7.1.3-gemini/kernel/drivers/thermal/mediatek/auxadc_thermal.ko
-module=mt6577_auxadc|path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-ca17601dcdeb/modules/lib/modules/7.1.3-gemini/kernel/drivers/iio/adc/mt6577_auxadc.ko
+module=auxadc_thermal|path=~/artifacts/gemini-pda/linux-7.1.3-gemini-ca17601dcdeb/modules/lib/modules/7.1.3-gemini/kernel/drivers/thermal/mediatek/auxadc_thermal.ko
+module=mt6577_auxadc|path=~/artifacts/gemini-pda/linux-7.1.3-gemini-ca17601dcdeb/modules/lib/modules/7.1.3-gemini/kernel/drivers/iio/adc/mt6577_auxadc.ko
 
 [calibration_path]
 
-[/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/thermal/mediatek/auxadc_thermal.c]
+[~/src/gemini-pda/linux-7.1.3/drivers/thermal/mediatek/auxadc_thermal.c]
 1175:static int mtk_thermal_extract_efuse_v4(struct mtk_thermal *mt, u32 *buf)
 1210:static int mtk_thermal_get_calibration_data(struct device *dev,
 1216:	int i, ret = 0;
@@ -41,7 +41,7 @@ default_calibration_is_runtime_safe=not_established
 
 [sensor_bank_contract]
 
-[/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/thermal/mediatek/auxadc_thermal.c]
+[~/src/gemini-pda/linux-7.1.3/drivers/thermal/mediatek/auxadc_thermal.c]
 595:static const int mt6797_bank_data[MT6797_NUM_ZONES][MT6797_NUM_SENSORS_PER_ZONE] = {
 612:static const int mt6797_mux_values[MT6797_NUM_SENSORS] = {
 616:static const int mt6797_vts_index[MT6797_NUM_SENSORS] = {
@@ -67,7 +67,7 @@ shared_sensor_mapping=TS_MCU2_is_used_by_banks_2,3,4,5
 
 [conversion_and_controller_contract]
 
-[/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/thermal/mediatek/auxadc_thermal.c]
+[~/src/gemini-pda/linux-7.1.3/drivers/thermal/mediatek/auxadc_thermal.c]
 37:#define TEMP_MONCTL0		0x000
 338:	u32 apmixed_buffer_ctl_reg;
 339:	u32 apmixed_buffer_ctl_mask;
@@ -116,7 +116,7 @@ hardware_trip_and_irq_semantics=not_recovered_in_generic_candidate
 
 [auxadc_compatibility_contract]
 
-[/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/iio/adc/mt6577_auxadc.c]
+[~/src/gemini-pda/linux-7.1.3/drivers/iio/adc/mt6577_auxadc.c]
 22:#define MT6577_AUXADC_CON2                    0x10
 29:#define MT6577_AUXADC_PDN_EN                  BIT(14)
 39:	bool check_global_idle;
@@ -147,7 +147,7 @@ auxadc_register_shape_validation=source_candidate_only
 
 [device_tree_gate]
 
-[/home/julien.guest/src/gemini-pda/linux-7.1.3/arch/arm64/boot/dts/mediatek/mt6797.dtsi]
+[~/src/gemini-pda/linux-7.1.3/arch/arm64/boot/dts/mediatek/mt6797.dtsi]
 18:	compatible = "mediatek,mt6797";
 116:		compatible = "mediatek,mt6797-tphy", "mediatek,generic-tphy-v1";
 121:		status = "disabled";

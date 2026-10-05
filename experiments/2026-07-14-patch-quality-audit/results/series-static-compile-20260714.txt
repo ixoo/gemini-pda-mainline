@@ -1,7 +1,7 @@
 validation=series-static-compile
 generated_utc=2026-07-14T08:48:01-04:00
-source=/home/julien.guest/src/gemini-pda/linux-7.1.3
-build=/home/julien.guest/build/gemini-pda/linux-7.1.3
+source=~/src/gemini-pda/linux-7.1.3
+build=~/build/gemini-pda/linux-7.1.3
 compiler=gcc_13.3.0
 sparse=/usr/bin/sparse
 warnings=enabled

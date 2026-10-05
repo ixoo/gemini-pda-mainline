@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-28-mainline-a72-admission-atag-prerequisite` |
-| Status | `pre-trigger prerequisite graph bound; one-shot contract pending` |
+| Status | `parked` (was: `pre-trigger prerequisite graph bound; one-shot contract pending`; closed by the [2026-10-05 consolidation](../2026-10-05-repository-consolidation/README.md)) |
 | Subsystem | MT6797 NVMEM, DVFSP handoff, I2C6, and A72 admission |
 | Device variant | Planet Computers Gemini PDA, named project device |
 | Date(s) | 2026-08-28 |

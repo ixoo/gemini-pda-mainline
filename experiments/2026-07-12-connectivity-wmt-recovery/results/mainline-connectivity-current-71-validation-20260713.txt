@@ -4,11 +4,11 @@ Current Linux 7.1.3 MT6797 connectivity source validation
 Date: 2026-07-13
 VM: gemini-pda-dev
 Vendor tree commit: c5b0be85017ad0c599725e8273842efdbecdd88a
-Linux source: /home/julien.guest/src/gemini-pda/linux-7.1.3
+Linux source: ~/src/gemini-pda/linux-7.1.3
 Linux source SHA-256: be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
 Patch count: 71
 Patchset SHA-256: 86145c09fc00fd3c65fb822f7834c5bb3dc08eb76f5117b90538141a429a1623
-Package: /home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-86145c09fc00
+Package: ~/artifacts/gemini-pda/linux-7.1.3-gemini-86145c09fc00
 Package Image SHA-256: 4f63ac9ccfd97d83abcfb2fd51b045998e6f5539e68974b361c376f6abd8ab59
 Package config SHA-256: c11ddd57c1fc643202b15bcfac9564edbba61e42a0a08879369b52592ba31d7a
 Package Gemini DTB SHA-256: fb910c8d96b7d4f533c750ce0717ced8998c992834abc44a4ed86ec5a9cf1f97

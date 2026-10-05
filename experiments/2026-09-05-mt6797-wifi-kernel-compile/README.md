@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-05-mt6797-wifi-kernel-compile` |
-| Status | Planned; source proposal only, backend admission pending |
+| Status | `superseded` (was: Planned; source proposal only, backend admission pending; closed by the [2026-10-05 consolidation](../2026-10-05-repository-consolidation/README.md)) |
 | Subsystem | Wi-Fi gen3 AHB HIF |
 | Variant | Gemini PDA MT6797; no device used |
 | Integration base | `789fc975` (ordinary-section integration over `d6cc1cd0`) |

@@ -47,7 +47,7 @@ reproducible in the VM with:
 
 ```sh
 limactl shell --workdir=/mnt/gemini-pda-mainline gemini-pda-dev -- bash -lc \
-  'cd /home/julien.guest/src/reference/gemian-linux-kernel-3.18 && \
+  'cd ~/src/reference/gemian-linux-kernel-3.18 && \
    sed -n "1,180p" drivers/misc/mediatek/power/mt6797/rt5735.h && \
    sed -n "220,290p" drivers/misc/mediatek/power/mt6797/rt5735.c'
 ```

@@ -23,7 +23,7 @@ register contract is demonstrably different.
 ## Provenance and environment
 
 - Live kernel: Linux `3.18.41+`, AArch64, Gemian Debian 9 userspace.
-- Live device: `gemini@192.168.1.50` over the owner's private LAN.
+- Live device: `gemini@GEMIAN_HOST` over the owner's private LAN.
 - Vendor source: Gemian MT6797 tree commit
   `d388d350cb2dda8f23b99be6fa5db9628896e87f`.
 - Mainline comparison: Linux `7.1.3` in the development VM.
@@ -47,7 +47,7 @@ Run from the repository root:
 mkdir -p artifacts/device-inventory/20260712-live
 ssh -i artifacts/credentials/gemini_ed25519 \
   -o IdentitiesOnly=yes -o IdentityAgent=none -o BatchMode=yes \
-  gemini@192.168.1.50 'bash -s' \
+  gemini@GEMIAN_HOST 'bash -s' \
   < experiments/2026-07-12-mt6797-clock-power-reset-recovery/scripts/collect-live-clock-power-reset.sh \
   > artifacts/device-inventory/20260712-live/clock-power-reset.txt
 chmod 700 artifacts/device-inventory/20260712-live

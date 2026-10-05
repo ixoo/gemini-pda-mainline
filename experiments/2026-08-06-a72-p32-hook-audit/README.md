@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-06-a72-p32-hook-audit` |
-| Status | `in progress` (source-only implementation build validated; runtime remains blocked) |
+| Status | `parked` (was: `in progress` (source-only implementation build validated; runtime remains blocked); closed by the [2026-10-05 consolidation](../2026-10-05-repository-consolidation/README.md)) |
 | Subsystem | arm64 CPUHP rollback, target `cpu_disable`/`cpu_die`, controller `cpu_kill` |
 | Device variant | Planet Gemini PDA, MT6797; no live-device action |
 | Date | 2026-08-06 America/New_York |

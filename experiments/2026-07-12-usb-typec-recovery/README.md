@@ -26,7 +26,7 @@ tree uses MT6797-specific compatibles and hardcoded PHY banks.
 ## Provenance and environment
 
 - Live kernel: Linux `3.18.41+`, AArch64, Gemian Debian 9 userspace.
-- Live device: `gemini@192.168.1.50` over the owner's private LAN.
+- Live device: `gemini@GEMIAN_HOST` over the owner's private LAN.
 - Vendor source: Planet MT6797 tree commit
   `c5b0be85017ad0c599725e8273842efdbecdd88a`.
 - Mainline comparison: Linux `7.1.3` in the development VM.
@@ -115,7 +115,7 @@ it is reproducible with:
 
 ```sh
 ./scripts/dev-vm run bash -lc \
-   'CURRENT_PACKAGE=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa \
+   'CURRENT_PACKAGE=~/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa \
    experiments/2026-07-12-usb-typec-recovery/scripts/audit-current-package-usb.sh'
 ```
 
@@ -176,7 +176,7 @@ Run from the repository root:
 mkdir -p artifacts/device-inventory/20260712-live
 ssh -i artifacts/credentials/gemini_ed25519 \
   -o IdentitiesOnly=yes -o IdentityAgent=none -o BatchMode=yes \
-  gemini@192.168.1.50 'bash -s' \
+  gemini@GEMIAN_HOST 'bash -s' \
   < experiments/2026-07-12-usb-typec-recovery/scripts/collect-live-usb-typec.sh \
   > artifacts/device-inventory/20260712-live/usb-typec.txt
 chmod 700 artifacts/device-inventory/20260712-live

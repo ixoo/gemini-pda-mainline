@@ -7,7 +7,7 @@ export LC_ALL=C
 
 package=${CURRENT_PACKAGE:?set CURRENT_PACKAGE to a packaged kernel directory}
 live_capture=${LIVE_CAPTURE:-/mnt/gemini-pda-mainline/artifacts/device-inventory/20260713-live/driver-resource-current-20260713.txt}
-source_tree=${SOURCE_TREE:-/home/julien.guest/src/gemini-pda/linux-7.1.3}
+source_tree=${SOURCE_TREE:-~/src/gemini-pda/linux-7.1.3}
 config=$package/kernel.config
 system_map=$package/System.map
 module_root=$package/modules/lib/modules

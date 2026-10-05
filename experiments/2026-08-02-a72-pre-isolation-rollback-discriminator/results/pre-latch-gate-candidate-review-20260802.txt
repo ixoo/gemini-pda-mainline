@@ -71,7 +71,7 @@ partition_write=none
 
 Deployment contract
 -------------------
-target=gemini@192.168.1.50
+target=gemini@GEMIAN_HOST
 logical_partition=boot2
 expected_live_predecessor_sha256=6a180e5a62a00cd7c97d461c7a1c491cd47802bd0964ef82f75ee793d6b8bede
 candidate_sha256=4830a0d0e1a3cb82a13e7c34248fb95f736d9ba3c71ba8ecb82ab210389bde6d

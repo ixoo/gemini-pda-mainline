@@ -2,8 +2,8 @@
 
 set -euo pipefail
 
-linux_tree="${LINUX_TREE:-/home/julien.guest/src/gemini-pda/linux-7.1.3}"
-vendor_tree="${VENDOR_TREE:-/home/julien.guest/src/reference/planet-mt6797-3.18}"
+linux_tree="${LINUX_TREE:-~/src/gemini-pda/linux-7.1.3}"
+vendor_tree="${VENDOR_TREE:-~/src/reference/planet-mt6797-3.18}"
 linux_driver_rel=drivers/spi/spi-mt65xx.c
 linux_binding_rel=Documentation/devicetree/bindings/spi/mediatek,spi-mt65xx.yaml
 linux_clock_rel=drivers/clk/mediatek/clk-mt6797.c

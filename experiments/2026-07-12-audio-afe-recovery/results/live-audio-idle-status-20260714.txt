@@ -2,7 +2,7 @@ Gemian live audio idle status — 2026-07-14
 
 Target
 ------
-Device: owner-authorized Gemini at 192.168.1.50
+Device: owner-authorized Gemini at GEMIAN_HOST
 Kernel: 3.18.41+
 Access: read-only SSH with the repository's mode-0600 key
 

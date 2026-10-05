@@ -5,7 +5,7 @@ set -euo pipefail
 export LC_ALL=C
 umask 077
 
-readonly EXPECTED_TARGET=gemini@192.168.1.50
+readonly EXPECTED_TARGET=gemini@GEMIAN_HOST
 readonly EXPECTED_DEPLOYMENT_NAME=a72-cpu9-membership-lock-repair-deployment-1
 readonly EXPECTED_OUTPUT_NAME=a72-cpu9-membership-lock-repair-recovery-attempt-1
 readonly CANDIDATE_SHA256=65355ce48e1bbab736a33452160493f6b61915ab09a8713ba0ef2da1262f676c

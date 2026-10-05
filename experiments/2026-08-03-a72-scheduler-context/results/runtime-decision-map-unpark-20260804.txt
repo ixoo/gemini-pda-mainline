@@ -127,7 +127,7 @@ Observation sequence
 --------------------
 
 1. In ordinary Gemian, just in time before installation, start
-   `scripts/collect-device-pstore --target gemini@192.168.1.50 --output artifacts/device-pstore/a72-scheduler-unpark-attempt-1 --wait-for-cycle --wait-seconds 900`.
+   `scripts/collect-device-pstore --target gemini@GEMIAN_HOST --output artifacts/device-pstore/a72-scheduler-unpark-attempt-1 --wait-for-cycle --wait-seconds 900`.
    Require its explicit waiting-for-disconnect readiness before proceeding; it
    must bind the initial boot ID before the installer's shutdown.
 2. Run the reviewed installer. It must resolve exactly one live-GPT boot2,

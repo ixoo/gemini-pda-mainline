@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-31-mainline-a72-p30e-entry-diagnostic` |
-| Status | `running` |
+| Status | `parked` (was: `running`; closed by the [2026-10-05 consolidation](../2026-10-05-repository-consolidation/README.md)) |
 | Subsystem | MT6797 CPU8 binder, arm64 secondary entry, and P30E wire |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-08-31 |

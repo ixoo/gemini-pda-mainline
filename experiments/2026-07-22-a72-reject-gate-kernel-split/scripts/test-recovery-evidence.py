@@ -96,7 +96,7 @@ def cycle_values(runtime: bool) -> dict[str, str]:
         "format_version": "1",
         "experiment": "2026-07-22-a72-reject-gate-kernel-split",
         "candidate_label": "AI",
-        "target": "gemini@192.168.1.50",
+        "target": "gemini@GEMIAN_HOST",
         "identity_relative": "artifacts/credentials/gemini_ed25519",
         "ssh_batch_mode": "yes",
         "ssh_identities_only": "yes",

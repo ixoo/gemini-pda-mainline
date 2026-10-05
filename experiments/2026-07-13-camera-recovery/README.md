@@ -24,7 +24,7 @@ drivers rather than by copying the vendor camera ABI?
 - Vendor source: Planet MT6797 tree commit
   `c5b0be85017ad0c599725e8273842efdbecdd88a`.
 - Mainline comparison: Linux `7.1.3` in the development VM.
-- Live device: `gemini@192.168.1.50` over the owner's private LAN.
+- Live device: `gemini@GEMIAN_HOST` over the owner's private LAN.
 - Private raw capture: `artifacts/device-inventory/20260713-live/camera.txt`
   (Git-ignored and access-restricted).
 - Fresh read-only repeat: [`results/live-camera-repeat-20260714.txt`](results/live-camera-repeat-20260714.txt),
@@ -60,7 +60,7 @@ From the repository root:
 mkdir -p artifacts/device-inventory/20260713-live
 ssh -i artifacts/credentials/gemini_ed25519 \
   -o IdentitiesOnly=yes -o IdentityAgent=none -o BatchMode=yes \
-  gemini@192.168.1.50 'bash -s' \
+  gemini@GEMIAN_HOST 'bash -s' \
   < experiments/2026-07-13-camera-recovery/scripts/collect-live-camera.sh \
   > artifacts/device-inventory/20260713-live/camera.txt
 chmod 700 artifacts/device-inventory/20260713-live
@@ -108,7 +108,7 @@ The current packaged-kernel boundary is audited with:
 
 ```sh
 ./scripts/dev-vm run bash -lc \
-  'CURRENT_PACKAGE=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-b7721ab55e41 \
+  'CURRENT_PACKAGE=~/artifacts/gemini-pda/linux-7.1.3-gemini-b7721ab55e41 \
    experiments/2026-07-13-camera-recovery/scripts/audit-current-package-camera.sh'
 ```
 

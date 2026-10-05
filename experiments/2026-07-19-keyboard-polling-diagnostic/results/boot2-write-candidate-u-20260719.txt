@@ -38,7 +38,7 @@ visudo_complete_configuration_check=passed
 sudo_noninteractive_check=passed
 
 [immediate-live-preflight]
-device_target=gemini@192.168.1.50
+device_target=gemini@GEMIAN_HOST
 device_arch=aarch64
 device_kernel=3.18.41+
 device_model=MT6797X

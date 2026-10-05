@@ -309,7 +309,7 @@ active provider candidate and should request CPU8 only.
 ## 9. Evidence pins
 
 Public source files below are from recovery-VM path
-`/home/julien.guest/src/reference/gemian-linux-kernel-3.18` at commit
+`~/src/reference/gemian-linux-kernel-3.18` at commit
 `d388d350cb2dda8f23b99be6fa5db9628896e87f`:
 
 Correction, 2026-07-23: the active March 29 kernel and the installed May 24

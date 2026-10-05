@@ -12,7 +12,7 @@ if ORIGINAL.is_symlink() or hashlib.sha256(ORIGINAL.read_bytes()).hexdigest() !=
 
 original = runpy.run_path(str(ORIGINAL))
 original['CONNECT_FAILURES'].update(
-    ('ssh: connect to host 192.168.1.50 port 22: Host is down' + ending).encode()
+    ('ssh: connect to host GEMIAN_HOST port 22: Host is down' + ending).encode()
     for ending in ('\n', '\r\n')
 )
 

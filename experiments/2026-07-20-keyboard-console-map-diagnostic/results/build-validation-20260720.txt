@@ -34,7 +34,7 @@ linker=GNU ld (GNU Binutils for Ubuntu) 2.42
 modules_built=false
 
 [photo_reference]
-source_path=/Users/julien/Downloads/IMG_2392.heic
+source_path=~/Downloads/IMG_2392.heic
 source_heic_sha256=bc1b8bd28aec4ff46598de1ff9314c92c7dc61d5b1013b98a93e0ef4edce9cf9
 local_conversion_path=/private/tmp/gemini-keyboard-IMG_2392.png
 local_conversion_sha256=864e9486fe0ab16db868f6de23cb95befaaf8d635d185151ea3b2813e870ded1
@@ -70,8 +70,8 @@ storage_access=none
 runtime_networking=none
 
 [final_artifact]
-authoritative_guest_build=/home/julien.guest/artifacts/boot-candidates/candidate-AA-build5/candidate-AA-keyboard-console-map-final-a2ad7a41
-independent_guest_build=/home/julien.guest/artifacts/boot-candidates/candidate-AA-build6/candidate-AA-keyboard-console-map-final-a2ad7a41
+authoritative_guest_build=~/artifacts/boot-candidates/candidate-AA-build5/candidate-AA-keyboard-console-map-final-a2ad7a41
+independent_guest_build=~/artifacts/boot-candidates/candidate-AA-build6/candidate-AA-keyboard-console-map-final-a2ad7a41
 complete_builds_recursive_comparison=byte-identical
 exported_host_artifact=artifacts/vm-export/boot-candidates/candidate-AA-build5/candidate-AA-keyboard-console-map-final-a2ad7a41
 artifact_manifest_sha256=e67fcd4aaaf9f192ebb36291f9065a62848818af4241ab97c67459513d0d7c32

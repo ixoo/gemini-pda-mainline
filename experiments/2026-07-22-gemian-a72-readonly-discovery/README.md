@@ -29,7 +29,7 @@ transaction-local state required by the A72 firmware/power contract.
 - Public source: `gemian/gemini-linux-kernel-3.18`, commit
   `d388d350cb2dda8f23b99be6fa5db9628896e87f`, inspected from the clean pinned
   recovery-VM checkout at
-  `/home/julien.guest/src/reference/gemian-linux-kernel-3.18`.
+  `~/src/reference/gemian-linux-kernel-3.18`.
 - Intended live kernel: the named Gemini's working Gemian `3.18.41+` system.
   Source similarity does not prove that the installed binary is byte-identical
   to the public commit; every future capture must retain live identity.
@@ -83,7 +83,7 @@ a sanitized marker in the preserved partial capture. Optional safe surfaces
 may remain absent.
 
 The host wrapper has no target or identity override. It uses exact target
-`gemini@192.168.1.50`, the Git-ignored repository identity
+`gemini@GEMIAN_HOST`, the Git-ignored repository identity
 `artifacts/credentials/gemini_ed25519`, strict existing-host-key checking, and
 no SSH agent. Output must be a new, Git-ignored
 `artifacts/runtime-captures/gemian-a72-readonly-*.txt` file directly under the

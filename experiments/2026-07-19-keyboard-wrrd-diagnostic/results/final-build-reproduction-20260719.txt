@@ -15,7 +15,7 @@ resolved_config_sha256=e143daa84127e2c04895c2576943dfb77ee10903c35f4d8cc9fe1dc90
 build_profile=observability-fbcon-rotation-keyboard-wrrd
 
 [kernel-build-1]
-package=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-observability-fbcon-rotation-keyboard-wrrd-4cd417ad-28a94091
+package=~/artifacts/gemini-pda/linux-7.1.3-gemini-observability-fbcon-rotation-keyboard-wrrd-4cd417ad-28a94091
 generated_utc=2026-07-19T20:47:05Z
 package_manifest_sha256=6337c00318acecea64ed77fe67757744f9c2ad9d730c1c22b14b7ad43b2a91d0
 build_json_sha256=4f6bdab0b3379a92495fcf10656e3e45bde5a8bc1bab4da29455209b601530bd
@@ -23,10 +23,10 @@ complete_kernel_artifact_validation=passed
 focused_package_foundation_validation=passed
 
 [kernel-build-2]
-source_root=/home/julien.guest/src/gemini-pda-w-build2-4cd417ad
-build_root=/home/julien.guest/build/gemini-pda-w-build2-4cd417ad
-artifact_root=/home/julien.guest/artifacts/gemini-pda-w-build2-4cd417ad
-package=/home/julien.guest/artifacts/gemini-pda-w-build2-4cd417ad/linux-7.1.3-gemini-observability-fbcon-rotation-keyboard-wrrd-4cd417ad-28a94091
+source_root=~/src/gemini-pda-w-build2-4cd417ad
+build_root=~/build/gemini-pda-w-build2-4cd417ad
+artifact_root=~/artifacts/gemini-pda-w-build2-4cd417ad
+package=~/artifacts/gemini-pda-w-build2-4cd417ad/linux-7.1.3-gemini-observability-fbcon-rotation-keyboard-wrrd-4cd417ad-28a94091
 generated_utc=2026-07-19T21:18:27Z
 package_manifest_sha256=53bf80a6bf071f48248639c5fc6c914e9a260c71806a62ca80593767e49d441e
 build_json_sha256=35fb77985728ef396bc0d5b1b7be1e50d13ab567d82efbbca4379d2354742fec
@@ -65,8 +65,8 @@ watchdog_behavior=exact-v-with-recorder-name-only-substitution
 observation_deltas=tty2-kernel-console,TER16x32,tty1-respawning-shell,clean-pass-token
 
 [candidate-builds]
-output_1=/home/julien.guest/artifacts/boot-candidates/candidate-W-final-rebuild3/candidate-W-keyboard-wrrd-final-34c41fad
-output_2=/home/julien.guest/artifacts/boot-candidates/candidate-W-final-rebuild4/candidate-W-keyboard-wrrd-final-34c41fad
+output_1=~/artifacts/boot-candidates/candidate-W-final-rebuild3/candidate-W-keyboard-wrrd-final-34c41fad
+output_2=~/artifacts/boot-candidates/candidate-W-final-rebuild4/candidate-W-keyboard-wrrd-final-34c41fad
 recursive_diff=identical
 both_output_manifest_checks=passed
 output_manifest_sha256=257b17585c171e29ae3510fdab7602aa59e4da570aa906abb8b9e5b7e8da5851

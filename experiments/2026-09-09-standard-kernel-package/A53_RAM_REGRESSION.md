@@ -5,7 +5,7 @@ complete kernel log was preserved. A separate read-only probe verified return
 to changed-boot Gemian. The consumed session runner remains inconclusive at its
 return phase; no unchanged-image retry is selected. Current device custody
 and the closed session are recorded in the
-[queue](../../project/experiment-queue.json).
+[queue](https://github.com/ixoo/gemini-pda-mainline/blob/164c2d3f/project/experiment-queue.json).
 
 ## Purpose and bounded change
 

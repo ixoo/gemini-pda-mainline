@@ -13,7 +13,7 @@ Installer
 ---------
 installer_sha256=d930aa71f2abb971a931fcd1933a58346663ca23ca921e0f8994a35d5b0dc883
 source_installer_sha256=0c669ab85063015fa83b7e28a506e1bcf8cdafc4994726009becf92151fda7e7
-target=gemini@192.168.1.50
+target=gemini@GEMIAN_HOST
 logical_target=boot2
 live_gpt_resolution=required
 inactive_unmounted_writable_exact_size=required

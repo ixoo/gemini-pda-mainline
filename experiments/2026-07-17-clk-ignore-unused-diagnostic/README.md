@@ -187,13 +187,13 @@ and boot-container inputs:
 ./scripts/dev-vm run \
   experiments/2026-07-17-clk-ignore-unused-diagnostic/scripts/\
 test-validator-mutations.sh \
-  --baseline-package /home/julien.guest/artifacts/gemini-pda/\
+  --baseline-package ~/artifacts/gemini-pda/\
 linux-7.1.3-gemini-usbdiag-3d92a7e9-fdf1d345 \
-  --package /home/julien.guest/artifacts/gemini-pda/\
+  --package ~/artifacts/gemini-pda/\
 linux-7.1.3-gemini-usbdiag-clkignore-3d92a7e9-d1224166 \
-  --baseline-candidate /home/julien.guest/artifacts/boot-candidates/\
+  --baseline-candidate ~/artifacts/boot-candidates/\
 gemini-fbcon-refresh-I-final1 \
-  --candidate /home/julien.guest/artifacts/boot-candidates/\
+  --candidate ~/artifacts/boot-candidates/\
 gemini-clk-ignore-unused-J-compiled-final1
 ```
 

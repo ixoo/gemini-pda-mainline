@@ -6,9 +6,9 @@
 | --- | --- |
 | Date | 2026-07-17 |
 | Scope | Read-only audit of the exact Candidate J source, build, configuration, DTB and shared I/J `/init` after runtime attempt 1 |
-| Kernel source | `/home/julien.guest/src/gemini-pda/linux-7.1.3` |
-| Kernel build | `/home/julien.guest/build/gemini-pda/linux-7.1.3-usbdiag-clkignore` |
-| Kernel package | `/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-usbdiag-clkignore-3d92a7e9-d1224166` |
+| Kernel source | `~/src/gemini-pda/linux-7.1.3` |
+| Kernel build | `~/build/gemini-pda/linux-7.1.3-usbdiag-clkignore` |
+| Kernel package | `~/artifacts/gemini-pda/linux-7.1.3-gemini-usbdiag-clkignore-3d92a7e9-d1224166` |
 | Resolved-config SHA-256 | `283570babf78d9299948a35c8133dfa906b04a0c35a2d0d2997309326d607f0d` |
 | Shared I/J initramfs SHA-256 | `85059d3128e643deaafc3989c745ed21ec94ec5f24f5002839e0d080d13dfe85` |
 | Raw boot-image SHA-256 | `6d5bad08c2f93eba7fbd66ea5c54de2437f81e44832426a97d4d65d550c659f4` |

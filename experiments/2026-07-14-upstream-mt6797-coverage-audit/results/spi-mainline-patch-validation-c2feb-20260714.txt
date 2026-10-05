@@ -26,11 +26,11 @@ config_spi_mt65xx=CONFIG_SPI_MT65XX=y
 prepare=./scripts/dev-vm kernel prepare completed; both patches applied cleanly
 configure=./scripts/dev-vm kernel configure completed
 build=KERNEL_JOBS=2 ./scripts/dev-vm build-kernel completed with kernel_release=7.1.3-gemini
-schema=make O=/home/julien.guest/build/gemini-pda/linux-7.1.3 ARCH=arm64 dt_binding_check DT_SCHEMA_FILES=Documentation/devicetree/bindings/spi/mediatek,spi-mt65xx.yaml passed
+schema=make O=~/build/gemini-pda/linux-7.1.3 ARCH=arm64 dt_binding_check DT_SCHEMA_FILES=Documentation/devicetree/bindings/spi/mediatek,spi-mt65xx.yaml passed
 artifact_validator=./scripts/dev-vm validate-kernel .../linux-7.1.3-gemini-c2feb465d6c6 passed SHA256SUMS and provenance checks
 
 [artifact]
-artifact=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-c2feb465d6c6
+artifact=~/artifacts/gemini-pda/linux-7.1.3-gemini-c2feb465d6c6
 image_sha256=3a124e4d30034ea5473ab04f9747b697ff7c588862d6adb2e1cf33d7f97585d2
 image_gz_sha256=79ba744da209d262c99e07b23aded1770688f0e9fd0fac8ee0868d920bc8fddc
 system_map_sha256=8e569b3c0741c60a95b2aa3e97e3dc5b5a0c07bac4779566f4b96b1ce6206cbd

@@ -53,9 +53,9 @@ installer_expected_predecessor_sha256=5c044fc3d2ccecf399d6ccb058f354b43e9d14b3fb
 Independent construction
 ------------------------
 
-artifact_a=/home/julien.guest/artifacts/boot-candidates-photon-r1/candidate-Photon-da9214-rx-sentinel-005228ce
-artifact_b=/home/julien.guest/artifacts/boot-candidates-photon-r1-repro/candidate-Photon-da9214-rx-sentinel-005228ce
-artifact_calibrated=/home/julien.guest/artifacts/boot-candidates-photon-r1-calibrated/candidate-Photon-da9214-rx-sentinel-005228ce
+artifact_a=~/artifacts/boot-candidates-photon-r1/candidate-Photon-da9214-rx-sentinel-005228ce
+artifact_b=~/artifacts/boot-candidates-photon-r1-repro/candidate-Photon-da9214-rx-sentinel-005228ce
+artifact_calibrated=~/artifacts/boot-candidates-photon-r1-calibrated/candidate-Photon-da9214-rx-sentinel-005228ce
 complete_member_count=20
 complete_file_bytes=identical
 complete_file_modes=identical

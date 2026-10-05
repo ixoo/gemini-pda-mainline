@@ -19,7 +19,7 @@ Regulator descriptor CSV SHA-256: 55075acefbc128e8e903371c39014427f398ea39ea6523
 Live identity and ownership
 ---------------------------
 
-The read-only PMIC collector was rerun on `gemini@192.168.1.50` using the
+The read-only PMIC collector was rerun on `gemini@GEMIAN_HOST` using the
 audited single-token `pmic_access` read path. It returned HWCID `0x5140` and
 SWCID `0x5120`, confirming MT6351 E2. It did not issue a PMIC write, toggle a
 rail, set an alarm, or change an interrupt mask.

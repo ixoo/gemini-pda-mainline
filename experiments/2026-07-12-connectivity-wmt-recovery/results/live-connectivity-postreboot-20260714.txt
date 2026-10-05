@@ -1,6 +1,6 @@
 validation=gemini-live-connectivity-read-only-postreboot
 generated_utc=2026-07-14T15:43:34Z
-device=gemini@192.168.1.50
+device=gemini@GEMIAN_HOST
 device_kernel=3.18.41+
 architecture=aarch64
 collector=experiments/2026-07-12-connectivity-wmt-recovery/scripts/collect-live-connectivity.sh

@@ -16,7 +16,7 @@ sys.dont_write_bytecode = True
 import candidate_hubble as ch
 
 
-TARGET = "gemini@192.168.1.50"
+TARGET = "gemini@GEMIAN_HOST"
 
 
 def replace_exact(text: str, old: str, new: str, count: int) -> str:

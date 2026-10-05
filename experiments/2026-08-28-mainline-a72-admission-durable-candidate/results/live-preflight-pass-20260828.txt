@@ -1,5 +1,5 @@
 validation=durable-candidate-live-preflight
-target=gemini@192.168.1.50
+target=gemini@GEMIAN_HOST
 gemian_boot_id=655a4148-524f-400b-a0be-5bff29a04197
 gemian_kernel_release=3.18.41+
 architecture=aarch64

@@ -9,9 +9,9 @@ set -euo pipefail
 export LC_ALL=C
 
 package=${CURRENT_PACKAGE:?set CURRENT_PACKAGE to a packaged kernel directory}
-linux_tree=${LINUX_TREE:-/home/julien.guest/src/gemini-pda/linux-7.1.3}
-vendor_tree=${VENDOR_TREE:-/home/julien.guest/src/reference/planet-mt6797-3.18}
-lk_tree=${LK_TREE:-/home/julien.guest/src/reference/dguidipc-gemini-lk-android8}
+linux_tree=${LINUX_TREE:-~/src/gemini-pda/linux-7.1.3}
+vendor_tree=${VENDOR_TREE:-~/src/reference/planet-mt6797-3.18}
+lk_tree=${LK_TREE:-~/src/reference/dguidipc-gemini-lk-android8}
 thermal_source=$linux_tree/drivers/thermal/mediatek/auxadc_thermal.c
 efuse_source=$linux_tree/drivers/nvmem/mtk-efuse.c
 efuse_binding=$linux_tree/Documentation/devicetree/bindings/nvmem/mediatek,efuse.yaml

@@ -28,7 +28,7 @@ Run it against a package produced by `./scripts/dev-vm build-kernel`:
 
 ```sh
 ./scripts/dev-vm run env \
-  CURRENT_PACKAGE=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa \
+  CURRENT_PACKAGE=~/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa \
   experiments/2026-07-13-mainline-handoff-closure/scripts/validate-handoff-closure.sh
 ```
 
@@ -48,7 +48,7 @@ the Git-ignored `artifacts/` tree:
 
 ```sh
 experiments/2026-07-13-mainline-handoff-closure/scripts/collect-mainline-runtime-evidence.sh \
-  --target gemini@192.168.1.50 --kind mainline-candidate
+  --target gemini@GEMIAN_HOST --kind mainline-candidate
 ```
 
 The capture records sanitized identity/cmdline, CPU online/possible/policy

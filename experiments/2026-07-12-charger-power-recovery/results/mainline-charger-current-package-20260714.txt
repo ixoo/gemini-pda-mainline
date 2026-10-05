@@ -6,7 +6,7 @@ package_image_sha256=6d162f2d729827ecadfa5640d16f9e4c8325e67817d9c638b0cb1fcc967
 package_config_sha256=60a84aa5ac3b3aeb17d5357508ac123089d97d7d5ed9164458dee3ce6ded8159
 package_dtb_sha256=fb910c8d96b7d4f533c750ce0717ced8998c992834abc44a4ed86ec5a9cf1f97
 package_system_map_sha256=5c8249df6d398eaedbde7e2447e4105b219ec30b3b39fc5c9f694d887dd0b6a9
-linux_tree=/home/julien.guest/src/gemini-pda/linux-7.1.3
+linux_tree=~/src/gemini-pda/linux-7.1.3
 linux_version=7.1.3
 dtc_warning_lines=2
 audit_script=experiments/2026-07-12-charger-power-recovery/scripts/audit-current-package-charger.sh
@@ -31,12 +31,12 @@ CONFIG_IIO=y
 CONFIG_MTK_PMIC_WRAP=y
 
 [packaged_charger_modules]
-bq25890_charger=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-ca17601dcdeb/modules/lib/modules/7.1.3-gemini/kernel/drivers/power/supply/bq25890_charger.ko
+bq25890_charger=~/artifacts/gemini-pda/linux-7.1.3-gemini-ca17601dcdeb/modules/lib/modules/7.1.3-gemini/kernel/drivers/power/supply/bq25890_charger.ko
 bq25890_charger_sha256=cbadedb56b80810f7c99c73305e50be94546d641bd3c9dc81b688dc77a23fc3b
-fan49101=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-ca17601dcdeb/modules/lib/modules/7.1.3-gemini/kernel/drivers/regulator/fan49101.ko
+fan49101=~/artifacts/gemini-pda/linux-7.1.3-gemini-ca17601dcdeb/modules/lib/modules/7.1.3-gemini/kernel/drivers/regulator/fan49101.ko
 fan49101_sha256=e3ce6d9a60d84a1b533cc4e9a1dee5e6a414dbd702ce13590b536aecc838c480
 bq27xxx_battery=absent_built_in
-max17042_battery=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-ca17601dcdeb/modules/lib/modules/7.1.3-gemini/kernel/drivers/power/supply/max17042_battery.ko
+max17042_battery=~/artifacts/gemini-pda/linux-7.1.3-gemini-ca17601dcdeb/modules/lib/modules/7.1.3-gemini/kernel/drivers/power/supply/max17042_battery.ko
 max17042_battery_sha256=8d4c07ae2e7a6c56d4932c0671706e31e51159e97e3647b52563176289b88699
 rt9467_charger=absent
 fan53555=absent_built_in

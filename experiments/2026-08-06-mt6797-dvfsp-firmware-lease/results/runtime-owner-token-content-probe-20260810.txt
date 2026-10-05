@@ -2,7 +2,7 @@
 
 generated_utc=2026-08-10T08:05:27Z
 claim=READ_ONLY_GEMIAN_DVFSP_RUNTIME_OWNER_TOKEN_CONTENT_V1
-target=gemini@192.168.1.50
+target=gemini@GEMIAN_HOST
 transport=ssh
 device_action=none
 hardware_write=none

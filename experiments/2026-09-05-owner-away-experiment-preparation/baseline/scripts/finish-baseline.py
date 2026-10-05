@@ -183,7 +183,7 @@ def prepare(attempt, admission_path):
         known = REPO / 'artifacts/credentials/a53-recovery-known_hosts'
         require(sha(regular(known, 16384)) == admission['known_good_known_hosts_sha256'], 'known-good host pin')
         text = regular(known, 16384).decode('ascii').splitlines()
-        require(len(text) == 1 and text[0].split()[0] == '192.168.1.50', 'known-good target pin')
+        require(len(text) == 1 and text[0].split()[0] == 'GEMIAN_HOST', 'known-good target pin')
         regular(REPO / 'artifacts/credentials/gemini_ed25519', 16384)
     else:
         require(admission['known_good_known_hosts_sha256'] is None and
@@ -295,7 +295,7 @@ def known_good_command(context):
     for index, value in enumerate(command):
         if value.startswith('UserKnownHostsFile='):
             command[index] = 'UserKnownHostsFile=' + str(REPO / 'artifacts/credentials/a53-recovery-known_hosts')
-    command[-2:] = ['gemini@192.168.1.50', '/bin/sh -s']
+    command[-2:] = ['gemini@GEMIAN_HOST', '/bin/sh -s']
     return command
 
 

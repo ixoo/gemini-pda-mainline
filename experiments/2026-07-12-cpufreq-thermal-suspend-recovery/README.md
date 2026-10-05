@@ -26,7 +26,7 @@ recovered.
 ## Provenance and environment
 
 - Live kernel: Linux `3.18.41+`, AArch64, Gemian Debian 9 userspace.
-- Live device: `gemini@192.168.1.50` over the owner's private LAN.
+- Live device: `gemini@GEMIAN_HOST` over the owner's private LAN.
 - Vendor source: Gemian MT6797 tree commit
   `d388d350cb2dda8f23b99be6fa5db9628896e87f` and Planet MT6797 tree commit
   `c5b0be85017ad0c599725e8273842efdbecdd88a`.
@@ -72,7 +72,7 @@ Run from the repository root:
 mkdir -p artifacts/device-inventory/20260712-live
 ssh -i artifacts/credentials/gemini_ed25519 \
   -o IdentitiesOnly=yes -o IdentityAgent=none -o BatchMode=yes \
-  gemini@192.168.1.50 'bash -s' \
+  gemini@GEMIAN_HOST 'bash -s' \
   < experiments/2026-07-12-cpufreq-thermal-suspend-recovery/scripts/collect-live-cpufreq-thermal.sh \
   > artifacts/device-inventory/20260712-live/cpufreq-thermal.txt
 chmod 700 artifacts/device-inventory/20260712-live
@@ -88,7 +88,7 @@ vendor `/proc/cpufreq` policy files, CPU masks, and filtered existing dmesg:
 mkdir -p artifacts/device-inventory/20260714-live
 ssh -i artifacts/credentials/gemini_ed25519 \
   -o IdentitiesOnly=yes -o IdentityAgent=none -o BatchMode=yes \
-  gemini@192.168.1.50 'bash -s' \
+  gemini@GEMIAN_HOST 'bash -s' \
   < experiments/2026-07-12-cpufreq-thermal-suspend-recovery/scripts/collect-live-cpu-policy.sh \
   > artifacts/device-inventory/20260714-live/cpu-policy.txt
 chmod 600 artifacts/device-inventory/20260714-live/cpu-policy.txt
@@ -108,7 +108,7 @@ The current packaged-kernel boundary is audited read-only in the VM:
 
 ```sh
 ./scripts/dev-vm run bash -lc \
-  'CURRENT_PACKAGE=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa \
+  'CURRENT_PACKAGE=~/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa \
    experiments/2026-07-12-cpufreq-thermal-suspend-recovery/scripts/audit-current-package-pm.sh'
 ```
 

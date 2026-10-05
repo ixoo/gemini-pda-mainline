@@ -29,7 +29,7 @@ Run the live probe through the existing key-only SSH path:
 ```sh
 ssh -i artifacts/credentials/gemini_ed25519 \
   -o IdentitiesOnly=yes -o IdentityAgent=none -o BatchMode=yes \
-  gemini@192.168.1.50 'bash -s' \
+  gemini@GEMIAN_HOST 'bash -s' \
   < experiments/2026-07-12-boot-contract-recovery/scripts/collect-live-boot-contract.sh
 ```
 

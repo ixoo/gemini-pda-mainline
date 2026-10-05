@@ -23,7 +23,7 @@ die() {
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "${script_dir}/../../.." && pwd)"
 identity="${GEMINI_SSH_IDENTITY:-${repo_root}/artifacts/credentials/gemini_ed25519}"
-target="${GEMINI_SSH_TARGET:-gemini@192.168.1.50}"
+target="${GEMINI_SSH_TARGET:-gemini@GEMIAN_HOST}"
 
 while (($#)); do
 	case "$1" in

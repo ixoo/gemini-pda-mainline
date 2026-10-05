@@ -1,6 +1,6 @@
 validation=live-gemian-status-read-only
 date=2026-07-13
-target=gemini@192.168.1.50
+target=gemini@GEMIAN_HOST
 access=owner_authorized_ssh_key_only
 kernel=3.18.41+
 architecture=aarch64

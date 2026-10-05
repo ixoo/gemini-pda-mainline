@@ -21,7 +21,7 @@ mainline board description?
 ## Provenance and environment
 
 - Live kernel: Linux `3.18.41+`, AArch64, Gemian Debian 9 userspace.
-- Live device: `gemini@192.168.1.50` over the owner's private LAN.
+- Live device: `gemini@GEMIAN_HOST` over the owner's private LAN.
 - Private raw capture: `artifacts/device-inventory/20260713-live/uart-console.txt`
   (Git-ignored and access-restricted).
 - Fresh point-in-time status probe: [`results/live-status-20260713.txt`](results/live-status-20260713.txt).
@@ -56,7 +56,7 @@ From the repository root:
 mkdir -p artifacts/device-inventory/20260713-live
 ssh -i artifacts/credentials/gemini_ed25519 \
   -o IdentitiesOnly=yes -o IdentityAgent=none -o BatchMode=yes \
-  gemini@192.168.1.50 'bash -s' \
+  gemini@GEMIAN_HOST 'bash -s' \
   < experiments/2026-07-13-uart-console-recovery/scripts/collect-live-uart.sh \
   > artifacts/device-inventory/20260713-live/uart-console.txt
 chmod 700 artifacts/device-inventory/20260713-live
@@ -64,15 +64,15 @@ chmod 600 artifacts/device-inventory/20260713-live/uart-console.txt
 ./scripts/dev-vm run bash -lc \
   experiments/2026-07-13-uart-console-recovery/scripts/analyze-uart-contract.sh
 ./scripts/dev-vm run env \
-  CURRENT_PACKAGE=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-b7721ab55e41 \
+  CURRENT_PACKAGE=~/artifacts/gemini-pda/linux-7.1.3-gemini-b7721ab55e41 \
   experiments/2026-07-13-uart-console-recovery/scripts/audit-mainline-console-contract.sh
 ./scripts/dev-vm run env \
-  LK_TREE=/home/julien.guest/src/reference/dguidipc-gemini-lk-android8/lk \
-  CURRENT_PACKAGE=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-b7721ab55e41 \
+  LK_TREE=~/src/reference/dguidipc-gemini-lk-android8/lk \
+  CURRENT_PACKAGE=~/artifacts/gemini-pda/linux-7.1.3-gemini-b7721ab55e41 \
   LIVE_IDENTITY=/mnt/gemini-pda-mainline/artifacts/device-inventory/20260714T-handoff-refresh/identity.txt \
   experiments/2026-07-13-uart-console-recovery/scripts/audit-lk-console-mutation.sh
 ./scripts/dev-vm run env \
-  LINUX_TREE=/home/julien.guest/src/gemini-pda/linux-7.1.3 \
+  LINUX_TREE=~/src/gemini-pda/linux-7.1.3 \
   experiments/2026-07-13-uart-console-recovery/scripts/audit-uart-clock-contract.sh
 ```
 

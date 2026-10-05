@@ -2,7 +2,7 @@
 
 ## Provenance
 
-- Target: owner-supplied private-LAN Gemini PDA (`gemini@192.168.1.50`).
+- Target: owner-supplied private-LAN Gemini PDA (`gemini@GEMIAN_HOST`).
 - Authentication: `artifacts/credentials/gemini_ed25519`, with
   `IdentitiesOnly=yes` and `IdentityAgent=none`.
 - Command: `bash -s -- identity` with

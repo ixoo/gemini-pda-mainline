@@ -14,7 +14,7 @@ hardware_write=none
 
 [raw_audit_output]
 validation=checkpatch-series
-checkpatch=/home/julien.guest/src/gemini-pda/linux-7.1.3/scripts/checkpatch.pl
+checkpatch=~/src/gemini-pda/linux-7.1.3/scripts/checkpatch.pl
 patch_count=72
 checkpatch_nonzero=39
 errors=8

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2317  # historical record; unreachable cleanup retained as written
 
 # Bind Candidate AJ's existing fixed-MAC cycle watcher to the exact Gemian
 # source target on which AJ was installed.  The source target must first be
@@ -16,7 +17,7 @@ export LC_ALL=C
 export PYTHONDONTWRITEBYTECODE=1
 umask 077
 
-readonly TARGET=gemini@192.168.1.50
+readonly TARGET=gemini@GEMIAN_HOST
 readonly IDENTITY_RELATIVE=artifacts/credentials/gemini_ed25519
 readonly RECOVERY_KERNEL=3.18.41+
 readonly RECOVERY_ARCH=aarch64
@@ -37,7 +38,7 @@ usage: collect-unit-bound-cycle.sh --output DIR --installed-full-sha256 SHA256
        [--wait-seconds N] [--configure-address]
 
 Start while the exact installed Gemini is reachable in Gemian. The wrapper
-authenticates gemini@192.168.1.50 as exact Gemian 3.18.41+ on
+authenticates gemini@GEMIAN_HOST as exact Gemian 3.18.41+ on
 /dev/mmcblk0p29, requires two consecutive SSH failures before Candidate AJ's
 fixed-MAC endpoint appears, and only then invokes the pinned one-shot runtime
 watcher. DIR must be a new direct child of artifacts/runtime-captures/.

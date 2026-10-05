@@ -553,7 +553,7 @@ def main() -> int:
         print(f"candidate_manifest_sha256={pins.manifest_sha256}")
         print(f"candidate_padded_sha256={pins.padded_sha256}")
         print(f"expected_predecessor_sha256={QUASAR_PADDED_SHA256}")
-        print("accepted_target=gemini@192.168.1.50")
+        print("accepted_target=gemini@GEMIAN_HOST")
         print("sole_target_write=one-bounded-16MiB-boot2-write")
         print("stable_power=battery-present-health-Good-capacity-81..100")
         print("ac_usb_online=observational-only")

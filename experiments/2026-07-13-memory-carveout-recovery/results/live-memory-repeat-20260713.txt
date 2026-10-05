@@ -1,6 +1,6 @@
 validation=gemini-live-memory-repeat-capture
 captured_utc=2026-07-13T21:48:49Z
-device=gemini@192.168.1.50
+device=gemini@GEMIAN_HOST
 kernel=3.18.41+
 method=read_only_collect_live_memory_map.sh
 hardware_write=none

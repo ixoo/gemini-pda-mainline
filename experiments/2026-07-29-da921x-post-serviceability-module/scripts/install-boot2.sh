@@ -4,7 +4,7 @@ set -euo pipefail
 export LC_ALL=C
 umask 077
 
-readonly EXPECTED_TARGET=gemini@192.168.1.50
+readonly EXPECTED_TARGET=gemini@GEMIAN_HOST
 readonly BOOT2_SIZE=16777216
 readonly EXPECTED_PREDECESSOR_SHA256=b726b1d86ed5fa68b221a7f3ea25ed068a455f143a97098b15c26552e6713baa
 readonly CANDIDATE_SHA256=86b0efaa2beafa97bd6382ec457508d0b516dab813d6ebbe8b1b7de1f4f88f17
@@ -14,7 +14,7 @@ readonly ARTIFACT_NAME=candidate-Gate3-da921x-module-b57766ab
 die() { printf 'error: %s\n' "$*" >&2; exit 2; }
 usage() {
 	cat <<'EOF'
-usage: install-boot2.sh --target gemini@192.168.1.50 \
+usage: install-boot2.sh --target gemini@GEMIAN_HOST \
   --candidate-dir DIR --evidence-dir DIR
 
 Install the exact post-serviceability-module candidate to live-GPT-resolved

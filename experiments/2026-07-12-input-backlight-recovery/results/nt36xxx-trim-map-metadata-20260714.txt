@@ -1,6 +1,6 @@
 validation=nt36xxx-trim-map-metadata-source-audit
 generated_utc=2026-07-14T10:54:06Z
-vendor_tree=/home/julien.guest/src/reference/planet-mt6797-3.18
+vendor_tree=~/src/reference/planet-mt6797-3.18
 vendor_commit=c5b0be85017ad0c599725e8273842efdbecdd88a
 source_blob_sha256=239ea6e051655454276032e61a1ecbe97b3902d3a7dfdec1dd477550b178c342
 audit_script=experiments/2026-07-12-input-backlight-recovery/scripts/audit-nt36xxx-trim-maps.sh

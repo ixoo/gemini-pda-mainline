@@ -28,7 +28,7 @@ PREVIOUS_AS_PADDED_SHA256 = (
 AO_INSTALLER_PREDECESSOR_SHA256 = (
     "1ef53a25c274ed6f0df265fbc4f4e3a64150d5b7fd4cd1e0cde1db53ffb18ccb"
 )
-TARGET = "gemini@192.168.1.50"
+TARGET = "gemini@GEMIAN_HOST"
 TARGET_CHECK = (
     f'[[ "$target" == {TARGET} ]] || \\\n'
     f"\tdie 'target must be exact {TARGET}'"

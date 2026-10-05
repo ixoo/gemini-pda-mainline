@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-26-mainline-a72-cpu8-active-transition-audit` |
-| Status | current tree not request-reachable; bounded active executor selected |
+| Status | `parked` (was: current tree not request-reachable; bounded active executor selected; closed by the [2026-10-05 consolidation](../2026-10-05-repository-consolidation/README.md)) |
 | Subsystem | MT6797 CPU8 rail, platform, secure SRAM, PSCI, DCM, and recovery |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-26 America/New_York |

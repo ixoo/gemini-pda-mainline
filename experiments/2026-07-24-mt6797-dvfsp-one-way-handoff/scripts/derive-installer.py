@@ -22,7 +22,7 @@ AN_DERIVER_SHA256 = (
     "16e915f561c0edfdf58d1595d3f1c950b2b5cda3a6c915857aad36c129f6befb"
 )
 AN_INSTALLER_SHA256 = ao.AN_INSTALLER_SHA256
-TARGET = "gemini@192.168.1.50"
+TARGET = "gemini@GEMIAN_HOST"
 TARGET_CHECK = (
     f'[[ "$target" == {TARGET} ]] || \\\n'
     f"\tdie 'target must be exact {TARGET}'"

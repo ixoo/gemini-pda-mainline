@@ -117,7 +117,7 @@ attributable, so unchanged N repetition is closed.
 
    ```sh
    ./scripts/collect-device-pstore \
-     --target gemini@192.168.1.50 \
+     --target gemini@GEMIAN_HOST \
      --wait-for-cycle --ask-sudo-password \
      --output artifacts/device-pstore/candidate-N-runtime-1
    ```

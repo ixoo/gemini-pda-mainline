@@ -1,6 +1,6 @@
 # MT6351 MFD upstream preparation
 
-Status: incomplete upstream-preparation checkpoint, 2026-09-08. A named
+Status: `superseded` (was: incomplete upstream-preparation checkpoint, 2026-09-08. A named; closed by the [2026-10-05 consolidation](../2026-10-05-repository-consolidation/README.md))
 compile-only topic has passed build and schema checks; it is not a device
 candidate or upstream submission. Changes stay within named compile profiles. [Initial source receipts and
 check results](source-review.json) pin the individual public files inspected;

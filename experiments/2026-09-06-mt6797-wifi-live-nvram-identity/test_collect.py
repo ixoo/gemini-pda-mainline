@@ -189,7 +189,7 @@ def main() -> None:
     for required in ("BatchMode=yes", "IdentitiesOnly=yes", "IdentityAgent=none",
                      "StrictHostKeyChecking=yes", "UpdateHostKeys=no",
                      "GlobalKnownHostsFile=/dev/null", "-F", "/dev/null",
-                     "gemini@192.168.1.50"):
+                     "gemini@GEMIAN_HOST"):
         assert required in command
     assert any("a53-recovery-known_hosts" in item for item in command)
     remote = (HERE / "remote-collect.sh").read_text(encoding="utf-8")

@@ -30,7 +30,7 @@ framework after adding MT6797 clock/resource data.
 - Vendor source: Planet MT6797 tree commit
   `c5b0be85017ad0c599725e8273842efdbecdd88a`.
 - Mainline comparison: Linux `7.1.3` in the development VM.
-- Live device: `gemini@192.168.1.50` over the owner's private LAN.
+- Live device: `gemini@GEMIAN_HOST` over the owner's private LAN.
 - Raw capture: `artifacts/device-inventory/20260714-input-live/input-backlight.txt`
   (Git-ignored and access-restricted; it is not a repository artifact).
 
@@ -49,7 +49,7 @@ Run from the repository root:
 mkdir -p artifacts/device-inventory/20260714-input-live
 ssh -i artifacts/credentials/gemini_ed25519 \
   -o IdentitiesOnly=yes -o IdentityAgent=none -o BatchMode=yes \
-  gemini@192.168.1.50 'bash -s' \
+  gemini@GEMIAN_HOST 'bash -s' \
   < experiments/2026-07-12-input-backlight-recovery/scripts/collect-live-input-backlight.sh \
   > artifacts/device-inventory/20260714-input-live/input-backlight.txt
 chmod 700 artifacts/device-inventory/20260714-input-live
@@ -82,8 +82,8 @@ anchors, and the consumer-level decision:
 
 ```sh
 ./scripts/dev-vm run env \
-  VENDOR_TREE=/home/julien.guest/src/reference/planet-mt6797-3.18 \
-  LINUX_TREE=/home/julien.guest/src/gemini-pda/linux-7.1.3 \
+  VENDOR_TREE=~/src/reference/planet-mt6797-3.18 \
+  LINUX_TREE=~/src/gemini-pda/linux-7.1.3 \
   PATCH_FILE=/mnt/gemini-pda-mainline/patches/v7.1.3/0054-arm64-dts-mediatek-add-disabled-Gemini-AW9523-keyboard-candidate.patch \
   /mnt/gemini-pda-mainline/experiments/2026-07-12-input-backlight-recovery/scripts/audit-keyboard-polarity.sh
 ```
@@ -225,8 +225,8 @@ immutable vendor tree and Linux 7.1.3 source:
 
 ```sh
 ./scripts/dev-vm run env \
-  VENDOR_TREE=/home/julien.guest/src/reference/planet-mt6797-3.18 \
-  LINUX_TREE=/home/julien.guest/src/gemini-pda/linux-7.1.3 \
+  VENDOR_TREE=~/src/reference/planet-mt6797-3.18 \
+  LINUX_TREE=~/src/gemini-pda/linux-7.1.3 \
   /mnt/gemini-pda-mainline/experiments/2026-07-12-input-backlight-recovery/scripts/audit-keyboard-timing.sh
 ```
 
@@ -287,7 +287,7 @@ passive parser in the VM:
 ./scripts/dev-vm run python3 \
   /mnt/gemini-pda-mainline/experiments/2026-07-12-input-backlight-recovery/scripts/decode-input-capabilities.py \
   /mnt/gemini-pda-mainline/artifacts/<capture>/input-backlight.txt \
-  --header /home/julien.guest/src/gemini-pda/linux-7.1.3/include/uapi/linux/input-event-codes.h \
+  --header ~/src/gemini-pda/linux-7.1.3/include/uapi/linux/input-event-codes.h \
   --keymap /mnt/gemini-pda-mainline/experiments/2026-07-12-input-backlight-recovery/results/keyboard-keymap.txt
 ```
 
@@ -352,7 +352,7 @@ Run the combined audit from the VM:
 
 ```sh
 ./scripts/dev-vm run bash -lc \
-  'CURRENT_PACKAGE=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-a21fac4139df \
+  'CURRENT_PACKAGE=~/artifacts/gemini-pda/linux-7.1.3-gemini-a21fac4139df \
    experiments/2026-07-12-input-backlight-recovery/scripts/audit-current-package-display-input.sh'
 ```
 

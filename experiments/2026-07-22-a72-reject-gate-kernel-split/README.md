@@ -250,9 +250,9 @@ KERNEL_PROFILE=observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72
 
 ./scripts/dev-vm run env \
   KERNEL_PROFILE=observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-reject-gate \
-  GEMINI_SOURCE_ROOT=/home/julien.guest/src/candidate-ai-reproduction \
-  GEMINI_BUILD_ROOT=/home/julien.guest/build/candidate-ai-reproduction \
-  GEMINI_ARTIFACT_ROOT=/home/julien.guest/artifacts/candidate-ai-reproduction \
+  GEMINI_SOURCE_ROOT=~/src/candidate-ai-reproduction \
+  GEMINI_BUILD_ROOT=~/build/candidate-ai-reproduction \
+  GEMINI_ARTIFACT_ROOT=~/artifacts/candidate-ai-reproduction \
   ./scripts/kernel build
 
 python3 scripts/validate-package.py \

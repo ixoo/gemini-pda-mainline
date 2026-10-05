@@ -80,7 +80,7 @@ def assert_static_contract() -> None:
     assert "StrictHostKeyChecking=yes" in collect_text
     assert "WarnWeakCrypto=no" in collect_text
     assert "LogLevel=ERROR" in collect_text
-    assert "gemini@192.168.1.50" in collect_text
+    assert "gemini@GEMIAN_HOST" in collect_text
     assert "artifacts/credentials/gemini_ed25519" in collect_text
     assert "artifacts/runtime-captures" in collect_text
     assert "preserving partial evidence" in collect_text
@@ -547,7 +547,7 @@ exit "${MOCK_SSH_STATUS:-0}"
             "WarnWeakCrypto=no",
             "LogLevel=ERROR",
             f"-i {identity}",
-            "gemini@192.168.1.50",
+            "gemini@GEMIAN_HOST",
         ):
             assert required in ssh_args, required
         assert "state_changing_device_writes=none" in result.stdout

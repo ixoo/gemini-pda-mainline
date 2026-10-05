@@ -62,7 +62,7 @@ def main() -> int:
     for token in ("SOURCE_COLLECTOR_SHA256=30d3ac6fa33ac95e1909271ea50227f4e943cab29f61f692dfe5e66ec73ac51c", "gemini-a72-pair-v3 result=(pass|fault)", "hps_reported=-?[0-9]+ hps_cpu=-?[0-9]+ hps_error=-?[0-9]+ hps_count=[0-9]+", "__A72_CPU9_TERMINAL_LIVE_TERMINAL_CAPTURED__", "validation=a72-cpu9-terminal-live-outcome-pass"):
         require(token in live, f"live derivation lacks: {token}")
 
-    for token in ("hps_reported=1", "hps_cpu=9", "hps_error=-1", "hps_count greater than zero", "hps_reported=0", "hps_reported=-1", "gemini-a72-pair-v2 result=fault", "result=down-veto", "result=fault-retain-psci", "Automatic restart with no exact retained marker", "scripts/collect-device-pstore --target gemini@192.168.1.50", "Missing exact pair-v3 pass", "Repeat this exact accepted candidate once"):
+    for token in ("hps_reported=1", "hps_cpu=9", "hps_error=-1", "hps_count greater than zero", "hps_reported=0", "hps_reported=-1", "gemini-a72-pair-v2 result=fault", "result=down-veto", "result=fault-retain-psci", "Automatic restart with no exact retained marker", "scripts/collect-device-pstore --target gemini@GEMIAN_HOST", "Missing exact pair-v3 pass", "Repeat this exact accepted candidate once"):
         require(token in plan, f"runtime decision missing: {token}")
 
     print("validation=cpu9-terminal-attribution-runtime-tools")

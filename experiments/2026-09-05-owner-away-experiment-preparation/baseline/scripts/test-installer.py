@@ -183,7 +183,7 @@ class InstallerTests(unittest.TestCase):
             evidence.symlink_to(self.evidence_root)
         env = dict(os.environ, FIXTURE=str(self.root), CASE=case, CANDIDATE_SHA=self.sha,
                    PATH=str(self.bin) + os.pathsep + os.environ['PATH'], PYTHONDONTWRITEBYTECODE='1')
-        result = subprocess.run(['bash', str(script), '--target', 'gemini@192.168.1.50',
+        result = subprocess.run(['bash', str(script), '--target', 'gemini@GEMIAN_HOST',
                                  '--candidate-dir', str(self.candidate), '--evidence-dir', str(evidence), *extra],
                                 env=env, text=True, capture_output=True, timeout=20)
         actions = (self.root / 'actions').read_text().splitlines()

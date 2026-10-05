@@ -1,7 +1,7 @@
 experiment=2026-08-14-mt6797-runtime-provenance-observer
 date=2026-08-15
 preflight=passed
-target=gemini@192.168.1.50
+target=gemini@GEMIAN_HOST
 kernel=3.18.41+
 architecture=aarch64
 boot_id=b1df2f1c-79a3-4e19-ad47-4b967aa6d364

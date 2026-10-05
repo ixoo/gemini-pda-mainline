@@ -143,7 +143,7 @@ def main() -> int:
         "coh_seq9=1024",
         "gemini-a72-pair-v4 result=fault",
         "AUTOMATIC RESTART WITH NO PAIR-V4",
-        "collect-device-pstore --target gemini@192.168.1.50 --wait-for-cycle",
+        "collect-device-pstore --target gemini@GEMIAN_HOST --wait-for-cycle",
         "repeatability run is then earned",
     ):
         require(token in plan, f"runtime decision missing: {token}")

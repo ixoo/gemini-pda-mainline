@@ -1,14 +1,14 @@
 # Device session packet
 
 Copy this template into the owning experiment. Fill every applicable field
-before marking its queue entry ready. This describes one bounded experiment;
-[the roadmap](../docs/ROADMAP.md#owner-away-progress) owns scheduling and
-[the queue](experiment-queue.json) links to readiness records. No commands are
-executed by the queue itself.
+before calling it ready. This describes one bounded experiment;
+[the roadmap](../docs/ROADMAP.md) owns scheduling. The former readiness
+queue is historical ([last copy](https://github.com/ixoo/gemini-pda-mainline/blob/164c2d3f/project/experiment-queue.json));
+readiness now lives in the owning experiment record.
 
 ## Identity and ownership
 
-- Queue ID, experiment record, implementation owner, reviewer and device custodian:
+- Experiment record, implementation owner, reviewer and device custodian:
 - Preparation state: planned / preparing / conditional / ready / blocked / stale.
 - Device state: unselected / selected / waiting-owner-boot / running / complete.
 - Frozen repository revision and exact source, patch/config/profile identities:

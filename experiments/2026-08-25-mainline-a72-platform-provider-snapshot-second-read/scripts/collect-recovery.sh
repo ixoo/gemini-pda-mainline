@@ -6,7 +6,7 @@ export LC_ALL=C
 umask 077
 
 readonly CLASSIFIER_SHA256=489e848182924c91f6249717fbb4f05d8aa99f0a8c4a5b5e47d9c6eaa1d079b3
-readonly EXPECTED_TARGET=gemini@192.168.1.50
+readonly EXPECTED_TARGET=gemini@GEMIAN_HOST
 readonly CANDIDATE_SHA256=ff902d12b95893872990ebf813f24ca298ca76c4f86d4650f3b696cbdc00d79f
 readonly OUTPUT_NAME=a72-platform-provider-snapshot-attempt-1-recovery
 

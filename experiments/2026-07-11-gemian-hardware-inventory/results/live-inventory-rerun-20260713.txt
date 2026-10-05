@@ -2,7 +2,7 @@
 
 ## Provenance
 
-- Device: owner-authorized `gemini@192.168.1.50` over SSH.
+- Device: owner-authorized `gemini@GEMIAN_HOST` over SSH.
 - Access: read-only regular-user probes; no sudo, writes, driver bind/unbind,
   bus scans, suspend, reboot, or flashing operation.
 - Kernel: vendor `3.18.41+`, Debian 9 stretch, AArch64.

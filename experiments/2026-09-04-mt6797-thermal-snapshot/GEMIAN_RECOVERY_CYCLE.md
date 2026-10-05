@@ -44,7 +44,7 @@ After publishing the adapter's full validation result, run exactly:
 
 ```sh
 bash experiments/2026-09-04-mt6797-thermal-snapshot/scripts/install-recovery-boot2.sh --execute \
-  --target gemini@192.168.1.50 \
+  --target gemini@GEMIAN_HOST \
   --candidate-dir artifacts/thermal-snapshot-composition/candidate-c2ddeea9 \
   --evidence-dir artifacts/device-install-evidence/thermal-snapshot-deployment-recovery-gemian-1
 ```

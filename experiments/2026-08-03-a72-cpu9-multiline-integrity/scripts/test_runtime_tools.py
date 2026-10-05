@@ -157,7 +157,7 @@ def main() -> int:
         "ml_bad_round=0",
         "gemini-a72-pair-v5 result=fault",
         "AUTOMATIC RESTART WITH NO PAIR-V5",
-        "collect-device-pstore --target gemini@192.168.1.50 --wait-for-cycle",
+        "collect-device-pstore --target gemini@GEMIAN_HOST --wait-for-cycle",
         "One exact repeat is then\n  earned",
     ):
         require(token in plan, f"runtime decision missing: {token}")

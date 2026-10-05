@@ -1,9 +1,9 @@
 validation=first-boot-probe-dependency-audit
-package=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-a21fac4139df
+package=~/artifacts/gemini-pda/linux-7.1.3-gemini-a21fac4139df
 package_image_sha256=6ece1b2d412ae4d4c30359ad1ec855a05de388733abda5ed0a263c6ab9d4f168
 config_sha256=dd922033ec1bfdb623e14f46c1cd3ca885540af1dd76d64b9e33953bc8e18dbf
 dtb_sha256=21529f78282cbf3a48f9260b8981f005f3643d54e729ab676384880c6ace1d4c
-linux_tree=/home/julien.guest/src/gemini-pda/linux-7.1.3
+linux_tree=~/src/gemini-pda/linux-7.1.3
 linux_version=7.1.3
 dtc_warning_lines=2
 

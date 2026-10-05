@@ -20,7 +20,7 @@ sys.dont_write_bytecode = True
 SCRIPT_DIR = pathlib.Path(__file__).resolve().parent
 REPOSITORY = SCRIPT_DIR.parents[2]
 DERIVER_PATH = SCRIPT_DIR / "derive-installer.py"
-TARGET = "gemini@192.168.1.50"
+TARGET = "gemini@GEMIAN_HOST"
 SYNTHETIC = {
     "raw_sha256": "a" * 64,
     "raw_size": "7388000",

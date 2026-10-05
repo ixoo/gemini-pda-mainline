@@ -18,12 +18,12 @@ hardware_write=none
 
 [raw_audit_output]
 validation=mt6797-cpu-psci-timer-current-package-audit
-package=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-a9a7c5002038
+package=~/artifacts/gemini-pda/linux-7.1.3-gemini-a9a7c5002038
 package_image_sha256=3fb6ac3043dff85dc2b6e68a2bba26d36fedf748e6f7c1bf6b6630f87446be7c
 package_config_sha256=831289dd3b53c6cec09e6c614fd83d3ab5988a4c30090bf9ec172348ec9487d5
 package_system_map_sha256=c883efb3c8b09166a0765017712ec79e182f929ee50b3907f0279384ab2a22b2
 package_dtb_sha256=b41580263940b47226e9819c97afbdaa9a35d4c721c471d2e8a0a3d597c553c5
-linux_tree=/home/julien.guest/src/gemini-pda/linux-7.1.3
+linux_tree=~/src/gemini-pda/linux-7.1.3
 linux_version=7.1.3
 dtc_warning_lines=2
 
@@ -43,10 +43,10 @@ CONFIG_SUSPEND=y
 
 [packaged_pm_modules]
 module=mediatek-cpufreq-hw
-path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-a9a7c5002038/modules/lib/modules/7.1.3-gemini/kernel/drivers/cpufreq/mediatek-cpufreq-hw.ko
+path=~/artifacts/gemini-pda/linux-7.1.3-gemini-a9a7c5002038/modules/lib/modules/7.1.3-gemini/kernel/drivers/cpufreq/mediatek-cpufreq-hw.ko
 sha256=20edbcfe94907c4e96eeb1380421913be856092186b68d7b57b0d044d8aef268
 module=mtk-svs
-path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-a9a7c5002038/modules/lib/modules/7.1.3-gemini/kernel/drivers/soc/mediatek/mtk-svs.ko
+path=~/artifacts/gemini-pda/linux-7.1.3-gemini-a9a7c5002038/modules/lib/modules/7.1.3-gemini/kernel/drivers/soc/mediatek/mtk-svs.ko
 sha256=ff8532c658e21b8d98c169c4b947ad18ed2bc7e39cdb941419438cdeffa27594
 
 [device_tree_counts]

@@ -2,8 +2,8 @@
 
 set -euo pipefail
 
-linux_tree="${LINUX_TREE:-/home/julien.guest/src/gemini-pda/linux-7.1.3}"
-vendor_tree="${VENDOR_TREE:-/home/julien.guest/src/reference/planet-mt6797-3.18}"
+linux_tree="${LINUX_TREE:-~/src/gemini-pda/linux-7.1.3}"
+vendor_tree="${VENDOR_TREE:-~/src/reference/planet-mt6797-3.18}"
 driver_rel=drivers/i2c/busses/i2c-mt65xx.c
 linux_dtsi_rel=arch/arm64/boot/dts/mediatek/mt6797.dtsi
 vendor_dtsi_rel=arch/arm64/boot/dts/mt6797.dtsi

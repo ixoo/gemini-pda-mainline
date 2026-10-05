@@ -1,6 +1,6 @@
 # Cached receive event masks: incomplete source checkpoint
 
-Status: unfinished source diagnostic, published as a checkpoint only.
+Status: `parked` (was: unfinished source diagnostic, published as a checkpoint only.; closed by the [2026-10-05 consolidation](../2026-10-05-repository-consolidation/README.md))
 No build profile, candidate, deployment or hardware lifetime is admitted.
 Parked by the [2026-10-03 Wi-Fi audit](../2026-10-03-mt6797-wifi-audit/README.md)
 until the missing WMT common power-on has been tested.

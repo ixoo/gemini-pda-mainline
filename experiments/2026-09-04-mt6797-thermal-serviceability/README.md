@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-04-mt6797-thermal-serviceability` |
-| Status | `running`; first boot inconclusive pre-transport, retained-stage discriminator selected |
+| Status | `parked` (was: `running`; first boot inconclusive pre-transport, retained-stage discriminator selected; closed by the [2026-10-05 consolidation](../2026-10-05-repository-consolidation/README.md)) |
 | Subsystem | MT6797 thermal controller, AUXADC transaction, reset, and NVMEM calibration |
 | Device variant | Planet Computers Gemini PDA, MT6797 |
 | Date(s) | 2026-09-04 |

@@ -73,8 +73,8 @@ storage_access=none
 runtime_networking=none
 
 [final_artifact]
-authoritative_guest_build=/home/julien.guest/artifacts/boot-candidates/candidate-AA-r1-build1/candidate-AA-keyboard-console-map-final-37e82bf3
-independent_guest_build=/home/julien.guest/artifacts/boot-candidates/candidate-AA-r1-build2/candidate-AA-keyboard-console-map-final-37e82bf3
+authoritative_guest_build=~/artifacts/boot-candidates/candidate-AA-r1-build1/candidate-AA-keyboard-console-map-final-37e82bf3
+independent_guest_build=~/artifacts/boot-candidates/candidate-AA-r1-build2/candidate-AA-keyboard-console-map-final-37e82bf3
 complete_builds_recursive_comparison=byte-identical
 complete_builds_metadata_inventory=identical
 exported_host_artifact=artifacts/vm-export/boot-candidates/candidate-AA-r1-build1/candidate-AA-keyboard-console-map-final-37e82bf3

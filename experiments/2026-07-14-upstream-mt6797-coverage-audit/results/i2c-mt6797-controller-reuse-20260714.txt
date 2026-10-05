@@ -2,14 +2,14 @@ validation=i2c-mt6797-controller-reuse
 generated_utc=2026-07-14T13:51:00Z
 method=read-only source comparison plus bounded live sysfs inventory
 hardware_writes=none
-runtime_kernel=Linux 3.18.41+ on the authorized Gemini at 192.168.1.50
+runtime_kernel=Linux 3.18.41+ on the authorized Gemini at GEMIAN_HOST
 
 [inputs]
-linux_source=/home/julien.guest/src/gemini-pda/linux-7.1.3
+linux_source=~/src/gemini-pda/linux-7.1.3
 linux_i2c_driver_sha256=892e63f9e33d7639bb30ec7e36cbb8e656ad9159f1c583c2d7233eb694dab1cd
 linux_mt6797_dtsi_sha256=f4f516e439be403ce743898f30ff224dec3ae5393ddfd09d0053157e8146b200
 linux_i2c_binding_sha256=b627b81993f0828b6e86cffaea8620167758a859196041b03387f212f99e2b55
-historical_tree=/home/julien.guest/src/reference/planet-mt6797-3.18
+historical_tree=~/src/reference/planet-mt6797-3.18
 historical_commit=c5b0be85017ad0c599725e8273842efdbecdd88a
 historical_i2c_driver_sha256=04d228c18b902a5bd775e9d664c47036e3bf966b5f754618ea0481d3fe64c935
 historical_mt6797_dtsi_sha256=eaac86c8752ebd8ddf18b831eb3bc52a08f87475a213bb521650bf95dabb3e5e

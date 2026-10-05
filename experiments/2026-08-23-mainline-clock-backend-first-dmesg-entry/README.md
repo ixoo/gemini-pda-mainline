@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-23-mainline-clock-backend-first-dmesg-entry` |
-| Status | candidate admitted; stale-record preflight refused; cold Gemian start pending |
+| Status | `superseded` (was: candidate admitted; stale-record preflight refused; cold Gemian start pending; closed by the [2026-10-05 consolidation](../2026-10-05-repository-consolidation/README.md)) |
 | Subsystem | read-free clock-backend registration and probe entry |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-23 America/New_York |

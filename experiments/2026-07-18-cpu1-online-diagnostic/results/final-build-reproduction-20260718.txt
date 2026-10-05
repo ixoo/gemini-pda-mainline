@@ -67,12 +67,12 @@ runtime_networking=none
 generic_reset_command=none
 
 [build-1]
-guest_artifact=/home/julien.guest/artifacts/boot-candidates/candidate-N-cpu1-online-7cdb4b99
+guest_artifact=~/artifacts/boot-candidates/candidate-N-cpu1-online-7cdb4b99
 manifest_check=passed
 static_validators=passed
 
 [build-2]
-guest_artifact=/home/julien.guest/artifacts/boot-candidates/candidate-N-cpu1-online-repro-7cdb4b99
+guest_artifact=~/artifacts/boot-candidates/candidate-N-cpu1-online-repro-7cdb4b99
 manifest_check=passed
 static_validators=passed
 

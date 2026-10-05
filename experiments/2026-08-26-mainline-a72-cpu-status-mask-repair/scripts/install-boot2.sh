@@ -7,7 +7,7 @@ export LC_ALL=C
 umask 077
 
 readonly SOURCE_SHA256=0051eaff77442d71be36c24e1b995ce2d62c9b0ab41438ce71b5980e98d29bf1
-readonly DEVICE_ADDRESS=192.168.1.50
+readonly DEVICE_ADDRESS=GEMIAN_HOST
 readonly SHUTDOWN_HELPER_SHA256=35317e3533cb0c9b757e198b519fac8be0f88fa1f9e423c4e717fcabb276b833
 die() { printf 'error: %s\n' "$*" >&2; exit 2; }
 for command in chmod mktemp python3 rm sha256sum; do

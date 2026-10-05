@@ -56,7 +56,7 @@ REPRODUCIBILITY_LK_ANALYZER_SHA256 = (
 )
 
 BOOT2_SIZE = 16 * 1024 * 1024
-TARGET = "gemini@192.168.1.50"
+TARGET = "gemini@GEMIAN_HOST"
 
 # Exact installed and full-readback-verified Orion predecessor required on the
 # complete live boot2 partition immediately before Vega is written.

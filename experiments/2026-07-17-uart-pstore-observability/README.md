@@ -148,7 +148,7 @@ as the historical protocol. Do not run it again for unchanged Candidate L.
 
    ```sh
    ./scripts/collect-device-pstore \
-     --target gemini@192.168.1.50 \
+     --target gemini@GEMIAN_HOST \
      --wait-for-cycle --ask-sudo-password \
      --output artifacts/device-pstore/candidate-L-runtime-1
    ```

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `YYYY-MM-DD-short-name` |
-| Status | `planned`, `running`, `completed`, `inconclusive`, or `superseded` |
+| Status | one of `planned`, `running`, `completed`, `inconclusive`, `superseded` or `parked`, first in the cell; a note may follow |
 | Subsystem |  |
 | Device variant |  |
 | Date(s) |  |
@@ -61,3 +61,7 @@ exact revisions. A compile-only result cannot establish hardware behavior.
 
 Link resulting hardware-document updates, support-matrix changes, patches,
 issues, and the next discriminating experiment.
+
+After adding or renaming a record, run `scripts/experiments-index` to refresh
+the generated table in `experiments/README.md`; `check-repository` fails when
+the table is stale or a directory has no README.

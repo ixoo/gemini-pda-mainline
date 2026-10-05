@@ -41,7 +41,7 @@ class CompletionTests(unittest.TestCase):
             path = Path(path)
             if path == self.prepared['keys'] / 'known_hosts': return b'fixture-host-pin'
             if path == self.root / 'artifacts/credentials/a53-recovery-known_hosts':
-                return b'192.168.1.50 synthetic-fixture-host-identity\n'
+                return b'GEMIAN_HOST synthetic-fixture-host-identity\n'
             if path == self.root / 'artifacts/credentials/gemini_ed25519':
                 return b'synthetic-placeholder-only'
             self.assertTrue(path.is_relative_to(self.root))
@@ -128,7 +128,7 @@ class CompletionTests(unittest.TestCase):
         if action == 'request-recovery': value['recovery_mode'] = 'ordinary'
         if action == 'confirm-recovery':
             value.update(physical_recovery_confirmed=True, known_good_known_hosts_sha256=
-                         L['sha'](b'192.168.1.50 synthetic-fixture-host-identity\n'))
+                         L['sha'](b'GEMIAN_HOST synthetic-fixture-host-identity\n'))
         value.update(changes)
         path = self.root / ('admission-' + action + '.json')
         write(path, L['json_bytes'](value))
@@ -150,7 +150,7 @@ class CompletionTests(unittest.TestCase):
             self.assertEqual(json.loads((directory.parent / 'claim.json').read_bytes()), M['phase_claim'](context))
             self.assertEqual((seconds, limits['stdout_limit']), M['LIMITS'][action])
             self.assertEqual(limits['stderr_limit'], 16384)
-            expected = ['gemini@192.168.1.50', '/bin/sh -s'] if action == 'confirm-recovery' else \
+            expected = ['gemini@GEMIAN_HOST', '/bin/sh -s'] if action == 'confirm-recovery' else \
                        ['root@10.15.19.82', '/bin/busybox sh -s']
             self.assertEqual(command[-2:], expected)
             self.finish_calls.append(action)

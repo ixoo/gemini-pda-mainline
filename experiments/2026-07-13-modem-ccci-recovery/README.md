@@ -20,7 +20,7 @@ Gemini, and can Linux 7.1.3's existing WWAN/CLDMA code be reused directly?
 ## Provenance and environment
 
 - Live kernel: Linux `3.18.41+`, AArch64, Gemian Debian 9 userspace.
-- Live device: `gemini@192.168.1.50` over the owner's private LAN.
+- Live device: `gemini@GEMIAN_HOST` over the owner's private LAN.
 - Private raw capture: `artifacts/device-inventory/20260714-modem-live/ccci-topology.txt`
   (Git-ignored and access-restricted). The rerun SHA-256 is recorded in the
   current validation result.
@@ -49,7 +49,7 @@ From the repository root:
 mkdir -p artifacts/device-inventory/20260714-modem-live
 ssh -i artifacts/credentials/gemini_ed25519 \
   -o IdentitiesOnly=yes -o IdentityAgent=none -o BatchMode=yes \
-  gemini@192.168.1.50 'bash -s' \
+  gemini@GEMIAN_HOST 'bash -s' \
   < experiments/2026-07-13-modem-ccci-recovery/scripts/collect-live-ccci.sh \
   > artifacts/device-inventory/20260714-modem-live/ccci-topology.txt
 chmod 700 artifacts/device-inventory/20260714-modem-live
@@ -57,7 +57,7 @@ chmod 600 artifacts/device-inventory/20260714-modem-live/ccci-topology.txt
 ./scripts/dev-vm run bash -lc \
   experiments/2026-07-13-modem-ccci-recovery/scripts/analyze-ccci-contract.sh
 ./scripts/dev-vm run bash -lc \
-  'CURRENT_PACKAGE=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-b7721ab55e41 \
+  'CURRENT_PACKAGE=~/artifacts/gemini-pda/linux-7.1.3-gemini-b7721ab55e41 \
    experiments/2026-07-13-modem-ccci-recovery/scripts/audit-current-package-ccci.sh'
 ```
 

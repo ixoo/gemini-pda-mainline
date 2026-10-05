@@ -28,7 +28,7 @@ Run it in the VM with:
 
 ```sh
 ./scripts/dev-vm run env \
-  CURRENT_PACKAGE=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa \
+  CURRENT_PACKAGE=~/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa \
   experiments/2026-07-14-first-boot-probe-audit/scripts/audit-first-boot-probes.sh
 ```
 
@@ -49,7 +49,7 @@ the bounded helper (it does not rebuild unrelated arm64 boards):
 
 ```sh
 ./scripts/dev-vm run env \
-  CURRENT_PACKAGE=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa \
+  CURRENT_PACKAGE=~/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa \
   experiments/2026-07-14-first-boot-probe-audit/scripts/validate-gemini-dtb-schema.sh
 ```
 
@@ -76,7 +76,7 @@ Run it with:
 
 ```sh
 ./scripts/dev-vm run env \
-  CURRENT_PACKAGE=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa \
+  CURRENT_PACKAGE=~/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa \
   experiments/2026-07-14-first-boot-probe-audit/scripts/validate-mt6797-dtb-schema.sh
 ```
 

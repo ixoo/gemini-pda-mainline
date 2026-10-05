@@ -1,6 +1,6 @@
 validation=gemini-live-usb1-driver-state
 captured_utc=2026-07-13T15:02:57Z
-device=gemini@192.168.1.50
+device=gemini@GEMIAN_HOST
 live_kernel=3.18.41+_aarch64
 capture_sha256=15fad36a4c554d375fd40b475b73608586384ff95b3eaf13bf7f2bc7d084dd82
 usb1_platform=11200000.usb1

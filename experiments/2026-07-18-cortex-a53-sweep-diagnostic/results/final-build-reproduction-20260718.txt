@@ -21,10 +21,10 @@ guest_architecture=aarch64
 source_date_epoch=0
 
 First output:
-/home/julien.guest/artifacts/boot-candidates/candidate-O-a53-sweep-e35dc9a
+~/artifacts/boot-candidates/candidate-O-a53-sweep-e35dc9a
 
 Independent second output:
-/home/julien.guest/artifacts/boot-candidates/candidate-O-a53-sweep-repro-e35dc9a
+~/artifacts/boot-candidates/candidate-O-a53-sweep-repro-e35dc9a
 
 Result
 ------

@@ -55,7 +55,7 @@ Observation sequence
    live-GPT logical boot2, prove it inactive/unmounted, record predecessor
    checksum without a fresh backup, verify two full readbacks, remove temporary
    readbacks, and shut the device down cleanly.
-2. Arm `scripts/collect-device-pstore --target gemini@192.168.1.50 --wait-for-cycle`
+2. Arm `scripts/collect-device-pstore --target gemini@GEMIAN_HOST --wait-for-cycle`
    before physical boot2 selection. The USB/netcat collector
    is read-only and secondary.
 3. Physically select boot2 once. Expected visible behavior is the inherited

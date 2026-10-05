@@ -107,7 +107,7 @@ class ReturnTests(unittest.TestCase):
                 R.classify(raw, b'', process(raw, **changes), PREVIOUS, MAINLINE)
 
     def test_only_pre_authentication_connect_failures_allow_waiting(self):
-        self.assertIn(b'ssh: connect to host 192.168.1.50 port 22: Operation timed out\r\n',
+        self.assertIn(b'ssh: connect to host GEMIAN_HOST port 22: Operation timed out\r\n',
                       R.CONNECT_FAILURES)
         for err in R.CONNECT_FAILURES:
             for reason in (None, 'stdin-closed'):
@@ -125,10 +125,10 @@ class ReturnTests(unittest.TestCase):
                 R.classify(raw, err, process(raw, err, exit_status=255, reason=reason), PREVIOUS, MAINLINE)
 
     def test_v2_observed_host_down_is_only_a_pre_authentication_wait(self):
-        self.assertNotIn(b'ssh: connect to host 192.168.1.50 port 22: Host is down\r\n',
+        self.assertNotIn(b'ssh: connect to host GEMIAN_HOST port 22: Host is down\r\n',
                          R.CONNECT_FAILURES)
         for ending in (b'\n', b'\r\n'):
-            err = b'ssh: connect to host 192.168.1.50 port 22: Host is down' + ending
+            err = b'ssh: connect to host GEMIAN_HOST port 22: Host is down' + ending
             status = process(b'', err, exit_status=255)
             self.assertEqual(R2.classify(b'', err, status, PREVIOUS, MAINLINE)['classification'],
                              'connection-unavailable')
@@ -138,13 +138,13 @@ class ReturnTests(unittest.TestCase):
                     R2.classify(raw, err, process(raw, err, **{'exit_status': 255, **changes}),
                                 PREVIOUS, MAINLINE)
         for err in (b'Permission denied (publickey).\n', b'Host key verification failed.\n',
-                    b'ssh: connect to host 192.168.1.50 port 22: Unknown failure\n'):
+                    b'ssh: connect to host GEMIAN_HOST port 22: Unknown failure\n'):
             with self.assertRaises(ValueError):
                 R2.classify(b'', err, process(b'', err, exit_status=255), PREVIOUS, MAINLINE)
 
     def test_v2_waits_through_observed_host_down_then_confirms_changed_boot(self):
-        timed_out = b'ssh: connect to host 192.168.1.50 port 22: Operation timed out\n'
-        host_down = b'ssh: connect to host 192.168.1.50 port 22: Host is down\r\n'
+        timed_out = b'ssh: connect to host GEMIAN_HOST port 22: Operation timed out\n'
+        host_down = b'ssh: connect to host GEMIAN_HOST port 22: Host is down\r\n'
         result = self.collect([(b'', timed_out, process(b'', timed_out, exit_status=255)),
                                (b'', host_down, process(b'', host_down, exit_status=255)),
                                (frame(), b'', process(frame()))], runtime=R2)
@@ -211,7 +211,7 @@ class ReturnTests(unittest.TestCase):
         subprocess.run(['sh', '-n', str(script)], check=True, timeout=5)
         subprocess.run(['shellcheck', '--shell=sh', str(script)], check=True, timeout=10)
         command = F.known_good_command({'prepared': {'keys': self.root}})
-        self.assertEqual(command[-2:], ['gemini@192.168.1.50', '/bin/sh -s'])
+        self.assertEqual(command[-2:], ['gemini@GEMIAN_HOST', '/bin/sh -s'])
         for setting in ('StrictHostKeyChecking=yes', 'IdentitiesOnly=yes', 'IdentityAgent=none',
                         'ProxyCommand=none', 'ProxyJump=none', 'ClearAllForwardings=yes', 'ConnectionAttempts=1'):
             self.assertIn(setting, command)

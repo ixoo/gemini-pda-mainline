@@ -312,7 +312,7 @@ def prepare_admission(raw):
                 'physical recovery and known-good host pin required')
         known = regular(REPO / 'artifacts/credentials/a53-recovery-known_hosts', 16384)
         require(sha(known) == admission['known_good_known_hosts_sha256'] and len(known.decode('ascii').splitlines()) == 1 and
-                known.decode('ascii').split()[0] == '192.168.1.50', 'known-good target identity')
+                known.decode('ascii').split()[0] == 'GEMIAN_HOST', 'known-good target identity')
         regular(REPO / 'artifacts/credentials/gemini_ed25519', 16384)
     else:
         require(admission['physical_recovery_confirmed'] is False and admission['known_good_known_hosts_sha256'] is None and

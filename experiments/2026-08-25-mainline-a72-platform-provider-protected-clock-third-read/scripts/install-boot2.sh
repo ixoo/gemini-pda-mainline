@@ -8,7 +8,7 @@ export LC_ALL=C
 umask 077
 
 readonly SOURCE_SHA256=8eb5539777dd36ac4b499e8c647f20983e1cc63a7af70c401ae56d17d52847fc
-readonly EXPECTED_TARGET=gemini@192.168.1.50
+readonly EXPECTED_TARGET=gemini@GEMIAN_HOST
 readonly EXPECTED_PREDECESSOR_SHA256=f55bb272de24a62a0e4055624e8eb0ef35bc53432fa130463c867c43c059732e
 
 die() { printf 'error: %s\n' "$*" >&2; exit 2; }

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2016  # historical record; literal $ in remote command strings is intended
 
 # Exercise a source-calibrated AP post-return verifier with mocked SSH/storage,
 # and prove the checked-in unresolved verifier never reaches SSH.
@@ -111,7 +112,7 @@ arguments=" $* "
 for required in '-o BatchMode=yes' '-o LogLevel=ERROR' \
 	'-o WarnWeakCrypto=no' '-o IdentitiesOnly=yes' \
 	'-o IdentityAgent=none' '-o StrictHostKeyChecking=yes' \
-	"-i $AP_POST_IDENTITY" 'gemini@192.168.1.50'; do
+	"-i $AP_POST_IDENTITY" 'gemini@GEMIAN_HOST'; do
 	case "$arguments" in
 	*" $required "*) ;;
 	*) exit 91 ;;

@@ -3419,7 +3419,7 @@ def main() -> None:
         require(live_dvfs_source_result, needle, label)
     for needle, label in (
         ("claim=READ_ONLY_GEMIAN_DVFSP_RESOURCE_OWNER_BOUNDARY", "live-resource-boundary-claim"),
-        ("target=gemini@192.168.1.50;transport=ssh;os=Gemian;kernel=3.18.41+;device_action=none;hardware_write=none;backup=none", "live-resource-boundary-target"),
+        ("target=gemini@GEMIAN_HOST;transport=ssh;os=Gemian;kernel=3.18.41+;device_action=none;hardware_write=none;backup=none", "live-resource-boundary-target"),
         ("power=usb:0;battery_status:Full;battery_capacity:100;battery_health:Good", "live-resource-boundary-power"),
         ("cpu_online=0;cpu_possible=0-9", "live-resource-boundary-cpu-topology"),
         ("platform_dvfsp=present;compatible=mediatek,mt6797-dvfsp;driver=cspm", "live-resource-boundary-dvfsp"),
@@ -3440,7 +3440,7 @@ def main() -> None:
         require(live_resource_owner_boundary_result, needle, label)
     for needle, label in (
         ("claim=READ_ONLY_GEMIAN_DVFSP_RUNTIME_BOUNDARY_V2", "runtime-owner-boundary-v2-claim"),
-        ("target=gemini@192.168.1.50", "runtime-owner-boundary-v2-target"),
+        ("target=gemini@GEMIAN_HOST", "runtime-owner-boundary-v2-target"),
         ("kernel=3.18.41+", "runtime-owner-boundary-v2-kernel"),
         ("architecture=aarch64", "runtime-owner-boundary-v2-architecture"),
         ("device_action=none", "runtime-owner-boundary-v2-no-device-action"),
@@ -3463,7 +3463,7 @@ def main() -> None:
         require(runtime_owner_boundary_v2_result, needle, label)
     for needle, label in (
         ("claim=READ_ONLY_GEMIAN_DVFSP_LIVE_HASH_REPEAT_V1", "runtime-owner-hash-repeat-claim"),
-        ("target=gemini@192.168.1.50", "runtime-owner-hash-repeat-target"),
+        ("target=gemini@GEMIAN_HOST", "runtime-owner-hash-repeat-target"),
         ("sample_spacing=one_second", "runtime-owner-hash-repeat-spacing"),
         ("sample_1_freq_sha256=818facca39b67c2fba6bf57a5fb5bcf8884ee5dec718f030fc7fe449339f6e30", "runtime-owner-hash-repeat-sample1"),
         ("sample_2_freq_sha256=43568c0843be4a789a019e0b63c1d0a330f08d52ce28852915643fcd0e4e61b3", "runtime-owner-hash-repeat-sample2"),
@@ -3479,7 +3479,7 @@ def main() -> None:
         require(runtime_owner_live_hash_repeat_result, needle, label)
     for needle, label in (
         ("claim=READ_ONLY_GEMIAN_DVFSP_RUNTIME_OWNER_TOKEN_CONTENT_V1", "runtime-owner-token-content-claim"),
-        ("target=gemini@192.168.1.50", "runtime-owner-token-content-target"),
+        ("target=gemini@GEMIAN_HOST", "runtime-owner-token-content-target"),
         ("scan_limit=4096_bytes_per_surface", "runtime-owner-token-content-limit"),
         ("scan_roots=/proc/ppm;/proc/cpufreq;/proc/eem;/sys/kernel/debug/clk", "runtime-owner-token-content-roots"),
         ("sampled_file_count=36", "runtime-owner-token-content-count"),
@@ -3494,7 +3494,7 @@ def main() -> None:
         require(runtime_owner_token_content_result, needle, label)
     for needle, label in (
         ("claim=READ_ONLY_GEMIAN_DVFSP_RUNTIME_OWNER_REGISTRATION_REVIEW", "runtime-owner-registration-review-claim"),
-        ("target=gemini@192.168.1.50", "runtime-owner-registration-review-target"),
+        ("target=gemini@GEMIAN_HOST", "runtime-owner-registration-review-target"),
         ("transport=ssh", "runtime-owner-registration-review-transport"),
         ("kernel=3.18.41+", "runtime-owner-registration-review-kernel"),
         ("architecture=aarch64", "runtime-owner-registration-review-architecture"),

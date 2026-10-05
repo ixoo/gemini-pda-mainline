@@ -48,7 +48,7 @@ deployment_boot_id=
 wait_seconds=1800
 recovery_seconds=300
 configure_address=0
-gemian_target=gemini@192.168.1.50
+gemian_target=gemini@GEMIAN_HOST
 while (($#)); do
 	case "$1" in
 	--output)

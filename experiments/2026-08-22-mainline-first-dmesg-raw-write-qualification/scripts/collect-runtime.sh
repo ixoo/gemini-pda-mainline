@@ -11,7 +11,7 @@ readonly PROBE_SHA256=99af34ba3f9bd33c6d56f105ca3a7eade0c6d4250b012bd3bb8bc30329
 readonly LIVE_VALIDATOR_SHA256=78a6bfc99a1e597fe5c8d0381e1d3ece5c5648f96a28fa5842f64dd0a0c0befd
 readonly RETAINED_VALIDATOR_SHA256=c87a0e0a4ed969e0c2ea5cac3fc602fb4d6dd9641fa65984c6ab912be7d48ac3
 readonly CANDIDATE_SHA256=b96ec109b3f020fdaf0cdc6ca1733d012051e6607b5520a11d32a6441f569e96
-readonly EXPECTED_TARGET=gemini@192.168.1.50
+readonly EXPECTED_TARGET=gemini@GEMIAN_HOST
 
 die() { printf 'error: %s\n' "$*" >&2; exit 2; }
 usage() {

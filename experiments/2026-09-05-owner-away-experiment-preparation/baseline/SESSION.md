@@ -155,7 +155,7 @@ owner availability assertion and one probe budget.
 
 The Gemian key remains `artifacts/credentials/gemini_ed25519`. Its reviewed host
 pin must be prepared offline in private
-`artifacts/credentials/a53-recovery-known_hosts`, for `192.168.1.50`. Do not learn
+`artifacts/credentials/a53-recovery-known_hosts`, for `GEMIAN_HOST`. Do not learn
 that key from an unauthenticated network scan. Strict host checking, disabled
 agent/config/proxy forwarding, and one connection attempt apply to both hosts.
 Raw transcripts and accidental owner input remain private pending field-by-field

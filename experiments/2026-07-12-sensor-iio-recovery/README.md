@@ -54,7 +54,7 @@ Run from the repository root:
 mkdir -p artifacts/device-inventory/20260714-sensors-live
 ssh -i artifacts/credentials/gemini_ed25519 \
   -o IdentitiesOnly=yes -o IdentityAgent=none -o BatchMode=yes \
-  gemini@192.168.1.50 'bash -s' \
+  gemini@GEMIAN_HOST 'bash -s' \
   < experiments/2026-07-12-sensor-iio-recovery/scripts/collect-live-sensors.sh \
   > artifacts/device-inventory/20260714-sensors-live/sensors.txt
 chmod 700 artifacts/device-inventory/20260714-sensors-live
@@ -217,7 +217,7 @@ Reproduce the package audit in the VM with:
 
 ```sh
 ./scripts/dev-vm run bash -lc \
-  'CURRENT_PACKAGE=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa \
+  'CURRENT_PACKAGE=~/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa \
    experiments/2026-07-12-sensor-iio-recovery/scripts/audit-current-package-sensors.sh'
 ```
 

@@ -476,7 +476,7 @@ def main() -> int:
         print(f"expected_predecessor_sha256={co.CURIE_PADDED_SHA256}")
         print("predecessor_role=storage-safety-only")
         print("software_and_binary_baseline=exact-fermi")
-        print("accepted_target=gemini@192.168.1.50")
+        print("accepted_target=gemini@GEMIAN_HOST")
         print("sole_target_write=one-bounded-16MiB-boot2-write")
         print("stable_power=battery-present-health-Good-capacity-81..100")
         print("ac_usb_online=observational-only")

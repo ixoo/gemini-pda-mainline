@@ -38,9 +38,9 @@ complete_member_modes=exact-Cassini
 Reproduction
 ------------
 
-exact_source=/home/julien.guest/artifacts/boot-candidates/candidate-Cassini-da9214-direct-address-e02e2673
-artifact_a=/home/julien.guest/artifacts/boot-candidates-hubble-final/candidate-Hubble-cassini-rollback-e02e2673
-artifact_b=/home/julien.guest/artifacts/boot-candidates-hubble-final-repro/candidate-Hubble-cassini-rollback-e02e2673
+exact_source=~/artifacts/boot-candidates/candidate-Cassini-da9214-direct-address-e02e2673
+artifact_a=~/artifacts/boot-candidates-hubble-final/candidate-Hubble-cassini-rollback-e02e2673
+artifact_b=~/artifacts/boot-candidates-hubble-final-repro/candidate-Hubble-cassini-rollback-e02e2673
 publication_a=passed
 publication_b=passed
 independent_output_roots=yes
@@ -72,7 +72,7 @@ photon_installer_foundation_sha256=6d98d9a807687567f91513466587ce2b644e5935f8412
 hubble_installer_sha256=3adaf33fbb4567ac9ef3fd2030f85a24f69f5349f812d49493c56ded716a2452
 accepted_live_predecessor=only-exact-installed-readback-verified-Photon-r2
 accepted_live_predecessor_sha256=0ffe1ee750ff219c9ee6f9d4809ecb8748bdd2a35ba63d68a99b3d74e599c2f7
-accepted_target=gemini@192.168.1.50
+accepted_target=gemini@GEMIAN_HOST
 logical_target=live-GPT-resolved-boot2
 candidate_raw_sha256=e02e2673ca054d3e4081f5234d26a394617777e8496417fd75196a948d55fa4d
 candidate_padded_sha256=febe4d44b14b899cb357fae1b3ecda9bdb687c0c3e1f9e4b3cee30bc04f13cf1

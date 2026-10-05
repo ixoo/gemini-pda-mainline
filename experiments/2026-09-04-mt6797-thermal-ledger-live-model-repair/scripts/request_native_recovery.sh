@@ -9,7 +9,7 @@ umask 077
 readonly HOST_ADDRESS=10.15.19.1
 readonly DEVICE_ADDRESS=10.15.19.82
 readonly DEVICE_PORT=2323
-readonly GEMIAN_ADDRESS=192.168.1.50
+readonly GEMIAN_ADDRESS=GEMIAN_HOST
 readonly HOST_MAC_82=42:00:15:19:82:00
 readonly HOST_MAC_84=42:00:15:19:84:00
 readonly RELEASE=7.1.3-gemini-mt6797-thermal-stage-ledger

@@ -36,7 +36,7 @@ Run the reproducible audit in the VM:
 
 ```sh
 ./scripts/dev-vm run env \
-  CURRENT_PACKAGE=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-b7721ab55e41 \
+  CURRENT_PACKAGE=~/artifacts/gemini-pda/linux-7.1.3-gemini-b7721ab55e41 \
   LIVE_CAPTURE=/mnt/gemini-pda-mainline/artifacts/device-inventory/20260714T211054Z-vendor-baseline-driver-refresh/mainline-runtime.txt \
   experiments/2026-07-13-driver-coverage-audit/scripts/audit-driver-coverage.sh
 ```

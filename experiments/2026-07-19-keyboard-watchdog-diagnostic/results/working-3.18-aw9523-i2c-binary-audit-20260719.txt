@@ -17,7 +17,7 @@ active_boot_image_sha256=1fa78de9f8744a6818bcef2f6773737939f84364de982413910d495
 active_kernel_payload_sha256=b53d191dc41d3f7364b0fa62b4bc920b1d013a1942b2e6b06727263fc56fcf4d
 vmlinux_sha256=cc66df06194d3315335462760962165e1dcb2e50221574aeb45a0805bb17a162
 build=Linux version 3.18.41+; build number 7; 2019-03-29
-analysis_copy=/home/julien.guest/reverse-engineering/work/gemini-kernel-active-20260714/vmlinux.elf
+analysis_copy=~/reverse-engineering/work/gemini-kernel-active-20260714/vmlinux.elf
 
 [active_3_18_aw9523_disassembly]
 aw9523_hw_reset=0xffffffc00045ba68

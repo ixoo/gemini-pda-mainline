@@ -17,7 +17,7 @@ Run it in the VM with:
 
 ```sh
 ./scripts/dev-vm run env \
-  CURRENT_PACKAGE=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-c2feb465d6c6 \
+  CURRENT_PACKAGE=~/artifacts/gemini-pda/linux-7.1.3-gemini-c2feb465d6c6 \
   experiments/2026-07-14-upstream-mt6797-coverage-audit/scripts/audit-source-coverage.sh
 ```
 
@@ -38,7 +38,7 @@ key and SSH options:
 
 ```sh
 experiments/2026-07-14-upstream-mt6797-coverage-audit/scripts/probe-live-spi-dt.sh \
-  --target gemini@192.168.1.50
+  --target gemini@GEMIAN_HOST
 ```
 
 The historical result used the pre-correction package and remains retained for

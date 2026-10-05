@@ -16,7 +16,7 @@ import tempfile
 AP_DERIVER_SHA256 = "a20198cb8e5cc8804a2fa218f9187ff30ab8cfac6e370a4f6792b86ba632918e"
 AP_INSTALLER_SHA256 = "3504a5b591ad4b952c577b5ecb08eaedac5027c97431152023a2d28afef7b937"
 AP_PADDED_SHA256 = "602f06be094c6091ceff9b501bf5328bc2f79d26be5c26f98479905aa3caa5f9"
-TARGET = "gemini@192.168.1.50"
+TARGET = "gemini@GEMIAN_HOST"
 
 
 def digest(path: pathlib.Path) -> str:

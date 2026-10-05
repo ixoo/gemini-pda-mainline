@@ -1,7 +1,7 @@
 MT6797 external-display bridge live ID-probe availability check
 
 date=2026-07-13
-target=gemini@192.168.1.50
+target=gemini@GEMIAN_HOST
 intent=bounded_read_only_SII9022_ID_probe
 target_clients=i2c-3_0x39_sii9022_hdmi;i2c-3_0x50_siiedid
 

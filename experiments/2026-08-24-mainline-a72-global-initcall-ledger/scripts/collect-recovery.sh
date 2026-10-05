@@ -6,7 +6,7 @@ export LC_ALL=C
 umask 077
 
 readonly CLASSIFIER_SHA256=5250345332b75511dc30b3e8b5b743e78a0ae8d96214eb8fd89ae4e0eb30ef3a
-readonly EXPECTED_TARGET=gemini@192.168.1.50
+readonly EXPECTED_TARGET=gemini@GEMIAN_HOST
 readonly CANDIDATE_SHA256=e9d565021de9ed1164aa78a78795d6a3dabd7af656aaa3df791e23424e66125a
 readonly DEPLOYMENT_BOOT_ID=6ac4e0b6-2979-4a5b-851c-af7282fec216
 readonly OUTPUT_NAME=a72-global-initcall-attempt-1-recovery

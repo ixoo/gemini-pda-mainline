@@ -32,7 +32,7 @@ def ssh(command, *, preserve_partial=False):
         'ssh', '-i', str(KEY), '-o', 'BatchMode=yes', '-o', 'IdentitiesOnly=yes',
         '-o', 'IdentityAgent=none', '-o', 'StrictHostKeyChecking=yes',
         '-o', 'UpdateHostKeys=no', '-o', 'ConnectTimeout=4',
-        'gemini@192.168.1.50', command,
+        'gemini@GEMIAN_HOST', command,
     ]
     try:
         result = subprocess.run(arguments, stdout=subprocess.PIPE,

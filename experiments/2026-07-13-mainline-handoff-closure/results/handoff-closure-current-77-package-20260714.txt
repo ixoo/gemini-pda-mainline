@@ -1,7 +1,7 @@
 validation=static-mainline-handoff-closure
 generated_utc=2026-07-14T21:07:56Z
 package=linux-7.1.3-gemini-b7721ab55e41
-package_path=guest:/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-b7721ab55e41
+package_path=guest:~/artifacts/gemini-pda/linux-7.1.3-gemini-b7721ab55e41
 source_revision=7.1.3
 patch_series_count=77
 patch_count=77

@@ -1,6 +1,6 @@
 audit=mt6797-pinctrl-msdc
 generated_utc=2026-07-13T19:39:58Z
-linux_tree=/home/julien.guest/src/gemini-pda/linux-7.1.3
+linux_tree=~/src/gemini-pda/linux-7.1.3
 pinctrl_sha256=9db5d34a434b1d10c382eb319ad37370584992d843582d105c1c57d23ea596b0
 base_dts_patch_sha256=0645db11ed98b2b090bc8668c220ce9aa59e9466264a3150ecc491ce6d27e4a6
 pinmux_only_fix_patch_sha256=626134139b4d03ebd7a9ba21d5b7076cc61906c10da1295188bcdca31b4a076e

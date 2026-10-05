@@ -5,13 +5,13 @@ set -euo pipefail
 export LC_ALL=C
 umask 077
 
-readonly EXPECTED_TARGET=gemini@192.168.1.50
+readonly EXPECTED_TARGET=gemini@GEMIAN_HOST
 readonly CANDIDATE_SHA256=60902c7ba7e5cccd781082d6d17e1bcb273d184751ddc9dde6a64b2e2a58b8d1
 readonly CLASSIFIER_SHA256=ff9ece359c3b5afd8852d2e4b09e14abc339dd32950219c001f54119a442d112
 
 die() { printf 'error: %s\n' "$*" >&2; exit 2; }
 usage() {
-	printf 'Usage: %s --target gemini@192.168.1.50 --deployment-dir DIR --output-dir DIR\n' "$0"
+	printf 'Usage: %s --target gemini@GEMIAN_HOST --deployment-dir DIR --output-dir DIR\n' "$0"
 }
 for command in awk chmod dirname grep mkdir mktemp mv python3 rm sha256sum ssh stat; do
 	command -v "$command" >/dev/null 2>&1 || die "required command missing: $command"

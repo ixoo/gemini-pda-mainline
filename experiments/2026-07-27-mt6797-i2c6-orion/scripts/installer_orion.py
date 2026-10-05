@@ -32,7 +32,7 @@ INSTALLER_SHA256 = (
 )
 
 BOOT2_SIZE = 16 * 1024 * 1024
-TARGET = "gemini@192.168.1.50"
+TARGET = "gemini@GEMIAN_HOST"
 
 # Exact hardware-passed Hubble predecessor required on the complete live boot2
 # partition immediately before Orion is written.

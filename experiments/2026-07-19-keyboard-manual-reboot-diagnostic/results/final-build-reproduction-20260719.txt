@@ -23,7 +23,7 @@ watchdog_handle_boot_enabled=yes
 watchdog_open_timeout=0
 
 [kernel-build-1]
-package=/home/julien.guest/artifacts/gemini-pda-x-build1-4cd417ad/linux-7.1.3-gemini-observability-fbcon-rotation-keyboard-wrrd-manual-reboot-4cd417ad-c811a159
+package=~/artifacts/gemini-pda-x-build1-4cd417ad/linux-7.1.3-gemini-observability-fbcon-rotation-keyboard-wrrd-manual-reboot-4cd417ad-c811a159
 generated_utc=2026-07-19T22:20:58Z
 package_manifest_sha256=541542094a9f516556ffcab884abd3db1d58537aff6fd7e2f95abba42e2992c7
 build_json_sha256=4d710898b478b2cfed2ce6d0d0d1ecab4144f5a8c57f4b765c123e05f2b945a3
@@ -31,10 +31,10 @@ complete_kernel_artifact_validation=passed
 focused_package_foundation_validation=passed
 
 [kernel-build-2]
-source_root=/home/julien.guest/src/gemini-pda-x-build2-4cd417ad
-build_root=/home/julien.guest/build/gemini-pda-x-build2-4cd417ad
-artifact_root=/home/julien.guest/artifacts/gemini-pda-x-build2-4cd417ad
-package=/home/julien.guest/artifacts/gemini-pda-x-build2-4cd417ad/linux-7.1.3-gemini-observability-fbcon-rotation-keyboard-wrrd-manual-reboot-4cd417ad-c811a159
+source_root=~/src/gemini-pda-x-build2-4cd417ad
+build_root=~/build/gemini-pda-x-build2-4cd417ad
+artifact_root=~/artifacts/gemini-pda-x-build2-4cd417ad
+package=~/artifacts/gemini-pda-x-build2-4cd417ad/linux-7.1.3-gemini-observability-fbcon-rotation-keyboard-wrrd-manual-reboot-4cd417ad-c811a159
 generated_utc=2026-07-19T22:38:41Z
 package_manifest_sha256=805065d6db2438010ca75c5f293e558ff0fcfe5504e08ead9bf29cf71ee81e3a
 build_json_sha256=db8c29f44b04a86009f096c8ad72ffe79355547e27bd863008bd8a5ddc1f0e06
@@ -91,8 +91,8 @@ provisional_container_size=6864896
 provisional_lk_validation=passed-32-of-32
 
 [candidate-assemblies]
-output_1=/home/julien.guest/artifacts/boot-candidates/candidate-X-final-build1/candidate-X-keyboard-manual-reboot-final-bf400387
-output_2=/home/julien.guest/artifacts/boot-candidates/candidate-X-final-build2/candidate-X-keyboard-manual-reboot-final-bf400387
+output_1=~/artifacts/boot-candidates/candidate-X-final-build1/candidate-X-keyboard-manual-reboot-final-bf400387
+output_2=~/artifacts/boot-candidates/candidate-X-final-build2/candidate-X-keyboard-manual-reboot-final-bf400387
 recursive_diff=identical
 both_output_manifest_checks=passed
 output_manifest_sha256=a37a774527385e93709bfeab8d93cc0797d908cdc596d046e16e934958218e52

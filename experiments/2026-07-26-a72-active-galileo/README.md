@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | \`2026-07-26-a72-active-galileo\` |
-| Status | \`running; corrected candidate assembled, hardware not yet tested\` |
+| Status | `superseded` (was: `running; corrected candidate assembled, hardware not yet tested`; closed by the [2026-10-05 consolidation](../2026-10-05-repository-consolidation/README.md)) |
 | Subsystem | MT6797 Cortex-A72 power sequencing and PSCI CPU_ON |
 | Device variant | Named Gemini PDA unit |
 

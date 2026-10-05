@@ -2,7 +2,7 @@
 
 generated_utc=2026-08-10T12:57:27Z
 claim=READ_ONLY_RUNTIME_VENDOR_WRITER_SYMBOL_SURFACE
-target=gemini@192.168.1.50
+target=gemini@GEMIAN_HOST
 transport=ssh
 kernel=3.18.41+
 architecture=aarch64

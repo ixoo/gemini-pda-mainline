@@ -1,4 +1,4 @@
-vendor_tree=/home/julien.guest/src/reference/planet-mt6797-3.18
+vendor_tree=~/src/reference/planet-mt6797-3.18
 vendor_commit=c5b0be85017ad0c599725e8273842efdbecdd88a
 vendor_blob_sha256[drivers/misc/mediatek/connectivity/common/common_main/mt6797/include/mtk_wcn_consys_hw.h]=3ee7631a95a12f5cddd860c213e51e75e1cb3146ca858a892aaae55b4d22fad1
 vendor_blob_sha256[drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c]=0ec8e9c1594626d0b31f2d2623927d614f63af4437c16df838e10e11258663ce
@@ -17,7 +17,7 @@ vendor_blob_sha256[drivers/misc/mediatek/btif/common/btif_plat.c]=91744beb769a34
 vendor_blob_sha256[drivers/misc/mediatek/btif/common/btif_dma_plat.c]=2f247d8a7a6ee60913f318a5db43da7813c047cb8980790d15073dd269ee693a
 vendor_blob_sha256[drivers/misc/mediatek/connectivity/wlan/gen2/os/linux/hif/ahb/include/hif_pdma.h]=28424fd8e1bff338ed9297709f990fe067c6ecc81b155a0f0fd80519d23930a8
 vendor_blob_sha256[drivers/misc/mediatek/connectivity/wlan/gen2/os/linux/hif/ahb/mt6797/ahb_pdma.c]=b2db0e01ccae1ad21da8236adb49b7edfe82152df82e665eecf0f4cdd7273046
-linux_tree=/home/julien.guest/src/gemini-pda/linux-7.1.3
+linux_tree=~/src/gemini-pda/linux-7.1.3
 linux_revision=7.1.3 (prepared source; no Git metadata required)
 linux_blob_sha256[drivers/bluetooth/btmtkuart.c]=f0ed75c1de8a08bcf543975c927078be5d8de988bb25bc37898a8c37a29914af
 linux_blob_sha256[drivers/bluetooth/btmtk.c]=032bc289e8da1f3114b9a56894bb8ab7abfa82950c0d618ad26ed5d8be43af66

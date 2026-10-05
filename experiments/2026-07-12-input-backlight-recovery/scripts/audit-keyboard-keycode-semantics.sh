@@ -5,8 +5,8 @@ set -euo pipefail
 # This is a source audit only; it does not read or write a device.
 
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
-linux_tree=${LINUX_TREE:-/home/julien.guest/src/gemini-pda/linux-7.1.3}
-vendor_tree=${VENDOR_TREE:-/home/julien.guest/src/reference/planet-mt6797-3.18}
+linux_tree=${LINUX_TREE:-~/src/gemini-pda/linux-7.1.3}
+vendor_tree=${VENDOR_TREE:-~/src/reference/planet-mt6797-3.18}
 patch_file=${PATCH_FILE:-$repo_root/patches/v7.1.3/0054-arm64-dts-mediatek-add-disabled-Gemini-AW9523-keyboard-candidate.patch}
 keymap_file=${KEYMAP_FILE:-$repo_root/experiments/2026-07-12-input-backlight-recovery/results/keyboard-keymap.txt}
 

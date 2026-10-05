@@ -82,7 +82,7 @@ write_redirection = re.compile(
 require(write_redirection.search(remote) is None, "state path write redirection present")
 
 required_host = (
-    "readonly TARGET=gemini@192.168.1.50",
+    "readonly TARGET=gemini@GEMIAN_HOST",
     "-o IdentitiesOnly=yes",
     "-o IdentityAgent=none",
     "-o StrictHostKeyChecking=yes",

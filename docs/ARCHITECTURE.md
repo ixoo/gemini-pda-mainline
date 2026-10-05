@@ -214,9 +214,10 @@ experiment at a time; task completion or a newer package never grants boot
 admission. Shared transport and deployment mechanisms belong in `scripts/`;
 experiment-specific policy and immutable receipts remain in experiments.
 
-The [roadmap](ROADMAP.md#parallel-delivery) owns priorities and
-acceptance gates. The [registry](../project/workstreams.json) is coordination
-metadata, not authority to build, deploy or promote hardware support.
+The [roadmap](ROADMAP.md) owns priorities and acceptance gates. The
+historical [workstream registry](https://github.com/ixoo/gemini-pda-mainline/blob/164c2d3f/project/workstreams.json)
+was coordination metadata, never authority to build, deploy or promote
+hardware support; the roadmap alone orders work since 2026-10-05.
 
 ## Decision records
 

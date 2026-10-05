@@ -30,7 +30,7 @@ Run it in the prepared VM:
 
 ```sh
 ./scripts/dev-vm run bash -lc \
-  'CURRENT_PACKAGE=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa \
+  'CURRENT_PACKAGE=~/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa \
    experiments/2026-07-14-mainline-module-closure-audit/scripts/audit-module-closure.sh'
 ```
 

@@ -45,7 +45,7 @@ Unique attributable evidence:
 Observation paths:
   1. Arm the optional read-only USB/netcat collector before manual boot2
      selection. USB may not enumerate within the fixed watchdog window.
-  2. Arm `scripts/collect-device-pstore --target gemini@192.168.1.50
+  2. Arm `scripts/collect-device-pstore --target gemini@GEMIAN_HOST
      --wait-for-cycle` before selection. Retain all records; delete none.
   3. On returned Gemian, prove changed boot ID, exact 3.18.41+ recovery kernel,
      watchdog-class reason, CPU8/9 offline, unchanged boot2 checksum, and an

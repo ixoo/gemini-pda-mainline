@@ -14,9 +14,9 @@ hardware_write=none
 
 [raw_analyzer_output]
 MT6797 CPU clock backend audit
-vendor_tree=/home/julien.guest/src/reference/planet-mt6797-3.18
+vendor_tree=~/src/reference/planet-mt6797-3.18
 vendor_revision=c5b0be85017ad0c599725e8273842efdbecdd88a
-linux_tree=/home/julien.guest/src/gemini-pda/linux-7.1.3
+linux_tree=~/src/gemini-pda/linux-7.1.3
 linux_revision=unknown
 linux_version=7.1.3
 

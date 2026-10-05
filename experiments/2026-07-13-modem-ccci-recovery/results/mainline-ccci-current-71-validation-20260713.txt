@@ -19,7 +19,7 @@ Collector script SHA-256: 4c94b144eaa906633d69491cbf463b10f303bdce9d77390e67fff8
 Live topology recheck
 ---------------------
 
-The bounded collector was rerun against `gemini@192.168.1.50`. It reproduced
+The bounded collector was rerun against `gemini@GEMIAN_HOST`. It reproduced
 the existing read-only capture: MD1 major `237` exposes `ccmni0`–`ccmni17`,
 `ttyC0`–`ttyC3`, and private CCCI control/raw nodes; MD3/C2K major `236`
 exposes `cc3mni0`–`cc3mni7` and its private control/TTY nodes. The platform

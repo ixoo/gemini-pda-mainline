@@ -107,7 +107,7 @@ Observation sequence
 --------------------
 
 1. In ordinary Gemian, just in time before installation, arm
-   `scripts/collect-device-pstore --target gemini@192.168.1.50 --wait-for-cycle --wait-seconds 900`.
+   `scripts/collect-device-pstore --target gemini@GEMIAN_HOST --wait-for-cycle --wait-seconds 900`.
    It must record the initial boot ID before the installer's shutdown.
 2. Run the reviewed installer. It must resolve exactly one live-GPT boot2,
    prove it inactive and unmounted, require the exact rejected predecessor,

@@ -1,6 +1,6 @@
 validation=gemini-ccci-live-read-only-postreboot
 generated_utc=2026-07-14T15:43:34Z
-device=gemini@192.168.1.50
+device=gemini@GEMIAN_HOST
 device_kernel=3.18.41+
 architecture=aarch64
 collector=experiments/2026-07-13-modem-ccci-recovery/scripts/collect-live-ccci.sh

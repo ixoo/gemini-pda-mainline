@@ -6,7 +6,7 @@ package_image_sha256=6d162f2d729827ecadfa5640d16f9e4c8325e67817d9c638b0cb1fcc967
 package_config_sha256=60a84aa5ac3b3aeb17d5357508ac123089d97d7d5ed9164458dee3ce6ded8159
 package_dtb_sha256=fb910c8d96b7d4f533c750ce0717ced8998c992834abc44a4ed86ec5a9cf1f97
 package_system_map_sha256=5c8249df6d398eaedbde7e2447e4105b219ec30b3b39fc5c9f694d887dd0b6a9
-linux_tree=/home/julien.guest/src/gemini-pda/linux-7.1.3
+linux_tree=~/src/gemini-pda/linux-7.1.3
 linux_version=7.1.3
 dtc_warning_lines=2
 audit_script=experiments/2026-07-12-audio-afe-recovery/scripts/audit-current-package-audio.sh
@@ -28,11 +28,11 @@ CONFIG_SND_SOC_MT6351_ACCDET=absent
 CONFIG_SND_SOC_MT6351_IRQ=absent
 
 [packaged_audio_modules]
-snd-soc-mt6351=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-ca17601dcdeb/modules/lib/modules/7.1.3-gemini/kernel/sound/soc/codecs/snd-soc-mt6351.ko
+snd-soc-mt6351=~/artifacts/gemini-pda/linux-7.1.3-gemini-ca17601dcdeb/modules/lib/modules/7.1.3-gemini/kernel/sound/soc/codecs/snd-soc-mt6351.ko
 snd-soc-mt6351_sha256=a8d9e4b0c7ec1856c683f53d12715a4c82079a5b0d909c700e115c2d1955fa91
-mt6797-mt6351=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-ca17601dcdeb/modules/lib/modules/7.1.3-gemini/kernel/sound/soc/mediatek/mt6797/mt6797-mt6351.ko
+mt6797-mt6351=~/artifacts/gemini-pda/linux-7.1.3-gemini-ca17601dcdeb/modules/lib/modules/7.1.3-gemini/kernel/sound/soc/mediatek/mt6797/mt6797-mt6351.ko
 mt6797-mt6351_sha256=a4ad7d8b6d9187d0a80f428931f464288185c631244a28198a7e12486c75ebf4
-snd-soc-mt6797-afe=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-ca17601dcdeb/modules/lib/modules/7.1.3-gemini/kernel/sound/soc/mediatek/mt6797/snd-soc-mt6797-afe.ko
+snd-soc-mt6797-afe=~/artifacts/gemini-pda/linux-7.1.3-gemini-ca17601dcdeb/modules/lib/modules/7.1.3-gemini/kernel/sound/soc/mediatek/mt6797/snd-soc-mt6797-afe.ko
 snd-soc-mt6797-afe_sha256=aba7b1853a0f05e912e3e998abf8125ad246962e20e1ae44f85107525c35c6f9
 
 [device_tree]

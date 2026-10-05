@@ -1,5 +1,5 @@
 validation=mt6797-mainline-msdc-probe-safety-source-audit
-linux_tree=/home/julien.guest/src/gemini-pda/linux-7.1.3
+linux_tree=~/src/gemini-pda/linux-7.1.3
 linux_version=7.1.3
 mtk_sd_sha256=2044a80b01c0fc94091deeb5bf127ccc5d0b613fcb64ade2014d861f2813e876
 mmc_host_sha256=c0568b26ba393f2f8efc96f6d576dc37f4522a2a5a4a26075b0ca618cd1e4821
@@ -130,159 +130,159 @@ pinmux_patch_sha256=5c3c85222f2f7ff3a2cfca6960bf61c31d16e6567e429293f9ffb102ff18
 3356:		pinctrl_select_state(host->pinctrl, host->pins_uhs);
 
 [mmc_core_start_anchors]
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-53-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-54-static void mmc_host_class_complete(struct device *dev)
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-55-{
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-56-	struct mmc_host *host = cls_dev_to_mmc_host(dev);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-57-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c:58:	_mmc_detect_change(host, 0, false);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-59-}
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-60-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-61-static const struct dev_pm_ops mmc_host_class_dev_pm_ops = {
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-62-	.prepare = pm_sleep_ptr(mmc_host_class_prepare),
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-63-	.complete = pm_sleep_ptr(mmc_host_class_complete),
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-53-
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-54-static void mmc_host_class_complete(struct device *dev)
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-55-{
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-56-	struct mmc_host *host = cls_dev_to_mmc_host(dev);
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-57-
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c:58:	_mmc_detect_change(host, 0, false);
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-59-}
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-60-
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-61-static const struct dev_pm_ops mmc_host_class_dev_pm_ops = {
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-62-	.prepare = pm_sleep_ptr(mmc_host_class_prepare),
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-63-	.complete = pm_sleep_ptr(mmc_host_class_complete),
 --
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-644- *
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-645- *	Register the host with the driver model. The host must be
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-646- *	prepared to start servicing requests before this function
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-647- *	completes.
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-648- */
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c:649:int mmc_add_host(struct mmc_host *host)
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-650-{
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-651-	int err;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-652-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-653-	err = mmc_validate_host_caps(host);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-654-	if (err)
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-644- *
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-645- *	Register the host with the driver model. The host must be
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-646- *	prepared to start servicing requests before this function
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-647- *	completes.
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-648- */
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c:649:int mmc_add_host(struct mmc_host *host)
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-650-{
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-651-	int err;
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-652-
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-653-	err = mmc_validate_host_caps(host);
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-654-	if (err)
 --
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1394-void mmc_power_cycle(struct mmc_host *host, u32 ocr)
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1395-{
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1396-	mmc_power_off(host);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1397-	/* Wait at least 1 ms according to SD spec */
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1398-	mmc_delay(1);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c:1399:	mmc_power_up(host, ocr);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1400-}
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1401-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1402-/**
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1403- * mmc_handle_undervoltage - Handle an undervoltage event on the MMC bus
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1404- * @host: The MMC host that detected the undervoltage condition
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1394-void mmc_power_cycle(struct mmc_host *host, u32 ocr)
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1395-{
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1396-	mmc_power_off(host);
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1397-	/* Wait at least 1 ms according to SD spec */
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1398-	mmc_delay(1);
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c:1399:	mmc_power_up(host, ocr);
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1400-}
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1401-
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1402-/**
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1403- * mmc_handle_undervoltage - Handle an undervoltage event on the MMC bus
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1404- * @host: The MMC host that detected the undervoltage condition
 --
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1437-void mmc_detach_bus(struct mmc_host *host)
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1438-{
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1439-	host->bus_ops = NULL;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1440-}
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1441-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c:1442:void _mmc_detect_change(struct mmc_host *host, unsigned long delay, bool cd_irq)
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1443-{
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1444-	/*
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1445-	 * Prevent system sleep for 5s to allow user space to consume the
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1446-	 * corresponding uevent. This is especially useful, when CD irq is used
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1447-	 * as a system wakeup, but doesn't hurt in other cases.
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1437-void mmc_detach_bus(struct mmc_host *host)
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1438-{
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1439-	host->bus_ops = NULL;
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1440-}
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1441-
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c:1442:void _mmc_detect_change(struct mmc_host *host, unsigned long delay, bool cd_irq)
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1443-{
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1444-	/*
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1445-	 * Prevent system sleep for 5s to allow user space to consume the
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1446-	 * corresponding uevent. This is especially useful, when CD irq is used
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1447-	 * as a system wakeup, but doesn't hurt in other cases.
 --
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1463- *	present card is still functional, and initialize any newly
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1464- *	inserted.
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1465- */
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1466-void mmc_detect_change(struct mmc_host *host, unsigned long delay)
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1467-{
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c:1468:	_mmc_detect_change(host, delay, true);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1469-}
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1470-EXPORT_SYMBOL(mmc_detect_change);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1471-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1472-void mmc_init_erase(struct mmc_card *card)
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1473-{
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1463- *	present card is still functional, and initialize any newly
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1464- *	inserted.
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1465- */
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1466-void mmc_detect_change(struct mmc_host *host, unsigned long delay)
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1467-{
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c:1468:	_mmc_detect_change(host, delay, true);
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1469-}
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1470-EXPORT_SYMBOL(mmc_detect_change);
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1471-
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1472-void mmc_init_erase(struct mmc_card *card)
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1473-{
 --
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2094-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2095-	return ret;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2096-}
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2097-EXPORT_SYMBOL(mmc_sw_reset);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2098-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c:2099:static int mmc_rescan_try_freq(struct mmc_host *host, unsigned freq)
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2100-{
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2101-	host->f_init = freq;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2102-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2103-	pr_debug("%s: %s: trying to init card at %u Hz\n",
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2104-		mmc_hostname(host), __func__, host->f_init);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2105-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c:2106:	mmc_power_up(host, host->ocr_avail);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2107-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2108-	/*
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2109-	 * Some eMMCs (with VCCQ always on) may not be reset after power up, so
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2110-	 * do a hardware reset if possible.
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2111-	 */
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2094-
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2095-	return ret;
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2096-}
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2097-EXPORT_SYMBOL(mmc_sw_reset);
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2098-
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c:2099:static int mmc_rescan_try_freq(struct mmc_host *host, unsigned freq)
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2100-{
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2101-	host->f_init = freq;
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2102-
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2103-	pr_debug("%s: %s: trying to init card at %u Hz\n",
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2104-		mmc_hostname(host), __func__, host->f_init);
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2105-
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c:2106:	mmc_power_up(host, host->ocr_avail);
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2107-
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2108-	/*
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2109-	 * Some eMMCs (with VCCQ always on) may not be reset after power up, so
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2110-	 * do a hardware reset if possible.
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2111-	 */
 --
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2118-	 * Skip it if we already know that we do not support SDIO commands
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2119-	 */
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2120-	if (!(host->caps2 & MMC_CAP2_NO_SDIO))
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2121-		sdio_reset(host);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2122-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c:2123:	mmc_go_idle(host);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2124-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2125-	if (!(host->caps2 & MMC_CAP2_NO_SD)) {
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2126-		if (mmc_send_if_cond_pcie(host, host->ocr_avail))
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2127-			goto out;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2128-		if (mmc_card_sd_express(host))
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2118-	 * Skip it if we already know that we do not support SDIO commands
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2119-	 */
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2120-	if (!(host->caps2 & MMC_CAP2_NO_SDIO))
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2121-		sdio_reset(host);
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2122-
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c:2123:	mmc_go_idle(host);
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2124-
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2125-	if (!(host->caps2 & MMC_CAP2_NO_SD)) {
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2126-		if (mmc_send_if_cond_pcie(host, host->ocr_avail))
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2127-			goto out;
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2128-		if (mmc_card_sd_express(host))
 --
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2137-	if (!(host->caps2 & MMC_CAP2_NO_SD))
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2138-		if (!mmc_attach_sd(host))
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2139-			return 0;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2140-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2141-	if (!(host->caps2 & MMC_CAP2_NO_MMC))
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c:2142:		if (!mmc_attach_mmc(host))
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2143-			return 0;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2144-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2145-out:
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2146-	mmc_power_off(host);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2147-	return -EIO;
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2137-	if (!(host->caps2 & MMC_CAP2_NO_SD))
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2138-		if (!mmc_attach_sd(host))
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2139-			return 0;
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2140-
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2141-	if (!(host->caps2 & MMC_CAP2_NO_MMC))
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c:2142:		if (!mmc_attach_mmc(host))
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2143-			return 0;
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2144-
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2145-out:
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2146-	mmc_power_off(host);
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2147-	return -EIO;
 --
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2204-			/*
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2205-			 * Schedule a detect work as soon as possible to let a
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2206-			 * rescan handle the card removal.
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2207-			 */
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2208-			cancel_delayed_work(&host->detect);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c:2209:			_mmc_detect_change(host, 0, false);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2210-		}
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2211-	}
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2212-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2213-	return ret;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2214-}
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2204-			/*
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2205-			 * Schedule a detect work as soon as possible to let a
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2206-			 * rescan handle the card removal.
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2207-			 */
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2208-			cancel_delayed_work(&host->detect);
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c:2209:			_mmc_detect_change(host, 0, false);
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2210-		}
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2211-	}
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2212-
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2213-	return ret;
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2214-}
 --
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2311-		if (freq > host->f_max) {
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2312-			if (i + 1 < ARRAY_SIZE(freqs))
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2313-				continue;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2314-			freq = host->f_max;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2315-		}
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c:2316:		if (!mmc_rescan_try_freq(host, max(freq, host->f_min)))
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2317-			break;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2318-		if (freqs[i] <= host->f_min)
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2319-			break;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2320-	}
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2321-
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2311-		if (freq > host->f_max) {
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2312-			if (i + 1 < ARRAY_SIZE(freqs))
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2313-				continue;
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2314-			freq = host->f_max;
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2315-		}
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c:2316:		if (!mmc_rescan_try_freq(host, max(freq, host->f_min)))
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2317-			break;
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2318-		if (freqs[i] <= host->f_min)
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2319-			break;
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2320-	}
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2321-
 --
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2334- out:
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2335-	if (host->caps & MMC_CAP_NEEDS_POLL)
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2336-		mmc_schedule_delayed_work(&host->detect, HZ);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2337-}
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2338-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c:2339:void mmc_start_host(struct mmc_host *host)
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2340-{
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2341-	bool power_up = !(host->caps2 &
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2342-			 (MMC_CAP2_NO_PRESCAN_POWERUP | MMC_CAP2_SD_UHS2));
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2343-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2344-	host->f_init = max(min(freqs[0], host->f_max), host->f_min);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2345-	host->rescan_disable = 0;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2346-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2347-	if (power_up) {
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2348-		mmc_claim_host(host);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c:2349:		mmc_power_up(host, host->ocr_avail);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2350-		mmc_release_host(host);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2351-	}
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2352-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2353-	mmc_gpiod_request_cd_irq(host);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c:2354:	_mmc_detect_change(host, 0, false);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2355-}
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2356-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2357-void __mmc_stop_host(struct mmc_host *host)
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2358-{
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2359-	if (host->rescan_disable)
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2334- out:
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2335-	if (host->caps & MMC_CAP_NEEDS_POLL)
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2336-		mmc_schedule_delayed_work(&host->detect, HZ);
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2337-}
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2338-
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c:2339:void mmc_start_host(struct mmc_host *host)
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2340-{
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2341-	bool power_up = !(host->caps2 &
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2342-			 (MMC_CAP2_NO_PRESCAN_POWERUP | MMC_CAP2_SD_UHS2));
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2343-
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2344-	host->f_init = max(min(freqs[0], host->f_max), host->f_min);
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2345-	host->rescan_disable = 0;
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2346-
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2347-	if (power_up) {
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2348-		mmc_claim_host(host);
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c:2349:		mmc_power_up(host, host->ocr_avail);
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2350-		mmc_release_host(host);
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2351-	}
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2352-
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2353-	mmc_gpiod_request_cd_irq(host);
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c:2354:	_mmc_detect_change(host, 0, false);
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2355-}
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2356-
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2357-void __mmc_stop_host(struct mmc_host *host)
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2358-{
+~/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2359-	if (host->rescan_disable)
 
 [current_gemini_board_contract]
 214-+

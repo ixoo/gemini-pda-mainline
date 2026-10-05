@@ -27,7 +27,7 @@ upstream boundary.
 
 ## Provenance and safety
 
-- Live device: `gemini@192.168.1.50`, Gemian, kernel `3.18.41+`, model `MT6797X`.
+- Live device: `gemini@GEMIAN_HOST`, Gemian, kernel `3.18.41+`, model `MT6797X`.
 - Live collector: [`collect-live-connectivity.sh`](scripts/collect-live-connectivity.sh).
 - Sanitized result: [`results/runtime-summary.txt`](results/runtime-summary.txt).
 - Read-only rerun (2026-07-13), including current platform bindings and IRQ
@@ -142,7 +142,7 @@ two direct VM runs and can be regenerated with:
 
 ```sh
 ./scripts/dev-vm run bash -lc \
-  'CURRENT_PACKAGE=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-b7721ab55e41 \
+  'CURRENT_PACKAGE=~/artifacts/gemini-pda/linux-7.1.3-gemini-b7721ab55e41 \
    experiments/2026-07-12-connectivity-wmt-recovery/scripts/audit-current-package-connectivity.sh'
 ```
 The earlier 70-patch and 61-patch records remain historical at

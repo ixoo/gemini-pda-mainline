@@ -59,9 +59,9 @@ installer_expected_predecessor_sha256=5c044fc3d2ccecf399d6ccb058f354b43e9d14b3fb
 Independent construction
 ------------------------
 
-artifact_a=/home/julien.guest/artifacts/boot-candidates-photon-r2/candidate-Photon-r2-da9214-rx-sentinel-75b9081c
-artifact_b=/home/julien.guest/artifacts/boot-candidates-photon-r2-repro/candidate-Photon-r2-da9214-rx-sentinel-75b9081c
-artifact_calibrated=/home/julien.guest/artifacts/boot-candidates-photon-r2-calibrated/candidate-Photon-r2-da9214-rx-sentinel-75b9081c
+artifact_a=~/artifacts/boot-candidates-photon-r2/candidate-Photon-r2-da9214-rx-sentinel-75b9081c
+artifact_b=~/artifacts/boot-candidates-photon-r2-repro/candidate-Photon-r2-da9214-rx-sentinel-75b9081c
+artifact_calibrated=~/artifacts/boot-candidates-photon-r2-calibrated/candidate-Photon-r2-da9214-rx-sentinel-75b9081c
 complete_member_count=20
 complete_file_bytes=identical
 complete_file_modes=identical
@@ -85,7 +85,7 @@ Installer validation
 
 installer_derivation=exact-Cassini-installer-foundation
 accepted_live_predecessor=only-exact-Photon-r0
-accepted_target=gemini@192.168.1.50
+accepted_target=gemini@GEMIAN_HOST
 logical_target=live-GPT-resolved-boot2
 sole_target_write=one-bounded-16MiB-boot2-write
 battery_policy=present-health-Good-capacity-81..100

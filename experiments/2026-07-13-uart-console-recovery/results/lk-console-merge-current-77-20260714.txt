@@ -1,7 +1,7 @@
 validation=static-lk-mainline-console-merge
 package=linux-7.1.3-gemini-b7721ab55e41
 patchset_entries=77
-candidate_path=guest:/home/julien.guest/artifacts/boot-candidates/20260714-77-diagnostics3/linux-7.1.3-gemini-b7721ab55e41.boot.img
+candidate_path=guest:~/artifacts/boot-candidates/20260714-77-diagnostics3/linux-7.1.3-gemini-b7721ab55e41.boot.img
 candidate_sha256=4d1a45c3f1bd4b58bb823fe2076a9d8be00346e436cb3b7cf004c9e4e3c76b81
 candidate_header_cmdline=bootopt=64S3,32N2,64N2_console=ttyS0,921600n8_earlycon=uart8250,mmio32,0x11002000_root=/dev/ram0_rw
 lk_source_revision=f4988d74bb70a0a15d7f362f412afba7e7fcda46

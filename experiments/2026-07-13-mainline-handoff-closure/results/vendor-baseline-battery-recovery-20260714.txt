@@ -1,6 +1,6 @@
 validation=gemini-vendor-baseline-runtime-battery-recovery
 generated_utc=2026-07-14T16:23:13Z
-target=gemini@192.168.1.50
+target=gemini@GEMIAN_HOST
 capture_kind=vendor-baseline
 collector=experiments/2026-07-13-mainline-handoff-closure/scripts/collect-mainline-runtime-evidence.sh
 collector_sha256=8c5d96eeefc137226ea11bc9bc6dc93f8c9f46ac38052dfb645bbc16ad10c642

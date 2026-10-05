@@ -128,7 +128,7 @@ write/readback gates.
 
    ```sh
    ./scripts/collect-device-pstore \
-     --target gemini@192.168.1.50 \
+     --target gemini@GEMIAN_HOST \
      --wait-for-cycle --ask-sudo-password \
      --output artifacts/device-pstore/candidate-M-runtime-1
    ```

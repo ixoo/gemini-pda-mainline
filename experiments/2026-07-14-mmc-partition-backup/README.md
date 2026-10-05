@@ -19,7 +19,7 @@ its SHA-256 is recorded in `MANIFEST.tsv`.
 
 The command requires explicit `--all --confirm-read` flags. A dry run is
 available before any bytes are copied. The authorized capture used the device
-at `gemini@192.168.1.50` and a transient sudo password read from stdin; no
+at `gemini@GEMIAN_HOST` and a transient sudo password read from stdin; no
 credential was saved in the repository.
 
 ## Capture result

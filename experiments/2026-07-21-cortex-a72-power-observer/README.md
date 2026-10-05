@@ -208,7 +208,7 @@ mode-0600 Gemini key, inactive-root/unmounted/no-swap/no-holder checks, stable
 external power plus full healthy battery, full private backup and checksum,
 exact-match skip, one bounded 16 MiB write, sync/flush/full readback, and no
 reboot or slot selection. Invoke it only for the named
-`gemini@192.168.1.50` recovery target and a new direct child of the ignored
+`gemini@GEMIAN_HOST` recovery target and a new direct child of the ignored
 `artifacts/device-partitions/` directory.
 
 ## Observations

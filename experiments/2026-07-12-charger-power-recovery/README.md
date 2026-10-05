@@ -99,7 +99,7 @@ Run the device collector only through the authorized private SSH path:
 ```sh
 ssh -i artifacts/credentials/gemini_ed25519 \
   -o IdentitiesOnly=yes -o IdentityAgent=none -o BatchMode=yes \
-  gemini@192.168.1.50 'bash -s' \
+  gemini@GEMIAN_HOST 'bash -s' \
   < experiments/2026-07-12-charger-power-recovery/scripts/collect-live-charger.sh \
   > artifacts/device-inventory/20260712-live/charger-power.txt
 ```

@@ -15,9 +15,9 @@ hardware_write=none
 
 [raw_audit_output]
 validation=mt6797-dtb-schema-bounded
-package=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa
-source=/home/julien.guest/src/gemini-pda/linux-7.1.3
-schema=/home/julien.guest/build/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/processed-schema.json
+package=~/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa
+source=~/src/gemini-pda/linux-7.1.3
+schema=~/build/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/processed-schema.json
 schema_sha256=15853d383c99cc0969423102240cde2c5755f09f28fa1799789f4bd5bcbf0f4e
 dt_validate=2026.6
 

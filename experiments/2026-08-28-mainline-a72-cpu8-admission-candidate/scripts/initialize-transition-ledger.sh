@@ -6,7 +6,7 @@ set -euo pipefail
 export LC_ALL=C
 umask 077
 
-readonly EXPECTED_TARGET=gemini@192.168.1.50
+readonly EXPECTED_TARGET=gemini@GEMIAN_HOST
 readonly EXPECTED_PREFIX_SHA256=b54428eae30bf9e947b8a16941e5e54eaddadc97579805bd555272a0115e497c
 readonly EXPECTED_HEADER='1128743492 130 130'
 readonly BASE_ADDRESS=1145110528
@@ -15,7 +15,7 @@ readonly VALIDATOR_SHA256=cefe3d19ad05c4facbdff7725667c33105d5d714c9d6b32d5ba993
 
 die() { printf 'error: %s\n' "$*" >&2; exit 2; }
 usage() {
-	printf 'usage: %s --target gemini@192.168.1.50 --evidence-dir artifacts/device-install-evidence/a72-admission-ledger-init-1\n' "$0" >&2
+	printf 'usage: %s --target gemini@GEMIAN_HOST --evidence-dir artifacts/device-install-evidence/a72-admission-ledger-init-1\n' "$0" >&2
 }
 
 target=

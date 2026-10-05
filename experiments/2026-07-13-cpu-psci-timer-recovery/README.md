@@ -23,7 +23,7 @@ must remain disabled until their firmware semantics are proven.
 ## Provenance and environment
 
 - Live kernel: Linux `3.18.41+`, AArch64, Gemian Debian 9 userspace.
-- Live device: `gemini@192.168.1.50` over the owner's private LAN.
+- Live device: `gemini@GEMIAN_HOST` over the owner's private LAN.
 - Private raw capture: `artifacts/device-inventory/20260713-live/cpu-psci-timer.txt`
   (Git-ignored, mode 0600).
 - Vendor source: Planet MT6797 tree commit
@@ -61,7 +61,7 @@ From the repository root:
 mkdir -p artifacts/device-inventory/20260713-live
 ssh -i artifacts/credentials/gemini_ed25519 \
   -o IdentitiesOnly=yes -o IdentityAgent=none -o BatchMode=yes \
-  gemini@192.168.1.50 'bash -s' \
+  gemini@GEMIAN_HOST 'bash -s' \
   < experiments/2026-07-13-cpu-psci-timer-recovery/scripts/collect-live-cpu-psci-timer.sh \
   > artifacts/device-inventory/20260713-live/cpu-psci-timer.txt
 chmod 700 artifacts/device-inventory/20260713-live

@@ -1,6 +1,6 @@
-vendor_tree=/home/julien.guest/src/reference/planet-mt6797-3.18
+vendor_tree=~/src/reference/planet-mt6797-3.18
 vendor_commit=c5b0be85017ad0c599725e8273842efdbecdd88a
-linux_tree=/home/julien.guest/src/gemini-pda/linux-7.1.3
+linux_tree=~/src/gemini-pda/linux-7.1.3
 linux_commit=unknown
 patch_series_count=72
 patchset_sha256=363bf3942a1b08144a47a27e11a3c1f6075b0e160bcf78b33843fb7b89f39ba9
@@ -22,7 +22,7 @@ linux.Documentation/devicetree/bindings/timer/arm,arch_timer.yaml=871cee8c725186
 linux.Documentation/devicetree/bindings/arm/psci.yaml=246be7d27430b1c5ef6917dd9b4ce19f679df6e888c2913aebd49e89065bab93
 
 [prepared Linux 7.1.3 Gemini DTB validation]
-build=/home/julien.guest/build/gemini-pda/linux-7.1.3
+build=~/build/gemini-pda/linux-7.1.3
 dtb=arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dtb
 dtb_sha256=dbbf94f09b3dd8b001440a0662f7980a673e77bd3108c1c5d9582f3d9a827241
 config_sha256=7a0f3243391db2ee8b56f031f88569ff604618b7030c78b4466b175a226c8f7e
@@ -600,363 +600,363 @@ arch/arm64/boot/dts/thunder-88xx.dtsi:355:	timer {
 arch/arm64/boot/dts/thunder-88xx.dtsi:356:		compatible = "arm,armv8-timer";
 
 [Linux 7.1.3 generic PSCI/timer contracts]
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-76-				(PSCI_1_0_EXT_POWER_STATE_ID_MASK | \
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-77-				PSCI_1_0_EXT_POWER_STATE_TYPE_MASK)
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-78-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:79:static u32 psci_cpu_suspend_feature;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-80-static bool psci_system_reset2_supported;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-81-static bool psci_system_off2_hibernate_supported;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-82-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-83-static inline bool psci_has_ext_power_state(void)
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-84-{
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:85:	return psci_cpu_suspend_feature &
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-86-				PSCI_1_0_FEATURES_CPU_SUSPEND_PF_MASK;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-87-}
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-88-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-89-bool psci_has_osi_support(void)
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-90-{
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:91:	return psci_cpu_suspend_feature & PSCI_1_0_OS_INITIATED;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-92-}
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-93-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-94-static inline bool psci_power_state_loses_context(u32 state)
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-76-				(PSCI_1_0_EXT_POWER_STATE_ID_MASK | \
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-77-				PSCI_1_0_EXT_POWER_STATE_TYPE_MASK)
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-78-
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:79:static u32 psci_cpu_suspend_feature;
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-80-static bool psci_system_reset2_supported;
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-81-static bool psci_system_off2_hibernate_supported;
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-82-
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-83-static inline bool psci_has_ext_power_state(void)
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-84-{
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:85:	return psci_cpu_suspend_feature &
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-86-				PSCI_1_0_FEATURES_CPU_SUSPEND_PF_MASK;
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-87-}
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-88-
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-89-bool psci_has_osi_support(void)
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-90-{
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:91:	return psci_cpu_suspend_feature & PSCI_1_0_OS_INITIATED;
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-92-}
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-93-
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-94-static inline bool psci_power_state_loses_context(u32 state)
 --
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-174-}
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-175-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-176-static __always_inline int
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:177:__psci_cpu_suspend(u32 fn, u32 state, unsigned long entry_point)
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-178-{
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-179-	int err;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-180-
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-174-}
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-175-
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-176-static __always_inline int
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:177:__psci_cpu_suspend(u32 fn, u32 state, unsigned long entry_point)
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-178-{
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-179-	int err;
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-180-
 --
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-183-}
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-184-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-185-static __always_inline int
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:186:psci_0_1_cpu_suspend(u32 state, unsigned long entry_point)
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-187-{
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:188:	return __psci_cpu_suspend(psci_0_1_function_ids.cpu_suspend,
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-189-				  state, entry_point);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-190-}
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-191-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-192-static __always_inline int
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:193:psci_0_2_cpu_suspend(u32 state, unsigned long entry_point)
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-194-{
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:195:	return __psci_cpu_suspend(PSCI_FN_NATIVE(0_2, CPU_SUSPEND),
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-196-				  state, entry_point);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-197-}
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-198-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:199:static int __psci_cpu_off(u32 fn, u32 state)
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-200-{
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-201-	int err;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-202-
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-183-}
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-184-
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-185-static __always_inline int
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:186:psci_0_1_cpu_suspend(u32 state, unsigned long entry_point)
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-187-{
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:188:	return __psci_cpu_suspend(psci_0_1_function_ids.cpu_suspend,
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-189-				  state, entry_point);
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-190-}
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-191-
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-192-static __always_inline int
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:193:psci_0_2_cpu_suspend(u32 state, unsigned long entry_point)
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-194-{
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:195:	return __psci_cpu_suspend(PSCI_FN_NATIVE(0_2, CPU_SUSPEND),
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-196-				  state, entry_point);
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-197-}
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-198-
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:199:static int __psci_cpu_off(u32 fn, u32 state)
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-200-{
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-201-	int err;
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-202-
 --
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-204-	return psci_to_linux_errno(err);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-205-}
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-206-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:207:static int psci_0_1_cpu_off(u32 state)
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-208-{
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:209:	return __psci_cpu_off(psci_0_1_function_ids.cpu_off, state);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-210-}
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-211-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:212:static int psci_0_2_cpu_off(u32 state)
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-213-{
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:214:	return __psci_cpu_off(PSCI_0_2_FN_CPU_OFF, state);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-215-}
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-216-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:217:static int __psci_cpu_on(u32 fn, unsigned long cpuid, unsigned long entry_point)
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-218-{
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-219-	int err;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-220-
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-204-	return psci_to_linux_errno(err);
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-205-}
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-206-
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:207:static int psci_0_1_cpu_off(u32 state)
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-208-{
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:209:	return __psci_cpu_off(psci_0_1_function_ids.cpu_off, state);
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-210-}
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-211-
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:212:static int psci_0_2_cpu_off(u32 state)
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-213-{
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:214:	return __psci_cpu_off(PSCI_0_2_FN_CPU_OFF, state);
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-215-}
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-216-
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:217:static int __psci_cpu_on(u32 fn, unsigned long cpuid, unsigned long entry_point)
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-218-{
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-219-	int err;
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-220-
 --
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-222-	return psci_to_linux_errno(err);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-223-}
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-224-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:225:static int psci_0_1_cpu_on(unsigned long cpuid, unsigned long entry_point)
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-226-{
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:227:	return __psci_cpu_on(psci_0_1_function_ids.cpu_on, cpuid, entry_point);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-228-}
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-229-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:230:static int psci_0_2_cpu_on(unsigned long cpuid, unsigned long entry_point)
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-231-{
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:232:	return __psci_cpu_on(PSCI_FN_NATIVE(0_2, CPU_ON), cpuid, entry_point);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-233-}
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-234-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-235-static int __psci_migrate(u32 fn, unsigned long cpuid)
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-222-	return psci_to_linux_errno(err);
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-223-}
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-224-
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:225:static int psci_0_1_cpu_on(unsigned long cpuid, unsigned long entry_point)
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-226-{
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:227:	return __psci_cpu_on(psci_0_1_function_ids.cpu_on, cpuid, entry_point);
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-228-}
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-229-
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:230:static int psci_0_2_cpu_on(unsigned long cpuid, unsigned long entry_point)
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-231-{
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:232:	return __psci_cpu_on(PSCI_FN_NATIVE(0_2, CPU_ON), cpuid, entry_point);
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-233-}
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-234-
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-235-static int __psci_migrate(u32 fn, unsigned long cpuid)
 --
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-250-	return __psci_migrate(PSCI_FN_NATIVE(0_2, MIGRATE), cpuid);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-251-}
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-252-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:253:static int psci_affinity_info(unsigned long target_affinity,
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-254-		unsigned long lowest_affinity_level)
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-255-{
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-256-	return invoke_psci_fn(PSCI_FN_NATIVE(0_2, AFFINITY_INFO),
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-250-	return __psci_migrate(PSCI_FN_NATIVE(0_2, MIGRATE), cpuid);
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-251-}
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-252-
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:253:static int psci_affinity_info(unsigned long target_affinity,
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-254-		unsigned long lowest_affinity_level)
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-255-{
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-256-	return invoke_psci_fn(PSCI_FN_NATIVE(0_2, AFFINITY_INFO),
 --
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-495-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-496-	pa_cpu_resume = __pa_symbol_nodebug((unsigned long)cpu_resume);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-497-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:498:	return psci_ops.cpu_suspend(power_state, pa_cpu_resume);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-499-}
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-500-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:501:int psci_cpu_suspend_enter(u32 state)
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-502-{
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-503-	int ret;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-504-
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-495-
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-496-	pa_cpu_resume = __pa_symbol_nodebug((unsigned long)cpu_resume);
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-497-
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:498:	return psci_ops.cpu_suspend(power_state, pa_cpu_resume);
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-499-}
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-500-
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:501:int psci_cpu_suspend_enter(u32 state)
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-502-{
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-503-	int ret;
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-504-
 --
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-507-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-508-		ct_cpuidle_enter();
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-509-		arm_cpuidle_save_irq_context(&context);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:510:		ret = psci_ops.cpu_suspend(state, 0);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-511-		arm_cpuidle_restore_irq_context(&context);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-512-		ct_cpuidle_exit();
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-513-	} else {
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-514-		/*
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:515:		 * ARM64 cpu_suspend() wants to do ct_cpuidle_*() itself.
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-516-		 */
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-517-		if (!IS_ENABLED(CONFIG_ARM64))
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-518-			ct_cpuidle_enter();
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-519-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:520:		ret = cpu_suspend(state, psci_suspend_finisher);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-521-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-522-		if (!IS_ENABLED(CONFIG_ARM64))
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-523-			ct_cpuidle_exit();
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-507-
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-508-		ct_cpuidle_enter();
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-509-		arm_cpuidle_save_irq_context(&context);
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:510:		ret = psci_ops.cpu_suspend(state, 0);
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-511-		arm_cpuidle_restore_irq_context(&context);
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-512-		ct_cpuidle_exit();
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-513-	} else {
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-514-		/*
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:515:		 * ARM64 cpu_suspend() wants to do ct_cpuidle_*() itself.
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-516-		 */
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-517-		if (!IS_ENABLED(CONFIG_ARM64))
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-518-			ct_cpuidle_enter();
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-519-
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:520:		ret = cpu_suspend(state, psci_suspend_finisher);
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-521-
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-522-		if (!IS_ENABLED(CONFIG_ARM64))
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-523-			ct_cpuidle_exit();
 --
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-541-{
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-542-	pm_set_resume_via_firmware();
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-543-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:544:	return cpu_suspend(0, psci_system_suspend);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-545-}
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-546-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-547-static int psci_system_suspend_begin(suspend_state_t state)
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-541-{
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-542-	pm_set_resume_via_firmware();
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-543-
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:544:	return cpu_suspend(0, psci_system_suspend);
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-545-}
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-546-
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-547-static int psci_system_suspend_begin(suspend_state_t state)
 --
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-592-		suspend_set_ops(&psci_suspend_ops);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-593-}
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-594-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:595:static void __init psci_init_cpu_suspend(void)
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-596-{
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-597-	int feature = psci_features(PSCI_FN_NATIVE(0_2, CPU_SUSPEND));
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-598-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-599-	if (feature != PSCI_RET_NOT_SUPPORTED)
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:600:		psci_cpu_suspend_feature = feature;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-601-}
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-602-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-603-/*
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-592-		suspend_set_ops(&psci_suspend_ops);
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-593-}
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-594-
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:595:static void __init psci_init_cpu_suspend(void)
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-596-{
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-597-	int feature = psci_features(PSCI_FN_NATIVE(0_2, CPU_SUSPEND));
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-598-
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-599-	if (feature != PSCI_RET_NOT_SUPPORTED)
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:600:		psci_cpu_suspend_feature = feature;
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-601-}
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-602-
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-603-/*
 --
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-671-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-672-	psci_ops = (struct psci_operations){
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-673-		.get_version = psci_0_2_get_version,
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:674:		.cpu_suspend = psci_0_2_cpu_suspend,
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:675:		.cpu_off = psci_0_2_cpu_off,
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:676:		.cpu_on = psci_0_2_cpu_on,
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-677-		.migrate = psci_0_2_migrate,
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:678:		.affinity_info = psci_affinity_info,
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-679-		.migrate_info_type = psci_migrate_info_type,
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-680-	};
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-681-
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-671-
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-672-	psci_ops = (struct psci_operations){
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-673-		.get_version = psci_0_2_get_version,
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:674:		.cpu_suspend = psci_0_2_cpu_suspend,
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:675:		.cpu_off = psci_0_2_cpu_off,
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:676:		.cpu_on = psci_0_2_cpu_on,
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-677-		.migrate = psci_0_2_migrate,
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:678:		.affinity_info = psci_affinity_info,
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-679-		.migrate_info_type = psci_migrate_info_type,
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-680-	};
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-681-
 --
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-706-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-707-	if (PSCI_VERSION_MAJOR(ver) >= 1) {
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-708-		psci_init_smccc();
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:709:		psci_init_cpu_suspend();
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-710-		psci_init_system_suspend();
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-711-		psci_init_system_reset2();
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-712-		psci_init_system_off2();
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-706-
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-707-	if (PSCI_VERSION_MAJOR(ver) >= 1) {
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-708-		psci_init_smccc();
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:709:		psci_init_cpu_suspend();
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-710-		psci_init_system_suspend();
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-711-		psci_init_system_reset2();
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-712-		psci_init_system_off2();
 --
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-757-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-758-	psci_ops.get_version = psci_0_1_get_version;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-759-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:760:	if (!of_property_read_u32(np, "cpu_suspend", &id)) {
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:761:		psci_0_1_function_ids.cpu_suspend = id;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:762:		psci_ops.cpu_suspend = psci_0_1_cpu_suspend;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-763-	}
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-764-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:765:	if (!of_property_read_u32(np, "cpu_off", &id)) {
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:766:		psci_0_1_function_ids.cpu_off = id;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:767:		psci_ops.cpu_off = psci_0_1_cpu_off;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-768-	}
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-769-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:770:	if (!of_property_read_u32(np, "cpu_on", &id)) {
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:771:		psci_0_1_function_ids.cpu_on = id;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:772:		psci_ops.cpu_on = psci_0_1_cpu_on;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-773-	}
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-774-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-775-	if (!of_property_read_u32(np, "migrate", &id)) {
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-757-
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-758-	psci_ops.get_version = psci_0_1_get_version;
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-759-
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:760:	if (!of_property_read_u32(np, "cpu_suspend", &id)) {
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:761:		psci_0_1_function_ids.cpu_suspend = id;
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:762:		psci_ops.cpu_suspend = psci_0_1_cpu_suspend;
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-763-	}
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-764-
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:765:	if (!of_property_read_u32(np, "cpu_off", &id)) {
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:766:		psci_0_1_function_ids.cpu_off = id;
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:767:		psci_ops.cpu_off = psci_0_1_cpu_off;
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-768-	}
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-769-
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:770:	if (!of_property_read_u32(np, "cpu_on", &id)) {
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:771:		psci_0_1_function_ids.cpu_on = id;
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:772:		psci_ops.cpu_on = psci_0_1_cpu_on;
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-773-	}
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-774-
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-775-	if (!of_property_read_u32(np, "migrate", &id)) {
 --
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-800-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-801-static const struct of_device_id psci_of_match[] __initconst = {
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-802-	{ .compatible = "arm,psci",	.data = psci_0_1_init},
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:803:	{ .compatible = "arm,psci-0.2",	.data = psci_0_2_init},
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-804-	{ .compatible = "arm,psci-1.0",	.data = psci_1_0_init},
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-805-	{},
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-806-};
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-800-
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-801-static const struct of_device_id psci_of_match[] __initconst = {
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-802-	{ .compatible = "arm,psci",	.data = psci_0_1_init},
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c:803:	{ .compatible = "arm,psci-0.2",	.data = psci_0_2_init},
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-804-	{ .compatible = "arm,psci-1.0",	.data = psci_1_0_init},
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-805-	{},
+~/src/gemini-pda/linux-7.1.3/drivers/firmware/psci/psci.c-806-};
 --
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-15-  physical and optional virtual timer per frame.
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-16-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-17-  The per-core architected timer is attached to a GIC to deliver its
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml:18:  per-processor interrupts via PPIs. The memory mapped timer is attached to a GIC
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml:19:  to deliver its interrupts via SPIs.
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-20-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-21-properties:
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-22-  compatible:
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-15-  physical and optional virtual timer per frame.
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-16-
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-17-  The per-core architected timer is attached to a GIC to deliver its
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml:18:  per-processor interrupts via PPIs. The memory mapped timer is attached to a GIC
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml:19:  to deliver its interrupts via SPIs.
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-20-
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-21-properties:
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-22-  compatible:
 --
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-27-      - items:
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-28-          - enum:
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-29-              - arm,armv7-timer
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml:30:              - arm,armv8-timer
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-31-      - items:
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml:32:          - const: arm,armv8-timer
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-33-          - const: arm,armv7-timer
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-34-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml:35:  interrupts:
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-36-    minItems: 1
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-37-    items:
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-38-      - description: secure timer irq
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-27-      - items:
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-28-          - enum:
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-29-              - arm,armv7-timer
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml:30:              - arm,armv8-timer
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-31-      - items:
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml:32:          - const: arm,armv8-timer
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-33-          - const: arm,armv7-timer
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-34-
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml:35:  interrupts:
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-36-    minItems: 1
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-37-    items:
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-38-      - description: secure timer irq
 --
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-57-          - const: hyp-phys
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-58-          - const: hyp-virt
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-59-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml:60:  clock-frequency:
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-61-    description: The frequency of the main counter, in Hz. Should be present
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-62-      only where necessary to work around broken firmware which does not configure
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-63-      CNTFRQ on all CPUs to a uniform correct value. Use of this property is
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-57-          - const: hyp-phys
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-58-          - const: hyp-virt
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-59-
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml:60:  clock-frequency:
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-61-    description: The frequency of the main counter, in Hz. Should be present
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-62-      only where necessary to work around broken firmware which does not configure
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-63-      CNTFRQ on all CPUs to a uniform correct value. Use of this property is
 --
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-109-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-110-oneOf:
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-111-  - required:
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml:112:      - interrupts
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-113-  - required:
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml:114:      - interrupts-extended
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-115-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-116-examples:
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-117-  - |
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-118-    timer {
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-119-      compatible = "arm,cortex-a15-timer",
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-120-             "arm,armv7-timer";
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml:121:      interrupts = <1 13 0xf08>,
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-122-             <1 14 0xf08>,
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-123-             <1 11 0xf08>,
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-124-             <1 10 0xf08>;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml:125:      clock-frequency = <100000000>;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-126-    };
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-127-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-128-...
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-109-
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-110-oneOf:
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-111-  - required:
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml:112:      - interrupts
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-113-  - required:
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml:114:      - interrupts-extended
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-115-
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-116-examples:
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-117-  - |
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-118-    timer {
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-119-      compatible = "arm,cortex-a15-timer",
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-120-             "arm,armv7-timer";
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml:121:      interrupts = <1 13 0xf08>,
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-122-             <1 14 0xf08>,
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-123-             <1 11 0xf08>,
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-124-             <1 10 0xf08>;
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml:125:      clock-frequency = <100000000>;
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-126-    };
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-127-
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/timer/arm,arch_timer.yaml-128-...
 --
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-49-          list.
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-50-        minItems: 1
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-51-        items:
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml:52:          - const: arm,psci-0.2
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-53-          - const: arm,psci
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-54-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-55-      - description:
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-49-          list.
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-50-        minItems: 1
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-51-        items:
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml:52:          - const: arm,psci-0.2
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-53-          - const: arm,psci
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-54-
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-55-      - description:
 --
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-59-        minItems: 1
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-60-        items:
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-61-          - const: arm,psci-1.0
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml:62:          - const: arm,psci-0.2
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-63-          - const: arm,psci
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-64-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-65-  method:
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-59-        minItems: 1
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-60-        items:
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-61-          - const: arm,psci-1.0
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml:62:          - const: arm,psci-0.2
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-63-          - const: arm,psci
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-64-
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-65-  method:
 --
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-70-      # HVC #0, with the register assignments specified in this binding.
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-71-      - hvc
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-72-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml:73:  cpu_suspend:
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-74-    $ref: /schemas/types.yaml#/definitions/uint32
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-75-    description: Function ID for CPU_SUSPEND operation
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-76-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml:77:  cpu_off:
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-78-    $ref: /schemas/types.yaml#/definitions/uint32
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-79-    description: Function ID for CPU_OFF operation
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-80-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml:81:  cpu_on:
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-82-    $ref: /schemas/types.yaml#/definitions/uint32
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-83-    description: Function ID for CPU_ON operation
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-84-
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-70-      # HVC #0, with the register assignments specified in this binding.
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-71-      - hvc
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-72-
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml:73:  cpu_suspend:
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-74-    $ref: /schemas/types.yaml#/definitions/uint32
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-75-    description: Function ID for CPU_SUSPEND operation
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-76-
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml:77:  cpu_off:
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-78-    $ref: /schemas/types.yaml#/definitions/uint32
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-79-    description: Function ID for CPU_OFF operation
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-80-
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml:81:  cpu_on:
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-82-    $ref: /schemas/types.yaml#/definitions/uint32
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-83-    description: Function ID for CPU_ON operation
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-84-
 --
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-135-            const: arm,psci
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-136-    then:
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-137-      required:
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml:138:        - cpu_off
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml:139:        - cpu_on
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-140-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-141-additionalProperties: false
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-142-
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-135-            const: arm,psci
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-136-    then:
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-137-      required:
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml:138:        - cpu_off
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml:139:        - cpu_on
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-140-
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-141-additionalProperties: false
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-142-
 --
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-148-    psci {
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-149-      compatible      = "arm,psci";
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-150-      method          = "smc";
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml:151:      cpu_suspend     = <0x95c10000>;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml:152:      cpu_off         = <0x95c10001>;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml:153:      cpu_on          = <0x95c10002>;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-154-      migrate         = <0x95c10003>;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-155-    };
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-156-
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-148-    psci {
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-149-      compatible      = "arm,psci";
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-150-      method          = "smc";
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml:151:      cpu_suspend     = <0x95c10000>;
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml:152:      cpu_off         = <0x95c10001>;
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml:153:      cpu_on          = <0x95c10002>;
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-154-      migrate         = <0x95c10003>;
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-155-    };
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-156-
 --
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-159-    // Case 2: PSCI v0.2 only
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-160-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-161-    psci {
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml:162:      compatible      = "arm,psci-0.2";
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-163-      method          = "smc";
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-164-    };
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-165-
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-159-    // Case 2: PSCI v0.2 only
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-160-
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-161-    psci {
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml:162:      compatible      = "arm,psci-0.2";
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-163-      method          = "smc";
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-164-    };
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-165-
 --
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-175-     */
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-176-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-177-    psci {
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml:178:      compatible = "arm,psci-0.2", "arm,psci";
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-179-      method = "hvc";
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-180-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml:181:      cpu_on = <0x95c10002>;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml:182:      cpu_off = <0x95c10001>;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-183-    };
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-184-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-185-  - |+
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-175-     */
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-176-
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-177-    psci {
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml:178:      compatible = "arm,psci-0.2", "arm,psci";
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-179-      method = "hvc";
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-180-
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml:181:      cpu_on = <0x95c10002>;
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml:182:      cpu_off = <0x95c10001>;
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-183-    };
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-184-
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-185-  - |+
 --
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-194-        device_type = "cpu";
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-195-        compatible = "arm,cortex-a53";
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-196-        reg = <0x0>;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml:197:        enable-method = "psci";
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-198-        power-domains = <&cpu_pd0>;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-199-        power-domain-names = "psci";
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-200-      };
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-194-        device_type = "cpu";
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-195-        compatible = "arm,cortex-a53";
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-196-        reg = <0x0>;
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml:197:        enable-method = "psci";
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-198-        power-domains = <&cpu_pd0>;
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-199-        power-domain-names = "psci";
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-200-      };
 --
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-203-        device_type = "cpu";
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-204-        compatible = "arm,cortex-a53";
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-205-        reg = <0x100>;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml:206:        enable-method = "psci";
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-207-        power-domains = <&cpu_pd1>;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-208-        power-domain-names = "psci";
-/home/julien.guest/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-209-      };
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-203-        device_type = "cpu";
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-204-        compatible = "arm,cortex-a53";
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-205-        reg = <0x100>;
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml:206:        enable-method = "psci";
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-207-        power-domains = <&cpu_pd1>;
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-208-        power-domain-names = "psci";
+~/src/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/arm/psci.yaml-209-      };
 --
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-201- * less than 32 is the only way to confirm the value is correct, so clear the
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-202- * lower 5 bits to check whether the difference is greater than 32 or not.
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-203- * Theoretically the erratum should not occur more than twice in succession
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c:204: * when reading the system counter, but it is possible that some interrupts
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-205- * may lead to more than twice read errors, triggering the warning, so setting
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-206- * the number of retries far beyond the number of iterations the loop has been
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-207- * observed to take.
+~/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-201- * less than 32 is the only way to confirm the value is correct, so clear the
+~/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-202- * lower 5 bits to check whether the difference is greater than 32 or not.
+~/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-203- * Theoretically the erratum should not occur more than twice in succession
+~/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c:204: * when reading the system counter, but it is possible that some interrupts
+~/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-205- * may lead to more than twice read errors, triggering the warning, so setting
+~/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-206- * the number of retries far beyond the number of iterations the loop has been
+~/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-207- * observed to take.
 --
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-858-/*
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-859- * For historical reasons, when probing with DT we use whichever (non-zero)
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-860- * rate was probed first, and don't verify that others match. If the first node
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c:861: * probed has a clock-frequency property, this overrides the HW register.
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-862- */
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-863-static void __init arch_timer_of_configure_rate(u32 rate, struct device_node *np)
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-864-{
+~/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-858-/*
+~/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-859- * For historical reasons, when probing with DT we use whichever (non-zero)
+~/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-860- * rate was probed first, and don't verify that others match. If the first node
+~/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c:861: * probed has a clock-frequency property, this overrides the HW register.
+~/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-862- */
+~/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-863-static void __init arch_timer_of_configure_rate(u32 rate, struct device_node *np)
+~/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-864-{
 --
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-866-	if (arch_timer_rate)
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-867-		return;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-868-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c:869:	if (of_property_read_u32(np, "clock-frequency", &arch_timer_rate))
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-870-		arch_timer_rate = rate;
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-871-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-872-	/* Check the timer frequency. */
+~/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-866-	if (arch_timer_rate)
+~/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-867-		return;
+~/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-868-
+~/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c:869:	if (of_property_read_u32(np, "clock-frequency", &arch_timer_rate))
+~/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-870-		arch_timer_rate = rate;
+~/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-871-
+~/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-872-	/* Check the timer frequency. */
 --
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-1184-	return arch_timer_common_init();
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-1185-}
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-1186-TIMER_OF_DECLARE(armv7_arch_timer, "arm,armv7-timer", arch_timer_of_init);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c:1187:TIMER_OF_DECLARE(armv8_arch_timer, "arm,armv8-timer", arch_timer_of_init);
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-1188-
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-1189-#ifdef CONFIG_ACPI_GTDT
-/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-1190-static int __init arch_timer_acpi_init(struct acpi_table_header *table)
+~/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-1184-	return arch_timer_common_init();
+~/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-1185-}
+~/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-1186-TIMER_OF_DECLARE(armv7_arch_timer, "arm,armv7-timer", arch_timer_of_init);
+~/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c:1187:TIMER_OF_DECLARE(armv8_arch_timer, "arm,armv8-timer", arch_timer_of_init);
+~/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-1188-
+~/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-1189-#ifdef CONFIG_ACPI_GTDT
+~/src/gemini-pda/linux-7.1.3/drivers/clocksource/arm_arch_timer.c-1190-static int __init arch_timer_acpi_init(struct acpi_table_header *table)
 
 [Linux MT6797 CPU/timer DTS]
 24-		ovl-2l1 = &ovl1_2l;

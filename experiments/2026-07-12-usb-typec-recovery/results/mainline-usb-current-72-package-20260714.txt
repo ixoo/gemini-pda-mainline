@@ -14,12 +14,12 @@ hardware_write=none
 
 [captured_audit_output]
 validation=mt6797-usb-typec-current-package-audit
-package=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa
+package=~/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa
 package_image_sha256=3fb6ac3043dff85dc2b6e68a2bba26d36fedf748e6f7c1bf6b6630f87446be7c
 package_config_sha256=831289dd3b53c6cec09e6c614fd83d3ab5988a4c30090bf9ec172348ec9487d5
 package_dtb_sha256=b41580263940b47226e9819c97afbdaa9a35d4c721c471d2e8a0a3d597c553c5
 package_system_map_sha256=c883efb3c8b09166a0765017712ec79e182f929ee50b3907f0279384ab2a22b2
-linux_tree=/home/julien.guest/src/gemini-pda/linux-7.1.3
+linux_tree=~/src/gemini-pda/linux-7.1.3
 linux_version=7.1.3
 dtc_warning_lines=2
 
@@ -46,19 +46,19 @@ CONFIG_PHY_MTK_TPHY=y
 
 [packaged_usb_typec_modules]
 module=fusb301
-path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa/modules/lib/modules/7.1.3-gemini/kernel/drivers/usb/typec/fusb301.ko
+path=~/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa/modules/lib/modules/7.1.3-gemini/kernel/drivers/usb/typec/fusb301.ko
 sha256=b3a86a401ab6d7bb2c98ef8c1883e21b0754a47c7c209fb8d743ee58bb429b83
 module=fusb302
-path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa/modules/lib/modules/7.1.3-gemini/kernel/drivers/usb/typec/tcpm/fusb302.ko
+path=~/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa/modules/lib/modules/7.1.3-gemini/kernel/drivers/usb/typec/tcpm/fusb302.ko
 sha256=86a6b23683cc2d068d3c02b10b98e0bb987c03f07faf482d72541292c1c15cdf
 module=tcpci
-path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa/modules/lib/modules/7.1.3-gemini/kernel/drivers/usb/typec/tcpm/tcpci.ko
+path=~/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa/modules/lib/modules/7.1.3-gemini/kernel/drivers/usb/typec/tcpm/tcpci.ko
 sha256=469e68515aeda80c32fabdb4b86c58091cc982226a148afc6d57e111c88158b9
 module=tcpm
-path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa/modules/lib/modules/7.1.3-gemini/kernel/drivers/usb/typec/tcpm/tcpm.ko
+path=~/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa/modules/lib/modules/7.1.3-gemini/kernel/drivers/usb/typec/tcpm/tcpm.ko
 sha256=77c370fea2fdd3ebcdab0b7f78754a52e201a4666e9bc98460dd6e9c04001087
 module=typec
-path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa/modules/lib/modules/7.1.3-gemini/kernel/drivers/usb/typec/typec.ko
+path=~/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa/modules/lib/modules/7.1.3-gemini/kernel/drivers/usb/typec/typec.ko
 sha256=f2f31d9464814c902f0742762638858b9eff14b23998bc234fd1c245803d51ee
 module=mtu3
 path=absent

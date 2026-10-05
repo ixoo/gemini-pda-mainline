@@ -81,7 +81,7 @@ def cycle(runtime_status: str, native_status: str, runtime_mtime: str, native_mt
     external = {"valid": "exact-validated-companion", "invalid": "invalid-companion", "absent": "absent"}[native_status]
     return {
         "format_version": "2", "experiment": "2026-07-22-a72-reject-cpu8-request",
-        "candidate_label": "AJ", "target": "gemini@192.168.1.50",
+        "candidate_label": "AJ", "target": "gemini@GEMIAN_HOST",
         "identity_relative": "artifacts/credentials/gemini_ed25519",
         "ssh_batch_mode": "yes", "ssh_identities_only": "yes",
         "ssh_identity_agent": "none", "ssh_strict_host_key_checking": "yes",

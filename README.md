@@ -44,8 +44,8 @@ support.
 The [hardware support matrix](docs/HARDWARE_SUPPORT.md) owns current capability
 claims. Exact candidates, admission decisions and negative results live in
 [experiments](experiments/README.md). The [roadmap](docs/ROADMAP.md) owns the
-current work order and parallel delivery plan; the
-[workstream registry](project/workstreams.json) records responsibility and scope.
+current work order; it is kept under 200 lines, and everything else lives in
+the records it links.
 
 The project now separates safe development-system integration, A72/power
 research and upstream preparation. Independent display, connectivity and

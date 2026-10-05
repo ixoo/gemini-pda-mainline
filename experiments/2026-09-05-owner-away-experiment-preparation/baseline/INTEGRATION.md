@@ -4,7 +4,7 @@ The coordinator adopts the preparation packet from worker revision
 `ecb3436c1fb0f471a10bc0d23318a6dea14ca7cf`. Construction and independent
 offline candidate validation are complete. Preparation remains **preparing**;
 the candidate is **unselected**, with no custodian, installation or device
-admission. The [queue](../../../project/experiment-queue.json) and
+admission. The [queue](https://github.com/ixoo/gemini-pda-mainline/blob/164c2d3f/project/experiment-queue.json) and
 [session protocol](SESSION.md) retain those separate states.
 
 ## Evidence and correction review

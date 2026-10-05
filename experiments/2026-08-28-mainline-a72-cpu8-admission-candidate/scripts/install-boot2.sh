@@ -10,8 +10,8 @@ umask 077
 readonly SOURCE_SHA256=7f5bddb91bf38fb5de9cce5bde5c1aa7bac4a114a7619d25f49621fb715b912d
 readonly LEDGER_VALIDATOR_SHA256=cefe3d19ad05c4facbdff7725667c33105d5d714c9d6b32d5ba993d5fccd9e85
 readonly SHUTDOWN_HELPER_SHA256=35317e3533cb0c9b757e198b519fac8be0f88fa1f9e423c4e717fcabb276b833
-readonly EXPECTED_TARGET=gemini@192.168.1.50
-readonly DEVICE_ADDRESS=192.168.1.50
+readonly EXPECTED_TARGET=gemini@GEMIAN_HOST
+readonly DEVICE_ADDRESS=GEMIAN_HOST
 
 die() { printf 'error: %s\n' "$*" >&2; exit 2; }
 for command in awk chmod mktemp python3 rm sha256sum ssh stat tr; do

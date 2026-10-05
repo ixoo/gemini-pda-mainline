@@ -10,6 +10,13 @@
 /.state
 /hwparam.json
 
+# Credentials never belong in the tree
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+.env
+
 # Images, dumps, and firmware
 *.img
 *.bin

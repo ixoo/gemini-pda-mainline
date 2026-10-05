@@ -205,17 +205,17 @@ The two builds for this experiment use:
 DEV_VM_NAME=gemini-pda-build-recovery-20260717 \
   KERNEL_PROFILE=observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-reject-gate-cpu8-request \
   BUILD_MODULES=0 KERNEL_JOBS=8 \
-  GEMINI_SOURCE_ROOT=/home/julien.guest/src/candidate-aj-kernel-build1-20260722 \
-  GEMINI_BUILD_ROOT=/home/julien.guest/build/candidate-aj-kernel-build1-20260722 \
-  GEMINI_ARTIFACT_ROOT=/home/julien.guest/artifacts/candidate-aj-kernel-build1-20260722 \
+  GEMINI_SOURCE_ROOT=~/src/candidate-aj-kernel-build1-20260722 \
+  GEMINI_BUILD_ROOT=~/build/candidate-aj-kernel-build1-20260722 \
+  GEMINI_ARTIFACT_ROOT=~/artifacts/candidate-aj-kernel-build1-20260722 \
   ./scripts/dev-vm build-kernel
 
 DEV_VM_NAME=gemini-pda-build-recovery-20260717 \
   KERNEL_PROFILE=observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-reject-gate-cpu8-request \
   BUILD_MODULES=0 KERNEL_JOBS=8 \
-  GEMINI_SOURCE_ROOT=/home/julien.guest/src/candidate-aj-kernel-build2-20260722 \
-  GEMINI_BUILD_ROOT=/home/julien.guest/build/candidate-aj-kernel-build2-20260722 \
-  GEMINI_ARTIFACT_ROOT=/home/julien.guest/artifacts/candidate-aj-kernel-build2-20260722 \
+  GEMINI_SOURCE_ROOT=~/src/candidate-aj-kernel-build2-20260722 \
+  GEMINI_BUILD_ROOT=~/build/candidate-aj-kernel-build2-20260722 \
+  GEMINI_ARTIFACT_ROOT=~/artifacts/candidate-aj-kernel-build2-20260722 \
   ./scripts/dev-vm build-kernel
 ```
 
@@ -282,7 +282,7 @@ select a slot. See `results/boot2-install-candidate-aj-20260722.txt`.
 An attended console was then reported with the inherited `AB` label and eight
 `/proc/cpuinfo` entries. That appearance is compatible with AJ's predeclared
 CPU8 rejection, but it is not attributable to the unit on which AJ was
-installed: the exact `192.168.1.50` recovery target never satisfied the
+installed: the exact `GEMIAN_HOST` recovery target never satisfied the
 observer's two-failure disconnect gate and remained in the same Gemian
 `3.18.41+` boot on `/dev/mmcblk0p29` with an unchanged boot-ID hash after the
 full 1,200-second window. The Mac observed only the vendor `g_android`

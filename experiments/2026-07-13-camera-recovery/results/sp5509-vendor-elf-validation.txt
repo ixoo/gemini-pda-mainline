@@ -1,5 +1,5 @@
 SP5509 vendor-kernel ELF contract audit
-vmlinux=/home/julien.guest/reverse-engineering/work/gemini-kernel/vmlinux.elf
+vmlinux=~/reverse-engineering/work/gemini-kernel/vmlinux.elf
 vmlinux_sha256=e185566db67405c7747c01dbfe840ab9df69288c03f71eacacba9617827546f0
 
 [registration symbols]
@@ -28,7 +28,7 @@ open/probe constants (register, accepted ID, and candidate slave IDs):
 53:ffffffc00068b464:	71155adf 	cmp	w22, #0x556
 candidate-I2C-table-bytes (vendor ELF, bounded):
 
-/home/julien.guest/reverse-engineering/work/gemini-kernel/vmlinux.elf:     file format elf64-littleaarch64
+~/reverse-engineering/work/gemini-kernel/vmlinux.elf:     file format elf64-littleaarch64
 
 Contents of section .kernel:
  ffffffc000dcc520 02180140 50ff0000                    ...@P...

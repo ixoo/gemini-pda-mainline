@@ -5,7 +5,7 @@ set -euo pipefail
 export LC_ALL=C
 umask 077
 
-readonly TARGET=gemini@192.168.1.50
+readonly TARGET=gemini@GEMIAN_HOST
 readonly EXPECTED_BOOT_ID=2b2a317f-94ff-43b3-a51f-2fa6c5ba0bf9
 readonly EXPECTED_SHA256=a423ad63fbb97d0f3fc4726d3957e05d3951480996b754d839a89d80a1232821
 readonly EXPECTED_SECTORS=32768

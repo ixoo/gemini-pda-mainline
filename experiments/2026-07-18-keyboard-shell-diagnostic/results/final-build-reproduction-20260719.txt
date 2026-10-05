@@ -18,8 +18,8 @@ resolved_config_sha256=63c1012cc87d517dbd072fae59b0e20064649a4572501a42e63d8311a
 package_disabled_source_dtb_sha256=823598e9b8d9da3a3f7276170c83b63610c671655a5775ba371a04a3ffdc0ce
 
 [independent-clean-kernel-builds]
-build_1=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-observability-fbcon-rotation-keyboard-2e710249-4db49c20
-build_2=/home/julien.guest/artifacts/gemini-pda-q-repro/linux-7.1.3-gemini-observability-fbcon-rotation-keyboard-2e710249-4db49c20
+build_1=~/artifacts/gemini-pda/linux-7.1.3-gemini-observability-fbcon-rotation-keyboard-2e710249-4db49c20
+build_2=~/artifacts/gemini-pda-q-repro/linux-7.1.3-gemini-observability-fbcon-rotation-keyboard-2e710249-4db49c20
 config_byte_match=yes
 Image_sha256=b66bfb075a731172b6770e0381d880416b811dc3efc9c72329a08176e12d5867
 Image_byte_match=yes

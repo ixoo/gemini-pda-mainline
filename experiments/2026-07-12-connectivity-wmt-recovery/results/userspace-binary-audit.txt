@@ -1,7 +1,7 @@
 audit=gemini-connectivity-userspace-static
 analysis=metadata_strings_exports_and_bounded_ioctl_call_sites
 execution=none
-payload_root=/home/julien.guest/reverse-engineering/gemini-vendor
+payload_root=~/reverse-engineering/gemini-vendor
 
 [file]
 path=system/vendor/bin/wmt_launcher

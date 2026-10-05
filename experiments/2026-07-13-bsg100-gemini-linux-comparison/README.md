@@ -31,7 +31,7 @@ The repository is treated as an independent report, not as an authority. A claim
 - Our comparison baseline: Linux 7.1.3, 72 local patches, current package
   `linux-7.1.3-gemini-a9a7c5002038`, patchset SHA-256
   `a9a7c5002038022c5df87ed48f61cd68778b422370f7d038d07e73a086490632`.
-- Live device baseline: Gemian Debian 9 userspace on the user's Gemini at 192.168.1.50; observations are linked from docs/hardware/ and subsystem experiments.
+- Live device baseline: Gemian Debian 9 userspace on the user's Gemini at GEMIAN_HOST; observations are linked from docs/hardware/ and subsystem experiments.
 
 ### 2026-07-16 native-fbcon follow-up
 

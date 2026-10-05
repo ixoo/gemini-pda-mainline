@@ -54,7 +54,7 @@ artifact_manifest_sha256=5c4210cf657928c8d487fb720ac55ad80bb3b3bfe5afa98018582d2
 padded_size=16777216
 padded_sha256=1ef53a25c274ed6f0df265fbc4f4e3a64150d5b7fd4cd1e0cde1db53ffb18ccb
 installer_sha256=7f86e620aaa2410954ea01d93241d6f8e21f2b94e1811646cbe7f672fa9f052d
-installer_target=gemini@192.168.1.50
+installer_target=gemini@GEMIAN_HOST
 installer_write_contract=one-bounded-16MiB-write-to-live-resolved-logical-boot2
 installer_reboot_or_slot_selection=none
 

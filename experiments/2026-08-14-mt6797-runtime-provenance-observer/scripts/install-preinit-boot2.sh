@@ -7,7 +7,7 @@ set -euo pipefail
 export LC_ALL=C
 umask 077
 
-readonly EXPECTED_TARGET=gemini@192.168.1.50
+readonly EXPECTED_TARGET=gemini@GEMIAN_HOST
 readonly BOOT2_SIZE=16777216
 readonly CANDIDATE_SHA256=99414cdecc4e031b12b93114b355fb3d44366d6e7b5092cb4f5f9132755d61c7
 readonly ARTIFACT_MANIFEST_SHA256=ac4432bf07785b653473e2b3acf89e4fc1f48dbe952f54e3695349239a8bc596
@@ -17,7 +17,7 @@ die() { printf 'error: %s\n' "$*" >&2; exit 2; }
 usage() {
 	cat <<'EOF'
 usage: install-preinit-boot2.sh \
-  --target gemini@192.168.1.50 \
+  --target gemini@GEMIAN_HOST \
   --candidate-dir DIR \
   --evidence-dir artifacts/device-install-evidence/provenance-preinit-deployment-N
 

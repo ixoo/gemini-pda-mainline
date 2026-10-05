@@ -9,7 +9,7 @@ export LC_ALL=C
 export PYTHONDONTWRITEBYTECODE=1
 umask 077
 
-readonly TARGET=gemini@192.168.1.50
+readonly TARGET=gemini@GEMIAN_HOST
 readonly IDENTITY_RELATIVE=artifacts/credentials/gemini_ed25519
 readonly AJ_PADDED_SHA256=8e322ed2a8fc82a4746ec118c2b0adad6003d03f0670284b9ab281c92120b257
 readonly RUNTIME_SHA256=7cb5b63ad0ef24838cd63afc30d2af53df3ee7ae442a82453931cbca22929093

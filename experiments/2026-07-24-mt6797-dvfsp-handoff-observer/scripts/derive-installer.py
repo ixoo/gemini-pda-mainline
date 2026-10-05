@@ -23,7 +23,7 @@ AL_DERIVER_SHA256 = (
 AL_INSTALLER_SHA256 = (
     "a1ee9a53fd52b4f0a59c8d3946666d3578ce256bd627fb3e1d98a51a2aa26104"
 )
-TARGET = "gemini@192.168.1.50"
+TARGET = "gemini@GEMIAN_HOST"
 AL_TARGET_CHECK = (
     '[[ "$target" =~ ^[A-Za-z_][A-Za-z0-9._-]*@'
     '[A-Za-z0-9][A-Za-z0-9.-]*$ ]] || \\\n'

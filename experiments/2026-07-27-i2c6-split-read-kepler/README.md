@@ -69,7 +69,7 @@ its result still cannot by itself identify the byte's physical source.
 - Boot path: the already running exact Hubble/Cassini `boot2` runtime. Kepler
   contains no boot image and performs no partition installation.
 - Exact controller source used for the transfer-shape comparison:
-  `/home/julien.guest/src/gemini-pda-cassini-repro/linux-7.1.3-series-dvfsp-handoff-owner-i2c6-consumer-ap-dma-preserve-source/drivers/i2c/busses/i2c-mt65xx.c`
+  `~/src/gemini-pda-cassini-repro/linux-7.1.3-series-dvfsp-handoff-owner-i2c6-consumer-ap-dma-preserve-source/drivers/i2c/busses/i2c-mt65xx.c`
   in the recovery VM.
 
 ## Safety assessment

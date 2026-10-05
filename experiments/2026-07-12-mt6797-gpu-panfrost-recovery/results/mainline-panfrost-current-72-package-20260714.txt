@@ -14,12 +14,12 @@ hardware_write=none
 
 [captured_audit_output]
 validation=mt6797-panfrost-current-package-audit
-package=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-a9a7c5002038
+package=~/artifacts/gemini-pda/linux-7.1.3-gemini-a9a7c5002038
 package_image_sha256=3fb6ac3043dff85dc2b6e68a2bba26d36fedf748e6f7c1bf6b6630f87446be7c
 package_config_sha256=831289dd3b53c6cec09e6c614fd83d3ab5988a4c30090bf9ec172348ec9487d5
 package_dtb_sha256=b41580263940b47226e9819c97afbdaa9a35d4c721c471d2e8a0a3d597c553c5
 package_system_map_sha256=c883efb3c8b09166a0765017712ec79e182f929ee50b3907f0279384ab2a22b2
-linux_tree=/home/julien.guest/src/gemini-pda/linux-7.1.3
+linux_tree=~/src/gemini-pda/linux-7.1.3
 linux_version=7.1.3
 dtc_warning_lines=2
 
@@ -38,10 +38,10 @@ CONFIG_MTK_IOMMU=y
 
 [packaged_gpu_modules]
 module=panfrost
-path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-a9a7c5002038/modules/lib/modules/7.1.3-gemini/kernel/drivers/gpu/drm/panfrost/panfrost.ko
+path=~/artifacts/gemini-pda/linux-7.1.3-gemini-a9a7c5002038/modules/lib/modules/7.1.3-gemini/kernel/drivers/gpu/drm/panfrost/panfrost.ko
 sha256=89591ea272afdb88622e991267cb74d9089149140f21d4a41e82c8036b00dbec
 module=mali-dp
-path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-a9a7c5002038/modules/lib/modules/7.1.3-gemini/kernel/drivers/gpu/drm/arm/mali-dp.ko
+path=~/artifacts/gemini-pda/linux-7.1.3-gemini-a9a7c5002038/modules/lib/modules/7.1.3-gemini/kernel/drivers/gpu/drm/arm/mali-dp.ko
 sha256=0b25c0e6f941e5ecb27756f8286fc9e2085a32bcf99d5dd7a27636ebf9c6108f
 module=rt5735-regulator
 path=absent

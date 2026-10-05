@@ -19,7 +19,7 @@ import candidate_photon as cp
 CASSINI_INSTALLER_SHA256 = (
     "3cd396d88b9ff70a0ffbeff0782d3eb1abdbdebba478c36d0d5c78aabbf9b7eb"
 )
-TARGET = "gemini@192.168.1.50"
+TARGET = "gemini@GEMIAN_HOST"
 
 
 def replace_exact(text: str, old: str, new: str, count: int) -> str:

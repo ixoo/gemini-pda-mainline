@@ -17,7 +17,7 @@ while (($#)); do
 done
 [[ "$tag" =~ ^[a-z0-9][a-z0-9-]{0,63}$ ]] || die 'tag is absent or unsafe'
 
-readonly TARGET=gemini@192.168.1.50
+readonly TARGET=gemini@GEMIAN_HOST
 readonly REMOTE_SHA256=cd44e286d333375b53a90b2f26aa968e235574c3912f41e236ba7820700defc8
 readonly VALIDATOR_SHA256=ec6809e25c45e2fb16eb01aee0e5798473061ce38fcbe5f730a111e1dc599f61
 readonly BOUNDED_EXEC_SHA256=e250c4f0375aed986bc73eeea699cf5f4ba51625aa51a1ede2d40ac601f62ce5

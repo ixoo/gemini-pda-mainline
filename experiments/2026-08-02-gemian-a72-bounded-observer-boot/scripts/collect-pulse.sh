@@ -20,7 +20,7 @@ done
 [[ "$tag" =~ ^[a-z0-9][a-z0-9-]{0,63}$ ]] || die 'tag is absent or unsafe'
 [[ -n "$initial" ]] || die 'initial capture is required'
 
-readonly TARGET=gemini@192.168.1.50
+readonly TARGET=gemini@GEMIAN_HOST
 readonly SOURCE_SHA256=c04bdfda47676645ef55dc5d99c5d067076b59e6246ae29baa20d848bcd0992d
 readonly DERIVER_SHA256=5bd1e648a90dc808e82cdad2718069b3198b16b96bd2a50c0ee8c5e52c3bd6d4
 readonly DERIVED_SHA256=8bf8bf37e32d0b787dfaa651121a64dc39bf1f37aab4a1ba5b558fea4ec032da

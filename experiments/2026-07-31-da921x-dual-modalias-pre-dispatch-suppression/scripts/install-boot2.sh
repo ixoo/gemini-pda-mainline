@@ -4,7 +4,7 @@ set -euo pipefail
 export LC_ALL=C
 umask 077
 
-readonly EXPECTED_TARGET=gemini@192.168.1.50
+readonly EXPECTED_TARGET=gemini@GEMIAN_HOST
 readonly BOOT2_SIZE=16777216
 readonly EXPECTED_PREDECESSOR_SHA256=79c3bcb9afde686659be552cfb906f142f392b72c662db2dc9f623b52b3f3141
 readonly CANDIDATE_SHA256=ddb7fadf7cd41f7ef805e2120f299b8034b7fc5ccedea2b6da7fb9976794e072
@@ -14,7 +14,7 @@ readonly ARTIFACT_NAME=candidate-Gate3-da921x-dualpre-8be48f43
 die() { printf 'error: %s\n' "$*" >&2; exit 2; }
 usage() {
 	cat <<'EOF'
-usage: install-boot2.sh --target gemini@192.168.1.50 \
+usage: install-boot2.sh --target gemini@GEMIAN_HOST \
   --candidate-dir DIR --evidence-dir DIR
 
 Install the exact DA921x dual-modalias pre-dispatch-suppression candidate to

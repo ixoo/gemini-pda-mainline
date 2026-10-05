@@ -38,7 +38,10 @@ SECRET_PATTERNS = [
     ("private key", re.compile(r"-----BEGIN (?:(?:OPENSSH|RSA|EC|DSA|ENCRYPTED) )?PRIVATE KEY-----")),
     ("GitHub token", re.compile(r"\b(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,})\b")),
     ("AWS access key", re.compile(r"\b(?:AKIA|ASIA)[A-Z0-9]{16}\b")),
-    ("personal absolute path", re.compile(r"/(?:Users|home)/[A-Za-z0-9_.-]+/")),
+    # Device, Buildbox and placeholder users are not personal identifiers.
+    ("personal absolute path", re.compile(
+        r"/(?:Users|home)/(?!(?:gemini|builder|root|user|USER|YOU|ubuntu|debian|runner|private|example)/)"
+        r"[A-Za-z0-9_.-]+/")),
     ("unit-unique identifier", re.compile(
         r"(?i)\b(?:imei|meid|serial(?:_number)?)\s*[:=]\s*[\"']?"
         r"(?:[0-9]{14,16}|[0-9a-f]{16})\b")),
@@ -143,6 +146,34 @@ def markdown_links(root: Path, name: str, text: str) -> None:
             raise CheckError(f"{name}: missing local link target: {target}")
 
 
+TREE_PATTERNS = ("personal absolute path", "GitHub token", "AWS access key")
+
+
+def tree_hygiene(root: Path, tracked: set[str]) -> int:
+    # Personal paths and cloud tokens are checked across the whole tracked tree,
+    # not only changed files, so an old leak cannot hide behind a stale baseline.
+    patterns = [(label, pattern) for label, pattern in SECRET_PATTERNS if label in TREE_PATTERNS]
+    scanned = 0
+    for name in sorted(tracked):
+        path = root / name
+        if not path.is_file() or path.is_symlink():
+            continue
+        data = path.read_bytes()
+        if b"\0" in data:
+            continue
+        try:
+            text = data.decode("utf-8")
+        except UnicodeDecodeError:
+            continue
+        scanned += 1
+        for label, pattern in patterns:
+            match = pattern.search(text)
+            if match:
+                line = text.count("\n", 0, match.start()) + 1
+                raise CheckError(f"{name}:{line}: possible {label}; review and redact")
+    return scanned
+
+
 def inspect_file(root: Path, name: str) -> None:
     publication_path(name)
     path = root / name
@@ -238,6 +269,8 @@ def main() -> None:
         except (SyntaxError, ValueError) as error:
             raise CheckError(f"{name}: invalid syntax ({type(error).__name__})") from error
     print(f"changed_files_checked={len(paths)}", flush=True)
+    print(f"tree_hygiene_scanned={tree_hygiene(ROOT, tracked)}", flush=True)
+    print(command([sys.executable, str(ROOT / "scripts/experiments-index"), "--check"]), end="", flush=True)
     print(command([str(ROOT / "scripts/validate-manifest-series")]), end="", flush=True)
     run_fixtures(ROOT)
     print("repository_checks=pass")

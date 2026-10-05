@@ -1,6 +1,6 @@
 validation=gemini-live-spi-device-tree-postreboot
 generated_utc=2026-07-14T16:06:40Z
-device=gemini@192.168.1.50
+device=gemini@GEMIAN_HOST
 device_kernel=3.18.41+
 collector=experiments/2026-07-14-upstream-mt6797-coverage-audit/scripts/probe-live-spi-dt.sh
 collector_sha256=760507e266ec1a494b945328b5d0158514369fe9bf4e984d43a60fd3404a7687

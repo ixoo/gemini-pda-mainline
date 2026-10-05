@@ -33,7 +33,7 @@ SSH = [
     '-o', 'ServerAliveInterval=5', '-o', 'ServerAliveCountMax=6',
     '-o', 'IdentitiesOnly=yes', '-o', 'IdentityAgent=none',
     '-o', 'StrictHostKeyChecking=yes', '-i', str(IDENTITY),
-    'gemini@192.168.1.50',
+    'gemini@GEMIAN_HOST',
 ]
 
 REMOTE = r'''set -euo pipefail

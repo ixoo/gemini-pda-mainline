@@ -10,7 +10,7 @@ export LC_ALL=C
 export PYTHONDONTWRITEBYTECODE=1
 umask 077
 
-readonly TARGET=gemini@192.168.1.50
+readonly TARGET=gemini@GEMIAN_HOST
 readonly IDENTITY_RELATIVE=artifacts/credentials/gemini_ed25519
 readonly RECOVERY_KERNEL=3.18.41+
 readonly RECOVERY_ARCH=aarch64
@@ -30,7 +30,7 @@ usage: collect-recovery-evidence.sh --output DIR \
        [--wait-seconds N]
 
 Capture one read-only recovery cycle for Candidate AI.  The target and key are
-fixed to gemini@192.168.1.50 and artifacts/credentials/gemini_ed25519.  N must
+fixed to gemini@GEMIAN_HOST and artifacts/credentials/gemini_ed25519.  N must
 be at least 1200 seconds. DIR must be one new direct child of
 artifacts/device-pstore/.
 

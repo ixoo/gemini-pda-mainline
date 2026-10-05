@@ -126,9 +126,9 @@ KERNEL_PROFILE=observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72
 
 ./scripts/dev-vm run \
   /mnt/gemini-pda-mainline/experiments/2026-07-27-da9214-direct-address-cassini/scripts/build-candidate-cassini.sh \
-  --package /home/julien.guest/artifacts/gemini-pda/EXACT-CASSINI-PACKAGE \
-  --ao-artifact /home/julien.guest/artifacts/boot-candidates/candidate-AO-mt6797-dvfsp-handoff-owner-44fc1e6a \
-  --output-parent /home/julien.guest/artifacts/boot-candidates
+  --package ~/artifacts/gemini-pda/EXACT-CASSINI-PACKAGE \
+  --ao-artifact ~/artifacts/boot-candidates/candidate-AO-mt6797-dvfsp-handoff-owner-44fc1e6a \
+  --output-parent ~/artifacts/boot-candidates
 ```
 
 Build twice from independent validated kernel packages and require recursively

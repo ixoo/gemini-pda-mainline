@@ -2,7 +2,7 @@
 
 ## Record and question
 
-Status: implementation in progress; disconnected hardware-free component.
+Status: `completed` (was: implementation in progress; disconnected hardware-free component.; closed by the [2026-10-05 consolidation](../2026-10-05-repository-consolidation/README.md))
 Subsystem: thermal. Variant: named MT6797X Gemini PDA. Date: 2026-09-04.
 Can a bounded collector preserve every normal scan's converted sensor value,
 validity, winning sample and callback interval, rejecting incomplete or

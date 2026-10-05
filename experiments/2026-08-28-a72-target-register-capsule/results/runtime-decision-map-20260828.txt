@@ -69,7 +69,7 @@ Observation sequence
 1. In ordinary Gemian, start changed-cycle pstore recovery with exact helper
    scripts/collect-device-pstore, SHA-256
    9047084f3012aff47e23e56498d4bc0ae6f8fb7e4f15caec10abb6c15e9a9b3b,
-   target gemini@192.168.1.50, one new private attempt directory,
+   target gemini@GEMIAN_HOST, one new private attempt directory,
    --wait-for-cycle, and --wait-seconds 900. Require its explicit readiness
    after it binds the initial boot ID.
 2. Run the reviewed installer once. It must resolve exactly one live-GPT

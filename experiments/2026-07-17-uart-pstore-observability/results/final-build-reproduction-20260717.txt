@@ -25,9 +25,9 @@ modules_built=false
 precondition_source_root_absent=yes
 precondition_build_root_absent=yes
 precondition_artifact_root_absent=yes
-source_root=/home/julien.guest/src/gemini-pda-L-final-a-20260717/linux-7.1.3
-build_root=/home/julien.guest/build/gemini-pda-L-final-a-20260717/linux-7.1.3-observability
-artifact_root=/home/julien.guest/artifacts/gemini-pda-L-final-a-20260717
+source_root=~/src/gemini-pda-L-final-a-20260717/linux-7.1.3
+build_root=~/build/gemini-pda-L-final-a-20260717/linux-7.1.3-observability
+artifact_root=~/artifacts/gemini-pda-L-final-a-20260717
 fresh_extraction_observed=Extracting Linux 7.1.3
 ordered_patch_applications_observed=82
 source_state_value=06b9685c3e9da5cfd338f0a9b9838281465af5b5b76f4371a5d8e67e14b74c91
@@ -38,11 +38,11 @@ build_exit_status=0
 package_generated_utc=2026-07-18T00:41:30Z
 
 [package-comparison]
-managed_package=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-observability-e1d4f6f3-a73fd870
+managed_package=~/artifacts/gemini-pda/linux-7.1.3-gemini-observability-e1d4f6f3-a73fd870
 managed_package_generated_utc=2026-07-17T23:32:07Z
 managed_sha256s_sha256=b137f33c1dee66487e22d967090f36decc3ef3310ece6ce86e49dc9bf4b5df35
 managed_build_json_sha256=1ae2d30d1521b7e91c0d654604e0de60eed21d3ea3c68c7a1e4dba793f6af388
-fresh_package=/home/julien.guest/artifacts/gemini-pda-L-final-a-20260717/linux-7.1.3-gemini-observability-e1d4f6f3-a73fd870
+fresh_package=~/artifacts/gemini-pda-L-final-a-20260717/linux-7.1.3-gemini-observability-e1d4f6f3-a73fd870
 fresh_sha256s_sha256=68eae60069b45c096ad1c0e05cd8ff1ce2d9aa3196c9ce4183258172f6ceffbd
 fresh_build_json_sha256=5501b0ea950db90be9edfd187f68a49a8e1978623ece66547b1b8a1d531a8003
 managed_validator=passed
@@ -60,8 +60,8 @@ base_dtb_sha256=47a29436e85b277b39fc9b85147e78a4882ce68f3fc17e4acf18ba5b75815d8f
 resolved_config_sha256=5a0c442c67b64cbabd4d030c93d50837bfc93e34d8878b413805457bfcd8e7cd
 
 [candidate-comparison]
-managed_candidate=/home/julien.guest/artifacts/boot-candidates/candidate-L-final-managed-ee32f68
-fresh_candidate=/home/julien.guest/artifacts/boot-candidates/candidate-L-final-fresh-ee32f68
+managed_candidate=~/artifacts/boot-candidates/candidate-L-final-managed-ee32f68
+fresh_candidate=~/artifacts/boot-candidates/candidate-L-final-fresh-ee32f68
 candidate_file_inventory_count=12
 candidate_file_inventory_equal=yes
 all_non_timestamp_files_byte_identical=yes

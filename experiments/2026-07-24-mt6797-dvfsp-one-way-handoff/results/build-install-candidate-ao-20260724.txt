@@ -74,7 +74,7 @@ installer_bash_syntax=passed
 installer_shellcheck=passed
 experiment_shellcheck_error_severity=passed
 experiment_shellcheck_warnings=14-SC2155-build-candidate-ao-declaration-style
-installer_target=gemini@192.168.1.50
+installer_target=gemini@GEMIAN_HOST
 installer_write_boundary=one-bounded-16MiB-write
 installer_reboot_or_slot_selection=none
 

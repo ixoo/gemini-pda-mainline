@@ -3,7 +3,7 @@ artifacts/device-inventory/20260712-live/vendor-Image.gz-dtb: gzip compressed da
 a480e1459da6cbb5affe9f013163c6723b642869996c9b3974c5f3005e42c24e  artifacts/device-inventory/20260712-live/vendor-Image.gz-dtb
 
 ===== reconstructed ELF =====
-/home/julien.guest/reverse-engineering/work/gemini-kernel/vmlinux.elf: ELF 64-bit LSB executable, ARM aarch64, version 1 (SYSV), statically linked, not stripped
+~/reverse-engineering/work/gemini-kernel/vmlinux.elf: ELF 64-bit LSB executable, ARM aarch64, version 1 (SYSV), statically linked, not stripped
 
 ===== sensor symbols =====
 ffffffc0004bb5f8 T hwmsen_get_convert
@@ -56,7 +56,7 @@ ffffffc0012b45c0 t bmi160_gyro_init
 
 ===== orientation helper disassembly =====
 
-/home/julien.guest/reverse-engineering/work/gemini-kernel/vmlinux.elf:     file format elf64-littleaarch64
+~/reverse-engineering/work/gemini-kernel/vmlinux.elf:     file format elf64-littleaarch64
 
 
 Disassembly of section .kernel:
@@ -78,7 +78,7 @@ ffffffc0004bb624:	17fffffd 	b	ffffffc0004bb618 <hwmsen_get_convert+0x20>
 ===== direction conversion table bytes =====
 The reconstructed image places the eight 8-byte records at 0xffffffc00138dc30.
 
-/home/julien.guest/reverse-engineering/work/gemini-kernel/vmlinux.elf:     file format elf64-littleaarch64
+~/reverse-engineering/work/gemini-kernel/vmlinux.elf:     file format elf64-littleaarch64
 
 Contents of section .kernel:
  ffffffc00138dc30 01010100 00010200 ff010100 01000200  ................
@@ -88,7 +88,7 @@ Contents of section .kernel:
 
 ===== BMI160 conversion paths =====
 
-/home/julien.guest/reverse-engineering/work/gemini-kernel/vmlinux.elf:     file format elf64-littleaarch64
+~/reverse-engineering/work/gemini-kernel/vmlinux.elf:     file format elf64-littleaarch64
 
 
 Disassembly of section .kernel:
@@ -207,7 +207,7 @@ ffffffc0004d2234:	942040f6 	bl	ffffffc000ce260c <printk>
 ffffffc0004d2238:	17ffffe5 	b	ffffffc0004d21cc <bmi160_acc_read_sensor_data.isra.19+0x14c>
 ffffffc0004d223c:	d503201f 	nop
 
-/home/julien.guest/reverse-engineering/work/gemini-kernel/vmlinux.elf:     file format elf64-littleaarch64
+~/reverse-engineering/work/gemini-kernel/vmlinux.elf:     file format elf64-littleaarch64
 
 
 Disassembly of section .kernel:
@@ -388,7 +388,7 @@ ffffffc0004d99bc:	17ffffdd 	b	ffffffc0004d9930 <bmg_read_sensor_data.isra.9+0x22
 
 ===== BMI160 probe and identity paths =====
 
-/home/julien.guest/reverse-engineering/work/gemini-kernel/vmlinux.elf:     file format elf64-littleaarch64
+~/reverse-engineering/work/gemini-kernel/vmlinux.elf:     file format elf64-littleaarch64
 
 
 Disassembly of section .kernel:
@@ -433,7 +433,7 @@ ffffffc0004d408c:	a8c37bfd 	ldp	x29, x30, [sp], #48
 ffffffc0004d4090:	d65f03c0 	ret
 ffffffc0004d4094:	d503201f 	nop
 
-/home/julien.guest/reverse-engineering/work/gemini-kernel/vmlinux.elf:     file format elf64-littleaarch64
+~/reverse-engineering/work/gemini-kernel/vmlinux.elf:     file format elf64-littleaarch64
 
 
 Disassembly of section .kernel:
@@ -592,7 +592,7 @@ ffffffc0004d27a4:	aa1803e0 	mov	x0, x24
 ffffffc0004d27a8:	9420629a 	bl	ffffffc000ceb210 <mutex_unlock>
 ffffffc0004d27ac:	17ffffdc 	b	ffffffc0004d271c <bmi160_acc_init_client+0x1cc>
 
-/home/julien.guest/reverse-engineering/work/gemini-kernel/vmlinux.elf:     file format elf64-littleaarch64
+~/reverse-engineering/work/gemini-kernel/vmlinux.elf:     file format elf64-littleaarch64
 
 
 Disassembly of section .kernel:
@@ -683,7 +683,7 @@ ffffffc0004da12c:	94202138 	bl	ffffffc000ce260c <printk>
 ffffffc0004da130:	37fffc73 	tbnz	w19, #31, ffffffc0004da0bc <bmg_init_client+0xd4>
 ffffffc0004da134:	17ffffd1 	b	ffffffc0004da078 <bmg_init_client+0x90>
 
-/home/julien.guest/reverse-engineering/work/gemini-kernel/vmlinux.elf:     file format elf64-littleaarch64
+~/reverse-engineering/work/gemini-kernel/vmlinux.elf:     file format elf64-littleaarch64
 
 
 Disassembly of section .kernel:
@@ -940,7 +940,7 @@ ffffffc0004d4474:	94203866 	bl	ffffffc000ce260c <printk>
 ffffffc0004d4478:	17ffffe0 	b	ffffffc0004d43f8 <bmi160_acc_i2c_probe+0x360>
 ffffffc0004d447c:	00000000 	udf	#0
 
-/home/julien.guest/reverse-engineering/work/gemini-kernel/vmlinux.elf:     file format elf64-littleaarch64
+~/reverse-engineering/work/gemini-kernel/vmlinux.elf:     file format elf64-littleaarch64
 
 
 Disassembly of section .kernel:
@@ -1229,7 +1229,7 @@ ffffffc0004daa0c:	d503201f 	nop
 
 ===== BMI160 diagnostic sysfs boundary =====
 
-/home/julien.guest/reverse-engineering/work/gemini-kernel/vmlinux.elf:     file format elf64-littleaarch64
+~/reverse-engineering/work/gemini-kernel/vmlinux.elf:     file format elf64-littleaarch64
 
 
 Disassembly of section .kernel:
@@ -1296,7 +1296,7 @@ ffffffc0004d06fc:	a8c47bfd 	ldp	x29, x30, [sp], #64
 ffffffc0004d0700:	d65f03c0 	ret
 ffffffc0004d0704:	97ef9af3 	bl	ffffffc0000b72d0 <__stack_chk_fail>
 
-/home/julien.guest/reverse-engineering/work/gemini-kernel/vmlinux.elf:     file format elf64-littleaarch64
+~/reverse-engineering/work/gemini-kernel/vmlinux.elf:     file format elf64-littleaarch64
 
 
 Disassembly of section .kernel:
@@ -1395,7 +1395,7 @@ ffffffc0004d060c:	910ae000 	add	x0, x0, #0x2b8
 ffffffc0004d0610:	942047ff 	bl	ffffffc000ce260c <printk>
 ffffffc0004d0614:	17ffffe1 	b	ffffffc0004d0598 <bmi160_show_reg_val+0xf0>
 
-/home/julien.guest/reverse-engineering/work/gemini-kernel/vmlinux.elf:     file format elf64-littleaarch64
+~/reverse-engineering/work/gemini-kernel/vmlinux.elf:     file format elf64-littleaarch64
 
 
 Disassembly of section .kernel:
@@ -1420,7 +1420,7 @@ ffffffc0004d3fac:	d503201f 	nop
 ffffffc0004d3fb0:	12800fc0 	mov	w0, #0xffffff81            	// #-127
 ffffffc0004d3fb4:	d65f03c0 	ret
 
-/home/julien.guest/reverse-engineering/work/gemini-kernel/vmlinux.elf:     file format elf64-littleaarch64
+~/reverse-engineering/work/gemini-kernel/vmlinux.elf:     file format elf64-littleaarch64
 
 
 Disassembly of section .kernel:
@@ -1445,7 +1445,7 @@ ffffffc0004d3ff4:	d503201f 	nop
 ffffffc0004d3ff8:	12800fc0 	mov	w0, #0xffffff81            	// #-127
 ffffffc0004d3ffc:	d65f03c0 	ret
 
-/home/julien.guest/reverse-engineering/work/gemini-kernel/vmlinux.elf:     file format elf64-littleaarch64
+~/reverse-engineering/work/gemini-kernel/vmlinux.elf:     file format elf64-littleaarch64
 
 
 Disassembly of section .kernel:
@@ -1822,4 +1822,4 @@ stk3x1x_init
 bmi160_acc_init
 bmi160_gyro_init
 
-reconstructed_elf=/home/julien.guest/reverse-engineering/work/gemini-kernel/vmlinux.elf
+reconstructed_elf=~/reverse-engineering/work/gemini-kernel/vmlinux.elf

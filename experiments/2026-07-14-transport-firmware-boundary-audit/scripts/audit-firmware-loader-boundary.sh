@@ -9,7 +9,7 @@
 set -euo pipefail
 export LC_ALL=C
 
-linux_tree=${LINUX_TREE:-/home/julien.guest/src/gemini-pda/linux-7.1.3}
+linux_tree=${LINUX_TREE:-~/src/gemini-pda/linux-7.1.3}
 package=${CURRENT_PACKAGE:?set CURRENT_PACKAGE to a packaged kernel directory}
 repo_root=${REPO_ROOT:-/mnt/gemini-pda-mainline}
 manifest=${FIRMWARE_MANIFEST:-$repo_root/experiments/2026-07-11-gemian-firmware-inventory/results/manifest.sha256}

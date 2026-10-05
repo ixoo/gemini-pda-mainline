@@ -8,7 +8,7 @@
 set -euo pipefail
 export LC_ALL=C
 
-linux_tree=${LINUX_TREE:-/home/julien.guest/src/gemini-pda/linux-7.1.3}
+linux_tree=${LINUX_TREE:-~/src/gemini-pda/linux-7.1.3}
 
 die() {
 	printf 'error: %s\n' "$*" >&2

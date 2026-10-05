@@ -27,7 +27,7 @@ separation of modem/Bluetooth voice links.
 ## Provenance and environment
 
 - Live kernel: Linux `3.18.41+`, AArch64, Gemian Debian 9 userspace.
-- Live device: `gemini@192.168.1.50` over the owner's private LAN.
+- Live device: `gemini@GEMIAN_HOST` over the owner's private LAN.
 - Vendor DTS: Planet MT6797 tree commit
   `c5b0be85017ad0c599725e8273842efdbecdd88a`, `arch/arm64/boot/dts/mt6797.dtsi`.
 - Mainline comparison: Linux `7.1.3` in the development VM.
@@ -64,7 +64,7 @@ Run from the repository root:
 mkdir -p artifacts/device-inventory/20260712-live
 ssh -i artifacts/credentials/gemini_ed25519 \
   -o IdentitiesOnly=yes -o IdentityAgent=none -o BatchMode=yes \
-  gemini@192.168.1.50 'bash -s' \
+  gemini@GEMIAN_HOST 'bash -s' \
   < experiments/2026-07-12-audio-afe-recovery/scripts/collect-live-audio.sh \
   > artifacts/device-inventory/20260712-live/audio.txt
 chmod 700 artifacts/device-inventory/20260712-live
@@ -112,7 +112,7 @@ Run the package audit from the VM:
 
 ```sh
 ./scripts/dev-vm run bash -lc \
-  'CURRENT_PACKAGE=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-a9a7c5002038 \
+  'CURRENT_PACKAGE=~/artifacts/gemini-pda/linux-7.1.3-gemini-a9a7c5002038 \
    experiments/2026-07-12-audio-afe-recovery/scripts/audit-current-package-audio.sh'
 ```
 

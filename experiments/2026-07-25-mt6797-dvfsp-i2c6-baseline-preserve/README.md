@@ -51,7 +51,7 @@ derived and the standing `boot2` safety checks be applied.
 
 The installer is pinned to the current Candidate AQ padded `boot2` checksum
 (`4ad3f29c07a243108f50f3a70049336b116fed80dcb694b2d9e0f872591255c4`) and
-accepts only the exact development target `gemini@192.168.1.50`. It performs
+accepts only the exact development target `gemini@GEMIAN_HOST`. It performs
 one bounded, full-partition `boot2` write, verifies a full readback, and never
 reboots or changes slot selection.
 

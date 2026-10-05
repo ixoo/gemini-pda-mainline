@@ -20,7 +20,7 @@ device tree without changing device state?
 ## Method and safety
 
 The owner-authorized SSH session used the named key
-`codex-gemini-192.168.1.50`. The existing read-only
+`codex-gemini-GEMIAN_HOST`. The existing read-only
 [`collect.sh`](../2026-07-11-gemian-hardware-inventory/scripts/collect.sh)
 collector captured the `device-tree` section. The enhanced capture added an
 allow-list of driver-facing properties and phandles; no arbitrary device-tree

@@ -1,6 +1,6 @@
 Live Novatek touchscreen identity attempt (read-only)
 
-Device: Gemini/Gemian at `gemini@192.168.1.50`
+Device: Gemini/Gemian at `gemini@GEMIAN_HOST`
 Kernel: vendor Linux 3.18.41+
 Transport: I2C4, address 0x62
 

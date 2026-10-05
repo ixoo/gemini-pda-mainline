@@ -138,5 +138,5 @@ skipped on macOS; no kernel build, Checkpatch, DT schema or device test was run.
 
 Integration owns adoption and scheduling through
 [the roadmap](../../docs/ROADMAP.md) and
-[the upstream topic registry](../../project/upstream-topics.json).
+[the upstream topic registry](https://github.com/ixoo/gemini-pda-mainline/blob/164c2d3f/project/upstream-topics.json).
 Hardware support and the registry remain unchanged by this assessment.

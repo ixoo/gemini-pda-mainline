@@ -142,7 +142,7 @@ Maintainers may ask that a large patch series be replaced with links to a public
 - `priority:*` reflects project sequencing, not importance to an individual user.
 - `hardware:*` records variant or hardware-access constraints.
 
-The declarative inventory is in [`project/labels.yml`](project/labels.yml).
+The label inventory lives on GitHub; its last declarative copy is the historical [`project/labels.yml`](https://github.com/ixoo/gemini-pda-mainline/blob/164c2d3f/project/labels.yml).
 
 ## Conduct
 

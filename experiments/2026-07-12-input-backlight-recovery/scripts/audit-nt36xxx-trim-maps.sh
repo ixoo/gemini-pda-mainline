@@ -8,7 +8,7 @@
 set -euo pipefail
 export LC_ALL=C
 
-vendor_tree=${VENDOR_TREE:-/home/julien.guest/src/reference/planet-mt6797-3.18}
+vendor_tree=${VENDOR_TREE:-~/src/reference/planet-mt6797-3.18}
 vendor_path=drivers/input/touchscreen/mediatek/aeon_nt36xxx
 source_file=${vendor_path}/nt36xxx.c
 

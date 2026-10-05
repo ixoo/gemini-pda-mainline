@@ -301,7 +301,7 @@ class PriorPhaseTests(unittest.TestCase):
         self.assertEqual(result['classification'], 'baseline-observation-only-pass')
         self.attempt = self.repo / 'artifacts/a53-authenticated/attempts' / admission['admission_id']
         self.sessions = self.repo / 'artifacts/a53-authenticated/sessions' / self.attempt.name
-        self.write(self.repo / 'artifacts/credentials/a53-recovery-known_hosts', b'192.168.1.50 ssh-ed25519 fixture\n')
+        self.write(self.repo / 'artifacts/credentials/a53-recovery-known_hosts', b'GEMIAN_HOST ssh-ed25519 fixture\n')
         self.write(self.repo / 'artifacts/credentials/gemini_ed25519', b'inert-not-a-private-key\n')
         globals_ = F['prepare'].__globals__
         scope = patch.dict(globals_, REPO=self.repo)
@@ -335,7 +335,7 @@ class PriorPhaseTests(unittest.TestCase):
             out += self.reboot_announcement
             err, code = b'Connection closed\n', 255
         elif label == 'known-good-probe':
-            self.assertEqual(command[-2:], ['gemini@192.168.1.50', '/bin/sh -s'])
+            self.assertEqual(command[-2:], ['gemini@GEMIAN_HOST', '/bin/sh -s'])
             self.assertEqual(script, S['GEMIAN_PROBE'])
             out, err, code = f'kernel=3.18.41+\narchitecture=aarch64\nboot_id={self.confirmed_boot}\n'.encode(), b'', 0
         else:

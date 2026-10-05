@@ -29,7 +29,7 @@ deployment, custody, observation, full-log and recovery predicates still needed.
 Executable drafts remain private and refuse execution at their staging paths;
 promotion requires a durable disabled gate. Offline fixtures cannot supply those
 runtime facts. The
-[queue](../../../project/experiment-queue.json) inventories readiness; the
+[queue](https://github.com/ixoo/gemini-pda-mainline/blob/164c2d3f/project/experiment-queue.json) inventories readiness; the
 [roadmap](../../../docs/ROADMAP.md) alone schedules work.
 
 ## Hypothesis and existing evidence

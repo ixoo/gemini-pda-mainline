@@ -95,7 +95,7 @@ cat >"$fake_bin/ssh" <<'EOF'
 set -euo pipefail
 printf '%s\n' "$*" >>"$AK_POST_SSH_LOG"
 arguments=" $* "
-for required in '-o BatchMode=yes' '-o LogLevel=ERROR' '-o WarnWeakCrypto=no' '-o IdentitiesOnly=yes' '-o IdentityAgent=none' '-o StrictHostKeyChecking=yes' "-i $AK_POST_IDENTITY" 'gemini@192.168.1.50'; do
+for required in '-o BatchMode=yes' '-o LogLevel=ERROR' '-o WarnWeakCrypto=no' '-o IdentitiesOnly=yes' '-o IdentityAgent=none' '-o StrictHostKeyChecking=yes' "-i $AK_POST_IDENTITY" 'gemini@GEMIAN_HOST'; do
 	case "$arguments" in *" $required "*) ;; *) exit 91 ;; esac
 done
 cat >"$AK_POST_REMOTE_STREAM"

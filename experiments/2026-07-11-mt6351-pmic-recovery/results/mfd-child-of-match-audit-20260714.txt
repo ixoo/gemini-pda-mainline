@@ -1,6 +1,6 @@
 validation=mt6351-mfd-child-of-match-source-audit
 generated_utc=2026-07-14T10:39:10Z
-linux_tree=/home/julien.guest/src/gemini-pda/linux-7.1.3
+linux_tree=~/src/gemini-pda/linux-7.1.3
 linux_version=7.1.3
 audit_script_sha256=54ccf58773a633f666155181a56254e1635c03502cc18c72dc90edd09ebb025b
 

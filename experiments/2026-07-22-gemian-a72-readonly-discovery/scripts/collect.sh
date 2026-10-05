@@ -11,7 +11,7 @@ usage()
 		"$0" >&2
 }
 
-readonly TARGET=gemini@192.168.1.50
+readonly TARGET=gemini@GEMIAN_HOST
 readonly IDENTITY_RELATIVE=artifacts/credentials/gemini_ed25519
 readonly WALL_CLOCK_GRACE_SECONDS=60
 output=

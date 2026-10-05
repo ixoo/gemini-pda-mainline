@@ -114,7 +114,7 @@ followed by a separately reviewed owner-local Gemian transition capture.
 Reproduction outline
 --------------------
 
-1. Run `scripts/backup-device-mmc --target gemini@192.168.1.50 --dry-run`.
+1. Run `scripts/backup-device-mmc --target gemini@GEMIAN_HOST --dry-run`.
 2. Read only the resolved `/dev/mmcblk0p22` with a bounded full-partition
    `dd`; verify the full 16 MiB hash above.
 3. Parse the Android header and extract the kernel field, DTB, and ramdisk

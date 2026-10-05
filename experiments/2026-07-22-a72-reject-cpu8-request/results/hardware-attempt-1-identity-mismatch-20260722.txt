@@ -4,7 +4,7 @@ attempt=1
 date=2026-07-22
 classification=INCONCLUSIVE_TARGET_IDENTITY_MISMATCH
 
-installed_target=gemini@192.168.1.50
+installed_target=gemini@GEMIAN_HOST
 installed_target_pre_kernel=3.18.41+
 installed_target_pre_architecture=aarch64
 installed_target_pre_root=/dev/mmcblk0p29
@@ -69,5 +69,5 @@ native_reboot_command_issued=no
 device_partition_reads_during_attempt=none
 device_write_operations_during_attempt=none
 
-decision=identify-and-cycle-the-installed-192.168.1.50-unit-before-rearming-unit-bound-observers
+decision=identify-and-cycle-the-installed-GEMIAN_HOST-unit-before-rearming-unit-bound-observers
 identical_reboot_permitted=no-unless-the-new-observation-path-binds-the-installed-unit

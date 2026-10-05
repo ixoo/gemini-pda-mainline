@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-26-mainline-gemini-transition-ledger` |
-| Status | complete hardware-free Buildbox and QEMU proof; physical integration pending |
+| Status | `parked` (was: complete hardware-free Buildbox and QEMU proof; physical integration pending; closed by the [2026-10-05 consolidation](../2026-10-05-repository-consolidation/README.md)) |
 | Subsystem | pstore retained transition evidence |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-26 America/New_York |

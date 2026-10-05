@@ -7,9 +7,9 @@
 set -eu
 export LC_ALL=C
 
-VMLINUX=${VMLINUX:-/home/julien.guest/reverse-engineering/work/gemini-kernel/vmlinux.elf}
-VENDOR_TREE=${VENDOR_TREE:-/home/julien.guest/src/reference/planet-mt6797-3.18}
-LINUX_TREE=${LINUX_TREE:-/home/julien.guest/src/gemini-pda/linux-7.1.3}
+VMLINUX=${VMLINUX:-~/reverse-engineering/work/gemini-kernel/vmlinux.elf}
+VENDOR_TREE=${VENDOR_TREE:-~/src/reference/planet-mt6797-3.18}
+LINUX_TREE=${LINUX_TREE:-~/src/gemini-pda/linux-7.1.3}
 
 [[ -r "$VMLINUX" ]] || { printf 'missing vendor ELF: %s\n' "$VMLINUX" >&2; exit 1; }
 [[ -d "$VENDOR_TREE/.git" ]] || { printf 'missing vendor tree: %s\n' "$VENDOR_TREE" >&2; exit 1; }

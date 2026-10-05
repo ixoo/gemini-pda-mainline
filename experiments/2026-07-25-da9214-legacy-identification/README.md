@@ -184,7 +184,7 @@ baseline and performs no device access. The corrected package and its
 independent DT/container derivations passed the offline validators; the pinned
 artifact and installer identities are recorded in
 'results/build-candidate-as-20260725.txt'. The installer accepts only
-gemini@192.168.1.50, requires the exact currently installed Candidate AS
+gemini@GEMIAN_HOST, requires the exact currently installed Candidate AS
 padded boot2 predecessor checksum
 943018afd04bda3b333e644ceb5d507f97af1386c5f023e3bcd60d0d9ffd74ce, perform one
 bounded full-partition write with full readback verification, and never reboot

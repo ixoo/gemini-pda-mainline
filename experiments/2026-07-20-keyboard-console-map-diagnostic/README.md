@@ -64,7 +64,7 @@ The user-supplied US-keyboard photograph was inspected locally and is not
 stored in Git:
 
 ```text
-source:     /Users/julien/Downloads/IMG_2392.heic
+source:     ~/Downloads/IMG_2392.heic
 HEIC SHA:   bc1b8bd28aec4ff46598de1ff9314c92c7dc61d5b1013b98a93e0ef4edce9cf9
 local PNG:  /private/tmp/gemini-keyboard-IMG_2392.png
 PNG SHA:    864e9486fe0ab16db868f6de23cb95befaaf8d635d185151ea3b2813e870ded1

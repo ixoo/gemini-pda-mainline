@@ -35,7 +35,7 @@ First inspect the target and partition labels without copying bytes:
 
 ```sh
 ./scripts/backup-device-mmc \
-  --target gemini@192.168.1.50 \
+  --target gemini@GEMIAN_HOST \
   --dry-run
 ```
 
@@ -49,7 +49,7 @@ printf '%s\n' 'device-password' > /private/tmp/gemini-sudo-password
 chmod 600 /private/tmp/gemini-sudo-password
 
 ./scripts/backup-device-mmc \
-  --target gemini@192.168.1.50 \
+  --target gemini@GEMIAN_HOST \
   --layout-config /path/to/Gemini_WIFI_A16GB_L40GB_Multi_Boot.txt \
   --sudo-password-file /private/tmp/gemini-sudo-password \
   --all \
@@ -63,7 +63,7 @@ the SSH session starts and does not create a local password file:
 
 ```sh
 ./scripts/backup-device-mmc \
-  --target gemini@192.168.1.50 \
+  --target gemini@GEMIAN_HOST \
   --layout-config /path/to/Gemini_WIFI_A16GB_L40GB_Multi_Boot.txt \
   --sudo-password-stdin \
   --all \

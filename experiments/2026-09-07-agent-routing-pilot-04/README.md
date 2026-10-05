@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-07-agent-routing-pilot-04` |
-| Status | collecting |
+| Status | `superseded` (was: collecting; closed by the [2026-10-05 consolidation](../2026-10-05-repository-consolidation/README.md)) |
 | Subsystem | Project coordination and Codex routing settings |
 | Device variant | None; offline work only |
 | Date(s) | 2026-09-07 onward |

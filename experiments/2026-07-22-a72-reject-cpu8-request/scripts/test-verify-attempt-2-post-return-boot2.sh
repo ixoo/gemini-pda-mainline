@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2016  # historical record; literal $ in remote command strings is intended
 
 # Run the exact attempt-2 evidence validators, but replace SSH/storage with a
 # deterministic transcript producer. No network or block device is accessed.
@@ -37,7 +38,7 @@ cat >"$fake_bin/ssh" <<'EOF'
 set -euo pipefail
 printf '%s\n' "$*" >>"$AJ_A2_SSH_LOG"
 arguments=" $* "
-for required in '-o BatchMode=yes' '-o LogLevel=ERROR' '-o WarnWeakCrypto=no' '-o IdentitiesOnly=yes' '-o IdentityAgent=none' '-o StrictHostKeyChecking=yes' "-i $AJ_A2_IDENTITY" 'gemini@192.168.1.50'; do
+for required in '-o BatchMode=yes' '-o LogLevel=ERROR' '-o WarnWeakCrypto=no' '-o IdentitiesOnly=yes' '-o IdentityAgent=none' '-o StrictHostKeyChecking=yes' "-i $AJ_A2_IDENTITY" 'gemini@GEMIAN_HOST'; do
 	case "$arguments" in *" $required "*) ;; *) exit 91 ;; esac
 done
 cat >"$AJ_A2_REMOTE_STREAM"

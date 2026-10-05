@@ -278,7 +278,7 @@ reboot or password interface:
 
 ```sh
 bash experiments/2026-07-19-keyboard-wrrd-diagnostic/scripts/install-candidate-w-boot2.sh \
-  --target gemini@192.168.1.50 \
+  --target gemini@GEMIAN_HOST \
   --candidate artifacts/vm-export/boot-candidates/candidate-W-final-rebuild4/candidate-W-keyboard-wrrd-final-34c41fad/gemini-keyboard-wrrd.boot.img \
   --expected-candidate-sha256 34c41fad1e86de05b6a1f64f7e5d9229bd26ea88d982b0a57f2b9573aeb782d4 \
   --expected-current-sha256 57d362a86fae38c0ec2cec909ef6ae8d8ad124b87abb2ee58d179184c1f19168 \
@@ -321,7 +321,7 @@ cycle:
 
 ```sh
 scripts/collect-device-pstore \
-  --target gemini@192.168.1.50 \
+  --target gemini@GEMIAN_HOST \
   --output artifacts/device-pstore/candidate-w-attempt-1-20260719
 ```
 

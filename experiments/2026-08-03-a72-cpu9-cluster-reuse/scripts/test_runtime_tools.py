@@ -125,7 +125,7 @@ def main() -> int:
         "result=fault-retain-psci",
         "result=fault-retain-secondary",
         "Automatic restart with no exact retained marker",
-        "scripts/collect-device-pstore --target gemini@192.168.1.50",
+        "scripts/collect-device-pstore --target gemini@GEMIAN_HOST",
         "Do not repeat this exact artifact unchanged",
     ):
         require(token in plan, f"runtime decision missing: {token}")

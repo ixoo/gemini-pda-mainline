@@ -1,5 +1,5 @@
 kernel_version=7.1.3
-package=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-a5ea077dfdcc
+package=~/artifacts/gemini-pda/linux-7.1.3-gemini-a5ea077dfdcc
 patchset_sha256=a5ea077dfdccc5bcdc7c5d0dddab826b4ca307f21c655b06ee24b58516b1c3e8
 config_sha256=0f98f03129508907261efaa6f1b195799313530628505e319d48427105ac385f
 image_sha256=bcfb473f96f58ea7a77eef783fd4bce4927374f0b715dcdffa78d2760dade33c

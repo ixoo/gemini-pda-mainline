@@ -2,7 +2,7 @@
 
 ## Provenance
 
-- Target: owner-supplied Gemini PDA at `gemini@192.168.1.50`.
+- Target: owner-supplied Gemini PDA at `gemini@GEMIAN_HOST`.
 - Collector: `scripts/extract-device-userspace`, SHA-256
   `a84b30030e5bbba7e6bdc076f6e2c1485bac7030b3542255d934c8f7f94bdba7`.
 - Mode: `--vendor-only`; device-side selection was read-only.

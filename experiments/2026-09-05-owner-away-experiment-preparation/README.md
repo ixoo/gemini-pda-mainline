@@ -5,12 +5,12 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-09-05-owner-away-experiment-preparation` |
-| Status | preparation in progress; initial design below, current readiness in the linked queue |
+| Status | `superseded` (was: preparation in progress; initial design below, current readiness in the linked queue; closed by the [2026-10-05 consolidation](../2026-10-05-repository-consolidation/README.md)) |
 | Subsystem | A53 serviceability, authenticated USB, keyboard and eMMC |
 | Device variant | Named Planet Computers Gemini PDA, MT6797 |
 | Date(s) | 2026-09-05 |
 | Investigator(s) | A53 baseline and queued device tests; initial design by Gemini mainline project |
-| Tracking issue | [Preparation queue](../../project/experiment-queue.json) |
+| Tracking issue | [Preparation queue](https://github.com/ixoo/gemini-pda-mainline/blob/164c2d3f/project/experiment-queue.json) |
 
 ## Question or hypothesis
 
@@ -146,6 +146,6 @@ original artifacts.
 
 ## Follow-up
 
-Track preparation and dependencies in the [queue](../../project/experiment-queue.json).
+Track preparation and dependencies in the [queue](https://github.com/ixoo/gemini-pda-mainline/blob/164c2d3f/project/experiment-queue.json).
 Record each completed packet's exact inputs and validation here or in a linked
 owning experiment; update support claims only after attributable runtime evidence.

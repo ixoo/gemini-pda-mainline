@@ -1,5 +1,5 @@
 claim=READ_ONLY_GEMIAN_DVFSP_RESOURCE_OWNER_BOUNDARY
-target=gemini@192.168.1.50;transport=ssh;os=Gemian;kernel=3.18.41+;device_action=none;hardware_write=none;backup=none
+target=gemini@GEMIAN_HOST;transport=ssh;os=Gemian;kernel=3.18.41+;device_action=none;hardware_write=none;backup=none
 power=usb:0;battery_status:Full;battery_capacity:100;battery_health:Good
 cpu_online=0;cpu_possible=0-9
 platform_dvfsp=present;compatible=mediatek,mt6797-dvfsp;driver=cspm

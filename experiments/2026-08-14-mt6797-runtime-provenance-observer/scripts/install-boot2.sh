@@ -7,7 +7,7 @@ set -euo pipefail
 export LC_ALL=C
 umask 077
 
-readonly EXPECTED_TARGET=gemini@192.168.1.50
+readonly EXPECTED_TARGET=gemini@GEMIAN_HOST
 readonly BOOT2_SIZE=16777216
 readonly CANDIDATE_SHA256=ea603c1b1a64d4f1aa9cac3e53957a3e858a7ce04127f1aef36d4b0e8173cb02
 readonly ARTIFACT_MANIFEST_SHA256=ad92d496dfb4fd183c35e6e0f32ce626b2045528657fb2567d8561dd02540f1a
@@ -17,7 +17,7 @@ die() { printf 'error: %s\n' "$*" >&2; exit 2; }
 usage() {
 	cat <<'EOF'
 usage: install-boot2.sh \
-  --target gemini@192.168.1.50 \
+  --target gemini@GEMIAN_HOST \
   --candidate-dir DIR \
   --evidence-dir artifacts/device-install-evidence/provenance-observer-deployment-N
 

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | \`2026-07-26-a72-active-nova\` |
-| Status | \`running; Nova assembled and installed to boot2, awaiting runtime test\` |
+| Status | `superseded` (was: `running; Nova assembled and installed to boot2, awaiting runtime test`; closed by the [2026-10-05 consolidation](../2026-10-05-repository-consolidation/README.md)) |
 | Subsystem | MT6797 Cortex-A72 power sequencing and PSCI CPU_ON |
 | Device variant | Named Gemini PDA unit |
 

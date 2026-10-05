@@ -4,7 +4,7 @@
 # never printed or retained.
 set -eu
 
-target=${1:-gemini@192.168.1.50}
+target=${1:-gemini@GEMIAN_HOST}
 key=${GEMINI_SSH_KEY:-artifacts/credentials/gemini_ed25519}
 
 exec ssh -i "$key" \

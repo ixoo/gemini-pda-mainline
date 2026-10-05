@@ -41,7 +41,7 @@ From the repository root:
 mkdir -p artifacts/device-inventory/20260713-live
 ssh -i artifacts/credentials/gemini_ed25519 \
   -o IdentitiesOnly=yes -o IdentityAgent=none -o BatchMode=yes \
-  gemini@192.168.1.50 'bash -s' \
+  gemini@GEMIAN_HOST 'bash -s' \
   < experiments/2026-07-13-external-display-recovery/scripts/collect-live-external-display.sh \
   > artifacts/device-inventory/20260713-live/external-display.txt
 chmod 700 artifacts/device-inventory/20260713-live

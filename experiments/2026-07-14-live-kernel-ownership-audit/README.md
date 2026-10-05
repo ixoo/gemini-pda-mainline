@@ -45,9 +45,9 @@ Run the comparison in the ARM64 VM:
   --capture /mnt/gemini-pda-mainline/artifacts/device-inventory/20260714-live/kernel.txt \
   --identity /mnt/gemini-pda-mainline/artifacts/device-inventory/20260714-live/identity.txt \
   --vendor-config /mnt/gemini-pda-mainline/artifacts/device-inventory/20260712-live/vendor-kernel.config \
-  --mainline-config /home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-a9a7c5002038/kernel.config \
-  --system-map /home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-a9a7c5002038/System.map \
-  --build-json /home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-a9a7c5002038/provenance/build.json
+  --mainline-config ~/artifacts/gemini-pda/linux-7.1.3-gemini-a9a7c5002038/kernel.config \
+  --system-map ~/artifacts/gemini-pda/linux-7.1.3-gemini-a9a7c5002038/System.map \
+  --build-json ~/artifacts/gemini-pda/linux-7.1.3-gemini-a9a7c5002038/provenance/build.json
 ```
 
 ## Analysis boundary

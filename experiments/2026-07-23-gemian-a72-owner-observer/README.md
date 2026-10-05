@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-23-gemian-a72-owner-observer` |
-| Status | `running`: the five-patch parent has compiler and runtime evidence; the complete seven-patch latch revision passes source/model validation and awaits exact Buildbox compiler, stack, lock and timing review |
+| Status | `parked` (was: `running`: the five-patch parent has compiler and runtime evidence; the complete seven-patch latch revision passes source/model validation and awaits exact Buildbox compiler, stack, lock and timing review; closed by the [2026-10-05 consolidation](../2026-10-05-repository-consolidation/README.md)) |
 | Subsystem | MT6797 A72 hotplug, PSCI, external buck, SPM, iDVFS, B/CCI clocks, MP2 DCM and TOPRGU |
 | Device variant | Current named Gemini PDA unit |
 | Date(s) | 2026-07-23 |

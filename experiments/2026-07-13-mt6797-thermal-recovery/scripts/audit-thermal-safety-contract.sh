@@ -9,7 +9,7 @@ set -euo pipefail
 export LC_ALL=C
 
 package=${CURRENT_PACKAGE:?set CURRENT_PACKAGE to a packaged kernel directory}
-linux_tree=${LINUX_TREE:-/home/julien.guest/src/gemini-pda/linux-7.1.3}
+linux_tree=${LINUX_TREE:-~/src/gemini-pda/linux-7.1.3}
 thermal_source=$linux_tree/drivers/thermal/mediatek/auxadc_thermal.c
 auxadc_source=$linux_tree/drivers/iio/adc/mt6577_auxadc.c
 dt_source_file=$linux_tree/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
