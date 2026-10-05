@@ -47,7 +47,8 @@ recorded in the [WMT configuration summary](../2026-07-12-connectivity-wmt-recov
 With no filter-mode key, the vendor defaults select the LTE table above, so the
 kernel needs no configuration parser; the antenna mode is one DT property.
 
-Each exchange has a 500 ms deadline, calibration 2 s, within a 30 s budget.
+Each exchange, calibration included, has the vendor's 2 s event wait within
+a 60 s budget; see the timing correction below.
 The first failure stops the sequence and keeps power, clocks and rails for
 reviewed recovery. The flag requires the AFE region, so the AFE stage always
 runs before MCU release, and it excludes the Bluetooth H1 flag.
@@ -110,3 +111,14 @@ input `04a42218`. Fetch and all local checksums pass.
 
 The image contains the executor's log strings and firmware names, and
 `CRYPTO_LIB_SHA256` is built in. No new compiler warning appears.
+
+## Timing correction (2026-10-06)
+
+The [first C3 boot](../2026-10-05-mt6797-bt-h1/RUNTIME_1.md) got the STP
+acknowledgement for Bluetooth function-on but no event within 600 ms. The
+vendor waits `WMT_LIB_RX_TIMEOUT` = 2000 ms for every WMT event. Patch
+[0113](../../patches/proposals/0113-soc-mediatek-wait-the-vendor-2-s-for-each-MT6797-WMT-event.patch)
+applies that wait to the Bluetooth sequence and to every common-init exchange,
+with budgets of 12 s and 60 s. It is in this profile only; the consumed C3
+profile is unchanged. A Bluetooth retry uses this profile with the Bluetooth
+flag and without the common-init flag.

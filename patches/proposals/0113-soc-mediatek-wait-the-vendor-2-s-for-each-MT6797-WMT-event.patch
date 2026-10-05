@@ -1,0 +1,89 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 6 Oct 2026 16:00:00 +0000
+Subject: [PATCH] soc: mediatek: wait the vendor 2 s for each MT6797 WMT event
+
+The first Bluetooth H1 boot received the STP ACK frame for BT
+function-on but no function event within its 600 ms deadline. The
+vendor waits WMT_LIB_RX_TIMEOUT, 2000 ms, for every WMT event, and notes
+that Bluetooth function-on alone can take about 830 ms.
+
+Use 2000 ms per exchange in the Bluetooth sequence and in common
+initialization, including calibration, and raise their overall budgets
+to 12 s and 60 s. No step, order or acceptance check changes.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/soc/mediatek/mt6797-bt-h1.h  |  5 +++--
+ drivers/soc/mediatek/mt6797-consys.c | 16 +++++++---------
+ 2 files changed, 10 insertions(+), 11 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-bt-h1.h b/drivers/soc/mediatek/mt6797-bt-h1.h
+index 7a049a4b3..cb2b18e8a 100644
+--- a/drivers/soc/mediatek/mt6797-bt-h1.h
++++ b/drivers/soc/mediatek/mt6797-bt-h1.h
+@@ -5,8 +5,9 @@
+ #include <linux/regulator/consumer.h>
+ #include "mt6797-wmt-negotiate.h"
+ 
+-#define BT_H1_BUDGET_MS 3000U
+-#define BT_H1_EXCHANGE_MS 600U
++#define BT_H1_BUDGET_MS 12000U
++/* Vendor WMT_LIB_RX_TIMEOUT; BT function-on alone can take ~830 ms. */
++#define BT_H1_EXCHANGE_MS 2000U
+ #define BT_H1_STEPS 5U
+ 
+ /*
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index 2b60c127c..26e4e64f3 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -1175,9 +1175,9 @@ static int mt6797_consys_bt_h1(struct device *dev, struct mt6797_consys *owner)
+ 	return ret;
+ }
+ 
+-#define MT6797_WMT_INIT_BUDGET_MS 30000U
+-#define MT6797_WMT_INIT_EXCHANGE_MS 500U
+-#define MT6797_WMT_INIT_CALIBRATION_MS 2000U
++#define MT6797_WMT_INIT_BUDGET_MS 60000U
++/* Vendor WMT_LIB_RX_TIMEOUT, used for every WMT event including calibration. */
++#define MT6797_WMT_INIT_EXCHANGE_MS 2000U
+ 
+ /* Retained Gemian pair, in download order; contents stay outside the kernel. */
+ static const struct {
+@@ -1231,8 +1231,8 @@ static int mt6797_consys_common_init(struct device *dev, struct mt6797_consys *o
+ 	const struct firmware *fw[2] = {};
+ 	struct wmt_rom_patch pair[2];
+ 	u8 digest[SHA256_DIGEST_SIZE];
+-	unsigned long budget;
+-	unsigned int i, timeout;
++	unsigned long budget, wait;
++	unsigned int i;
+ 	int ret;
+ 
+ 	for (i = 0; i < 2; i++) {
+@@ -1247,6 +1247,7 @@ static int mt6797_consys_common_init(struct device *dev, struct mt6797_consys *o
+ 		}
+ 	}
+ 	budget = jiffies + msecs_to_jiffies(MT6797_WMT_INIT_BUDGET_MS);
++	wait = msecs_to_jiffies(MT6797_WMT_INIT_EXCHANGE_MS);
+ 	for (i = 0; i < WMT_INIT_STEPS; i++) {
+ 		if (time_after_eq(jiffies, budget)) {
+ 			ret = -ETIMEDOUT;
+@@ -1270,15 +1271,12 @@ static int mt6797_consys_common_init(struct device *dev, struct mt6797_consys *o
+ 						      &ci->wifi_rail);
+ 			break;
+ 		default:
+-			timeout = i == WMT_INIT_CALIBRATION ?
+-				  MT6797_WMT_INIT_CALIBRATION_MS :
+-				  MT6797_WMT_INIT_EXCHANGE_MS;
+ 			ret = mt6797_stp_task_prepare(&ci->io, n->first.btif, n->first.irq,
+ 						      &n->link, STP_FULL_TASK_WMT,
+ 						      ci->command, ci->step.length,
+ 						      ci->step.expected, ci->step.prefix,
+ 						      ci->step.expected_length,
+-						      jiffies + msecs_to_jiffies(timeout));
++						      jiffies + wait);
+ 			if (!ret)
+ 				ret = mt6797_wmt_full_exchange(&ci->io);
+ 			if (!ret && i == WMT_INIT_CALIBRATION) {
