@@ -18,7 +18,7 @@ The roadmap as it stood before the consolidation is kept
 [verbatim](../experiments/2026-10-05-repository-consolidation/ROADMAP_2026-10-04.md).
 Keep this file under 200 lines; move anything else to an experiment record.
 
-## Where we stand (2026-10-05)
+## Where we stand (2026-10-06)
 
 - **Solid.** The guarded `boot2` lab loop (install, full readback, owner
   selection, USB SSH collection, sealed logs, Gemian return). The A53
@@ -26,11 +26,13 @@ Keep this file under 200 lines; move anything else to an experiment record.
   restart, watchdog, CPU0–7, PMIC wrapper, bounded eMMC. Wi-Fi to
   firmware-ready, and WMT alive over BTIF/STP with the chip/HW/ROM tuple
   `0279/8a00/8a00` [measured](../experiments/2026-10-03-mt6797-wmt-versions/README.md).
-- **Open.** No Wi-Fi frame received. No charging, power key, RTC or power-off.
+- **C1, partial.** PMIC baseline read, PMIC key interrupts and PSCI power-off
+  [work](../experiments/2026-10-04-gemini-c1-preparation/README.md#first-c1-boot-2026-10-06).
+- **Open.** No Wi-Fi frame received. No charging, RTC alarm or lid.
   The `full` profile has never booted. No upstream submission. A72 and thermal
   protection are parked.
 - **Device.** The last session returned to changed-boot Gemian. Nothing is
-  installed to `boot2` awaiting selection. Stock Gemian requests 4.416 V on the
+  installed to `boot2` awaiting selection; the laptop Codex is custodian. Stock Gemian requests 4.416 V on the
   charger; keep its charging attended.
 
 ## Next device boots, in order
@@ -40,16 +42,10 @@ Each boot is a reviewed experiment with its own validated candidate, finite
 budgets and stop conditions under the [safety rules](SAFETY.md). Steps marked
 **(local)** need the owner's machine and the device.
 
-1. **C1: PMIC, RTC, lid and charger read (local).** Profile
-   `mt6797-a53-c1-compile` from the
-   [C1 preparation](../experiments/2026-10-04-gemini-c1-preparation/README.md).
-   Ten-register PMIC observer ordered before the key child probes; keys child
-   with explicit `mediatek,long-press-mode` and `power-off-time-sec`; lid node.
-   One short key press, one lid close/open, `rtcwake` 10 s, PSCI power-off with
-   the cable detached. C2a rides along: a userspace read-only REG00–REG14
-   charger dump with no charger node bound, REG0C read once. Decides the PMIC
-   interrupt path, RTC, the power-off baseline and the charger `VREG` value.
-2. **C3: Bluetooth HCI Reset on the negotiated STP session (local).** Profile
+1. **C3: Bluetooth HCI Reset on the negotiated STP session (local).**
+   C1 ran first ([partial result](../experiments/2026-10-04-gemini-c1-preparation/README.md#first-c1-boot-2026-10-06));
+   its short follow-up (events, RTC alarm, lid pull-up) runs when convenient.
+   [Protocol](../experiments/2026-10-05-mt6797-bt-h1/PROTOCOL.md). Profile
    `mt6797-a53-stp-task-routing-compile`, the consolidated 0101–0106 chain with
    the AFE resource present
    ([transport record](../experiments/2026-10-04-mt6797-stp-task-routing/README.md)).
@@ -58,23 +54,23 @@ budgets and stop conditions under the [safety rules](SAFETY.md). Steps marked
    HCI Reset, Read Local Version, Read BD_ADDR. Decides Bluetooth H1 and proves
    common init without depending on Wi-Fi RF
    ([Bluetooth record](../experiments/2026-10-04-gemini-bluetooth-re/README.md)).
-3. **Phase A: first received Wi-Fi frame (local).** The common-init executor
+2. **Phase A: first received Wi-Fi frame (local).** The common-init executor
    (ROM patch download, WMT reset, DLM and MCU clock writes, both PA LDOs, RF
    calibration, coexistence), re-triggerable from userspace over USB SSH, then
    the existing START and one channel-40 passive scan. Decision: nonzero
    firmware management count or a BSS. If zero, try the remaining vendor
    differences in the same boot. Hypothesis and sequence:
    [Wi-Fi audit](../experiments/2026-10-03-mt6797-wifi-audit/README.md).
-4. **Clean-profile boot (local).** `full`, or a new board-only profile with no
+3. **Clean-profile boot (local).** `full`, or a new board-only profile with no
    diagnostics, once. Decides whether the product configuration boots at all;
    every later upstream claim depends on it. The canonical series behind
    `full` does not apply as of 2026-10-05: it stops at
    `upstream-4d7d9486/0001-clk-mediatek-reject-out-of-bank-SET-CLEAR-reset-IDs.patch`,
    so a board-only profile is the practical route.
-5. **C2b: charge policy (local).** A named profile binding `bq25890` only
+4. **C2b: charge policy (local).** A named profile binding `bq25890` only
    after the reviewed sequence programs and verifies 4.2 V and 500 mA before
    charging starts. Then the gauge/ADC comparison boot.
-6. **Display adoption, then the rest.** simplefb with the MM domain so
+5. **Display adoption, then the rest.** simplefb with the MM domain so
    `clk_ignore_unused` can go, backlight, the I2C1 boot (sensors and panel
    bias), microSD and USB host, headphone-first audio, panel, GPU, GNSS after
    proven common init. Cellular and cameras stay feasibility work. The
@@ -83,12 +79,8 @@ budgets and stop conditions under the [safety rules](SAFETY.md). Steps marked
 
 ## Offline work now, in parallel
 
-1. **C1 candidate composition.** The C1 kernel with the PMIC observer, key
-   child and lid node is built and validated
-   ([C1 record](../experiments/2026-10-04-gemini-c1-preparation/README.md),
-   [protocol](../experiments/2026-10-04-gemini-c1-preparation/PROTOCOL.md)).
-   Composing the boot image needs the private RAM root and parent candidate,
-   which live only on the owner's machine.
+1. **C1 follow-up.** Script and capture fixes plus the GPIO66 pull-up are in
+   the [C1 record](../experiments/2026-10-04-gemini-c1-preparation/README.md#follow-up-fixes-2026-10-06).
 2. **C3 candidate composition.** The bounded task-0 Bluetooth sequence is
    built into `mt6797-a53-stp-task-routing-compile`
    ([BT H1 record](../experiments/2026-10-05-mt6797-bt-h1/README.md)). It
