@@ -143,3 +143,16 @@ The release is `7.1.3-gemini-a53-bt-hci`.
 IRQ and work teardown, and the HCI core's behaviour, are covered by review and
 compilation only. A device test needs BlueZ tools in the RAM root, a protocol
 and owner approval.
+
+### Build
+
+Buildbox compilation on buildbox-1, remote validation, fetch and local
+checksums pass for input `cfde4c33`, with no new compiler warning.
+
+| Item | Value |
+| --- | --- |
+| Package inventory | `add211b2f9958b0bb68d4a7c735e1db67611cc32c6f1f5a2b8f30174bc5b7b2f` |
+| Release | `7.1.3-gemini-a53-bt-hci` |
+
+`CONFIG_BT`, `CONFIG_BT_BREDR` and `CONFIG_BT_MT6797` are built in, and the
+image contains the link and driver log strings.
