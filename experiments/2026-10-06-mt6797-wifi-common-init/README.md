@@ -177,3 +177,73 @@ checksums pass for input `b6fa6a62`, with no new warning.
 The configuration builds the WLAN mac80211 driver, passive scan, debugfs and
 the SHA-256 library in. The image contains the common-init, Bluetooth and
 continue-to-WLAN log strings.
+
+## Phase A adapters (2026-10-07)
+
+Offline tools for the [Phase A protocol](PROTOCOL.md), built on the existing
+WMT-versions and scan-tuning chains. The [effect review](EFFECT_REVIEW.md)
+covers what the sequence writes. No tool here touches the device; composition,
+installation and the run are the laptop custodian's.
+
+| File | Role | Built on |
+| --- | --- | --- |
+| [build-candidate.py](build-candidate.py) | Compose the candidate | WMT-versions parent and builder pattern |
+| [install-passive.py](install-passive.py) | Bind the guarded boot2 installer | port0-header installer; predecessor = C1-4 boot2 `144ac96d…` |
+| [capture-private.py](capture-private.py) | WMT memory, one `wmt_negotiate` trigger, Phase A log classification | `wmt-before-start` capture |
+| [passive-session.py](passive-session.py) | Bind the session to the 61-member RAM root | scan-tuning session |
+| [passive-host.py](passive-host.py) | One passive scan, sealed log, A53 regression, recovery | scan-tuning host |
+| [phase-a-scan.sh](phase-a-scan.sh) | The scan script with the Phase A release | scan-tuning `passive-scan.sh` |
+
+### Inputs and provenance
+
+- **Kernel.** Package commit `b6fa6a62`, inventory `49923326…`, built DTB
+  `07b097d5…`; the builder checks provenance, configuration and the DTB.
+- **Parent.** The published WMT-versions candidate (receipt manifest
+  `d6a22f27…`, boot2 `391f44a8…`), every member re-hashed.
+- **ROM patches.** `ROMv3_patch_1_1_hdr.bin` (`5732c073…`, 46472 bytes) and
+  `ROMv3_patch_1_0_hdr.bin` (`450c2b09…`, 210904 bytes), retained Gemian vendor
+  firmware, added at `lib/firmware/mediatek/mt6797/` with mode 0644. Order and
+  metadata are in the [patch-order review](../2026-10-03-mt6797-wifi-audit/ROM_PATCH_ORDER.md).
+- **`iw` userspace.** The six files pinned by the
+  [passive-scan userspace receipt](../2026-10-01-mt6797-passive-scan/results/userspace.json)
+  (`4aedbc77…`, Debian bookworm packages with verified signatures). The
+  builder refuses unless the parent RAM root carries them unchanged.
+- **Source.** Patch digests: 0111 `f3de60f8…`, 0112 port `6cee6703…`, 0113
+  `65ca1ff0…`, 0114 `9cc3aac3…`, 0115 `d1a59ea8…`; `mt6797-wmt-common-init.h`
+  `0aa9e908…`, `wmt-rom-patch.h` `1c20866e…`; CONSYS binding `8e36b807…`.
+
+### Budgets
+
+The trigger write carries negotiation (1.6 s), common init (2 s per exchange,
+60 s total) and WLAN start, so its host process timeout is 120 s. The scan
+keeps the existing 500 ms dwell, five-second kernel deadline and 30 s session
+phase. The host runs the scan only if the capture classified the lifetime as
+ready: negotiation and common init passed, both rails off, continuation logged,
+the three WLAN readiness lines present, and no firmware stop or BT H1 line.
+
+### Checks run here
+
+- [test-build-dt.py](test-build-dt.py) applies the DT edit to the Phase A
+  built DTB made parent-like. It checks the flags, antenna mode, AFE region,
+  the new VCN33-BT node and supply, the WLAN child re-enabled, every other node
+  unchanged, and refusal of a second application. The edited DT validates
+  against the Phase A CONSYS binding.
+- [test-capture-classify.py](test-capture-classify.py) checks the classifier on
+  synthetic logs: a pass, a step failure, an unexpected calibration status,
+  rails left on, a firmware stop, a BT H1 line, a failed TC4 line and a
+  duplicate common-init line.
+- All adapters compile and import with an empty private repository, and the
+  overrides reach every level of the host chain.
+
+### Gates before composition and the run
+
+1. Fill `MANIFEST_SHA` in `capture-private.py` and `install-passive.py` with
+   the SHA-256 of the committed `results/candidate.json`; both refuse until
+   then.
+2. Private inputs on the laptop: the WMT-versions parent candidate directory,
+   the two ROM patches, the fetched package, the private Wi-Fi record at
+   `artifacts/calibration-live-20261001/record-1/WIFI.storage`, and the A53
+   session credentials.
+3. Coordinator review of [PROTOCOL.md](PROTOCOL.md) and the
+   [effect review](EFFECT_REVIEW.md), including calibration as one bounded
+   radio action.
