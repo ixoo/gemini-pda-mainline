@@ -254,10 +254,12 @@ The wiphy probe records an absent wiphy without failing the session.
 
 ### Gates before composition and the run
 
-1. Done for candidate 2: the receipt is committed as
-   [results/candidate.json](results/candidate.json), SHA-256 `72fe8965…`, and
-   both `MANIFEST_SHA` slots carry it. Candidate 2 boot.img is `13d12ca0…`
-   and padded boot2 `7cfd2852…`, from package `c943e1f0…`. The runtime-1 receipt (`169cd7a7…`, boot2 `c04915b2…`) is kept as
+1. Fill `MANIFEST_SHA` in `capture-private.py` and `install-passive.py` with
+   the SHA-256 of the committed `results/candidate.json`; both refuse until
+   then. The builder pins package `3013daa6…` from input `097c113c`. Receipts
+   of consumed candidates are kept: candidate 2 (`72fe8965…`) as
+   [results/runtime-2-candidate.json](results/runtime-2-candidate.json), see
+   [RUNTIME_2.md](RUNTIME_2.md). The runtime-1 receipt (`169cd7a7…`, boot2 `c04915b2…`) is kept as
    [results/runtime-1-candidate.json](results/runtime-1-candidate.json); see
    [RUNTIME_1.md](RUNTIME_1.md). The builder pins the rebuilt package
    `c943e1f0…` from input `0ca1944f`, which carries the ROM patch digest fix.

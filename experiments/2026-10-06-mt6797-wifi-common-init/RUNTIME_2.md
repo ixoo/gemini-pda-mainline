@@ -68,3 +68,20 @@ and acknowledged, which matches the vendor's read-then-flush outcome.
 
 Steps 282–284 have not yet run on hardware: PA rails off and the antenna-mode
 command.
+
+## Build
+
+Input `097c113c` builds on buildbox-2 for Phase A and on buildbox-3 for
+Bluetooth HCI. Both pass remote validation, fetch and local checksums with no
+new warning, and both carry 0120 and 0121.
+
+| Profile | Package inventory |
+| --- | --- |
+| Phase A | `3013daa602ace85689f1d3e0fb495124cbb984a2284cdfac37eb7a36385afe97` |
+| Bluetooth HCI | `8e805a79f23fe197a917629fe2ae28e80f72e31c955f02086b741689564cc1cb` |
+
+The Phase A DTB is unchanged (`07b097d5…`). The builder now pins this package.
+This run's receipt is kept as
+[results/runtime-2-candidate.json](results/runtime-2-candidate.json), and both
+receipt slots are reset for candidate 3. The installer's predecessor is the
+runtime-2 candidate `7cfd2852…`, pending the custodian's boot2 confirmation.
