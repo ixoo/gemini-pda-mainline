@@ -224,10 +224,12 @@ protocol order (negotiation, common init, continuation, record, regulatory,
 TC4), and no firmware stop or BT H1 line.
 
 If the lifetime is not ready, or the capture never classified it, the host
-still runs the same session without the scan: it selects the wiphy-probe
-prepare that the scan-tuning host wrapped, so observation, log sealing, the A53
-regression and reviewed recovery all run. The wiphy probe records an absent
-wiphy without failing the session.
+skips the inherited host `main()`, which would require an accepted capture, and
+calls the wiphy-probe prepare that the scan-tuning host wrapped and its execute
+directly. Observation, log sealing, the A53 regression and reviewed recovery all
+run without any capture prerequisite; no scan is attempted, and the results are
+written to `failure-session-result.json` and `phase-a-session-result.json`.
+The wiphy probe records an absent wiphy without failing the session.
 
 ### Checks run here
 
@@ -249,9 +251,9 @@ wiphy without failing the session.
 
 ### Gates before composition and the run
 
-1. Fill `MANIFEST_SHA` in `capture-private.py` and `install-passive.py` with
-   the SHA-256 of the committed `results/candidate.json`; both refuse until
-   then.
+1. Done: the composed receipt is committed as
+   [results/candidate.json](results/candidate.json), SHA-256 `169cd7a7…`, and
+   both `MANIFEST_SHA` slots carry it. Candidate boot2 SHA-256 is `c04915b2…`.
 2. Private inputs on the laptop: the WMT-versions parent candidate directory,
    the two ROM patches, the fetched package, the private Wi-Fi record at
    `artifacts/calibration-live-20261001/record-1/WIFI.storage`, and the A53

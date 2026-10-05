@@ -54,6 +54,23 @@ def select_prepare(ready):
     return HOST.DOMAIN.prepare
 
 
+def run_without_scan(candidate):
+    """Session, sealing, A53 regression and recovery with no capture prerequisite.
+
+    The inherited host main refuses unless the capture accepted WMT and sent the
+    start request, which an early failure may not have. Call the scan-free
+    prepare and its execute directly, as that main does after its checks.
+    """
+    prepared = SCAN.PREPARE(candidate)
+    prepared['finish'].REPO = PRIVATE_REPO
+    result = prepared['execute'](prepared)
+    result['scan_attempted'] = False
+    (ROOT / 'failure-session-result.json').write_bytes(HOST.DOMAIN.HOST.encoded(result))
+    prepared['finish'].sync_directory(ROOT)
+    print(json.dumps(result, sort_keys=True))
+    return 0 if (result.get('regression_pass') and result.get('recovery_confirmed')) else 1
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--candidate', required=True, type=Path)
@@ -64,9 +81,20 @@ def main():
     ready = (phase_a.is_file() and
              json.loads(phase_a.read_bytes()).get('ready_for_scan') is True)
     if args.execute:
-        # A failed or unclassified lifetime still gets sealing, the A53
-        # regression and reviewed recovery; only the scan is withheld.
         select_prepare(ready)
+        if not ready:
+            # A failed or unclassified lifetime still gets sealing, the A53
+            # regression and reviewed recovery; only the scan is withheld.
+            try:
+                rc = run_without_scan(args.candidate)
+            except (OSError, ValueError, KeyError, TypeError) as error:
+                parser.exit(2, 'Phase A failure session refused: ' + str(error) + '\n')
+            combined = {'phase_a_capture': (json.loads(phase_a.read_bytes())
+                                            if phase_a.is_file() else None),
+                        'scan_attempted': False, 'scan': None, 'kernel_release': RELEASE}
+            with (ROOT / 'phase-a-session-result.json').open('x') as stream:
+                stream.write(json.dumps(combined, indent=2, sort_keys=True) + '\n')
+            return rc
     sys.argv = [sys.argv[0], '--candidate', str(args.candidate)] + (
         ['--execute'] if args.execute else [])
     rc = SCAN.main()

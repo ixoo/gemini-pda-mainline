@@ -18,7 +18,7 @@ RELEASE = '7.1.3-gemini-a53-wifi-phase-a'
 # Current boot2 content: the consumed C1-4 candidate.
 PREDECESSOR_SHA = '144ac96d78ce9fbed411b4561ee52712ce469945f088ba044800a35204a88fe5'
 # Slot filled from the committed results/candidate.json after composition.
-MANIFEST_SHA = None
+MANIFEST_SHA = '169cd7a723fee8f2d969c9dfc43ff2fdb2ce2605a19d0202ee288982c786d521'
 ADAPTER.HERE = HERE
 ADAPTER.PREDECESSOR_SHA = PREDECESSOR_SHA
 ADAPTER.INSTALLER.HERE = HERE
