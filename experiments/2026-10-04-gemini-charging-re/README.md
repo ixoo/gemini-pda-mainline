@@ -482,3 +482,14 @@ resolves the log ambiguity: the computed `0x1f` value is printed before both
 branches call the setter with fixed `0x24`, ignoring its result. The apparent
 log/source discrepancy is not evidence of a different setter. H10's physical
 REG06 state remains open; nominal `0x24` is 4.416 V in the binary table.
+
+## Driver write review (2026-10-05)
+
+The [driver review](DRIVER_REVIEW.md) lists every register write the pinned
+`bq25890` driver can make. The unmodified driver cannot meet the C2b gate:
+neither probe path keeps charging off until limits are written, the input
+current limit is never set at probe, and nothing is read back. It proposes one
+skip-reset driver change that writes limits with charging disabled, verifies
+them, and only then enables charging. The driver also refuses to probe without
+an interrupt, and the charger INT pin's wiring is unknown; that gates any C2b
+node independently of the driver change.
