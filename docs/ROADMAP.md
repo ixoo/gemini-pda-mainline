@@ -26,6 +26,8 @@ Keep this file under 200 lines; move anything else to an experiment record.
   restart, watchdog, CPU0–7, PMIC wrapper, bounded eMMC. Wi-Fi to
   firmware-ready, and WMT alive over BTIF/STP with the chip/HW/ROM tuple
   `0279/8a00/8a00` [measured](../experiments/2026-10-03-mt6797-wmt-versions/README.md).
+- **Bluetooth HCI.** Task-0 HCI Reset, version and address reads
+  [pass](../experiments/2026-10-05-mt6797-bt-h1/RUNTIME_3.md) without a ROM patch.
 - **C1, partial.** PMIC baseline read, PMIC key interrupts and PSCI power-off
   [work](../experiments/2026-10-04-gemini-c1-preparation/README.md#first-c1-boot-2026-10-06).
 - **Open.** No Wi-Fi frame received. No charging, RTC alarm or lid.
@@ -42,10 +44,10 @@ Each boot is a reviewed experiment with its own validated candidate, finite
 budgets and stop conditions under the [safety rules](SAFETY.md). Steps marked
 **(local)** need the owner's machine and the device.
 
-1. **C3: Bluetooth HCI Reset on the negotiated STP session (local).**
-   C1 ran first ([partial result](../experiments/2026-10-04-gemini-c1-preparation/README.md#first-c1-boot-2026-10-06));
-   its short follow-up (events, RTC alarm, lid pull-up) runs when convenient.
-   [Protocol](../experiments/2026-10-05-mt6797-bt-h1/PROTOCOL.md). Profile
+1. **C3: Bluetooth HCI Reset on the negotiated STP session (local).** Done:
+   [C3-3 passed](../experiments/2026-10-05-mt6797-bt-h1/RUNTIME_3.md) all five
+   steps with no ROM patch. Next for Bluetooth is a small `hci_dev` over task 0.
+   The C1 follow-up (events, RTC alarm, lid pull-up) runs when convenient. Profile
    `mt6797-a53-stp-task-routing-compile`, the consolidated 0101–0106 chain with
    the AFE resource present
    ([transport record](../experiments/2026-10-04-mt6797-stp-task-routing/README.md)).
