@@ -64,3 +64,10 @@ setarch "$(uname -m)" -R "$d/t"
 
 The next Bluetooth boot needs a candidate rebuilt with 0114 and a reviewed
 protocol. This candidate is not repeated.
+
+## Rebuilt package
+
+Buildbox compilation on buildbox-3, remote package validation, fetch and all
+local checksums pass for input `cd06b7f5`, with no new warning. Package
+inventory: `c7d36be7532c66fc604a97e52524f4e2c3afda15a9d7e4f7d83f2911a079a8fc`.
+The board DTB is unchanged (`07b097d5…`).
