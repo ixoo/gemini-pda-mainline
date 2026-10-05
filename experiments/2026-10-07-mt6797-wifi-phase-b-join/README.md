@@ -83,7 +83,7 @@ stop without further commands (see Bounds).
 | 1 | Phase A common init and readiness, unchanged | existing | any Phase A gate |
 | 2 | One channel scan of the target's channel, then connect within the cfg80211 BSS lifetime | existing scan, new caller | target BSS absent |
 | 3 | RX filter DIRECTED and BROADCAST | changed payload | no credit return |
-| 4 | BSS activate (new slot, own-MAC index 1) | existing command, new lifetime | no credit return |
+| 4 | BSS activate: BSS 0, own-MAC 1, BMC 0 under the Phase B ownership transfer below | existing command, new lifetime rule | transfer preconditions not met, or no credit return |
 | 5 | STA record pre-auth for the AP | new command | no credit return |
 | 6 | Channel privilege REQ for JOIN on the target channel | new command and event | no grant within the budget |
 | 7 | TX Open System authentication, sequence 1 | **first RF TX** | no TX done, or TX status not success |
@@ -160,8 +160,8 @@ EAPOL exchange or key is part of this admission.
 4. **RX port.** The runtime-3 sealed log records the first frame (length 442,
    type `0xee01`) and the count of 15, but no RX port marker. WRDR0 versus
    WRDR1 cannot be inferred, so the join poller keeps both ports, each bounded.
-5. **Slot reuse.** The scan's BSS slot is declared "never reuse"; the join
-   needs either a new lifetime rule or a scan-free activation.
+5. **Slot reuse.** Resolved by the Phase B slot-lifetime delta below. It is a
+   declared transfer of the same slots, not a new slot.
 6. **One-shot scan.** cfg80211 rescans when its BSS entry has expired. The
    connect must follow the single scan quickly, or the connect path must not
    trigger a second scan.
@@ -180,6 +180,48 @@ EAPOL exchange or key is part of this admission.
 10. **Credit deadline.** Whether the firmware needs credit returned within a
     deadline while frames are pending is not known; the poller reconciles
     credit after each step.
+
+## Phase B delta: slot ownership and lifetime
+
+Phase A's `scan-wire.h` reserves AIS BSS 0, own-MAC index 1 and unencrypted
+BMC WLAN index 0 until the retained firmware session ends. It records the scan
+as used, and treats BSS deactivation as a credit return, not as an activation
+or drain acknowledgement. Phase A's code and protocol stay unchanged. Phase B
+needs those slots and states its own rule instead of reusing them silently.
+
+**Decision: transfer the same slots, do not allocate disjoint ones.** Phase B
+uses BSS 0, own-MAC 1 and BMC 0 again. An earlier draft called the activation a
+"new slot"; that was wrong and is withdrawn. Disjoint slots are rejected for
+this admission. The vendor station path uses the AIS network on BSS 0, and no
+reviewed source or observation establishes that another BSS index, own-MAC
+index or BMC entry is valid for a station on this firmware. Picking unverified
+indexes would add an unknown, not remove one.
+
+**Transfer preconditions.** The join may claim the slots only when all hold:
+
+1. The scan completed normally: the matching done header was received and the
+   scan state left active.
+2. The scan's BSS deactivation was submitted and its TC4 credit returned.
+3. A quiet window of at least 500 ms (one full requested dwell) has passed
+   since deactivation with the bounded poller running, and no scan-owned
+   event or frame arrived in it.
+4. Boot identity and firmware health are still verified.
+
+If any precondition fails, the join does not start and the session fails stop.
+
+**Late scan input after transfer.** Any scan-owned event or beacon that
+arrives after the transfer is counted as late scan input and recorded. A late
+scan-done or scan-related event fails the join stop, with no further command.
+A late beacon is counted and not delivered to mac80211. Late input is never
+attributed to the join.
+
+**Ownership after the join.** The join owns BSS 0, own-MAC 1, BMC 0 and AP
+pairwise WLAN index 1 until its teardown completes under the health rule, or
+until the firmware session ends. WLAN index 1 is a project reservation, not a
+vendor-fixed assignment: the vendor allocates the first free entry from 0 to
+30. Once claimed, no slot returns to the scan. A second scan in the same
+firmware session stays refused, as in Phase A. PIDs are per WLAN index, fresh
+and unique within the attempt, from 1 to 127 with no wrap or reuse.
 
 ## Effects to review
 
