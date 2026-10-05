@@ -342,3 +342,15 @@ and timeout paths; the fired path needs real sysfs.
 Candidate composition is still open. It needs the private A53 RAM root and the
 last booted parent candidate, which are not on the Buildboxes. C2a stays out
 of this boot until its I2C transport review exists.
+
+## Regulator flag correction (2026-10-05)
+
+The attended-packet section above asks to preserve "regulator/clock ignore
+flags". Only `clk_ignore_unused` exists. The C1 package, like the booted
+WMT-versions parent and the STP package, forces a command line without
+`regulator_ignore_unused`; the laptop-side candidate check found this. No
+rebuild is needed. In pinned Linux 7.1.3, late cleanup only disables a rail
+that has a DT node, is not `regulator-always-on` and has no enabled consumer.
+Rails without a node get no status-change permission and are left alone. The
+C1 board DT describes only VEMC, enabled by the eMMC, and always-on VIO18, so
+no MT6351 rail is switched off at late init.

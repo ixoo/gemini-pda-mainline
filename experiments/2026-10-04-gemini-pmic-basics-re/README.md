@@ -497,7 +497,7 @@ every rail marked `regulator-always-on` or `regulator-boot-on`. The MT6351
 regmap update writes only when the enable bit differs, so a rail the loader
 left on sees no write, but a rail it left off is switched on. That would turn
 on modem bucks with no modem running, and for VDRAM it would set the software
-enable that the vendor init clears (F10). `regulator_ignore_unused` does not
+enable that the vendor init clears (F10). `regulator_ignore_unused` would not
 prevent these enables.
 
 The order therefore changes. The C1 boot records each regulator's sysfs
@@ -507,5 +507,11 @@ enable state without any new PMIC write; the C1 kernel has no debugfs for
 `BUCK_VCORE_CON0` before the regulator child probes. The constraint set is then
 written so that `always-on` and `boot-on` mark only rails observed on, plus
 any rail with a reviewed reason to switch on. VCORE and VSRAM_PROC get no
-voltage range, so no consumer can change them. Dropping
-`regulator_ignore_unused` stays a later reviewed boot.
+voltage range, so no consumer can change them.
+
+Correction to F8 and H7: the A53 profiles do not pass `regulator_ignore_unused`;
+their forced command line carries only `clk_ignore_unused`. Unused rails are
+protected instead because late cleanup ignores rails without a DT node, which
+get no status-change permission. Every new rail node that is not
+`regulator-always-on` therefore becomes eligible for switch-off at late init
+unless a consumer enables it. Add nodes only with that in mind.

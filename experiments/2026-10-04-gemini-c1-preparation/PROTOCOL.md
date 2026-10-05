@@ -18,7 +18,9 @@ Build `mt6797-a53-c1-compile` from a clean pushed commit on Buildbox, fetch
 the validated package, and compose the candidate from the last booted A53
 service candidate. Change only the kernel image, the board DTB and the
 RAM-root release gate, and add [rtc-alarm.sh](rtc-alarm.sh) to the RAM root.
-Keep the PSCI power-off path and the regulator and clock ignore flags.
+Keep the PSCI power-off path and the forced command line's `clk_ignore_unused`.
+The command line has no `regulator_ignore_unused`, as in every earlier A53
+boot; see the [correction](README.md#regulator-flag-correction-2026-10-05).
 The RAM root and parent candidate are private and live outside Buildbox.
 Install through the guarded boot2 path in AGENTS.md; the owner selects
 boot2 physically.
