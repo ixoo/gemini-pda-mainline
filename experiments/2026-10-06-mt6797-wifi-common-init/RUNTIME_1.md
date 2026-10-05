@@ -3,7 +3,8 @@
 Status: consumed, 2026-10-07. The laptop device custodian ran one boot under
 [PROTOCOL.md](PROTOCOL.md) with these adapters at `7a255dc0`. Figures are from
 its report; the sealed log stays private. Recovery runs through the reviewed
-no-scan failure path; its confirmation is the custodian's to report.
+no-scan failure path. The custodian confirmed recovery to changed-boot Gemian
+(boot ID `c25020a1-911e-4de7-b50f-9224913ceb6f`) and a passing A53 regression.
 
 | Item | Value |
 | --- | --- |
