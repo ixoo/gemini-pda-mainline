@@ -15,4 +15,6 @@ CONFIG_PM=y
 CONFIG_SUSPEND=y
 # Experiment-only ten-word MT6351 read before IRQ setup; no writes.
 CONFIG_MFD_MT6351_BASELINE_OBSERVER=y
+# GPIO66 level for the lid test through /sys/kernel/debug/gpio.
+CONFIG_DEBUG_FS=y
 CONFIG_LOCALVERSION="-gemini-a53-c1-compile"

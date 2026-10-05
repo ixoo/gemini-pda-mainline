@@ -1,0 +1,38 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 6 Oct 2026 22:00:00 +0000
+Subject: [PATCH] arm64: dts: mediatek: gemini: disable lid debounce for the
+ EINT test
+
+The lid produced no interrupt in two boots. gpio-keys sets debounce
+before requesting its dual-edge interrupt, and mtk-eint enables hardware
+debounce when the line is still level-sensitive from the loader. The
+vendor EINT driver never debounces an edge-sensitive line.
+
+Request no debounce for the lid so the next test separates this from a
+pin level that never changes. Bounce is acceptable for a single
+attended close/open.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+index 8d91a299b..d781f5121 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -548,7 +548,12 @@ hall-switch {
+ 			linux,input-type = <EV_SW>;
+ 			linux,code = <SW_LID>;
+ 			gpios = <&pio 66 GPIO_ACTIVE_LOW>;
+-			debounce-interval = <64>;
++			/*
++			 * No debounce: mtk-eint would enable hardware debounce
++			 * from the loader's level setting before the line is
++			 * switched to dual edge.
++			 */
++			debounce-interval = <0>;
+ 		};
+ 	};
+ };

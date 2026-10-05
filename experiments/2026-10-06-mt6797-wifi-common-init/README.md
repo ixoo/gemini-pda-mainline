@@ -164,3 +164,16 @@ debugfs and a fragment giving the distinct release
 A runtime candidate also needs the WLAN child enabled and the scan-line DT
 settings from the earlier passive-scan candidates, plus everything in
 "Candidate inputs" above. A protocol comes first.
+
+Buildbox compilation on buildbox-2, remote validation, fetch and local
+checksums pass for input `b6fa6a62`, with no new warning.
+
+| Item | Value |
+| --- | --- |
+| Package inventory | `499233263a327fc49c31776ec22e15bb5180d12a9ea192ead4b75d7f2baf205d` |
+| Release | `7.1.3-gemini-a53-wifi-phase-a` |
+| Board DTB | `07b097d581cae6208eea8387d534e14bb2c2bc30752b0d4b783f711284284734` |
+
+The configuration builds the WLAN mac80211 driver, passive scan, debugfs and
+the SHA-256 library in. The image contains the common-init, Bluetooth and
+continue-to-WLAN log strings.
