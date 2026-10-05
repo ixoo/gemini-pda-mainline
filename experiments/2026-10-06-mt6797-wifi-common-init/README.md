@@ -251,9 +251,12 @@ The wiphy probe records an absent wiphy without failing the session.
 
 ### Gates before composition and the run
 
-1. Done: the composed receipt is committed as
-   [results/candidate.json](results/candidate.json), SHA-256 `169cd7a7…`, and
-   both `MANIFEST_SHA` slots carry it. Candidate boot2 SHA-256 is `c04915b2…`.
+1. Fill `MANIFEST_SHA` in `capture-private.py` and `install-passive.py` with
+   the SHA-256 of the committed `results/candidate.json`; both refuse until
+   then. The runtime-1 receipt (`169cd7a7…`, boot2 `c04915b2…`) is kept as
+   [results/runtime-1-candidate.json](results/runtime-1-candidate.json); see
+   [RUNTIME_1.md](RUNTIME_1.md). The builder pins the rebuilt package
+   `c943e1f0…` from input `0ca1944f`, which carries the ROM patch digest fix.
 2. Private inputs on the laptop: the WMT-versions parent candidate directory,
    the two ROM patches, the fetched package, the private Wi-Fi record at
    `artifacts/calibration-live-20261001/record-1/WIFI.storage`, and the A53

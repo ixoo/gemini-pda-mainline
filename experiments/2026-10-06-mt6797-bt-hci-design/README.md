@@ -216,3 +216,8 @@ exclusions. Still no device test.
 The rebuilt package for input `f7166417` passes Buildbox compilation on
 buildbox-1, remote validation, fetch and local checksums, with no new warning.
 Package inventory: `f9cc9d41bd200b1564fa442e357062129a12a280f622549575dd54c7c7cc0a8e`.
+
+After the ROM patch digest fix (0120), the profile was rebuilt at input
+`0ca1944f` on buildbox-3: compilation, remote validation, fetch and local
+checksums pass with no new warning. Package inventory:
+`ef205be68195397bba1e438b231ee28678818609b6cf476fdf9f58d43aa64515`.

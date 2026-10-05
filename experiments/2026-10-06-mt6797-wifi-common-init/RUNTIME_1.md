@@ -34,7 +34,7 @@ both patches parse with the expected metadata (`0x21`/`00 0a f0` and
 `0x22`/`00 09 00`), and all 285 steps build. Nothing reached the chip, so this
 result says nothing about the ROM's response to common init.
 
-## Fix, not yet built
+## Fix
 
 - Patch [0120](../../patches/proposals/0120-soc-mediatek-correct-the-MT6797-ROM-patch-1_0-digest.patch)
   corrects the array. It is selected in the common-init, Phase A and Bluetooth
@@ -44,5 +44,14 @@ result says nothing about the ROM's response to common init.
   the builder's pinned digests. It fails on the built Phase A source and passes
   on the fixed one, so the same typo cannot reach a candidate again.
 
-A new Phase A candidate needs a rebuild with 0120, a new receipt and the owner's
-approval; this candidate is not repeated.
+Rebuilt at input `0ca1944f` on buildbox-2: compilation, remote validation,
+fetch and local checksums pass with no new warning. Package inventory
+`c943e1f0c9f4fc326ad23acf2982d38d18e42e830a0c11f05d65ecf9792dd9af`. The new
+`Image` contains the corrected digest once and the mistyped one nowhere; the
+built DTB is unchanged (`07b097d5…`) and still passes the builder's DT edit test.
+
+The builder now pins this package. This run's receipt is kept as
+[results/runtime-1-candidate.json](results/runtime-1-candidate.json); both
+receipt slots are reset until the next candidate's receipt is committed. Boot2
+held the runtime-1 candidate after this run, so the installer's predecessor is
+now `c04915b2…`. This candidate is not repeated.

@@ -16,9 +16,9 @@ SPEC.loader.exec_module(ADAPTER)
 ADAPTER = ADAPTER.ADAPTER
 RELEASE = '7.1.3-gemini-a53-wifi-phase-a'
 # Current boot2 content: the consumed C1-4 candidate.
-PREDECESSOR_SHA = '144ac96d78ce9fbed411b4561ee52712ce469945f088ba044800a35204a88fe5'
+PREDECESSOR_SHA = 'c04915b2a8cb7f203b2e746c10f2b0c82da00c7558ec0bd79ac5acd7ea350ac6'
 # Slot filled from the committed results/candidate.json after composition.
-MANIFEST_SHA = '169cd7a723fee8f2d969c9dfc43ff2fdb2ce2605a19d0202ee288982c786d521'
+MANIFEST_SHA = None
 ADAPTER.HERE = HERE
 ADAPTER.PREDECESSOR_SHA = PREDECESSOR_SHA
 ADAPTER.INSTALLER.HERE = HERE
