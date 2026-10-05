@@ -482,3 +482,52 @@ specific to the lid is its pin, its line and the debounce:
 
 Neither C1 boot could separate these: the C1 kernel has no debugfs, so the
 GPIO66 level was never read. The lid record's own branches need that level.
+
+## C1-3 lid test (2026-10-06)
+
+Status: consumed; the pin level changes but EINT5 never fires. The laptop
+device custodian ran one boot under [LID_PROTOCOL.md](LID_PROTOCOL.md) with one
+lid close/open. Figures are from its report; raw data stays private.
+
+| Item | Value |
+| --- | --- |
+| Candidate padded boot2 SHA-256 | `8af1bfb5d37f74e0899a402021408911f146c6d3f4786522acbbcb17ed91ba74` |
+| Candidate receipt SHA-256 | `3368f5e27fbf8a7c1b49a1e120569bace334adc9ec5b18b8c47ecee5443f61db` |
+| Package | commit `668d1356`, inventory `0d01494f…` |
+| Mainline boot ID | `fa3e393b-0758-4dae-865c-c6065fc49a5b` |
+| Sealed log SHA-256 | `1ecca4974f9c3710446a83a106e33e7d9f58eefb75d391b5659c88736db88bdb` |
+| Gemian boot ID after recovery | `bbc287f1-1538-48e3-9f58-bf9145b74054`, `3.18.41+`, Debian 9.13 |
+
+- **GPIO66 level.** Read-only debugfs showed high with the lid open, low when
+  closed, and high again when reopened. The sensor, pull-up and input enable
+  work; low means closed, matching the `GPIO_ACTIVE_LOW` description.
+- **Interrupt.** The Hall EINT5 count stayed 0 in every snapshot, and the
+  event capture was empty when its 60 s timeout ended it. Disabling debounce did
+  not restore the interrupt, which rules out the debounce hypothesis.
+- **Recovery.** The reviewed native recovery request was sent once and the
+  kernel logged its restart line. The host process then exited with status 255
+  at the 19.0 s outer timeout. There was no second request. A changed Gemian
+  boot was independently confirmed. The transport timeout is a limitation of
+  the recovery tooling, recorded separately from the confirmed return.
+
+## EINT5 analysis (offline, 2026-10-06)
+
+- **Mapping.** GPIO66 is the only pin mapped to EINT5 in the MT6797 table;
+  the table has no duplicate EINT numbers.
+- **Controller.** The PMIC interrupt (EINT176) works through the same
+  controller and parent GIC line, so the controller, its domain enables and the
+  parent are sound.
+- **What is different.** EINT176 belongs to a virtual GPIO. For virtual GPIOs,
+  `mtk_xt_set_gpio_as_eint()` returns before touching the pad. For a real pad
+  it sets the mode, the direction and then the Schmitt trigger (SMT), and
+  upstream assumes every real GPIO supports SMT. MT6797 has no SMT map in
+  mainline, so that write returns `-ENOTSUPP` and is ignored. No real-pad EINT
+  has ever been shown working on mainline MT6797.
+- **Leading hypothesis.** The EINT edge detector sees the pad without Schmitt
+  conditioning; a slowly moving hall output never produces an edge it accepts,
+  while the GPIO data register still reads the level. The vendor GPIO table
+  places GPIO66's SMT bit in IOCFG_R at `0x30`, bit 27, shared with GPIO67.
+- **Alternative.** EINT5's dual-edge emulation or its status path is wrong for
+  real pads. A software-triggered EINT5 (the controller's `soft_set` register)
+  would separate routing from pad detection, but that is a register write that
+  needs its own review.
