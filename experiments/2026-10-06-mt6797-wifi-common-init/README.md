@@ -127,3 +127,40 @@ The rebuilt package for input `025b2667` passes Buildbox compilation, remote
 package validation, fetch and all local checksums, with no new warning.
 Package inventory: `adda8f2de1ec2a3ad157676eb2103673e8e79d5f711d862a30aef829c62ca111`.
 The board DTB is unchanged from the earlier package.
+
+## Phase A composition (2026-10-06)
+
+The common-init profile derives from the WMT line, which lacks the WLAN
+driver's scan stack (0053–0081). The scan profile lacks the WMT line
+(0086–0114). The two lines share 561 patches and diverge by 28 each, and both
+edit `mt6797-consys.c`, so their union does not apply as is.
+
+Both lines were rebuilt as git branches from the shared base and the WMT line
+was rebased onto the scan line. Two commits conflicted, 0088 and 0092; both
+conflicts were pure additions on each side (includes, owner fields), resolved
+by keeping both. Six WMT patches then needed new context on the scan line:
+0088, 0092, 0096, 0099, 0109 and 0112. Their ports sit next to the originals in
+`patches/series` with an `-on-scan-line` suffix, the original messages and an
+added port note. The other 22 WMT patches apply unchanged.
+
+Patch [0115](../../patches/proposals/0115-soc-mediatek-continue-to-WLAN-start-after-MT6797-common-init.patch)
+lets a completed common init continue into the existing HIF, EMI set, EMI copy
+and firmware-start stages, each with its own DT gate. Any WMT failure still
+returns at once with resources retained.
+
+The new `mt6797-a53-wifi-phase-a-compile` profile is the scan-tuning profile's
+patches and fragments, plus the WMT line, 0115, the WMT query fragment for
+debugfs and a fragment giving the distinct release
+`7.1.3-gemini-a53-wifi-phase-a`. Checks:
+
+- The 618-patch series applies to pinned 7.1.3 with the project's apply
+  method, and the result matches the rebased branch exactly in the CONSYS,
+  WLAN, binding and DT directories.
+- The twelve transport fixtures, the common-init sequence test and the
+  Bluetooth prepare test pass against the Phase A headers.
+- All seven new patch files pass strict checkpatch with the established
+  exclusions.
+
+A runtime candidate also needs the WLAN child enabled and the scan-line DT
+settings from the earlier passive-scan candidates, plus everything in
+"Candidate inputs" above. A protocol comes first.

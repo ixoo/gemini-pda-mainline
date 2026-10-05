@@ -1,0 +1,4 @@
+# Phase A: one deferred trigger runs WMT negotiation and common init, then the
+# existing WLAN HIF, EMI and firmware-start chain; one passive scan follows
+# from userspace. Distinct release so candidates cannot be mistaken.
+CONFIG_LOCALVERSION="-gemini-a53-wifi-phase-a"

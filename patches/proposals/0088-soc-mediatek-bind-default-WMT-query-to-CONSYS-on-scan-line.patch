@@ -1,0 +1,201 @@
+From 2a271410c493ba9aff94fe69543d0fe16cc57bf1 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 2 Oct 2026 21:17:24 -0400
+Subject: [PATCH] soc: mediatek: bind one default WMT query to CONSYS
+
+Acquire exact BTIF and idle-observation channel resources under the
+shared owner. Fingerprint the inherited sysirq route before effect-
+bearing IRQ mapping. Add a query-only deferred lifetime that stops
+before WLAN HIF and retains all effects for reviewed recovery.
+
+Internal experiment archive; synthetic non-certifying author, no DCO.
+Compile-review only; no hardware result.
+
+Port onto the Wi-Fi scan line for the combined Phase A profile; logic
+unchanged, context adjusted beside the scan-line CONSYS changes.
+---
+ drivers/soc/mediatek/mt6797-consys.c | 102 +++++++++++++++++++++++++--
+ 1 file changed, 96 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index edd399248..2f8d5b6f1 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -15,6 +15,8 @@
+ #include <linux/of.h>
+ #include <linux/of_reserved_mem.h>
+ #include <linux/of_platform.h>
++#include <linux/of_irq.h>
++#include <linux/irq.h>
+ #include <linux/pm_domain.h>
+ #include <linux/platform_device.h>
+ #include <linux/pm_runtime.h>
+@@ -35,6 +37,7 @@
+ #if IS_ENABLED(CONFIG_MT6797_MAC80211)
+ #include "../../net/wireless/mediatek/mt6797/mac.h"
+ #endif
++#include "mt6797-wmt-query.h"
+ 
+ #define MT6797_CONSYS_REMAP_REG	0x10001340
+ #define MT6797_CONSYS_SLEEP_MASK_REG	0x10001350
+@@ -86,6 +89,9 @@ struct mt6797_consys {
+ 	/* Built-in owner retains powered HIF and wiphy for the whole boot. */
+ 	struct ieee80211_hw *wlan_hw;
+ #endif
++	struct mt6797_wmt_query wmt_query;
++	bool wmt_query_only;
++	int wmt_query_result;
+ 	void __iomem *remap;
+ 	void __iomem *sleep_mask;
+ 	void __iomem *chip_id;
+@@ -1409,6 +1415,20 @@ static void mt6797_consys_probe_power_on(struct device *dev, struct mt6797_consy
+ 				bool released;
+ 
+ 				released = mt6797_consys_probe_reset_release(dev, owner);
++				if (released && owner->wmt_query_only) {
++					ret = platform_get_irq(to_platform_device(dev), 0);
++					if (ret >= 0) {
++						owner->wmt_query.irq = ret;
++						ret = mt6797_wmt_query_once(&owner->wmt_query);
++					}
++					owner->wmt_query_result = ret;
++					dev_info(dev,
++						 "one-shot WMT default query: result=%d rx=%u irqs=%u clocks-held=%d\n",
++						 ret, owner->wmt_query.rx_count,
++						 owner->wmt_query.irq_count,
++						 owner->wmt_query.clocks_held);
++					return;
++				}
+ 				if (hif_probe && released &&
+ 				    mt6797_consys_probe_hif(dev, owner) &&
+ 				    emi_set_probe)
+@@ -1463,16 +1483,26 @@ static ssize_t firmware_start_after_wmt_store(struct device *dev,
+ 		goto out;
+ 	}
+ 	owner->deferred_start_attempted = true;
+-	dev_info(dev, "one-shot WLAN after WMT: prepower admission passed\n");
+-	mt6797_consys_probe_power_on(dev, owner, true, true, true, true,
+-				     true, true);
+-	ret = 0;
++	dev_info(dev, "one-shot CONSYS after WMT: prepower admission passed\n");
++	owner->wmt_query_result = -ENODEV;
++	mt6797_consys_probe_power_on(dev, owner, true, true,
++				     !owner->wmt_query_only, !owner->wmt_query_only,
++				     !owner->wmt_query_only, !owner->wmt_query_only);
++	ret = owner->wmt_query_only ? owner->wmt_query_result : 0;
+ out:
+ 	mutex_unlock(&mt6797_consys_lock);
+ 	return ret ?: count;
+ }
+ 
+ static DEVICE_ATTR_WO(firmware_start_after_wmt);
++static ssize_t wmt_default_query_store(struct device *dev,
++				       struct device_attribute *attr,
++				       const char *buf, size_t count)
++{
++	return firmware_start_after_wmt_store(dev, attr, buf, count);
++}
++
++static DEVICE_ATTR_WO(wmt_default_query);
+ 
+ static int mt6797_consys_probe(struct platform_device *pdev)
+ {
+@@ -1487,7 +1517,7 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 	void __iomem *hif = NULL, *emi_selector = NULL;
+ 	bool power_probe, chip_id_probe, reset_release_probe, hif_probe;
+ 	bool emi_set_probe, emi_copy_probe, firmware_start_probe;
+-	bool region19_observe, deferred_start;
++	bool region19_observe, deferred_start, wmt_query;
+ 	struct resource reservation = {};
+ 	int ret;
+ 
+@@ -1510,6 +1540,12 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 						 "mediatek,one-shot-region19-observe");
+ 	deferred_start = of_property_read_bool(pdev->dev.of_node,
+ 						"mediatek,deferred-wmt-firmware-start");
++	wmt_query = of_property_read_bool(pdev->dev.of_node,
++					  "mediatek,one-shot-wmt-default-query");
++	if (wmt_query && !deferred_start) {
++		ret = -EINVAL;
++		goto out_unlock;
++	}
+ 	if (region19_observe && power_probe && !deferred_start) {
+ 		ret = -EINVAL;
+ 		goto out_unlock;
+@@ -1664,7 +1700,7 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 	if (emi_set_probe) {
+ 		selector_resource = platform_get_resource(pdev, IORESOURCE_MEM, 5);
+ 		if (!selector_resource ||
+-		    platform_get_resource(pdev, IORESOURCE_MEM, 6) ||
++		    (!wmt_query && platform_get_resource(pdev, IORESOURCE_MEM, 6)) ||
+ 		    selector_resource->start != MT6797_CONSYS_EMI_SELECTOR_REG ||
+ 		    resource_size(selector_resource) != sizeof(u32)) {
+ 			ret = -EINVAL;
+@@ -1686,6 +1722,59 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 	mt6797_consys.mcu_acr = mcu_acr;
+ 	mt6797_consys.hif = hif;
+ 	mt6797_consys.emi_selector = emi_selector;
++	if (wmt_query) {
++		static const resource_size_t bases[] = {
++			0x1100c000, 0x11000a00, 0x11000a80
++		};
++		struct of_phandle_args irq_spec;
++		void __iomem *mapped[3];
++		unsigned int i;
++
++		if (platform_get_resource(pdev, IORESOURCE_MEM, 9) ||
++		    of_irq_count(pdev->dev.of_node) != 1) {
++			ret = -EINVAL;
++			goto out_unlock;
++		}
++		ret = of_irq_parse_one(pdev->dev.of_node, 0, &irq_spec);
++		if (ret)
++			goto out_unlock;
++		ret = irq_spec.args_count == 3 && irq_spec.args[0] == 0 &&
++		      irq_spec.args[1] == 130 && irq_spec.args[2] == IRQ_TYPE_LEVEL_LOW &&
++		      of_device_is_compatible(irq_spec.np,
++					      "mediatek,mt6797-sysirq") ? 0 : -EINVAL;
++		of_node_put(irq_spec.np);
++		if (ret)
++			goto out_unlock;
++		for (i = 0; i < ARRAY_SIZE(bases); i++) {
++			struct resource *resource;
++
++			resource = platform_get_resource(pdev, IORESOURCE_MEM, i + 6);
++			if (!resource || resource->start != bases[i] ||
++			    resource_size(resource) != (i ? 0x80 : 0x1000)) {
++				ret = -EINVAL;
++				goto out_unlock;
++			}
++			mapped[i] = devm_platform_ioremap_resource(pdev, i + 6);
++			if (IS_ERR(mapped[i])) {
++				ret = PTR_ERR(mapped[i]);
++				goto out_unlock;
++			}
++		}
++		mt6797_consys.wmt_query.btif_clk = devm_clk_get(&pdev->dev, "btif");
++		if (IS_ERR(mt6797_consys.wmt_query.btif_clk)) {
++			ret = PTR_ERR(mt6797_consys.wmt_query.btif_clk);
++			goto out_unlock;
++		}
++		mt6797_consys.wmt_query.dma_clk = devm_clk_get(&pdev->dev, "ap-dma");
++		if (IS_ERR(mt6797_consys.wmt_query.dma_clk)) {
++			ret = PTR_ERR(mt6797_consys.wmt_query.dma_clk);
++			goto out_unlock;
++		}
++		mt6797_consys.wmt_query.btif = mapped[0];
++		mt6797_consys.wmt_query.dma_tx = mapped[1];
++		mt6797_consys.wmt_query.dma_rx = mapped[2];
++	}
++	mt6797_consys.wmt_query_only = wmt_query;
+ 	mt6797_consys.vcn18 = vcn18;
+ 	mt6797_consys.vcn28 = vcn28;
+ 	mt6797_consys.vcn33_wifi = vcn33_wifi;
+@@ -1726,6 +1815,7 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 	}
+ 	if (deferred_start && mt6797_consys.region19_window) {
+ 		ret = device_create_file(&pdev->dev,
++					 wmt_query ? &dev_attr_wmt_default_query :
+ 					 &dev_attr_firmware_start_after_wmt);
+ 		if (ret)
+ 			dev_err(&pdev->dev,

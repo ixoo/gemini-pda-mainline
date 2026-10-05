@@ -1,0 +1,59 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 6 Oct 2026 21:00:00 +0000
+Subject: [PATCH] soc: mediatek: continue to WLAN start after MT6797 common
+ init
+
+Phase A needs one boot that runs WMT common initialization and then the
+existing WLAN HIF, EMI and firmware-start chain, so a scan can follow
+on calibrated hardware. The one-shot negotiation previously returned
+after its WMT work whatever the outcome.
+
+When the common-init flag is set and negotiation plus common init
+complete, continue into the existing HIF, EMI set, EMI copy and
+firmware-start stages, which keep their own DT gates and checks. Any
+WMT failure still returns at once with resources retained. Other WMT
+diagnostics are unchanged.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/soc/mediatek/mt6797-consys.c | 12 ++++++++----
+ 1 file changed, 8 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index 996ae09af..c5680910c 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -1746,7 +1746,11 @@ static void mt6797_consys_probe_power_on(struct device *dev, struct mt6797_consy
+ 				if (released && owner->wmt_query_only) {
+ 					owner->wmt_query_result =
+ 						mt6797_consys_wmt_exchange(dev, owner);
+-					return;
++					/* Only completed common init continues to WLAN. */
++					if (owner->wmt_query_result ||
++					    !owner->common_init.enabled)
++						return;
++					dev_info(dev, "WMT common init complete; continuing to WLAN HIF\n");
+ 				}
+ 				if (hif_probe && released &&
+ 				    mt6797_consys_probe_hif(dev, owner) &&
+@@ -1771,6 +1775,7 @@ static ssize_t firmware_start_after_wmt_store(struct device *dev,
+ 					      const char *buf, size_t count)
+ {
+ 	struct mt6797_consys *owner = dev_get_drvdata(dev);
++	bool start;
+ 	int ret;
+ 
+ 	if (count != 2 || memcmp(buf, "1\n", 2))
+@@ -1804,9 +1809,8 @@ static ssize_t firmware_start_after_wmt_store(struct device *dev,
+ 	owner->deferred_start_attempted = true;
+ 	dev_info(dev, "one-shot CONSYS after WMT: prepower admission passed\n");
+ 	owner->wmt_query_result = -ENODEV;
+-	mt6797_consys_probe_power_on(dev, owner, true, true,
+-				     !owner->wmt_query_only, !owner->wmt_query_only,
+-				     !owner->wmt_query_only, !owner->wmt_query_only);
++	start = !owner->wmt_query_only || owner->common_init.enabled;
++	mt6797_consys_probe_power_on(dev, owner, true, true, start, start, start, start);
+ 	ret = owner->wmt_query_only ? owner->wmt_query_result : 0;
+ out:
+ 	mutex_unlock(&mt6797_consys_lock);
