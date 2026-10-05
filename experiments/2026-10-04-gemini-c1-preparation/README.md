@@ -534,7 +534,7 @@ lid close/open. Figures are from its report; raw data stays private.
 
 ## C1-4 lid test (2026-10-07)
 
-Status: consumed; recovery not yet confirmed. The laptop device custodian ran
+Status: consumed; recovery confirmed. The laptop device custodian ran
 one boot under [LID_PROTOCOL_2.md](LID_PROTOCOL_2.md) with one lid
 close/open. Figures are from its report; raw data stays private.
 
@@ -544,17 +544,19 @@ close/open. Figures are from its report; raw data stays private.
 | Package | commit `c466d209`, inventory `cbdebc19…` |
 | Mainline boot ID | `d2f4305c-ef99-4cea-8e39-e2fe71888792` |
 | Sealed log SHA-256 | `08ee5f52448cca2d75d34101c91703321dd9cf7108a5ebe4af3d30c952073e31` |
+| Gemian boot ID after recovery | `e853a8d0-7eb7-42ac-b91e-6050d445783c`, `3.18.41+`, Debian 9.13 |
 
 - **GPIO66.** High, low, high across open, closed and reopened, as in C1-3.
 - **Interrupt.** The Hall EINT5 count stayed 0 in all three snapshots, and the
   event capture was empty when its 60 s timeout ended it. Mapping the GPIO66
   Schmitt field did not restore the interrupt; that hypothesis is rejected.
-- **Recovery pending.** The reviewed native recovery request was sent once and
-  the kernel logged its restart line; the host process exited with status 255
-  at its 34.0 s outer timeout. Two bounded read-only Gemian LAN SSH attempts
-  then timed out. No second restart or alternate recovery was tried. Changed-
-  boot Gemian is not confirmed and awaits the owner's display or console
-  observation.
+- **Recovery.** The reviewed native recovery request was sent once and the
+  kernel logged its restart line; the host process exited with status 255 at
+  its 34.0 s outer timeout, and two bounded read-only Gemian LAN SSH attempts
+  then timed out. No second restart or alternate recovery was tried. After the
+  owner reported Gemian back, SSH confirmed a changed boot that differs from
+  both the mainline boot and the previous Gemian boot. The timeouts are a
+  transport-latency limitation of the recovery tooling, not a failed recovery.
 
 ## EINT5 after C1-4 (offline)
 
