@@ -725,3 +725,4 @@ proposals/0117-dt-bindings-soc-mediatek-mt6797-consys-add-the-Bluetooth-HCI-flag
 proposals/0118-soc-mediatek-run-a-persistent-MT6797-STP-link-for-Bluetooth.patch
 proposals/0119-Bluetooth-add-an-experimental-MT6797-CONSYS-HCI-driver.patch
 proposals/0120-soc-mediatek-correct-the-MT6797-ROM-patch-1_0-digest.patch
+proposals/0121-soc-mediatek-accept-the-MT6797-RF-calibration-data-event.patch

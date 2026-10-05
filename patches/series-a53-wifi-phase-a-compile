@@ -617,3 +617,4 @@ proposals/0113-soc-mediatek-wait-the-vendor-2-s-for-each-MT6797-WMT-event.patch
 proposals/0114-soc-mediatek-accept-non-WMT-frames-at-full-STP-TX-init.patch
 proposals/0115-soc-mediatek-continue-to-WLAN-start-after-MT6797-common-init.patch
 proposals/0120-soc-mediatek-correct-the-MT6797-ROM-patch-1_0-digest.patch
+proposals/0121-soc-mediatek-accept-the-MT6797-RF-calibration-data-event.patch

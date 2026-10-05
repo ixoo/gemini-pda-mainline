@@ -32,7 +32,7 @@ driver runs 285 steps in the selected vendor order for chip 0x0279:
 | 271–273 | MCU clock restore | exact register event |
 | 274–278 | LTE coexistence table, external component zero | exact coexistence event |
 | 279–280 | VCN33-BT, then VCN33-WIFI on at 3.3 V | rail reads enabled |
-| 281 | RF calibration `01 14 01 00 01` | six bytes starting `02 14 02 00`; status captured |
+| 281 | RF calibration `01 14 01 00 01` | event `02 14` of any size whose length field matches ([runtime 2](RUNTIME_2.md)) |
 | 282–283 | Both PA rails off | regulator success |
 | 284 | Antenna mode from `mediatek,coex-antenna-mode` | exact coexistence event |
 
@@ -75,6 +75,9 @@ outputs unchanged. It passes with ASan and UBSan.
 d=$(mktemp -d); cp PREPARED/drivers/soc/mediatek/{stp-full,wmt-full-stp,wmt-rom-patch,mt6797-wmt-common-init}.h "$d"
 cc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined -I"$d" test-common-init.c -o "$d/t"
 setarch "$(uname -m)" -R "$d/t"
+cp PREPARED/drivers/soc/mediatek/{stp-full-task,stp-full-link,wmt-full-stp-state}.h "$d"
+cc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined -I"$d" test-calibration-event.c -o "$d/c"
+setarch "$(uname -m)" -R "$d/c"
 ```
 
 The binding passes `dt-doc-validate`. A test DTB with the flag, antenna mode,

@@ -1,0 +1,93 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Wed, 7 Oct 2026 21:00:00 +0000
+Subject: [PATCH] soc: mediatek: accept the MT6797 RF calibration data event
+
+The second Phase A boot stopped common initialization at RF calibration
+with -EPROTO. The firmware answered the calibration command with a WMT
+event of opcode 0x14 carrying 378 bytes of calibration data, while the
+step table expected the six-byte form 02 14 02 00 00 01. The exact
+length check refused the frame before acknowledging it.
+
+The vendor driver reads only the first six bytes of this event, never
+compares them for opcode 0x14, and flushes the rest before its next
+command. Admit a WMT event of any size whose own length field matches
+the received length when the expected length is zero, and use that mode
+with the 02 14 prefix for calibration only. Every other step keeps its
+exact match.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/soc/mediatek/mt6797-wmt-common-init.h | 5 +++--
+ drivers/soc/mediatek/mt6797-wmt-full-io.h     | 8 ++++++--
+ drivers/soc/mediatek/wmt-full-stp-state.h     | 7 +++++--
+ 3 files changed, 14 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-wmt-common-init.h b/drivers/soc/mediatek/mt6797-wmt-common-init.h
+index 865f2fb6d..8027cd7e1 100644
+--- a/drivers/soc/mediatek/mt6797-wmt-common-init.h
++++ b/drivers/soc/mediatek/mt6797-wmt-common-init.h
+@@ -86,7 +86,8 @@ static const unsigned char wmt_init_lte_l[] = { 0x01, 0x10, 0x02, 0x00, 0x21, 0x
+ 
+ static const unsigned char wmt_init_calibration[] = { 0x01, 0x14, 0x01, 0x00, 0x01 };
+ /* Vendor expects 02 14 02 00 00 01 but never compares content; capture both. */
+-static const unsigned char wmt_init_calibration_prefix[] = { 0x02, 0x14, 0x02, 0x00 };
++/* The event carries RF calibration data of firmware-defined size. */
++static const unsigned char wmt_init_calibration_prefix[] = { 0x02, 0x14 };
+ 
+ static int wmt_init_copy(unsigned char *out, unsigned int capacity,
+ 			 const unsigned char *src, unsigned int length)
+@@ -175,7 +176,7 @@ static inline int mt6797_wmt_init_step(const struct wmt_rom_patch pair[2],
+ 		} else if (base == 7) {
+ 			bytes = wmt_init_copy(out, capacity, wmt_init_calibration,
+ 					      sizeof(wmt_init_calibration));
+-			wmt_init_expect(&next, wmt_init_calibration_prefix, 4, 6);
++			wmt_init_expect(&next, wmt_init_calibration_prefix, 2, 0);
+ 		} else {
+ 			if (capacity < 6)
+ 				return -1;
+diff --git a/drivers/soc/mediatek/mt6797-wmt-full-io.h b/drivers/soc/mediatek/mt6797-wmt-full-io.h
+index 7be589e61..3f17b75e0 100644
+--- a/drivers/soc/mediatek/mt6797-wmt-full-io.h
++++ b/drivers/soc/mediatek/mt6797-wmt-full-io.h
+@@ -46,6 +46,8 @@ struct mt6797_wmt_full_io {
+ /* No effects; caller provides fresh/synchronized storage and an inactive link.
+  * Expected reply storage remains immutable throughout this command lifetime.
+  * The reply must have expected_length bytes and match its first prefix bytes.
++ * expected_length 0 admits a WMT event of any size whose length field matches;
++ * its prefix covers at most the four-byte WMT header.
+  */
+ static int mt6797_stp_task_prepare(struct mt6797_wmt_full_io *io,
+ 				   void __iomem *btif, int irq, struct wmt_full_state *link,
+@@ -57,9 +59,11 @@ static int mt6797_stp_task_prepare(struct mt6797_wmt_full_io *io,
+ 	int bytes;
+ 
+ 	if (!io || !btif || irq <= 0 || !link || link->active || !command || !length ||
+-	    length > WMT_FULL_MAX_PAYLOAD || !expected || !expected_length ||
++	    length > WMT_FULL_MAX_PAYLOAD || !expected ||
+ 	    expected_length > WMT_FULL_MAX_PAYLOAD || !prefix ||
+-	    prefix > expected_length || (task != STP_FULL_TASK_WMT &&
++	    prefix > (expected_length ? expected_length : 4) ||
++	    (!expected_length && task != STP_FULL_TASK_WMT) ||
++	    (task != STP_FULL_TASK_WMT &&
+ 					task != STP_FULL_TASK_BT))
+ 		return -EINVAL;
+ 	if (io->prepared && (!io->terminal || io->result))
+diff --git a/drivers/soc/mediatek/wmt-full-stp-state.h b/drivers/soc/mediatek/wmt-full-stp-state.h
+index cea04d8de..64209fb75 100644
+--- a/drivers/soc/mediatek/wmt-full-stp-state.h
++++ b/drivers/soc/mediatek/wmt-full-stp-state.h
+@@ -51,8 +51,11 @@ static inline int wmt_full_event(void *context, const unsigned char *payload,
+ 	unsigned int i;
+ 
+ 	if (!expected->payload || expected->state->event_seen ||
+-	    length > WMT_FULL_MAX_PAYLOAD || length != expected->length ||
+-	    expected->prefix > length)
++	    length > WMT_FULL_MAX_PAYLOAD || expected->prefix > length)
++		return -1;
++	/* Length 0: a WMT event of any size whose own length field is exact. */
++	if (expected->length ? length != expected->length :
++	    length < 4 || (unsigned int)(payload[2] | payload[3] << 8) != length - 4)
+ 		return -1;
+ 	for (i = 0; i < expected->prefix; i++)
+ 		if (payload[i] != expected->payload[i])

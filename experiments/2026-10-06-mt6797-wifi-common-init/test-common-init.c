@@ -49,8 +49,12 @@ int main(void)
 			exchanges++;
 			assert(step.length >= 5 && step.length <= WMT_FULL_MAX_PAYLOAD);
 			assert(out[0] == 1 && step.expected[0] == 2 && step.expected[1] == out[1]);
-			assert(step.prefix && step.prefix <= step.expected_length &&
-			       step.expected_length <= 8);
+			/* Only calibration has a variable-size event (length 0). */
+			if (i == WMT_INIT_CALIBRATION)
+				assert(step.prefix == 2 && !step.expected_length);
+			else
+				assert(step.prefix && step.prefix <= step.expected_length &&
+				       step.expected_length <= 8);
 			if (out[1] == 1)
 				body += step.length - 5;
 		} else {
@@ -76,8 +80,9 @@ int main(void)
 	assert(!mt6797_wmt_init_step(pair, 1, 280, out, sizeof(out), &step) &&
 	       step.kind == WMT_INIT_WIFI_RAIL_ON);
 	assert(!mt6797_wmt_init_step(pair, 1, 281, out, sizeof(out), &step));
-	assert(step.length == 5 && out[1] == 0x14 && step.prefix == 4 &&
-	       step.expected_length == 6);
+	assert(step.length == 5 && out[1] == 0x14 && step.prefix == 2 &&
+	       step.expected[0] == 0x02 && step.expected[1] == 0x14 &&
+	       step.expected_length == 0);
 	assert(!mt6797_wmt_init_step(pair, 1, 282, out, sizeof(out), &step) &&
 	       step.kind == WMT_INIT_BT_RAIL_OFF);
 	assert(!mt6797_wmt_init_step(pair, 1, 283, out, sizeof(out), &step) &&
