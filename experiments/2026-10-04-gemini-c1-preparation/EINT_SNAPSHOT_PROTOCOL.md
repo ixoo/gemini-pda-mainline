@@ -56,7 +56,7 @@ consulted for this protocol.
 ## Sequence
 
 On the C1-4 package plus only the reader patch (c1/0012, file
-), otherwise the same candidate
+`/sys/kernel/debug/mtk-eint-snapshot`), otherwise the same candidate
 composition; identify it by boot2 SHA-256 and package inventory, since the
 release string is unchanged:
 
