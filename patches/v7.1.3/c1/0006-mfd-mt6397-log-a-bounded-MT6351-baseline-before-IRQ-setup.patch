@@ -1,0 +1,112 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 5 Oct 2026 21:40:00 +0000
+Subject: [PATCH 1/2] mfd: mt6397: log a bounded MT6351 baseline before IRQ
+ setup
+
+C1 needs the loader-inherited values of ten MT6351 control words before
+the key, regulator and RTC children can change them. The key child's
+reset setup writes TOP_RST_MISC, so the observation has to precede
+child registration.
+
+Behind a default-off experiment option, read the fixed words once after
+chip identification and before interrupt setup. Log index, name,
+address, transport result and value. Stop at the first failed read
+without retry and let probe continue. No register is written.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/mfd/Kconfig       | 12 ++++++++++
+ drivers/mfd/mt6397-core.c | 49 +++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 61 insertions(+)
+
+diff --git a/drivers/mfd/Kconfig b/drivers/mfd/Kconfig
+index 7192c9d1d..d5fea61df 100644
+--- a/drivers/mfd/Kconfig
++++ b/drivers/mfd/Kconfig
+@@ -1148,6 +1148,18 @@ config MFD_MT6397
+ 	  accessing the device; additional drivers must be enabled in order
+ 	  to use the functionality of the device.
+ 
++config MFD_MT6351_BASELINE_OBSERVER
++	bool "Log a bounded MT6351 register baseline at probe (experiment)"
++	depends on MFD_MT6397
++	help
++	  Experiment-only diagnostic. Read ten fixed MT6351 control words
++	  once, after chip identification and before interrupt setup or
++	  child registration, and log each address, transport result and
++	  value. The first failed read stops the observation. No register
++	  is written and probe continues either way.
++
++	  If unsure, say N.
++
+ config MFD_MENF21BMC
+ 	tristate "MEN 14F021P00 Board Management Controller Support"
+ 	depends on I2C
+diff --git a/drivers/mfd/mt6397-core.c b/drivers/mfd/mt6397-core.c
+index 0ab307c1e..ae1278ffc 100644
+--- a/drivers/mfd/mt6397-core.c
++++ b/drivers/mfd/mt6397-core.c
+@@ -389,6 +389,52 @@ static const struct chip_data mt6397_core = {
+ 	.irq_init = mt6397_irq_init,
+ };
+ 
++#ifdef CONFIG_MFD_MT6351_BASELINE_OBSERVER
++/*
++ * Ten MT6351 control words whose loader-inherited values C1 records before
++ * any child driver can change them. Interrupt status, SET/CLR aliases, RTC
++ * mailboxes and calibration windows are deliberately absent.
++ */
++static const struct {
++	const char *name;
++	u16 addr;
++} mt6351_baseline[] = {
++	{ "TOP_RST_MISC", 0x02b6 },
++	{ "STRUP_CON15", 0x001e },
++	{ "TOP_CKPDN_CON0", 0x023a },
++	{ "TOP_CKPDN_CON1", 0x0240 },
++	{ "TOP_CKPDN_CON2", 0x0246 },
++	{ "BUCK_VCORE_CON0", 0x0600 },
++	{ "LDO_VDRAM_CON0", 0x0a74 },
++	{ "CHR_CON1", 0x0f7a },
++	{ "CHR_CON6", 0x0f84 },
++	{ "CHR_CON13", 0x0f92 },
++};
++
++static void mt6351_observe_baseline(struct mt6397_chip *pmic)
++{
++	unsigned int i, val;
++	int ret;
++
++	for (i = 0; i < ARRAY_SIZE(mt6351_baseline); i++) {
++		ret = regmap_read(pmic->regmap, mt6351_baseline[i].addr, &val);
++		if (ret) {
++			dev_warn(pmic->dev,
++				 "c1-baseline %u %s 0x%04x ret=%d stop\n", i,
++				 mt6351_baseline[i].name,
++				 mt6351_baseline[i].addr, ret);
++			return;
++		}
++		dev_info(pmic->dev, "c1-baseline %u %s 0x%04x ret=0 val=0x%04x\n",
++			 i, mt6351_baseline[i].name, mt6351_baseline[i].addr,
++			 val);
++	}
++	dev_info(pmic->dev, "c1-baseline complete %u\n", i);
++}
++#else
++static inline void mt6351_observe_baseline(struct mt6397_chip *pmic) {}
++#endif
++
+ static int mt6397_probe(struct platform_device *pdev)
+ {
+ 	int ret;
+@@ -422,6 +468,9 @@ static int mt6397_probe(struct platform_device *pdev)
+ 
+ 	pmic->chip_id = (id >> pmic_core->cid_shift) & 0xff;
+ 
++	if (pmic->chip_id == MT6351_CHIP_ID)
++		mt6351_observe_baseline(pmic);
++
+ 	platform_set_drvdata(pdev, pmic);
+ 
+ 	pmic->irq = platform_get_irq(pdev, 0);

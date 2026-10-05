@@ -1,0 +1,50 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 5 Oct 2026 21:45:00 +0000
+Subject: [PATCH 2/2] arm64: dts: mediatek: gemini: enable C1 power key and lid
+
+C1 measures one short power-key press and one lid close/open. Add the
+MT6351 key child with only the power key, and set the retained Gemian
+policy explicitly: one-key long-press reset after eleven seconds. An
+absent policy would instead disable both reset enables, which is not a
+demonstrated safe default for this device. Enable the existing hall
+gpio-keys node without a wake source.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ .../arm64/boot/dts/mediatek/mt6797-gemini-pda.dts | 15 ++++++++++++++-
+ 1 file changed, 14 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+index 16cf297e6..9ce9f1f81 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -193,6 +193,19 @@ &cpu9 {
+ 	clock-frequency = <2288000000>;
+ };
+ 
++&pmic {
++	keys {
++		compatible = "mediatek,mt6351-keys";
++		/* Retained Gemian policy: one-key reset, eleven seconds. */
++		mediatek,long-press-mode = <1>;
++		power-off-time-sec = <11>;
++
++		power-key {
++			linux,keycodes = <KEY_POWER>;
++		};
++	};
++};
++
+ &mt6351regulator {
+ 	mt6351_vemc_reg: ldo-vemc {
+ 		regulator-name = "vemc_3v3";
+@@ -524,7 +537,7 @@ hall_gpio_keys: gpio-keys {
+ 		compatible = "gpio-keys";
+ 		pinctrl-names = "default";
+ 		pinctrl-0 = <&hall_pins>;
+-		status = "disabled";
++		status = "okay";
+ 
+ 		hall-switch {
+ 			/* Vendor hall.c maps raw low to FCOVER_CLOSE/SW_LID=1. */

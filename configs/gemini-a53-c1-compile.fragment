@@ -1,4 +1,4 @@
-# C1 driver preparation only; no key child or enabled lid candidate.
+# C1: power-key child, enabled lid and a bounded PMIC baseline at probe.
 CONFIG_INPUT=y
 CONFIG_INPUT_KEYBOARD=y
 CONFIG_KEYBOARD_MTK_PMIC=y
@@ -13,4 +13,6 @@ CONFIG_RTC_DRV_MT6397=y
 # Compile IRQ wake-error handling; suspend/wake testing remains separate.
 CONFIG_PM=y
 CONFIG_SUSPEND=y
+# Experiment-only ten-word MT6351 read before IRQ setup; no writes.
+CONFIG_MFD_MT6351_BASELINE_OBSERVER=y
 CONFIG_LOCALVERSION="-gemini-a53-c1-compile"

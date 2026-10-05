@@ -625,6 +625,8 @@ upstream-4d7d9486/rtc/0002-rtc-mt6397-report-alarm-IRQ-wake-errors.patch
 v7.1.3/c1/0003-rtc-mt6397-bound-counter-rollover-retries.patch
 v7.1.3/c1/0004-rtc-mt6397-report-IRQ-transport-errors.patch
 v7.1.3/c1/0005-rtc-mt6397-implement-alarm-IRQ-enable.patch
+v7.1.3/c1/0006-mfd-mt6397-log-a-bounded-MT6351-baseline-before-IRQ-setup.patch
+v7.1.3/c1/0007-arm64-dts-mediatek-gemini-enable-C1-power-key-and-lid.patch
 proposals/0032-soc-mediatek-sample-inherited-MT6797-EMI-policy.patch
 proposals/0033-soc-mediatek-census-MT6797-EMI-ranges.patch
 proposals/0034-pmdomain-mediatek-report-confirmed-opted-domain-on.patch

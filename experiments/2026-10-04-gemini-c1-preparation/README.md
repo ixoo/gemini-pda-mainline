@@ -292,3 +292,27 @@ words and the two source-only addresses that still need read-effects evidence.
 C1's observer must precede key probe writes; explicit key reset policy and the
 lid node are the next board settings. The historical reviews above retain
 their original inputs and gaps rather than overriding the updated priority.
+
+## Observer, power key and lid (2026-10-05)
+
+Two experiment-only patches complete the C1 kernel side. Patch
+[0006](../../patches/v7.1.3/c1/0006-mfd-mt6397-log-a-bounded-MT6351-baseline-before-IRQ-setup.patch)
+adds the default-off `MFD_MT6351_BASELINE_OBSERVER`. After MT6351 chip
+identification and before IRQ setup or child registration, it reads the ten
+audited words once. It logs index, name, address, transport result and value,
+stops at the first failed read, never retries or writes, and lets probe
+continue. The C1 fragment enables it.
+
+The two words without document coverage were checked against the public
+Gemian source named in the [reset-policy record](../2026-09-08-mt6351-keys-preparation/RESET_POLICY.md).
+Its MT6797 field table defines only control-enable fields in them:
+power-off sequence and pre-off enables in `STRUP_CON15`, and VCORE enable and
+selector ownership in `BUCK_VCORE_CON0`. No status, interrupt or clear field
+is defined at either address. This is source evidence, not a measured read
+effect.
+
+Patch [0007](../../patches/v7.1.3/c1/0007-arm64-dts-mediatek-gemini-enable-C1-power-key-and-lid.patch)
+adds the MT6351 key child with only the power key, one-key long-press mode and
+an eleven-second duration, and enables the existing hall node without a wake
+source. Both patches pass strict checkpatch with only the missing sign-off
+excluded, and the board DT compiles. Only the C1 profile selects them.
