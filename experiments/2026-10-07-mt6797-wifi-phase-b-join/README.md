@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-07-mt6797-wifi-phase-b-join` |
-| Status | Design and protocol-gap audit for review; no code, build or device action |
+| Status | Design reviewed with corrections; offline implementation of gaps 1, 2 and 7 approved, compile-only; no air test |
 | Base | Phase A [runtime 3](../2026-10-06-mt6797-wifi-common-init/RUNTIME_3.md), package `3013daa6…` |
 | Date | 2026-10-07 |
 | Device action | None |
@@ -89,7 +89,7 @@ first failure stops the join and goes to teardown.
 | 9 | TX association request | RF TX | no TX done |
 | 10 | RX association response, any status | new parser | none within the budget |
 | 11 | If accepted: STA record state 3, then immediate deauthentication | new command, RF TX | no 0x0c event or no TX done |
-| 12 | Teardown: STA record removal, channel ABORT, BSS off, stop polling | new and existing | none; always runs |
+| 12 | Teardown: STA record removal, channel ABORT, BSS off, stop polling | new and existing | only while identity and firmware and link health remain verified |
 
 The decision is the association response. Any status, accepted or refused,
 proves host TX, firmware TX done and directed management RX. An accepted
@@ -98,10 +98,17 @@ EAPOL exchange or key is part of this admission.
 
 ### Bounds
 
-- **Frames on air.** At most one authentication, one association request and
-  one deauthentication. The driver refuses a fourth frame, mac80211 retries
-  included. TX ACK status comes from the TX-done event, so mac80211 sees real
-  status instead of retrying blindly.
+- **Host submissions are not RF frames.** The host submits at most one
+  authentication, one association request and one deauthentication. Each
+  submission can produce several RF transmissions: firmware retries up to the
+  descriptor's retry limit within its lifetime, plus the hardware's automatic
+  ACK frames for frames it receives. The descriptor pins a fixed retry limit
+  and lifetime, taken from the vendor values and stated in the candidate, and
+  the record keeps host submissions, firmware retries and automatic MAC ACKs
+  apart.
+- **Duplicates.** The driver refuses a second submission of the same subtype
+  in the same join state, mac80211 retries included, not merely a fourth frame.
+  TX ACK status comes from the TX-done event, so mac80211 sees real status.
 - **Frame types.** `.tx` accepts only authentication, association request
   and deauthentication frames addressed to the designated BSSID. It drops and
   counts every data, null or other management frame.
@@ -113,13 +120,23 @@ EAPOL exchange or key is part of this admission.
   The first proposal uses channel 40 again if the designated AP is there.
 - **Budgets.** Firmware sequence numbers and TC4 pages are counted before the
   run; Phase B uses fewer than 20 more commands and frames.
-- **Firmware health.** Stop on WHISR firmware-abort bits, any unparsed event, a
-  stopped firmware line or an event that does not match the pending request.
+- **Firmware health and teardown.** Teardown commands run only while the boot
+  identity, firmware health and link health are still verified. A WHISR
+  firmware-abort bit, a stopped firmware line, or any unknown, unparsed or
+  unmatched event makes the firmware's effects unknown. The driver then sends
+  no further command, preserves the evidence, fails stop, and leaves recovery
+  to the reviewed SoC recovery path. It sends no speculative teardown command.
+- **Partial states and asynchronous input.** The record accounts for every
+  partial success: BSS active, STA record created, channel granted,
+  authenticated, associated. It also counts asynchronous beacons, credit
+  returns and expected unsolicited events, including a TX done for each
+  submission, separately from the awaited responses. Budgets cover these too.
 
 ### Access point and credentials
 
 - The owner designates one owner-controlled AP by a private input file holding
-  its SSID, BSSID and channel. These identities stay out of the repository.
+  its SSID, BSSID and channel. These identities stay out of the repository, and
+  the driver and tools assume no SSID or BSSID.
 - No credentials are used or needed. Open System authentication precedes RSN
   on WPA2 networks. Without an RSN element, a WPA2 AP may refuse the
   association; that refusal still answers the question.
@@ -138,8 +155,9 @@ EAPOL exchange or key is part of this admission.
    used for the BSS.
 3. **Unicast forwarding.** Whether the firmware forwards directed management
    frames to the host depends on the DIRECTED filter bit; it is unproven.
-4. **RX port.** Which of WRDR0 and WRDR1 carried the runtime-3 beacon is not
-   recorded. The join poller keeps polling both.
+4. **RX port.** The runtime-3 sealed log records the first frame (length 442,
+   type `0xee01`) and the count of 15, but no RX port marker. WRDR0 versus
+   WRDR1 cannot be inferred, so the join poller keeps both ports, each bounded.
 5. **Slot reuse.** The scan's BSS slot is declared "never reuse"; the join
    needs either a new lifetime rule or a scan-free activation.
 6. **One-shot scan.** cfg80211 rescans when its BSS entry has expired. The
@@ -158,11 +176,20 @@ EAPOL exchange or key is part of this admission.
 
 ## Effects to review
 
-- First host RF transmission: three frames at most, on one permitted channel.
+- First host RF transmission: three host submissions at most, on one permitted
+  channel, each with the pinned firmware retry limit and lifetime.
 - New firmware state: one BSS activation, one STA record and one channel grant,
-  all removed in teardown before recovery.
-- No storage, NVRAM, calibration or radio-configuration writes. No DMA or
-  interrupt enablement.
+  removed in teardown only while health remains verified.
+- Phase A common init already applies radio configuration: coexistence, PA
+  rails, RF calibration and antenna mode. Phase B adds no new radio
+  configuration beyond the effects listed here. It writes no storage, NVRAM or
+  calibration data, and enables no DMA or interrupt.
+
+## Gate before any air test
+
+No authentication or association attempt runs until the candidate, this
+protocol, the effect review and the owner's private AP target are all concrete
+and reviewed.
 
 ## After this admission
 
