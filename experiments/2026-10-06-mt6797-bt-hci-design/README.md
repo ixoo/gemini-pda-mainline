@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-06-mt6797-bt-hci-design` |
-| Status | Design for coordinator review; no code |
+| Status | Design approved; implementation compile-only, not booted |
 | Date | 2026-10-06 |
 | Device action | None |
 
@@ -75,3 +75,71 @@ submission. Each is recorded in the Bluetooth record's hypotheses.
   file now? Splitting adds no behaviour; it only eases review.
 - Is a link failure on ACK timeout acceptable for the first device boot, given
   there is no retransmission?
+
+## Implementation (2026-10-07)
+
+The coordinator approved the design for offline implementation with no
+device test. Four experiment-only patches form the
+`mt6797-a53-bt-hci-compile` profile, which is the Phase A series plus:
+
+- [0116](../../patches/proposals/0116-soc-mediatek-add-a-persistent-MT6797-full-STP-link-engine.patch),
+  the pure link engine `mt6797-stp-engine.h`;
+- [0117](../../patches/proposals/0117-dt-bindings-soc-mediatek-mt6797-consys-add-the-Bluetooth-HCI-flag.patch),
+  the `mediatek,bt-hci` flag, which requires negotiation and the Bluetooth
+  supply and excludes the one-shot Bluetooth and common-init flags;
+- [0118](../../patches/proposals/0118-soc-mediatek-run-a-persistent-MT6797-STP-link-for-Bluetooth.patch),
+  the CONSYS glue and the exported attach, detach and send calls;
+- [0119](../../patches/proposals/0119-Bluetooth-add-an-experimental-MT6797-CONSYS-HCI-driver.patch),
+  the `btmt6797` HCI driver.
+
+The release is `7.1.3-gemini-a53-bt-hci`.
+
+### Behaviour
+
+- **Ownership.** The CONSYS owner keeps the BTIF interrupt, the link and the
+  Bluetooth rail. The hard IRQ handler drains RX, routes frames, refills the
+  TX FIFO and calls clients only under one spinlock; it never sleeps and does
+  no regulator or WMT work.
+- **WMT.** Commands run in process context under a mutex and wait 2 s for
+  their event. Unsolicited WMT events are counted and dropped.
+- **Bluetooth.** Attach enables VCN33-BT and sends function-on; detach sends
+  function-off and drops the rail only after its event. The driver copies each
+  task-0 payload in IRQ context into a 16-slot ring and refuses it when full,
+  so the controller resends; a work item reassembles H:4 and hands packets to
+  the core. Send waits up to 1 s for queue room.
+- **Failure.** Malformed STP input, a 2 s ACK timeout or a WMT command timeout
+  stops the link once: interrupts off, waiters completed, queued frames
+  dropped, and the HCI core told through `hci_reset_dev()` from process
+  context. Power, clocks and rails stay as they are. There is no retry or
+  resynchronization.
+
+### Deviations from the design
+
+- **No DT child node.** The owner registers a `btmt6797` platform device itself
+  when the link starts, so the binding gains only one flag.
+- **Own H:4 reassembler.** `btmt6797-h4.h` replaces `h4_recv_buf()` so that
+  reassembly across STP frames is host-testable.
+- **No `set_bdaddr` hook.** No address write path exists, as required;
+  `btmtk` is not needed.
+- **First version is Bluetooth-only.** The flag excludes common init, so Wi-Fi
+  and the persistent link are not combined yet.
+
+### Tests
+
+- [test-stp-engine.c](test-stp-engine.c) compiles the real engine with ASan and
+  UBSan. It covers interleaved unsolicited WMT and Bluetooth frames with task
+  routing, one ACK covering several frames, the shared seven-frame window with
+  an eighth queued message, piggyback ACK retirement, queue bounds, unbind and
+  client refusal without credit followed by redelivery, ACK-timeout fail-stop
+  that drops the queue, and malformed-input fail-stop.
+- [test-bt-h4.c](test-bt-h4.c) feeds an event, a maximum-size ACL packet, an
+  empty event and an SCO packet split at every chunk size from 1 to 39, and
+  checks bad types and oversize lengths.
+- All four patches pass strict checkpatch, excluding only the missing
+  sign-off, the new files' maintainer entries and inherited spelling. The
+  binding passes `dt-doc-validate`; a test DTB with the flag validates, and it
+  is rejected with the one-shot Bluetooth flag or without negotiation.
+
+IRQ and work teardown, and the HCI core's behaviour, are covered by review and
+compilation only. A device test needs BlueZ tools in the RAM root, a protocol
+and owner approval.

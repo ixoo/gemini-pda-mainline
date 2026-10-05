@@ -1,0 +1,63 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Wed, 7 Oct 2026 12:01:00 +0000
+Subject: [PATCH 117/119] dt-bindings: soc: mediatek: mt6797-consys: add the
+ Bluetooth HCI flag
+
+Describe an experimental flag that keeps a persistent STP link after the
+one-shot negotiation and registers a Bluetooth HCI device over task 0.
+It requires the negotiation flag and the Bluetooth supply, and excludes
+the one-shot Bluetooth and common-init flags.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ .../soc/mediatek/mediatek,mt6797-consys.yaml  | 22 +++++++++++++++++++
+ 1 file changed, 22 insertions(+)
+
+diff --git a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
+index 8db54c825..4e3a8b1ad 100644
+--- a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
++++ b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
+@@ -89,6 +89,15 @@ properties:
+       The first failure stops the sequence with resources retained. No ROM
+       patch, calibration, sleep or RF setting command is sent.
+ 
++  mediatek,bt-hci:
++    type: boolean
++    description: |
++      Experimental. After the one-shot WMT negotiation, keep the BTIF
++      interrupt and run a persistent full-STP link for this power lifetime,
++      and register a Bluetooth HCI device over STP task 0. The link stops on
++      malformed input or an ACK timeout, with no retry; resources stay as
++      they are for reviewed recovery.
++
+   mediatek,one-shot-wmt-common-init:
+     type: boolean
+     description: |
+@@ -234,6 +243,9 @@ dependentRequired:
+   mediatek,one-shot-bt-reset:
+     - mediatek,one-shot-wmt-negotiate
+     - vcn33-bt-supply
++  mediatek,bt-hci:
++    - mediatek,one-shot-wmt-negotiate
++    - vcn33-bt-supply
+   mediatek,one-shot-wmt-common-init:
+     - mediatek,one-shot-wmt-negotiate
+     - vcn33-bt-supply
+@@ -376,6 +388,16 @@ allOf:
+       required:
+         - mediatek,one-shot-region19-observe
+         - mediatek,one-shot-firmware-start-probe
++  - if:
++      required:
++        - mediatek,bt-hci
++    then:
++      not:
++        anyOf:
++          - required:
++              - mediatek,one-shot-bt-reset
++          - required:
++              - mediatek,one-shot-wmt-common-init
+   - if:
+       required:
+         - mediatek,one-shot-wmt-common-init

@@ -1,0 +1,5 @@
+# Experimental Bluetooth HCI over the CONSYS persistent STP link.
+CONFIG_BT=y
+CONFIG_BT_BREDR=y
+CONFIG_BT_MT6797=y
+CONFIG_LOCALVERSION="-gemini-a53-bt-hci"

@@ -1,0 +1,299 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Wed, 7 Oct 2026 12:00:00 +0000
+Subject: [PATCH 116/119] soc: mediatek: add a persistent MT6797 full-STP link
+ engine
+
+A Bluetooth HCI client needs unsolicited controller events and a send
+path that is not tied to one expected reply, which the one-shot exchange
+cannot provide. Add pure link state for one powered CONSYS lifetime:
+continuous receive routed by task through the existing router, a bounded
+eight-entry transmit queue gated by the shared seven-frame window, ACK
+generation and retirement, and fail-stop on malformed input or an ACK
+timeout. There is no retransmission or resynchronization. The owner
+supplies locking, FIFO access, time and client lifetime; nothing sleeps.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/soc/mediatek/mt6797-stp-engine.h | 272 +++++++++++++++++++++++
+ 1 file changed, 272 insertions(+)
+ create mode 100644 drivers/soc/mediatek/mt6797-stp-engine.h
+
+diff --git a/drivers/soc/mediatek/mt6797-stp-engine.h b/drivers/soc/mediatek/mt6797-stp-engine.h
+new file mode 100644
+index 000000000..1d897ffeb
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-stp-engine.h
+@@ -0,0 +1,272 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef MT6797_STP_ENGINE_H
++#define MT6797_STP_ENGINE_H
++
++#include "stp-full-stream.h"
++#include "stp-full-task.h"
++
++/*
++ * Persistent full-STP link for one powered CONSYS lifetime: continuous RX
++ * routed by task, a bounded TX queue gated by the shared seven-frame window,
++ * ACK generation, and fail-stop on malformed input or ACK timeout. There is
++ * no retransmission or resynchronization. Pure state; the owner supplies
++ * serialization, FIFO access, time and client lifetime. No call sleeps.
++ */
++#define STP_ENGINE_QUEUE 8U
++
++enum stp_engine_error {
++	STP_ENGINE_OK,
++	STP_ENGINE_EINVAL = -22,
++	STP_ENGINE_ENOSPC = -28,
++	STP_ENGINE_EIO = -5,
++	STP_ENGINE_EPROTO = -71,
++	STP_ENGINE_ETIMEDOUT = -110,
++};
++
++struct stp_engine_msg {
++	unsigned int task, length;
++	unsigned char data[STP_FULL_MAX_PAYLOAD];
++};
++
++struct stp_engine {
++	struct stp_full_link link;
++	struct stp_full_stream stream;
++	struct stp_full_client clients[STP_FULL_MAX_CLIENTS];
++	unsigned int client_count;
++	struct stp_engine_msg queue[STP_ENGINE_QUEUE];
++	unsigned int head, count;
++	/* Frame being written to the FIFO; its fields are fixed at build time. */
++	unsigned char frame[STP_FULL_MAX_FRAME];
++	unsigned int frame_length, frame_written, frame_sequence, frame_ack;
++	int frame_data;
++	unsigned long ack_progress;
++	unsigned int rx_frames, rx_refused, rx_duplicates, tx_frames, tx_acks;
++	int failed;
++};
++
++static inline void stp_engine_init(struct stp_engine *e, unsigned long now)
++{
++	unsigned int i;
++
++	stp_full_link_init(&e->link);
++	stp_full_stream_init(&e->stream);
++	e->client_count = 0;
++	e->head = 0;
++	e->count = 0;
++	e->frame_length = 0;
++	e->frame_written = 0;
++	e->frame_data = 0;
++	e->ack_progress = now;
++	e->rx_frames = 0;
++	e->rx_refused = 0;
++	e->rx_duplicates = 0;
++	e->tx_frames = 0;
++	e->tx_acks = 0;
++	e->failed = 0;
++	for (i = 0; i < STP_FULL_MAX_CLIENTS; i++)
++		e->clients[i].receive = 0;
++}
++
++/* Continue an existing link from a completed one-shot negotiation. */
++static inline void stp_engine_adopt(struct stp_engine *e,
++				    const struct stp_full_link *link,
++				    unsigned long now)
++{
++	stp_engine_init(e, now);
++	e->link = *link;
++}
++
++static inline int stp_engine_bind(struct stp_engine *e, unsigned int task,
++				  int (*receive)(void *, const unsigned char *,
++						 unsigned int),
++				  void *context)
++{
++	unsigned int i;
++
++	if (!receive || !stp_full_task(task) ||
++	    e->client_count == STP_FULL_MAX_CLIENTS)
++		return STP_ENGINE_EINVAL;
++	for (i = 0; i < e->client_count; i++)
++		if (e->clients[i].task == task)
++			return STP_ENGINE_EINVAL;
++	e->clients[e->client_count].task = task;
++	e->clients[e->client_count].receive = receive;
++	e->clients[e->client_count].context = context;
++	e->client_count++;
++	return STP_ENGINE_OK;
++}
++
++/* After unbind, new frames for the task are refused and so never ACKed. */
++static inline int stp_engine_unbind(struct stp_engine *e, unsigned int task)
++{
++	unsigned int i;
++
++	for (i = 0; i < e->client_count; i++) {
++		if (e->clients[i].task != task)
++			continue;
++		e->clients[i] = e->clients[--e->client_count];
++		e->clients[e->client_count].receive = 0;
++		return STP_ENGINE_OK;
++	}
++	return STP_ENGINE_EINVAL;
++}
++
++static inline int stp_engine_queue_msg(struct stp_engine *e, unsigned int task,
++				       const unsigned char *payload,
++				       unsigned int length)
++{
++	struct stp_engine_msg *m;
++	unsigned int i;
++
++	if (e->failed)
++		return STP_ENGINE_EIO;
++	if (!payload || !length || length > STP_FULL_MAX_PAYLOAD || !stp_full_task(task))
++		return STP_ENGINE_EINVAL;
++	if (e->count == STP_ENGINE_QUEUE)
++		return STP_ENGINE_ENOSPC;
++	m = &e->queue[(e->head + e->count) % STP_ENGINE_QUEUE];
++	m->task = task;
++	m->length = length;
++	for (i = 0; i < length; i++)
++		m->data[i] = payload[i];
++	e->count++;
++	return STP_ENGINE_OK;
++}
++
++/* Terminal: drop queued messages and return how many were dropped. */
++static inline unsigned int stp_engine_fail(struct stp_engine *e, int reason)
++{
++	unsigned int dropped = e->count;
++
++	if (!e->failed)
++		e->failed = reason ? reason : STP_ENGINE_EIO;
++	e->count = 0;
++	e->frame_length = 0;
++	e->frame_written = 0;
++	return dropped;
++}
++
++/* One received byte. Returns 0, or a negative error once the link failed. */
++static inline int stp_engine_rx(struct stp_engine *e, unsigned char byte,
++				unsigned long now)
++{
++	struct stp_full_frame frame;
++	unsigned int before = e->link.tx_pending;
++	int kind;
++
++	if (e->failed)
++		return e->failed;
++	kind = stp_full_stream_byte(&e->stream, byte, &frame);
++	if (!kind)
++		return 0;
++	if (kind < 0) {
++		stp_engine_fail(e, STP_ENGINE_EPROTO);
++		return e->failed;
++	}
++	kind = stp_full_task_receive(&e->link, e->stream.frame, e->stream.used,
++				     e->clients, e->client_count, &frame);
++	stp_full_stream_init(&e->stream);
++	if (kind < 0) {
++		/* Unknown task or a full client: no credit, the peer resends. */
++		e->rx_refused++;
++		return 0;
++	}
++	if (kind == 1)
++		e->rx_frames++;
++	else if (kind == 2)
++		e->rx_duplicates++;
++	if (e->link.tx_pending < before)
++		e->ack_progress = now;
++	return 0;
++}
++
++/* Bytes of the current frame still to write, building the next one if idle. */
++static inline unsigned int stp_engine_tx_pending(struct stp_engine *e)
++{
++	struct stp_engine_msg *m;
++	int bytes;
++
++	if (e->failed)
++		return 0;
++	if (e->frame_written < e->frame_length)
++		return e->frame_length - e->frame_written;
++	if (e->count && e->link.tx_pending < STP_FULL_WINDOW) {
++		m = &e->queue[e->head];
++		bytes = stp_full_encode(e->frame, sizeof(e->frame), m->data, m->length,
++					m->task, e->link.tx_next, e->link.local_ack);
++		if (bytes < 0) {
++			stp_engine_fail(e, STP_ENGINE_EINVAL);
++			return 0;
++		}
++		e->frame_data = 1;
++	} else if (e->link.ack_owed) {
++		bytes = stp_full_ack(e->frame, sizeof(e->frame), e->link.local_ack);
++		e->frame_data = 0;
++	} else {
++		return 0;
++	}
++	e->frame_length = bytes;
++	e->frame_written = 0;
++	e->frame_sequence = e->link.tx_next;
++	e->frame_ack = e->link.local_ack;
++	return e->frame_length;
++}
++
++static inline const unsigned char *stp_engine_tx_bytes(const struct stp_engine *e)
++{
++	return e->frame + e->frame_written;
++}
++
++/* Account written bytes; commit link state only once a frame is complete. */
++static inline int stp_engine_tx_done(struct stp_engine *e, unsigned int written,
++				     unsigned long now)
++{
++	int ret;
++
++	if (e->failed)
++		return e->failed;
++	if (written > e->frame_length - e->frame_written) {
++		stp_engine_fail(e, STP_ENGINE_EINVAL);
++		return e->failed;
++	}
++	e->frame_written += written;
++	if (e->frame_written < e->frame_length)
++		return 0;
++	if (e->frame_data) {
++		if (!e->link.tx_pending)
++			e->ack_progress = now;
++		ret = stp_full_link_sent(&e->link, e->frame_sequence, e->frame_ack);
++		if (!ret) {
++			e->head = (e->head + 1) % STP_ENGINE_QUEUE;
++			e->count--;
++			e->tx_frames++;
++		}
++	} else {
++		ret = stp_full_link_ack_sent(&e->link, e->frame_ack);
++		/* A newer data frame may already have carried this ACK. */
++		if (ret && !e->link.ack_owed)
++			ret = 0;
++		if (!ret)
++			e->tx_acks++;
++	}
++	e->frame_length = 0;
++	e->frame_written = 0;
++	if (ret) {
++		stp_engine_fail(e, STP_ENGINE_EPROTO);
++		return e->failed;
++	}
++	return 0;
++}
++
++/* Fail-stop when sent frames see no ACK progress for timeout units. */
++static inline int stp_engine_tick(struct stp_engine *e, unsigned long now,
++				  unsigned long timeout)
++{
++	if (e->failed)
++		return e->failed;
++	if (e->link.tx_pending && now - e->ack_progress >= timeout)
++		stp_engine_fail(e, STP_ENGINE_ETIMEDOUT);
++	return e->failed;
++}
++
++#endif

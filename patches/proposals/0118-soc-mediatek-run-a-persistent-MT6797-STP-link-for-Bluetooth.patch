@@ -1,0 +1,490 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Wed, 7 Oct 2026 12:02:00 +0000
+Subject: [PATCH 118/119] soc: mediatek: run a persistent MT6797 STP link for
+ Bluetooth
+
+With the new flag, after a successful negotiation the CONSYS owner keeps
+the BTIF interrupt and drives the link engine: the hard IRQ handler
+drains RX, routes frames by task and refills the TX FIFO under one
+spinlock, enabling the TX-empty interrupt only while bytes are pending.
+A 100 ms timer enforces a 2 s ACK timeout. WMT commands wait for their
+event in process context with a 2 s timeout; unsolicited WMT events are
+counted and dropped.
+
+Export attach, detach and send for one Bluetooth client and register a
+btmt6797 platform device. Attach enables VCN33-BT and sends WMT
+Bluetooth function-on; detach sends function-off and drops the rail only
+after its event. Clients are called only under the link lock. Any link
+failure stops it once: IER off, waiters completed, the client told from
+process context. Power, clocks and rails stay as they are; there is no
+retry or resynchronization.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/soc/mediatek/mt6797-consys.c   | 366 ++++++++++++++++++++++++-
+ include/linux/soc/mediatek/mt6797-bt.h |  22 ++
+ 2 files changed, 385 insertions(+), 3 deletions(-)
+ create mode 100644 include/linux/soc/mediatek/mt6797-bt.h
+
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index c5680910c..595255771 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -45,6 +45,8 @@
+ #include "mt6797-wmt-negotiate.h"
+ #include "mt6797-bt-h1.h"
+ #include "mt6797-wmt-common-init.h"
++#include "mt6797-stp-engine.h"
++#include <linux/soc/mediatek/mt6797-bt.h>
+ #include "mt6797-wmt-versions.h"
+ 
+ #define MT6797_CONSYS_REMAP_REG	0x10001340
+@@ -94,6 +96,25 @@
+ #define MT6351_VCN28_CLOCK_SELECT	(GENMASK(7, 5) | GENMASK(13, 11))
+ #define MT6351_VCN28_CLOCK_EXPECTED	((3 << 5) | (3 << 11))
+ 
++/* Persistent STP link after negotiation, for the Bluetooth HCI client. */
++struct mt6797_stp {
++	spinlock_t lock;	/* engine, IER, client bindings, flags below */
++	struct mutex cmd_lock;	/* one WMT command; BT attach state */
++	struct stp_engine engine;
++	void __iomem *btif;
++	int irq;
++	bool running, stopped, bt_attached, wmt_waiting;
++	struct timer_list tick;
++	struct work_struct stop_work;
++	wait_queue_head_t tx_wait;
++	struct completion wmt_done;
++	const u8 *wmt_expect;
++	unsigned int wmt_prefix, wmt_length, wmt_discarded;
++	const struct mt6797_bt_ops *bt_ops;
++	void *bt_context;
++	struct platform_device *bt_pdev;
++};
++
+ struct mt6797_consys {
+ #if IS_ENABLED(CONFIG_MT6797_MAC80211)
+ 	/* Built-in owner retains powered HIF and wiphy for the whole boot. */
+@@ -104,6 +125,8 @@ struct mt6797_consys {
+ 	struct mt6797_bt_h1 bt_h1;
+ 	struct mt6797_wmt_versions wmt_versions;
+ 	bool bt_h1_after_negotiate;
++	bool bt_hci;
++	struct mt6797_stp stp;
+ 	struct {
+ 		struct mt6797_wmt_full_io io;
+ 		unsigned char command[WMT_FULL_MAX_PAYLOAD];
+@@ -1518,6 +1541,335 @@ static int mt6797_consys_common_init(struct device *dev, struct mt6797_consys *o
+ 	return ret;
+ }
+ 
++#define MT6797_STP_ACK_TIMEOUT_MS 2000U
++#define MT6797_STP_WMT_TIMEOUT_MS 2000U
++#define MT6797_STP_TICK_MS 100U
++#define MT6797_STP_RX_BUDGET 256U
++#define MT6797_STP_SEND_WAIT_MS 1000U
++#define MT6797_BTIF_IER 0x04
++#define MT6797_BTIF_IIR 0x08
++#define MT6797_BTIF_LSR 0x14
++
++/* Lock held. Fill the FIFO while it is empty; TX-empty IRQ only while needed. */
++static void mt6797_stp_pump(struct mt6797_stp *s)
++{
++	const unsigned char *bytes;
++	unsigned int pending, n, i;
++
++	while ((pending = stp_engine_tx_pending(&s->engine))) {
++		if (!(readl(s->btif + MT6797_BTIF_LSR) & BIT(5)))
++			break;
++		n = min(pending, 16U);
++		bytes = stp_engine_tx_bytes(&s->engine);
++		for (i = 0; i < n; i++)
++			writeb(bytes[i], s->btif);
++		if (stp_engine_tx_done(&s->engine, n, jiffies))
++			break;
++	}
++	writel(s->engine.failed ? 0 : stp_engine_tx_pending(&s->engine) ? 3 : 1,
++	       s->btif + MT6797_BTIF_IER);
++}
++
++/* Lock held. Fail-stop: no retry or resync; power and clocks stay as they are. */
++static void mt6797_stp_stop_locked(struct mt6797_stp *s)
++{
++	if (s->stopped)
++		return;
++	s->stopped = true;
++	if (!s->engine.failed)
++		stp_engine_fail(&s->engine, STP_ENGINE_EIO);
++	writel(0, s->btif + MT6797_BTIF_IER);
++	if (s->wmt_waiting) {
++		s->wmt_waiting = false;
++		complete(&s->wmt_done);
++	}
++	wake_up(&s->tx_wait);
++	schedule_work(&s->stop_work);
++}
++
++static void mt6797_stp_stop_work(struct work_struct *work)
++{
++	struct mt6797_stp *s = container_of(work, struct mt6797_stp, stop_work);
++	const struct mt6797_bt_ops *ops;
++	unsigned long flags;
++	void *context;
++
++	spin_lock_irqsave(&s->lock, flags);
++	ops = s->bt_ops;
++	context = s->bt_context;
++	spin_unlock_irqrestore(&s->lock, flags);
++	pr_err("mt6797-consys: persistent STP link stopped (%d): rx=%u refused=%u dup=%u tx=%u acks=%u wmt-discarded=%u\n",
++	       s->engine.failed, s->engine.rx_frames, s->engine.rx_refused,
++	       s->engine.rx_duplicates, s->engine.tx_frames, s->engine.tx_acks,
++	       s->wmt_discarded);
++	if (ops)
++		ops->failed(context);
++}
++
++static irqreturn_t mt6797_stp_irq(int irq, void *data)
++{
++	struct mt6797_stp *s = data;
++	unsigned int iir, budget = 0;
++	unsigned long flags;
++
++	spin_lock_irqsave(&s->lock, flags);
++	if (s->stopped) {
++		writel(0, s->btif + MT6797_BTIF_IER);
++		goto out;
++	}
++	iir = readl(s->btif + MT6797_BTIF_IIR);
++	while ((iir & 0x44) && budget++ < MT6797_STP_RX_BUDGET) {
++		if (stp_engine_rx(&s->engine, readb(s->btif), jiffies))
++			break;
++		iir = readl(s->btif + MT6797_BTIF_IIR);
++	}
++	mt6797_stp_pump(s);
++	if (s->engine.failed)
++		mt6797_stp_stop_locked(s);
++	else if (s->engine.count < STP_ENGINE_QUEUE)
++		wake_up(&s->tx_wait);
++out:
++	spin_unlock_irqrestore(&s->lock, flags);
++	return IRQ_HANDLED;
++}
++
++static void mt6797_stp_tick(struct timer_list *t)
++{
++	struct mt6797_stp *s = timer_container_of(s, t, tick);
++	unsigned long flags;
++
++	spin_lock_irqsave(&s->lock, flags);
++	if (!s->stopped) {
++		if (stp_engine_tick(&s->engine, jiffies,
++				    msecs_to_jiffies(MT6797_STP_ACK_TIMEOUT_MS)))
++			mt6797_stp_stop_locked(s);
++		else
++			mod_timer(&s->tick, jiffies + msecs_to_jiffies(MT6797_STP_TICK_MS));
++	}
++	spin_unlock_irqrestore(&s->lock, flags);
++}
++
++/* IRQ context, lock held: accept the awaited event; drop anything else. */
++static int mt6797_stp_wmt_rx(void *context, const unsigned char *payload,
++			     unsigned int length)
++{
++	struct mt6797_stp *s = context;
++
++	if (s->wmt_waiting && length == s->wmt_length &&
++	    !memcmp(payload, s->wmt_expect, s->wmt_prefix)) {
++		s->wmt_waiting = false;
++		complete(&s->wmt_done);
++		return 0;
++	}
++	s->wmt_discarded++;
++	return 0;
++}
++
++/* IRQ context, lock held: refused while no Bluetooth client is attached. */
++static int mt6797_stp_bt_rx(void *context, const unsigned char *payload,
++			    unsigned int length)
++{
++	struct mt6797_stp *s = context;
++
++	return s->bt_ops ? s->bt_ops->rx(s->bt_context, payload, length) : -1;
++}
++
++/* Process context, cmd_lock held. A timeout stops the link; no retry. */
++static int mt6797_stp_wmt_cmd(struct mt6797_stp *s, const u8 *command, unsigned int length,
++			      const u8 *expect, unsigned int prefix,
++			      unsigned int expected_length)
++{
++	unsigned long flags;
++	int ret;
++
++	reinit_completion(&s->wmt_done);
++	spin_lock_irqsave(&s->lock, flags);
++	if (s->stopped) {
++		ret = -EIO;
++	} else {
++		s->wmt_expect = expect;
++		s->wmt_prefix = prefix;
++		s->wmt_length = expected_length;
++		s->wmt_waiting = true;
++		ret = stp_engine_queue_msg(&s->engine, STP_FULL_TASK_WMT, command, length);
++		if (ret)
++			s->wmt_waiting = false;
++		else
++			mt6797_stp_pump(s);
++	}
++	spin_unlock_irqrestore(&s->lock, flags);
++	if (ret)
++		return ret;
++	wait_for_completion_timeout(&s->wmt_done,
++				    msecs_to_jiffies(MT6797_STP_WMT_TIMEOUT_MS));
++	spin_lock_irqsave(&s->lock, flags);
++	if (s->wmt_waiting) {
++		s->wmt_waiting = false;
++		stp_engine_fail(&s->engine, STP_ENGINE_ETIMEDOUT);
++		mt6797_stp_stop_locked(s);
++		ret = -ETIMEDOUT;
++	} else if (s->stopped) {
++		ret = -EIO;
++	}
++	spin_unlock_irqrestore(&s->lock, flags);
++	return ret;
++}
++
++static bool mt6797_stp_has_room(struct mt6797_stp *s)
++{
++	unsigned long flags;
++	bool room;
++
++	spin_lock_irqsave(&s->lock, flags);
++	room = s->stopped || s->engine.count < STP_ENGINE_QUEUE;
++	spin_unlock_irqrestore(&s->lock, flags);
++	return room;
++}
++
++/* After a successful negotiation: keep the BTIF IRQ for this power lifetime. */
++static int mt6797_stp_start(struct device *dev, struct mt6797_consys *owner)
++{
++	struct mt6797_stp *s = &owner->stp;
++	struct mt6797_wmt_negotiate *n = &owner->wmt_negotiate;
++	unsigned long flags;
++	int ret;
++
++	spin_lock_init(&s->lock);
++	mutex_init(&s->cmd_lock);
++	init_waitqueue_head(&s->tx_wait);
++	init_completion(&s->wmt_done);
++	INIT_WORK(&s->stop_work, mt6797_stp_stop_work);
++	timer_setup(&s->tick, mt6797_stp_tick, 0);
++	s->btif = n->first.btif;
++	s->irq = n->first.irq;
++	stp_engine_adopt(&s->engine, &n->link.transport, jiffies);
++	if (stp_engine_bind(&s->engine, STP_FULL_TASK_WMT, mt6797_stp_wmt_rx, s) ||
++	    stp_engine_bind(&s->engine, STP_FULL_TASK_BT, mt6797_stp_bt_rx, s))
++		return -EINVAL;
++	writel(0, s->btif + MT6797_BTIF_IER);
++	ret = request_irq(s->irq, mt6797_stp_irq, 0, "mt6797-stp", s);
++	if (ret)
++		return ret;
++	s->running = true;
++	spin_lock_irqsave(&s->lock, flags);
++	writel(1, s->btif + MT6797_BTIF_IER);
++	spin_unlock_irqrestore(&s->lock, flags);
++	mod_timer(&s->tick, jiffies + msecs_to_jiffies(MT6797_STP_TICK_MS));
++	s->bt_pdev = platform_device_register_data(dev, "btmt6797", PLATFORM_DEVID_NONE,
++						   NULL, 0);
++	if (IS_ERR(s->bt_pdev)) {
++		dev_err(dev, "Bluetooth HCI device unavailable (%ld)\n",
++			PTR_ERR(s->bt_pdev));
++		s->bt_pdev = NULL;
++	}
++	dev_info(dev, "persistent STP link running: tx-seq=%u rx-seq=%u peer-ack=%u local-ack=%u\n",
++		 s->engine.link.tx_next, s->engine.link.rx_next,
++		 s->engine.link.peer_ack, s->engine.link.local_ack);
++	return 0;
++}
++
++int mt6797_consys_bt_attach(const struct mt6797_bt_ops *ops, void *context)
++{
++	struct mt6797_stp *s = &mt6797_consys.stp;
++	struct regulator *rail = mt6797_consys.vcn33_bt;
++	unsigned long flags;
++	int ret;
++
++	if (!ops || !ops->rx || !ops->failed)
++		return -EINVAL;
++	if (!s->running || !rail)
++		return -ENODEV;
++	mutex_lock(&s->cmd_lock);
++	if (s->bt_attached) {
++		ret = -EBUSY;
++		goto out;
++	}
++	ret = regulator_is_enabled(rail);
++	if (ret) {
++		ret = ret < 0 ? ret : -EBUSY;
++		goto out;
++	}
++	ret = regulator_set_voltage(rail, 3300000, 3300000);
++	if (!ret)
++		ret = regulator_enable(rail);
++	if (ret)
++		goto out;
++	spin_lock_irqsave(&s->lock, flags);
++	s->bt_ops = ops;
++	s->bt_context = context;
++	spin_unlock_irqrestore(&s->lock, flags);
++	ret = mt6797_stp_wmt_cmd(s, bt_h1_on, sizeof(bt_h1_on), bt_h1_func_event,
++				 sizeof(bt_h1_func_event), sizeof(bt_h1_func_event));
++	spin_lock_irqsave(&s->lock, flags);
++	if (ret) {
++		/* The rail stays on for the reviewed WMT close or recovery. */
++		s->bt_ops = NULL;
++		s->bt_context = NULL;
++	} else {
++		s->bt_attached = true;
++	}
++	spin_unlock_irqrestore(&s->lock, flags);
++out:
++	mutex_unlock(&s->cmd_lock);
++	return ret;
++}
++EXPORT_SYMBOL_GPL(mt6797_consys_bt_attach);
++
++void mt6797_consys_bt_detach(void)
++{
++	struct mt6797_stp *s = &mt6797_consys.stp;
++	unsigned long flags;
++
++	if (!s->running)
++		return;
++	mutex_lock(&s->cmd_lock);
++	spin_lock_irqsave(&s->lock, flags);
++	if (!s->bt_attached) {
++		spin_unlock_irqrestore(&s->lock, flags);
++		goto out;
++	}
++	/* The IRQ calls the client only under this lock, so none is in flight. */
++	s->bt_attached = false;
++	s->bt_ops = NULL;
++	s->bt_context = NULL;
++	spin_unlock_irqrestore(&s->lock, flags);
++	if (!mt6797_stp_wmt_cmd(s, bt_h1_off, sizeof(bt_h1_off), bt_h1_func_event,
++				sizeof(bt_h1_func_event), sizeof(bt_h1_func_event)))
++		regulator_disable(mt6797_consys.vcn33_bt);
++out:
++	mutex_unlock(&s->cmd_lock);
++}
++EXPORT_SYMBOL_GPL(mt6797_consys_bt_detach);
++
++/* Process context. Waits up to 1 s for queue room; never retries a frame. */
++int mt6797_consys_bt_send(const u8 *h4, unsigned int length)
++{
++	struct mt6797_stp *s = &mt6797_consys.stp;
++	long left = msecs_to_jiffies(MT6797_STP_SEND_WAIT_MS);
++	unsigned long flags;
++	int ret;
++
++	if (!s->running)
++		return -ENODEV;
++	for (;;) {
++		spin_lock_irqsave(&s->lock, flags);
++		if (!s->bt_attached || s->stopped) {
++			ret = -EIO;
++		} else {
++			ret = stp_engine_queue_msg(&s->engine, STP_FULL_TASK_BT, h4, length);
++			if (!ret)
++				mt6797_stp_pump(s);
++		}
++		spin_unlock_irqrestore(&s->lock, flags);
++		if (ret != STP_ENGINE_ENOSPC)
++			return ret;
++		left = wait_event_timeout(s->tx_wait, mt6797_stp_has_room(s), left);
++		if (!left)
++			return -ETIMEDOUT;
++	}
++}
++EXPORT_SYMBOL_GPL(mt6797_consys_bt_send);
++
+ static int mt6797_consys_wmt_exchange(struct device *dev,
+ 				      struct mt6797_consys *owner)
+ {
+@@ -1579,6 +1931,8 @@ static int mt6797_consys_wmt_exchange(struct device *dev,
+ 		ret = mt6797_consys_bt_h1(dev, owner);
+ 	if (!ret && owner->common_init.enabled)
+ 		ret = mt6797_consys_common_init(dev, owner);
++	if (!ret && owner->bt_hci)
++		ret = mt6797_stp_start(dev, owner);
+ 	return ret;
+ }
+ 
+@@ -1859,7 +2213,7 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 	bool power_probe, chip_id_probe, reset_release_probe, hif_probe;
+ 	bool emi_set_probe, emi_copy_probe, firmware_start_probe;
+ 	bool region19_observe, deferred_start, wmt_query, wmt_negotiate, wmt_identity;
+-	bool bt_h1, common_init;
++	bool bt_h1, common_init, bt_hci;
+ 	u32 antenna_mode = 0;
+ 	struct resource reservation = {};
+ 	int ret;
+@@ -1893,7 +2247,12 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 				      "mediatek,one-shot-bt-reset");
+ 	common_init = of_property_read_bool(pdev->dev.of_node,
+ 					    "mediatek,one-shot-wmt-common-init");
+-	if ((bt_h1 || common_init) && !wmt_negotiate) {
++	bt_hci = of_property_read_bool(pdev->dev.of_node, "mediatek,bt-hci");
++	if ((bt_h1 || common_init || bt_hci) && !wmt_negotiate) {
++		ret = -EINVAL;
++		goto out_unlock;
++	}
++	if (bt_hci && (bt_h1 || common_init)) {
+ 		ret = -EINVAL;
+ 		goto out_unlock;
+ 	}
+@@ -1982,7 +2341,7 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 		ret = -EINVAL;
+ 		goto out_unlock;
+ 	}
+-	if (bt_h1 || common_init) {
++	if (bt_h1 || common_init || bt_hci) {
+ 		vcn33_bt = devm_regulator_get(&pdev->dev, "vcn33-bt");
+ 		if (IS_ERR(vcn33_bt)) {
+ 			ret = dev_err_probe(&pdev->dev, PTR_ERR(vcn33_bt),
+@@ -2183,6 +2542,7 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 	mt6797_consys.vcn33_bt = vcn33_bt;
+ 	mt6797_consys.bt_h1_after_negotiate = bt_h1;
+ 	mt6797_consys.common_init.enabled = common_init;
++	mt6797_consys.bt_hci = bt_hci;
+ 	mt6797_consys.common_init.antenna_mode = antenna_mode;
+ 	mt6797_consys.conmcu_reset = conmcu_reset;
+ 	mt6797_consys.conn_domain = conn_domain;
+diff --git a/include/linux/soc/mediatek/mt6797-bt.h b/include/linux/soc/mediatek/mt6797-bt.h
+new file mode 100644
+index 000000000..d1e432924
+--- /dev/null
++++ b/include/linux/soc/mediatek/mt6797-bt.h
+@@ -0,0 +1,22 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __SOC_MEDIATEK_MT6797_BT_H
++#define __SOC_MEDIATEK_MT6797_BT_H
++
++#include <linux/types.h>
++
++/*
++ * Bluetooth client of the MT6797 CONSYS persistent STP link (task 0).
++ * rx runs in hard IRQ context under the link lock: it must not sleep, must
++ * copy the payload and return nonzero to refuse it (the peer then resends).
++ * failed runs in process context once, after the link stops.
++ */
++struct mt6797_bt_ops {
++	int (*rx)(void *context, const u8 *payload, unsigned int length);
++	void (*failed)(void *context);
++};
++
++int mt6797_consys_bt_attach(const struct mt6797_bt_ops *ops, void *context);
++void mt6797_consys_bt_detach(void);
++int mt6797_consys_bt_send(const u8 *h4, unsigned int length);
++
++#endif
