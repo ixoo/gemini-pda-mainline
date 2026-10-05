@@ -212,3 +212,7 @@ tree's actual headers and the driver's own receive callback:
 The full 622-patch series applies to pinned 7.1.3 and reproduces the tested
 tree exactly. All four patches pass strict checkpatch with the established
 exclusions. Still no device test.
+
+The rebuilt package for input `f7166417` passes Buildbox compilation on
+buildbox-1, remote validation, fetch and local checksums, with no new warning.
+Package inventory: `f9cc9d41bd200b1564fa442e357062129a12a280f622549575dd54c7c7cc0a8e`.
