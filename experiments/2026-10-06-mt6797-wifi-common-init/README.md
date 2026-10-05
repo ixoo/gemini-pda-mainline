@@ -96,3 +96,17 @@ It also needs the negotiation and common-init flags, the antenna mode, the
 VCN33-BT supply and the AFE region in the CONSYS node. A protocol, the C3
 result and the owner's review come first. Calibration success semantics and
 WLAN START composition remain open.
+
+## Build
+
+Buildbox compilation on buildbox-3 and remote package validation pass for
+input `04a42218`. Fetch and all local checksums pass.
+
+| Item | Value |
+| --- | --- |
+| Package inventory | `aee609f8384b14912e94f54293d08d5c1123d5514ad231cb4ccd4538bc5d45f9` |
+| Board DTB | `07b097d581cae6208eea8387d534e14bb2c2bc30752b0d4b783f711284284734`, identical to the C3 package |
+| Release | `7.1.3-gemini-a53-wmt-versions`, inherited from the profile's fragments |
+
+The image contains the executor's log strings and firmware names, and
+`CRYPTO_LIB_SHA256` is built in. No new compiler warning appears.
