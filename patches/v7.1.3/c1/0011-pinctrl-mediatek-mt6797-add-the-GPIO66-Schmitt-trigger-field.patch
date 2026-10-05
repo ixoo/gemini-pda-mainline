@@ -1,0 +1,45 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Wed, 7 Oct 2026 09:00:00 +0000
+Subject: [PATCH] pinctrl: mediatek: mt6797: add the GPIO66 Schmitt trigger
+ field
+
+The Gemini lid on GPIO66 follows the magnet in the GPIO data register but
+never raises EINT5. When a real pad becomes an EINT, the common code
+enables its Schmitt trigger and ignores -ENOTSUPP, assuming every real
+GPIO has one. MT6797 maps no SMT field, so the lid pad stays without
+Schmitt conditioning, and no real-pad EINT has worked on mainline MT6797.
+
+Map GPIO66's SMT bit, IOCFG_R 0x30 bit 27, from the vendor GPIO table.
+The bit also serves GPIO67, the microSD card-detect input. Other pins
+keep unsupported SMT.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/pinctrl/mediatek/pinctrl-mt6797.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/drivers/pinctrl/mediatek/pinctrl-mt6797.c b/drivers/pinctrl/mediatek/pinctrl-mt6797.c
+index 2e7442865..5e0019301 100644
+--- a/drivers/pinctrl/mediatek/pinctrl-mt6797.c
++++ b/drivers/pinctrl/mediatek/pinctrl-mt6797.c
+@@ -41,6 +41,11 @@ static const struct mtk_pin_field_calc mt6797_pin_ies_range[] = {
+ 	PIN_FIELD_CALC(66, 66, 3, 0x10, 0x10, 13, 1, 32, 0),
+ };
+ 
++/* IOCFG_R SMT bit 27 serves GPIO66 and GPIO67 together. */
++static const struct mtk_pin_field_calc mt6797_pin_smt_range[] = {
++	PIN_FIELD_CALC(66, 66, 3, 0x30, 0x10, 27, 1, 32, 0),
++};
++
+ static const struct mtk_pin_field_calc mt6797_pin_pu_range[] = {
+ 	PIN_FIELD_CALC(66, 66, 3, 0xe0, 0x10, 13, 1, 32, 0),
+ };
+@@ -55,6 +60,7 @@ static const struct mtk_pin_reg_calc mt6797_reg_cals[PINCTRL_PIN_REG_MAX] = {
+ 	[PINCTRL_PIN_REG_DI] = MTK_RANGE(mt6797_pin_di_range),
+ 	[PINCTRL_PIN_REG_DO] = MTK_RANGE(mt6797_pin_do_range),
+ 	[PINCTRL_PIN_REG_IES] = MTK_RANGE(mt6797_pin_ies_range),
++	[PINCTRL_PIN_REG_SMT] = MTK_RANGE(mt6797_pin_smt_range),
+ 	[PINCTRL_PIN_REG_PU] = MTK_RANGE(mt6797_pin_pu_range),
+ 	[PINCTRL_PIN_REG_PD] = MTK_RANGE(mt6797_pin_pd_range),
+ };
