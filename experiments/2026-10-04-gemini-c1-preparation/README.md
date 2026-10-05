@@ -531,3 +531,46 @@ lid close/open. Figures are from its report; raw data stays private.
   real pads. A software-triggered EINT5 (the controller's `soft_set` register)
   would separate routing from pad detection, but that is a register write that
   needs its own review.
+
+## C1-4 lid test (2026-10-07)
+
+Status: consumed; recovery not yet confirmed. The laptop device custodian ran
+one boot under [LID_PROTOCOL_2.md](LID_PROTOCOL_2.md) with one lid
+close/open. Figures are from its report; raw data stays private.
+
+| Item | Value |
+| --- | --- |
+| Candidate padded boot2 SHA-256 | `144ac96d78ce9fbed411b4561ee52712ce469945f088ba044800a35204a88fe5` |
+| Package | commit `c466d209`, inventory `cbdebc19…` |
+| Mainline boot ID | `d2f4305c-ef99-4cea-8e39-e2fe71888792` |
+| Sealed log SHA-256 | `08ee5f52448cca2d75d34101c91703321dd9cf7108a5ebe4af3d30c952073e31` |
+
+- **GPIO66.** High, low, high across open, closed and reopened, as in C1-3.
+- **Interrupt.** The Hall EINT5 count stayed 0 in all three snapshots, and the
+  event capture was empty when its 60 s timeout ended it. Mapping the GPIO66
+  Schmitt field did not restore the interrupt; that hypothesis is rejected.
+- **Recovery pending.** The reviewed native recovery request was sent once and
+  the kernel logged its restart line; the host process exited with status 255
+  at its 34.0 s outer timeout. Two bounded read-only Gemian LAN SSH attempts
+  then timed out. No second restart or alternate recovery was tried. Changed-
+  boot Gemian is not confirmed and awaits the owner's display or console
+  observation.
+
+## EINT5 after C1-4 (offline)
+
+Rejected so far: hardware debounce (C1-3), pad Schmitt conditioning (C1-4), a
+stuck pin level and a duplicate EINT mapping. The remaining candidates sit
+between the pad and the handler:
+
+1. EINT5's sensitivity, polarity or mask register does not hold what
+   `mtk_eint_set_type()` and unmask wrote, or the dual-edge emulation leaves
+   it pointing the wrong way.
+2. The status bit for EINT5 never sets, so the pad signal does not reach the
+   EINT block in this pin state.
+3. The status bit sets, but the parent never runs the handler for port 0.
+
+All three can be told apart without a new kernel, from a read-only snapshot of
+the EINT5 bits in the controller's status, mask, sensitivity, polarity, domain
+and debounce registers with the lid open and closed, compared with EINT176's
+bits. A software-triggered EINT5 would then separate candidate 3. Both need a
+reviewed register-access protocol.
