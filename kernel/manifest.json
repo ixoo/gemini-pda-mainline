@@ -255,6 +255,25 @@
           "configs/gemini-a53-wifi-scan-tuning-sample.fragment",
           "configs/gemini-a53-wifi-phase-a.fragment"
         ]
+      },
+      "mt6797-a53-board-only-compile": {
+        "base": "defconfig",
+        "patch_series": "patches/series-a53-board-only-compile",
+        "fragments": [
+          "configs/gemini-handoff.fragment",
+          "configs/gemini-usbdiag.fragment",
+          "configs/gemini-clk-ignore-unused.fragment",
+          "configs/gemini-observability.fragment",
+          "configs/gemini-fbcon-rotation.fragment",
+          "configs/gemini-keyboard.fragment",
+          "configs/gemini-keyboard-wrrd.fragment",
+          "configs/gemini-keyboard-manual-reboot.fragment",
+          "configs/gemini-smp8.fragment",
+          "configs/gemini-emmc-development.fragment",
+          "configs/gemini-mt6797-pwrap-reset-serviceability.fragment",
+          "configs/gemini-a53-service-facilities.fragment",
+          "configs/gemini-a53-board-only-compile.fragment"
+        ]
       }
     }
   }

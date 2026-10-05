@@ -1,7 +1,7 @@
 # C1 lid test protocol (C1-3)
 
-Status: draft for coordinator review, 2026-10-06. Package pending; no
-candidate composed and no device action taken under this protocol.
+Status: draft for coordinator review, 2026-10-06. No candidate composed and
+no device action taken under this protocol.
 
 ## Hypothesis and unique observation
 
@@ -10,6 +10,21 @@ Two boots gave no lid interrupt; see the
 a dual-edge EINT5 suppresses the interrupt, or the GPIO66 level never changes.
 The unique observation is GPIO66's level with the lid open and closed, which
 neither earlier boot could read.
+
+## Artifact
+
+| Item | Value |
+| --- | --- |
+| Profile | `mt6797-a53-c1-compile` |
+| Commit | `668d1356fb44a1878a9bb4ad560a1b0a6edb3513` |
+| Package inventory | `0d01494f2d4336fd8a370022a15cca1688b478e2a039ca1ad1f75ee70e52a5f2` |
+| Release | `7.1.3-gemini-a53-c1-compile`, the same as earlier C1 packages |
+| Built board DTB | `3ffa3c59001c0b4a39f6889fdfa9eaf92295702fbe787b3f44fdf49e49916d44` |
+| Builder | buildbox-3; remote validation, fetch and local checksums passed, no new warning |
+
+The release string matches earlier C1 boots, so identify the candidate by its
+boot2 SHA-256 and this inventory. The DTB carries `debounce-interval = <0>`,
+`bias-pull-up` and `input-enable` on the lid, and the config has debugfs.
 
 ## Artifact changes from the C1 follow-up
 
