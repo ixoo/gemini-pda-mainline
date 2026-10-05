@@ -1,0 +1,30 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Wed, 7 Oct 2026 18:00:00 +0000
+Subject: [PATCH] soc: mediatek: correct the MT6797 ROM patch 1_0 digest
+
+The first Phase A boot stopped common initialization with -EINVAL before
+any WMT command. The pinned SHA-256 of ROMv3_patch_1_0_hdr.bin had its
+last eight bytes mistyped, so the retained patch never matched and the
+sequence refused it, as designed.
+
+Use the file's actual digest. No step, order or check changes.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/soc/mediatek/mt6797-consys.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index 356a3e6c5..37f9b41cc 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -1421,7 +1421,7 @@ static const struct {
+ 	{ "mediatek/mt6797/ROMv3_patch_1_0_hdr.bin", {
+ 		0x45, 0x0c, 0x2b, 0x09, 0x49, 0xcf, 0x87, 0x92, 0x17, 0xac, 0x9a, 0xef,
+ 		0x81, 0xb1, 0x8b, 0x86, 0x09, 0x82, 0xf0, 0xe6, 0x93, 0x40, 0x78, 0x4b,
+-		0x44, 0x8c, 0xf6, 0x30, 0x80, 0xb4, 0x3c, 0xf6 } },
++		0x44, 0x8b, 0x54, 0x36, 0x5d, 0x8c, 0xf6, 0x30 } },
+ };
+ 
+ static int mt6797_consys_init_rail(struct regulator *rail, bool on, bool *state)

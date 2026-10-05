@@ -590,3 +590,4 @@ proposals/0111-dt-bindings-soc-mediatek-mt6797-consys-add-one-shot-common-init.p
 proposals/0112-soc-mediatek-add-one-shot-MT6797-WMT-common-initialization.patch
 proposals/0113-soc-mediatek-wait-the-vendor-2-s-for-each-MT6797-WMT-event.patch
 proposals/0114-soc-mediatek-accept-non-WMT-frames-at-full-STP-TX-init.patch
+proposals/0120-soc-mediatek-correct-the-MT6797-ROM-patch-1_0-digest.patch
