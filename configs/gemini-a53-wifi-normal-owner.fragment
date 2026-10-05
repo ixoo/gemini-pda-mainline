@@ -1,2 +1,0 @@
-# Retain one normal-command ledger after the bounded capability reply.
-CONFIG_LOCALVERSION="-gemini-a53-wifi-normal-owner"

@@ -19,11 +19,11 @@ previously missing compiler and linkage check, not kernel execution evidence.
 The [manifest](../../kernel/manifest.json) reuses the existing complete source
 tuple for upstream `4d7d9486c04d917265f64c55bd23b2cc4fe7749c` (7.3-rc1),
 archive SHA-256 `45590c057805bc9cf7281ce04d5dbde5316b7c8b017998cafac301f67e92682d`.
-The [two-patch series](../../patches/series-mt6797-provider-compile) contains only
+The [two-patch series](https://github.com/ixoo/gemini-pda-mainline/blob/164c2d3f/patches/series-mt6797-provider-compile) contains only
 the proposals above, in canonical order. The validated six-patch infracfg topic
 is independent and is not needed for this compilation.
 
-The [allnoconfig fragment](../../configs/mt6797-provider-compile.fragment)
+The [allnoconfig fragment](https://github.com/ixoo/gemini-pda-mainline/blob/164c2d3f/configs/mt6797-provider-compile.fragment)
 selects the real legacy SCPSYS, common clock, syscon, regulator and PM paths.
 An independent review of the pinned upstream Kconfig/Makefiles confirms that
 legacy `MTK_SCPSYS` selects `PM_GENERIC_DOMAINS` only with `PM=y`; the newer

@@ -94,7 +94,7 @@ There is no DA9214, regulator, legacy DVFSP, observer, or A72-power node.
 
 ### Non-installed PM compile audit
 
-[`configs/gemini-dvfsp-i2c6-consumer-pm-audit.fragment`](../../configs/gemini-dvfsp-i2c6-consumer-pm-audit.fragment)
+[`configs/gemini-dvfsp-i2c6-consumer-pm-audit.fragment`](https://github.com/ixoo/gemini-pda-mainline/blob/164c2d3f/configs/gemini-dvfsp-i2c6-consumer-pm-audit.fragment)
 enables `CONFIG_SUSPEND`, `CONFIG_PM_SLEEP`, and `CONFIG_SUSPEND_FREEZER`, while
 leaving hibernation and both autosleep policies disabled. The PM-audit package
 exists only to prove the provider/consumer protected late/early callbacks
@@ -151,7 +151,7 @@ New logical patches:
   removes active I2C6 policy/children and adds the access-controller link.
 
 The selected series is
-[`patches/series-dvfsp-handoff-owner-i2c6-consumer`](../../patches/series-dvfsp-handoff-owner-i2c6-consumer).
+[`patches/series-dvfsp-handoff-owner-i2c6-consumer`](https://github.com/ixoo/gemini-pda-mainline/blob/164c2d3f/patches/series-dvfsp-handoff-owner-i2c6-consumer).
 It is exact AO plus 0099–0102 and excludes active A72 patch 0093 and legacy
 DA9214 patch 0096.
 

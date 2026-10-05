@@ -118,7 +118,7 @@ owner, one WLAN driver and one profile; retired diagnostics leave the series.
 - Diagnostics live in named profiles, default off, and leave the manifest when
   their experiment is consumed. Profiles are retired, not accumulated; the
   [consolidation record](../experiments/2026-10-05-repository-consolidation/README.md)
-  lists the 12 profiles to keep and the 261 proposed for retirement.
+  lists the 12 profiles kept and the 261 retired on 2026-10-05.
 - Every new patch has a human author who can certify it, or it is marked
   experiment-only. `check-repository` rejects new synthetic sign-offs.
 - Every experiment directory has a README, and new records state a

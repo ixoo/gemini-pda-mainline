@@ -1,2 +1,0 @@
-# Passive private record provider probe after bounded debug drain; no RF or DMA.
-CONFIG_LOCALVERSION="-gemini-a53-wifi-record-runtime"

@@ -8,7 +8,6 @@ REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd -P)"
 readonly REPO_DIR
 readonly VALIDATOR="${SCRIPT_DIR}/validate-manifest-series"
 readonly MANIFEST="${REPO_DIR}/kernel/manifest.json"
-readonly GAUSS_PROFILE="observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-observer-initcall-blacklist-dvfsp-handoff-owner-i2c6-consumer-ap-dma-preserve-gauss"
 
 die() {
 	echo "error: $*" >&2
@@ -160,30 +159,8 @@ jq -e '
 	}
 ' "${MANIFEST}" >/dev/null || die "protected default profile changed"
 
-jq -e --arg profile "${GAUSS_PROFILE}" '
-	.config.profiles[$profile] == {
-		base: "defconfig",
-		patch_series: "patches/series-gauss-i2c6-exact-d3",
-		fragments: [
-			"configs/gemini-handoff.fragment",
-			"configs/gemini-usbdiag.fragment",
-			"configs/gemini-clk-ignore-unused.fragment",
-			"configs/gemini-observability.fragment",
-			"configs/gemini-fbcon-rotation.fragment",
-			"configs/gemini-keyboard.fragment",
-			"configs/gemini-keyboard-wrrd.fragment",
-			"configs/gemini-keyboard-manual-reboot.fragment",
-			"configs/gemini-smp8.fragment",
-			"configs/gemini-a72-observer.fragment",
-			"configs/gemini-a72-observer-initcall-blacklist.fragment",
-			"configs/gemini-dvfsp-handoff-owner.fragment",
-			"configs/gemini-dvfsp-i2c6-consumer.fragment",
-			"configs/gemini-i2c6-gauss.fragment"
-		]
-	}
-' "${MANIFEST}" >/dev/null || die "protected Gauss diagnostic profile changed"
 
 printf 'validation=manifest-series-invariant-self-test\n'
 printf 'positive_cases=%s\n' "${pass_count}"
 printf 'mutations_rejected=%s\n' "${rejection_count}"
-printf 'protected_profiles=full,gauss\n'
+printf 'protected_profiles=full\n'

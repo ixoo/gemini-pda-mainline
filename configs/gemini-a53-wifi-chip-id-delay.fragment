@@ -1,2 +1,0 @@
-# Bound the powered CONSYS chip-ID settling probe.
-CONFIG_LOCALVERSION="-gemini-a53-wifi-chip-id-delay"

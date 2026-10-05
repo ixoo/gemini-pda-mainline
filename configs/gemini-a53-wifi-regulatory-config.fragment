@@ -1,6 +1,0 @@
-# Submit supported retained configuration under cfg80211 ownership.
-# Interface start, scan and packet/RF operations remain unavailable.
-CONFIG_LOCALVERSION="-gemini-a53-wifi-regulatory-config"
-CONFIG_CFG80211=y
-CONFIG_MAC80211=y
-CONFIG_MT6797_MAC80211=y

@@ -42,7 +42,7 @@ evidence for either physical CPU.
   `Gemini Mainline Project <noreply@invalid>`, has no `Signed-off-by`, and is
   not submission-ready.
 - Selected series:
-  [`patches/series-a72-reject-gate-a41-six-row-fixture`](../../patches/series-a72-reject-gate-a41-six-row-fixture),
+  [`patches/series-a72-reject-gate-a41-six-row-fixture`](https://github.com/ixoo/gemini-pda-mainline/blob/164c2d3f/patches/series-a72-reject-gate-a41-six-row-fixture),
   96 entries, SHA-256
   `8c76d1cef1ddd7f452ef7604d6b2581c56c13c1a982e3492e0d0c31f20d9e3da`.
 - Ordered patchset identity:

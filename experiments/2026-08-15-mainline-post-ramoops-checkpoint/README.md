@@ -49,7 +49,7 @@ synthetic author identity is non-certifying and it has no DCO sign-off.
 
 - [`../../patches/v7.1.3/0279-pstore-add-Gemini-post-ramoops-checkpoint.patch`](../../patches/v7.1.3/0279-pstore-add-Gemini-post-ramoops-checkpoint.patch):
   one default-off marker on successful ramoops registration.
-- [`../../configs/gemini-post-ramoops-checkpoint.fragment`](../../configs/gemini-post-ramoops-checkpoint.fragment):
+- [`../../configs/gemini-post-ramoops-checkpoint.fragment`](https://github.com/ixoo/gemini-pda-mainline/blob/164c2d3f/configs/gemini-post-ramoops-checkpoint.fragment):
   isolated enable plus unique local version.
 - [`scripts/validate.py`](scripts/validate.py): exact profile, patch, ordering,
   attribution, and safety validator.

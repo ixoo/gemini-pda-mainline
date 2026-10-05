@@ -1,4 +1,4 @@
-# Manifest profiles proposed for retirement on 2026-10-05 (261). Definitions: commit 164c2d3f.
+# Manifest profiles retired on 2026-10-05 (261). Definitions: commit 164c2d3f.
 a72-a34-eligibility
 a72-a34-eligibility-kunit
 a72-a34-v2-kunit

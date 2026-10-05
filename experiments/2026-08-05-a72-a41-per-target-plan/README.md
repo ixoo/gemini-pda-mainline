@@ -37,7 +37,7 @@ existing admission vetoes?
   It uses a synthetic, non-certifying experiment author, has no
   `Signed-off-by`, and is not submission-ready.
 - Selected series:
-  [`patches/series-a72-reject-gate-a41-per-target-plan`](../../patches/series-a72-reject-gate-a41-per-target-plan),
+  [`patches/series-a72-reject-gate-a41-per-target-plan`](https://github.com/ixoo/gemini-pda-mainline/blob/164c2d3f/patches/series-a72-reject-gate-a41-per-target-plan),
   95 entries, SHA-256
   `85874b97036200f24cb0f72cc4bc2592963f8aeb71fa9dfeb88d6e2c95ff19ca`.
 - Ordered patchset identity:

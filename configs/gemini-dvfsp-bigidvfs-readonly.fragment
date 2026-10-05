@@ -1,3 +1,0 @@
-# Compile-only BigiDVFS secure-register readback. The DT node remains
-# disabled, so this profile performs no secure call on a device.
-CONFIG_MTK_MT6797_DVFSP_BIGIDVFS_BACKEND=y

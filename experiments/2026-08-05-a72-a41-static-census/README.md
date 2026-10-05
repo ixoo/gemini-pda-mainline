@@ -40,7 +40,7 @@ hardware evidence and cannot close the capability-inventory blocker.
   It uses a synthetic, non-certifying experiment author, has no
   `Signed-off-by`, and is not submission-ready.
 - Selected series:
-  [`patches/series-a72-reject-gate-a41-static-census`](../../patches/series-a72-reject-gate-a41-static-census),
+  [`patches/series-a72-reject-gate-a41-static-census`](https://github.com/ixoo/gemini-pda-mainline/blob/164c2d3f/patches/series-a72-reject-gate-a41-static-census),
   94 entries, SHA-256
   `12b46a348af31ebbe506480716e2bb517044da095e5902b8bfb59622188e859f`.
 - Ordered patchset identity:

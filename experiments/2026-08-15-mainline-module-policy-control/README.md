@@ -43,7 +43,7 @@ CPU8/CPU9 admission change is introduced.
 
 ## Associated code
 
-- [`../../configs/gemini-da921x-provider-modules-control.fragment`](../../configs/gemini-da921x-provider-modules-control.fragment):
+- [`../../configs/gemini-da921x-provider-modules-control.fragment`](https://github.com/ixoo/gemini-pda-mainline/blob/164c2d3f/configs/gemini-da921x-provider-modules-control.fragment):
   exact two-setting control delta.
 - [`scripts/validate.py`](scripts/validate.py): exact parent-extension and
   safety validation.

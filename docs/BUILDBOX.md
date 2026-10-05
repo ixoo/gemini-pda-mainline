@@ -430,15 +430,15 @@ lifecycle enum and changes no behavior.
 After canonical admission, compile and fetch the isolated focused profile with:
 
 ```sh
-KERNEL_PROFILE=mt6797-a72-platform-state-source ./scripts/build-kernel --backend buildbox
-KERNEL_PROFILE=mt6797-a72-platform-state-source ./scripts/buildbox fetch-package
+KERNEL_PROFILE=mt6797-a53-c1-compile ./scripts/build-kernel --backend buildbox
+KERNEL_PROFILE=mt6797-a53-c1-compile ./scripts/buildbox fetch-package
 ```
 
 The corresponding parser-only compile and fetch commands are:
 
 ```sh
-KERNEL_PROFILE=mtk-ram-console-parser-kunit ./scripts/build-kernel --backend buildbox
-KERNEL_PROFILE=mtk-ram-console-parser-kunit ./scripts/buildbox fetch-package
+KERNEL_PROFILE=mt6397-rtc-wake ./scripts/build-kernel --backend buildbox
+KERNEL_PROFILE=mt6397-rtc-wake ./scripts/buildbox fetch-package
 ```
 
 Each lane verifies the managed Linux source state and every edited parent file,
@@ -673,8 +673,8 @@ After the generated patches are reviewed and admitted to the canonical series,
 compile and fetch the hardware-free focused profile with:
 
 ```sh
-KERNEL_PROFILE=a72-transition-executor-kunit ./scripts/build-kernel --backend buildbox
-KERNEL_PROFILE=a72-transition-executor-kunit ./scripts/buildbox fetch-package
+KERNEL_PROFILE=mt6797-infracfg-current-mainline ./scripts/build-kernel --backend buildbox
+KERNEL_PROFILE=mt6797-infracfg-current-mainline ./scripts/buildbox fetch-package
 ```
 
 This lane emits two experiment-only format patches: a default-off coordinator

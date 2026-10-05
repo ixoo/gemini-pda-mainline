@@ -49,7 +49,7 @@ or admit CPU8 or CPU9.
   `arch/arm64/kernel/smp.c`.
 - Selected manifest profile:
   `observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-reject-gate-a41-runtime-evidence-owner`.
-- [Selected series](../../patches/series-a72-reject-gate-a41-runtime-evidence-owner):
+- [Selected series](https://github.com/ixoo/gemini-pda-mainline/blob/164c2d3f/patches/series-a72-reject-gate-a41-runtime-evidence-owner):
   97 entries, SHA-256
   `04a20ca7ac3d979c8334ab419baed203d80c2d1c183b3a00cd44eb095293455f`.
 - Ordered patchset identity:
@@ -101,8 +101,8 @@ or A41 evidence.
 - [Mutation transcript](results/mutation-validation-20260805.txt)
 - [Kernel static review](results/kernel-static-review-20260805.txt)
 - [Patch 0155](../../patches/v7.1.3/0155-arm64-separate-late-CPU-runtime-evidence-ownership.patch)
-- [Selected series](../../patches/series-a72-reject-gate-a41-runtime-evidence-owner)
-- [Default-off profile fragment](../../configs/gemini-a72-a41-runtime-evidence-owner.fragment)
+- [Selected series](https://github.com/ixoo/gemini-pda-mainline/blob/164c2d3f/patches/series-a72-reject-gate-a41-runtime-evidence-owner)
+- [Default-off profile fragment](https://github.com/ixoo/gemini-pda-mainline/blob/164c2d3f/configs/gemini-a72-a41-runtime-evidence-owner.fragment)
 - Parent fixture experiment:
   [A41 ABI-5 six-row fixture evaluator](../2026-08-05-a72-a41-six-row-fixture/README.md)
 

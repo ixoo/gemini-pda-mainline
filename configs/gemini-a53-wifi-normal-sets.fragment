@@ -1,2 +1,0 @@
-# Frame and submit bounded normal configuration sets; no caller or RF admission.
-CONFIG_LOCALVERSION="-gemini-a53-wifi-normal-sets"

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-05-repository-consolidation` |
-| Status | `completed` for the documentation, index and hygiene changes; profile retirement awaits the owner (see below) |
+| Status | `completed` (documentation, index, hygiene, tracker and profile retirement; no build or device action) |
 | Subsystem | Repository organization: roadmap, experiments index, manifest profiles, hygiene, tracker |
 | Device variant | No device, build or Buildbox action |
 | Date(s) | 2026-10-05 |
@@ -65,13 +65,13 @@ and the documents that linked to them now point there. GitHub issues #1–#30,
 untouched since 2026-07-11, were closed on 2026-10-05 with a pointer to the
 roadmap and the historical backlog; #34 went from P0 to P2 as a watch item.
 
-## Profile retirement, proposed
+## Profile retirement
 
 The manifest carried 273 profiles, 112 series files and 262 config fragments,
 one set per question ever asked of the device. The audit for this record kept
-12 profiles that the roadmap or the scripts still need and proposes retiring
-the other 261 together with the 103 series files and 230 fragments only they
-reference. Every retained profile still passes `validate-manifest-series`.
+12 profiles that the roadmap or the scripts still need and retired the other
+261 together with the 103 series files and 230 fragments only they referenced.
+Every retained profile passes `validate-manifest-series`.
 
 Keep: `full`, `handoff`, `usbdiag`, `usbdiag-clkignore` (named by
 `scripts/kernel` and `scripts/dev-vm`), `mt6797-a53-service-facilities` (the
@@ -79,20 +79,20 @@ A53 foundation), `mt6797-a53-c1-compile` (boot C1),
 `mt6797-a53-stp-task-routing-compile` (boot C3, superset of the WMT line),
 `mt6797-a53-wifi-scan-tuning-sample` (the Wi-Fi tip for Phase A),
 `mt6797-infracfg-current-mainline`, `bq25890-irq-compile`, `mt6397-rtc-wake`
-and `mtk-sd-pinctrl-compile` (upstream topics). The proposed lists are
+and `mtk-sd-pinctrl-compile` (upstream topics). The lists are
 [retired-profiles.txt](retired-profiles.txt) and
-[unreferenced-inputs.txt](unreferenced-inputs.txt). Thirteen patches would then
-be referenced by no retained series (proposal 0085, the A72 power sequence
+[unreferenced-inputs.txt](unreferenced-inputs.txt). Thirteen patches are now
+referenced by no retained series (proposal 0085, the A72 power sequence
 0093 and the DA9214 legacy regulator patches 0096 and 0104–0113); they stay in
 `patches/` as evidence until the parked work is decided.
 
-This step edits `kernel/manifest.json` and deletes tracked build inputs, so it
-was left for the owner to apply from this record. When applied, also set the
-top-level `patch_series` fallback to `patches/series` (it points at a thermal
-experiment prefix), drop the retired Gauss profile protection from
-`scripts/test-manifest-series-invariant`, replace the three retired profile
-names used as examples in `docs/BUILDBOX.md`, and repoint the 28 experiment
-links to deleted series or fragments at commit `164c2d3f`.
+Applied on 2026-10-05 with the owner's explicit approval: the top-level
+`patch_series` fallback now names `patches/series` (it pointed at a thermal
+experiment prefix), the retired Gauss profile protection left
+`scripts/test-manifest-series-invariant`, the three retired profile names used
+as examples in `docs/BUILDBOX.md` were replaced, and the 28 experiment links to
+deleted series or fragments point at commit `164c2d3f`. Retired definitions
+remain in Git history; nothing booted or validated changes identity.
 
 ## Validation and limitations
 

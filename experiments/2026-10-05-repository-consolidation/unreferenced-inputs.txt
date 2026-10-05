@@ -1,4 +1,4 @@
-# Series files (103) and config fragments (230) referenced only by the profiles above. Definitions: commit 164c2d3f.
+# Series files (103) and config fragments (230) removed with the profiles above. Definitions: commit 164c2d3f.
 patches/series-a53-conn-domain-link-passive
 patches/series-a53-conn-on-query-compile
 patches/series-a53-conn-provider-passive

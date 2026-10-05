@@ -1,2 +1,0 @@
-# Identify the one-shot CONMCU reset-release diagnostic.
-CONFIG_LOCALVERSION="-gemini-a53-wifi-reset-release"

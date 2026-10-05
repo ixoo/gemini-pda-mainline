@@ -42,10 +42,10 @@ commit path exists, that CPU8 or CPU9 can start, or that A41 is complete.
 - Selected repository [manifest profile](../../kernel/manifest.json):
   `observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-reject-gate-a41`.
 - Selected profile
-  [fragment](../../configs/gemini-a72-a41.fragment): default-off A41 selection
+  [fragment](https://github.com/ixoo/gemini-pda-mainline/blob/164c2d3f/configs/gemini-a72-a41.fragment): default-off A41 selection
   with no CPU8/9 request.
 - Selected series:
-  [`patches/series-a72-reject-gate-a41`](../../patches/series-a72-reject-gate-a41).
+  [`patches/series-a72-reject-gate-a41`](https://github.com/ixoo/gemini-pda-mainline/blob/164c2d3f/patches/series-a72-reject-gate-a41).
 - Pre-A41 reject-gate source-state identity:
   `2ef15df475d00e5ae0f85a1f25866cd4267a407af974b5c8cf992ad2e15e0a9b`.
 - Patch SHA-256 values: [0148](../../patches/v7.1.3/0148-arm64-add-a-fail-closed-late-CPU-profile-lifecycle.patch)

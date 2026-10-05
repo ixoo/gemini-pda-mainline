@@ -1,2 +1,0 @@
-# Keep the independent port-0 packet pending during a bounded port-1 query.
-CONFIG_LOCALVERSION="-gemini-a53-wifi-capability-port0"

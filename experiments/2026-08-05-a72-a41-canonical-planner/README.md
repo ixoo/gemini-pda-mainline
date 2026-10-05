@@ -33,7 +33,7 @@ close A41, create a boot candidate, or establish hardware support.
   commit `4c0300398ae77c99faca19bb6333868e1f70b299`, SHA-256
   `d9244d9f3815092b492608cd7882e471bd5026dc15f5ed4afe32ad94961dd427`.
 - Selected series:
-  [`patches/series-a72-reject-gate-a41-planner`](../../patches/series-a72-reject-gate-a41-planner),
+  [`patches/series-a72-reject-gate-a41-planner`](https://github.com/ixoo/gemini-pda-mainline/blob/164c2d3f/patches/series-a72-reject-gate-a41-planner),
   SHA-256 `50025a818157b395a8ee8980c279463876b94734da8a120c695b7c6d01690e05`.
 - Ordered patchset identity:
   `5ce33180a753e2c386986c200563bf46c773cb9ec171916a9121e5e2a7cfbaa5`.

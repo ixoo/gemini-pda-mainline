@@ -27,7 +27,7 @@ needed for this input topic.
 
 ## Separate changes
 
-The [named series](../../patches/series-mt6351-keys-compile) retains the twelve
+The [named series](https://github.com/ixoo/gemini-pda-mainline/blob/164c2d3f/patches/series-mt6351-keys-compile) retains the twelve
 MFD/regulator prerequisites unchanged, followed by:
 
 1. [Failed key reads](../../patches/upstream-4d7d9486/keys/0001-Input-mtk-pmic-keys-ignore-failed-state-reads.patch):

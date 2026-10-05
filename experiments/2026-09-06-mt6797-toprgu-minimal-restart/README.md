@@ -34,10 +34,10 @@ hardware equivalence remain pending separate gates.
 ## Offline candidate record
 
 The review artifact is [`0543-watchdog-mtk-minimal-MT6797-restart.patch`](../../patches/v7.1.3/0543-watchdog-mtk-minimal-MT6797-restart.patch).
-Its experiment series is [`series-mt6797-toprgu-minimal-restart`](../../patches/series-mt6797-toprgu-minimal-restart),
+Its experiment series is [`series-mt6797-toprgu-minimal-restart`](https://github.com/ixoo/gemini-pda-mainline/blob/164c2d3f/patches/series-mt6797-toprgu-minimal-restart),
 the profile proposal is [`proposal.json`](proposal.json), and the only new
 configuration is the local-version fragment
-[`gemini-mt6797-toprgu-minimal-restart.fragment`](../../configs/gemini-mt6797-toprgu-minimal-restart.fragment).
+[`gemini-mt6797-toprgu-minimal-restart.fragment`](https://github.com/ixoo/gemini-pda-mainline/blob/164c2d3f/configs/gemini-mt6797-toprgu-minimal-restart.fragment).
 
 Run `PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate.py` for the static
 manifest, canonical-order, patch-shape, inheritance, frozen-chain, and ten

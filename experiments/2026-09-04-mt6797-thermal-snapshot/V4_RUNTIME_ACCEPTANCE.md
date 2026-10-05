@@ -152,7 +152,7 @@ contract. The ordered implementation remains in the [roadmap](../../docs/ROADMAP
 ## Runtime profile and pending binding generation
 
 `gemini-thermal-v4-corrected` inherits the complete compile profile and appends
-only [its release fragment](../../configs/gemini-thermal-v4-corrected.fragment).
+only [its release fragment](https://github.com/ixoo/gemini-pda-mainline/blob/164c2d3f/configs/gemini-thermal-v4-corrected.fragment).
 The intended config-input SHA256 is
 `f789e69598a86a9f2522b4fc5c408f7c972d88396da10b018156a66bc8337e22`.
 No observer/workload/power policy is changed by that fragment. The functional

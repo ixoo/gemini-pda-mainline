@@ -43,7 +43,7 @@ establish hardware support.
   It uses a synthetic, non-certifying experiment author, has no
   `Signed-off-by`, and is not submission-ready.
 - Selected series:
-  [`patches/series-a72-reject-gate-a41-immutable-plan`](../../patches/series-a72-reject-gate-a41-immutable-plan),
+  [`patches/series-a72-reject-gate-a41-immutable-plan`](https://github.com/ixoo/gemini-pda-mainline/blob/164c2d3f/patches/series-a72-reject-gate-a41-immutable-plan),
   93 entries, SHA-256
   `617d2d4c16822bd77ee74d4ce8f50dafd5a95ad1787a753b4bb6a0b887584b05`.
 - Ordered patchset identity:

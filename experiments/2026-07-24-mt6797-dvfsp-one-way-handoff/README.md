@@ -80,7 +80,7 @@ The Candidate AO inputs are:
   `observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-`
   `a72-observer-initcall-blacklist-dvfsp-handoff-owner`, pinned in
   [`kernel/manifest.json`](../../kernel/manifest.json).
-- [`patches/series-dvfsp-handoff-owner`](../../patches/series-dvfsp-handoff-owner):
+- [`patches/series-dvfsp-handoff-owner`](https://github.com/ixoo/gemini-pda-mainline/blob/164c2d3f/patches/series-dvfsp-handoff-owner):
   exactly 100 lines comprising three comments and 97 selected patch entries.
   The entries are `0001` through `0092`, including separately numbered
   `0057a`, followed by `0094`, `0095`, `0097`, and `0098`. Unsafe active-power
@@ -103,7 +103,7 @@ The Candidate AO inputs are:
   observer patches `0094`/`0095` at the hashes enforced by
   `scripts/validate-package.py`; `0097`/`0098` replace the observer contract and
   implementation.
-- [`configs/gemini-dvfsp-handoff-owner.fragment`](../../configs/gemini-dvfsp-handoff-owner.fragment)
+- [`configs/gemini-dvfsp-handoff-owner.fragment`](https://github.com/ixoo/gemini-pda-mainline/blob/164c2d3f/configs/gemini-dvfsp-handoff-owner.fragment)
   selects built-in `CONFIG_MTK_MT6797_DVFSP_HANDOFF=y`. The complete profile
   keeps `maxcpus=8`, blacklists the inherited A72-power initcall, and resolves
   `CONFIG_SUSPEND=n`, so Candidate AO makes no suspend/resume claim.
@@ -227,8 +227,8 @@ Candidate AO preparation is intentionally split into exact, storage-inert
 stages:
 
 - [`kernel/manifest.json`](../../kernel/manifest.json),
-  [`patches/series-dvfsp-handoff-owner`](../../patches/series-dvfsp-handoff-owner),
-  [`configs/gemini-dvfsp-handoff-owner.fragment`](../../configs/gemini-dvfsp-handoff-owner.fragment),
+  [`patches/series-dvfsp-handoff-owner`](https://github.com/ixoo/gemini-pda-mainline/blob/164c2d3f/patches/series-dvfsp-handoff-owner),
+  [`configs/gemini-dvfsp-handoff-owner.fragment`](https://github.com/ixoo/gemini-pda-mainline/blob/164c2d3f/configs/gemini-dvfsp-handoff-owner.fragment),
   patches [`0097`](../../patches/v7.1.3/0097-dt-bindings-soc-mediatek-add-MT6797-DVFSP-handoff-owner.patch)
   and [`0098`](../../patches/v7.1.3/0098-soc-mediatek-add-MT6797-DVFSP-one-way-handoff.patch),
   and [`src/mt6797-dvfsp-handoff.c`](src/mt6797-dvfsp-handoff.c) define the

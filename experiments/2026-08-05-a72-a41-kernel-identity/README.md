@@ -46,7 +46,7 @@ commit a plan, publish READY, or admit a late CPU.
   are not submission-ready.
 - Selected profile:
   `observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-reject-gate-a41-kernel-identity`.
-- [Selected series](../../patches/series-a72-reject-gate-a41-kernel-identity):
+- [Selected series](https://github.com/ixoo/gemini-pda-mainline/blob/164c2d3f/patches/series-a72-reject-gate-a41-kernel-identity):
   99 entries, SHA-256
   `d81fba3214e53bf3f05f4fde64e43f70638e863d04e01355e396a5990f21289d`.
 - Ordered patchset identity:
@@ -105,8 +105,8 @@ evidence for this experiment.
 - [Buildbox package-authority validation](results/buildbox-provenance-validation-20260806.txt)
 - [Patches 0156](../../patches/v7.1.3/0156-lib-buildid-add-an-exact-GNU-note-parser.patch)
   and [0157](../../patches/v7.1.3/0157-arm64-bind-late-CPU-profile-to-kernel-identity.patch)
-- [Selected series](../../patches/series-a72-reject-gate-a41-kernel-identity)
-- [Selected fragment](../../configs/gemini-a72-a41-kernel-identity.fragment)
+- [Selected series](https://github.com/ixoo/gemini-pda-mainline/blob/164c2d3f/patches/series-a72-reject-gate-a41-kernel-identity)
+- [Selected fragment](https://github.com/ixoo/gemini-pda-mainline/blob/164c2d3f/configs/gemini-a72-a41-kernel-identity.fragment)
 - Parent experiment:
   [ABI-6 runtime-evidence ownership](../2026-08-05-a72-a41-runtime-evidence-owner/README.md)
 

@@ -70,7 +70,7 @@ to source inspection, not a complete checkout or a kernel build.
 
 ## Extracted regulator topic
 
-The [five-patch compile series](../../patches/series-mt6351-regulator-compile)
+The [five-patch compile series](https://github.com/ixoo/gemini-pda-mainline/blob/164c2d3f/patches/series-mt6351-regulator-compile)
 now separates the MT6328 correction, regulator binding, MFD parent binding,
 MT6351 core/IRQ extension and regulator driver. The MFD creates only the
 regulator child. RTC, key and sound cells and their binding extensions remain
