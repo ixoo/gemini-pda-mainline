@@ -64,7 +64,7 @@ Observation from the vendor source:
 | STA record, pre-auth | `CMD_ID_UPDATE_STA_RECORD` 0x13, state 1, no response | credit return only |
 | Channel for JOIN | `CMD_ID_CH_PRIVILEGE` 0x1c, REQ | `EVENT_ID_CH_PRIVILEGE` 0x10, status GRANT |
 | Frame sent | management frame, PID with TX status to MCU | `EVENT_ID_TX_DONE` 0x0f, matching WLAN index and PID |
-| STA record, associated | 0x13, state 3, response requested | `EVENT_ID_ACTIVATE_STA_REC` 0x0c |
+| STA record, associated | 0x13, state 3, response requested | `EVENT_ID_ACTIVATE_STA_REC` 0x0c as the command's response: same sequence number, STA index and AP address |
 | BSS information | `CMD_ID_SET_BSS_INFO` 0x12, after association | credit return only |
 | Teardown | 0x13 state 1 or `REMOVE_STA_RECORD` 0x14; 0x1c ABORT; 0x11 off | credit return; TX done for the deauthentication |
 
@@ -73,8 +73,10 @@ None of these steps needs DMA or a HIF interrupt in the vendor design.
 
 ## Proposed first admission
 
-One boot, one attempt, one access point. The steps run in this order, and the
-first failure stops the join and goes to teardown.
+One boot, one attempt, one access point. The steps run in this order. The
+first failure stops the join. Teardown follows only while boot identity,
+firmware health and link health remain verified; otherwise the driver fails
+stop without further commands (see Bounds).
 
 | # | Step | Kind | Stop condition |
 | --- | --- | --- | --- |
@@ -163,8 +165,13 @@ EAPOL exchange or key is part of this admission.
 6. **One-shot scan.** cfg80211 rescans when its BSS entry has expired. The
    connect must follow the single scan quickly, or the connect path must not
    trigger a second scan.
-7. **Event handling.** Events 0x0f, 0x10 and 0x0c need parsers. Unknown events
-   still fail the session.
+7. **Event handling.** Events 0x0f, 0x10 and 0x0c need parsers. The vendor's
+   standalone 0x0c handler is compiled out; the event arrives as the response
+   to the state-3 STA record command and is matched by the pending command's
+   sequence number, then checked against the STA index and AP address. The
+   parser matches event ID, expected sequence and exact payload, never the
+   event ID alone. TX done is asynchronous and matches the frame's PID and WLAN
+   index. Unknown events still fail the session.
 8. **mac80211 hooks.** `sta_state`, `mgd_prepare_tx`, `mgd_complete_tx`,
    `tx` and `ieee80211_rx_ni` delivery are new. `vif_cfg_changed` and
    `link_info_changed` can stay empty for this admission.

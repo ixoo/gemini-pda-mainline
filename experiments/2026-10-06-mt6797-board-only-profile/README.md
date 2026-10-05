@@ -79,8 +79,8 @@ cannot run on the 93-patch board kernel by disabling I2C6 alone. The old key
 driver turns the 11-second reset value into 5 seconds, the GPIO66 pull, input
 and Schmitt fields are missing, the RTC is not configured, and the DVFSP
 handoff node and A72 methods are unsupported. This correction keeps those
-services instead of dropping them. Status: profile defined; not yet built or
-booted.
+services instead of dropping them. Status: built and package-verified; not
+booted. Further board work is deferred behind the Wi-Fi driver.
 
 ### Profile `mt6797-a53-board-services-compile`
 
@@ -140,3 +140,20 @@ remain and are not addressed here:
 - both A72 CPUs' custom enable method, which is intentional;
 - the DVFSP handoff compatible has no binding in this tree; the node is now
   disabled.
+
+### Build receipt
+
+| Item | Value |
+| --- | --- |
+| Input commit | `eee771ec115ee566a89d3062cdcf0972511a9a1e` |
+| Builder | buildbox-1 |
+| Package inventory | `275a9dbffdca7b392cb31b593ce7a5297378e49babc6c599a8d994c28115f754` |
+| Release | `7.1.3-gemini-a53-board-services-compile` |
+
+Compilation, remote validation, fetch and local checksums pass, and there is no
+new warning. The resolved config has `RTC_CLASS`, `RTC_DRV_MT6397`, `RTC_LIB`
+and the RTC sysfs, proc and dev interfaces. It has `KEYBOARD_MTK_PMIC` and
+`KEYBOARD_GPIO`. `RTC_NVMEM`, `RTC_HCTOSYS`, `RTC_SYSTOHC`, `SUSPEND` and
+`DEBUG_FS` are off, and the baseline observer and EINT snapshot symbols are
+absent. The candidate composition, private RAM-root delta and host guards
+belong to the laptop.
