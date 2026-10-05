@@ -1,0 +1,656 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 6 Oct 2026 14:01:00 +0000
+Subject: [PATCH 112/112] soc: mediatek: add one-shot MT6797 WMT common
+ initialization
+
+Wi-Fi reception needs the WMT common initialization the vendor runs
+after full-mode negotiation. Add it as one fixed table in the CONSYS
+owner, in the selected vendor order for chip 0x0279: DLM power, MCU
+clock raise, both ROM patches each followed by a WMT reset, MCU clock
+restore, the LTE coexistence table, both PA rails around RF calibration,
+and the board antenna mode.
+
+The two ROM patches load through request_firmware and must match pinned
+SHA-256 digests and the selected metadata before any command is sent.
+Every exchange is checked against its expected event; the calibration
+reply is captured rather than matched, because its success semantics
+are not established. Each exchange has a 500 ms deadline, calibration
+2 s, within a 30 s budget. The first failure stops the sequence and
+keeps power, clocks and rails for reviewed recovery. Crystal trim,
+co-clock, merged PCM and FM strap are not selected. No WLAN start or
+scan follows.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/soc/mediatek/Kconfig                  |   1 +
+ drivers/soc/mediatek/mt6797-consys.c          | 178 +++++++++++++++-
+ drivers/soc/mediatek/mt6797-wmt-common-init.h | 199 ++++++++++++++++++
+ drivers/soc/mediatek/wmt-rom-patch.h          | 148 +++++++++++++
+ 4 files changed, 523 insertions(+), 3 deletions(-)
+ create mode 100644 drivers/soc/mediatek/mt6797-wmt-common-init.h
+ create mode 100644 drivers/soc/mediatek/wmt-rom-patch.h
+
+diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
+index 7771dac16..d14bc58e1 100644
+--- a/drivers/soc/mediatek/Kconfig
++++ b/drivers/soc/mediatek/Kconfig
+@@ -48,6 +48,7 @@ config MTK_INFRACFG
+ config MTK_MT6797_CONSYS
+ 	bool "MediaTek MT6797 shared CONSYS reservation owner"
+ 	depends on ARM64 && OF && OF_RESERVED_MEM
++	select CRYPTO_LIB_SHA256
+ 	help
+ 	  Claim the boot-allocated no-map CONSYS firmware reservation on MT6797.
+ 	  The claim is retained for the built-in owner's lifetime. This does not
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index 7283ad2ec..2b60c127c 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -24,6 +24,8 @@
+ #include <linux/pm_runtime.h>
+ #include <linux/regmap.h>
+ #include <linux/regulator/consumer.h>
++#include <linux/firmware.h>
++#include <crypto/sha2.h>
+ #include <linux/reset.h>
+ #include <linux/sizes.h>
+ #include <linux/string.h>
+@@ -35,6 +37,7 @@
+ #include "../../net/wireless/mediatek/mt6797/hif.h"
+ #include "mt6797-wmt-negotiate.h"
+ #include "mt6797-bt-h1.h"
++#include "mt6797-wmt-common-init.h"
+ #include "mt6797-wmt-versions.h"
+ 
+ #define MT6797_CONSYS_REMAP_REG	0x10001340
+@@ -87,6 +90,15 @@ struct mt6797_consys {
+ 	struct mt6797_bt_h1 bt_h1;
+ 	struct mt6797_wmt_versions wmt_versions;
+ 	bool bt_h1_after_negotiate;
++	struct {
++		struct mt6797_wmt_full_io io;
++		unsigned char command[WMT_FULL_MAX_PAYLOAD];
++		unsigned char calibration[8];
++		struct wmt_init_step step;
++		unsigned int completed, antenna_mode, calibration_bytes;
++		int result;
++		bool enabled, bt_rail, wifi_rail;
++	} common_init;
+ 	bool wmt_identity_only;
+ 	bool wmt_negotiate_only;
+ 	bool wmt_query_only;
+@@ -1163,6 +1175,144 @@ static int mt6797_consys_bt_h1(struct device *dev, struct mt6797_consys *owner)
+ 	return ret;
+ }
+ 
++#define MT6797_WMT_INIT_BUDGET_MS 30000U
++#define MT6797_WMT_INIT_EXCHANGE_MS 500U
++#define MT6797_WMT_INIT_CALIBRATION_MS 2000U
++
++/* Retained Gemian pair, in download order; contents stay outside the kernel. */
++static const struct {
++	const char *name;
++	u8 sha256[SHA256_DIGEST_SIZE];
++} mt6797_rom_patches[2] = {
++	{ "mediatek/mt6797/ROMv3_patch_1_1_hdr.bin", {
++		0x57, 0x32, 0xc0, 0x73, 0x03, 0x80, 0xe9, 0x37, 0xb4, 0x8a, 0xd1, 0x69,
++		0xf2, 0x80, 0x5b, 0x65, 0xe8, 0xd4, 0xa1, 0x78, 0x26, 0x55, 0x66, 0xc5,
++		0x08, 0x3c, 0xb2, 0xcc, 0x2d, 0x24, 0x9f, 0x1e } },
++	{ "mediatek/mt6797/ROMv3_patch_1_0_hdr.bin", {
++		0x45, 0x0c, 0x2b, 0x09, 0x49, 0xcf, 0x87, 0x92, 0x17, 0xac, 0x9a, 0xef,
++		0x81, 0xb1, 0x8b, 0x86, 0x09, 0x82, 0xf0, 0xe6, 0x93, 0x40, 0x78, 0x4b,
++		0x44, 0x8c, 0xf6, 0x30, 0x80, 0xb4, 0x3c, 0xf6 } },
++};
++
++static int mt6797_consys_init_rail(struct regulator *rail, bool on, bool *state)
++{
++	int ret;
++
++	if (*state == on)
++		return -EPROTO;
++	if (!on) {
++		ret = regulator_disable(rail);
++		if (!ret)
++			*state = false;
++		return ret;
++	}
++	ret = regulator_is_enabled(rail);
++	if (ret)
++		return ret < 0 ? ret : -EBUSY;
++	ret = regulator_set_voltage(rail, 3300000, 3300000);
++	if (!ret)
++		ret = regulator_enable(rail);
++	if (ret)
++		return ret;
++	*state = true;
++	ret = regulator_is_enabled(rail);
++	return ret == 1 ? 0 : (ret < 0 ? ret : -EIO);
++}
++
++/*
++ * Fixed common initialization on the negotiated link. The first failure
++ * stops the sequence; power, clocks and rails stay as they are for reviewed
++ * recovery. WLAN START and scan are not part of this sequence.
++ */
++static int mt6797_consys_common_init(struct device *dev, struct mt6797_consys *owner)
++{
++	struct mt6797_wmt_negotiate *n = &owner->wmt_negotiate;
++	typeof(owner->common_init) *ci = &owner->common_init;
++	const struct firmware *fw[2] = {};
++	struct wmt_rom_patch pair[2];
++	u8 digest[SHA256_DIGEST_SIZE];
++	unsigned long budget;
++	unsigned int i, timeout;
++	int ret;
++
++	for (i = 0; i < 2; i++) {
++		ret = request_firmware(&fw[i], mt6797_rom_patches[i].name, dev);
++		if (ret)
++			goto out;
++		sha256(fw[i]->data, fw[i]->size, digest);
++		if (memcmp(digest, mt6797_rom_patches[i].sha256, sizeof(digest)) ||
++		    wmt_rom_patch_parse(fw[i]->data, fw[i]->size, i + 1, &pair[i])) {
++			ret = -EINVAL;
++			goto out;
++		}
++	}
++	budget = jiffies + msecs_to_jiffies(MT6797_WMT_INIT_BUDGET_MS);
++	for (i = 0; i < WMT_INIT_STEPS; i++) {
++		if (time_after_eq(jiffies, budget)) {
++			ret = -ETIMEDOUT;
++			goto out;
++		}
++		ret = mt6797_wmt_init_step(pair, ci->antenna_mode, i, ci->command,
++					   sizeof(ci->command), &ci->step) ? -EINVAL : 0;
++		if (ret)
++			goto out;
++		switch (ci->step.kind) {
++		case WMT_INIT_BT_RAIL_ON:
++		case WMT_INIT_BT_RAIL_OFF:
++			ret = mt6797_consys_init_rail(owner->vcn33_bt,
++						      ci->step.kind == WMT_INIT_BT_RAIL_ON,
++						      &ci->bt_rail);
++			break;
++		case WMT_INIT_WIFI_RAIL_ON:
++		case WMT_INIT_WIFI_RAIL_OFF:
++			ret = mt6797_consys_init_rail(owner->vcn33_wifi,
++						      ci->step.kind == WMT_INIT_WIFI_RAIL_ON,
++						      &ci->wifi_rail);
++			break;
++		default:
++			timeout = i == WMT_INIT_CALIBRATION ?
++				  MT6797_WMT_INIT_CALIBRATION_MS :
++				  MT6797_WMT_INIT_EXCHANGE_MS;
++			ret = mt6797_stp_task_prepare(&ci->io, n->first.btif, n->first.irq,
++						      &n->link, STP_FULL_TASK_WMT,
++						      ci->command, ci->step.length,
++						      ci->step.expected, ci->step.prefix,
++						      ci->step.expected_length,
++						      jiffies + msecs_to_jiffies(timeout));
++			if (!ret)
++				ret = mt6797_wmt_full_exchange(&ci->io);
++			if (!ret && i == WMT_INIT_CALIBRATION) {
++				ci->calibration_bytes = min_t(unsigned int, ci->io.rx_count,
++							      sizeof(ci->calibration));
++				memcpy(ci->calibration, ci->io.received,
++				       ci->calibration_bytes);
++			}
++		}
++		if (ret)
++			goto out;
++		ci->completed = i + 1;
++	}
++out:
++	ci->result = ret;
++	for (i = 0; i < 2; i++)
++		release_firmware(fw[i]);
++	dev_info(dev,
++		 "one-shot WMT common init: result=%d completed=%u/%u bt-rail=%d wifi-rail=%d link=%u/%u/%u/%u\n",
++		 ret, ci->completed, WMT_INIT_STEPS, ci->bt_rail, ci->wifi_rail,
++		 n->link.transport.tx_next, n->link.transport.rx_next,
++		 n->link.transport.peer_ack, n->link.transport.local_ack);
++	print_hex_dump(KERN_INFO, "WMT common init calibration RX: ", DUMP_PREFIX_OFFSET,
++		       16, 1, ci->calibration, ci->calibration_bytes, false);
++	if (ret && ci->completed < WMT_INIT_STEPS && ci->io.prepared) {
++		dev_info(dev, "WMT common init failed step %u: tx=%u rx=%u services=%u frames=%u\n",
++			 ci->completed, ci->io.tx_count, ci->io.rx_count,
++			 ci->io.services, ci->io.frames);
++		print_hex_dump(KERN_INFO, "WMT common init failed RX: ", DUMP_PREFIX_OFFSET,
++			       16, 1, ci->io.received, ci->io.rx_count, false);
++	}
++	return ret;
++}
++
+ static int mt6797_consys_wmt_exchange(struct device *dev,
+ 				      struct mt6797_consys *owner)
+ {
+@@ -1222,6 +1372,8 @@ static int mt6797_consys_wmt_exchange(struct device *dev,
+ 		       16, 1, n->full.received, n->full.rx_count, false);
+ 	if (!ret && owner->bt_h1_after_negotiate)
+ 		ret = mt6797_consys_bt_h1(dev, owner);
++	if (!ret && owner->common_init.enabled)
++		ret = mt6797_consys_common_init(dev, owner);
+ 	return ret;
+ }
+ 
+@@ -1498,7 +1650,8 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 	bool power_probe, chip_id_probe, reset_release_probe, hif_probe;
+ 	bool emi_set_probe, emi_copy_probe, firmware_start_probe;
+ 	bool region19_observe, deferred_start, wmt_query, wmt_negotiate, wmt_identity;
+-	bool bt_h1;
++	bool bt_h1, common_init;
++	u32 antenna_mode = 0;
+ 	struct resource reservation = {};
+ 	int ret;
+ 
+@@ -1529,7 +1682,13 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 					     "mediatek,one-shot-wmt-identity-capture");
+ 	bt_h1 = of_property_read_bool(pdev->dev.of_node,
+ 				      "mediatek,one-shot-bt-reset");
+-	if (bt_h1 && !wmt_negotiate) {
++	common_init = of_property_read_bool(pdev->dev.of_node,
++					    "mediatek,one-shot-wmt-common-init");
++	if ((bt_h1 || common_init) && !wmt_negotiate) {
++		ret = -EINVAL;
++		goto out_unlock;
++	}
++	if (bt_h1 && common_init) {
+ 		ret = -EINVAL;
+ 		goto out_unlock;
+ 	}
+@@ -1608,7 +1767,13 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 				    "failed to get VCN33 Wi-Fi supply\n");
+ 		goto out_unlock;
+ 	}
+-	if (bt_h1) {
++	if (common_init &&
++	    (of_property_read_u32(pdev->dev.of_node, "mediatek,coex-antenna-mode",
++				  &antenna_mode) || antenna_mode > 255)) {
++		ret = -EINVAL;
++		goto out_unlock;
++	}
++	if (bt_h1 || common_init) {
+ 		vcn33_bt = devm_regulator_get(&pdev->dev, "vcn33-bt");
+ 		if (IS_ERR(vcn33_bt)) {
+ 			ret = dev_err_probe(&pdev->dev, PTR_ERR(vcn33_bt),
+@@ -1718,6 +1883,11 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 		}
+ 	}
+ 	afe_resource = platform_get_resource(pdev, IORESOURCE_MEM, 9);
++	/* Common init owns the AFE stage unconditionally. */
++	if (common_init && !afe_resource) {
++		ret = -EINVAL;
++		goto out_unlock;
++	}
+ 	if (afe_resource) {
+ 		if (!wmt_query || !afe_resource->name ||
+ 		    strcmp(afe_resource->name, "afe") ||
+@@ -1803,6 +1973,8 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 	mt6797_consys.vcn33_wifi = vcn33_wifi;
+ 	mt6797_consys.vcn33_bt = vcn33_bt;
+ 	mt6797_consys.bt_h1_after_negotiate = bt_h1;
++	mt6797_consys.common_init.enabled = common_init;
++	mt6797_consys.common_init.antenna_mode = antenna_mode;
+ 	mt6797_consys.conmcu_reset = conmcu_reset;
+ 	mt6797_consys.conn_domain = conn_domain;
+ 	mt6797_consys.bound = true;
+diff --git a/drivers/soc/mediatek/mt6797-wmt-common-init.h b/drivers/soc/mediatek/mt6797-wmt-common-init.h
+new file mode 100644
+index 000000000..865f2fb6d
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-wmt-common-init.h
+@@ -0,0 +1,199 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef MT6797_WMT_COMMON_INIT_H
++#define MT6797_WMT_COMMON_INIT_H
++
++#include "wmt-full-stp.h"
++#include "wmt-rom-patch.h"
++
++/*
++ * Fixed MT6797 (chip 0x0279) WMT common initialization after full-mode
++ * negotiation, in the selected vendor order: DLM power, MCU clock raise,
++ * both ROM patches each followed by a WMT reset, MCU clock restore, LTE
++ * coexistence, PA rails on, RF calibration, PA rails off, antenna mode.
++ * Crystal trim, co-clock, merged PCM and FM strap are not selected.
++ */
++enum wmt_init_kind {
++	WMT_INIT_EXCHANGE,
++	WMT_INIT_BT_RAIL_ON,
++	WMT_INIT_WIFI_RAIL_ON,
++	WMT_INIT_BT_RAIL_OFF,
++	WMT_INIT_WIFI_RAIL_OFF,
++};
++
++#define WMT_INIT_PRE 7U
++#define WMT_INIT_PATCH 264U
++#define WMT_INIT_POST 8U
++#define WMT_INIT_STEPS (WMT_INIT_PRE + WMT_INIT_PATCH + WMT_INIT_POST + 6U)
++#define WMT_INIT_CALIBRATION (WMT_INIT_PRE + WMT_INIT_PATCH + WMT_INIT_POST + 2U)
++
++struct wmt_init_step {
++	enum wmt_init_kind kind;
++	unsigned int length, prefix, expected_length;
++	unsigned char expected[8];
++};
++
++static const unsigned char wmt_init_reg_event[] = {
++	0x02, 0x08, 0x04, 0x00, 0x00, 0x00, 0x00, 0x01,
++};
++
++static const unsigned char wmt_init_coex_event[] = { 0x02, 0x10, 0x01, 0x00, 0x00 };
++
++/* Masked firmware register writes: header, address, value, mask. */
++static const unsigned char wmt_init_reg[WMT_INIT_PRE + 3][12] = {
++	/* DLM power: 0x80100060 clear 0xf00, 0xf0, then 0x8. */
++	{ 0x60, 0x00, 0x10, 0x80, 0, 0, 0, 0, 0x00, 0x0f, 0x00, 0x00 },
++	{ 0x60, 0x00, 0x10, 0x80, 0, 0, 0, 0, 0xf0, 0x00, 0x00, 0x00 },
++	{ 0x60, 0x00, 0x10, 0x80, 0, 0, 0, 0, 0x08, 0x00, 0x00, 0x00 },
++	/* MCU clock raise: enable, ratio, divider, HCLK. */
++	{ 0x10, 0x11, 0x02, 0x81, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x10 },
++	{ 0x0c, 0x01, 0x00, 0x80, 0x40, 0x00, 0x00, 0x00, 0xc0, 0x00, 0x00, 0x00 },
++	{ 0x18, 0x11, 0x02, 0x80, 0x07, 0x00, 0x00, 0x00, 0x3f, 0x00, 0x00, 0x00 },
++	{ 0x00, 0x11, 0x02, 0x81, 0x04, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00 },
++	/* MCU clock restore: HCLK, ratio, enable. */
++	{ 0x00, 0x11, 0x02, 0x81, 0x00, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00 },
++	{ 0x0c, 0x01, 0x00, 0x80, 0x00, 0x00, 0x00, 0x00, 0xc0, 0x00, 0x00, 0x00 },
++	{ 0x10, 0x11, 0x02, 0x81, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10 },
++};
++
++/* Selected LTE coexistence table for chip 0x0279, external component zero. */
++static const unsigned char wmt_init_lte_ext[] = {
++	0x01, 0x10, 0x03, 0x00, 0x0d, 0x00, 0x00,
++};
++
++static const unsigned char wmt_init_lte_filter[] = {
++	0x01, 0x10, 0x45, 0x00, 0x11, 0x00, 0x00, 0x01,
++	0x00, 0x11, 0x11, 0x16, 0x00, 0x00, 0x00, 0x00,
++	0x00, 0x63, 0x63, 0x63, 0x00, 0x39, 0x43, 0x63,
++	0x63, 0x02, 0x02, 0x03, 0x00, 0x01, 0x01, 0x01,
++	0x01, 0x0e, 0x0e, 0x0e, 0x00, 0x0a, 0x0c, 0x0e,
++	0x0e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
++	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
++	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
++	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
++};
++
++static const unsigned char wmt_init_lte_freq[] = {
++	0x01, 0x10, 0x21, 0x00, 0x12, 0xfc, 0x08, 0x15,
++	0x09, 0x2e, 0x09, 0x47, 0x09, 0xc4, 0x09, 0xd4,
++	0x09, 0xe3, 0x09, 0x5a, 0x0a, 0x14, 0x09, 0x2d,
++	0x09, 0x46, 0x09, 0x60, 0x09, 0xd3, 0x09, 0xe2,
++	0x09, 0x59, 0x0a, 0x8b, 0x0a,
++};
++
++static const unsigned char wmt_init_lte_unsafe[] = { 0x01, 0x10, 0x02, 0x00, 0x13, 0x00 };
++
++static const unsigned char wmt_init_lte_l[] = { 0x01, 0x10, 0x02, 0x00, 0x21, 0x01 };
++
++static const unsigned char wmt_init_calibration[] = { 0x01, 0x14, 0x01, 0x00, 0x01 };
++/* Vendor expects 02 14 02 00 00 01 but never compares content; capture both. */
++static const unsigned char wmt_init_calibration_prefix[] = { 0x02, 0x14, 0x02, 0x00 };
++
++static int wmt_init_copy(unsigned char *out, unsigned int capacity,
++			 const unsigned char *src, unsigned int length)
++{
++	unsigned int i;
++
++	if (capacity < length)
++		return -1;
++	for (i = 0; i < length; i++)
++		out[i] = src[i];
++	return length;
++}
++
++static void wmt_init_expect(struct wmt_init_step *step, const unsigned char *event,
++			    unsigned int prefix, unsigned int length)
++{
++	unsigned int i;
++
++	for (i = 0; i < prefix; i++)
++		step->expected[i] = event[i];
++	step->prefix = prefix;
++	step->expected_length = length;
++}
++
++/*
++ * Build step index into out/step. No effects; pair must be the two parsed,
++ * digest-checked ROM patches. Returns 0, or -1 with outputs unchanged.
++ */
++static inline int mt6797_wmt_init_step(const struct wmt_rom_patch pair[2],
++				       unsigned int antenna_mode, unsigned int index,
++				       unsigned char *out, unsigned int capacity,
++				       struct wmt_init_step *step)
++{
++	static const unsigned char *lte[] = {
++		wmt_init_lte_ext, wmt_init_lte_filter, wmt_init_lte_freq,
++		wmt_init_lte_unsafe, wmt_init_lte_l,
++	};
++	static const unsigned int lte_length[] = {
++		sizeof(wmt_init_lte_ext), sizeof(wmt_init_lte_filter),
++		sizeof(wmt_init_lte_freq), sizeof(wmt_init_lte_unsafe),
++		sizeof(wmt_init_lte_l),
++	};
++	struct wmt_init_step next = { .kind = WMT_INIT_EXCHANGE };
++	unsigned int i, base, reg, expected_length;
++	int bytes;
++
++	if (!pair || !out || !step || antenna_mode > 255 || index >= WMT_INIT_STEPS)
++		return -1;
++	if (index < WMT_INIT_PRE ||
++	    (index >= WMT_INIT_PRE + WMT_INIT_PATCH &&
++	     index < WMT_INIT_PRE + WMT_INIT_PATCH + 3)) {
++		reg = index < WMT_INIT_PRE ? index :
++			WMT_INIT_PRE + index - (WMT_INIT_PRE + WMT_INIT_PATCH);
++		if (capacity < 20)
++			return -1;
++		out[0] = 0x01;
++		out[1] = 0x08;
++		out[2] = 0x10;
++		out[3] = 0x00;
++		out[4] = 0x01;
++		out[5] = 0x01;
++		out[6] = 0x00;
++		out[7] = 0x01;
++		for (i = 0; i < 12; i++)
++			out[8 + i] = wmt_init_reg[reg][i];
++		bytes = 20;
++		wmt_init_expect(&next, wmt_init_reg_event, 8, 8);
++	} else if (index < WMT_INIT_PRE + WMT_INIT_PATCH) {
++		bytes = mt6797_wmt_rom_step(pair, index - WMT_INIT_PRE, out, capacity,
++					    next.expected, &expected_length);
++		if (bytes < 0)
++			return -1;
++		next.prefix = expected_length;
++		next.expected_length = expected_length;
++	} else {
++		base = index - (WMT_INIT_PRE + WMT_INIT_PATCH + 3);
++		if (base < 5) {
++			bytes = wmt_init_copy(out, capacity, lte[base], lte_length[base]);
++			wmt_init_expect(&next, wmt_init_coex_event, 5, 5);
++		} else if (base == 5 || base == 6 || base == 8 || base == 9) {
++			next.kind = base == 5 ? WMT_INIT_BT_RAIL_ON :
++				    base == 6 ? WMT_INIT_WIFI_RAIL_ON :
++				    base == 8 ? WMT_INIT_BT_RAIL_OFF :
++						WMT_INIT_WIFI_RAIL_OFF;
++			bytes = 0;
++		} else if (base == 7) {
++			bytes = wmt_init_copy(out, capacity, wmt_init_calibration,
++					      sizeof(wmt_init_calibration));
++			wmt_init_expect(&next, wmt_init_calibration_prefix, 4, 6);
++		} else {
++			if (capacity < 6)
++				return -1;
++			out[0] = 0x01;
++			out[1] = 0x10;
++			out[2] = 0x02;
++			out[3] = 0x00;
++			out[4] = 0x01;
++			out[5] = antenna_mode;
++			bytes = 6;
++			wmt_init_expect(&next, wmt_init_coex_event, 5, 5);
++		}
++		if (bytes < 0)
++			return -1;
++	}
++	next.length = bytes;
++	*step = next;
++	return 0;
++}
++
++#endif
+diff --git a/drivers/soc/mediatek/wmt-rom-patch.h b/drivers/soc/mediatek/wmt-rom-patch.h
+new file mode 100644
+index 000000000..fedf071fe
+--- /dev/null
++++ b/drivers/soc/mediatek/wmt-rom-patch.h
+@@ -0,0 +1,148 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef GEMINI_WMT_ROM_PATCH_H
++#define GEMINI_WMT_ROM_PATCH_H
++
++struct wmt_rom_patch {
++	const unsigned char *body;
++	unsigned int length, sequence;
++	unsigned char address[4];
++};
++
++/* Selected retained pair only. Caller verifies exact full-file digest and
++ * applicability separately; metadata alone is not firmware authentication.
++ * Result aliases immutable input. Refusal leaves output unchanged.
++ */
++static inline int wmt_rom_patch_parse(const unsigned char *file, unsigned int bytes,
++				      unsigned int sequence, struct wmt_rom_patch *result)
++{
++	static const unsigned int lengths[] = { 46444, 210876 };
++	static const unsigned char addresses[][4] = {
++		{ 0, 0, 0x0a, 0xf0 }, { 0, 0, 9, 0 }
++	};
++	unsigned int i;
++
++	if (!file || !result || sequence < 1 || sequence > 2 ||
++	    bytes != lengths[sequence - 1] + 28 || file[24] != (0x20 | sequence))
++		return -1;
++	for (i = 1; i < 4; i++)
++		if (file[24 + i] != addresses[sequence - 1][i])
++			return -1;
++	result->body = file + 28;
++	result->length = bytes - 28;
++	result->sequence = sequence;
++	for (i = 0; i < 4; i++)
++		result->address[i] = addresses[sequence - 1][i];
++	return 0;
++}
++
++/* Construct one WMT payload, not an STP frame or a transfer. Input/output must
++ * be disjoint. Index is zero-based; caller advances only after checked event.
++ */
++static inline int wmt_rom_patch_fragment(const struct wmt_rom_patch *patch,
++					 unsigned int index, unsigned char *out,
++					 unsigned int capacity)
++{
++	unsigned int count, offset, length, i;
++
++	if (!patch || !patch->body || !patch->length || patch->length > 210876 || !out)
++		return -1;
++	count = (patch->length + 999) / 1000;
++	if (index >= count)
++		return -1;
++	offset = index * 1000;
++	length = patch->length - offset;
++	if (length > 1000)
++		length = 1000;
++	if (capacity < length + 5)
++		return -1;
++	out[0] = 1;
++	out[1] = 1;
++	out[2] = (length + 1) & 255;
++	out[3] = (length + 1) >> 8;
++	out[4] = index == count - 1 ? 3 : index == 0 ? 1 : 2;
++	for (i = 0; i < length; i++)
++		out[5 + i] = patch->body[offset + i];
++	return length + 5;
++}
++
++/* MT6797 selected pair: two addresses, body fragments, ordinary WMT reset,
++ * then the second patch. Constructor only; ordinal advances after a complete
++ * checked transport exchange, never on construction or partial submission.
++ * Caller supplies disjoint immutable inputs and separate command/event output.
++ */
++static inline int mt6797_wmt_rom_step(const struct wmt_rom_patch pair[2],
++				      unsigned int ordinal, unsigned char *out,
++				      unsigned int capacity, unsigned char expected[8],
++				      unsigned int *expected_length)
++{
++	static const unsigned int lengths[2] = { 46444, 210876 };
++	static const unsigned char addresses[2][4] = {
++		{ 0, 0, 10, 240 }, { 0, 0, 9, 0 }
++	};
++	unsigned int i, j, sequence, step, count, bytes, event_bytes;
++
++	if (!pair || !out || !expected || !expected_length || ordinal >= 264)
++		return -1;
++	for (i = 0; i < 2; i++) {
++		if (!pair[i].body || pair[i].sequence != i + 1 ||
++		    pair[i].length != lengths[i])
++			return -1;
++		for (j = 0; j < 4; j++)
++			if (pair[i].address[j] != addresses[i][j])
++				return -1;
++	}
++	sequence = ordinal < 50 ? 0 : 1;
++	step = sequence ? ordinal - 50 : ordinal;
++	count = (lengths[sequence] + 999) / 1000;
++	if (step < 2) {
++		if (capacity < 20)
++			return -1;
++		/* Opcode 8, one masked firmware register operation. */
++		out[0] = 1;
++		out[1] = 8;
++		out[2] = 16;
++		out[3] = 0;
++		out[4] = 1;
++		out[5] = 1;
++		out[6] = 0;
++		out[7] = 1;
++		out[8] = step ? 0x2c : 8;
++		out[9] = step ? 0x0b : 5;
++		out[10] = 9;
++		out[11] = 2;
++		for (i = 0; i < 4; i++) {
++			out[12 + i] = step ? pair[sequence].address[i] : 0;
++			out[16 + i] = 255;
++		}
++		bytes = 20;
++		event_bytes = 8;
++	} else if (step < count + 2) {
++		int result = wmt_rom_patch_fragment(&pair[sequence], step - 2, out, capacity);
++
++		if (result < 0)
++			return -1;
++		bytes = result;
++		event_bytes = 5;
++	} else {
++		if (capacity < 5)
++			return -1;
++		out[0] = 1;
++		out[1] = 7;
++		out[2] = 1;
++		out[3] = 0;
++		out[4] = 4;
++		bytes = 5;
++		event_bytes = 5;
++	}
++	expected[0] = 2;
++	expected[1] = out[1];
++	expected[2] = event_bytes - 4;
++	expected[3] = 0;
++	for (i = 4; i < event_bytes; i++)
++		expected[i] = 0;
++	if (event_bytes == 8)
++		expected[7] = 1;
++	*expected_length = event_bytes;
++	return bytes;
++}
++#endif

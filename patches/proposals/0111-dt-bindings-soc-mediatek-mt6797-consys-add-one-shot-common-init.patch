@@ -1,0 +1,73 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 6 Oct 2026 14:00:00 +0000
+Subject: [PATCH 111/112] dt-bindings: soc: mediatek: mt6797-consys: add
+ one-shot common init
+
+Describe an experimental flag that extends the one-shot WMT negotiation
+with the fixed MT6797 common initialization, and the board antenna mode
+it sends. The flag requires the negotiation flag, the Bluetooth supply,
+the antenna mode and the AFE region, and excludes the Bluetooth reset
+flag.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ .../soc/mediatek/mediatek,mt6797-consys.yaml  | 31 +++++++++++++++++++
+ 1 file changed, 31 insertions(+)
+
+diff --git a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
+index 7978605f0..8db54c825 100644
+--- a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
++++ b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
+@@ -89,6 +89,21 @@ properties:
+       The first failure stops the sequence with resources retained. No ROM
+       patch, calibration, sleep or RF setting command is sent.
+ 
++  mediatek,one-shot-wmt-common-init:
++    type: boolean
++    description: |
++      Experimental extension of the one-shot WMT negotiation. After the
++      checked full-STP query, run the fixed MT6797 common initialization:
++      DLM power, MCU clock raise, both ROM patches loaded as firmware files,
++      each followed by a WMT reset, MCU clock restore, LTE coexistence, both
++      PA rails around RF calibration, and the antenna mode. The first failure
++      stops the sequence with resources retained. No WLAN start or scan.
++
++  mediatek,coex-antenna-mode:
++    $ref: /schemas/types.yaml#/definitions/uint32
++    maximum: 255
++    description: Board WMT coexistence antenna mode sent by common init.
++
+   mediatek,one-shot-wmt-identity-capture:
+     type: boolean
+     description: |
+@@ -219,6 +234,10 @@ dependentRequired:
+   mediatek,one-shot-bt-reset:
+     - mediatek,one-shot-wmt-negotiate
+     - vcn33-bt-supply
++  mediatek,one-shot-wmt-common-init:
++    - mediatek,one-shot-wmt-negotiate
++    - vcn33-bt-supply
++    - mediatek,coex-antenna-mode
+ 
+ allOf:
+   - if:
+@@ -357,6 +376,18 @@ allOf:
+       required:
+         - mediatek,one-shot-region19-observe
+         - mediatek,one-shot-firmware-start-probe
++  - if:
++      required:
++        - mediatek,one-shot-wmt-common-init
++    then:
++      not:
++        required:
++          - mediatek,one-shot-bt-reset
++      properties:
++        reg:
++          minItems: 10
++        reg-names:
++          minItems: 10
+ 
+ examples:
+   - |
