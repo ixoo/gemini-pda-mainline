@@ -1,0 +1,230 @@
+From 2883363fd89aae9499d7a1e937cab7c8ca704aa6 Mon Sep 17 00:00:00 2001
+From: scratch <scratch@invalid>
+Date: Tue, 6 Oct 2026 01:34:22 +0000
+Subject: [PATCH] wifi: mt6797: gate managed authentication and association on
+ copied state
+
+Advertise one queue for this legacy Phase B scope, avoiding mac80211's WMM
+association element, and report TX ACK status from the existing TXdone
+decoder. Open management TX only for the stack's current auth or association
+callback, one subtype submission per attempt and within the channel grant.
+
+Latch directed auth and association responses only after a successful PIO
+submission. Permit NONE to AUTH only after a received successful Open
+System response. Copy the association status and normalized AID for the
+forthcoming state-3 admission; that transition remains refused here.
+
+Production-function host fixtures exercise callback order, closed gates,
+duplicate admission, and upward authentication without a response.
+No hardware test, association admission, data path or keys are claimed.
+No DCO certification is asserted.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 128 ++++++++++++++++++++-
+ 1 file changed, 123 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 05206939d..4a4ccd91a 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -51,7 +51,11 @@ struct mt6797_mac {
+ 	unsigned int join_desired_rates, join_peer_basic_rates;
+ 	u16 join_beacon_interval;
+ 	bool join_bss_valid, join_channel_valid;
+-	bool join_scan_ready, join_peer_used;
++	bool join_scan_ready, join_peer_used, join_peer_ready;
++	bool join_auth_received, join_auth_ok, join_authenticated;
++	bool join_assoc_received;
++	u16 join_assoc_status, join_aid;
++	unsigned int join_submitted;
+ #endif
+ 	struct completion join_channel_done, join_sta_done, join_credit_done;
+ 	u64 join_credit_deadline;
+@@ -604,6 +608,9 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	unsigned long flags;
+ 	unsigned int n, port, pages;
+ 	u64 now, deadline, grant_end;
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++	const u8 *body;
++#endif
+ 	bool running, ack = false;
+ 	int ret = 0;
+ 
+@@ -667,6 +674,9 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 				  1, mac->join_pid, 500, 3, deadline);
+ 			if (ret)
+ 				goto failed;
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++			mac->join_submitted |= BIT((get_unaligned_le16(skb->data) >> 4) & 15);
++#endif
+ 			mac->join_page_debt = pages;
+ 			mac->join_frame_deadline = ktime_get_ns() + 750 * NSEC_PER_MSEC;
+ 		}
+@@ -716,6 +726,30 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 				ret = -EPROTO;
+ 				goto failed;
+ 			}
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++			body = mac->join_packet + frame.offset;
++			if (frame.subtype == 11) {
++				if (!(mac->join_submitted & BIT(11)) || mac->join_auth_received) {
++					ret = -EPROTO;
++					goto failed;
++				}
++				mac->join_auth_received = true;
++				mac->join_auth_ok = !get_unaligned_le16(body + 28);
++			} else if (frame.subtype == 1) {
++				if (!(mac->join_submitted & BIT(0)) || mac->join_assoc_received) {
++					ret = -EPROTO;
++					goto failed;
++				}
++				mac->join_assoc_received = true;
++				mac->join_assoc_status = get_unaligned_le16(body + 26);
++				mac->join_aid = get_unaligned_le16(body + 28) & 0x3fff;
++				if (!mac->join_assoc_status &&
++				    (!mac->join_aid || mac->join_aid > 2007)) {
++					ret = -EPROTO;
++					goto failed;
++				}
++			}
++#endif
+ 			skb = dev_alloc_skb(frame.bytes);
+ 			if (!skb) {
+ 				ret = -ENOMEM;
+@@ -1187,8 +1221,8 @@ static int mt6797_mac_join_wait_channel(struct mt6797_mac *mac, u64 deadline)
+ 
+ /* One peer slot per firmware session. This admits setup, never management TX. */
+ static int mt6797_mac_join_add_peer(struct mt6797_mac *mac,
+-				  struct ieee80211_vif *vif,
+-				  struct ieee80211_sta *sta)
++				    struct ieee80211_vif *vif,
++				    struct ieee80211_sta *sta)
+ {
+ 	unsigned int desired, basic;
+ 	u64 grant_wait;
+@@ -1266,8 +1300,10 @@ static int mt6797_mac_join_add_peer(struct mt6797_mac *mac,
+ 				      mac->join_credit_deadline);
+ 	if (!ret)
+ 		ret = mt6797_mac_join_wait_credit(mac);
+-	if (!ret)
++	if (!ret) {
++		mac->join_peer_ready = true;
+ 		goto out;
++	}
+ failed:
+ 	if (!mac->first_error)
+ 		mac->first_error = ret;
+@@ -1289,6 +1325,65 @@ static int mt6797_mac_join_add_peer(struct mt6797_mac *mac,
+ }
+ #endif
+ 
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++static void mt6797_mac_mgd_prepare_tx(struct ieee80211_hw *hw,
++				      struct ieee80211_vif *vif,
++				      struct ieee80211_prep_tx_info *info)
++{
++	struct mt6797_mac *mac = hw->priv;
++	unsigned long flags;
++	unsigned int subtype = info->subtype >> 4;
++	bool admitted;
++
++	mutex_lock(&mac->mutex);
++	admitted = vif == mac->vif && !vif->valid_links && !info->link_id &&
++		   mac->join_peer_ready && mac->join_running &&
++		   !mac->join_retired && !mac->closing && !mac->first_error &&
++		   mac->join_channel_valid && mac->join_bss_valid &&
++		   mac->join_channel_granted &&
++		   ktime_get_ns() + 850 * NSEC_PER_MSEC <
++			min(mac->join_deadline, mac->join_grant_deadline) &&
++		   ((info->subtype == IEEE80211_STYPE_AUTH &&
++		     !mac->join_authenticated && !mac->join_auth_received) ||
++		    (info->subtype == IEEE80211_STYPE_ASSOC_REQ &&
++		     mac->join_authenticated && !mac->join_assoc_received));
++	spin_lock_irqsave(&mac->join_queue.lock, flags);
++	admitted = admitted && !(mac->join_seen & BIT(subtype));
++	mac->join_open = admitted;
++	mac->join_tx_allowed = admitted ? BIT(subtype) : 0;
++	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++	if (admitted) {
++		mac->join_rx_allowed = BIT(info->subtype == IEEE80211_STYPE_AUTH ? 11 : 1) |
++				       BIT(10) | BIT(12);
++	} else {
++		if (!mac->first_error)
++			mac->first_error = -EOPNOTSUPP;
++		mac->closing = true;
++	}
++	mutex_unlock(&mac->mutex);
++}
++
++static void mt6797_mac_mgd_complete_tx(struct ieee80211_hw *hw,
++				       struct ieee80211_vif *vif,
++				       struct ieee80211_prep_tx_info *info)
++{
++	struct mt6797_mac *mac = hw->priv;
++	unsigned long flags;
++
++	mutex_lock(&mac->mutex);
++	spin_lock_irqsave(&mac->join_queue.lock, flags);
++	mac->join_open = false;
++	mac->join_tx_allowed = 0;
++	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++	if (vif != mac->vif || info->link_id || !info->success) {
++		if (!mac->first_error)
++			mac->first_error = -ECANCELED;
++		mac->closing = true;
++	}
++	mutex_unlock(&mac->mutex);
++}
++#endif
++
+ static int mt6797_mac_sta_state(struct ieee80211_hw *hw,
+ 				struct ieee80211_vif *vif, struct ieee80211_sta *sta,
+ 				enum ieee80211_sta_state old,
+@@ -1307,6 +1402,22 @@ static int mt6797_mac_sta_state(struct ieee80211_hw *hw,
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ 	if (old == IEEE80211_STA_NOTEXIST && new == IEEE80211_STA_NONE)
+ 		return mt6797_mac_join_add_peer(hw->priv, vif, sta);
++	if (old == IEEE80211_STA_NONE && new == IEEE80211_STA_AUTH) {
++		struct mt6797_mac *mac = hw->priv;
++		int ret = -EOPNOTSUPP;
++
++		mutex_lock(&mac->mutex);
++		if (vif == mac->vif && !sta->mlo && !sta->valid_links &&
++		    ether_addr_equal(sta->addr, mac->join_ap) &&
++		    mac->join_peer_ready && mac->join_auth_received &&
++		    mac->join_auth_ok && !mac->join_authenticated &&
++		    !mac->join_retired && !mac->closing && !mac->first_error) {
++			mac->join_authenticated = true;
++			ret = 0;
++		}
++		mutex_unlock(&mac->mutex);
++		return ret;
++	}
+ #endif
+ 	return -EOPNOTSUPP;
+ }
+@@ -1363,6 +1474,10 @@ static const struct ieee80211_ops mt6797_mac_ops = {
+ 	.config = mt6797_mac_config,
+ 	.configure_filter = mt6797_mac_filter,
+ 	.sta_state = mt6797_mac_sta_state,
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++	.mgd_prepare_tx = mt6797_mac_mgd_prepare_tx,
++	.mgd_complete_tx = mt6797_mac_mgd_complete_tx,
++#endif
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ 	.bss_info_changed = mt6797_mac_bss_info_changed,
+ #endif
+@@ -1486,7 +1601,10 @@ int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+ 	SET_IEEE80211_DEV(hw, dev);
+ 	SET_IEEE80211_PERM_ADDR(hw, data + 4);
+ 	ieee80211_hw_set(hw, NO_AUTO_VIF);
+-	hw->queues = 4;
++	hw->queues = IS_ENABLED(CONFIG_MT6797_STATION_JOIN) ? 1 : 4;
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++	ieee80211_hw_set(hw, REPORTS_TX_ACK_STATUS);
++#endif
+ 	hw->wiphy->interface_modes = BIT(NL80211_IFTYPE_STATION);
+ 	hw->wiphy->reg_notifier = mt6797_mac_regulatory;
+ 	/* No private country hint, custom regdomain or self-managed flag. */
+-- 
+2.39.5
+

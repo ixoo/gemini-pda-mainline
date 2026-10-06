@@ -35,7 +35,7 @@ struct mt6797_mac {
  struct hif *hif; struct hw *hw;
  bool scan_active, bss_active, join_retired, join_scan_ready, join_peer_used;
  bool join_running, join_open, join_sta_pending, join_sta_active;
- bool join_channel_pending, join_channel_granted;
+ bool join_channel_pending, join_channel_granted, join_credit_pending;
  bool scan_frame_seen, scan_beacon, scan_credit, tuning_pending;
  unsigned scan_count, scan_channels, tuning_received, tuning_submitted;
  unsigned join_page_debt;
@@ -43,7 +43,7 @@ struct mt6797_mac {
  void *join_inflight;
  u64 scan_started_ns, join_deadline;
  struct sk_buff_head join_queue;
- int mutex, join_channel_done, join_sta_done; unsigned join_queue_bytes;
+ int mutex, join_channel_done, join_sta_done, join_credit_done; unsigned join_queue_bytes;
  int join_work, scan_work; u8 scan_packet[16];
 };
 static unsigned submissions, schedules, guards, kinds[4];
@@ -65,6 +65,13 @@ static int mt6797_mac_send(struct mt6797_mac *mac, unsigned kind,
  return send_error;
 }
 #if CONFIG_MT6797_STATION_JOIN
+static bool mt6797_hif_normal_idle(struct hif *hif)
+{
+ const struct normal *t=&hif->normal;
+ return t->phase==MT6797_NORMAL_NVRAM_SUBMITTED && t->used_sequences &&
+  t->tc4_limit && t->tc4_limit<=0xffffU && !t->tc4_pending_cpu &&
+  !t->tc4_pending_ffa && t->tc4_free==t->tc4_limit;
+}
 static int mt6797_mac_join_guard(struct mt6797_mac *mac, u64 deadline)
 { (void)mac; assert(deadline == ktime_get_ns()+100*NSEC_PER_MSEC); guards++; return guard_error; }
 #endif
@@ -180,7 +187,7 @@ int main(void)
  /* Deterministic scan-finish interleaving at close's cancel-sync boundary. */
  mac=ready(); close_mac=&mac; finish_during_cancel=true;
  mt6797_mac_join_close(&mac);
- assert(cancels==1 && completions==2 && !mutex_depth);
+ assert(cancels==1 && completions==3 && !mutex_depth);
  assert(!mac.join_running && mac.join_retired && !mac.join_scan_ready);
  assert(!schedules && cancel_finish_status==-ECANCELED);
  assert(!mac.bss_active && submissions==1);

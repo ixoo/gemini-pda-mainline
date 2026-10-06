@@ -631,3 +631,5 @@ proposals/0131-wifi-mt6797-separate-join-event-pumping-from-TX-admission.patch
 proposals/0132-wifi-mt6797-prepare-copied-station-BSS-and-channel-snapshots.patch
 proposals/0133-wifi-mt6797-retain-one-bounded-scan-to-join-BSS-lifetime.patch
 proposals/0134-wifi-mt6797-prepare-guarded-directed-management-receive-filter.patch
+proposals/0135-wifi-mt6797-set-up-one-credit-gated-peer-and-channel.patch
+proposals/0136-wifi-mt6797-gate-managed-authentication-and-association.patch

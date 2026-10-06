@@ -1,0 +1,305 @@
+From 881d3c87345e3f3538a78e7015d4053b7ccfbbd1 Mon Sep 17 00:00:00 2001
+From: scratch <scratch@invalid>
+Date: Tue, 6 Oct 2026 01:31:44 +0000
+Subject: [PATCH] wifi: mt6797: set up one peer after returned credits and a
+ channel grant
+
+Reserve the scan-owned peer once and quiesce scan work outside driver locks.
+Submit the fixed directed filter, request JOIN channel 40 with one token,
+wait independently for TC4 credits and the validated grant, then submit the
+legacy state-1 STA record with copied rates and AP identity. Failures retire
+the attempt and cannot submit a second peer setup.
+
+Credit waits release the MAC mutex so the event worker can reconcile TC4.
+STA activation cannot wake a credit wait. Close, regulatory retirement and
+worker failure wake blocked callbacks without inventing returned credits.
+
+Production-function host fixtures cover ordered setup, every command-stage
+failure, spurious/expired/retired waits, independent activation and credits,
+partial/over-release accounting and one-shot refusal. ASan/UBSan pass.
+No management TX is opened; full station callbacks and hardware validation
+remain incomplete. No DCO certification is asserted.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 190 ++++++++++++++++++++-
+ 1 file changed, 189 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 53107c817..05206939d 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -3,6 +3,7 @@
+ #include <linux/etherdevice.h>
+ #include <linux/completion.h>
+ #include <linux/ktime.h>
++#include <linux/jiffies.h>
+ #include <linux/mutex.h>
+ #include <linux/rtnetlink.h>
+ #include <linux/unaligned.h>
+@@ -16,6 +17,7 @@
+ #include "scan-wire.h"
+ #include "join-rx.h"
+ #include "join-tx.h"
++#include "join-commands.h"
+ 
+ struct mt6797_mac {
+ 	struct mt6797_hif *hif;
+@@ -46,11 +48,14 @@ struct mt6797_mac {
+ 	/* Copied stack state only: no BSS/STA/chanctx pointer is retained. */
+ 	u8 join_bssid[ETH_ALEN];
+ 	u32 join_basic_rates;
++	unsigned int join_desired_rates, join_peer_basic_rates;
+ 	u16 join_beacon_interval;
+ 	bool join_bss_valid, join_channel_valid;
+ 	bool join_scan_ready, join_peer_used;
+ #endif
+-	struct completion join_channel_done, join_sta_done;
++	struct completion join_channel_done, join_sta_done, join_credit_done;
++	u64 join_credit_deadline;
++	bool join_credit_pending;
+ 	u64 join_grant_deadline;
+ 	u8 join_channel_token, join_sta_sequence;
+ 	unsigned int join_requested_ms;
+@@ -147,8 +152,21 @@ static void mt6797_mac_regulatory(struct wiphy *wiphy,
+ 		goto out;
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ 	if (mac->join_scan_ready || mac->join_peer_used) {
++		unsigned long flags;
++
+ 		mac->first_error = -ECANCELED;
+ 		mac->closing = true;
++		mac->join_retired = true;
++		mac->join_credit_pending = false;
++		mac->join_channel_pending = false;
++		mac->join_sta_pending = false;
++		complete_all(&mac->join_credit_done);
++		complete_all(&mac->join_channel_done);
++		complete_all(&mac->join_sta_done);
++		spin_lock_irqsave(&mac->join_queue.lock, flags);
++		mac->join_running = false;
++		mac->join_open = false;
++		spin_unlock_irqrestore(&mac->join_queue.lock, flags);
+ 		goto out;
+ 	}
+ #endif
+@@ -473,6 +491,8 @@ static void mt6797_mac_join_close(struct mt6797_mac *mac)
+ 	mac->join_sta_pending = false;
+ 	complete_all(&mac->join_channel_done);
+ 	complete_all(&mac->join_sta_done);
++	mac->join_credit_pending = false;
++	complete_all(&mac->join_credit_done);
+ 	spin_lock_irqsave(&mac->join_queue.lock, flags);
+ 	skb_queue_splice_init(&mac->join_queue, &discard);
+ 	mac->join_queue_bytes = 0;
+@@ -506,6 +526,10 @@ static int mt6797_mac_join_guard(struct mt6797_mac *mac, u64 deadline)
+ 		if (account.released_pages > mac->join_page_debt)
+ 			return -EPROTO;
+ 		mac->join_page_debt -= account.released_pages;
++		if (mac->join_credit_pending && !mac->join_page_debt) {
++			mac->join_credit_pending = false;
++			complete_all(&mac->join_credit_done);
++		}
+ 	}
+ 	return ret;
+ }
+@@ -607,6 +631,13 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 		goto failed;
+ 	}
+ 	deadline = min_t(u64, now + 100 * NSEC_PER_MSEC, mac->join_deadline);
++	if (mac->join_credit_pending) {
++		if (now >= mac->join_credit_deadline) {
++			ret = -ETIMEDOUT;
++			goto failed;
++		}
++		deadline = min(deadline, mac->join_credit_deadline);
++	}
+ 	ret = mt6797_mac_join_guard(mac, deadline);
+ 	if (ret)
+ 		goto failed;
+@@ -716,6 +747,8 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	mac->join_sta_pending = false;
+ 	complete_all(&mac->join_channel_done);
+ 	complete_all(&mac->join_sta_done);
++	mac->join_credit_pending = false;
++	complete_all(&mac->join_credit_done);
+ 	spin_lock_irqsave(&mac->join_queue.lock, flags);
+ 	mac->join_running = false;
+ 	mac->join_open = false;
+@@ -1106,6 +1139,156 @@ static void mt6797_mac_bss_info_changed(struct ieee80211_hw *hw,
+ }
+ #endif
+ 
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++/* Enter and return with the MAC mutex held. Polling must run while we wait. */
++static int mt6797_mac_join_wait_credit(struct mt6797_mac *mac)
++{
++	u64 now = ktime_get_ns(), deadline = mac->join_credit_deadline;
++	unsigned long timeout;
++
++	if (now >= deadline)
++		return -ETIMEDOUT;
++	timeout = nsecs_to_jiffies(deadline - now) + 1;
++	mutex_unlock(&mac->mutex);
++	wait_for_completion_timeout(&mac->join_credit_done, timeout);
++	mutex_lock(&mac->mutex);
++	if (mac->first_error)
++		return mac->first_error;
++	if (mac->closing || mac->join_retired || !mac->join_running)
++		return -ECANCELED;
++	if (ktime_get_ns() >= deadline || mac->join_credit_pending ||
++	    mac->join_page_debt)
++		return -ETIMEDOUT;
++	return 0;
++}
++
++/* The grant event and its command credits are independent completions. */
++static int mt6797_mac_join_wait_channel(struct mt6797_mac *mac, u64 deadline)
++{
++	u64 now = ktime_get_ns();
++	unsigned long timeout;
++
++	if (now >= deadline)
++		return -ETIMEDOUT;
++	timeout = nsecs_to_jiffies(deadline - now) + 1;
++	mutex_unlock(&mac->mutex);
++	wait_for_completion_timeout(&mac->join_channel_done, timeout);
++	mutex_lock(&mac->mutex);
++	if (mac->first_error)
++		return mac->first_error;
++	if (mac->closing || mac->join_retired || !mac->join_running)
++		return -ECANCELED;
++	if (ktime_get_ns() >= deadline || mac->join_channel_pending ||
++	    !mac->join_channel_granted ||
++	    mac->join_grant_deadline <= ktime_get_ns() + 3 * NSEC_PER_SEC)
++		return -ETIMEDOUT;
++	return 0;
++}
++
++/* One peer slot per firmware session. This admits setup, never management TX. */
++static int mt6797_mac_join_add_peer(struct mt6797_mac *mac,
++				  struct ieee80211_vif *vif,
++				  struct ieee80211_sta *sta)
++{
++	unsigned int desired, basic;
++	u64 grant_wait;
++	unsigned long flags;
++	int ret;
++
++	mutex_lock(&mac->mutex);
++	if (mac->scan_active || !mac->join_scan_ready) {
++		mutex_unlock(&mac->mutex);
++		return -EOPNOTSUPP;
++	}
++	mutex_unlock(&mac->mutex);
++	/* scan_completed can expose this callback before scan_work returns. */
++	cancel_delayed_work_sync(&mac->scan_work);
++	mutex_lock(&mac->mutex);
++	if (vif != mac->vif || vif->valid_links || sta->mlo || sta->valid_links ||
++	    !mac->started || !mac->configured || mac->scan_active ||
++	    !mac->join_scan_ready || !mac->bss_active || !mac->join_running ||
++	    !mac->join_bss_valid || !mac->join_channel_valid ||
++	    mac->join_peer_used || mac->join_retired || mac->closing ||
++	    mac->first_error || mac->join_page_debt ||
++	    ktime_get_ns() >= mac->join_deadline || mac->sequence > 253 ||
++	    !mt6797_hif_normal_idle(mac->hif) ||
++	    !ether_addr_equal(sta->addr, mac->join_bssid) ||
++	    !mt6797_join_legacy_rates(sta->deflink.supp_rates[NL80211_BAND_5GHZ],
++				     mac->join_basic_rates, &desired, &basic)) {
++		ret = -EOPNOTSUPP;
++		goto out;
++	}
++	ether_addr_copy(mac->join_ap, sta->addr);
++	mac->join_desired_rates = desired;
++	mac->join_peer_basic_rates = basic;
++	/* Reserve before any PIO: failure never authorizes a second peer attempt. */
++	mac->join_peer_used = true;
++	mac->join_credit_deadline = min_t(u64, mac->join_deadline,
++					  ktime_get_ns() + 100 * NSEC_PER_MSEC);
++	reinit_completion(&mac->join_credit_done);
++	mac->join_credit_pending = true;
++	mac->join_page_debt = 1;
++	ret = mt6797_hif_join_filter(mac->hif, mac->sequence++,
++				     mac->join_credit_deadline);
++	if (!ret)
++		ret = mt6797_mac_join_wait_credit(mac);
++	if (ret)
++		goto failed;
++	/* A fresh token is reserved once, before the first request write. */
++	mac->join_channel_token = 1;
++	mac->join_requested_ms = 9000;
++	mac->join_channel_pending = true;
++	reinit_completion(&mac->join_channel_done);
++	grant_wait = min_t(u64, mac->join_deadline,
++			   ktime_get_ns() + 750 * NSEC_PER_MSEC);
++	mac->join_credit_deadline = min_t(u64, grant_wait,
++					  ktime_get_ns() + 100 * NSEC_PER_MSEC);
++	reinit_completion(&mac->join_credit_done);
++	mac->join_credit_pending = true;
++	mac->join_page_debt = 1;
++	ret = mt6797_hif_join_channel(mac->hif, mac->sequence++,
++				      mac->join_channel_token, 40,
++				      mac->join_requested_ms, false,
++				      mac->join_credit_deadline);
++	if (!ret)
++		ret = mt6797_mac_join_wait_credit(mac);
++	if (!ret)
++		ret = mt6797_mac_join_wait_channel(mac, grant_wait);
++	if (ret)
++		goto failed;
++	mac->join_credit_deadline = min_t(u64, mac->join_deadline,
++					  ktime_get_ns() + 100 * NSEC_PER_MSEC);
++	reinit_completion(&mac->join_credit_done);
++	mac->join_credit_pending = true;
++	mac->join_page_debt = 2;
++	ret = mt6797_hif_join_station(mac->hif, mac->sequence++, mac->join_ap,
++				      1, 0, desired, basic,
++				      mac->join_credit_deadline);
++	if (!ret)
++		ret = mt6797_mac_join_wait_credit(mac);
++	if (!ret)
++		goto out;
++failed:
++	if (!mac->first_error)
++		mac->first_error = ret;
++	mac->closing = true;
++	mac->join_retired = true;
++	mac->join_credit_pending = false;
++	mac->join_channel_pending = false;
++	mac->join_sta_pending = false;
++	complete_all(&mac->join_credit_done);
++	complete_all(&mac->join_channel_done);
++	complete_all(&mac->join_sta_done);
++	spin_lock_irqsave(&mac->join_queue.lock, flags);
++	mac->join_running = false;
++	mac->join_open = false;
++	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++out:
++	mutex_unlock(&mac->mutex);
++	return ret;
++}
++#endif
++
+ static int mt6797_mac_sta_state(struct ieee80211_hw *hw,
+ 				struct ieee80211_vif *vif, struct ieee80211_sta *sta,
+ 				enum ieee80211_sta_state old,
+@@ -1121,6 +1304,10 @@ static int mt6797_mac_sta_state(struct ieee80211_hw *hw,
+ #endif
+ 		return 0;
+ 	}
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++	if (old == IEEE80211_STA_NOTEXIST && new == IEEE80211_STA_NONE)
++		return mt6797_mac_join_add_peer(hw->priv, vif, sta);
++#endif
+ 	return -EOPNOTSUPP;
+ }
+ 
+@@ -1291,6 +1478,7 @@ int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+ 	mac->join_next_pid = 1;
+ 	init_completion(&mac->join_channel_done);
+ 	init_completion(&mac->join_sta_done);
++	init_completion(&mac->join_credit_done);
+ 	hw->wiphy->max_scan_ssids = 0;
+ 	hw->wiphy->max_scan_ie_len = 0;
+ 	ieee80211_hw_set(hw, SIGNAL_DBM);
+-- 
+2.39.5
+

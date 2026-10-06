@@ -131,15 +131,48 @@ Patch 0134 adds only the typed HIF receive-filter command. Public gen3
 defines DIRECTED as bit 0 and BROADCAST as bit 3, so the admitted word is
 exactly 0x09. Other filter modes are refused before changing the credit,
 sequence history or output buffer. The existing scan filter stays 0x08.
-No MAC callback submits the new filter yet. Actual HIF host fixtures passed
+The peer-setup callback below submits this filter. Actual HIF host fixtures passed
 its success, every scalar-write fault, expired deadlines and sequence reuse
 with non-PIE ASan/UBSan. Those fixtures do not prove firmware application.
 
+## Peer and managed-frame callback checkpoint
+
+Preparation patches `0135` and `0136` connect one copied peer to the retained
+scan owner. The first station callback quiesces scan work outside driver locks,
+reserves the peer once, and submits the directed filter, channel request and
+pre-auth STA record in order. Each command waits for its actual TC4 credits;
+the channel grant is a separate validated event. Waits release the MAC mutex
+so the poller can run. A STA activation event cannot release command debt.
+Close, regulatory retirement and worker failure wake callbacks without
+claiming returned credits. No failure permits a second peer attempt.
+
+Managed-TX callbacks admit one authentication or association request only in
+their current copied state and live channel grant. The initial legacy scope
+advertises one queue, preventing mac80211 from adding WMM. Received responses
+must follow a successful PIO submission; authentication advances the host STA
+only after a received successful response. Association status and AID are
+copied, but state-3 admission remains refused pending the next implementation.
+This checkpoint is incomplete and is not a device candidate.
+
+Run the production-function host fixtures against the prepared kernel tree:
+
+```sh
+python3 experiments/2026-10-07-mt6797-wifi-phase-b-join/tests/run-peer-test.py KERNEL_TREE
+python3 experiments/2026-10-07-mt6797-wifi-phase-b-join/tests/run-handoff-test.py KERNEL_TREE
+```
+
+The peer fixture covers setup order, every command-stage failure, partial and
+excess credit returns, spurious/expired/retired waits, activation separate from
+credit, copied addresses, one-shot refusal, managed callback gates and refusal
+to authenticate without a response. Both fixtures pass with ASan/UBSan. They
+do not establish kernel races, firmware behavior or RF transmission. The
+selected full kernel build for this checkpoint is pending.
+
 ## Remaining work
 
-Wire the scan-worker fence and validated rate conversion into station
-callbacks, normalize the successful AID, implement managed-TX callbacks,
-current-state RX/TX admission and healthy peer teardown. Follow the [BSS lifetime correction](BSS_LIFETIME_REVIEW.md): retain
+Implement the associated state-3 response, post-association BSS/RLM commands,
+immediate bounded deauthentication and healthy peer teardown. Finish response
+and callback failure handling before admitting a device test. Follow the [BSS lifetime correction](BSS_LIFETIME_REVIEW.md): retain
 one AIS owner through scan/join; no quiet window proves a drain. Preserve
 single-use peer/PID/channel tokens and exactly-once skb disposal after every
 partial failure. No cleanup command may follow terminal firmware poison.

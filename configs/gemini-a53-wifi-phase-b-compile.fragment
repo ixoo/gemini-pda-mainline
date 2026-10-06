@@ -1,6 +1,6 @@
 # Compile-only incomplete Wi-Fi join preparation.
-# Atomic TX queue remains closed; no join callback enables submission.
+# Callbacks can admit bounded auth/assoc TX; association setup is incomplete.
 # No device admission, packet DMA or HIF IRQ is added.
 CONFIG_LOCALVERSION="-gemini-a53-wifi-phase-b-compile"
-# Build copied callback snapshots; event/TX admission still starts closed.
+# Build copied callback snapshots; event/TX admission starts closed.
 CONFIG_MT6797_STATION_JOIN=y
