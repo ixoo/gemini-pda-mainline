@@ -1,4 +1,4 @@
-From bfe8dc70eb01506dfc9e7381427668ea89121495 Mon Sep 17 00:00:00 2001
+From 2048201b6f982f9798ddaa36e3897f3db40ba4ac Mon Sep 17 00:00:00 2001
 From: Julien Etienne <julien.etienne@gmail.com>
 Date: Tue, 6 Oct 2026 00:18:26 +0000
 Subject: [PATCH] wifi: mt6797: retain one bounded scan-to-join BSS lifetime
@@ -19,10 +19,15 @@ Extracted production host fixtures pass join on/off with ASan/UBSan. A
 close/scan-completion interleaving fails on the original draft and passes
 with the producer fence. Real workqueue races, full peer teardown, station
 callbacks and candidate admission remain unvalidated. Compile-only draft.
+
+Read the normal owner's idle state through a fail-closed HIF accessor
+instead of the private HIF context.
 ---
  drivers/net/wireless/mediatek/mt6797/Kconfig |  12 +-
- drivers/net/wireless/mediatek/mt6797/mac.c   | 120 ++++++++++++++++++-
- 2 files changed, 125 insertions(+), 7 deletions(-)
+ drivers/net/wireless/mediatek/mt6797/hif.c   |  19 ++++
+ drivers/net/wireless/mediatek/mt6797/hif.h   |   1 +
+ drivers/net/wireless/mediatek/mt6797/mac.c   | 110 ++++++++++++++++++-
+ 4 files changed, 135 insertions(+), 7 deletions(-)
 
 diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
 index 38bd3d9a6..6106d7981 100644
@@ -44,8 +49,50 @@ index 38bd3d9a6..6106d7981 100644
 +	  This incomplete implementation leaves management TX closed and has
 +	  no keys, data path, DMA or interrupts. Existing passive-scan profiles
 +	  do not enable this option.
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 2652fabe7..c0d207264 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -670,6 +670,25 @@ int mt6797_hif_join_channel(struct mt6797_hif *hif, unsigned int sequence,
+ 					   sizeof(payload), deadline_ns);
+ }
+ 
++/*
++ * True only when the post-record normal owner is idle with every TC4 page
++ * returned. A busy context reads as not idle, so callers fail closed.
++ */
++bool mt6797_hif_normal_idle(struct mt6797_hif *hif)
++{
++	const struct mt6797_normal_transaction *t;
++	bool idle;
++
++	if (!hif || !mutex_trylock(&hif->mutex))
++		return false;
++	t = &hif->normal;
++	idle = t->phase == MT6797_NORMAL_NVRAM_SUBMITTED && t->used_sequences &&
++	       t->tc4_limit && t->tc4_limit <= 0xffffU && !t->tc4_pending_cpu &&
++	       !t->tc4_pending_ffa && t->tc4_free == t->tc4_limit;
++	mutex_unlock(&hif->mutex);
++	return idle;
++}
++
+ int mt6797_hif_send_management(struct mt6797_hif *hif, const u8 *frame,
+ 			      size_t frame_bytes, u8 wlan, u8 pid,
+ 			      unsigned int lifetime_ms, unsigned int attempt_count,
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index 3d748964c..7f752a60e 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -201,6 +201,7 @@ int mt6797_hif_join_channel(struct mt6797_hif *hif, unsigned int sequence,
+  * exact frame-body admission and single-use PID. No overlapping page debt.
+  * Zero proves PIO submission only; credit returns and TXdone remain separate.
+  */
++bool mt6797_hif_normal_idle(struct mt6797_hif *hif);
+ int mt6797_hif_send_management(struct mt6797_hif *hif, const u8 *frame,
+ 			      size_t frame_bytes, u8 wlan, u8 pid,
+ 			      unsigned int lifetime_ms, unsigned int attempt_count,
 diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
-index ff3060dda..29639fe09 100644
+index ff3060dda..53107c817 100644
 --- a/drivers/net/wireless/mediatek/mt6797/mac.c
 +++ b/drivers/net/wireless/mediatek/mt6797/mac.c
 @@ -48,6 +48,7 @@ struct mt6797_mac {
@@ -97,7 +144,7 @@ index ff3060dda..29639fe09 100644
  	mac->scan_active = false;
  	/* Host elapsed time includes setup and delivery; it is not RF dwell. */
  	dev_info(wiphy_dev(mac->hw->wiphy),
-@@ -224,6 +241,38 @@ static bool mt6797_mac_finish_scan(struct mt6797_mac *mac, int *status,
+@@ -224,6 +241,32 @@ static bool mt6797_mac_finish_scan(struct mt6797_mac *mac, int *status,
  	dev_info(wiphy_dev(mac->hw->wiphy),
  		 "one-shot passive WLAN tuning summary: submitted=%u received=%u pending=%u atomic=0 rf_proven=0\n",
  		 mac->tuning_submitted, mac->tuning_received, mac->tuning_pending);
@@ -107,17 +154,11 @@ index ff3060dda..29639fe09 100644
 +	if (!cancel && !*status && !mac->first_error) {
 +		if (!mac->bss_active || mac->join_retired || mac->scan_count != 1 ||
 +		    mac->scan_channels != BIT(mt6797_channel_slot(40)) ||
-+		    mac->hif->normal.phase != MT6797_NORMAL_NVRAM_SUBMITTED ||
-+		    !mac->hif->normal.tc4_limit ||
-+		    mac->hif->normal.tc4_limit > 0xffffU ||
-+		    !mac->hif->normal.used_sequences ||
-+		    mac->hif->normal.tc4_pending_cpu ||
 +#if IS_ENABLED(CONFIG_MT6797_SCAN_TUNING_SAMPLE)
 +		    mac->tuning_pending ||
 +		    mac->tuning_received != mac->tuning_submitted ||
 +#endif
-+		    mac->hif->normal.tc4_pending_ffa ||
-+		    mac->hif->normal.tc4_free != mac->hif->normal.tc4_limit) {
++		    !mt6797_hif_normal_idle(mac->hif)) {
 +			*status = -EPROTO;
 +			mac->first_error = *status;
 +		} else {
@@ -136,7 +177,7 @@ index ff3060dda..29639fe09 100644
  #endif
  	if (cancel && !mac->first_error) {
  		ret = mt6797_mac_send(mac, MT6797_NORMAL_SCAN_CANCEL,
-@@ -231,7 +280,7 @@ static bool mt6797_mac_finish_scan(struct mt6797_mac *mac, int *status,
+@@ -231,7 +274,7 @@ static bool mt6797_mac_finish_scan(struct mt6797_mac *mac, int *status,
  		if (ret)
  			*status = ret;
  	}
@@ -145,7 +186,7 @@ index ff3060dda..29639fe09 100644
  		mt6797_scan_bss(mac->hw->wiphy->perm_addr, false, bss);
  		ret = mt6797_mac_send(mac, MT6797_NORMAL_BSS_ACTIVE,
  				      bss, sizeof(bss));
-@@ -405,13 +454,26 @@ static void mt6797_mac_join_close(struct mt6797_mac *mac)
+@@ -405,13 +448,26 @@ static void mt6797_mac_join_close(struct mt6797_mac *mac)
  	struct sk_buff *skb;
  
  	skb_queue_head_init(&discard);
@@ -172,7 +213,7 @@ index ff3060dda..29639fe09 100644
  	mac->join_retired = true;
  	mac->join_channel_pending = false;
  	mac->join_sta_pending = false;
-@@ -454,6 +516,35 @@ static int mt6797_mac_join_guard(struct mt6797_mac *mac, u64 deadline)
+@@ -454,6 +510,31 @@ static int mt6797_mac_join_guard(struct mt6797_mac *mac, u64 deadline)
  	return ret;
  }
  
@@ -191,11 +232,7 @@ index ff3060dda..29639fe09 100644
 +	ret = mt6797_mac_join_guard(mac, ktime_get_ns() + 100 * NSEC_PER_MSEC);
 +	if (ret)
 +		return ret;
-+	if (mac->hif->normal.phase != MT6797_NORMAL_NVRAM_SUBMITTED ||
-+	    !mac->hif->normal.used_sequences || !mac->hif->normal.tc4_limit ||
-+	    mac->hif->normal.tc4_limit > 0xffffU ||
-+	    mac->hif->normal.tc4_pending_cpu || mac->hif->normal.tc4_pending_ffa ||
-+	    mac->hif->normal.tc4_free != mac->hif->normal.tc4_limit)
++	if (!mt6797_hif_normal_idle(mac->hif))
 +		return -EPROTO;
 +	mt6797_scan_bss(mac->hw->wiphy->perm_addr, false, bss);
 +	ret = mt6797_mac_send(mac, MT6797_NORMAL_BSS_ACTIVE, bss, sizeof(bss));
@@ -208,7 +245,7 @@ index ff3060dda..29639fe09 100644
  static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
  {
  	struct mt6797_join_channel expected = {
-@@ -508,9 +599,17 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -508,9 +589,17 @@ static void mt6797_mac_join_work(struct work_struct *work)
  	spin_lock_irqsave(&mac->join_queue.lock, flags);
  	running = mac->join_running;
  	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
@@ -227,7 +264,7 @@ index ff3060dda..29639fe09 100644
  	if (mac->scan_active || mac->first_error || mac->closing ||
  					now >= mac->join_deadline || ++mac->join_polls > 512 ||
  					(mac->join_inflight && now >= mac->join_frame_deadline)) {
-@@ -857,11 +956,28 @@ static void mt6797_mac_cancel_scan(struct ieee80211_hw *hw,
+@@ -857,11 +946,28 @@ static void mt6797_mac_cancel_scan(struct ieee80211_hw *hw,
  	struct cfg80211_scan_info info = {.aborted = true};
  	bool notify;
  	int ret = -ECANCELED;
@@ -256,6 +293,3 @@ index ff3060dda..29639fe09 100644
  	if (notify)
  		ieee80211_scan_completed(hw, &info);
  }
--- 
-2.39.5
-
