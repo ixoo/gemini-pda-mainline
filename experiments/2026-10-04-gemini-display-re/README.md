@@ -531,6 +531,38 @@ In dependency order, derived from the facts above:
    rotation property (F6).
 6. Direct identity confirmation (H1) before any init table is sent.
 
+## H8 preflight finding (2026-10-06)
+
+Offline, against pinned v7.1.3 with the board-services series:
+
+- **The ULPOSC tree has no root rate.** In `clk-mt6797.c`, `ulposc_ck_org`
+  (line 60) and every `ulposc_d*` divider descend from a parent named
+  `ulposc`. Nothing on MT6797 defines that clock, neither the driver nor the
+  DT. MT8192 defines its own as a fixed 260 MHz clock. So a `pwm_sel` set to
+  a ULPOSC divider, as the vendor configures it (F25), has a rate of 0 in the
+  clock framework.
+- **A zero rate darkens the backlight.** `pwm-mtk-disp.c` derives the divider
+  and period from `clk_get_rate()` (lines 120–137). At rate 0 it computes
+  `clk_div = 0`, period 0 and high width 0, so the first `pwm-backlight`
+  apply writes a zero duty. The screen goes dark; the console over USB SSH is
+  unaffected.
+- **Smallest workaround for the H8 boot.** On the composed `disp_pwm` node,
+  `assigned-clocks = <&topckgen CLK_TOP_MUX_PWM>` (ID 7) and
+  `assigned-clock-parents` set to the 26 MHz oscillator (`clk26m`). The
+  divider math then uses a known 26 MHz, giving about 25 kHz at 1024 steps,
+  close to the vendor's implied 28 kHz. The cost is one `pwm_sel` mux write at
+  probe, a possible brief flicker. A calibrated ULPOSC rate stays a separate
+  question.
+- **Without the workaround,** H8 may still pass only if the loader left
+  `pwm_sel` on `clk26m` or `univpll2_d4`. That is unknown offline; the mux
+  register sits at topckgen `0x50` bits 2:0.
+
+The H2 package already has `PWM_MTK_DISP` and `BACKLIGHT_PWM` built in, and
+the parent DT has `disp_pwm` disabled with no phandle. H8 therefore needs only
+a composed DT on that package: `disp_pwm` okay with a phandle and the
+workaround above, plus a `pwm-backlight` node. It should follow the H2
+result.
+
 ## Limitations
 
 - Offline only: no register, DSI, I2C or GPIO was read on the device for this
