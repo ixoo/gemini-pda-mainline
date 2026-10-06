@@ -75,3 +75,15 @@ the standard GPIO and irqchip paths.
 The `gemini,lid-eint-probe` compatible is experiment-only and has no binding,
 so the composed DT gains one undocumented-compatible schema note. The probe
 cannot measure detector timing finer than the snapshot reads.
+
+## Build
+
+Input `18ff7972` builds the C1 profile on buildbox-1 (job
+`18ff7972…-mt6797-a53-c1-compile-m0`). Compilation, remote validation, fetch
+and local checksums pass, with no errors and only the two inherited warnings.
+Package inventory:
+`99bd57ba5dd86df23fd97b4442691165fb43e21ff1c7281c1df168dfb87fcb1d`.
+`CONFIG_GEMINI_LID_EINT_PROBE=y`, `CONFIG_EINT_MTK_SNAPSHOT=y` and
+`CONFIG_DEBUG_FS=y` are set, and the image contains the probe. The packaged
+DTB (`04e9e061…`) has `/lid-eint-probe` disabled and `/gpio-keys` okay, so the
+package DT alone keeps today's C1 behaviour. No candidate has been composed.
