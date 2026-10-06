@@ -1,0 +1,261 @@
+From bfe8dc70eb01506dfc9e7381427668ea89121495 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 6 Oct 2026 00:18:26 +0000
+Subject: [PATCH] wifi: mt6797: retain one bounded scan-to-join BSS lifetime
+
+In the separate join option only, retain the active AIS BSS after one
+successful channel-40 scan with complete command/query accounting. Poll
+asynchronous input with TX closed and a ten-second setup deadline. Healthy
+unused handoffs may submit deactivation once on close or expiry, after a
+fresh 100 ms guard and at most one second for submission. Submission is not
+an applied-state or drain acknowledgement; no slot is reused.
+
+Fence producers under the MAC mutex before cancellation so a racing scan
+completion cannot reopen event polling. Late host scan cancellation also
+retires the handoff. Never hold driver locks during cancel_sync. Regulatory
+changes retire the handoff without further configuration commands.
+
+Extracted production host fixtures pass join on/off with ASan/UBSan. A
+close/scan-completion interleaving fails on the original draft and passes
+with the producer fence. Real workqueue races, full peer teardown, station
+callbacks and candidate admission remain unvalidated. Compile-only draft.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig |  12 +-
+ drivers/net/wireless/mediatek/mt6797/mac.c   | 120 ++++++++++++++++++-
+ 2 files changed, 125 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index 38bd3d9a6..6106d7981 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -70,8 +70,10 @@ config MT6797_STATION_JOIN
+ 	depends on MT6797_PASSIVE_SCAN
+ 	default n
+ 	help
+-	  Prepare one non-MLO legacy 5 GHz station lifetime after a successful
+-	  passive scan. Keep copied BSS and operating-channel state for bounded
+-	  management exchanges. This incomplete implementation leaves TX
+-	  admission closed and provides no keys, data path, DMA or interrupts.
+-	  Existing passive-scan profiles do not enable this option.
++	  Retain one AIS BSS after a successful passive channel-40 scan for a
++	  ten-second host setup budget. A healthy unused handoff may request
++	  deactivation once; poisoned resources remain retired until recovery.
++	  Copy BSS and operating-channel state without retaining stack pointers.
++	  This incomplete implementation leaves management TX closed and has
++	  no keys, data path, DMA or interrupts. Existing passive-scan profiles
++	  do not enable this option.
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index ff3060dda..29639fe09 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -48,6 +48,7 @@ struct mt6797_mac {
+ 	u32 join_basic_rates;
+ 	u16 join_beacon_interval;
+ 	bool join_bss_valid, join_channel_valid;
++	bool join_scan_ready, join_peer_used;
+ #endif
+ 	struct completion join_channel_done, join_sta_done;
+ 	u64 join_grant_deadline;
+@@ -72,6 +73,9 @@ struct mt6797_mac {
+ #if IS_ENABLED(CONFIG_MT6797_PASSIVE_SCAN)
+ static bool mt6797_mac_finish_scan(struct mt6797_mac *mac, int *status,
+ 				   bool cancel);
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++static int mt6797_mac_join_retire_idle_bss(struct mt6797_mac *mac);
++#endif
+ #endif
+ 
+ static int mt6797_mac_send(struct mt6797_mac *mac,
+@@ -141,6 +145,13 @@ static void mt6797_mac_regulatory(struct wiphy *wiphy,
+ 	mutex_lock(&mac->mutex);
+ 	if (mac->closing || mac->first_error)
+ 		goto out;
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++	if (mac->join_scan_ready || mac->join_peer_used) {
++		mac->first_error = -ECANCELED;
++		mac->closing = true;
++		goto out;
++	}
++#endif
+ #if IS_ENABLED(CONFIG_MT6797_PASSIVE_SCAN)
+ 	/* Regulatory changes retire an accepted scan before submitting updates.
+ 	 * Host completion does not claim firmware cancellation or queue drain.
+@@ -209,10 +220,16 @@ static bool mt6797_mac_finish_scan(struct mt6797_mac *mac, int *status,
+ 				   bool cancel)
+ {
+ 	u8 bss[12], abort[4] = {1, 0, 0, 0};
++	bool retain = false;
+ 	int ret;
+ 
+ 	if (!mac->scan_active)
+ 		return false;
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++	/* Close establishes this fence under the same mutex before cancellation. */
++	if (mac->join_retired && !*status)
++		*status = -ECANCELED;
++#endif
+ 	mac->scan_active = false;
+ 	/* Host elapsed time includes setup and delivery; it is not RF dwell. */
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+@@ -224,6 +241,38 @@ static bool mt6797_mac_finish_scan(struct mt6797_mac *mac, int *status,
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+ 		 "one-shot passive WLAN tuning summary: submitted=%u received=%u pending=%u atomic=0 rf_proven=0\n",
+ 		 mac->tuning_submitted, mac->tuning_received, mac->tuning_pending);
++#endif
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++	mac->join_scan_ready = false;
++	if (!cancel && !*status && !mac->first_error) {
++		if (!mac->bss_active || mac->join_retired || mac->scan_count != 1 ||
++		    mac->scan_channels != BIT(mt6797_channel_slot(40)) ||
++		    mac->hif->normal.phase != MT6797_NORMAL_NVRAM_SUBMITTED ||
++		    !mac->hif->normal.tc4_limit ||
++		    mac->hif->normal.tc4_limit > 0xffffU ||
++		    !mac->hif->normal.used_sequences ||
++		    mac->hif->normal.tc4_pending_cpu ||
++#if IS_ENABLED(CONFIG_MT6797_SCAN_TUNING_SAMPLE)
++		    mac->tuning_pending ||
++		    mac->tuning_received != mac->tuning_submitted ||
++#endif
++		    mac->hif->normal.tc4_pending_ffa ||
++		    mac->hif->normal.tc4_free != mac->hif->normal.tc4_limit) {
++			*status = -EPROTO;
++			mac->first_error = *status;
++		} else {
++			unsigned long flags;
++
++			retain = true;
++			mac->join_scan_ready = true;
++			mac->join_deadline = ktime_get_ns() + 10 * NSEC_PER_SEC;
++			spin_lock_irqsave(&mac->join_queue.lock, flags);
++			mac->join_running = true;
++			/* Poll asynchronous input; management TX remains closed. */
++			schedule_delayed_work(&mac->join_work, msecs_to_jiffies(20));
++			spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++		}
++	}
+ #endif
+ 	if (cancel && !mac->first_error) {
+ 		ret = mt6797_mac_send(mac, MT6797_NORMAL_SCAN_CANCEL,
+@@ -231,7 +280,7 @@ static bool mt6797_mac_finish_scan(struct mt6797_mac *mac, int *status,
+ 		if (ret)
+ 			*status = ret;
+ 	}
+-	if (mac->bss_active && !mac->first_error) {
++	if (!retain && mac->bss_active && !mac->first_error) {
+ 		mt6797_scan_bss(mac->hw->wiphy->perm_addr, false, bss);
+ 		ret = mt6797_mac_send(mac, MT6797_NORMAL_BSS_ACTIVE,
+ 				      bss, sizeof(bss));
+@@ -405,13 +454,26 @@ static void mt6797_mac_join_close(struct mt6797_mac *mac)
+ 	struct sk_buff *skb;
+ 
+ 	skb_queue_head_init(&discard);
++	/* Fence every producer before cancellation, preserving idle eligibility. */
++	mutex_lock(&mac->mutex);
++	mac->join_retired = true;
+ 	spin_lock_irqsave(&mac->join_queue.lock, flags);
+ 	mac->join_running = false;
+ 	mac->join_open = false;
+ 	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++	mutex_unlock(&mac->mutex);
+ 	/* Neither this mutex nor the queue lock may be held while cancelling. */
+ 	cancel_delayed_work_sync(&mac->join_work);
+ 	mutex_lock(&mac->mutex);
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++	{
++		int ret = mt6797_mac_join_retire_idle_bss(mac);
++
++		if (ret && !mac->first_error)
++			mac->first_error = ret;
++		mac->join_scan_ready = false;
++	}
++#endif
+ 	mac->join_retired = true;
+ 	mac->join_channel_pending = false;
+ 	mac->join_sta_pending = false;
+@@ -454,6 +516,35 @@ static int mt6797_mac_join_guard(struct mt6797_mac *mac, u64 deadline)
+ 	return ret;
+ }
+ 
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++/* Healthy unused handoff only. Never invent a teardown for an owned peer. */
++static int mt6797_mac_join_retire_idle_bss(struct mt6797_mac *mac)
++{
++	u8 bss[12];
++	int ret;
++
++	if (!mac->join_scan_ready || !mac->bss_active || mac->join_peer_used ||
++	    mac->first_error || mac->scan_active || mac->join_inflight ||
++	    mac->join_page_debt || mac->join_sta_pending || mac->join_sta_active ||
++	    mac->join_channel_pending || mac->join_channel_granted)
++		return 0;
++	ret = mt6797_mac_join_guard(mac, ktime_get_ns() + 100 * NSEC_PER_MSEC);
++	if (ret)
++		return ret;
++	if (mac->hif->normal.phase != MT6797_NORMAL_NVRAM_SUBMITTED ||
++	    !mac->hif->normal.used_sequences || !mac->hif->normal.tc4_limit ||
++	    mac->hif->normal.tc4_limit > 0xffffU ||
++	    mac->hif->normal.tc4_pending_cpu || mac->hif->normal.tc4_pending_ffa ||
++	    mac->hif->normal.tc4_free != mac->hif->normal.tc4_limit)
++		return -EPROTO;
++	mt6797_scan_bss(mac->hw->wiphy->perm_addr, false, bss);
++	ret = mt6797_mac_send(mac, MT6797_NORMAL_BSS_ACTIVE, bss, sizeof(bss));
++	if (!ret)
++		mac->bss_active = false;
++	return ret;
++}
++#endif
++
+ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
+ {
+ 	struct mt6797_join_channel expected = {
+@@ -508,9 +599,17 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	spin_lock_irqsave(&mac->join_queue.lock, flags);
+ 	running = mac->join_running;
+ 	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
+-	if (!running)
++	if (!running || mac->join_retired)
+ 		goto unlock;
+ 	now = ktime_get_ns();
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++	if (now >= mac->join_deadline && !mac->first_error && !mac->closing) {
++		ret = mt6797_mac_join_retire_idle_bss(mac);
++		if (!ret)
++			ret = -ETIMEDOUT;
++		goto failed;
++	}
++#endif
+ 	if (mac->scan_active || mac->first_error || mac->closing ||
+ 					now >= mac->join_deadline || ++mac->join_polls > 512 ||
+ 					(mac->join_inflight && now >= mac->join_frame_deadline)) {
+@@ -857,11 +956,28 @@ static void mt6797_mac_cancel_scan(struct ieee80211_hw *hw,
+ 	struct cfg80211_scan_info info = {.aborted = true};
+ 	bool notify;
+ 	int ret = -ECANCELED;
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++	bool close_join;
++	unsigned long flags;
++#endif
+ 
+ 	mutex_lock(&mac->mutex);
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++	/* Cancellation can race the queued host completion after scan_active clears. */
++	mac->join_retired = true;
++	close_join = mac->join_scan_ready || mac->join_running || mac->join_peer_used;
++	spin_lock_irqsave(&mac->join_queue.lock, flags);
++	mac->join_running = false;
++	mac->join_open = false;
++	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++#endif
+ 	notify = mt6797_mac_finish_scan(mac, &ret, true);
+ 	mutex_unlock(&mac->mutex);
+ 	cancel_delayed_work_sync(&mac->scan_work);
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++	if (close_join)
++		mt6797_mac_join_close(mac);
++#endif
+ 	if (notify)
+ 		ieee80211_scan_completed(hw, &info);
+ }
+-- 
+2.39.5
+

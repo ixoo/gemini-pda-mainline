@@ -10,7 +10,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument("kernel_tree", type=Path)
 args = parser.parse_args()
 driver = args.kernel_tree.resolve() / "drivers/net/wireless/mediatek/mt6797"
-if "mt6797_hif_send_management(" not in (driver / "hif.c").read_text():
+source = (driver / "hif.c").read_text()
+if "mt6797_hif_send_management(" not in source or "mt6797_hif_join_filter(" not in source:
     parser.error("apply the Phase B helper and HIF preparation patches first")
 experiment = Path(__file__).resolve().parents[1]
 compat = experiment.parent / "2026-10-01-mt6797-normal-sets/tests"

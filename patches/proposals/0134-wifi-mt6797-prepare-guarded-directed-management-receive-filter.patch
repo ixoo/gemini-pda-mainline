@@ -1,0 +1,98 @@
+From 092858461c9e39c2277b23534f8b290e1d3a3840 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 6 Oct 2026 00:27:10 +0000
+Subject: [PATCH] wifi: mt6797: prepare guarded directed management receive
+ filter
+
+Add the pinned gen3 DIRECTED plus BROADCAST filter value through the typed
+join command owner. Require exactly that four-byte payload; preserve the
+existing broadcast-only scan encoder and its profiles. Commands retain the
+same one-shot sequence history, credit ledger and guarded PIO path.
+
+Actual HIF host fixtures pass success, every scalar-write fault, expired
+deadlines and sequence-reuse refusal for the filter. Invalid filter modes
+leave page/history/output state unchanged. ASan/UBSan fixtures passed. No
+MAC callback submits this command yet; station admission remains closed.
+---
+ drivers/net/wireless/mediatek/mt6797/hif.c           | 10 ++++++++++
+ drivers/net/wireless/mediatek/mt6797/hif.h           |  2 ++
+ .../wireless/mediatek/mt6797/join-command-submit.h   |  5 +++++
+ drivers/net/wireless/mediatek/mt6797/join-commands.h | 12 ++++++++++++
+ 4 files changed, 29 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 2652fabe7..6f455350b 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -636,6 +636,16 @@ static int mt6797_hif_send_join_command(struct mt6797_hif *hif,
+ 	return error;
+ }
+ 
++int mt6797_hif_join_filter(struct mt6797_hif *hif, unsigned int sequence,
++			   u64 deadline_ns)
++{
++	u8 payload[4];
++
++	mt6797_join_filter_payload(payload);
++	return mt6797_hif_send_join_command(hif, 0x0a, sequence, payload,
++					   sizeof(payload), deadline_ns);
++}
++
+ int mt6797_hif_join_station(struct mt6797_hif *hif, unsigned int sequence,
+ 	const u8 *ap, unsigned int state, unsigned int aid,
+ 	unsigned int desired_rates, unsigned int basic_rates, u64 deadline_ns)
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index 3d748964c..67acb8b1b 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -188,6 +188,8 @@ int mt6797_hif_send_scan_tuning(struct mt6797_hif *hif, unsigned int role,
+  * enforce monotonic deadlines and use each sequence/token once per session.
+  * Zero means PIO submission; credit and firmware response are separate.
+  */
++int mt6797_hif_join_filter(struct mt6797_hif *hif, unsigned int sequence,
++			   u64 deadline_ns);
+ int mt6797_hif_join_station(struct mt6797_hif *hif, unsigned int sequence,
+ 	const u8 *ap, unsigned int state, unsigned int aid,
+ 	unsigned int desired_rates, unsigned int basic_rates, u64 deadline_ns);
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-command-submit.h b/drivers/net/wireless/mediatek/mt6797/join-command-submit.h
+index 55d7fb8f2..c3bae0cd1 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join-command-submit.h
++++ b/drivers/net/wireless/mediatek/mt6797/join-command-submit.h
+@@ -24,6 +24,11 @@ mt6797_join_prepare_command(struct mt6797_normal_transaction *t,
+ 	    !t->tc4_limit || t->tc4_limit > 0xffffU || t->tc4_free > t->tc4_limit)
+ 		return mt6797_normal_abort(t);
+ 	switch (cid) {
++	case 0x0a:
++		if (bytes != 4 || payload[0] != 9 || payload[1] || payload[2] || payload[3])
++			return -EINVAL;
++		required = 4;
++		break;
+ 	case 0x13:
+ 		required = MT6797_JOIN_STA_BYTES;
+ 		break;
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-commands.h b/drivers/net/wireless/mediatek/mt6797/join-commands.h
+index ce68aeb8b..dfad1238e 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join-commands.h
++++ b/drivers/net/wireless/mediatek/mt6797/join-commands.h
+@@ -6,6 +6,18 @@
+ 
+ #define MT6797_JOIN_STA_BYTES 124U
+ 
++/* Public gen3 DIRECTED (bit 0) plus BROADCAST (bit 3), no monitor mode. */
++static inline bool mt6797_join_filter_payload(unsigned char output[4])
++{
++	if (!output)
++		return false;
++	output[0] = 9;
++	output[1] = 0;
++	output[2] = 0;
++	output[3] = 0;
++	return true;
++}
++
+ /* mac80211's published 5 GHz band has OFDM rates in positions 0..7.
+  * The gen3 software rate set reserves positions 0..5 before OFDM 6 Mbps.
+  * Validate both sets before modifying outputs; this establishes no peer state.
+-- 
+2.39.5
+

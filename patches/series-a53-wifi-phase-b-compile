@@ -629,3 +629,5 @@ proposals/0129-wifi-mt6797-prepare-bounded-management-TX-queue-and-pump.patch
 proposals/0130-wifi-mt6797-translate-legacy-station-rate-bitmaps.patch
 proposals/0131-wifi-mt6797-separate-join-event-pumping-from-TX-admission.patch
 proposals/0132-wifi-mt6797-prepare-copied-station-BSS-and-channel-snapshots.patch
+proposals/0133-wifi-mt6797-retain-one-bounded-scan-to-join-BSS-lifetime.patch
+proposals/0134-wifi-mt6797-prepare-guarded-directed-management-receive-filter.patch

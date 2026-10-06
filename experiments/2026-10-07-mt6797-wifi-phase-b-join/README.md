@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-07-mt6797-wifi-phase-b-join` |
-| Status | Incomplete offline implementation pinned in a compile-only profile; MAC build and runtime gates remain open; no air test |
+| Status | Incomplete offline implementation pinned in a compile-only profile; Callback implementation and runtime gates remain open; no air test |
 | Base | Phase A [runtime 3](../2026-10-06-mt6797-wifi-common-init/RUNTIME_3.md), package `3013daa6…` |
 | Date | 2026-10-07 |
 | Device action | None |
