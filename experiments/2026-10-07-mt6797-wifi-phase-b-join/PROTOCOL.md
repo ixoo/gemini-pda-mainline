@@ -26,6 +26,10 @@ an RSN element is useful evidence and does not require credentials.
 | Full padded boot2 | `6ecc057c390e6c9acb3480a52950a7261d7f4678c43da5688dcc1724e2bb778f` |
 
 The [receipt](results/candidate.json) records all six candidate members.
+The live boot2 predecessor is the verified C1-5 EINT-snapshot candidate,
+`c4e99f566993ecb5e71c20b09e792745ee51d95d7ec8622123f5362b0cede998`;
+its local receipt/members and matching guarded deployment were checked before
+preparing the installer. This differs from the older C3-3 deployment record.
 [build-candidate.py](build-candidate.py) starts from the booted Phase A runtime-3
 candidate. Its board DT is byte-identical, all 61 RAM-root members are retained
 with only the release gate changed, and configuration differs only in release

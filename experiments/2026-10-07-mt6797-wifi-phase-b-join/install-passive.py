@@ -15,8 +15,8 @@ ADAPTER = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(ADAPTER)
 ADAPTER = ADAPTER.ADAPTER
 RELEASE = '7.1.3-gemini-a53-wifi-phase-b-compile'
-# Current boot2 content: the verified C3-3 candidate.
-PREDECESSOR_SHA = '24599d428af5f90605fa4c6cc067034a725df76533fb86250ad0c3d0465d547b'
+# Current boot2 content: the live-verified C1-5 EINT-snapshot candidate.
+PREDECESSOR_SHA = 'c4e99f566993ecb5e71c20b09e792745ee51d95d7ec8622123f5362b0cede998'
 # Slot filled from the committed results/candidate.json after composition.
 MANIFEST_SHA = 'a0756937bbdf49e55b4614b71f3f5dea43c32afd32c159581d7ae3b59048aa8a'
 ADAPTER.HERE = HERE
