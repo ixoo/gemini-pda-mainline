@@ -1,0 +1,188 @@
+From 93a28a5828f516f63d6c12498c6bcf7c911668a1 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 5 Oct 2026 23:58:54 +0000
+Subject: [PATCH] wifi: mt6797: submit station join operations through guarded
+ PIO
+
+Original preparation for one bounded legacy station join. This checkpoint
+is compile-only and incomplete; no device operation is admitted.
+---
+ drivers/net/wireless/mediatek/mt6797/hif.c | 120 +++++++++++++++++++++
+ drivers/net/wireless/mediatek/mt6797/hif.h |  23 ++++
+ 2 files changed, 143 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 889d5e750..2652fabe7 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -12,6 +12,8 @@
+ #include <linux/string.h>
+ #endif
+ #include "hif.h"
++#include "join-submit.h"
++#include "join-command-submit.h"
+ 
+ #define MT6797_HIF_MAX_NS 1000000000ULL
+ #define MT6797_HIF_MAX_SECTION (1024U * 1024U)
+@@ -596,6 +598,124 @@ int mt6797_hif_query_capability(struct mt6797_hif *hif, unsigned int sequence,
+ 	return error;
+ }
+ 
++static int mt6797_hif_send_join_command(struct mt6797_hif *hif,
++	unsigned int cid, unsigned int sequence, const u8 *payload,
++	size_t payload_bytes, u64 deadline_ns)
++{
++	struct mt6797_hif_pio_result transfer;
++	struct mt6797_hif_command command;
++	int error;
++
++	if (!hif || !payload)
++		return -EINVAL;
++	if (!mutex_trylock(&hif->mutex))
++		return -EBUSY;
++	if (!hif->firmware_ready || !hif->capability_complete ||
++	    hif->transaction->phase != MT6797_INIT_IDLE ||
++	    hif->normal.phase != MT6797_NORMAL_NVRAM_SUBMITTED) {
++		error = -EIO;
++		goto unlock;
++	}
++	error = mt6797_join_prepare_command(&hif->normal, cid, sequence,
++		payload, payload_bytes, hif->scratch, sizeof(hif->scratch), &command);
++	if (error)
++		goto unlock;
++	error = mt6797_hif_enter(hif, deadline_ns);
++	if (error)
++		goto fail;
++	error = mt6797_hif_pio_transfer(&hif->io, 0x34, MT6797_HIF_WRITE,
++		hif->scratch, 8 + payload_bytes, sizeof(hif->scratch), &transfer);
++	error = mt6797_normal_submitted(&hif->normal, error);
++	if (!error)
++		error = mt6797_hif_guard(hif);
++fail:
++	if (error)
++		error = mt6797_hif_fail(hif, error);
++unlock:
++	mutex_unlock(&hif->mutex);
++	return error;
++}
++
++int mt6797_hif_join_station(struct mt6797_hif *hif, unsigned int sequence,
++	const u8 *ap, unsigned int state, unsigned int aid,
++	unsigned int desired_rates, unsigned int basic_rates, u64 deadline_ns)
++{
++	u8 payload[MT6797_JOIN_STA_BYTES];
++
++	if (!mt6797_join_station_payload(ap, state, aid, desired_rates,
++					basic_rates, payload))
++		return -EINVAL;
++	return mt6797_hif_send_join_command(hif, 0x13, sequence, payload,
++					   sizeof(payload), deadline_ns);
++}
++
++int mt6797_hif_join_remove_station(struct mt6797_hif *hif,
++	unsigned int sequence, u64 deadline_ns)
++{
++	u8 payload[4];
++
++	mt6797_join_remove_station(payload);
++	return mt6797_hif_send_join_command(hif, 0x14, sequence, payload,
++					   sizeof(payload), deadline_ns);
++}
++
++int mt6797_hif_join_channel(struct mt6797_hif *hif, unsigned int sequence,
++	u8 token, u8 channel, unsigned int interval_ms, bool abort, u64 deadline_ns)
++{
++	u8 payload[16];
++
++	if (!mt6797_join_channel_payload(token, channel, interval_ms, abort, payload))
++		return -EINVAL;
++	return mt6797_hif_send_join_command(hif, 0x1c, sequence, payload,
++					   sizeof(payload), deadline_ns);
++}
++
++int mt6797_hif_send_management(struct mt6797_hif *hif, const u8 *frame,
++			      size_t frame_bytes, u8 wlan, u8 pid,
++			      unsigned int lifetime_ms, unsigned int attempt_count,
++			      u64 deadline_ns)
++{
++	struct mt6797_hif_pio_result transfer;
++	struct mt6797_hif_command command;
++	int error;
++
++	if (!hif || !frame)
++		return -EINVAL;
++	if (!mutex_trylock(&hif->mutex))
++		return -EBUSY;
++	if (!hif->firmware_ready || !hif->capability_complete ||
++	    hif->transaction->phase != MT6797_INIT_IDLE ||
++	    hif->normal.phase != MT6797_NORMAL_NVRAM_SUBMITTED) {
++		error = -EIO;
++		goto unlock;
++	}
++	/* Validate and debit under the same owner before touching the bus.
++	 * Preparation errors have no PIO effects; bus errors never refund debt.
++	 */
++	error = mt6797_join_prepare_management(&hif->normal, frame, frame_bytes,
++					      wlan, pid, lifetime_ms, attempt_count,
++					      hif->scratch, sizeof(hif->scratch),
++					      &command);
++	if (error)
++		goto unlock;
++	error = mt6797_hif_enter(hif, deadline_ns);
++	if (error)
++		goto fail;
++	error = mt6797_hif_pio_transfer(&hif->io, 0x34, MT6797_HIF_WRITE,
++					hif->scratch,
++					MT6797_JOIN_TX_DESC_BYTES + frame_bytes,
++					sizeof(hif->scratch), &transfer);
++	error = mt6797_normal_submitted(&hif->normal, error);
++	if (!error)
++		error = mt6797_hif_guard(hif);
++fail:
++	if (error)
++		error = mt6797_hif_fail(hif, error);
++unlock:
++	mutex_unlock(&hif->mutex);
++	return error;
++}
++
+ int mt6797_hif_send_config(struct mt6797_hif *hif,
+ 			   enum mt6797_normal_config_kind kind,
+ 			   unsigned int sequence, const u8 *payload,
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index 1f811e6d1..3d748964c 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -183,6 +183,29 @@ int mt6797_hif_send_scan_tuning(struct mt6797_hif *hif, unsigned int role,
+ 				unsigned int sequence, u64 deadline_ns);
+ #endif
+ 
++/* Process context only. Encoded payloads do not prove slot ownership or
++ * legal channel admission. The MAC owner must serialize pending responses,
++ * enforce monotonic deadlines and use each sequence/token once per session.
++ * Zero means PIO submission; credit and firmware response are separate.
++ */
++int mt6797_hif_join_station(struct mt6797_hif *hif, unsigned int sequence,
++	const u8 *ap, unsigned int state, unsigned int aid,
++	unsigned int desired_rates, unsigned int basic_rates, u64 deadline_ns);
++int mt6797_hif_join_remove_station(struct mt6797_hif *hif,
++	unsigned int sequence, u64 deadline_ns);
++int mt6797_hif_join_channel(struct mt6797_hif *hif, unsigned int sequence,
++	u8 token, u8 channel, unsigned int interval_ms, bool abort, u64 deadline_ns);
++
++/* One native bounded management frame through the existing TC4 PIO owner.
++ * Process context only. Caller owns station/channel generation, destination,
++ * exact frame-body admission and single-use PID. No overlapping page debt.
++ * Zero proves PIO submission only; credit returns and TXdone remain separate.
++ */
++int mt6797_hif_send_management(struct mt6797_hif *hif, const u8 *frame,
++			      size_t frame_bytes, u8 wlan, u8 pid,
++			      unsigned int lifetime_ms, unsigned int attempt_count,
++			      u64 deadline_ns);
++
+ int mt6797_hif_send_config(struct mt6797_hif *hif,
+ 			   enum mt6797_normal_config_kind kind,
+ 			   unsigned int sequence, const u8 *payload,
+-- 
+2.39.5
+

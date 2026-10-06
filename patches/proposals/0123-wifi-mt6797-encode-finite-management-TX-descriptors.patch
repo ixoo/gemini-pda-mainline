@@ -1,0 +1,83 @@
+From 529d02f3d0c90fbcf4d84802fed7ef27afb7aaec Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 5 Oct 2026 23:58:50 +0000
+Subject: [PATCH] wifi: mt6797: encode finite management TX descriptors
+
+Original preparation for one bounded legacy station join. This checkpoint
+is compile-only and incomplete; no device operation is admitted.
+---
+ .../net/wireless/mediatek/mt6797/join-tx.h    | 62 +++++++++++++++++++
+ 1 file changed, 62 insertions(+)
+ create mode 100644 drivers/net/wireless/mediatek/mt6797/join-tx.h
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-tx.h b/drivers/net/wireless/mediatek/mt6797/join-tx.h
+new file mode 100644
+index 000000000..a06e02f54
+--- /dev/null
++++ b/drivers/net/wireless/mediatek/mt6797/join-tx.h
+@@ -0,0 +1,62 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef MT6797_JOIN_TX_H
++#define MT6797_JOIN_TX_H
++
++#include "join-events.h"
++
++#define MT6797_JOIN_TX_DESC_BYTES 28U
++
++/* Original encoder from the pinned public gen3 nicTxComposeDesc path.
++	* No transport, station lifetime, destination or channel admission here.
++	* Caller must check those before submitting descriptor and frame together.
++	*/
++static inline bool
++mt6797_join_tx_descriptor(const unsigned char *frame, size_t bytes,
++			 unsigned char wlan, unsigned char pid,
++			 unsigned int lifetime_ms, unsigned int attempt_count,
++			 unsigned char output[MT6797_JOIN_TX_DESC_BYTES],
++			 unsigned int *pages)
++{
++	unsigned char d[MT6797_JOIN_TX_DESC_BYTES] = {0};
++	unsigned int fc, subtype, minimum, sequence, lifetime, total, count, i;
++
++	if (!frame || !output || !pages || bytes < 24 || bytes > 2304 ||
++     wlan > 30 || !pid || pid > 127 || !lifetime_ms || lifetime_ms > 10000 ||
++     !attempt_count || attempt_count > 30)
++		return false;
++	fc = mt6797_join_le16(frame);
++	if (fc & 0xff0f)
++		return false; /* Native unprotected management; no flags/version/type. */
++	subtype = (fc >> 4) & 15;
++	minimum = subtype == 11 ? 30 : subtype == 0 ? 28 : subtype == 12 ? 26 : 0;
++	if (!minimum || bytes < minimum || (frame[22] & 15))
++		return false;
++	sequence = mt6797_join_le16(frame + 22) >> 4;
++	/* 32 TU units; zero is unlimited, never encode it for a finite request. */
++	lifetime = (lifetime_ms * 1000U / 1024U) >> 5;
++	if (!lifetime)
++		lifetime = 1;
++	if (lifetime > 255)
++		lifetime = 255;
++	total = MT6797_JOIN_TX_DESC_BYTES + bytes;
++	count = attempt_count << 11;
++	d[0] = total; d[1] = total >> 8;
++	d[2] = (MT6797_JOIN_TX_DESC_BYTES + 24) / 2;
++	d[3] = 0x88; /* TC4: MCU port, queue 1. */
++	d[4] = wlan;
++	d[5] = 0xcc; /* Long descriptor, native 802.11, 24-byte header. */
++	d[7] = 1U << 2; /* Own-MAC 1; software packet-type bits remain zero. */
++	d[8] = subtype;
++	d[10] = lifetime;
++	d[11] = 0x80; /* Fixed rate enabled, zero power offset. */
++	d[12] = count; d[13] = count >> 8;
++	d[14] = sequence; d[15] = (sequence >> 8) | 0x80;
++	d[20] = pid; d[21] = 2; /* TX status to MCU. */
++	/* Descriptor rate mode, OFDM 6 Mbps (0x4b), no bandwidth override. */
++	d[26] = (0x4bU << 2) & 255; d[27] = (0x4bU << 2) >> 8;
++	for (i = 0; i < MT6797_JOIN_TX_DESC_BYTES; i++)
++		output[i] = d[i];
++	*pages = (total + 127U) / 128U;
++	return true;
++}
++#endif
+-- 
+2.39.5
+

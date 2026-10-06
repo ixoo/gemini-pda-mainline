@@ -1,0 +1,99 @@
+From e2e5c9e25b7fcaca1d4d1a9a4e27df8d0da0e32b Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 5 Oct 2026 23:58:49 +0000
+Subject: [PATCH] wifi: mt6797: parse bounded station join events
+
+Original preparation for one bounded legacy station join. This checkpoint
+is compile-only and incomplete; no device operation is admitted.
+---
+ .../wireless/mediatek/mt6797/join-events.h    | 78 +++++++++++++++++++
+ 1 file changed, 78 insertions(+)
+ create mode 100644 drivers/net/wireless/mediatek/mt6797/join-events.h
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-events.h b/drivers/net/wireless/mediatek/mt6797/join-events.h
+new file mode 100644
+index 000000000..a46fce6c8
+--- /dev/null
++++ b/drivers/net/wireless/mediatek/mt6797/join-events.h
+@@ -0,0 +1,78 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef MT6797_JOIN_EVENTS_H
++#define MT6797_JOIN_EVENTS_H
++/* Original parser from the publicly pinned gen3 event layouts. */
++static inline unsigned short mt6797_join_le16(const unsigned char *p)
++{
++	return (unsigned short)p[0] | (unsigned short)p[1] << 8;
++}
++static inline unsigned int mt6797_join_le32(const unsigned char *p)
++{
++	return (unsigned int)p[0] | (unsigned int)p[1] << 8 |
++	       (unsigned int)p[2] << 16 | (unsigned int)p[3] << 24;
++}
++static inline bool mt6797_join_event(const unsigned char *p, size_t n, unsigned char id,
++					    size_t payload)
++{
++	return p && n == 8 + payload && mt6797_join_le16(p) == n &&
++		      mt6797_join_le16(p + 2) == 0xe000 && p[4] == id;
++}
++struct mt6797_join_tx_result {
++	unsigned char status, count, flags;
++	unsigned short sequence, rate;
++};
++/* TX completion is asynchronous: its header sequence is not a command ID.
++ * Successful parsing alone does not imply an ACK. */
++static inline bool mt6797_join_tx_done(const unsigned char *p, size_t n,
++	unsigned char pid, unsigned char wlan, struct mt6797_join_tx_result *out)
++{
++	struct mt6797_join_tx_result r;
++	if (!out || !pid || pid > 127 || wlan > 30 ||
++	    !mt6797_join_event(p, n, 0x0f, 16) ||
++	    p[8] != pid || p[12] != wlan)
++		return false;
++	r.status = p[9];
++	r.sequence = mt6797_join_le16(p + 10);
++	/* Firmware rate/count are advanced information only when flag bit 0 is set. */
++	r.count = p[16] & 1 ? p[13] : 0;
++	r.rate = p[16] & 1 ? mt6797_join_le16(p + 14) : 0;
++	r.flags = p[16];
++	*out = r;
++	return true;
++}
++struct mt6797_join_channel {
++	unsigned char bss, token, channel, sco, band, width, center1, center2, type;
++	unsigned int max_ms;
++};
++static inline bool mt6797_join_channel_grant(const unsigned char *p, size_t n,
++	const struct mt6797_join_channel *e, unsigned int *interval_ms)
++{
++	unsigned int interval;
++	if (!e || !interval_ms || !e->max_ms ||
++	    !mt6797_join_event(p, n, 0x10, 16) ||
++	    p[8] != e->bss || p[9] != e->token || p[10] != 0 ||
++	    p[11] != e->channel || p[12] != e->sco || p[13] != e->band ||
++	    p[14] != e->width || p[15] != e->center1 ||
++	    p[16] != e->center2 || p[17] != e->type)
++		return false;
++	interval = mt6797_join_le32(p + 20);
++	if (!interval || interval > e->max_ms)
++		return false;
++	*interval_ms = interval;
++	return true;
++}
++static inline bool mt6797_join_sta_active(const unsigned char *p, size_t n,
++	unsigned char command_seq, unsigned char sta, unsigned char bss,
++	const unsigned char *mac, bool state3_pending)
++{
++	unsigned int i;
++	if (!mac || !state3_pending ||
++	    !mt6797_join_event(p, n, 0x0c, 8) || p[5] != command_seq ||
++	    p[14] != sta || p[15] != bss)
++		return false;
++	for (i = 0; i < 6; i++)
++		if (p[8 + i] != mac[i])
++			return false;
++	return true;
++}
++#endif
+-- 
+2.39.5
+

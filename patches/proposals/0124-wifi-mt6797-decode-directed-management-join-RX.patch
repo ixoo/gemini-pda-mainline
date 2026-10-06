@@ -1,0 +1,113 @@
+From 03f6259c822f8b83f7c82a6afd05864c797cfd1b Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 5 Oct 2026 23:58:51 +0000
+Subject: [PATCH] wifi: mt6797: decode directed management join RX
+
+Original preparation for one bounded legacy station join. This checkpoint
+is compile-only and incomplete; no device operation is admitted.
+---
+ .../net/wireless/mediatek/mt6797/join-rx.h    | 92 +++++++++++++++++++
+ 1 file changed, 92 insertions(+)
+ create mode 100644 drivers/net/wireless/mediatek/mt6797/join-rx.h
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-rx.h b/drivers/net/wireless/mediatek/mt6797/join-rx.h
+new file mode 100644
+index 000000000..d4d8cc4bd
+--- /dev/null
++++ b/drivers/net/wireless/mediatek/mt6797/join-rx.h
+@@ -0,0 +1,92 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef MT6797_JOIN_RX_H
++#define MT6797_JOIN_RX_H
++
++#include "join-events.h"
++
++struct mt6797_join_rx_frame {
++	size_t offset, bytes;
++	unsigned char subtype, rcpi;
++	int signal_dbm;
++};
++
++/* Native unprotected directed management RX only. The caller selects which
++ * subtype its current state permits. Firmware metadata is not passed as part
++ * of the frame. Signal converts RCPI to whole dBm, rounding odd RCPI down.
++ */
++static inline bool
++mt6797_join_rx_frame(const unsigned char *packet, size_t bytes,
++		    unsigned char channel, const unsigned char *own,
++		    const unsigned char *ap, unsigned int allowed_subtypes,
++		    struct mt6797_join_rx_frame *out)
++{
++	struct mt6797_join_rx_frame r;
++	size_t offset = 16, vector = 0, length, minimum, ie;
++	unsigned int type, groups, fc, subtype, i;
++	const unsigned char *f;
++
++	if (!packet || !own || !ap || !out || bytes < 16 || !channel ||
++	    mt6797_join_le16(packet) != bytes || packet[5] != channel)
++		return false;
++	type = mt6797_join_le16(packet + 2);
++	if ((type & 0xe00f) != 0xe001)
++		return false;
++	groups = (type >> 9) & 15;
++	if (groups & 8)
++		offset += 16;
++	if (groups & 1)
++		offset += 16;
++	if (groups & 2)
++		offset += 8;
++	if (groups & 4) {
++		vector = offset;
++		offset += 24;
++	}
++	if (!vector || offset > bytes)
++		return false;
++	if (packet[6] & 0x40)
++		offset += 2;
++	if (offset > bytes || bytes - offset < 24 ||
++	    (packet[6] & 0x80) || (packet[6] & 0x3f) != 24 ||
++	    (packet[9] & 0xf0) || (packet[7] & 3) ||
++	    (mt6797_join_le16(packet + 10) & 0x0ffe))
++		return false;
++	f = packet + offset;
++	length = bytes - offset;
++	fc = mt6797_join_le16(f);
++	subtype = (fc >> 4) & 15;
++	if ((fc & 0xc70f) || !(allowed_subtypes & (1U << subtype)) ||
++	    (mt6797_join_le16(f + 22) & 15))
++		return false;
++	minimum = subtype == 11 || subtype == 1 ? 30 :
++		  subtype == 10 || subtype == 12 ? 26 : 0;
++	if (!minimum || length < minimum)
++		return false;
++	for (i = 0; i < 6; i++)
++		if (f[4 + i] != own[i] || f[10 + i] != ap[i] || f[16 + i] != ap[i])
++			return false;
++	/* This admission uses only Open System response transaction 2. */
++	if (subtype == 11 && (mt6797_join_le16(f + 24) ||
++			     mt6797_join_le16(f + 26) != 2 || length != 30))
++		return false;
++	/* Association response IEs must be complete, never truncated. */
++	if (subtype == 1) {
++		for (ie = minimum; ie < length; ) {
++			if (length - ie < 2 || f[ie + 1] > length - ie - 2)
++				return false;
++			ie += 2 + f[ie + 1];
++		}
++	} else if (length != minimum) {
++		return false;
++	}
++	if (packet[vector + 9] > 220)
++		return false;
++	r.offset = offset;
++	r.bytes = length;
++	r.subtype = subtype;
++	r.rcpi = packet[vector + 9];
++	r.signal_dbm = (int)r.rcpi / 2 - 110;
++	*out = r;
++	return true;
++}
++#endif
+-- 
+2.39.5
+

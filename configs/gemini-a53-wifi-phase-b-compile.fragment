@@ -1,0 +1,4 @@
+# Compile-only incomplete Wi-Fi join preparation.
+# Atomic TX queue remains closed; no join callback enables submission.
+# No device admission, packet DMA or HIF IRQ is added.
+CONFIG_LOCALVERSION="-gemini-a53-wifi-phase-b-compile"

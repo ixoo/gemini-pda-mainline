@@ -1,0 +1,72 @@
+From 9f0d8ff0a51e77119ccb54b837ddb699a3c9f051 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 5 Oct 2026 23:58:53 +0000
+Subject: [PATCH] wifi: mt6797: account station join commands through normal
+ owner
+
+Original preparation for one bounded legacy station join. This checkpoint
+is compile-only and incomplete; no device operation is admitted.
+---
+ .../mediatek/mt6797/join-command-submit.h     | 50 +++++++++++++++++++
+ 1 file changed, 50 insertions(+)
+ create mode 100644 drivers/net/wireless/mediatek/mt6797/join-command-submit.h
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-command-submit.h b/drivers/net/wireless/mediatek/mt6797/join-command-submit.h
+new file mode 100644
+index 000000000..55d7fb8f2
+--- /dev/null
++++ b/drivers/net/wireless/mediatek/mt6797/join-command-submit.h
+@@ -0,0 +1,50 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef MT6797_JOIN_COMMAND_SUBMIT_H
++#define MT6797_JOIN_COMMAND_SUBMIT_H
++#include "normal_command.h"
++#include "join-commands.h"
++
++/* Internal fixed command set. Callers use the corresponding payload encoder
++ * and own operation ordering, response identity and firmware lifetime gates.
++ */
++static inline int
++mt6797_join_prepare_command(struct mt6797_normal_transaction *t,
++	unsigned int cid, unsigned int sequence, const unsigned char *payload,
++	size_t bytes, unsigned char *output, size_t capacity,
++	struct mt6797_hif_command *command)
++{
++	size_t required;
++	int error;
++
++	if (command)
++		*command = (struct mt6797_hif_command){0};
++	if (!t || !payload || !output || !command || !sequence || sequence > 255)
++		return -EINVAL;
++	if (t->phase != MT6797_NORMAL_NVRAM_SUBMITTED || !t->used_sequences ||
++	    !t->tc4_limit || t->tc4_limit > 0xffffU || t->tc4_free > t->tc4_limit)
++		return mt6797_normal_abort(t);
++	switch (cid) {
++	case 0x13:
++		required = MT6797_JOIN_STA_BYTES;
++		break;
++	case 0x14:
++		required = 4;
++		break;
++	case 0x1c:
++		required = 16;
++		break;
++	default:
++		return -EINVAL;
++	}
++	if (bytes != required)
++		return -EINVAL;
++	if (t->tc4_free != t->tc4_limit)
++		return -EBUSY;
++	error = mt6797_normal_encode(t, cid, 1, sequence, payload, bytes,
++				     8 + bytes, MT6797_NORMAL_CONFIG_TX,
++				     output, capacity, command);
++	if (!error)
++		t->config_return_phase = MT6797_NORMAL_NVRAM_SUBMITTED;
++	return error;
++}
++#endif
+-- 
+2.39.5
+

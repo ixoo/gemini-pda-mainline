@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-07-mt6797-wifi-phase-b-join` |
-| Status | Design reviewed with corrections; offline implementation of gaps 1, 2 and 7 approved, compile-only; no air test |
+| Status | Incomplete offline implementation pinned in a compile-only profile; MAC build and runtime gates remain open; no air test |
 | Base | Phase A [runtime 3](../2026-10-06-mt6797-wifi-common-init/RUNTIME_3.md), package `3013daa6…` |
 | Date | 2026-10-07 |
 | Device action | None |
@@ -83,7 +83,7 @@ stop without further commands (see Bounds).
 | 1 | Phase A common init and readiness, unchanged | existing | any Phase A gate |
 | 2 | One channel scan of the target's channel, then connect within the cfg80211 BSS lifetime | existing scan, new caller | target BSS absent |
 | 3 | RX filter DIRECTED and BROADCAST | changed payload | no credit return |
-| 4 | BSS activate: BSS 0, own-MAC 1, BMC 0 under the Phase B ownership transfer below | existing command, new lifetime rule | transfer preconditions not met, or no credit return |
+| 4 | Retain the active AIS BSS from the completed scan: BSS 0, own-MAC 1, BMC 0 | new Phase B lifetime | incomplete/failed scan or ownership fence not met |
 | 5 | STA record pre-auth for the AP | new command | no credit return |
 | 6 | Channel privilege REQ for JOIN on the target channel | new command and event | no grant within the budget |
 | 7 | TX Open System authentication, sequence 1 | **first RF TX** | no TX done, or TX status not success |
@@ -161,7 +161,7 @@ EAPOL exchange or key is part of this admission.
    type `0xee01`) and the count of 15, but no RX port marker. WRDR0 versus
    WRDR1 cannot be inferred, so the join poller keeps both ports, each bounded.
 5. **Slot reuse.** Resolved by the Phase B slot-lifetime delta below. It is a
-   declared transfer of the same slots, not a new slot.
+   continuous ownership of the same slots, not a release/reallocation.
 6. **One-shot scan.** cfg80211 rescans when its BSS entry has expired. The
    connect must follow the single scan quickly, or the connect path must not
    trigger a second scan.
@@ -189,31 +189,27 @@ as used, and treats BSS deactivation as a credit return, not as an activation
 or drain acknowledgement. Phase A's code and protocol stay unchanged. Phase B
 needs those slots and states its own rule instead of reusing them silently.
 
-**Decision: transfer the same slots, do not allocate disjoint ones.** Phase B
-uses BSS 0, own-MAC 1 and BMC 0 again. An earlier draft called the activation a
-"new slot"; that was wrong and is withdrawn. Disjoint slots are rejected for
-this admission. The vendor station path uses the AIS network on BSS 0, and no
-reviewed source or observation establishes that another BSS index, own-MAC
-index or BMC entry is valid for a station on this firmware. Picking unverified
-indexes would add an unknown, not remove one.
+**Correction under implementation review: retain one AIS owner.** The earlier
+500 ms quiet-window transfer rule is withdrawn: silence is not a firmware
+FIFO drain, and a beacon carries no scan-versus-join epoch. The separate
+Phase B profile will retain the same BSS 0, own-MAC 1 and BMC 0 continuously
+from activation through one successful scan, one join and terminal teardown
+or recovery. It will omit scan-end deactivation and a second activation.
+Phase A profiles and artifacts retain their existing behavior.
 
-**Transfer preconditions.** The join may claim the slots only when all hold:
+The [lifetime review](BSS_LIFETIME_REVIEW.md) records the public vendor
+connection-path evidence and required ownership gates. Its direction was
+reviewed as sound; this is implementation planning, not candidate admission.
+A cancelled, failed or partial scan never admits a join. The scan consumer
+must be quiesced safely before the join becomes the sole FIFO consumer; host
+work completion does not prove firmware silence. One vif/MAC owner and the
+consumed scan sequence remain retired against replacement or reuse.
 
-1. The scan completed normally: the matching done header was received and the
-   scan state left active.
-2. The scan's BSS deactivation was submitted and its TC4 credit returned.
-3. A quiet window of at least 500 ms (one full requested dwell) has passed
-   since deactivation with the bounded poller running, and no scan-owned
-   event or frame arrived in it.
-4. Boot identity and firmware health are still verified.
-
-If any precondition fails, the join does not start and the session fails stop.
-
-**Late scan input after transfer.** Any scan-owned event or beacon that
-arrives after the transfer is counted as late scan input and recorded. A late
-scan-done or scan-related event fails the join stop, with no further command.
-A late beacon is counted and not delivered to mac80211. Late input is never
-attributed to the join.
+Any late/duplicate scan completion fails stop, with no second completion
+notification. Parseable beacons are asynchronous frames filtered by current
+identity/channel policy and finite budgets; they cannot be labeled scan-owned
+solely from arrival time. Directed responses and firmware events still need
+the current protocol stage and single-use pending token/command ledger.
 
 **Ownership after the join.** The join owns BSS 0, own-MAC 1, BMC 0 and AP
 pairwise WLAN index 1 until its teardown completes under the health rule, or
@@ -244,3 +240,6 @@ and reviewed.
 
 Bounded PIO data TX and RX come only after association evidence, in a separate
 admission. DMA and interrupts stay out of scope until then.
+
+The current [offline implementation checkpoint](OFFLINE_IMPLEMENTATION.md)
+records selected preparation patches, validation and missing join callbacks.

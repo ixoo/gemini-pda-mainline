@@ -1,0 +1,447 @@
+From 65d28a5716398df866969c8e3fec626b82b8f33a Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 5 Oct 2026 23:58:55 +0000
+Subject: [PATCH] wifi: mt6797: prepare bounded management TX queue and pump
+
+Original preparation for one bounded legacy station join. This checkpoint
+is compile-only and incomplete; no device operation is admitted.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 366 +++++++++++++++++++++
+ 1 file changed, 366 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index f2748faa0..d21eca01e 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -1,6 +1,7 @@
+ // SPDX-License-Identifier: GPL-2.0-only
+ /* MT6797 gen3 configuration and cfg80211 regulatory ownership. */
+ #include <linux/etherdevice.h>
++#include <linux/completion.h>
+ #include <linux/ktime.h>
+ #include <linux/mutex.h>
+ #include <linux/rtnetlink.h>
+@@ -13,6 +14,8 @@
+ #include "record-prepare.h"
+ #include "regulatory-encode.h"
+ #include "scan-wire.h"
++#include "join-rx.h"
++#include "join-tx.h"
+ 
+ struct mt6797_mac {
+ 	struct mt6797_hif *hif;
+@@ -29,6 +32,23 @@ struct mt6797_mac {
+ 	struct ieee80211_hw *hw;
+ 	struct ieee80211_vif *vif;
+ 	struct delayed_work scan_work;
++	/* Single-use join queue. Admission is closed until owned state callbacks. */
++	struct sk_buff_head join_queue;
++	struct delayed_work join_work;
++	struct sk_buff *join_inflight;
++	u64 join_deadline, join_frame_deadline;
++	u8 join_ap[ETH_ALEN], join_pid, join_next_pid;
++	u8 join_packet[MT6797_HIF_RX_MAX_PACKET] __aligned(2);
++	unsigned int join_queue_bytes, join_seen, join_tx_allowed, join_rx_allowed;
++	unsigned int join_page_debt, join_polls, join_packets;
++	bool join_open, join_retired;
++	struct completion join_channel_done, join_sta_done;
++	u64 join_grant_deadline;
++	u8 join_channel_token, join_sta_sequence;
++	unsigned int join_requested_ms;
++	bool join_channel_pending, join_channel_granted;
++	bool join_sta_pending, join_sta_active;
++
+ 	u64 scan_deadline, scan_started_ns;
+ 	unsigned int scan_channels, scan_count, scan_polls, scan_packets;
+ 	bool scan_ready, started, scan_used, scan_active, bss_active;
+@@ -325,6 +345,304 @@ static int mt6797_mac_scan_packet(struct mt6797_mac *mac, size_t bytes,
+ 	return 0;
+ }
+ 
++/* Initial queue is closed. Only the forthcoming owned join state callbacks
++	* may open it after the scan/peer/channel gates; there is no device admission.
++	*/
++static bool mt6797_mac_join_frame(struct mt6797_mac *mac, struct sk_buff *skb)
++{
++	const u8 *f = skb->data;
++	size_t n = skb->len, ie;
++	unsigned int fc, subtype, minimum;
++
++	if (n < 24 || n > 2304)
++		return false;
++	fc = mt6797_join_le16(f);
++	subtype = (fc >> 4) & 15;
++	if ((fc & 0xff0f) || (f[22] & 15) ||
++					!(mac->join_tx_allowed & BIT(subtype)) ||
++					!ether_addr_equal(f + 4, mac->join_ap) ||
++					!ether_addr_equal(f + 10, mac->hw->wiphy->perm_addr) ||
++					!ether_addr_equal(f + 16, mac->join_ap))
++		return false;
++	minimum = subtype == 11 ? 30 : subtype == 0 ? 28 : subtype == 12 ? 26 : 0;
++	if (!minimum || n < minimum)
++		return false;
++	if (subtype == 11)
++		return n == 30 && !mt6797_join_le16(f + 24) &&
++	 mt6797_join_le16(f + 26) == 1 && !mt6797_join_le16(f + 28);
++	if (subtype == 12)
++		return n == 26;
++	if (!mt6797_join_le16(f + 26))
++		return false;
++	for (ie = 28; ie < n; ) {
++		if (n - ie < 2 || f[ie + 1] > n - ie - 2)
++			return false;
++		/* No RSN, HT/VHT or fast-transition negotiation in this admission. */
++		if (f[ie] == WLAN_EID_RSN || f[ie] == WLAN_EID_HT_CAPABILITY ||
++      f[ie] == WLAN_EID_VHT_CAPABILITY || f[ie] == WLAN_EID_MOBILITY_DOMAIN ||
++      f[ie] == WLAN_EID_FAST_BSS_TRANSITION)
++			return false;
++		if (f[ie] == WLAN_EID_VENDOR_SPECIFIC && f[ie + 1] >= 4 &&
++      (f[ie + 2] == 0 && f[ie + 3] == 0x50 &&
++	      f[ie + 4] == 0xf2 && f[ie + 5] == 2))
++			return false; /* No WMM negotiation. */
++		ie += 2 + f[ie + 1];
++	}
++	return true;
++}
++
++static void mt6797_mac_join_close(struct mt6797_mac *mac)
++{
++	unsigned long flags;
++	struct sk_buff_head discard;
++	struct sk_buff *skb;
++
++	skb_queue_head_init(&discard);
++	spin_lock_irqsave(&mac->join_queue.lock, flags);
++	mac->join_open = false;
++	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++	/* Neither this mutex nor the queue lock may be held while cancelling. */
++	cancel_delayed_work_sync(&mac->join_work);
++	mutex_lock(&mac->mutex);
++	mac->join_retired = true;
++	mac->join_channel_pending = false;
++	mac->join_sta_pending = false;
++	complete_all(&mac->join_channel_done);
++	complete_all(&mac->join_sta_done);
++	spin_lock_irqsave(&mac->join_queue.lock, flags);
++	skb_queue_splice_init(&mac->join_queue, &discard);
++	mac->join_queue_bytes = 0;
++	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++	if (mac->join_inflight) {
++		__skb_queue_tail(&discard, mac->join_inflight);
++		mac->join_inflight = NULL;
++	}
++	mutex_unlock(&mac->mutex);
++	while ((skb = __skb_dequeue(&discard)))
++		ieee80211_free_txskb(mac->hw, skb);
++}
++
++static int mt6797_mac_join_guard(struct mt6797_mac *mac, u64 deadline)
++{
++	struct mt6797_hif_tx_status status;
++	struct mt6797_normal_release account;
++	u32 wcir, own;
++	int ret;
++
++	ret = mt6797_hif_read32(mac->hif, 0, deadline, &wcir);
++	if (!ret && ((wcir & 0xffff) != 0x0279 || !(wcir & BIT(21))))
++		ret = -EIO;
++	if (!ret)
++		ret = mt6797_hif_read32(mac->hif, 4, deadline, &own);
++	if (!ret && !(own & BIT(8)))
++		ret = -EACCES;
++	if (!ret)
++		ret = mt6797_hif_reconcile_runtime(mac->hif, deadline, &status, &account);
++	if (!ret) {
++		if (account.released_pages > mac->join_page_debt)
++			return -EPROTO;
++		mac->join_page_debt -= account.released_pages;
++	}
++	return ret;
++}
++
++static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
++{
++	struct mt6797_join_channel expected = {
++		.bss = 0, .token = mac->join_channel_token, .channel = 40,
++		.band = 2, .max_ms = mac->join_requested_ms,
++	};
++	u32 interval;
++
++	if (mt6797_join_event(mac->join_packet, bytes, 0x10, 16)) {
++		if (!mac->join_channel_pending ||
++		    !mt6797_join_channel_grant(mac->join_packet, bytes, &expected, &interval))
++			return -EPROTO;
++		mac->join_channel_pending = false;
++		mac->join_channel_granted = true;
++		mac->join_grant_deadline = min_t(u64, mac->join_deadline,
++			ktime_get_ns() + (u64)interval * NSEC_PER_MSEC);
++		complete_all(&mac->join_channel_done);
++		return 0;
++	}
++	if (mt6797_join_event(mac->join_packet, bytes, 0x0c, 8)) {
++		if (!mac->join_sta_pending ||
++		    !mt6797_join_sta_active(mac->join_packet, bytes,
++			mac->join_sta_sequence, 1, 0, mac->join_ap, true))
++			return -EPROTO;
++		mac->join_sta_pending = false;
++		mac->join_sta_active = true;
++		complete_all(&mac->join_sta_done);
++		return 0;
++	}
++	return -EPROTO;
++}
++
++static void mt6797_mac_join_work(struct work_struct *work)
++{
++	struct mt6797_mac *mac = container_of(to_delayed_work(work),
++				      struct mt6797_mac, join_work);
++	struct mt6797_hif_rx_result rx;
++	struct mt6797_join_tx_result result;
++	struct mt6797_join_rx_frame frame;
++	struct mt6797_scan_frame beacon;
++	struct sk_buff_head received, discard;
++	struct sk_buff *skb, *completed = NULL;
++	unsigned long flags;
++	unsigned int n, port, pages;
++	u64 now, deadline, grant_end;
++	bool open, ack = false;
++	int ret = 0;
++
++	skb_queue_head_init(&received);
++	skb_queue_head_init(&discard);
++	mutex_lock(&mac->mutex);
++	spin_lock_irqsave(&mac->join_queue.lock, flags);
++	open = mac->join_open;
++	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++	if (!open)
++		goto unlock;
++	now = ktime_get_ns();
++	if (mac->scan_active || mac->first_error || mac->closing ||
++					now >= mac->join_deadline || ++mac->join_polls > 512 ||
++					(mac->join_inflight && now >= mac->join_frame_deadline)) {
++		ret = -ETIMEDOUT;
++		goto failed;
++	}
++	deadline = min_t(u64, now + 100 * NSEC_PER_MSEC, mac->join_deadline);
++	ret = mt6797_mac_join_guard(mac, deadline);
++	if (ret)
++		goto failed;
++	if (!mac->join_inflight && !mac->join_page_debt) {
++		spin_lock_irqsave(&mac->join_queue.lock, flags);
++		skb = __skb_dequeue(&mac->join_queue);
++		if (skb)
++			mac->join_queue_bytes -= skb->len;
++		spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++		if (skb) {
++			mac->join_inflight = skb;
++			/* Linearize in process context; never retain a borrowed STA pointer. */
++			now = ktime_get_ns();
++			grant_end = min(mac->join_deadline, mac->join_grant_deadline);
++			if (skb_linearize(skb) || !mt6797_mac_join_frame(mac, skb) ||
++       mac->join_next_pid > 127 || !mac->join_channel_granted ||
++       now >= grant_end || grant_end - now < 850 * NSEC_PER_MSEC) {
++				ret = -EINVAL;
++				goto failed;
++			}
++			mac->join_pid = mac->join_next_pid++;
++			pages = (MT6797_JOIN_TX_DESC_BYTES + skb->len + 127) / 128;
++			/* Single submission, count 3, 500ms encodes 15*32TU (491.52ms).
++				* The live grant must cover submission plus the bounded completion wait.
++				*/
++			ret = mt6797_hif_send_management(mac->hif, skb->data, skb->len,
++				  1, mac->join_pid, 500, 3, deadline);
++			if (ret)
++				goto failed;
++			mac->join_page_debt = pages;
++			mac->join_frame_deadline = ktime_get_ns() + 750 * NSEC_PER_MSEC;
++		}
++	}
++	for (n = 0; n < 8; n++) {
++		bool got = false;
++		for (port = 0; port < 2; port++) {
++			ret = mt6797_hif_receive_packet(mac->hif, port, deadline,
++				 mac->join_packet, sizeof(mac->join_packet), &rx);
++			if (ret == -EAGAIN) {
++				ret = 0;
++				continue;
++			}
++			if (ret || ++mac->join_packets > 4096)
++				goto failed;
++			got = true;
++			if (mt6797_join_event(mac->join_packet, rx.logical_bytes, 0x0f, 16)) {
++				if (!mac->join_inflight ||
++	!mt6797_join_tx_done(mac->join_packet, rx.logical_bytes,
++			    mac->join_pid, 1, &result) ||
++	(result.status > 7 && (result.status < 32 || result.status > 34))) {
++					ret = -EPROTO;
++					goto failed;
++				}
++				completed = mac->join_inflight;
++				mac->join_inflight = NULL;
++				ack = result.status == 0;
++				ieee80211_tx_info_clear_status(IEEE80211_SKB_CB(completed));
++				IEEE80211_SKB_CB(completed)->flags &= ~IEEE80211_TX_STAT_ACK;
++				if (ack)
++					IEEE80211_SKB_CB(completed)->flags |= IEEE80211_TX_STAT_ACK;
++				continue;
++			}
++			if (rx.logical_bytes >= 8 &&
++			    mt6797_join_le16(mac->join_packet + 2) == 0xe000) {
++				ret = mt6797_mac_join_control_event(mac, rx.logical_bytes);
++				if (ret)
++					goto failed;
++				continue;
++			}
++			/* Parseable beacons are asynchronous, never an epoch fence. */
++			if (!mt6797_scan_frame(mac->join_packet, rx.logical_bytes, &beacon))
++				continue;
++			if (!mt6797_join_rx_frame(mac->join_packet, rx.logical_bytes, 40,
++			    mac->hw->wiphy->perm_addr, mac->join_ap,
++			    mac->join_rx_allowed, &frame)) {
++				ret = -EPROTO;
++				goto failed;
++			}
++			skb = dev_alloc_skb(frame.bytes);
++			if (!skb) {
++				ret = -ENOMEM;
++				goto failed;
++			}
++			skb_put_data(skb, mac->join_packet + frame.offset, frame.bytes);
++			memset(IEEE80211_SKB_RXCB(skb), 0, sizeof(struct ieee80211_rx_status));
++			IEEE80211_SKB_RXCB(skb)->band = NL80211_BAND_5GHZ;
++			IEEE80211_SKB_RXCB(skb)->freq = 5200;
++			IEEE80211_SKB_RXCB(skb)->signal = frame.signal_dbm;
++			__skb_queue_tail(&received, skb);
++		}
++		if (!got)
++			break;
++	}
++	spin_lock_irqsave(&mac->join_queue.lock, flags);
++	if (mac->join_open)
++		schedule_delayed_work(&mac->join_work, msecs_to_jiffies(20));
++	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++	goto unlock;
++failed:
++	if (!ret)
++		ret = -E2BIG;
++	if (!mac->first_error)
++		mac->first_error = ret;
++	mac->closing = true;
++	mac->join_retired = true;
++	mac->join_channel_pending = false;
++	mac->join_sta_pending = false;
++	complete_all(&mac->join_channel_done);
++	complete_all(&mac->join_sta_done);
++	spin_lock_irqsave(&mac->join_queue.lock, flags);
++	mac->join_open = false;
++	skb_queue_splice_init(&mac->join_queue, &discard);
++	mac->join_queue_bytes = 0;
++	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++	if (mac->join_inflight) {
++		__skb_queue_tail(&discard, mac->join_inflight);
++		mac->join_inflight = NULL;
++	}
++unlock:
++	mutex_unlock(&mac->mutex);
++	/* One worker serializes RX_ni and TX_status_ni, outside driver locks. */
++	if (completed)
++		ieee80211_tx_status_ni(mac->hw, completed);
++	while ((skb = __skb_dequeue(&received))) {
++		if (ret)
++			dev_kfree_skb(skb);
++		else
++			ieee80211_rx_ni(mac->hw, skb);
++	}
++	while ((skb = __skb_dequeue(&discard)))
++		ieee80211_free_txskb(mac->hw, skb);
++}
++
+ static void mt6797_mac_scan_work(struct work_struct *work)
+ {
+ 	struct mt6797_mac *mac = container_of(to_delayed_work(work),
+@@ -564,6 +882,7 @@ static void mt6797_mac_stop(struct ieee80211_hw *hw, bool suspend)
+ #if IS_ENABLED(CONFIG_MT6797_PASSIVE_SCAN)
+ 	struct mt6797_mac *mac = hw->priv;
+ 
++	mt6797_mac_join_close(mac);
+ 	mt6797_mac_cancel_scan(hw, NULL);
+ 	mutex_lock(&mac->mutex);
+ 	mac->started = false;
+@@ -599,6 +918,7 @@ static void mt6797_mac_remove_interface(struct ieee80211_hw *hw,
+ #if IS_ENABLED(CONFIG_MT6797_PASSIVE_SCAN)
+ 	struct mt6797_mac *mac = hw->priv;
+ 
++	mt6797_mac_join_close(mac);
+ 	mt6797_mac_cancel_scan(hw, vif);
+ 	mutex_lock(&mac->mutex);
+ 	mac->vif = NULL;
+@@ -633,6 +953,16 @@ static int mt6797_mac_sta_state(struct ieee80211_hw *hw,
+ 				enum ieee80211_sta_state old,
+ 				enum ieee80211_sta_state new)
+ {
++	/* mac80211 station teardown must not fail; no peer command is
++	 * admitted by this incomplete upward-transition implementation.
++	 */
++	if (new <= old) {
++#if IS_ENABLED(CONFIG_MT6797_PASSIVE_SCAN)
++		if (new < old)
++			mt6797_mac_join_close(hw->priv);
++#endif
++		return 0;
++	}
+ 	return -EOPNOTSUPP;
+ }
+ 
+@@ -645,6 +975,37 @@ static void mt6797_mac_filter(struct ieee80211_hw *hw, unsigned int changed,
+ static void mt6797_mac_tx(struct ieee80211_hw *hw,
+ 			  struct ieee80211_tx_control *control, struct sk_buff *skb)
+ {
++#if IS_ENABLED(CONFIG_MT6797_PASSIVE_SCAN)
++	struct mt6797_mac *mac = hw->priv;
++	u8 header[24];
++	unsigned long flags;
++	unsigned int fc, subtype;
++	bool accepted = false;
++
++	if (skb->len >= sizeof(header) && skb->len <= 2304 &&
++	    !skb_copy_bits(skb, 0, header, sizeof(header))) {
++		fc = mt6797_join_le16(header);
++		subtype = (fc >> 4) & 15;
++		spin_lock_irqsave(&mac->join_queue.lock, flags);
++		if (mac->join_open && !(fc & 0xff0f) &&
++		    (mac->join_tx_allowed & BIT(subtype)) &&
++		    !(mac->join_seen & BIT(subtype)) &&
++		    ether_addr_equal(header + 4, mac->join_ap) &&
++		    ether_addr_equal(header + 10, hw->wiphy->perm_addr) &&
++		    ether_addr_equal(header + 16, mac->join_ap) &&
++		    skb_queue_len(&mac->join_queue) < 3 &&
++		    mac->join_queue_bytes + skb->len <= 3 * 2304) {
++			mac->join_seen |= BIT(subtype);
++			mac->join_queue_bytes += skb->len;
++			__skb_queue_tail(&mac->join_queue, skb);
++			schedule_delayed_work(&mac->join_work, 0);
++			accepted = true;
++		}
++		spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++	}
++	if (accepted)
++		return;
++#endif
+ 	ieee80211_free_txskb(hw, skb);
+ }
+ 
+@@ -764,6 +1125,11 @@ int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+ #if IS_ENABLED(CONFIG_MT6797_PASSIVE_SCAN)
+ 	mac->hw = hw;
+ 	INIT_DELAYED_WORK(&mac->scan_work, mt6797_mac_scan_work);
++	skb_queue_head_init(&mac->join_queue);
++	INIT_DELAYED_WORK(&mac->join_work, mt6797_mac_join_work);
++	mac->join_next_pid = 1;
++	init_completion(&mac->join_channel_done);
++	init_completion(&mac->join_sta_done);
+ 	hw->wiphy->max_scan_ssids = 0;
+ 	hw->wiphy->max_scan_ie_len = 0;
+ 	ieee80211_hw_set(hw, SIGNAL_DBM);
+-- 
+2.39.5
+
