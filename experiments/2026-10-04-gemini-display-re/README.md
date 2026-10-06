@@ -283,16 +283,17 @@ security policy, not byte for byte; conclusions that depend on LK behaviour
   ([`mt6797.dtsi` lines 3115, 3143 and 3176–3177](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi#L3176-L3177));
   the MIPI-TX aperture is `0x10215000`
   ([line 2185](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi#L2185)).
-  Mainline's `clk-mt6797-mm.c` provides the first gate (`CLK_MM_DSI0_MM_CLOCK`,
-  bit 0 of the second bank) but **no `DSI0_INTERFACE_CLOCK` gate**: the
-  binding header reserves ID 41 for it
-  ([`mt6797-clk.h` line 255](https://github.com/gregkh/linux/blob/v7.1.3/include/dt-bindings/clock/mt6797-clk.h#L255))
-  while the driver's gate table has no entry
-  ([`clk-mt6797-mm.c` lines 65–76](https://github.com/gregkh/linux/blob/v7.1.3/drivers/clk/mediatek/clk-mt6797-mm.c#L65-L76)).
-  The local [patch 0040](../../patches/v7.1.3/0040-arm64-dts-mediatek-mt6797-add-DSI0-and-MIPI-TX.patch)
-  names that ID as the DSI `digital` clock, so as written it would resolve to
-  a provider ID with no clock behind it. This is a concrete mainline gap
-  independent of the panel (H7).
+  Mainline's `clk-mt6797-mm.c` provides both gates. Correction, 2026-10-06:
+  this record first said the interface gate was missing, from reading only
+  lines 65–76 of the gate table. Pristine v7.1.3 defines
+  `CLK_MM_DSI0_INTERFACE_CLOCK` (ID 41) at
+  [line 77](https://github.com/gregkh/linux/blob/v7.1.3/drivers/clk/mediatek/clk-mt6797-mm.c#L77)
+  in the second bank (set/clear/status `0x114`/`0x118`/`0x110`), bit 1. That
+  matches the vendor clock table at
+  [line 1380](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/clk/mediatek/clk-mt6797.c#L1380)
+  (`mm1_cg_regs`, bit 1; DSI1 uses bit 3). Only the declared parent differs:
+  mainline `clk26m`, vendor a null parent. Patch 0040's `digital` clock
+  therefore resolves to a real gate. H7 is closed with no clock patch.
 
 ### Display pipeline, clocks and power
 
@@ -485,13 +486,10 @@ candidate, hypothesis and stop conditions. None is admitted by this record.
    enable states across one display off/on cycle; VIO18 should not toggle and
    no other LDO should toggle in step with the panel. If an LDO does toggle,
    it becomes the `vddi` supply. Confidence: medium.
-7. **H7. Mainline needs a `CLK_MM_DSI0_INTERFACE_CLOCK` gate added to
-   `clk-mt6797-mm.c` (second bank, the bit the vendor header uses) before the
-   DSI node of patch 0040 can probe (F19).** Test: offline, read the vendor
-   `ddp_clkmgr.c` and the live `clk_summary` capture for the gate's bank and
-   bit, then build; on device, `clk_summary` should list the gate and the DSI
-   host should not defer on `digital`. Confidence: high that the gate is
-   missing, medium on the exact bit until read from the vendor clock table.
+7. **H7. Closed, 2026-10-06: mainline already has the
+   `CLK_MM_DSI0_INTERFACE_CLOCK` gate**, second bank, bit 1, matching the vendor
+   clock table (see F19). No clock patch is needed. On device, `clk_summary`
+   should still list `mm_dsi0_interface_clock` once MMSYS clocks are built in.
 8. **H8. Display PWM can be described as an MT6797 variant with a single
    `main` clock (`infra_disp_pwm`) plus `power-domains = MM`, and brightness
    will be correct in ratio even if the ULPOSC rate is wrong (F24, F25).**
@@ -519,7 +517,8 @@ In dependency order, derived from the facts above:
 
 1. Loader adoption (H2): a `simple-framebuffer` node carrying MM domain and
    root clocks, so `clk_ignore_unused` can go.
-2. Clock gap (H7): the missing `DSI0_INTERFACE_CLOCK` gate in `clk-mt6797-mm`.
+2. Clock gap (H7): closed; the `DSI0_INTERFACE_CLOCK` gate already exists in
+   `clk-mt6797-mm` (F19).
 3. SoC data already drafted in patches 0028–0044, rebased per the architecture
    refresh: display mutex, MMSYS routes/resets, OVL/OVL-2L/RDMA and
    fixed-function data, DSI host data, native MIPI-TX PHY (F16), display PWM
@@ -551,5 +550,5 @@ In dependency order, derived from the facts above:
   to "NT36672 family on the named device, pending direct confirmation (H1)";
   next device order H1 (log read), H5/H6 (bias and rail reads), H2 (simplefb
   adoption), H7 (clock gate), then H3/H4 panel bring-up.
-- Patch 0040 needs the F19 clock fix before any enablement; patch 0043's mode
+- Patch 0040's `digital` clock resolves to the existing gate (F19, H7 closed); patch 0043's mode
   clock needs the H3 decision; patch 0044's contract gains the F24 evidence.

@@ -66,7 +66,7 @@ one boot or one Gemian session answers several records at once.
 | MT6351 regulator constraints | Dropping `regulator_ignore_unused`; VCORE/VSRAM_PROC hardware control, VDRAM, VS1/VS2, modem bucks, VSIM1/2 | Vendor constraint set decoded (PMIC F8–F10, cellular H8) | Offline: write `always-on`/`boot-on` set and keep VCORE off-limits (PMIC H7); drop the flag only in a later reviewed boot |
 | Power-off and restart | Every boot's clean shutdown | Restart proven (TOPRGU). Vendor power-off is an RTC BBPU write that bypasses PSCI; mainline PSCI `SYSTEM_OFF` is untested and probably wrong | New: `mt6351-pwrc` MFD cell plus a small `mt6323-poweroff` extension (PMIC H2) |
 | CONSYS/WMT owner (BTIF, STP, common init) | Wi-Fi, Bluetooth, GNSS, FM | Drafted 2026-10-04: AFE stage before MCU release (0101–0102); task framing, shared sequence/ACK and task routing (0103–0106). No task-0/2 client wired; no hardware result | 0104+0105 consolidated; wire one task-0 binding for boot C3; executor owns AFE unconditionally |
-| Clock and power-domain ownership (`clk_ignore_unused`) | Retained simplefb, display PWM, Wi-Fi, GPU | Display H2 gives the first removal path: a `simple-framebuffer` node carrying the MM domain and root clocks | Missing clocks: `CLK_MM_DSI0_INTERFACE_CLOCK` gate (display F19, H7); `mfg_52m_sel` parent and `INFRA_MFG_VCG` for the GPU (GPU H5) |
+| Clock and power-domain ownership (`clk_ignore_unused`) | Retained simplefb, display PWM, Wi-Fi, GPU | Display H2 gives the first removal path: a `simple-framebuffer` node carrying the MM domain and root clocks | Missing clocks: `mfg_52m_sel` parent and `INFRA_MFG_VCG` for the GPU (GPU H5). The DSI0 interface gate exists already (display H7 closed, 2026-10-06) |
 | Bus protection and resets | MFG (GPU), MD1 (modem) | Local MFG domain (0047) has no `bus_prot_mask`; vendor asserts INFRA_TOPAXI bits 21/23 and writes GPU SRAM LDO words `0x10001fbc–0xfe4`; TOPRGU `MFG_RST` is not exposed (GPU H1, H2, H4). MD1 domain is absent from mainline (cellular H2) | Offline patches to 0047 and `mtk_wdt`; two Gemian reads decide the LDO words |
 | I2C1 (disabled in the board DT) | Panel bias at `0x3e`, BMI160 `0x69`, STK3x1x `0x48`, candidate MMC35240 `0x30` | Pin pair unconfirmed, probably `SCL1_0/SDA1_0` GPIO55/56 (sensors H8) | One Gemian pinmux read, then one boot serves display bias and all sensors |
 | EINT controller (0005/0006) | Lid (EINT5), card detect (EINT6), ALS/PS (EINT11), IMU candidate (EINT4), FUSB301 ID (EINT3), toggle (EINT16) | No dedicated consumer accepted yet | Lid (patch 0074 as-is) is the cheapest first consumer and can ride any boot |
@@ -158,8 +158,10 @@ one boot or one Gemian session answers several records at once.
 4. **Native display (second usability blocker).** Offline, in dependency order
    ([display Part 3](../2026-10-04-gemini-display-re/README.md#part-3-what-mainline-needs-beyond-the-retained-simplefb)):
    (a) `simple-framebuffer` node with MM power domain and root clocks so
-   `clk_ignore_unused` can go (H2); (b) add the `DSI0_INTERFACE_CLOCK` gate to
-   `clk-mt6797-mm` before patch 0040 can probe (H7); (c) rebase and split
+   `clk_ignore_unused` can go (H2, first half built as
+   [display H2](../2026-10-06-gemini-display-h2/README.md)); (b) the
+   `DSI0_INTERFACE_CLOCK` gate already exists in `clk-mt6797-mm` (H7 closed,
+   2026-10-06); (c) rebase and split
    0028–0044 per the [architecture refresh](../2026-09-07-mt6797-display-upstream-architecture/README.md),
    OF-graph for 0041, display PWM as an MT6797 variant with one `main` clock
    plus the MM domain and a `pwm-backlight` (H8); (d) board nodes: TPS65132
