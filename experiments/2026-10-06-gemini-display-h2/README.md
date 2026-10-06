@@ -115,3 +115,43 @@ Compilation, remote validation, fetch and local checksums pass, with no
 compiler warning. The resolved config has `MTK_SCPSYS`,
 `MTK_SCPSYS_ADOPT_BOOT_STATE` and `MTK_INFRACFG`; the cmdline still carries
 `clk_ignore_unused`. The packaged DT is not the candidate DT.
+
+## H8 follow-on: PWM backlight under the simple framebuffer
+
+H8 needs no new kernel: the H2 package already has `PWM_MTK_DISP` and
+`BACKLIGHT_PWM` built in. [display-h8-dt.sh](display-h8-dt.sh) runs the H2
+derivation, then:
+
+- **`/pwm@1100f000`.** Status okay, with a newly allocated phandle.
+  `assigned-clocks = <&topckgen CLK_TOP_MUX_PWM>` and
+  `assigned-clock-parents = <&clk26m>`. That reparenting is needed: mainline
+  has no ULPOSC root rate, so a ULPOSC parent reads 0 Hz and would program a
+  zero duty
+  ([display record, H8 preflight](../2026-10-04-gemini-display-re/README.md#h8-preflight-finding-2026-10-06)).
+- **`/backlight`.** `pwm-backlight` on that PWM, with a 39385 ns period
+  (1024 cycles at 26 MHz, about 25 kHz), levels 0 to 1023 interpolated, and
+  default 512.
+- **Checks.** The decompiled difference must be exactly these edits. The
+  output is reproducible: SHA-256
+  `cc89c643d6842df5ae6a03176de2b60c7a4d05d650d3de982f3d0b14549f49b3`. There is
+  no new schema diagnostic relative to H2.
+
+Protocol draft, to run only after an H2 pass:
+
+- **Admitted effects beyond H2.** One `pwm_sel` mux write to `clk26m` at PWM
+  probe; PWM enable, divider, period, high-width and commit writes from the
+  first backlight apply; the brightness change to level 512. There is no
+  ULPOSC, sleep-controller or panel access.
+- **Observations.**
+  - `pwm-backlight` and `disp_pwm` bound.
+  - `/sys/class/backlight/backlight/brightness` and `actual_brightness` read
+    512.
+  - The panel stays lit; the owner checks the screen at level 512, then 100,
+    then 900 (three writes), and judges flicker.
+- **Branches.**
+  - Lit and tracking: H8 holds.
+  - Dark after probe: record the brightness values, restore by reading the
+    log over USB SSH, and go to recovery. A fixed-rate or calibrated ULPOSC
+    description is then needed.
+  - Probe failure: the loader's backlight setting is untouched; record the
+    error.
