@@ -746,3 +746,6 @@ proposals/0134-wifi-mt6797-prepare-guarded-directed-management-receive-filter.pa
 proposals/0135-wifi-mt6797-set-up-one-credit-gated-peer-and-channel.patch
 proposals/0136-wifi-mt6797-gate-managed-authentication-and-association.patch
 v7.1.3/display/0001-pmdomain-mediatek-scpsys-optionally-adopt-the-boot-loader-domain-state.patch
+proposals/0137-wifi-mt6797-synchronize-BSS-and-associated-station.patch
+proposals/0138-wifi-mt6797-finish-one-shot-join-with-healthy-teardown.patch
+proposals/0139-wifi-mt6797-record-bounded-join-stages.patch

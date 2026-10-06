@@ -1,0 +1,148 @@
+From bbf4befe9f29636d025ce7025bba578064eb18ff Mon Sep 17 00:00:00 2001
+From: scratch <scratch@invalid>
+Date: Tue, 6 Oct 2026 02:35:41 +0000
+Subject: [PATCH] wifi: mt6797: record bounded join stages and accept known
+ notifications
+
+Log sanitized TX submission, actual PID completion, directed response status, independent credit return, grant, station activation and terminal failure. Keep the proven scan debug/sleepy notification policy for the same firmware session, validating event framing and CPU ownership. Unknown or malformed events still stop the join. No frame body or AP identity is logged.
+
+Production-function ASan/UBSan fixtures pass known and malformed notifications. Hardware untested. No DCO certification is asserted.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 58 +++++++++++++++++++++-
+ 1 file changed, 57 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index e16d49951..580a02d63 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -554,6 +554,12 @@ static int mt6797_mac_join_guard(struct mt6797_mac *mac, u64 deadline)
+ 		if (account.released_pages > mac->join_page_debt)
+ 			return -EPROTO;
+ 		mac->join_page_debt -= account.released_pages;
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++		if (account.released_pages)
++			dev_info(wiphy_dev(mac->hw->wiphy),
++				 "one-shot WLAN join credit: pages=%u remaining=%u\n",
++				 account.released_pages, mac->join_page_debt);
++#endif
+ 		if (mac->join_credit_pending && !mac->join_page_debt) {
+ 			mac->join_credit_pending = false;
+ 			complete_all(&mac->join_credit_done);
+@@ -593,7 +599,25 @@ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
+ 		.bss = 0, .token = mac->join_channel_token, .channel = 40,
+ 		.band = 2, .max_ms = mac->join_requested_ms,
+ 	};
+-	u32 interval;
++	u32 interval, own;
++	int ret;
++
++	if (bytes < 8 || !mt6797_join_event(mac->join_packet, bytes,
++					    mac->join_packet[4], bytes - 8))
++		return -EPROTO;
++	/* Same bounded notifications as the proven scan consumer; no body log. */
++	if (mac->join_packet[4] == 0x27)
++		return 0;
++	if (mac->join_packet[4] == 0x07) {
++		if (bytes != 12 || mac->join_packet[8] > 1)
++			return -EPROTO;
++		ret = mt6797_hif_read32(mac->hif, 4,
++					min_t(u64, mac->join_deadline,
++					      ktime_get_ns() + 100 * NSEC_PER_MSEC), &own);
++		if (ret)
++			return ret;
++		return own & BIT(8) ? 0 : -EACCES;
++	}
+ 
+ 	if (mt6797_join_event(mac->join_packet, bytes, 0x10, 16)) {
+ 		if (!mac->join_channel_pending ||
+@@ -604,6 +628,10 @@ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
+ 		mac->join_grant_deadline = min_t(u64, mac->join_deadline,
+ 			ktime_get_ns() + (u64)interval * NSEC_PER_MSEC);
+ 		complete_all(&mac->join_channel_done);
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++		dev_info(wiphy_dev(mac->hw->wiphy),
++			 "one-shot WLAN join grant: channel=40 interval_ms=%u\n", interval);
++#endif
+ 		return 0;
+ 	}
+ 	if (mt6797_join_event(mac->join_packet, bytes, 0x0c, 8)) {
+@@ -614,6 +642,11 @@ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
+ 		mac->join_sta_pending = false;
+ 		mac->join_sta_active = true;
+ 		complete_all(&mac->join_sta_done);
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++		dev_info(wiphy_dev(mac->hw->wiphy),
++			 "one-shot WLAN join activation: sequence=%u state=3\n",
++			 mac->join_sta_sequence);
++#endif
+ 		return 0;
+ 	}
+ 	return -EPROTO;
+@@ -781,6 +814,9 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ 			mac->join_submitted |= BIT((get_unaligned_le16(skb->data) >> 4) & 15);
+ 			mac->join_last_sequence = get_unaligned_le16(skb->data + 22) >> 4;
++			dev_info(wiphy_dev(mac->hw->wiphy),
++				 "one-shot WLAN join TX: subtype=%u pid=%u pages=%u\n",
++				 (get_unaligned_le16(skb->data) >> 4) & 15, mac->join_pid, pages);
+ #endif
+ 			mac->join_page_debt = pages;
+ 			mac->join_frame_deadline = ktime_get_ns() + 750 * NSEC_PER_MSEC;
+@@ -813,6 +849,12 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 					completed_internal = true;
+ 					mac->join_internal = NULL;
+ 				}
++#endif
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++				dev_info(wiphy_dev(mac->hw->wiphy),
++					 "one-shot WLAN join TX done: pid=%u status=%u advanced=%u count=%u\n",
++					 mac->join_pid, result.status, !!(result.flags & 1),
++					 result.count);
+ #endif
+ 				ack = result.status == 0;
+ 				mac->join_last_acked = ack;
+@@ -856,6 +898,9 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 				}
+ 				mac->join_auth_received = true;
+ 				mac->join_auth_ok = !get_unaligned_le16(body + 28);
++				dev_info(wiphy_dev(mac->hw->wiphy),
++					 "one-shot WLAN join RX: subtype=11 status=%u\n",
++					 get_unaligned_le16(body + 28));
+ 			} else if (frame.subtype == 1) {
+ 				if (!(mac->join_submitted & BIT(0)) || mac->join_assoc_received) {
+ 					ret = -EPROTO;
+@@ -865,6 +910,9 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 				mac->join_short_preamble = !!(get_unaligned_le16(body + 24) & BIT(5));
+ 				mac->join_assoc_status = get_unaligned_le16(body + 26);
+ 				mac->join_aid = get_unaligned_le16(body + 28) & 0x3fff;
++				dev_info(wiphy_dev(mac->hw->wiphy),
++					 "one-shot WLAN join RX: subtype=1 status=%u\n",
++					 mac->join_assoc_status);
+ 				if (!mac->join_assoc_status &&
+ 				    (!mac->join_aid || mac->join_aid > 2007)) {
+ 					ret = -EPROTO;
+@@ -898,6 +946,12 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
+ 	goto unlock;
+ failed:
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++	dev_err(wiphy_dev(mac->hw->wiphy),
++		"one-shot WLAN join stopped: status=%d first=%d submitted=0x%x debt=%u cleanup=%u\n",
++		ret, mac->first_error, mac->join_submitted,
++		mac->join_page_debt, mac->join_cleanup_stage);
++#endif
+ 	if (!ret)
+ 		ret = -E2BIG;
+ 	if (!mac->first_error)
+@@ -1467,6 +1521,8 @@ static int mt6797_mac_join_add_peer(struct mt6797_mac *mac,
+ 		ret = mt6797_mac_join_wait_credit(mac);
+ 	if (!ret) {
+ 		mac->join_peer_ready = true;
++		dev_info(wiphy_dev(mac->hw->wiphy),
++			 "one-shot WLAN join peer: ready=1 sequence=%u\n", mac->sequence);
+ 		goto out;
+ 	}
+ failed:
+-- 
+2.39.5
+

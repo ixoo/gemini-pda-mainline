@@ -1,0 +1,428 @@
+From ff998e10c7d444eab549e633893b1d51301165df Mon Sep 17 00:00:00 2001
+From: scratch <scratch@invalid>
+Date: Tue, 6 Oct 2026 02:22:46 +0000
+Subject: [PATCH] wifi: mt6797: synchronize BSS and associated STA after real
+ TX completion
+
+Keep TC4 credit, management TXdone and STA activation as separate evidence.
+Drain the acknowledged management submission before admitting host station
+state. Capture one SSID from the validated association request and encode
+the pinned gen3 legacy BSS/RLM layout independently. Apply BSS information
+before requesting associated STA activation, matching the public AIS path.
+
+Wait for returned command credits and the exact pending STA response
+(sequence, AP address, STA and BSS). Normalize the received AID and compare
+it with mac80211's live callback input. A negative TX status stops the
+attempt before another RF or firmware command.
+
+Production-function host fixtures cover successful ordering, independent
+waits and both association command failures. The BSS encoder matches 8192
+vendor-struct oracle vectors; actual HIF scalar-write fault fixtures pass
+with ASan/UBSan. No device test, data path, keys or completed Wi-Fi support
+is claimed. No DCO certification is asserted.
+---
+ drivers/net/wireless/mediatek/mt6797/hif.c    |  14 ++
+ drivers/net/wireless/mediatek/mt6797/hif.h    |   4 +
+ .../mediatek/mt6797/join-command-submit.h     |   3 +
+ .../wireless/mediatek/mt6797/join-commands.h  |  47 +++++
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 165 +++++++++++++++++-
+ 5 files changed, 230 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 880b442c9..95a868f8c 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -646,6 +646,20 @@ int mt6797_hif_join_filter(struct mt6797_hif *hif, unsigned int sequence,
+ 					   sizeof(payload), deadline_ns);
+ }
+ 
++int mt6797_hif_join_bss(struct mt6797_hif *hif, unsigned int sequence,
++	const u8 *ap, const u8 *ssid, unsigned int ssid_bytes,
++	unsigned int desired_rates, unsigned int basic_rates,
++	bool short_preamble, u64 deadline_ns)
++{
++	u8 payload[MT6797_JOIN_BSS_BYTES];
++
++	if (!mt6797_join_bss_payload(ap, ssid, ssid_bytes, desired_rates,
++				     basic_rates, short_preamble, payload))
++		return -EINVAL;
++	return mt6797_hif_send_join_command(hif, 0x12, sequence, payload,
++					   sizeof(payload), deadline_ns);
++}
++
+ int mt6797_hif_join_station(struct mt6797_hif *hif, unsigned int sequence,
+ 	const u8 *ap, unsigned int state, unsigned int aid,
+ 	unsigned int desired_rates, unsigned int basic_rates, u64 deadline_ns)
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index 8fb9ab67b..389a987f3 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -190,6 +190,10 @@ int mt6797_hif_send_scan_tuning(struct mt6797_hif *hif, unsigned int role,
+  */
+ int mt6797_hif_join_filter(struct mt6797_hif *hif, unsigned int sequence,
+ 			   u64 deadline_ns);
++int mt6797_hif_join_bss(struct mt6797_hif *hif, unsigned int sequence,
++	const u8 *ap, const u8 *ssid, unsigned int ssid_bytes,
++	unsigned int desired_rates, unsigned int basic_rates,
++	bool short_preamble, u64 deadline_ns);
+ int mt6797_hif_join_station(struct mt6797_hif *hif, unsigned int sequence,
+ 	const u8 *ap, unsigned int state, unsigned int aid,
+ 	unsigned int desired_rates, unsigned int basic_rates, u64 deadline_ns);
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-command-submit.h b/drivers/net/wireless/mediatek/mt6797/join-command-submit.h
+index c3bae0cd1..d544af551 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join-command-submit.h
++++ b/drivers/net/wireless/mediatek/mt6797/join-command-submit.h
+@@ -29,6 +29,9 @@ mt6797_join_prepare_command(struct mt6797_normal_transaction *t,
+ 			return -EINVAL;
+ 		required = 4;
+ 		break;
++	case 0x12:
++		required = MT6797_JOIN_BSS_BYTES;
++		break;
+ 	case 0x13:
+ 		required = MT6797_JOIN_STA_BYTES;
+ 		break;
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-commands.h b/drivers/net/wireless/mediatek/mt6797/join-commands.h
+index dfad1238e..d5f7ee696 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join-commands.h
++++ b/drivers/net/wireless/mediatek/mt6797/join-commands.h
+@@ -76,6 +76,53 @@ mt6797_join_station_payload(const unsigned char *ap, unsigned int state,
+ 	return true;
+ }
+ 
++#define MT6797_JOIN_BSS_BYTES 88U
++
++/* Public gen3 CMD_SET_BSS_INFO including its 20-byte RLM tail.
++ * One legacy 5 GHz AIS BSS, connected (enum 0), Open System/no cipher.
++ * Natural alignment leaves reserved bytes at 49 and 61..63.
++ */
++static inline bool
++mt6797_join_bss_payload(const unsigned char *ap, const unsigned char *ssid,
++	unsigned int ssid_bytes, unsigned int desired_rates,
++	unsigned int basic_rates, bool short_preamble,
++	unsigned char output[MT6797_JOIN_BSS_BYTES])
++{
++	unsigned char p[MT6797_JOIN_BSS_BYTES] = {0};
++	unsigned int i, any = 0;
++
++	if (!ap || !ssid || !output || !ssid_bytes || ssid_bytes > 32 ||
++	    (ap[0] & 1) || !desired_rates || (desired_rates & ~0x3fc0U) ||
++	    !basic_rates || (basic_rates & ~desired_rates) ||
++	    !(desired_rates & (1U << 6)))
++		return false;
++	for (i = 0; i < 6; i++)
++		any |= ap[i];
++	if (!any)
++		return false;
++	p[3] = ssid_bytes;
++	for (i = 0; i < ssid_bytes; i++)
++		p[4 + i] = ssid[i];
++	for (i = 0; i < 6; i++)
++		p[36 + i] = ap[i];
++	p[44] = desired_rates; p[45] = desired_rates >> 8;
++	p[46] = basic_rates; p[47] = basic_rates >> 8;
++	p[48] = 1; /* AP STA index. */
++	p[50] = 0x4b; /* Fixed OFDM 6 Mbps. */
++	p[52] = 3; /* PHY_TYPE_OFDM_INDEX, not a bitmap. */
++	p[54] = 1; /* ENUM_ENCRYPTION_DISABLED, not encryption-enabled enum 0. */
++	p[55] = 8; /* PHY_TYPE_BIT_OFDM. */
++	/* BSS 0, BMC 0, private AIS index 0, disconnect threshold default 0. */
++	p[69] = 2; p[70] = 40;
++	p[81] = short_preamble;
++	p[82] = 1; /* 5 GHz always uses short slot time. */
++	/* Public rlmFillSyncCmdParam uses the legacy basic set here too. */
++	p[86] = basic_rates; p[87] = basic_rates >> 8;
++	for (i = 0; i < MT6797_JOIN_BSS_BYTES; i++)
++		output[i] = p[i];
++	return true;
++}
++
+ static inline bool
+ mt6797_join_remove_station(unsigned char output[4])
+ {
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 4a4ccd91a..4b3e1ec27 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -56,8 +56,11 @@ struct mt6797_mac {
+ 	bool join_assoc_received;
+ 	u16 join_assoc_status, join_aid;
+ 	unsigned int join_submitted;
++	u8 join_ssid[32], join_ssid_bytes;
++	bool join_short_preamble, join_bss_configured;
+ #endif
+-	struct completion join_channel_done, join_sta_done, join_credit_done;
++	struct completion join_channel_done, join_sta_done, join_credit_done, join_frame_done;
++	bool join_last_acked;
+ 	u64 join_credit_deadline;
+ 	bool join_credit_pending;
+ 	u64 join_grant_deadline;
+@@ -165,6 +168,7 @@ static void mt6797_mac_regulatory(struct wiphy *wiphy,
+ 		mac->join_channel_pending = false;
+ 		mac->join_sta_pending = false;
+ 		complete_all(&mac->join_credit_done);
++		complete_all(&mac->join_frame_done);
+ 		complete_all(&mac->join_channel_done);
+ 		complete_all(&mac->join_sta_done);
+ 		spin_lock_irqsave(&mac->join_queue.lock, flags);
+@@ -425,6 +429,9 @@ static bool mt6797_mac_join_frame(struct mt6797_mac *mac, struct sk_buff *skb)
+ 	const u8 *f = skb->data;
+ 	size_t n = skb->len, ie;
+ 	unsigned int fc, subtype, minimum;
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++	unsigned int ssid_count = 0;
++#endif
+ 
+ 	if (n < 24 || n > 2304)
+ 		return false;
+@@ -449,6 +456,14 @@ static bool mt6797_mac_join_frame(struct mt6797_mac *mac, struct sk_buff *skb)
+ 	for (ie = 28; ie < n; ) {
+ 		if (n - ie < 2 || f[ie + 1] > n - ie - 2)
+ 			return false;
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++		if (f[ie] == WLAN_EID_SSID) {
++			if (++ssid_count != 1 || !f[ie + 1] || f[ie + 1] > 32)
++				return false;
++			mac->join_ssid_bytes = f[ie + 1];
++			memcpy(mac->join_ssid, f + ie + 2, mac->join_ssid_bytes);
++		}
++#endif
+ 		/* No RSN, HT/VHT or fast-transition negotiation in this admission. */
+ 		if (f[ie] == WLAN_EID_RSN || f[ie] == WLAN_EID_HT_CAPABILITY ||
+       f[ie] == WLAN_EID_VHT_CAPABILITY || f[ie] == WLAN_EID_MOBILITY_DOMAIN ||
+@@ -460,6 +475,10 @@ static bool mt6797_mac_join_frame(struct mt6797_mac *mac, struct sk_buff *skb)
+ 			return false; /* No WMM negotiation. */
+ 		ie += 2 + f[ie + 1];
+ 	}
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++	if (ssid_count != 1)
++		return false;
++#endif
+ 	return true;
+ }
+ 
+@@ -497,6 +516,7 @@ static void mt6797_mac_join_close(struct mt6797_mac *mac)
+ 	complete_all(&mac->join_sta_done);
+ 	mac->join_credit_pending = false;
+ 	complete_all(&mac->join_credit_done);
++	complete_all(&mac->join_frame_done);
+ 	spin_lock_irqsave(&mac->join_queue.lock, flags);
+ 	skb_queue_splice_init(&mac->join_queue, &discard);
+ 	mac->join_queue_bytes = 0;
+@@ -666,6 +686,8 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 				goto failed;
+ 			}
+ 			mac->join_pid = mac->join_next_pid++;
++			mac->join_last_acked = false;
++			reinit_completion(&mac->join_frame_done);
+ 			pages = (MT6797_JOIN_TX_DESC_BYTES + skb->len + 127) / 128;
+ 			/* Single submission, count 3, 500ms encodes 15*32TU (491.52ms).
+ 				* The live grant must cover submission plus the bounded completion wait.
+@@ -704,10 +726,16 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 				completed = mac->join_inflight;
+ 				mac->join_inflight = NULL;
+ 				ack = result.status == 0;
++				mac->join_last_acked = ack;
++				complete_all(&mac->join_frame_done);
+ 				ieee80211_tx_info_clear_status(IEEE80211_SKB_CB(completed));
+ 				IEEE80211_SKB_CB(completed)->flags &= ~IEEE80211_TX_STAT_ACK;
+ 				if (ack)
+ 					IEEE80211_SKB_CB(completed)->flags |= IEEE80211_TX_STAT_ACK;
++				else {
++					ret = -ENOLINK;
++					goto failed;
++				}
+ 				continue;
+ 			}
+ 			if (rx.logical_bytes >= 8 &&
+@@ -741,6 +769,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 					goto failed;
+ 				}
+ 				mac->join_assoc_received = true;
++				mac->join_short_preamble = !!(get_unaligned_le16(body + 24) & BIT(5));
+ 				mac->join_assoc_status = get_unaligned_le16(body + 26);
+ 				mac->join_aid = get_unaligned_le16(body + 28) & 0x3fff;
+ 				if (!mac->join_assoc_status &&
+@@ -783,6 +812,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	complete_all(&mac->join_sta_done);
+ 	mac->join_credit_pending = false;
+ 	complete_all(&mac->join_credit_done);
++	complete_all(&mac->join_frame_done);
+ 	spin_lock_irqsave(&mac->join_queue.lock, flags);
+ 	mac->join_running = false;
+ 	mac->join_open = false;
+@@ -1196,6 +1226,39 @@ static int mt6797_mac_join_wait_credit(struct mt6797_mac *mac)
+ 	return 0;
+ }
+ 
++/* Drain the exact submitted management frame before advancing host state. */
++static int mt6797_mac_join_wait_management(struct mt6797_mac *mac)
++{
++	u64 now, deadline;
++
++	if (mac->join_inflight) {
++		now = ktime_get_ns();
++		deadline = min(mac->join_frame_deadline, mac->join_deadline);
++		if (now >= deadline)
++			return -ETIMEDOUT;
++		mutex_unlock(&mac->mutex);
++		wait_for_completion_timeout(&mac->join_frame_done,
++					    nsecs_to_jiffies(deadline - now) + 1);
++		mutex_lock(&mac->mutex);
++		if (mac->first_error)
++			return mac->first_error;
++		if (mac->closing || mac->join_retired || !mac->join_running)
++			return -ECANCELED;
++		if (ktime_get_ns() >= deadline || mac->join_inflight)
++			return -ETIMEDOUT;
++	}
++	if (!mac->join_last_acked)
++		return -ENOLINK;
++	if (mac->join_page_debt) {
++		mac->join_credit_deadline = min_t(u64, mac->join_deadline,
++					  ktime_get_ns() + 100 * NSEC_PER_MSEC);
++		reinit_completion(&mac->join_credit_done);
++		mac->join_credit_pending = true;
++		return mt6797_mac_join_wait_credit(mac);
++	}
++	return mt6797_hif_normal_idle(mac->hif) ? 0 : -EPROTO;
++}
++
+ /* The grant event and its command credits are independent completions. */
+ static int mt6797_mac_join_wait_channel(struct mt6797_mac *mac, u64 deadline)
+ {
+@@ -1313,6 +1376,7 @@ static int mt6797_mac_join_add_peer(struct mt6797_mac *mac,
+ 	mac->join_channel_pending = false;
+ 	mac->join_sta_pending = false;
+ 	complete_all(&mac->join_credit_done);
++	complete_all(&mac->join_frame_done);
+ 	complete_all(&mac->join_channel_done);
+ 	complete_all(&mac->join_sta_done);
+ 	spin_lock_irqsave(&mac->join_queue.lock, flags);
+@@ -1326,6 +1390,68 @@ static int mt6797_mac_join_add_peer(struct mt6797_mac *mac,
+ #endif
+ 
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++/* Called with the MAC mutex held; every wait releases it for the poller. */
++static int mt6797_mac_join_associate(struct mt6797_mac *mac, unsigned int aid)
++{
++	u64 deadline, now;
++	int ret;
++
++	if (!mac->join_assoc_received || mac->join_assoc_status ||
++	    !mac->join_ssid_bytes || !aid || aid > 2007 || aid != mac->join_aid ||
++	    mac->join_bss_configured || mac->join_sta_active || mac->join_sta_pending ||
++	    mac->sequence > 254)
++		return -EOPNOTSUPP;
++	ret = mt6797_mac_join_wait_management(mac);
++	if (ret)
++		return ret;
++	/* Pinned vendor AIS applies BSS/RLM before the associated STA record. */
++	mac->join_credit_deadline = min_t(u64, mac->join_deadline,
++					  ktime_get_ns() + 100 * NSEC_PER_MSEC);
++	reinit_completion(&mac->join_credit_done);
++	mac->join_credit_pending = true;
++	mac->join_page_debt = 1;
++	ret = mt6797_hif_join_bss(mac->hif, mac->sequence++, mac->join_ap,
++				 mac->join_ssid, mac->join_ssid_bytes,
++				 mac->join_desired_rates, mac->join_peer_basic_rates,
++				 mac->join_short_preamble, mac->join_credit_deadline);
++	if (!ret)
++		ret = mt6797_mac_join_wait_credit(mac);
++	if (ret)
++		return ret;
++	mac->join_bss_configured = true;
++	mac->join_sta_sequence = mac->sequence++;
++	mac->join_sta_pending = true;
++	reinit_completion(&mac->join_sta_done);
++	deadline = min_t(u64, mac->join_deadline,
++			 ktime_get_ns() + 750 * NSEC_PER_MSEC);
++	mac->join_credit_deadline = min_t(u64, deadline,
++					  ktime_get_ns() + 100 * NSEC_PER_MSEC);
++	reinit_completion(&mac->join_credit_done);
++	mac->join_credit_pending = true;
++	mac->join_page_debt = 2;
++	ret = mt6797_hif_join_station(mac->hif, mac->join_sta_sequence,
++				     mac->join_ap, 3, aid, mac->join_desired_rates,
++				     mac->join_peer_basic_rates, mac->join_credit_deadline);
++	if (!ret)
++		ret = mt6797_mac_join_wait_credit(mac);
++	if (ret)
++		return ret;
++	now = ktime_get_ns();
++	if (now >= deadline)
++		return -ETIMEDOUT;
++	mutex_unlock(&mac->mutex);
++	wait_for_completion_timeout(&mac->join_sta_done,
++				    nsecs_to_jiffies(deadline - now) + 1);
++	mutex_lock(&mac->mutex);
++	if (mac->first_error)
++		return mac->first_error;
++	if (mac->closing || mac->join_retired || !mac->join_running)
++		return -ECANCELED;
++	if (ktime_get_ns() >= deadline || mac->join_sta_pending || !mac->join_sta_active)
++		return -ETIMEDOUT;
++	return 0;
++}
++
+ static void mt6797_mac_mgd_prepare_tx(struct ieee80211_hw *hw,
+ 				      struct ieee80211_vif *vif,
+ 				      struct ieee80211_prep_tx_info *info)
+@@ -1412,12 +1538,44 @@ static int mt6797_mac_sta_state(struct ieee80211_hw *hw,
+ 		    mac->join_peer_ready && mac->join_auth_received &&
+ 		    mac->join_auth_ok && !mac->join_authenticated &&
+ 		    !mac->join_retired && !mac->closing && !mac->first_error) {
+-			mac->join_authenticated = true;
+-			ret = 0;
++			ret = mt6797_mac_join_wait_management(mac);
++			if (!ret)
++				mac->join_authenticated = true;
+ 		}
+ 		mutex_unlock(&mac->mutex);
+ 		return ret;
+ 	}
++	if (old == IEEE80211_STA_AUTH && new == IEEE80211_STA_ASSOC) {
++		struct mt6797_mac *mac = hw->priv;
++		int ret = -EOPNOTSUPP;
++
++		mutex_lock(&mac->mutex);
++		if (vif == mac->vif && !sta->mlo && !sta->valid_links &&
++		    ether_addr_equal(sta->addr, mac->join_ap) &&
++		    mac->join_authenticated && !mac->join_retired &&
++		    !mac->closing && !mac->first_error) {
++			ret = mt6797_mac_join_associate(mac, vif->cfg.aid);
++			if (ret) {
++				if (!mac->first_error)
++					mac->first_error = ret;
++				mac->closing = true;
++			}
++		}
++		mutex_unlock(&mac->mutex);
++		return ret;
++	}
++	if (old == IEEE80211_STA_ASSOC && new == IEEE80211_STA_AUTHORIZED) {
++		struct mt6797_mac *mac = hw->priv;
++		int ret = -EOPNOTSUPP;
++
++		mutex_lock(&mac->mutex);
++		if (vif == mac->vif && ether_addr_equal(sta->addr, mac->join_ap) &&
++		    mac->join_sta_active && mac->join_bss_configured &&
++		    !mac->join_retired && !mac->closing && !mac->first_error)
++			ret = 0;
++		mutex_unlock(&mac->mutex);
++		return ret;
++	}
+ #endif
+ 	return -EOPNOTSUPP;
+ }
+@@ -1594,6 +1752,7 @@ int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+ 	init_completion(&mac->join_channel_done);
+ 	init_completion(&mac->join_sta_done);
+ 	init_completion(&mac->join_credit_done);
++	init_completion(&mac->join_frame_done);
+ 	hw->wiphy->max_scan_ssids = 0;
+ 	hw->wiphy->max_scan_ie_len = 0;
+ 	ieee80211_hw_set(hw, SIGNAL_DBM);
+-- 
+2.39.5
+

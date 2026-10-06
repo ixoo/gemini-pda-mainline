@@ -69,8 +69,8 @@ static void exercise_command(unsigned kind, unsigned fault, bool expired)
  struct mt6797_hif hif={.transaction=&transaction,.firmware_ready=true,
                        .capability_complete=true};
  struct mt6797_hif_command cmd;
- unsigned cid=kind==0?0x13:kind==1?0x1c:kind==2?0x14:0x0a;
- unsigned bytes=kind==0?124:kind==1?16:4;
+ unsigned cid=kind==0?0x13:kind==1?0x1c:kind==2?0x14:kind==3?0x0a:0x12;
+ unsigned bytes=kind==0?124:kind==1?16:kind==4?88:4;
  unsigned pages=(8+bytes+127)/128;
  int ret;
  mapping=calloc(1,0x1004); assert(mapping); hif.base=mapping;
@@ -84,14 +84,16 @@ static void exercise_command(unsigned kind, unsigned fault, bool expired)
  if(kind==0) assert(mt6797_join_station_payload(ap,3,1,0x3fc0,0x540,expected+8));
  else if(kind==1) assert(mt6797_join_channel_payload(7,40,10000,false,expected+8));
  else if(kind==2) assert(mt6797_join_remove_station(expected+8));
- else assert(mt6797_join_filter_payload(expected+8));
+ else if(kind==3) assert(mt6797_join_filter_payload(expected+8));
+ else assert(mt6797_join_bss_payload(ap,(const u8 *)"lab",3,0x3fc0,0x540,false,expected+8));
  assert(!mt6797_hif_encode_command(0x34,MT6797_HIF_WRITE,MT6797_HIF_PIO_ONLY,8+bytes,sizeof(expected),&cmd));
  command_word=cmd.word; transfer_bytes=cmd.transfer_bytes; calls=0; fail_at=fault;
  u64 deadline=expired?1000:1000000;
  if(kind==0) ret=mt6797_hif_join_station(&hif,19,ap,3,1,0x3fc0,0x540,deadline);
  else if(kind==1) ret=mt6797_hif_join_channel(&hif,19,7,40,10000,false,deadline);
  else if(kind==2) ret=mt6797_hif_join_remove_station(&hif,19,deadline);
- else ret=mt6797_hif_join_filter(&hif,19,deadline);
+ else if(kind==3) ret=mt6797_hif_join_filter(&hif,19,deadline);
+ else ret=mt6797_hif_join_bss(&hif,19,ap,(const u8 *)"lab",3,0x3fc0,0x540,false,deadline);
  assert(hif.normal.tc4_free==4-pages && !hif.mutex.held);
  assert(history[19/8]==(1U<<(19%8)));
  for(unsigned i=0;i<32;i++) if(i!=19/8) assert(!history[i]);
@@ -156,7 +158,7 @@ int main(void)
  unsigned accesses=1+transfer_bytes/4;
  for(unsigned fault=1;fault<=accesses;fault++) exercise(fault,false);
  exercise(0,true);
- for(unsigned kind=0;kind<4;kind++) {
+ for(unsigned kind=0;kind<5;kind++) {
   exercise_command(kind,0,false);
   unsigned n=1+transfer_bytes/4;
   for(unsigned fault=1;fault<=n;fault++) exercise_command(kind,fault,false);

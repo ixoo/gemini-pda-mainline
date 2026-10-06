@@ -13,8 +13,10 @@ args = parser.parse_args()
 driver = args.kernel_tree.resolve() / "drivers/net/wireless/mediatek/mt6797"
 source = (driver / "mac.c").read_text()
 names = ("mt6797_mac_join_guard", "mt6797_mac_join_control_event",
-         "mt6797_mac_join_wait_credit", "mt6797_mac_join_wait_channel",
-         "mt6797_mac_join_add_peer", "mt6797_mac_mgd_prepare_tx",
+         "mt6797_mac_join_wait_credit", "mt6797_mac_join_wait_management",
+         "mt6797_mac_join_wait_channel", "mt6797_mac_join_add_peer",
+         "mt6797_mac_join_associate", "mt6797_mac_join_request_cleanup",
+         "mt6797_mac_join_cleanup_step", "mt6797_mac_mgd_prepare_tx",
          "mt6797_mac_mgd_complete_tx", "mt6797_mac_sta_state")
 functions = []
 for name in names:

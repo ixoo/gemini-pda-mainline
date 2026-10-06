@@ -43,7 +43,7 @@ struct mt6797_mac {
  void *join_inflight;
  u64 scan_started_ns, join_deadline;
  struct sk_buff_head join_queue;
- int mutex, join_channel_done, join_sta_done, join_credit_done; unsigned join_queue_bytes;
+ int mutex, join_channel_done, join_sta_done, join_credit_done, join_frame_done; unsigned join_queue_bytes;
  int join_work, scan_work; u8 scan_packet[16];
 };
 static unsigned submissions, schedules, guards, kinds[4];
@@ -187,7 +187,7 @@ int main(void)
  /* Deterministic scan-finish interleaving at close's cancel-sync boundary. */
  mac=ready(); close_mac=&mac; finish_during_cancel=true;
  mt6797_mac_join_close(&mac);
- assert(cancels==1 && completions==3 && !mutex_depth);
+ assert(cancels==1 && completions==4 && !mutex_depth);
  assert(!mac.join_running && mac.join_retired && !mac.join_scan_ready);
  assert(!schedules && cancel_finish_status==-ECANCELED);
  assert(!mac.bss_active && submissions==1);

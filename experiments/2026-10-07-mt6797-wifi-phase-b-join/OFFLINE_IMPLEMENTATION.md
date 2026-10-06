@@ -168,15 +168,42 @@ to authenticate without a response. Both fixtures pass with ASan/UBSan. They
 do not establish kernel races, firmware behavior or RF transmission. The
 selected full kernel build for this checkpoint is pending.
 
+## Associated state and finite cleanup checkpoint
+
+Patches 0137–0139 implement the next bounded join stage. A host STA can
+advance only after the exact management TX acknowledgement and actual TC4
+credit return. Accepted association applies BSS/RLM before STA state 3, then
+requires its separately matched activation event. The original BSS encoder
+uses an 88-byte payload, legacy 5 GHz rates, 20 MHz channel 40 and no security,
+HT/VHT or WMM. An independent compiled layout oracle from the pinned public
+vendor typedefs matched 8,192 input vectors; vendor headers remain outside the
+repository. This comparison proves encoding only.
+
+An accepted join queues exactly one owned deauthentication with the next
+12-bit frame sequence. Cleanup waits for its matched successful TX done and
+returned pages, then sends STA removal, channel ABORT and BSS deactivation,
+waiting for actual credit between each command. A refused attempt uses the
+same healthy cleanup without deauthentication. mac80211 removes a refused
+STA before managed completion; those callbacks now preserve polling, and a
+later completion cannot close the queued owned frame. No slot is reused or
+claimed firmware-drained. A poisoned session sends no teardown command.
+
+The production-function peer fixture passes acceptance/refusal callback order,
+separate TX completion and credit, partial/excess releases, allocation failure,
+command faults at all three cleanup stages, sequence budgets and retired waits
+with ASan/UBSan. Actual HIF fault fixtures now include BSS setup. Ordered replay of all three patches matched every driver file byte for byte.
+Checkpatch reported no errors: 0137 retains one line-length warning and seven
+style checks; 0138/0139 have none. The missing sign-off check is deliberately
+excluded because no DCO certification or upstream submission is asserted.
+Repository checks, all 21 profile-order audits and Python syntax passed.
+The exact full kernel build is pending; kernel races and all RF behavior remain untested.
+Sanitized stage logs expose submission, TX done, directed response status,
+credits, grant, activation and terminal cleanup without AP identities or
+frame bodies. The same bounded debug/sleepy notifications as the proven scan
+consumer are accepted; malformed and unknown events remain terminal.
+
 ## Remaining work
 
-Implement the associated state-3 response, post-association BSS/RLM commands,
-immediate bounded deauthentication and healthy peer teardown. Finish response
-and callback failure handling before admitting a device test. Follow the [BSS lifetime correction](BSS_LIFETIME_REVIEW.md): retain
-one AIS owner through scan/join; no quiet window proves a drain. Preserve
-single-use peer/PID/channel tokens and exactly-once skb disposal after every
-partial failure. No cleanup command may follow terminal firmware poison.
-
-Then validate a concrete candidate and bounded authentication/association
-protocol before the device test. Successful join is a prerequisite for the
+Build and validate this exact checkpoint, then validate a concrete candidate
+and bounded authentication/association protocol before the device test. Successful join is a prerequisite for the
 subsequent PIO data TX/RX admission. This checkpoint is not usable Wi-Fi.
