@@ -310,7 +310,8 @@ records the read-only code review that followed. Two patches came out of it:
   `dev_kfree_skb`, returning only mac80211's own frames with
   `ieee80211_free_txskb`.
 
-Both are selected only in `mt6797-a53-wifi-phase-b-compile`.
+Both are selected only in `mt6797-a53-wifi-phase-b-compile`; the resulting
+package is [compile 7](COMPILE_7.md).
 
 **First-admission policy, stated explicitly.** In this admission any
 `mgd_prepare_tx` the driver does not admit, including a mac80211
