@@ -1,0 +1,53 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 6 Oct 2026 02:00:00 +0000
+Subject: [PATCH 1/2] dt-bindings: power: supply: bq25890: describe verified
+ charge start
+
+Document linux,skip-reset, which the driver already reads, and two
+experiment-only properties for a verified start: hold charging off at
+probe, write the limits and a fixed input current limit, read them back,
+and only then enable charging.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ .../bindings/power/supply/bq25890.yaml        | 26 +++++++++++++++++++
+ 1 file changed, 26 insertions(+)
+
+diff --git a/Documentation/devicetree/bindings/power/supply/bq25890.yaml b/Documentation/devicetree/bindings/power/supply/bq25890.yaml
+index 0ad302ab2..e8e027573 100644
+--- a/Documentation/devicetree/bindings/power/supply/bq25890.yaml
++++ b/Documentation/devicetree/bindings/power/supply/bq25890.yaml
+@@ -85,6 +85,32 @@ properties:
+   ti,ibatcomp-clamp-microvolt:
+     description: max. charging voltage adjustment due to expected voltage drop on in-series resistor
+ 
++  linux,skip-reset:
++    description:
++      Keep the chip's register state at probe instead of resetting it.
++    type: boolean
++
++  linux,verified-charge-start:
++    description: |
++      Experiment-only. Requires linux,skip-reset. Hold charging disabled at
++      probe, write every limit plus the verified input current limit, stop
++      input source detection and current optimisation from raising that
++      limit, read every written field back, and enable charging only when
++      all of them match.
++    type: boolean
++
++  linux,verified-input-current-limit-microamp:
++    description:
++      Input current limit programmed and enforced by
++      linux,verified-charge-start.
++    minimum: 100000
++    maximum: 3250000
++
++dependencies:
++  linux,verified-charge-start:
++    - linux,skip-reset
++    - linux,verified-input-current-limit-microamp
++
+ required:
+   - compatible
+   - reg

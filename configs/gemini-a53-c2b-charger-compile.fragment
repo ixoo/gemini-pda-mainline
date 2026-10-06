@@ -1,0 +1,9 @@
+# C2b charger: the board-services RTC scope plus the bq25890 charger driver.
+CONFIG_RTC_CLASS=y
+CONFIG_RTC_DRV_MT6397=y
+# CONFIG_RTC_NVMEM is not set
+# CONFIG_RTC_HCTOSYS is not set
+# CONFIG_RTC_SYSTOHC is not set
+CONFIG_POWER_SUPPLY=y
+CONFIG_CHARGER_BQ25890=y
+CONFIG_LOCALVERSION="-gemini-a53-c2b-charger-compile"

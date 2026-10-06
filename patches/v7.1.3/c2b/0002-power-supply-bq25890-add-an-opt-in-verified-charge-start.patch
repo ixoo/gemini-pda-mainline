@@ -1,0 +1,173 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 6 Oct 2026 02:01:00 +0000
+Subject: [PATCH 2/2] power: supply: bq25890: add an opt-in verified charge
+ start
+
+With linux,skip-reset the driver enables charging before it writes any
+limit, so a board whose loader leaves aggressive settings charges under
+them during probe. A register reset instead charges at 2.048 A and
+4.208 V until the limits land. The input current limit is never set at
+probe, and the chip's input detection can raise it to 3.25 A.
+
+Add linux,verified-charge-start, valid only with linux,skip-reset. Probe
+writes CHG_CONFIG=0 first, disables the watchdog and writes the limits as
+before, then writes linux,verified-input-current-limit-microamp, clears
+ICO_EN and AUTO_DPDM_EN, and reads every written field back. Charging is
+enabled only when all fields match; otherwise probe fails with charging
+still disabled. Userspace may not raise the input limit above the
+verified value afterwards. Without the property nothing changes.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/power/supply/bq25890_charger.c | 102 +++++++++++++++++++++++++
+ 1 file changed, 102 insertions(+)
+
+diff --git a/drivers/power/supply/bq25890_charger.c b/drivers/power/supply/bq25890_charger.c
+index 12142a90e..06968b4bc 100644
+--- a/drivers/power/supply/bq25890_charger.c
++++ b/drivers/power/supply/bq25890_charger.c
+@@ -124,6 +124,8 @@ struct bq25890_device {
+ 
+ 	bool skip_reset;
+ 	bool read_back_init_data;
++	bool verified_start;
++	u32 verified_iinlim;
+ 	bool force_hiz;
+ 	u32 pump_express_vbus_max;
+ 	u32 iinlim_percentage;
+@@ -701,6 +703,10 @@ static int bq25890_power_supply_set_property(struct power_supply *psy,
+ 		lval = bq25890_find_idx(min(val->intval, maxval), TBL_VREG);
+ 		return bq25890_field_write(bq, F_VREG, lval);
+ 	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT:
++		/* Verified start never lets userspace raise the input limit. */
++		if (bq->verified_start &&
++		    (val->intval < 0 || val->intval > bq->verified_iinlim))
++			return -EINVAL;
+ 		lval = bq25890_find_idx(val->intval, TBL_IINLIM);
+ 		return bq25890_field_write(bq, F_IINLIM, lval);
+ 	case POWER_SUPPLY_PROP_ONLINE:
+@@ -935,6 +941,72 @@ static int bq25890_rw_init_data(struct bq25890_device *bq)
+ 	return 0;
+ }
+ 
++/*
++ * Verified start: called with charging disabled, after the limits were
++ * written. Pin the input limit, stop the chip's own input detection and
++ * current optimiser from raising it, read every written field back, and
++ * enable charging only if all of them match. On any error charging stays
++ * disabled.
++ */
++static int bq25890_verified_charge_start(struct bq25890_device *bq)
++{
++	const u8 iinlim = bq25890_find_idx(bq->verified_iinlim, TBL_IINLIM);
++	const struct {
++		enum bq25890_fields id;
++		u8 value;
++	} expect[] = {
++		{ F_CHG_CFG,	  0 },
++		{ F_WD,		  0 },
++		{ F_ICO_EN,	  0 },
++		{ F_AUTO_DPDM_EN, 0 },
++		{ F_IINLIM,	  iinlim },
++		{ F_ICHG,	  bq->init_data.ichg },
++		{ F_VREG,	  bq->init_data.vreg },
++		{ F_ITERM,	  bq->init_data.iterm },
++		{ F_IPRECHG,	  bq->init_data.iprechg },
++		{ F_SYSVMIN,	  bq->init_data.sysvmin },
++		{ F_BOOSTV,	  bq->init_data.boostv },
++		{ F_BOOSTI,	  bq->init_data.boosti },
++		{ F_BOOSTF,	  bq->init_data.boostf },
++		{ F_EN_ILIM,	  bq->init_data.ilim_en },
++		{ F_TREG,	  bq->init_data.treg },
++		{ F_BATCMP,	  bq->init_data.rbatcomp },
++		{ F_VCLAMP,	  bq->init_data.vclamp },
++	};
++	int i, ret;
++
++	ret = bq25890_field_write(bq, F_ICO_EN, 0);
++	if (!ret)
++		ret = bq25890_field_write(bq, F_AUTO_DPDM_EN, 0);
++	if (!ret)
++		ret = bq25890_field_write(bq, F_IINLIM, iinlim);
++	if (ret < 0)
++		return ret;
++
++	for (i = 0; i < ARRAY_SIZE(expect); i++) {
++		ret = bq25890_field_read(bq, expect[i].id);
++		if (ret < 0)
++			return ret;
++		if (ret != expect[i].value) {
++			dev_err(bq->dev, "verified start: field %d reads %d, expected %u; charging stays disabled\n",
++				expect[i].id, ret, expect[i].value);
++			return -EIO;
++		}
++	}
++
++	ret = bq25890_field_write(bq, F_CHG_CFG, 1);
++	if (ret < 0)
++		return ret;
++	ret = bq25890_field_read(bq, F_CHG_CFG);
++	if (ret < 0)
++		return ret;
++	if (ret != 1)
++		return -EIO;
++	dev_info(bq->dev, "verified start: %d limits read back, input limit %u uA, charging enabled\n",
++		 i, bq->verified_iinlim);
++	return 0;
++}
++
+ static int bq25890_hw_init(struct bq25890_device *bq)
+ {
+ 	int ret;
+@@ -945,6 +1017,13 @@ static int bq25890_hw_init(struct bq25890_device *bq)
+ 			dev_dbg(bq->dev, "Reset failed %d\n", ret);
+ 			return ret;
+ 		}
++	} else if (bq->verified_start) {
++		/* Hold charging off until every limit is verified below. */
++		ret = bq25890_field_write(bq, F_CHG_CFG, 0);
++		if (ret < 0) {
++			dev_err(bq->dev, "Disabling charging failed %d\n", ret);
++			return ret;
++		}
+ 	} else {
+ 		/*
+ 		 * Ensure charging is enabled, on some boards where the fw
+@@ -970,6 +1049,12 @@ static int bq25890_hw_init(struct bq25890_device *bq)
+ 	if (ret)
+ 		return ret;
+ 
++	if (bq->verified_start) {
++		ret = bq25890_verified_charge_start(bq);
++		if (ret)
++			return ret;
++	}
++
+ 	ret = bq25890_get_chip_state(bq, &bq->state);
+ 	if (ret < 0) {
+ 		dev_dbg(bq->dev, "Get state failed %d\n", ret);
+@@ -1421,6 +1506,23 @@ static int bq25890_fw_probe(struct bq25890_device *bq)
+ 	bq->skip_reset = device_property_read_bool(bq->dev, "linux,skip-reset");
+ 	bq->read_back_init_data = device_property_read_bool(bq->dev,
+ 						"linux,read-back-settings");
++	bq->verified_start = device_property_read_bool(bq->dev,
++						"linux,verified-charge-start");
++	if (bq->verified_start) {
++		/* Verification needs written limits and no probe-time reset. */
++		if (!bq->skip_reset || bq->read_back_init_data) {
++			dev_err(bq->dev, "linux,verified-charge-start needs linux,skip-reset without linux,read-back-settings\n");
++			return -EINVAL;
++		}
++		ret = device_property_read_u32(bq->dev,
++					       "linux,verified-input-current-limit-microamp",
++					       &bq->verified_iinlim);
++		if (ret < 0 || bq->verified_iinlim < 100000 ||
++		    bq->verified_iinlim > 3250000) {
++			dev_err(bq->dev, "verified start needs an input limit of 100000..3250000 uA\n");
++			return -EINVAL;
++		}
++	}
+ 	if (bq->read_back_init_data)
+ 		return 0;
+ 
