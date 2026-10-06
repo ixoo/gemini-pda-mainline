@@ -61,16 +61,41 @@ def classify(raw):
                      (not accepted or association[0][0] < rows['activation'][0][0] < tx[-1][0]))
     healthy = (not malformed and not stopped and len(rows['peer']) == 1 and
                len(rows['grant']) == 1 and 0 < rows['grant'][0][1] <= 9000)
+    # RX can precede TX done. Advancing to another submission cannot.
+    order_ok = False
+    if exchange and healthy and cleanup_ok and activation_ok:
+        completion = {row[1]: row[0] for row in done}
+        stages = [row[0] for row in rows['cleanup_submission']]
+        terminal = rows['cleanup'][0][0]
+
+        def pages_between(begin, end):
+            return sum(row[1] for row in credits if begin < row[0] < end)
+
+        peer = rows['peer'][0][0]
+        order_ok = (rows['grant'][0][0] < peer < tx[0][0] and
+                    pages_between(-1, peer) == 4 and
+                    completion[tx[0][2]] < tx[1][0] and
+                    pages_between(peer, tx[1][0]) == tx[0][3] and
+                    association[0][0] < stages[0] and
+                    completion[tx[-1][2]] < stages[0] and
+                    pages_between(-1, stages[0]) == expected_pages - 3 and
+                    stages[0] < stages[1] < stages[2] < terminal and
+                    all(pages_between(begin, end) == 1 for begin, end in
+                        zip(stages, stages[1:] + [terminal])))
+        if accepted:
+            order_ok = (order_ok and completion[tx[1][2]] < rows['activation'][0][0] and
+                        pages_between(tx[1][0], tx[2][0]) == tx[1][3] + 3)
     result = {
         'association_response_status': association[0][2] if len(association) == 1 else None,
         'host_management_submissions': len(tx),
         'unique_tx_acknowledgements': acknowledged,
         'management_exchange_demonstrated': bool(exchange),
         'associated_station_activation_demonstrated': bool(exchange and accepted and activation_ok),
-        'healthy_cleanup_demonstrated': bool(healthy and cleanup_ok and activation_ok),
+        'healthy_cleanup_demonstrated': bool(healthy and cleanup_ok and activation_ok and order_ok),
+        'stage_and_credit_order_verified': bool(order_ok),
         'malformed_stage_record': malformed,
         'terminal_failure_recorded': stopped,
         'wifi_operational': False,
     }
-    result['bounded_join_pass'] = bool(exchange and healthy and cleanup_ok and activation_ok)
+    result['bounded_join_pass'] = bool(exchange and healthy and cleanup_ok and activation_ok and order_ok)
     return result
