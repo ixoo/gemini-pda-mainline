@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-06-gemini-i2c1-sensors` |
-| Status | Profile and DT derivation; protocol draft for review; not booted |
+| Status | Built and package-verified; DT derivation and protocol draft for review; not booted |
 | Profile | `mt6797-a53-i2c1-sensors-compile` |
 | Date | 2026-10-06 |
 | Device action | None |
@@ -69,3 +69,16 @@ and relies on them; a later product DT can describe the same modes.
     note).
   - Any I2C1 timeout or controller error: stop; no further I2C1 access in
     this boot.
+
+## Build
+
+| Item | Value |
+| --- | --- |
+| Input commit | `cbe66949c33a108f1115cf380b898c38acad1b2e` |
+| Job | `cbe66949…-mt6797-a53-i2c1-sensors-compile-m0`, buildbox-1, 32 jobs |
+| Package inventory | `7f605fb20893db2520005c08ea97433db10c269c6069cc76cfb0b162bd0de6f3` |
+| Release | `7.1.3-gemini-a53-i2c1-sensors-compile` |
+
+Compilation, remote validation, fetch and local checksums pass, with no
+compiler warning. The resolved config has `I2C_CHARDEV`, `IIO`, `BMI160` and
+`BMI160_I2C` built in.
