@@ -4,16 +4,35 @@
 set -eu
 umask 077
 BB=/bin/busybox
+# Name the failing prerequisite on stderr only when exiting non-zero. The
+# success path prints nothing before __IW_PASSIVE_BEGIN__ and keeps stderr empty.
+stage=start
+event_pid=
+on_exit() {
+    rc=$?
+    if [ -n "$event_pid" ]; then
+        kill "$event_pid" 2>/dev/null || true
+    fi
+    if [ "$rc" != 0 ]; then
+        $BB printf '__STAGE_FAIL__ stage=%s rc=%s\n' "$stage" "$rc" >&2
+    fi
+}
+trap on_exit EXIT
+trap 'exit 1' HUP INT TERM
+stage=target_input
 : "${EXPECTED_BOOT:?authenticated boot is required}"
 : "${TARGET_SSID:?private target SSID is required}"
 : "${TARGET_BSSID:?private target BSSID is required}"
 [ "$(printf %s "$TARGET_SSID" | $BB wc -c)" -ge 1 ]
 [ "$(printf %s "$TARGET_SSID" | $BB wc -c)" -le 32 ]
 printf %s "$TARGET_BSSID" | $BB grep -Eq '^[0-9a-f]{2}(:[0-9a-f]{2}){5}$'
+stage=kernel_release
 kernel=$($BB uname -r)
-boot_before=$($BB cat /proc/sys/kernel/random/boot_id)
 [ "$kernel" = 7.1.3-gemini-a53-wifi-phase-b-compile ]
+stage=boot_identity
+boot_before=$($BB cat /proc/sys/kernel/random/boot_id)
 [ "$boot_before" = "$EXPECTED_BOOT" ]
+stage=single_phy0
 [ -d /sys/class/ieee80211/phy0 ]
 [ "$($BB cat /sys/class/ieee80211/phy0/index)" = 0 ]
 [ "$($BB readlink -f /sys/class/ieee80211/phy0/device)" = "$($BB readlink -f /sys/bus/platform/devices/10001340.consys)" ]
@@ -23,7 +42,9 @@ for phy in /sys/class/ieee80211/phy*; do
     count=$((count + 1))
 done
 [ "$count" = 1 ]
+stage=no_wlan0
 [ ! -e /sys/class/net/wlan0 ]
+stage=tmp_leaf
 # This small RAM root may omit /tmp. Preserve the one-use leaf refusal.
 if [ ! -e /tmp ]; then
     $BB mkdir /tmp
@@ -32,6 +53,7 @@ fi
 $BB mkdir /tmp/mt6797-wifi-phase-b-1
 # The authenticated shell limits regular files to 128 KiB. Keep this
 # prerequisite snapshot in memory; the parent exports the complete log later.
+stage=pre_scan_readiness
 pre_scan_log=$($BB dmesg)
 [ "$(printf '%s\n' "$pre_scan_log" | $BB grep -c 'one-shot WLAN TC4 reconciliation: snapshot=2 status=0 ')" = 1 ]
 [ "$(printf '%s\n' "$pre_scan_log" | $BB grep -c 'one-shot WLAN regulatory configuration: status=0')" = 1 ]
@@ -39,6 +61,7 @@ pre_scan_log=$($BB dmesg)
 if printf '%s\n' "$pre_scan_log" | $BB grep -q 'one-shot WLAN firmware stopped ('; then
     exit 1
 fi
+stage=userspace_tools
 cd /
 $BB sha256sum -c > /dev/null <<'SUMS'
 a244c8cc1740d8e3e92589dfd1b9527dbbfc97692cc23e8cfb96cd9d10d8d7da  bin/iw
@@ -52,19 +75,26 @@ iw() {
     /lib/ld-linux-aarch64.so.1 --library-path /lib /bin/iw "$@"
 }
 [ "$(iw --version)" = 'iw version 5.19' ]
-# Query host cfg80211 state only; require the known-good band to be permitted.
+# Query host cfg80211 state only; require the known-good channel to be usable
+# for the passive scan. Under the world regulatory domain channel 40 carries
+# NO-IR until a beacon is found there (Phase A scanned in exactly that state);
+# transmission is gated separately after the scan, below.
+stage=channel40_pre_scan
 phy_info=$(iw phy phy0 info)
 channel40=$(printf '%s\n' "$phy_info" | $BB grep '\* 5200 MHz \[40\]')
 [ "$(printf '%s\n' "$phy_info" | $BB grep -c '\* 5200 MHz \[40\]')" = 1 ]
-if printf '%s\n' "$channel40" | $BB grep -Eq 'disabled|no IR|radar detection'; then
+if printf '%s\n' "$channel40" | $BB grep -Eq 'disabled|radar detection'; then
     exit 1
 fi
+stage=wlan0_add
 iw phy phy0 interface add wlan0 type managed
 [ -d /sys/class/net/wlan0 ]
 [ "$($BB readlink -f /sys/class/net/wlan0/phy80211)" = "$($BB readlink -f /sys/class/ieee80211/phy0)" ]
 [ "$($BB cat /sys/class/net/wlan0/address)" = "$($BB cat /sys/class/ieee80211/phy0/macaddress)" ]
+stage=wlan0_up
 $BB ip link set wlan0 up
 [ "$($BB cat /proc/sys/kernel/random/boot_id)" = "$EXPECTED_BOOT" ]
+stage=passive_scan
 $BB printf 'boot_before=%s\nkernel=%s\ninterface_created=1\ninterface_up=1\n__IW_PASSIVE_BEGIN__\n' "$boot_before" "$kernel"
 printf '__PHY_INFO_BEGIN__\n%s\n__PHY_INFO_END__\n' "$phy_info"
 set +e
@@ -81,7 +111,18 @@ $BB awk -v target="$TARGET_BSSID" '
     found && $1 == "freq:" && $2 == 5200 { accepted = 1 }
     END { exit !accepted }
 ' /tmp/mt6797-wifi-phase-b-1/scan.txt
+stage=bss_match
 [ "$($BB cat /proc/sys/kernel/random/boot_id)" = "$EXPECTED_BOOT" ]
+# The found beacon must have lifted NO-IR on channel 40 (cfg80211 beacon hint)
+# before this host transmits anything there.
+stage=channel40_ir_after_beacon
+channel40_after=$(iw phy phy0 info | $BB grep '\* 5200 MHz \[40\]')
+[ "$(printf '%s\n' "$channel40_after" | $BB grep -c '\* 5200 MHz \[40\]')" = 1 ]
+if printf '%s\n' "$channel40_after" | $BB grep -Eq 'disabled|no IR|radar detection'; then
+    exit 1
+fi
+$BB printf 'channel40_ir_after_beacon=1\n'
+stage=join_readiness
 join_log=$($BB dmesg)
 [ "$(printf '%s\n' "$join_log" | $BB grep -c 'one-shot passive WLAN scan: status=0 complete=1 ')" = 1 ]
 if printf '%s\n' "$join_log" | $BB grep -Eq 'one-shot WLAN (join stopped:|firmware stopped \()'; then
@@ -90,7 +131,7 @@ fi
 # Event subscription has no radio command. Stop it after this single attempt.
 $BB timeout 13 /lib/ld-linux-aarch64.so.1 --library-path /lib /bin/iw event -t > /tmp/mt6797-wifi-phase-b-1/events.txt 2>&1 &
 event_pid=$!
-trap 'kill "$event_pid" 2>/dev/null || true' EXIT HUP INT TERM
+stage=connect
 $BB printf '__JOIN_BEGIN__\n'
 set +e
 $BB timeout 3 /lib/ld-linux-aarch64.so.1 --library-path /lib /bin/iw dev wlan0 connect "$TARGET_SSID" 5200 "$TARGET_BSSID"
@@ -111,7 +152,8 @@ while [ "$tick" -lt 12 ]; do
 done
 kill "$event_pid" 2>/dev/null || true
 wait "$event_pid" 2>/dev/null || true
-trap - EXIT HUP INT TERM
+event_pid=
+stage=boot_after
 $BB cat /tmp/mt6797-wifi-phase-b-1/events.txt
 $BB printf '__JOIN_END__\nconnect_exit=%s\njoin_terminal=%s\n' "$connect_exit" "$terminal"
 boot_after=$($BB cat /proc/sys/kernel/random/boot_id)
