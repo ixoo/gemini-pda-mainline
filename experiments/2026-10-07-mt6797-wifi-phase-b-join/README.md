@@ -366,18 +366,43 @@ Runtime-2 bindings, each the smallest parameter change to an existing adapter:
 | `passive-session.py` | receipt `results/candidate-2.json` |
 | `bind-target.py`, `join-once.sh`, `classify-join.py` | unchanged |
 
-The `MANIFEST_SHA` slots in `install-passive.py` and `capture-private.py` are
-`None` until the composed candidate-2 receipt is committed as
-`results/candidate-2.json`; both refuse to run before that.
+The composed candidate-2 receipt is committed unchanged as
+[results/candidate-2.json](results/candidate-2.json), SHA-256
+`f19dffdb622643e7dd486a2b6b3b4e752c993b5908ecc91929c0b4a0972ee896`, and both
+`MANIFEST_SHA` slots carry that digest. Its boot image is `9374ff09…`, its full
+padded boot2 `03a6d78c…`; kernel.config, board DT and initramfs are
+byte-identical to runtime 1 and only `Image.gz` changed.
 
 [prepare-runtime-2.py](prepare-runtime-2.py) is the offline preparation entry
 point for the laptop. Driven only by `GEMINI_PRIVATE_REPO`,
 `GEMINI_RUNTIME_ROOT` and `GEMINI_JOIN_SCRIPT`, it checks that the private
 repository holds credentials, that the bound join script is one mode-0600 file
 wrapping the reviewed `join-once.sh`, that `results/candidate-2.json` names the
-compile-7 package and that both slots equal its digest. It then creates empty
-mode-0700 `wifi-phase-b/capture-2` and `session-2` under the runtime root,
-refusing if either exists. It performs no device action.
+compile-7 package and that both slots equal its digest. It then creates the
+mode-0700 evidence root and `wifi-phase-b/session-2`, refusing if the session
+or capture directory exists. It leaves `capture-2` absent on purpose: the
+inherited capture claims that directory itself and refuses an existing one, so
+the one-attempt guard stays with the capture
+([tests/prepare-runtime-2-test.py](tests/prepare-runtime-2-test.py) asserts
+exactly that precondition). It performs no device action.
+
+Two env-driven wrappers replace the laptop's private reference wrappers for a
+checkout that lacks the private artifacts:
+
+- [laptop-capture.py](laptop-capture.py) runs `capture-private.py` with the
+  baseline collector loaded from the private checkout's copy, so the
+  collector's own repository root resolves to the credentials.
+- [laptop-session.py](laptop-session.py) runs `passive-host.py` with the pinned
+  return workflow, the service scripts and the baseline scripts loaded from the
+  private checkout's copies, and rebinds `BASELINE` and `SERVICE` through the
+  session module tree when the host loads `passive-session.py`. The installer is
+  the public `install-passive.py`: its reviewed adapt step already rewrites the
+  repository root to `GEMINI_PRIVATE_REPO` and checks the credentials there.
+
+Pinned digests still apply to every remapped file, so the private copies must
+be identical to this checkout's. The wrappers contain no host-specific path;
+[tests/laptop-wrappers-test.py](tests/laptop-wrappers-test.py) asserts each
+remapped root and that nothing else moves.
 
 Order for runtime 2, with the laptop's private wrappers supplying only the
 private-repository module remaps and the runtime root:
@@ -386,8 +411,18 @@ private-repository module remaps and the runtime root:
    <Phase A runtime-3 candidate> --output <candidate-2 directory>`; send the
    sanitized `candidate.json`.
 2. Buildbox: commit it as `results/candidate-2.json` and fill both slots.
-3. Laptop: `prepare-runtime-2.py` with the fresh runtime root, then the
-   guarded `install-passive.py` (receipt `deployment-2`), then after the
-   owner's boot2 selection `capture-private.py`, `bind-target.py` and
-   `passive-host.py --candidate … --execute`, exactly as in
-   [PROTOCOL.md](PROTOCOL.md).
+3. Laptop, with `GEMINI_PRIVATE_REPO`, `GEMINI_RUNTIME_ROOT` (fresh) and
+   `GEMINI_JOIN_SCRIPT` exported, and `<previous>` the live Gemian boot ID:
+   1. `python3 bind-target.py --target <private AP input> --output
+      $GEMINI_JOIN_SCRIPT`
+   2. `python3 prepare-runtime-2.py`
+   3. `python3 install-passive.py prepare --candidate <candidate-2 dir>
+      --previous-gemian-boot <previous> --output <installer dir>`, then the
+      guarded installer it generates (deployment-2); the owner selects boot2.
+   4. After the mainline boot: `python3 laptop-capture.py --candidate
+      <candidate-2 dir>` for the offline preparation and the same with
+      `--execute` for the single `wmt_negotiate` trigger; then `python3
+      laptop-session.py --candidate <candidate-2 dir>` for the offline
+      preparation and the same with `--execute` for the one attempt, exactly as
+      in [PROTOCOL.md](PROTOCOL.md). Both wrappers take the public adapters'
+      own arguments.

@@ -3,7 +3,9 @@
 """Create the fresh runtime-2 evidence root and check the laptop inputs offline.
 
 Driven only by GEMINI_PRIVATE_REPO, GEMINI_RUNTIME_ROOT and GEMINI_JOIN_SCRIPT.
-It writes two empty mode-0700 directories and nothing else; no device action.
+It creates the evidence root and the session directory only. The capture
+directory is left absent, because the inherited capture claims it itself and
+refuses when it already exists (one attempt per root). No device action.
 """
 
 import hashlib
@@ -70,9 +72,11 @@ def main():
         if (root / name).exists() or (root / name).is_symlink():
             refuse(name + ' already exists; runtime 2 needs a fresh evidence root')
     root.mkdir(mode=0o700, exist_ok=True)
-    for name in (CAPTURE, SESSION):
-        (root / name).mkdir(mode=0o700)
-    print(json.dumps({'evidence_root': str(root), 'created': [CAPTURE, SESSION],
+    (root / SESSION).mkdir(mode=0o700)
+    if (root / CAPTURE).exists():
+        refuse('capture directory appeared; the capture must claim it')
+    print(json.dumps({'evidence_root': str(root), 'created': [SESSION],
+                      'left_absent_for_capture_claim': CAPTURE,
                       'candidate_manifest_sha256': digest,
                       'candidate_boot2_sha256': receipt['files']['boot2-padded.img']['sha256'],
                       'predecessor_sha256': PREDECESSOR, 'deployment_receipt': 'deployment-2',

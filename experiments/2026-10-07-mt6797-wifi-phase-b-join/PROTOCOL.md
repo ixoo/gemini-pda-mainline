@@ -108,8 +108,12 @@ root `wifi-phase-b/capture-2` and `session-2` under a fresh
 `GEMINI_RUNTIME_ROOT`. The release string is unchanged, so admissibility binds
 to the candidate-2 digest, package inventory and full boot2 hash. Guards,
 pinned tool identities, finite budgets, the single trigger, the full-log seal
-and the reviewed native recovery are those of runtime 1. See the
-[runtime 2 bindings](README.md#runtime-2-bindings-2026-10-06).
+and the reviewed native recovery are those of runtime 1. On a checkout without
+private artifacts, [laptop-capture.py](laptop-capture.py) and
+[laptop-session.py](laptop-session.py) run the public capture and host with
+the baseline, service and return scripts loaded from the private checkout;
+[prepare-runtime-2.py](prepare-runtime-2.py) creates the fresh evidence root
+first. See the [runtime 2 bindings](README.md#runtime-2-bindings-2026-10-06).
 
 ## Decision branches
 
