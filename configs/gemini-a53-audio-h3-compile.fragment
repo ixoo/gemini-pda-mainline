@@ -1,0 +1,20 @@
+# Audio H3: the display H2 scope (SCPSYS adopt mode, needed for the AFE's
+# AUDIO power domain) plus the MT6797 AFE, MT6351 codec and machine card.
+CONFIG_RTC_CLASS=y
+CONFIG_RTC_DRV_MT6397=y
+# CONFIG_RTC_NVMEM is not set
+# CONFIG_RTC_HCTOSYS is not set
+# CONFIG_RTC_SYSTOHC is not set
+# MTK_SCPSYS selects MTK_INFRACFG: a bus-protection helper library whose
+# only init code targets MT8192; its helpers run only on SCPSYS power on/off,
+# which adopt mode never calls at probe.
+CONFIG_MTK_INFRACFG=y
+CONFIG_MTK_SCPSYS=y
+CONFIG_MTK_SCPSYS_ADOPT_BOOT_STATE=y
+CONFIG_SOUND=y
+CONFIG_SND=y
+CONFIG_SND_SOC=y
+CONFIG_SND_SOC_MT6797=y
+CONFIG_SND_SOC_MT6797_MT6351=y
+CONFIG_SND_SOC_MT6351=y
+CONFIG_LOCALVERSION="-gemini-a53-audio-h3-compile"
