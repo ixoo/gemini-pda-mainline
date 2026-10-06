@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-07-mt6797-wifi-phase-b-join` |
-| Status | Incomplete offline implementation pinned in a compile-only profile; Callback implementation and runtime gates remain open; no air test |
+| Status | Bounded join callbacks implemented and built; first device protocol ready; data and keys remain incomplete; no air test |
 | Base | Phase A [runtime 3](../2026-10-06-mt6797-wifi-common-init/RUNTIME_3.md), package `3013daa6…` |
 | Date | 2026-10-07 |
 | Device action | None |
@@ -19,7 +19,7 @@ data frames.
 The Phase A artifacts and protocol stay unchanged. Phase B starts from a
 separate profile and candidate.
 
-## What the driver can do today
+## What the Phase A baseline could do
 
 Audited offline against the Phase A tree (series `mt6797-a53-wifi-phase-a-compile`)
 and the pinned vendor gen3 driver, which the vendor wlan Makefile selects for
@@ -84,13 +84,13 @@ stop without further commands (see Bounds).
 | 2 | One channel scan of the target's channel, then connect within the cfg80211 BSS lifetime | existing scan, new caller | target BSS absent |
 | 3 | RX filter DIRECTED and BROADCAST | changed payload | no credit return |
 | 4 | Retain the active AIS BSS from the completed scan: BSS 0, own-MAC 1, BMC 0 | new Phase B lifetime | incomplete/failed scan or ownership fence not met |
-| 5 | STA record pre-auth for the AP | new command | no credit return |
-| 6 | Channel privilege REQ for JOIN on the target channel | new command and event | no grant within the budget |
+| 5 | Channel privilege REQ for JOIN on the target channel | new command and event | no grant within the budget |
+| 6 | STA record pre-auth for the AP | new command | no credit return |
 | 7 | TX Open System authentication, sequence 1 | **first RF TX** | no TX done, or TX status not success |
 | 8 | RX authentication response, delivered to mac80211 | new parser | none within the budget |
 | 9 | TX association request | RF TX | no TX done |
 | 10 | RX association response, any status | new parser | none within the budget |
-| 11 | If accepted: STA record state 3, then immediate deauthentication | new command, RF TX | no 0x0c event or no TX done |
+| 11 | If accepted: BSS/RLM, STA record state 3, then immediate deauthentication | new command, RF TX | no 0x0c event or no TX done |
 | 12 | Teardown: STA record removal, channel ABORT, BSS off, stop polling | new and existing | only while identity and firmware and link health remain verified |
 
 The decision is the association response. Any status, accepted or refused,
@@ -229,6 +229,9 @@ and unique within the attempt, from 1 to 127 with no wrap or reuse.
   rails, RF calibration and antenna mode. Phase B adds no new radio
   configuration beyond the effects listed here. It writes no storage, NVRAM or
   calibration data, and enables no DMA or interrupt.
+
+The first concrete candidate and bounded execution are pinned in
+[PROTOCOL.md](PROTOCOL.md), with the full build in [COMPILE_6.md](COMPILE_6.md).
 
 ## Gate before any air test
 

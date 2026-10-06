@@ -1,9 +1,12 @@
 # Phase B offline implementation checkpoint
 
-Status: incomplete, compile-only. Compile 2 covers patches through 0132. Profile
+Status: driver incomplete; bounded join callbacks are implemented and built
+through 0139 in [compile 6](COMPILE_6.md). The first concrete candidate/test is
+pinned in [PROTOCOL.md](PROTOCOL.md). No device result yet. Earlier checkpoints
+below retain their historical scope. Compile 2 covers patches through 0132. Profile
 `mt6797-a53-wifi-phase-b-compile` selects thirteen original format-patches in
 canonical order after the Phase A baseline. It has a distinct kernel release.
-The proven Phase A profile is unchanged. No candidate or device test is admitted.
+The proven Phase A profile is unchanged. Earlier checkpoints admitted no candidate or device test.
 
 ## Implemented preparation
 
@@ -196,7 +199,8 @@ Checkpatch reported no errors: 0137 retains one line-length warning and seven
 style checks; 0138/0139 have none. The missing sign-off check is deliberately
 excluded because no DCO certification or upstream submission is asserted.
 Repository checks, all 21 profile-order audits and Python syntax passed.
-The exact full kernel build is pending; kernel races and all RF behavior remain untested.
+The exact full kernel build passed in [compile 6](COMPILE_6.md);
+kernel races and all RF behavior remain untested.
 Sanitized stage logs expose submission, TX done, directed response status,
 credits, grant, activation and terminal cleanup without AP identities or
 frame bodies. The same bounded debug/sleepy notifications as the proven scan
@@ -204,6 +208,6 @@ consumer are accepted; malformed and unknown events remain terminal.
 
 ## Remaining work
 
-Build and validate this exact checkpoint, then validate a concrete candidate
-and bounded authentication/association protocol before the device test. Successful join is a prerequisite for the
+Run the concrete [first bounded protocol](PROTOCOL.md), preserving exact
+identity/evidence gates and its failure branches. Successful join is a prerequisite for the
 subsequent PIO data TX/RX admission. This checkpoint is not usable Wi-Fi.
