@@ -1,0 +1,18 @@
+{
+  "experiment": "mt6797-wifi-phase-b",
+  "candidate_manifest_sha256": "a0756937bbdf49e55b4614b71f3f5dea43c32afd32c159581d7ae3b59048aa8a",
+  "result": "write-synced-flushed-full-readback-verified",
+  "target_logical_name": "boot2",
+  "boot2_device_guard": "passed",
+  "boot2_device_guard_sha256": "0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf",
+  "target_major_minor": "179:30",
+  "root_major_minor": "179:29",
+  "predecessor_sha256": "c4e99f566993ecb5e71c20b09e792745ee51d95d7ec8622123f5362b0cede998",
+  "candidate_sha256": "6ecc057c390e6c9acb3480a52950a7261d7f4678c43da5688dcc1724e2bb778f",
+  "readback_sha256": "6ecc057c390e6c9acb3480a52950a7261d7f4678c43da5688dcc1724e2bb778f",
+  "boot_id": "9ade2913-f209-43b4-a2d3-3ed773f673b4",
+  "shutdown": "requested-after-evidence-flush",
+  "post_shutdown_reachability": "unreachable",
+  "reboot": "no",
+  "next_action": "owner-physically-selects-boot2"
+}
