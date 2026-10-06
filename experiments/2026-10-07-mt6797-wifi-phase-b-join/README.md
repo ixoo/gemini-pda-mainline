@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-07-mt6797-wifi-phase-b-join` |
-| Status | First runtime failed common init before WLAN (candidate fix 0141 and ownership fix 0142 prepared); join remains untested; clear EAPOL decoder tested offline but unlinked; data and keys remain incomplete |
+| Status | Candidate 2 (fixes 0141 and 0142) installed and read back, physical boot pending ([RUNTIME_2_PREPARATION](RUNTIME_2_PREPARATION.md)); join remains untested; clear EAPOL decoder tested offline but unlinked; data and keys remain incomplete |
 | Base | Phase A [runtime 3](../2026-10-06-mt6797-wifi-common-init/RUNTIME_3.md), package `3013daa6…` |
 | Date | 2026-10-07 |
 | Device action | One boot, WMT preparation/negotiation/common-init attempt, evidence sealing, A53 regression and confirmed Gemian recovery; no scan or join |
@@ -349,6 +349,10 @@ config differs only in release and `CONFIG_MT6797_STATION_JOIN=y`, and PSCI
 power-off and `clk_ignore_unused` are unchanged. The release string is the same
 as runtime 1, so every live admissibility check binds to the candidate-2 receipt
 digest, the package inventory and the full boot2 hash, never to the release.
+
+Deployment 2 is recorded in [results/deployment-2.json](results/deployment-2.json)
+and [RUNTIME_2_PREPARATION.md](RUNTIME_2_PREPARATION.md): installed, fully
+read back, powered off, physical boot pending.
 
 Runtime-1 evidence is untouched: [results/candidate.json](results/candidate.json),
 [results/deployment-1.json](results/deployment-1.json) and

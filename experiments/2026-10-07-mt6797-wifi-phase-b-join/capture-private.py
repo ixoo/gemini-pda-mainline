@@ -178,6 +178,10 @@ WMT.prepare = prepare
 
 def main():
     rc = WMT.main()
+    # Offline preparation claims no capture directory, so there is no log to
+    # classify; its status is the inherited capture's own.
+    if '--execute' not in sys.argv:
+        return rc
     log = WMT.CAPTURE_DIR / 'log-after-start/stdout.txt'
     if rc or not log.is_file():
         return rc or 1
