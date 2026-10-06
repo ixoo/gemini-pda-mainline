@@ -396,13 +396,29 @@ checkout that lacks the private artifacts:
   return workflow, the service scripts and the baseline scripts loaded from the
   private checkout's copies, and rebinds `BASELINE` and `SERVICE` through the
   session module tree when the host loads `passive-session.py`. The installer is
-  the public `install-passive.py`: its reviewed adapt step already rewrites the
-  repository root to `GEMINI_PRIVATE_REPO` and checks the credentials there.
+  the public `install-passive.py`, used directly and by the host's `run_path`.
 
 Pinned digests still apply to every remapped file, so the private copies must
 be identical to this checkout's. The wrappers contain no host-specific path;
 [tests/laptop-wrappers-test.py](tests/laptop-wrappers-test.py) asserts each
 remapped root and that nothing else moves.
+
+**Installer pinned inputs.** The first runtime-2 `install-passive.py prepare`
+on the laptop refused: `reviewed installer input changed:
+experiments/2026-08-14-mt6797-runtime-provenance-observer/scripts/install-boot2.sh`.
+The baseline installer's `pinned_sources()` captures this checkout as its
+default root, and this checkout's `install-boot2.sh` (`ba6ffd55…`) no longer
+matches the reviewed pin `deaa0e88…`: commit a0887d2c changed the script after
+it was pinned at cac47380, while the retained private checkout still holds the
+pinned bytes. The laptop's private installer wrapper had supplied the private
+`pinned_sources`, so the earlier statement here that it was fully redundant was
+wrong. The Phase B `install-passive.py` now binds that one input root to
+`GEMINI_PRIVATE_REPO`; every pin, digest, derive and guard check is the
+reviewed original, and a mismatching private copy still refuses.
+[tests/installer-sources-test.py](tests/installer-sources-test.py) asserts the
+binding, the unchanged checks, acceptance of the pinned bytes and refusal of the
+modified script. The pin itself is not updated here; whether a0887d2c's change
+deserves a reviewed re-pin is a separate decision.
 
 Order for runtime 2, with the laptop's private wrappers supplying only the
 private-repository module remaps and the runtime root:

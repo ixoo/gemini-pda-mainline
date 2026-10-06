@@ -26,6 +26,28 @@ ADAPTER.INSTALLER.EXPERIMENT = 'mt6797-wifi-phase-b'
 ADAPTER.INSTALLER.RECEIPT_NAME = 'mt6797-wifi-phase-b-deployment-2'
 ADAPTER.INSTALLER.MANIFEST_SHA = MANIFEST_SHA
 ADAPTER.MANIFEST_SHA = MANIFEST_SHA
+ORIGINAL_SOURCES = ADAPTER.INSTALLER.sources
+
+
+def sources():
+    """Read the pinned installer inputs from the retained private checkout.
+
+    The baseline installer's pinned_sources() captures this checkout as its
+    default root, and this checkout's install-boot2.sh no longer matches the
+    reviewed pin (changed by a0887d2c after the pin at cac47380), while the
+    private checkout retains the pinned bytes. Bind that one input root to
+    GEMINI_PRIVATE_REPO. Every pin, digest and derive check stays as reviewed;
+    a mismatching private copy still refuses.
+    """
+    installer, parser = ORIGINAL_SOURCES()
+    private = Path(os.environ['GEMINI_PRIVATE_REPO']).resolve(strict=True)
+    pinned = installer['pinned_sources']
+    installer = dict(installer)
+    installer['pinned_sources'] = lambda repo=private: pinned(repo)
+    return installer, parser
+
+
+ADAPTER.INSTALLER.sources = sources
 
 
 def validate(candidate, previous):
