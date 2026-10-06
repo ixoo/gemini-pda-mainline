@@ -46,8 +46,11 @@ No power-control register is written at probe. Each domain logs
 
 - `mt6797-a53-display-h2-compile`: the 107 board-services patches plus
   display/0001. The fragment keeps the board-services RTC scope and adds
-  `MTK_SCPSYS` with adopt mode. The cmdline is unchanged and keeps
-  `clk_ignore_unused`.
+  `MTK_SCPSYS` with adopt mode. It also turns on `MTK_INFRACFG`, which
+  `MTK_SCPSYS` selects and the handoff fragment disables. That is a helper
+  library: its only init code targets MT8192, and its bus-protection helpers
+  run only on SCPSYS power on and off, which adopt mode never calls at probe.
+  The cmdline is unchanged and keeps `clk_ignore_unused`.
 - [display-h2-dt.sh](display-h2-dt.sh) runs the board-services DT derivation
   on the exact C1-5 parent, then adds one property:
   `/chosen/framebuffer@7dfb0000 power-domains = <&scpsys 3>` (MM). It checks
