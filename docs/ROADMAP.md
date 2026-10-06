@@ -77,7 +77,10 @@ budgets and stop conditions under the [safety rules](SAFETY.md). Steps marked
 4. **C2b: charge policy (local).** A named profile binding `bq25890` only
    after the reviewed sequence programs and verifies 4.2 V and 500 mA before
    charging starts. Then the gauge/ADC comparison boot.
-5. **Display adoption, then the rest.** simplefb with the MM domain so
+5. **Display adoption, then the rest.** Prepared: H2 (simplefb holds the MM
+   domain through SCPSYS boot-state adoption) and H8 (PWM backlight on 26 MHz)
+   in the [display H2 record](../experiments/2026-10-06-gemini-display-h2/README.md);
+   H7 is closed. simplefb with the MM domain so
    `clk_ignore_unused` can go, backlight, the I2C1 boot (sensors and panel
    bias), microSD and USB host, headphone-first audio, panel, GPU, GNSS after
    proven common init. Cellular and cameras stay feasibility work. The
@@ -96,13 +99,19 @@ budgets and stop conditions under the [safety rules](SAFETY.md). Steps marked
    [common-init review](../experiments/2026-10-03-mt6797-wifi-audit/COMMON_INIT_REVIEW.md).
    Its interface needs an owner decision: a fixed in-kernel sequence, or a
    userspace-driven command channel.
-4. **C2b charger.** The [driver review](../experiments/2026-10-04-gemini-charging-re/DRIVER_REVIEW.md)
-   found the unmodified `bq25890` driver cannot meet the gate, and the charger
-   INT wiring is unknown. Both must be resolved before a C2b profile.
-5. The MT6351 regulator constraint set waits for C1's inherited rail states;
+4. **C2b charger.** The [C2b record](../experiments/2026-10-06-gemini-c2b-charger/README.md)
+   adds an opt-in verified charge start to `bq25890`: charging is held off
+   until every limit reads back. The profile `mt6797-a53-c2b-charger-compile`
+   is built, and the candidate DT and protocol draft await the custodian.
+   The charger line is GPIO246/EINT158 (`CHR_STAT`); whether it is STAT or
+   INT awaits a Gemian check.
+5. The MT6351 regulator constraint set waits for C1's inherited rail states
+   (the sanitized inventory has been requested from the custodian);
    writing it blind would switch on rails the loader left off
    ([H7 refinement](../experiments/2026-10-04-gemini-pmic-basics-re/README.md#h7-ordering-refinement-2026-10-05)).
-6. **Upstream, owner action.** Pick two small topics, take authorship and sign
+6. **Upstream, owner action.** Both candidate topics still apply on mainline
+   `67f0943b` and linux-next with no overlap (2026-10-06); the lore search
+   is a manual check. Pick two small topics, take authorship and sign
    off: the [MT6797 infracfg reset](../experiments/2026-09-05-mt6797-infracfg-upstream-preparation/README.md)
    topic and one fix, either the
    [BQ25890 IRQ preflight](../experiments/2026-09-12-bq25890-irq-preflight/README.md)
