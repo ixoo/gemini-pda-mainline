@@ -411,6 +411,10 @@ None of these is admitted by this record.
    [live resource map](../../docs/hardware/mt6797-live-resource-map.md)
    capture family) before the first mainline I2C1 boot; a wrong pair costs a
    full boot with a dead bus. Confidence: medium.
+   **Answered offline, 2026-10-06:** the public board DWS sets GPIO55/56 to
+   mode 1 (`SCL1_0/SDA1_0`); GPIO53/54 are mode 1 (`DPI_HSYNC/VSYNC`) and
+   GPIO58/60 are GPIO
+   ([I2C1 record](../2026-10-06-gemini-i2c1-sensors/README.md)).
 9. **H9. Step counting, significant motion, and every vendor virtual sensor
    stay out of the kernel (F9).** The chip features exist, but upstream
    `bmi160` has no interface for them and the project's userspace-fusion rule

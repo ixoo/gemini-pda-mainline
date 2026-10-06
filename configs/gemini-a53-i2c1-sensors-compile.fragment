@@ -1,0 +1,11 @@
+# I2C1 sensors H1: board-services RTC scope plus i2c-dev for single-register
+# identity reads and the in-tree BMI160 IIO driver, built in (no modules).
+CONFIG_RTC_CLASS=y
+CONFIG_RTC_DRV_MT6397=y
+# CONFIG_RTC_NVMEM is not set
+# CONFIG_RTC_HCTOSYS is not set
+# CONFIG_RTC_SYSTOHC is not set
+CONFIG_I2C_CHARDEV=y
+CONFIG_IIO=y
+CONFIG_BMI160_I2C=y
+CONFIG_LOCALVERSION="-gemini-a53-i2c1-sensors-compile"

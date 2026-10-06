@@ -92,7 +92,9 @@ decompiled difference is exactly them:
   checks caught and fixed three mistakes before this: a zero `reg`, 1-byte
   boolean properties, and a missing `ti,bq25890` fallback compatible.
 
-GPIO246 has no pinctrl state: mainline's MT6797 table lacks its pull fields
+I2C0 itself is on GPIO37/38 in mode 1 (`SCL0_0/SDA0_0`) per the public board
+DWS, which the loader applies; the DT adds no pinctrl state for it
+([I2C1 record](../2026-10-06-gemini-i2c1-sensors/README.md)). GPIO246 has no pinctrl state: mainline's MT6797 table lacks its pull fields
 (C1 added them only for GPIO66), so the loader's pull-up, set to pull-high in
 the vendor DWS, is relied on. EINT setup at IRQ request writes mode 0, input
 and Schmitt, as for the lid.
