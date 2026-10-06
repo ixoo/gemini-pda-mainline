@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-06-gemini-c2b-charger` |
-| Status | Driver change and compile profile; interrupt wiring awaits a Gemian check; not booted |
+| Status | Built and package-verified; interrupt wiring awaits a Gemian check; no candidate; not booted |
 | Profile | `mt6797-a53-c2b-charger-compile` |
 | Date | 2026-10-06 |
 | Device action | None |
@@ -81,3 +81,18 @@ interrupt chosen from the Gemian answer.
   neighbouring `linux,read-back-settings` lines in the same function.
 - The 110-patch series via the build's apply method reproduces the author
   tree.
+
+## Build
+
+| Item | Value |
+| --- | --- |
+| Input commit | `cfca5ee606809ebeb04d3624d2e56d94e21ceeac` |
+| Job | `cfca5ee6…-mt6797-a53-c2b-charger-compile-m0`, buildbox-1, 32 jobs |
+| Package inventory | `f3b2a202ab2fc28735fe020af25701050a4de4f36addab24911214510e126a84` |
+| Release | `7.1.3-gemini-a53-c2b-charger-compile` |
+
+Compilation, remote validation, fetch and local checksums pass, with no
+compiler warning. The resolved config has `CHARGER_BQ25890` and
+`RTC_DRV_MT6397` built in, with `SUSPEND` and `DEBUG_FS` off, and the image
+contains the verified-start property. The packaged DT has no charger node and
+is not a candidate DT.
