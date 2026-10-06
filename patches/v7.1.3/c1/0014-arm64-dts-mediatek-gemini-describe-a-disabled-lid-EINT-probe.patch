@@ -1,0 +1,37 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 6 Oct 2026 01:01:00 +0000
+Subject: [PATCH 14/14] arm64: dts: mediatek: gemini: describe a disabled lid
+ EINT probe
+
+Add the experiment-only lid EINT probe on the lid pins and GPIO66,
+disabled. It shares those resources with the gpio-keys lid switch, so a
+composed candidate enables at most one of the two.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+index d781f5121..2f6baa0f0 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -556,4 +556,17 @@ hall-switch {
+ 			debounce-interval = <0>;
+ 		};
+ 	};
++
++	/*
++	 * Experiment-only one-shot level-low delivery probe for the lid. It
++	 * shares the lid pins and GPIO with gpio-keys, so at most one of the
++	 * two may be enabled in a composed candidate.
++	 */
++	lid-eint-probe {
++		compatible = "gemini,lid-eint-probe";
++		pinctrl-names = "default";
++		pinctrl-0 = <&hall_pins>;
++		gpios = <&pio 66 GPIO_ACTIVE_LOW>;
++		status = "disabled";
++	};
+ };

@@ -19,4 +19,6 @@ CONFIG_MFD_MT6351_BASELINE_OBSERVER=y
 CONFIG_DEBUG_FS=y
 # Read-only EINT register snapshot for the lid test.
 CONFIG_EINT_MTK_SNAPSHOT=y
+# One-shot level-low lid EINT delivery probe; its DT node stays disabled.
+CONFIG_GEMINI_LID_EINT_PROBE=y
 CONFIG_LOCALVERSION="-gemini-a53-c1-compile"

@@ -1,0 +1,302 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 6 Oct 2026 01:00:00 +0000
+Subject: [PATCH 13/14] misc: add an experiment-only Gemini lid EINT delivery
+ probe
+
+The Gemini lid on GPIO66 changes level while gpio-keys, which requests a
+both-edge interrupt emulated by polarity flipping, never sees EINT5. The
+vendor kernel uses a level-triggered interrupt on the same pin.
+
+Behind a default-off option, own the lid GPIO and its interrupt through
+the standard GPIO and IRQ APIs and request one level-low interrupt, left
+disabled. A write-once debugfs "arm" file opens one finite window, only
+while the line reads high. The first delivery is masked in hard-IRQ
+context and never re-enabled; a timeout disarms the window otherwise. A
+read-only "status" file reports the outcome, levels and timing. There is
+no polarity alternation, software trigger, wake or suspend handling.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/misc/Kconfig                 |  12 ++
+ drivers/misc/Makefile                |   1 +
+ drivers/misc/gemini-lid-eint-probe.c | 238 +++++++++++++++++++++++++++
+ 3 files changed, 251 insertions(+)
+ create mode 100644 drivers/misc/gemini-lid-eint-probe.c
+
+diff --git a/drivers/misc/Kconfig b/drivers/misc/Kconfig
+index 00683bf06..939c09919 100644
+--- a/drivers/misc/Kconfig
++++ b/drivers/misc/Kconfig
+@@ -644,6 +644,18 @@ config MCHP_LAN966X_PCI
+ 	    - lan966x-miim (MDIO_MSCC_MIIM)
+ 	    - lan966x-switch (LAN966X_SWITCH)
+ 
++config GEMINI_LID_EINT_PROBE
++	bool "Gemini lid one-shot EINT delivery probe (experiment)"
++	depends on OF && GPIOLIB && DEBUG_FS
++	help
++	  Experiment-only diagnostic for the Gemini PDA lid sensor. Owns the
++	  lid GPIO and its EINT, and lets root arm one finite window in which
++	  the first level-low interrupt is recorded and immediately masked.
++	  It never re-enables the line, alternates polarity or triggers an
++	  interrupt in software.
++
++	  If unsure, say N.
++
+ source "drivers/misc/c2port/Kconfig"
+ source "drivers/misc/eeprom/Kconfig"
+ source "drivers/misc/cb710/Kconfig"
+diff --git a/drivers/misc/Makefile b/drivers/misc/Makefile
+index b32a2597d..f8c986c3c 100644
+--- a/drivers/misc/Makefile
++++ b/drivers/misc/Makefile
+@@ -75,3 +75,4 @@ obj-$(CONFIG_MCHP_LAN966X_PCI)	+= lan966x-pci.o
+ obj-y				+= keba/
+ obj-y				+= amd-sbi/
+ obj-$(CONFIG_MISC_RP1)		+= rp1/
++obj-$(CONFIG_GEMINI_LID_EINT_PROBE)	+= gemini-lid-eint-probe.o
+diff --git a/drivers/misc/gemini-lid-eint-probe.c b/drivers/misc/gemini-lid-eint-probe.c
+new file mode 100644
+index 000000000..da078979b
+--- /dev/null
++++ b/drivers/misc/gemini-lid-eint-probe.c
+@@ -0,0 +1,238 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Gemini lid EINT delivery probe (experiment only).
++ *
++ * Owns the lid GPIO and its EINT exclusively and asks for one level-low
++ * interrupt. The first delivery is masked in hard-IRQ context and never
++ * re-enabled. A write-once debugfs "arm" file opens one finite window; a
++ * timeout disarms it if nothing arrives. "status" is read-only. No polarity
++ * change, software trigger, wake or suspend handling exists here.
++ */
++
++#include <linux/debugfs.h>
++#include <linux/gpio/consumer.h>
++#include <linux/interrupt.h>
++#include <linux/irq.h>
++#include <linux/kstrtox.h>
++#include <linux/ktime.h>
++#include <linux/mod_devicetable.h>
++#include <linux/module.h>
++#include <linux/platform_device.h>
++#include <linux/seq_file.h>
++#include <linux/spinlock.h>
++#include <linux/workqueue.h>
++
++#define LID_PROBE_MAX_WINDOW_S	300
++
++enum lid_probe_state {
++	LID_PROBE_IDLE,
++	LID_PROBE_ARMED,
++	LID_PROBE_FIRED,
++	LID_PROBE_TIMED_OUT,
++	LID_PROBE_REFUSED,
++};
++
++static const char *const lid_probe_names[] = {
++	[LID_PROBE_IDLE] = "idle",
++	[LID_PROBE_ARMED] = "armed",
++	[LID_PROBE_FIRED] = "fired",
++	[LID_PROBE_TIMED_OUT] = "timed-out",
++	[LID_PROBE_REFUSED] = "refused",
++};
++
++struct lid_probe {
++	struct gpio_desc *gpio;
++	int irq;
++	/* Protects every field below; taken in hard-IRQ context. */
++	spinlock_t lock;
++	enum lid_probe_state state;
++	unsigned int deliveries;
++	int level_at_arm, level_at_fire, level_at_timeout;
++	unsigned int window_s;
++	ktime_t armed_at, fired_at;
++	struct delayed_work timeout;
++	struct dentry *dir;
++};
++
++static irqreturn_t lid_probe_irq(int irq, void *data)
++{
++	struct lid_probe *p = data;
++
++	/* Mask first: a held-low line must not storm. Never re-enabled. */
++	disable_irq_nosync(irq);
++	spin_lock(&p->lock);
++	p->deliveries++;
++	if (p->state == LID_PROBE_ARMED) {
++		p->state = LID_PROBE_FIRED;
++		p->fired_at = ktime_get();
++		p->level_at_fire = gpiod_get_raw_value(p->gpio);
++	}
++	spin_unlock(&p->lock);
++	return IRQ_HANDLED;
++}
++
++static void lid_probe_timeout(struct work_struct *work)
++{
++	struct lid_probe *p = container_of(to_delayed_work(work),
++					   struct lid_probe, timeout);
++	unsigned long flags;
++	bool disarm = false;
++
++	spin_lock_irqsave(&p->lock, flags);
++	if (p->state == LID_PROBE_ARMED) {
++		p->state = LID_PROBE_TIMED_OUT;
++		p->level_at_timeout = gpiod_get_raw_value(p->gpio);
++		disarm = true;
++	}
++	spin_unlock_irqrestore(&p->lock, flags);
++	/* A delivery racing this point already masked itself. */
++	if (disarm)
++		disable_irq(p->irq);
++}
++
++static ssize_t lid_probe_arm_write(struct file *file, const char __user *buf,
++				   size_t count, loff_t *ppos)
++{
++	struct lid_probe *p = file->private_data;
++	unsigned long flags;
++	unsigned int window;
++	int level, ret;
++
++	ret = kstrtouint_from_user(buf, count, 10, &window);
++	if (ret)
++		return ret;
++	if (!window || window > LID_PROBE_MAX_WINDOW_S)
++		return -EINVAL;
++	level = gpiod_get_raw_value(p->gpio);
++	spin_lock_irqsave(&p->lock, flags);
++	if (p->state != LID_PROBE_IDLE) {
++		spin_unlock_irqrestore(&p->lock, flags);
++		return -EBUSY;
++	}
++	p->level_at_arm = level;
++	/* Arm only with the lid open (raw high); closed would fire at once. */
++	if (level != 1) {
++		p->state = LID_PROBE_REFUSED;
++		spin_unlock_irqrestore(&p->lock, flags);
++		return -EAGAIN;
++	}
++	p->state = LID_PROBE_ARMED;
++	p->window_s = window;
++	p->armed_at = ktime_get();
++	spin_unlock_irqrestore(&p->lock, flags);
++	schedule_delayed_work(&p->timeout, secs_to_jiffies(window));
++	enable_irq(p->irq);
++	return count;
++}
++
++static const struct file_operations lid_probe_arm_fops = {
++	.owner = THIS_MODULE,
++	.open = simple_open,
++	.write = lid_probe_arm_write,
++	.llseek = noop_llseek,
++};
++
++static int lid_probe_status_show(struct seq_file *m, void *unused)
++{
++	struct lid_probe *p = m->private;
++	enum lid_probe_state state;
++	unsigned int deliveries, window;
++	int arm, fire, timeout, now;
++	s64 latency_ms = -1;
++	unsigned long flags;
++
++	now = gpiod_get_raw_value(p->gpio);
++	spin_lock_irqsave(&p->lock, flags);
++	state = p->state;
++	deliveries = p->deliveries;
++	window = p->window_s;
++	arm = p->level_at_arm;
++	fire = p->level_at_fire;
++	timeout = p->level_at_timeout;
++	if (state == LID_PROBE_FIRED)
++		latency_ms = ktime_ms_delta(p->fired_at, p->armed_at);
++	spin_unlock_irqrestore(&p->lock, flags);
++	seq_printf(m, "state=%s deliveries=%u window_s=%u irq=%d trigger=0x%x\n",
++		   lid_probe_names[state], deliveries, window, p->irq,
++		   irq_get_trigger_type(p->irq));
++	seq_printf(m, "level_now=%d level_at_arm=%d level_at_fire=%d level_at_timeout=%d fire_ms=%lld\n",
++		   now, arm, fire, timeout, latency_ms);
++	return 0;
++}
++DEFINE_SHOW_ATTRIBUTE(lid_probe_status);
++
++static int lid_probe_probe(struct platform_device *pdev)
++{
++	struct device *dev = &pdev->dev;
++	struct lid_probe *p;
++	int ret;
++
++	p = devm_kzalloc(dev, sizeof(*p), GFP_KERNEL);
++	if (!p)
++		return -ENOMEM;
++	spin_lock_init(&p->lock);
++	p->level_at_arm = -1;
++	p->level_at_fire = -1;
++	p->level_at_timeout = -1;
++	INIT_DELAYED_WORK(&p->timeout, lid_probe_timeout);
++
++	p->gpio = devm_gpiod_get(dev, NULL, GPIOD_IN);
++	if (IS_ERR(p->gpio))
++		return dev_err_probe(dev, PTR_ERR(p->gpio), "lid GPIO\n");
++	/* The hard-IRQ handler reads the level, so it must not sleep. */
++	if (gpiod_cansleep(p->gpio))
++		return dev_err_probe(dev, -EINVAL, "sleeping GPIO\n");
++	p->irq = gpiod_to_irq(p->gpio);
++	if (p->irq < 0)
++		return dev_err_probe(dev, p->irq, "lid IRQ\n");
++	ret = devm_request_irq(dev, p->irq, lid_probe_irq,
++			       IRQF_TRIGGER_LOW | IRQF_NO_AUTOEN,
++			       "gemini-lid-eint-probe", p);
++	if (ret)
++		return dev_err_probe(dev, ret, "request IRQ\n");
++
++	p->dir = debugfs_create_dir("gemini-lid-eint-probe", NULL);
++	debugfs_create_file("arm", 0200, p->dir, p, &lid_probe_arm_fops);
++	debugfs_create_file("status", 0400, p->dir, p, &lid_probe_status_fops);
++	platform_set_drvdata(pdev, p);
++	dev_info(dev, "lid EINT probe ready: irq=%d level=%d (not armed)\n",
++		 p->irq, gpiod_get_raw_value(p->gpio));
++	return 0;
++}
++
++static void lid_probe_remove(struct platform_device *pdev)
++{
++	struct lid_probe *p = platform_get_drvdata(pdev);
++	unsigned long flags;
++	bool armed;
++
++	debugfs_remove_recursive(p->dir);
++	cancel_delayed_work_sync(&p->timeout);
++	spin_lock_irqsave(&p->lock, flags);
++	armed = p->state == LID_PROBE_ARMED;
++	if (armed)
++		p->state = LID_PROBE_TIMED_OUT;
++	spin_unlock_irqrestore(&p->lock, flags);
++	/* devm frees the IRQ; a still-armed line is disabled before that. */
++	if (armed)
++		disable_irq(p->irq);
++}
++
++static const struct of_device_id lid_probe_of_match[] = {
++	{ .compatible = "gemini,lid-eint-probe" },
++	{ }
++};
++MODULE_DEVICE_TABLE(of, lid_probe_of_match);
++
++static struct platform_driver lid_probe_driver = {
++	.probe = lid_probe_probe,
++	.remove = lid_probe_remove,
++	.driver = {
++		.name = "gemini-lid-eint-probe",
++		.of_match_table = lid_probe_of_match,
++	},
++};
++module_platform_driver(lid_probe_driver);
++
++MODULE_DESCRIPTION("Gemini lid EINT one-shot level-low delivery probe (experiment)");
++MODULE_LICENSE("GPL");
