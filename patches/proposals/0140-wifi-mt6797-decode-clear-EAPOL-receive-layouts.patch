@@ -1,0 +1,152 @@
+From fae9c7c2723522d83ab34ed0f23f211350370752 Mon Sep 17 00:00:00 2001
+From: scratch <scratch@invalid>
+Date: Tue, 6 Oct 2026 04:28:28 +0000
+Subject: [PATCH] wifi: mt6797: decode clear EAPOL receive layouts
+
+Prepare original bounded decoding for the first WPA2 EAPOL-Key receive.
+Restore the native non-QoS From-DS header when the public gen3 RXD marks
+Ethernet translation, using its group-4 AP and sequence metadata.
+Validate exact length, peer, channel, BSS, WLAN, error flags, group
+bounds and complete WPA2-PSK EAPOL-Key framing before exposing a payload
+span.
+
+This helper has no call site or hardware effects yet. ASan/UBSan
+fixtures cover native/translated group combinations, padding, all
+truncations, invalid metadata, identity mismatches and the body bound.
+Hardware format/application remain unproven.
+
+Internal experiment only, synthetic non-certifying author; not
+submission-ready and no DCO certification is asserted.
+---
+ .../net/wireless/mediatek/mt6797/eapol-rx.h   | 119 ++++++++++++++++++
+ 1 file changed, 119 insertions(+)
+ create mode 100644 drivers/net/wireless/mediatek/mt6797/eapol-rx.h
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/eapol-rx.h b/drivers/net/wireless/mediatek/mt6797/eapol-rx.h
+new file mode 100644
+index 000000000..eca0d190f
+--- /dev/null
++++ b/drivers/net/wireless/mediatek/mt6797/eapol-rx.h
+@@ -0,0 +1,119 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef MT6797_EAPOL_RX_H
++#define MT6797_EAPOL_RX_H
++
++#include "join-events.h"
++
++struct mt6797_eapol_rx {
++	unsigned char prefix[32];
++	size_t prefix_bytes, offset, bytes;
++	int signal_dbm;
++};
++
++/* Original decoder of the public gen3 RXD layout. Clear, nonaggregated,
++ * non-QoS From-DS EAPOL-Key only; peer lifetime and admission belong to caller.
++ * Translated Ethernet needs group 4 to restore the AP and sequence identity.
++ * No firmware crypto, key material, transport, allocation or effects here.
++ */
++static inline bool
++mt6797_eapol_rx(const unsigned char *packet, size_t bytes,
++		unsigned char channel, const unsigned char own[6],
++		const unsigned char ap[6], struct mt6797_eapol_rx *out)
++{
++	struct mt6797_eapol_rx r = {0};
++	size_t offset = 16, group4 = 0, vector = 0, eapol;
++	unsigned int groups, fc, i, length;
++	const unsigned char *f, *source;
++	bool translated;
++
++	if (!packet || !own || !ap || !out || bytes < 16 || bytes > 4096 ||
++	    !channel || mt6797_join_le16(packet) != bytes ||
++	    (mt6797_join_le16(packet + 2) >> 13) != 2 ||
++	    packet[5] != channel || (packet[4] & 15) != 2 ||
++	    packet[7] || packet[8] != 1 || packet[9] ||
++	    mt6797_join_le16(packet + 10) != 0xc000)
++		return false;
++	groups = (mt6797_join_le16(packet + 2) >> 9) & 15;
++	if (groups & 8) {
++		group4 = offset;
++		offset += 16;
++	}
++	if (groups & 1)
++		offset += 16;
++	if (groups & 2)
++		offset += 8;
++	if (groups & 4) {
++		vector = offset;
++		offset += 24;
++	}
++	if (packet[6] & 0x40)
++		offset += 2;
++	if (!vector || offset > bytes || packet[vector + 9] > 220)
++		return false;
++	translated = packet[6] & 0x80;
++	f = packet + offset;
++	if (translated) {
++		if (!group4 || (packet[6] & 63) != 14 || bytes - offset < 18)
++			return false;
++		fc = mt6797_join_le16(packet + group4);
++		if (mt6797_join_le16(packet + group4 + 8) & 15)
++			return false;
++		for (i = 0; i < 6; i++)
++			if (f[i] != own[i] || packet[group4 + 2 + i] != ap[i])
++				return false;
++		if (f[12] != 0x88 || f[13] != 0x8e)
++			return false;
++		source = f + 6;
++		eapol = offset + 14;
++		r.prefix_bytes = 32;
++		r.prefix[0] = fc;
++		r.prefix[1] = fc >> 8;
++		for (i = 0; i < 6; i++) {
++			r.prefix[4 + i] = own[i];
++			r.prefix[10 + i] = ap[i];
++			r.prefix[16 + i] = source[i];
++		}
++		r.prefix[22] = packet[group4 + 8];
++		r.prefix[23] = packet[group4 + 9];
++		r.prefix[24] = 0xaa;
++		r.prefix[25] = 0xaa;
++		r.prefix[26] = 3;
++		r.prefix[30] = 0x88;
++		r.prefix[31] = 0x8e;
++		r.offset = eapol;
++	} else {
++		if ((packet[6] & 63) != 24 || bytes - offset < 36)
++			return false;
++		fc = mt6797_join_le16(f);
++		if (mt6797_join_le16(f + 22) & 15)
++			return false;
++		for (i = 0; i < 6; i++)
++			if (f[4 + i] != own[i] || f[10 + i] != ap[i])
++				return false;
++		if (f[24] != 0xaa || f[25] != 0xaa || f[26] != 3 ||
++		    f[27] || f[28] || f[29] || f[30] != 0x88 || f[31] != 0x8e)
++			return false;
++		source = f + 16;
++		eapol = offset + 32;
++		r.offset = offset;
++	}
++	/* Version/type, DS direction, fragment, protection and QoS are fixed.
++	 * Retry and More-Data do not alter header layout or peer identity.
++	 */
++	if ((fc & ~0x2800U) != 0x0208 || (source[0] & 1))
++		return false;
++	/* Complete WPA2-PSK EAPOL-Key (16-byte MIC) and key-data length.
++	 * Supplicant owns nonce, replay, MIC and handshake-state validation.
++	 */
++	length = (packet[eapol + 2] << 8) | packet[eapol + 3];
++	if ((packet[eapol] < 1 || packet[eapol] > 3) ||
++	    packet[eapol + 1] != 3 || length < 95 || length > 2048 ||
++	    bytes - eapol != length + 4 || packet[eapol + 4] != 2 ||
++	    (((unsigned int)packet[eapol + 97] << 8) | packet[eapol + 98]) != length - 95)
++		return false;
++	r.bytes = bytes - r.offset;
++	r.signal_dbm = (int)packet[vector + 9] / 2 - 110;
++	*out = r;
++	return true;
++}
++#endif
+-- 
+2.39.5
+

@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-07-mt6797-wifi-phase-b-join` |
-| Status | Bounded join callbacks implemented and built; first device protocol ready; data and keys remain incomplete; no air test |
+| Status | Bounded join callbacks implemented and built; first device protocol ready; clear EAPOL decoder tested offline but unlinked; data and keys remain incomplete; no air test |
 | Base | Phase A [runtime 3](../2026-10-06-mt6797-wifi-common-init/RUNTIME_3.md), package `3013daa6…` |
 | Date | 2026-10-07 |
 | Device action | None |
@@ -18,6 +18,45 @@ data frames.
 
 The Phase A artifacts and protocol stay unchanged. Phase B starts from a
 separate profile and candidate.
+
+## Next-stage EAPOL receive preparation
+
+Proposal [0140](../../patches/proposals/0140-wifi-mt6797-decode-clear-EAPOL-receive-layouts.patch)
+adds an original, unlinked decoder needed for the first WPA2 EAPOL-Key receive.
+The management-only parser cannot handle ordinary RX-data packets. The public
+gen3 [RXD definitions](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/include/nic/nic_rx.h)
+and [RFB parser](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic_rx.c)
+describe native and Ethernet-translated layouts. Translation needs group 4's
+AP and sequence metadata to reconstruct the native header for mac80211.
+
+The helper accepts only clear, nonaggregated, non-QoS From-DS unicast
+WPA2-PSK EAPOL-Key frames with a 16-byte MIC field. It validates channel,
+BSS/WLAN index, copied peer identity,
+RX error flags, complete group/padding bounds, exact declared body and key-data
+lengths before returning spans and a reconstructed prefix. It does not validate
+handshake state, nonce, replay or MIC; those belong to the supplicant. It has no
+transport, key installation or radio effect, and no call site. Admission and
+associated-peer lifetime checks remain the caller's responsibility.
+
+The 95-byte fixed key body uses the standard 32-byte nonce and 16-byte MIC.
+This was checked against the pinned supplicant
+[common definitions](https://android.googlesource.com/platform/external/wpa_supplicant_8/+/073b9ad1b7e6876417fe0927c6364245ecf26d8b/src/common/wpa_common.h)
+(source SHA-256 `319284b9b06f01686a2aa93ba496fad49f49aaf07c88e1492bc3702ecb8e0f1c`).
+The public vendor `privacy.h` structure declares a 16-byte nonce; that
+inconsistent structure was not used to derive the EAPOL framing offsets.
+
+The [fixture](tests/eapol-rx-test.c) passed ASan/UBSan on a Buildbox across 24
+native/translated group and padding combinations, every truncated allocation,
+malformed metadata, peer mismatch and the 2048-byte body bound. Header-file
+Checkpatch found no errors or warnings. The format-patch check has one reminder
+about MAINTAINERS for a new file; this unlinked internal experiment has no
+upstream maintainer entry or DCO certification. Reproduce with
+[run-eapol-test.py](tests/run-eapol-test.py)
+against a Phase B tree with proposal 0140 applied. No profile selects this
+patch, no kernel build changed, and the installed management-test candidate and
+its protocol remain unchanged. These fixtures do not establish the device's
+actual RX layout or demonstrate an EAPOL exchange. Runtime integration follows
+the first management-test result and a separate data/key protocol.
 
 ## What the Phase A baseline could do
 

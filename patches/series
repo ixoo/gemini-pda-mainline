@@ -750,3 +750,4 @@ proposals/0137-wifi-mt6797-synchronize-BSS-and-associated-station.patch
 proposals/0138-wifi-mt6797-finish-one-shot-join-with-healthy-teardown.patch
 proposals/0139-wifi-mt6797-record-bounded-join-stages.patch
 v7.1.3/gpu/0001-pmdomain-mediatek-scpsys-protect-the-MT6797-MFG-bus-on-power-transitions.patch
+proposals/0140-wifi-mt6797-decode-clear-EAPOL-receive-layouts.patch
