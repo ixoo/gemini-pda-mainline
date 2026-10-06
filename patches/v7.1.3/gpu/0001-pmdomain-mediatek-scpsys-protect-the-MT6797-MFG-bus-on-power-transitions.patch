@@ -1,0 +1,45 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 6 Oct 2026 03:00:00 +0000
+Subject: [PATCH] pmdomain: mediatek: scpsys: protect the MT6797 MFG bus on
+ power transitions
+
+The MT6797 vendor GPU platform code asserts INFRA_TOPAXI_PROTECTEN bits 21
+and 23 before every MFG power-off and releases them after power-on, polling
+INFRA_TOPAXI_PROTECTSTA1. Mainline SCPSYS performs the same sequence from
+bus_prot_mask on the same registers, as MT8173 does for its MFG domain.
+
+Give the MT6797 MFG domain that mask so a GPU power cycle cannot leave the
+AXI path unprotected.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/pmdomain/mediatek/mtk-scpsys.c | 1 +
+ include/linux/soc/mediatek/infracfg.h  | 2 ++
+ 2 files changed, 3 insertions(+)
+
+diff --git a/drivers/pmdomain/mediatek/mtk-scpsys.c b/drivers/pmdomain/mediatek/mtk-scpsys.c
+index bde8be2e3..cebd3d3be 100644
+--- a/drivers/pmdomain/mediatek/mtk-scpsys.c
++++ b/drivers/pmdomain/mediatek/mtk-scpsys.c
+@@ -865,6 +865,7 @@ static const struct scp_domain_data scp_domain_data_mt6797[] = {
+ 		.sram_pdn_ack_offs = SPM_MFG_SRAM_CON_MT6797,
+ 		.sram_pdn_bits = GENMASK(1, 0),
+ 		.sram_pdn_ack_bits = GENMASK(17, 16),
++		.bus_prot_mask = MT6797_TOP_AXI_PROT_EN_MFG,
+ 		.clk_id = {CLK_MFG_52M},
+ 	},
+ 	[MT6797_POWER_DOMAIN_MFG_CORE0] = {
+diff --git a/include/linux/soc/mediatek/infracfg.h b/include/linux/soc/mediatek/infracfg.h
+index 9956e18c5..cb5f53ab2 100644
+--- a/include/linux/soc/mediatek/infracfg.h
++++ b/include/linux/soc/mediatek/infracfg.h
+@@ -439,6 +439,8 @@
+ 						 BIT(26) | BIT(27) | \
+ 						 BIT(28))
+ 
++#define MT6797_TOP_AXI_PROT_EN_MFG		(BIT(21) | BIT(23))
++
+ #define INFRA_TOPAXI_PROTECTEN			0x0220
+ #define INFRA_TOPAXI_PROTECTSTA1		0x0228
+ #define INFRA_TOPAXI_PROTECTEN_SET		0x0260

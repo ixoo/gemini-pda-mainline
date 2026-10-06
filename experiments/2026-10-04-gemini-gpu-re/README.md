@@ -453,6 +453,10 @@ attributable. None is admitted by this record.
    `0x10001228` bits 21/23 with the GPU runtime-suspended (expect set) and
    active (expect clear). Confidence: high that it is harmless, medium that it
    is required for stability.
+   **Prepared, 2026-10-06:** [gpu/0001](../../patches/v7.1.3/gpu/0001-pmdomain-mediatek-scpsys-protect-the-MT6797-MFG-bus-on-power-transitions.patch)
+   sets `bus_prot_mask = BIT(21) | BIT(23)` on `MT6797_POWER_DOMAIN_MFG`
+   (W=1 clean, checkpatch strict clean). It is in the canonical series but no
+   profile selects it yet; a GPU candidate profile will.
 2. **H2. The GPU SRAM LDO controls at `0x10001fbc–0x10001fe4` must hold the
    vendor values before the MFG and core SRAMs power up, and the retained
    loader does not set them (F7).** If true, mainline needs a small
