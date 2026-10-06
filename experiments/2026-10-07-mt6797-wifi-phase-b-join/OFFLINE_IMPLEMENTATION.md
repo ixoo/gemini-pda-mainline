@@ -1,7 +1,7 @@
 # Phase B offline implementation checkpoint
 
 Status: incomplete, compile-only, not built yet. Profile
-`mt6797-a53-wifi-phase-b-compile` selects eight original format-patches in
+`mt6797-a53-wifi-phase-b-compile` selects eleven original format-patches in
 canonical order after the Phase A baseline. It has a distinct kernel release.
 The proven Phase A profile is unchanged. No candidate or device test is admitted.
 
@@ -35,7 +35,15 @@ The proven Phase A profile is unchanged. No candidate or device test is admitted
   outside the MAC mutex. Pending channel/activation replies are consumed once;
   grant expiry is monotonic. Stop/remove retire pending host state before disposal.
   Downward station transitions cannot fail. Queue admission remains closed;
-  upward station and managed-TX callbacks are not implemented.
+  upward station and managed-TX callbacks are not implemented. Event polling
+  now has a separate gate from TX admission, so pending control replies can
+  later be consumed while frame dequeue remains closed.
+- Default-off join option and copied BSS/channel snapshots: no stack BSS,
+  STA or channel-context pointer is retained. The compile profile enables
+  snapshot preparation, with no new firmware submission or open TX gate.
+- Legacy rate normalization: translate the advertised eight 5 GHz OFDM slots
+  to gen3 software bits 6..13, validating basic-rate membership and fixed
+  6 Mbps support before modifying outputs.
 
 Selected patches are listed in
 [`series-a53-wifi-phase-b-compile`](../../patches/series-a53-wifi-phase-b-compile).
@@ -44,6 +52,9 @@ Their public wire source is gen3 at revision
 [design](README.md). Vendor headers are not added to this repository.
 
 ## Validation completed
+
+The initial eight-patch [compile 1](COMPILE_1.md) passed on Buildbox-1.
+Its receipt excludes follow-up patches 0130 through 0132.
 
 `python3 tests/run-events-test.py` extracts the actual selected headers and
 runs focused C fixtures with warnings as errors, ASan and UBSan. Event, TX,
@@ -76,9 +87,14 @@ Patch whitespace checks passed. Checkpatch found no remaining errors after
 indentation correction; style warnings/checks remain, and its Python SPDX
 checker was unavailable on the author host. Added headers and fixtures carry
 GPL-2.0-only identifiers. This is not an upstream submission.
-The new MAC draft has not been compiled,
-concurrency tested or run on hardware. Helper/HIF fixtures do not validate it.
-A selected kernel build is the next checkpoint.
+The initial MAC preparation compiled, but callback concurrency and hardware
+behavior remain untested. The three follow-up patches have not been compiled.
+Helper/HIF fixtures do not validate those MAC paths.
+
+`python3 tests/run-rates-test.py KERNEL_TREE` passed all 65,536 eight-bit
+supported/basic-rate combinations, every unknown high bit and null-output
+rejection against the prepared header with non-PIE ASan/UBSan. Snapshot and
+pending-only event-pump callback integration has not yet been compiled.
 
 ## Remaining work
 

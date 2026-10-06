@@ -1,0 +1,46 @@
+From 3c49df2aac24bda4af3a7884c60ea0e4ef960a08 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 6 Oct 2026 00:07:39 +0000
+Subject: [PATCH] wifi: mt6797: translate legacy station rate bitmaps
+
+Convert the published mac80211 5 GHz rate positions to the gen3 software
+rate set. Reject empty or unknown supported/basic sets, unsupported basic
+rates and missing fixed 6 Mbps before modifying outputs.
+
+Exhaustive 8-bit supported/basic combinations and all high-bit rejection
+cases pass ASan/UBSan fixtures. This helper adds no join admission or device
+effects.
+---
+ .../net/wireless/mediatek/mt6797/join-commands.h | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-commands.h b/drivers/net/wireless/mediatek/mt6797/join-commands.h
+index 4bb82cb17..ce68aeb8b 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join-commands.h
++++ b/drivers/net/wireless/mediatek/mt6797/join-commands.h
+@@ -6,6 +6,22 @@
+ 
+ #define MT6797_JOIN_STA_BYTES 124U
+ 
++/* mac80211's published 5 GHz band has OFDM rates in positions 0..7.
++ * The gen3 software rate set reserves positions 0..5 before OFDM 6 Mbps.
++ * Validate both sets before modifying outputs; this establishes no peer state.
++ */
++static inline bool
++mt6797_join_legacy_rates(unsigned int supported, unsigned int basic,
++			 unsigned int *desired_rates, unsigned int *basic_rates)
++{
++	if (!desired_rates || !basic_rates || !supported || (supported & ~0xffU) ||
++	    !basic || (basic & ~supported) || !(supported & 1U))
++		return false;
++	*desired_rates = supported << 6;
++	*basic_rates = basic << 6;
++	return true;
++}
++
+ /* Original payload encoders for one legacy 5 GHz, 20 MHz join. Slot indices
+  * are project reservations, not firmware allocation acknowledgements.
+  * The caller must establish the exclusive BSS/peer lifetime first.
+-- 
+2.39.5
+

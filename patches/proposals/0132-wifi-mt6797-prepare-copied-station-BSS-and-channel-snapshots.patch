@@ -1,0 +1,126 @@
+From f08e0ba48d6ac3942d3e62e0b8191028fc706d99 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 6 Oct 2026 00:10:41 +0000
+Subject: [PATCH] wifi: mt6797: prepare copied station BSS and channel
+ snapshots
+
+Add a default-off station-join option so the existing scan profiles retain
+their behavior. Copy BSSID, basic rates and beacon interval in the BSS
+callback, and validate the single legacy 5 GHz operating channel in config.
+No borrowed BSS or channel-context pointer survives these callbacks.
+
+This is preparation only: upward station callbacks still reject, event and
+TX gates remain closed, and no new firmware command is submitted. Kernel
+compilation and callback sequencing tests remain outstanding.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig | 11 ++++
+ drivers/net/wireless/mediatek/mt6797/mac.c   | 53 ++++++++++++++++++++
+ 2 files changed, 64 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index 5b49f4322..38bd3d9a6 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -64,3 +64,14 @@ config MT6797_SCAN_TUNING_SAMPLE
+ 	  within 100 ms using fresh shared command sequences. Samples are
+ 	  non-atomic software state, not proof of RF tuning or listening time.
+ 	  No arbitrary register access or register write interface is exposed.
++
++config MT6797_STATION_JOIN
++	bool "MT6797 experimental bounded legacy station join"
++	depends on MT6797_PASSIVE_SCAN
++	default n
++	help
++	  Prepare one non-MLO legacy 5 GHz station lifetime after a successful
++	  passive scan. Keep copied BSS and operating-channel state for bounded
++	  management exchanges. This incomplete implementation leaves TX
++	  admission closed and provides no keys, data path, DMA or interrupts.
++	  Existing passive-scan profiles do not enable this option.
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 9cd9d3cc2..ff3060dda 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -42,6 +42,13 @@ struct mt6797_mac {
+ 	unsigned int join_queue_bytes, join_seen, join_tx_allowed, join_rx_allowed;
+ 	unsigned int join_page_debt, join_polls, join_packets;
+ 	bool join_running, join_open, join_retired;
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++	/* Copied stack state only: no BSS/STA/chanctx pointer is retained. */
++	u8 join_bssid[ETH_ALEN];
++	u32 join_basic_rates;
++	u16 join_beacon_interval;
++	bool join_bss_valid, join_channel_valid;
++#endif
+ 	struct completion join_channel_done, join_sta_done;
+ 	u64 join_grant_deadline;
+ 	u8 join_channel_token, join_sta_sequence;
+@@ -943,6 +950,24 @@ static int mt6797_mac_config(struct ieee80211_hw *hw, int radio_idx, u32 changed
+ 	if (!mac->scan_ready || mac->first_error || mac->closing || radio_idx ||
+ 	    (hw->conf.flags & (IEEE80211_CONF_PS | IEEE80211_CONF_MONITOR)))
+ 		ret = -EOPNOTSUPP;
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++	{
++		const struct cfg80211_chan_def *def = &hw->conf.chandef;
++		const struct ieee80211_channel *channel = def->chan;
++		int slot = channel ? mt6797_channel_slot(channel->hw_value) : -1;
++
++		mac->join_channel_valid = !ret && slot >= MT6797_2G_CHANNELS &&
++			slot < MT6797_CHANNELS &&
++			channel == &mac->channels[slot] &&
++			channel->band == NL80211_BAND_5GHZ &&
++			channel->hw_value == 40 && channel->center_freq == 5200 &&
++			def->width == NL80211_CHAN_WIDTH_20_NOHT &&
++			def->center_freq1 == 5200 && !def->center_freq2 &&
++			!(channel->flags & (IEEE80211_CHAN_DISABLED |
++				IEEE80211_CHAN_NO_IR | IEEE80211_CHAN_NO_20MHZ |
++				IEEE80211_CHAN_RADAR));
++	}
++#endif
+ 	mutex_unlock(&mac->mutex);
+ 	return ret;
+ #else
+@@ -950,6 +975,31 @@ static int mt6797_mac_config(struct ieee80211_hw *hw, int radio_idx, u32 changed
+ #endif
+ }
+ 
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++static void mt6797_mac_bss_info_changed(struct ieee80211_hw *hw,
++				      struct ieee80211_vif *vif,
++				      struct ieee80211_bss_conf *info,
++				      u64 changed)
++{
++	struct mt6797_mac *mac = hw->priv;
++
++	if (!(changed & (BSS_CHANGED_BSSID | BSS_CHANGED_BASIC_RATES |
++			 BSS_CHANGED_BEACON_INT)))
++		return;
++	mutex_lock(&mac->mutex);
++	mac->join_bss_valid = false;
++	if (mac->vif == vif && !ieee80211_vif_is_mld(vif) && !info->link_id &&
++	    info->bssid && is_valid_ether_addr(info->bssid) && info->beacon_int &&
++	    info->basic_rates && !(info->basic_rates & ~0xffU)) {
++		ether_addr_copy(mac->join_bssid, info->bssid);
++		mac->join_basic_rates = info->basic_rates;
++		mac->join_beacon_interval = info->beacon_int;
++		mac->join_bss_valid = true;
++	}
++	mutex_unlock(&mac->mutex);
++}
++#endif
++
+ static int mt6797_mac_sta_state(struct ieee80211_hw *hw,
+ 				struct ieee80211_vif *vif, struct ieee80211_sta *sta,
+ 				enum ieee80211_sta_state old,
+@@ -1020,6 +1070,9 @@ static const struct ieee80211_ops mt6797_mac_ops = {
+ 	.config = mt6797_mac_config,
+ 	.configure_filter = mt6797_mac_filter,
+ 	.sta_state = mt6797_mac_sta_state,
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++	.bss_info_changed = mt6797_mac_bss_info_changed,
++#endif
+ #if IS_ENABLED(CONFIG_MT6797_PASSIVE_SCAN)
+ 	.hw_scan = mt6797_mac_hw_scan,
+ 	.cancel_hw_scan = mt6797_mac_cancel_scan,
+-- 
+2.39.5
+

@@ -1,0 +1,80 @@
+From 1d1588d48460cd72fc9dd49334190ff7386e768b Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 6 Oct 2026 00:08:30 +0000
+Subject: [PATCH] wifi: mt6797: separate join event pumping from TX admission
+
+Pending channel and station responses must be polled before management TX can be admitted. Give the event worker its own running gate, keep dequeue under the TX gate, and retire both gates before cancellation or terminal disposal. Both gates still start closed; callbacks and runtime validation remain incomplete.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 14 ++++++++------
+ 1 file changed, 8 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index d21eca01e..9cd9d3cc2 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -41,7 +41,7 @@ struct mt6797_mac {
+ 	u8 join_packet[MT6797_HIF_RX_MAX_PACKET] __aligned(2);
+ 	unsigned int join_queue_bytes, join_seen, join_tx_allowed, join_rx_allowed;
+ 	unsigned int join_page_debt, join_polls, join_packets;
+-	bool join_open, join_retired;
++	bool join_running, join_open, join_retired;
+ 	struct completion join_channel_done, join_sta_done;
+ 	u64 join_grant_deadline;
+ 	u8 join_channel_token, join_sta_sequence;
+@@ -399,6 +399,7 @@ static void mt6797_mac_join_close(struct mt6797_mac *mac)
+ 
+ 	skb_queue_head_init(&discard);
+ 	spin_lock_irqsave(&mac->join_queue.lock, flags);
++	mac->join_running = false;
+ 	mac->join_open = false;
+ 	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
+ 	/* Neither this mutex nor the queue lock may be held while cancelling. */
+@@ -491,16 +492,16 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	unsigned long flags;
+ 	unsigned int n, port, pages;
+ 	u64 now, deadline, grant_end;
+-	bool open, ack = false;
++	bool running, ack = false;
+ 	int ret = 0;
+ 
+ 	skb_queue_head_init(&received);
+ 	skb_queue_head_init(&discard);
+ 	mutex_lock(&mac->mutex);
+ 	spin_lock_irqsave(&mac->join_queue.lock, flags);
+-	open = mac->join_open;
++	running = mac->join_running;
+ 	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
+-	if (!open)
++	if (!running)
+ 		goto unlock;
+ 	now = ktime_get_ns();
+ 	if (mac->scan_active || mac->first_error || mac->closing ||
+@@ -515,7 +516,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 		goto failed;
+ 	if (!mac->join_inflight && !mac->join_page_debt) {
+ 		spin_lock_irqsave(&mac->join_queue.lock, flags);
+-		skb = __skb_dequeue(&mac->join_queue);
++		skb = mac->join_open ? __skb_dequeue(&mac->join_queue) : NULL;
+ 		if (skb)
+ 			mac->join_queue_bytes -= skb->len;
+ 		spin_unlock_irqrestore(&mac->join_queue.lock, flags);
+@@ -604,7 +605,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 			break;
+ 	}
+ 	spin_lock_irqsave(&mac->join_queue.lock, flags);
+-	if (mac->join_open)
++	if (mac->join_running)
+ 		schedule_delayed_work(&mac->join_work, msecs_to_jiffies(20));
+ 	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
+ 	goto unlock;
+@@ -620,6 +621,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	complete_all(&mac->join_channel_done);
+ 	complete_all(&mac->join_sta_done);
+ 	spin_lock_irqsave(&mac->join_queue.lock, flags);
++	mac->join_running = false;
+ 	mac->join_open = false;
+ 	skb_queue_splice_init(&mac->join_queue, &discard);
+ 	mac->join_queue_bytes = 0;
+-- 
+2.39.5
+

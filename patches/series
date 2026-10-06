@@ -734,3 +734,6 @@ proposals/0126-wifi-mt6797-account-management-frame-submission-through-TC4.patch
 proposals/0127-wifi-mt6797-account-station-join-commands-through-normal-owner.patch
 proposals/0128-wifi-mt6797-submit-station-join-operations-through-guarded-PIO.patch
 proposals/0129-wifi-mt6797-prepare-bounded-management-TX-queue-and-pump.patch
+proposals/0130-wifi-mt6797-translate-legacy-station-rate-bitmaps.patch
+proposals/0131-wifi-mt6797-separate-join-event-pumping-from-TX-admission.patch
+proposals/0132-wifi-mt6797-prepare-copied-station-BSS-and-channel-snapshots.patch
