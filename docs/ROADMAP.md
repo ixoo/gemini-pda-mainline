@@ -122,6 +122,28 @@ budgets and stop conditions under the [safety rules](SAFETY.md). Steps marked
 7. The remaining [Gemian session A](../experiments/2026-10-04-gemian-session-a/README.md)
    reads when convenient. They gate none of the boots above.
 
+## Prepared candidates awaiting the custodian (2026-10-06)
+
+Each is compile-built and package-verified, with a guarded DT derivation from
+the exact C1-5 parent and a protocol draft. None is admitted or booted.
+
+| Candidate | Package (inventory) | DT script | Record |
+| --- | --- | --- | --- |
+| Board services (clean profile) | `275a9dbf…` | `board-services-dt.sh` | [board-only profile](../experiments/2026-10-06-mt6797-board-only-profile/README.md) |
+| C2b charger, verified start | `f3b2a202…` | `c2b-dt.sh` | [C2b](../experiments/2026-10-06-gemini-c2b-charger/README.md) |
+| Display H2, simplefb holds MM | `92b8731e…` | `display-h2-dt.sh` | [display H2](../experiments/2026-10-06-gemini-display-h2/README.md) |
+| Display H8, PWM backlight (after H2) | `92b8731e…` | `display-h8-dt.sh` | [display H2](../experiments/2026-10-06-gemini-display-h2/README.md) |
+| Audio H3, headphone card (after H2) | `5f795448…` | `audio-h3-dt.sh` | [audio H3](../experiments/2026-10-06-gemini-audio-h3/README.md) |
+| I2C1 sensors H1 | `7f605fb2…` | `i2c1-dt.sh` | [I2C1](../experiments/2026-10-06-gemini-i2c1-sensors/README.md) |
+| microSD H3 | `275a9dbf…` | `microsd-dt.sh` | [microSD](../experiments/2026-10-06-gemini-microsd/README.md) |
+| C1 lid level-low probe | `99bd57ba…` | two status edits | [lid protocol](../experiments/2026-10-04-gemini-c1-preparation/LID_LEVEL_PROTOCOL.md) |
+
+All but the lid probe share the board-services CPU-mask contract for the RAM
+root. Gemian read-only checks are requested for the charger STAT/INT line,
+the USB host VBUS and IDDIG, the GPU clock parent and speed bin, and the front
+camera identity and MCLK. The sanitized C1 regulator inventory is also
+requested.
+
 ## Phase B: usable Wi-Fi
 
 Association through mac80211, bounded PIO traffic, packet DMA and interrupts,
