@@ -1,5 +1,9 @@
 # First Phase B deployment, device test pending
 
+This preparation was consumed by [runtime 1](RUNTIME_1.md), which failed common
+init before WLAN and returned to confirmed changed-boot Gemian. The deployment
+and pre-test observations below describe the state before that test.
+
 Status: installed and fully read back; device cleanly shut down. No mainline
 boot, host RF transmission or join result has been observed for this candidate.
 The owner must physically select boot2; the laptop remains the sole custodian.

@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-07-mt6797-wifi-phase-b-join` |
-| Status | Bounded join callbacks implemented and built; first device protocol ready; clear EAPOL decoder tested offline but unlinked; data and keys remain incomplete; no air test |
+| Status | First runtime failed common init before WLAN (candidate fix 0141 and ownership fix 0142 prepared); join remains untested; clear EAPOL decoder tested offline but unlinked; data and keys remain incomplete |
 | Base | Phase A [runtime 3](../2026-10-06-mt6797-wifi-common-init/RUNTIME_3.md), package `3013daa6…` |
 | Date | 2026-10-07 |
-| Device action | None |
+| Device action | One boot, WMT preparation/negotiation/common-init attempt, evidence sealing, A53 regression and confirmed Gemian recovery; no scan or join |
 
 ## Question
 
@@ -18,6 +18,11 @@ data frames.
 
 The Phase A artifacts and protocol stay unchanged. Phase B starts from a
 separate profile and candidate.
+
+The [first runtime](RUNTIME_1.md) failed common init at step 5 before any WLAN
+initialization or management TX. Its log is sealed and Gemian recovery is
+confirmed. The next candidate needs a diagnosis or a decision-changing
+measurement of that early transport failure.
 
 ## Next-stage EAPOL receive preparation
 
@@ -285,3 +290,48 @@ admission. DMA and interrupts stay out of scope until then.
 
 The current [offline implementation checkpoint](OFFLINE_IMPLEMENTATION.md)
 records selected preparation patches, validation and missing join callbacks.
+
+## Runtime 1 review and fixes (2026-10-06)
+
+[RUNTIME_1.md](RUNTIME_1.md) records the first boot, which failed WMT common
+init at step 5 before any WLAN initialization. [REVIEW_1.md](REVIEW_1.md)
+records the read-only code review that followed. Two patches came out of it:
+
+- [0141](../../patches/proposals/0141-soc-mediatek-tolerate-a-no-source-BTIF-interrupt-during-a-WMT-exchange.patch):
+  the WMT full I/O treats a non-initial BTIF interrupt whose IIR shows "no
+  interrupt pending" (bit 0 set, bits 1, 2 and 6 clear) as benign. It counts
+  it against the unchanged service and deadline budgets, touches no FIFO or
+  register and makes no protocol transition. Every other unexpected cause
+  still fails stop. The last IIR and the no-source count are stored and
+  printed in the existing common-init failure footer.
+- [0142](../../patches/proposals/0142-wifi-mt6797-release-the-driver-owned-deauthentication-frame-on-teardown.patch):
+  `join_close` and the worker's failure path clear `join_internal` under the
+  MAC mutex and free the driver-built deauthentication frame with
+  `dev_kfree_skb`, returning only mac80211's own frames with
+  `ieee80211_free_txskb`.
+
+Both are selected only in `mt6797-a53-wifi-phase-b-compile`.
+
+**First-admission policy, stated explicitly.** In this admission any
+`mgd_prepare_tx` the driver does not admit, including a mac80211
+authentication retry and an unexpected disconnect between authentication and
+association, fails stop: the session records an error and closes without a
+deauthentication frame. That is deliberate for one bounded attempt. Normal
+product disconnect and retry handling remains incomplete and is a later step.
+
+New fixtures, run with the production headers and functions (no mirrored
+copies, no stubbed close):
+
+- `tests/run-wmt-irq-test.py` with `wmt-full-irq-test.c`: partial TX then a
+  no-source interrupt then valid completion; a fully submitted command then a
+  no-source interrupt then the reply; a no-source storm against the service
+  budget and the deadline; and an unsupported pending cause, which still
+  refuses.
+- `tests/run-ownership-test.py` with `join-ownership-test.c`: it extracts
+  `struct mt6797_mac` and the production worker, close and wait functions from
+  the selected `mac.c`. It covers an internal deauthentication TX done with
+  NACK, an unknown event with the internal frame in flight, the same with a
+  mac80211 frame in flight and the internal frame queued, a close during the
+  management wait, and a close with only mac80211 frames. Every frame is
+  released exactly once by the owner's function. It fails on the pre-0142
+  `mac.c`.

@@ -1,0 +1,76 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 6 Oct 2026 11:00:00 +0000
+Subject: [PATCH 141/142] soc: mediatek: tolerate a no-source BTIF interrupt
+ during a WMT exchange
+
+The first Phase B boot stopped WMT common init at step 5 with -EPROTO
+after 16 of the command's 26 bytes had been written. The second service,
+entered from the BTIF interrupt, read an IIR with no RX, timeout or
+THR-empty source pending, and the strict guard retired the exchange
+before any byte was received. An interrupt raised before the previous
+service drained its cause reports "no interrupt pending" by the time the
+handler reads IIR again.
+
+Treat only that case as benign on a non-initial service: IIR bit 0 set
+with bits 1, 2 and 6 clear. Count it, consume the same service and
+deadline budget, touch no FIFO or register, make no protocol transition
+and retransmit nothing; the next pending source continues the exchange.
+Every other unexpected cause still retires with -EPROTO.
+
+Record the last IIR and the no-source count in the exchange state and
+print them in the existing common-init failure footer, so the next
+failure shows the cause without new register reads.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/soc/mediatek/mt6797-consys.c      |  6 ++++--
+ drivers/soc/mediatek/mt6797-wmt-full-io.h | 10 ++++++++++
+ 2 files changed, 14 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index bbba770b4..8b607f8dc 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -1509,9 +1509,11 @@ static int mt6797_consys_common_init(struct device *dev, struct mt6797_consys *o
+ 	print_hex_dump(KERN_INFO, "WMT common init calibration RX: ", DUMP_PREFIX_OFFSET,
+ 		       16, 1, ci->calibration, ci->calibration_bytes, false);
+ 	if (ret && ci->completed < WMT_INIT_STEPS && ci->io.prepared) {
+-		dev_info(dev, "WMT common init failed step %u: tx=%u rx=%u services=%u frames=%u\n",
++		dev_info(dev,
++			 "WMT common init failed step %u: tx=%u rx=%u services=%u frames=%u iir=0x%08x no-source=%u\n",
+ 			 ci->completed, ci->io.tx_count, ci->io.rx_count,
+-			 ci->io.services, ci->io.frames);
++			 ci->io.services, ci->io.frames, ci->io.last_iir,
++			 ci->io.no_source_services);
+ 		print_hex_dump(KERN_INFO, "WMT common init failed RX: ", DUMP_PREFIX_OFFSET,
+ 			       16, 1, ci->io.received, ci->io.rx_count, false);
+ 	}
+diff --git a/drivers/soc/mediatek/mt6797-wmt-full-io.h b/drivers/soc/mediatek/mt6797-wmt-full-io.h
+index 3f17b75e0..d894dafc3 100644
+--- a/drivers/soc/mediatek/mt6797-wmt-full-io.h
++++ b/drivers/soc/mediatek/mt6797-wmt-full-io.h
+@@ -36,6 +36,7 @@ struct mt6797_wmt_full_io {
+ 	const unsigned char *expected;
+ 	unsigned int task, prefix;
+ 	unsigned int expected_length, rx_count, consumed, frames, services, tx_count;
++	unsigned int last_iir, no_source_services;
+ 	unsigned long deadline;
+ 	/* Serializes FIFO progress, terminal state and process timeout. */
+ 	spinlock_t lock;
+@@ -202,6 +203,15 @@ static void mt6797_wmt_full_service(struct mt6797_wmt_full_io *io, int initial)
+ 	}
+ 	io->services++;
+ 	iir = readl(io->btif + 8);
++	io->last_iir = iir;
++	/* An already-delivered IRQ can outlive its FIFO source. It conveys no
++	 * bytes or protocol event. Keep the same service/deadline budget and
++	 * wait for a pending source; never retransmit or fabricate progress.
++	 */
++	if (!initial && (iir & 0x47) == 1) {
++		io->no_source_services++;
++		return;
++	}
+ 	if ((initial && (iir & 0x44)) || (!initial && !(iir & 0x46))) {
+ 		mt6797_wmt_full_retire(io, -EPROTO);
+ 		return;

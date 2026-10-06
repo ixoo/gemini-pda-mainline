@@ -1,0 +1,90 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 6 Oct 2026 11:01:00 +0000
+Subject: [PATCH 142/142] wifi: mt6797: release the driver-owned
+ deauthentication frame on teardown
+
+The join worker's failure path and mt6797_mac_join_close() discard the
+in-flight and queued frames with ieee80211_free_txskb() and leave
+join_internal pointing at the freed driver-built deauthentication frame.
+mac80211 is then handed back a frame it never submitted, and a later
+TX-done comparison could match a reused buffer address.
+
+Take the pointer under the MAC mutex on both paths, clear it, and free
+that one frame with dev_kfree_skb(); every other discarded frame still
+returns to mac80211. The completed-TX-done handling of the internal frame
+is unchanged.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 28 +++++++++++++++++-----
+ 1 file changed, 22 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 580a02d63..1c11a351c 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -490,7 +490,7 @@ static void mt6797_mac_join_close(struct mt6797_mac *mac)
+ {
+ 	unsigned long flags;
+ 	struct sk_buff_head discard;
+-	struct sk_buff *skb;
++	struct sk_buff *skb, *internal = NULL;
+ 
+ 	skb_queue_head_init(&discard);
+ 	/* Fence every producer before cancellation, preserving idle eligibility. */
+@@ -529,9 +529,17 @@ static void mt6797_mac_join_close(struct mt6797_mac *mac)
+ 		__skb_queue_tail(&discard, mac->join_inflight);
+ 		mac->join_inflight = NULL;
+ 	}
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++	internal = mac->join_internal;
++	mac->join_internal = NULL;
++#endif
+ 	mutex_unlock(&mac->mutex);
+-	while ((skb = __skb_dequeue(&discard)))
+-		ieee80211_free_txskb(mac->hw, skb);
++	while ((skb = __skb_dequeue(&discard))) {
++		if (skb == internal)
++			dev_kfree_skb(skb);
++		else
++			ieee80211_free_txskb(mac->hw, skb);
++	}
+ }
+ 
+ static int mt6797_mac_join_guard(struct mt6797_mac *mac, u64 deadline)
+@@ -739,7 +747,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	struct mt6797_join_rx_frame frame;
+ 	struct mt6797_scan_frame beacon;
+ 	struct sk_buff_head received, discard;
+-	struct sk_buff *skb, *completed = NULL;
++	struct sk_buff *skb, *completed = NULL, *internal = NULL;
+ 	unsigned long flags;
+ 	unsigned int n, port, pages;
+ 	u64 now, deadline, grant_end;
+@@ -975,6 +983,10 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 		__skb_queue_tail(&discard, mac->join_inflight);
+ 		mac->join_inflight = NULL;
+ 	}
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++	internal = mac->join_internal;
++	mac->join_internal = NULL;
++#endif
+ unlock:
+ 	mutex_unlock(&mac->mutex);
+ 	/* One worker serializes RX_ni and TX_status_ni, outside driver locks. */
+@@ -990,8 +1002,12 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 		else
+ 			ieee80211_rx_ni(mac->hw, skb);
+ 	}
+-	while ((skb = __skb_dequeue(&discard)))
+-		ieee80211_free_txskb(mac->hw, skb);
++	while ((skb = __skb_dequeue(&discard))) {
++		if (skb == internal)
++			dev_kfree_skb(skb);
++		else
++			ieee80211_free_txskb(mac->hw, skb);
++	}
+ }
+ 
+ static void mt6797_mac_scan_work(struct work_struct *work)

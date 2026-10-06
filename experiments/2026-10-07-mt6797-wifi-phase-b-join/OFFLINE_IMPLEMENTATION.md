@@ -62,8 +62,8 @@ Its receipt excludes follow-up patches 0130 through 0132, which passed
 0134 failed [compile 3](COMPILE_3.md) on a private HIF struct access and,
 after the fix, passed [compile 4](COMPILE_4.md).
 
-`python3 tests/run-events-test.py` extracts the actual selected headers and
-runs focused C fixtures with warnings as errors, ASan and UBSan. Event, TX,
+`python3 tests/run-events-test.py PREPARED` compiles the selected tree's
+headers into focused C fixtures with warnings as errors, ASan and UBSan. Event, TX,
 RX and payload fixtures passed, including every RX group combination, both
 padding modes, truncation, identity mismatch and malformed IE/body cases.
 

@@ -43,6 +43,7 @@ struct mt6797_mac {
  void *join_inflight;
  u64 scan_started_ns, join_deadline;
  struct sk_buff_head join_queue;
+ struct sk_buff *join_internal;
  int mutex, join_channel_done, join_sta_done, join_credit_done, join_frame_done; unsigned join_queue_bytes;
  int join_work, scan_work; u8 scan_packet[16];
 };
@@ -89,6 +90,8 @@ static void __skb_queue_tail(struct sk_buff_head *head, struct sk_buff *skb)
 { assert(!head->first); head->first=skb; }
 static struct sk_buff *__skb_dequeue(struct sk_buff_head *head)
 { struct sk_buff *skb=head->first; head->first=NULL; return skb; }
+/* No driver-owned frame exists in these handoff scenarios; reaching this is a bug. */
+static void dev_kfree_skb(struct sk_buff *skb) { (void)skb; assert(!"driver-owned frame freed in handoff fixture"); }
 static void ieee80211_free_txskb(struct hw *hw, struct sk_buff *skb)
 { (void)hw; assert(skb); }
 static void cancel_delayed_work_sync(int *work);
