@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-06-gemini-audio-h3` |
-| Status | Profile and DT derivation; protocol draft for review; not booted |
+| Status | Built and package-verified; DT derivation and protocol draft for review; not booted |
 | Profile | `mt6797-a53-audio-h3-compile` |
 | Date | 2026-10-06 |
 | Device action | None |
@@ -69,3 +69,16 @@ Branches:
   amplifier GPIO changes in this boot.
 - **AFE probe defers or fails.** Record the genpd and clock errors.
 - **Any SCPSYS timeout.** Stop.
+
+## Build
+
+| Item | Value |
+| --- | --- |
+| Input commit | `eba7896b338c8ba4094086ec43e00ab40c799fb7` |
+| Job | `eba7896b…-mt6797-a53-audio-h3-compile-m0`, buildbox-1, 32 jobs |
+| Package inventory | `5f7954482d1ef2af2fa82966d64b42696b71641ac98c070882230719aa207508` |
+| Release | `7.1.3-gemini-a53-audio-h3-compile` |
+
+Compilation, remote validation, fetch and local checksums pass, with no
+compiler warning. The resolved config has `SOUND`, `SND_SOC_MT6797`,
+`SND_SOC_MT6797_MT6351`, `SND_SOC_MT6351` and SCPSYS adopt mode built in.
