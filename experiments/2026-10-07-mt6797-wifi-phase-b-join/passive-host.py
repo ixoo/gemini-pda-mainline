@@ -31,7 +31,11 @@ SCAN.PARENT.CAPTURE = CAPTURE
 SCAN.PARENT.WIPHY_PROBE = SCAN.PARENT.WIPHY_PROBE.replace(
     b'7.1.3-gemini-a53-wifi-scan-tuning-sample', RELEASE.encode())
 HOST = SCAN.HOST
-HOST.HERE = HERE
+# The inherited WMT host main reads HERE/results/candidate.json for the capture
+# identity check. Runtime 2 must compare against the candidate-2 receipt, so
+# bind only that module's HERE to runtime-2/, whose results/candidate.json is a
+# byte copy of results/candidate-2.json; results/candidate.json stays runtime 1.
+HOST.HERE = HERE / 'runtime-2'
 HOST.ROOT = ROOT
 HOST.CAPTURE = CAPTURE
 HOST.DOMAIN.HERE = HERE

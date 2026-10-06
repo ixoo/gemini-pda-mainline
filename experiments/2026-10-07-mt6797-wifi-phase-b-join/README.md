@@ -350,6 +350,16 @@ power-off and `clk_ignore_unused` are unchanged. The release string is the same
 as runtime 1, so every live admissibility check binds to the candidate-2 receipt
 digest, the package inventory and the full boot2 hash, never to the release.
 
+The inherited WMT host main compares the capture identity against
+`HERE/results/candidate.json`, which is the runtime-1 receipt here; the first
+runtime-2 session was refused offline for that reason before any device action
+("capture identity or one-shot evidence changed"). `passive-host.py` now binds
+that one module's `HERE` to [runtime-2/](runtime-2/results/candidate.json),
+whose `results/candidate.json` is a byte copy of `results/candidate-2.json`;
+every equality, boot and one-shot check is unchanged and
+[tests/host-identity-test.py](tests/host-identity-test.py) asserts the binding
+and the predicate's positive and negative cases.
+
 Deployment 2 is recorded in [results/deployment-2.json](results/deployment-2.json)
 and [RUNTIME_2_PREPARATION.md](RUNTIME_2_PREPARATION.md): installed, fully
 read back, powered off, physical boot pending.
