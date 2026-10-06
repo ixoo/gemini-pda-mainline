@@ -23,7 +23,12 @@ capture, session, AP input and calibration bytes stay private on the laptop.
 - A53 regression passed, the log was complete (146383 bytes) and recovery was
   confirmed; `session_verified` is true, `bounded_join_pass` false.
 
-## Diagnosis (source inference, not yet measured)
+## Diagnosis (inference; the failed predicate was not measured)
+
+The script printed nothing and the channel flags were not captured, so the
+exact failing predicate on runtime 2 is unmeasured. What follows is source
+inference about the most likely gate, kept distinct from the observations
+above and in [results/runtime-2.json](results/runtime-2.json).
 
 Everything the script does before its first print is a chain of `set -eu`
 tests. Against the script that passed in Phase A runtime 3 (`phase-a-scan.sh`,
@@ -51,14 +56,16 @@ source: the driver sets `IEEE80211_HW_NO_AUTO_VIF`, and
 `ieee80211_register_hw` adds the default station interface only when that flag
 is absent (`net/mac80211/main.c`).
 
-## Decision-changing measurement before any boot
+## Supporting evidence and the measurement that decides
 
-The retained Phase A runtime-3 passive-scan stdout holds the `__PHY_INFO__`
-block. Its `* 5200 MHz [40]` line showing `(no IR)` confirms that Phase A
-scanned in the NO-IR state and that the join script's pre-scan gate was the
-first failing prerequisite. That line carries no identifier and no secret. If
-it shows no `(no IR)`, the diagnosis is wrong and the stage marker below
-identifies the real gate on the next run.
+The retained Phase A runtime-3 passive-scan stdout holds a `__PHY_INFO__`
+block whose `* 5200 MHz [40]` line, if it shows `(no IR)`, supports the
+inference that the pre-scan state is NO-IR; it carries no identifier. A prior
+boot cannot establish which gate failed silently on runtime 2, so that line is
+supporting evidence only, never confirmation, and its absence is not a blocker.
+The decision-changing measurement is the explicit stage marker the corrected
+script now emits on refusal: the next boot is justified by that measurement
+alone, and it names the real gate if the inference is wrong.
 
 ## Correction
 
@@ -66,11 +73,15 @@ identifies the real gate on the next run.
 `disabled` or needs `radar detection`, as Phase A did, and adds a second gate
 after the scan accepted the target BSS: it re-queries the phy and requires the
 channel-40 line to be free of `no IR` before the connect, so this host never
-transmits on a channel the found beacon did not open. Every other gate is
-unchanged. The script also records the current prerequisite in a `stage`
-variable and, only on a non-zero exit, prints one `__STAGE_FAIL__ stage=…
-rc=…` line to stderr; the success path's stdout and empty stderr are
-byte-identical to before, which the host's parser requires.
+transmits on a channel the found beacon did not open, and prints one
+`channel40_ir_after_beacon=1` line inside the scan body when it passes. Every
+other gate is unchanged. The script also records the current prerequisite in a
+`stage` variable, with `bss_match` set before the target check so an absent
+target is reported distinctly from a failed passive scan, and, only on a
+non-zero exit, prints one `__STAGE_FAIL__ stage=… rc=…` line to stderr. The
+success path keeps the stdout prefix and framing the host's parser requires
+and leaves stderr empty, which the parser also requires; the new body line is
+ignored by its BSS scan.
 [tests/join-once-test.py](tests/join-once-test.py) runs a copy under busybox
 ash with a stub to fail the first gates in turn and asserts the marker, and
 statically asserts the NO-IR gate's position. This is a script correction,
@@ -78,8 +89,8 @@ not a kernel change: no new build is needed and candidate 2 stays installed.
 
 ## Next run
 
-Another boot of the identical candidate is justified only after the Phase A
-phy-info line is read. The next run needs a fresh runtime root (new
+Another boot of the identical candidate is justified by the corrected
+script's explicit stage measurement. The next run needs a fresh runtime root (new
 `session-2` from `prepare-runtime-2.py`, capture on the new boot) and a bound
 script regenerated from this revision with `bind-target.py`; the stage marker
 in the private `passive-scan/stderr.txt` names any further refusal.

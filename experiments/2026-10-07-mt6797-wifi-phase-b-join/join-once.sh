@@ -104,6 +104,7 @@ scan_exit=$?
 set -e
 $BB cat /tmp/mt6797-wifi-phase-b-1/scan.txt
 [ "$scan_exit" = 0 ]
+stage=bss_match
 # Only a matching BSS block on the fixed permitted channel admits connect.
 # shellcheck disable=SC2016 # awk field references are intentional
 $BB awk -v target="$TARGET_BSSID" '
@@ -111,7 +112,6 @@ $BB awk -v target="$TARGET_BSSID" '
     found && $1 == "freq:" && $2 == 5200 { accepted = 1 }
     END { exit !accepted }
 ' /tmp/mt6797-wifi-phase-b-1/scan.txt
-stage=bss_match
 [ "$($BB cat /proc/sys/kernel/random/boot_id)" = "$EXPECTED_BOOT" ]
 # The found beacon must have lifted NO-IR on channel 40 (cfg80211 beacon hint)
 # before this host transmits anything there.

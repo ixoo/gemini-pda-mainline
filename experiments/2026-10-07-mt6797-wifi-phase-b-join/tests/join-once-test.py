@@ -34,7 +34,10 @@ assert len(markers) == 1 and SOURCE[markers[0]:].split('\n')[0].rstrip().endswit
 before_begin = SOURCE[:SOURCE.index("__IW_PASSIVE_BEGIN__")]
 prints = [l for l in before_begin.splitlines() if re.match(r'\s*(\$BB )?printf', l) and '>&2' not in l]
 assert all('wc -c' in l or 'grep' in l or 'TARGET_BSSID' in l for l in prints), prints
+# An absent target is reported as bss_match, distinct from a failed passive scan.
+assert SOURCE.index('[ "$scan_exit" = 0 ]') < SOURCE.index('stage=bss_match') < SOURCE.index('$BB awk -v target')
 stages = re.findall(r'^stage=([a-z0-9_]+)$', SOURCE, re.M)
+assert all(re.fullmatch(r'[a-z0-9_]+', s) for s in stages) and len(set(stages)) == len(stages)
 assert stages[:4] == ['start', 'target_input', 'kernel_release', 'boot_identity'] and 'connect' in stages
 
 busybox = shutil.which('busybox')

@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-07-mt6797-wifi-phase-b-join` |
-| Status | Runtime 2 booted candidate 2: common init 285/285 passed, the join script refused a pre-scan NO-IR gate before output ([RUNTIME_2](RUNTIME_2.md), script corrected); join remains untested; clear EAPOL decoder tested offline but unlinked; data and keys remain incomplete |
+| Status | Runtime 2 booted candidate 2: common init 285/285 passed, the join script refused a prerequisite before output (inferred: pre-scan NO-IR gate) ([RUNTIME_2](RUNTIME_2.md), script corrected); join remains untested; clear EAPOL decoder tested offline but unlinked; data and keys remain incomplete |
 | Base | Phase A [runtime 3](../2026-10-06-mt6797-wifi-common-init/RUNTIME_3.md), package `3013daa6…` |
 | Date | 2026-10-07 |
 | Device action | One boot, WMT preparation/negotiation/common-init attempt, evidence sealing, A53 regression and confirmed Gemian recovery; no scan or join |
@@ -365,9 +365,9 @@ and [RUNTIME_2_PREPARATION.md](RUNTIME_2_PREPARATION.md). The runtime itself is
 recorded in [RUNTIME_2.md](RUNTIME_2.md) and
 [results/runtime-2.json](results/runtime-2.json): initialization and WLAN
 readiness passed, the join script exited before its first output, no scan or
-RF occurred, and recovery was confirmed. The diagnosed cause is the script's
-pre-scan `no IR` refusal under the world regulatory domain; `join-once.sh`
-is corrected and now names a failing prerequisite on stderr.
+RF occurred, and recovery was confirmed. The inferred, unmeasured cause is the
+script's pre-scan `no IR` refusal under the world regulatory domain;
+`join-once.sh` is corrected and now names a failing prerequisite on stderr.
 
 Runtime-1 evidence is untouched: [results/candidate.json](results/candidate.json),
 [results/deployment-1.json](results/deployment-1.json) and

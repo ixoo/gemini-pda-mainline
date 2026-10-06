@@ -58,5 +58,7 @@
   "recovery_confirmed": true,
   "session_verified": true,
   "classification": "common-init-and-wlan-readiness-pass; join script refused a prerequisite before its first output; no scan, no RF, no join",
-  "raw_evidence_public": false
+  "raw_evidence_public": false,
+  "failed_prerequisite_measured": false,
+  "diagnosis_status": "inference: pre-scan no-IR refusal under the world regulatory domain; unconfirmed on device"
 }
