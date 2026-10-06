@@ -98,6 +98,19 @@ kernel races or RF support.
    ordered cleanup. Operational Wi-Fi remains false in every result. Publish
    only sanitized stage facts, candidate/boot identity and digests.
 
+## Runtime 2 retargeting
+
+Runtime 2 runs this protocol unchanged on the compile-7 package
+(`47addc13…`, commit `db1b2aea…`). Its receipt is `results/candidate-2.json`,
+its installer receipt `mt6797-wifi-phase-b-deployment-2`, its boot2
+predecessor the installed runtime-1 candidate `6ecc057c…`, and its evidence
+root `wifi-phase-b/capture-2` and `session-2` under a fresh
+`GEMINI_RUNTIME_ROOT`. The release string is unchanged, so admissibility binds
+to the candidate-2 digest, package inventory and full boot2 hash. Guards,
+pinned tool identities, finite budgets, the single trigger, the full-log seal
+and the reviewed native recovery are those of runtime 1. See the
+[runtime 2 bindings](README.md#runtime-2-bindings-2026-10-06).
+
 ## Decision branches
 
 - Missing AP or failed prerequisite: no host RF submission; diagnose the exact

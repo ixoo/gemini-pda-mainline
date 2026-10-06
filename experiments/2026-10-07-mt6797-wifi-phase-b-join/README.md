@@ -336,3 +336,58 @@ copies, no stubbed close):
   management wait, and a close with only mac80211 frames. Every frame is
   released exactly once by the owner's function. It fails on the pre-0142
   `mac.c`.
+
+## Runtime 2 bindings (2026-10-06)
+
+Runtime 2 uses the [compile 7](COMPILE_7.md) package: commit
+`db1b2aeae59b5bc117893b752f73e892efd78b10`, inventory
+`47addc1327b7c843d530cded614b86b1baab504dd87557dbfec3212fc80421ae`, release
+`7.1.3-gemini-a53-wifi-phase-b-compile`. The parent is still the booted Phase A
+runtime-3 candidate (`827a6582…`), so the board DT is byte-identical, the
+private RAM root keeps all 61 members with only the release gate changed, the
+config differs only in release and `CONFIG_MT6797_STATION_JOIN=y`, and PSCI
+power-off and `clk_ignore_unused` are unchanged. The release string is the same
+as runtime 1, so every live admissibility check binds to the candidate-2 receipt
+digest, the package inventory and the full boot2 hash, never to the release.
+
+Runtime-1 evidence is untouched: [results/candidate.json](results/candidate.json),
+[results/deployment-1.json](results/deployment-1.json) and
+[results/runtime-1.json](results/runtime-1.json) stay as consumed, and the
+runtime-1 adapter bindings are reproducible at revision `bd76eb67`.
+
+Runtime-2 bindings, each the smallest parameter change to an existing adapter:
+
+| Adapter | Runtime 2 |
+| --- | --- |
+| `build-candidate.py` | `COMMIT` and `PACKAGE` pinned to the compile-7 package |
+| `install-passive.py` | receipt `results/candidate-2.json`; installer receipt `mt6797-wifi-phase-b-deployment-2`; boot2 predecessor `6ecc057c…` (the installed runtime-1 candidate) |
+| `capture-private.py` | receipt `results/candidate-2.json`; evidence `wifi-phase-b/capture-2`; deployment summary `wifi-phase-b/session-2/deployment-summary.txt` |
+| `passive-host.py` | evidence `wifi-phase-b/session-2` and `capture-2` |
+| `passive-session.py` | receipt `results/candidate-2.json` |
+| `bind-target.py`, `join-once.sh`, `classify-join.py` | unchanged |
+
+The `MANIFEST_SHA` slots in `install-passive.py` and `capture-private.py` are
+`None` until the composed candidate-2 receipt is committed as
+`results/candidate-2.json`; both refuse to run before that.
+
+[prepare-runtime-2.py](prepare-runtime-2.py) is the offline preparation entry
+point for the laptop. Driven only by `GEMINI_PRIVATE_REPO`,
+`GEMINI_RUNTIME_ROOT` and `GEMINI_JOIN_SCRIPT`, it checks that the private
+repository holds credentials, that the bound join script is one mode-0600 file
+wrapping the reviewed `join-once.sh`, that `results/candidate-2.json` names the
+compile-7 package and that both slots equal its digest. It then creates empty
+mode-0700 `wifi-phase-b/capture-2` and `session-2` under the runtime root,
+refusing if either exists. It performs no device action.
+
+Order for runtime 2, with the laptop's private wrappers supplying only the
+private-repository module remaps and the runtime root:
+
+1. Laptop: `build-candidate.py --kernel-package <package 47addc13…> --parent
+   <Phase A runtime-3 candidate> --output <candidate-2 directory>`; send the
+   sanitized `candidate.json`.
+2. Buildbox: commit it as `results/candidate-2.json` and fill both slots.
+3. Laptop: `prepare-runtime-2.py` with the fresh runtime root, then the
+   guarded `install-passive.py` (receipt `deployment-2`), then after the
+   owner's boot2 selection `capture-private.py`, `bind-target.py` and
+   `passive-host.py --candidate … --execute`, exactly as in
+   [PROTOCOL.md](PROTOCOL.md).

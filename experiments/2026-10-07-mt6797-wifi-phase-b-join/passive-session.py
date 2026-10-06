@@ -48,7 +48,7 @@ def prepare(candidate_dir, previous):
     finish = load('wlan_finish', base.BASELINE / 'finish-baseline.py')
     candidate_dir = Path(os.path.abspath(candidate_dir))
     collector.directory(candidate_dir)
-    receipt = json.loads((HERE / 'results/candidate.json').read_text())
+    receipt = json.loads((HERE / 'results/candidate-2.json').read_text())
     base.require(receipt['kernel_release'] == RELEASE and
                  receipt['physical_admission'] is False, 'candidate receipt changed')
     expected = receipt['files']
