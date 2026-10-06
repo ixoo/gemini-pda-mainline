@@ -383,3 +383,26 @@ The [unsent ordering inquiry](ORDERING_INQUIRY_DRAFT.md) states the one
 maintainer decision needed before selecting reset-first or conversion-first
 integration. It is a draft for review, not an upstream message or patch
 submission.
+
+## Target-tree discovery (2026-10-06)
+
+For the six-patch `series-mt6797-infracfg-revised-kunit` selection:
+
+- **Existing files.** `reset.c`, `clk-mt6797.c`, `Makefile` and
+  `mt6797.dtsi` are byte-identical at the profile base `165768bb…`, torvalds
+  `master` `67f0943b394d920b6c142aad8c6af94340342ae7` and linux-next
+  `master`. `drivers/clk/mediatek/Kconfig` differs in linux-next only by an
+  unrelated `depends on OF` for the MT8173 mfgtop driver.
+- **New files.** `reset-internal.h`, `reset-test.c`,
+  `clk-mt6797-reset.h`, `clk-mt6797-reset-test.c` and
+  `include/dt-bindings/reset/mt6797-resets.h` exist in none of these trees, so
+  no one else has added them.
+- **Application.** All six patches apply, in order, to the linux-next copies
+  of these files.
+- **Not done.** A search of the lore.kernel.org archives for overlapping
+  postings: the archive's bot challenge blocks it from this host. Check it
+  manually.
+
+The earlier KUnit and schema results stay valid for the touched files, which
+are unchanged at mainline HEAD. Certification and routing remain the
+owner's.

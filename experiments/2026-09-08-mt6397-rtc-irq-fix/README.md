@@ -78,3 +78,22 @@ Its synthetic archive author makes no DCO certification. Actual authorship
 and truthful certification must be resolved before sending. No message was
 sent. Remove the local patch after an equivalent upstream fix is included in
 the project's selected baseline.
+
+## Target-tree discovery (2026-10-06)
+
+- **Mainline.** `drivers/rtc/rtc-mt6397.c` at torvalds `master`
+  `67f0943b394d920b6c142aad8c6af94340342ae7` is byte-identical to the
+  pinned base `4d7d9486…`. Both patches,
+  [0001](../../patches/upstream-4d7d9486/rtc/0001-rtc-mt6397-preserve-interrupt-enables-on-alarm.patch)
+  and
+  [0002](../../patches/upstream-4d7d9486/rtc/0002-rtc-mt6397-report-alarm-IRQ-wake-errors.patch),
+  pass `git apply --check` on it.
+- **Subsystem tree.** The RTC maintainer's `rtc-next` and linux-next `master`
+  carry the same newer copy, which adds spare-byte NVRAM support. Nothing
+  there touches the alarm IRQ path, and both patches still apply.
+- **Not done.** A search of the lore.kernel.org archives for overlapping
+  postings: the archive's bot challenge blocks it from this host. Check it
+  manually before submission.
+
+Authorship, sign-off and the kernel's current rules on assisted
+contributions remain the owner's to settle.
