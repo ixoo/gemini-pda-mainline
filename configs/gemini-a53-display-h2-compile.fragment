@@ -1,0 +1,9 @@
+# Display H2: board-services RTC scope plus legacy SCPSYS in adopt mode.
+CONFIG_RTC_CLASS=y
+CONFIG_RTC_DRV_MT6397=y
+# CONFIG_RTC_NVMEM is not set
+# CONFIG_RTC_HCTOSYS is not set
+# CONFIG_RTC_SYSTOHC is not set
+CONFIG_MTK_SCPSYS=y
+CONFIG_MTK_SCPSYS_ADOPT_BOOT_STATE=y
+CONFIG_LOCALVERSION="-gemini-a53-display-h2-compile"

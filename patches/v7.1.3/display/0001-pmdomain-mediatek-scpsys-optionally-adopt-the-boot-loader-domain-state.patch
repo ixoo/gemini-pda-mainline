@@ -1,0 +1,102 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 6 Oct 2026 02:30:00 +0000
+Subject: [PATCH] pmdomain: mediatek: scpsys: optionally adopt the boot
+ loader's domain state
+
+The legacy SCPSYS driver powers every domain on at probe and leaves genpd
+to switch unused ones off later. On MT6797 that sequences all twelve
+domains, including the GPU cores, merely to let a simple framebuffer hold
+the MM domain the loader already enabled.
+
+Behind a default-off experiment option, register each domain in the
+state found: domains that are on keep their regulator and clock
+references and stay on for the whole boot, with provider sync_state
+disabled; domains that are off stay off. No power-control register is
+written at probe. A domain whose two status bits disagree is kept on and
+reported.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/pmdomain/mediatek/Kconfig      | 12 +++++++++
+ drivers/pmdomain/mediatek/mtk-scpsys.c | 37 ++++++++++++++++++++++++++
+ 2 files changed, 49 insertions(+)
+
+diff --git a/drivers/pmdomain/mediatek/Kconfig b/drivers/pmdomain/mediatek/Kconfig
+index 8923e6516..6512fb7d7 100644
+--- a/drivers/pmdomain/mediatek/Kconfig
++++ b/drivers/pmdomain/mediatek/Kconfig
+@@ -14,6 +14,18 @@ config MTK_SCPSYS
+ 	  Say yes here to add support for the MediaTek SCPSYS power domain
+ 	  driver.
+ 
++config MTK_SCPSYS_ADOPT_BOOT_STATE
++	bool "Adopt the boot loader's SCPSYS domain state (experiment)"
++	depends on MTK_SCPSYS
++	help
++	  Experiment-only. Register each legacy SCPSYS power domain in the
++	  state the boot loader left it instead of powering every domain on at
++	  probe. No power-control register is written at probe, and a domain
++	  found on stays on for the whole boot: genpd neither powers it off as
++	  unused nor at provider sync_state.
++
++	  If unsure, say N.
++
+ config MTK_SCPSYS_PM_DOMAINS
+ 	bool "MediaTek SCPSYS generic power domain"
+ 	default ARCH_MEDIATEK
+diff --git a/drivers/pmdomain/mediatek/mtk-scpsys.c b/drivers/pmdomain/mediatek/mtk-scpsys.c
+index bf99c4cbe..bde8be2e3 100644
+--- a/drivers/pmdomain/mediatek/mtk-scpsys.c
++++ b/drivers/pmdomain/mediatek/mtk-scpsys.c
+@@ -529,6 +529,32 @@ static struct scp *init_scp(struct platform_device *pdev,
+ 	return scp;
+ }
+ 
++/*
++ * Register a domain in the state the boot loader left it, without writing
++ * any power-control register. A domain found on keeps its regulator and
++ * clock references so that a later power-off stays balanced. A domain
++ * whose two status bits disagree is treated as on and reported.
++ */
++static bool scpsys_adopt_domain(struct scp *scp, struct scp_domain *scpd)
++{
++	int state = scpsys_domain_is_on(scpd);
++
++	if (!state) {
++		dev_info(scp->dev, "adopt: %s off\n", scpd->genpd.name);
++		return false;
++	}
++	if (state < 0)
++		dev_warn(scp->dev, "adopt: %s status bits disagree; kept on\n",
++			 scpd->genpd.name);
++	if (scpsys_regulator_enable(scpd) < 0 ||
++	    scpsys_clk_enable(scpd->clk, MAX_CLKS) < 0)
++		dev_warn(scp->dev, "adopt: %s on, references incomplete\n",
++			 scpd->genpd.name);
++	else
++		dev_info(scp->dev, "adopt: %s on\n", scpd->genpd.name);
++	return true;
++}
++
+ static void mtk_register_power_domains(struct platform_device *pdev,
+ 				struct scp *scp, int num)
+ {
+@@ -540,6 +566,17 @@ static void mtk_register_power_domains(struct platform_device *pdev,
+ 		struct generic_pm_domain *genpd = &scpd->genpd;
+ 		bool on;
+ 
++		if (IS_ENABLED(CONFIG_MTK_SCPSYS_ADOPT_BOOT_STATE)) {
++			/*
++			 * No provider sync_state: a domain found on keeps
++			 * stay_on, so genpd never powers it off this boot.
++			 */
++			genpd->flags |= GENPD_FLAG_NO_SYNC_STATE;
++			on = scpsys_adopt_domain(scp, scpd);
++			pm_genpd_init(genpd, NULL, !on);
++			continue;
++		}
++
+ 		/*
+ 		 * Initially turn on all domains to make the domains usable
+ 		 * with !CONFIG_PM and to get the hardware in sync with the
