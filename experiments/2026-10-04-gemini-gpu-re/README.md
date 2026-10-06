@@ -543,6 +543,17 @@ attributable. None is admitted by this record.
    delays with `regulator.debug`); on device, part of H6. Confidence: high for
    the values (they are the vendor's own), low for whether the omission causes
    a visible failure.
+   **Resolved offline, 2026-10-06: no driver change is needed.** The pinned
+   regulator core reads all three waits from standard DT constraints on the
+   VGPU node:
+   - `regulator-enable-ramp-delay = <350>`: the vendor's 350 µs after enable;
+   - `regulator-settling-time-up-us = <350>`: its fixed 350 µs after every
+     increase;
+   - `regulator-ramp-delay`: the DVS-up slew in µV/µs.
+   The vendor reads the slew from TIME bits 4:2 at run time, so until a Gemian
+   read gives that value, a GPU candidate DT should use the slowest code,
+   4 mV/µs (`4000`). That gives the longest and safest waits. Patch 0051's
+   descriptor stays as it is.
 9. **H9. Thermal protection for the GPU can reuse the vendor power model
    (`dynamic-power-coefficient = <1461>`, F20) through Panfrost's
    `#cooling-cells` once an MT6797 thermal zone exists; until then the fixed
