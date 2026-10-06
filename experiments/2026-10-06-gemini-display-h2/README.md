@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-06-gemini-display-h2` |
-| Status | Driver option, profile and DT derivation; protocol draft for review; not booted |
+| Status | Built and package-verified; protocol draft for review; no candidate; not booted |
 | Profile | `mt6797-a53-display-h2-compile` |
 | Date | 2026-10-06 |
 | Device action | None |
@@ -97,3 +97,21 @@ Decision branches:
   the two options: no warnings. checkpatch `--strict`: clean.
 - The 108-patch series reproduces the author tree. ShellCheck passes on the
   script, which also refuses an existing output.
+
+## Build
+
+The first submission at `a9b2d086` stopped at the build's config check:
+`MTK_SCPSYS` selects `MTK_INFRACFG`, which the handoff fragment requests off.
+`98e2cdc4` enables it explicitly (see Profile).
+
+| Item | Value |
+| --- | --- |
+| Input commit | `98e2cdc4072e691ecd472c25296474d5ac6ffa1e` |
+| Job | `98e2cdc4…-mt6797-a53-display-h2-compile-m0`, buildbox-1, 32 jobs |
+| Package inventory | `92b8731ec5ac9b6e4c0c237362d2b26d4adf9b594f27e773839a6b4ca4745f84` |
+| Release | `7.1.3-gemini-a53-display-h2-compile` |
+
+Compilation, remote validation, fetch and local checksums pass, with no
+compiler warning. The resolved config has `MTK_SCPSYS`,
+`MTK_SCPSYS_ADOPT_BOOT_STATE` and `MTK_INFRACFG`; the cmdline still carries
+`clk_ignore_unused`. The packaged DT is not the candidate DT.
