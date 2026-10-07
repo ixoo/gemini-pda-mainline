@@ -5,7 +5,7 @@
 Runs the entry point in a throwaway copy with a synthetic receipt and filled
 slots, then asserts the inherited capture precondition
 (`require(not CAPTURE_DIR.exists(), 'capture already claimed')`) holds for
-`<runtime>/wifi-phase-b/capture-3` while `session-3` exists as mode 0700.
+`<runtime>/wifi-phase-b/capture-4` while `session-4` exists as mode 0700.
 """
 import hashlib
 import json
@@ -34,7 +34,7 @@ with tempfile.TemporaryDirectory(prefix='mt6797-prepare-2-') as directory:
                'kernel_release': pins['RELEASE'], 'physical_admission': False,
                'files': {'boot2-padded.img': {'sha256': '00' * 32, 'bytes': 16777216}}}
     data = json.dumps(receipt, indent=2).encode() + b'\n'
-    (copy / 'results/candidate-3.json').write_bytes(data)
+    (copy / 'results/candidate-4.json').write_bytes(data)
     digest = hashlib.sha256(data).hexdigest()
     for name in ('install-passive.py', 'capture-private.py'):
         text = (copy / name).read_text()
@@ -56,17 +56,17 @@ with tempfile.TemporaryDirectory(prefix='mt6797-prepare-2-') as directory:
                          capture_output=True, text=True, timeout=30)
     assert run.returncode == 0, run.stderr
     root = runtime / 'wifi-phase-b'
-    capture_dir = root / 'capture-3'
+    capture_dir = root / 'capture-4'
     # The inherited one-attempt guard, evaluated exactly as the capture does.
     assert not capture_dir.exists(), 'prepare must not pre-create the capture directory'
-    session = root / 'session-3'
+    session = root / 'session-4'
     assert session.is_dir() and stat.S_IMODE(session.stat().st_mode) == 0o700
     assert stat.S_IMODE(root.stat().st_mode) == 0o700
     out = json.loads(run.stdout)
-    assert out['created'] == ['session-3'] and out['left_absent_for_capture_claim'] == 'capture-3'
+    assert out['created'] == ['session-4'] and out['left_absent_for_capture_claim'] == 'capture-4'
     assert out['candidate_manifest_sha256'] == digest and out['device_action'] == 'none'
     # A second run refuses: the session directory already exists.
     again = subprocess.run([sys.executable, str(copy / 'prepare-runtime.py')], env=env,
                            capture_output=True, text=True, timeout=30)
     assert again.returncode != 0 and 'already exists' in again.stderr
-print('prepare-runtime: PASS (capture-3 left for the capture claim; session-3 0700; fresh-root refusal)')
+print('prepare-runtime: PASS (capture-4 left for the capture claim; session-4 0700; fresh-root refusal)')
