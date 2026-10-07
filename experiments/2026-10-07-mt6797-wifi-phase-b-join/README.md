@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-07-mt6797-wifi-phase-b-join` |
-| Status | Runtime 4 ([RUNTIME_4](RUNTIME_4.md)) logged no driver refusal; source review reconstructs the connect's -95 in cfg80211's station management entity (privacy-sensitive BSS lookup on a verified protected target, then a directed scan the one-shot hw_scan refuses); bounded auth and assoc milestone continues; join remains untested; clear EAPOL decoder tested offline but unlinked; data and keys remain incomplete |
+| Status | Runtime 4 ([RUNTIME_4](RUNTIME_4.md)) logged no driver refusal; the reconstructed cause is cfg80211's privacy-sensitive BSS lookup; a reviewed privacy-flagged connect helper and proposal 0144 (config radio index) are prepared for candidate 4 ([runtime 5 bindings](#runtime-5-bindings-2026-10-07)); join remains untested; clear EAPOL decoder tested offline but unlinked; data and keys remain incomplete |
 | Base | Phase A [runtime 3](../2026-10-06-mt6797-wifi-common-init/RUNTIME_3.md), package `3013daa6…` |
 | Date | 2026-10-07 |
 | Device action | One boot, WMT preparation/negotiation/common-init attempt, evidence sealing, A53 regression and confirmed Gemian recovery; no scan or join |
@@ -336,6 +336,57 @@ copies, no stubbed close):
   management wait, and a close with only mac80211 frames. Every frame is
   released exactly once by the owner's function. It fails on the pre-0142
   `mac.c`.
+
+## Runtime 5 bindings (2026-10-07)
+
+Two corrections follow runtime 4, both reviewed offline and neither yet
+booted:
+
+- **Host side.** `helper/join-connect.c` is a static, dependency-free program
+  that sends one `NL80211_CMD_CONNECT` with the interface, SSID, 5200 MHz,
+  the owner's BSSID, `NL80211_ATTR_PRIVACY` and open-system authentication,
+  and nothing else: no key, cipher, information element or scan attribute.
+  With the privacy flag set, cfg80211's station management entity finds the
+  already scanned protected BSS and proceeds to authenticate and associate
+  without issuing the directed scan that the one-shot `hw_scan` refuses. The
+  transport uses distinct sequence numbers for the family lookup and the
+  connect, consumes the lookup's acknowledgement before sending the connect,
+  accepts only kernel-origin replies carrying the matching sequence, bounds
+  every receive and the whole exchange, and never retries; the message and
+  reply buffers are aligned for the netlink headers. `join-once.sh` runs it in
+  place of `iw connect`, under the same `timeout 3`, after the same scan and
+  NO-IR gates, with its output inside the framed body. The reproducible static
+  aarch64 build is `helper/build-join-connect.sh` (SHA-256 `17955a4e…`,
+  665552 bytes, pinned in the script's tool digests). Tests:
+  [tests/join-connect-test.py](tests/join-connect-test.py) parses the exact
+  attribute set from the helper's dump mode, refuses the argument boundaries,
+  and runs [tests/join-connect-transport-test.c](tests/join-connect-transport-test.c),
+  the production transport against a scripted kernel: the happy path, kernel
+  -95 retained as exit 3, a late or stale family acknowledgement never
+  acknowledging the connect, non-kernel origin ignored, an unacknowledged or
+  failed lookup never sending the connect, and the deadline with one request.
+- **Driver side.** Proposal 0144: mac80211 calls the config operation with
+  radio index -1 for this single-radio wiphy, including the emulated channel
+  context that sets the operating channel before authentication; the
+  operation refused any non-zero index, so the channel binding could never
+  become valid and the emulated context would have failed the connect with
+  -95 after the host-side fix. It now accepts exactly -1.
+  [tests/run-config-test.py](tests/run-config-test.py) runs the production
+  function: -1 accepted and binding channel 40, 0 and 1 refused with the
+  refusal logged once, NO-IR or an HT width breaking the binding without an
+  error, flags and not-ready refusals, a 2.4 GHz channel and no channel. The
+  same fixture fails on the pre-0144 source.
+
+Candidate 4 therefore needs a compile-9 kernel (0144) and a RAM root that
+carries `bin/join-connect` next to the pinned `iw` tools. The composer
+`build-candidate.py` must gain a `--helper` input pinned to the digest above
+and insert that one member (mode 0755, root-owned, like `bin/iw`) into the
+otherwise unchanged parent RAM root, recording it in the receipt. That
+composer change was not applied in this checkout: the edit was denied by the
+auto-mode classifier during this session, and it is left for the owner to
+apply or decline. Until it exists, candidate 4 cannot be composed. The staged
+binary for composition is published on Buildbox-1 under the artifacts
+helpers directory named by its digest, with a `SHA256SUMS` file.
 
 ## Runtime 4 bindings (2026-10-07)
 

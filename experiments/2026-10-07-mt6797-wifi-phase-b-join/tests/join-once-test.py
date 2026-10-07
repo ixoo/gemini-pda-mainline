@@ -26,7 +26,7 @@ pre = SOURCE[SOURCE.index('stage=channel40_pre_scan'):SOURCE.index('stage=wlan0_
 assert "grep -Eq 'disabled|radar detection'" in pre and 'no IR' not in pre
 post = SOURCE[SOURCE.index('stage=channel40_ir_after_beacon'):SOURCE.index('stage=join_readiness')]
 assert "grep -Eq 'disabled|no IR|radar detection'" in post and 'exit 1' in post
-assert SOURCE.index('stage=channel40_ir_after_beacon') < SOURCE.index('iw dev wlan0 connect')
+assert SOURCE.index('stage=channel40_ir_after_beacon') < SOURCE.index('/bin/join-connect wlan0')
 assert SOURCE.index('__IW_PASSIVE_BEGIN__') < SOURCE.index('stage=channel40_ir_after_beacon')
 # Only the exit trap prints the stage marker, and only to stderr.
 markers = [m.start() for m in re.finditer('__STAGE_FAIL__', SOURCE)]
@@ -38,8 +38,13 @@ assert all('wc -c' in l or 'grep' in l or 'TARGET_BSSID' in l for l in prints), 
 assert SOURCE.index('[ "$scan_exit" = 0 ]') < SOURCE.index('stage=bss_match') < SOURCE.index('$BB awk -v target')
 # The connect's diagnostics stay inside the framed stdout body, so a refused
 # join cannot be read as a failed scan by the inherited stderr check.
-connect = [l for l in SOURCE.splitlines() if 'iw dev wlan0 connect' in l]
+connect = [l for l in SOURCE.splitlines() if '/bin/join-connect wlan0' in l]
 assert len(connect) == 1 and connect[0].rstrip().endswith('2>&1'), connect
+assert 'iw dev wlan0 connect' not in SOURCE and 'key' not in connect[0], 'no iw connect, no key'
+assert ' 5200 "$TARGET_BSSID"' in connect[0] and 'timeout 3' in connect[0]
+# The helper is pinned with the other userspace tools before use.
+sums = SOURCE[SOURCE.index("<<'SUMS'"):SOURCE.index('\nSUMS\n')]
+assert sums.count('  bin/join-connect') == 1 and SOURCE.index('bin/join-connect\nSUMS') < SOURCE.index('/bin/join-connect wlan0')
 stages = re.findall(r'^stage=([a-z0-9_]+)$', SOURCE, re.M)
 assert all(re.fullmatch(r'[a-z0-9_]+', s) for s in stages) and len(set(stages)) == len(stages)
 assert stages[:4] == ['start', 'target_input', 'kernel_release', 'boot_identity'] and 'connect' in stages

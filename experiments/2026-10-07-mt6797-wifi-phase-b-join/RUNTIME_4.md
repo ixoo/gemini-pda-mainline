@@ -1,4 +1,4 @@
-# Fourth Phase B runtime: the connect never reaches the driver's join callbacks
+# Fourth Phase B runtime: the connect fails with no logged driver refusal
 
 Boot identity: mainline `bc5796ca-13a1-47e8-8cfc-5b4dab6ef7ba` from candidate 3
 (boot2 `84f65eae…`, receipt `00f6c619…`, compile-8 package `9c5a7300…`, input

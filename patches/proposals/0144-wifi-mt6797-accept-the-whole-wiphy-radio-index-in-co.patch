@@ -1,0 +1,43 @@
+From 43a9d7018da014ed6381b799bf9179653360caf5 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Wed, 7 Oct 2026 01:57:44 +0000
+Subject: [PATCH] wifi: mt6797: accept the whole-wiphy radio index in config
+
+mac80211 calls the config operation with radio_idx -1 whenever the
+configuration is not specific to one radio of a multi-radio wiphy, which
+is every call for this single-radio device, including the emulated
+channel context that sets the station's operating channel before
+authentication. The operation treated any non-zero radio index as
+unsupported, so every configuration returned -EOPNOTSUPP, the emulated
+channel context failed, and the join channel binding could never become
+valid. The passive scan was unaffected because mac80211 ignores the
+result for the interface bring-up path.
+
+Accept exactly radio_idx -1 and keep refusing any other radio index,
+which this device never receives; otherwise evaluate the configuration
+as before.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 5a21a814f..0cd513352 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -1323,7 +1323,10 @@ static int mt6797_mac_config(struct ieee80211_hw *hw, int radio_idx, u32 changed
+ 	/* No operating channel or host TX is established by this scan-only
+ 	 * interface. Firmware owns tuning only during the admitted hw_scan.
+ 	 */
+-	if (!mac->scan_ready || mac->first_error || mac->closing || radio_idx ||
++	/* mac80211 passes radio_idx -1 for a wiphy without per-radio
++	 * configuration; only a radio-specific request is unsupported here.
++	 */
++	if (!mac->scan_ready || mac->first_error || mac->closing || radio_idx != -1 ||
+ 	    (hw->conf.flags & (IEEE80211_CONF_PS | IEEE80211_CONF_MONITOR)))
+ 		ret = -EOPNOTSUPP;
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+-- 
+2.39.5
+
