@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-07-mt6797-wifi-phase-b-join` |
-| Status | Runtime 4 ([RUNTIME_4](RUNTIME_4.md)) refuted the driver-side inference: the connect's -95 arises in cfg80211's station management entity before any driver join callback (privacy-sensitive BSS lookup, then a directed scan the one-shot hw_scan refuses); next step awaits the owner's scope decision; join remains untested; clear EAPOL decoder tested offline but unlinked; data and keys remain incomplete |
+| Status | Runtime 4 ([RUNTIME_4](RUNTIME_4.md)) logged no driver refusal; source review reconstructs the connect's -95 in cfg80211's station management entity (privacy-sensitive BSS lookup on a verified protected target, then a directed scan the one-shot hw_scan refuses); bounded auth and assoc milestone continues; join remains untested; clear EAPOL decoder tested offline but unlinked; data and keys remain incomplete |
 | Base | Phase A [runtime 3](../2026-10-06-mt6797-wifi-common-init/RUNTIME_3.md), package `3013daa6…` |
 | Date | 2026-10-07 |
 | Device action | One boot, WMT preparation/negotiation/common-init attempt, evidence sealing, A53 regression and confirmed Gemian recovery; no scan or join |
@@ -366,8 +366,8 @@ is recorded in [results/deployment-3.json](results/deployment-3.json) and
 Runtime 4 ([RUNTIME_4.md](RUNTIME_4.md), [results/runtime-4.json](results/runtime-4.json))
 booted candidate 3: initialization and the scan passed, the connect failed
 with -95 again, and neither 0143 diagnostic line appeared although both
-strings are in the image, so the failure precedes every driver join callback.
-The source review there traces it to cfg80211's connect path.
+strings are in the image, so no driver refusal was logged. The source review
+there reconstructs the failure in cfg80211's connect path.
 
 ## Runtime 2 bindings (2026-10-06)
 

@@ -3,7 +3,7 @@
   "runtime": 4,
   "profile": "mt6797-a53-wifi-phase-b-compile",
   "kernel_release": "7.1.3-gemini-a53-wifi-phase-b-compile",
-  "host_revision": "97bce96f",
+  "host_revision": "75c850d9",
   "build_input": "a5951349237d39271e20b9480a2574292224d498",
   "package_inventory_sha256": "9c5a73001fed6707c23edff4d6332b1aa17b6a9be7bfa0d86255022e21e2f8ae",
   "candidate_manifest_sha256": "00f6c619700881ca7807b704dd999e40acc57846cc2a51bd00599a5ab842121b",
@@ -47,7 +47,7 @@
     "channel_refused_lines": 0,
     "format_strings_present_in_image": true,
     "image_verification": "both strings found once in the decompressed validated compile-8 Image.gz, independently by the laptop and on Buildbox-1",
-    "conclusion": "neither the driver's channel configuration for a 5 GHz operating channel nor its station-insert callback ran before the -95"
+    "conclusion": "no refusal was logged by the channel binding or the peer precondition; 0143 logs refusals only, so this does not by itself prove the callbacks never ran"
   },
   "log_complete": true,
   "sealed_log_bytes": 150996,
@@ -59,7 +59,8 @@
   "recovery_confirmed": true,
   "wifi_operational": false,
   "raw_evidence_public": false,
-  "classification": "negative: init and scan pass; connect refused with -95 before any driver join callback; the runtime-3 peer-precondition inference is refuted",
+  "classification": "negative: init and scan pass; connect refused with -95 with no logged driver refusal; the runtime-3 peer-precondition inference is excluded as stated",
   "failed_predicate_measured": false,
-  "diagnosis_status": "source review: cfg80211's SME BSS lookup is privacy-sensitive and falls back to an SSID scan that the one-shot hw_scan refuses with -EOPNOTSUPP; the AP privacy bit in the retained scan output is the confirming observation, not yet checked"
+  "diagnosis_status": "source review, static reconstruction: cfg80211's SME BSS lookup is privacy-sensitive and falls back to a directed scan that the one-shot hw_scan refuses with -EOPNOTSUPP; the target's Privacy bit and RSN element were verified privately by the laptop; no host function trace was captured",
+  "target_privacy_verified_privately": true
 }

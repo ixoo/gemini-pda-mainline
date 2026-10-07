@@ -2,7 +2,8 @@
 
 Boot identity: mainline `bc5796ca-13a1-47e8-8cfc-5b4dab6ef7ba` from candidate 3
 (boot2 `84f65eae…`, receipt `00f6c619…`, compile-8 package `9c5a7300…`, input
-`a5951349`), host revision `97bce96f`, returned to a changed-ID Gemian boot
+`a5951349`), laptop session source `75c850d9` (the later documentation
+commit was not pulled during the hardware run), returned to a changed-ID Gemian boot
 `7339537d-9f66-4b20-8e9f-69ae4ec37290` through the reviewed native recovery.
 Sanitized records: [results/runtime-4.json](results/runtime-4.json) and the
 laptop's combined [results/runtime-4-session-result.json](results/runtime-4-session-result.json).
@@ -24,13 +25,17 @@ Raw evidence and the AP identity stay private.
   independently by the laptop and on Buildbox-1 against the fetched package.
 - A53 regression passed, the log was complete, recovery was confirmed.
 
-## What the negative result establishes
+## What the negative result establishes, and what it does not
 
-The driver's station-insert callback and its 5 GHz channel configuration were
-never reached before the -95. The runtime-3 inference that the driver's peer
-precondition refused the connect is therefore refuted, not merely unmeasured,
-and the 0143 diagnostic measured exactly that. The failure is on the host
-side, before any driver join callback.
+Proposal 0143 logs refusals, not entries: a valid 5 GHz configuration or an
+admitted peer runs without any line. The absent lines therefore prove that
+neither the channel binding nor the peer precondition logged a refusal; they
+do not by themselves prove that those callbacks never ran. What the sealed
+evidence does exclude is the runtime-3 inference as stated: a refusal by the
+driver's peer precondition would have printed. The failure must lie either on
+the host side before the driver's join callbacks, or in a driver path that
+refuses without logging; the source review below finds the former and no
+instance of the latter on this request.
 
 ## Source review of the host path (selected tree, read-only)
 
@@ -55,9 +60,10 @@ side, before any driver join callback.
   error is returned unchanged, so -95 propagates through `cfg80211_conn_scan`
   and `cfg80211_sme_connect` to userspace synchronously.
 - This path never calls the driver's `.config` with the operating channel,
-  `.bss_info_changed` or `.sta_state`, which is exactly what the absent 0143
-  lines show. It leaves the join worker idle until its 10 s deadline, which
-  is the observed footer.
+  `.bss_info_changed` or `.sta_state`, which is consistent with the absent
+  0143 lines. It leaves the join worker idle until its 10 s deadline, which
+  is the observed footer. No host function trace was captured, so this is a
+  statically reconstructed path, not a measured one.
 - By contrast, `nl80211_authenticate` and `nl80211_associate` look the BSS up
   with `IEEE80211_PRIVACY_ANY` and call mac80211 directly without any scan.
 
@@ -70,14 +76,14 @@ connect operation.
 
 ## Confirming observation, and limits
 
-The path requires the owner's AP to advertise the Privacy capability, which a
-protected network does. The retained private runtime-3 and runtime-4 scan
-outputs contain the BSS's `capability:` line; `Privacy` there, together with
-the absent 0143 lines, confirms the path without any device action. Until
-that line is read the explanation remains a source-review inference. No
-other host-side -EOPNOTSUPP return was found on the connect path before the
-driver callbacks for an open-system legacy request on a non-MLO station
-interface.
+The path requires the owner's AP to advertise the Privacy capability. The
+laptop verified privately in the retained runtime-4 output that the target
+block has the Privacy bit set and an RSN element present, with no identifier
+disclosed. With that bit verified, the selected SME lookup and the refused
+directed scan are a strong source-backed explanation of the -95; it remains a
+static reconstruction because no host function trace exists. No other
+host-side -EOPNOTSUPP return was found on the connect path before the driver
+callbacks for an open-system legacy request on a non-MLO station interface.
 
 ## Options for the next step (not implemented here)
 
