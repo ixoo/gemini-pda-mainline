@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-07-mt6797-wifi-phase-b-join` |
-| Status | Runtime 3 demonstrated the passive scan on the owner's BSS; the connect was refused with -95 before any management frame, inferred to be the driver's peer precondition ([RUNTIME_3](RUNTIME_3.md)); proposal 0143 names the refused condition, compile 8 pending; join remains untested; clear EAPOL decoder tested offline but unlinked; data and keys remain incomplete |
+| Status | Runtime 3 demonstrated the passive scan on the owner's BSS; the connect was refused with -95 before any management frame, inferred to be the driver's peer precondition ([RUNTIME_3](RUNTIME_3.md)); proposal 0143 names the refused condition, built as [compile 8](COMPILE_8.md), candidate 3 composition pending; join remains untested; clear EAPOL decoder tested offline but unlinked; data and keys remain incomplete |
 | Base | Phase A [runtime 3](../2026-10-06-mt6797-wifi-common-init/RUNTIME_3.md), package `3013daa6…` |
 | Date | 2026-10-07 |
 | Device action | One boot, WMT preparation/negotiation/common-init attempt, evidence sealing, A53 regression and confirmed Gemian recovery; no scan or join |
@@ -337,6 +337,31 @@ copies, no stubbed close):
   released exactly once by the owner's function. It fails on the pre-0142
   `mac.c`.
 
+## Runtime 4 bindings (2026-10-07)
+
+Candidate 3 is the [compile 8](COMPILE_8.md) package `9c5a7300…` from input
+`a5951349`, differing from candidate 2 only by proposal 0143 in the image.
+The adapters now bind runtime 4 the way runtime 2 was bound, with the
+runtime-2 and runtime-3 evidence and receipts untouched:
+
+| Adapter | Runtime 4 binding |
+| --- | --- |
+| `build-candidate.py` | `COMMIT a5951349…`, `PACKAGE 9c5a7300…` |
+| `install-passive.py` | predecessor `03a6d78c…` (installed candidate 2), receipt `mt6797-wifi-phase-b-deployment-3`, `results/candidate-3.json`, `MANIFEST_SHA = None` until that receipt is committed |
+| `capture-private.py` | `capture-3`, `session-3/deployment-summary.txt`, `results/candidate-3.json`, slot `None` |
+| `passive-session.py` | `results/candidate-3.json` |
+| `passive-host.py` | `session-3`, `capture-3`; the WMT host identity reads `runtime-4/results/candidate.json`, created as a byte copy once the receipt is committed |
+| `prepare-runtime.py` (was `prepare-runtime-2.py`) | checks `results/candidate-3.json`, both slots, predecessor `03a6d78c…`; creates `wifi-phase-b/session-3` only and leaves `capture-3` absent |
+| `laptop-capture.py`, `laptop-session.py` | unchanged; they follow the adapters |
+
+Order: the laptop composes candidate 3 with `build-candidate.py` from the
+fetched compile-8 package and returns the sanitized receipt; this checkout
+commits it as `results/candidate-3.json`, fills both slots and the runtime-4
+copy; then the guarded `install-passive.py prepare` (deployment-3) over the
+installed candidate 2, the owner's boot2 selection, and the runtime-4 steps
+with a fresh runtime root as in [RUNTIME_3.md](RUNTIME_3.md). The decision
+the boot answers is the refused-condition bitmask printed by 0143.
+
 ## Runtime 2 bindings (2026-10-06)
 
 Runtime 2 uses the [compile 7](COMPILE_7.md) package: commit
@@ -402,7 +427,7 @@ The composed candidate-2 receipt is committed unchanged as
 padded boot2 `03a6d78c…`; kernel.config, board DT and initramfs are
 byte-identical to runtime 1 and only `Image.gz` changed.
 
-[prepare-runtime-2.py](prepare-runtime-2.py) is the offline preparation entry
+[prepare-runtime.py](prepare-runtime.py) (named `prepare-runtime-2.py` for runtimes 2 and 3) is the offline preparation entry
 point for the laptop. Driven only by `GEMINI_PRIVATE_REPO`,
 `GEMINI_RUNTIME_ROOT` and `GEMINI_JOIN_SCRIPT`, it checks that the private
 repository holds credentials, that the bound join script is one mode-0600 file
@@ -412,7 +437,7 @@ mode-0700 evidence root and `wifi-phase-b/session-2`, refusing if the session
 or capture directory exists. It leaves `capture-2` absent on purpose: the
 inherited capture claims that directory itself and refuses an existing one, so
 the one-attempt guard stays with the capture
-([tests/prepare-runtime-2-test.py](tests/prepare-runtime-2-test.py) asserts
+([tests/prepare-runtime-test.py](tests/prepare-runtime-test.py) asserts
 exactly that precondition). It performs no device action.
 
 Two env-driven wrappers replace the laptop's private reference wrappers for a
@@ -460,7 +485,7 @@ private-repository module remaps and the runtime root:
    `GEMINI_JOIN_SCRIPT` exported, and `<previous>` the live Gemian boot ID:
    1. `python3 bind-target.py --target <private AP input> --output
       $GEMINI_JOIN_SCRIPT`
-   2. `python3 prepare-runtime-2.py`
+   2. `python3 prepare-runtime.py`
    3. `python3 install-passive.py prepare --candidate <candidate-2 dir>
       --previous-gemian-boot <previous> --output <installer dir>`, then the
       guarded installer it generates (deployment-2); the owner selects boot2.

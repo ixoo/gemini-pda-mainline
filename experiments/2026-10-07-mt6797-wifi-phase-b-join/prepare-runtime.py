@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-"""Create the fresh runtime-2 evidence root and check the laptop inputs offline.
+"""Create the fresh runtime 4 evidence root and check the laptop inputs offline.
 
 Driven only by GEMINI_PRIVATE_REPO, GEMINI_RUNTIME_ROOT and GEMINI_JOIN_SCRIPT.
 It creates the evidence root and the session directory only. The capture
@@ -17,16 +17,16 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-RECEIPT = HERE / 'results/candidate-2.json'
-COMMIT = 'db1b2aeae59b5bc117893b752f73e892efd78b10'
-PACKAGE = '47addc1327b7c843d530cded614b86b1baab504dd87557dbfec3212fc80421ae'
+RECEIPT = HERE / 'results/candidate-3.json'
+COMMIT = 'a5951349237d39271e20b9480a2574292224d498'
+PACKAGE = '9c5a73001fed6707c23edff4d6332b1aa17b6a9be7bfa0d86255022e21e2f8ae'
 RELEASE = '7.1.3-gemini-a53-wifi-phase-b-compile'
-PREDECESSOR = '6ecc057c390e6c9acb3480a52950a7261d7f4678c43da5688dcc1724e2bb778f'
-EVIDENCE, CAPTURE, SESSION = 'wifi-phase-b', 'capture-2', 'session-2'
+PREDECESSOR = '03a6d78caf8d38eca3d46015dc053defa8677d6e75ab40454593fe8155590bf4'
+EVIDENCE, CAPTURE, SESSION = 'wifi-phase-b', 'capture-3', 'session-3'
 
 
 def refuse(reason):
-    sys.exit('prepare-runtime-2 refused: ' + reason)
+    sys.exit('prepare-runtime 4 refused: ' + reason)
 
 
 def slot(name):
@@ -56,17 +56,17 @@ def main():
             not body.endswith((HERE / 'join-once.sh').read_bytes()):
         refuse('GEMINI_JOIN_SCRIPT does not wrap the reviewed join-once.sh')
     if not RECEIPT.is_file() or RECEIPT.is_symlink():
-        refuse('results/candidate-2.json is not committed yet')
+        refuse('results/candidate-3.json is not committed yet')
     digest = hashlib.sha256(RECEIPT.read_bytes()).hexdigest()
     receipt = json.loads(RECEIPT.read_bytes())
     if (receipt.get('kernel_build_commit') != COMMIT or
             receipt.get('kernel_package_sha256') != PACKAGE or
             receipt.get('kernel_release') != RELEASE or
             receipt.get('physical_admission') is not False):
-        refuse('results/candidate-2.json is not the package-2 candidate')
+        refuse('results/candidate-3.json is not the package-3 candidate')
     for name in ('install-passive.py', 'capture-private.py'):
         if slot(name) != digest:
-            refuse(name + ' MANIFEST_SHA slot is not the committed candidate-2 receipt')
+            refuse(name + ' MANIFEST_SHA slot is not the committed candidate-3 receipt')
     root = runtime / EVIDENCE
     for name in (CAPTURE, SESSION):
         if (root / name).exists() or (root / name).is_symlink():
@@ -79,7 +79,7 @@ def main():
                       'left_absent_for_capture_claim': CAPTURE,
                       'candidate_manifest_sha256': digest,
                       'candidate_boot2_sha256': receipt['files']['boot2-padded.img']['sha256'],
-                      'predecessor_sha256': PREDECESSOR, 'deployment_receipt': 'deployment-2',
+                      'predecessor_sha256': PREDECESSOR, 'deployment_receipt': 'deployment-3',
                       'device_action': 'none'}, indent=2))
 
 

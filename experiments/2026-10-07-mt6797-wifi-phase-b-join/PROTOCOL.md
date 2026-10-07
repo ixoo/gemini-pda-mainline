@@ -112,7 +112,7 @@ and the reviewed native recovery are those of runtime 1. On a checkout without
 private artifacts, [laptop-capture.py](laptop-capture.py) and
 [laptop-session.py](laptop-session.py) run the public capture and host with
 the baseline, service and return scripts loaded from the private checkout;
-[prepare-runtime-2.py](prepare-runtime-2.py) creates the fresh evidence root
+[prepare-runtime.py](prepare-runtime.py) creates the fresh evidence root
 first. See the [runtime 2 bindings](README.md#runtime-2-bindings-2026-10-06).
 
 ## Decision branches

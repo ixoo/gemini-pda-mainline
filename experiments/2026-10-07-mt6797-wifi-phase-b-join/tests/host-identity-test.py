@@ -39,17 +39,27 @@ with tempfile.TemporaryDirectory(prefix='mt6797-host-identity-') as directory:
     source = Path(host.main.__code__.co_filename)
     assert source.parent.name == '2026-09-29-mt6797-wmt-before-start', source
     assert source.read_text().count("json.loads((HERE / 'results/candidate.json').read_text())") == 1
-    assert host.HERE == HERE / 'runtime-2'
-    bound_receipt = (host.HERE / 'results/candidate.json').read_bytes()
-    assert bound_receipt == (HERE / 'results/candidate-2.json').read_bytes()
-    assert hashlib.sha256(bound_receipt).hexdigest() == RECEIPT_SHA
+    assert host.HERE == HERE / 'runtime-4'
+    # Runtimes 2 and 3 keep their bound copy; the runtime-4 copy exists only
+    # once results/candidate-3.json is committed, and must then be identical.
+    runtime_2 = (HERE / 'runtime-2/results/candidate.json').read_bytes()
+    assert runtime_2 == (HERE / 'results/candidate-2.json').read_bytes()
+    assert hashlib.sha256(runtime_2).hexdigest() == RECEIPT_SHA
+    candidate_3 = HERE / 'results/candidate-3.json'
+    bound = host.HERE / 'results/candidate.json'
+    if candidate_3.exists():
+        assert bound.read_bytes() == candidate_3.read_bytes(), 'runtime-4 copy differs from candidate-3'
+        bound_receipt = bound.read_bytes()
+    else:
+        assert not bound.exists(), 'runtime-4 copy without a committed candidate-3 receipt'
+        bound_receipt = runtime_2
     digest = json.loads(bound_receipt)['files']['boot2-padded.img']['sha256']
-    assert digest == BOOT2
+    assert digest == BOOT2 or candidate_3.exists()
     runtime_1 = json.loads((HERE / 'results/candidate.json').read_bytes())
     assert runtime_1['files']['boot2-padded.img']['sha256'] == RUNTIME_1_BOOT2, 'runtime-1 receipt preserved'
     # Other rebound roots are untouched by the receipt binding.
     assert host.DOMAIN.HERE == HERE and host.DOMAIN.HOST.HERE == HERE
-    assert host.ROOT == work / 'runtime/wifi-phase-b/session-2' and host.CAPTURE == work / 'runtime/wifi-phase-b/capture-2'
+    assert host.ROOT == work / 'runtime/wifi-phase-b/session-3' and host.CAPTURE == work / 'runtime/wifi-phase-b/capture-3'
 
     def identity(receipt, wmt, start):
         digest = receipt['files']['boot2-padded.img']['sha256']
@@ -67,4 +77,4 @@ with tempfile.TemporaryDirectory(prefix='mt6797-host-identity-') as directory:
     assert not identity(runtime_1, wmt, start), 'runtime-1 receipt must refuse candidate-2 evidence'
     assert not identity(json.loads(bound_receipt), wmt, dict(start, boot_id='other')), 'boot mismatch refused'
     assert not identity(json.loads(bound_receipt), dict(wmt, candidate_boot2_sha256=RUNTIME_1_BOOT2), start)
-print('host identity: PASS (WMT host receipt bound to candidate-2; runtime-1 receipt preserved; predicate positive/negative)')
+print('host identity: PASS (WMT host receipt bound per runtime; runtime-1 receipt preserved; predicate positive/negative)')
