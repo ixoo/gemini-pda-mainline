@@ -36,14 +36,35 @@ ROM_PATCHES = {
 }
 USERSPACE = HERE.parent / '2026-10-01-mt6797-passive-scan/results/userspace.json'
 USERSPACE_SHA256 = '4aedbc779d32fc6729de689cda22d0ace5ba8f2050134ec95c81f699a138498c'
+# Reviewed static nl80211 connect helper (helper/join-connect.c, built by
+# helper/build-join-connect.sh on Buildbox-1); inserted as bin/join-connect.
+HELPER_PATH = 'bin/join-connect'
+HELPER_SHA256 = 'b3851a4b1890e7abd9128174b2dfc2ea71f3f1a9119085751b6b087d8f54cbd6'
+HELPER_BYTES = 665552
 OWNER = '/consys@10001340'
 WIFI = OWNER + '/wifi'
 PARTITION_BYTES = 16777216
 
 
+def add_helper(members, helper):
+    """Return the RAM root members plus the reviewed helper next to the pinned iw.
+
+    The helper takes iw's ownership and mode (0755, root, one link); the parent
+    never carried it and every other member stays byte-identical.
+    """
+    require(len(helper) == HELPER_BYTES and sha(helper) == HELPER_SHA256 and
+            HELPER_PATH not in members, 'join-connect helper absent, changed or already present')
+    tool = members['bin/iw']
+    require(tool.mode == 0o100755 and tool.uid == 0 and tool.gid == 0 and tool.nlink == 1,
+            'pinned iw member ownership changed')
+    new = dict(members)
+    new[HELPER_PATH] = replace(tool, data=helper)
+    return new
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    for name in ('kernel-package', 'parent', 'output'):
+    for name in ('kernel-package', 'parent', 'helper', 'output'):
         parser.add_argument('--' + name, type=Path, required=True)
     args = parser.parse_args()
     os.umask(0o077)
@@ -124,6 +145,8 @@ def main():
     new['init'] = replace(old['init'], data=old['init'].data.replace(PARENT_RELEASE,
                                                                      RELEASE.encode()))
     require(len(old) == 61, 'parent RAM root inventory changed')
+    require(not args.helper.is_symlink(), 'helper path is a symlink')
+    new = add_helper(new, regular(args.helper))
     for name, (digest, size) in ROM_PATCHES.items():
         member = old[FIRMWARE_DIR + name]
         require(len(member.data) == size and sha(member.data) == digest and
@@ -131,7 +154,9 @@ def main():
     require(old[FIRMWARE_DIR + 'WIFI.storage'].mode == 0o100600,
             'private board record permissions changed')
     initramfs = encode(new)
-    require(parse(initramfs) == new and len(new) == len(old), 'RAM root encoding changed')
+    require(parse(initramfs) == new and len(new) == len(old) + 1 and
+            parse(initramfs)[HELPER_PATH].data == new[HELPER_PATH].data,
+            'RAM root encoding changed')
 
     output = Path(os.path.abspath(args.output))
     require(output.parent.is_dir() and not output.exists() and not output.is_symlink() and
@@ -173,7 +198,8 @@ def main():
                   'files': {p.name: {'sha256': sha(regular(p)), 'bytes': p.stat().st_size}
                             for p in sorted(stage.iterdir())},
                   'device_tree_change': 'none; exact Phase A runtime-3 parent DT',
-                  'ram_root_change': 'release gate only',
+                  'ram_root_change': 'release gate and the reviewed bin/join-connect helper',
+                  'helper': {'path': HELPER_PATH, 'sha256': HELPER_SHA256, 'bytes': HELPER_BYTES},
                   'secret_bearing': True, 'device_action': 'none',
                   'physical_admission': False}
         (stage / 'candidate.json').write_text(json.dumps(result, indent=2) + '\n')
