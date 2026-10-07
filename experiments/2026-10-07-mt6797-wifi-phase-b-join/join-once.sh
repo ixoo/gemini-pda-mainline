@@ -70,7 +70,7 @@ e4ac8ae1d81e4865e3aadedb962879cf9415903b3f2ba81ec75e9962b86ab8b0  lib/libc.so.6
 046856f95f4636f1fc7c3a12bf4f3cd5634c2fc5145c3fdf7395d4f349fa69c7  lib/libgcc_s.so.1
 b6152b2f0ef8c2e09de975cd938273db8ad4a33f41dc398945e7081bd4ea6dd4  lib/libnl-3.so.200
 08f2d205cb25b90a1a0271a58f9cbfd91810d8067b1b4ebbefa6ba85e83320c9  lib/libnl-genl-3.so.200
-17955a4e9b509ef4f2877fc34390c82a99cf8adc02ca7a082de0d53bec626858  bin/join-connect
+b3851a4b1890e7abd9128174b2dfc2ea71f3f1a9119085751b6b087d8f54cbd6  bin/join-connect
 SUMS
 iw() {
     /lib/ld-linux-aarch64.so.1 --library-path /lib /bin/iw "$@"

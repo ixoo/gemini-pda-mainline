@@ -356,15 +356,25 @@ booted:
   reply buffers are aligned for the netlink headers. `join-once.sh` runs it in
   place of `iw connect`, under the same `timeout 3`, after the same scan and
   NO-IR gates, with its output inside the framed body. The reproducible static
-  aarch64 build is `helper/build-join-connect.sh` (SHA-256 `17955a4e…`,
-  665552 bytes, pinned in the script's tool digests). Tests:
-  [tests/join-connect-test.py](tests/join-connect-test.py) parses the exact
-  attribute set from the helper's dump mode, refuses the argument boundaries,
-  and runs [tests/join-connect-transport-test.c](tests/join-connect-transport-test.c),
-  the production transport against a scripted kernel: the happy path, kernel
-  -95 retained as exit 3, a late or stale family acknowledgement never
-  acknowledging the connect, non-kernel origin ignored, an unacknowledged or
-  failed lookup never sending the connect, and the deadline with one request.
+  aarch64 build is `helper/build-join-connect.sh` (SHA-256 `b3851a4b…`,
+  665552 bytes, pinned in the script's tool digests). The kernel is identified
+  by the sender port 0; reply headers carry the requester's port ID, as
+  `netlink_ack` and `genlmsg_put_reply` stamp it, and are not checked. The
+  family reply, which for nl80211 exceeds 512 bytes with its operation list,
+  is parsed from a reply-sized buffer and a truncated datagram is refused.
+  Tests: [tests/join-connect-test.py](tests/join-connect-test.py) parses the
+  exact attribute set from the helper's dump mode, refuses the argument
+  boundaries, runs [tests/join-connect-transport-test.c](tests/join-connect-transport-test.c),
+  the production transport against a scripted kernel (happy path, kernel -95
+  retained as exit 3, a late or stale family acknowledgement never
+  acknowledging the connect, non-kernel origin ignored, reply headers with a
+  non-zero port ID, data and acknowledgement in one datagram, a family reply
+  with the id beyond 2 KiB of operations, a reply longer than the buffer
+  refused before any connect, an unacknowledged or failed lookup never
+  sending the connect, and the deadline with one request), and performs a
+  real, connect-free generic netlink lookup against the host kernel through
+  the helper's `--family-lookup` mode: `nlctrl` must resolve to 16, `nl80211`
+  must resolve when cfg80211 is present, and an unknown name must fail.
 - **Driver side.** Proposal 0144: mac80211 calls the config operation with
   radio index -1 for this single-radio wiphy, including the emulated channel
   context that sets the operating channel before authentication; the

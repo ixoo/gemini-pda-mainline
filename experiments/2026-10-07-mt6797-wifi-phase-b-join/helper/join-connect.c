@@ -18,8 +18,14 @@
  *
  * Usage: join-connect IFNAME SSID FREQ_MHZ BSSID
  *        join-connect --dump IFINDEX SSID FREQ_MHZ BSSID   (print the request, send nothing)
+ *        join-connect --family-lookup NAME   (generic netlink lookup only; no connect)
  * Exit: 0 request acknowledged, 1 usage, 2 transport failure or deadline,
  *       3 kernel error (printed).
+ *
+ * Reply identity: the kernel is identified by the sender address
+ * (sockaddr_nl.nl_pid == 0). The reply header's nlmsg_pid is the requester's
+ * own port ID (netlink_ack() and genlmsg_put_reply() both stamp
+ * NETLINK_CB(skb).portid / info->snd_portid), so it is not checked.
  */
 #define _POSIX_C_SOURCE 200809L
 #include <errno.h>
@@ -49,9 +55,14 @@ struct message {
 	unsigned int length;
 };
 
+/* A generic netlink reply is at most one page-sized message (the family
+ * lookup for nl80211 carries its operation and group lists and exceeds 512
+ * bytes); a datagram longer than this buffer is detected and refused.
+ */
+#define REPLY_BYTES 8192
 struct reply {
-	alignas(struct nlmsghdr) unsigned char data[4096];
-	size_t length;
+	alignas(struct nlmsghdr) unsigned char data[REPLY_BYTES];
+	size_t length, offset;
 	uint32_t from_pid;
 };
 
@@ -84,9 +95,12 @@ static int transport_receive(int fd, struct reply *r)
 {
 	struct sockaddr_nl from;
 	socklen_t from_len = sizeof(from);
-	ssize_t got = recvfrom(fd, r->data, sizeof(r->data), 0, (struct sockaddr *)&from, &from_len);
+	/* MSG_TRUNC returns the datagram's real length, so truncation is visible. */
+	ssize_t got = recvfrom(fd, r->data, sizeof(r->data), MSG_TRUNC, (struct sockaddr *)&from,
+			       &from_len);
 
-	if (got < 0 || from_len < sizeof(from) || from.nl_family != AF_NETLINK)
+	if (got < 0 || (size_t)got > sizeof(r->data) || from_len < sizeof(from) ||
+	    from.nl_family != AF_NETLINK)
 		return -1;
 	r->length = (size_t)got;
 	r->from_pid = from.nl_pid;
@@ -208,34 +222,47 @@ static int build(struct message *m, uint16_t family, uint32_t ifindex, const cha
 
 /* Receive kernel-origin messages until one with the wanted sequence and type
  * class arrives, or the deadline passes. Messages from other sequences or
- * non-kernel senders are ignored. Returns 0 and copies the message, else -1.
+ * non-kernel senders are ignored; several messages in one datagram are walked
+ * in order, and the remainder of a datagram after a match is kept for the
+ * next call. Returns 0 and copies the message, else -1.
  */
 enum want { WANT_ACK, WANT_DATA };
 
 static int await(int fd, uint32_t seq, enum want want, uint64_t deadline, uint16_t family,
 		 struct reply *scratch, struct nlmsghdr *out, size_t out_size)
 {
-	while (now_ms() < deadline) {
-		if (transport_receive(fd, scratch))
-			continue;
-		if (scratch->from_pid != 0)
-			continue;
-		for (struct nlmsghdr *h = (struct nlmsghdr *)scratch->data;
-		     scratch->length >= sizeof(*h) && NLMSG_OK(h, scratch->length);
-		     h = NLMSG_NEXT(h, scratch->length)) {
-			if (h->nlmsg_seq != seq || h->nlmsg_pid != 0)
+	for (;;) {
+		while (scratch->offset + sizeof(struct nlmsghdr) <= scratch->length) {
+			struct nlmsghdr h;
+			size_t remaining = scratch->length - scratch->offset;
+
+			memcpy(&h, scratch->data + scratch->offset, sizeof(h));
+			if (h.nlmsg_len < sizeof(h) || h.nlmsg_len > remaining) {
+				scratch->length = scratch->offset = 0;
+				break;
+			}
+			scratch->offset += NLMSG_ALIGN(h.nlmsg_len);
+			if (h.nlmsg_seq != seq)
 				continue;
-			if (want == WANT_ACK && h->nlmsg_type != NLMSG_ERROR)
+			if (want == WANT_ACK && h.nlmsg_type != NLMSG_ERROR)
 				continue;
-			if (want == WANT_DATA && h->nlmsg_type != family)
+			if (want == WANT_DATA && h.nlmsg_type != family)
 				continue;
-			if (h->nlmsg_len > out_size)
+			if (h.nlmsg_len > out_size)
 				return -1;
-			memcpy(out, h, h->nlmsg_len);
+			memcpy(out, scratch->data + scratch->offset - NLMSG_ALIGN(h.nlmsg_len),
+			       h.nlmsg_len);
 			return 0;
 		}
+		if (now_ms() >= deadline)
+			return -1;
+		scratch->length = scratch->offset = 0;
+		if (transport_receive(fd, scratch))
+			continue;
+		/* Only the kernel (sender port 0) may answer. */
+		if (scratch->from_pid != 0)
+			scratch->length = 0;
 	}
-	return -1;
 }
 
 static int ack_error(const struct nlmsghdr *h, int *kernel_error)
@@ -249,20 +276,23 @@ static int ack_error(const struct nlmsghdr *h, int *kernel_error)
 	return 0;
 }
 
-static int family_id(int fd, uint64_t deadline, struct reply *scratch, uint16_t *family)
+static int family_id(int fd, uint64_t deadline, struct reply *scratch, struct reply *got,
+		     const char *name, uint16_t *family)
 {
-	static const char name[] = "nl80211";
-	struct message m, got;
+	struct message m;
 	int err = 0;
+	size_t name_len = strlen(name) + 1;
 
+	if (name_len < 2 || name_len > GENL_NAMSIZ)
+		return -1;
 	start(&m, GENL_ID_CTRL, FAMILY_SEQ, CTRL_CMD_GETFAMILY, 1);
-	if (put(&m, CTRL_ATTR_FAMILY_NAME, name, sizeof(name)) ||
+	if (put(&m, CTRL_ATTR_FAMILY_NAME, name, (uint16_t)name_len) ||
 	    transport_send(fd, m.data, m.length))
 		return -1;
 	if (await(fd, FAMILY_SEQ, WANT_DATA, deadline, GENL_ID_CTRL, scratch,
-		  (struct nlmsghdr *)got.data, sizeof(got.data)))
+		  (struct nlmsghdr *)got->data, sizeof(got->data)))
 		return -1;
-	got.length = ((struct nlmsghdr *)got.data)->nlmsg_len;
+	got->length = ((struct nlmsghdr *)got->data)->nlmsg_len;
 	/* The lookup's own acknowledgement must be consumed before the connect
 	 * request is sent, so no stale acknowledgement can be mistaken later.
 	 */
@@ -273,15 +303,15 @@ static int family_id(int fd, uint64_t deadline, struct reply *scratch, uint16_t 
 	{
 		unsigned int offset = sizeof(struct nlmsghdr) + NLA_ALIGN4(sizeof(struct genlmsghdr));
 
-		while (offset + sizeof(struct nlattr) <= got.length) {
+		while (offset + sizeof(struct nlattr) <= got->length) {
 			struct nlattr a;
 
-			memcpy(&a, got.data + offset, sizeof(a));
-			if (a.nla_len < sizeof(a) || offset + a.nla_len > got.length)
+			memcpy(&a, got->data + offset, sizeof(a));
+			if (a.nla_len < sizeof(a) || offset + a.nla_len > got->length)
 				return -1;
 			if ((a.nla_type & NLA_TYPE_MASK) == CTRL_ATTR_FAMILY_ID &&
 			    a.nla_len == sizeof(a) + sizeof(uint16_t)) {
-				memcpy(family, got.data + offset + sizeof(a), sizeof(*family));
+				memcpy(family, got->data + offset + sizeof(a), sizeof(*family));
 				return *family >= GENL_MIN_ID ? 0 : -1;
 			}
 			offset += NLA_ALIGN4(a.nla_len);
@@ -296,14 +326,32 @@ static int family_id(int fd, uint64_t deadline, struct reply *scratch, uint16_t 
 int main(int argc, char **argv)
 {
 	struct message m;
-	static struct reply scratch;
+	static struct reply scratch, lookup;
 	unsigned char bssid[6];
 	uint32_t freq, ifindex;
 	int dump = argc == 6 && !strcmp(argv[1], "--dump");
 	const char **args = (const char **)argv + (dump ? 2 : 1);
 
+	if (argc == 3 && !strcmp(argv[1], "--family-lookup")) {
+		/* Transport smoke test: one lookup with its data reply and its
+		 * acknowledgement, no connect request, no interface.
+		 */
+		uint64_t deadline = now_ms() + TOTAL_DEADLINE_MS;
+		int fd = transport_open();
+		uint16_t family = 0;
+
+		if (fd < 0 || family_id(fd, deadline, &scratch, &lookup, argv[2], &family)) {
+			fputs("join-connect: family lookup failed\n", stderr);
+			if (fd >= 0)
+				transport_close(fd);
+			return 2;
+		}
+		transport_close(fd);
+		printf("family=%u\n", family);
+		return 0;
+	}
 	if (argc != 5 && !dump) {
-		fputs("usage: join-connect IFNAME SSID FREQ_MHZ BSSID | --dump IFINDEX SSID FREQ_MHZ BSSID\n",
+		fputs("usage: join-connect IFNAME SSID FREQ_MHZ BSSID | --dump IFINDEX SSID FREQ_MHZ BSSID | --family-lookup NAME\n",
 		      stderr);
 		return 1;
 	}
@@ -336,7 +384,7 @@ int main(int argc, char **argv)
 		int kernel_error = 0;
 		struct message ack;
 
-		if (fd < 0 || family_id(fd, deadline, &scratch, &family)) {
+		if (fd < 0 || family_id(fd, deadline, &scratch, &lookup, "nl80211", &family)) {
 			fputs("join-connect: nl80211 family lookup failed\n", stderr);
 			if (fd >= 0)
 				transport_close(fd);

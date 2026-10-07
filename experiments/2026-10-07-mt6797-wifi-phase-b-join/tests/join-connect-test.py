@@ -79,6 +79,10 @@ print('join-connect: PASS (privacy-flagged open-system connect request; attribut
 
 # Production transport fixture: the helper's own source with a scripted kernel.
 with tempfile.TemporaryDirectory(prefix='mt6797-join-connect-transport-') as directory:
+    helper = Path(directory) / 'join-connect'
+    subprocess.run(['cc', '-std=c11', '-O1', '-g', '-Wall', '-Wextra', '-Werror',
+                    '-fsanitize=address,undefined', '-fno-sanitize-recover=all',
+                    '-o', str(helper), str(SOURCE)], check=True)
     binary = Path(directory) / 'transport-test'
     subprocess.run(['cc', '-std=c11', '-O1', '-g', '-Wall', '-Wextra', '-Werror',
                     '-fsanitize=address,undefined', '-fno-sanitize-recover=all',
@@ -86,4 +90,19 @@ with tempfile.TemporaryDirectory(prefix='mt6797-join-connect-transport-') as dir
     out = subprocess.run(['setarch', os.uname().machine, '-R', str(binary)], capture_output=True, timeout=30,
                          env=dict(os.environ, ASAN_OPTIONS='detect_leaks=0'))
     assert out.returncode == 0 and out.stdout.strip().splitlines()[-1] == b'transport=pass', out
-print('join-connect transport: PASS (distinct sequences, family ack consumed before connect, kernel -95 retained, one request, bounded)')
+    # Real host-side generic netlink: one bounded lookup with its data reply and
+    # acknowledgement against the running kernel, no connect, no interface.
+    # nlctrl is always family 16; an unknown name is acknowledged with -ENOENT.
+    smoke = subprocess.run([*prefix, str(helper), '--family-lookup', 'nlctrl'], capture_output=True,
+                           timeout=30, env=env)
+    assert smoke.returncode == 0 and smoke.stdout.strip() == b'family=16', smoke
+    # The real nl80211 reply exceeds 512 bytes; when cfg80211 is present on the
+    # host its lookup must succeed, which proves the reply-sized destination.
+    if Path('/sys/module/cfg80211').exists():
+        big = subprocess.run([*prefix, str(helper), '--family-lookup', 'nl80211'], capture_output=True,
+                             timeout=30, env=env)
+        assert big.returncode == 0 and big.stdout.startswith(b'family='), big
+    unknown = subprocess.run([*prefix, str(helper), '--family-lookup', 'no-such-family-x'],
+                             capture_output=True, timeout=30, env=env)
+    assert unknown.returncode == 2 and unknown.stdout == b'', unknown
+print('join-connect transport: PASS (distinct sequences, header PID not required, combined datagrams, family ack consumed before connect, kernel -95 retained, one request, bounded; real nlctrl lookup framing)')
