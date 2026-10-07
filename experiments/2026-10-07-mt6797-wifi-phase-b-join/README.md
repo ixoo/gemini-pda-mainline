@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-07-mt6797-wifi-phase-b-join` |
-| Status | Runtime 4 ([RUNTIME_4](RUNTIME_4.md)) logged no driver refusal; the reconstructed cause is cfg80211's privacy-sensitive BSS lookup; the reviewed connect helper and proposal 0144 are built as [compile 9](COMPILE_9.md) and the adapters and composer are bound for candidate 4 ([runtime 5 bindings](#runtime-5-bindings-2026-10-07)), composition pending; join remains untested; clear EAPOL decoder tested offline but unlinked; data and keys remain incomplete |
+| Status | Runtime 4 ([RUNTIME_4](RUNTIME_4.md)) logged no driver refusal; the reconstructed cause is cfg80211's privacy-sensitive BSS lookup; the reviewed connect helper and proposal 0144 are built as [compile 9](COMPILE_9.md) candidate 4 is composed (receipt `0d8bf089…`), not yet installed ([RUNTIME_5_PREPARATION](RUNTIME_5_PREPARATION.md)); join remains untested; clear EAPOL decoder tested offline but unlinked; data and keys remain incomplete |
 | Base | Phase A [runtime 3](../2026-10-06-mt6797-wifi-common-init/RUNTIME_3.md), package `3013daa6…` |
 | Date | 2026-10-07 |
 | Device action | One boot, WMT preparation/negotiation/common-init attempt, evidence sealing, A53 regression and confirmed Gemian recovery; no scan or join |
@@ -395,10 +395,10 @@ bound as for the earlier runtimes, with every prior receipt and copy untouched:
 | Adapter | Runtime 5 binding |
 | --- | --- |
 | `build-candidate.py` | `COMMIT 68e3a3c8…`, `PACKAGE bb1659e0…`, `--helper` pinned to `b3851a4b…` (665552 bytes) |
-| `install-passive.py` | predecessor `84f65eae…` (installed candidate 3), receipt `mt6797-wifi-phase-b-deployment-4`, `results/candidate-4.json`, `MANIFEST_SHA = None` until that receipt is committed |
-| `capture-private.py` | `capture-4`, `session-4/deployment-summary.txt`, `results/candidate-4.json`, slot `None` |
+| `install-passive.py` | predecessor `84f65eae…` (installed candidate 3), receipt `mt6797-wifi-phase-b-deployment-4`, `results/candidate-4.json` (SHA-256 `0d8bf089…`, boot.img `6bc99a30…`, padded boot2 `eeb2ce9b…`), both slots filled |
+| `capture-private.py` | `capture-4`, `session-4/deployment-summary.txt`, `results/candidate-4.json`, slot filled |
 | `passive-session.py` | `results/candidate-4.json` |
-| `passive-host.py` | `session-4`, `capture-4`; the WMT host identity reads `runtime-5/results/candidate.json`, created as a byte copy once the receipt is committed |
+| `passive-host.py` | `session-4`, `capture-4`; the WMT host identity reads `runtime-5/results/candidate.json`, a byte copy of the candidate-4 receipt |
 | `prepare-runtime.py` | checks `results/candidate-4.json`, both slots, predecessor `84f65eae…`; creates `wifi-phase-b/session-4` only and leaves `capture-4` absent |
 
 The composer `build-candidate.py` takes a `--helper` input pinned to the
