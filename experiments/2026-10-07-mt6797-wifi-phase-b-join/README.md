@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-07-mt6797-wifi-phase-b-join` |
-| Status | Runtime 4 ([RUNTIME_4](RUNTIME_4.md)) logged no driver refusal; the reconstructed cause is cfg80211's privacy-sensitive BSS lookup; the reviewed connect helper and proposal 0144 are built as [compile 9](COMPILE_9.md) and the adapters are bound for candidate 4, whose composition awaits the owner's composer change ([runtime 5 bindings](#runtime-5-bindings-2026-10-07)); join remains untested; clear EAPOL decoder tested offline but unlinked; data and keys remain incomplete |
+| Status | Runtime 4 ([RUNTIME_4](RUNTIME_4.md)) logged no driver refusal; the reconstructed cause is cfg80211's privacy-sensitive BSS lookup; the reviewed connect helper and proposal 0144 are built as [compile 9](COMPILE_9.md) and the adapters and composer are bound for candidate 4 ([runtime 5 bindings](#runtime-5-bindings-2026-10-07)), composition pending; join remains untested; clear EAPOL decoder tested offline but unlinked; data and keys remain incomplete |
 | Base | Phase A [runtime 3](../2026-10-06-mt6797-wifi-common-init/RUNTIME_3.md), package `3013daa6…` |
 | Date | 2026-10-07 |
 | Device action | One boot, WMT preparation/negotiation/common-init attempt, evidence sealing, A53 regression and confirmed Gemian recovery; no scan or join |
@@ -394,22 +394,24 @@ bound as for the earlier runtimes, with every prior receipt and copy untouched:
 
 | Adapter | Runtime 5 binding |
 | --- | --- |
-| `build-candidate.py` | `COMMIT 68e3a3c8…`, `PACKAGE bb1659e0…`; the helper input is still missing (below) |
+| `build-candidate.py` | `COMMIT 68e3a3c8…`, `PACKAGE bb1659e0…`, `--helper` pinned to `b3851a4b…` (665552 bytes) |
 | `install-passive.py` | predecessor `84f65eae…` (installed candidate 3), receipt `mt6797-wifi-phase-b-deployment-4`, `results/candidate-4.json`, `MANIFEST_SHA = None` until that receipt is committed |
 | `capture-private.py` | `capture-4`, `session-4/deployment-summary.txt`, `results/candidate-4.json`, slot `None` |
 | `passive-session.py` | `results/candidate-4.json` |
 | `passive-host.py` | `session-4`, `capture-4`; the WMT host identity reads `runtime-5/results/candidate.json`, created as a byte copy once the receipt is committed |
 | `prepare-runtime.py` | checks `results/candidate-4.json`, both slots, predecessor `84f65eae…`; creates `wifi-phase-b/session-4` only and leaves `capture-4` absent |
 
-The RAM root change still needs the composer. The composer
-`build-candidate.py` must gain a `--helper` input pinned to the digest above
-and insert that one member (mode 0755, root-owned, like `bin/iw`) into the
-otherwise unchanged parent RAM root, recording it in the receipt. That
-composer change was not applied in this checkout: the edit was denied by the
-auto-mode classifier during this session, and it is left for the owner to
-apply or decline. Until it exists, candidate 4 cannot be composed. The staged
-binary for composition is published on Buildbox-1 under the artifacts
-helpers directory named by its digest, with a `SHA256SUMS` file.
+The composer `build-candidate.py` takes a `--helper` input pinned to the
+digest and size above and, through `add_helper()`, inserts that one member
+(mode 0755, root-owned, one link, like `bin/iw`) into the otherwise unchanged
+parent RAM root, re-parses the archive with one more member and records the
+helper in the receipt. An earlier attempt to apply this edit was denied by the
+auto-mode classifier; the owner then approved it explicitly and it was applied.
+[tests/composer-helper-test.py](tests/composer-helper-test.py) exercises the
+insertion on a synthetic RAM root, including the refusals of a wrong digest or
+size, a missing or re-owned `bin/iw` and an already present helper. The staged
+binary for composition is published on Buildbox-1 under the artifacts helpers
+directory named by its digest, with a `SHA256SUMS` file.
 
 ## Runtime 4 bindings (2026-10-07)
 
