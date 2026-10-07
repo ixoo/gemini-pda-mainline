@@ -1,0 +1,138 @@
+From da8db4a35e53d821c9a883c1ef651e56f59fe6cc Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Wed, 7 Oct 2026 00:35:05 +0000
+Subject: [PATCH] wifi: mt6797: name the refused join peer preconditions
+
+The bounded station join admits exactly one peer in sta_state when every
+precondition holds; otherwise it returns -EOPNOTSUPP without recording a
+first error, and mac80211 reports the failed station insert to the
+connect request. On the device the first join attempt failed exactly so:
+the connect returned -95 synchronously and the join worker later stopped
+at its deadline with status=-110 first=0 submitted=0x0, which leaves the
+sealed log unable to say which of the nineteen preconditions refused.
+
+Evaluate every precondition into a bitmask and, once per MAC lifetime,
+print it with the peer's 5 GHz supported rates, the BSS basic rates and
+the command sequence. Also print, once, the first rejected 5 GHz
+operating channel definition when the join channel is not valid. Both
+prints are diagnostic only: the refusal still establishes no peer state,
+every precondition and return value is unchanged, and the one-peer
+reservation remains.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 66 ++++++++++++++++------
+ 1 file changed, 49 insertions(+), 17 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 1c11a351c..5a21a814f 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -72,6 +72,7 @@ struct mt6797_mac {
+ 	unsigned int join_requested_ms;
+ 	bool join_channel_pending, join_channel_granted;
+ 	bool join_sta_pending, join_sta_active;
++	bool join_peer_refusal_logged, join_channel_refusal_logged;
+ 
+ 	u64 scan_deadline, scan_started_ns;
+ 	unsigned int scan_channels, scan_count, scan_polls, scan_packets;
+@@ -1341,6 +1342,18 @@ static int mt6797_mac_config(struct ieee80211_hw *hw, int radio_idx, u32 changed
+ 			!(channel->flags & (IEEE80211_CHAN_DISABLED |
+ 				IEEE80211_CHAN_NO_IR | IEEE80211_CHAN_NO_20MHZ |
+ 				IEEE80211_CHAN_RADAR));
++		/* Diagnostic only: name the first rejected 5 GHz operating
++		 * channel so a refused join can be attributed offline.
++		 */
++		if (!mac->join_channel_valid && channel &&
++		    channel->band == NL80211_BAND_5GHZ &&
++		    !mac->join_channel_refusal_logged) {
++			mac->join_channel_refusal_logged = true;
++			dev_info(wiphy_dev(hw->wiphy),
++				 "one-shot WLAN join channel refused: hw=%u center=%u width=%u freq1=%u freq2=%u flags=0x%x config=%d\n",
++				 channel->hw_value, channel->center_freq, def->width,
++				 def->center_freq1, def->center_freq2, channel->flags, ret);
++		}
+ 	}
+ #endif
+ 	mutex_unlock(&mac->mutex);
+@@ -1459,34 +1472,42 @@ static int mt6797_mac_join_add_peer(struct mt6797_mac *mac,
+ 				    struct ieee80211_vif *vif,
+ 				    struct ieee80211_sta *sta)
+ {
+-	unsigned int desired, basic;
++	unsigned int desired, basic, refused;
+ 	u64 grant_wait;
+ 	unsigned long flags;
+ 	int ret;
+ 
+ 	mutex_lock(&mac->mutex);
+ 	if (mac->scan_active || !mac->join_scan_ready) {
+-		mutex_unlock(&mac->mutex);
+-		return -EOPNOTSUPP;
++		refused = (mac->scan_active ? BIT(0) : 0) |
++			  (mac->join_scan_ready ? 0 : BIT(1));
++		goto refuse;
+ 	}
+ 	mutex_unlock(&mac->mutex);
+ 	/* scan_completed can expose this callback before scan_work returns. */
+ 	cancel_delayed_work_sync(&mac->scan_work);
+ 	mutex_lock(&mac->mutex);
+-	if (vif != mac->vif || vif->valid_links || sta->mlo || sta->valid_links ||
+-	    !mac->started || !mac->configured || mac->scan_active ||
+-	    !mac->join_scan_ready || !mac->bss_active || !mac->join_running ||
+-	    !mac->join_bss_valid || !mac->join_channel_valid ||
+-	    mac->join_peer_used || mac->join_retired || mac->closing ||
+-	    mac->first_error || mac->join_page_debt ||
+-	    ktime_get_ns() >= mac->join_deadline || mac->sequence > 248 ||
+-	    !mt6797_hif_normal_idle(mac->hif) ||
+-	    !ether_addr_equal(sta->addr, mac->join_bssid) ||
+-	    !mt6797_join_legacy_rates(sta->deflink.supp_rates[NL80211_BAND_5GHZ],
+-				     mac->join_basic_rates, &desired, &basic)) {
+-		ret = -EOPNOTSUPP;
+-		goto out;
+-	}
++	/* Every precondition is evaluated so a refusal names all of them. */
++	refused = (vif != mac->vif ? BIT(2) : 0) |
++		  (vif->valid_links || sta->mlo || sta->valid_links ? BIT(3) : 0) |
++		  (mac->started ? 0 : BIT(4)) | (mac->configured ? 0 : BIT(5)) |
++		  (mac->scan_active ? BIT(0) : 0) | (mac->join_scan_ready ? 0 : BIT(1)) |
++		  (mac->bss_active ? 0 : BIT(6)) | (mac->join_running ? 0 : BIT(7)) |
++		  (mac->join_bss_valid ? 0 : BIT(8)) |
++		  (mac->join_channel_valid ? 0 : BIT(9)) |
++		  (mac->join_peer_used ? BIT(10) : 0) |
++		  (mac->join_retired || mac->closing ? BIT(11) : 0) |
++		  (mac->first_error ? BIT(12) : 0) |
++		  (mac->join_page_debt ? BIT(13) : 0) |
++		  (ktime_get_ns() >= mac->join_deadline ? BIT(14) : 0) |
++		  (mac->sequence > 248 ? BIT(15) : 0) |
++		  (mt6797_hif_normal_idle(mac->hif) ? 0 : BIT(16)) |
++		  (ether_addr_equal(sta->addr, mac->join_bssid) ? 0 : BIT(17)) |
++		  (mt6797_join_legacy_rates(sta->deflink.supp_rates[NL80211_BAND_5GHZ],
++					    mac->join_basic_rates, &desired, &basic) ?
++		   0 : BIT(18));
++	if (refused)
++		goto refuse;
+ 	ether_addr_copy(mac->join_ap, sta->addr);
+ 	mac->join_desired_rates = desired;
+ 	mac->join_peer_basic_rates = basic;
+@@ -1557,6 +1578,17 @@ static int mt6797_mac_join_add_peer(struct mt6797_mac *mac,
+ 	mac->join_running = false;
+ 	mac->join_open = false;
+ 	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++	goto out;
++refuse:
++	/* Diagnostic only: the refusal still establishes no peer state. */
++	ret = -EOPNOTSUPP;
++	if (!mac->join_peer_refusal_logged) {
++		mac->join_peer_refusal_logged = true;
++		dev_info(wiphy_dev(mac->hw->wiphy),
++			 "one-shot WLAN join peer refused: reasons=0x%05x supported=0x%x basic=0x%x sequence=%u\n",
++			 refused, sta->deflink.supp_rates[NL80211_BAND_5GHZ],
++			 mac->join_basic_rates, mac->sequence);
++	}
+ out:
+ 	mutex_unlock(&mac->mutex);
+ 	return ret;
+-- 
+2.39.5
+

@@ -134,7 +134,9 @@ event_pid=$!
 stage=connect
 $BB printf '__JOIN_BEGIN__\n'
 set +e
-$BB timeout 3 /lib/ld-linux-aarch64.so.1 --library-path /lib /bin/iw dev wlan0 connect "$TARGET_SSID" 5200 "$TARGET_BSSID"
+# Keep the connect's diagnostics inside the framed body: the inherited scan
+# classifier treats any stderr as a failed scan, and the scan is independent.
+$BB timeout 3 /lib/ld-linux-aarch64.so.1 --library-path /lib /bin/iw dev wlan0 connect "$TARGET_SSID" 5200 "$TARGET_BSSID" 2>&1
 connect_exit=$?
 set -e
 # No disconnect/ifdown/retry: the driver owns finite teardown or fails stop.

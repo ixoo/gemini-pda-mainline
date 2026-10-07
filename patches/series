@@ -753,3 +753,4 @@ v7.1.3/gpu/0001-pmdomain-mediatek-scpsys-protect-the-MT6797-MFG-bus-on-power-tra
 proposals/0140-wifi-mt6797-decode-clear-EAPOL-receive-layouts.patch
 proposals/0141-soc-mediatek-tolerate-a-no-source-BTIF-interrupt-during-a-WMT-exchange.patch
 proposals/0142-wifi-mt6797-release-the-driver-owned-deauthentication-frame-on-teardown.patch
+proposals/0143-wifi-mt6797-name-the-refused-join-peer-preconditions.patch

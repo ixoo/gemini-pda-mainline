@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-07-mt6797-wifi-phase-b-join` |
-| Status | Runtime 2 booted candidate 2: common init 285/285 passed, the join script refused a prerequisite before output (inferred: pre-scan NO-IR gate) ([RUNTIME_2](RUNTIME_2.md), script corrected); join remains untested; clear EAPOL decoder tested offline but unlinked; data and keys remain incomplete |
+| Status | Runtime 3 demonstrated the passive scan on the owner's BSS; the connect was refused with -95 before any management frame, inferred to be the driver's peer precondition ([RUNTIME_3](RUNTIME_3.md)); proposal 0143 names the refused condition, compile 8 pending; join remains untested; clear EAPOL decoder tested offline but unlinked; data and keys remain incomplete |
 | Base | Phase A [runtime 3](../2026-10-06-mt6797-wifi-common-init/RUNTIME_3.md), package `3013daa6…` |
 | Date | 2026-10-07 |
 | Device action | One boot, WMT preparation/negotiation/common-init attempt, evidence sealing, A53 regression and confirmed Gemian recovery; no scan or join |
@@ -368,6 +368,16 @@ readiness passed, the join script exited before its first output, no scan or
 RF occurred, and recovery was confirmed. The inferred, unmeasured cause is the
 script's pre-scan `no IR` refusal under the world regulatory domain;
 `join-once.sh` is corrected and now names a failing prerequisite on stderr.
+
+Runtime 3 ([RUNTIME_3.md](RUNTIME_3.md), [results/runtime-3.json](results/runtime-3.json))
+passed every script prerequisite, demonstrated the passive scan on the owner's
+BSS with NO-IR lifted by the found beacon, and then saw `iw connect` refused
+with -95 before any management frame while the driver stopped at its deadline
+with nothing submitted. The connect path is supported (cfg80211's own station
+management entity over mac80211's auth and assoc); the refusal is inferred to
+come from the driver's peer precondition. Proposal 0143 prints the refused
+condition bitmask once; the script now keeps the connect's diagnostics inside
+the framed stdout so the inherited scan classification stays independent.
 
 Runtime-1 evidence is untouched: [results/candidate.json](results/candidate.json),
 [results/deployment-1.json](results/deployment-1.json) and

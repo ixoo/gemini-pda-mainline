@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdarg.h>
 #include <string.h>
 #include <errno.h>
 #include <stdlib.h>
@@ -33,7 +34,13 @@ struct sk_buff { u8 data[26]; unsigned len; struct ieee80211_tx_info info; };
 struct sk_buff_head { int lock; struct sk_buff *head; };
 #define IEEE80211_SKB_CB(s) (&(s)->info)
 #define wiphy_dev(w) (w)
-#define dev_info(...) do { } while (0)
+/* Capture the refusal bitmask the production diagnostic reports. */
+static unsigned last_reasons, refusal_logs;
+static void record(const char *fmt, ...)
+{ va_list ap; va_start(ap, fmt);
+  if (strstr(fmt, "peer refused")) { last_reasons = va_arg(ap, unsigned); refusal_logs++; }
+  va_end(ap); }
+#define dev_info(dev, ...) record(__VA_ARGS__)
 static unsigned allocations, losses;
 static bool allocation_failure;
 static struct sk_buff *dev_alloc_skb(unsigned n)
@@ -75,6 +82,7 @@ struct mt6797_mac {
  unsigned join_seen, join_tx_allowed, join_rx_allowed;
  bool join_credit_pending, join_channel_pending, join_channel_granted;
  bool join_sta_pending, join_sta_active;
+ bool join_peer_refusal_logged, join_channel_refusal_logged;
  unsigned join_page_debt, sequence, join_requested_ms, join_basic_rates;
  unsigned join_desired_rates, join_peer_basic_rates;
  u8 join_ap[6], join_bssid[6], join_channel_token, join_sta_sequence;
@@ -189,7 +197,11 @@ int main(void)
  assert(order[0]==0x0a && order[1]==0x1c && order[2]==0x13);
  assert(m.join_peer_used && m.join_channel_granted && !m.join_page_debt);
  memset(sta.addr,0,6); assert(m.join_ap[5]==7);
+ last_reasons=0;refusal_logs=0;
  assert(mt6797_mac_join_add_peer(&m,&vif,&sta)==-EOPNOTSUPP && writes==3);
+ /* Second peer and foreign address are both named; logged once per lifetime. */
+ assert(m.join_peer_refusal_logged && refusal_logs==1 && last_reasons==(BIT(10)|BIT(17)));
+ assert(mt6797_mac_join_add_peer(&m,&vif,&sta)==-EOPNOTSUPP && refusal_logs==1);
  for(unsigned failure=1;failure<=3;failure++) {
   m=ready(&vif,&sta);fail_write=failure;
   assert(mt6797_mac_join_add_peer(&m,&vif,&sta)==-EIO);
@@ -201,8 +213,9 @@ int main(void)
   assert(mt6797_mac_join_add_peer(&m,&vif,&sta)==expected);
   assert(writes==1 && m.join_retired && !locked);
  }
- m=ready(&vif,&sta);idle=false;
+ m=ready(&vif,&sta);idle=false;last_reasons=0;refusal_logs=0;
  assert(mt6797_mac_join_add_peer(&m,&vif,&sta)==-EOPNOTSUPP && !writes);
+ assert(refusal_logs==1 && last_reasons==BIT(16) && !m.join_peer_used && m.join_running);
  m=ready(&vif,&sta);m.sequence=254;
  assert(mt6797_mac_join_add_peer(&m,&vif,&sta)==-EOPNOTSUPP && !writes);
  m=ready(&vif,&sta);m.join_page_debt=2;m.join_credit_pending=true;

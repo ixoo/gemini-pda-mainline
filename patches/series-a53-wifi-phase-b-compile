@@ -638,3 +638,4 @@ proposals/0138-wifi-mt6797-finish-one-shot-join-with-healthy-teardown.patch
 proposals/0139-wifi-mt6797-record-bounded-join-stages.patch
 proposals/0141-soc-mediatek-tolerate-a-no-source-BTIF-interrupt-during-a-WMT-exchange.patch
 proposals/0142-wifi-mt6797-release-the-driver-owned-deauthentication-frame-on-teardown.patch
+proposals/0143-wifi-mt6797-name-the-refused-join-peer-preconditions.patch
