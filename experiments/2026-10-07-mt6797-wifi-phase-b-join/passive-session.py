@@ -32,6 +32,40 @@ SESSION.RELEASE = RELEASE
 SESSION.SESSION.RELEASE = RELEASE
 
 
+# Candidate 4 adds exactly one member to the parent RAM root: the reviewed
+# static nl80211 connect helper, with iw's ownership and mode.
+HELPER_MEMBER = 'bin/join-connect'
+HELPER_SHA256 = 'b3851a4b1890e7abd9128174b2dfc2ea71f3f1a9119085751b6b087d8f54cbd6'
+HELPER_BYTES = 665552
+RAM_ROOT_MEMBERS = 62
+
+
+def check_ram_root(members, record, userspace):
+    """Require the candidate-4 RAM root: the parent's 61 members plus the helper.
+
+    Release gate, ROM patches, pinned iw userspace, firmware and the private
+    board record are checked as before; the helper's name, size, digest, mode,
+    root ownership and single link are checked explicitly.
+    """
+    base = SESSION.SESSION
+    base.require(len(members) == RAM_ROOT_MEMBERS and
+                 all(name in members and base.digest(members[name].data) == digest and
+                     members[name].mode == 0o100644 for name, digest in ROM_PATCHES.items()) and
+                 all(base.digest(members[item['path']].data) == item['sha256'] and
+                     len(members[item['path']].data) == item['bytes']
+                     for item in userspace['files']) and RELEASE.encode() in members['init'].data and
+                 base.digest(members[SESSION.FIRMWARE_MEMBER].data) ==
+                 SESSION.FIRMWARE_SHA256 and RECORD_MEMBER in members and
+                 members[RECORD_MEMBER].mode == 0o100600 and
+                 members[RECORD_MEMBER].data == record,
+                 'private RAM-root release, firmware or record changed')
+    helper = members.get(HELPER_MEMBER)
+    base.require(helper is not None and len(helper.data) == HELPER_BYTES and
+                 base.digest(helper.data) == HELPER_SHA256 and helper.mode == 0o100755 and
+                 helper.uid == 0 and helper.gid == 0 and helper.nlink == 1,
+                 'reviewed join-connect helper absent or changed in the RAM root')
+
+
 def prepare(candidate_dir, previous):
     base = SESSION.SESSION
     boot_uuid(previous)
@@ -76,17 +110,7 @@ def prepare(candidate_dir, previous):
                  'private record source changed')
     record = collector.regular(record_path, 514)
     userspace = json.loads((HERE.parent / '2026-10-01-mt6797-passive-scan/results/userspace.json').read_bytes())
-    base.require(len(members) == 61 and
-                 all(name in members and base.digest(members[name].data) == digest and
-                     members[name].mode == 0o100644 for name, digest in ROM_PATCHES.items()) and
-                 all(base.digest(members[item['path']].data) == item['sha256'] and
-                     len(members[item['path']].data) == item['bytes']
-                     for item in userspace['files']) and RELEASE.encode() in members['init'].data and
-                 base.digest(members[SESSION.FIRMWARE_MEMBER].data) ==
-                 SESSION.FIRMWARE_SHA256 and RECORD_MEMBER in members and
-                 members[RECORD_MEMBER].mode == 0o100600 and
-                 members[RECORD_MEMBER].data == record,
-                 'private RAM-root release, firmware or record changed')
+    check_ram_root(members, record, userspace)
     candidate = {'files': {name: value['sha256'] for name, value in expected.items()},
                  'members': {name: {'sha256': base.digest(member.data),
                                     'size': len(member.data), 'mode': oct(member.mode)}
