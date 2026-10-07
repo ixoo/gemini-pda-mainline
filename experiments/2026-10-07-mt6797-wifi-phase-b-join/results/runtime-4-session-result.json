@@ -1,0 +1,131 @@
+{
+  "join": {
+    "associated_station_activation_demonstrated": false,
+    "association_response_status": null,
+    "bounded_join_pass": false,
+    "healthy_cleanup_demonstrated": false,
+    "host_management_submissions": 0,
+    "malformed_stage_record": false,
+    "management_exchange_demonstrated": false,
+    "session_verified": true,
+    "stage_and_credit_order_verified": false,
+    "terminal_failure_recorded": true,
+    "unique_tx_acknowledgements": true,
+    "wifi_operational": false
+  },
+  "kernel_release": "7.1.3-gemini-a53-wifi-phase-b-compile",
+  "phase_a_capture": {
+    "bt_h1_absent": true,
+    "calibration_ack_frames": 1,
+    "calibration_capture_bytes": 8,
+    "calibration_event_task": 4,
+    "calibration_reply_bytes": 382,
+    "common_init_completed": 285,
+    "common_init_lines": 1,
+    "common_init_passed": true,
+    "common_init_result": 0,
+    "continued_to_wlan": true,
+    "negotiation_passed": true,
+    "pa_rails_off_after": true,
+    "prerequisites_in_order": true,
+    "ready_for_scan": true,
+    "wlan_firmware_stopped": false,
+    "wlan_ready_lines": {
+      "one-shot WLAN TC4 reconciliation: snapshot=2 status=0 ": true,
+      "one-shot WLAN private record prepare: status=0": true,
+      "one-shot WLAN regulatory configuration: status=0": true
+    }
+  },
+  "scan": {
+    "a53_regression_pass": true,
+    "channel40_permitted": true,
+    "complete_log_sha256": "e2a60042c14ad63db07592903f527374ad3471b7127fdb656eca29bb00be317e",
+    "counter_diagnosis": "inconclusive",
+    "counter_diagnostic_complete": true,
+    "effective_rf_dwell_verified": false,
+    "firmware_count_observation_complete": true,
+    "firmware_management_processing_count": 15,
+    "firmware_management_processing_seen": true,
+    "firmware_scan_done_version": 3,
+    "firmware_scan_pno": 0,
+    "gemian_recovery_confirmed": true,
+    "host_elapsed_us": 528388,
+    "initial_configuration_and_accounting_pass": true,
+    "kernel_release": "7.1.3-gemini-a53-wifi-phase-b-compile",
+    "matching_done_header": true,
+    "native_management_frame_seen": true,
+    "nominal_dwell_timing_consistent": true,
+    "passive_scan_demonstrated": true,
+    "requested_channel_dwell_ms": 500,
+    "rf_tuning_verified": false,
+    "runtime_credit_returned": true,
+    "sampled_band_channel_matches_request": true,
+    "scan_channel_count": 1,
+    "scan_completed": true,
+    "single_scan_admitted": true,
+    "standard_5g_bss_result": true,
+    "standard_bss_result": true,
+    "standard_scan_succeeded": true,
+    "supported_broadcast_filter_submitted": true,
+    "timing_observation_complete": true,
+    "tuning_channel_pairs": [
+      {
+        "band_base": 5000000,
+        "bandwidth": 0,
+        "center_channel": 40,
+        "fixed_override": 0,
+        "requested_channel": 40
+      },
+      {
+        "band_base": 5000000,
+        "bandwidth": 0,
+        "center_channel": 40,
+        "fixed_override": 0,
+        "requested_channel": 40
+      }
+    ],
+    "tuning_diagnosis": "inconclusive",
+    "tuning_diagnostic_complete": true,
+    "tuning_samples": [
+      {
+        "post_done": false,
+        "received_us": 141823,
+        "role": 0,
+        "sample": 0,
+        "sent_us": 117822,
+        "value": 5000000
+      },
+      {
+        "post_done": false,
+        "received_us": 189823,
+        "role": 1,
+        "sample": 0,
+        "sent_us": 165827,
+        "value": 2631680
+      },
+      {
+        "post_done": false,
+        "received_us": 333815,
+        "role": 0,
+        "sample": 1,
+        "sent_us": 309824,
+        "value": 5000000
+      },
+      {
+        "post_done": false,
+        "received_us": 381853,
+        "role": 1,
+        "sample": 1,
+        "sent_us": 357836,
+        "value": 2631680
+      }
+    ],
+    "tuning_samples_atomic": false,
+    "tuning_samples_before_done": true,
+    "tuning_samples_complete": true,
+    "validated_beacon_reported": true,
+    "wifi_operational": false,
+    "wire_lifetime_retired": true
+  },
+  "scan_attempted": true
+}

@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-07-mt6797-wifi-phase-b-join` |
-| Status | Runtime 3 demonstrated the passive scan on the owner's BSS; the connect was refused with -95 before any management frame, inferred to be the driver's peer precondition ([RUNTIME_3](RUNTIME_3.md)); proposal 0143 names the refused condition, built as [compile 8](COMPILE_8.md) composed as candidate 3 (receipt `00f6c619…`) and installed as deployment 3, physical boot pending ([RUNTIME_4_PREPARATION](RUNTIME_4_PREPARATION.md)); join remains untested; clear EAPOL decoder tested offline but unlinked; data and keys remain incomplete |
+| Status | Runtime 4 ([RUNTIME_4](RUNTIME_4.md)) refuted the driver-side inference: the connect's -95 arises in cfg80211's station management entity before any driver join callback (privacy-sensitive BSS lookup, then a directed scan the one-shot hw_scan refuses); next step awaits the owner's scope decision; join remains untested; clear EAPOL decoder tested offline but unlinked; data and keys remain incomplete |
 | Base | Phase A [runtime 3](../2026-10-06-mt6797-wifi-common-init/RUNTIME_3.md), package `3013daa6…` |
 | Date | 2026-10-07 |
 | Device action | One boot, WMT preparation/negotiation/common-init attempt, evidence sealing, A53 regression and confirmed Gemian recovery; no scan or join |
@@ -363,6 +363,11 @@ with a fresh runtime root as in [RUNTIME_3.md](RUNTIME_3.md). The decision
 the boot answers is the refused-condition bitmask printed by 0143. Deployment 3
 is recorded in [results/deployment-3.json](results/deployment-3.json) and
 [RUNTIME_4_PREPARATION.md](RUNTIME_4_PREPARATION.md).
+Runtime 4 ([RUNTIME_4.md](RUNTIME_4.md), [results/runtime-4.json](results/runtime-4.json))
+booted candidate 3: initialization and the scan passed, the connect failed
+with -95 again, and neither 0143 diagnostic line appeared although both
+strings are in the image, so the failure precedes every driver join callback.
+The source review there traces it to cfg80211's connect path.
 
 ## Runtime 2 bindings (2026-10-06)
 
