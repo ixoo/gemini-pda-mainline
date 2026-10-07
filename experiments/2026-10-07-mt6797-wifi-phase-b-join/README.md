@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-07-mt6797-wifi-phase-b-join` |
-| Status | Runtime 3 demonstrated the passive scan on the owner's BSS; the connect was refused with -95 before any management frame, inferred to be the driver's peer precondition ([RUNTIME_3](RUNTIME_3.md)); proposal 0143 names the refused condition, built as [compile 8](COMPILE_8.md), candidate 3 composition pending; join remains untested; clear EAPOL decoder tested offline but unlinked; data and keys remain incomplete |
+| Status | Runtime 3 demonstrated the passive scan on the owner's BSS; the connect was refused with -95 before any management frame, inferred to be the driver's peer precondition ([RUNTIME_3](RUNTIME_3.md)); proposal 0143 names the refused condition, built as [compile 8](COMPILE_8.md) and composed as candidate 3 (receipt `00f6c619…`), deployment 3 pending; join remains untested; clear EAPOL decoder tested offline but unlinked; data and keys remain incomplete |
 | Base | Phase A [runtime 3](../2026-10-06-mt6797-wifi-common-init/RUNTIME_3.md), package `3013daa6…` |
 | Date | 2026-10-07 |
 | Device action | One boot, WMT preparation/negotiation/common-init attempt, evidence sealing, A53 regression and confirmed Gemian recovery; no scan or join |
@@ -347,10 +347,10 @@ runtime-2 and runtime-3 evidence and receipts untouched:
 | Adapter | Runtime 4 binding |
 | --- | --- |
 | `build-candidate.py` | `COMMIT a5951349…`, `PACKAGE 9c5a7300…` |
-| `install-passive.py` | predecessor `03a6d78c…` (installed candidate 2), receipt `mt6797-wifi-phase-b-deployment-3`, `results/candidate-3.json`, `MANIFEST_SHA = None` until that receipt is committed |
-| `capture-private.py` | `capture-3`, `session-3/deployment-summary.txt`, `results/candidate-3.json`, slot `None` |
+| `install-passive.py` | predecessor `03a6d78c…` (installed candidate 2), receipt `mt6797-wifi-phase-b-deployment-3`, `results/candidate-3.json` (SHA-256 `00f6c619…`, boot.img `d98cca07…`, padded boot2 `84f65eae…`), both `MANIFEST_SHA` slots filled |
+| `capture-private.py` | `capture-3`, `session-3/deployment-summary.txt`, `results/candidate-3.json`, slot filled |
 | `passive-session.py` | `results/candidate-3.json` |
-| `passive-host.py` | `session-3`, `capture-3`; the WMT host identity reads `runtime-4/results/candidate.json`, created as a byte copy once the receipt is committed |
+| `passive-host.py` | `session-3`, `capture-3`; the WMT host identity reads `runtime-4/results/candidate.json`, a byte copy of the candidate-3 receipt |
 | `prepare-runtime.py` (was `prepare-runtime-2.py`) | checks `results/candidate-3.json`, both slots, predecessor `03a6d78c…`; creates `wifi-phase-b/session-3` only and leaves `capture-3` absent |
 | `laptop-capture.py`, `laptop-session.py` | unchanged; they follow the adapters |
 
