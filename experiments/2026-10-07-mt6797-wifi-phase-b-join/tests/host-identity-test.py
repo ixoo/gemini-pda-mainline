@@ -20,7 +20,8 @@ from pathlib import Path
 sys.dont_write_bytecode = True
 HERE = Path(__file__).resolve().parents[1]
 RECEIPT_SHA = 'f19dffdb622643e7dd486a2b6b3b4e752c993b5908ecc91929c0b4a0972ee896'
-BOOT2 = '03a6d78caf8d38eca3d46015dc053defa8677d6e75ab40454593fe8155590bf4'
+CANDIDATE_2_BOOT2 = '03a6d78caf8d38eca3d46015dc053defa8677d6e75ab40454593fe8155590bf4'
+CANDIDATE_3_BOOT2 = '84f65eae0a5ddc63f1c271ba78873d54e61bec30ec6e8ae176cb8394098f0adc'
 RUNTIME_1_BOOT2 = '6ecc057c390e6c9acb3480a52950a7261d7f4678c43da5688dcc1724e2bb778f'
 
 with tempfile.TemporaryDirectory(prefix='mt6797-host-identity-') as directory:
@@ -54,7 +55,10 @@ with tempfile.TemporaryDirectory(prefix='mt6797-host-identity-') as directory:
         assert not bound.exists(), 'runtime-4 copy without a committed candidate-3 receipt'
         bound_receipt = runtime_2
     digest = json.loads(bound_receipt)['files']['boot2-padded.img']['sha256']
-    assert digest == BOOT2 or candidate_3.exists()
+    # The bound receipt is the current runtime's candidate; the predecessor's
+    # receipt stays bound only to the runtime that used it.
+    expected = CANDIDATE_3_BOOT2 if candidate_3.exists() else CANDIDATE_2_BOOT2
+    assert digest == expected, digest
     runtime_1 = json.loads((HERE / 'results/candidate.json').read_bytes())
     assert runtime_1['files']['boot2-padded.img']['sha256'] == RUNTIME_1_BOOT2, 'runtime-1 receipt preserved'
     # Other rebound roots are untouched by the receipt binding.
@@ -70,11 +74,12 @@ with tempfile.TemporaryDirectory(prefix='mt6797-host-identity-') as directory:
                 start.get('one_host_start_attempt') is True and
                 start.get('firmware_start_request_sent') is True)
     boot = 'eee023ca-0000-4000-8000-000000000000'
-    wmt = {'accepted': True, 'candidate_boot2_sha256': BOOT2, 'boot_id': boot}
-    start = {'candidate_boot2_sha256': BOOT2, 'boot_id': boot, 'one_host_start_attempt': True,
+    wmt = {'accepted': True, 'candidate_boot2_sha256': digest, 'boot_id': boot}
+    start = {'candidate_boot2_sha256': digest, 'boot_id': boot, 'one_host_start_attempt': True,
              'firmware_start_request_sent': True}
-    assert identity(json.loads(bound_receipt), wmt, start), 'candidate-2 evidence must pass'
-    assert not identity(runtime_1, wmt, start), 'runtime-1 receipt must refuse candidate-2 evidence'
+    assert identity(json.loads(bound_receipt), wmt, start), 'current-candidate evidence must pass'
+    assert not identity(runtime_1, wmt, start), 'runtime-1 receipt must refuse current evidence'
+    assert not identity(json.loads(runtime_2), wmt, start) or not candidate_3.exists(), 'runtime-2 receipt must refuse candidate-3 evidence'
     assert not identity(json.loads(bound_receipt), wmt, dict(start, boot_id='other')), 'boot mismatch refused'
     assert not identity(json.loads(bound_receipt), dict(wmt, candidate_boot2_sha256=RUNTIME_1_BOOT2), start)
 print('host identity: PASS (WMT host receipt bound per runtime; runtime-1 receipt preserved; predicate positive/negative)')
