@@ -66,8 +66,9 @@ connect path regardless of the privacy fix.
 ## Correction
 
 Proposal 0145 queues each validated beacon or probe response as a received
-mac80211 frame (band, frequency, dBm signal from RCPI, lowest legacy rate
-index) and hands the queue to mac80211 outside the MAC lock before completing
+mac80211 frame (band, frequency, dBm signal from RCPI, and a zeroed rate index
+that is a placeholder mac80211 requires, not a PHY rate observation) and hands
+the queue to mac80211 outside the MAC lock before completing
 the hardware scan, so mac80211 creates the cfg80211 entry itself, including
 the regulatory beacon hint, and fills its own record. Frames of a failed scan
 lifetime are dropped. Scan admission, budgets and radio behaviour are

@@ -26,13 +26,15 @@ static __attribute__((unused)) u32 get_unaligned_le32(const void *p) { const u8 
 struct ieee80211_channel { unsigned band, center_freq, hw_value, flags; };
 struct ieee80211_rx_status { int band, freq, signal, flag; unsigned rate_idx, encoding; };
 struct sk_buff { u8 *data; unsigned len; struct ieee80211_rx_status cb; struct sk_buff *next; };
-struct sk_buff_head { struct sk_buff *head; unsigned count; };
+struct sk_buff_head { struct sk_buff *head, *tail; unsigned count; };
 #define IEEE80211_SKB_RXCB(s) (&(s)->cb)
 static bool allocation_failure;
 static struct sk_buff *dev_alloc_skb(unsigned n)
 { struct sk_buff *s; if (allocation_failure) return NULL; s = calloc(1, sizeof(*s)); s->data = calloc(1, n ? n : 1); return s; }
 static void skb_put_data(struct sk_buff *s, const void *p, unsigned n) { memcpy(s->data, p, n); s->len = n; }
-static void __skb_queue_tail(struct sk_buff_head *q, struct sk_buff *s) { s->next = q->head; q->head = s; q->count++; }
+/* FIFO like the production queue: delivery order is the frame order. */
+static void __skb_queue_tail(struct sk_buff_head *q, struct sk_buff *s)
+{ s->next = NULL; if (q->tail) q->tail->next = s; else q->head = s; q->tail = s; q->count++; }
 struct mt6797_hif { int unused; };
 static int mt6797_hif_read32(struct mt6797_hif *h, unsigned reg, u64 deadline, u32 *v) { (void)h; (void)reg; (void)deadline; *v = BIT(8); return 0; }
 struct ieee80211_hw { void *wiphy; };
@@ -80,9 +82,12 @@ int main(void)
 	assert(q.head->cb.band == NL80211_BAND_5GHZ && q.head->cb.freq == 5200 && q.head->cb.signal == 100 / 2 - 110);
 	assert(q.head->cb.rate_idx == 0 && q.head->cb.flag == 0 && q.head->len == 24 + sizeof(body));
 	assert(memcmp(q.head->data, m.scan_packet + 40, q.head->len) == 0);
-	/* Probe response is accepted too; an action frame is not a scan result and is dropped silently. */
+	/* Probe response is accepted too and queued AFTER the beacon (FIFO); an action
+	 * frame is not a scan result and is dropped silently. */
 	n = build(m.scan_packet, 40, 90, 0x0050, body, sizeof(body));
 	assert(mt6797_mac_scan_packet(&m, n, 1, &done, &q) == 0 && q.count == 2);
+	assert(q.head->cb.signal == 100 / 2 - 110 && q.head->next == q.tail && q.tail->cb.signal == 90 / 2 - 110);
+	assert((q.head->data[0] & 0xff) == 0x80 && (q.tail->data[0] & 0xff) == 0x50 && q.tail->next == NULL);
 	n = build(m.scan_packet, 40, 90, 0x00d0, body, sizeof(body));
 	assert(mt6797_mac_scan_packet(&m, n, 1, &done, &q) == 0 && q.count == 2);
 	/* A channel outside the admitted set is a protocol error; a disabled channel is refused. */

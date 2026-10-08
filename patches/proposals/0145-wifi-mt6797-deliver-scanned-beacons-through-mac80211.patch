@@ -1,4 +1,4 @@
-From e5653a95f2a309fe50432259b269f2d8af475e98 Mon Sep 17 00:00:00 2001
+From cff0a8a8257539577b51058e60072733bc8add04 Mon Sep 17 00:00:00 2001
 From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
 Date: Thu, 8 Oct 2026 02:21:30 +0000
 Subject: [PATCH] wifi: mt6797: deliver scanned beacons through mac80211
@@ -24,11 +24,11 @@ behaviour changes.
 
 Unsigned experiment draft; archive identity is non-certifying.
 ---
- drivers/net/wireless/mediatek/mt6797/mac.c | 65 +++++++++++++++-------
- 1 file changed, 44 insertions(+), 21 deletions(-)
+ drivers/net/wireless/mediatek/mt6797/mac.c | 66 +++++++++++++++-------
+ 1 file changed, 45 insertions(+), 21 deletions(-)
 
 diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
-index 0cd513352..258dbfca8 100644
+index 0cd513352..69fa4229c 100644
 --- a/drivers/net/wireless/mediatek/mt6797/mac.c
 +++ b/drivers/net/wireless/mediatek/mt6797/mac.c
 @@ -324,12 +324,13 @@ static bool mt6797_mac_finish_scan(struct mt6797_mac *mac, int *status,
@@ -49,7 +49,7 @@ index 0cd513352..258dbfca8 100644
  	u8 *packet = mac->scan_packet;
  	u32 own;
  	unsigned int type;
-@@ -408,21 +409,29 @@ static int mt6797_mac_scan_packet(struct mt6797_mac *mac, size_t bytes,
+@@ -408,21 +409,30 @@ static int mt6797_mac_scan_packet(struct mt6797_mac *mac, size_t bytes,
  	slot = mt6797_channel_slot(frame.channel);
  	if (slot < 0 || !(mac->scan_channels & BIT(slot)))
  		return -EPROTO;
@@ -67,8 +67,9 @@ index 0cd513352..258dbfca8 100644
 +	 * the cfg80211 entry itself and fills its own BSS record (supported and
 +	 * basic rates) that a later connection setup reads. The caller delivers
 +	 * the queue outside the MAC lock, before completing the scan. RCPI is
-+	 * in half-dB units; no receive rate or timestamp is invented, so the
-+	 * status carries the lowest legacy rate index of the band.
++	 * in half-dB units. The scan result carries no PHY rate observation, so
++	 * the zeroed rate index (the band's lowest legacy rate) is a placeholder
++	 * that mac80211 requires, not a measurement; no timestamp is claimed.
  	 */
 -	data.signal = (int)frame.rcpi * 50 - 11000;
 -	mgmt = (struct ieee80211_mgmt *)(packet + frame.offset);
@@ -92,7 +93,7 @@ index 0cd513352..258dbfca8 100644
  	return 0;
  }
  
-@@ -1017,11 +1026,14 @@ static void mt6797_mac_scan_work(struct work_struct *work)
+@@ -1017,11 +1027,14 @@ static void mt6797_mac_scan_work(struct work_struct *work)
  						struct mt6797_mac, scan_work);
  	struct mt6797_hif_rx_result rx;
  	struct cfg80211_scan_info info = {0};
@@ -107,7 +108,7 @@ index 0cd513352..258dbfca8 100644
  	mutex_lock(&mac->mutex);
  	if (!mac->scan_active)
  		goto out;
-@@ -1075,7 +1087,7 @@ static void mt6797_mac_scan_work(struct work_struct *work)
+@@ -1075,7 +1088,7 @@ static void mt6797_mac_scan_work(struct work_struct *work)
  	 * skipped. This is not an event-drain fence. Empty polls consume no RX.
  	 */
  	for (n = 0; n < 8; n++) {
@@ -116,7 +117,7 @@ index 0cd513352..258dbfca8 100644
  
  		for (port = 0; port < 2; port++) {
  			ret = mt6797_hif_receive_packet(mac->hif, port, deadline,
-@@ -1091,12 +1103,13 @@ static void mt6797_mac_scan_work(struct work_struct *work)
+@@ -1091,12 +1104,13 @@ static void mt6797_mac_scan_work(struct work_struct *work)
  				ret = -E2BIG;
  				goto failed;
  			}
@@ -133,7 +134,7 @@ index 0cd513352..258dbfca8 100644
  			break;
  	}
  #if IS_ENABLED(CONFIG_MT6797_SCAN_TUNING_SAMPLE)
-@@ -1120,6 +1133,16 @@ static void mt6797_mac_scan_work(struct work_struct *work)
+@@ -1120,6 +1134,16 @@ static void mt6797_mac_scan_work(struct work_struct *work)
  	info.aborted = !!ret;
  out:
  	mutex_unlock(&mac->mutex);
