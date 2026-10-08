@@ -1,4 +1,4 @@
-# Fifth Phase B runtime: the privacy-flagged connect is refused with EINVAL
+# Fifth Phase B runtime: the connect is refused for an empty rate record
 
 Boot identity: mainline `8f9d400a-828d-4624-9d12-a1ac43b6b8a7` from candidate
 4 (boot2 `eeb2ce9b…`, receipt `0d8bf089…`, compile-9 package `bb1659e0…`,
@@ -27,51 +27,61 @@ The sealed log is 148616 bytes, 1988 records, SHA-256 `8d27aa49…`, manifest
 - Zero management records; A53 regression passed, the log was complete,
   recovery was confirmed; `session_verified=true`, `bounded_join_pass=false`.
 
-## Source review of the EINVAL path (selected tree)
+## The rejection site, observed
 
-With the privacy flag set, `cfg80211_sme_connect` finds the BSS and calls
-`cfg80211_mlme_auth` synchronously, which calls mac80211's
-`ieee80211_mgd_auth`. The EINVAL returns remaining on that path for an
-open-system, legacy, non-MLO request on channel 40 are:
+The laptop read the retained sealed log: the only `wlan0:` record is
+`wlan0: No legacy rates in association response`, logged 0.17 s after the
+scan completion record and before the join footer. That is mac80211's
+`ieee80211_mgd_setup_link_sta`, called from `ieee80211_prep_connection` during
+`ieee80211_mgd_auth`, returning -EINVAL when none of the AP's rates matches
+the station band's bitrates. The wording is historical: nothing was sent or
+received on air (zero management records); the function runs before the
+channel is prepared and before the station is inserted, which is consistent
+with the absent 0143 lines.
 
-- `nl80211_connect` and `cfg80211_connect`: only for attributes this request
-  does not carry (RRM, BSS selection, FILS, external authentication, HT or
-  VHT capability masks, keys) or for an unknown or disabled frequency; 5200 MHz
-  is present and enabled.
-- `cfg80211_mlme_auth`: only for a link ID without MLO support, shared-key
-  parameters, or a BSSID equal to our own address.
-- `ieee80211_mgd_auth`: a channel switch in progress at the AP.
-- `ieee80211_prep_connection` through `ieee80211_mgd_setup_link_sta`: no
-  legacy rate of the AP matches the station's band rates, logged as
-  `wlan0: No legacy rates in association response`.
-- `ieee80211_determine_chan_mode`, reached from `ieee80211_prep_channel`:
-  the AP's basic rates carry a BSS membership selector the station does not
-  support, logged as `wlan0: required basic rate or BSS membership selectors
-  not supported or disabled, rejecting connection`; or the operating channel
-  is unusable even at 20 MHz, logged as `wlan0: unusable channel (5200 MHz)
-  for connection`.
+The owner AP's block in the retained scan output lists `Supported rates:
+6.0* 9.0 12.0* 18.0 24.0* 36.0 48.0 54.0`, no extended rates and no membership
+selector; its capability is ESS, Privacy, spectrum management, short slot time
+and radio measurement. The driver registers exactly those eight OFDM rates on
+5 GHz. [tests/scan-rates-test.c](tests/scan-rates-test.c) runs mac80211's own
+`ieee80211_get_rates`, extracted from the selected tree, over the driver's
+registered bitrate table with those rate bytes: all eight match, the basic set
+is 6, 12 and 24 Mbit/s, and the minimum-rate index is 0. So the rates are
+compatible, and the only way the match is empty is an empty rate record.
 
-Two facts narrow this. First, a connect request carries no supported
-selectors: `NL80211_ATTR_SUPPORTED_SELECTORS` is read only by the explicit
-authenticate and associate requests, so mac80211 assumes only the SAE-H2E
-selector for a connect and adds the HT, VHT, HE and EHT PHY selectors solely
-from the connection mode. Second, this driver advertises no HT capability, so
-the connection mode is legacy and no PHY selector is added. An AP whose basic
-rate set includes an HT, VHT or HE PHY membership selector is therefore
-rejected at the selector check with EINVAL, before `ieee80211_prep_channel`
-asks for the channel and before the station insert, which matches the absent
-0143 lines. Whether the owner's AP advertises such a selector is not yet
-known: it is visible in the retained scan output's supported-rates lines.
+## Cause (source, consistent with every observation)
 
-Every candidate site above prints a `wlan0:` kernel message that the join
-filter does not match. Those lines, requested from the retained sealed log,
-identify the site exactly without any device action. Until they are read the
-cause remains a source-review inference.
+`ieee80211_mgd_setup_link_sta` reads the rates from mac80211's private
+per-BSS record (`struct ieee80211_bss`, the cfg80211 entry's private area),
+which mac80211 fills only when it receives the beacon itself through
+`ieee80211_rx` and `ieee80211_bss_info_update`. The Phase A and Phase B
+driver reported each scanned beacon to cfg80211 directly with
+`cfg80211_inform_bss_frame_data`, so the cfg80211 entry existed (the scan
+dump and the privacy-flagged lookup both found it) while mac80211's record
+stayed zeroed. The same fixture reproduces the exact condition with an empty
+record: no minimum-rate index, the logged message's test. This also explains
+why no earlier runtime could have reached a management frame through the
+connect path regardless of the privacy fix.
+
+## Correction
+
+Proposal 0145 queues each validated beacon or probe response as a received
+mac80211 frame (band, frequency, dBm signal from RCPI, lowest legacy rate
+index) and hands the queue to mac80211 outside the MAC lock before completing
+the hardware scan, so mac80211 creates the cfg80211 entry itself, including
+the regulatory beacon hint, and fills its own record. Frames of a failed scan
+lifetime are dropped. Scan admission, budgets and radio behaviour are
+unchanged. [tests/scan-report-test.c](tests/scan-report-test.c) drives the
+production handler with a synthetic beacon through the frame parser and
+checks the queued frame's status fields, the probe-response acceptance, and
+the refusals of a non-scan frame, a foreign or disabled channel and an
+allocation failure. The runner also fails if the handler still informs
+cfg80211 directly.
 
 ## Next
 
-If the selector rejection is confirmed, the fix is host-side: the station
-must either declare the selector (only the explicit authenticate and associate
-requests accept supported selectors) or the exchange must use those explicit
-requests. Either is a protocol change for the owner to approve; no driver
-change is indicated by this result and no kernel build is needed for it.
+Candidate 5 pairs a compile-10 kernel (0145) with the candidate-4 RAM root and
+helper; no host-side change is needed. The boot's decision-changing
+observation is the first management frame: join TX, RX and acknowledgement
+records with an authentication or association status, or a new specific
+failure.

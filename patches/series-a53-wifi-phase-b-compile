@@ -640,3 +640,4 @@ proposals/0141-soc-mediatek-tolerate-a-no-source-BTIF-interrupt-during-a-WMT-exc
 proposals/0142-wifi-mt6797-release-the-driver-owned-deauthentication-frame-on-teardown.patch
 proposals/0143-wifi-mt6797-name-the-refused-join-peer-preconditions.patch
 proposals/0144-wifi-mt6797-accept-the-whole-wiphy-radio-index-in-co.patch
+proposals/0145-wifi-mt6797-deliver-scanned-beacons-through-mac80211.patch

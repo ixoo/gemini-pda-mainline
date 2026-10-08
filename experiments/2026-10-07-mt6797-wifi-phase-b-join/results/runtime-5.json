@@ -59,7 +59,29 @@
   "recovery_confirmed": true,
   "wifi_operational": false,
   "raw_evidence_public": false,
-  "classification": "negative: init and scan pass; the privacy-flagged connect was acknowledged with EINVAL before any management frame; no logged driver refusal",
-  "failed_predicate_measured": false,
-  "diagnosis_status": "source review: EINVAL on this path arises in mac80211's connection preparation, where each site logs a 'wlan0:' kernel message; those lines were requested from the retained sealed log and not yet read"
+  "classification": "negative: init and scan pass; the privacy-flagged connect was acknowledged with EINVAL at mac80211's station setup over an empty BSS rate record; no management frame",
+  "failed_predicate_measured": true,
+  "diagnosis_status": "measured site: ieee80211_mgd_setup_link_sta found no matching legacy rate because mac80211's per-BSS rate record is empty when the driver informs cfg80211 directly; the rates themselves match (fixture); fixed by proposal 0145",
+  "kernel_log_rejection": "wlan0: No legacy rates in association response (the only wlan0 record; 0.17 s after scan completion, before the join footer)",
+  "owner_ap_rates": {
+    "supported": [
+      "6.0*",
+      "9.0",
+      "12.0*",
+      "18.0",
+      "24.0*",
+      "36.0",
+      "48.0",
+      "54.0"
+    ],
+    "extended": null,
+    "membership_selectors": null,
+    "capability": [
+      "ESS",
+      "Privacy",
+      "SpectrumMgmt",
+      "ShortSlotTime",
+      "RadioMeasure"
+    ]
+  }
 }

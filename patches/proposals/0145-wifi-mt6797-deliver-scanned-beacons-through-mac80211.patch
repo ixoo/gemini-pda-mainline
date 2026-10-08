@@ -1,0 +1,155 @@
+From e5653a95f2a309fe50432259b269f2d8af475e98 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 8 Oct 2026 02:21:30 +0000
+Subject: [PATCH] wifi: mt6797: deliver scanned beacons through mac80211
+
+The passive scan reported each validated beacon or probe response to
+cfg80211 directly with cfg80211_inform_bss_frame_data(). That creates the
+cfg80211 entry a scan dump shows, but mac80211 never sees the frame, so
+its own per-BSS record (the supported and basic rates it parses from a
+received beacon) stays empty. A later connect request then fails in
+ieee80211_mgd_setup_link_sta() with "No legacy rates in association
+response" and -EINVAL before any management frame, which the device
+showed although the AP advertises exactly the eight OFDM rates this band
+registers.
+
+Queue the frame as a received mac80211 frame instead, with the band,
+frequency and dBm signal of the admitted channel and the band's lowest
+legacy rate index, and hand the queue to mac80211 outside the MAC lock
+while the hardware scan is still in progress, before completing the
+scan. mac80211 then informs cfg80211 itself, including the regulatory
+beacon hint, and fills the record the connection setup reads. Frames of
+a failed scan lifetime are dropped. No scan admission, budget or radio
+behaviour changes.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 65 +++++++++++++++-------
+ 1 file changed, 44 insertions(+), 21 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 0cd513352..258dbfca8 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -324,12 +324,13 @@ static bool mt6797_mac_finish_scan(struct mt6797_mac *mac, int *status,
+ }
+ 
+ static int mt6797_mac_scan_packet(struct mt6797_mac *mac, size_t bytes,
+-				  u64 deadline, bool *done)
++				  u64 deadline, bool *done,
++				  struct sk_buff_head *received)
+ {
+-	struct cfg80211_inform_bss data = {0};
++	struct ieee80211_rx_status *status;
+ 	struct mt6797_scan_frame frame;
+-	struct cfg80211_bss *bss;
+-	struct ieee80211_mgmt *mgmt;
++	struct ieee80211_channel *channel;
++	struct sk_buff *skb;
+ 	u8 *packet = mac->scan_packet;
+ 	u32 own;
+ 	unsigned int type;
+@@ -408,21 +409,29 @@ static int mt6797_mac_scan_packet(struct mt6797_mac *mac, size_t bytes,
+ 	slot = mt6797_channel_slot(frame.channel);
+ 	if (slot < 0 || !(mac->scan_channels & BIT(slot)))
+ 		return -EPROTO;
+-	data.chan = &mac->channels[slot];
+-	if (data.chan->flags & (IEEE80211_CHAN_DISABLED |
+-				IEEE80211_CHAN_NO_20MHZ | IEEE80211_CHAN_RADAR))
++	channel = &mac->channels[slot];
++	if (channel->flags & (IEEE80211_CHAN_DISABLED |
++			      IEEE80211_CHAN_NO_20MHZ | IEEE80211_CHAN_RADAR))
+ 		return -EACCES;
+-	/* RCPI half-dBm units; preserve the source-defined measurement. No
+-	 * receive rate or hardware timestamp is invented for this scan result.
++	/* Hand the validated beacon or probe response to mac80211 as a received
++	 * frame instead of informing cfg80211 directly: mac80211 then creates
++	 * the cfg80211 entry itself and fills its own BSS record (supported and
++	 * basic rates) that a later connection setup reads. The caller delivers
++	 * the queue outside the MAC lock, before completing the scan. RCPI is
++	 * in half-dB units; no receive rate or timestamp is invented, so the
++	 * status carries the lowest legacy rate index of the band.
+ 	 */
+-	data.signal = (int)frame.rcpi * 50 - 11000;
+-	mgmt = (struct ieee80211_mgmt *)(packet + frame.offset);
+-	bss = cfg80211_inform_bss_frame_data(mac->hw->wiphy, &data, mgmt,
+-					     frame.bytes, GFP_KERNEL);
+-	if (bss) {
+-		mac->scan_beacon = true;
+-		cfg80211_put_bss(mac->hw->wiphy, bss);
+-	}
++	skb = dev_alloc_skb(frame.bytes);
++	if (!skb)
++		return -ENOMEM;
++	skb_put_data(skb, packet + frame.offset, frame.bytes);
++	status = IEEE80211_SKB_RXCB(skb);
++	memset(status, 0, sizeof(*status));
++	status->band = channel->band;
++	status->freq = channel->center_freq;
++	status->signal = (int)frame.rcpi / 2 - 110;
++	__skb_queue_tail(received, skb);
++	mac->scan_beacon = true;
+ 	return 0;
+ }
+ 
+@@ -1017,11 +1026,14 @@ static void mt6797_mac_scan_work(struct work_struct *work)
+ 						struct mt6797_mac, scan_work);
+ 	struct mt6797_hif_rx_result rx;
+ 	struct cfg80211_scan_info info = {0};
++	struct sk_buff_head received;
++	struct sk_buff *skb;
+ 	u64 deadline, now;
+ 	unsigned int n, port;
+ 	bool done = false, notify = false, cancel = false;
+ 	int ret = 0;
+ 
++	skb_queue_head_init(&received);
+ 	mutex_lock(&mac->mutex);
+ 	if (!mac->scan_active)
+ 		goto out;
+@@ -1075,7 +1087,7 @@ static void mt6797_mac_scan_work(struct work_struct *work)
+ 	 * skipped. This is not an event-drain fence. Empty polls consume no RX.
+ 	 */
+ 	for (n = 0; n < 8; n++) {
+-		bool received = false;
++		bool got = false;
+ 
+ 		for (port = 0; port < 2; port++) {
+ 			ret = mt6797_hif_receive_packet(mac->hif, port, deadline,
+@@ -1091,12 +1103,13 @@ static void mt6797_mac_scan_work(struct work_struct *work)
+ 				ret = -E2BIG;
+ 				goto failed;
+ 			}
+-			received = true;
+-			ret = mt6797_mac_scan_packet(mac, rx.logical_bytes, deadline, &done);
++			got = true;
++			ret = mt6797_mac_scan_packet(mac, rx.logical_bytes, deadline, &done,
++						     &received);
+ 			if (ret)
+ 				goto failed;
+ 		}
+-		if (!received)
++		if (!got)
+ 			break;
+ 	}
+ #if IS_ENABLED(CONFIG_MT6797_SCAN_TUNING_SAMPLE)
+@@ -1120,6 +1133,16 @@ static void mt6797_mac_scan_work(struct work_struct *work)
+ 	info.aborted = !!ret;
+ out:
+ 	mutex_unlock(&mac->mutex);
++	/* Frames of a failed lifetime are dropped; the rest reach mac80211 while
++	 * the hardware scan is still in progress, so its scan receive path
++	 * records them before the completion below.
++	 */
++	while ((skb = __skb_dequeue(&received))) {
++		if (ret)
++			dev_kfree_skb(skb);
++		else
++			ieee80211_rx_ni(mac->hw, skb);
++	}
+ 	if (notify)
+ 		ieee80211_scan_completed(mac->hw, &info);
+ }
+-- 
+2.39.5
+
