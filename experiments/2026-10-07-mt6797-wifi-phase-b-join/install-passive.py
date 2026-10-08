@@ -18,7 +18,7 @@ RELEASE = '7.1.3-gemini-a53-wifi-phase-b-compile'
 # Current boot2 content: the consumed Phase B runtime-1 candidate (deployment 1).
 PREDECESSOR_SHA = 'eeb2ce9b01fbaaa3f71faac5e10add96d310e5a2dedbbfd45982c833c9221bfd'
 # Slot filled from the committed results/candidate-5.json after composition.
-MANIFEST_SHA = None
+MANIFEST_SHA = 'c7a93e9429e942b8e2bdbd07b1d910f465f3120075013af53335e87c08c48b3c'
 ADAPTER.HERE = HERE
 ADAPTER.PREDECESSOR_SHA = PREDECESSOR_SHA
 ADAPTER.INSTALLER.HERE = HERE
