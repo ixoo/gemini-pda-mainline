@@ -81,5 +81,11 @@ Candidate 6 pairs a compile-11 kernel (0146) with the candidate-4 RAM root
 and helper; the radio scope stays one passive scan and one open-system
 authenticate-and-associate attempt with no keys and no data. The next boot's
 decision-changing observation is the footer's branch and the accompanying
-refusal line. Whether the association denial itself should be addressed, and
-how, is a separate admission for the owner.
+refusal line.
+
+The standing goal remains complete Wi-Fi. Once the cleanup termination is
+resolved, the next development stage is the protected association, the key
+exchange and the data path, each implemented and reviewed under its own
+concrete bounded protocol with the project's tests, as the owner has already
+authorized for this driver. Owner input is needed only where it is genuinely
+required, such as the private access-point credential and the physical boot.
