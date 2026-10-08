@@ -1,0 +1,234 @@
+From dbd960384ef2894e35d62786d8587d0ede3fb2be Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 8 Oct 2026 10:08:42 +0000
+Subject: [PATCH] wifi: mt6797: name the join tick's failing branch and the HIF
+ ledger terms
+
+The first on-air exchange ended with "join stopped: status=-71 first=0
+submitted=0x801 debt=0 cleanup=3" after every cleanup page had been
+returned. That footer cannot say where the protocol error came from: a
+join tick polls the credit guard, the TX-done, control-event and frame
+parsers, and finally the cleanup step's HIF-idle gate, and each of them
+returns -EPROTO silently; cleanup=3 is only the submission counter.
+
+Diagnostic only, no behaviour change: tag the tick's phase in a local
+scalar (1 deadline, 2 guard, 3 TX submission, 4 receive, 5 TX done, 6
+control event, 7 frame, 8 cleanup) and print it in the existing footer;
+on a refused control event print the header metadata only (logical
+length, wire type, event id and sequence); on a refused frame print its
+length, wire type and the allowed mask; when the cleanup step's idle
+gate refuses, print the host ledger terms behind it (phase, free/limit
+pages, pending CPU and FFA counts, whether sequences were recorded,
+whether the HIF mutex was busy) through a new read-only accessor that
+performs no hardware access, as a snapshot taken after the failed check
+rather than an atomic proof of the failed predicate; and when the guard
+sees more released pages than the outstanding debt, say so. No body
+bytes or addresses are printed. Every refusal still ends the lifetime
+exactly as before.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/net/wireless/mediatek/mt6797/hif.c | 21 +++++++++
+ drivers/net/wireless/mediatek/mt6797/hif.h |  8 ++++
+ drivers/net/wireless/mediatek/mt6797/mac.c | 55 ++++++++++++++++++++--
+ 3 files changed, 79 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 95a868f8c..86f5f1932 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -713,6 +713,27 @@ bool mt6797_hif_normal_idle(struct mt6797_hif *hif)
+ 	return idle;
+ }
+ 
++void mt6797_hif_normal_ledger(struct mt6797_hif *hif, struct mt6797_hif_ledger *out)
++{
++	const struct mt6797_normal_transaction *t;
++
++	if (!out)
++		return;
++	*out = (struct mt6797_hif_ledger){0};
++	if (!hif || !mutex_trylock(&hif->mutex)) {
++		out->locked = true;
++		return;
++	}
++	t = &hif->normal;
++	out->phase = t->phase;
++	out->tc4_free = t->tc4_free;
++	out->tc4_limit = t->tc4_limit;
++	out->pending_cpu = t->tc4_pending_cpu;
++	out->pending_ffa = t->tc4_pending_ffa;
++	out->sequences = !!t->used_sequences;
++	mutex_unlock(&hif->mutex);
++}
++
+ int mt6797_hif_send_management(struct mt6797_hif *hif, const u8 *frame,
+ 			      size_t frame_bytes, u8 wlan, u8 pid,
+ 			      unsigned int lifetime_ms, unsigned int attempt_count,
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index 389a987f3..965d55290 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -208,6 +208,14 @@ int mt6797_hif_join_channel(struct mt6797_hif *hif, unsigned int sequence,
+  * Zero proves PIO submission only; credit returns and TXdone remain separate.
+  */
+ bool mt6797_hif_normal_idle(struct mt6797_hif *hif);
++
++/* Diagnostic snapshot of the normal transaction's page ledger. */
++struct mt6797_hif_ledger {
++	unsigned int phase, tc4_free, tc4_limit, pending_cpu, pending_ffa;
++	bool sequences, locked;
++};
++
++void mt6797_hif_normal_ledger(struct mt6797_hif *hif, struct mt6797_hif_ledger *out);
+ int mt6797_hif_send_management(struct mt6797_hif *hif, const u8 *frame,
+ 			      size_t frame_bytes, u8 wlan, u8 pid,
+ 			      unsigned int lifetime_ms, unsigned int attempt_count,
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 69fa4229c..024fd5f89 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -570,8 +570,12 @@ static int mt6797_mac_join_guard(struct mt6797_mac *mac, u64 deadline)
+ 	if (!ret)
+ 		ret = mt6797_hif_reconcile_runtime(mac->hif, deadline, &status, &account);
+ 	if (!ret) {
+-		if (account.released_pages > mac->join_page_debt)
++		if (account.released_pages > mac->join_page_debt) {
++			dev_info(wiphy_dev(mac->hw->wiphy),
++				 "one-shot WLAN join credit overflow: pages=%u debt=%u\n",
++				 account.released_pages, mac->join_page_debt);
+ 			return -EPROTO;
++		}
+ 		mac->join_page_debt -= account.released_pages;
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ 		if (account.released_pages)
+@@ -698,8 +702,24 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
+ 	ret = mt6797_mac_join_guard(mac, deadline);
+ 	if (ret)
+ 		return ret;
+-	if (!mt6797_hif_normal_idle(mac->hif))
++	if (!mt6797_hif_normal_idle(mac->hif)) {
++		/* Diagnostic only: name the host ledger terms behind this refusal
++		 * (no hardware read), then end the lifetime exactly as before.
++		 * The snapshot is a second trylock taken after the failed check,
++		 * so it describes the ledger just after the refusal, not an atomic
++		 * proof of the predicate that failed; locked=1 means the mutex was
++		 * busy again at that instant.
++		 */
++		struct mt6797_hif_ledger ledger;
++
++		mt6797_hif_normal_ledger(mac->hif, &ledger);
++		dev_info(wiphy_dev(mac->hw->wiphy),
++			 "one-shot WLAN join cleanup refused: stage=%u phase=%u free=%u limit=%u pending_cpu=%u pending_ffa=%u sequences=%u locked=%u\n",
++			 mac->join_cleanup_stage, ledger.phase, ledger.tc4_free,
++			 ledger.tc4_limit, ledger.pending_cpu, ledger.pending_ffa,
++			 ledger.sequences, ledger.locked);
+ 		return -EPROTO;
++	}
+ 	if (mac->join_cleanup_stage == 3) {
+ 		mac->join_cleanup_done = true;
+ 		mac->join_sta_active = false;
+@@ -766,6 +786,10 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	const u8 *body;
+ #endif
+ 	bool running, ack = false, completed_internal = false;
++	/* Diagnostic only: which phase of this tick stopped the lifetime (the
++	 * footer that prints it exists in station-join builds only).
++	 */
++	unsigned int branch __maybe_unused = 0;
+ 	int ret = 0;
+ 
+ 	skb_queue_head_init(&received);
+@@ -777,6 +801,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	if (!running || mac->join_retired)
+ 		goto unlock;
+ 	now = ktime_get_ns();
++	branch = 1;
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ 	if (now >= mac->join_deadline && !mac->first_error && !mac->closing) {
+ 		ret = mt6797_mac_join_retire_idle_bss(mac);
+@@ -799,9 +824,11 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 		}
+ 		deadline = min(deadline, mac->join_credit_deadline);
+ 	}
++	branch = 2;
+ 	ret = mt6797_mac_join_guard(mac, deadline);
+ 	if (ret)
+ 		goto failed;
++	branch = 3;
+ 	if (!mac->join_inflight && !mac->join_page_debt) {
+ 		spin_lock_irqsave(&mac->join_queue.lock, flags);
+ 		skb = mac->join_open ? __skb_dequeue(&mac->join_queue) : NULL;
+@@ -844,6 +871,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	for (n = 0; n < 8; n++) {
+ 		bool got = false;
+ 		for (port = 0; port < 2; port++) {
++			branch = 4;
+ 			ret = mt6797_hif_receive_packet(mac->hif, port, deadline,
+ 				 mac->join_packet, sizeof(mac->join_packet), &rx);
+ 			if (ret == -EAGAIN) {
+@@ -853,6 +881,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 			if (ret || ++mac->join_packets > 4096)
+ 				goto failed;
+ 			got = true;
++			branch = 5;
+ 			if (mt6797_join_event(mac->join_packet, rx.logical_bytes, 0x0f, 16)) {
+ 				if (!mac->join_inflight ||
+ 	!mt6797_join_tx_done(mac->join_packet, rx.logical_bytes,
+@@ -894,17 +923,32 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 			}
+ 			if (rx.logical_bytes >= 8 &&
+ 			    mt6797_join_le16(mac->join_packet + 2) == 0xe000) {
++				branch = 6;
+ 				ret = mt6797_mac_join_control_event(mac, rx.logical_bytes);
+-				if (ret)
++				if (ret) {
++					/* Header metadata only: no body bytes, no address. */
++					dev_info(wiphy_dev(mac->hw->wiphy),
++						 "one-shot WLAN join control event refused: status=%d bytes=%zu type=0x%04x id=0x%02x seq=%u\n",
++						 ret, rx.logical_bytes,
++						 mt6797_join_le16(mac->join_packet + 2),
++						 rx.logical_bytes >= 8 ? mac->join_packet[4] : 0,
++						 rx.logical_bytes >= 8 ? mac->join_packet[5] : 0);
+ 					goto failed;
++				}
+ 				continue;
+ 			}
+ 			/* Parseable beacons are asynchronous, never an epoch fence. */
++			branch = 7;
+ 			if (!mt6797_scan_frame(mac->join_packet, rx.logical_bytes, &beacon))
+ 				continue;
+ 			if (!mt6797_join_rx_frame(mac->join_packet, rx.logical_bytes, 40,
+ 			    mac->hw->wiphy->perm_addr, mac->join_ap,
+ 			    mac->join_rx_allowed, &frame)) {
++				/* Framing metadata only: length and wire type, no address. */
++				dev_info(wiphy_dev(mac->hw->wiphy),
++					 "one-shot WLAN join frame refused: bytes=%zu type=0x%04x allowed=0x%x\n",
++					 rx.logical_bytes, mt6797_join_le16(mac->join_packet + 2),
++					 mac->join_rx_allowed);
+ 				ret = -EPROTO;
+ 				goto failed;
+ 			}
+@@ -955,6 +999,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 			break;
+ 	}
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++	branch = 8;
+ 	ret = mt6797_mac_join_cleanup_step(mac);
+ 	if (ret)
+ 		goto failed;
+@@ -967,9 +1012,9 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ failed:
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ 	dev_err(wiphy_dev(mac->hw->wiphy),
+-		"one-shot WLAN join stopped: status=%d first=%d submitted=0x%x debt=%u cleanup=%u\n",
++		"one-shot WLAN join stopped: status=%d first=%d submitted=0x%x debt=%u cleanup=%u branch=%u\n",
+ 		ret, mac->first_error, mac->join_submitted,
+-		mac->join_page_debt, mac->join_cleanup_stage);
++		mac->join_page_debt, mac->join_cleanup_stage, branch);
+ #endif
+ 	if (!ret)
+ 		ret = -E2BIG;
+-- 
+2.39.5
+

@@ -43,6 +43,7 @@ typedef uint64_t u64;
 #define container_of(p, t, m) ((t *)((char *)(p) - offsetof(t, m)))
 #define dev_info(...) do { } while (0)
 #define dev_err(...) do { } while (0)
+#define __maybe_unused __attribute__((unused))
 #define wiphy_dev(w) (w)
 #include "fixed-channels.h"
 #include "join-events.h"
@@ -207,6 +208,8 @@ static int mt6797_hif_reconcile_runtime(struct mt6797_hif *h, u64 d,
 	struct mt6797_hif_tx_status *s, struct mt6797_normal_release *a)
 { (void)h; (void)d; (void)s; a->released_pages = released; released = 0; return 0; }
 static bool mt6797_hif_normal_idle(struct mt6797_hif *h) { (void)h; return idle; }
+struct mt6797_hif_ledger { unsigned phase, tc4_free, tc4_limit, pending_cpu, pending_ffa; bool sequences, locked; };
+static void mt6797_hif_normal_ledger(struct mt6797_hif *h, struct mt6797_hif_ledger *o) { (void)h; *o = (struct mt6797_hif_ledger){0}; }
 static int mt6797_hif_receive_packet(struct mt6797_hif *h, unsigned int port, u64 d,
 	u8 *buf, size_t cap, struct mt6797_hif_rx_result *rx)
 {

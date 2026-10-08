@@ -756,3 +756,4 @@ proposals/0142-wifi-mt6797-release-the-driver-owned-deauthentication-frame-on-te
 proposals/0143-wifi-mt6797-name-the-refused-join-peer-preconditions.patch
 proposals/0144-wifi-mt6797-accept-the-whole-wiphy-radio-index-in-co.patch
 proposals/0145-wifi-mt6797-deliver-scanned-beacons-through-mac80211.patch
+proposals/0146-wifi-mt6797-name-the-join-tick-s-failing-branch-and-.patch

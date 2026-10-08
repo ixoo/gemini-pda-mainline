@@ -35,10 +35,12 @@ struct sk_buff_head { int lock; struct sk_buff *head; };
 #define IEEE80211_SKB_CB(s) (&(s)->info)
 #define wiphy_dev(w) (w)
 /* Capture the refusal bitmask the production diagnostic reports. */
-static unsigned last_reasons, refusal_logs;
+static unsigned last_reasons, refusal_logs, cleanup_logs, cleanup_stage, cleanup_free, overflow_logs;
 static void record(const char *fmt, ...)
 { va_list ap; va_start(ap, fmt);
   if (strstr(fmt, "peer refused")) { last_reasons = va_arg(ap, unsigned); refusal_logs++; }
+  else if (strstr(fmt, "cleanup refused")) { cleanup_stage = va_arg(ap, unsigned); (void)va_arg(ap, unsigned); cleanup_free = va_arg(ap, unsigned); cleanup_logs++; }
+  else if (strstr(fmt, "credit overflow")) overflow_logs++;
   va_end(ap); }
 #define dev_info(dev, ...) record(__VA_ARGS__)
 static unsigned allocations, losses;
@@ -110,6 +112,9 @@ static void cancel_delayed_work_sync(int *w) { (void)w; assert(!locked); }
 static bool ether_addr_equal(const u8 *a,const u8 *b) { return !memcmp(a,b,6); }
 static void ether_addr_copy(u8 *a,const u8 *b) { memcpy(a,b,6); }
 static bool mt6797_hif_normal_idle(struct mt6797_hif *h) { assert(h); return idle; }
+struct mt6797_hif_ledger { unsigned phase, tc4_free, tc4_limit, pending_cpu, pending_ffa; bool sequences, locked; };
+static void mt6797_hif_normal_ledger(struct mt6797_hif *h, struct mt6797_hif_ledger *o)
+{ assert(h && o); *o = (struct mt6797_hif_ledger){.phase = 5, .tc4_free = 25, .tc4_limit = 26, .pending_cpu = 1, .sequences = true}; }
 static int mt6797_hif_read32(struct mt6797_hif *h,unsigned reg,u64 d,u32 *v)
 { assert(h && d>now); *v=reg ? BIT(8) : 0x0279|BIT(21); return 0; }
 static int mt6797_hif_reconcile_runtime(struct mt6797_hif *h,u64 d,
@@ -213,6 +218,9 @@ int main(void)
   assert(mt6797_mac_join_add_peer(&m,&vif,&sta)==expected);
   assert(writes==1 && m.join_retired && !locked);
  }
+ /* A released page beyond the debt is refused as before and now logged. */
+ m=ready(&vif,&sta);overflow_logs=0;m.join_page_debt=0;released=1;
+ assert(mt6797_mac_join_guard(&m,now+NSEC_PER_MSEC)==-EPROTO && overflow_logs==1);released=0;
  m=ready(&vif,&sta);idle=false;last_reasons=0;refusal_logs=0;
  assert(mt6797_mac_join_add_peer(&m,&vif,&sta)==-EOPNOTSUPP && !writes);
  assert(refusal_logs==1 && last_reasons==BIT(16) && !m.join_peer_used && m.join_running);
@@ -304,6 +312,13 @@ int main(void)
   assert(!mt6797_mac_join_guard(&m,m.join_credit_deadline));released=0;
  }
  assert(order[5]==0x14 && order[6]==0x1c && order[7]==0x11 && !losses);
+ /* Stage 3 with the HIF not idle: the refusal is unchanged (-EPROTO, nothing
+  * completed or submitted) and now names the ledger terms exactly once. */
+ { struct mt6797_mac saved=m; idle=false;cleanup_logs=0;
+   mutex_lock(&m.mutex);assert(mt6797_mac_join_cleanup_step(&m)==-EPROTO);mutex_unlock(&m.mutex);
+   assert(!m.join_cleanup_done && !m.join_retired && writes==8 && !losses);
+   assert(cleanup_logs==1 && cleanup_stage==3 && cleanup_free==25);
+   m=saved;idle=true; }
  mutex_lock(&m.mutex);assert(!mt6797_mac_join_cleanup_step(&m));mutex_unlock(&m.mutex);
  assert(m.join_cleanup_done && m.join_retired && !m.join_running && losses==1);
  mutex_lock(&m.mutex);assert(!mt6797_mac_join_cleanup_step(&m));mutex_unlock(&m.mutex);
