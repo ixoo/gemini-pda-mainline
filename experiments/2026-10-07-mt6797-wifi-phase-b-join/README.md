@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-07-mt6797-wifi-phase-b-join` |
-| Status | Runtime 4 ([RUNTIME_4](RUNTIME_4.md)) logged no driver refusal; the reconstructed cause is cfg80211's privacy-sensitive BSS lookup; the reviewed connect helper and proposal 0144 are built as [compile 9](COMPILE_9.md) runtime 5 ([RUNTIME_5](RUNTIME_5.md)) measured the EINVAL at mac80211's station setup: the driver informed cfg80211 directly so mac80211's BSS rate record was empty; proposal 0145 delivers scanned beacons through mac80211, built as [compile 10](COMPILE_10.md) runtime 6 ([RUNTIME_6](RUNTIME_6.md)) demonstrated the first management exchange: authentication accepted, association denied with status 45, cleanup stopped with an unmeasured protocol error; proposal 0146 names the failing branch and ledger terms, built as [compile 11](COMPILE_11.md) with the adapters bound for candidate 6 ([runtime 7 bindings](#runtime-7-bindings-2026-10-08)), composition pending; not operational; clear EAPOL decoder tested offline but unlinked; data and keys remain incomplete |
+| Status | Runtime 4 ([RUNTIME_4](RUNTIME_4.md)) logged no driver refusal; the reconstructed cause is cfg80211's privacy-sensitive BSS lookup; the reviewed connect helper and proposal 0144 are built as [compile 9](COMPILE_9.md) runtime 5 ([RUNTIME_5](RUNTIME_5.md)) measured the EINVAL at mac80211's station setup: the driver informed cfg80211 directly so mac80211's BSS rate record was empty; proposal 0145 delivers scanned beacons through mac80211, built as [compile 10](COMPILE_10.md) runtime 6 ([RUNTIME_6](RUNTIME_6.md)) demonstrated the first management exchange: authentication accepted, association denied with status 45, cleanup stopped with an unmeasured protocol error; proposal 0146 names the failing branch and ledger terms, built as [compile 11](COMPILE_11.md) composed as candidate 6 (receipt `e4fbd0e2…`), not yet installed ([RUNTIME_7_PREPARATION](RUNTIME_7_PREPARATION.md)); not operational; clear EAPOL decoder tested offline but unlinked; data and keys remain incomplete |
 | Base | Phase A [runtime 3](../2026-10-06-mt6797-wifi-common-init/RUNTIME_3.md), package `3013daa6…` |
 | Date | 2026-10-07 |
 | Device action | One boot, WMT preparation/negotiation/common-init attempt, evidence sealing, A53 regression and confirmed Gemian recovery; no scan or join |
@@ -347,10 +347,10 @@ every prior receipt, copy and piece of evidence untouched:
 | Adapter | Runtime 7 binding |
 | --- | --- |
 | `build-candidate.py` | `COMMIT d88d6e22…`, `PACKAGE 86b0a208…`, `--helper` pinned to `b3851a4b…` (665552 bytes) |
-| `install-passive.py` | predecessor `e6fe0e8d…` (installed candidate 5), receipt `mt6797-wifi-phase-b-deployment-6`, `results/candidate-6.json`, `MANIFEST_SHA = None` until that receipt is committed |
-| `capture-private.py` | `capture-6`, `session-6/deployment-summary.txt`, `results/candidate-6.json`, slot `None` |
+| `install-passive.py` | predecessor `e6fe0e8d…` (installed candidate 5), receipt `mt6797-wifi-phase-b-deployment-6`, `results/candidate-6.json` (SHA-256 `e4fbd0e2…`, boot.img `59d1ee6f…`, padded boot2 `e6b7dd4e…`), both slots filled |
+| `capture-private.py` | `capture-6`, `session-6/deployment-summary.txt`, `results/candidate-6.json`, slot filled |
 | `passive-session.py` | `results/candidate-6.json`; RAM root of 62 members with `bin/join-connect` verified |
-| `passive-host.py` | `session-6`, `capture-6`; the WMT host identity reads `runtime-7/results/candidate.json`, created as a byte copy once the receipt is committed |
+| `passive-host.py` | `session-6`, `capture-6`; the WMT host identity reads `runtime-7/results/candidate.json`, a byte copy of the candidate-6 receipt |
 | `prepare-runtime.py` | checks `results/candidate-6.json`, both slots, predecessor `e6fe0e8d…`; creates `wifi-phase-b/session-6` only and leaves `capture-6` absent |
 
 ## Runtime 6 bindings (2026-10-08)
