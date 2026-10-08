@@ -1,4 +1,4 @@
-From dbd960384ef2894e35d62786d8587d0ede3fb2be Mon Sep 17 00:00:00 2001
+From 0eb3aca2ee2d417744357e4c6ae0097d69226fb4 Mon Sep 17 00:00:00 2001
 From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
 Date: Thu, 8 Oct 2026 10:08:42 +0000
 Subject: [PATCH] wifi: mt6797: name the join tick's failing branch and the HIF
@@ -28,10 +28,10 @@ exactly as before.
 
 Unsigned experiment draft; archive identity is non-certifying.
 ---
- drivers/net/wireless/mediatek/mt6797/hif.c | 21 +++++++++
- drivers/net/wireless/mediatek/mt6797/hif.h |  8 ++++
- drivers/net/wireless/mediatek/mt6797/mac.c | 55 ++++++++++++++++++++--
- 3 files changed, 79 insertions(+), 5 deletions(-)
+ drivers/net/wireless/mediatek/mt6797/hif.c | 21 ++++++++
+ drivers/net/wireless/mediatek/mt6797/hif.h |  8 +++
+ drivers/net/wireless/mediatek/mt6797/mac.c | 59 ++++++++++++++++++++--
+ 3 files changed, 83 insertions(+), 5 deletions(-)
 
 diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
 index 95a868f8c..86f5f1932 100644
@@ -85,7 +85,7 @@ index 389a987f3..965d55290 100644
  			      size_t frame_bytes, u8 wlan, u8 pid,
  			      unsigned int lifetime_ms, unsigned int attempt_count,
 diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
-index 69fa4229c..024fd5f89 100644
+index 69fa4229c..648b77ac7 100644
 --- a/drivers/net/wireless/mediatek/mt6797/mac.c
 +++ b/drivers/net/wireless/mediatek/mt6797/mac.c
 @@ -570,8 +570,12 @@ static int mt6797_mac_join_guard(struct mt6797_mac *mac, u64 deadline)
@@ -175,7 +175,7 @@ index 69fa4229c..024fd5f89 100644
  			if (mt6797_join_event(mac->join_packet, rx.logical_bytes, 0x0f, 16)) {
  				if (!mac->join_inflight ||
  	!mt6797_join_tx_done(mac->join_packet, rx.logical_bytes,
-@@ -894,17 +923,32 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -894,17 +923,36 @@ static void mt6797_mac_join_work(struct work_struct *work)
  			}
  			if (rx.logical_bytes >= 8 &&
  			    mt6797_join_le16(mac->join_packet + 2) == 0xe000) {
@@ -201,15 +201,19 @@ index 69fa4229c..024fd5f89 100644
  			if (!mt6797_join_rx_frame(mac->join_packet, rx.logical_bytes, 40,
  			    mac->hw->wiphy->perm_addr, mac->join_ap,
  			    mac->join_rx_allowed, &frame)) {
-+				/* Framing metadata only: length and wire type, no address. */
++				/* Framing metadata only: length and wire type, no address.
++				 * A frame too short for a type prints the sentinel 0x10000.
++				 */
 +				dev_info(wiphy_dev(mac->hw->wiphy),
-+					 "one-shot WLAN join frame refused: bytes=%zu type=0x%04x allowed=0x%x\n",
-+					 rx.logical_bytes, mt6797_join_le16(mac->join_packet + 2),
++					 "one-shot WLAN join frame refused: bytes=%zu type=0x%x allowed=0x%x\n",
++					 rx.logical_bytes,
++					 rx.logical_bytes >= 4 ?
++					 mt6797_join_le16(mac->join_packet + 2) : 0x10000U,
 +					 mac->join_rx_allowed);
  				ret = -EPROTO;
  				goto failed;
  			}
-@@ -955,6 +999,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -955,6 +1003,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
  			break;
  	}
  #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
@@ -217,7 +221,7 @@ index 69fa4229c..024fd5f89 100644
  	ret = mt6797_mac_join_cleanup_step(mac);
  	if (ret)
  		goto failed;
-@@ -967,9 +1012,9 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -967,9 +1016,9 @@ static void mt6797_mac_join_work(struct work_struct *work)
  failed:
  #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
  	dev_err(wiphy_dev(mac->hw->wiphy),
