@@ -42,7 +42,8 @@ with tempfile.TemporaryDirectory(prefix='mt6797-host-identity-') as directory:
     assert source.read_text().count("json.loads((HERE / 'results/candidate.json').read_text())") == 1
     # Each runtime binds the WMT host identity to its own candidate receipt
     # through a byte copy; earlier copies stay bound to their runtimes.
-    PAIRS = [('runtime-2', 'candidate-2'), ('runtime-4', 'candidate-3'), ('runtime-5', 'candidate-4')]
+    PAIRS = [('runtime-2', 'candidate-2'), ('runtime-4', 'candidate-3'), ('runtime-5', 'candidate-4'),
+             ('runtime-6', 'candidate-5')]
     assert host.HERE == HERE / PAIRS[-1][0]
     receipts = []
     for directory, receipt in PAIRS:
@@ -55,14 +56,14 @@ with tempfile.TemporaryDirectory(prefix='mt6797-host-identity-') as directory:
     assert hashlib.sha256(receipts[0]).hexdigest() == RECEIPT_SHA
     bound_receipt = receipts[-1]
     digest = json.loads(bound_receipt)['files']['boot2-padded.img']['sha256']
-    assert digest in (CANDIDATE_2_BOOT2, CANDIDATE_3_BOOT2) or len(receipts) == 3
+    assert digest in (CANDIDATE_2_BOOT2, CANDIDATE_3_BOOT2) or len(receipts) >= 3
     runtime_2 = receipts[0]
     candidate_3 = HERE / 'results/candidate-3.json'
     runtime_1 = json.loads((HERE / 'results/candidate.json').read_bytes())
     assert runtime_1['files']['boot2-padded.img']['sha256'] == RUNTIME_1_BOOT2, 'runtime-1 receipt preserved'
     # Other rebound roots are untouched by the receipt binding.
     assert host.DOMAIN.HERE == HERE and host.DOMAIN.HOST.HERE == HERE
-    assert host.ROOT == work / 'runtime/wifi-phase-b/session-4' and host.CAPTURE == work / 'runtime/wifi-phase-b/capture-4'
+    assert host.ROOT == work / 'runtime/wifi-phase-b/session-5' and host.CAPTURE == work / 'runtime/wifi-phase-b/capture-5'
 
     def identity(receipt, wmt, start):
         digest = receipt['files']['boot2-padded.img']['sha256']
