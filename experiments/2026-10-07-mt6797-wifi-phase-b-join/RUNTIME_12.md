@@ -52,9 +52,11 @@ completes and before the activation. Its BSSID tag is 15 at that moment. The
 driver-owned deauthentication and the three-stage teardown then ran healthily.
 
 It is not a validated handshake message: message 1 identity, nonce, replay
-counter and MIC were not checked, nothing was delivered to mac80211, nothing
-was answered, no key exists, no data frame was sent or received, and the
-radio scope stayed one passive scan, two management exchanges and one
+counter and MIC were not checked. One data-type frame carrying complete
+EAPOL-Key framing was received, observed and dropped; no EAPOL frame was
+transmitted, delivered to mac80211 or replied to, no ordinary data payload was
+sent or delivered, no key exists, Wi-Fi is not operational, and the radio
+scope stayed one passive scan, two management exchanges and one
 deauthentication. The runtime-10 and runtime-11 refusals are now explained by
 measurement: the vector-less layout and the BSSID tag, both admitted by
 proposals 0151 and 0152. Phase C2, the key exchange, is designed in
