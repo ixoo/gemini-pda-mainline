@@ -649,3 +649,7 @@ proposals/0149-wifi-mt6797-admit-the-fixed-WPA2-PSK-RSN-element-in-.patch
 proposals/0150-wifi-mt6797-name-the-header-of-a-received-packet-the.patch
 proposals/0151-wifi-mt6797-accept-a-clear-EAPOL-receive-layout-with.patch
 proposals/0152-wifi-mt6797-admit-RXD-BSSID-tag-15-until-the-BSS-com.patch
+proposals/0153-wifi-mt6797-accept-userspace-scan-elements-the-passi.patch
+proposals/0154-wifi-mt6797-deliver-the-admitted-clear-EAPOL-frames-.patch
+proposals/0155-wifi-mt6797-transmit-the-supplicant-s-control-port-E.patch
+proposals/0156-wifi-mt6797-install-and-retire-the-WPA2-keys-in-the-.patch

@@ -38,6 +38,11 @@ HELPER_MEMBER = 'bin/join-connect'
 HELPER_SHA256 = 'bc499f28bc052a24713ead3175e5b6405e2e5f787acf276e4e82c1278241d5ca'
 HELPER_BYTES = 665552
 RAM_ROOT_MEMBERS = 62
+# Phase C2: the reviewed static wpa_supplicant as a 63rd member, same pins as
+# the composer; the parent members and the helper are unchanged.
+SUPPLICANT_MEMBER = 'bin/wpa_supplicant'
+SUPPLICANT_SHA256 = '0487b7109c0a456eabf3aef33d74d38e5aa4e6dddcb586c03bb203803dd27da7'
+SUPPLICANT_BYTES = 1719888
 
 
 def check_ram_root(members, record, userspace):
@@ -48,7 +53,7 @@ def check_ram_root(members, record, userspace):
     root ownership and single link are checked explicitly.
     """
     base = SESSION.SESSION
-    base.require(len(members) == RAM_ROOT_MEMBERS and
+    base.require(len(members) == RAM_ROOT_MEMBERS + (SUPPLICANT_MEMBER in members) and
                  all(name in members and base.digest(members[name].data) == digest and
                      members[name].mode == 0o100644 for name, digest in ROM_PATCHES.items()) and
                  all(base.digest(members[item['path']].data) == item['sha256'] and
@@ -64,6 +69,11 @@ def check_ram_root(members, record, userspace):
                  base.digest(helper.data) == HELPER_SHA256 and helper.mode == 0o100755 and
                  helper.uid == 0 and helper.gid == 0 and helper.nlink == 1,
                  'reviewed join-connect helper absent or changed in the RAM root')
+    supplicant = members.get(SUPPLICANT_MEMBER)
+    base.require(supplicant is None or (len(supplicant.data) == SUPPLICANT_BYTES and
+                 base.digest(supplicant.data) == SUPPLICANT_SHA256 and supplicant.mode == 0o100755 and
+                 supplicant.uid == 0 and supplicant.gid == 0 and supplicant.nlink == 1),
+                 'reviewed wpa_supplicant changed in the RAM root')
 
 
 def prepare(candidate_dir, previous):

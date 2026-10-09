@@ -16,6 +16,12 @@ def classify(raw):
         'cleanup_submission': rb'cleanup submission: stage=(\d+)',
         'peer': rb'peer: ready=1 sequence=(\d+)',
         'grant': rb'grant: channel=40 interval_ms=(\d+)',
+        # Phase C2: control-port EAPOL transmitted as a security frame, and the
+        # key commands; "submitted" and "credit returned" are the only claims.
+        'eapol_tx': rb'eapol sent: pid=(\d+) pages=(\d+) bytes=(\d+)',
+        'key_command': rb'key command: (pairwise|group) submitted sequence=(\d+)',
+        'key_credit': rb'key credit returned: (pairwise|group)',
+        'key_removal': rb'key removal: (pairwise|group) submitted sequence=(\d+)',
     }
     # Diagnostic records name a refusal or an admitted indication; they are
     # neither stage records nor malformed. Health is decided by the stage grammar.
@@ -34,7 +40,7 @@ def classify(raw):
     )
     notifications = (rb'bss absence: bss=0 absent=[01] quota=' + byte + rb' reserved=' + byte,
                      # Phase C1: a clear EAPOL-Key frame from the target, decoded and dropped.
-                     rb'eapol observed: translated=[01] frame=\d{1,4} activated=[01] vector=[01] bss=(?:0|15)')
+                     rb'eapol (?:observed|delivered): translated=[01] frame=\d{1,4} activated=[01] vector=[01] bss=(?:0|15)')
     diagnostics = refusals + notifications
     rows = {name: [] for name in patterns}
     diagnostic_lines = []
@@ -55,14 +61,14 @@ def classify(raw):
             continue
         for name, pattern in patterns.items():
             if match := re.fullmatch(pattern, body):
-                rows[name].append((index, *(int(v) for v in match.groups())))
+                rows[name].append((index, *(int(v) if v.isdigit() else v.decode() for v in match.groups())))
                 break
         else:
             if any(re.fullmatch(pattern, body) for pattern in diagnostics):
                 diagnostic_lines.append(body.split(b':', 1)[0].decode())
                 if body.startswith(b'bss absence:'):
                     absence_rows.append(index)
-                elif body.startswith(b'eapol observed:'):
+                elif body.startswith(b'eapol observed:') or body.startswith(b'eapol delivered:'):
                     fields = dict(part.split(b'=') for part in body.split(b': ', 1)[1].split(b' '))
                     eapol_rows.append((index, int(fields[b'translated']), int(fields[b'frame']),
                                        int(fields[b'activated']), int(fields[b'vector']), int(fields[b'bss'])))
@@ -80,22 +86,47 @@ def classify(raw):
                 any(not (stage2[0] < i < min(terminal)) for i in absence_rows)):
             malformed = True
     tx, done, rx = rows['tx'], rows['done'], rows['rx']
+    eapol_tx, key_commands, key_credits, key_removals = rows['eapol_tx'], rows['key_command'], rows['key_credit'], rows['key_removal']
+    keys_ok = True
+    if key_commands or key_credits or key_removals:
+        # Bounded key ownership: pairwise then group, each command followed by its
+        # credit record, and on the healthy path exactly one ordered removal per
+        # submitted key (a partial handshake with its exact removals is a healthy
+        # teardown but not a handshake pass). Command and removal sequences are
+        # 1..255, unique and increasing, as the driver assigns them.
+        kinds = [row[1] for row in key_commands]
+        credit_kinds = [row[1] for row in key_credits]
+        removal_kinds = [row[1] for row in key_removals]
+        sequences = [row[2] for row in key_commands] + [row[2] for row in key_removals]
+        keys_ok = (kinds in (['pairwise'], ['pairwise', 'group']) and credit_kinds == kinds and
+                   all(c[0] > k[0] for k, c in zip(key_commands, key_credits)) and
+                   removal_kinds == kinds and
+                   all(1 <= s <= 255 for s in sequences) and sequences == sorted(set(sequences)))
+        if not keys_ok:
+            malformed = True
     association = [row for row in rx if row[1] == 1]
     auth = [row for row in rx if row[1] == 11]
     accepted = len(association) == 1 and association[0][2] == 0
     expected = [11, 0, 12] if accepted else [11, 0]
+    # Security frames share the PID space and the TX done path with management.
+    all_tx = sorted(tx + [(row[0], 16, row[1], row[2]) for row in eapol_tx])
     sequence_ok = ([row[1] for row in tx] == expected and
-                   len({row[2] for row in tx}) == len(tx) and
-                   all(1 <= row[2] <= 127 and 1 <= row[3] <= 19 for row in tx))
-    acknowledged = (len(done) == len(tx) and
-                    {row[1] for row in done} == {row[2] for row in tx} and
+                   len(eapol_tx) <= 2 and
+                   len({row[2] for row in all_tx}) == len(all_tx) and
+                   all(1 <= row[2] <= 127 and 1 <= row[3] <= 19 for row in all_tx) and
+                   all(14 + 4 <= row[3] <= 1518 and row[2] == (28 + row[3] + 127) // 128 for row in eapol_tx) and
+                   (not eapol_tx or (accepted and len(rows['activation']) == 1 and
+                                     all(rows['activation'][0][0] < row[0] < tx[-1][0] for row in eapol_tx))))
+    acknowledged = (len(done) == len(all_tx) and
+                    {row[1] for row in done} == {row[2] for row in all_tx} and
                     all(row[2] == 0 for row in done) and
                     all(len([d for d in done if d[1] == t[2] and d[0] > t[0]]) == 1
-                        for t in tx))
+                        for t in all_tx))
     exchange = (sequence_ok and acknowledged and len(auth) == 1 and auth[0][2] == 0 and
                 len(association) == 1 and tx[0][0] < auth[0][0] < tx[1][0] < association[0][0])
     credits = rows['credit']
-    expected_pages = 7 + (3 if accepted else 0) + sum(row[3] for row in tx)
+    expected_pages = (7 + (3 if accepted else 0) + sum(row[3] for row in tx) + sum(row[2] for row in eapol_tx) +
+                      len(key_commands) + len(key_removals))
     credit_ok = (bool(credits) and all(row[1] > 0 and row[2] <= 19 for row in credits) and
                  sum(row[1] for row in credits) == expected_pages and credits[-1][2] == 0)
     cleanup_ok = (len(rows['cleanup']) == 1 and
@@ -153,8 +184,17 @@ def classify(raw):
                     all(pages_between(begin, end) == 1 for begin, end in
                         zip(stages, stages[1:] + [terminal])))
         if accepted:
+            # Between the association TX and the deauthentication TX: the association's
+            # pages, the BSS and station configuration (3), each security frame's pages
+            # and one page per key command; key commands sit after activation and before
+            # the deauthentication TX, removals after its TX done and before stage 0.
+            # The deauthentication's page may return before or after its TX done, so
+            # the window from its TX to stage 0 holds its pages plus one per removal.
             order_ok = (order_ok and completion[tx[1][2]] < rows['activation'][0][0] and
-                        pages_between(tx[1][0], tx[2][0]) == tx[1][3] + 3)
+                        pages_between(tx[1][0], tx[2][0]) == tx[1][3] + 3 + sum(row[2] for row in eapol_tx) + len(key_commands) and
+                        all(rows['activation'][0][0] < row[0] < tx[2][0] for row in key_commands + key_credits) and
+                        all(completion[tx[2][2]] < row[0] < stages[0] for row in key_removals) and
+                        pages_between(tx[2][0], stages[0]) == tx[2][3] + len(key_removals))
     result = {
         'association_response_status': association[0][2] if len(association) == 1 else None,
         'host_management_submissions': len(tx),
@@ -167,9 +207,23 @@ def classify(raw):
         'diagnostic_records': diagnostic_lines,
         'refusal_recorded': refused,
         'eapol_shape_observations': len(eapol_rows),
+        'eapol_frames_sent': len(eapol_tx),
+        'key_commands_submitted': [row[1] for row in key_commands],
+        'key_credits_returned': [row[1] for row in key_credits],
+        'key_removals_submitted': [row[1] for row in key_removals],
+        'handshake_keys_submitted': bool(keys_ok and [row[1] for row in key_commands] == ['pairwise', 'group'] and
+                                         [row[1] for row in key_credits] == ['pairwise', 'group']),
+        # Driver-side C2 path: two frames delivered, two sent, both key commands with
+        # their credits, both removals, healthy bounded join. The session's success
+        # additionally needs the supplicant's completion phrase from the laptop
+        # result; neither claims an installed key or operational Wi-Fi.
+        'driver_handshake_path_pass': False,
         'eapol_observations': [{'translated': t, 'frame': f, 'activated': a, 'vector': v, 'bss': b} for _, t, f, a, v, b in eapol_rows],
         'terminal_failure_recorded': stopped,
         'wifi_operational': False,
     }
     result['bounded_join_pass'] = bool(exchange and healthy and cleanup_ok and activation_ok and order_ok)
+    result['driver_handshake_path_pass'] = bool(result['bounded_join_pass'] and len(eapol_rows) == 2 and
+                                                len(eapol_tx) == 2 and result['handshake_keys_submitted'] and
+                                                [row[1] for row in key_removals] == ['pairwise', 'group'])
     return result

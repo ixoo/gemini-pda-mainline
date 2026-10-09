@@ -1,0 +1,474 @@
+From eaf8ae7e0ff7848f9a5dda63437bf3347e4eb955 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 9 Oct 2026 21:41:05 +0000
+Subject: [PATCH 156/156] wifi: mt6797: install and retire the WPA2 keys in the
+ firmware
+
+Phase C2 lets the standard supplicant finish the four-way handshake. Key
+ownership follows the pinned vendor implementation: each key the
+supplicant installs becomes one CMD_ID_ADD_REMOVE_KEY (0x07) on the TC4
+owner, the 64-byte CMD_802_11_KEY as wlanoidSetAddKey fills it for a
+WPA2-PSK CCMP station (add, TX key and unicast type for the pairwise
+key, neither for the group key, the AP's address as the peer for both,
+BSS 0, CIPHER_SUITE_CCMP, the key id, 16 bytes, WLAN index 1 or the
+declared BMC index 0) and, at the end, as wlanoidSetRemoveKey fills a
+removal (the zeroed command with the key id, peer, BSS and, for the
+pairwise key, unicast type and WLAN index). The RSC is zero in both, as
+the pinned wlanoidSetAddKey zeroes the command and never writes it for
+CCMP. A join whose association request carried the admitted RSN
+element declares AUTH_MODE_WPA2_PSK and ENUM_ENCRYPTION3_ENABLED in its
+BSS payload, as the vendor does at connect time.
+
+set_key submits one pairwise key then one group key (key id 0 to 3),
+CCMP only, for the exact peer, with the same credit wait as the join
+commands; a returned credit proves only that the firmware consumed the
+command and the records say submitted and credit returned. The
+standard supplicant hands message 4 to the driver before installing the
+pairwise key, so set_key first waits for an in-flight reply's TX done
+and credit on the existing ledger, and a reply that is only queued
+stays queued while the command's page is owed. The group key's credit
+shortens the deauthentication hold to one second. DISABLE_KEY submits
+nothing. Anything else ends the lifetime fail-stop. Key material lives
+only in mac80211's key, the command payload and the transfer buffer,
+each cleared after submission; no record carries a key byte.
+
+On the healthy path the cleanup removes each submitted key with its
+own bounded command, pairwise first, after the deauthentication has
+completed and before the station removal, channel abort and BSS-off
+stages, because the pinned source does not show that removing the
+station record retires the group key held under the BMC index.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/net/wireless/mediatek/mt6797/hif.c    |  33 +++-
+ drivers/net/wireless/mediatek/mt6797/hif.h    |   8 +-
+ .../mediatek/mt6797/join-command-submit.h     |   3 +
+ .../wireless/mediatek/mt6797/join-commands.h  |  81 +++++++++-
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 142 +++++++++++++++++-
+ 5 files changed, 254 insertions(+), 13 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 1e3fa1c6c..0730c1ec3 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -600,7 +600,7 @@ int mt6797_hif_query_capability(struct mt6797_hif *hif, unsigned int sequence,
+ 
+ static int mt6797_hif_send_join_command(struct mt6797_hif *hif,
+ 	unsigned int cid, unsigned int sequence, const u8 *payload,
+-	size_t payload_bytes, u64 deadline_ns)
++	size_t payload_bytes, bool sensitive, u64 deadline_ns)
+ {
+ 	struct mt6797_hif_pio_result transfer;
+ 	struct mt6797_hif_command command;
+@@ -632,6 +632,9 @@ static int mt6797_hif_send_join_command(struct mt6797_hif *hif,
+ 	if (error)
+ 		error = mt6797_hif_fail(hif, error);
+ unlock:
++	/* Key material must not outlive its transfer in the shared buffer. */
++	if (sensitive)
++		memzero_explicit(hif->scratch, sizeof(hif->scratch));
+ 	mutex_unlock(&hif->mutex);
+ 	return error;
+ }
+@@ -643,21 +646,21 @@ int mt6797_hif_join_filter(struct mt6797_hif *hif, unsigned int sequence,
+ 
+ 	mt6797_join_filter_payload(payload);
+ 	return mt6797_hif_send_join_command(hif, 0x0a, sequence, payload,
+-					   sizeof(payload), deadline_ns);
++					   sizeof(payload), false, deadline_ns);
+ }
+ 
+ int mt6797_hif_join_bss(struct mt6797_hif *hif, unsigned int sequence,
+ 	const u8 *ap, const u8 *ssid, unsigned int ssid_bytes,
+ 	unsigned int desired_rates, unsigned int basic_rates,
+-	bool short_preamble, u64 deadline_ns)
++	bool short_preamble, bool wpa2, u64 deadline_ns)
+ {
+ 	u8 payload[MT6797_JOIN_BSS_BYTES];
+ 
+ 	if (!mt6797_join_bss_payload(ap, ssid, ssid_bytes, desired_rates,
+-				     basic_rates, short_preamble, payload))
++				     basic_rates, short_preamble, wpa2, payload))
+ 		return -EINVAL;
+ 	return mt6797_hif_send_join_command(hif, 0x12, sequence, payload,
+-					   sizeof(payload), deadline_ns);
++					   sizeof(payload), false, deadline_ns);
+ }
+ 
+ int mt6797_hif_join_station(struct mt6797_hif *hif, unsigned int sequence,
+@@ -670,9 +673,23 @@ int mt6797_hif_join_station(struct mt6797_hif *hif, unsigned int sequence,
+ 					basic_rates, payload))
+ 		return -EINVAL;
+ 	return mt6797_hif_send_join_command(hif, 0x13, sequence, payload,
+-					   sizeof(payload), deadline_ns);
++					   sizeof(payload), false, deadline_ns);
+ }
+ 
++int mt6797_hif_join_key(struct mt6797_hif *hif, unsigned int sequence,
++			bool add, bool pairwise, const u8 *peer,
++			unsigned int key_id, const u8 *material, u64 deadline_ns)
++{
++	u8 payload[MT6797_JOIN_KEY_BYTES];
++	int error;
++
++	if (!mt6797_join_key_payload(add, pairwise, peer, key_id, material, payload))
++		return -EINVAL;
++	error = mt6797_hif_send_join_command(hif, 0x07, sequence, payload,
++					     sizeof(payload), true, deadline_ns);
++	memzero_explicit(payload, sizeof(payload));
++	return error;
++}
+ int mt6797_hif_join_remove_station(struct mt6797_hif *hif,
+ 	unsigned int sequence, u64 deadline_ns)
+ {
+@@ -680,7 +697,7 @@ int mt6797_hif_join_remove_station(struct mt6797_hif *hif,
+ 
+ 	mt6797_join_remove_station(payload);
+ 	return mt6797_hif_send_join_command(hif, 0x14, sequence, payload,
+-					   sizeof(payload), deadline_ns);
++					   sizeof(payload), false, deadline_ns);
+ }
+ 
+ int mt6797_hif_join_channel(struct mt6797_hif *hif, unsigned int sequence,
+@@ -691,7 +708,7 @@ int mt6797_hif_join_channel(struct mt6797_hif *hif, unsigned int sequence,
+ 	if (!mt6797_join_channel_payload(token, channel, interval_ms, abort, payload))
+ 		return -EINVAL;
+ 	return mt6797_hif_send_join_command(hif, 0x1c, sequence, payload,
+-					   sizeof(payload), deadline_ns);
++					   sizeof(payload), false, deadline_ns);
+ }
+ 
+ /*
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index b9261f82f..2e8d52d55 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -193,7 +193,13 @@ int mt6797_hif_join_filter(struct mt6797_hif *hif, unsigned int sequence,
+ int mt6797_hif_join_bss(struct mt6797_hif *hif, unsigned int sequence,
+ 	const u8 *ap, const u8 *ssid, unsigned int ssid_bytes,
+ 	unsigned int desired_rates, unsigned int basic_rates,
+-	bool short_preamble, u64 deadline_ns);
++	bool short_preamble, bool wpa2, u64 deadline_ns);
++/* One key add or removal command (pinned gen3 CMD_ID_ADD_REMOVE_KEY); the
++ * payload holds the 16 key bytes only until submission and is then cleared.
++ */
++int mt6797_hif_join_key(struct mt6797_hif *hif, unsigned int sequence,
++			bool add, bool pairwise, const u8 *peer,
++			unsigned int key_id, const u8 *material, u64 deadline_ns);
+ int mt6797_hif_join_station(struct mt6797_hif *hif, unsigned int sequence,
+ 	const u8 *ap, unsigned int state, unsigned int aid,
+ 	unsigned int desired_rates, unsigned int basic_rates, u64 deadline_ns);
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-command-submit.h b/drivers/net/wireless/mediatek/mt6797/join-command-submit.h
+index d544af551..bd0571c5b 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join-command-submit.h
++++ b/drivers/net/wireless/mediatek/mt6797/join-command-submit.h
+@@ -24,6 +24,9 @@ mt6797_join_prepare_command(struct mt6797_normal_transaction *t,
+ 	    !t->tc4_limit || t->tc4_limit > 0xffffU || t->tc4_free > t->tc4_limit)
+ 		return mt6797_normal_abort(t);
+ 	switch (cid) {
++	case 0x07:
++		required = MT6797_JOIN_KEY_BYTES;
++		break;
+ 	case 0x0a:
+ 		if (bytes != 4 || payload[0] != 9 || payload[1] || payload[2] || payload[3])
+ 			return -EINVAL;
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-commands.h b/drivers/net/wireless/mediatek/mt6797/join-commands.h
+index d5f7ee696..472e0b9bd 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join-commands.h
++++ b/drivers/net/wireless/mediatek/mt6797/join-commands.h
+@@ -85,7 +85,7 @@ mt6797_join_station_payload(const unsigned char *ap, unsigned int state,
+ static inline bool
+ mt6797_join_bss_payload(const unsigned char *ap, const unsigned char *ssid,
+ 	unsigned int ssid_bytes, unsigned int desired_rates,
+-	unsigned int basic_rates, bool short_preamble,
++	unsigned int basic_rates, bool short_preamble, bool wpa2,
+ 	unsigned char output[MT6797_JOIN_BSS_BYTES])
+ {
+ 	unsigned char p[MT6797_JOIN_BSS_BYTES] = {0};
+@@ -110,7 +110,14 @@ mt6797_join_bss_payload(const unsigned char *ap, const unsigned char *ssid,
+ 	p[48] = 1; /* AP STA index. */
+ 	p[50] = 0x4b; /* Fixed OFDM 6 Mbps. */
+ 	p[52] = 3; /* PHY_TYPE_OFDM_INDEX, not a bitmap. */
+-	p[54] = 1; /* ENUM_ENCRYPTION_DISABLED, not encryption-enabled enum 0. */
++	/* Pinned gen3 CMD_SET_BSS_INFO bytes 53 and 54: ucAuthMode and ucEncStatus.
++	 * A WPA2-PSK join declares AUTH_MODE_WPA2_PSK (7) and
++	 * ENUM_ENCRYPTION3_ENABLED (6) at connect time, before any key exists, as
++	 * the vendor AIS path does; otherwise AUTH_MODE_OPEN (0) and
++	 * ENUM_ENCRYPTION_DISABLED (1), not encryption-enabled enum 0.
++	 */
++	p[53] = wpa2 ? 7 : 0;
++	p[54] = wpa2 ? 6 : 1;
+ 	p[55] = 8; /* PHY_TYPE_BIT_OFDM. */
+ 	/* BSS 0, BMC 0, private AIS index 0, disconnect threshold default 0. */
+ 	p[69] = 2; p[70] = 40;
+@@ -158,4 +165,74 @@ mt6797_join_channel_payload(unsigned char token, unsigned char channel,
+ 		output[i] = p[i];
+ 	return true;
+ }
++
++#define MT6797_JOIN_KEY_BYTES 64U
++
++/* Clear a local copy of key material without the compiler eliding it. */
++static inline void mt6797_join_clear(unsigned char *p, unsigned int n)
++{
++#ifdef __KERNEL__
++	memzero_explicit(p, n);
++#else
++	unsigned int i;
++
++	for (i = 0; i < n; i++)
++		p[i] = 0;
++	__asm__ __volatile__("" : : "r"(p) : "memory");
++#endif
++}
++
++/* Original encoder of the pinned public gen3 CMD_802_11_KEY for
++ * CMD_ID_ADD_REMOVE_KEY (0x07), as wlanoidSetAddKey and wlanoidSetRemoveKey
++ * fill it for a WPA2-PSK CCMP station. Add: TX key and unicast type for the
++ * pairwise key, neither for the group key, no authenticator flag, the AP's
++ * address as the peer for both (the vendor substitutes the BSSID for the
++ * broadcast group address), BSS index 0, CIPHER_SUITE_CCMP (4), the key id,
++ * 16 key bytes, WLAN index 1 for the pairwise key and the declared BMC WLAN
++ * index 0 for the group key. Remove, as wlanoidSetRemoveKey: the zeroed
++ * command with AddRemove 0, key id, peer and BSS index, unicast type 1 and
++ * the station's WLAN index for the pairwise key, type 0 and the BMC WLAN
++ * index for the group key; no TX-key flag, no algorithm, no length. The BMC
++ * index 0 is this driver's declared choice, bound to the station record and
++ * BSS payload it submits, where the vendor allocates one dynamically. The
++ * RSC is zero in both: the pinned
++ * wlanoidSetAddKey zeroes the whole command (kalMemZero at its start) and
++ * never writes aucKeyRsc, which only the WAPI path fills, so the firmware
++ * receives no receive sequence counter for a CCMP key and replay handling is
++ * not validated by this driver. The 16 key bytes are copied only for an add,
++ * the local copy is cleared before returning, and the caller clears the
++ * payload and the transfer buffer after submission; nothing is retained.
++ */
++static inline bool
++mt6797_join_key_payload(bool add, bool pairwise, const unsigned char *peer,
++			unsigned int key_id, const unsigned char *material,
++			unsigned char output[MT6797_JOIN_KEY_BYTES])
++{
++	unsigned char p[MT6797_JOIN_KEY_BYTES] = {0};
++	unsigned int i, any = 0;
++
++	if (!peer || !output || (peer[0] & 1) || key_id > 3 ||
++	    (pairwise && key_id) || (add && !material))
++		return false;
++	for (i = 0; i < 6; i++)
++		any |= peer[i];
++	if (!any)
++		return false;
++	p[0] = add;
++	p[1] = add && pairwise;
++	p[2] = pairwise;
++	for (i = 0; i < 6; i++)
++		p[4 + i] = peer[i];
++	p[11] = add ? 4 : 0;
++	p[12] = key_id;
++	p[13] = add ? 16 : 0;
++	p[14] = pairwise ? 1 : 0;
++	if (add)
++		for (i = 0; i < 16; i++)
++			p[16 + i] = material[i];
++	for (i = 0; i < MT6797_JOIN_KEY_BYTES; i++)
++		output[i] = p[i];
++	mt6797_join_clear(p, MT6797_JOIN_KEY_BYTES);
++	return true;
++}
+ #endif
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 9f8ed81a1..1372e9d98 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -79,6 +79,12 @@ struct mt6797_mac {
+ 	/* Phase C1: bounded observation of the AP's first clear EAPOL frames. */
+ 	unsigned int join_eapol_seen, join_eapol_tx;
+ 	u64 join_hold_until;
++	/* RSN join: WPA2 declared to the firmware; key commands 0 none, 1
++	 * submitted with credit returned, 2 removed. No key material is kept.
++	 */
++	bool join_rsn;
++	unsigned int join_key_pairwise, join_key_group;
++	u8 join_group_key_id;
+ 	u8 join_eth[MT6797_JOIN_ETH_MAX_BYTES] __aligned(2);
+ 
+ 	u64 scan_deadline, scan_started_ns;
+@@ -532,6 +538,7 @@ static bool mt6797_mac_join_frame(struct mt6797_mac *mac, struct sk_buff *skb)
+ 					 subtype, f[ie], f[ie + 1], rsn_count);
+ 				return false;
+ 			}
++			mac->join_rsn = true;
+ 			ie += 2 + f[ie + 1];
+ 			continue;
+ 		}
+@@ -851,12 +858,37 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
+ 			ieee80211_connection_loss(mac->vif);
+ 		return 0;
+ 	}
+-	if (mac->join_cleanup_stage > 3 || mac->sequence > 255)
++	if (mac->join_cleanup_stage > 3 || mac->sequence > 253)
+ 		return -ENOSPC;
+ 	mac->join_credit_deadline = deadline;
+ 	reinit_completion(&mac->join_credit_done);
+ 	mac->join_credit_pending = true;
+ 	mac->join_page_debt = 1;
++	/* Explicit key retirement on the healthy path only, after the
++	 * deauthentication has completed (the guards above) and before stage 0:
++	 * the pinned source does not show that removing the station record
++	 * retires the group key held under the BMC WLAN index, so each submitted
++	 * key is removed by its own bounded command, pairwise first, each with
++	 * its credit. A removal's credit proves buffer consumption only.
++	 */
++	if (mac->join_key_pairwise == 1 || mac->join_key_group == 1) {
++		bool pairwise = mac->join_key_pairwise == 1;
++
++		ret = mt6797_hif_join_key(mac->hif, mac->sequence++, false, pairwise,
++					  mac->join_ap,
++					  pairwise ? 0 : mac->join_group_key_id,
++					  NULL, deadline);
++		if (ret)
++			return ret;
++		if (pairwise)
++			mac->join_key_pairwise = 2;
++		else
++			mac->join_key_group = 2;
++		dev_info(wiphy_dev(mac->hw->wiphy),
++			 "one-shot WLAN join key removal: %s submitted sequence=%u\n",
++			 pairwise ? "pairwise" : "group", mac->sequence - 1);
++		return 0;
++	}
+ 	switch (mac->join_cleanup_stage) {
+ 	case 0:
+ 		ret = mt6797_hif_join_remove_station(mac->hif, mac->sequence++, deadline);
+@@ -1915,7 +1947,8 @@ static int mt6797_mac_join_associate(struct mt6797_mac *mac, unsigned int aid)
+ 	ret = mt6797_hif_join_bss(mac->hif, mac->sequence++, mac->join_ap,
+ 				 mac->join_ssid, mac->join_ssid_bytes,
+ 				 mac->join_desired_rates, mac->join_peer_basic_rates,
+-				 mac->join_short_preamble, mac->join_credit_deadline);
++				 mac->join_short_preamble, mac->join_rsn,
++				 mac->join_credit_deadline);
+ 	if (!ret)
+ 		ret = mt6797_mac_join_wait_credit(mac);
+ 	if (ret)
+@@ -2085,6 +2118,108 @@ static void mt6797_mac_mgd_complete_tx(struct ieee80211_hw *hw,
+ }
+ #endif
+ 
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++/* Firmware key ownership, the pinned vendor implementation's choice: each
++ * key the supplicant installs becomes one CMD_ID_ADD_REMOVE_KEY on the TC4
++ * owner with the same credit wait as the join commands. A returned credit
++ * proves that the firmware consumed the command buffer, nothing more; the
++ * records say so. The group key's credit shortens the deauthentication hold
++ * to one second. Only CCMP, only the exact peer, pairwise before group, one
++ * of each, key ids 0 to 3 for the group key (the pinned ucKeyId range; the
++ * WLAN index, 1 or the BMC 0, distinguishes the keys); anything else ends
++ * the lifetime fail-stop. DISABLE_KEY submits
++ * nothing: the lifetime retires its keys explicitly in the cleanup.
++ */
++static int mt6797_mac_set_key(struct ieee80211_hw *hw, enum set_key_cmd cmd,
++			      struct ieee80211_vif *vif, struct ieee80211_sta *sta,
++			      struct ieee80211_key_conf *key)
++{
++	struct mt6797_mac *mac = hw->priv;
++	bool pairwise = key->flags & IEEE80211_KEY_FLAG_PAIRWISE;
++	unsigned long flags;
++	u64 now;
++	int ret;
++
++	if (cmd == DISABLE_KEY)
++		return 0;
++	mutex_lock(&mac->mutex);
++	if (vif != mac->vif || !mac->join_rsn || !mac->join_running ||
++	    !mac->join_sta_active || !mac->join_bss_configured ||
++	    mac->join_retired || mac->closing || mac->first_error ||
++	    mac->join_credit_pending ||
++	    key->cipher != WLAN_CIPHER_SUITE_CCMP || key->keylen != 16 ||
++	    key->keyidx < 0 || key->keyidx > 3 || mac->sequence > 253 ||
++	    (pairwise && (!sta || !ether_addr_equal(sta->addr, mac->join_ap) ||
++			  key->keyidx || mac->join_key_pairwise)) ||
++	    (!pairwise && (sta || mac->join_key_group ||
++			   mac->join_key_pairwise != 1)) ||
++	    ktime_get_ns() >= mac->join_deadline) {
++		ret = -EOPNOTSUPP;
++		goto failed;
++	}
++	/* The standard supplicant hands message 4 to the driver before it
++	 * installs the pairwise key, so the reply may be in flight or its pages
++	 * still owed when this is called. Serialize on the existing TC4 ledger:
++	 * wait for the in-flight frame's TX done and for its credit, bounded by
++	 * the frame and join deadlines; a reply that is only queued stays queued
++	 * while this command's page is owed and goes out after the credit.
++	 */
++	if (mac->join_inflight || mac->join_page_debt) {
++		ret = mt6797_mac_join_wait_management(mac);
++		if (ret)
++			goto failed;
++	}
++	if (mac->join_page_debt || mac->join_credit_pending || mac->sequence > 253) {
++		ret = -EBUSY;
++		goto failed;
++	}
++	mac->join_credit_deadline = min_t(u64, mac->join_deadline,
++					  ktime_get_ns() + 100 * NSEC_PER_MSEC);
++	reinit_completion(&mac->join_credit_done);
++	mac->join_credit_pending = true;
++	mac->join_page_debt = 1;
++	ret = mt6797_hif_join_key(mac->hif, mac->sequence++, true, pairwise,
++				  mac->join_ap, key->keyidx, key->key,
++				  mac->join_credit_deadline);
++	if (!ret) {
++		dev_info(wiphy_dev(hw->wiphy),
++			 "one-shot WLAN join key command: %s submitted sequence=%u\n",
++			 pairwise ? "pairwise" : "group", mac->sequence - 1);
++		ret = mt6797_mac_join_wait_credit(mac);
++	}
++	if (ret)
++		goto failed;
++	dev_info(wiphy_dev(hw->wiphy),
++		 "one-shot WLAN join key credit returned: %s\n",
++		 pairwise ? "pairwise" : "group");
++	if (pairwise) {
++		mac->join_key_pairwise = 1;
++	} else {
++		mac->join_key_group = 1;
++		mac->join_group_key_id = key->keyidx;
++		now = ktime_get_ns();
++		if (mac->join_hold_until > now + 1000 * NSEC_PER_MSEC)
++			mac->join_hold_until = now + 1000 * NSEC_PER_MSEC;
++		schedule_delayed_work(&mac->join_work, msecs_to_jiffies(1000));
++	}
++	mutex_unlock(&mac->mutex);
++	return 0;
++failed:
++	if (!mac->first_error)
++		mac->first_error = ret;
++	mac->closing = true;
++	mac->join_retired = true;
++	mac->join_credit_pending = false;
++	complete_all(&mac->join_credit_done);
++	spin_lock_irqsave(&mac->join_queue.lock, flags);
++	mac->join_running = false;
++	mac->join_open = false;
++	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++	mutex_unlock(&mac->mutex);
++	return ret;
++}
++#endif
++
+ static int mt6797_mac_sta_state(struct ieee80211_hw *hw,
+ 				struct ieee80211_vif *vif, struct ieee80211_sta *sta,
+ 				enum ieee80211_sta_state old,
+@@ -2261,6 +2396,9 @@ static const struct ieee80211_ops mt6797_mac_ops = {
+ 	.config = mt6797_mac_config,
+ 	.configure_filter = mt6797_mac_filter,
+ 	.sta_state = mt6797_mac_sta_state,
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++	.set_key = mt6797_mac_set_key,
++#endif
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ 	.mgd_prepare_tx = mt6797_mac_mgd_prepare_tx,
+ 	.mgd_complete_tx = mt6797_mac_mgd_complete_tx,
+-- 
+2.39.5
+

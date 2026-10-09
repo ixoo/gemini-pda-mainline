@@ -503,6 +503,28 @@ booted:
   gates and no secret on any output; `tests/credential-tool-test.py` drives it
   against a fake remote helper. The C2 design findings are in
   [PHASE_C](PHASE_C.md).
+- **Phase C2 implementation, for review (nothing built; runtime tooling checkpoint, incomplete).** Proposals 0153 to
+  0156 (bounded scan-element limit; EAPOL delivery to mac80211; control-port
+  EAPOL transmit as the vendor security frame on TC4 through the one queue;
+  firmware keys with the WPA2 BSS declaration, ledger-serialized `set_key` and
+  explicit removals after the deauthentication). Tooling: `build-candidate.py
+  --supplicant` adds `bin/wpa_supplicant` as a 63rd member that
+  `passive-session.py` checks; `bind-target.py --psk-file` binds the private
+  PSK; `join-once.sh` runs the supplicant-owned scan, join and handshake when
+  a PSK is bound, prints fixed phrase counts only and leaves the complete
+  supplicant log in RAM for private preservation; `classify-join.py` admits
+  the `eapol delivered`, `eapol sent`, key command, credit and removal records
+  with exact page and sequence ownership and reports
+  `driver_handshake_path_pass` without any installed-key or operational claim.
+  Still pending in `passive-host.py`: the bounded private export of the
+  complete supplicant log before the log seal and recovery (with process,
+  boot and size completeness), the C2 phrase parsing and the session success
+  conjunction, and a sanitized result that excludes the PSK-bound script's
+  hashes. No device action follows until that is reviewed.
+  Fixtures: `tests/run-security-test.py` (descriptor and preparation),
+  `tests/run-key-test.py` (key payloads and the WPA2 bytes), the ownership
+  harness end-to-end one-queue sequence, and the peer harness `set_key` with
+  message 4 in flight or queued, refusals and the removal order.
 - **Phase C2 supplicant, pinned, not yet admitted.** `helper/build-wpa-supplicant.sh`
   with `helper/wpa_supplicant.config` builds upstream wpa_supplicant 2.11
   with libnl 3.11.0 as one static aarch64 binary (SHA-256 `0487b710…`,

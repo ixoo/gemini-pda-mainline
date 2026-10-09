@@ -19,6 +19,19 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parents[1]
 SOURCE = (HERE / 'join-once.sh').read_text()
+# Phase C2 secrecy: the PSK variable is consumed only by the configuration
+# heredoc, unset right after, never printed, and no trace is enabled.
+psk_lines = [line.strip() for line in SOURCE.splitlines() if '"$WPA_PSK_HEX"' in line]
+assert psk_lines == ["printf %s \"$WPA_PSK_HEX\" | $BB grep -Eq '^[0-9a-f]{64}$'",
+                     "printf '\\tproto=RSN\\n\\tkey_mgmt=WPA-PSK\\n\\tpairwise=CCMP\\n\\tgroup=CCMP\\n\\tieee80211w=0\\n\\tpsk=%s\\n}\\n' \"$WPA_PSK_HEX\""], psk_lines
+assert 'unset WPA_PSK_HEX' in SOURCE and 'set -x' not in SOURCE
+assert '-K' not in SOURCE.split('/bin/wpa_supplicant ')[1].split('&')[0]
+# The supplicant's exit, whatever it is, is collected under set +e and the
+# configuration is removed only after that exit; the framed result follows.
+c2 = SOURCE.split('stage=supplicant_config')[1].split('stage=boot_after')[0]
+assert c2.index('set +e') < c2.index('wait "$supplicant_pid"') < c2.index('supplicant_exit=$?') < c2.index('set -e') < c2.index('rm -f "$conf"')
+assert 'sleep 1\n    $BB rm -f "$conf"' not in SOURCE and c2.index('rm -f "$conf"') < c2.index('supplicant_phrases')
+assert 'ssid=%s' in c2 and 'ssid="' not in c2 and '"$TARGET_SSID_HEX"' in c2
 
 # Static review.
 assert SOURCE.count('BB=/bin/busybox\n') == 1

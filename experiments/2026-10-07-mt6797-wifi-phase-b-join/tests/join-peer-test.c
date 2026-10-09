@@ -64,6 +64,12 @@ struct ieee80211_prep_tx_info { unsigned subtype, link_id; bool success; };
 #define spin_unlock_irqrestore(lock,flags) do { (void)(lock); (void)(flags); } while (0)
 struct completion { unsigned count; };
 struct ieee80211_vif { unsigned valid_links; struct { unsigned aid; } cfg; };
+enum set_key_cmd { SET_KEY, DISABLE_KEY };
+#define IEEE80211_KEY_FLAG_PAIRWISE BIT(3)
+#define WLAN_CIPHER_SUITE_CCMP 0x000fac04
+struct ieee80211_key_conf { unsigned cipher; int keyidx; unsigned keylen; unsigned flags; u8 key[32]; };
+static void schedule_delayed_work(int *w, unsigned long d) { (void)w; (void)d; }
+static unsigned long msecs_to_jiffies(unsigned ms) { return ms; }
 struct ieee80211_sta { bool mlo; unsigned valid_links; u8 addr[6];
  struct { unsigned supp_rates[2]; } deflink; };
 struct mt6797_hif { int unused; };
@@ -89,6 +95,8 @@ struct mt6797_mac {
  bool join_peer_refusal_logged, join_channel_refusal_logged;
  unsigned join_absence_events;
  unsigned join_eapol_seen; u64 join_hold_until;
+ bool join_rsn; unsigned join_key_pairwise, join_key_group; u8 join_group_key_id;
+ int join_work;
  unsigned join_page_debt, sequence, join_requested_ms, join_basic_rates;
  unsigned join_desired_rates, join_peer_basic_rates;
  u8 join_ap[6], join_bssid[6], join_channel_token, join_sta_sequence;
@@ -99,7 +107,7 @@ struct mt6797_mac {
 static struct mt6797_mac *active;
 static u64 now;
 static unsigned locked, writes, waits, fail_write, fail_wait, released;
-static unsigned order[8];
+static unsigned order[16];
 static int wait_mode;
 static bool idle;
 static void ieee80211_connection_loss(struct ieee80211_vif *v)
@@ -125,7 +133,7 @@ static int mt6797_hif_reconcile_runtime(struct mt6797_hif *h,u64 d,
  struct mt6797_hif_tx_status *s,struct mt6797_normal_release *a)
 { assert(h && d>now && s); a->released_pages=released;released=0;return 0; }
 static int command(unsigned kind,unsigned sequence,u64 deadline)
-{ assert(locked && deadline>now && sequence==5+writes && writes<8);
+{ assert(locked && deadline>now && sequence==5+writes && writes<16);
  order[writes++]=kind; return writes==fail_write ? -EIO : 0; }
 static int mt6797_hif_join_filter(struct mt6797_hif *h,unsigned s,u64 d)
 { assert(h && active->join_page_debt==1); return command(0x0a,s,d); }
@@ -139,11 +147,21 @@ static int mt6797_hif_join_station(struct mt6797_hif *h,unsigned s,const u8 *ap,
  assert(desired==0x3fc0 && basic==0x40);
  assert(active->join_page_debt==2 && ether_addr_equal(ap,active->join_bssid));
  return command(0x13,s,d); }
+static bool expect_wpa2;
 static int mt6797_hif_join_bss(struct mt6797_hif *h,unsigned s,const u8 *ap,
- const u8 *ssid,unsigned n,unsigned desired,unsigned basic,bool pre,u64 d)
+ const u8 *ssid,unsigned n,unsigned desired,unsigned basic,bool pre,bool wpa2,u64 d)
 { assert(h && ether_addr_equal(ap,active->join_ap) && n==3);
- assert(!memcmp(ssid,"lab",3) && desired==0x3fc0 && basic==0x40 && !pre);
+ assert(!memcmp(ssid,"lab",3) && desired==0x3fc0 && basic==0x40 && !pre && wpa2==expect_wpa2);
  assert(active->join_page_debt==1);return command(0x12,s,d); }
+static unsigned key_adds, key_removals, key_pairwise, key_group;
+static int mt6797_hif_join_key(struct mt6797_hif *h,unsigned s,bool add,bool pairwise,
+ const u8 *peer,unsigned key_id,const u8 *material,u64 d)
+{ assert(h && ether_addr_equal(peer,active->join_ap) && active->join_page_debt==1);
+ assert(pairwise ? key_id==0 : key_id<=3);
+ assert(add ? material!=NULL : material==NULL);
+ if(add) key_adds++; else key_removals++;
+ if(pairwise) key_pairwise++; else key_group++;
+ return command(0x07,s,d); }
 static int mt6797_hif_join_remove_station(struct mt6797_hif *h,unsigned s,u64 d)
 { assert(h && active->join_page_debt==1);return command(0x14,s,d); }
 static int mt6797_hif_send_config(struct mt6797_hif *h,unsigned kind,unsigned s,
@@ -188,6 +206,7 @@ static struct mt6797_mac ready(struct ieee80211_vif *vif,struct ieee80211_sta *s
  static struct wiphy wiphy={.perm_addr={2,0,0,0,0,9}};
  static struct ieee80211_hw hw={.wiphy=&wiphy};
  now=NSEC_PER_SEC; writes=waits=locked=fail_write=fail_wait=released=0;
+ key_adds=key_removals=key_pairwise=key_group=0; expect_wpa2=false;
  assert(!allocations);idle=true;wait_mode=0;losses=0;allocation_failure=false;
  memset(sta,0,sizeof(*sta)); sta->addr[0]=2;sta->addr[5]=7;
  sta->deflink.supp_rates[1]=255;
@@ -395,4 +414,84 @@ int main(void)
  m.join_frame_deadline=now+750*NSEC_PER_MSEC;
  mutex_lock(&m.mutex);assert(!mt6797_mac_join_wait_management(&m));mutex_unlock(&m.mutex);
  assert(!m.join_inflight && waits==1 && !writes);
+ /* Phase C2 keys. The standard supplicant hands message 4 to the driver
+  * before installing the pairwise key, so set_key serializes on the ledger:
+  * in flight (TX done then credit), or queued (the command goes first and the
+  * reply waits for its credit). Pairwise before group, one of each, CCMP only;
+  * anything else ends the lifetime fail-stop. DISABLE_KEY submits nothing. */
+ { struct ieee80211_key_conf ptk={.cipher=WLAN_CIPHER_SUITE_CCMP,.keyidx=0,.keylen=16,.flags=IEEE80211_KEY_FLAG_PAIRWISE};
+   struct ieee80211_key_conf gtk={.cipher=WLAN_CIPHER_SUITE_CCMP,.keyidx=0,.keylen=16,.flags=0};
+   struct ieee80211_key_conf tkip={.cipher=0x000fac02,.keyidx=0,.keylen=32,.flags=IEEE80211_KEY_FLAG_PAIRWISE};
+   static struct sk_buff reply;
+   memset(ptk.key,0x41,16);memset(gtk.key,0x42,16);
+   m=ready(&vif,&sta);active=&m;expect_wpa2=true;m.join_rsn=true;
+   assert(!mt6797_mac_join_add_peer(&m,&vif,&sta));
+   m.join_auth_received=m.join_auth_ok=m.join_last_acked=true;
+   assert(!mt6797_mac_sta_state(&hw,&vif,&sta,IEEE80211_STA_NONE,IEEE80211_STA_AUTH));
+   m.join_assoc_received=true;m.join_aid=vif.cfg.aid=42;m.join_ssid_bytes=3;memcpy(m.join_ssid,"lab",3);
+   assert(!mt6797_mac_sta_state(&hw,&vif,&sta,IEEE80211_STA_AUTH,IEEE80211_STA_ASSOC));
+   assert(writes==5 && m.join_sta_active && m.join_bss_configured);
+   /* Message 4 in flight with its pages owed: the key waits for TX done and credit. */
+   m.join_inflight=&reply;m.join_frame_deadline=now+750*NSEC_PER_MSEC;m.join_last_acked=false;m.join_page_debt=2;
+   m.join_hold_until=now+4000*NSEC_PER_MSEC;
+   assert(!mt6797_mac_set_key(&hw,SET_KEY,&vif,&sta,&ptk));
+   assert(!m.join_inflight && m.join_last_acked && !m.join_page_debt && !m.join_credit_pending);
+   assert(writes==6 && order[5]==0x07 && key_adds==1 && key_pairwise==1 && m.join_key_pairwise==1 && !m.join_key_group);
+   assert(!locked && m.join_hold_until==now+4000*NSEC_PER_MSEC);
+   /* A queued reply does not block the group key; the command goes first. */
+   m.join_queue.head=&reply;
+   assert(!mt6797_mac_set_key(&hw,SET_KEY,&vif,NULL,&gtk));m.join_queue.head=NULL;
+   assert(writes==7 && order[6]==0x07 && key_adds==2 && key_group==1 && m.join_key_group==1 && m.join_group_key_id==0);
+   assert(m.join_hold_until==now+1000*NSEC_PER_MSEC && !m.join_page_debt);
+   /* Disable submits nothing; a second pairwise key is refused fail-stop. */
+   assert(!mt6797_mac_set_key(&hw,DISABLE_KEY,&vif,&sta,&ptk) && writes==7);
+   { struct mt6797_mac saved=m;
+     assert(mt6797_mac_set_key(&hw,SET_KEY,&vif,&sta,&ptk)==-EOPNOTSUPP && m.first_error==-EOPNOTSUPP && m.join_retired && !m.join_running);
+     m=saved; active=&m; }
+   /* Healthy teardown: the deauthentication completes, then the two removals (exact
+    * wlanoidSetRemoveKey shapes), then station removal, channel abort and BSS off. */
+   info.subtype=IEEE80211_STYPE_ASSOC_REQ;info.success=true;m.join_last_sequence=4095;
+   mt6797_mac_mgd_complete_tx(&hw,&vif,&info);
+   assert(m.join_cleanup_requested && m.join_internal && allocations==1);
+   { struct sk_buff *owned=m.join_internal; m.join_queue.head=NULL;m.join_inflight=NULL;m.join_internal=NULL;dev_kfree_skb(owned); }
+   m.join_deauth_done=true;
+   for(unsigned step=0;step<5;step++) {
+    mutex_lock(&m.mutex);assert(!mt6797_mac_join_cleanup_step(&m));mutex_unlock(&m.mutex);
+    assert(writes==8+step && m.join_credit_pending);
+    released=1; assert(!mt6797_mac_join_guard(&m,m.join_credit_deadline)); released=0;
+   }
+   assert(order[7]==0x07 && order[8]==0x07 && order[9]==0x14 && order[10]==0x1c && order[11]==0x11);
+   assert(key_removals==2 && key_pairwise==2 && key_group==2 && m.join_key_pairwise==2 && m.join_key_group==2);
+   assert(m.join_cleanup_stage==3 && !m.join_cleanup_done && !losses);
+   /* Refusals on fresh lifetimes: wrong cipher; group before pairwise. */
+   m=ready(&vif,&sta);active=&m;expect_wpa2=true;m.join_rsn=true;
+   assert(!mt6797_mac_join_add_peer(&m,&vif,&sta));m.join_auth_received=m.join_auth_ok=m.join_last_acked=true;
+   assert(!mt6797_mac_sta_state(&hw,&vif,&sta,IEEE80211_STA_NONE,IEEE80211_STA_AUTH));
+   m.join_assoc_received=true;m.join_aid=vif.cfg.aid=42;m.join_ssid_bytes=3;memcpy(m.join_ssid,"lab",3);
+   assert(!mt6797_mac_sta_state(&hw,&vif,&sta,IEEE80211_STA_AUTH,IEEE80211_STA_ASSOC));
+   { struct mt6797_mac saved=m;
+     assert(mt6797_mac_set_key(&hw,SET_KEY,&vif,&sta,&tkip)==-EOPNOTSUPP && m.join_retired && writes==5);
+     m=saved; active=&m;
+     assert(mt6797_mac_set_key(&hw,SET_KEY,&vif,NULL,&gtk)==-EOPNOTSUPP && m.join_retired && writes==5);
+     m=saved; active=&m; }
+   /* Group key ids 1 to 3 are admitted as well (the AP's id is not measured). */
+   m=ready(&vif,&sta);active=&m;expect_wpa2=true;m.join_rsn=true;
+   assert(!mt6797_mac_join_add_peer(&m,&vif,&sta));m.join_auth_received=m.join_auth_ok=m.join_last_acked=true;
+   assert(!mt6797_mac_sta_state(&hw,&vif,&sta,IEEE80211_STA_NONE,IEEE80211_STA_AUTH));
+   m.join_assoc_received=true;m.join_aid=vif.cfg.aid=42;m.join_ssid_bytes=3;memcpy(m.join_ssid,"lab",3);
+   assert(!mt6797_mac_sta_state(&hw,&vif,&sta,IEEE80211_STA_AUTH,IEEE80211_STA_ASSOC));
+   m.join_hold_until=now+4000*NSEC_PER_MSEC;
+   assert(!mt6797_mac_set_key(&hw,SET_KEY,&vif,&sta,&ptk));
+   { struct ieee80211_key_conf gtk3=gtk; gtk3.keyidx=3; assert(!mt6797_mac_set_key(&hw,SET_KEY,&vif,NULL,&gtk3)); }
+   assert(m.join_group_key_id==3 && writes==7);
+   { struct ieee80211_key_conf gtk4=gtk; gtk4.keyidx=4; struct mt6797_mac saved=m;
+     assert(mt6797_mac_set_key(&hw,SET_KEY,&vif,NULL,&gtk4)==-EOPNOTSUPP); m=saved; active=&m; }
+   /* An open join declares no WPA2 and admits no key. */
+   m=ready(&vif,&sta);active=&m;expect_wpa2=false;
+   assert(!mt6797_mac_join_add_peer(&m,&vif,&sta));m.join_auth_received=m.join_auth_ok=m.join_last_acked=true;
+   assert(!mt6797_mac_sta_state(&hw,&vif,&sta,IEEE80211_STA_NONE,IEEE80211_STA_AUTH));
+   m.join_assoc_received=true;m.join_aid=vif.cfg.aid=42;m.join_ssid_bytes=3;memcpy(m.join_ssid,"lab",3);
+   assert(!mt6797_mac_sta_state(&hw,&vif,&sta,IEEE80211_STA_AUTH,IEEE80211_STA_ASSOC));
+   assert(mt6797_mac_set_key(&hw,SET_KEY,&vif,&sta,&ptk)==-EOPNOTSUPP && m.join_retired);
+ }
 }

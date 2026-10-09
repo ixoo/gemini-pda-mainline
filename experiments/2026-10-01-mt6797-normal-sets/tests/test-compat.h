@@ -41,4 +41,12 @@ u64 ktime_get_ns(void);
 void usleep_range(unsigned long minimum, unsigned long maximum);
 int mt6797_test_write(unsigned int value, void *address);
 int mt6797_test_read(void *address, unsigned int *value);
+/* Kernel memzero_explicit for host fixtures: a clear the compiler keeps. */
+static inline void memzero_explicit(void *p, size_t n)
+{
+	volatile unsigned char *v = p;
+
+	while (n--)
+		*v++ = 0;
+}
 #endif

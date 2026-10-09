@@ -85,7 +85,7 @@ static void exercise_command(unsigned kind, unsigned fault, bool expired)
  else if(kind==1) assert(mt6797_join_channel_payload(7,40,10000,false,expected+8));
  else if(kind==2) assert(mt6797_join_remove_station(expected+8));
  else if(kind==3) assert(mt6797_join_filter_payload(expected+8));
- else assert(mt6797_join_bss_payload(ap,(const u8 *)"lab",3,0x3fc0,0x540,false,expected+8));
+ else assert(mt6797_join_bss_payload(ap,(const u8 *)"lab",3,0x3fc0,0x540,false,false,expected+8));
  assert(!mt6797_hif_encode_command(0x34,MT6797_HIF_WRITE,MT6797_HIF_PIO_ONLY,8+bytes,sizeof(expected),&cmd));
  command_word=cmd.word; transfer_bytes=cmd.transfer_bytes; calls=0; fail_at=fault;
  u64 deadline=expired?1000:1000000;
@@ -93,7 +93,7 @@ static void exercise_command(unsigned kind, unsigned fault, bool expired)
  else if(kind==1) ret=mt6797_hif_join_channel(&hif,19,7,40,10000,false,deadline);
  else if(kind==2) ret=mt6797_hif_join_remove_station(&hif,19,deadline);
  else if(kind==3) ret=mt6797_hif_join_filter(&hif,19,deadline);
- else ret=mt6797_hif_join_bss(&hif,19,ap,(const u8 *)"lab",3,0x3fc0,0x540,false,deadline);
+ else ret=mt6797_hif_join_bss(&hif,19,ap,(const u8 *)"lab",3,0x3fc0,0x540,false,false,deadline);
  assert(hif.normal.tc4_free==4-pages && !hif.mutex.held);
  assert(history[19/8]==(1U<<(19%8)));
  for(unsigned i=0;i<32;i++) if(i!=19/8) assert(!history[i]);

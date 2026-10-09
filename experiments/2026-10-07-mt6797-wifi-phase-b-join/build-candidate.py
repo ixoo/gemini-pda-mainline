@@ -41,9 +41,27 @@ USERSPACE_SHA256 = '4aedbc779d32fc6729de689cda22d0ace5ba8f2050134ec95c81f699a138
 HELPER_PATH = 'bin/join-connect'
 HELPER_SHA256 = 'bc499f28bc052a24713ead3175e5b6405e2e5f787acf276e4e82c1278241d5ca'
 HELPER_BYTES = 665552
+# Reviewed static wpa_supplicant 2.11 (helper/build-wpa-supplicant.sh, pinned
+# upstream sources); inserted as bin/wpa_supplicant for the Phase C2 session.
+SUPPLICANT_PATH = 'bin/wpa_supplicant'
+SUPPLICANT_SHA256 = '0487b7109c0a456eabf3aef33d74d38e5aa4e6dddcb586c03bb203803dd27da7'
+SUPPLICANT_BYTES = 1719888
 OWNER = '/consys@10001340'
 WIFI = OWNER + '/wifi'
 PARTITION_BYTES = 16777216
+
+
+def add_supplicant(members, supplicant):
+    """Return the RAM root members plus the reviewed supplicant next to the pinned iw.
+
+    Same ownership and mode as the helper; the parent members are untouched.
+    """
+    require(len(supplicant) == SUPPLICANT_BYTES and sha(supplicant) == SUPPLICANT_SHA256 and
+            SUPPLICANT_PATH not in members, 'wpa_supplicant absent, changed or already present')
+    tool = members['bin/iw']
+    new = dict(members)
+    new[SUPPLICANT_PATH] = replace(tool, data=supplicant)
+    return new
 
 
 def add_helper(members, helper):
@@ -66,6 +84,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('kernel-package', 'parent', 'helper', 'output'):
         parser.add_argument('--' + name, type=Path, required=True)
+    parser.add_argument('--supplicant', type=Path,
+                        help='Phase C2: the reviewed static wpa_supplicant, inserted as bin/wpa_supplicant')
     args = parser.parse_args()
     os.umask(0o077)
 
@@ -147,6 +167,9 @@ def main():
     require(len(old) == 61, 'parent RAM root inventory changed')
     require(not args.helper.is_symlink(), 'helper path is a symlink')
     new = add_helper(new, regular(args.helper))
+    if args.supplicant:
+        require(not args.supplicant.is_symlink(), 'supplicant path is a symlink')
+        new = add_supplicant(new, regular(args.supplicant))
     for name, (digest, size) in ROM_PATCHES.items():
         member = old[FIRMWARE_DIR + name]
         require(len(member.data) == size and sha(member.data) == digest and
@@ -154,7 +177,7 @@ def main():
     require(old[FIRMWARE_DIR + 'WIFI.storage'].mode == 0o100600,
             'private board record permissions changed')
     initramfs = encode(new)
-    require(parse(initramfs) == new and len(new) == len(old) + 1 and
+    require(parse(initramfs) == new and len(new) == len(old) + 1 + bool(args.supplicant) and
             parse(initramfs)[HELPER_PATH].data == new[HELPER_PATH].data,
             'RAM root encoding changed')
 
@@ -198,8 +221,12 @@ def main():
                   'files': {p.name: {'sha256': sha(regular(p)), 'bytes': p.stat().st_size}
                             for p in sorted(stage.iterdir())},
                   'device_tree_change': 'none; exact Phase A runtime-3 parent DT',
-                  'ram_root_change': 'release gate and the reviewed bin/join-connect helper',
+                  'ram_root_change': ('release gate, the reviewed bin/join-connect helper and the '
+                                      'reviewed bin/wpa_supplicant' if args.supplicant else
+                                      'release gate and the reviewed bin/join-connect helper'),
                   'helper': {'path': HELPER_PATH, 'sha256': HELPER_SHA256, 'bytes': HELPER_BYTES},
+                  'supplicant': ({'path': SUPPLICANT_PATH, 'sha256': SUPPLICANT_SHA256,
+                                  'bytes': SUPPLICANT_BYTES} if args.supplicant else None),
                   'secret_bearing': True, 'device_action': 'none',
                   'physical_admission': False}
         (stage / 'candidate.json').write_text(json.dumps(result, indent=2) + '\n')

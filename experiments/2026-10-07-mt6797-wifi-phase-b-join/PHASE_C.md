@@ -230,8 +230,28 @@ activates with the BSS declared open and encryption-disabled.
    only when the driver has no `set_key`; with one it marks the key uploaded
    and encrypts nothing. C2 therefore implements `.set_key`: `SET_KEY` submits
    the vendor command for the pairwise key (from the supplicant's first
-   `NEW_KEY`, WLAN index 1) and the group key (BMC WLAN index 0, with the
-   receive sequence counter mac80211 provides). A returned credit proves only
+   `NEW_KEY`, WLAN index 1) and the group key (BMC WLAN index 0, the AP's
+   address as the peer, as the vendor substitutes the BSSID for the broadcast
+   address). The command's RSC field is zero for both: the pinned
+   `wlanoidSetAddKey` zeroes the whole command at its start and never writes
+   `aucKeyRsc`, which only the WAPI function fills, so no receive sequence
+   counter reaches the firmware for a CCMP key and replay protection is not
+   validated by C2. Removals follow `wlanoidSetRemoveKey` exactly: the zeroed
+   command with AddRemove 0, key id, peer and BSS index, unicast type 1 and
+   WLAN index 1 for the pairwise key, type 0 and the BMC index for the group
+   key, no TX-key flag, no algorithm, no length. The BMC WLAN index 0 is this
+   driver's declared choice, bound to the station record and BSS payload it
+   submits, where the vendor allocates one dynamically; whether the firmware
+   accepts that bound index is a retained device branch. The driver's copies of key
+   material, the command payload and the HIF transfer buffer, are cleared
+   after submission; mac80211's own key stays for its normal lifetime, and no
+   record carries a key byte or digest. The
+   standard supplicant hands message 4 to the driver before installing the
+   pairwise key (`rsn_supp/wpa.c`, message 3 processing), so `set_key`
+   serializes on the existing TC4 ledger: it waits for an in-flight reply's
+   TX done and credit within the frame and join deadlines, and a reply that
+   is only queued stays queued while the key command's page is owed. A
+   returned credit proves only
    that the firmware consumed the command buffer; the records and results say
    `key command submitted` and `credit returned`, never installed or
    accepted, because no acknowledgement with that meaning exists in the
@@ -240,14 +260,19 @@ activates with the BSS declared open and encryption-disabled.
    the group key (BMC index 0) before the station and BSS cleanup, each with
    its credit and sequence accounted, because removing the station record is
    not shown by the source to retire the group key held under the BMC index;
-   `DISABLE_KEY` from mac80211 submits nothing itself. No protected data
-   frame is sent or received in C2, so no receive crypto flag is guessed.
+   `DISABLE_KEY` from mac80211 submits nothing itself. In the code's actual
+   order the removals run inside the cleanup after the deauthentication has
+   completed and before the station removal, channel abort and BSS-off
+   stages. No protected data frame is admitted or delivered in C2 (the AP may
+   send one; the refusal branch records its header), so no receive crypto
+   flag is guessed.
 
 ### Retained uncertainty, as device branches
 
 - Whether the firmware consumes the key commands (credit returned, no
-  refusal record); whether it acts on them is not observable in C2 and is
-  not claimed. Whether declaring WPA2 at BSS configuration leaves the clear
+  refusal record); whether it acts on them, and whether it accepts the
+  declared BMC WLAN index 0 for the group key, is not observable in C2 and is
+  not claimed; the zero RSC means replay handling is not validated. Whether declaring WPA2 at BSS configuration leaves the clear
   message 3 undisturbed, as it does in the vendor flow.
 - Whether the firmware's BSSID tag changes after the BSS configuration; a
   frame tagged 15 after that point is refused with its header named, as today.
@@ -274,8 +299,8 @@ production worker and transmit fixture runs the whole sequence: early message
 1 observed and delivered, association, the held deauthentication queued,
 message 2 queued behind it before activation, activation, message 2 submitted
 with its credit and status, message 3 delivered, message 4 submitted, the two
-key commands with their credits, the hold's end, the two key removals and the
-single deauthentication, then retirement with every page returned.
+key commands with their credits, the hold's end, the single deauthentication,
+then the two key removals and retirement with every page returned.
 
 No ordinary data is transmitted. The candidate-11 kernel has `CONFIG_IPV6`
 unset, so the kernel sends no IPv6 neighbour discovery or duplicate-address
@@ -287,8 +312,8 @@ like every other refusal; no receive crypto flag is guessed to admit it. The
 deauthentication hold becomes: until both key commands have returned their
 credit plus one second, or four seconds after activation if they have not,
 never later than 1.5 s before the grant or join deadline. The C1 fail-stop is
-preserved exactly: only the healthy path runs the ordered key removal,
-deauthentication and three-stage cleanup; any refusal, poisoned or ambiguous
+preserved exactly: only the healthy path runs the deauthentication, the
+ordered key removals and the three-stage cleanup; any refusal, poisoned or ambiguous
 credit, overflow or deadline ends the lifetime with no further command, as
 today, and the evidence is sealed and the reviewed recovery follows.
 
@@ -302,10 +327,20 @@ private variables embedded by the private binding step (SSID, BSSID and the
 `passive_scan=1`, `ap_scan=1`, one network with `proto=RSN key_mgmt=WPA-PSK
 pairwise=CCMP group=CCMP ieee80211w=0 scan_freq=5200 freq_list=5200` and the
 pinned `bssid`. The supplicant runs with `-d` and never `-K`, logging to a
-RAM file that stays private; the session reads only fixed phrases from it
+RAM file; the session preserves that complete log privately before recovery
+as unique handshake evidence (mode 0600, never uploaded or published) and
+puts only fixed phrases with redacted addresses into the sanitized result
 (`CTRL-EVENT-SCAN-RESULTS`, `Associated with`, `WPA: Key negotiation
-completed`, `CTRL-EVENT-CONNECTED`, `CTRL-EVENT-DISCONNECTED`) with addresses
-redacted, and stops it after the lifetime ends.
+completed`, `CTRL-EVENT-CONNECTED`, `CTRL-EVENT-DISCONNECTED`), then stops
+the supplicant after the lifetime ends. The bound script that carries the
+SSID, BSSID and PSK stays private: it is never composed into a candidate, no
+secret appears in a command argument, a printed or logged SSH payload, a trace
+or a diagnostic (the reviewed private stdin and file transport carries it over
+SSH by design),
+and the hashes and provenance of that script and the configuration stay
+private as well, while candidate, boot and package checksums remain
+publishable. The session, seal and reviewed recovery flow are the existing
+ones.
 
 The PSK comes from the credential already configured in Gemian, by owner
 decision. [`helper/extract-gemian-credential.py`](helper/extract-gemian-credential.py)
@@ -313,12 +348,14 @@ runs on the laptop only, over the standard ssh client (host alias,
 BatchMode, strict known host, no host-key update, IdentitiesOnly, no agent,
 optional identity file) with `sudo -n` for the root-owned connman files: one
 remote read program checks the exact boot id, kernel `3.18.41+` and Debian
-`9.13` before and after the read in the same session, parses every connman
-PSK service's settings with GLib's own key-file reader through ctypes (so the
-escaped value is decoded by GLib, not re-implemented), refuses symlinked,
-non-regular, non-root-owned or group-readable settings, requires exactly one
-group whose `Name` equals the target SSID with `Security=psk`, and prints a
-small report with the secret base64-encoded; that report is streamed straight
+`9.13` before and after the read in the same session, reads only the PSK services named with the target SSID's hex identifier
+(other SSIDs, open, WEP and enterprise services are left unread) with GLib's
+own key-file reader through ctypes (so the escaped value is decoded by GLib,
+not re-implemented), refuses symlinked, non-regular, non-root-owned or
+group-readable settings, requires exactly one such service whose group `Name`
+equals the target SSID with `Name` and `Passphrase` present once and
+`Security` absent or `psk` (ConnMan does not persist `Security`), and prints
+a small report with the secret base64-encoded; that report is streamed straight
 into a fresh mode-0600 file under a fresh mode-0700 directory, the PSK
 (PBKDF2-HMAC-SHA1, 4096 rounds, the SSID as salt) is derived into a second
 mode-0600 file, and a provenance record without any secret is written. No
@@ -335,6 +372,14 @@ returned` (at most one each, no material, no id), `key removal: pairwise|group
 submitted` with its credit, the supplicant's fixed phrases from the session as
 a separate observed result, and the unchanged deauthentication and teardown.
 `wifi_operational` stays false.
+
+### Implementation status
+
+Proposals 0153 (scan-element limit), 0154 (EAPOL delivery), 0155 (control-port
+transmit on TC4 through the one queue) and 0156 (firmware keys, WPA2 BSS
+declaration, ledger-serialized `set_key`, explicit removals after the
+deauthentication) are written, fixture-covered and under review; nothing is
+built or admitted into a candidate until that review's go.
 
 ### Device protocol, stated in advance
 

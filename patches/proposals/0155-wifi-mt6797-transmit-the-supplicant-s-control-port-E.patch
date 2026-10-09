@@ -1,0 +1,436 @@
+From be42f68bfcbfbc16b460da118d3093b6ed36a1a3 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 9 Oct 2026 21:32:13 +0000
+Subject: [PATCH 155/156] wifi: mt6797: transmit the supplicant's control-port
+ EAPOL frames on TC4
+
+Phase C2 lets the standard supplicant complete the four-way handshake.
+Its replies reach the driver from mac80211's control-port path as
+non-QoS To-DS data frames with the LLC/SNAP EAPOL type, flagged as port
+control protocol.
+
+Admit exactly that shape to the target from this station, at most two
+per lifetime, only after an accepted association and before the
+deauthentication, into the one existing queue. The pinned gen3 driver
+sends every 802.1X frame as a security-frame command on TC4 with the
+long descriptor, header format non-802.11 with the Ethernet II flag and
+a PID with TX status to the MCU; encode that descriptor beside the
+management one, prepare it through the same ledger, and send it through
+the same PIO owner. At submission the 802.11 frame becomes an Ethernet
+II frame in a driver buffer (destination from address 3, source from
+address 2, type from the SNAP header); the mac80211 skb is untouched
+and remains the frame whose status is reported.
+
+The queue stays one queue: the dequeue step takes the first frame that
+is neither the driver-built deauthentication during its hold nor a data
+frame before the station activation, so a reply queued behind the held
+deauthentication is sent while the deauthentication keeps its place.
+Pages, PID, deadlines, the single in-flight frame and the TX-done path
+are unchanged.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/net/wireless/mediatek/mt6797/hif.c    |  43 +++++++
+ drivers/net/wireless/mediatek/mt6797/hif.h    |   8 ++
+ .../wireless/mediatek/mt6797/join-submit.h    |  75 ++++++++---
+ .../net/wireless/mediatek/mt6797/join-tx.h    |  52 ++++++++
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 120 +++++++++++++++---
+ 5 files changed, 266 insertions(+), 32 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 86f5f1932..1e3fa1c6c 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -780,6 +780,49 @@ int mt6797_hif_send_management(struct mt6797_hif *hif, const u8 *frame,
+ 	return error;
+ }
+ 
++int mt6797_hif_send_security(struct mt6797_hif *hif, const u8 *frame,
++			     size_t frame_bytes, u8 wlan, u8 pid,
++			     unsigned int lifetime_ms, unsigned int attempt_count,
++			     u64 deadline_ns)
++{
++	struct mt6797_hif_pio_result transfer;
++	struct mt6797_hif_command command;
++	int error;
++
++	if (!hif || !frame)
++		return -EINVAL;
++	if (!mutex_trylock(&hif->mutex))
++		return -EBUSY;
++	if (!hif->firmware_ready || !hif->capability_complete ||
++	    hif->transaction->phase != MT6797_INIT_IDLE ||
++	    hif->normal.phase != MT6797_NORMAL_NVRAM_SUBMITTED) {
++		error = -EIO;
++		goto unlock;
++	}
++	error = mt6797_join_prepare_security(&hif->normal, frame, frame_bytes,
++					     wlan, pid, lifetime_ms, attempt_count,
++					     hif->scratch, sizeof(hif->scratch),
++					     &command);
++	if (error)
++		goto unlock;
++	error = mt6797_hif_enter(hif, deadline_ns);
++	if (error)
++		goto fail;
++	error = mt6797_hif_pio_transfer(&hif->io, 0x34, MT6797_HIF_WRITE,
++					hif->scratch,
++					MT6797_JOIN_TX_DESC_BYTES + frame_bytes,
++					sizeof(hif->scratch), &transfer);
++	error = mt6797_normal_submitted(&hif->normal, error);
++	if (!error)
++		error = mt6797_hif_guard(hif);
++fail:
++	if (error)
++		error = mt6797_hif_fail(hif, error);
++unlock:
++	mutex_unlock(&hif->mutex);
++	return error;
++}
++
+ int mt6797_hif_send_config(struct mt6797_hif *hif,
+ 			   enum mt6797_normal_config_kind kind,
+ 			   unsigned int sequence, const u8 *payload,
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index 965d55290..b9261f82f 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -221,6 +221,14 @@ int mt6797_hif_send_management(struct mt6797_hif *hif, const u8 *frame,
+ 			      unsigned int lifetime_ms, unsigned int attempt_count,
+ 			      u64 deadline_ns);
+ 
++/* One Ethernet II EAPOL frame as a security frame through the same TC4 PIO
++ * owner, as the pinned gen3 driver sends 802.1X; same rules as above.
++ */
++int mt6797_hif_send_security(struct mt6797_hif *hif, const u8 *frame,
++			     size_t frame_bytes, u8 wlan, u8 pid,
++			     unsigned int lifetime_ms, unsigned int attempt_count,
++			     u64 deadline_ns);
++
+ int mt6797_hif_send_config(struct mt6797_hif *hif,
+ 			   enum mt6797_normal_config_kind kind,
+ 			   unsigned int sequence, const u8 *payload,
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-submit.h b/drivers/net/wireless/mediatek/mt6797/join-submit.h
+index bc5c47430..43ebf4ef3 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join-submit.h
++++ b/drivers/net/wireless/mediatek/mt6797/join-submit.h
+@@ -12,27 +12,16 @@
+  * No previous page debt may overlap this bounded submission.
+  */
+ static inline int
+-mt6797_join_prepare_management(struct mt6797_normal_transaction *t,
+-	const unsigned char *frame, size_t bytes, unsigned char wlan,
+-	unsigned char pid, unsigned int lifetime_ms, unsigned int attempt_count,
+-	unsigned char *output, size_t capacity, struct mt6797_hif_command *command)
++mt6797_join_prepare_frame(struct mt6797_normal_transaction *t,
++			  const unsigned char descriptor[MT6797_JOIN_TX_DESC_BYTES],
++			  const unsigned char *frame, size_t bytes, unsigned int pages,
++			  unsigned char *output, size_t capacity,
++			  struct mt6797_hif_command *command)
+ {
+-	unsigned char descriptor[MT6797_JOIN_TX_DESC_BYTES];
+ 	struct mt6797_hif_command encoded;
+-	unsigned int pages;
+ 	size_t total, i;
+ 	int error;
+ 
+-	if (command)
+-		*command = (struct mt6797_hif_command){0};
+-	if (!t || !output || !command)
+-		return -EINVAL;
+-	if (t->phase != MT6797_NORMAL_NVRAM_SUBMITTED || !t->used_sequences ||
+-	    !t->tc4_limit || t->tc4_limit > 0xffffU || t->tc4_free > t->tc4_limit)
+-		return mt6797_normal_abort(t);
+-	if (!mt6797_join_tx_descriptor(frame, bytes, wlan, pid, lifetime_ms,
+-				      attempt_count, descriptor, &pages))
+-		return -EINVAL;
+ 	if (t->tc4_free != t->tc4_limit)
+ 		return -EBUSY;
+ 	if (t->tc4_free < pages)
+@@ -54,4 +43,58 @@ mt6797_join_prepare_management(struct mt6797_normal_transaction *t,
+ 	*command = encoded;
+ 	return 0;
+ }
++
++static inline int
++mt6797_join_prepare_management(struct mt6797_normal_transaction *t,
++			       const unsigned char *frame, size_t bytes,
++			       unsigned char wlan, unsigned char pid,
++			       unsigned int lifetime_ms, unsigned int attempt_count,
++			       unsigned char *output, size_t capacity,
++			       struct mt6797_hif_command *command)
++{
++	unsigned char descriptor[MT6797_JOIN_TX_DESC_BYTES];
++	unsigned int pages;
++
++	if (command)
++		*command = (struct mt6797_hif_command){0};
++	if (!t || !output || !command)
++		return -EINVAL;
++	if (t->phase != MT6797_NORMAL_NVRAM_SUBMITTED || !t->used_sequences ||
++	    !t->tc4_limit || t->tc4_limit > 0xffffU || t->tc4_free > t->tc4_limit)
++		return mt6797_normal_abort(t);
++	if (!mt6797_join_tx_descriptor(frame, bytes, wlan, pid, lifetime_ms,
++				       attempt_count, descriptor, &pages))
++		return -EINVAL;
++	return mt6797_join_prepare_frame(t, descriptor, frame, bytes, pages,
++					 output, capacity, command);
++}
++
++/* Prepare one Ethernet II EAPOL frame as a security frame on the same TC4
++ * owner (the pinned gen3 security-frame path); the same ledger rules apply.
++ */
++static inline int
++mt6797_join_prepare_security(struct mt6797_normal_transaction *t,
++			     const unsigned char *frame, size_t bytes,
++			     unsigned char wlan, unsigned char pid,
++			     unsigned int lifetime_ms, unsigned int attempt_count,
++			     unsigned char *output, size_t capacity,
++			     struct mt6797_hif_command *command)
++{
++	unsigned char descriptor[MT6797_JOIN_TX_DESC_BYTES];
++	unsigned int pages;
++
++	if (command)
++		*command = (struct mt6797_hif_command){0};
++	if (!t || !output || !command)
++		return -EINVAL;
++	if (t->phase != MT6797_NORMAL_NVRAM_SUBMITTED || !t->used_sequences ||
++	    !t->tc4_limit || t->tc4_limit > 0xffffU || t->tc4_free > t->tc4_limit)
++		return mt6797_normal_abort(t);
++	if (!mt6797_join_tx_security_descriptor(frame, bytes, wlan, pid,
++						lifetime_ms, attempt_count,
++						descriptor, &pages))
++		return -EINVAL;
++	return mt6797_join_prepare_frame(t, descriptor, frame, bytes, pages,
++					 output, capacity, command);
++}
+ #endif
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-tx.h b/drivers/net/wireless/mediatek/mt6797/join-tx.h
+index a06e02f54..b125a8b1a 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join-tx.h
++++ b/drivers/net/wireless/mediatek/mt6797/join-tx.h
+@@ -59,4 +59,56 @@ mt6797_join_tx_descriptor(const unsigned char *frame, size_t bytes,
+ 	*pages = (total + 127U) / 128U;
+ 	return true;
+ }
++
++#define MT6797_JOIN_ETH_MAX_BYTES 1518U
++
++/* Original encoder from the pinned public gen3 nicTxComposeSecurityFrameDesc
++ * path: one Ethernet II EAPOL frame on the same TC4 owner, header format
++ * non-802.11 with the Ethernet II flag, Ethernet-type offset after the
++ * descriptor and the 12 address bytes, TID 0, the station's WLAN index,
++ * own-MAC index 1, the bounded lifetime and attempt count, the fixed OFDM
++ * 6 Mbps rate and a PID with TX status to the MCU. The firmware builds the
++ * 802.11 header; no sequence number, type or subtype is encoded. No
++ * transport, station lifetime, destination or channel admission here.
++ */
++static inline bool
++mt6797_join_tx_security_descriptor(const unsigned char *frame, size_t bytes,
++				   unsigned char wlan, unsigned char pid,
++				   unsigned int lifetime_ms, unsigned int attempt_count,
++				   unsigned char output[MT6797_JOIN_TX_DESC_BYTES],
++				   unsigned int *pages)
++{
++	unsigned char d[MT6797_JOIN_TX_DESC_BYTES] = {0};
++	unsigned int lifetime, total, count, i;
++
++	if (!frame || !output || !pages || bytes < 14 + 4 ||
++	    bytes > MT6797_JOIN_ETH_MAX_BYTES || wlan > 30 || !pid || pid > 127 ||
++	    !lifetime_ms || lifetime_ms > 10000 || !attempt_count || attempt_count > 30)
++		return false;
++	/* Unicast Ethernet II EAPOL only: no group destination or source. */
++	if ((frame[0] & 1) || (frame[6] & 1) || frame[12] != 0x88 || frame[13] != 0x8e)
++		return false;
++	lifetime = (lifetime_ms * 1000U / 1024U) >> 5;
++	if (!lifetime)
++		lifetime = 1;
++	if (lifetime > 255)
++		lifetime = 255;
++	total = MT6797_JOIN_TX_DESC_BYTES + bytes;
++	count = attempt_count << 11;
++	d[0] = total; d[1] = total >> 8;
++	d[2] = (MT6797_JOIN_TX_DESC_BYTES + 12) / 2; /* Ethernet type after the addresses. */
++	d[3] = 0x88; /* TC4: MCU port, queue 1. */
++	d[4] = wlan;
++	d[5] = 0x90; /* Long descriptor, non-802.11 header, Ethernet II. */
++	d[7] = 1U << 2; /* Own-MAC 1. */
++	d[10] = lifetime;
++	d[11] = 0x80; /* Fixed rate enabled, zero power offset. */
++	d[12] = count; d[13] = count >> 8;
++	d[20] = pid; d[21] = 2; /* TX status to MCU. */
++	d[26] = (0x4bU << 2) & 255; d[27] = (0x4bU << 2) >> 8;
++	for (i = 0; i < MT6797_JOIN_TX_DESC_BYTES; i++)
++		output[i] = d[i];
++	*pages = (total + 127U) / 128U;
++	return true;
++}
+ #endif
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index c0dc4eb11..9f8ed81a1 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -77,8 +77,9 @@ struct mt6797_mac {
+ 	bool join_peer_refusal_logged, join_channel_refusal_logged;
+ 	unsigned int join_absence_events;
+ 	/* Phase C1: bounded observation of the AP's first clear EAPOL frames. */
+-	unsigned int join_eapol_seen;
++	unsigned int join_eapol_seen, join_eapol_tx;
+ 	u64 join_hold_until;
++	u8 join_eth[MT6797_JOIN_ETH_MAX_BYTES] __aligned(2);
+ 
+ 	u64 scan_deadline, scan_started_ns;
+ 	unsigned int scan_channels, scan_count, scan_polls, scan_packets;
+@@ -943,15 +944,29 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	branch = 3;
+ 	if (!mac->join_inflight && !mac->join_page_debt) {
+ 		spin_lock_irqsave(&mac->join_queue.lock, flags);
+-		skb = mac->join_open ? skb_peek(&mac->join_queue) : NULL;
+-		/* The driver-built deauthentication waits out the bounded handshake
+-		 * hold; nothing else is held.
+-		 */
+-		if (skb && skb == mac->join_internal &&
+-		    ktime_get_ns() < mac->join_hold_until)
+-			skb = NULL;
+-		else if (skb)
+-			__skb_dequeue(&mac->join_queue);
++		skb = NULL;
++		if (mac->join_open) {
++			/* One queue, in order, with two holds: the driver-built
++			 * deauthentication waits out the bounded handshake hold in
++			 * its place, and a control-port data frame waits for the
++			 * station activation; the first frame held by neither is
++			 * taken. Nothing is moved or reordered otherwise.
++			 */
++			struct sk_buff *walk, *tmp;
++			u64 now_ns = ktime_get_ns();
++
++			skb_queue_walk_safe(&mac->join_queue, walk, tmp) {
++				bool data = (get_unaligned_le16(walk->data) & 0x0c) == 0x08;
++
++				if (walk == mac->join_internal && now_ns < mac->join_hold_until)
++					continue;
++				if (data && !mac->join_sta_active)
++					continue;
++				__skb_unlink(walk, &mac->join_queue);
++				skb = walk;
++				break;
++			}
++		}
+ 		if (skb)
+ 			mac->join_queue_bytes -= skb->len;
+ 		spin_unlock_irqrestore(&mac->join_queue.lock, flags);
+@@ -960,9 +975,48 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 			/* Linearize in process context; never retain a borrowed STA pointer. */
+ 			now = ktime_get_ns();
+ 			grant_end = min(mac->join_deadline, mac->join_grant_deadline);
+-			if (skb_linearize(skb) || !mt6797_mac_join_frame(mac, skb) ||
+-       mac->join_next_pid > 127 || !mac->join_channel_granted ||
+-       now >= grant_end || grant_end - now < 850 * NSEC_PER_MSEC) {
++			if (skb_linearize(skb) ||
++			    mac->join_next_pid > 127 || !mac->join_channel_granted ||
++			    now >= grant_end || grant_end - now < 850 * NSEC_PER_MSEC) {
++				ret = -EINVAL;
++				goto failed;
++			}
++			if ((get_unaligned_le16(skb->data) & 0x0c) == 0x08) {
++				/* Control-port EAPOL, admitted at queue time: Ethernet II
++				 * for the firmware (destination from address 3, source
++				 * from address 2, type from the SNAP header, the EAPOL
++				 * body after the 32-byte header); the mac80211 skb is
++				 * untouched and stays the frame whose status is reported.
++				 */
++				size_t eth_bytes = 14 + skb->len - 32;
++
++				if (skb->len < 36 || eth_bytes > MT6797_JOIN_ETH_MAX_BYTES ||
++				    !mac->join_sta_active) {
++					ret = -EINVAL;
++					goto failed;
++				}
++				memcpy(mac->join_eth, skb->data + 16, ETH_ALEN);
++				memcpy(mac->join_eth + 6, skb->data + 10, ETH_ALEN);
++				memcpy(mac->join_eth + 12, skb->data + 30, 2);
++				memcpy(mac->join_eth + 14, skb->data + 32, skb->len - 32);
++				mac->join_pid = mac->join_next_pid++;
++				mac->join_last_acked = false;
++				reinit_completion(&mac->join_frame_done);
++				pages = (MT6797_JOIN_TX_DESC_BYTES + eth_bytes + 127) / 128;
++				ret = mt6797_hif_send_security(mac->hif, mac->join_eth, eth_bytes,
++							       1, mac->join_pid, 500, 3, deadline);
++				if (ret)
++					goto failed;
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++				dev_info(wiphy_dev(mac->hw->wiphy),
++					 "one-shot WLAN join eapol sent: pid=%u pages=%u bytes=%zu\n",
++					 mac->join_pid, pages, eth_bytes);
++#endif
++				mac->join_page_debt = pages;
++				mac->join_frame_deadline = ktime_get_ns() + 750 * NSEC_PER_MSEC;
++				goto submitted;
++			}
++			if (!mt6797_mac_join_frame(mac, skb)) {
+ 				ret = -EINVAL;
+ 				goto failed;
+ 			}
+@@ -986,6 +1040,8 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ #endif
+ 			mac->join_page_debt = pages;
+ 			mac->join_frame_deadline = ktime_get_ns() + 750 * NSEC_PER_MSEC;
++submitted:
++			;
+ 		}
+ 	}
+ 	for (n = 0; n < 8; n++) {
+@@ -2132,13 +2188,45 @@ static void mt6797_mac_tx(struct ieee80211_hw *hw,
+ {
+ #if IS_ENABLED(CONFIG_MT6797_PASSIVE_SCAN)
+ 	struct mt6797_mac *mac = hw->priv;
+-	u8 header[24];
++	static const u8 llc_eapol[8] = { 0xaa, 0xaa, 3, 0, 0, 0, 0x88, 0x8e };
++	u8 header[32];
+ 	unsigned long flags;
+ 	unsigned int fc, subtype;
+ 	bool accepted = false;
+ 
+-	if (skb->len >= sizeof(header) && skb->len <= 2304 &&
+-	    !skb_copy_bits(skb, 0, header, sizeof(header))) {
++	/* Phase C2: the supplicant's control-port EAPOL frames, built by
++	 * mac80211 as non-QoS To-DS data frames with the LLC/SNAP EAPOL type to
++	 * the target, at most two per lifetime, only after an accepted
++	 * association and before the deauthentication. They are submitted
++	 * after the station activation as Ethernet II security frames.
++	 */
++	if (skb->len >= sizeof(header) + 4 &&
++	    skb->len <= sizeof(header) + MT6797_JOIN_ETH_MAX_BYTES - 14 &&
++	    (IEEE80211_SKB_CB(skb)->control.flags & IEEE80211_TX_CTRL_PORT_CTRL_PROTO) &&
++	    !skb_copy_bits(skb, 0, header, sizeof(header)) &&
++	    mt6797_join_le16(header) == 0x0108 &&
++	    !memcmp(header + 24, llc_eapol, sizeof(llc_eapol)) &&
++	    ether_addr_equal(header + 4, mac->join_ap) &&
++	    ether_addr_equal(header + 10, hw->wiphy->perm_addr) &&
++	    ether_addr_equal(header + 16, mac->join_ap)) {
++		spin_lock_irqsave(&mac->join_queue.lock, flags);
++		if (mac->join_open && mac->join_assoc_received &&
++		    !mac->join_assoc_status && !mac->join_deauth_done &&
++		    mac->join_eapol_tx < 2 &&
++		    skb_queue_len(&mac->join_queue) < 3 &&
++		    mac->join_queue_bytes + skb->len <= 3 * 2304) {
++			mac->join_eapol_tx++;
++			mac->join_queue_bytes += skb->len;
++			__skb_queue_tail(&mac->join_queue, skb);
++			schedule_delayed_work(&mac->join_work, 0);
++			accepted = true;
++		}
++		spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++		if (accepted)
++			return;
++	}
++	if (skb->len >= 24 && skb->len <= 2304 &&
++	    !skb_copy_bits(skb, 0, header, 24)) {
+ 		fc = mt6797_join_le16(header);
+ 		subtype = (fc >> 4) & 15;
+ 		spin_lock_irqsave(&mac->join_queue.lock, flags);
+-- 
+2.39.5
+

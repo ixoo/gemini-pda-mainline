@@ -1,0 +1,46 @@
+From dc343c675da5206c1d10b4b0007635e1dd7d9cf8 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 9 Oct 2026 21:19:15 +0000
+Subject: [PATCH 153/156] wifi: mt6797: accept userspace scan elements the
+ passive scan never transmits
+
+The standard supplicant attaches an extended-capabilities element to
+every scan request it issues. The wiphy registers a zero scan-element
+limit, and with a hw_scan operation mac80211 leaves it at zero
+("userspace will not be allowed to in that case"), so cfg80211 rejects
+the request before the driver sees it and the supplicant loops on a
+failed scan trigger.
+
+Register a bounded limit of 256 bytes instead; mac80211 subtracts the
+room its own elements need. The one admitted scan is passive with no
+SSID, no flag, no duration and one channel, so no probe request is ever
+transmitted and the elements are never read by the driver. Nothing else
+about scanning changes.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 60e3af193..4e9bd4069 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -2275,7 +2275,13 @@ int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+ 	init_completion(&mac->join_credit_done);
+ 	init_completion(&mac->join_frame_done);
+ 	hw->wiphy->max_scan_ssids = 0;
+-	hw->wiphy->max_scan_ie_len = 0;
++	/* Userspace may attach elements to a scan request (the standard
++	 * supplicant always does); with a hw_scan operation mac80211 keeps a
++	 * zero limit, and cfg80211 would then reject every such request. The
++	 * one admitted scan is passive and transmits no probe request, so the
++	 * elements are accepted here and never read; mac80211 subtracts its own.
++	 */
++	hw->wiphy->max_scan_ie_len = 256;
+ 	ieee80211_hw_set(hw, SIGNAL_DBM);
+ #endif
+ 	SET_IEEE80211_DEV(hw, dev);
+-- 
+2.39.5
+

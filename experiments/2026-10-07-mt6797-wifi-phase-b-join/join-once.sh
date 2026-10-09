@@ -1,6 +1,9 @@
 #!/bin/sh
 # SPDX-License-Identifier: MIT
-# One passive scan followed by one bounded legacy join to the private AP target.
+# One passive scan followed by one bounded legacy join to the private AP target;
+# with a private PSK bound (Phase C2) the pinned supplicant performs the one
+# passive scan, the join and the handshake instead, and the driver's bounded
+# lifetime ends it. Nothing here prints the SSID, BSSID or PSK.
 set -eu
 umask 077
 BB=/bin/busybox
@@ -72,6 +75,14 @@ b6152b2f0ef8c2e09de975cd938273db8ad4a33f41dc398945e7081bd4ea6dd4  lib/libnl-3.so
 08f2d205cb25b90a1a0271a58f9cbfd91810d8067b1b4ebbefa6ba85e83320c9  lib/libnl-genl-3.so.200
 bc499f28bc052a24713ead3175e5b6405e2e5f787acf276e4e82c1278241d5ca  bin/join-connect
 SUMS
+if [ -n "${WPA_PSK_HEX:-}" ]; then
+    $BB sha256sum -c > /dev/null <<'SUMS'
+0487b7109c0a456eabf3aef33d74d38e5aa4e6dddcb586c03bb203803dd27da7  bin/wpa_supplicant
+SUMS
+    printf %s "$WPA_PSK_HEX" | $BB grep -Eq '^[0-9a-f]{64}$'
+    : "${TARGET_SSID_HEX:?private target SSID hex is required}"
+    printf %s "$TARGET_SSID_HEX" | $BB grep -Eq '^([0-9a-f]{2}){1,32}$'
+fi
 iw() {
     /lib/ld-linux-aarch64.so.1 --library-path /lib /bin/iw "$@"
 }
@@ -95,6 +106,78 @@ iw phy phy0 interface add wlan0 type managed
 stage=wlan0_up
 $BB ip link set wlan0 up
 [ "$($BB cat /proc/sys/kernel/random/boot_id)" = "$EXPECTED_BOOT" ]
+if [ -n "${WPA_PSK_HEX:-}" ]; then
+    # Phase C2: the supplicant owns the connection (control-port frames reach
+    # only the connection owner). Its configuration lives in RAM, mode 0600,
+    # is never printed and is removed as soon as the supplicant has read it;
+    # the complete debug log stays in RAM for the custodian to preserve
+    # privately before recovery. No -K: no key material is logged.
+    stage=supplicant_config
+    $BB printf 'boot_before=%s\nkernel=%s\ninterface_created=1\ninterface_up=1\n__IW_PASSIVE_BEGIN__\n' "$boot_before" "$kernel"
+    printf '__PHY_INFO_BEGIN__\n%s\n__PHY_INFO_END__\n' "$phy_info"
+    conf=/tmp/mt6797-wifi-phase-b-1/wpa.conf
+    wpa_log=/tmp/mt6797-wifi-phase-b-1/wpa.log
+    $BB mkdir -p /tmp/wpa
+    {
+        printf 'ctrl_interface=/tmp/wpa\npassive_scan=1\nap_scan=1\n'
+        printf 'network={\n\tssid=%s\n\tbssid=%s\n\tscan_freq=5200\n\tfreq_list=5200\n' "$TARGET_SSID_HEX" "$TARGET_BSSID"
+        printf '\tproto=RSN\n\tkey_mgmt=WPA-PSK\n\tpairwise=CCMP\n\tgroup=CCMP\n\tieee80211w=0\n\tpsk=%s\n}\n' "$WPA_PSK_HEX"
+    } > "$conf"
+    unset WPA_PSK_HEX
+    stage=supplicant_start
+    $BB printf '__JOIN_BEGIN__\n'
+    # The mode-0600 RAM configuration stays until the supplicant has exited
+    # (no startup race) and is removed before the framed result ends.
+    /bin/wpa_supplicant -Dnl80211 -iwlan0 -c "$conf" -f "$wpa_log" -d &
+    supplicant_pid=$!
+    # One bounded wait (at most 24 s): the supplicant's own scan, join and
+    # handshake, then the driver's lifetime ends with its deauthentication and
+    # teardown. A supplicant that fails or exits early cannot abort this
+    # script before the framed result and the private log are complete.
+    tick=0
+    terminal=0
+    while [ "$tick" -lt 24 ]; do
+        [ "$($BB cat /proc/sys/kernel/random/boot_id)" = "$EXPECTED_BOOT" ]
+        current_log=$($BB dmesg)
+        if printf '%s\n' "$current_log" | $BB grep -Eq 'one-shot WLAN join (cleanup:|stopped:)'; then
+            terminal=1
+            break
+        fi
+        tick=$((tick + 1))
+        $BB sleep 1
+    done
+    set +e
+    kill "$supplicant_pid" 2>/dev/null
+    wait "$supplicant_pid" 2>/dev/null
+    supplicant_exit=$?
+    set -e
+    $BB rm -f "$conf"
+    stage=supplicant_phrases
+    # Fixed phrases only, counted; the complete log is preserved privately.
+    for phrase in 'CTRL-EVENT-SCAN-RESULTS' 'Associated with' 'WPA: Key negotiation completed' 'CTRL-EVENT-CONNECTED' 'CTRL-EVENT-DISCONNECTED'; do
+        key=$(printf %s "$phrase" | $BB tr 'A-Z: -' 'a-z___')
+        $BB printf 'supplicant_%s=%s\n' "$key" "$($BB grep -cF -- "$phrase" "$wpa_log" || true)"
+    done
+    $BB printf 'supplicant_exit=%s\nsupplicant_log_bytes=%s\n' "$supplicant_exit" "$($BB wc -c < "$wpa_log" 2>/dev/null || echo 0)"
+    # The one passive scan is classified from the kernel records by the session;
+    # this field only says whether the supplicant reported exactly one result set.
+    scan_exit=1
+    if [ "$($BB grep -cF -- 'CTRL-EVENT-SCAN-RESULTS' "$wpa_log" 2>/dev/null || true)" = 1 ]; then
+        scan_exit=0
+    fi
+    channel40_after=$(iw phy phy0 info | $BB grep '\* 5200 MHz \[40\]' || true)
+    if printf '%s\n' "$channel40_after" | $BB grep -Eq 'disabled|no IR|radar detection'; then
+        $BB printf 'channel40_ir_after_beacon=0\n'
+    else
+        $BB printf 'channel40_ir_after_beacon=1\n'
+    fi
+    stage=boot_after
+    $BB printf '__JOIN_END__\nconnect_exit=%s\njoin_terminal=%s\n' "$supplicant_exit" "$terminal"
+    boot_after=$($BB cat /proc/sys/kernel/random/boot_id)
+    $BB printf '__IW_PASSIVE_END__\nscan_exit=%s\nboot_after=%s\n' "$scan_exit" "$boot_after"
+    [ "$boot_after" = "$EXPECTED_BOOT" ]
+    exit 0
+fi
 stage=passive_scan
 $BB printf 'boot_before=%s\nkernel=%s\ninterface_created=1\ninterface_up=1\n__IW_PASSIVE_BEGIN__\n' "$boot_before" "$kernel"
 printf '__PHY_INFO_BEGIN__\n%s\n__PHY_INFO_END__\n' "$phy_info"

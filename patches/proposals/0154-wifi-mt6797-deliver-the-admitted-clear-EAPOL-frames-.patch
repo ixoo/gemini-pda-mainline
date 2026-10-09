@@ -1,0 +1,128 @@
+From aabd85c498827d6e60a7d663e5d141ffa7b7935f Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 9 Oct 2026 21:21:27 +0000
+Subject: [PATCH 154/156] wifi: mt6797: deliver the admitted clear EAPOL frames
+ to mac80211
+
+Runtime 12 of the Phase C experiment observed the AP's first EAPOL-Key
+framed frame (translated Ethernet, no RX vector, BSSID tag 15) arriving
+before the stack's association completes. The decoder admitted it under
+the C1 window and the driver dropped it.
+
+Deliver each admitted frame to mac80211 instead, as a native data
+frame: the 32-byte header the decoder rebuilds for the translated
+layout followed by the EAPOL body, on the 5 GHz band at 5200 MHz, with
+the signal when the vector was present and the no-signal flag
+otherwise, queued like the scanned beacons and handed over outside the
+MAC lock. mac80211 admits control-port data from a known station before
+its association flag and routes it to the connection owner, so no
+deferral or invented state is needed. The admission window, the BSSID
+tag binding and the cap of two are unchanged; the record is renamed to
+"eapol delivered".
+
+The deauthentication hold becomes the handshake window: four seconds
+after the activation, never past 1500 ms before the grant or join
+deadline, and an observed frame no longer releases it; a later change
+shortens it when the group key command's credit returns. Nothing else
+is held.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 52 +++++++++++++++-------
+ 1 file changed, 36 insertions(+), 16 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 4e9bd4069..c0dc4eb11 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -732,16 +732,17 @@ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
+ 		mac->join_sta_active = true;
+ 		complete_all(&mac->join_sta_done);
+ 		{
+-			/* Finite hold of the single deauthentication so the AP's first
+-			 * clear EAPOL frame can be observed: 250 ms after activation,
+-			 * never past 1500 ms before the grant or join deadline, which
+-			 * the deauthentication and the teardown already need.
++			/* Finite hold of the single deauthentication for the handshake:
++			 * four seconds after activation, shortened to one second after
++			 * the group key command's credit returns, never past 1500 ms
++			 * before the grant or join deadline, which the deauthentication
++			 * and the teardown already need.
+ 			 */
+ 			u64 now = ktime_get_ns();
+ 			u64 limit = min(mac->join_deadline, mac->join_grant_deadline);
+ 
+ 			mac->join_hold_until = limit > now + 1500 * NSEC_PER_MSEC ?
+-				min(now + 250 * NSEC_PER_MSEC, limit - 1500 * NSEC_PER_MSEC) : now;
++				min(now + 4000 * NSEC_PER_MSEC, limit - 1500 * NSEC_PER_MSEC) : now;
+ 		}
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+@@ -943,10 +944,10 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	if (!mac->join_inflight && !mac->join_page_debt) {
+ 		spin_lock_irqsave(&mac->join_queue.lock, flags);
+ 		skb = mac->join_open ? skb_peek(&mac->join_queue) : NULL;
+-		/* The driver-built deauthentication waits out the bounded observation
+-		 * hold unless an EAPOL frame was already seen; nothing else is held.
++		/* The driver-built deauthentication waits out the bounded handshake
++		 * hold; nothing else is held.
+ 		 */
+-		if (skb && skb == mac->join_internal && !mac->join_eapol_seen &&
++		if (skb && skb == mac->join_internal &&
+ 		    ktime_get_ns() < mac->join_hold_until)
+ 			skb = NULL;
+ 		else if (skb)
+@@ -1060,13 +1061,15 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 			branch = 7;
+ 			if (!mt6797_scan_frame(mac->join_packet, rx.logical_bytes, &beacon))
+ 				continue;
+-			/* Phase C1 measurement: a clear EAPOL-Key frame from the target to
+-			 * this station on the join channel (0140 decoder) is logged and
+-			 * dropped, at most twice, only after a status-0 association
+-			 * response and before the deauthentication completes; whether the
+-			 * station was already activated is recorded. Nothing is delivered
+-			 * or answered. Any other shape, or a third frame, reaches the
+-			 * existing refusal below unchanged.
++			/* Phase C2: a clear EAPOL-Key frame from the target to this
++			 * station on the join channel (0140 decoder) is delivered to
++			 * mac80211 as a native data frame (the rebuilt header for the
++			 * translated layout), at most twice, only after a status-0
++			 * association response and before the deauthentication completes;
++			 * whether the station was already activated is recorded. mac80211
++			 * admits control-port data from a known station before its
++			 * association flag and routes it to the connection owner. Any
++			 * other shape, or a third frame, reaches the refusal below.
+ 			 */
+ 			if (mt6797_eapol_rx(mac->join_packet, rx.logical_bytes, 40,
+ 					    mac->hw->wiphy->perm_addr, mac->join_ap, &eapol) &&
+@@ -1082,9 +1085,26 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 			    (eapol.bss_index == 0 ||
+ 			     (eapol.bss_index == 15 && !mac->join_bss_configured))) {
+ 				mac->join_eapol_seen++;
++				skb = dev_alloc_skb(eapol.prefix_bytes + eapol.bytes);
++				if (!skb) {
++					ret = -ENOMEM;
++					goto failed;
++				}
++				if (eapol.prefix_bytes)
++					skb_put_data(skb, eapol.prefix, eapol.prefix_bytes);
++				skb_put_data(skb, mac->join_packet + eapol.offset, eapol.bytes);
++				memset(IEEE80211_SKB_RXCB(skb), 0,
++				       sizeof(struct ieee80211_rx_status));
++				IEEE80211_SKB_RXCB(skb)->band = NL80211_BAND_5GHZ;
++				IEEE80211_SKB_RXCB(skb)->freq = 5200;
++				if (eapol.signal_valid)
++					IEEE80211_SKB_RXCB(skb)->signal = eapol.signal_dbm;
++				else
++					IEEE80211_SKB_RXCB(skb)->flag |= RX_FLAG_NO_SIGNAL_VAL;
++				__skb_queue_tail(&received, skb);
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ 				dev_info(wiphy_dev(mac->hw->wiphy),
+-					 "one-shot WLAN join eapol observed: translated=%u frame=%zu activated=%u vector=%u bss=%u\n",
++					 "one-shot WLAN join eapol delivered: translated=%u frame=%zu activated=%u vector=%u bss=%u\n",
+ 					 eapol.prefix_bytes != 0, eapol.bytes,
+ 					 mac->join_sta_active, eapol.signal_valid,
+ 					 eapol.bss_index);
+-- 
+2.39.5
+

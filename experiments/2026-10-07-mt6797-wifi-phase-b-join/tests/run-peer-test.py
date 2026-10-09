@@ -17,7 +17,8 @@ names = ("mt6797_mac_join_guard", "mt6797_mac_join_control_event",
          "mt6797_mac_join_wait_channel", "mt6797_mac_join_add_peer",
          "mt6797_mac_join_associate", "mt6797_mac_join_request_cleanup",
          "mt6797_mac_join_cleanup_step", "mt6797_mac_mgd_prepare_tx",
-         "mt6797_mac_mgd_complete_tx", "mt6797_mac_sta_state")
+         "mt6797_mac_mgd_complete_tx", "mt6797_mac_sta_state",
+         "mt6797_mac_set_key")
 functions = []
 for name in names:
     match = re.search(r"static (?:int|void) " + name + r"\([^;]*?\)\n\{.*?\n\}", source, re.S)

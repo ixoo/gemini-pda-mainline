@@ -78,7 +78,16 @@ with tempfile.TemporaryDirectory(prefix='mt6797-session-ram-root-') as directory
             return True
         return False
     assert refused(members), 'the 61-member parent shape must be refused'
-    assert refused(dict(good, **{'etc/extra': member(b'x')})), '63 members refused'
+    assert refused(dict(good, **{'etc/extra': member(b'x')})), '63 members with a foreign member refused'
+    # Phase C2: the pinned supplicant as the 63rd member is admitted; any variant refused.
+    supplicant_data = bytes([0x7f, ord('E'), ord('L'), ord('F')]) + bytes(session.SUPPLICANT_BYTES - 4)
+    session.SUPPLICANT_SHA256 = digest(supplicant_data)
+    with_supplicant = dict(good); with_supplicant['bin/wpa_supplicant'] = member(supplicant_data, 0o100755)
+    session.check_ram_root(with_supplicant, record, userspace)
+    for variant in (member(supplicant_data[:-1], 0o100755), member(supplicant_data, 0o100644),
+                    member(supplicant_data, 0o100755, uid=1000), member(supplicant_data, 0o100755, nlink=2)):
+        assert refused(dict(good, **{'bin/wpa_supplicant': variant})), 'supplicant variant refused'
+    assert refused(dict(with_supplicant, **{'etc/extra': member(b'x')})), '64 members refused'
     for variant in (member(helper_data[:-1], 0o100755), member(helper_data + b'\0', 0o100755),
                     member(b'Z' + helper_data[1:], 0o100755), member(helper_data, 0o100644),
                     member(helper_data, 0o100755, uid=1000), member(helper_data, 0o100755, gid=1000),
@@ -86,4 +95,4 @@ with tempfile.TemporaryDirectory(prefix='mt6797-session-ram-root-') as directory
         assert refused(dict(good, **{'bin/join-connect': variant})), variant.mode
     assert refused({**good, 'init': member(b'#!/bin/sh\n', 0o100755)}), 'release gate kept'
     assert refused({**good, session.RECORD_MEMBER: member(record, 0o100644)}), 'record mode kept'
-print('session RAM root: PASS (62 members with the pinned helper admitted; parent shape and helper variants refused; release/firmware/record guards kept)')
+print('session RAM root: PASS (62 members with the pinned helper admitted, 63 with the pinned supplicant admitted; parent shape, helper and supplicant variants refused; release/firmware/record guards kept)')

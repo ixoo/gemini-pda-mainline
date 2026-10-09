@@ -15,7 +15,7 @@ classify = runpy.run_path(str(HERE / 'classify-join.py'))['classify']
 bind = runpy.run_path(str(HERE / 'bind-target.py'))['bind']
 
 
-def log(accepted):
+def log(accepted, keys=False):
     lines = ['credit: pages=1 remaining=0', 'credit: pages=1 remaining=0',
              'grant: channel=40 interval_ms=9000', 'credit: pages=2 remaining=0',
              'peer: ready=1 sequence=8', 'TX: subtype=11 pid=1 pages=1',
@@ -26,9 +26,27 @@ def log(accepted):
              'RX: subtype=1 status=' + ('0' if accepted else '31')]
     if accepted:
         lines += ['credit: pages=1 remaining=0', 'credit: pages=2 remaining=0',
-                  'activation: sequence=9 state=3',
-                  'TX: subtype=12 pid=3 pages=1', 'credit: pages=1 remaining=0',
-                  'TX done: pid=3 status=0 advanced=0 count=0']
+                  'activation: sequence=9 state=3']
+        if keys:
+            # Phase C2 accepted path: message 1 delivered early, message 2 sent after
+            # activation, message 3 delivered, message 4 sent, two key commands with
+            # their credits, the deauthentication, then the two removals before stage 0.
+            lines.insert(lines.index('RX: subtype=1 status=0') + 1,
+                         'eapol delivered: translated=1 frame=99 activated=0 vector=0 bss=15')
+            lines += ['eapol sent: pid=3 pages=2 bytes=135', 'credit: pages=2 remaining=0',
+                      'TX done: pid=3 status=0 advanced=0 count=0',
+                      'eapol delivered: translated=1 frame=155 activated=1 vector=0 bss=0',
+                      'eapol sent: pid=4 pages=2 bytes=113', 'credit: pages=2 remaining=0',
+                      'TX done: pid=4 status=0 advanced=0 count=0',
+                      'key command: pairwise submitted sequence=10', 'credit: pages=1 remaining=0',
+                      'key credit returned: pairwise',
+                      'key command: group submitted sequence=11', 'credit: pages=1 remaining=0',
+                      'key credit returned: group']
+        lines += ['TX: subtype=12 pid=' + ('5' if keys else '3') + ' pages=1', 'credit: pages=1 remaining=0',
+                  'TX done: pid=' + ('5' if keys else '3') + ' status=0 advanced=0 count=0']
+        if keys:
+            lines += ['key removal: pairwise submitted sequence=12', 'credit: pages=1 remaining=0',
+                      'key removal: group submitted sequence=13', 'credit: pages=1 remaining=0']
     for stage in range(3):
         lines += ['cleanup submission: stage=' + str(stage), 'credit: pages=1 remaining=0']
     lines += ['cleanup: stage=3 credits=returned slots=retired deauth=' + str(int(accepted))]
@@ -130,6 +148,53 @@ class HostTests(unittest.TestCase):
         self.assertFalse(classify(good[:after_activation] + late0 + good[after_activation:])['malformed_stage_record'])
         for bad in (b'bss=1', b'bss=16', b'bss=3c'):
             self.assertTrue(classify(good[:activation] + early.replace(b'bss=15', bad) + good[activation:])['malformed_stage_record'], bad)
+
+    def test_c2_handshake_path_is_accepted_and_its_claims_bounded(self):
+        raw = log(True, keys=True)
+        result = classify(raw)
+        self.assertTrue(result['bounded_join_pass'] and result['healthy_cleanup_demonstrated'], result)
+        self.assertEqual(result['eapol_shape_observations'], 2)
+        self.assertEqual(result['eapol_frames_sent'], 2)
+        self.assertEqual(result['key_commands_submitted'], ['pairwise', 'group'])
+        self.assertEqual(result['key_credits_returned'], ['pairwise', 'group'])
+        self.assertEqual(result['key_removals_submitted'], ['pairwise', 'group'])
+        self.assertTrue(result['handshake_keys_submitted'] and result['driver_handshake_path_pass'])
+        self.assertFalse(result['wifi_operational'])
+        # The deauthentication's page may return after its TX done.
+        swapped = raw.replace(b'one-shot WLAN join credit: pages=1 remaining=0\none-shot WLAN join TX done: pid=5 status=0 advanced=0 count=0\n',
+                              b'one-shot WLAN join TX done: pid=5 status=0 advanced=0 count=0\none-shot WLAN join credit: pages=1 remaining=0\n')
+        self.assertNotEqual(swapped, raw)
+        self.assertTrue(classify(swapped)['driver_handshake_path_pass'])
+        # Missing all removals, or only the group removal missing: not healthy; a partial
+        # handshake (pairwise only) with its exact removal is healthy but not a pass.
+        no_removals = raw.replace(b'one-shot WLAN join key removal: pairwise submitted sequence=12\none-shot WLAN join credit: pages=1 remaining=0\none-shot WLAN join key removal: group submitted sequence=13\none-shot WLAN join credit: pages=1 remaining=0\n', b'')
+        self.assertFalse(classify(no_removals)['bounded_join_pass'])
+        no_group_removal = raw.replace(b'one-shot WLAN join key removal: group submitted sequence=13\none-shot WLAN join credit: pages=1 remaining=0\n', b'')
+        self.assertFalse(classify(no_group_removal)['bounded_join_pass'])
+        partial = raw.replace(b'one-shot WLAN join key command: group submitted sequence=11\none-shot WLAN join credit: pages=1 remaining=0\none-shot WLAN join key credit returned: group\n', b'').replace(
+            b'one-shot WLAN join key removal: group submitted sequence=13\none-shot WLAN join credit: pages=1 remaining=0\n', b'')
+        partial_result = classify(partial)
+        self.assertTrue(partial_result['bounded_join_pass'])
+        self.assertFalse(partial_result['handshake_keys_submitted'] or partial_result['driver_handshake_path_pass'])
+        # Page arithmetic and sequence ownership: wrong EAPOL page count, duplicate or
+        # out-of-order key sequences are malformed.
+        self.assertTrue(classify(raw.replace(b'eapol sent: pid=3 pages=2 bytes=135', b'eapol sent: pid=3 pages=1 bytes=135'))['malformed_stage_record'] or
+                        not classify(raw.replace(b'eapol sent: pid=3 pages=2 bytes=135', b'eapol sent: pid=3 pages=1 bytes=135'))['bounded_join_pass'])
+        self.assertTrue(classify(raw.replace(b'key command: group submitted sequence=11', b'key command: group submitted sequence=10'))['malformed_stage_record'])
+        self.assertTrue(classify(raw.replace(b'key removal: group submitted sequence=13', b'key removal: group submitted sequence=9'))['malformed_stage_record'])
+        # Group before pairwise, a missing credit, a third security frame, a removal of a
+        # key never submitted, or a removal before the deauthentication: not healthy.
+        bad = [raw.replace(b'key command: pairwise submitted sequence=10', b'key command: group submitted sequence=10', 1),
+               raw.replace(b'one-shot WLAN join key credit returned: group\n', b''),
+               raw.replace(b'eapol sent: pid=4 pages=2 bytes=113', b'eapol sent: pid=4 pages=2 bytes=113\none-shot WLAN join eapol sent: pid=6 pages=2 bytes=113'),
+               raw.replace(b'one-shot WLAN join key command: group submitted sequence=11\none-shot WLAN join credit: pages=1 remaining=0\none-shot WLAN join key credit returned: group\n', b''),
+               raw.replace(b'one-shot WLAN join key removal: pairwise submitted sequence=12\none-shot WLAN join credit: pages=1 remaining=0\n', b'').replace(
+                   b'one-shot WLAN join TX: subtype=12 pid=5 pages=1\n', b'one-shot WLAN join key removal: pairwise submitted sequence=12\none-shot WLAN join credit: pages=1 remaining=0\none-shot WLAN join TX: subtype=12 pid=5 pages=1\n')]
+        for mutation in bad:
+            self.assertFalse(classify(mutation)['bounded_join_pass'])
+        # The C1 shape without keys is unchanged.
+        self.assertTrue(classify(log(True))['bounded_join_pass'])
+        self.assertFalse(classify(log(True))['handshake_keys_submitted'])
 
     def test_frame_refusal_accepts_the_bare_and_the_extended_record(self):
         denied = log(False)

@@ -24,6 +24,10 @@ typedef uint64_t u64;
 #define CONFIG_MT6797_SCAN_TUNING_SAMPLE 0
 #define BIT(n) (1U << (n))
 #define ETH_ALEN 6
+#define RX_FLAG_NO_SIGNAL_VAL (1U << 8)
+typedef unsigned char u8;
+static const u8 own[ETH_ALEN] = { 2, 0, 0, 0, 0, 1 };
+static const u8 ap[ETH_ALEN] = { 2, 0, 0, 0, 0, 2 };
 #define __aligned(x) __attribute__((aligned(x)))
 #define NSEC_PER_SEC 1000000000ULL
 #define NSEC_PER_MSEC 1000000ULL
@@ -65,8 +69,10 @@ struct ieee80211_rate { int unused; };
 struct wiphy { u8 perm_addr[ETH_ALEN]; };
 struct ieee80211_hw { void *priv; struct wiphy *wiphy; };
 struct ieee80211_vif { int unused; };
-struct ieee80211_tx_info { unsigned int flags; int band; };
-struct ieee80211_rx_status { int band, freq, signal; };
+struct ieee80211_tx_info { unsigned int flags; int band; struct { unsigned int flags; } control; };
+#define IEEE80211_TX_CTRL_PORT_CTRL_PROTO (1U << 1)
+struct ieee80211_tx_control { int unused; };
+struct ieee80211_rx_status { int band, freq, signal; unsigned int flag; };
 struct mt6797_hif { int unused; };
 struct mt6797_hif_tx_status { int unused; };
 struct mt6797_hif_rx_result { size_t logical_bytes; };
@@ -123,6 +129,26 @@ static void *skb_put_data(struct sk_buff *s, const void *d, unsigned int n)
 static int skb_linearize(struct sk_buff *s) { (void)s; return 0; }
 static void skb_queue_head_init(struct sk_buff_head *q) { q->head = NULL; q->qlen = 0; }
 static struct sk_buff *skb_peek(struct sk_buff_head *q) { return q->head; }
+#define skb_queue_walk_safe(q, s, t) for ((s) = (q)->head, (t) = (s) ? (s)->next : NULL; (s); (s) = (t), (t) = (s) ? (s)->next : NULL)
+static void __skb_unlink(struct sk_buff *s, struct sk_buff_head *q)
+{
+	struct sk_buff **link = &q->head;
+
+	while (*link && *link != s)
+		link = &(*link)->next;
+	assert(*link == s);
+	*link = s->next;
+	s->next = NULL;
+	q->qlen--;
+}
+static int skb_copy_bits(const struct sk_buff *s, int off, void *to, int n)
+{
+	if (off < 0 || (unsigned)(off + n) > s->len)
+		return -EFAULT;
+	memcpy(to, s->data + off, n);
+	return 0;
+}
+static unsigned int skb_queue_len(const struct sk_buff_head *q) { return q->qlen; }
 static bool skb_queue_empty(const struct sk_buff_head *q) { return !q->head; }
 static void __skb_queue_tail(struct sk_buff_head *q, struct sk_buff *s)
 {
@@ -226,6 +252,18 @@ static int mt6797_hif_receive_packet(struct mt6797_hif *h, unsigned int port, u6
 	rx->logical_bytes = script_bytes[script_next++];
 	return 0;
 }
+static unsigned int security_submissions;
+static int mt6797_hif_send_security(struct mt6797_hif *h, const u8 *f, size_t n,
+	unsigned int wlan, unsigned int pid, unsigned int life, unsigned int count, u64 d)
+{
+	(void)h; (void)d;
+	/* Ethernet II EAPOL to the target from this station, as the worker builds it. */
+	assert(n >= 18 && n <= 1518 && wlan == 1 && pid && life == 500 && count == 3);
+	assert(!memcmp(f, ap, ETH_ALEN) && !memcmp(f + 6, own, ETH_ALEN) && f[12] == 0x88 && f[13] == 0x8e);
+	security_submissions++;
+	submissions++;
+	return 0;
+}
 static int mt6797_hif_send_management(struct mt6797_hif *h, const u8 *f, size_t n,
 	unsigned int wlan, unsigned int pid, unsigned int life, unsigned int count, u64 d)
 {
@@ -236,6 +274,10 @@ static int mt6797_hif_send_management(struct mt6797_hif *h, const u8 *f, size_t 
 }
 static int mt6797_hif_join_remove_station(struct mt6797_hif *h, unsigned int s, u64 d)
 { (void)h; (void)s; (void)d; assert(!"no cleanup command in these scenarios"); return -EIO; }
+static int mt6797_hif_join_key(struct mt6797_hif *h, unsigned int s, bool add, bool pairwise,
+	const u8 *peer, unsigned int key_id, const u8 *material, u64 d)
+{ (void)h; (void)s; (void)add; (void)pairwise; (void)peer; (void)key_id; (void)material; (void)d;
+  assert(!"no key command in these scenarios"); return -EIO; }
 static int mt6797_hif_join_channel(struct mt6797_hif *h, unsigned int s, u8 t, u8 c,
 	unsigned int ms, bool abort, u64 d)
 { (void)h; (void)s; (void)t; (void)c; (void)ms; (void)abort; (void)d; assert(0); return -EIO; }
@@ -248,8 +290,6 @@ static int mt6797_mac_send(struct mt6797_mac *m, unsigned int k, const u8 *p, si
 
 #include "ownership-functions.h"
 
-static const u8 own[ETH_ALEN] = { 2, 0, 0, 0, 0, 1 };
-static const u8 ap[ETH_ALEN] = { 2, 0, 0, 0, 0, 2 };
 static struct wiphy wiphy;
 static struct ieee80211_hw hw;
 static struct ieee80211_vif vif;
@@ -286,6 +326,7 @@ static void setup(void)
 	mac.join_deadline = mac.join_grant_deadline = now_ns + 5 * NSEC_PER_SEC;
 	script_count = script_next = released = submissions = 0;
 	dev_frees = mac80211_frees = statuses = rx_delivered = 0;
+	security_submissions = 0;
 	during_wait = NULL;
 	idle = true;
 }
@@ -353,6 +394,23 @@ static struct sk_buff *assoc_frame(unsigned int variant)
 		memcpy(p + n, wmm, sizeof(wmm)); n += sizeof(wmm);
 	}
 	s->len = n;
+	return s;
+}
+
+static struct sk_buff *eapol_tx_frame(unsigned body_bytes)
+{
+	static const u8 llc[8] = { 0xaa, 0xaa, 3, 0, 0, 0, 0x88, 0x8e };
+	struct sk_buff *s = new_skb(OWNER_MAC80211);
+	u8 *p = s->data;
+
+	assert(32 + body_bytes <= sizeof(s->data));
+	memset(p, 0, sizeof(s->data));
+	put_unaligned_le16(0x0108, p);
+	memcpy(p + 4, ap, ETH_ALEN); memcpy(p + 10, own, ETH_ALEN); memcpy(p + 16, ap, ETH_ALEN);
+	memcpy(p + 24, llc, 8);
+	p[32] = 2; p[33] = 3; p[34] = (body_bytes - 4) >> 8; p[35] = (body_bytes - 4) & 255;
+	s->len = 32 + body_bytes;
+	s->cb.tx.control.flags = IEEE80211_TX_CTRL_PORT_CTRL_PROTO;
 	return s;
 }
 
@@ -528,14 +586,14 @@ int main(void)
 	mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = false;
 	script_eapol(false);                              /* early: before activation */
 	run_worker();
-	assert(!mac.first_error && mac.join_eapol_seen == 1 && !rx_delivered && !submissions && mac.join_running);
+	assert(!mac.first_error && mac.join_eapol_seen == 1 && rx_delivered == 1 && !submissions && mac.join_running);
 	mac.join_sta_active = true;
 	script_eapol(true);                               /* translated layout, after activation */
 	run_worker();
-	assert(!mac.first_error && mac.join_eapol_seen == 2 && !rx_delivered && !submissions);
+	assert(!mac.first_error && mac.join_eapol_seen == 2 && rx_delivered == 2 && !submissions);
 	script_eapol(false);                              /* third: beyond the budget */
 	run_worker();
-	assert(mac.first_error == -EPROTO && mac.join_retired && !mac.join_running && !rx_delivered);
+	assert(mac.first_error == -EPROTO && mac.join_retired && !mac.join_running && rx_delivered == 2);
 	/* 5b. Before any association response, or after a denied one, the same
 	 *     frame is refused as before. */
 	setup(); script_eapol(false); run_worker();
@@ -551,7 +609,7 @@ int main(void)
 	script_eapol_layout(true, false, true);
 	assert(script_bytes[script_count - 1] == 147);
 	run_worker();
-	assert(!mac.first_error && mac.join_eapol_seen == 1 && !rx_delivered && !submissions && mac.join_running);
+	assert(!mac.first_error && mac.join_eapol_seen == 1 && rx_delivered == 1 && !submissions && mac.join_running);
 	mt6797_mac_join_close(&mac);
 	/* 5d. The runtime-11 base header: BSSID tag 15. Admitted after the
 	 *     accepted association and until the successful BSS command credit
@@ -563,7 +621,7 @@ int main(void)
 	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_bss_configured = false;
 	script_eapol_bss(true, false, true, 15);
 	run_worker();
-	assert(!mac.first_error && mac.join_eapol_seen == 1 && !rx_delivered && !submissions);
+	assert(!mac.first_error && mac.join_eapol_seen == 1 && rx_delivered == 1 && !submissions);
 	mt6797_mac_join_close(&mac);
 	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_bss_configured = true; mac.join_sta_active = true;
 	script_eapol_bss(true, false, true, 15);
@@ -608,6 +666,9 @@ int main(void)
 	mt6797_mac_join_close(&mac);
 	setup(); queue_internal_deauth();
 	mac.join_hold_until = now_ns + 250 * NSEC_PER_MSEC; mac.join_eapol_seen = 1;
+	run_worker();                                     /* an observation does not release it */
+	assert(!submissions && !mac.join_inflight && mac.join_internal);
+	now_ns += 260 * NSEC_PER_MSEC;
 	run_worker();
 	assert(submissions == 1 && mac.join_inflight == mac.join_internal);
 	mt6797_mac_join_close(&mac);
@@ -649,7 +710,67 @@ int main(void)
 	}
 	mt6797_mac_join_close(&mac);
 
-	puts("join_ownership=pass; production close/worker paths; exact-once release; EAPOL observation window and hold; C1 association request admitted; no device");
+	/* 8. Phase C2 end to end on the one queue: early message 1 delivered,
+	 *    association accepted, the driver's deauthentication queued and held,
+	 *    message 2 admitted behind it before activation and held there,
+	 *    activation, message 2 submitted as a security frame (the mac80211 skb
+	 *    untouched, its status reported), message 3 delivered, message 4
+	 *    submitted, a third control-port frame refused at admission, the hold
+	 *    ended as the group key credit would end it, the single deauthentication
+	 *    submitted and acknowledged, nothing left queued or in flight.
+	 */
+	setup();
+	{
+		struct sk_buff *m2, *m4, *extra;
+
+		mac.join_assoc_received = true; mac.join_assoc_status = 0;
+		script_eapol_bss(true, false, true, 15);          /* M1: translated, no vector, tag 15 */
+		run_worker();
+		assert(!mac.first_error && rx_delivered == 1 && mac.join_eapol_seen == 1);
+		queue_internal_deauth();                           /* the reserved deauthentication, head of the queue */
+		mac.join_hold_until = now_ns + 4000 * NSEC_PER_MSEC;
+		mac.join_tx_allowed = BIT(12);
+		m2 = eapol_tx_frame(121);
+		mt6797_mac_tx(mac.hw, NULL, m2);                   /* admitted behind the held deauthentication */
+		assert(mac.join_queue.qlen == 2 && mac.join_eapol_tx == 1 && !mac80211_frees);
+		run_worker();                                      /* before activation: nothing leaves the queue */
+		assert(!submissions && !mac.join_inflight && mac.join_queue.qlen == 2);
+		mac.join_sta_active = true; mac.join_bss_configured = true;
+		run_worker();                                      /* M2 passes the held deauthentication */
+		assert(security_submissions == 1 && submissions == 1 && mac.join_inflight == m2 && mac.join_queue.qlen == 1);
+		assert(mac.join_queue.head == mac.join_internal);
+		script_tx_done(0);
+		released = mac.join_page_debt;                     /* its pages return on the next poll */
+		run_worker();
+		assert(statuses == 1 && !mac.join_inflight && mac.join_internal && !mac.join_page_debt);
+		script_eapol_bss(true, false, true, 0);            /* M3 after the BSS configuration: tag 0 */
+		run_worker();
+		assert(rx_delivered == 2 && mac.join_eapol_seen == 2);
+		m4 = eapol_tx_frame(121);
+		mt6797_mac_tx(mac.hw, NULL, m4);
+		assert(mac.join_eapol_tx == 2);
+		run_worker();
+		assert(security_submissions == 2 && mac.join_inflight == m4);
+		script_tx_done(0);
+		released = mac.join_page_debt;
+		run_worker();
+		assert(statuses == 2 && !mac.join_inflight && !mac.join_page_debt);
+		extra = eapol_tx_frame(121);                       /* a third: beyond the cap, back to mac80211 */
+		mt6797_mac_tx(mac.hw, NULL, extra);
+		assert(mac.join_eapol_tx == 2 && mac80211_frees == 1 && mac.join_queue.qlen == 1);
+		mac.join_hold_until = now_ns;                      /* the group key credit ends the hold */
+		run_worker();
+		assert(submissions == 3 && security_submissions == 2 && mac.join_inflight == mac.join_internal);
+		script_tx_done(0);
+		released = mac.join_page_debt;
+		idle = false;                                      /* the teardown itself is the peer fixture's */
+		run_worker();
+		assert(mac.join_deauth_done && !mac.join_inflight && !mac.join_internal && skb_queue_empty(&mac.join_queue));
+		assert(statuses == 2 && dev_frees == 1 && rx_delivered == 2);
+	}
+	mt6797_mac_join_close(&mac);
+
+	puts("join_ownership=pass; production close/worker paths; exact-once release; EAPOL delivery window and hold; C1 association request admitted; C2 one-queue handshake sequence; no device");
 	return 0;
 }
 
