@@ -18,8 +18,11 @@ Kernel change reviewed and accepted before the build, with checkpatch clean.
 `kernel.config` (`153ea2d0…`) and the board DT (`07b097d5…`) are
 byte-identical to compiles 7 to 12; only the image differs. All 801 package
 checksums pass after fetch; proposals 0140 and 0148 in the provenance are
-identical to the repository's patches at this input; the build log has no
-MT6797 driver warning.
+identical to the repository's patches at this input. The build log has no
+MT6797 driver warning; its only two warnings are pre-existing and identical
+in compile 12: a trailing-whitespace note while applying v7.1.3 patch 0261
+and an unused-function warning in `kernel/cpu.c` from the pinned CPU-profile
+series, both outside the Wi-Fi change.
 
 Candidate 8 pairs this package with a new RAM root: the Phase C1 helper
 (`bc499f28…`) replaces the Phase B helper, so the initramfs digest differs
