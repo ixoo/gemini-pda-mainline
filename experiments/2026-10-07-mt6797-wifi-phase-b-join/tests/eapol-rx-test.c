@@ -131,8 +131,9 @@ int main(void)
  p[3] &= ~0x10; reject(p, n); /* translated without group 4 */
  /* Runtime 10 measured a refused 147-byte data packet with group 4 only:
   * a translated frame with the header padding bit and a 95-byte EAPOL-Key
-  * body has exactly that length. The arithmetic is consistency, not the
-  * packet's identity, which was never captured.
+  * body has exactly that length. The fields built here are a hypothetical
+  * source-valid case of that arithmetic, not fields of the captured packet,
+  * which was never captured; the length match is consistency, not identity.
   */
  n = fixture(p, 8, true, true, 0);
  assert(n == 147);

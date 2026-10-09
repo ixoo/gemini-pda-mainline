@@ -71,9 +71,11 @@ int main(void)
  put16(p, n - 1); uninterpreted(run(p, n, ap), 0x51af);
  put16(p, n);
  uninterpreted(run(p, 15, ap), 0x51af); /* declared 147, only 15 present */
- /* 3. The runtime-10 shape: data type, group 4 only, padding, translated with
-  *    header length 14, 147 bytes. Interpreted fields appear; the Ethernet type
-  *    is the only payload-adjacent word, and it is the type field, not data.
+ /* 3. A hypothetical source-valid packet with runtime 10's measured length
+  *    and type word (data type, group 4 only, padding, translated with header
+  *    length 14, 147 bytes); its fields are the fixture's, not the captured
+  *    packet's. Interpreted fields appear; the Ethernet type is the only
+  *    payload-adjacent word, and it is the type field, not data.
   */
  memset(eth, 0xee, sizeof(eth)); eth[12] = 0x88; eth[13] = 0x8e;
  n = data_packet(p, true, true, 14, true, eth, sizeof(eth), true);

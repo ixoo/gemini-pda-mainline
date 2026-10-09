@@ -541,8 +541,10 @@ int main(void)
 	assert(mac.first_error == -EPROTO && !mac.join_eapol_seen);
 	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 45; script_eapol(true); run_worker();
 	assert(mac.first_error == -EPROTO && !mac.join_eapol_seen);
-	/* 5c. The runtime-10 shape: translated, group 4 only, header padding,
-	 *     147 bytes, before activation. With group 3 optional it is observed.
+	/* 5c. A hypothetical source-valid packet with runtime 10's measured
+	 *     length and group set (translated, group 4 only, header padding,
+	 *     147 bytes), before activation; its fields are the fixture's, not
+	 *     the captured packet's. With group 3 optional it is observed.
 	 */
 	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = false;
 	script_eapol_layout(true, false, true);

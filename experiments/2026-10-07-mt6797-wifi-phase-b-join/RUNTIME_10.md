@@ -61,7 +61,10 @@ therefore cannot be observed by the C1 build whatever it is.
 Inference, not measured: 16 base + 16 group 4 + 2 header padding + 14
 Ethernet + 99 EAPOL-Key bytes is exactly 147, the length of a translated
 EAPOL-Key message 1 with an empty key-data field. The packet is not labelled
-EAPOL, native or translated by this record; no capture of it exists.
+EAPOL, native or translated by this record; no capture of it exists. The
+147-byte, group-4, padding, Ethernet and EAPOL fields that the fixtures build
+are hypothetical source-valid cases of that arithmetic, not fields of the
+captured packet, which has none.
 
 ## Fix for review: proposals 0150 and 0151
 
@@ -88,8 +91,12 @@ differs (denial, no packet) and the existing branches apply.
 
 The protected AP accepts this station's association when the request carries
 the RSN element: management transmit and receive through the accepted
-exchange are demonstrated at the driver. mac80211 never processed the
-accepted response, so no associated state existed anywhere in the host. No station activation was reached, no EAPOL frame
-was observed, no key exists, no data frame was sent or received, and the
+exchange are demonstrated at the driver. mac80211's association and the
+firmware station activation were not completed: the accepted response was
+discarded with the lifetime before mac80211 processed it, and no activation
+was requested. One data-type packet was received from the firmware and
+refused unidentified; no data frame was delivered to mac80211, no usable data
+exchange or EAPOL identity was established, no EAPOL frame was observed, no
+key exists and nothing but the two management frames was transmitted. The
 radio scope stayed one passive scan and two management exchanges. Wi-Fi
 remains incomplete.
