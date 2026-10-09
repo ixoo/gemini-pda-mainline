@@ -14,10 +14,14 @@ Status: validated compile-only; no candidate composed, no device test.
 - `Image.gz` SHA-256: `bea1418001cfde2bbf4d4729873f4ad83a824310b9860547c24d344024fa9952`.
 - Patchset SHA-256: `1750462f…`; source SHA-256 `be41c068…` unchanged.
 
-`kernel.config` (`153ea2d0…`) and the board DT are byte-identical to compiles
-7 to 17; only the image differs, and that only by proposal 0157. The package
-checksums passed at validation (123 DTBs, 656 patches in the provenance, one
-more than compile 17). Warnings against the documented baseline: exactly the
+`kernel.config` (`153ea2d0…`, 113083 bytes) and the board DT (`07b097d5…`,
+29736 bytes) are byte-identical to compiles 7 to 17; only the image differs
+(`Image.gz` 6624058 bytes), and that only by proposal 0157. The package
+checksums passed at validation and at the owner's independent fetch (810
+inventory entries, one more than compile 17 for the new patch in the
+provenance; all 656 selected patches byte-identical to the repository's at
+this input; the gzip decompression matches the image; job validated
+`2026-10-09T22:48:36Z`). Warnings against the documented baseline: exactly the
 same two pre-existing non-driver lines as compiles 12 to 17 (the
 trailing-whitespace note while applying v7.1.3 patch 0261 and the
 unused-function warning in `kernel/cpu.c`), and zero MT6797 driver warnings.
@@ -26,4 +30,7 @@ Candidate 13 pairs this package with candidate 12's RAM root (the private
 parent, the release gate, the Phase C1 helper and the pinned supplicant)
 once the owner composes it; candidate 12 stays unused and deployment 12
 never happened. The composer and the preparation tool pin this input and
-package; the other runtime bindings follow the owner's candidate-13 receipt.
+package; the other runtime bindings follow the owner's candidate-13 receipt
+as deployment 13 with fresh `capture-13` and `session-13` evidence roots
+(neither the 12 nor the 13 roots are claimed), while runtime 13 remains the
+planned first C2 measurement.
