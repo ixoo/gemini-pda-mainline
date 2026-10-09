@@ -37,10 +37,10 @@ Keep this file under 200 lines; move anything else to an experiment record.
   protected AP: authentication accepted, association denied as expected
   without an RSN element, finite teardown with every page returned
   ([runtime 8](../experiments/2026-10-07-mt6797-wifi-phase-b-join/RUNTIME_8.md)).
-  With the RSN element, the association was accepted with status 0
-  ([runtime 10](../experiments/2026-10-07-mt6797-wifi-phase-b-join/RUNTIME_10.md));
-  the next received packet was refused before activation.
-- **Open.** No Wi-Fi station activation, key exchange or traffic. No charging, RTC alarm or lid.
+  With the RSN element, the association was accepted, completed in mac80211
+  with the station activated, and the AP's first frame observed as clear
+  EAPOL-Key framing ([runtime 12](../experiments/2026-10-07-mt6797-wifi-phase-b-join/RUNTIME_12.md), Phase C1 passed).
+- **Open.** No Wi-Fi key exchange or traffic (Phase C2 and C3). No charging, RTC alarm or lid.
   The `full` profile has never booted. No upstream submission. A72 and thermal
   protection are parked.
 - **Device.** The last session returned to changed-boot Gemian. Nothing is

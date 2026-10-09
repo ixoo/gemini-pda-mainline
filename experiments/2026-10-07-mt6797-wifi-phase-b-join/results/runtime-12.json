@@ -1,0 +1,128 @@
+{
+ "experiment": "mt6797-wifi-phase-b",
+ "runtime": 12,
+ "profile": "mt6797-a53-wifi-phase-b-compile",
+ "kernel_release": "7.1.3-gemini-a53-wifi-phase-b-compile",
+ "host_revision": "1853ce20",
+ "build_input": "707e2d716188076e2952354ae88965a17b739481",
+ "package_inventory_sha256": "642165d43bec41f07618436006426dc4bcb138914912b3426feb41f57c0d50ed",
+ "candidate_manifest_sha256": "0876446771772dd6946a38cc4f45120e0da261875986613f42a17648e56a05b3",
+ "candidate_boot2_sha256": "1c49134173658ca28136f8450b943f3f431fbb5c414a3e525d2a7769b0660460",
+ "mainline_boot_id": "46f8e96e-0220-41a6-a297-c268e08ba66e",
+ "returned_gemian_boot_id": "2999c7b7-431c-4c8a-980e-df93e8104220",
+ "common_init": {
+  "steps": 285,
+  "completed": 285,
+  "result": 0,
+  "calibration_ack_frames": 1,
+  "pa_rails_off_after": true,
+  "bt_h1_absent": true
+ },
+ "scan": {
+  "attempted": true,
+  "completed": true,
+  "passive_scan_demonstrated": true,
+  "standard_scan_succeeded": true,
+  "host_elapsed_us": 516901,
+  "firmware_management_processing_count": 15,
+  "owner_bss_matched": true,
+  "scan_exit": 0,
+  "rf_tuning_verified": false
+ },
+ "join": {
+  "attempted": true,
+  "connect_request": "acknowledged",
+  "kernel_errno": 0,
+  "connect_exit": 0,
+  "request_shape": "WPA2-PSK CCMP connect with the fixed RSN element (Phase C1 helper bc499f28); proposals 0149 to 0152 built in",
+  "authentication": {
+   "tx_pid": 1,
+   "tx_pages": 1,
+   "tx_done_status": 0,
+   "tx_done_count": 1,
+   "rx_status": 0,
+   "mac80211": "authenticated"
+  },
+  "association": {
+   "tx_pid": 2,
+   "tx_pages": 1,
+   "tx_done_status": 0,
+   "tx_done_count": 1,
+   "rx_status": 0,
+   "mac80211": "RX AssocResp status=0 aid=9; associated",
+   "measured": "the third accepted association, and the first that mac80211 completed: the response was delivered after the observation record and mac80211 logged associated",
+   "bss_and_station_credit": [
+    1,
+    2
+   ],
+   "activation": {
+    "sequence": 24,
+    "state": 3
+   }
+  },
+  "cleanup": {
+   "submissions": [
+    0,
+    1,
+    2
+   ],
+   "credit_pages_returned_per_stage": [
+    1,
+    1,
+    1
+   ],
+   "bss_absence_records": [
+    {
+     "bss": 0,
+     "absent": 0,
+     "quota": 0,
+     "reserved": 0
+    }
+   ],
+   "final_stage_line": "cleanup: stage=3 credits=returned slots=retired deauth=1",
+   "mac80211_after": "Connection to AP lost"
+  },
+  "refusal_recorded": false,
+  "diagnostic_records": [
+   "eapol observed",
+   "bss absence"
+  ],
+  "host_management_submissions": 3,
+  "unique_tx_acknowledgements": true,
+  "management_exchange_demonstrated": true,
+  "association_response_status": 0,
+  "healthy_cleanup_demonstrated": true,
+  "stage_and_credit_order_verified": true,
+  "associated_station_activation_demonstrated": true,
+  "eapol_shape_observations": 1,
+  "terminal_failure_recorded": false,
+  "bounded_join_pass": true,
+  "session_verified": true,
+  "eapol_observation": {
+   "record": "eapol observed: translated=1 frame=99 activated=0 vector=0 bss=15",
+   "measured": "one clear frame from the target to this station on channel 40, translated Ethernet layout, no RX vector, BSSID tag 15, received after the accepted association response and before the local activation, 99 bytes of EAPOL after the Ethernet header, decoded by the 0140 decoder as complete EAPOL-Key framing (version, type 3, declared length, WPA2 descriptor type, 16-byte MIC field, declared key-data length) and dropped",
+   "not_established": "message 1 identity, nonce, replay counter, MIC or any handshake state; the decoder validates framing and identity only; nothing was delivered to mac80211 and nothing was answered",
+   "timing": "the first frame the AP sends after accepting arrives before the stack's association completes and before the firmware station activation"
+  },
+  "deauthentication": {
+   "tx_pid": 3,
+   "tx_pages": 1,
+   "tx_done_status": 0,
+   "tx_done_count": 1,
+   "owner": "driver-built, after the hold ended at the observation"
+  }
+ },
+ "total_credit_pages_logged": 13,
+ "log_complete": true,
+ "sealed_log_bytes": 153162,
+ "sealed_log_records": 2021,
+ "sealed_log_sha256": "f2ba8cbbd783362c37ce71e126290e63405f5b46050d3d0421cc8cf6c0a0d680",
+ "pre_recovery_manifest_sha256": "610153100e3491b19258e4240c66ff044ba836206d31b6d32699b5de517dd0d8",
+ "regression_pass": true,
+ "recovery_requested": true,
+ "recovery_confirmed": true,
+ "wifi_operational": false,
+ "raw_evidence_public": false,
+ "classification": "Phase C1 passed: one passive scan, open-system authentication accepted, the RSN-bearing association accepted with status 0, one clear EAPOL-Key-framed frame from the target observed (translated, no RX vector, BSSID tag 15, before activation) and dropped, the association completed in mac80211, the station activated (state 3), the driver's deauthentication acknowledged, and the three-stage cleanup returned every page and retired the slots; no refusal, no stopped footer",
+ "support_limits": "an accepted association completed in mac80211 with firmware station activation, and the AP's first frame observed as complete clear EAPOL-Key framing; not a validated handshake message, no EAPOL delivered to mac80211 or answered, no key, no data frame, no traffic; the radio scope was one passive scan, two management exchanges and one deauthentication"
+}
