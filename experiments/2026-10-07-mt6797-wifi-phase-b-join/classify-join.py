@@ -111,15 +111,17 @@ def classify(raw):
     if eapol_rows:
         deauth_tx = [row for row in tx if row[1] == 12]
         deauth_done = [row[0] for row in done if deauth_tx and row[1] == deauth_tx[0][2] and row[0] > deauth_tx[0][0]]
+        association_at = association[0][0] if len(association) == 1 else None
         activation_at = rows['activation'][0][0] if len(rows['activation']) == 1 else None
-        if (len(eapol_rows) > 2 or not accepted or len(deauth_tx) != 1 or len(deauth_done) != 1 or
-                activation_at is None):
+        if (len(eapol_rows) > 2 or not accepted or association_at is None or activation_at is None or
+                len(deauth_tx) != 1 or len(deauth_done) != 1):
             malformed = True
-        for index, translated, frame, activated in eapol_rows:
-            low, high = (99, 2052) if translated else (131, 2084)
-            if (not (association[0][0] < index < deauth_done[0] if deauth_done else False) or
-                    not (low <= frame <= high) or activated != int(index > activation_at if activation_at is not None else 0)):
-                malformed = True
+        else:
+            for index, translated, frame, activated in eapol_rows:
+                low, high = (99, 2052) if translated else (131, 2084)
+                if (not (association_at < index < deauth_done[0]) or not (low <= frame <= high) or
+                        activated != int(index > activation_at)):
+                    malformed = True
     healthy = (not malformed and not stopped and not refused and len(rows['peer']) == 1 and
                len(rows['grant']) == 1 and 0 < rows['grant'][0][1] <= 9000)
     # RX can precede TX done. Advancing to another submission cannot.

@@ -160,6 +160,17 @@ class HostTests(unittest.TestCase):
         cut = denied.index(b'one-shot WLAN join cleanup submission: stage=0')
         self.assertTrue(classify(denied[:cut] + late + denied[cut:])['malformed_stage_record'])
         self.assertEqual(classify(good)['eapol_shape_observations'], 0)
+        # No association response at all, with a synthetic deauthentication and its
+        # matched TX done present: malformed, never an exception.
+        no_assoc = good.replace(b'one-shot WLAN join RX: subtype=1 status=0\n', b'')
+        self.assertNotIn(b'RX: subtype=1 status=0', no_assoc)
+        result = classify(no_assoc[:no_assoc.index(b'one-shot WLAN join TX: subtype=12')] + late +
+                          no_assoc[no_assoc.index(b'one-shot WLAN join TX: subtype=12'):])
+        self.assertTrue(result['malformed_stage_record'])
+        self.assertFalse(result['bounded_join_pass'])
+        # Two association responses are likewise refused without indexing errors.
+        twice = good.replace(b'one-shot WLAN join RX: subtype=1 status=0\n', b'one-shot WLAN join RX: subtype=1 status=0\n' * 2)
+        self.assertTrue(classify(twice[:after_activation] + late + twice[after_activation:])['malformed_stage_record'])
 
     def test_credit_and_completion_cannot_move_across_stage_fences(self):
         raw = log(True)
