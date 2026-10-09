@@ -4,12 +4,17 @@
 fresh local mode-0600 input files. Runs on the laptop; read-only on the device.
 
 One SSH session runs one remote read program as root (sudo -n) that verifies
-the device identity, parses the connman settings with GLib's own key-file
-reader (through ctypes; GLib decodes the escaped value, so no re-implemented
-parser), requires exactly one group whose Name is the target SSID, and prints
-a small key=value report with the secret base64-encoded. The report is
-streamed straight into a private mode-0600 file; identity is checked at the
-start and the end of that same read. Nothing on the device is written,
+the device identity, requires the exact boot id, kernel release and Debian
+version before any read and again after it, refuses any connman PSK service
+whose directory or settings file is a symlink, not root-owned, group-readable,
+malformed or oversized (one such service refuses the whole read rather than
+hide a match), reads each settings file through an O_NOFOLLOW descriptor with
+fstat and a bounded read, parses it with GLib's own key-file reader from that
+data (through ctypes; GLib decodes the escaped value, so no re-implemented
+parser), requires exactly one group whose Name is the target SSID with the
+Name, Security and Passphrase keys each present exactly once, and prints a
+small key=value report with the secret base64-encoded. The report is streamed
+straight into a private mode-0600 file. Nothing on the device is written,
 reconfigured or copied in bulk. No secret reaches stdout, stderr, an argument
 or a log, and failures print generic messages only.
 
@@ -31,23 +36,26 @@ EXPECTED_KERNEL = '3.18.41+'
 EXPECTED_DEBIAN = '9.13'
 
 # Remote read program: argv[1] = filesystem root (always "/" on the device; the
-# fixture passes a fake root), argv[2] = SSID as base64, argv[3] = expected boot id.
+# fixture passes a fake root), argv[2] = SSID as base64, argv[3] = expected boot
+# id, argv[4] = expected kernel release, argv[5] = expected Debian version.
 REMOTE = r'''
-import base64, ctypes, ctypes.util, os, stat, sys
-root, ssid, expect_boot = sys.argv[1], base64.b64decode(sys.argv[2]), sys.argv[3]
+import base64, ctypes, ctypes.util, os, re, stat, sys
+root, ssid = sys.argv[1], base64.b64decode(sys.argv[2])
+expect = {'boot': sys.argv[3], 'kernel': sys.argv[4], 'debian': sys.argv[5]}
 def read(rel):
     with open(os.path.join(root, rel.lstrip('/')), 'rb') as f:
-        return f.read().strip().decode()
+        return f.read(4096).strip().decode('ascii', 'replace')
 def identity(tag):
-    print('%s_boot=%s' % (tag, read('/proc/sys/kernel/random/boot_id')))
-    print('%s_kernel=%s' % (tag, read('/proc/sys/kernel/osrelease')))
-    print('%s_debian=%s' % (tag, read('/etc/debian_version')))
-identity('before')
-if read('/proc/sys/kernel/random/boot_id') != expect_boot:
-    print('status=boot-mismatch'); sys.exit(0)
+    seen = {'boot': read('/proc/sys/kernel/random/boot_id'),
+            'kernel': read('/proc/sys/kernel/osrelease'), 'debian': read('/etc/debian_version')}
+    for k in ('boot', 'kernel', 'debian'):
+        print('%s_%s=%s' % (tag, k, seen[k]))
+    return seen == expect
+if not identity('before'):
+    print('status=identity-mismatch'); sys.exit(0)
 lib = ctypes.CDLL(ctypes.util.find_library('glib-2.0') or 'libglib-2.0.so.0')
 lib.g_key_file_new.restype = ctypes.c_void_p
-lib.g_key_file_load_from_file.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int, ctypes.c_void_p]
+lib.g_key_file_load_from_data.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_size_t, ctypes.c_int, ctypes.c_void_p]
 lib.g_key_file_get_groups.restype = ctypes.c_void_p
 lib.g_key_file_get_groups.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
 lib.g_key_file_get_string.restype = ctypes.c_void_p
@@ -59,30 +67,68 @@ def value(kf, group, key):
     if not p:
         return None
     v = ctypes.string_at(p); lib.g_free(p); return v
+def key_counts(data):
+    # Raw occurrences of each key per group, so a duplicated key is refused
+    # instead of silently resolved by GLib's last-key-wins.
+    counts, group = {}, None
+    for line in data.split(b'\n'):
+        line = line.strip()
+        if not line or line.startswith(b'#'):
+            continue
+        if line.startswith(b'['):
+            group = line; counts.setdefault(group, {}); continue
+        if group is None or b'=' not in line:
+            continue
+        key = line.split(b'=', 1)[0].strip().split(b'[', 1)[0].strip()
+        counts[group][key] = counts[group].get(key, 0) + 1
+    return counts
 base = os.path.join(root, 'var/lib/connman')
 matches, problems = [], 0
 for name in sorted(os.listdir(base)):
-    if not (name.startswith('wifi_') and name.endswith('_managed_psk')):
+    if not name.startswith('wifi_'):
         continue
-    path = os.path.join(base, name, 'settings')
+    if not re.fullmatch(r'wifi_[0-9a-f]+_[0-9a-f]+_managed_psk', name):
+        problems += 1; continue
+    directory = os.path.join(base, name)
     try:
-        st = os.lstat(path)
+        dst = os.lstat(directory)
     except OSError:
         problems += 1; continue
-    if stat.S_ISLNK(st.st_mode) or not stat.S_ISREG(st.st_mode) or st.st_uid != 0 or (st.st_mode & 0o077):
+    if stat.S_ISLNK(dst.st_mode) or not stat.S_ISDIR(dst.st_mode) or dst.st_uid != 0:
         problems += 1; continue
+    path = os.path.join(directory, 'settings')
+    try:
+        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC | os.O_NOCTTY)
+    except OSError:
+        problems += 1; continue
+    try:
+        st = os.fstat(fd)
+        if not stat.S_ISREG(st.st_mode) or st.st_uid != 0 or (st.st_mode & 0o077) or st.st_size > 65536:
+            problems += 1; continue
+        data = os.read(fd, 65536)
+        if len(data) != st.st_size:
+            problems += 1; continue
+    finally:
+        os.close(fd)
     kf = lib.g_key_file_new()
-    if not lib.g_key_file_load_from_file(kf, path.encode(), 0, None):
+    if not lib.g_key_file_load_from_data(kf, data, len(data), 0, None):
         lib.g_key_file_free(kf); problems += 1; continue
+    counts = key_counts(data)
     n = ctypes.c_size_t(); groups = lib.g_key_file_get_groups(kf, ctypes.byref(n))
     arr = ctypes.cast(groups, ctypes.POINTER(ctypes.c_char_p))
     for i in range(n.value):
         if value(kf, arr[i], b'Name') == ssid:
+            raw = counts.get(b'[' + arr[i] + b']', {})
+            unique = all(raw.get(k, 0) == 1 for k in (b'Name', b'Security', b'Passphrase'))
             matches.append(('/var/lib/connman/%s/settings' % name, value(kf, arr[i], b'Passphrase'),
-                            value(kf, arr[i], b'Security')))
+                            value(kf, arr[i], b'Security'), unique))
     lib.g_strfreev(groups); lib.g_key_file_free(kf)
-if len(matches) != 1:
+if problems:
+    print('status=unsafe-or-malformed-services-%d' % problems)
+elif len(matches) != 1:
     print('status=match-count-%d' % len(matches))
+elif not matches[0][3]:
+    print('status=duplicate-keys-in-service')
 elif matches[0][1] is None or matches[0][2] != b'psk':
     print('status=no-psk-passphrase')
 else:
@@ -131,7 +177,8 @@ def main():
            '-o', 'IdentitiesOnly=yes', '-o', 'IdentityAgent=none', '-o', 'ConnectTimeout=20']
     if args.identity:
         ssh += ['-i', str(args.identity)]
-    remote = 'sudo -n python3 - / %s %s' % (base64.b64encode(ssid.encode()).decode(), args.expect_boot_id)
+    remote = 'sudo -n python3 - / %s %s %s %s' % (base64.b64encode(ssid.encode()).decode(), args.expect_boot_id,
+                                                 EXPECTED_KERNEL, EXPECTED_DEBIAN)
     args.output_dir.mkdir(mode=0o700, parents=False)
     report_file = args.output_dir / 'remote-report'
     try:
@@ -146,9 +193,10 @@ def main():
     for line in report_file.read_bytes().split(b'\n'):
         if b'=' in line:
             key, _, val = line.partition(b'=')
-            if key in report:
-                refuse('malformed remote report')
-            report[key.decode('ascii', 'replace')] = val
+            name = key.decode('ascii', 'replace')
+            if name in report:
+                refuse('malformed remote report (duplicate key)')
+            report[name] = val
     needed = ('before_boot', 'before_kernel', 'before_debian', 'status', 'problems', 'after_boot', 'after_kernel', 'after_debian')
     if any(k not in report for k in needed):
         refuse('incomplete remote report')
@@ -182,7 +230,7 @@ def main():
         'gemian_boot_id': args.expect_boot_id, 'gemian_kernel_release': EXPECTED_KERNEL, 'debian_version': EXPECTED_DEBIAN,
         'identity_checked': 'before and after the read, in the same ssh session',
         'parser': 'GLib g_key_file_get_string on the device through ctypes',
-        'remote_problem_files_skipped': int(report['problems']),
+        'remote_problem_services': int(report['problems']),
         'ssid_sha256': hashlib.sha256(ssid.encode()).hexdigest(),
         'psk_sha256': hashlib.sha256(psk).hexdigest(),
         'derivation': 'pbkdf2-hmac-sha1 4096 rounds, salt = ssid, 32 bytes',

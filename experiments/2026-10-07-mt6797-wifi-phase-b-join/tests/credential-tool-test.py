@@ -27,7 +27,7 @@ def key_file(name, passphrase, security='psk'):
         name, SSID, SSID.encode().hex(), security, escaped)
 
 
-def fake_root(work, tag, boot=BOOT, kernel='3.18.41+', debian='9.13', services=None, after_boot=None):
+def fake_root(work, tag, boot=BOOT, kernel='3.18.41+', debian='9.13', services=None, after_boot=None, dup_report=False):
     root = work / tag
     for rel, text in (('proc/sys/kernel/random/boot_id', boot), ('proc/sys/kernel/osrelease', kernel), ('etc/debian_version', debian)):
         p = root / rel; p.parent.mkdir(parents=True, exist_ok=True); p.write_text(text + '\n')
@@ -36,10 +36,14 @@ def fake_root(work, tag, boot=BOOT, kernel='3.18.41+', debian='9.13', services=N
         d = base / name; d.mkdir()
         if content is None:
             (d / 'settings').symlink_to('/etc/passwd')
+        elif content == 'DIRLINK':
+            d.rmdir(); d.symlink_to(base / SERVICE)
         else:
             (d / 'settings').write_text(content); (d / 'settings').chmod(mode)
     if after_boot:
         (root / 'after_boot').write_text(after_boot)
+    if dup_report:
+        (root / 'dup_report').write_text('1')
     return root
 
 
@@ -53,6 +57,8 @@ root = os.environ['FAKE_ROOT']
 cmd = sys.argv[-1].split()
 assert cmd[:4] == ['sudo', '-n', 'python3', '-'], cmd
 program = sys.stdin.read()
+if os.path.exists(os.path.join(root, 'dup_report')):
+    program = program.replace("identity('after')", "print('status=ok'); identity('after')")
 after = os.path.join(root, 'after_boot')
 if os.path.exists(after):
     program = program.replace("identity('after')", "open(os.path.join(root,'proc/sys/kernel/random/boot_id'),'w').write(open(%r).read()); identity('after')" % after)
@@ -78,10 +84,10 @@ def main():
         result = run(work, root, out)
         if os.geteuid() != 0:
             # Not root here: the owner gate must refuse with no files written.
-            assert result.returncode == 2 and 'match-count-0' in result.stderr, result.stderr
+            assert result.returncode == 2 and 'unsafe-or-malformed-services' in result.stderr, result.stderr
             assert not (out / 'psk.hex').exists()
             # Patch the owner gate for the rest of this run by letting the fake root be the current uid.
-            tool = TOOL.read_text().replace('st.st_uid != 0 or', 'st.st_uid != os.getuid() or')
+            tool = TOOL.read_text().replace('st.st_uid != 0 or', 'st.st_uid != os.getuid() or').replace('dst.st_uid != 0', 'dst.st_uid != os.getuid()')
             patched = work / 'tool-uid.py'; patched.write_text(tool); patched.chmod(0o700)
             TOOL = patched
             out = work / 'input-good-2'; result = run(work, root, out)
@@ -111,6 +117,15 @@ def main():
             'mode': fake_root(work, 'mode', services=[(SERVICE, key_file(SERVICE, PASSPHRASE), 0o644)]),
             'security': fake_root(work, 'security', services=[(SERVICE, key_file(SERVICE, PASSPHRASE, 'none'), 0o600)]),
             'short': fake_root(work, 'short', services=[(SERVICE, key_file(SERVICE, 'short'), 0o600)]),
+            # A good match next to one malformed or unsafe service: refused, never hidden.
+            'problem': fake_root(work, 'problem', services=[(SERVICE, key_file(SERVICE, PASSPHRASE), 0o600), (SERVICE.replace('a1', 'a3'), 'not a key file', 0o600)]),
+            'badname': fake_root(work, 'badname', services=[(SERVICE, key_file(SERVICE, PASSPHRASE), 0o600), ('wifi_evil', key_file('x', 'other pass'), 0o600)]),
+            'dirlink': fake_root(work, 'dirlink', services=[(SERVICE, key_file(SERVICE, PASSPHRASE), 0o600), (SERVICE.replace('a1', 'a4'), 'DIRLINK', 0)]),
+            # Duplicate keys inside the matching group: refused instead of GLib last-key-wins.
+            'dupkey': fake_root(work, 'dupkey', services=[(SERVICE, key_file(SERVICE, PASSPHRASE) + 'Passphrase=other\n', 0o600)]),
+            'dupname': fake_root(work, 'dupname', services=[(SERVICE, key_file(SERVICE, PASSPHRASE) + 'Name=%s\n' % SSID, 0o600)]),
+            # A duplicated line in the remote report: refused locally.
+            'dupreport': fake_root(work, 'dupreport', dup_report=True),
         }
         for tag, bad in cases.items():
             target_out = work / ('refused-' + tag)
@@ -118,8 +133,7 @@ def main():
             assert result.returncode == 2, (tag, result.stderr)
             assert not (target_out / 'psk.hex').exists() and not (target_out / 'passphrase').exists(), tag
             assert PASSPHRASE not in result.stdout + result.stderr and 'Traceback' not in result.stderr, tag
-    print('credential-tool: PASS (real remote program on a fake root under GLib; 0700/0600 outputs; escapes decoded by GLib; '
-          'identity before/after, uniqueness, symlink, owner, mode, security and length refusals; no secret or traceback in output)')
+    print('credential-tool: PASS (real remote program on a fake root under GLib; identity before/after; symlink file and directory, owner, mode, service name, malformed neighbour, duplicate key and duplicate report refusals; no secret or traceback in output)')
 
 
 if __name__ == '__main__':

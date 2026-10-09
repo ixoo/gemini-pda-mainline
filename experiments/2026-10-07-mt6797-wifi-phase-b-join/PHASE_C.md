@@ -272,13 +272,11 @@ with its credit and status, message 3 delivered, message 4 submitted, the two
 key commands with their credits, the hold's end, the two key removals and the
 single deauthentication, then retirement with every page returned.
 
-No ordinary data is transmitted. After mac80211 authorizes the port the
-kernel itself would send IPv6 neighbour discovery and duplicate-address
-detection if IPv6 is enabled on `wlan0`; the session therefore disables IPv6
-on the interface in RAM before bringing it up (`net.ipv6.conf.wlan0.disable_ipv6`
-= 1 and `accept_ra` = 0, with the `default` entries set before the interface
-exists), and no IPv4 client runs. The driver's transmit admission refuses any
-other data frame as today. An unsolicited ordinary or protected frame received
+No ordinary data is transmitted. The candidate-11 kernel has `CONFIG_IPV6`
+unset, so the kernel sends no IPv6 neighbour discovery or duplicate-address
+detection after the port is authorized and no suppression is needed; no IPv4
+client runs. The driver's transmit admission refuses any other data frame as
+today. An unsolicited ordinary or protected frame received
 after the keys is refused by the frame gate with its header named, a fail-stop
 like every other refusal; no receive crypto flag is guessed to admit it. The
 deauthentication hold becomes: until both key commands have returned their
