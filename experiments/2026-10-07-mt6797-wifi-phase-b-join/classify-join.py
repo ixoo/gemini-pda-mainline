@@ -34,7 +34,7 @@ def classify(raw):
     )
     notifications = (rb'bss absence: bss=0 absent=[01] quota=' + byte + rb' reserved=' + byte,
                      # Phase C1: a clear EAPOL-Key frame from the target, decoded and dropped.
-                     rb'eapol observed: translated=[01] frame=\d{1,4} activated=[01] vector=[01]')
+                     rb'eapol observed: translated=[01] frame=\d{1,4} activated=[01] vector=[01] bss=(?:0|15)')
     diagnostics = refusals + notifications
     rows = {name: [] for name in patterns}
     diagnostic_lines = []
@@ -65,7 +65,7 @@ def classify(raw):
                 elif body.startswith(b'eapol observed:'):
                     fields = dict(part.split(b'=') for part in body.split(b': ', 1)[1].split(b' '))
                     eapol_rows.append((index, int(fields[b'translated']), int(fields[b'frame']),
-                                       int(fields[b'activated']), int(fields[b'vector'])))
+                                       int(fields[b'activated']), int(fields[b'vector']), int(fields[b'bss'])))
                 else:
                     refused = True
             else:
@@ -121,7 +121,10 @@ def classify(raw):
                 len(deauth_tx) != 1 or len(deauth_done) != 1):
             malformed = True
         else:
-            for index, translated, frame, activated, _vector in eapol_rows:
+            for index, translated, frame, activated, _vector, bss in eapol_rows:
+                # No hardware BSS match (15) is admitted only before activation.
+                if bss == 15 and activated:
+                    malformed = True
                 low, high = (99, 2052) if translated else (131, 2084)
                 if (not (association_at < index < deauth_done[0]) or not (low <= frame <= high) or
                         activated != int(index > activation_at)):
@@ -164,7 +167,7 @@ def classify(raw):
         'diagnostic_records': diagnostic_lines,
         'refusal_recorded': refused,
         'eapol_shape_observations': len(eapol_rows),
-        'eapol_observations': [{'translated': t, 'frame': f, 'activated': a, 'vector': v} for _, t, f, a, v in eapol_rows],
+        'eapol_observations': [{'translated': t, 'frame': f, 'activated': a, 'vector': v, 'bss': b} for _, t, f, a, v, b in eapol_rows],
         'terminal_failure_recorded': stopped,
         'wifi_operational': False,
     }

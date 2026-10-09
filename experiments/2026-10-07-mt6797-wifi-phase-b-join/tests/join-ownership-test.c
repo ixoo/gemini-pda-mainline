@@ -402,7 +402,7 @@ static void run_worker(void)
  * in the public gen3 RXD layout, native (groups 4) or translated Ethernet
  * (groups 4 and 8), as the 0140 decoder fixture builds it; no key material.
  */
-static void script_eapol_layout(bool translated, bool vector, bool padding)
+static void script_eapol_bss(bool translated, bool vector, bool padding, unsigned bss)
 {
 	static const u8 origin[ETH_ALEN] = { 2, 0, 0, 0, 0, 3 };
 	static const u8 native_header[32] = {
@@ -417,7 +417,7 @@ static void script_eapol_layout(bool translated, bool vector, bool padding)
 	assert(script_count < 6);
 	memset(p, 0, sizeof(script[0]));
 	put_unaligned_le16(0x4000 | groups << 9, p + 2);
-	p[4] = 2; p[5] = 40; p[6] = (translated ? 0x8e : 24) | (padding ? 0x40 : 0); p[8] = 1;
+	p[4] = 2; p[5] = 40; p[6] = (translated ? 0x8e : 24) | (padding ? 0x40 : 0); p[7] = bss << 2; p[8] = 1;
 	put_unaligned_le16(0xc000, p + 10);
 	if (groups & 8) {
 		p[off] = 8; p[off + 1] = 2;
@@ -442,6 +442,7 @@ static void script_eapol_layout(bool translated, bool vector, bool padding)
 	script_bytes[script_count++] = bytes;
 }
 
+static void script_eapol_layout(bool translated, bool vector, bool padding) { script_eapol_bss(translated, vector, padding, 0); }
 static void script_eapol(bool translated) { script_eapol_layout(translated, true, false); }
 
 static void submit_inflight(void)
@@ -552,7 +553,29 @@ int main(void)
 	run_worker();
 	assert(!mac.first_error && mac.join_eapol_seen == 1 && !rx_delivered && !submissions && mac.join_running);
 	mt6797_mac_join_close(&mac);
-	/* 5d. After the deauthentication completed the window is closed. */
+	/* 5d. The runtime-11 base header: BSS field 15 (no hardware match). Admitted
+	 *     until the BSS is configured in the firmware; refused after that
+	 *     (and so after activation); BSS 1 refused always; BSS 0 admitted after.
+	 */
+	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_bss_configured = false;
+	script_eapol_bss(true, false, true, 15);
+	run_worker();
+	assert(!mac.first_error && mac.join_eapol_seen == 1 && !rx_delivered && !submissions);
+	mt6797_mac_join_close(&mac);
+	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_bss_configured = true; mac.join_sta_active = true;
+	script_eapol_bss(true, false, true, 15);
+	run_worker();
+	assert(mac.first_error == -EPROTO && !mac.join_eapol_seen);
+	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = false;
+	script_eapol_bss(true, true, false, 1);
+	run_worker();
+	assert(mac.first_error == -EPROTO && !mac.join_eapol_seen);
+	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = true;
+	script_eapol_bss(false, true, false, 0);
+	run_worker();
+	assert(!mac.first_error && mac.join_eapol_seen == 1);
+	mt6797_mac_join_close(&mac);
+	/* 5e. After the deauthentication completed the window is closed. */
 	setup(); mac.join_assoc_received = true; mac.join_deauth_done = true; script_eapol(false); run_worker();
 	assert(mac.first_error == -EPROTO && !mac.join_eapol_seen);
 

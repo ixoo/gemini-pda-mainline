@@ -93,8 +93,14 @@ int main(void)
     mutation(p, n, 4, 1); /* HTC */
     mutation(p, n, 5, 1); /* channel */
     mutation(p, n, 6, 1); /* header length */
-    mutation(p, n, 7, 4); /* BSS index */
-    mutation(p, n, 7, 1); /* payload format */
+    mutation(p, n, 7, 4); /* BSS index 1: not admitted */
+    mutation(p, n, 7, 0x40); /* BSS index 16: not admitted */
+    mutation(p, n, 7, 1); /* payload format: not an MSDU */
+    mutation(p, n, 7, 0x3d); /* no-match BSS with A-MSDU payload format */
+    p[7] = 0x3c; /* runtime 11 measured BSS field 15, payload format 0 */
+    assert(mt6797_eapol_rx(p, n, 40, own, ap, &out) && out.bss_index == 15);
+    p[7] = 0;
+    assert(mt6797_eapol_rx(p, n, 40, own, ap, &out) && out.bss_index == 0);
     mutation(p, n, 8, 1); /* WLAN owner */
     mutation(p, n, 9, 0x40); /* firmware CCMP, not clear */
     for (unsigned bit = 0; bit < 16; bit++) mutation(p, n, 10 + bit / 8, 1 << (bit % 8));
@@ -140,6 +146,12 @@ int main(void)
  struct mt6797_eapol_rx no_vector;
  assert(mt6797_eapol_rx(p, n, 40, own, ap, &no_vector));
  assert(!no_vector.signal_valid && no_vector.signal_dbm == 0 && no_vector.bytes == 99 && no_vector.prefix_bytes == 32);
+ /* The runtime-11 base header, byte for byte (match 0x02, channel 40, 0xce,
+  * 0x3c, WLAN 1, 0x00, status 0xc000), on that hypothetical body: admitted
+  * with BSS field 15 and no signal. Still a hypothetical body.
+  */
+ memcpy(p + 4, (const unsigned char[]){0x02, 0x28, 0xce, 0x3c, 0x01, 0x00, 0x00, 0xc0}, 8);
+ assert(mt6797_eapol_rx(p, n, 40, own, ap, &no_vector) && no_vector.bss_index == 15 && !no_vector.signal_valid);
  n = fixture(p, 12, true, false, 0);
  p[3] &= ~8; reject(p, n); /* group 3 flagged absent while its bytes remain: layout mismatch */
  n = fixture(p, 12, true, false, 1953); /* maximum body 2048 */

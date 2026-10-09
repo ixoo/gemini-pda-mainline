@@ -1,0 +1,102 @@
+From d2b5732c2f3b97ed7dc01b8063ad68546dce65b4 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 9 Oct 2026 20:08:55 +0000
+Subject: [PATCH] wifi: mt6797: admit the unmatched RXD BSSID field before the
+ BSS is configured
+
+Runtime 11 of the Phase C experiment named the header of the packet the
+AP sends right after accepting the association: a translated, clear,
+non-aggregated frame from the target to this station's WLAN index on
+the join channel with the EAPOL Ethernet type, and RXD byte 7 equal to
+0x3c: payload format 0 (an MSDU) and BSSID field 15. The clear EAPOL
+decoder required byte 7 to be 0 and refused the packet before its body;
+every other base-header check was satisfied by the measured bytes.
+
+The pinned gen3 receive path never reads the RXD BSSID field and routes
+received data by the WLAN index; payload format 0 is its MSDU case. At
+the moment this packet arrives the firmware has not been told the
+associated BSS, so no hardware BSSID match is the expected state.
+Require the MSDU payload format, report the BSSID field, admit only 0
+and 15 in the decoder, and in the worker admit 15 only until the BSS
+has been configured in the firmware, which precedes the station
+activation; afterwards only 0 is admitted. Every other bound is
+unchanged: accepted association, owned WLAN index 1, exact peer, own
+address and channel, clear non-QoS non-aggregated From-DS frame
+control, complete EAPOL-Key framing, at most two observations, the hold
+and the single deauthentication. The observation record gains the BSS
+field.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/net/wireless/mediatek/mt6797/eapol-rx.h | 11 +++++++++--
+ drivers/net/wireless/mediatek/mt6797/mac.c      | 13 ++++++++++---
+ 2 files changed, 19 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/eapol-rx.h b/drivers/net/wireless/mediatek/mt6797/eapol-rx.h
+index 61bbf982e..92e155262 100644
+--- a/drivers/net/wireless/mediatek/mt6797/eapol-rx.h
++++ b/drivers/net/wireless/mediatek/mt6797/eapol-rx.h
+@@ -9,13 +9,18 @@ struct mt6797_eapol_rx {
+ 	size_t prefix_bytes, offset, bytes;
+ 	int signal_dbm;
+ 	bool signal_valid; /* False when the firmware omitted RX vector group 3. */
++	unsigned char bss_index; /* RXD BSSID field: 0, or 15 for no hardware match. */
+ };
+ 
+ /* Original decoder of the public gen3 RXD layout. Clear, nonaggregated,
+  * non-QoS From-DS EAPOL-Key only; peer lifetime and admission belong to caller.
+  * Translated Ethernet needs group 4 to restore the AP and sequence identity.
+  * RX vector group 3 is optional, as in the pinned gen3 receive path; without
+- * it the signal is reported invalid rather than the packet refused.
++ * it the signal is reported invalid rather than the packet refused. The RXD
++ * BSSID field is not consumed by the pinned receive path, which routes by the
++ * WLAN index; this decoder requires the MSDU payload format and reports the
++ * field, admitting only BSS 0 and the no-match value 15 so the caller can
++ * bind 15 to the interval before the station is activated.
+  * No firmware crypto, key material, transport, allocation or effects here.
+  */
+ static inline bool
+@@ -33,9 +38,11 @@ mt6797_eapol_rx(const unsigned char *packet, size_t bytes,
+ 	    !channel || mt6797_join_le16(packet) != bytes ||
+ 	    (mt6797_join_le16(packet + 2) >> 13) != 2 ||
+ 	    packet[5] != channel || (packet[4] & 15) != 2 ||
+-	    packet[7] || packet[8] != 1 || packet[9] ||
++	    (packet[7] & 3) || ((packet[7] >> 2) != 0 && (packet[7] >> 2) != 15) ||
++	    packet[8] != 1 || packet[9] ||
+ 	    mt6797_join_le16(packet + 10) != 0xc000)
+ 		return false;
++	r.bss_index = packet[7] >> 2;
+ 	groups = (mt6797_join_le16(packet + 2) >> 9) & 15;
+ 	if (groups & 8) {
+ 		group4 = offset;
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index dcd4d95af..36ed01b1d 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -1072,13 +1072,20 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 					    mac->hw->wiphy->perm_addr, mac->join_ap, &eapol) &&
+ 			    mac->join_assoc_received && !mac->join_assoc_status &&
+ 			    !mac->join_deauth_done && !mac->join_cleanup_done &&
+-			    mac->join_eapol_seen < 2) {
++			    mac->join_eapol_seen < 2 &&
++			    /* No hardware BSS match (15) is admitted only until the
++			     * associated BSS has been configured in the firmware, which
++			     * precedes the station activation; afterwards only BSS 0 is.
++			     */
++			    (eapol.bss_index == 0 ||
++			     (eapol.bss_index == 15 && !mac->join_bss_configured))) {
+ 				mac->join_eapol_seen++;
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ 				dev_info(wiphy_dev(mac->hw->wiphy),
+-					 "one-shot WLAN join eapol observed: translated=%u frame=%zu activated=%u vector=%u\n",
++					 "one-shot WLAN join eapol observed: translated=%u frame=%zu activated=%u vector=%u bss=%u\n",
+ 					 eapol.prefix_bytes != 0, eapol.bytes,
+-					 mac->join_sta_active, eapol.signal_valid);
++					 mac->join_sta_active, eapol.signal_valid,
++					 eapol.bss_index);
+ #endif
+ 				continue;
+ 			}
+-- 
+2.39.5
+
