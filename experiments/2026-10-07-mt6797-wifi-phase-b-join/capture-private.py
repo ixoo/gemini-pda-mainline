@@ -20,7 +20,7 @@ WMT = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(WMT)
 RELEASE = '7.1.3-gemini-a53-wifi-phase-b-compile'
 # Slot filled from the committed results/candidate-8.json after composition.
-MANIFEST_SHA = None
+MANIFEST_SHA = '6d5183ec8497eada333d300cfcd52d8622ff88515bf23a0b1032fd47ccdec6f0'
 START_TIMEOUT_S = 120
 WMT.HERE = HERE
 WMT.ROOT = ROOT
