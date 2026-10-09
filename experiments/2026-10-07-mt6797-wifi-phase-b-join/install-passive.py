@@ -15,10 +15,10 @@ ADAPTER = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(ADAPTER)
 ADAPTER = ADAPTER.ADAPTER
 RELEASE = '7.1.3-gemini-a53-wifi-phase-b-compile'
-# Current boot2 content: the consumed Phase B runtime-1 candidate (deployment 1).
+# Current boot2 content: the consumed Phase B candidate 8 (deployment 8).
 PREDECESSOR_SHA = '1eed3948c244a959345c9b0320521417370d3d4592b8d7259bbce35b86713ff1'
 # Slot filled from the committed results/candidate-9.json after composition.
-MANIFEST_SHA = None
+MANIFEST_SHA = 'd6857436259f11f1cdaf30b1f4545f37248ad607e8521ef5a82276321f80c07d'
 ADAPTER.HERE = HERE
 ADAPTER.PREDECESSOR_SHA = PREDECESSOR_SHA
 ADAPTER.INSTALLER.HERE = HERE
