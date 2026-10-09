@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-07-mt6797-wifi-phase-b-join` |
-| Status | Runtime 4 ([RUNTIME_4](RUNTIME_4.md)) logged no driver refusal; the reconstructed cause is cfg80211's privacy-sensitive BSS lookup; the reviewed connect helper and proposal 0144 are built as [compile 9](COMPILE_9.md) runtime 5 ([RUNTIME_5](RUNTIME_5.md)) measured the EINVAL at mac80211's station setup: the driver informed cfg80211 directly so mac80211's BSS rate record was empty; proposal 0145 delivers scanned beacons through mac80211, built as [compile 10](COMPILE_10.md) runtime 6 ([RUNTIME_6](RUNTIME_6.md)) demonstrated the first management exchange: authentication accepted, association denied with status 45, cleanup stopped with an unmeasured protocol error; proposal 0146 names the failing branch and ledger terms, built as [compile 11](COMPILE_11.md) runtime 7 ([RUNTIME_7](RUNTIME_7.md)) measured the cleanup's protocol error: an unsolicited BSS absence/presence event refused by the control-event parser; proposal 0147 admits it under a strict teardown contract, reviewed and built as [compile 12](COMPILE_12.md) runtime 8 ([RUNTIME_8](RUNTIME_8.md)) is the first healthy bounded join: authentication accepted, association denied as expected without an RSN element, admitted absence indication, finite teardown with all pages returned; Phase C1 ([PHASE_C](PHASE_C.md)) is reviewed and built as [compile 13](COMPILE_13.md) and [runtime 9](RUNTIME_9.md) on candidate 8 stopped before the association transmission at the driver's own admission predicate, which refused the RSN element; proposal 0149 is reviewed and built as [compile 14](COMPILE_14.md) and [runtime 10](RUNTIME_10.md) on candidate 9 measured the first accepted association (status 0) and then refused the next received packet, a 147-byte vector-less data packet, at the frame gate; proposals 0150 and 0151 are reviewed and built as [compile 15](COMPILE_15.md) and [runtime 11](RUNTIME_11.md) on candidate 10 named the refused packet's header: a translated clear frame from the target with the EAPOL Ethernet type and BSSID field 15, refused by the decoder's byte-7 check (fix for review: proposal 0152); not operational; clear EAPOL decoder tested offline but unlinked; data and keys remain incomplete |
+| Status | Runtime 4 ([RUNTIME_4](RUNTIME_4.md)) logged no driver refusal; the reconstructed cause is cfg80211's privacy-sensitive BSS lookup; the reviewed connect helper and proposal 0144 are built as [compile 9](COMPILE_9.md) runtime 5 ([RUNTIME_5](RUNTIME_5.md)) measured the EINVAL at mac80211's station setup: the driver informed cfg80211 directly so mac80211's BSS rate record was empty; proposal 0145 delivers scanned beacons through mac80211, built as [compile 10](COMPILE_10.md) runtime 6 ([RUNTIME_6](RUNTIME_6.md)) demonstrated the first management exchange: authentication accepted, association denied with status 45, cleanup stopped with an unmeasured protocol error; proposal 0146 names the failing branch and ledger terms, built as [compile 11](COMPILE_11.md) runtime 7 ([RUNTIME_7](RUNTIME_7.md)) measured the cleanup's protocol error: an unsolicited BSS absence/presence event refused by the control-event parser; proposal 0147 admits it under a strict teardown contract, reviewed and built as [compile 12](COMPILE_12.md) runtime 8 ([RUNTIME_8](RUNTIME_8.md)) is the first healthy bounded join: authentication accepted, association denied as expected without an RSN element, admitted absence indication, finite teardown with all pages returned; Phase C1 ([PHASE_C](PHASE_C.md)) is reviewed and built as [compile 13](COMPILE_13.md) and [runtime 9](RUNTIME_9.md) on candidate 8 stopped before the association transmission at the driver's own admission predicate, which refused the RSN element; proposal 0149 is reviewed and built as [compile 14](COMPILE_14.md) and [runtime 10](RUNTIME_10.md) on candidate 9 measured the first accepted association (status 0) and then refused the next received packet, a 147-byte vector-less data packet, at the frame gate; proposals 0150 and 0151 are reviewed and built as [compile 15](COMPILE_15.md) and [runtime 11](RUNTIME_11.md) on candidate 10 named the refused packet's header: a translated clear frame from the target with the EAPOL Ethernet type and BSSID tag 15, refused by the decoder's byte-7 check; proposal 0152 is reviewed and built as [compile 16](COMPILE_16.md) with the adapters bound for candidate 11 ([runtime 12 bindings](#runtime-12-bindings-2026-10-09)), composition pending; not operational; clear EAPOL decoder tested offline but unlinked; data and keys remain incomplete |
 | Base | Phase A [runtime 3](../2026-10-06-mt6797-wifi-common-init/RUNTIME_3.md), package `3013daa6…` |
 | Date | 2026-10-07 |
 | Device action | One boot, WMT preparation/negotiation/common-init attempt, evidence sealing, A53 regression and confirmed Gemian recovery; no scan or join |
@@ -336,6 +336,28 @@ copies, no stubbed close):
   management wait, and a close with only mac80211 frames. Every frame is
   released exactly once by the owner's function. It fails on the pre-0142
   `mac.c`.
+
+## Runtime 12 bindings (2026-10-09)
+
+Candidate 11 pairs the [compile 16](COMPILE_16.md) package `642165d4…` (input
+`707e2d71`, proposal 0152 added, config and DT unchanged) with candidate
+10's RAM root unchanged: the same parent members, release gate and Phase C1
+helper `bc499f28…`, so the initramfs digest `dc8a4479…`, board DT `25ab60f4…`
+and kernel config `153ea2d0…` are expected byte-identical to candidates 8 to
+10 and only the kernel image changes. The bound join script is the
+candidate-8 one. The runtime-12 protocol, hypothesis and branches are those of
+runtime 11, with BSSID tag 15 admitted until the BSS command credit completion
+is recorded. Bindings, with every prior receipt, copy and piece of evidence
+untouched:
+
+| Adapter | Runtime 12 binding |
+| --- | --- |
+| `build-candidate.py` | `COMMIT 707e2d71…`, `PACKAGE 642165d4…`, `--helper` pinned to `bc499f28…` (665552 bytes) |
+| `install-passive.py` | predecessor `57f9e65c…` (installed candidate 10), receipt `mt6797-wifi-phase-b-deployment-11`, `results/candidate-11.json`, `MANIFEST_SHA = None` until that receipt is committed |
+| `capture-private.py` | `capture-11`, `session-11/deployment-summary.txt`, `results/candidate-11.json`, slot `None` |
+| `passive-session.py` | `results/candidate-11.json`; RAM root of 62 members with the C1 `bin/join-connect` verified |
+| `passive-host.py` | `session-11`, `capture-11`; the WMT host identity reads `runtime-12/results/candidate.json`, created as a byte copy once the receipt is committed |
+| `prepare-runtime.py` | checks `results/candidate-11.json`, both slots, predecessor `57f9e65c…`; creates `wifi-phase-b/session-11` only and leaves `capture-11` absent |
 
 ## Runtime 11 bindings (2026-10-09)
 

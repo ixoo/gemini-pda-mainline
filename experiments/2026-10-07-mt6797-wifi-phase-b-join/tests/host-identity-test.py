@@ -45,7 +45,8 @@ with tempfile.TemporaryDirectory(prefix='mt6797-host-identity-') as directory:
     PAIRS = [('runtime-2', 'candidate-2'), ('runtime-4', 'candidate-3'), ('runtime-5', 'candidate-4'),
              ('runtime-6', 'candidate-5'), ('runtime-7', 'candidate-6'), ('runtime-8', 'candidate-7'),
              ('runtime-9', 'candidate-8'), ('runtime-10', 'candidate-9'),
-             ('runtime-11', 'candidate-10')]
+             ('runtime-11', 'candidate-10'),
+             ('runtime-12', 'candidate-11')]
     assert host.HERE == HERE / PAIRS[-1][0]
     receipts = []
     for directory, receipt in PAIRS:
@@ -65,7 +66,7 @@ with tempfile.TemporaryDirectory(prefix='mt6797-host-identity-') as directory:
     assert runtime_1['files']['boot2-padded.img']['sha256'] == RUNTIME_1_BOOT2, 'runtime-1 receipt preserved'
     # Other rebound roots are untouched by the receipt binding.
     assert host.DOMAIN.HERE == HERE and host.DOMAIN.HOST.HERE == HERE
-    assert host.ROOT == work / 'runtime/wifi-phase-b/session-10' and host.CAPTURE == work / 'runtime/wifi-phase-b/capture-10'
+    assert host.ROOT == work / 'runtime/wifi-phase-b/session-11' and host.CAPTURE == work / 'runtime/wifi-phase-b/capture-11'
 
     def identity(receipt, wmt, start):
         digest = receipt['files']['boot2-padded.img']['sha256']

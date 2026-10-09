@@ -13,8 +13,8 @@ import sys
 sys.dont_write_bytecode = True
 HERE = Path(__file__).resolve().parent
 PRIVATE_REPO = Path(os.environ['GEMINI_PRIVATE_REPO']).resolve(strict=True)
-ROOT = Path(os.environ['GEMINI_RUNTIME_ROOT']).resolve(strict=True) / 'wifi-phase-b/session-10'
-CAPTURE = Path(os.environ['GEMINI_RUNTIME_ROOT']).resolve(strict=True) / 'wifi-phase-b/capture-10'
+ROOT = Path(os.environ['GEMINI_RUNTIME_ROOT']).resolve(strict=True) / 'wifi-phase-b/session-11'
+CAPTURE = Path(os.environ['GEMINI_RUNTIME_ROOT']).resolve(strict=True) / 'wifi-phase-b/capture-11'
 RELEASE = '7.1.3-gemini-a53-wifi-phase-b-compile'
 SOURCE = HERE.parent / '2026-10-02-mt6797-scan-tuning-sample/passive-host.py'
 SPEC = importlib.util.spec_from_file_location('scan_tuning_host', SOURCE)
@@ -32,11 +32,11 @@ SCAN.PARENT.WIPHY_PROBE = SCAN.PARENT.WIPHY_PROBE.replace(
     b'7.1.3-gemini-a53-wifi-scan-tuning-sample', RELEASE.encode())
 HOST = SCAN.HOST
 # The inherited WMT host main reads HERE/results/candidate.json for the capture
-# identity check. Runtime 11 must compare against the candidate-10 receipt, so
-# bind only that module's HERE to runtime-11/, whose results/candidate.json is a
-# byte copy of results/candidate-10.json once that receipt is committed; the
+# identity check. Runtime 12 must compare against the candidate-11 receipt, so
+# bind only that module's HERE to runtime-12/, whose results/candidate.json is a
+# byte copy of results/candidate-11.json once that receipt is committed; the
 # earlier runtime-N/ copies stay bound to their runtimes.
-HOST.HERE = HERE / 'runtime-11'
+HOST.HERE = HERE / 'runtime-12'
 HOST.ROOT = ROOT
 HOST.CAPTURE = CAPTURE
 HOST.DOMAIN.HERE = HERE
