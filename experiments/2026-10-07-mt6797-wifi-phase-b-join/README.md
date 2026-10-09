@@ -337,39 +337,34 @@ copies, no stubbed close):
   released exactly once by the owner's function. It fails on the pre-0142
   `mac.c`.
 
-## Runtime 13 bindings (2026-10-09), HELD
+## Runtime 13 bindings (2026-10-09)
 
-Held: candidate 12 is preserved unused because the pinned supplicant's RSN
-capabilities (0x000c when the AP advertises WMM) would be refused by the
-exact C1 RSN admission; see [RUNTIME_13_PREPARATION](RUNTIME_13_PREPARATION.md)
-and proposal 0157. The bindings below stay as authored until a superseding
-candidate is composed.
-
-Candidate 12 pairs the [compile 17](COMPILE_17.md) package `1997dffb…` (input
-`0e333617`, proposals 0153 to 0156 added, config and DT unchanged) with
-candidate 11's RAM root plus the reviewed static supplicant: the same parent
-members, release gate and Phase C1 helper `bc499f28…`, and `bin/wpa_supplicant`
-`0487b710…` (1719888 bytes) as the 63rd member, so the initramfs digest is
-`449832a3…` (5621445 bytes); board DT `25ab60f4…` and kernel config `153ea2d0…`
-are byte-identical to candidates 8 to 11. The owner composed and validated the
-candidate privately with the reviewed composer; the committed receipt
-[results/candidate-12.json](results/candidate-12.json) (SHA-256 `e8d9900f…`)
-is that receipt's exact bytes. The bound join script is the PSK-bound C2
-one (private binder with the hex SSID), which the preparation tool and the
-host require. The runtime-13 protocol, hypothesis and branches are those of
+Candidate 13 pairs the [compile 18](COMPILE_18.md) package `49afb45d…` (input
+`eba4baa4`, proposals 0153 to 0157, config and DT unchanged) with the RAM
+root of the unused candidate 12, byte-identical (`449832a3…`, 5621445 bytes:
+the parent's 61 members, the release gate, the Phase C1 helper `bc499f28…`
+and the pinned supplicant `0487b710…` as the 63rd member); board DT
+`25ab60f4…` and kernel config `153ea2d0…` are byte-identical to candidates 8
+to 12. The owner composed and validated it privately with the reviewed
+composer; the committed receipt
+[results/candidate-13.json](results/candidate-13.json) (SHA-256 `adc7a4a5…`)
+is that receipt's exact bytes, and `runtime-13/results/candidate.json` is its
+copy. Candidate 12 (receipt `e8d9900f…`) is preserved unused; deployment 12
+never happened. The bound join script is the owner's fresh PSK-bound C2
+script from the corrected source, which the preparation tool and the host
+require. The runtime-13 protocol, hypothesis and branches are those of
 [Phase C2](PHASE_C.md#device-protocol-stated-in-advance), recorded in
-[RUNTIME_13_PREPARATION](RUNTIME_13_PREPARATION.md). Deployment 12 is not
-executed. Bindings, with every prior receipt, copy and piece of evidence
-untouched:
+[RUNTIME_13_PREPARATION](RUNTIME_13_PREPARATION.md). Bindings, with every
+prior receipt, copy and piece of evidence untouched:
 
 | Adapter | Runtime 13 binding |
 | --- | --- |
-| `build-candidate.py` | `COMMIT 0e333617…`, `PACKAGE 1997dffb…`, `--helper` pinned to `bc499f28…` (665552 bytes), `--supplicant` pinned to `0487b710…` (1719888 bytes) |
-| `install-passive.py` | predecessor `1c491341…` (installed candidate 11), receipt `mt6797-wifi-phase-b-deployment-12`, `results/candidate-12.json`, slot filled |
-| `capture-private.py` | `capture-12`, `session-12/deployment-summary.txt`, `results/candidate-12.json`, slot filled |
-| `passive-session.py` | `results/candidate-12.json`; RAM root of 63 members with the C1 `bin/join-connect` and the C2 `bin/wpa_supplicant` verified |
-| `passive-host.py` | `session-12`, `capture-12`; the WMT host identity reads `runtime-13/results/candidate.json`, a byte copy of the committed receipt; refuses a join script without the PSK binding; the C2 session pieces and the private supplicant-log export |
-| `prepare-runtime.py` | checks `results/candidate-12.json`, both slots, predecessor `1c491341…`, the PSK-bound script; creates `wifi-phase-b/session-12` only and leaves `capture-12` absent |
+| `build-candidate.py` | `COMMIT eba4baa4…`, `PACKAGE 49afb45d…`, `--helper` pinned to `bc499f28…` (665552 bytes), `--supplicant` pinned to `0487b710…` (1719888 bytes) |
+| `install-passive.py` | predecessor `1c491341…` (installed candidate 11), receipt `mt6797-wifi-phase-b-deployment-13`, `results/candidate-13.json`, slot filled |
+| `capture-private.py` | `capture-13`, `session-13/deployment-summary.txt`, `results/candidate-13.json`, slot filled |
+| `passive-session.py` | `results/candidate-13.json`; RAM root of 63 members with the C1 `bin/join-connect` and the required C2 `bin/wpa_supplicant` verified |
+| `passive-host.py` | `session-13`, `capture-13`; the WMT host identity reads `runtime-13/results/candidate.json`, a byte copy of the committed receipt; refuses a join script without the PSK binding; the C2 session pieces and the private supplicant-log export |
+| `prepare-runtime.py` | checks `results/candidate-13.json` against the compile-18 input and package, both slots, predecessor `1c491341…`, the PSK-bound script; creates `wifi-phase-b/session-13` only and leaves `capture-13` absent |
 
 ## Runtime 12 bindings (2026-10-09)
 

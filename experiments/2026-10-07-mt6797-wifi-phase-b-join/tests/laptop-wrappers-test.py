@@ -38,9 +38,9 @@ with tempfile.TemporaryDirectory(prefix='mt6797-laptop-wrappers-') as directory:
     capture = load('laptop_capture', HERE / 'laptop-capture.py')
     baseline = capture.CAPTURE.WMT.CAPTURE.BASELINE
     assert baseline == private / 'experiments/2026-09-05-owner-away-experiment-preparation', baseline
-    assert capture.CAPTURE.WMT.CAPTURE_DIR == work / 'runtime/wifi-phase-b/capture-12'
-    assert capture.CAPTURE.WMT.CAPTURE.DEPLOYMENT == work / 'runtime/wifi-phase-b/session-12/deployment-summary.txt'
-    assert capture.CAPTURE.WMT.CAPTURE.RECEIPT == HERE / 'results/candidate-12.json'
+    assert capture.CAPTURE.WMT.CAPTURE_DIR == work / 'runtime/wifi-phase-b/capture-13'
+    assert capture.CAPTURE.WMT.CAPTURE.DEPLOYMENT == work / 'runtime/wifi-phase-b/session-13/deployment-summary.txt'
+    assert capture.CAPTURE.WMT.CAPTURE.RECEIPT == HERE / 'results/candidate-13.json'
 
     session = load('laptop_session', HERE / 'laptop-session.py')
     domain = session.DOMAIN
@@ -48,8 +48,8 @@ with tempfile.TemporaryDirectory(prefix='mt6797-laptop-wrappers-') as directory:
     assert domain.HOST.SERVICE == private / 'experiments/2026-09-09-standard-kernel-package'
     assert domain.HOST.BASELINE == private / 'experiments/2026-09-05-owner-away-experiment-preparation/baseline/scripts'
     assert domain.HOST.REPO == private, 'the public host maps the credential root itself'
-    assert domain.HOST.HERE == HERE and domain.HOST.ROOT == work / 'runtime/wifi-phase-b/session-12'
-    assert session.HOST.CAPTURE == work / 'runtime/wifi-phase-b/capture-12'
+    assert domain.HOST.HERE == HERE and domain.HOST.ROOT == work / 'runtime/wifi-phase-b/session-13'
+    assert session.HOST.CAPTURE == work / 'runtime/wifi-phase-b/capture-13'
     assert session.HOST.SCAN.SCAN_SOURCE == bound
     # The installer stays the public adapter at this experiment's own path.
     assert (HERE / 'install-passive.py').is_file() and domain.HOST.HERE / 'install-passive.py' == HERE / 'install-passive.py'
