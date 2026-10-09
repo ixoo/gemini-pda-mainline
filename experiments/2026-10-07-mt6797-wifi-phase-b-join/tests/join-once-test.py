@@ -32,6 +32,26 @@ c2 = SOURCE.split('stage=supplicant_config')[1].split('stage=boot_after')[0]
 assert c2.index('set +e') < c2.index('wait "$supplicant_pid"') < c2.index('supplicant_exit=$?') < c2.index('set -e') < c2.index('rm -f "$conf"')
 assert 'sleep 1\n    $BB rm -f "$conf"' not in SOURCE and c2.index('rm -f "$conf"') < c2.index('supplicant_phrases')
 assert 'ssid=%s' in c2 and 'ssid="' not in c2 and '"$TARGET_SSID_HEX"' in c2
+# The wait ends only at the exact terminal record (final cleanup stage 3 with
+# credits returned and slots retired, or the stopped record), never at an
+# intermediate cleanup stage, and the lifecycle is recorded without aborting.
+terminal_re = re.search(r"terminal_re='([^']+)'", c2).group(1)
+assert terminal_re == 'one-shot WLAN join (cleanup: stage=3 credits=returned slots=retired deauth=[01]|stopped:)'
+assert 'grep -Eq "$terminal_re"' in c2 and "cleanup:|stopped:" not in c2
+assert c2.index('terminal=1') < c2.index('set +e') < c2.index('kill "$supplicant_pid"')
+assert 'lifecycle=intermediate' in c2 and 'join_lifecycle=%s' in SOURCE
+for line, matches in ((b'one-shot WLAN join cleanup: stage=3 credits=returned slots=retired deauth=1', True),
+                      (b'one-shot WLAN join cleanup: stage=3 credits=returned slots=retired deauth=0', True),
+                      (b'one-shot WLAN join stopped: first_error=-5 stage=1', True),
+                      (b'one-shot WLAN join cleanup: stage=0 submitted sequence=9', False),
+                      (b'one-shot WLAN join cleanup: stage=2 submitted sequence=11', False),
+                      (b'one-shot WLAN join cleanup: stage=3 credits=pending slots=retired deauth=1', False),
+                      (b'one-shot WLAN join key removal: pairwise submitted sequence=8', False)):
+    assert bool(re.search(terminal_re.encode(), line)) is matches, line
+# The channel-40 flag is 1 only for a successful query with exactly one line.
+flag = re.search(r'channel40_flag\(\) \{\n.*?\n    \}\n', SOURCE, re.DOTALL).group(0)
+assert 'echo 1' in flag and flag.count('echo 0') == 3 and '|| { echo 0; return; }' in flag
+assert "printf 'channel40_ir_after_beacon=%s\\n' \"$(channel40_flag)\"" in SOURCE
 
 # Static review.
 assert SOURCE.count('BB=/bin/busybox\n') == 1
@@ -87,6 +107,25 @@ with tempfile.TemporaryDirectory(prefix='mt6797-join-once-') as directory:
         e = dict(env, **overrides)
         e.pop('EXPECTED_BOOT', None) if overrides.get('EXPECTED_BOOT') == '' else None
         return subprocess.run([busybox, 'ash', str(script)], env=e, capture_output=True, timeout=30)
+
+    # The channel-40 flag function under busybox ash with a stub iw.
+    iw_dir = work / 'iw'
+    iw_dir.mkdir()
+    flag_script = work / 'flag.sh'
+    flag_script.write_text('BB=' + str(busybox) + '\n' + flag + 'channel40_flag\n')
+    def flag_for(output, status=0):
+        (iw_dir / 'iw').write_text('#!/bin/sh\nprintf %s "' + output + '"\nexit ' + str(status) + '\n')
+        (iw_dir / 'iw').chmod(0o700)
+        env = dict(os.environ, PATH=str(iw_dir) + ':' + os.environ['PATH'])
+        return subprocess.run([busybox, 'ash', str(flag_script)], env=env, capture_output=True, timeout=10).stdout
+    one = '\t\t\t* 5200 MHz [40] (20.0 dBm)\n'
+    assert flag_for(one) == b'1\n'
+    assert flag_for(one + '\t\t\t* 5200 MHz [40] (20.0 dBm)\n') == b'0\n', 'duplicate line'
+    assert flag_for('\t\t\t* 5180 MHz [36] (20.0 dBm)\n') == b'0\n', 'missing line'
+    assert flag_for('') == b'0\n'
+    assert flag_for(one, status=1) == b'0\n', 'failed query'
+    assert flag_for('\t\t\t* 5200 MHz [40] (20.0 dBm) (no IR)\n') == b'0\n'
+    assert flag_for('\t\t\t* 5200 MHz [40] (disabled)\n') == b'0\n'
 
     def expect(result, stage):
         assert result.returncode != 0 and result.stdout == b'', result

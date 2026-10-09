@@ -69,6 +69,16 @@ with tempfile.TemporaryDirectory(prefix='mt6797-session-ram-root-') as directory
     helper_data = bytes([0x7f, ord('E'), ord('L'), ord('F')]) + bytes(session.HELPER_BYTES - 4)
     session.HELPER_SHA256 = digest(helper_data)  # synthetic helper bytes with the pinned size
     good = dict(members); good['bin/join-connect'] = member(helper_data, 0o100755)
+    # Runtime 13's committed receipt declares the supplicant: the 62-member
+    # candidate-4 shape is refused until the pinned member is present.
+    assert session.SUPPLICANT_REQUIRED is True
+    try:
+        session.check_ram_root(good, record, userspace)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError('62 members admitted although the receipt declares the supplicant')
+    session.SUPPLICANT_REQUIRED = False
     session.check_ram_root(good, record, userspace)  # candidate-4 shape admitted
 
     def refused(bad):
@@ -84,6 +94,9 @@ with tempfile.TemporaryDirectory(prefix='mt6797-session-ram-root-') as directory
     session.SUPPLICANT_SHA256 = digest(supplicant_data)
     with_supplicant = dict(good); with_supplicant['bin/wpa_supplicant'] = member(supplicant_data, 0o100755)
     session.check_ram_root(with_supplicant, record, userspace)
+    session.SUPPLICANT_REQUIRED = True
+    session.check_ram_root(with_supplicant, record, userspace)
+    assert refused(good), '62 members refused when the receipt declares the supplicant'
     for variant in (member(supplicant_data[:-1], 0o100755), member(supplicant_data, 0o100644),
                     member(supplicant_data, 0o100755, uid=1000), member(supplicant_data, 0o100755, nlink=2)):
         assert refused(dict(good, **{'bin/wpa_supplicant': variant})), 'supplicant variant refused'
@@ -95,4 +108,4 @@ with tempfile.TemporaryDirectory(prefix='mt6797-session-ram-root-') as directory
         assert refused(dict(good, **{'bin/join-connect': variant})), variant.mode
     assert refused({**good, 'init': member(b'#!/bin/sh\n', 0o100755)}), 'release gate kept'
     assert refused({**good, session.RECORD_MEMBER: member(record, 0o100644)}), 'record mode kept'
-print('session RAM root: PASS (62 members with the pinned helper admitted, 63 with the pinned supplicant admitted; parent shape, helper and supplicant variants refused; release/firmware/record guards kept)')
+print('session RAM root: PASS (62 members with the pinned helper admitted only when no supplicant is declared, 63 with the pinned supplicant admitted; parent shape, helper and supplicant variants refused; release/firmware/record guards kept)')

@@ -112,6 +112,18 @@ if [ -n "${WPA_PSK_HEX:-}" ]; then
     # is never printed and is removed once the supplicant has exited;
     # the complete debug log stays in RAM for the custodian to preserve
     # privately before recovery. No -K: no key material is logged.
+    # 1 only when the wiphy query succeeds and exactly one channel-40 line is
+    # present without disabled, no IR or radar detection; otherwise 0. A
+    # failed query or a missing or duplicated line never aborts collection.
+    channel40_flag() {
+        info=$(iw phy phy0 info 2>/dev/null) || { echo 0; return; }
+        [ "$(printf '%s\n' "$info" | $BB grep -c '\* 5200 MHz \[40\]')" = 1 ] || { echo 0; return; }
+        if printf '%s\n' "$info" | $BB grep '\* 5200 MHz \[40\]' | $BB grep -Eq 'disabled|no IR|radar detection'; then
+            echo 0
+        else
+            echo 1
+        fi
+    }
     stage=supplicant_config
     $BB printf 'boot_before=%s\nkernel=%s\ninterface_created=1\ninterface_up=1\n__IW_PASSIVE_BEGIN__\n' "$boot_before" "$kernel"
     printf '__PHY_INFO_BEGIN__\n%s\n__PHY_INFO_END__\n' "$phy_info"
@@ -134,18 +146,33 @@ if [ -n "${WPA_PSK_HEX:-}" ]; then
     # handshake, then the driver's lifetime ends with its deauthentication and
     # teardown. A supplicant that fails or exits early cannot abort this
     # script before the framed result and the private log are complete.
+    # Terminal records only: the exact final cleanup record (stage 3, credits
+    # returned, slots retired) or the explicit stopped (fail-stop) record. An
+    # intermediate cleanup stage is not terminal: the supplicant is not
+    # signalled while the key removals, station removal, channel abort or BSS
+    # off are still in flight. Within the same bound; a timeout is recorded.
+    terminal_re='one-shot WLAN join (cleanup: stage=3 credits=returned slots=retired deauth=[01]|stopped:)'
     tick=0
     terminal=0
+    current_log=
     while [ "$tick" -lt 24 ]; do
         [ "$($BB cat /proc/sys/kernel/random/boot_id)" = "$EXPECTED_BOOT" ]
         current_log=$($BB dmesg)
-        if printf '%s\n' "$current_log" | $BB grep -Eq 'one-shot WLAN join (cleanup:|stopped:)'; then
+        if printf '%s\n' "$current_log" | $BB grep -Eq "$terminal_re"; then
             terminal=1
             break
         fi
         tick=$((tick + 1))
         $BB sleep 1
     done
+    # Driver lifecycle when the wait ended: terminal, intermediate (a cleanup
+    # stage without the final record) or none. Recorded; collection goes on.
+    lifecycle=none
+    if [ "$terminal" = 1 ]; then
+        lifecycle=terminal
+    elif printf '%s\n' "$current_log" | $BB grep -Eq 'one-shot WLAN join cleanup: stage='; then
+        lifecycle=intermediate
+    fi
     set +e
     kill "$supplicant_pid" 2>/dev/null
     wait "$supplicant_pid" 2>/dev/null
@@ -165,14 +192,9 @@ if [ -n "${WPA_PSK_HEX:-}" ]; then
     if [ "$($BB grep -cF -- 'CTRL-EVENT-SCAN-RESULTS' "$wpa_log" 2>/dev/null || true)" = 1 ]; then
         scan_exit=0
     fi
-    channel40_after=$(iw phy phy0 info | $BB grep '\* 5200 MHz \[40\]' || true)
-    if printf '%s\n' "$channel40_after" | $BB grep -Eq 'disabled|no IR|radar detection'; then
-        $BB printf 'channel40_ir_after_beacon=0\n'
-    else
-        $BB printf 'channel40_ir_after_beacon=1\n'
-    fi
+    $BB printf 'channel40_ir_after_beacon=%s\n' "$(channel40_flag)"
     stage=boot_after
-    $BB printf '__JOIN_END__\nconnect_exit=%s\njoin_terminal=%s\n' "$supplicant_exit" "$terminal"
+    $BB printf '__JOIN_END__\nconnect_exit=%s\njoin_terminal=%s\njoin_lifecycle=%s\n' "$supplicant_exit" "$terminal" "$lifecycle"
     boot_after=$($BB cat /proc/sys/kernel/random/boot_id)
     $BB printf '__IW_PASSIVE_END__\nscan_exit=%s\nboot_after=%s\n' "$scan_exit" "$boot_after"
     [ "$boot_after" = "$EXPECTED_BOOT" ]

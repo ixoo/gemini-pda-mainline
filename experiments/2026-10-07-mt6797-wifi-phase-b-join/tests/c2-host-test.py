@@ -48,9 +48,9 @@ with tempfile.TemporaryDirectory(prefix='mt6797-c2-host-') as directory:
     work = Path(directory)
     private = work / 'private'
     (private / 'artifacts/credentials').mkdir(parents=True)
-    root = work / 'runtime/wifi-phase-b/session-11'
+    root = work / 'runtime/wifi-phase-b/session-12'
     root.mkdir(parents=True)
-    (work / 'runtime/wifi-phase-b/capture-11').mkdir()
+    (work / 'runtime/wifi-phase-b/capture-12').mkdir()
     (root / 'observation-result.json').write_text(json.dumps({'boot_id': BOOT}))
     for psk in (False, True):
         bound = work / ('bound-%d.sh' % psk)
