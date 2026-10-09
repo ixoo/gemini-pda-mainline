@@ -17,12 +17,12 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-RECEIPT = HERE / 'results/candidate-6.json'
-COMMIT = 'd88d6e22909539944ea532db374e1718b12ce94f'
-PACKAGE = '86b0a20889560530f41a1a54f5ca30fa2cdd567a2745d2543a321ee3a70a9687'
+RECEIPT = HERE / 'results/candidate-7.json'
+COMMIT = '65c2fa81f083bc4baec83266786219cda2d57c64'
+PACKAGE = '784aef7580aef01d34ad953c8e5f6ce87dbc1ff2b0973766feb55985278ec034'
 RELEASE = '7.1.3-gemini-a53-wifi-phase-b-compile'
-PREDECESSOR = 'e6fe0e8d7d2db9513bef581ee3c7c1d9097c6ff9ec30c69044d2b8dbebbb9b14'
-EVIDENCE, CAPTURE, SESSION = 'wifi-phase-b', 'capture-6', 'session-6'
+PREDECESSOR = 'e6b7dd4ea57ef358440370226317ebb92b827d97550bb2ecd99ade3e9e3c5d58'
+EVIDENCE, CAPTURE, SESSION = 'wifi-phase-b', 'capture-7', 'session-7'
 
 
 def refuse(reason):
@@ -56,17 +56,17 @@ def main():
             not body.endswith((HERE / 'join-once.sh').read_bytes()):
         refuse('GEMINI_JOIN_SCRIPT does not wrap the reviewed join-once.sh')
     if not RECEIPT.is_file() or RECEIPT.is_symlink():
-        refuse('results/candidate-6.json is not committed yet')
+        refuse('results/candidate-7.json is not committed yet')
     digest = hashlib.sha256(RECEIPT.read_bytes()).hexdigest()
     receipt = json.loads(RECEIPT.read_bytes())
     if (receipt.get('kernel_build_commit') != COMMIT or
             receipt.get('kernel_package_sha256') != PACKAGE or
             receipt.get('kernel_release') != RELEASE or
             receipt.get('physical_admission') is not False):
-        refuse('results/candidate-6.json is not the package-6 candidate')
+        refuse('results/candidate-7.json is not the package-7 candidate')
     for name in ('install-passive.py', 'capture-private.py'):
         if slot(name) != digest:
-            refuse(name + ' MANIFEST_SHA slot is not the committed candidate-6 receipt')
+            refuse(name + ' MANIFEST_SHA slot is not the committed candidate-7 receipt')
     root = runtime / EVIDENCE
     for name in (CAPTURE, SESSION):
         if (root / name).exists() or (root / name).is_symlink():
@@ -79,7 +79,7 @@ def main():
                       'left_absent_for_capture_claim': CAPTURE,
                       'candidate_manifest_sha256': digest,
                       'candidate_boot2_sha256': receipt['files']['boot2-padded.img']['sha256'],
-                      'predecessor_sha256': PREDECESSOR, 'deployment_receipt': 'deployment-6',
+                      'predecessor_sha256': PREDECESSOR, 'deployment_receipt': 'deployment-7',
                       'device_action': 'none'}, indent=2))
 
 

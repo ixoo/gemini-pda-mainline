@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-07-mt6797-wifi-phase-b-join` |
-| Status | Runtime 4 ([RUNTIME_4](RUNTIME_4.md)) logged no driver refusal; the reconstructed cause is cfg80211's privacy-sensitive BSS lookup; the reviewed connect helper and proposal 0144 are built as [compile 9](COMPILE_9.md) runtime 5 ([RUNTIME_5](RUNTIME_5.md)) measured the EINVAL at mac80211's station setup: the driver informed cfg80211 directly so mac80211's BSS rate record was empty; proposal 0145 delivers scanned beacons through mac80211, built as [compile 10](COMPILE_10.md) runtime 6 ([RUNTIME_6](RUNTIME_6.md)) demonstrated the first management exchange: authentication accepted, association denied with status 45, cleanup stopped with an unmeasured protocol error; proposal 0146 names the failing branch and ledger terms, built as [compile 11](COMPILE_11.md) runtime 7 ([RUNTIME_7](RUNTIME_7.md)) measured the cleanup's protocol error: an unsolicited BSS absence/presence event refused by the control-event parser; proposal 0147 admits it under a strict teardown contract, awaiting review before compile 12; not operational; clear EAPOL decoder tested offline but unlinked; data and keys remain incomplete |
+| Status | Runtime 4 ([RUNTIME_4](RUNTIME_4.md)) logged no driver refusal; the reconstructed cause is cfg80211's privacy-sensitive BSS lookup; the reviewed connect helper and proposal 0144 are built as [compile 9](COMPILE_9.md) runtime 5 ([RUNTIME_5](RUNTIME_5.md)) measured the EINVAL at mac80211's station setup: the driver informed cfg80211 directly so mac80211's BSS rate record was empty; proposal 0145 delivers scanned beacons through mac80211, built as [compile 10](COMPILE_10.md) runtime 6 ([RUNTIME_6](RUNTIME_6.md)) demonstrated the first management exchange: authentication accepted, association denied with status 45, cleanup stopped with an unmeasured protocol error; proposal 0146 names the failing branch and ledger terms, built as [compile 11](COMPILE_11.md) runtime 7 ([RUNTIME_7](RUNTIME_7.md)) measured the cleanup's protocol error: an unsolicited BSS absence/presence event refused by the control-event parser; proposal 0147 admits it under a strict teardown contract, reviewed and built as [compile 12](COMPILE_12.md) with the adapters bound for candidate 7 ([runtime 8 bindings](#runtime-8-bindings-2026-10-09)), composition pending; not operational; clear EAPOL decoder tested offline but unlinked; data and keys remain incomplete |
 | Base | Phase A [runtime 3](../2026-10-06-mt6797-wifi-common-init/RUNTIME_3.md), package `3013daa6…` |
 | Date | 2026-10-07 |
 | Device action | One boot, WMT preparation/negotiation/common-init attempt, evidence sealing, A53 regression and confirmed Gemian recovery; no scan or join |
@@ -336,6 +336,22 @@ copies, no stubbed close):
   management wait, and a close with only mac80211 frames. Every frame is
   released exactly once by the owner's function. It fails on the pre-0142
   `mac.c`.
+
+## Runtime 8 bindings (2026-10-09)
+
+Candidate 7 pairs the [compile 12](COMPILE_12.md) package `784aef75…` (input
+`65c2fa81`, proposal 0147 added, config and DT unchanged) with the same RAM
+root and helper as candidates 4 to 6; no host-side protocol change. Bindings,
+with every prior receipt, copy and piece of evidence untouched:
+
+| Adapter | Runtime 8 binding |
+| --- | --- |
+| `build-candidate.py` | `COMMIT 65c2fa81…`, `PACKAGE 784aef75…`, `--helper` pinned to `b3851a4b…` (665552 bytes) |
+| `install-passive.py` | predecessor `e6b7dd4e…` (installed candidate 6), receipt `mt6797-wifi-phase-b-deployment-7`, `results/candidate-7.json`, `MANIFEST_SHA = None` until that receipt is committed |
+| `capture-private.py` | `capture-7`, `session-7/deployment-summary.txt`, `results/candidate-7.json`, slot `None` |
+| `passive-session.py` | `results/candidate-7.json`; RAM root of 62 members with `bin/join-connect` verified |
+| `passive-host.py` | `session-7`, `capture-7`; the WMT host identity reads `runtime-8/results/candidate.json`, created as a byte copy once the receipt is committed |
+| `prepare-runtime.py` | checks `results/candidate-7.json`, both slots, predecessor `e6b7dd4e…`; creates `wifi-phase-b/session-7` only and leaves `capture-7` absent |
 
 ## Runtime 7 bindings (2026-10-08)
 
