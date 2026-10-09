@@ -127,122 +127,172 @@ as EAPOL framing observations and never as part of the association verdict.
 
 ## Stage C2: keys
 
-Purpose: complete the four-way handshake and install the pairwise and group
-keys so that protected data can flow.
+Purpose: complete the four-way handshake with the standard supplicant and
+install the pairwise and group keys, bounded, with no ordinary data. Design
+findings as of 2026-10-09, after runtime 12; every claim below names its
+source. Nothing here is built or admitted into a runtime before review.
 
-Research state (2026-10-09, hardware-free, public sources only; nothing here
-is admitted into a runtime or a build before the runtime-9 evidence):
+### Settled by measurement (runtime 12)
 
-### Supplicant, pinned
+The AP's first frame after accepting the association is a clear, translated
+Ethernet data frame without an RX vector, BSSID tag 15, WLAN index 1, carrying
+complete EAPOL-Key framing, and it arrives about 1.6 ms before mac80211
+processes the association response and about 50 ms before the firmware
+station activation. The association completes in mac80211 and the station
+activates with the BSS declared open and encryption-disabled.
 
-Upstream wpa_supplicant 2.11 (tarball SHA-256 `912ea06f74e30a8e36fbb68064d6cd
-ff218d8d591db0fc5d75dee6c81ac7fc0a`, release signature good under the hostap
-release key `EC4A A0A9 91A5 F246 4582 D52D 2B6E F432 EFC8 95FA`) with libnl
-3.11.0 (SHA-256 `2a56e1edefa3e68a7c00879496736fdbf62fc94ed3232c0baba127ecfa76
-874d`, release signature good under the libnl release key `49EA 7C67 0E08 50E7
-4195 14F6 29C2 366E 4DFC 5728`, which has since expired). The reproducible
-static aarch64 build is [`helper/build-wpa-supplicant.sh`](helper/build-wpa-supplicant.sh)
-with [`helper/wpa_supplicant.config`](helper/wpa_supplicant.config): nl80211
-driver only, internal crypto, Unix control socket, file backend without
-writes or blobs, no D-Bus, P2P, AP, mesh, WPS, EAP methods or SAE. Two builds
-produced the same binary, SHA-256 `0487b7109c0a456eabf3aef33d74d38e5aa4e6dddcb
-586c03bb203803dd27da7`, 1719888 bytes. It is preferred over the Debian package
-because it has no shared-library closure to add to the RAM root. The binary
-links libnl (LGPL-2.1) statically; it is a private test artifact built from
-pinned sources that allow relinking and is not redistributed. The pinned
-supplicant requests the nl80211 control port whenever the driver advertises
-it (`driver_nl80211.c`), and mac80211 advertises it unconditionally
-(`net/mac80211/main.c`), so EAPOL never touches the network-device path. Its
-completion is the `WPA: Key negotiation completed` log line, with
-`CTRL-EVENT-CONNECTED`; the passphrase stays a private runtime input.
+### Settled by source
 
-### EAPOL transmit: the vendor security-frame shape (pinned gen3 source)
+1. **Early EAPOL needs no deferral machinery.** The pinned mac80211
+   (`net/mac80211/rx.c`, `ieee80211_rx_h_check`) lets a data frame from a
+   known station through before the `WLAN_STA_ASSOC` flag when the interface
+   is a station and the frame carries the control-port Ethernet type, with
+   the comment naming exactly this AP-first-frame race;
+   `ieee80211_frame_allowed` admits EAPOL to our address regardless of
+   encryption and port state. The station exists in mac80211 from the
+   authentication. The pinned wpa_supplicant 2.11 (`wpa_supplicant.c`,
+   `wpa_supplicant_rx_eapol`) queues an EAPOL frame received while its state
+   is below associated and (`events.c`, association event handling) processes
+   it after the association notification when it is younger than 200 ms and
+   from the connected BSSID. The driver therefore delivers the decoded frame
+   to `ieee80211_rx` at once, as the 32-byte rebuilt 802.11 header plus the
+   EAPOL body, with no delay, no buffering and no invented state.
+2. **The supplicant must own the connection.** cfg80211 unicasts control-port
+   frames only to `wdev->conn_owner_nlportid` and returns `-ENOENT` when
+   there is none (`net/wireless/nl80211.c`, `__nl80211_rx_control_port`).
+   wpa_supplicant sets `NL80211_ATTR_SOCKET_OWNER` and the control-port
+   attributes on its authenticate and associate requests
+   (`driver_nl80211.c`). The Phase C1 helper, which exits after the connect,
+   cannot be the owner, so C2 retires the helper: the supplicant performs the
+   scan, authentication and association itself through mac80211's SME path
+   (`NL80211_CMD_AUTHENTICATE` and `NL80211_CMD_ASSOCIATE`), which produces
+   the same open-system authentication frame and an association request whose
+   RSN element body is the fixed 20 bytes the driver admits (`wpa_ie.c`,
+   RSN capabilities 0 without MFP); the predicate's other refusals (HT, VHT,
+   mobility domain, fast transition, WMM) are not produced for this network.
+3. **One passive single-channel scan, no extra scans.** With the documented
+   global option `passive_scan=1` the supplicant requests a passive scan with
+   no SSID (`scan.c`, "Use passive scan based on configuration"), and with
+   `scan_freq=5200` and `freq_list=5200` in the network block it scans one
+   channel. That is exactly the one scan the driver admits (no SSIDs, no
+   flags, no duration, one channel, broadcast BSSID). After the lifetime's
+   deauthentication the supplicant will request further scans; the driver
+   refuses them without any firmware operation (`scan_used`), and the session
+   stops the supplicant. No modified supplicant, no control-interface tricks.
+4. **One driver change is required for the scan to be accepted.** The
+   supplicant adds an extended-capabilities element to every scan request
+   (`scan.c`, `wpa_supplicant_extra_ies`, from the capabilities mac80211
+   advertises). The driver registers `max_scan_ie_len = 0`, and with a
+   `hw_scan` operation mac80211 leaves that at zero, so cfg80211 rejects any
+   user scan element (`net/mac80211/main.c`: "userspace will not be allowed
+   to in that case") and the supplicant would loop on "Failed to initiate AP
+   scan". The passive scan transmits no probe request, so the elements are
+   never sent; the fix is to register a bounded `max_scan_ie_len` and keep
+   ignoring the elements in `hw_scan`, which already does.
+5. **EAPOL transmit is the vendor security-frame shape on TC4.** mac80211
+   hands the supplicant's control-port frames to `.tx` as 802.11 data frames
+   flagged `IEEE80211_TX_CTRL_PORT_CTRL_PROTO` and reports their status back
+   to the supplicant (`ieee80211_tx_control_port`, the TX-status extended
+   feature mac80211 advertises). The pinned gen3 driver sends every 802.1X
+   frame as a security-frame command on TC4 with the 28-byte long descriptor,
+   header format non-802.11 with the Ethernet II flag, Ethernet-type offset
+   `(12 + 28) / 2`, TID 0, the station's WLAN index, own-MAC index, TC4
+   lifetime and count, the BSS fixed rate and a PID with TX status to the MCU
+   (`nicTxComposeSecurityFrameDesc`, `wlanProcessSecurityFrame`). The driver
+   converts the 802.11 data frame back to 802.3 (destination from address 3,
+   source from address 2, Ethernet type from the SNAP header) and submits it
+   through the existing TC4 path and ledger, one frame in flight, pages
+   `(28 + bytes + 127) / 128`, returned through the WTQCR word the ledger
+   already reconciles.
+6. **Key ownership: the firmware.** The firmware delivers data translated to
+   Ethernet (measured), which removes the 802.11 header that mac80211's
+   software CCMP needs; the vendor installs keys in the WTBL through
+   `CMD_ID_ADD_REMOVE_KEY` (0x07, `CMD_802_11_KEY`, 64 bytes: add, TX key,
+   unicast or group, authenticator flag, peer address, BSS index, algorithm
+   `CIPHER_SUITE_CCMP` = 4, key id, key length, WLAN index 1 for the pairwise
+   key and the BMC WLAN index 0 for the group key, 32 bytes of material of
+   which 16 are used, 16 bytes of RSC) and declares the BSS `AUTH_MODE_WPA2_PSK`
+   = 7 and `ENUM_ENCRYPTION3_ENABLED` = 6 in `CMD_SET_BSS_INFO` bytes 53 and 54
+   at connect time, before any key exists, while clear EAPOL still flows
+   (`wlanoidSetAddKey`, the BSS-info layout). mac80211 keeps keys in software
+   only when the driver has no `set_key`; with one it marks the key uploaded
+   and encrypts nothing. C2 therefore implements `.set_key`: `SET_KEY` sends
+   the vendor command for the pairwise key (from the supplicant's first
+   `NEW_KEY`) and the group key (with the receive sequence counter mac80211
+   provides); `DISABLE_KEY` sends nothing when the lifetime is retiring, since
+   the cleanup removes the station record. No protected data frame is sent or
+   received in C2, so no receive crypto flag is guessed.
 
-- The vendor driver sends every 802.1X frame as a *security frame command* on
-  TC4, the MCU port, queue 1 (`nicTxGetFrameResourceType`,
-  `wlanProcessSecurityFrame`), not on the data access categories. Its
-  descriptor (`nicTxComposeSecurityFrameDesc`) is the 28-byte long format
-  with header format `NON_802_11` and the Ethernet II flag, the ether-type
-  offset `(12 + 28) / 2`, TID 0, the station's WLAN index, own-MAC index,
-  TC4 lifetime and count limits, the BSS default fixed rate, and, because the
-  vendor wants a completion, a PID with TX status to the MCU. The payload is
-  the 802.3 frame; the firmware builds the 802.11 header.
-- Consequence: C2 can reuse the existing TC4 management path and ledger for
-  EAPOL. mac80211 hands the control-port frame to `.tx` as an 802.11 data
-  frame (`ieee80211_tx_control_port`, flag `IEEE80211_TX_CTRL_PORT_CTRL_PROTO`);
-  the driver converts it back to 802.3 and submits it with a second descriptor
-  builder for the security-frame shape, keeping the management builder
-  unchanged. Pages are counted as for management, `(28 + bytes + 127) / 128`,
-  and returned through the same WTQCR word 7 (CPU and FFA halves) the ledger
-  already reconciles. Only one EAPOL frame is in flight at a time, as today.
-- The data access categories are a C3 matter: AIS maps best-effort traffic to
-  TC1 (LMAC port 0, queue AC1; 36 buffers of 13 pages in the vendor's
-  host-side quota table) with an 8-byte short descriptor, and their releases
-  arrive in WTQCR words 0 to 3, which the present ledger refuses as a
-  fail-stop. Extending the ledger is C3 work, not C2.
+### Retained uncertainty, as device branches
 
-### EAPOL receive
+- Whether the firmware accepts the key commands (credit returned, no refusal
+  record) and whether declaring WPA2 at BSS configuration leaves the clear
+  message 3 undisturbed, as it does in the vendor flow.
+- Whether the firmware's BSSID tag changes after the BSS configuration; a
+  frame tagged 15 after that point is refused with its header named, as today.
+- Protected data in either direction is Stage C3 and is not claimed by C2.
 
-The 0140 decoder already covers both layouts the firmware may use. For the
-translated layout it rebuilds the 32-byte 802.11 header plus LLC/SNAP from
-RXD group 4 (`prefix`), so the driver can deliver `prefix + EAPOL body` to
-`ieee80211_rx` without any mac80211 change; for the native layout the frame
-is delivered as received. mac80211 then routes the frame to the supplicant
-through `cfg80211_rx_control_port` (`net/mac80211/rx.c`). Which layout the
-firmware uses for this BSS is exactly what runtime 9 measures. Translation is
-decided by the firmware; the pinned headers expose no command that selects it.
+### Lifecycle and budgets
 
-### Crypto ownership
+The lifetime keeps the existing grant (9 s) and join deadline (10 s), one
+scan, one authentication, one association, at most two received EAPOL frames
+(messages 1 and 3) and at most two transmitted (messages 2 and 4), each
+EAPOL frame submitted only after the firmware activation (held in the
+existing queue otherwise), two key commands, and the single driver-built
+deauthentication. The deauthentication hold becomes: until both keys are
+installed plus one second, or four seconds after activation if they are not,
+never later than 1.5 s before the grant or join deadline. Every refusal,
+overflow or deadline ends the lifetime exactly as today, through the same
+teardown, and the reviewed recovery is unchanged.
 
-- Vendor fact: the firmware encrypts only when the TXD protected bit is set,
-  and the vendor sets it only when the BSS is declared encrypted
-  (`secIsProtectedFrame` → `secIsProtectedBss`); the key lives in the WTBL
-  entry installed by `CMD_ID_ADD_REMOVAL_KEY` (`CMD_802_11_KEY`: add, TX key,
-  unicast type, peer address, BSS index, `CIPHER_SUITE_CCMP` = 4, key id,
-  16-byte material, the station's WLAN index for the pairwise key and the BMC
-  WLAN index for the group key, RSC) and the BSS payload declares
-  `AUTH_MODE_WPA2_PSK` = 7 and `ENUM_ENCRYPTION3_ENABLED` = 6.
-- mac80211 fact: with no `set_key` operation the key stays in software
-  (`net/mac80211/key.c`), mac80211 encrypts CCMP itself, sets the protected
-  bit in the frame control and expects to decrypt received frames itself.
-- Two admissible designs, decided by measurement, not preference:
-  (a) software crypto, BSS stays encryption-disabled, no key command, TXD
-  protected bit clear; requires that the firmware forwards frames whose frame
-  control carries the protected bit for an unencrypted BSS in both directions,
-  which no pinned source answers; (b) firmware keys through `set_key` with the
-  vendor command, BSS declared WPA2-PSK/encryption 3, TXD protected bit set
-  on data; requires knowing whether the hardware strips the CCMP header and
-  MIC on receive (`RX_FLAG_DECRYPTED`, `RX_FLAG_IV_STRIPPED`), which the
-  translated layout implies and the native layout leaves open. The handshake
-  itself needs no key in either design; C2 installs the keys at its end and
-  measures one protected frame in each direction before C3.
+### Supplicant and credential input
 
-### Station record
+The static wpa_supplicant 2.11 (`0487b710…`) joins the RAM root as
+`bin/wpa_supplicant` through the composer's member mechanism (63 members).
+The bound session script writes a mode-0600 configuration in RAM from
+private variables embedded by the private binding step (SSID, BSSID and the
+64-hex PSK), from the template in [`helper/wpa_supplicant.conf.template`](helper/wpa_supplicant.conf.template):
+`passive_scan=1`, `ap_scan=1`, one network with `proto=RSN key_mgmt=WPA-PSK
+pairwise=CCMP group=CCMP ieee80211w=0 scan_freq=5200 freq_list=5200` and the
+pinned `bssid`. The supplicant runs with `-d` and never `-K`, logging to a
+RAM file that stays private; the session reads only fixed phrases from it
+(`CTRL-EVENT-SCAN-RESULTS`, `Associated with`, `WPA: Key negotiation
+completed`, `CTRL-EVENT-CONNECTED`, `CTRL-EVENT-DISCONNECTED`) with addresses
+redacted, and stops it after the lifetime ends.
 
-The submitted station record declares no QoS (`ucIsQoS` = 0). mac80211 will
-emit QoS data frames if the association response advertises WMM; for EAPOL
-this is moot because the driver re-encapsulates to 802.3 on TC4, but C3's
-data path must either declare QoS in the record or strip it from frames.
+The PSK comes from the credential already configured in Gemian, by owner
+decision. [`helper/extract-gemian-credential.py`](helper/extract-gemian-credential.py)
+runs on the laptop only: it reads the exact SSID from the existing private
+target file, verifies the live Gemian boot identity and kernel release
+through the private SSH helper named by the environment, requires exactly
+one connman service whose `Name` equals that SSID, streams that service's
+`Passphrase` value straight into a fresh mode-0600 file under a fresh
+mode-0700 directory, derives the 32-byte PSK (PBKDF2-HMAC-SHA1, 4096
+rounds, the SSID as salt) into a second mode-0600 file, and writes a
+provenance record without any secret. No secret reaches stdout, stderr,
+an argument, a log or this chat; nothing on the device is written,
+reconfigured or copied in bulk.
 
-Runtime 9 ([RUNTIME_9.md](RUNTIME_9.md)) stopped at the driver's own
-admission predicate; proposal 0149 admitted the RSN body. Runtime 10
-([RUNTIME_10.md](RUNTIME_10.md)) then measured the AP's acceptance: the
-RSN-bearing association was answered with status 0. The next received packet,
-147 bytes of data type with group 4 only and no RX vector, was refused by the
-frame gate because both the 0140 decoder and the management gate required
-the vector; its identity is unmeasured. Proposals 0150 (refused-frame header
-record) and 0151 (vector optional in the decoder) were built; runtime 11
-([RUNTIME_11.md](RUNTIME_11.md)) named the header: translated, clear, from
-the target, EAPOL Ethernet type, BSSID field 15, refused by the decoder's
-byte-7 check. Proposal 0152 admits BSSID tag 15 until the successful BSS command
-credit completion is recorded. Runtime 12 ([RUNTIME_12.md](RUNTIME_12.md))
-then passed C1: the frame was observed (translated, no RX vector, tag 15,
-before activation), the association completed in mac80211, the station
-activated, and the teardown was healthy. Resolved: the EAPOL layout on the
-wire is translated Ethernet without an RX vector, and the first frame arrives
-before both the stack's association and the activation. Still open until C2: the EAPOL layout on the wire and whether the first frame
-arrives before or after the local activation. C2 code follows this
-document's update with that evidence.
+### Classifier and evidence
+
+The accepted C2 path adds, to the C1 grammar: `eapol delivered` (at most
+two, each with layout, length, vector and BSS fields), `eapol sent` (at most
+two, PID, pages), `key installed: pairwise|group` (at most one each, no
+material, no id), the supplicant's fixed phrases from the session, and the
+unchanged deauthentication and teardown. `wifi_operational` stays false.
+
+### Device protocol, stated in advance
+
+One boot: the supplicant's one passive channel-40 scan, its open-system
+authentication and RSN association, the two EAPOL frames each way, the two
+key commands, the hold, the driver's deauthentication and the three-stage
+teardown; reviewed native recovery; the sealed log and sanitized phrases are
+the evidence. Branches: handshake completed and both keys installed, then a
+healthy teardown; EAPOL framing admitted but the supplicant does not complete
+(its log phrase and the driver records decide); a key command refused or
+unanswered (refusal metadata, teardown); a scan or association shape refused
+by the driver (named refusal); or the AP's behaviour differs. No branch
+repeats a boot without a decision-changing change.
 
 ## Stage C3: data, DHCP, ping, SSH
 

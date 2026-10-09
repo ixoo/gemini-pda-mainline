@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: MIT
+# Phase C2 supplicant configuration template. The private binding step
+# substitutes the three placeholders and writes the result to a mode-0600
+# RAM file on the device; the result is never published or logged.
+# passive_scan=1: one passive scan, no probe requests (scan.c, "Use passive
+# scan based on configuration"); the driver admits exactly one passive
+# single-channel scan.
+ctrl_interface=/tmp/wpa
+passive_scan=1
+ap_scan=1
+network={
+	ssid="@SSID@"
+	bssid=@BSSID@
+	scan_freq=5200
+	freq_list=5200
+	proto=RSN
+	key_mgmt=WPA-PSK
+	pairwise=CCMP
+	group=CCMP
+	ieee80211w=0
+	psk=@PSK_HEX@
+}

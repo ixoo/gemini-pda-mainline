@@ -494,6 +494,15 @@ booted:
   `netlink_ack` and `genlmsg_put_reply` stamp it, and are not checked. The
   family reply, which for nl80211 exceeds 512 bytes with its operation list,
   is parsed from a reply-sized buffer and a truncated datagram is refused.
+- **Phase C2 preparation (design under review, nothing built).**
+  `helper/wpa_supplicant.conf.template` is the supplicant configuration the
+  private binding step fills (passive single-channel scan, one RSN network,
+  PSK placeholder). `helper/extract-gemian-credential.py` copies the existing
+  Gemian credential for the exact private target into fresh mode-0600 input
+  files on the laptop, read-only on the device, with identity and uniqueness
+  gates and no secret on any output; `tests/credential-tool-test.py` drives it
+  against a fake remote helper. The C2 design findings are in
+  [PHASE_C](PHASE_C.md).
 - **Phase C2 supplicant, pinned, not yet admitted.** `helper/build-wpa-supplicant.sh`
   with `helper/wpa_supplicant.config` builds upstream wpa_supplicant 2.11
   with libnl 3.11.0 as one static aarch64 binary (SHA-256 `0487b710…`,
