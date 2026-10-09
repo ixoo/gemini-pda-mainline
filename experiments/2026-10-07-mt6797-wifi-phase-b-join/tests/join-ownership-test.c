@@ -42,7 +42,8 @@ typedef uint64_t u64;
 #define min_t(t, a, b) min((t)(a), (t)(b))
 #define container_of(p, t, m) ((t *)((char *)(p) - offsetof(t, m)))
 static unsigned int infos; /* production dev_info records */
-#define dev_info(...) do { infos++; } while (0)
+/* Counted, format-checked, never printed: the arguments stay evaluated. */
+#define dev_info(dev, ...) do { (void)(dev); infos++; if (0) printf(__VA_ARGS__); } while (0)
 #define dev_err(...) do { } while (0)
 #define __maybe_unused __attribute__((unused))
 #define wiphy_dev(w) (w)
@@ -51,6 +52,7 @@ static unsigned int infos; /* production dev_info records */
 #include "join-rx.h"
 #include "join-tx.h"
 #include "eapol-rx.h"
+#include "join-refused.h"
 #include "scan-wire.h"
 
 struct mutex { int held; };
@@ -400,7 +402,7 @@ static void run_worker(void)
  * in the public gen3 RXD layout, native (groups 4) or translated Ethernet
  * (groups 4 and 8), as the 0140 decoder fixture builds it; no key material.
  */
-static void script_eapol(bool translated)
+static void script_eapol_layout(bool translated, bool vector, bool padding)
 {
 	static const u8 origin[ETH_ALEN] = { 2, 0, 0, 0, 0, 3 };
 	static const u8 native_header[32] = {
@@ -408,20 +410,24 @@ static void script_eapol(bool translated)
 		2, 0, 0, 0, 0, 3, 0x30, 0x12, 0xaa, 0xaa, 3, 0, 0, 0, 0x88, 0x8e
 	};
 	u8 *p = script[script_count];
-	unsigned groups = translated ? 12 : 4;
+	unsigned groups = (translated ? 8 : 0) | (vector ? 4 : 0);
 	size_t off = 16, payload, bytes;
 	unsigned length = 95;
 
 	assert(script_count < 6);
 	memset(p, 0, sizeof(script[0]));
 	put_unaligned_le16(0x4000 | groups << 9, p + 2);
-	p[4] = 2; p[5] = 40; p[6] = translated ? 0x8e : 24; p[8] = 1;
+	p[4] = 2; p[5] = 40; p[6] = (translated ? 0x8e : 24) | (padding ? 0x40 : 0); p[8] = 1;
 	put_unaligned_le16(0xc000, p + 10);
 	if (groups & 8) {
 		p[off] = 8; p[off + 1] = 2;
 		memcpy(p + off + 2, ap, ETH_ALEN); put_unaligned_le16(0x1230, p + off + 8); off += 16;
 	}
-	p[off + 9] = 51; off += 24;
+	if (vector) {
+		p[off + 9] = 51; off += 24;
+	}
+	if (padding)
+		off += 2;
 	if (translated) {
 		memcpy(p + off, own, ETH_ALEN); memcpy(p + off + 6, origin, ETH_ALEN);
 		p[off + 12] = 0x88; p[off + 13] = 0x8e; payload = off + 14;
@@ -435,6 +441,8 @@ static void script_eapol(bool translated)
 	put_unaligned_le16(bytes, p);
 	script_bytes[script_count++] = bytes;
 }
+
+static void script_eapol(bool translated) { script_eapol_layout(translated, true, false); }
 
 static void submit_inflight(void)
 {
@@ -533,7 +541,16 @@ int main(void)
 	assert(mac.first_error == -EPROTO && !mac.join_eapol_seen);
 	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 45; script_eapol(true); run_worker();
 	assert(mac.first_error == -EPROTO && !mac.join_eapol_seen);
-	/* 5c. After the deauthentication completed the window is closed. */
+	/* 5c. The runtime-10 shape: translated, group 4 only, header padding,
+	 *     147 bytes, before activation. With group 3 optional it is observed.
+	 */
+	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = false;
+	script_eapol_layout(true, false, true);
+	assert(script_bytes[script_count - 1] == 147);
+	run_worker();
+	assert(!mac.first_error && mac.join_eapol_seen == 1 && !rx_delivered && !submissions && mac.join_running);
+	mt6797_mac_join_close(&mac);
+	/* 5d. After the deauthentication completed the window is closed. */
 	setup(); mac.join_assoc_received = true; mac.join_deauth_done = true; script_eapol(false); run_worker();
 	assert(mac.first_error == -EPROTO && !mac.join_eapol_seen);
 

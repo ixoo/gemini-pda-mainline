@@ -1,0 +1,104 @@
+{
+ "experiment": "mt6797-wifi-phase-b",
+ "runtime": 10,
+ "profile": "mt6797-a53-wifi-phase-b-compile",
+ "kernel_release": "7.1.3-gemini-a53-wifi-phase-b-compile",
+ "host_revision": "baaac9f5",
+ "build_input": "9ce81bc3ee2833f19e64a5cb57c31c0f80a0c149",
+ "package_inventory_sha256": "3ecfdecbbc115528e8f6a36add90f05a431095edd059a52730125454a20125c0",
+ "candidate_manifest_sha256": "d6857436259f11f1cdaf30b1f4545f37248ad607e8521ef5a82276321f80c07d",
+ "candidate_boot2_sha256": "8d2c87f97e37e0bdc54dcb82b5ce026f876c83cbd72988c377a2627e23598df7",
+ "mainline_boot_id": "084bf978-f3e9-4afe-b4f4-09be8e44cb11",
+ "returned_gemian_boot_id": "a51fe04d-b674-4e6a-bcab-567a545f878f",
+ "common_init": {
+  "steps": 285,
+  "completed": 285,
+  "result": 0,
+  "calibration_ack_frames": 1,
+  "pa_rails_off_after": true,
+  "bt_h1_absent": true
+ },
+ "scan": {
+  "attempted": true,
+  "completed": true,
+  "passive_scan_demonstrated": true,
+  "standard_scan_succeeded": true,
+  "host_elapsed_us": 537375,
+  "firmware_management_processing_count": 15,
+  "owner_bss_matched": true,
+  "scan_exit": 0,
+  "rf_tuning_verified": false
+ },
+ "join": {
+  "attempted": true,
+  "connect_request": "acknowledged",
+  "kernel_errno": 0,
+  "connect_exit": 0,
+  "request_shape": "WPA2-PSK CCMP connect with the fixed RSN element (Phase C1 helper bc499f28), admitted by proposal 0149",
+  "authentication": {
+   "tx_pid": 1,
+   "tx_pages": 1,
+   "tx_done_status": 0,
+   "tx_done_count": 2,
+   "rx_status": 0,
+   "mac80211": "authenticated"
+  },
+  "association": {
+   "tx_pid": 2,
+   "tx_pages": 1,
+   "tx_done_status": 0,
+   "tx_done_count": 1,
+   "rx_status": 0,
+   "mac80211": "associate with ... (try 1/3); the response was accepted by the driver before mac80211 acted on it",
+   "measured": "the first accepted association of this project: request acknowledged, response status 0",
+   "response_disposition": "validated and logged by the driver and queued for mac80211; discarded with the lifetime when the worker stopped on the next packet in the same tick; mac80211's association did not complete"
+  },
+  "refused_packet": {
+   "measured": {
+    "bytes": 147,
+    "rxd_type_word": "0x51af",
+    "allowed_subtype_mask": "0x1402",
+    "footer": "stopped: status=-71 first=0 submitted=0x801 debt=0 cleanup=0 branch=7",
+    "timing": "the record immediately follows the accepted association response; no activation, EAPOL observation, deauthentication or cleanup record exists"
+   },
+   "derived_from_the_type_word": {
+    "packet_type": 2,
+    "groups": "0x8 (group 4 only; no groups 1, 2 or 3, so no RX vector)",
+    "low_bits": "0x1af (ethertype-offset field 47, both checksum bits set, as the pinned gen3 word-0 layout names them)"
+   },
+   "source_fact": "both the 0140 clear-EAPOL decoder and the management frame gate at this revision refuse any packet without RX vector group 3; the pinned gen3 receive path locates every status group from the group-valid bits and treats group 3 as optional",
+   "inference_not_measured": "147 = 16 base + 16 group 4 + 2 header padding + 14 Ethernet + 99 EAPOL-Key is consistent with a translated EAPOL-Key message 1; the packet was not captured, its header flags and payload are unknown, and it is not labelled EAPOL, native or translated",
+   "second_and_third_try": "mac80211's retries after retirement reached the closed queue; two host submissions in total"
+  },
+  "cleanup": null,
+  "refusal_recorded": true,
+  "diagnostic_records": [
+   "frame refused"
+  ],
+  "host_management_submissions": 2,
+  "unique_tx_acknowledgements": true,
+  "management_exchange_demonstrated": false,
+  "management_exchange_note": "false only because the lifetime ended without the deauthentication and teardown the accepted-path grammar requires; it does not mean the association was not accepted",
+  "association_response_status": 0,
+  "healthy_cleanup_demonstrated": false,
+  "stage_and_credit_order_verified": false,
+  "associated_station_activation_demonstrated": false,
+  "eapol_shape_observations": 0,
+  "terminal_failure_recorded": true,
+  "bounded_join_pass": false,
+  "session_verified": true
+ },
+ "total_credit_pages_logged": 6,
+ "log_complete": true,
+ "sealed_log_bytes": 151666,
+ "sealed_log_records": 2010,
+ "sealed_log_sha256": "449f497b3ef3f80724e254af0abbe83f74114ba9f4908f2226f0e9d7d014c016",
+ "pre_recovery_manifest_sha256": "a4a9ae02a140fab895f4e85ec78e7e8c9c231adde9705a4b97eff54e31bd764e",
+ "regression_pass": true,
+ "recovery_requested": true,
+ "recovery_confirmed": true,
+ "wifi_operational": false,
+ "raw_evidence_public": false,
+ "classification": "accepted association, then a refused receive: scan and open-system authentication as before, the RSN-bearing association request acknowledged and answered with status 0, then the next received packet (147 bytes, data type, group 4 only, no RX vector) refused by the frame gate, ending the lifetime before activation; no RF beyond the scan and the two management exchanges",
+ "support_limits": "the first accepted association (status 0) is demonstrated at the driver; mac80211 never processed the response, so no associated state existed; no station activation, no EAPOL observation, no key, no data frame, no traffic; the refused packet's identity is unmeasured; proposals 0150 (refused-frame header record) and 0151 (RX vector optional in the EAPOL decoder) follow"
+}

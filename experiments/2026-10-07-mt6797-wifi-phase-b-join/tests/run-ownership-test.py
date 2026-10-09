@@ -15,7 +15,7 @@ source = (driver / "mac.c").read_text()
 struct = re.search(r"struct mt6797_mac \{.*?\n\};", source, re.S)
 if not struct:
     parser.error("production struct mt6797_mac missing")
-names = ("mt6797_mac_join_frame", "mt6797_mac_join_guard",
+names = ("mt6797_mac_join_refused_frame", "mt6797_mac_join_frame", "mt6797_mac_join_guard",
          "mt6797_mac_join_retire_idle_bss", "mt6797_mac_join_close",
          "mt6797_mac_join_control_event", "mt6797_mac_join_cleanup_step",
          "mt6797_mac_join_work", "mt6797_mac_join_wait_credit",

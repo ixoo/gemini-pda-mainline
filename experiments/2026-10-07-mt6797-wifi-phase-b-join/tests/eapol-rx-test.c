@@ -32,7 +32,8 @@ static size_t fixture(unsigned char *p, unsigned groups, bool translated,
  }
  if (groups & 1) off += 16;
  if (groups & 2) off += 8;
- vector_at = off; p[off + 9] = 51; off += 24;
+ vector_at = 0;
+ if (groups & 4) { vector_at = off; p[off + 9] = 51; off += 24; }
  if (padding) off += 2;
  if (translated) {
   memcpy(p + off, own, 6); memcpy(p + off + 6, origin, 6);
@@ -63,15 +64,15 @@ int main(void)
 {
  unsigned char *p = malloc(4096); assert(p);
  unsigned cases = 0;
- for (unsigned groups = 4; groups < 16; groups++) {
-  if (!(groups & 4)) continue;
+ for (unsigned groups = 0; groups < 16; groups++) {
   for (unsigned trans = 0; trans < 2; trans++) {
    if (trans && !(groups & 8)) continue;
    for (unsigned pad = 0; pad < 2; pad++) {
     size_t n = fixture(p, groups, trans, pad, 22);
     struct mt6797_eapol_rx out;
     assert(mt6797_eapol_rx(p, n, 40, own, ap, &out));
-    assert(out.signal_dbm == -85);
+    assert(out.signal_valid == !!(groups & 4));
+    assert(out.signal_dbm == (vector_at ? -85 : 0));
     assert(out.offset <= n && out.bytes == n - out.offset);
     assert(out.prefix_bytes == (trans ? 32 : 0));
     if (trans) {
@@ -97,8 +98,10 @@ int main(void)
     mutation(p, n, 8, 1); /* WLAN owner */
     mutation(p, n, 9, 0x40); /* firmware CCMP, not clear */
     for (unsigned bit = 0; bit < 16; bit++) mutation(p, n, 10 + bit / 8, 1 << (bit % 8));
-    unsigned char rcpi = p[vector_at + 9]; p[vector_at + 9] = 221;
-    reject(p, n); p[vector_at + 9] = rcpi;
+    if (vector_at) {
+     unsigned char rcpi = p[vector_at + 9]; p[vector_at + 9] = 221;
+     reject(p, n); p[vector_at + 9] = rcpi;
+    }
     mutation(p, n, payload_at, 4); /* invalid EAPOL version */
     mutation(p, n, payload_at + 1, 1); /* not EAPOL-Key */
     mutation(p, n, payload_at + 2, 1); /* declared body */
@@ -126,8 +129,18 @@ int main(void)
  size_t n = fixture(p, 12, true, false, 0);
  assert(mt6797_eapol_rx(p, n, 40, own, ap, &(struct mt6797_eapol_rx){0}));
  p[3] &= ~0x10; reject(p, n); /* translated without group 4 */
+ /* Runtime 10 measured a refused 147-byte data packet with group 4 only:
+  * a translated frame with the header padding bit and a 95-byte EAPOL-Key
+  * body has exactly that length. The arithmetic is consistency, not the
+  * packet's identity, which was never captured.
+  */
+ n = fixture(p, 8, true, true, 0);
+ assert(n == 147);
+ struct mt6797_eapol_rx no_vector;
+ assert(mt6797_eapol_rx(p, n, 40, own, ap, &no_vector));
+ assert(!no_vector.signal_valid && no_vector.signal_dbm == 0 && no_vector.bytes == 99 && no_vector.prefix_bytes == 32);
  n = fixture(p, 12, true, false, 0);
- p[3] &= ~8; reject(p, n); /* no group 3 */
+ p[3] &= ~8; reject(p, n); /* group 3 flagged absent while its bytes remain: layout mismatch */
  n = fixture(p, 12, true, false, 1953); /* maximum body 2048 */
  assert(mt6797_eapol_rx(p, n, 40, own, ap, &(struct mt6797_eapol_rx){0}));
  n = fixture(p, 12, true, false, 1954); reject(p, n);

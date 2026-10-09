@@ -1,0 +1,84 @@
+From 6267eb4cd59be97dbae8d1b17683e621b3762b4e Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 9 Oct 2026 19:35:03 +0000
+Subject: [PATCH 151/151] wifi: mt6797: accept a clear EAPOL receive layout
+ without the RX vector group
+
+The clear EAPOL decoder refused any packet whose RXD carried no RX
+vector (group 3), because the signal was read from it. In the pinned
+gen3 receive path every status group is optional and located from the
+group-valid bits, and runtime 10 measured a 147-byte data packet from
+the firmware with group 4 only, immediately after the accepted
+association; its identity is not measured, but a decoder that refuses
+every vector-less packet cannot observe it whatever it is.
+
+Make group 3 optional: locate the groups as before, read and bound the
+RCPI only when the vector is present, and report the signal as invalid
+otherwise. Every other check keeps its exact form: the peer and channel
+identity, the non-QoS non-aggregated clear From-DS frame control, the
+layout bounds and the complete EAPOL-Key framing. The observation
+record gains the vector flag so the measured layout is explicit.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/net/wireless/mediatek/mt6797/eapol-rx.h | 8 ++++++--
+ drivers/net/wireless/mediatek/mt6797/mac.c      | 4 ++--
+ 2 files changed, 8 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/eapol-rx.h b/drivers/net/wireless/mediatek/mt6797/eapol-rx.h
+index eca0d190f..61bbf982e 100644
+--- a/drivers/net/wireless/mediatek/mt6797/eapol-rx.h
++++ b/drivers/net/wireless/mediatek/mt6797/eapol-rx.h
+@@ -8,11 +8,14 @@ struct mt6797_eapol_rx {
+ 	unsigned char prefix[32];
+ 	size_t prefix_bytes, offset, bytes;
+ 	int signal_dbm;
++	bool signal_valid; /* False when the firmware omitted RX vector group 3. */
+ };
+ 
+ /* Original decoder of the public gen3 RXD layout. Clear, nonaggregated,
+  * non-QoS From-DS EAPOL-Key only; peer lifetime and admission belong to caller.
+  * Translated Ethernet needs group 4 to restore the AP and sequence identity.
++ * RX vector group 3 is optional, as in the pinned gen3 receive path; without
++ * it the signal is reported invalid rather than the packet refused.
+  * No firmware crypto, key material, transport, allocation or effects here.
+  */
+ static inline bool
+@@ -48,7 +51,7 @@ mt6797_eapol_rx(const unsigned char *packet, size_t bytes,
+ 	}
+ 	if (packet[6] & 0x40)
+ 		offset += 2;
+-	if (!vector || offset > bytes || packet[vector + 9] > 220)
++	if (offset > bytes || (vector && packet[vector + 9] > 220))
+ 		return false;
+ 	translated = packet[6] & 0x80;
+ 	f = packet + offset;
+@@ -112,7 +115,8 @@ mt6797_eapol_rx(const unsigned char *packet, size_t bytes,
+ 	    (((unsigned int)packet[eapol + 97] << 8) | packet[eapol + 98]) != length - 95)
+ 		return false;
+ 	r.bytes = bytes - r.offset;
+-	r.signal_dbm = (int)packet[vector + 9] / 2 - 110;
++	r.signal_valid = vector != 0;
++	r.signal_dbm = vector ? (int)packet[vector + 9] / 2 - 110 : 0;
+ 	*out = r;
+ 	return true;
+ }
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index b836642a7..dcd4d95af 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -1076,9 +1076,9 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 				mac->join_eapol_seen++;
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ 				dev_info(wiphy_dev(mac->hw->wiphy),
+-					 "one-shot WLAN join eapol observed: translated=%u frame=%zu activated=%u\n",
++					 "one-shot WLAN join eapol observed: translated=%u frame=%zu activated=%u vector=%u\n",
+ 					 eapol.prefix_bytes != 0, eapol.bytes,
+-					 mac->join_sta_active);
++					 mac->join_sta_active, eapol.signal_valid);
+ #endif
+ 				continue;
+ 			}
+-- 
+2.39.5
+

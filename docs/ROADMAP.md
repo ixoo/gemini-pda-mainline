@@ -37,8 +37,10 @@ Keep this file under 200 lines; move anything else to an experiment record.
   protected AP: authentication accepted, association denied as expected
   without an RSN element, finite teardown with every page returned
   ([runtime 8](../experiments/2026-10-07-mt6797-wifi-phase-b-join/RUNTIME_8.md)).
-  Management TX and RX are demonstrated; no accepted association or data.
-- **Open.** No accepted Wi-Fi association, key exchange or traffic. No charging, RTC alarm or lid.
+  With the RSN element, the association was accepted with status 0
+  ([runtime 10](../experiments/2026-10-07-mt6797-wifi-phase-b-join/RUNTIME_10.md));
+  the next received packet was refused before activation.
+- **Open.** No Wi-Fi station activation, key exchange or traffic. No charging, RTC alarm or lid.
   The `full` profile has never booted. No upstream submission. A72 and thermal
   protection are parked.
 - **Device.** The last session returned to changed-boot Gemian. Nothing is

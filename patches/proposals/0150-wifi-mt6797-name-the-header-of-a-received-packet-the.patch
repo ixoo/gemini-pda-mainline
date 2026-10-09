@@ -1,0 +1,185 @@
+From b242915637a78d6bb628d1d5803d79a579c02477 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 9 Oct 2026 19:35:02 +0000
+Subject: [PATCH 150/151] wifi: mt6797: name the header of a received packet
+ the join frame gate refuses
+
+Runtime 10 of the Phase C experiment reached an accepted association,
+and the next received packet, 147 bytes with RXD type 0x51af, was
+refused by the frame gate with only its length, type word and the
+permitted subtype mask recorded, which ends the lifetime without saying
+what the packet was. The type word says data packet type with group 4
+only and no RX vector; nothing else about the packet is known.
+
+Record, for a refused packet, a bounded summary next to those three
+values: the RXD base header bytes 4 to 11, the group set, the computed
+header offset, the group-4 frame control, sequence and whether its
+transmitter is the target, and the first wire word after the groups,
+the Ethernet type of a translated packet or the frame control of a
+native one. Interpreted fields exist only for a complete data-type RXD
+whose declared length is the buffer length; group-4 fields only when
+that group is whole; the first word only when the header the RXD
+declares is whole (translated header length 14, native at least 24
+bytes inside the packet, so a QoS header still yields its frame
+control). Everything else is zero or the 0x10000 sentinel. Lengths and
+flags only: no address and no payload byte is printed. The refusal
+itself is unchanged.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ .../wireless/mediatek/mt6797/join-refused.h   | 86 +++++++++++++++++++
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 31 +++++--
+ 2 files changed, 108 insertions(+), 9 deletions(-)
+ create mode 100644 drivers/net/wireless/mediatek/mt6797/join-refused.h
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-refused.h b/drivers/net/wireless/mediatek/mt6797/join-refused.h
+new file mode 100644
+index 000000000..a34b833f2
+--- /dev/null
++++ b/drivers/net/wireless/mediatek/mt6797/join-refused.h
+@@ -0,0 +1,86 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef MT6797_JOIN_REFUSED_H
++#define MT6797_JOIN_REFUSED_H
++
++#include "join-events.h"
++
++#define MT6797_JOIN_REFUSED_UNKNOWN 0x10000U
++
++/* Bounded summary of a received packet the join frame gate refused: lengths
++ * and flags only, no address and no payload byte. Interpreted fields exist
++ * only for a complete data-type RXD (at least 16 bytes, declared length equal
++ * to the buffer, packet type 2); group-4 fields only when group 4 is present
++ * and whole; the first wire word only when the header the RXD declares is
++ * whole: the Ethernet type of a translated packet with header length 14, the
++ * frame control of a native packet with a header of at least 24 bytes (26 for
++ * QoS) inside the packet. Everything else is zero or the unknown sentinel.
++ */
++struct mt6797_join_refused {
++	unsigned int type;        /* RXD word 1, or the sentinel below 4 bytes. */
++	bool base_valid;          /* Complete data-type RXD base header. */
++	unsigned char hdr[8];     /* RXD bytes 4..11 when base_valid, else zero. */
++	unsigned int groups;      /* Group-valid bits when base_valid, else zero. */
++	size_t at;                /* Header offset when base_valid, else zero. */
++	unsigned int g4fc, g4seq; /* Group-4 words, or the sentinel. */
++	bool g4ta;                /* Group-4 transmitter is the target. */
++	bool translated;          /* RXD header-translation flag when base_valid. */
++	unsigned int first;       /* Ethernet type or frame control, or sentinel. */
++};
++
++static inline void
++mt6797_join_refused_summary(const unsigned char *packet, size_t bytes,
++			    const unsigned char ap[6],
++			    struct mt6797_join_refused *out)
++{
++	struct mt6797_join_refused r = {
++		.type = MT6797_JOIN_REFUSED_UNKNOWN,
++		.g4fc = MT6797_JOIN_REFUSED_UNKNOWN,
++		.g4seq = MT6797_JOIN_REFUSED_UNKNOWN,
++		.first = MT6797_JOIN_REFUSED_UNKNOWN,
++	};
++	unsigned int header_length, i;
++
++	if (!out)
++		return;
++	if (!packet || bytes < 4) {
++		*out = r;
++		return;
++	}
++	r.type = mt6797_join_le16(packet + 2);
++	if (bytes < 16 || mt6797_join_le16(packet) != bytes ||
++	    (r.type >> 13) != 2) {
++		*out = r;
++		return;
++	}
++	r.base_valid = true;
++	for (i = 0; i < 8; i++)
++		r.hdr[i] = packet[4 + i];
++	r.groups = (r.type >> 9) & 15;
++	r.at = 16;
++	if (r.groups & 8)
++		r.at += 16;
++	if (r.groups & 1)
++		r.at += 16;
++	if (r.groups & 2)
++		r.at += 8;
++	if (r.groups & 4)
++		r.at += 24;
++	if (packet[6] & 0x40)
++		r.at += 2;
++	r.translated = packet[6] & 0x80;
++	header_length = packet[6] & 0x3f;
++	if ((r.groups & 8) && bytes >= 32) {
++		r.g4fc = mt6797_join_le16(packet + 16);
++		r.g4seq = mt6797_join_le16(packet + 24);
++		r.g4ta = ap && !memcmp(packet + 18, ap, 6);
++	}
++	if (r.at <= bytes) {
++		if (r.translated && header_length == 14 && bytes - r.at >= 14)
++			r.first = packet[r.at + 12] << 8 | packet[r.at + 13];
++		else if (!r.translated && header_length >= 24 &&
++			 bytes - r.at >= header_length)
++			r.first = mt6797_join_le16(packet + r.at);
++	}
++	*out = r;
++}
++#endif
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 987103627..b836642a7 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -17,6 +17,7 @@
+ #include "scan-wire.h"
+ #include "join-rx.h"
+ #include "eapol-rx.h"
++#include "join-refused.h"
+ #include "join-tx.h"
+ #include "join-commands.h"
+ 
+@@ -456,6 +457,26 @@ static const u8 mt6797_join_rsn_body[20] = {
+ };
+ #endif
+ 
++/* Diagnostic for a received packet the frame gate refused: the bounded
++ * summary of join-refused.h (RXD base bytes 4 to 11, group set, header offset,
++ * group-4 frame control, sequence and target match, and the first wire word
++ * after the groups) next to the original length, type word and permitted
++ * subtype mask. Lengths and flags only; no address and no payload byte, and
++ * nothing is interpreted for a packet that is not a complete data-type RXD.
++ */
++static void mt6797_mac_join_refused_frame(struct mt6797_mac *mac, size_t bytes)
++{
++	struct mt6797_join_refused r;
++
++	mt6797_join_refused_summary(mac->join_packet, bytes, mac->join_ap, &r);
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot WLAN join frame refused: bytes=%zu type=0x%x allowed=0x%x hdr=%02x%02x%02x%02x%02x%02x%02x%02x groups=0x%x at=%zu g4fc=0x%x g4seq=0x%x g4ta=%u translated=%u first=0x%x\n",
++		 bytes, r.type, mac->join_rx_allowed,
++		 r.hdr[0], r.hdr[1], r.hdr[2], r.hdr[3],
++		 r.hdr[4], r.hdr[5], r.hdr[6], r.hdr[7],
++		 r.groups, r.at, r.g4fc, r.g4seq, r.g4ta, r.translated, r.first);
++}
++
+ /* Initial queue is closed. Only the forthcoming owned join state callbacks
+ 	* may open it after the scan/peer/channel gates; there is no device admission.
+ 	*/
+@@ -1064,15 +1085,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 			if (!mt6797_join_rx_frame(mac->join_packet, rx.logical_bytes, 40,
+ 			    mac->hw->wiphy->perm_addr, mac->join_ap,
+ 			    mac->join_rx_allowed, &frame)) {
+-				/* Framing metadata only: length and wire type, no address.
+-				 * A frame too short for a type prints the sentinel 0x10000.
+-				 */
+-				dev_info(wiphy_dev(mac->hw->wiphy),
+-					 "one-shot WLAN join frame refused: bytes=%zu type=0x%x allowed=0x%x\n",
+-					 rx.logical_bytes,
+-					 rx.logical_bytes >= 4 ?
+-					 mt6797_join_le16(mac->join_packet + 2) : 0x10000U,
+-					 mac->join_rx_allowed);
++				mt6797_mac_join_refused_frame(mac, rx.logical_bytes);
+ 				ret = -EPROTO;
+ 				goto failed;
+ 			}
+-- 
+2.39.5
+

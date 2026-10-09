@@ -224,13 +224,17 @@ emit QoS data frames if the association response advertises WMM; for EAPOL
 this is moot because the driver re-encapsulates to 802.3 on TC4, but C3's
 data path must either declare QoS in the record or strip it from frames.
 
-Runtime 9 ([RUNTIME_9.md](RUNTIME_9.md)) did not answer these: the C1
-request stopped at the driver's own admission predicate, which still refused
-the RSN element. Proposal 0149 admits exactly the helper's RSN body; the C1
-boot is repeated once with it. Still open: the AP's acceptance with the RSN
-element, the EAPOL layout on the wire, and whether the first frame arrives
-before or after the local activation. C2 code follows this document's update
-with that evidence.
+Runtime 9 ([RUNTIME_9.md](RUNTIME_9.md)) stopped at the driver's own
+admission predicate; proposal 0149 admitted the RSN body. Runtime 10
+([RUNTIME_10.md](RUNTIME_10.md)) then measured the AP's acceptance: the
+RSN-bearing association was answered with status 0. The next received packet,
+147 bytes of data type with group 4 only and no RX vector, was refused by the
+frame gate because both the 0140 decoder and the management gate required
+the vector; its identity is unmeasured. Proposals 0150 (refused-frame header
+record) and 0151 (vector optional in the decoder) follow for one more C1
+boot. Still open: the EAPOL layout on the wire and whether the first frame
+arrives before or after the local activation. C2 code follows this
+document's update with that evidence.
 
 ## Stage C3: data, DHCP, ping, SSH
 

@@ -24,7 +24,9 @@ def classify(raw):
     # admitted BSS absence indication is a notification, not a refusal.
     refusals = (
         rb'control event refused: status=-\d{1,3} bytes=\d{1,5} type=0x[0-9a-f]{1,5} id=0x[0-9a-f]{2} seq=' + byte,
-        rb'frame refused: bytes=\d{1,5} type=0x[0-9a-f]{1,5} allowed=0x[0-9a-f]{1,8}',
+        rb'frame refused: bytes=\d{1,5} type=0x[0-9a-f]{1,5} allowed=0x[0-9a-f]{1,8}'
+        rb'(?: hdr=[0-9a-f]{16} groups=0x[0-9a-f] at=\d{1,4} g4fc=0x[0-9a-f]{1,5} g4seq=0x[0-9a-f]{1,5}'
+        rb' g4ta=[01] translated=[01] first=0x[0-9a-f]{1,5})?',
         rb'cleanup refused: stage=[0-3] phase=\d{1,2} free=\d{1,5} limit=\d{1,5} pending_cpu=\d{1,5} pending_ffa=\d{1,5} sequences=[01] locked=[01]',
         rb'credit overflow: pages=\d{1,5} debt=\d{1,3}',
         # An element of a mac80211 frame outside this admission (one record per lifetime).
@@ -32,7 +34,7 @@ def classify(raw):
     )
     notifications = (rb'bss absence: bss=0 absent=[01] quota=' + byte + rb' reserved=' + byte,
                      # Phase C1: a clear EAPOL-Key frame from the target, decoded and dropped.
-                     rb'eapol observed: translated=[01] frame=\d{1,4} activated=[01]')
+                     rb'eapol observed: translated=[01] frame=\d{1,4} activated=[01] vector=[01]')
     diagnostics = refusals + notifications
     rows = {name: [] for name in patterns}
     diagnostic_lines = []
@@ -63,7 +65,7 @@ def classify(raw):
                 elif body.startswith(b'eapol observed:'):
                     fields = dict(part.split(b'=') for part in body.split(b': ', 1)[1].split(b' '))
                     eapol_rows.append((index, int(fields[b'translated']), int(fields[b'frame']),
-                                       int(fields[b'activated'])))
+                                       int(fields[b'activated']), int(fields[b'vector'])))
                 else:
                     refused = True
             else:
@@ -119,7 +121,7 @@ def classify(raw):
                 len(deauth_tx) != 1 or len(deauth_done) != 1):
             malformed = True
         else:
-            for index, translated, frame, activated in eapol_rows:
+            for index, translated, frame, activated, _vector in eapol_rows:
                 low, high = (99, 2052) if translated else (131, 2084)
                 if (not (association_at < index < deauth_done[0]) or not (low <= frame <= high) or
                         activated != int(index > activation_at)):
@@ -162,7 +164,7 @@ def classify(raw):
         'diagnostic_records': diagnostic_lines,
         'refusal_recorded': refused,
         'eapol_shape_observations': len(eapol_rows),
-        'eapol_observations': [{'translated': t, 'frame': f, 'activated': a} for _, t, f, a in eapol_rows],
+        'eapol_observations': [{'translated': t, 'frame': f, 'activated': a, 'vector': v} for _, t, f, a, v in eapol_rows],
         'terminal_failure_recorded': stopped,
         'wifi_operational': False,
     }
