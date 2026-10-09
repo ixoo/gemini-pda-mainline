@@ -389,8 +389,8 @@ deployment or device action until that review's go.
 
 One boot: the supplicant's one passive channel-40 scan, its open-system
 authentication and RSN association, the two EAPOL frames each way, the two
-key commands, the hold, the two key removals, the driver's deauthentication
-and the three-stage teardown; reviewed native recovery; the sealed log and
+key commands, the hold, the driver's deauthentication, then the two key
+removals and the three-stage teardown; reviewed native recovery; the sealed log and
 sanitized phrases are the evidence. Branches: the supplicant reports key
 negotiation completed and both key commands returned their credit, then the
 healthy ordered teardown; EAPOL framing admitted but the supplicant does not

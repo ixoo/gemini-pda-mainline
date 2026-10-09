@@ -37,7 +37,7 @@ def stub_prepared(calls):
             raw = (b'__SUPPLICANT_LOG_BEGIN__\nboot_id=' + BOOT.encode() + b'\nbytes=' + str(len(LOG)).encode() +
                    b'\nsupplicant_processes=0\n' + LOG +
                    b'\n__SUPPLICANT_LOG_END__\nbytes_after=' + str(len(LOG)).encode() + b'\nboot_after=' + BOOT.encode() + b'\n')
-            return raw, b'', {'exit_status': 0, 'reason': None, 'stdout_bytes': len(raw), 'stderr_bytes': 0}
+            return raw, b'', {'exit_status': 0, 'reason': None, 'stdin_complete': True, 'stdout_bytes': len(raw), 'stderr_bytes': 0}
         return b'', b'', {'exit_status': 0, 'reason': None, 'stdout_bytes': 0, 'stderr_bytes': 0}
     globals_ = {'invoke': invoke, 'BUDGETS': {'passive-scan': (30, 262144)}}
     execute = type('E', (), {'__globals__': globals_})()

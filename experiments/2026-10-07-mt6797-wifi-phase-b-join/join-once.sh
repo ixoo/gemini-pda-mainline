@@ -109,7 +109,7 @@ $BB ip link set wlan0 up
 if [ -n "${WPA_PSK_HEX:-}" ]; then
     # Phase C2: the supplicant owns the connection (control-port frames reach
     # only the connection owner). Its configuration lives in RAM, mode 0600,
-    # is never printed and is removed as soon as the supplicant has read it;
+    # is never printed and is removed once the supplicant has exited;
     # the complete debug log stays in RAM for the custodian to preserve
     # privately before recovery. No -K: no key material is logged.
     stage=supplicant_config

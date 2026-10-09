@@ -47,7 +47,7 @@ for bad in ('', 'x', OTHER + 'z', BOOT.upper()):
     else:
         raise AssertionError(bad)
 
-ok = {'exit_status': 0, 'reason': None, 'stdout_bytes': 0, 'stderr_bytes': 0}
+ok = {'exit_status': 0, 'reason': None, 'stdin_complete': True, 'stdout_bytes': 0, 'stderr_bytes': 0}
 
 
 def raw_for(log, boot_after=BOOT, size=None, after=None, processes=0, boot=BOOT):
@@ -83,6 +83,8 @@ for label, (raw, err, process) in {
         'short stdout count': (raw_for(LOG), b'', {'stdout_bytes': len(raw_for(LOG)) - 1}),
         'nonzero exit': (raw_for(LOG), b'', {'exit_status': 3}),
         'timeout': (raw_for(LOG), b'', {'reason': 'timeout'}),
+        'stdin incomplete': (raw_for(LOG), b'', {'stdin_complete': False}),
+        'stdin unknown': (raw_for(LOG), b'', {'stdin_complete': None}),
         'truncated': (raw_for(LOG)[:-1], b'', {}),
         'empty log': (raw_for(b''), b'', {}),
         'empty report': (raw_for(b'', size='empty', after='0'), b'', {}),
@@ -95,11 +97,15 @@ for label, (raw, err, process) in {
         'tail before head': (b'\n__SUPPLICANT_LOG_END__\nbytes_after=1\nboot_after=' + BOOT.encode() + b'\n' +
                              raw_for(LOG)[:40], b'', {}),
         'nothing': (b'', b'', {})}.items():
-    verdict = C2['log_result'](raw, err, {**ok, 'stdout_bytes': len(raw), 'stderr_bytes': len(err), **process}, BOOT)
+    merged = {**ok, 'stdout_bytes': len(raw), 'stderr_bytes': len(err), **process}
+    if label == 'stdin unknown':
+        del merged['stdin_complete']
+    verdict = C2['log_result'](raw, err, merged, BOOT)
     assert verdict['complete'] is False, label
     assert verdict['log_sha256'] is None or label in ('other boot after', 'other boot before', 'size before differs',
                                                        'size after differs', 'size after absent', 'supplicant still running',
                                                        'stderr', 'short stdout count', 'nonzero exit', 'timeout',
+                                                       'stdin incomplete', 'stdin unknown',
                                                        'numeric head, absent tail'), label
 absent = result_for(raw_for(b'', size='absent', after='absent'))
 assert absent['bytes'] == 0 and absent['boot_match'] and absent['size_report'] == 'absent'

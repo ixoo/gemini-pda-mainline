@@ -99,6 +99,7 @@ def log_result(raw, err, process, boot):
     result['phrases'] = phrase_counts(log)
     result['complete'] = bool(result['boot_match'] and not err and tail[1].isdigit() and
                               process.get('exit_status') == 0 and process.get('reason') is None and
+                              process.get('stdin_complete') is True and
                               process.get('stdout_bytes') == len(raw) and
                               process.get('stderr_bytes', 0) == 0 and
                               int(head[2]) == len(log) == int(tail[1]) and
