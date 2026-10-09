@@ -66,7 +66,7 @@
     "byte4_match": "0x02: unicast to this station",
     "byte5_channel": 40,
     "byte6_header": "0xce: header translation set, header padding set, header length 14",
-    "byte7_bssid_and_payload_format": "0x3c: payload format 0 (MSDU, not A-MSDU), BSSID field 15",
+    "byte7_bssid_and_payload_format": "0x3c: payload format 0 (MSDU, not A-MSDU), BSSID field 15 (the tag observed before activation; no source meaning)",
     "byte8_wlan_index": "1, the station record this driver owns for the AP",
     "byte9_tid_security": "0x00: TID 0, security mode 0 (clear)",
     "bytes10_11_status": "0xc000",
@@ -77,7 +77,7 @@
    "what_that_establishes": "a translated Ethernet frame from the target to this station on channel 40 with the EAPOL Ethernet type, received clear and non-aggregated; NOT that it is an EAPOL-Key frame or message 1, which the decoder never reached, and no body field is known",
    "which_check_refused_it": "the clear-EAPOL decoder at this revision refuses any packet whose byte 7 is not 0 before it reaches the group and vector stage; every other base-header check (match, channel, header flags, WLAN index 1, TID and security 0, status 0xc000) is satisfied by the measured bytes; the optional-vector relaxation of 0151 was therefore not reached",
    "vendor_source_fact": "the pinned gen3 receive path never reads the RXD BSSID field (HAL_RX_STATUS_GET_BSSID is defined and unused); it routes received data by the WLAN index to the station record and its BSS; payload format 0 is its MSDU case",
-   "inference_not_measured": "15 in a 6-bit field on a part with four hardware BSS slots is read as no hardware BSSID match, consistent with the station not yet being activated; the pinned source defines no such sentinel"
+   "inference_not_measured": "the source proves only the RXD bit layout and WLAN-index routing and gives the BSSID field no meaning; 15 is recorded as the BSSID tag observed before the station activation; that the hardware had no BSS to match (the BSS configuration command had not been submitted) is a consistent reading, not a source fact"
   },
   "cleanup": null,
   "refusal_recorded": true,
@@ -109,5 +109,5 @@
  "wifi_operational": false,
  "raw_evidence_public": false,
  "classification": "accepted association, then a refused receive with its header named: scan and open-system authentication as before, the RSN-bearing association request acknowledged and answered with status 0, then the next received packet (147 bytes, data type, group 4 only, translated, EAPOL Ethernet type, from the target, BSSID field 15) refused by the clear-EAPOL decoder's byte-7 check before the vector stage, ending the lifetime before activation; no RF beyond the scan and the two management exchanges",
- "support_limits": "the accepted association (status 0) is demonstrated at the driver for the second time; mac80211's association and the firmware station activation were not completed; one translated data packet with the EAPOL Ethernet type from the target was received and refused unidentified beyond its header: no EAPOL-Key framing observed, no data frame delivered to mac80211, no key, nothing transmitted beyond the two management frames; proposal 0152 (admit the no-match BSS field before activation) follows"
+ "support_limits": "the accepted association (status 0) is demonstrated at the driver for the second time; mac80211's association and the firmware station activation were not completed; one translated data packet with the EAPOL Ethernet type from the target was received and refused unidentified beyond its header: no EAPOL-Key framing observed, no data frame delivered to mac80211, no key, nothing transmitted beyond the two management frames; proposal 0152 (admit BSSID tag 15 before the BSS configuration is submitted) follows"
 }

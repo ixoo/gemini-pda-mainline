@@ -553,9 +553,11 @@ int main(void)
 	run_worker();
 	assert(!mac.first_error && mac.join_eapol_seen == 1 && !rx_delivered && !submissions && mac.join_running);
 	mt6797_mac_join_close(&mac);
-	/* 5d. The runtime-11 base header: BSS field 15 (no hardware match). Admitted
-	 *     until the BSS is configured in the firmware; refused after that
-	 *     (and so after activation); BSS 1 refused always; BSS 0 admitted after.
+	/* 5d. The runtime-11 base header: BSSID tag 15. Admitted after the
+	 *     accepted association and until the BSS configuration command has
+	 *     been submitted; refused after that (and so after activation), before
+	 *     any association, after a denied one, and beyond the cap of two; every
+	 *     other tag refused; tag 0 admitted after activation.
 	 */
 	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_bss_configured = false;
 	script_eapol_bss(true, false, true, 15);
@@ -566,10 +568,22 @@ int main(void)
 	script_eapol_bss(true, false, true, 15);
 	run_worker();
 	assert(mac.first_error == -EPROTO && !mac.join_eapol_seen);
-	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = false;
+	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_bss_configured = false;
 	script_eapol_bss(true, true, false, 1);
 	run_worker();
 	assert(mac.first_error == -EPROTO && !mac.join_eapol_seen);
+	setup(); script_eapol_bss(true, false, true, 15);        /* before any association */
+	run_worker();
+	assert(mac.first_error == -EPROTO && !mac.join_eapol_seen);
+	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 45; script_eapol_bss(true, false, true, 15);
+	run_worker();                                             /* after a denied one */
+	assert(mac.first_error == -EPROTO && !mac.join_eapol_seen);
+	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_bss_configured = false;
+	script_eapol_bss(true, false, true, 15); run_worker();
+	script_eapol_bss(true, false, true, 15); run_worker();
+	assert(!mac.first_error && mac.join_eapol_seen == 2);
+	script_eapol_bss(true, false, true, 15); run_worker();   /* third: beyond the cap */
+	assert(mac.first_error == -EPROTO && mac.join_eapol_seen == 2 && !mac.join_running);
 	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = true;
 	script_eapol_bss(false, true, false, 0);
 	run_worker();

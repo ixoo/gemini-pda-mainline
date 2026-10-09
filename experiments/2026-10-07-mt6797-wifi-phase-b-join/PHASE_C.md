@@ -234,8 +234,8 @@ the vector; its identity is unmeasured. Proposals 0150 (refused-frame header
 record) and 0151 (vector optional in the decoder) were built; runtime 11
 ([RUNTIME_11.md](RUNTIME_11.md)) named the header: translated, clear, from
 the target, EAPOL Ethernet type, BSSID field 15, refused by the decoder's
-byte-7 check. Proposal 0152 admits the no-match BSS field before activation
-for one more C1 boot. Still open: the EAPOL layout on the wire and whether the first frame
+byte-7 check. Proposal 0152 admits BSSID tag 15 until the BSS configuration is
+submitted, for one more C1 boot. Still open: the EAPOL layout on the wire and whether the first frame
 arrives before or after the local activation. C2 code follows this
 document's update with that evidence.
 
