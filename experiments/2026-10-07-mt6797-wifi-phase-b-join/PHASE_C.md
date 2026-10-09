@@ -53,9 +53,11 @@ passphrase stay private inputs.
 
 Purpose: learn whether the AP accepts the association when the request carries
 the RSN element, and, if it does, measure the first data frame the AP sends
-(expected to be EAPOL-Key message 1) with the already tested decoder, without
-transmitting anything beyond the bounded management exchange and the one
-driver-owned deauthentication.
+(expected to be EAPOL-Key message 1) with the already tested decoder. The
+station transmits no payload, sends no EAPOL reply and holds no key; it may
+receive data-type frames from the AP, of which only the decoder-admitted
+EAPOL shape is observed and all others are refused. Beyond the bounded
+management exchange it transmits only the one driver-owned deauthentication.
 
 Host delta (`helper/join-connect.c`): the connect request adds
 `NL80211_ATTR_WPA_VERSIONS` = 2, `NL80211_ATTR_CIPHER_SUITES_PAIRWISE` = CCMP,
@@ -107,8 +109,9 @@ Branches of the single boot, stated in advance:
 - association accepted and healthy teardown with zero EAPOL observations: the
   association is demonstrated but the wire shape is not resolved; the hold or
   the AP's timing is reconsidered before any repeat;
-- association denied with a status other than 45: the RSN element is
-  diagnosed against the selected sources and the private target metadata;
+- association denied with any non-zero status, 45 included: the RSN element
+  and the request are diagnosed against the selected sources and the private
+  target metadata before any repeat;
 - any refusal: diagnosed from its branch and metadata as in runtime 7.
 
 Classifier: the accepted path requires exactly one accepted association

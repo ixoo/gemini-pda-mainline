@@ -1,4 +1,4 @@
-From 502b32d07ad78434faa9297ea3281fcfc602754b Mon Sep 17 00:00:00 2001
+From 70889dd24eb4bf57a80f2ccb7413c44fa49fa53c Mon Sep 17 00:00:00 2001
 From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
 Date: Fri, 9 Oct 2026 02:29:45 +0000
 Subject: [PATCH] wifi: mt6797: observe the AP's first clear EAPOL frames
@@ -27,11 +27,11 @@ BSS payload stays open and encryption-disabled: no key exists.
 
 Unsigned experiment draft; archive identity is non-certifying.
 ---
- drivers/net/wireless/mediatek/mt6797/mac.c | 50 +++++++++++++++++++++-
- 1 file changed, 49 insertions(+), 1 deletion(-)
+ drivers/net/wireless/mediatek/mt6797/mac.c | 51 +++++++++++++++++++++-
+ 1 file changed, 50 insertions(+), 1 deletion(-)
 
 diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
-index d55a0d3bb..62aa292c3 100644
+index d55a0d3bb..4e3d606c8 100644
 --- a/drivers/net/wireless/mediatek/mt6797/mac.c
 +++ b/drivers/net/wireless/mediatek/mt6797/mac.c
 @@ -16,6 +16,7 @@
@@ -96,7 +96,7 @@ index d55a0d3bb..62aa292c3 100644
  		if (skb)
  			mac->join_queue_bytes -= skb->len;
  		spin_unlock_irqrestore(&mac->join_queue.lock, flags);
-@@ -975,6 +1000,27 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -975,6 +1000,28 @@ static void mt6797_mac_join_work(struct work_struct *work)
  			branch = 7;
  			if (!mt6797_scan_frame(mac->join_packet, rx.logical_bytes, &beacon))
  				continue;
@@ -105,8 +105,8 @@ index d55a0d3bb..62aa292c3 100644
 +			 * dropped, at most twice, only after a status-0 association
 +			 * response and before the deauthentication completes; whether the
 +			 * station was already activated is recorded. Nothing is delivered
-+			 * or answered. Any other shape, or a third frame, falls through to
-+			 * the existing refusal below.
++			 * or answered. Any other shape, or a third frame, reaches the
++			 * existing refusal below unchanged.
 +			 */
 +			if (mt6797_eapol_rx(mac->join_packet, rx.logical_bytes, 40,
 +					    mac->hw->wiphy->perm_addr, mac->join_ap, &eapol) &&
@@ -117,14 +117,15 @@ index d55a0d3bb..62aa292c3 100644
 +#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
 +				dev_info(wiphy_dev(mac->hw->wiphy),
 +					 "one-shot WLAN join eapol observed: translated=%u frame=%zu activated=%u\n",
-+					 eapol.prefix_bytes != 0, eapol.bytes, mac->join_sta_active);
++					 eapol.prefix_bytes != 0, eapol.bytes,
++					 mac->join_sta_active);
 +#endif
 +				continue;
 +			}
  			if (!mt6797_join_rx_frame(mac->join_packet, rx.logical_bytes, 40,
  			    mac->hw->wiphy->perm_addr, mac->join_ap,
  			    mac->join_rx_allowed, &frame)) {
-@@ -1623,6 +1669,8 @@ static int mt6797_mac_join_add_peer(struct mt6797_mac *mac,
+@@ -1623,6 +1670,8 @@ static int mt6797_mac_join_add_peer(struct mt6797_mac *mac,
  	mac->join_peer_basic_rates = basic;
  	/* Reserve before any PIO: failure never authorizes a second peer attempt. */
  	mac->join_peer_used = true;
