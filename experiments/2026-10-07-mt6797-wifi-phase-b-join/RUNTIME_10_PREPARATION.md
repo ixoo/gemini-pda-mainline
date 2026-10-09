@@ -1,9 +1,25 @@
-# Ninth Phase B deployment, runtime 10: candidate 9 composed, not installed
+# Ninth Phase B deployment, runtime 10 awaiting the owner's boot
 
-Status: candidate 9 is composed and offline-validated on the laptop; it is
-not installed, no device action has happened, and the device remains in
-changed-boot Gemian `61bf9a0c…`. Installation over the installed candidate 8
-and the owner's physical boot2 start follow this record.
+Status: candidate 9 is installed and fully read back; the device was cleanly
+powered off and is unbooted, awaiting the owner's physical boot2 start. The
+laptop, as sole custodian, will execute the reviewed runtime-10 capture and
+session exactly once after that; no runtime evidence exists yet. Nothing in
+the source, the build or the runtime bindings changes until it arrives.
+
+The [guarded deployment receipt](results/deployment-9.json) pins candidate 9:
+receipt `d6857436…`, full padded boot2 `8d2c87f9…`, written over predecessor
+candidate 8 `1eed3948…`, synced and flushed, with the independent full 16 MiB
+byte readback matching. The installer was prepared at source `00f89ce8`
+(generated installer SHA-256 `27de88db…`; syntax and ShellCheck passed) and
+executed once under the standing boot2 authorization with its final local
+validator passing; the live guard passed twice on Gemian boot `61bf9a0c…`,
+target `179:30`, root `179:29`, stable power; no fresh predecessor backup,
+temporary readback removed. The clean shutdown was confirmed with the device
+unreachable; nothing was rebooted.
+
+Runtime-10 preparation on the laptop at `00f89ce8`: a fresh evidence root with
+`wifi-phase-b/session-9` holding the true deployment-9 summary and `capture-9`
+absent; both offline preflights passed with the bound script and no RF.
 
 The committed receipt [results/candidate-9.json](results/candidate-9.json)
 (SHA-256 `d6857436…`) pairs the [compile 14](COMPILE_14.md) package
@@ -17,7 +33,7 @@ kernel image, and with it the boot image and the padded partition, changed,
 and that only by proposal 0149. The laptop's offline gates passed
 (compositor, Android v0 header, LK, 802 package checksums, config, parent,
 62 members). Both receipt slots and the runtime-10 identity copy carry the
-receipt digest. The bound join script is the candidate-8 one.
+receipt digest.
 
 The runtime-10 protocol, hypothesis and decision branches are exactly those
 of [runtime 9](RUNTIME_9_PREPARATION.md): one passive scan, one WPA2-PSK
