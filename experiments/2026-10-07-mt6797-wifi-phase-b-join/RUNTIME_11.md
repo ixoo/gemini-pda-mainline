@@ -59,16 +59,17 @@ station record and its BSS. Payload format 0 is its MSDU case. The source
 proves only the bit layout and that routing: it gives the BSSID field's values
 no meaning and defines no sentinel. The value 15 is therefore recorded as the
 BSSID tag observed before the station activation, nothing more; that the
-hardware had no BSS to match at that moment (the BSS configuration command had
-not been submitted) is a consistent reading, not a source fact.
+hardware had no BSS to match at that moment (no BSS command credit completion
+had been recorded) is a consistent reading, not a source fact.
 
 ## Fix for review: proposal 0152
 
 The decoder stays a pure framing parser: it requires the MSDU payload format
 and reports the BSSID field, admitting only 0 and 15. The worker admits 15
-only after the validated status-0 association and until the BSS configuration
-command has been submitted, before the station activation is requested or
-confirmed, and 0 at any point in the window; the observation record gains `bss=`. Every other
+only after the validated status-0 association and until the successful BSS
+command credit completion is recorded, before the station activation is
+requested or confirmed (the flag alone does not say whether the command was
+submitted), and 0 at any point in the window; the observation record gains `bss=`. Every other
 bound is unchanged: accepted association, owned WLAN index 1, exact AP, own
 address and channel, clear non-QoS non-aggregated From-DS frame control,
 complete EAPOL-Key framing, at most two observations, the hold and the

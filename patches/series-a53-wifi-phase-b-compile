@@ -648,4 +648,4 @@ proposals/0148-wifi-mt6797-observe-the-AP-s-first-clear-EAPOL-frame.patch
 proposals/0149-wifi-mt6797-admit-the-fixed-WPA2-PSK-RSN-element-in-.patch
 proposals/0150-wifi-mt6797-name-the-header-of-a-received-packet-the.patch
 proposals/0151-wifi-mt6797-accept-a-clear-EAPOL-receive-layout-with.patch
-proposals/0152-wifi-mt6797-admit-RXD-BSSID-tag-15-until-the-BSS-con.patch
+proposals/0152-wifi-mt6797-admit-RXD-BSSID-tag-15-until-the-BSS-com.patch

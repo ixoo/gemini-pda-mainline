@@ -554,10 +554,11 @@ int main(void)
 	assert(!mac.first_error && mac.join_eapol_seen == 1 && !rx_delivered && !submissions && mac.join_running);
 	mt6797_mac_join_close(&mac);
 	/* 5d. The runtime-11 base header: BSSID tag 15. Admitted after the
-	 *     accepted association and until the BSS configuration command has
-	 *     been submitted; refused after that (and so after activation), before
-	 *     any association, after a denied one, and beyond the cap of two; every
-	 *     other tag refused; tag 0 admitted after activation.
+	 *     accepted association and until the successful BSS command credit
+	 *     completion is recorded (join_bss_configured); refused after that
+	 *     (and so after activation), before any association, after a denied
+	 *     one, and beyond the cap of two; every other tag refused; tag 0
+	 *     admitted after activation.
 	 */
 	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_bss_configured = false;
 	script_eapol_bss(true, false, true, 15);

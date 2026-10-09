@@ -1,8 +1,8 @@
-From 0ddaffb6b03f17aeeb40768bf3fd068c39945a1e Mon Sep 17 00:00:00 2001
+From 71bd30bc4dd0b6e08ffc1bae0fa893ffb234fe06 Mon Sep 17 00:00:00 2001
 From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
 Date: Fri, 9 Oct 2026 20:08:55 +0000
-Subject: [PATCH] wifi: mt6797: admit RXD BSSID tag 15 until the BSS
- configuration is submitted
+Subject: [PATCH] wifi: mt6797: admit RXD BSSID tag 15 until the BSS command
+ completes
 
 Runtime 11 of the Phase C experiment named the header of the packet the
 AP sends right after accepting the association: a translated, clear,
@@ -19,21 +19,22 @@ the BSSID tag observed before the station activation, nothing more.
 Keep the decoder a pure framing parser: require the MSDU payload
 format, report the BSSID field, admit only 0 and 15. In the worker,
 admit 15 only after the validated status-0 association and until the
-BSS configuration command has been submitted, before the station
-activation is requested or confirmed; afterwards only 0 is admitted.
-Every other bound is unchanged: owned WLAN index 1, exact peer, own
-address and channel, clear non-QoS non-aggregated From-DS frame
-control, complete EAPOL-Key framing, at most two observations, the hold
-and the single deauthentication. The observation record gains the tag.
+successful BSS command credit completion is recorded, before the
+station activation is requested or confirmed; that flag alone does not
+say whether the BSS command has been submitted. Afterwards only 0 is
+admitted. Every other bound is unchanged: owned WLAN index 1, exact
+peer, own address and channel, clear non-QoS non-aggregated From-DS
+frame control, complete EAPOL-Key framing, at most two observations,
+the hold and the single deauthentication. The record gains the tag.
 
 Unsigned experiment draft; archive identity is non-certifying.
 ---
  drivers/net/wireless/mediatek/mt6797/eapol-rx.h | 12 ++++++++++--
- drivers/net/wireless/mediatek/mt6797/mac.c      | 14 +++++++++++---
- 2 files changed, 21 insertions(+), 5 deletions(-)
+ drivers/net/wireless/mediatek/mt6797/mac.c      | 15 ++++++++++++---
+ 2 files changed, 22 insertions(+), 5 deletions(-)
 
 diff --git a/drivers/net/wireless/mediatek/mt6797/eapol-rx.h b/drivers/net/wireless/mediatek/mt6797/eapol-rx.h
-index 61bbf982e..1f5315f3f 100644
+index 61bbf982e..2efbb1324 100644
 --- a/drivers/net/wireless/mediatek/mt6797/eapol-rx.h
 +++ b/drivers/net/wireless/mediatek/mt6797/eapol-rx.h
 @@ -9,13 +9,19 @@ struct mt6797_eapol_rx {
@@ -53,7 +54,7 @@ index 61bbf982e..1f5315f3f 100644
 + * WLAN index and defines no meaning for its values; this decoder requires the
 + * MSDU payload format and reports the field, admitting only 0 and 15, the
 + * tag observed before the station activation, so the caller can bind 15 to
-+ * that interval.
++ * the interval before the BSS command's credit completion is recorded.
   * No firmware crypto, key material, transport, allocation or effects here.
   */
  static inline bool
@@ -71,19 +72,20 @@ index 61bbf982e..1f5315f3f 100644
  	if (groups & 8) {
  		group4 = offset;
 diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
-index dcd4d95af..2ce7f8a7d 100644
+index dcd4d95af..60e3af193 100644
 --- a/drivers/net/wireless/mediatek/mt6797/mac.c
 +++ b/drivers/net/wireless/mediatek/mt6797/mac.c
-@@ -1072,13 +1072,21 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -1072,13 +1072,22 @@ static void mt6797_mac_join_work(struct work_struct *work)
  					    mac->hw->wiphy->perm_addr, mac->join_ap, &eapol) &&
  			    mac->join_assoc_received && !mac->join_assoc_status &&
  			    !mac->join_deauth_done && !mac->join_cleanup_done &&
 -			    mac->join_eapol_seen < 2) {
 +			    mac->join_eapol_seen < 2 &&
 +			    /* BSSID tag 15, observed before the station activation, is
-+			     * admitted only until the BSS configuration command has been
-+			     * submitted, before the activation is requested or confirmed;
-+			     * afterwards only tag 0 is.
++			     * admitted only until the successful BSS command credit
++			     * completion is recorded, before the activation is requested
++			     * or confirmed; afterwards only tag 0 is. The flag alone does
++			     * not say whether the BSS command has been submitted.
 +			     */
 +			    (eapol.bss_index == 0 ||
 +			     (eapol.bss_index == 15 && !mac->join_bss_configured))) {
