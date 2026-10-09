@@ -88,6 +88,7 @@ struct mt6797_mac {
  bool join_sta_pending, join_sta_active;
  bool join_peer_refusal_logged, join_channel_refusal_logged;
  unsigned join_absence_events;
+ unsigned join_eapol_seen; u64 join_hold_until;
  unsigned join_page_debt, sequence, join_requested_ms, join_basic_rates;
  unsigned join_desired_rates, join_peer_basic_rates;
  u8 join_ap[6], join_bssid[6], join_channel_token, join_sta_sequence;

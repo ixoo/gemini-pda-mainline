@@ -28,11 +28,14 @@ def classify(raw):
         rb'cleanup refused: stage=[0-3] phase=\d{1,2} free=\d{1,5} limit=\d{1,5} pending_cpu=\d{1,5} pending_ffa=\d{1,5} sequences=[01] locked=[01]',
         rb'credit overflow: pages=\d{1,5} debt=\d{1,3}',
     )
-    notifications = (rb'bss absence: bss=0 absent=[01] quota=' + byte + rb' reserved=' + byte,)
+    notifications = (rb'bss absence: bss=0 absent=[01] quota=' + byte + rb' reserved=' + byte,
+                     # Phase C1: a clear EAPOL-Key frame from the target, decoded and dropped.
+                     rb'eapol observed: translated=[01] frame=\d{1,4} activated=[01]')
     diagnostics = refusals + notifications
     rows = {name: [] for name in patterns}
     diagnostic_lines = []
     absence_rows = []
+    eapol_rows = []
     refused = False
     stopped_index = None
     malformed = False
@@ -55,6 +58,10 @@ def classify(raw):
                 diagnostic_lines.append(body.split(b':', 1)[0].decode())
                 if body.startswith(b'bss absence:'):
                     absence_rows.append(index)
+                elif body.startswith(b'eapol observed:'):
+                    fields = dict(part.split(b'=') for part in body.split(b': ', 1)[1].split(b' '))
+                    eapol_rows.append((index, int(fields[b'translated']), int(fields[b'frame']),
+                                       int(fields[b'activated'])))
                 else:
                     refused = True
             else:
@@ -93,6 +100,26 @@ def classify(raw):
                   rows['cleanup'][-1][0] > rows['cleanup_submission'][-1][0] and credit_ok)
     activation_ok = (len(rows['activation']) == int(accepted) and
                      (not accepted or association[0][0] < rows['activation'][0][0] < tx[-1][0]))
+    # EAPOL framing observations (0140 decoder: layout, peer, channel, complete
+    # EAPOL-Key framing; not message 1, nonce, MIC or handshake state) are valid
+    # at most twice, only between the status-0 association response and the
+    # deauthentication's matched TX done (the driver's window), with the frame
+    # length in the decoder's exact range for the layout (native 32+4+length,
+    # translated 4+length, declared length 95..2048) and the activated field
+    # agreeing with the activation record's placement. They are reported
+    # separately and never form part of the association verdict.
+    if eapol_rows:
+        deauth_tx = [row for row in tx if row[1] == 12]
+        deauth_done = [row[0] for row in done if deauth_tx and row[1] == deauth_tx[0][2] and row[0] > deauth_tx[0][0]]
+        activation_at = rows['activation'][0][0] if len(rows['activation']) == 1 else None
+        if (len(eapol_rows) > 2 or not accepted or len(deauth_tx) != 1 or len(deauth_done) != 1 or
+                activation_at is None):
+            malformed = True
+        for index, translated, frame, activated in eapol_rows:
+            low, high = (99, 2052) if translated else (131, 2084)
+            if (not (association[0][0] < index < deauth_done[0] if deauth_done else False) or
+                    not (low <= frame <= high) or activated != int(index > activation_at if activation_at is not None else 0)):
+                malformed = True
     healthy = (not malformed and not stopped and not refused and len(rows['peer']) == 1 and
                len(rows['grant']) == 1 and 0 < rows['grant'][0][1] <= 9000)
     # RX can precede TX done. Advancing to another submission cannot.
@@ -130,6 +157,8 @@ def classify(raw):
         'malformed_stage_record': malformed,
         'diagnostic_records': diagnostic_lines,
         'refusal_recorded': refused,
+        'eapol_shape_observations': len(eapol_rows),
+        'eapol_observations': [{'translated': t, 'frame': f, 'activated': a} for _, t, f, a in eapol_rows],
         'terminal_failure_recorded': stopped,
         'wifi_operational': False,
     }

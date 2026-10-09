@@ -1,0 +1,138 @@
+From 502b32d07ad78434faa9297ea3281fcfc602754b Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 9 Oct 2026 02:29:45 +0000
+Subject: [PATCH] wifi: mt6797: observe the AP's first clear EAPOL frames
+ during the bounded join
+
+Phase C1 asks the owner's protected AP to accept the association by
+carrying the RSN element in the request. If it does, the AP will send its
+first EAPOL-Key frame, whose wire shape on this firmware is unmeasured;
+today any non-management frame is refused and ends the lifetime.
+
+Admit, under the existing 0140 decoder, a clear non-QoS From-DS WPA2
+EAPOL-Key frame from the target to this station on channel 40, in the
+native or translated layout within the RXD group bounds, only after a
+status-0 association response and before the driver's deauthentication
+completes, at most twice per lifetime. Log its layout, frame length and
+whether the local station activation had already completed, then drop
+it: nothing is delivered to mac80211 and nothing is answered. Every other
+shape, and a third frame, falls through to the existing refusal. The
+decoder establishes framing and identity only, not handshake state.
+
+Hold the driver-built deauthentication for 250 ms after activation or
+until the first such frame is observed, never later than 1500 ms before
+the grant or join deadline that the deauthentication and teardown need;
+no other frame is held, and nothing extra is transmitted or retried. The
+BSS payload stays open and encryption-disabled: no key exists.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 50 +++++++++++++++++++++-
+ 1 file changed, 49 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index d55a0d3bb..62aa292c3 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -16,6 +16,7 @@
+ #include "regulatory-encode.h"
+ #include "scan-wire.h"
+ #include "join-rx.h"
++#include "eapol-rx.h"
+ #include "join-tx.h"
+ #include "join-commands.h"
+ 
+@@ -74,6 +75,9 @@ struct mt6797_mac {
+ 	bool join_sta_pending, join_sta_active;
+ 	bool join_peer_refusal_logged, join_channel_refusal_logged;
+ 	unsigned int join_absence_events;
++	/* Phase C1: bounded observation of the AP's first clear EAPOL frames. */
++	unsigned int join_eapol_seen;
++	u64 join_hold_until;
+ 
+ 	u64 scan_deadline, scan_started_ns;
+ 	unsigned int scan_channels, scan_count, scan_polls, scan_packets;
+@@ -667,6 +671,18 @@ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
+ 		mac->join_sta_pending = false;
+ 		mac->join_sta_active = true;
+ 		complete_all(&mac->join_sta_done);
++		{
++			/* Finite hold of the single deauthentication so the AP's first
++			 * clear EAPOL frame can be observed: 250 ms after activation,
++			 * never past 1500 ms before the grant or join deadline, which
++			 * the deauthentication and the teardown already need.
++			 */
++			u64 now = ktime_get_ns();
++			u64 limit = min(mac->join_deadline, mac->join_grant_deadline);
++
++			mac->join_hold_until = limit > now + 1500 * NSEC_PER_MSEC ?
++				min(now + 250 * NSEC_PER_MSEC, limit - 1500 * NSEC_PER_MSEC) : now;
++		}
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+ 			 "one-shot WLAN join activation: sequence=%u state=3\n",
+@@ -808,6 +824,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	struct mt6797_mac *mac = container_of(to_delayed_work(work),
+ 				      struct mt6797_mac, join_work);
+ 	struct mt6797_hif_rx_result rx;
++	struct mt6797_eapol_rx eapol;
+ 	struct mt6797_join_tx_result result;
+ 	struct mt6797_join_rx_frame frame;
+ 	struct mt6797_scan_frame beacon;
+@@ -865,7 +882,15 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	branch = 3;
+ 	if (!mac->join_inflight && !mac->join_page_debt) {
+ 		spin_lock_irqsave(&mac->join_queue.lock, flags);
+-		skb = mac->join_open ? __skb_dequeue(&mac->join_queue) : NULL;
++		skb = mac->join_open ? skb_peek(&mac->join_queue) : NULL;
++		/* The driver-built deauthentication waits out the bounded observation
++		 * hold unless an EAPOL frame was already seen; nothing else is held.
++		 */
++		if (skb && skb == mac->join_internal && !mac->join_eapol_seen &&
++		    ktime_get_ns() < mac->join_hold_until)
++			skb = NULL;
++		else if (skb)
++			__skb_dequeue(&mac->join_queue);
+ 		if (skb)
+ 			mac->join_queue_bytes -= skb->len;
+ 		spin_unlock_irqrestore(&mac->join_queue.lock, flags);
+@@ -975,6 +1000,27 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 			branch = 7;
+ 			if (!mt6797_scan_frame(mac->join_packet, rx.logical_bytes, &beacon))
+ 				continue;
++			/* Phase C1 measurement: a clear EAPOL-Key frame from the target to
++			 * this station on the join channel (0140 decoder) is logged and
++			 * dropped, at most twice, only after a status-0 association
++			 * response and before the deauthentication completes; whether the
++			 * station was already activated is recorded. Nothing is delivered
++			 * or answered. Any other shape, or a third frame, falls through to
++			 * the existing refusal below.
++			 */
++			if (mt6797_eapol_rx(mac->join_packet, rx.logical_bytes, 40,
++					    mac->hw->wiphy->perm_addr, mac->join_ap, &eapol) &&
++			    mac->join_assoc_received && !mac->join_assoc_status &&
++			    !mac->join_deauth_done && !mac->join_cleanup_done &&
++			    mac->join_eapol_seen < 2) {
++				mac->join_eapol_seen++;
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++				dev_info(wiphy_dev(mac->hw->wiphy),
++					 "one-shot WLAN join eapol observed: translated=%u frame=%zu activated=%u\n",
++					 eapol.prefix_bytes != 0, eapol.bytes, mac->join_sta_active);
++#endif
++				continue;
++			}
+ 			if (!mt6797_join_rx_frame(mac->join_packet, rx.logical_bytes, 40,
+ 			    mac->hw->wiphy->perm_addr, mac->join_ap,
+ 			    mac->join_rx_allowed, &frame)) {
+@@ -1623,6 +1669,8 @@ static int mt6797_mac_join_add_peer(struct mt6797_mac *mac,
+ 	mac->join_peer_basic_rates = basic;
+ 	/* Reserve before any PIO: failure never authorizes a second peer attempt. */
+ 	mac->join_peer_used = true;
++	mac->join_eapol_seen = 0;
++	mac->join_hold_until = 0;
+ 	mac->join_credit_deadline = min_t(u64, mac->join_deadline,
+ 					  ktime_get_ns() + 100 * NSEC_PER_MSEC);
+ 	reinit_completion(&mac->join_credit_done);
+-- 
+2.39.5
+

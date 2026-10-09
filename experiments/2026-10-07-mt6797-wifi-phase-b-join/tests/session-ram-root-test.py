@@ -39,7 +39,7 @@ with tempfile.TemporaryDirectory(prefix='mt6797-session-ram-root-') as directory
     spec.loader.exec_module(session)
     assert session.RAM_ROOT_MEMBERS == 62 and session.HELPER_MEMBER == 'bin/join-connect'
     assert session.HELPER_BYTES == 665552
-    assert session.HELPER_SHA256 == 'b3851a4b1890e7abd9128174b2dfc2ea71f3f1a9119085751b6b087d8f54cbd6'
+    assert session.HELPER_SHA256 == 'bc499f28bc052a24713ead3175e5b6405e2e5f787acf276e4e82c1278241d5ca'
     composer = HERE / 'build-candidate.py'
     assert session.HELPER_SHA256 in composer.read_text() and (session.HELPER_SHA256 + '  bin/join-connect') in (HERE / 'join-once.sh').read_text()
     digest = lambda b: hashlib.sha256(b).hexdigest()

@@ -35,7 +35,7 @@ SESSION.SESSION.RELEASE = RELEASE
 # Candidate 4 adds exactly one member to the parent RAM root: the reviewed
 # static nl80211 connect helper, with iw's ownership and mode.
 HELPER_MEMBER = 'bin/join-connect'
-HELPER_SHA256 = 'b3851a4b1890e7abd9128174b2dfc2ea71f3f1a9119085751b6b087d8f54cbd6'
+HELPER_SHA256 = 'bc499f28bc052a24713ead3175e5b6405e2e5f787acf276e4e82c1278241d5ca'
 HELPER_BYTES = 665552
 RAM_ROOT_MEMBERS = 62
 

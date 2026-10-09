@@ -27,7 +27,7 @@ parse, Member = validator['parse_newc'], validator['Member']  # one load: one Me
 encode = runpy.run_path(str(REPO / 'experiments/2026-08-14-mt6797-runtime-provenance-observer/scripts/build-diagnostic-initramfs.py'))['encode_newc']
 
 assert composer.HELPER_PATH == 'bin/join-connect' and composer.HELPER_BYTES == 665552
-assert composer.HELPER_SHA256 == 'b3851a4b1890e7abd9128174b2dfc2ea71f3f1a9119085751b6b087d8f54cbd6'
+assert composer.HELPER_SHA256 == 'bc499f28bc052a24713ead3175e5b6405e2e5f787acf276e4e82c1278241d5ca'
 # The script pins the same digest before running the helper.
 script = (HERE / 'join-once.sh').read_text()
 assert (composer.HELPER_SHA256 + '  bin/join-connect') in script

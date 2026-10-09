@@ -49,6 +49,7 @@ typedef uint64_t u64;
 #include "join-events.h"
 #include "join-rx.h"
 #include "join-tx.h"
+#include "eapol-rx.h"
 #include "scan-wire.h"
 
 struct mutex { int held; };
@@ -118,6 +119,7 @@ static void *skb_put_data(struct sk_buff *s, const void *d, unsigned int n)
 }
 static int skb_linearize(struct sk_buff *s) { (void)s; return 0; }
 static void skb_queue_head_init(struct sk_buff_head *q) { q->head = NULL; q->qlen = 0; }
+static struct sk_buff *skb_peek(struct sk_buff_head *q) { return q->head; }
 static bool skb_queue_empty(const struct sk_buff_head *q) { return !q->head; }
 static void __skb_queue_tail(struct sk_buff_head *q, struct sk_buff *s)
 {
@@ -198,8 +200,8 @@ static void cancel_delayed_work_sync(struct delayed_work *w)
 #define to_delayed_work(w) container_of(w, struct delayed_work, work)
 
 /* HIF transport: scripted RX packets, page releases and submissions. */
-static u8 script[4][64];
-static size_t script_bytes[4];
+static u8 script[6][512];
+static size_t script_bytes[6];
 static unsigned int script_count, script_next, released, submissions;
 static bool idle = true;
 static int mt6797_hif_read32(struct mt6797_hif *h, unsigned int reg, u64 d, u32 *v)
@@ -318,7 +320,7 @@ static void script_event(u8 eid, const u8 *body, size_t n)
 {
 	u8 *p = script[script_count];
 
-	assert(script_count < 4 && 8 + n <= sizeof(script[0]));
+	assert(script_count < 6 && 8 + n <= sizeof(script[0]));
 	memset(p, 0, 8);
 	put_unaligned_le16(8 + n, p);
 	put_unaligned_le16(0xe000, p + 2);
@@ -341,6 +343,46 @@ static void run_worker(void)
 {
 	mt6797_mac_join_work(&mac.join_work.work);
 	assert(!locked);
+}
+
+/* A clear WPA2 EAPOL-Key frame from the target to this station on channel 40
+ * in the public gen3 RXD layout, native (groups 4) or translated Ethernet
+ * (groups 4 and 8), as the 0140 decoder fixture builds it; no key material.
+ */
+static void script_eapol(bool translated)
+{
+	static const u8 origin[ETH_ALEN] = { 2, 0, 0, 0, 0, 3 };
+	static const u8 native_header[32] = {
+		8, 2, 0, 0, 2, 0, 0, 0, 0, 1, 2, 0, 0, 0, 0, 2,
+		2, 0, 0, 0, 0, 3, 0x30, 0x12, 0xaa, 0xaa, 3, 0, 0, 0, 0x88, 0x8e
+	};
+	u8 *p = script[script_count];
+	unsigned groups = translated ? 12 : 4;
+	size_t off = 16, payload, bytes;
+	unsigned length = 95;
+
+	assert(script_count < 6);
+	memset(p, 0, sizeof(script[0]));
+	put_unaligned_le16(0x4000 | groups << 9, p + 2);
+	p[4] = 2; p[5] = 40; p[6] = translated ? 0x8e : 24; p[8] = 1;
+	put_unaligned_le16(0xc000, p + 10);
+	if (groups & 8) {
+		p[off] = 8; p[off + 1] = 2;
+		memcpy(p + off + 2, ap, ETH_ALEN); put_unaligned_le16(0x1230, p + off + 8); off += 16;
+	}
+	p[off + 9] = 51; off += 24;
+	if (translated) {
+		memcpy(p + off, own, ETH_ALEN); memcpy(p + off + 6, origin, ETH_ALEN);
+		p[off + 12] = 0x88; p[off + 13] = 0x8e; payload = off + 14;
+	} else {
+		memcpy(p + off, native_header, 32); payload = off + 32;
+	}
+	p[payload] = 2; p[payload + 1] = 3;
+	p[payload + 2] = length >> 8; p[payload + 3] = length;
+	p[payload + 4] = 2; p[payload + 6] = 0x8a; p[payload + 8] = 16;
+	bytes = payload + length + 4;
+	put_unaligned_le16(bytes, p);
+	script_bytes[script_count++] = bytes;
 }
 
 static void submit_inflight(void)
@@ -417,7 +459,58 @@ int main(void)
 	mt6797_mac_join_close(&mac);
 	assert(!dev_frees && mac80211_frees == 1 && !live && !mac.join_internal);
 
-	puts("join_ownership=pass; production close/worker paths; exact-once release; no device");
+	/* 5. Phase C1: clear EAPOL frames from the target are observed and dropped
+	 *    after a status-0 association response, before or after the local
+	 *    activation, at most twice; a third falls through to the refusal.
+	 *    Nothing is delivered to mac80211 and nothing is transmitted.
+	 */
+	setup();
+	mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = false;
+	script_eapol(false);                              /* early: before activation */
+	run_worker();
+	assert(!mac.first_error && mac.join_eapol_seen == 1 && !rx_delivered && !submissions && mac.join_running);
+	mac.join_sta_active = true;
+	script_eapol(true);                               /* translated layout, after activation */
+	run_worker();
+	assert(!mac.first_error && mac.join_eapol_seen == 2 && !rx_delivered && !submissions);
+	script_eapol(false);                              /* third: beyond the budget */
+	run_worker();
+	assert(mac.first_error == -EPROTO && mac.join_retired && !mac.join_running && !rx_delivered);
+	/* 5b. Before any association response, or after a denied one, the same
+	 *     frame is refused as before. */
+	setup(); script_eapol(false); run_worker();
+	assert(mac.first_error == -EPROTO && !mac.join_eapol_seen);
+	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 45; script_eapol(true); run_worker();
+	assert(mac.first_error == -EPROTO && !mac.join_eapol_seen);
+	/* 5c. After the deauthentication completed the window is closed. */
+	setup(); mac.join_assoc_received = true; mac.join_deauth_done = true; script_eapol(false); run_worker();
+	assert(mac.first_error == -EPROTO && !mac.join_eapol_seen);
+
+	/* 6. The finite hold: the queued driver deauthentication is not submitted
+	 *    while the hold runs and nothing was observed; time or an observation
+	 *    releases it; other frames are never held.
+	 */
+	setup(); queue_internal_deauth();
+	mac.join_hold_until = now_ns + 250 * NSEC_PER_MSEC;
+	run_worker();
+	assert(!submissions && !mac.join_inflight && !mac.first_error && mac.join_internal);
+	now_ns += 260 * NSEC_PER_MSEC;
+	run_worker();
+	assert(submissions == 1 && mac.join_inflight == mac.join_internal);
+	mt6797_mac_join_close(&mac);
+	setup(); queue_internal_deauth();
+	mac.join_hold_until = now_ns + 250 * NSEC_PER_MSEC; mac.join_eapol_seen = 1;
+	run_worker();
+	assert(submissions == 1 && mac.join_inflight == mac.join_internal);
+	mt6797_mac_join_close(&mac);
+	setup(); mac.join_tx_allowed = BIT(11);
+	__skb_queue_tail(&mac.join_queue, frame(OWNER_MAC80211, 11));
+	mac.join_hold_until = now_ns + 250 * NSEC_PER_MSEC;
+	run_worker();
+	assert(submissions == 1 && mac.join_inflight && mac.join_inflight->owner == OWNER_MAC80211);
+	mt6797_mac_join_close(&mac);
+
+	puts("join_ownership=pass; production close/worker paths; exact-once release; EAPOL observation window and hold; no device");
 	return 0;
 }
 

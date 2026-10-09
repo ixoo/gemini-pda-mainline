@@ -3,7 +3,8 @@
 Goal, as set by the owner: WPA2-PSK (CCMP) association to the owner's access
 point, a working data path, DHCP, ping and sustained SSH over Wi-Fi. Phase B
 ([runtime 8](RUNTIME_8.md)) demonstrated one healthy bounded join whose
-association was denied because the request carried no RSN element. Phase C
+association response carried status 45; the request carried no RSN element,
+which is the expected and inferred reason, not a measured cause. Phase C
 adds, in three bounded stages, the RSN element, the keys and the data path.
 Each stage has its own finite device protocol and is admitted only after
 review; the owner's input is needed only for the private passphrase and the
@@ -33,7 +34,12 @@ passphrase stay private inputs.
   station from the target (`join-rx.h`): a translated-Ethernet frame (header
   flag bit 7), a data frame or any other shape is refused, which ends the
   lifetime. The transmit path admits only management frames while the join is
-  open (`mt6797_mac_tx`).
+  open (`mt6797_mac_tx`). Proposal 0140, tested offline and so far unselected,
+  decodes exactly one received shape beyond that: a clear, non-aggregated,
+  non-QoS From-DS WPA2 EAPOL-Key frame from the target to this station on the
+  join channel, in both the native 802.11 and the translated-Ethernet layouts,
+  with the vector and group-4 metadata bounds, the fixed frame control, the
+  peer identity and complete EAPOL-Key framing (`eapol-rx.h`).
 - Pinned vendor layouts for later stages (gen3 at revision `c5b0be85…`):
   `CMD_802_11_KEY` for `CMD_ID_ADD_REMOVAL_KEY` (add/remove, TX key, key type,
   authenticator flag, peer address, BSS index, algorithm, key id, key length,
@@ -45,37 +51,76 @@ passphrase stay private inputs.
 
 ## Stage C1: accepted association, no keys, no data
 
-Purpose: prove that the AP accepts the association when the request carries the
-RSN element, and measure the one unknown this exposes, the wire shape of the
-first data frame the AP sends (EAPOL message 1), without transmitting anything
-beyond the bounded management exchange.
+Purpose: learn whether the AP accepts the association when the request carries
+the RSN element, and, if it does, measure the first data frame the AP sends
+(expected to be EAPOL-Key message 1) with the already tested decoder, without
+transmitting anything beyond the bounded management exchange and the one
+driver-owned deauthentication.
 
-Host delta (`helper/join-connect.c`, `join-once.sh`): the connect request adds
+Host delta (`helper/join-connect.c`): the connect request adds
 `NL80211_ATTR_WPA_VERSIONS` = 2, `NL80211_ATTR_CIPHER_SUITES_PAIRWISE` = CCMP,
 `NL80211_ATTR_CIPHER_SUITE_GROUP` = CCMP, `NL80211_ATTR_AKM_SUITES` = PSK and
 `NL80211_ATTR_IE` holding the fixed 22-byte WPA2-PSK CCMP RSN element
 (`30 14 01 00 00 0f ac 04 01 00 00 0f ac 04 01 00 00 0f ac 02 00 00`), which
 contains no secret. No key attribute is sent. The dump fixture asserts the
-exact attribute set.
+exact attribute set. `join-once.sh` is unchanged.
 
-Driver delta: between the `activation` record and the completion of the
-driver's deauthentication frame, admit at most two received packets that are
-neither firmware events nor parseable management frames, log their header
-metadata only (logical length, wire type, header flag byte, frame control if
-untranslated, Ethernet type if translated) and drop them; outside that window
-or beyond the budget refuse as today. This is a bounded measurement of the
-data-frame wire shape, not a data path: nothing is delivered, nothing is sent.
-The BSS payload stays open and encryption-disabled, since no key exists.
+Driver delta (proposal 0148, with 0140 selected into the Phase B series):
 
-Expected observation: `activation: sequence=… state=3`, the deauthentication
-TX and its acknowledgement, `cleanup: stage=3 … deauth=1`, and zero to two
-`data frame observed` records. Branches: association accepted and the data
-frame shape measured (proceed to C2); association still denied with a status
-other than 45 (diagnose against the RSN element); a new refusal (diagnose from
-its branch).
+- No catch-all. Every received packet keeps today's rules: firmware events are
+  parsed by the control-event parser with its fail-stop; beacons are skipped;
+  management frames must satisfy `join-rx.h`; anything else is refused and
+  ends the lifetime with the existing `frame refused` metadata, which is the
+  finite first-unknown diagnostic.
+- One new admitted shape, bound to the lifetime: after the validated status-0
+  association response for the exact associated BSS and station, and before
+  the deauthentication frame's TX done, a packet that the 0140 decoder accepts
+  as a clear EAPOL-Key frame from the target to this station on channel 40,
+  within its vector and group bounds, is logged as `eapol observed:
+  translated=… frame=… activated=…` (layout, frame length, whether the local
+  station activation had already completed; no key data, no addresses) and
+  dropped. The decoder establishes framing and identity only: a complete
+  EAPOL-Key frame of the WPA2 descriptor type from the target; it does not
+  validate message 1, the nonce, the MIC or any handshake state, and the
+  record claims none of those. The AP's first frame may arrive before the local activation event,
+  so the window starts at the association response and the record says which
+  side of activation it fell on. At most two such frames are admitted; a
+  third, or one outside the window, falls through to the existing refusal and
+  ends the lifetime with the `frame refused` metadata. Nothing is delivered
+  to mac80211 and nothing is sent in reply.
+- A finite hold before the single deauthentication: the driver-built
+  deauthentication frame already queued at the association's completion is
+  not dequeued for transmission until 250 ms after activation or until the
+  first EAPOL frame is observed, whichever comes first. The hold never ends
+  later than 1500 ms before the channel grant or the join deadline, which the
+  deauthentication and the teardown already need, so it is inside the existing
+  budgets; it adds no transmission and no retry. The deauthentication, its TX
+  done and the teardown then proceed exactly as today. If the hold expires
+  with nothing observed, the record simply shows zero observations.
+- The BSS payload stays open and encryption-disabled: no key exists.
 
-Classifier: the accepted path already exists; the new record kind becomes a
-non-refusal diagnostic admitted at most twice within the associated window.
+Branches of the single boot, stated in advance:
+
+- association accepted, activation logged, one or two EAPOL frames observed,
+  deauthentication acknowledged, healthy teardown: C2 can be scoped on a
+  measured wire shape;
+- association accepted and healthy teardown with zero EAPOL observations: the
+  association is demonstrated but the wire shape is not resolved; the hold or
+  the AP's timing is reconsidered before any repeat;
+- association denied with a status other than 45: the RSN element is
+  diagnosed against the selected sources and the private target metadata;
+- any refusal: diagnosed from its branch and metadata as in runtime 7.
+
+Classifier: the accepted path requires exactly one accepted association
+response, exactly one `activation`, the deauthentication TX with its TX done
+status 0 and page return, and the ordered cleanup with `deauth=1`, as the
+existing accepted-path grammar already does. `eapol observed` is a non-refusal
+diagnostic valid at most twice and only between the status-0 association
+response and the deauthentication's matched TX done, the driver's window; its
+frame length must lie in the decoder's exact range for its layout (native
+131 to 2084, translated 99 to 2052) and its activated field must agree with
+the activation record's placement; the parsed metadata is reported separately
+as EAPOL framing observations and never as part of the association verdict.
 
 ## Stage C2: keys
 
@@ -85,14 +130,14 @@ keys so that protected data can flow.
 Open design choices to resolve before coding, with the measurements that decide
 them:
 
-1. Supplicant. Either the pinned Debian arm64 `wpasupplicant` package added to
-   the RAM root through the existing userspace receipt mechanism (several
-   megabytes of dependencies; standard, well reviewed), or a minimal WPA2-PSK
-   handshake in the static helper (PBKDF2, PRF, HMAC-SHA1, AES key unwrap;
-   small but security-sensitive). Either reads the passphrase as a private
-   runtime input and sends EAPOL over nl80211's control port
-   (`NL80211_ATTR_CONTROL_PORT_OVER_NL80211`), which keeps EAPOL off the
-   network device path.
+1. Supplicant. The pinned Debian arm64 `wpasupplicant` package, added to the
+   RAM root through the existing userspace receipt mechanism with its
+   dependencies, is the preferred choice: standard and widely reviewed. A
+   custom WPA2 handshake in the helper is not planned unless a concrete
+   constraint (such as RAM-root size) forces it. The supplicant reads the
+   passphrase as a private runtime input and sends EAPOL over nl80211's
+   control port (`NL80211_ATTR_CONTROL_PORT_OVER_NL80211`), which keeps EAPOL
+   off the network device path.
 2. EAPOL transport in the driver. Control-port frames arrive at the driver as
    data frames through `.tx`, so C2 needs a data transmit path: the HIF TX
    header for an 802.11 data frame on a data traffic class, with page

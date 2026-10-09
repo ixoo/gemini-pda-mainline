@@ -404,8 +404,9 @@ booted:
   reply buffers are aligned for the netlink headers. `join-once.sh` runs it in
   place of `iw connect`, under the same `timeout 3`, after the same scan and
   NO-IR gates, with its output inside the framed body. The reproducible static
-  aarch64 build is `helper/build-join-connect.sh` (SHA-256 `b3851a4b…`,
-  665552 bytes, pinned in the script's tool digests). The kernel is identified
+  aarch64 build is `helper/build-join-connect.sh` (SHA-256 `bc499f28…` for the
+  Phase C1 helper with the WPA2-PSK parameters and RSN element, `b3851a4b…`
+  for the Phase B helper; 665552 bytes each, pinned in the script's tool digests). The kernel is identified
   by the sender port 0; reply headers carry the requester's port ID, as
   `netlink_ack` and `genlmsg_put_reply` stamp it, and are not checked. The
   family reply, which for nl80211 exceeds 512 bytes with its operation list,

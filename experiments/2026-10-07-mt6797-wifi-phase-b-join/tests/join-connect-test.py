@@ -20,8 +20,23 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parents[1]
 SOURCE = HERE / 'helper/join-connect.c'
 NL80211_CMD_CONNECT = 46
-ATTR = {'IFINDEX': 3, 'MAC': 6, 'SSID': 52, 'WIPHY_FREQ': 38, 'PRIVACY': 70, 'AUTH_TYPE': 53}
+# Attribute identifiers come from the installed UAPI header, printed by a tiny
+# program at test time, so the expectation cannot drift from the kernel's enum.
+ATTR_NAMES = ['IFINDEX', 'MAC', 'SSID', 'WIPHY_FREQ', 'PRIVACY', 'AUTH_TYPE',
+              'WPA_VERSIONS', 'CIPHER_SUITES_PAIRWISE', 'CIPHER_SUITE_GROUP', 'AKM_SUITES', 'IE']
+with tempfile.TemporaryDirectory(prefix='mt6797-nl80211-ids-') as directory:
+    src = Path(directory) / 'ids.c'
+    src.write_text('#include <stdio.h>\n#include <linux/nl80211.h>\nint main(void){' +
+                   ''.join('printf("%%d\\n", NL80211_ATTR_%s);' % n for n in ATTR_NAMES) +
+                   'printf("%d\\n", NL80211_CMD_CONNECT); printf("%d\\n", NL80211_WPA_VERSION_2); return 0;}')
+    exe = Path(directory) / 'ids'
+    subprocess.run(['cc', '-o', str(exe), str(src)], check=True)
+    values = subprocess.run([str(exe)], capture_output=True, check=True).stdout.decode().split()
+ATTR = dict(zip(ATTR_NAMES, map(int, values[:len(ATTR_NAMES)])))
+assert int(values[len(ATTR_NAMES)]) == NL80211_CMD_CONNECT
+WPA_VERSION_2 = int(values[len(ATTR_NAMES) + 1])
 NAMES = {v: k for k, v in ATTR.items()}
+RSN_ELEMENT = bytes.fromhex('3014 0100 000fac04 0100 000fac04 0100 000fac02 0000'.replace(' ', ''))
 
 with tempfile.TemporaryDirectory(prefix='mt6797-join-connect-') as directory:
     binary = Path(directory) / 'join-connect'
@@ -51,7 +66,9 @@ with tempfile.TemporaryDirectory(prefix='mt6797-join-connect-') as directory:
         seen.append((NAMES.get(nla_type, nla_type), payload))
         offset += (nla_len + 3) & ~3
     assert offset == len(raw)
-    assert [name for name, _ in seen] == ['IFINDEX', 'SSID', 'WIPHY_FREQ', 'MAC', 'PRIVACY', 'AUTH_TYPE'], seen
+    assert [name for name, _ in seen] == ['IFINDEX', 'SSID', 'WIPHY_FREQ', 'MAC', 'PRIVACY', 'AUTH_TYPE',
+                                          'WPA_VERSIONS', 'CIPHER_SUITES_PAIRWISE', 'CIPHER_SUITE_GROUP',
+                                          'AKM_SUITES', 'IE'], seen
     values = dict(seen)
     assert struct.unpack('<I', values['IFINDEX'])[0] == 7
     assert values['SSID'] == b'example-net'
@@ -59,6 +76,13 @@ with tempfile.TemporaryDirectory(prefix='mt6797-join-connect-') as directory:
     assert values['MAC'] == bytes.fromhex('021122334455')
     assert values['PRIVACY'] == b''
     assert struct.unpack('<I', values['AUTH_TYPE'])[0] == 0, 'open system'
+    # Phase C1: WPA2-PSK CCMP parameters and the fixed RSN element; no key attribute.
+    assert struct.unpack('<I', values['WPA_VERSIONS'])[0] == WPA_VERSION_2
+    assert struct.unpack('<I', values['CIPHER_SUITES_PAIRWISE'])[0] == 0x000fac04
+    assert struct.unpack('<I', values['CIPHER_SUITE_GROUP'])[0] == 0x000fac04
+    assert struct.unpack('<I', values['AKM_SUITES'])[0] == 0x000fac02
+    assert values['IE'] == RSN_ELEMENT and len(RSN_ELEMENT) == 22 and RSN_ELEMENT[1] == 20
+    assert all(n not in ('KEYS', 'KEY_DATA', 'PMK', 'SAE_PASSWORD') for n, _ in seen)
     # 32-byte SSID is the maximum; non-ASCII bytes pass through unchanged.
     assert run('--dump', '7', 'x' * 32, '5200', '02:11:22:33:44:55').returncode == 0
     for bad in (('--dump', '7', '', '5200', '02:11:22:33:44:55'),
@@ -75,7 +99,7 @@ with tempfile.TemporaryDirectory(prefix='mt6797-join-connect-') as directory:
                 ('wlan0', 'net', '5200')):
         result = run(*bad)
         assert result.returncode == 1 and result.stdout == b'', (bad, result)
-print('join-connect: PASS (privacy-flagged open-system connect request; attribute set exact; boundaries refused)')
+print('join-connect: PASS (privacy-flagged open-system WPA2-PSK CCMP connect request with the fixed RSN element; attribute set exact; boundaries refused)')
 
 # Production transport fixture: the helper's own source with a scripted kernel.
 with tempfile.TemporaryDirectory(prefix='mt6797-join-connect-transport-') as directory:

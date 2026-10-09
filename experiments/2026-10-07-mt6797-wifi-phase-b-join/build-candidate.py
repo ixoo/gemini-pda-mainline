@@ -39,7 +39,7 @@ USERSPACE_SHA256 = '4aedbc779d32fc6729de689cda22d0ace5ba8f2050134ec95c81f699a138
 # Reviewed static nl80211 connect helper (helper/join-connect.c, built by
 # helper/build-join-connect.sh on Buildbox-1); inserted as bin/join-connect.
 HELPER_PATH = 'bin/join-connect'
-HELPER_SHA256 = 'b3851a4b1890e7abd9128174b2dfc2ea71f3f1a9119085751b6b087d8f54cbd6'
+HELPER_SHA256 = 'bc499f28bc052a24713ead3175e5b6405e2e5f787acf276e4e82c1278241d5ca'
 HELPER_BYTES = 665552
 OWNER = '/consys@10001340'
 WIFI = OWNER + '/wifi'

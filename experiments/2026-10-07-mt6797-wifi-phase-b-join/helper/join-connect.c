@@ -7,9 +7,11 @@
  * one-shot hardware scan refuses the fallback. This helper sends the same
  * connect request with NL80211_ATTR_PRIVACY set and open-system
  * authentication, so the entity finds the already scanned BSS and proceeds
- * to authenticate and associate without any scan. It carries no key, no
- * cipher, no information element and no data path; cfg80211 and mac80211
- * then drive the bounded exchange the driver admits.
+ * to authenticate and associate without any scan. Phase C1 adds the WPA2-PSK
+ * CCMP security parameters and the fixed RSN element the association
+ * request needs; the element holds no secret. It still carries no key and
+ * no data path; cfg80211 and mac80211 then drive the bounded exchange the
+ * driver admits.
  *
  * Transport: two requests with distinct sequence numbers, each answered only
  * by a kernel-origin reply carrying its own sequence; the family lookup's
@@ -49,6 +51,19 @@
 #define CONNECT_SEQ 2U
 #define RECEIVE_TIMEOUT_MS 500
 #define TOTAL_DEADLINE_MS 2000
+/* WPA2-PSK with CCMP for both ciphers, no management frame protection: the
+ * target's advertised RSN parameters. Suite selectors are IEEE OUI 00-0F-AC.
+ */
+#define SUITE_CCMP 0x000fac04U
+#define AKM_PSK 0x000fac02U
+static const unsigned char RSN_ELEMENT[] = {
+	0x30, 0x14,             /* RSN, 20 bytes */
+	0x01, 0x00,             /* version 1 */
+	0x00, 0x0f, 0xac, 0x04, /* group cipher CCMP */
+	0x01, 0x00, 0x00, 0x0f, 0xac, 0x04, /* one pairwise cipher: CCMP */
+	0x01, 0x00, 0x00, 0x0f, 0xac, 0x02, /* one AKM: PSK */
+	0x00, 0x00,             /* RSN capabilities */
+};
 
 struct message {
 	alignas(struct nlmsghdr) unsigned char data[512];
@@ -215,7 +230,12 @@ static int build(struct message *m, uint16_t family, uint32_t ifindex, const cha
 	    put_u32(m, NL80211_ATTR_WIPHY_FREQ, freq) ||
 	    put(m, NL80211_ATTR_MAC, bssid, 6) ||
 	    put(m, NL80211_ATTR_PRIVACY, NULL, 0) ||
-	    put_u32(m, NL80211_ATTR_AUTH_TYPE, NL80211_AUTHTYPE_OPEN_SYSTEM))
+	    put_u32(m, NL80211_ATTR_AUTH_TYPE, NL80211_AUTHTYPE_OPEN_SYSTEM) ||
+	    put_u32(m, NL80211_ATTR_WPA_VERSIONS, NL80211_WPA_VERSION_2) ||
+	    put_u32(m, NL80211_ATTR_CIPHER_SUITES_PAIRWISE, SUITE_CCMP) ||
+	    put_u32(m, NL80211_ATTR_CIPHER_SUITE_GROUP, SUITE_CCMP) ||
+	    put_u32(m, NL80211_ATTR_AKM_SUITES, AKM_PSK) ||
+	    put(m, NL80211_ATTR_IE, RSN_ELEMENT, sizeof(RSN_ELEMENT)))
 		return -1;
 	return 0;
 }
