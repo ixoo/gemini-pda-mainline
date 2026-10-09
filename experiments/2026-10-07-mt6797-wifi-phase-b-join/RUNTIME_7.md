@@ -70,8 +70,12 @@ record nor malformed, while any unknown kind or a known prefix with the wrong
 grammar remains malformed. A valid `bss absence` record must name slot 0 with
 a boolean flag, appear at most twice, and lie between the stage-2 cleanup
 submission and the cleanup terminal (the stage-3 line or the stopped footer);
-any other placement is malformed. Health is still decided by the stage
-grammar. [tests/host-test.py](tests/host-test.py) covers all of this.
+any other placement is malformed. Byte-sized fields (the indication's quota
+and reserved bytes, the refused event's sequence) must be 0 to 255. A refusal
+diagnostic makes the join unhealthy on its own, even without a stopped
+footer; the admitted indication does not. Health is otherwise still decided
+by the stage grammar. [tests/host-test.py](tests/host-test.py) covers all of
+this.
 
 ## Next
 

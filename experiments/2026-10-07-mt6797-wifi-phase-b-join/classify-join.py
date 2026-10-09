@@ -19,17 +19,21 @@ def classify(raw):
     }
     # Diagnostic records name a refusal or an admitted indication; they are
     # neither stage records nor malformed. Health is decided by the stage grammar.
-    diagnostics = (
-        rb'control event refused: status=-\d{1,3} bytes=\d{1,5} type=0x[0-9a-f]{1,5} id=0x[0-9a-f]{2} seq=\d{1,3}',
+    byte = rb'(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)'  # exactly one unsigned byte, 0..255
+    # Refusals end the lifetime and make the join unhealthy on their own; the
+    # admitted BSS absence indication is a notification, not a refusal.
+    refusals = (
+        rb'control event refused: status=-\d{1,3} bytes=\d{1,5} type=0x[0-9a-f]{1,5} id=0x[0-9a-f]{2} seq=' + byte,
         rb'frame refused: bytes=\d{1,5} type=0x[0-9a-f]{1,5} allowed=0x[0-9a-f]{1,8}',
         rb'cleanup refused: stage=[0-3] phase=\d{1,2} free=\d{1,5} limit=\d{1,5} pending_cpu=\d{1,5} pending_ffa=\d{1,5} sequences=[01] locked=[01]',
         rb'credit overflow: pages=\d{1,5} debt=\d{1,3}',
-        # The admitted indication: the owned BSS slot 0, a boolean flag, bounded counters.
-        rb'bss absence: bss=0 absent=[01] quota=\d{1,3} reserved=\d{1,3}',
     )
+    notifications = (rb'bss absence: bss=0 absent=[01] quota=' + byte + rb' reserved=' + byte,)
+    diagnostics = refusals + notifications
     rows = {name: [] for name in patterns}
     diagnostic_lines = []
     absence_rows = []
+    refused = False
     stopped_index = None
     malformed = False
     stopped = False
@@ -51,6 +55,8 @@ def classify(raw):
                 diagnostic_lines.append(body.split(b':', 1)[0].decode())
                 if body.startswith(b'bss absence:'):
                     absence_rows.append(index)
+                else:
+                    refused = True
             else:
                 malformed = True
     # The admitted indication is valid at most twice, and only between the
@@ -87,7 +93,7 @@ def classify(raw):
                   rows['cleanup'][-1][0] > rows['cleanup_submission'][-1][0] and credit_ok)
     activation_ok = (len(rows['activation']) == int(accepted) and
                      (not accepted or association[0][0] < rows['activation'][0][0] < tx[-1][0]))
-    healthy = (not malformed and not stopped and len(rows['peer']) == 1 and
+    healthy = (not malformed and not stopped and not refused and len(rows['peer']) == 1 and
                len(rows['grant']) == 1 and 0 < rows['grant'][0][1] <= 9000)
     # RX can precede TX done. Advancing to another submission cannot.
     order_ok = False
@@ -123,6 +129,7 @@ def classify(raw):
         'stage_and_credit_order_verified': bool(order_ok),
         'malformed_stage_record': malformed,
         'diagnostic_records': diagnostic_lines,
+        'refusal_recorded': refused,
         'terminal_failure_recorded': stopped,
         'wifi_operational': False,
     }

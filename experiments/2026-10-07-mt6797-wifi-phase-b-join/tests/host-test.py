@@ -103,6 +103,20 @@ class HostTests(unittest.TestCase):
         self.assertTrue(classify(good[:stage2] + absence + good[stage2:])['malformed_stage_record'])
         # Before the stopped footer in a refused-cleanup log it is valid.
         self.assertFalse(classify(raw[:cut] + absence + tail)['malformed_stage_record'])
+        # A refusal diagnostic alone makes an otherwise healthy trace negative, even
+        # without a stopped footer; the admitted indication does not.
+        overflow = b'one-shot WLAN join credit overflow: pages=1 debt=0\n'
+        negative = classify(good[:stage3] + overflow + good[stage3:])
+        self.assertTrue(negative['refusal_recorded'])
+        self.assertFalse(negative['bounded_join_pass'])
+        self.assertFalse(negative['malformed_stage_record'])
+        self.assertFalse(recorded['refusal_recorded'])
+        # Byte fields are 0..255: three digits above that are malformed metadata.
+        for bad in (b'one-shot WLAN join bss absence: bss=0 absent=1 quota=999 reserved=0\n',
+                    b'one-shot WLAN join bss absence: bss=0 absent=1 quota=0 reserved=256\n',
+                    b'one-shot WLAN join control event refused: status=-71 bytes=12 type=0xe000 id=0x11 seq=300\n'):
+            self.assertTrue(classify(good[:stage3] + bad + good[stage3:])['malformed_stage_record'], bad)
+        self.assertFalse(classify(good[:stage3] + b'one-shot WLAN join bss absence: bss=0 absent=1 quota=255 reserved=0\n' + good[stage3:])['malformed_stage_record'])
 
     def test_credit_and_completion_cannot_move_across_stage_fences(self):
         raw = log(True)
