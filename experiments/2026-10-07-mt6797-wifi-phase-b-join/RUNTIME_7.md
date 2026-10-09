@@ -49,11 +49,14 @@ with a BSS going absent; which body values the device sent is unmeasured.
 The control-event parser admits exactly this event under a strict contract:
 twelve bytes, sequence 0, BSS index 0 (the owned slot), a boolean absent
 flag, only while the host-owned teardown has submitted the BSS-off command and
-nothing is owed, in flight or queued, and at most twice per lifetime. It logs
-the body as metadata (`bss absence: bss= absent= quota= reserved=`). The
-quota is never treated as TC4 credit or as proof of drain or quiescence; the
-original idle guards, budgets and retirement are unchanged, and any other
-shape, sequence, slot, body value or lifecycle position is still refused.
+nothing is owed, in flight or queued, and at most twice per lifetime, a chosen
+bounded notification budget rather than an observed count. It logs the body
+as metadata (`bss absence: bss= absent= quota= reserved=`); the quota and
+reserved bytes are unrestricted metadata, logged and not validated, since no
+source contract constrains them. The quota is never treated as TC4 credit or
+as proof of drain or quiescence; the original idle guards, budgets and
+retirement are unchanged, and any other shape, sequence, slot, flag value or
+lifecycle position is still refused.
 [tests/join-peer-test.c](tests/join-peer-test.c) drives the production parser
 with synthetic source-defined cases: two admitted events during the teardown,
 the budget, and refusals for a solicited sequence, a foreign slot, a
@@ -64,13 +67,16 @@ validates the real body on the next boot.
 The join classifier now recognizes the diagnostic record grammar with exact
 bounded fields, so a refusal or an admitted indication is neither a stage
 record nor malformed, while any unknown kind or a known prefix with the wrong
-grammar remains malformed; health is still decided by the stage grammar.
-[tests/host-test.py](tests/host-test.py) covers both.
+grammar remains malformed. A valid `bss absence` record must name slot 0 with
+a boolean flag, appear at most twice, and lie between the stage-2 cleanup
+submission and the cleanup terminal (the stage-3 line or the stopped footer);
+any other placement is malformed. Health is still decided by the stage
+grammar. [tests/host-test.py](tests/host-test.py) covers all of this.
 
 ## Next
 
-Candidate 7 pairs a compile-12 kernel (0147) with the candidate-4 RAM root and
-helper, after the owner's review of the patch. The boot's decision-changing
+Candidate 7 pairs a compile-12 kernel (0147, reviewed and accepted) with the
+candidate-4 RAM root and helper. The boot's decision-changing
 observation is the final cleanup line (`cleanup: stage=3 credits=returned
 slots=retired deauth=0`) with the admitted indication's logged body, or a new
 specific refusal. A healthy cleanup then opens the next development stage

@@ -1,4 +1,4 @@
-From f7d8cf0acd3dea9fba8709db8f0e82b7c1c1d45a Mon Sep 17 00:00:00 2001
+From 082b51caabc66f38b6c4e15c8cf0dbbfe837d626 Mon Sep 17 00:00:00 2001
 From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
 Date: Fri, 9 Oct 2026 01:43:56 +0000
 Subject: [PATCH] wifi: mt6797: admit the BSS absence indication during the
@@ -16,20 +16,22 @@ lifetime before the final cleanup stage could complete.
 Admit exactly that event under a strict contract: 12 bytes, sequence 0,
 the owned BSS slot 0, a boolean absent flag, only while the host-owned
 teardown has submitted the BSS-off command and nothing is owed, in flight
-or queued, and at most twice per lifetime. Log its body as metadata. The
-quota is never treated as TC4 credit or as proof of drain or quiescence;
-the original idle guards, budgets and retirement are unchanged, and any
-other shape, sequence, slot, body value or lifecycle position is still
-refused. The body values were not measured on the device; the live
-parser validates them and the record logs them.
+or queued, and at most twice per lifetime, a chosen bounded notification
+budget rather than an observed count. The quota and reserved bytes are
+unrestricted metadata: logged, not validated, and never treated as TC4
+credit or as proof of drain or quiescence. The original idle guards,
+budgets and retirement are unchanged, and any other shape, sequence, slot,
+flag value or lifecycle position is still refused. No body value was
+measured on the device; the live parser validates the constrained fields
+and the record logs all four.
 
 Unsigned experiment draft; archive identity is non-certifying.
 ---
- drivers/net/wireless/mediatek/mt6797/mac.c | 32 ++++++++++++++++++++++
- 1 file changed, 32 insertions(+)
+ drivers/net/wireless/mediatek/mt6797/mac.c | 34 ++++++++++++++++++++++
+ 1 file changed, 34 insertions(+)
 
 diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
-index 648b77ac7..44c8ef8f8 100644
+index 648b77ac7..d55a0d3bb 100644
 --- a/drivers/net/wireless/mediatek/mt6797/mac.c
 +++ b/drivers/net/wireless/mediatek/mt6797/mac.c
 @@ -73,6 +73,7 @@ struct mt6797_mac {
@@ -48,7 +50,7 @@ index 648b77ac7..44c8ef8f8 100644
  	u32 interval, own;
  	int ret;
  
-@@ -669,6 +671,36 @@ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
+@@ -669,6 +671,38 @@ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
  		dev_info(wiphy_dev(mac->hw->wiphy),
  			 "one-shot WLAN join activation: sequence=%u state=3\n",
  			 mac->join_sta_sequence);
@@ -61,8 +63,10 @@ index 648b77ac7..44c8ef8f8 100644
 +		 * and one reserved byte; unsolicited, so its sequence is zero.
 +		 * Admitted only for the owned BSS slot during the host-owned
 +		 * teardown after the BSS-off submission, with no page owed,
-+		 * nothing in flight and nothing queued, at most twice. The quota
-+		 * is notification metadata: never TC4 credit and never proof of
++		 * nothing in flight and nothing queued. The cap of two is a
++		 * chosen bounded notification budget, not an observed count. The
++		 * quota and reserved bytes are unrestricted metadata, logged and
++		 * not validated: the quota is never TC4 credit and never proof of
 +		 * drain or quiescence; the original idle guards still decide.
 +		 */
 +		const u8 *body = mac->join_packet + 8;

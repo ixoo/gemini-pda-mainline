@@ -29,6 +29,8 @@ def classify(raw):
     )
     rows = {name: [] for name in patterns}
     diagnostic_lines = []
+    absence_rows = []
+    stopped_index = None
     malformed = False
     stopped = False
     for index, line in enumerate(raw.splitlines()):
@@ -38,6 +40,7 @@ def classify(raw):
         body = line.split(prefix, 1)[1]
         if body.startswith(b'stopped:'):
             stopped = True
+            stopped_index = index
             continue
         for name, pattern in patterns.items():
             if match := re.fullmatch(pattern, body):
@@ -46,8 +49,19 @@ def classify(raw):
         else:
             if any(re.fullmatch(pattern, body) for pattern in diagnostics):
                 diagnostic_lines.append(body.split(b':', 1)[0].decode())
+                if body.startswith(b'bss absence:'):
+                    absence_rows.append(index)
             else:
                 malformed = True
+    # The admitted indication is valid at most twice, and only between the
+    # stage-2 cleanup submission and the cleanup terminal (the stage-3 line or
+    # the stopped footer); any other placement is malformed.
+    stage2 = [row[0] for row in rows['cleanup_submission'] if row[1] == 2]
+    terminal = [row[0] for row in rows['cleanup']] + ([stopped_index] if stopped_index is not None else [])
+    if absence_rows:
+        if (len(absence_rows) > 2 or len(stage2) != 1 or not terminal or
+                any(not (stage2[0] < i < min(terminal)) for i in absence_rows)):
+            malformed = True
     tx, done, rx = rows['tx'], rows['done'], rows['rx']
     association = [row for row in rx if row[1] == 1]
     auth = [row for row in rx if row[1] == 11]
