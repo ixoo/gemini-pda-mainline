@@ -36,11 +36,13 @@ struct sk_buff_head { int lock; struct sk_buff *head; };
 #define wiphy_dev(w) (w)
 /* Capture the refusal bitmask the production diagnostic reports. */
 static unsigned last_reasons, refusal_logs, cleanup_logs, cleanup_stage, cleanup_free, overflow_logs;
+static unsigned absence_logs, absence_bss, absence_flag, absence_quota;
 static void record(const char *fmt, ...)
 { va_list ap; va_start(ap, fmt);
   if (strstr(fmt, "peer refused")) { last_reasons = va_arg(ap, unsigned); refusal_logs++; }
   else if (strstr(fmt, "cleanup refused")) { cleanup_stage = va_arg(ap, unsigned); (void)va_arg(ap, unsigned); cleanup_free = va_arg(ap, unsigned); cleanup_logs++; }
   else if (strstr(fmt, "credit overflow")) overflow_logs++;
+  else if (strstr(fmt, "bss absence")) { absence_bss = va_arg(ap, unsigned); absence_flag = va_arg(ap, unsigned); absence_quota = va_arg(ap, unsigned); absence_logs++; }
   va_end(ap); }
 #define dev_info(dev, ...) record(__VA_ARGS__)
 static unsigned allocations, losses;
@@ -85,6 +87,7 @@ struct mt6797_mac {
  bool join_credit_pending, join_channel_pending, join_channel_granted;
  bool join_sta_pending, join_sta_active;
  bool join_peer_refusal_logged, join_channel_refusal_logged;
+ unsigned join_absence_events;
  unsigned join_page_debt, sequence, join_requested_ms, join_basic_rates;
  unsigned join_desired_rates, join_peer_basic_rates;
  u8 join_ap[6], join_bssid[6], join_channel_token, join_sta_sequence;
@@ -312,6 +315,28 @@ int main(void)
   assert(!mt6797_mac_join_guard(&m,m.join_credit_deadline));released=0;
  }
  assert(order[5]==0x14 && order[6]==0x1c && order[7]==0x11 && !losses);
+ /* EVENT_ID_BSS_ABSENCE_PRESENCE after the BSS-off submission: 12 bytes, seq 0,
+  * BSS 0, boolean flag; the body is synthetic and source-defined, logged as
+  * metadata, never credit. Admitted at most twice; every deviation refused. */
+ { struct mt6797_mac saved=m; u8 *e=m.join_packet; absence_logs=0;
+   memset(e,0,24);e[0]=12;e[3]=0xe0;e[4]=0x11;e[5]=0;e[8]=0;e[9]=1;e[10]=7;e[11]=0;
+   mutex_lock(&m.mutex);assert(!mt6797_mac_join_control_event(&m,12));mutex_unlock(&m.mutex);
+   assert(absence_logs==1 && absence_bss==0 && absence_flag==1 && absence_quota==7);
+   assert(m.join_page_debt==0 && !m.join_credit_pending && m.join_cleanup_stage==3 && !m.join_cleanup_done);
+   e[9]=0; mutex_lock(&m.mutex);assert(!mt6797_mac_join_control_event(&m,12));mutex_unlock(&m.mutex);
+   assert(absence_logs==2 && absence_flag==0 && m.join_absence_events==2);
+   mutex_lock(&m.mutex);assert(mt6797_mac_join_control_event(&m,12)==-EPROTO);mutex_unlock(&m.mutex); /* budget */
+   m=saved; e=m.join_packet; m.join_absence_events=0;
+   e[5]=1; assert(mt6797_mac_join_control_event(&m,12)==-EPROTO); e[5]=0;          /* a solicited sequence */
+   e[8]=1; assert(mt6797_mac_join_control_event(&m,12)==-EPROTO); e[8]=0;          /* foreign BSS slot */
+   e[9]=2; assert(mt6797_mac_join_control_event(&m,12)==-EPROTO); e[9]=1;          /* non-boolean flag */
+   e[0]=16; assert(mt6797_mac_join_control_event(&m,16)==-EPROTO); e[0]=12;        /* wrong length */
+   m.join_cleanup_stage=2; assert(mt6797_mac_join_control_event(&m,12)==-EPROTO); m.join_cleanup_stage=3; /* before BSS off */
+   m.join_page_debt=1; assert(mt6797_mac_join_control_event(&m,12)==-EPROTO); m.join_page_debt=0;     /* page owed */
+   m.join_inflight=(void*)1; assert(mt6797_mac_join_control_event(&m,12)==-EPROTO); m.join_inflight=NULL;
+   m.join_cleanup_done=true; assert(mt6797_mac_join_control_event(&m,12)==-EPROTO); m.join_cleanup_done=false;
+   assert(m.join_absence_events==0 && absence_logs==2);
+   m=saved; }
  /* Stage 3 with the HIF not idle: the refusal is unchanged (-EPROTO, nothing
   * completed or submitted) and now names the ledger terms exactly once. */
  { struct mt6797_mac saved=m; idle=false;cleanup_logs=0;

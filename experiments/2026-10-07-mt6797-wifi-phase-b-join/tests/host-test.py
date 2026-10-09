@@ -56,6 +56,42 @@ class HostTests(unittest.TestCase):
             self.assertFalse(classify(mutation)['bounded_join_pass'])
         self.assertFalse(classify(b'')['bounded_join_pass'])
 
+    def test_diagnostic_records_are_recognized_not_malformed(self):
+        raw = log(False)
+        # The runtime-7 shape: cleanup submissions returned, then a refused control
+        # event and the footer; no stage-3 line. Diagnostics are recognized, the
+        # join is not healthy, and nothing is flagged malformed.
+        cut = raw.index(b'one-shot WLAN join cleanup: stage=3')
+        tail = (b'one-shot WLAN join control event refused: status=-71 bytes=12 type=0xe000 id=0x11 seq=0\n'
+                b'one-shot WLAN join stopped: status=-71 first=0 submitted=0x801 debt=0 cleanup=3 branch=6\n')
+        result = classify(raw[:cut] + tail)
+        self.assertFalse(result['malformed_stage_record'])
+        self.assertEqual(result['diagnostic_records'], ['control event refused'])
+        self.assertTrue(result['management_exchange_demonstrated'])
+        self.assertFalse(result['healthy_cleanup_demonstrated'])
+        self.assertFalse(result['bounded_join_pass'])
+        for line in (b'one-shot WLAN join frame refused: bytes=3 type=0x10000 allowed=0x1400\n',
+                     b'one-shot WLAN join cleanup refused: stage=3 phase=5 free=25 limit=26 pending_cpu=1 pending_ffa=0 sequences=1 locked=0\n',
+                     b'one-shot WLAN join credit overflow: pages=1 debt=0\n',
+                     b'one-shot WLAN join bss absence: bss=0 absent=1 quota=0 reserved=0\n'):
+            self.assertFalse(classify(raw[:cut] + line + tail)['malformed_stage_record'])
+        # A healthy log with an unknown record kind is still malformed, and so is a
+        # known diagnostic prefix with the wrong grammar: arbitrary text, a foreign
+        # BSS slot, a non-boolean flag, or an extra suffix.
+        self.assertTrue(classify(raw + b'one-shot WLAN join mystery: x=1\n')['malformed_stage_record'])
+        for bad in (b'one-shot WLAN join bss absence: anything goes\n',
+                    b'one-shot WLAN join bss absence: bss=1 absent=1 quota=0 reserved=0\n',
+                    b'one-shot WLAN join bss absence: bss=0 absent=2 quota=0 reserved=0\n',
+                    b'one-shot WLAN join bss absence: bss=0 absent=1 quota=0 reserved=0 extra=1\n',
+                    b'one-shot WLAN join control event refused: status=-71 bytes=12 type=0xe000 id=0x11\n',
+                    b'one-shot WLAN join cleanup refused: stage=9 phase=5 free=25 limit=26 pending_cpu=1 pending_ffa=0 sequences=1 locked=0\n'):
+            self.assertTrue(classify(raw + bad)['malformed_stage_record'], bad)
+        # An admitted indication is recorded as a diagnostic and is not malformed;
+        # the stage grammar decides health, so the accepted log stays as classified.
+        recorded = classify(log(True) + b'one-shot WLAN join bss absence: bss=0 absent=1 quota=0 reserved=0\n')
+        self.assertFalse(recorded['malformed_stage_record'])
+        self.assertEqual(recorded['diagnostic_records'], ['bss absence'])
+
     def test_credit_and_completion_cannot_move_across_stage_fences(self):
         raw = log(True)
         credit = b'one-shot WLAN join credit: pages=2 remaining=0\n'

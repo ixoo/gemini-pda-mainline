@@ -1,0 +1,96 @@
+{
+  "experiment": "mt6797-wifi-phase-b",
+  "runtime": 7,
+  "profile": "mt6797-a53-wifi-phase-b-compile",
+  "kernel_release": "7.1.3-gemini-a53-wifi-phase-b-compile",
+  "host_revision": "f408f15e",
+  "build_input": "d88d6e22909539944ea532db374e1718b12ce94f",
+  "package_inventory_sha256": "86b0a20889560530f41a1a54f5ca30fa2cdd567a2745d2543a321ee3a70a9687",
+  "candidate_manifest_sha256": "e4fbd0e2ee7e17f1ba030fd0860eb40e9de75b01bc8480a2b6efed0ee7de4e7d",
+  "candidate_boot2_sha256": "e6b7dd4ea57ef358440370226317ebb92b827d97550bb2ecd99ade3e9e3c5d58",
+  "mainline_boot_id": "3cfe1f68-5525-4652-83e9-a83a7fdb781b",
+  "returned_gemian_boot_id": "8599964c-c0d6-4a63-9081-5747400b45c9",
+  "common_init": {
+    "steps": 285,
+    "completed": 285,
+    "result": 0,
+    "calibration_ack_frames": 1,
+    "pa_rails_off_after": true
+  },
+  "scan": {
+    "attempted": true,
+    "completed": true,
+    "passive_scan_demonstrated": true,
+    "standard_scan_succeeded": true,
+    "channel40_permitted": true,
+    "owner_bss_matched": true,
+    "scan_exit": 0
+  },
+  "join": {
+    "attempted": true,
+    "connect_request": "acknowledged",
+    "kernel_errno": 0,
+    "authentication": {
+      "tx_pid": 1,
+      "tx_done_status": 0,
+      "rx_status": 0,
+      "mac80211": "authenticated"
+    },
+    "association": {
+      "tx_pid": 2,
+      "tx_done_status": 0,
+      "rx_status": 45,
+      "status_name_in_selected_header": "WLAN_STATUS_INVALID_RSN_IE_CAP",
+      "mac80211": "denied association (code=45)",
+      "aid_in_response": 2047
+    },
+    "cleanup": {
+      "submissions": [
+        0,
+        1,
+        2
+      ],
+      "credit_pages_returned_per_stage": [
+        1,
+        1,
+        1
+      ],
+      "final_stage_line": false
+    },
+    "refused_control_event": {
+      "status": -71,
+      "logical_bytes": 12,
+      "wire_type": "0xe000",
+      "event_id": "0x11",
+      "sequence": 0,
+      "identified_as": "EVENT_ID_BSS_ABSENCE_PRESENCE (publicly pinned gen3 nic_cmd_event.h, unsolicited)",
+      "body_measured": false
+    },
+    "driver_footer": "one-shot WLAN join stopped: status=-71 first=0 submitted=0x801 debt=0 cleanup=3 branch=6",
+    "footer_branch": 6,
+    "footer_branch_meaning": "control event",
+    "footer_branch_measured": true,
+    "idle_or_overflow_refusal": false,
+    "host_management_submissions": 2,
+    "management_exchange_demonstrated": true,
+    "association_response_status": 45,
+    "healthy_cleanup_demonstrated": false,
+    "bounded_join_pass": false,
+    "session_verified": true,
+    "malformed_stage_record_in_original_classifier": true,
+    "malformed_note": "the original classifier flagged the new diagnostic line as unknown; the classifier now recognizes the diagnostic record grammar while unknown kinds remain malformed; the original JSON is preserved unchanged"
+  },
+  "total_credit_pages_logged": 9,
+  "log_complete": true,
+  "sealed_log_bytes": 152619,
+  "sealed_log_records": 2016,
+  "sealed_log_sha256": "8dea83411081be05f6264565563fdad4dad527e88ebfc0b9775be7878c74f9c2",
+  "pre_recovery_manifest_sha256": "7dea44fd9256a3e65850423bc2ae00b05851a43e29918b672265464e8f43d03d",
+  "regression_pass": true,
+  "recovery_requested": true,
+  "recovery_confirmed": true,
+  "wifi_operational": false,
+  "raw_evidence_public": false,
+  "classification": "management exchange repeated (authentication accepted, association denied with status 45); the runtime-6 protocol error is measured: the control-event parser refused a 12-byte unsolicited event 0x11 after the BSS-off cleanup submission",
+  "failed_predicate_measured": true
+}

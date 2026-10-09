@@ -1,0 +1,90 @@
+From f7d8cf0acd3dea9fba8709db8f0e82b7c1c1d45a Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 9 Oct 2026 01:43:56 +0000
+Subject: [PATCH] wifi: mt6797: admit the BSS absence indication during the
+ owned teardown
+
+The diagnosed join tick stopped in the control-event parser on a 12-byte
+event with identifier 0x11 and sequence 0, received right after the
+teardown's BSS-off submission had returned its page. In the publicly
+pinned gen3 headers that is EVENT_ID_BSS_ABSENCE_PRESENCE, an unsolicited
+queue-management notification carrying the BSS index, an absent flag, a
+free-quota byte and one reserved byte after the event header; the vendor
+driver only records it. The parser refused it as unknown and ended the
+lifetime before the final cleanup stage could complete.
+
+Admit exactly that event under a strict contract: 12 bytes, sequence 0,
+the owned BSS slot 0, a boolean absent flag, only while the host-owned
+teardown has submitted the BSS-off command and nothing is owed, in flight
+or queued, and at most twice per lifetime. Log its body as metadata. The
+quota is never treated as TC4 credit or as proof of drain or quiescence;
+the original idle guards, budgets and retirement are unchanged, and any
+other shape, sequence, slot, body value or lifecycle position is still
+refused. The body values were not measured on the device; the live
+parser validates them and the record logs them.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 32 ++++++++++++++++++++++
+ 1 file changed, 32 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 648b77ac7..44c8ef8f8 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -73,6 +73,7 @@ struct mt6797_mac {
+ 	bool join_channel_pending, join_channel_granted;
+ 	bool join_sta_pending, join_sta_active;
+ 	bool join_peer_refusal_logged, join_channel_refusal_logged;
++	unsigned int join_absence_events;
+ 
+ 	u64 scan_deadline, scan_started_ns;
+ 	unsigned int scan_channels, scan_count, scan_polls, scan_packets;
+@@ -622,6 +623,7 @@ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
+ 		.bss = 0, .token = mac->join_channel_token, .channel = 40,
+ 		.band = 2, .max_ms = mac->join_requested_ms,
+ 	};
++	unsigned long flags;
+ 	u32 interval, own;
+ 	int ret;
+ 
+@@ -669,6 +671,36 @@ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+ 			 "one-shot WLAN join activation: sequence=%u state=3\n",
+ 			 mac->join_sta_sequence);
++#endif
++		return 0;
++	}
++	if (mt6797_join_event(mac->join_packet, bytes, 0x11, 4)) {
++		/* EVENT_ID_BSS_ABSENCE_PRESENCE (publicly pinned gen3 que_mgt.h):
++		 * the event header, then ucBssIndex, ucIsAbsent, ucBssFreeQuota
++		 * and one reserved byte; unsolicited, so its sequence is zero.
++		 * Admitted only for the owned BSS slot during the host-owned
++		 * teardown after the BSS-off submission, with no page owed,
++		 * nothing in flight and nothing queued, at most twice. The quota
++		 * is notification metadata: never TC4 credit and never proof of
++		 * drain or quiescence; the original idle guards still decide.
++		 */
++		const u8 *body = mac->join_packet + 8;
++		bool queued;
++
++		spin_lock_irqsave(&mac->join_queue.lock, flags);
++		queued = !skb_queue_empty(&mac->join_queue);
++		spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++		if (mac->join_packet[5] || body[0] || body[1] > 1 ||
++		    !mac->join_cleanup_requested || mac->join_cleanup_done ||
++		    mac->join_cleanup_stage != 3 || mac->join_page_debt ||
++		    mac->join_credit_pending || mac->join_inflight || queued ||
++		    mac->join_absence_events >= 2)
++			return -EPROTO;
++		mac->join_absence_events++;
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++		dev_info(wiphy_dev(mac->hw->wiphy),
++			 "one-shot WLAN join bss absence: bss=%u absent=%u quota=%u reserved=%u\n",
++			 body[0], body[1], body[2], body[3]);
+ #endif
+ 		return 0;
+ 	}
+-- 
+2.39.5
+

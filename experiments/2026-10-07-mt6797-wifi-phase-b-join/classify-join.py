@@ -17,7 +17,18 @@ def classify(raw):
         'peer': rb'peer: ready=1 sequence=(\d+)',
         'grant': rb'grant: channel=40 interval_ms=(\d+)',
     }
+    # Diagnostic records name a refusal or an admitted indication; they are
+    # neither stage records nor malformed. Health is decided by the stage grammar.
+    diagnostics = (
+        rb'control event refused: status=-\d{1,3} bytes=\d{1,5} type=0x[0-9a-f]{1,5} id=0x[0-9a-f]{2} seq=\d{1,3}',
+        rb'frame refused: bytes=\d{1,5} type=0x[0-9a-f]{1,5} allowed=0x[0-9a-f]{1,8}',
+        rb'cleanup refused: stage=[0-3] phase=\d{1,2} free=\d{1,5} limit=\d{1,5} pending_cpu=\d{1,5} pending_ffa=\d{1,5} sequences=[01] locked=[01]',
+        rb'credit overflow: pages=\d{1,5} debt=\d{1,3}',
+        # The admitted indication: the owned BSS slot 0, a boolean flag, bounded counters.
+        rb'bss absence: bss=0 absent=[01] quota=\d{1,3} reserved=\d{1,3}',
+    )
     rows = {name: [] for name in patterns}
+    diagnostic_lines = []
     malformed = False
     stopped = False
     for index, line in enumerate(raw.splitlines()):
@@ -33,7 +44,10 @@ def classify(raw):
                 rows[name].append((index, *(int(v) for v in match.groups())))
                 break
         else:
-            malformed = True
+            if any(re.fullmatch(pattern, body) for pattern in diagnostics):
+                diagnostic_lines.append(body.split(b':', 1)[0].decode())
+            else:
+                malformed = True
     tx, done, rx = rows['tx'], rows['done'], rows['rx']
     association = [row for row in rx if row[1] == 1]
     auth = [row for row in rx if row[1] == 11]
@@ -94,6 +108,7 @@ def classify(raw):
         'healthy_cleanup_demonstrated': bool(healthy and cleanup_ok and activation_ok and order_ok),
         'stage_and_credit_order_verified': bool(order_ok),
         'malformed_stage_record': malformed,
+        'diagnostic_records': diagnostic_lines,
         'terminal_failure_recorded': stopped,
         'wifi_operational': False,
     }
