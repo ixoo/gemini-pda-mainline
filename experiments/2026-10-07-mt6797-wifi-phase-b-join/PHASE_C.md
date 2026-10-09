@@ -130,30 +130,103 @@ as EAPOL framing observations and never as part of the association verdict.
 Purpose: complete the four-way handshake and install the pairwise and group
 keys so that protected data can flow.
 
-Open design choices to resolve before coding, with the measurements that decide
-them:
+Research state (2026-10-09, hardware-free, public sources only; nothing here
+is admitted into a runtime or a build before the runtime-9 evidence):
 
-1. Supplicant. The pinned Debian arm64 `wpasupplicant` package, added to the
-   RAM root through the existing userspace receipt mechanism with its
-   dependencies, is the preferred choice: standard and widely reviewed. A
-   custom WPA2 handshake in the helper is not planned unless a concrete
-   constraint (such as RAM-root size) forces it. The supplicant reads the
-   passphrase as a private runtime input and sends EAPOL over nl80211's
-   control port (`NL80211_ATTR_CONTROL_PORT_OVER_NL80211`), which keeps EAPOL
-   off the network device path.
-2. EAPOL transport in the driver. Control-port frames arrive at the driver as
-   data frames through `.tx`, so C2 needs a data transmit path: the HIF TX
-   header for an 802.11 data frame on a data traffic class, with page
-   accounting like the management path. The C1 measurement of the received
-   EAPOL frame decides whether received data arrives translated to Ethernet
-   (then mac80211 needs it untranslated, or the firmware must be configured to
-   stop translating) or as 802.11.
-3. Key placement. mac80211 software crypto needs no firmware key; the firmware
-   then sees protected frames it cannot inspect. Whether the firmware forwards
-   protected data frames for a BSS declared encryption-disabled is unmeasured;
-   if not, C2 installs the keys in the firmware through `CMD_ID_ADD_REMOVAL_KEY`
-   with `CIPHER_SUITE_CCMP` and declares `AUTH_MODE_WPA2_PSK` and
-   `ENUM_ENCRYPTION3_ENABLED` in the BSS payload, with a `set_key` operation.
+### Supplicant, pinned
+
+Upstream wpa_supplicant 2.11 (tarball SHA-256 `912ea06f74e30a8e36fbb68064d6cd
+ff218d8d591db0fc5d75dee6c81ac7fc0a`, release signature good under the hostap
+release key `EC4A A0A9 91A5 F246 4582 D52D 2B6E F432 EFC8 95FA`) with libnl
+3.11.0 (SHA-256 `2a56e1edefa3e68a7c00879496736fdbf62fc94ed3232c0baba127ecfa76
+874d`, release signature good under the libnl release key `49EA 7C67 0E08 50E7
+4195 14F6 29C2 366E 4DFC 5728`, which has since expired). The reproducible
+static aarch64 build is [`helper/build-wpa-supplicant.sh`](helper/build-wpa-supplicant.sh)
+with [`helper/wpa_supplicant.config`](helper/wpa_supplicant.config): nl80211
+driver only, internal crypto, Unix control socket, file backend without
+writes or blobs, no D-Bus, P2P, AP, mesh, WPS, EAP methods or SAE. Two builds
+produced the same binary, SHA-256 `0487b7109c0a456eabf3aef33d74d38e5aa4e6dddcb
+586c03bb203803dd27da7`, 1719888 bytes. It is preferred over the Debian package
+because it has no shared-library closure to add to the RAM root. The binary
+links libnl (LGPL-2.1) statically; it is a private test artifact built from
+pinned sources that allow relinking and is not redistributed. The pinned
+supplicant requests the nl80211 control port whenever the driver advertises
+it (`driver_nl80211.c`), and mac80211 advertises it unconditionally
+(`net/mac80211/main.c`), so EAPOL never touches the network-device path. Its
+completion is the `WPA: Key negotiation completed` log line, with
+`CTRL-EVENT-CONNECTED`; the passphrase stays a private runtime input.
+
+### EAPOL transmit: the vendor security-frame shape (pinned gen3 source)
+
+- The vendor driver sends every 802.1X frame as a *security frame command* on
+  TC4, the MCU port, queue 1 (`nicTxGetFrameResourceType`,
+  `wlanProcessSecurityFrame`), not on the data access categories. Its
+  descriptor (`nicTxComposeSecurityFrameDesc`) is the 28-byte long format
+  with header format `NON_802_11` and the Ethernet II flag, the ether-type
+  offset `(12 + 28) / 2`, TID 0, the station's WLAN index, own-MAC index,
+  TC4 lifetime and count limits, the BSS default fixed rate, and, because the
+  vendor wants a completion, a PID with TX status to the MCU. The payload is
+  the 802.3 frame; the firmware builds the 802.11 header.
+- Consequence: C2 can reuse the existing TC4 management path and ledger for
+  EAPOL. mac80211 hands the control-port frame to `.tx` as an 802.11 data
+  frame (`ieee80211_tx_control_port`, flag `IEEE80211_TX_CTRL_PORT_CTRL_PROTO`);
+  the driver converts it back to 802.3 and submits it with a second descriptor
+  builder for the security-frame shape, keeping the management builder
+  unchanged. Pages are counted as for management, `(28 + bytes + 127) / 128`,
+  and returned through the same WTQCR word 7 (CPU and FFA halves) the ledger
+  already reconciles. Only one EAPOL frame is in flight at a time, as today.
+- The data access categories are a C3 matter: AIS maps best-effort traffic to
+  TC1 (LMAC port 0, queue AC1; 36 buffers of 13 pages in the vendor's
+  host-side quota table) with an 8-byte short descriptor, and their releases
+  arrive in WTQCR words 0 to 3, which the present ledger refuses as a
+  fail-stop. Extending the ledger is C3 work, not C2.
+
+### EAPOL receive
+
+The 0140 decoder already covers both layouts the firmware may use. For the
+translated layout it rebuilds the 32-byte 802.11 header plus LLC/SNAP from
+RXD group 4 (`prefix`), so the driver can deliver `prefix + EAPOL body` to
+`ieee80211_rx` without any mac80211 change; for the native layout the frame
+is delivered as received. mac80211 then routes the frame to the supplicant
+through `cfg80211_rx_control_port` (`net/mac80211/rx.c`). Which layout the
+firmware uses for this BSS is exactly what runtime 9 measures. Translation is
+decided by the firmware; the pinned headers expose no command that selects it.
+
+### Crypto ownership
+
+- Vendor fact: the firmware encrypts only when the TXD protected bit is set,
+  and the vendor sets it only when the BSS is declared encrypted
+  (`secIsProtectedFrame` → `secIsProtectedBss`); the key lives in the WTBL
+  entry installed by `CMD_ID_ADD_REMOVAL_KEY` (`CMD_802_11_KEY`: add, TX key,
+  unicast type, peer address, BSS index, `CIPHER_SUITE_CCMP` = 4, key id,
+  16-byte material, the station's WLAN index for the pairwise key and the BMC
+  WLAN index for the group key, RSC) and the BSS payload declares
+  `AUTH_MODE_WPA2_PSK` = 7 and `ENUM_ENCRYPTION3_ENABLED` = 6.
+- mac80211 fact: with no `set_key` operation the key stays in software
+  (`net/mac80211/key.c`), mac80211 encrypts CCMP itself, sets the protected
+  bit in the frame control and expects to decrypt received frames itself.
+- Two admissible designs, decided by measurement, not preference:
+  (a) software crypto, BSS stays encryption-disabled, no key command, TXD
+  protected bit clear; requires that the firmware forwards frames whose frame
+  control carries the protected bit for an unencrypted BSS in both directions,
+  which no pinned source answers; (b) firmware keys through `set_key` with the
+  vendor command, BSS declared WPA2-PSK/encryption 3, TXD protected bit set
+  on data; requires knowing whether the hardware strips the CCMP header and
+  MIC on receive (`RX_FLAG_DECRYPTED`, `RX_FLAG_IV_STRIPPED`), which the
+  translated layout implies and the native layout leaves open. The handshake
+  itself needs no key in either design; C2 installs the keys at its end and
+  measures one protected frame in each direction before C3.
+
+### Station record
+
+The submitted station record declares no QoS (`ucIsQoS` = 0). mac80211 will
+emit QoS data frames if the association response advertises WMM; for EAPOL
+this is moot because the driver re-encapsulates to 802.3 on TC4, but C3's
+data path must either declare QoS in the record or strip it from frames.
+
+Open until runtime 9: the AP's acceptance with the RSN element, the EAPOL
+layout on the wire, and whether the first frame arrives before or after the
+local activation. C2 code follows this document's update with that evidence.
 
 ## Stage C3: data, DHCP, ping, SSH
 

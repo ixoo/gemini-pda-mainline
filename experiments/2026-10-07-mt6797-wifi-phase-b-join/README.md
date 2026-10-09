@@ -430,6 +430,12 @@ booted:
   `netlink_ack` and `genlmsg_put_reply` stamp it, and are not checked. The
   family reply, which for nl80211 exceeds 512 bytes with its operation list,
   is parsed from a reply-sized buffer and a truncated datagram is refused.
+- **Phase C2 supplicant, pinned, not yet admitted.** `helper/build-wpa-supplicant.sh`
+  with `helper/wpa_supplicant.config` builds upstream wpa_supplicant 2.11
+  with libnl 3.11.0 as one static aarch64 binary (SHA-256 `0487b710…`,
+  1719888 bytes, reproducible; source digests and release-signature
+  fingerprints in [PHASE_C](PHASE_C.md)). It is research for Phase C2 and is
+  not part of any candidate until the runtime-9 evidence is in.
   Tests: [tests/join-connect-test.py](tests/join-connect-test.py) parses the
   exact attribute set from the helper's dump mode, refuses the argument
   boundaries, runs [tests/join-connect-transport-test.c](tests/join-connect-transport-test.c),
