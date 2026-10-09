@@ -46,6 +46,59 @@ HOST.DOMAIN.HOST.HERE = HERE
 HOST.DOMAIN.HOST.ROOT = ROOT
 HOST.DOMAIN.HOST.REPO = PRIVATE_REPO
 HOST.DOMAIN.HOST.__file__ = str(Path(__file__).resolve())
+C2 = runpy.run_path(str(HERE / 'c2-session.py'))
+C2_SCRIPT = C2['is_c2_script'](SCAN.SCAN_SOURCE.read_bytes())
+WIPHY_PREPARE = SCAN.PREPARE
+
+
+def c2_prepare(candidate):
+    """The wiphy-probe prepare plus the C2 session pieces, applied before the
+    scan-tuning prepare captures the phase invoker: a 45 s budget for the
+    supplicant-owned join (its 24 s loop plus setup and phrase counts), one
+    bounded private export of the complete supplicant log between the join
+    script and the log seal, and no hash of the PSK-bound script in the claim.
+    """
+    prepared = WIPHY_PREPARE(candidate)
+    if not C2_SCRIPT:
+        return prepared
+    globals_ = prepared['execute'].__globals__
+    invoke = globals_['invoke']
+    globals_['BUDGETS']['supplicant-log'] = (20, C2['LOG_LIMIT'] + 4096)
+    prepared['claim']['phase_budgets']['supplicant-log'] = {
+        'connections': 1, 'seconds': 20, 'stdout_bytes': C2['LOG_LIMIT'] + 4096, 'stderr_bytes': 16384}
+    exported = False
+
+    def invoke_with_supplicant_log(active, label, script, *, network_status=None):
+        nonlocal exported
+        if label == 'log-export' and not exported:
+            exported = True
+            observation = json.loads((ROOT / 'observation-result.json').read_bytes())
+            boot = observation['boot_id']
+            try:
+                raw, err, process = invoke(active, 'supplicant-log', C2['log_script'](boot))
+                result = C2['log_result'](raw, err, process, boot)
+            except (OSError, ValueError, KeyError, TypeError) as error:
+                result = {'complete': False, 'reason': str(error)}
+            active['collector'].write_new(ROOT / 'supplicant-log-result.json',
+                                           HOST.DOMAIN.HOST.encoded(result))
+        return invoke(active, label, script, network_status=network_status)
+
+    globals_['invoke'] = invoke_with_supplicant_log
+    return prepared
+
+
+def prepare_with_c2(candidate):
+    prepared = SCAN.prepare(candidate)
+    if C2_SCRIPT:
+        globals_ = prepared['execute'].__globals__
+        globals_['BUDGETS']['passive-scan'] = (45, 262144)
+        prepared['claim']['phase_budgets']['passive-scan']['seconds'] = 45
+        # The bound script carries the PSK; its digest is private evidence only.
+        prepared['claim']['passive_scan_script_sha256'] = 'private-psk-bound'
+    return prepared
+
+
+SCAN.PREPARE = c2_prepare
 
 
 def select_prepare(ready):
@@ -56,7 +109,7 @@ def select_prepare(ready):
     and injects no scan. Its wiphy probe records an absent wiphy without
     failing the session.
     """
-    HOST.DOMAIN.prepare = SCAN.prepare if ready else SCAN.PREPARE
+    HOST.DOMAIN.prepare = prepare_with_c2 if ready else SCAN.PREPARE
     return HOST.DOMAIN.prepare
 
 
@@ -82,15 +135,22 @@ SETUP_MARKER = b'one-shot WMT setup complete: clear=351232 verified, CONN held o
 PREPOWER_MARKER = b'one-shot CONSYS after WMT: prepower admission passed'
 
 
-def phase_b_scan_success(root):
+def phase_b_scan_success(root, c2=False):
     """Phase B success from the session's own records, with the renamed marker.
 
     Mirrors the inherited host's exit condition and replaces only its obsolete
-    'one-shot WLAN after WMT' count; the scan must also be demonstrated.
+    'one-shot WLAN after WMT' count; the scan must also be demonstrated. Under
+    C2 there is no standard iw scan, so only that demonstration is replaced,
+    by the join phase's complete process under the authenticated boot with
+    an empty stderr; phase and process errors still fail.
     """
     try:
         deferred = json.loads((root / 'deferred-start-result.json').read_bytes())
         scan = json.loads((root / 'passive-scan-result.json').read_bytes())
+        if c2:
+            userspace = json.loads((root / 'passive-scan-userspace.json').read_bytes())
+            scan = {'passive_scan_demonstrated': userspace.get('transport_complete') is True and
+                    userspace.get('standard_scan_succeeded') is True}
         records = deferred['deferred_start_records']
         lines = ((root / 'kmsg.log').read_bytes().splitlines()
                  if deferred.get('preservation', {}).get('log_complete') else [])
@@ -134,7 +194,7 @@ def main():
     rc = SCAN.main()
     if not args.execute:
         return rc
-    if rc == 1 and ready and phase_b_scan_success(ROOT):
+    if rc == 1 and ready and phase_b_scan_success(ROOT, C2_SCRIPT):
         rc = 0
     result_path = ROOT / 'passive-scan-result.json'
     combined = {'phase_a_capture': (json.loads(phase_a.read_bytes())
@@ -147,9 +207,31 @@ def main():
     complete = deferred.get('preservation', {}).get('log_complete') is True
     combined['join'] = join((ROOT / 'kmsg.log').read_bytes()) if complete else {'bounded_join_pass': False}
     combined['join']['session_verified'] = bool(complete and deferred.get('regression_pass') and deferred.get('recovery_confirmed'))
+    verdict = combined['join'].get('bounded_join_pass') and combined['join']['session_verified']
+    if C2_SCRIPT:
+        combined['c2'] = c2_result(combined['join'], combined['join']['session_verified'])
+        verdict = combined['c2']['c2_session_pass']
     with (ROOT / 'phase-b-session-result.json').open('x') as stream:
         stream.write(json.dumps(combined, indent=2, sort_keys=True) + '\n')
-    return rc or (0 if combined['join'].get('bounded_join_pass') and combined['join']['session_verified'] else 1)
+    return rc or (0 if verdict else 1)
+
+
+def c2_result(join, session_verified):
+    """Fixed-phrase counts from the private framed stdout, the join phase's
+    process completeness, the export's completeness (count, digest and phrase
+    counts, never the log) and the session conjunction. The PSK-bound script
+    is never digested here.
+    """
+    stdout = ROOT / 'passive-scan/stdout.txt'
+    fields = C2['body_fields'](stdout.read_bytes() if stdout.is_file() else b'')
+    export = ROOT / 'supplicant-log-result.json'
+    log = json.loads(export.read_bytes()) if export.is_file() else {'complete': False}
+    phase = ROOT / 'passive-scan-userspace.json'
+    userspace = json.loads(phase.read_bytes()) if phase.is_file() else {}
+    return {'supplicant': fields, 'supplicant_log': log,
+            'join_phase_complete': userspace.get('transport_complete') is True and
+            userspace.get('standard_scan_succeeded') is True,
+            'c2_session_pass': C2['session_pass'](join, fields, log, userspace, session_verified)}
 
 
 if __name__ == '__main__':

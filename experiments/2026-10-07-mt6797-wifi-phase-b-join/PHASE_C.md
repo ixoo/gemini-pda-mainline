@@ -378,8 +378,12 @@ a separate observed result, and the unchanged deauthentication and teardown.
 Proposals 0153 (scan-element limit), 0154 (EAPOL delivery), 0155 (control-port
 transmit on TC4 through the one queue) and 0156 (firmware keys, WPA2 BSS
 declaration, ledger-serialized `set_key`, explicit removals after the
-deauthentication) are written, fixture-covered and under review; nothing is
-built or admitted into a candidate until that review's go.
+deauthentication) are written, fixture-covered and were reviewed at
+0e333617; compile 17 built them (job
+`0e333617…-mt6797-a53-wifi-phase-b-compile-m0`). The session tooling
+(`c2-session.py`, the `passive-host.py` hooks, the binder's hex SSID and
+PSK, the join script's supplicant-owned mode) is under review; no candidate,
+deployment or device action until that review's go.
 
 ### Device protocol, stated in advance
 

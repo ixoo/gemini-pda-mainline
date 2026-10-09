@@ -337,6 +337,19 @@ copies, no stubbed close):
   released exactly once by the owner's function. It fails on the pre-0142
   `mac.c`.
 
+## Runtime 13 (not composed)
+
+[Compile 17](COMPILE_17.md) built proposals 0153 to 0156 at input `0e333617`
+(package `1997dffb…`, config and DT unchanged). `build-candidate.py` now
+pins that input and package; candidate 12, deployment 12 and runtime 13 are
+not yet composed or pinned, and the other adapters keep their runtime-12
+bindings below until the runtime tooling review passes and the owner
+composes. The C2 session is supplicant-owned: the binder adds the private
+PSK and hex SSID, the join script runs the pinned static supplicant for one
+bounded loop, the host exports the complete supplicant log privately before
+the seal, and the sanitized result carries fixed-phrase counts and the
+conjunction only.
+
 ## Runtime 12 bindings (2026-10-09)
 
 Candidate 11 pairs the [compile 16](COMPILE_16.md) package `642165d4…` (input
@@ -503,7 +516,7 @@ booted:
   gates and no secret on any output; `tests/credential-tool-test.py` drives it
   against a fake remote helper. The C2 design findings are in
   [PHASE_C](PHASE_C.md).
-- **Phase C2 implementation, for review (nothing built; runtime tooling checkpoint, incomplete).** Proposals 0153 to
+- **Phase C2 implementation, for review (compile 17 built, nothing deployed).** Proposals 0153 to
   0156 (bounded scan-element limit; EAPOL delivery to mac80211; control-port
   EAPOL transmit as the vendor security frame on TC4 through the one queue;
   firmware keys with the WPA2 BSS declaration, ledger-serialized `set_key` and
@@ -516,11 +529,26 @@ booted:
   the `eapol delivered`, `eapol sent`, key command, credit and removal records
   with exact page and sequence ownership and reports
   `driver_handshake_path_pass` without any installed-key or operational claim.
-  Still pending in `passive-host.py`: the bounded private export of the
-  complete supplicant log before the log seal and recovery (with process,
-  boot and size completeness), the C2 phrase parsing and the session success
-  conjunction, and a sanitized result that excludes the PSK-bound script's
-  hashes. No device action follows until that is reviewed.
+  `c2-session.py` and the `passive-host.py` hooks (checked by
+  `tests/c2-session-test.py` and `tests/c2-host-test.py`): a PSK-bound script
+  selects the C2 pieces; the join phase budget is 45 s for the bounded 24 s
+  loop; one bounded read-only `supplicant-log` phase exports the complete
+  supplicant log into the private runtime root between the join script and
+  the log seal, with boot identity, size before and after, supplicant process
+  count and transport completeness; the sanitized result carries fixed-phrase
+  counts, the export's byte count and digest and the session conjunction
+  (`c2_session_pass`: the join phase's complete process under the
+  authenticated boot with an empty stderr, clean supplicant and connect
+  exits, exactly one scan result set, key negotiation completed and
+  connected phrases, the channel-40 IR flag, the terminal record, the driver
+  handshake path, the complete bounded export with the reported byte count
+  and the same phrase counts, and the sealed, regression-passed, recovered
+  session), and no digest of the PSK-bound script. The inherited exit
+  condition keeps every phase and process error; only the standard iw
+  demonstration is replaced by the join phase's completeness. Compile 17 (job
+  `0e333617…-mt6797-a53-wifi-phase-b-compile-m0`, image gzip
+  `0c24f88f…`, config `153ea2d0…`, 655 patches, no driver warnings) exists;
+  candidate, deployment and device action remain held for the runtime review.
   Fixtures: `tests/run-security-test.py` (descriptor and preparation),
   `tests/run-key-test.py` (key payloads and the WPA2 bytes), the ownership
   harness end-to-end one-queue sequence, and the peer harness `set_key` with
