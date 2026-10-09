@@ -1,109 +1,202 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
 """Copy the existing Gemian Wi-Fi credential for the exact private target into
-fresh local mode-0600 input files, on the laptop, read-only on the device.
+fresh local mode-0600 input files. Runs on the laptop; read-only on the device.
 
-The target SSID comes from the existing private target file; the secret is
-streamed from the device straight into a local file and is never printed,
-passed as an argument, logged or held longer than the PSK derivation needs.
-Nothing on the device is written, reconfigured or copied in bulk.
+One SSH session runs one remote read program as root (sudo -n) that verifies
+the device identity, parses the connman settings with GLib's own key-file
+reader (through ctypes; GLib decodes the escaped value, so no re-implemented
+parser), requires exactly one group whose Name is the target SSID, and prints
+a small key=value report with the secret base64-encoded. The report is
+streamed straight into a private mode-0600 file; identity is checked at the
+start and the end of that same read. Nothing on the device is written,
+reconfigured or copied in bulk. No secret reaches stdout, stderr, an argument
+or a log, and failures print generic messages only.
 
-Environment:
-  GEMINI_SSH_COMMAND  private helper that runs one remote shell command on the
-                      known-good Gemian endpoint: `$GEMINI_SSH_COMMAND <cmd>`
-                      with stdout passed through (the project's ssh_command).
+ssh: standard client, host alias (default `gemini`), BatchMode, strict known
+host, no host-key updates, IdentitiesOnly, no agent, optional identity file.
 """
 import argparse
+import base64
 import hashlib
 import json
 import os
-import re
-import shlex
 import stat
 import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+EXPECTED_KERNEL = '3.18.41+'
+EXPECTED_DEBIAN = '9.13'
 
-def refuse(message):
+# Remote read program: argv[1] = filesystem root (always "/" on the device; the
+# fixture passes a fake root), argv[2] = SSID as base64, argv[3] = expected boot id.
+REMOTE = r'''
+import base64, ctypes, ctypes.util, os, stat, sys
+root, ssid, expect_boot = sys.argv[1], base64.b64decode(sys.argv[2]), sys.argv[3]
+def read(rel):
+    with open(os.path.join(root, rel.lstrip('/')), 'rb') as f:
+        return f.read().strip().decode()
+def identity(tag):
+    print('%s_boot=%s' % (tag, read('/proc/sys/kernel/random/boot_id')))
+    print('%s_kernel=%s' % (tag, read('/proc/sys/kernel/osrelease')))
+    print('%s_debian=%s' % (tag, read('/etc/debian_version')))
+identity('before')
+if read('/proc/sys/kernel/random/boot_id') != expect_boot:
+    print('status=boot-mismatch'); sys.exit(0)
+lib = ctypes.CDLL(ctypes.util.find_library('glib-2.0') or 'libglib-2.0.so.0')
+lib.g_key_file_new.restype = ctypes.c_void_p
+lib.g_key_file_load_from_file.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int, ctypes.c_void_p]
+lib.g_key_file_get_groups.restype = ctypes.c_void_p
+lib.g_key_file_get_groups.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+lib.g_key_file_get_string.restype = ctypes.c_void_p
+lib.g_key_file_get_string.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_void_p]
+lib.g_free.argtypes = [ctypes.c_void_p]; lib.g_strfreev.argtypes = [ctypes.c_void_p]
+lib.g_key_file_free.argtypes = [ctypes.c_void_p]
+def value(kf, group, key):
+    p = lib.g_key_file_get_string(kf, group, key, None)
+    if not p:
+        return None
+    v = ctypes.string_at(p); lib.g_free(p); return v
+base = os.path.join(root, 'var/lib/connman')
+matches, problems = [], 0
+for name in sorted(os.listdir(base)):
+    if not (name.startswith('wifi_') and name.endswith('_managed_psk')):
+        continue
+    path = os.path.join(base, name, 'settings')
+    try:
+        st = os.lstat(path)
+    except OSError:
+        problems += 1; continue
+    if stat.S_ISLNK(st.st_mode) or not stat.S_ISREG(st.st_mode) or st.st_uid != 0 or (st.st_mode & 0o077):
+        problems += 1; continue
+    kf = lib.g_key_file_new()
+    if not lib.g_key_file_load_from_file(kf, path.encode(), 0, None):
+        lib.g_key_file_free(kf); problems += 1; continue
+    n = ctypes.c_size_t(); groups = lib.g_key_file_get_groups(kf, ctypes.byref(n))
+    arr = ctypes.cast(groups, ctypes.POINTER(ctypes.c_char_p))
+    for i in range(n.value):
+        if value(kf, arr[i], b'Name') == ssid:
+            matches.append(('/var/lib/connman/%s/settings' % name, value(kf, arr[i], b'Passphrase'),
+                            value(kf, arr[i], b'Security')))
+    lib.g_strfreev(groups); lib.g_key_file_free(kf)
+if len(matches) != 1:
+    print('status=match-count-%d' % len(matches))
+elif matches[0][1] is None or matches[0][2] != b'psk':
+    print('status=no-psk-passphrase')
+else:
+    print('settings=%s' % matches[0][0])
+    print('passphrase_b64=%s' % base64.b64encode(matches[0][1]).decode())
+    print('status=ok')
+print('problems=%d' % problems)
+identity('after')
+'''
+
+
+def refuse(message, code=2):
     print('credential: refused: ' + message, file=sys.stderr)
-    sys.exit(2)
+    sys.exit(code)
 
 
-def remote(helper, command, timeout=20):
-    result = subprocess.run([helper, command], capture_output=True, text=True, timeout=timeout)
-    if result.returncode != 0:
-        refuse('remote command failed (exit %d)' % result.returncode)
-    return result.stdout
+def exclusive(path, mode=0o600):
+    return open(path, 'wb', opener=lambda p, f: os.open(p, f | os.O_CREAT | os.O_EXCL, mode))
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--target', required=True, type=Path, help='private AP target JSON (ssid field)')
+    parser.add_argument('--target', required=True, type=Path, help='private AP target JSON with an ssid field')
     parser.add_argument('--expect-boot-id', required=True, help='live Gemian boot id verified beforehand')
     parser.add_argument('--output-dir', required=True, type=Path, help='fresh directory; refused if it exists')
+    parser.add_argument('--host', default='gemini', help='ssh host alias of the known-good Gemian endpoint')
+    parser.add_argument('--identity', type=Path, help='optional private key file for ssh -i')
+    parser.add_argument('--ssh', default='ssh', help=argparse.SUPPRESS)
     args = parser.parse_args()
     os.umask(0o077)
-    helper = os.environ.get('GEMINI_SSH_COMMAND')
-    if not helper or not os.access(helper, os.X_OK):
-        refuse('GEMINI_SSH_COMMAND is not an executable helper')
+    try:
+        target = json.loads(args.target.read_text())
+    except (OSError, ValueError):
+        refuse('target file unreadable or not JSON')
+    ssid = target.get('ssid') if isinstance(target, dict) else None
+    if not isinstance(ssid, str) or not 1 <= len(ssid.encode()) <= 32 or any(c in ssid for c in '\n\r\0'):
+        refuse('target ssid missing or not a plain SSID')
+    import re
     if not re.fullmatch(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', args.expect_boot_id):
         refuse('boot id must be a UUID')
-    target = json.loads(args.target.read_text())
-    ssid = target.get('ssid')
-    if not isinstance(ssid, str) or not 1 <= len(ssid.encode()) <= 32 or any(c in ssid for c in '\n\r\0"\\'):
-        refuse('target ssid missing or not a plain SSID')
     if args.output_dir.exists():
         refuse('output directory already exists')
-    # Live identity: the exact boot and a Gemian kernel, before any read.
-    boot = remote(helper, 'cat /proc/sys/kernel/random/boot_id').strip()
-    if boot != args.expect_boot_id:
-        refuse('live boot id differs from the expected Gemian boot')
-    release = remote(helper, 'uname -r').strip()
-    if not release.startswith('3.18.41'):
-        refuse('live kernel is not the Gemian 3.18.41 kernel')
-    # Exactly one connman service whose Name equals the SSID. The SSID is an
-    # identity, not a secret; it travels as a quoted remote argument.
-    listing = remote(helper, 'grep -lxF -- ' + shlex.quote('Name=' + ssid) +
-                     ' /var/lib/connman/wifi_*/settings 2>/dev/null; true')
-    matches = [line for line in listing.splitlines() if line.strip()]
-    if len(matches) != 1:
-        refuse('expected exactly one matching connman service, found %d' % len(matches))
-    settings = matches[0]
+    if args.identity and (not args.identity.is_file() or stat.S_IMODE(args.identity.stat().st_mode) & 0o077):
+        refuse('identity file missing or not mode 0600')
+    ssh = [args.ssh, '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=yes', '-o', 'UpdateHostKeys=no',
+           '-o', 'IdentitiesOnly=yes', '-o', 'IdentityAgent=none', '-o', 'ConnectTimeout=20']
+    if args.identity:
+        ssh += ['-i', str(args.identity)]
+    remote = 'sudo -n python3 - / %s %s' % (base64.b64encode(ssid.encode()).decode(), args.expect_boot_id)
+    args.output_dir.mkdir(mode=0o700, parents=False)
+    report_file = args.output_dir / 'remote-report'
+    try:
+        with exclusive(report_file) as out:
+            result = subprocess.run(ssh + ['--', args.host, remote], input=REMOTE.encode(),
+                                    stdout=out, stderr=subprocess.DEVNULL, timeout=60)
+    except (OSError, subprocess.TimeoutExpired):
+        refuse('ssh session failed to run')
+    if result.returncode != 0:
+        refuse('remote read failed (exit %d)' % result.returncode)
+    report = {}
+    for line in report_file.read_bytes().split(b'\n'):
+        if b'=' in line:
+            key, _, val = line.partition(b'=')
+            if key in report:
+                refuse('malformed remote report')
+            report[key.decode('ascii', 'replace')] = val
+    needed = ('before_boot', 'before_kernel', 'before_debian', 'status', 'problems', 'after_boot', 'after_kernel', 'after_debian')
+    if any(k not in report for k in needed):
+        refuse('incomplete remote report')
+    for tag in ('before', 'after'):
+        if report[tag + '_boot'].decode('ascii', 'replace') != args.expect_boot_id:
+            refuse('live boot id differs from the expected Gemian boot (%s)' % tag)
+        if report[tag + '_kernel'] != EXPECTED_KERNEL.encode() or report[tag + '_debian'] != EXPECTED_DEBIAN.encode():
+            refuse('live system is not Gemian %s on Debian %s (%s)' % (EXPECTED_KERNEL, EXPECTED_DEBIAN, tag))
+    if report['status'] != b'ok':
+        refuse('remote status ' + report['status'].decode('ascii', 'replace'))
+    settings = report['settings'].decode('ascii', 'replace')
     if not re.fullmatch(r'/var/lib/connman/wifi_[0-9a-f]+_[0-9a-f]+_managed_psk/settings', settings):
         refuse('unexpected connman service path shape')
-    args.output_dir.mkdir(mode=0o700, parents=False)
-    passphrase_file = args.output_dir / 'passphrase'
-    psk_file = args.output_dir / 'psk.hex'
-    # Stream the one value straight into the file; no capture, no echo.
-    with open(passphrase_file, 'wb', opener=lambda p, f: os.open(p, f | os.O_CREAT | os.O_EXCL, 0o600)) as out:
-        result = subprocess.run([helper, "sed -n 's/^Passphrase=//p' " + shlex.quote(settings)],
-                                stdout=out, stderr=subprocess.DEVNULL, timeout=20)
-    if result.returncode != 0:
-        refuse('reading the passphrase failed (exit %d)' % result.returncode)
-    raw = passphrase_file.read_bytes().rstrip(b'\r\n')
-    if b'\n' in raw or not 8 <= len(raw) <= 63:
-        refuse('passphrase is not one WPA2 passphrase line')
-    psk = hashlib.pbkdf2_hmac('sha1', raw, ssid.encode(), 4096, 32)
-    del raw
-    with open(psk_file, 'w', opener=lambda p, f: os.open(p, f | os.O_CREAT | os.O_EXCL, 0o600)) as out:
-        out.write(psk.hex() + '\n')
-    for path in (passphrase_file, psk_file):
-        if stat.S_IMODE(path.stat().st_mode) != 0o600:
+    try:
+        passphrase = base64.b64decode(report['passphrase_b64'], validate=True)
+    except ValueError:
+        refuse('malformed secret encoding')
+    if not 8 <= len(passphrase) <= 63 or b'\n' in passphrase or b'\0' in passphrase:
+        refuse('passphrase is not one WPA2 passphrase')
+    psk = hashlib.pbkdf2_hmac('sha1', passphrase, ssid.encode(), 4096, 32)
+    with exclusive(args.output_dir / 'passphrase') as out:
+        out.write(passphrase)
+    with exclusive(args.output_dir / 'psk.hex') as out:
+        out.write(psk.hex().encode() + b'\n')
+    del passphrase
+    for name in ('remote-report', 'passphrase', 'psk.hex'):
+        if stat.S_IMODE((args.output_dir / name).stat().st_mode) != 0o600:
             refuse('output file mode is not 0600')
     provenance = {
         'source': 'gemian-connman-settings', 'remote_settings_path': settings,
-        'gemian_boot_id': boot, 'gemian_kernel_release': release,
+        'gemian_boot_id': args.expect_boot_id, 'gemian_kernel_release': EXPECTED_KERNEL, 'debian_version': EXPECTED_DEBIAN,
+        'identity_checked': 'before and after the read, in the same ssh session',
+        'parser': 'GLib g_key_file_get_string on the device through ctypes',
+        'remote_problem_files_skipped': int(report['problems']),
         'ssid_sha256': hashlib.sha256(ssid.encode()).hexdigest(),
         'psk_sha256': hashlib.sha256(psk).hexdigest(),
         'derivation': 'pbkdf2-hmac-sha1 4096 rounds, salt = ssid, 32 bytes',
         'created_utc': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
-        'files': ['passphrase (0600)', 'psk.hex (0600)'],
+        'files': ['remote-report (0600, holds the secret base64)', 'passphrase (0600)', 'psk.hex (0600)'],
     }
     (args.output_dir / 'provenance.json').write_text(json.dumps(provenance, indent=1) + '\n')
     print('credential: prepared one private input set in ' + str(args.output_dir) + ' (no secret shown)')
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except SystemExit:
+        raise
+    except Exception:  # never print a traceback that could carry a value
+        refuse('unexpected failure', 3)

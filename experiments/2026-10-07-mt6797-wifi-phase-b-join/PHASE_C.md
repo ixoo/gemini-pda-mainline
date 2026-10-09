@@ -136,9 +136,9 @@ source. Nothing here is built or admitted into a runtime before review.
 
 The AP's first frame after accepting the association is a clear, translated
 Ethernet data frame without an RX vector, BSSID tag 15, WLAN index 1, carrying
-complete EAPOL-Key framing, and it arrives about 1.6 ms before mac80211
-processes the association response and about 50 ms before the firmware
-station activation. The association completes in mac80211 and the station
+complete EAPOL-Key framing, and it arrives 1610 µs before mac80211 processes
+the association response and about 50 ms before the firmware station
+activation. The association completes in mac80211 and the station
 activates with the BSS declared open and encryption-disabled.
 
 ### Settled by source
@@ -170,6 +170,8 @@ activates with the BSS declared open and encryption-disabled.
    RSN element body is the fixed 20 bytes the driver admits (`wpa_ie.c`,
    RSN capabilities 0 without MFP); the predicate's other refusals (HT, VHT,
    mobility domain, fast transition, WMM) are not produced for this network.
+   The supplicant's fixed phrases are a separate observed result; they are
+   never read as proof of a driver or firmware state.
 3. **One passive single-channel scan, no extra scans.** With the documented
    global option `passive_scan=1` the supplicant requests a passive scan with
    no SSID (`scan.c`, "Use passive scan based on configuration"), and with
@@ -187,8 +189,10 @@ activates with the BSS declared open and encryption-disabled.
    user scan element (`net/mac80211/main.c`: "userspace will not be allowed
    to in that case") and the supplicant would loop on "Failed to initiate AP
    scan". The passive scan transmits no probe request, so the elements are
-   never sent; the fix is to register a bounded `max_scan_ie_len` and keep
-   ignoring the elements in `hw_scan`, which already does.
+   never sent; the fix is to register a bounded `max_scan_ie_len` and leave
+   `hw_scan` exactly as it is: it already refuses any SSID, flag, duration or
+   second channel (the no-active-scan guard) and never reads the elements.
+   Nothing else about scanning changes.
 5. **EAPOL transmit is the vendor security-frame shape on TC4.** mac80211
    hands the supplicant's control-port frames to `.tx` as 802.11 data frames
    flagged `IEEE80211_TX_CTRL_PORT_CTRL_PROTO` and reports their status back
@@ -204,9 +208,12 @@ activates with the BSS declared open and encryption-disabled.
    through the existing TC4 path and ledger, one frame in flight, pages
    `(28 + bytes + 127) / 128`, returned through the WTQCR word the ledger
    already reconciles.
-6. **Key ownership: the firmware.** The firmware delivers data translated to
-   Ethernet (measured), which removes the 802.11 header that mac80211's
-   software CCMP needs; the vendor installs keys in the WTBL through
+6. **Key ownership: the firmware, as the pinned vendor implementation's
+   choice.** C1 does not prove this necessary: the measured clear EAPOL
+   translation says nothing about the layout of protected data, and the
+   driver already reconstructs the 802.11 header, so software CCMP is not
+   precluded. Firmware offload is chosen because it is the pinned vendor
+   path: the vendor installs keys in the WTBL through
    `CMD_ID_ADD_REMOVE_KEY` (0x07, `CMD_802_11_KEY`, 64 bytes: add, TX key,
    unicast or group, authenticator flag, peer address, BSS index, algorithm
    `CIPHER_SUITE_CCMP` = 4, key id, key length, WLAN index 1 for the pairwise
@@ -216,17 +223,26 @@ activates with the BSS declared open and encryption-disabled.
    at connect time, before any key exists, while clear EAPOL still flows
    (`wlanoidSetAddKey`, the BSS-info layout). mac80211 keeps keys in software
    only when the driver has no `set_key`; with one it marks the key uploaded
-   and encrypts nothing. C2 therefore implements `.set_key`: `SET_KEY` sends
+   and encrypts nothing. C2 therefore implements `.set_key`: `SET_KEY` submits
    the vendor command for the pairwise key (from the supplicant's first
-   `NEW_KEY`) and the group key (with the receive sequence counter mac80211
-   provides); `DISABLE_KEY` sends nothing when the lifetime is retiring, since
-   the cleanup removes the station record. No protected data frame is sent or
-   received in C2, so no receive crypto flag is guessed.
+   `NEW_KEY`, WLAN index 1) and the group key (BMC WLAN index 0, with the
+   receive sequence counter mac80211 provides). A returned credit proves only
+   that the firmware consumed the command buffer; the records and results say
+   `key command submitted` and `credit returned`, never installed or
+   accepted, because no acknowledgement with that meaning exists in the
+   pinned source. Key retirement is explicit: on the healthy path the lifetime
+   submits bounded `remove` commands for the pairwise key (WLAN index 1) and
+   the group key (BMC index 0) before the station and BSS cleanup, each with
+   its credit and sequence accounted, because removing the station record is
+   not shown by the source to retire the group key held under the BMC index;
+   `DISABLE_KEY` from mac80211 submits nothing itself. No protected data
+   frame is sent or received in C2, so no receive crypto flag is guessed.
 
 ### Retained uncertainty, as device branches
 
-- Whether the firmware accepts the key commands (credit returned, no refusal
-  record) and whether declaring WPA2 at BSS configuration leaves the clear
+- Whether the firmware consumes the key commands (credit returned, no
+  refusal record); whether it acts on them is not observable in C2 and is
+  not claimed. Whether declaring WPA2 at BSS configuration leaves the clear
   message 3 undisturbed, as it does in the vendor flow.
 - Whether the firmware's BSSID tag changes after the BSS configuration; a
   frame tagged 15 after that point is refused with its header named, as today.
@@ -238,12 +254,40 @@ The lifetime keeps the existing grant (9 s) and join deadline (10 s), one
 scan, one authentication, one association, at most two received EAPOL frames
 (messages 1 and 3) and at most two transmitted (messages 2 and 4), each
 EAPOL frame submitted only after the firmware activation (held in the
-existing queue otherwise), two key commands, and the single driver-built
-deauthentication. The deauthentication hold becomes: until both keys are
-installed plus one second, or four seconds after activation if they are not,
-never later than 1.5 s before the grant or join deadline. Every refusal,
-overflow or deadline ends the lifetime exactly as today, through the same
-teardown, and the reviewed recovery is unchanged.
+existing queue otherwise), two key commands, two key removal commands on the
+healthy path, and the single driver-built deauthentication.
+
+The one queue stays one queue. Today the driver-built deauthentication is
+queued at the association's completion and the worker holds it at the head
+while the hold runs; a control-port frame queued behind it would be blocked.
+The smallest change is in the dequeue step: the worker takes the first queued
+frame that is not held (the held deauthentication is skipped, not moved), so
+message 2 and message 4 are submitted while the deauthentication keeps its
+place and its hold; after the hold the deauthentication is the next frame
+taken. No second queue, no new state beyond the hold that exists. A
+production worker and transmit fixture runs the whole sequence: early message
+1 observed and delivered, association, the held deauthentication queued,
+message 2 queued behind it before activation, activation, message 2 submitted
+with its credit and status, message 3 delivered, message 4 submitted, the two
+key commands with their credits, the hold's end, the two key removals and the
+single deauthentication, then retirement with every page returned.
+
+No ordinary data is transmitted. After mac80211 authorizes the port the
+kernel itself would send IPv6 neighbour discovery and duplicate-address
+detection if IPv6 is enabled on `wlan0`; the session therefore disables IPv6
+on the interface in RAM before bringing it up (`net.ipv6.conf.wlan0.disable_ipv6`
+= 1 and `accept_ra` = 0, with the `default` entries set before the interface
+exists), and no IPv4 client runs. The driver's transmit admission refuses any
+other data frame as today. An unsolicited ordinary or protected frame received
+after the keys is refused by the frame gate with its header named, a fail-stop
+like every other refusal; no receive crypto flag is guessed to admit it. The
+deauthentication hold becomes: until both key commands have returned their
+credit plus one second, or four seconds after activation if they have not,
+never later than 1.5 s before the grant or join deadline. The C1 fail-stop is
+preserved exactly: only the healthy path runs the ordered key removal,
+deauthentication and three-stage cleanup; any refusal, poisoned or ambiguous
+credit, overflow or deadline ends the lifetime with no further command, as
+today, and the evidence is sealed and the reviewed recovery follows.
 
 ### Supplicant and credential input
 
@@ -262,37 +306,48 @@ redacted, and stops it after the lifetime ends.
 
 The PSK comes from the credential already configured in Gemian, by owner
 decision. [`helper/extract-gemian-credential.py`](helper/extract-gemian-credential.py)
-runs on the laptop only: it reads the exact SSID from the existing private
-target file, verifies the live Gemian boot identity and kernel release
-through the private SSH helper named by the environment, requires exactly
-one connman service whose `Name` equals that SSID, streams that service's
-`Passphrase` value straight into a fresh mode-0600 file under a fresh
-mode-0700 directory, derives the 32-byte PSK (PBKDF2-HMAC-SHA1, 4096
-rounds, the SSID as salt) into a second mode-0600 file, and writes a
-provenance record without any secret. No secret reaches stdout, stderr,
-an argument, a log or this chat; nothing on the device is written,
-reconfigured or copied in bulk.
+runs on the laptop only, over the standard ssh client (host alias,
+BatchMode, strict known host, no host-key update, IdentitiesOnly, no agent,
+optional identity file) with `sudo -n` for the root-owned connman files: one
+remote read program checks the exact boot id, kernel `3.18.41+` and Debian
+`9.13` before and after the read in the same session, parses every connman
+PSK service's settings with GLib's own key-file reader through ctypes (so the
+escaped value is decoded by GLib, not re-implemented), refuses symlinked,
+non-regular, non-root-owned or group-readable settings, requires exactly one
+group whose `Name` equals the target SSID with `Security=psk`, and prints a
+small report with the secret base64-encoded; that report is streamed straight
+into a fresh mode-0600 file under a fresh mode-0700 directory, the PSK
+(PBKDF2-HMAC-SHA1, 4096 rounds, the SSID as salt) is derived into a second
+mode-0600 file, and a provenance record without any secret is written. No
+secret reaches stdout, stderr, an argument, a log or this chat, failures print
+generic messages without tracebacks, and nothing on the device is written,
+reconfigured or copied in bulk. The tool is not run before it is reviewed.
 
 ### Classifier and evidence
 
 The accepted C2 path adds, to the C1 grammar: `eapol delivered` (at most
 two, each with layout, length, vector and BSS fields), `eapol sent` (at most
-two, PID, pages), `key installed: pairwise|group` (at most one each, no
-material, no id), the supplicant's fixed phrases from the session, and the
-unchanged deauthentication and teardown. `wifi_operational` stays false.
+two, PID, pages), `key command: pairwise|group submitted` with its `credit
+returned` (at most one each, no material, no id), `key removal: pairwise|group
+submitted` with its credit, the supplicant's fixed phrases from the session as
+a separate observed result, and the unchanged deauthentication and teardown.
+`wifi_operational` stays false.
 
 ### Device protocol, stated in advance
 
 One boot: the supplicant's one passive channel-40 scan, its open-system
 authentication and RSN association, the two EAPOL frames each way, the two
-key commands, the hold, the driver's deauthentication and the three-stage
-teardown; reviewed native recovery; the sealed log and sanitized phrases are
-the evidence. Branches: handshake completed and both keys installed, then a
-healthy teardown; EAPOL framing admitted but the supplicant does not complete
-(its log phrase and the driver records decide); a key command refused or
-unanswered (refusal metadata, teardown); a scan or association shape refused
-by the driver (named refusal); or the AP's behaviour differs. No branch
-repeats a boot without a decision-changing change.
+key commands, the hold, the two key removals, the driver's deauthentication
+and the three-stage teardown; reviewed native recovery; the sealed log and
+sanitized phrases are the evidence. Branches: the supplicant reports key
+negotiation completed and both key commands returned their credit, then the
+healthy ordered teardown; EAPOL framing admitted but the supplicant does not
+complete (its phrase and the driver records decide; the healthy teardown
+still runs at the hold's end if nothing is poisoned); a key command refused
+or its credit ambiguous or late (fail-stop: no further command, seal,
+reviewed recovery); a scan or association shape refused by the driver (named
+refusal, fail-stop); or the AP's behaviour differs. No branch repeats a boot
+without a decision-changing change.
 
 ## Stage C3: data, DHCP, ping, SSH
 
