@@ -645,3 +645,4 @@ proposals/0145-wifi-mt6797-deliver-scanned-beacons-through-mac80211.patch
 proposals/0146-wifi-mt6797-name-the-join-tick-s-failing-branch-and-.patch
 proposals/0147-wifi-mt6797-admit-the-BSS-absence-indication-during-.patch
 proposals/0148-wifi-mt6797-observe-the-AP-s-first-clear-EAPOL-frame.patch
+proposals/0149-wifi-mt6797-admit-the-fixed-WPA2-PSK-RSN-element-in-.patch

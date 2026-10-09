@@ -224,9 +224,13 @@ emit QoS data frames if the association response advertises WMM; for EAPOL
 this is moot because the driver re-encapsulates to 802.3 on TC4, but C3's
 data path must either declare QoS in the record or strip it from frames.
 
-Open until runtime 9: the AP's acceptance with the RSN element, the EAPOL
-layout on the wire, and whether the first frame arrives before or after the
-local activation. C2 code follows this document's update with that evidence.
+Runtime 9 ([RUNTIME_9.md](RUNTIME_9.md)) did not answer these: the C1
+request stopped at the driver's own admission predicate, which still refused
+the RSN element. Proposal 0149 admits exactly the helper's RSN body; the C1
+boot is repeated once with it. Still open: the AP's acceptance with the RSN
+element, the EAPOL layout on the wire, and whether the first frame arrives
+before or after the local activation. C2 code follows this document's update
+with that evidence.
 
 ## Stage C3: data, DHCP, ping, SSH
 

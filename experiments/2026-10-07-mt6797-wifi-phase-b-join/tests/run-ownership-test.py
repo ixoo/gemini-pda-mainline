@@ -20,7 +20,20 @@ names = ("mt6797_mac_join_frame", "mt6797_mac_join_guard",
          "mt6797_mac_join_control_event", "mt6797_mac_join_cleanup_step",
          "mt6797_mac_join_work", "mt6797_mac_join_wait_credit",
          "mt6797_mac_join_wait_management")
-parts = [struct.group(0),
+# The predicate's accepted RSN body must be the body of the element the
+# reviewed connect helper sends; both are parsed from source, never retyped.
+def hex_bytes(text):
+    return bytes(int(v, 16) for v in re.findall(r"0x([0-9a-fA-F]{2})", text))
+driver_rsn = re.search(r"mt6797_join_rsn_body\[20\] = \{(.*?)\};", source, re.S)
+helper = (Path(__file__).resolve().parent.parent / "helper/join-connect.c").read_text()
+helper_rsn = re.search(r"RSN_ELEMENT\[\] = \{(.*?)\};", helper, re.S)
+if not driver_rsn or not helper_rsn:
+    parser.error("RSN constants missing from the driver or the helper")
+driver_body, helper_element = hex_bytes(driver_rsn.group(1)), hex_bytes(helper_rsn.group(1))
+if len(driver_body) != 20 or helper_element[:2] != b"\x30\x14" or helper_element[2:] != driver_body:
+    parser.error("the driver's accepted RSN body differs from the helper's RSN element")
+rsn_definition = re.search(r"static const u8 mt6797_join_rsn_body\[20\] = \{.*?\};", source, re.S)
+parts = [struct.group(0), rsn_definition.group(0),
          "static unsigned long wait_for_completion_timeout(struct completion *, unsigned long);",
          "static int mt6797_mac_join_retire_idle_bss(struct mt6797_mac *mac);"]
 for name in names:

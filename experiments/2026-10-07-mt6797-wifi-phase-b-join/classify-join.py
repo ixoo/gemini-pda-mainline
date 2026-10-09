@@ -27,6 +27,8 @@ def classify(raw):
         rb'frame refused: bytes=\d{1,5} type=0x[0-9a-f]{1,5} allowed=0x[0-9a-f]{1,8}',
         rb'cleanup refused: stage=[0-3] phase=\d{1,2} free=\d{1,5} limit=\d{1,5} pending_cpu=\d{1,5} pending_ffa=\d{1,5} sequences=[01] locked=[01]',
         rb'credit overflow: pages=\d{1,5} debt=\d{1,3}',
+        # An element of a mac80211 frame outside this admission (one record per lifetime).
+        rb'frame element refused: subtype=\d{1,2} id=0x[0-9a-f]{2} len=' + byte + rb' count=[0-2]',
     )
     notifications = (rb'bss absence: bss=0 absent=[01] quota=' + byte + rb' reserved=' + byte,
                      # Phase C1: a clear EAPOL-Key frame from the target, decoded and dropped.

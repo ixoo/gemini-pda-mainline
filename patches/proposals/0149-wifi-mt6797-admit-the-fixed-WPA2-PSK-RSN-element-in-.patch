@@ -1,0 +1,115 @@
+From 82438a7fac16580830d6da8b9645ad12c3ca9529 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 9 Oct 2026 11:50:02 +0000
+Subject: [PATCH] wifi: mt6797: admit the fixed WPA2-PSK RSN element in the
+ association request
+
+Runtime 9 of the Phase C1 experiment stopped with -EINVAL in the join
+worker's submission step twelve milliseconds after mac80211 queued the
+association request, with nothing submitted: the frame admission
+predicate still refused every association request carrying an RSN
+element, while the reviewed connect request now carries one by
+construction and mac80211 copies it into the association request.
+Runtime 8's RSN-free request had passed the same predicate and was
+transmitted.
+
+Admit exactly one RSN element whose body is the fixed WPA2-PSK CCMP
+shape the connect helper sends (version 1, group CCMP, one pairwise
+CCMP, one AKM PSK, capabilities 0). A second RSN element, any other
+body, and the still excluded HT, VHT, mobility-domain, fast-transition
+and WMM elements are refused as before, now with one record naming the
+subtype, element id, length and RSN count, so a future refusal in this
+branch is visible. Peer, channel, credit, deadline and single-submission
+bounds are unchanged, and an RSN-free request remains admitted.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 57 ++++++++++++++++++----
+ 1 file changed, 48 insertions(+), 9 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 4e3d606c8..987103627 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -441,6 +441,21 @@ static int mt6797_mac_scan_packet(struct mt6797_mac *mac, size_t bytes,
+ 	return 0;
+ }
+ 
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++/* The one RSN element body this admission accepts in an association request:
++ * RSN version 1, group cipher CCMP, one pairwise cipher CCMP, one AKM PSK,
++ * RSN capabilities 0. It is the element the reviewed connect helper sends;
++ * any other body, or a second element, is refused like any other shape.
++ */
++static const u8 mt6797_join_rsn_body[20] = {
++	0x01, 0x00,
++	0x00, 0x0f, 0xac, 0x04,
++	0x01, 0x00, 0x00, 0x0f, 0xac, 0x04,
++	0x01, 0x00, 0x00, 0x0f, 0xac, 0x02,
++	0x00, 0x00,
++};
++#endif
++
+ /* Initial queue is closed. Only the forthcoming owned join state callbacks
+ 	* may open it after the scan/peer/channel gates; there is no device admission.
+ 	*/
+@@ -450,7 +465,7 @@ static bool mt6797_mac_join_frame(struct mt6797_mac *mac, struct sk_buff *skb)
+ 	size_t n = skb->len, ie;
+ 	unsigned int fc, subtype, minimum;
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+-	unsigned int ssid_count = 0;
++	unsigned int ssid_count = 0, rsn_count = 0;
+ #endif
+ 
+ 	if (n < 24 || n > 2304)
+@@ -484,15 +499,39 @@ static bool mt6797_mac_join_frame(struct mt6797_mac *mac, struct sk_buff *skb)
+ 			memcpy(mac->join_ssid, f + ie + 2, mac->join_ssid_bytes);
+ 		}
+ #endif
+-		/* No RSN, HT/VHT or fast-transition negotiation in this admission. */
+-		if (f[ie] == WLAN_EID_RSN || f[ie] == WLAN_EID_HT_CAPABILITY ||
+-      f[ie] == WLAN_EID_VHT_CAPABILITY || f[ie] == WLAN_EID_MOBILITY_DOMAIN ||
+-      f[ie] == WLAN_EID_FAST_BSS_TRANSITION)
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++		/* Exactly one RSN element with the fixed WPA2-PSK CCMP body. */
++		if (f[ie] == WLAN_EID_RSN) {
++			if (++rsn_count != 1 || f[ie + 1] != sizeof(mt6797_join_rsn_body) ||
++			    memcmp(f + ie + 2, mt6797_join_rsn_body,
++				   sizeof(mt6797_join_rsn_body))) {
++				dev_info(wiphy_dev(mac->hw->wiphy),
++					 "one-shot WLAN join frame element refused: subtype=%u id=0x%02x len=%u count=%u\n",
++					 subtype, f[ie], f[ie + 1], rsn_count);
++				return false;
++			}
++			ie += 2 + f[ie + 1];
++			continue;
++		}
++#else
++		if (f[ie] == WLAN_EID_RSN)
++			return false;
++#endif
++		/* No HT/VHT, fast-transition or WMM negotiation in this admission. */
++		if (f[ie] == WLAN_EID_HT_CAPABILITY ||
++		    f[ie] == WLAN_EID_VHT_CAPABILITY ||
++		    f[ie] == WLAN_EID_MOBILITY_DOMAIN ||
++		    f[ie] == WLAN_EID_FAST_BSS_TRANSITION ||
++		    (f[ie] == WLAN_EID_VENDOR_SPECIFIC && f[ie + 1] >= 4 &&
++		     f[ie + 2] == 0 && f[ie + 3] == 0x50 && f[ie + 4] == 0xf2 &&
++		     f[ie + 5] == 2)) {
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++			dev_info(wiphy_dev(mac->hw->wiphy),
++				 "one-shot WLAN join frame element refused: subtype=%u id=0x%02x len=%u count=%u\n",
++				 subtype, f[ie], f[ie + 1], rsn_count);
++#endif
+ 			return false;
+-		if (f[ie] == WLAN_EID_VENDOR_SPECIFIC && f[ie + 1] >= 4 &&
+-      (f[ie + 2] == 0 && f[ie + 3] == 0x50 &&
+-	      f[ie + 4] == 0xf2 && f[ie + 5] == 2))
+-			return false; /* No WMM negotiation. */
++		}
+ 		ie += 2 + f[ie + 1];
+ 	}
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+-- 
+2.39.5
+

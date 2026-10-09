@@ -41,7 +41,8 @@ typedef uint64_t u64;
 #define min(a, b) ((a) < (b) ? (a) : (b))
 #define min_t(t, a, b) min((t)(a), (t)(b))
 #define container_of(p, t, m) ((t *)((char *)(p) - offsetof(t, m)))
-#define dev_info(...) do { } while (0)
+static unsigned int infos; /* production dev_info records */
+#define dev_info(...) do { infos++; } while (0)
 #define dev_err(...) do { } while (0)
 #define __maybe_unused __attribute__((unused))
 #define wiphy_dev(w) (w)
@@ -72,7 +73,7 @@ struct mt6797_hif_rx_result { size_t logical_bytes; };
 enum { OWNER_MAC80211 = 1, OWNER_DRIVER };
 struct sk_buff {
 	struct sk_buff *next;
-	u8 data[64];
+	u8 data[256];
 	unsigned int len, owner, released;
 	union { struct ieee80211_tx_info tx; struct ieee80211_rx_status rx; } cb;
 };
@@ -303,6 +304,56 @@ static struct sk_buff *frame(unsigned int owner, unsigned int subtype)
 	return s;
 }
 
+/* The association request mac80211 builds for the Phase C1 connect against
+ * a legacy 5 GHz BSS (ieee80211_send_assoc, legacy connection mode, one
+ * hardware queue so no WMM): header, capability with privacy, listen interval
+ * 5, SSID, the eight OFDM supported rates, then the connect request's RSN
+ * element. `variant` perturbs one thing for the refusal cases.
+ */
+enum { ASSOC_GOOD, ASSOC_RSN_TKIP, ASSOC_RSN_TWICE, ASSOC_RSN_SHORT, ASSOC_HT, ASSOC_WMM, ASSOC_NO_RSN };
+static struct sk_buff *assoc_frame(unsigned int variant)
+{
+	static const u8 rsn[22] = {
+		0x30, 0x14, 0x01, 0x00, 0x00, 0x0f, 0xac, 0x04, 0x01, 0x00, 0x00,
+		0x0f, 0xac, 0x04, 0x01, 0x00, 0x00, 0x0f, 0xac, 0x02, 0x00, 0x00
+	};
+	static const u8 rates[10] = { 1, 8, 0x8c, 0x12, 0x98, 0x24, 0xb0, 0x48, 0x60, 0x6c };
+	static const u8 ht[28] = { 45, 26, 0x6f, 0x00, 0x17 };
+	static const u8 wmm[9] = { 221, 7, 0x00, 0x50, 0xf2, 2, 0, 1, 0 };
+	struct sk_buff *s = new_skb(OWNER_MAC80211);
+	u8 *p = s->data;
+	size_t n = 24;
+
+	memset(p, 0, sizeof(s->data));
+	memcpy(p + 4, ap, ETH_ALEN); memcpy(p + 10, own, ETH_ALEN); memcpy(p + 16, ap, ETH_ALEN);
+	put_unaligned_le16(7 << 4, p + 22);
+	put_unaligned_le16(0x0011, p + n); n += 2;    /* ESS, privacy */
+	put_unaligned_le16(5, p + n); n += 2;         /* listen interval */
+	p[n] = 0; p[n + 1] = 7; memcpy(p + n + 2, "gemini7", 7); n += 9;
+	memcpy(p + n, rates, sizeof(rates)); n += sizeof(rates);
+	if (variant != ASSOC_NO_RSN) {
+		memcpy(p + n, rsn, sizeof(rsn));
+		if (variant == ASSOC_RSN_TKIP)
+			p[n + 13] = 0x02;
+		if (variant == ASSOC_RSN_SHORT) {
+			p[n + 1] = 18; n += 20;
+		} else {
+			n += sizeof(rsn);
+		}
+		if (variant == ASSOC_RSN_TWICE) {
+			memcpy(p + n, rsn, sizeof(rsn)); n += sizeof(rsn);
+		}
+	}
+	if (variant == ASSOC_HT) {
+		memcpy(p + n, ht, sizeof(ht)); n += sizeof(ht);
+	}
+	if (variant == ASSOC_WMM) {
+		memcpy(p + n, wmm, sizeof(wmm)); n += sizeof(wmm);
+	}
+	s->len = n;
+	return s;
+}
+
 static void queue_internal_deauth(void)
 {
 	struct sk_buff *s = frame(OWNER_DRIVER, 12);
@@ -510,7 +561,38 @@ int main(void)
 	assert(submissions == 1 && mac.join_inflight && mac.join_inflight->owner == OWNER_MAC80211);
 	mt6797_mac_join_close(&mac);
 
-	puts("join_ownership=pass; production close/worker paths; exact-once release; EAPOL observation window and hold; no device");
+	/* 7. Admission of the Phase C1 association request (runtime 9 stopped at
+	 *    this predicate with -EINVAL): the frame mac80211 builds with the
+	 *    helper's RSN element is admitted; every perturbation is refused with
+	 *    one element-refusal record; auth and deauth are unchanged.
+	 */
+	setup(); mac.join_tx_allowed = BIT(0);
+	{
+		struct sk_buff *good = assoc_frame(ASSOC_GOOD), *bad;
+		unsigned int before = infos, v;
+
+		assert(good->len == 24 + 4 + 9 + 10 + 22 && mt6797_mac_join_frame(&mac, good));
+		assert(infos == before && mac.join_ssid_bytes == 7 && !memcmp(mac.join_ssid, "gemini7", 7));
+		for (v = ASSOC_RSN_TKIP; v <= ASSOC_WMM; v++) {
+			bad = assoc_frame(v);
+			before = infos;
+			assert(!mt6797_mac_join_frame(&mac, bad));
+			assert(infos == before + 1);
+			ieee80211_free_txskb(mac.hw, bad);
+		}
+		bad = assoc_frame(ASSOC_NO_RSN);           /* still admitted: the runtime-8 shape */
+		assert(mt6797_mac_join_frame(&mac, bad));
+		ieee80211_free_txskb(mac.hw, bad);
+		mac.join_tx_allowed = BIT(11);
+		assert(!mt6797_mac_join_frame(&mac, good)); /* subtype not allowed: silent refusal */
+		ieee80211_free_txskb(mac.hw, good);
+		bad = frame(OWNER_MAC80211, 11); assert(mt6797_mac_join_frame(&mac, bad)); ieee80211_free_txskb(mac.hw, bad);
+		mac.join_tx_allowed = BIT(12);
+		bad = frame(OWNER_MAC80211, 12); assert(mt6797_mac_join_frame(&mac, bad)); ieee80211_free_txskb(mac.hw, bad);
+	}
+	mt6797_mac_join_close(&mac);
+
+	puts("join_ownership=pass; production close/worker paths; exact-once release; EAPOL observation window and hold; C1 association request admitted; no device");
 	return 0;
 }
 

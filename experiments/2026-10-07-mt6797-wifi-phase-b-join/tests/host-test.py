@@ -118,6 +118,18 @@ class HostTests(unittest.TestCase):
             self.assertTrue(classify(good[:stage3] + bad + good[stage3:])['malformed_stage_record'], bad)
         self.assertFalse(classify(good[:stage3] + b'one-shot WLAN join bss absence: bss=0 absent=1 quota=255 reserved=0\n' + good[stage3:])['malformed_stage_record'])
 
+    def test_frame_element_refusal_is_a_negative_diagnostic(self):
+        denied = log(False)
+        cut = denied.index(b'one-shot WLAN join TX: subtype=0')
+        line = b'one-shot WLAN join frame element refused: subtype=0 id=0x30 len=20 count=1\n'
+        result = classify(denied[:cut] + line + denied[cut:])
+        self.assertTrue(result['refusal_recorded'])
+        self.assertIn('frame element refused', result['diagnostic_records'])
+        self.assertFalse(result['malformed_stage_record'])
+        self.assertFalse(result['bounded_join_pass'])
+        for bad in (b'subtype=0 id=0x30 len=256 count=1', b'subtype=0 id=0x30 len=20 count=3', b'subtype=0 id=0x3 len=20 count=1'):
+            self.assertTrue(classify(denied[:cut] + b'one-shot WLAN join frame element refused: ' + bad + b'\n' + denied[cut:])['malformed_stage_record'], bad)
+
     def test_eapol_observations_are_bounded_to_the_driver_window(self):
         good = log(True)
         activation = good.index(b'one-shot WLAN join activation:')
