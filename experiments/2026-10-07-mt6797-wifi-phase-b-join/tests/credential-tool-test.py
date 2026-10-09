@@ -22,9 +22,12 @@ SERVICE = 'wifi_0200000000a1_%s_managed_psk' % SSID.encode().hex()  # ConnMan: a
 
 
 def key_file(name, passphrase, security='psk'):
+    # ConnMan's service_save persists Name, SSID, Favorite, Passphrase and more,
+    # but no Security key; security=None reproduces that real file shape.
     escaped = passphrase.replace('\\', '\\\\').replace('\t', '\\t').replace('  ', ' \\s')
-    return '[%s]\nName=%s\nSSID=%s\nSecurity=%s\nPassphrase=%s\nFavorite=true\n' % (
-        name, SSID, SSID.encode().hex(), security, escaped)
+    sec = '' if security is None else 'Security=%s\n' % security
+    return '[%s]\nName=%s\nSSID=%s\n%sPassphrase=%s\nFavorite=true\n' % (
+        name, SSID, SSID.encode().hex(), sec, escaped)
 
 
 def fake_root(work, tag, boot=BOOT, kernel='3.18.41+', debian='9.13', services=None, after_boot=None, dup_report=False):
@@ -104,6 +107,25 @@ def main():
         assert PASSPHRASE not in json.dumps(prov) and expected not in json.dumps(prov)
         # Existing output directory: refused before any ssh.
         assert run(work, root, out).returncode == 2
+        # The real ConnMan file shape has no Security key: extracted.
+        real = fake_root(work, 'real', services=[(SERVICE, key_file(SERVICE, PASSPHRASE, None), 0o600)])
+        out_real = work / 'input-real'
+        result = run(work, real, out_real)
+        assert result.returncode == 0, result.stderr
+        assert (out_real / 'psk.hex').read_text() == expected + '\n'
+        # Diagnose mode: counts and presence only, nothing derived, no value or path.
+        env = dict(os.environ, FAKE_ROOT=str(real))
+        target = work / 'target-diag.json'; target.write_text(json.dumps({'ssid': SSID}))
+        result = subprocess.run([sys.executable, str(TOOL), '--target', str(target), '--expect-boot-id', BOOT,
+                                 '--output-dir', str(work / 'diag-out'), '--ssh', str(work / 'fake-ssh'), '--diagnose'],
+                                env=env, capture_output=True, text=True, timeout=120)
+        assert result.returncode == 0, result.stderr
+        assert 'candidates=1' in result.stdout and 'group0_name_count=1' in result.stdout
+        assert 'group0_security_count=0' in result.stdout and 'group0_passphrase_count=1' in result.stdout
+        assert PASSPHRASE not in result.stdout and 'settings' not in result.stdout and SERVICE not in result.stdout
+        assert not (work / 'diag-out/psk.hex').exists() and not (work / 'diag-out/passphrase').exists()
+        report = (work / 'diag-out/remote-report').read_bytes()
+        assert b'passphrase_b64' not in report and b'settings=' not in report
         # Unrelated services are left unread: another SSID's PSK service, an open
         # service, an enterprise service and a malformed non-target wifi_ name next
         # to the target, all ignored; the target is still extracted.

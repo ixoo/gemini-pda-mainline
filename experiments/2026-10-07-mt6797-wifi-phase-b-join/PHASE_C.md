@@ -181,6 +181,11 @@ activates with the BSS declared open and encryption-disabled.
    deauthentication the supplicant will request further scans; the driver
    refuses them without any firmware operation (`scan_used`), and the session
    stops the supplicant. No modified supplicant, no control-interface tricks.
+   The flush flag (`only_new_results`) is set only for a manual scan with
+   `only_new=1` or after `wpa_bss_flush`, which runs from the disabled-interface
+   timeout and at deinit, never on interface start (`scan.c`, `bss.c`,
+   `wpa_supplicant.c`), so the automatic initial scan carries no flag and the
+   driver's exact no-flag guard stays.
 4. **One driver change is required for the scan to be accepted.** The
    supplicant adds an extended-capabilities element to every scan request
    (`scan.c`, `wpa_supplicant_extra_ies`, from the capabilities mac80211

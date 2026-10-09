@@ -39,11 +39,17 @@ EXPECTED_DEBIAN = '9.13'
 
 # Remote read program: argv[1] = filesystem root (always "/" on the device; the
 # fixture passes a fake root), argv[2] = SSID as base64, argv[3] = expected boot
-# id, argv[4] = expected kernel release, argv[5] = expected Debian version.
+# id, argv[4] = expected kernel release, argv[5] = expected Debian version,
+# argv[6] = "extract" or "diagnose" (counts and presence only, no value).
+# ConnMan's service_save (src/service.c, 1.33 and 1.35) persists Name and
+# Passphrase but no Security key: security is part of the service identifier
+# (_managed_psk), so Security is optional in the file and, if present, must
+# be psk.
 REMOTE = r'''
 import base64, ctypes, ctypes.util, os, re, stat, sys
 root, ssid = sys.argv[1], base64.b64decode(sys.argv[2])
 expect = {'boot': sys.argv[3], 'kernel': sys.argv[4], 'debian': sys.argv[5]}
+diagnose = len(sys.argv) > 6 and sys.argv[6] == 'diagnose'
 def read(rel):
     with open(os.path.join(root, rel.lstrip('/')), 'rb') as f:
         return f.read(4096).strip().decode('ascii', 'replace')
@@ -123,17 +129,29 @@ for name in sorted(os.listdir(base)):
     for i in range(n.value):
         if value(kf, arr[i], b'Name') == ssid:
             raw = counts.get(b'[' + arr[i] + b']', {})
-            unique = all(raw.get(k, 0) == 1 for k in (b'Name', b'Security', b'Passphrase'))
-            matches.append(('/var/lib/connman/%s/settings' % name, value(kf, arr[i], b'Passphrase'),
-                            value(kf, arr[i], b'Security'), unique))
+            kc = {k: raw.get(k, 0) for k in (b'Name', b'Security', b'Passphrase')}
+            unique = kc[b'Name'] == 1 and kc[b'Passphrase'] == 1 and kc[b'Security'] <= 1
+            matches.append(('/var/lib/connman/%s/settings' % name,
+                            None if diagnose else value(kf, arr[i], b'Passphrase'),
+                            value(kf, arr[i], b'Security'), unique, kc))
     lib.g_strfreev(groups); lib.g_key_file_free(kf)
-if problems:
+if diagnose:
+    # Metadata only: how many candidate services, and per matching group the
+    # occurrence count of each field. No value, no path, no secret.
+    print('candidates=%d' % len(matches))
+    for i, m in enumerate(matches):
+        print('group%d_name_count=%d' % (i, m[4][b'Name']))
+        print('group%d_security_count=%d' % (i, m[4][b'Security']))
+        print('group%d_passphrase_count=%d' % (i, m[4][b'Passphrase']))
+        print('group%d_security_is_psk=%d' % (i, int(m[2] == b'psk')))
+    print('status=diagnosed')
+elif problems:
     print('status=unsafe-or-malformed-services-%d' % problems)
 elif len(matches) != 1:
     print('status=match-count-%d' % len(matches))
 elif not matches[0][3]:
-    print('status=duplicate-keys-in-service')
-elif matches[0][1] is None or matches[0][2] != b'psk':
+    print('status=field-count-not-unique')
+elif matches[0][1] is None or (matches[0][2] is not None and matches[0][2] != b'psk'):
     print('status=no-psk-passphrase')
 else:
     print('settings=%s' % matches[0][0])
@@ -161,6 +179,8 @@ def main():
     parser.add_argument('--host', default='gemini', help='ssh host alias of the known-good Gemian endpoint')
     parser.add_argument('--identity', type=Path, help='optional private key file for ssh -i')
     parser.add_argument('--ssh', default='ssh', help=argparse.SUPPRESS)
+    parser.add_argument('--diagnose', action='store_true',
+                        help='metadata only: candidate count and field occurrence counts; reads no value')
     args = parser.parse_args()
     os.umask(0o077)
     try:
@@ -181,8 +201,9 @@ def main():
            '-o', 'IdentitiesOnly=yes', '-o', 'IdentityAgent=none', '-o', 'ConnectTimeout=20']
     if args.identity:
         ssh += ['-i', str(args.identity)]
-    remote = 'sudo -n python3 - / %s %s %s %s' % (base64.b64encode(ssid.encode()).decode(), args.expect_boot_id,
-                                                 EXPECTED_KERNEL, EXPECTED_DEBIAN)
+    remote = 'sudo -n python3 - / %s %s %s %s %s' % (base64.b64encode(ssid.encode()).decode(), args.expect_boot_id,
+                                                    EXPECTED_KERNEL, EXPECTED_DEBIAN,
+                                                    'diagnose' if args.diagnose else 'extract')
     args.output_dir.mkdir(mode=0o700, parents=False)
     report_file = args.output_dir / 'remote-report'
     try:
@@ -209,6 +230,14 @@ def main():
             refuse('live boot id differs from the expected Gemian boot (%s)' % tag)
         if report[tag + '_kernel'] != EXPECTED_KERNEL.encode() or report[tag + '_debian'] != EXPECTED_DEBIAN.encode():
             refuse('live system is not Gemian %s on Debian %s (%s)' % (EXPECTED_KERNEL, EXPECTED_DEBIAN, tag))
+    if args.diagnose:
+        if report['status'] != b'diagnosed':
+            refuse('remote status ' + report['status'].decode('ascii', 'replace'))
+        wanted = ('name_count', 'security_count', 'passphrase_count', 'security_is_psk')
+        counts = {k: v.decode('ascii', 'replace') for k, v in report.items()
+                  if k in ('candidates', 'problems') or (k.startswith('group') and '_' in k and k.split('_', 1)[1] in wanted)}
+        print('credential: diagnosis ' + ' '.join('%s=%s' % kv for kv in sorted(counts.items())))
+        return
     if report['status'] != b'ok':
         refuse('remote status ' + report['status'].decode('ascii', 'replace'))
     settings = report['settings'].decode('ascii', 'replace')
