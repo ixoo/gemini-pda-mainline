@@ -537,7 +537,7 @@ booted:
   gates and no secret on any output; `tests/credential-tool-test.py` drives it
   against a fake remote helper. The C2 design findings are in
   [PHASE_C](PHASE_C.md).
-- **Phase C2 implementation, for review (compile 17 built into candidate 12, held unused; proposal 0157 pending).** Proposals 0153 to
+- **Phase C2 implementation (compile 18 with proposal 0157 built; candidate 13 to be composed by the owner; candidate 12 unused).** Proposals 0153 to
   0156 (bounded scan-element limit; EAPOL delivery to mac80211; control-port
   EAPOL transmit as the vendor security frame on TC4 through the one queue;
   firmware keys with the WPA2 BSS declaration, ledger-serialized `set_key` and
@@ -574,8 +574,13 @@ booted:
   declaration on a WMM-advertising AP, from the public source) next to 0,
   with everything else in the admission unchanged and no WMM support
   claimed; the ownership fixture admits the 0x000c variant and refuses six
-  other capability patterns. One further compile and candidate 13 follow
-  the review; deployment 12 never happened.
+  other capability patterns. [Compile 18](COMPILE_18.md) (input `eba4baa4`,
+  package `49afb45d…`, image `bea14180…`, config and DT unchanged, 656
+  patches, no driver warnings) built it; `build-candidate.py` and
+  `prepare-runtime.py` pin that input and package for candidate 13, which
+  the owner composes from the same private parent, helper and supplicant.
+  Deployment 12 never happened; the candidate-12 receipt and the runtime-13
+  bindings below are preserved until the candidate-13 receipt exists.
   Fixtures: `tests/run-security-test.py` (descriptor and preparation),
   `tests/run-key-test.py` (key payloads and the WPA2 bytes), the ownership
   harness end-to-end one-queue sequence, and the peer harness `set_key` with

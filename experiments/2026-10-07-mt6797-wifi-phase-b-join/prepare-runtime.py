@@ -18,8 +18,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 RECEIPT = HERE / 'results/candidate-12.json'
-COMMIT = '0e333617ae046d461857fab4a746cc2f948c2278'
-PACKAGE = '1997dffb97a3089cbd3a83ba6286236d288e56bd3e541fd1379514888b79d346'
+COMMIT = 'eba4baa44b273b45e744c4c017508b6efd61b8ce'
+PACKAGE = '49afb45dc20416a4c1882e1cc198b4f1cc6285b283d61cfb611d82dbf1c0c112'
 RELEASE = '7.1.3-gemini-a53-wifi-phase-b-compile'
 PREDECESSOR = '1c49134173658ca28136f8450b943f3f431fbb5c414a3e525d2a7769b0660460'
 EVIDENCE, CAPTURE, SESSION = 'wifi-phase-b', 'capture-12', 'session-12'
