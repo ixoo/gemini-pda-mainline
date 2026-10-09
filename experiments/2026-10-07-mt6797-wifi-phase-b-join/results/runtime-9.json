@@ -47,8 +47,8 @@
    "rx": null,
    "driver_footer": "stopped: status=-22 first=0 submitted=0x800 debt=0 cleanup=0 branch=3",
    "measured": "the lifetime stopped with -EINVAL in the worker's submission branch 12 ms after mac80211 queued the first association request; no association frame was submitted, no page was debited, no cleanup command was issued, no EAPOL or deauthentication was seen",
-   "cause_from_source": "mt6797_mac_join_frame at the booted revision refuses any association request carrying an RSN element (WLAN_EID_RSN); the Phase C1 connect request carries one by construction, and mac80211 copies it into the association request; the -EINVAL is the worker's admission failure for that frame",
-   "inference_label": "source-derived from the pinned driver and mac80211 at this revision; runtime 8's RSN-free request passed the same predicate, so the RSN element is the only new element on this path (hardware queue count 1 excludes WMM, legacy connection mode excludes HT/VHT)",
+   "cause_from_source": "the source proves the C1 request fails mt6797_mac_join_frame at the booted revision deterministically: the predicate refuses any association request carrying an RSN element (WLAN_EID_RSN), the Phase C1 connect request carries one by construction, and mac80211 copies it into the association request",
+   "inference_label": "source-derived; the boot has no predicate-specific instrumentation, so it does not single out the predicate among the five -EINVAL conditions of branch 3: PID budget, channel grant and grant margin are strongly supported by surrounding records (PID 2 of 127, 12 ms after authentication under the same grant), linearization is unobserved; runtime 8's RSN-free request passed the same predicate, hardware queue count 1 excludes WMM and legacy connection mode excludes HT/VHT, so the RSN element is the only new element on this path",
    "second_try": "mac80211's retry after retirement reached the closed queue; no second host submission"
   },
   "cleanup": null,
@@ -77,6 +77,6 @@
  "recovery_confirmed": true,
  "wifi_operational": false,
  "raw_evidence_public": false,
- "classification": "terminal failure before the association transmission: scan and open-system authentication as in runtime 8, then the worker refused the RSN-bearing association request with -EINVAL at its admission predicate (branch 3) and ended the lifetime; no RF beyond the scan and one authentication exchange",
+ "classification": "terminal failure before the association transmission: scan and open-system authentication as in runtime 8, then the worker ended the lifetime with -EINVAL in its submission branch (branch 3) with no association frame submitted; the source proves the RSN-bearing request fails the admission predicate at this revision, the boot carries no predicate-specific record; no RF beyond the scan and one authentication exchange",
  "support_limits": "no new support; the Phase C1 hypothesis (accepted association, first EAPOL frame) was not tested because the request never left the host; the fix is proposal 0149"
 }

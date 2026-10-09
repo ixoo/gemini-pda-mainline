@@ -1,4 +1,4 @@
-From 82438a7fac16580830d6da8b9645ad12c3ca9529 Mon Sep 17 00:00:00 2001
+From ad131bf563cd5a12e098d8658626373c30ad5c22 Mon Sep 17 00:00:00 2001
 From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
 Date: Fri, 9 Oct 2026 11:50:02 +0000
 Subject: [PATCH] wifi: mt6797: admit the fixed WPA2-PSK RSN element in the
@@ -6,12 +6,14 @@ Subject: [PATCH] wifi: mt6797: admit the fixed WPA2-PSK RSN element in the
 
 Runtime 9 of the Phase C1 experiment stopped with -EINVAL in the join
 worker's submission step twelve milliseconds after mac80211 queued the
-association request, with nothing submitted: the frame admission
-predicate still refused every association request carrying an RSN
-element, while the reviewed connect request now carries one by
-construction and mac80211 copies it into the association request.
-Runtime 8's RSN-free request had passed the same predicate and was
-transmitted.
+association request, with no association frame submitted (the
+authentication had been submitted and acknowledged). The source shows
+why deterministically: the frame admission predicate still refused every
+association request carrying an RSN element, while the reviewed connect
+request now carries one by construction and mac80211 copies it into the
+association request. Runtime 8's RSN-free request had passed the same
+predicate and was transmitted. The booted code logged nothing for this
+refusal.
 
 Admit exactly one RSN element whose body is the fixed WPA2-PSK CCMP
 shape the connect helper sends (version 1, group CCMP, one pairwise

@@ -30,24 +30,28 @@ The sealed log is 150823 bytes, 2004 records, SHA-256 `dcde9306…`, manifest
   record exists for this branch at the booted revision), `bounded_join_pass=false`.
   A53 regression passed and the reviewed recovery passed.
 
-## Cause (source-derived, not measured on the device)
+## Cause (source-derived; the boot carries no predicate-specific record)
 
 Branch 3 is the worker's submission step; its `-EINVAL` covers five
-conditions, of which the frame admission predicate `mt6797_mac_join_frame` is
-the one that changed meaning in C1: at the booted revision it refuses any
-association request that carries an RSN element (`WLAN_EID_RSN`), with the
-comment "No RSN, HT/VHT or fast-transition negotiation in this admission".
-The C1 helper adds the RSN element to the connect request by construction,
-and mac80211 copies the request's elements into the association request
-(`ieee80211_send_assoc`, the before-HT element order). Runtime 8's request,
-identical except for the absent RSN element, passed this predicate and was
-transmitted, and the driver declares one hardware queue and no HT or VHT
-capability, so the RSN element is the only new element on this path. The
-other four conditions (linearization, PID budget, channel grant, grant margin)
-were satisfied 12 ms after a successful authentication under the same grant.
-The booted revision logs nothing for this refusal, which is why the cause had
-to be reconstructed; proposal 0149 adds a one-line
-element record to the predicate.
+conditions: linearization, the frame admission predicate
+`mt6797_mac_join_frame`, the PID budget, the channel grant and the grant
+margin. The source proves that the C1 request fails the old predicate
+deterministically: at the booted revision it refuses any association request
+that carries an RSN element (`WLAN_EID_RSN`), with the comment "No RSN, HT/VHT
+or fast-transition negotiation in this admission"; the C1 helper adds the RSN
+element to the connect request by construction, and mac80211 copies the
+request's elements into the association request (`ieee80211_send_assoc`, the
+before-HT element order). Runtime 8's request, identical except for the absent
+RSN element, passed this predicate and was transmitted, and the driver
+declares one hardware queue and no HT or VHT capability, so the RSN element is
+the only new element on this path. The other conditions are not observed by
+this boot: the PID budget (PID 2 of 127), the channel grant and its margin
+(12 ms after a successful authentication under the same 9 s grant) are
+strongly supported by the surrounding records, while linearization has no
+record at all. The booted revision logs nothing for any of the five
+conditions, so the boot does not single out the predicate by measurement;
+the source does. Proposal 0149 adds a one-line element record to the
+predicate so that this branch is no longer silent.
 
 ## Fix: proposal 0149
 
