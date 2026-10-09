@@ -11,7 +11,9 @@ malformed or oversized (one such service refuses the whole read rather than
 hide a match), reads each settings file through an O_NOFOLLOW descriptor with
 fstat and a bounded read, parses it with GLib's own key-file reader from that
 data (through ctypes; GLib decodes the escaped value, so no re-implemented
-parser), requires exactly one group whose Name is the target SSID with the
+parser), reads only the PSK services named with this SSID's hex identifier (other
+SSIDs, open, WEP and enterprise services are left unread), requires exactly
+one such service across adapters whose group Name is the target SSID with the
 Name, Security and Passphrase keys each present exactly once, and prints a
 small key=value report with the secret base64-encoded. The report is streamed
 straight into a private mode-0600 file. Nothing on the device is written,
@@ -84,11 +86,13 @@ def key_counts(data):
     return counts
 base = os.path.join(root, 'var/lib/connman')
 matches, problems = [], 0
+# ConnMan names a Wi-Fi service wifi_<adapter hex>_<ssid hex>_<mode>_<security>.
+# Only PSK services of this exact SSID are candidates; every other service
+# (other SSIDs, open, WEP, enterprise) is left unread.
+candidate = re.compile(r'wifi_[0-9a-f]{12}_' + ssid.hex() + r'_managed_psk')
 for name in sorted(os.listdir(base)):
-    if not name.startswith('wifi_'):
+    if not candidate.fullmatch(name):
         continue
-    if not re.fullmatch(r'wifi_[0-9a-f]+_[0-9a-f]+_managed_psk', name):
-        problems += 1; continue
     directory = os.path.join(base, name)
     try:
         dst = os.lstat(directory)

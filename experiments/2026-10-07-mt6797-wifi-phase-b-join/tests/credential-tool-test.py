@@ -18,7 +18,7 @@ TOOL = HERE / 'helper/extract-gemian-credential.py'
 BOOT = '11111111-2222-3333-4444-555555555555'
 SSID = 'fixture net'
 PASSPHRASE = 'fixture\\pass  phrase\t42'  # exercises GLib escapes on the way in
-SERVICE = 'wifi_0200000000a1_666978747572655f6e6574_managed_psk'
+SERVICE = 'wifi_0200000000a1_%s_managed_psk' % SSID.encode().hex()  # ConnMan: adapter hex, SSID hex, mode, security
 
 
 def key_file(name, passphrase, security='psk'):
@@ -104,6 +104,21 @@ def main():
         assert PASSPHRASE not in json.dumps(prov) and expected not in json.dumps(prov)
         # Existing output directory: refused before any ssh.
         assert run(work, root, out).returncode == 2
+        # Unrelated services are left unread: another SSID's PSK service, an open
+        # service, an enterprise service and a malformed non-target wifi_ name next
+        # to the target, all ignored; the target is still extracted.
+        other = 'wifi_0200000000c3_%s_managed_psk' % b'other net'.hex()
+        mixed = fake_root(work, 'mixed', services=[
+            (SERVICE, key_file(SERVICE, PASSPHRASE), 0o600),
+            (other, key_file(other, 'other pass 1').replace('Name=%s' % SSID, 'Name=other net'), 0o644),
+            ('wifi_0200000000c3_%s_managed_none' % b'open net'.hex(), '[x]\nName=open net\nSecurity=none\n', 0o644),
+            ('wifi_0200000000c3_%s_managed_ieee8021x' % b'corp'.hex(), 'not a key file', 0o644),
+            ('wifi_evil', 'not a key file', 0o644)])
+        out_mixed = work / 'input-mixed'
+        result = run(work, mixed, out_mixed)
+        assert result.returncode == 0, result.stderr
+        assert (out_mixed / 'psk.hex').read_text() == expected + '\n'
+        assert json.loads((out_mixed / 'provenance.json').read_text())['remote_problem_services'] == 0
         # Refusals: wrong boot, wrong kernel, wrong Debian, boot changed during the read, zero matches,
         # two matches, symlinked settings, group-readable settings, non-psk security, short passphrase.
         cases = {
@@ -119,7 +134,8 @@ def main():
             'short': fake_root(work, 'short', services=[(SERVICE, key_file(SERVICE, 'short'), 0o600)]),
             # A good match next to one malformed or unsafe service: refused, never hidden.
             'problem': fake_root(work, 'problem', services=[(SERVICE, key_file(SERVICE, PASSPHRASE), 0o600), (SERVICE.replace('a1', 'a3'), 'not a key file', 0o600)]),
-            'badname': fake_root(work, 'badname', services=[(SERVICE, key_file(SERVICE, PASSPHRASE), 0o600), ('wifi_evil', key_file('x', 'other pass'), 0o600)]),
+            # Two PSK services for this SSID on different adapters: not unique.
+            'adapters': fake_root(work, 'adapters', services=[(SERVICE, key_file(SERVICE, PASSPHRASE), 0o600), (SERVICE.replace('0200000000a1', '0200000000b2'), key_file('x', PASSPHRASE), 0o600)]),
             'dirlink': fake_root(work, 'dirlink', services=[(SERVICE, key_file(SERVICE, PASSPHRASE), 0o600), (SERVICE.replace('a1', 'a4'), 'DIRLINK', 0)]),
             # Duplicate keys inside the matching group: refused instead of GLib last-key-wins.
             'dupkey': fake_root(work, 'dupkey', services=[(SERVICE, key_file(SERVICE, PASSPHRASE) + 'Passphrase=other\n', 0o600)]),
