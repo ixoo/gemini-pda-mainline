@@ -33,8 +33,12 @@ Keep this file under 200 lines; move anything else to an experiment record.
 - **Wi-Fi Phase A.** With WMT common init, one channel-40 passive scan
   received management frames and a 5 GHz BSS
   ([runtime 3](../experiments/2026-10-06-mt6797-wifi-common-init/RUNTIME_3.md)).
-  No association or transmit data yet.
-- **Open.** No Wi-Fi association or traffic. No charging, RTC alarm or lid.
+- **Wi-Fi Phase B.** One healthy bounded station join against the owner's
+  protected AP: authentication accepted, association denied as expected
+  without an RSN element, finite teardown with every page returned
+  ([runtime 8](../experiments/2026-10-07-mt6797-wifi-phase-b-join/RUNTIME_8.md)).
+  Management TX and RX are demonstrated; no accepted association or data.
+- **Open.** No accepted Wi-Fi association, key exchange or traffic. No charging, RTC alarm or lid.
   The `full` profile has never booted. No upstream submission. A72 and thermal
   protection are parked.
 - **Device.** The last session returned to changed-boot Gemian. Nothing is
@@ -65,9 +69,15 @@ budgets and stop conditions under the [safety rules](SAFETY.md). Steps marked
    calibration, antenna mode), then the existing START and one channel-40
    passive scan: firmware management count 15 and a standard 5 GHz BSS
    ([runtime 3](../experiments/2026-10-06-mt6797-wifi-common-init/RUNTIME_3.md)).
-   No association or data. Next bounded step: an offline Phase B design and
-   protocol-gap audit for a minimal standard mac80211 authentication and
-   association path, with no DMA or IRQ expansion and no assumed AP credentials.
+   No association or data.
+3. **Phase B: bounded station join (local). Reached.** Standard mac80211
+   authentication and association over the driver's one-slot management path,
+   with a finite host-owned teardown
+   ([runtime 8](../experiments/2026-10-07-mt6797-wifi-phase-b-join/RUNTIME_8.md)).
+   The association is denied without an RSN element. Next bounded step: Phase
+   C, the protected association with WPA2-PSK CCMP, the key path and the data
+   path, each under its own protocol
+   ([design](../experiments/2026-10-07-mt6797-wifi-phase-b-join/PHASE_C.md)).
 3. **Clean-profile boot (local).** `full`, or a new board-only profile with no
    diagnostics, once. Decides whether the product configuration boots at all;
    every later upstream claim depends on it. `full` cannot build: the
