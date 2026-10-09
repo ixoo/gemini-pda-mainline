@@ -537,7 +537,7 @@ booted:
   gates and no secret on any output; `tests/credential-tool-test.py` drives it
   against a fake remote helper. The C2 design findings are in
   [PHASE_C](PHASE_C.md).
-- **Phase C2 implementation, for review (compile 17 built, nothing deployed).** Proposals 0153 to
+- **Phase C2 implementation, for review (compile 17 built into candidate 12, held unused; proposal 0157 pending).** Proposals 0153 to
   0156 (bounded scan-element limit; EAPOL delivery to mac80211; control-port
   EAPOL transmit as the vendor security frame on TC4 through the one queue;
   firmware keys with the WPA2 BSS declaration, ledger-serialized `set_key` and
@@ -568,8 +568,14 @@ booted:
   condition keeps every phase and process error; only the standard iw
   demonstration is replaced by the join phase's completeness. Compile 17 (job
   `0e333617…-mt6797-a53-wifi-phase-b-compile-m0`, image gzip
-  `0c24f88f…`, config `153ea2d0…`, 655 patches, no driver warnings) exists;
-  candidate, deployment and device action remain held for the runtime review.
+  `0c24f88f…`, config `153ea2d0…`, 655 patches, no driver warnings) exists
+  and was composed as candidate 12, held unused: proposal 0157 admits the
+  pinned supplicant's RSN capabilities 0x000c (its 16-replay-counter
+  declaration on a WMM-advertising AP, from the public source) next to 0,
+  with everything else in the admission unchanged and no WMM support
+  claimed; the ownership fixture admits the 0x000c variant and refuses six
+  other capability patterns. One further compile and candidate 13 follow
+  the review; deployment 12 never happened.
   Fixtures: `tests/run-security-test.py` (descriptor and preparation),
   `tests/run-key-test.py` (key payloads and the WPA2 bytes), the ownership
   harness end-to-end one-queue sequence, and the peer harness `set_key` with

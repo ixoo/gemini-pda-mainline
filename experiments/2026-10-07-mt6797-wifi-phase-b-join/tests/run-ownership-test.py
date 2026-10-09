@@ -21,19 +21,24 @@ names = ("mt6797_mac_join_refused_frame", "mt6797_mac_join_frame", "mt6797_mac_t
          "mt6797_mac_join_work", "mt6797_mac_join_wait_credit",
          "mt6797_mac_join_wait_management")
 # The predicate's accepted RSN body must be the body of the element the
-# reviewed connect helper sends; both are parsed from source, never retyped.
+# reviewed connect helper sends up to its capabilities, which the helper sends
+# as 0 (one of the two admitted values); both are parsed from source, never retyped.
 def hex_bytes(text):
     return bytes(int(v, 16) for v in re.findall(r"0x([0-9a-fA-F]{2})", text))
-driver_rsn = re.search(r"mt6797_join_rsn_body\[20\] = \{(.*?)\};", source, re.S)
+driver_rsn = re.search(r"mt6797_join_rsn_body\[18\] = \{(.*?)\};", source, re.S)
 helper = (Path(__file__).resolve().parent.parent / "helper/join-connect.c").read_text()
 helper_rsn = re.search(r"RSN_ELEMENT\[\] = \{(.*?)\};", helper, re.S)
 if not driver_rsn or not helper_rsn:
     parser.error("RSN constants missing from the driver or the helper")
 driver_body, helper_element = hex_bytes(driver_rsn.group(1)), hex_bytes(helper_rsn.group(1))
-if len(driver_body) != 20 or helper_element[:2] != b"\x30\x14" or helper_element[2:] != driver_body:
+if (len(driver_body) != 18 or helper_element[:2] != b"\x30\x14" or
+        helper_element[2:20] != driver_body or helper_element[20:] != b"\x00\x00"):
     parser.error("the driver's accepted RSN body differs from the helper's RSN element")
-rsn_definition = re.search(r"static const u8 mt6797_join_rsn_body\[20\] = \{.*?\};", source, re.S)
-parts = [struct.group(0), rsn_definition.group(0),
+rsn_definition = re.search(r"static const u8 mt6797_join_rsn_body\[18\] = \{.*?\};", source, re.S)
+capabilities = re.search(r"static bool mt6797_join_rsn_capabilities\(const u8 \*capabilities\)\n\{.*?\n\}", source, re.S)
+if not capabilities:
+    parser.error("RSN capability predicate missing from the driver")
+parts = [struct.group(0), rsn_definition.group(0), capabilities.group(0),
          "static unsigned long wait_for_completion_timeout(struct completion *, unsigned long);",
          "static int mt6797_mac_join_retire_idle_bss(struct mt6797_mac *mac);"]
 for name in names:

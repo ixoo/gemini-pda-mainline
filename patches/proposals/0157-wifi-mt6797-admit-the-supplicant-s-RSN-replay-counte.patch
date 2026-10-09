@@ -1,0 +1,94 @@
+From c3e07acdbcfc646808acb011696df35095936214 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 9 Oct 2026 22:41:33 +0000
+Subject: [PATCH 157/157] wifi: mt6797: admit the supplicant's RSN
+ replay-counter declaration
+
+The association admission compares the request's RSN element with the
+fixed WPA2-PSK CCMP body the reviewed Phase C1 helper sends, whose RSN
+capabilities are 0. The standard supplicant builds that body with one
+difference on an ordinary AP: wpa_supplicant_set_suites claims WMM
+whenever the BSS carries the WMM vendor element, because there is no
+driver capability indication for the number of replay counters
+(wpa_supplicant 2.11, wpa_supplicant/wpa_supplicant.c, the WMM_ENABLED
+parameter), and rsn_supp_capab then declares 16 PTKSA replay counters in
+the RSN capabilities (src/rsn_supp/wpa_ie.c, RSN_NUM_REPLAY_COUNTERS_16
+shifted by 2, value 0x000c). The declaration is independent of any WMM
+negotiation: mac80211 adds no WMM element with one hardware queue, and
+this admission still refuses that element. With the exact comparison the
+supplicant's request would be refused before transmission on every AP
+that advertises WMM.
+
+Compare the first 18 bytes exactly (version 1, group CCMP, one pairwise
+CCMP, one AKM PSK) and admit exactly two capability values: 0 and
+0x000c. The element length, the single element, and the refusals of
+HT, VHT, mobility-domain, fast-transition and WMM elements are
+unchanged; MFPC, MFPR, OCVC, extended key id, pre-authentication,
+no-pairwise and every other capability bit remain refused with the same
+named record. The capabilities are a station declaration to the AP; no
+firmware command, key payload, BSS declaration or receive path depends on
+them, and no WMM or QoS support is added.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 31 +++++++++++++++++-----
+ 1 file changed, 24 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 1372e9d98..1c80727bd 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -452,16 +452,28 @@ static int mt6797_mac_scan_packet(struct mt6797_mac *mac, size_t bytes,
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ /* The one RSN element body this admission accepts in an association request:
+  * RSN version 1, group cipher CCMP, one pairwise cipher CCMP, one AKM PSK,
+- * RSN capabilities 0. It is the element the reviewed connect helper sends;
+- * any other body, or a second element, is refused like any other shape.
++ * RSN capabilities 0 or 0x000c. The first 18 bytes are the element the
++ * reviewed connect helper sends. The capabilities admit exactly two values:
++ * 0 (the helper) and the 16-PTKSA-replay-counter declaration, bits 2 and 3,
++ * that the pinned supplicant makes whenever the AP's BSS carries the WMM
++ * vendor element (wpa_supplicant_set_suites, rsn_supp_capab), independent of
++ * any WMM negotiation; this admission still refuses the WMM element itself.
++ * No MFP, OCV, extended key id, pre-authentication or no-pairwise bit, any
++ * other body, or a second element, is refused like any other shape.
+  */
+-static const u8 mt6797_join_rsn_body[20] = {
++static const u8 mt6797_join_rsn_body[18] = {
+ 	0x01, 0x00,
+ 	0x00, 0x0f, 0xac, 0x04,
+ 	0x01, 0x00, 0x00, 0x0f, 0xac, 0x04,
+ 	0x01, 0x00, 0x00, 0x0f, 0xac, 0x02,
+-	0x00, 0x00,
+ };
++
++static bool mt6797_join_rsn_capabilities(const u8 *capabilities)
++{
++	unsigned int value = mt6797_join_le16(capabilities);
++
++	return value == 0 || value == 0x000c;
++}
+ #endif
+ 
+ /* Diagnostic for a received packet the frame gate refused: the bounded
+@@ -528,11 +540,16 @@ static bool mt6797_mac_join_frame(struct mt6797_mac *mac, struct sk_buff *skb)
+ 		}
+ #endif
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+-		/* Exactly one RSN element with the fixed WPA2-PSK CCMP body. */
++		/* Exactly one RSN element with the fixed WPA2-PSK CCMP body and
++		 * one of the two admitted capability values.
++		 */
+ 		if (f[ie] == WLAN_EID_RSN) {
+-			if (++rsn_count != 1 || f[ie + 1] != sizeof(mt6797_join_rsn_body) ||
++			if (++rsn_count != 1 ||
++			    f[ie + 1] != sizeof(mt6797_join_rsn_body) + 2 ||
+ 			    memcmp(f + ie + 2, mt6797_join_rsn_body,
+-				   sizeof(mt6797_join_rsn_body))) {
++				   sizeof(mt6797_join_rsn_body)) ||
++			    !mt6797_join_rsn_capabilities(f + ie + 2 +
++							  sizeof(mt6797_join_rsn_body))) {
+ 				dev_info(wiphy_dev(mac->hw->wiphy),
+ 					 "one-shot WLAN join frame element refused: subtype=%u id=0x%02x len=%u count=%u\n",
+ 					 subtype, f[ie], f[ie + 1], rsn_count);
+-- 
+2.39.5
+

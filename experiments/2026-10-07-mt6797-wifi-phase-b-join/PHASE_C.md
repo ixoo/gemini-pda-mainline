@@ -167,9 +167,23 @@ activates with the BSS declared open and encryption-disabled.
    scan, authentication and association itself through mac80211's SME path
    (`NL80211_CMD_AUTHENTICATE` and `NL80211_CMD_ASSOCIATE`), which produces
    the same open-system authentication frame and an association request whose
-   RSN element body is the fixed 20 bytes the driver admits (`wpa_ie.c`,
-   RSN capabilities 0 without MFP); the predicate's other refusals (HT, VHT,
-   mobility domain, fast transition, WMM) are not produced for this network.
+   RSN element body is the fixed WPA2-PSK CCMP body the driver admits with
+   one difference the C2 design first missed: `wpa_supplicant_set_suites`
+   (`wpa_supplicant.c` 2112 to 2117) claims WMM whenever the BSS carries the
+   WMM vendor element, because the supplicant has no driver capability
+   indication for the number of replay counters, and `rsn_supp_capab`
+   (`rsn_supp/wpa_ie.c` 108 to 114) then declares 16 PTKSA replay counters
+   in the RSN capabilities (value 0x000c). The target advertises WMM (the
+   owner's metadata-only check of the retained runtime-12 scan), so the
+   exact C1 comparison (capabilities 0) would refuse the request before
+   transmission. Proposal 0157 compares the first 18 body bytes exactly and
+   admits exactly the two capability values 0 and 0x000c; MFPC, MFPR, OCVC,
+   extended key id, pre-authentication, no-pairwise and every other value
+   stay refused, as do HT, VHT, mobility domain, fast transition and the WMM
+   element itself, which mac80211 does not add with one hardware queue. The
+   declaration is a station statement to the AP; no firmware command, key
+   payload, BSS declaration or receive path depends on it, and no WMM or QoS
+   support is claimed. Candidate 12, built without 0157, is preserved unused.
    The supplicant's fixed phrases are a separate observed result; they are
    never read as proof of a driver or firmware state.
 3. **One passive single-channel scan, no extra scans.** With the documented
@@ -380,7 +394,10 @@ transmit on TC4 through the one queue) and 0156 (firmware keys, WPA2 BSS
 declaration, ledger-serialized `set_key`, explicit removals after the
 deauthentication) are written, fixture-covered and were reviewed at
 0e333617; compile 17 built them (job
-`0e333617…-mt6797-a53-wifi-phase-b-compile-m0`). The session tooling
+`0e333617…-mt6797-a53-wifi-phase-b-compile-m0`) into candidate 12, which is
+held unused: proposal 0157 (RSN capabilities 0 or 0x000c admitted, found
+from the pinned supplicant source before any boot) is under review and
+needs one further compile and candidate 13. The session tooling
 (`c2-session.py`, the `passive-host.py` hooks, the binder's hex SSID and
 PSK, the join script's supplicant-owned mode) is under review; no candidate,
 deployment or device action until that review's go.

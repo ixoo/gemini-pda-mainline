@@ -353,7 +353,10 @@ static struct sk_buff *frame(unsigned int owner, unsigned int subtype)
  * 5, SSID, the eight OFDM supported rates, then the connect request's RSN
  * element. `variant` perturbs one thing for the refusal cases.
  */
-enum { ASSOC_GOOD, ASSOC_RSN_TKIP, ASSOC_RSN_TWICE, ASSOC_RSN_SHORT, ASSOC_HT, ASSOC_WMM, ASSOC_NO_RSN };
+enum { ASSOC_GOOD, ASSOC_RSN_TKIP, ASSOC_RSN_TWICE, ASSOC_RSN_SHORT, ASSOC_HT, ASSOC_WMM,
+       ASSOC_RSN_CAPAB_MFPC, ASSOC_RSN_CAPAB_PREAUTH, ASSOC_RSN_CAPAB_NO_PAIRWISE,
+       ASSOC_RSN_CAPAB_EXTRA_BIT, ASSOC_RSN_CAPAB_HIGH_BYTE, ASSOC_RSN_CAPAB_COUNTERS_4,
+       ASSOC_NO_RSN, ASSOC_RSN_CAPAB_WMM };
 static struct sk_buff *assoc_frame(unsigned int variant)
 {
 	static const u8 rsn[22] = {
@@ -378,6 +381,23 @@ static struct sk_buff *assoc_frame(unsigned int variant)
 		memcpy(p + n, rsn, sizeof(rsn));
 		if (variant == ASSOC_RSN_TKIP)
 			p[n + 13] = 0x02;
+		/* Capabilities: the supplicant's 16-replay-counter declaration is
+		 * the one admitted variant; every other bit pattern is refused.
+		 */
+		if (variant == ASSOC_RSN_CAPAB_WMM)
+			p[n + 20] = 0x0c;
+		if (variant == ASSOC_RSN_CAPAB_MFPC)
+			p[n + 20] = 0x80;
+		if (variant == ASSOC_RSN_CAPAB_PREAUTH)
+			p[n + 20] = 0x01;
+		if (variant == ASSOC_RSN_CAPAB_NO_PAIRWISE)
+			p[n + 20] = 0x02;
+		if (variant == ASSOC_RSN_CAPAB_EXTRA_BIT)
+			p[n + 20] = 0x0d;
+		if (variant == ASSOC_RSN_CAPAB_HIGH_BYTE)
+			p[n + 21] = 0x0c;
+		if (variant == ASSOC_RSN_CAPAB_COUNTERS_4)
+			p[n + 20] = 0x08;
 		if (variant == ASSOC_RSN_SHORT) {
 			p[n + 1] = 18; n += 20;
 		} else {
@@ -691,13 +711,21 @@ int main(void)
 
 		assert(good->len == 24 + 4 + 9 + 10 + 22 && mt6797_mac_join_frame(&mac, good));
 		assert(infos == before && mac.join_ssid_bytes == 7 && !memcmp(mac.join_ssid, "gemini7", 7));
-		for (v = ASSOC_RSN_TKIP; v <= ASSOC_WMM; v++) {
+		for (v = ASSOC_RSN_TKIP; v <= ASSOC_RSN_CAPAB_COUNTERS_4; v++) {
 			bad = assoc_frame(v);
 			before = infos;
 			assert(!mt6797_mac_join_frame(&mac, bad));
 			assert(infos == before + 1);
 			ieee80211_free_txskb(mac.hw, bad);
 		}
+		/* The pinned supplicant's RSN element on a WMM-advertising AP:
+		 * capabilities 0x000c, otherwise the same body, admitted silently.
+		 */
+		bad = assoc_frame(ASSOC_RSN_CAPAB_WMM);
+		before = infos;
+		assert(bad->len == good->len && mt6797_mac_join_frame(&mac, bad));
+		assert(infos == before && mac.join_rsn);
+		ieee80211_free_txskb(mac.hw, bad);
 		bad = assoc_frame(ASSOC_NO_RSN);           /* still admitted: the runtime-8 shape */
 		assert(mt6797_mac_join_frame(&mac, bad));
 		ieee80211_free_txskb(mac.hw, bad);
