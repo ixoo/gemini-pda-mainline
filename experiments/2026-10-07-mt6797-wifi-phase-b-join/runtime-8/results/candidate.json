@@ -1,0 +1,47 @@
+{
+  "status": "offline-gated-wifi-phase-b-candidate-validated",
+  "kernel_build_commit": "65c2fa81f083bc4baec83266786219cda2d57c64",
+  "kernel_release": "7.1.3-gemini-a53-wifi-phase-b-compile",
+  "kernel_package_sha256": "784aef7580aef01d34ad953c8e5f6ce87dbc1ff2b0973766feb55985278ec034",
+  "parent_boot2_sha256": "827a6582b8913d5130704be38a347beceda2a133b8b86a4033e6fa06df892ce9",
+  "rom_patches": {
+    "ROMv3_patch_1_1_hdr.bin": "5732c0730380e937b48ad169f2805b65e8d4a178265566c5083cb2cc2d249f1e",
+    "ROMv3_patch_1_0_hdr.bin": "450c2b0949cf879217ac9aef81b18b860982f0e69340784b448b54365d8cf630"
+  },
+  "files": {
+    "Image.gz": {
+      "sha256": "5ba80f4a14b99e71e4ddcc25f801dcc02b736f363a08afdb646b849aee1ef9d9",
+      "bytes": 6620748
+    },
+    "board.dtb": {
+      "sha256": "25ab60f45686138c46200e858206756a16eef5ee33b26b2bd2ac13c7179d7717",
+      "bytes": 28671
+    },
+    "boot.img": {
+      "sha256": "1fb75cfff5b063a35a149f0d1a0433da8f2c0297b5df97c2fd858bba0a017fbd",
+      "bytes": 11442176
+    },
+    "boot2-padded.img": {
+      "sha256": "820657edc30736a511513b3781fad99fdd9808093e88fabff2632610af5d90d2",
+      "bytes": 16777216
+    },
+    "initramfs.img": {
+      "sha256": "361e2fa98d296136a48a37abbc5636753c8c293a4193b38173e9d089f4ae88f0",
+      "bytes": 4788477
+    },
+    "kernel.config": {
+      "sha256": "153ea2d01db8edf518f28ebf01f5e28f1f94d08c649acbe4cca600430a8cdf2f",
+      "bytes": 113083
+    }
+  },
+  "device_tree_change": "none; exact Phase A runtime-3 parent DT",
+  "ram_root_change": "release gate and the reviewed bin/join-connect helper",
+  "helper": {
+    "path": "bin/join-connect",
+    "sha256": "b3851a4b1890e7abd9128174b2dfc2ea71f3f1a9119085751b6b087d8f54cbd6",
+    "bytes": 665552
+  },
+  "secret_bearing": true,
+  "device_action": "none",
+  "physical_admission": false
+}
