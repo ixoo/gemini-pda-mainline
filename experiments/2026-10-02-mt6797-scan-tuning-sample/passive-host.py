@@ -38,6 +38,9 @@ HOST.DOMAIN.HOST.__file__ = str(Path(__file__).resolve())
 PARENT.WIPHY_PROBE = PARENT.WIPHY_PROBE.replace(
     b'7.1.3-gemini-a53-wifi-tc4-reconcile', RELEASE.encode())
 PREPARE = HOST.DOMAIN.prepare
+# Finite size of the private scan script source; a later host that binds a
+# larger reviewed script re-points this limit, this experiment's stays 16384.
+SOURCE_LIMIT = 16384
 SCAN_SOURCE = HERE / 'passive-scan.sh'
 SUMMARY = re.compile(rb'one-shot passive WLAN scan: status=(-?\d+) complete=([01]) frame=([01]) beacon=([01]) credit=([01]) retired=1$')
 DONE = re.compile(rb'one-shot passive WLAN done header: len=(\d+) seq=(\d+) payload_seq=(\d+)$')
@@ -165,7 +168,7 @@ def scan_process(raw, err, process, boot):
 def prepare(candidate):
     prepared = PREPARE(candidate)
     source = SCAN_SOURCE.read_bytes()
-    PARENT.HOST.require(not SCAN_SOURCE.is_symlink() and len(source) <= 16384,
+    PARENT.HOST.require(not SCAN_SOURCE.is_symlink() and len(source) <= SOURCE_LIMIT,
                         'scan script source changed')
     globals_ = prepared['execute'].__globals__
     invoke = globals_['invoke']

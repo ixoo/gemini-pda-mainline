@@ -134,9 +134,12 @@ installed-key, replay-protection or throughput claim follows.
   pass, the device's bounded network outcomes with the owned listener, and the
   boot-bound Wi-Fi SSH receipt); the exit code follows that verdict. Without
   the variable the session stays a C2 one. The join phase budget is 130 s.
-- `bind-target.py` and `prepare-runtime.py` accept the revised source and its
-  private wrapper up to 32768 bytes (the source is about 22.6 KB plus the
-  small private prefix).
+- `bind-target.py`, `prepare-runtime.py` and the host's inherited scan-tuning
+  prepare (its source guard re-pointed through `SCAN.SOURCE_LIMIT`, the
+  historic experiment keeping 16384) accept the revised source and its private
+  wrapper up to 32768 bytes (the source is about 22.6 KB plus the small
+  private prefix); the host fixture runs that prepare chain over the real
+  bound source.
 - Fixtures: `tests/join-once-test.py` (hook validation and order, one
   listener launch with the exact flags and digest check, readiness after the
   pid file names the owned pid, stop on EXIT and at the terminal, no address

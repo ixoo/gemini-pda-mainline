@@ -26,6 +26,9 @@ SCAN.ROOT = ROOT
 SCAN.CAPTURE = CAPTURE
 SCAN.RELEASE = RELEASE
 SCAN.SCAN_SOURCE = Path(os.environ['GEMINI_JOIN_SCRIPT']).resolve(strict=True)
+# Runtime 21: the revised join script plus its private prefix is about 22.6 KB;
+# the same finite cap as bind-target.py and prepare-runtime.py.
+SCAN.SOURCE_LIMIT = 32768
 SCAN.PARENT.HERE = HERE
 SCAN.PARENT.ROOT = ROOT
 SCAN.PARENT.CAPTURE = CAPTURE

@@ -69,6 +69,22 @@ with tempfile.TemporaryDirectory(prefix='mt6797-c2-host-') as directory:
             def write_new(self, path, data):
                 written.append(path)
                 path.write_bytes(data)
+        # The active path runs the inherited scan-tuning prepare over the real bound
+        # script (prefix plus the revised join-once.sh, above 16384 bytes): its
+        # source guard is re-pointed to the 32768-byte cap; at the historic value
+        # the same chain refuses, so the guard itself is still exercised.
+        assert host.SCAN.SOURCE_LIMIT == 32768 and 16384 < bound.stat().st_size <= 32768
+        chained = host.prepare_with_c2(None)
+        assert chained['claim']['phase_budgets']['passive-scan']['seconds'] == (130 if psk else 30)
+        host.SCAN.SOURCE_LIMIT = 16384
+        try:
+            host.prepare_with_c2(None)
+        except Exception as error:  # the inherited require's refusal
+            assert 'scan script source changed' in str(error), error
+        else:
+            raise AssertionError('the inherited source guard did not refuse at 16384')
+        host.SCAN.SOURCE_LIMIT = 32768
+        calls.clear()
         prepared = host.c2_prepare(None)
         active = {'collector': Collector()}
         invoke = prepared['execute'].__globals__['invoke']
