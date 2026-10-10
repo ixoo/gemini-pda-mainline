@@ -1,0 +1,177 @@
+From 5735715d5a0c97982f86537734cccc9f436e296c Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 10 Oct 2026 14:35:25 +0000
+Subject: [PATCH 163/163] wifi: mt6797: admit a second add-key-done event after the
+ group key command
+
+Runtime 20 completed the four-way handshake on the air, submitted the
+pairwise key command and admitted the firmware's add-key-done event once
+for this BSS and the target, as the previous patch intended; after the
+group key command was submitted the firmware sent a second 16-byte event
+of the same id with sequence 0, the dispatcher refused it and the join
+fail-stopped before the group key's credit, the removals and the healthy
+teardown.
+
+The pinned public gen3 source defines the event's payload as the BSS
+index, a reserved byte and the station address; it names no key type,
+key index or command sequence, and its receive path only marks the
+station's TX key ready on it. An event cannot be attributed to a key by
+its content. Admit at most two owned events and attribute them by window
+only: the first after the pairwise command was submitted and before the
+group one, the second after the group command was submitted. Record them
+as "key done: first after=pairwise" and "key done: second after=group".
+Whether the second is the group key's completion or a delayed repeat of
+the first is not decidable from the pinned source or the event and is
+not claimed: a repeat arriving between the group submission and that
+key's own event is indistinguishable from it and is admitted as the
+second; a second event before the group submission, a third event and
+any event outside the window are refused with the index, the peer flags,
+the sequence and the submission and record state named, never an
+address.
+
+Every lifetime guard of the previous patch applies to both windows:
+sequence 0, the station active and the BSS configured, the handshake
+hold with the reserved deauthentication queued, the deauthentication
+neither in flight nor done, no cleanup stage, the pairwise key not
+removed, BSS index 0 and the target's address compared. The records
+change nothing the hold, the teardown, the key slots or the credit
+ledger depend on and transmit nothing.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 94 +++++++++++++++-------
+ 1 file changed, 64 insertions(+), 30 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index a7b1dc15b..7f9192cd9 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -81,10 +81,12 @@ struct mt6797_mac {
+ 	/* Phase C1: bounded observation of the AP's first clear EAPOL frames. */
+ 	unsigned int join_eapol_seen, join_eapol_tx, join_group_discarded;
+ 	unsigned int join_action_discarded;
+-	/* Phase C2: the pairwise key command was submitted; the firmware's
+-	 * add-key-done event for it was recorded.
++	/* Phase C2: the pairwise and group key commands were submitted; the
++	 * firmware's add-key-done event was recorded at most twice, once in the
++	 * window after each submission (attributed by window, not by key).
+ 	 */
+-	bool join_key_pairwise_submitted, join_key_done;
++	bool join_key_pairwise_submitted, join_key_group_submitted;
++	bool join_key_done, join_key_done_second;
+ 	u64 join_hold_until;
+ 	/* RSN join: WPA2 declared to the firmware; key commands 0 none, 1
+ 	 * submitted with credit returned, 2 removed. No key material is kept.
+@@ -792,37 +794,65 @@ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
+ 		/* EVENT_ID_ADD_PKEY_DONE (publicly pinned gen3 nic_cmd_event.h:
+ 		 * unsolicited, "add key done for port control"; payload
+ 		 * EVENT_ADD_KEY_DONE_INFO: ucBSSIndex, ucReserved, aucStaAddr[6]).
+-		 * Runtime 19 refused an event of this id, 16 bytes with sequence 0,
+-		 * after the pairwise key command's page credit; its payload was not
+-		 * recorded, so it is consistent with the source-defined completion
+-		 * of that command and its ownership is unverified until this gate
+-		 * compares the BSS index and the station address. The pinned receive
+-		 * path marks the station's TX key ready on it; this driver records
+-		 * it and changes nothing the hold, the teardown, the key slots or
+-		 * the credit ledger depend on, and transmits nothing. Admitted once,
+-		 * only after a pairwise key command was submitted, while the station
+-		 * is active and the BSS configured, during the handshake hold in
+-		 * which the reserved deauthentication is queued (the cleanup is
+-		 * requested at the accepted association, so that flag does not
+-		 * exclude it), and before the deauthentication is in flight or
+-		 * done, before any cleanup stage and before the pairwise key's
+-		 * removal, for BSS index 0 and the target's address (compared, never
+-		 * logged); the reserved byte is unconstrained by the pinned source
+-		 * and unread; anything else stays refused.
++		 * The payload carries neither a key type, a key index nor a command
++		 * sequence, and the pinned receive path only marks the station's TX
++		 * key ready on it, so an event cannot be attributed to a key by its
++		 * content. Runtime 20 recorded one owned event (BSS index 0, the
++		 * target's address) after the pairwise key command and refused a
++		 * second event of this id, 16 bytes with sequence 0, after the group
++		 * key command; that second payload was not recorded. This gate admits
++		 * at most two owned events, attributed by window only: the first
++		 * after the pairwise command was submitted and before the group one,
++		 * the second after the group command was submitted. Whether the
++		 * second is the group key's completion or a delayed repeat of the
++		 * first is not decidable from the pinned source or the event, and
++		 * is not claimed; a repeat arriving between the group submission
++		 * and that key's own event is indistinguishable from it and is
++		 * admitted as the second. A second event before the group
++		 * submission, a third event, and any event outside the lifetime
++		 * window are refused. Each admitted event requires sequence 0, the
++		 * station active and the BSS configured, the handshake hold with the
++		 * reserved deauthentication queued (the cleanup is requested at the
++		 * accepted association, so that flag does not exclude it), the
++		 * deauthentication neither in flight nor done, no cleanup stage and
++		 * the pairwise key not removed, BSS index 0 and the target's address
++		 * (compared, never logged); the reserved byte is unconstrained by the
++		 * pinned source and unread. The record changes nothing the hold, the
++		 * teardown, the key slots or the credit ledger depend on, and
++		 * transmits nothing. A refusal names the index, the peer flags, the
++		 * sequence and the submission and record state, no address.
+ 		 */
+ 		const u8 *body = mac->join_packet + 8;
+-
+-		if (mac->join_packet[5] || !mac->join_key_pairwise_submitted ||
+-		    mac->join_key_done || !mac->join_sta_active ||
+-		    !mac->join_bss_configured || mac->join_deauth_done ||
+-		    (mac->join_internal && mac->join_inflight == mac->join_internal) ||
+-		    mac->join_cleanup_stage || mac->join_cleanup_done ||
+-		    mac->join_key_pairwise == 2 || body[0] ||
+-		    !ether_addr_equal(body + 2, mac->join_ap))
++		bool peer = ether_addr_equal(body + 2, mac->join_ap);
++		bool owned = !mac->join_packet[5] && !body[0] && peer &&
++			     mac->join_sta_active && mac->join_bss_configured &&
++			     !mac->join_deauth_done &&
++			     !(mac->join_internal && mac->join_inflight == mac->join_internal) &&
++			     !mac->join_cleanup_stage && !mac->join_cleanup_done &&
++			     mac->join_key_pairwise != 2;
++		const char *window = NULL;
++
++		if (owned && mac->join_key_pairwise_submitted && !mac->join_key_done &&
++		    !mac->join_key_group_submitted)
++			window = "first after=pairwise";
++		else if (owned && mac->join_key_done && mac->join_key_group_submitted &&
++			 !mac->join_key_done_second)
++			window = "second after=group";
++		if (!window) {
++			dev_info(wiphy_dev(mac->hw->wiphy),
++				 "one-shot WLAN join key done refused: bss=%u peer=%u broadcast=%u seq=%u submitted=%u%u recorded=%u%u\n",
++				 body[0], peer, is_broadcast_ether_addr(body + 2),
++				 mac->join_packet[5], mac->join_key_pairwise_submitted,
++				 mac->join_key_group_submitted, mac->join_key_done,
++				 mac->join_key_done_second);
+ 			return -EPROTO;
+-		mac->join_key_done = true;
++		}
++		if (mac->join_key_done)
++			mac->join_key_done_second = true;
++		else
++			mac->join_key_done = true;
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+-			 "one-shot WLAN join key done: pairwise bss=%u peer=1\n", body[0]);
++			 "one-shot WLAN join key done: %s bss=%u peer=1\n", window, body[0]);
+ 		return 0;
+ 	}
+ #endif
+@@ -1969,7 +1999,9 @@ static int mt6797_mac_join_add_peer(struct mt6797_mac *mac,
+ 	mac->join_group_discarded = 0;
+ 	mac->join_action_discarded = 0;
+ 	mac->join_key_pairwise_submitted = false;
++	mac->join_key_group_submitted = false;
+ 	mac->join_key_done = false;
++	mac->join_key_done_second = false;
+ 	mac->join_hold_until = 0;
+ 	mac->join_credit_deadline = min_t(u64, mac->join_deadline,
+ 					  ktime_get_ns() + 100 * NSEC_PER_MSEC);
+@@ -2313,6 +2345,8 @@ static int mt6797_mac_set_key(struct ieee80211_hw *hw, enum set_key_cmd cmd,
+ 				  mac->join_credit_deadline);
+ 	if (!ret && pairwise)
+ 		mac->join_key_pairwise_submitted = true;
++	if (!ret && !pairwise)
++		mac->join_key_group_submitted = true;
+ 	if (!ret) {
+ 		dev_info(wiphy_dev(hw->wiphy),
+ 			 "one-shot WLAN join key command: %s submitted sequence=%u\n",
+-- 
+2.39.5
+

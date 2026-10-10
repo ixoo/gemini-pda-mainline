@@ -197,7 +197,13 @@ the pairwise command, compares the BSS index and the target's address
 without logging them, records it, and leaves the hold, the teardown, the key
 slots and the credit ledger untouched; the record becomes a required term of
 the handshake-path pass, so the command's page credit alone is never treated
-as firmware confirmation. No equivalent event exists for the group key in the
+as firmware confirmation. Runtime 20 (candidate 19) recorded that event once
+with the index and address matching, completed the pairwise key credit,
+submitted the group key command and then met a second event of the same id,
+refused as a duplicate. The payload names no key type, index or command, so
+the second event cannot be told from a delayed repeat; proposal 0163
+(unbuilt checkpoint) admits at most two owned events attributed by window
+and claims no per-key completion. No equivalent event exists for the group key in the
 pinned source; the group key's credit remains its only driver-side evidence.
 
 ### Settled by source
@@ -332,8 +338,10 @@ pinned source; the group key's credit remains its only driver-side evidence.
    byte and station address), that the firmware sends when a pairwise key
    add completes, found when runtime 19 refused it; its runtime-19 payload is
    unverified, proposal 0162 admits it once after the pairwise command with
-   the index and address compared, and no equivalent exists for the group
-   key. Key retirement is explicit: on the healthy path the lifetime
+   the index and address compared (runtime 20 confirmed that ownership), and
+   no event is defined for the group key: runtime 20's second event of the
+   same id after the group command may be its completion or a repeat, and
+   proposal 0163 records it as the second-window event without deciding. Key retirement is explicit: on the healthy path the lifetime
    submits bounded `remove` commands for the pairwise key (WLAN index 1) and
    the group key (BMC index 0) before the station and BSS cleanup, each with
    its credit and sequence accounted, because removing the station record is

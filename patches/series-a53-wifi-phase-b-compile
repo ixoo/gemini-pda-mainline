@@ -659,3 +659,4 @@ proposals/0159-wifi-mt6797-name-refused-software-frames-and-refused.patch
 proposals/0160-wifi-mt6797-discard-the-target-s-protected-group-dat.patch
 proposals/0161-wifi-mt6797-discard-the-target-s-directed-clear-Acti.patch
 proposals/0162-wifi-mt6797-admit-the-firmware-s-add-key-done-event-.patch
+proposals/0163-wifi-mt6797-admit-a-second-add-key-done-event-after-.patch

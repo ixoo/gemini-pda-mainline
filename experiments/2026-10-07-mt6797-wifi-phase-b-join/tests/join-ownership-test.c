@@ -210,6 +210,7 @@ static unsigned int get_unaligned_le16(const void *p)
 static void put_unaligned_le16(unsigned int v, void *p)
 { u8 *b = p; b[0] = v; b[1] = v >> 8; }
 static bool ether_addr_equal(const u8 *a, const u8 *b) { return !memcmp(a, b, ETH_ALEN); }
+static bool is_broadcast_ether_addr(const u8 *a) { return (a[0] & a[1] & a[2] & a[3] & a[4] & a[5]) == 0xff; }
 static void ether_addr_copy(u8 *a, const u8 *b) { memcpy(a, b, ETH_ALEN); }
 
 static u64 now_ns = 1000 * NSEC_PER_MSEC;
@@ -946,12 +947,75 @@ int main(void)
 			unsigned int before = infos;
 
 			script_event(0x24, body, 8); run_worker();
-			assert(!mac.first_error && mac.join_running && mac.join_key_done && infos == before + 1);
+			assert(!mac.first_error && mac.join_running && mac.join_key_done && !mac.join_key_done_second && infos == before + 1);
 			script_count = script_next = 0;
-			script_event(0x24, body, 8); run_worker();            /* a second one */
+			script_event(0x24, body, 8); run_worker();            /* a second one before any group command: refused, named */
+			assert(mac.first_error == -EPROTO && !mac.join_running && !mac.join_key_done_second && infos > before + 1);
+		}
+		mt6797_mac_join_close(&mac);
+		/* Runtime 20's order: the first event recorded, then the group command
+		 * submitted, then a second owned event is admitted in that window (its
+		 * key is not decidable); a third is refused; an event with the group
+		 * command submitted but no first record is refused. */
+		setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = true; mac.join_bss_configured = true;
+		mac.join_key_pairwise_submitted = true;
+		{
+			unsigned int before = infos;
+
+			script_event(0x24, body, 8); run_worker();
+			assert(!mac.first_error && mac.join_key_done && !mac.join_key_done_second);
+			mac.join_key_group_submitted = true;
+			script_count = script_next = 0;
+			script_event(0x24, body, 8); run_worker();
+			assert(!mac.first_error && mac.join_running && mac.join_key_done_second && infos == before + 2);
+			script_count = script_next = 0;
+			script_event(0x24, body, 8); run_worker();            /* a third one */
 			assert(mac.first_error == -EPROTO && !mac.join_running);
 		}
 		mt6797_mac_join_close(&mac);
+		setup(); mac.join_sta_active = true; mac.join_bss_configured = true; mac.join_key_pairwise_submitted = true; mac.join_key_group_submitted = true;
+		script_event(0x24, body, 8); run_worker();                /* group submitted before the pairwise event: ambiguous, refused */
+		assert(mac.first_error == -EPROTO && !mac.join_key_done && !mac.join_key_done_second);
+		setup(); mac.join_sta_active = true; mac.join_bss_configured = true; mac.join_key_group_submitted = true;
+		script_event(0x24, body, 8); run_worker();                /* group command without a pairwise one */
+		assert(mac.first_error == -EPROTO && !mac.join_key_done && !mac.join_key_done_second);
+		{ static const u8 bcast[ETH_ALEN] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+		setup(); mac.join_sta_active = true; mac.join_bss_configured = true; mac.join_key_pairwise_submitted = true; mac.join_key_done = true; mac.join_key_group_submitted = true;
+		memcpy(body + 2, bcast, ETH_ALEN); script_event(0x24, body, 8); run_worker(); memcpy(body + 2, ap, ETH_ALEN);  /* broadcast peer in the second window: refused, named */
+		assert(mac.first_error == -EPROTO && !mac.join_key_done_second); }
+		/* The second window keeps every lifetime guard, with the reserved
+		 * deauthentication queued as in the real hold: wrong BSS index, wrong
+		 * sequence, the deauthentication in flight, a cleanup stage and the
+		 * pairwise key removed each refuse it; the queued hold admits it. The
+		 * first window is covered the same way above and in the hold scenario. */
+		{
+			unsigned int n;
+
+			for (n = 0; n < 6; n++) {
+				setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = true; mac.join_bss_configured = true;
+				mac.join_key_pairwise_submitted = true; mac.join_key_done = true; mac.join_key_group_submitted = true;
+				queue_internal_deauth(); mac.join_hold_until = now_ns + 4000 * NSEC_PER_MSEC;
+				switch (n) {
+				case 0: body[0] = 1; break;
+				case 1: break;                                   /* nonzero sequence, set after scripting */
+				case 2: mac.join_hold_until = now_ns; run_worker(); assert(mac.join_inflight == mac.join_internal); break;
+				case 3: mac.join_cleanup_stage = 1; break;
+				case 4: mac.join_key_pairwise = 2; break;
+				default: break;                                   /* the queued hold: admitted */
+				}
+				script_count = script_next = 0;
+				script_event(0x24, body, 8);
+				if (n == 1)
+					script[0][5] = 3;
+				run_worker();
+				body[0] = 0;
+				if (n == 5)
+					assert(!mac.first_error && mac.join_key_done_second);
+				else
+					assert(mac.first_error == -EPROTO && !mac.join_key_done_second);
+				mt6797_mac_join_close(&mac);
+			}
+		}
 		setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = true; mac.join_bss_configured = true;
 		script_event(0x24, body, 8); run_worker();                /* before any pairwise key command */
 		assert(mac.first_error == -EPROTO && !mac.join_key_done);
@@ -997,7 +1061,7 @@ int main(void)
 		mt6797_mac_join_close(&mac);
 	}
 
-	puts("join_ownership=pass; production close/worker paths; exact-once release; EAPOL delivery window and hold; C1 association request admitted; C2 one-queue handshake sequence; group data and action frames discarded undelivered and bounded; add-key-done event admitted once; no device");
+	puts("join_ownership=pass; production close/worker paths; exact-once release; EAPOL delivery window and hold; C1 association request admitted; C2 one-queue handshake sequence; group data and action frames discarded undelivered and bounded; add-key-done events admitted at most twice by window; no device");
 	return 0;
 }
 

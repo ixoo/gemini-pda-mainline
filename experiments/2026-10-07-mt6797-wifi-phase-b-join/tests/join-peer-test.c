@@ -96,7 +96,7 @@ struct mt6797_mac {
  unsigned join_absence_events;
  unsigned join_eapol_seen; u64 join_hold_until;
  bool join_rsn; unsigned join_key_pairwise, join_key_group; u8 join_group_key_id;
- unsigned int join_group_discarded; unsigned int join_action_discarded; bool join_key_pairwise_submitted, join_key_done;
+ unsigned int join_group_discarded; unsigned int join_action_discarded; bool join_key_pairwise_submitted, join_key_group_submitted, join_key_done, join_key_done_second;
  int join_work;
  unsigned join_page_debt, sequence, join_requested_ms, join_basic_rates;
  unsigned join_desired_rates, join_peer_basic_rates;
@@ -123,6 +123,7 @@ static void complete_all(struct completion *c) { c->count++; }
 static void reinit_completion(struct completion *c) { c->count=0; }
 static void cancel_delayed_work_sync(int *w) { (void)w; assert(!locked); }
 static bool ether_addr_equal(const u8 *a,const u8 *b) { return !memcmp(a,b,6); }
+static bool is_broadcast_ether_addr(const u8 *a) { return (a[0]&a[1]&a[2]&a[3]&a[4]&a[5])==0xff; }
 static void ether_addr_copy(u8 *a,const u8 *b) { memcpy(a,b,6); }
 static bool mt6797_hif_normal_idle(struct mt6797_hif *h) { assert(h); return idle; }
 struct mt6797_hif_ledger { unsigned phase, tc4_free, tc4_limit, pending_cpu, pending_ffa; bool sequences, locked; };

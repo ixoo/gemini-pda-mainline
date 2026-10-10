@@ -23,7 +23,8 @@ def classify(raw):
         'key_credit': rb'key credit returned: (pairwise|group)',
         'key_removal': rb'key removal: (pairwise|group) submitted sequence=(\d+)',
         # Phase C2: the firmware's unsolicited add-key-done event for the pairwise key (pinned gen3 0x24).
-        'key_done': rb'key done: pairwise bss=0 peer=1',
+        # Runtime 20 (proposal 0162) wrote 'pairwise'; 0163 writes the window.
+        'key_done': rb'key done: (first after=pairwise|pairwise|second after=group) bss=0 peer=1',
     }
     # Diagnostic records name a refusal or an admitted indication; they are
     # neither stage records nor malformed. Health is decided by the stage grammar.
@@ -37,6 +38,8 @@ def classify(raw):
         rb' g4ta=[01] translated=[01] first=0x[0-9a-f]{1,5}(?: sec=\d{1,2} to=[01] from=[01])?)?',
         # A key the supplicant installed that the driver refused (state flags and status only).
         rb'key command refused: (?:pairwise|group) status=-\d{1,3} running=[01] active=[01] configured=[01] first=-?\d{1,3}',
+        # An add-key-done event outside its owned window, named by index, peer flags and key state.
+        rb'key done refused: bss=' + byte + rb' peer=[01] broadcast=[01] seq=' + byte + rb' submitted=[01][01] recorded=[01][01]',
         rb'cleanup refused: stage=[0-3] phase=\d{1,2} free=\d{1,5} limit=\d{1,5} pending_cpu=\d{1,5} pending_ffa=\d{1,5} sequences=[01] locked=[01]',
         rb'credit overflow: pages=\d{1,5} debt=\d{1,3}',
         # An element of a mac80211 frame outside this admission (one record per lifetime).
@@ -107,6 +110,8 @@ def classify(raw):
     if key_done and not key_commands:
         keys_ok = False
         malformed = True
+    first_done = [row for row in key_done if row[1].startswith('first') or row[1] == 'pairwise']
+    second_done = [row for row in key_done if row[1].startswith('second')]
     if key_commands or key_credits or key_removals:
         # Bounded key ownership: pairwise then group, each command followed by its
         # credit record, and on the healthy path exactly one ordered removal per
@@ -117,15 +122,23 @@ def classify(raw):
         credit_kinds = [row[1] for row in key_credits]
         removal_kinds = [row[1] for row in key_removals]
         sequences = [row[2] for row in key_commands] + [row[2] for row in key_removals]
-        # The firmware's add-key-done event is admitted once, after the pairwise
-        # command and the activation and before the deauthentication's TX.
+        # The firmware's add-key-done events are attributed by window, not by key
+        # (the event names no key): the first once after the pairwise command and
+        # the activation and before the group command, the second at most once after
+        # the group command and the first record, both before the deauthentication's
+        # TX. The second may be the group key's completion or a delayed repeat.
         key_deauth_tx = [row for row in tx if row[1] == 12]
         key_done_bound = key_deauth_tx[0][0] if key_deauth_tx else None
+        group_command = [row for row in key_commands if row[1] == 'group']
         keys_ok = (kinds in (['pairwise'], ['pairwise', 'group']) and credit_kinds == kinds and
-                   len(key_done) <= 1 and
+                   len(first_done) <= 1 and len(second_done) <= 1 and
                    all(d[0] > key_commands[0][0] and
                        (len(rows['activation']) == 1 and d[0] > rows['activation'][0][0]) and
-                       (key_done_bound is None or d[0] < key_done_bound) for d in key_done) and
+                       (not group_command or d[0] < group_command[0][0]) and
+                       (key_done_bound is None or d[0] < key_done_bound) for d in first_done) and
+                   all(bool(group_command) and bool(first_done) and d[0] > group_command[0][0] and
+                       d[0] > first_done[0][0] and (key_done_bound is None or d[0] < key_done_bound)
+                       for d in second_done) and
                    all(c[0] > k[0] for k, c in zip(key_commands, key_credits)) and
                    removal_kinds == kinds and
                    all(1 <= s <= 255 for s in sequences) and sequences == sorted(set(sequences)))
@@ -248,8 +261,15 @@ def classify(raw):
         'key_removals_submitted': [row[1] for row in key_removals],
         'handshake_keys_submitted': bool(keys_ok and [row[1] for row in key_commands] == ['pairwise', 'group'] and
                                          [row[1] for row in key_credits] == ['pairwise', 'group']),
-        # The firmware reported the pairwise key add done (event 0x24), once, after the command.
-        'firmware_pairwise_key_done': bool(keys_ok and len(key_done) == 1),
+        # The firmware's add-key-done records as parsed (windows in order), then the
+        # lifetime-gated terms: the first-window record (after the pairwise command,
+        # before the group one) is required for the pass; the second-window record
+        # (after the group command) is reported, not required, and not a proven
+        # group-key completion: the event names no key, so the second may be a
+        # delayed repeat of the first.
+        'key_done_records': ['first' if row[1] == 'pairwise' else row[1].split(' ')[0] for row in key_done],
+        'firmware_key_done_first_window': bool(keys_ok and len(first_done) == 1),
+        'firmware_key_done_second_window': bool(keys_ok and len(second_done) == 1),
         # Driver-side C2 path: two frames delivered, two sent, both key commands with
         # their credits, both removals, healthy bounded join. The session's success
         # additionally needs the supplicant's completion phrase from the laptop
@@ -269,6 +289,6 @@ def classify(raw):
     result['bounded_join_pass'] = bool(exchange and healthy and cleanup_ok and activation_ok and order_ok)
     result['driver_handshake_path_pass'] = bool(result['bounded_join_pass'] and len(eapol_rows) == 2 and
                                                 len(eapol_tx) == 2 and result['handshake_keys_submitted'] and
-                                                result['firmware_pairwise_key_done'] and
+                                                result['firmware_key_done_first_window'] and
                                                 [row[1] for row in key_removals] == ['pairwise', 'group'])
     return result
