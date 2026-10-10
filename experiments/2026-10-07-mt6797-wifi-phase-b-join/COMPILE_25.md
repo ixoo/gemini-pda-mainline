@@ -14,7 +14,7 @@ Status: validated compile-only; no candidate composed, no device test.
   `2026-10-10T22:02:10Z`, job completed `2026-10-10T22:02:35Z`.
 - Attempt 1 at `7422e4a5` failed to compile `mac.c`: the channel release added by 0165
   called the credit wait before its definition, and the host fixture had supplied that
-  declaration itself (no object produced; the job status is no record). 0165 now
+  declaration itself (no object produced; the managed lane kept no job record for the failed attempt, only the build log on Buildbox-1). 0165 now
   declares it next to the other forward declarations; a static scan finds no other
   use-before-definition in `mac.c` or `hif.c`.
 - Job: `84799218b649b4a59358e08ecff4c44a7ea91eea-mt6797-a53-wifi-phase-b-compile-m0`
