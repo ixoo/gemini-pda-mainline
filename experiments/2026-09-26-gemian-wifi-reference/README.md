@@ -945,3 +945,14 @@ a prefix of the late log; its 20 warnings and 25 call traces match the prior
 v8 count. The bounded one-boot test is complete. This supports D0+D2 as a
 working temporary *Gemian* copy policy, not effective permission precedence,
 exclusive ownership or a safe mainline EMI write. Raw logs remain private.
+
+## Lifecycle capture protocol (2026-10-10)
+
+The mainline Phase C work paused its one-event-per-boot cycle after runtime
+20. [LIFECYCLE_PROTOCOL](LIFECYCLE_PROTOCOL.md) proposes the v10 reference
+image: one diagnostic patch of `pr_debug` records at the gen3 command,
+event, credit, descriptor and teardown sites, enabled through dynamic debug
+for one bounded connect, handshake, traffic and disconnect cycle, with key
+material, addresses and frame bodies excluded by construction, and an
+offline parser whose ledger feeds the mainline fixtures. Review only; nothing
+built or run.

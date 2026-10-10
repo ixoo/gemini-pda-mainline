@@ -30,7 +30,9 @@ is operational.
   records), SHA-256 `d5832c90…`; pre-recovery preservation manifest
   `0085b86b…`; complete private supplicant log 24086 bytes, SHA-256
   `bda88650…` (export complete, boot matched, zero supplicant processes). No
-  raw log, command, identifier or credential left the laptop.
+  raw log, command, credential or private peer or network identifier left
+  the laptop; the sanitized boot IDs, digests and metadata in this record
+  went to Buildbox.
 
 ## Observations
 
@@ -55,7 +57,9 @@ is operational.
   `Associated with` 2, messages 1 to 4 one each, `Installing PTK` 1,
   `Installing GTK` 1, key negotiation completed 1, connected 1, disconnected 1.
 - Tool fields: `supplicant_exit=0`, `connect_exit=0`, `join_terminal=1`,
-  `channel40_ir_during_join=1` (2 ticks), after exit `no_IR` 0;
+  `channel40_ir_during_join=1` (2 ticks: the channel-40 no-IR flag was
+  cleared while the join ran), `channel40_ir_after_beacon=0` (after the
+  disconnect the IR permission was absent again, the no-IR flag restored);
   `c2_session_pass=false`. The classifier's `firmware_pairwise_key_done`
   (now `firmware_key_done_first_window`) is false only because the key
   lifetime aborted; the record itself is present, once, in its window.
@@ -95,7 +99,8 @@ built or sent; the deauthentication and the removals were never submitted.
 ### The other measurements
 
 Proposals 0158, 0160 and 0161 behaved as designed; the group-data discard of
-0160 was again not exercised. The channel-40 flag was clear during the join.
+0160 was again not exercised. The channel-40 no-IR flag was clear during the
+join and restored after the disconnect.
 
 ## Decision
 
