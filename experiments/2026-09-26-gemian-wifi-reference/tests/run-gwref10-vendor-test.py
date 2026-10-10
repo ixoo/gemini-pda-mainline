@@ -206,12 +206,14 @@ def main():
         (tmp / 'gwref10-vendor-gen.h').write_text(header)
         if os.environ.get('GWREF10_KEEP_HEADER'):
             pathlib.Path(os.environ['GWREF10_KEEP_HEADER']).write_text(header)
-        # Two oracles of the same fixture: the sanitized build (heap, stack and undefined-behaviour
-        # instrumentation report a helper bug deterministically) and a plain build. The sanitized
-        # binary runs with address-space randomisation off, as the other C fixtures do, and with the
-        # sanitizer's signal handlers disabled: on this host the ASan runtime was twice observed
-        # spinning in its own DEADLYSIGNAL handler without ever printing a bug report, so a signal
-        # now ends the process with the default action instead of looping until the timeout.
+        # Two oracles of the same fixture: a sanitized build (address and undefined-behaviour
+        # instrumentation) and a plain build; both must exit 0. The sanitized binary runs with
+        # address-space randomisation off, as the other C fixtures do, and with the sanitizer's
+        # signal handlers disabled. Twice on this host a sanitized run printed only
+        # "AddressSanitizer:DEADLYSIGNAL" repeatedly, never a bug report, until the runner's
+        # timeout; fifteen bounded reruns of the same binaries (randomisation on and off, plain)
+        # all passed, so the cause is unproven. The runner therefore keeps every nonzero exit,
+        # signal death and timeout visible as a failure and claims nothing about the cause.
         common = ['cc', '-std=gnu99', '-O1', '-Wall', '-Wextra', '-Werror', '-Wno-unused-parameter', '-pthread',
                   '-I', str(tmp), '-I', str(HERE), str(HERE / 'gwref10-vendor-test.c')]
         sanitized = tmp / 'gwref10-vendor-test.asan'
