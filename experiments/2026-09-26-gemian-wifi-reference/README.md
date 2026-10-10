@@ -953,10 +953,12 @@ The first v10 cycle ran once on boot `49387658-8633-401c-88be-8880116699ba`
 target bound with a live match, two identical power samples at 99 and `Good`
 with no external supply). Its sanitized files are in
 [results/run1-v10](results/run1-v10/) (ledger SHA-256 `a3dd62c2…`); the
-executor's `receipt.txt` (SHA-256 `b757c213…`, listed in the preservation
-receipt) stays with the custodian because the repository check rejects its
-trailing whitespace, and its lines are reflected in the result summary and
-below; the raw captures and inputs stay on the laptop. Outcome, exactly as the receipts
+committed `receipt.txt` is a normalized copy of the executor's receipt with
+its two trailing spaces removed, because the repository check rejects them;
+the original bytes (SHA-256 `b757c213…`, 925 bytes) remain in the private
+capture and are what the preservation receipt and `SHA256SUMS.final` check,
+so neither of those verifies the committed copy; the raw captures and inputs
+stay on the laptop. Outcome, exactly as the receipts
 state: positive control passed, the first teardown completed, the single
 measured `Connect` returned the D-Bus `UnknownMethod` error for the
 service object before any handshake, and the executor stopped at step
