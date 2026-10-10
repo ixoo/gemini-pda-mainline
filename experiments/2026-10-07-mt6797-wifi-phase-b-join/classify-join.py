@@ -44,13 +44,16 @@ def classify(raw):
                      # Phase C1: a clear EAPOL-Key frame from the target, decoded and dropped.
                      rb'eapol (?:observed|delivered): translated=[01] frame=\d{1,4} activated=[01] vector=[01] bss=(?:1|15)',
                      # Phase C2: protected group-addressed data from the target, discarded undelivered (first eight recorded).
-                     rb'group data discarded: bytes=\d{1,4} fc=0x[0-9a-f]{1,4} match=0x[0-9a-f]{2} wlan=\d{1,3} bss=\d{1,2} sec=\d{1,2} status=0x[0-9a-f]{4} count=[1-8]')
+                     rb'group data discarded: bytes=\d{1,4} fc=0x[0-9a-f]{1,4} match=0x[0-9a-f]{2} wlan=\d{1,3} bss=\d{1,2} sec=\d{1,2} status=0x[0-9a-f]{4} count=[1-8]',
+                     # Phase C2: the target's directed clear Action frame, discarded undelivered (each of at most eight recorded).
+                     rb'action frame discarded: bytes=\d{1,4} fc=0x[0-9a-f]{1,4} match=0x[0-9a-f]{2} wlan=\d{1,3} bss=\d{1,2} sec=\d{1,2} status=0x[0-9a-f]{4} count=[1-8]')
     diagnostics = refusals + notifications
     rows = {name: [] for name in patterns}
     diagnostic_lines = []
     absence_rows = []
     eapol_rows = []
     group_rows = []
+    action_rows = []
     refused = False
     stopped_index = None
     malformed = False
@@ -75,6 +78,8 @@ def classify(raw):
                     absence_rows.append(index)
                 elif body.startswith(b'group data discarded:'):
                     group_rows.append((index, int(body.rsplit(b'count=', 1)[1])))
+                elif body.startswith(b'action frame discarded:'):
+                    action_rows.append((index, int(body.rsplit(b'count=', 1)[1])))
                 elif body.startswith(b'eapol observed:') or body.startswith(b'eapol delivered:'):
                     fields = dict(part.split(b'=') for part in body.split(b': ', 1)[1].split(b' '))
                     eapol_rows.append((index, int(fields[b'translated']), int(fields[b'frame']),
@@ -150,7 +155,7 @@ def classify(raw):
     # translated 4+length, declared length 95..2048) and the activated field
     # agreeing with the activation record's placement. They are reported
     # separately and never form part of the association verdict.
-    if eapol_rows or group_rows:
+    if eapol_rows or group_rows or action_rows:
         deauth_tx = [row for row in tx if row[1] == 12]
         deauth_done = [row[0] for row in done if deauth_tx and row[1] == deauth_tx[0][2] and row[0] > deauth_tx[0][0]]
         association_at = association[0][0] if len(association) == 1 else None
@@ -161,9 +166,10 @@ def classify(raw):
         else:
             # Discards are admitted only after the activation and before the
             # deauthentication's TX done, numbered 1..8 in order, each once.
-            if [count for _, count in group_rows] != list(range(1, len(group_rows) + 1)) or any(
-                    not (activation_at < index < deauth_done[0]) for index, _ in group_rows):
-                malformed = True
+            for discard_rows in (group_rows, action_rows):
+                if [count for _, count in discard_rows] != list(range(1, len(discard_rows) + 1)) or any(
+                        not (activation_at < index < deauth_done[0]) for index, _ in discard_rows):
+                    malformed = True
             for index, translated, frame, activated, _vector, bss in eapol_rows:
                 # Tag 15 is admitted only before the activation and tag 1 only
                 # after it: the two measured values (runtimes 12 and 15), with
@@ -237,6 +243,9 @@ def classify(raw):
         # sixty-four per join; the total discarded is not in the log.
         'group_data_discard_records': len(group_rows),
         'group_data_discard_record_limit': 8,
+        # Action frames: each discard is recorded and the cap is eight, so this is the total.
+        'action_frame_discards': len(action_rows),
+        'action_frame_discard_limit': 8,
         'terminal_failure_recorded': stopped,
         'wifi_operational': False,
     }

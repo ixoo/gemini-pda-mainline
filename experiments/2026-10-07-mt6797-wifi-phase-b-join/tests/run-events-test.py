@@ -10,7 +10,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("kernel_tree", type=Path)
 args = parser.parse_args()
 driver = args.kernel_tree.resolve() / "drivers/net/wireless/mediatek/mt6797"
-for name in ("join-events.h", "join-tx.h", "join-rx.h", "join-commands.h", "group-data.h"):
+for name in ("join-events.h", "join-tx.h", "join-rx.h", "join-commands.h", "group-data.h", "action-frame.h"):
     if not (driver / name).is_file():
         parser.error("selected tree lacks " + name)
 tests = Path(__file__).resolve().parent
@@ -18,7 +18,7 @@ arch = subprocess.check_output(["uname", "-m"], text=True).strip()
 with tempfile.TemporaryDirectory(prefix="mt6797-join-events-") as directory:
     work = Path(directory)
     for source in ("join-events-test.c", "join-tx-test.c", "join-rx-test.c",
-                   "join-commands-test.c", "group-data-test.c"):
+                   "join-commands-test.c", "group-data-test.c", "action-frame-test.c"):
         binary = work / source[:-2]
         subprocess.run(["cc", "-std=c11", "-Wall", "-Wextra", "-Werror",
                         "-fsanitize=address,undefined", "-fno-sanitize-recover=all",
@@ -27,4 +27,4 @@ with tempfile.TemporaryDirectory(prefix="mt6797-join-events-") as directory:
         # Sanitized binaries need a fixed address layout on the Buildbox; a
         # bounded timeout turns any spin into a failure, not a stall.
         subprocess.run(["setarch", arch, "-R", str(binary)], check=True, timeout=30)
-print("Join event, TX, RX, state-command and group-data fixtures: PASS (selected headers, ASan/UBSan)")
+print("Join event, TX, RX, state-command, group-data and action-frame fixtures: PASS (selected headers, ASan/UBSan)")

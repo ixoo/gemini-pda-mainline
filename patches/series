@@ -771,3 +771,4 @@ proposals/0157-wifi-mt6797-admit-the-supplicant-s-RSN-replay-counte.patch
 proposals/0158-wifi-mt6797-bind-the-EAPOL-BSSID-tag-to-the-measured.patch
 proposals/0159-wifi-mt6797-name-refused-software-frames-and-refused.patch
 proposals/0160-wifi-mt6797-discard-the-target-s-protected-group-dat.patch
+proposals/0161-wifi-mt6797-discard-the-target-s-directed-clear-Acti.patch

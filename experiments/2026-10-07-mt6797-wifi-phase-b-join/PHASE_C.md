@@ -176,6 +176,16 @@ they look like then is unmeasured, and whether they end the hold is the next
 foreseeable question, not acted on. The runtime-16 software frame did not
 recur and stays refused.
 
+Runtime 18 (candidate 17) named that software frame: an unprotected Action
+frame from the AP to this station (category unrecorded) that arrives after
+message 4 and ended the join before the keys in runtimes 16 and 18. Proposal
+0161 discards exactly that measured class undelivered while the station is
+active, each recorded, at most eight per join. Runtime 18 also demonstrated
+all four handshake messages on the air with the supplicant completing its
+negotiation; the keys reached the driver only after the stop. The remaining
+foreseeable questions after the keys (protected unicast and decrypted group
+traffic during the hold) are unmeasured and unchanged.
+
 ### Settled by source
 
 1. **Early EAPOL needs no deferral machinery.** The pinned mac80211

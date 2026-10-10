@@ -58,6 +58,7 @@ static unsigned int infos; /* production dev_info records */
 #include "eapol-rx.h"
 #include "join-refused.h"
 #include "group-data.h"
+#include "action-frame.h"
 #include "scan-wire.h"
 
 struct mutex { int held; };
@@ -542,6 +543,28 @@ static void script_group_data(unsigned match, unsigned fc)
 	script_bytes[script_count++] = bytes;
 }
 
+/* Runtime 18's refused class: a software frame with groups 1 to 3 and the logged
+ * descriptor bytes 02 28 18 04 01 00 00 e0, a native Action frame control to
+ * this station from the target; `match`, `fc` and `da_own` perturb the class.
+ * The category byte and body are fixture zeros, never read by the driver.
+ */
+static void script_action_frame(unsigned match, unsigned fc, bool da_own)
+{
+	u8 *p = script[script_count];
+	size_t off = 64, bytes = off + 72;
+
+	assert(script_count < 6);
+	memset(p, 0, sizeof(script[0]));
+	put_unaligned_le16(0xe001 | 7 << 9, p + 2);
+	p[4] = match; p[5] = 40; p[6] = 24; p[7] = 0x04; p[8] = 1; p[9] = 0;
+	put_unaligned_le16(0xe000, p + 10);
+	p[16 + 16 + 8 + 9] = 101; /* RX vector RCPI, as the management decoder reads it */
+	put_unaligned_le16(fc, p + off);
+	memcpy(p + off + 4, da_own ? own : ap, ETH_ALEN); memcpy(p + off + 10, ap, ETH_ALEN); memcpy(p + off + 16, ap, ETH_ALEN);
+	put_unaligned_le16(bytes, p);
+	script_bytes[script_count++] = bytes;
+}
+
 /* The measured tag for the scenario's interval: 15 before the activation, 1 after. */
 static void script_eapol_layout(bool translated, bool vector, bool padding) { script_eapol_bss(translated, vector, padding, mac.join_sta_active ? 1 : 15); }
 static void script_eapol(bool translated) { script_eapol_layout(translated, true, false); }
@@ -868,7 +891,46 @@ int main(void)
 	assert(mac.first_error == -EPROTO && !mac.join_group_discarded);
 	mt6797_mac_join_close(&mac);
 
-	puts("join_ownership=pass; production close/worker paths; exact-once release; EAPOL delivery window and hold; C1 association request admitted; C2 one-queue handshake sequence; group data discarded undelivered and bounded; no device");
+	/* 10. Runtime 18's directed clear Action frame from the target while the
+	 *     station is active: discarded without delivery, each of eight
+	 *     recorded, the ninth refused; protected, Action No Ack, other
+	 *     receiver, unicast-flag-less and inactive-station variants refused.
+	 */
+	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = true; mac.join_bss_configured = true;
+	{
+		unsigned int before = infos, i;
+
+		for (i = 1; i <= 8; i++) {
+			script_count = script_next = 0;
+			script_action_frame(0x02, 0x00d0, true);
+			run_worker();
+			assert(!mac.first_error && mac.join_running && mac.join_action_discarded == i && !rx_delivered);
+			assert(infos == before + i);
+		}
+		script_count = script_next = 0;
+		script_action_frame(0x02, 0x08d0, true);          /* a retry, the ninth */
+		run_worker();
+		assert(mac.first_error == -EPROTO && !mac.join_running);
+	}
+	mt6797_mac_join_close(&mac);
+	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = true; mac.join_bss_configured = true;
+	script_action_frame(0x02, 0x40d0, true); run_worker();   /* protected */
+	assert(mac.first_error == -EPROTO && !mac.join_action_discarded);
+	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = true; mac.join_bss_configured = true;
+	script_action_frame(0x02, 0x00e0, true); run_worker();   /* Action No Ack */
+	assert(mac.first_error == -EPROTO && !mac.join_action_discarded);
+	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = true; mac.join_bss_configured = true;
+	script_action_frame(0x02, 0x00d0, false); run_worker();  /* another receiver */
+	assert(mac.first_error == -EPROTO && !mac.join_action_discarded);
+	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = true; mac.join_bss_configured = true;
+	script_action_frame(0x00, 0x00d0, true); run_worker();   /* unicast-to-me flag absent */
+	assert(mac.first_error == -EPROTO && !mac.join_action_discarded);
+	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = false;
+	script_action_frame(0x02, 0x00d0, true); run_worker();   /* before the activation */
+	assert(mac.first_error == -EPROTO && !mac.join_action_discarded);
+	mt6797_mac_join_close(&mac);
+
+	puts("join_ownership=pass; production close/worker paths; exact-once release; EAPOL delivery window and hold; C1 association request admitted; C2 one-queue handshake sequence; group data and action frames discarded undelivered and bounded; no device");
 	return 0;
 }
 
