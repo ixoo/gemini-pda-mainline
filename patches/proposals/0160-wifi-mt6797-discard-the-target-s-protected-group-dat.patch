@@ -1,0 +1,238 @@
+From d20680c7feaa2cfdfbb787ab2ae9f4b94de824f8 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 10 Oct 2026 12:10:51 +0000
+Subject: [PATCH 160/160] wifi: mt6797: discard the target's protected group
+ data before the group key
+
+Runtime 17 delivered message 1 and sent message 2, then the frame gate
+refused a 110-byte data RXD and the join fail-stopped before message 3. The
+extended refusal summary named it: descriptor match flags 0x08 (the
+broadcast-frame bit, no unicast-to-me), channel 40, an untranslated 24-byte
+header, payload format 0 with BSSID field 1, WLAN index 0 (the declared
+group index), TID 0 and security mode 0, status 0xc004 (the two high bits
+every admitted packet of this lifetime carries and the cipher-mismatch flag
+of the public layout, every error and malformed-frame flag clear), frame
+control 0x6208 (data, FromDS, More Data, Protected), the target as
+transmitter and a receiver that is not this station. The receiver address
+and the body were not recorded. This is the AP's ordinary group-addressed
+traffic, encrypted with a group key the station does not hold until message
+3 delivers it; it can arrive at any moment after the association and ended
+the join at random before the handshake could complete. The software frame
+runtime 16 refused did not recur and stays refused.
+
+Add a decoder (group-data.h) for exactly that measured class: the public
+gen3 data RXD layout; match flags exactly the multicast or broadcast bit
+(no HT control, consistent with the 24-byte header and Order clear; no
+unicast-to-me, beacon or key id bits); header length 24, untranslated;
+payload format 0 with BSSID field 1; WLAN index 0; descriptor byte 9
+exactly 0; status exactly 0xc004; a non-QoS data frame control with FromDS
+and Protected set and ToDS, More Fragments, Power Management and Order
+clear (Retry and More Data free); a group receiver address; the target as
+transmitter; fragment number 0; and at least 16 bytes after a whole 24-byte
+header, which claims nothing about the body, a CCMP header or a MIC.
+
+While the station is active and before a group key command has returned its
+credit, a packet of that class is discarded: never delivered, no byte past
+the header read, no address copied, no cipher interpreted. The first eight
+are recorded by their descriptor and header fields, at most sixty-four are
+accepted per join, and more than that, the same class after the group key,
+any unicast or decrypted protected frame, or any other shape reaches the
+refusal as before. No credit, lifecycle or key handling changes.
+---
+ .../net/wireless/mediatek/mt6797/group-data.h | 113 ++++++++++++++++++
+ drivers/net/wireless/mediatek/mt6797/mac.c    |  31 ++++-
+ 2 files changed, 143 insertions(+), 1 deletion(-)
+ create mode 100644 drivers/net/wireless/mediatek/mt6797/group-data.h
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/group-data.h b/drivers/net/wireless/mediatek/mt6797/group-data.h
+new file mode 100644
+index 000000000..244ff2beb
+--- /dev/null
++++ b/drivers/net/wireless/mediatek/mt6797/group-data.h
+@@ -0,0 +1,113 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef MT6797_GROUP_DATA_H
++#define MT6797_GROUP_DATA_H
++
++#include "join-events.h"
++
++struct mt6797_join_group_data {
++	size_t bytes;             /* Wire bytes after the descriptor and groups. */
++	unsigned int fc;          /* Frame control, native header. */
++	unsigned int match;       /* Descriptor match flags (RXD byte 4). */
++	unsigned int status;      /* Descriptor status word (RXD bytes 10..11). */
++	unsigned char wlan, bss;  /* Descriptor WLAN index and BSSID field. */
++	unsigned char sec;        /* Descriptor security mode field. */
++};
++
++/* The class of received packet that ended runtime 17 at the frame gate while
++ * the station was active and held no key: a 110-byte data RXD whose logged
++ * descriptor bytes were 08 28 18 04 00 00 04 c0 (match flags with the
++ * broadcast bit and without the unicast-to-me bit, channel 40, native 24-byte
++ * header, MSDU payload format with BSSID field 1, WLAN index 0, TID 0 and
++ * security mode 0, status 0xc004) and whose native frame control was 0x6208
++ * (data, FromDS, More Data, Protected), transmitter the target, receiver not
++ * this station. The receiver address itself and the body were not recorded;
++ * the group class is established by the descriptor's broadcast or multicast
++ * match bit together with the group bit of the receiver address, which this
++ * decoder reads from the header on the next packet.
++ *
++ * This decoder names exactly that class so the caller can discard it without
++ * delivery: the public gen3 data RXD layout; match flags with the multicast
++ * or broadcast bit and without the unicast-to-me bit; an untranslated 24-byte
++ * header without padding ambiguity; MSDU payload format; the measured BSSID
++ * field 1, WLAN index 0 (the declared BMC index), TID 0 and security mode 0
++ * (descriptor byte 9 exactly 0); match flags exactly the multicast or
++ * broadcast bit (no HT control, no unicast-to-me, no beacon bits, key id
++ * 0); a status word of exactly 0xc004, that is, the two high bits every admitted
++ * packet of this lifetime has carried and the cipher-mismatch flag that a
++ * frame protected with a group key this station does not hold must carry,
++ * with every error and malformed-frame flag of the public layout clear (FCS,
++ * cipher length, ICV, TKIP MIC, length, de-A-MSDU, exceeded length, LLC,
++ * UDF, fragment, null, software bit); a non-QoS data frame control with
++ * FromDS and Protected set and ToDS, More Fragments, Power Management and
++ * Order clear (Retry and More Data free); a group receiver address; the
++ * target as transmitter; fragment number 0; and at least 40 bytes after the
++ * header offset, which only shows the header is whole, nothing about the
++ * body, a CCMP header or a MIC being claimed. Nothing past the header is
++ * read, no address is copied, no cipher is interpreted. Unicast frames,
++ * unprotected frames, QoS frames, frames from another transmitter, decrypted
++ * frames and frames with any other status are not this class and reach the
++ * caller's refusal.
++ */
++static inline bool
++mt6797_join_group_data(const unsigned char *packet, size_t bytes,
++		       unsigned char channel, const unsigned char ap[6],
++		       struct mt6797_join_group_data *out)
++{
++	struct mt6797_join_group_data r;
++	size_t offset = 16;
++	unsigned int type, groups;
++	const unsigned char *f;
++
++	if (!packet || !ap || !out || bytes < 16 || bytes > 4096 || !channel ||
++	    mt6797_join_le16(packet) != bytes || packet[5] != channel)
++		return false;
++	type = mt6797_join_le16(packet + 2);
++	if ((type >> 13) != 2)
++		return false;
++	/* Match flags: the multicast or broadcast bit, and nothing else: no
++	 * HT control (a 24-byte header with Order clear carries none), no
++	 * unicast-to-me, no beacon bits, key id 0, as measured (0x08).
++	 */
++	r.match = packet[4];
++	if ((r.match & ~0x0cU) || !(r.match & 0x0c))
++		return false;
++	/* Header length 24, untranslated; payload format 0 with BSSID field 1;
++	 * WLAN index 0; TID 0 and security mode 0 (byte 9 exactly 0, as
++	 * measured for this non-QoS frame); status exactly 0xc004.
++	 */
++	if ((packet[6] & 0x80) || (packet[6] & 0x3f) != 24 || packet[7] != 0x04 ||
++	    packet[8] != 0 || packet[9] ||
++	    mt6797_join_le16(packet + 10) != 0xc004)
++		return false;
++	groups = (type >> 9) & 15;
++	if (groups & 8)
++		offset += 16;
++	if (groups & 1)
++		offset += 16;
++	if (groups & 2)
++		offset += 8;
++	if (groups & 4)
++		offset += 24;
++	if (packet[6] & 0x40)
++		offset += 2;
++	/* At least the header and 16 more bytes: the header is whole; nothing
++	 * about the body is checked or claimed.
++	 */
++	if (offset > bytes || bytes - offset < 24 + 16)
++		return false;
++	f = packet + offset;
++	r.fc = mt6797_join_le16(f);
++	if ((r.fc & 0xd7ff) != 0x4208)
++		return false;
++	if (!(f[4] & 1) || memcmp(f + 10, ap, 6) ||
++	    (mt6797_join_le16(f + 22) & 15))
++		return false;
++	r.bytes = bytes - offset;
++	r.status = mt6797_join_le16(packet + 10);
++	r.wlan = packet[8];
++	r.bss = packet[7] >> 2;
++	r.sec = packet[9] >> 4;
++	*out = r;
++	return true;
++}
++#endif
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 1c8219add..6da68b887 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -18,6 +18,7 @@
+ #include "join-rx.h"
+ #include "eapol-rx.h"
+ #include "join-refused.h"
++#include "group-data.h"
+ #include "join-tx.h"
+ #include "join-commands.h"
+ 
+@@ -77,7 +78,7 @@ struct mt6797_mac {
+ 	bool join_peer_refusal_logged, join_channel_refusal_logged;
+ 	unsigned int join_absence_events;
+ 	/* Phase C1: bounded observation of the AP's first clear EAPOL frames. */
+-	unsigned int join_eapol_seen, join_eapol_tx;
++	unsigned int join_eapol_seen, join_eapol_tx, join_group_discarded;
+ 	u64 join_hold_until;
+ 	/* RSN join: WPA2 declared to the firmware; key commands 0 none, 1
+ 	 * submitted with credit returned, 2 removed. No key material is kept.
+@@ -940,6 +941,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 				      struct mt6797_mac, join_work);
+ 	struct mt6797_hif_rx_result rx;
+ 	struct mt6797_eapol_rx eapol;
++	struct mt6797_join_group_data group;
+ 	struct mt6797_join_tx_result result;
+ 	struct mt6797_join_rx_frame frame;
+ 	struct mt6797_scan_frame beacon;
+@@ -1226,6 +1228,32 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ #endif
+ 				continue;
+ 			}
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++			/* Protected group-addressed data from the target, flagged by
++			 * the hardware as a cipher mismatch because this station holds
++			 * no group key, ended runtime 17 at the gate before message 3.
++			 * While the station is active and before a group key command
++			 * has returned its credit, that exact class (group-data.h) is
++			 * discarded, never delivered or interpreted: the first eight
++			 * are recorded by their descriptor and header fields, at most
++			 * sixty-four are accepted per join, and more than that, or the
++			 * same frame after the group key, is a refusal as before.
++			 */
++			if (mac->join_sta_active && !mac->join_key_group &&
++			    !mac->join_deauth_done && !mac->join_cleanup_done &&
++			    mt6797_join_group_data(mac->join_packet, rx.logical_bytes, 40,
++						   mac->join_ap, &group) &&
++			    mac->join_group_discarded < 64) {
++				mac->join_group_discarded++;
++				if (mac->join_group_discarded <= 8)
++					dev_info(wiphy_dev(mac->hw->wiphy),
++						 "one-shot WLAN join group data discarded: bytes=%zu fc=0x%x match=0x%02x wlan=%u bss=%u sec=%u status=0x%04x count=%u\n",
++						 group.bytes, group.fc, group.match,
++						 group.wlan, group.bss, group.sec,
++						 group.status, mac->join_group_discarded);
++				continue;
++			}
++#endif
+ 			if (!mt6797_join_rx_frame(mac->join_packet, rx.logical_bytes, 40,
+ 			    mac->hw->wiphy->perm_addr, mac->join_ap,
+ 			    mac->join_rx_allowed, &frame)) {
+@@ -1867,6 +1895,7 @@ static int mt6797_mac_join_add_peer(struct mt6797_mac *mac,
+ 	/* Reserve before any PIO: failure never authorizes a second peer attempt. */
+ 	mac->join_peer_used = true;
+ 	mac->join_eapol_seen = 0;
++	mac->join_group_discarded = 0;
+ 	mac->join_hold_until = 0;
+ 	mac->join_credit_deadline = min_t(u64, mac->join_deadline,
+ 					  ktime_get_ns() + 100 * NSEC_PER_MSEC);
+-- 
+2.39.5
+

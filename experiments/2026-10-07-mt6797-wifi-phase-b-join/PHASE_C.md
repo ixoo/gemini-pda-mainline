@@ -163,6 +163,17 @@ are stated here, not acted on: a management frame from the AP after message
 4 ends the join before the keys, and once keys are installed the AP's
 protected data frames, which no gate admits, would end the hold the same way.
 
+Runtime 17 (candidate 16) measured the second consequence earlier than
+expected: the AP's protected group-addressed traffic arrived before message 3
+and ended the join at the gate. Proposal 0160 discards exactly that measured
+class (group match bit, native protected FromDS data from the target, the
+measured descriptor fields and status `0xc004`) undelivered while the station
+is active and holds no group key. After the group key's credit the same
+frames arrive decrypted or with another status and are not this class; what
+they look like then is unmeasured, and whether they end the hold is the next
+foreseeable question, not acted on. The runtime-16 software frame did not
+recur and stays refused.
+
 ### Settled by source
 
 1. **Early EAPOL needs no deferral machinery.** The pinned mac80211

@@ -243,6 +243,28 @@ class HostTests(unittest.TestCase):
         self.assertFalse(classify(good[:cut] + legacy + good[cut:])['malformed_stage_record'])
         self.assertTrue(classify(good[:cut] + key.replace(b'pairwise', b'other') + good[cut:])['malformed_stage_record'])
 
+    def test_group_data_discards_are_bounded_to_the_active_window(self):
+        good = log(True)
+        activation = good.index(b'one-shot WLAN join activation:')
+        after_activation = good.index(b'\n', activation) + 1
+        deauth_done = good.index(b'TX done: pid=3')
+        after_deauth_done = good.index(b'\n', deauth_done) + 1
+        line = b'one-shot WLAN join group data discarded: bytes=94 fc=0x6208 match=0x08 wlan=0 bss=1 sec=0 status=0xc004 count=%d\n'
+        result = classify(good[:after_activation] + line % 1 + good[after_activation:])
+        self.assertFalse(result['malformed_stage_record'])
+        self.assertEqual(result['group_data_discard_records'], 1)
+        self.assertEqual(result['group_data_discard_record_limit'], 8)
+        self.assertTrue(result['bounded_join_pass'])
+        eight = b''.join(line % n for n in range(1, 9))
+        self.assertFalse(classify(good[:after_activation] + eight + good[after_activation:])['malformed_stage_record'])
+        # Out of order or repeated counts, a discard before the activation or after the
+        # deauthentication's TX done, and a ninth record are malformed.
+        self.assertTrue(classify(good[:after_activation] + line % 2 + good[after_activation:])['malformed_stage_record'])
+        self.assertTrue(classify(good[:after_activation] + line % 1 + line % 1 + good[after_activation:])['malformed_stage_record'])
+        self.assertTrue(classify(good[:activation] + line % 1 + good[activation:])['malformed_stage_record'])
+        self.assertTrue(classify(good[:after_deauth_done] + line % 1 + good[after_deauth_done:])['malformed_stage_record'])
+        self.assertTrue(classify(good[:after_activation] + eight + line % 9 + good[after_activation:])['malformed_stage_record'])
+
     def test_eapol_observations_are_bounded_to_the_driver_window(self):
         good = log(True)
         activation = good.index(b'one-shot WLAN join activation:')

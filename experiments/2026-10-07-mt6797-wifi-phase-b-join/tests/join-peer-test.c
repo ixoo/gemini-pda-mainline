@@ -96,6 +96,7 @@ struct mt6797_mac {
  unsigned join_absence_events;
  unsigned join_eapol_seen; u64 join_hold_until;
  bool join_rsn; unsigned join_key_pairwise, join_key_group; u8 join_group_key_id;
+ unsigned int join_group_discarded;
  int join_work;
  unsigned join_page_debt, sequence, join_requested_ms, join_basic_rates;
  unsigned join_desired_rates, join_peer_basic_rates;

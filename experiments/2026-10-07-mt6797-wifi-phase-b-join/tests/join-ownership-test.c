@@ -57,6 +57,7 @@ static unsigned int infos; /* production dev_info records */
 #include "join-tx.h"
 #include "eapol-rx.h"
 #include "join-refused.h"
+#include "group-data.h"
 #include "scan-wire.h"
 
 struct mutex { int held; };
@@ -520,6 +521,27 @@ static void script_eapol_bss(bool translated, bool vector, bool padding, unsigne
 	script_bytes[script_count++] = bytes;
 }
 
+/* Runtime 17's refused class: a protected group-addressed data RXD from the
+ * target with the logged descriptor bytes 08 28 18 04 00 00 04 c0 and frame
+ * control 0x6208; the receiver, sequence and body bytes are fixture values.
+ * `match` and `fc` perturb the class for the refusal cases.
+ */
+static void script_group_data(unsigned match, unsigned fc)
+{
+	u8 *p = script[script_count];
+	size_t off = 16, bytes = off + 94;
+
+	assert(script_count < 6);
+	memset(p, 0, sizeof(script[0]));
+	put_unaligned_le16(0x4000, p + 2);
+	p[4] = match; p[5] = 40; p[6] = 24; p[7] = 0x04; p[8] = 0; p[9] = 0;
+	put_unaligned_le16(0xc004, p + 10);
+	put_unaligned_le16(fc, p + off);
+	memset(p + off + 4, 0xff, ETH_ALEN); memcpy(p + off + 10, ap, ETH_ALEN); memcpy(p + off + 16, ap, ETH_ALEN);
+	put_unaligned_le16(bytes, p);
+	script_bytes[script_count++] = bytes;
+}
+
 /* The measured tag for the scenario's interval: 15 before the activation, 1 after. */
 static void script_eapol_layout(bool translated, bool vector, bool padding) { script_eapol_bss(translated, vector, padding, mac.join_sta_active ? 1 : 15); }
 static void script_eapol(bool translated) { script_eapol_layout(translated, true, false); }
@@ -809,7 +831,44 @@ int main(void)
 	}
 	mt6797_mac_join_close(&mac);
 
-	puts("join_ownership=pass; production close/worker paths; exact-once release; EAPOL delivery window and hold; C1 association request admitted; C2 one-queue handshake sequence; no device");
+	/* 9. Runtime 17's protected group-addressed data from the target while the
+	 *    station is active and holds no group key: discarded without delivery,
+	 *    the first eight recorded, up to sixty-four accepted, the sixty-fifth
+	 *    refused; unicast-to-me, unprotected, other-transmitter, inactive-station
+	 *    and after-group-key variants refused as before.
+	 */
+	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = true; mac.join_bss_configured = true;
+	{
+		unsigned int before = infos, i;
+
+		for (i = 1; i <= 64; i++) {
+			script_count = script_next = 0;
+			script_group_data(0x08, 0x6208);
+			run_worker();
+			assert(!mac.first_error && mac.join_running && mac.join_group_discarded == i && !rx_delivered);
+			assert(infos == before + (i < 8 ? i : 8));
+		}
+		script_count = script_next = 0;
+		script_group_data(0x08, 0x6208);
+		run_worker();
+		assert(mac.first_error == -EPROTO && !mac.join_running);  /* the sixty-fifth */
+	}
+	mt6797_mac_join_close(&mac);
+	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = true; mac.join_bss_configured = true;
+	script_group_data(0x0a, 0x6208); run_worker();            /* unicast-to-me set */
+	assert(mac.first_error == -EPROTO && !mac.join_group_discarded);
+	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = true; mac.join_bss_configured = true;
+	script_group_data(0x08, 0x2208); run_worker();            /* not protected */
+	assert(mac.first_error == -EPROTO && !mac.join_group_discarded);
+	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = false;
+	script_group_data(0x08, 0x6208); run_worker();            /* before the activation */
+	assert(mac.first_error == -EPROTO && !mac.join_group_discarded);
+	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = true; mac.join_bss_configured = true; mac.join_key_group = 1;
+	script_group_data(0x08, 0x6208); run_worker();            /* after the group key's credit */
+	assert(mac.first_error == -EPROTO && !mac.join_group_discarded);
+	mt6797_mac_join_close(&mac);
+
+	puts("join_ownership=pass; production close/worker paths; exact-once release; EAPOL delivery window and hold; C1 association request admitted; C2 one-queue handshake sequence; group data discarded undelivered and bounded; no device");
 	return 0;
 }
 
