@@ -60,9 +60,11 @@ Type word `0xee01` is, in the pinned gen3 source, a software-defined packet
 frame (`RXM_RXD_PKT_TYPE_SW_FRAME`, `nic_rx.h`), the kind the pinned receive
 path hands to its management processing (`nic_rx.c`, `nicRxProcessMgmtPacket`);
 bits 9 to 12 declare groups 1, 2 and 3, so the hardware descriptor occupies
-64 of the 136 bytes and the wire frame 72. That is exactly the layout the
-driver's own management decoder reads for the authentication and association
-responses, and the decoder refused this one: not an allowed subtype
+64 of the 136 bytes before the optional 2-byte header padding, whose presence
+is unmeasured; the remaining 72 bytes include any padding, and no exact wire
+length is asserted. That is the layout the driver's own management decoder
+reads for the authentication and association responses, and the decoder
+refused this one: not an allowed subtype
 (disassociation and deauthentication were permitted, mask `0x1400`), or not
 addressed from the AP to this station, or with header flags outside the
 admission. Which of these applied is unmeasured: the refusal summary
@@ -86,23 +88,30 @@ PTK`, `Installing GTK`, each once).
 `rsn_supp/wpa.c` logs message 3 with the `WPA:` prefix in
 `wpa_supplicant_process_3_of_4_wpa` (line 2477, the WPA path) and with the
 `RSN:` prefix in `wpa_supplicant_process_3_of_4` (line 2546, the WPA2 path
-this network takes). The runtime-15 phrase used the `WPA:` prefix and counted
-0 although message 3 was processed; the owner's prefix-aware count is 1.
-Message 4 was never counted as message 3.
+this network takes). The phrase introduced after runtime 15 used the `WPA:`
+prefix, so in this runtime it counted 0 although the supplicant processed
+message 3; the owner's prefix-aware count of the same log is 1 for the
+`RSN:` line and 0 for the `WPA:` line. In runtime 15 the corresponding packet
+was refused before delivery and no message 3 was processed, so its 0 was
+genuine. Message 4 was never counted as message 3.
 
 ### The channel-40 flag
 
 The query after the supplicant's exit reported exactly one channel-40 line
 carrying `no IR`, while the association had just succeeded on that channel.
-In `net/wireless/sme.c`, `disconnect_work` calls `regulatory_hint_disconnect`
+A source-based explanation consistent with that late query: in
+`net/wireless/sme.c`, `disconnect_work` calls `regulatory_hint_disconnect`
 once every interface is idle after a disconnection; in `net/wireless/reg.c`
 that function, for a wiphy without `REGULATORY_COUNTRY_IE_IGNORE` (this
 driver sets no regulatory flags), calls `restore_regulatory_settings`, which
 clears the beacon hints and restores the world regulatory domain, in which
-channel 40 is no-IR. The driver's deauthentication ends the connection, the
-supplicant exits, and the flag queried afterwards is the restored one. The
-runtime-15 and runtime-16 zeros are this timing, not a radio or driver
-condition; the Phase C1 scripts queried the flag before any connection.
+channel 40 is no-IR; the driver's deauthentication ends the connection, the
+supplicant exits, and the flag queried afterwards would be the restored one.
+This is an inference, not a measurement: neither runtime 15 nor runtime 16
+sampled the flag while the connection was up, so whether the no-IR flag was
+clear during the join is unmeasured. The Phase C1 scripts queried the flag
+before any connection. The tooling now samples the flag every tick during
+the join so the next run measures it.
 
 ## Decision
 
@@ -116,4 +125,4 @@ condition; the Phase C1 scripts queried the flag before any connection.
 - Tooling: the message-3 phrase drops its prefix; `Installing PTK` and
   `Installing GTK` are counted; the channel-40 state is sampled every tick of
   the wait and the during-join observation is the gate, with the after-exit
-  state recorded next to it.
+  state recorded next to it; the during-join state has not been measured yet.

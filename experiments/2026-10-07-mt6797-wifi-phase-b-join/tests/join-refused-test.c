@@ -113,9 +113,11 @@ int main(void)
  n = data_packet(p, false, false, 24, false, native, sizeof(native), true);
  r = run(p, n, ap); assert(r.to_own && r.from_ap);
  r = run(p, n, other); assert(r.to_own && !r.from_ap);
- /* A software frame with the native management header (runtime 16's refused
-  * packet shape: groups 1 to 3, 72 wire bytes): interpreted, frame control
-  * reported, receiver and transmitter flags from the whole header.
+ /* A software frame of runtime 16's measured type word, length and group set
+  * (0xee01, 136 bytes, groups 1 to 3; 64 descriptor bytes before any padding).
+  * Its frame control, addresses and header flags are hypothetical fixture
+  * values, not the captured packet's, which were never recorded: the case
+  * shows the summary now interprets such a frame and reports those fields.
   */
  memset(p, 0, sizeof(p)); put16(p + 2, 0xe001 | 7 << 9); p[4] = 2; p[5] = 40; p[6] = 24; p[8] = 1; put16(p + 10, 0xc000);
  put16(p + 64, 0x00d0); memcpy(p + 68, own, 6); memcpy(p + 74, ap, 6); memcpy(p + 80, ap, 6);
