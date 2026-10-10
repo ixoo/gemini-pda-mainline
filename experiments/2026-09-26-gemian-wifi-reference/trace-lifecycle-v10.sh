@@ -336,7 +336,7 @@ step='traffic'
 budget_left
 window_start=$(date +%s)
 window_end=$(( window_start + traffic_window ))
-printf '%s %s\n' "$window_start" "$window_end" >"$output/traffic-window"
+printf '%s %s %s\n' "$window_start" "$window_end" "$expected_boot" >"$output/traffic-window"
 receipt "traffic_window_start=$window_start traffic_window_end=$window_end"
 ops_ping=$((ops_ping + 1))
 bounded 15 ping -c 5 -W 2 "$gateway" >"$output/ping.txt" || true

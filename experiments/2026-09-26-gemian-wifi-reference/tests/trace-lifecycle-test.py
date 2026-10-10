@@ -249,7 +249,8 @@ class ExecutorTest(unittest.TestCase):
         self.assertNotIn('Passphrase', dev.out('service-before.txt').read_text())
         self.assertIn('AutoConnect = True', dev.out('service-before.txt').read_text())
         window = dev.out('traffic-window').read_text().split()
-        self.assertEqual(len(window), 2)
+        self.assertEqual(len(window), 3)
+        self.assertEqual(window[2], BOOT)
         self.assertEqual(int(window[1]) - int(window[0]), 4)   # 20 s divided by the fixture's budget divisor
         kmsg = dev.out('kmsg-cycle.log').read_text()
         self.assertEqual(kmsg.count('gwref10 arm:'), 1)

@@ -269,10 +269,15 @@ parsed `gwref10` ledger.
    no broadcast ping, no interface-wide action. Group downlink evidence is a
    `rxd` with `grp=1` (from the descriptor's broadcast or multicast match flag,
    so a translated Ethernet header counts too) and `sec` nonzero; during this
-   step the custodian runs `lifecycle/lan-group-trigger.py <laptop address>
-   <prefix>` on the laptop, which binds to the owner LAN address, computes the
-   private directed broadcast, and sends three 8-byte UDP datagrams with TTL 1
-   one second apart. Whether the access point forwards them to the station is
+   step the custodian runs `lifecycle/laptop-trigger-window.py <ssh alias>
+   <approved key> <boot id> <laptop address> <prefix>` on the laptop: it polls
+   the device's `traffic-window` marker (`start end boot-id`) over the LAN SSH
+   path on a monotonic budget with each SSH call clamped to what remains, using
+   only the approved key (`IdentitiesOnly`, no agent, strict host keys, no key
+   updates), requires the marker's boot ID to equal the verified boot and at
+   least four seconds of window left, then sends the three 8-byte UDP
+   datagrams with TTL 1 one second apart to the private directed broadcast
+   from the owner LAN address. Whether the access point forwards them to the station is
    an observation; the parser reports group evidence as observed or missing,
    and no group behaviour is concluded without the records.
 8. Teardown two: `connmanctl disconnect <service>`; the same three-sample
