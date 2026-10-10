@@ -116,6 +116,30 @@ class CollectorTest(unittest.TestCase):
         self.assertFalse(receipt['identity_stable'])
         self.assertEqual(receipt['result'], 'changed boot captured partially')
 
+    def test_identity_output_must_be_exactly_three_lines(self):
+        parse = MOD['parse_identity']
+        self.assertEqual(parse(('%s\naarch64\n3.18.41+\n' % NEW).encode()), (NEW, 'aarch64', '3.18.41+'))
+        for raw in (('%s\naarch64\n3.18.41+\nextra\n' % NEW), ('%s\naarch64\n' % NEW), ('%s\n\n3.18.41+\n' % NEW),
+                    ('%s\naarch64\n3.18.41+\n%s\naarch64\n3.18.41+\n' % (NEW, NEW)), 'not-a-uuid\naarch64\n3.18.41+\n',
+                    ('%s\naarch64 extra\n3.18.41+\n' % NEW)):
+            self.assertIsNone(parse(raw.encode()), raw)
+        self.assertIsNone(parse(None))
+
+    def test_every_call_is_clamped_to_the_remaining_budget(self):
+        # the changed boot appears with 12 s left: identity 10 s cap -> captures and the final read fit what remains
+        device = FakeDevice([OLD, NEW])
+        receipt, out = self.run_collect(device, deadline=15, step=1.0)
+        self.assertTrue(all(timeout is not None and timeout <= 10 for cmd, timeout in device.calls), device.calls)
+        remaining_at_last = 15 - (len(device.calls) + 1)
+        self.assertLessEqual(device.calls[-1][1], max(1.0, remaining_at_last + 1))
+        # a changed boot found just before the deadline: no capture or final read starts after it
+        device = FakeDevice([NEW])
+        receipt, out = self.run_collect(device, deadline=3, step=1.0)
+        self.assertIn(receipt['result'], ('deadline during the captures', 'deadline before the final identity read'))
+        self.assertFalse(receipt['identity_stable'])
+        for cmd, timeout in device.calls:
+            self.assertLessEqual(timeout, 3)
+
     def test_ssh_timeouts_are_tolerated_and_output_must_be_new(self):
         def runner(cmd, **kw):
             raise subprocess.TimeoutExpired(cmd, kw.get('timeout'))

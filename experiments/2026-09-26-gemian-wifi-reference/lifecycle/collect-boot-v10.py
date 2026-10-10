@@ -52,10 +52,11 @@ def parse_identity(raw):
     """(boot_id, machine, release) or None when the three lines are not well formed."""
     if raw is None:
         return None
-    lines = raw.decode('ascii', 'replace').split('\n')
-    if len(lines) < 3 or not BOOT_ID.match(lines[0].strip()) or not RELEASE.match(lines[2].strip()):
+    lines = raw.decode('ascii', 'replace').splitlines()
+    if len(lines) != 3 or not all(lines) or not BOOT_ID.match(lines[0]) or not RELEASE.match(lines[2]) \
+            or not re.match(r'^[A-Za-z0-9_]{1,16}$', lines[1]):
         return None
-    return lines[0].strip(), lines[1].strip(), lines[2].strip()
+    return lines[0], lines[1], lines[2]
 
 
 def collect(alias, key, predecessor, expected_release, output, deadline_s, runner=subprocess.run,
@@ -72,7 +73,9 @@ def collect(alias, key, predecessor, expected_release, output, deadline_s, runne
                'files': {}, 'result': 'no changed boot within the deadline'}
     while monotonic() < deadline:
         remaining = deadline - monotonic()
-        per_call = min(10.0, max(1.0, remaining))
+        if remaining < 1:
+            break
+        per_call = min(10.0, remaining)
         polls += 1
         ident = parse_identity(query(runner, ssh_command(alias, str(key), per_call), IDENTITY_COMMAND, per_call))
         if ident and ident[0] not in seen:
@@ -98,7 +101,13 @@ def collect(alias, key, predecessor, expected_release, output, deadline_s, runne
                 path.write_bytes(data)
                 path.chmod(0o600)
                 receipt['files'][name] = {'captured': True, 'bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest()}
-            after = parse_identity(query(runner, ssh_command(alias, str(key), 10), IDENTITY_COMMAND, 10))
+            remaining = deadline - monotonic()
+            after = None
+            if remaining >= 1:
+                final = min(10.0, remaining)
+                after = parse_identity(query(runner, ssh_command(alias, str(key), final), IDENTITY_COMMAND, final))
+            else:
+                receipt['result'] = 'deadline before the final identity read'
             if after:
                 receipt['identity_after'] = {'boot_id': after[0], 'machine': after[1], 'release': after[2]}
                 receipt['identity_stable'] = after == ident
