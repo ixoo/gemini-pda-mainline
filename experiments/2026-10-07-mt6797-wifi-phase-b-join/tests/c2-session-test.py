@@ -17,16 +17,16 @@ LIMIT = C2['LOG_LIMIT']
 assert C2['is_c2_script'](b'TARGET_SSID=x\nWPA_PSK_HEX=' + b'0' * 64 + b'\nexport WPA_PSK_HEX\n')
 assert not C2['is_c2_script'](b'TARGET_SSID=x\nexport TARGET_SSID\n')
 
-LOG = (b'wlan0: CTRL-EVENT-SCAN-RESULTS \nwlan0: Associated with 00:00:00:00:00:00\n'
+LOG = (b'nl80211: Received scan results (1 BSSes)\nwlan0: WPA: RX message 1 of 4-Way Handshake from x\nwlan0: WPA: Sending EAPOL-Key 2/4\nwlan0: WPA: RX message 3 of 4-Way Handshake from x\nwlan0: WPA: Sending EAPOL-Key 4/4\nwlan0: Associated with 00:00:00:00:00:00\n'
        b'wlan0: WPA: Key negotiation completed with 00:00:00:00:00:00 [PTK=CCMP GTK=CCMP]\n'
        b'wlan0: CTRL-EVENT-CONNECTED - Connection to 00:00:00:00:00:00 completed\n'
        b'wlan0: CTRL-EVENT-DISCONNECTED bssid=00:00:00:00:00:00 reason=3\n')
-body = (b'__JOIN_BEGIN__\nsupplicant_ctrl_event_scan_results=1\nsupplicant_associated_with=1\n'
+body = (b'__JOIN_BEGIN__\nsupplicant_nl80211__received_scan_results=1\nsupplicant_wpa__rx_message_1_of_4_way_handshake=1\nsupplicant_wpa__sending_eapol_key_2_4=1\nsupplicant_wpa__rx_message_3_of_4_way_handshake=1\nsupplicant_wpa__sending_eapol_key_4_4=1\nsupplicant_associated_with=1\n'
         b'supplicant_wpa__key_negotiation_completed=1\nsupplicant_ctrl_event_connected=1\n'
         b'supplicant_ctrl_event_disconnected=1\nsupplicant_exit=0\nsupplicant_log_bytes=' +
-        str(len(LOG)).encode() + b'\nchannel40_ir_after_beacon=1\n__JOIN_END__\nconnect_exit=0\njoin_terminal=1\n')
+        str(len(LOG)).encode() + b'\nchannel40_ir_after_beacon=1\nchannel40_query_exit=0\nchannel40_lines=1\nchannel40_words=none\n__JOIN_END__\nconnect_exit=0\njoin_terminal=1\n')
 fields = C2['body_fields'](body)
-assert fields['framed'] and fields['supplicant_ctrl_event_scan_results'] == 1
+assert fields['framed'] and fields['supplicant_nl80211__received_scan_results'] == 1
 assert fields['supplicant_wpa__key_negotiation_completed'] == 1 and fields['join_terminal'] == 1
 assert fields['supplicant_log_bytes'] == len(LOG) and fields['channel40_ir_after_beacon'] == 1
 assert C2['body_fields'](b'')['framed'] is False and C2['body_fields'](b'')['supplicant_exit'] is None
@@ -124,10 +124,10 @@ assert not C2['session_pass'](join, fields, {**good, 'phrases': None}, userspace
 for key, value in (('transport_complete', False), ('transport_complete', None), ('standard_scan_succeeded', False)):
     assert not C2['session_pass'](join, fields, good, {**userspace, key: value}, True), key
 assert not C2['session_pass'](join, fields, good, {}, True)
-for key, value in (('supplicant_ctrl_event_scan_results', 2), ('supplicant_ctrl_event_scan_results', 0),
+for key, value in (('supplicant_nl80211__received_scan_results', 2), ('supplicant_nl80211__received_scan_results', 0),
                    ('supplicant_wpa__key_negotiation_completed', 0), ('supplicant_ctrl_event_connected', 0),
                    ('join_terminal', 0), ('join_terminal', None), ('framed', False),
-                   ('supplicant_ctrl_event_scan_results', None), ('supplicant_exit', 1), ('supplicant_exit', None),
+                   ('supplicant_nl80211__received_scan_results', None), ('supplicant_exit', 1), ('supplicant_exit', None),
                    ('supplicant_exit', 143), ('connect_exit', 1), ('connect_exit', None),
                    ('channel40_ir_after_beacon', 0), ('channel40_ir_after_beacon', None),
                    ('supplicant_log_bytes', len(LOG) - 1), ('supplicant_log_bytes', None)):

@@ -23,7 +23,7 @@ static size_t fixture(unsigned char *p, unsigned groups, bool translated,
  size_t off = 16;
  memset(p, 0, 4096);
  put16(p + 2, 0x4000 | groups << 9);
- p[4] = 2; p[5] = 40; p[6] = translated ? 0x8e : 24;
+ p[4] = 2; p[5] = 40; p[6] = translated ? 0x8e : 24; p[7] = 0x3c; /* measured tag 15, MSDU format */
  if (padding) p[6] |= 0x40;
  p[8] = 1; put16(p + 10, 0xc000);
  if (groups & 8) {
@@ -96,17 +96,21 @@ int main(void)
     mutation(p, n, 7, 4); /* BSS index 1: not admitted */
     mutation(p, n, 7, 0x40); /* BSS index 16: not admitted */
     mutation(p, n, 7, 1); /* payload format: not an MSDU */
-    mutation(p, n, 7, 0x3d); /* BSSID tag 15 with an A-MSDU payload format */
+    mutation(p, n, 7, 0x01); /* BSSID tag 15 with an A-MSDU payload format */
     for (unsigned b = 0; b < 64; b++) { /* every other BSSID tag, every aggregate format */
      for (unsigned fmt = 0; fmt < 4; fmt++) {
-      if (fmt == 0 && (b == 0 || b == 15)) continue;
+      if (fmt == 0 && (b == 1 || b == 15)) continue;
       unsigned char keep = p[7]; p[7] = b << 2 | fmt; reject(p, n); p[7] = keep;
      }
     }
-    p[7] = 0x3c; /* runtime 11 measured BSS field 15, payload format 0 */
+    p[7] = 0x3c; /* runtimes 11, 12 and 15 measured BSS field 15 before activation */
     assert(mt6797_eapol_rx(p, n, 40, own, ap, &out) && out.bss_index == 15);
-    p[7] = 0;
-    assert(mt6797_eapol_rx(p, n, 40, own, ap, &out) && out.bss_index == 0);
+    p[7] = 0x04; /* runtime 15 measured BSS field 1 after activation (message 3) */
+    assert(mt6797_eapol_rx(p, n, 40, own, ap, &out) && out.bss_index == 1);
+    p[7] = 0x00; /* tag 0 was never measured: refused with the frame named */
+    assert(!mt6797_eapol_rx(p, n, 40, own, ap, &out));
+    p[7] = 0x04;
+    assert(mt6797_eapol_rx(p, n, 40, own, ap, &out) && out.bss_index == 1);
     mutation(p, n, 8, 1); /* WLAN owner */
     mutation(p, n, 9, 0x40); /* firmware CCMP, not clear */
     for (unsigned bit = 0; bit < 16; bit++) mutation(p, n, 10 + bit / 8, 1 << (bit % 8));

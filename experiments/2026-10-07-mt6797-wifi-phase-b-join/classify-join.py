@@ -40,7 +40,7 @@ def classify(raw):
     )
     notifications = (rb'bss absence: bss=0 absent=[01] quota=' + byte + rb' reserved=' + byte,
                      # Phase C1: a clear EAPOL-Key frame from the target, decoded and dropped.
-                     rb'eapol (?:observed|delivered): translated=[01] frame=\d{1,4} activated=[01] vector=[01] bss=(?:0|15)')
+                     rb'eapol (?:observed|delivered): translated=[01] frame=\d{1,4} activated=[01] vector=[01] bss=(?:1|15)')
     diagnostics = refusals + notifications
     rows = {name: [] for name in patterns}
     diagnostic_lines = []
@@ -153,8 +153,9 @@ def classify(raw):
             malformed = True
         else:
             for index, translated, frame, activated, _vector, bss in eapol_rows:
-                # No hardware BSS match (15) is admitted only before activation.
-                if bss == 15 and activated:
+                # Tag 15 (no hardware BSS match) is admitted only before the
+                # activation, tag 1 (measured after it, runtime 15) only after.
+                if (bss == 15 and activated) or (bss == 1 and not activated):
                     malformed = True
                 low, high = (99, 2052) if translated else (131, 2084)
                 if (not (association_at < index < deauth_done[0]) or not (low <= frame <= high) or

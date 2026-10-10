@@ -35,7 +35,7 @@ def log(accepted, keys=False):
                          'eapol delivered: translated=1 frame=99 activated=0 vector=0 bss=15')
             lines += ['eapol sent: pid=3 pages=2 bytes=135', 'credit: pages=2 remaining=0',
                       'TX done: pid=3 status=0 advanced=0 count=0',
-                      'eapol delivered: translated=1 frame=155 activated=1 vector=0 bss=0',
+                      'eapol delivered: translated=1 frame=155 activated=1 vector=0 bss=1',
                       'eapol sent: pid=4 pages=2 bytes=113', 'credit: pages=2 remaining=0',
                       'TX done: pid=4 status=0 advanced=0 count=0',
                       'key command: pairwise submitted sequence=10', 'credit: pages=1 remaining=0',
@@ -142,11 +142,14 @@ class HostTests(unittest.TestCase):
         after_activation = good.index(b'\n', activation) + 1
         early = b'one-shot WLAN join eapol observed: translated=1 frame=131 activated=0 vector=0 bss=15\n'
         late15 = b'one-shot WLAN join eapol observed: translated=1 frame=131 activated=1 vector=0 bss=15\n'
-        late0 = b'one-shot WLAN join eapol observed: translated=1 frame=131 activated=1 vector=1 bss=0\n'
+        late1 = b'one-shot WLAN join eapol observed: translated=1 frame=131 activated=1 vector=1 bss=1\n'
         self.assertEqual(classify(good[:activation] + early + good[activation:])['eapol_observations'][0]['bss'], 15)
         self.assertTrue(classify(good[:after_activation] + late15 + good[after_activation:])['malformed_stage_record'])
-        self.assertFalse(classify(good[:after_activation] + late0 + good[after_activation:])['malformed_stage_record'])
-        for bad in (b'bss=1', b'bss=16', b'bss=3c'):
+        # Tag 1 was measured after the activation (runtime 15); tag 0 never was.
+        self.assertFalse(classify(good[:after_activation] + late1 + good[after_activation:])['malformed_stage_record'])
+        self.assertTrue(classify(good[:after_activation] + late1.replace(b'bss=1', b'bss=0') + good[after_activation:])['malformed_stage_record'])
+        self.assertTrue(classify(good[:activation] + early.replace(b'bss=15', b'bss=1') + good[activation:])['malformed_stage_record'])
+        for bad in (b'bss=0', b'bss=16', b'bss=3c'):
             self.assertTrue(classify(good[:activation] + early.replace(b'bss=15', bad) + good[activation:])['malformed_stage_record'], bad)
 
     def test_c2_handshake_path_is_accepted_and_its_claims_bounded(self):
@@ -233,14 +236,14 @@ class HostTests(unittest.TestCase):
         after_deauth_tx = good.index(b'\n', deauth_tx) + 1
         deauth_done = good.index(b'TX done: pid=3')
         after_deauth_done = good.index(b'\n', deauth_done) + 1
-        late = b'one-shot WLAN join eapol observed: translated=1 frame=131 activated=1 vector=1 bss=0\n'
+        late = b'one-shot WLAN join eapol observed: translated=1 frame=131 activated=1 vector=1 bss=1\n'
         early = b'one-shot WLAN join eapol observed: translated=0 frame=131 activated=0 vector=0 bss=15\n'
         # After activation, and even between the deauthentication submission and its
         # matched TX done: valid; metadata is retained; the verdict is unchanged.
         result = classify(good[:after_activation] + late + good[after_activation:])
         self.assertFalse(result['malformed_stage_record'])
         self.assertEqual(result['eapol_shape_observations'], 1)
-        self.assertEqual(result['eapol_observations'], [{'translated': 1, 'frame': 131, 'activated': 1, 'vector': 1, 'bss': 0}])
+        self.assertEqual(result['eapol_observations'], [{'translated': 1, 'frame': 131, 'activated': 1, 'vector': 1, 'bss': 1}])
         self.assertTrue(result['bounded_join_pass'] and result['associated_station_activation_demonstrated'])
         self.assertFalse(classify(good[:after_deauth_tx] + late + good[after_deauth_tx:])['malformed_stage_record'])
         # Early, before the local activation, with activated=0: valid.
@@ -254,12 +257,12 @@ class HostTests(unittest.TestCase):
         # An inconsistent activated field, or a frame length outside the decoder's range for its layout.
         self.assertTrue(classify(good[:activation] + late + good[activation:])['malformed_stage_record'])
         self.assertTrue(classify(good[:after_activation] + early + good[after_activation:])['malformed_stage_record'])
-        for bad in (b'translated=0 frame=130 activated=1 vector=1 bss=0', b'translated=0 frame=2085 activated=1 vector=1 bss=0',
-                    b'translated=1 frame=98 activated=1 vector=1 bss=0', b'translated=1 frame=2053 activated=1 vector=1 bss=0',
-                    b'translated=1 frame=0 activated=1 vector=1 bss=0', b'translated=2 frame=131 activated=1 vector=1 bss=0'):
+        for bad in (b'translated=0 frame=130 activated=1 vector=1 bss=1', b'translated=0 frame=2085 activated=1 vector=1 bss=1',
+                    b'translated=1 frame=98 activated=1 vector=1 bss=1', b'translated=1 frame=2053 activated=1 vector=1 bss=1',
+                    b'translated=1 frame=0 activated=1 vector=1 bss=1', b'translated=2 frame=131 activated=1 vector=1 bss=1'):
             self.assertTrue(classify(good[:after_activation] + b'one-shot WLAN join eapol observed: ' + bad + b'\n' + good[after_activation:])['malformed_stage_record'], bad)
-        for ok in (b'translated=0 frame=131 activated=1 vector=1 bss=0', b'translated=0 frame=2084 activated=1 vector=1 bss=0',
-                   b'translated=1 frame=99 activated=1 vector=1 bss=0', b'translated=1 frame=2052 activated=1 vector=1 bss=0'):
+        for ok in (b'translated=0 frame=131 activated=1 vector=1 bss=1', b'translated=0 frame=2084 activated=1 vector=1 bss=1',
+                   b'translated=1 frame=99 activated=1 vector=1 bss=1', b'translated=1 frame=2052 activated=1 vector=1 bss=1'):
             self.assertFalse(classify(good[:after_activation] + b'one-shot WLAN join eapol observed: ' + ok + b'\n' + good[after_activation:])['malformed_stage_record'], ok)
         # In a denied exchange it is malformed; zero observations is simply zero.
         denied = log(False)

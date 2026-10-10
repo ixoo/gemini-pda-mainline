@@ -112,17 +112,29 @@ if [ -n "${WPA_PSK_HEX:-}" ]; then
     # is never printed and is removed once the supplicant has exited;
     # the complete debug log stays in RAM for the custodian to preserve
     # privately before recovery. No -K: no key material is logged.
-    # 1 only when the wiphy query succeeds and exactly one channel-40 line is
-    # present without disabled, no IR or radar detection; otherwise 0. A
-    # failed query or a missing or duplicated line never aborts collection.
+    # channel40=1 only when the wiphy query succeeds and exactly one channel-40
+    # line is present without disabled, no IR or radar detection; otherwise 0,
+    # with the query status, the line count and the flag words found (fixed
+    # words only) recorded so a 0 names its reason (runtime 15 reported 0 after
+    # an association without them). Never aborts collection.
     channel40_flag() {
-        info=$(iw phy phy0 info 2>/dev/null) || { echo 0; return; }
-        [ "$(printf '%s\n' "$info" | $BB grep -c '\* 5200 MHz \[40\]')" = 1 ] || { echo 0; return; }
-        if printf '%s\n' "$info" | $BB grep '\* 5200 MHz \[40\]' | $BB grep -Eq 'disabled|no IR|radar detection'; then
-            echo 0
+        channel40=0
+        channel40_lines=0
+        channel40_words=none
+        # The query's failure is recorded, never fatal under set -e.
+        if info=$(iw phy phy0 info 2>/dev/null); then
+            channel40_query_exit=0
         else
-            echo 1
+            channel40_query_exit=$?
+            return 0
         fi
+        line=$(printf '%s\n' "$info" | $BB grep '\* 5200 MHz \[40\]' || true)
+        channel40_lines=$(printf '%s\n' "$line" | $BB grep -c '\* 5200 MHz \[40\]' || true)
+        words=$(printf '%s\n' "$line" | $BB grep -Eo 'disabled|no IR|radar detection' | $BB tr ' \n' '_,' || true)
+        [ -n "$words" ] && channel40_words=${words%,}
+        [ "$channel40_lines" = 1 ] || return 0
+        [ "$channel40_words" = none ] && channel40=1
+        return 0
     }
     stage=supplicant_config
     $BB printf 'boot_before=%s\nkernel=%s\ninterface_created=1\ninterface_up=1\n__IW_PASSIVE_BEGIN__\n' "$boot_before" "$kernel"
@@ -185,18 +197,23 @@ if [ -n "${WPA_PSK_HEX:-}" ]; then
     $BB rm -f "$conf"
     stage=supplicant_phrases
     # Fixed phrases only, counted; the complete log is preserved privately.
-    for phrase in 'CTRL-EVENT-SCAN-RESULTS' 'Associated with' 'WPA: Key negotiation completed' 'CTRL-EVENT-CONNECTED' 'CTRL-EVENT-DISCONNECTED'; do
-        key=$(printf %s "$phrase" | $BB tr 'A-Z: -' 'a-z___')
+    # CTRL-EVENT-SCAN-RESULTS is sent only to attached control-interface
+    # monitors (wpa_msg_ctrl), never to the debug log, so the one scan is
+    # counted by the nl80211 driver's own debug line; the handshake messages
+    # are the supplicant's debug lines, printed with -d.
+    for phrase in 'nl80211: Received scan results' 'Associated with' 'WPA: RX message 1 of 4-Way Handshake' 'WPA: Sending EAPOL-Key 2/4' 'WPA: RX message 3 of 4-Way Handshake' 'WPA: Sending EAPOL-Key 4/4' 'WPA: Key negotiation completed' 'CTRL-EVENT-CONNECTED' 'CTRL-EVENT-DISCONNECTED'; do
+        key=$(printf %s "$phrase" | $BB tr 'A-Z: /-' 'a-z____')
         $BB printf 'supplicant_%s=%s\n' "$key" "$($BB grep -cF -- "$phrase" "$wpa_log" || true)"
     done
     $BB printf 'supplicant_exit=%s\nsupplicant_log_bytes=%s\n' "$supplicant_exit" "$($BB wc -c < "$wpa_log" 2>/dev/null || echo 0)"
     # The one passive scan is classified from the kernel records by the session;
-    # this field only says whether the supplicant reported exactly one result set.
+    # this field only says whether the nl80211 driver reported exactly one result set.
     scan_exit=1
-    if [ "$($BB grep -cF -- 'CTRL-EVENT-SCAN-RESULTS' "$wpa_log" 2>/dev/null || true)" = 1 ]; then
+    if [ "$($BB grep -cF -- 'nl80211: Received scan results' "$wpa_log" 2>/dev/null || true)" = 1 ]; then
         scan_exit=0
     fi
-    $BB printf 'channel40_ir_after_beacon=%s\n' "$(channel40_flag)"
+    channel40_flag
+    $BB printf 'channel40_ir_after_beacon=%s\nchannel40_query_exit=%s\nchannel40_lines=%s\nchannel40_words=%s\n' "$channel40" "$channel40_query_exit" "$channel40_lines" "$channel40_words"
     stage=boot_after
     $BB printf '__JOIN_END__\nconnect_exit=%s\njoin_terminal=%s\njoin_lifecycle=%s\n' "$supplicant_exit" "$terminal" "$lifecycle"
     boot_after=$($BB cat /proc/sys/kernel/random/boot_id)

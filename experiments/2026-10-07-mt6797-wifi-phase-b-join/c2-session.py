@@ -10,13 +10,21 @@ import hashlib
 import re
 
 # The join script counts these fixed phrases; the keys are its own derivation
-# (letters lowered; ':', ' ' and '-' to '_').
-PHRASES = {'ctrl_event_scan_results': b'CTRL-EVENT-SCAN-RESULTS',
+# (letters lowered; ':', ' ', '-' and '/' to '_'). CTRL-EVENT-SCAN-RESULTS is
+# never in the debug log (wpa_msg_ctrl reaches attached monitors only), so the
+# one scan is the nl80211 driver's debug line; the handshake messages are the
+# supplicant's own debug lines.
+PHRASES = {'nl80211__received_scan_results': b'nl80211: Received scan results',
            'associated_with': b'Associated with',
+           'wpa__rx_message_1_of_4_way_handshake': b'WPA: RX message 1 of 4-Way Handshake',
+           'wpa__sending_eapol_key_2_4': b'WPA: Sending EAPOL-Key 2/4',
+           'wpa__rx_message_3_of_4_way_handshake': b'WPA: RX message 3 of 4-Way Handshake',
+           'wpa__sending_eapol_key_4_4': b'WPA: Sending EAPOL-Key 4/4',
            'wpa__key_negotiation_completed': b'WPA: Key negotiation completed',
            'ctrl_event_connected': b'CTRL-EVENT-CONNECTED',
            'ctrl_event_disconnected': b'CTRL-EVENT-DISCONNECTED'}
-FIELDS = ('supplicant_exit', 'supplicant_log_bytes', 'channel40_ir_after_beacon', 'connect_exit', 'join_terminal')
+FIELDS = ('supplicant_exit', 'supplicant_log_bytes', 'channel40_ir_after_beacon', 'channel40_query_exit',
+          'channel40_lines', 'connect_exit', 'join_terminal')
 LOG_PATH = '/tmp/mt6797-wifi-phase-b-1/wpa.log'
 LOG_LIMIT = 2 * 1024 * 1024
 BOOT_RE = r'[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}'
@@ -110,8 +118,9 @@ def log_result(raw, err, process, boot):
 def session_pass(join, fields, log, userspace, session_verified):
     """The C2 session conjunction: the join phase's process completed with its
     framed stdout under the authenticated boot and an empty stderr; the
-    supplicant exited cleanly with one scan result set, key negotiation
-    completed and connected; the channel-40 IR flag was exactly 1 after the
+    supplicant exited cleanly with one nl80211 scan result set, each of the
+    four handshake messages exactly once, key negotiation completed and
+    connected; the channel-40 IR flag was exactly 1 after the
     beacon; the join reached its terminal record; the driver's handshake path
     passed (two frames delivered, two sent, both key commands with credits,
     both removals, healthy bounded join); the complete private export has the
@@ -126,7 +135,11 @@ def session_pass(join, fields, log, userspace, session_verified):
                 fields.get('framed') and
                 fields.get('supplicant_exit') == 0 and fields.get('connect_exit') == 0 and
                 fields.get('channel40_ir_after_beacon') == 1 and fields.get('join_terminal') == 1 and
-                counts['supplicant_ctrl_event_scan_results'] == 1 and
+                counts['supplicant_nl80211__received_scan_results'] == 1 and
+                counts['supplicant_wpa__rx_message_1_of_4_way_handshake'] == 1 and
+                counts['supplicant_wpa__sending_eapol_key_2_4'] == 1 and
+                counts['supplicant_wpa__rx_message_3_of_4_way_handshake'] == 1 and
+                counts['supplicant_wpa__sending_eapol_key_4_4'] == 1 and
                 (counts['supplicant_wpa__key_negotiation_completed'] or 0) >= 1 and
                 (counts['supplicant_ctrl_event_connected'] or 0) >= 1 and
                 log.get('complete') is True and log.get('bytes') and

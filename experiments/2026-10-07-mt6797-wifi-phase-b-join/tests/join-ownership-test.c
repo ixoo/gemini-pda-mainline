@@ -520,7 +520,8 @@ static void script_eapol_bss(bool translated, bool vector, bool padding, unsigne
 	script_bytes[script_count++] = bytes;
 }
 
-static void script_eapol_layout(bool translated, bool vector, bool padding) { script_eapol_bss(translated, vector, padding, 0); }
+/* The measured tag for the scenario's interval: 15 before the activation, 1 after. */
+static void script_eapol_layout(bool translated, bool vector, bool padding) { script_eapol_bss(translated, vector, padding, mac.join_sta_active ? 1 : 15); }
 static void script_eapol(bool translated) { script_eapol_layout(translated, true, false); }
 
 static void submit_inflight(void)
@@ -635,8 +636,9 @@ int main(void)
 	 *     accepted association and until the successful BSS command credit
 	 *     completion is recorded (join_bss_configured); refused after that
 	 *     (and so after activation), before any association, after a denied
-	 *     one, and beyond the cap of two; every other tag refused; tag 0
-	 *     admitted after activation.
+	 *     one, and beyond the cap of two; tag 1 (measured after the
+	 *     activation, runtime 15) admitted only while the station is active
+	 *     and refused before it; tag 0 never measured, refused.
 	 */
 	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_bss_configured = false;
 	script_eapol_bss(true, false, true, 15);
@@ -648,7 +650,11 @@ int main(void)
 	run_worker();
 	assert(mac.first_error == -EPROTO && !mac.join_eapol_seen);
 	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_bss_configured = false;
-	script_eapol_bss(true, true, false, 1);
+	script_eapol_bss(true, true, false, 1);                  /* tag 1 before activation: refused */
+	run_worker();
+	assert(mac.first_error == -EPROTO && !mac.join_eapol_seen);
+	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_bss_configured = true;
+	script_eapol_bss(true, true, false, 1);                  /* configured but not yet active: refused */
 	run_worker();
 	assert(mac.first_error == -EPROTO && !mac.join_eapol_seen);
 	setup(); script_eapol_bss(true, false, true, 15);        /* before any association */
@@ -663,10 +669,15 @@ int main(void)
 	assert(!mac.first_error && mac.join_eapol_seen == 2);
 	script_eapol_bss(true, false, true, 15); run_worker();   /* third: beyond the cap */
 	assert(mac.first_error == -EPROTO && mac.join_eapol_seen == 2 && !mac.join_running);
-	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = true;
-	script_eapol_bss(false, true, false, 0);
+	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = true; mac.join_bss_configured = true;
+	script_eapol_bss(false, true, false, 1);                 /* tag 1 while active: admitted */
 	run_worker();
 	assert(!mac.first_error && mac.join_eapol_seen == 1);
+	mt6797_mac_join_close(&mac);
+	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = true; mac.join_bss_configured = true;
+	script_eapol_bss(false, true, false, 0);                 /* tag 0, never measured: refused */
+	run_worker();
+	assert(mac.first_error == -EPROTO && !mac.join_eapol_seen);
 	mt6797_mac_join_close(&mac);
 	/* 5e. After the deauthentication completed the window is closed. */
 	setup(); mac.join_assoc_received = true; mac.join_deauth_done = true; script_eapol(false); run_worker();
@@ -771,7 +782,7 @@ int main(void)
 		released = mac.join_page_debt;                     /* its pages return on the next poll */
 		run_worker();
 		assert(statuses == 1 && !mac.join_inflight && mac.join_internal && !mac.join_page_debt);
-		script_eapol_bss(true, false, true, 0);            /* M3 after the BSS configuration: tag 0 */
+		script_eapol_bss(true, false, true, 1);            /* M3 after the activation: tag 1 (runtime 15) */
 		run_worker();
 		assert(rx_delivered == 2 && mac.join_eapol_seen == 2);
 		m4 = eapol_tx_frame(121);

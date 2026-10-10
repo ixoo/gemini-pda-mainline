@@ -141,6 +141,16 @@ the association response and about 50 ms before the firmware station
 activation. The association completes in mac80211 and the station
 activates with the BSS declared open and encryption-disabled.
 
+Runtime 15 (candidate 14, the first handshake measurement) settled one more
+value: after the station activation the next clear translated EAPOL-shaped
+packet from the AP (consistent with message 3, its body unexamined) carries
+RXD BSSID tag 1 (byte 7 `0x04`), while message 1 before the activation
+carries 15 as in runtime 12. Proposal 0158 binds the admission to those two
+measured values and intervals; the field is firmware-filled and unused by the
+pinned receive path, and its vendor own-MAC index (0 for the first BSS) does
+not match it, so no meaning is claimed beyond the measurement, and the
+decoder's remaining framing gates verify that packet on the next boot.
+
 ### Settled by source
 
 1. **Early EAPOL needs no deferral machinery.** The pinned mac80211

@@ -57,10 +57,25 @@ for line, matches in ((b'one-shot WLAN join cleanup: stage=3 credits=returned sl
                       (b'one-shot WLAN join cleanup: stage=3 credits=pending slots=retired deauth=1', False),
                       (b'one-shot WLAN join key removal: pairwise submitted sequence=8', False)):
     assert bool(re.search(terminal_re.encode(), line)) is matches, line
-# The channel-40 flag is 1 only for a successful query with exactly one line.
+# The channel-40 flag is 1 only for a successful query with exactly one line
+# and no flag word; the query status, line count and words are recorded.
 flag = re.search(r'channel40_flag\(\) \{\n.*?\n    \}\n', SOURCE, re.DOTALL).group(0)
-assert 'echo 1' in flag and flag.count('echo 0') == 3 and '|| { echo 0; return; }' in flag
-assert "printf 'channel40_ir_after_beacon=%s\\n' \"$(channel40_flag)\"" in SOURCE
+assert 'channel40=1' in flag and 'channel40_query_exit=$?' in flag and 'echo' not in flag
+assert "channel40_ir_after_beacon=%s\\nchannel40_query_exit=%s\\nchannel40_lines=%s\\nchannel40_words=%s\\n" in SOURCE
+# Phrases: only lines the supplicant writes to its debug log; the one scan is
+# the nl80211 driver's line, the handshake messages are the WPA debug lines.
+phrases = re.search(r"for phrase in (.*?); do", SOURCE).group(1)
+assert 'CTRL-EVENT-SCAN-RESULTS' not in phrases and "'nl80211: Received scan results'" in phrases
+for required in ("'WPA: RX message 1 of 4-Way Handshake'", "'WPA: Sending EAPOL-Key 2/4'",
+                 "'WPA: RX message 3 of 4-Way Handshake'", "'WPA: Sending EAPOL-Key 4/4'",
+                 "'WPA: Key negotiation completed'", "'CTRL-EVENT-CONNECTED'"):
+    assert required in phrases, required
+assert "tr 'A-Z: /-' 'a-z____'" in SOURCE and "grep -cF -- 'nl80211: Received scan results'" in SOURCE
+# The key derivation maps exactly the separators ':', ' ', '/' and '-' to '_'.
+import subprocess as _sp
+_tr = _sp.run(['sh', '-c', "printf %s 'WPA: Sending EAPOL-Key 2/4' | tr 'A-Z: /-' 'a-z____'"], capture_output=True)
+assert _tr.stdout == b'wpa__sending_eapol_key_2_4', _tr.stdout
+assert 'if info=$(iw phy phy0 info 2>/dev/null); then' in flag and 'channel40_query_exit=$?' in flag
 
 # Static review.
 assert SOURCE.count('BB=/bin/busybox\n') == 1
@@ -121,20 +136,23 @@ with tempfile.TemporaryDirectory(prefix='mt6797-join-once-') as directory:
     iw_dir = work / 'iw'
     iw_dir.mkdir()
     flag_script = work / 'flag.sh'
-    flag_script.write_text('BB=' + str(busybox) + '\n' + flag + 'channel40_flag\n')
+    # Runs with set -e, as the join script does: a failed query must not abort.
+    flag_script.write_text('set -e\nBB=' + str(busybox) + '\n' + flag +
+                           'channel40_flag\nprintf "%s %s %s %s\\n" "$channel40" "$channel40_query_exit" "$channel40_lines" "$channel40_words"\n')
     def flag_for(output, status=0):
         (iw_dir / 'iw').write_text('#!/bin/sh\nprintf %s "' + output + '"\nexit ' + str(status) + '\n')
         (iw_dir / 'iw').chmod(0o700)
         env = dict(os.environ, PATH=str(iw_dir) + ':' + os.environ['PATH'])
         return subprocess.run([busybox, 'ash', str(flag_script)], env=env, capture_output=True, timeout=10).stdout
     one = '\t\t\t* 5200 MHz [40] (20.0 dBm)\n'
-    assert flag_for(one) == b'1\n'
-    assert flag_for(one + '\t\t\t* 5200 MHz [40] (20.0 dBm)\n') == b'0\n', 'duplicate line'
-    assert flag_for('\t\t\t* 5180 MHz [36] (20.0 dBm)\n') == b'0\n', 'missing line'
-    assert flag_for('') == b'0\n'
-    assert flag_for(one, status=1) == b'0\n', 'failed query'
-    assert flag_for('\t\t\t* 5200 MHz [40] (20.0 dBm) (no IR)\n') == b'0\n'
-    assert flag_for('\t\t\t* 5200 MHz [40] (disabled)\n') == b'0\n'
+    assert flag_for(one) == b'1 0 1 none\n'
+    assert flag_for(one + '\t\t\t* 5200 MHz [40] (20.0 dBm)\n') == b'0 0 2 none\n', 'duplicate line'
+    assert flag_for('\t\t\t* 5180 MHz [36] (20.0 dBm)\n') == b'0 0 0 none\n', 'missing line'
+    assert flag_for('') == b'0 0 0 none\n'
+    assert flag_for(one, status=1) == b'0 1 0 none\n', 'failed query'
+    assert flag_for('\t\t\t* 5200 MHz [40] (20.0 dBm) (no IR)\n') == b'0 0 1 no_IR\n'
+    assert flag_for('\t\t\t* 5200 MHz [40] (disabled)\n') == b'0 0 1 disabled\n'
+    assert flag_for('\t\t\t* 5200 MHz [40] (no IR, radar detection)\n') == b'0 0 1 no_IR,radar_detection\n'
 
     def expect(result, stage):
         assert result.returncode != 0 and result.stdout == b'', result

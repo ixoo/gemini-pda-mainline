@@ -1,0 +1,113 @@
+From a43f20ee1bd9065888005fedcf06d8d7569cb343 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 10 Oct 2026 02:16:30 +0000
+Subject: [PATCH 158/158] wifi: mt6797: bind the EAPOL BSSID tag to the
+ measured intervals
+
+Runtime 15, the first handshake measurement, delivered the AP's message 1
+before the station activation, sent message 2 after it, and then refused
+the next received packet at the frame gate: a 203-byte data RXD with the
+group-4 header present, the translated 14-byte header, MSDU payload format,
+channel 40, WLAN index 1, From-DS frame control 0x0208 from the AP and the
+EAPOL Ethernet type, that is, the clear translated EAPOL shape of message 1
+in every visible field except RXD byte 7, 0x04, whose bits 2 to 7 carry
+BSSID tag 1 where message 1 carried 15. Only the RXD, header and Ethernet
+type summary of that packet exists; its EAPOL body was not examined, so it
+is consistent with the expected message 3 but not validated as one, and
+the tag is the one proven refusal, not proof that the remaining framing
+gates would have passed.
+
+The clear EAPOL decoder admitted tags 0 and 15 only, and the admission
+bound 15 to the interval before the BSS command's credit completion and 0
+to afterwards; 0 was a guess that no measurement ever produced. In the
+pinned gen3 source the field is ucBssid bits 2 to 7 of RXD DW1
+(RX_STATUS_BSSID_MASK), filled by the firmware and consumed by no driver
+code; no primary source defines its values, so none is claimed. Three
+measurements exist: 15 before the station activation (runtimes 12 and 15)
+and 1 after it (runtime 15).
+
+Admit exactly those two values: the decoder accepts 1 and 15 and reports
+the field; the admission binds 15 to the interval before the BSS command's
+credit completion is recorded and 1 to the active station, where the rest
+of the decoder's framing then verifies the packet on the next boot. Any
+other value, including 0, is refused and named by the frame gate as
+before. No other change.
+---
+ .../net/wireless/mediatek/mt6797/eapol-rx.h   | 14 ++++++++-----
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 20 ++++++++++++-------
+ 2 files changed, 22 insertions(+), 12 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/eapol-rx.h b/drivers/net/wireless/mediatek/mt6797/eapol-rx.h
+index 2efbb1324..b2be8f2b8 100644
+--- a/drivers/net/wireless/mediatek/mt6797/eapol-rx.h
++++ b/drivers/net/wireless/mediatek/mt6797/eapol-rx.h
+@@ -9,7 +9,7 @@ struct mt6797_eapol_rx {
+ 	size_t prefix_bytes, offset, bytes;
+ 	int signal_dbm;
+ 	bool signal_valid; /* False when the firmware omitted RX vector group 3. */
+-	unsigned char bss_index; /* RXD BSSID field as received: 0 or 15. */
++	unsigned char bss_index; /* RXD BSSID field as received: 1 or 15. */
+ };
+ 
+ /* Original decoder of the public gen3 RXD layout. Clear, nonaggregated,
+@@ -19,9 +19,13 @@ struct mt6797_eapol_rx {
+  * it the signal is reported invalid rather than the packet refused. The RXD
+  * BSSID field is not consumed by the pinned receive path, which routes by the
+  * WLAN index and defines no meaning for its values; this decoder requires the
+- * MSDU payload format and reports the field, admitting only 0 and 15, the
+- * tag observed before the station activation, so the caller can bind 15 to
+- * the interval before the BSS command's credit completion is recorded.
++ * MSDU payload format and reports the field, admitting only the two values
++ * measured on this hardware: 15 before the station activation (runtimes 12
++ * and 15, the delivered message 1) and 1 after it (runtime 15, the next clear
++ * translated EAPOL-shaped packet after the activation, refused at this field
++ * before its body was examined; consistent with the expected message 3, not
++ * validated as such), so the caller can bind each to its interval. No other
++ * value has been observed; 0 was a guess and is refused with the frame named.
+  * No firmware crypto, key material, transport, allocation or effects here.
+  */
+ static inline bool
+@@ -39,7 +43,7 @@ mt6797_eapol_rx(const unsigned char *packet, size_t bytes,
+ 	    !channel || mt6797_join_le16(packet) != bytes ||
+ 	    (mt6797_join_le16(packet + 2) >> 13) != 2 ||
+ 	    packet[5] != channel || (packet[4] & 15) != 2 ||
+-	    (packet[7] & 3) || ((packet[7] >> 2) != 0 && (packet[7] >> 2) != 15) ||
++	    (packet[7] & 3) || ((packet[7] >> 2) != 1 && (packet[7] >> 2) != 15) ||
+ 	    packet[8] != 1 || packet[9] ||
+ 	    mt6797_join_le16(packet + 10) != 0xc000)
+ 		return false;
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 1c80727bd..14cb2e417 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -1181,14 +1181,20 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 			    mac->join_assoc_received && !mac->join_assoc_status &&
+ 			    !mac->join_deauth_done && !mac->join_cleanup_done &&
+ 			    mac->join_eapol_seen < 2 &&
+-			    /* BSSID tag 15, observed before the station activation, is
+-			     * admitted only until the successful BSS command credit
+-			     * completion is recorded, before the activation is requested
+-			     * or confirmed; afterwards only tag 0 is. The flag alone does
+-			     * not say whether the BSS command has been submitted.
++			    /* BSSID tag 15, observed before the station activation
++			     * (runtimes 12 and 15, message 1), is admitted only until the
++			     * successful BSS command credit completion is recorded; tag 1,
++			     * observed after the station activation (runtime 15, the next
++			     * EAPOL-shaped packet after the activation event, refused at
++			     * this field; expected to be message 3, unvalidated), only
++			     * while the station is active. The field is filled by the
++			     * firmware and unused by the pinned receive path; each value is
++			     * bound to the interval in which it was measured, and any other
++			     * value is refused and named by the frame gate below. The rest
++			     * of the decoder's framing gates verify that packet next.
+ 			     */
+-			    (eapol.bss_index == 0 ||
+-			     (eapol.bss_index == 15 && !mac->join_bss_configured))) {
++			    ((eapol.bss_index == 15 && !mac->join_bss_configured) ||
++			     (eapol.bss_index == 1 && mac->join_sta_active))) {
+ 				mac->join_eapol_seen++;
+ 				skb = dev_alloc_skb(eapol.prefix_bytes + eapol.bytes);
+ 				if (!skb) {
+-- 
+2.39.5
+
