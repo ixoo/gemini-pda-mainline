@@ -46,6 +46,15 @@ Branches, each ending the lifetime exactly once:
    named refusal: fail-stop as before, seal, reviewed recovery.
 4. Eight unacknowledged data frames in a row: the phase ends with reason
    `txfail`; the teardown runs; not a pass.
+5. The PID budget: PIDs 1 to 127 are consumed in order by every submitted
+   frame; ordinary data stops at 126 and the phase ends with reason
+   `pidbudget`, so the reserved deauthentication always has PID 127; the
+   teardown runs; not a pass.
+6. Owned protected data arriving outside the open phase (between the
+   pairwise key command and the channel release, or after the phase ended
+   while the deauthentication and teardown run) is dropped undelivered and
+   counted, at most 256 per lifetime (`data RX outside` records); the 257th
+   is a refusal (fail-stop).
 
 No branch repeats a boot without a decision-changing change. Nothing is
 reconnected or rekeyed.
@@ -61,6 +70,8 @@ reconnected or rekeyed.
 | Poller | 20 ms period, at most 4096 polls and 32768 packets per lifetime |
 | Receive delivery | at most 16384 data frames; more dropped and counted |
 | Transmit queue | 8 frames or 12400 bytes queued; one frame in flight; 8 unacknowledged in a row end the phase |
+| PID budget | PIDs 1..127 in order for every frame; data stops at 126 (`pidbudget`), 127 reserved for the deauthentication |
+| Outside-phase data | at most 256 owned protected frames dropped and counted; the 257th refused |
 | TC4 pool | 26 pages (unchanged); TC1 pool 16 pages, both declared host budgets |
 | Session join phase | the device script waits at most 100 ticks of 1 s for the terminal record; `udhcpc` at most 4 tries of 3 s; `ping` 3 requests, 2 s each, 8 s overall |
 | Host phase budget | the passive-scan phase budget rises from 45 s to 130 s; the supplicant-log export stays 20 s |

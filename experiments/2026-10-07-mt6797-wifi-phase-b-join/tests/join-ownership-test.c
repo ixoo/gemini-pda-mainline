@@ -561,6 +561,47 @@ static void script_group_data(unsigned match, unsigned fc)
 	script_bytes[script_count++] = bytes;
 }
 
+/* Phase C3: one protected, firmware-decrypted, translated non-aggregated data
+ * frame of the admitted classes (data-rx.h): group 4 with a non-QoS FromDS
+ * protected frame control from the target, status 0xc000, 20 payload bytes.
+ */
+static void script_data_frame(bool group)
+{
+	u8 *p = script[script_count];
+	size_t bytes = 16 + 16 + 14 + 20;
+
+	assert(script_count < 6);
+	memset(p, 0, sizeof(script[0]));
+	put_unaligned_le16(2U << 13 | 8U << 9, p + 2);
+	p[4] = group ? 0x08 : 0x02; p[5] = 40; p[6] = 0x80 | 14; p[7] = 0x04; p[8] = group ? 2 : 1; p[9] = 0x40;
+	put_unaligned_le16(0xc000, p + 10);
+	put_unaligned_le16(0x4208, p + 16); memcpy(p + 18, ap, ETH_ALEN); put_unaligned_le16(0x0020, p + 24);
+	if (group)
+		memset(p + 32, 0xff, ETH_ALEN);
+	else
+		memcpy(p + 32, own, ETH_ALEN);
+	memcpy(p + 38, ap, ETH_ALEN); p[44] = 0x08; p[45] = 0x00;
+	put_unaligned_le16(bytes, p);
+	script_bytes[script_count++] = bytes;
+}
+
+/* mac80211's protected non-QoS To-DS data frame to the target with LLC/SNAP IPv4. */
+static struct sk_buff *data_tx_frame(void)
+{
+	static const u8 llc_ip[8] = { 0xaa, 0xaa, 3, 0, 0, 0, 0x08, 0x00 };
+	static int hw_key;
+	struct sk_buff *s = new_skb(OWNER_MAC80211);
+	u8 *p = s->data;
+
+	memset(p, 0, sizeof(s->data));
+	put_unaligned_le16(0x4108, p);
+	memcpy(p + 4, ap, ETH_ALEN); memcpy(p + 10, own, ETH_ALEN); memset(p + 16, 0x55, ETH_ALEN);
+	memcpy(p + 24, llc_ip, 8);
+	s->len = 32 + 40;
+	s->cb.tx.control.hw_key = &hw_key;
+	return s;
+}
+
 /* Runtime 18's refused class: a software frame with groups 1 to 3 and the logged
  * descriptor bytes 02 28 18 04 01 00 00 e0, a native Action frame control to
  * this station from the target; `match`, `fc` and `da_own` perturb the class.
@@ -1075,6 +1116,65 @@ int main(void)
 		setup(); mac.join_sta_active = false; mac.join_bss_configured = true; mac.join_key_pairwise_submitted = true;
 		script_event(0x24, body, 8); run_worker();                /* station not active */
 		assert(mac.first_error == -EPROTO && !mac.join_key_done);
+		mt6797_mac_join_close(&mac);
+	}
+
+	/* Phase C3 data phase: owned protected data is delivered inside the open phase
+	 * only; outside it (before the release, after the end) it is dropped and
+	 * counted, bounded, never a refusal below the cap; aggregated or unknown
+	 * shapes still refuse. The data PID budget stops at 126 so the reserved
+	 * deauthentication keeps 127. */
+	{
+		setup(); mac.join_assoc_received = true; mac.join_sta_active = true; mac.join_bss_configured = true;
+		mac.join_key_pairwise_submitted = mac.join_key_group_submitted = true; mac.join_key_pairwise = mac.join_key_group = 1;
+		mac.join_channel_released = mac.join_data_phase = true; mac.join_channel_granted = false;
+		mac.join_data_deadline = now_ns + 60 * NSEC_PER_SEC; mac.join_deadline = mac.join_data_deadline + 5 * NSEC_PER_SEC;
+		script_data_frame(false); script_data_frame(true); run_worker();
+		assert(!mac.first_error && mac.join_running && rx_delivered == 2 && mac.join_data_rx_unicast == 1 && mac.join_data_rx_group == 1 && !mac.join_data_rx_outside);
+		/* Ended (the deauthentication and teardown to come): dropped, counted, no fault. */
+		mac.join_data_ended = true; mac.join_data_end_reason = "disconnect";
+		script_data_frame(false); run_worker();
+		assert(!mac.first_error && mac.join_running && rx_delivered == 2 && mac.join_data_rx_outside == 1);
+		/* The cap: the 257th outside frame is a refusal. */
+		mac.join_data_rx_outside = 256; script_data_frame(true); run_worker();
+		assert(mac.first_error == -EPROTO && !mac.join_running && rx_delivered == 2);
+		mt6797_mac_join_close(&mac);
+		/* Before the release: the group key credited, the phase not yet open. */
+		setup(); mac.join_assoc_received = true; mac.join_sta_active = true; mac.join_bss_configured = true;
+		mac.join_key_pairwise_submitted = mac.join_key_group_submitted = true; mac.join_key_pairwise = mac.join_key_group = 1;
+		script_data_frame(false); run_worker();
+		assert(!mac.first_error && mac.join_running && !rx_delivered && mac.join_data_rx_outside == 1);
+		/* Before any key command the same frame is not owned data: refused as before. */
+		setup(); mac.join_assoc_received = true; mac.join_sta_active = true; mac.join_bss_configured = true;
+		script_data_frame(false); run_worker();
+		assert(mac.first_error == -EPROTO && !rx_delivered && !mac.join_data_rx_outside);
+		mt6797_mac_join_close(&mac);
+		/* An aggregated shape (status 0) inside the open phase is a refusal, never delivered. */
+		setup(); mac.join_assoc_received = true; mac.join_sta_active = true; mac.join_bss_configured = true;
+		mac.join_key_pairwise_submitted = mac.join_key_group_submitted = true; mac.join_key_pairwise = mac.join_key_group = 1;
+		mac.join_channel_released = mac.join_data_phase = true; mac.join_channel_granted = false;
+		mac.join_data_deadline = now_ns + 60 * NSEC_PER_SEC; mac.join_deadline = mac.join_data_deadline + 5 * NSEC_PER_SEC;
+		script_data_frame(false); put_unaligned_le16(0, script[0] + 10); run_worker();
+		assert(mac.first_error == -EPROTO && !rx_delivered);
+		mt6797_mac_join_close(&mac);
+		/* Transmit: a data frame goes out on TC1 with its PID; at PID 126 the next
+		 * data frame ends the phase (pidbudget) and is discarded; the reserved
+		 * deauthentication still takes PID 127. */
+		setup(); mac.join_assoc_received = true; mac.join_sta_active = true; mac.join_bss_configured = true;
+		mac.join_key_pairwise_submitted = mac.join_key_group_submitted = true; mac.join_key_pairwise = mac.join_key_group = 1;
+		mac.join_channel_released = mac.join_data_phase = true; mac.join_channel_granted = false;
+		mac.join_data_deadline = now_ns + 60 * NSEC_PER_SEC; mac.join_deadline = mac.join_data_deadline + 5 * NSEC_PER_SEC;
+		mac.join_next_pid = 126;
+		{ struct sk_buff *d = data_tx_frame(); mac.join_queue_bytes = d->len; __skb_queue_tail(&mac.join_queue, d); }
+		run_worker();
+		assert(!mac.first_error && data_submissions == 1 && mac.join_inflight && mac.join_inflight_data && mac.join_pid == 126 && mac.join_data_page_debt == 1);
+		script_tx_done(0); released = 0; run_worker();
+		assert(!mac.first_error && !mac.join_inflight && mac.join_data_tx_done == 1 && statuses == 1 && !mac.join_data_ended);
+		{ struct sk_buff *d = data_tx_frame(); mac.join_queue_bytes = d->len; __skb_queue_tail(&mac.join_queue, d); }
+		mac.join_data_page_debt = 0; run_worker();
+		assert(!mac.first_error && mac.join_data_ended && !strcmp(mac.join_data_end_reason, "pidbudget") && data_submissions == 1 && mac80211_frees == 1);
+		queue_internal_deauth(); mac.join_hold_until = 0; run_worker();
+		assert(!mac.first_error && mac.join_inflight == mac.join_internal && mac.join_pid == 127 && submissions == 2);
 		mt6797_mac_join_close(&mac);
 	}
 

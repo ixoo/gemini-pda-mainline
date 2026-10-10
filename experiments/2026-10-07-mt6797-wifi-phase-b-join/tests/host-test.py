@@ -360,6 +360,12 @@ class HostTests(unittest.TestCase):
         self.assertFalse(classify(good.replace(end, b''))['driver_data_path_pass'])
         self.assertTrue(classify(good.replace(b'one-shot WLAN join data TX: first pid=5 pages=3 bytes=342\n', b''))['driver_data_path_pass'])
         self.assertTrue(classify(good + b'one-shot WLAN join data credit overflow: pages=2 debt=1\n')['refusal_recorded'])
+        # Owned data outside the phase is a notification (dropped and counted), not a refusal; pidbudget ends the phase.
+        outside = good.replace(end, end + b'one-shot WLAN join data RX outside: first phase=1 ended=1 group=0 bytes=320\n')
+        outside = outside.replace(b'one-shot WLAN join cleanup: stage=3', b'one-shot WLAN join data RX outside: dropped=3\none-shot WLAN join cleanup: stage=3')
+        self.assertTrue(classify(outside)['driver_data_path_pass'] and not classify(outside)['refusal_recorded'])
+        self.assertEqual(classify(good.replace(end, end.replace(b'reason=budget', b'reason=pidbudget')))['data_phase_end_reason'], 'pidbudget')
+        self.assertFalse(classify(good.replace(end, end.replace(b'reason=budget', b'reason=pidbudget')))['driver_data_path_pass'])
         no_group = good.replace(group, b'')
         self.assertFalse(classify(no_group)['driver_handshake_path_pass'])
         self.assertTrue(classify(no_group)['bounded_join_pass'] and classify(no_group)['handshake_keys_submitted'])

@@ -19,7 +19,7 @@ def classify(raw):
         'cleanup_released': rb'cleanup submission: stage=1 released=1',
         'channel_released': rb'channel released: sequence=(\d+)',
         'data_phase': rb'data phase: budget_ms=(\d+) teardown_margin_ms=(\d+)',
-        'data_end': rb'data phase end: reason=(budget|disconnect|txfail) elapsed_ms=(\d+) rx_unicast=(\d+) rx_group=(\d+) rx_dropped=(\d+) tx_queued=(\d+) tx_done=(\d+) tx_failed=(\d+)',
+        'data_end': rb'data phase end: reason=(budget|disconnect|txfail|pidbudget) elapsed_ms=(\d+) rx_unicast=(\d+) rx_group=(\d+) rx_dropped=(\d+) tx_queued=(\d+) tx_done=(\d+) tx_failed=(\d+)',
         'peer': rb'peer: ready=1 sequence=(\d+)',
         'grant': rb'grant: channel=40 interval_ms=(\d+)',
         # Phase C2: control-port EAPOL transmitted as a security frame, and the
@@ -56,6 +56,9 @@ def classify(raw):
                      # Phase C3: the first delivered data frame and the first submitted data frame, metadata only.
                      rb'data RX: first group=[01] tid=\d{1,2} keyid=[0-3] bytes=\d{1,4} vector=[01]',
                      rb'data TX: first pid=\d{1,3} pages=\d{1,2} bytes=\d{1,4}',
+                     # Phase C3: owned protected data outside the open phase, dropped and counted (first, then the total).
+                     rb'data RX outside: first phase=[01] ended=[01] group=[01] bytes=\d{1,4}',
+                     rb'data RX outside: dropped=\d{1,3}',
                      # Phase C1: a clear EAPOL-Key frame from the target, decoded and dropped.
                      rb'eapol (?:observed|delivered): translated=[01] frame=\d{1,4} activated=[01] vector=[01] bss=(?:1|15)',
                      # Phase C2: protected group-addressed data from the target, discarded undelivered (first eight recorded).
@@ -95,7 +98,7 @@ def classify(raw):
                     group_rows.append((index, int(body.rsplit(b'count=', 1)[1])))
                 elif body.startswith(b'action frame discarded:'):
                     action_rows.append((index, int(body.rsplit(b'count=', 1)[1])))
-                elif body.startswith(b'data TX: first') or body.startswith(b'data RX: first'):
+                elif body.startswith(b'data TX: first') or body.startswith(b'data RX: first') or body.startswith(b'data RX outside:'):
                     pass  # Phase C3 first-frame notifications: metadata, neither refusal nor stage
                 elif body.startswith(b'eapol observed:') or body.startswith(b'eapol delivered:'):
                     fields = dict(part.split(b'=') for part in body.split(b': ', 1)[1].split(b' '))

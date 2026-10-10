@@ -1,4 +1,4 @@
-From 530b52745614e5cdbe671a5762026fa443338a2b Mon Sep 17 00:00:00 2001
+From d1e5433763835b0814c2d9d4a636b84a82dd54ee Mon Sep 17 00:00:00 2001
 From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
 Date: Sat, 10 Oct 2026 21:34:38 +0000
 Subject: [PATCH 167/167] wifi: mt6797: transmit mac80211's protected data
@@ -39,16 +39,23 @@ data phase (reason txfail). The first submitted data frame is recorded by
 PID, pages and length; the data phase end record carries the queued,
 acknowledged and failed counts next to the receive counts. Frames still
 queued when the phase ends are discarded unsent.
+Two bounds complete the pool and the PID budget. The pending free-for-all
+count serves either TC, so the ledger bounds it by the TC4 and TC1 debts
+together (a pool count may precede or follow the queue count it frees);
+an AC1 count without a TC1 debt still aborts. PIDs 1 to 127 are consumed in
+order by management, security and data frames; ordinary data stops at 126,
+ending the phase with reason pidbudget, so the reserved deauthentication
+always has PID 127 and the teardown stays possible.
 
 Unsigned experiment draft; archive identity is non-certifying.
 ---
  drivers/net/wireless/mediatek/mt6797/hif.c    |  53 +++++++-
  drivers/net/wireless/mediatek/mt6797/hif.h    |   4 +
  .../wireless/mediatek/mt6797/join-submit.h    |  53 ++++++++
- .../net/wireless/mediatek/mt6797/join-tx.h    |  56 +++++++++
- drivers/net/wireless/mediatek/mt6797/mac.c    | 117 +++++++++++++++++-
- .../wireless/mediatek/mt6797/normal_command.h |  69 +++++++++--
- 6 files changed, 337 insertions(+), 15 deletions(-)
+ .../net/wireless/mediatek/mt6797/join-tx.h    |  56 ++++++++
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 125 +++++++++++++++++-
+ .../wireless/mediatek/mt6797/normal_command.h |  72 ++++++++--
+ 6 files changed, 348 insertions(+), 15 deletions(-)
 
 diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
 index 0730c1ec3..dff076461 100644
@@ -278,23 +285,27 @@ index b125a8b1a..f4dcc5268 100644
 +}
  #endif
 diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
-index f4cb08a73..75facadb9 100644
+index e4424f50e..d984744c7 100644
 --- a/drivers/net/wireless/mediatek/mt6797/mac.c
 +++ b/drivers/net/wireless/mediatek/mt6797/mac.c
-@@ -34,6 +34,9 @@
+@@ -34,6 +34,13 @@
  #define MT6797_JOIN_MAX_POLLS 4096U
  #define MT6797_JOIN_MAX_PACKETS 32768U
  #define MT6797_JOIN_DATA_RX_MAX 16384U
 +#define MT6797_JOIN_DATA_TX_QUEUE 8U
 +#define MT6797_JOIN_DATA_TX_QUEUE_BYTES (8U * 1550U)
 +#define MT6797_JOIN_DATA_TX_FAILURES 8U
- 
- struct mt6797_mac {
- 	struct mt6797_hif *hif;
-@@ -121,6 +124,13 @@ struct mt6797_mac {
- 	 * class, and frames beyond the delivery cap dropped undelivered.
++/* PIDs 1..127 are consumed in order by management, security and data frames;
++ * ordinary data stops at 126 so the reserved deauthentication always has one.
++ */
++#define MT6797_JOIN_DATA_LAST_PID 126U
+ /* Protected data of the admitted classes arriving outside the open data phase
+  * (between the pairwise key command and the release, or after the phase
+  * ended while the deauthentication and teardown run) is dropped undelivered
+@@ -128,6 +135,13 @@ struct mt6797_mac {
  	 */
  	unsigned int join_data_rx_unicast, join_data_rx_group, join_data_rx_dropped;
+ 	unsigned int join_data_rx_outside;
 +	/* Data transmit: mac80211's protected non-QoS data frames to the target,
 +	 * converted to Ethernet II and submitted on the TC1 pool one at a time;
 +	 * pages owed on that pool, counts, and the in-flight frame's class.
@@ -305,7 +316,7 @@ index f4cb08a73..75facadb9 100644
  
  	u64 scan_deadline, scan_started_ns;
  	unsigned int scan_channels, scan_count, scan_polls, scan_packets;
-@@ -705,6 +715,15 @@ static int mt6797_mac_join_guard(struct mt6797_mac *mac, u64 deadline)
+@@ -712,6 +726,15 @@ static int mt6797_mac_join_guard(struct mt6797_mac *mac, u64 deadline)
  				 account.released_pages, mac->join_page_debt);
  			return -EPROTO;
  		}
@@ -321,7 +332,7 @@ index f4cb08a73..75facadb9 100644
  		mac->join_page_debt -= account.released_pages;
  #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
  		if (account.released_pages)
-@@ -1064,10 +1083,11 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+@@ -1075,10 +1098,11 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
  	mac->join_data_end_reason = reason;
  	mac->join_hold_until = ktime_get_ns();
  	dev_info(wiphy_dev(mac->hw->wiphy),
@@ -335,7 +346,7 @@ index f4cb08a73..75facadb9 100644
  }
  
  /* Release the channel privilege after the group key's credit, as the pinned
-@@ -1187,7 +1207,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -1198,7 +1222,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
  		mt6797_mac_join_end_data(mac, "budget");
  #endif
  	branch = 3;
@@ -344,7 +355,7 @@ index f4cb08a73..75facadb9 100644
  		spin_lock_irqsave(&mac->join_queue.lock, flags);
  		skb = NULL;
  		if (mac->join_open) {
-@@ -1202,11 +1222,23 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -1213,11 +1237,27 @@ static void mt6797_mac_join_work(struct work_struct *work)
  
  			skb_queue_walk_safe(&mac->join_queue, walk, tmp) {
  				bool data = (get_unaligned_le16(walk->data) & 0x0c) == 0x08;
@@ -359,6 +370,10 @@ index f4cb08a73..75facadb9 100644
 +				 * frame still queued when the phase ended is discarded.
 +				 */
 +				if (data && !port && walk != mac->join_internal &&
++				    mac->join_data_phase && !mac->join_data_ended &&
++				    mac->join_next_pid > MT6797_JOIN_DATA_LAST_PID)
++					mt6797_mac_join_end_data(mac, "pidbudget");
++				if (data && !port && walk != mac->join_internal &&
 +				    (!mac->join_data_phase || mac->join_data_ended)) {
 +					__skb_unlink(walk, &mac->join_queue);
 +					mac->join_queue_bytes -= walk->len;
@@ -368,7 +383,7 @@ index f4cb08a73..75facadb9 100644
  				__skb_unlink(walk, &mac->join_queue);
  				skb = walk;
  				break;
-@@ -1237,11 +1269,19 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -1248,11 +1288,19 @@ static void mt6797_mac_join_work(struct work_struct *work)
  				 * from address 2, type from the SNAP header, the EAPOL
  				 * body after the 32-byte header); the mac80211 skb is
  				 * untouched and stays the frame whose status is reported.
@@ -389,7 +404,7 @@ index f4cb08a73..75facadb9 100644
  					ret = -EINVAL;
  					goto failed;
  				}
-@@ -1253,6 +1293,20 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -1264,6 +1312,20 @@ static void mt6797_mac_join_work(struct work_struct *work)
  				mac->join_last_acked = false;
  				reinit_completion(&mac->join_frame_done);
  				pages = (MT6797_JOIN_TX_DESC_BYTES + eth_bytes + 127) / 128;
@@ -410,7 +425,7 @@ index f4cb08a73..75facadb9 100644
  				ret = mt6797_hif_send_security(mac->hif, mac->join_eth, eth_bytes,
  							       1, mac->join_pid, 500, 3, deadline);
  				if (ret)
-@@ -1341,7 +1395,26 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -1352,7 +1414,26 @@ static void mt6797_mac_join_work(struct work_struct *work)
  				IEEE80211_SKB_CB(completed)->flags &= ~IEEE80211_TX_STAT_ACK;
  				if (ack)
  					IEEE80211_SKB_CB(completed)->flags |= IEEE80211_TX_STAT_ACK;
@@ -438,7 +453,7 @@ index f4cb08a73..75facadb9 100644
  					ret = -ENOLINK;
  					goto failed;
  				}
-@@ -2726,6 +2799,40 @@ static void mt6797_mac_tx(struct ieee80211_hw *hw,
+@@ -2765,6 +2846,40 @@ static void mt6797_mac_tx(struct ieee80211_hw *hw,
  		if (accepted)
  			return;
  	}
@@ -480,7 +495,7 @@ index f4cb08a73..75facadb9 100644
  	    !skb_copy_bits(skb, 0, header, 24)) {
  		fc = mt6797_join_le16(header);
 diff --git a/drivers/net/wireless/mediatek/mt6797/normal_command.h b/drivers/net/wireless/mediatek/mt6797/normal_command.h
-index 4c43e99db..8467f0d80 100644
+index 4c43e99db..fcb2b4686 100644
 --- a/drivers/net/wireless/mediatek/mt6797/normal_command.h
 +++ b/drivers/net/wireless/mediatek/mt6797/normal_command.h
 @@ -37,12 +37,19 @@ struct mt6797_normal_transaction {
@@ -549,13 +564,17 @@ index 4c43e99db..8467f0d80 100644
  
  	if (result)
  		*result = (struct mt6797_normal_release){0};
-@@ -110,26 +139,48 @@ mt6797_normal_reconcile(struct mt6797_normal_transaction *t,
+@@ -110,26 +139,51 @@ mt6797_normal_reconcile(struct mt6797_normal_transaction *t,
  	    t->tc4_free > t->tc4_limit)
  		return mt6797_normal_abort(t);
  	debt = t->tc4_limit - t->tc4_free;
 -	if (t->tc4_pending_cpu > debt || t->tc4_pending_ffa > debt)
-+	if (t->tc4_pending_cpu > debt || t->tc4_pending_ffa > debt ||
-+	    t->tc1_free > t->tc1_limit || t->tc1_pending > t->tc1_limit - t->tc1_free)
++	if (t->tc1_free > t->tc1_limit)
++		return mt6797_normal_abort(t);
++	tc1_debt = t->tc1_limit - t->tc1_free;
++	/* The pending pool serves either TC, so it is bounded by both debts. */
++	if (t->tc4_pending_cpu > debt || t->tc4_pending_ffa > debt + tc1_debt ||
++	    t->tc1_pending > tc1_debt)
  		return mt6797_normal_abort(t);
 -	for (i = 0; i < 7; i++)
 +	for (i = 1; i < 7; i++)
@@ -566,7 +585,6 @@ index 4c43e99db..8467f0d80 100644
 +	ac1 = words[0] >> 16;
  	cpu = words[7] >> 16;
  	ffa = words[7] & 0xffffU;
-+	tc1_debt = t->tc1_limit - t->tc1_free;
 +	/* Each queue's count is bounded by its own unmatched debt; the pool's by
 +	 * both debts less the pool already pending (an accrued queue count may
 +	 * precede the pool count that frees it, or follow it).

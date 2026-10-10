@@ -102,7 +102,7 @@ struct mt6797_mac {
  bool join_rsn; unsigned join_key_pairwise, join_key_group; u8 join_group_key_id;
  unsigned int join_group_discarded; unsigned int join_action_discarded; bool join_key_pairwise_submitted, join_key_group_submitted, join_key_done, join_key_done_second;
  bool join_channel_released, join_data_phase, join_data_ended; u64 join_data_deadline; const char *join_data_end_reason;
- unsigned join_data_rx_unicast, join_data_rx_group, join_data_rx_dropped;
+ unsigned join_data_rx_unicast, join_data_rx_group, join_data_rx_dropped, join_data_rx_outside;
  unsigned join_data_page_debt, join_data_tx_queued, join_data_tx_done, join_data_tx_failed, join_data_tx_failures_in_row; bool join_inflight_data;
  int join_work;
  unsigned join_page_debt, sequence, join_requested_ms, join_basic_rates;

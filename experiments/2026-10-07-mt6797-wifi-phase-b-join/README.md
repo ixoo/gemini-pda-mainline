@@ -366,8 +366,19 @@ series:
 - **0167** transmits mac80211's protected non-QoS data to the target as
   Ethernet II on TC1 with the protected bit, one frame in flight, from a
   declared 16-page TC1 pool reconciled from the AC1 released count with the
-  shared free-for-all count; unacknowledged data frames are reported and
-  counted, eight in a row end the data phase.
+  shared free-for-all count (the pending pool bounded by both debts);
+  unacknowledged data frames are reported and counted, eight in a row end the
+  data phase; ordinary data stops at PID 126 (`pidbudget`) so the reserved
+  deauthentication keeps PID 127.
+
+Review corrections folded before any build: 0166 also drops and counts (at
+most 256, then refuses) owned protected data that arrives outside the open
+phase, so a frame the AP sends into the teardown no longer ends it at the
+frame gate; 0167 bounds the shared pending free-for-all count by both debts
+and reserves the last PID. The fixtures cover the pool-first, split,
+both-pools and orphan reconciliations, the in-phase delivery, the
+outside-phase drop and its cap, an aggregated frame's refusal and the PID
+boundary.
 
 Records added: `channel released`, `data phase`, `data TX: first`,
 `data RX: first`, `data phase end` with the receive and transmit counts,

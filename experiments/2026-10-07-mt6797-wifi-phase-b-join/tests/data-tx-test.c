@@ -104,6 +104,34 @@ int main(void)
 	memset(words, 0, sizeof(words)); words[7] = 2;
 	assert(!mt6797_normal_reconcile(&t, words, &release));
 	assert(release.tc1_released == 2 && t.tc1_free == 16 && !release.pending_ac1);
+	/* Pool-first: TC4 whole, TC1 owing 3; a snapshot with the pool count alone leaves
+	 * it pending (bounded by both debts, not TC4's), and the AC1 count that follows
+	 * releases the three pages. Then a split: AC1 3 with pool 1, the rest later. */
+	assert(!mt6797_join_prepare_data(&t, frame, 342, 1, 13, 500, 3, out, sizeof(out), &command) && !mt6797_normal_submitted(&t, 0));
+	assert(t.tc4_free == 26 && t.tc1_free == 13);
+	memset(words, 0, sizeof(words)); words[7] = 3;
+	assert(!mt6797_normal_reconcile(&t, words, &release));
+	assert(!release.tc1_released && release.pending_ffa == 3 && !release.pending_ac1 && t.tc1_free == 13);
+	memset(words, 0, sizeof(words)); words[0] = 3U << 16;
+	assert(!mt6797_normal_reconcile(&t, words, &release));
+	assert(release.tc1_released == 3 && t.tc1_free == 16 && !release.pending_ffa && !release.pending_ac1);
+	assert(!mt6797_join_prepare_data(&t, frame, 342, 1, 14, 500, 3, out, sizeof(out), &command) && !mt6797_normal_submitted(&t, 0));
+	memset(words, 0, sizeof(words)); words[0] = 3U << 16; words[7] = 1;
+	assert(!mt6797_normal_reconcile(&t, words, &release));
+	assert(release.tc1_released == 1 && release.pending_ac1 == 2 && !release.pending_ffa && t.tc1_free == 14);
+	memset(words, 0, sizeof(words)); words[7] = 2;
+	assert(!mt6797_normal_reconcile(&t, words, &release));
+	assert(release.tc1_released == 2 && !release.pending_ac1 && t.tc1_free == 16);
+	/* Both pools owing with one snapshot covering both: TC4 first, then TC1. */
+	assert(!mt6797_join_prepare_data(&t, frame, 342, 1, 15, 500, 3, out, sizeof(out), &command) && !mt6797_normal_submitted(&t, 0));
+	{ unsigned char payload[4] = {9, 0, 0, 0};
+	  assert(!mt6797_join_prepare_command(&t, 0x0a, 9, payload, 4, out, sizeof(out), &command) && !mt6797_normal_submitted(&t, 0)); }
+	memset(words, 0, sizeof(words)); words[0] = 3U << 16; words[7] = (1U << 16) | 4;
+	assert(!mt6797_normal_reconcile(&t, words, &release));
+	assert(release.released_pages == 1 && release.tc1_released == 3 && t.tc4_free == 26 && t.tc1_free == 16 && !release.pending_ffa);
+	/* Orphan TC1 count: an AC1 count with no TC1 debt aborts the ledger. */
+	{ struct mt6797_normal_transaction saved = t;
+	  memset(words, 0, sizeof(words)); words[0] = 1U << 16; assert(mt6797_normal_reconcile(&t, words, &release) < 0); t = saved; }
 	/* Refusals leave the ledger aborted: AC0 count, another queue, AC1 above the debt, pool above both debts. */
 	{ struct mt6797_normal_transaction saved = t;
 	  memset(words, 0, sizeof(words)); words[0] = 1; assert(mt6797_normal_reconcile(&t, words, &release) < 0); t = saved;

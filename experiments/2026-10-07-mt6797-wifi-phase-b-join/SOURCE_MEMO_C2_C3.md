@@ -125,17 +125,17 @@ PN handling is not shown by the reference: replay protection is not
 established by security mode 4), `IEEE80211_OFFLOAD_ENCAP_ENABLED` for
 802.3 transmit, `ieee80211_start_rx_ba_session_offl` for block-ack
 sessions the firmware negotiated, and `IEEE80211_HW_SUPPORTS_REORDERING_BUFFER`
-only for a driver that really reorders. Ownership decision for the C3
-proposal: reordering is owned, not declared away. Either the standard
-mac80211 reorder path (802.11 headers rebuilt from the translated header
-plus group 4's frame and sequence control, block-ack sessions opened from
-the `RX_ADDBA` event, frames delivered through `ieee80211_rx` with the
-decrypted and stripped flags) or a bounded host reorder with the vendor's
-window and bubble semantics; the proposal takes the mac80211 path if the
-decoder exposes group 4 for every protected data descriptor and falls back
-to the bounded host reorder otherwise, and says which. Transmit uses
-encapsulation offload (802.3, the observed format) with finite
-traffic-class, page and PID accounting. Which post-association commands
+only for a driver that really reorders. Decision taken for the C3
+proposals (0165 to 0167): the association stays legacy and non-WMM (the
+join gate refuses HT, VHT and WMM elements, so the AP negotiates no
+block-ack with this station), there is no reorder engine and no reordering
+buffer is declared; aggregated descriptors (either A-MPDU bit clear in the
+inverse pinned macros), QoS data and the ADDBA, DELBA and bubble events are
+refused. Receive rebuilds the 802.11 header from the translated header plus
+group 4's frame and sequence control and delivers through `ieee80211_rx`
+with the decrypted and stripped flags. Transmit converts mac80211's 802.11
+data to Ethernet II in the driver (the observed firmware format) without
+encapsulation offload, with finite traffic-class, page and PID accounting. Which post-association commands
 (`INDICATE_PM_BSS_CONNECTED`, `SET_RX_FILTER`, `MAC_MCAST_ADDR`,
 `UPDATE_WMM_PARMS`, `SET_BSS_RLM_PARAM`) the firmware needs for data is not
 shown by the reference and is decided from source per command, smallest
