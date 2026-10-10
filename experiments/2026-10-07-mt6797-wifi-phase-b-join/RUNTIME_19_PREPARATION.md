@@ -1,14 +1,31 @@
-# Eighteenth Phase B deployment, runtime 19: candidate 18 composed, not installed
+# Eighteenth Phase B deployment, runtime 19 awaiting the owner's boot
 
-Status: candidate 18 is composed and offline-validated by the owner with the
-reviewed composer at `cf599cc4`; it is not installed, no device action has
-happened since runtime 18's reviewed recovery, and the device was last
-verified in changed-boot Gemian `9ad08944…` with the installed candidate 17
-(full padded boot2 `5135b2f8…`) as the predecessor; the owner re-verifies
-before installing. The owner alone prepares and reviews the guarded
-installer, performs deployment 18, runs both offline preflights on the actual
-deployment-18 summary, shuts down cleanly and hands over to the physical
-boot2 start; the frozen laptop wrappers then run once each.
+Status: candidate 18 is installed and fully read back; the device was cleanly
+powered off and is unbooted, awaiting the owner's physical boot2 start. The
+laptop, as sole custodian, will execute the reviewed runtime-19 capture and
+session exactly once after that; no radio action, mainline boot or runtime
+evidence exists yet, and an installed candidate is not a Wi-Fi result.
+
+The [guarded deployment receipt](results/deployment-18.json) (the owner's
+22-field summary, SHA-256 `5ab16803…`) pins candidate 18: receipt
+`b0d577ba…`, full padded boot2 `dfdf6bcb…`, written over predecessor candidate
+17 `5135b2f8…`, synced and flushed, with the independent full 16 MiB hash and
+byte-comparison readback matching. The installer was prepared from source
+`3235f639` (generated installer SHA-256 `b9f41abc…`; its difference from the
+deployment-17 installer is only the pins, names and current boot identity;
+syntax and ShellCheck passed) and executed once under the standing boot2
+authorization; the probe, write and post-write device guards passed on the
+live Gemian boot `9ad08944…` (3.18.41+), target `179:30` (`/dev/mmcblk0p30`),
+non-root `179:29`, power `1|100|Good|0` (battery-reported, no external
+supply claimed); no fresh predecessor backup, temporary readback removed,
+evidence flushed, the installer exited 0, the power-off SSH exchange ended
+with rc 0, unreachable afterwards, nothing rebooted.
+
+Runtime-19 preparation on the laptop, frozen at `3235f639`: a fresh evidence
+root with `wifi-phase-b/session-19` holding only the actual deployment-18
+summary (mode 0600) and `capture-19` absent; both offline preflights
+(`laptop-capture.py`, `laptop-session.py`) passed on candidate 18 with the
+owner's PSK-bound script; no execution claim exists.
 
 The committed receipt [results/candidate-18.json](results/candidate-18.json)
 (SHA-256 `b0d577ba…`, the owner's receipt byte for byte) pairs the compile-23
