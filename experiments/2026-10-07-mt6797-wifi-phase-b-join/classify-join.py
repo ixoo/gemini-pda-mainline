@@ -32,7 +32,9 @@ def classify(raw):
         rb'control event refused: status=-\d{1,3} bytes=\d{1,5} type=0x[0-9a-f]{1,5} id=0x[0-9a-f]{2} seq=' + byte,
         rb'frame refused: bytes=\d{1,5} type=0x[0-9a-f]{1,5} allowed=0x[0-9a-f]{1,8}'
         rb'(?: hdr=[0-9a-f]{16} groups=0x[0-9a-f] at=\d{1,4} g4fc=0x[0-9a-f]{1,5} g4seq=0x[0-9a-f]{1,5}'
-        rb' g4ta=[01] translated=[01] first=0x[0-9a-f]{1,5})?',
+        rb' g4ta=[01] translated=[01] first=0x[0-9a-f]{1,5}(?: sec=\d{1,2} to=[01] from=[01])?)?',
+        # A key the supplicant installed that the driver refused (state flags and status only).
+        rb'key command refused: (?:pairwise|group) status=-\d{1,3} running=[01] active=[01] configured=[01] first=-?\d{1,3}',
         rb'cleanup refused: stage=[0-3] phase=\d{1,2} free=\d{1,5} limit=\d{1,5} pending_cpu=\d{1,5} pending_ffa=\d{1,5} sequences=[01] locked=[01]',
         rb'credit overflow: pages=\d{1,5} debt=\d{1,3}',
         # An element of a mac80211 frame outside this admission (one record per lifetime).

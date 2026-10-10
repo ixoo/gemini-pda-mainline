@@ -151,6 +151,18 @@ pinned receive path, and its vendor own-MAC index (0 for the first BSS) does
 not match it, so no meaning is claimed beyond the measurement, and the
 decoder's remaining framing gates verify that packet on the next boot.
 
+Runtime 16 (candidate 15) verified that framing: the after-activation packet
+was delivered, message 4 was sent and the supplicant completed its handshake
+and offered both keys. The join then fail-stopped on a 136-byte
+software-defined frame (the vendor's management-processing layout) before any
+key command; the refusal summary could not describe it. Proposal 0159 names
+such frames (header, group set, frame control, peer flags, security mode) and
+refused key commands, changing no admission; the frame's policy is decided
+from the next measurement. Two foreseeable consequences remain unmeasured and
+are stated here, not acted on: a management frame from the AP after message
+4 ends the join before the keys, and once keys are installed the AP's
+protected data frames, which no gate admits, would end the hold the same way.
+
 ### Settled by source
 
 1. **Early EAPOL needs no deferral machinery.** The pinned mac80211

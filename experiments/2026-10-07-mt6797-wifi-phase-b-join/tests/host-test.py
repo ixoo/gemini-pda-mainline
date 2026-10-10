@@ -227,6 +227,22 @@ class HostTests(unittest.TestCase):
         for bad in (b'subtype=0 id=0x30 len=256 count=1', b'subtype=0 id=0x30 len=20 count=3', b'subtype=0 id=0x3 len=20 count=1'):
             self.assertTrue(classify(denied[:cut] + b'one-shot WLAN join frame element refused: ' + bad + b'\n' + denied[cut:])['malformed_stage_record'], bad)
 
+    def test_runtime_16_refusal_records_are_diagnostics(self):
+        # The extended refusal summary and the key refusal record are refusals,
+        # never malformed records; a stopped join with them is unhealthy, not malformed.
+        good = log(True)
+        cut = good.index(b'one-shot WLAN join cleanup submission: stage=0')
+        extended = (b'one-shot WLAN join frame refused: bytes=136 type=0xee01 allowed=0x1400 hdr=00000000000000c0 groups=0x7 at=64'
+                    b' g4fc=0x10000 g4seq=0x10000 g4ta=0 translated=0 first=0xd0 sec=0 to=1 from=1\n')
+        key = b'one-shot WLAN join key command refused: pairwise status=-95 running=1 active=1 configured=1 first=-71\n'
+        result = classify(good[:cut] + extended + key + good[cut:])
+        self.assertTrue(result['refusal_recorded'] and not result['malformed_stage_record'])
+        self.assertFalse(result['bounded_join_pass'])
+        legacy = (b'one-shot WLAN join frame refused: bytes=136 type=0xee01 allowed=0x1400 hdr=0000000000000000 groups=0x0 at=0'
+                  b' g4fc=0x10000 g4seq=0x10000 g4ta=0 translated=0 first=0x10000\n')
+        self.assertFalse(classify(good[:cut] + legacy + good[cut:])['malformed_stage_record'])
+        self.assertTrue(classify(good[:cut] + key.replace(b'pairwise', b'other') + good[cut:])['malformed_stage_record'])
+
     def test_eapol_observations_are_bounded_to_the_driver_window(self):
         good = log(True)
         activation = good.index(b'one-shot WLAN join activation:')

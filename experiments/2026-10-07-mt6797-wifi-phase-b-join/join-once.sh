@@ -168,12 +168,26 @@ if [ -n "${WPA_PSK_HEX:-}" ]; then
     # signalled while the key removals, station removal, channel abort or BSS
     # off are still in flight. Within the same bound; a timeout is recorded.
     terminal_re='one-shot WLAN join (cleanup: stage=3 credits=returned slots=retired deauth=[01]|stopped:)'
+    # The channel-40 IR state is sampled every tick while the supplicant owns
+    # the connection: cfg80211 clears the world-domain no-IR flag on the
+    # beacon hint and, once every interface is idle after the disconnection
+    # (sme.c disconnect_work, reg.c regulatory_hint_disconnect and
+    # restore_regulatory_settings), restores it, so the query after the
+    # supplicant's exit shows no_IR again (runtime 16). The gate is the
+    # state observed during the join; the after-exit state is recorded too.
     tick=0
     terminal=0
     current_log=
+    channel40_ir_during_join=0
+    channel40_ir_ticks=0
     while [ "$tick" -lt 24 ]; do
         [ "$($BB cat /proc/sys/kernel/random/boot_id)" = "$EXPECTED_BOOT" ]
         current_log=$($BB dmesg)
+        channel40_flag
+        if [ "$channel40" = 1 ]; then
+            channel40_ir_during_join=1
+            channel40_ir_ticks=$((channel40_ir_ticks + 1))
+        fi
         if printf '%s\n' "$current_log" | $BB grep -Eq "$terminal_re"; then
             terminal=1
             break
@@ -201,7 +215,10 @@ if [ -n "${WPA_PSK_HEX:-}" ]; then
     # monitors (wpa_msg_ctrl), never to the debug log, so the one scan is
     # counted by the nl80211 driver's own debug line; the handshake messages
     # are the supplicant's debug lines, printed with -d.
-    for phrase in 'nl80211: Received scan results' 'Associated with' 'WPA: RX message 1 of 4-Way Handshake' 'WPA: Sending EAPOL-Key 2/4' 'WPA: RX message 3 of 4-Way Handshake' 'WPA: Sending EAPOL-Key 4/4' 'WPA: Key negotiation completed' 'CTRL-EVENT-CONNECTED' 'CTRL-EVENT-DISCONNECTED'; do
+    # Message 3 is logged with the "RSN:" prefix on the WPA2 path
+    # (rsn_supp/wpa.c, wpa_supplicant_process_3_of_4) and "WPA:" on the WPA
+    # path, so its phrase carries no prefix; the key installs are counted too.
+    for phrase in 'nl80211: Received scan results' 'Associated with' 'WPA: RX message 1 of 4-Way Handshake' 'WPA: Sending EAPOL-Key 2/4' 'RX message 3 of 4-Way Handshake' 'WPA: Sending EAPOL-Key 4/4' 'WPA: Installing PTK' 'WPA: Installing GTK' 'WPA: Key negotiation completed' 'CTRL-EVENT-CONNECTED' 'CTRL-EVENT-DISCONNECTED'; do
         key=$(printf %s "$phrase" | $BB tr 'A-Z: /-' 'a-z____')
         $BB printf 'supplicant_%s=%s\n' "$key" "$($BB grep -cF -- "$phrase" "$wpa_log" || true)"
     done
@@ -214,6 +231,7 @@ if [ -n "${WPA_PSK_HEX:-}" ]; then
     fi
     channel40_flag
     $BB printf 'channel40_ir_after_beacon=%s\nchannel40_query_exit=%s\nchannel40_lines=%s\nchannel40_words=%s\n' "$channel40" "$channel40_query_exit" "$channel40_lines" "$channel40_words"
+    $BB printf 'channel40_ir_during_join=%s\nchannel40_ir_ticks=%s\n' "$channel40_ir_during_join" "$channel40_ir_ticks"
     stage=boot_after
     $BB printf '__JOIN_END__\nconnect_exit=%s\njoin_terminal=%s\njoin_lifecycle=%s\n' "$supplicant_exit" "$terminal" "$lifecycle"
     boot_after=$($BB cat /proc/sys/kernel/random/boot_id)

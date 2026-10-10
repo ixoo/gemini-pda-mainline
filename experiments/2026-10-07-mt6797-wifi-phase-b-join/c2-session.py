@@ -13,18 +13,22 @@ import re
 # (letters lowered; ':', ' ', '-' and '/' to '_'). CTRL-EVENT-SCAN-RESULTS is
 # never in the debug log (wpa_msg_ctrl reaches attached monitors only), so the
 # one scan is the nl80211 driver's debug line; the handshake messages are the
-# supplicant's own debug lines.
+# supplicant's own debug lines; message 3 carries the "RSN:" prefix on the
+# WPA2 path (wpa_supplicant_process_3_of_4) and "WPA:" on the WPA path, so its
+# phrase has no prefix.
 PHRASES = {'nl80211__received_scan_results': b'nl80211: Received scan results',
            'associated_with': b'Associated with',
            'wpa__rx_message_1_of_4_way_handshake': b'WPA: RX message 1 of 4-Way Handshake',
            'wpa__sending_eapol_key_2_4': b'WPA: Sending EAPOL-Key 2/4',
-           'wpa__rx_message_3_of_4_way_handshake': b'WPA: RX message 3 of 4-Way Handshake',
+           'rx_message_3_of_4_way_handshake': b'RX message 3 of 4-Way Handshake',
            'wpa__sending_eapol_key_4_4': b'WPA: Sending EAPOL-Key 4/4',
+           'wpa__installing_ptk': b'WPA: Installing PTK',
+           'wpa__installing_gtk': b'WPA: Installing GTK',
            'wpa__key_negotiation_completed': b'WPA: Key negotiation completed',
            'ctrl_event_connected': b'CTRL-EVENT-CONNECTED',
            'ctrl_event_disconnected': b'CTRL-EVENT-DISCONNECTED'}
 FIELDS = ('supplicant_exit', 'supplicant_log_bytes', 'channel40_ir_after_beacon', 'channel40_query_exit',
-          'channel40_lines', 'connect_exit', 'join_terminal')
+          'channel40_lines', 'channel40_ir_during_join', 'channel40_ir_ticks', 'connect_exit', 'join_terminal')
 LOG_PATH = '/tmp/mt6797-wifi-phase-b-1/wpa.log'
 LOG_LIMIT = 2 * 1024 * 1024
 BOOT_RE = r'[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}'
@@ -120,8 +124,10 @@ def session_pass(join, fields, log, userspace, session_verified):
     framed stdout under the authenticated boot and an empty stderr; the
     supplicant exited cleanly with one nl80211 scan result set, each of the
     four handshake messages exactly once, key negotiation completed and
-    connected; the channel-40 IR flag was exactly 1 after the
-    beacon; the join reached its terminal record; the driver's handshake path
+    connected; the channel-40 IR flag was observed 1 while the
+    supplicant owned the connection (cfg80211 restores the world-domain no-IR
+    flag once every interface is idle after the disconnection, so the
+    after-exit flag is recorded, not gated); the join reached its terminal record; the driver's handshake path
     passed (two frames delivered, two sent, both key commands with credits,
     both removals, healthy bounded join); the complete private export has the
     byte count the join reported and reproduces its phrase counts; and the
@@ -134,11 +140,11 @@ def session_pass(join, fields, log, userspace, session_verified):
                 userspace.get('standard_scan_succeeded') is True and
                 fields.get('framed') and
                 fields.get('supplicant_exit') == 0 and fields.get('connect_exit') == 0 and
-                fields.get('channel40_ir_after_beacon') == 1 and fields.get('join_terminal') == 1 and
+                fields.get('channel40_ir_during_join') == 1 and fields.get('join_terminal') == 1 and
                 counts['supplicant_nl80211__received_scan_results'] == 1 and
                 counts['supplicant_wpa__rx_message_1_of_4_way_handshake'] == 1 and
                 counts['supplicant_wpa__sending_eapol_key_2_4'] == 1 and
-                counts['supplicant_wpa__rx_message_3_of_4_way_handshake'] == 1 and
+                counts['supplicant_rx_message_3_of_4_way_handshake'] == 1 and
                 counts['supplicant_wpa__sending_eapol_key_4_4'] == 1 and
                 (counts['supplicant_wpa__key_negotiation_completed'] or 0) >= 1 and
                 (counts['supplicant_ctrl_event_connected'] or 0) >= 1 and

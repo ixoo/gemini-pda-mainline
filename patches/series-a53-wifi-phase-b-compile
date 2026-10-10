@@ -655,3 +655,4 @@ proposals/0155-wifi-mt6797-transmit-the-supplicant-s-control-port-E.patch
 proposals/0156-wifi-mt6797-install-and-retire-the-WPA2-keys-in-the-.patch
 proposals/0157-wifi-mt6797-admit-the-supplicant-s-RSN-replay-counte.patch
 proposals/0158-wifi-mt6797-bind-the-EAPOL-BSSID-tag-to-the-measured.patch
+proposals/0159-wifi-mt6797-name-refused-software-frames-and-refused.patch

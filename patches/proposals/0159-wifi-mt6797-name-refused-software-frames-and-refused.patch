@@ -1,0 +1,167 @@
+From 1d6c28e1a04f70030ca88de3a2536b52c67e3946 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 10 Oct 2026 11:21:53 +0000
+Subject: [PATCH 159/159] wifi: mt6797: name refused software frames and
+ refused key commands
+
+Runtime 16 delivered both EAPOL frames and sent both replies, then the
+frame gate refused a 136-byte received packet with type word 0xee01 and
+every summary field unknown, and the join fail-stopped before any key
+command. The refusal summary interpreted only data-type RXDs (packet type
+2); the refused packet carried the vendor's software-frame type word, the
+layout the pinned receive path hands to its management processing
+(nicRxProcessMgmtPacket for RXM_RXD_PKT_TYPE_SW_FRAME), with the same
+hardware descriptor in front, so its header length, group set, frame
+control, receiver and transmitter could have been named without copying
+an address or a payload byte.
+
+Interpret software frames in the summary as data RXDs are interpreted,
+and add the descriptor's security mode field and two flags: whether the
+whole header's receiver is this station and whether a native header's
+transmitter is the target. The refusal record carries the three new
+fields. A key command the supplicant installs that the driver refuses
+(after a fail-stop, or outside the admitted state) is now named with its
+status and the state flags, so a key never offered and a key refused are
+distinguishable; no key byte is logged. No admission changes.
+---
+ .../wireless/mediatek/mt6797/join-refused.h   | 36 ++++++++++++-------
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 26 ++++++++++----
+ 2 files changed, 43 insertions(+), 19 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-refused.h b/drivers/net/wireless/mediatek/mt6797/join-refused.h
+index a34b833f2..9f3c29109 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join-refused.h
++++ b/drivers/net/wireless/mediatek/mt6797/join-refused.h
+@@ -8,16 +8,20 @@
+ 
+ /* Bounded summary of a received packet the join frame gate refused: lengths
+  * and flags only, no address and no payload byte. Interpreted fields exist
+- * only for a complete data-type RXD (at least 16 bytes, declared length equal
+- * to the buffer, packet type 2); group-4 fields only when group 4 is present
+- * and whole; the first wire word only when the header the RXD declares is
+- * whole: the Ethernet type of a translated packet with header length 14, the
+- * frame control of a native packet with a header of at least 24 bytes (26 for
+- * QoS) inside the packet. Everything else is zero or the unknown sentinel.
++ * only for a complete RXD with the hardware descriptor layout (at least 16
++ * bytes, declared length equal to the buffer): a data packet (type 2) or a
++ * software-defined frame (the vendor's SW_FRAME type word, the layout the
++ * pinned receive path hands to its management processing); group-4 fields
++ * only when group 4 is present and whole; the first wire word only when the
++ * header the RXD declares is whole: the Ethernet type of a translated packet
++ * with header length 14, the frame control of a native packet with a header
++ * of at least 24 bytes (26 for QoS) inside the packet. The address flags say
++ * whether the receiver is this station and the transmitter the target;
++ * no address is copied. Everything else is zero or the unknown sentinel.
+  */
+ struct mt6797_join_refused {
+ 	unsigned int type;        /* RXD word 1, or the sentinel below 4 bytes. */
+-	bool base_valid;          /* Complete data-type RXD base header. */
++	bool base_valid;          /* Complete data or software-frame RXD base. */
+ 	unsigned char hdr[8];     /* RXD bytes 4..11 when base_valid, else zero. */
+ 	unsigned int groups;      /* Group-valid bits when base_valid, else zero. */
+ 	size_t at;                /* Header offset when base_valid, else zero. */
+@@ -25,11 +29,14 @@ struct mt6797_join_refused {
+ 	bool g4ta;                /* Group-4 transmitter is the target. */
+ 	bool translated;          /* RXD header-translation flag when base_valid. */
+ 	unsigned int first;       /* Ethernet type or frame control, or sentinel. */
++	unsigned int sec;         /* RXD security mode field when base_valid. */
++	bool to_own;              /* Receiver address is this station (whole header). */
++	bool from_ap;             /* Native transmitter address is the target. */
+ };
+ 
+ static inline void
+ mt6797_join_refused_summary(const unsigned char *packet, size_t bytes,
+-			    const unsigned char ap[6],
++			    const unsigned char own[6], const unsigned char ap[6],
+ 			    struct mt6797_join_refused *out)
+ {
+ 	struct mt6797_join_refused r = {
+@@ -48,11 +55,12 @@ mt6797_join_refused_summary(const unsigned char *packet, size_t bytes,
+ 	}
+ 	r.type = mt6797_join_le16(packet + 2);
+ 	if (bytes < 16 || mt6797_join_le16(packet) != bytes ||
+-	    (r.type >> 13) != 2) {
++	    ((r.type >> 13) != 2 && (r.type & 0xe00f) != 0xe001)) {
+ 		*out = r;
+ 		return;
+ 	}
+ 	r.base_valid = true;
++	r.sec = packet[9] >> 4;
+ 	for (i = 0; i < 8; i++)
+ 		r.hdr[i] = packet[4 + i];
+ 	r.groups = (r.type >> 9) & 15;
+@@ -75,11 +83,15 @@ mt6797_join_refused_summary(const unsigned char *packet, size_t bytes,
+ 		r.g4ta = ap && !memcmp(packet + 18, ap, 6);
+ 	}
+ 	if (r.at <= bytes) {
+-		if (r.translated && header_length == 14 && bytes - r.at >= 14)
++		if (r.translated && header_length == 14 && bytes - r.at >= 14) {
+ 			r.first = packet[r.at + 12] << 8 | packet[r.at + 13];
+-		else if (!r.translated && header_length >= 24 &&
+-			 bytes - r.at >= header_length)
++			r.to_own = own && !memcmp(packet + r.at, own, 6);
++		} else if (!r.translated && header_length >= 24 &&
++			   bytes - r.at >= header_length) {
+ 			r.first = mt6797_join_le16(packet + r.at);
++			r.to_own = own && !memcmp(packet + r.at + 4, own, 6);
++			r.from_ap = ap && !memcmp(packet + r.at + 10, ap, 6);
++		}
+ 	}
+ 	*out = r;
+ }
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 14cb2e417..1c8219add 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -478,22 +478,26 @@ static bool mt6797_join_rsn_capabilities(const u8 *capabilities)
+ 
+ /* Diagnostic for a received packet the frame gate refused: the bounded
+  * summary of join-refused.h (RXD base bytes 4 to 11, group set, header offset,
+- * group-4 frame control, sequence and target match, and the first wire word
+- * after the groups) next to the original length, type word and permitted
+- * subtype mask. Lengths and flags only; no address and no payload byte, and
+- * nothing is interpreted for a packet that is not a complete data-type RXD.
++ * group-4 frame control, sequence and target match, the first wire word after
++ * the groups, the security mode field and the receiver/transmitter flags)
++ * next to the original length, type word and permitted subtype mask. Lengths
++ * and flags only; no address and no payload byte, and nothing is interpreted
++ * for a packet that is neither a complete data RXD nor a software frame
++ * (runtime 16 refused a 136-byte software frame with every field unknown).
+  */
+ static void mt6797_mac_join_refused_frame(struct mt6797_mac *mac, size_t bytes)
+ {
+ 	struct mt6797_join_refused r;
+ 
+-	mt6797_join_refused_summary(mac->join_packet, bytes, mac->join_ap, &r);
++	mt6797_join_refused_summary(mac->join_packet, bytes,
++				    mac->hw->wiphy->perm_addr, mac->join_ap, &r);
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+-		 "one-shot WLAN join frame refused: bytes=%zu type=0x%x allowed=0x%x hdr=%02x%02x%02x%02x%02x%02x%02x%02x groups=0x%x at=%zu g4fc=0x%x g4seq=0x%x g4ta=%u translated=%u first=0x%x\n",
++		 "one-shot WLAN join frame refused: bytes=%zu type=0x%x allowed=0x%x hdr=%02x%02x%02x%02x%02x%02x%02x%02x groups=0x%x at=%zu g4fc=0x%x g4seq=0x%x g4ta=%u translated=%u first=0x%x sec=%u to=%u from=%u\n",
+ 		 bytes, r.type, mac->join_rx_allowed,
+ 		 r.hdr[0], r.hdr[1], r.hdr[2], r.hdr[3],
+ 		 r.hdr[4], r.hdr[5], r.hdr[6], r.hdr[7],
+-		 r.groups, r.at, r.g4fc, r.g4seq, r.g4ta, r.translated, r.first);
++		 r.groups, r.at, r.g4fc, r.g4seq, r.g4ta, r.translated, r.first,
++		 r.sec, r.to_own, r.from_ap);
+ }
+ 
+ /* Initial queue is closed. Only the forthcoming owned join state callbacks
+@@ -2228,6 +2232,14 @@ static int mt6797_mac_set_key(struct ieee80211_hw *hw, enum set_key_cmd cmd,
+ 	mutex_unlock(&mac->mutex);
+ 	return 0;
+ failed:
++	/* The refusal is named so a key the supplicant installs after a
++	 * fail-stop (runtime 16) is distinguishable from one it never offered.
++	 * State flags and status only; no key byte.
++	 */
++	dev_info(wiphy_dev(hw->wiphy),
++		 "one-shot WLAN join key command refused: %s status=%d running=%u active=%u configured=%u first=%d\n",
++		 pairwise ? "pairwise" : "group", ret, mac->join_running,
++		 mac->join_sta_active, mac->join_bss_configured, mac->first_error);
+ 	if (!mac->first_error)
+ 		mac->first_error = ret;
+ 	mac->closing = true;
+-- 
+2.39.5
+

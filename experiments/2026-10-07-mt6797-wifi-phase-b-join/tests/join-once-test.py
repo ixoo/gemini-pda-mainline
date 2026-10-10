@@ -67,10 +67,17 @@ assert "channel40_ir_after_beacon=%s\\nchannel40_query_exit=%s\\nchannel40_lines
 phrases = re.search(r"for phrase in (.*?); do", SOURCE).group(1)
 assert 'CTRL-EVENT-SCAN-RESULTS' not in phrases and "'nl80211: Received scan results'" in phrases
 for required in ("'WPA: RX message 1 of 4-Way Handshake'", "'WPA: Sending EAPOL-Key 2/4'",
-                 "'WPA: RX message 3 of 4-Way Handshake'", "'WPA: Sending EAPOL-Key 4/4'",
+                 "'RX message 3 of 4-Way Handshake'", "'WPA: Sending EAPOL-Key 4/4'",
+                 "'WPA: Installing PTK'", "'WPA: Installing GTK'",
                  "'WPA: Key negotiation completed'", "'CTRL-EVENT-CONNECTED'"):
     assert required in phrases, required
 assert "tr 'A-Z: /-' 'a-z____'" in SOURCE and "grep -cF -- 'nl80211: Received scan results'" in SOURCE
+assert "'WPA: RX message 3" not in phrases, 'message 3 carries the RSN: prefix on the WPA2 path'
+# The channel-40 state is sampled every tick of the wait and the during-join
+# observation is reported next to the after-exit state.
+loop = c2.split('while [ "$tick" -lt 24 ]; do')[1].split('done')[0]
+assert 'channel40_flag' in loop and 'channel40_ir_during_join=1' in loop and 'channel40_ir_ticks=$((channel40_ir_ticks + 1))' in loop
+assert "channel40_ir_during_join=%s\\nchannel40_ir_ticks=%s\\n" in SOURCE
 # The key derivation maps exactly the separators ':', ' ', '/' and '-' to '_'.
 import subprocess as _sp
 _tr = _sp.run(['sh', '-c', "printf %s 'WPA: Sending EAPOL-Key 2/4' | tr 'A-Z: /-' 'a-z____'"], capture_output=True)

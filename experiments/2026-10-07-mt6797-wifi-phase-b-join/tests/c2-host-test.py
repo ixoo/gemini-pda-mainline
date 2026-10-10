@@ -15,12 +15,12 @@ from pathlib import Path
 sys.dont_write_bytecode = True
 HERE = Path(__file__).resolve().parents[1]
 BOOT = '0123abcd-0123-0123-0123-0123456789ab'
-LOG = (b'nl80211: Received scan results (1 BSSes)\nwlan0: WPA: RX message 1 of 4-Way Handshake from x\nwlan0: WPA: Sending EAPOL-Key 2/4\nwlan0: WPA: RX message 3 of 4-Way Handshake from x\nwlan0: WPA: Sending EAPOL-Key 4/4\nwlan0: WPA: Key negotiation completed with x\n'
+LOG = (b'nl80211: Received scan results (1 BSSes)\nwlan0: WPA: RX message 1 of 4-Way Handshake from x\nwlan0: WPA: Sending EAPOL-Key 2/4\nwlan0: RSN: RX message 3 of 4-Way Handshake from x\nwlan0: WPA: Installing PTK to the driver\nwlan0: WPA: Installing GTK to the driver\nwlan0: WPA: Sending EAPOL-Key 4/4\nwlan0: WPA: Key negotiation completed with x\n'
        b'wlan0: CTRL-EVENT-CONNECTED - x\n')
-BODY = (b'__JOIN_BEGIN__\nsupplicant_nl80211__received_scan_results=1\nsupplicant_wpa__rx_message_1_of_4_way_handshake=1\nsupplicant_wpa__sending_eapol_key_2_4=1\nsupplicant_wpa__rx_message_3_of_4_way_handshake=1\nsupplicant_wpa__sending_eapol_key_4_4=1\nsupplicant_associated_with=0\n'
+BODY = (b'__JOIN_BEGIN__\nsupplicant_nl80211__received_scan_results=1\nsupplicant_wpa__rx_message_1_of_4_way_handshake=1\nsupplicant_wpa__sending_eapol_key_2_4=1\nsupplicant_rx_message_3_of_4_way_handshake=1\nsupplicant_wpa__installing_ptk=1\nsupplicant_wpa__installing_gtk=1\nsupplicant_wpa__sending_eapol_key_4_4=1\nsupplicant_associated_with=0\n'
         b'supplicant_wpa__key_negotiation_completed=1\nsupplicant_ctrl_event_connected=1\n'
         b'supplicant_ctrl_event_disconnected=0\nsupplicant_exit=0\nsupplicant_log_bytes=' + str(len(LOG)).encode() +
-        b'\nchannel40_ir_after_beacon=1\nchannel40_query_exit=0\nchannel40_lines=1\nchannel40_words=none\n__JOIN_END__\nconnect_exit=0\njoin_terminal=1\n')
+        b'\nchannel40_ir_after_beacon=1\nchannel40_query_exit=0\nchannel40_lines=1\nchannel40_words=none\nchannel40_ir_during_join=1\nchannel40_ir_ticks=3\n__JOIN_END__\nconnect_exit=0\njoin_terminal=1\n')
 
 
 def load(name, path):
