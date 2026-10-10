@@ -1018,9 +1018,14 @@ runtime cause is not proven):
   deauthentication marked as sent by the AP. At that point its state is
   already disconnected with `disconnected = 1`, so no blacklist entry and
   no scan request follow; only the reported disconnect reason changes sign.
-  The quoted wpa_supplicant code is the 2.4 upstream tarball; the Debian
-  deb9u9 patch set was not retrieved and is not claimed to leave these
-  functions unchanged.
+  What was observed is one `CTRL-EVENT-DISCONNECTED` line and the warning
+  line, not a count or cause of nl80211 notifications; the mechanism above
+  is read from the 2.4 upstream tarball (`driver_nl80211_event.c`
+  `mlme_event_disconnect`, the warning text split over three string
+  literals) and the pinned kernel, and the Debian deb9u9 patch set was not
+  retrieved, so the source baseline alone does not prove the duplicate
+  event's causality. The running daemon matches the package binary
+  ([live-supplicant-identity.txt](results/run2-v10/live-supplicant-identity.txt)).
 
 ## v10 run 1: bounded partial result, no measured handshake (2026-10-10)
 
