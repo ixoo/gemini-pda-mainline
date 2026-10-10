@@ -1,4 +1,4 @@
-From faa630f0acf70730d82d11b3042ea511d82f0af1 Mon Sep 17 00:00:00 2001
+From 74ef99b646c6629cf9a8ddc935faf41855a4ea72 Mon Sep 17 00:00:00 2001
 From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
 Date: Sat, 10 Oct 2026 12:40:21 +0000
 Subject: [PATCH 161/161] wifi: mt6797: discard the target's directed clear
@@ -15,38 +15,43 @@ header without padding, payload format 0 with BSSID field 1, WLAN index
 1, TID 0 and security mode 0, status 0xe000), frame control 0x00d0: an
 unprotected Action frame (type 0, subtype 13) from the target to this
 station, 72 wire bytes. Its category, body and sequence were not
-recorded; runtime 16's refused 136-byte software frame had the same type
-word and length. The two key refusals that followed are the same stop
-seen from the key path: the pairwise install was waiting on the TC4
-ledger when the worker stopped and returned its -EPROTO, and the group
-install then met the stopped lifetime (-EOPNOTSUPP); no firmware key
-command, credit or removal exists.
+recorded. Runtime 16's refused 136-byte software frame shared only its
+type word and length and was never classified; it is consistent with
+this class, which is an inference. The two key refusals that followed
+are the same stop seen from the key path: the pairwise install was
+waiting on the TC4 ledger when the worker stopped and returned its
+-EPROTO, and the group install then met the stopped lifetime
+(-EOPNOTSUPP); no firmware key command, credit or removal exists.
 
-Add a decoder (action-frame.h) for exactly that measured class: the
-software-frame type word with groups 1 to 3; the match byte exactly
-0x02; descriptor bytes 6 to 11 exactly as measured; frame control 0x00d0
-with only the Retry bit free; receiver this station, transmitter and
-BSSID the target; fragment number 0; at least the category byte after
-the header, which is not read. While the station is active, a packet of
-that class is discarded: never delivered, no body byte read, no address
-copied, each one recorded by its descriptor and header fields, at most
-eight per join; the ninth, a protected or Action No Ack frame, another
-subtype, a group or other receiver, another peer, other descriptor
-values or another status reach the refusal as before. The hardware
-acknowledges management frames on its own; no RF submission results, and
-no credit, lifecycle or key handling changes.
+Add a decoder (action-frame.h) for exactly that measured class: the type
+word exactly 0xee01; the match byte exactly 0x02; descriptor bytes 6 to
+11 exactly as measured; frame control 0x00d0 with only the Retry bit
+free; receiver this station, transmitter and BSSID the target; fragment
+number 0; at least two body bytes after the header (the category and one
+more, as every Action frame body the pinned public sources define has),
+none of which is read.
+
+While the station is active, a packet of that class is discarded: never
+delivered, no body byte read, no address copied, each one recorded by
+its descriptor and header fields, at most eight per join; the ninth, a
+protected or Action No Ack frame, another subtype, a group or other
+receiver, another peer, other descriptor values or another status reach
+the refusal as before. The discard makes no new host submission; the
+hardware's inherited acknowledgment behaviour for such frames is
+unchanged and was not captured; no credit, lifecycle or key handling
+changes.
 ---
- .../wireless/mediatek/mt6797/action-frame.h   | 79 +++++++++++++++++++
- drivers/net/wireless/mediatek/mt6797/mac.c    | 27 +++++++
- 2 files changed, 106 insertions(+)
+ .../wireless/mediatek/mt6797/action-frame.h   | 87 +++++++++++++++++++
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 29 +++++++
+ 2 files changed, 116 insertions(+)
  create mode 100644 drivers/net/wireless/mediatek/mt6797/action-frame.h
 
 diff --git a/drivers/net/wireless/mediatek/mt6797/action-frame.h b/drivers/net/wireless/mediatek/mt6797/action-frame.h
 new file mode 100644
-index 000000000..2c3513f58
+index 000000000..3d4a23aab
 --- /dev/null
 +++ b/drivers/net/wireless/mediatek/mt6797/action-frame.h
-@@ -0,0 +1,79 @@
+@@ -0,0 +1,87 @@
 +/* SPDX-License-Identifier: GPL-2.0-only */
 +#ifndef MT6797_ACTION_FRAME_H
 +#define MT6797_ACTION_FRAME_H
@@ -62,10 +67,12 @@ index 000000000..2c3513f58
 +	unsigned char sec;        /* Descriptor security mode field. */
 +};
 +
-+/* The class of received packet that ended runtimes 16 and 18 at the frame
-+ * gate after message 4, named in runtime 18: a 136-byte software-defined
-+ * frame (the vendor's SW_FRAME type word, groups 1 to 3, header at offset
-+ * 64) whose logged descriptor bytes were 02 28 18 04 01 00 00 e0 (match flags
++/* The class of received packet that ended runtime 18 at the frame gate after
++ * message 4, named there (runtime 16's refused frame shared only its type
++ * word and length and was never classified): a 136-byte software-defined
++ * frame with type word 0xee01 (the vendor's SW_FRAME type, groups 1 to 3,
++ * header at offset 64) whose logged descriptor bytes were 02 28 18 04 01 00
++ * 00 e0 (match flags
 + * with the unicast-to-me bit only, channel 40, native 24-byte header without
 + * padding, payload format 0 with BSSID field 1, WLAN index 1, TID 0 and
 + * security mode 0, status 0xe000) and whose frame control was 0x00d0: an
@@ -74,18 +81,24 @@ index 000000000..2c3513f58
 + * body and sequence were not recorded and none is claimed or read here.
 + *
 + * This decoder names exactly that class so the caller can discard it
-+ * without delivery: the software-frame type word with groups 1 to 3; the
-+ * match byte exactly 0x02; the descriptor bytes 6 to 11 exactly as measured
++ * without delivery: the type word exactly 0xee01 (the measured value; the
++ * public layout's checksum and Ethernet-type-offset bits in it are zero and
++ * no other value is admitted); the match byte exactly 0x02; the descriptor
++ * bytes 6 to 11 exactly as measured
 + * (24-byte header, no translation, no padding; format 0 with BSSID field 1;
 + * WLAN index 1, the station's own index; byte 9 zero; status 0xe000, the
 + * same status every admitted management response of this lifetime carries);
 + * frame control 0x00d0 with only the Retry bit free (a retransmission of the
 + * same frame); receiver this station, transmitter and BSSID the target;
-+ * fragment number 0; and at least the category byte after the header, which
-+ * is not read. Protected frames, Action No Ack and every other subtype,
++ * fragment number 0; and at least two body bytes after the header (the
++ * category and at least one more byte, as every Action frame body the
++ * pinned public sources define has; the measured body had 48), none of
++ * which is read. Protected frames, Action No Ack and every other subtype,
 + * group-addressed frames, other peers, other descriptor values and other
-+ * status words are not this class and reach the caller's refusal. No RF
-+ * submission results: the hardware acknowledged the frame on its own.
++ * status words are not this class and reach the caller's refusal. The
++ * discard makes no new host submission; whatever acknowledgment the
++ * hardware gives such frames is inherited behaviour, unchanged and not
++ * captured.
 + */
 +static inline bool
 +mt6797_join_action_frame(const unsigned char *packet, size_t bytes,
@@ -98,12 +111,12 @@ index 000000000..2c3513f58
 +	unsigned int type;
 +	const unsigned char *f;
 +
-+	if (!packet || !own || !ap || !out || bytes < offset + 25 ||
++	if (!packet || !own || !ap || !out || bytes < offset + 26 ||
 +	    bytes > 4096 || !channel || mt6797_join_le16(packet) != bytes ||
 +	    packet[5] != channel)
 +		return false;
 +	type = mt6797_join_le16(packet + 2);
-+	if ((type & 0xe00f) != 0xe001 || ((type >> 9) & 15) != 7)
++	if (type != 0xee01)
 +		return false;
 +	r.match = packet[4];
 +	if (r.match != 0x02 || packet[6] != 24 || packet[7] != 0x04 ||
@@ -127,7 +140,7 @@ index 000000000..2c3513f58
 +}
 +#endif
 diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
-index 6da68b887..436371878 100644
+index 6da68b887..b75c3cf24 100644
 --- a/drivers/net/wireless/mediatek/mt6797/mac.c
 +++ b/drivers/net/wireless/mediatek/mt6797/mac.c
 @@ -19,6 +19,7 @@
@@ -154,18 +167,20 @@ index 6da68b887..436371878 100644
  	struct mt6797_join_tx_result result;
  	struct mt6797_join_rx_frame frame;
  	struct mt6797_scan_frame beacon;
-@@ -1253,6 +1256,29 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -1253,6 +1256,31 @@ static void mt6797_mac_join_work(struct work_struct *work)
  						 group.status, mac->join_group_discarded);
  				continue;
  			}
 +#endif
 +#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
-+			/* The target's unprotected directed Action frame (runtimes 16
-+			 * and 18, after message 4; category unknown and unread) is
-+			 * irrelevant to the bounded join and is discarded while the
-+			 * station is active: never delivered or interpreted, each one
-+			 * recorded by its descriptor and header fields, at most eight
-+			 * per join, and the ninth or any other shape refused as before.
++			/* The target's unprotected directed Action frame, named in
++			 * runtime 18 after message 4 (category unknown and unread;
++			 * runtime 16's unclassified frame shared its type word and
++			 * length), is irrelevant to the bounded join and is discarded
++			 * while the station is active: never delivered or interpreted,
++			 * no new host submission, each one recorded by its descriptor
++			 * and header fields, at most eight per join, and the ninth or
++			 * any other shape refused as before.
 +			 */
 +			if (mac->join_sta_active && !mac->join_deauth_done &&
 +			    !mac->join_cleanup_done &&
@@ -184,7 +199,7 @@ index 6da68b887..436371878 100644
  #endif
  			if (!mt6797_join_rx_frame(mac->join_packet, rx.logical_bytes, 40,
  			    mac->hw->wiphy->perm_addr, mac->join_ap,
-@@ -1896,6 +1922,7 @@ static int mt6797_mac_join_add_peer(struct mt6797_mac *mac,
+@@ -1896,6 +1924,7 @@ static int mt6797_mac_join_add_peer(struct mt6797_mac *mac,
  	mac->join_peer_used = true;
  	mac->join_eapol_seen = 0;
  	mac->join_group_discarded = 0;

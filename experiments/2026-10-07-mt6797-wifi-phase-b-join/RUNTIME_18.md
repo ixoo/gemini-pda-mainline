@@ -67,16 +67,17 @@ status `0xe000`. Frame control `0x00d0`: management type, subtype 13
 (Action), no flag set, unprotected; the receiver is this station (`to=1`)
 and the transmitter is the target (`from=1`). The 48-byte body, including
 the category and action fields, and the sequence were not recorded; no
-category is claimed. Runtime 16's refused 136-byte software frame had the
-same type word and length and was never named; it is consistent with the
-same class, which is an inference.
+category is claimed. Runtime 16's refused 136-byte software frame shared
+only its type word and length and was never classified; it is consistent
+with this class, which is an inference, not a measurement.
 
 ### Why it ended the join
 
 The management gate permits only disassociation and deauthentication after
 the association (mask `0x1400`); an Action frame matches no decoder and the
-design fail-stops on any other shape. The AP sends it shortly after message
-4 (runtimes 16 and 18); in runtime 17 the group-data refusal came first.
+design fail-stops on any other shape. The AP sent it shortly after message
+4 in runtime 18; runtime 16's unclassified frame arrived at the same point;
+in runtime 17 the group-data refusal came first.
 
 ### The key refusals, from the source
 
@@ -97,15 +98,15 @@ or removal exists.
 ## Decision
 
 Proposal 0161 discards exactly the measured class while the station is
-active: the software-frame type word with groups 1 to 3, the descriptor bytes
-exactly as measured (unicast-to-me only; 24-byte untranslated unpadded
-header; format 0 with BSSID field 1; WLAN index 1; byte 9 zero; status
-`0xe000`), frame control `0x00d0` with only the Retry bit free, receiver this
-station, transmitter and BSSID the target, fragment 0, at least the category
-byte present and never read. Each discard is recorded, at most eight per
-join; the ninth and every other shape, including protected or Action No Ack
-frames, other subtypes, group or other receivers and other peers, are refused
-and named as before. No frame is delivered, no body is read, no RF submission
-results (the hardware acknowledges on its own), no credit, lifecycle or key
-handling changes. The group-data discard of 0160 stays as reviewed and
+active: the type word exactly `0xee01`, the descriptor bytes exactly as
+measured (unicast-to-me only; 24-byte untranslated unpadded header; format 0
+with BSSID field 1; WLAN index 1; byte 9 zero; status `0xe000`), frame
+control `0x00d0` with only the Retry bit free, receiver this station,
+transmitter and BSSID the target, fragment 0, at least two body bytes present
+and never read. Each discard is recorded, at most eight per join; the ninth
+and every other shape, including protected or Action No Ack frames, other
+subtypes, group or other receivers and other peers, are refused and named as
+before. No frame is delivered, no body is read, no new host submission is
+made (the hardware's inherited acknowledgement behaviour is unchanged and was
+not captured), no credit, lifecycle or key handling changes. The group-data discard of 0160 stays as reviewed and
 unexercised. A new compile and candidate follow the review.

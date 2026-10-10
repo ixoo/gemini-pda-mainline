@@ -349,8 +349,10 @@ category unrecorded. The pairwise key install was waiting on the ledger when
 the worker stopped (-71) and the group install met the stopped lifetime
 (-95); no firmware key command exists. Proposal 0161 discards exactly that
 measured class undelivered while the station is active, each recorded, at
-most eight; everything else stays refused. The 0160 group-data discard was
-not exercised (no group frame arrived before the stop).
+most eight; everything else stays refused; no new host submission is made.
+Runtime 16's unclassified 136-byte frame is consistent with this class, an
+inference. The 0160 group-data discard was not exercised (no group frame
+arrived before the stop).
 
 ## Runtime 18 bindings (2026-10-10)
 

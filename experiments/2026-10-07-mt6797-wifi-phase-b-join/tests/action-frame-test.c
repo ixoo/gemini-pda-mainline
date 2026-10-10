@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /* The directed clear Action frame decoder: exactly the measured class of
- * runtime 18 is named (logged metadata: 136 bytes, type word 0xee01 with
- * groups 1 to 3, descriptor bytes 02 28 18 04 01 00 00 e0, frame control
+ * runtime 18 is named (logged metadata: 136 bytes, type word exactly 0xee01,
+ * descriptor bytes 02 28 18 04 01 00 00 e0, frame control
  * 0x00d0, receiver this station, transmitter the target); the receiver and
  * transmitter addresses here are fixture values consistent with the logged
  * flags, and the sequence and body (including the category byte) are
@@ -56,12 +56,15 @@ int main(void)
  size_t n = build(p, 7, 0x00d0, own, ap, ap, 48);
  assert(n == 136);
  assert(run(p, n, &r) && r.bytes == 72 && r.fc == 0x00d0 && r.match == 0x02 && r.wlan == 1 && r.bss == 1 && r.sec == 0 && r.status == 0xe000);
- /* Declared lengths: below the header plus the category byte refused; from there up admitted. */
- for (size_t cut = 0; cut < n; cut++) { unsigned char q[512]; memcpy(q, p, n); put16(q, cut); assert(run(q, cut, &r) == (cut >= 64 + 25)); }
+ /* Declared lengths: below the header plus two body bytes refused; from there up admitted. */
+ for (size_t cut = 0; cut < n; cut++) { unsigned char q[512]; memcpy(q, p, n); put16(q, cut); assert(run(q, cut, &r) == (cut >= 64 + 26)); }
  assert(!mt6797_join_action_frame(p, n, 36, own, ap, &r));
- /* Type word: data, event, other group sets refused. */
+ /* Type word exactly 0xee01: every single-bit flip, data and event type words,
+  * and every other group set refused. */
  { unsigned char q[512]; memcpy(q, p, n);
+   for (unsigned bit = 0; bit < 16; bit++) { put16(q + 2, 0xee01 ^ (1u << bit)); assert(!run(q, n, &r)); }
    put16(q + 2, 0x4000 | 7 << 9); assert(!run(q, n, &r)); put16(q + 2, 0xe000 | 7 << 9); assert(!run(q, n, &r));
+   put16(q + 2, 0xee01); assert(run(q, n, &r));
    for (unsigned groups = 0; groups < 16; groups++) { size_t m = build(q, groups, 0x00d0, own, ap, ap, 48); assert(run(q, m, &r) == (groups == 7)); } }
  /* Descriptor bytes 4 to 11: each measured byte exact. */
  { unsigned char q[512]; memcpy(q, p, n);
@@ -93,8 +96,9 @@ int main(void)
    assert(!run(p, build(p, 7, 0x00d0, own, other, ap, 48), &r));
    assert(!run(p, build(p, 7, 0x00d0, own, ap, other, 48), &r)); }
  n = build(p, 7, 0x00d0, own, ap, ap, 48); p[64 + 22] = 1; assert(!run(p, n, &r)); p[64 + 22] = 0;
- /* Minimum: header plus one body byte, which is not read. */
- n = build(p, 7, 0x00d0, own, ap, ap, 1); assert(n == 89 && run(p, n, &r) && r.bytes == 25);
+ /* Minimum: header plus two body bytes (category and one more), none read; one byte short refused. */
+ n = build(p, 7, 0x00d0, own, ap, ap, 2); assert(n == 90 && run(p, n, &r) && r.bytes == 26);
+ n = build(p, 7, 0x00d0, own, ap, ap, 1); assert(n == 89 && !run(p, n, &r));
  n = build(p, 7, 0x00d0, own, ap, ap, 0); assert(!run(p, n, &r));
  mt6797_join_action_frame(NULL, 136, 40, own, ap, &r); mt6797_join_action_frame(p, 136, 40, NULL, ap, &r);
  mt6797_join_action_frame(p, 136, 40, own, NULL, &r); mt6797_join_action_frame(p, 136, 40, own, ap, NULL);
