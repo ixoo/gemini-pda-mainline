@@ -970,8 +970,9 @@ from those files:
   12 RX descriptor, 2 TX descriptor, 4 state). Six remove-only key commands
   (ids 0..5, sequences 91 and 98..102, peer class zero), no key add, no
   add-key-done event, no measured new WPA2 handshake, no accepted unicast
-  data; ten accepted protected group frames (IPv4, ARP and one other
-  Ethernet type), one protected data transmit descriptor (590 bytes) and one
+  data; ten accepted protected group frames (ARP, IPv4 and the unknown
+  EtherType `0x8899`, not EAPOL `0x888e`; the two untranslated management
+  receptions carry no EtherType), one protected data transmit descriptor (590 bytes) and one
   unprotected management transmit descriptor (26 bytes), each with its
   TX-done event, belong to the stock association and its teardown; then
   three idle scan cycles (BSS activate, scan request, scan done, BSS
@@ -1064,17 +1065,19 @@ identity stable, 45.9 s) after one ordinary restart through the verified
 
 What the ledger holds (all before the measured connect, none of it a
 handshake): the stock association's accepted protected group frames, eleven
-`rxd` records of translated Ethernet broadcast (ARP, one IPv4, 802.1X-typed
-group frames) with security mode 4 and status `0xc000`, no error bits; two
-`txd` records (one protected data frame, one management frame) with their
-TX-done events; the teardown of the stock association as the firmware sees
+`rxd` records of translated Ethernet broadcast (ARP, one IPv4, and frames of
+the unknown EtherType `0x8899`, which is not EAPOL `0x888e`) with security
+mode 4 and status `0xc000`, no error bits; two `txd` records, exactly one
+protected data descriptor and one unprotected management descriptor, with
+their TX-done events; the teardown of the stock association as the firmware sees
 it: six `CMD_ID_ADD_REMOVE_KEY` removals (sequences 92 to 97, key IDs 0 to 5,
 key type 0, peer class `zero`, WLAN index 255), then `SET_BSS_INFO`
 (connection state 1), `REMOVE_STA_RECORD` for station 27, `BSS_ACTIVATE_CTRL`
 inactive, and the BSS deactivation state record, followed by three scan
 cycles (`BSS_ACTIVATE_CTRL` active, scan done, inactive) while ConnMan
 scanned, with `BSS_ABSENCE_PRESENCE` and sleepy-info events in between.
-No key add, no add-key-done event, no EAPOL and no unicast traffic were
+No key add, no add-key-done event, no measured new WPA2 handshake (no
+EAPOL-typed metadata in either direction) and no unicast traffic were
 measured. This is a measurement of the vendor driver's teardown and idle
 behaviour, not of a Wi-Fi lifecycle, and no support claim follows.
 
