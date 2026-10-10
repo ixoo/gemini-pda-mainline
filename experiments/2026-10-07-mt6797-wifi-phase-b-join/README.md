@@ -347,8 +347,9 @@ image `41699010…` (12296192 bytes), full padded boot2 `c773902c…`. The owner
 composed and validated it privately with the reviewed composer; the committed
 receipt [results/candidate-16.json](results/candidate-16.json) (SHA-256
 `1aaf85ea…`) is that receipt's exact bytes and `runtime-17/results/candidate.json`
-its copy. Deployment 16 goes over the installed candidate 15 (`eb43ddef…`); it
-has not happened. [RUNTIME_17_PREPARATION](RUNTIME_17_PREPARATION.md) states
+its copy. [Deployment 16](results/deployment-16.json) wrote it over the
+installed candidate 15 (`eb43ddef…`) with the full readback matching; the
+device is powered off awaiting the owner's boot2 start. [RUNTIME_17_PREPARATION](RUNTIME_17_PREPARATION.md) states
 the diagnostic hypothesis. Bindings, with every prior receipt, copy and piece
 of evidence untouched:
 
