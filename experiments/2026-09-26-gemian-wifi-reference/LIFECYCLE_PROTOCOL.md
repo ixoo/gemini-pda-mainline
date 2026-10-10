@@ -316,10 +316,13 @@ parsed `gwref10` ledger.
     the receipt says so, and the custodian's reviewed recovery path takes
     over.
 
-Power admission for this cycle: the cycle writes nothing but private
-evidence files on the shared rootfs and lasts under five minutes of Wi-Fi
-activity, so it uses the battery rule the reviewed boot2 installer already
-applies to its far larger write: battery present, health `Good` and
+Power admission for this cycle: the cycle performs no partition, firmware
+or calibration write; its effects are the private evidence files on the
+shared rootfs, the observer's arm and seal writes, the ConnMan `AutoConnect`
+change and its restoration, and the admitted finite WLAN commands
+(disconnect, connect, pings, disconnect, restoration connect), all unchanged
+by this rule, over minutes of Wi-Fi activity. It therefore uses the battery
+rule the reviewed boot2 installer already applies to its far larger write: battery present, health `Good` and
 capacity at least 80, or at least 40 with an external supply online. The
 executor's own gate checks present and `Good`; before launching, the
 custodian takes two samples of capacity, health and the `ac`, `usb` and
