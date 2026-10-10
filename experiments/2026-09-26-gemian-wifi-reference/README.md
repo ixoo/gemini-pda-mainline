@@ -957,8 +957,21 @@ digests as reported by the custodian's composer run. `prepare-installer.py
 v10` binds the guarded installer to that candidate, to the boot2 predecessor
 `5d9aa34b…` (the installed Phase B candidate 19), to the current stock Gemian
 boot `cf68b54a…` (release `3.18.41+`) and to deployment
-`gemian-wifi-reference-deployment-10`; the installer is generated and run by
-the custodian only. Nothing is installed and no device action has happened.
+`gemian-wifi-reference-deployment-10`. The custodian generated that
+installer at `fce102e2` (SHA-256 `801e1968…`, candidate verified, syntax
+and ShellCheck passed) and performed the guarded install: target `179:30`,
+root `179:29`, predecessor `5d9aa34b…`, candidate written and fully read
+back as `8d3289a1…`, battery stable at 98 and Good, clean shutdown confirmed
+unreachable, no automatic reboot; the deployment summary (SHA-256
+`834ed2cf…`) stays private on the laptop. The reviewed script and helpers
+are staged root-private on the device with their byte hashes, the approved
+service and target are valid, and no credential was copied. The bound target
+is the currently configured home network: the same SSID as the mainline runs
+but a different BSSID on channel 161 (5805 MHz) against runtime 20's channel
+40 (5200 MHz), with the old binding preserved; comparisons with runtime 20
+are same-network, different-AP and different-channel. The boot collector is
+armed for the v10 release; the owner's physical boot2 selection and the cycle
+are pending.
 `lifecycle/collect-boot-v10.py` is the finite read-only LAN collector the
 custodian arms before the physical boot2 handoff (expecting the v10 release)
 and before the ordinary return reboot (expecting `3.18.41+`); its fixture
@@ -978,8 +991,7 @@ summary. [results/build-v10.json](results/build-v10.json) is the package's
 receipt; package inventory `bf72c738…`, `Image.gz-dtb` `54723d29…`;
 `build-candidate.py` pins them as `v10`. The custodian composes the v10
 candidate privately with the retained primary image; the installer binding
-follows the candidate receipt. No candidate, installation or device action
-yet.
+followed the candidate receipt (see the binding section above).
 
 ## Lifecycle capture code for review (2026-10-10)
 
@@ -1007,5 +1019,5 @@ event, credit, descriptor and teardown sites, controlled by one
 bounded disconnect, connect, handshake, traffic and disconnect cycle, with
 key material, addresses and frame bodies excluded by construction, and an
 offline parser whose ledger feeds the mainline fixtures. The vendor
-`DBGLOG` and dynamic debug are not used. Review only; nothing built or run
-by Buildbox.
+`DBGLOG` and dynamic debug are not used. Buildbox built the v10 kernel and
+never touches the device.

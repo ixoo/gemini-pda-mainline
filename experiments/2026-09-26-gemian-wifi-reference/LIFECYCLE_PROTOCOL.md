@@ -7,8 +7,12 @@ the device script `trace-lifecycle-v10.sh` with its Python 3.5 helper
 laptop trigger `lifecycle/lan-group-trigger.py` with the window orchestration
 `lifecycle/laptop-trigger-window.py`, and their fixtures under `tests/`,
 including the executor run against a fake device through its complete cycle
-and every failure path. Nothing built, composed, installed or run; the
-custodian reviews the exact patch before any compile. The laptop custodian performs every device step under the
+and every failure path. State on 2026-10-10: the v10 kernel is built and
+validated (`95a72c7b`), the candidate composed (full padded boot2
+`8d3289a1…`) and installed over the installed Phase B candidate 19 as
+deployment 10 with the full readback matching; the device is cleanly shut
+down awaiting the owner's physical boot2 selection, the boot collector is
+armed, and the cycle has not run. The laptop custodian performs every device step under the
 standing authorization for reviewed tests and boot2 installation; the owner's
 only action is the physical boot2 selection. Buildbox agents have no device
 access and build only on an explicit go after the exact patch is reviewed.
@@ -215,11 +219,16 @@ seal not captured, 7 identity lost. The ConnMan service is the one currently in 
 private approved-service file (mode 0600, read on the device, never echoed)
 and refuses any other service. The association itself is compared with the
 custodian's private bound target (`ap-target.json`: SSID, BSSID, frequency
-and channel, the same file the mainline runs are bound to) through `iw dev
-wlan0 link` before the cycle and after the measured connect, and the run
-exports only the booleans `target_match_before` and `target_match`; a
-connect that lands on another BSSID or band stops the sequence, so the
-reference stays directly comparable with runtime 20 and cannot roam. That identifier does appear in the custodian's own command lines on
+and channel) through `iw dev wlan0 link` before the cycle and after the
+measured connect, and the run exports only the booleans
+`target_match_before` and `target_match`; a connect that lands on another
+BSSID or band stops the sequence, so the reference cannot roam within the
+run. The v10 binding is the currently configured home network: the same
+SSID as the mainline runs but a different BSSID on channel 161 (5805 MHz),
+whereas runtime 20 was bound to channel 40 (5200 MHz); the old binding is
+preserved privately. The comparison with runtime 20 is therefore a
+same-network, different-access-point and different-channel comparison, never
+an identical-AP one, and the records say so. That identifier does appear in the custodian's own command lines on
 the device and in the private output files; the only sanitized product is the
 parsed `gwref10` ledger.
 
