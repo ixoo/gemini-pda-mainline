@@ -1,7 +1,7 @@
 # Runtime 21 preparation: one boot for handshake, data and teardown (proposals 0164 to 0167)
 
-Status: protocol stated before any build or boot; the compile, candidate and
-deployment bindings follow their receipts. The custodian reviews this
+Status: protocol stated before any boot; compile 25 ([COMPILE_25.md](COMPILE_25.md))
+is validated; the candidate and deployment bindings follow their receipts. The custodian reviews this
 protocol and every device step; the custodian remains the sole device
 custodian.
 

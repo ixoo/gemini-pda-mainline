@@ -398,6 +398,11 @@ exchange over Wi-Fi bound to the launched boot
 the 130 s host phase budget; see
 [RUNTIME_21_PREPARATION.md](RUNTIME_21_PREPARATION.md).
 
+Compile 25 ([COMPILE_25.md](COMPILE_25.md)): the phase-B compile profile at
+84799218 with 0163 to 0167 built and validated on Buildbox-1 (attempt 1 at
+7422e4a5 failed on a missing forward declaration, fixed in 0165); zero driver
+warnings; no candidate or device step.
+
 Checks on the authoring tree at 0167: every host fixture of this experiment
 (`tests/run-*.py`: config, data-rx, data-tx, eapol, events, handoff, hif,
 key, ownership, peer, rates, refused, scan-rates, scan-report, security,
