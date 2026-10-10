@@ -153,8 +153,9 @@ def classify(raw):
             malformed = True
         else:
             for index, translated, frame, activated, _vector, bss in eapol_rows:
-                # Tag 15 (no hardware BSS match) is admitted only before the
-                # activation, tag 1 (measured after it, runtime 15) only after.
+                # Tag 15 is admitted only before the activation and tag 1 only
+                # after it: the two measured values (runtimes 12 and 15), with
+                # no meaning claimed for the firmware-filled field.
                 if (bss == 15 and activated) or (bss == 1 and not activated):
                     malformed = True
                 low, high = (99, 2052) if translated else (131, 2084)
