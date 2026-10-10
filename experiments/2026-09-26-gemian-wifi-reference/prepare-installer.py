@@ -7,6 +7,7 @@ import hashlib
 from pathlib import Path
 import runpy
 import subprocess
+import tempfile
 
 
 HERE = Path(__file__).resolve().parent
@@ -14,7 +15,9 @@ REPO = HERE.parents[1]
 BASE = REPO / 'experiments/2026-08-14-mt6797-runtime-provenance-observer/scripts/install-boot2.sh'
 DERIVER = REPO / 'experiments/2026-09-04-mt6797-thermal-snapshot/scripts/v4_installer_guard.py'
 GUARD = REPO / 'scripts/boot2-device-guard.sh'
-BASE_SHA = 'deaa0e886a881132dd49ee1e3d5b0e6f776400f51fa86a8d0b7c791e979d12a8'
+# The sanitized base (commit a0887d2c replaced the two private endpoint occurrences
+# with the GEMIAN_HOST placeholder; nothing else changed). derive() pins only the guard.
+BASE_SHA = 'ba6ffd5522991116f2ebe3e845241a895e236abff43b5c3a30eed9723b09ae9f'
 DERIVER_SHA = '9c72675e3043dcf735c8a368800ce9297ca6c343d81283505e7030de82253211'
 GUARD_SHA = '0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf'
 TRUST_SHA = 'd43262bd1f9c76d02eb633900f5e5502e2342d6c1b41586a2d7e524a2293768f'
@@ -110,24 +113,8 @@ def replace(source, old, new, count=1):
     return source.replace(old, new)
 
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--revision', choices=INSTALLS, default='v1')
-    parser.add_argument('--candidate', type=Path, required=True)
-    parser.add_argument('--output', type=Path, required=True)
-    args = parser.parse_args()
-    selected = INSTALLS[args.revision]
-    assert digest(BASE) == BASE_SHA and digest(DERIVER) == DERIVER_SHA
-    assert digest(GUARD) == GUARD_SHA
-    candidate = args.candidate.resolve(strict=True)
-    assert candidate.is_dir() and not args.candidate.is_symlink()
-    assert candidate.name == 'candidate-' + selected['candidate']
-    assert {p.name for p in candidate.iterdir()} == {
-        'boot.img', 'boot2-padded.img', 'candidate.json', 'SHA256SUMS'}
-    assert digest(candidate / 'boot2-padded.img') == selected['candidate']
-    assert digest(candidate / 'SHA256SUMS') == selected['manifest']
-    subprocess.run(['sha256sum', '--check', '--strict', 'SHA256SUMS'], cwd=candidate,
-                   check=True, stdout=subprocess.DEVNULL)
+def derive_source(revision, selected, candidate_name):
+    """The installer text for a revision; fully determined by the pins and the candidate directory name."""
     guard = runpy.run_path(str(DERIVER))
     source = guard['derive'](BASE.read_text(), GUARD.read_bytes())
     source = replace(source,
@@ -137,7 +124,7 @@ def main():
                      'ad92d496dfb4fd183c35e6e0f32ce626b2045528657fb2567d8561dd02540f1a',
                      selected['manifest'])
     source = replace(source, 'gemian-runtime-provenance-observer-rndis-1d303dda10b4',
-                     candidate.name)
+                     candidate_name)
     source = replace(source, '2026-08-14-mt6797-runtime-provenance-observer',
                      '2026-09-26-gemian-wifi-reference')
     source = replace(source, 'provenance-observer', 'gemian-wifi-reference', 7)
@@ -156,7 +143,7 @@ def main():
                      '[[ "$predecessor_sha256" == ' + selected['predecessor'] +
                      ' || "$predecessor_sha256" == "$CANDIDATE_SHA256" ]] ||\n' +
                      '\tdie \'unexpected boot2 predecessor\'\n')
-    if args.revision in ('v3', 'v4', 'v5', 'v6', 'v7', 'v8', 'v9', 'v10'):
+    if revision in ('v3', 'v4', 'v5', 'v6', 'v7', 'v8', 'v9', 'v10'):
         source = replace(source,
                          '[[ "$initial_boot_id" =~ ^[0-9a-f-]{36}$ ]] || die \'malformed initial boot ID\'\n',
                          '[[ "$initial_boot_id" == ' + selected['boot_id'] + ' ]] ||\n'
@@ -167,12 +154,49 @@ def main():
                          '[[ "$(id -u)" == 0 && "$(uname -m)" == aarch64 &&\n'
                          '   "$(uname -r)" == ' + selected['release'] + ' ]] ||\n'
                          "\tfail 'remote is not the verified predecessor Gemian release'\n")
-    if args.revision == 'v10':
+    if revision == 'v10':
         # The base's placeholder target (the EXPECTED_TARGET constant and its usage line)
         # is not a configured SSH alias; the custodian's pinned alias is `gemini`. The
         # base, deriver and guard files and their hashes are untouched: only the derived
         # source changes, and exactly at those two occurrences.
         source = replace(source, 'gemini@GEMIAN_HOST', 'gemini', count=2)
+    return source
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--revision', choices=INSTALLS, default='v1')
+    parser.add_argument('--candidate', type=Path)
+    parser.add_argument('--output', type=Path)
+    parser.add_argument('--check-derivation', action='store_true',
+                        help='derive the installer text without the candidate, check its syntax and print its digest')
+    args = parser.parse_args()
+    selected = INSTALLS[args.revision]
+    assert digest(BASE) == BASE_SHA and digest(DERIVER) == DERIVER_SHA
+    assert digest(GUARD) == GUARD_SHA
+    if args.check_derivation:
+        source = derive_source(args.revision, selected, 'candidate-' + selected['candidate'])
+        with tempfile.NamedTemporaryFile('w', suffix='.sh', delete=False) as handle:
+            handle.write(source)
+        try:
+            subprocess.run(['bash', '-n', handle.name], check=True)
+            subprocess.run(['shellcheck', handle.name], check=True)
+        finally:
+            Path(handle.name).unlink()
+        print('placeholder_occurrences=%d' % source.count('GEMIAN_HOST'))
+        print('installer_sha256=' + hashlib.sha256(source.encode()).hexdigest())
+        return
+    assert args.candidate is not None and args.output is not None, '--candidate and --output are required'
+    candidate = args.candidate.resolve(strict=True)
+    assert candidate.is_dir() and not args.candidate.is_symlink()
+    assert candidate.name == 'candidate-' + selected['candidate']
+    assert {p.name for p in candidate.iterdir()} == {
+        'boot.img', 'boot2-padded.img', 'candidate.json', 'SHA256SUMS'}
+    assert digest(candidate / 'boot2-padded.img') == selected['candidate']
+    assert digest(candidate / 'SHA256SUMS') == selected['manifest']
+    subprocess.run(['sha256sum', '--check', '--strict', 'SHA256SUMS'], cwd=candidate,
+                   check=True, stdout=subprocess.DEVNULL)
+    source = derive_source(args.revision, selected, candidate.name)
     output = args.output
     assert output.parent.resolve(strict=True) == REPO / 'artifacts/gemian-wifi-reference/scripts'
     assert not output.exists() and not output.is_symlink()
