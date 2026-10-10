@@ -1,4 +1,4 @@
-From dcfb86cb2306f147fbb8a43cb05b3b656bd9791a Mon Sep 17 00:00:00 2001
+From 1fb23e048cf8d1cf815db136da57762043d2ad97 Mon Sep 17 00:00:00 2001
 From: Gemini diagnostic experiment <nobody@example.invalid>
 Date: Sat, 10 Oct 2026 15:24:59 +0000
 Subject: [PATCH] diagnostic: record Gemian WLAN firmware-boundary lifecycle
@@ -22,9 +22,12 @@ loglevel 7; arm, seal and cap markers are KERN_INFO.
 The three HIF ingress paths (nicRxReadBuffer, nicRxEnhanceReadBuffer and
 nicRxSDIOAggReceiveRFBs) store the byte count the HIF delivered in the
 receive buffer (SW_RFB_T u2GwrefHifLen); the receive helpers read header
-and payload fields only within that count and the buffer size, and refuse
-the rest with badlen, shorthdr or shortdesc records. Command header fields
-are read only when the buffer exists and covers the WIFI_CMD_T header.
+and payload fields only within that count and the buffer size, require the
+descriptor's count to cover the descriptor and the derived header pointer
+and frame span to lie inside it, record the raw status word, and refuse the
+rest with badlen, shorthdr, badhdr or shortdesc records. Command header
+fields are read only when the buffer exists and covers the WIFI_CMD_T
+header.
 
 Records carry only index, flag, length, status and class fields: command
 id, sequence, set/query flag and length for every command, with the
@@ -32,34 +35,36 @@ metadata fields of CMD_ID_ADD_REMOVE_KEY (never the key material or the
 RSC), BSS_ACTIVATE_CTRL, UPDATE_STA_RECORD, REMOVE_STA_RECORD and
 SET_BSS_INFO (never the SSID or addresses); event id, sequence, declared
 and delivered length for every event, with allow-listed payload fields for
-ADD_PKEY_DONE, TX_DONE, ACTIVATE_STA_REC, LINK_QUALITY, SCAN_DONE,
-CH_PRIVILEGE, BSS_BEACON_TIMEOUT, STA_AGING_TIMEOUT, RX_ADDBA, RX_DELBA,
+ADD_PKEY_DONE, TX_DONE, ACTIVATE_STA_REC, SCAN_DONE, CH_PRIVILEGE,
+BSS_BEACON_TIMEOUT, STA_AGING_TIMEOUT, RX_ADDBA, RX_DELBA,
 CHECK_REORDER_BUBBLE, BSS_ABSENCE_PRESENCE, STA_CHANGE_PS_MODE and
 STA_UPDATE_FREE_QUOTA (the ids the active dispatcher handles), each only
 when the declared length covers the pinned structure, everything else
-header only; released page counts per traffic class; the 16-byte receive
-descriptor fields including the unicast, multicast and broadcast match
-flags, with the frame-control word and destination group bit of an
-untranslated header or the Ethernet type and group bit of a translated
-one, beacons and probe responses counted but not recorded; the composed
-transmit descriptor's own protection bit, header format and TID with the
-MSDU's class (eapol, mgmt, data) named separately; and station state
-changes, station record frees and BSS deactivation. Peer addresses are
-compared in the kernel and reported as a class (bss, own, bcast, zero,
-group, other), never printed. The ADD_PKEY_DONE payload names no key type,
-index or command sequence, so its record attributes nothing to a key.
+header only (LINK_QUALITY included: its EX structure is compiled out in
+the pinned configuration and its payload adds no lifecycle decision);
+released page counts per traffic class; the 16-byte receive descriptor
+fields including the unicast, multicast and broadcast match flags, with
+the frame-control word and destination group bit of an untranslated header
+or the Ethernet type and group bit of a translated one, beacons and probe
+responses counted but not recorded; the composed transmit descriptor's own
+protection bit, header format and TID with the MSDU's class (eapol, mgmt,
+data) named separately; and station state changes, station record frees
+and BSS deactivation. Peer addresses are compared in the kernel and
+reported as a class (bss, own, bcast, zero, group, other), never printed.
+The ADD_PKEY_DONE payload names no key type, index or command sequence,
+so its record attributes nothing to a key.
 
 Nothing else in the driver changes; the vendor DBGLOG level is untouched.
 ---
  .../mediatek/connectivity/wlan/gen3/Makefile  |   1 +
- .../connectivity/wlan/gen3/common/gwref10.c   | 622 ++++++++++++++++++
+ .../connectivity/wlan/gen3/common/gwref10.c   | 619 ++++++++++++++++++
  .../connectivity/wlan/gen3/include/gwref10.h  |  63 ++
  .../wlan/gen3/include/nic/nic_rx.h            |   1 +
  .../connectivity/wlan/gen3/mgmt/cnm_mem.c     |   4 +
  .../mediatek/connectivity/wlan/gen3/nic/nic.c |   2 +
  .../connectivity/wlan/gen3/nic/nic_rx.c       |   6 +
  .../connectivity/wlan/gen3/nic/nic_tx.c       |   5 +
- 8 files changed, 704 insertions(+)
+ 8 files changed, 701 insertions(+)
  create mode 100644 drivers/misc/mediatek/connectivity/wlan/gen3/common/gwref10.c
  create mode 100644 drivers/misc/mediatek/connectivity/wlan/gen3/include/gwref10.h
 
@@ -77,10 +82,10 @@ index a1027c1..8490f09 100644
  
 diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/common/gwref10.c b/drivers/misc/mediatek/connectivity/wlan/gen3/common/gwref10.c
 new file mode 100644
-index 0000000..46e534c
+index 0000000..10b198c
 --- /dev/null
 +++ b/drivers/misc/mediatek/connectivity/wlan/gen3/common/gwref10.c
-@@ -0,0 +1,622 @@
+@@ -0,0 +1,619 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * gemini-wifi-ref-v10 observer. See include/gwref10.h.
@@ -467,14 +472,11 @@ index 0000000..46e534c
 +				       gwref10_class_names[gwref10_classify(prAdapter, p->ucBssIndex, p->aucMacAddr)]);
 +		}
 +		break;
-+	case EVENT_ID_LINK_QUALITY:
-+		if (GWREF10_BODY(EVENT_LINK_QUALITY_EX)) {
-+			P_EVENT_LINK_QUALITY_EX p = (P_EVENT_LINK_QUALITY_EX) body;
-+
-+			gwref10_record(GWREF10_EVENT, "linkq seq=%u rdy=%u speed=%u busy=%u", prEvent->ucSeqNum,
-+				       p->ucIsLQ0Rdy, p->u2LinkSpeed, p->ucMediumBusyPercentage);
-+		}
-+		break;
++	/* EVENT_ID_LINK_QUALITY stays header-only: the positive control correlates the
++	 * command and event headers, the payload (EVENT_LINK_QUALITY_V2 in the active
++	 * configuration, one entry per BSS with the AIS BSS selected by the dispatcher)
++	 * adds no lifecycle decision, and EVENT_LINK_QUALITY_EX is compiled out
++	 * (CFG_SUPPORT_P2P_RSSI_QUERY is 0). */
 +	case EVENT_ID_SCAN_DONE:
 +		if (GWREF10_BODY(EVENT_SCAN_DONE)) {
 +			P_EVENT_SCAN_DONE p = (P_EVENT_SCAN_DONE) body;

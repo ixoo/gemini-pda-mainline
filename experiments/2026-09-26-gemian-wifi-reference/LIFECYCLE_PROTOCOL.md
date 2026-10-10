@@ -234,11 +234,13 @@ parsed `gwref10` ledger.
    and the service's properties (all private). Set `AutoConnect` off for the
    approved service for the cycle, so the connect and disconnect counts below
    are exactly the script's own; the original value is restored in step 9.
-3. Start the kmsg stream: `cat /dev/kmsg` into `kmsg-cycle.log` bounded by
-   `head -c 8388608`, started before arming and stopped after sealing, so the
-   128 KiB ring size does not matter; each line carries the kernel's sequence
-   number, and the parser verifies the sequence is contiguous (a gap is a
-   drop and is reported as such).
+3. Start the kmsg stream: `cycle-check.py kmsg-stream /dev/kmsg kmsg-cycle.log
+   8388608`, started before arming and stopped after sealing, so the 128 KiB
+   ring size does not matter. It opens `/dev/kmsg` non-blocking, flushes every
+   read, counts `EPIPE` drops, reports any other read failure, stops at the
+   exact byte bound and ends normally on `SIGTERM` with its report; each line
+   carries the kernel's sequence number, and the parser verifies the sequence
+   is contiguous (a gap is a drop and is reported as such).
 4. Arm: write `1` to the parameter and confirm the `arm` line in the stream.
    Positive control, source-backed and read-only: two `/sbin/iw dev wlan0
    link` queries one second apart. `iw link` (iw 4.9) issues a get-station
@@ -262,7 +264,8 @@ parsed `gwref10` ledger.
    records, `key` add pairwise then group with their `cmd` sequences, every
    `credit`, every `event` in order including each `keydone` with its class,
    `starec`, `bssinfo`.
-7. Traffic, 15 s, target only: `ping -c 5 -W 2 <gateway>`. The evidence of
+7. Traffic window, 20 s, target only: `ping -c 5 -W 2 <gateway>` at its
+   start, then the window is held open to its end. The evidence of
    protected unicast is the `rxd` records of the replies (`sec` nonzero,
    `mismatch=0`, `grp=0`) and the `txd` records of the requests with
    `prot=1`, never the ping result or the transmit class. No neighbour flush,
@@ -336,6 +339,41 @@ wrong counts, a dropped kmsg line, a logger stopped mid-line) and the kmsg
 copier's bound, signal stop and idle stop. Short phases are not divided by the
 fixture's budget divisor, so the seal, preservation and finalisation stages
 run at their real length in the fixture.
+
+## Return to Gemian after the capture
+
+The reference boot is a boot2 image selected physically by the owner; the
+device's default primary boot is the known-good Gemian. The return is the
+reviewed native path the reference sessions and the mainline runtimes already
+use, with no new boot control and no retry:
+
+1. The capture is preserved first: the frozen capture files with their
+   `MANIFEST`, then `run.log`, `restore.log`, `receipt.txt` and
+   `SHA256SUMS.final`, all under the root-owned output directory on the
+   shared Gemian rootfs, copied to the laptop by the custodian before
+   anything restarts (they survive the restart on the shared rootfs in any
+   case).
+2. Live identity is rechecked before the restart: `uname -r` equals
+   `3.18.41-gemini-wifi-ref10+`, `/proc/sys/kernel/random/boot_id` equals the
+   boot the cycle was launched with, and the restart client is the inspected
+   regular, non-symlink `/bin/systemctl` of systemd 232 with SHA-256
+   `b7247b969b7d4c2d6c2bfe05082315bbacad17bd831b6ff71f7a0e829b980e98`
+   (recorded for the stock boot in the observer-feasibility experiment's
+   [retention comparison](../2026-09-07-mt6797-wifi-observer-feasibility/RETENTION_RESET_COMPARISON.md),
+   re-read on the v10 boot before use).
+3. One ordinary restart: `sync` once, then `/bin/systemctl reboot` once, with
+   no force option and no special boot target, exactly as that experiment's
+   reviewed request; the changed-boot collector is armed beforehand as in the
+   reference sessions (`collect-v*-return`).
+4. Verification before any mainline work: the collector observes a changed
+   boot ID and release `3.18.41+` (the default primary Gemian) over the LAN,
+   and the custodian confirms the known-good endpoint; a missing change, an
+   unchanged boot ID or no LAN is a stop, not a retry, and the owner's
+   physical path applies.
+
+No distinct return command exists in the reference sessions beyond that
+restart; should the v10 boot require one, it is reported for the custodian's
+review rather than improvised.
 
 ## Offline use of the ledger
 

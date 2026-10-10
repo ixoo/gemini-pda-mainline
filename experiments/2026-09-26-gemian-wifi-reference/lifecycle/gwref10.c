@@ -384,14 +384,11 @@ void gwref10_event(P_ADAPTER_T prAdapter, P_SW_RFB_T prSwRfb)
 				       gwref10_class_names[gwref10_classify(prAdapter, p->ucBssIndex, p->aucMacAddr)]);
 		}
 		break;
-	case EVENT_ID_LINK_QUALITY:
-		if (GWREF10_BODY(EVENT_LINK_QUALITY_EX)) {
-			P_EVENT_LINK_QUALITY_EX p = (P_EVENT_LINK_QUALITY_EX) body;
-
-			gwref10_record(GWREF10_EVENT, "linkq seq=%u rdy=%u speed=%u busy=%u", prEvent->ucSeqNum,
-				       p->ucIsLQ0Rdy, p->u2LinkSpeed, p->ucMediumBusyPercentage);
-		}
-		break;
+	/* EVENT_ID_LINK_QUALITY stays header-only: the positive control correlates the
+	 * command and event headers, the payload (EVENT_LINK_QUALITY_V2 in the active
+	 * configuration, one entry per BSS with the AIS BSS selected by the dispatcher)
+	 * adds no lifecycle decision, and EVENT_LINK_QUALITY_EX is compiled out
+	 * (CFG_SUPPORT_P2P_RSSI_QUERY is 0). */
 	case EVENT_ID_SCAN_DONE:
 		if (GWREF10_BODY(EVENT_SCAN_DONE)) {
 			P_EVENT_SCAN_DONE p = (P_EVENT_SCAN_DONE) body;

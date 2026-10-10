@@ -28,7 +28,7 @@ GOOD = [
     ARM,
     (7, 'gwref10 cmd: n=1 cid=0x81 seq=9 set=0 len=16 bss=0 type=1'),
     (7, 'gwref10 event: n=2 eid=0x02 seq=9 len=20 hif=24'),
-    (7, 'gwref10 event: n=3 linkq seq=9 rdy=1 speed=866 busy=3'),
+    (7, 'gwref10 event: n=3 eid=0x0f seq=0 len=24 hif=24'),
     (7, 'gwref10 cmd: n=4 cid=0x07 seq=10 set=1 len=76 bss=0 type=1'),
     (7, 'gwref10 cmd: n=5 key seq=10 addremove=1 tx=1 keytype=1 auth=0 bss=0 alg=4 keyid=0 keylen=16 wlan=1 peer=bss'),
     (7, 'gwref10 credit: n=6 rel0=0 rel1=0 rel2=0 rel3=0 rel4=1 rel5=0 free0=5 free1=5 free2=5 free3=5 free4=2 free5=0'),
@@ -137,6 +137,7 @@ class ParseLifecycleTest(unittest.TestCase):
             'gwref10 event: n=7 eid=0x24 seq=0 len=16': 'incomplete record',
             'gwref10 event: n=7 eid=0x24 seq=0 len=sixteen hif=20': 'field type mismatch len',
             'gwref10 event: n=7 secret seq=0 bss=0 sta=bss': 'unexpected subtype',
+            'gwref10 event: n=7 linkq seq=9 rdy=1 speed=866 busy=3': 'unexpected subtype',
             'gwref10 event: n=7 keydone seq=0 bss=0 sta=0x021122': 'field type mismatch sta',
         }
         for message, expected in cases.items():

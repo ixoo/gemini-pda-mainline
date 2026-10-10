@@ -13,6 +13,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 
 
 HERE = Path(__file__).resolve().parent
@@ -151,9 +152,22 @@ def main():
         assert count == 1
         cust.write_text(normalized)
         assert digest(cust) == CUST_SHA256
-        with (work / 'build.log').open('w') as stream:
-            native.compile_logged(command + ['-j' + str(jobs), 'V=1', 'Image.gz-dtb'],
-                                  stream, env=environment, timeout=3600)
+        try:
+            with (work / 'build.log').open('w') as stream:
+                native.compile_logged(command + ['-j' + str(jobs), 'V=1', 'Image.gz-dtb'],
+                                      stream, env=environment, timeout=3600)
+        except Exception:
+            # Preserve the compiler output before the temporary build directory is removed,
+            # so a failed build leaves its exact errors beside the job record.
+            failed = ROOT / 'jobs' / (commit + '-gemian-wifi-reference-failed')
+            if failed.exists():  # keep an earlier failure's logs; never overwrite unique evidence
+                failed = failed.with_name(failed.name + '-' + str(int(time.time())))
+            failed.mkdir(parents=True)
+            for name in ('configure.log', 'dct.log', 'build.log'):
+                if (work / name).is_file():
+                    shutil.copyfile(work / name, failed / name)
+            print('build failed; logs preserved at ' + str(failed))
+            raise
         symbol_map = (output / 'System.map').read_text()
         for symbol in ('wmt_plat_soc_init', 'mtk_wcn_consys_hw_reg_ctrl',
                        'emi_mpu_set_region_protection', 'wlanAdapterStop',

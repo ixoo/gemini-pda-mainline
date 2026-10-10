@@ -185,6 +185,12 @@ int main(void)
 		assert(strstr(last, "sta=other\n"));
 	}
 	{
+		/* the link-quality response stays header-only in the active configuration */
+		UINT_8 lq[24]; memset(lq, 0x11, sizeof(lq));
+		lines = 0; event(EVENT_ID_LINK_QUALITY, 9, lq, sizeof(lq), 8 + sizeof(lq), 8 + sizeof(lq));
+		assert(lines == 1 && strstr(last, " eid=0x02 seq=9 len=32 hif=32\n"));
+	}
+	{
 		EVENT_TX_DONE_T td = { .ucPacketSeq = 3, .ucStatus = 0, .u2SequenceNumber = 77, .ucWlanIndex = 1, .ucTxCount = 1, .u2TxRate = 0x2c, .ucFlag = 0 };
 
 		lines = 0; event(EVENT_ID_TX_DONE, 0, &td, sizeof(td), 8 + sizeof(td), 8 + sizeof(td));

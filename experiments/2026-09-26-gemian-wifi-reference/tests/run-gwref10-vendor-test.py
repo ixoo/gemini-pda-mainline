@@ -27,7 +27,7 @@ STRUCTS = {  # name -> header
     'CMD_SET_BSS_RLM_PARAM_T': 'include/nic_cmd_event.h',
     'CMD_SET_BSS_INFO': 'include/nic_cmd_event.h', 'EVENT_ADD_KEY_DONE_INFO': 'include/nic_cmd_event.h',
     'EVENT_TX_DONE_T': 'include/nic_cmd_event.h', 'EVENT_ACTIVATE_STA_REC_T': 'include/nic_cmd_event.h',
-    'EVENT_LINK_QUALITY_EX': 'include/nic_cmd_event.h', 'CHANNEL_INFO_T': 'include/nic_cmd_event.h',
+    'CHANNEL_INFO_T': 'include/nic_cmd_event.h',
     'EVENT_SCAN_DONE': 'include/nic_cmd_event.h', 'EVENT_CH_PRIVILEGE_T': 'include/nic_cmd_event.h',
     'EVENT_BSS_BEACON_TIMEOUT_T': 'include/nic_cmd_event.h', 'EVENT_STA_AGING_TIMEOUT_T': 'include/nic_cmd_event.h',
     'EVENT_RX_ADDBA_T': 'include/nic/que_mgt.h', 'EVENT_RX_DELBA_T': 'include/nic/que_mgt.h',
@@ -56,8 +56,8 @@ MACROS = {
                              'HAL_MAC_TX_DESC_GET_HEADER_FORMAT', 'HAL_MAC_TX_DESC_GET_TID', 'HAL_MAC_TX_DESC_IS_PROTECTION'],
     'include/nic/mac.h': ['MAC_ADDR_LEN', 'MASK_FC_TYPE', 'MASK_FC_SUBTYPE', 'MAC_FRAME_TYPE_MGT', 'MAC_FRAME_PROBE_RSP',
                           'MAC_FRAME_BEACON', 'IS_BMCAST_MAC_ADDR', 'EQUAL_MAC_ADDR', 'ELEM_MAX_LEN_SSID'],
-    'include/config.h': ['HW_BSSID_NUM', 'CFG_RX_MAX_PKT_SIZE'],
     'include/nic_cmd_event.h': ['EVENT_HDR_SIZE'],
+    'include/config.h': ['HW_BSSID_NUM', 'CFG_RX_MAX_PKT_SIZE'],
     'os/linux/include/gl_typedef.h': ['BIT', 'BITS', 'OFFSET_OF'],
 }
 # Fields of our own minimal stand-in structures, audited against the real declarations.
@@ -73,13 +73,35 @@ FIELDS = {
 
 
 def block(text, name):
-    """The verbatim typedef struct block ending in '} NAME' with no preprocessor line inside."""
+    """The typedef struct block ending in '} NAME' from preprocessed header text (so a definition that the
+    pinned configuration compiles out, such as EVENT_LINK_QUALITY_EX, is absent and the fixture fails)."""
     end = re.search(r'^\}\s*' + re.escape(name) + r'\s*[,;].*$', text, re.M)
-    assert end, 'struct %s not found' % name
+    assert end, 'struct %s not found in the preprocessed pinned headers' % name
     start = text.rfind('typedef struct', 0, end.start())
     body = text[start:end.end()]
     assert not re.search(r'^\s*#', body, re.M), 'preprocessor line inside ' + name
     return body
+
+
+def preprocess_header(tree, rel):
+    """The header as the kernel build sees it: the real config.h and the Makefile's -D flags, then cpp."""
+    with tempfile.TemporaryDirectory(prefix='gwref10-cpp-') as tmp:
+        shim = pathlib.Path(tmp) / 'shim.h'
+        shim.write_text('typedef unsigned char UINT_8, BOOLEAN, BOOL, *PUINT_8, *P_UINT_8; typedef signed char INT_8;\n'
+                        'typedef unsigned short UINT_16; typedef unsigned int UINT_32; typedef int INT_32;\n'
+                        'typedef unsigned long long UINT_64; typedef void *PVOID; typedef void VOID;\n')
+        source = pathlib.Path(tmp) / 'header.c'
+        source.write_text('#include "config.h"\nGWREF10_MARKER\n#include "%s"\n' % (tree / rel))
+        # gl_vendor.h pulls in Linux headers and defines no type used here; an empty stand-in
+        # in the temporary include directory lets the pinned declarations preprocess without a
+        # kernel tree.
+        (pathlib.Path(tmp) / 'gl_vendor.h').write_text('')
+        out = subprocess.run(['cpp', '-P', '-nostdinc', '-undef', '-include', str(shim), '-I', tmp,
+                              '-I', str(tree / 'include'), '-I', str(tree / 'include/nic'),
+                              '-I', str(tree / 'include/mgmt'), '-I', str(tree / 'os/linux/include')]
+                             + makefile_defines(tree) + [str(source)],
+                             check=True, capture_output=True, text=True).stdout
+    return out.split('GWREF10_MARKER', 1)[1]
 
 
 def enum_block(text, member):
@@ -162,19 +184,51 @@ def main():
         for name in names:
             out.append(macro_lines(text(rel), name))
     out.append(preprocess_enums(tree, [enum_block(text(rel), member) for member, rel in ENUM_MEMBERS.items()]))
+    preprocessed = {}
     for name in STRUCT_ORDER:
-        out.append(block(text(STRUCTS[name]), name))
+        rel = STRUCTS[name]
+        if rel not in preprocessed:
+            preprocessed[rel] = preprocess_header(tree, rel)
+        out.append(block(preprocessed[rel], name))
+    # The feature flags that decide which declarations exist, resolved exactly as the kernel build does.
+    resolved = subprocess.run(['cpp', '-P', '-nostdinc', '-undef', '-I', str(tree / 'include')] + makefile_defines(tree) + ['-'],
+                              input='#include "config.h"\nGWREF10_MARKER CFG_SUPPORT_P2P_RSSI_QUERY CFG_ENABLE_WIFI_DIRECT\n',
+                              check=True, capture_output=True, text=True).stdout.split('GWREF10_MARKER', 1)[1].split()
+    assert resolved[0] == '0', 'CFG_SUPPORT_P2P_RSSI_QUERY must resolve to 0 in the pinned configuration: %r' % resolved
+    assert 'EVENT_LINK_QUALITY_EX' not in preprocessed['include/nic_cmd_event.h'], \
+        'EVENT_LINK_QUALITY_EX must be compiled out of the pinned headers'
+    assert 'EVENT_LINK_QUALITY_V2' in preprocessed['include/nic_cmd_event.h']
+    code = re.sub(r'/\*.*?\*/', '', SOURCE.read_text(), flags=re.S)   # comments may name it; code may not
+    assert 'EVENT_LINK_QUALITY_EX' not in code, 'the observer must not use the compiled-out link-quality structure'
     header = '\n'.join(out) + '\n'
     with tempfile.TemporaryDirectory(prefix='gwref10-vendor-') as tmp:
         tmp = pathlib.Path(tmp)
         (tmp / 'gwref10-vendor-gen.h').write_text(header)
         if os.environ.get('GWREF10_KEEP_HEADER'):
             pathlib.Path(os.environ['GWREF10_KEEP_HEADER']).write_text(header)
-        binary = tmp / 'gwref10-vendor-test'
-        subprocess.run(['cc', '-std=gnu99', '-O1', '-g', '-fsanitize=address,undefined', '-fno-omit-frame-pointer',
-                        '-Wall', '-Wextra', '-Werror', '-Wno-unused-parameter', '-pthread',
-                        '-I', str(tmp), '-I', str(HERE), '-o', str(binary), str(HERE / 'gwref10-vendor-test.c')], check=True)
-        sys.exit(subprocess.run([str(binary)], timeout=120).returncode)
+        # Two oracles of the same fixture: the sanitized build (heap, stack and undefined-behaviour
+        # instrumentation report a helper bug deterministically) and a plain build. The sanitized
+        # binary runs with address-space randomisation off, as the other C fixtures do, and with the
+        # sanitizer's signal handlers disabled: on this host the ASan runtime was twice observed
+        # spinning in its own DEADLYSIGNAL handler without ever printing a bug report, so a signal
+        # now ends the process with the default action instead of looping until the timeout.
+        common = ['cc', '-std=gnu99', '-O1', '-Wall', '-Wextra', '-Werror', '-Wno-unused-parameter', '-pthread',
+                  '-I', str(tmp), '-I', str(HERE), str(HERE / 'gwref10-vendor-test.c')]
+        sanitized = tmp / 'gwref10-vendor-test.asan'
+        plain = tmp / 'gwref10-vendor-test.plain'
+        subprocess.run(common + ['-g', '-fsanitize=address,undefined', '-fno-omit-frame-pointer', '-o', str(sanitized)], check=True)
+        subprocess.run(common + ['-o', str(plain)], check=True)
+        env = dict(os.environ, ASAN_OPTIONS='handle_segv=0:handle_sigbus=0:handle_sigfpe=0:handle_abort=0:detect_leaks=1',
+                   UBSAN_OPTIONS='halt_on_error=1:print_stacktrace=1')
+        machine = os.uname().machine
+        results = {}
+        for label, argv in (('sanitized', ['setarch', machine, '-R', str(sanitized)]), ('plain', [str(plain)])):
+            try:
+                results[label] = subprocess.run(argv, env=env, timeout=120).returncode
+            except subprocess.TimeoutExpired:
+                results[label] = 'timeout'
+            print('%s fixture exit=%s' % (label, results[label]))
+        sys.exit(0 if all(rc == 0 for rc in results.values()) else 1)
 
 
 if __name__ == '__main__':

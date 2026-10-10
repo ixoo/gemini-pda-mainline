@@ -56,7 +56,6 @@ SCHEMA = {
     ('event', 'keydone'): [{'seq': U, 'bss': U, 'sta': C}],
     ('event', 'txdone'): [{'seq': U, 'pid': U, 'status': U, 'sn': U, 'wlan': U, 'count': U, 'rate': U, 'flag': U}],
     ('event', 'starec'): [{'seq': U, 'sta': U, 'bss': U, 'peer': C}],
-    ('event', 'linkq'): [{'seq': U, 'rdy': U, 'speed': U, 'busy': U}],
     ('event', 'scandone'): [{'seq': U, 'scanseq': U, 'sparse': U}],
     ('event', 'chpriv'): [{'seq': U, 'bss': U, 'token': U, 'status': U, 'channel': U, 'band': U, 'width': U,
                            'reqtype': U, 'grant_ms': U}],
