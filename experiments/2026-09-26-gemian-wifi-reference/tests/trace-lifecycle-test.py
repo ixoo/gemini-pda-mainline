@@ -82,9 +82,17 @@ def object_present():
     return absent_until is None or state('tick', 0) >= absent_until
 set_state('tick', state('tick', 0) + 1)
 if args == ['services']:
-    flag = '*AO' if state('connected') else '*A '
+    # print_service flags: favourite, AutoConnect, state (R ready / O online / blank)
+    flag = '*' + ('A' if state('autoconnect') else ' ') + ('O' if state('connected') else ' ')
+    # discovered neighbour networks: inactive wifi services are always listed
+    print('    Neighbour One        wifi_02aabbccddee_4e65696768626f7572_managed_psk')
     if object_present():
         print('%%s Net Work             %%s' %% (flag, S))
+    if scenario('second_active_service'):
+        print('  R Other Active         wifi_02aabbccddef_4f746865720a_managed_psk')   # active without * or A
+    if scenario('duplicate_active_service'):
+        print('*AO Net Work             %%s' %% S)
+    print('    Neighbour Two        wifi_02aabbccdd00_4e6569676862_managed_none')
 elif args[:1] == ['services'] and len(args) == 2:
     if scenario('lose_identity_during_readiness') and object_present() and not state('connected'):
         with open(os.path.join(ROOT, 'proc/sys/kernel/random/boot_id'), 'w') as f:
@@ -298,6 +306,30 @@ class ExecutorTest(unittest.TestCase):
         dev.run()
         self.assertEqual(dev.rc, 2)
         self.assertIn('not the bound target', dev.stderr)
+        # a second active wifi service without favourite or AutoConnect flags: refused before any change
+        # (inactive neighbours alone are accepted by every other scenario)
+        dev = self.device({'second_active_service': True}).run()
+        self.assertEqual(dev.rc, 2)
+        self.assertIn('expected exactly one active wifi service', dev.stderr)
+        self.assertEqual(dev.ops().count('connmanctl'), 1)
+        # the approved service listed twice as active: refused
+        dev = self.device({'duplicate_active_service': True}).run()
+        self.assertEqual(dev.rc, 2)
+        self.assertIn('expected exactly one active wifi service', dev.stderr)
+        # no active wifi service at preflight: refused
+        dev = self.device({})
+        dev.root.joinpath('state.json').write_text(json.dumps({'connected': False, 'autoconnect': True, 'target': TARGET, 'n': 0}))
+        (dev.root / 'sys/class/net/wlan0/carrier').write_text('1\n')
+        dev.run()
+        self.assertEqual(dev.rc, 2)
+        self.assertIn('expected exactly one active wifi service', dev.stderr)
+        # the single active service is not the approved one
+        dev = self.device({})
+        (dev.root / 'bound/approved-service').write_text('wifi_0211223344aa_4e657420576f726c_managed_psk\n')
+        os.chmod(dev.root / 'bound/approved-service', 0o600)
+        dev.run()
+        self.assertEqual(dev.rc, 2)
+        self.assertIn('not the approved one', dev.stderr)
         self.assertNotIn('connmanctl connect', dev.ops())
         self.assertNotIn('connmanctl disconnect', dev.ops())
 

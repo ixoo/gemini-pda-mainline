@@ -102,9 +102,16 @@ done
 [[ "$(cat "$battery/present")" == 1 && "$(cat "$battery/health")" == Good ]] || fail 'battery not present and Good'
 python3 "$check" bound-files >/dev/null || fail 'bound files invalid'
 services=$(bounded 10 connmanctl services) || fail 'connmanctl services failed'
-[[ "$(grep -c ' wifi_' <<<"$services")" == 1 ]] || fail 'expected exactly one wifi service'
-service=$(awk '/^\*A[OR] / && $NF ~ /^wifi_/ {print $NF; exit}' <<<"$services")
-[[ -n "$service" ]] || fail 'no active wifi service'
+# connmanctl (client/services.c print_service, identical at the Gemian package's
+# a884432) prints three independent flag characters: favourite '*' or ' ',
+# AutoConnect 'A' or ' ', state 'R' ready / 'O' online / other. Discovered
+# neighbour networks appear as inactive wifi services. Exactly one wifi service
+# may be ready or online, judged by the state character alone with the two flag
+# positions validated, so an original AutoConnect=False or non-favourite active
+# service is still admitted; it must then be the approved one.
+active_wifi=$(awk '/^[* ][A ][OR] / && $NF ~ /^wifi_/ {print $NF}' <<<"$services")
+[[ "$(grep -c . <<<"$active_wifi")" == 1 && -n "$active_wifi" ]] || fail 'expected exactly one active wifi service'
+service=$active_wifi
 printf '%s' "$service" | python3 "$check" service-match >/dev/null || fail 'connected service is not the approved one'
 link=$(bounded 5 "$iw" dev wlan0 link) || fail 'iw link failed'
 python3 "$check" link-match <<<"$link" >/dev/null || fail 'the association is not the bound target'

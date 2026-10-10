@@ -207,8 +207,12 @@ any other read failure, stops at an exact byte bound and ends normally on
 `SIGTERM` with a `bytes capped drops failure stopped_by` report; the seal
 requires that clean stop. The private files `/root/.gemini-wifi-reference/
 approved-service` and `ap-target.json` are validated by the helper (regular
-file, owner root, mode 0600, one link, schema); the connected service must be
-the only wifi service and equal the approved one; the association must equal
+file, owner root, mode 0600, one link, schema); exactly one wifi service may
+be `ready` or `online` by the state character of `connmanctl services`
+(the favourite and AutoConnect flags are not consulted, so an original
+AutoConnect of `False` is still admitted) and it must equal the approved
+one, while discovered neighbour networks listed as inactive services are
+accepted; the association must equal
 the bound target through `iw dev wlan0 link` with iw 4.9's exact SSID
 escaping (interior spaces kept, leading or trailing spaces, the backslash and
 non-ASCII bytes as `\xNN`); only booleans are exported. Exit codes: 0
