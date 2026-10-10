@@ -758,6 +758,12 @@ checkout that lacks the private artifacts:
   private checkout's copies, and rebinds `BASELINE` and `SERVICE` through the
   session module tree when the host loads `passive-session.py`. The installer is
   the public `install-passive.py`, used directly and by the host's `run_path`.
+  Run the session only through `laptop-session.py`: invoking `passive-host.py`
+  directly reads the public copies of the frozen return workflow
+  (`a53-ram-return-v2.py`, `a53-ram-return.py`) and `finish-baseline.py`, which
+  the 2026-10-05 hygiene commit changed, and the exact pins refuse them
+  (first as "Gemian return v2 source changed"); the private checkout's
+  retained copies are the pinned bytes. The pins themselves are unchanged.
 
 Pinned digests still apply to every remapped file, so the private copies must
 be identical to this checkout's. The wrappers contain no host-specific path;

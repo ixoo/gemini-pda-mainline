@@ -1,12 +1,27 @@
-# Twelfth Phase B deployment, runtime 13: candidate 13 composed, not installed
+# Twelfth Phase B deployment, runtime 13: candidate 13 installed, awaiting the C2 session
 
-Status: candidate 13 is composed and offline-validated by the owner on the
-laptop with the reviewed composer at `6c27507c`; it is not installed, no
-device action has happened, and the device remains in changed-boot Gemian
-`999c7b7-431c…` with the installed candidate 11 (full padded boot2
-`1c491341…`) as the predecessor. Installation and the owner's physical boot2
-start follow this record; the owner alone prepares and executes the guarded
-installer once these bindings are reviewed.
+Status: candidate 13 is installed and fully read back; the owner started
+boot2 physically and verified, read-only, release
+`7.1.3-gemini-a53-wifi-phase-b-compile` on boot `70a29cb9…` with the USB
+route ready. No radio, capture or session has run yet; runtime 13 is the
+planned first C2 measurement, executed exactly once by the laptop as sole
+custodian after the offline preflights pass.
+
+The [guarded deployment receipt](results/deployment-13.json) (the owner's
+22-field summary, SHA-256 `e2094028…`) pins candidate 13: receipt
+`adc7a4a5…`, full padded boot2 `ec412ce9…`, written over predecessor
+candidate 11 `1c491341…`, synced and flushed, with the independent full
+16 MiB byte readback matching. The installer was prepared from source
+`dda1aebe` (generated installer SHA-256 `0158a71a…`; syntax and ShellCheck
+passed) and executed once under the standing boot2 authorization; both live
+GPT guards passed on Gemian boot `2999c7b7…`, target `179:30`, non-root
+`179:29`, stable power; no fresh predecessor backup, temporary readback
+removed, evidence flushed, clean shutdown confirmed unreachable, nothing
+rebooted. The runtime-13 evidence root holds `session-13` with that summary
+and no `capture-13`.
+
+Composition: candidate 13 was composed and offline-validated by the owner
+with the reviewed composer at `6c27507c`.
 
 Candidate 12 (receipt `e8d9900f…`, compile 17) was composed, held and never
 installed: before any boot, the pinned wpa_supplicant 2.11 was found to
