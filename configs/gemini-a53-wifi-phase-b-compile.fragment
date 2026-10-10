@@ -4,3 +4,10 @@
 CONFIG_LOCALVERSION="-gemini-a53-wifi-phase-b-compile"
 # Build copied callback snapshots; event/TX admission starts closed.
 CONFIG_MT6797_STATION_JOIN=y
+# The pinned static wpa_supplicant 2.11 opens one PF_PACKET socket per
+# interface (l2_packet_linux.c, l2_packet_init) to learn its own address even
+# when EAPOL travels over the nl80211 control port; gemini-usbdiag.fragment
+# unsets PACKET for the diagnostic link. Runtime 14 measured
+# "socket(PF_PACKET): Address family not supported by protocol" and
+# "Failed to add interface wlan0". Restore the defconfig value; nothing else.
+CONFIG_PACKET=y
