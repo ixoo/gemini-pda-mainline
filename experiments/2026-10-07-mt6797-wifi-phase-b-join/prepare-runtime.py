@@ -17,12 +17,12 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-RECEIPT = HERE / 'results/candidate-18.json'
+RECEIPT = HERE / 'results/candidate-19.json'
 COMMIT = '4be81db83258790a107a7d47f01f8402e23b685e'
 PACKAGE = '295e881b1e7b851675f7f80a2c255e60896395b898ba6ced6f036d5bf09a6461'
 RELEASE = '7.1.3-gemini-a53-wifi-phase-b-compile'
-PREDECESSOR = '5135b2f8d5d8a8d64b507cd635f29511207392a4525327b27c6a7ecc9d80985a'
-EVIDENCE, CAPTURE, SESSION = 'wifi-phase-b', 'capture-19', 'session-19'
+PREDECESSOR = 'dfdf6bcbbfa7c3c367434b3b81ca914eb0a5d4c0c7b7e779c5d2bf6953ebe51a'
+EVIDENCE, CAPTURE, SESSION = 'wifi-phase-b', 'capture-20', 'session-20'
 
 
 def refuse(reason):
@@ -55,22 +55,22 @@ def main():
     if not body.startswith(b'TARGET_SSID=') or \
             not body.endswith((HERE / 'join-once.sh').read_bytes()):
         refuse('GEMINI_JOIN_SCRIPT does not wrap the reviewed join-once.sh')
-    # Runtime 19 is the supplicant-owned C2 session: the private binder must
+    # Runtime 20 is the supplicant-owned C2 session: the private binder must
     # have added the PSK and the hex SSID (never printed here).
     if b'\nWPA_PSK_HEX=' not in body or b'\nTARGET_SSID_HEX=' not in body:
         refuse('GEMINI_JOIN_SCRIPT is not the PSK-bound C2 script')
     if not RECEIPT.is_file() or RECEIPT.is_symlink():
-        refuse('results/candidate-18.json is not committed yet')
+        refuse('results/candidate-19.json is not committed yet')
     digest = hashlib.sha256(RECEIPT.read_bytes()).hexdigest()
     receipt = json.loads(RECEIPT.read_bytes())
     if (receipt.get('kernel_build_commit') != COMMIT or
             receipt.get('kernel_package_sha256') != PACKAGE or
             receipt.get('kernel_release') != RELEASE or
             receipt.get('physical_admission') is not False):
-        refuse('results/candidate-18.json is not the package-18 candidate')
+        refuse('results/candidate-19.json is not the package-19 candidate')
     for name in ('install-passive.py', 'capture-private.py'):
         if slot(name) != digest:
-            refuse(name + ' MANIFEST_SHA slot is not the committed candidate-18 receipt')
+            refuse(name + ' MANIFEST_SHA slot is not the committed candidate-19 receipt')
     root = runtime / EVIDENCE
     for name in (CAPTURE, SESSION):
         if (root / name).exists() or (root / name).is_symlink():
@@ -83,7 +83,7 @@ def main():
                       'left_absent_for_capture_claim': CAPTURE,
                       'candidate_manifest_sha256': digest,
                       'candidate_boot2_sha256': receipt['files']['boot2-padded.img']['sha256'],
-                      'predecessor_sha256': PREDECESSOR, 'deployment_receipt': 'deployment-18',
+                      'predecessor_sha256': PREDECESSOR, 'deployment_receipt': 'deployment-19',
                       'device_action': 'none'}, indent=2))
 
 

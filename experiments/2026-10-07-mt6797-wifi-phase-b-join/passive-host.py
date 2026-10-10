@@ -13,8 +13,8 @@ import sys
 sys.dont_write_bytecode = True
 HERE = Path(__file__).resolve().parent
 PRIVATE_REPO = Path(os.environ['GEMINI_PRIVATE_REPO']).resolve(strict=True)
-ROOT = Path(os.environ['GEMINI_RUNTIME_ROOT']).resolve(strict=True) / 'wifi-phase-b/session-19'
-CAPTURE = Path(os.environ['GEMINI_RUNTIME_ROOT']).resolve(strict=True) / 'wifi-phase-b/capture-19'
+ROOT = Path(os.environ['GEMINI_RUNTIME_ROOT']).resolve(strict=True) / 'wifi-phase-b/session-20'
+CAPTURE = Path(os.environ['GEMINI_RUNTIME_ROOT']).resolve(strict=True) / 'wifi-phase-b/capture-20'
 RELEASE = '7.1.3-gemini-a53-wifi-phase-b-compile'
 SOURCE = HERE.parent / '2026-10-02-mt6797-scan-tuning-sample/passive-host.py'
 SPEC = importlib.util.spec_from_file_location('scan_tuning_host', SOURCE)
@@ -32,11 +32,11 @@ SCAN.PARENT.WIPHY_PROBE = SCAN.PARENT.WIPHY_PROBE.replace(
     b'7.1.3-gemini-a53-wifi-scan-tuning-sample', RELEASE.encode())
 HOST = SCAN.HOST
 # The inherited WMT host main reads HERE/results/candidate.json for the capture
-# identity check. Runtime 19 must compare against the candidate-18 receipt, so
-# bind only that module's HERE to runtime-19/, whose results/candidate.json is a
-# byte copy of results/candidate-18.json once that receipt is committed; the
+# identity check. Runtime 20 must compare against the candidate-19 receipt, so
+# bind only that module's HERE to runtime-20/, whose results/candidate.json is a
+# byte copy of results/candidate-19.json once that receipt is committed; the
 # earlier runtime-N/ copies stay bound to their runtimes.
-HOST.HERE = HERE / 'runtime-19'
+HOST.HERE = HERE / 'runtime-20'
 HOST.ROOT = ROOT
 HOST.CAPTURE = CAPTURE
 HOST.DOMAIN.HERE = HERE
@@ -170,9 +170,9 @@ def main():
     parser.add_argument('--execute', action='store_true')
     args = parser.parse_args()
     os.umask(0o077)
-    # Runtime 19 is the supplicant-owned C2 session with the private log export.
+    # Runtime 20 is the supplicant-owned C2 session with the private log export.
     if not C2_SCRIPT:
-        parser.exit(2, 'runtime 19 requires the PSK-bound C2 join script\n')
+        parser.exit(2, 'runtime 20 requires the PSK-bound C2 join script\n')
     phase_a = CAPTURE / 'phase-a-result.json'
     ready = (phase_a.is_file() and
              json.loads(phase_a.read_bytes()).get('ready_for_scan') is True)
