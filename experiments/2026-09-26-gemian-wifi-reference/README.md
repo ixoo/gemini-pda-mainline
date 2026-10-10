@@ -946,6 +946,24 @@ v8 count. The bounded one-boot test is complete. This supports D0+D2 as a
 working temporary *Gemian* copy policy, not effective permission precedence,
 exclusive ownership or a safe mainline EMI write. Raw logs remain private.
 
+## v10 candidate and installer binding (2026-10-10)
+
+The custodian composed v10 with `build-candidate.py v10` at `680d7d60` from the
+validated `95a72c7b` package and the retained primary image `1fa78de9…`:
+raw boot image `e203b81d…` (15003648 bytes), full padded boot2 `8d3289a1…`
+(16 MiB), candidate inventory `7e9a9e36…`, RAM disk `a1ee0544…` unchanged.
+[results/candidate-v10.json](results/candidate-v10.json) records those
+digests as reported by the custodian's composer run. `prepare-installer.py
+v10` binds the guarded installer to that candidate, to the boot2 predecessor
+`5d9aa34b…` (the installed Phase B candidate 19), to the current stock Gemian
+boot `cf68b54a…` (release `3.18.41+`) and to deployment
+`gemian-wifi-reference-deployment-10`; the installer is generated and run by
+the custodian only. Nothing is installed and no device action has happened.
+`lifecycle/collect-boot-v10.py` is the finite read-only LAN collector the
+custodian arms before the physical boot2 handoff (expecting the v10 release)
+and before the ordinary return reboot (expecting `3.18.41+`); its fixture
+mocks SSH.
+
 ## v10 build receipt (2026-10-10)
 
 The first kernel-only build at `fd11d907` failed: the observer used

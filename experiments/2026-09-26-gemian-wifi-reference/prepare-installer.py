@@ -87,6 +87,16 @@ INSTALLS = {
         'boot_id': '77d578c4-b0bf-458e-ae16-d002c86e784e',
         'release': '3.18.41+',
     },
+    'v10': {
+        # The installed Phase B candidate 19 is the boot2 predecessor; the current
+        # stock Gemian boot is the verified installing boot.
+        'candidate': '8d3289a10b7956d7fb55f4d74f0b1902f507cbadfdf6b20ebac654030df2d55f',
+        'manifest': '7e9a9e3642c98d0eb8c5f904c394538b2586654e63b9dbd88bd38a51a2fe6e17',
+        'predecessor': '5d9aa34b72cf3d8c86a53e7e000ec91f4478d52449c617c9e006f618232c560a',
+        'deployment': 'gemian-wifi-reference-deployment-10',
+        'boot_id': 'cf68b54a-7a3d-4949-8e1e-db1784cdc7df',
+        'release': '3.18.41+',
+    },
 }
 
 
@@ -146,7 +156,7 @@ def main():
                      '[[ "$predecessor_sha256" == ' + selected['predecessor'] +
                      ' || "$predecessor_sha256" == "$CANDIDATE_SHA256" ]] ||\n' +
                      '\tdie \'unexpected boot2 predecessor\'\n')
-    if args.revision in ('v3', 'v4', 'v5', 'v6', 'v7', 'v8', 'v9'):
+    if args.revision in ('v3', 'v4', 'v5', 'v6', 'v7', 'v8', 'v9', 'v10'):
         source = replace(source,
                          '[[ "$initial_boot_id" =~ ^[0-9a-f-]{36}$ ]] || die \'malformed initial boot ID\'\n',
                          '[[ "$initial_boot_id" == ' + selected['boot_id'] + ' ]] ||\n'

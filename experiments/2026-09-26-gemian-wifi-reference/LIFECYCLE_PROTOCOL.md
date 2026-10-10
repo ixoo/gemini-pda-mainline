@@ -363,8 +363,19 @@ use, with no new boot control and no retry:
    re-read on the v10 boot before use).
 3. One ordinary restart: `sync` once, then `/bin/systemctl reboot` once, with
    no force option and no special boot target, exactly as that experiment's
-   reviewed request; the changed-boot collector is armed beforehand as in the
-   reference sessions (`collect-v*-return`).
+   reviewed request; the changed-boot collector is armed beforehand:
+   `lifecycle/collect-boot-v10.py <ssh alias> <approved key> <v10 boot id>
+   3.18.41+ <new private directory> --deadline 180` (the same tool, armed
+   before the physical boot2 handoff with the stock boot ID and
+   `3.18.41-gemini-wifi-ref10+` and a 900 s deadline, confirms the v10 boot).
+   It polls the LAN SSH path read-only with the approved identity, each call
+   bounded, until a boot other than the given predecessor appears on
+   `aarch64` with the exact expected release, captures `dmesg` (through
+   `sudo -n`), `/proc/cmdline`, the `wlan0` carrier and address into the
+   private directory (0700, files 0600), re-reads the identity after the
+   captures, and writes a receipt holding only boot IDs, release,
+   architecture, sizes, digests, timings and booleans. No pstore, radio,
+   reboot or other write happens on the device.
 4. Verification before any mainline work: the collector observes a changed
    boot ID and release `3.18.41+` (the default primary Gemian) over the LAN,
    and the custodian confirms the known-good endpoint; a missing change, an
