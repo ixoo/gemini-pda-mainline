@@ -390,6 +390,14 @@ order only) and reports `channel_released`, `data_phase_end_reason`,
 phase ended by budget or disconnect, at least one acknowledged and one
 delivered unicast frame; never a network-function claim).
 
+Session tooling for the combined boot (host-tested only): the join script's
+bounded `udhcpc` and `ping` checks inside the data phase with fixed count
+fields and no printed address, the laptop's one bounded authenticated SSH
+exchange over Wi-Fi bound to the launched boot
+([laptop-wifi-ssh.py](laptop-wifi-ssh.py)), the C3 session conjunction and
+the 130 s host phase budget; see
+[RUNTIME_21_PREPARATION.md](RUNTIME_21_PREPARATION.md).
+
 Checks on the authoring tree at 0167: every host fixture of this experiment
 (`tests/run-*.py`: config, data-rx, data-tx, eapol, events, handoff, hif,
 key, ownership, peer, rates, refused, scan-rates, scan-report, security,

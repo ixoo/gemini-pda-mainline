@@ -38,7 +38,8 @@ assert SOURCE.index('umask 077') < SOURCE.index('/bin/wpa_supplicant ')
 # The supplicant's exit, whatever it is, is collected under set +e and the
 # configuration is removed only after that exit; the framed result follows.
 c2 = SOURCE.split('stage=supplicant_config')[1].split('stage=boot_after')[0]
-assert c2.index('set +e') < c2.index('wait "$supplicant_pid"') < c2.index('supplicant_exit=$?') < c2.index('set -e') < c2.index('rm -f "$conf"')
+waited = c2.index('wait "$supplicant_pid"')
+assert c2.rfind('set -e', 0, waited) < c2.rfind('set +e', 0, waited) < waited < c2.index('supplicant_exit=$?') < c2.index('set -e', waited) < c2.index('rm -f "$conf"')
 assert 'sleep 1\n    $BB rm -f "$conf"' not in SOURCE and c2.index('rm -f "$conf"') < c2.index('supplicant_phrases')
 assert 'ssid=%s' in c2 and 'ssid="' not in c2 and '"$TARGET_SSID_HEX"' in c2
 # The wait ends only at the exact terminal record (final cleanup stage 3 with
@@ -47,7 +48,8 @@ assert 'ssid=%s' in c2 and 'ssid="' not in c2 and '"$TARGET_SSID_HEX"' in c2
 terminal_re = re.search(r"terminal_re='([^']+)'", c2).group(1)
 assert terminal_re == 'one-shot WLAN join (cleanup: stage=3 credits=returned slots=retired deauth=[01]|stopped:)'
 assert 'grep -Eq "$terminal_re"' in c2 and "cleanup:|stopped:" not in c2
-assert c2.index('terminal=1') < c2.index('set +e') < c2.index('kill "$supplicant_pid"')
+killed = c2.index('kill "$supplicant_pid"')
+assert c2.index('terminal=1') < c2.rfind('set +e', 0, killed) < killed
 assert 'lifecycle=intermediate' in c2 and 'join_lifecycle=%s' in SOURCE
 for line, matches in ((b'one-shot WLAN join cleanup: stage=3 credits=returned slots=retired deauth=1', True),
                       (b'one-shot WLAN join cleanup: stage=3 credits=returned slots=retired deauth=0', True),
@@ -75,7 +77,18 @@ assert "tr 'A-Z: /-' 'a-z____'" in SOURCE and "grep -cF -- 'nl80211: Received sc
 assert "'WPA: RX message 3" not in phrases, 'message 3 carries the RSN: prefix on the WPA2 path'
 # The channel-40 state is sampled every tick of the wait and the during-join
 # observation is reported next to the after-exit state.
-loop = c2.split('while [ "$tick" -lt 24 ]; do')[1].split('done')[0]
+loop = c2.split('while [ "$tick" -lt 100 ]; do')[1].split('done')[0]
+# Phase C3: the data checks run once when the driver records the open data phase,
+# every step bounded by busybox timeout; only statuses, counts and the prefix
+# length are printed, never the lease, router or any address; the private lease
+# files are removed before the phrases.
+assert 'data_checks' in loop and "grep -q 'one-shot WLAN join data phase: budget_ms='" in loop
+checks = c2.split('data_checks() {')[1].split('\n    }\n')[0]
+assert '$BB timeout 20 $BB udhcpc -i wlan0 -f -n -q -t 4 -T 3 -s' in checks and '$BB timeout 12 $BB ping -c 3 -W 2' in checks
+assert 'printf' not in ''.join(l for l in checks.splitlines() if 'router' in l and 'cat' in l and 'ping' not in l)
+printed = re.search(r"data_phase_seen=%s\\ntool_udhcpc=%s\\ntool_ping=%s\\ndhcp_exit=%s\\ndhcp_bound=%s\\ndhcp_prefix=%s\\nlease_written=%s\\nping_transmitted=%s\\nping_received=%s\\n' (.*)$", SOURCE, re.M).group(1)
+assert '$data_dir/lease' not in printed and 'router' not in printed and '$ip' not in printed, printed
+assert c2.index('rm -f "$data_dir/lease" "$data_dir/router" "$data_dir/prefix" "$data_dir/dhcp.sh"') < c2.index('supplicant_phrases')
 assert 'channel40_flag' in loop and 'channel40_ir_during_join=1' in loop and 'channel40_ir_ticks=$((channel40_ir_ticks + 1))' in loop
 assert "channel40_ir_during_join=%s\\nchannel40_ir_ticks=%s\\n" in SOURCE
 # The key derivation maps exactly the separators ':', ' ', '/' and '-' to '_'.

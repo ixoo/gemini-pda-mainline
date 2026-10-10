@@ -89,8 +89,8 @@ with tempfile.TemporaryDirectory(prefix='mt6797-c2-host-') as directory:
         host.SCAN.prepare = lambda candidate: {**prepared, 'claim': {
             **prepared['claim'], 'passive_scan_script_sha256': 'deadbeef'}}
         outer = host.prepare_with_c2(None)
-        assert outer['execute'].__globals__['BUDGETS']['passive-scan'] == (45, 262144)
-        assert outer['claim']['phase_budgets']['passive-scan']['seconds'] == 45
+        assert outer['execute'].__globals__['BUDGETS']['passive-scan'] == (130, 262144)
+        assert outer['claim']['phase_budgets']['passive-scan']['seconds'] == 130
         assert outer['claim']['passive_scan_script_sha256'] == 'private-psk-bound'
         assert host.select_prepare(True) is host.prepare_with_c2
         assert host.select_prepare(False) is host.c2_prepare

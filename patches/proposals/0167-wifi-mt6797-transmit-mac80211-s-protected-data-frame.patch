@@ -1,4 +1,4 @@
-From d1e5433763835b0814c2d9d4a636b84a82dd54ee Mon Sep 17 00:00:00 2001
+From 836b7f51219111d5770711ef72fc6d25b4e5312e Mon Sep 17 00:00:00 2001
 From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
 Date: Sat, 10 Oct 2026 21:34:38 +0000
 Subject: [PATCH 167/167] wifi: mt6797: transmit mac80211's protected data
@@ -285,7 +285,7 @@ index b125a8b1a..f4dcc5268 100644
 +}
  #endif
 diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
-index e4424f50e..d984744c7 100644
+index 545bbacad..a5459d762 100644
 --- a/drivers/net/wireless/mediatek/mt6797/mac.c
 +++ b/drivers/net/wireless/mediatek/mt6797/mac.c
 @@ -34,6 +34,13 @@
@@ -316,7 +316,7 @@ index e4424f50e..d984744c7 100644
  
  	u64 scan_deadline, scan_started_ns;
  	unsigned int scan_channels, scan_count, scan_polls, scan_packets;
-@@ -712,6 +726,15 @@ static int mt6797_mac_join_guard(struct mt6797_mac *mac, u64 deadline)
+@@ -713,6 +727,15 @@ static int mt6797_mac_join_guard(struct mt6797_mac *mac, u64 deadline)
  				 account.released_pages, mac->join_page_debt);
  			return -EPROTO;
  		}
@@ -332,7 +332,7 @@ index e4424f50e..d984744c7 100644
  		mac->join_page_debt -= account.released_pages;
  #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
  		if (account.released_pages)
-@@ -1075,10 +1098,11 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+@@ -1076,10 +1099,11 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
  	mac->join_data_end_reason = reason;
  	mac->join_hold_until = ktime_get_ns();
  	dev_info(wiphy_dev(mac->hw->wiphy),
@@ -346,7 +346,7 @@ index e4424f50e..d984744c7 100644
  }
  
  /* Release the channel privilege after the group key's credit, as the pinned
-@@ -1198,7 +1222,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -1199,7 +1223,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
  		mt6797_mac_join_end_data(mac, "budget");
  #endif
  	branch = 3;
@@ -355,7 +355,7 @@ index e4424f50e..d984744c7 100644
  		spin_lock_irqsave(&mac->join_queue.lock, flags);
  		skb = NULL;
  		if (mac->join_open) {
-@@ -1213,11 +1237,27 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -1214,11 +1238,27 @@ static void mt6797_mac_join_work(struct work_struct *work)
  
  			skb_queue_walk_safe(&mac->join_queue, walk, tmp) {
  				bool data = (get_unaligned_le16(walk->data) & 0x0c) == 0x08;
@@ -383,7 +383,7 @@ index e4424f50e..d984744c7 100644
  				__skb_unlink(walk, &mac->join_queue);
  				skb = walk;
  				break;
-@@ -1248,11 +1288,19 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -1249,11 +1289,19 @@ static void mt6797_mac_join_work(struct work_struct *work)
  				 * from address 2, type from the SNAP header, the EAPOL
  				 * body after the 32-byte header); the mac80211 skb is
  				 * untouched and stays the frame whose status is reported.
@@ -404,7 +404,7 @@ index e4424f50e..d984744c7 100644
  					ret = -EINVAL;
  					goto failed;
  				}
-@@ -1264,6 +1312,20 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -1265,6 +1313,20 @@ static void mt6797_mac_join_work(struct work_struct *work)
  				mac->join_last_acked = false;
  				reinit_completion(&mac->join_frame_done);
  				pages = (MT6797_JOIN_TX_DESC_BYTES + eth_bytes + 127) / 128;
@@ -425,7 +425,7 @@ index e4424f50e..d984744c7 100644
  				ret = mt6797_hif_send_security(mac->hif, mac->join_eth, eth_bytes,
  							       1, mac->join_pid, 500, 3, deadline);
  				if (ret)
-@@ -1352,7 +1414,26 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -1353,7 +1415,26 @@ static void mt6797_mac_join_work(struct work_struct *work)
  				IEEE80211_SKB_CB(completed)->flags &= ~IEEE80211_TX_STAT_ACK;
  				if (ack)
  					IEEE80211_SKB_CB(completed)->flags |= IEEE80211_TX_STAT_ACK;
@@ -453,7 +453,7 @@ index e4424f50e..d984744c7 100644
  					ret = -ENOLINK;
  					goto failed;
  				}
-@@ -2765,6 +2846,40 @@ static void mt6797_mac_tx(struct ieee80211_hw *hw,
+@@ -2766,6 +2847,40 @@ static void mt6797_mac_tx(struct ieee80211_hw *hw,
  		if (accepted)
  			return;
  	}

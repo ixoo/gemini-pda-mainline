@@ -28,7 +28,10 @@ PHRASES = {'nl80211__received_scan_results': b'nl80211: Received scan results',
            'ctrl_event_connected': b'CTRL-EVENT-CONNECTED',
            'ctrl_event_disconnected': b'CTRL-EVENT-DISCONNECTED'}
 FIELDS = ('supplicant_exit', 'supplicant_log_bytes', 'channel40_ir_after_beacon', 'channel40_query_exit',
-          'channel40_lines', 'channel40_ir_during_join', 'channel40_ir_ticks', 'connect_exit', 'join_terminal')
+          'channel40_lines', 'channel40_ir_during_join', 'channel40_ir_ticks', 'connect_exit', 'join_terminal',
+          # Phase C3 data checks on the device: fixed counts and statuses, never an address.
+          'data_phase_seen', 'tool_udhcpc', 'tool_ping', 'dhcp_exit', 'dhcp_bound', 'dhcp_prefix', 'lease_written',
+          'ping_transmitted', 'ping_received')
 LOG_PATH = '/tmp/mt6797-wifi-phase-b-1/wpa.log'
 LOG_LIMIT = 2 * 1024 * 1024
 BOOT_RE = r'[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}'
@@ -151,3 +154,23 @@ def session_pass(join, fields, log, userspace, session_verified):
                 log.get('complete') is True and log.get('bytes') and
                 log.get('bytes') == fields.get('supplicant_log_bytes') and
                 log.get('phrases') == counts)
+
+
+def c3_session_pass(join, fields, log, userspace, session_verified, wifi_ssh):
+    """The C3 session conjunction: the C2 conjunction, the driver's data-path
+    pass (channel released, data phase ended by its budget or a disconnect,
+    frames acknowledged and delivered at the firmware boundary), the device's
+    bounded network checks (the data phase seen, udhcpc bound with a sane
+    prefix length, at least one ping reply from the router) and the laptop's
+    bounded authenticated SSH exchange over Wi-Fi bound to the same boot (its
+    receipt carries statuses and byte counts, never the address). No
+    throughput, replay-protection or operational claim.
+    """
+    return bool(session_pass(join, fields, log, userspace, session_verified) and
+                join.get('driver_data_path_pass') and
+                fields.get('data_phase_seen') == 1 and fields.get('tool_udhcpc') == 1 and fields.get('tool_ping') == 1 and
+                fields.get('dhcp_bound') == 1 and fields.get('lease_written') == 1 and
+                fields.get('dhcp_prefix') is not None and 8 <= fields.get('dhcp_prefix') <= 30 and
+                (fields.get('ping_received') or 0) >= 1 and
+                wifi_ssh.get('lease_seen') is True and wifi_ssh.get('ssh_exit') == 0 and
+                wifi_ssh.get('boot_match') is True)

@@ -158,8 +158,55 @@ if [ -n "${WPA_PSK_HEX:-}" ]; then
     # private RAM log created here under umask 077 (mode 0600). No -K.
     /bin/wpa_supplicant -Dnl80211 -iwlan0 -c "$conf" -d > "$wpa_log" 2>&1 &
     supplicant_pid=$!
-    # One bounded wait (at most 24 s): the supplicant's own scan, join and
-    # handshake, then the driver's lifetime ends with its deauthentication and
+    # Phase C3 data checks, run once when the driver records the open data
+    # phase: busybox udhcpc (foreground, at most 4 tries of 3 s, one lease,
+    # its script configures the interface-specific address and default route
+    # and writes the private lease and router files), then busybox ping to the
+    # router (3 requests, 2 s each). Each step is bounded by busybox timeout.
+    # Only counts, exit statuses and the prefix length are printed; addresses
+    # stay in the private RAM files, which the laptop's bounded Wi-Fi SSH
+    # check reads over the authenticated USB path and which are removed
+    # before the framed result ends.
+    data_dir=/tmp/mt6797-wifi-phase-b-1
+    data_phase_seen=0
+    tool_udhcpc=0
+    tool_ping=0
+    dhcp_exit=255
+    dhcp_bound=0
+    dhcp_prefix=0
+    lease_written=0
+    ping_transmitted=0
+    ping_received=0
+    data_checks() {
+        if $BB --list | $BB grep -qx udhcpc; then tool_udhcpc=1; fi
+        if $BB --list | $BB grep -qx ping; then tool_ping=1; fi
+        [ "$tool_udhcpc" = 1 ] || return 0
+        # shellcheck disable=SC2016  # the hook's own variables stay literal
+        $BB printf '#!/bin/sh\nBB=/bin/busybox\ndir=%s\ncase "$1" in\n  bound|renew)\n    [ -n "$mask" ] || mask=24\n    $BB ip addr add "$ip/$mask" dev "$interface" 2>/dev/null || true\n    for r in $router; do\n      if $BB ip route add default via "$r" dev "$interface" 2>/dev/null; then $BB printf %%s "$r" > "$dir/router"; break; fi\n    done\n    $BB printf %%s "$mask" > "$dir/prefix"\n    $BB printf %%s "$ip" > "$dir/lease"\n    ;;\nesac\n' "$data_dir" > "$data_dir/dhcp.sh"
+        $BB chmod 700 "$data_dir/dhcp.sh"
+        set +e
+        $BB timeout 20 $BB udhcpc -i wlan0 -f -n -q -t 4 -T 3 -s "$data_dir/dhcp.sh" > "$data_dir/udhcpc.log" 2>&1
+        dhcp_exit=$?
+        set -e
+        if [ -f "$data_dir/lease" ] && [ -f "$data_dir/prefix" ]; then
+            dhcp_bound=1
+            lease_written=1
+            dhcp_prefix=$($BB cat "$data_dir/prefix")
+            printf %s "$dhcp_prefix" | $BB grep -Eq '^[0-9]{1,2}$' || dhcp_prefix=0
+        fi
+        if [ "$dhcp_bound" = 1 ] && [ "$tool_ping" = 1 ] && [ -f "$data_dir/router" ]; then
+            set +e
+            $BB timeout 12 $BB ping -c 3 -W 2 "$($BB cat "$data_dir/router")" > "$data_dir/ping.log" 2>&1
+            set -e
+            ping_transmitted=$($BB sed -n 's/^\([0-9][0-9]*\) packets transmitted, \([0-9][0-9]*\) packets received.*/\1/p' "$data_dir/ping.log" | $BB head -n 1)
+            ping_received=$($BB sed -n 's/^\([0-9][0-9]*\) packets transmitted, \([0-9][0-9]*\) packets received.*/\2/p' "$data_dir/ping.log" | $BB head -n 1)
+            [ -n "$ping_transmitted" ] || ping_transmitted=0
+            [ -n "$ping_received" ] || ping_received=0
+        fi
+    }
+    # One bounded wait (at most 100 s): the supplicant's own scan, join and
+    # handshake, the driver's data phase of at most 60 s with the data checks
+    # inside it, then the driver's lifetime ends with its deauthentication and
     # teardown. A supplicant that fails or exits early cannot abort this
     # script before the framed result and the private log are complete.
     # Terminal records only: the exact final cleanup record (stage 3, credits
@@ -180,9 +227,13 @@ if [ -n "${WPA_PSK_HEX:-}" ]; then
     current_log=
     channel40_ir_during_join=0
     channel40_ir_ticks=0
-    while [ "$tick" -lt 24 ]; do
+    while [ "$tick" -lt 100 ]; do
         [ "$($BB cat /proc/sys/kernel/random/boot_id)" = "$EXPECTED_BOOT" ]
         current_log=$($BB dmesg)
+        if [ "$data_phase_seen" = 0 ] && printf '%s\n' "$current_log" | $BB grep -q 'one-shot WLAN join data phase: budget_ms='; then
+            data_phase_seen=1
+            data_checks
+        fi
         channel40_flag
         if [ "$channel40" = 1 ]; then
             channel40_ir_during_join=1
@@ -209,6 +260,7 @@ if [ -n "${WPA_PSK_HEX:-}" ]; then
     supplicant_exit=$?
     set -e
     $BB rm -f "$conf"
+    $BB rm -f "$data_dir/lease" "$data_dir/router" "$data_dir/prefix" "$data_dir/dhcp.sh"
     stage=supplicant_phrases
     # Fixed phrases only, counted; the complete log is preserved privately.
     # CTRL-EVENT-SCAN-RESULTS is sent only to attached control-interface
@@ -232,6 +284,7 @@ if [ -n "${WPA_PSK_HEX:-}" ]; then
     channel40_flag
     $BB printf 'channel40_ir_after_beacon=%s\nchannel40_query_exit=%s\nchannel40_lines=%s\nchannel40_words=%s\n' "$channel40" "$channel40_query_exit" "$channel40_lines" "$channel40_words"
     $BB printf 'channel40_ir_during_join=%s\nchannel40_ir_ticks=%s\n' "$channel40_ir_during_join" "$channel40_ir_ticks"
+    $BB printf 'data_phase_seen=%s\ntool_udhcpc=%s\ntool_ping=%s\ndhcp_exit=%s\ndhcp_bound=%s\ndhcp_prefix=%s\nlease_written=%s\nping_transmitted=%s\nping_received=%s\n' "$data_phase_seen" "$tool_udhcpc" "$tool_ping" "$dhcp_exit" "$dhcp_bound" "$dhcp_prefix" "$lease_written" "$ping_transmitted" "$ping_received"
     stage=boot_after
     $BB printf '__JOIN_END__\nconnect_exit=%s\njoin_terminal=%s\njoin_lifecycle=%s\n' "$supplicant_exit" "$terminal" "$lifecycle"
     boot_after=$($BB cat /proc/sys/kernel/random/boot_id)

@@ -53,8 +53,8 @@ WIPHY_PREPARE = SCAN.PREPARE
 
 def c2_prepare(candidate):
     """The wiphy-probe prepare plus the C2 session pieces, applied before the
-    scan-tuning prepare captures the phase invoker: a 45 s budget for the
-    supplicant-owned join (its 24 s loop plus setup and phrase counts), one
+    scan-tuning prepare captures the phase invoker: a 130 s budget for the
+    supplicant-owned join (its 100 s loop plus setup and phrase counts), one
     bounded private export of the complete supplicant log between the join
     script and the log seal, and no hash of the PSK-bound script in the claim.
     """
@@ -91,8 +91,10 @@ def prepare_with_c2(candidate):
     prepared = SCAN.prepare(candidate)
     if C2_SCRIPT:
         globals_ = prepared['execute'].__globals__
-        globals_['BUDGETS']['passive-scan'] = (45, 262144)
-        prepared['claim']['phase_budgets']['passive-scan']['seconds'] = 45
+        # Phase C3: the join script's wait grows to 100 ticks (the driver's 60 s
+        # data phase with the bounded data checks inside it, then the teardown).
+        globals_['BUDGETS']['passive-scan'] = (130, 262144)
+        prepared['claim']['phase_budgets']['passive-scan']['seconds'] = 130
         # The bound script carries the PSK; its digest is private evidence only.
         prepared['claim']['passive_scan_script_sha256'] = 'private-psk-bound'
     return prepared

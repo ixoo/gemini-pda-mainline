@@ -1,4 +1,4 @@
-From e29f77a42b50d8b31fa7af4ad4f42e488da16d75 Mon Sep 17 00:00:00 2001
+From dcca0ec3da3b7238c3193a08fbd77e90f0e79e09 Mon Sep 17 00:00:00 2001
 From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
 Date: Sat, 10 Oct 2026 21:35:51 +0000
 Subject: [PATCH 165/167] wifi: mt6797: release the channel privilege after the
@@ -31,11 +31,11 @@ reason elapsed_ms" and "cleanup submission: stage=1 released=1".
 
 Unsigned experiment draft; archive identity is non-certifying.
 ---
- drivers/net/wireless/mediatek/mt6797/mac.c | 150 +++++++++++++++++++--
- 1 file changed, 138 insertions(+), 12 deletions(-)
+ drivers/net/wireless/mediatek/mt6797/mac.c | 151 +++++++++++++++++++--
+ 1 file changed, 139 insertions(+), 12 deletions(-)
 
 diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
-index c42141b4a..80f6bc863 100644
+index c42141b4a..de6d1ec38 100644
 --- a/drivers/net/wireless/mediatek/mt6797/mac.c
 +++ b/drivers/net/wireless/mediatek/mt6797/mac.c
 @@ -23,6 +23,16 @@
@@ -72,7 +72,15 @@ index c42141b4a..80f6bc863 100644
  
  	u64 scan_deadline, scan_started_ns;
  	unsigned int scan_channels, scan_count, scan_polls, scan_packets;
-@@ -995,6 +1015,18 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
+@@ -114,6 +134,7 @@ static bool mt6797_mac_finish_scan(struct mt6797_mac *mac, int *status,
+ 				   bool cancel);
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ static int mt6797_mac_join_retire_idle_bss(struct mt6797_mac *mac);
++static int mt6797_mac_join_wait_credit(struct mt6797_mac *mac);
+ #endif
+ #endif
+ 
+@@ -995,6 +1016,18 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
  		ret = mt6797_hif_join_remove_station(mac->hif, mac->sequence++, deadline);
  		break;
  	case 1:
@@ -91,7 +99,7 @@ index c42141b4a..80f6bc863 100644
  		ret = mt6797_hif_join_channel(mac->hif, mac->sequence++,
  					      mac->join_channel_token, 40, 0, true, deadline);
  		break;
-@@ -1014,6 +1046,71 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
+@@ -1014,6 +1047,71 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
  }
  #endif
  
@@ -163,7 +171,7 @@ index c42141b4a..80f6bc863 100644
  static void mt6797_mac_join_work(struct work_struct *work)
  {
  	struct mt6797_mac *mac = container_of(to_delayed_work(work),
-@@ -1059,7 +1156,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -1059,7 +1157,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
  	}
  #endif
  	if (mac->scan_active || mac->first_error || mac->closing ||
@@ -172,7 +180,7 @@ index c42141b4a..80f6bc863 100644
  					(mac->join_inflight && now >= mac->join_frame_deadline)) {
  		ret = -ETIMEDOUT;
  		goto failed;
-@@ -1076,6 +1173,11 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -1076,6 +1174,11 @@ static void mt6797_mac_join_work(struct work_struct *work)
  	ret = mt6797_mac_join_guard(mac, deadline);
  	if (ret)
  		goto failed;
@@ -184,7 +192,7 @@ index c42141b4a..80f6bc863 100644
  	branch = 3;
  	if (!mac->join_inflight && !mac->join_page_debt) {
  		spin_lock_irqsave(&mac->join_queue.lock, flags);
-@@ -1110,9 +1212,14 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -1110,9 +1213,14 @@ static void mt6797_mac_join_work(struct work_struct *work)
  			/* Linearize in process context; never retain a borrowed STA pointer. */
  			now = ktime_get_ns();
  			grant_end = min(mac->join_deadline, mac->join_grant_deadline);
@@ -202,7 +210,7 @@ index c42141b4a..80f6bc863 100644
  				ret = -EINVAL;
  				goto failed;
  			}
-@@ -1189,7 +1296,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -1189,7 +1297,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
  				ret = 0;
  				continue;
  			}
@@ -211,7 +219,7 @@ index c42141b4a..80f6bc863 100644
  				goto failed;
  			got = true;
  			branch = 5;
-@@ -2170,9 +2277,14 @@ static int mt6797_mac_join_request_cleanup(struct mt6797_mac *mac)
+@@ -2170,9 +2278,14 @@ static int mt6797_mac_join_request_cleanup(struct mt6797_mac *mac)
  	if (ktime_get_ns() + 1200 * NSEC_PER_MSEC >= mac->join_deadline)
  		return -ETIMEDOUT;
  	if (mac->join_sta_active) {
@@ -228,7 +236,7 @@ index c42141b4a..80f6bc863 100644
  			return -ETIMEDOUT;
  		skb = dev_alloc_skb(26);
  		if (!skb)
-@@ -2219,6 +2331,15 @@ static void mt6797_mac_mgd_prepare_tx(struct ieee80211_hw *hw,
+@@ -2219,6 +2332,15 @@ static void mt6797_mac_mgd_prepare_tx(struct ieee80211_hw *hw,
  
  	mutex_lock(&mac->mutex);
  	if (mac->join_cleanup_requested || mac->join_cleanup_done) {
@@ -244,7 +252,7 @@ index c42141b4a..80f6bc863 100644
  		mutex_unlock(&mac->mutex);
  		return;
  	}
-@@ -2304,7 +2425,6 @@ static int mt6797_mac_set_key(struct ieee80211_hw *hw, enum set_key_cmd cmd,
+@@ -2304,7 +2426,6 @@ static int mt6797_mac_set_key(struct ieee80211_hw *hw, enum set_key_cmd cmd,
  	struct mt6797_mac *mac = hw->priv;
  	bool pairwise = key->flags & IEEE80211_KEY_FLAG_PAIRWISE;
  	unsigned long flags;
@@ -252,7 +260,7 @@ index c42141b4a..80f6bc863 100644
  	int ret;
  
  	if (cmd == DISABLE_KEY)
-@@ -2368,10 +2488,14 @@ static int mt6797_mac_set_key(struct ieee80211_hw *hw, enum set_key_cmd cmd,
+@@ -2368,10 +2489,14 @@ static int mt6797_mac_set_key(struct ieee80211_hw *hw, enum set_key_cmd cmd,
  	} else {
  		mac->join_key_group = 1;
  		mac->join_group_key_id = key->keyidx;
@@ -271,7 +279,7 @@ index c42141b4a..80f6bc863 100644
  	}
  	mutex_unlock(&mac->mutex);
  	return 0;
-@@ -2415,6 +2539,8 @@ static int mt6797_mac_sta_state(struct ieee80211_hw *hw,
+@@ -2415,6 +2540,8 @@ static int mt6797_mac_sta_state(struct ieee80211_hw *hw,
  			bool close = true;
  
  			mutex_lock(&mac->mutex);

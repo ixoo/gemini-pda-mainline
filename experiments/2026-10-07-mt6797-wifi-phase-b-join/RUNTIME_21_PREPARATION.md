@@ -75,6 +75,7 @@ reconnected or rekeyed.
 | TC4 pool | 26 pages (unchanged); TC1 pool 16 pages, both declared host budgets |
 | Session join phase | the device script waits at most 100 ticks of 1 s for the terminal record; `udhcpc` at most 4 tries of 3 s; `ping` 3 requests, 2 s each, 8 s overall |
 | Host phase budget | the passive-scan phase budget rises from 45 s to 130 s; the supplicant-log export stays 20 s |
+| Wi-Fi SSH check | lease poll 10..120 s (default 90), one exchange, connect timeout at most 5 s, exchange at most 25 s |
 
 ## Evidence and claims
 
@@ -85,6 +86,40 @@ supplicant log exported and digested. `driver_handshake_path_pass` and
 firmware boundary; `wifi_operational` stays false; a lease and ping replies
 are the only network-function evidence and are reported as such. No
 installed-key, replay-protection or throughput claim follows.
+
+## Session tools (implemented, host-tested, not yet run on the device)
+
+- `join-once.sh` waits up to 100 ticks for the terminal record; when the
+  driver records `data phase: budget_ms=`, it runs the data checks once:
+  busybox `udhcpc` (foreground, 4 tries of 3 s, under a 20 s busybox
+  timeout) with a hook that adds the leased address and the default route on
+  `wlan0` only and writes the private lease, prefix and router files; then
+  busybox `ping` to the router (3 requests, 2 s each, 12 s timeout). The
+  framed result gains the fixed fields `data_phase_seen`, `tool_udhcpc`,
+  `tool_ping`, `dhcp_exit`, `dhcp_bound`, `dhcp_prefix`, `lease_written`,
+  `ping_transmitted` and `ping_received`; no address is printed, and the
+  private files are removed before the phrases.
+- `laptop-wifi-ssh.py` (laptop, custodian-run) polls the private lease file
+  over the authenticated USB SSH path within a 10 to 120 s budget, then opens
+  exactly one SSH session over Wi-Fi to the leased address with the approved
+  identity (IdentitiesOnly, no agent, strict host-key checking, the device's
+  host key through HostKeyAlias, no key updates), runs one read-only command
+  printing the boot identity and requires it to equal the launched boot. Its
+  receipt holds statuses, byte counts and seconds only; the exchange is a few
+  hundred bytes, far inside the TC1 budget. One attempt, no retry.
+- `c2-session.py` gains `c3_session_pass`: the C2 conjunction, the driver's
+  data-path pass, the device's bounded network outcomes (phase seen, both
+  tools present, lease bound with a prefix between 8 and 30, at least one
+  ping reply) and the Wi-Fi SSH receipt (lease seen, exit 0, boot match).
+  `passive-host.py` raises the join phase budget to 130 s.
+- Fixtures: `tests/join-once-test.py` (bounded commands, no address in the
+  printed fields, private files removed), `tests/laptop-wifi-ssh-test.py`
+  (lease polling, one bound exchange, identity options, boot mismatch, failed
+  and timed-out exchange, malformed leases), `tests/c2-session-test.py`,
+  `tests/c2-host-test.py`.
+
+The actual tool execution on the device (busybox applet presence recorded by
+`tool_udhcpc` and `tool_ping`) is verified only by the run itself.
 
 ## Device protocol
 

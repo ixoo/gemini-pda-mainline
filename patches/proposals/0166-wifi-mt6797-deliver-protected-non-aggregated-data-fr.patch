@@ -1,4 +1,4 @@
-From 94bc71cb2c3c5ff462d25bbc1a4310eefc78f511 Mon Sep 17 00:00:00 2001
+From 5ee0d4ccc3041d5084eae060d45fda6fd17edc42 Mon Sep 17 00:00:00 2001
 From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
 Date: Sat, 10 Oct 2026 21:23:22 +0000
 Subject: [PATCH 166/167] wifi: mt6797: deliver protected non-aggregated data
@@ -205,7 +205,7 @@ index 000000000..985551622
 +}
 +#endif
 diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
-index 80f6bc863..e4424f50e 100644
+index de6d1ec38..545bbacad 100644
 --- a/drivers/net/wireless/mediatek/mt6797/mac.c
 +++ b/drivers/net/wireless/mediatek/mt6797/mac.c
 @@ -19,6 +19,7 @@
@@ -242,7 +242,7 @@ index 80f6bc863..e4424f50e 100644
  
  	u64 scan_deadline, scan_started_ns;
  	unsigned int scan_channels, scan_count, scan_polls, scan_packets;
-@@ -967,6 +980,10 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
+@@ -968,6 +981,10 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
  		mac->join_open = false;
  		mac->join_running = false;
  		spin_unlock_irqrestore(&mac->join_queue.lock, flags);
@@ -253,7 +253,7 @@ index 80f6bc863..e4424f50e 100644
  		dev_info(wiphy_dev(mac->hw->wiphy),
  			 "one-shot WLAN join cleanup: stage=3 credits=returned slots=retired deauth=%u\n",
  			 mac->join_deauth_done);
-@@ -1058,9 +1075,10 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+@@ -1059,9 +1076,10 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
  	mac->join_data_end_reason = reason;
  	mac->join_hold_until = ktime_get_ns();
  	dev_info(wiphy_dev(mac->hw->wiphy),
@@ -266,7 +266,7 @@ index 80f6bc863..e4424f50e 100644
  }
  
  /* Release the channel privilege after the group key's credit, as the pinned
-@@ -1118,6 +1136,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -1119,6 +1137,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
  	struct mt6797_hif_rx_result rx;
  	struct mt6797_eapol_rx eapol;
  	struct mt6797_join_group_data group;
@@ -274,7 +274,7 @@ index 80f6bc863..e4424f50e 100644
  	struct mt6797_join_action_frame action;
  	struct mt6797_join_tx_result result;
  	struct mt6797_join_rx_frame frame;
-@@ -1416,6 +1435,87 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -1417,6 +1436,87 @@ static void mt6797_mac_join_work(struct work_struct *work)
  				continue;
  			}
  #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
