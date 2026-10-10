@@ -39,7 +39,7 @@ class FakeDevice:
             return Result(0, ('%s\n%s\n%s\n' % (boot, self.machine, self.release)).encode())
         if remote.startswith('sudo -n dmesg'):
             return Result(1) if self.fail_dmesg else Result(0, b'[    0.000000] Booting Linux\n')
-        if remote.startswith('cat /proc/cmdline'):
+        if remote.startswith('sudo -n cat /proc/cmdline'):
             return Result(0, b'console=tty0 androidboot.serialno=SECRET\n')
         if remote.startswith('cat /sys/class/net/wlan0/carrier'):
             return Result(0, b'1\n')
@@ -75,6 +75,7 @@ class CollectorTest(unittest.TestCase):
         self.assertEqual(receipt['identity_before']['boot_id'], NEW)
         self.assertEqual(receipt['identity_after'], receipt['identity_before'])
         self.assertEqual(sorted(receipt['files']), ['addr.txt', 'carrier.txt', 'cmdline.txt', 'dmesg.log'])
+        self.assertTrue(any(cmd[-1] == 'sudo -n cat /proc/cmdline' for cmd, _ in device.calls))
         self.assertEqual(stat.S_IMODE(out.stat().st_mode), 0o700)
         for name in receipt['files']:
             self.assertEqual(stat.S_IMODE((out / name).stat().st_mode), 0o600)

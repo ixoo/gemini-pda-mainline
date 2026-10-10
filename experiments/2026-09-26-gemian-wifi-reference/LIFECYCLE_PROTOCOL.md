@@ -223,19 +223,18 @@ and channel) through `iw dev wlan0 link` before the cycle and after the
 measured connect, and the run exports only the booleans
 `target_match_before` and `target_match`; a connect that lands on another
 BSSID or band stops the sequence, so the reference cannot roam within the
-run. The v10 binding is the currently configured home network: the same
-SSID as the mainline runs but a different BSSID on channel 161 (5805 MHz),
-whereas runtime 20 was bound to channel 40 (5200 MHz); the old binding is
-preserved privately. The comparison with runtime 20 is therefore a
-same-network, different-access-point and different-channel comparison, never
-an identical-AP one, and the records say so. That identifier does appear in the custodian's own command lines on
+run. The v10 boot's live association, read by the custodian before the
+cycle, matched the historical runtime-20 target exactly (same SSID, BSSID,
+channel 40 at 5200 MHz); the channel-161 association seen earlier belonged
+to the stock boot, and the custodian restores the original private binding
+before the cycle. The final target statement follows the cycle's receipt. That identifier does appear in the custodian's own command lines on
 the device and in the private output files; the only sanitized product is the
 parsed `gwref10` ledger.
 
 1. Gates, nothing changed on failure: `uname -r` equals the v10 release,
    boot ID matches, `wlan0` carrier 1, `/sbin/iw dev wlan0 link` reports
    connected, an IPv4 address and default route exist, battery present and
-   `Good`, external supply present, `/sys/module/wlan_gen3/parameters/gwref10`
+   `Good` (power admission below), `/sys/module/wlan_gen3/parameters/gwref10`
    reads `0`, `/dev/kmsg` readable, commands present (`connmanctl`, `ip`,
    `ping`, `timeout`, `systemd-run`, `sha256sum`, `/sbin/iw`), the approved
    service matches, and its `AutoConnect` property is recorded.
@@ -316,6 +315,23 @@ parsed `gwref10` ledger.
     restored and `AutoConnect` verified; otherwise `AutoConnect` stays off,
     the receipt says so, and the custodian's reviewed recovery path takes
     over.
+
+Power admission for this cycle: the cycle writes nothing but private
+evidence files on the shared rootfs and lasts under five minutes of Wi-Fi
+activity, so it uses the battery rule the reviewed boot2 installer already
+applies to its far larger write: battery present, health `Good` and
+capacity at least 80, or at least 40 with an external supply online. The
+executor's own gate checks present and `Good`; before launching, the
+custodian takes two samples of capacity, health and the `ac`, `usb` and
+`wireless` online flags one second apart and admits the run only when both
+samples show present, `Good` and capacity at least 80, recording them in the
+private launch note. An external supply is neither required nor inferred: a
+plug attached by the owner counts only when the native `online` flags read
+1, and a battery reporting `Not charging` is treated as unpowered. On the
+v10 boot of 2026-10-10 the native flags read 0 with the battery at 99,
+`Good` and `Not charging`, which satisfies this rule. Safety stops apply
+unchanged: unexpected heat, charging anomalies or a dropping capacity end
+the attempt.
 
 Counts stated in advance: two disconnects and one connect inside the capture,
 one restoration connect outside it, two `iw link` queries as positive

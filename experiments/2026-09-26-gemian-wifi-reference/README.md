@@ -965,13 +965,18 @@ back as `8d3289a1…`, battery stable at 98 and Good, clean shutdown confirmed
 unreachable, no automatic reboot; the deployment summary (SHA-256
 `834ed2cf…`) stays private on the laptop. The reviewed script and helpers
 are staged root-private on the device with their byte hashes, the approved
-service and target are valid, and no credential was copied. The bound target
-is the currently configured home network: the same SSID as the mainline runs
-but a different BSSID on channel 161 (5805 MHz) against runtime 20's channel
-40 (5200 MHz), with the old binding preserved; comparisons with runtime 20
-are same-network, different-AP and different-channel. The boot collector is
-armed for the v10 release; the owner's physical boot2 selection and the cycle
-are pending.
+service and target are valid, and no credential was copied. The v10 boot came
+up on 2026-10-10 (`aarch64`, `3.18.41-gemini-wifi-ref10+`, boot
+`49387658-8633-401c-88be-8880116699ba`, carrier 1, observer control 0,
+console level 7, staged tool hashes exact); the first 900 s collector run
+expired before the owner's handoff and a second 180 s read-only run captured
+the changed boot, with the kernel command line needing the `sudo -n` read
+fixed afterwards. The live association matched the historical runtime-20
+target exactly (channel 40, 5200 MHz); the channel-161 association recorded
+earlier was the stock boot's, and the custodian restores the original
+private binding. Power: native online flags 0, battery 99 `Good`
+`Not charging`, admitted under the protocol's battery rule. The cycle is
+pending.
 `lifecycle/collect-boot-v10.py` is the finite read-only LAN collector the
 custodian arms before the physical boot2 handoff (expecting the v10 release)
 and before the ordinary return reboot (expecting `3.18.41+`); its fixture

@@ -6,7 +6,7 @@ Run on the laptop by the custodian, armed before the owner's physical boot2 hand
 again before the ordinary return reboot. It polls the device over the LAN SSH path with
 the approved identity until a boot other than the given predecessor appears with the
 expected release on aarch64, or the deadline passes. On a changed boot it captures
-read-only snapshots (dmesg through sudo -n, /proc/cmdline, the wlan0 carrier and IPv4
+read-only snapshots (dmesg and /proc/cmdline through sudo -n, the wlan0 carrier and IPv4
 address) into a new private directory (mode 0700, files 0600), re-reads the identity
 after the captures, hashes every file and writes a receipt with sanitized identity only
 (boot IDs, release, architecture, sizes, digests, timings, booleans). It never writes on
@@ -27,7 +27,7 @@ RELEASE = re.compile(r'^[A-Za-z0-9._+-]{1,64}$')
 IDENTITY_COMMAND = 'cat /proc/sys/kernel/random/boot_id; uname -m; uname -r'
 SNAPSHOTS = (
     ('dmesg.log', 'sudo -n dmesg'),
-    ('cmdline.txt', 'cat /proc/cmdline'),
+    ('cmdline.txt', 'sudo -n cat /proc/cmdline'),   # mode 0440 root:radio on Gemian
     ('carrier.txt', 'cat /sys/class/net/wlan0/carrier'),
     ('addr.txt', 'ip -4 addr show dev wlan0'),
 )
