@@ -398,6 +398,13 @@ exchange over Wi-Fi bound to the launched boot
 the 130 s host phase budget; see
 [RUNTIME_21_PREPARATION.md](RUNTIME_21_PREPARATION.md).
 
+Candidate 20 composition pins: `build-candidate.py` now requires the compile-25
+input 84799218 and package `cca46f58…`; the built board DT digest, the parent
+RAM root, kernel configuration, PSCI and clock contracts, helper, supplicant
+and known userspace pins are unchanged (the package's DTB digest equals
+compile 24's). The custodian composes candidate 20 privately; the runtime-21,
+deployment-20 and host bindings follow its committed receipt.
+
 Compile 25 ([COMPILE_25.md](COMPILE_25.md)): the phase-B compile profile at
 84799218 with 0163 to 0167 built and validated on Buildbox-1 (attempt 1 at
 7422e4a5 failed on a missing forward declaration, fixed in 0165); zero driver
