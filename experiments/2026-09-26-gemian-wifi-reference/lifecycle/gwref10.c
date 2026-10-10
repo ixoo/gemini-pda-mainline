@@ -502,17 +502,27 @@ void gwref10_credit(const UINT_16 *released, const TX_TCQ_STATUS_T *tcq)
 }
 
 /*
- * nicRxFillRFB, after the descriptor fields are parsed. Only the 16-byte
- * descriptor and, within the delivered bytes, the frame-control word and the
- * destination's group bit of an untranslated header of at least 24 bytes, or
- * the Ethernet type of a translated header of at least 14 bytes. Beacons and
- * probe responses are counted as filtered, not recorded.
+ * nicRxFillRFB, after the descriptor fields are parsed. The descriptor's
+ * byte count must cover the 16-byte descriptor and be covered by the HIF
+ * delivered bytes; the header pointer the driver derived (status groups,
+ * padding, header offset) must lie inside that count, and the frame bytes
+ * read here (the frame-control word and the destination's group bit of an
+ * untranslated header, the Ethernet type and group bit of a translated one)
+ * must lie within the span from the header to the declared end. The driver's
+ * own u2PacketLen is reported but never used as a read bound: a short
+ * declared count makes its unsigned subtraction wrap. The raw status word is
+ * recorded so the analysis can apply the data path's own acceptance test
+ * (nicRxProcessDataPacket: FCS, cipher, ICV, MIC, length and fragment bits)
+ * instead of inferring acceptance from one flag. Beacons and probe responses
+ * are counted as filtered, not recorded. The observer only refuses its own
+ * reads; the driver's behaviour is unchanged.
  */
 void gwref10_rxd(P_SW_RFB_T prSwRfb)
 {
 	P_HW_MAC_RX_DESC_T d = prSwRfb->prRxStatus;
+	const UINT_8 *base = prSwRfb->pucRecvBuff;
 	const UINT_8 *hdr = (const UINT_8 *) prSwRfb->pvHeader;
-	unsigned int trans, fc = 0, grp = 0, eth = 0, have_fc = 0, declared;
+	unsigned int trans, fc = 0, grp = 0, eth = 0, have_fc = 0, declared, offset, span;
 
 	if (!gwref10_armed())
 		return;
@@ -521,12 +531,18 @@ void gwref10_rxd(P_SW_RFB_T prSwRfb)
 		return;
 	}
 	declared = HAL_RX_STATUS_GET_RX_BYTE_CNT(d);
-	if (!gwref10_rx_valid(prSwRfb, declared)) {
+	if (declared < sizeof(HW_MAC_RX_DESC_T) || !gwref10_rx_valid(prSwRfb, declared)) {
 		gwref10_record(GWREF10_RXD, "badlen=1 declared=%u hif=%u", declared, prSwRfb->u2GwrefHifLen);
 		return;
 	}
+	if (hdr < base + sizeof(HW_MAC_RX_DESC_T) || hdr > base + declared) {
+		gwref10_record(GWREF10_RXD, "badhdr=1 declared=%u hif=%u", declared, prSwRfb->u2GwrefHifLen);
+		return;
+	}
+	offset = (unsigned int) (hdr - base);
+	span = declared - offset;
 	trans = HAL_RX_STATUS_IS_HEADER_TRAN(d) ? 1 : 0;
-	if (!trans && prSwRfb->u2PacketLen >= 24) {
+	if (!trans && span >= 24) {
 		fc = hdr[0] | (hdr[1] << 8);
 		grp = hdr[4] & 1;
 		have_fc = 1;
@@ -535,17 +551,18 @@ void gwref10_rxd(P_SW_RFB_T prSwRfb)
 			gwref10_filtered(GWREF10_RXD);
 			return;
 		}
-	} else if (trans && prSwRfb->u2PacketLen >= 14) {
+	} else if (trans && span >= 14) {
 		eth = (hdr[12] << 8) | hdr[13];
 		grp = hdr[0] & 1;
 	}
 	gwref10_record(GWREF10_RXD,
-		       "type=%u len=%u hdrlen=%u pad=%u trans=%u bssid=%u wlan=%u tid=%u sec=%u mismatch=%u fmt=%u uc2me=%u mc=%u bc=%u grp=%u fc=0x%04x havefc=%u eth=0x%04x",
-		       (unsigned int) HAL_RX_STATUS_GET_PKT_TYPE(d), prSwRfb->u2PacketLen,
+		       "type=%u len=%u span=%u off=%u hdrlen=%u pad=%u trans=%u bssid=%u wlan=%u tid=%u sec=%u status=0x%04x mismatch=%u fmt=%u uc2me=%u mc=%u bc=%u grp=%u fc=0x%04x havefc=%u eth=0x%04x",
+		       (unsigned int) HAL_RX_STATUS_GET_PKT_TYPE(d), prSwRfb->u2PacketLen, span, offset,
 		       (unsigned int) HAL_RX_STATUS_GET_HEADER_LEN(d),
 		       (unsigned int) HAL_RX_STATUS_GET_HEADER_OFFSET(d), trans,
 		       (unsigned int) HAL_RX_STATUS_GET_BSSID(d), (unsigned int) HAL_RX_STATUS_GET_WLAN_IDX(d),
 		       (unsigned int) HAL_RX_STATUS_GET_TID(d), (unsigned int) HAL_RX_STATUS_GET_SEC_MODE(d),
+		       (unsigned int) d->u2StatusFlag,
 		       HAL_RX_STATUS_IS_CIPHER_MISMATCH(d) ? 1 : 0,
 		       (unsigned int) HAL_RX_STATUS_GET_PAYLOAD_FORMAT(d),
 		       HAL_RX_STATUS_IS_UC2ME(d) ? 1 : 0, HAL_RX_STATUS_IS_MC(d) ? 1 : 0,

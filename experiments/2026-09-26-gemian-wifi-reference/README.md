@@ -949,12 +949,17 @@ exclusive ownership or a safe mainline EMI write. Raw logs remain private.
 ## Lifecycle capture code for review (2026-10-10)
 
 [Patch 0010](patches/0010-diagnostic-record-Gemian-WLAN-firmware-boundary-life.patch)
-is the bounded observer (`gwref10`), with the single-use cycle script
-`trace-lifecycle-v10.sh`, the ledger parser `lifecycle/parse-lifecycle.py`,
-the laptop group trigger `lifecycle/lan-group-trigger.py` and fixtures under
-`tests/` (core races and caps, vendor helpers against the pinned
-declarations, parser, trigger, patch consistency). The builder lists the ten
-patches for release `3.18.41-gemini-wifi-ref10+`. Review only; no build.
+is the bounded observer (`gwref10`); `trace-lifecycle-v10.sh` with
+`lifecycle/cycle-check.py` is the single-use device executor; `lifecycle/
+parse-lifecycle.py` the ledger parser; `lifecycle/lan-group-trigger.py` and
+`lifecycle/laptop-trigger-window.py` the laptop side of the traffic window.
+Fixtures under `tests/` cover the observer core (races, caps, seal order,
+deadline, truncation), the vendor helpers against declarations extracted from
+the pinned tree under the sanitizers, the parser schema and verdicts, the
+device helper, the trigger, the window orchestration, the patch's
+consistency, and the executor against a fake device through its complete
+cycle and every failure path. The builder lists the ten patches for release
+`3.18.41-gemini-wifi-ref10+`. Review only; no build.
 
 ## Lifecycle capture protocol (2026-10-10)
 

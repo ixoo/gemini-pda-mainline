@@ -171,9 +171,10 @@ def main():
         if os.environ.get('GWREF10_KEEP_HEADER'):
             pathlib.Path(os.environ['GWREF10_KEEP_HEADER']).write_text(header)
         binary = tmp / 'gwref10-vendor-test'
-        subprocess.run(['cc', '-std=gnu99', '-O1', '-Wall', '-Wextra', '-Werror', '-Wno-unused-parameter', '-pthread',
+        subprocess.run(['cc', '-std=gnu99', '-O1', '-g', '-fsanitize=address,undefined', '-fno-omit-frame-pointer',
+                        '-Wall', '-Wextra', '-Werror', '-Wno-unused-parameter', '-pthread',
                         '-I', str(tmp), '-I', str(HERE), '-o', str(binary), str(HERE / 'gwref10-vendor-test.c')], check=True)
-        sys.exit(subprocess.run([str(binary)]).returncode)
+        sys.exit(subprocess.run([str(binary)], timeout=120).returncode)
 
 
 if __name__ == '__main__':

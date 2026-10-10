@@ -54,21 +54,26 @@ static int no_address_leak(void)
 	       !strstr(all, "de:ad") && !strstr(all, "deadbe") && !strstr(all, "0x11 0x22") && !strstr(all, "0x02, 0x11");
 }
 
+/* The buffer is exactly the delivered byte count (or the header when fewer were delivered), so a read
+ * beyond the delivered bytes is an out-of-bounds access the sanitizer reports. */
 static void event(UINT_8 eid, UINT_8 seq, const void *body, UINT_16 body_len, UINT_16 declared, UINT_16 hif)
 {
-	static UINT_8 buf[CFG_RX_MAX_PKT_SIZE + 64];
+	size_t alloc = hif > 8 ? hif : 8;
+	UINT_8 *buf = malloc(alloc);
 	WIFI_EVENT_T *e = (WIFI_EVENT_T *) buf;
 	SW_RFB_T rfb = { .pucRecvBuff = buf };
 
-	memset(buf, 0xff, sizeof(buf));	/* poisoned tail beyond the delivered bytes */
+	assert(buf);
+	memset(buf, 0xff, alloc);
 	e->u2PacketLength = declared;
 	e->u2PacketType = 0xe000;
 	e->ucEID = eid;
 	e->ucSeqNum = seq;
 	e->aucReserved[0] = e->aucReserved[1] = 0;
-	memcpy(e->aucBuffer, body, body_len);
+	memcpy(e->aucBuffer, body, body_len < alloc - 8 ? body_len : alloc - 8);
 	gwref10_rx_ingress(&rfb, hif);
 	gwref10_event(&adapter, &rfb);
+	free(buf);
 }
 
 int main(void)
@@ -112,7 +117,9 @@ int main(void)
 		gwref10_cmd(&adapter, &info);
 		assert(lines == 2);
 		assert(!strcmp(last, "<7>gwref10 cmd: n=5 key seq=10 addremove=1 tx=1 keytype=1 auth=0 bss=0 alg=4 keyid=0 keylen=16 wlan=1 peer=bss\n"));
-		assert(!strstr(all, "5a") || 1);	/* material bytes are never formatted: the record text is exact above */
+		/* The key material (0x5a) and RSC (0xa5) are never formatted: the record text is exact above,
+		 * and no run of their byte patterns appears anywhere in the output. */
+		assert(!strstr(all, "5a5a") && !strstr(all, "a5a5") && !strstr(all, "9090") && !strstr(all, "165165"));
 		/* group key to the broadcast peer; own, zero and other classes */
 		memcpy(k->aucPeerAddr, BCAST, 6); k->ucKeyType = 0; k->ucKeyId = 1;
 		gwref10_cmd(&adapter, &info);
@@ -223,46 +230,90 @@ int main(void)
 	/* --- receive descriptors --- */
 	arm();
 	{
-		static UINT_8 buf[CFG_RX_MAX_PKT_SIZE + 64];
-		HW_MAC_RX_DESC_T *d = (HW_MAC_RX_DESC_T *) buf;
-		UINT_8 *hdr = buf + sizeof(*d);
-		SW_RFB_T rfb = { .pucRecvBuff = buf, .prRxStatus = d, .pvHeader = hdr };
+		/* Each case allocates exactly the delivered bytes; pvHeader is placed as the driver would. */
+		UINT_8 *buf;
+		HW_MAC_RX_DESC_T *d;
+		SW_RFB_T rfb;
+#define RX_CASE(hifbytes) do { buf = malloc(hifbytes); assert(buf); memset(buf, 0xff, hifbytes); d = (HW_MAC_RX_DESC_T *) buf; \
+		memset(buf, 0, (hifbytes) < sizeof(*d) ? (hifbytes) : sizeof(*d)); rfb.pucRecvBuff = buf; rfb.prRxStatus = d; \
+		rfb.pvHeader = buf + sizeof(*d); gwref10_rx_ingress(&rfb, hifbytes); } while (0)
+#define RX_DONE() free(buf)
 
-		memset(buf, 0xff, sizeof(buf));
-		/* protected QoS data from the AP to us, untranslated, 24-byte header */
-		d->u2RxByteCount = 16 + 120; d->u2PktTYpe = 0x4000; d->ucMatchPacket = RX_STATUS_UC2ME;
+		/* protected QoS data from the AP to us, untranslated, 24-byte header, 120 bytes after the descriptor */
+		RX_CASE(136);
+		d->u2RxByteCount = 136; d->u2PktTYpe = 0x4000; d->ucMatchPacket = RX_STATUS_UC2ME;
 		d->ucHeaderLen = 26; d->ucBssid = 1 << 2; d->ucWlanIdx = 1; d->ucTidSecMode = 4 << 4; d->u2StatusFlag = 0;
-		hdr[0] = 0x88; hdr[1] = 0x41; memcpy(hdr + 4, OWN, 6); memcpy(hdr + 10, AP, 6);
+		{ UINT_8 *hdr = buf + 16; hdr[0] = 0x88; hdr[1] = 0x41; memcpy(hdr + 4, OWN, 6); memcpy(hdr + 10, AP, 6); }
 		rfb.u2PacketLen = 120;
-		gwref10_rx_ingress(&rfb, 136);
 		lines = 0; gwref10_rxd(&rfb);
-		assert(lines == 1 && !strcmp(last, "<7>gwref10 rxd: n=1 type=2 len=120 hdrlen=26 pad=0 trans=0 bssid=1 wlan=1 tid=0 sec=4 mismatch=0 fmt=0 uc2me=1 mc=0 bc=0 grp=0 fc=0x4188 havefc=1 eth=0x0000\n"));
-		/* a beacon is filtered, not recorded */
-		hdr[0] = 0x80; hdr[1] = 0x00; memcpy(hdr + 4, BCAST, 6); d->ucMatchPacket = RX_STATUS_BC_FRAME;
+		assert(lines == 1 && !strcmp(last, "<7>gwref10 rxd: n=1 type=2 len=120 span=120 off=16 hdrlen=26 pad=0 trans=0 bssid=1 wlan=1 tid=0 sec=4 status=0x0000 mismatch=0 fmt=0 uc2me=1 mc=0 bc=0 grp=0 fc=0x4188 havefc=1 eth=0x0000\n"));
+		/* a beacon and a probe response are filtered, not recorded */
+		{ UINT_8 *hdr = buf + 16; hdr[0] = 0x80; hdr[1] = 0x00; memcpy(hdr + 4, BCAST, 6); d->ucMatchPacket = RX_STATUS_BC_FRAME; }
 		lines = 0; gwref10_rxd(&rfb); assert(lines == 0 && gwref10.filtered[GWREF10_RXD] == 1);
-		hdr[0] = 0x50; lines = 0; gwref10_rxd(&rfb); assert(lines == 0 && gwref10.filtered[GWREF10_RXD] == 2);
-		/* translated broadcast ARP: group bit and Ethernet type from the descriptor flags and the 14-byte header */
-		d->ucHeaderLen = 14 | RX_STATUS_HEADER_TRAN; d->ucMatchPacket = RX_STATUS_BC_FRAME; d->u2RxByteCount = 16 + 60;
-		memcpy(hdr, BCAST, 6); memcpy(hdr + 6, AP, 6); hdr[12] = 0x08; hdr[13] = 0x06; rfb.u2PacketLen = 60;
-		gwref10_rx_ingress(&rfb, 76);
+		buf[16] = 0x50; lines = 0; gwref10_rxd(&rfb); assert(lines == 0 && gwref10.filtered[GWREF10_RXD] == 2);
+		RX_DONE();
+
+		/* translated broadcast ARP: group bit from the match flags, Ethernet type from the 14-byte header */
+		RX_CASE(76);
+		d->u2RxByteCount = 76; d->u2PktTYpe = 0x4000; d->ucHeaderLen = 14 | RX_STATUS_HEADER_TRAN; d->ucMatchPacket = RX_STATUS_BC_FRAME;
+		d->ucBssid = 1 << 2; d->ucTidSecMode = 4 << 4;
+		{ UINT_8 *hdr = buf + 16; memcpy(hdr, BCAST, 6); memcpy(hdr + 6, AP, 6); hdr[12] = 0x08; hdr[13] = 0x06; }
+		rfb.u2PacketLen = 60;
 		lines = 0; gwref10_rxd(&rfb);
-		assert(lines == 1 && strstr(last, " trans=1 ") && strstr(last, " bc=1 grp=1 fc=0x0000 havefc=0 eth=0x0806\n"));
+		assert(lines == 1 && strstr(last, " span=60 off=16 ") && strstr(last, " trans=1 ") && strstr(last, " bc=1 grp=1 fc=0x0000 havefc=0 eth=0x0806\n"));
+		RX_DONE();
+
 		/* the descriptor's count beyond the delivered bytes is refused before any header read */
-		gwref10_rx_ingress(&rfb, 40);
+		RX_CASE(40);
+		d->u2RxByteCount = 76; rfb.u2PacketLen = 60;
 		lines = 0; gwref10_rxd(&rfb); assert(lines == 1 && !strcmp(last, "<7>gwref10 rxd: n=3 badlen=1 declared=76 hif=40\n"));
-		gwref10_rx_ingress(&rfb, 8);
+		RX_DONE();
+		/* fewer delivered bytes than the descriptor */
+		RX_CASE(8);
 		lines = 0; gwref10_rxd(&rfb); assert(lines == 1 && !strcmp(last, "<7>gwref10 rxd: n=4 shortdesc=1 hif=8\n"));
-		/* a short untranslated frame has no frame control read */
-		d->ucHeaderLen = 10; d->u2RxByteCount = 16 + 10; rfb.u2PacketLen = 10; gwref10_rx_ingress(&rfb, 26);
-		lines = 0; gwref10_rxd(&rfb); assert(lines == 1 && strstr(last, " havefc=0 eth=0x0000\n"));
+		RX_DONE();
+		/* a declared count below the descriptor size (the driver's u2PacketLen would have wrapped) */
+		RX_CASE(40);
+		d->u2RxByteCount = 12; rfb.u2PacketLen = 0xfff0;
+		lines = 0; gwref10_rxd(&rfb); assert(lines == 1 && !strcmp(last, "<7>gwref10 rxd: n=5 badlen=1 declared=12 hif=40\n"));
+		RX_DONE();
+		/* a header pointer beyond the declared end (status groups and padding larger than declared) */
+		RX_CASE(64);
+		d->u2RxByteCount = 40; rfb.pvHeader = buf + 48; rfb.u2PacketLen = 0xfff8;
+		lines = 0; gwref10_rxd(&rfb); assert(lines == 1 && !strcmp(last, "<7>gwref10 rxd: n=6 badhdr=1 declared=40 hif=64\n"));
+		rfb.pvHeader = buf + 8;	/* inside the descriptor */
+		lines = 0; gwref10_rxd(&rfb); assert(lines == 1 && strstr(last, " badhdr=1 "));
+		RX_DONE();
+		/* a wrapped u2PacketLen with a valid short span: no header bytes are read beyond the span */
+		RX_CASE(36);
+		d->u2RxByteCount = 36; rfb.pvHeader = buf + 20; rfb.u2PacketLen = 0xfff0; d->ucHeaderLen = 24;
+		lines = 0; gwref10_rxd(&rfb);
+		assert(lines == 1 && strstr(last, " len=65520 span=16 off=20 ") && strstr(last, " havefc=0 eth=0x0000\n"));
+		RX_DONE();
+		/* short native and translated spans: 23 and 13 bytes read nothing from the frame */
+		RX_CASE(39);
+		d->u2RxByteCount = 39; rfb.u2PacketLen = 23;
+		lines = 0; gwref10_rxd(&rfb); assert(lines == 1 && strstr(last, " span=23 ") && strstr(last, " havefc=0 "));
+		RX_DONE();
+		RX_CASE(29);
+		d->u2RxByteCount = 29; d->ucHeaderLen = 14 | RX_STATUS_HEADER_TRAN; rfb.u2PacketLen = 13;
+		lines = 0; gwref10_rxd(&rfb); assert(lines == 1 && strstr(last, " span=13 ") && strstr(last, " eth=0x0000\n"));
+		RX_DONE();
 		/* every field at its maximum stays under the line bound without truncation */
-		d->u2RxByteCount = 0xffff; d->u2PktTYpe = 0xffff; d->ucMatchPacket = 0xff; d->ucHeaderLen = 0x7f; d->ucBssid = 0xff;
-		d->ucWlanIdx = 0xff; d->ucTidSecMode = 0xff; d->u2StatusFlag = 0xffff; rfb.u2PacketLen = 0xffff;
-		hdr[0] = 0xff; hdr[1] = 0xff; hdr[4] = 0xff; gwref10_rx_ingress(&rfb, 0xffff);
-		lines = 0; gwref10_rxd(&rfb); assert(lines == 1 && strstr(last, "badlen=1"));	/* 65535 exceeds the buffer */
-		d->u2RxByteCount = CFG_RX_MAX_PKT_SIZE; rfb.u2PacketLen = CFG_RX_MAX_PKT_SIZE - 16; gwref10_rx_ingress(&rfb, CFG_RX_MAX_PKT_SIZE);
+		RX_CASE(CFG_RX_MAX_PKT_SIZE);
+		d->u2RxByteCount = CFG_RX_MAX_PKT_SIZE; d->u2PktTYpe = 0xffff; d->ucMatchPacket = 0xff; d->ucHeaderLen = 0x7f; d->ucBssid = 0xff;
+		d->ucWlanIdx = 0xff; d->ucTidSecMode = 0xff; d->u2StatusFlag = 0xffff; rfb.u2PacketLen = 0xffff; rfb.pvHeader = buf + 16;
+		buf[16] = 0xff; buf[17] = 0xff; buf[20] = 0xff;
 		lines = 0; gwref10_rxd(&rfb);
 		assert(lines == 1 && !strstr(last, "trunc=1") && strlen(last) < GWREF10_LINE && gwref10.truncated == 0);
+		RX_DONE();
+		/* and a declared count above the buffer size is refused */
+		RX_CASE(CFG_RX_MAX_PKT_SIZE + 4);
+		d->u2RxByteCount = CFG_RX_MAX_PKT_SIZE + 4; rfb.u2PacketLen = 100;
+		lines = 0; gwref10_rxd(&rfb); assert(lines == 1 && strstr(last, " badlen=1 "));
+		RX_DONE();
+#undef RX_CASE
+#undef RX_DONE
 	}
 	assert(no_address_leak());
 

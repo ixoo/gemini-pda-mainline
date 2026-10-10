@@ -1,11 +1,14 @@
 # Gemian Wi-Fi reference: one bounded connect, handshake, traffic and disconnect lifecycle at the firmware boundary
 
-Status: revision 3, with the reviewable code: [patch 0010](patches/0010-diagnostic-record-Gemian-WLAN-firmware-boundary-life.patch),
-the device script `trace-lifecycle-v10.sh`, the parser
-`lifecycle/parse-lifecycle.py`, the laptop trigger
-`lifecycle/lan-group-trigger.py` and their fixtures under `tests/`. Nothing
-built, composed, installed or run; the custodian reviews the exact patch
-before any compile. The laptop custodian performs every device step under the
+Status: revision 4, with the reviewable code after the custodian's reviews of
+revisions 2 and 3: [patch 0010](patches/0010-diagnostic-record-Gemian-WLAN-firmware-boundary-life.patch),
+the device script `trace-lifecycle-v10.sh` with its Python 3.5 helper
+`lifecycle/cycle-check.py`, the parser `lifecycle/parse-lifecycle.py`, the
+laptop trigger `lifecycle/lan-group-trigger.py` with the window orchestration
+`lifecycle/laptop-trigger-window.py`, and their fixtures under `tests/`,
+including the executor run against a fake device through its complete cycle
+and every failure path. Nothing built, composed, installed or run; the
+custodian reviews the exact patch before any compile. The laptop custodian performs every device step under the
 standing authorization for reviewed tests and boot2 installation; the owner's
 only action is the physical boot2 selection. Buildbox agents have no device
 access and build only on an explicit go after the exact patch is reviewed.
@@ -131,6 +134,13 @@ calls at the resolved sites. Nothing else in the driver changes; the vendor
 - Addresses are compared in the kernel against the BSS's target and own
   address and reported as a class (`bss`, `own`, `bcast`, `zero`, `group`,
   `other`); no address, SSID, key byte, RSC or frame body is ever formatted.
+- Receive descriptor reads: the descriptor's byte count must cover the 16-byte
+  descriptor and be covered by the delivered bytes; the header pointer the
+  driver derived must lie inside that count; the frame-control word, group bit
+  or Ethernet type are read only within the span from the header to the
+  declared end (the driver's own `u2PacketLen`, which wraps on a short count,
+  is reported and never used as a bound); the raw status word is recorded so
+  the analysis applies the data path's own acceptance test.
 
 | Site (`59e00a91`) | Record | Fields |
 | --- | --- | --- |
@@ -141,7 +151,7 @@ calls at the resolved sites. Nothing else in the driver changes; the vendor
 | allow-listed events with the pinned struct covered | `event keydone`, `txdone`, `starec`, `linkq`, `scandone`, `chpriv`, `bcntimeout`, `aging`, `addba`, `delba`, `bubble`, `absence`, `psmode`, `quota` | the ids `0x24`, `0x0f`, `0x0c`, `0x02`, `0x0d`, `0x10`, `0x13`, `0x19`, `0x0a`, `0x0b`, `0x2a`, `0x11`, `0x12`, `0x16` that the active dispatcher handles; index, status, token, quota, block-ack parameter and sequence fields; station classes for `keydone` and `starec` |
 | every other event | header only | debug, memory, PMKID, association, scan result, statistics, BA drop-SN and unknown ids |
 | `nicTxReleaseResource` 561 | `credit` | `rel0..rel5 free0..free5`, only when any release is nonzero |
-| `nicRxFillRFB` 285 | `rxd` | `type len hdrlen pad trans bssid wlan tid sec mismatch fmt uc2me mc bc grp fc havefc eth`; the frame-control word and group bit from an untranslated header of at least 24 bytes, the Ethernet type and group bit from a translated one of at least 14; beacons and probe responses counted as filtered |
+| `nicRxFillRFB` 285 | `rxd` | `type len span off hdrlen pad trans bssid wlan tid sec status mismatch fmt uc2me mc bc grp fc havefc eth`; the frame-control word and group bit from an untranslated header span of at least 24 bytes, the Ethernet type and group bit from a translated span of at least 14; `shortdesc`, `badlen` or `badhdr` refusals; beacons and probe responses counted as filtered |
 | `nicTxComposeDesc` 1019, `nicTxComposeSecurityFrameDesc` 1161 | `txd` | `cls=<eapol,mgmt,data> pid wlan bss sta len fmt tid prot is80211 tc`; `prot` is the composed descriptor's own protection bit, `cls` the MSDU's type, named separately |
 | `cnmStaRecChangeState` 720, `cnmStaRecFree` 558, `nicDeactivateNetwork` 1437 | `state` | `stastate sta wlan bss from to`; `stafree sta wlan bss state`; `bssdeact bss` |
 
@@ -165,9 +175,34 @@ address bytes anywhere in the output); `tests/patch-0010-consistency-test.py`.
 ## Device protocol: `trace-lifecycle-v10.sh`, single use
 
 Run by the custodian as root on the verified v10 boot, the boot ID as the
-only argument, under `systemd-run` so it survives losing the LAN; outputs
-under `/var/tmp/gemini-wifi-reference-lifecycle-v10`, `umask 077`; a marker
-file refuses a second run. The ConnMan service is the one currently in state
+only argument, launched as `systemd-run --unit=gemini-wifi-lifecycle-v10 -p
+RuntimeMaxSec=300 -p KillMode=control-group .../trace-lifecycle-v10.sh
+<boot-id>` (systemd 232) so it survives losing the LAN; outputs under
+`/var/tmp/gemini-wifi-reference-lifecycle-v10`, which must not exist (an
+earlier run's evidence is moved first), `umask 077`. Phase budgets on the
+monotonic clock (`/proc/uptime`): preflight 30 s, setup 20 s, capture 150 s
+after arm (the observer's own deadline is 240 s), seal 10 s (control 3 s,
+logger stop 3 s, parser the rest), preservation 20 s, restoration 60 s,
+finalisation 5 s, 295 s in all. Every external call runs under `timeout
+--kill-after=2` clamped to the active phase deadline, and a call whose
+remaining allowance after that reserve is gone is not started. Live identity
+(root, aarch64, the v10 release, the boot ID) is checked before every
+observer write and every radio call, including the restoration; a loss stops
+all further actions and is reported. Operation counts are kept in the parent
+shell. The kernel log is copied by `cycle-check.py kmsg-stream`, which opens
+`/dev/kmsg` non-blocking, flushes every read, counts `EPIPE` drops, reports
+any other read failure, stops at an exact byte bound and ends normally on
+`SIGTERM` with a `bytes capped drops failure stopped_by` report; the seal
+requires that clean stop. The private files `/root/.gemini-wifi-reference/
+approved-service` and `ap-target.json` are validated by the helper (regular
+file, owner root, mode 0600, one link, schema); the connected service must be
+the only wifi service and equal the approved one; the association must equal
+the bound target through `iw dev wlan0 link` with iw 4.9's exact SSID
+escaping (interior spaces kept, leading or trailing spaces, the backslash and
+non-ASCII bytes as `\xNN`); only booleans are exported. Exit codes: 0
+complete and restored, 2 refused before any radio action, 3 restoration or
+AutoConnect restoration failed, 4 a budget exhausted, 5 a step failed, 6 the
+seal not captured, 7 identity lost. The ConnMan service is the one currently in state
 `online` or `ready`; the script compares its identifier with the custodian's
 private approved-service file (mode 0600, read on the device, never echoed)
 and refuses any other service. The association itself is compared with the
@@ -234,15 +269,28 @@ parsed `gwref10` ledger.
    and no group behaviour is concluded without the records.
 8. Teardown two: `connmanctl disconnect <service>`; the same three-sample
    `iw` gate, up to 20 s. This is the teardown from a fully keyed station.
-9. Seal: write `2`, confirm the `seal` line, stop the stream, save
-   `dmesg-after.log`, the parameter value, `connmanctl services`, the
-   service's properties and `ip -4 addr`; restore `AutoConnect` to its
-   recorded value; hash every output file into `SHA256SUMS`. The full private
-   outputs are complete on the device before the restoration connect.
-10. Restoration connect, outside the capture: `connmanctl connect <service>`
-    under `timeout 60`, then `iw` connected and an address. Exit 0 only with
-    the LAN restored; otherwise exit 3 with the evidence saved and the
-    custodian's reviewed recovery path takes over.
+9. Seal: write `2` (after the identity gate), confirm the control reads `2`,
+   stop the logger and require its clean report, and run the parser-backed
+   seal check (one arm, one seal after it, no record after the seal, the
+   kmsg sequence contiguous, record numbers and seal counts consistent, every
+   record valid against the schema). Preservation: save `dmesg-after.log`,
+   the parameter value, the console tuple, `ip -4 addr` and the allow-listed
+   service properties (`State`, `AutoConnect`, `Favorite`, `Type`,
+   `Security`, `Strength`; never `Name` or anything else), check identity
+   again, then write `MANIFEST` with the size and digest of every closed
+   capture file, naming any missing required file, and make them read-only.
+   `frozen=1` only when the manifest is complete. The full private outputs
+   are complete on the device before the restoration connect.
+10. Restoration connect, outside the capture and after the identity gate:
+    one `connmanctl connect <service>`, then connected with an address, on the
+    bound target, the gateway still directly attached and identity intact.
+    Only then is `AutoConnect` set back to its recorded value and the property
+    read back; an original `False` counts as restored when it reads `False`.
+    `run.log`, `restore.log` and `receipt.txt` are hashed into
+    `SHA256SUMS.final` after they are closed. Exit 0 only with the LAN
+    restored and `AutoConnect` verified; otherwise `AutoConnect` stays off,
+    the receipt says so, and the custodian's reviewed recovery path takes
+    over.
 
 Counts stated in advance: two disconnects and one connect inside the capture,
 one restoration connect outside it, two `iw link` queries as positive
@@ -258,14 +306,41 @@ sequence at that step and proceeds to seal and restoration; a failed
 restoration ends in exit 3 and the reviewed recovery; nothing is repeated on
 the same image without a new measurement.
 
+Executor fixtures (`tests/trace-lifecycle-test.py`): the script runs against
+a fake device (fake sysfs, procfs, kmsg, `iw`, `connmanctl`, `ip`, `ping`,
+`uname`, `id`, with a fake kernel arming and sealing on the control file)
+through the complete cycle and the failure paths: refusals before any change
+(wrong boot ID, bound file mode, existing output directory, console level,
+off-target association), a failed positive control (no radio action, the
+restoration still verified), an off-target reconnect, a missing seal, a failed
+connect, a failed restoration, an original `AutoConnect` of `False`, a failed
+`AutoConnect` write, and identity loss after the connect (no restoration
+attempted). Each scenario checks the admitted operation counts, the receipt
+lines, the manifest and the exit code. `tests/cycle-check-test.py` covers the
+private file checks, iw 4.9 escaping, link and service matching, the
+correlated positive control, the seal check (seal before arm, malformed seal,
+wrong counts, a dropped kmsg line, a logger stopped mid-line) and the kmsg
+copier's bound, signal stop and idle stop. Short phases are not divided by the
+fixture's budget divisor, so the seal, preservation and finalisation stages
+run at their real length in the fixture.
+
 ## Offline use of the ledger
 
-`parse-lifecycle.py` (authored with the patch) turns the private
-`kmsg-cycle.log` into a sanitized ordered ledger (JSON: kernel sequence,
-monotonic time, record number, category, fields) and checks completeness
-against the seal counts and the kmsg sequence. The ledger carries no
-identifier by construction and is the only publishable product; the raw
-logs, `ip` and `connmanctl` outputs stay private. The mainline join work then
+`parse-lifecycle.py` turns the private `kmsg-cycle.log` into a sanitized
+ordered ledger (JSON: kernel sequence, monotonic time, record number,
+category, subtype, fields) validated against a per-category schema of
+allow-listed subtypes, fields and types, and reports two verdicts:
+`stream_intact` (one arm, one seal, contiguous kmsg sequence, contiguous
+record numbers, seal counts equal to the records parsed, no duplicate or
+unknown `gwref10` line, every record valid) and `complete`, which also
+requires zero suppressed and zero truncated records. Its summary counts
+protected unicast and group frames only for accepted data (status word with
+no error bit in `0x07fe`, the data path's own `0x07f8` test plus the FCS and
+cipher-mismatch bits, not non-data, not a fragment; security mode nonzero;
+consistent unicast or group match flags) and counts other security metadata
+separately; the add-key-done attribution limit is stated in the summary. The
+ledger carries no identifier by construction and is the only publishable
+product; the raw logs, `ip` and `connmanctl` outputs stay private. The mainline join work then
 consumes the ledger: the expected command and event order after the group
 key, the credit pattern, the `keydone` count and class per key, the removal
 and station and BSS teardown order, and the descriptor fields of protected

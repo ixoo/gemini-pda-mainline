@@ -11,4 +11,4 @@ with tempfile.TemporaryDirectory(prefix='gwref10-test-') as tmp:
     binary = pathlib.Path(tmp) / 'gwref10-test'
     subprocess.run(['cc', '-std=gnu99', '-O1', '-Wall', '-Wextra', '-Werror', '-pthread',
                     '-I', str(HERE), '-o', str(binary), str(HERE / 'gwref10-test.c')], check=True)
-    sys.exit(subprocess.run([str(binary)]).returncode)
+    sys.exit(subprocess.run([str(binary)], timeout=120).returncode)
