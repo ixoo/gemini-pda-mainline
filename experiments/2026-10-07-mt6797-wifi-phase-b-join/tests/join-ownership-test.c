@@ -930,7 +930,74 @@ int main(void)
 	assert(mac.first_error == -EPROTO && !mac.join_action_discarded);
 	mt6797_mac_join_close(&mac);
 
-	puts("join_ownership=pass; production close/worker paths; exact-once release; EAPOL delivery window and hold; C1 association request admitted; C2 one-queue handshake sequence; group data and action frames discarded undelivered and bounded; no device");
+	/* 11. Runtime 19's unsolicited add-key-done event (0x24, 16 bytes, sequence
+	 *     0, BSS index 0, the target's address): admitted once after a pairwise
+	 *     key command was submitted and recorded without the address; refused
+	 *     before the submission, a second time, for another BSS index, another
+	 *     peer, a nonzero sequence or another length.
+	 */
+	{
+		u8 body[8] = { 0 };
+
+		memcpy(body + 2, ap, ETH_ALEN);
+		setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = true; mac.join_bss_configured = true;
+		mac.join_key_pairwise_submitted = true;
+		{
+			unsigned int before = infos;
+
+			script_event(0x24, body, 8); run_worker();
+			assert(!mac.first_error && mac.join_running && mac.join_key_done && infos == before + 1);
+			script_count = script_next = 0;
+			script_event(0x24, body, 8); run_worker();            /* a second one */
+			assert(mac.first_error == -EPROTO && !mac.join_running);
+		}
+		mt6797_mac_join_close(&mac);
+		setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = true; mac.join_bss_configured = true;
+		script_event(0x24, body, 8); run_worker();                /* before any pairwise key command */
+		assert(mac.first_error == -EPROTO && !mac.join_key_done);
+		setup(); mac.join_sta_active = true; mac.join_bss_configured = true; mac.join_key_pairwise_submitted = true;
+		body[0] = 1; script_event(0x24, body, 8); run_worker(); body[0] = 0;   /* another BSS index */
+		assert(mac.first_error == -EPROTO && !mac.join_key_done);
+		setup(); mac.join_sta_active = true; mac.join_bss_configured = true; mac.join_key_pairwise_submitted = true;
+		body[7] ^= 1; script_event(0x24, body, 8); run_worker(); body[7] ^= 1; /* another peer */
+		assert(mac.first_error == -EPROTO && !mac.join_key_done);
+		setup(); mac.join_sta_active = true; mac.join_bss_configured = true; mac.join_key_pairwise_submitted = true;
+		script_event(0x24, body, 8); script[0][5] = 3; run_worker();          /* nonzero sequence */
+		assert(mac.first_error == -EPROTO && !mac.join_key_done);
+		setup(); mac.join_sta_active = true; mac.join_bss_configured = true; mac.join_key_pairwise_submitted = true;
+		script_event(0x24, body, 7); run_worker();                /* another length */
+		assert(mac.first_error == -EPROTO && !mac.join_key_done);
+		/* The actual path: the cleanup is requested and the deauthentication
+		 * reserved and queued during the handshake hold; the event is admitted
+		 * there and the queue is untouched. */
+		setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = true; mac.join_bss_configured = true;
+		mac.join_key_pairwise_submitted = true; mac.join_key_pairwise = 1;
+		queue_internal_deauth(); mac.join_hold_until = now_ns + 4000 * NSEC_PER_MSEC;
+		script_event(0x24, body, 8); run_worker();
+		assert(!mac.first_error && mac.join_running && mac.join_key_done && mac.join_queue.qlen == 1 && mac.join_queue.head == mac.join_internal);
+		mt6797_mac_join_close(&mac);
+		setup(); mac.join_sta_active = true; mac.join_bss_configured = true; mac.join_key_pairwise_submitted = true;
+		queue_internal_deauth(); mac.join_inflight = __skb_dequeue(&mac.join_queue);
+		mac.join_frame_deadline = now_ns + 750 * NSEC_PER_MSEC;  /* the frame's own deadline, as the worker sets it */
+		script_event(0x24, body, 8); run_worker();                /* late: the deauthentication in flight */
+		assert(mac.first_error == -EPROTO && !mac.join_key_done);
+		mt6797_mac_join_close(&mac);
+		setup(); mac.join_sta_active = true; mac.join_bss_configured = true; mac.join_key_pairwise_submitted = true; mac.join_deauth_done = true;
+		script_event(0x24, body, 8); run_worker();                /* late: after the deauthentication */
+		assert(mac.first_error == -EPROTO && !mac.join_key_done);
+		setup(); mac.join_sta_active = true; mac.join_bss_configured = true; mac.join_key_pairwise_submitted = true; mac.join_cleanup_stage = 1;
+		script_event(0x24, body, 8); run_worker();                /* late: a cleanup stage submitted */
+		assert(mac.first_error == -EPROTO && !mac.join_key_done);
+		setup(); mac.join_sta_active = true; mac.join_bss_configured = true; mac.join_key_pairwise_submitted = true; mac.join_key_pairwise = 2;
+		script_event(0x24, body, 8); run_worker();                /* late: the pairwise key removed */
+		assert(mac.first_error == -EPROTO && !mac.join_key_done);
+		setup(); mac.join_sta_active = false; mac.join_bss_configured = true; mac.join_key_pairwise_submitted = true;
+		script_event(0x24, body, 8); run_worker();                /* station not active */
+		assert(mac.first_error == -EPROTO && !mac.join_key_done);
+		mt6797_mac_join_close(&mac);
+	}
+
+	puts("join_ownership=pass; production close/worker paths; exact-once release; EAPOL delivery window and hold; C1 association request admitted; C2 one-queue handshake sequence; group data and action frames discarded undelivered and bounded; add-key-done event admitted once; no device");
 	return 0;
 }
 

@@ -39,7 +39,7 @@ def log(accepted, keys=False):
                       'eapol sent: pid=4 pages=2 bytes=113', 'credit: pages=2 remaining=0',
                       'TX done: pid=4 status=0 advanced=0 count=0',
                       'key command: pairwise submitted sequence=10', 'credit: pages=1 remaining=0',
-                      'key credit returned: pairwise',
+                      'key credit returned: pairwise', 'key done: pairwise bss=0 peer=1',
                       'key command: group submitted sequence=11', 'credit: pages=1 remaining=0',
                       'key credit returned: group']
         lines += ['TX: subtype=12 pid=' + ('5' if keys else '3') + ' pages=1', 'credit: pages=1 remaining=0',
@@ -286,6 +286,33 @@ class HostTests(unittest.TestCase):
         # Both discard kinds in one lifetime are independently numbered.
         group = b'one-shot WLAN join group data discarded: bytes=94 fc=0x6208 match=0x08 wlan=0 bss=1 sec=0 status=0xc004 count=1\n'
         self.assertFalse(classify(good[:after_activation] + group + line % 1 + good[after_activation:])['malformed_stage_record'])
+
+    def test_firmware_key_done_event_is_required_once_after_the_pairwise_command(self):
+        good = log(True, keys=True)
+        self.assertTrue(classify(good)['driver_handshake_path_pass'] and classify(good)['firmware_pairwise_key_done'])
+        done = b'one-shot WLAN join key done: pairwise bss=0 peer=1\n'
+        without = good.replace(done, b'')
+        result = classify(without)
+        self.assertFalse(result['firmware_pairwise_key_done'] or result['driver_handshake_path_pass'])
+        self.assertTrue(result['handshake_keys_submitted'], 'the key commands alone still count as submitted')
+        twice = good.replace(done, done + done)
+        self.assertFalse(classify(twice)['firmware_pairwise_key_done'] or classify(twice)['driver_handshake_path_pass'])
+        command = good.index(b'one-shot WLAN join key command: pairwise')
+        early = without[:command] + done + without[command:]
+        self.assertFalse(classify(early)['firmware_pairwise_key_done'])
+        # Another BSS index or peer flag is not the record and is malformed.
+        self.assertTrue(classify(good.replace(done, b'one-shot WLAN join key done: pairwise bss=1 peer=1\n'))['malformed_stage_record'])
+        # Late (after the deauthentication's TX) or orphan (no key command) records never count.
+        deauth = good.index(b'one-shot WLAN join TX: subtype=12')
+        late = without[:deauth] + done + without[deauth:]
+        late_result = classify(late)
+        self.assertFalse(late_result['firmware_pairwise_key_done'] or late_result['driver_handshake_path_pass'])
+        plain = log(True)
+        activation = plain.index(b'one-shot WLAN join activation:')
+        after_activation = plain.index(b'\n', activation) + 1
+        orphan = classify(plain[:after_activation] + done + plain[after_activation:])
+        self.assertTrue(orphan['malformed_stage_record'])
+        self.assertFalse(orphan['firmware_pairwise_key_done'] or orphan['bounded_join_pass'])
 
     def test_eapol_observations_are_bounded_to_the_driver_window(self):
         good = log(True)

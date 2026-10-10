@@ -1,0 +1,120 @@
+From 122f29361aecd22cf0f8c1c8d73ad7af0386f527 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 10 Oct 2026 13:19:31 +0000
+Subject: [PATCH 162/162] wifi: mt6797: admit the firmware's add-key-done event
+ once after the pairwise key
+
+Runtime 19 delivered both EAPOL frames, sent both replies, discarded the
+target's Action frame once and submitted the pairwise key command, whose
+page credit returned; the control event dispatcher then refused an
+unsolicited 16-byte event with id 0x24 and sequence 0, and the join
+fail-stopped before the key credit was recorded, before the group key
+command and before any removal or teardown.
+
+In the pinned public gen3 source id 0x24 is EVENT_ID_ADD_PKEY_DONE,
+marked unsolicited, with payload EVENT_ADD_KEY_DONE_INFO: ucBSSIndex,
+ucReserved and aucStaAddr[6], eight bytes, sixteen with the event
+header; the pinned receive path looks the station up by that index and
+address and marks its TX key ready ("add key done for port control").
+The measured size, type and sequence agree with that definition; the
+payload was not recorded, so the event is consistent with the completion
+of the submitted command and its ownership is unverified.
+
+Admit the event exactly once: sixteen bytes, type 0xe000, id 0x24,
+sequence 0, only after a pairwise key command was submitted, while the
+station is active and the BSS configured, during the handshake hold in
+which the reserved deauthentication is queued (the cleanup is requested
+at the accepted association and does not exclude it), and before the
+deauthentication is in flight or done, before any cleanup stage and
+before the pairwise key's removal, with BSS index 0 and the target's
+address compared and never logged; the reserved byte is unconstrained by
+the pinned source and unread. Record "key done: pairwise bss=0 peer=1".
+Nothing the hold, the teardown, the key slots or the TC4 credit ledger
+depend on changes, and nothing is transmitted; any other event of that
+id stays refused and named.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 47 ++++++++++++++++++++++
+ 1 file changed, 47 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index b75c3cf24..a7b1dc15b 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -81,6 +81,10 @@ struct mt6797_mac {
+ 	/* Phase C1: bounded observation of the AP's first clear EAPOL frames. */
+ 	unsigned int join_eapol_seen, join_eapol_tx, join_group_discarded;
+ 	unsigned int join_action_discarded;
++	/* Phase C2: the pairwise key command was submitted; the firmware's
++	 * add-key-done event for it was recorded.
++	 */
++	bool join_key_pairwise_submitted, join_key_done;
+ 	u64 join_hold_until;
+ 	/* RSN join: WPA2 declared to the firmware; key commands 0 none, 1
+ 	 * submitted with credit returned, 2 removed. No key material is kept.
+@@ -783,6 +787,45 @@ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
+ #endif
+ 		return 0;
+ 	}
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++	if (mt6797_join_event(mac->join_packet, bytes, 0x24, 8)) {
++		/* EVENT_ID_ADD_PKEY_DONE (publicly pinned gen3 nic_cmd_event.h:
++		 * unsolicited, "add key done for port control"; payload
++		 * EVENT_ADD_KEY_DONE_INFO: ucBSSIndex, ucReserved, aucStaAddr[6]).
++		 * Runtime 19 refused an event of this id, 16 bytes with sequence 0,
++		 * after the pairwise key command's page credit; its payload was not
++		 * recorded, so it is consistent with the source-defined completion
++		 * of that command and its ownership is unverified until this gate
++		 * compares the BSS index and the station address. The pinned receive
++		 * path marks the station's TX key ready on it; this driver records
++		 * it and changes nothing the hold, the teardown, the key slots or
++		 * the credit ledger depend on, and transmits nothing. Admitted once,
++		 * only after a pairwise key command was submitted, while the station
++		 * is active and the BSS configured, during the handshake hold in
++		 * which the reserved deauthentication is queued (the cleanup is
++		 * requested at the accepted association, so that flag does not
++		 * exclude it), and before the deauthentication is in flight or
++		 * done, before any cleanup stage and before the pairwise key's
++		 * removal, for BSS index 0 and the target's address (compared, never
++		 * logged); the reserved byte is unconstrained by the pinned source
++		 * and unread; anything else stays refused.
++		 */
++		const u8 *body = mac->join_packet + 8;
++
++		if (mac->join_packet[5] || !mac->join_key_pairwise_submitted ||
++		    mac->join_key_done || !mac->join_sta_active ||
++		    !mac->join_bss_configured || mac->join_deauth_done ||
++		    (mac->join_internal && mac->join_inflight == mac->join_internal) ||
++		    mac->join_cleanup_stage || mac->join_cleanup_done ||
++		    mac->join_key_pairwise == 2 || body[0] ||
++		    !ether_addr_equal(body + 2, mac->join_ap))
++			return -EPROTO;
++		mac->join_key_done = true;
++		dev_info(wiphy_dev(mac->hw->wiphy),
++			 "one-shot WLAN join key done: pairwise bss=%u peer=1\n", body[0]);
++		return 0;
++	}
++#endif
+ 	if (mt6797_join_event(mac->join_packet, bytes, 0x11, 4)) {
+ 		/* EVENT_ID_BSS_ABSENCE_PRESENCE (publicly pinned gen3 que_mgt.h):
+ 		 * the event header, then ucBssIndex, ucIsAbsent, ucBssFreeQuota
+@@ -1925,6 +1968,8 @@ static int mt6797_mac_join_add_peer(struct mt6797_mac *mac,
+ 	mac->join_eapol_seen = 0;
+ 	mac->join_group_discarded = 0;
+ 	mac->join_action_discarded = 0;
++	mac->join_key_pairwise_submitted = false;
++	mac->join_key_done = false;
+ 	mac->join_hold_until = 0;
+ 	mac->join_credit_deadline = min_t(u64, mac->join_deadline,
+ 					  ktime_get_ns() + 100 * NSEC_PER_MSEC);
+@@ -2266,6 +2311,8 @@ static int mt6797_mac_set_key(struct ieee80211_hw *hw, enum set_key_cmd cmd,
+ 	ret = mt6797_hif_join_key(mac->hif, mac->sequence++, true, pairwise,
+ 				  mac->join_ap, key->keyidx, key->key,
+ 				  mac->join_credit_deadline);
++	if (!ret && pairwise)
++		mac->join_key_pairwise_submitted = true;
+ 	if (!ret) {
+ 		dev_info(wiphy_dev(hw->wiphy),
+ 			 "one-shot WLAN join key command: %s submitted sequence=%u\n",
+-- 
+2.39.5
+

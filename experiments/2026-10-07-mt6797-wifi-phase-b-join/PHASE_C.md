@@ -187,6 +187,19 @@ negotiation; the keys reached the driver only after the stop. The remaining
 foreseeable questions after the keys (protected unicast and decrypted group
 traffic during the hold) are unmeasured and unchanged.
 
+Runtime 19 (candidate 18) reached the pairwise key command: it was submitted
+and its page credit returned, and the firmware then sent an unsolicited event
+`0x24`, `EVENT_ID_ADD_PKEY_DONE` in the pinned source (BSS index, reserved
+byte, station address), which the dispatcher refused. The event is
+consistent with the completion of that command; its payload was not
+recorded, so its ownership is unverified. Proposal 0162 admits it once after
+the pairwise command, compares the BSS index and the target's address
+without logging them, records it, and leaves the hold, the teardown, the key
+slots and the credit ledger untouched; the record becomes a required term of
+the handshake-path pass, so the command's page credit alone is never treated
+as firmware confirmation. No equivalent event exists for the group key in the
+pinned source; the group key's credit remains its only driver-side evidence.
+
 ### Settled by source
 
 1. **Early EAPOL needs no deferral machinery.** The pinned mac80211
@@ -313,9 +326,14 @@ traffic during the hold) are unmeasured and unchanged.
    is only queued stays queued while the key command's page is owed. A
    returned credit proves only
    that the firmware consumed the command buffer; the records and results say
-   `key command submitted` and `credit returned`, never installed or
-   accepted, because no acknowledgement with that meaning exists in the
-   pinned source. Key retirement is explicit: on the healthy path the lifetime
+   `key command submitted`, `credit returned` and, since runtime 19, `key
+   done`, never installed or accepted: the pinned source defines one
+   unsolicited event, `EVENT_ID_ADD_PKEY_DONE` (`0x24`, BSS index, reserved
+   byte and station address), that the firmware sends when a pairwise key
+   add completes, found when runtime 19 refused it; its runtime-19 payload is
+   unverified, proposal 0162 admits it once after the pairwise command with
+   the index and address compared, and no equivalent exists for the group
+   key. Key retirement is explicit: on the healthy path the lifetime
    submits bounded `remove` commands for the pairwise key (WLAN index 1) and
    the group key (BMC index 0) before the station and BSS cleanup, each with
    its credit and sequence accounted, because removing the station record is

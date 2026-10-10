@@ -22,6 +22,8 @@ def classify(raw):
         'key_command': rb'key command: (pairwise|group) submitted sequence=(\d+)',
         'key_credit': rb'key credit returned: (pairwise|group)',
         'key_removal': rb'key removal: (pairwise|group) submitted sequence=(\d+)',
+        # Phase C2: the firmware's unsolicited add-key-done event for the pairwise key (pinned gen3 0x24).
+        'key_done': rb'key done: pairwise bss=0 peer=1',
     }
     # Diagnostic records name a refusal or an admitted indication; they are
     # neither stage records nor malformed. Health is decided by the stage grammar.
@@ -99,7 +101,12 @@ def classify(raw):
             malformed = True
     tx, done, rx = rows['tx'], rows['done'], rows['rx']
     eapol_tx, key_commands, key_credits, key_removals = rows['eapol_tx'], rows['key_command'], rows['key_credit'], rows['key_removal']
+    key_done = rows['key_done']
     keys_ok = True
+    # An add-key-done record without a pairwise key command has no owner.
+    if key_done and not key_commands:
+        keys_ok = False
+        malformed = True
     if key_commands or key_credits or key_removals:
         # Bounded key ownership: pairwise then group, each command followed by its
         # credit record, and on the healthy path exactly one ordered removal per
@@ -110,7 +117,15 @@ def classify(raw):
         credit_kinds = [row[1] for row in key_credits]
         removal_kinds = [row[1] for row in key_removals]
         sequences = [row[2] for row in key_commands] + [row[2] for row in key_removals]
+        # The firmware's add-key-done event is admitted once, after the pairwise
+        # command and the activation and before the deauthentication's TX.
+        key_deauth_tx = [row for row in tx if row[1] == 12]
+        key_done_bound = key_deauth_tx[0][0] if key_deauth_tx else None
         keys_ok = (kinds in (['pairwise'], ['pairwise', 'group']) and credit_kinds == kinds and
+                   len(key_done) <= 1 and
+                   all(d[0] > key_commands[0][0] and
+                       (len(rows['activation']) == 1 and d[0] > rows['activation'][0][0]) and
+                       (key_done_bound is None or d[0] < key_done_bound) for d in key_done) and
                    all(c[0] > k[0] for k, c in zip(key_commands, key_credits)) and
                    removal_kinds == kinds and
                    all(1 <= s <= 255 for s in sequences) and sequences == sorted(set(sequences)))
@@ -233,6 +248,8 @@ def classify(raw):
         'key_removals_submitted': [row[1] for row in key_removals],
         'handshake_keys_submitted': bool(keys_ok and [row[1] for row in key_commands] == ['pairwise', 'group'] and
                                          [row[1] for row in key_credits] == ['pairwise', 'group']),
+        # The firmware reported the pairwise key add done (event 0x24), once, after the command.
+        'firmware_pairwise_key_done': bool(keys_ok and len(key_done) == 1),
         # Driver-side C2 path: two frames delivered, two sent, both key commands with
         # their credits, both removals, healthy bounded join. The session's success
         # additionally needs the supplicant's completion phrase from the laptop
@@ -252,5 +269,6 @@ def classify(raw):
     result['bounded_join_pass'] = bool(exchange and healthy and cleanup_ok and activation_ok and order_ok)
     result['driver_handshake_path_pass'] = bool(result['bounded_join_pass'] and len(eapol_rows) == 2 and
                                                 len(eapol_tx) == 2 and result['handshake_keys_submitted'] and
+                                                result['firmware_pairwise_key_done'] and
                                                 [row[1] for row in key_removals] == ['pairwise', 'group'])
     return result
