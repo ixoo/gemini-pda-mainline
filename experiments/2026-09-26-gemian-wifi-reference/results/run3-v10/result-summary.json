@@ -1,0 +1,137 @@
+{
+ "boot_id": "e845b6f0-d464-4fed-8533-0608e047a42c",
+ "capture_counts": {
+  "cmd": 157,
+  "credit": 875,
+  "event": 527,
+  "rxd": 1100,
+  "state": 6,
+  "txd": 15
+ },
+ "controlled_traffic_window": false,
+ "helper_sha256": "3f431a5488eeb25a7d1191aa10918b4194bef63da85694af61dff1ecec5a3123",
+ "keydone_attribution": "order only; event carries no key type/index or command sequence",
+ "ledger_sha256": "516e054f5d75479916ebe8145c4140acf4931c8a87af0e8699a5bc1dd488dfe8",
+ "length_refusals": 6,
+ "limits": [
+  "Exact approved BSSID/frequency not retained after Connect; not an exact-target lifecycle success",
+  "Six event records refuse header decode because observed HIF length is zero",
+  "Protected traffic is spontaneous; scheduled ping and laptop datagrams did not run"
+ ],
+ "measured_second_teardown": false,
+ "observer_records": 2680,
+ "observer_summary": {
+  "commands": 134,
+  "complete": true,
+  "credits": 875,
+  "events": 496,
+  "group_downlink_evidence": "observed",
+  "key_commands": [
+   {
+    "addremove": 0,
+    "keyid": 0,
+    "keytype": 0,
+    "peer": "zero",
+    "seq": 81
+   },
+   {
+    "addremove": 0,
+    "keyid": 1,
+    "keytype": 0,
+    "peer": "zero",
+    "seq": 82
+   },
+   {
+    "addremove": 0,
+    "keyid": 2,
+    "keytype": 0,
+    "peer": "zero",
+    "seq": 83
+   },
+   {
+    "addremove": 0,
+    "keyid": 3,
+    "keytype": 0,
+    "peer": "zero",
+    "seq": 84
+   },
+   {
+    "addremove": 0,
+    "keyid": 4,
+    "keytype": 0,
+    "peer": "zero",
+    "seq": 85
+   },
+   {
+    "addremove": 0,
+    "keyid": 5,
+    "keytype": 0,
+    "peer": "zero",
+    "seq": 86
+   },
+   {
+    "addremove": 1,
+    "keyid": 0,
+    "keytype": 1,
+    "peer": "bss",
+    "seq": 122
+   },
+   {
+    "addremove": 1,
+    "keyid": 1,
+    "keytype": 0,
+    "peer": "bss",
+    "seq": 123
+   }
+  ],
+  "keydone_attribution": "by order only: the ADD_PKEY_DONE payload names no key type, key index or command sequence",
+  "keydone_events": [
+   {
+    "bss": 0,
+    "seq": 0,
+    "sta": "bss"
+   },
+   {
+    "bss": 0,
+    "seq": 0,
+    "sta": "bss"
+   }
+  ],
+  "rxd_classification": "protected means an accepted data frame (no error bit in status 0x07fe: the data path's 0x07f8 test plus FCS and cipher mismatch; not non-data, not a fragment), security mode nonzero and consistent unicast or group match flags; other security metadata is counted separately",
+  "rxd_error_status": 0,
+  "rxd_protected_group": 131,
+  "rxd_protected_unicast": 962,
+  "rxd_records": 1100,
+  "rxd_security_metadata_unclassified": 0,
+  "state_records": [
+   "bssdeact",
+   "bssdeact",
+   "stastate",
+   "stastate",
+   "stastate",
+   "stastate"
+  ],
+  "stream_intact": true,
+  "txd_protected": 10,
+  "txd_records": 15,
+  "txdone_events": 14
+ },
+ "parser_complete": true,
+ "reason": "Connect succeeded; association did not match approved BSSID/frequency; restoration did not meet target gate",
+ "result": "partial",
+ "script_sha256": "60d87740b9ec01df165940b38c42d4c1f669934101c92e21ca9ecaefd62c0672",
+ "source_commit": "0c8dc2f9e163b064691d924f1ca8b2e3fa6b653b",
+ "stream_intact": true,
+ "suppressed": 0,
+ "target_comparison": {
+  "bssid_match": false,
+  "frequency_match": false,
+  "group_ccmp": true,
+  "iw_target_match": false,
+  "pairwise_ccmp": true,
+  "ssid_match": true,
+  "supplicant_completed": true,
+  "wpa2_psk": true
+ },
+ "truncated": 0
+}

@@ -946,6 +946,156 @@ v8 count. The bounded one-boot test is complete. This supports D0+D2 as a
 working temporary *Gemian* copy policy, not effective permission precedence,
 exclusive ownership or a safe mainline EMI write. Raw logs remain private.
 
+## v10 run 3: partial, off-target join with a measured handshake and data; stock confirmed after the owner's reconnection (2026-10-10)
+
+Run 3 used the executor at `0c8dc2f9` (script SHA-256 `39d15b1e…` replaced by
+`60d87740…`, helper `3f431a54…`, parser `8328df9b…` unchanged) once on a
+fresh owner-started v10 boot (`e845b6f0…`, release
+`3.18.41-gemini-wifi-ref10+`, launched 20:27:16 UTC). Preflight passed
+(bound files, target and service match, observer idle, tools match, two
+power samples 93 %, Good, unpowered; laptop clock offset 0.145 s). Its
+sanitized files are in [results/run3-v10](results/run3-v10/) (ledger SHA-256
+`516e054f…`); the 21 raw files, MANIFEST and final checksums were preserved
+and verified on the laptop. Facts from the safe files:
+
+- Positive control 1; first teardown 1. Readiness took 5 s over four probes:
+  the first three found the target listed with ages 86, 88 and 89 s (the
+  cache from before the teardown, stale by the 10 s limit) and the fourth,
+  right after the ledger's scan-done event, with age 1 s; the object was idle
+  at every probe. The measured `Connect` RPC started and ended at 8 s after
+  the arm (elapsed 0, rc 0, reply `ok`) and the station associated, but not
+  on the bound target: `connect=1 target_match=0`, exit 5 after 56 s. The
+  custodian's read-only comparison after the run
+  ([target-comparison.json](results/run3-v10/target-comparison.json)) says
+  the SSID matched while the BSSID and frequency did not, with wpa_supplicant
+  `COMPLETED`, CCMP pairwise and group, WPA2-PSK. No controlled traffic
+  window, no datagrams (the laptop sender ended its 180 s poll without a
+  marker), no second teardown. The restoration also landed off target, so
+  `restore_connected=0` and `AutoConnect` was left off by the gate.
+- Observer sealed explicitly: 2680 intact records, zero suppression,
+  truncation or drops (157 command, 527 event, 875 credit, 1100 RX
+  descriptor with 119 filtered, 15 TX descriptor, 6 state), and six event
+  records whose observed HIF length is zero, so their headers were not
+  decoded and their contents are unknown; the header decode is therefore
+  not loss-free.
+- What the ledger holds, 8.32 s to 8.39 s after the arm, on a band-2 BSS
+  (channel 161 in the channel-privilege event) of the same SSID: the vendor
+  driver's join: `INFRASTRUCTURE`, `INDICATE_PM_BSS_ABORT`, `SET_BSS_INFO`
+  (connection state 1, BMC index 255, station-of-AP 254),
+  `REMOVE_STA_RECORD`, `BSS_ACTIVATE_CTRL` active, `CH_PRIVILEGE` request
+  answered by the channel-privilege event (status 0, grant 4000 ms); the
+  authentication `txd` (30 bytes) with its TX-done, three
+  `UPDATE_STA_RECORD` commands (state 0, type 65), station state 0 to 1, the
+  association `txd` (140 bytes) with its TX-done, state 1 to 2;
+  `UPDATE_WMM_PARMS`, `SET_BSS_INFO` (connection state 0, BMC index 0),
+  `UPDATE_STA_RECORD` (AID 5, state 2, response requested) answered by the
+  `ACTIVATE_STA_REC` event with the same sequence, `ROAMING_TRANSIT`,
+  `SET_RX_FILTER` and `MAC_MCAST_ADDR` pairs, `INDICATE_PM_BSS_CONNECTED`,
+  then `SET_BSS_RLM_PARAM` nineteen times about 100 ms apart. The
+  handshake as the firmware sees it: EAPOL-typed `rxd` 113 bytes, `eapol`
+  `txd` 135 bytes with TX-done, EAPOL-typed `rxd` 169 bytes, `eapol` `txd`
+  113 bytes; `ADD_REMOVE_KEY` add (sequence 122: CCMP, 16 bytes, key type
+  1, key id 0, peer class `bss`, TX key, WLAN index 1), with an
+  `ADD_PKEY_DONE` event (sequence 0, station class `bss`) observed within
+  1 ms after it and before the fourth message's TX-done; a protected data
+  `txd` of 78 bytes; `ADD_REMOVE_KEY` add (sequence 123: key type 0, key id
+  1, peer class `bss`, no TX key, WLAN index 2, the station records' BMC
+  index), with a second `ADD_PKEY_DONE` observed within 1 ms after it. The
+  event's payload names no key, so attributing the two events to the two
+  commands is by order only, not an acknowledgement per key. Then
+  spontaneous data: ten protected data `txd` in all (the 78-byte one above
+  and nine more of 42 to 590 bytes, traffic classes 1 and 3) each with its
+  TX-done,
+  three `RX_ADDBA` events, six `CHECK_REORDER_BUBBLE` events, 962 accepted
+  protected unicast `rxd` (IPv4, ARP, IPv6 and the unknown EtherType
+  `0x8899`) and 131 accepted protected group `rxd`, with 875 credit events;
+  the 32 link-quality query and reply pairs are the executor's own `iw`
+  queries. No controlled traffic, no teardown of this captured join after
+  its key adds, no support claim: this is a measurement of the vendor
+  driver's join, handshake and data behaviour on a same-SSID BSS that is
+  not the bound target, after the measured teardown of the already
+  connected stock association.
+- Return: the first 180 s return collector ended with no changed boot and
+  no LAN ([return-receipt-timeout-1.json](results/run3-v10/return-receipt-timeout-1.json),
+  retained as is); one reviewed ordinary restart had been requested after
+  the files were preserved, and no retry or alternate path was taken. The
+  custodian then confirmed stock `3.18.41+` on the new boot `f73e5f74…` by a
+  bounded read-only check, the owner reconnected the saved network through
+  the normal interface (`AutoConnect` had been left off by the failed bound
+  restoration; the cause of the LAN absence is a hypothesis), and the
+  second collector captured the changed boot with stable identity and
+  carrier 1 in one poll
+  ([return-confirm-receipt.json](results/run3-v10/return-confirm-receipt.json)).
+  The device's archived final checksum list verified.
+
+### Run 3 against mainline proposal 0163 and the remaining driver work
+
+Recommendation, pending the custodian's review; no source change or build
+follows from it by itself. Sources: this ledger, the three measured
+teardowns of the stock association (runs 1 to 3), the mainline proposals
+0153 to 0163 and the [Phase C design](../2026-10-07-mt6797-wifi-phase-b-join/PHASE_C.md).
+
+1. The reference is consistent with proposal 0163's window model: exactly
+   two `ADD_PKEY_DONE` events, each observed within a millisecond after a
+   key command, sequence 0, station class `bss`, the second only after the
+   group command. Runtime 20's second event's payload was not recorded, so
+   it is not asserted to have been the expected owned event or a per-key
+   acknowledgement. Amend 0163 to require both windows (count exactly two,
+   one observed after each submission) for the handshake-path pass instead
+   of reporting the second; keep every other refusal and the attribution
+   caveat.
+2. The group key's WLAN index is a measured divergence: the vendor's group
+   key command carried WLAN index 2, the index the station records declared
+   as the BMC index, while mainline declares BMC index 0 (a retained Phase C
+   uncertainty). Resolve from source which field mainline sets and make the
+   group key's index the one the driver itself declared; whether the firmware
+   accepts 0 is not shown by this evidence.
+3. The vendor does not wait for the fourth message's TX-done before the
+   pairwise key command; mainline waits for it and its credit. Keep the
+   mainline order: it is safer and the reference does not forbid it.
+4. Data path (Stage C3), now with measured shapes: translated Ethernet
+   transmit descriptors on traffic classes 1 and 3 with per-PID TX-done
+   events and page credits; translated receive descriptors with status
+   `0xc000`, security mode 4 and unicast or group flags; firmware-originated
+   `RX_ADDBA` and `CHECK_REORDER_BUBBLE` events that the vendor handles to
+   set up and flush receive reordering; the post-association
+   `INDICATE_PM_BSS_CONNECTED`, `SET_RX_FILTER` and `MAC_MCAST_ADDR` commands
+   whose necessity for receiving group data is unknown. These belong in the
+   C3 design before C3 code; none is required for the C2 pass.
+5. The teardown of this captured join after its key adds was not measured.
+   What was measured, three times identically, is the teardown of the
+   already connected stock association: a protected data `txd`, the
+   deauthentication `txd`, six index-based `ADD_REMOVE_KEY` removals (key
+   ids 0 to 5, key type 0, peer class `zero`, WLAN index 255),
+   `INDICATE_PM_BSS_ABORT`, `SET_BSS_INFO` (connection state 1),
+   `REMOVE_STA_RECORD`, `ROAMING_TRANSIT`, `BSS_ACTIVATE_CTRL` inactive and
+   the BSS deactivation. Mainline plans two keyed removals (pairwise then
+   group, peer address, after the deauthentication). Resolve the removal
+   shape from the public vendor source first (which disconnect path emits
+   the six index removals and what the firmware requires of a removal) and
+   retain the smallest source-backed behaviour; the observed shape is
+   evidence that the firmware accepted it, not a template to adopt for
+   resemblance.
+6. The six undecoded zero-length events and the `0x8899` frames stay
+   unknown; nothing in the mainline plan depends on them.
+7. Offline replay: derive a fixture for the mainline classifier from
+   `results/run3-v10/ledger.json` (command and event order, the two key-done
+   events with their windows, the teardown order) so the C2 completion and
+   the C3 design are checked against the reference before a build. This is
+   host-only work.
+8. Admission (hardware-free source work, as reviewed): one coherent
+   proposal set that completes C2 (items 1 and 2) and adds the C3 data path
+   and the teardown (items 4 and 5), resolving the BMC/WLAN index and the
+   removal shape from the public source first; data through standard
+   mac80211 ownership with finite traffic-class, page and PID accounting,
+   the measured receive bounds and reorder semantics, and no traffic claim
+   drawn from packet counts; the focused offline replay fixture (item 7);
+   then the exact proposal diff, the source and replay checks and a finite
+   combined test protocol for one boot covering handshake, data and
+   teardown, all reviewed before any kernel build or publication. No
+   one-event boots, no further reference runs and no ConnMan repairs; the
+   custodian remains the device custodian.
+
 ## v10 run 2: bounded partial result, Connect aborted by ConnMan, no measured handshake (2026-10-10)
 
 Run 2 used the executor at `65edead2` (script SHA-256 `39d15b1e…`) on a fresh

@@ -1,0 +1,10 @@
+{
+ "iw_target_match": false,
+ "ssid_match": true,
+ "bssid_match": false,
+ "frequency_match": false,
+ "supplicant_completed": true,
+ "pairwise_ccmp": true,
+ "group_ccmp": true,
+ "wpa2_psk": true
+}

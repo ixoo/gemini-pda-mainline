@@ -1,0 +1,8 @@
+{
+ "clock_offset_s": 0.145,
+ "round_trip_s": 0.286,
+ "clock_admitted": true,
+ "laptop_lan_address_present": true,
+ "route_selects_owner_lan": true,
+ "datagrams_sent": 0
+}

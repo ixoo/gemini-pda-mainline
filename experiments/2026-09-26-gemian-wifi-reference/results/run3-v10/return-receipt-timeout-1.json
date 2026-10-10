@@ -1,0 +1,17 @@
+{
+ "boot_ids_seen": [
+  "e845b6f0-d464-4fed-8533-0608e047a42c"
+ ],
+ "changed_boot": false,
+ "deadline_s": 180,
+ "elapsed_s": 179.6,
+ "expected_release": "3.18.41+",
+ "files": {},
+ "identity_after": null,
+ "identity_before": null,
+ "identity_stable": false,
+ "polls": 26,
+ "predecessor_boot_id": "e845b6f0-d464-4fed-8533-0608e047a42c",
+ "result": "no changed boot within the deadline",
+ "started_utc": "2026-10-10T20:32:01Z"
+}

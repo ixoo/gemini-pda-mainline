@@ -1,0 +1,5 @@
+bound_files=1
+sample=1 present=1 capacity=93 health=Good extern=0 status=Not charging
+sample=2 present=1 capacity=93 health=Good extern=0 status=Not charging
+boot=e845b6f0-d464-4fed-8533-0608e047a42c release=3.18.41-gemini-wifi-ref10+ architecture=aarch64 identity_stable=1 observer_idle=1 target_match=1 service_match=1 tools_match=1
+source_commit=0c8dc2f9e163b064691d924f1ca8b2e3fa6b653b

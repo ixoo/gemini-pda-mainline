@@ -352,7 +352,16 @@ the group command, a third and anything outside the lifetime window, and the
 classifier requires only the first-window record. At the owner's direction
 this is an incomplete checkpoint: no compile, candidate or installation
 follows; the next step is a bounded Gemian reference capture of a complete
-lifecycle at the firmware boundary.
+lifecycle at the firmware boundary. The reference's
+[run 3](../2026-09-26-gemian-wifi-reference/README.md#run-3-against-mainline-proposal-0163-and-the-remaining-driver-work)
+observed two add-key-done events, each within a millisecond after a key
+command, consistent with 0163's window model (attribution by order only;
+runtime 20's second payload was not recorded); the recommendation there
+(amend 0163 to require both windows, resolve the group key's WLAN index and
+the removal shape from the public source, design C3 from the measured
+data-path shapes through mac80211, replay the reference offline) is admitted
+as hardware-free source work and awaits its proposal diff, checks and
+combined test protocol before any build.
 
 ## Runtime 20 bindings (2026-10-10)
 

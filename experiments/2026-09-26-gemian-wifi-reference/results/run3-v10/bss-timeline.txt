@@ -1,0 +1,4 @@
+t=4 object_idle=1 query_rc=0 verdict_rc=1 bss_visible=1 bss_match=1 bss_age=86 bss_fresh=0
+t=5 object_idle=1 query_rc=0 verdict_rc=1 bss_visible=1 bss_match=1 bss_age=88 bss_fresh=0
+t=7 object_idle=1 query_rc=0 verdict_rc=1 bss_visible=1 bss_match=1 bss_age=89 bss_fresh=0
+t=8 object_idle=1 query_rc=0 verdict_rc=0 bss_visible=1 bss_match=1 bss_age=1 bss_fresh=1

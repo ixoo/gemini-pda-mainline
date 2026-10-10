@@ -1,0 +1,46 @@
+{
+ "boot_ids_seen": [
+  "e845b6f0-d464-4fed-8533-0608e047a42c"
+ ],
+ "changed_boot": true,
+ "deadline_s": 900,
+ "elapsed_s": 89.9,
+ "expected_release": "3.18.41-gemini-wifi-ref10+",
+ "files": {
+  "addr.txt": {
+   "bytes": 213,
+   "captured": true,
+   "sha256": "9a17c1ed8f94994daa7c0d473971c442f959dac6255506c88b57df7be8eec10d"
+  },
+  "carrier.txt": {
+   "bytes": 2,
+   "captured": true,
+   "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+  },
+  "cmdline.txt": {
+   "bytes": 517,
+   "captured": true,
+   "sha256": "02c74bbb3d006ba0846df8d08034acf72799138657cd50a575cabb31cd2890fb"
+  },
+  "dmesg.log": {
+   "bytes": 344059,
+   "captured": true,
+   "sha256": "f02d34ca054e5986b5104e65628b0d3f08630ea212d1c3e9ae050a7d2144904b"
+  }
+ },
+ "identity_after": {
+  "boot_id": "e845b6f0-d464-4fed-8533-0608e047a42c",
+  "machine": "aarch64",
+  "release": "3.18.41-gemini-wifi-ref10+"
+ },
+ "identity_before": {
+  "boot_id": "e845b6f0-d464-4fed-8533-0608e047a42c",
+  "machine": "aarch64",
+  "release": "3.18.41-gemini-wifi-ref10+"
+ },
+ "identity_stable": true,
+ "polls": 9,
+ "predecessor_boot_id": "994115e1-f310-4c5b-a936-7ead9fde713f",
+ "result": "changed boot captured",
+ "started_utc": "2026-10-10T20:24:31Z"
+}

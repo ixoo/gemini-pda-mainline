@@ -1,0 +1,92 @@
+{
+ "archive_bytes": 2181120,
+ "archive_sha256": "619f9162e21a139afd1a57d2a8a3e9144e7eaa312120d9ff8a9eaad207f3e8a7",
+ "files": {
+  "MANIFEST": {
+   "bytes": 1393,
+   "sha256": "368f7ea1a9814e1f57d9a39cddbd591c56bc5657ad73f0305a2086440b7506af"
+  },
+  "SHA256SUMS.final": {
+   "bytes": 230,
+   "sha256": "8b2f14f7c3d93206e56203ef75edccc07d27f6c4fcb03f809cc5cb245297b856"
+  },
+  "addr-after.txt": {
+   "bytes": 213,
+   "sha256": "9a17c1ed8f94994daa7c0d473971c442f959dac6255506c88b57df7be8eec10d"
+  },
+  "addr-before.txt": {
+   "bytes": 213,
+   "sha256": "9a17c1ed8f94994daa7c0d473971c442f959dac6255506c88b57df7be8eec10d"
+  },
+  "bss-snapshots.txt": {
+   "bytes": 3859,
+   "sha256": "8a4a72b2a5164e5db52d8e4f9ad08b31d2939c903b34bf92f9fbe03ead4a1e77"
+  },
+  "bss-timeline.txt": {
+   "bytes": 363,
+   "sha256": "bafba994cfad384058587bd9fd7817c60d0cd1c6b2129e3e400f85acc234d65b"
+  },
+  "connect-output.txt": {
+   "bytes": 57,
+   "sha256": "fd4003aee58445da18a11b3bbec8ed4f76111e6107aacb0484b730fa90fc0457"
+  },
+  "control-after.txt": {
+   "bytes": 3,
+   "sha256": "b182162abfa9c6ff7b79b0ad7114f7a517a9f2f7a6396a13c14fe31b515f7c4b"
+  },
+  "dmesg-after.log": {
+   "bytes": 851282,
+   "sha256": "90b6b92a55a835ba29a1aa826ffe6e61e370e375a061aa52034bcdc0c0cbcea2"
+  },
+  "dmesg-before.log": {
+   "bytes": 415782,
+   "sha256": "465aca0eb3e3cbebb82c2db99aa9ffe87bccd88a401787ec3016268201f9d2c1"
+  },
+  "kmsg-cycle.log": {
+   "bytes": 879553,
+   "sha256": "fca466b04deb06c0ad49eb02e7c76880ebef7c934404aabd777581bad77af686"
+  },
+  "logger.txt": {
+   "bytes": 61,
+   "sha256": "b726ddb04066ad7cc3c4fb404a578051a54fe8693bcb77304b88d672248bb048"
+  },
+  "printk-after.txt": {
+   "bytes": 8,
+   "sha256": "a94937a9bfc8b21ddaaf35262192aa719c7e17f4c37d4b0d5286ca62ce8da73f"
+  },
+  "printk-before.txt": {
+   "bytes": 8,
+   "sha256": "a94937a9bfc8b21ddaaf35262192aa719c7e17f4c37d4b0d5286ca62ce8da73f"
+  },
+  "receipt.txt": {
+   "bytes": 1246,
+   "sha256": "19c4441381ebd1a55cd0cdff5679b445ed73374f1546d24bd688e35e3fcae091"
+  },
+  "restore.log": {
+   "bytes": 234,
+   "sha256": "886edae892181fef90989478877616fa58ef7c34c935094d5bdf543c3f9dcc91"
+  },
+  "route-before.txt": {
+   "bytes": 202,
+   "sha256": "dd856288384d72fb29cc52a6d6e9dddbdcc19820bb191824c57146f7fd35ceec"
+  },
+  "run.log": {
+   "bytes": 1165,
+   "sha256": "1c2337635530265be549205973f24e1f60e56bc636c1fa4e847eda0096189e0e"
+  },
+  "service-after.txt": {
+   "bytes": 108,
+   "sha256": "704cb2fd13dd6a90a3a29173773fd04544f8c362537033447e7ce0e2e342e05f"
+  },
+  "service-before.txt": {
+   "bytes": 107,
+   "sha256": "8e32af371315e9ef67dd1e1ff7b67f25d93feefc54a2ea38788c1f72966ade59"
+  },
+  "services-before.txt": {
+   "bytes": 245,
+   "sha256": "e0b0ad714cda73f389f66bc1813b11a795ccec8b91e32cfecc7ad216f1d88a04"
+  }
+ },
+ "final_sums_verified": true,
+ "manifest_verified": true
+}
