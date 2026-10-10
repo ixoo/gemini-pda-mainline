@@ -302,11 +302,17 @@ class HostTests(unittest.TestCase):
         self.assertFalse(classify(early)['firmware_pairwise_key_done'])
         # Another BSS index or peer flag is not the record and is malformed.
         self.assertTrue(classify(good.replace(done, b'one-shot WLAN join key done: pairwise bss=1 peer=1\n'))['malformed_stage_record'])
-        # Late (after the deauthentication's TX) or orphan (no key command) records never count.
-        deauth = good.index(b'one-shot WLAN join TX: subtype=12')
-        late = without[:deauth] + done + without[deauth:]
+        # Late (immediately after the complete deauthentication TX line) or orphan (no key
+        # command) records never count. The splice point is taken in the log the record
+        # was removed from, at the end of that line, so the framing stays intact.
+        deauth = without.index(b'one-shot WLAN join TX: subtype=12')
+        after_deauth_tx = without.index(b'\n', deauth) + 1
+        late = without[:after_deauth_tx] + done + without[after_deauth_tx:]
+        self.assertEqual(late.count(b'\n'), without.count(b'\n') + 1)
+        self.assertEqual(late.replace(done, b''), without)  # the record is the only difference; framing intact
         late_result = classify(late)
         self.assertFalse(late_result['firmware_pairwise_key_done'] or late_result['driver_handshake_path_pass'])
+        self.assertEqual(late_result['key_commands_submitted'], ['pairwise', 'group'])
         plain = log(True)
         activation = plain.index(b'one-shot WLAN join activation:')
         after_activation = plain.index(b'\n', activation) + 1
