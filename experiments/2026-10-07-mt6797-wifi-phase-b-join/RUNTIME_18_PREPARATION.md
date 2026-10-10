@@ -1,14 +1,35 @@
-# Seventeenth Phase B deployment, runtime 18: candidate 17 composed, not installed
+# Seventeenth Phase B deployment, runtime 18 awaiting the owner's boot
 
-Status: candidate 17 is composed and offline-validated by the owner with the
-reviewed composer at `686e11f2`; it is not installed, no device action has
-happened since runtime 17's reviewed recovery, and the device was last
-verified in changed-boot Gemian `fbf740cb…` with the installed candidate 16
-(full padded boot2 `c773902c…`) as the predecessor; the owner re-verifies
-before installing. The owner alone prepares and reviews the guarded
-installer, performs deployment 17, runs both offline preflights on the actual
-deployment-17 summary, shuts down cleanly and hands over to the physical
-boot2 start; the frozen laptop wrappers then run once each.
+Status: candidate 17 is installed and fully read back; the device was cleanly
+powered off and is unbooted, awaiting the owner's physical boot2 start. The
+laptop, as sole custodian, will execute the reviewed runtime-18 capture and
+session exactly once after that; no radio action, mainline boot or runtime
+evidence exists yet, and an installed candidate is not a Wi-Fi result.
+
+The [guarded deployment receipt](results/deployment-17.json) (the owner's
+22-field summary, SHA-256 `96eae241…`) pins candidate 17: receipt
+`cf5958f2…`, full padded boot2 `5135b2f8…`, written over predecessor candidate
+16 `c773902c…`, synced and flushed, with the independent full 16 MiB checksum
+and byte comparison readback matching. The installer was prepared from source
+`f4010c87`, the bindings revision (generated installer SHA-256 `8a69feee…`;
+its difference from the deployment-16 installer is only the candidate,
+receipt, predecessor, boot identity, pins and names, the guards identical;
+prepare, syntax and ShellCheck passed) and executed once under the standing
+boot2 authorization; the probe, write and post-write device guards passed on
+the re-verified live Gemian boot `fbf740cb…` (3.18.41+), target `179:30`
+(`/dev/mmcblk0p30`), non-root `179:29`, power `1|100|Good|0`; no fresh
+predecessor backup, temporary readback removed, evidence flushed, the
+installer exited 0, the power-off SSH exchange ended with rc 255 (the
+remote closed the connection during power-off), unreachable afterwards,
+nothing rebooted.
+
+Runtime-18 preparation on the laptop, frozen at `f50b98e0` (the
+documentation follow-up of `f4010c87`; every executable identical): a fresh
+evidence root with `wifi-phase-b/session-18` holding only the actual
+deployment-17 summary (mode 0600) and `capture-18` absent; both offline
+preflights (`laptop-capture.py`, `laptop-session.py`) passed on candidate 17
+with the owner's PSK-bound script, whose source is unchanged; no execution
+claim exists.
 
 The committed receipt [results/candidate-17.json](results/candidate-17.json)
 (SHA-256 `cf5958f2…`, the owner's receipt byte for byte) pairs the compile-22
