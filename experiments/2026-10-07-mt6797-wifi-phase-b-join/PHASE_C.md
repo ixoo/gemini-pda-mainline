@@ -164,8 +164,10 @@ are stated here, not acted on: a management frame from the AP after message
 protected data frames, which no gate admits, would end the hold the same way.
 
 Runtime 17 (candidate 16) measured the second consequence earlier than
-expected: the AP's protected group-addressed traffic arrived before message 3
-and ended the join at the gate. Proposal 0160 discards exactly that measured
+expected: a protected group-flagged data frame from the AP (inferred from
+the public descriptor layout to be its ordinary traffic encrypted with the
+group key the station does not yet hold; receiver address, cipher and body
+unrecorded) arrived before message 3 and ended the join at the gate. Proposal 0160 discards exactly that measured
 class (group match bit, native protected FromDS data from the target, the
 measured descriptor fields and status `0xc004`) undelivered while the station
 is active and holds no group key. After the group key's credit the same

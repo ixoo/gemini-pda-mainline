@@ -64,19 +64,24 @@ malformed-frame flag clear. Frame control `0x6208`: data, subtype 0, FromDS,
 More Data, Protected; the transmitter is the target (`from=1`) and the
 receiver is not this station (`to=0`). The receiver address itself and the
 body were not recorded, so the frame is not identified beyond this: a
-protected, group-flagged, non-QoS data frame from the AP that the hardware
-could not decrypt, with 94 wire bytes whose content is unknown.
+protected, group-flagged, non-QoS data frame from the AP whose descriptor
+carries the cipher-mismatch flag, with 94 wire bytes whose content is
+unknown. That the flag means the hardware held no matching key, and that
+the frame was ordinary traffic encrypted with the AP's group key, is a
+source-based inference from the public layout and the station's state (no
+key installed); the actual cipher, key and body are not proved.
 
 ### Why it ended the join
 
 The frame gate admits only the EAPOL decoder's clear frames and the
 management decoder's permitted subtypes; a protected data frame matches
-neither and the design fail-stops on any other shape. The AP's ordinary
+neither and the design fail-stops on any other shape. The source-based
+inference, not a measurement of the body: this is the AP's ordinary
 group-addressed traffic, encrypted with a group key this station does not
-hold until message 3 delivers it, can arrive at any moment after the
-association; in runtime 16 it did not arrive before message 3, in runtime 17
-it did. The join can therefore end at this gate at random before the
-handshake completes.
+hold until message 3 delivers it, which can arrive at any moment after the
+association; in runtime 16 no such frame arrived before message 3, in
+runtime 17 one did. Whatever its content, a frame of this measured class can
+end the join at this gate at random before the handshake completes.
 
 ### The other measurements
 
