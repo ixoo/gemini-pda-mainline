@@ -82,8 +82,13 @@ with tempfile.TemporaryDirectory(prefix='mt6797-host-identity-') as directory:
              'firmware_start_request_sent': True}
     assert identity(json.loads(bound_receipt), wmt, start), 'current-candidate evidence must pass'
     assert not identity(runtime_1, wmt, start), 'runtime-1 receipt must refuse current evidence'
+    # Runtimes 13 and 14 share candidate 13 by design (the installed boot2 is
+    # reused); every receipt of a different candidate must refuse the evidence.
     for other in receipts[:-1]:
+        if other == bound_receipt:
+            continue
         assert not identity(json.loads(other), wmt, start), 'an earlier receipt must refuse the current evidence'
+    assert sum(other == bound_receipt for other in receipts[:-1]) == 1, 'only runtime 13 shares the bound receipt'
     assert not identity(json.loads(bound_receipt), wmt, dict(start, boot_id='other')), 'boot mismatch refused'
     assert not identity(json.loads(bound_receipt), dict(wmt, candidate_boot2_sha256=RUNTIME_1_BOOT2), start)
 print('host identity: PASS (WMT host receipt bound per runtime; runtime-1 receipt preserved; predicate positive/negative)')
