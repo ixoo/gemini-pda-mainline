@@ -946,6 +946,16 @@ v8 count. The bounded one-boot test is complete. This supports D0+D2 as a
 working temporary *Gemian* copy policy, not effective permission precedence,
 exclusive ownership or a safe mainline EMI write. Raw logs remain private.
 
+## Lifecycle capture code for review (2026-10-10)
+
+[Patch 0010](patches/0010-diagnostic-record-Gemian-WLAN-firmware-boundary-life.patch)
+is the bounded observer (`gwref10`), with the single-use cycle script
+`trace-lifecycle-v10.sh`, the ledger parser `lifecycle/parse-lifecycle.py`,
+the laptop group trigger `lifecycle/lan-group-trigger.py` and fixtures under
+`tests/` (core races and caps, vendor helpers against the pinned
+declarations, parser, trigger, patch consistency). The builder lists the ten
+patches for release `3.18.41-gemini-wifi-ref10+`. Review only; no build.
+
 ## Lifecycle capture protocol (2026-10-10)
 
 The mainline Phase C work paused its one-event-per-boot cycle after runtime

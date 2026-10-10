@@ -1,8 +1,11 @@
 # Gemian Wi-Fi reference: one bounded connect, handshake, traffic and disconnect lifecycle at the firmware boundary
 
-Status: source-backed protocol and observer design for review (revision 2,
-after the custodian's review of revision 1). Nothing built, composed,
-installed or run. The laptop custodian performs every device step under the
+Status: revision 3, with the reviewable code: [patch 0010](patches/0010-diagnostic-record-Gemian-WLAN-firmware-boundary-life.patch),
+the device script `trace-lifecycle-v10.sh`, the parser
+`lifecycle/parse-lifecycle.py`, the laptop trigger
+`lifecycle/lan-group-trigger.py` and their fixtures under `tests/`. Nothing
+built, composed, installed or run; the custodian reviews the exact patch
+before any compile. The laptop custodian performs every device step under the
 standing authorization for reviewed tests and boot2 installation; the owner's
 only action is the physical boot2 selection. Buildbox agents have no device
 access and build only on an explicit go after the exact patch is reviewed.
@@ -86,50 +89,78 @@ implemented together and replayed offline before the next boot2 handoff.
   snapshot while the driver is idle), any packet capture tool (none installed
   and none needed), a new procfs or debugfs file.
 
-## Observer design: diagnostic patch 0010, release `3.18.41-gemini-wifi-ref10+`
+## Observer: diagnostic patch 0010, release `3.18.41-gemini-wifi-ref10+`
 
-One patch under `drivers/misc/mediatek/connectivity/wlan/gen3/`: a small
-header of record helpers plus calls at the sites below. Control is one
-integer `module_param_cb` named `gwref10` on the built-in `wlan_gen3`
-module, so it appears as `/sys/module/wlan_gen3/parameters/gwref10` through
-the existing sysfs interface with no new file type:
+[Patch 0010](patches/0010-diagnostic-record-Gemian-WLAN-firmware-boundary-life.patch)
+adds `common/gwref10.c` and `include/gwref10.h` to the gen3 driver (the same
+files as `lifecycle/gwref10.c` and `lifecycle/gwref10.h`, which the host
+fixtures compile; a test keeps them identical), one field in `SW_RFB_T` and
+calls at the resolved sites. Nothing else in the driver changes; the vendor
+`DBGLOG` level is untouched.
 
-- write `1`: arm. Resets every counter, records the monotonic time and
-  prints `gwref10 arm: n=1` synchronously from the writer's context.
-- write `2`: seal. Clears the armed flag first, then prints `gwref10 seal:`
-  with every category's recorded and suppressed count and the total, again
-  synchronously, so the snapshot exists whether or not the driver runs
-  another call. A second arm or seal in the same boot is refused (`-EBUSY`)
-  and the parameter stays at its value: the observer is single use per boot.
-- read: the current state (`0` idle, `1` armed, `2` sealed).
+- Control: one integer `module_param_cb` named `gwref10` on the built-in
+  `wlan_gen3` module, so `/sys/module/wlan_gen3/parameters/gwref10` exists
+  through the ordinary sysfs interface. Write `1`: arm once (counters reset,
+  deadline set, `gwref10 arm:` marker). Write `2`: seal once (`gwref10 seal:`
+  with the record total, the truncation count and recorded/suppressed/filtered
+  counts per category), printed synchronously from the writer's context, so it
+  works while the driver is idle. A repeated arm or seal returns `EBUSY`; the
+  parameter reads the state (0 idle, 1 armed, 2 sealed).
+- Synchronisation: one spinlock covers the state, the deadline, the record
+  number and every counter and is held across each record's single `printk`,
+  so every admitted record precedes the seal line in the kernel log and no
+  record is counted or printed after it. The 240 s internal deadline is checked
+  on every admission, every filtered count and every parameter write, so an
+  idle driver past the deadline is sealed by whichever call comes first. The
+  unlocked state read before formatting is an early exit only.
+- Bounds: caps per category (cmd 512, event 1024, credit 1024, rxd 2048, txd
+  1024, state 256; about 6,000 records, under 1 MiB); one `gwref10 cap:` marker
+  per category at its cap, the rest counted; a record longer than the 256-byte
+  line bound is marked `trunc=1` and counted, and the parser refuses it.
+- Console back-pressure: records are `KERN_DEBUG`, which the device's console
+  threshold (`7 4 1 7`, consoles `tty0` and `ttyMT0`) does not print; only the
+  arm, seal and cap markers are `KERN_INFO`. The script refuses to run if the
+  console level is above 7 and records the `printk` tuple before and after.
+- Delivered bytes: the three HIF ingress paths (`nicRxReadBuffer`,
+  `nicRxEnhanceReadBuffer`, `nicRxSDIOAggReceiveRFBs`) store the byte count
+  the HIF delivered in the buffer (`u2GwrefHifLen`) before any descriptor field
+  is interpreted; the event and descriptor helpers read header and payload
+  fields only within that count and the buffer size and otherwise write
+  `shorthdr`, `badlen` or `shortdesc` records. Command header fields are read
+  only when the buffer exists and covers the `WIFI_CMD_T` header.
+- Addresses are compared in the kernel against the BSS's target and own
+  address and reported as a class (`bss`, `own`, `bcast`, `zero`, `group`,
+  `other`); no address, SSID, key byte, RSC or frame body is ever formatted.
 
-Records are `pr_info` lines `gwref10 <category>: n=<record> <fields>`,
-emitted only while armed. The record number is one `atomic_t` incremented
-with `atomic_inc_return`; each category's recorded and suppressed counters
-are `atomic_t` too, so the RX softirq, the TX thread, the HIF interrupt and
-the writer never share a non-atomic word, and the order of records is the
-kernel log's own sequence. A category at its cap suppresses further records
-and counts them; one `gwref10 cap: <category>` line marks the moment. The
-overall bound is the sum of the caps (about 6,000 records, under 1 MiB).
-Every field is an index, flag, length, status or class. No address, SSID,
-key byte, RSC, frame body or payload beyond the allow-listed fields is ever
-formatted or read for output.
+| Site (`59e00a91`) | Record | Fields |
+| --- | --- | --- |
+| `nicTxCmd` 1706, every command | `cmd` | `cid seq set len bss type`; frame commands `type frame=1 len bss sta`; a short or absent buffer `short=1` |
+| `cid 0x07` with the 16 metadata bytes present | `cmd key` | `seq addremove tx keytype auth bss alg keyid keylen wlan peer=<class>` (material and RSC never read) |
+| `cid 0x11`, `0x12`, `0x13`, `0x14` with the struct covered | `cmd bss`, `bssinfo`, `sta`, `starm` | index, state, mode, auth, encryption and WLAN index fields; SSID and addresses never read |
+| `nicRxProcessEventPacket` 1637, every event | `event` | `eid seq len hif`, then `badlen=1` when the declared length is not covered |
+| allow-listed events with the pinned struct covered | `event keydone`, `txdone`, `starec`, `linkq`, `scandone`, `chpriv`, `bcntimeout`, `aging`, `addba`, `delba`, `bubble`, `absence`, `psmode`, `quota` | the ids `0x24`, `0x0f`, `0x0c`, `0x02`, `0x0d`, `0x10`, `0x13`, `0x19`, `0x0a`, `0x0b`, `0x2a`, `0x11`, `0x12`, `0x16` that the active dispatcher handles; index, status, token, quota, block-ack parameter and sequence fields; station classes for `keydone` and `starec` |
+| every other event | header only | debug, memory, PMKID, association, scan result, statistics, BA drop-SN and unknown ids |
+| `nicTxReleaseResource` 561 | `credit` | `rel0..rel5 free0..free5`, only when any release is nonzero |
+| `nicRxFillRFB` 285 | `rxd` | `type len hdrlen pad trans bssid wlan tid sec mismatch fmt uc2me mc bc grp fc havefc eth`; the frame-control word and group bit from an untranslated header of at least 24 bytes, the Ethernet type and group bit from a translated one of at least 14; beacons and probe responses counted as filtered |
+| `nicTxComposeDesc` 1019, `nicTxComposeSecurityFrameDesc` 1161 | `txd` | `cls=<eapol,mgmt,data> pid wlan bss sta len fmt tid prot is80211 tc`; `prot` is the composed descriptor's own protection bit, `cls` the MSDU's type, named separately |
+| `cnmStaRecChangeState` 720, `cnmStaRecFree` 558, `nicDeactivateNetwork` 1437 | `state` | `stastate sta wlan bss from to`; `stafree sta wlan bss state`; `bssdeact bss` |
 
-| Site (`59e00a91`) | Record | Fields | Cap |
-| --- | --- | --- | --- |
-| `nicTxCmd` 1706, every command | `cmd` | `cid seq set len bss type` from `WIFI_CMD_T` and `CMD_INFO_T` | 512 |
-| same, `cid == 0x07`, only when `u2InfoBufLen` covers the 16 metadata bytes before `aucKeyMaterial` | `key` | `addremove tx keytype auth bss alg keyid keylen wlan peer=<class>`; `peer` is `bss` (equals the BSS's target address), `broadcast` or `other`, compared in the kernel, never printed; `aucKeyMaterial` and `aucKeyRsc` are never read | within `cmd` |
-| same, `cid` in `0x11`, `0x13`, `0x14`, `0x15`, each only when the length covers the struct | `bss`, `sta`, `starm`, `bssinfo` | `bss active nettype bmcwlan`; `sta statype bss` and the state fields present in `CMD_UPDATE_STA_RECORD_T`; `action sta bss`; `bss connstate authmode encstatus physet bmcwlan` | within `cmd` |
-| `nicRxProcessEventPacket` 1637, every event | `event` | `eid seq len` from the 8-byte header | 1024 |
-| same, allow-listed payloads with `u2PacketLength` at least 8 plus the struct size, otherwise header only with `short=1`: `0x24`, `0x0f`, `0x0c` | `keydone`, `txdone`, `starec` | `bss sta=<class>` (class as above); `pid status sn wlan count rate flag`; `sta bss` | within `event` |
-| `nicTxReleaseResource` 561 | `credit` | released count per TC and the free count after, only when any released count is nonzero | 1024 |
-| `nicRxFillRFB` 285, after the descriptor fields are parsed, before dispatch | `rxd` | `type len hdrlen pad trans bssid wlan tid sec mismatch fmt` from the 16-byte descriptor; `fc=<word> group=<bit>` from the first two header bytes and the destination's group bit only when the header is not translated and `u2PacketLen` is at least 24; `eth=<type>` instead when translated and at least 14 bytes are present; beacons and probe responses are counted in `suppressed`, not recorded | 2048 |
-| `nicTxComposeDesc` 1019 and `nicTxComposeSecurityFrameDesc` 1161, after the PID is assigned | `txd` | `pid wlan bss len fmt tid sec=<class>` where `sec` is `eapol`, `mgmt` or `data` from the MSDU's own type fields, no body read | 1024 |
-| `cnmStaRecChangeState` 720, `cnmStaRecFree` 558, `nicDeactivateNetwork` 1437 | `state` | `sta state`, `sta wlan bss`, `bss` | 256 |
-
-Unknown or refused events and commands are header-only by construction; a
-payload record exists only for the allow-listed ids with a strict length
-check against the pinned struct size.
+Fixtures: `tests/run-gwref10-test.py` (core: idle, arm and seal semantics,
+exact caps under eight concurrent writers, unique contiguous record numbers,
+no record after a seal that races four writers, the deadline from a writer
+and from a filtered call, truncation marking); `tests/run-gwref10-vendor-test.py
+<gen3 tree>` (the helpers compiled against the pinned declarations extracted
+from the real headers, enumerations resolved by the C preprocessor with the
+real `config.h` and Makefile flags, every stand-in field audited against the
+real structures: short and absent command buffers, metadata-only key records
+with every peer class, length one byte short, out-of-range BSS index, SSID
+never formatted; event header gating below 8 delivered bytes, declared length
+beyond the delivered or the buffer with a poisoned tail, struct one byte
+short, queue-management structs, header-only ids; credit, descriptor records
+for protected unicast, filtered beacons and probe responses, translated
+broadcast ARP with the group bit, refused lengths, maximal field values under
+the line bound; transmit classes and the protection bit; state records; no
+address bytes anywhere in the output); `tests/patch-0010-consistency-test.py`.
 
 ## Device protocol: `trace-lifecycle-v10.sh`, single use
 
@@ -138,9 +169,14 @@ only argument, under `systemd-run` so it survives losing the LAN; outputs
 under `/var/tmp/gemini-wifi-reference-lifecycle-v10`, `umask 077`; a marker
 file refuses a second run. The ConnMan service is the one currently in state
 `online` or `ready`; the script compares its identifier with the custodian's
-private approved-AP file (mode 0600, read on the device, never echoed) and
-refuses any other service, so the capture cannot be broadened to another
-network. That identifier does appear in the custodian's own command lines on
+private approved-service file (mode 0600, read on the device, never echoed)
+and refuses any other service. The association itself is compared with the
+custodian's private bound target (`ap-target.json`: SSID, BSSID, frequency
+and channel, the same file the mainline runs are bound to) through `iw dev
+wlan0 link` before the cycle and after the measured connect, and the run
+exports only the booleans `target_match_before` and `target_match`; a
+connect that lands on another BSSID or band stops the sequence, so the
+reference stays directly comparable with runtime 20 and cannot roam. That identifier does appear in the custodian's own command lines on
 the device and in the private output files; the only sanitized product is the
 parsed `gwref10` ledger.
 
@@ -161,12 +197,17 @@ parsed `gwref10` ledger.
    number, and the parser verifies the sequence is contiguous (a gap is a
    drop and is reported as such).
 4. Arm: write `1` to the parameter and confirm the `arm` line in the stream.
-   Positive control, source-backed and read-only: one `/sbin/iw dev wlan0
-   station dump`, which reaches `mtk_cfg80211_get_station` and sends
-   `CMD_ID_GET_LINK_QUALITY` (`0x81`); within 5 s the stream must show
-   `cmd` with `cid=0x81` and an `event` with the same `seq` (the firmware's
-   response, `EVENT_ID_LINK_QUALITY` `0x02` by the pinned enum). Otherwise
-   seal, stop the stream and exit 2 before any radio action.
+   Positive control, source-backed and read-only: two `/sbin/iw dev wlan0
+   link` queries one second apart. `iw link` (iw 4.9) issues a get-station
+   request for the associated BSS, which reaches `mtk_cfg80211_get_station`
+   (`gl_cfg80211.c` 359; the driver has no dump-station handler) and
+   `wlanoidQueryRssi`; that query returns the cached value only within
+   `CFG_LINK_QUALITY_VALID_PERIOD` (500 ms, `wlan_oid.c` 3699), so the second
+   query, one second later, sends `CMD_ID_GET_LINK_QUALITY` (`0x81`) and the
+   firmware answers with `EVENT_ID_LINK_QUALITY` (`0x02`). The stream must
+   show the arm line, a `cmd` with `cid=0x81` and an `event` with `eid=0x02`
+   within 3 s; otherwise the script seals, stops the stream and exits 2 before
+   any radio action.
 5. Teardown one: `connmanctl disconnect <service>`; wait up to 20 s until
    three consecutive `/sbin/iw dev wlan0 link` samples, one second apart,
    report `Not connected` (carrier 0 alone is not the gate). Expected
@@ -179,30 +220,33 @@ parsed `gwref10` ledger.
    `credit`, every `event` in order including each `keydone` with its class,
    `starec`, `bssinfo`.
 7. Traffic, 15 s, target only: `ping -c 5 -W 2 <gateway>`. The evidence of
-   protected unicast is the `rxd` records of the replies (`sec` nonzero and
-   `mismatch=0`) and the `txd` records of the requests, not the ping result.
-   No neighbour flush, no broadcast ping, no interface-wide action. Group
-   downlink traffic is whatever the LAN sends in the window; a `rxd` with
-   `group=1` and `sec` nonzero is the evidence, and its absence is recorded
-   as missing group evidence, not as failure. If the custodian wants group
-   evidence in this run, the laptop on the same LAN may send three ARP
-   requests for the gateway during step 7 (its own `arping -c 3`), which
-   arrive at the station as group-addressed protected frames; that is the
-   only group trigger, optional and bounded.
+   protected unicast is the `rxd` records of the replies (`sec` nonzero,
+   `mismatch=0`, `grp=0`) and the `txd` records of the requests with
+   `prot=1`, never the ping result or the transmit class. No neighbour flush,
+   no broadcast ping, no interface-wide action. Group downlink evidence is a
+   `rxd` with `grp=1` (from the descriptor's broadcast or multicast match flag,
+   so a translated Ethernet header counts too) and `sec` nonzero; during this
+   step the custodian runs `lifecycle/lan-group-trigger.py <laptop address>
+   <prefix>` on the laptop, which binds to the owner LAN address, computes the
+   private directed broadcast, and sends three 8-byte UDP datagrams with TTL 1
+   one second apart. Whether the access point forwards them to the station is
+   an observation; the parser reports group evidence as observed or missing,
+   and no group behaviour is concluded without the records.
 8. Teardown two: `connmanctl disconnect <service>`; the same three-sample
    `iw` gate, up to 20 s. This is the teardown from a fully keyed station.
 9. Seal: write `2`, confirm the `seal` line, stop the stream, save
    `dmesg-after.log`, the parameter value, `connmanctl services`, the
    service's properties and `ip -4 addr`; restore `AutoConnect` to its
-   recorded value; hash every output file into `SHA256SUMS`.
+   recorded value; hash every output file into `SHA256SUMS`. The full private
+   outputs are complete on the device before the restoration connect.
 10. Restoration connect, outside the capture: `connmanctl connect <service>`
     under `timeout 60`, then `iw` connected and an address. Exit 0 only with
     the LAN restored; otherwise exit 3 with the evidence saved and the
     custodian's reviewed recovery path takes over.
 
 Counts stated in advance: two disconnects and one connect inside the capture,
-one restoration connect outside it, one `station dump` as positive control,
-five pings. Budget: 180 s of radio actions after the positive control, one
+one restoration connect outside it, two `iw link` queries as positive
+control, five pings, three laptop datagrams. Budget: 180 s of radio actions after the positive control, one
 run per boot, no retries. Hypothesis: the firmware's command, event, credit
 and descriptor sequence for one complete lifecycle is recorded with every
 category below its cap and the kmsg sequence contiguous. Unique evidence:
@@ -232,14 +276,13 @@ handoff.
 
 ## Order of work
 
-1. Custodian review of this revision.
-2. Author patch 0010, `trace-lifecycle-v10.sh` and `parse-lifecycle.py` with
-   offline fixtures (record formatting and caps, class computation, strict
-   length checks, arm and seal semantics, the script's gates against a mocked
-   environment, parser completeness and gap detection); publish for review.
-   No build.
-3. On the custodian's go after reviewing the exact patch: one managed
-   reference build v10, receipt, offline candidate and guarded installer as
-   for v9; the custodian installs and runs the cycle once, the owner selects
-   boot2 physically, the custodian returns through the reviewed path and
-   uploads the receipts and the ledger.
+1. Custodian review of patch 0010, the script, the parser, the trigger and
+   the fixtures (all passing on Buildbox-1; the vendor fixture against the
+   pinned tree read from the public mirror).
+2. On the custodian's go after that review: one managed reference build v10
+   (`build-on-buildbox.py` lists the ten patches, release
+   `-gemini-wifi-ref10`, and asserts the observer's markers in the linked
+   image), receipt, offline candidate and guarded installer as for v9 (their
+   v10 entries follow the build receipt); the custodian installs and runs the
+   cycle once, the owner selects boot2 physically, the custodian returns
+   through the reviewed path and uploads the receipts and the ledger.

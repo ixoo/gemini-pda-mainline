@@ -32,6 +32,7 @@ PATCHES = (
     HERE / 'patches/0007-diagnostic-sample-Gemian-VCN28-mode.patch',
     HERE / 'patches/0008-diagnostic-record-Gemian-CONMCU-reset-readbacks.patch',
     HERE / 'patches/0009-diagnostic-bound-Gemian-WLAN-EMI-copy-policy.patch',
+    HERE / 'patches/0010-diagnostic-record-Gemian-WLAN-firmware-boundary-life.patch',
 )
 CONFIG = REPO / 'experiments/2026-07-23-gemian-a72-owner-observer/inputs/active-gemian.config'
 
@@ -107,7 +108,7 @@ def main():
         for symbol in ('FUNCTION_TRACER', 'FUNCTION_GRAPH_TRACER', 'DYNAMIC_FTRACE'):
             run([str(script_config), '--file', str(output / '.config'), '--enable', symbol])
         run([str(script_config), '--file', str(output / '.config'), '--set-str',
-             'LOCALVERSION', '-gemini-wifi-ref9'])
+             'LOCALVERSION', '-gemini-wifi-ref10'])
         command = ['make', '-C', str(source), 'O=' + str(output), 'ARCH=arm64',
                    'CROSS_COMPILE=' + cross, 'python=' + str(toolchain / 'wrappers/python2.7'),
                    'KCFLAGS=-fstack-usage']
@@ -127,10 +128,10 @@ def main():
             'CONFIG_FUNCTION_PROFILER': [None, 'n'],
             'CONFIG_FUNCTION_TRACER': ['n', 'y'],
             'CONFIG_GENERIC_TRACER': [None, 'y'],
-            'CONFIG_LOCALVERSION': ['""', '"-gemini-wifi-ref9"'],
+            'CONFIG_LOCALVERSION': ['""', '"-gemini-wifi-ref10"'],
             'CONFIG_PSTORE_FTRACE': [None, 'n'],
         }, delta
-        assert after['CONFIG_LOCALVERSION'] == '"-gemini-wifi-ref9"'
+        assert after['CONFIG_LOCALVERSION'] == '"-gemini-wifi-ref10"'
         for symbol in ('FUNCTION_TRACER', 'FUNCTION_GRAPH_TRACER', 'DYNAMIC_FTRACE'):
             assert after['CONFIG_' + symbol] == 'y'
         assert after['CONFIG_MTK_FTRACE_DEFAULT_ENABLE'] == 'n'
@@ -159,6 +160,8 @@ def main():
                        'wlanRemove'):
             assert re.search(r' [Tt] ' + symbol + r'$', symbol_map, re.M), symbol
         linked_image = (output / 'vmlinux').read_bytes()
+        assert b'gwref10 arm: deadline_s=' in linked_image
+        assert b'gwref10 seal: reason=' in linked_image
         assert b'gemini-wifi-ref-v2: stop command_attempted=' in linked_image
         assert b'gemini-wifi-ref-v2: remove_wait hif=' in linked_image
         assert b'gemini-wifi-ref-v3: conn_enable=' in linked_image
