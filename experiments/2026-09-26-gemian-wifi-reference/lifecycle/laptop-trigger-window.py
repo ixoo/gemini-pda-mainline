@@ -7,8 +7,9 @@ device over the known-good LAN SSH path for the `traffic-window` marker the cycl
 writes (`<start> <end> <boot-id>` in epoch seconds), on a monotonic deadline, each SSH
 call clamped to the remaining budget; it requires the marker's boot ID to equal the
 verified v10 boot ID, and sends the three datagrams only when the window still has
-room for the whole schedule (two one-second gaps plus a margin). Nothing is written on
-the device. The SSH identity is the custodian's approved private key, used with
+room for the whole schedule (two one-second gaps plus a margin). The marker lives in the
+root-owned capture directory and is read with `sudo -n cat`; nothing is written on the
+device. The SSH identity is the custodian's approved private key, used with
 IdentitiesOnly, no agent and strict host-key checking; no other key is offered.
 """
 import argparse
@@ -35,7 +36,8 @@ def ssh_command(alias, identity, timeout_s):
 
 def read_marker(ssh, runner, timeout_s):
     """(start, end, boot_id) from the marker, or None while it does not exist or is malformed."""
-    result = runner(ssh + ['cat', MARKER], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=timeout_s)
+    # The capture directory is root-owned mode 0700; the device user reads the fixed marker through sudo -n.
+    result = runner(ssh + ['sudo', '-n', 'cat', MARKER], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=timeout_s)
     if result.returncode != 0:
         return None
     parts = result.stdout.decode('ascii', 'replace').split()

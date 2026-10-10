@@ -39,7 +39,7 @@ class WindowTest(unittest.TestCase):
         for option in ('IdentitiesOnly=yes', 'IdentityAgent=none', 'StrictHostKeyChecking=yes', 'UpdateHostKeys=no', 'BatchMode=yes'):
             self.assertIn(option, cmd)
         self.assertEqual(cmd[cmd.index('-i') + 1], '/keys/dev')
-        self.assertEqual(cmd[-2:], ['cat', MOD['MARKER']])
+        self.assertEqual(cmd[-4:], ['sudo', '-n', 'cat', MOD['MARKER']])
 
     def test_not_enough_room_or_closed_or_future(self):
         for wall, reason in ((1017, 'not enough window left'), (1050, 'not enough window left'), (990, 'window start is in the future')):

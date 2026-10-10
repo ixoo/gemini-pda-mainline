@@ -964,10 +964,13 @@ cycle and every failure path. The builder lists the ten patches for release
 ## Lifecycle capture protocol (2026-10-10)
 
 The mainline Phase C work paused its one-event-per-boot cycle after runtime
-20. [LIFECYCLE_PROTOCOL](LIFECYCLE_PROTOCOL.md) proposes the v10 reference
-image: one diagnostic patch of `pr_debug` records at the gen3 command,
-event, credit, descriptor and teardown sites, enabled through dynamic debug
-for one bounded connect, handshake, traffic and disconnect cycle, with key
-material, addresses and frame bodies excluded by construction, and an
-offline parser whose ledger feeds the mainline fixtures. Review only; nothing
-built or run.
+20. [LIFECYCLE_PROTOCOL](LIFECYCLE_PROTOCOL.md) specifies the v10 reference
+image: one diagnostic patch of bounded `printk` records (debug level for
+records, info level for the arm, seal and cap markers) at the gen3 command,
+event, credit, descriptor and teardown sites, controlled by one
+`module_param_cb` that arms and seals the observer once per boot, for one
+bounded disconnect, connect, handshake, traffic and disconnect cycle, with
+key material, addresses and frame bodies excluded by construction, and an
+offline parser whose ledger feeds the mainline fixtures. The vendor
+`DBGLOG` and dynamic debug are not used. Review only; nothing built or run
+by Buildbox.
