@@ -44,7 +44,7 @@ SUPPLICANT_MEMBER = 'bin/wpa_supplicant'
 SUPPLICANT_SHA256 = '0487b7109c0a456eabf3aef33d74d38e5aa4e6dddcb586c03bb203803dd27da7'
 SUPPLICANT_BYTES = 1719888
 # Runtime 13's committed receipt declares the supplicant, so the member is required.
-SUPPLICANT_REQUIRED = 'supplicant' in json.loads((HERE / 'results/candidate-13.json').read_bytes())
+SUPPLICANT_REQUIRED = 'supplicant' in json.loads((HERE / 'results/candidate-14.json').read_bytes())
 
 
 def check_ram_root(members, record, userspace):
@@ -96,7 +96,7 @@ def prepare(candidate_dir, previous):
     finish = load('wlan_finish', base.BASELINE / 'finish-baseline.py')
     candidate_dir = Path(os.path.abspath(candidate_dir))
     collector.directory(candidate_dir)
-    receipt = json.loads((HERE / 'results/candidate-13.json').read_text())
+    receipt = json.loads((HERE / 'results/candidate-14.json').read_text())
     base.require(receipt['kernel_release'] == RELEASE and
                  receipt['physical_admission'] is False, 'candidate receipt changed')
     expected = receipt['files']

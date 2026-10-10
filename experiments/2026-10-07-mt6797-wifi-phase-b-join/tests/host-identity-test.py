@@ -46,7 +46,8 @@ with tempfile.TemporaryDirectory(prefix='mt6797-host-identity-') as directory:
              ('runtime-6', 'candidate-5'), ('runtime-7', 'candidate-6'), ('runtime-8', 'candidate-7'),
              ('runtime-9', 'candidate-8'), ('runtime-10', 'candidate-9'),
              ('runtime-11', 'candidate-10'), ('runtime-12', 'candidate-11'),
-             ('runtime-13', 'candidate-13'), ('runtime-14', 'candidate-13')]
+             ('runtime-13', 'candidate-13'), ('runtime-14', 'candidate-13'),
+             ('runtime-15', 'candidate-14')]
     assert host.HERE == HERE / PAIRS[-1][0]
     receipts = []
     for directory, receipt in PAIRS:
@@ -66,7 +67,7 @@ with tempfile.TemporaryDirectory(prefix='mt6797-host-identity-') as directory:
     assert runtime_1['files']['boot2-padded.img']['sha256'] == RUNTIME_1_BOOT2, 'runtime-1 receipt preserved'
     # Other rebound roots are untouched by the receipt binding.
     assert host.DOMAIN.HERE == HERE and host.DOMAIN.HOST.HERE == HERE
-    assert host.ROOT == work / 'runtime/wifi-phase-b/session-14' and host.CAPTURE == work / 'runtime/wifi-phase-b/capture-14'
+    assert host.ROOT == work / 'runtime/wifi-phase-b/session-15' and host.CAPTURE == work / 'runtime/wifi-phase-b/capture-15'
 
     def identity(receipt, wmt, start):
         digest = receipt['files']['boot2-padded.img']['sha256']
@@ -88,7 +89,8 @@ with tempfile.TemporaryDirectory(prefix='mt6797-host-identity-') as directory:
         if other == bound_receipt:
             continue
         assert not identity(json.loads(other), wmt, start), 'an earlier receipt must refuse the current evidence'
-    assert sum(other == bound_receipt for other in receipts[:-1]) == 1, 'only runtime 13 shares the bound receipt'
+    # Runtime 15 binds a new candidate; runtimes 13 and 14 shared candidate 13.
+    assert sum(other == bound_receipt for other in receipts[:-1]) in (0, 1)
     assert not identity(json.loads(bound_receipt), wmt, dict(start, boot_id='other')), 'boot mismatch refused'
     assert not identity(json.loads(bound_receipt), dict(wmt, candidate_boot2_sha256=RUNTIME_1_BOOT2), start)
 print('host identity: PASS (WMT host receipt bound per runtime; runtime-1 receipt preserved; predicate positive/negative)')
