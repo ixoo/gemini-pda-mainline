@@ -14,6 +14,12 @@ def classify(raw):
         'activation': rb'activation: sequence=(\d+) state=3',
         'cleanup': rb'cleanup: stage=3 credits=returned slots=retired deauth=([01])',
         'cleanup_submission': rb'cleanup submission: stage=(\d+)',
+        # Phase C3: the channel privilege released after the group key (the stage-1
+        # abort then submits nothing), the bounded data phase and its end.
+        'cleanup_released': rb'cleanup submission: stage=1 released=1',
+        'channel_released': rb'channel released: sequence=(\d+)',
+        'data_phase': rb'data phase: budget_ms=(\d+) teardown_margin_ms=(\d+)',
+        'data_end': rb'data phase end: reason=(budget|disconnect|txfail) elapsed_ms=(\d+) rx_unicast=(\d+) rx_group=(\d+) rx_dropped=(\d+) tx_queued=(\d+) tx_done=(\d+) tx_failed=(\d+)',
         'peer': rb'peer: ready=1 sequence=(\d+)',
         'grant': rb'grant: channel=40 interval_ms=(\d+)',
         # Phase C2: control-port EAPOL transmitted as a security frame, and the
@@ -42,10 +48,14 @@ def classify(raw):
         rb'key done refused: bss=' + byte + rb' peer=[01] broadcast=[01] seq=' + byte + rb' submitted=[01][01] recorded=[01][01]',
         rb'cleanup refused: stage=[0-3] phase=\d{1,2} free=\d{1,5} limit=\d{1,5} pending_cpu=\d{1,5} pending_ffa=\d{1,5} sequences=[01] locked=[01]',
         rb'credit overflow: pages=\d{1,5} debt=\d{1,3}',
+        rb'data credit overflow: pages=\d{1,5} debt=\d{1,3}',
         # An element of a mac80211 frame outside this admission (one record per lifetime).
         rb'frame element refused: subtype=\d{1,2} id=0x[0-9a-f]{2} len=' + byte + rb' count=[0-2]',
     )
     notifications = (rb'bss absence: bss=0 absent=[01] quota=' + byte + rb' reserved=' + byte,
+                     # Phase C3: the first delivered data frame and the first submitted data frame, metadata only.
+                     rb'data RX: first group=[01] tid=\d{1,2} keyid=[0-3] bytes=\d{1,4} vector=[01]',
+                     rb'data TX: first pid=\d{1,3} pages=\d{1,2} bytes=\d{1,4}',
                      # Phase C1: a clear EAPOL-Key frame from the target, decoded and dropped.
                      rb'eapol (?:observed|delivered): translated=[01] frame=\d{1,4} activated=[01] vector=[01] bss=(?:1|15)',
                      # Phase C2: protected group-addressed data from the target, discarded undelivered (first eight recorded).
@@ -85,6 +95,8 @@ def classify(raw):
                     group_rows.append((index, int(body.rsplit(b'count=', 1)[1])))
                 elif body.startswith(b'action frame discarded:'):
                     action_rows.append((index, int(body.rsplit(b'count=', 1)[1])))
+                elif body.startswith(b'data TX: first') or body.startswith(b'data RX: first'):
+                    pass  # Phase C3 first-frame notifications: metadata, neither refusal nor stage
                 elif body.startswith(b'eapol observed:') or body.startswith(b'eapol delivered:'):
                     fields = dict(part.split(b'=') for part in body.split(b': ', 1)[1].split(b' '))
                     eapol_rows.append((index, int(fields[b'translated']), int(fields[b'frame']),
@@ -165,14 +177,32 @@ def classify(raw):
     exchange = (sequence_ok and acknowledged and len(auth) == 1 and auth[0][2] == 0 and
                 len(association) == 1 and tx[0][0] < auth[0][0] < tx[1][0] < association[0][0])
     credits = rows['credit']
+    # Phase C3 lifetime: at most one channel release (one page), only after the
+    # group key's credit; the data phase record right after it; one end record
+    # with its reason before the deauthentication TX; the stage-1 release record
+    # only when the channel was released, and then no stage-1 command.
+    released = rows['channel_released']
+    data_phase = rows['data_phase']
+    data_end = rows['data_end']
+    group_credit = [row for row in key_credits if row[1] == 'group']
+    deauth_tx_rows = [row for row in tx if row[1] == 12]
+    lifetime_ok = (len(released) <= 1 and len(data_phase) == len(released) and len(data_end) <= len(released) and
+                   len(rows['cleanup_released']) == len(released) and
+                   all(bool(group_credit) and r[0] > group_credit[0][0] for r in released) and
+                   all(released and p[0] > released[0][0] and p[1] == 60000 and p[2] == 5000 for p in data_phase) and
+                   all(data_phase and e[0] > data_phase[0][0] and
+                       (not deauth_tx_rows or e[0] < deauth_tx_rows[0][0]) for e in data_end))
+    if not lifetime_ok:
+        malformed = True
     expected_pages = (7 + (3 if accepted else 0) + sum(row[3] for row in tx) + sum(row[2] for row in eapol_tx) +
-                      len(key_commands) + len(key_removals))
+                      len(key_commands) + len(key_removals) + len(released) - len(rows['cleanup_released']))
     credit_ok = (bool(credits) and all(row[1] > 0 and row[2] <= 19 for row in credits) and
                  sum(row[1] for row in credits) == expected_pages and credits[-1][2] == 0)
+    stage_rows = sorted(rows['cleanup_submission'] + [(row[0], 1) for row in rows['cleanup_released']])
     cleanup_ok = (len(rows['cleanup']) == 1 and
                   rows['cleanup'][0][1] == int(accepted) and
-                  [row[1] for row in rows['cleanup_submission']] == [0, 1, 2] and
-                  rows['cleanup'][-1][0] > rows['cleanup_submission'][-1][0] and credit_ok)
+                  [row[1] for row in stage_rows] == [0, 1, 2] and
+                  rows['cleanup'][-1][0] > stage_rows[-1][0] and credit_ok)
     activation_ok = (len(rows['activation']) == int(accepted) and
                      (not accepted or association[0][0] < rows['activation'][0][0] < tx[-1][0]))
     # EAPOL framing observations (0140 decoder: layout, peer, channel, complete
@@ -214,8 +244,9 @@ def classify(raw):
     order_ok = False
     if exchange and healthy and cleanup_ok and activation_ok:
         completion = {row[1]: row[0] for row in done}
-        stages = [row[0] for row in rows['cleanup_submission']]
+        stages = [row[0] for row in stage_rows]
         terminal = rows['cleanup'][0][0]
+        stage_pages = [1, 0 if rows['cleanup_released'] else 1, 1]
 
         def pages_between(begin, end):
             return sum(row[1] for row in credits if begin < row[0] < end)
@@ -227,10 +258,10 @@ def classify(raw):
                     pages_between(peer, tx[1][0]) == tx[0][3] and
                     association[0][0] < stages[0] and
                     completion[tx[-1][2]] < stages[0] and
-                    pages_between(-1, stages[0]) == expected_pages - 3 and
+                    pages_between(-1, stages[0]) == expected_pages - sum(stage_pages) and
                     stages[0] < stages[1] < stages[2] < terminal and
-                    all(pages_between(begin, end) == 1 for begin, end in
-                        zip(stages, stages[1:] + [terminal])))
+                    all(pages_between(begin, end) == pages for (begin, end), pages in
+                        zip(zip(stages, stages[1:] + [terminal]), stage_pages)))
         if accepted:
             # Between the association TX and the deauthentication TX: the association's
             # pages, the BSS and station configuration (3), each security frame's pages
@@ -239,7 +270,7 @@ def classify(raw):
             # The deauthentication's page may return before or after its TX done, so
             # the window from its TX to stage 0 holds its pages plus one per removal.
             order_ok = (order_ok and completion[tx[1][2]] < rows['activation'][0][0] and
-                        pages_between(tx[1][0], tx[2][0]) == tx[1][3] + 3 + sum(row[2] for row in eapol_tx) + len(key_commands) and
+                        pages_between(tx[1][0], tx[2][0]) == tx[1][3] + 3 + sum(row[2] for row in eapol_tx) + len(key_commands) + len(released) and
                         all(rows['activation'][0][0] < row[0] < tx[2][0] for row in key_commands + key_credits) and
                         all(completion[tx[2][2]] < row[0] < stages[0] for row in key_removals) and
                         pages_between(tx[2][0], stages[0]) == tx[2][3] + len(key_removals))
@@ -270,6 +301,16 @@ def classify(raw):
         'key_done_records': ['first' if row[1] == 'pairwise' else row[1].split(' ')[0] for row in key_done],
         'firmware_key_done_first_window': bool(keys_ok and len(first_done) == 1),
         'firmware_key_done_second_window': bool(keys_ok and len(second_done) == 1),
+        # Phase C3 lifetime terms: the channel privilege released after the group
+        # key, the data phase budget as recorded, and how the data phase ended.
+        'channel_released': bool(lifetime_ok and len(released) == 1),
+        'data_phase_budget_ms': data_phase[0][1] if lifetime_ok and data_phase else None,
+        'data_phase_end_reason': data_end[0][1] if lifetime_ok and data_end else None,
+        # Counts from the end record: protected frames delivered to and accepted
+        # from mac80211 at the firmware boundary, never a network-function claim.
+        'data_frames': ({'rx_unicast': data_end[0][3], 'rx_group': data_end[0][4], 'rx_dropped': data_end[0][5],
+                         'tx_queued': data_end[0][6], 'tx_done': data_end[0][7], 'tx_failed': data_end[0][8]}
+                        if lifetime_ok and data_end else None),
         # Driver-side C2 path: two frames delivered, two sent, both key commands with
         # their credits, both removals, healthy bounded join. The session's success
         # additionally needs the supplicant's completion phrase from the laptop
@@ -287,8 +328,20 @@ def classify(raw):
         'wifi_operational': False,
     }
     result['bounded_join_pass'] = bool(exchange and healthy and cleanup_ok and activation_ok and order_ok)
+    # Both add-key-done windows are required since the reference run 3 showed one
+    # event observed within a millisecond after each key command (attribution by
+    # order only; neither record names the key it completes).
     result['driver_handshake_path_pass'] = bool(result['bounded_join_pass'] and len(eapol_rows) == 2 and
                                                 len(eapol_tx) == 2 and result['handshake_keys_submitted'] and
                                                 result['firmware_key_done_first_window'] and
+                                                result['firmware_key_done_second_window'] and
                                                 [row[1] for row in key_removals] == ['pairwise', 'group'])
+    # Phase C3 driver-side pass: the handshake pass, the channel released, the data
+    # phase ended by its budget or a disconnect (not by transmit failures), at least
+    # one data frame acknowledged and one unicast protected frame delivered. Whether
+    # an address was obtained or a host answered is the session's evidence, not this.
+    frames = result['data_frames']
+    result['driver_data_path_pass'] = bool(result['driver_handshake_path_pass'] and result['channel_released'] and
+                                           result['data_phase_end_reason'] in ('budget', 'disconnect') and frames and
+                                           frames['tx_done'] >= 1 and frames['rx_unicast'] >= 1 and frames['tx_failed'] <= frames['tx_done'])
     return result

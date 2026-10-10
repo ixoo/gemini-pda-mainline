@@ -25,6 +25,9 @@ typedef uint64_t u64;
 #define BIT(n) (1U << (n))
 #define ETH_ALEN 6
 #define RX_FLAG_NO_SIGNAL_VAL (1U << 8)
+#define RX_FLAG_DECRYPTED (1U << 1)
+#define RX_FLAG_MMIC_STRIPPED (1U << 3)
+#define RX_FLAG_IV_STRIPPED (1U << 4)
 typedef unsigned char u8;
 static const u8 own[ETH_ALEN] = { 2, 0, 0, 0, 0, 1 };
 static const u8 ap[ETH_ALEN] = { 2, 0, 0, 0, 0, 2 };
@@ -58,6 +61,8 @@ static unsigned int infos; /* production dev_info records */
 #include "eapol-rx.h"
 #include "join-refused.h"
 #include "group-data.h"
+#include "data-rx.h"
+#include "join-commands.h"
 #include "action-frame.h"
 #include "scan-wire.h"
 
@@ -71,7 +76,7 @@ struct ieee80211_rate { int unused; };
 struct wiphy { u8 perm_addr[ETH_ALEN]; };
 struct ieee80211_hw { void *priv; struct wiphy *wiphy; };
 struct ieee80211_vif { int unused; };
-struct ieee80211_tx_info { unsigned int flags; int band; struct { unsigned int flags; } control; };
+struct ieee80211_tx_info { unsigned int flags; int band; struct { unsigned int flags; const void *hw_key; } control; };
 #define IEEE80211_TX_CTRL_PORT_CTRL_PROTO (1U << 1)
 struct ieee80211_tx_control { int unused; };
 struct ieee80211_rx_status { int band, freq, signal; unsigned int flag; };
@@ -240,7 +245,7 @@ static int mt6797_hif_read32(struct mt6797_hif *h, unsigned int reg, u64 d, u32 
 { (void)h; (void)d; *v = reg ? BIT(8) : 0x0279 | BIT(21); return 0; }
 static int mt6797_hif_reconcile_runtime(struct mt6797_hif *h, u64 d,
 	struct mt6797_hif_tx_status *s, struct mt6797_normal_release *a)
-{ (void)h; (void)d; (void)s; a->released_pages = released; released = 0; return 0; }
+{ (void)h; (void)d; (void)s; *a = (struct mt6797_normal_release){0}; a->released_pages = released; released = 0; return 0; }
 static bool mt6797_hif_normal_idle(struct mt6797_hif *h) { (void)h; return idle; }
 struct mt6797_hif_ledger { unsigned phase, tc4_free, tc4_limit, pending_cpu, pending_ffa; bool sequences, locked; };
 static void mt6797_hif_normal_ledger(struct mt6797_hif *h, struct mt6797_hif_ledger *o) { (void)h; *o = (struct mt6797_hif_ledger){0}; }
@@ -264,6 +269,18 @@ static int mt6797_hif_send_security(struct mt6797_hif *h, const u8 *f, size_t n,
 	assert(n >= 18 && n <= 1518 && wlan == 1 && pid && life == 500 && count == 3);
 	assert(!memcmp(f, ap, ETH_ALEN) && !memcmp(f + 6, own, ETH_ALEN) && f[12] == 0x88 && f[13] == 0x8e);
 	security_submissions++;
+	submissions++;
+	return 0;
+}
+static unsigned int data_submissions;
+static int mt6797_hif_send_data(struct mt6797_hif *h, const u8 *f, size_t n,
+	unsigned int wlan, unsigned int pid, unsigned int life, unsigned int count, u64 d)
+{
+	(void)h; (void)d;
+	/* Ethernet II data from this station, as the worker builds it; no EAPOL type. */
+	assert(n >= 14 && n <= 1518 && wlan == 1 && pid && life == 500 && count == 3);
+	assert(!memcmp(f + 6, own, ETH_ALEN) && !(f[12] == 0x88 && f[13] == 0x8e));
+	data_submissions++;
 	submissions++;
 	return 0;
 }

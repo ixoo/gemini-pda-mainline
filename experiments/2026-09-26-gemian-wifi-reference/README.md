@@ -1055,8 +1055,14 @@ teardowns of the stock association (runs 1 to 3), the mainline proposals
    mainline order: it is safer and the reference does not forbid it.
 4. Data path (Stage C3), now with measured shapes: translated Ethernet
    transmit descriptors on traffic classes 1 and 3 with per-PID TX-done
-   events and page credits; translated receive descriptors with status
-   `0xc000`, security mode 4 and unicast or group flags; firmware-originated
+   events and page credits; two distinct accepted protected receive classes,
+   unicast (unicast-to-me, WLAN index 1, raw status 0) and group
+   (destination group bit and broadcast set, WLAN index 2, raw status
+   `0xc000`, the source's A-MPDU flags), both security mode 4 and translated;
+   the observer's group flag is the destination address bit, not the
+   descriptor's extension-group word, so sequence, frame control and PN
+   semantics come from the RXD decoder and source, not from these counts;
+   security mode 4 alone establishes no replay protection; firmware-originated
    `RX_ADDBA` and `CHECK_REORDER_BUBBLE` events that the vendor handles to
    set up and flush receive reordering; the post-association
    `INDICATE_PM_BSS_CONNECTED`, `SET_RX_FILTER` and `MAC_MCAST_ADDR` commands

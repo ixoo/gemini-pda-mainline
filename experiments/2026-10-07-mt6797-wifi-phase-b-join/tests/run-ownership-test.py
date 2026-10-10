@@ -16,6 +16,7 @@ struct = re.search(r"struct mt6797_mac \{.*?\n\};", source, re.S)
 if not struct:
     parser.error("production struct mt6797_mac missing")
 names = ("mt6797_mac_join_refused_frame", "mt6797_mac_join_frame", "mt6797_mac_tx", "mt6797_mac_join_guard",
+         "mt6797_mac_join_wait_credit_fwd", "mt6797_mac_join_end_data", "mt6797_mac_join_release_channel",
          "mt6797_mac_join_retire_idle_bss", "mt6797_mac_join_close",
          "mt6797_mac_join_control_event", "mt6797_mac_join_cleanup_step",
          "mt6797_mac_join_work", "mt6797_mac_join_wait_credit",
@@ -38,10 +39,15 @@ rsn_definition = re.search(r"static const u8 mt6797_join_rsn_body\[18\] = \{.*?\
 capabilities = re.search(r"static bool mt6797_join_rsn_capabilities\(const u8 \*capabilities\)\n\{.*?\n\}", source, re.S)
 if not capabilities:
     parser.error("RSN capability predicate missing from the driver")
-parts = [struct.group(0), rsn_definition.group(0), capabilities.group(0),
+# The driver's Phase C3 finite limits are defined in mac.c and used by the worker.
+limits = re.findall(r"^#define MT6797_JOIN_[A-Z0-9_]+ .*$", source, re.M)
+parts = limits + [struct.group(0), rsn_definition.group(0), capabilities.group(0),
          "static unsigned long wait_for_completion_timeout(struct completion *, unsigned long);",
-         "static int mt6797_mac_join_retire_idle_bss(struct mt6797_mac *mac);"]
+         "static int mt6797_mac_join_retire_idle_bss(struct mt6797_mac *mac);",
+         "static int mt6797_mac_join_wait_credit(struct mt6797_mac *mac);"]
 for name in names:
+    if name == "mt6797_mac_join_wait_credit_fwd":
+        continue
     match = re.search(r"static (?:int|void|bool) " + name + r"\([^;]*?\)\n\{.*?\n\}", source, re.S)
     if not match:
         parser.error("production function missing: " + name)

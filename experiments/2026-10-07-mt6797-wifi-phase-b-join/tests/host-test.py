@@ -41,13 +41,22 @@ def log(accepted, keys=False):
                       'key command: pairwise submitted sequence=10', 'credit: pages=1 remaining=0',
                       'key credit returned: pairwise', 'key done: first after=pairwise bss=0 peer=1',
                       'key command: group submitted sequence=11', 'credit: pages=1 remaining=0',
-                      'key done: second after=group bss=0 peer=1', 'key credit returned: group']
-        lines += ['TX: subtype=12 pid=' + ('5' if keys else '3') + ' pages=1', 'credit: pages=1 remaining=0',
-                  'TX done: pid=' + ('5' if keys else '3') + ' status=0 advanced=0 count=0']
+                      'key done: second after=group bss=0 peer=1', 'key credit returned: group',
+                      # Phase C3 lifetime: the channel privilege released after the group
+                      # key's credit, the bounded data phase, its end by the budget.
+                      'channel released: sequence=12', 'credit: pages=1 remaining=0',
+                      'data phase: budget_ms=60000 teardown_margin_ms=5000',
+                      'data TX: first pid=5 pages=3 bytes=342', 'data RX: first group=0 tid=0 keyid=0 bytes=320 vector=1',
+                      'data phase end: reason=budget elapsed_ms=60000 rx_unicast=40 rx_group=3 rx_dropped=0 tx_queued=12 tx_done=12 tx_failed=0']
+        lines += ['TX: subtype=12 pid=' + ('6' if keys else '3') + ' pages=1', 'credit: pages=1 remaining=0',
+                  'TX done: pid=' + ('6' if keys else '3') + ' status=0 advanced=0 count=0']
         if keys:
-            lines += ['key removal: pairwise submitted sequence=12', 'credit: pages=1 remaining=0',
-                      'key removal: group submitted sequence=13', 'credit: pages=1 remaining=0']
+            lines += ['key removal: pairwise submitted sequence=13', 'credit: pages=1 remaining=0',
+                      'key removal: group submitted sequence=14', 'credit: pages=1 remaining=0']
     for stage in range(3):
+        if stage == 1 and accepted and keys:
+            lines += ['cleanup submission: stage=1 released=1']   # released after the group key: nothing submitted
+            continue
         lines += ['cleanup submission: stage=' + str(stage), 'credit: pages=1 remaining=0']
     lines += ['cleanup: stage=3 credits=returned slots=retired deauth=' + str(int(accepted))]
     return ''.join('one-shot WLAN join ' + line + '\n' for line in lines).encode()
@@ -164,18 +173,28 @@ class HostTests(unittest.TestCase):
         self.assertTrue(result['handshake_keys_submitted'] and result['driver_handshake_path_pass'])
         self.assertFalse(result['wifi_operational'])
         # The deauthentication's page may return after its TX done.
-        swapped = raw.replace(b'one-shot WLAN join credit: pages=1 remaining=0\none-shot WLAN join TX done: pid=5 status=0 advanced=0 count=0\n',
-                              b'one-shot WLAN join TX done: pid=5 status=0 advanced=0 count=0\none-shot WLAN join credit: pages=1 remaining=0\n')
+        swapped = raw.replace(b'one-shot WLAN join credit: pages=1 remaining=0\none-shot WLAN join TX done: pid=6 status=0 advanced=0 count=0\n',
+                              b'one-shot WLAN join TX done: pid=6 status=0 advanced=0 count=0\none-shot WLAN join credit: pages=1 remaining=0\n')
         self.assertNotEqual(swapped, raw)
         self.assertTrue(classify(swapped)['driver_handshake_path_pass'])
         # Missing all removals, or only the group removal missing: not healthy; a partial
         # handshake (pairwise only) with its exact removal is healthy but not a pass.
-        no_removals = raw.replace(b'one-shot WLAN join key removal: pairwise submitted sequence=12\none-shot WLAN join credit: pages=1 remaining=0\none-shot WLAN join key removal: group submitted sequence=13\none-shot WLAN join credit: pages=1 remaining=0\n', b'')
+        no_removals = raw.replace(b'one-shot WLAN join key removal: pairwise submitted sequence=13\none-shot WLAN join credit: pages=1 remaining=0\none-shot WLAN join key removal: group submitted sequence=14\none-shot WLAN join credit: pages=1 remaining=0\n', b'')
         self.assertFalse(classify(no_removals)['bounded_join_pass'])
-        no_group_removal = raw.replace(b'one-shot WLAN join key removal: group submitted sequence=13\none-shot WLAN join credit: pages=1 remaining=0\n', b'')
+        no_group_removal = raw.replace(b'one-shot WLAN join key removal: group submitted sequence=14\none-shot WLAN join credit: pages=1 remaining=0\n', b'')
         self.assertFalse(classify(no_group_removal)['bounded_join_pass'])
         partial = raw.replace(b'one-shot WLAN join key command: group submitted sequence=11\none-shot WLAN join credit: pages=1 remaining=0\none-shot WLAN join key done: second after=group bss=0 peer=1\none-shot WLAN join key credit returned: group\n', b'').replace(
-            b'one-shot WLAN join key removal: group submitted sequence=13\none-shot WLAN join credit: pages=1 remaining=0\n', b'')
+            b'one-shot WLAN join key removal: group submitted sequence=14\none-shot WLAN join credit: pages=1 remaining=0\n', b'')
+        # Without the group key there is no channel release and no data phase, and
+        # the stage-1 channel abort is submitted with its credit as before.
+        for line in (b'channel released: sequence=12\none-shot WLAN join credit: pages=1 remaining=0\n',
+                     b'data phase: budget_ms=60000 teardown_margin_ms=5000\n',
+                     b'data TX: first pid=5 pages=3 bytes=342\n', b'data RX: first group=0 tid=0 keyid=0 bytes=320 vector=1\n',
+                     b'data phase end: reason=budget elapsed_ms=60000 rx_unicast=40 rx_group=3 rx_dropped=0 tx_queued=12 tx_done=12 tx_failed=0\n'):
+            self.assertIn(b'one-shot WLAN join ' + line, partial)
+            partial = partial.replace(b'one-shot WLAN join ' + line, b'')
+        partial = partial.replace(b'one-shot WLAN join cleanup submission: stage=1 released=1\n',
+                                  b'one-shot WLAN join cleanup submission: stage=1\none-shot WLAN join credit: pages=1 remaining=0\n')
         partial_result = classify(partial)
         self.assertTrue(partial_result['bounded_join_pass'])
         self.assertFalse(partial_result['handshake_keys_submitted'] or partial_result['driver_handshake_path_pass'])
@@ -184,15 +203,15 @@ class HostTests(unittest.TestCase):
         self.assertTrue(classify(raw.replace(b'eapol sent: pid=3 pages=2 bytes=135', b'eapol sent: pid=3 pages=1 bytes=135'))['malformed_stage_record'] or
                         not classify(raw.replace(b'eapol sent: pid=3 pages=2 bytes=135', b'eapol sent: pid=3 pages=1 bytes=135'))['bounded_join_pass'])
         self.assertTrue(classify(raw.replace(b'key command: group submitted sequence=11', b'key command: group submitted sequence=10'))['malformed_stage_record'])
-        self.assertTrue(classify(raw.replace(b'key removal: group submitted sequence=13', b'key removal: group submitted sequence=9'))['malformed_stage_record'])
+        self.assertTrue(classify(raw.replace(b'key removal: group submitted sequence=14', b'key removal: group submitted sequence=9'))['malformed_stage_record'])
         # Group before pairwise, a missing credit, a third security frame, a removal of a
         # key never submitted, or a removal before the deauthentication: not healthy.
         bad = [raw.replace(b'key command: pairwise submitted sequence=10', b'key command: group submitted sequence=10', 1),
                raw.replace(b'one-shot WLAN join key credit returned: group\n', b''),
                raw.replace(b'eapol sent: pid=4 pages=2 bytes=113', b'eapol sent: pid=4 pages=2 bytes=113\none-shot WLAN join eapol sent: pid=6 pages=2 bytes=113'),
                raw.replace(b'one-shot WLAN join key command: group submitted sequence=11\none-shot WLAN join credit: pages=1 remaining=0\none-shot WLAN join key done: second after=group bss=0 peer=1\none-shot WLAN join key credit returned: group\n', b''),
-               raw.replace(b'one-shot WLAN join key removal: pairwise submitted sequence=12\none-shot WLAN join credit: pages=1 remaining=0\n', b'').replace(
-                   b'one-shot WLAN join TX: subtype=12 pid=5 pages=1\n', b'one-shot WLAN join key removal: pairwise submitted sequence=12\none-shot WLAN join credit: pages=1 remaining=0\none-shot WLAN join TX: subtype=12 pid=5 pages=1\n')]
+               raw.replace(b'one-shot WLAN join key removal: pairwise submitted sequence=13\none-shot WLAN join credit: pages=1 remaining=0\n', b'').replace(
+                   b'one-shot WLAN join TX: subtype=12 pid=5 pages=1\n', b'one-shot WLAN join key removal: pairwise submitted sequence=13\none-shot WLAN join credit: pages=1 remaining=0\none-shot WLAN join TX: subtype=12 pid=5 pages=1\n')]
         for mutation in bad:
             self.assertFalse(classify(mutation)['bounded_join_pass'])
         # The C1 shape without keys is unchanged.
@@ -321,13 +340,29 @@ class HostTests(unittest.TestCase):
         orphan = classify(plain[:after_activation] + done + plain[after_activation:])
         self.assertTrue(orphan['malformed_stage_record'])
         self.assertFalse(orphan['firmware_key_done_first_window'] or orphan['bounded_join_pass'])
-        # The second-window record is reported and optional: absent still passes; twice,
-        # before the group command, before the first record, or a first record after the
-        # group command fails the key lifetime. Nothing names it the group key's completion.
+        # The second-window record is required for the handshake-path pass since the
+        # reference run 3 (one event observed after each key command); twice, before the
+        # group command, before the first record, or a first record after the group
+        # command fails the key lifetime. Nothing names it the group key's completion.
         full = classify(good)
         self.assertTrue(full['firmware_key_done_second_window'] and full['key_done_records'] == ['first', 'second'])
+        self.assertTrue(full['channel_released'] and full['data_phase_budget_ms'] == 60000 and full['data_phase_end_reason'] == 'budget')
+        self.assertTrue(full['driver_data_path_pass'] and full['data_frames']['tx_done'] == 12 and full['data_frames']['rx_unicast'] == 40)
+        # A data phase ended by transmit failures, or without an acknowledged frame or a
+        # delivered unicast frame, is not the data-path pass; the handshake pass stands.
+        end = b'one-shot WLAN join data phase end: reason=budget elapsed_ms=60000 rx_unicast=40 rx_group=3 rx_dropped=0 tx_queued=12 tx_done=12 tx_failed=0\n'
+        for variant in (end.replace(b'reason=budget', b'reason=txfail'), end.replace(b'tx_done=12', b'tx_done=0'),
+                        end.replace(b'rx_unicast=40', b'rx_unicast=0'), end.replace(b'tx_failed=0', b'tx_failed=13')):
+            partial_data = classify(good.replace(end, variant))
+            self.assertTrue(partial_data['driver_handshake_path_pass'], variant)
+            self.assertFalse(partial_data['driver_data_path_pass'], variant)
+        self.assertEqual(classify(good.replace(end, end.replace(b'reason=budget', b'reason=disconnect')))['data_phase_end_reason'], 'disconnect')
+        self.assertFalse(classify(good.replace(end, b''))['driver_data_path_pass'])
+        self.assertTrue(classify(good.replace(b'one-shot WLAN join data TX: first pid=5 pages=3 bytes=342\n', b''))['driver_data_path_pass'])
+        self.assertTrue(classify(good + b'one-shot WLAN join data credit overflow: pages=2 debt=1\n')['refusal_recorded'])
         no_group = good.replace(group, b'')
-        self.assertTrue(classify(no_group)['driver_handshake_path_pass'])
+        self.assertFalse(classify(no_group)['driver_handshake_path_pass'])
+        self.assertTrue(classify(no_group)['bounded_join_pass'] and classify(no_group)['handshake_keys_submitted'])
         self.assertFalse(classify(good.replace(done, b''))['driver_handshake_path_pass'])  # second record without the first
         group_command_line = b'one-shot WLAN join key command: group submitted sequence=11\n'
         first_late = no_group.replace(done, b'').replace(group_command_line, group_command_line + done)

@@ -337,6 +337,61 @@ copies, no stubbed close):
   released exactly once by the owner's function. It fails on the pre-0142
   `mac.c`.
 
+## Proposals 0164 to 0167: C2 completion and the legacy C3 data path (2026-10-10)
+
+Written from the Gemian reference run 3 and the pinned public sources
+([SOURCE_MEMO_C2_C3.md](SOURCE_MEMO_C2_C3.md)), reviewed statically by the
+custodian in design, and host-tested; no boot has run them. Each is one
+logical patch in `patches/proposals/` and in the phase-B compile profile's
+series:
+
+- **0164** installs the group key under the AP station's declared broadcast
+  WLAN index 2 (the station record declares it from creation; the BSS
+  payloads keep the BSS's own entry 0) and gives the removals the shapes the
+  supplicant's paths produce in the pinned `wlanoidSetRemoveKey`: pairwise
+  with the AP's address, unicast type and WLAN index 1; group with a zero
+  peer, type 0 and the reserved index 255.
+- **0165** releases the channel privilege after the group key's credit (one
+  CH_PRIVILEGE abort with its credit) and opens one data phase of at most
+  60 s, ended earlier by mac80211's deauthentication or disassociation or a
+  station teardown; the lifetime deadline becomes the data deadline plus a 5 s
+  teardown margin; the stage-1 channel abort of the teardown is recorded as
+  released and submits nothing; poll and packet caps 4096 and 32768.
+- **0166** delivers protected non-aggregated non-QoS translated data (unicast
+  on WLAN index 1, group on index 2, status exactly 0xc000, group 4 present)
+  to mac80211 as rebuilt 802.11 frames with the decrypted and stripped flags;
+  aggregated, QoS, EAPOL-typed and every other shape stay refusals; at most
+  16384 frames delivered, more dropped and counted; no replay protection is
+  claimed.
+- **0167** transmits mac80211's protected non-QoS data to the target as
+  Ethernet II on TC1 with the protected bit, one frame in flight, from a
+  declared 16-page TC1 pool reconciled from the AC1 released count with the
+  shared free-for-all count; unacknowledged data frames are reported and
+  counted, eight in a row end the data phase.
+
+Records added: `channel released`, `data phase`, `data TX: first`,
+`data RX: first`, `data phase end` with the receive and transmit counts,
+`cleanup submission: stage=1 released=1`, `data credit overflow`. The
+classifier requires both add-key-done windows for the handshake-path pass
+(the reference observed one event after each key command, attribution by
+order only) and reports `channel_released`, `data_phase_end_reason`,
+`data_frames` and `driver_data_path_pass` (handshake pass, channel released,
+phase ended by budget or disconnect, at least one acknowledged and one
+delivered unicast frame; never a network-function claim).
+
+Checks on the authoring tree at 0167: every host fixture of this experiment
+(`tests/run-*.py`: config, data-rx, data-tx, eapol, events, handoff, hif,
+key, ownership, peer, rates, refused, scan-rates, scan-report, security,
+submit, wmt-irq) and the directly compiled decoder fixtures pass under ASan
+and UBSan; the Python fixtures pass, including
+[tests/reference-replay-test.py](tests/reference-replay-test.py), which
+checks the three reference ledgers' metadata (command and event order, key
+fields and WLAN indices, the two add-key-done events, the channel release
+with data continuing, the receive classes and the aggregation polarity, the
+transmit classes, the stock teardown's six supplicant-driven removals)
+against these contracts; it replays no packet bytes and validates no network
+function. New fixtures: `tests/data-rx-test.c`, `tests/data-tx-test.c`.
+
 ## Runtime 20 result and proposal 0163, an incomplete checkpoint (2026-10-10)
 
 [Runtime 20](RUNTIME_20.md): the four-way handshake completed on the air, the

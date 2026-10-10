@@ -1,0 +1,193 @@
+From 54ef75ba31e73eaa83df9b503a5bd2e35e4dbd0c Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 10 Oct 2026 21:08:35 +0000
+Subject: [PATCH 164/164] wifi: mt6797: install the group key under the AP
+ station's declared broadcast WLAN index
+
+The reference run 3 ledger shows the pinned vendor driver's WLAN table
+order on this hardware: the BSS's own broadcast entry 0 at activation, the
+AP station's pairwise entry 1 at creation and the station's broadcast entry
+2 right after it, declared in every UPDATE_STA_RECORD before any key, the
+group key command carrying WLAN index 2 and the accepted protected group
+frames arriving on WLAN index 2. The pinned source explains it:
+secPrivacySeekForEntry calls secGetBmcWlanIndex for an AP station, which
+seeks the lowest free non-pairwise entry below NIC_TX_DEFAULT_WLAN_INDEX
+(31) for the AP's address, and wlanoidSetAddKey reuses that entry for the
+group key because its key id is still 0xff. This driver declared broadcast
+index 0, the BSS's own entry, in the station record and installed the group
+key there; whether the firmware accepts that was never shown. Declare the
+distinct entry 2 in the station record and use it for the group key; the
+BSS payloads keep the BSS's own entry 0 as the vendor's post-association
+SET_BSS_INFO does.
+
+The removal shapes follow the paths the standard supplicant exercises in
+the pinned wlanoidSetRemoveKey: the pairwise key with the AP's address, the
+unicast type and the station's WLAN index 1; the group key with a zero
+peer, type 0 and WTBL_RESERVED_ENTRY 255, the shape wpa_clear_keys produces
+by deleting indices without an address and the reference teardowns show
+accepted six times each. The previous group removal carried the AP's
+address with a zeroed index, a shape the supplicant never requests. The
+cleanup order is unchanged: after the deauthentication, pairwise first,
+each with its credit; a credit proves buffer consumption only.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ .../wireless/mediatek/mt6797/join-commands.h  | 71 ++++++++++++++-----
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 15 ++--
+ 2 files changed, 62 insertions(+), 24 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-commands.h b/drivers/net/wireless/mediatek/mt6797/join-commands.h
+index 472e0b9bd..884faa1b2 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join-commands.h
++++ b/drivers/net/wireless/mediatek/mt6797/join-commands.h
+@@ -6,6 +6,21 @@
+ 
+ #define MT6797_JOIN_STA_BYTES 124U
+ 
++/* The AP station's broadcast (BMC) WLAN table index this driver declares.
++ * The pinned vendor allocator (privacy.c secPrivacySeekForEntry for an AP
++ * station calls secGetBmcWlanIndex, lowest free entry below
++ * NIC_TX_DEFAULT_WLAN_INDEX 31) hands the BSS's own broadcast entry 0 at
++ * activation, the station's pairwise entry 1 at creation and the station's
++ * broadcast entry 2 right after it, declares 2 in every UPDATE_STA_RECORD for
++ * the AP station and installs the group key under it (wlanoidSetAddKey
++ * reuses the entry whose key id is still 0xff). The reference run 3 ledger
++ * shows exactly that order (station records with BMC index 2 before any
++ * key, the group key command with WLAN index 2, group frames received on
++ * WLAN index 2). The BSS payloads keep the BSS's own entry 0.
++ */
++#define MT6797_JOIN_BMC_WLAN_INDEX 2U
++#define MT6797_JOIN_RESERVED_WLAN_INDEX 255U
++
+ /* Public gen3 DIRECTED (bit 0) plus BROADCAST (bit 3), no monitor mode. */
+ static inline bool mt6797_join_filter_payload(unsigned char output[4])
+ {
+@@ -67,7 +82,8 @@ mt6797_join_station_payload(const unsigned char *ap, unsigned int state,
+ 	p[16] = basic_rates; p[17] = basic_rates >> 8;
+ 	p[20] = state;
+ 	p[51] = state == 3; /* Activation response required only for state 3. */
+-	p[54] = 1; /* AP WLAN index 1, BMC index 0. */
++	p[54] = 1; /* AP WLAN index 1. */
++	p[55] = MT6797_JOIN_BMC_WLAN_INDEX; /* The station's declared broadcast entry. */
+ 	p[68] = 3; /* Legacy RTS policy. */
+ 	p[74] = 0x4b; /* Default fixed rate OFDM 6 Mbps. */
+ 	p[76] = 1; p[77] = 1; /* Command option DISABLED, not AUTO (0). */
+@@ -119,7 +135,11 @@ mt6797_join_bss_payload(const unsigned char *ap, const unsigned char *ssid,
+ 	p[53] = wpa2 ? 7 : 0;
+ 	p[54] = wpa2 ? 6 : 1;
+ 	p[55] = 8; /* PHY_TYPE_BIT_OFDM. */
+-	/* BSS 0, BMC 0, private AIS index 0, disconnect threshold default 0. */
++	/* BSS 0, BMC 0 (the BSS's own broadcast entry, as the vendor's
++	 * post-association SET_BSS_INFO carries; the station's broadcast entry
++	 * is declared in the station record), private AIS index 0, disconnect
++	 * threshold default 0.
++	 */
+ 	p[69] = 2; p[70] = 40;
+ 	p[81] = short_preamble;
+ 	p[82] = 1; /* 5 GHz always uses short slot time. */
+@@ -188,14 +208,17 @@ static inline void mt6797_join_clear(unsigned char *p, unsigned int n)
+  * pairwise key, neither for the group key, no authenticator flag, the AP's
+  * address as the peer for both (the vendor substitutes the BSSID for the
+  * broadcast group address), BSS index 0, CIPHER_SUITE_CCMP (4), the key id,
+- * 16 key bytes, WLAN index 1 for the pairwise key and the declared BMC WLAN
+- * index 0 for the group key. Remove, as wlanoidSetRemoveKey: the zeroed
+- * command with AddRemove 0, key id, peer and BSS index, unicast type 1 and
+- * the station's WLAN index for the pairwise key, type 0 and the BMC WLAN
+- * index for the group key; no TX-key flag, no algorithm, no length. The BMC
+- * index 0 is this driver's declared choice, bound to the station record and
+- * BSS payload it submits, where the vendor allocates one dynamically. The
+- * RSC is zero in both: the pinned
++ * 16 key bytes, WLAN index 1 for the pairwise key and the station's declared
++ * broadcast index MT6797_JOIN_BMC_WLAN_INDEX for the group key. Remove, as
++ * wlanoidSetRemoveKey fills it on the paths the standard supplicant
++ * exercises: the zeroed command with AddRemove 0, the key id and BSS index;
++ * for the pairwise key the AP's address, unicast type 1 and the station's
++ * WLAN index 1 (a removal with an address and the unicast flag); for the
++ * group key a zero peer, type 0 and WLAN index 255, WTBL_RESERVED_ENTRY (the
++ * supplicant's wpa_clear_keys deletes by index with no address, the vendor
++ * finds no station record for the zero address and, for WPA, writes the
++ * reserved entry; the reference teardowns show six such removals accepted).
++ * A group removal is the one shape without a peer. The RSC is zero in both: the pinned
+  * wlanoidSetAddKey zeroes the whole command (kalMemZero at its start) and
+  * never writes aucKeyRsc, which only the WAPI path fills, so the firmware
+  * receives no receive sequence counter for a CCMP key and replay handling is
+@@ -211,22 +234,32 @@ mt6797_join_key_payload(bool add, bool pairwise, const unsigned char *peer,
+ 	unsigned char p[MT6797_JOIN_KEY_BYTES] = {0};
+ 	unsigned int i, any = 0;
+ 
+-	if (!peer || !output || (peer[0] & 1) || key_id > 3 ||
+-	    (pairwise && key_id) || (add && !material))
+-		return false;
+-	for (i = 0; i < 6; i++)
+-		any |= peer[i];
+-	if (!any)
++	bool group_removal = !add && !pairwise;
++
++	if (!output || key_id > 3 || (pairwise && key_id) || (add && !material))
+ 		return false;
++	if (group_removal) {
++		if (peer)
++			return false;
++	} else {
++		if (!peer || (peer[0] & 1))
++			return false;
++		for (i = 0; i < 6; i++)
++			any |= peer[i];
++		if (!any)
++			return false;
++	}
+ 	p[0] = add;
+ 	p[1] = add && pairwise;
+ 	p[2] = pairwise;
+-	for (i = 0; i < 6; i++)
+-		p[4 + i] = peer[i];
++	if (!group_removal)
++		for (i = 0; i < 6; i++)
++			p[4 + i] = peer[i];
+ 	p[11] = add ? 4 : 0;
+ 	p[12] = key_id;
+ 	p[13] = add ? 16 : 0;
+-	p[14] = pairwise ? 1 : 0;
++	p[14] = pairwise ? 1 : group_removal ? MT6797_JOIN_RESERVED_WLAN_INDEX :
++		MT6797_JOIN_BMC_WLAN_INDEX;
+ 	if (add)
+ 		for (i = 0; i < 16; i++)
+ 			p[16 + i] = material[i];
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 7f9192cd9..c42141b4a 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -964,15 +964,19 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
+ 	/* Explicit key retirement on the healthy path only, after the
+ 	 * deauthentication has completed (the guards above) and before stage 0:
+ 	 * the pinned source does not show that removing the station record
+-	 * retires the group key held under the BMC WLAN index, so each submitted
+-	 * key is removed by its own bounded command, pairwise first, each with
+-	 * its credit. A removal's credit proves buffer consumption only.
++	 * retires the group key held under the station's broadcast WLAN index,
++	 * so each submitted key is removed by its own bounded command, pairwise
++	 * first (the AP's address, unicast type, WLAN index 1), then the group
++	 * key (zero peer, type 0, the reserved WLAN index, the shape the
++	 * supplicant's index-based deletion produces in the pinned
++	 * wlanoidSetRemoveKey), each with its credit. A removal's credit proves
++	 * buffer consumption only.
+ 	 */
+ 	if (mac->join_key_pairwise == 1 || mac->join_key_group == 1) {
+ 		bool pairwise = mac->join_key_pairwise == 1;
+ 
+ 		ret = mt6797_hif_join_key(mac->hif, mac->sequence++, false, pairwise,
+-					  mac->join_ap,
++					  pairwise ? mac->join_ap : NULL,
+ 					  pairwise ? 0 : mac->join_group_key_id,
+ 					  NULL, deadline);
+ 		if (ret)
+@@ -2288,7 +2292,8 @@ static void mt6797_mac_mgd_complete_tx(struct ieee80211_hw *hw,
+  * records say so. The group key's credit shortens the deauthentication hold
+  * to one second. Only CCMP, only the exact peer, pairwise before group, one
+  * of each, key ids 0 to 3 for the group key (the pinned ucKeyId range; the
+- * WLAN index, 1 or the BMC 0, distinguishes the keys); anything else ends
++ * WLAN index, 1 or the station's declared broadcast entry 2, distinguishes
++ * the keys); anything else ends
+  * the lifetime fail-stop. DISABLE_KEY submits
+  * nothing: the lifetime retires its keys explicitly in the cleanup.
+  */

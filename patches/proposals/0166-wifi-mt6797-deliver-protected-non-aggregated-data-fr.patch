@@ -1,0 +1,309 @@
+From 04981a4c2a450a00bc0448c594dd568bf89218a5 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 10 Oct 2026 21:23:22 +0000
+Subject: [PATCH 166/167] wifi: mt6797: deliver protected non-aggregated data
+ frames to mac80211 during the data phase
+
+During the bounded data phase, after both key credits and before the
+deauthentication, admit the two receive classes the reference run 3 ledger
+holds for a connected station and the pinned nic_rx.h defines, for a legacy
+non-QoS station: a complete data RXD on the join channel with header
+translation and a 14-byte Ethernet header, MSDU payload format with BSSID
+field 1, security mode 4 and status word exactly 0xc000, unicast (match
+flags unicast-to-me, WLAN index 1, destination this station) or group
+(match flags the broadcast or multicast bit, WLAN index the station's
+declared broadcast entry, destination with the group bit), with status
+group 4 present and carrying a non-QoS data frame control with FromDS and
+Protected set, the target as transmitter and fragment 0.
+
+The status word's two A-MPDU bits are inverse in the pinned macros
+(HAL_RX_STATUS_IS_AMPDU_SUB_FRAME and _FORMAT return FALSE when the bit is
+set), so 0xc000 is the non-aggregated shape with every error, fragment,
+null and non-data flag clear. The reference's unicast frames carried status
+0 because the vendor station is HT and received aggregates; this station
+negotiates neither HT nor block-ack and refuses an aggregated frame instead
+of reordering it. The unicast 0xc000 shape is source-defined and unobserved
+on the reference, and is admitted as such. QoS data, EAPOL-typed data (no
+rekey), aggregated frames and every other shape reach the existing frame
+refusal.
+
+Each admitted frame is delivered as the 802.11 frame mac80211 would have
+seen without translation: the rebuilt 24-byte header from the translated
+addresses and group 4's frame and sequence control, the LLC/SNAP header for
+the Ethernet type, the body as received, with the decrypted, IV-stripped
+and MIC-stripped flags. mac80211 then skips decryption and key lookup for
+both classes; no PN is available and no replay protection is claimed.
+Delivery is capped at 16384 frames per lifetime; frames above the cap are
+dropped undelivered and counted. The first delivered frame is recorded by
+class, TID, key id bits, length and vector presence, and the data phase end
+record carries the unicast, group and dropped counts.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ .../net/wireless/mediatek/mt6797/data-rx.h    | 144 ++++++++++++++++++
+ drivers/net/wireless/mediatek/mt6797/mac.c    |  65 +++++++-
+ 2 files changed, 207 insertions(+), 2 deletions(-)
+ create mode 100644 drivers/net/wireless/mediatek/mt6797/data-rx.h
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/data-rx.h b/drivers/net/wireless/mediatek/mt6797/data-rx.h
+new file mode 100644
+index 000000000..985551622
+--- /dev/null
++++ b/drivers/net/wireless/mediatek/mt6797/data-rx.h
+@@ -0,0 +1,144 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef MT6797_DATA_RX_H
++#define MT6797_DATA_RX_H
++
++#include "join-events.h"
++
++#define MT6797_DATA_RX_PREFIX_BYTES 32U
++
++struct mt6797_data_rx {
++	unsigned char prefix[MT6797_DATA_RX_PREFIX_BYTES]; /* Rebuilt 802.11 header and LLC/SNAP. */
++	size_t offset, bytes;      /* The payload after the Ethernet type, in the packet. */
++	unsigned int ether_type;   /* Metadata only, never interpreted here. */
++	unsigned char tid, key_id; /* Descriptor TID and key id fields, recorded. */
++	bool group;                /* Destination group bit (and the descriptor's BC/MC bit). */
++	bool signal_valid;         /* False when RX vector group 3 was omitted. */
++	int signal_dbm;
++};
++
++/* Original decoder of one protected, firmware-decrypted, translated data
++ * frame of the public gen3 RXD layout for a legacy non-QoS station, the two
++ * classes the reference run 3 ledger holds and the pinned nic_rx.h defines:
++ *
++ * - a complete data RXD (type 2, declared length equal to the buffer) on the
++ *   join channel, header translation set with a 14-byte Ethernet header,
++ *   MSDU payload format with BSSID field 1 (the value measured after the
++ *   station activation), security mode 4 (the CCMP cipher the keys declared)
++ *   and status word exactly 0xc000: every error, fragment, null and
++ *   non-data flag clear and the two A-MPDU flags set, which in the pinned
++ *   macros (HAL_RX_STATUS_IS_AMPDU_SUB_FRAME / _FORMAT return FALSE when the
++ *   bit is set) means not aggregated. The reference's unicast frames carried
++ *   status 0 (aggregated: the vendor station is HT); this station never
++ *   negotiates HT or block-ack, so an aggregated frame (either bit clear) is
++ *   refused, not reordered. Status 0xc000 unicast is the source-defined
++ *   non-aggregated shape, unobserved on the reference and admitted as such.
++ * - unicast: match flags exactly unicast-to-me (key id bits free), WLAN index
++ *   1 (the station's pairwise entry), destination this station; group: match
++ *   flags exactly the broadcast or the multicast bit, WLAN index the station's
++ *   declared broadcast entry, destination with the group bit. The source is
++ *   never a group address.
++ * - status group 4 present (the vendor reads the frame control and sequence
++ *   of a translated frame from it, rxmDefragMPDU and the reorder path): frame
++ *   control a non-QoS data frame (type data, subtype 0) with FromDS and
++ *   Protected set and ToDS, More Fragments, Power Management and Order clear
++ *   (Retry and More Data free), transmitter the target, fragment number 0.
++ *   QoS data is refused: the association negotiated no WMM.
++ * The output rebuilds the 24-byte 802.11 header (receiver, the target as
++ * transmitter, the source as address 3, the group-4 sequence control) and the
++ * LLC/SNAP header for the Ethernet type, so mac80211 receives the frame it
++ * would have seen without translation; the body is not read. Decryption and
++ * the replay counter are the firmware's: the caller delivers the frame with
++ * the decrypted and stripped flags and claims no replay protection.
++ */
++static inline bool
++mt6797_data_rx(const unsigned char *packet, size_t bytes, unsigned char channel,
++	       const unsigned char own[6], const unsigned char ap[6],
++	       unsigned char bmc_index, struct mt6797_data_rx *out)
++{
++	struct mt6797_data_rx r = {0};
++	size_t offset = 16, group4 = 0, vector = 0;
++	unsigned int groups, fc, i, match;
++	const unsigned char *f;
++
++	if (!packet || !own || !ap || !out || bytes < 16 || bytes > 4096 ||
++	    !channel || mt6797_join_le16(packet) != bytes ||
++	    (mt6797_join_le16(packet + 2) >> 13) != 2 ||
++	    packet[5] != channel || (packet[6] & 0x80) == 0 ||
++	    (packet[6] & 63) != 14 || packet[7] != 0x04 ||
++	    (packet[9] >> 4) != 4 || mt6797_join_le16(packet + 10) != 0xc000)
++		return false;
++	match = packet[4];
++	if ((match & 0x3f) == 0x02) {
++		if (packet[8] != 1)
++			return false;
++		r.group = false;
++	} else if ((match & 0x3f) == 0x08 || (match & 0x3f) == 0x04) {
++		if (packet[8] != bmc_index)
++			return false;
++		r.group = true;
++	} else {
++		return false;
++	}
++	r.key_id = match >> 6;
++	r.tid = packet[9] & 15;
++	groups = (mt6797_join_le16(packet + 2) >> 9) & 15;
++	if (groups & 8) {
++		group4 = offset;
++		offset += 16;
++	}
++	if (groups & 1)
++		offset += 16;
++	if (groups & 2)
++		offset += 8;
++	if (groups & 4) {
++		vector = offset;
++		offset += 24;
++	}
++	if (packet[6] & 0x40)
++		offset += 2;
++	if (!group4 || offset > bytes || bytes - offset < 14 ||
++	    (vector && packet[vector + 9] > 220))
++		return false;
++	fc = mt6797_join_le16(packet + group4);
++	/* Data (type 2) subtype 0, FromDS, Protected; ToDS, More Fragments,
++	 * Order, QoS and every other subtype bit clear; version 0.
++	 */
++	if ((fc & ~0x2800U) != 0x4208 || (mt6797_join_le16(packet + group4 + 8) & 15))
++		return false;
++	for (i = 0; i < 6; i++)
++		if (packet[group4 + 2 + i] != ap[i])
++			return false;
++	f = packet + offset;
++	if (r.group) {
++		if (!(f[0] & 1))
++			return false;
++	} else {
++		for (i = 0; i < 6; i++)
++			if (f[i] != own[i])
++				return false;
++	}
++	if (f[6] & 1)
++		return false;
++	r.ether_type = ((unsigned int)f[12] << 8) | f[13];
++	r.prefix[0] = fc;
++	r.prefix[1] = fc >> 8;
++	for (i = 0; i < 6; i++) {
++		r.prefix[4 + i] = f[i];
++		r.prefix[10 + i] = ap[i];
++		r.prefix[16 + i] = f[6 + i];
++	}
++	r.prefix[22] = packet[group4 + 8];
++	r.prefix[23] = packet[group4 + 9];
++	r.prefix[24] = 0xaa;
++	r.prefix[25] = 0xaa;
++	r.prefix[26] = 3;
++	r.prefix[30] = f[12];
++	r.prefix[31] = f[13];
++	r.offset = offset + 14;
++	r.bytes = bytes - r.offset;
++	r.signal_valid = vector != 0;
++	r.signal_dbm = vector ? (int)packet[vector + 9] / 2 - 110 : 0;
++	*out = r;
++	return true;
++}
++#endif
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 80f6bc863..f4cb08a73 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -19,6 +19,7 @@
+ #include "eapol-rx.h"
+ #include "join-refused.h"
+ #include "group-data.h"
++#include "data-rx.h"
+ #include "action-frame.h"
+ #include "join-tx.h"
+ #include "join-commands.h"
+@@ -32,6 +33,7 @@
+ #define MT6797_JOIN_TEARDOWN_MARGIN_MS 5000U
+ #define MT6797_JOIN_MAX_POLLS 4096U
+ #define MT6797_JOIN_MAX_PACKETS 32768U
++#define MT6797_JOIN_DATA_RX_MAX 16384U
+ 
+ struct mt6797_mac {
+ 	struct mt6797_hif *hif;
+@@ -115,6 +117,10 @@ struct mt6797_mac {
+ 	bool join_channel_released, join_data_phase, join_data_ended;
+ 	u64 join_data_deadline;
+ 	const char *join_data_end_reason;
++	/* Data phase counts: accepted protected frames delivered to mac80211 by
++	 * class, and frames beyond the delivery cap dropped undelivered.
++	 */
++	unsigned int join_data_rx_unicast, join_data_rx_group, join_data_rx_dropped;
+ 
+ 	u64 scan_deadline, scan_started_ns;
+ 	unsigned int scan_channels, scan_count, scan_polls, scan_packets;
+@@ -1058,9 +1064,10 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+ 	mac->join_data_end_reason = reason;
+ 	mac->join_hold_until = ktime_get_ns();
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+-		 "one-shot WLAN join data phase end: reason=%s elapsed_ms=%llu\n",
++		 "one-shot WLAN join data phase end: reason=%s elapsed_ms=%llu rx_unicast=%u rx_group=%u rx_dropped=%u\n",
+ 		 reason, (ktime_get_ns() + (u64)MT6797_JOIN_DATA_BUDGET_MS * NSEC_PER_MSEC -
+-			  mac->join_data_deadline) / NSEC_PER_MSEC);
++			  mac->join_data_deadline) / NSEC_PER_MSEC,
++		 mac->join_data_rx_unicast, mac->join_data_rx_group, mac->join_data_rx_dropped);
+ }
+ 
+ /* Release the channel privilege after the group key's credit, as the pinned
+@@ -1118,6 +1125,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	struct mt6797_hif_rx_result rx;
+ 	struct mt6797_eapol_rx eapol;
+ 	struct mt6797_join_group_data group;
++	struct mt6797_data_rx data;
+ 	struct mt6797_join_action_frame action;
+ 	struct mt6797_join_tx_result result;
+ 	struct mt6797_join_rx_frame frame;
+@@ -1416,6 +1424,59 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 				continue;
+ 			}
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++			/* Phase C3: during the data phase, after both key credits and
++			 * before the deauthentication, a protected firmware-decrypted
++			 * translated non-aggregated non-QoS data frame of the two
++			 * source-defined classes (data-rx.h) is delivered to mac80211
++			 * as the 802.11 frame it would have seen: rebuilt header, LLC
++			 * and SNAP, the body as received, with the decrypted and
++			 * stripped flags (no PN is available, so no replay protection
++			 * is claimed). EAPOL-typed data is not admitted (no rekey) and
++			 * reaches the refusal below; aggregated, QoS or any other shape
++			 * reaches it too. Delivery is capped per lifetime; frames above
++			 * the cap are dropped undelivered and counted.
++			 */
++			if (mac->join_data_phase && !mac->join_data_ended &&
++			    mac->join_key_pairwise == 1 && mac->join_key_group == 1 &&
++			    !mac->join_deauth_done && !mac->join_cleanup_done &&
++			    mt6797_data_rx(mac->join_packet, rx.logical_bytes, 40,
++					   mac->hw->wiphy->perm_addr, mac->join_ap,
++					   MT6797_JOIN_BMC_WLAN_INDEX, &data) &&
++			    data.ether_type != 0x888e) {
++				if (mac->join_data_rx_unicast + mac->join_data_rx_group >=
++				    MT6797_JOIN_DATA_RX_MAX) {
++					mac->join_data_rx_dropped++;
++					continue;
++				}
++				skb = dev_alloc_skb(MT6797_DATA_RX_PREFIX_BYTES + data.bytes);
++				if (!skb) {
++					ret = -ENOMEM;
++					goto failed;
++				}
++				skb_put_data(skb, data.prefix, MT6797_DATA_RX_PREFIX_BYTES);
++				skb_put_data(skb, mac->join_packet + data.offset, data.bytes);
++				memset(IEEE80211_SKB_RXCB(skb), 0,
++				       sizeof(struct ieee80211_rx_status));
++				IEEE80211_SKB_RXCB(skb)->band = NL80211_BAND_5GHZ;
++				IEEE80211_SKB_RXCB(skb)->freq = 5200;
++				IEEE80211_SKB_RXCB(skb)->flag |= RX_FLAG_DECRYPTED |
++					RX_FLAG_IV_STRIPPED | RX_FLAG_MMIC_STRIPPED;
++				if (data.signal_valid)
++					IEEE80211_SKB_RXCB(skb)->signal = data.signal_dbm;
++				else
++					IEEE80211_SKB_RXCB(skb)->flag |= RX_FLAG_NO_SIGNAL_VAL;
++				if (data.group)
++					mac->join_data_rx_group++;
++				else
++					mac->join_data_rx_unicast++;
++				if (mac->join_data_rx_unicast + mac->join_data_rx_group == 1)
++					dev_info(wiphy_dev(mac->hw->wiphy),
++						 "one-shot WLAN join data RX: first group=%u tid=%u keyid=%u bytes=%zu vector=%u\n",
++						 data.group, data.tid, data.key_id, data.bytes,
++						 data.signal_valid);
++				__skb_queue_tail(&received, skb);
++				continue;
++			}
+ 			/* Protected group-addressed data from the target, flagged by
+ 			 * the hardware as a cipher mismatch because this station holds
+ 			 * no group key, ended runtime 17 at the gate before message 3.

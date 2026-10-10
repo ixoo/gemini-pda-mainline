@@ -9,7 +9,7 @@ int main(void)
  unsigned char ap[6]={2,0,0,0,0,1}, p[124], before[124], ch[16], rm[4];
  assert(mt6797_join_station_payload(ap,1,0,0x3fc0,0x540,p));
  assert(p[0]==1 && p[1]==0x41 && !memcmp(p+2,ap,6));
- assert(p[13]==8 && p[20]==1 && !p[51] && p[54]==1 && !p[55]);
+ assert(p[13]==8 && p[20]==1 && !p[51] && p[54]==1 && p[55]==2); /* AP WLAN index 1, its declared broadcast entry 2. */
  assert(p[68]==3 && p[74]==0x4b && p[76]==1 && p[77]==1);
  for(unsigned i=78;i<124;i++) assert(!p[i]);
  assert(mt6797_join_station_payload(ap,3,2007,0x3fc0,0x540,p));

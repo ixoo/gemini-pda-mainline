@@ -1,0 +1,282 @@
+From e29f77a42b50d8b31fa7af4ad4f42e488da16d75 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 10 Oct 2026 21:35:51 +0000
+Subject: [PATCH 165/167] wifi: mt6797: release the channel privilege after the
+ group key and hold one bounded data phase
+
+Until now the lifetime deauthenticated one second after the group key's
+credit, inside the 9 s channel grant requested for the join. The reference
+run 3 ledger shows the pinned vendor driver releasing the channel privilege
+(CH_PRIVILEGE abort) about four seconds after its request, once the join
+was complete and while data was already passing inside the grant, and
+passing data on the connected BSS without a privilege afterwards. Do the
+same: after the group key's credit, submit one CH_PRIVILEGE abort with its
+credit through the same TC4 ledger, then open one data phase bounded by a
+chosen budget of 60 s or by mac80211's own deauthentication or
+disassociation (the supplicant or userspace disconnecting) or by a station
+teardown, whichever comes first. Any fault, identity, credit, frame or
+overall-budget refusal ends the lifetime earlier as before; there is no
+reconnect, rekey or second phase. At the end the reserved deauthentication's
+hold expires, the deauthentication is transmitted without a grant, and the
+teardown runs with its stage-1 channel abort recorded as released and
+submitting nothing.
+
+The lifetime deadline becomes the data deadline plus a 5 s teardown margin
+when the phase opens; the poll and packet caps grow to cover it (4096 polls
+at the 20 ms period, 32768 packets), both finite host limits. The data
+frames themselves are admitted by the following patches; this patch changes
+nothing about what is transmitted or delivered. Records: "channel released:
+sequence", "data phase: budget_ms teardown_margin_ms", "data phase end:
+reason elapsed_ms" and "cleanup submission: stage=1 released=1".
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 150 +++++++++++++++++++--
+ 1 file changed, 138 insertions(+), 12 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index c42141b4a..80f6bc863 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -23,6 +23,16 @@
+ #include "join-tx.h"
+ #include "join-commands.h"
+ 
++/* Phase C3 finite limits: the data phase budget after the group key's
++ * credit, the teardown margin added to the lifetime deadline at that point,
++ * and the poll and packet caps that cover scan hand-off, join, data phase and
++ * teardown at the 20 ms poll period. All are chosen host limits.
++ */
++#define MT6797_JOIN_DATA_BUDGET_MS 60000U
++#define MT6797_JOIN_TEARDOWN_MARGIN_MS 5000U
++#define MT6797_JOIN_MAX_POLLS 4096U
++#define MT6797_JOIN_MAX_PACKETS 32768U
++
+ struct mt6797_mac {
+ 	struct mt6797_hif *hif;
+ 	/* Order: RTNL -> this mutex -> HIF mutex. No CONSYS callback here. */
+@@ -95,6 +105,16 @@ struct mt6797_mac {
+ 	unsigned int join_key_pairwise, join_key_group;
+ 	u8 join_group_key_id;
+ 	u8 join_eth[MT6797_JOIN_ETH_MAX_BYTES] __aligned(2);
++	/* Phase C3: after the group key's credit the channel privilege is
++	 * released (the vendor releases it after the join) and the lifetime
++	 * enters one bounded data phase: at most MT6797_JOIN_DATA_BUDGET_MS, or
++	 * until mac80211 or the supplicant disconnects, whichever comes first;
++	 * then the reserved deauthentication and the teardown. No reconnect, no
++	 * rekey, no second phase.
++	 */
++	bool join_channel_released, join_data_phase, join_data_ended;
++	u64 join_data_deadline;
++	const char *join_data_end_reason;
+ 
+ 	u64 scan_deadline, scan_started_ns;
+ 	unsigned int scan_channels, scan_count, scan_polls, scan_packets;
+@@ -995,6 +1015,18 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
+ 		ret = mt6797_hif_join_remove_station(mac->hif, mac->sequence++, deadline);
+ 		break;
+ 	case 1:
++		if (mac->join_channel_released) {
++			/* The privilege was released after the group key; the
++			 * stage is recorded as released and submits nothing.
++			 */
++			dev_info(wiphy_dev(mac->hw->wiphy),
++				 "one-shot WLAN join cleanup submission: stage=1 released=1\n");
++			mac->join_cleanup_stage++;
++			mac->join_credit_pending = false;
++			mac->join_page_debt = 0;
++			complete_all(&mac->join_credit_done);
++			return 0;
++		}
+ 		ret = mt6797_hif_join_channel(mac->hif, mac->sequence++,
+ 					      mac->join_channel_token, 40, 0, true, deadline);
+ 		break;
+@@ -1014,6 +1046,71 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
+ }
+ #endif
+ 
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++/* End the data phase once: the reserved deauthentication's hold ends now and
++ * the poller sends it, then the teardown follows. Called with the mutex held.
++ */
++static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
++{
++	if (!mac->join_data_phase || mac->join_data_ended)
++		return;
++	mac->join_data_ended = true;
++	mac->join_data_end_reason = reason;
++	mac->join_hold_until = ktime_get_ns();
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot WLAN join data phase end: reason=%s elapsed_ms=%llu\n",
++		 reason, (ktime_get_ns() + (u64)MT6797_JOIN_DATA_BUDGET_MS * NSEC_PER_MSEC -
++			  mac->join_data_deadline) / NSEC_PER_MSEC);
++}
++
++/* Release the channel privilege after the group key's credit, as the pinned
++ * vendor AIS does once the join is complete (the reference run 3 ledger shows
++ * the CH_PRIVILEGE abort about four seconds after the request, when data was
++ * already passing inside the grant, and data continuing after it), and open
++ * the bounded data phase. One command with its credit, under the
++ * mutex, through the same TC4 ledger as every join command; a failure ends
++ * the lifetime like any other refused command. The grant deadline no longer
++ * bounds frames afterwards; the lifetime deadline becomes the data budget plus
++ * the teardown margin.
++ */
++static int mt6797_mac_join_release_channel(struct mt6797_mac *mac)
++{
++	u64 now;
++	int ret;
++
++	if (!mac->join_channel_granted || mac->join_channel_released ||
++	    mac->join_page_debt || mac->join_credit_pending || mac->sequence > 253)
++		return -EBUSY;
++	mac->join_credit_deadline = min_t(u64, mac->join_deadline,
++					  ktime_get_ns() + 100 * NSEC_PER_MSEC);
++	reinit_completion(&mac->join_credit_done);
++	mac->join_credit_pending = true;
++	mac->join_page_debt = 1;
++	ret = mt6797_hif_join_channel(mac->hif, mac->sequence++,
++				      mac->join_channel_token, 40, 0, true,
++				      mac->join_credit_deadline);
++	if (!ret)
++		ret = mt6797_mac_join_wait_credit(mac);
++	if (ret)
++		return ret;
++	now = ktime_get_ns();
++	mac->join_channel_released = true;
++	mac->join_channel_granted = false;
++	mac->join_data_phase = true;
++	mac->join_data_ended = false;
++	mac->join_data_deadline = now + (u64)MT6797_JOIN_DATA_BUDGET_MS * NSEC_PER_MSEC;
++	mac->join_deadline = mac->join_data_deadline +
++			     (u64)MT6797_JOIN_TEARDOWN_MARGIN_MS * NSEC_PER_MSEC;
++	mac->join_hold_until = mac->join_data_deadline;
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot WLAN join channel released: sequence=%u\n", mac->sequence - 1);
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot WLAN join data phase: budget_ms=%u teardown_margin_ms=%u\n",
++		 MT6797_JOIN_DATA_BUDGET_MS, MT6797_JOIN_TEARDOWN_MARGIN_MS);
++	return 0;
++}
++#endif
++
+ static void mt6797_mac_join_work(struct work_struct *work)
+ {
+ 	struct mt6797_mac *mac = container_of(to_delayed_work(work),
+@@ -1059,7 +1156,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	}
+ #endif
+ 	if (mac->scan_active || mac->first_error || mac->closing ||
+-					now >= mac->join_deadline || ++mac->join_polls > 512 ||
++					now >= mac->join_deadline || ++mac->join_polls > MT6797_JOIN_MAX_POLLS ||
+ 					(mac->join_inflight && now >= mac->join_frame_deadline)) {
+ 		ret = -ETIMEDOUT;
+ 		goto failed;
+@@ -1076,6 +1173,11 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	ret = mt6797_mac_join_guard(mac, deadline);
+ 	if (ret)
+ 		goto failed;
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++	if (mac->join_data_phase && !mac->join_data_ended &&
++	    ktime_get_ns() >= mac->join_data_deadline)
++		mt6797_mac_join_end_data(mac, "budget");
++#endif
+ 	branch = 3;
+ 	if (!mac->join_inflight && !mac->join_page_debt) {
+ 		spin_lock_irqsave(&mac->join_queue.lock, flags);
+@@ -1110,9 +1212,14 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 			/* Linearize in process context; never retain a borrowed STA pointer. */
+ 			now = ktime_get_ns();
+ 			grant_end = min(mac->join_deadline, mac->join_grant_deadline);
+-			if (skb_linearize(skb) ||
+-			    mac->join_next_pid > 127 || !mac->join_channel_granted ||
+-			    now >= grant_end || grant_end - now < 850 * NSEC_PER_MSEC) {
++			/* Before the release every frame needs the live grant with
++			 * room for its completion; after it the connected BSS
++			 * transmits without a privilege, as the vendor does.
++			 */
++			if (skb_linearize(skb) || mac->join_next_pid > 127 ||
++			    (!mac->join_channel_released &&
++			     (!mac->join_channel_granted || now >= grant_end ||
++			      grant_end - now < 850 * NSEC_PER_MSEC))) {
+ 				ret = -EINVAL;
+ 				goto failed;
+ 			}
+@@ -1189,7 +1296,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 				ret = 0;
+ 				continue;
+ 			}
+-			if (ret || ++mac->join_packets > 4096)
++			if (ret || ++mac->join_packets > MT6797_JOIN_MAX_PACKETS)
+ 				goto failed;
+ 			got = true;
+ 			branch = 5;
+@@ -2170,9 +2277,14 @@ static int mt6797_mac_join_request_cleanup(struct mt6797_mac *mac)
+ 	if (ktime_get_ns() + 1200 * NSEC_PER_MSEC >= mac->join_deadline)
+ 		return -ETIMEDOUT;
+ 	if (mac->join_sta_active) {
++		/* Before the channel release the reserved deauthentication needs
++		 * the live grant with room for it; after the release (data phase)
++		 * the connected BSS transmits it without a privilege.
++		 */
+ 		if (!mac->join_assoc_received || mac->join_assoc_status ||
+-		    !mac->join_channel_granted ||
+-		    ktime_get_ns() + 1200 * NSEC_PER_MSEC >= mac->join_grant_deadline)
++		    (!mac->join_channel_released &&
++		     (!mac->join_channel_granted ||
++		      ktime_get_ns() + 1200 * NSEC_PER_MSEC >= mac->join_grant_deadline)))
+ 			return -ETIMEDOUT;
+ 		skb = dev_alloc_skb(26);
+ 		if (!skb)
+@@ -2219,6 +2331,15 @@ static void mt6797_mac_mgd_prepare_tx(struct ieee80211_hw *hw,
+ 
+ 	mutex_lock(&mac->mutex);
+ 	if (mac->join_cleanup_requested || mac->join_cleanup_done) {
++		/* mac80211's own deauthentication or disassociation during the
++		 * data phase (the supplicant or userspace disconnecting) ends the
++		 * phase; the driver-owned deauthentication goes out and mac80211's
++		 * frame is not admitted by the queue gate.
++		 */
++		if (vif == mac->vif && mac->join_data_phase && !mac->join_data_ended &&
++		    (info->subtype == IEEE80211_STYPE_DEAUTH ||
++		     info->subtype == IEEE80211_STYPE_DISASSOC))
++			mt6797_mac_join_end_data(mac, "disconnect");
+ 		mutex_unlock(&mac->mutex);
+ 		return;
+ 	}
+@@ -2304,7 +2425,6 @@ static int mt6797_mac_set_key(struct ieee80211_hw *hw, enum set_key_cmd cmd,
+ 	struct mt6797_mac *mac = hw->priv;
+ 	bool pairwise = key->flags & IEEE80211_KEY_FLAG_PAIRWISE;
+ 	unsigned long flags;
+-	u64 now;
+ 	int ret;
+ 
+ 	if (cmd == DISABLE_KEY)
+@@ -2368,10 +2488,14 @@ static int mt6797_mac_set_key(struct ieee80211_hw *hw, enum set_key_cmd cmd,
+ 	} else {
+ 		mac->join_key_group = 1;
+ 		mac->join_group_key_id = key->keyidx;
+-		now = ktime_get_ns();
+-		if (mac->join_hold_until > now + 1000 * NSEC_PER_MSEC)
+-			mac->join_hold_until = now + 1000 * NSEC_PER_MSEC;
+-		schedule_delayed_work(&mac->join_work, msecs_to_jiffies(1000));
++		/* Both keys installed: release the channel privilege and open the
++		 * bounded data phase; the reserved deauthentication waits for its
++		 * end. A refused release ends the lifetime below.
++		 */
++		ret = mt6797_mac_join_release_channel(mac);
++		if (ret)
++			goto failed;
++		schedule_delayed_work(&mac->join_work, 0);
+ 	}
+ 	mutex_unlock(&mac->mutex);
+ 	return 0;
+@@ -2415,6 +2539,8 @@ static int mt6797_mac_sta_state(struct ieee80211_hw *hw,
+ 			bool close = true;
+ 
+ 			mutex_lock(&mac->mutex);
++			if (vif == mac->vif && mac->join_data_phase && !mac->join_data_ended)
++				mt6797_mac_join_end_data(mac, "disconnect");
+ 			if (vif == mac->vif && mac->join_peer_used &&
+ 			    !mac->join_retired && !mac->first_error && !mac->closing) {
+ 				int ret = mt6797_mac_join_request_cleanup(mac);

@@ -660,3 +660,7 @@ proposals/0160-wifi-mt6797-discard-the-target-s-protected-group-dat.patch
 proposals/0161-wifi-mt6797-discard-the-target-s-directed-clear-Acti.patch
 proposals/0162-wifi-mt6797-admit-the-firmware-s-add-key-done-event-.patch
 proposals/0163-wifi-mt6797-admit-a-second-add-key-done-event-after-.patch
+proposals/0164-wifi-mt6797-install-the-group-key-under-the-AP-stati.patch
+proposals/0165-wifi-mt6797-release-the-channel-privilege-after-the-.patch
+proposals/0166-wifi-mt6797-deliver-protected-non-aggregated-data-fr.patch
+proposals/0167-wifi-mt6797-transmit-mac80211-s-protected-data-frame.patch

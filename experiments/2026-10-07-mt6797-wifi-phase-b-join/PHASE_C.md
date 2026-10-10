@@ -474,6 +474,18 @@ needs one further compile and candidate 13. The session tooling
 PSK, the join script's supplicant-owned mode) is under review; no candidate,
 deployment or device action until that review's go.
 
+Runtimes 13 to 20 then settled C2 up to the group key command (README). After
+the Gemian reference run 3 (one measured vendor lifecycle at the firmware
+boundary, metadata only), proposals 0164 to 0167 complete C2 and add the
+legacy C3 data path: the group key under the AP station's declared broadcast
+WLAN index 2 and the supplicant-path removal shapes (0164), the channel
+privilege released after the group key with one bounded 60 s data phase
+(0165), protected non-aggregated non-QoS data delivered to mac80211 with the
+decrypted and stripped flags (0166), and mac80211's protected data
+transmitted on a finite TC1 page pool (0167). Their source resolution is
+[SOURCE_MEMO_C2_C3.md](SOURCE_MEMO_C2_C3.md); the combined one-boot protocol
+is [RUNTIME_21_PREPARATION.md](RUNTIME_21_PREPARATION.md).
+
 ### Device protocol, stated in advance
 
 One boot: the supplicant's one passive channel-40 scan, its open-system
@@ -490,12 +502,51 @@ reviewed recovery); a scan or association shape refused by the driver (named
 refusal, fail-stop); or the AP's behaviour differs. No branch repeats a boot
 without a decision-changing change.
 
-## Stage C3: data, DHCP, ping, SSH
+## Stage C3: data, DHCP, ping (legacy, non-WMM, no aggregation)
 
-Receive and transmit data frames between mac80211 and the firmware on the data
-traffic classes with bounded page accounting, then busybox `udhcpc`, `ping`
-and the existing dropbear SSH service over `wlan0`. Budgets, logging and the
-teardown are defined when C2's measurements are in.
+Settled from the reference run 3 and the pinned sources (memo sections 3 and
+4), implemented by proposals 0165 to 0167:
+
+- The association stays what the C1/C2 gate admits: no HT, VHT, WMM or
+  fast-transition element, so the AP treats the station as a legacy non-QoS
+  peer and negotiates no block-ack. Aggregated receive descriptors (the two
+  A-MPDU bits clear, inverse in the pinned macros), QoS data, ADDBA, DELBA and
+  reorder-bubble events are refused, never reordered; no reordering buffer is
+  declared.
+- Receive: after both key credits and before the deauthentication, a
+  complete data RXD on the join channel with header translation, MSDU format
+  with BSSID field 1, security mode 4, status word exactly 0xc000, unicast
+  (unicast-to-me, WLAN index 1) or group (broadcast or multicast bit, WLAN
+  index 2) with group 4 carrying a non-QoS FromDS protected data frame
+  control from the target, is delivered to mac80211 as the rebuilt 802.11
+  frame with LLC/SNAP and the decrypted, IV-stripped and MIC-stripped flags.
+  mac80211 skips decryption and key lookup; no PN is available and no replay
+  protection is claimed. At most 16384 frames per lifetime; more are dropped
+  and counted. EAPOL-typed data is not admitted (no rekey).
+- Transmit: mac80211's non-QoS To-DS protected data frames to the target,
+  LLC/SNAP, not EAPOL, queued at most eight deep, converted to Ethernet II
+  and submitted one at a time on TC1 (LMAC port 0, queue 1) with the
+  protected bit, TID 0, fixed OFDM 6 Mbps and a PID with TX status; the TC1
+  pool is a declared 16-page budget reconciled from the AC1 released count
+  with the shared free-for-all count (TC4 first when the pool is scarce). An
+  unacknowledged data frame is reported and counted; eight in a row end the
+  data phase.
+- Lifetime: after the group key's credit one CH_PRIVILEGE abort releases the
+  channel (the vendor's order), then one data phase of at most 60 s, ended
+  earlier by mac80211's deauthentication or disassociation (the supplicant or
+  userspace disconnecting) or by a fault; the lifetime deadline becomes the
+  data deadline plus a 5 s teardown margin; polls are capped at 4096 and
+  packets at 32768. Then the reserved deauthentication, the two removals
+  (pairwise with the AP's address and unicast type, group with a zero peer and
+  the reserved index), station removal, the released channel stage recorded
+  without a command, and BSS off.
+- Userspace in the data phase: busybox `udhcpc` and `ping` to the gateway on
+  the device, run by the session script when the data phase record appears,
+  each bounded; their outcomes (lease obtained, prefix length, replies
+  received) are the network evidence. The driver's counts (frames delivered
+  and acknowledged) are firmware-boundary evidence only and claim no network
+  function. SSH over `wlan0` is a custodian option, not part of the measured
+  protocol.
 
 ## Order and admission
 
