@@ -1,0 +1,11 @@
+power_sample_1=1|99|Good|0|Not charging
+power_sample_2=1|99|Good|0|Not charging
+power_admission=stable_healthy_battery_ge80
+/root/.gemini-wifi-reference/trace-lifecycle-v10.sh: OK
+/root/.gemini-wifi-reference/lifecycle/cycle-check.py: OK
+/root/.gemini-wifi-reference/lifecycle/parse-lifecycle.py: OK
+bound_files=1
+target_match=1
+service_match=1
+launch_boot_id=49387658-8633-401c-88be-8880116699ba
+launch_epoch=1791656020

@@ -946,6 +946,75 @@ v8 count. The bounded one-boot test is complete. This supports D0+D2 as a
 working temporary *Gemian* copy policy, not effective permission precedence,
 exclusive ownership or a safe mainline EMI write. Raw logs remain private.
 
+## v10 run 1: bounded partial result, no measured handshake (2026-10-10)
+
+The first v10 cycle ran once on boot `49387658-8633-401c-88be-8880116699ba`
+(`3.18.41-gemini-wifi-ref10+`, script and helper hashes exact, original
+target bound with a live match, two identical power samples at 99 and `Good`
+with no external supply). Its sanitized files are in
+[results/run1-v10](results/run1-v10/) (ledger SHA-256 `a3dd62c2…`); the
+executor's `receipt.txt` (SHA-256 `b757c213…`, listed in the preservation
+receipt) stays with the custodian because the repository check rejects its
+trailing whitespace, and its lines are reflected in the result summary and
+below; the raw captures and inputs stay on the laptop. Outcome, exactly as the receipts
+state: positive control passed, the first teardown completed, the single
+measured `Connect` returned the D-Bus `UnknownMethod` error for the
+service object before any handshake, and the executor stopped at step
+`connect` with exit 5 after 59 s; the observer sealed explicitly with
+385 records intact (53 commands, 290 events, 25 credits, 11 receive
+descriptors, 2 transmit descriptors, 4 state records; nothing suppressed,
+truncated or dropped), the manifest and final checksums were verified, the
+restoration connect succeeded outside the capture with `AutoConnect` back
+to `True`, and the laptop trigger saw no window. The return collector then
+confirmed the changed stock boot `7cbc7b35…` (`3.18.41+`, four snapshots,
+identity stable, 45.9 s) after one ordinary restart through the verified
+`systemctl`.
+
+What the ledger holds (all before the measured connect, none of it a
+handshake): the stock association's accepted protected group frames, eleven
+`rxd` records of translated Ethernet broadcast (ARP, one IPv4, 802.1X-typed
+group frames) with security mode 4 and status `0xc000`, no error bits; two
+`txd` records (one protected data frame, one management frame) with their
+TX-done events; the teardown of the stock association as the firmware sees
+it: six `CMD_ID_ADD_REMOVE_KEY` removals (sequences 92 to 97, key IDs 0 to 5,
+key type 0, peer class `zero`, WLAN index 255), then `SET_BSS_INFO`
+(connection state 1), `REMOVE_STA_RECORD` for station 27, `BSS_ACTIVATE_CTRL`
+inactive, and the BSS deactivation state record, followed by three scan
+cycles (`BSS_ACTIVATE_CTRL` active, scan done, inactive) while ConnMan
+scanned, with `BSS_ABSENCE_PRESENCE` and sleepy-info events in between.
+No key add, no add-key-done event, no EAPOL and no unicast traffic were
+measured. This is a measurement of the vendor driver's teardown and idle
+behaviour, not of a Wi-Fi lifecycle, and no support claim follows.
+
+Diagnosis of the `Connect` failure, qualified: the observation is libdbus's
+`UnknownMethod` answer to `Connect` on the approved service object right
+after the disconnect, and the `services` snapshot after the seal still lists
+the favourite service (`State = idle`, `AutoConnect = False`), so the service
+was not deleted. The inferred explanation comes from the ConnMan source the
+Gemian package is built from (`connman 1.36+gemian+0~20180821154603.8~1`,
+public `github.com/gemian/connman` at `a884432`, whose removal-path
+functions `__connman_service_remove_from_network`, `service_free`,
+`service_schedule_removed`, `network_remove`, `network_removed`,
+`connman_device_remove_network` and `__connman_device_cleanup_networks` are
+identical to vanilla 1.36; the package diverges elsewhere): a Wi-Fi service
+object may be unregistered when wpa_supplicant removes its BSS or a scan
+ends without it, and is registered again when a scan reports the BSS, and
+libdbus answers a method call on an unregistered path with exactly the
+observed text. The runtime cause itself was not observed and stays an
+inference; the kernel and firmware are not implicated by this evidence. The
+fix is host-only: before the single measured `Connect`, the executor waits,
+within the existing connect budget and without requesting a scan, until the
+approved service is listed and its properties read `State = idle` (only
+idle: `ready` or `online` would be an association this run did not
+control), re-checks live identity immediately before the call, and records
+a `Connect` that still meets the error as `connect_unknown_method=1` without
+retry; the restoration waits only for the object's presence in any state
+within its own budget and keeps its contract. The fake-device fixture covers
+the object vanishing and returning, never returning, a non-idle object, the
+racing call and identity loss during the wait. The kernel, the observer and
+the candidate are unchanged; a second run needs a fresh owner boot2 handoff
+of the same v10 image.
+
 ## v10 candidate and installer binding (2026-10-10)
 
 The custodian composed v10 with `build-candidate.py v10` at `680d7d60` from the

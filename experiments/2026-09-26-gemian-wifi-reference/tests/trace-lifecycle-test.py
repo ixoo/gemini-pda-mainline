@@ -77,16 +77,30 @@ import sys, time
 args = sys.argv[1:]
 log('connmanctl ' + ' '.join(args))
 S = %r
+def object_present():
+    absent_until = state('object_absent_until')
+    return absent_until is None or state('tick', 0) >= absent_until
+set_state('tick', state('tick', 0) + 1)
 if args == ['services']:
     flag = '*AO' if state('connected') else '*A '
-    print('%%s Net Work             %%s' %% (flag, S))
+    if object_present():
+        print('%%s Net Work             %%s' %% (flag, S))
 elif args[:1] == ['services'] and len(args) == 2:
+    if scenario('lose_identity_during_readiness') and object_present() and not state('connected'):
+        with open(os.path.join(ROOT, 'proc/sys/kernel/random/boot_id'), 'w') as f:
+            f.write('ffffffff-ffff-ffff-ffff-ffffffffffff' + chr(10))
+    if not object_present():
+        print("Error " + args[1] + ": Method \\"GetProperties\\" with signature \\"\\" on interface \\"net.connman.Service\\" doesn't exist", file=sys.stderr)
+        sys.exit(1)
     print('/net/connman/service/' + args[1])
-    print('  Type = wifi'); print('  State = %%s' %% ('online' if state('connected') else 'idle'))
+    print('  Type = wifi'); print('  State = %%s' %% ('online' if state('connected') else scenario('object_state_after_disconnect', 'idle')))
     print('  AutoConnect = %%s' %% ('True' if state('autoconnect') else 'False'))
     print('  Favorite = True'); print('  Passphrase = SHOULD-NOT-BE-COPIED'); print('  Name = Net Work')
 elif args[:1] == ['connect']:
     set_state('connect_calls', state('connect_calls', 0) + 1)
+    if scenario('connect_unknown_method') and state('connect_calls') == 1:
+        print("Error /net/connman/service/" + args[1] + ": Method \\"Connect\\" with signature \\"\\" on interface \\"net.connman.Service\\" doesn't exist", file=sys.stderr)
+        sys.exit(1)
     if scenario('connect_result', 'ok') == 'fail' or (scenario('restore_result') == 'fail' and state('connect_calls') >= 2):
         set_state('connected', False)
     else:
@@ -101,6 +115,9 @@ elif args[:1] == ['connect']:
 elif args[:1] == ['disconnect']:
     time.sleep(scenario('disconnect_delay', 0))
     set_state('connected', False)
+    if scenario('object_absent_calls') is not None:
+        # the service object disappears after the disconnect for this many connmanctl calls
+        set_state('object_absent_until', state('tick', 0) + scenario('object_absent_calls'))
 elif args[:1] == ['config']:
     set_state('autoconnect_writes', state('autoconnect_writes', []) + [args[-1]])
     if args[-1] == 'yes' and scenario('autoconnect_config_fail'):
@@ -342,6 +359,45 @@ class ExecutorTest(unittest.TestCase):
         self.assertEqual(dev.rc, 0)
         self.assertEqual(dev.state()['autoconnect_writes'], ['no'])
         self.assertIn('autoconnect_after=False autoconnect_restored=1', dev.receipt())
+
+    def test_service_object_lifetime(self):
+        # the object vanishes after the disconnect and comes back: the single Connect waits for it
+        dev = self.device({'object_absent_calls': 6}).run()
+        self.assertEqual(dev.rc, 0, dev.receipt())
+        receipt = dev.receipt()
+        self.assertIn('service_object_present=1', receipt)
+        self.assertIn('cycle=complete', receipt)
+        self.assertEqual(dev.ops().count('connmanctl connect'), 2)   # measured + restoration
+        # the object never comes back: no measured Connect, and the restoration cannot connect either
+        dev = self.device({'object_absent_calls': 100000}).run()
+        self.assertEqual(dev.rc, 5)   # the step failure keeps its code; the restoration outcome is in the receipt
+        receipt = dev.receipt()
+        self.assertIn('service_object_present=0', receipt)
+        self.assertIn('restore_object_present=0', receipt)
+        self.assertIn('restore_connected=0', receipt)
+        self.assertIn('autoconnect_left_off=1', receipt)
+        self.assertEqual(dev.ops().count('connmanctl connect'), 0)
+        self.assertIn('exit_step=connect rc_before_finish=5', receipt)
+        # the object is listed but Connect still meets UnknownMethod: recorded, no retry
+        dev = self.device({'connect_unknown_method': True}).run()
+        self.assertEqual(dev.rc, 5)
+        receipt = dev.receipt()
+        self.assertIn('service_object_present=1', receipt)
+        self.assertIn('connect_unknown_method=1', receipt)
+        self.assertEqual(dev.ops().count('connmanctl connect'), 2)   # one measured attempt, one restoration
+        self.assertIn("doesn't exist", dev.out('connect-output.txt').read_text())
+        # an object listed in a non-idle state is not admitted for the measured Connect
+        dev = self.device({'object_state_after_disconnect': 'ready'}).run()
+        self.assertEqual(dev.rc, 5)
+        self.assertIn('service_object_present=0', dev.receipt())
+        self.assertEqual(dev.ops().count('connmanctl connect'), 1)
+        # identity lost while waiting for the object: the gate before Connect stops the radio call
+        dev = self.device({'object_absent_calls': 6, 'lose_identity_during_readiness': True}).run()
+        self.assertEqual(dev.rc, 7)
+        receipt = dev.receipt()
+        self.assertIn('service_object_present=1', receipt)
+        self.assertIn('identity_lost_at=connect', receipt)
+        self.assertEqual(dev.ops().count('connmanctl connect'), 0)   # neither measured nor restoration
 
     def test_identity_loss_stops_actions(self):
         dev = self.device({'lose_identity_after_connect': True}).run()

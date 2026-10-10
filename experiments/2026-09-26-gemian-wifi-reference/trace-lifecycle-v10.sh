@@ -64,6 +64,32 @@ bounded() {  # bounded <cap-seconds> <command...>: clamped to the active phase d
 }
 in_phase() { (( $(now) < phase_deadline )); }
 
+# The approved service's D-Bus object. Run 1's measured Connect was answered with
+# libdbus's UnknownMethod "doesn't exist" error right after the disconnect. In the
+# ConnMan source the Gemian package is built from (github.com/gemian/connman at
+# a884432, whose removal-path functions are identical to vanilla 1.36), a Wi-Fi
+# service object may be unregistered when wpa_supplicant removes its BSS
+# (gsupplicant signal_bss_removed -> plugins/wifi.c network_removed ->
+# connman_device_remove_network -> network_remove ->
+# __connman_service_remove_from_network -> service_free -> service_schedule_removed)
+# or when a scan ends without it (__connman_device_cleanup_networks), and is
+# registered again when a scan reports the BSS. That path is the inferred
+# explanation of run 1, not an observed one. Both checks are read-only (no scan
+# request) and bounded by the caller's phase. They are defined before any
+# state-changing path because the exit trap's restoration may need them on an
+# early branch; $service is resolved later in preflight.
+properties=''
+service_object_present() {  # listed, and GetProperties answers with a non-empty State
+  local listing
+  listing=$(bounded 10 connmanctl services) || return 1
+  grep -q " $service\$" <<<"$listing" || return 1
+  properties=$(bounded 10 connmanctl services "$service") || return 1
+  grep -Eq '^  State = [a-z]+$' <<<"$properties"
+}
+service_object_ready() {    # for the measured Connect only: present and exactly idle
+  service_object_present && grep -q '^  State = idle$' <<<"$properties"
+}
+
 identity_ok || fail 'diagnostic boot identity changed'
 for command in connmanctl ip ping timeout sha256sum python3 stat; do
   command -v "$command" >/dev/null || fail "required command missing: $command"
@@ -155,11 +181,11 @@ seal() {
     [[ "$logger_rc" == 0 ]] || logger_stopped=0
     logger_pid=
   fi
-  receipt "logger_stopped=$logger_stopped logger_rc=$logger_rc logger_report=$(tr '\n' ' ' <"$output/logger.txt" 2>/dev/null || echo none)"
+  receipt "logger_stopped=$logger_stopped logger_rc=$logger_rc logger_report=$(tr '\n' ' ' <"$output/logger.txt" 2>/dev/null | sed 's/ *$//' || echo none)"
   if [[ "$armed" == yes ]]; then
     local summary
     if summary=$(bounded 5 python3 "$check" seal-check "$output/kmsg-cycle.log" 2>&1); then seal_captured=1; else seal_captured=0; fi
-    receipt "$(tr '\n' ' ' <<<"$summary")"
+    receipt "$(tr '\n' ' ' <<<"$summary" | sed 's/ *$//')"
     grep -q 'capped=0' "$output/logger.txt" 2>/dev/null || seal_captured=0
     [[ "$logger_stopped" == 1 ]] || seal_captured=0
     receipt "seal_captured=$seal_captured"
@@ -181,7 +207,7 @@ freeze() {  # verified manifest of the closed capture files, then read-only; fai
   local -a required=(kmsg-cycle.log dmesg-before.log dmesg-after.log addr-before.txt addr-after.txt route-before.txt
                      services-before.txt service-before.txt service-after.txt printk-before.txt printk-after.txt
                      control-after.txt logger.txt)
-  local -a optional=(ping.txt traffic-window)
+  local -a optional=(ping.txt traffic-window connect-output.txt)
   local missing='' name sum complete=1
   : >"$output/MANIFEST"
   for name in "${required[@]}" "${optional[@]}"; do
@@ -202,7 +228,20 @@ freeze() {  # verified manifest of the closed capture files, then read-only; fai
 restore() {  # one manual restoration connect outside the capture; AutoConnect restored only after verification
   phase_deadline=$(( $(now) + restore_budget ))
   exec >>"$output/restore.log" 2>&1
-  if ! gate restore; then receipt 'restore_skipped=identity'; return 0; fi
+  if ! gate restore; then receipt 'restore_skipped=identity'; receipt 'autoconnect_left_off=1'; receipt "restore_connected=0 ops_restore=$ops_restore"; return 0; fi
+  # The object may be unregistered again after the second disconnect; the restoration
+  # waits only for its presence (any state: an association still online on an early
+  # exit is already what restoration wants), within the restoration budget, then keeps
+  # its original contract: one connect call, verification on the bound target, the
+  # AutoConnect readback.
+  local object_wait_start; object_wait_start=$(now)
+  while ! service_object_present && in_phase; do sleep "$tick"; done
+  if ! service_object_present; then
+    receipt "restore_object_present=0 restore_object_wait_s=$(( $(now) - object_wait_start ))"
+    receipt 'autoconnect_left_off=1'; receipt "restore_connected=0 ops_restore=$ops_restore"; return 0
+  fi
+  receipt "restore_object_present=1 restore_object_wait_s=$(( $(now) - object_wait_start ))"
+  gate restore-connect || { receipt 'restore_skipped=identity'; receipt 'autoconnect_left_off=1'; receipt "restore_connected=0 ops_restore=$ops_restore"; return 0; }
   ops_restore=$((ops_restore + 1))
   bounded "$((30 / divisor))" connmanctl connect "$service" || true
   while in_phase; do
@@ -321,9 +360,20 @@ receipt 'teardown1=1'
 
 step='connect'
 budget_left
-gate connect || exit 7
+object_wait_start=$(now)
+if ! wait_until service_object_ready "$connect_cap"; then
+  receipt "service_object_present=0 service_object_wait_s=$(( $(now) - object_wait_start ))"
+  exit 5
+fi
+receipt "service_object_present=1 service_object_wait_s=$(( $(now) - object_wait_start ))"
+gate connect || exit 7   # live identity immediately before the radio call, after the wait
 ops_connect=$((ops_connect + 1))
-bounded "$connect_cap" connmanctl connect "$service" || true
+connect_output=$(bounded "$connect_cap" connmanctl connect "$service" 2>&1) || true
+printf '%s\n' "$connect_output" >"$output/connect-output.txt"
+if grep -q "doesn't exist" <<<"$connect_output"; then
+  receipt 'connect_unknown_method=1'   # the observed error class; the runtime cause stays an inference; no retry
+  exit 5
+fi
 if ! wait_until connected_on_target "$connect_cap"; then
   if connected_now; then receipt 'connect=1 target_match=0'; else receipt 'connect=0'; fi
   exit 5
