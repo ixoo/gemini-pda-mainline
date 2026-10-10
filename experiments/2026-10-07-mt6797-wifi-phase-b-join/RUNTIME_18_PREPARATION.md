@@ -36,8 +36,14 @@ else, including unicast or decrypted protected frames, the same class after
 the group key, and the unmeasured software frame of runtime 16, is refused
 and named as before. The group receiver address is checked on the device for
 the first time: runtime 17 recorded the descriptor's broadcast flag, not the
-address. Tooling, kernel configuration, RAM root, supplicant, binder, export,
-session and classifier are unchanged.
+address. The classifier gains bounded support for the new record: the
+`group data discarded` notification is admitted only between the activation
+and the deauthentication's TX done, numbered 1 to 8 in order, and the
+sanitized result reports the recorded count with its limit of eight (the
+driver accepts up to sixty-four; the total is not in the log); the existing
+handshake, export and session gates are unchanged from runtime 17's frozen
+`c41ab7b8` tooling, as are the kernel configuration, RAM root, supplicant,
+binder, export and session pieces.
 
 ## Hypothesis, unique observation and branches
 
