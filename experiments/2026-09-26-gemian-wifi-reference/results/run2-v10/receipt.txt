@@ -1,0 +1,20 @@
+start=2026-10-10T19:21:34Z boot=098ed28f-e96d-4720-a81d-6bc9d77d3695 release=3.18.41-gemini-wifi-ref10+ autoconnect_original=True target_match_before=1 service_match=1
+logger_started=1
+autoconnect_off=1
+arm_line=1 arm_seq=8403
+positive_control=1
+teardown1=1
+service_object_present=1 service_object_wait_s=0
+connect=0
+exit_step=connect rc_before_finish=5
+seal_state=2
+logger_stopped=1 logger_rc=0 logger_report=bytes=712328 capped=0 drops=0 failure=none stopped_by=signal
+arm_before_seal=1 arm_lines=1 complete=1 length_refusals=0 problems=0 records=386 records_after_seal=0 seal_lines=1 seal_reason=explicit stream_intact=1 suppressed=0 truncated=0 seal_ok=1
+seal_captured=1
+identity_post_seal=1
+manifest_complete=1 manifest_missing= none frozen=1
+ops_link_queries=50 ops_connect=1 ops_disconnect=1 ops_ping=0 ops_observer_writes=2 ops_autoconnect_writes=1
+restore_object_present=1 restore_object_wait_s=0
+autoconnect_after=True autoconnect_restored=1
+restore_connected=1 ops_restore=1
+result=partial exit=5 elapsed_s=69

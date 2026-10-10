@@ -946,6 +946,82 @@ v8 count. The bounded one-boot test is complete. This supports D0+D2 as a
 working temporary *Gemian* copy policy, not effective permission precedence,
 exclusive ownership or a safe mainline EMI write. Raw logs remain private.
 
+## v10 run 2: bounded partial result, Connect aborted by ConnMan, no measured handshake (2026-10-10)
+
+Run 2 used the executor at `65edead2` (script SHA-256 `39d15b1e…`) on a fresh
+owner-started v10 boot (`098ed28f…`, release `3.18.41-gemini-wifi-ref10+`,
+candidate, inventory and kernel hashes exact, no partition write). Its
+sanitized files are in [results/run2-v10](results/run2-v10/) (ledger SHA-256
+`443a1e6d…`); the raw capture is archived on the device and the laptop. Facts
+from those files:
+
+- Preflight passed with two inactive neighbour services listed; power
+  admission by two identical samples (present, 99 %, Good, external 0).
+- Positive control 1; first teardown 1; the idle service object was present
+  with no wait; the single measured `Connect` was answered by ConnMan with
+  `Operation aborted` (sanitized in the result summary); `connect=0`, exit 5
+  after 69 s. No retry, no scan request, no second disconnect, no traffic
+  window.
+- Observer sealed explicitly: 386 intact records, zero suppression,
+  truncation, drops or length refusals (53 command, 291 event, 24 credit,
+  12 RX descriptor, 2 TX descriptor, 4 state). Six remove-only key commands
+  (ids 0..5, sequences 91 and 98..102, peer class zero), no key add, no
+  add-key-done event, no EAPOL, no unicast data; ten accepted protected
+  group frames and two protected transmit descriptors with their TX-done
+  events belong to the stock association before the teardown; then three
+  idle scan cycles (BSS activate, scan request, scan done, BSS deactivate,
+  station record removal). The 254 unnamed events with id 0x27 are firmware
+  debug messages (`EVENT_ID_DEBUG_MSG`), not scan results: the ledger carries
+  no BSS visibility information.
+- Restoration outside the capture connected the approved target and
+  restored `AutoConnect = True`; MANIFEST and final checksums verified.
+- Return to stock confirmed by the collector (`994115e1…`, `3.18.41+`, 42.6 s,
+  14 polls, one ordinary restart): [return-receipt.json](results/run2-v10/return-receipt.json).
+- The custodian's redacted persistent-syslog excerpt
+  ([cycle-userspace-log-sanitized.txt](results/run2-v10/cycle-userspace-log-sanitized.txt),
+  identifiers replaced) shows wpa_supplicant's locally generated
+  `CTRL-EVENT-DISCONNECTED` (reason 3) at the teardown, immediately followed
+  by `nl80211: Was expecting local disconnect but got another disconnect
+  event first`, ConnMan removing the address and routes, then nothing from
+  either daemon until the restoration's `Trying to associate`, association
+  and CCMP key negotiation in the same second about 57 s later. wpa_supplicant
+  is Debian `2:2.4-1+deb9u9` ([supplicant-provenance.txt](results/run2-v10/supplicant-provenance.txt)).
+
+Interim source conclusions (see the protocol for the pinned sources; the
+runtime cause is not proven):
+
+- `Operation aborted` is exactly `ECONNABORTED` in ConnMan's error mapping;
+  the failure, timeout, not-found and in-progress outcomes have other texts.
+  With a `Connect` pending, the source produces it when the service's last
+  reference is dropped (`connman_service_unref` calls
+  `__connman_service_disconnect`, which answers the pending call before
+  `service_free`), or when the network is disconnected while associating,
+  or when an agent request is cancelled. The timing (the reply came as the
+  third post-teardown scan ended, about 40 s after the call) and the absence
+  of any other client action point to the first: wpa_supplicant removed the
+  target BSS after two scans without it (`wpa_bss_update_end`,
+  `bss_expiration_scan_count` 2, which ConnMan does not change), ConnMan
+  removed the network and service, and the pending `Connect` was aborted.
+  Run 1's `UnknownMethod` is the same removal happening before the call.
+  Both runs therefore say the target BSS was absent from the device's scans
+  for at least two consecutive scans after the deauthentication and present
+  again by the time of the restoration. Why it was absent is not observable
+  from retained evidence (AP-side behaviour after a deauthentication and
+  driver or firmware scan reporting after a disconnect both remain open).
+- The duplicate disconnect notification is a kernel API artefact, benign
+  for the following `Connect` as far as the source shows: the pinned 3.18
+  `cfg80211_disconnected()` queues the event and the event worker passes
+  `from_ap = true` unconditionally, so every driver-reported disconnect
+  carries `NL80211_ATTR_DISCONNECTED_BY_AP`, including the one the vendor
+  driver reports for wpa_supplicant's own `NL80211_CMD_DISCONNECT`;
+  wpa_supplicant 2.4 therefore does not ignore it and processes a second
+  deauthentication marked as sent by the AP. At that point its state is
+  already disconnected with `disconnected = 1`, so no blacklist entry and
+  no scan request follow; only the reported disconnect reason changes sign.
+  The quoted wpa_supplicant code is the 2.4 upstream tarball; the Debian
+  deb9u9 patch set was not retrieved and is not claimed to leave these
+  functions unchanged.
+
 ## v10 run 1: bounded partial result, no measured handshake (2026-10-10)
 
 The first v10 cycle ran once on boot `49387658-8633-401c-88be-8880116699ba`

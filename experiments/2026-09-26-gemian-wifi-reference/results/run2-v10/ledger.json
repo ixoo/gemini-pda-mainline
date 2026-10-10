@@ -1,0 +1,5330 @@
+{
+  "arm": {
+    "caps": {
+      "cmd": 512,
+      "credit": 1024,
+      "event": 1024,
+      "rxd": 2048,
+      "state": 256,
+      "txd": 1024
+    },
+    "deadline_s": 240,
+    "seq": 8403,
+    "usec": 700905157
+  },
+  "caps": [],
+  "complete": true,
+  "length_refusals": 0,
+  "problems": [],
+  "records": [
+    {
+      "category": "rxd",
+      "fields": {
+        "bc": 1,
+        "bssid": 1,
+        "eth": 34969,
+        "fc": 0,
+        "fmt": 0,
+        "grp": 1,
+        "havefc": 0,
+        "hdrlen": 14,
+        "len": 60,
+        "mc": 0,
+        "mismatch": 0,
+        "off": 34,
+        "pad": 2,
+        "sec": 4,
+        "span": 60,
+        "status": 49152,
+        "tid": 0,
+        "trans": 1,
+        "type": 2,
+        "uc2me": 0,
+        "wlan": 2
+      },
+      "n": 1,
+      "seq": 8406,
+      "usec": 701051517
+    },
+    {
+      "category": "rxd",
+      "fields": {
+        "bc": 1,
+        "bssid": 1,
+        "eth": 2048,
+        "fc": 0,
+        "fmt": 0,
+        "grp": 1,
+        "havefc": 0,
+        "hdrlen": 14,
+        "len": 342,
+        "mc": 0,
+        "mismatch": 0,
+        "off": 34,
+        "pad": 2,
+        "sec": 4,
+        "span": 342,
+        "status": 49152,
+        "tid": 0,
+        "trans": 1,
+        "type": 2,
+        "uc2me": 0,
+        "wlan": 2
+      },
+      "n": 2,
+      "seq": 8407,
+      "usec": 701359200
+    },
+    {
+      "category": "rxd",
+      "fields": {
+        "bc": 1,
+        "bssid": 1,
+        "eth": 2054,
+        "fc": 0,
+        "fmt": 0,
+        "grp": 1,
+        "havefc": 0,
+        "hdrlen": 14,
+        "len": 60,
+        "mc": 0,
+        "mismatch": 0,
+        "off": 34,
+        "pad": 2,
+        "sec": 4,
+        "span": 60,
+        "status": 49152,
+        "tid": 0,
+        "trans": 1,
+        "type": 2,
+        "uc2me": 0,
+        "wlan": 2
+      },
+      "n": 3,
+      "seq": 8409,
+      "usec": 701972608
+    },
+    {
+      "category": "rxd",
+      "fields": {
+        "bc": 1,
+        "bssid": 1,
+        "eth": 2054,
+        "fc": 0,
+        "fmt": 0,
+        "grp": 1,
+        "havefc": 0,
+        "hdrlen": 14,
+        "len": 60,
+        "mc": 0,
+        "mismatch": 0,
+        "off": 34,
+        "pad": 2,
+        "sec": 4,
+        "span": 60,
+        "status": 49152,
+        "tid": 0,
+        "trans": 1,
+        "type": 2,
+        "uc2me": 0,
+        "wlan": 2
+      },
+      "n": 4,
+      "seq": 8410,
+      "usec": 701972834
+    },
+    {
+      "category": "rxd",
+      "fields": {
+        "bc": 1,
+        "bssid": 1,
+        "eth": 2054,
+        "fc": 0,
+        "fmt": 0,
+        "grp": 1,
+        "havefc": 0,
+        "hdrlen": 14,
+        "len": 60,
+        "mc": 0,
+        "mismatch": 0,
+        "off": 34,
+        "pad": 2,
+        "sec": 4,
+        "span": 60,
+        "status": 49152,
+        "tid": 0,
+        "trans": 1,
+        "type": 2,
+        "uc2me": 0,
+        "wlan": 2
+      },
+      "n": 5,
+      "seq": 8411,
+      "usec": 701973015
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "bss": 0,
+        "cid": 129,
+        "len": 8,
+        "seq": 87,
+        "set": 0,
+        "type": 1
+      },
+      "n": 6,
+      "seq": 8412,
+      "usec": 701978966
+    },
+    {
+      "category": "credit",
+      "fields": {
+        "free0": 91,
+        "free1": 117,
+        "free2": 91,
+        "free3": 130,
+        "free4": 26,
+        "free5": 91,
+        "rel0": 0,
+        "rel1": 0,
+        "rel2": 0,
+        "rel3": 0,
+        "rel4": 1,
+        "rel5": 0
+      },
+      "n": 7,
+      "seq": 8413,
+      "usec": 701979219
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 44,
+        "len": 40,
+        "seq": 0
+      },
+      "n": 8,
+      "seq": 8414,
+      "usec": 701979632
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 2,
+        "hif": 44,
+        "len": 40,
+        "seq": 87
+      },
+      "n": 9,
+      "seq": 8415,
+      "usec": 701979643
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "bss": 0,
+        "cid": 133,
+        "len": 36,
+        "seq": 88,
+        "set": 0,
+        "type": 1
+      },
+      "n": 10,
+      "seq": 8416,
+      "usec": 701979764
+    },
+    {
+      "category": "credit",
+      "fields": {
+        "free0": 91,
+        "free1": 117,
+        "free2": 91,
+        "free3": 130,
+        "free4": 26,
+        "free5": 91,
+        "rel0": 0,
+        "rel1": 0,
+        "rel2": 0,
+        "rel3": 0,
+        "rel4": 1,
+        "rel5": 0
+      },
+      "n": 11,
+      "seq": 8417,
+      "usec": 701979801
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 33,
+        "hif": 120,
+        "len": 116,
+        "seq": 88
+      },
+      "n": 12,
+      "seq": 8419,
+      "usec": 701980493
+    },
+    {
+      "category": "rxd",
+      "fields": {
+        "bc": 1,
+        "bssid": 1,
+        "eth": 34969,
+        "fc": 0,
+        "fmt": 0,
+        "grp": 1,
+        "havefc": 0,
+        "hdrlen": 14,
+        "len": 60,
+        "mc": 0,
+        "mismatch": 0,
+        "off": 34,
+        "pad": 2,
+        "sec": 4,
+        "span": 60,
+        "status": 49152,
+        "tid": 0,
+        "trans": 1,
+        "type": 2,
+        "uc2me": 0,
+        "wlan": 2
+      },
+      "n": 13,
+      "seq": 8425,
+      "usec": 702279881
+    },
+    {
+      "category": "rxd",
+      "fields": {
+        "bc": 1,
+        "bssid": 1,
+        "eth": 2054,
+        "fc": 0,
+        "fmt": 0,
+        "grp": 1,
+        "havefc": 0,
+        "hdrlen": 14,
+        "len": 60,
+        "mc": 0,
+        "mismatch": 0,
+        "off": 34,
+        "pad": 2,
+        "sec": 4,
+        "span": 60,
+        "status": 49152,
+        "tid": 0,
+        "trans": 1,
+        "type": 2,
+        "uc2me": 0,
+        "wlan": 2
+      },
+      "n": 14,
+      "seq": 8428,
+      "usec": 702895448
+    },
+    {
+      "category": "rxd",
+      "fields": {
+        "bc": 1,
+        "bssid": 1,
+        "eth": 2054,
+        "fc": 0,
+        "fmt": 0,
+        "grp": 1,
+        "havefc": 0,
+        "hdrlen": 14,
+        "len": 60,
+        "mc": 0,
+        "mismatch": 0,
+        "off": 34,
+        "pad": 2,
+        "sec": 4,
+        "span": 60,
+        "status": 49152,
+        "tid": 0,
+        "trans": 1,
+        "type": 2,
+        "uc2me": 0,
+        "wlan": 2
+      },
+      "n": 15,
+      "seq": 8429,
+      "usec": 702895735
+    },
+    {
+      "category": "rxd",
+      "fields": {
+        "bc": 1,
+        "bssid": 1,
+        "eth": 2054,
+        "fc": 0,
+        "fmt": 0,
+        "grp": 1,
+        "havefc": 0,
+        "hdrlen": 14,
+        "len": 60,
+        "mc": 0,
+        "mismatch": 0,
+        "off": 34,
+        "pad": 2,
+        "sec": 4,
+        "span": 60,
+        "status": 49152,
+        "tid": 0,
+        "trans": 1,
+        "type": 2,
+        "uc2me": 0,
+        "wlan": 2
+      },
+      "n": 16,
+      "seq": 8430,
+      "usec": 702895933
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "bss": 0,
+        "cid": 129,
+        "len": 8,
+        "seq": 89,
+        "set": 0,
+        "type": 1
+      },
+      "n": 17,
+      "seq": 8432,
+      "usec": 703007793
+    },
+    {
+      "category": "credit",
+      "fields": {
+        "free0": 91,
+        "free1": 117,
+        "free2": 91,
+        "free3": 130,
+        "free4": 26,
+        "free5": 91,
+        "rel0": 0,
+        "rel1": 0,
+        "rel2": 0,
+        "rel3": 0,
+        "rel4": 1,
+        "rel5": 0
+      },
+      "n": 18,
+      "seq": 8433,
+      "usec": 703007926
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 44,
+        "len": 40,
+        "seq": 0
+      },
+      "n": 19,
+      "seq": 8434,
+      "usec": 703008493
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 2,
+        "hif": 44,
+        "len": 40,
+        "seq": 89
+      },
+      "n": 20,
+      "seq": 8435,
+      "usec": 703008510
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "bss": 0,
+        "cid": 133,
+        "len": 36,
+        "seq": 90,
+        "set": 0,
+        "type": 1
+      },
+      "n": 21,
+      "seq": 8436,
+      "usec": 703008679
+    },
+    {
+      "category": "credit",
+      "fields": {
+        "free0": 91,
+        "free1": 117,
+        "free2": 91,
+        "free3": 130,
+        "free4": 26,
+        "free5": 91,
+        "rel0": 0,
+        "rel1": 0,
+        "rel2": 0,
+        "rel3": 0,
+        "rel4": 1,
+        "rel5": 0
+      },
+      "n": 22,
+      "seq": 8437,
+      "usec": 703008735
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 33,
+        "hif": 120,
+        "len": 116,
+        "seq": 90
+      },
+      "n": 23,
+      "seq": 8438,
+      "usec": 703009306
+    },
+    {
+      "category": "rxd",
+      "fields": {
+        "bc": 1,
+        "bssid": 1,
+        "eth": 34969,
+        "fc": 0,
+        "fmt": 0,
+        "grp": 1,
+        "havefc": 0,
+        "hdrlen": 14,
+        "len": 60,
+        "mc": 0,
+        "mismatch": 0,
+        "off": 34,
+        "pad": 2,
+        "sec": 4,
+        "span": 60,
+        "status": 49152,
+        "tid": 0,
+        "trans": 1,
+        "type": 2,
+        "uc2me": 0,
+        "wlan": 2
+      },
+      "n": 24,
+      "seq": 8440,
+      "usec": 703202058
+    },
+    {
+      "category": "txd",
+      "fields": {
+        "bss": 0,
+        "cls": "data",
+        "fmt": 0,
+        "is80211": 0,
+        "len": 590,
+        "pid": 19,
+        "prot": 1,
+        "sta": 0,
+        "tc": 3,
+        "tid": 6,
+        "wlan": 1
+      },
+      "n": 25,
+      "seq": 8441,
+      "usec": 703405303
+    },
+    {
+      "category": "credit",
+      "fields": {
+        "free0": 91,
+        "free1": 117,
+        "free2": 91,
+        "free3": 130,
+        "free4": 26,
+        "free5": 91,
+        "rel0": 0,
+        "rel1": 0,
+        "rel2": 0,
+        "rel3": 5,
+        "rel4": 0,
+        "rel5": 0
+      },
+      "n": 26,
+      "seq": 8442,
+      "usec": 703405431
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 92,
+        "len": 88,
+        "seq": 0
+      },
+      "n": 27,
+      "seq": 8443,
+      "usec": 703407555
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 15,
+        "hif": 28,
+        "len": 24,
+        "seq": 0
+      },
+      "n": 28,
+      "seq": 8444,
+      "usec": 703407573
+    },
+    {
+      "category": "event",
+      "fields": {
+        "count": 1,
+        "flag": 1,
+        "pid": 19,
+        "rate": 75,
+        "seq": 0,
+        "sn": 8,
+        "status": 0,
+        "wlan": 1
+      },
+      "n": 29,
+      "seq": 8445,
+      "subtype": "txdone",
+      "usec": 703407579
+    },
+    {
+      "category": "txd",
+      "fields": {
+        "bss": 0,
+        "cls": "mgmt",
+        "fmt": 2,
+        "is80211": 1,
+        "len": 26,
+        "pid": 20,
+        "prot": 0,
+        "sta": 0,
+        "tc": 4,
+        "tid": 0,
+        "wlan": 1
+      },
+      "n": 30,
+      "seq": 8446,
+      "usec": 703411318
+    },
+    {
+      "category": "credit",
+      "fields": {
+        "free0": 91,
+        "free1": 117,
+        "free2": 91,
+        "free3": 130,
+        "free4": 26,
+        "free5": 91,
+        "rel0": 0,
+        "rel1": 0,
+        "rel2": 0,
+        "rel3": 0,
+        "rel4": 1,
+        "rel5": 0
+      },
+      "n": 31,
+      "seq": 8447,
+      "usec": 703411431
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 48,
+        "len": 41,
+        "seq": 0
+      },
+      "n": 32,
+      "seq": 8448,
+      "usec": 703412032
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 136,
+        "len": 131,
+        "seq": 0
+      },
+      "n": 33,
+      "seq": 8449,
+      "usec": 703412228
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "bss": 0,
+        "cid": 7,
+        "len": 72,
+        "seq": 91,
+        "set": 1,
+        "type": 1
+      },
+      "n": 34,
+      "seq": 8450,
+      "usec": 703412350
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "addremove": 0,
+        "alg": 0,
+        "auth": 0,
+        "bss": 0,
+        "keyid": 0,
+        "keylen": 0,
+        "keytype": 0,
+        "peer": "zero",
+        "seq": 91,
+        "tx": 0,
+        "wlan": 255
+      },
+      "n": 35,
+      "seq": 8451,
+      "subtype": "key",
+      "usec": 703412365
+    },
+    {
+      "category": "credit",
+      "fields": {
+        "free0": 91,
+        "free1": 117,
+        "free2": 91,
+        "free3": 130,
+        "free4": 26,
+        "free5": 91,
+        "rel0": 0,
+        "rel1": 0,
+        "rel2": 0,
+        "rel3": 0,
+        "rel4": 1,
+        "rel5": 0
+      },
+      "n": 36,
+      "seq": 8452,
+      "usec": 703412409
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 92,
+        "len": 88,
+        "seq": 0
+      },
+      "n": 37,
+      "seq": 8453,
+      "usec": 703412445
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 15,
+        "hif": 28,
+        "len": 24,
+        "seq": 0
+      },
+      "n": 38,
+      "seq": 8454,
+      "usec": 703412454
+    },
+    {
+      "category": "event",
+      "fields": {
+        "count": 1,
+        "flag": 1,
+        "pid": 20,
+        "rate": 75,
+        "seq": 0,
+        "sn": 3,
+        "status": 0,
+        "wlan": 1
+      },
+      "n": 39,
+      "seq": 8455,
+      "subtype": "txdone",
+      "usec": 703412462
+    },
+    {
+      "category": "state",
+      "fields": {
+        "bss": 0
+      },
+      "n": 40,
+      "seq": 8456,
+      "subtype": "bssdeact",
+      "usec": 703412554
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "bss": 0,
+        "cid": 23,
+        "len": 12,
+        "seq": 92,
+        "set": 1,
+        "type": 1
+      },
+      "n": 41,
+      "seq": 8457,
+      "usec": 703412604
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "bss": 0,
+        "cid": 18,
+        "len": 96,
+        "seq": 93,
+        "set": 1,
+        "type": 1
+      },
+      "n": 42,
+      "seq": 8458,
+      "usec": 703412623
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "authmode": 7,
+        "bmcwlan": 0,
+        "bss": 0,
+        "connstate": 1,
+        "encstatus": 6,
+        "opmode": 0,
+        "physet": 56,
+        "qbss": 1,
+        "seq": 93,
+        "staofap": 0
+      },
+      "n": 43,
+      "seq": 8459,
+      "subtype": "bssinfo",
+      "usec": 703412632
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "bss": 0,
+        "cid": 20,
+        "len": 12,
+        "seq": 94,
+        "set": 1,
+        "type": 1
+      },
+      "n": 44,
+      "seq": 8460,
+      "usec": 703412653
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "action": 1,
+        "bss": 0,
+        "seq": 94,
+        "sta": 27
+      },
+      "n": 45,
+      "seq": 8461,
+      "subtype": "starm",
+      "usec": 703412660
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "bss": 0,
+        "cid": 48,
+        "len": 12,
+        "seq": 95,
+        "set": 1,
+        "type": 1
+      },
+      "n": 46,
+      "seq": 8462,
+      "usec": 703412676
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "bss": 0,
+        "cid": 17,
+        "len": 20,
+        "seq": 96,
+        "set": 1,
+        "type": 1
+      },
+      "n": 47,
+      "seq": 8463,
+      "usec": 703412694
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "active": 0,
+        "bmcwlan": 0,
+        "bss": 0,
+        "nettype": 0,
+        "ownmac": 1,
+        "seq": 96
+      },
+      "n": 48,
+      "seq": 8464,
+      "subtype": "bss",
+      "usec": 703412701
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "bss": 0,
+        "cid": 20,
+        "len": 12,
+        "seq": 97,
+        "set": 1,
+        "type": 1
+      },
+      "n": 49,
+      "seq": 8465,
+      "usec": 703412717
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "action": 1,
+        "bss": 0,
+        "seq": 97,
+        "sta": 27
+      },
+      "n": 50,
+      "seq": 8466,
+      "subtype": "starm",
+      "usec": 703412724
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "bss": 0,
+        "cid": 7,
+        "len": 72,
+        "seq": 98,
+        "set": 1,
+        "type": 1
+      },
+      "n": 51,
+      "seq": 8467,
+      "usec": 703412742
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "addremove": 0,
+        "alg": 0,
+        "auth": 0,
+        "bss": 0,
+        "keyid": 1,
+        "keylen": 0,
+        "keytype": 0,
+        "peer": "zero",
+        "seq": 98,
+        "tx": 0,
+        "wlan": 255
+      },
+      "n": 52,
+      "seq": 8468,
+      "subtype": "key",
+      "usec": 703412751
+    },
+    {
+      "category": "credit",
+      "fields": {
+        "free0": 91,
+        "free1": 117,
+        "free2": 91,
+        "free3": 130,
+        "free4": 26,
+        "free5": 91,
+        "rel0": 0,
+        "rel1": 0,
+        "rel2": 0,
+        "rel3": 0,
+        "rel4": 7,
+        "rel5": 0
+      },
+      "n": 53,
+      "seq": 8469,
+      "usec": 703412790
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "bss": 0,
+        "cid": 7,
+        "len": 72,
+        "seq": 99,
+        "set": 1,
+        "type": 1
+      },
+      "n": 54,
+      "seq": 8470,
+      "usec": 703412852
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "addremove": 0,
+        "alg": 0,
+        "auth": 0,
+        "bss": 0,
+        "keyid": 2,
+        "keylen": 0,
+        "keytype": 0,
+        "peer": "zero",
+        "seq": 99,
+        "tx": 0,
+        "wlan": 255
+      },
+      "n": 55,
+      "seq": 8471,
+      "subtype": "key",
+      "usec": 703412861
+    },
+    {
+      "category": "credit",
+      "fields": {
+        "free0": 91,
+        "free1": 117,
+        "free2": 91,
+        "free3": 130,
+        "free4": 26,
+        "free5": 91,
+        "rel0": 0,
+        "rel1": 0,
+        "rel2": 0,
+        "rel3": 0,
+        "rel4": 1,
+        "rel5": 0
+      },
+      "n": 56,
+      "seq": 8472,
+      "usec": 703412906
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 92,
+        "len": 88,
+        "seq": 0
+      },
+      "n": 57,
+      "seq": 8473,
+      "usec": 703413016
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "bss": 0,
+        "cid": 7,
+        "len": 72,
+        "seq": 100,
+        "set": 1,
+        "type": 1
+      },
+      "n": 58,
+      "seq": 8474,
+      "usec": 703413028
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "addremove": 0,
+        "alg": 0,
+        "auth": 0,
+        "bss": 0,
+        "keyid": 3,
+        "keylen": 0,
+        "keytype": 0,
+        "peer": "zero",
+        "seq": 100,
+        "tx": 0,
+        "wlan": 255
+      },
+      "n": 59,
+      "seq": 8475,
+      "subtype": "key",
+      "usec": 703413037
+    },
+    {
+      "category": "credit",
+      "fields": {
+        "free0": 91,
+        "free1": 117,
+        "free2": 91,
+        "free3": 130,
+        "free4": 26,
+        "free5": 91,
+        "rel0": 0,
+        "rel1": 0,
+        "rel2": 0,
+        "rel3": 0,
+        "rel4": 1,
+        "rel5": 0
+      },
+      "n": 60,
+      "seq": 8476,
+      "usec": 703413080
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 56,
+        "len": 52,
+        "seq": 0
+      },
+      "n": 61,
+      "seq": 8477,
+      "usec": 703413114
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 80,
+        "len": 73,
+        "seq": 0
+      },
+      "n": 62,
+      "seq": 8478,
+      "usec": 703413209
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "bss": 0,
+        "cid": 7,
+        "len": 72,
+        "seq": 101,
+        "set": 1,
+        "type": 1
+      },
+      "n": 63,
+      "seq": 8479,
+      "usec": 703413215
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "addremove": 0,
+        "alg": 0,
+        "auth": 0,
+        "bss": 0,
+        "keyid": 4,
+        "keylen": 0,
+        "keytype": 0,
+        "peer": "zero",
+        "seq": 101,
+        "tx": 0,
+        "wlan": 255
+      },
+      "n": 64,
+      "seq": 8480,
+      "subtype": "key",
+      "usec": 703413228
+    },
+    {
+      "category": "credit",
+      "fields": {
+        "free0": 91,
+        "free1": 117,
+        "free2": 91,
+        "free3": 130,
+        "free4": 26,
+        "free5": 91,
+        "rel0": 0,
+        "rel1": 0,
+        "rel2": 0,
+        "rel3": 0,
+        "rel4": 1,
+        "rel5": 0
+      },
+      "n": 65,
+      "seq": 8481,
+      "usec": 703413267
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "bss": 0,
+        "cid": 7,
+        "len": 72,
+        "seq": 102,
+        "set": 1,
+        "type": 1
+      },
+      "n": 66,
+      "seq": 8482,
+      "usec": 703413326
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "addremove": 0,
+        "alg": 0,
+        "auth": 0,
+        "bss": 0,
+        "keyid": 5,
+        "keylen": 0,
+        "keytype": 0,
+        "peer": "zero",
+        "seq": 102,
+        "tx": 0,
+        "wlan": 255
+      },
+      "n": 67,
+      "seq": 8483,
+      "subtype": "key",
+      "usec": 703413335
+    },
+    {
+      "category": "credit",
+      "fields": {
+        "free0": 91,
+        "free1": 117,
+        "free2": 91,
+        "free3": 130,
+        "free4": 26,
+        "free5": 91,
+        "rel0": 0,
+        "rel1": 0,
+        "rel2": 0,
+        "rel3": 0,
+        "rel4": 1,
+        "rel5": 0
+      },
+      "n": 68,
+      "seq": 8484,
+      "usec": 703413376
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 17,
+        "hif": 16,
+        "len": 12,
+        "seq": 0
+      },
+      "n": 69,
+      "seq": 8486,
+      "usec": 703413713
+    },
+    {
+      "category": "event",
+      "fields": {
+        "absent": 0,
+        "bss": 0,
+        "quota": 0,
+        "seq": 0
+      },
+      "n": 70,
+      "seq": 8487,
+      "subtype": "absence",
+      "usec": 703413721
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 52,
+        "len": 47,
+        "seq": 0
+      },
+      "n": 71,
+      "seq": 8488,
+      "usec": 703414178
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 44,
+        "len": 37,
+        "seq": 0
+      },
+      "n": 72,
+      "seq": 8489,
+      "usec": 703414188
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 68,
+        "len": 63,
+        "seq": 0
+      },
+      "n": 73,
+      "seq": 8490,
+      "usec": 703414195
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 52,
+        "len": 45,
+        "seq": 0
+      },
+      "n": 74,
+      "seq": 8491,
+      "usec": 703414202
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 68,
+        "len": 63,
+        "seq": 0
+      },
+      "n": 75,
+      "seq": 8492,
+      "usec": 703414209
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 17,
+        "hif": 16,
+        "len": 12,
+        "seq": 0
+      },
+      "n": 76,
+      "seq": 8493,
+      "usec": 703414270
+    },
+    {
+      "category": "event",
+      "fields": {
+        "absent": 0,
+        "bss": 0,
+        "quota": 0,
+        "seq": 0
+      },
+      "n": 77,
+      "seq": 8494,
+      "subtype": "absence",
+      "usec": 703414278
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 7,
+        "hif": 16,
+        "len": 12,
+        "seq": 0
+      },
+      "n": 78,
+      "seq": 8495,
+      "usec": 703414422
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 7,
+        "hif": 16,
+        "len": 12,
+        "seq": 0
+      },
+      "n": 79,
+      "seq": 8496,
+      "usec": 703444145
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "bss": 0,
+        "cid": 10,
+        "len": 12,
+        "seq": 103,
+        "set": 1,
+        "type": 1
+      },
+      "n": 80,
+      "seq": 8498,
+      "usec": 703550067
+    },
+    {
+      "category": "credit",
+      "fields": {
+        "free0": 91,
+        "free1": 117,
+        "free2": 91,
+        "free3": 130,
+        "free4": 26,
+        "free5": 91,
+        "rel0": 0,
+        "rel1": 0,
+        "rel2": 0,
+        "rel3": 0,
+        "rel4": 1,
+        "rel5": 0
+      },
+      "n": 81,
+      "seq": 8499,
+      "usec": 703550158
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "bss": 0,
+        "cid": 193,
+        "len": 208,
+        "seq": 104,
+        "set": 1,
+        "type": 1
+      },
+      "n": 82,
+      "seq": 8500,
+      "usec": 703550297
+    },
+    {
+      "category": "credit",
+      "fields": {
+        "free0": 91,
+        "free1": 117,
+        "free2": 91,
+        "free3": 130,
+        "free4": 26,
+        "free5": 91,
+        "rel0": 0,
+        "rel1": 0,
+        "rel2": 0,
+        "rel3": 0,
+        "rel4": 2,
+        "rel5": 0
+      },
+      "n": 83,
+      "seq": 8501,
+      "usec": 703550442
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "bss": 0,
+        "cid": 10,
+        "len": 12,
+        "seq": 105,
+        "set": 1,
+        "type": 1
+      },
+      "n": 84,
+      "seq": 8502,
+      "usec": 703558203
+    },
+    {
+      "category": "credit",
+      "fields": {
+        "free0": 91,
+        "free1": 117,
+        "free2": 91,
+        "free3": 130,
+        "free4": 26,
+        "free5": 91,
+        "rel0": 0,
+        "rel1": 0,
+        "rel2": 0,
+        "rel3": 0,
+        "rel4": 1,
+        "rel5": 0
+      },
+      "n": 85,
+      "seq": 8503,
+      "usec": 703558293
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "bss": 0,
+        "cid": 193,
+        "len": 208,
+        "seq": 106,
+        "set": 1,
+        "type": 1
+      },
+      "n": 86,
+      "seq": 8504,
+      "usec": 703558401
+    },
+    {
+      "category": "credit",
+      "fields": {
+        "free0": 91,
+        "free1": 117,
+        "free2": 91,
+        "free3": 130,
+        "free4": 26,
+        "free5": 91,
+        "rel0": 0,
+        "rel1": 0,
+        "rel2": 0,
+        "rel3": 0,
+        "rel4": 2,
+        "rel5": 0
+      },
+      "n": 87,
+      "seq": 8505,
+      "usec": 703558446
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "bss": 0,
+        "cid": 10,
+        "len": 12,
+        "seq": 107,
+        "set": 1,
+        "type": 1
+      },
+      "n": 88,
+      "seq": 8507,
+      "usec": 703567239
+    },
+    {
+      "category": "credit",
+      "fields": {
+        "free0": 91,
+        "free1": 117,
+        "free2": 91,
+        "free3": 130,
+        "free4": 26,
+        "free5": 91,
+        "rel0": 0,
+        "rel1": 0,
+        "rel2": 0,
+        "rel3": 0,
+        "rel4": 1,
+        "rel5": 0
+      },
+      "n": 89,
+      "seq": 8508,
+      "usec": 703567299
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "bss": 0,
+        "cid": 193,
+        "len": 208,
+        "seq": 108,
+        "set": 1,
+        "type": 1
+      },
+      "n": 90,
+      "seq": 8509,
+      "usec": 703567362
+    },
+    {
+      "category": "credit",
+      "fields": {
+        "free0": 91,
+        "free1": 117,
+        "free2": 91,
+        "free3": 130,
+        "free4": 26,
+        "free5": 91,
+        "rel0": 0,
+        "rel1": 0,
+        "rel2": 0,
+        "rel3": 0,
+        "rel4": 2,
+        "rel5": 0
+      },
+      "n": 91,
+      "seq": 8510,
+      "usec": 703567404
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 7,
+        "hif": 16,
+        "len": 12,
+        "seq": 0
+      },
+      "n": 92,
+      "seq": 8512,
+      "usec": 703574048
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 100,
+        "len": 94,
+        "seq": 0
+      },
+      "n": 93,
+      "seq": 8517,
+      "usec": 704986561
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 168,
+        "len": 164,
+        "seq": 0
+      },
+      "n": 94,
+      "seq": 8518,
+      "usec": 704986588
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 72,
+        "len": 66,
+        "seq": 0
+      },
+      "n": 95,
+      "seq": 8519,
+      "usec": 704986601
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 88,
+        "len": 82,
+        "seq": 0
+      },
+      "n": 96,
+      "seq": 8520,
+      "usec": 704986614
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 132,
+        "len": 126,
+        "seq": 0
+      },
+      "n": 97,
+      "seq": 8521,
+      "usec": 704986628
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 44,
+        "len": 39,
+        "seq": 0
+      },
+      "n": 98,
+      "seq": 8522,
+      "usec": 704986640
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 40,
+        "len": 36,
+        "seq": 0
+      },
+      "n": 99,
+      "seq": 8523,
+      "usec": 704986653
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 92,
+        "len": 88,
+        "seq": 0
+      },
+      "n": 100,
+      "seq": 8524,
+      "usec": 704986666
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 116,
+        "len": 112,
+        "seq": 0
+      },
+      "n": 101,
+      "seq": 8525,
+      "usec": 704986679
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 92,
+        "len": 85,
+        "seq": 0
+      },
+      "n": 102,
+      "seq": 8526,
+      "usec": 704986692
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 80,
+        "len": 73,
+        "seq": 0
+      },
+      "n": 103,
+      "seq": 8527,
+      "usec": 704986705
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 88,
+        "len": 83,
+        "seq": 0
+      },
+      "n": 104,
+      "seq": 8528,
+      "usec": 704986718
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 104,
+        "len": 99,
+        "seq": 0
+      },
+      "n": 105,
+      "seq": 8529,
+      "usec": 704986730
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 7,
+        "hif": 16,
+        "len": 12,
+        "seq": 0
+      },
+      "n": 106,
+      "seq": 8530,
+      "usec": 705011076
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "bss": 0,
+        "cid": 17,
+        "len": 20,
+        "seq": 109,
+        "set": 1,
+        "type": 1
+      },
+      "n": 107,
+      "seq": 8532,
+      "usec": 705839165
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "active": 1,
+        "bmcwlan": 0,
+        "bss": 0,
+        "nettype": 0,
+        "ownmac": 1,
+        "seq": 109
+      },
+      "n": 108,
+      "seq": 8533,
+      "subtype": "bss",
+      "usec": 705839184
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "bss": 0,
+        "cid": 3,
+        "len": 234,
+        "seq": 110,
+        "set": 1,
+        "type": 1
+      },
+      "n": 109,
+      "seq": 8534,
+      "usec": 705839231
+    },
+    {
+      "category": "credit",
+      "fields": {
+        "free0": 91,
+        "free1": 117,
+        "free2": 91,
+        "free3": 130,
+        "free4": 26,
+        "free5": 91,
+        "rel0": 0,
+        "rel1": 0,
+        "rel2": 0,
+        "rel3": 0,
+        "rel4": 3,
+        "rel5": 0
+      },
+      "n": 110,
+      "seq": 8535,
+      "usec": 705839287
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 84,
+        "len": 79,
+        "seq": 0
+      },
+      "n": 111,
+      "seq": 8536,
+      "usec": 705841720
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 56,
+        "len": 49,
+        "seq": 0
+      },
+      "n": 112,
+      "seq": 8537,
+      "usec": 705841736
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 92,
+        "len": 86,
+        "seq": 0
+      },
+      "n": 113,
+      "seq": 8538,
+      "usec": 705841745
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 52,
+        "len": 46,
+        "seq": 0
+      },
+      "n": 114,
+      "seq": 8539,
+      "usec": 705845376
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 115,
+      "seq": 8540,
+      "usec": 705846397
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 92,
+        "len": 86,
+        "seq": 0
+      },
+      "n": 116,
+      "seq": 8546,
+      "usec": 705995278
+    },
+    {
+      "category": "rxd",
+      "fields": {
+        "bc": 1,
+        "bssid": 15,
+        "eth": 0,
+        "fc": 208,
+        "fmt": 0,
+        "grp": 1,
+        "havefc": 1,
+        "hdrlen": 24,
+        "len": 350,
+        "mc": 0,
+        "mismatch": 0,
+        "off": 64,
+        "pad": 0,
+        "sec": 0,
+        "span": 350,
+        "status": 57344,
+        "tid": 0,
+        "trans": 0,
+        "type": 7,
+        "uc2me": 0,
+        "wlan": 255
+      },
+      "n": 117,
+      "seq": 8547,
+      "usec": 706300985
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 118,
+      "seq": 8548,
+      "usec": 706855063
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 119,
+      "seq": 8549,
+      "usec": 706926502
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 120,
+      "seq": 8550,
+      "usec": 706927260
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 121,
+      "seq": 8553,
+      "usec": 706998349
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 122,
+      "seq": 8554,
+      "usec": 706999461
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 123,
+      "seq": 8562,
+      "usec": 707059535
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 124,
+      "seq": 8563,
+      "usec": 707060202
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 125,
+      "seq": 8575,
+      "usec": 707135001
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 126,
+      "seq": 8576,
+      "usec": 707135553
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 127,
+      "seq": 8578,
+      "usec": 707198858
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 128,
+      "seq": 8579,
+      "usec": 707199421
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 129,
+      "seq": 8580,
+      "usec": 707262811
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 130,
+      "seq": 8581,
+      "usec": 707263374
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 131,
+      "seq": 8582,
+      "usec": 707322558
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 132,
+      "seq": 8583,
+      "usec": 707323111
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 133,
+      "seq": 8584,
+      "usec": 707386458
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 134,
+      "seq": 8585,
+      "usec": 707387067
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 135,
+      "seq": 8586,
+      "usec": 707450324
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 136,
+      "seq": 8587,
+      "usec": 707450873
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 137,
+      "seq": 8588,
+      "usec": 707514257
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 138,
+      "seq": 8589,
+      "usec": 707514854
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 139,
+      "seq": 8590,
+      "usec": 707573945
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 140,
+      "seq": 8591,
+      "usec": 707574556
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 141,
+      "seq": 8592,
+      "usec": 707637811
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 142,
+      "seq": 8593,
+      "usec": 707638369
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 143,
+      "seq": 8594,
+      "usec": 707701622
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 144,
+      "seq": 8595,
+      "usec": 707702176
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 145,
+      "seq": 8596,
+      "usec": 707765637
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 146,
+      "seq": 8597,
+      "usec": 707766168
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 147,
+      "seq": 8600,
+      "usec": 707825294
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 148,
+      "seq": 8601,
+      "usec": 707825858
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 149,
+      "seq": 8602,
+      "usec": 707888953
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 150,
+      "seq": 8603,
+      "usec": 707889567
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 151,
+      "seq": 8605,
+      "usec": 707952820
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 152,
+      "seq": 8606,
+      "usec": 707953369
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 153,
+      "seq": 8607,
+      "usec": 708016905
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 154,
+      "seq": 8608,
+      "usec": 708017465
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 155,
+      "seq": 8609,
+      "usec": 708076599
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 156,
+      "seq": 8610,
+      "usec": 708077172
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 157,
+      "seq": 8611,
+      "usec": 708140655
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 158,
+      "seq": 8612,
+      "usec": 708141237
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 159,
+      "seq": 8614,
+      "usec": 708216158
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 160,
+      "seq": 8615,
+      "usec": 708216804
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 161,
+      "seq": 8616,
+      "usec": 708282125
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 162,
+      "seq": 8617,
+      "usec": 708282770
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 163,
+      "seq": 8618,
+      "usec": 708353451
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 164,
+      "seq": 8619,
+      "usec": 708354083
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 165,
+      "seq": 8621,
+      "usec": 708424908
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 166,
+      "seq": 8622,
+      "usec": 708425551
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 80,
+        "len": 73,
+        "seq": 0
+      },
+      "n": 167,
+      "seq": 8623,
+      "usec": 708487785
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 392,
+        "len": 387,
+        "seq": 0
+      },
+      "n": 168,
+      "seq": 8624,
+      "usec": 708488179
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 13,
+        "hif": 28,
+        "len": 24,
+        "seq": 0
+      },
+      "n": 169,
+      "seq": 8625,
+      "usec": 708488195
+    },
+    {
+      "category": "event",
+      "fields": {
+        "scanseq": 2,
+        "seq": 0,
+        "sparse": 1
+      },
+      "n": 170,
+      "seq": 8626,
+      "subtype": "scandone",
+      "usec": 708488207
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 48,
+        "len": 41,
+        "seq": 0
+      },
+      "n": 171,
+      "seq": 8627,
+      "usec": 708488233
+    },
+    {
+      "category": "state",
+      "fields": {
+        "bss": 0
+      },
+      "n": 172,
+      "seq": 8628,
+      "subtype": "bssdeact",
+      "usec": 708488618
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "bss": 0,
+        "cid": 17,
+        "len": 20,
+        "seq": 111,
+        "set": 1,
+        "type": 1
+      },
+      "n": 173,
+      "seq": 8629,
+      "usec": 708489022
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "active": 0,
+        "bmcwlan": 0,
+        "bss": 0,
+        "nettype": 0,
+        "ownmac": 1,
+        "seq": 111
+      },
+      "n": 174,
+      "seq": 8630,
+      "subtype": "bss",
+      "usec": 708489038
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "bss": 0,
+        "cid": 20,
+        "len": 12,
+        "seq": 112,
+        "set": 1,
+        "type": 1
+      },
+      "n": 175,
+      "seq": 8631,
+      "usec": 708489076
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "action": 1,
+        "bss": 0,
+        "seq": 112,
+        "sta": 27
+      },
+      "n": 176,
+      "seq": 8632,
+      "subtype": "starm",
+      "usec": 708489090
+    },
+    {
+      "category": "credit",
+      "fields": {
+        "free0": 91,
+        "free1": 117,
+        "free2": 91,
+        "free3": 130,
+        "free4": 26,
+        "free5": 91,
+        "rel0": 0,
+        "rel1": 0,
+        "rel2": 0,
+        "rel3": 0,
+        "rel4": 2,
+        "rel5": 0
+      },
+      "n": 177,
+      "seq": 8633,
+      "usec": 708489157
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 136,
+        "len": 131,
+        "seq": 0
+      },
+      "n": 178,
+      "seq": 8634,
+      "usec": 708489216
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 7,
+        "hif": 16,
+        "len": 12,
+        "seq": 0
+      },
+      "n": 179,
+      "seq": 8635,
+      "usec": 708492241
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 68,
+        "len": 63,
+        "seq": 0
+      },
+      "n": 180,
+      "seq": 8636,
+      "usec": 708502140
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 52,
+        "len": 45,
+        "seq": 0
+      },
+      "n": 181,
+      "seq": 8637,
+      "usec": 708502167
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 68,
+        "len": 63,
+        "seq": 0
+      },
+      "n": 182,
+      "seq": 8638,
+      "usec": 708502180
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 17,
+        "hif": 16,
+        "len": 12,
+        "seq": 0
+      },
+      "n": 183,
+      "seq": 8639,
+      "usec": 708502193
+    },
+    {
+      "category": "event",
+      "fields": {
+        "absent": 0,
+        "bss": 0,
+        "quota": 0,
+        "seq": 0
+      },
+      "n": 184,
+      "seq": 8640,
+      "subtype": "absence",
+      "usec": 708502206
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 185,
+      "seq": 8641,
+      "usec": 708502221
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 7,
+        "hif": 16,
+        "len": 12,
+        "seq": 0
+      },
+      "n": 186,
+      "seq": 8642,
+      "usec": 708526170
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 100,
+        "len": 94,
+        "seq": 0
+      },
+      "n": 187,
+      "seq": 8652,
+      "usec": 709853054
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 168,
+        "len": 164,
+        "seq": 0
+      },
+      "n": 188,
+      "seq": 8653,
+      "usec": 709853082
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 68,
+        "len": 64,
+        "seq": 0
+      },
+      "n": 189,
+      "seq": 8654,
+      "usec": 709853096
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 88,
+        "len": 82,
+        "seq": 0
+      },
+      "n": 190,
+      "seq": 8655,
+      "usec": 709853109
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 48,
+        "len": 41,
+        "seq": 0
+      },
+      "n": 191,
+      "seq": 8656,
+      "usec": 709853122
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 136,
+        "len": 131,
+        "seq": 0
+      },
+      "n": 192,
+      "seq": 8657,
+      "usec": 709853135
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 44,
+        "len": 39,
+        "seq": 0
+      },
+      "n": 193,
+      "seq": 8658,
+      "usec": 709853148
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 40,
+        "len": 36,
+        "seq": 0
+      },
+      "n": 194,
+      "seq": 8659,
+      "usec": 709853161
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 92,
+        "len": 88,
+        "seq": 0
+      },
+      "n": 195,
+      "seq": 8660,
+      "usec": 709853174
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 124,
+        "len": 117,
+        "seq": 0
+      },
+      "n": 196,
+      "seq": 8661,
+      "usec": 709853186
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 92,
+        "len": 85,
+        "seq": 0
+      },
+      "n": 197,
+      "seq": 8662,
+      "usec": 709853199
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 80,
+        "len": 73,
+        "seq": 0
+      },
+      "n": 198,
+      "seq": 8663,
+      "usec": 709853212
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 88,
+        "len": 83,
+        "seq": 0
+      },
+      "n": 199,
+      "seq": 8664,
+      "usec": 709853225
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 104,
+        "len": 99,
+        "seq": 0
+      },
+      "n": 200,
+      "seq": 8665,
+      "usec": 709853238
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 7,
+        "hif": 16,
+        "len": 12,
+        "seq": 0
+      },
+      "n": 201,
+      "seq": 8666,
+      "usec": 709876598
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "bss": 0,
+        "cid": 17,
+        "len": 20,
+        "seq": 113,
+        "set": 1,
+        "type": 1
+      },
+      "n": 202,
+      "seq": 8685,
+      "usec": 716078107
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "active": 1,
+        "bmcwlan": 0,
+        "bss": 0,
+        "nettype": 0,
+        "ownmac": 1,
+        "seq": 113
+      },
+      "n": 203,
+      "seq": 8686,
+      "subtype": "bss",
+      "usec": 716078133
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "bss": 0,
+        "cid": 3,
+        "len": 234,
+        "seq": 114,
+        "set": 1,
+        "type": 1
+      },
+      "n": 204,
+      "seq": 8687,
+      "usec": 716078200
+    },
+    {
+      "category": "credit",
+      "fields": {
+        "free0": 91,
+        "free1": 117,
+        "free2": 91,
+        "free3": 130,
+        "free4": 26,
+        "free5": 91,
+        "rel0": 0,
+        "rel1": 0,
+        "rel2": 0,
+        "rel3": 0,
+        "rel4": 3,
+        "rel5": 0
+      },
+      "n": 205,
+      "seq": 8688,
+      "usec": 716078288
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 84,
+        "len": 79,
+        "seq": 0
+      },
+      "n": 206,
+      "seq": 8689,
+      "usec": 716081288
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 56,
+        "len": 49,
+        "seq": 0
+      },
+      "n": 207,
+      "seq": 8690,
+      "usec": 716081306
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 92,
+        "len": 86,
+        "seq": 0
+      },
+      "n": 208,
+      "seq": 8691,
+      "usec": 716081320
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 52,
+        "len": 46,
+        "seq": 0
+      },
+      "n": 209,
+      "seq": 8692,
+      "usec": 716083899
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 210,
+      "seq": 8701,
+      "usec": 717152845
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 211,
+      "seq": 8709,
+      "usec": 717214691
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 212,
+      "seq": 8710,
+      "usec": 717215285
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 213,
+      "seq": 8712,
+      "usec": 717286105
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 214,
+      "seq": 8713,
+      "usec": 717286776
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 215,
+      "seq": 8714,
+      "usec": 717347816
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 216,
+      "seq": 8715,
+      "usec": 717348445
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 217,
+      "seq": 8716,
+      "usec": 717419034
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 218,
+      "seq": 8717,
+      "usec": 717419606
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 219,
+      "seq": 8718,
+      "usec": 717529063
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 220,
+      "seq": 8719,
+      "usec": 717529616
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 221,
+      "seq": 8720,
+      "usec": 717639066
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 222,
+      "seq": 8721,
+      "usec": 717639613
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 223,
+      "seq": 8722,
+      "usec": 717749143
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 224,
+      "seq": 8723,
+      "usec": 717749694
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 225,
+      "seq": 8724,
+      "usec": 717859212
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 226,
+      "seq": 8725,
+      "usec": 717859766
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 227,
+      "seq": 8729,
+      "usec": 717969249
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 228,
+      "seq": 8730,
+      "usec": 717969807
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 229,
+      "seq": 8731,
+      "usec": 718079416
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 230,
+      "seq": 8732,
+      "usec": 718079816
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 231,
+      "seq": 8733,
+      "usec": 718189116
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 232,
+      "seq": 8734,
+      "usec": 718189665
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 233,
+      "seq": 8735,
+      "usec": 718299213
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 234,
+      "seq": 8736,
+      "usec": 718299767
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 235,
+      "seq": 8737,
+      "usec": 718409254
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 236,
+      "seq": 8738,
+      "usec": 718409805
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 237,
+      "seq": 8739,
+      "usec": 718519280
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 238,
+      "seq": 8740,
+      "usec": 718519824
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 239,
+      "seq": 8741,
+      "usec": 718629269
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 240,
+      "seq": 8742,
+      "usec": 718629823
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 241,
+      "seq": 8743,
+      "usec": 718739351
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 242,
+      "seq": 8744,
+      "usec": 718739919
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 243,
+      "seq": 8745,
+      "usec": 718849409
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 244,
+      "seq": 8746,
+      "usec": 718849962
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 245,
+      "seq": 8748,
+      "usec": 718959476
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 246,
+      "seq": 8749,
+      "usec": 718960064
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 247,
+      "seq": 8753,
+      "usec": 719069497
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 248,
+      "seq": 8754,
+      "usec": 719070114
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 249,
+      "seq": 8757,
+      "usec": 719179866
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 250,
+      "seq": 8758,
+      "usec": 719180659
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 251,
+      "seq": 8759,
+      "usec": 719251236
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 252,
+      "seq": 8760,
+      "usec": 719251937
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 253,
+      "seq": 8762,
+      "usec": 719322523
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 254,
+      "seq": 8763,
+      "usec": 719323167
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 255,
+      "seq": 8764,
+      "usec": 719393920
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 256,
+      "seq": 8765,
+      "usec": 719394612
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 257,
+      "seq": 8766,
+      "usec": 719465313
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 258,
+      "seq": 8767,
+      "usec": 719465949
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 80,
+        "len": 73,
+        "seq": 0
+      },
+      "n": 259,
+      "seq": 8768,
+      "usec": 719528184
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 396,
+        "len": 391,
+        "seq": 0
+      },
+      "n": 260,
+      "seq": 8769,
+      "usec": 719528560
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 13,
+        "hif": 28,
+        "len": 24,
+        "seq": 0
+      },
+      "n": 261,
+      "seq": 8770,
+      "usec": 719528575
+    },
+    {
+      "category": "event",
+      "fields": {
+        "scanseq": 3,
+        "seq": 0,
+        "sparse": 1
+      },
+      "n": 262,
+      "seq": 8771,
+      "subtype": "scandone",
+      "usec": 719528588
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 48,
+        "len": 41,
+        "seq": 0
+      },
+      "n": 263,
+      "seq": 8772,
+      "usec": 719528614
+    },
+    {
+      "category": "state",
+      "fields": {
+        "bss": 0
+      },
+      "n": 264,
+      "seq": 8773,
+      "subtype": "bssdeact",
+      "usec": 719529030
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "bss": 0,
+        "cid": 17,
+        "len": 20,
+        "seq": 115,
+        "set": 1,
+        "type": 1
+      },
+      "n": 265,
+      "seq": 8774,
+      "usec": 719529442
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "active": 0,
+        "bmcwlan": 0,
+        "bss": 0,
+        "nettype": 0,
+        "ownmac": 1,
+        "seq": 115
+      },
+      "n": 266,
+      "seq": 8775,
+      "subtype": "bss",
+      "usec": 719529458
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "bss": 0,
+        "cid": 20,
+        "len": 12,
+        "seq": 116,
+        "set": 1,
+        "type": 1
+      },
+      "n": 267,
+      "seq": 8776,
+      "usec": 719529493
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "action": 1,
+        "bss": 0,
+        "seq": 116,
+        "sta": 27
+      },
+      "n": 268,
+      "seq": 8777,
+      "subtype": "starm",
+      "usec": 719529506
+    },
+    {
+      "category": "credit",
+      "fields": {
+        "free0": 91,
+        "free1": 117,
+        "free2": 91,
+        "free3": 130,
+        "free4": 26,
+        "free5": 91,
+        "rel0": 0,
+        "rel1": 0,
+        "rel2": 0,
+        "rel3": 0,
+        "rel4": 2,
+        "rel5": 0
+      },
+      "n": 269,
+      "seq": 8778,
+      "usec": 719529571
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 136,
+        "len": 131,
+        "seq": 0
+      },
+      "n": 270,
+      "seq": 8779,
+      "usec": 719529629
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 7,
+        "hif": 16,
+        "len": 12,
+        "seq": 0
+      },
+      "n": 271,
+      "seq": 8780,
+      "usec": 719532818
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 68,
+        "len": 63,
+        "seq": 0
+      },
+      "n": 272,
+      "seq": 8781,
+      "usec": 719542389
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 52,
+        "len": 45,
+        "seq": 0
+      },
+      "n": 273,
+      "seq": 8782,
+      "usec": 719542417
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 68,
+        "len": 63,
+        "seq": 0
+      },
+      "n": 274,
+      "seq": 8783,
+      "usec": 719542430
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 17,
+        "hif": 16,
+        "len": 12,
+        "seq": 0
+      },
+      "n": 275,
+      "seq": 8784,
+      "usec": 719542444
+    },
+    {
+      "category": "event",
+      "fields": {
+        "absent": 0,
+        "bss": 0,
+        "quota": 0,
+        "seq": 0
+      },
+      "n": 276,
+      "seq": 8785,
+      "subtype": "absence",
+      "usec": 719542456
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 277,
+      "seq": 8786,
+      "usec": 719542471
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 7,
+        "hif": 16,
+        "len": 12,
+        "seq": 0
+      },
+      "n": 278,
+      "seq": 8787,
+      "usec": 719566491
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 100,
+        "len": 95,
+        "seq": 0
+      },
+      "n": 279,
+      "seq": 8789,
+      "usec": 720091787
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 168,
+        "len": 164,
+        "seq": 0
+      },
+      "n": 280,
+      "seq": 8790,
+      "usec": 720091833
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 68,
+        "len": 64,
+        "seq": 0
+      },
+      "n": 281,
+      "seq": 8791,
+      "usec": 720091848
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 88,
+        "len": 82,
+        "seq": 0
+      },
+      "n": 282,
+      "seq": 8792,
+      "usec": 720091861
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 48,
+        "len": 41,
+        "seq": 0
+      },
+      "n": 283,
+      "seq": 8793,
+      "usec": 720091874
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 136,
+        "len": 131,
+        "seq": 0
+      },
+      "n": 284,
+      "seq": 8794,
+      "usec": 720091887
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 44,
+        "len": 39,
+        "seq": 0
+      },
+      "n": 285,
+      "seq": 8795,
+      "usec": 720091899
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 40,
+        "len": 36,
+        "seq": 0
+      },
+      "n": 286,
+      "seq": 8796,
+      "usec": 720091912
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 92,
+        "len": 88,
+        "seq": 0
+      },
+      "n": 287,
+      "seq": 8797,
+      "usec": 720091925
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 124,
+        "len": 117,
+        "seq": 0
+      },
+      "n": 288,
+      "seq": 8798,
+      "usec": 720091938
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 92,
+        "len": 85,
+        "seq": 0
+      },
+      "n": 289,
+      "seq": 8799,
+      "usec": 720091950
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 80,
+        "len": 73,
+        "seq": 0
+      },
+      "n": 290,
+      "seq": 8800,
+      "usec": 720091963
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 88,
+        "len": 83,
+        "seq": 0
+      },
+      "n": 291,
+      "seq": 8801,
+      "usec": 720091976
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 104,
+        "len": 99,
+        "seq": 0
+      },
+      "n": 292,
+      "seq": 8802,
+      "usec": 720091989
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 7,
+        "hif": 16,
+        "len": 12,
+        "seq": 0
+      },
+      "n": 293,
+      "seq": 8803,
+      "usec": 720115367
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "bss": 0,
+        "cid": 17,
+        "len": 20,
+        "seq": 117,
+        "set": 1,
+        "type": 1
+      },
+      "n": 294,
+      "seq": 8909,
+      "usec": 743087576
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "active": 1,
+        "bmcwlan": 0,
+        "bss": 0,
+        "nettype": 0,
+        "ownmac": 1,
+        "seq": 117
+      },
+      "n": 295,
+      "seq": 8910,
+      "subtype": "bss",
+      "usec": 743087602
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "bss": 0,
+        "cid": 3,
+        "len": 234,
+        "seq": 118,
+        "set": 1,
+        "type": 1
+      },
+      "n": 296,
+      "seq": 8911,
+      "usec": 743087664
+    },
+    {
+      "category": "credit",
+      "fields": {
+        "free0": 91,
+        "free1": 117,
+        "free2": 91,
+        "free3": 130,
+        "free4": 26,
+        "free5": 91,
+        "rel0": 0,
+        "rel1": 0,
+        "rel2": 0,
+        "rel3": 0,
+        "rel4": 3,
+        "rel5": 0
+      },
+      "n": 297,
+      "seq": 8912,
+      "usec": 743087750
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 84,
+        "len": 79,
+        "seq": 0
+      },
+      "n": 298,
+      "seq": 8913,
+      "usec": 743090152
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 56,
+        "len": 49,
+        "seq": 0
+      },
+      "n": 299,
+      "seq": 8914,
+      "usec": 743090171
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 92,
+        "len": 86,
+        "seq": 0
+      },
+      "n": 300,
+      "seq": 8915,
+      "usec": 743090185
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 52,
+        "len": 46,
+        "seq": 0
+      },
+      "n": 301,
+      "seq": 8916,
+      "usec": 743093718
+    },
+    {
+      "category": "rxd",
+      "fields": {
+        "bc": 1,
+        "bssid": 15,
+        "eth": 0,
+        "fc": 208,
+        "fmt": 0,
+        "grp": 1,
+        "havefc": 1,
+        "hdrlen": 24,
+        "len": 350,
+        "mc": 0,
+        "mismatch": 0,
+        "off": 64,
+        "pad": 0,
+        "sec": 0,
+        "span": 350,
+        "status": 57344,
+        "tid": 0,
+        "trans": 0,
+        "type": 7,
+        "uc2me": 0,
+        "wlan": 255
+      },
+      "n": 302,
+      "seq": 8917,
+      "usec": 743557800
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 303,
+      "seq": 8919,
+      "usec": 744149422
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 304,
+      "seq": 8920,
+      "usec": 744220882
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 305,
+      "seq": 8921,
+      "usec": 744221497
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 306,
+      "seq": 8922,
+      "usec": 744292178
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 307,
+      "seq": 8923,
+      "usec": 744292841
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 308,
+      "seq": 8924,
+      "usec": 744363607
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 309,
+      "seq": 8925,
+      "usec": 744364282
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 310,
+      "seq": 8926,
+      "usec": 744434778
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 311,
+      "seq": 8927,
+      "usec": 744435378
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 312,
+      "seq": 8928,
+      "usec": 744544866
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 313,
+      "seq": 8929,
+      "usec": 744545421
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 314,
+      "seq": 8930,
+      "usec": 744654918
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 315,
+      "seq": 8931,
+      "usec": 744655511
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 316,
+      "seq": 8932,
+      "usec": 744764982
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 317,
+      "seq": 8933,
+      "usec": 744765536
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 318,
+      "seq": 8934,
+      "usec": 744875041
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 319,
+      "seq": 8935,
+      "usec": 744875598
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 320,
+      "seq": 8937,
+      "usec": 744985114
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 321,
+      "seq": 8938,
+      "usec": 744985700
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 322,
+      "seq": 8939,
+      "usec": 745095178
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 323,
+      "seq": 8940,
+      "usec": 745096253
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 324,
+      "seq": 8941,
+      "usec": 745204372
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 325,
+      "seq": 8942,
+      "usec": 745204919
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 326,
+      "seq": 8946,
+      "usec": 745314392
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 327,
+      "seq": 8947,
+      "usec": 745314955
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 328,
+      "seq": 8948,
+      "usec": 745424577
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 329,
+      "seq": 8949,
+      "usec": 745425042
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 330,
+      "seq": 8950,
+      "usec": 745534508
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 331,
+      "seq": 8951,
+      "usec": 745535068
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 332,
+      "seq": 8952,
+      "usec": 745644554
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 333,
+      "seq": 8953,
+      "usec": 745645105
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 334,
+      "seq": 8954,
+      "usec": 745754512
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 335,
+      "seq": 8955,
+      "usec": 745755074
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 336,
+      "seq": 8956,
+      "usec": 745864568
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 337,
+      "seq": 8957,
+      "usec": 745865121
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 338,
+      "seq": 8959,
+      "usec": 745974683
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 339,
+      "seq": 8960,
+      "usec": 745975253
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 340,
+      "seq": 8961,
+      "usec": 746084677
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 341,
+      "seq": 8962,
+      "usec": 746085230
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 342,
+      "seq": 8963,
+      "usec": 746195023
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 343,
+      "seq": 8964,
+      "usec": 746195700
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 344,
+      "seq": 8965,
+      "usec": 746266485
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 345,
+      "seq": 8966,
+      "usec": 746267066
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 346,
+      "seq": 8967,
+      "usec": 746328168
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 347,
+      "seq": 8968,
+      "usec": 746328808
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 348,
+      "seq": 8969,
+      "usec": 746399563
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 349,
+      "seq": 8970,
+      "usec": 746400220
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 350,
+      "seq": 8971,
+      "usec": 746470913
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 351,
+      "seq": 8972,
+      "usec": 746471589
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 80,
+        "len": 73,
+        "seq": 0
+      },
+      "n": 352,
+      "seq": 8973,
+      "usec": 746524190
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 400,
+        "len": 393,
+        "seq": 0
+      },
+      "n": 353,
+      "seq": 8974,
+      "usec": 746524596
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 13,
+        "hif": 28,
+        "len": 24,
+        "seq": 0
+      },
+      "n": 354,
+      "seq": 8975,
+      "usec": 746524612
+    },
+    {
+      "category": "event",
+      "fields": {
+        "scanseq": 4,
+        "seq": 0,
+        "sparse": 1
+      },
+      "n": 355,
+      "seq": 8976,
+      "subtype": "scandone",
+      "usec": 746524624
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 48,
+        "len": 41,
+        "seq": 0
+      },
+      "n": 356,
+      "seq": 8977,
+      "usec": 746524650
+    },
+    {
+      "category": "state",
+      "fields": {
+        "bss": 0
+      },
+      "n": 357,
+      "seq": 8978,
+      "subtype": "bssdeact",
+      "usec": 746525057
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "bss": 0,
+        "cid": 17,
+        "len": 20,
+        "seq": 119,
+        "set": 1,
+        "type": 1
+      },
+      "n": 358,
+      "seq": 8979,
+      "usec": 746525276
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "active": 0,
+        "bmcwlan": 0,
+        "bss": 0,
+        "nettype": 0,
+        "ownmac": 1,
+        "seq": 119
+      },
+      "n": 359,
+      "seq": 8980,
+      "subtype": "bss",
+      "usec": 746525292
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "bss": 0,
+        "cid": 20,
+        "len": 12,
+        "seq": 120,
+        "set": 1,
+        "type": 1
+      },
+      "n": 360,
+      "seq": 8981,
+      "usec": 746525329
+    },
+    {
+      "category": "cmd",
+      "fields": {
+        "action": 1,
+        "bss": 0,
+        "seq": 120,
+        "sta": 27
+      },
+      "n": 361,
+      "seq": 8982,
+      "subtype": "starm",
+      "usec": 746525365
+    },
+    {
+      "category": "credit",
+      "fields": {
+        "free0": 91,
+        "free1": 117,
+        "free2": 91,
+        "free3": 130,
+        "free4": 26,
+        "free5": 91,
+        "rel0": 0,
+        "rel1": 0,
+        "rel2": 0,
+        "rel3": 0,
+        "rel4": 2,
+        "rel5": 0
+      },
+      "n": 362,
+      "seq": 8983,
+      "usec": 746525433
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 136,
+        "len": 131,
+        "seq": 0
+      },
+      "n": 363,
+      "seq": 8984,
+      "usec": 746525493
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 7,
+        "hif": 16,
+        "len": 12,
+        "seq": 0
+      },
+      "n": 364,
+      "seq": 8985,
+      "usec": 746528546
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 68,
+        "len": 63,
+        "seq": 0
+      },
+      "n": 365,
+      "seq": 8986,
+      "usec": 746538806
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 52,
+        "len": 45,
+        "seq": 0
+      },
+      "n": 366,
+      "seq": 8987,
+      "usec": 746538834
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 68,
+        "len": 63,
+        "seq": 0
+      },
+      "n": 367,
+      "seq": 8988,
+      "usec": 746538848
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 17,
+        "hif": 16,
+        "len": 12,
+        "seq": 0
+      },
+      "n": 368,
+      "seq": 8989,
+      "usec": 746538861
+    },
+    {
+      "category": "event",
+      "fields": {
+        "absent": 0,
+        "bss": 0,
+        "quota": 0,
+        "seq": 0
+      },
+      "n": 369,
+      "seq": 8990,
+      "subtype": "absence",
+      "usec": 746538874
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 96,
+        "len": 90,
+        "seq": 0
+      },
+      "n": 370,
+      "seq": 8991,
+      "usec": 746538889
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 7,
+        "hif": 16,
+        "len": 12,
+        "seq": 0
+      },
+      "n": 371,
+      "seq": 8992,
+      "usec": 746562308
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 100,
+        "len": 95,
+        "seq": 0
+      },
+      "n": 372,
+      "seq": 8996,
+      "usec": 747101754
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 168,
+        "len": 164,
+        "seq": 0
+      },
+      "n": 373,
+      "seq": 8997,
+      "usec": 747101800
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 68,
+        "len": 64,
+        "seq": 0
+      },
+      "n": 374,
+      "seq": 8998,
+      "usec": 747101814
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 88,
+        "len": 82,
+        "seq": 0
+      },
+      "n": 375,
+      "seq": 8999,
+      "usec": 747101827
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 48,
+        "len": 41,
+        "seq": 0
+      },
+      "n": 376,
+      "seq": 9000,
+      "usec": 747101840
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 136,
+        "len": 131,
+        "seq": 0
+      },
+      "n": 377,
+      "seq": 9001,
+      "usec": 747101853
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 44,
+        "len": 39,
+        "seq": 0
+      },
+      "n": 378,
+      "seq": 9002,
+      "usec": 747101866
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 40,
+        "len": 36,
+        "seq": 0
+      },
+      "n": 379,
+      "seq": 9003,
+      "usec": 747101879
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 92,
+        "len": 88,
+        "seq": 0
+      },
+      "n": 380,
+      "seq": 9004,
+      "usec": 747101892
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 128,
+        "len": 122,
+        "seq": 0
+      },
+      "n": 381,
+      "seq": 9005,
+      "usec": 747101905
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 92,
+        "len": 85,
+        "seq": 0
+      },
+      "n": 382,
+      "seq": 9006,
+      "usec": 747101918
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 80,
+        "len": 73,
+        "seq": 0
+      },
+      "n": 383,
+      "seq": 9007,
+      "usec": 747101931
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 88,
+        "len": 83,
+        "seq": 0
+      },
+      "n": 384,
+      "seq": 9008,
+      "usec": 747101944
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 39,
+        "hif": 104,
+        "len": 99,
+        "seq": 0
+      },
+      "n": 385,
+      "seq": 9009,
+      "usec": 747101957
+    },
+    {
+      "category": "event",
+      "fields": {
+        "eid": 7,
+        "hif": 16,
+        "len": 12,
+        "seq": 0
+      },
+      "n": 386,
+      "seq": 9010,
+      "usec": 747125325
+    }
+  ],
+  "seal": {
+    "counts": {
+      "cmd": {
+        "filtered": 0,
+        "recorded": 53,
+        "suppressed": 0
+      },
+      "credit": {
+        "filtered": 0,
+        "recorded": 24,
+        "suppressed": 0
+      },
+      "event": {
+        "filtered": 0,
+        "recorded": 291,
+        "suppressed": 0
+      },
+      "rxd": {
+        "filtered": 247,
+        "recorded": 12,
+        "suppressed": 0
+      },
+      "state": {
+        "filtered": 0,
+        "recorded": 4,
+        "suppressed": 0
+      },
+      "txd": {
+        "filtered": 0,
+        "recorded": 2,
+        "suppressed": 0
+      }
+    },
+    "reason": "explicit",
+    "records": 386,
+    "seq": 9047,
+    "truncated": 0,
+    "usec": 753048811
+  },
+  "stream_intact": true,
+  "summary": {
+    "commands": 34,
+    "complete": true,
+    "credits": 24,
+    "events": 281,
+    "group_downlink_evidence": "observed",
+    "key_commands": [
+      {
+        "addremove": 0,
+        "keyid": 0,
+        "keytype": 0,
+        "peer": "zero",
+        "seq": 91
+      },
+      {
+        "addremove": 0,
+        "keyid": 1,
+        "keytype": 0,
+        "peer": "zero",
+        "seq": 98
+      },
+      {
+        "addremove": 0,
+        "keyid": 2,
+        "keytype": 0,
+        "peer": "zero",
+        "seq": 99
+      },
+      {
+        "addremove": 0,
+        "keyid": 3,
+        "keytype": 0,
+        "peer": "zero",
+        "seq": 100
+      },
+      {
+        "addremove": 0,
+        "keyid": 4,
+        "keytype": 0,
+        "peer": "zero",
+        "seq": 101
+      },
+      {
+        "addremove": 0,
+        "keyid": 5,
+        "keytype": 0,
+        "peer": "zero",
+        "seq": 102
+      }
+    ],
+    "keydone_attribution": "by order only: the ADD_PKEY_DONE payload names no key type, key index or command sequence",
+    "keydone_events": [],
+    "rxd_classification": "protected means an accepted data frame (no error bit in status 0x07fe: the data path's 0x07f8 test plus FCS and cipher mismatch; not non-data, not a fragment), security mode nonzero and consistent unicast or group match flags; other security metadata is counted separately",
+    "rxd_error_status": 0,
+    "rxd_protected_group": 10,
+    "rxd_protected_unicast": 0,
+    "rxd_records": 12,
+    "rxd_security_metadata_unclassified": 0,
+    "state_records": [
+      "bssdeact",
+      "bssdeact",
+      "bssdeact",
+      "bssdeact"
+    ],
+    "stream_intact": true,
+    "txd_protected": 1,
+    "txd_records": 2,
+    "txdone_events": 2
+  },
+  "suppressed": 0,
+  "truncated": 0
+}

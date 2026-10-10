@@ -1,0 +1,81 @@
+{
+ "cycle_result": "partial",
+ "exit": 5,
+ "exit_step": "connect",
+ "stream_intact": true,
+ "observer_complete": true,
+ "records": 386,
+ "summary": {
+  "commands": 34,
+  "complete": true,
+  "credits": 24,
+  "events": 281,
+  "group_downlink_evidence": "observed",
+  "key_commands": [
+   {
+    "addremove": 0,
+    "keyid": 0,
+    "keytype": 0,
+    "peer": "zero",
+    "seq": 91
+   },
+   {
+    "addremove": 0,
+    "keyid": 1,
+    "keytype": 0,
+    "peer": "zero",
+    "seq": 98
+   },
+   {
+    "addremove": 0,
+    "keyid": 2,
+    "keytype": 0,
+    "peer": "zero",
+    "seq": 99
+   },
+   {
+    "addremove": 0,
+    "keyid": 3,
+    "keytype": 0,
+    "peer": "zero",
+    "seq": 100
+   },
+   {
+    "addremove": 0,
+    "keyid": 4,
+    "keytype": 0,
+    "peer": "zero",
+    "seq": 101
+   },
+   {
+    "addremove": 0,
+    "keyid": 5,
+    "keytype": 0,
+    "peer": "zero",
+    "seq": 102
+   }
+  ],
+  "keydone_attribution": "by order only: the ADD_PKEY_DONE payload names no key type, key index or command sequence",
+  "keydone_events": [],
+  "rxd_classification": "protected means an accepted data frame (no error bit in status 0x07fe: the data path's 0x07f8 test plus FCS and cipher mismatch; not non-data, not a fragment), security mode nonzero and consistent unicast or group match flags; other security metadata is counted separately",
+  "rxd_error_status": 0,
+  "rxd_protected_group": 10,
+  "rxd_protected_unicast": 0,
+  "rxd_records": 12,
+  "rxd_security_metadata_unclassified": 0,
+  "state_records": [
+   "bssdeact",
+   "bssdeact",
+   "bssdeact",
+   "bssdeact"
+  ],
+  "stream_intact": true,
+  "txd_protected": 1,
+  "txd_records": 2,
+  "txdone_events": 2
+ },
+ "sanitized_connect_errors": [
+  "Error /net/connman/service/<private-service>: Operation aborted"
+ ],
+ "interpretation": "The idle service readiness gate passed; measured Connect returned Operation aborted. No key adds or keydone events or successful measured handshake were recorded. Restoration succeeded outside the sealed trace; group frames in this capture belong to the pre-existing association. Runtime cause is unresolved; no firmware-failure conclusion."
+}

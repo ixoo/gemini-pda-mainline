@@ -1,0 +1,11 @@
+lifecycle/cycle-check.py: OK
+lifecycle/parse-lifecycle.py: OK
+bound_files=1
+target_match=1
+service_match=1
+power_sample_1=1|99|Good|0|Not charging
+power_sample_2=1|99|Good|0|Not charging
+power_admission=stable_healthy_battery_ge80
+39d15b1ea0541b27fcbe6986b65113b7c46219178d9c9021d507e94e946127fe  trace-lifecycle-v10.sh
+launch_boot_id=098ed28f-e96d-4720-a81d-6bc9d77d3695
+source_commit=65edead2cbf13a47889545e9571b227de696690f

@@ -1,0 +1,31 @@
+Oct 10 15:21:38 wpa_supplicant: wlan0: CTRL-EVENT-DISCONNECTED bssid=<private-bssid> reason=3 locally_generated=1
+Oct 10 15:21:38 wpa_supplicant: nl80211: Was expecting local disconnect but got another disconnect event first
+Oct 10 15:21:38 connmand: wlan0 {del} address <private-ip>/24 label wlan0
+Oct 10 15:21:38 connmand: wlan0 {del} route <private-ip> gw <private-ip> scope 253 <LINK>
+Oct 10 15:21:38 connmand: wlan0 {RX} 3164 packets 412038 bytes
+Oct 10 15:21:38 connmand: wlan0 {TX} 776 packets 464044 bytes
+Oct 10 15:21:38 connmand: wlan0 {update} flags 36867 <UP>
+Oct 10 15:21:38 connmand: wlan0 {newlink} index 34 address <private-address> mtu 1500
+Oct 10 15:21:38 connmand: wlan0 {newlink} index 34 operstate 2 <DOWN>
+Oct 10 15:21:38 connmand: wlan0 {del} address <private-ipv6>/64 label (null)
+Oct 10 15:22:35 wpa_supplicant: wlan0: Trying to associate with SSID '<private-ssid>'
+Oct 10 15:22:35 connmand: wlan0 {RX} 3164 packets 412038 bytes
+Oct 10 15:22:35 connmand: wlan0 {TX} 776 packets 464044 bytes
+Oct 10 15:22:35 connmand: wlan0 {update} flags 102403 <UP,LOWER_UP>
+Oct 10 15:22:35 connmand: wlan0 {newlink} index 34 address <private-address> mtu 1500
+Oct 10 15:22:35 connmand: wlan0 {newlink} index 34 operstate 5 <DORMANT>
+Oct 10 15:22:35 wpa_supplicant: wlan0: Associated with <private-bssid>
+Oct 10 15:22:35 wpa_supplicant: wlan0: WPA: Key negotiation completed with <private-bssid> [PTK=CCMP GTK=CCMP]
+Oct 10 15:22:35 wpa_supplicant: wlan0: CTRL-EVENT-CONNECTED - Connection to <private-bssid> completed [id=0 id_str=]
+Oct 10 15:22:35 connmand: wlan0 {RX} 3166 packets 412320 bytes
+Oct 10 15:22:35 connmand: wlan0 {TX} 780 packets 464460 bytes
+Oct 10 15:22:35 connmand: wlan0 {update} flags 102467 <UP,RUNNING,LOWER_UP>
+Oct 10 15:22:35 connmand: wlan0 {newlink} index 34 address <private-address> mtu 1500
+Oct 10 15:22:35 connmand: wlan0 {newlink} index 34 operstate 6 <UP>
+Oct 10 15:22:36 connmand: wlan0 {add} address <private-ipv6>/64 label (null) family 10
+Oct 10 15:22:41 connmand: wlan0 {add} address <private-ip>/24 label wlan0 family 2
+Oct 10 15:22:41 connmand: wlan0 {add} route <private-ip> gw <private-ip> scope 253 <LINK>
+Oct 10 15:22:41 connmand: wlan0 {add} route <private-ip> gw <private-ip> scope 253 <LINK>
+Oct 10 15:22:41 connmand: wlan0 {add} route <private-ip> gw <private-ip> scope 0 <UNIVERSE>
+Oct 10 15:22:41 connmand: wlan0 {add} route <private-ip> gw <private-ip> scope 0 <UNIVERSE>
+Oct 10 15:22:41 connmand: wlan0 {del} route <private-ip> gw <private-ip> scope 0 <UNIVERSE>

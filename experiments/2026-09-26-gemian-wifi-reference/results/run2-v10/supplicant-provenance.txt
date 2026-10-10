@@ -1,0 +1,2 @@
+wpasupplicant 2:2.4-1+deb9u9
+e8c4f74c761ec94c21c1c1f6d3bf0ef92761028cecc94effb9cc38a66e9af81e  /sbin/wpa_supplicant

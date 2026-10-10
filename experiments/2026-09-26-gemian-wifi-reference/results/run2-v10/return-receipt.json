@@ -1,0 +1,47 @@
+{
+ "boot_ids_seen": [
+  "098ed28f-e96d-4720-a81d-6bc9d77d3695",
+  "994115e1-f310-4c5b-a936-7ead9fde713f"
+ ],
+ "changed_boot": true,
+ "deadline_s": 180,
+ "elapsed_s": 42.6,
+ "expected_release": "3.18.41+",
+ "files": {
+  "addr.txt": {
+   "bytes": 213,
+   "captured": true,
+   "sha256": "9a17c1ed8f94994daa7c0d473971c442f959dac6255506c88b57df7be8eec10d"
+  },
+  "carrier.txt": {
+   "bytes": 2,
+   "captured": true,
+   "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+  },
+  "cmdline.txt": {
+   "bytes": 523,
+   "captured": true,
+   "sha256": "b0ece001b56ab97ac9cfb694e03671d3d945b0711881a88bb845d7c1b81e09b6"
+  },
+  "dmesg.log": {
+   "bytes": 324928,
+   "captured": true,
+   "sha256": "4a4af47435877d9b51b5f7e93ba32754a9329727afe8b2b0112bad0063ee66dd"
+  }
+ },
+ "identity_after": {
+  "boot_id": "994115e1-f310-4c5b-a936-7ead9fde713f",
+  "machine": "aarch64",
+  "release": "3.18.41+"
+ },
+ "identity_before": {
+  "boot_id": "994115e1-f310-4c5b-a936-7ead9fde713f",
+  "machine": "aarch64",
+  "release": "3.18.41+"
+ },
+ "identity_stable": true,
+ "polls": 14,
+ "predecessor_boot_id": "098ed28f-e96d-4720-a81d-6bc9d77d3695",
+ "result": "changed boot captured",
+ "started_utc": "2026-10-10T19:25:07Z"
+}
