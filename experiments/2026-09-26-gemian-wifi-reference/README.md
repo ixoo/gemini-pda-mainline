@@ -961,16 +961,21 @@ from those files:
   with no wait; the single measured `Connect` was answered by ConnMan with
   `Operation aborted` (sanitized in the result summary); `connect=0`, exit 5
   after 69 s. No retry, no scan request, no second disconnect, no traffic
-  window.
+  window. The receipt does not time the reply: the executor treats any
+  answer other than the unknown-method text as a possible success and waits
+  the 45 s connect cap for a target association before exiting (50 link
+  queries), so the reply may have come at any point inside that cap.
 - Observer sealed explicitly: 386 intact records, zero suppression,
   truncation, drops or length refusals (53 command, 291 event, 24 credit,
   12 RX descriptor, 2 TX descriptor, 4 state). Six remove-only key commands
   (ids 0..5, sequences 91 and 98..102, peer class zero), no key add, no
-  add-key-done event, no EAPOL, no unicast data; ten accepted protected
-  group frames and two protected transmit descriptors with their TX-done
-  events belong to the stock association before the teardown; then three
-  idle scan cycles (BSS activate, scan request, scan done, BSS deactivate,
-  station record removal). The 254 unnamed events with id 0x27 are firmware
+  add-key-done event, no measured new WPA2 handshake, no accepted unicast
+  data; ten accepted protected group frames (IPv4, ARP and one other
+  Ethernet type), one protected data transmit descriptor (590 bytes) and one
+  unprotected management transmit descriptor (26 bytes), each with its
+  TX-done event, belong to the stock association and its teardown; then
+  three idle scan cycles (BSS activate, scan request, scan done, BSS
+  deactivate, station record removal). The 254 unnamed events with id 0x27 are firmware
   debug messages (`EVENT_ID_DEBUG_MSG`), not scan results: the ledger carries
   no BSS visibility information.
 - Restoration outside the capture connected the approved target and
@@ -996,18 +1001,22 @@ runtime cause is not proven):
   reference is dropped (`connman_service_unref` calls
   `__connman_service_disconnect`, which answers the pending call before
   `service_free`), or when the network is disconnected while associating,
-  or when an agent request is cancelled. The timing (the reply came as the
-  third post-teardown scan ended, about 40 s after the call) and the absence
-  of any other client action point to the first: wpa_supplicant removed the
+  or when an agent request is cancelled; no synchronous producer exists in
+  the connect path. The reply's time is unknown (above), so the ledger
+  cannot pick between these; what it does show is that no join was
+  requested from the firmware while the call was pending. Hypothesis, not
+  observation: under the first path wpa_supplicant would have removed the
   target BSS after two scans without it (`wpa_bss_update_end`,
   `bss_expiration_scan_count` 2, which ConnMan does not change), ConnMan
-  removed the network and service, and the pending `Connect` was aborted.
-  Run 1's `UnknownMethod` is the same removal happening before the call.
-  Both runs therefore say the target BSS was absent from the device's scans
-  for at least two consecutive scans after the deauthentication and present
-  again by the time of the restoration. Why it was absent is not observable
-  from retained evidence (AP-side behaviour after a deauthentication and
-  driver or firmware scan reporting after a disconnect both remain open).
+  would have removed the network and service, and run 1's `UnknownMethod`
+  would be the same removal happening before the call. If that path is the
+  one taken, both runs would imply the target BSS was absent from the
+  device's scans for at least two consecutive scans after the
+  deauthentication and present again by the restoration. This is a
+  conditional source explanation: the ledger has no BSS visibility and no
+  D-Bus removal or call timestamp record, and the second path (a disconnect
+  of the associating network by some client or device action) is not
+  excluded by evidence, only unsupported by any known actor.
 - The duplicate disconnect notification is a kernel API artefact, benign
   for the following `Connect` as far as the source shows: the pinned 3.18
   `cfg80211_disconnected()` queues the event and the event worker passes
