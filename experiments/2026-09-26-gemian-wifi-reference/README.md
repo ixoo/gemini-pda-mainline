@@ -946,6 +946,23 @@ v8 count. The bounded one-boot test is complete. This supports D0+D2 as a
 working temporary *Gemian* copy policy, not effective permission precedence,
 exclusive ownership or a safe mainline EMI write. Raw logs remain private.
 
+## v10 build receipt (2026-10-10)
+
+The first kernel-only build at `fd11d907` failed: the observer used
+`EVENT_LINK_QUALITY_EX`, which the pinned configuration compiles out; the
+error was recovered by an authorized focused compile from the prepared source
+and the link-quality event became header-only. The replacement build at
+`95a72c7b` (ten ordered patches, 0010 `0693fc0e…`; pinned source `59e00a91`,
+toolchain `a45d945f…`, configuration `231d8a2f…`, DCT `7a7eb416…`; 16 jobs on
+Buildbox-1 after the reviewed preparation-only provisioning) linked the full
+kernel with zero compiler warnings and the one known modpost section-mismatch
+summary. [results/build-v10.json](results/build-v10.json) is the package's
+receipt; package inventory `bf72c738…`, `Image.gz-dtb` `54723d29…`;
+`build-candidate.py` pins them as `v10`. The custodian composes the v10
+candidate privately with the retained primary image; the installer binding
+follows the candidate receipt. No candidate, installation or device action
+yet.
+
 ## Lifecycle capture code for review (2026-10-10)
 
 [Patch 0010](patches/0010-diagnostic-record-Gemian-WLAN-firmware-boundary-life.patch)

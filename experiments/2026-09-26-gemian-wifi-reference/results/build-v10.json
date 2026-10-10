@@ -1,0 +1,71 @@
+{
+  "repository_commit": "95a72c7b1afcf2e4d8dfcf851a44f28f0d1a4e18",
+  "source_commit": "59e00a9144d782e148332009a835b99c43382467",
+  "toolchain_sha256": "a45d945f092461a611d276ad7d0a0fea1ea8a7f93db413908bcb892c12817d14",
+  "baseline_config_sha256": "231d8a2ffe7afac3a4cc62c27d0eb6fe8bd9165ebd096e3e3346dd6df35c18f4",
+  "patch_sha256": "bd47aa54a570fa71279449e1537e36409243dab619755bfc0234f58073c507f5",
+  "ordered_patch_sha256": [
+    "f247bb039853e4c9d74828134d39b72ebc3e1844f99ea1a759bf754fc9988577",
+    "e3b21e6b40f2ead3c14d7044b695ea8b0c092724df2e2d5478763cd540c64244",
+    "0d32f9a3cef25aaf1ad70b5044d2774618e0da8d8385f02dc7195fa7ae1c9501",
+    "46ee59681e3dee1675434d801fbd5db155c433568834bb28aee7ed4372744c23",
+    "f836d5879e40174a98a9f5373c7c6641ea7274f2f0cedcbabd4cf00225d534a5",
+    "2ddd10d3ccda419e83e9e3e170a4e4c178d6ffa3eaf99e056fe6513e19a53c52",
+    "788e2e3058ba17a2dd3b30c509a3a64ec0c3b4fab698e2fe218fb7e3d57e86a7",
+    "e65d2b7a945c90c71075bbe895a6b2a2f3a23a75ec540b6c1ff692864f776a54",
+    "77762ea051cb8681de380a1da3c6e5226904884dc1c8b1d7cab5c3501c7b8900",
+    "0693fc0e237a6468f4fa504c38d10fc9361491e2a8e7e08819bfd4a872264283"
+  ],
+  "source_integrity": "source_tree_integrity=bccea2278710d401674b996e003187f3a860760452a612e9a3bd051abce5a20c",
+  "config_delta": {
+    "CONFIG_GENERIC_TRACER": [
+      null,
+      "y"
+    ],
+    "CONFIG_FUNCTION_TRACER": [
+      "n",
+      "y"
+    ],
+    "CONFIG_FTRACE_STARTUP_TEST": [
+      null,
+      "n"
+    ],
+    "CONFIG_ANBOX": [
+      null,
+      "n"
+    ],
+    "CONFIG_LOCALVERSION": [
+      "\"\"",
+      "\"-gemini-wifi-ref10\""
+    ],
+    "CONFIG_ENABLE_DEFAULT_TRACERS": [
+      "y",
+      null
+    ],
+    "CONFIG_DYNAMIC_FTRACE": [
+      null,
+      "y"
+    ],
+    "CONFIG_FTRACE_MCOUNT_RECORD": [
+      null,
+      "y"
+    ],
+    "CONFIG_FUNCTION_GRAPH_TRACER": [
+      null,
+      "y"
+    ],
+    "CONFIG_FUNCTION_PROFILER": [
+      null,
+      "n"
+    ],
+    "CONFIG_PSTORE_FTRACE": [
+      null,
+      "n"
+    ]
+  },
+  "cust_dtsi_sha256": "7a7eb416499346afff30c15f967ccb9cf79323c076204b6a953515db74811632",
+  "diagnostic_lines": 1,
+  "full_kernel_link": true,
+  "boot_candidate": false,
+  "device_execution": false
+}
