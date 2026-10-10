@@ -347,8 +347,9 @@ bytes), full padded boot2 `eb43ddef…`. The owner composed and validated it
 privately with the reviewed composer; the committed receipt
 [results/candidate-15.json](results/candidate-15.json) (SHA-256 `a99fc4f9…`)
 is that receipt's exact bytes and `runtime-16/results/candidate.json` its copy.
-Deployment 15 goes over the installed candidate 14 (`911e3d67…`); it has not
-happened. [RUNTIME_16_PREPARATION](RUNTIME_16_PREPARATION.md) states the
+[Deployment 15](results/deployment-15.json) wrote it over the installed
+candidate 14 (`911e3d67…`) with the full readback matching; the device is
+powered off awaiting the owner's boot2 start. [RUNTIME_16_PREPARATION](RUNTIME_16_PREPARATION.md) states the
 measured change and the C2 hypothesis. Bindings, with every prior receipt,
 copy and piece of evidence untouched:
 

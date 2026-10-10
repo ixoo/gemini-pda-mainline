@@ -1,13 +1,32 @@
-# Fifteenth Phase B deployment, runtime 16: candidate 15 composed, not installed
+# Fifteenth Phase B deployment, runtime 16 awaiting the owner's boot
 
-Status: candidate 15 is composed and offline-validated by the owner with the
-reviewed composer at `8101a563`; it is not installed, no device action has
-happened since runtime 15's reviewed recovery, and the device is in
-changed-boot Gemian `b3805d07…` with the installed candidate 14 (full padded
-boot2 `911e3d67…`) as the predecessor. The owner alone prepares and reviews
-the guarded installer, performs deployment 15, runs both offline preflights on
-the actual deployment-15 summary, shuts down cleanly and hands over to the
-physical boot2 start; the frozen laptop wrappers then run once each.
+Status: candidate 15 is installed and fully read back; the device was cleanly
+powered off and is unbooted, awaiting the owner's physical boot2 start. The
+laptop, as sole custodian, will execute the reviewed runtime-16 capture and
+session exactly once after that; no radio action, mainline boot or runtime
+evidence exists yet.
+
+The [guarded deployment receipt](results/deployment-15.json) (the owner's
+22-field summary, SHA-256 `1bf2a9a7…`) pins candidate 15: receipt
+`a99fc4f9…`, full padded boot2 `eb43ddef…`, written over predecessor candidate
+14 `911e3d67…`, synced and flushed, with the independent full 16 MiB byte
+readback matching. The installer was prepared from source `e094ff6f`
+(generated installer SHA-256 `60a155eb…`; its difference from the
+deployment-14 installer is only the candidate, receipt, identity, predecessor
+and tool digests and names, the guard mechanism identical; prepare, syntax
+and ShellCheck passed) and executed once under the standing boot2
+authorization; the probe, write and post-write device guards passed on live
+Gemian boot `b3805d07…` (3.18.41+), target `179:30` (`/dev/mmcblk0p30`),
+non-root `179:29`, stable power; no fresh predecessor backup, temporary
+readback removed, evidence flushed, the power-off SSH exchange ended with rc
+255 (the remote closed the connection during power-off; the whole installer
+exited 0 with its reviewed receipt), unreachable afterwards, nothing rebooted.
+
+Runtime-16 preparation on the laptop at `e094ff6f`: a fresh evidence root
+with `wifi-phase-b/session-16` holding the actual deployment-15 summary and
+`capture-16` absent; both offline preflights (`laptop-capture.py`,
+`laptop-session.py`) passed on candidate 15 with the owner's fresh PSK-bound
+script (syntax passed); no execution claim exists.
 
 The committed receipt [results/candidate-15.json](results/candidate-15.json)
 (SHA-256 `a99fc4f9…`, the owner's receipt byte for byte) pairs the compile-20
