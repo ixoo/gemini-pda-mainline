@@ -167,6 +167,12 @@ def main():
                          '[[ "$(id -u)" == 0 && "$(uname -m)" == aarch64 &&\n'
                          '   "$(uname -r)" == ' + selected['release'] + ' ]] ||\n'
                          "\tfail 'remote is not the verified predecessor Gemian release'\n")
+    if args.revision == 'v10':
+        # The base's placeholder target (the EXPECTED_TARGET constant and its usage line)
+        # is not a configured SSH alias; the custodian's pinned alias is `gemini`. The
+        # base, deriver and guard files and their hashes are untouched: only the derived
+        # source changes, and exactly at those two occurrences.
+        source = replace(source, 'gemini@GEMIAN_HOST', 'gemini', count=2)
     output = args.output
     assert output.parent.resolve(strict=True) == REPO / 'artifacts/gemian-wifi-reference/scripts'
     assert not output.exists() and not output.is_symlink()
