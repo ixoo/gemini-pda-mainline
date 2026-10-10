@@ -449,6 +449,25 @@ data-path shapes through mac80211, replay the reference offline) is admitted
 as hardware-free source work and awaits its proposal diff, checks and
 combined test protocol before any build.
 
+## Runtime 21 bindings (2026-10-10)
+
+Candidate 20 pairs the [compile 25](COMPILE_25.md) package `cca46f58…` (input
+`84799218`, proposals 0163 to 0167) with candidate 19's RAM root
+byte-identical (`449832a3…`, 63 members), the same board DT `25ab60f4…` and
+kernel config `975f8703…`; kernel image `ff95005b…`, boot image `639bbd98…`
+(12300288 bytes), full padded boot2 `d01f3304…`. The custodian composed and
+validated it privately with the reviewed composer at 996116d6; the committed
+receipt [results/candidate-20.json](results/candidate-20.json) (SHA-256
+`38a4f6b8…`) is that receipt's exact bytes and
+`runtime-21/results/candidate.json` its copy. The current boot2 content is the
+reviewed Gemian reference v10 predecessor `8d3289a1…`, not candidate 18; the
+custodian rederives the live GPT and verifies it with the reviewed guard at
+deployment. [RUNTIME_21_PREPARATION](RUNTIME_21_PREPARATION.md) states the
+protocol, the session tools (the validating DHCP hook, the owned wlan0
+Dropbear listener, the laptop's one bounded Wi-Fi SSH exchange on the
+baseline's SSH options, the C3 verdict) and the bindings table. Nothing has
+been installed or booted.
+
 ## Runtime 20 bindings (2026-10-10)
 
 Candidate 19 pairs the [compile 24](COMPILE_24.md) package `295e881b…` (input

@@ -79,15 +79,45 @@ assert "'WPA: RX message 3" not in phrases, 'message 3 carries the RSN: prefix o
 # observation is reported next to the after-exit state.
 loop = c2.split('while [ "$tick" -lt 100 ]; do')[1].split('done')[0]
 # Phase C3: the data checks run once when the driver records the open data phase,
-# every step bounded by busybox timeout; only statuses, counts and the prefix
-# length are printed, never the lease, router or any address; the private lease
-# files are removed before the phrases.
+# every step bounded by busybox timeout; the hook admits only wlan0, a dotted
+# address and a prefix length 1..32 (no guessed /24) and writes the lease only
+# after the address operation succeeded; the second Dropbear is the retained
+# binary by digest on wlan0's leased address only, password and forwarding
+# disabled, finite idle/connection/auth limits, pid owned, the readiness marker
+# written last and the listener stopped and waited for at the terminal; only
+# statuses, counts and the prefix length are printed, never an address.
 assert 'data_checks' in loop and "grep -q 'one-shot WLAN join data phase: budget_ms='" in loop
 checks = c2.split('data_checks() {')[1].split('\n    }\n')[0]
 assert '$BB timeout 20 $BB udhcpc -i wlan0 -f -n -q -t 4 -T 3 -s' in checks and '$BB timeout 12 $BB ping -c 3 -W 2' in checks
-assert 'printf' not in ''.join(l for l in checks.splitlines() if 'router' in l and 'cat' in l and 'ping' not in l)
-printed = re.search(r"data_phase_seen=%s\\ntool_udhcpc=%s\\ntool_ping=%s\\ndhcp_exit=%s\\ndhcp_bound=%s\\ndhcp_prefix=%s\\nlease_written=%s\\nping_transmitted=%s\\nping_received=%s\\n' (.*)$", SOURCE, re.M).group(1)
-assert '$data_dir/lease' not in printed and 'router' not in printed and '$ip' not in printed, printed
+hook = re.search(r"\$BB printf '(#!/bin/sh.*?)' \"\$data_dir\" > \"\$data_dir/dhcp.sh\"", checks).group(1)
+assert '[ "$interface" = wlan0 ] || { status interface; exit 0; }' in hook
+assert 'grep -Eq "^([0-9]{1,3}\\\\.){3}[0-9]{1,3}$" || { status address; exit 0; }' in hook
+assert '[ "$mask" -ge 1 ] && [ "$mask" -le 32 ] || { status prefix; exit 0; }' in hook and 'mask=24' not in hook
+assert '$BB ip addr add "$ip/$mask" dev wlan0 || { status addr-failed; exit 0; }' in hook
+assert hook.index('ip addr add') < hook.index('> "$dir/prefix"') < hook.index('> "$dir/lease"') < hook.index('status bound')
+assert '[ "$hook_status" = bound ] && [ -f "$data_dir/lease" ] && [ -f "$data_dir/prefix" ]' in checks
+listener = [l.strip() for l in checks.splitlines() if '/bin/dropbear -F' in l]
+assert len(listener) == 1, listener
+assert listener[0].startswith('$BB timeout 90 /bin/dropbear -F -s -j -k -l wlan0 -p "$($BB cat "$data_dir/lease"):22" -D /root/.ssh \\')
+assert '-r /etc/dropbear/host_key -P "$data_dir/sshd-pid" -I 30 -M 60 -T 2 2> "$data_dir/dropbear.log" &' in checks
+assert 'dropbear_sha256=10663dd45019bc1391730c36d779e6a5e4433fd86311543a714f1a198629bc54' in SOURCE
+assert '[ "$($BB sha256sum /bin/dropbear | $BB cut -c1-64)" = "$dropbear_sha256" ]' in checks
+assert checks.index('dropbear_digest_ok=1') < checks.index('/bin/dropbear -F') < checks.index('wifi_sshd_pid=$!')
+assert '/bin/dropbear' not in SOURCE.replace('$BB timeout 90 /bin/dropbear -F', '').replace('sha256sum /bin/dropbear', ''), 'one launch, one digest check'
+assert checks.index('''[ "$($BB cat "$data_dir/sshd-pid")" = "$wifi_sshd_pid" ] && kill -0 "$wifi_sshd_pid"''') < checks.index('> "$data_dir/wifi-ssh"') < checks.index('wifi_sshd_ready=1')
+assert '-p "$($BB cat "$data_dir/lease"):22"' in checks and '-p 22' not in checks and '0.0.0.0' not in checks
+stop = re.search(r'^stop_wifi_sshd\(\) \{\n(.*?)\n\}\n', SOURCE, re.M | re.DOTALL).group(1)
+# busybox timeout execs Dropbear in place: $! is its pid; one signal, one wait, the status, the pid cleared, no later signal.
+assert stop.count('kill ') == 1 and stop.index('kill "$wifi_sshd_pid"') < stop.index('wait "$wifi_sshd_pid"') < stop.index('wifi_sshd_exit=$?') < stop.index('wifi_sshd_pid=')
+assert 'sshd-pid' not in stop
+on_exit = re.search(r'^on_exit\(\) \{\n(.*?)\n\}\n', SOURCE, re.M | re.DOTALL).group(1)
+assert on_exit.splitlines()[1].strip() == 'stop_wifi_sshd', on_exit
+assert SOURCE.index('stop_wifi_sshd() {') < SOURCE.index('on_exit() {') < SOURCE.index('trap on_exit EXIT')
+assert SOURCE.rindex('    stop_wifi_sshd\n') > SOURCE.index('kill "$supplicant_pid"')
+printed = ''.join(re.findall(r"data_phase_seen=%s.*?\n|dropbear_digest_ok=%s.*?\n", SOURCE))
+assert printed.count('%s') == 14 and '$data_dir/lease' not in printed and 'router' not in printed and '$ip' not in printed, printed
+for name in ('lease', 'router', 'prefix', 'dhcp.sh', 'wifi-ssh', 'sshd-pid', 'hook-status'):
+    assert '"$data_dir/%s"' % name in c2.split('stop_wifi_sshd\n')[1].split('\n')[0], name
 assert c2.index('rm -f "$data_dir/lease" "$data_dir/router" "$data_dir/prefix" "$data_dir/dhcp.sh"') < c2.index('supplicant_phrases')
 assert 'channel40_flag' in loop and 'channel40_ir_during_join=1' in loop and 'channel40_ir_ticks=$((channel40_ir_ticks + 1))' in loop
 assert "channel40_ir_during_join=%s\\nchannel40_ir_ticks=%s\\n" in SOURCE

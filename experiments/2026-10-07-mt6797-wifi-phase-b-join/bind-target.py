@@ -38,7 +38,7 @@ def bind(target, source, psk=None):
             int(bssid[:2], 16) & 1 or bssid == '00:00:00:00:00:00' or
             value['frequency_mhz'] != 5200 or value['channel'] != 40):
         raise ValueError('private target is outside the fixed legacy channel-40 scope')
-    if source.is_symlink() or not source.is_file() or source.stat().st_size > 16384:
+    if source.is_symlink() or not source.is_file() or source.stat().st_size > 32768:
         raise ValueError('join script source changed')
     prefix = ('TARGET_SSID=' + shlex.quote(ssid) + '\nTARGET_BSSID=' +
               shlex.quote(bssid) + '\nexport TARGET_SSID TARGET_BSSID\n')

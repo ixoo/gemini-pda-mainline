@@ -31,7 +31,7 @@ FIELDS = ('supplicant_exit', 'supplicant_log_bytes', 'channel40_ir_after_beacon'
           'channel40_lines', 'channel40_ir_during_join', 'channel40_ir_ticks', 'connect_exit', 'join_terminal',
           # Phase C3 data checks on the device: fixed counts and statuses, never an address.
           'data_phase_seen', 'tool_udhcpc', 'tool_ping', 'dhcp_exit', 'dhcp_bound', 'dhcp_prefix', 'lease_written',
-          'ping_transmitted', 'ping_received')
+          'dropbear_digest_ok', 'wifi_sshd_started', 'wifi_sshd_ready', 'wifi_sshd_exit', 'ping_transmitted', 'ping_received')
 LOG_PATH = '/tmp/mt6797-wifi-phase-b-1/wpa.log'
 LOG_LIMIT = 2 * 1024 * 1024
 BOOT_RE = r'[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}'
@@ -160,17 +160,23 @@ def c3_session_pass(join, fields, log, userspace, session_verified, wifi_ssh):
     """The C3 session conjunction: the C2 conjunction, the driver's data-path
     pass (channel released, data phase ended by its budget or a disconnect,
     frames acknowledged and delivered at the firmware boundary), the device's
-    bounded network checks (the data phase seen, udhcpc bound with a sane
-    prefix length, at least one ping reply from the router) and the laptop's
-    bounded authenticated SSH exchange over Wi-Fi bound to the same boot (its
-    receipt carries statuses and byte counts, never the address). No
-    throughput, replay-protection or operational claim.
+    bounded network checks (the data phase seen, udhcpc bound through the
+    validating hook with a prefix length of 8..30, the retained Dropbear by
+    digest started on wlan0's address and ready, stopped at the terminal, at
+    least one ping reply from the router) and the laptop's one bounded
+    authenticated SSH exchange over Wi-Fi bound to the same boot (its receipt
+    carries statuses and byte counts, never the address). No throughput,
+    replay-protection or operational claim.
     """
+    wifi_ssh = wifi_ssh or {}
+    prefix = fields.get('dhcp_prefix')
     return bool(session_pass(join, fields, log, userspace, session_verified) and
                 join.get('driver_data_path_pass') and
                 fields.get('data_phase_seen') == 1 and fields.get('tool_udhcpc') == 1 and fields.get('tool_ping') == 1 and
                 fields.get('dhcp_bound') == 1 and fields.get('lease_written') == 1 and
-                fields.get('dhcp_prefix') is not None and 8 <= fields.get('dhcp_prefix') <= 30 and
+                isinstance(prefix, int) and 8 <= prefix <= 30 and
+                fields.get('dropbear_digest_ok') == 1 and fields.get('wifi_sshd_started') == 1 and
+                fields.get('wifi_sshd_ready') == 1 and fields.get('wifi_sshd_exit') is not None and
                 (fields.get('ping_received') or 0) >= 1 and
-                wifi_ssh.get('lease_seen') is True and wifi_ssh.get('ssh_exit') == 0 and
+                wifi_ssh.get('ready_seen') is True and wifi_ssh.get('ssh_exit') == 0 and
                 wifi_ssh.get('boot_match') is True)

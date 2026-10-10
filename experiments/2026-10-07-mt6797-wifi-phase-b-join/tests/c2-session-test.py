@@ -134,3 +134,24 @@ for key, value in (('supplicant_nl80211__received_scan_results', 2), ('supplican
                    ('supplicant_log_bytes', len(LOG) - 1), ('supplicant_log_bytes', None)):
     assert not C2['session_pass'](join, {**fields, key: value}, good, userspace, True), (key, value)
 print('c2-session: PASS (fields, bounded private export completeness, phrase cross-check, session conjunction)')
+
+# Phase C3 conjunction: the C2 pass plus the driver's data-path pass, the device's bounded
+# network outcomes, the owned wlan0 listener and the laptop's boot-bound Wi-Fi SSH receipt.
+c3_fields = {**fields, 'data_phase_seen': 1, 'tool_udhcpc': 1, 'tool_ping': 1, 'dhcp_exit': 0, 'dhcp_bound': 1,
+             'dhcp_prefix': 24, 'lease_written': 1, 'dropbear_digest_ok': 1, 'wifi_sshd_started': 1, 'wifi_sshd_ready': 1,
+             'wifi_sshd_exit': 0, 'ping_transmitted': 3, 'ping_received': 3}
+c3_join = {**join, 'driver_data_path_pass': True}
+wifi = {'ready_seen': True, 'ssh_exit': 0, 'boot_match': True, 'stdout_bytes': 37}
+assert C2['c3_session_pass'](c3_join, c3_fields, good, userspace, True, wifi)
+assert not C2['c3_session_pass'](join, c3_fields, good, userspace, True, wifi), 'the driver data-path pass is required'
+assert not C2['c3_session_pass'](c3_join, c3_fields, good, userspace, False, wifi)
+assert not C2['c3_session_pass'](c3_join, c3_fields, good, userspace, True, None)
+for key, value in (('ready_seen', False), ('ssh_exit', 255), ('ssh_exit', None), ('boot_match', False)):
+    assert not C2['c3_session_pass'](c3_join, c3_fields, good, userspace, True, {**wifi, key: value}), key
+for key, value in (('data_phase_seen', 0), ('tool_udhcpc', 0), ('tool_ping', 0), ('dhcp_bound', 0), ('lease_written', 0),
+                   ('dhcp_prefix', 0), ('dhcp_prefix', 7), ('dhcp_prefix', 31), ('dhcp_prefix', None),
+                   ('dropbear_digest_ok', 0), ('wifi_sshd_started', 0), ('wifi_sshd_ready', 0), ('wifi_sshd_exit', None),
+                   ('ping_received', 0), ('ping_received', None)):
+    assert not C2['c3_session_pass'](c3_join, {**c3_fields, key: value}, good, userspace, True, wifi), (key, value)
+for name in ('dropbear_digest_ok', 'wifi_sshd_started', 'wifi_sshd_ready', 'wifi_sshd_exit', 'hook_status'):
+    assert name in C2['FIELDS'] or name == 'hook_status', name

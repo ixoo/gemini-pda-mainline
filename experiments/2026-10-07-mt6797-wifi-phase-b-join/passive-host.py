@@ -6,6 +6,7 @@ import argparse
 import importlib.util
 import json
 import os
+import re
 import runpy
 from pathlib import Path
 import sys
@@ -13,8 +14,8 @@ import sys
 sys.dont_write_bytecode = True
 HERE = Path(__file__).resolve().parent
 PRIVATE_REPO = Path(os.environ['GEMINI_PRIVATE_REPO']).resolve(strict=True)
-ROOT = Path(os.environ['GEMINI_RUNTIME_ROOT']).resolve(strict=True) / 'wifi-phase-b/session-20'
-CAPTURE = Path(os.environ['GEMINI_RUNTIME_ROOT']).resolve(strict=True) / 'wifi-phase-b/capture-20'
+ROOT = Path(os.environ['GEMINI_RUNTIME_ROOT']).resolve(strict=True) / 'wifi-phase-b/session-21'
+CAPTURE = Path(os.environ['GEMINI_RUNTIME_ROOT']).resolve(strict=True) / 'wifi-phase-b/capture-21'
 RELEASE = '7.1.3-gemini-a53-wifi-phase-b-compile'
 SOURCE = HERE.parent / '2026-10-02-mt6797-scan-tuning-sample/passive-host.py'
 SPEC = importlib.util.spec_from_file_location('scan_tuning_host', SOURCE)
@@ -32,11 +33,11 @@ SCAN.PARENT.WIPHY_PROBE = SCAN.PARENT.WIPHY_PROBE.replace(
     b'7.1.3-gemini-a53-wifi-scan-tuning-sample', RELEASE.encode())
 HOST = SCAN.HOST
 # The inherited WMT host main reads HERE/results/candidate.json for the capture
-# identity check. Runtime 20 must compare against the candidate-19 receipt, so
-# bind only that module's HERE to runtime-20/, whose results/candidate.json is a
-# byte copy of results/candidate-19.json once that receipt is committed; the
+# identity check. Runtime 21 must compare against the candidate-20 receipt, so
+# bind only that module's HERE to runtime-21/, whose results/candidate.json is a
+# byte copy of results/candidate-20.json; the
 # earlier runtime-N/ copies stay bound to their runtimes.
-HOST.HERE = HERE / 'runtime-20'
+HOST.HERE = HERE / 'runtime-21'
 HOST.ROOT = ROOT
 HOST.CAPTURE = CAPTURE
 HOST.DOMAIN.HERE = HERE
@@ -47,6 +48,11 @@ HOST.DOMAIN.HOST.ROOT = ROOT
 HOST.DOMAIN.HOST.REPO = PRIVATE_REPO
 HOST.DOMAIN.HOST.__file__ = str(Path(__file__).resolve())
 C2 = runpy.run_path(str(HERE / 'c2-session.py'))
+# Runtime 21: the custodian's laptop-wifi-ssh.py receipt, when the combined
+# session includes the Wi-Fi SSH exchange; absent, the session stays a C2 one.
+WIFI_SSH_RECEIPT = (Path(os.environ['GEMINI_WIFI_SSH_RECEIPT']).resolve()
+                    if os.environ.get('GEMINI_WIFI_SSH_RECEIPT') else None)
+BOOT_ID = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
 C2_SCRIPT = C2['is_c2_script'](SCAN.SCAN_SOURCE.read_bytes())
 WIPHY_PREPARE = SCAN.PREPARE
 
@@ -172,9 +178,9 @@ def main():
     parser.add_argument('--execute', action='store_true')
     args = parser.parse_args()
     os.umask(0o077)
-    # Runtime 20 is the supplicant-owned C2 session with the private log export.
+    # Runtime 21 is the supplicant-owned C2+C3 session with the private log export.
     if not C2_SCRIPT:
-        parser.exit(2, 'runtime 20 requires the PSK-bound C2 join script\n')
+        parser.exit(2, 'runtime 21 requires the PSK-bound C2 join script\n')
     phase_a = CAPTURE / 'phase-a-result.json'
     ready = (phase_a.is_file() and
              json.loads(phase_a.read_bytes()).get('ready_for_scan') is True)
@@ -216,9 +222,41 @@ def main():
     if C2_SCRIPT:
         combined['c2'] = c2_result(combined['join'], combined['join']['session_verified'])
         verdict = combined['c2']['c2_session_pass']
+        if WIFI_SSH_RECEIPT is not None:
+            combined['c3'] = c3_result(combined['join'], combined['c2'])
+            verdict = combined['c3']['c3_session_pass']
     with (ROOT / 'phase-b-session-result.json').open('x') as stream:
         stream.write(json.dumps(combined, indent=2, sort_keys=True) + '\n')
     return rc or (0 if verdict else 1)
+
+
+def c3_result(join, c2):
+    """Runtime 21: the laptop's Wi-Fi SSH receipt (statuses, counts and the boot
+    ID it was bound to; never an address) read from the custodian's file named
+    by GEMINI_WIFI_SSH_RECEIPT, required to name the session's boot, and the C3
+    conjunction over the C2 pieces. A missing, malformed or foreign receipt is
+    recorded and fails; nothing is retried.
+    """
+    receipt = None
+    try:
+        loaded = json.loads(WIFI_SSH_RECEIPT.read_bytes())
+        if isinstance(loaded, dict) and isinstance(loaded.get('boot_id'), str):
+            receipt = loaded
+    except (OSError, ValueError):
+        receipt = None
+    # The retained session results carry the mainline boot as `mainline_boot`
+    # (equal to the authenticated observation receipt's boot_id).
+    deferred = ROOT / 'deferred-start-result.json'
+    boot = json.loads(deferred.read_bytes()).get('mainline_boot') if deferred.is_file() else None
+    bound = (receipt is not None and isinstance(boot, str) and bool(BOOT_ID.match(boot)) and
+             receipt.get('boot_id') == boot)
+    export = ROOT / 'supplicant-log-result.json'
+    log = json.loads(export.read_bytes()) if export.is_file() else {'complete': False}
+    phase = ROOT / 'passive-scan-userspace.json'
+    userspace = json.loads(phase.read_bytes()) if phase.is_file() else {}
+    return {'wifi_ssh': receipt, 'wifi_ssh_boot_bound': bound,
+            'c3_session_pass': bool(bound and C2['c3_session_pass'](
+                join, c2['supplicant'], log, userspace, join.get('session_verified'), receipt))}
 
 
 def c2_result(join, session_verified):

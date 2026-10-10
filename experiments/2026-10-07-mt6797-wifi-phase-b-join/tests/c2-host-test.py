@@ -48,9 +48,9 @@ with tempfile.TemporaryDirectory(prefix='mt6797-c2-host-') as directory:
     work = Path(directory)
     private = work / 'private'
     (private / 'artifacts/credentials').mkdir(parents=True)
-    root = work / 'runtime/wifi-phase-b/session-20'
+    root = work / 'runtime/wifi-phase-b/session-21'
     root.mkdir(parents=True)
-    (work / 'runtime/wifi-phase-b/capture-20').mkdir()
+    (work / 'runtime/wifi-phase-b/capture-21').mkdir()
     (root / 'observation-result.json').write_text(json.dumps({'boot_id': BOOT}))
     for psk in (False, True):
         bound = work / ('bound-%d.sh' % psk)
@@ -128,5 +128,39 @@ with tempfile.TemporaryDirectory(prefix='mt6797-c2-host-') as directory:
         (root / 'kmsg.log').write_bytes(host.PREPOWER_MARKER + b'\n')
         (root / 'supplicant-log-result.json').unlink()
         assert host.c2_result({'driver_handshake_path_pass': True}, True)['c2_session_pass'] is False
+        # Runtime 21: the C3 result binds the laptop's Wi-Fi SSH receipt to the
+        # session result's established `mainline_boot` field (the real retained
+        # shape, not boot_id); missing, foreign or malformed receipts fail.
+        (root / 'passive-scan-userspace.json').write_text(json.dumps({'transport_complete': True, 'standard_scan_succeeded': True}))
+        (root / 'supplicant-log-result.json').write_text(json.dumps({'complete': True, 'bytes': len(LOG), 'phrases': None}))
+        (root / 'deferred-start-result.json').write_text(json.dumps({
+            'classification': 'x', 'deferred_start_records': {}, 'mainline_boot': BOOT, 'phase': 'done',
+            'preservation': {'log_complete': True}, 'recovery_confirmed': True, 'recovery_requested': True,
+            'regression_pass': True, 'return': {}, 'returned_gemian_boot': 'ffffffff-0123-0123-0123-0123456789ab'}))
+        join = {'driver_handshake_path_pass': True, 'driver_data_path_pass': True, 'session_verified': True}
+        c2 = host.c2_result(join, True)
+        receipt_path = work / 'wifi-ssh-receipt.json'
+        good_receipt = {'ready_seen': True, 'ssh_exit': 0, 'boot_match': True, 'stdout_bytes': 37, 'boot_id': BOOT}
+        host.WIFI_SSH_RECEIPT = receipt_path
+        receipt_path.write_text(json.dumps(good_receipt))
+        c3 = host.c3_result(join, c2)
+        assert c3['wifi_ssh_boot_bound'] is True and c3['wifi_ssh'] == good_receipt, c3
+        assert c3['c3_session_pass'] is False, 'the C2 fields alone (no C3 fields in the body) do not pass C3'
+        c3_fields = dict(c2['supplicant'], data_phase_seen=1, tool_udhcpc=1, tool_ping=1, dhcp_exit=0, dhcp_bound=1,
+                         dhcp_prefix=24, lease_written=1, dropbear_digest_ok=1, wifi_sshd_started=1, wifi_sshd_ready=1,
+                         wifi_sshd_exit=0, ping_transmitted=3, ping_received=3)
+        c3 = host.c3_result(join, {**c2, 'supplicant': c3_fields})
+        assert c3['c3_session_pass'] is c2['c2_session_pass'], (c2['c2_session_pass'], c3)
+        receipt_path.write_text(json.dumps({**good_receipt, 'boot_id': 'ffffffff-0123-0123-0123-0123456789ab'}))
+        foreign = host.c3_result(join, {**c2, 'supplicant': c3_fields})
+        assert foreign['wifi_ssh_boot_bound'] is False and foreign['c3_session_pass'] is False
+        receipt_path.write_text('not json')
+        assert host.c3_result(join, c2)['wifi_ssh'] is None and host.c3_result(join, c2)['c3_session_pass'] is False
+        receipt_path.unlink()
+        assert host.c3_result(join, c2)['wifi_ssh'] is None and host.c3_result(join, c2)['c3_session_pass'] is False
+        receipt_path.write_text(json.dumps(good_receipt))
+        (root / 'deferred-start-result.json').write_text(json.dumps({'regression_pass': True, 'boot_id': BOOT}))
+        assert host.c3_result(join, {**c2, 'supplicant': c3_fields})['wifi_ssh_boot_bound'] is False, 'boot_id alone is not the established field'
+        host.WIFI_SSH_RECEIPT = None
         assert 'rc = 0 if ready' not in (HERE / 'passive-host.py').read_text()
 print('c2-host: PASS (C2 selection, supplicant-log phase once before the seal, budgets, private claim, phase-complete exit substitution, verdict)')

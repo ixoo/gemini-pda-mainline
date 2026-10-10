@@ -11,8 +11,28 @@ BB=/bin/busybox
 # success path prints nothing before __IW_PASSIVE_BEGIN__ and keeps stderr empty.
 stage=start
 event_pid=
+# The Phase C3 Wi-Fi listener (started inside data_checks) is owned here. The
+# pinned busybox 1.36.1 timeout applet forks a grandchild watchdog and then
+# execs the program in its own process, so the shell's $! is Dropbear's pid
+# (its pid file repeats it) and the watchdog signals that same pid after the
+# absolute limit. Stopping is one signal to the owned pid and one wait, which
+# reaps it and records its status; the pid is cleared and never signalled
+# again. Called at the terminal record and unconditionally on EXIT, so an
+# early failure or signal after the launch cannot leave the listener running.
+wifi_sshd_pid=
+wifi_sshd_exit=255
+stop_wifi_sshd() {
+    [ -n "$wifi_sshd_pid" ] || return 0
+    set +e
+    kill "$wifi_sshd_pid" 2>/dev/null
+    wait "$wifi_sshd_pid"
+    wifi_sshd_exit=$?
+    set -e
+    wifi_sshd_pid=
+}
 on_exit() {
     rc=$?
+    stop_wifi_sshd
     if [ -n "$event_pid" ]; then
         kill "$event_pid" 2>/dev/null || true
     fi
@@ -159,22 +179,38 @@ if [ -n "${WPA_PSK_HEX:-}" ]; then
     /bin/wpa_supplicant -Dnl80211 -iwlan0 -c "$conf" -d > "$wpa_log" 2>&1 &
     supplicant_pid=$!
     # Phase C3 data checks, run once when the driver records the open data
-    # phase: busybox udhcpc (foreground, at most 4 tries of 3 s, one lease,
-    # its script configures the interface-specific address and default route
-    # and writes the private lease and router files), then busybox ping to the
-    # router (3 requests, 2 s each). Each step is bounded by busybox timeout.
-    # Only counts, exit statuses and the prefix length are printed; addresses
-    # stay in the private RAM files, which the laptop's bounded Wi-Fi SSH
-    # check reads over the authenticated USB path and which are removed
-    # before the framed result ends.
+    # phase: busybox udhcpc (foreground, at most 4 tries of 3 s, one lease) with
+    # a hook that admits only wlan0, a dotted-quad address and a prefix length
+    # of 1..32 (busybox udhcpc exports mask as prefix bits; an absent or odd
+    # value is a fixed status, never a guessed /24), adds the address on wlan0,
+    # tries the default route through the router, and writes the private
+    # lease and prefix files only after the address operation succeeded. Then,
+    # on a bound lease, a second Dropbear listener on wlan0's leased address
+    # only: the retained binary by digest, the retained host key and the
+    # approved authorized-key directory, foreground, password and forwarding
+    # disabled like the USB service, idle 30 s, each connection 60 s at most,
+    # two auth tries, the whole listener at most 90 s under the admitted
+    # busybox timeout (which execs Dropbear in place, so $! is its pid); the
+    # readiness marker is written last, after the pid file (written by Dropbear
+    # after its listening sockets exist) names that owned pid and it is alive,
+    # and the listener is stopped and waited for at the terminal record. Then
+    # busybox ping to the router (3 requests, 2 s each). Each step is bounded
+    # by busybox timeout. Only counts, statuses and the prefix length are
+    # printed; addresses stay in the private RAM files, removed before the
+    # framed result ends.
     data_dir=/tmp/mt6797-wifi-phase-b-1
+    dropbear_sha256=10663dd45019bc1391730c36d779e6a5e4433fd86311543a714f1a198629bc54
     data_phase_seen=0
     tool_udhcpc=0
     tool_ping=0
     dhcp_exit=255
     dhcp_bound=0
     dhcp_prefix=0
+    hook_status=none
     lease_written=0
+    dropbear_digest_ok=0
+    wifi_sshd_started=0
+    wifi_sshd_ready=0
     ping_transmitted=0
     ping_received=0
     data_checks() {
@@ -182,17 +218,33 @@ if [ -n "${WPA_PSK_HEX:-}" ]; then
         if $BB --list | $BB grep -qx ping; then tool_ping=1; fi
         [ "$tool_udhcpc" = 1 ] || return 0
         # shellcheck disable=SC2016  # the hook's own variables stay literal
-        $BB printf '#!/bin/sh\nBB=/bin/busybox\ndir=%s\ncase "$1" in\n  bound|renew)\n    [ -n "$mask" ] || mask=24\n    $BB ip addr add "$ip/$mask" dev "$interface" 2>/dev/null || true\n    for r in $router; do\n      if $BB ip route add default via "$r" dev "$interface" 2>/dev/null; then $BB printf %%s "$r" > "$dir/router"; break; fi\n    done\n    $BB printf %%s "$mask" > "$dir/prefix"\n    $BB printf %%s "$ip" > "$dir/lease"\n    ;;\nesac\n' "$data_dir" > "$data_dir/dhcp.sh"
+        $BB printf '#!/bin/sh\nBB=/bin/busybox\ndir=%s\nstatus() { $BB printf %%s "$1" > "$dir/hook-status"; }\ncase "$1" in\n  bound|renew)\n    [ "$interface" = wlan0 ] || { status interface; exit 0; }\n    printf %%s "$ip" | $BB grep -Eq "^([0-9]{1,3}\\.){3}[0-9]{1,3}$" || { status address; exit 0; }\n    printf %%s "$mask" | $BB grep -Eq "^[0-9]{1,2}$" && [ "$mask" -ge 1 ] && [ "$mask" -le 32 ] || { status prefix; exit 0; }\n    $BB ip addr add "$ip/$mask" dev wlan0 || { status addr-failed; exit 0; }\n    for r in $router; do\n      if $BB ip route add default via "$r" dev wlan0 2>/dev/null; then $BB printf %%s "$r" > "$dir/router"; break; fi\n    done\n    $BB printf %%s "$mask" > "$dir/prefix"\n    $BB printf %%s "$ip" > "$dir/lease"\n    status bound\n    ;;\nesac\n' "$data_dir" > "$data_dir/dhcp.sh"
         $BB chmod 700 "$data_dir/dhcp.sh"
         set +e
         $BB timeout 20 $BB udhcpc -i wlan0 -f -n -q -t 4 -T 3 -s "$data_dir/dhcp.sh" > "$data_dir/udhcpc.log" 2>&1
         dhcp_exit=$?
         set -e
-        if [ -f "$data_dir/lease" ] && [ -f "$data_dir/prefix" ]; then
+        [ -f "$data_dir/hook-status" ] && hook_status=$($BB cat "$data_dir/hook-status")
+        if [ "$hook_status" = bound ] && [ -f "$data_dir/lease" ] && [ -f "$data_dir/prefix" ]; then
             dhcp_bound=1
             lease_written=1
             dhcp_prefix=$($BB cat "$data_dir/prefix")
             printf %s "$dhcp_prefix" | $BB grep -Eq '^[0-9]{1,2}$' || dhcp_prefix=0
+        fi
+        if [ "$dhcp_bound" = 1 ] && [ "$($BB sha256sum /bin/dropbear | $BB cut -c1-64)" = "$dropbear_sha256" ]; then
+            dropbear_digest_ok=1
+        fi
+        if [ "$dropbear_digest_ok" = 1 ] && [ -f /etc/dropbear/host_key ] && [ -d /root/.ssh ]; then
+            $BB timeout 90 /bin/dropbear -F -s -j -k -l wlan0 -p "$($BB cat "$data_dir/lease"):22" -D /root/.ssh \
+                -r /etc/dropbear/host_key -P "$data_dir/sshd-pid" -I 30 -M 60 -T 2 2> "$data_dir/dropbear.log" &
+            wifi_sshd_pid=$!
+            wifi_sshd_started=1
+            sshd_tick=0
+            while [ "$sshd_tick" -lt 6 ] && [ ! -s "$data_dir/sshd-pid" ]; do $BB sleep 0.5; sshd_tick=$((sshd_tick + 1)); done
+            if [ -s "$data_dir/sshd-pid" ] && [ "$($BB cat "$data_dir/sshd-pid")" = "$wifi_sshd_pid" ] && kill -0 "$wifi_sshd_pid" 2>/dev/null; then
+                $BB cat "$data_dir/lease" > "$data_dir/wifi-ssh"
+                wifi_sshd_ready=1
+            fi
         fi
         if [ "$dhcp_bound" = 1 ] && [ "$tool_ping" = 1 ] && [ -f "$data_dir/router" ]; then
             set +e
@@ -260,7 +312,8 @@ if [ -n "${WPA_PSK_HEX:-}" ]; then
     supplicant_exit=$?
     set -e
     $BB rm -f "$conf"
-    $BB rm -f "$data_dir/lease" "$data_dir/router" "$data_dir/prefix" "$data_dir/dhcp.sh"
+    stop_wifi_sshd
+    $BB rm -f "$data_dir/lease" "$data_dir/router" "$data_dir/prefix" "$data_dir/dhcp.sh" "$data_dir/wifi-ssh" "$data_dir/sshd-pid" "$data_dir/hook-status"
     stage=supplicant_phrases
     # Fixed phrases only, counted; the complete log is preserved privately.
     # CTRL-EVENT-SCAN-RESULTS is sent only to attached control-interface
@@ -284,7 +337,8 @@ if [ -n "${WPA_PSK_HEX:-}" ]; then
     channel40_flag
     $BB printf 'channel40_ir_after_beacon=%s\nchannel40_query_exit=%s\nchannel40_lines=%s\nchannel40_words=%s\n' "$channel40" "$channel40_query_exit" "$channel40_lines" "$channel40_words"
     $BB printf 'channel40_ir_during_join=%s\nchannel40_ir_ticks=%s\n' "$channel40_ir_during_join" "$channel40_ir_ticks"
-    $BB printf 'data_phase_seen=%s\ntool_udhcpc=%s\ntool_ping=%s\ndhcp_exit=%s\ndhcp_bound=%s\ndhcp_prefix=%s\nlease_written=%s\nping_transmitted=%s\nping_received=%s\n' "$data_phase_seen" "$tool_udhcpc" "$tool_ping" "$dhcp_exit" "$dhcp_bound" "$dhcp_prefix" "$lease_written" "$ping_transmitted" "$ping_received"
+    $BB printf 'data_phase_seen=%s\ntool_udhcpc=%s\ntool_ping=%s\ndhcp_exit=%s\ndhcp_bound=%s\ndhcp_prefix=%s\nhook_status=%s\nlease_written=%s\n' "$data_phase_seen" "$tool_udhcpc" "$tool_ping" "$dhcp_exit" "$dhcp_bound" "$dhcp_prefix" "$hook_status" "$lease_written"
+    $BB printf 'dropbear_digest_ok=%s\nwifi_sshd_started=%s\nwifi_sshd_ready=%s\nwifi_sshd_exit=%s\nping_transmitted=%s\nping_received=%s\n' "$dropbear_digest_ok" "$wifi_sshd_started" "$wifi_sshd_ready" "$wifi_sshd_exit" "$ping_transmitted" "$ping_received"
     stage=boot_after
     $BB printf '__JOIN_END__\nconnect_exit=%s\njoin_terminal=%s\njoin_lifecycle=%s\n' "$supplicant_exit" "$terminal" "$lifecycle"
     boot_after=$($BB cat /proc/sys/kernel/random/boot_id)
