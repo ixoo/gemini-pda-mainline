@@ -1119,6 +1119,7 @@ build_gemian_observer() {
   local identity
   local jobs
   local mode="${1:-observer}"
+  local prepare_only
   local remote_command
   local sha
 
@@ -1136,14 +1137,26 @@ build_gemian_observer() {
   if [[ "${mode}" == wifi-controller || "${mode}" == wifi-reference ||
     "${mode}" == reg06-observer ]] &&
     [[ -z "${KERNEL_JOBS:-}" ]]; then jobs=8; fi
-  printf -v remote_command 'bash -s -- %q %q %q %q %q %q %q' \
-    "${sha}" "${branch}" "${jobs}" "${mode}" \
+  # GEMIAN_PREPARE_ONLY=1 with the observer mode prepares only the pinned
+  # toolchain and the clean public baseline source on the Buildbox (no observer
+  # source, no compile, no package); other lanes then build on them.
+  prepare_only="${GEMIAN_PREPARE_ONLY:-0}"
+  [[ "${prepare_only}" == 0 || "${prepare_only}" == 1 ]] || die "GEMIAN_PREPARE_ONLY must be 0 or 1"
+  [[ "${prepare_only}" == 0 || "${mode}" == observer ]] || \
+    die "GEMIAN_PREPARE_ONLY applies to the observer lane only"
+  printf -v remote_command 'GEMIAN_PREPARE_ONLY=%q bash -s -- %q %q %q %q %q %q %q' \
+    "${prepare_only}" "${sha}" "${branch}" "${jobs}" "${mode}" \
     "${EXPECTED_SCHEDULER_UNPARK_PATCHSET_SHA256}" \
     "${EXPECTED_REGISTER_PATCHSET_SHA256}" \
     "${EXPECTED_PMSG_PATCHSET_SHA256}"
 
-  printf 'Submitting Gemian %s compile review %s to %s\n' \
-    "${mode}" "${sha}" "${BUILDBOX_HOST}"
+  if [[ "${prepare_only}" == 1 ]]; then
+    printf 'Submitting Gemian toolchain and baseline preparation at %s to %s\n' \
+      "${sha}" "${BUILDBOX_HOST}"
+  else
+    printf 'Submitting Gemian %s compile review %s to %s\n' \
+      "${mode}" "${sha}" "${BUILDBOX_HOST}"
+  fi
   ssh_buildbox "${remote_command}" <<'REMOTE'
 set -euo pipefail
 
@@ -1300,6 +1313,14 @@ fi
 if [[ "${mode}" == wifi-controller || "${mode}" == wifi-reference ||
     "${mode}" == reg06-observer ]]; then
   python3 -B "${checkout}/${build_script}" "${commit}" "${jobs}" 2>&1 | tee "${job_log}"
+  exit 0
+fi
+
+if [[ "${GEMIAN_PREPARE_ONLY:-0}" == 1 ]]; then
+  set -o pipefail
+  "${checkout}/${build_script}" \
+    "${commit}" "${source_root}" "${build_root}" "${artifact_root}" \
+    "${toolchain_root}" "${jobs}" 2>&1 | tee "${job_log%.log}.prepare.log"
   exit 0
 fi
 

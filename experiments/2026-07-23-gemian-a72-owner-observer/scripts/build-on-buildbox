@@ -172,17 +172,8 @@ WRAPPER
   trap - RETURN
 }
 
-prepare_source() {
-  local current_diff_sha
-  local expected_diff_sha
-  local patch
-  local partial
-  local state_patchset
-  local state_source
-
+prepare_source_mirror() {
   readonly source_mirror="${source_root}/gemian-linux-kernel-3.18.git"
-  readonly prepared_source="${source_root}/gemian-observer/${project_commit}"
-  mkdir -p "${source_root}/gemian-observer"
   if [[ ! -d "${source_mirror}" ]]; then
     git clone --mirror "${SOURCE_URL}" "${source_mirror}.partial"
     mv "${source_mirror}.partial" "${source_mirror}"
@@ -192,6 +183,18 @@ prepare_source() {
   git --git-dir="${source_mirror}" fetch origin "${SOURCE_COMMIT}"
   [[ "$(git --git-dir="${source_mirror}" rev-parse FETCH_HEAD)" == "${SOURCE_COMMIT}" ]] || \
     die "vendor source fetch mismatch"
+}
+
+prepare_source() {
+  local current_diff_sha
+  local expected_diff_sha
+  local patch
+  local partial
+  local state_patchset
+  local state_source
+
+  readonly prepared_source="${source_root}/gemian-observer/${project_commit}"
+  mkdir -p "${source_root}/gemian-observer"
 
   if [[ -f "${prepared_source}/.gemini-observer-state" && ! -L "${prepared_source}" ]]; then
     read -r state_source state_patchset expected_diff_sha < \
@@ -256,6 +259,14 @@ prepare_baseline_source() {
 }
 
 prepare_toolchain
+prepare_source_mirror
+if [[ "${GEMIAN_PREPARE_ONLY:-0}" == 1 ]]; then
+  # Preparation only: the pinned toolchain and the clean public baseline source,
+  # for a Buildbox that another lane will build on; no observer source, no compile.
+  prepare_baseline_source
+  echo "Prepared Gemian toolchain ${manifest_sha} and baseline source ${SOURCE_COMMIT} (preparation only, no compile)"
+  exit 0
+fi
 prepare_source
 prepare_baseline_source
 
