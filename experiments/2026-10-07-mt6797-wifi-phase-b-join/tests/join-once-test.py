@@ -26,6 +26,15 @@ assert psk_lines == ["printf %s \"$WPA_PSK_HEX\" | $BB grep -Eq '^[0-9a-f]{64}$'
                      "printf '\\tproto=RSN\\n\\tkey_mgmt=WPA-PSK\\n\\tpairwise=CCMP\\n\\tgroup=CCMP\\n\\tieee80211w=0\\n\\tpsk=%s\\n}\\n' \"$WPA_PSK_HEX\""], psk_lines
 assert 'unset WPA_PSK_HEX' in SOURCE and 'set -x' not in SOURCE
 assert '-K' not in SOURCE.split('/bin/wpa_supplicant ')[1].split('&')[0]
+# The pinned static supplicant implements no -f (no CONFIG_DEBUG_FILE): the
+# debug stream is redirected, with stderr, into the private RAM log instead.
+invocation = [l.strip() for l in SOURCE.splitlines() if l.strip().startswith('/bin/wpa_supplicant ')]
+assert len(invocation) == 1 and invocation[0].endswith('-d > "$wpa_log" 2>&1 &'), invocation
+invocation = invocation[0]
+assert ' -f ' not in invocation, invocation
+assert '-Dnl80211 -iwlan0 -c "$conf"' in invocation
+assert 'CONFIG_DEBUG_FILE' not in (HERE / 'helper/wpa_supplicant.config').read_text()
+assert SOURCE.index('umask 077') < SOURCE.index('/bin/wpa_supplicant ')
 # The supplicant's exit, whatever it is, is collected under set +e and the
 # configuration is removed only after that exit; the framed result follows.
 c2 = SOURCE.split('stage=supplicant_config')[1].split('stage=boot_after')[0]

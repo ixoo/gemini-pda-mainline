@@ -140,7 +140,11 @@ if [ -n "${WPA_PSK_HEX:-}" ]; then
     $BB printf '__JOIN_BEGIN__\n'
     # The mode-0600 RAM configuration stays until the supplicant has exited
     # (no startup race) and is removed before the framed result ends.
-    /bin/wpa_supplicant -Dnl80211 -iwlan0 -c "$conf" -f "$wpa_log" -d &
+    # The pinned static build has no CONFIG_DEBUG_FILE, so -f is not an
+    # option it implements (runtime 13: usage text, exit 0, no log); the
+    # debug stream goes to stdout and is redirected, with stderr, into the
+    # private RAM log created here under umask 077 (mode 0600). No -K.
+    /bin/wpa_supplicant -Dnl80211 -iwlan0 -c "$conf" -d > "$wpa_log" 2>&1 &
     supplicant_pid=$!
     # One bounded wait (at most 24 s): the supplicant's own scan, join and
     # handshake, then the driver's lifetime ends with its deauthentication and

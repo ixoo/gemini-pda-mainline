@@ -22,7 +22,7 @@ COMMIT = 'eba4baa44b273b45e744c4c017508b6efd61b8ce'
 PACKAGE = '49afb45dc20416a4c1882e1cc198b4f1cc6285b283d61cfb611d82dbf1c0c112'
 RELEASE = '7.1.3-gemini-a53-wifi-phase-b-compile'
 PREDECESSOR = '1c49134173658ca28136f8450b943f3f431fbb5c414a3e525d2a7769b0660460'
-EVIDENCE, CAPTURE, SESSION = 'wifi-phase-b', 'capture-13', 'session-13'
+EVIDENCE, CAPTURE, SESSION = 'wifi-phase-b', 'capture-14', 'session-14'
 
 
 def refuse(reason):
@@ -55,7 +55,7 @@ def main():
     if not body.startswith(b'TARGET_SSID=') or \
             not body.endswith((HERE / 'join-once.sh').read_bytes()):
         refuse('GEMINI_JOIN_SCRIPT does not wrap the reviewed join-once.sh')
-    # Runtime 13 is the supplicant-owned C2 session: the private binder must
+    # Runtime 14 is the supplicant-owned C2 session: the private binder must
     # have added the PSK and the hex SSID (never printed here).
     if b'\nWPA_PSK_HEX=' not in body or b'\nTARGET_SSID_HEX=' not in body:
         refuse('GEMINI_JOIN_SCRIPT is not the PSK-bound C2 script')
