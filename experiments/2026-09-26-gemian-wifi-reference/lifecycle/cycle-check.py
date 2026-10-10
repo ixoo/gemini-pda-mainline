@@ -24,6 +24,14 @@ Compatible with the device's Python 3.5. Subcommands:
                      copy SOURCE (/dev/kmsg, or a growing file for fixtures) to OUT, flushing every
                      read, stopping at BOUND bytes or on SIGTERM; prints bytes=<n> capped=<0|1>;
                      exit 0 when stopped by the signal, 3 at the bound
+  target-bssid       print the bound target's BSSID for the device-local read-only
+                     `wpa_cli -i wlan0 bss <bssid>` query (the one subcommand that prints an
+                     identifier; it feeds a command argument on the device and nothing else)
+  bss-fresh LIMIT    stdin: that query's output; print bss_visible bss_match bss_age bss_fresh
+                     (numbers and booleans only) and exit 0 when a BSS is listed whose bssid and
+                     freq equal the bound target and whose unsigned age is at most LIMIT seconds,
+                     1 when it is listed and matches but older, 2 when listed but mismatched or
+                     malformed (missing or non-numeric age, duplicate keys), 3 when not listed
 """
 import json
 import os
@@ -101,6 +109,30 @@ def link_matches(text, target):
     return (len(lines) > 0 and lines[0] == 'Connected to %s (on wlan0)' % target['bssid'] and
             '\tSSID: %s' % iw_escape(target['ssid']) in lines and
             '\tfreq: %d' % target['frequency_mhz'] in lines)
+
+
+def bss_fresh(text, target, limit):
+    """Read `wpa_cli bss <bssid>` output (key=value lines) against the bound target.
+
+    Returns (visible, match, age, fresh): visible when a bssid key is present; match when bssid and
+    freq equal the target; age the unsigned integer age or None; fresh when match and age <= limit."""
+    fields = {}
+    duplicate = False
+    for line in text.split('\n'):
+        if '=' not in line:
+            continue
+        key, _, value = line.partition('=')
+        if key in fields:
+            duplicate = True
+        fields[key] = value.strip()
+    if 'bssid' not in fields:
+        return False, False, None, False
+    match = (not duplicate and fields['bssid'].lower() == target['bssid'].lower() and
+             fields.get('freq') == str(target['frequency_mhz']))
+    age_text = fields.get('age')
+    age = int(age_text) if age_text is not None and age_text.isdigit() else None
+    fresh = bool(match and age is not None and age <= limit)
+    return True, match, age, fresh
 
 
 def positive_control(lines, arm_seq):
@@ -276,6 +308,20 @@ def main(argv):
         if command == 'gateway-check':
             print(gateway_check(sys.stdin.read()))
             return 0
+        if command == 'target-bssid':
+            print(load_target()['bssid'])
+            return 0
+        if command == 'bss-fresh' and len(argv) == 3:
+            limit = int(argv[2])
+            if limit < 0:
+                raise ValueError('freshness limit must be unsigned')
+            visible, match, age, fresh = bss_fresh(sys.stdin.read(), load_target(), limit)
+            print('bss_visible=%d bss_match=%d bss_age=%s bss_fresh=%d' % (visible, match, 'none' if age is None else age, fresh))
+            if fresh:
+                return 0
+            if not visible:
+                return 3
+            return 1 if (match and age is not None) else 2
         if command == 'kmsg-stream' and len(argv) == 5:
             return kmsg_stream(argv[2], argv[3], int(argv[4]))
     except (OSError, ValueError, UnicodeError) as error:

@@ -13,6 +13,10 @@
 # after arm (observer deadline 240 s), seal 10 s, preservation 20 s, restoration
 # 60 s, finalisation 5 s; 295 s in all, under the unit's 300 s. Every external
 # call and wait is clamped to its phase deadline (timeout with a 2 s kill-after).
+# Inside the capture the readiness wait, the connect allowance (RPC and the
+# connected wait share it) and the traffic window are each granted only what
+# leaves the later stages their reserve, so the window is never opened without
+# enough budget for itself and the second teardown.
 # Live identity is checked before every observer write and every radio call.
 # Single use per boot. Exit codes: 0 complete and restored, 2 refused before any
 # radio action, 3 restoration or AutoConnect restoration failed, 4 a budget was
@@ -37,11 +41,20 @@ readonly kmsg_source=${GWREF10_KMSG_SOURCE:-/dev/kmsg}
 readonly kmsg_bound=8388608
 readonly tick=${GWREF10_TICK:-1}
 readonly iw=${GWREF10_IW:-/sbin/iw}
+readonly wpa_cli=${GWREF10_WPA_CLI:-/sbin/wpa_cli}
+# Freshness bound for the target BSS in wpa_supplicant's table before the measured
+# connect: a chosen limit, not a claimed scan period.
+readonly bss_fresh_limit=${GWREF10_BSS_FRESH_S:-10}
+readonly bss_snapshot_limit=90   # private raw query outputs kept, at most
 # Budgets in seconds; the divisor exists only for the offline fixture and is 1 on the device.
 readonly divisor=${GWREF10_BUDGET_DIVISOR:-1}
 readonly preflight_budget=$((30 / divisor)) setup_budget=$((20 / divisor)) capture_budget=$((150 / divisor))
 readonly restore_budget=$((60 / divisor)) traffic_window=$((20 / divisor))
-readonly disconnect_cap=$((25 / divisor)) connect_cap=$((45 / divisor)) call_cap=$((20 / divisor))
+readonly disconnect_cap=$((25 / divisor)) connect_cap=$((40 / divisor)) call_cap=$((20 / divisor))
+readonly ready_cap=$((60 / divisor))
+# What the stages after the connect need: the traffic window, the second teardown's whole stage (its RPC
+# and gate share disconnect_cap) and a margin.
+readonly tail_reserve=$(( traffic_window + disconnect_cap + 5 / divisor ))
 readonly seal_budget=10 preserve_budget=20 finalize_budget=5   # short phases keep their real length
 
 now() { local up; read -r up _ </proc/uptime; printf '%s' "${up%.*}"; }   # monotonic seconds
@@ -55,9 +68,12 @@ identity_ok() {
   [[ "$(id -u)" == 0 && "$(uname -m)" == aarch64 && "$(uname -r)" == "$expected_release" &&
      "$(cat "$boot_file")" == "$expected_boot" ]]
 }
-bounded() {  # bounded <cap-seconds> <command...>: clamped to the active phase deadline (2 s reserved for the
-  local cap=$1 left; shift  # kill-after); when nothing remains the command is not started and 124 is returned
-  left=$(( phase_deadline - $(now) - 2 ))
+step_deadline=0   # a stage allowance inside a phase; 0 when none is active
+bounded() {  # bounded <cap-seconds> <command...>: clamped to the active phase deadline and, when one is set, the
+  local cap=$1 limit left; shift  # step deadline (2 s reserved for the kill-after); when nothing remains the
+  limit=$phase_deadline            # command is not started and 124 is returned
+  (( step_deadline > 0 && step_deadline < limit )) && limit=$step_deadline
+  left=$(( limit - $(now) - 2 ))
   (( left >= 1 )) || return 124
   (( cap > left )) && cap=$left
   timeout --kill-after=2 "$cap" "$@"
@@ -94,13 +110,14 @@ identity_ok || fail 'diagnostic boot identity changed'
 for command in connmanctl ip ping timeout sha256sum python3 stat; do
   command -v "$command" >/dev/null || fail "required command missing: $command"
 done
-[[ -x "$iw" && -f "$check" ]] || fail 'iw or cycle-check missing'
+[[ -x "$iw" && -x "$wpa_cli" && -f "$check" ]] || fail 'iw, wpa_cli or cycle-check missing'
 [[ ! -e "$output" ]] || fail 'output directory exists: evidence from an earlier run must be moved first'
 [[ -w "$control" && "$(cat "$control")" == 0 ]] || fail 'observer control missing or not idle'
 [[ "$(cut -f1 "$printk_file")" -le 7 ]] || fail 'console loglevel above 7 would mirror records'
 [[ "$(cat "$carrier_file")" == 1 ]] || fail 'Wi-Fi lacks starting carrier'
 [[ "$(cat "$battery/present")" == 1 && "$(cat "$battery/health")" == Good ]] || fail 'battery not present and Good'
 python3 "$check" bound-files >/dev/null || fail 'bound files invalid'
+target_bssid=$(python3 "$check" target-bssid) || fail 'bound target unreadable'   # a device-local query argument only
 services=$(bounded 10 connmanctl services) || fail 'connmanctl services failed'
 # connmanctl (client/services.c print_service, identical at the Gemian package's
 # a884432) prints three independent flag characters: favourite '*' or ' ',
@@ -132,7 +149,7 @@ mkdir "$output" || fail 'cannot create the output directory'
 chmod 700 "$output"
 exec >>"$output/run.log" 2>&1
 receipt() { printf '%s\n' "$*" >>"$output/receipt.txt"; printf '%s\n' "$*"; }
-ops_connect=0 ops_disconnect=0 ops_restore=0 ops_link_queries=0 ops_ping=0 ops_observer_writes=0 ops_autoconnect_writes=0
+ops_connect=0 ops_disconnect=0 ops_restore=0 ops_link_queries=0 ops_ping=0 ops_observer_writes=0 ops_autoconnect_writes=0 ops_bss_queries=0
 logger_pid=
 armed=no sealed=no seal_captured=0 identity_lost=0 frozen=0 restored=0 autoconnect_ok=0 logger_stopped=0 logger_rc=none
 step=start
@@ -214,7 +231,7 @@ freeze() {  # verified manifest of the closed capture files, then read-only; fai
   local -a required=(kmsg-cycle.log dmesg-before.log dmesg-after.log addr-before.txt addr-after.txt route-before.txt
                      services-before.txt service-before.txt service-after.txt printk-before.txt printk-after.txt
                      control-after.txt logger.txt)
-  local -a optional=(ping.txt traffic-window connect-output.txt)
+  local -a optional=(ping.txt traffic-window connect-output.txt bss-timeline.txt bss-snapshots.txt)
   local missing='' name sum complete=1
   : >"$output/MANIFEST"
   for name in "${required[@]}" "${optional[@]}"; do
@@ -229,7 +246,7 @@ freeze() {  # verified manifest of the closed capture files, then read-only; fai
   for name in MANIFEST "${required[@]}" "${optional[@]}"; do
     [[ -f "$output/$name" ]] && { chmod 0400 "$output/$name" || receipt "chmod_failed=$name"; }
   done
-  receipt "ops_link_queries=$ops_link_queries ops_connect=$ops_connect ops_disconnect=$ops_disconnect ops_ping=$ops_ping ops_observer_writes=$ops_observer_writes ops_autoconnect_writes=$ops_autoconnect_writes"
+  receipt "ops_link_queries=$ops_link_queries ops_connect=$ops_connect ops_disconnect=$ops_disconnect ops_ping=$ops_ping ops_observer_writes=$ops_observer_writes ops_autoconnect_writes=$ops_autoconnect_writes ops_bss_queries=$ops_bss_queries"
 }
 
 restore() {  # one manual restoration connect outside the capture; AutoConnect restored only after verification
@@ -275,6 +292,7 @@ restore() {  # one manual restoration connect outside the capture; AutoConnect r
 
 step_finish() {
   local rc=$1
+  step_deadline=0   # a stage allowance active at an interruption or error must not bound the cleanup phases
   receipt "exit_step=$step rc_before_finish=$rc"
   seal
   freeze
@@ -319,7 +337,9 @@ gate arm || exit 7
 ops_observer_writes=$((ops_observer_writes + 1))
 printf 1 >"$control"
 armed=yes
-phase_deadline=$(( $(now) + capture_budget ))
+arm_mono=$(now)
+phase_deadline=$(( arm_mono + capture_budget ))
+since_arm() { printf '%s' "$(( $(now) - arm_mono ))"; }
 arm_seq=
 for _ in 1 2 3 4 5; do
   arm_seq=$(grep -m1 'gwref10 arm: ' "$output/kmsg-cycle.log" 2>/dev/null | cut -d, -f2) && [[ -n "$arm_seq" ]] && break
@@ -342,15 +362,22 @@ done
 receipt "positive_control=$pc"
 [[ "$pc" == 1 ]] || exit 2
 
-wait_until() {  # wait_until <predicate> <step-cap-seconds>: clamped to the capture deadline
-  local deadline=$(( $(now) + $2 )); (( deadline > phase_deadline )) && deadline=$phase_deadline
-  while (( $(now) < deadline )); do
-    if "$1"; then return 0; fi
+wait_by() {  # wait_by <predicate> <absolute-deadline>: every call inside the predicate is clamped to the deadline,
+  local ok=1  # and a true predicate counts only when the deadline has not passed by the time it returns
+  step_deadline=$2
+  while (( $(now) < $2 )); do
+    if "$1"; then (( $(now) <= $2 )) && ok=0; break; fi
     sleep "$tick"
   done
-  return 1
+  step_deadline=0
+  return "$ok"
 }
 budget_left() { in_phase || { receipt "budget_exhausted_at=$step"; exit 4; }; }
+allowance() {  # allowance <cap> <reserve-for-later-stages>: seconds grantable now, or a refusal (exit 4)
+  local left=$(( phase_deadline - $(now) - $2 ))
+  if (( left < 1 )); then receipt "budget_refused_at=$step remaining_s=$(( phase_deadline - $(now) )) reserve_s=$2"; exit 4; fi
+  (( left < $1 )) && printf '%s' "$left" || printf '%s' "$1"
+}
 three_disconnected() {
   local i
   for i in 1 2 3; do disconnected_now || return 1; [[ $i == 3 ]] || sleep "$tick"; done
@@ -361,36 +388,87 @@ step='disconnect-1'
 budget_left
 gate disconnect-1 || exit 7
 ops_disconnect=$((ops_disconnect + 1))
+teardown_deadline=$(( $(now) + disconnect_cap )); step_deadline=$teardown_deadline   # RPC and gate share the stage
 bounded "$call_cap" connmanctl disconnect "$service" || true
-wait_until three_disconnected "$disconnect_cap" || { receipt 'teardown1=0'; exit 5; }
+wait_by three_disconnected "$teardown_deadline" || { receipt 'teardown1=0'; exit 5; }
 receipt 'teardown1=1'
 
+# ---- readiness: the approved object idle and the target BSS fresh in wpa_supplicant's table ----
+# Observed: run 1's measured connect met an unregistered service object; run 2's met
+# an idle object and was answered Operation aborted at an unrecorded time, with the
+# BSS state unmeasured; both restorations, issued later, associated within seconds.
+# Hypothesis, not observation: the target BSS was missing from wpa_supplicant's table
+# for a while after the teardown. This gate measures that state instead of assuming
+# it. It is read-only (`wpa_cli -i wlan0 bss <target>` and ConnMan property reads, no
+# scan request) and numeric: query rc 0, listed, bssid and freq equal the bound
+# target, unsigned age at most $bss_fresh_limit s. Raw query outputs stay in the
+# private bss-snapshots.txt (bounded); bss-timeline.txt carries only offsets, return
+# codes, booleans and ages.
+step='readiness'
+budget_left
+bss_checks=0 bss_visible_checks=0 bss_match_checks=0 bss_fresh_age=none object_idle=0 object_idle_checks=0 bss_fresh=0 bss_snapshots=0
+readiness_probe() {  # one timeline line per probe; true when both conditions hold at this probe
+  local raw rc=0 verdict vrc=0 age
+  object_idle=0; service_object_ready && { object_idle=1; object_idle_checks=$((object_idle_checks + 1)); }
+  ops_bss_queries=$((ops_bss_queries + 1)); bss_checks=$((bss_checks + 1))
+  raw=$(bounded 5 "$wpa_cli" -i wlan0 bss "$target_bssid" 2>&1) || rc=$?
+  if (( bss_snapshots < bss_snapshot_limit )); then
+    bss_snapshots=$((bss_snapshots + 1))
+    printf 't=%s rc=%s\n%s\n----\n' "$(since_arm)" "$rc" "$raw" >>"$output/bss-snapshots.txt"
+  fi
+  verdict=$(python3 "$check" bss-fresh "$bss_fresh_limit" <<<"$raw") || vrc=$?
+  [[ "$verdict" == bss_visible=* ]] || { verdict='bss_visible=0 bss_match=0 bss_age=none bss_fresh=0'; vrc=2; }
+  printf 't=%s object_idle=%s query_rc=%s verdict_rc=%s %s\n' "$(since_arm)" "$object_idle" "$rc" "$vrc" "$verdict" >>"$output/bss-timeline.txt"
+  [[ "$verdict" == *' bss_visible=1'* || "$verdict" == 'bss_visible=1'* ]] && bss_visible_checks=$((bss_visible_checks + 1))
+  [[ "$verdict" == *'bss_match=1'* ]] && bss_match_checks=$((bss_match_checks + 1))
+  bss_fresh=0
+  if [[ "$rc" == 0 && "$vrc" == 0 ]]; then   # a query that did not succeed never admits, whatever it printed
+    bss_fresh=1
+    age=${verdict##*bss_age=}; bss_fresh_age=${age%% *}
+  fi
+  [[ "$object_idle" == 1 && "$bss_fresh" == 1 ]]
+}
+ready_allow=$(allowance "$ready_cap" $(( connect_cap + tail_reserve )))
+ready_start=$(now)
+if ! wait_by readiness_probe $(( ready_start + ready_allow )); then
+  receipt "readiness=0 readiness_wait_s=$(( $(now) - ready_start )) readiness_allow_s=$ready_allow object_idle_last=$object_idle bss_fresh_last=$bss_fresh bss_checks=$bss_checks object_idle_checks=$object_idle_checks bss_visible_checks=$bss_visible_checks bss_match_checks=$bss_match_checks"
+  exit 5
+fi
+receipt "readiness=1 readiness_wait_s=$(( $(now) - ready_start )) readiness_allow_s=$ready_allow bss_checks=$bss_checks object_idle_checks=$object_idle_checks bss_visible_checks=$bss_visible_checks bss_match_checks=$bss_match_checks bss_fresh_age_s=$bss_fresh_age"
+
+# ---- the single measured connect: the RPC and the connected wait share one allowance ----
 step='connect'
 budget_left
-object_wait_start=$(now)
-if ! wait_until service_object_ready "$connect_cap"; then
-  receipt "service_object_present=0 service_object_wait_s=$(( $(now) - object_wait_start ))"
-  exit 5
-fi
-receipt "service_object_present=1 service_object_wait_s=$(( $(now) - object_wait_start ))"
+connect_allow=$(allowance "$connect_cap" "$tail_reserve")
 gate connect || exit 7   # live identity immediately before the radio call, after the wait
 ops_connect=$((ops_connect + 1))
-connect_output=$(bounded "$connect_cap" connmanctl connect "$service" 2>&1) || true
+connect_deadline=$(( $(now) + connect_allow )); step_deadline=$connect_deadline
+connect_rpc_start=$(since_arm); connect_rc=0
+connect_output=$(bounded "$connect_allow" connmanctl connect "$service" 2>&1) || connect_rc=$?
+connect_rpc_end=$(since_arm); step_deadline=0
 printf '%s\n' "$connect_output" >"$output/connect-output.txt"
-if grep -q "doesn't exist" <<<"$connect_output"; then
-  receipt 'connect_unknown_method=1'   # the observed error class; the runtime cause stays an inference; no retry
-  exit 5
-fi
-if ! wait_until connected_on_target "$connect_cap"; then
+# The reply is classified by text class only; the text itself stays in the private file. No retry on any class.
+if grep -q "doesn't exist" <<<"$connect_output"; then connect_reply=unknown_method
+elif grep -q 'Operation aborted' <<<"$connect_output"; then connect_reply=aborted
+elif [[ "$connect_rc" == 124 || "$connect_rc" == 137 ]]; then connect_reply=timeout
+elif [[ "$connect_rc" != 0 ]]; then connect_reply=error
+else connect_reply=ok; fi
+receipt "connect_rpc_start_s=$connect_rpc_start connect_rpc_end_s=$connect_rpc_end connect_rpc_elapsed_s=$(( connect_rpc_end - connect_rpc_start )) connect_rpc_rc=$connect_rc connect_reply=$connect_reply connect_allow_s=$connect_allow"
+[[ "$connect_reply" == unknown_method ]] && receipt 'connect_unknown_method=1'
+[[ "$connect_reply" == aborted ]] && receipt 'connect_aborted=1'
+[[ "$connect_reply" == ok ]] || exit 5
+if ! wait_by connected_on_target "$connect_deadline"; then
   if connected_now; then receipt 'connect=1 target_match=0'; else receipt 'connect=0'; fi
   exit 5
 fi
-receipt 'connect=1 target_match=1'
+receipt "connect=1 target_match=1 connected_at_s=$(since_arm)"
 gateway_direct || { receipt 'gateway_recheck=0'; exit 5; }
 receipt 'gateway_recheck=1'
 
 step='traffic'
 budget_left
+remaining=$(( phase_deadline - $(now) ))
+if (( remaining < tail_reserve )); then receipt "traffic_window_refused=1 remaining_s=$remaining needed_s=$tail_reserve"; exit 4; fi
 window_start=$(date +%s)
 window_end=$(( window_start + traffic_window ))
 printf '%s %s %s\n' "$window_start" "$window_end" "$expected_boot" >"$output/traffic-window"
@@ -403,8 +481,9 @@ step='disconnect-2'
 budget_left
 gate disconnect-2 || exit 7
 ops_disconnect=$((ops_disconnect + 1))
+teardown_deadline=$(( $(now) + disconnect_cap )); step_deadline=$teardown_deadline   # RPC and gate share the stage
 bounded "$call_cap" connmanctl disconnect "$service" || true
-wait_until three_disconnected "$disconnect_cap" || { receipt 'teardown2=0'; exit 5; }
+wait_by three_disconnected "$teardown_deadline" || { receipt 'teardown2=0'; exit 5; }
 receipt 'teardown2=1'
 
 step='seal'

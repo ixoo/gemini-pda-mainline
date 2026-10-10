@@ -128,6 +128,26 @@ class KmsgTest(unittest.TestCase):
     def lines(self, items, start=200):
         return ['7,%d,%d,-;%s\n' % (start + i, 1000 + i, m) for i, m in enumerate(items)]
 
+    def test_bss_fresh_numeric_boolean_gate(self):
+        def bss(bssid='02:11:22:33:44:55', freq='5200', age='3', extra=''):
+            return ('id=5\nbssid=%s\nfreq=%s\nbeacon_int=100\nlevel=-50\n%sage=%s\nflags=[WPA2-PSK-CCMP][ESS]\nssid=Net Work\n'
+                    % (bssid, freq, extra, age))
+        fresh = MOD['bss_fresh']
+        self.assertEqual(fresh(bss(), TARGET, 10), (True, True, 3, True))
+        self.assertEqual(fresh(bss(age='10'), TARGET, 10), (True, True, 10, True))
+        self.assertEqual(fresh(bss(age='11'), TARGET, 10), (True, True, 11, False))     # stale
+        self.assertEqual(fresh(bss(age='1581'), TARGET, 10), (True, True, 1581, False))
+        self.assertEqual(fresh(bss(bssid='02:11:22:33:44:56'), TARGET, 10), (True, False, 3, False))   # other BSS
+        self.assertEqual(fresh(bss(freq='5180'), TARGET, 10), (True, False, 3, False))   # other channel
+        self.assertEqual(fresh(bss(bssid='02:11:22:33:44:55'.upper()), TARGET, 10)[1], True)
+        self.assertEqual(fresh(bss(age='-3'), TARGET, 10), (True, True, None, False))    # malformed age
+        self.assertEqual(fresh(bss(age='soon'), TARGET, 10), (True, True, None, False))
+        self.assertEqual(fresh(bss().replace('age=3\n', ''), TARGET, 10), (True, True, None, False))  # missing age
+        self.assertEqual(fresh(bss(extra='bssid=02:11:22:33:44:55\n'), TARGET, 10), (True, False, 3, False))  # duplicate key
+        self.assertEqual(fresh('', TARGET, 10), (False, False, None, False))              # not listed
+        self.assertEqual(fresh('FAIL\n', TARGET, 10), (False, False, None, False))
+        self.assertEqual(fresh('garbage without keys', TARGET, 10), (False, False, None, False))
+
     def test_positive_control_correlates_seq_after_arm(self):
         good = self.lines(['gwref10 arm: deadline_s=240 caps=1/1/1/1/1/1',
                            'gwref10 cmd: n=1 cid=0x81 seq=42 set=0 len=16 bss=0 type=1',

@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-"""Executor fixture: runs trace-lifecycle-v10.sh against a fake device (fake sysfs, procfs, kmsg, iw, connmanctl, ip,
-ping, uname, id) through the script's path and command overrides, for the complete cycle and the failure paths:
-refusals before any radio action, a failed positive control, an off-target reconnect, a missing seal, a budget
-overrun, a failed restoration. Every scenario checks the admitted operation counts and the receipts."""
+"""Executor fixture: runs trace-lifecycle-v10.sh against a fake device (fake sysfs, procfs, kmsg, iw, wpa_cli,
+connmanctl, ip, ping, uname, id) through the script's path and command overrides, for the complete cycle and the
+failure paths: refusals before any radio action, a failed positive control, the target BSS stale, missing, malformed
+or mismatched in wpa_supplicant's table, an aborted or unknown-method Connect reply, an off-target reconnect, a
+missing seal, a budget overrun, a failed restoration. Every scenario checks the admitted operation counts and the
+receipts."""
 import json
 import os
 import pathlib
@@ -66,7 +68,8 @@ if sys.argv[1:4] == ['dev', 'wlan0', 'link']:
             kmsg('gwref10 cmd: n=%d cid=0x81 seq=%d set=0 len=16 bss=0 type=1' % (n, 40 + n))
             n += 1; set_state('n', n)
             kmsg('gwref10 event: n=%d eid=0x02 seq=%d len=20 hif=24' % (n, 40 + n - 1 if pc == 'ok' else 99))
-    if state('connected'):
+    import time
+    if state('connected') and time.time() >= state('connect_time', 0) + scenario('connected_after_s', 0):
         t = state('target')
         print('Connected to %s (on wlan0)\\n\\tSSID: %s\\n\\tfreq: %d\\n\\tsignal: -50 dBm' % (t['bssid'], t['ssid'], t['frequency_mhz']))
     else:
@@ -106,8 +109,14 @@ elif args[:1] == ['services'] and len(args) == 2:
     print('  Favorite = True'); print('  Passphrase = SHOULD-NOT-BE-COPIED'); print('  Name = Net Work')
 elif args[:1] == ['connect']:
     set_state('connect_calls', state('connect_calls', 0) + 1)
+    if state('connect_calls') == 1:
+        time.sleep(scenario('connect_delay', 0))
+        set_state('connect_time', time.time())
     if scenario('connect_unknown_method') and state('connect_calls') == 1:
         print("Error /net/connman/service/" + args[1] + ": Method \\"Connect\\" with signature \\"\\" on interface \\"net.connman.Service\\" doesn't exist", file=sys.stderr)
+        sys.exit(1)
+    if scenario('connect_result') == 'aborted' and state('connect_calls') == 1:
+        print("Error /net/connman/service/" + args[1] + ": Operation aborted", file=sys.stderr)
         sys.exit(1)
     if scenario('connect_result', 'ok') == 'fail' or (scenario('restore_result') == 'fail' and state('connect_calls') >= 2):
         set_state('connected', False)
@@ -123,6 +132,7 @@ elif args[:1] == ['connect']:
 elif args[:1] == ['disconnect']:
     time.sleep(scenario('disconnect_delay', 0))
     set_state('connected', False)
+    set_state('bss_queries', 0)
     if scenario('object_absent_calls') is not None:
         # the service object disappears after the disconnect for this many connmanctl calls
         set_state('object_absent_until', state('tick', 0) + scenario('object_absent_calls'))
@@ -133,8 +143,14 @@ elif args[:1] == ['config']:
     set_state('autoconnect', args[-1] == 'yes')
 ''' % SERVICE,
     'ip': '''
-import sys
+import sys, time
 a = ' '.join(sys.argv[1:])
+if scenario('gateway_recheck_delay') and state('connect_calls', 0) >= 1 and a in (
+        '-4 route show default dev wlan0', '-4 addr show dev wlan0', '-4 route show dev wlan0'):
+    # slow route and address reads after the measured connect; the connected wait's first address read stays fast
+    set_state('ip_calls_after_connect', state('ip_calls_after_connect', 0) + 1)
+    if a != '-4 addr show dev wlan0' or state('ip_calls_after_connect') > 1:
+        time.sleep(scenario('gateway_recheck_delay'))
 if a == '-4 route show default dev wlan0':
     print('default via 192.168.4.1 proto dhcp metric 600')
 elif a == '-4 addr show dev wlan0':
@@ -147,6 +163,33 @@ elif a == '-4 route show dev wlan0':
         print('192.168.4.0/24 proto kernel scope link src 192.168.4.20'); print('192.168.4.1 scope link')
 elif a == '-4 route get 192.168.4.1':
     print('192.168.4.1 via ??? ??? dev wlan0 src 192.168.4.20'); print('    cache')
+''',
+    'wpa_cli': '''
+import sys
+args = sys.argv[1:]
+log('wpa_cli ' + ' '.join(args[:3]))
+if args[:3] != ['-i', 'wlan0', 'bss'] or len(args) != 4:
+    print('Unknown command'); sys.exit(1)
+if scenario('lose_identity_during_bss_wait') and not state('connected'):
+    with open(os.path.join(ROOT, 'proc/sys/kernel/random/boot_id'), 'w') as f:
+        f.write('ffffffff-ffff-ffff-ffff-ffffffffffff' + chr(10))
+q = state('bss_queries', 0) + 1; set_state('bss_queries', q)
+t = state('target'); mode = scenario('bss_mode', 'fresh')
+bssid, freq, age = t['bssid'], t['frequency_mhz'], 2
+if state('connected'):
+    age = 1581                          # the stock cache: listed but old while associated
+elif mode == 'missing' or q <= scenario('bss_fresh_after_queries', 0):
+    sys.exit(0)                         # wpa_cli prints nothing for an unknown BSS
+elif mode == 'stale':
+    age = 300
+elif mode == 'mismatch':
+    freq = 5180
+elif mode == 'malformed':
+    print('id=5'); print('bssid=' + bssid); print('freq=%d' % freq); print('age=soon'); sys.exit(0)
+elif mode == 'query_error':
+    print('id=5'); print('bssid=' + bssid); print('freq=%d' % freq); print('age=2'); sys.exit(1)   # fresh-looking text, failed query
+print('id=5'); print('bssid=' + bssid); print('freq=%d' % freq); print('beacon_int=100'); print('level=-50')
+print('age=%d' % age); print('flags=[WPA2-PSK-CCMP][ESS]'); print('ssid=' + t['ssid'])
 ''',
     'ping': "log('ping ' + ' '.join(sys.argv[1:])); print('5 packets transmitted, 5 received')",
     'dmesg': "print('[    0.000000] fake dmesg')",
@@ -209,19 +252,31 @@ class Device:
         self.env = dict(os.environ, FAKE_ROOT=str(self.root), PATH=str(self.root / 'bin') + ':' + os.environ['PATH'],
                         GWREF10_SYSROOT=str(self.root), GWREF10_OUTPUT=str(self.root / 'out/cycle'),
                         GWREF10_KMSG_SOURCE=str(self.root / 'kmsg.log'), GWREF10_TICK='0.05',
-                        GWREF10_IW=str(self.root / 'bin/iw'), GWREF10_BOUND_DIR=str(self.root / 'bound'),
+                        GWREF10_IW=str(self.root / 'bin/iw'), GWREF10_WPA_CLI=str(self.root / 'bin/wpa_cli'),
+                        GWREF10_BOUND_DIR=str(self.root / 'bound'),
                         GWREF10_BUDGET_DIVISOR='5')
         self.env['GWREF10_CHECK'] = str(ROOT / 'lifecycle/cycle-check.py')
 
-    def run(self, boot=BOOT, timeout=120):
+    def run(self, boot=BOOT, timeout=120, interrupt_after=None, interrupt_delay=0.5):
+        """Run the executor; with interrupt_after, send SIGTERM to the executor shell interrupt_delay seconds after
+        that operation first appears in the fake device's log (the unit's RuntimeMaxSec or a custodian stop)."""
+        import signal, time
         kernel = subprocess.Popen(['python3', str(self.root / 'kernel.py')], env=self.env)
         try:
-            result = subprocess.run(['bash', str(SCRIPT), boot], env=self.env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout)
+            proc = subprocess.Popen(['bash', str(SCRIPT), boot], env=self.env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            if interrupt_after:
+                end = time.time() + timeout
+                while time.time() < end and interrupt_after not in self.ops() and proc.poll() is None:
+                    time.sleep(0.05)
+                time.sleep(interrupt_delay)
+                if proc.poll() is None:
+                    proc.send_signal(signal.SIGTERM)
+            out, err = proc.communicate(timeout=timeout)
         finally:
             kernel.kill()
             kernel.wait()
-        self.rc = result.returncode
-        self.stderr = result.stderr.decode()
+        self.rc = proc.returncode
+        self.stderr = err.decode()
         return self
 
     def receipt(self):
@@ -248,7 +303,9 @@ class ExecutorTest(unittest.TestCase):
         dev = self.device({}).run()
         self.assertEqual(dev.rc, 0, dev.stderr + dev.receipt())
         receipt = dev.receipt()
-        for line in ('positive_control=1', 'teardown1=1', 'connect=1 target_match=1', 'gateway_recheck=1', 'teardown2=1',
+        for line in ('positive_control=1', 'teardown1=1', 'readiness=1 readiness_wait_s=', 'bss_fresh_age_s=2',
+                     'connect_rpc_start_s=', 'connect_rpc_rc=0 connect_reply=ok connect_allow_s=8', 'connect=1 target_match=1 connected_at_s=',
+                     'gateway_recheck=1', 'teardown2=1',
                      'seal_state=2', 'seal_captured=1', 'stream_intact=1', 'cycle=complete', 'manifest_complete=1 manifest_missing= none frozen=1',
                      'ops_connect=1 ops_disconnect=2 ops_ping=1 ops_observer_writes=2 ops_autoconnect_writes=1',
                      'logger_stopped=1 logger_rc=0 logger_report=bytes=', 'stopped_by=signal',
@@ -280,6 +337,18 @@ class ExecutorTest(unittest.TestCase):
         kmsg = dev.out('kmsg-cycle.log').read_text()
         self.assertEqual(kmsg.count('gwref10 arm:'), 1)
         self.assertEqual(kmsg.count('gwref10 seal:'), 1)
+        # the BSS gate ran once after the teardown, read-only; the timeline carries no identifier
+        self.assertEqual(ops.count('wpa_cli -i wlan0 bss'), 1)
+        self.assertIn('ops_bss_queries=1', receipt)
+        timeline = dev.out('bss-timeline.txt').read_text()
+        self.assertEqual(timeline.count('\n'), 1)
+        self.assertIn('object_idle=1 query_rc=0 verdict_rc=0 bss_visible=1 bss_match=1 bss_age=2 bss_fresh=1', timeline)
+        self.assertNotIn(TARGET['bssid'], timeline)
+        self.assertNotIn('Net Work', timeline)
+        self.assertIn(TARGET['bssid'], dev.out('bss-snapshots.txt').read_text())   # private raw snapshot, in the manifest
+        self.assertIn('bss-snapshots.txt', sums)
+        self.assertIn('bss-timeline.txt', sums)
+        self.assertEqual(stat.S_IMODE(dev.out('bss-snapshots.txt').stat().st_mode), 0o400)
 
     def test_refusals_before_any_change(self):
         dev = self.device({}).run(boot='00000000-0000-0000-0000-000000000000')
@@ -397,39 +466,132 @@ class ExecutorTest(unittest.TestCase):
         dev = self.device({'object_absent_calls': 6}).run()
         self.assertEqual(dev.rc, 0, dev.receipt())
         receipt = dev.receipt()
-        self.assertIn('service_object_present=1', receipt)
+        self.assertIn('readiness=1', receipt)
         self.assertIn('cycle=complete', receipt)
         self.assertEqual(dev.ops().count('connmanctl connect'), 2)   # measured + restoration
+        self.assertIn('object_idle=0', dev.out('bss-timeline.txt').read_text())   # the early probes saw it absent
         # the object never comes back: no measured Connect, and the restoration cannot connect either
         dev = self.device({'object_absent_calls': 100000}).run()
         self.assertEqual(dev.rc, 5)   # the step failure keeps its code; the restoration outcome is in the receipt
         receipt = dev.receipt()
-        self.assertIn('service_object_present=0', receipt)
+        self.assertIn('readiness=0', receipt)
+        self.assertIn('object_idle_last=0', receipt)
+        self.assertIn('object_idle_checks=0', receipt)   # the object never came back
+        self.assertGreater(int(receipt.split('bss_visible_checks=')[1].split()[0]), 0)   # the BSS itself was fresh
+        # probes inside the clamp's 2 s reserve before the deadline are not started (query_rc=124) and never admit
+        self.assertIn('query_rc=0 verdict_rc=0 bss_visible=1 bss_match=1 bss_age=2 bss_fresh=1', dev.out('bss-timeline.txt').read_text())
         self.assertIn('restore_object_present=0', receipt)
         self.assertIn('restore_connected=0', receipt)
         self.assertIn('autoconnect_left_off=1', receipt)
         self.assertEqual(dev.ops().count('connmanctl connect'), 0)
-        self.assertIn('exit_step=connect rc_before_finish=5', receipt)
+        self.assertIn('exit_step=readiness rc_before_finish=5', receipt)   # the readiness stage, before any Connect
         # the object is listed but Connect still meets UnknownMethod: recorded, no retry
         dev = self.device({'connect_unknown_method': True}).run()
         self.assertEqual(dev.rc, 5)
         receipt = dev.receipt()
-        self.assertIn('service_object_present=1', receipt)
+        self.assertIn('readiness=1', receipt)
+        self.assertIn('connect_reply=unknown_method', receipt)
         self.assertIn('connect_unknown_method=1', receipt)
         self.assertEqual(dev.ops().count('connmanctl connect'), 2)   # one measured attempt, one restoration
         self.assertIn("doesn't exist", dev.out('connect-output.txt').read_text())
         # an object listed in a non-idle state is not admitted for the measured Connect
         dev = self.device({'object_state_after_disconnect': 'ready'}).run()
         self.assertEqual(dev.rc, 5)
-        self.assertIn('service_object_present=0', dev.receipt())
+        self.assertIn('readiness=0', dev.receipt())
+        self.assertIn('object_idle_last=0', dev.receipt())
         self.assertEqual(dev.ops().count('connmanctl connect'), 1)
         # identity lost while waiting for the object: the gate before Connect stops the radio call
         dev = self.device({'object_absent_calls': 6, 'lose_identity_during_readiness': True}).run()
         self.assertEqual(dev.rc, 7)
         receipt = dev.receipt()
-        self.assertIn('service_object_present=1', receipt)
+        self.assertIn('readiness=1', receipt)
         self.assertIn('identity_lost_at=connect', receipt)
         self.assertEqual(dev.ops().count('connmanctl connect'), 0)   # neither measured nor restoration
+
+    def test_target_bss_readiness(self):
+        # becomes fresh: the target is absent from wpa_supplicant's table for a while, then listed with a fresh age
+        dev = self.device({'bss_fresh_after_queries': 8}).run()
+        self.assertEqual(dev.rc, 0, dev.receipt())
+        receipt = dev.receipt()
+        self.assertIn('readiness=1', receipt)
+        self.assertIn('bss_visible_checks=1', receipt)
+        self.assertIn('bss_checks=9', receipt)
+        self.assertEqual(dev.ops().count('wpa_cli -i wlan0 bss'), 9)
+        timeline = dev.out('bss-timeline.txt').read_text().splitlines()
+        self.assertEqual(len(timeline), 9)
+        self.assertTrue(all('bss_visible=0' in line for line in timeline[:8]))
+        self.assertIn('verdict_rc=3', timeline[0])
+        # never fresh (stale, missing, malformed, other BSS or channel): no measured Connect, partial, restoration only
+        for mode, verdict_rc, flags in (('stale', 1, 'bss_visible=1 bss_match=1 bss_age=300 bss_fresh=0'),
+                                        ('missing', 3, 'bss_visible=0 bss_match=0 bss_age=none bss_fresh=0'),
+                                        ('malformed', 2, 'bss_visible=1 bss_match=1 bss_age=none bss_fresh=0'),
+                                        ('mismatch', 2, 'bss_visible=1 bss_match=0 bss_age=2 bss_fresh=0'),
+                                        ('query_error', 0, 'bss_visible=1 bss_match=1 bss_age=2 bss_fresh=1')):   # rc 1 never admits
+            dev = self.device({'bss_mode': mode}).run()
+            self.assertEqual(dev.rc, 5, mode)
+            receipt = dev.receipt()
+            self.assertIn('readiness=0', receipt)
+            self.assertIn('bss_fresh_last=0', receipt)
+            self.assertGreater(int(receipt.split('object_idle_checks=')[1].split()[0]), 0)
+            self.assertIn('readiness_allow_s=', receipt)
+            self.assertIn('exit_step=readiness rc_before_finish=5', receipt)
+            self.assertNotIn('connect_rpc_start_s', receipt)
+            self.assertEqual(dev.ops().count('connmanctl connect'), 1, mode)   # the restoration only
+            self.assertEqual(dev.ops().count('connmanctl disconnect'), 1)
+            self.assertIn('restore_connected=1', receipt)
+            self.assertIn('result=partial exit=5', receipt)
+            self.assertIn('query_rc=%d verdict_rc=%d %s' % (mode == 'query_error', verdict_rc, flags), dev.out('bss-timeline.txt').read_text())
+            wait = int(receipt.split('readiness_wait_s=')[1].split()[0])
+            allow = int(receipt.split('readiness_allow_s=')[1].split()[0])
+            self.assertGreaterEqual(wait, allow - 1)   # the wait ran its whole allowance, which the later stages bounded
+            self.assertLessEqual(allow, 60 // 5)
+        # the capture budget is exhausted before the traffic window: refused, no window, no second teardown
+        dev = self.device({'gateway_recheck_delay': 4.8, 'connected_after_s': 5}).run()
+        self.assertEqual(dev.rc, 4, dev.receipt())
+        receipt = dev.receipt()
+        self.assertIn('connect=1 target_match=1', receipt)
+        self.assertIn('traffic_window_refused=1', receipt)
+        self.assertIn('exit_step=traffic rc_before_finish=4', receipt)
+        self.assertFalse(dev.out('traffic-window').exists())
+        self.assertNotIn('ping', dev.ops())
+        self.assertEqual(dev.ops().count('connmanctl disconnect'), 1)
+        self.assertIn('seal_captured=1', receipt)
+        # identity lost during the BSS wait: the gate before Connect stops everything
+        dev = self.device({'bss_fresh_after_queries': 3, 'lose_identity_during_bss_wait': True}).run()
+        self.assertEqual(dev.rc, 7)
+        self.assertIn('identity_lost_at=connect', dev.receipt())
+        self.assertEqual(dev.ops().count('connmanctl connect'), 0)
+        # the observed abort: an 'Operation aborted' reply is a classified partial result with the RPC timed, no retry
+        dev = self.device({'connect_result': 'aborted'}).run()
+        self.assertEqual(dev.rc, 5)
+        receipt = dev.receipt()
+        self.assertIn('readiness=1', receipt)
+        self.assertIn('connect_rpc_rc=1 connect_reply=aborted', receipt)
+        self.assertIn('connect_aborted=1', receipt)
+        self.assertNotIn('connect=0', receipt)
+        self.assertIn('exit_step=connect rc_before_finish=5', receipt)
+        self.assertEqual(dev.ops().count('connmanctl connect'), 2)   # one measured attempt, one restoration
+        self.assertIn('Operation aborted', dev.out('connect-output.txt').read_text())
+        self.assertNotIn('Operation aborted', receipt)
+        self.assertIn('seal_captured=1', receipt)
+        self.assertIn('restore_connected=1', receipt)
+
+    def test_interruption_during_a_stage_still_cleans_up(self):
+        # SIGTERM while the measured Connect RPC is in flight: bash runs the trap when the RPC returns; the stage
+        # allowance active at that moment must not bound the seal, preservation and restoration phases
+        dev = self.device({'connect_delay': 2}).run(interrupt_after='connmanctl connect', interrupt_delay=0.3)
+        self.assertEqual(dev.rc, 143, dev.receipt())
+        receipt = dev.receipt()
+        self.assertIn('exit_step=connect rc_before_finish=143', receipt)
+        self.assertNotIn('connect_rpc_start_s', receipt)   # the step never reached its receipt
+        self.assertIn('seal_state=2', receipt)
+        self.assertIn('seal_captured=1', receipt)
+        self.assertIn('manifest_complete=1', receipt)
+        self.assertIn('restore_connected=1 ops_restore=1', receipt)
+        self.assertIn('autoconnect_after=True autoconnect_restored=1', receipt)
+        self.assertIn('result=partial exit=143', receipt)
+        self.assertEqual(dev.ops().count('connmanctl connect'), 2)
+        self.assertEqual(dev.ops().count('connmanctl disconnect'), 1)
 
     def test_identity_loss_stops_actions(self):
         dev = self.device({'lose_identity_after_connect': True}).run()

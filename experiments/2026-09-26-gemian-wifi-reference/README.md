@@ -1037,6 +1037,28 @@ runtime cause is not proven):
   event's causality. The running daemon matches the package binary
   ([live-supplicant-identity.txt](results/run2-v10/live-supplicant-identity.txt)).
 
+Executor revision after run 2 (host only; reviewed statically before any
+boot; kernel, observer, candidate and budgets unchanged): the measured
+connect is admitted only by a read-only, numeric readiness gate (the
+approved object idle and `wpa_cli -i wlan0 bss <target>` returning rc 0
+with the target's `bssid` and `freq` and an unsigned `age` of at most 10 s,
+a chosen freshness limit), each teardown's RPC and gate share one 25 s
+stage, the connect RPC and its connected wait share one allowance granted
+only after reserving the traffic window and the second teardown, the RPC's
+start, end, elapsed time, exit status and reply class are recorded, an
+aborted or unknown-method reply ends the step without retry, a stage
+allowance active at an interruption is dropped before the cleanup phases,
+and the private `bss-snapshots.txt` plus the identifier-free
+`bss-timeline.txt` join the frozen capture. The fake-device fixture covers a
+BSS that becomes fresh, one that stays stale, missing, malformed or
+mismatched, a failed query with fresh-looking text, an aborted reply,
+identity loss during the wait, budget exhaustion before the window and a
+SIGTERM during the connect RPC. The run-1 persistent-syslog excerpt
+([run1-userspace-log-sanitized.txt](results/run2-v10/run1-userspace-log-sanitized.txt))
+shows the same disconnect pair at its teardown and nothing from either
+daemon until its restoration associated 53 s after the deauthentication;
+both old runs' connect reply times remain unknown.
+
 ## v10 run 1: bounded partial result, no measured handshake (2026-10-10)
 
 The first v10 cycle ran once on boot `49387658-8633-401c-88be-8880116699ba`

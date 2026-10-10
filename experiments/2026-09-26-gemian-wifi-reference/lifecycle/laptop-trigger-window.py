@@ -82,10 +82,12 @@ def main():
     parser.add_argument('boot_id', help='the verified v10 boot ID the device cycle was launched with')
     parser.add_argument('local', help='this laptop\'s IPv4 address on the owner LAN')
     parser.add_argument('prefix', type=int)
-    parser.add_argument('--poll-seconds', type=int, default=120)
+    parser.add_argument('--poll-seconds', type=int, default=120, help='monotonic poll budget, 1 to 300 (the device unit\'s RuntimeMaxSec)')
     args = parser.parse_args()
     if not BOOT_ID.match(args.boot_id):
         parser.error('boot id is not a UUID')
+    if not 1 <= args.poll_seconds <= 300:
+        parser.error('poll budget must be between 1 and 300 seconds')
     outcome = run(args.ssh_alias, args.identity, args.boot_id, args.local, args.prefix, args.poll_seconds)
     print(' '.join('%s=%s' % (k, v) for k, v in sorted(outcome.items())))
     return 0 if outcome['sent'] else 1

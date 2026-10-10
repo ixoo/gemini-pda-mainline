@@ -188,8 +188,20 @@ monotonic clock (`/proc/uptime`): preflight 30 s, setup 20 s, capture 150 s
 after arm (the observer's own deadline is 240 s), seal 10 s (control 3 s,
 logger stop 3 s, parser the rest), preservation 20 s, restoration 60 s,
 finalisation 5 s, 295 s in all. Every external call runs under `timeout
---kill-after=2` clamped to the active phase deadline, and a call whose
-remaining allowance after that reserve is gone is not started. Live identity
+--kill-after=2` clamped to the active phase deadline and, inside a stage,
+to that stage's deadline, and a call whose remaining allowance after that
+reserve is gone is not started. Inside the capture the stages hold finite
+allowances that are granted only after reserving what the later stages
+need: each teardown's RPC and three-sample gate share one 25 s stage; the
+readiness wait gets at most 60 s and only what leaves the connect allowance
+plus the tail reserve; the measured connect's RPC and its connected wait
+share at most 40 s and only what leaves the tail reserve; the tail reserve
+is the 20 s traffic window plus the second teardown's 25 s stage plus 5 s,
+and the window is refused (exit 4, no window, no second teardown) if less
+than that remains. A stage allowance active at an interruption or error is
+dropped before the seal, preservation and restoration phases, which keep
+their own budgets. The laptop sender's poll budget is an argument between
+1 and 300 s. Live identity
 (root, aarch64, the v10 release, the boot ID) is checked before every
 observer write and every radio call, including the restoration; a loss stops
 all further actions and is reported. Operation counts are kept in the parent
@@ -265,17 +277,38 @@ parsed `gwref10` ledger.
    show the arm line, a `cmd` with `cid=0x81` and an `event` with `eid=0x02`
    within 3 s; otherwise the script seals, stops the stream and exits 2 before
    any radio action.
-5. Teardown one: `connmanctl disconnect <service>`; wait up to 20 s until
-   three consecutive `/sbin/iw dev wlan0 link` samples, one second apart,
-   report `Not connected` (carrier 0 alone is not the gate). Expected
-   records: `key addremove=0` for each key, `starm`, `state`, `bss active=0`
-   or `bssinfo connstate`, their response events and credits.
-6. The measured connect: `connmanctl connect <service>`; wait up to 40 s for
-   `iw` connected and an IPv4 address. Expected: scan and join commands,
-   authentication and association `txd`/`txdone`, EAPOL `rxd`/`txd` header
-   records, `key` add pairwise then group with their `cmd` sequences, every
-   `credit`, every `event` in order including each `keydone` with its class,
-   `starec`, `bssinfo`.
+5. Teardown one: `connmanctl disconnect <service>`; the RPC and the gate
+   share one 25 s stage: three consecutive `/sbin/iw dev wlan0 link`
+   samples, one second apart, must report `Not connected` (carrier 0 alone
+   is not the gate). Expected records: `key addremove=0` for each key,
+   `starm`, `state`, `bss active=0` or `bssinfo connstate`, their response
+   events and credits.
+6. Readiness, read-only, before the single measured connect: each second
+   the approved service object must be listed with `State = idle`, and
+   `wpa_cli -i wlan0 bss <target bssid>` (query rc 0, no scan request) must
+   list a BSS whose `bssid` and `freq` equal the bound target with an
+   unsigned `age` of at most 10 s, a chosen freshness limit rather than a
+   claimed scan period. Runs 1 and 2 met an unregistered object and an
+   aborted connect after their teardowns while both later restorations
+   associated within seconds; whether the target BSS was missing from
+   wpa_supplicant's table in between is a hypothesis this gate measures
+   instead of assuming. Raw query outputs stay in the private
+   `bss-snapshots.txt` (at most 90); `bss-timeline.txt` carries only offsets
+   from the arm, return codes, booleans and ages, one line per probe. The
+   wait is bounded by its allowance (above); when readiness is not reached
+   the run is partial with no measured connect and the receipt states the
+   wait, the probe counts and the last state.
+   The measured connect: `connmanctl connect <service>` after the identity
+   gate; the RPC and the wait for `iw` connected on the bound target with an
+   IPv4 address share one allowance. The receipt records the RPC's start,
+   end and elapsed seconds from the arm, its exit status and the reply
+   class (`ok`, `unknown_method`, `aborted`, `timeout`, `error`; the text
+   stays in the private `connect-output.txt`); any class but `ok` ends the
+   step as partial without retry. Expected on success: scan and join
+   commands, authentication and association `txd`/`txdone`, EAPOL
+   `rxd`/`txd` header records, `key` add pairwise then group with their
+   `cmd` sequences, every `credit`, every `event` in order including each
+   `keydone` with its class, `starec`, `bssinfo`.
 7. Traffic window, 20 s, target only: `ping -c 5 -W 2 <gateway>` at its
    start, then the window is held open to its end. The evidence of
    protected unicast is the `rxd` records of the replies (`sec` nonzero,
@@ -295,8 +328,9 @@ parsed `gwref10` ledger.
    from the owner LAN address. Whether the access point forwards them to the station is
    an observation; the parser reports group evidence as observed or missing,
    and no group behaviour is concluded without the records.
-8. Teardown two: `connmanctl disconnect <service>`; the same three-sample
-   `iw` gate, up to 20 s. This is the teardown from a fully keyed station.
+8. Teardown two: `connmanctl disconnect <service>`; the same shared 25 s
+   stage and three-sample `iw` gate. This is the teardown from a fully keyed
+   station.
 9. Seal: write `2` (after the identity gate), confirm the control reads `2`,
    stop the logger and require its clean report, and run the parser-backed
    seal check (one arm, one seal after it, no record after the seal, the
