@@ -24,8 +24,8 @@ PARENT_RECEIPT = HERE.parent / '2026-10-06-mt6797-wifi-common-init/results/candi
 PARENT_MANIFEST_SHA = '28e6b6df119c30c8c9e91ab9bd7c08cbaaef64504167265d6d74e7bde6aa4f1c'
 PARENT_BOOT2_SHA256 = '827a6582b8913d5130704be38a347beceda2a133b8b86a4033e6fa06df892ce9'
 PARENT_RELEASE = b'7.1.3-gemini-a53-wifi-phase-a'
-COMMIT = 'eba4baa44b273b45e744c4c017508b6efd61b8ce'
-PACKAGE = '49afb45dc20416a4c1882e1cc198b4f1cc6285b283d61cfb611d82dbf1c0c112'
+COMMIT = '9aa567d732777f11ed91864579db159895f730d7'
+PACKAGE = '46f3682fd941047e169b0855025a17e86130c5c8242e6ba54b642ee67093368f'
 PROFILE = 'mt6797-a53-wifi-phase-b-compile'
 RELEASE = '7.1.3-gemini-a53-wifi-phase-b-compile'
 BUILT_DTB_SHA256 = '07b097d581cae6208eea8387d534e14bb2c2bc30752b0d4b783f711284284734'
@@ -80,6 +80,25 @@ def add_helper(members, helper):
     return new
 
 
+def expected_kernel_config(parent_config):
+    """The exact Phase B configuration derived from the Phase A parent's: the
+    release name, the station-join option after the scan-tuning sample, and,
+    since compile 19, packet sockets enabled where the parent left them unset
+    (the pinned supplicant opens one PF_PACKET socket per interface) with the
+    PACKET_DIAG prompt that becomes visible left off. Anything else differing
+    from the parent is an unrelated change and is refused.
+    """
+    require(parent_config.count(b'\n# CONFIG_PACKET is not set\n') == 1 and
+            b'CONFIG_PACKET_DIAG' not in parent_config, 'parent packet-socket lines changed')
+    return parent_config.replace(
+        b'CONFIG_LOCALVERSION="-gemini-a53-wifi-phase-a"',
+        b'CONFIG_LOCALVERSION="-gemini-a53-wifi-phase-b-compile"').replace(
+        b'CONFIG_MT6797_SCAN_TUNING_SAMPLE=y\n',
+        b'CONFIG_MT6797_SCAN_TUNING_SAMPLE=y\nCONFIG_MT6797_STATION_JOIN=y\n').replace(
+        b'\n# CONFIG_PACKET is not set\n',
+        b'\nCONFIG_PACKET=y\n# CONFIG_PACKET_DIAG is not set\n')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('kernel-package', 'parent', 'helper', 'output'):
@@ -124,7 +143,7 @@ def main():
                 b'CONFIG_MTK_MT6797_CONSYS=y\n', b'CONFIG_MT6797_MAC80211=y\n',
                 b'CONFIG_MT6797_PASSIVE_SCAN=y\n', b'CONFIG_MT6797_SCAN_TUNING_SAMPLE=y\n',
                 b'CONFIG_MT6797_STATION_JOIN=y\n', b'CONFIG_ARM_PSCI_FW=y\n',
-                b'CONFIG_CMDLINE_FORCE=y\n',
+                b'CONFIG_PACKET=y\n', b'CONFIG_CMDLINE_FORCE=y\n',
                 b'CONFIG_CRYPTO_LIB_SHA256=y\n', b'CONFIG_DEBUG_FS=y\n',
                 b'CONFIG_SERIAL_8250_CONSOLE=y\n',
                 ('CONFIG_LOCALVERSION="-' + RELEASE.split('-', 1)[1] + '"\n').encode())),
@@ -133,12 +152,7 @@ def main():
             'compiled board DT changed')
 
     parent_config = regular(parent / 'kernel.config')
-    expected_config = parent_config.replace(
-        b'CONFIG_LOCALVERSION="-gemini-a53-wifi-phase-a"',
-        b'CONFIG_LOCALVERSION="-gemini-a53-wifi-phase-b-compile"').replace(
-        b'CONFIG_MT6797_SCAN_TUNING_SAMPLE=y\n',
-        b'CONFIG_MT6797_SCAN_TUNING_SAMPLE=y\nCONFIG_MT6797_STATION_JOIN=y\n')
-    require(config == expected_config, 'unrelated kernel configuration change')
+    require(config == expected_kernel_config(parent_config), 'unrelated kernel configuration change')
     command = [line for line in config.splitlines() if line.startswith(b'CONFIG_CMDLINE=')]
     require(len(command) == 1 and b' clk_ignore_unused ' in command[0] and
             b'regulator_ignore_unused' not in command[0] and
