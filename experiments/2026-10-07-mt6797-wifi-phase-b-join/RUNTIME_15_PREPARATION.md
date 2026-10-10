@@ -1,13 +1,28 @@
-# Fourteenth Phase B deployment, runtime 15: candidate 14 composed, not installed
+# Fourteenth Phase B deployment, runtime 15 awaiting the owner's boot
 
-Status: candidate 14 is composed and offline-validated by the owner with the
-reviewed composer at `c3dca374`; it is not installed, no device action has
-happened since runtime 14's reviewed recovery, and the device is in
-changed-boot Gemian `572f3ea9…` with the installed candidate 13 (full padded
-boot2 `ec412ce9…`) as the predecessor. The owner alone prepares and reviews
-the guarded installer, performs deployment 14, runs both offline preflights on
-the actual deployment-14 summary, shuts down cleanly and hands over to the
-physical boot2 start; the frozen laptop wrappers then run once each.
+Status: candidate 14 is installed and fully read back; the device was cleanly
+powered off and is unbooted, awaiting the owner's physical boot2 start. The
+laptop, as sole custodian, will execute the reviewed runtime-15 capture and
+session exactly once after that; no radio action, mainline boot or runtime
+evidence exists yet.
+
+The [guarded deployment receipt](results/deployment-14.json) (the owner's
+22-field summary, SHA-256 `431f794c…`) pins candidate 14: receipt
+`889b101f…`, full padded boot2 `911e3d67…`, written over predecessor candidate
+13 `ec412ce9…`, synced and flushed, with the independent full 16 MiB byte
+readback matching. The installer was prepared from source `da5a776a`
+(generated installer SHA-256 `b99c021a…`; prepare, syntax and ShellCheck
+passed) and executed once under the standing boot2 authorization; the probe,
+write and post-write device guards passed on live Gemian boot `572f3ea9…`
+(3.18.41+), target `179:30` (`/dev/mmcblk0p30`), non-root `179:29`, stable
+power; no fresh predecessor backup, temporary readback removed, evidence
+flushed, clean power-off (rc 0) confirmed unreachable, nothing rebooted.
+
+Runtime-15 preparation on the laptop at `da5a776a`: a fresh evidence root with
+`wifi-phase-b/session-15` holding the actual deployment-14 summary and
+`capture-15` absent; both offline preflights (`laptop-capture.py`,
+`laptop-session.py`) passed on candidate 14 with the owner's fresh PSK-bound
+script (syntax passed); no execution claim exists.
 
 The committed receipt [results/candidate-14.json](results/candidate-14.json)
 (SHA-256 `889b101f…`, the owner's receipt byte for byte) pairs the compile-19

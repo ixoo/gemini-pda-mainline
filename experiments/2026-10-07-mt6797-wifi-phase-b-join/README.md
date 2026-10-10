@@ -347,8 +347,9 @@ board DT `25ab60f4…`; kernel config `975f8703…`, image `ce526e77…`, boot i
 composed and validated it privately with the reviewed composer; the committed
 receipt [results/candidate-14.json](results/candidate-14.json) (SHA-256
 `889b101f…`) is that receipt's exact bytes, and `runtime-15/results/candidate.json`
-is its copy. Deployment 14 goes over the installed candidate 13 (`ec412ce9…`);
-it has not happened. [RUNTIME_15_PREPARATION](RUNTIME_15_PREPARATION.md)
+is its copy. [Deployment 14](results/deployment-14.json) wrote it over the
+installed candidate 13 (`ec412ce9…`) with the full readback matching; the
+device is powered off awaiting the owner's boot2 start. [RUNTIME_15_PREPARATION](RUNTIME_15_PREPARATION.md)
 states the measured dependency change and the C2 hypothesis. Bindings, with
 every prior receipt, copy and piece of evidence untouched:
 
