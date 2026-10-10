@@ -215,6 +215,32 @@ class KmsgTest(unittest.TestCase):
             self.assertEqual(stdout.decode().strip(), 'bytes=0 capped=0 drops=0 failure=none stopped_by=signal')
 
 
+class GatewayTest(unittest.TestCase):
+    DEFAULT = 'default via 192.168.4.1 dev wlan0  proto dhcp  metric 600\n'
+    ADDR = ('3: wlan0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP group default qlen 1000\n'
+            '    inet 192.168.4.20/24 brd 192.168.4.255 scope global dynamic wlan0\n       valid_lft 86000sec preferred_lft 86000sec\n')
+    ROUTES = '192.168.4.0/24 proto kernel scope link src 192.168.4.20\n192.168.4.1 scope link\n'
+
+    def check(self, default=DEFAULT, addr=ADDR, routes=ROUTES):
+        return MOD['gateway_check']('----'.join((default, addr, routes)))
+
+    def test_owner_lan_gateway(self):
+        self.assertEqual(self.check(), '192.168.4.1')
+        # iproute2 4.9 shows the kernel's RTA_UID as 'via ??? ???' in route get; this gate never reads route get
+        self.assertEqual(self.check(routes=self.ROUTES + '192.168.4.1 via ??? ??? dev wlan0 src 192.168.4.20\n'), '192.168.4.1')
+
+    def test_refusals(self):
+        for kw in (dict(default=''), dict(default=self.DEFAULT * 2), dict(default='default via 8.8.8.8 dev wlan0\n'),
+                   dict(default='default via 192.168.5.1 dev wlan0\n'), dict(default='default via 192.168.4.20 dev wlan0\n'),
+                   dict(addr=self.ADDR.replace('inet 192.168.4.20/24', 'inet 192.168.4.20/8')),
+                   dict(addr=self.ADDR + '    inet 192.168.4.21/24 brd 192.168.4.255 scope global secondary wlan0\n'),
+                   dict(addr=''), dict(routes=''), dict(routes='192.168.4.0/24 proto kernel scope global src 192.168.4.20\n')):
+            with self.assertRaises(ValueError, msg=kw):
+                self.check(**kw)
+        with self.assertRaises(ValueError):
+            MOD['gateway_check']('only one block')
+
+
 class CliTest(unittest.TestCase):
     def test_errors_carry_no_identifiers(self):
         with unittest.mock.patch.object(MOD['sys'], 'stdin', io.StringIO('wifi_0211223344aa_4e65_managed_psk')):

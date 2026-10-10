@@ -14,6 +14,12 @@ Compatible with the device's Python 3.5. Subcommands:
                      followed by an `event` record with eid=0x02 and the same seq
   seal-check FILE    exit 0 when the capture is a complete gwref10 stream: one arm, one seal after it,
                      no record after the seal, the parser's stream integrity and the seal counts
+  gateway-check      stdin: the outputs of `ip -4 route show default dev wlan0`, `ip -4 addr show dev wlan0`
+                     and `ip -4 route show dev wlan0` separated by lines of `----`; exit 0 and print the
+                     gateway when exactly one default gateway exists, wlan0 has exactly one IPv4 address, the
+                     gateway lies in that address's prefix, an on-link `scope link` route for the prefix is
+                     present, the gateway is RFC 1918 and is not the local address (no `ip route get`:
+                     iproute2 4.9 prints this kernel's RTA_UID attribute as `via ??? ???`)
   kmsg-stream SOURCE OUT BOUND
                      copy SOURCE (/dev/kmsg, or a growing file for fixtures) to OUT, flushing every
                      read, stopping at BOUND bytes or on SIGTERM; prints bytes=<n> capped=<0|1>;
@@ -116,6 +122,35 @@ def positive_control(lines, arm_seq):
         if event and int(event.group(1)) in pending:
             return True
     return False
+
+
+def gateway_check(text):
+    """The owner-LAN gateway from unambiguous on-link routes, or ValueError (no identifiers in the message)."""
+    import ipaddress
+    parts = text.split('----')
+    if len(parts) != 3:
+        raise ValueError('expected three route and address blocks')
+    default, addr, routes = parts
+    gateways = re.findall(r'^default via (\d+\.\d+\.\d+\.\d+)(?: |$)', default, re.M)
+    if len(gateways) != 1:
+        raise ValueError('expected exactly one default gateway')
+    locals_ = re.findall(r'^\s+inet (\d+\.\d+\.\d+\.\d+)/(\d+) ', addr, re.M)
+    if len(locals_) != 1:
+        raise ValueError('expected exactly one IPv4 address on wlan0')
+    gateway = ipaddress.ip_address(gateways[0])
+    local = ipaddress.ip_address(locals_[0][0])
+    network = ipaddress.ip_network('%s/%s' % locals_[0], strict=False)
+    private = any(gateway in ipaddress.ip_network(n) for n in ('10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16'))
+    if not private:
+        raise ValueError('gateway is not RFC 1918')
+    if not 16 <= network.prefixlen <= 30:
+        raise ValueError('prefix outside 16..30')
+    if gateway not in network or gateway == local:
+        raise ValueError('gateway is not another host in the local prefix')
+    onlink = re.search(r'^%s(?: .*)? scope link(?: |$)' % re.escape(str(network)), routes, re.M)
+    if not onlink:
+        raise ValueError('no on-link route for the local prefix')
+    return str(gateway)
 
 
 def load_parser():
@@ -238,6 +273,9 @@ def main(argv):
             print(' '.join('%s=%s' % (k, v) for k, v in sorted(summary.items())))
             print('seal_ok=%d' % ok)
             return 0 if ok else 1
+        if command == 'gateway-check':
+            print(gateway_check(sys.stdin.read()))
+            return 0
         if command == 'kmsg-stream' and len(argv) == 5:
             return kmsg_stream(argv[2], argv[3], int(argv[4]))
     except (OSError, ValueError, UnicodeError) as error:

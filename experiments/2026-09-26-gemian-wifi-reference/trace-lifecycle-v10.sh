@@ -82,14 +82,14 @@ service=$(awk '/^\*A[OR] / && $NF ~ /^wifi_/ {print $NF; exit}' <<<"$services")
 printf '%s' "$service" | python3 "$check" service-match >/dev/null || fail 'connected service is not the approved one'
 link=$(bounded 5 "$iw" dev wlan0 link) || fail 'iw link failed'
 python3 "$check" link-match <<<"$link" >/dev/null || fail 'the association is not the bound target'
-gateway=$(bounded 5 ip -4 route show default dev wlan0 | awk '/^default via/ {print $3; exit}')
-[[ "$gateway" =~ ^[0-9]+(\.[0-9]+){3}$ ]] || fail 'no IPv4 default gateway on wlan0'
-gateway_direct() {
-  local route
-  route=$(bounded 5 ip -4 route get "$gateway" | head -n 1) || return 1
-  grep -q ' dev wlan0 ' <<<"$route" && ! grep -q ' via ' <<<"$route"
+# The owner-LAN gateway from unambiguous on-link routes (no `ip route get`: iproute2
+# 4.9 prints this kernel's RTA_UID attribute as `via ??? ???`), rechecked after the connect.
+lan_gateway() {
+  { bounded 5 ip -4 route show default dev wlan0; printf -- '----\n'; bounded 5 ip -4 addr show dev wlan0; printf -- '----\n';
+    bounded 5 ip -4 route show dev wlan0; } | python3 "$check" gateway-check
 }
-gateway_direct || fail 'gateway is not a directly attached LAN endpoint'
+gateway=$(lan_gateway) || fail 'gateway is not an owner-LAN endpoint on wlan0'
+gateway_direct() { local again; again=$(lan_gateway) && [[ "$again" == "$gateway" ]]; }
 autoconnect=$(bounded 10 connmanctl services "$service" | awk '/^  AutoConnect = / {print $3; exit}')
 [[ "$autoconnect" == True || "$autoconnect" == False ]] || fail 'cannot read AutoConnect'
 in_phase || fail 'preflight budget exhausted'

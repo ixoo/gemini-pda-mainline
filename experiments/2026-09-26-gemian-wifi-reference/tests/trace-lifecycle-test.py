@@ -117,8 +117,11 @@ elif a == '-4 addr show dev wlan0':
     if state('connected'): print('    inet 192.168.4.20/24 brd 192.168.4.255 scope global wlan0')
 elif a == 'route':
     print('default via 192.168.4.1 dev wlan0')
+elif a == '-4 route show dev wlan0':
+    if state('connected'):
+        print('192.168.4.0/24 proto kernel scope link src 192.168.4.20'); print('192.168.4.1 scope link')
 elif a == '-4 route get 192.168.4.1':
-    print('192.168.4.1 dev wlan0 src 192.168.4.20 uid 0')
+    print('192.168.4.1 via ??? ??? dev wlan0 src 192.168.4.20'); print('    cache')
 ''',
     'ping': "log('ping ' + ' '.join(sys.argv[1:])); print('5 packets transmitted, 5 received')",
     'dmesg': "print('[    0.000000] fake dmesg')",

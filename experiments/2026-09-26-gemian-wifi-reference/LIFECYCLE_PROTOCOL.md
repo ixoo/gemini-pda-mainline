@@ -189,7 +189,15 @@ remaining allowance after that reserve is gone is not started. Live identity
 (root, aarch64, the v10 release, the boot ID) is checked before every
 observer write and every radio call, including the restoration; a loss stops
 all further actions and is reported. Operation counts are kept in the parent
-shell. The kernel log is copied by `cycle-check.py kmsg-stream`, which opens
+shell. The owner-LAN gateway comes from unambiguous on-link routes (`ip -4
+route show default dev wlan0`, `ip -4 addr show dev wlan0`, `ip -4 route show
+dev wlan0`): exactly one default gateway, one IPv4 address on `wlan0`, the
+gateway inside that address's prefix (16 to 30) with a `scope link` route
+for it, RFC 1918 and not the local address, rechecked after the connect.
+`ip route get` is not used: the pinned kernel's reply carries the
+Android-specific `RTA_UID` attribute (number 18 in its `rtnetlink.h`,
+emitted by `rt_fill_info` in `net/ipv4/route.c`), which iproute2 4.9
+(`iproute2-ss161212`) prints as an unknown-family `via ??? ???`. The kernel log is copied by `cycle-check.py kmsg-stream`, which opens
 `/dev/kmsg` non-blocking, flushes every read, counts `EPIPE` drops, reports
 any other read failure, stops at an exact byte bound and ends normally on
 `SIGTERM` with a `bytes capped drops failure stopped_by` report; the seal
