@@ -347,8 +347,10 @@ Candidate 19 pairs the [compile 24](COMPILE_24.md) package `295e881b…` (input
 and validated it privately with the reviewed composer; the committed receipt
 [results/candidate-19.json](results/candidate-19.json) (SHA-256 `92b60a90…`)
 is that receipt's exact bytes and `runtime-20/results/candidate.json` its
-copy. Deployment 19 goes over the installed candidate 18 (`dfdf6bcb…`); it
-has not happened. [RUNTIME_20_PREPARATION](RUNTIME_20_PREPARATION.md) states
+copy. [Deployment 19](results/deployment-19.json) wrote it over the installed
+candidate 18 (`dfdf6bcb…`) with the full readback matching; the device is
+powered off awaiting the owner's boot2 start, and nothing about Wi-Fi is
+measured by that. [RUNTIME_20_PREPARATION](RUNTIME_20_PREPARATION.md) states
 the hypothesis. Bindings, with every prior receipt, copy and piece of
 evidence untouched:
 
