@@ -449,6 +449,21 @@ data-path shapes through mac80211, replay the reference offline) is admitted
 as hardware-free source work and awaits its proposal diff, checks and
 combined test protocol before any build.
 
+## Runtime 26 bindings (2026-10-11)
+
+Candidate 25 pairs the [compile 30](COMPILE_30.md) package `2b219cf3…` with
+candidate 24's RAM root byte-identical, the same board DT and kernel config;
+boot image `195c7683…`, full padded boot2 `b38d25a9…`. The custodian composed
+and validated it privately at 04894e89; the committed receipt
+[results/candidate-25.json](results/candidate-25.json) (SHA-256 `19a7a340…`)
+is that receipt's exact bytes and `runtime-26/results/candidate.json` its
+copy. The installer's predecessor is the installed candidate 24
+(`35014d84…`). [RUNTIME_26_PREPARATION](RUNTIME_26_PREPARATION.md) states
+what differs from runtime 25 (proposal 0172 only), the hypothesis that the
+retained grant changes the first TC1 completion, the measurements that keep
+page consumption, TX completion and delivery apart, the five branches, and
+the bindings table. Nothing has been installed or booted.
+
 ## Compile 30 and the candidate 25 pins (2026-10-11)
 
 [COMPILE_30.md](COMPILE_30.md): the phase-B compile profile at da50d8b6 with
