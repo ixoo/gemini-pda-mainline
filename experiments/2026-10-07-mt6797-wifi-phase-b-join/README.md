@@ -470,7 +470,7 @@ classifier closes a submitted command's accounting on its running refusal and
 waives the removals for a fail-stopped lifetime. The device script prints one
 `keepalive` line every 20 ticks so the 60 s idle timeout cannot close the
 100 s wait. Fixtures: `tests/join-peer-test.c` (the runtime 23 ordering
-succeeds, the absent credit still fails, the running refusal emits one footer
+succeeds, the late wake after a timely credit succeeds, the absent credit still fails, the running refusal emits one footer
 and frees once, the post-stop refusal emits none), `tests/join-ownership-test.c`
 (an externally raised stop ends the lifetime with that status),
 `tests/host-test.py` (the runtime 23 shape with and without the footer),

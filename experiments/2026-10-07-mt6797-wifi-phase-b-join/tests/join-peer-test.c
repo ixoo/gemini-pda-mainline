@@ -129,6 +129,7 @@ static unsigned locked, writes, waits, fail_write, fail_wait, released;
 static unsigned order[16];
 static int wait_mode;
 static bool race_dequeue; /* runtime 23: the worker submits the queued reply right after completing the credit */
+static bool race_late_wake; /* and the waiter reacquires the mutex only after the credit deadline has passed */
 static struct sk_buff *race_reply;
 static bool idle;
 static void ieee80211_connection_loss(struct ieee80211_vif *v)
@@ -214,6 +215,7 @@ static unsigned long wait_for_completion_timeout(struct completion *c,unsigned l
    assert(!active->join_credit_pending && !active->join_page_debt);
    active->join_queue.head=NULL; active->join_inflight=race_reply; active->join_last_acked=false; active->join_page_debt=2;
    active->join_frame_deadline=now+750*NSEC_PER_MSEC;
+   if(race_late_wake) now=active->join_credit_deadline+NSEC_PER_MSEC; /* the waiter wakes late; its credit was timely */
   }
  } else if(c==&active->join_channel_done) {
   memset(active->join_packet,0,24);
@@ -479,10 +481,18 @@ int main(void)
      assert(!mt6797_mac_set_key(&hw,SET_KEY,&vif,&sta,&ptk));
      assert(m.join_key_pairwise==1 && m.join_inflight==&reply && m.join_page_debt==2 && !m.join_credit_pending && !m.first_error && m.join_running);
      race_dequeue=false; race_reply=NULL; m=saved; active=&m; writes=saved_writes; key_adds=saved_adds; key_pairwise=saved_pw; }
+   /* The same ordering with the waiter reacquiring the mutex only after the captured
+    * credit deadline has passed: the credit was returned in time by the worker (the
+    * flag cleared before the deadline), so the owned completion still succeeds with
+    * the new frame's debt in place; the clock is restored on exit. */
+   { struct mt6797_mac saved=m; unsigned saved_writes=writes, saved_adds=key_adds, saved_pw=key_pairwise; u64 saved_now=now;
+     m.join_key_pairwise=0; m.join_key_pairwise_submitted=false; m.join_queue.head=&reply; race_dequeue=true; race_late_wake=true; race_reply=&reply;
+     assert(!mt6797_mac_set_key(&hw,SET_KEY,&vif,&sta,&ptk));
+     assert(now>m.join_credit_deadline && m.join_key_pairwise==1 && m.join_inflight==&reply && m.join_page_debt==2 && !m.join_credit_pending && !m.first_error && m.join_running);
+     race_dequeue=false; race_late_wake=false; race_reply=NULL; now=saved_now; m=saved; active=&m; writes=saved_writes; key_adds=saved_adds; key_pairwise=saved_pw; }
    /* The genuinely absent credit still fails: the waiter wakes at the worker's credit
     * deadline with the flag still pending (wait mode 3) and the command is refused
-    * through the one terminal path (footer once); the late wake after a timely credit
-    * above succeeded. */
+    * through the one terminal path (footer once). */
    { struct mt6797_mac saved=m; unsigned saved_writes=writes, saved_adds=key_adds, saved_pw=key_pairwise, f0=footers; u64 saved_now=now;
      m.join_key_pairwise=0; m.join_key_pairwise_submitted=false; fail_wait=waits+1; wait_mode=3;
      assert(mt6797_mac_set_key(&hw,SET_KEY,&vif,&sta,&ptk)==-ETIMEDOUT && m.first_error==-ETIMEDOUT && m.join_retired && !m.join_running && footers==f0+1 && !locked);
