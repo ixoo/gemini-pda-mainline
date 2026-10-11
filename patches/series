@@ -778,3 +778,4 @@ proposals/0164-wifi-mt6797-install-the-group-key-under-the-AP-stati.patch
 proposals/0165-wifi-mt6797-release-the-channel-privilege-after-the-.patch
 proposals/0166-wifi-mt6797-deliver-protected-non-aggregated-data-fr.patch
 proposals/0167-wifi-mt6797-transmit-mac80211-s-protected-data-frame.patch
+proposals/0168-wifi-mt6797-discard-the-clear-broadcast-Action-frame.patch

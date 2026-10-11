@@ -63,6 +63,8 @@ def classify(raw):
                      rb'eapol (?:observed|delivered): translated=[01] frame=\d{1,4} activated=[01] vector=[01] bss=(?:1|15)',
                      # Phase C2: protected group-addressed data from the target, discarded undelivered (first eight recorded).
                      rb'group data discarded: bytes=\d{1,4} fc=0x[0-9a-f]{1,4} match=0x[0-9a-f]{2} wlan=\d{1,3} bss=\d{1,2} sec=\d{1,2} status=0x[0-9a-f]{4} count=[1-8]',
+                     # Runtime 21 (0168): a clear broadcast Action frame whose descriptor names no WLAN table entry, discarded undelivered (each of at most eight recorded, at any stage).
+                     rb'group action frame discarded: bytes=\d{1,4} fc=0x[0-9a-f]{1,4} match=0x08 wlan=255 bss=\d{1,2} sec=0 status=0xe000 count=[1-8]',
                      # Phase C2: the target's directed clear Action frame, discarded undelivered (each of at most eight recorded).
                      rb'action frame discarded: bytes=\d{1,4} fc=0x[0-9a-f]{1,4} match=0x[0-9a-f]{2} wlan=\d{1,3} bss=\d{1,2} sec=\d{1,2} status=0x[0-9a-f]{4} count=[1-8]')
     diagnostics = refusals + notifications
@@ -72,6 +74,7 @@ def classify(raw):
     eapol_rows = []
     group_rows = []
     action_rows = []
+    group_action_rows = []
     refused = False
     stopped_index = None
     malformed = False
@@ -98,6 +101,8 @@ def classify(raw):
                     group_rows.append((index, int(body.rsplit(b'count=', 1)[1])))
                 elif body.startswith(b'action frame discarded:'):
                     action_rows.append((index, int(body.rsplit(b'count=', 1)[1])))
+                elif body.startswith(b'group action frame discarded:'):
+                    group_action_rows.append((index, int(body.rsplit(b'count=', 1)[1])))
                 elif body.startswith(b'data TX: first') or body.startswith(b'data RX: first') or body.startswith(b'data RX outside:'):
                     pass  # Phase C3 first-frame notifications: metadata, neither refusal nor stage
                 elif body.startswith(b'eapol observed:') or body.startswith(b'eapol delivered:'):
@@ -216,20 +221,42 @@ def classify(raw):
     # translated 4+length, declared length 95..2048) and the activated field
     # agreeing with the activation record's placement. They are reported
     # separately and never form part of the association verdict.
+    # Runtime 21 (0168): the broadcast Action discards are admitted at any stage
+    # of the lifetime, including the cleanup stages, up to its terminal record:
+    # rows['cleanup'] is the stage-3 terminal line only (the stage submissions
+    # are 'cleanup_submission'), so the window closes at that line or at the
+    # stopped footer, exactly the driver's join_cleanup_done; numbered 1..8 in
+    # order, each once.
+    stage3_terminal = [row[0] for row in rows['cleanup']]
+    lifetime_end = min(stage3_terminal + ([stopped_index] if stopped_index is not None else []), default=None)
+    if group_action_rows and (
+            [count for _, count in group_action_rows] != list(range(1, len(group_action_rows) + 1)) or
+            (lifetime_end is not None and any(index >= lifetime_end for index, _ in group_action_rows))):
+        malformed = True
     if eapol_rows or group_rows or action_rows:
         deauth_tx = [row for row in tx if row[1] == 12]
         deauth_done = [row[0] for row in done if deauth_tx and row[1] == deauth_tx[0][2] and row[0] > deauth_tx[0][0]]
         association_at = association[0][0] if len(association) == 1 else None
         activation_at = rows['activation'][0][0] if len(rows['activation']) == 1 else None
+        # The window closes at the deauthentication's matched TX done; a lifetime
+        # that fail-stopped before its deauthentication (the stopped footer with
+        # no deauthentication TX) closes at the footer instead: the records are
+        # then placed, not malformed, and the refusal decides the verdict.
+        if len(deauth_tx) == 1 and len(deauth_done) == 1:
+            window_end = deauth_done[0]
+        elif not deauth_tx and stopped_index is not None:
+            window_end = stopped_index
+        else:
+            window_end = None
         if (len(eapol_rows) > 2 or not accepted or association_at is None or activation_at is None or
-                len(deauth_tx) != 1 or len(deauth_done) != 1):
+                window_end is None):
             malformed = True
         else:
             # Discards are admitted only after the activation and before the
-            # deauthentication's TX done, numbered 1..8 in order, each once.
+            # window's end, numbered 1..8 in order, each once.
             for discard_rows in (group_rows, action_rows):
                 if [count for _, count in discard_rows] != list(range(1, len(discard_rows) + 1)) or any(
-                        not (activation_at < index < deauth_done[0]) for index, _ in discard_rows):
+                        not (activation_at < index < window_end) for index, _ in discard_rows):
                     malformed = True
             for index, translated, frame, activated, _vector, bss in eapol_rows:
                 # Tag 15 is admitted only before the activation and tag 1 only
@@ -238,7 +265,7 @@ def classify(raw):
                 if (bss == 15 and activated) or (bss == 1 and not activated):
                     malformed = True
                 low, high = (99, 2052) if translated else (131, 2084)
-                if (not (association_at < index < deauth_done[0]) or not (low <= frame <= high) or
+                if (not (association_at < index < window_end) or not (low <= frame <= high) or
                         activated != int(index > activation_at)):
                     malformed = True
     healthy = (not malformed and not stopped and not refused and len(rows['peer']) == 1 and
@@ -325,6 +352,7 @@ def classify(raw):
         'group_data_discard_records': len(group_rows),
         'group_data_discard_record_limit': 8,
         # Action frames: each discard is recorded and the cap is eight, so this is the total.
+        'group_action_frame_discards': len(group_action_rows),
         'action_frame_discards': len(action_rows),
         'action_frame_discard_limit': 8,
         'terminal_failure_recorded': stopped,

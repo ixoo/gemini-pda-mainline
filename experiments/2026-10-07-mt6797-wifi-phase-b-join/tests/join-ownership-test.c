@@ -624,6 +624,31 @@ static void script_action_frame(unsigned match, unsigned fc, bool da_own)
 	script_bytes[script_count++] = bytes;
 }
 
+/* Runtime 21's class: descriptor bytes 08 28 18 3c ff 00 00 e0, groups 1 to 3, a clear Action
+ * frame to the broadcast address from a fixture transmitter and BSSID (not the target), 644
+ * wire bytes; `match`, `fc`, `wlan` and `bcast` perturb the class. The body is fixture zeros.
+ */
+static void script_group_action_frame(unsigned match, unsigned fc, unsigned wlan, bool bcast)
+{
+	static const u8 other[ETH_ALEN] = { 2, 0, 0, 0, 0, 9 };
+	u8 *p = script[script_count];
+	size_t off = 64, bytes = off + 644;
+
+	assert(script_count < 6);
+	memset(p, 0, sizeof(script[0]));
+	put_unaligned_le16(0xe001 | 7 << 9, p + 2);
+	p[4] = match; p[5] = 40; p[6] = 24; p[7] = 0x3c; p[8] = wlan; p[9] = 0;
+	put_unaligned_le16(0xe000, p + 10);
+	put_unaligned_le16(fc, p + off);
+	if (bcast)
+		memset(p + off + 4, 0xff, ETH_ALEN);
+	else
+		memcpy(p + off + 4, own, ETH_ALEN);
+	memcpy(p + off + 10, other, ETH_ALEN); memcpy(p + off + 16, other, ETH_ALEN);
+	put_unaligned_le16(bytes, p);
+	script_bytes[script_count++] = bytes;
+}
+
 /* The measured tag for the scenario's interval: 15 before the activation, 1 after. */
 static void script_eapol_layout(bool translated, bool vector, bool padding) { script_eapol_bss(translated, vector, padding, mac.join_sta_active ? 1 : 15); }
 static void script_eapol(bool translated) { script_eapol_layout(translated, true, false); }
@@ -988,6 +1013,38 @@ int main(void)
 	script_action_frame(0x02, 0x00d0, true); run_worker();   /* before the activation */
 	assert(mac.first_error == -EPROTO && !mac.join_action_discarded);
 	mt6797_mac_join_close(&mac);
+
+	/* 10b. Runtime 21's clear broadcast Action frame with no WLAN table entry:
+	 *      discarded at any stage (before any response, during the handshake
+	 *      hold), each recorded, eight per lifetime, the ninth refused; the
+	 *      unicast-to-me, multicast, owning-index, protected and directed
+	 *      perturbations refused; the directed class's counter untouched.
+	 */
+	setup();                                                           /* before any response */
+	script_group_action_frame(0x08, 0x00d0, 255, true); run_worker();
+	assert(!mac.first_error && mac.join_running && mac.join_group_action_discarded == 1 && !mac.join_action_discarded);
+	mt6797_mac_join_close(&mac);
+	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = true; mac.join_bss_configured = true;
+	mac.join_key_pairwise_submitted = true; mac.join_key_pairwise = 1; mac.join_hold_until = now_ns + 4000 * NSEC_PER_MSEC;
+	script_group_action_frame(0x08, 0x00d0, 255, true); script_group_action_frame(0x08, 0x08d0, 255, true); run_worker();
+	assert(!mac.first_error && mac.join_running && mac.join_group_action_discarded == 2 && !rx_delivered && !submissions);
+	mac.join_group_action_discarded = 8;
+	script_group_action_frame(0x08, 0x00d0, 255, true); run_worker();                 /* the ninth */
+	assert(mac.first_error == -EPROTO && mac.join_group_action_discarded == 8);
+	mt6797_mac_join_close(&mac);
+	for (int variant = 0; variant < 5; variant++) {
+		setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = true; mac.join_bss_configured = true;
+		switch (variant) {
+		case 0: script_group_action_frame(0x02, 0x00d0, 255, true); break;   /* unicast-to-me flag */
+		case 1: script_group_action_frame(0x04, 0x00d0, 255, true); break;   /* multicast flag */
+		case 2: script_group_action_frame(0x08, 0x00d0, 1, true); break;     /* the target's WLAN entry */
+		case 3: script_group_action_frame(0x08, 0x40d0, 255, true); break;   /* protected */
+		default: script_group_action_frame(0x08, 0x00d0, 255, false); break; /* receiver this station */
+		}
+		run_worker();
+		assert(mac.first_error == -EPROTO && !mac.join_group_action_discarded && !mac.join_action_discarded);
+		mt6797_mac_join_close(&mac);
+	}
 
 	/* 11. Runtime 19's unsolicited add-key-done event (0x24, 16 bytes, sequence
 	 *     0, BSS index 0, the target's address): admitted once after a pairwise

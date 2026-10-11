@@ -360,6 +360,48 @@ class HostTests(unittest.TestCase):
         self.assertFalse(classify(good.replace(end, b''))['driver_data_path_pass'])
         self.assertTrue(classify(good.replace(b'one-shot WLAN join data TX: first pid=5 pages=3 bytes=342\n', b''))['driver_data_path_pass'])
         self.assertTrue(classify(good + b'one-shot WLAN join data credit overflow: pages=2 debt=1\n')['refusal_recorded'])
+        # Runtime 21 shape: EAPOL deliveries and a directed Action discard, then a frame
+        # refusal and the stopped footer before any deauthentication: placed (the footer
+        # closes the window), refusal recorded, not malformed, nothing passes.
+        chain = log(True, keys=True)
+        cut = chain.index(b'one-shot WLAN join eapol sent: pid=4')
+        tail_start = chain.index(b'one-shot WLAN join TX done: pid=4')
+        tail_end = chain.index(b'\n', tail_start) + 1
+        r21 = (chain[:tail_end] +
+               b'one-shot WLAN join action frame discarded: bytes=72 fc=0xd0 match=0x02 wlan=1 bss=1 sec=0 status=0xe000 count=1\n'
+               b'one-shot WLAN join frame refused: bytes=708 type=0xee01 allowed=0x1400 hdr=0828183cff0000e0 groups=0x7 at=64 g4fc=0x10000 g4seq=0x10000 g4ta=0 translated=0 first=0xd0 sec=0 to=0 from=0\n'
+               b'one-shot WLAN join stopped: status=-71 first=0 submitted=0x801 debt=0 cleanup=0 branch=7\n'
+               b'one-shot WLAN join key command refused: pairwise status=-71 running=0 active=1 configured=1 first=-71\n'
+               b'one-shot WLAN join key command refused: group status=-95 running=0 active=1 configured=1 first=-71\n')
+        result = classify(r21)
+        self.assertFalse(result['malformed_stage_record'], result['diagnostic_records'])
+        self.assertTrue(result['refusal_recorded'] and result['terminal_failure_recorded'])
+        self.assertFalse(result['driver_handshake_path_pass'] or result['bounded_join_pass'])
+        # The 0168 class: a broadcast Action discard at any stage (even before the
+        # authentication) is a placed notification; counts out of order or after the
+        # terminal record are malformed; the report carries its count.
+        bcast = b'one-shot WLAN join group action frame discarded: bytes=644 fc=0xd0 match=0x08 wlan=255 bss=15 sec=0 status=0xe000 count=%d\n'
+        first_tx = good.index(b'one-shot WLAN join TX: subtype=11')
+        early = good[:first_tx] + (bcast % 1) + good[first_tx:]
+        self.assertFalse(classify(early)['malformed_stage_record'])
+        self.assertEqual(classify(early)['group_action_frame_discards'], 1)
+        self.assertTrue(classify(early)['driver_handshake_path_pass'] if 'driver_handshake_path_pass' in classify(good) and classify(good)['driver_handshake_path_pass'] else True)
+        self.assertTrue(classify(good[:first_tx] + (bcast % 2) + good[first_tx:])['malformed_stage_record'])
+        self.assertTrue(classify(good + (bcast % 1))['malformed_stage_record'])
+        # Between the stage-1 cleanup submission and the stage-3 terminal the class is
+        # still a placed notification (the driver admits it until join_cleanup_done);
+        # the same record after the stage-3 terminal line is malformed.
+        stage1_at = good.index(b'one-shot WLAN join cleanup submission: stage=1')
+        stage2_at = good.index(b'one-shot WLAN join cleanup submission: stage=2')
+        stage3_at = good.index(b'one-shot WLAN join cleanup: stage=3')
+        between = good[:stage2_at] + (bcast % 1) + good[stage2_at:]
+        self.assertTrue(stage1_at < stage2_at < stage3_at)
+        self.assertFalse(classify(between)['malformed_stage_record'], classify(between)['diagnostic_records'])
+        self.assertEqual(classify(between)['group_action_frame_discards'], 1)
+        stage3_end = good.index(b'\n', stage3_at) + 1
+        self.assertTrue(classify(good[:stage3_end] + (bcast % 1) + good[stage3_end:])['malformed_stage_record'])
+        self.assertTrue(classify(good[:first_tx] + bcast.replace(b'match=0x08', b'match=0x04') % 1 + good[first_tx:])['malformed_stage_record'])
+        self.assertFalse(classify(r21[:r21.index(b'one-shot WLAN join stopped:')] + (bcast % 1) + r21[r21.index(b'one-shot WLAN join stopped:'):])['malformed_stage_record'])
         # Owned data outside the phase is a notification (dropped and counted), not a refusal; pidbudget ends the phase.
         outside = good.replace(end, end + b'one-shot WLAN join data RX outside: first phase=1 ended=1 group=0 bytes=320\n')
         outside = outside.replace(b'one-shot WLAN join cleanup: stage=3', b'one-shot WLAN join data RX outside: dropped=3\none-shot WLAN join cleanup: stage=3')

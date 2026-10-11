@@ -27,7 +27,7 @@ static void put16(unsigned char *p, unsigned v) { p[0] = v; p[1] = v >> 8; }
 static size_t build(unsigned char *p, unsigned groups, unsigned fc, const unsigned char *da, const unsigned char *ta, const unsigned char *bssid, size_t body)
 {
  size_t off = 16, n;
- memset(p, 0, 512);
+ memset(p, 0, 1024);
  put16(p + 2, 0xe001 | groups << 9);
  p[4] = 0x02; p[5] = 40; p[6] = 24; p[7] = 0x04; p[8] = 1; p[9] = 0; put16(p + 10, 0xe000);
  if (groups & 8) off += 16;
@@ -51,23 +51,23 @@ static bool run(const unsigned char *src, size_t n, struct mt6797_join_action_fr
 
 int main(void)
 {
- unsigned char p[512];
+ unsigned char p[1024];
  struct mt6797_join_action_frame r;
  size_t n = build(p, 7, 0x00d0, own, ap, ap, 48);
  assert(n == 136);
  assert(run(p, n, &r) && r.bytes == 72 && r.fc == 0x00d0 && r.match == 0x02 && r.wlan == 1 && r.bss == 1 && r.sec == 0 && r.status == 0xe000);
  /* Declared lengths: below the header plus two body bytes refused; from there up admitted. */
- for (size_t cut = 0; cut < n; cut++) { unsigned char q[512]; memcpy(q, p, n); put16(q, cut); assert(run(q, cut, &r) == (cut >= 64 + 26)); }
+ for (size_t cut = 0; cut < n; cut++) { unsigned char q[1024]; memcpy(q, p, n); put16(q, cut); assert(run(q, cut, &r) == (cut >= 64 + 26)); }
  assert(!mt6797_join_action_frame(p, n, 36, own, ap, &r));
  /* Type word exactly 0xee01: every single-bit flip, data and event type words,
   * and every other group set refused. */
- { unsigned char q[512]; memcpy(q, p, n);
+ { unsigned char q[1024]; memcpy(q, p, n);
    for (unsigned bit = 0; bit < 16; bit++) { put16(q + 2, 0xee01 ^ (1u << bit)); assert(!run(q, n, &r)); }
    put16(q + 2, 0x4000 | 7 << 9); assert(!run(q, n, &r)); put16(q + 2, 0xe000 | 7 << 9); assert(!run(q, n, &r));
    put16(q + 2, 0xee01); assert(run(q, n, &r));
    for (unsigned groups = 0; groups < 16; groups++) { size_t m = build(q, groups, 0x00d0, own, ap, ap, 48); assert(run(q, m, &r) == (groups == 7)); } }
  /* Descriptor bytes 4 to 11: each measured byte exact. */
- { unsigned char q[512]; memcpy(q, p, n);
+ { unsigned char q[1024]; memcpy(q, p, n);
    q[4] = 0x03; assert(!run(q, n, &r)); q[4] = 0x00; assert(!run(q, n, &r)); q[4] = 0x0a; assert(!run(q, n, &r)); q[4] = 0x02;
    q[6] = 24 | 0x40; assert(!run(q, n, &r)); q[6] = 0x80 | 14; assert(!run(q, n, &r)); q[6] = 26; assert(!run(q, n, &r)); q[6] = 24;
    q[7] = 0x3c; assert(!run(q, n, &r)); q[7] = 0x00; assert(!run(q, n, &r)); q[7] = 0x05; assert(!run(q, n, &r)); q[7] = 0x04;
@@ -102,6 +102,44 @@ int main(void)
  n = build(p, 7, 0x00d0, own, ap, ap, 0); assert(!run(p, n, &r));
  mt6797_join_action_frame(NULL, 136, 40, own, ap, &r); mt6797_join_action_frame(p, 136, 40, NULL, ap, &r);
  mt6797_join_action_frame(p, 136, 40, own, NULL, &r); mt6797_join_action_frame(p, 136, 40, own, ap, NULL);
- puts("action-frame: PASS (measured class named; protected, no-ack, other subtypes, flags, peers, descriptor bytes, status, groups refused)");
+ /* Runtime 21's class: broadcast match 0x08, descriptor bytes 18 3c ff 00 00 e0, clear Action
+  * to the broadcast address, 644 wire bytes (708 in all); the transmitter and BSSID are not
+  * compared. Observed-field and source-defined-field perturbations are refused. */
+ { static const unsigned char bcast[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+   struct mt6797_join_action_frame g;
+   size_t m;
+   #define GBUILD(groups, fc, da, body) do { m = build(p, groups, fc, da, other, other, body); p[4] = 0x08; p[7] = 0x3c; p[8] = 255; } while (0)
+   #define GRUN() (memset(&g, 0x5a, sizeof(g)), mt6797_join_group_action_frame(p, m, 40, &g))
+   GBUILD(7, 0x00d0, bcast, 620); assert(m == 708 && GRUN() && g.bytes == 644 && g.fc == 0x00d0 && g.match == 0x08 && g.wlan == 255 && g.bss == 15 && g.sec == 0 && g.status == 0xe000);
+   GBUILD(7, 0x08d0, bcast, 620); assert(GRUN() && g.fc == 0x08d0);                      /* a retry */
+   GBUILD(7, 0x00d0, bcast, 2); assert(m == 90 && GRUN() && g.bytes == 26);              /* minimum body */
+   GBUILD(7, 0x00d0, bcast, 1); assert(!GRUN());
+   GBUILD(7, 0x00d0, bcast, 620); memcpy(p + 64 + 10, ap, 6); memcpy(p + 64 + 16, ap, 6); assert(GRUN()); /* the target as transmitter: not compared */
+   GBUILD(7, 0x00d0, bcast, 620); p[4] = 0x04; assert(!GRUN());                           /* multicast bit: not observed */
+   GBUILD(7, 0x00d0, bcast, 620); p[4] = 0x02; assert(!GRUN());                           /* unicast-to-me */
+   GBUILD(7, 0x00d0, bcast, 620); p[4] = 0x0a; assert(!GRUN());
+   GBUILD(7, 0x00d0, bcast, 620); p[8] = 1; assert(!GRUN());                              /* a WLAN table entry */
+   GBUILD(7, 0x00d0, bcast, 620); p[8] = 31; assert(!GRUN());
+   GBUILD(7, 0x00d0, bcast, 620); p[7] = 0x04; assert(!GRUN());                           /* BSSID field 1 */
+   GBUILD(7, 0x00d0, bcast, 620); p[6] = 0x80 | 24; assert(!GRUN());                      /* translated */
+   GBUILD(7, 0x00d0, bcast, 620); p[9] = 0x40; assert(!GRUN());                           /* security mode */
+   GBUILD(7, 0x00d0, bcast, 620); put16(p + 10, 0xc000); assert(!GRUN());
+   GBUILD(7, 0x40d0, bcast, 620); assert(!GRUN());                                        /* protected */
+   GBUILD(7, 0x00e0, bcast, 620); assert(!GRUN());                                        /* Action No Ack */
+   GBUILD(7, 0x00c0, bcast, 620); assert(!GRUN());                                        /* deauthentication */
+   GBUILD(7, 0x00d0, own, 620); assert(!GRUN());                                          /* directed */
+   { static const unsigned char mc[6] = {0x01, 0x00, 0x5e, 0, 0, 1}; GBUILD(7, 0x00d0, mc, 620); assert(!GRUN()); } /* multicast receiver */
+   GBUILD(7, 0x00d0, bcast, 620); p[64 + 22] = 1; assert(!GRUN());                       /* fragment */
+   GBUILD(15, 0x00d0, bcast, 620); assert(!GRUN());                                       /* group 4 present: another type word */
+   GBUILD(7, 0x00d0, bcast, 620); p[5] = 36; assert(!GRUN());
+   GBUILD(7, 0x00d0, bcast, 620); put16(p, m + 1); assert(!GRUN());
+   assert(!mt6797_join_group_action_frame(NULL, 708, 40, &g) && !mt6797_join_group_action_frame(p, 708, 0, &g) && !mt6797_join_group_action_frame(p, 708, 40, NULL));
+   /* Neither decoder admits the other's class. */
+   GBUILD(7, 0x00d0, bcast, 620); assert(!run(p, m, &r));
+   m = build(p, 7, 0x00d0, own, ap, ap, 48); assert(!GRUN());
+   #undef GBUILD
+   #undef GRUN
+ }
+ puts("action-frame: PASS (measured class named; protected, no-ack, other subtypes, flags, peers, descriptor bytes, status, groups refused; runtime 21 broadcast class named)");
  return 0;
 }

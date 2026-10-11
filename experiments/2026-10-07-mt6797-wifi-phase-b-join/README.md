@@ -449,6 +449,29 @@ data-path shapes through mac80211, replay the reference offline) is admitted
 as hardware-free source work and awaits its proposal diff, checks and
 combined test protocol before any build.
 
+## Runtime 21 result and proposal 0168 (2026-10-10)
+
+Runtime 21 ([RUNTIME_21_RESULT.md](RUNTIME_21_RESULT.md)) was negative: the
+association and the supplicant's handshake completed, then one received packet
+(type word 0xee01, descriptor bytes 08 28 18 3c ff 00 00 e0, 708 bytes in
+all, first payload byte 0xd0) was refused at the frame gate and the lifetime
+fail-stopped before either key command; the key commands were refused in turn.
+Recovery was unconfirmed within the collector's budget and confirmed late by
+one read-only identity check after the owner reconnected the device; both are
+recorded separately. **0168** names that class by its observed descriptor
+fields (broadcast match flag alone, native untranslated 24-byte header, BSSID
+field 15, WLAN index 255, security mode 0, status 0xe000) and the
+source-defined frame conditions (clear Action, broadcast receiver, fragment
+0), and discards it undelivered at any stage of the lifetime, each recorded,
+at most eight per lifetime like the directed class. The classifier gains the
+record and no longer calls a fail-stopped lifetime malformed for lacking a
+deauthentication window: the stopped footer closes it. Fixtures:
+`tests/action-frame-test.c` (the class and its observed- and source-defined
+perturbations), `tests/join-ownership-test.c` (discard at any stage, the
+ninth refused, perturbations refused), `tests/host-test.py` (the runtime 21
+record shape, the new record before authentication and between the cleanup
+stages, after the terminal malformed).
+
 ## Runtime 21 bindings (2026-10-10)
 
 Candidate 20 pairs the [compile 25](COMPILE_25.md) package `cca46f58…` (input

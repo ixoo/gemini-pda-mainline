@@ -1,0 +1,167 @@
+From aff725979da19aab47ef23a86444fed2fa268be4 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 10 Oct 2026 23:58:04 +0000
+Subject: [PATCH 168/168] wifi: mt6797: discard the clear broadcast Action
+ frame whose descriptor names no WLAN table entry
+
+Runtime 21 (candidate 20, compile 25) associated and completed the
+supplicant's four-way handshake, then ended at the frame gate before either
+key command on one received packet: 708 bytes in all, a 16-byte descriptor,
+groups 1 to 3 and 644 wire bytes at offset 64, type word 0xee01, descriptor
+bytes 08 28 18 3c ff 00 00 e0 (broadcast match flag only, channel 40,
+native 24-byte header without translation, payload format 0 with BSSID
+field 15, WLAN index 255, TID 0, security mode 0, status 0xe000), frame
+control first byte 0xd0. The transmitter, BSSID, category and body were not
+retained and nothing is claimed about them. In the pinned vendor driver a
+WLAN index at or above the 32-entry table names no station record; what the
+vendor then does with the frame depends on a lookup by transmitter and on
+the category, neither retained, so no vendor behaviour beyond that lookup is
+claimed. BSSID field 15 is the value the pre-activation EAPOL frames also
+carried; its meaning is not known.
+
+action-frame.h names exactly that class: the observed descriptor conditions
+(type word, match byte exactly 0x08, bytes 6 to 11 exactly 18 3c ff 00 00
+e0, first frame-control byte 0xd0) and the source-defined ones the
+diagnostic does not carry (frame control 0x00d0 with only the Retry bit
+free, the broadcast receiver address the match flag denotes, fragment 0, at
+least two unread body bytes); the transmitter and BSSID are not compared
+because the descriptor names no entry to compare against. The join worker
+discards it at any stage until the cleanup is done, never delivered or
+interpreted and without a new host submission, each one recorded by its
+descriptor and header fields, at most eight per join like the directed
+class of runtime 18, the ninth or any other shape refused as before.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ .../wireless/mediatek/mt6797/action-frame.h   | 70 +++++++++++++++++++
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 24 ++++++-
+ 2 files changed, 93 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/action-frame.h b/drivers/net/wireless/mediatek/mt6797/action-frame.h
+index 3d4a23aab..bf1f23d50 100644
+--- a/drivers/net/wireless/mediatek/mt6797/action-frame.h
++++ b/drivers/net/wireless/mediatek/mt6797/action-frame.h
+@@ -84,4 +84,74 @@ mt6797_join_action_frame(const unsigned char *packet, size_t bytes,
+ 	*out = r;
+ 	return true;
+ }
++
++/* Runtime 21 ended at the frame gate after message 4 on a clear Action frame
++ * whose descriptor the firmware filled with the broadcast match flag and no
++ * station index. Observed (sanitized diagnostic: the descriptor bytes 4 to
++ * 11, the group set, the header offset and the first payload byte only):
++ * 708 packet bytes in all, that is a 16-byte descriptor, groups 1 to 3 (48
++ * bytes, no group 4) and 644 wire bytes at offset 64; type word 0xee01;
++ * descriptor bytes 08 28 18 3c ff 00 00 e0 (match flags with the broadcast
++ * bit only, channel 40, native 24-byte header without padding or
++ * translation, payload format 0 with BSSID field 15, WLAN index 255, TID 0
++ * and security mode 0, status 0xe000); frame control first byte 0xd0. The
++ * transmitter, BSSID, sequence, category and body were not retained, and
++ * nothing is claimed about the sender or the category.
++ *
++ * Source-defined meaning of the observed fields (pinned vendor driver): the
++ * WLAN index selects the 32-entry WLAN table and secGetStaIdxByWlanIdx
++ * returns "no station" for any index at or above it, so 255 names no table
++ * entry; what the vendor then does with such an Action frame depends on a
++ * lookup by transmitter and on the category, neither retained, so no
++ * vendor behaviour is claimed beyond that lookup. BSSID field 15 is the
++ * value the pre-activation EAPOL frames also carried; its meaning is not
++ * known and none is claimed.
++ *
++ * This decoder names exactly that class so the caller can discard it
++ * without delivery and without a new host submission, at any stage of the
++ * lifetime. Observed conditions: type word exactly 0xee01; match byte
++ * exactly 0x08 (the broadcast bit alone; the multicast and unicast-to-me
++ * bits are not admitted); descriptor bytes 6 to 11 exactly 18 3c ff 00 00
++ * e0; frame control first byte 0xd0. Source-defined conditions not in the
++ * diagnostic: frame control 0x00d0 with only the Retry bit free (type 0,
++ * subtype 13, unprotected); the broadcast receiver address, which the
++ * descriptor layout's broadcast match flag denotes; fragment number 0; at
++ * least two body bytes after the header, none read. The transmitter and
++ * BSSID fields are not compared, because the descriptor names no station
++ * entry to compare against. Protected frames, Action No Ack, other
++ * subtypes, directed or multicast frames, any WLAN index below 255, other
++ * descriptor values and other status words are not this class and reach
++ * the caller's refusal.
++ */
++static inline bool
++mt6797_join_group_action_frame(const unsigned char *packet, size_t bytes,
++			       unsigned char channel,
++			       struct mt6797_join_action_frame *out)
++{
++	static const unsigned char broadcast[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
++	struct mt6797_join_action_frame r;
++	const size_t offset = 16 + 16 + 8 + 24;
++	const unsigned char *f;
++
++	if (!packet || !out || bytes < offset + 26 || bytes > 4096 || !channel ||
++	    mt6797_join_le16(packet) != bytes || packet[5] != channel ||
++	    mt6797_join_le16(packet + 2) != 0xee01)
++		return false;
++	r.match = packet[4];
++	if (r.match != 0x08 || packet[6] != 24 || packet[7] != 0x3c ||
++	    packet[8] != 255 || packet[9] || mt6797_join_le16(packet + 10) != 0xe000)
++		return false;
++	f = packet + offset;
++	r.fc = mt6797_join_le16(f);
++	if ((r.fc & 0xf7ff) != 0x00d0 || memcmp(f + 4, broadcast, 6) ||
++	    (mt6797_join_le16(f + 22) & 15))
++		return false;
++	r.bytes = bytes - offset;
++	r.status = 0xe000;
++	r.wlan = 255;
++	r.bss = packet[7] >> 2;
++	r.sec = 0;
++	*out = r;
++	return true;
++}
+ #endif
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index a5459d762..5d6732efc 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -105,7 +105,7 @@ struct mt6797_mac {
+ 	unsigned int join_absence_events;
+ 	/* Phase C1: bounded observation of the AP's first clear EAPOL frames. */
+ 	unsigned int join_eapol_seen, join_eapol_tx, join_group_discarded;
+-	unsigned int join_action_discarded;
++	unsigned int join_action_discarded, join_group_action_discarded;
+ 	/* Phase C2: the pairwise and group key commands were submitted; the
+ 	 * firmware's add-key-done event was recorded at most twice, once in the
+ 	 * window after each submission (attributed by window, not by key).
+@@ -1624,6 +1624,27 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 			}
+ #endif
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++			/* A clear broadcast Action frame whose descriptor names no
++			 * WLAN table entry (runtime 21, one observed after message 4;
++			 * action-frame.h names the observed and the source-defined
++			 * conditions) is irrelevant to the bounded join at every stage:
++			 * discarded, never delivered or interpreted, no new host
++			 * submission, each one recorded by its descriptor and header
++			 * fields, at most eight per join like the directed class, and
++			 * the ninth or any other shape refused as before.
++			 */
++			if (!mac->join_cleanup_done &&
++			    mt6797_join_group_action_frame(mac->join_packet, rx.logical_bytes,
++							   40, &action) &&
++			    mac->join_group_action_discarded < 8) {
++				mac->join_group_action_discarded++;
++				dev_info(wiphy_dev(mac->hw->wiphy),
++					 "one-shot WLAN join group action frame discarded: bytes=%zu fc=0x%x match=0x%02x wlan=%u bss=%u sec=%u status=0x%04x count=%u\n",
++					 action.bytes, action.fc, action.match, action.wlan,
++					 action.bss, action.sec, action.status,
++					 mac->join_group_action_discarded);
++				continue;
++			}
+ 			/* The target's unprotected directed Action frame, named in
+ 			 * runtime 18 after message 4 (category unknown and unread;
+ 			 * runtime 16's unclassified frame shared its type word and
+@@ -2291,6 +2312,7 @@ static int mt6797_mac_join_add_peer(struct mt6797_mac *mac,
+ 	mac->join_eapol_seen = 0;
+ 	mac->join_group_discarded = 0;
+ 	mac->join_action_discarded = 0;
++	mac->join_group_action_discarded = 0;
+ 	mac->join_key_pairwise_submitted = false;
+ 	mac->join_key_group_submitted = false;
+ 	mac->join_key_done = false;
