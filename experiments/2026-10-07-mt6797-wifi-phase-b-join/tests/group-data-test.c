@@ -20,6 +20,10 @@
 static const unsigned char ap[6] = {2, 0, 0, 0, 0, 2};
 static const unsigned char other[6] = {2, 0, 0, 0, 0, 9};
 static void put16(unsigned char *p, unsigned v) { p[0] = v; p[1] = v >> 8; }
+/* The broadcast WLAN entry the station record declares: 0 for runtime 17's
+ * measurement (proposals 0137/0156), 2 for runtime 22's (0164). The builder
+ * writes it into descriptor byte 8 and run() passes it to the decoder. */
+static unsigned char declared = 0;
 
 /* Runtime 17's descriptor bytes 4..11 (08 28 18 04 00 00 04 c0), groups as given, then a native
  * header: fc, duration, receiver (group or not), transmitter, addr3, sequence, then 16+body bytes. */
@@ -28,7 +32,7 @@ static size_t build(unsigned char *p, unsigned groups, bool pad, unsigned fc, bo
  size_t off = 16, n;
  memset(p, 0, 512);
  put16(p + 2, 0x4000 | groups << 9);
- p[4] = 0x08; p[5] = 40; p[6] = 24 | (pad ? 0x40 : 0); p[7] = 0x04; p[8] = 0; p[9] = 0; put16(p + 10, 0xc004);
+ p[4] = 0x08; p[5] = 40; p[6] = 24 | (pad ? 0x40 : 0); p[7] = 0x04; p[8] = declared; p[9] = 0; put16(p + 10, 0xc004);
  if (groups & 8) off += 16;
  if (groups & 1) off += 16;
  if (groups & 2) off += 8;
@@ -46,7 +50,7 @@ static bool run(const unsigned char *src, size_t n, struct mt6797_join_group_dat
 {
  unsigned char *p = malloc(n ? n : 1); assert(p); memcpy(p, src, n);
  memset(out, 0x5a, sizeof(*out));
- bool ok = mt6797_join_group_data(p, n, 40, ap, out);
+ bool ok = mt6797_join_group_data(p, n, 40, ap, declared, out);
  free(p); return ok;
 }
 
@@ -61,7 +65,7 @@ int main(void)
   * to the measured length the class holds with a shorter unexamined body.
   * The wrong channel and another type word are refused. */
  for (size_t cut = 0; cut < n; cut++) { unsigned char q[512]; memcpy(q, p, n); put16(q, cut); assert(run(q, cut, &r) == (cut >= 16 + 24 + 16)); }
- assert(!mt6797_join_group_data(p, n, 36, ap, &r));
+ assert(!mt6797_join_group_data(p, n, 36, ap, declared, &r));
  { unsigned char q[512]; memcpy(q, p, n); put16(q + 2, 0xe001); assert(!run(q, n, &r)); put16(q + 2, 0x0000); assert(!run(q, n, &r)); }
  /* Descriptor flags: unicast-to-me refused; neither multicast nor broadcast refused; multicast admitted;
   * translated header, 26-byte header and A-MSDU payload format refused. */
@@ -89,7 +93,7 @@ int main(void)
  n = build(p, 0, false, 0x6208, true, true, 54);
  { unsigned char q[512]; memcpy(q, p, n);
    q[7] = 0x3c; assert(!run(q, n, &r)); q[7] = 0x00; assert(!run(q, n, &r)); q[7] = 0x04;
-   q[8] = 1; assert(!run(q, n, &r)); q[8] = 0;
+   q[8] = 1; assert(!run(q, n, &r)); q[8] = 2; assert(!run(q, n, &r)); q[8] = 255; assert(!run(q, n, &r)); q[8] = 0;
    q[9] = 0x10; assert(!run(q, n, &r)); q[9] = 0x01; assert(!run(q, n, &r)); q[9] = 0x0f; assert(!run(q, n, &r)); q[9] = 0;
    for (unsigned bit = 0; bit < 16; bit++) { put16(q + 10, 0xc004 ^ (1u << bit)); assert(!run(q, n, &r)); }
    put16(q + 10, 0xc004); assert(run(q, n, &r)); }
@@ -105,7 +109,35 @@ int main(void)
   n = build(p, groups, pad, 0x6208, true, true, 54);
   assert(run(p, n, &r) && r.bytes == 94);
  }
- mt6797_join_group_data(NULL, 110, 40, ap, &r); mt6797_join_group_data(p, 110, 40, NULL, &r); mt6797_join_group_data(p, 110, 40, ap, NULL);
- puts("group-data: PASS (measured class named; unicast, unprotected, QoS, flags, status, other transmitter, short refused)");
+ mt6797_join_group_data(NULL, 110, 40, ap, declared, &r); mt6797_join_group_data(p, 110, 40, NULL, declared, &r); mt6797_join_group_data(p, 110, 40, ap, declared, NULL);
+ /* Runtime 22's observation under proposal 0164's declaration (broadcast entry 2): the same
+  * class with descriptor byte 8 = 2 (08 28 18 04 02 00 04 c0, 110 bytes, frame control 0x6208);
+  * with entry 2 declared, index 2 is the class and 0 is not; the caller's declaration decides. */
+ declared = 2;
+ n = build(p, 0, false, 0x6208, true, true, 54);
+ assert(n == 110 && p[8] == 2 && run(p, n, &r) && r.bytes == 94 && r.fc == 0x6208 && r.match == 0x08 && r.wlan == 2 && r.bss == 1 && r.sec == 0 && r.status == 0xc004);
+ { unsigned char q[512]; memcpy(q, p, n); q[8] = 0; assert(!run(q, n, &r)); q[8] = 1; assert(!run(q, n, &r)); q[8] = 255; assert(!run(q, n, &r)); }
+ /* Paired proof over the declared entry and the header's index: declared 2 admits
+  * header 2 and refuses header 0 and unrelated indices; the historical declared 0
+  * admits header 0 and refuses header 2; no other pair admits. */
+ for (unsigned decl = 0; decl < 256; decl++)
+  for (unsigned hdr = 0; hdr < 256; hdr++) {
+   if ((decl != 0 && decl != 2) && (hdr != 0 && hdr != 2) && decl != hdr) continue; /* exhaustive on the named values, sampled elsewhere */
+   unsigned char q[512]; memcpy(q, p, n); q[8] = (unsigned char)hdr;
+   assert(mt6797_join_group_data(q, n, 40, ap, (unsigned char)decl, &r) == (decl == hdr));
+  }
+ assert(!mt6797_join_group_data(p, n, 40, ap, 0, &r) && mt6797_join_group_data(p, n, 40, ap, 2, &r));
+ /* Under declared 2 the strict conditions stay as before: AP transmitter, group receiver,
+  * protected FromDS non-QoS, security mode 0, status exactly 0xc004, fragment 0. */
+ { unsigned char q[512]; memcpy(q, p, n);
+   q[9] = 0x40; assert(!run(q, n, &r)); q[9] = 0;
+   for (unsigned bit = 0; bit < 16; bit++) { put16(q + 10, 0xc004 ^ (1u << bit)); assert(!run(q, n, &r)); }
+   put16(q + 10, 0xc004); q[16 + 22] = 1; assert(!run(q, n, &r)); q[16 + 22] = 0; assert(run(q, n, &r)); }
+ assert(!run(p, build(p, 0, false, 0x2208, true, true, 54), &r));   /* still: not protected */
+ assert(!run(p, build(p, 0, false, 0x6208, false, true, 54), &r));  /* still: unicast receiver */
+ assert(!run(p, build(p, 0, false, 0x6208, true, false, 54), &r));  /* still: other transmitter */
+ declared = 0;
+
+ puts("group-data: PASS (measured class named under the declared broadcast entry (0 for runtime 17, 2 for runtime 22); unicast, unprotected, QoS, flags, status, other transmitter, short refused)");
  return 0;
 }

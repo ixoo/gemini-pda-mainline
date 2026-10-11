@@ -779,3 +779,4 @@ proposals/0165-wifi-mt6797-release-the-channel-privilege-after-the-.patch
 proposals/0166-wifi-mt6797-deliver-protected-non-aggregated-data-fr.patch
 proposals/0167-wifi-mt6797-transmit-mac80211-s-protected-data-frame.patch
 proposals/0168-wifi-mt6797-discard-the-clear-broadcast-Action-frame.patch
+proposals/0169-wifi-mt6797-name-the-group-data-class-by-the-station.patch

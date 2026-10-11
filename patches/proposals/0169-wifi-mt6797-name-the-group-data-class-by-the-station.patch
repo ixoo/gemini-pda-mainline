@@ -1,0 +1,118 @@
+From b27e73ed7245e9c5529c3a21411c47d7c7bc6f9c Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 11 Oct 2026 00:56:41 +0000
+Subject: [PATCH 169/169] wifi: mt6797: name the group-data class by the
+ station's declared broadcast WLAN entry
+
+Runtime 22 (candidate 21, compile 26) associated and completed the
+supplicant's handshake, then fail-stopped at the receive-frame gate before
+either key command on one packet whose observed descriptor and first
+frame-control bytes match runtime 17's protected group-addressed data class
+with one difference: 110 bytes, no groups, header at 16, descriptor bytes
+08 28 18 04 02 00 04 c0, frame control 0x6208, security mode 0, status
+0xc004, WLAN index 2 where runtime 17 carried 0. Its transmitter, receiver,
+fragment field and body were not retained; whether such a packet is the full
+class is decided by the decoder on the next one, not by that measurement.
+
+Proposal 0164 made the station record declare broadcast WLAN entry 2 where
+runtime 17 ran with entry 0 declared, and the decoder pinned index 0, so the
+packet fell through to the general gate. Inference, not measured: the
+firmware tags the target's group-addressed frames with the broadcast entry
+the station record declares (the pinned vendor driver declares
+ucBMCWlanIndex in every station record update and installs the group key
+under it). The decoder now takes the declared entry from the caller and
+requires exactly it; the join worker passes MT6797_JOIN_BMC_WLAN_INDEX.
+Every other condition (broadcast or multicast match flag alone, untranslated
+24-byte header, BSSID field 1, security mode 0, status exactly 0xc004,
+protected FromDS non-QoS frame control with Retry and More Data free, group
+receiver, the target as transmitter, fragment 0), the pre-group-key window
+and the sixty-four-per-join budget are unchanged.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ .../net/wireless/mediatek/mt6797/group-data.h | 25 ++++++++++++++++---
+ drivers/net/wireless/mediatek/mt6797/mac.c    |  7 ++++--
+ 2 files changed, 27 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/group-data.h b/drivers/net/wireless/mediatek/mt6797/group-data.h
+index 244ff2beb..4d65b055e 100644
+--- a/drivers/net/wireless/mediatek/mt6797/group-data.h
++++ b/drivers/net/wireless/mediatek/mt6797/group-data.h
+@@ -25,11 +25,28 @@ struct mt6797_join_group_data {
+  * match bit together with the group bit of the receiver address, which this
+  * decoder reads from the header on the next packet.
+  *
++ * Runtime 22 (candidate 21, the station record declaring broadcast WLAN entry
++ * 2 since proposal 0164) ended at the same gate on a packet whose observed
++ * descriptor and first frame-control bytes match runtime 17's with one
++ * difference: descriptor bytes 08 28 18 04 02 00 04 c0, WLAN index 2 where
++ * runtime 17 (broadcast entry 0 declared) carried 0; 110 bytes, no groups,
++ * header at 16, frame control 0x6208, security mode 0, status 0xc004 as
++ * before. Its transmitter, receiver, fragment field and body were not
++ * retained, so whether such a packet is the full class (the target as
++ * transmitter, a group receiver, fragment 0) is decided by this decoder on
++ * the next packet, not by that measurement. Inference, not measured: the
++ * descriptor's WLAN index for the target's group-addressed frames is the
++ * broadcast entry the station record declares to the firmware (the pinned
++ * vendor driver declares ucBMCWlanIndex in every station record update and
++ * installs the group key under it). The caller names that declared index and
++ * the decoder requires exactly it; a frame tagged with any other entry is
++ * not this class.
++ *
+  * This decoder names exactly that class so the caller can discard it without
+  * delivery: the public gen3 data RXD layout; match flags with the multicast
+  * or broadcast bit and without the unicast-to-me bit; an untranslated 24-byte
+  * header without padding ambiguity; MSDU payload format; the measured BSSID
+- * field 1, WLAN index 0 (the declared BMC index), TID 0 and security mode 0
++ * field 1, WLAN index exactly the declared broadcast entry, TID 0 and security mode 0
+  * (descriptor byte 9 exactly 0); match flags exactly the multicast or
+  * broadcast bit (no HT control, no unicast-to-me, no beacon bits, key id
+  * 0); a status word of exactly 0xc004, that is, the two high bits every admitted
+@@ -51,6 +68,7 @@ struct mt6797_join_group_data {
+ static inline bool
+ mt6797_join_group_data(const unsigned char *packet, size_t bytes,
+ 		       unsigned char channel, const unsigned char ap[6],
++		       unsigned char bmc_index,
+ 		       struct mt6797_join_group_data *out)
+ {
+ 	struct mt6797_join_group_data r;
+@@ -72,11 +90,12 @@ mt6797_join_group_data(const unsigned char *packet, size_t bytes,
+ 	if ((r.match & ~0x0cU) || !(r.match & 0x0c))
+ 		return false;
+ 	/* Header length 24, untranslated; payload format 0 with BSSID field 1;
+-	 * WLAN index 0; TID 0 and security mode 0 (byte 9 exactly 0, as
++	 * WLAN index exactly the declared broadcast entry (0 in runtime 17, 2
++	 * in runtime 22); TID 0 and security mode 0 (byte 9 exactly 0, as
+ 	 * measured for this non-QoS frame); status exactly 0xc004.
+ 	 */
+ 	if ((packet[6] & 0x80) || (packet[6] & 0x3f) != 24 || packet[7] != 0x04 ||
+-	    packet[8] != 0 || packet[9] ||
++	    packet[8] != bmc_index || packet[9] ||
+ 	    mt6797_join_le16(packet + 10) != 0xc004)
+ 		return false;
+ 	groups = (type >> 9) & 15;
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 5d6732efc..5b13aeeb4 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -1600,7 +1600,9 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 			}
+ 			/* Protected group-addressed data from the target, flagged by
+ 			 * the hardware as a cipher mismatch because this station holds
+-			 * no group key, ended runtime 17 at the gate before message 3.
++			 * no group key, ended runtime 17 at the gate before message 3
++			 * and runtime 22 after message 4, there tagged with the
++			 * broadcast WLAN entry the station record declares (0164).
+ 			 * While the station is active and before a group key command
+ 			 * has returned its credit, that exact class (group-data.h) is
+ 			 * discarded, never delivered or interpreted: the first eight
+@@ -1611,7 +1613,8 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 			if (mac->join_sta_active && !mac->join_key_group &&
+ 			    !mac->join_deauth_done && !mac->join_cleanup_done &&
+ 			    mt6797_join_group_data(mac->join_packet, rx.logical_bytes, 40,
+-						   mac->join_ap, &group) &&
++						   mac->join_ap, MT6797_JOIN_BMC_WLAN_INDEX,
++						   &group) &&
+ 			    mac->join_group_discarded < 64) {
+ 				mac->join_group_discarded++;
+ 				if (mac->join_group_discarded <= 8)

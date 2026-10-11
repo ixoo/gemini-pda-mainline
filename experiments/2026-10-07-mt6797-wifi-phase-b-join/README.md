@@ -449,6 +449,25 @@ data-path shapes through mac80211, replay the reference offline) is admitted
 as hardware-free source work and awaits its proposal diff, checks and
 combined test protocol before any build.
 
+## Runtime 22 result and proposal 0169 (2026-10-11)
+
+Runtime 22 ([RUNTIME_22_RESULT.md](RUNTIME_22_RESULT.md)) was negative: the
+association and the supplicant's handshake completed, the runtime 18 Action
+discard ran once, the runtime 21 class was not observed, and one packet whose
+observed descriptor and first frame-control bytes match runtime 17's
+protected group-addressed data class, with WLAN index 2 in place of 0, was
+refused at the frame gate; the lifetime fail-stopped before either key
+command. Recovery was unconfirmed within the collector's budget and confirmed
+late by one read-only identity check; both are recorded separately. **0169**
+makes the group-data decoder take the declared broadcast WLAN entry from the
+caller and require exactly it (the join worker passes the constant 0164
+declares); every other condition, the window and the budget are unchanged.
+Fixtures: `tests/group-data-test.c` (declared 2 admits header 2 and refuses
+0 and unrelated indices; declared 0 admits header 0 and refuses 2; the strict
+transmitter, receiver, security, status and fragment conditions under both),
+`tests/join-ownership-test.c` (index 2 discarded, index 0 refused under
+today's declaration).
+
 ## Runtime 22 bindings (2026-10-11)
 
 Candidate 21 pairs the [compile 26](COMPILE_26.md) package `dd35c1d2…` with

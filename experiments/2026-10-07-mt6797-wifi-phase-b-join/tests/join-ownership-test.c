@@ -545,6 +545,9 @@ static void script_eapol_bss(bool translated, bool vector, bool padding, unsigne
  * control 0x6208; the receiver, sequence and body bytes are fixture values.
  * `match` and `fc` perturb the class for the refusal cases.
  */
+/* Descriptor WLAN index of the scripted group data: the declared broadcast entry 2 (0164), as
+ * runtime 22 measured; a scenario sets 0 (runtime 17's value under the earlier declaration). */
+static unsigned group_wlan = 2;
 static void script_group_data(unsigned match, unsigned fc)
 {
 	u8 *p = script[script_count];
@@ -553,7 +556,7 @@ static void script_group_data(unsigned match, unsigned fc)
 	assert(script_count < 6);
 	memset(p, 0, sizeof(script[0]));
 	put_unaligned_le16(0x4000, p + 2);
-	p[4] = match; p[5] = 40; p[6] = 24; p[7] = 0x04; p[8] = 0; p[9] = 0;
+	p[4] = match; p[5] = 40; p[6] = 24; p[7] = 0x04; p[8] = group_wlan; p[9] = 0;
 	put_unaligned_le16(0xc004, p + 10);
 	put_unaligned_le16(fc, p + off);
 	memset(p + off + 4, 0xff, ETH_ALEN); memcpy(p + off + 10, ap, ETH_ALEN); memcpy(p + off + 16, ap, ETH_ALEN);
@@ -963,6 +966,9 @@ int main(void)
 	mt6797_mac_join_close(&mac);
 	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = true; mac.join_bss_configured = true;
 	script_group_data(0x0a, 0x6208); run_worker();            /* unicast-to-me set */
+	assert(mac.first_error == -EPROTO && !mac.join_group_discarded);
+	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = true; mac.join_bss_configured = true;
+	group_wlan = 0; script_group_data(0x08, 0x6208); group_wlan = 2; run_worker();  /* runtime 17's index under today's declaration */
 	assert(mac.first_error == -EPROTO && !mac.join_group_discarded);
 	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = true; mac.join_bss_configured = true;
 	script_group_data(0x08, 0x2208); run_worker();            /* not protected */
