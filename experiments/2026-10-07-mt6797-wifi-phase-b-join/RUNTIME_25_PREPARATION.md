@@ -45,13 +45,15 @@ sequence is measured or claimed.
 
 Branches, each ending the lifetime exactly once:
 
-1. One to eight directed Action discards in either variant after the pairwise key
-   (each recorded with its security mode and status), then the group key command
-   and its credit: the 0171 case is recorded as observed with its counts and the
-   runtime 21 branches decide the rest.
-2. No such frame after the pairwise key: the class is unobserved in this boot and
-   nothing about it is claimed beyond its fixtures; the runtime 21 branches decide
-   the rest.
+1. At least one directed Action discard recorded with `sec=4 status=0xe004` after
+   `key credit returned: pairwise` (the shared total of both variants at most
+   eight), then the group key command and its credit: 0171 is recorded as observed
+   with its counts and the runtime 21 branches decide the rest. Only that keyed
+   variant demonstrates 0171.
+2. No keyed-variant frame after the pairwise key, including a boot that records
+   only unkeyed (`sec=0 status=0xe000`) discards: 0171 is unobserved in this boot,
+   whatever the group key and data phase then do, and nothing about it is claimed
+   beyond its fixtures; the runtime 21 branches decide the rest.
 3. A ninth frame of the class, or a frame of a neighbouring shape (a mixed
    security-mode and status pair, the ICV-error flag, a protected frame control,
    another peer, another index): a refusal at the frame gate, fail-stop, seal,
