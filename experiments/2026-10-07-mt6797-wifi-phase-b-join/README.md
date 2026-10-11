@@ -449,6 +449,21 @@ data-path shapes through mac80211, replay the reference offline) is admitted
 as hardware-free source work and awaits its proposal diff, checks and
 combined test protocol before any build.
 
+## Runtime 24 bindings (2026-10-11)
+
+Candidate 23 pairs the [compile 28](COMPILE_28.md) package `4d9372a7…` with
+candidate 22's RAM root byte-identical, the same board DT and kernel config;
+boot image `c7e2e345…`, full padded boot2 `1b07a2bb…`. The custodian composed
+and validated it privately at b6f433d1; the committed receipt
+[results/candidate-23.json](results/candidate-23.json) (SHA-256 `df97152a…`)
+is that receipt's exact bytes and `runtime-24/results/candidate.json` its
+copy. The installer's predecessor is the installed candidate 22
+(`419797dd…`). [RUNTIME_24_PREPARATION](RUNTIME_24_PREPARATION.md) states
+what differs from runtime 23 (proposal 0170 and the wrapper's keepalive line
+only), the hypothesis and the branches for the key command's credit order
+and the terminal refusal, and the bindings table. Nothing has been installed
+or booted.
+
 ## Compile 28 and the candidate 23 pins (2026-10-11)
 
 [COMPILE_28.md](COMPILE_28.md): the phase-B compile profile at c9781bea with
