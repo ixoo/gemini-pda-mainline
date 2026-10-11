@@ -17,15 +17,15 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-RECEIPT = HERE / 'results/candidate-26.json'
-COMMIT = 'c7ba623f503a9f5c8d389155fe230413e0e38e44'
-PACKAGE = 'bc0f928e233a4acb87d2dbfc07d64da3a3975c784e6235f227257b042eb379ac'
+RECEIPT = HERE / 'results/candidate-27.json'
+COMMIT = '5ee1f55f4c9bd5e5b94df3218f4d900c1305c6e6'
+PACKAGE = 'e9610ba518b49a6f4289cff22a0c0c143309492359c66eeb7e194aee97129240'
 RELEASE = '7.1.3-gemini-a53-wifi-phase-b-compile'
-# Current boot2 content: the installed candidate 25 (deployment 25, full 16 MiB
+# Current boot2 content: the installed candidate 26 (deployment 26, full 16 MiB
 # readback verified); the custodian rederives the live GPT and verifies it with
 # the reviewed guard at deployment.
-PREDECESSOR = 'b38d25a977cd6c5aace6fb496d6af51ad9e86be7ca267f4945b1d62fa14832bf'
-EVIDENCE, CAPTURE, SESSION = 'wifi-phase-b', 'capture-27', 'session-27'
+PREDECESSOR = 'e322e068ebff5888b4dd8f20063aa5c634cc385269c87a70780ff5240b1addf1'
+EVIDENCE, CAPTURE, SESSION = 'wifi-phase-b', 'capture-28', 'session-28'
 
 
 def refuse(reason):
@@ -58,22 +58,22 @@ def main():
     if not body.startswith(b'TARGET_SSID=') or \
             not body.endswith((HERE / 'join-once.sh').read_bytes()):
         refuse('GEMINI_JOIN_SCRIPT does not wrap the reviewed join-once.sh')
-    # Runtime 27 is the supplicant-owned C2+C3 session: the private binder must
+    # Runtime 28 is the supplicant-owned C2+C3 session: the private binder must
     # have added the PSK and the hex SSID (never printed here).
     if b'\nWPA_PSK_HEX=' not in body or b'\nTARGET_SSID_HEX=' not in body:
         refuse('GEMINI_JOIN_SCRIPT is not the PSK-bound C2 script')
     if not RECEIPT.is_file() or RECEIPT.is_symlink():
-        refuse('results/candidate-26.json is not committed yet')
+        refuse('results/candidate-27.json is not committed yet')
     digest = hashlib.sha256(RECEIPT.read_bytes()).hexdigest()
     receipt = json.loads(RECEIPT.read_bytes())
     if (receipt.get('kernel_build_commit') != COMMIT or
             receipt.get('kernel_package_sha256') != PACKAGE or
             receipt.get('kernel_release') != RELEASE or
             receipt.get('physical_admission') is not False):
-        refuse('results/candidate-26.json is not the package-26 candidate')
+        refuse('results/candidate-27.json is not the package-27 candidate')
     for name in ('install-passive.py', 'capture-private.py'):
         if slot(name) != digest:
-            refuse(name + ' MANIFEST_SHA slot is not the committed candidate-26 receipt')
+            refuse(name + ' MANIFEST_SHA slot is not the committed candidate-27 receipt')
     root = runtime / EVIDENCE
     for name in (CAPTURE, SESSION):
         if (root / name).exists() or (root / name).is_symlink():
@@ -86,7 +86,7 @@ def main():
                       'left_absent_for_capture_claim': CAPTURE,
                       'candidate_manifest_sha256': digest,
                       'candidate_boot2_sha256': receipt['files']['boot2-padded.img']['sha256'],
-                      'predecessor_sha256': PREDECESSOR, 'deployment_receipt': 'deployment-26',
+                      'predecessor_sha256': PREDECESSOR, 'deployment_receipt': 'deployment-27',
                       'device_action': 'none'}, indent=2))
 
 

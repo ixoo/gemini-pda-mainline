@@ -449,6 +449,20 @@ data-path shapes through mac80211, replay the reference offline) is admitted
 as hardware-free source work and awaits its proposal diff, checks and
 combined test protocol before any build.
 
+## Candidate 27 and the runtime 28 bindings (2026-10-11)
+
+Candidate 27 pairs the compile-32 package (`e9610ba5…`, built input 5ee1f55f)
+with candidate 26's RAM root, board DT and kernel config byte-identical; boot
+image `be5e864a…`, full padded boot2 `c45503fa…`; the committed receipt
+[results/candidate-27.json](results/candidate-27.json) (SHA-256 `03ee185b…`)
+is the custodian's exact bytes and `runtime-28/results/candidate.json` its
+copy. The installer's predecessor is the installed candidate 26
+(`e322e068…`). [RUNTIME_28_PREPARATION](RUNTIME_28_PREPARATION.md) states
+what differs from runtime 27 (proposal 0174 only), the hypothesis that the
+0168 class is counted past eight under the existing packet bound so the data
+phase runs to its end, the separately reported network terms, the branches,
+and the bindings table. Nothing has been installed or booted.
+
 ## Compile 32 and the candidate 27 pins (2026-10-11)
 
 [COMPILE_32.md](COMPILE_32.md): the phase-B compile profile at 5ee1f55f with
