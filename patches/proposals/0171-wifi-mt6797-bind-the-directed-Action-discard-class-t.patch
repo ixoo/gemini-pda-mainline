@@ -1,0 +1,136 @@
+From 5142bfa6b386f04b085867e6a7eb4ef35e869ea9 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 11 Oct 2026 13:16:43 +0000
+Subject: [PATCH 171/171] wifi: mt6797: bind the directed Action discard class
+ to the key state (its keyed descriptor variant)
+
+Runtime 24 (candidate 23, compile 28) completed the pairwise key command with
+message 4 in flight (the credit waiter's ownership of proposal 0170 observed),
+discarded the runtime 21 and runtime 17 classes, and then fail-stopped at the
+receive-frame gate on a frame of runtime 18's directed clear Action class: 136 bytes,
+type word 0xee01, unicast-to-me match, BSSID field 1, WLAN index 1, frame
+control 0x00d0, receiver this station and transmitter the target, with two
+descriptor fields changed from runtime 18: byte 9 0x40 and status 0xe004
+where runtime 18, before any key, carried 0 and 0xe000.
+
+Pinned public layout: byte 9's upper nibble is the security mode (4 is CCMP)
+and bit 2 of the status word is RX_STATUS_FLAG_CIPHER_MISMATCH; the ICV-error
+flag (bit 4) is clear. Inference, not measured: once the pairwise key is
+installed under WLAN entry 1, the descriptor reports that entry's cipher
+context and an unprotected frame received on it is flagged as a cipher
+mismatch. The decoder now admits the keyed variant (exactly 0x40 and 0xe004)
+only when the caller passes that the pairwise key is installed, and keeps
+admitting runtime 18's unkeyed variant (exactly 0 and 0xe000) at every stage
+it already did; the keyed variant before the key and every mixed pair are not
+the class. The frame stays a discard within the same eight-per-join budget
+and is never delivered; every other condition, window and budget is
+unchanged. "Same class" means the same source-defined frame class: no body or
+sequence was retained in either run, and the category, body, BSSID and
+sequence are not claimed.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ .../wireless/mediatek/mt6797/action-frame.h   | 43 ++++++++++++++++---
+ drivers/net/wireless/mediatek/mt6797/mac.c    |  8 +++-
+ 2 files changed, 44 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/action-frame.h b/drivers/net/wireless/mediatek/mt6797/action-frame.h
+index bf1f23d50..c3f9c9a85 100644
+--- a/drivers/net/wireless/mediatek/mt6797/action-frame.h
++++ b/drivers/net/wireless/mediatek/mt6797/action-frame.h
+@@ -26,8 +26,34 @@ struct mt6797_join_action_frame {
+  * transmitter and this station as receiver, 72 wire bytes. Its category,
+  * body and sequence were not recorded and none is claimed or read here.
+  *
++ * Runtime 24 (candidate 23, the pairwise key's credit returned and the
++ * add-key-done recorded) ended at the frame gate on a frame of the same
++ * source-defined class (no body or sequence was retained in either run) with
++ * two observed descriptor differences: bytes 02 28 18 04 01 40 04 e0, that is
++ * byte 9 0x40 (TID 0, security mode 4) and status 0xe004 where runtime 18,
++ * before any key, carried 00 and 0xe000; 136 bytes, groups 1 to 3, header at
++ * 64, frame control 0x00d0 (unprotected, Retry clear), receiver this station
++ * and transmitter the target (the summary's explicit comparisons). Source
++ * meaning of the two fields (pinned public layout): the security mode is the
++ * receiving WLAN entry's cipher context, CCMP once the pairwise key is
++ * installed under it, and bit 2 of the status word is
++ * RX_STATUS_FLAG_CIPHER_MISMATCH, an unprotected frame against a keyed
++ * entry; the ICV-error flag is bit 4 and is clear. The category, body,
++ * BSSID and sequence were not retained and none is claimed; the decoder
++ * compares the BSSID as before.
++ *
+  * This decoder names exactly that class so the caller can discard it
+- * without delivery: the type word exactly 0xee01 (the measured value; the
++ * without delivery, in its two measured descriptor variants: byte 9 exactly
++ * 0 with status exactly 0xe000 (runtime 18) at every stage the caller admits
++ * the class, as before; and byte 9 exactly 0x40 with status exactly 0xe004
++ * (runtime 24) only when the caller passes `keyed`, that is, once the
++ * pairwise key is installed. The keyed variant before the key is not the
++ * class; the unkeyed variant keeps its existing admission after the key, as
++ * no measurement asks to withdraw it. An unprotected Action frame flagged as
++ * a cipher mismatch is never delivered to mac80211. In the pinned vendor
++ * driver the management path drops only ICV errors (under MFP) before
++ * dispatching by category; no further vendor behaviour is claimed.
++ * The common conditions: the type word exactly 0xee01 (the measured value; the
+  * public layout's checksum and Ethernet-type-offset bits in it are zero and
+  * no other value is admitted); the match byte exactly 0x02; the descriptor
+  * bytes 6 to 11 exactly as measured
+@@ -49,12 +75,12 @@ struct mt6797_join_action_frame {
+ static inline bool
+ mt6797_join_action_frame(const unsigned char *packet, size_t bytes,
+ 			 unsigned char channel, const unsigned char own[6],
+-			 const unsigned char ap[6],
++			 const unsigned char ap[6], bool keyed,
+ 			 struct mt6797_join_action_frame *out)
+ {
+ 	struct mt6797_join_action_frame r;
+ 	const size_t offset = 16 + 16 + 8 + 24;
+-	unsigned int type;
++	unsigned int type, status;
+ 	const unsigned char *f;
+ 
+ 	if (!packet || !own || !ap || !out || bytes < offset + 26 ||
+@@ -65,9 +91,16 @@ mt6797_join_action_frame(const unsigned char *packet, size_t bytes,
+ 	if (type != 0xee01)
+ 		return false;
+ 	r.match = packet[4];
++	status = mt6797_join_le16(packet + 10);
+ 	if (r.match != 0x02 || packet[6] != 24 || packet[7] != 0x04 ||
+-	    packet[8] != 1 || packet[9] ||
+-	    mt6797_join_le16(packet + 10) != 0xe000)
++	    packet[8] != 1)
++		return false;
++	/* The two measured variants, each exactly: unkeyed (byte 9 = 0, status
++	 * 0xe000) always; keyed (0x40, 0xe004) only once the pairwise key is
++	 * installed. Mixed pairs and every other value are not the class.
++	 */
++	if (!((packet[9] == 0 && status == 0xe000) ||
++	      (keyed && packet[9] == 0x40 && status == 0xe004)))
+ 		return false;
+ 	f = packet + offset;
+ 	r.fc = mt6797_join_le16(f);
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 8e7f5737c..914936ec4 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -1709,7 +1709,10 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 				continue;
+ 			}
+ 			/* The target's unprotected directed Action frame, named in
+-			 * runtime 18 after message 4 (category unknown and unread;
++			 * runtime 18 after message 4; runtime 24 saw the same source-
++			 * defined class after the pairwise key with the keyed descriptor
++			 * variant (security mode 4, cipher-mismatch flag; action-frame.h),
++			 * admitted only then, the unkeyed variant as before (category unknown and unread;
+ 			 * runtime 16's unclassified frame shared its type word and
+ 			 * length), is irrelevant to the bounded join and is discarded
+ 			 * while the station is active: never delivered or interpreted,
+@@ -1721,7 +1724,8 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 			    !mac->join_cleanup_done &&
+ 			    mt6797_join_action_frame(mac->join_packet, rx.logical_bytes, 40,
+ 						     mac->hw->wiphy->perm_addr,
+-						     mac->join_ap, &action) &&
++						     mac->join_ap, mac->join_key_pairwise == 1,
++						     &action) &&
+ 			    mac->join_action_discarded < 8) {
+ 				mac->join_action_discarded++;
+ 				dev_info(wiphy_dev(mac->hw->wiphy),

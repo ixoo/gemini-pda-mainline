@@ -610,6 +610,9 @@ static struct sk_buff *data_tx_frame(void)
  * this station from the target; `match`, `fc` and `da_own` perturb the class.
  * The category byte and body are fixture zeros, never read by the driver.
  */
+/* The scripted directed Action frame's descriptor variant: runtime 18's before the
+ * pairwise key (byte 9 = 0, status 0xe000), runtime 24's after it (0x40, 0xe004). */
+static bool action_keyed;
 static void script_action_frame(unsigned match, unsigned fc, bool da_own)
 {
 	u8 *p = script[script_count];
@@ -618,8 +621,8 @@ static void script_action_frame(unsigned match, unsigned fc, bool da_own)
 	assert(script_count < 6);
 	memset(p, 0, sizeof(script[0]));
 	put_unaligned_le16(0xe001 | 7 << 9, p + 2);
-	p[4] = match; p[5] = 40; p[6] = 24; p[7] = 0x04; p[8] = 1; p[9] = 0;
-	put_unaligned_le16(0xe000, p + 10);
+	p[4] = match; p[5] = 40; p[6] = 24; p[7] = 0x04; p[8] = 1; p[9] = action_keyed ? 0x40 : 0;
+	put_unaligned_le16(action_keyed ? 0xe004 : 0xe000, p + 10);
 	p[16 + 16 + 8 + 9] = 101; /* RX vector RCPI, as the management decoder reads it */
 	put_unaligned_le16(fc, p + off);
 	memcpy(p + off + 4, da_own ? own : ap, ETH_ALEN); memcpy(p + off + 10, ap, ETH_ALEN); memcpy(p + off + 16, ap, ETH_ALEN);
@@ -1017,6 +1020,24 @@ int main(void)
 	assert(mac.first_error == -EPROTO && !mac.join_action_discarded);
 	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = false;
 	script_action_frame(0x02, 0x00d0, true); run_worker();   /* before the activation */
+	assert(mac.first_error == -EPROTO && !mac.join_action_discarded);
+	mt6797_mac_join_close(&mac);
+
+	/* 10k. Runtime 24: after the pairwise key a frame of the same source-defined
+	 *      directed Action class arrives with the keyed descriptor variant (security
+	 *      mode 4, cipher-mismatch flag) and is discarded, counted with the class;
+	 *      the unkeyed variant stays admitted after the key; the keyed variant before
+	 *      the key is a refusal; the shared budget's ninth is a refusal.
+	 */
+	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = true; mac.join_bss_configured = true;
+	mac.join_key_pairwise_submitted = true; mac.join_key_pairwise = 1; mac.join_hold_until = now_ns + 4000 * NSEC_PER_MSEC;
+	action_keyed = true; script_action_frame(0x02, 0x00d0, true); action_keyed = false; script_action_frame(0x02, 0x00d0, true); run_worker();
+	assert(!mac.first_error && mac.join_running && mac.join_action_discarded == 2 && !rx_delivered && !submissions);
+	mac.join_action_discarded = 8; action_keyed = true; script_action_frame(0x02, 0x00d0, true); action_keyed = false; run_worker();  /* the ninth */
+	assert(mac.first_error == -EPROTO && mac.join_action_discarded == 8);
+	mt6797_mac_join_close(&mac);
+	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = true; mac.join_bss_configured = true;
+	action_keyed = true; script_action_frame(0x02, 0x00d0, true); action_keyed = false; run_worker();    /* keyed variant before the key */
 	assert(mac.first_error == -EPROTO && !mac.join_action_discarded);
 	mt6797_mac_join_close(&mac);
 

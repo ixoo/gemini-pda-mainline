@@ -781,3 +781,4 @@ proposals/0167-wifi-mt6797-transmit-mac80211-s-protected-data-frame.patch
 proposals/0168-wifi-mt6797-discard-the-clear-broadcast-Action-frame.patch
 proposals/0169-wifi-mt6797-name-the-group-data-class-by-the-station.patch
 proposals/0170-wifi-mt6797-the-key-command-s-credit-waiter-owns-its.patch
+proposals/0171-wifi-mt6797-bind-the-directed-Action-discard-class-t.patch

@@ -449,6 +449,34 @@ data-path shapes through mac80211, replay the reference offline) is admitted
 as hardware-free source work and awaits its proposal diff, checks and
 combined test protocol before any build.
 
+## Runtime 24 result and proposal 0171 (2026-10-11)
+
+Runtime 24 ([RUNTIME_24_RESULT.md](RUNTIME_24_RESULT.md)) was negative but
+advanced: the association exchange completed and the supplicant reported
+handshake completion (the host's handshake-path and C2 verdicts stay false),
+three broadcast Action
+frames (0168) and one group-addressed data frame with WLAN index 2 (0169)
+were discarded, and the pairwise key command completed with message 4 in
+flight, its credit returned as measured and message 4 acknowledged afterwards
+(0170 observed; no firmware key-install or complete-C2 claim). The lifetime then fail-stopped at the frame gate on a frame of runtime 18's
+directed clear Action class carrying the keyed descriptor variant: security
+mode 4 and the cipher-mismatch status flag, where runtime 18 before any key
+carried 0 and 0xe000. The host verdicts (C2 false, C3 false, not malformed,
+refusal and terminal failure recorded) stand as computed; recovery was
+confirmed on the collector's second attempt. **0171** admits that class's keyed
+descriptor variant (exactly security mode 4 and status 0xe004) only once the
+pairwise key is installed and keeps runtime 18's unkeyed variant admitted as
+before; mixed pairs and the keyed variant before the key are refused; the
+frame stays a discard within the same eight-per-lifetime budget and is never
+delivered; every other condition, window and budget is unchanged. "Same
+class" means the same source-defined frame class: no body or sequence was
+retained. Fixtures: `tests/action-frame-test.c` (the keyed variant only in
+the keyed state, the unkeyed variant in both, mixed pairs, the ICV-error
+flag, other modes, a TID, a protected frame control, other peers refused),
+`tests/join-ownership-test.c` (keyed and unkeyed variants discarded after
+the key within the shared budget, the ninth refused, the keyed variant
+before the key refused). Nothing about the firmware's key handling follows.
+
 ## Runtime 24 bindings (2026-10-11)
 
 Candidate 23 pairs the [compile 28](COMPILE_28.md) package `4d9372a7…` with

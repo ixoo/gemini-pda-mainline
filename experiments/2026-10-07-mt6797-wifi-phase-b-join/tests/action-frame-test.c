@@ -22,6 +22,11 @@ static const unsigned char own[6] = {2, 0, 0, 0, 0, 1};
 static const unsigned char ap[6] = {2, 0, 0, 0, 0, 2};
 static const unsigned char other[6] = {2, 0, 0, 0, 0, 9};
 static void put16(unsigned char *p, unsigned v) { p[0] = v; p[1] = v >> 8; }
+/* The caller's key state (true once the pairwise key is installed) and the
+ * descriptor variant the builder writes: runtime 18's (byte 9 = 0, status 0xe000)
+ * or runtime 24's (0x40, 0xe004). The unkeyed variant is the class in both states;
+ * the keyed variant only in the keyed state. */
+static bool keyed = false, variant_keyed = false;
 
 /* Runtime 18's descriptor bytes and group set, then a native header and `body` bytes. */
 static size_t build(unsigned char *p, unsigned groups, unsigned fc, const unsigned char *da, const unsigned char *ta, const unsigned char *bssid, size_t body)
@@ -29,7 +34,7 @@ static size_t build(unsigned char *p, unsigned groups, unsigned fc, const unsign
  size_t off = 16, n;
  memset(p, 0, 1024);
  put16(p + 2, 0xe001 | groups << 9);
- p[4] = 0x02; p[5] = 40; p[6] = 24; p[7] = 0x04; p[8] = 1; p[9] = 0; put16(p + 10, 0xe000);
+ p[4] = 0x02; p[5] = 40; p[6] = 24; p[7] = 0x04; p[8] = 1; p[9] = variant_keyed ? 0x40 : 0; put16(p + 10, variant_keyed ? 0xe004 : 0xe000);
  if (groups & 8) off += 16;
  if (groups & 1) off += 16;
  if (groups & 2) off += 8;
@@ -45,7 +50,7 @@ static bool run(const unsigned char *src, size_t n, struct mt6797_join_action_fr
 {
  unsigned char *p = malloc(n ? n : 1); assert(p); memcpy(p, src, n);
  memset(out, 0x5a, sizeof(*out));
- bool ok = mt6797_join_action_frame(p, n, 40, own, ap, out);
+ bool ok = mt6797_join_action_frame(p, n, 40, own, ap, keyed, out);
  free(p); return ok;
 }
 
@@ -58,7 +63,7 @@ int main(void)
  assert(run(p, n, &r) && r.bytes == 72 && r.fc == 0x00d0 && r.match == 0x02 && r.wlan == 1 && r.bss == 1 && r.sec == 0 && r.status == 0xe000);
  /* Declared lengths: below the header plus two body bytes refused; from there up admitted. */
  for (size_t cut = 0; cut < n; cut++) { unsigned char q[1024]; memcpy(q, p, n); put16(q, cut); assert(run(q, cut, &r) == (cut >= 64 + 26)); }
- assert(!mt6797_join_action_frame(p, n, 36, own, ap, &r));
+ assert(!mt6797_join_action_frame(p, n, 36, own, ap, keyed, &r));
  /* Type word exactly 0xee01: every single-bit flip, data and event type words,
   * and every other group set refused. */
  { unsigned char q[1024]; memcpy(q, p, n);
@@ -100,8 +105,34 @@ int main(void)
  n = build(p, 7, 0x00d0, own, ap, ap, 2); assert(n == 90 && run(p, n, &r) && r.bytes == 26);
  n = build(p, 7, 0x00d0, own, ap, ap, 1); assert(n == 89 && !run(p, n, &r));
  n = build(p, 7, 0x00d0, own, ap, ap, 0); assert(!run(p, n, &r));
- mt6797_join_action_frame(NULL, 136, 40, own, ap, &r); mt6797_join_action_frame(p, 136, 40, NULL, ap, &r);
- mt6797_join_action_frame(p, 136, 40, own, NULL, &r); mt6797_join_action_frame(p, 136, 40, own, ap, NULL);
+ mt6797_join_action_frame(NULL, 136, 40, own, ap, keyed, &r); mt6797_join_action_frame(p, 136, 40, NULL, ap, keyed, &r);
+ mt6797_join_action_frame(p, 136, 40, own, NULL, keyed, &r); mt6797_join_action_frame(p, 136, 40, own, ap, keyed, NULL);
+ /* Runtime 24's keyed descriptor variant of the same source-defined class (bytes
+  * 02 28 18 04 01 40 04 e0, 136 bytes, frame control 0x00d0, receiver this station,
+  * transmitter the target): admitted only in the keyed state; the unkeyed variant
+  * stays admitted in both states; mixed cipher/status pairs, the ICV-error flag, other
+  * modes, a TID, a protected frame control and other peers are refused in both states. */
+ keyed = true; variant_keyed = true;
+ n = build(p, 7, 0x00d0, own, ap, ap, 48);
+ assert(n == 136 && p[9] == 0x40 && run(p, n, &r) && r.bytes == 72 && r.fc == 0x00d0 && r.match == 0x02 && r.wlan == 1 && r.bss == 1 && r.sec == 4 && r.status == 0xe004);
+ assert(!mt6797_join_action_frame(p, n, 40, own, ap, false, &r));                                 /* keyed variant before the key */
+ { unsigned char q[1024]; memcpy(q, p, n);
+   q[9] = 0; assert(!run(q, n, &r)); q[9] = 0x40; put16(q + 10, 0xe000); assert(!run(q, n, &r));   /* mixed pairs */
+   put16(q + 10, 0xe014); assert(!run(q, n, &r)); put16(q + 10, 0xe010); assert(!run(q, n, &r)); /* ICV error */
+   put16(q + 10, 0xe00c); assert(!run(q, n, &r)); put16(q + 10, 0xc004); assert(!run(q, n, &r));
+   put16(q + 10, 0xe004); q[9] = 0x44; assert(!run(q, n, &r)); q[9] = 0x10; assert(!run(q, n, &r)); q[9] = 0x40; /* TID, another mode */
+   assert(run(q, n, &r)); }
+ assert(!run(p, build(p, 7, 0x40d0, own, ap, ap, 48), &r));                                       /* protected */
+ assert(!run(p, build(p, 7, 0x00e0, own, ap, ap, 48), &r));                                       /* Action No Ack */
+ assert(!run(p, build(p, 7, 0x00d0, own, other, ap, 48), &r));                                    /* another transmitter */
+ assert(!run(p, build(p, 7, 0x00d0, ap, ap, ap, 48), &r));                                        /* another receiver */
+ n = build(p, 7, 0x00d0, own, ap, ap, 48); p[4] = 0x08; assert(!run(p, n, &r)); p[4] = 0x02; p[8] = 255; assert(!run(p, n, &r));
+ variant_keyed = false;
+ n = build(p, 7, 0x00d0, own, ap, ap, 48); assert(p[9] == 0 && run(p, n, &r) && r.sec == 0 && r.status == 0xe000); /* unkeyed variant after the key: still the class */
+ keyed = false;
+ n = build(p, 7, 0x00d0, own, ap, ap, 48); assert(run(p, n, &r) && r.sec == 0 && r.status == 0xe000);               /* and before it */
+ { unsigned char q[1024]; memcpy(q, p, n); q[9] = 0x40; put16(q + 10, 0xe004); assert(!run(q, n, &r)); }            /* keyed variant before the key */
+
  /* Runtime 21's class: broadcast match 0x08, descriptor bytes 18 3c ff 00 00 e0, clear Action
   * to the broadcast address, 644 wire bytes (708 in all); the transmitter and BSSID are not
   * compared. Observed-field and source-defined-field perturbations are refused. */
@@ -140,6 +171,6 @@ int main(void)
    #undef GBUILD
    #undef GRUN
  }
- puts("action-frame: PASS (measured class named; protected, no-ack, other subtypes, flags, peers, descriptor bytes, status, groups refused; runtime 21 broadcast class named)");
+ puts("action-frame: PASS (measured class named; protected, no-ack, other subtypes, flags, peers, descriptor bytes, status, groups refused; runtime 21 broadcast class named; runtime 24 keyed variant admitted only after the pairwise key, the unkeyed variant kept)");
  return 0;
 }
