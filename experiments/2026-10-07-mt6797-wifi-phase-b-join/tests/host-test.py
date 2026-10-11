@@ -377,6 +377,29 @@ class HostTests(unittest.TestCase):
         self.assertFalse(result['malformed_stage_record'], result['diagnostic_records'])
         self.assertTrue(result['refusal_recorded'] and result['terminal_failure_recorded'])
         self.assertFalse(result['driver_handshake_path_pass'] or result['bounded_join_pass'])
+        # Runtime 23 shape: the pairwise key command submitted, its credit, message 4
+        # sent after it, the first add-key-done, then the command refused while the
+        # lifetime ran. Without a terminal record the lifetime was abandoned: malformed.
+        # With the worker's footer (0170) the refusal closes the command's accounting:
+        # placed, refusal recorded, terminal failure, nothing passes.
+        head = chain[:chain.index(b'one-shot WLAN join eapol sent: pid=4')]
+        r23 = (head +
+               b'one-shot WLAN join key command: pairwise submitted sequence=25\n'
+               b'one-shot WLAN join credit: pages=1 remaining=0\n'
+               b'one-shot WLAN join eapol sent: pid=4 pages=2 bytes=113\n'
+               b'one-shot WLAN join key done: first after=pairwise bss=0 peer=1\n'
+               b'one-shot WLAN join key command refused: pairwise status=-110 running=1 active=1 configured=1 first=0\n'
+               b'one-shot WLAN join key command refused: group status=-95 running=0 active=1 configured=1 first=-110\n')
+        abandoned = classify(r23)
+        self.assertTrue(abandoned['malformed_stage_record'] and abandoned['refusal_recorded'] and not abandoned['terminal_failure_recorded'])
+        footer = b'one-shot WLAN join stopped: status=-110 first=0 submitted=0x801 debt=2 cleanup=0 branch=8\n'
+        ended = classify(r23 + footer)
+        self.assertFalse(ended['malformed_stage_record'], ended['diagnostic_records'])
+        self.assertTrue(ended['refusal_recorded'] and ended['terminal_failure_recorded'])
+        self.assertFalse(ended['driver_handshake_path_pass'] or ended['bounded_join_pass'])
+        self.assertEqual((ended['key_commands_submitted'], ended['key_credits_returned']), (['pairwise'], []))
+        # A refusal that is not of a submitted command (running=0, runtime 16's shape) does not close one.
+        self.assertTrue(classify(r23.replace(b'status=-110 running=1', b'status=-110 running=0') + footer)['malformed_stage_record'])
         # The 0168 class: a broadcast Action discard at any stage (even before the
         # authentication) is a placed notification; counts out of order or after the
         # terminal record are malformed; the report carries its count.

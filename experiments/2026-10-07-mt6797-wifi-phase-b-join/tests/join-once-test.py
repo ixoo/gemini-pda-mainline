@@ -87,6 +87,9 @@ loop = c2.split('while [ "$tick" -lt 100 ]; do')[1].split('done')[0]
 # written last and the listener stopped and waited for at the terminal; only
 # statuses, counts and the prefix length are printed, never an address.
 assert 'data_checks' in loop and "grep -q 'one-shot WLAN join data phase: budget_ms='" in loop
+# Runtime 23: a keepalive line every 20 ticks inside the wait (the USB listener's idle
+# timeout is 60 s); fixed name and the tick only.
+assert "if [ $((tick % 20)) -eq 0 ]; then" in loop and "$BB printf 'keepalive=%s\\n' \"$tick\"" in loop
 checks = c2.split('data_checks() {')[1].split('\n    }\n')[0]
 assert '$BB timeout 20 $BB udhcpc -i wlan0 -f -n -q -t 4 -T 3 -s' in checks and '$BB timeout 12 $BB ping -c 3 -W 2' in checks
 hook = re.search(r"\$BB printf '(#!/bin/sh.*?)' \"\$data_dir\" > \"\$data_dir/dhcp.sh\"", checks).group(1)

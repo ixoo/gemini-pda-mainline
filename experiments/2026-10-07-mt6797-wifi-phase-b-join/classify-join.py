@@ -75,6 +75,7 @@ def classify(raw):
     group_rows = []
     action_rows = []
     group_action_rows = []
+    key_refusal_rows = []  # (index, kind, status, running)
     refused = False
     stopped_index = None
     malformed = False
@@ -103,6 +104,11 @@ def classify(raw):
                     action_rows.append((index, int(body.rsplit(b'count=', 1)[1])))
                 elif body.startswith(b'group action frame discarded:'):
                     group_action_rows.append((index, int(body.rsplit(b'count=', 1)[1])))
+                elif body.startswith(b'key command refused:'):
+                    fields = dict(part.split(b'=') for part in body.split(b': ', 1)[1].split(b' ')[1:])
+                    key_refusal_rows.append((index, body.split(b': ', 1)[1].split(b' ')[0].decode(),
+                                             int(fields[b'status']), int(fields[b'running'])))
+                    refused = True
                 elif body.startswith(b'data TX: first') or body.startswith(b'data RX: first') or body.startswith(b'data RX outside:'):
                     pass  # Phase C3 first-frame notifications: metadata, neither refusal nor stage
                 elif body.startswith(b'eapol observed:') or body.startswith(b'eapol delivered:'):
@@ -140,6 +146,13 @@ def classify(raw):
         # 1..255, unique and increasing, as the driver assigns them.
         kinds = [row[1] for row in key_commands]
         credit_kinds = [row[1] for row in key_credits]
+        # A submitted command refused while the lifetime ran (status recorded,
+        # running=1, after the command, no credit for it) terminates its
+        # accounting; the refusal, not a credit, closes that kind (runtime 23).
+        refused_kinds = [kind for index, kind, _status, running in key_refusal_rows
+                         if running == 1 and kind in kinds and kind not in credit_kinds and
+                         index > [row for row in key_commands if row[1] == kind][0][0]]
+        credit_kinds = credit_kinds + refused_kinds
         removal_kinds = [row[1] for row in key_removals]
         sequences = [row[2] for row in key_commands] + [row[2] for row in key_removals]
         # The firmware's add-key-done events are attributed by window, not by key
@@ -160,7 +173,9 @@ def classify(raw):
                        d[0] > first_done[0][0] and (key_done_bound is None or d[0] < key_done_bound)
                        for d in second_done) and
                    all(c[0] > k[0] for k, c in zip(key_commands, key_credits)) and
-                   removal_kinds == kinds and
+                   # A fail-stopped lifetime (the stopped footer) skips the teardown by
+                   # design and has no removals; a healthy one removes each submitted key.
+                   (removal_kinds == kinds or (stopped and not removal_kinds)) and
                    all(1 <= s <= 255 for s in sequences) and sequences == sorted(set(sequences)))
         if not keys_ok:
             malformed = True

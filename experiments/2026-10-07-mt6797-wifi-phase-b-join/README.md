@@ -449,6 +449,34 @@ data-path shapes through mac80211, replay the reference offline) is admitted
 as hardware-free source work and awaits its proposal diff, checks and
 combined test protocol before any build.
 
+## Runtime 23 result and proposal 0170 (2026-10-11)
+
+Runtime 23 ([RUNTIME_23_RESULT.md](RUNTIME_23_RESULT.md)) was negative: the
+association and the supplicant's handshake completed, two broadcast Action
+frames of the runtime 21 class were discarded and recorded (0168 observed),
+the 0169 class was not observed, the pairwise key command was submitted and
+its credit returned, then the driver's own credit wait refused the command
+with -ETIMEDOUT because the worker had already submitted the queued message 4
+and recharged the shared page debt; the refusal retired the lifetime without a
+terminal record, the device script waited and the USB listener's idle timeout
+closed the join phase. The host verdicts (C2 false, C3 false, malformed
+without a terminal record) stand as computed; recovery was confirmed on the
+collector's fourth attempt. **0170** makes the credit waiter own exactly its
+pending completion (the worker's cleared flag, under the worker's own
+deadline) and routes a key command refused while the lifetime runs through
+the worker's one terminal path, synchronously under the mutex, so the footer
+exists and the frames are freed exactly once before any station teardown. The
+classifier closes a submitted command's accounting on its running refusal and
+waives the removals for a fail-stopped lifetime. The device script prints one
+`keepalive` line every 20 ticks so the 60 s idle timeout cannot close the
+100 s wait. Fixtures: `tests/join-peer-test.c` (the runtime 23 ordering
+succeeds, the absent credit still fails, the running refusal emits one footer
+and frees once, the post-stop refusal emits none), `tests/join-ownership-test.c`
+(an externally raised stop ends the lifetime with that status),
+`tests/host-test.py` (the runtime 23 shape with and without the footer),
+`tests/join-once-test.py` (the keepalive). Nothing about the firmware's key
+handling follows; the add-key-done event stays attributed by order only.
+
 ## Runtime 23 bindings (2026-10-11)
 
 Candidate 22 pairs the [compile 27](COMPILE_27.md) package `d1cbc042…` with

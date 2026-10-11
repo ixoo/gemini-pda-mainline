@@ -39,21 +39,31 @@ struct sk_buff_head { int lock; struct sk_buff *head; };
 #define IEEE80211_SKB_CB(s) (&(s)->info)
 #define wiphy_dev(w) (w)
 /* Capture the refusal bitmask the production diagnostic reports. */
-static unsigned last_reasons, refusal_logs, cleanup_logs, cleanup_stage, cleanup_free, overflow_logs;
+static unsigned last_reasons, refusal_logs, cleanup_logs, cleanup_stage, cleanup_free, overflow_logs, footers, freed_tx;
 static unsigned absence_logs, absence_bss, absence_flag, absence_quota;
 static void record(const char *fmt, ...)
 { va_list ap; va_start(ap, fmt);
   if (strstr(fmt, "peer refused")) { last_reasons = va_arg(ap, unsigned); refusal_logs++; }
   else if (strstr(fmt, "cleanup refused")) { cleanup_stage = va_arg(ap, unsigned); (void)va_arg(ap, unsigned); cleanup_free = va_arg(ap, unsigned); cleanup_logs++; }
   else if (strstr(fmt, "credit overflow")) overflow_logs++;
+  else if (strstr(fmt, "join stopped:")) footers++;
   else if (strstr(fmt, "bss absence")) { absence_bss = va_arg(ap, unsigned); absence_flag = va_arg(ap, unsigned); absence_quota = va_arg(ap, unsigned); absence_logs++; }
   va_end(ap); }
 #define dev_info(dev, ...) record(__VA_ARGS__)
+#define dev_err(dev, ...) record(__VA_ARGS__)
 static unsigned allocations, losses;
 static bool allocation_failure;
 static struct sk_buff *dev_alloc_skb(unsigned n)
 { assert(n==26);if(allocation_failure)return NULL;allocations++;return calloc(1,sizeof(struct sk_buff)); }
 static void dev_kfree_skb(struct sk_buff *s) { if(s) { allocations--;free(s); } }
+/* The terminal path's discard list: the single-slot queue's head is moved aside
+ * and the frame in flight takes the slot; the caller dequeues both. Frames are
+ * static fixture objects, so freeing them to mac80211 only counts. */
+static struct sk_buff *spliced;
+static void skb_queue_head_init(struct sk_buff_head *q) { q->head=NULL; q->lock=0; }
+static void skb_queue_splice_init(struct sk_buff_head *from,struct sk_buff_head *to) { (void)to; assert(!spliced); spliced=from->head; from->head=NULL; }
+static struct sk_buff *__skb_dequeue(struct sk_buff_head *q) { struct sk_buff *s=q->head; if(s) { q->head=NULL; return s; } s=spliced; spliced=NULL; return s; }
+static void ieee80211_free_txskb(struct ieee80211_hw *hw,struct sk_buff *s) { (void)hw; assert(s); freed_tx++; }
 static u8 *skb_put_zero(struct sk_buff *s,unsigned n) { s->len=n;return s->data; }
 static bool skb_queue_empty(struct sk_buff_head *q) { return !q->head; }
 static void __skb_queue_tail(struct sk_buff_head *q,struct sk_buff *s)
@@ -72,7 +82,8 @@ enum set_key_cmd { SET_KEY, DISABLE_KEY };
 #define IEEE80211_KEY_FLAG_PAIRWISE BIT(3)
 #define WLAN_CIPHER_SUITE_CCMP 0x000fac04
 struct ieee80211_key_conf { unsigned cipher; int keyidx; unsigned keylen; unsigned flags; u8 key[32]; };
-static void schedule_delayed_work(int *w, unsigned long d) { (void)w; (void)d; }
+static unsigned scheduled;
+static void schedule_delayed_work(int *w, unsigned long d) { (void)w; (void)d; scheduled++; }
 static unsigned long __attribute__((unused)) msecs_to_jiffies(unsigned ms) { return ms; }
 struct ieee80211_sta { bool mlo; unsigned valid_links; u8 addr[6];
  struct { unsigned supp_rates[2]; } deflink; };
@@ -89,7 +100,7 @@ struct mt6797_mac {
  bool join_last_acked, join_short_preamble, join_bss_configured;
  bool join_cleanup_requested, join_cleanup_done, join_deauth_done;
  unsigned join_cleanup_stage, join_queue_bytes; struct sk_buff *join_internal;
- unsigned join_last_sequence;
+ unsigned join_last_sequence, join_submitted;
  u8 join_ssid[32], join_ssid_bytes;
  unsigned join_aid, join_assoc_status;
  void *join_inflight; u64 join_frame_deadline;
@@ -117,6 +128,8 @@ static u64 now;
 static unsigned locked, writes, waits, fail_write, fail_wait, released;
 static unsigned order[16];
 static int wait_mode;
+static bool race_dequeue; /* runtime 23: the worker submits the queued reply right after completing the credit */
+static struct sk_buff *race_reply;
 static bool idle;
 static void ieee80211_connection_loss(struct ieee80211_vif *v)
 { assert(v==active->vif && locked);losses++; }
@@ -194,6 +207,14 @@ static unsigned long wait_for_completion_timeout(struct completion *c,unsigned l
  if(c==&active->join_credit_done) {
   released=active->join_page_debt;
   assert(!mt6797_mac_join_guard(active,active->join_credit_deadline));
+  if(race_dequeue && race_reply && active->join_queue.head==race_reply) {
+   /* The same worker iteration: credit completed, queue not empty, no frame in
+    * flight, so the reply goes out and recharges the shared page debt before the
+    * waiter can reacquire the mutex. */
+   assert(!active->join_credit_pending && !active->join_page_debt);
+   active->join_queue.head=NULL; active->join_inflight=race_reply; active->join_last_acked=false; active->join_page_debt=2;
+   active->join_frame_deadline=now+750*NSEC_PER_MSEC;
+  }
  } else if(c==&active->join_channel_done) {
   memset(active->join_packet,0,24);
   u8 *p=active->join_packet;
@@ -433,7 +454,7 @@ int main(void)
  { struct ieee80211_key_conf ptk={.cipher=WLAN_CIPHER_SUITE_CCMP,.keyidx=0,.keylen=16,.flags=IEEE80211_KEY_FLAG_PAIRWISE};
    struct ieee80211_key_conf gtk={.cipher=WLAN_CIPHER_SUITE_CCMP,.keyidx=0,.keylen=16,.flags=0};
    struct ieee80211_key_conf tkip={.cipher=0x000fac02,.keyidx=0,.keylen=32,.flags=IEEE80211_KEY_FLAG_PAIRWISE};
-   static struct sk_buff reply;
+   static struct sk_buff reply, reply2;
    memset(ptk.key,0x41,16);memset(gtk.key,0x42,16);
    m=ready(&vif,&sta);active=&m;expect_wpa2=true;m.join_rsn=true;
    assert(!mt6797_mac_join_add_peer(&m,&vif,&sta));
@@ -449,6 +470,23 @@ int main(void)
    assert(!m.join_inflight && m.join_last_acked && !m.join_page_debt && !m.join_credit_pending);
    assert(writes==6 && order[5]==0x07 && key_adds==1 && key_pairwise==1 && m.join_key_pairwise==1 && !m.join_key_group);
    assert(!locked && m.join_hold_until==now+4000*NSEC_PER_MSEC);
+   /* Runtime 23's ordering on the pairwise key: message 4 still queued when the
+    * key is installed; the worker returns the command's credit and, in the same
+    * iteration, submits the queued reply (debt 2, in flight). The waiter owns its
+    * completion and returns 0; the frame's debt is the frame's. */
+   { struct mt6797_mac saved=m; unsigned saved_writes=writes, saved_adds=key_adds, saved_pw=key_pairwise;
+     m.join_key_pairwise=0; m.join_key_pairwise_submitted=false; m.join_queue.head=&reply; race_dequeue=true; race_reply=&reply;
+     assert(!mt6797_mac_set_key(&hw,SET_KEY,&vif,&sta,&ptk));
+     assert(m.join_key_pairwise==1 && m.join_inflight==&reply && m.join_page_debt==2 && !m.join_credit_pending && !m.first_error && m.join_running);
+     race_dequeue=false; race_reply=NULL; m=saved; active=&m; writes=saved_writes; key_adds=saved_adds; key_pairwise=saved_pw; }
+   /* The genuinely absent credit still fails: the waiter wakes at the worker's credit
+    * deadline with the flag still pending (wait mode 3) and the command is refused
+    * through the one terminal path (footer once); the late wake after a timely credit
+    * above succeeded. */
+   { struct mt6797_mac saved=m; unsigned saved_writes=writes, saved_adds=key_adds, saved_pw=key_pairwise, f0=footers; u64 saved_now=now;
+     m.join_key_pairwise=0; m.join_key_pairwise_submitted=false; fail_wait=waits+1; wait_mode=3;
+     assert(mt6797_mac_set_key(&hw,SET_KEY,&vif,&sta,&ptk)==-ETIMEDOUT && m.first_error==-ETIMEDOUT && m.join_retired && !m.join_running && footers==f0+1 && !locked);
+     fail_wait=0; wait_mode=0; now=saved_now; m=saved; active=&m; writes=saved_writes; key_adds=saved_adds; key_pairwise=saved_pw; }
    /* A queued reply does not block the group key; the command goes first. */
    m.join_queue.head=&reply;
    assert(!mt6797_mac_set_key(&hw,SET_KEY,&vif,NULL,&gtk));m.join_queue.head=NULL;
@@ -461,8 +499,18 @@ int main(void)
    assert(m.join_deadline==m.join_data_deadline+5000ULL*NSEC_PER_MSEC && !m.join_page_debt && !m.join_credit_pending);
    /* Disable submits nothing; a second pairwise key is refused fail-stop. */
    assert(!mt6797_mac_set_key(&hw,DISABLE_KEY,&vif,&sta,&ptk) && writes==8);
-   { struct mt6797_mac saved=m;
-     assert(mt6797_mac_set_key(&hw,SET_KEY,&vif,&sta,&ptk)==-EOPNOTSUPP && m.first_error==-EOPNOTSUPP && m.join_retired && !m.join_running);
+   { struct mt6797_mac saved=m; unsigned f0=footers, t0=freed_tx;
+     /* Refused while the lifetime runs: the one terminal path runs here under the
+      * mutex (footer once, retired, fenced, the queued and in-flight frames freed to
+      * mac80211 once), before any station teardown can close the lifetime.
+      * Refused after the lifetime stopped: retired directly, no second footer. */
+     assert(!m.join_internal);
+     m.join_queue.head=&reply; m.join_inflight=&reply2;
+     assert(mt6797_mac_set_key(&hw,SET_KEY,&vif,&sta,&ptk)==-EOPNOTSUPP && m.first_error==-EOPNOTSUPP && m.closing && m.join_retired && !m.join_running && !m.join_open);
+     assert(footers==f0+1 && freed_tx==t0+2 && !m.join_inflight && !m.join_queue.head && !spliced && !locked);
+     m=saved; active=&m;
+     m.join_running=false; m.join_retired=true; m.first_error=-EPROTO; f0=footers; t0=freed_tx;
+     assert(mt6797_mac_set_key(&hw,SET_KEY,&vif,&sta,&ptk)==-EOPNOTSUPP && m.first_error==-EPROTO && m.join_retired && !m.join_running && footers==f0 && freed_tx==t0);
      m=saved; active=&m; }
    /* The data phase ends on mac80211's own deauthentication (a disconnect) or on
     * the budget, whichever first; each ends it once and moves the hold to now. */

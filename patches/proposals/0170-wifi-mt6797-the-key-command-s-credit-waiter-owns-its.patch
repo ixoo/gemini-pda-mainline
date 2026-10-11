@@ -1,0 +1,213 @@
+From 6ea33812a05df64f8b778ed47d2127b2a582769a Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 11 Oct 2026 02:35:54 +0000
+Subject: [PATCH 170/170] wifi: mt6797: the key command's credit waiter owns
+ its completion; a refused running key command ends the lifetime through the
+ one terminal path
+
+Runtime 23 (candidate 22, compile 27) associated and completed the
+supplicant's handshake, then refused the pairwise key command with
+-ETIMEDOUT 11.5 ms after submitting it, although its one-page credit had
+returned 7.9 ms after submission and message 4 had gone out 1.1 ms after
+the credit (kernel timestamps; the credit's attribution to the command is by
+order only). From the source: the worker clears the
+command's pending flag when the owed page returns and completes the waiter,
+then in the same iteration submits the queued message 4 and recharges the
+shared page debt for that frame; the waiter, reacquiring the mutex, tested
+that debt and treated it as its own credit still owed. Runtimes 20 to 22 did
+not meet this ordering because message 4 had already gone out when the key
+arrived. The credit waiter now tests only its pending flag, which the worker
+clears exactly when the owed pages have returned before the credit deadline
+the worker enforces itself; a genuinely absent or late credit still fails at
+that deadline.
+
+The refusal path then retired the lifetime directly, without the worker's
+footer or discard: no terminal record, the frame in flight never completed,
+and the session tooling waited for a record that could not come. The
+worker's terminal block is now one helper (the footer, the first error, the
+fencing flags, the waiters, the queued and in-flight frames moved aside for
+freeing outside the locks). The worker reaches it from its own checks; a key
+command refused while the lifetime runs reaches it synchronously under the
+mutex as branch 8, so the footer exists and the frames are freed exactly
+once before mac80211's station teardown can close the lifetime; a key
+offered after the lifetime stopped is still retired directly without a
+second footer. A stop the worker's entry check finds for an error another
+path raised reports that error as the footer's status.
+
+No budget, window, admission or radio behaviour changes. Nothing about the
+firmware's key handling follows from this; the add-key-done event remains
+attributed by order only.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 129 +++++++++++++++------
+ 1 file changed, 93 insertions(+), 36 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 5b13aeeb4..8e7f5737c 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -1154,6 +1154,63 @@ static int mt6797_mac_join_release_channel(struct mt6797_mac *mac)
+ }
+ #endif
+ 
++/* The lifetime's one terminal path (mutex held): the stopped footer, the
++ * first error, the flags that fence every producer, the waiters completed,
++ * and the queued and in-flight frames moved to `discard` for the caller to
++ * free outside the locks. The worker reaches it from its own checks; a key
++ * command refused while the lifetime runs reaches it synchronously (runtime
++ * 23 retired there directly and left no terminal record, and the supplicant's
++ * disconnect could then close the lifetime before any footer). Once it has
++ * run, join_retired fences the worker and mt6797_mac_join_close frees nothing
++ * twice.
++ */
++static int mt6797_mac_join_fail_stop(struct mt6797_mac *mac, int ret,
++				     unsigned int branch,
++				     struct sk_buff_head *discard,
++				     struct sk_buff **internal)
++{
++	unsigned long flags;
++
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++	dev_err(wiphy_dev(mac->hw->wiphy),
++		"one-shot WLAN join stopped: status=%d first=%d submitted=0x%x debt=%u cleanup=%u branch=%u\n",
++		ret, mac->first_error, mac->join_submitted,
++		mac->join_page_debt, mac->join_cleanup_stage, branch);
++#else
++	(void)branch;
++#endif
++	if (!ret)
++		ret = -E2BIG;
++	if (!mac->first_error)
++		mac->first_error = ret;
++	mac->closing = true;
++	mac->join_retired = true;
++	mac->join_channel_pending = false;
++	mac->join_sta_pending = false;
++	complete_all(&mac->join_channel_done);
++	complete_all(&mac->join_sta_done);
++	mac->join_credit_pending = false;
++	complete_all(&mac->join_credit_done);
++	complete_all(&mac->join_frame_done);
++	spin_lock_irqsave(&mac->join_queue.lock, flags);
++	mac->join_running = false;
++	mac->join_open = false;
++	skb_queue_splice_init(&mac->join_queue, discard);
++	mac->join_queue_bytes = 0;
++	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++	if (mac->join_inflight) {
++		__skb_queue_tail(discard, mac->join_inflight);
++		mac->join_inflight = NULL;
++	}
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++	*internal = mac->join_internal;
++	mac->join_internal = NULL;
++#else
++	*internal = NULL;
++#endif
++	return ret;
++}
++
+ static void mt6797_mac_join_work(struct work_struct *work)
+ {
+ 	struct mt6797_mac *mac = container_of(to_delayed_work(work),
+@@ -1202,7 +1259,10 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	if (mac->scan_active || mac->first_error || mac->closing ||
+ 					now >= mac->join_deadline || ++mac->join_polls > MT6797_JOIN_MAX_POLLS ||
+ 					(mac->join_inflight && now >= mac->join_frame_deadline)) {
+-		ret = -ETIMEDOUT;
++		/* An error another path raised (a refused key command) is the
++		 * footer's status; a stop this check finds is a timeout.
++		 */
++		ret = mac->first_error ? mac->first_error : -ETIMEDOUT;
+ 		goto failed;
+ 	}
+ 	deadline = min_t(u64, now + 100 * NSEC_PER_MSEC, mac->join_deadline);
+@@ -1737,39 +1797,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
+ 	goto unlock;
+ failed:
+-#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+-	dev_err(wiphy_dev(mac->hw->wiphy),
+-		"one-shot WLAN join stopped: status=%d first=%d submitted=0x%x debt=%u cleanup=%u branch=%u\n",
+-		ret, mac->first_error, mac->join_submitted,
+-		mac->join_page_debt, mac->join_cleanup_stage, branch);
+-#endif
+-	if (!ret)
+-		ret = -E2BIG;
+-	if (!mac->first_error)
+-		mac->first_error = ret;
+-	mac->closing = true;
+-	mac->join_retired = true;
+-	mac->join_channel_pending = false;
+-	mac->join_sta_pending = false;
+-	complete_all(&mac->join_channel_done);
+-	complete_all(&mac->join_sta_done);
+-	mac->join_credit_pending = false;
+-	complete_all(&mac->join_credit_done);
+-	complete_all(&mac->join_frame_done);
+-	spin_lock_irqsave(&mac->join_queue.lock, flags);
+-	mac->join_running = false;
+-	mac->join_open = false;
+-	skb_queue_splice_init(&mac->join_queue, &discard);
+-	mac->join_queue_bytes = 0;
+-	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
+-	if (mac->join_inflight) {
+-		__skb_queue_tail(&discard, mac->join_inflight);
+-		mac->join_inflight = NULL;
+-	}
+-#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+-	internal = mac->join_internal;
+-	mac->join_internal = NULL;
+-#endif
++	ret = mt6797_mac_join_fail_stop(mac, ret, branch, &discard, &internal);
+ unlock:
+ 	mutex_unlock(&mac->mutex);
+ 	/* One worker serializes RX_ni and TX_status_ni, outside driver locks. */
+@@ -2204,8 +2232,16 @@ static int mt6797_mac_join_wait_credit(struct mt6797_mac *mac)
+ 		return mac->first_error;
+ 	if (mac->closing || mac->join_retired || !mac->join_running)
+ 		return -ECANCELED;
+-	if (ktime_get_ns() >= deadline || mac->join_credit_pending ||
+-	    mac->join_page_debt)
++	/* The waiter owns exactly one pending credit: the worker clears
++	 * join_credit_pending only when the owed pages have all returned
++	 * (before the credit deadline, which the worker enforces itself) and
++	 * completes join_credit_done. Once cleared, the same worker iteration
++	 * may already have submitted a queued frame and recharged the shared
++	 * page debt for it (runtime 23: message 4 went out 1 ms after the
++	 * pairwise key's credit), so the debt is the frame's, not this
++	 * command's, and is not consulted here.
++	 */
++	if (mac->join_credit_pending)
+ 		return -ETIMEDOUT;
+ 	return 0;
+ }
+@@ -2715,6 +2751,27 @@ static int mt6797_mac_set_key(struct ieee80211_hw *hw, enum set_key_cmd cmd,
+ 		 "one-shot WLAN join key command refused: %s status=%d running=%u active=%u configured=%u first=%d\n",
+ 		 pairwise ? "pairwise" : "group", ret, mac->join_running,
+ 		 mac->join_sta_active, mac->join_bss_configured, mac->first_error);
++	if (mac->join_running && !mac->join_retired) {
++		/* The lifetime is still running: end it here through the one
++		 * terminal path (branch 8, the key command), so the footer exists
++		 * and the frames are freed exactly once before mac80211's station
++		 * teardown can close the lifetime.
++		 */
++		struct sk_buff_head discard;
++		struct sk_buff *skb, *internal = NULL;
++
++		skb_queue_head_init(&discard);
++		mt6797_mac_join_fail_stop(mac, ret, 8, &discard, &internal);
++		mutex_unlock(&mac->mutex);
++		while ((skb = __skb_dequeue(&discard))) {
++			if (skb == internal)
++				dev_kfree_skb(skb);
++			else
++				ieee80211_free_txskb(mac->hw, skb);
++		}
++		return ret;
++	}
++	/* Already stopped (runtime 16: a key offered after the fail-stop). */
+ 	if (!mac->first_error)
+ 		mac->first_error = ret;
+ 	mac->closing = true;

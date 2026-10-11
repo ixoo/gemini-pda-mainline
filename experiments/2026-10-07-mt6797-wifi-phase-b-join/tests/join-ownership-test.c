@@ -1020,6 +1020,41 @@ int main(void)
 	assert(mac.first_error == -EPROTO && !mac.join_action_discarded);
 	mt6797_mac_join_close(&mac);
 
+	/* 10a. An error another path raised while the lifetime ran (runtime 23's
+	 *      refused key command): the next worker tick records the footer with
+	 *      that status, retires the lifetime, frees the frame in flight and the
+	 *      queue, and completes the waiters; nothing is submitted.
+	 */
+	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = true; mac.join_bss_configured = true;
+	mac.join_key_pairwise_submitted = true; mac.join_key_pairwise = 1;
+	{ struct sk_buff *q = new_skb(OWNER_MAC80211); q->len = 40; mac.join_queue_bytes = q->len; __skb_queue_tail(&mac.join_queue, q);
+	  mac.join_inflight = new_skb(OWNER_MAC80211); mac.join_inflight->len = 40; mac.join_page_debt = 2; mac.join_frame_deadline = now_ns + 750 * NSEC_PER_MSEC; }
+	mac.first_error = -ETIMEDOUT; mac.closing = true;
+	run_worker();
+	assert(mac.first_error == -ETIMEDOUT && mac.join_retired && !mac.join_running && !mac.join_inflight && mac.join_queue.qlen == 0 && mac80211_frees == 2 && !submissions);
+	mt6797_mac_join_close(&mac);
+
+	/* 10a'. The key path's synchronous terminal (branch 8) on a running lifetime
+	 *       with a queued frame and one in flight, then the real close (the
+	 *       supplicant's disconnect reaching the station teardown): the frames are
+	 *       freed exactly once, the close frees nothing more and the worker,
+	 *       fenced by join_retired, submits nothing.
+	 */
+	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = true; mac.join_bss_configured = true;
+	mac.join_key_pairwise_submitted = true;
+	{ struct sk_buff_head discard; struct sk_buff *skb, *internal = NULL;
+	  struct sk_buff *q = new_skb(OWNER_MAC80211); q->len = 40; mac.join_queue_bytes = q->len; __skb_queue_tail(&mac.join_queue, q);
+	  mac.join_inflight = new_skb(OWNER_MAC80211); mac.join_inflight->len = 40; mac.join_page_debt = 2;
+	  skb_queue_head_init(&discard);
+	  assert(mt6797_mac_join_fail_stop(&mac, -ETIMEDOUT, 8, &discard, &internal) == -ETIMEDOUT && !internal);
+	  assert(mac.first_error == -ETIMEDOUT && mac.closing && mac.join_retired && !mac.join_running && !mac.join_open && !mac.join_inflight && mac.join_queue.qlen == 0);
+	  while ((skb = __skb_dequeue(&discard))) { if (skb == internal) dev_kfree_skb(skb); else ieee80211_free_txskb(&hw, skb); }
+	  assert(mac80211_frees == 2); }
+	run_worker();
+	assert(mac80211_frees == 2 && !submissions && !mac.join_running);
+	mt6797_mac_join_close(&mac);
+	assert(mac80211_frees == 2 && mac.first_error == -ETIMEDOUT);
+
 	/* 10b. Runtime 21's clear broadcast Action frame with no WLAN table entry:
 	 *      discarded at any stage (before any response, during the handshake
 	 *      hold), each recorded, eight per lifetime, the ninth refused; the

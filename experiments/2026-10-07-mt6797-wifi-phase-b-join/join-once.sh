@@ -296,6 +296,12 @@ if [ -n "${WPA_PSK_HEX:-}" ]; then
             break
         fi
         tick=$((tick + 1))
+        # Runtime 23: the USB listener closes an idle session after 60 s and the
+        # wait can run 100 s; one fixed line every 20 ticks keeps it open (the
+        # pinned Dropbear counts sent packets as activity). Parsed as a field.
+        if [ $((tick % 20)) -eq 0 ]; then
+            $BB printf 'keepalive=%s\n' "$tick"
+        fi
         $BB sleep 1
     done
     # Driver lifecycle when the wait ended: terminal, intermediate (a cleanup
