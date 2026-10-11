@@ -40,34 +40,49 @@ after the abort, recorded neither.
 
 Unique measurements, all sanitized driver records: `data phase: budget_ms=<n>
 teardown_margin_ms=5000 inside_grant=1`; `data TX: first pid=<p> pages=<n>
-bytes=<b>`; the `TX done: pid=<p> status=<s>` record for that PID; `data credit:
-pages=<n> debt=<d> count=<c>` records; `data TX timeout: pid=<p> debt=<d>
-credits=<c> elapsed_ms=<e>` if the frame did not complete; the `data phase end`
-record with `tx_done`, `tx_failed`, `rx_unicast` and `tx_credits`; the three cleanup
-stages inside the grant. Page consumption (credits) is distinct from TX completion
-(TX done) and from delivery (RX); each is reported on its own and none is a
-network-function claim by itself. The session's `udhcpc`, `ping` and the laptop's
-Wi-Fi SSH receipt remain the only network-function evidence.
+bytes=<b>`; the `TX done: pid=<p> status=<s>` record for that PID, reported with
+its status (0 and non-zero separately: the completion event is not an
+acknowledgement or a delivery); `data credit: pages=<n> debt=<d> count=<c>` records
+in chronology with the frames; `data TX timeout: pid=<p> debt=<d> credits=<c>
+elapsed_ms=<e>` if a frame did not complete; the `data phase end` record with
+`tx_done`, `tx_failed`, `rx_unicast` and `tx_credits`; the three cleanup stages
+inside the grant. Page consumption (credits), TX completion (TX done) and delivery
+(RX) are distinct and each is reported on its own; none is a network-function claim
+by itself. The `credits` field of the timeout record and `tx_credits` are cumulative
+over every TC1 frame of the phase, so a positive total alone does not show that the
+timed-out frame's pages returned: that is read from the timeout record's `debt`
+(0: the current frame's pages returned; equal to its page count: none; between:
+partial) together with the chronology of the `data credit` records against the
+frames, and the first PID is kept apart from later ones. A TC1 return after the
+phase ended and before the healthy cleanup is an observed delayed return, not a
+reconciliation defect. The session's `udhcpc`, `ping` and the laptop's Wi-Fi SSH
+receipt remain the only network-function evidence.
 
 Branches, each ending the lifetime exactly once:
 
-1. The first data frame's TX done recorded and its pages credited; the phase runs to
-   its budget (the grant's remainder) or ends on the supplicant's disconnect; the
-   cleanup completes inside the grant: 0172's ordering observed. Whether DHCP, ping
-   and the SSH exchange fit the shortened phase is reported from the session fields.
-   The next direction is the vendor's remaining post-association commands that allow
-   data after the release and the full 60 s phase.
-2. TX done recorded but no `data credit` record before the phase ends: completion
-   without an observed page return; reported as such; the next direction is the TC1
-   reconciliation, not the radio path.
-3. No TX done; a `data TX timeout` record WITH credits returned: the firmware
-   consumed the frame's pages without reporting completion; the next question is the
-   descriptor and queue, and an exact firmware question may go to the custodian for
-   OpenCode.
-4. No TX done; a `data TX timeout` record WITHOUT credits: the frame stalled inside
-   the grant as well; the channel order was not the cause; the next question is the
-   firmware's remaining post-association state (the commands this driver does not
-   send), an exact question for OpenCode.
+1. The first data frame's TX done recorded (its status reported, 0 or not) and its
+   pages credited in chronology; the phase runs to its budget (the grant's remainder)
+   or ends on the supplicant's disconnect; the cleanup completes inside the grant:
+   0172's ordering observed. Whether DHCP, ping and the SSH exchange fit the
+   shortened phase is reported from the session fields. The next direction is the
+   vendor's remaining post-association commands that allow data after the release and
+   the full 60 s phase.
+2. TX done recorded for the first frame but no `data credit` record for it before
+   the phase ends: completion without an observed page return; reported as such,
+   with any return after the phase and before the cleanup reported as a delayed
+   return; the next direction is the TC1 reconciliation chronology, not the radio
+   path.
+3. No TX done; a `data TX timeout` record whose `debt` is 0 for the timed-out frame
+   (its pages returned, by the record's debt and the credit chronology, not by the
+   cumulative total): the firmware consumed that frame's pages without reporting
+   completion; the next question is the descriptor and queue, and an exact firmware
+   question may go to the custodian for OpenCode. A partial debt is reported as
+   partial.
+4. No TX done; a `data TX timeout` record with the frame's full page count still in
+   debt: retaining the grant did not resolve the timeout; the frame neither completed
+   nor returned its pages inside the grant; other missing conditions may coexist, so
+   the next question is the firmware's remaining post-association state (the commands
+   this driver does not send), an exact question for OpenCode.
 5. The data phase refused to open (grant too close to its end), a ninth discard, a
    neighbouring frame shape, a key refusal or any other named refusal: fail-stop as
    before, seal, reviewed recovery.
