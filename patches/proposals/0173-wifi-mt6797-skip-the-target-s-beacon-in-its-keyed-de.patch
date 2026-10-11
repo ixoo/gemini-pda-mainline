@@ -1,0 +1,191 @@
+From becb77aa4769d2b3f52f26139324ab389d7d3690 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 11 Oct 2026 22:36:08 +0000
+Subject: [PATCH 173/173] wifi: mt6797: skip the target's beacon in its keyed
+ descriptor variant, counted
+
+Runtime 26 (candidate 25, compile 30) installed both keys and opened the data
+phase inside the channel grant, then fail-stopped at the receive-frame gate
+before any data frame on a packet of the target's beacon class: 442 bytes in
+all (378 wire bytes at offset 64, groups 1 to 3), type word 0xee01,
+descriptor bytes 08 28 18 04 02 40 04 e0 (broadcast match flag only, native
+untranslated 24-byte header, BSSID field 1, WLAN index 2, security mode 4,
+status 0xe004), the summary's first frame-control byte 0x80 (Beacon), the
+receiver not this station and the transmitter the target. The receiver
+address, BSSID, flag byte, sequence and body were not retained.
+
+The join worker skips, without a record, every beacon or probe response the
+scan decoder parses, and that decoder requires security mode 0 and a clean
+status word. In the pinned layout WLAN index 2 is the broadcast entry the
+station record declares and the group key was installed under, the security
+mode is that entry's cipher context and status bit 2 is the cipher-mismatch
+flag (the ICV-error flag is clear), so this variant fails exactly the two
+conditions and reaches the gate; it can appear only once the group key
+exists. Whether beacons arrived in earlier runs is unobserved. The pinned
+vendor driver hands a received beacon to its scan handler and drops only ICV
+errors, under its MFP build option.
+
+A new decoder names a narrow class: the observed conditions (type word,
+match byte, the six descriptor bytes with the declared broadcast entry, the
+first frame-control byte, the target as transmitter) and source-defined
+conditions the diagnostic did not carry (frame control exactly 0x0080, the
+broadcast receiver, the BSSID equal to the target, fragment 0, the 12 fixed
+body bytes present). Once the group key is installed the worker skips it as
+it skips the clear beacons, counts it, records the first four and the total
+before the stage-3 record; it is never delivered, no discard budget changes,
+and the lifetime's packet budget bounds it. A boot whose frame differs in a
+source-defined field refuses it as before; nothing is claimed about runtime
+26 being resolved until measured.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ .../wireless/mediatek/mt6797/action-frame.h   | 77 +++++++++++++++++++
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 28 +++++++
+ 2 files changed, 105 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/action-frame.h b/drivers/net/wireless/mediatek/mt6797/action-frame.h
+index c3f9c9a85..284889f75 100644
+--- a/drivers/net/wireless/mediatek/mt6797/action-frame.h
++++ b/drivers/net/wireless/mediatek/mt6797/action-frame.h
+@@ -187,4 +187,81 @@ mt6797_join_group_action_frame(const unsigned char *packet, size_t bytes,
+ 	*out = r;
+ 	return true;
+ }
++
++/* Runtime 26 (candidate 25, the group key installed under the station's
++ * declared broadcast WLAN entry) ended at the frame gate, before any data
++ * frame, on a packet of the target's beacon class in a keyed descriptor
++ * variant. Observed (sanitized diagnostic: descriptor bytes 4 to 11, the
++ * group set, the header offset, the first frame-control byte and the
++ * summary's explicit address comparisons): 442 packet bytes (16-byte
++ * descriptor, groups 1 to 3, 378 wire bytes at offset 64), type word 0xee01,
++ * descriptor bytes 08 28 18 04 02 40 04 e0 (broadcast match flag only,
++ * channel 40, native untranslated 24-byte header, BSSID field 1, WLAN index
++ * 2, TID 0, security mode 4, status 0xe004), first frame-control byte 0x80
++ * (management type, Beacon subtype; the flag byte is not in the summary),
++ * receiver not this station, transmitter the target. The receiver address
++ * itself, the BSSID, the flag byte, the sequence and the body were not
++ * retained and none is claimed or read.
++ *
++ * Source meaning (pinned public layout): WLAN index 2 is the broadcast entry
++ * the station record declares and the group key was installed under; the
++ * security mode is that entry's cipher context (CCMP) and status bit 2 is
++ * RX_STATUS_FLAG_CIPHER_MISMATCH, an unprotected frame against a keyed
++ * entry; the ICV-error flag is clear. The join worker skips, without a
++ * record, every beacon or probe response the scan decoder parses, and that
++ * decoder requires security mode 0 and a clean status word; the observed
++ * descriptor fails exactly those two conditions, so it reached the gate.
++ * Whether beacons arrived in earlier runs, or how often, is unobserved. In
++ * the pinned vendor driver a received beacon goes to the scan handler; its
++ * management path drops only ICV errors, and only under the MFP build option;
++ * no further vendor behaviour is claimed.
++ *
++ * This decoder names a narrow class for the caller to skip as it skips the
++ * clear beacons, counted: the observed conditions (type word exactly 0xee01,
++ * match byte exactly 0x08, descriptor bytes 6 to 11 exactly 18 04 <bmc> 40 04
++ * e0 with <bmc> the caller's declared broadcast entry, first frame-control
++ * byte 0x80, transmitter the target) and source-defined conditions the
++ * diagnostic did not carry (frame control exactly 0x0080, that is the flag
++ * byte clear; the broadcast receiver address; the BSSID equal to the target;
++ * fragment 0; at least the 12 fixed body bytes after the header, none read).
++ * A next boot whose frame differs in a source-defined field will refuse it
++ * here as before; nothing is claimed about runtime 26 being resolved until
++ * measured. Probe responses, any other subtype, the unkeyed descriptor,
++ * mixed pairs, the ICV-error flag, other indices and other peers are not
++ * this class. The skip is counted and bounded by the lifetime's packet
++ * budget, as the clear-beacon skip already is; no discard budget changes.
++ */
++static inline bool
++mt6797_join_keyed_beacon(const unsigned char *packet, size_t bytes,
++			 unsigned char channel, const unsigned char ap[6],
++			 unsigned char bmc_index,
++			 struct mt6797_join_action_frame *out)
++{
++	static const unsigned char broadcast[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
++	struct mt6797_join_action_frame r;
++	const size_t offset = 16 + 16 + 8 + 24;
++	const unsigned char *f;
++
++	if (!packet || !ap || !out || bytes < offset + 24 + 12 || bytes > 4096 ||
++	    !channel || mt6797_join_le16(packet) != bytes || packet[5] != channel ||
++	    mt6797_join_le16(packet + 2) != 0xee01)
++		return false;
++	r.match = packet[4];
++	if (r.match != 0x08 || packet[6] != 24 || packet[7] != 0x04 ||
++	    packet[8] != bmc_index || packet[9] != 0x40 ||
++	    mt6797_join_le16(packet + 10) != 0xe004)
++		return false;
++	f = packet + offset;
++	r.fc = mt6797_join_le16(f);
++	if (r.fc != 0x0080 || memcmp(f + 4, broadcast, 6) || memcmp(f + 10, ap, 6) ||
++	    memcmp(f + 16, ap, 6) || (mt6797_join_le16(f + 22) & 15))
++		return false;
++	r.bytes = bytes - offset;
++	r.status = 0xe004;
++	r.wlan = bmc_index;
++	r.bss = packet[7] >> 2;
++	r.sec = 4;
++	*out = r;
++	return true;
++}
+ #endif
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 67f217754..1fbf5b11d 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -121,6 +121,7 @@ struct mt6797_mac {
+ 	/* Phase C1: bounded observation of the AP's first clear EAPOL frames. */
+ 	unsigned int join_eapol_seen, join_eapol_tx, join_group_discarded;
+ 	unsigned int join_action_discarded, join_group_action_discarded;
++	unsigned int join_keyed_beacons;
+ 	/* Phase C2: the pairwise and group key commands were submitted; the
+ 	 * firmware's add-key-done event was recorded at most twice, once in the
+ 	 * window after each submission (attributed by window, not by key).
+@@ -1040,6 +1041,10 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
+ 			dev_info(wiphy_dev(mac->hw->wiphy),
+ 				 "one-shot WLAN join data RX outside: dropped=%u\n",
+ 				 mac->join_data_rx_outside);
++		if (mac->join_keyed_beacons)
++			dev_info(wiphy_dev(mac->hw->wiphy),
++				 "one-shot WLAN join keyed beacons skipped: total=%u\n",
++				 mac->join_keyed_beacons);
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+ 			 "one-shot WLAN join cleanup: stage=3 credits=returned slots=retired deauth=%u\n",
+ 			 mac->join_deauth_done);
+@@ -1565,6 +1570,28 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 			branch = 7;
+ 			if (!mt6797_scan_frame(mac->join_packet, rx.logical_bytes, &beacon))
+ 				continue;
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++			/* The target's beacon class in the keyed descriptor variant
++			 * (runtime 26, once the group key sits under the broadcast
++			 * entry; action-frame.h names the observed and the
++			 * source-defined conditions) is skipped like every other
++			 * parseable beacon, counted, the first four recorded; a beacon
++			 * cannot be a fence either.
++			 */
++			if (mac->join_key_group == 1 && !mac->join_cleanup_done &&
++			    mt6797_join_keyed_beacon(mac->join_packet, rx.logical_bytes, 40,
++						     mac->join_ap, MT6797_JOIN_BMC_WLAN_INDEX,
++						     &action)) {
++				mac->join_keyed_beacons++;
++				if (mac->join_keyed_beacons <= 4)
++					dev_info(wiphy_dev(mac->hw->wiphy),
++						 "one-shot WLAN join keyed beacon skipped: bytes=%zu fc=0x%x match=0x%02x wlan=%u bss=%u sec=%u status=0x%04x count=%u\n",
++						 action.bytes, action.fc, action.match, action.wlan,
++						 action.bss, action.sec, action.status,
++						 mac->join_keyed_beacons);
++				continue;
++			}
++#endif
+ 			/* Phase C2: a clear EAPOL-Key frame from the target to this
+ 			 * station on the join channel (0140 decoder) is delivered to
+ 			 * mac80211 as a native data frame (the rebuilt header for the
+@@ -2401,6 +2428,7 @@ static int mt6797_mac_join_add_peer(struct mt6797_mac *mac,
+ 	mac->join_group_discarded = 0;
+ 	mac->join_action_discarded = 0;
+ 	mac->join_group_action_discarded = 0;
++	mac->join_keyed_beacons = 0;
+ 	mac->join_data_credits = 0;
+ 	mac->join_data_credit_records = 0;
+ 	mac->join_data_started = 0;

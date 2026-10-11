@@ -58,6 +58,9 @@ def classify(raw):
                      # Phase C3: the first delivered data frame and the first submitted data frame, metadata only.
                      rb'data RX: first group=[01] tid=\d{1,2} keyid=[0-3] bytes=\d{1,4} vector=[01]',
                      rb'data TX: first pid=\d{1,3} pages=\d{1,2} bytes=\d{1,4}',
+                     # 0173: the target's beacon in the keyed descriptor variant, skipped like every beacon (first four, then the total).
+                     rb'keyed beacon skipped: bytes=\d{1,4} fc=0x80 match=0x08 wlan=2 bss=1 sec=4 status=0xe004 count=[1-4]',
+                     rb'keyed beacons skipped: total=\d{1,6}',
                      # 0172: TC1 credit returns (first eight) and a data frame still in flight at its deadline, metadata only.
                      rb'data credit: pages=\d{1,2} debt=\d{1,2} count=[1-8]',
                      rb'data TX timeout: pid=\d{1,3} debt=\d{1,2} credits=\d{1,6} elapsed_ms=\d{1,5}',
@@ -115,7 +118,7 @@ def classify(raw):
                                              int(fields[b'status']), int(fields[b'running'])))
                     refused = True
                 elif (body.startswith(b'data TX: first') or body.startswith(b'data RX: first') or body.startswith(b'data RX outside:') or
-                      body.startswith(b'data credit:') or body.startswith(b'data TX timeout:')):
+                      body.startswith(b'data credit:') or body.startswith(b'data TX timeout:') or body.startswith(b'keyed beacon')):
                     pass  # Phase C3 first-frame notifications: metadata, neither refusal nor stage
                 elif body.startswith(b'eapol observed:') or body.startswith(b'eapol delivered:'):
                     fields = dict(part.split(b'=') for part in body.split(b': ', 1)[1].split(b' '))

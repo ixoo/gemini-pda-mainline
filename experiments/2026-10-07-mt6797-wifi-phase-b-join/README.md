@@ -449,6 +449,27 @@ data-path shapes through mac80211, replay the reference offline) is admitted
 as hardware-free source work and awaits its proposal diff, checks and
 combined test protocol before any build.
 
+## Runtime 26 result and proposal 0173 (2026-10-11)
+
+Runtime 26 ([RUNTIME_26_RESULT.md](RUNTIME_26_RESULT.md)) was negative before
+any data frame: both keys credited, the data phase opened inside the grant
+(budget 6172 ms), then one packet of the target's beacon class with a keyed
+descriptor variant (WLAN index 2, security mode 4, status 0xe004, first
+frame-control byte 0x80, transmitter the target) was refused at the frame
+gate; 0172's TX and credit hypothesis stays unmeasured, not refuted. The host
+verdicts stand as computed; recovery confirmed once. The worker already skips
+every parseable clear beacon without a record, and the scan decoder's
+security-mode and status conditions refuse this variant. **0173** names that
+narrow class by its observed fields and source-defined conditions (frame
+control exactly 0x0080, broadcast receiver, BSSID the target, fragment 0) and
+skips it like the clear beacons, counted and recorded, bounded by the
+lifetime's packet budget, never delivered; no discard budget changes. It is a
+next-runtime hypothesis, not a claim that runtime 26 is resolved. Fixtures:
+`tests/action-frame-test.c` (the class under the declared entry and its
+refusals), `tests/join-ownership-test.c` (skipped and counted after the group
+key, the clear beacon skipped silently, the keyed variant before the group key
+refused), `tests/host-test.py` (the two records as notifications).
+
 ## Runtime 26 bindings (2026-10-11)
 
 Candidate 25 pairs the [compile 30](COMPILE_30.md) package `2b219cf3…` with

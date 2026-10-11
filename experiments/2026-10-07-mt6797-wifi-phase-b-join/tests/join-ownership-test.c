@@ -660,6 +660,27 @@ static void script_group_action_frame(unsigned match, unsigned fc, unsigned wlan
 	script_bytes[script_count++] = bytes;
 }
 
+/* Runtime 26's class: the target's beacon (frame control 0x0080, broadcast receiver,
+ * transmitter and BSSID the target, 354 body bytes of fixture zeros, 442 bytes in all)
+ * with the keyed descriptor variant (WLAN 2, security mode 4, status 0xe004) or the
+ * unkeyed one (WLAN 0, mode 0, status 0xe000) the scan decoder already skips. */
+static void script_beacon(bool keyed)
+{
+	u8 *p = script[script_count];
+	size_t off = 64, bytes = off + 24 + 354;
+
+	assert(script_count < 6);
+	memset(p, 0, sizeof(script[0]));
+	put_unaligned_le16(0xe001 | 7 << 9, p + 2);
+	p[4] = 0x08; p[5] = 40; p[6] = 24; p[7] = 0x04; p[8] = keyed ? 2 : 0; p[9] = keyed ? 0x40 : 0;
+	put_unaligned_le16(keyed ? 0xe004 : 0xe000, p + 10);
+	p[16 + 16 + 8 + 9] = 101; /* RX vector RCPI, as the scan decoder reads it */
+	put_unaligned_le16(0x0080, p + off);
+	memset(p + off + 4, 0xff, ETH_ALEN); memcpy(p + off + 10, ap, ETH_ALEN); memcpy(p + off + 16, ap, ETH_ALEN);
+	put_unaligned_le16(bytes, p);
+	script_bytes[script_count++] = bytes;
+}
+
 /* The measured tag for the scenario's interval: 15 before the activation, 1 after. */
 static void script_eapol_layout(bool translated, bool vector, bool padding) { script_eapol_bss(translated, vector, padding, mac.join_sta_active ? 1 : 15); }
 static void script_eapol(bool translated) { script_eapol_layout(translated, true, false); }
@@ -1058,6 +1079,27 @@ int main(void)
 	mac.first_error = -ETIMEDOUT; mac.closing = true;
 	run_worker();
 	assert(mac.first_error == -ETIMEDOUT && mac.join_retired && !mac.join_running && !mac.join_inflight && mac.join_queue.qlen == 0 && mac80211_frees == 2 && !submissions);
+	mt6797_mac_join_close(&mac);
+
+	/* 10b. Runtime 26: after the group key the target's beacon arrives in the keyed
+	 *      descriptor variant and is skipped like every beacon, counted (first four
+	 *      recorded); the unkeyed variant is skipped silently as before; the keyed
+	 *      variant before the group key is a refusal; neither is delivered.
+	 */
+	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = true; mac.join_bss_configured = true;
+	mac.join_key_pairwise_submitted = mac.join_key_group_submitted = true; mac.join_key_pairwise = mac.join_key_group = 1;
+	mac.join_data_phase = true; mac.join_channel_granted = true; mac.join_data_started = now_ns;
+	mac.join_data_deadline = now_ns + 5500 * NSEC_PER_MSEC; mac.join_grant_deadline = mac.join_data_deadline + 2500 * NSEC_PER_MSEC;
+	mac.join_deadline = mac.join_data_deadline + 5 * NSEC_PER_SEC; mac.join_hold_until = mac.join_data_deadline;
+	script_beacon(true); script_beacon(false); script_beacon(true); run_worker();
+	assert(!mac.first_error && mac.join_running && mac.join_keyed_beacons == 2 && !rx_delivered && !submissions);
+	mt6797_mac_join_close(&mac);
+	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = true; mac.join_bss_configured = true;
+	mac.join_key_pairwise_submitted = true; mac.join_key_pairwise = 1;             /* pairwise only: the keyed variant is not the class yet */
+	script_beacon(false); run_worker();
+	assert(!mac.first_error && mac.join_running && !mac.join_keyed_beacons);
+	script_beacon(true); run_worker();
+	assert(mac.first_error == -EPROTO && !mac.join_keyed_beacons);
 	mt6797_mac_join_close(&mac);
 
 	/* 10t. 0172 timing inside the grant tail. A data frame admitted at the phase's

@@ -431,6 +431,20 @@ class HostTests(unittest.TestCase):
         self.assertEqual((ended['key_commands_submitted'], ended['key_credits_returned']), (['pairwise'], []))
         # A refusal that is not of a submitted command (running=0, runtime 16's shape) does not close one.
         self.assertTrue(classify(r23.replace(b'status=-110 running=1', b'status=-110 running=0') + footer)['malformed_stage_record'])
+        # Runtime 26 shape (0173): after the group key the target's keyed beacon is skipped
+        # and counted (first four recorded, total before stage 3); the records are
+        # notifications and the data phase inside the grant still passes.
+        kb = b'one-shot WLAN join keyed beacon skipped: bytes=378 fc=0x80 match=0x08 wlan=2 bss=1 sec=4 status=0xe004 count=%d\n'
+        phase_at = good.index(b'one-shot WLAN join data phase: budget_ms=5500')
+        phase_end = good.index(b'\n', phase_at) + 1
+        stage3 = good.index(b'one-shot WLAN join cleanup: stage=3')
+        with_beacons = (good[:phase_end] + (kb % 1) + (kb % 2) + good[phase_end:stage3] +
+                        b'one-shot WLAN join keyed beacons skipped: total=57\n' + good[stage3:])
+        rb = classify(with_beacons)
+        self.assertFalse(rb['malformed_stage_record'], rb['diagnostic_records'])
+        self.assertTrue(rb['driver_data_path_pass'] and not rb['refusal_recorded'])
+        self.assertTrue(classify(good[:phase_end] + kb.replace(b'count=%d', b'count=5') + good[phase_end:])['malformed_stage_record'])
+        self.assertTrue(classify(good[:phase_end] + kb.replace(b'sec=4 status=0xe004', b'sec=0 status=0xe000') % 1 + good[phase_end:])['malformed_stage_record'])
         # The 0168 class: a broadcast Action discard at any stage (even before the
         # authentication) is a placed notification; counts out of order or after the
         # terminal record are malformed; the report carries its count.

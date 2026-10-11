@@ -171,6 +171,41 @@ int main(void)
    #undef GBUILD
    #undef GRUN
  }
- puts("action-frame: PASS (measured class named; protected, no-ack, other subtypes, flags, peers, descriptor bytes, status, groups refused; runtime 21 broadcast class named; runtime 24 keyed variant admitted only after the pairwise key, the unkeyed variant kept)");
+ /* Runtime 26's keyed beacon variant (descriptor bytes 08 28 18 04 02 40 04 e0, 442 bytes,
+  * frame control 0x0080, broadcast receiver, the target as transmitter and BSSID): named
+  * only with the declared broadcast entry; the unkeyed descriptor, mixed pairs, the
+  * ICV-error flag, a probe response, other peers, other indices and a short body refused. */
+ { static const unsigned char bcast[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+   struct mt6797_join_action_frame k;
+   size_t m;
+   #define KBUILD(fc, da, ta, bssid, body) do { m = build(p, 7, fc, da, ta, bssid, body); p[4] = 0x08; p[7] = 0x04; p[8] = 2; p[9] = 0x40; put16(p + 10, 0xe004); } while (0)
+   #define KRUN(bmc) (memset(&k, 0x5a, sizeof(k)), mt6797_join_keyed_beacon(p, m, 40, ap, (bmc), &k))
+   KBUILD(0x0080, bcast, ap, ap, 354); assert(m == 442 && KRUN(2) && k.bytes == 378 && k.fc == 0x0080 && k.match == 0x08 && k.wlan == 2 && k.bss == 1 && k.sec == 4 && k.status == 0xe004);
+   assert(!KRUN(0) && !KRUN(1));                                                            /* another declared entry */
+   KBUILD(0x0080, bcast, ap, ap, 12); assert(KRUN(2) && k.bytes == 36);                    /* the fixed body only */
+   KBUILD(0x0080, bcast, ap, ap, 11); assert(!KRUN(2));
+   KBUILD(0x0080, bcast, ap, ap, 354); p[9] = 0; assert(!KRUN(2)); p[9] = 0x40; put16(p + 10, 0xe000); assert(!KRUN(2)); /* unkeyed descriptor, mixed pairs */
+   put16(p + 10, 0xe014); assert(!KRUN(2)); put16(p + 10, 0xe010); assert(!KRUN(2)); put16(p + 10, 0xc004); assert(!KRUN(2));
+   put16(p + 10, 0xe004); p[8] = 1; assert(!KRUN(2)); p[8] = 255; assert(!KRUN(2)); p[8] = 2;                               /* other indices */
+   p[4] = 0x02; assert(!KRUN(2)); p[4] = 0x0c; assert(!KRUN(2)); p[4] = 0x08;                                              /* other match flags */
+   p[7] = 0x3c; assert(!KRUN(2)); p[7] = 0x04; p[6] = 0x80 | 24; assert(!KRUN(2)); p[6] = 24; assert(KRUN(2));
+   KBUILD(0x0050, bcast, ap, ap, 354); assert(!KRUN(2));                                    /* probe response */
+   KBUILD(0x0880, bcast, ap, ap, 354); assert(!KRUN(2));                                    /* Retry */
+   KBUILD(0x4080, bcast, ap, ap, 354); assert(!KRUN(2));                                    /* protected */
+   KBUILD(0x00d0, bcast, ap, ap, 354); assert(!KRUN(2));                                    /* Action */
+   KBUILD(0x0080, own, ap, ap, 354); assert(!KRUN(2));                                      /* directed */
+   KBUILD(0x0080, bcast, other, ap, 354); assert(!KRUN(2));                                 /* another transmitter */
+   KBUILD(0x0080, bcast, ap, other, 354); assert(!KRUN(2));                                 /* another BSSID */
+   KBUILD(0x0080, bcast, ap, ap, 354); p[64 + 22] = 1; assert(!KRUN(2)); p[64 + 22] = 0; p[5] = 36; assert(!KRUN(2)); p[5] = 40;
+   put16(p + 2, 0xe001 | 15 << 9); assert(!KRUN(2));                                        /* another group set: another type word */
+   assert(!mt6797_join_keyed_beacon(NULL, 442, 40, ap, 2, &k) && !mt6797_join_keyed_beacon(p, 442, 40, NULL, 2, &k) && !mt6797_join_keyed_beacon(p, 442, 40, ap, 2, NULL));
+   /* Neither Action decoder admits the beacon and the beacon decoder admits no Action frame. */
+   KBUILD(0x0080, bcast, ap, ap, 354); assert(!run(p, m, &r) && !mt6797_join_group_action_frame(p, m, 40, &r));
+   m = build(p, 7, 0x00d0, own, ap, ap, 48); assert(!KRUN(2));
+   #undef KBUILD
+   #undef KRUN
+ }
+
+ puts("action-frame: PASS (measured class named; protected, no-ack, other subtypes, flags, peers, descriptor bytes, status, groups refused; runtime 21 broadcast class named; runtime 24 keyed variant admitted only after the pairwise key, the unkeyed variant kept; runtime 26 keyed beacon named under the declared entry)");
  return 0;
 }
