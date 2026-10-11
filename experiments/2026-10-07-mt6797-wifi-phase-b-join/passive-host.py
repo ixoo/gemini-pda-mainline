@@ -14,8 +14,8 @@ import sys
 sys.dont_write_bytecode = True
 HERE = Path(__file__).resolve().parent
 PRIVATE_REPO = Path(os.environ['GEMINI_PRIVATE_REPO']).resolve(strict=True)
-ROOT = Path(os.environ['GEMINI_RUNTIME_ROOT']).resolve(strict=True) / 'wifi-phase-b/session-26'
-CAPTURE = Path(os.environ['GEMINI_RUNTIME_ROOT']).resolve(strict=True) / 'wifi-phase-b/capture-26'
+ROOT = Path(os.environ['GEMINI_RUNTIME_ROOT']).resolve(strict=True) / 'wifi-phase-b/session-27'
+CAPTURE = Path(os.environ['GEMINI_RUNTIME_ROOT']).resolve(strict=True) / 'wifi-phase-b/capture-27'
 RELEASE = '7.1.3-gemini-a53-wifi-phase-b-compile'
 SOURCE = HERE.parent / '2026-10-02-mt6797-scan-tuning-sample/passive-host.py'
 SPEC = importlib.util.spec_from_file_location('scan_tuning_host', SOURCE)
@@ -36,11 +36,11 @@ SCAN.PARENT.WIPHY_PROBE = SCAN.PARENT.WIPHY_PROBE.replace(
     b'7.1.3-gemini-a53-wifi-scan-tuning-sample', RELEASE.encode())
 HOST = SCAN.HOST
 # The inherited WMT host main reads HERE/results/candidate.json for the capture
-# identity check. Runtime 26 must compare against the candidate-25 receipt, so
-# bind only that module's HERE to runtime-26/, whose results/candidate.json is a
-# byte copy of results/candidate-25.json; the
+# identity check. Runtime 27 must compare against the candidate-26 receipt, so
+# bind only that module's HERE to runtime-27/, whose results/candidate.json is a
+# byte copy of results/candidate-26.json; the
 # earlier runtime-N/ copies stay bound to their runtimes.
-HOST.HERE = HERE / 'runtime-26'
+HOST.HERE = HERE / 'runtime-27'
 HOST.ROOT = ROOT
 HOST.CAPTURE = CAPTURE
 HOST.DOMAIN.HERE = HERE
@@ -51,7 +51,7 @@ HOST.DOMAIN.HOST.ROOT = ROOT
 HOST.DOMAIN.HOST.REPO = PRIVATE_REPO
 HOST.DOMAIN.HOST.__file__ = str(Path(__file__).resolve())
 C2 = runpy.run_path(str(HERE / 'c2-session.py'))
-# Runtime 26: the custodian's laptop-wifi-ssh.py receipt, when the combined
+# Runtime 27: the custodian's laptop-wifi-ssh.py receipt, when the combined
 # session includes the Wi-Fi SSH exchange; absent, the session stays a C2 one.
 WIFI_SSH_RECEIPT = (Path(os.environ['GEMINI_WIFI_SSH_RECEIPT']).resolve()
                     if os.environ.get('GEMINI_WIFI_SSH_RECEIPT') else None)
@@ -181,9 +181,9 @@ def main():
     parser.add_argument('--execute', action='store_true')
     args = parser.parse_args()
     os.umask(0o077)
-    # Runtime 26 is the supplicant-owned C2+C3 session with the private log export.
+    # Runtime 27 is the supplicant-owned C2+C3 session with the private log export.
     if not C2_SCRIPT:
-        parser.exit(2, 'runtime 26 requires the PSK-bound C2 join script\n')
+        parser.exit(2, 'runtime 27 requires the PSK-bound C2 join script\n')
     phase_a = CAPTURE / 'phase-a-result.json'
     ready = (phase_a.is_file() and
              json.loads(phase_a.read_bytes()).get('ready_for_scan') is True)

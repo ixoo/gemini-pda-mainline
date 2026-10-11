@@ -449,6 +449,23 @@ data-path shapes through mac80211, replay the reference offline) is admitted
 as hardware-free source work and awaits its proposal diff, checks and
 combined test protocol before any build.
 
+## Compile 31, candidate 26 and the runtime 27 bindings (2026-10-11)
+
+[COMPILE_31.md](COMPILE_31.md): the phase-B compile profile at c7ba623f with
+0163 to 0173 built and validated on Buildbox-1 (package `bc0f928e…`, kernel
+image `c2012245…`, decompressed back to the compile 19 to 29 size, kernel
+config and board DT unchanged, zero driver warnings). Candidate 26 pairs it
+with candidate 25's RAM root, board DT and kernel config byte-identical; boot
+image `99d1d9e7…`, full padded boot2 `e322e068…`; the committed receipt
+[results/candidate-26.json](results/candidate-26.json) (SHA-256 `b969063c…`)
+is the custodian's exact bytes and `runtime-27/results/candidate.json` its
+copy. The installer's predecessor is the installed candidate 25
+(`b38d25a9…`). [RUNTIME_27_PREPARATION](RUNTIME_27_PREPARATION.md) states
+what differs from runtime 26 (proposal 0173 only), the hypothesis that the
+keyed beacon is skipped and the first TC1 frame then measured inside the
+grant, the branches, and the bindings table. Nothing has been installed or
+booted.
+
 ## Runtime 26 result and proposal 0173 (2026-10-11)
 
 Runtime 26 ([RUNTIME_26_RESULT.md](RUNTIME_26_RESULT.md)) was negative before

@@ -19,19 +19,19 @@ SPEC = importlib.util.spec_from_file_location('wmt_start_capture', SOURCE)
 WMT = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(WMT)
 RELEASE = '7.1.3-gemini-a53-wifi-phase-b-compile'
-# Slot filled from the committed results/candidate-25.json after composition.
-MANIFEST_SHA = '19a7a3409aa168f8585b7ecc32921eaba2cc4ad1c47debc7ed77355b505f000f'
+# Slot filled from the committed results/candidate-26.json after composition.
+MANIFEST_SHA = 'b969063c789f531be735918e3557cdcaf34f533a336f8277106ba2ac8beefd41'
 START_TIMEOUT_S = 120
 WMT.HERE = HERE
 WMT.ROOT = ROOT
-WMT.CAPTURE_DIR = ROOT / 'capture-26'
+WMT.CAPTURE_DIR = ROOT / 'capture-27'
 WMT.RELEASE = RELEASE
 WMT.START_TRIGGER = '/sys/bus/platform/devices/10001340.consys/wmt_negotiate'
 WMT.CAPTURE.HERE = HERE
 WMT.CAPTURE.ROOT = ROOT
 WMT.CAPTURE.CAPTURE = WMT.CAPTURE_DIR
-WMT.CAPTURE.DEPLOYMENT = ROOT / 'session-26/deployment-summary.txt'
-WMT.CAPTURE.RECEIPT = HERE / 'results/candidate-25.json'
+WMT.CAPTURE.DEPLOYMENT = ROOT / 'session-27/deployment-summary.txt'
+WMT.CAPTURE.RECEIPT = HERE / 'results/candidate-26.json'
 WMT.CAPTURE.MANIFEST_SHA = MANIFEST_SHA
 WMT.CAPTURE.RELEASE = RELEASE
 
