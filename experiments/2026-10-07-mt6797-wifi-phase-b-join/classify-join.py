@@ -18,8 +18,10 @@ def classify(raw):
         # abort then submits nothing), the bounded data phase and its end.
         'cleanup_released': rb'cleanup submission: stage=1 released=1',
         'channel_released': rb'channel released: sequence=(\d+)',
-        'data_phase': rb'data phase: budget_ms=(\d+) teardown_margin_ms=(\d+)',
-        'data_end': rb'data phase end: reason=(budget|disconnect|txfail|pidbudget) elapsed_ms=(\d+) rx_unicast=(\d+) rx_group=(\d+) rx_dropped=(\d+) tx_queued=(\d+) tx_done=(\d+) tx_failed=(\d+)',
+        # 0172: the data phase opens inside the channel grant; its budget is the grant's
+        # remainder (at most 60000 ms); the release record is 0165's and may be absent.
+        'data_phase': rb'data phase: budget_ms=(\d+) teardown_margin_ms=(\d+)( inside_grant=1)?',
+        'data_end': rb'data phase end: reason=(budget|disconnect|txfail|pidbudget) elapsed_ms=(\d+) rx_unicast=(\d+) rx_group=(\d+) rx_dropped=(\d+) tx_queued=(\d+) tx_done=(\d+) tx_failed=(\d+)(?: tx_credits=(\d+))?',
         'peer': rb'peer: ready=1 sequence=(\d+)',
         'grant': rb'grant: channel=40 interval_ms=(\d+)',
         # Phase C2: control-port EAPOL transmitted as a security frame, and the
@@ -56,6 +58,9 @@ def classify(raw):
                      # Phase C3: the first delivered data frame and the first submitted data frame, metadata only.
                      rb'data RX: first group=[01] tid=\d{1,2} keyid=[0-3] bytes=\d{1,4} vector=[01]',
                      rb'data TX: first pid=\d{1,3} pages=\d{1,2} bytes=\d{1,4}',
+                     # 0172: TC1 credit returns (first eight) and a data frame still in flight at its deadline, metadata only.
+                     rb'data credit: pages=\d{1,2} debt=\d{1,2} count=[1-8]',
+                     rb'data TX timeout: pid=\d{1,3} debt=\d{1,2} credits=\d{1,6} elapsed_ms=\d{1,5}',
                      # Phase C3: owned protected data outside the open phase, dropped and counted (first, then the total).
                      rb'data RX outside: first phase=[01] ended=[01] group=[01] bytes=\d{1,4}',
                      rb'data RX outside: dropped=\d{1,3}',
@@ -91,7 +96,7 @@ def classify(raw):
             continue
         for name, pattern in patterns.items():
             if match := re.fullmatch(pattern, body):
-                rows[name].append((index, *(int(v) if v.isdigit() else v.decode() for v in match.groups())))
+                rows[name].append((index, *(None if v is None else int(v) if v.isdigit() else v.decode() for v in match.groups())))
                 break
         else:
             if any(re.fullmatch(pattern, body) for pattern in diagnostics):
@@ -109,7 +114,8 @@ def classify(raw):
                     key_refusal_rows.append((index, body.split(b': ', 1)[1].split(b' ')[0].decode(),
                                              int(fields[b'status']), int(fields[b'running'])))
                     refused = True
-                elif body.startswith(b'data TX: first') or body.startswith(b'data RX: first') or body.startswith(b'data RX outside:'):
+                elif (body.startswith(b'data TX: first') or body.startswith(b'data RX: first') or body.startswith(b'data RX outside:') or
+                      body.startswith(b'data credit:') or body.startswith(b'data TX timeout:')):
                     pass  # Phase C3 first-frame notifications: metadata, neither refusal nor stage
                 elif body.startswith(b'eapol observed:') or body.startswith(b'eapol delivered:'):
                     fields = dict(part.split(b'=') for part in body.split(b': ', 1)[1].split(b' '))
@@ -209,10 +215,21 @@ def classify(raw):
     data_end = rows['data_end']
     group_credit = [row for row in key_credits if row[1] == 'group']
     deauth_tx_rows = [row for row in tx if row[1] == 12]
-    lifetime_ok = (len(released) <= 1 and len(data_phase) == len(released) and len(data_end) <= len(released) and
-                   len(rows['cleanup_released']) == len(released) and
+    # Two data-phase shapes, each exact. 0165: a release record after the group
+    # key's credit, then the phase with the full 60000 ms budget and no marker,
+    # and the stage-1 release record once the cleanup runs. 0172: no release, the
+    # phase inside the grant carrying the marker with a budget of at most 60000 ms
+    # (the grant's remainder), and stage 1 submitting the abort as before. A
+    # marker with a release, or neither, is malformed. The stage-1 release record
+    # may be missing only for a fail-stop that reached no cleanup stage at all
+    # (runtime 25); a stopped lifetime that submitted a stage must still match.
+    reached_cleanup = bool(rows['cleanup_submission'] or rows['cleanup_released'] or rows['cleanup'])
+    lifetime_ok = (len(released) <= 1 and len(data_phase) <= 1 and len(data_end) <= len(data_phase) and
+                   (len(rows['cleanup_released']) == len(released) or (stopped and not reached_cleanup)) and
                    all(bool(group_credit) and r[0] > group_credit[0][0] for r in released) and
-                   all(released and p[0] > released[0][0] and p[1] == 60000 and p[2] == 5000 for p in data_phase) and
+                   all(bool(group_credit) and p[0] > group_credit[0][0] and p[2] == 5000 and
+                       ((released and p[0] > released[0][0] and p[3] is None and p[1] == 60000) or
+                        (not released and p[3] is not None and 0 < p[1] <= 60000)) for p in data_phase) and
                    all(data_phase and e[0] > data_phase[0][0] and
                        (not deauth_tx_rows or e[0] < deauth_tx_rows[0][0]) for e in data_end))
     if not lifetime_ok:
@@ -349,12 +366,15 @@ def classify(raw):
         # Phase C3 lifetime terms: the channel privilege released after the group
         # key, the data phase budget as recorded, and how the data phase ended.
         'channel_released': bool(lifetime_ok and len(released) == 1),
+        'data_phase_opened': bool(lifetime_ok and len(data_phase) == 1),
+        'data_phase_inside_grant': bool(lifetime_ok and len(data_phase) == 1 and data_phase[0][3] is not None),
         'data_phase_budget_ms': data_phase[0][1] if lifetime_ok and data_phase else None,
         'data_phase_end_reason': data_end[0][1] if lifetime_ok and data_end else None,
         # Counts from the end record: protected frames delivered to and accepted
         # from mac80211 at the firmware boundary, never a network-function claim.
         'data_frames': ({'rx_unicast': data_end[0][3], 'rx_group': data_end[0][4], 'rx_dropped': data_end[0][5],
-                         'tx_queued': data_end[0][6], 'tx_done': data_end[0][7], 'tx_failed': data_end[0][8]}
+                         'tx_queued': data_end[0][6], 'tx_done': data_end[0][7], 'tx_failed': data_end[0][8],
+                         'tx_credits': data_end[0][9] if len(data_end[0]) > 9 else None}
                         if lifetime_ok and data_end else None),
         # Driver-side C2 path: two frames delivered, two sent, both key commands with
         # their credits, both removals, healthy bounded join. The session's success
@@ -387,7 +407,7 @@ def classify(raw):
     # one data frame acknowledged and one unicast protected frame delivered. Whether
     # an address was obtained or a host answered is the session's evidence, not this.
     frames = result['data_frames']
-    result['driver_data_path_pass'] = bool(result['driver_handshake_path_pass'] and result['channel_released'] and
+    result['driver_data_path_pass'] = bool(result['driver_handshake_path_pass'] and result['data_phase_opened'] and
                                            result['data_phase_end_reason'] in ('budget', 'disconnect') and frames and
                                            frames['tx_done'] >= 1 and frames['rx_unicast'] >= 1 and frames['tx_failed'] <= frames['tx_done'])
     return result

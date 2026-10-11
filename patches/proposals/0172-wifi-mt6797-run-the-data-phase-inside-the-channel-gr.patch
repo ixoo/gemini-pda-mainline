@@ -1,0 +1,279 @@
+From 0824ceab605857046ada5d948074e466250d0453 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 11 Oct 2026 15:21:14 +0000
+Subject: [PATCH 172/172] wifi: mt6797: run the data phase inside the channel
+ grant; record TC1 credits and a data frame's timeout
+
+Runtime 25 (candidate 24, compile 29) installed both keys, aborted the channel
+privilege after the group key's credit (proposal 0165), opened the data phase
+and submitted its first data frame on TC1 (pid 5, 3 pages, 342 wire bytes);
+no TX status and no delivered RX followed within the 750 ms frame deadline
+and the lifetime stopped (-ETIMEDOUT, branch 1). The TC1 page return was not
+recorded, so whether the frame was consumed is unobserved.
+
+Source and reference: the vendor writes every frame through the same HIF
+port; our TC1 descriptor's fields equal the vendor's data descriptors in the
+reference run 3 ledger (non-802.11 long format, Ethernet II, protected, TID
+0, LMAC queue 1) and differ from our working management and security
+descriptors only by port/queue and the protected bit; the vendor's TC1 data
+frames received the same TX-done event our decoder admits. In that ledger
+every one of the vendor's first data frames went out inside its channel
+grant, with the CH_PRIVILEGE abort about four seconds after the request and
+data continuing afterwards. Of the vendor's post-association commands this
+driver sends the connected SET_BSS_INFO, the station record and the receive
+filter, not INDICATE_PM_BSS_CONNECTED, SET_BSS_RLM_PARAM, UPDATE_WMM_PARMS,
+ROAMING_TRANSIT or MAC_MCAST_ADDR. Aborting the privilege before the first
+data frame is an order the vendor never showed. The vendor's TX-done event
+matching our decoder says nothing about our runtime's routing of an event
+that never arrived. Inference, not measured: with the privilege aborted and
+without those commands the LMAC queue may have had no channel to serve.
+Keeping the grant is an ordering diagnostic, not a proven cause.
+
+The data phase now opens inside the live grant after the group key's credit:
+no command is submitted, the privilege stays granted, cleanup stage 1 returns
+it as before 0165, and the data deadline is the budget or, sooner, the grant's
+end minus a 2500 ms tail that covers the last admitted frame's 750 ms
+completion, the reserved deauthentication's 1200 ms grant room and its own
+completion, the four cleanup commands and the poll and HIF latencies; the
+lifetime deadline becomes that end plus the teardown margin. A grant too
+close to its end refuses to open the phase. The cleanup waits for TC1 pages
+still owed by the last data frame (the lifetime deadline bounds the wait)
+instead of refusing. The data-phase record
+carries the computed budget and names the grant. For the next decision,
+TC1 credit returns are recorded (the first eight, the total in the end
+record) and a data frame still in flight at its deadline is named with the
+TC1 ledger's state before the footer. Data after a release is not attempted
+and stays unmeasured on this driver; no budget, admission or radio behaviour
+is otherwise changed.
+
+Unsigned experiment draft; archive identity is non-certifying.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 131 ++++++++++++++-------
+ 1 file changed, 90 insertions(+), 41 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 914936ec4..67f217754 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -31,6 +31,21 @@
+  */
+ #define MT6797_JOIN_DATA_BUDGET_MS 60000U
+ #define MT6797_JOIN_TEARDOWN_MARGIN_MS 5000U
++/* The data phase runs inside the channel grant (the reference's first data
++ * frames did) and ends this long before the grant does. The tail covers, in
++ * order: the last data frame admitted at the phase's end and its 750 ms
++ * completion deadline; the deauthentication reserved at association, whose
++ * dequeue after that completion needs 850 ms of grant room, which also covers
++ * its own 750 ms completion; then the two removals, the station removal and
++ * the channel abort, each a command with a 100 ms credit deadline, plus the
++ * 20 ms poll and the HIF's 100 ms; 750 + 850 + 4 x 100 + 120 = 2120. No other
++ * budget changes; the phase only gets shorter.
++ */
++#define MT6797_JOIN_GRANT_TAIL_MS 2500U
++/* Metadata-only observability of the TC1 pool: the first few credit returns
++ * are recorded, the total goes into the data phase's end record.
++ */
++#define MT6797_JOIN_DATA_CREDIT_RECORDS 8U
+ #define MT6797_JOIN_MAX_POLLS 4096U
+ #define MT6797_JOIN_MAX_PACKETS 32768U
+ #define MT6797_JOIN_DATA_RX_MAX 16384U
+@@ -128,13 +143,14 @@ struct mt6797_mac {
+ 	 * rekey, no second phase.
+ 	 */
+ 	bool join_channel_released, join_data_phase, join_data_ended;
+-	u64 join_data_deadline;
++	u64 join_data_deadline, join_data_started;
+ 	const char *join_data_end_reason;
+ 	/* Data phase counts: accepted protected frames delivered to mac80211 by
+ 	 * class, and frames beyond the delivery cap dropped undelivered.
+ 	 */
+ 	unsigned int join_data_rx_unicast, join_data_rx_group, join_data_rx_dropped;
+ 	unsigned int join_data_rx_outside;
++	unsigned int join_data_credits, join_data_credit_records;
+ 	/* Data transmit: mac80211's protected non-QoS data frames to the target,
+ 	 * converted to Ethernet II and submitted on the TC1 pool one at a time;
+ 	 * pages owed on that pool, counts, and the in-flight frame's class.
+@@ -735,6 +751,16 @@ static int mt6797_mac_join_guard(struct mt6797_mac *mac, u64 deadline)
+ 			return -EPROTO;
+ 		}
+ 		mac->join_data_page_debt -= account.tc1_released;
++		if (account.tc1_released) {
++			mac->join_data_credits += account.tc1_released;
++			if (mac->join_data_credit_records < MT6797_JOIN_DATA_CREDIT_RECORDS) {
++				mac->join_data_credit_records++;
++				dev_info(wiphy_dev(mac->hw->wiphy),
++					 "one-shot WLAN join data credit: pages=%u debt=%u count=%u\n",
++					 account.tc1_released, mac->join_data_page_debt,
++					 mac->join_data_credit_records);
++			}
++		}
+ #endif
+ 		mac->join_page_debt -= account.released_pages;
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+@@ -970,6 +996,12 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
+ 		return 0;
+ 	if (mac->join_sta_active && !mac->join_deauth_done)
+ 		return 0;
++	/* TC1 pages of the last data frame may return after its TX status; the
++	 * ledger must be whole before a cleanup command, so wait for them (the
++	 * lifetime deadline bounds the wait) rather than refuse the cleanup.
++	 */
++	if (mac->join_data_page_debt)
++		return 0;
+ 	deadline = min_t(u64, mac->join_deadline,
+ 			 ktime_get_ns() + 100 * NSEC_PER_MSEC);
+ 	ret = mt6797_mac_join_guard(mac, deadline);
+@@ -1099,57 +1131,48 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+ 	mac->join_data_end_reason = reason;
+ 	mac->join_hold_until = ktime_get_ns();
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+-		 "one-shot WLAN join data phase end: reason=%s elapsed_ms=%llu rx_unicast=%u rx_group=%u rx_dropped=%u tx_queued=%u tx_done=%u tx_failed=%u\n",
+-		 reason, (ktime_get_ns() + (u64)MT6797_JOIN_DATA_BUDGET_MS * NSEC_PER_MSEC -
+-			  mac->join_data_deadline) / NSEC_PER_MSEC,
++		 "one-shot WLAN join data phase end: reason=%s elapsed_ms=%llu rx_unicast=%u rx_group=%u rx_dropped=%u tx_queued=%u tx_done=%u tx_failed=%u tx_credits=%u\n",
++		 reason, (ktime_get_ns() - mac->join_data_started) / NSEC_PER_MSEC,
+ 		 mac->join_data_rx_unicast, mac->join_data_rx_group, mac->join_data_rx_dropped,
+-		 mac->join_data_tx_queued, mac->join_data_tx_done, mac->join_data_tx_failed);
++		 mac->join_data_tx_queued, mac->join_data_tx_done, mac->join_data_tx_failed,
++		 mac->join_data_credits);
+ }
+ 
+-/* Release the channel privilege after the group key's credit, as the pinned
+- * vendor AIS does once the join is complete (the reference run 3 ledger shows
+- * the CH_PRIVILEGE abort about four seconds after the request, when data was
+- * already passing inside the grant, and data continuing after it), and open
+- * the bounded data phase. One command with its credit, under the
+- * mutex, through the same TC4 ledger as every join command; a failure ends
+- * the lifetime like any other refused command. The grant deadline no longer
+- * bounds frames afterwards; the lifetime deadline becomes the data budget plus
+- * the teardown margin.
++/* Open the bounded data phase after the group key's credit, inside the live
++ * channel grant. The reference run 3 ledger places every one of the vendor's
++ * first data frames inside its grant, with the CH_PRIVILEGE abort about four
++ * seconds after the request and data continuing afterwards under a BSS it
++ * had declared connected; runtime 25 (proposal 0165) aborted the privilege
++ * before the first data frame, an order the vendor never showed, and that
++ * frame produced no TX status within its deadline. The privilege is now kept
++ * through the data phase and returned by cleanup stage 1 as before 0165
++ * (`released` stays false). The data phase ends at the budget or, sooner, a
++ * tail before the grant's end so the reserved deauthentication keeps its
++ * grant room; the lifetime deadline becomes that end plus the teardown
++ * margin. No command is submitted here. Data after a release stays
++ * unmeasured on this driver and is not attempted.
+  */
+ static int mt6797_mac_join_release_channel(struct mt6797_mac *mac)
+ {
+-	u64 now;
+-	int ret;
++	u64 now = ktime_get_ns(), budget_end, grant_end;
+ 
+ 	if (!mac->join_channel_granted || mac->join_channel_released ||
+-	    mac->join_page_debt || mac->join_credit_pending || mac->sequence > 253)
++	    mac->join_data_phase || mac->join_page_debt || mac->join_credit_pending)
+ 		return -EBUSY;
+-	mac->join_credit_deadline = min_t(u64, mac->join_deadline,
+-					  ktime_get_ns() + 100 * NSEC_PER_MSEC);
+-	reinit_completion(&mac->join_credit_done);
+-	mac->join_credit_pending = true;
+-	mac->join_page_debt = 1;
+-	ret = mt6797_hif_join_channel(mac->hif, mac->sequence++,
+-				      mac->join_channel_token, 40, 0, true,
+-				      mac->join_credit_deadline);
+-	if (!ret)
+-		ret = mt6797_mac_join_wait_credit(mac);
+-	if (ret)
+-		return ret;
+-	now = ktime_get_ns();
+-	mac->join_channel_released = true;
+-	mac->join_channel_granted = false;
++	if (mac->join_grant_deadline <= now + (u64)MT6797_JOIN_GRANT_TAIL_MS * NSEC_PER_MSEC)
++		return -ETIMEDOUT;
++	budget_end = now + (u64)MT6797_JOIN_DATA_BUDGET_MS * NSEC_PER_MSEC;
++	grant_end = mac->join_grant_deadline - (u64)MT6797_JOIN_GRANT_TAIL_MS * NSEC_PER_MSEC;
+ 	mac->join_data_phase = true;
+ 	mac->join_data_ended = false;
+-	mac->join_data_deadline = now + (u64)MT6797_JOIN_DATA_BUDGET_MS * NSEC_PER_MSEC;
++	mac->join_data_started = now;
++	mac->join_data_deadline = min(budget_end, grant_end);
+ 	mac->join_deadline = mac->join_data_deadline +
+ 			     (u64)MT6797_JOIN_TEARDOWN_MARGIN_MS * NSEC_PER_MSEC;
+ 	mac->join_hold_until = mac->join_data_deadline;
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+-		 "one-shot WLAN join channel released: sequence=%u\n", mac->sequence - 1);
+-	dev_info(wiphy_dev(mac->hw->wiphy),
+-		 "one-shot WLAN join data phase: budget_ms=%u teardown_margin_ms=%u\n",
+-		 MT6797_JOIN_DATA_BUDGET_MS, MT6797_JOIN_TEARDOWN_MARGIN_MS);
++		 "one-shot WLAN join data phase: budget_ms=%llu teardown_margin_ms=%u inside_grant=1\n",
++		 (mac->join_data_deadline - now) / NSEC_PER_MSEC, MT6797_JOIN_TEARDOWN_MARGIN_MS);
+ 	return 0;
+ }
+ #endif
+@@ -1259,6 +1282,19 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	if (mac->scan_active || mac->first_error || mac->closing ||
+ 					now >= mac->join_deadline || ++mac->join_polls > MT6797_JOIN_MAX_POLLS ||
+ 					(mac->join_inflight && now >= mac->join_frame_deadline)) {
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++		/* A data frame still in flight at its deadline: name it with the
++		 * TC1 ledger's state, so the next decision can tell a consumed
++		 * frame (pages returned, no status) from a stalled one (runtime
++		 * 25 recorded neither).
++		 */
++		if (mac->join_inflight && mac->join_inflight_data &&
++		    now >= mac->join_frame_deadline)
++			dev_info(wiphy_dev(mac->hw->wiphy),
++				 "one-shot WLAN join data TX timeout: pid=%u debt=%u credits=%u elapsed_ms=%llu\n",
++				 mac->join_pid, mac->join_data_page_debt, mac->join_data_credits,
++				 (now - (mac->join_frame_deadline - 750 * NSEC_PER_MSEC)) / NSEC_PER_MSEC);
++#endif
+ 		/* An error another path raised (a refused key command) is the
+ 		 * footer's status; a stop this check finds is a timeout.
+ 		 */
+@@ -1283,7 +1319,13 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 		mt6797_mac_join_end_data(mac, "budget");
+ #endif
+ 	branch = 3;
+-	if (!mac->join_inflight && !mac->join_page_debt && !mac->join_data_page_debt) {
++	/* TC1 pages owed by the last data frame hold only the next data frame
++	 * (its pool must be whole); the management and security frames of the
++	 * TC4 ledger, the reserved deauthentication among them, do not wait for
++	 * them. The cleanup commands do wait for the TC1 pool to be whole, and
++	 * the lifetime deadline bounds that wait.
++	 */
++	if (!mac->join_inflight && !mac->join_page_debt) {
+ 		spin_lock_irqsave(&mac->join_queue.lock, flags);
+ 		skb = NULL;
+ 		if (mac->join_open) {
+@@ -1319,6 +1361,9 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 					__skb_queue_tail(&discard, walk);
+ 					continue;
+ 				}
++				if (data && !port && walk != mac->join_internal &&
++				    mac->join_data_page_debt)
++					continue;
+ 				__skb_unlink(walk, &mac->join_queue);
+ 				skb = walk;
+ 				break;
+@@ -2356,6 +2401,9 @@ static int mt6797_mac_join_add_peer(struct mt6797_mac *mac,
+ 	mac->join_group_discarded = 0;
+ 	mac->join_action_discarded = 0;
+ 	mac->join_group_action_discarded = 0;
++	mac->join_data_credits = 0;
++	mac->join_data_credit_records = 0;
++	mac->join_data_started = 0;
+ 	mac->join_key_pairwise_submitted = false;
+ 	mac->join_key_group_submitted = false;
+ 	mac->join_key_done = false;
+@@ -2735,9 +2783,10 @@ static int mt6797_mac_set_key(struct ieee80211_hw *hw, enum set_key_cmd cmd,
+ 	} else {
+ 		mac->join_key_group = 1;
+ 		mac->join_group_key_id = key->keyidx;
+-		/* Both keys installed: release the channel privilege and open the
+-		 * bounded data phase; the reserved deauthentication waits for its
+-		 * end. A refused release ends the lifetime below.
++		/* Both keys installed: open the bounded data phase inside the
++		 * grant; the reserved deauthentication waits for its end and
++		 * cleanup stage 1 returns the privilege. A phase that cannot open
++		 * ends the lifetime below.
+ 		 */
+ 		ret = mt6797_mac_join_release_channel(mac);
+ 		if (ret)

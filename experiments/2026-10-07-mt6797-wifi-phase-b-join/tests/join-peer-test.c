@@ -28,6 +28,8 @@ typedef uint64_t u64;
 #define IEEE80211_STYPE_DISASSOC 0xa0
 /* Mirrors of the driver's Phase C3 finite limits. */
 #define MT6797_JOIN_DATA_BUDGET_MS 60000U
+#define MT6797_JOIN_GRANT_TAIL_MS 2500U
+#define MT6797_JOIN_DATA_CREDIT_RECORDS 8U
 #define MT6797_JOIN_TEARDOWN_MARGIN_MS 5000U
 enum ieee80211_sta_state { IEEE80211_STA_NOTEXIST, IEEE80211_STA_NONE,
  IEEE80211_STA_AUTH, IEEE80211_STA_ASSOC, IEEE80211_STA_AUTHORIZED };
@@ -112,7 +114,8 @@ struct mt6797_mac {
  unsigned join_eapol_seen; u64 join_hold_until;
  bool join_rsn; unsigned join_key_pairwise, join_key_group; u8 join_group_key_id;
  unsigned int join_group_discarded; unsigned int join_action_discarded, join_group_action_discarded; bool join_key_pairwise_submitted, join_key_group_submitted, join_key_done, join_key_done_second;
- bool join_channel_released, join_data_phase, join_data_ended; u64 join_data_deadline; const char *join_data_end_reason;
+ bool join_channel_released, join_data_phase, join_data_ended; u64 join_data_deadline, join_data_started; const char *join_data_end_reason;
+ unsigned join_data_credits, join_data_credit_records;
  unsigned join_data_rx_unicast, join_data_rx_group, join_data_rx_dropped, join_data_rx_outside;
  unsigned join_data_page_debt, join_data_tx_queued, join_data_tx_done, join_data_tx_failed, join_data_tx_failures_in_row; bool join_inflight_data;
  int join_work;
@@ -500,15 +503,22 @@ int main(void)
    /* A queued reply does not block the group key; the command goes first. */
    m.join_queue.head=&reply;
    assert(!mt6797_mac_set_key(&hw,SET_KEY,&vif,NULL,&gtk));m.join_queue.head=NULL;
-   /* The group key's credit releases the channel privilege (one CH_PRIVILEGE
-    * abort with its credit) and opens the bounded data phase: the hold moves to
-    * the data deadline and the lifetime deadline to it plus the teardown margin. */
-   assert(writes==8 && order[6]==0x07 && order[7]==0x1c && key_adds==2 && key_group==1 && m.join_key_group==1 && m.join_group_key_id==0);
-   assert(m.join_channel_released && !m.join_channel_granted && m.join_data_phase && !m.join_data_ended);
-   assert(m.join_data_deadline==now+60000ULL*NSEC_PER_MSEC && m.join_hold_until==m.join_data_deadline);
+   /* The group key's credit opens the bounded data phase inside the live grant
+    * (0172): no CH_PRIVILEGE abort, the privilege stays granted for cleanup stage 1;
+    * the data deadline is the grant's end minus the 2500 ms tail (shorter than the
+    * 60 s budget here), the hold moves to it and the lifetime deadline to it plus
+    * the teardown margin. */
+   assert(writes==7 && order[6]==0x07 && key_adds==2 && key_group==1 && m.join_key_group==1 && m.join_group_key_id==0);
+   assert(!m.join_channel_released && m.join_channel_granted && m.join_data_phase && !m.join_data_ended && m.join_data_started==now);
+   assert(m.join_data_deadline==m.join_grant_deadline-2500ULL*NSEC_PER_MSEC && m.join_data_deadline<now+60000ULL*NSEC_PER_MSEC && m.join_hold_until==m.join_data_deadline);
    assert(m.join_deadline==m.join_data_deadline+5000ULL*NSEC_PER_MSEC && !m.join_page_debt && !m.join_credit_pending);
+   /* A grant too close to its end cannot open the phase (refused, fail-stop). */
+   { struct mt6797_mac saved=m; unsigned f0=footers, saved_writes=writes, saved_adds=key_adds, saved_group=key_group;
+     m.join_key_group=0; m.join_key_group_submitted=false; m.join_data_phase=false; m.join_grant_deadline=now+2400ULL*NSEC_PER_MSEC;
+     assert(mt6797_mac_set_key(&hw,SET_KEY,&vif,NULL,&gtk)==-ETIMEDOUT && m.join_retired && footers==f0+1);
+     m=saved; active=&m; writes=saved_writes; key_adds=saved_adds; key_group=saved_group; }
    /* Disable submits nothing; a second pairwise key is refused fail-stop. */
-   assert(!mt6797_mac_set_key(&hw,DISABLE_KEY,&vif,&sta,&ptk) && writes==8);
+   assert(!mt6797_mac_set_key(&hw,DISABLE_KEY,&vif,&sta,&ptk) && writes==7);
    { struct mt6797_mac saved=m; unsigned f0=footers, t0=freed_tx;
      /* Refused while the lifetime runs: the one terminal path runs here under the
       * mutex (footer once, retired, fenced, the queued and in-flight frames freed to
@@ -531,21 +541,27 @@ int main(void)
      mt6797_mac_mgd_prepare_tx(&hw,&vif,&deauth); assert(m.join_hold_until==now);
      m=saved; active=&m; now-=NSEC_PER_SEC; }
    /* Healthy teardown: the deauthentication completes, then the two removals (exact
-    * wlanoidSetRemoveKey shapes), then station removal, the released channel
-    * stage (recorded, nothing submitted, no credit) and BSS off. */
+    * wlanoidSetRemoveKey shapes), then station removal, the channel abort (the
+    * privilege was kept through the data phase, 0172) and BSS off; each with its
+    * credit. */
    info.subtype=IEEE80211_STYPE_ASSOC_REQ;info.success=true;m.join_last_sequence=4095;
    mt6797_mac_mgd_complete_tx(&hw,&vif,&info);
    assert(m.join_cleanup_requested && m.join_internal && allocations==1);
    { struct sk_buff *owned=m.join_internal; m.join_queue.head=NULL;m.join_inflight=NULL;m.join_internal=NULL;dev_kfree_skb(owned); }
    m.join_deauth_done=true;
+   /* TC1 pages of the last data frame still owed: the cleanup waits (no submission,
+    * no refusal) until they return; the lifetime deadline bounds that wait. */
+   { unsigned before=writes; m.join_data_page_debt=3;
+     mutex_lock(&m.mutex);assert(!mt6797_mac_join_cleanup_step(&m));mutex_unlock(&m.mutex);
+     assert(writes==before && !m.join_credit_pending && m.join_cleanup_stage==0 && !m.first_error);
+     m.join_data_page_debt=0; }
    for(unsigned step=0;step<5;step++) {
     unsigned before=writes;
     mutex_lock(&m.mutex);assert(!mt6797_mac_join_cleanup_step(&m));mutex_unlock(&m.mutex);
-    if(step==3) { assert(writes==before && !m.join_credit_pending && m.join_cleanup_stage==2); continue; }
     assert(writes==before+1 && m.join_credit_pending);
     released=1; assert(!mt6797_mac_join_guard(&m,m.join_credit_deadline)); released=0;
    }
-   assert(writes==12 && order[8]==0x07 && order[9]==0x07 && order[10]==0x14 && order[11]==0x11);
+   assert(writes==12 && order[7]==0x07 && order[8]==0x07 && order[9]==0x14 && order[10]==0x1c && order[11]==0x11);
    assert(key_removals==2 && key_pairwise==2 && key_group==2 && m.join_key_pairwise==2 && m.join_key_group==2);
    assert(m.join_cleanup_stage==3 && !m.join_cleanup_done && !losses);
    /* Refusals on fresh lifetimes: wrong cipher; group before pairwise. */
@@ -568,7 +584,7 @@ int main(void)
    m.join_hold_until=now+4000*NSEC_PER_MSEC;
    assert(!mt6797_mac_set_key(&hw,SET_KEY,&vif,&sta,&ptk));
    { struct ieee80211_key_conf gtk3=gtk; gtk3.keyidx=3; assert(!mt6797_mac_set_key(&hw,SET_KEY,&vif,NULL,&gtk3)); }
-   assert(m.join_group_key_id==3 && writes==8 && m.join_channel_released);
+   assert(m.join_group_key_id==3 && writes==7 && m.join_data_phase && !m.join_channel_released);
    { struct ieee80211_key_conf gtk4=gtk; gtk4.keyidx=4; struct mt6797_mac saved=m;
      assert(mt6797_mac_set_key(&hw,SET_KEY,&vif,NULL,&gtk4)==-EOPNOTSUPP); m=saved; active=&m; }
    /* An open join declares no WPA2 and admits no key. */

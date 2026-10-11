@@ -240,12 +240,13 @@ static void cancel_delayed_work_sync(struct delayed_work *w)
 static u8 script[6][512];
 static size_t script_bytes[6];
 static unsigned int script_count, script_next, released, submissions;
+static unsigned int tc1_released; /* 0172: TC1 pages the next reconcile returns */
 static bool idle = true;
 static int mt6797_hif_read32(struct mt6797_hif *h, unsigned int reg, u64 d, u32 *v)
 { (void)h; (void)d; *v = reg ? BIT(8) : 0x0279 | BIT(21); return 0; }
 static int mt6797_hif_reconcile_runtime(struct mt6797_hif *h, u64 d,
 	struct mt6797_hif_tx_status *s, struct mt6797_normal_release *a)
-{ (void)h; (void)d; (void)s; *a = (struct mt6797_normal_release){0}; a->released_pages = released; released = 0; return 0; }
+{ (void)h; (void)d; (void)s; *a = (struct mt6797_normal_release){0}; a->released_pages = released; released = 0; a->tc1_released = tc1_released; tc1_released = 0; return 0; }
 static bool mt6797_hif_normal_idle(struct mt6797_hif *h) { (void)h; return idle; }
 struct mt6797_hif_ledger { unsigned phase, tc4_free, tc4_limit, pending_cpu, pending_ffa; bool sequences, locked; };
 static void mt6797_hif_normal_ledger(struct mt6797_hif *h, struct mt6797_hif_ledger *o) { (void)h; *o = (struct mt6797_hif_ledger){0}; }
@@ -292,8 +293,12 @@ static int mt6797_hif_send_management(struct mt6797_hif *h, const u8 *f, size_t 
 	submissions++;
 	return 0;
 }
+/* The cleanup commands are the peer fixture's; one scenario (10t) admits the
+ * stage-0 station removal to show the cleanup proceeds once TC1 pages return. */
+static bool allow_cleanup;
+static unsigned int cleanup_commands;
 static int mt6797_hif_join_remove_station(struct mt6797_hif *h, unsigned int s, u64 d)
-{ (void)h; (void)s; (void)d; assert(!"no cleanup command in these scenarios"); return -EIO; }
+{ (void)h; (void)s; (void)d; assert(allow_cleanup); /* no cleanup command outside scenario 10t */ cleanup_commands++; return 0; }
 static int mt6797_hif_join_key(struct mt6797_hif *h, unsigned int s, bool add, bool pairwise,
 	const u8 *peer, unsigned int key_id, const u8 *material, u64 d)
 { (void)h; (void)s; (void)add; (void)pairwise; (void)peer; (void)key_id; (void)material; (void)d;
@@ -1055,6 +1060,56 @@ int main(void)
 	assert(mac.first_error == -ETIMEDOUT && mac.join_retired && !mac.join_running && !mac.join_inflight && mac.join_queue.qlen == 0 && mac80211_frees == 2 && !submissions);
 	mt6797_mac_join_close(&mac);
 
+	/* 10t. 0172 timing inside the grant tail. A data frame admitted at the phase's
+	 *      end (grant room 2500 ms >= 850) completes within its 750 ms; the phase
+	 *      ends by its budget; the deauthentication reserved at association is
+	 *      dequeued with the grant room it needs (>= 850 ms) and goes out; its
+	 *      completion and the cleanup's first command still precede the grant's end.
+	 *      TC1 pages of that data frame returning late hold neither the
+	 *      deauthentication nor the other TC4 frames, only the cleanup commands
+	 *      (no submission, no refusal) until they return.
+	 */
+	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = true; mac.join_bss_configured = true;
+	/* No key installed here (the removals are the peer fixture's); the data phase
+	 * itself needs only the activation, so the cleanup's first command is stage 0. */
+	mac.join_data_phase = true; mac.join_channel_granted = true; mac.join_data_started = now_ns;
+	mac.join_data_deadline = now_ns + 20 * NSEC_PER_MSEC; mac.join_grant_deadline = mac.join_data_deadline + 2500 * NSEC_PER_MSEC;
+	mac.join_deadline = mac.join_data_deadline + 5 * NSEC_PER_SEC; mac.join_hold_until = mac.join_data_deadline;
+	queue_internal_deauth();                                                    /* reserved at association, as in production */
+	{ struct sk_buff *d = data_tx_frame(); mac.join_queue_bytes += d->len; __skb_queue_tail(&mac.join_queue, d); }
+	{ unsigned int before = data_submissions; run_worker();                       /* admitted 20 ms before the end */
+	  assert(!mac.first_error && data_submissions == before + 1 && mac.join_inflight && mac.join_inflight_data && mac.join_data_page_debt == 1); }
+	now_ns = mac.join_data_deadline + 700 * NSEC_PER_MSEC;                      /* completes 720 ms after submission, inside its 750 ms */
+	script_tx_done(0); run_worker();
+	assert(!mac.first_error && mac.join_data_ended && !strcmp(mac.join_data_end_reason, "budget") && mac.join_data_tx_done == 1 && mac.join_data_page_debt == 1);
+	{ unsigned int before = submissions; run_worker();                            /* next tick, the hold ended: the reserved deauthentication goes out with TC1 pages still owed */
+	  assert(!mac.first_error && mac.join_inflight == mac.join_internal && submissions == before + 1 && mac.join_data_page_debt == 1); }
+	assert(mac.join_grant_deadline - now_ns >= 850 * NSEC_PER_MSEC);
+	now_ns += 100 * NSEC_PER_MSEC; script_tx_done(0); run_worker();              /* the deauthentication completes */
+	assert(!mac.first_error && mac.join_deauth_done && !mac.join_inflight);
+	{ unsigned int before = submissions; run_worker();                            /* TC1 pages still owed: the cleanup waits */
+	  assert(!mac.first_error && mac.join_running && mac.join_cleanup_stage == 0 && submissions == before && mac.join_data_page_debt == 1);
+	  released = mac.join_page_debt; run_worker();                                /* the deauthentication's own TC4 page returns; TC1 still owed: still waiting */
+	  assert(!mac.first_error && !mac.join_page_debt && mac.join_data_page_debt == 1 && submissions == before && mac.join_cleanup_stage == 0);
+	  tc1_released = 1; allow_cleanup = true; run_worker(); allow_cleanup = false; /* the pages return on this tick's reconcile and the same tick submits stage 0 */
+	  assert(!mac.first_error && !mac.join_data_page_debt && mac.join_running && cleanup_commands == 1 && submissions == before &&
+		 mac.join_cleanup_stage == 1 && mac.join_credit_pending && now_ns < mac.join_grant_deadline); }
+	mt6797_mac_join_close(&mac);
+	/* 10u. A data frame still in flight at its deadline ends the lifetime with the
+	 *      timeout footer (the TC1 record precedes it); the frame is freed once.
+	 */
+	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = true; mac.join_bss_configured = true;
+	mac.join_key_pairwise_submitted = mac.join_key_group_submitted = true; mac.join_key_pairwise = mac.join_key_group = 1;
+	mac.join_data_phase = true; mac.join_channel_granted = true; mac.join_data_started = now_ns;
+	mac.join_data_deadline = now_ns + 5500 * NSEC_PER_MSEC; mac.join_grant_deadline = mac.join_data_deadline + 2500 * NSEC_PER_MSEC;
+	mac.join_deadline = mac.join_data_deadline + 5 * NSEC_PER_SEC; mac.join_hold_until = mac.join_data_deadline;
+	{ struct sk_buff *d = data_tx_frame(); mac.join_queue_bytes = d->len; __skb_queue_tail(&mac.join_queue, d); }
+	{ unsigned int before = data_submissions; run_worker();
+	  assert(!mac.first_error && data_submissions == before + 1 && mac.join_inflight_data); }
+	now_ns = mac.join_frame_deadline; run_worker();
+	assert(mac.first_error == -ETIMEDOUT && mac.join_retired && !mac.join_running && !mac.join_inflight && mac80211_frees == 1);
+	mt6797_mac_join_close(&mac);
+
 	/* 10a'. The key path's synchronous terminal (branch 8) on a running lifetime
 	 *       with a queued frame and one in flight, then the real close (the
 	 *       supplicant's disconnect reaching the station teardown): the frames are
@@ -1246,8 +1301,9 @@ int main(void)
 	{
 		setup(); mac.join_assoc_received = true; mac.join_sta_active = true; mac.join_bss_configured = true;
 		mac.join_key_pairwise_submitted = mac.join_key_group_submitted = true; mac.join_key_pairwise = mac.join_key_group = 1;
-		mac.join_channel_released = mac.join_data_phase = true; mac.join_channel_granted = false;
-		mac.join_data_deadline = now_ns + 60 * NSEC_PER_SEC; mac.join_deadline = mac.join_data_deadline + 5 * NSEC_PER_SEC;
+		mac.join_data_phase = true; mac.join_channel_granted = true; mac.join_data_started = now_ns;
+		mac.join_data_deadline = now_ns + 5500 * NSEC_PER_MSEC; mac.join_grant_deadline = mac.join_data_deadline + 1500 * NSEC_PER_MSEC;
+		mac.join_deadline = mac.join_data_deadline + 5 * NSEC_PER_SEC;
 		script_data_frame(false); script_data_frame(true); run_worker();
 		assert(!mac.first_error && mac.join_running && rx_delivered == 2 && mac.join_data_rx_unicast == 1 && mac.join_data_rx_group == 1 && !mac.join_data_rx_outside);
 		/* Ended (the deauthentication and teardown to come): dropped, counted, no fault. */
@@ -1271,8 +1327,9 @@ int main(void)
 		/* An aggregated shape (status 0) inside the open phase is a refusal, never delivered. */
 		setup(); mac.join_assoc_received = true; mac.join_sta_active = true; mac.join_bss_configured = true;
 		mac.join_key_pairwise_submitted = mac.join_key_group_submitted = true; mac.join_key_pairwise = mac.join_key_group = 1;
-		mac.join_channel_released = mac.join_data_phase = true; mac.join_channel_granted = false;
-		mac.join_data_deadline = now_ns + 60 * NSEC_PER_SEC; mac.join_deadline = mac.join_data_deadline + 5 * NSEC_PER_SEC;
+		mac.join_data_phase = true; mac.join_channel_granted = true; mac.join_data_started = now_ns;
+		mac.join_data_deadline = now_ns + 5500 * NSEC_PER_MSEC; mac.join_grant_deadline = mac.join_data_deadline + 1500 * NSEC_PER_MSEC;
+		mac.join_deadline = mac.join_data_deadline + 5 * NSEC_PER_SEC;
 		script_data_frame(false); put_unaligned_le16(0, script[0] + 10); run_worker();
 		assert(mac.first_error == -EPROTO && !rx_delivered);
 		mt6797_mac_join_close(&mac);
@@ -1281,17 +1338,18 @@ int main(void)
 		 * deauthentication still takes PID 127. */
 		setup(); mac.join_assoc_received = true; mac.join_sta_active = true; mac.join_bss_configured = true;
 		mac.join_key_pairwise_submitted = mac.join_key_group_submitted = true; mac.join_key_pairwise = mac.join_key_group = 1;
-		mac.join_channel_released = mac.join_data_phase = true; mac.join_channel_granted = false;
-		mac.join_data_deadline = now_ns + 60 * NSEC_PER_SEC; mac.join_deadline = mac.join_data_deadline + 5 * NSEC_PER_SEC;
+		mac.join_data_phase = true; mac.join_channel_granted = true; mac.join_data_started = now_ns;
+		mac.join_data_deadline = now_ns + 5500 * NSEC_PER_MSEC; mac.join_grant_deadline = mac.join_data_deadline + 1500 * NSEC_PER_MSEC;
+		mac.join_deadline = mac.join_data_deadline + 5 * NSEC_PER_SEC;
 		mac.join_next_pid = 126;
 		{ struct sk_buff *d = data_tx_frame(); mac.join_queue_bytes = d->len; __skb_queue_tail(&mac.join_queue, d); }
-		run_worker();
-		assert(!mac.first_error && data_submissions == 1 && mac.join_inflight && mac.join_inflight_data && mac.join_pid == 126 && mac.join_data_page_debt == 1);
+		{ unsigned int before = data_submissions; run_worker();
+		  assert(!mac.first_error && data_submissions == before + 1 && mac.join_inflight && mac.join_inflight_data && mac.join_pid == 126 && mac.join_data_page_debt == 1); }
 		script_tx_done(0); released = 0; run_worker();
 		assert(!mac.first_error && !mac.join_inflight && mac.join_data_tx_done == 1 && statuses == 1 && !mac.join_data_ended);
 		{ struct sk_buff *d = data_tx_frame(); mac.join_queue_bytes = d->len; __skb_queue_tail(&mac.join_queue, d); }
 		mac.join_data_page_debt = 0; run_worker();
-		assert(!mac.first_error && mac.join_data_ended && !strcmp(mac.join_data_end_reason, "pidbudget") && data_submissions == 1 && mac80211_frees == 1);
+		assert(!mac.first_error && mac.join_data_ended && !strcmp(mac.join_data_end_reason, "pidbudget") && mac80211_frees == 1);
 		queue_internal_deauth(); mac.join_hold_until = 0; run_worker();
 		assert(!mac.first_error && mac.join_inflight == mac.join_internal && mac.join_pid == 127 && submissions == 2);
 		mt6797_mac_join_close(&mac);

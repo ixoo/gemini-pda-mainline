@@ -449,6 +449,39 @@ data-path shapes through mac80211, replay the reference offline) is admitted
 as hardware-free source work and awaits its proposal diff, checks and
 combined test protocol before any build.
 
+## Runtime 25 result and proposal 0172 (2026-10-11)
+
+Runtime 25 ([RUNTIME_25_RESULT.md](RUNTIME_25_RESULT.md)) was negative and
+advanced further than any run: 0171 observed, both key commands credited
+(0170 again), the channel privilege aborted and the data phase opened, the
+first data frame submitted on TC1; then no TX status within the frame
+deadline and a fail-stop. The host verdicts stand as computed (C2 false, C3
+false, malformed by a classifier lifetime rule that required a stage-1
+release record of a fail-stopped lifetime, corrected here and attributed
+separately). The source and the reference run 3 ledger show the vendor's
+first data frames inside its channel grant and its post-abort data after a
+post-association command set this driver only partly sends (it sends the
+connected BSS info, the station record and the receive filter; not the PM
+connected indication, the RLM and WMM parameters, roaming transit or the
+multicast table); our descriptor, port and the vendor's TX-done event match
+what our decoder admits, which says nothing about our runtime's routing: no
+TX-done event was recorded or routed, and its arrival at the HIF is
+unobserved. **0172** opens the data phase inside the grant (no
+abort; cleanup stage 1 returns the privilege as before 0165) as an ordering
+diagnostic, bounds it by the grant's end minus a 2500 ms tail sized for the
+last frame, the reserved deauthentication and the cleanup commands, makes the
+cleanup wait for outstanding TC1 pages, and records TC1 credit returns and a
+data frame still in flight at its deadline. No budget is raised; the TC1 page
+return of runtime 25 stays unobserved.
+Fixtures: `tests/join-peer-test.c` (no abort, deadlines from the grant, a
+grant too short refused, the cleanup waiting on TC1 pages, the stage-1 abort
+back in the teardown), `tests/join-ownership-test.c` (data phase inside the
+grant; the last frame admitted at the phase's end completing inside the tail
+with the deauthentication reserved and sent; late TC1 pages holding the
+cleanup; a frame past its deadline ending the lifetime),
+`tests/host-test.py` (the new records, 0165's shape still placed, the
+runtime 25 shape placed as a fail-stop).
+
 ## Runtime 25 bindings (2026-10-11)
 
 Candidate 24 pairs the [compile 29](COMPILE_29.md) package `0ce04178…` with

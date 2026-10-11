@@ -42,21 +42,19 @@ def log(accepted, keys=False):
                       'key credit returned: pairwise', 'key done: first after=pairwise bss=0 peer=1',
                       'key command: group submitted sequence=11', 'credit: pages=1 remaining=0',
                       'key done: second after=group bss=0 peer=1', 'key credit returned: group',
-                      # Phase C3 lifetime: the channel privilege released after the group
-                      # key's credit, the bounded data phase, its end by the budget.
-                      'channel released: sequence=12', 'credit: pages=1 remaining=0',
-                      'data phase: budget_ms=60000 teardown_margin_ms=5000',
-                      'data TX: first pid=5 pages=3 bytes=342', 'data RX: first group=0 tid=0 keyid=0 bytes=320 vector=1',
-                      'data phase end: reason=budget elapsed_ms=60000 rx_unicast=40 rx_group=3 rx_dropped=0 tx_queued=12 tx_done=12 tx_failed=0']
+                      # Phase C3 lifetime (0172): the bounded data phase opened inside the
+                      # channel grant after the group key's credit (its budget the grant's
+                      # remainder), its end by the budget; the privilege returns in stage 1.
+                      'data phase: budget_ms=5500 teardown_margin_ms=5000 inside_grant=1',
+                      'data TX: first pid=5 pages=3 bytes=342', 'data credit: pages=3 debt=0 count=1',
+                      'data RX: first group=0 tid=0 keyid=0 bytes=320 vector=1',
+                      'data phase end: reason=budget elapsed_ms=5500 rx_unicast=40 rx_group=3 rx_dropped=0 tx_queued=12 tx_done=12 tx_failed=0 tx_credits=36']
         lines += ['TX: subtype=12 pid=' + ('6' if keys else '3') + ' pages=1', 'credit: pages=1 remaining=0',
                   'TX done: pid=' + ('6' if keys else '3') + ' status=0 advanced=0 count=0']
         if keys:
             lines += ['key removal: pairwise submitted sequence=13', 'credit: pages=1 remaining=0',
                       'key removal: group submitted sequence=14', 'credit: pages=1 remaining=0']
     for stage in range(3):
-        if stage == 1 and accepted and keys:
-            lines += ['cleanup submission: stage=1 released=1']   # released after the group key: nothing submitted
-            continue
         lines += ['cleanup submission: stage=' + str(stage), 'credit: pages=1 remaining=0']
     lines += ['cleanup: stage=3 credits=returned slots=retired deauth=' + str(int(accepted))]
     return ''.join('one-shot WLAN join ' + line + '\n' for line in lines).encode()
@@ -187,14 +185,12 @@ class HostTests(unittest.TestCase):
             b'one-shot WLAN join key removal: group submitted sequence=14\none-shot WLAN join credit: pages=1 remaining=0\n', b'')
         # Without the group key there is no channel release and no data phase, and
         # the stage-1 channel abort is submitted with its credit as before.
-        for line in (b'channel released: sequence=12\none-shot WLAN join credit: pages=1 remaining=0\n',
-                     b'data phase: budget_ms=60000 teardown_margin_ms=5000\n',
+        for line in (b'data phase: budget_ms=5500 teardown_margin_ms=5000 inside_grant=1\n',
+                     b'data credit: pages=3 debt=0 count=1\n',
                      b'data TX: first pid=5 pages=3 bytes=342\n', b'data RX: first group=0 tid=0 keyid=0 bytes=320 vector=1\n',
-                     b'data phase end: reason=budget elapsed_ms=60000 rx_unicast=40 rx_group=3 rx_dropped=0 tx_queued=12 tx_done=12 tx_failed=0\n'):
+                     b'data phase end: reason=budget elapsed_ms=5500 rx_unicast=40 rx_group=3 rx_dropped=0 tx_queued=12 tx_done=12 tx_failed=0 tx_credits=36\n'):
             self.assertIn(b'one-shot WLAN join ' + line, partial)
             partial = partial.replace(b'one-shot WLAN join ' + line, b'')
-        partial = partial.replace(b'one-shot WLAN join cleanup submission: stage=1 released=1\n',
-                                  b'one-shot WLAN join cleanup submission: stage=1\none-shot WLAN join credit: pages=1 remaining=0\n')
         partial_result = classify(partial)
         self.assertTrue(partial_result['bounded_join_pass'])
         self.assertFalse(partial_result['handshake_keys_submitted'] or partial_result['driver_handshake_path_pass'])
@@ -346,11 +342,46 @@ class HostTests(unittest.TestCase):
         # command fails the key lifetime. Nothing names it the group key's completion.
         full = classify(good)
         self.assertTrue(full['firmware_key_done_second_window'] and full['key_done_records'] == ['first', 'second'])
-        self.assertTrue(full['channel_released'] and full['data_phase_budget_ms'] == 60000 and full['data_phase_end_reason'] == 'budget')
+        # 0172: the data phase opens inside the grant (no release record); the budget is
+        # the grant's remainder as recorded; the end record carries the TC1 credit total.
+        self.assertTrue(full['data_phase_opened'] and not full['channel_released'] and full['data_phase_budget_ms'] == 5500 and full['data_phase_end_reason'] == 'budget')
+        self.assertEqual(full['data_frames']['tx_credits'], 36)
+        # 0165's shape (a release record and the released stage 1) is still placed; a release
+        # with no stage-1 release record is malformed unless the lifetime fail-stopped.
+        released_shape = good.replace(b'one-shot WLAN join data phase: budget_ms=5500 teardown_margin_ms=5000 inside_grant=1\n',
+                                      b'one-shot WLAN join channel released: sequence=12\none-shot WLAN join credit: pages=1 remaining=0\n'
+                                      b'one-shot WLAN join data phase: budget_ms=60000 teardown_margin_ms=5000\n')
+        stage1 = released_shape.index(b'one-shot WLAN join cleanup submission: stage=1\n')
+        stage1_end = released_shape.index(b'\n', released_shape.index(b'\n', stage1) + 1) + 1
+        released_shape = released_shape[:stage1] + b'one-shot WLAN join cleanup submission: stage=1 released=1\n' + released_shape[stage1_end:]
+        self.assertFalse(classify(released_shape)['malformed_stage_record'], classify(released_shape)['diagnostic_records'])
+        self.assertTrue(classify(released_shape)['channel_released'])
+        # Runtime 25's shape: released, data phase opened, first data TX, then the footer
+        # before any cleanup: placed (the stage-1 release record is not required of a
+        # fail-stop), terminal failure recorded, nothing passes.
+        r25 = good[:good.index(b'one-shot WLAN join data phase: budget_ms=5500')]
+        r25 = (r25 + b'one-shot WLAN join channel released: sequence=12\none-shot WLAN join credit: pages=1 remaining=0\n'
+               b'one-shot WLAN join data phase: budget_ms=60000 teardown_margin_ms=5000\n'
+               b'one-shot WLAN join data TX: first pid=5 pages=3 bytes=342\n'
+               b'one-shot WLAN join data TX timeout: pid=5 debt=3 credits=0 elapsed_ms=768\n'
+               b'one-shot WLAN join stopped: status=-110 first=0 submitted=0x801 debt=0 cleanup=0 branch=1\n'
+               b'one-shot WLAN join data phase end: reason=disconnect elapsed_ms=2118 rx_unicast=0 rx_group=0 rx_dropped=0 tx_queued=1 tx_done=0 tx_failed=0\n')
+        res25 = classify(r25)
+        self.assertFalse(res25['malformed_stage_record'], res25['diagnostic_records'])
+        self.assertTrue(res25['terminal_failure_recorded'] and not res25['driver_data_path_pass'] and res25['channel_released'])
+        # The shapes are exact: the inside-grant phase without its marker, the released
+        # phase carrying the marker, a released phase with a shortened budget, and a
+        # released fail-stop that submitted a cleanup stage without the stage-1 release
+        # record are all malformed.
+        self.assertTrue(classify(good.replace(b' inside_grant=1', b''))['malformed_stage_record'])
+        self.assertTrue(classify(released_shape.replace(b'data phase: budget_ms=60000 teardown_margin_ms=5000', b'data phase: budget_ms=60000 teardown_margin_ms=5000 inside_grant=1'))['malformed_stage_record'])
+        self.assertTrue(classify(released_shape.replace(b'data phase: budget_ms=60000', b'data phase: budget_ms=5500'))['malformed_stage_record'])
+        self.assertTrue(classify(r25.replace(b'one-shot WLAN join stopped:', b'one-shot WLAN join cleanup submission: stage=0\none-shot WLAN join credit: pages=1 remaining=0\none-shot WLAN join stopped:'))['malformed_stage_record'])
+        self.assertTrue(classify(good)['data_phase_inside_grant'] and not classify(released_shape)['data_phase_inside_grant'])
         self.assertTrue(full['driver_data_path_pass'] and full['data_frames']['tx_done'] == 12 and full['data_frames']['rx_unicast'] == 40)
         # A data phase ended by transmit failures, or without an acknowledged frame or a
         # delivered unicast frame, is not the data-path pass; the handshake pass stands.
-        end = b'one-shot WLAN join data phase end: reason=budget elapsed_ms=60000 rx_unicast=40 rx_group=3 rx_dropped=0 tx_queued=12 tx_done=12 tx_failed=0\n'
+        end = b'one-shot WLAN join data phase end: reason=budget elapsed_ms=5500 rx_unicast=40 rx_group=3 rx_dropped=0 tx_queued=12 tx_done=12 tx_failed=0 tx_credits=36\n'
         for variant in (end.replace(b'reason=budget', b'reason=txfail'), end.replace(b'tx_done=12', b'tx_done=0'),
                         end.replace(b'rx_unicast=40', b'rx_unicast=0'), end.replace(b'tx_failed=0', b'tx_failed=13')):
             partial_data = classify(good.replace(end, variant))
