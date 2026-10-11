@@ -449,6 +449,17 @@ data-path shapes through mac80211, replay the reference offline) is admitted
 as hardware-free source work and awaits its proposal diff, checks and
 combined test protocol before any build.
 
+## Compile 27 and the candidate 22 pins (2026-10-11)
+
+[COMPILE_27.md](COMPILE_27.md): the phase-B compile profile at 85cbc78f with
+0163 to 0169 built and validated on Buildbox-1 (package `d1cbc042…`, kernel
+image `63c72b52…`, kernel config and board DT unchanged, zero driver
+warnings). `build-candidate.py` pins that input and package; every other pin
+is unchanged. The custodian composes candidate 22 with candidate 21's RAM
+root byte-identical; the runtime-23 and deployment-22 bindings (predecessor
+candidate 21 `79cde346…`) follow its committed receipt. No candidate or
+device step has run.
+
 ## Runtime 22 result and proposal 0169 (2026-10-11)
 
 Runtime 22 ([RUNTIME_22_RESULT.md](RUNTIME_22_RESULT.md)) was negative: the
