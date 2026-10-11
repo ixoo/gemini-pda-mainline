@@ -15,17 +15,17 @@ ADAPTER = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(ADAPTER)
 ADAPTER = ADAPTER.ADAPTER
 RELEASE = '7.1.3-gemini-a53-wifi-phase-b-compile'
-# Current boot2 content: the reviewed Gemian reference v10 predecessor, the last
-# full-partition validated image; the custodian rederives the live GPT and
-# verifies it with the reviewed guard at deployment.
-PREDECESSOR_SHA = '8d3289a10b7956d7fb55f4d74f0b1902f507cbadfdf6b20ebac654030df2d55f'
-# Slot filled from the committed results/candidate-20.json after composition.
-MANIFEST_SHA = '38a4f6b893048f7ba2cfec7fb7885d0047b1fae55c9503de312625f157b65743'
+# Current boot2 content: the installed candidate 20 (deployment 20, full 16 MiB
+# readback verified); the custodian rederives the live GPT and verifies it with
+# the reviewed guard at deployment.
+PREDECESSOR_SHA = 'd01f33047a7331f73b804fd17362d5b8dde202089ac17bd130c2784965e33fc6'
+# Slot filled from the committed results/candidate-21.json after composition.
+MANIFEST_SHA = '62c2f78898712f6e24564f57c1646ce275b7e897b59743efebe939062aa8adf6'
 ADAPTER.HERE = HERE
 ADAPTER.PREDECESSOR_SHA = PREDECESSOR_SHA
 ADAPTER.INSTALLER.HERE = HERE
 ADAPTER.INSTALLER.EXPERIMENT = 'mt6797-wifi-phase-b'
-ADAPTER.INSTALLER.RECEIPT_NAME = 'mt6797-wifi-phase-b-deployment-20'
+ADAPTER.INSTALLER.RECEIPT_NAME = 'mt6797-wifi-phase-b-deployment-21'
 ADAPTER.INSTALLER.MANIFEST_SHA = MANIFEST_SHA
 ADAPTER.MANIFEST_SHA = MANIFEST_SHA
 ORIGINAL_SOURCES = ADAPTER.INSTALLER.sources
@@ -56,7 +56,7 @@ def validate(candidate, previous):
     ADAPTER.INSTALLER.require(MANIFEST_SHA is not None, 'Phase B receipt slot not filled')
     ADAPTER.INSTALLER.boot_uuid(previous)
     candidate = Path(os.path.abspath(candidate))
-    published = HERE / 'results/candidate-20.json'
+    published = HERE / 'results/candidate-21.json'
     ADAPTER.INSTALLER.require(candidate.is_dir() and not candidate.is_symlink() and
                               ADAPTER.INSTALLER.digest(published.read_bytes()) ==
                               MANIFEST_SHA, 'candidate receipt changed')

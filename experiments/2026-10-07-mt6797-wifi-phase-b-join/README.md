@@ -449,6 +449,21 @@ data-path shapes through mac80211, replay the reference offline) is admitted
 as hardware-free source work and awaits its proposal diff, checks and
 combined test protocol before any build.
 
+## Runtime 22 bindings (2026-10-11)
+
+Candidate 21 pairs the [compile 26](COMPILE_26.md) package `dd35c1d2…` with
+candidate 20's RAM root byte-identical, the same board DT and kernel config;
+boot image `df7ee6ef…`, full padded boot2 `79cde346…`. The custodian composed
+and validated it privately at c33059a0; the committed receipt
+[results/candidate-21.json](results/candidate-21.json) (SHA-256 `62c2f788…`)
+is that receipt's exact bytes and `runtime-22/results/candidate.json` its
+copy. The installer's predecessor is the installed candidate 20
+(`d01f3304…`). [RUNTIME_22_PREPARATION](RUNTIME_22_PREPARATION.md) states
+what differs from runtime 21 (proposal 0168 only), the hypothesis and the
+branches for the discarded class (zero to eight discards, the ninth a
+refusal, a neighbouring shape a refusal, none observed), and the bindings
+table. Nothing has been installed or booted.
+
 ## Compile 26 and the candidate 21 pins (2026-10-11)
 
 [COMPILE_26.md](COMPILE_26.md): the phase-B compile profile at f53636a3 with
