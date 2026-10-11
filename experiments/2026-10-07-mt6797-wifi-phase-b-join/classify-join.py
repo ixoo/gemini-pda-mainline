@@ -21,6 +21,7 @@ def classify(raw):
         # 0172: the data phase opens inside the channel grant; its budget is the grant's
         # remainder (at most 60000 ms); the release record is 0165's and may be absent.
         'data_phase': rb'data phase: budget_ms=(\d+) teardown_margin_ms=(\d+)( inside_grant=1)?',
+        'data_tx': rb'data TX: first pid=(\d+) pages=(\d+) bytes=(\d+)',
         'data_end': rb'data phase end: reason=(budget|disconnect|txfail|pidbudget) elapsed_ms=(\d+) rx_unicast=(\d+) rx_group=(\d+) rx_dropped=(\d+) tx_queued=(\d+) tx_done=(\d+) tx_failed=(\d+)(?: tx_credits=(\d+))?',
         'peer': rb'peer: ready=1 sequence=(\d+)',
         'grant': rb'grant: channel=40 interval_ms=(\d+)',
@@ -57,7 +58,8 @@ def classify(raw):
     notifications = (rb'bss absence: bss=0 absent=[01] quota=' + byte + rb' reserved=' + byte,
                      # Phase C3: the first delivered data frame and the first submitted data frame, metadata only.
                      rb'data RX: first group=[01] tid=\d{1,2} keyid=[0-3] bytes=\d{1,4} vector=[01]',
-                     rb'data TX: first pid=\d{1,3} pages=\d{1,2} bytes=\d{1,4}',
+                     # 0174: the 0168 class beyond its eight recorded discards, the total before the stage-3 record.
+                     rb'group action frames discarded: total=\d{1,6}',
                      # 0173: the target's beacon in the keyed descriptor variant, skipped like every beacon (first four, then the total).
                      rb'keyed beacon skipped: bytes=\d{1,4} fc=0x80 match=0x08 wlan=2 bss=1 sec=4 status=0xe004 count=[1-4]',
                      rb'keyed beacons skipped: total=\d{1,6}',
@@ -83,6 +85,7 @@ def classify(raw):
     group_rows = []
     action_rows = []
     group_action_rows = []
+    group_action_total_rows = []
     key_refusal_rows = []  # (index, kind, status, running)
     refused = False
     stopped_index = None
@@ -112,6 +115,8 @@ def classify(raw):
                     action_rows.append((index, int(body.rsplit(b'count=', 1)[1])))
                 elif body.startswith(b'group action frame discarded:'):
                     group_action_rows.append((index, int(body.rsplit(b'count=', 1)[1])))
+                elif body.startswith(b'group action frames discarded:'):
+                    group_action_total_rows.append((index, int(body.rsplit(b'total=', 1)[1])))
                 elif body.startswith(b'key command refused:'):
                     fields = dict(part.split(b'=') for part in body.split(b': ', 1)[1].split(b' ')[1:])
                     key_refusal_rows.append((index, body.split(b': ', 1)[1].split(b' ')[0].decode(),
@@ -201,11 +206,58 @@ def classify(raw):
                    all(14 + 4 <= row[3] <= 1518 and row[2] == (28 + row[3] + 127) // 128 for row in eapol_tx) and
                    (not eapol_tx or (accepted and len(rows['activation']) == 1 and
                                      all(rows['activation'][0][0] < row[0] < tx[-1][0] for row in eapol_tx))))
-    acknowledged = (len(done) == len(all_tx) and
-                    {row[1] for row in done} == {row[2] for row in all_tx} and
-                    all(row[2] == 0 for row in done) and
-                    all(len([d for d in done if d[1] == t[2] and d[0] > t[0]]) == 1
+    # Completions split by PID: those of the recorded management and security
+    # submissions decide `acknowledged` as before; the rest are data completions
+    # (the driver records only the first data submission), accepted only inside an
+    # opened data phase, after its record, with PIDs above every PID submitted before
+    # it and below the deauthentication's, each once, and reported by status (0 and
+    # non-zero apart; a completion is not an acknowledgement or a delivery). Any
+    # other unmatched completion is malformed.
+    managed_pids = {t[2] for t in all_tx}
+    mgmt_done = [d for d in done if d[1] in managed_pids]
+    data_done = [d for d in done if d[1] not in managed_pids]
+    acknowledged = (len(mgmt_done) == len(all_tx) and
+                    {row[1] for row in mgmt_done} == managed_pids and
+                    all(row[2] == 0 for row in mgmt_done) and
+                    all(len([d for d in mgmt_done if d[1] == t[2] and d[0] > t[0]]) == 1
                         for t in all_tx))
+    # Data completions are bound to the driver's serialized PID allocation (mac.c
+    # dequeue: every dequeued frame takes join_next_pid++, one frame is in flight at a
+    # time, the first data frame is recorded once with its pages and bytes, and a data
+    # TX timeout ends the lifetime, so no second "first" follows): the first data
+    # frame's PID is the last pre-phase PID plus one, its pages are the descriptor
+    # plus Ethernet bytes in 128-byte pages, the completions follow in consecutive
+    # PIDs in record order after that record, each once, and a deauthentication sent
+    # afterwards takes the PID after the completed data frames exactly: the in-flight
+    # frame is cleared only by its matched completion (a data TX timeout fail-stops,
+    # the close and fail paths discard it), and the cleanup that submits the
+    # deauthentication waits while a frame is in flight, so a dequeued frame without
+    # a recorded completion is incompatible with a deauthentication; the count never
+    # exceeds the end record's tx_queued (admissions). Statuses are the driver's
+    # admitted set; status 0 and non-zero are reported apart.
+    data_phase_rows = rows['data_phase']
+    data_tx_rows = rows['data_tx']
+    data_end = rows['data_end']
+    deauth_rows = [t for t in tx if t[1] == 12]
+    late_done = []
+    if data_done or data_tx_rows:
+        before_phase = [t[2] for t in all_tx if data_phase_rows and t[0] < data_phase_rows[0][0]]
+        first_pid = data_tx_rows[0][1] if data_tx_rows else None
+        expected_pids = [first_pid + i for i in range(len(data_done))] if first_pid is not None else []
+        data_done_ok = (len(data_phase_rows) == 1 and len(data_tx_rows) == 1 and
+                        data_tx_rows[0][0] > data_phase_rows[0][0] and
+                        first_pid == max(before_phase, default=0) + 1 and first_pid <= 126 and
+                        18 <= data_tx_rows[0][3] <= 1518 and
+                        data_tx_rows[0][2] == (28 + data_tx_rows[0][3] + 127) // 128 and
+                        all(d[0] > data_tx_rows[0][0] for d in data_done) and
+                        [d[1] for d in data_done] == expected_pids and
+                        max(expected_pids, default=first_pid) <= 126 and
+                        (not deauth_rows or (all(d[0] < deauth_rows[0][0] for d in data_done) and
+                                             deauth_rows[0][2] == first_pid + len(data_done) and
+                                             (not data_end or deauth_rows[0][2] - first_pid <= data_end[0][6]))) and
+                        all(d[2] <= 7 or 32 <= d[2] <= 34 for d in data_done))
+        if not data_done_ok:
+            malformed = True
     exchange = (sequence_ok and acknowledged and len(auth) == 1 and auth[0][2] == 0 and
                 len(association) == 1 and tx[0][0] < auth[0][0] < tx[1][0] < association[0][0])
     credits = rows['credit']
@@ -215,7 +267,6 @@ def classify(raw):
     # only when the channel was released, and then no stage-1 command.
     released = rows['channel_released']
     data_phase = rows['data_phase']
-    data_end = rows['data_end']
     group_credit = [row for row in key_credits if row[1] == 'group']
     deauth_tx_rows = [row for row in tx if row[1] == 12]
     # Two data-phase shapes, each exact. 0165: a release record after the group
@@ -237,6 +288,16 @@ def classify(raw):
                        (not deauth_tx_rows or e[0] < deauth_tx_rows[0][0]) for e in data_end))
     if not lifetime_ok:
         malformed = True
+    # The end record's tx_done and tx_failed count the completions before it; a
+    # completion after the end record and before the deauthentication is the
+    # in-flight frame's, reported as late (the driver waits for the TC1 debt).
+    if data_end:
+        before_end = [d for d in data_done if d[0] < data_end[0][0]]
+        late_done = [d for d in data_done if d[0] > data_end[0][0]]
+        if (len([d for d in before_end if d[2] == 0]) != data_end[0][7] or
+                len([d for d in before_end if d[2] != 0]) != data_end[0][8] or
+                len(late_done) > 1 or (data_end[0][7] + data_end[0][8] > 0 and not data_tx_rows)):
+            malformed = True
     expected_pages = (7 + (3 if accepted else 0) + sum(row[3] for row in tx) + sum(row[2] for row in eapol_tx) +
                       len(key_commands) + len(key_removals) + len(released) - len(rows['cleanup_released']))
     credit_ok = (bool(credits) and all(row[1] > 0 and row[2] <= 19 for row in credits) and
@@ -267,6 +328,13 @@ def classify(raw):
     if group_action_rows and (
             [count for _, count in group_action_rows] != list(range(1, len(group_action_rows) + 1)) or
             (lifetime_end is not None and any(index >= lifetime_end for index, _ in group_action_rows))):
+        malformed = True
+    # 0174: one total record at most, only after eight recorded discards, carrying
+    # more than eight, before the terminal record.
+    if group_action_total_rows and (
+            len(group_action_total_rows) > 1 or len(group_action_rows) != 8 or
+            group_action_total_rows[0][1] <= 8 or group_action_total_rows[0][0] < group_action_rows[-1][0] or
+            (lifetime_end is not None and group_action_total_rows[0][0] >= lifetime_end)):
         malformed = True
     if eapol_rows or group_rows or action_rows:
         deauth_tx = [row for row in tx if row[1] == 12]
@@ -390,7 +458,14 @@ def classify(raw):
         'group_data_discard_records': len(group_rows),
         'group_data_discard_record_limit': 8,
         # Action frames: each discard is recorded and the cap is eight, so this is the total.
-        'group_action_frame_discards': len(group_action_rows),
+        'group_action_frame_discards': (group_action_total_rows[0][1] if group_action_total_rows else len(group_action_rows)),
+        'group_action_frame_discard_records': len(group_action_rows),
+        # Data completions (TX done records of PIDs outside the recorded management
+        # and security submissions) by status; neither is an acknowledgement proof
+        # nor a delivery claim.
+        'data_completions': {'status_0': len([d for d in data_done if d[2] == 0]),
+                             'other': len([d for d in data_done if d[2] != 0]),
+                             'late': len(late_done)},
         'action_frame_discards': len(action_rows),
         'action_frame_discard_limit': 8,
         'terminal_failure_recorded': stopped,

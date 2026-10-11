@@ -47,10 +47,11 @@ def log(accepted, keys=False):
                       # remainder), its end by the budget; the privilege returns in stage 1.
                       'data phase: budget_ms=5500 teardown_margin_ms=5000 inside_grant=1',
                       'data TX: first pid=5 pages=3 bytes=342', 'data credit: pages=3 debt=0 count=1',
-                      'data RX: first group=0 tid=0 keyid=0 bytes=320 vector=1',
-                      'data phase end: reason=budget elapsed_ms=5500 rx_unicast=40 rx_group=3 rx_dropped=0 tx_queued=12 tx_done=12 tx_failed=0 tx_credits=36']
-        lines += ['TX: subtype=12 pid=' + ('6' if keys else '3') + ' pages=1', 'credit: pages=1 remaining=0',
-                  'TX done: pid=' + ('6' if keys else '3') + ' status=0 advanced=0 count=0']
+                      'data RX: first group=0 tid=0 keyid=0 bytes=320 vector=1']
+            lines += ['TX done: pid=%d status=0 advanced=1 count=1' % pid for pid in range(5, 17)]
+            lines += ['data phase end: reason=budget elapsed_ms=5500 rx_unicast=40 rx_group=3 rx_dropped=0 tx_queued=12 tx_done=12 tx_failed=0 tx_credits=36']
+        lines += ['TX: subtype=12 pid=' + ('17' if keys else '3') + ' pages=1', 'credit: pages=1 remaining=0',
+                  'TX done: pid=' + ('17' if keys else '3') + ' status=0 advanced=0 count=0']
         if keys:
             lines += ['key removal: pairwise submitted sequence=13', 'credit: pages=1 remaining=0',
                       'key removal: group submitted sequence=14', 'credit: pages=1 remaining=0']
@@ -171,8 +172,8 @@ class HostTests(unittest.TestCase):
         self.assertTrue(result['handshake_keys_submitted'] and result['driver_handshake_path_pass'])
         self.assertFalse(result['wifi_operational'])
         # The deauthentication's page may return after its TX done.
-        swapped = raw.replace(b'one-shot WLAN join credit: pages=1 remaining=0\none-shot WLAN join TX done: pid=6 status=0 advanced=0 count=0\n',
-                              b'one-shot WLAN join TX done: pid=6 status=0 advanced=0 count=0\none-shot WLAN join credit: pages=1 remaining=0\n')
+        swapped = raw.replace(b'one-shot WLAN join credit: pages=1 remaining=0\none-shot WLAN join TX done: pid=17 status=0 advanced=0 count=0\n',
+                              b'one-shot WLAN join TX done: pid=17 status=0 advanced=0 count=0\none-shot WLAN join credit: pages=1 remaining=0\n')
         self.assertNotEqual(swapped, raw)
         self.assertTrue(classify(swapped)['driver_handshake_path_pass'])
         # Missing all removals, or only the group removal missing: not healthy; a partial
@@ -185,12 +186,14 @@ class HostTests(unittest.TestCase):
             b'one-shot WLAN join key removal: group submitted sequence=14\none-shot WLAN join credit: pages=1 remaining=0\n', b'')
         # Without the group key there is no channel release and no data phase, and
         # the stage-1 channel abort is submitted with its credit as before.
-        for line in (b'data phase: budget_ms=5500 teardown_margin_ms=5000 inside_grant=1\n',
+        for line in [b'data phase: budget_ms=5500 teardown_margin_ms=5000 inside_grant=1\n',
                      b'data credit: pages=3 debt=0 count=1\n',
                      b'data TX: first pid=5 pages=3 bytes=342\n', b'data RX: first group=0 tid=0 keyid=0 bytes=320 vector=1\n',
-                     b'data phase end: reason=budget elapsed_ms=5500 rx_unicast=40 rx_group=3 rx_dropped=0 tx_queued=12 tx_done=12 tx_failed=0 tx_credits=36\n'):
+                     b'data phase end: reason=budget elapsed_ms=5500 rx_unicast=40 rx_group=3 rx_dropped=0 tx_queued=12 tx_done=12 tx_failed=0 tx_credits=36\n'] + [
+                         b'TX done: pid=%d status=0 advanced=1 count=1\n' % pid for pid in range(5, 17)]:
             self.assertIn(b'one-shot WLAN join ' + line, partial)
             partial = partial.replace(b'one-shot WLAN join ' + line, b'')
+        partial = partial.replace(b'pid=17 ', b'pid=5 ')
         partial_result = classify(partial)
         self.assertTrue(partial_result['bounded_join_pass'])
         self.assertFalse(partial_result['handshake_keys_submitted'] or partial_result['driver_handshake_path_pass'])
@@ -382,14 +385,42 @@ class HostTests(unittest.TestCase):
         # A data phase ended by transmit failures, or without an acknowledged frame or a
         # delivered unicast frame, is not the data-path pass; the handshake pass stands.
         end = b'one-shot WLAN join data phase end: reason=budget elapsed_ms=5500 rx_unicast=40 rx_group=3 rx_dropped=0 tx_queued=12 tx_done=12 tx_failed=0 tx_credits=36\n'
-        for variant in (end.replace(b'reason=budget', b'reason=txfail'), end.replace(b'tx_done=12', b'tx_done=0'),
-                        end.replace(b'rx_unicast=40', b'rx_unicast=0'), end.replace(b'tx_failed=0', b'tx_failed=13')):
+        for variant in (end.replace(b'reason=budget', b'reason=txfail'), end.replace(b'rx_unicast=40', b'rx_unicast=0')):
             partial_data = classify(good.replace(end, variant))
             self.assertTrue(partial_data['driver_handshake_path_pass'], variant)
             self.assertFalse(partial_data['driver_data_path_pass'], variant)
+        # One completion with a non-zero status and the end record counting it: not the
+        # data-path pass, the handshake pass stands; the end counters disagreeing with the
+        # recorded completions, or positive counters with every completion record
+        # deleted, are malformed (the driver records each completion).
+        failed_one = good.replace(b'TX done: pid=16 status=0 advanced=1', b'TX done: pid=16 status=33 advanced=1').replace(end, end.replace(b'tx_done=12 tx_failed=0', b'tx_done=11 tx_failed=1'))
+        self.assertFalse(classify(failed_one)['malformed_stage_record'])
+        self.assertTrue(classify(failed_one)['driver_handshake_path_pass'] and classify(failed_one)['driver_data_path_pass'])
+        self.assertEqual(classify(failed_one)['data_completions'], {'status_0': 11, 'other': 1, 'late': 0})
+        failed_most = good
+        for pid in range(10, 17):
+            failed_most = failed_most.replace(b'TX done: pid=%d status=0 advanced=1' % pid, b'TX done: pid=%d status=33 advanced=1' % pid)
+        failed_most = failed_most.replace(end, end.replace(b'tx_done=12 tx_failed=0', b'tx_done=5 tx_failed=7'))
+        self.assertFalse(classify(failed_most)['malformed_stage_record'])
+        self.assertTrue(classify(failed_most)['driver_handshake_path_pass'] and not classify(failed_most)['driver_data_path_pass'])
+        self.assertEqual(classify(failed_most)['data_completions'], {'status_0': 5, 'other': 7, 'late': 0})
+        self.assertTrue(classify(good.replace(end, end.replace(b'tx_done=12', b'tx_done=0')))['malformed_stage_record'])
+        self.assertTrue(classify(good.replace(end, end.replace(b'tx_failed=0', b'tx_failed=13')))['malformed_stage_record'])
+        no_completions = good
+        for pid in range(5, 17):
+            no_completions = no_completions.replace(b'one-shot WLAN join TX done: pid=%d status=0 advanced=1 count=1\n' % pid, b'')
+        self.assertTrue(classify(no_completions)['malformed_stage_record'])
+        self.assertTrue(classify(good.replace(b'data TX: first pid=5 pages=3 bytes=342', b'data TX: first pid=5 pages=2 bytes=342'))['malformed_stage_record'], 'pages')
         self.assertEqual(classify(good.replace(end, end.replace(b'reason=budget', b'reason=disconnect')))['data_phase_end_reason'], 'disconnect')
         self.assertFalse(classify(good.replace(end, b''))['driver_data_path_pass'])
-        self.assertTrue(classify(good.replace(b'one-shot WLAN join data TX: first pid=5 pages=3 bytes=342\n', b''))['driver_data_path_pass'])
+        # Completions without the recorded first submission are malformed; a phase with
+        # no data frame at all (no first record, zero counters, the deauthentication at the
+        # next PID) is not.
+        self.assertTrue(classify(good.replace(b'one-shot WLAN join data TX: first pid=5 pages=3 bytes=342\n', b''))['malformed_stage_record'])
+        idle_phase = no_completions.replace(b'one-shot WLAN join data TX: first pid=5 pages=3 bytes=342\n', b'').replace(
+            end, end.replace(b'tx_queued=12 tx_done=12', b'tx_queued=0 tx_done=0')).replace(b'pid=17 ', b'pid=5 ')
+        self.assertFalse(classify(idle_phase)['malformed_stage_record'], classify(idle_phase)['diagnostic_records'])
+        self.assertFalse(classify(idle_phase)['driver_data_path_pass'])
         self.assertTrue(classify(good + b'one-shot WLAN join data credit overflow: pages=2 debt=1\n')['refusal_recorded'])
         # Runtime 21 shape: EAPOL deliveries and a directed Action discard, then a frame
         # refusal and the stopped footer before any deauthentication: placed (the footer
@@ -445,6 +476,88 @@ class HostTests(unittest.TestCase):
         self.assertTrue(rb['driver_data_path_pass'] and not rb['refusal_recorded'])
         self.assertTrue(classify(good[:phase_end] + kb.replace(b'count=%d', b'count=5') + good[phase_end:])['malformed_stage_record'])
         self.assertTrue(classify(good[:phase_end] + kb.replace(b'sec=4 status=0xe004', b'sec=0 status=0xe000') % 1 + good[phase_end:])['malformed_stage_record'])
+        # Runtime 27 completion shape: inside the data phase three data completions (PIDs
+        # 5..7, status 0) follow the one recorded data submission and the credits; the
+        # management and security acknowledgements stay unique; the end record's tx_done
+        # equals the status-0 completions before it. A duplicate, a pre-phase, an
+        # out-of-order (below a managed PID) or an unknown-status completion is malformed.
+        phase_at = good.index(b'one-shot WLAN join data phase: budget_ms=5500')
+        phase_end = good.index(b'\n', phase_at) + 1
+        end_at = good.index(b'one-shot WLAN join data phase end:')
+        completions = (b'one-shot WLAN join TX done: pid=5 status=0 advanced=1 count=1\n'
+                       b'one-shot WLAN join data credit: pages=3 debt=0 count=2\n'
+                       b'one-shot WLAN join TX done: pid=6 status=0 advanced=1 count=1\n'
+                       b'one-shot WLAN join TX done: pid=7 status=0 advanced=1 count=1\n')
+        r27 = good
+        for pid in range(5, 17):
+            r27 = r27.replace(b'one-shot WLAN join TX done: pid=%d status=0 advanced=1 count=1\n' % pid, b'')
+        end_at = r27.index(b'one-shot WLAN join data phase end:')
+        r27 = r27[:end_at] + completions + r27[end_at:]
+        r27 = r27.replace(b'tx_queued=12 tx_done=12 tx_failed=0 tx_credits=36', b'tx_queued=4 tx_done=3 tx_failed=0 tx_credits=7')
+        # Three completed data frames (the fourth admitted frame was never dequeued), so
+        # the deauthentication is PID 8.
+        r27 = r27.replace(b'TX: subtype=12 pid=17 pages=1', b'TX: subtype=12 pid=8 pages=1').replace(
+            b'TX done: pid=17 status=0 advanced=0 count=0', b'TX done: pid=8 status=0 advanced=0 count=0')
+        res27 = classify(r27)
+        self.assertFalse(res27['malformed_stage_record'], res27['diagnostic_records'])
+        self.assertTrue(res27['unique_tx_acknowledgements'] and res27['driver_data_path_pass'])
+        self.assertEqual(res27['data_completions'], {'status_0': 3, 'other': 0, 'late': 0})
+        self.assertTrue(classify(r27.replace(b'pid=7 status=0', b'pid=7 status=33'))['malformed_stage_record'], 'end tx_done disagrees')
+        bad_end = r27.replace(b'pid=7 status=0', b'pid=7 status=33').replace(b'tx_done=3 tx_failed=0', b'tx_done=2 tx_failed=1')
+        self.assertFalse(classify(bad_end)['malformed_stage_record'])
+        self.assertEqual(classify(bad_end)['data_completions'], {'status_0': 2, 'other': 1, 'late': 0})
+        self.assertTrue(classify(r27.replace(b'pid=6 status=0 advanced=1 count=1\n', b'pid=6 status=0 advanced=1 count=1\none-shot WLAN join TX done: pid=6 status=0 advanced=1 count=1\n'))['malformed_stage_record'], 'duplicate')
+        self.assertTrue(classify(good[:phase_at] + b'one-shot WLAN join TX done: pid=5 status=0 advanced=1 count=1\n' + good[phase_at:])['malformed_stage_record'], 'before the phase')
+        self.assertTrue(classify(r27.replace(b'pid=7 status=0', b'pid=3 status=0'))['malformed_stage_record'], 'a managed PID again')
+        self.assertTrue(classify(r27.replace(b'pid=7 status=0', b'pid=7 status=9'))['malformed_stage_record'], 'unknown status')
+        # Bound to the recorded first data submission and the serialized PID order:
+        # an unused PID jump, a reversed pair, an absent first submission, a
+        # completion before the submission, and a deauthentication PID that does not
+        # follow the last data frame are malformed; a single completion after the end
+        # record and before the deauthentication is late, two are malformed.
+        self.assertTrue(classify(r27.replace(b'pid=7 status=0', b'pid=90 status=0'))['malformed_stage_record'], 'PID jump')
+        swapped = r27.replace(b'TX done: pid=5 status=0 advanced=1 count=1', b'TX done: pid=6 status=0 advanced=1 count=1', 1)
+        swapped = swapped.replace(b'TX done: pid=6 status=0 advanced=1 count=1\none-shot WLAN join TX done: pid=7', b'TX done: pid=5 status=0 advanced=1 count=1\none-shot WLAN join TX done: pid=7')
+        self.assertTrue(classify(swapped)['malformed_stage_record'], 'reversed order')
+        first_at = r27.index(b'one-shot WLAN join data TX: first pid=5')
+        first_end = r27.index(b'\n', first_at) + 1
+        self.assertTrue(classify(r27[:first_at] + r27[first_end:])['malformed_stage_record'], 'absent first submission')
+        self.assertTrue(classify(r27[:first_at] + b'one-shot WLAN join TX done: pid=5 status=0 advanced=1 count=1\n' + r27[first_at:first_end] + r27[first_end:].replace(b'one-shot WLAN join TX done: pid=5 status=0 advanced=1 count=1\n', b'', 1))['malformed_stage_record'], 'completion before its submission')
+        # The deauthentication's PID follows the completed data frames exactly (the
+        # cleanup waits for the in-flight frame's completion): 9 would mean a dequeued
+        # frame whose completion is missing, 10 a gap; completions above the end
+        # record's tx_queued are malformed.
+        deauth8 = (b'TX: subtype=12 pid=8 pages=1', b'TX done: pid=8 status=0 advanced=0')
+        deauth9 = r27.replace(deauth8[0], b'TX: subtype=12 pid=9 pages=1').replace(deauth8[1], b'TX done: pid=9 status=0 advanced=0')
+        self.assertTrue(classify(deauth9)['malformed_stage_record'], 'missing completion before the deauthentication')
+        self.assertTrue(classify(r27.replace(deauth8[0], b'TX: subtype=12 pid=10 pages=1').replace(deauth8[1], b'TX done: pid=10 status=0 advanced=0'))['malformed_stage_record'], 'deauthentication PID gap')
+        self.assertTrue(classify(r27.replace(b'tx_queued=4 tx_done=3', b'tx_queued=2 tx_done=3'))['malformed_stage_record'], 'more completed than queued')
+        end_row_at = r27.index(b'one-shot WLAN join data phase end:')
+        end_row_end = r27.index(b'\n', end_row_at) + 1
+        # A late completion (after the end record, before the deauthentication) is the
+        # in-flight frame's; the deauthentication then takes PID 9. Without that late
+        # record, PID 9 is the missing-completion case above.
+        late = deauth9[:deauth9.index(b'one-shot WLAN join data phase end:')]
+        late = late + b'one-shot WLAN join data phase end:' + deauth9[deauth9.index(b'one-shot WLAN join data phase end:') + len(b'one-shot WLAN join data phase end:'):]
+        end_row_at = late.index(b'one-shot WLAN join data phase end:')
+        end_row_end = late.index(b'\n', end_row_at) + 1
+        late = late[:end_row_end] + b'one-shot WLAN join TX done: pid=8 status=0 advanced=1 count=1\n' + late[end_row_end:]
+        self.assertFalse(classify(late)['malformed_stage_record'], classify(late)['diagnostic_records'])
+        self.assertEqual(classify(late)['data_completions'], {'status_0': 4, 'other': 0, 'late': 1})
+        self.assertEqual(res27['data_completions']['late'], 0)
+        # 0174: eight recorded 0168 discards and a total record before the stage-3 record;
+        # the total must exceed eight, follow the eighth record, and be single.
+        ga = b'one-shot WLAN join group action frame discarded: bytes=644 fc=0xd0 match=0x08 wlan=255 bss=15 sec=0 status=0xe000 count=%d\n'
+        first_tx = good.index(b'one-shot WLAN join TX: subtype=11')
+        eight = b''.join(ga % n for n in range(1, 9))
+        stage3 = good.index(b'one-shot WLAN join cleanup: stage=3')
+        with_total = good[:first_tx] + eight + good[first_tx:stage3] + b'one-shot WLAN join group action frames discarded: total=57\n' + good[stage3:]
+        rt = classify(with_total)
+        self.assertFalse(rt['malformed_stage_record'], rt['diagnostic_records'])
+        self.assertEqual((rt['group_action_frame_discards'], rt['group_action_frame_discard_records']), (57, 8))
+        self.assertTrue(classify(good[:first_tx] + eight + good[first_tx:stage3] + b'one-shot WLAN join group action frames discarded: total=8\n' + good[stage3:])['malformed_stage_record'])
+        self.assertTrue(classify(good[:first_tx] + b''.join(ga % n for n in range(1, 8)) + good[first_tx:stage3] + b'one-shot WLAN join group action frames discarded: total=57\n' + good[stage3:])['malformed_stage_record'])
+        self.assertTrue(classify(with_total.replace(b'total=57\n', b'total=57\none-shot WLAN join group action frames discarded: total=58\n'))['malformed_stage_record'])
         # The 0168 class: a broadcast Action discard at any stage (even before the
         # authentication) is a placed notification; counts out of order or after the
         # terminal record are malformed; the report carries its count.

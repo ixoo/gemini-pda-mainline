@@ -784,3 +784,4 @@ proposals/0170-wifi-mt6797-the-key-command-s-credit-waiter-owns-its.patch
 proposals/0171-wifi-mt6797-bind-the-directed-Action-discard-class-t.patch
 proposals/0172-wifi-mt6797-run-the-data-phase-inside-the-channel-gr.patch
 proposals/0173-wifi-mt6797-skip-the-target-s-beacon-in-its-keyed-de.patch
+proposals/0174-wifi-mt6797-count-the-clear-broadcast-Action-class-w.patch

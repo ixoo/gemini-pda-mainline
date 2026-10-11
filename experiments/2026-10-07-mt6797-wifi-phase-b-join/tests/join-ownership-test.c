@@ -1175,9 +1175,12 @@ int main(void)
 
 	/* 10b. Runtime 21's clear broadcast Action frame with no WLAN table entry:
 	 *      discarded at any stage (before any response, during the handshake
-	 *      hold), each recorded, eight per lifetime, the ninth refused; the
-	 *      unicast-to-me, multicast, owning-index, protected and directed
-	 *      perturbations refused; the directed class's counter untouched.
+	 *      hold), the first eight recorded and every one counted without a cap of
+	 *      its own (0174: runtime 27 met eight in 1.1 s); the ninth and the
+	 *      hundredth are skipped and counted, never delivered; the unicast-to-me,
+	 *      multicast, owning-index, protected and directed perturbations are
+	 *      refused as before; the directed class's own counter and cap untouched;
+	 *      the lifetime's packet budget is the bound.
 	 */
 	setup();                                                           /* before any response */
 	script_group_action_frame(0x08, 0x00d0, 255, true); run_worker();
@@ -1188,8 +1191,19 @@ int main(void)
 	script_group_action_frame(0x08, 0x00d0, 255, true); script_group_action_frame(0x08, 0x08d0, 255, true); run_worker();
 	assert(!mac.first_error && mac.join_running && mac.join_group_action_discarded == 2 && !rx_delivered && !submissions);
 	mac.join_group_action_discarded = 8;
-	script_group_action_frame(0x08, 0x00d0, 255, true); run_worker();                 /* the ninth */
-	assert(mac.first_error == -EPROTO && mac.join_group_action_discarded == 8);
+	script_group_action_frame(0x08, 0x00d0, 255, true); run_worker();                 /* the ninth: counted, not recorded, not refused */
+	assert(!mac.first_error && mac.join_running && mac.join_group_action_discarded == 9 && !rx_delivered && !submissions);
+	mac.join_group_action_discarded = 99;
+	script_group_action_frame(0x08, 0x00d0, 255, true); script_group_action_frame(0x08, 0x08d0, 255, true); run_worker();
+	assert(!mac.first_error && mac.join_running && mac.join_group_action_discarded == 101 && !mac.join_action_discarded);
+	/* The directed class keeps its own eight: its ninth is still a refusal. */
+	mac.join_action_discarded = 8; action_keyed = false; script_action_frame(0x02, 0x00d0, true); run_worker();
+	assert(mac.first_error == -EPROTO && mac.join_action_discarded == 8 && mac.join_group_action_discarded == 101);
+	mt6797_mac_join_close(&mac);
+	/* The lifetime's packet budget still bounds every received packet. */
+	setup(); mac.join_packets = 32768;
+	script_group_action_frame(0x08, 0x00d0, 255, true); run_worker();              /* the 32769th packet: the footer's E2BIG, no delivery */
+	assert(mac.first_error == -E2BIG && !mac.join_running && mac.join_retired && !mac.join_group_action_discarded);
 	mt6797_mac_join_close(&mac);
 	for (int variant = 0; variant < 5; variant++) {
 		setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = true; mac.join_bss_configured = true;

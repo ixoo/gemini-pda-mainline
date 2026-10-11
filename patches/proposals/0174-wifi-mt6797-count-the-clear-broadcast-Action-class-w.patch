@@ -1,0 +1,94 @@
+From ceb018c4340abed47e924c7d4efc9a3d3dc71528 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 11 Oct 2026 23:15:58 +0000
+Subject: [PATCH 174/174] wifi: mt6797: count the clear broadcast Action class without
+ a cap of its own
+
+Runtime 27 (candidate 26, compile 31) installed both keys, opened the data
+phase inside the channel grant, completed three data frames with status 0,
+delivered one unicast protected frame and credited seven pages; the session
+obtained a lease. Eight packets of the clear broadcast Action class named in
+runtime 21 (descriptor with the broadcast match flag only, no WLAN table
+entry, security mode 0, first frame-control byte 0xd0) were discarded and
+recorded within 1.10 s, in bursts; the next refused packet's metadata
+(708 bytes, type word 0xee01, descriptor 08 28 18 3c ff 00 00 e0, header at
+64, first byte 0xd0, security mode 0, receiver not this station, transmitter
+not the target) was consistent with that class after the count of eight. Its
+full frame control, receiver and fragment are not in the refusal metadata, so
+the eight-per-join cap, chosen when one such frame had been observed, is the
+source-supported reading of the stop: the gate evaluates the class decoder
+and then the count against 8.
+
+Count the class without a cap of its own: the decoder is unchanged, every
+match is discarded (never delivered or interpreted, no new host submission),
+the first eight are recorded by their descriptor and header fields as before
+and the total is recorded before the stage-3 record when it exceeds eight.
+The lifetime's existing receive budget (MT6797_JOIN_MAX_PACKETS, 32768
+packets) bounds the class as it bounds the clear and keyed beacons; the
+directed Action class keeps its own eight; no radio, time or TX budget
+changes. No replay-protection or operational claim follows.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 36 ++++++++++++++--------
+ 1 file changed, 24 insertions(+), 12 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 1fbf5b11d..df1ed2f85 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -1045,6 +1045,10 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
+ 			dev_info(wiphy_dev(mac->hw->wiphy),
+ 				 "one-shot WLAN join keyed beacons skipped: total=%u\n",
+ 				 mac->join_keyed_beacons);
++		if (mac->join_group_action_discarded > 8)
++			dev_info(wiphy_dev(mac->hw->wiphy),
++				 "one-shot WLAN join group action frames discarded: total=%u\n",
++				 mac->join_group_action_discarded);
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+ 			 "one-shot WLAN join cleanup: stage=3 credits=returned slots=retired deauth=%u\n",
+ 			 mac->join_deauth_done);
+@@ -1762,22 +1766,30 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 			/* A clear broadcast Action frame whose descriptor names no
+ 			 * WLAN table entry (runtime 21, one observed after message 4;
+ 			 * action-frame.h names the observed and the source-defined
+-			 * conditions) is irrelevant to the bounded join at every stage:
+-			 * discarded, never delivered or interpreted, no new host
+-			 * submission, each one recorded by its descriptor and header
+-			 * fields, at most eight per join like the directed class, and
+-			 * the ninth or any other shape refused as before.
++			 * conditions) is background traffic of the environment,
++			 * irrelevant to the bounded join at every stage: discarded,
++			 * never delivered or interpreted, no new host submission.
++			 * Runtime 27 met eight within 1.10 s; the next refused packet's
++			 * metadata was consistent with this class after the count of
++			 * eight (its full frame control, receiver and fragment are not
++			 * in that metadata), so the eight-per-join cap is the source-
++			 * supported reading of that stop. The class is counted without
++			 * a cap of its own, the first eight recorded by their descriptor
++			 * and header fields and the total before the stage-3 record;
++			 * the lifetime's existing packet budget (MT6797_JOIN_MAX_PACKETS)
++			 * bounds it, as it bounds the clear and keyed beacons. The
++			 * directed class keeps its own eight.
+ 			 */
+ 			if (!mac->join_cleanup_done &&
+ 			    mt6797_join_group_action_frame(mac->join_packet, rx.logical_bytes,
+-							   40, &action) &&
+-			    mac->join_group_action_discarded < 8) {
++							   40, &action)) {
+ 				mac->join_group_action_discarded++;
+-				dev_info(wiphy_dev(mac->hw->wiphy),
+-					 "one-shot WLAN join group action frame discarded: bytes=%zu fc=0x%x match=0x%02x wlan=%u bss=%u sec=%u status=0x%04x count=%u\n",
+-					 action.bytes, action.fc, action.match, action.wlan,
+-					 action.bss, action.sec, action.status,
+-					 mac->join_group_action_discarded);
++				if (mac->join_group_action_discarded <= 8)
++					dev_info(wiphy_dev(mac->hw->wiphy),
++						 "one-shot WLAN join group action frame discarded: bytes=%zu fc=0x%x match=0x%02x wlan=%u bss=%u sec=%u status=0x%04x count=%u\n",
++						 action.bytes, action.fc, action.match, action.wlan,
++						 action.bss, action.sec, action.status,
++						 mac->join_group_action_discarded);
+ 				continue;
+ 			}
+ 			/* The target's unprotected directed Action frame, named in
+-- 
+2.39.5
+

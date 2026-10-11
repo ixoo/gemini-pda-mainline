@@ -449,6 +449,38 @@ data-path shapes through mac80211, replay the reference offline) is admitted
 as hardware-free source work and awaits its proposal diff, checks and
 combined test protocol before any build.
 
+## Runtime 27 result and proposal 0174 (2026-10-11)
+
+Runtime 27 ([RUNTIME_27_RESULT.md](RUNTIME_27_RESULT.md)) is the first run
+with data completions: both keys credited, four keyed beacons skipped (0173
+observed through the matcher), the first TC1 frame completed with status 0
+about 3 ms after its submission and its pages returned 28 ms after the
+submission, one unicast protected frame delivered, three completions and
+seven credited pages in all, and on the device a DHCP lease (prefix 24) with
+the listener ready; ping received nothing and the one Wi-Fi SSH exchange
+failed (exit 255, no boot match). The lifetime ended after eight 0168
+discards in 1.10 s at a refusal whose metadata is consistent with that class
+at the count of eight; the cap as the cause is a source-supported inference
+(the refused frame's full frame control, receiver and fragment were not
+measured). The host verdicts stand as computed;
+`unique_tx_acknowledgements` false was a classifier attribution defect
+(data completions counted against management submissions), corrected and
+attributed separately. **0174**
+(`patches/proposals/0174-wifi-mt6797-count-the-clear-broadcast-Action-class-w.patch`,
+appended to both series, not yet compiled) keeps the 0168 decoder exact and
+counts the class without a cap of its own, recording the first eight and the
+total, bounded by the lifetime's existing 32768-packet receive budget like the
+beacons; the directed Action class keeps its eight. The classifier binds data completions to the
+recorded first submission and the serialized PID order, reports status 0,
+non-zero and late completions apart, reconciles the end counters with the
+recorded completions in every case, and keeps absent-first, jumped, reversed,
+duplicate, pre-phase and unknown-status completions malformed. Fixtures:
+`tests/join-ownership-test.c` (the ninth and the hundredth counted, the
+directed ninth still refused, the packet budget still terminal),
+`tests/host-test.py` (the runtime 27 completion shape, its negatives, the
+total record and its negatives). A lease is genuine network evidence; no
+operational or replay-protection claim.
+
 ## Compile 31, candidate 26 and the runtime 27 bindings (2026-10-11)
 
 [COMPILE_31.md](COMPILE_31.md): the phase-B compile profile at c7ba623f with
