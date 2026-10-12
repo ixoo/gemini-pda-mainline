@@ -1,0 +1,194 @@
+From 612b039b7a5f8e007389bd5ec02633b76ad98c5d Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 12 Oct 2026 01:16:37 +0000
+Subject: [PATCH 177/177] wifi: mt6797: discard the target's group data in its
+ after-removal descriptor variant during the cleanup
+
+Runtime 29 (candidate 28, compile 33) ran its data phase to the budget with
+four beacons delivered, completed its reserved deauthentication, submitted
+both key removal commands and received their credits (buffer consumption
+only), submitted cleanup stage 0 and, 25 ms after the group key removal's
+credit, fail-stopped at the frame gate on a 110-byte hardware data
+descriptor: type word 0x4000 (packet type 2, no status groups), descriptor
+bytes 08 28 18 04 ff 00 00 c2 (broadcast match flag only, channel 40, native
+24-byte header, payload format 0 with BSSID field 1, WLAN index 255, TID 0
+and security mode 0, status 0xc200: the two high bits every admitted packet
+carries and the LLC-mismatch flag, every error flag clear), frame control
+0x6208 (data, FromDS, More Data, Protected), the target as transmitter, the
+receiver not this station. This is the group-data class of runtimes 17 and
+22 (group-data.h, 0164) in a descriptor variant consistent with the window
+after the group key removal command; the packet does not prove that the
+hardware retired the key. The pinned vendor data path drops a frame flagged
+LLC mismatch without delivering it.
+
+Name that variant with a second decoder in group-data.h, every descriptor
+predicate gated on the observed value and the keyed class's frame conditions
+(non-QoS data, FromDS and Protected set, ToDS, More Fragments, Power
+Management and Order clear, a group receiver, the target as transmitter,
+fragment 0, at least 40 bytes after the header); the keyed decoder is
+unchanged. During the cleanup, after the group key removal command was
+submitted and before stage 3, that exact variant is discarded, never
+delivered or interpreted, no submission follows: the first eight recorded by
+their descriptor and header fields, the total before the stage-3 record; the
+lifetime's packet budget and the cleanup's own deadline bound it. Before the
+removal command, or after stage 3, it is a refusal as before. No other shape
+is admitted; no radio, TX or time budget changes; no replay-protection or
+operational claim.
+---
+ .../net/wireless/mediatek/mt6797/group-data.h | 76 +++++++++++++++++++
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 33 ++++++++
+ 2 files changed, 109 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/group-data.h b/drivers/net/wireless/mediatek/mt6797/group-data.h
+index 4d65b055e..262d85f7e 100644
+--- a/drivers/net/wireless/mediatek/mt6797/group-data.h
++++ b/drivers/net/wireless/mediatek/mt6797/group-data.h
+@@ -129,4 +129,80 @@ mt6797_join_group_data(const unsigned char *packet, size_t bytes,
+ 	*out = r;
+ 	return true;
+ }
++
++/* The same group-data class in a descriptor variant consistent with the
++ * window after this station's group key removal command (runtime 29, cleanup
++ * stage 0, 25 ms after that command's credit, which proves buffer consumption
++ * only): a 110-byte data RXD with
++ * descriptor bytes 08 28 18 04 ff 00 00 c2 (broadcast match flag only,
++ * channel 40, native 24-byte header, MSDU payload format with BSSID field 1,
++ * WLAN index 255, that is, no table entry, TID 0 and security mode 0, status
++ * 0xc200: the two high bits every admitted packet carries and the LLC
++ * mismatch flag, which an encrypted body the firmware can no longer decrypt
++ * must carry, every error flag clear), native frame control 0x6208 (data,
++ * FromDS, More Data, Protected), the target as transmitter, the receiver not
++ * this station, no RX groups. The receiver address, fragment field and body
++ * were not retained, so the full class (a group receiver, fragment 0) is
++ * decided by this decoder on the next packet. The pinned vendor data path
++ * drops a frame flagged LLC mismatch without delivering it. Inference, not
++ * measured: the index 255 and the cleared cipher-mismatch flag follow the
++ * removal window; the packet does not prove that the hardware retired the
++ * key. This decoder names exactly that variant with the keyed class's frame
++ * conditions, each descriptor predicate gated on the observed value until
++ * the next observation, so the caller can discard it during the cleanup
++ * without delivery or interpretation; the keyed class's decoder above is
++ * unchanged. Frames with any other WLAN index, security mode, status, flags
++ * or transmitter are not this class.
++ */
++static inline bool
++mt6797_join_group_data_removed(const unsigned char *packet, size_t bytes,
++			       unsigned char channel, const unsigned char ap[6],
++			       struct mt6797_join_group_data *out)
++{
++	struct mt6797_join_group_data r;
++	size_t offset = 16;
++	unsigned int type, groups;
++	const unsigned char *f;
++
++	if (!packet || !ap || !out || bytes < 16 || bytes > 4096 || !channel ||
++	    mt6797_join_le16(packet) != bytes || packet[5] != channel)
++		return false;
++	type = mt6797_join_le16(packet + 2);
++	if ((type >> 13) != 2)
++		return false;
++	r.match = packet[4];
++	if ((r.match & ~0x0cU) || !(r.match & 0x0c))
++		return false;
++	if ((packet[6] & 0x80) || (packet[6] & 0x3f) != 24 || packet[7] != 0x04 ||
++	    packet[8] != 255 || packet[9] ||
++	    mt6797_join_le16(packet + 10) != 0xc200)
++		return false;
++	groups = (type >> 9) & 15;
++	if (groups & 8)
++		offset += 16;
++	if (groups & 1)
++		offset += 16;
++	if (groups & 2)
++		offset += 8;
++	if (groups & 4)
++		offset += 24;
++	if (packet[6] & 0x40)
++		offset += 2;
++	if (offset > bytes || bytes - offset < 24 + 16)
++		return false;
++	f = packet + offset;
++	r.fc = mt6797_join_le16(f);
++	if ((r.fc & 0xd7ff) != 0x4208)
++		return false;
++	if (!(f[4] & 1) || memcmp(f + 10, ap, 6) ||
++	    (mt6797_join_le16(f + 22) & 15))
++		return false;
++	r.bytes = bytes - offset;
++	r.status = 0xc200;
++	r.wlan = 255;
++	r.bss = packet[7] >> 2;
++	r.sec = 0;
++	*out = r;
++	return true;
++}
+ #endif
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 1fae460c5..5d45014b3 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -123,6 +123,7 @@ struct mt6797_mac {
+ 	unsigned int join_action_discarded, join_group_action_discarded;
+ 	unsigned int join_keyed_beacons;
+ 	unsigned int join_beacons_delivered;
++	unsigned int join_cleanup_group_discarded;
+ 	/* Phase C2: the pairwise and group key commands were submitted; the
+ 	 * firmware's add-key-done event was recorded at most twice, once in the
+ 	 * window after each submission (attributed by window, not by key).
+@@ -1090,6 +1091,10 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
+ 			dev_info(wiphy_dev(mac->hw->wiphy),
+ 				 "one-shot WLAN join group action frames discarded: total=%u\n",
+ 				 mac->join_group_action_discarded);
++		if (mac->join_cleanup_group_discarded)
++			dev_info(wiphy_dev(mac->hw->wiphy),
++				 "one-shot WLAN join cleanup group frames discarded: total=%u\n",
++				 mac->join_cleanup_group_discarded);
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+ 			 "one-shot WLAN join cleanup: stage=3 credits=returned slots=retired deauth=%u\n",
+ 			 mac->join_deauth_done);
+@@ -1865,6 +1870,33 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 			}
+ #endif
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++			/* The same group-data class in the descriptor variant seen
++			 * after the group key removal command (runtime 29, cleanup
++			 * stage 0: WLAN index 255, LLC mismatch, no cipher-mismatch
++			 * flag; group-data.h names the observed and the source-defined
++			 * conditions). The AP's group traffic continues while the
++			 * cleanup commands run; during the cleanup, after the group key
++			 * removal command was submitted and credited, that exact
++			 * variant is discarded, never delivered or interpreted, no new
++			 * host submission: the first eight recorded by their descriptor
++			 * and header fields, the total before the stage-3 record; the
++			 * lifetime's packet budget and the cleanup's own deadline bound
++			 * it. Before the removal, or after stage 3, it is a refusal as
++			 * before.
++			 */
++			if (mac->join_cleanup_requested && !mac->join_cleanup_done &&
++			    mac->join_key_group == 2 &&
++			    mt6797_join_group_data_removed(mac->join_packet, rx.logical_bytes,
++							   40, mac->join_ap, &group)) {
++				mac->join_cleanup_group_discarded++;
++				if (mac->join_cleanup_group_discarded <= 8)
++					dev_info(wiphy_dev(mac->hw->wiphy),
++						 "one-shot WLAN join cleanup group frame discarded: bytes=%zu fc=0x%x match=0x%02x wlan=%u bss=%u sec=%u status=0x%04x count=%u\n",
++						 group.bytes, group.fc, group.match, group.wlan,
++						 group.bss, group.sec, group.status,
++						 mac->join_cleanup_group_discarded);
++				continue;
++			}
+ 			/* A clear broadcast Action frame whose descriptor names no
+ 			 * WLAN table entry (runtime 21, one observed after message 4;
+ 			 * action-frame.h names the observed and the source-defined
+@@ -2544,6 +2576,7 @@ static int mt6797_mac_join_add_peer(struct mt6797_mac *mac,
+ 	mac->join_group_action_discarded = 0;
+ 	mac->join_keyed_beacons = 0;
+ 	mac->join_beacons_delivered = 0;
++	mac->join_cleanup_group_discarded = 0;
+ 	mac->join_data_credits = 0;
+ 	mac->join_data_credit_records = 0;
+ 	mac->join_data_started = 0;
+-- 
+2.39.5
+

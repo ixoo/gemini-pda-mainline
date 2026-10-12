@@ -569,6 +569,25 @@ static void script_group_data(unsigned match, unsigned fc)
 	script_bytes[script_count++] = bytes;
 }
 
+/* 0177: the group-data class in the after-removal descriptor variant (runtime 29):
+ * WLAN index 255, status 0xc200, the keyed class's frame otherwise.
+ */
+static void script_group_data_removed(unsigned match, unsigned fc)
+{
+	u8 *p = script[script_count];
+	size_t off = 16, bytes = off + 94;
+
+	assert(script_count < 6);
+	memset(p, 0, sizeof(script[0]));
+	put_unaligned_le16(0x4000, p + 2);
+	p[4] = match; p[5] = 40; p[6] = 24; p[7] = 0x04; p[8] = 255; p[9] = 0;
+	put_unaligned_le16(0xc200, p + 10);
+	put_unaligned_le16(fc, p + off);
+	memset(p + off + 4, 0xff, ETH_ALEN); memcpy(p + off + 10, ap, ETH_ALEN); memcpy(p + off + 16, ap, ETH_ALEN);
+	put_unaligned_le16(bytes, p);
+	script_bytes[script_count++] = bytes;
+}
+
 /* Phase C3: one protected, firmware-decrypted, translated non-aggregated data
  * frame of the admitted classes (data-rx.h): group 4 with a non-QoS FromDS
  * protected frame control from the target, status 0xc000, 20 payload bytes.
@@ -1458,6 +1477,39 @@ int main(void)
 	setup(); mac.join_scan_ready = false; mac.join_peer_used = false;
 	{ struct sk_buff_head discard; struct sk_buff *internal = NULL; skb_queue_head_init(&discard);
 	  assert(!mt6797_mac_join_regulatory_stop(&mac, &discard, &internal) && !mac.first_error && !mac.closing && mac.join_running); }
+	mt6797_mac_join_close(&mac);
+
+	/* 10h. 0177: during the cleanup, after the group key removal command, the
+	 *      after-removal group-data variant is discarded and counted (first eight
+	 *      recorded), the worker keeps running toward the cleanup commands; the keyed
+	 *      variant (an entry, 0xc004) in that window is a refusal as before; the
+	 *      after-removal variant before the removal command (the group key still
+	 *      installed) is a refusal as before.
+	 */
+	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = true; mac.join_bss_configured = true;
+	mac.join_key_pairwise_submitted = mac.join_key_group_submitted = true; mac.join_key_pairwise = mac.join_key_group = 2;
+	mac.join_data_phase = true; mac.join_data_ended = true; mac.join_cleanup_requested = true; mac.join_deauth_done = true;
+	mac.join_page_debt = 1;                                                            /* the deauthentication's page still owed: the cleanup waits, no command this tick */
+	script_group_data_removed(0x08, 0x6208); script_group_data_removed(0x04, 0x4208); run_worker();
+	assert(!mac.first_error && mac.join_running && mac.join_cleanup_group_discarded == 2 && !rx_delivered && !submissions);
+	mac.join_cleanup_group_discarded = 8; script_group_data_removed(0x08, 0x6208); run_worker();   /* the ninth: counted, not recorded, not refused */
+	assert(!mac.first_error && mac.join_running && mac.join_cleanup_group_discarded == 9 && !rx_delivered);
+	script_group_data(0x08, 0x6208); run_worker();                                                   /* the keyed class in this window: a refusal */
+	assert(mac.first_error == -EPROTO && !mac.join_running && mac.join_cleanup_group_discarded == 9);
+	mt6797_mac_join_close(&mac);
+	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = true; mac.join_bss_configured = true;
+	mac.join_key_pairwise_submitted = mac.join_key_group_submitted = true; mac.join_key_pairwise = mac.join_key_group = 1;
+	mac.join_data_phase = true; mac.join_data_ended = true; mac.join_cleanup_requested = true; mac.join_deauth_done = true;
+	mac.join_page_debt = 1;
+	script_group_data_removed(0x08, 0x6208); run_worker();                                           /* before the removal command: a refusal */
+	assert(mac.first_error == -EPROTO && !mac.join_cleanup_group_discarded);
+	mt6797_mac_join_close(&mac);
+	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = true; mac.join_bss_configured = true;
+	mac.join_key_pairwise_submitted = mac.join_key_group_submitted = true; mac.join_key_pairwise = mac.join_key_group = 2;
+	mac.join_data_phase = true; mac.join_data_ended = true; mac.join_cleanup_requested = true; mac.join_deauth_done = true;
+	mac.join_page_debt = 1;
+	script_group_data_removed(0x02, 0x6208); run_worker();                                           /* unicast-to-me flag: a refusal */
+	assert(mac.first_error == -EPROTO && !mac.join_cleanup_group_discarded);
 	mt6797_mac_join_close(&mac);
 
 	puts("join_ownership=pass; production close/worker paths; exact-once release; EAPOL delivery window and hold; C1 association request admitted; C2 one-queue handshake sequence; group data and action frames discarded undelivered and bounded; add-key-done events admitted at most twice by window; no device");

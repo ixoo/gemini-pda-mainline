@@ -449,6 +449,29 @@ data-path shapes through mac80211, replay the reference offline) is admitted
 as hardware-free source work and awaits its proposal diff, checks and
 combined test protocol before any build.
 
+## Runtime 29 result and proposal 0177 (2026-10-12)
+
+Runtime 29 ([RUNTIME_29_RESULT.md](RUNTIME_29_RESULT.md)): four beacons
+delivered (0176 observed; no nullfunc poll, no local disconnect), the data
+phase ran to its budget for the first time (28 completions with status 0, 34
+unicast and 16 group frames delivered), the lease, three ping replies and
+the Wi-Fi SSH exchange repeated, the reserved deauthentication completed and
+both key-removal commands were submitted and credited (buffer consumption
+only); at cleanup stage 0 the frame gate
+refused a 110-byte hardware data descriptor (type 2, no groups, WLAN index
+255, status 0xc200, frame control 0x6208: the AP's protected group data in
+a descriptor variant consistent with the after-removal window; the pinned
+vendor path drops such LLC-mismatch frames) and the lifetime fail-stopped
+(branch 7). Verdicts preserved; not malformed. **0177** names that variant
+with a second decoder in `group-data.h` (the keyed decoder unchanged, every
+predicate gated on the observed values) and discards it during the cleanup
+after the group key removal command, recorded (first
+eight, total before stage 3) and bounded by the lifetime's budgets; the
+classifier knows the records, their window and the total. Fixtures:
+`tests/group-data-test.c`, `tests/join-ownership-test.c`,
+`tests/host-test.py`. The proposed runtime 30 protocol is in the result
+record. No operational or replay-protection claim.
+
 ## Candidate 28 and the runtime 29 bindings (2026-10-12)
 
 Candidate 28 pairs the compile-33 package (`bf244275…`, built input 94e9c890)

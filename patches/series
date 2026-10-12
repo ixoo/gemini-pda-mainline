@@ -787,3 +787,4 @@ proposals/0173-wifi-mt6797-skip-the-target-s-beacon-in-its-keyed-de.patch
 proposals/0174-wifi-mt6797-count-the-clear-broadcast-Action-class-w.patch
 proposals/0175-wifi-mt6797-end-a-running-join-through-the-footer-wh.patch
 proposals/0176-wifi-mt6797-deliver-the-target-s-beacons-to-mac80211.patch
+proposals/0177-wifi-mt6797-discard-the-target-s-group-data-in-its-a.patch

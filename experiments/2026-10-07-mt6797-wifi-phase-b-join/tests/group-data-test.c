@@ -138,6 +138,31 @@ int main(void)
  assert(!run(p, build(p, 0, false, 0x6208, true, false, 54), &r));  /* still: other transmitter */
  declared = 0;
 
+ /* 0177: the removed-key variant (runtime 29): WLAN index 255 and status exactly 0xc200,
+  * the keyed class's frame conditions otherwise; the keyed class (WLAN entry, 0xc004)
+  * is not this variant and this variant is not the keyed class. */
+ { unsigned char q[512]; struct mt6797_join_group_data v; size_t m = build(q, 0, false, 0x6208, true, true, 54);
+   q[8] = 255; put16(q + 10, 0xc200);
+   assert(m == 110 && mt6797_join_group_data_removed(q, m, 40, ap, &v) && v.bytes == 94 && v.fc == 0x6208 && v.match == 0x08 && v.wlan == 255 && v.bss == 1 && v.sec == 0 && v.status == 0xc200);
+   assert(!mt6797_join_group_data(q, m, 40, ap, 2, &v) && !mt6797_join_group_data(q, m, 40, ap, 0, &v));
+   assert(!mt6797_join_group_data_removed(p, n, 40, ap, &v));                      /* the keyed class: WLAN 0, 0xc004 */
+   for (unsigned bit = 0; bit < 16; bit++) { put16(q + 10, 0xc200 ^ (1u << bit)); assert(!mt6797_join_group_data_removed(q, m, 40, ap, &v)); }
+   put16(q + 10, 0xc200); q[8] = 2; assert(!mt6797_join_group_data_removed(q, m, 40, ap, &v)); q[8] = 0; assert(!mt6797_join_group_data_removed(q, m, 40, ap, &v)); q[8] = 255;
+   q[9] = 0x40; assert(!mt6797_join_group_data_removed(q, m, 40, ap, &v)); q[9] = 0;
+   q[4] = 0x02; assert(!mt6797_join_group_data_removed(q, m, 40, ap, &v)); q[4] = 0x04; assert(mt6797_join_group_data_removed(q, m, 40, ap, &v)); q[4] = 0x08;
+   q[16 + 22] = 1; assert(!mt6797_join_group_data_removed(q, m, 40, ap, &v)); q[16 + 22] = 0;
+   put16(q + 16, 0x6288); assert(!mt6797_join_group_data_removed(q, m, 40, ap, &v));   /* QoS */
+   put16(q + 16, 0x2208); assert(!mt6797_join_group_data_removed(q, m, 40, ap, &v));   /* not protected */
+   put16(q + 16, 0x4208); assert(mt6797_join_group_data_removed(q, m, 40, ap, &v));    /* More Data clear: free */
+   put16(q + 16, 0x4a08); assert(mt6797_join_group_data_removed(q, m, 40, ap, &v));    /* Retry: free */
+   put16(q + 16, 0x4308); assert(!mt6797_join_group_data_removed(q, m, 40, ap, &v));   /* ToDS */
+   put16(q + 16, 0x6208);
+   assert(!mt6797_join_group_data_removed(q, m, 36, ap, &v));
+   for (size_t cut = 0; cut < m; cut++) { unsigned char w[512]; memcpy(w, q, m); put16(w, cut); assert(mt6797_join_group_data_removed(w, cut, 40, ap, &v) == (cut >= 16 + 24 + 16)); }
+   { size_t m2 = build(q, 0, false, 0x6208, false, true, 54); q[8] = 255; put16(q + 10, 0xc200); assert(!mt6797_join_group_data_removed(q, m2, 40, ap, &v)); }  /* unicast receiver */
+   { size_t m3 = build(q, 0, false, 0x6208, true, false, 54); q[8] = 255; put16(q + 10, 0xc200); assert(!mt6797_join_group_data_removed(q, m3, 40, ap, &v)); } /* other transmitter */
+   mt6797_join_group_data_removed(NULL, 110, 40, ap, &v); mt6797_join_group_data_removed(q, 110, 40, NULL, &v); mt6797_join_group_data_removed(q, 110, 40, ap, NULL); }
+
  puts("group-data: PASS (measured class named under the declared broadcast entry (0 for runtime 17, 2 for runtime 22); unicast, unprotected, QoS, flags, status, other transmitter, short refused)");
  return 0;
 }

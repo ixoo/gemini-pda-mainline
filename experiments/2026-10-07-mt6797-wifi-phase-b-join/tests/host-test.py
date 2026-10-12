@@ -567,6 +567,43 @@ class HostTests(unittest.TestCase):
         self.assertEqual(r28f['data_phase_end_reason'], 'disconnect')
         self.assertTrue(classify(r28[:deauth_tx_at] + footer9 + r28[deauth_tx_at:])['malformed_stage_record'], 'footer before the submission')
         self.assertEqual(classify(good)['terminal_branch'], None)
+        # 0177 (runtime 29 shape): the removed-key group-data variant discarded during the
+        # cleanup is a notification: records after the group key removal, the total before
+        # the stage-3 record; the healthy cleanup stands. Records before the removal, out
+        # of order, more than eight, or a total below the records are malformed; the
+        # refusal of that variant without the proposal (runtime 29) stays a refusal.
+        cg = b'one-shot WLAN join cleanup group frame discarded: bytes=94 fc=0x6208 match=0x08 wlan=255 bss=1 sec=0 status=0xc200 count=%d\n'
+        removal_at = good.index(b'one-shot WLAN join key removal: group submitted sequence=14')
+        removal_end = good.index(b'\n', removal_at) + 1
+        stage0_at = good.index(b'one-shot WLAN join cleanup submission: stage=0')
+        stage3_at = good.index(b'one-shot WLAN join cleanup: stage=3')
+        total = b'one-shot WLAN join cleanup group frames discarded: total=%d\n'
+        # Realizable shapes: the driver records the first min(total, 8) discards, so a
+        # complete sealed log carries 2 records with total 2, or 8 records with total 9.
+        r29 = good[:stage0_at] + cg % 1 + cg % 2 + good[stage0_at:stage3_at] + total % 2 + good[stage3_at:]
+        rc = classify(r29)
+        self.assertFalse(rc['malformed_stage_record'], rc['diagnostic_records'])
+        self.assertTrue(rc['healthy_cleanup_demonstrated'] and rc['driver_data_path_pass'])
+        self.assertEqual(rc['cleanup_group_discards'], {'records': 2, 'total': 2})
+        r29b = good[:stage0_at] + b''.join(cg % k for k in range(1, 9)) + good[stage0_at:stage3_at] + total % 9 + good[stage3_at:]
+        self.assertFalse(classify(r29b)['malformed_stage_record'], classify(r29b)['diagnostic_records'])
+        self.assertEqual(classify(r29b)['cleanup_group_discards'], {'records': 8, 'total': 9})
+        self.assertEqual(classify(good[:stage0_at] + cg % 1 + good[stage0_at:])['cleanup_group_discards'], {'records': 1, 'total': None})
+        self.assertEqual(classify(good)['cleanup_group_discards'], {'records': 0, 'total': None})
+        self.assertTrue(classify(good[:removal_at] + cg % 1 + good[removal_at:])['malformed_stage_record'], 'a record before the removal')
+        self.assertTrue(classify(good[:removal_at] + total % 1 + good[removal_at:])['malformed_stage_record'], 'a total before the removal')
+        self.assertTrue(classify(good[:stage0_at] + cg % 2 + cg % 1 + good[stage0_at:])['malformed_stage_record'], 'out of order')
+        self.assertTrue(classify(r29.replace(total % 2, total % 5))['malformed_stage_record'], 'total above the recorded first discards')
+        self.assertTrue(classify(r29.replace(total % 2, total % 1))['malformed_stage_record'], 'total below the records')
+        self.assertTrue(classify(good[:stage3_at] + total % 3 + good[stage3_at:])['malformed_stage_record'], 'a total with no initial records')
+        self.assertTrue(classify(r29b.replace(total % 9, total % 7))['malformed_stage_record'], 'eight records with total 7')
+        self.assertTrue(classify(good[:stage0_at] + b''.join(cg % k for k in range(1, 10)) + good[stage0_at:])['malformed_stage_record'], 'nine records')
+        refusal29 = (good[:stage0_at] + good[stage0_at:good.index(b'\n', stage0_at) + 1] + b'one-shot WLAN join credit: pages=1 remaining=0\n'
+                     b'one-shot WLAN join frame refused: bytes=110 type=0x4000 allowed=0x1400 hdr=08281804ff0000c2 groups=0x0 at=16 g4fc=0x10000 g4seq=0x10000 g4ta=0 translated=0 first=0x6208 sec=0 to=0 from=1\n'
+                     b'one-shot WLAN join stopped: status=-71 first=0 submitted=0x1801 debt=0 cleanup=1 branch=7\n')
+        rr = classify(refusal29)
+        self.assertFalse(rr['malformed_stage_record'], rr['diagnostic_records'])
+        self.assertTrue(rr['refusal_recorded'] and rr['terminal_failure_recorded'] and rr['terminal_branch'] == 7 and not rr['healthy_cleanup_demonstrated'])
         # 0176: the target's beacons delivered to mac80211 are notifications (first four
         # recorded, the total with its keyed part before the stage-3 record); the total
         # must be single, at least the recorded count, with its keyed part no larger, and

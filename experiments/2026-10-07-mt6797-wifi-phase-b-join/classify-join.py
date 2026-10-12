@@ -63,6 +63,9 @@ def classify(raw):
                      # 0173: the target's beacon in the keyed descriptor variant, skipped like every beacon (first four, then the total).
                      rb'keyed beacon skipped: bytes=\d{1,4} fc=0x80 match=0x08 wlan=2 bss=1 sec=4 status=0xe004 count=[1-4]',
                      rb'keyed beacons skipped: total=\d{1,6}',
+                     # 0177: the group-data class in its removed-key variant during the cleanup (first eight, then the total).
+                     rb'cleanup group frame discarded: bytes=\d{1,4} fc=0x[0-9a-f]{1,4} match=0x[0-9a-f]{2} wlan=255 bss=\d{1,2} sec=0 status=0xc200 count=[1-8]',
+                     rb'cleanup group frames discarded: total=\d{1,6}',
                      # 0176: the target's beacons delivered to mac80211 (first four, then the total).
                      rb'beacon delivered: bytes=\d{1,4} rcpi=\d{1,3} keyed=[01] count=[1-4]',
                      rb'beacons delivered: total=\d{1,6} keyed=\d{1,6}',
@@ -90,6 +93,8 @@ def classify(raw):
     group_action_rows = []
     group_action_total_rows = []
     beacon_rows = []  # (index, is_total, keyed_total, total or count)
+    cleanup_group_rows = []  # (index, count)
+    cleanup_group_total_rows = []  # (index, total)
     key_refusal_rows = []  # (index, kind, status, running)
     refused = False
     stopped_index = None
@@ -137,6 +142,10 @@ def classify(raw):
                 elif (body.startswith(b'data TX: first') or body.startswith(b'data RX: first') or body.startswith(b'data RX outside:') or
                       body.startswith(b'data credit:') or body.startswith(b'data TX timeout:') or body.startswith(b'keyed beacon')):
                     pass  # Phase C3 first-frame notifications: metadata, neither refusal nor stage
+                elif body.startswith(b'cleanup group frame discarded:'):
+                    cleanup_group_rows.append((index, int(body.rsplit(b'count=', 1)[1])))
+                elif body.startswith(b'cleanup group frames discarded:'):
+                    cleanup_group_total_rows.append((index, int(body.rsplit(b'total=', 1)[1])))
                 elif body.startswith(b'beacon delivered:'):
                     beacon_rows.append((index, False, None, int(body.rsplit(b'count=', 1)[1])))
                 elif body.startswith(b'beacons delivered:'):
@@ -345,6 +354,26 @@ def classify(raw):
             [count for _, count in group_action_rows] != list(range(1, len(group_action_rows) + 1)) or
             (lifetime_end is not None and any(index >= lifetime_end for index, _ in group_action_rows))):
         malformed = True
+    # 0177: the removed-key group-data discards are admitted only after the group key
+    # removal's record and before the lifetime's end, numbered 1..n in order (at most
+    # eight recorded); one total at most, after the records, at least their count,
+    # before the terminal record.
+    group_removal = [row for row in key_removals if row[1] == 'group']
+    if cleanup_group_rows and (
+            [count for _, count in cleanup_group_rows] != list(range(1, len(cleanup_group_rows) + 1)) or
+            len(group_removal) != 1 or any(index < group_removal[0][0] for index, _ in cleanup_group_rows) or
+            (lifetime_end is not None and any(index >= lifetime_end for index, _ in cleanup_group_rows))):
+        malformed = True
+    # The total is bound to the same window (after the one group key removal record,
+    # before the terminal), follows the records, and the driver records the first
+    # min(total, 8) discards, so the record count must equal exactly that.
+    if cleanup_group_total_rows and (
+            len(cleanup_group_total_rows) > 1 or len(group_removal) != 1 or
+            cleanup_group_total_rows[0][0] < group_removal[0][0] or
+            len(cleanup_group_rows) != min(cleanup_group_total_rows[0][1], 8) or
+            (cleanup_group_rows and cleanup_group_total_rows[0][0] < cleanup_group_rows[-1][0]) or
+            (lifetime_end is not None and cleanup_group_total_rows[0][0] >= lifetime_end)):
+        malformed = True
     # 0176: one delivered-beacon total at most, after the first records, before the
     # terminal record, carrying at least the recorded count and at least its keyed part.
     beacon_firsts = [row for row in beacon_rows if not row[1]]
@@ -510,6 +539,10 @@ def classify(raw):
         # 0176: the target's beacons delivered to mac80211: the first records' count
         # (at most four, a lower bound only) and, when the stage-3 total record exists,
         # the total and its keyed part; otherwise both unknown. A notification, not a claim.
+        # 0177: the removed-key group-data discards during the cleanup (records at most
+        # eight; the total when the stage-3 record exists, else unknown).
+        'cleanup_group_discards': {'records': len(cleanup_group_rows),
+                                   'total': (cleanup_group_total_rows[0][1] if cleanup_group_total_rows else None)},
         'beacons_delivered': {'records': len(beacon_firsts),
                               'total': (beacon_totals[0][3] if beacon_totals else None),
                               'keyed': (beacon_totals[0][2] if beacon_totals else None)},
