@@ -56,11 +56,13 @@ not justify shipping with that gap or adopting a generic replay floor.
   tx_done=28 tx_failed=0 tx_credits=57`. The 28 TX completions are status-0 completion
   records, not a measured ACK or delivery proof, and are not split by Ethernet unicast.
 - Beacons: four delivered records, total at stage 3 `beacons delivered: total=64 keyed=61`.
-- Discards, all the pre-existing management classes: six `group action frame discarded`
-  (status 0xe000) and one directed `action frame discarded`. No pre-key `group data
-  discarded`. The new **0178 data LLC-mismatch class was not observed** (`data_llc_discards`
-  0, total null) and the **0177 cleanup class was not observed** (`cleanup_group_discards` 0,
-  total null); neither is demonstrated.
+- Discards, all pre-existing classes: three pre-key `group data discarded` records (sequence
+  2015–2017, the 0164 class — status 0xc004, sec 0, broadcast match, WLAN index 2, bss 1,
+  frame control 0x6208/0x6208/0x4208, before the pairwise key submission at sequence 2029),
+  six `group action frame discarded` (status 0xe000) and one directed `action frame
+  discarded`. The new **0178 data LLC-mismatch class (status 0xc200) was not observed**
+  (`data_llc_discards` 0, total null) and the **0177 cleanup class was not observed**
+  (`cleanup_group_discards` 0, total null); neither is demonstrated.
 - Cleanup, healthy: deauthentication, both key removals credited, cleanup submissions 0–2,
   and the healthy `cleanup: stage=3 credits=returned slots=retired deauth=1` at sequence 2101.
   No footer followed.
