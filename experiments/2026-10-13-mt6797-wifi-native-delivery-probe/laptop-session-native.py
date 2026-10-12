@@ -87,6 +87,14 @@ def rebind(module, seen):
 
 
 def reviewed_run_path(path, *args, **kwargs):
+    # The SCAN/C2 prepare chain (consys-rails-passive passive-host.py) loads the
+    # installer by a fixed basename from the phase-b dir; during a NATIVE session
+    # the reviewed installer is install-native.py (the ND1 receipt, the native
+    # experiment/release and the native program name) -- every validate/receipt and
+    # boot2/readback guard of install-native.py is kept; only the correct native
+    # installer is selected in place of the phase-b C33 one. Not a shim or bypass.
+    if Path(path).resolve() == PHASE_B / 'install-passive.py':
+        return ORIGINAL_RUN_PATH(str(HERE / 'install-native.py'), *args, **kwargs)
     result = ORIGINAL_RUN_PATH(path, *args, **kwargs)
     if Path(path).resolve() == PHASE_B / 'passive-session.py':
         rebind_native_session(result)

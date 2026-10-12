@@ -6,15 +6,20 @@
 > inherited native prepare API via `laptop-session-native.py` all PASS against the
 > real ND1 candidate hashes, the native init release, the 64-member RAM root, the
 > pinned WPA + wpa_cli + calibration and the source deps. The full capture/session
-> dry-runs stop only at the missing REAL ND deployment receipt and session initial
-> receipt -- an expected PRE-INSTALL dependency, NOT a code gap.
+> dry-runs then exposed one real binding gap: the lower SCAN/C2 prepare chain
+> (consys-rails-passive) loaded the phase-b C33 installer by fixed basename and
+> validated against candidate-32. Fixed here -- during a native session the session
+> wrapper selects install-native.py (ND1 receipt, native experiment/release), with
+> every validate/receipt and boot2/readback guard intact.
 >
-> Those real receipts are produced BY the reviewed install (install.sh's receipt
-> step) and the session itself; they are never fabricated to force a pre-install
-> pass. So the order is fixed: root installs ND1 under the reviewed boot2 guard
-> (standing approval), the real deployment receipt is then obtained, and only a
-> full ACTUAL capture/session preflight PASS on the installed boot clears native
-> execution before any clean handoff / owner boot. The e1 receipt carries no
+> Real receipts are produced BY the reviewed install (install.sh's receipt step)
+> and the session itself; they are never fabricated to force a pre-install pass.
+> ND1 is now installed under the reviewed boot2 guard (predecessor C33 `74c5`,
+> new full `76a9` readback-verified, clean shutdown) and the real deployment
+> receipt was obtained; the native capture preflight passes with it. Native
+> execution is still NOT declared ready: a full ACTUAL capture AND session
+> preflight PASS on the installed ND1 boot (with this session fix) must clear it
+> before any clean handoff / owner boot. The e1 receipt carries no
 > `supplicant`/`wpa_cli` keys, so the native session preserves the required wpa+cli
 > 64-member checks from the inherited C32 parent (candidate-32), not weakened and
 > not by editing e1. No device/radio/kernel-build action is authored here.

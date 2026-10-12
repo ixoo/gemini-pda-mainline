@@ -62,6 +62,15 @@ auto = runpy.run_path(str(PHASE_B / 'passive-session.py'))
 assert auto['prepare'].__globals__['RELEASE'] == NATIVE and \
     auto['prepare'].__globals__['_CANDIDATE'] == 'native-delivery-candidate'
 
+
+# The installer loaded by the lower consys-rails-passive prepare is redirected to
+# install-native.py (ND1 receipt e1), NOT the phase-b C33 installer, with its guards.
+inst = LSN.reviewed_run_path(str(PHASE_B / 'install-passive.py'))
+assert inst['MANIFEST_SHA'] == 'e1c4e2d3eea71f808ee1d9d7f860c1fe43014d4eed00361dfd6562e480ee0c06', inst['MANIFEST_SHA']
+assert callable(inst['validate']) and callable(inst['receipt'])
+phaseb = LSN.ORIGINAL_RUN_PATH(str(PHASE_B / 'install-passive.py'))
+assert phaseb['MANIFEST_SHA'] != inst['MANIFEST_SHA'], 'redirect did not change the installer'
+
 print('session-native-rebind: PASS (real passive-session prepare/check_ram_root namespace '
       're-pointed to ND1 receipt + native release; wpa+cli REQUIRED preserved from the C32 '
-      'parent; e1 untouched; patched runpy applies it automatically)')
+      'parent; e1 untouched; patched runpy applies it automatically; installer redirected to install-native.py e1)')
