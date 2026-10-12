@@ -44,12 +44,13 @@ SCAN.PARENT.CAPTURE = CAPTURE
 SCAN.PARENT.WIPHY_PROBE = SCAN.PARENT.WIPHY_PROBE.replace(
     b'7.1.3-gemini-a53-wifi-scan-tuning-sample', RELEASE.encode())
 HOST = SCAN.HOST
-# The inherited WMT host main reads HERE/results/candidate.json for the capture
-# identity check. Runtime 33 compares against the candidate-32 receipt, so bind
-# only that module's HERE to runtime-33/, whose results/candidate.json is a byte
-# copy of results/candidate-32.json; the earlier runtime-N/ copies stay bound to
-# their runtimes.
-HOST.HERE = HERE / 'runtime-33'
+# The inherited WMT host main reads HOST.HERE/results/candidate.json (a fixed
+# name) for the capture identity check, so that nested HERE must track the
+# runtime too, not only ROOT/CAPTURE: runtime 33 compares against candidate 32,
+# runtime 34 against candidate 33. Each runtime-N/results/candidate.json is a
+# byte copy of the matching results/candidate-<N>.json; other runtimes' copies
+# stay bound to their runtimes.
+HOST.HERE = HERE / ('runtime-' + _SID)
 HOST.ROOT = ROOT
 HOST.CAPTURE = CAPTURE
 HOST.DOMAIN.HERE = HERE

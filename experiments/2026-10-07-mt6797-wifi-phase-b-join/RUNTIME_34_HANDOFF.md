@@ -32,10 +32,18 @@ Common env: `GEMINI_PRIVATE_REPO`, `GEMINI_RUNTIME_ROOT`; for capture/session al
    `./prepare-runtime-34.py`
 3. Installer — generate the derived guard OFFLINE (subcommand `prepare`, which
    writes `install.sh` + `installer.json`, syntax/shellcheck-checked; it does NOT
-   write the device). Root then executes the derived `install.sh` under the
-   standing guard, which rederives the live GPT and verifies the predecessor:
+   write the device). The `-34` wrapper selects candidate 33 for the generation:
    `./install-passive-34.py prepare --previous-gemian-boot <gemian> --candidate <cand33> --output <install-dir>`
-   (the `validate` and `receipt` subcommands are as reviewed for R33.)
+   The generated `install.sh` re-invokes this tool's `validate`/`receipt`
+   subcommands directly (NOT the `-34` wrapper), which select the candidate by
+   `GEMINI_PHASE_B_SESSION` and DEFAULT TO 33 (refusing candidate 33). So root
+   executes it with the mode in the environment, which leaves the reviewed
+   install.sh source bytes/hash unchanged:
+   `GEMINI_PHASE_B_SESSION=34 bash <install-dir>/install.sh`
+   It runs under the standing guard, rederiving the live GPT and verifying the
+   predecessor (candidate 32, 5260715b). The `validate` and `receipt` subcommands
+   are as reviewed for R33 and likewise need `GEMINI_PHASE_B_SESSION=34` when run
+   directly for candidate 33.
 4. Phase-A capture / one-shot trigger (laptop-private remap; writes
    capture-34/phase-a-result.json):
    `./laptop-capture-34.py --candidate <cand33> --execute`

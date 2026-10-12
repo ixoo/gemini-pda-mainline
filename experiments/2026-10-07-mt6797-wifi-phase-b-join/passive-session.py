@@ -83,8 +83,8 @@ SUPPLICANT_BYTES = 1719888
 CLI_MEMBER = 'bin/wpa_cli'
 CLI_SHA256 = '04fdf3ae5615f7831461028331bcc6c62d7c6d6974c2676f5b3a93960e5afd22'
 CLI_BYTES = 798352
-# The runtime-33 committed receipt declares the supplicant and wpa_cli, so both
-# members are required.
+# The selected runtime's committed receipt (candidate 32 for 33, candidate 33
+# for 34) declares the supplicant and wpa_cli, so both members are required.
 _RECEIPT = json.loads((HERE / 'results' / (_CANDIDATE + '.json')).read_bytes())
 SUPPLICANT_REQUIRED = 'supplicant' in _RECEIPT and _RECEIPT['supplicant'] is not None
 CLI_REQUIRED = _RECEIPT.get('wpa_cli') is not None
