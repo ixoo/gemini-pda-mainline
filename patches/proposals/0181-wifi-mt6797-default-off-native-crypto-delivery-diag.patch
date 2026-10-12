@@ -1,0 +1,678 @@
+From 1828b18077ace4e51ffd28adff9bd3372f5d5cec Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 12 Oct 2026 17:24:12 +0000
+Subject: [PATCH] wifi: mt6797: default-off strict native-crypto-delivery
+ diagnostic (bounded hybrid)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+A separately profiled, default-off diagnostic (CONFIG_MT6797_NATIVE_DELIVERY_DIAG,
+armed only by the native_delivery_diag module parameter) that tests whether a
+firmware mode delivers intact protected native MPDUs the host can authenticate
+through standard mac80211 — the route-4 precondition for maintained RX crypto.
+Inert when the option is unset, so the Phase B compile profile (candidate 32 /
+runtime 33) is unaffected. Ciphertext availability and station/monitor coexistence
+are the runtime hypothesis, not a precondition.
+
+After one healthy associated data phase (both keys installed), when armed, submit
+the pinned 16-byte SET_MONITOR command (CMD_ID_SET_MONITOR 0xFC; the seven
+exercised field values of priv_driver_set_monitor — band 0, primary 40,
+SCO/width/S1/S2 0 — with the reserved bytes deterministically zeroed, not a
+literal match to the caller's unspecified stack reserved bytes) and ARM ONLY after
+the owed credit is reconciled (as the key command does); a PIO submit alone does
+not arm. Any enable/disable ambiguity poisons first_error AND closing, forbidding
+all further radio commands including the inherited cleanup, leaving only the
+one-shot reviewed recovery; no retry.
+
+Ordinary RX in the window is admitted exclusively as untouched protected native
+MPDUs through standard mac80211 with EVERY crypto bypass/strip flag clear
+(DECRYPTED/IV_STRIPPED/PN_VALIDATED/MMIC_STRIPPED/MIC_STRIPPED, ALLOW_SAME_PN left
+clear), so mac80211 runs the full CCMP AEAD/MIC and the rx_pn replay check; the
+translated path is withheld while armed. Eligibility is the strict
+mt6797_data_rx_native() (data-rx.h): header translation off (ucHeaderLen BIT7
+clear) is the native gate, the status groups are walked in the source 4/1/2/3
+order with the BIT(6) header-offset pad (nicRxFillRFB), a present group 4 is
+skipped by its size (not used to reconstruct the header), a conservative labeled
+bad-FCS filter (u2StatusFlag bit1) withholds hardware-flagged frames, and the
+original 802.11 MPDU is validated as a protected CCMP data frame from the AP to
+the owner (or group); it is delivered verbatim with the IV and MIC preserved and
+no speculative FCS stripping. Translated, plain, non-CCMP, non-peer, short or
+unknown shapes are withheld (inconclusive), never guessed or corrected live.
+
+Bounds (native-diag.h, pure, unit-tested): 10 s wall, 512 total RX frames, 64
+native frames, 1 MiB total RX bytes; every frame and all logical bytes are counted
+(matched or not) and a ceiling is rejected BEFORE delivery. The wall is enforced
+even on an empty RX stream by tightening the data-phase deadline. The lower
+existing data-phase ceilings also stop the run.
+
+Normal valid traffic traversing this path shows the path works; it does not by
+itself prove hostile-replay rejection. No key export, no bespoke crypto, no
+monitor-netdev (monWork) host policy, no generic observer; only channel 40.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig  |  15 ++
+ .../net/wireless/mediatek/mt6797/data-rx.h    | 110 +++++++++++
+ drivers/net/wireless/mediatek/mt6797/hif.c    |  17 ++
+ drivers/net/wireless/mediatek/mt6797/hif.h    |   6 +
+ .../wireless/mediatek/mt6797/join-commands.h  |  36 ++++
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 139 ++++++++++++++
+ .../wireless/mediatek/mt6797/native-diag.h    | 179 ++++++++++++++++++
+ 7 files changed, 502 insertions(+)
+ create mode 100644 drivers/net/wireless/mediatek/mt6797/native-diag.h
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index 6106d7981..aa196a0d2 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -77,3 +77,18 @@ config MT6797_STATION_JOIN
+ 	  This incomplete implementation leaves management TX closed and has
+ 	  no keys, data path, DMA or interrupts. Existing passive-scan profiles
+ 	  do not enable this option.
++
++config MT6797_NATIVE_DELIVERY_DIAG
++	bool "MT6797 default-off native-crypto-delivery diagnostic (proposal 0181)"
++	depends on MT6797_STATION_JOIN
++	default n
++	help
++	  A default-off, separately profiled diagnostic that, after one healthy
++	  associated data phase, submits the pinned 16-byte SET_MONITOR command
++	  once, admits a bounded window of ordinary RX as untouched protected
++	  native MPDUs to standard mac80211 with every crypto bypass/strip flag
++	  clear (so mac80211 runs the full CCMP AEAD/MIC and replay check), and
++	  submits one disable on a healthy end. It is armed only by the
++	  native_delivery_diag module parameter and is absent from the build
++	  unless this option is set; the Phase B compile profile does not set it.
++	  Not driver support; a bounded source-grounded crypto-delivery test.
+diff --git a/drivers/net/wireless/mediatek/mt6797/data-rx.h b/drivers/net/wireless/mediatek/mt6797/data-rx.h
+index 7a9fcf2e7..c3a19c7c8 100644
+--- a/drivers/net/wireless/mediatek/mt6797/data-rx.h
++++ b/drivers/net/wireless/mediatek/mt6797/data-rx.h
+@@ -229,4 +229,114 @@ mt6797_data_rx_llc_mismatch(const unsigned char *packet, size_t bytes,
+ 	*out = r;
+ 	return true;
+ }
++
++/* Strict native (untranslated, still-encrypted) view of the SAME pinned gen3 RXD
++ * (nic_rx.h), for the default-off native-crypto-delivery diagnostic (0181). It
++ * reuses the exact group walk and the BIT(6) header-offset pad of mt6797_data_rx
++ * and derives the NATIVE-class gates rather than assuming the translated ones:
++ *   - header translation OFF  (ucHeaderLen BIT7 clear; the translated decoder
++ *     requires it SET) -- this is the native-vs-translated discriminator;
++ *   - CCMP derived from the ORIGINAL MPDU (Protected + CCMP Ext-IV), not the
++ *     descriptor security-mode field.
++ * It does NOT copy the translated class's constants (header length 14, ucBssid
++ * 0x04, status 0xc000). It then locates the ORIGINAL 802.11 MPDU at the
++ * post-group offset and validates it as a protected CCMP data frame from the AP
++ * (version 0, type data, Protected set, FromDS and not ToDS, BSSID/TA == ap,
++ * addr1 == own for unicast or group-addressed, a plausible header length and the
++ * CCMP Ext-IV set, with room for the CCMP header and the 8-byte MIC). On success
++ * it returns the MPDU offset and length; authentication is NOT claimed here --
++ * the original protected MPDU is handed to standard mac80211, whose CCMP AEAD,
++ * MIC and replay check authenticate it. Every translated, plain, non-CCMP,
++ * non-peer, short or malformed ordinary frame is withheld (returns false).
++ */
++static inline bool
++mt6797_data_rx_native(const unsigned char *packet, size_t bytes, unsigned char channel,
++		      const unsigned char own[6], const unsigned char ap[6],
++		      size_t *mpdu_off, size_t *mpdu_len)
++{
++	size_t offset = 16;
++	unsigned int groups, fc, hdrlen, subtype, i;
++	const unsigned char *m;
++
++	if (!packet || !own || !ap || !mpdu_off || !mpdu_len ||
++	    bytes < 16 || bytes > 4096 || !channel ||
++	    mt6797_join_le16(packet) != bytes ||
++	    (mt6797_join_le16(packet + 2) >> 13) != 2 ||	/* RX data descriptor format */
++	    packet[5] != channel ||
++	    (packet[6] & 0x80) != 0 ||				/* native: header translation OFF */
++	    (packet[7] & 0x03) != 0)			/* MSDU0 (no AMSDU subframe) */
++		return false;
++	/* No reliance on the descriptor security-mode/error fields (a translated-
++	 * decrypted shape); CCMP is derived from the original MPDU below.
++	 */
++	/* Conservative, clearly-labeled filter (NOT the authentication bar): a frame
++	 * the hardware flags bad-FCS (HAL_RX_STATUS_IS_FCS_ERROR == u2StatusFlag
++	 * bit1, le16(packet+10) & 0x0002; nicRxProcessMonitorPacket only marks
++	 * radiotap bad-FCS, it does not drop) is unlikely to authenticate; a reported
++	 * bad FCS does not logically preclude a valid MIC, so this is a CONSERVATIVE
++	 * metadata filter, not an authentication decision. No tail-FCS byte is
++	 * stripped; the MPDU below is delivered verbatim and mac80211
++	 * authenticates.
++	 */
++	if (mt6797_join_le16(packet + 10) & 0x0002)
++		return false;
++	groups = (mt6797_join_le16(packet + 2) >> 9) & 15;
++	/* The source walk (nicRxFillRFB) adds any present status groups in 4/1/2/3
++	 * order, then the BIT(6) header-offset pad; group 4's presence is NOT the
++	 * translation gate (BIT7 above is), so a present group 4 is skipped by its
++	 * size and the actual MPDU is validated below -- it is never used to
++	 * reconstruct the header for this native path.
++	 */
++	if (groups & 8)
++		offset += 16;				/* group 4 */
++	if (groups & 1)
++		offset += 16;				/* group 1 (PN) */
++	if (groups & 2)
++		offset += 8;					/* group 2: timestamp/CRC */
++	if (groups & 4)
++		offset += 24;				/* group 3 (vector) */
++	if (packet[6] & 0x40)
++		offset += 2;					/* BIT(6) header-offset pad */
++	hdrlen = packet[6] & 0x3f;				/* reported 802.11 header length */
++	if (hdrlen != 24 && hdrlen != 26)
++		return false;
++	if (offset > bytes || bytes - offset < hdrlen + 8 + 8)	/* + CCMP header + MIC */
++		return false;
++	m = packet + offset;
++	fc = mt6797_join_le16(m);
++	subtype = (fc >> 4) & 15;
++	if ((fc & 3) != 0 ||					/* version 0 */
++	    (fc & 0x0c) != 0x08 ||				/* type data */
++	    (fc & 0x4000) == 0 ||				/* Protected */
++	    (fc & 0x0300) != 0x0200 ||				/* FromDS, not ToDS */
++	    (fc & 0x0400) != 0 ||				/* no More Fragments */
++	    (fc & 0x8000) != 0 ||				/* no Order/+HTC */
++	    (subtype != 0 && subtype != 8) ||			/* data or QoS-data only */
++	    (subtype == 8 && hdrlen != 26) ||			/* QoS-data => 26-byte header */
++	    (subtype == 0 && hdrlen != 24) ||			/* data => 24-byte header */
++	    (mt6797_join_le16(m + 22) & 0x000f) != 0)		/* fragment number 0 */
++		return false;
++	for (i = 0; i < 6; i++)
++		if (m[10 + i] != ap[i])				/* addr2 (TA/BSSID) == ap */
++			return false;
++	if (m[4] & 1) {						/* group-addressed */
++		/* accepted as a group frame */
++	} else {
++		for (i = 0; i < 6; i++)
++			if (m[4 + i] != own[i])			/* addr1 == own for unicast */
++				return false;
++	}
++	/* CCMP-SHAPED eligibility (not proven CCMP until the standard mac80211 AEAD):
++	 * the CCMP header's reserved byte 2 is zero, byte 3 has the Ext-IV bit set and
++	 * its reserved low five bits clear (only key-id bits 6-7 may be set).
++	 */
++	if (m[hdrlen + 2] != 0 ||
++	    (m[hdrlen + 3] & 0x20) == 0 ||
++	    (m[hdrlen + 3] & 0x1f) != 0)
++		return false;
++	*mpdu_off = offset;
++	*mpdu_len = bytes - offset;
++	return true;
++}
++
+ #endif
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index dff076461..4b51fcbb0 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -718,6 +718,23 @@ int mt6797_hif_join_channel(struct mt6797_hif *hif, unsigned int sequence,
+ 					   sizeof(payload), false, deadline_ns);
+ }
+ 
++#ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
++/* The pinned 16-byte SET_MONITOR (CMD_ID_SET_MONITOR 0xFC), one enable or one
++ * disable, through the same TC4 PIO owner and credit discipline as the join
++ * commands. Zero proves PIO submission only. Default-off diagnostic.
++ */
++int mt6797_hif_native_monitor(struct mt6797_hif *hif, unsigned int sequence,
++			      bool enable, u8 channel, u64 deadline_ns)
++{
++	u8 payload[MT6797_NATIVE_MONITOR_BYTES];
++
++	if (!mt6797_native_monitor_payload(enable, channel, payload))
++		return -EINVAL;
++	return mt6797_hif_send_join_command(hif, 0xfc, sequence, payload,
++					   sizeof(payload), false, deadline_ns);
++}
++#endif
++
+ /*
+  * True only when the post-record normal owner is idle with every TC4 page
+  * returned. A busy context reads as not idle, so callers fail closed.
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index 4313aa0c8..e9676987f 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -208,6 +208,12 @@ int mt6797_hif_join_remove_station(struct mt6797_hif *hif,
+ int mt6797_hif_join_channel(struct mt6797_hif *hif, unsigned int sequence,
+ 	u8 token, u8 channel, unsigned int interval_ms, bool abort, u64 deadline_ns);
+ 
++#ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
++/* Default-off diagnostic: one 16-byte SET_MONITOR enable or disable (CID 0xFC). */
++int mt6797_hif_native_monitor(struct mt6797_hif *hif, unsigned int sequence,
++			      bool enable, u8 channel, u64 deadline_ns);
++#endif
++
+ /* One native bounded management frame through the existing TC4 PIO owner.
+  * Process context only. Caller owns station/channel generation, destination,
+  * exact frame-body admission and single-use PID. No overlapping page debt.
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-commands.h b/drivers/net/wireless/mediatek/mt6797/join-commands.h
+index 884faa1b2..228e7cbd3 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join-commands.h
++++ b/drivers/net/wireless/mediatek/mt6797/join-commands.h
+@@ -268,4 +268,40 @@ mt6797_join_key_payload(bool add, bool pairwise, const unsigned char *peer,
+ 	mt6797_join_clear(p, MT6797_JOIN_KEY_BYTES);
+ 	return true;
+ }
++
++#define MT6797_NATIVE_MONITOR_BYTES 16U
++
++/* The pinned gen3 CMD_MONITOR_SET_INFO_T (CMD_ID_SET_MONITOR 0xFC). This
++ * reproduces the field VALUES the retained caller exercises, with the reserved
++ * bytes deterministically zeroed. Provenance (gen3 os/linux/gl_wext_priv.c):
++ * priv_driver_set_monitor kalMemZeroes the OS PARAM_CUSTOM_MONITOR_SET_STRUCT
++ * (:2989) and sets enable/primary/SCO/width/S1/S2 with band left 0 (eBand is
++ * computed only for the legal-channel check at :2919-2920 and not assigned);
++ * wlanoidSetMonitor then copies those seven fields into a stack
++ * CMD_MONITOR_SET_INFO_T whose reserved bytes it does NOT explicitly
++ * initialise. So the exercised field values are determinate (band 0, primary
++ * 40, SCO SCN 0, width CW_20_40MHZ 0, S1 0, S2 0 for the "case 20" channel-40
++ * path, :2965-2967) but the caller's reserved bytes are unspecified. This
++ * encoder matches those seven exercised fields and additionally zeroes the
++ * reserved bytes deterministically; it is NOT a literal byte match to the
++ * caller's unspecified stack reserved bytes. The decoded firmware body does not
++ * read the reserved bytes (nor the band byte). Only channel 40 is admitted;
++ * this is not a general radio or monitor-netdev control (the host
++ * monWork/kalSetMonitor path is deliberately not used). ucEnable selects the
++ * single enable or the single disable the diagnostic submits.
++ */
++static inline bool
++mt6797_native_monitor_payload(bool enable, unsigned char channel,
++			      unsigned char output[MT6797_NATIVE_MONITOR_BYTES])
++{
++	unsigned int i;
++
++	if (!output || channel != 40)
++		return false;
++	for (i = 0; i < MT6797_NATIVE_MONITOR_BYTES; i++)
++		output[i] = 0;
++	output[0] = enable ? 1 : 0; /* ucEnable */
++	output[2] = channel;	    /* ucPriChannel; band/SCO/width/S1/S2 stay 0 */
++	return true;
++}
+ #endif
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 42e888780..e60cd1feb 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -21,6 +21,13 @@
+ #include "group-data.h"
+ #include "data-rx.h"
+ #include "join-rearm.h"
++#ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
++#include "native-diag.h"
++static bool native_delivery_diag;
++module_param(native_delivery_diag, bool, 0444);
++MODULE_PARM_DESC(native_delivery_diag,
++		 "Arm the default-off native-crypto-delivery diagnostic (0181)");
++#endif
+ #include "action-frame.h"
+ #include "join-tx.h"
+ #include "join-commands.h"
+@@ -157,6 +164,11 @@ struct mt6797_mac {
+ 	 * rekey, no second phase.
+ 	 */
+ 	bool join_channel_released, join_data_phase, join_data_ended;
++#ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
++	unsigned char native_diag_state;
++	unsigned int native_diag_total, native_diag_native, native_diag_bytes;
++	u64 native_diag_started, native_diag_credit_deadline;
++#endif
+ 	u64 join_data_deadline, join_data_started;
+ 	const char *join_data_end_reason;
+ 	/* Data phase counts: accepted protected frames delivered to mac80211 by
+@@ -1204,6 +1216,10 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
+ 	if (queued || mac->join_inflight || mac->join_page_debt ||
+ 	    mac->join_credit_pending)
+ 		return 0;
++#ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
++	if (!mt6797_native_diag_cleanup_allowed(mac->native_diag_state))
++		return 0;	/* wait for the native enable/disable to retire first */
++#endif
+ 	if (mac->join_sta_active && !mac->join_deauth_done)
+ 		return 0;
+ 	/* TC1 pages of the last data frame may return after its TX status; the
+@@ -1346,6 +1362,77 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
+ #endif
+ 
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++#ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
++/* Step the asynchronous native-crypto-delivery state machine once per worker
++ * iteration. It never blocks on its own ledger: it submits exactly one enable
++ * then one disable, each charged one page with a credit deadline and reconciled
++ * on later iterations through the shared credit/page ledger, and it latches the
++ * no-radio stop (first_error + closing) before any submission on a deadline or
++ * poison. The pure transition (native-diag.h) decides; this executes the action.
++ * Mutex held (the worker).
++ */
++static void mt6797_native_diag_step(struct mt6797_mac *mac)
++{
++	struct mt6797_native_diag_ctx c;
++	struct mt6797_native_diag_budget b;
++	unsigned char prev = mac->native_diag_state;
++	enum mt6797_native_diag_action act;
++	u64 now = ktime_get_ns();
++	int rc;
++
++	b.elapsed_ms = mac->native_diag_started ?
++		(unsigned int)((now - mac->native_diag_started) / NSEC_PER_MSEC) : 0;
++	b.total_rx = mac->native_diag_total;
++	b.native_rx = mac->native_diag_native;
++	b.bytes = mac->native_diag_bytes;
++	c.state = mac->native_diag_state;
++	c.armed = native_delivery_diag;
++	c.data_phase = mac->join_data_phase && !mac->join_data_ended &&
++		       mac->join_key_pairwise == 1 && mac->join_key_group == 1;
++	c.quiescent = !mac->join_credit_pending && !mac->join_page_debt && !mac->join_inflight;
++	c.poisoned = mac->first_error || mac->closing;
++	c.deadline_passed = (mac->native_diag_state == MT6797_ND_ENABLE_PENDING ||
++			     mac->native_diag_state == MT6797_ND_DISABLE_PENDING) &&
++			    now >= mac->native_diag_credit_deadline;
++	c.budget_stop = mt6797_native_diag_budget_step(&b) == MT6797_NATIVE_DIAG_STOP;
++	act = mt6797_native_diag_transition(&c);
++	mac->native_diag_state = c.state;
++	if (act == MT6797_ND_ACT_SUBMIT_ENABLE || act == MT6797_ND_ACT_SUBMIT_DISABLE) {
++		rc = mt6797_hif_native_monitor(mac->hif, mac->sequence++,
++					       act == MT6797_ND_ACT_SUBMIT_ENABLE, 40,
++					       mac->join_deadline);
++		if (rc) {
++			if (!mac->first_error)
++				mac->first_error = rc;
++			mac->closing = true;	/* ambiguous submit: no further radio */
++			mac->native_diag_state = MT6797_ND_CLOSED;
++		} else {
++			mac->native_diag_credit_deadline = now + 100 * NSEC_PER_MSEC;
++			reinit_completion(&mac->join_credit_done);
++			mac->join_credit_pending = true;
++			mac->join_page_debt = 1;
++		}
++	} else if (act == MT6797_ND_ACT_LATCH_NORADIO) {
++		if (!mac->first_error)
++			mac->first_error = -ETIMEDOUT;
++		mac->closing = true;
++	}
++	if (prev != MT6797_ND_ACTIVE && mac->native_diag_state == MT6797_ND_ACTIVE) {
++		u64 wall = now + (u64)MT6797_NATIVE_DIAG_WALL_MS * NSEC_PER_MSEC;
++
++		mac->native_diag_started = now;
++		if (wall < mac->join_data_deadline)
++			mac->join_data_deadline = wall;	/* wall even on an empty RX stream */
++	}
++	if (prev != mac->native_diag_state)
++		dev_info(wiphy_dev(mac->hw->wiphy),
++			 "one-shot WLAN native-diag: state=%u act=%u total=%u native=%u bytes=%u\n",
++			 (unsigned int)mac->native_diag_state, (unsigned int)act,
++			 mac->native_diag_total, mac->native_diag_native,
++			 mac->native_diag_bytes);
++}
++#endif
++
+ /* End the data phase once: the reserved deauthentication's hold ends now and
+  * the poller sends it, then the teardown follows. Called with the mutex held.
+  */
+@@ -1646,6 +1733,9 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	if (ret)
+ 		goto failed;
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++#ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
++	mt6797_native_diag_step(mac);
++#endif
+ 	if (mac->join_data_phase && !mac->join_data_ended &&
+ 	    ktime_get_ns() >= mac->join_data_deadline)
+ 		mt6797_mac_join_end_data(mac, "budget");
+@@ -1737,6 +1827,10 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 					    IEEE80211_TX_CTRL_PORT_CTRL_PROTO;
+ 
+ 				if (skb->len < 36 || eth_bytes > MT6797_JOIN_ETH_MAX_BYTES ||
++#ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
++				    mac->native_diag_state == MT6797_ND_ENABLE_PENDING ||
++				    mac->native_diag_state == MT6797_ND_DISABLE_PENDING ||
++#endif
+ 				    !mac->join_sta_active ||
+ 				    (!port && (!mac->join_data_phase || mac->join_data_ended))) {
+ 					ret = -EINVAL;
+@@ -1819,6 +1913,13 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 				goto failed;
+ 			got = true;
+ 			branch = 5;
++#ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
++			if (mac->native_diag_state == MT6797_ND_ENABLE_PENDING ||
++			    mac->native_diag_state == MT6797_ND_ACTIVE) {
++				mac->native_diag_total++;
++				mac->native_diag_bytes += (unsigned int)rx.logical_bytes;
++			}
++#endif
+ 			if (mt6797_join_event(mac->join_packet, rx.logical_bytes, 0x0f, 16)) {
+ 				if (!mac->join_inflight ||
+ 	!mt6797_join_tx_done(mac->join_packet, rx.logical_bytes,
+@@ -2008,6 +2109,44 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 			 * reaches it too. Delivery is capped per lifetime; frames above
+ 			 * the cap are dropped undelivered and counted.
+ 			 */
++#ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
++			if (mac->native_diag_state != MT6797_ND_IDLE &&
++			    mac->native_diag_state != MT6797_ND_CLOSED) {
++				struct mt6797_native_diag_budget nb = {
++					mac->native_diag_started ?
++					(unsigned int)((ktime_get_ns() -
++					 mac->native_diag_started) / NSEC_PER_MSEC) : 0,
++					mac->native_diag_total, mac->native_diag_native,
++					mac->native_diag_bytes };
++				size_t mo, ml;
++
++				if (mt6797_native_diag_admit(mac->native_diag_state, &nb) &&
++				    mt6797_data_rx_native(mac->join_packet, rx.logical_bytes, 40,
++							  mac->hw->wiphy->perm_addr,
++							  mac->join_ap, &mo, &ml)) {
++					skb = dev_alloc_skb(ml);
++					if (!skb) {
++						ret = -ENOMEM;
++						goto failed;
++					}
++					skb_put_data(skb, mac->join_packet + mo, ml);
++					memset(IEEE80211_SKB_RXCB(skb), 0,
++					       sizeof(struct ieee80211_rx_status));
++					IEEE80211_SKB_RXCB(skb)->band = NL80211_BAND_5GHZ;
++					IEEE80211_SKB_RXCB(skb)->freq = 5200;
++					IEEE80211_SKB_RXCB(skb)->flag |=
++						mt6797_native_diag_ordinary_flags(0);
++					if (!mac->native_diag_native)
++						dev_info(wiphy_dev(mac->hw->wiphy),
++							 "one-shot WLAN native-diag RX: first mpdu_bytes=%zu crypto_bypass_flags=0x%x\n",
++							 ml, IEEE80211_SKB_RXCB(skb)->flag &
++							 mt6797_native_diag_crypto_bypass_mask());
++					mac->native_diag_native++;
++					__skb_queue_tail(&received, skb);
++				}
++				continue;	/* translated/plain withheld while engaged */
++			}
++#endif
+ 			if (mac->join_key_pairwise_submitted && !mac->join_cleanup_done &&
+ 			    mt6797_data_rx(mac->join_packet, rx.logical_bytes, 40,
+ 					   mac->hw->wiphy->perm_addr, mac->join_ap,
+diff --git a/drivers/net/wireless/mediatek/mt6797/native-diag.h b/drivers/net/wireless/mediatek/mt6797/native-diag.h
+new file mode 100644
+index 000000000..f6553b14e
+--- /dev/null
++++ b/drivers/net/wireless/mediatek/mt6797/native-diag.h
+@@ -0,0 +1,179 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Pure decision core for the DEFAULT-OFF native-crypto-delivery diagnostic
++ * (CONFIG_MT6797_NATIVE_DELIVERY_DIAG). No side effects, no kernel calls; the
++ * includer provides the RX_FLAG_* definitions (net/mac80211.h in the driver,
++ * test stubs in the unit test). It fixes the admitted first-window ceilings and
++ * the exact rx_status flag discipline so the ordinary native RX traverses the
++ * full standard mac80211 CCMP AEAD/MIC and replay check.
++ */
++#ifndef MT6797_NATIVE_DIAG_H
++#define MT6797_NATIVE_DIAG_H
++
++/* Root-admitted first-window ceilings; the lower existing data-phase ceilings
++ * (MT6797_JOIN_DATA_RX_MAX etc.) also stop the run, checked by the caller.
++ */
++#define MT6797_NATIVE_DIAG_WALL_MS    10000U        /* 10 s post-switch wall */
++#define MT6797_NATIVE_DIAG_RX_MAX     512U          /* total RX frames admitted */
++#define MT6797_NATIVE_DIAG_NATIVE_MAX 64U           /* protected-native ordinary frames */
++#define MT6797_NATIVE_DIAG_BYTES_MAX  (1024U * 1024U) /* 1 MiB total RX bytes */
++
++/* The crypto bypass/strip flags that would make mac80211 SKIP decrypt, MIC or
++ * replay. The diagnostic sets NONE of them for an ordinary native MPDU, so the
++ * frame traverses ieee80211_crypto_ccmp_decrypt's AEAD+MIC and the rx_pn replay
++ * check in full. ALLOW_SAME_PN is included (and left clear): no retry/aggregation
++ * same-PN acceptance is claimed.
++ */
++static inline unsigned int mt6797_native_diag_crypto_bypass_mask(void)
++{
++	return RX_FLAG_DECRYPTED | RX_FLAG_IV_STRIPPED | RX_FLAG_PN_VALIDATED |
++	       RX_FLAG_MMIC_STRIPPED | RX_FLAG_MIC_STRIPPED | RX_FLAG_ALLOW_SAME_PN;
++}
++
++/* The exact rx_status flag word the diagnostic sets for an ordinary native
++ * protected MPDU: only the no-signal marker when the signal is invalid; never a
++ * crypto bypass/strip flag and never an 802.3/decap flag. (band, freq and the
++ * signal value are set separately by the caller; they are not flags.)
++ */
++static inline unsigned int mt6797_native_diag_ordinary_flags(int signal_valid)
++{
++	return signal_valid ? 0U : RX_FLAG_NO_SIGNAL_VAL;
++}
++
++enum mt6797_native_diag_step { MT6797_NATIVE_DIAG_CONTINUE, MT6797_NATIVE_DIAG_STOP };
++
++struct mt6797_native_diag_budget {
++	unsigned int elapsed_ms;   /* monotonic ms since the mode switch */
++	unsigned int total_rx;     /* all RX frames admitted in the window */
++	unsigned int native_rx;    /* protected-native ordinary frames delivered */
++	unsigned int bytes;        /* total RX bytes admitted in the window */
++};
++
++/* STOP when any admitted ceiling is reached; otherwise CONTINUE. A NULL or an
++ * at/over-ceiling state stops.
++ */
++static inline enum mt6797_native_diag_step
++mt6797_native_diag_budget_step(const struct mt6797_native_diag_budget *b)
++{
++	if (!b)
++		return MT6797_NATIVE_DIAG_STOP;
++	if (b->elapsed_ms >= MT6797_NATIVE_DIAG_WALL_MS ||
++	    b->total_rx >= MT6797_NATIVE_DIAG_RX_MAX ||
++	    b->native_rx >= MT6797_NATIVE_DIAG_NATIVE_MAX ||
++	    b->bytes >= MT6797_NATIVE_DIAG_BYTES_MAX)
++		return MT6797_NATIVE_DIAG_STOP;
++	return MT6797_NATIVE_DIAG_CONTINUE;
++}
++
++/* The default-off diagnostic's control runs INSIDE join_work; it must never block
++ * on its own ledger (a worker waiting for itself would time out). This pure
++ * transition drives a compact asynchronous state machine the poller steps once
++ * per iteration: it submits exactly one enable, then one disable, each reconciled
++ * across later iterations on the real credit/page ledger (as the in-worker
++ * commands are), activating only after the enable retires and permitting the
++ * inherited healthy cleanup only after the disable retires. On a deadline or any
++ * poison it latches a no-radio stop before any further submission. No blocking,
++ * no new workqueue. The wiring executes the returned action (charge the one page
++ * + credit deadline on a submit, or set first_error+closing on a latch).
++ */
++enum mt6797_native_diag_state {
++	MT6797_ND_IDLE,
++	MT6797_ND_ENABLE_PENDING,
++	MT6797_ND_ACTIVE,
++	MT6797_ND_DISABLE_PENDING,
++	MT6797_ND_CLOSED,
++};
++
++enum mt6797_native_diag_action {
++	MT6797_ND_ACT_NONE,
++	MT6797_ND_ACT_SUBMIT_ENABLE,
++	MT6797_ND_ACT_SUBMIT_DISABLE,
++	MT6797_ND_ACT_LATCH_NORADIO,
++};
++
++struct mt6797_native_diag_ctx {
++	enum mt6797_native_diag_state state;
++	int armed;		/* the native_delivery_diag module parameter */
++	int data_phase;		/* healthy associated data phase, both keys installed */
++	int quiescent;		/* ledger idle: no credit pending, no page debt, no inflight */
++	int poisoned;		/* first_error or closing already set */
++	int deadline_passed;	/* now >= the pending command's credit deadline */
++	int budget_stop;	/* ACTIVE: a window ceiling reached */
++};
++
++/* Pure next-state + action. *state is updated in place. */
++static inline enum mt6797_native_diag_action
++mt6797_native_diag_transition(struct mt6797_native_diag_ctx *c)
++{
++	if (!c)
++		return MT6797_ND_ACT_NONE;
++	switch (c->state) {
++	case MT6797_ND_IDLE:
++		if (c->poisoned)
++			return MT6797_ND_ACT_NONE;
++		if (c->armed && c->data_phase && c->quiescent) {
++			c->state = MT6797_ND_ENABLE_PENDING;
++			return MT6797_ND_ACT_SUBMIT_ENABLE;
++		}
++		return MT6797_ND_ACT_NONE;
++	case MT6797_ND_ENABLE_PENDING:
++		if (c->poisoned) {
++			c->state = MT6797_ND_CLOSED;
++			return MT6797_ND_ACT_NONE;
++		}
++		if (c->deadline_passed) {
++			c->state = MT6797_ND_CLOSED;
++			return MT6797_ND_ACT_LATCH_NORADIO;
++		}
++		if (c->quiescent)		/* enable retired */
++			c->state = MT6797_ND_ACTIVE;
++		return MT6797_ND_ACT_NONE;
++	case MT6797_ND_ACTIVE:
++		if (c->poisoned) {
++			c->state = MT6797_ND_CLOSED;
++			return MT6797_ND_ACT_NONE;
++		}
++		if (c->budget_stop && c->quiescent) {
++			c->state = MT6797_ND_DISABLE_PENDING;
++			return MT6797_ND_ACT_SUBMIT_DISABLE;
++		}
++		return MT6797_ND_ACT_NONE;
++	case MT6797_ND_DISABLE_PENDING:
++		if (c->poisoned) {
++			c->state = MT6797_ND_CLOSED;
++			return MT6797_ND_ACT_NONE;
++		}
++		if (c->deadline_passed) {
++			c->state = MT6797_ND_CLOSED;
++			return MT6797_ND_ACT_LATCH_NORADIO;
++		}
++		if (c->quiescent)		/* disable retired */
++			c->state = MT6797_ND_CLOSED;
++		return MT6797_ND_ACT_NONE;
++	case MT6797_ND_CLOSED:
++	default:
++		return MT6797_ND_ACT_NONE;
++	}
++}
++
++/* The inherited healthy cleanup may submit only when the diagnostic owns no
++ * un-retired radio command: never armed, or fully closed.
++ */
++static inline int mt6797_native_diag_cleanup_allowed(enum mt6797_native_diag_state s)
++{
++	return s == MT6797_ND_IDLE || s == MT6797_ND_CLOSED;
++}
++
++/* Prospective per-frame admission while the window is pending or active: the
++ * frame and its logical bytes are ALWAYS counted (matched or not); it is
++ * delivered only in ACTIVE and only if no ceiling is reached once counted.
++ */
++static inline int
++mt6797_native_diag_admit(enum mt6797_native_diag_state s,
++			 const struct mt6797_native_diag_budget *after)
++{
++	return s == MT6797_ND_ACTIVE &&
++	       mt6797_native_diag_budget_step(after) == MT6797_NATIVE_DIAG_CONTINUE;
++}
++
++#endif /* MT6797_NATIVE_DIAG_H */
