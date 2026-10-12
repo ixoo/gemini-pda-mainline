@@ -109,6 +109,26 @@ int main(void)
 		/* Poison in any pending state closes without a radio command. */
 		c = (struct mt6797_native_diag_ctx){MT6797_ND_ENABLE_PENDING, 1, 1, 1, 1, 0, 0};
 		assert(mt6797_native_diag_transition(&c) == MT6797_ND_ACT_NONE && c.state == MT6797_ND_CLOSED);
+		/* PROOF: once first_error/closing is latched (poisoned), NO state yields a
+		 * SUBMIT action — the diagnostic cannot slip a radio command past the
+		 * existing fences; a pending state closes, and IDLE/ACTIVE never submit. */
+		{
+			int st;
+			for (st = MT6797_ND_IDLE; st <= MT6797_ND_CLOSED; st++) {
+				struct mt6797_native_diag_ctx q = {
+					(enum mt6797_native_diag_state)st, 1, 1, 1, 1, 1, 1};
+				enum mt6797_native_diag_action a = mt6797_native_diag_transition(&q);
+				assert(a != MT6797_ND_ACT_SUBMIT_ENABLE &&
+				       a != MT6797_ND_ACT_SUBMIT_DISABLE);
+			}
+		}
+		/* IDLE poisoned: no enable. ACTIVE poisoned: no disable, closes. */
+		c = (struct mt6797_native_diag_ctx){MT6797_ND_IDLE, 1, 1, 1, 1, 0, 0};
+		assert(mt6797_native_diag_transition(&c) == MT6797_ND_ACT_NONE && c.state == MT6797_ND_IDLE);
+		c = (struct mt6797_native_diag_ctx){MT6797_ND_ACTIVE, 1, 1, 1, 1, 0, 1};
+		assert(mt6797_native_diag_transition(&c) == MT6797_ND_ACT_NONE && c.state == MT6797_ND_CLOSED);
+		c = (struct mt6797_native_diag_ctx){MT6797_ND_DISABLE_PENDING, 1, 1, 1, 1, 0, 0};
+		assert(mt6797_native_diag_transition(&c) == MT6797_ND_ACT_NONE && c.state == MT6797_ND_CLOSED);
 		/* Prospective admission: ACTIVE within caps admits; at a cap, no admit. */
 		assert(mt6797_native_diag_admit(MT6797_ND_ACTIVE, &z));
 		assert(!mt6797_native_diag_admit(MT6797_ND_ENABLE_PENDING, &z));  /* never deliver while pending */

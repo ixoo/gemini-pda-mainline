@@ -81,6 +81,17 @@ is added. HIF stays opaque (no MAC pointer in hif.c).
 - **Bounds** (native-diag.h, pure): 10 s wall, 512 total RX frames, 64 native frames, 1 MiB
   total RX bytes; the wall is enforced even on an empty RX stream by tightening the data-phase
   deadline when the window becomes active; the lower existing data-phase ceilings also stop it.
+- **No-radio proof (V21-confirmed)**: once a latch sets `first_error`/`closing`, the pure
+  transition returns **no** SUBMIT action in **any** state (unit-tested across all states) and the
+  state goes CLOSED, so every state-gated hook (accounting, delivery, TX fence, cleanup gate)
+  turns inert. The latch is honoured by the parent's existing fences — V21 verified that
+  cleanup, add-peer, set_key, join_work, scan, config and retire already check
+  `first_error`/`closing`, and an HIF local failure aborts normal state and blocks every send
+  entrypoint with no MAC pointer — so no redundant per-callsite guard or framework is added.
+- **RX FIFO vs TC4 credit**: the RX FIFO is retired by `receive_packet`'s complete read /
+  post-WRPLR, separate from the TC4 page credit that reconciles the enable/disable command; the
+  central accounting reads an already-retired frame, and the state machine reconciles only the
+  command's page credit.
 - **Cleanup gate**: the inherited healthy cleanup may submit only once the diagnostic owns no
   un-retired command (`mt6797_native_diag_cleanup_allowed`: never armed, or fully closed) — the
   disable is retired before cleanup. Any ambiguity leaves only the one-shot reviewed recovery;
