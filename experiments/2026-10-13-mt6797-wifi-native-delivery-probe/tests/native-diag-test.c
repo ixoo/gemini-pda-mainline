@@ -104,6 +104,16 @@ int main(void)
 		/* ACTIVE ceiling but NO sequence space => latch no-radio, close. */
 		c = (struct mt6797_native_diag_ctx){.state = MT6797_ND_ACTIVE, .armed = 1, .data_phase = 1, .quiescent = 1, .seq_ok = 0, .budget_stop = 1};
 		assert(mt6797_native_diag_transition(&c) == MT6797_ND_ACT_LATCH_NORADIO && c.state == MT6797_ND_CLOSED);
+		/* Temporal coupling: the data phase ending (lower deadline / association
+		 * loss) ends the window even with budget room, and disables. */
+		c = (struct mt6797_native_diag_ctx){.state = MT6797_ND_ACTIVE, .armed = 1, .data_phase = 0, .quiescent = 1, .seq_ok = 1};
+		assert(mt6797_native_diag_transition(&c) == MT6797_ND_ACT_SUBMIT_DISABLE && c.state == MT6797_ND_DISABLE_PENDING);
+		/* Window ended (data phase OR budget) but a completion is still owed =>
+		 * wait in ACTIVE; never disable with a frame in flight (quiescent false). */
+		c = (struct mt6797_native_diag_ctx){.state = MT6797_ND_ACTIVE, .armed = 1, .data_phase = 0, .quiescent = 0, .seq_ok = 1};
+		assert(mt6797_native_diag_transition(&c) == MT6797_ND_ACT_NONE && c.state == MT6797_ND_ACTIVE);
+		c = (struct mt6797_native_diag_ctx){.state = MT6797_ND_ACTIVE, .armed = 1, .data_phase = 1, .quiescent = 0, .seq_ok = 1, .budget_stop = 1};
+		assert(mt6797_native_diag_transition(&c) == MT6797_ND_ACT_NONE && c.state == MT6797_ND_ACTIVE);
 		/* Enable / disable deadline passed => latch no-radio, close. */
 		c = (struct mt6797_native_diag_ctx){.state = MT6797_ND_ENABLE_PENDING, .deadline_passed = 1};
 		assert(mt6797_native_diag_transition(&c) == MT6797_ND_ACT_LATCH_NORADIO && c.state == MT6797_ND_CLOSED);

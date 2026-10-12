@@ -120,7 +120,17 @@ itself prove hostile-replay rejection, and one negative does not close all raw m
   **all 16 group masks × pad × QoS** accepted at the source offsets with verbatim length, and
   every withheld shape (HDR_TRAN, AMSDU, unprotected, MoreFragments, Order, fragment,
   ToDS/non-data, non-peer, CCMP-shape, bad-FCS, length mismatch, short, wrong channel).
+- `tests/run-native-loop-test.py` → `native-loop-test.c` (ASan/UBSan): an **event-sequence
+  model of one worker iteration in source order** (step → the parent's lower-deadline
+  `end_data` → TX queue selection → RX-class dispatch) proving the actual retirement/ending
+  behaviour: the disable/page fence is established in the **same iteration**, before the queued
+  deauthentication can be selected (so a lower data-phase deadline or association loss is honored
+  without sending recovery TX ahead of the disable); an owed TX-done is **never dropped** on a
+  capture stop (no disable until the ledger is quiescent); past a ceiling **only owed
+  completions** (TX-done/control) are processed, never beacon/EAPOL/group/data; no command is
+  sent on ambiguity; and the sticky no-plaintext fence never reopens legacy RX through CLOSED.
 
-The concurrency, credit, expiry and recovery wiring in `mac.c` is not host-compilable; its
-compile is the managed Buildbox build after review, and its behaviour is the runtime's. No
+The concurrency, credit, expiry and recovery wiring in `mac.c` is not host-compilable; the loop
+model mirrors its control order and must be kept in sync with the worker, its real compile is the
+managed Buildbox build after review, and its behaviour is the runtime's. No
 build, device, radio or crypto step is part of authoring 0181.

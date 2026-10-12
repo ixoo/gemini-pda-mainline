@@ -26,7 +26,7 @@ hostile-replay rejection). The driver change is proposal 0181 under `patches/pro
 
 ## Checks
 
-`tests/run-native-diag-test.py` and `tests/run-native-rx-test.py` (ASan/UBSan) pass against the
+`tests/run-native-diag-test.py`, `tests/run-native-rx-test.py` and `tests/run-native-loop-test.py` (ASan/UBSan) pass against the
 applied tree; `scripts/validate-manifest-series`, the invariant test and `scripts/check-repository`
 pass; pinned `checkpatch.pl` on 0181 shows only the standing archive-proposal exceptions. No
 kernel build, device, radio or crypto step is part of authoring 0181.
