@@ -502,6 +502,19 @@ boundary → packet DMA/IRQ and resource ownership from source, with PIO as the 
 fallback → ordinary connect/disconnect/scan and TX/RX lifecycle → regression). Driver
 completion is unproven and no upstream/DCO claim is made.
 
+## Compile 36 and the candidate 31 pins (2026-10-12)
+
+[COMPILE_36.md](COMPILE_36.md): the phase-B compile profile at the built input
+7fa36c01 with 0163 to 0179 (678 patches) built and validated on Buildbox-1
+(package `521e1ce3…`, kernel image `ded2f6db…`, decompressed 65536 larger than
+compile 35 as the observation's code crosses an alignment boundary, kernel
+config and board DT unchanged, warnings the same two non-driver lines as
+compile 35, zero driver warnings). This input already carries the reviewed
+comments, so the built driver files (`mac.c` `2d7e5a33…`, `data-rx.h`
+`6330bac2…`) are the reviewed files. `build-candidate.py` now pins the built
+input and the package for candidate 31; nothing else changes. The custodian
+composes candidate 31; nothing has been installed or booted.
+
 ## Compile 35 and the candidate 30 pins (2026-10-12)
 
 [COMPILE_35.md](COMPILE_35.md): the phase-B compile profile at the built input
