@@ -275,11 +275,32 @@ def cycles_export(boot=BOOTX, c2_ack=True, c2_lease=True):
 
 
 good_export = cycles_export()
-res = C2['cycles_export_result'](good_export, BOOTX)
-assert res['complete'] and res['boot_match'] and set(res['cycles']) == {1, 2}
-assert res['cycles'][1]['lease'] >= 0 and res['cycles'][2]['host-ack'] >= 0
-assert not C2['cycles_export_result'](good_export, 'ffffffff-0123-0123-0123-0123456789ab')['complete']  # boot
-assert not C2['cycles_export_result'](cycles_export(c2_ack=False), BOOTX)['complete']  # cycle-2 ack missing
-assert not C2['cycles_export_result'](cycles_export(c2_lease=False), BOOTX)['complete']  # cycle-2 lease missing
-assert not C2['cycles_export_result'](b'garbage', BOOTX)['complete']
-print('c2-session: PASS (two-cycle evidence export: bounded read-only script, both cycles present with lease and host-ack required)')
+
+
+def proc_for(raw, exit_status=0, reason=None, stdin_complete=True, stdout_bytes=None, stderr_bytes=0):
+    return {'exit_status': exit_status, 'reason': reason, 'stdin_complete': stdin_complete,
+            'stdout_bytes': len(raw) if stdout_bytes is None else stdout_bytes, 'stderr_bytes': stderr_bytes}
+
+
+res = C2['cycles_export_result'](good_export, b'', proc_for(good_export), BOOTX)
+assert res['complete'] and res['boot_match'] and res['transport_ok'] and not res['truncated']
+assert set(res['cycles']) == {1, 2} and res['cycles'][1]['lease'] >= 0 and res['cycles'][2]['host-ack'] >= 0
+# Identity and presence gates.
+assert not C2['cycles_export_result'](good_export, b'', proc_for(good_export), 'ffffffff-0123-0123-0123-0123456789ab')['complete']
+assert not C2['cycles_export_result'](cycles_export(c2_ack=False), b'', proc_for(cycles_export(c2_ack=False)), BOOTX)['complete']
+assert not C2['cycles_export_result'](cycles_export(c2_lease=False), b'', proc_for(cycles_export(c2_lease=False)), BOOTX)['complete']
+assert not C2['cycles_export_result'](b'garbage', b'', proc_for(b'garbage'), BOOTX)['complete']
+# Transport gate: stderr, a non-zero process, an incomplete stdin or a stdout-size mismatch all fail (raw retained upstream).
+assert not C2['cycles_export_result'](good_export, b'oops', proc_for(good_export), BOOTX)['complete']
+assert not C2['cycles_export_result'](good_export, b'', proc_for(good_export, exit_status=1), BOOTX)['complete']
+assert not C2['cycles_export_result'](good_export, b'', proc_for(good_export, stdin_complete=False), BOOTX)['complete']
+assert not C2['cycles_export_result'](good_export, b'', proc_for(good_export, stdout_bytes=len(good_export) - 1), BOOTX)['complete']
+assert not C2['cycles_export_result'](good_export, b'', proc_for(good_export, stderr_bytes=1), BOOTX)['complete']
+# Truncation gate: a file reported above the dd cap (or an unreadable -1) is refused.
+cap = C2['CYCLE_EXPORT_LIMIT']
+over = good_export.replace(b'bytes=%d' % len(b'data-lease'), b'bytes=%d' % (cap + 1), 1)
+r_over = C2['cycles_export_result'](over, b'', proc_for(over), BOOTX)
+assert r_over['truncated'] and not r_over['complete']
+minus = good_export.replace(b'bytes=%d' % len(b'data-lease'), b'bytes=-1', 1)
+assert C2['cycles_export_result'](minus, b'', proc_for(minus), BOOTX)['truncated']
+print('c2-session: PASS (two-cycle evidence export: read-only script, transport/process gate, truncation refusal, lease+host-ack required)')

@@ -70,7 +70,7 @@ with tempfile.TemporaryDirectory(prefix='mt6797-host-identity-') as directory:
     assert runtime_1['files']['boot2-padded.img']['sha256'] == RUNTIME_1_BOOT2, 'runtime-1 receipt preserved'
     # Other rebound roots are untouched by the receipt binding.
     assert host.DOMAIN.HERE == HERE and host.DOMAIN.HOST.HERE == HERE
-    assert host.ROOT == work / 'runtime/wifi-phase-b/session-32' and host.CAPTURE == work / 'runtime/wifi-phase-b/capture-32'
+    assert host.ROOT == work / 'runtime/wifi-phase-b/session-33' and host.CAPTURE == work / 'runtime/wifi-phase-b/capture-33'
 
     def identity(receipt, wmt, start):
         digest = receipt['files']['boot2-padded.img']['sha256']

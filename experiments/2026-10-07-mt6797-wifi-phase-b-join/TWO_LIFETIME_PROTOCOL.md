@@ -40,8 +40,13 @@ therefore controls the supplicant explicitly, keeping the one vif and the one su
   deliberately **not** gated on this window: they run after the data phase and cleanup close.
   Because runtime 32's data window was only ~6.2 s, the device waits/blocking-child polls and the
   host probe/ack polling use a short 0.2 s interval (same finite budgets, one Wi-Fi attempt per
-  cycle) so the exchange and ack fit the window. The custodian joins and stops the host helper
-  before evidence sealing and recovery, so no ack can be written after the return to Gemian.
+  cycle) so the exchange and ack fit the window. The host owns the
+  laptop-wifi-ssh helper: it starts it once for the verified boot concurrently with the
+  device session and, in a `finally`, joins it and stops its whole process group (by the PGID
+  cached at start, independent of leader liveness — SIGTERM, a bounded quiescence probe, then
+  SIGKILL), recording the real exit, before any export, seal or recovery; the export/seal is
+  refused unless the group is confirmed quiescent, so no ack can be written after the return
+  to Gemian. One start, no blind retry.
 - Before cycle 2 the wrapper waits for **both** the healthy rendezvous (the `one-shot WLAN join
   rearm` record) **and** the attributable cycle-1 host acknowledgment, and stops on the first fault
   (a named join `stopped:`, a boot change or the wall deadline); only then `select_network` for

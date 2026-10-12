@@ -307,28 +307,41 @@ def cycles_export_script(boot):
             "$BB printf '__CYCLES_END__\\nboot_after=%s\\n' \"$($BB cat /proc/sys/kernel/random/boot_id)\"\n")
 
 
-def cycles_export_result(raw, boot):
-    """Validate the framed cycles export: identity before and after, framed, and both cycles'
-    key evidence present (a bound lease and a present host-ack for each). Records per-file
-    presence and byte counts only (no contents), so the result json carries no address; the
-    raw framed bytes are the private sealed capture.
+def cycles_export_result(raw, err, process, boot):
+    """Validate the framed cycles export: the read-only transport actually completed (no
+    stderr, a clean process, the whole stdout accounted for), identity before and after,
+    framed, both cycles' key evidence present (a bound lease and a present host-ack for each),
+    and NO file truncated by the per-file dd cap. Records per-file presence and byte counts
+    only (no contents), so the result json carries no address; the raw framed bytes are the
+    private sealed capture and are retained regardless of completeness.
     """
     text = raw.decode('ascii', 'replace') if isinstance(raw, (bytes, bytearray)) else raw
-    result = {'complete': False, 'boot_match': False, 'cycles': {}, 'bytes': len(raw)}
+    result = {'complete': False, 'boot_match': False, 'transport_ok': False,
+              'truncated': False, 'cycles': {}, 'bytes': len(raw)}
     head = re.match(r"__CYCLES_BEGIN__\nboot=(" + BOOT_RE + r")\n", text)
     tail = re.search(r"\n__CYCLES_END__\nboot_after=(" + BOOT_RE + r")\n$", text)
     if not head or not tail:
         return result
     result['boot_match'] = head[1] == boot and tail[1] == boot
+    process = process or {}
+    result['transport_ok'] = bool(not err and process.get('exit_status') == 0 and
+                                  process.get('reason') is None and process.get('stdin_complete') is True and
+                                  process.get('stdout_bytes') == len(raw) and process.get('stderr_bytes', 0) == 0)
     present = {}
+    truncated = False
     for m in re.finditer(r"^__FILE__ path=(\S+) bytes=(-?\d+)$", text, re.M):
         path, n = m[1], int(m[2])
         cyc = re.search(r'/c(\d+)/', path)
         name = path.rsplit('/', 1)[1]
+        # The device dd copies at most CYCLE_EXPORT_LIMIT bytes; a reported length above the
+        # cap means the file was truncated in transit, and a -1 means an unreadable file.
+        if n < 0 or n > CYCLE_EXPORT_LIMIT:
+            truncated = True
         if cyc:
             present.setdefault(int(cyc[1]), {})[name] = n
     result['cycles'] = present
-    result['complete'] = bool(result['boot_match'] and
+    result['truncated'] = truncated
+    result['complete'] = bool(result['boot_match'] and result['transport_ok'] and not truncated and
                               all(c in present and present[c].get('lease', -1) >= 0 and
                                   present[c].get('host-ack', -1) >= 0 for c in (1, 2)))
     return result

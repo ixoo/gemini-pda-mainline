@@ -8,6 +8,8 @@ the PSK-bound script. No device action."""
 import importlib.util
 import json
 import os
+import signal
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -48,9 +50,9 @@ with tempfile.TemporaryDirectory(prefix='mt6797-c2-host-') as directory:
     work = Path(directory)
     private = work / 'private'
     (private / 'artifacts/credentials').mkdir(parents=True)
-    root = work / 'runtime/wifi-phase-b/session-32'
+    root = work / 'runtime/wifi-phase-b/session-33'
     root.mkdir(parents=True)
-    (work / 'runtime/wifi-phase-b/capture-32').mkdir()
+    (work / 'runtime/wifi-phase-b/capture-33').mkdir()
     (root / 'observation-result.json').write_text(json.dumps({'boot_id': BOOT}))
     for psk in (False, True):
         bound = work / ('bound-%d.sh' % psk)
@@ -95,12 +97,15 @@ with tempfile.TemporaryDirectory(prefix='mt6797-c2-host-') as directory:
             assert calls == ['passive-scan', 'log-export', 'log-export'] and not written
             assert 'supplicant-log' not in prepared['execute'].__globals__['BUDGETS']
             continue
-        assert calls == ['passive-scan', 'supplicant-log', 'log-export', 'log-export'], calls
-        assert written == [root / 'supplicant-log-result.json']
+        assert calls == ['passive-scan', 'supplicant-log', 'cycles-export', 'log-export', 'log-export'], calls
+        assert written == [root / 'supplicant-log-result.json', root / 'cycles-evidence.raw',
+                           root / 'cycles-evidence-result.json'], written
         exported = json.loads(written[0].read_bytes())
         assert exported['complete'] and exported['bytes'] == len(LOG) and 'CTRL-EVENT' not in written[0].read_text()
         assert prepared['execute'].__globals__['BUDGETS']['supplicant-log'][0] == 20
         assert prepared['claim']['phase_budgets']['supplicant-log']['seconds'] == 20
+        assert prepared['execute'].__globals__['BUDGETS']['cycles-export'][0] == 20
+        assert prepared['claim']['phase_budgets']['cycles-export']['seconds'] == 20
         # The scan-tuning prepare is replaced by a stub to check the outer hooks.
         host.SCAN.prepare = lambda candidate: {**prepared, 'claim': {
             **prepared['claim'], 'passive_scan_script_sha256': 'deadbeef'}}
@@ -185,4 +190,111 @@ with tempfile.TemporaryDirectory(prefix='mt6797-c2-host-') as directory:
         assert host.c3_result(join, c2, lifetimes)['wifi_ssh_boot_bound'] is False, 'boot_id alone is not the established mainline_boot'
         host.WIFI_SSH_RECEIPT = None
         assert 'rc = 0 if ready' not in (HERE / 'passive-host.py').read_text()
+    # Runtime 33: the owned Wi-Fi helper. First the argv / enabled / no-retry wiring with a
+    # non-joining fake, then the REAL process-group kill against a fixture whose leader exits
+    # while a child ignores SIGTERM (the exact bug a fake could not exercise).
+    class HelperCollector:
+        def __init__(self):
+            self.written = []
+
+        def write_new(self, path, data):
+            self.written.append(path)
+
+    class FakeProc:
+        pid = 424242
+
+    spawned = []
+
+    def fake_spawn(argv, **kw):
+        spawned.append((argv, kw))
+        return FakeProc()
+
+    H = host.WifiHelper(root / 'keys', BOOT, root / 'r.json', spawn=fake_spawn)
+    assert H.enabled()
+    H.start()
+    assert H.record['started'] and H.pgid == FakeProc.pid and len(spawned) == 1
+    argv, kw = spawned[0]
+    assert argv[1].endswith('laptop-wifi-ssh.py') and BOOT in argv
+    assert '--cycles' in argv and '--receipt' in argv and kw.get('start_new_session') is True
+    H.start()  # idempotent: no second spawn (no blind retry)
+    assert len(spawned) == 1
+    for bad in (host.WifiHelper(None, BOOT, root / 'r.json'),
+                host.WifiHelper(root / 'keys', None, root / 'r.json'),
+                host.WifiHelper(root / 'keys', BOOT, None)):
+        assert not bad.enabled()
+        bad.start()
+        assert bad.record['started'] is False and bad.record['safe'] is True  # nothing owned, nothing to seal-block
+
+    # A fixture whose child genuinely ignores SIGTERM/SIGINT and lingers in the group. The
+    # child signals a ready file only AFTER installing the trap, and the leader exits only
+    # after seeing it, so the later group SIGTERM is guaranteed to hit an already-trapped
+    # child (no race) — making SIGKILL deterministically required.
+    ready = work / 'child-ready'
+    ignore_term = work / 'ignore-term.sh'
+    ignore_term.write_text("#!/bin/sh\ntrap '' TERM INT\n: > '%s'\nwhile : ; do sleep 0.2 ; done\n" % ready)
+    ignore_term.chmod(0o755)
+
+    def real_spawn(argv, **kw):
+        cmd = 'sh %s & while [ ! -f %s ] ; do sleep 0.02 ; done ; exit 0' % (ignore_term, ready)
+        return subprocess.Popen(['sh', '-c', cmd], **kw)
+
+    coll = HelperCollector()
+    real = host.WifiHelper(root / 'keys', BOOT, root / 'r_real.json', spawn=real_spawn,
+                           join_timeout=3, grace=1.0, poll_interval=0.1)
+    try:
+        real.start()
+        assert real.record['started']
+        real.join_and_record({'collector': coll})
+        assert real.record['exit'] == 0, real.record            # the leader was reaped
+        assert real.record['group_quiescent'] is True, real.record
+        assert real.record['safe'] is True, real.record
+        # SIGTERM alone did not quiesce the group (the child ignored it); SIGKILL was needed.
+        assert int(signal.SIGTERM) in real.record['signals'] and int(signal.SIGKILL) in real.record['signals']
+        assert coll.written == [host.ROOT / 'wifi-ssh-helper.json']
+    finally:
+        try:
+            os.killpg(real.pgid, signal.SIGKILL)
+        except OSError:
+            pass
+
+    # A still-running, TERM-ignoring LEADER: proc.wait times out, SIGTERM is ignored, SIGKILL
+    # is required, and the killed leader must be reaped so the group probe can confirm quiescence
+    # (a zombie leader would otherwise keep killpg(PGID,0) succeeding forever).
+    leader = work / 'ignore-leader.sh'
+    leader.write_text("#!/bin/sh\ntrap '' TERM INT\nwhile : ; do sleep 0.2 ; done\n")
+    leader.chmod(0o755)
+
+    def leader_spawn(argv, **kw):
+        return subprocess.Popen(['sh', str(leader)], **kw)
+
+    coll2 = HelperCollector()
+    lead = host.WifiHelper(root / 'keys', BOOT, root / 'r_lead.json', spawn=leader_spawn,
+                           join_timeout=1, grace=1.0, poll_interval=0.1)
+    try:
+        lead.start()
+        lead.join_and_record({'collector': coll2})
+        assert lead.record['timed_out'] is True, lead.record            # the leader outran join_timeout
+        assert int(signal.SIGKILL) in lead.record['signals'], lead.record  # TERM ignored, KILL needed
+        assert lead.record['exit'] is not None, lead.record             # the killed leader was reaped (no zombie)
+        assert lead.record['group_quiescent'] is True and lead.record['safe'] is True, lead.record
+    finally:
+        try:
+            os.killpg(lead.pgid, signal.SIGKILL)
+        except OSError:
+            pass
+
+    # The export/seal transition is refused while an owned helper group is not quiescent.
+    host.HELPER.record['owned'] = True
+    host.HELPER.record['safe'] = False
+    prep = host.c2_prepare(None)
+    inv = prep['execute'].__globals__['invoke']
+    try:
+        inv({'collector': HelperCollector()}, 'log-export', b'')
+    except RuntimeError as error:
+        assert 'not confirmed quiescent' in str(error)
+    else:
+        raise AssertionError('export/seal was not refused for an unsafe helper group')
+    host.HELPER.record['owned'] = False
+    host.HELPER.record['safe'] = True
+
 print('c2-host: PASS (C2 selection, supplicant-log phase once before the seal, budgets, private claim, phase-complete exit substitution, verdict)')

@@ -8,14 +8,17 @@ import json
 import os
 import re
 import runpy
+import signal
+import subprocess
+import time
 from pathlib import Path
 import sys
 
 sys.dont_write_bytecode = True
 HERE = Path(__file__).resolve().parent
 PRIVATE_REPO = Path(os.environ['GEMINI_PRIVATE_REPO']).resolve(strict=True)
-ROOT = Path(os.environ['GEMINI_RUNTIME_ROOT']).resolve(strict=True) / 'wifi-phase-b/session-32'
-CAPTURE = Path(os.environ['GEMINI_RUNTIME_ROOT']).resolve(strict=True) / 'wifi-phase-b/capture-32'
+ROOT = Path(os.environ['GEMINI_RUNTIME_ROOT']).resolve(strict=True) / 'wifi-phase-b/session-33'
+CAPTURE = Path(os.environ['GEMINI_RUNTIME_ROOT']).resolve(strict=True) / 'wifi-phase-b/capture-33'
 RELEASE = '7.1.3-gemini-a53-wifi-phase-b-compile'
 SOURCE = HERE.parent / '2026-10-02-mt6797-scan-tuning-sample/passive-host.py'
 SPEC = importlib.util.spec_from_file_location('scan_tuning_host', SOURCE)
@@ -56,6 +59,121 @@ C2 = runpy.run_path(str(HERE / 'c2-session.py'))
 WIFI_SSH_RECEIPT = (Path(os.environ['GEMINI_WIFI_SSH_RECEIPT']).resolve()
                     if os.environ.get('GEMINI_WIFI_SSH_RECEIPT') else None)
 BOOT_ID = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
+# Runtime 33: the host OWNS the laptop-wifi-ssh helper when the custodian names the
+# retained credential directory and the launch boot (the device session only observes the
+# boot after it starts, so the boot is supplied at launch). The helper then writes its
+# receipt here and the host reads it back for the verdict. If GEMINI_WIFI_SSH_RECEIPT is set
+# instead, the custodian runs the helper themselves and the host only consumes that receipt.
+WIFI_SSH_KEYS = (Path(os.environ['GEMINI_WIFI_SSH_KEYS']).resolve()
+                 if os.environ.get('GEMINI_WIFI_SSH_KEYS') else None)
+WIFI_SSH_BOOT = os.environ.get('GEMINI_WIFI_SSH_BOOT')
+if WIFI_SSH_RECEIPT is None and WIFI_SSH_KEYS is not None and WIFI_SSH_BOOT and \
+        BOOT_ID.match(WIFI_SSH_BOOT):
+    WIFI_SSH_RECEIPT = ROOT / 'wifi-ssh-receipt.json'
+
+
+class WifiHelper:
+    """Own the laptop-wifi-ssh child for the verified boot: start it once, concurrently with
+    the device session, then join it and stop its WHOLE process group before any export, seal
+    or recovery, and record its real exit. The group is addressed by the PGID cached at start
+    (start_new_session makes the child the group leader, so PGID == its PID); this is used for
+    the kill and the quiescence probe INDEPENDENT of leader liveness, because once the leader
+    is reaped os.getpgid(pid) would raise and lingering ssh children would escape. A SIGTERM
+    is not taken as sufficient: the group is bounded-probed, SIGKILL'd if still present, and
+    the transition is marked unsafe (so the caller refuses the export/seal) on any kill/probe
+    error or a group that will not go quiescent. One start, no blind retry.
+    """
+
+    def __init__(self, keys, boot, receipt_path, cycles=2, poll=90,
+                 spawn=subprocess.Popen, join_timeout=45, grace=5.0,
+                 poll_interval=0.2, sleep=time.sleep):
+        self.keys, self.boot, self.receipt_path = keys, boot, receipt_path
+        self.cycles, self.poll, self.spawn = cycles, poll, spawn
+        self.join_timeout, self.grace, self.poll_interval, self.sleep = join_timeout, grace, poll_interval, sleep
+        self.proc = None
+        self.pgid = None
+        self.record = {'owned': self.enabled(), 'started': False, 'exit': None,
+                       'timed_out': False, 'signals': [], 'group_quiescent': None,
+                       'kill_error': False, 'probe_error': False, 'safe': not self.enabled(),
+                       'receipt': str(receipt_path) if receipt_path else None}
+
+    def enabled(self):
+        return bool(self.keys and self.boot and self.receipt_path)
+
+    def start(self):
+        if not self.enabled() or self.record['started']:
+            return
+        argv = [sys.executable, str(HERE / 'laptop-wifi-ssh.py'), str(self.keys), self.boot,
+                '--cycles', str(self.cycles), '--poll-seconds', str(self.poll),
+                '--receipt', str(self.receipt_path)]
+        self.proc = self.spawn(argv, start_new_session=True,
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        self.pgid = self.proc.pid  # leader of its own session: PGID == PID, cached while live
+        self.record['started'] = True
+
+    def _killpg(self, sig):
+        try:
+            os.killpg(self.pgid, sig)
+            self.record['signals'].append(int(sig))
+            return True
+        except ProcessLookupError:
+            return True  # the group is already gone
+        except OSError:
+            self.record['kill_error'] = True
+            return False
+
+    def _group_gone(self):
+        """True if the cached group is gone, False if still present, None on a probe error."""
+        try:
+            os.killpg(self.pgid, 0)
+            return False
+        except ProcessLookupError:
+            return True
+        except OSError:
+            self.record['probe_error'] = True
+            return None
+
+    def _await_gone(self):
+        waited = 0.0
+        while True:
+            gone = self._group_gone()
+            if gone is not False or waited >= self.grace:
+                return gone
+            self.sleep(self.poll_interval)
+            waited += self.poll_interval
+
+    def _reap(self):
+        """Reap the leader if it has exited, so a zombie leader does not keep killpg(PGID,0)
+        succeeding (which would make the group look non-quiescent forever)."""
+        if self.record['exit'] is not None:
+            return
+        try:
+            self.record['exit'] = self.proc.wait(timeout=self.grace)
+        except (subprocess.TimeoutExpired, OSError):
+            pass
+
+    def join_and_record(self, active):
+        if self.record['started'] and self.proc is not None:
+            try:
+                self.record['exit'] = self.proc.wait(timeout=self.join_timeout)
+            except subprocess.TimeoutExpired:
+                self.record['timed_out'] = True
+            # Stop the whole group by its cached PGID, independent of leader liveness.
+            self._killpg(signal.SIGTERM)
+            self._reap()                 # reap a now-terminated leader before probing
+            gone = self._await_gone()
+            if gone is False:
+                self._killpg(signal.SIGKILL)
+                self._reap()             # SIGKILL ends the leader; reap it so the probe is true
+                gone = self._await_gone()
+            self.record['group_quiescent'] = (gone is True)
+            self.record['safe'] = bool(gone is True and not self.record['kill_error'] and
+                                       not self.record['probe_error'])
+        active['collector'].write_new(ROOT / 'wifi-ssh-helper.json',
+                                       HOST.DOMAIN.HOST.encoded(self.record))
+
+
+HELPER = WifiHelper(WIFI_SSH_KEYS, WIFI_SSH_BOOT, WIFI_SSH_RECEIPT)
 C2_SCRIPT = C2['is_c2_script'](SCAN.SCAN_SOURCE.read_bytes())
 WIPHY_PREPARE = SCAN.PREPARE
 
@@ -84,8 +202,18 @@ def c2_prepare(candidate):
 
     def invoke_with_supplicant_log(active, label, script, *, network_status=None):
         nonlocal exported
+        if label == 'passive-scan' and HELPER.enabled():
+            HELPER.start()
+            try:
+                return invoke(active, label, script, network_status=network_status)
+            finally:
+                # Join and stop the helper group before any export, seal or recovery.
+                HELPER.join_and_record(active)
         if label == 'log-export' and not exported:
             exported = True
+            if HELPER.record.get('owned') and not HELPER.record.get('safe'):
+                raise RuntimeError('Wi-Fi helper process group not confirmed quiescent; '
+                                   'refusing export, seal and recovery')
             observation = json.loads((ROOT / 'observation-result.json').read_bytes())
             boot = observation['boot_id']
             try:
@@ -101,8 +229,9 @@ def c2_prepare(candidate):
             # and byte counts only.
             try:
                 craw, cerr, cprocess = invoke(active, 'cycles-export', C2['cycles_export_script'](boot))
-                cresult = C2['cycles_export_result'](craw, boot)
+                # Retain the raw framed capture regardless of completeness.
                 active['collector'].write_new(ROOT / 'cycles-evidence.raw', craw)
+                cresult = C2['cycles_export_result'](craw, cerr, cprocess, boot)
             except (OSError, ValueError, KeyError, TypeError) as error:
                 cresult = {'complete': False, 'reason': str(error)}
             active['collector'].write_new(ROOT / 'cycles-evidence-result.json',
