@@ -1,4 +1,4 @@
-From 154c81773a35a090337fe168535f47bebbdbb76d Mon Sep 17 00:00:00 2001
+From 2aa6b4d8a330efacd9c04e38a7f5eaabebfd918c Mon Sep 17 00:00:00 2001
 From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
 Date: Mon, 12 Oct 2026 17:24:12 +0000
 Subject: [PATCH] wifi: mt6797: default-off strict native-crypto-delivery
@@ -50,14 +50,14 @@ Normal valid traffic traversing this path shows the path works; it does not by
 itself prove hostile-replay rejection. No key export, no bespoke crypto, no
 monitor-netdev (monWork) host policy, no generic observer; only channel 40.
 ---
- drivers/net/wireless/mediatek/mt6797/Kconfig  |  15 ++
- .../net/wireless/mediatek/mt6797/data-rx.h    | 110 ++++++++++
+ drivers/net/wireless/mediatek/mt6797/Kconfig  |  15 +
+ .../net/wireless/mediatek/mt6797/data-rx.h    | 110 +++++++
  drivers/net/wireless/mediatek/mt6797/hif.c    |  17 ++
  drivers/net/wireless/mediatek/mt6797/hif.h    |   6 +
- .../wireless/mediatek/mt6797/join-commands.h  |  36 ++++
- drivers/net/wireless/mediatek/mt6797/mac.c    | 185 +++++++++++++++++
- .../wireless/mediatek/mt6797/native-diag.h    | 191 ++++++++++++++++++
- 7 files changed, 560 insertions(+)
+ .../wireless/mediatek/mt6797/join-commands.h  |  36 +++
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 281 +++++++++++++++++-
+ .../wireless/mediatek/mt6797/native-diag.h    | 212 +++++++++++++
+ 7 files changed, 675 insertions(+), 2 deletions(-)
  create mode 100644 drivers/net/wireless/mediatek/mt6797/native-diag.h
 
 diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
@@ -293,7 +293,7 @@ index 884faa1b2..228e7cbd3 100644
 +}
  #endif
 diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
-index 42e888780..723c9ea8a 100644
+index 42e888780..a7b6af818 100644
 --- a/drivers/net/wireless/mediatek/mt6797/mac.c
 +++ b/drivers/net/wireless/mediatek/mt6797/mac.c
 @@ -21,6 +21,13 @@
@@ -310,7 +310,7 @@ index 42e888780..723c9ea8a 100644
  #include "action-frame.h"
  #include "join-tx.h"
  #include "join-commands.h"
-@@ -157,6 +164,12 @@ struct mt6797_mac {
+@@ -157,6 +164,14 @@ struct mt6797_mac {
  	 * rekey, no second phase.
  	 */
  	bool join_channel_released, join_data_phase, join_data_ended;
@@ -318,12 +318,14 @@ index 42e888780..723c9ea8a 100644
 +	unsigned char native_diag_state;
 +	unsigned int native_diag_total, native_diag_native, native_diag_bytes;
 +	bool native_diag_engaged;
-+	u64 native_diag_started;
++	bool native_diag_sample_done;	/* a sample ceiling was crossed */
++	unsigned int native_diag_retire_reads, native_diag_retire_bytes;
++	u64 native_diag_started, native_diag_retire_started;
 +#endif
  	u64 join_data_deadline, join_data_started;
  	const char *join_data_end_reason;
  	/* Data phase counts: accepted protected frames delivered to mac80211 by
-@@ -1204,6 +1217,10 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
+@@ -1204,6 +1219,10 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
  	if (queued || mac->join_inflight || mac->join_page_debt ||
  	    mac->join_credit_pending)
  		return 0;
@@ -334,7 +336,7 @@ index 42e888780..723c9ea8a 100644
  	if (mac->join_sta_active && !mac->join_deauth_done)
  		return 0;
  	/* TC1 pages of the last data frame may return after its TX status; the
-@@ -1346,6 +1363,89 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
+@@ -1346,6 +1365,165 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
  #endif
  
  #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
@@ -349,6 +351,81 @@ index 42e888780..723c9ea8a 100644
 + * poison. The pure transition (native-diag.h) decides; this executes the action.
 + * Mutex held (the worker).
 + */
++/* Pre-read native budget gate (mutex held). Enforced BEFORE the receive so no
++ * read crosses a ceiling and the drain/wall are honored even on an empty stream;
++ * a full HIF-max read is reserved (post-read logical_bytes is already-consumed
++ * FIFO, not a pre-read contract). Returns 0 to proceed with the receive, 1 to
++ * stop reading (window/drain complete, nothing owed), or <0 to fail-stop through
++ * the normal terminal when owed work cannot retire within the drain budget.
++ */
++static int mt6797_native_diag_pre_read(struct mt6797_mac *mac)
++{
++	u64 now;
++	unsigned int el, rel;
++	bool owed;
++
++	/* IDLE/CLOSED: no native gating (inherited cleanup runs its own protocol,
++	 * with the sticky plaintext withhold still in force via native_diag_engaged).
++	 */
++	if (mac->native_diag_state == MT6797_ND_IDLE ||
++	    mac->native_diag_state == MT6797_ND_CLOSED)
++		return 0;
++	/* DISABLE_PENDING: the only obligation is the disable's TC4 credit, retired
++	 * by the worker's register guard -- no RX completion is owed, so read no
++	 * generic traffic; stop until the guard reconciles and the step reaches
++	 * CLOSED.
++	 */
++	if (mac->native_diag_state == MT6797_ND_DISABLE_PENDING)
++		return 1;
++	now = ktime_get_ns();
++	el = mac->native_diag_started ?
++		(unsigned int)((now - mac->native_diag_started) / NSEC_PER_MSEC) : 0;
++	owed = mac->join_inflight || mac->join_page_debt || mac->join_credit_pending;
++	/* ACTIVE sample window: the crossing read is never admitted (reserve a full
++	 * HIF-max read); the wall is honored even on an empty stream.
++	 */
++	if (!mac->native_diag_sample_done && !mac->join_data_ended &&
++	    (el >= MT6797_NATIVE_DIAG_WALL_MS ||
++	     mac->native_diag_total >= MT6797_NATIVE_DIAG_RX_MAX ||
++	     mac->native_diag_native >= MT6797_NATIVE_DIAG_NATIVE_MAX ||
++	     mac->native_diag_bytes + MT6797_HIF_RX_MAX_PACKET >
++	     MT6797_NATIVE_DIAG_BYTES_MAX))
++		mac->native_diag_sample_done = true;
++	/* The window is over on a sample ceiling OR any data-phase end (lower
++	 * deadline / PID budget / association loss).
++	 */
++	if (!mac->native_diag_sample_done && !mac->join_data_ended)
++		return 0;
++	/* Window over: read only to drain an owed exact TX-done, within the finite
++	 * budget; nothing owed means stop at once.
++	 */
++	if (!owed)
++		return 1;
++	if (!mac->native_diag_retire_started)
++		mac->native_diag_retire_started = now;
++	rel = (unsigned int)((now - mac->native_diag_retire_started) / NSEC_PER_MSEC);
++	if (mac->native_diag_retire_reads >= MT6797_NATIVE_DIAG_RETIRE_READS ||
++	    mac->native_diag_retire_bytes + MT6797_HIF_RX_MAX_PACKET >
++	    MT6797_NATIVE_DIAG_RETIRE_BYTES ||
++	    rel >= MT6797_NATIVE_DIAG_RETIRE_MS)
++		return mac->first_error ? mac->first_error : -ETIMEDOUT;
++	return 0;
++}
++
++/* TX fence: while engaged and the window is ending or ended (sample ceiling,
++ * lower deadline, PID budget, or an already-ended data phase), hold ALL frame
++ * selection -- the reserved deauthentication included -- until the native
++ * disable has retired (state CLOSED), so no recovery TX precedes the disable.
++ */
++static bool mt6797_native_diag_tx_fenced(const struct mt6797_mac *mac)
++{
++	return mac->native_diag_engaged &&
++	       mac->native_diag_state != MT6797_ND_CLOSED &&
++	       (mac->native_diag_sample_done || mac->join_data_ended ||
++		ktime_get_ns() >= mac->join_data_deadline ||
++		mac->join_next_pid > MT6797_JOIN_DATA_LAST_PID);
++}
++
 +static void mt6797_native_diag_step(struct mt6797_mac *mac)
 +{
 +	struct mt6797_native_diag_ctx c;
@@ -374,7 +451,8 @@ index 42e888780..723c9ea8a 100644
 +			     mac->native_diag_state == MT6797_ND_DISABLE_PENDING) &&
 +			    now >= mac->join_credit_deadline;
 +	c.seq_ok = mac->sequence <= 253;
-+	c.budget_stop = mt6797_native_diag_budget_step(&b) == MT6797_NATIVE_DIAG_STOP;
++	c.budget_stop = mac->native_diag_sample_done ||
++			mt6797_native_diag_budget_step(&b) == MT6797_NATIVE_DIAG_STOP;
 +	act = mt6797_native_diag_transition(&c);
 +	mac->native_diag_state = c.state;
 +	if (act == MT6797_ND_ACT_SUBMIT_ENABLE || act == MT6797_ND_ACT_SUBMIT_DISABLE) {
@@ -424,17 +502,19 @@ index 42e888780..723c9ea8a 100644
  /* End the data phase once: the reserved deauthentication's hold ends now and
   * the poller sends it, then the teardown follows. Called with the mutex held.
   */
-@@ -1527,6 +1627,9 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -1526,7 +1704,10 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
  	const u8 *body;
  #endif
- 	bool running, ack = false, completed_internal = false;
+-	bool running, ack = false, completed_internal = false;
++	bool running, ack = false, completed_internal = false, select;
 +#ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
 +	bool nd_stop = false, nd_over = false;
 +#endif
  	/* Diagnostic only: which phase of this tick stopped the lifetime (the
  	 * footer that prints it exists in station-join builds only).
  	 */
-@@ -1646,6 +1749,9 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -1646,18 +1827,33 @@ static void mt6797_mac_join_work(struct work_struct *work)
  	if (ret)
  		goto failed;
  #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
@@ -444,7 +524,32 @@ index 42e888780..723c9ea8a 100644
  	if (mac->join_data_phase && !mac->join_data_ended &&
  	    ktime_get_ns() >= mac->join_data_deadline)
  		mt6797_mac_join_end_data(mac, "budget");
-@@ -1807,6 +1913,10 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ #endif
+ 	branch = 3;
++	select = !mac->join_inflight && !mac->join_page_debt;
++#ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
++	/* PID-budget exhaustion ends the data phase in the queue path; evaluate it
++	 * before any frame is selected so the step disables and the fence holds.
++	 */
++	if (mac->native_diag_engaged && mac->join_data_phase &&
++	    !mac->join_data_ended &&
++	    mac->join_next_pid > MT6797_JOIN_DATA_LAST_PID)
++		mt6797_mac_join_end_data(mac, "native-window");
++	if (mt6797_native_diag_tx_fenced(mac))
++		select = false;
++#endif
+ 	/* TC1 pages owed by the last data frame hold only the next data frame
+ 	 * (its pool must be whole); the management and security frames of the
+ 	 * TC4 ledger, the reserved deauthentication among them, do not wait for
+ 	 * them. The cleanup commands do wait for the TC1 pool to be whole, and
+ 	 * the lifetime deadline bounds that wait.
+ 	 */
+-	if (!mac->join_inflight && !mac->join_page_debt) {
++	if (select) {
+ 		spin_lock_irqsave(&mac->join_queue.lock, flags);
+ 		skb = NULL;
+ 		if (mac->join_open) {
+@@ -1807,7 +2003,22 @@ static void mt6797_mac_join_work(struct work_struct *work)
  	}
  	for (n = 0; n < 8; n++) {
  		bool got = false;
@@ -453,61 +558,64 @@ index 42e888780..723c9ea8a 100644
 +			break;
 +#endif
  		for (port = 0; port < 2; port++) {
++#ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
++			ret = mt6797_native_diag_pre_read(mac);
++			if (ret < 0)
++				goto failed;	/* owed work could not retire: fail-stop */
++			if (ret > 0) {
++				ret = 0;
++				nd_stop = true;	/* window/drain complete, nothing owed */
++				break;
++			}
++			ret = 0;
++#endif
  			branch = 4;
  			ret = mt6797_hif_receive_packet(mac->hif, port, deadline,
-@@ -1819,6 +1929,36 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 				 mac->join_packet, sizeof(mac->join_packet), &rx);
+@@ -1819,6 +2030,25 @@ static void mt6797_mac_join_work(struct work_struct *work)
  				goto failed;
  			got = true;
  			branch = 5;
 +#ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
-+			nd_over = false;
++			/* Count the actual consumed length into the sample or the drain
++			 * bucket. nd_over marks the post-stop phase (window over by any
++			 * reason) for the owed-completion gate below.
++			 */
++			nd_over = mac->native_diag_sample_done || mac->join_data_ended;
 +			if (mac->native_diag_state == MT6797_ND_ENABLE_PENDING ||
 +			    mac->native_diag_state == MT6797_ND_ACTIVE) {
-+				struct mt6797_native_diag_budget pb;
-+
-+				mac->native_diag_total++;
-+				mac->native_diag_bytes += (unsigned int)rx.logical_bytes;
-+				pb.elapsed_ms = mac->native_diag_started ?
-+					(unsigned int)((ktime_get_ns() -
-+					 mac->native_diag_started) / NSEC_PER_MSEC) : 0;
-+				pb.total_rx = mac->native_diag_total;
-+				pb.native_rx = mac->native_diag_native;
-+				pb.bytes = mac->native_diag_bytes;
-+				/* Over a ceiling this frame is NOT skipped: it still flows to the
-+				 * TX-done and control classes below so an owed completion retires
-+				 * (the data gate withholds its payload via the prospective admit).
-+				 * Reading of NEW frames stops only once a ceiling is reached AND
-+				 * nothing is owed on the ledger, so a required retirement read is
-+				 * never skipped and quiescent is never claimed with work owed.
-+				 */
-+				nd_over = mt6797_native_diag_budget_step(&pb) ==
-+					  MT6797_NATIVE_DIAG_STOP;
-+				if (nd_over && !mac->join_inflight &&
-+				    !mac->join_page_debt && !mac->join_credit_pending) {
-+					nd_stop = true;
-+					break;
++				if (!nd_over) {
++					mac->native_diag_total++;
++					mac->native_diag_bytes +=
++						(unsigned int)rx.logical_bytes;
++				} else {
++					mac->native_diag_retire_reads++;
++					mac->native_diag_retire_bytes +=
++						(unsigned int)rx.logical_bytes;
 +				}
 +			}
 +#endif
  			if (mt6797_join_event(mac->join_packet, rx.logical_bytes, 0x0f, 16)) {
  				if (!mac->join_inflight ||
  	!mt6797_join_tx_done(mac->join_packet, rx.logical_bytes,
-@@ -1893,6 +2033,14 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -1877,6 +2107,16 @@ static void mt6797_mac_join_work(struct work_struct *work)
  				}
  				continue;
  			}
 +#ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
-+			/* Past a window ceiling only owed completions (the TX-done and
-+			 * control classes above) are processed; beacon, EAPOL, group and
-+			 * data classes are not resumed outside the admitted limits.
++			/* Post-stop (window over), the exact TX-done above is the only owed
++			 * RX completion; the broad control dispatcher and every other class
++			 * (beacon, EAPOL, group, data) are not resumed outside the admitted
++			 * limits -- the disable's own credit retires by the register guard,
++			 * not an RX control event.
 +			 */
 +			if (nd_over)
 +				continue;
 +#endif
- 			/* Parseable beacons are asynchronous, never an epoch fence. */
- 			branch = 7;
- 			if (!mt6797_scan_frame(mac->join_packet, rx.logical_bytes, &beacon)) {
-@@ -2008,6 +2156,43 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 			if (rx.logical_bytes >= 8 &&
+ 			    mt6797_join_le16(mac->join_packet + 2) == 0xe000) {
+ 				branch = 6;
+@@ -2008,6 +2248,43 @@ static void mt6797_mac_join_work(struct work_struct *work)
  			 * reaches it too. Delivery is capped per lifetime; frames above
  			 * the cap are dropped undelivered and counted.
  			 */
@@ -553,10 +661,10 @@ index 42e888780..723c9ea8a 100644
  					   mac->hw->wiphy->perm_addr, mac->join_ap,
 diff --git a/drivers/net/wireless/mediatek/mt6797/native-diag.h b/drivers/net/wireless/mediatek/mt6797/native-diag.h
 new file mode 100644
-index 000000000..cc591cd89
+index 000000000..29ff42e97
 --- /dev/null
 +++ b/drivers/net/wireless/mediatek/mt6797/native-diag.h
-@@ -0,0 +1,191 @@
+@@ -0,0 +1,212 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +/*
 + * Pure decision core for the DEFAULT-OFF native-crypto-delivery diagnostic
@@ -576,6 +684,15 @@ index 000000000..cc591cd89
 +#define MT6797_NATIVE_DIAG_RX_MAX     512U          /* total RX frames admitted */
 +#define MT6797_NATIVE_DIAG_NATIVE_MAX 64U           /* protected-native ordinary frames */
 +#define MT6797_NATIVE_DIAG_BYTES_MAX  (1024U * 1024U) /* 1 MiB total RX bytes */
++
++/* Once the sample window ends, draining owed completions (the exact TX-done and
++ * control classes only) has its own finite ceiling, set below the parent
++ * command/frame/grant/lifetime deadlines, after which an unretired ledger
++ * latches the no-radio stop.
++ */
++#define MT6797_NATIVE_DIAG_RETIRE_READS 64U            /* further all-class reads */
++#define MT6797_NATIVE_DIAG_RETIRE_BYTES (256U * 1024U) /* 256 KiB drained */
++#define MT6797_NATIVE_DIAG_RETIRE_MS    750U           /* below the parent deadlines */
 +
 +/* The crypto bypass/strip flags that would make mac80211 SKIP decrypt, MIC or
 + * replay. The diagnostic sets NONE of them for an ordinary native MPDU, so the
@@ -620,6 +737,18 @@ index 000000000..cc591cd89
 +	    b->total_rx >= MT6797_NATIVE_DIAG_RX_MAX ||
 +	    b->native_rx >= MT6797_NATIVE_DIAG_NATIVE_MAX ||
 +	    b->bytes >= MT6797_NATIVE_DIAG_BYTES_MAX)
++		return MT6797_NATIVE_DIAG_STOP;
++	return MT6797_NATIVE_DIAG_CONTINUE;
++}
++
++/* STOP when the owed-completion drain budget is reached; otherwise CONTINUE. */
++static inline enum mt6797_native_diag_step
++mt6797_native_diag_retire_step(unsigned int reads, unsigned int bytes,
++			       unsigned int elapsed_ms)
++{
++	if (reads >= MT6797_NATIVE_DIAG_RETIRE_READS ||
++	    bytes >= MT6797_NATIVE_DIAG_RETIRE_BYTES ||
++	    elapsed_ms >= MT6797_NATIVE_DIAG_RETIRE_MS)
 +		return MT6797_NATIVE_DIAG_STOP;
 +	return MT6797_NATIVE_DIAG_CONTINUE;
 +}

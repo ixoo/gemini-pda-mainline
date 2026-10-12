@@ -120,15 +120,22 @@ itself prove hostile-replay rejection, and one negative does not close all raw m
   **all 16 group masks × pad × QoS** accepted at the source offsets with verbatim length, and
   every withheld shape (HDR_TRAN, AMSDU, unprotected, MoreFragments, Order, fragment,
   ToDS/non-data, non-peer, CCMP-shape, bad-FCS, length mismatch, short, wrong channel).
-- `tests/run-native-loop-test.py` → `native-loop-test.c` (ASan/UBSan): an **event-sequence
-  model of one worker iteration in source order** (step → the parent's lower-deadline
-  `end_data` → TX queue selection → RX-class dispatch) proving the actual retirement/ending
-  behaviour: the disable/page fence is established in the **same iteration**, before the queued
-  deauthentication can be selected (so a lower data-phase deadline or association loss is honored
-  without sending recovery TX ahead of the disable); an owed TX-done is **never dropped** on a
-  capture stop (no disable until the ledger is quiescent); past a ceiling **only owed
-  completions** (TX-done/control) are processed, never beacon/EAPOL/group/data; no command is
-  sent on ambiguity; and the sticky no-plaintext fence never reopens legacy RX through CLOSED.
+- `tests/run-native-loop-test.py` → `native-loop-test.c` (ASan/UBSan): an
+  **event-sequence model of the worker control loop** following the whole phase
+  contract. It proves: the step/queue order (step → the parent's lower-deadline
+  `end_data` → TX queue selection) so the disable/page fence is set in the **same
+  iteration** before the reserved deauthentication can be selected; the window
+  ends on a **sample ceiling OR any data-phase end** (lower deadline, **PID
+  budget** determined in the queue path, association loss), driving the step to
+  disable and the TX fence to hold; a **prospective sample bound** (reserving a
+  full HIF-max read, not post-read length) so no read crosses a ceiling; a
+  **finite owed-completion drain** (≤ 64 reads / 256 KiB / 750 ms, below the
+  parent deadlines, checked even on an empty stream) that fails through the
+  normal terminal if an owed exact TX-done cannot retire; **post-stop only the
+  exact TX-done (ID 0x0f) retires** — the broad control dispatcher and all other
+  classes are gated; **DISABLE_PENDING reads no generic RX** (the disable credit
+  retires by the register guard); and the sticky plaintext withhold never
+  reopens legacy RX through CLOSED.
 
 The concurrency, credit, expiry and recovery wiring in `mac.c` is not host-compilable; the loop
 model mirrors its control order and must be kept in sync with the worker, its real compile is the
