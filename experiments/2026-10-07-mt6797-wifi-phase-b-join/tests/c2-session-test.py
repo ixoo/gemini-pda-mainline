@@ -245,10 +245,14 @@ print('c2-session: PASS (two-lifetime C3 over the real join-twice grammar: two c
 # The two-cycle evidence export: a bounded read-only device script and its validating result.
 BOOTX = '0123abcd-0123-0123-0123-0123456789ab'
 script_x = C2['cycles_export_script'](BOOTX)
-assert BOOTX in script_x and '/proc/sys/kernel/random/boot_id' in script_x
-assert 'host-ack' in script_x and '/c$c/' in script_x
+# Contract: an export script is BYTES (the caller writes it with write_bytes / as
+# stdin); a str return silently produced an empty command.sh on the device and
+# lost the per-cycle RAM evidence ("a bytes-like object is required, not str").
+assert isinstance(script_x, bytes) and script_x.startswith(b'#!/bin/sh\n')
+assert BOOTX.encode() in script_x and b'/proc/sys/kernel/random/boot_id' in script_x
+assert b'host-ack' in script_x and b'/c$c/' in script_x
 # Read-only: no redirection or deletion of device files (dd reads with if=, no of=).
-assert ' of=' not in script_x and '> "$f"' not in script_x and 'rm ' not in script_x
+assert b' of=' not in script_x and b'> "$f"' not in script_x and b'rm ' not in script_x
 try:
     C2['cycles_export_script']('not-a-boot')
 except ValueError:

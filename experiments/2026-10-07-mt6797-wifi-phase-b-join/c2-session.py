@@ -304,7 +304,7 @@ def cycles_export_script(boot):
             "    fi\n"
             "  done\n"
             "done\n"
-            "$BB printf '__CYCLES_END__\\nboot_after=%s\\n' \"$($BB cat /proc/sys/kernel/random/boot_id)\"\n")
+            "$BB printf '__CYCLES_END__\\nboot_after=%s\\n' \"$($BB cat /proc/sys/kernel/random/boot_id)\"\n").encode()
 
 
 def cycles_export_result(raw, err, process, boot):

@@ -229,10 +229,18 @@ def c2_prepare(candidate):
             # and byte counts only.
             try:
                 craw, cerr, cprocess = invoke(active, 'cycles-export', C2['cycles_export_script'](boot))
-                # Retain the raw framed capture regardless of completeness.
-                active['collector'].write_new(ROOT / 'cycles-evidence.raw', craw)
+            except (OSError, TypeError) as error:
+                # The export transport failed before any device read (nothing was
+                # captured). Refuse the seal and the RAM-wiping recovery rather than
+                # silently losing the per-cycle RAM evidence.
+                raise RuntimeError('cycles-export transport failed before capture; '
+                                   'refusing seal and recovery to preserve device RAM '
+                                   'evidence: ' + str(error))
+            # Retain the raw framed capture regardless of result completeness.
+            active['collector'].write_new(ROOT / 'cycles-evidence.raw', craw)
+            try:
                 cresult = C2['cycles_export_result'](craw, cerr, cprocess, boot)
-            except (OSError, ValueError, KeyError, TypeError) as error:
+            except (ValueError, KeyError, TypeError) as error:
                 cresult = {'complete': False, 'reason': str(error)}
             active['collector'].write_new(ROOT / 'cycles-evidence-result.json',
                                            HOST.DOMAIN.HOST.encoded(cresult))
