@@ -89,19 +89,24 @@ deployment. `<nd1>` is the composed native candidate directory.
    `./install-native.py prepare --previous-gemian-boot <gemian> --candidate <nd1> --output <install-dir>`
    then `bash <install-dir>/install.sh` (no session selector needed; this is a
    single native candidate, not a 33/34-parameterized tool).
-4. Phase-A capture and the single reviewed C2 join use the reviewed phase-b
-   laptop-private capture/session over `<nd1>` with the SINGLE-lifetime join
-   script (join-once.sh: auto-reconnect disabled via wpa_cli, one selection and
-   association only); the diagnostic engages in the data phase, the device writes
-   its fresh boot/mode-bound marker only AFTER native state ACTIVE, and the fresh
-   Wi-Fi SSH challenge runs only after that marker. The reviewed finite
-   helper/supplicant/listener quiescence, the registered export budgets and the
-   single reviewed recovery all apply.
-5. Verdict: `classify-native.py <kmsg.log> <wifi-ssh-receipt.json>` — positive
-   requires the native path reached ACTIVE and closed cleanly, at least one
-   protected-native MPDU delivered with crypto-bypass flags 0x0 (mac80211 did the
-   AEAD/MIC/replay), no fault, and the fresh post-ACTIVE SSH challenge completed;
-   the translated C3 counters are never used.
+4. Phase-A capture and the single reviewed C2 join: the SINGLE-lifetime join
+   (join-once.sh: auto-reconnect disabled via wpa_cli, one selection and
+   association only); the diagnostic engages in the data phase; the device writes
+   a fresh boot-AND-mode-bound marker only AFTER native state ACTIVE; the fresh
+   Wi-Fi SSH challenge runs only after that marker, and its receipt records the
+   marker (boot, mode, after-ACTIVE). The reviewed finite helper/supplicant/
+   listener quiescence, the registered export budgets and the single reviewed
+   recovery all apply. **STATUS: the one-cycle native capture/session
+   orchestrator and the device post-ACTIVE mode-bound marker are being authored
+   and are not yet executable-reviewed; this step is incomplete until they are.**
+5. Verdict: `classify-native.py <kmsg.log> <wifi-ssh-receipt.json> <verified-boot>`
+   keeps two separate conclusions. ELIGIBLE DELIVERY (necessary, not sufficient):
+   the exact owned one-cycle state/action sequence (1 act1, 2 act0, 3 act2, 4
+   act0), no fault, and >=1 protected-native MPDU queued with crypto-bypass flags
+   0x0. AUTHENTICATED (the positive): a fresh Wi-Fi SSH exchange through
+   exclusively native RX completed, its receipt bound to the VERIFIED sealed boot
+   and the device post-ACTIVE native-mode marker. native= counts eligible MPDUs,
+   not authentication; translated C3 counters are never used.
 
 ## Native classifier (its own, not the translated C3 counters)
 
