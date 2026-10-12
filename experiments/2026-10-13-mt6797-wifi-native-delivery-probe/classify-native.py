@@ -30,6 +30,9 @@ _DIAG = re.compile(rb'one-shot WLAN native-diag: state=(\d+) act=(\d+) total=(\d
                    rb'native=(\d+) bytes=(\d+)$')
 _RX = re.compile(rb'one-shot WLAN native-diag RX: first mpdu_bytes=(\d+) '
                  rb'crypto_bypass_flags=0x([0-9a-f]+)$')
+# Any line that carries a native-diag / first-RX prefix but fails its exact
+# grammar is malformed and rejected, never silently ignored.
+_PREFIX = re.compile(rb'one-shot WLAN native-diag')
 _FAULT = re.compile(rb'one-shot WLAN (?:join (?:stopped:|rearm refused:|rearm wrap:)|'
                     rb'native-diag no-radio latch)')
 _BOOT = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
@@ -46,6 +49,8 @@ def classify(kmsg, ssh_receipt, verified_boot):
     lines = kmsg.splitlines()
     diag = [m for line in lines if (m := _DIAG.search(line))]
     rx = [m for line in lines if (m := _RX.search(line))]
+    malformed = sum(1 for line in lines if _PREFIX.search(line) and
+                    not _DIAG.search(line) and not _RX.search(line))
     seq = [(int(m[1]), int(m[2])) for m in diag]
     counts = [(int(m[3]), int(m[4]), int(m[5])) for m in diag]  # (total, native, bytes)
     native_last = counts[-1][1] if counts else 0
@@ -69,6 +74,7 @@ def classify(kmsg, ssh_receipt, verified_boot):
         'first_rx_bypass_flags': (int(rx[0][2], 16) if len(rx) == 1 else None),
         'bypass_flags_clear': rx_ok,
         'fault': any(_FAULT.search(line) for line in lines),
+        'malformed_records': malformed,
     }
     # Eligible delivery: the exact owned cycle with bounded monotone counters, no
     # fault, and exactly one flags-clear first MPDU within the parser max queued to
@@ -76,7 +82,8 @@ def classify(kmsg, ssh_receipt, verified_boot):
     # from this exact healthy 1/2/3/4 sequence (the DISABLE_PENDING->CLOSED
     # transition requires a quiescent ledger) together with no fault.
     result['eligible_delivery'] = bool(result['sequence_ok'] and result['counts_ok'] and
-                                       not result['fault'] and native_last >= 1 and rx_ok)
+                                       not result['fault'] and malformed == 0 and
+                                       native_last >= 1 and rx_ok)
     # Authenticated path: a fresh, mode-bound, exclusively-native Wi-Fi exchange.
     valid_boot = isinstance(verified_boot, str) and bool(_BOOT.match(verified_boot))
     cycles = ssh_receipt.get('cycles') if isinstance(ssh_receipt, dict) else None

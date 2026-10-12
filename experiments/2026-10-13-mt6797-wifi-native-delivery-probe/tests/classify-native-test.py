@@ -84,6 +84,13 @@ assert not classify(kmsg(totals=[40, 40, 40, 10]), receipt(), BOOT)['counts_ok']
 assert not classify(kmsg(mpdu=4000), receipt(), BOOT)['eligible_delivery']
 # A duplicate/second native RX record is malformed -> not eligible.
 assert not classify(kmsg(rx=2), receipt(), BOOT)['eligible_delivery']
+# A malformed native-diag line (prefix present, grammar broken) must be REJECTED,
+# not silently ignored, even appended to an otherwise-positive log.
+broken = kmsg() + b'\n6,9,9,-;mt6797-consys: one-shot WLAN native-diag: state=broken'
+bres = classify(broken, receipt(), BOOT)
+assert bres['malformed_records'] == 1 and not bres['eligible_delivery'] and not bres['native_delivery_pass']
+rxbroken = kmsg() + b'\n6,9,9,-;mt6797-consys: one-shot WLAN native-diag RX: first mpdu_bytes=x'
+assert classify(rxbroken, receipt(), BOOT)['malformed_records'] == 1
 # A well-bounded monotone positive still passes.
 assert classify(kmsg(totals=[0, 10, 40, 40], bytez=[0, 1024, 4096, 4096]), receipt(), BOOT)['native_delivery_pass']
 
