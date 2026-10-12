@@ -227,6 +227,16 @@ static bool phase_reads_rx(enum mt6797_native_diag_state st)
 	return st != MT6797_ND_DISABLE_PENDING;
 }
 
+/* The post-stop gate is scoped to the ENABLE_PENDING/ACTIVE ending states; IDLE
+ * (unarmed or post-close) and CLOSED never suppress their inherited control
+ * dispatch, even with an old data-phase end latched. */
+static bool nd_over_for(enum mt6797_native_diag_state st, bool sample_done,
+			bool data_ended)
+{
+	return (st == MT6797_ND_ENABLE_PENDING || st == MT6797_ND_ACTIVE) &&
+	       (sample_done || data_ended);
+}
+
 int main(void)
 {
 	/* A: capture STOP with an owed TX-done -> never dropped; disable waits. */
@@ -345,6 +355,13 @@ int main(void)
 	assert(!phase_reads_rx(MT6797_ND_DISABLE_PENDING));
 	assert(phase_reads_rx(MT6797_ND_ACTIVE));
 	assert(phase_reads_rx(MT6797_ND_CLOSED));
+	/* nd_over scope: ending states gate; IDLE unarmed and CLOSED cleanup do not,
+	 * even with an old data_ended latched (inertness + CLOSED contract). */
+	assert(nd_over_for(MT6797_ND_ACTIVE, true, false));
+	assert(nd_over_for(MT6797_ND_ENABLE_PENDING, false, true));
+	assert(!nd_over_for(MT6797_ND_ACTIVE, false, false));	/* window open */
+	assert(!nd_over_for(MT6797_ND_IDLE, false, true));	/* unarmed: no suppression */
+	assert(!nd_over_for(MT6797_ND_CLOSED, true, true));	/* cleanup control runs */
 
 	/* G: prospective sample bound -- a read that WOULD cross a ceiling is not
 	 * admitted; the sample totals never exceed the ceilings. */

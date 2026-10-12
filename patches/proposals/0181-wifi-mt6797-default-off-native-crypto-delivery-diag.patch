@@ -1,4 +1,4 @@
-From 2aa6b4d8a330efacd9c04e38a7f5eaabebfd918c Mon Sep 17 00:00:00 2001
+From 3a5150a8b20fc6f9907cf522dc4d81c4a7e64b15 Mon Sep 17 00:00:00 2001
 From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
 Date: Mon, 12 Oct 2026 17:24:12 +0000
 Subject: [PATCH] wifi: mt6797: default-off strict native-crypto-delivery
@@ -55,9 +55,9 @@ monitor-netdev (monWork) host policy, no generic observer; only channel 40.
  drivers/net/wireless/mediatek/mt6797/hif.c    |  17 ++
  drivers/net/wireless/mediatek/mt6797/hif.h    |   6 +
  .../wireless/mediatek/mt6797/join-commands.h  |  36 +++
- drivers/net/wireless/mediatek/mt6797/mac.c    | 281 +++++++++++++++++-
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 289 +++++++++++++++++-
  .../wireless/mediatek/mt6797/native-diag.h    | 212 +++++++++++++
- 7 files changed, 675 insertions(+), 2 deletions(-)
+ 7 files changed, 683 insertions(+), 2 deletions(-)
  create mode 100644 drivers/net/wireless/mediatek/mt6797/native-diag.h
 
 diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
@@ -293,7 +293,7 @@ index 884faa1b2..228e7cbd3 100644
 +}
  #endif
 diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
-index 42e888780..a7b6af818 100644
+index 42e888780..fe6319ea7 100644
 --- a/drivers/net/wireless/mediatek/mt6797/mac.c
 +++ b/drivers/net/wireless/mediatek/mt6797/mac.c
 @@ -21,6 +21,13 @@
@@ -572,7 +572,7 @@ index 42e888780..a7b6af818 100644
  			branch = 4;
  			ret = mt6797_hif_receive_packet(mac->hif, port, deadline,
  				 mac->join_packet, sizeof(mac->join_packet), &rx);
-@@ -1819,6 +2030,25 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -1819,6 +2030,33 @@ static void mt6797_mac_join_work(struct work_struct *work)
  				goto failed;
  			got = true;
  			branch = 5;
@@ -581,7 +581,15 @@ index 42e888780..a7b6af818 100644
 +			 * bucket. nd_over marks the post-stop phase (window over by any
 +			 * reason) for the owed-completion gate below.
 +			 */
-+			nd_over = mac->native_diag_sample_done || mac->join_data_ended;
++			/* The post-stop gate is scoped to the ENABLE_PENDING/ACTIVE
++			 * ending states only. IDLE (unarmed, or after close) and CLOSED
++			 * run the inherited bounded class dispatch -- ordinary plaintext
++			 * stays withheld through native_diag_engaged, not this gate --
++			 * so an old join_data_ended never suppresses their control events.
++			 */
++			nd_over = (mac->native_diag_state == MT6797_ND_ENABLE_PENDING ||
++				   mac->native_diag_state == MT6797_ND_ACTIVE) &&
++				  (mac->native_diag_sample_done || mac->join_data_ended);
 +			if (mac->native_diag_state == MT6797_ND_ENABLE_PENDING ||
 +			    mac->native_diag_state == MT6797_ND_ACTIVE) {
 +				if (!nd_over) {
@@ -598,7 +606,7 @@ index 42e888780..a7b6af818 100644
  			if (mt6797_join_event(mac->join_packet, rx.logical_bytes, 0x0f, 16)) {
  				if (!mac->join_inflight ||
  	!mt6797_join_tx_done(mac->join_packet, rx.logical_bytes,
-@@ -1877,6 +2107,16 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -1877,6 +2115,16 @@ static void mt6797_mac_join_work(struct work_struct *work)
  				}
  				continue;
  			}
@@ -615,7 +623,7 @@ index 42e888780..a7b6af818 100644
  			if (rx.logical_bytes >= 8 &&
  			    mt6797_join_le16(mac->join_packet + 2) == 0xe000) {
  				branch = 6;
-@@ -2008,6 +2248,43 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -2008,6 +2256,43 @@ static void mt6797_mac_join_work(struct work_struct *work)
  			 * reaches it too. Delivery is capped per lifetime; frames above
  			 * the cap are dropped undelivered and counted.
  			 */
@@ -661,7 +669,7 @@ index 42e888780..a7b6af818 100644
  					   mac->hw->wiphy->perm_addr, mac->join_ap,
 diff --git a/drivers/net/wireless/mediatek/mt6797/native-diag.h b/drivers/net/wireless/mediatek/mt6797/native-diag.h
 new file mode 100644
-index 000000000..29ff42e97
+index 000000000..3c303121f
 --- /dev/null
 +++ b/drivers/net/wireless/mediatek/mt6797/native-diag.h
 @@ -0,0 +1,212 @@
@@ -685,10 +693,10 @@ index 000000000..29ff42e97
 +#define MT6797_NATIVE_DIAG_NATIVE_MAX 64U           /* protected-native ordinary frames */
 +#define MT6797_NATIVE_DIAG_BYTES_MAX  (1024U * 1024U) /* 1 MiB total RX bytes */
 +
-+/* Once the sample window ends, draining owed completions (the exact TX-done and
-+ * control classes only) has its own finite ceiling, set below the parent
-+ * command/frame/grant/lifetime deadlines, after which an unretired ledger
-+ * latches the no-radio stop.
++/* Once the sample window ends, draining the owed completion (the exact TX-done
++ * class only; the broad control dispatcher and all other classes are gated) has
++ * its own finite ceiling, set below the parent command/frame/grant/lifetime
++ * deadlines, after which an unretired ledger fails through the normal terminal.
 + */
 +#define MT6797_NATIVE_DIAG_RETIRE_READS 64U            /* further all-class reads */
 +#define MT6797_NATIVE_DIAG_RETIRE_BYTES (256U * 1024U) /* 256 KiB drained */
