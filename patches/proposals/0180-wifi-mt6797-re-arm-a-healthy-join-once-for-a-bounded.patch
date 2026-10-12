@@ -1,4 +1,4 @@
-From bb0b6a7078899f2ead1334b35cbc4ccbf54f189f Mon Sep 17 00:00:00 2001
+From e275ed4a68a7ca83e6d56c5ba3cc341e54b40b4b Mon Sep 17 00:00:00 2001
 From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
 Date: Mon, 12 Oct 2026 12:30:00 +0000
 Subject: [PATCH 180/180] wifi: mt6797: re-arm a healthy join once for a
@@ -42,8 +42,8 @@ run does not settle that residual firmware contract. No crypto, replay,
 operational or sustained-operation claim follows.
 ---
  .../net/wireless/mediatek/mt6797/join-rearm.h |  53 ++++
- drivers/net/wireless/mediatek/mt6797/mac.c    | 279 +++++++++++++++++-
- 2 files changed, 320 insertions(+), 12 deletions(-)
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 287 +++++++++++++++++-
+ 2 files changed, 327 insertions(+), 13 deletions(-)
  create mode 100644 drivers/net/wireless/mediatek/mt6797/join-rearm.h
 
 diff --git a/drivers/net/wireless/mediatek/mt6797/join-rearm.h b/drivers/net/wireless/mediatek/mt6797/join-rearm.h
@@ -106,7 +106,7 @@ index 000000000..75f5e07cb
 +
 +#endif /* MT6797_JOIN_REARM_H */
 diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
-index fe5cc2a52..523bb1514 100644
+index fe5cc2a52..5a3723c54 100644
 --- a/drivers/net/wireless/mediatek/mt6797/mac.c
 +++ b/drivers/net/wireless/mediatek/mt6797/mac.c
 @@ -20,6 +20,7 @@
@@ -411,7 +411,7 @@ index fe5cc2a52..523bb1514 100644
  	if (!mac->scan_ready || !mac->started || mac->vif != vif ||
 -	    mac->closing || mac->first_error || mac->scan_used)
 +	    mac->closing || mac->first_error || mac->scan_used ||
-+	    mac->join_lifetimes >= 2)
++	    mac->join_lifetimes >= 2 || mac->join_closed)
  		goto out;
  	/* mac80211 may append supported-rate IEs internally. There are no
  	 * probe requests in this passive form, so no IEs are transmitted.
@@ -428,7 +428,17 @@ index fe5cc2a52..523bb1514 100644
  	ret = mt6797_mac_scan_guard(mac, ktime_get_ns() + NSEC_PER_SEC);
  	if (ret) {
  		mac->first_error = ret;
-@@ -3092,17 +3331,33 @@ static int mt6797_mac_sta_state(struct ieee80211_hw *hw,
+@@ -2356,7 +2595,8 @@ static int mt6797_mac_start(struct ieee80211_hw *hw)
+ 	int ret = -EOPNOTSUPP;
+ 
+ 	mutex_lock(&mac->mutex);
+-	if (mac->scan_ready && mac->configured && !mac->closing && !mac->first_error) {
++	if (mac->scan_ready && mac->configured && !mac->closing &&
++	    !mac->first_error && !mac->join_closed) {
+ 		mac->started = true;
+ 		ret = 0;
+ 	}
+@@ -3092,17 +3332,38 @@ static int mt6797_mac_sta_state(struct ieee80211_hw *hw,
  			bool close = true;
  
  			mutex_lock(&mac->mutex);
@@ -446,24 +456,29 @@ index fe5cc2a52..523bb1514 100644
 -
 -				if (!ret) {
 +			if (vif == mac->vif && !mac->first_error && !mac->closing) {
-+				if (mac->join_cleanup_done && !mac->join_closed) {
-+					/* 0180: healthy terminal already reached; queue the
-+					 * serialized re-arm and never join_close (no poison).
++				if (mac->join_cleanup_done) {
++					/* 0180: a healthy descent never poisons (close stays
++					 * false on every downward transition). Queue the single
++					 * serialized re-arm only once the mac80211 NOTEXIST
++					 * teardown is also seen (join_sta_removed) - not on the
++					 * earlier AUTHORIZED/ASSOC/AUTH descents, which would run
++					 * the pass with sta_removed=false and log a false refusal.
 +					 */
  					close = false;
 -				} else {
 -					mac->first_error = ret;
 -					mac->closing = true;
-+					if (!mac->join_rearm_pending) {
++					if (mac->join_sta_removed && !mac->join_closed &&
++					    !mac->join_rearm_pending) {
 +						mac->join_rearm_pending = true;
 +						schedule_delayed_work(&mac->join_work, 0);
 +					}
 +				} else if (mac->join_peer_used && !mac->join_retired) {
 +					int ret = mt6797_mac_join_request_cleanup(mac);
 +
-+					if (!ret)
++					if (!ret) {
 +						close = false;
-+					else {
++					} else {
 +						mac->first_error = ret;
 +						mac->closing = true;
 +					}

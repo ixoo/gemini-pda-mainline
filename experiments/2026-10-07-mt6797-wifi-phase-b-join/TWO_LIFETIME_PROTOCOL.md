@@ -37,8 +37,23 @@ therefore controls the supplicant explicitly, keeping the one vif and the one su
   grant-tail and the reserved deauthentication margin preserved.
 - Keys: the two WPA2 key commands (pairwise, group) submitted and credited, then removed at
   cleanup; no rekey.
-- Management/data: the runtime-32 budgets — the bounded data phase (`MT6797_JOIN_DATA_BUDGET_MS`
-  inside the grant), the data delivery and TX caps, the ping and SSH exchanges.
+- Management: 3 management transmits per cycle — authentication (subtype 11), association
+  (subtype 0) and the reserved deauthentication (subtype 12) — plus 2 EAPOL frames; the keys
+  are 2 adds and 2 removes, each a command with a 100 ms credit deadline.
+- Data phase: budget = min(`MT6797_JOIN_DATA_BUDGET_MS` 60000 ms, grant deadline −
+  `MT6797_JOIN_GRANT_TAIL_MS` 2500 ms); teardown margin `MT6797_JOIN_TEARDOWN_MARGIN_MS` 5000 ms;
+  worker poll cap `MT6797_JOIN_MAX_POLLS` 4096; RX delivery cap `MT6797_JOIN_DATA_RX_MAX` 16384;
+  TX at most `MT6797_JOIN_DATA_TX_QUEUE` 8 in flight; TX-failure cap `MT6797_JOIN_DATA_TX_FAILURES`
+  8; credit records `MT6797_JOIN_DATA_CREDIT_RECORDS` 8.
+- Host per cycle: `udhcpc` ≤ 20 s (4 tries × 3 s, one lease), the Dropbear listener ≤ 90 s,
+  `ping` 3 × 2 s ≤ 12 s, the SSH readiness wait ≤ 6 × 0.5 s.
+- Command sequence: the u8 `mac->sequence` is monotonic across both cycles (refused > 248 at
+  add_peer, > 253 at cleanup); the TX pids `join_next_pid` are monotonic across both cycles,
+  capped at `MT6797_JOIN_DATA_LAST_PID` 126, and a re-arm is refused if `join_next_pid` > 63 so
+  the second cycle has fresh pids and never reuses them.
+- Aggregate over the two cycles: ≤ 2 scans, ≤ 2 channel grants, 4 key adds + 4 key removes,
+  6 management transmits + 4 EAPOL, two data phases, all pids and sequences within the single
+  monotonic u8 spaces above; a third cycle's first-effect scan is refused.
 - Wire identities: `join_channel_token` and `join_sta_sequence` advance by one per re-arm and the
   monotonic command `sequence` continues; a u8 wrap or an exhausted `sequence` (> 248) refuses the
   re-arm. Scan counters and observers reset per completed cycle; wire identities stay fresh.
@@ -53,7 +68,8 @@ therefore controls the supplicant explicitly, keeping the one vif and the one su
 
 The runtime-32 refusal grammar and the single native recovery are unchanged, plus: a re-arm
 refused (any gate unmet) is a named terminal, not a silent close; a third or out-of-order key
-event is a named refusal; a wire-identity wrap poisons (footer branch 10). `classify-join.py`'s
+event is a named refusal; a wire-identity wrap emits the named `rearm wrap` record and
+poisons via first_error+closing (no automatic retry). `classify-join.py`'s
 `classify_lifetimes()` splits the sealed log at each `rearm` record and classifies each lifetime
 segment; a single-lifetime log (the pre-0180 shape, no re-arm record) returns one segment, so old
 evidence stays valid.
