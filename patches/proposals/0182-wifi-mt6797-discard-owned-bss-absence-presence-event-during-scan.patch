@@ -1,0 +1,114 @@
+From b233385daeb8585f41113fce6b85eb5405471145 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 12 Oct 2026 19:48:43 +0000
+Subject: [PATCH] mt6797 Wi-Fi: discard the owned-BSS absence/presence (0x11)
+ notification during a later-lifetime scan
+
+Runtime 33's second lifetime failed its scan with -EPROTO ~26 ms after
+admission: the firmware emitted event id 0x11 (observed as a 12-byte, sequence-0
+header at 189801285 us) and the scan event handler had no case for it, so it hit
+the default unknown-event refusal; the submission then stopped with -95.
+
+Event id 0x11 is EVENT_ID_BSS_ABSENCE_PRESENCE in the event definition (gen3
+que_mgt.h), the same event the join parser already admits via
+mt6797_join_event(.., 0x11, 4); event ids are a separate namespace from the
+like-numbered command MT6797_NORMAL_BSS_ACTIVE, so the matching number is not
+the attribution. In runtime 33 only the 12-byte, seq-0 header was observed; the
+body, the BSS it names, and whether that BSS is this scan's current/owned one
+were NOT observed.
+
+The scan handler now treats it as a source-supported predicate under test, not a
+fact. Malformed framing (not 12 bytes, or a non-zero sequence) is refused with no
+body access. On exact framing the known body fields are logged BEFORE the
+accept/refuse decision, so a refused known event shows why. The notification is
+then discarded only within the owned active scan (scan_active and bss_active),
+for the owned BSS slot (ucBssIndex 0) with a boolean ucIsAbsent, inside a small
+per-scan budget (MT6797_SCAN_NOTIFY_MAX); a foreign slot, a non-boolean absent,
+an out-of-context event or an over-budget one stays -EPROTO. No credit, state,
+ownership or absent/present is inferred (ucBssFreeQuota is never TC4 credit), and
+the default unknown-event refusal is unchanged, so this is not a blanket bypass.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 49 ++++++++++++++++++++++
+ 1 file changed, 49 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index fe6319ea7..396dc955b 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -57,6 +57,10 @@ MODULE_PARM_DESC(native_delivery_diag,
+ #define MT6797_JOIN_MAX_POLLS 4096U
+ #define MT6797_JOIN_MAX_PACKETS 32768U
+ #define MT6797_JOIN_DATA_RX_MAX 16384U
++/* Bounded owned-BSS absence/presence (event 0x11) notifications discarded per
++ * scan, so an asynchronous notification cannot loop the scan poll.
++ */
++#define MT6797_SCAN_NOTIFY_MAX 2U
+ #define MT6797_JOIN_DATA_TX_QUEUE 8U
+ #define MT6797_JOIN_DATA_TX_QUEUE_BYTES (8U * 1550U)
+ #define MT6797_JOIN_DATA_TX_FAILURES 8U
+@@ -199,6 +203,7 @@ struct mt6797_mac {
+ 
+ 	u64 scan_deadline, scan_started_ns;
+ 	unsigned int scan_channels, scan_count, scan_polls, scan_packets;
++	unsigned int scan_notifications;
+ 	bool scan_ready, started, scan_used, scan_active, bss_active;
+ 	bool scan_beacon, scan_credit, scan_frame_seen;
+ #if IS_ENABLED(CONFIG_MT6797_SCAN_TUNING_SAMPLE)
+@@ -559,6 +564,49 @@ static int mt6797_mac_scan_packet(struct mt6797_mac *mac, size_t bytes,
+ 			if (ret)
+ 				return ret;
+ 			return own & BIT(8) ? 0 : -EACCES;
++		case 0x11: {
++			/* Event id 0x11 is EVENT_ID_BSS_ABSENCE_PRESENCE (gen3
++			 * que_mgt.h, the same event the join parser admits via
++			 * mt6797_join_event(.., 0x11, 4)): an 8-byte event header then
++			 * ucBssIndex, ucIsAbsent, ucBssFreeQuota and one reserved byte,
++			 * unsolicited. Event ids are a separate namespace from the
++			 * like-numbered command MT6797_NORMAL_BSS_ACTIVE; the match is
++			 * not the attribution. Runtime 33 observed only a 12-byte,
++			 * sequence-0 header during the second lifetime's scan; the body,
++			 * the BSS it names, and whether that BSS is this scan's current
++			 * or owned one were NOT observed.
++			 *
++			 * So the admission is a source-supported predicate under test,
++			 * not a fact: within the owned active scan, a well-framed
++			 * notification naming the owned BSS slot (ucBssIndex 0) with a
++			 * boolean ucIsAbsent, inside a small per-scan budget, is treated
++			 * as an asynchronous notification and discarded -- it carries no
++			 * scan result, and no credit, state, ownership or absent/present
++			 * is inferred (ucBssFreeQuota is never TC4 credit). A malformed,
++			 * foreign (another slot or a non-boolean absent) or
++			 * out-of-context event is refused like any unknown event, so a
++			 * failed predicate is visible rather than hidden.
++			 */
++			const u8 *body = packet + 8;
++
++			/* Malformed framing is refused without touching the body. */
++			if (bytes != 12 || packet[5])
++				return -EPROTO;
++			/* Exact 12-byte framing is safe: record the known body fields
++			 * (small scalars, no address) BEFORE the accept/refuse decision,
++			 * so a refused known event still shows why it was refused.
++			 */
++			dev_info(wiphy_dev(mac->hw->wiphy),
++				 "one-shot passive WLAN owned-bss notification: bss=%u is_absent=%u quota=%u reserved=%u scan_active=%u count=%u\n",
++				 body[0], body[1], body[2], body[3], mac->scan_active,
++				 mac->scan_notifications);
++			if (!mac->scan_active || !mac->bss_active || body[0] ||
++			    body[1] > 1 ||
++			    mac->scan_notifications >= MT6797_SCAN_NOTIFY_MAX)
++				return -EPROTO;
++			mac->scan_notifications++;
++			return 0;
++		}
+ 		default:
+ 			dev_info(wiphy_dev(mac->hw->wiphy),
+ 				 "one-shot passive WLAN unknown event: len=%zu id=0x%02x seq=%u\n",
+@@ -2822,6 +2870,7 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ 		goto out;
+ 	mac->bss_active = true;
+ 	mac->scan_started_ns = ktime_get_ns();
++	mac->scan_notifications = 0;
+ 	ret = mt6797_mac_send(mac, MT6797_NORMAL_SCAN_V2, payload, sizeof(payload));
+ 	if (ret)
+ 		goto out;

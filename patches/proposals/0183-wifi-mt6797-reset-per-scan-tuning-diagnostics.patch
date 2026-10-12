@@ -1,0 +1,37 @@
+From 38a84603015872a5174e9bae47375ffd834d6650 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 12 Oct 2026 19:49:10 +0000
+Subject: [PATCH] mt6797 Wi-Fi: reset the per-scan tuning diagnostics at scan
+ begin
+
+The SCAN_TUNING_SAMPLE counters (tuning_submitted / tuning_received /
+tuning_pending) were not reset per scan, so a later lifetime's scan inherited the
+previous scan's counts while the scan-completion gate requires them to balance.
+Reset them at scan begin so each scan owns its tuning budget; the monotonic
+mac->sequence is left as is and is still bounded at 255 on each tuning submit.
+Runtime 33's second scan happened to carry balanced 4/4 counts, so this was not
+that run's trigger, but the carry-over is a latent completion-gate fragility.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 396dc955b..418897b36 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -2871,6 +2871,15 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ 	mac->bss_active = true;
+ 	mac->scan_started_ns = ktime_get_ns();
+ 	mac->scan_notifications = 0;
++#if IS_ENABLED(CONFIG_MT6797_SCAN_TUNING_SAMPLE)
++	/* Per-scan diagnostics reset: each scan owns its tuning budget; nothing is
++	 * carried from a previous lifetime's scan, while the completion gate
++	 * requires the counts to balance. mac->sequence stays monotonic.
++	 */
++	mac->tuning_submitted = 0;
++	mac->tuning_received = 0;
++	mac->tuning_pending = false;
++#endif
+ 	ret = mt6797_mac_send(mac, MT6797_NORMAL_SCAN_V2, payload, sizeof(payload));
+ 	if (ret)
+ 		goto out;

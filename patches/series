@@ -792,3 +792,5 @@ proposals/0178-wifi-mt6797-discard-the-target-s-group-data-flagged-.patch
 proposals/0179-wifi-mt6797-record-the-delivered-data-classes-GROUP_.patch
 proposals/0180-wifi-mt6797-re-arm-a-healthy-join-once-for-a-bounded.patch
 proposals/0181-wifi-mt6797-default-off-native-crypto-delivery-diag.patch
+proposals/0182-wifi-mt6797-discard-owned-bss-absence-presence-event-during-scan.patch
+proposals/0183-wifi-mt6797-reset-per-scan-tuning-diagnostics.patch
