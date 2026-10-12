@@ -308,3 +308,21 @@ assert r_over['truncated'] and not r_over['complete']
 minus = good_export.replace(b'bytes=%d' % len(b'data-lease'), b'bytes=-1', 1)
 assert C2['cycles_export_result'](minus, b'', proc_for(minus), BOOTX)['truncated']
 print('c2-session: PASS (two-cycle evidence export: read-only script, transport/process gate, truncation refusal, lease+host-ack required)')
+
+
+# The boot-bound quiescence record: present + boot-bound + empty faults => quiesced;
+# a named fault, a boot mismatch or a missing record => NOT quiesced (host refuses
+# seal/recovery). The faults list is retained for diagnosis.
+qscript = C2['quiescence_script'](BOOTX)
+assert isinstance(qscript, bytes) and qscript.startswith(b'#!/bin/sh\n')
+assert b'/tmp/mt6797-wifi-phase-b-1/quiescence' in qscript and BOOTX.encode() in qscript
+def _q(faults, boot=BOOTX, after=BOOTX):
+    return (b'__QUIESCENCE_BEGIN__\nboot=' + boot.encode() + b'\nfaults=' + faults +
+            b'\n__QUIESCENCE_END__\nboot_after=' + after.encode() + b'\n')
+clean = C2['quiescence_result'](_q(b''), BOOTX)
+assert clean['quiesced'] and clean['boot_match'] and clean['faults'] == ''
+faulted = C2['quiescence_result'](_q(b'4242:wpa-supplicant,51:wifi-sshd'), BOOTX)
+assert not faulted['quiesced'] and faulted['faults'] == '4242:wpa-supplicant,51:wifi-sshd'
+assert not C2['quiescence_result'](_q(b'', after='0000ffff-0000-0000-0000-000000000000'), BOOTX)['quiesced']
+assert not C2['quiescence_result'](b'__QUIESCENCE_BEGIN__\n__QUIESCENCE_END__\nboot_after=' + BOOTX.encode() + b'\n', BOOTX)['quiesced']
+print('c2-session: PASS (boot-bound quiescence record: clean quiesced, named fault / boot mismatch / missing not quiesced)')

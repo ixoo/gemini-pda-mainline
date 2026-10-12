@@ -232,6 +232,22 @@ def c2_prepare(candidate):
                 raise RuntimeError('owned supplicant not confirmed quiesced '
                                    '(supplicant_processes=%r); refusing seal and '
                                    'recovery' % result.get('supplicant_processes'))
+            # Authoritative, boot-bound: the leaf writes a quiescence record naming
+            # any owned child -- the Wi-Fi listener as well as the supplicant -- it
+            # could not terminate. Refuse the seal and the RAM-wiping recovery unless
+            # the record is present, boot-bound and fault-free, so a still-live
+            # listener cannot pass merely because wpa is gone.
+            try:
+                qraw, _qerr, _qp = invoke(active, 'quiescence', C2['quiescence_script'](boot))
+                qresult = C2['quiescence_result'](qraw, boot)
+            except (OSError, ValueError, KeyError, TypeError) as error:
+                qresult = {'quiesced': False, 'reason': str(error)}
+            active['collector'].write_new(ROOT / 'quiescence-result.json',
+                                           HOST.DOMAIN.HOST.encoded(qresult))
+            if not qresult.get('quiesced'):
+                raise RuntimeError('owned children not confirmed quiesced '
+                                   '(faults=%r); refusing seal and recovery' %
+                                   qresult.get('faults'))
             # The two cycles' retained per-cycle evidence, pulled off-device (RAM) into the
             # private evidence root before the seal and the RAM-wiping recovery. The raw
             # framed bytes (which name addresses) stay private; the result records presence

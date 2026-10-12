@@ -40,6 +40,10 @@ def stub_prepared(calls):
                    b'\nsupplicant_processes=0\n' + LOG +
                    b'\n__SUPPLICANT_LOG_END__\nbytes_after=' + str(len(LOG)).encode() + b'\nboot_after=' + BOOT.encode() + b'\n')
             return raw, b'', {'exit_status': 0, 'reason': None, 'stdin_complete': True, 'stdout_bytes': len(raw), 'stderr_bytes': 0}
+        if label == 'quiescence':
+            qraw = (b'__QUIESCENCE_BEGIN__\nboot=' + BOOT.encode() +
+                    b'\nfaults=\n__QUIESCENCE_END__\nboot_after=' + BOOT.encode() + b'\n')
+            return qraw, b'', {'exit_status': 0, 'reason': None, 'stdin_complete': True, 'stdout_bytes': len(qraw), 'stderr_bytes': 0}
         if label == 'cycles-export':
             # A well-framed two-cycle export (both cycles' lease and host-ack
             # present): transport/boot/framing intact and not truncated, so the
@@ -111,9 +115,9 @@ with tempfile.TemporaryDirectory(prefix='mt6797-c2-host-') as directory:
             assert calls == ['passive-scan', 'log-export', 'log-export'] and not written
             assert 'supplicant-log' not in prepared['execute'].__globals__['BUDGETS']
             continue
-        assert calls == ['passive-scan', 'supplicant-log', 'cycles-export', 'log-export', 'log-export'], calls
-        assert written == [root / 'supplicant-log-result.json', root / 'cycles-evidence.raw',
-                           root / 'cycles-evidence-result.json'], written
+        assert calls == ['passive-scan', 'supplicant-log', 'quiescence', 'cycles-export', 'log-export', 'log-export'], calls
+        assert written == [root / 'supplicant-log-result.json', root / 'quiescence-result.json',
+                           root / 'cycles-evidence.raw', root / 'cycles-evidence-result.json'], written
         exported = json.loads(written[0].read_bytes())
         assert exported['complete'] and exported['bytes'] == len(LOG) and 'CTRL-EVENT' not in written[0].read_text()
         assert prepared['execute'].__globals__['BUDGETS']['supplicant-log'][0] == 20

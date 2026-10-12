@@ -21,6 +21,7 @@ umask 077
 BB=/bin/busybox
 stage=start
 owned_exit=255
+quiesce_faults=
 wifi_sshd_pid=
 wifi_sshd_exit=255
 # Finite termination of ONE owned child (a direct child started with &): SIGTERM,
@@ -30,6 +31,7 @@ wifi_sshd_exit=255
 # __QUIESCE_FAIL__, sets quiesce_failed and returns 1. Only this pid; no killall.
 quiesce_owned() {
     _p=$1
+    _name=$2
     owned_exit=255
     [ -n "$_p" ] || return 0
     kill "$_p" 2>/dev/null || true
@@ -40,19 +42,25 @@ quiesce_owned() {
         _i=0
         while kill -0 "$_p" 2>/dev/null && [ "$_i" -lt 25 ]; do $BB sleep 0.2; _i=$((_i + 1)); done
     fi
+    # Check LIVE before any wait: a child that survived SIGTERM then SIGKILL must
+    # never be waited on (wait would hang), so record the fault (pid + identity,
+    # preserved for diagnosis) and return at once. The failure is authoritative.
+    if kill -0 "$_p" 2>/dev/null; then
+        quiesce_faults="${quiesce_faults}${quiesce_faults:+,}${_p}:${_name}"
+        $BB printf '__QUIESCE_FAIL__ pid=%s name=%s\n' "$_p" "$_name" >&2
+        return 1
+    fi
+    # Confirmed exited: reap to preserve the actual status. An ordinary SIGTERM
+    # exit (143) is a normal termination, not a failed one.
     set +e
     wait "$_p" 2>/dev/null
     owned_exit=$?
     set -e
-    if kill -0 "$_p" 2>/dev/null; then
-        $BB printf '__QUIESCE_FAIL__ pid=%s\n' "$_p" >&2
-        return 1
-    fi
     return 0
 }
 stop_wifi_sshd() {
     [ -n "$wifi_sshd_pid" ] || return 0
-    quiesce_owned "$wifi_sshd_pid" || true
+    quiesce_owned "$wifi_sshd_pid" wifi-sshd || true
     wifi_sshd_exit=$owned_exit
     wifi_sshd_pid=
 }
@@ -65,8 +73,16 @@ on_exit() {
     # cycle) with the same finite discipline, so the host's supplicant-log export
     # never sees a lingering effectful process; a quiesce failure is observable
     # (__QUIESCE_FAIL__) and the host refuses the RAM-wiping recovery.
-    [ -n "$supplicant_pid" ] && { quiesce_owned "$supplicant_pid" || true; }
+    [ -n "$supplicant_pid" ] && { quiesce_owned "$supplicant_pid" wpa-supplicant || true; }
     supplicant_pid=
+    # Boot-bound quiescence record: any owned child (the Wi-Fi listener or the
+    # supplicant) that could not be terminated is named here, so the host can
+    # refuse the seal and the RAM-wiping recovery authoritatively, not only on
+    # the supplicant count. An empty faults line means every owned child exited.
+    _bid=$($BB cat /proc/sys/kernel/random/boot_id 2>/dev/null || true)
+    $BB mkdir -p /tmp/mt6797-wifi-phase-b-1 2>/dev/null || true
+    $BB printf 'boot=%s\nfaults=%s\n' "$_bid" "$quiesce_faults" \
+        > /tmp/mt6797-wifi-phase-b-1/quiescence 2>/dev/null || true
     if [ "$rc" != 0 ]; then
         $BB printf '__STAGE_FAIL__ stage=%s rc=%s\n' "$stage" "$rc" >&2
     fi

@@ -345,3 +345,41 @@ def cycles_export_result(raw, err, process, boot):
                               all(c in present and present[c].get('lease', -1) >= 0 and
                                   present[c].get('host-ack', -1) >= 0 for c in (1, 2)))
     return result
+
+
+def quiescence_script(boot):
+    """One bounded read-only export of the boot-bound quiescence record the leaf
+    join writes on exit (the owned children -- the Wi-Fi listener and the
+    supplicant -- it could not terminate). Framed and identity-checked; nothing
+    is written on the device.
+    """
+    if not re.fullmatch(BOOT_RE, boot):
+        raise ValueError('boot identity is malformed')
+    return ("#!/bin/sh\nset -u\nBB=/bin/busybox\n"
+            "[ \"$($BB cat /proc/sys/kernel/random/boot_id)\" = '" + boot + "' ] || exit 3\n"
+            "$BB printf '__QUIESCENCE_BEGIN__\\n'\n"
+            "[ -f /tmp/mt6797-wifi-phase-b-1/quiescence ] && "
+            "$BB cat /tmp/mt6797-wifi-phase-b-1/quiescence\n"
+            "$BB printf '__QUIESCENCE_END__\\nboot_after=%s\\n' "
+            "\"$($BB cat /proc/sys/kernel/random/boot_id)\"\n").encode()
+
+
+def quiescence_result(raw, boot):
+    """Parse the framed quiescence record. 'quiesced' is true only when the record
+    is present, boot-bound before and after, and its faults line is empty; a
+    missing, boot-mismatched or non-empty-faults record is NOT quiesced, so the
+    host refuses the seal and the RAM-wiping recovery. The named faults (owned
+    pid:identity list) are retained for diagnosis.
+    """
+    text = raw.decode('ascii', 'replace') if isinstance(raw, (bytes, bytearray)) else raw
+    result = {'quiesced': False, 'boot_match': False, 'faults': None, 'bytes': len(raw)}
+    head = re.match(r"__QUIESCENCE_BEGIN__\n", text)
+    tail = re.search(r"\n__QUIESCENCE_END__\nboot_after=(" + BOOT_RE + r")\n$", text)
+    if not head or not tail:
+        return result
+    body = re.search(r"boot=(" + BOOT_RE + r")\nfaults=([^\n]*)\n", text)
+    result['boot_match'] = bool(body and body[1] == boot and tail[1] == boot)
+    if body:
+        result['faults'] = body[2]
+    result['quiesced'] = bool(result['boot_match'] and body and body[2] == '')
+    return result
