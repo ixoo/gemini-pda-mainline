@@ -32,8 +32,13 @@ The build profile `mt6797-a53-wifi-native-delivery-diag` (`kernel/manifest.json`
 + `configs/gemini-a53-wifi-native-delivery-diag.fragment`) builds the diagnostic
 into the station-join kernel and force-arms the read-only `mac.native_delivery_diag=1`
 boot parameter, preserving `clk_ignore_unused` and PSCI. `prepare-native-delivery.py`
-is the offline runtime adapter (receipt-driven, no fabricated hashes, no device
-action). Build and device remain held until root reviews the source and profile.
+is the offline preparation adapter (receipt-driven, no fabricated hashes, no
+device action). Buildbox emits a validated kernel **package**; the laptop
+compositor (reusing candidate-32's) produces the boot2 image and receipt. The
+runtime is a single native diagnostic lifetime (one-cycle join, Wi-Fi SSH gated
+on a post-ACTIVE marker, native classifier). The executable compositor, capture/
+session and classifier are still being completed; build and device remain held
+until root reviews the source and profile.
 
 ## Checks
 

@@ -10,9 +10,15 @@ action, and it fabricates no hashes: the kernel build commit and package digest
 are read from the committed receipt the Buildbox build produces, never written
 here.
 
-Driven by GEMINI_PRIVATE_REPO, GEMINI_RUNTIME_ROOT and GEMINI_JOIN_SCRIPT, the
-same contract the reviewed C2 join uses (the native diagnostic engages during
-that association; it is armed by the forced boot parameter in the profile).
+Driven by GEMINI_PRIVATE_REPO, GEMINI_RUNTIME_ROOT and GEMINI_JOIN_SCRIPT. The
+native diagnostic is a SINGLE association lifetime: the join script wraps the
+reviewed one-cycle join-once.sh (auto-reconnect disabled via wpa_cli, one cycle
+selected); the diagnostic engages during that association and stays CLOSED after
+its first window. The candidate receipt it checks is the one the LAPTOP
+compositor produces from the Buildbox kernel package plus the verified private
+parent/RAM root -- Buildbox itself emits only a kernel package. This adapter is
+the offline preparation step; the executable compositor/capture/classifier are
+authored separately. No device, radio, build or key action; no fabricated hash.
 """
 
 import hashlib
@@ -52,14 +58,15 @@ def main():
     # The diagnostic engages during the reviewed C2 join; reuse that exact
     # script (the private binder adds the PSK and hex SSID; never printed here).
     reviewed = (HERE.parent / '2026-10-07-mt6797-wifi-phase-b-join' /
-                'join-twice.sh').resolve()
+                'join-once.sh').resolve()
     if not body.startswith(b'TARGET_SSID=') or \
             not body.endswith(reviewed.read_bytes()):
-        refuse('GEMINI_JOIN_SCRIPT does not wrap the reviewed join-twice.sh')
+        refuse('GEMINI_JOIN_SCRIPT does not wrap the reviewed one-cycle join-once.sh')
     if b'\nWPA_PSK_HEX=' not in body or b'\nTARGET_SSID_HEX=' not in body:
-        refuse('GEMINI_JOIN_SCRIPT is not the PSK-bound C2 script')
-    # The receipt is produced by the Buildbox build of the native-delivery
-    # profile; its hashes are read, never fabricated here.
+        refuse('GEMINI_JOIN_SCRIPT is not the PSK-bound single-lifetime script')
+    # The receipt is produced by the LAPTOP compositor (from the Buildbox
+    # kernel package + verified private parent); its hashes are read, never
+    # fabricated here. Buildbox emits only the kernel package.
     if not RECEIPT.is_file() or RECEIPT.is_symlink():
         refuse('results/native-delivery-candidate.json is not committed yet')
     digest = hashlib.sha256(RECEIPT.read_bytes()).hexdigest()
