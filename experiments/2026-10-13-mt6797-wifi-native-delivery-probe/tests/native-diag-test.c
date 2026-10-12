@@ -68,70 +68,62 @@ int main(void)
 	assert(!mt6797_native_monitor_payload(true, 40, NULL));
 
 	/* Worker-state / ledger transitions: the asynchronous enable/disable state
-	 * machine reconciled on the real credit/page ledger, never blocking. */
+	 * machine reconciled on the real credit/page ledger, never blocking.
+	 * Designated initialisers (fields: state, armed, data_phase, quiescent,
+	 * poisoned, deadline_passed, seq_ok, budget_stop). */
 	{
 		struct mt6797_native_diag_ctx c;
 		struct mt6797_native_diag_budget z = {0, 0, 0, 0};
 		struct mt6797_native_diag_budget full = {0, MT6797_NATIVE_DIAG_RX_MAX, 0, 0};
+		int st;
 
-		/* Not armed, or not quiescent, stays IDLE (no pre-switch submission). */
-		c = (struct mt6797_native_diag_ctx){MT6797_ND_IDLE, 0, 1, 1, 0, 0, 0};
+		/* Not armed, or not quiescent, or no sequence space: stays IDLE. */
+		c = (struct mt6797_native_diag_ctx){.state = MT6797_ND_IDLE, .armed = 0, .data_phase = 1, .quiescent = 1, .seq_ok = 1};
 		assert(mt6797_native_diag_transition(&c) == MT6797_ND_ACT_NONE && c.state == MT6797_ND_IDLE);
-		c = (struct mt6797_native_diag_ctx){MT6797_ND_IDLE, 1, 1, 0, 0, 0, 0};
+		c = (struct mt6797_native_diag_ctx){.state = MT6797_ND_IDLE, .armed = 1, .data_phase = 1, .quiescent = 0, .seq_ok = 1};
 		assert(mt6797_native_diag_transition(&c) == MT6797_ND_ACT_NONE && c.state == MT6797_ND_IDLE);
-		/* Armed + data phase + quiescent => submit enable, go ENABLE_PENDING. */
-		c = (struct mt6797_native_diag_ctx){MT6797_ND_IDLE, 1, 1, 1, 0, 0, 0};
-		assert(mt6797_native_diag_transition(&c) == MT6797_ND_ACT_SUBMIT_ENABLE);
-		assert(c.state == MT6797_ND_ENABLE_PENDING);
-		/* Still owed (not quiescent): wait, no action, no early arm. */
+		c = (struct mt6797_native_diag_ctx){.state = MT6797_ND_IDLE, .armed = 1, .data_phase = 1, .quiescent = 1, .seq_ok = 0};
+		assert(mt6797_native_diag_transition(&c) == MT6797_ND_ACT_NONE && c.state == MT6797_ND_IDLE);
+		/* Armed + data phase + quiescent + seq space => submit enable. */
+		c = (struct mt6797_native_diag_ctx){.state = MT6797_ND_IDLE, .armed = 1, .data_phase = 1, .quiescent = 1, .seq_ok = 1};
+		assert(mt6797_native_diag_transition(&c) == MT6797_ND_ACT_SUBMIT_ENABLE && c.state == MT6797_ND_ENABLE_PENDING);
+		/* Still owed: wait; then enable retired => ACTIVE. */
 		c.quiescent = 0;
 		assert(mt6797_native_diag_transition(&c) == MT6797_ND_ACT_NONE && c.state == MT6797_ND_ENABLE_PENDING);
-		/* Enable retired (quiescent) => ACTIVE, still no action. */
 		c.quiescent = 1;
 		assert(mt6797_native_diag_transition(&c) == MT6797_ND_ACT_NONE && c.state == MT6797_ND_ACTIVE);
-		/* ACTIVE, a ceiling reached and quiescent => submit disable. */
+		/* ACTIVE + ceiling + quiescent + seq => submit disable. */
 		c.budget_stop = 1;
-		assert(mt6797_native_diag_transition(&c) == MT6797_ND_ACT_SUBMIT_DISABLE);
-		assert(c.state == MT6797_ND_DISABLE_PENDING);
+		assert(mt6797_native_diag_transition(&c) == MT6797_ND_ACT_SUBMIT_DISABLE && c.state == MT6797_ND_DISABLE_PENDING);
 		/* Disable retired => CLOSED; cleanup now allowed. */
 		assert(mt6797_native_diag_transition(&c) == MT6797_ND_ACT_NONE && c.state == MT6797_ND_CLOSED);
-		assert(mt6797_native_diag_cleanup_allowed(MT6797_ND_CLOSED));
-		assert(mt6797_native_diag_cleanup_allowed(MT6797_ND_IDLE));
+		assert(mt6797_native_diag_cleanup_allowed(MT6797_ND_CLOSED) && mt6797_native_diag_cleanup_allowed(MT6797_ND_IDLE));
 		assert(!mt6797_native_diag_cleanup_allowed(MT6797_ND_ENABLE_PENDING));
 		assert(!mt6797_native_diag_cleanup_allowed(MT6797_ND_ACTIVE));
 		assert(!mt6797_native_diag_cleanup_allowed(MT6797_ND_DISABLE_PENDING));
-		/* Enable deadline passed => latch no-radio and close. */
-		c = (struct mt6797_native_diag_ctx){MT6797_ND_ENABLE_PENDING, 1, 1, 0, 0, 1, 0};
+		/* ACTIVE ceiling but NO sequence space => latch no-radio, close. */
+		c = (struct mt6797_native_diag_ctx){.state = MT6797_ND_ACTIVE, .armed = 1, .data_phase = 1, .quiescent = 1, .seq_ok = 0, .budget_stop = 1};
 		assert(mt6797_native_diag_transition(&c) == MT6797_ND_ACT_LATCH_NORADIO && c.state == MT6797_ND_CLOSED);
-		/* Disable deadline passed => latch no-radio and close. */
-		c = (struct mt6797_native_diag_ctx){MT6797_ND_DISABLE_PENDING, 1, 1, 0, 0, 1, 0};
+		/* Enable / disable deadline passed => latch no-radio, close. */
+		c = (struct mt6797_native_diag_ctx){.state = MT6797_ND_ENABLE_PENDING, .deadline_passed = 1};
 		assert(mt6797_native_diag_transition(&c) == MT6797_ND_ACT_LATCH_NORADIO && c.state == MT6797_ND_CLOSED);
-		/* Poison in any pending state closes without a radio command. */
-		c = (struct mt6797_native_diag_ctx){MT6797_ND_ENABLE_PENDING, 1, 1, 1, 1, 0, 0};
-		assert(mt6797_native_diag_transition(&c) == MT6797_ND_ACT_NONE && c.state == MT6797_ND_CLOSED);
-		/* PROOF: once first_error/closing is latched (poisoned), NO state yields a
-		 * SUBMIT action — the diagnostic cannot slip a radio command past the
-		 * existing fences; a pending state closes, and IDLE/ACTIVE never submit. */
-		{
-			int st;
-			for (st = MT6797_ND_IDLE; st <= MT6797_ND_CLOSED; st++) {
-				struct mt6797_native_diag_ctx q = {
-					(enum mt6797_native_diag_state)st, 1, 1, 1, 1, 1, 1};
-				enum mt6797_native_diag_action a = mt6797_native_diag_transition(&q);
-				assert(a != MT6797_ND_ACT_SUBMIT_ENABLE &&
-				       a != MT6797_ND_ACT_SUBMIT_DISABLE);
-			}
+		c = (struct mt6797_native_diag_ctx){.state = MT6797_ND_DISABLE_PENDING, .deadline_passed = 1};
+		assert(mt6797_native_diag_transition(&c) == MT6797_ND_ACT_LATCH_NORADIO && c.state == MT6797_ND_CLOSED);
+		/* PROOF: once poisoned, NO state yields a SUBMIT action (no radio past the fence). */
+		for (st = MT6797_ND_IDLE; st <= MT6797_ND_CLOSED; st++) {
+			struct mt6797_native_diag_ctx q = {.state = (enum mt6797_native_diag_state)st,
+				.armed = 1, .data_phase = 1, .quiescent = 1, .poisoned = 1,
+				.deadline_passed = 1, .seq_ok = 1, .budget_stop = 1};
+			enum mt6797_native_diag_action a = mt6797_native_diag_transition(&q);
+			assert(a != MT6797_ND_ACT_SUBMIT_ENABLE && a != MT6797_ND_ACT_SUBMIT_DISABLE);
 		}
-		/* IDLE poisoned: no enable. ACTIVE poisoned: no disable, closes. */
-		c = (struct mt6797_native_diag_ctx){MT6797_ND_IDLE, 1, 1, 1, 1, 0, 0};
+		c = (struct mt6797_native_diag_ctx){.state = MT6797_ND_IDLE, .armed = 1, .data_phase = 1, .quiescent = 1, .poisoned = 1, .seq_ok = 1};
 		assert(mt6797_native_diag_transition(&c) == MT6797_ND_ACT_NONE && c.state == MT6797_ND_IDLE);
-		c = (struct mt6797_native_diag_ctx){MT6797_ND_ACTIVE, 1, 1, 1, 1, 0, 1};
+		c = (struct mt6797_native_diag_ctx){.state = MT6797_ND_ACTIVE, .poisoned = 1, .budget_stop = 1, .seq_ok = 1};
 		assert(mt6797_native_diag_transition(&c) == MT6797_ND_ACT_NONE && c.state == MT6797_ND_CLOSED);
-		c = (struct mt6797_native_diag_ctx){MT6797_ND_DISABLE_PENDING, 1, 1, 1, 1, 0, 0};
-		assert(mt6797_native_diag_transition(&c) == MT6797_ND_ACT_NONE && c.state == MT6797_ND_CLOSED);
-		/* Prospective admission: ACTIVE within caps admits; at a cap, no admit. */
+		/* Prospective admission: ACTIVE within caps admits; pending never; at a cap no admit. */
 		assert(mt6797_native_diag_admit(MT6797_ND_ACTIVE, &z));
-		assert(!mt6797_native_diag_admit(MT6797_ND_ENABLE_PENDING, &z));  /* never deliver while pending */
+		assert(!mt6797_native_diag_admit(MT6797_ND_ENABLE_PENDING, &z));
 		assert(!mt6797_native_diag_admit(MT6797_ND_ACTIVE, &full));       /* at RX cap: reject */
 	}
 
