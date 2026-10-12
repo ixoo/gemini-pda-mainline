@@ -490,10 +490,14 @@ group 1 (gated by GROUP_VLD), but the current decoder exposes only groups 3 (RX 
 and 4 (frame control), and nothing on the host consumes the PN for replay; so for runtime
 31's delivered traffic the group-1/PN wire presence is unknown (the record's `vector` field
 is group 3, not group 1). The one decision-changing measurement is a bounded, reviewable
-decoder change to record the GROUP_VLD mask and group-1 presence on the delivered class —
-no decryption, replay, radio or TX effect — which decides whether mac80211 can do standard
-CCMP replay on the existing path, the firmware already does it, or it is absent. The review
-also sets out the dependency chain to a usable mac80211/cfg80211 station (crypto/replay
+decoder change to record, as aggregate counts over the data phase for the delivered unicast
+and group classes, the GROUP_VLD mask values seen and group-1 present/absent — no PN bytes,
+no decryption, replay, radio or TX effect. It settles only whether group 1 is available on
+the sampled classes (currently unknown); it does not prove who enforces replay. Standard
+mac80211 CCMP replay reads the PN from the in-frame CCMP header and is skipped on the
+current IV-stripped path, so there is no out-of-band way to hand it a raw descriptor PN;
+that is a separate design question. The review also sets out the dependency chain to a
+usable mac80211/cfg80211 station (crypto/replay
 boundary → packet DMA/IRQ and resource ownership from source, with PIO as the observed
 fallback → ordinary connect/disconnect/scan and TX/RX lifecycle → regression). Driver
 completion is unproven and no upstream/DCO claim is made.

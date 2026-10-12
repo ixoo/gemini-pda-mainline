@@ -43,37 +43,47 @@ the dependency chain it sits on. Driver completion is unproven; nothing here cla
 
 ## The one decision-changing measurement
 
-Extend the receive decoder's output and the first-frame record to report, for the
-delivered keyed data class, the **GROUP_VLD mask and whether group 1 (PN) is present** (and,
-when present, that a PN was attached). This reads a field the layout already defines and
-the decoder already walks for offsets; it adds no decryption, no replay check, no radio or
-TX behaviour, and changes one struct field and one record line. It converts finding 4 from
-UNKNOWN to known on real delivered traffic, which decides the replay/crypto branch below.
-It is a bounded, reviewable driver change with a direct source basis, not a diagnostic
-detour and not a generic replay floor.
+Record, for the already-admitted delivered unicast and group data classes, bounded
+**aggregate counts over the data phase**: the GROUP_VLD mask values seen (as the decoder
+reads them) and, per class, how many frames had group 1 present versus absent. The existing
+first-frame record pair stays if useful. No PN bytes, no payload, no addresses, no timing
+budget and no new effect: the decoder already computes the group mask to walk offsets, so
+this reports a value it already derives. It is the smallest exact decoder + record +
+classifier change, with the group offsets and bounds verified and the applicable C, Python
+and build checks run. It is not a generic replay floor and surfaces nothing to the crypto
+path.
 
-The branch it decides:
+What it does and does not settle. It settles exactly one thing: **whether group 1 is
+available on the sampled delivered classes** — because that availability is currently
+UNKNOWN (finding 4), not because of any supposed mode or reference contrast. It does **not**
+settle replay ownership and does **not** prove firmware enforcement or its absence: a group
+mask is descriptor metadata, and the firmware's actual replay behaviour is not observable
+from it.
 
-- **If the firmware emits group-1/PN on the delivered class**, the driver can surface that
-  PN to mac80211 on the existing decrypted, IV-stripped path so mac80211 performs standard
-  CCMP replay detection — a correctness gain for a usable station, with no new radio
-  behaviour. Even then the host must still establish the exact key, TID, key incarnation,
-  authenticity and ordering semantics before relying on it; a present PN proves none of
-  those on its own.
-- **If it does not**, received replay enforcement must be shown to live in the firmware or
-  be declared absent, and native-format software CCMP (a separate approach needing intact
-  ciphertext, the CCMP header and MIC, authentication, and its own evidence that the
-  hardware can deliver such frames) is the only host-side alternative — none of which this
-  field check requires or assumes.
+How standard mac80211 CCMP replay actually works (pinned `net/mac80211`,
+`ieee80211_crypto_ccmp_decrypt`): mac80211 reads the PN from the **in-frame CCMP header**
+(`ccmp_hdr2pn` at the 802.11 header length) and compares it against `key->u.ccmp.rx_pn[queue]`,
+only when `RX_FLAG_PN_VALIDATED` is clear; a decrypted frame must still carry the 8-byte
+CCMP header (`pskb_may_pull(hdrlen + IEEE80211_CCMP_HDR_LEN)`). The current path sets
+`RX_FLAG_IV_STRIPPED`, which removes that header, so mac80211 performs **no** replay check
+and there is no interface to hand it a raw descriptor PN out of band. Standard replay would
+therefore require either delivering the frame with its CCMP header intact (IV not stripped)
+so mac80211's own path runs, or the driver maintaining `rx_pn` state itself and setting
+`RX_FLAG_PN_VALIDATED` — both needing authenticated metadata (key, TID, security queue, key
+incarnation and ordering), none of which a raw group-1 PN supplies. This measurement
+establishes none of that; it only tells whether group 1 is even present to consider those
+options.
 
 ## Dependency chain to a usable mac80211/cfg80211 station (not a work plan, the ordering)
 
 A complete Wi-Fi driver is a usable, maintained standard mac80211/cfg80211 station, not
 this one bounded lifetime. The concrete dependencies, in order, each resting on the prior:
 
-1. **Crypto/replay boundary** — the measurement above settles whether received replay can
-   be mac80211's on the existing path, is the firmware's, or is absent. Everything data-plane
-   depends on knowing this.
+1. **Crypto/replay boundary** — the measurement above establishes only group-1 availability
+   on the delivered classes, the first fact needed before any replay design. Who enforces
+   replay (firmware, a host rx_pn with `RX_FLAG_PN_VALIDATED`, or nobody) and whether the
+   CCMP header can be delivered intact for mac80211's own path are separate questions it does
+   not answer. Everything data-plane rests on resolving this boundary.
 2. **Packet DMA / IRQ / resource ownership, assessed from source.** The present path is the
    observed PIO fallback; whether ordinary operation needs packet DMA and the receive IRQ,
    and who owns those resources, is the next source assessment. PIO may remain a fallback;
