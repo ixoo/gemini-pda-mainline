@@ -12,8 +12,10 @@ here.
 
 Driven by GEMINI_PRIVATE_REPO, GEMINI_RUNTIME_ROOT and GEMINI_JOIN_SCRIPT. The
 native diagnostic is a SINGLE association lifetime: the join script wraps the
-reviewed one-cycle join-once.sh (auto-reconnect disabled via wpa_cli, one cycle
-selected); the diagnostic engages during that association and stays CLOSED after
+reviewed one-cycle join-native.sh (the corrected two-lifetime leaf mechanics
+restricted to one cycle: auto-reconnect disabled BEFORE the scan, disabled
+network with one manual select, finite owned-child quiescence, boot-bound
+quiescence record); the diagnostic engages during that association and stays CLOSED after
 its first window. The candidate receipt it checks is the one the LAPTOP
 compositor produces from the Buildbox kernel package plus the verified private
 parent/RAM root -- Buildbox itself emits only a kernel package. This adapter is

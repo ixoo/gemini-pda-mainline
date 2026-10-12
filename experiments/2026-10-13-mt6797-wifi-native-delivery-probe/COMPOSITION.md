@@ -15,9 +15,18 @@ diagnostic has its own candidate/runtime identity.
   validates the private inputs and the committed candidate receipt and creates
   the evidence root. Both take no device action and fabricate no hashes; root
   executes the compositor with the private parent/package.
-- **Still to complete:** the one-lifetime capture/session runner and the native
-  classifier (reusing the candidate-32 phase-b tooling; see below). Nothing here
-  claims the Buildbox build produces a boot2 candidate.
+- **Authored:** `classify-native.py` (the hardened one-lifetime verdict) and
+  `join-native.sh` (the single-cycle device join: the corrected two-lifetime leaf
+  mechanics restricted to one cycle, auto-reconnect disabled before the scan, a
+  disabled network with one manual select, finite owned-child quiescence and the
+  boot-bound quiescence record, and the readiness marker written only AFTER native
+  ACTIVE and tagged with the native-delivery mode). `install-native.py` binds the
+  reviewed boot2 guard.
+- **Still to complete:** the host-side one-cycle session binding -- reusing the
+  phase-b laptop-private host/capture and laptop-wifi-ssh for exactly one cycle,
+  recording the device post-ACTIVE mode marker into the SSH receipt that
+  classify-native checks, with classify-native as the verdict instead of the
+  two-lifetime C3. Nothing here claims the Buildbox build produces a boot2 candidate.
 
 ## Build identity — Buildbox emits a kernel PACKAGE, not a boot2 image
 
@@ -96,9 +105,11 @@ deployment. `<nd1>` is the composed native candidate directory.
    Wi-Fi SSH challenge runs only after that marker, and its receipt records the
    marker (boot, mode, after-ACTIVE). The reviewed finite helper/supplicant/
    listener quiescence, the registered export budgets and the single reviewed
-   recovery all apply. **STATUS: the one-cycle native capture/session
-   orchestrator and the device post-ACTIVE mode-bound marker are being authored
-   and are not yet executable-reviewed; this step is incomplete until they are.**
+   recovery all apply. The device join and the post-ACTIVE mode-bound marker are
+   authored as `join-native.sh` (reviewed-pending). **STATUS: the host-side
+   one-cycle session binding -- the laptop-private host/capture restricted to one
+   cycle and laptop-wifi-ssh recording the mode marker into the receipt -- is not
+   yet authored/executable-reviewed; this step is incomplete until it is.**
 5. Verdict: `classify-native.py <kmsg.log> <wifi-ssh-receipt.json> <verified-boot>`
    keeps two separate conclusions. ELIGIBLE DELIVERY (necessary, not sufficient):
    the exact owned one-cycle state/action sequence (1 act1, 2 act0, 3 act2, 4
