@@ -73,6 +73,36 @@ the private parent/package. CLI:
    further radio commands; no reassociation, reboot or ordinary-plaintext
    fallback.
 
+## Native runtime CLI (one lifetime; root runs offline-reviewed, installs after R34)
+
+candidate 33 (runtime 34) is installed first; ND1 is installed only after runtime
+34 is complete and recovered. The install predecessor is the currently-installed
+candidate 33 (74c5f711), which the reviewed guard rederives and verifies at
+deployment. `<nd1>` is the composed native candidate directory.
+
+1. Compose (root-run, offline): `./build-native-candidate.py --kernel-package
+   <linux-7.1.3-gemini-aa305e66… dir> --parent <candidate-32 dir> --output <nd1>`
+2. Offline prepare (own evidence root native-delivery/session-nd1):
+   `./prepare-native-delivery.py`
+3. Installer — generate the derived guard OFFLINE (no device write), then root
+   runs the derived install.sh under the standing guard:
+   `./install-native.py prepare --previous-gemian-boot <gemian> --candidate <nd1> --output <install-dir>`
+   then `bash <install-dir>/install.sh` (no session selector needed; this is a
+   single native candidate, not a 33/34-parameterized tool).
+4. Phase-A capture and the single reviewed C2 join use the reviewed phase-b
+   laptop-private capture/session over `<nd1>` with the SINGLE-lifetime join
+   script (join-once.sh: auto-reconnect disabled via wpa_cli, one selection and
+   association only); the diagnostic engages in the data phase, the device writes
+   its fresh boot/mode-bound marker only AFTER native state ACTIVE, and the fresh
+   Wi-Fi SSH challenge runs only after that marker. The reviewed finite
+   helper/supplicant/listener quiescence, the registered export budgets and the
+   single reviewed recovery all apply.
+5. Verdict: `classify-native.py <kmsg.log> <wifi-ssh-receipt.json>` — positive
+   requires the native path reached ACTIVE and closed cleanly, at least one
+   protected-native MPDU delivered with crypto-bypass flags 0x0 (mac80211 did the
+   AEAD/MIC/replay), no fault, and the fresh post-ACTIVE SSH challenge completed;
+   the translated C3 counters are never used.
+
 ## Native classifier (its own, not the translated C3 counters)
 
 Success is classified by a **native** classifier over the native frame counts,
