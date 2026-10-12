@@ -1,0 +1,369 @@
+From 69c664e0601fed34d21945922c82c727f7316db0 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 12 Oct 2026 12:30:00 +0000
+Subject: [PATCH 180/180] wifi: mt6797: re-arm a healthy join once for a
+ bounded two-lifetime station
+
+After the one healthy join reaches its stage-3 cleanup and mac80211 drives the
+station down to NOTEXIST, re-arm the driver to its pre-scan baseline so a
+second connect and its scan can run in the same boot. The two facts rendezvous
+in either order: sta_state records the NOTEXIST teardown in join_sta_removed
+and never poisons merely because the worker's cleanup is still in progress;
+the already-serialized join_work performs the one reset after both are seen,
+with the queue empty, no page/data debt, no credit pending and no in-flight
+frame, through mt6797_join_rearm_ready() in join-rearm.h.
+
+The two-lifetime bound is enforced at the first effectful submission, not at a
+third activation: hw_scan counts the lifetime where it admits the scan (before
+any scan/peer/channel/key write) and refuses a third scan once two have been
+admitted, so no third cycle reaches a peer, channel or key command. A re-arm
+is likewise refused once two lifetimes have started. mt6797_mac_join_rearm
+resets only the per-lifetime state, re-opens the scan cycle, advances the
+channel token and station sequence with a u8 wrap that refuses to re-arm
+rather than reuse a value, reinitialises the four completions exactly once
+after both teardowns, and leaves first_error/closing untouched; the
+device-wide fatal poison path (fail_stop/regulatory on an ambiguous command or
+ownership loss) is unchanged and stays permanently non-rearmable. A regulatory
+restore is benign once the healthy quiescent terminal is reached (cleanup done:
+deauth sent, keys removed, channel returned, no active TX) so the expected idle
+restore no longer poisons the next join, while an active lifetime still retires.
+Only a healthy terminal re-arms, so a fault re-arms nothing and stops the run.
+
+This is a bounded source-supported prototype, not production reusability. It is
+not an authenticated key-completion barrier: the lifetime-2 ACTIVATE response
+authenticates activation only, and EVENT_ID_ADD_PKEY_DONE carries no sequence
+or generation, so a late lifetime-1 key-done could substitute for a delayed or
+lost lifetime-2 one and still total two. Matching counts and station liveness
+bound, they do not authenticate; the residual firmware key-event incarnation
+contract is unsettled and a passing two-lifetime run does not settle it. No
+crypto, replay, operational or sustained-operation claim follows.
+---
+ .../net/wireless/mediatek/mt6797/join-rearm.h |  48 +++++
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 200 +++++++++++++++++-
+ 2 files changed, 245 insertions(+), 3 deletions(-)
+ create mode 100644 drivers/net/wireless/mediatek/mt6797/join-rearm.h
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-rearm.h b/drivers/net/wireless/mediatek/mt6797/join-rearm.h
+new file mode 100644
+index 000000000..4610ef67f
+--- /dev/null
++++ b/drivers/net/wireless/mediatek/mt6797/join-rearm.h
+@@ -0,0 +1,48 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef MT6797_JOIN_REARM_H
++#define MT6797_JOIN_REARM_H
++
++/* Pure decision for the bounded two-lifetime re-arm (proposal 0180), split out
++ * so its ordering and gate are host-testable without the kernel. The two facts
++ * - the worker's healthy stage-3 cleanup (cleanup_done) and the mac80211
++ * station teardown (sta_removed) - may arrive in either order; re-arm only when
++ * both are seen, the lifetime is quiescent (empty queue implied by cleanup_done,
++ * no debt, no in-flight frame, no credit pending), exactly the two expected key
++ * removals are credited with both key-done windows and no third, and the
++ * two-lifetime cap is not reached. A u8 wire-identity wrap or an exhausted
++ * command sequence refuses re-arm (the caller poisons) rather than reuse a value.
++ * This is not an authenticated key-completion barrier: the counts bound, they do
++ * not authenticate a generationless ADD_PKEY_DONE.
++ */
++enum mt6797_join_rearm_decision {
++	MT6797_JOIN_REARM_NO = 0,
++	MT6797_JOIN_REARM_YES,
++	MT6797_JOIN_REARM_WRAP,
++};
++
++struct mt6797_join_rearm_state {
++	bool cleanup_done, sta_removed, poisoned;
++	bool key_done, key_done_second;
++	bool inflight, credit_pending;
++	unsigned int key_pairwise, key_group;
++	unsigned int page_debt, data_page_debt;
++	unsigned char lifetimes, channel_token, sta_sequence;
++	unsigned int sequence;
++};
++
++static inline enum mt6797_join_rearm_decision
++mt6797_join_rearm_ready(const struct mt6797_join_rearm_state *s)
++{
++	if (!s->cleanup_done || !s->sta_removed || s->poisoned)
++		return MT6797_JOIN_REARM_NO;
++	if (s->lifetimes >= 2 ||
++	    s->key_pairwise != 2 || s->key_group != 2 ||
++	    !s->key_done || !s->key_done_second ||
++	    s->inflight || s->page_debt || s->data_page_debt || s->credit_pending)
++		return MT6797_JOIN_REARM_NO;
++	if (s->channel_token == 255 || s->sta_sequence == 255 || s->sequence > 248)
++		return MT6797_JOIN_REARM_WRAP;
++	return MT6797_JOIN_REARM_YES;
++}
++
++#endif /* MT6797_JOIN_REARM_H */
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index fe5cc2a52..d6030bef5 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -20,6 +20,7 @@
+ #include "join-refused.h"
+ #include "group-data.h"
+ #include "data-rx.h"
++#include "join-rearm.h"
+ #include "action-frame.h"
+ #include "join-tx.h"
+ #include "join-commands.h"
+@@ -88,6 +89,15 @@ struct mt6797_mac {
+ 	unsigned int join_queue_bytes, join_seen, join_tx_allowed, join_rx_allowed;
+ 	unsigned int join_page_debt, join_polls, join_packets;
+ 	bool join_running, join_open, join_retired;
++	/* Reusable bounded two-lifetime milestone (proposal 0180): the mac80211
++	 * station teardown (sta_state -> NOTEXIST) and the worker's healthy
++	 * stage-3 cleanup rendezvous in either order; the already-serialized
++	 * join_work does the one reset after both. At most two lifetimes are
++	 * admitted; a third is refused. These are not an authenticated
++	 * key-completion barrier (ADD_PKEY_DONE carries no generation).
++	 */
++	bool join_sta_removed;
++	u8 join_lifetimes;
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ 	/* Copied stack state only: no BSS/STA/chanctx pointer is retained. */
+ 	u8 join_bssid[ETH_ALEN];
+@@ -270,6 +280,13 @@ static bool mt6797_mac_join_regulatory_stop(struct mt6797_mac *mac,
+ 
+ 	if (!mac->join_scan_ready && !mac->join_peer_used)
+ 		return false;
++	/* 0180: a healthy quiescent terminal (stage-3 cleanup done: deauth sent,
++	 * keys removed, channel returned, no active TX) makes the expected idle
++	 * regulatory restore benign; do not poison it, so a subsequent fresh
++	 * scan/beacon re-admits normally. An active lifetime still retires.
++	 */
++	if (mac->join_cleanup_done)
++		return false;
+ 	if (mac->join_running && !mac->join_retired) {
+ 		mt6797_mac_join_fail_stop(mac, -ECANCELED, 9, discard, internal);
+ 		return true;
+@@ -717,6 +734,135 @@ static bool mt6797_mac_join_frame(struct mt6797_mac *mac, struct sk_buff *skb)
+ 	return true;
+ }
+ 
++/* Re-arm the driver to its pre-scan baseline for a second lifetime, called
++ * only from the serialized join_work after BOTH the healthy stage-3 cleanup
++ * and the mac80211 station teardown (NOTEXIST) have been observed, with the
++ * queue empty, no debt, no in-flight frame and the lifetime not poisoned.
++ * first_error/closing are left untouched (they must be clear to reach here).
++ * Wire identities advance and a u8 wrap refuses the re-arm rather than reuse
++ * a value; key/absence events do not gain identities. Returns -EOWNERDEAD to
++ * ask the caller to poison on wrap, 0 on a completed re-arm.
++ */
++static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
++{
++	unsigned long flags;
++
++	/* The caller (join_work) re-arms only on MT6797_JOIN_REARM_YES from
++	 * mt6797_join_rearm_ready(), which has already proved the rendezvous,
++	 * the quiescent gate and that the wire identities do not wrap.
++	 */
++	mac->join_channel_token++;
++	mac->join_sta_sequence++;
++	/* Scan cycle re-opened; the radio (scan_ready), vif, configured and
++	 * started state and the monotonic mac->sequence are left as they are.
++	 */
++	mac->scan_used = false;
++	mac->scan_active = false;
++	mac->bss_active = false;
++	mac->scan_count = 0;
++	mac->scan_channels = 0;
++	mac->scan_polls = 0;
++	mac->scan_packets = 0;
++	mac->scan_beacon = false;
++	mac->scan_credit = false;
++	mac->scan_frame_seen = false;
++	mac->scan_started_ns = 0;
++	mac->join_scan_ready = false;
++	mac->join_peer_used = false;
++	mac->join_peer_ready = false;
++	mac->join_auth_received = false;
++	mac->join_auth_ok = false;
++	mac->join_authenticated = false;
++	mac->join_assoc_received = false;
++	mac->join_assoc_status = 0;
++	mac->join_aid = 0;
++	mac->join_bss_valid = false;
++	mac->join_channel_valid = false;
++	mac->join_bss_configured = false;
++	mac->join_short_preamble = false;
++	mac->join_channel_pending = false;
++	mac->join_channel_granted = false;
++	mac->join_channel_released = false;
++	mac->join_sta_pending = false;
++	mac->join_sta_active = false;
++	mac->join_peer_refusal_logged = false;
++	mac->join_channel_refusal_logged = false;
++	mac->join_data_phase = false;
++	mac->join_data_ended = false;
++	mac->join_cleanup_requested = false;
++	mac->join_cleanup_done = false;
++	mac->join_deauth_done = false;
++	mac->join_cleanup_stage = 0;
++	mac->join_rsn = false;
++	mac->join_key_pairwise = 0;
++	mac->join_key_group = 0;
++	mac->join_key_pairwise_submitted = false;
++	mac->join_key_group_submitted = false;
++	mac->join_key_done = false;
++	mac->join_key_done_second = false;
++	mac->join_group_key_id = 0;
++	mac->join_eapol_seen = 0;
++	mac->join_eapol_tx = 0;
++	mac->join_group_discarded = 0;
++	mac->join_action_discarded = 0;
++	mac->join_group_action_discarded = 0;
++	mac->join_keyed_beacons = 0;
++	mac->join_beacons_delivered = 0;
++	mac->join_cleanup_group_discarded = 0;
++	mac->join_data_llc_discarded = 0;
++	mac->join_absence_events = 0;
++	mac->join_data_rx_unicast = 0;
++	mac->join_data_rx_group = 0;
++	mac->join_data_rx_dropped = 0;
++	mac->join_data_rx_outside = 0;
++	mac->join_data_g1_uni_present = 0;
++	mac->join_data_g1_uni_absent = 0;
++	mac->join_data_g1_grp_present = 0;
++	mac->join_data_g1_grp_absent = 0;
++	mac->join_data_uni_masks = 0;
++	mac->join_data_grp_masks = 0;
++	mac->join_data_credits = 0;
++	mac->join_data_credit_records = 0;
++	mac->join_data_page_debt = 0;
++	mac->join_data_tx_queued = 0;
++	mac->join_data_tx_done = 0;
++	mac->join_data_tx_failed = 0;
++	mac->join_data_tx_failures_in_row = 0;
++	mac->join_inflight_data = false;
++	mac->join_last_acked = false;
++	mac->join_credit_pending = false;
++	mac->join_channel_pending = false;
++	mac->join_sta_pending = false;
++	mac->join_page_debt = 0;
++	mac->join_polls = 0;
++	mac->join_packets = 0;
++	mac->join_seen = 0;
++	mac->join_tx_allowed = 0;
++	mac->join_rx_allowed = 0;
++	mac->join_deadline = 0;
++	mac->join_frame_deadline = 0;
++	mac->join_grant_deadline = 0;
++	mac->join_credit_deadline = 0;
++	mac->join_data_deadline = 0;
++	mac->join_data_started = 0;
++	mac->join_hold_until = 0;
++	mac->join_sta_removed = false;
++	reinit_completion(&mac->join_channel_done);
++	reinit_completion(&mac->join_sta_done);
++	reinit_completion(&mac->join_credit_done);
++	reinit_completion(&mac->join_frame_done);
++	spin_lock_irqsave(&mac->join_queue.lock, flags);
++	mac->join_running = false;
++	mac->join_open = false;
++	mac->join_queue_bytes = 0;
++	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++	mac->join_retired = false;
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot WLAN join rearm: lifetime=%u token=%u sta_seq=%u sequence=%u\n",
++		 mac->join_lifetimes, mac->join_channel_token, mac->join_sta_sequence,
++		 mac->sequence);
++}
++
+ static void mt6797_mac_join_close(struct mt6797_mac *mac)
+ {
+ 	unsigned long flags;
+@@ -920,8 +1066,8 @@ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
+ 		}
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+-			 "one-shot WLAN join activation: sequence=%u state=3\n",
+-			 mac->join_sta_sequence);
++			 "one-shot WLAN join activation: sequence=%u state=3 lifetime=%u\n",
++			 mac->join_sta_sequence, mac->join_lifetimes);
+ #endif
+ 		return 0;
+ 	}
+@@ -2071,6 +2217,41 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	ret = mt6797_mac_join_cleanup_step(mac);
+ 	if (ret)
+ 		goto failed;
++	/* Rendezvous (proposal 0180): both the worker's healthy stage-3 cleanup
++	 * and the mac80211 station teardown (NOTEXIST) observed, the lifetime
++	 * quiescent and not poisoned, under the two-lifetime cap -> re-arm once
++	 * here in the serialized worker. A wire-identity wrap poisons instead.
++	 */
++	{
++		const struct mt6797_join_rearm_state rs = {
++			.cleanup_done = mac->join_cleanup_done,
++			.sta_removed = mac->join_sta_removed,
++			.poisoned = mac->first_error || mac->closing || mac->join_retired,
++			.key_done = mac->join_key_done,
++			.key_done_second = mac->join_key_done_second,
++			.inflight = !!mac->join_inflight,
++			.credit_pending = mac->join_credit_pending,
++			.key_pairwise = mac->join_key_pairwise,
++			.key_group = mac->join_key_group,
++			.page_debt = mac->join_page_debt,
++			.data_page_debt = mac->join_data_page_debt,
++			.lifetimes = mac->join_lifetimes,
++			.channel_token = mac->join_channel_token,
++			.sta_sequence = mac->join_sta_sequence,
++			.sequence = mac->sequence,
++		};
++		enum mt6797_join_rearm_decision decision = mt6797_join_rearm_ready(&rs);
++
++		if (decision == MT6797_JOIN_REARM_WRAP) {
++			ret = -EOWNERDEAD;
++			branch = 10;
++			goto failed;
++		}
++		if (decision == MT6797_JOIN_REARM_YES) {
++			mt6797_mac_join_rearm(mac);
++			goto unlock;
++		}
++	}
+ #endif
+ 	spin_lock_irqsave(&mac->join_queue.lock, flags);
+ 	if (mac->join_running)
+@@ -2241,7 +2422,8 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ 
+ 	mutex_lock(&mac->mutex);
+ 	if (!mac->scan_ready || !mac->started || mac->vif != vif ||
+-	    mac->closing || mac->first_error || mac->scan_used)
++	    mac->closing || mac->first_error || mac->scan_used ||
++	    mac->join_lifetimes >= 2)
+ 		goto out;
+ 	/* mac80211 may append supported-rate IEs internally. There are no
+ 	 * probe requests in this passive form, so no IEs are transmitted.
+@@ -2278,6 +2460,12 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ 	 * cannot be retried or treated as an effect-free rejection.
+ 	 */
+ 	mac->scan_used = true;
++	/* 0180: count the lifetime at its first effectful submission (this scan),
++	 * so a third cycle is refused here before any scan/peer/channel/key write,
++	 * not only at a third activation.
++	 */
++	if (mac->join_lifetimes < U8_MAX)
++		mac->join_lifetimes++;
+ 	ret = mt6797_mac_scan_guard(mac, ktime_get_ns() + NSEC_PER_SEC);
+ 	if (ret) {
+ 		mac->first_error = ret;
+@@ -3092,6 +3280,12 @@ static int mt6797_mac_sta_state(struct ieee80211_hw *hw,
+ 			bool close = true;
+ 
+ 			mutex_lock(&mac->mutex);
++			/* 0180: record the mac80211 station teardown barrier; the
++			 * worker re-arms once the healthy cleanup also completes. This
++			 * never poisons merely because cleanup is still in progress.
++			 */
++			if (vif == mac->vif && new == IEEE80211_STA_NOTEXIST)
++				mac->join_sta_removed = true;
+ 			if (vif == mac->vif && mac->join_data_phase && !mac->join_data_ended)
+ 				mt6797_mac_join_end_data(mac, "disconnect");
+ 			if (vif == mac->vif && mac->join_peer_used &&
+-- 
+2.39.5
+

@@ -11,7 +11,9 @@ import unittest
 
 
 HERE = Path(__file__).resolve().parents[1]
-classify = runpy.run_path(str(HERE / 'classify-join.py'))['classify']
+_cj = runpy.run_path(str(HERE / 'classify-join.py'))
+classify = _cj['classify']
+classify_lifetimes = _cj['classify_lifetimes']
 bind = runpy.run_path(str(HERE / 'bind-target.py'))['bind']
 
 
@@ -113,6 +115,27 @@ class HostTests(unittest.TestCase):
         self.assertTrue(classify(place(full + full))['malformed_stage_record'])
         no_end = b''.join(ln + b'\n' for ln in good.split(b'\n') if end not in ln and ln)
         self.assertTrue(classify(no_end + full)['malformed_stage_record'])
+
+    def test_two_lifetime_rearm(self):
+        # 0180: a bounded two-lifetime log splits at the re-arm record into two
+        # healthy lifetimes; a single-lifetime log (pre-0180) stays one segment;
+        # the re-arm record and the lifetime-tagged activation are not malformed.
+        good = log(True, keys=True)
+        rearm = b'one-shot WLAN join rearm: lifetime=1 token=2 sta_seq=2 sequence=35\n'
+        two = good + rearm + log(True, keys=True)
+        res = classify_lifetimes(two)
+        self.assertEqual((res['lifetimes'], res['rearms']), (2, 1))
+        self.assertTrue(all(v['bounded_join_pass'] for v in res['verdicts']))
+        single = classify_lifetimes(good)
+        self.assertEqual((single['lifetimes'], single['rearms']), (1, 0))
+        self.assertTrue(single['verdicts'][0]['bounded_join_pass'])
+        # The re-arm record is a recognized notification, not malformed.
+        self.assertFalse(classify(good + rearm)['malformed_stage_record'])
+        # The lifetime-tagged activation line parses (feature-gated).
+        tagged = good.replace(b'activation: sequence=9 state=3',
+                              b'activation: sequence=9 state=3 lifetime=1')
+        self.assertFalse(classify(tagged)['malformed_stage_record'])
+        self.assertTrue(classify(tagged)['bounded_join_pass'])
 
     def test_incomplete_or_duplicate_evidence(self):
         raw = log(True)

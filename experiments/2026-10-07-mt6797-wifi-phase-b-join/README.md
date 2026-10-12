@@ -449,6 +449,24 @@ data-path shapes through mac80211, replay the reference offline) is admitted
 as hardware-free source work and awaits its proposal diff, checks and
 combined test protocol before any build.
 
+## Proposal 0180: bounded two-lifetime re-arm (authored; review before build) (2026-10-12)
+
+[REUSABLE_LIFECYCLE_DESIGN.md](REUSABLE_LIFECYCLE_DESIGN.md) is implemented as proposal 0180
+(`patches/proposals/0180-...`): after one healthy join reaches stage-3 cleanup and mac80211
+drives the station to `NOTEXIST`, the already-serialized `join_work` re-arms the driver to its
+pre-scan baseline for a second connect and scan in the same boot. The two facts rendezvous in
+either order (`sta_state` records `NOTEXIST` and never poisons for in-progress cleanup; the
+worker resets once both are seen, the lifetime quiescent, under a two-lifetime cap). Wire
+identities advance with a wrap-refusal; completions reinit once after both teardowns; the
+device-wide poison (`first_error`/`closing`) stays permanent; a regulatory restore is benign
+once the healthy quiescent terminal is reached. The decision is a host-testable pure helper
+(`join-rearm.h`); [TWO_LIFETIME_PROTOCOL.md](TWO_LIFETIME_PROTOCOL.md) states the finite
+protocol, budgets, the two-lifetime cap and no-retry. The **explicit residual**: the lifetime-2
+`ACTIVATE` response authenticates activation, not that lifetime-1's generationless key events
+drained — matching counts bound, they do not authenticate; a passing run does not settle it.
+Bounded prototype, not production reuse; crypto/replay stays a separate required condition.
+Checks (host-testable) pass; the `mac.c` re-arm compiles at the managed build after review.
+
 ## Runtime 32 result: second bounded C2+C3 pass; group-1 absent on this sample (2026-10-12)
 
 Runtime 32 ([RUNTIME_32_RESULT.md](RUNTIME_32_RESULT.md)) on mainline boot `869f4bdf…`,

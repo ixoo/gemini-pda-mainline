@@ -790,3 +790,4 @@ proposals/0176-wifi-mt6797-deliver-the-target-s-beacons-to-mac80211.patch
 proposals/0177-wifi-mt6797-discard-the-target-s-group-data-in-its-a.patch
 proposals/0178-wifi-mt6797-discard-the-target-s-group-data-flagged-.patch
 proposals/0179-wifi-mt6797-record-the-delivered-data-classes-GROUP_.patch
+proposals/0180-wifi-mt6797-re-arm-a-healthy-join-once-for-a-bounded.patch

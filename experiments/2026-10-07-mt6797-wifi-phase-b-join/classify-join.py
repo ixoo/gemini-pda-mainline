@@ -11,7 +11,7 @@ def classify(raw):
         'done': rb'TX done: pid=(\d+) status=(\d+) advanced=([01]) count=(\d+)',
         'rx': rb'RX: subtype=(\d+) status=(\d+)',
         'credit': rb'credit: pages=(\d+) remaining=(\d+)',
-        'activation': rb'activation: sequence=(\d+) state=3',
+        'activation': rb'activation: sequence=(\d+) state=3(?: lifetime=\d{1,3})?',
         'cleanup': rb'cleanup: stage=3 credits=returned slots=retired deauth=([01])',
         'cleanup_submission': rb'cleanup submission: stage=(\d+)',
         # Phase C3: the channel privilege released after the group key (the stage-1
@@ -60,6 +60,8 @@ def classify(raw):
                      rb'data RX: first group=[01] tid=\d{1,2} keyid=[0-3] bytes=\d{1,4} vector=[01](?: group_vld=0x[0-9a-f])?',
                      # 0179: the data phase's per-class group-1 (received PN group) observation, printed once at the data phase end.
                      rb'data group1: uni_present=\d{1,6} uni_absent=\d{1,6} grp_present=\d{1,6} grp_absent=\d{1,6} uni_masks=0x[0-9a-f]{1,4} grp_masks=0x[0-9a-f]{1,4}',
+                     # 0180: the bounded two-lifetime re-arm record (after a healthy terminal).
+                     rb'rearm: lifetime=\d{1,3} token=\d{1,3} sta_seq=\d{1,3} sequence=\d{1,3}',
                      # 0174: the 0168 class beyond its eight recorded discards, the total before the stage-3 record.
                      rb'group action frames discarded: total=\d{1,6}',
                      # 0173: the target's beacon in the keyed descriptor variant, skipped like every beacon (first four, then the total).
@@ -154,6 +156,8 @@ def classify(raw):
                     llc_rows.append((index, int(body.rsplit(b'count=', 1)[1])))
                 elif body.startswith(b'data LLC mismatches discarded:'):
                     llc_total_rows.append((index, int(body.rsplit(b'total=', 1)[1])))
+                elif body.startswith(b'rearm:'):
+                    pass  # 0180 two-lifetime re-arm notification
                 elif body.startswith(b'data group1:'):
                     gf = dict(part.split(b'=') for part in body.split(b': ', 1)[1].split(b' '))
                     data_group1_rows.append((index, int(gf[b'uni_present']), int(gf[b'uni_absent']),
@@ -653,3 +657,21 @@ def classify(raw):
                                            result['data_phase_end_reason'] in ('budget', 'disconnect') and frames and
                                            frames['tx_done'] >= 1 and frames['rx_unicast'] >= 1 and frames['tx_failed'] <= frames['tx_done'])
     return result
+
+
+def classify_lifetimes(raw):
+    """0180: split a bounded log at each re-arm record and classify each
+    lifetime segment with classify(). A single-lifetime log (no re-arm record,
+    the pre-0180 shape) returns a one-element list, so old evidence stays valid.
+    At most two lifetimes are admitted by the driver; a third re-arm cannot occur.
+    """
+    lines = raw.splitlines(keepends=True)
+    segments, start = [], 0
+    for i, line in enumerate(lines):
+        if b'one-shot WLAN join rearm:' in line:
+            segments.append(b''.join(lines[start:i + 1]))
+            start = i + 1
+    segments.append(b''.join(lines[start:]))
+    segments = [seg for seg in segments if seg.strip()]
+    return {'lifetimes': len(segments), 'rearms': len(segments) - 1,
+            'verdicts': [classify(seg) for seg in segments]}
