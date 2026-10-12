@@ -36,11 +36,11 @@ SCAN.PARENT.WIPHY_PROBE = SCAN.PARENT.WIPHY_PROBE.replace(
     b'7.1.3-gemini-a53-wifi-scan-tuning-sample', RELEASE.encode())
 HOST = SCAN.HOST
 # The inherited WMT host main reads HERE/results/candidate.json for the capture
-# identity check. Runtime 32 must compare against the candidate-31 receipt, so
-# bind only that module's HERE to runtime-32/, whose results/candidate.json is a
-# byte copy of results/candidate-31.json; the
-# earlier runtime-N/ copies stay bound to their runtimes.
-HOST.HERE = HERE / 'runtime-32'
+# identity check. Runtime 33 compares against the candidate-32 receipt, so bind
+# only that module's HERE to runtime-33/, whose results/candidate.json is a byte
+# copy of results/candidate-32.json; the earlier runtime-N/ copies stay bound to
+# their runtimes.
+HOST.HERE = HERE / 'runtime-33'
 HOST.ROOT = ROOT
 HOST.CAPTURE = CAPTURE
 HOST.DOMAIN.HERE = HERE
@@ -62,8 +62,8 @@ WIPHY_PREPARE = SCAN.PREPARE
 
 def c2_prepare(candidate):
     """The wiphy-probe prepare plus the C2 session pieces, applied before the
-    scan-tuning prepare captures the phase invoker: a 130 s budget for the
-    supplicant-owned join (its 100 s loop plus setup and phrase counts), one
+    scan-tuning prepare captures the phase invoker: a 330 s budget for the
+    supplicant-owned two-lifetime join (its 300 s wall plus control readiness), one
     bounded private export of the complete supplicant log between the join
     script and the log seal, and no hash of the PSK-bound script in the claim.
     """
@@ -75,6 +75,11 @@ def c2_prepare(candidate):
     globals_['BUDGETS']['supplicant-log'] = (20, C2['LOG_LIMIT'] + 4096)
     prepared['claim']['phase_budgets']['supplicant-log'] = {
         'connections': 1, 'seconds': 20, 'stdout_bytes': C2['LOG_LIMIT'] + 4096, 'stderr_bytes': 16384}
+    # The two cycles' retained per-cycle evidence, exported in the same pre-seal window.
+    cycles_cap = 2 * len(C2['CYCLE_FILES']) * C2['CYCLE_EXPORT_LIMIT'] + 65536
+    globals_['BUDGETS']['cycles-export'] = (20, cycles_cap)
+    prepared['claim']['phase_budgets']['cycles-export'] = {
+        'connections': 1, 'seconds': 20, 'stdout_bytes': cycles_cap, 'stderr_bytes': 16384}
     exported = False
 
     def invoke_with_supplicant_log(active, label, script, *, network_status=None):
@@ -90,6 +95,18 @@ def c2_prepare(candidate):
                 result = {'complete': False, 'reason': str(error)}
             active['collector'].write_new(ROOT / 'supplicant-log-result.json',
                                            HOST.DOMAIN.HOST.encoded(result))
+            # The two cycles' retained per-cycle evidence, pulled off-device (RAM) into the
+            # private evidence root before the seal and the RAM-wiping recovery. The raw
+            # framed bytes (which name addresses) stay private; the result records presence
+            # and byte counts only.
+            try:
+                craw, cerr, cprocess = invoke(active, 'cycles-export', C2['cycles_export_script'](boot))
+                cresult = C2['cycles_export_result'](craw, boot)
+                active['collector'].write_new(ROOT / 'cycles-evidence.raw', craw)
+            except (OSError, ValueError, KeyError, TypeError) as error:
+                cresult = {'complete': False, 'reason': str(error)}
+            active['collector'].write_new(ROOT / 'cycles-evidence-result.json',
+                                           HOST.DOMAIN.HOST.encoded(cresult))
         return invoke(active, label, script, network_status=network_status)
 
     globals_['invoke'] = invoke_with_supplicant_log
@@ -102,8 +119,10 @@ def prepare_with_c2(candidate):
         globals_ = prepared['execute'].__globals__
         # Phase C3: the join script's wait grows to 100 ticks (the driver's 60 s
         # data phase with the bounded data checks inside it, then the teardown).
-        globals_['BUDGETS']['passive-scan'] = (130, 262144)
-        prepared['claim']['phase_budgets']['passive-scan']['seconds'] = 130
+        # The two-lifetime join's wall is <= 300 s plus up to ~10 s control-socket
+        # readiness; the host phase budget must cover the whole admitted device run.
+        globals_['BUDGETS']['passive-scan'] = (330, 262144)
+        prepared['claim']['phase_budgets']['passive-scan']['seconds'] = 330
         # The bound script carries the PSK; its digest is private evidence only.
         prepared['claim']['passive_scan_script_sha256'] = 'private-psk-bound'
     return prepared
@@ -216,34 +235,43 @@ def main():
                 'scan_attempted': ready,
                 'scan': json.loads(result_path.read_bytes()) if result_path.is_file() else None,
                 'kernel_release': RELEASE}
-    join = runpy.run_path(str(HERE / 'classify-join.py'))['classify']
+    classify_mod = runpy.run_path(str(HERE / 'classify-join.py'))
+    join = classify_mod['classify']
+    classify_lifetimes = classify_mod['classify_lifetimes']
     deferred = json.loads((ROOT / 'deferred-start-result.json').read_bytes())
     complete = deferred.get('preservation', {}).get('log_complete') is True
-    combined['join'] = join((ROOT / 'kmsg.log').read_bytes()) if complete else {'bounded_join_pass': False}
-    combined['join']['session_verified'] = bool(complete and deferred.get('regression_pass') and deferred.get('recovery_confirmed'))
-    verdict = combined['join'].get('bounded_join_pass') and combined['join']['session_verified']
+    kmsg = (ROOT / 'kmsg.log').read_bytes() if complete else b''
+    combined['join'] = join(kmsg) if complete else {'bounded_join_pass': False}
+    session_verified = bool(complete and deferred.get('regression_pass') and deferred.get('recovery_confirmed'))
+    combined['join']['session_verified'] = session_verified
+    # Runtime 33: the two-lifetime verdict is the per-lifetime classification (two healthy
+    # bounded data-path joins, one scan each), not the single-lifetime classify() of the
+    # whole log (which sees two of everything and does not pass).
+    combined['lifetimes'] = classify_lifetimes(kmsg) if complete else {'two_lifetime_pass': False, 'lifetimes': 0}
+    verdict = bool(combined['lifetimes'].get('two_lifetime_pass') and session_verified)
     if C2_SCRIPT:
-        combined['c2'] = c2_result(combined['join'], combined['join']['session_verified'])
-        verdict = combined['c2']['c2_session_pass']
+        combined['c2'] = c2_result(combined['join'], session_verified)
         if WIFI_SSH_RECEIPT is not None:
-            combined['c3'] = c3_result(combined['join'], combined['c2'])
+            combined['c3'] = c3_result(combined['join'], combined['c2'], combined['lifetimes'])
             verdict = combined['c3']['c3_session_pass']
     with (ROOT / 'phase-b-session-result.json').open('x') as stream:
         stream.write(json.dumps(combined, indent=2, sort_keys=True) + '\n')
     return rc or (0 if verdict else 1)
 
 
-def c3_result(join, c2):
-    """Runtime 21: the laptop's Wi-Fi SSH receipt (statuses, counts and the boot
-    ID it was bound to; never an address) read from the custodian's file named
-    by GEMINI_WIFI_SSH_RECEIPT, required to name the session's boot, and the C3
-    conjunction over the C2 pieces. A missing, malformed or foreign receipt is
-    recorded and fails; nothing is retried.
+def c3_result(join, c2, lifetimes):
+    """The two-lifetime C3 result: the custodian's aggregate laptop-wifi-ssh receipt
+    (per-cycle statuses, the boot it was bound to and all_pass; never an address) read from
+    GEMINI_WIFI_SSH_RECEIPT, required to name the session's boot, and the two-lifetime C3
+    conjunction (the kernel two-lifetime pass, the doubled supplicant handshake, both host
+    acknowledgments). A missing, malformed or foreign receipt is recorded and fails; nothing
+    is retried.
     """
     receipt = None
     try:
         loaded = json.loads(WIFI_SSH_RECEIPT.read_bytes())
-        if isinstance(loaded, dict) and isinstance(loaded.get('boot_id'), str):
+        if (isinstance(loaded, dict) and isinstance(loaded.get('boot_id'), str) and
+                isinstance(loaded.get('cycles'), list)):
             receipt = loaded
     except (OSError, ValueError):
         receipt = None
@@ -255,11 +283,15 @@ def c3_result(join, c2):
              receipt.get('boot_id') == boot)
     export = ROOT / 'supplicant-log-result.json'
     log = json.loads(export.read_bytes()) if export.is_file() else {'complete': False}
+    # The two-lifetime verdict is derived from the authored join-twice.sh stdout grammar
+    # plus the inherited userspace transport/scan conjunction.
     phase = ROOT / 'passive-scan-userspace.json'
     userspace = json.loads(phase.read_bytes()) if phase.is_file() else {}
+    stdout = ROOT / 'passive-scan/stdout.txt'
+    device = C2['two_lifetime_fields'](stdout.read_bytes() if stdout.is_file() else b'')
     return {'wifi_ssh': receipt, 'wifi_ssh_boot_bound': bound,
-            'c3_session_pass': bool(bound and C2['c3_session_pass'](
-                join, c2['supplicant'], log, userspace, join.get('session_verified'), receipt))}
+            'c3_session_pass': bool(bound and C2['c3_two_lifetime_pass'](
+                lifetimes, device, log, userspace, join.get('session_verified'), receipt))}
 
 
 def c2_result(join, session_verified):

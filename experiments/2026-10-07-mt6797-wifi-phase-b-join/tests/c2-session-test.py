@@ -155,3 +155,131 @@ for key, value in (('data_phase_seen', 0), ('tool_udhcpc', 0), ('tool_ping', 0),
     assert not C2['c3_session_pass'](c3_join, {**c3_fields, key: value}, good, userspace, True, wifi), (key, value)
 for name in ('dropbear_digest_ok', 'wifi_sshd_started', 'wifi_sshd_ready', 'wifi_sshd_exit', 'hook_status'):
     assert name in C2['FIELDS'] or name == 'hook_status', name
+
+# Runtime 33 two-lifetime C3 conjunction, exercised against the ACTUAL join-twice.sh stdout
+# grammar (not invented scalar fields): two completed cycles, one re-arm, two terminals, both
+# cycles' DHCP/listener/ping and a present host-ack, the surviving supplicant's doubled
+# handshake, the kernel two-lifetime pass and the host aggregate.
+PHRASES = C2['PHRASES']
+counts2 = {'supplicant_' + name: 2 for name in PHRASES}
+LOG2_BYTES = 2 * len(LOG)
+
+
+def join_twice_stdout(cycle_line, counts, extra='', supplicant_exit=0, connect_exit=0,
+                      cycles_completed=2, rearms=1, terminals=2, overall_rc=0, framed=True):
+    lines = ['__JOIN_BEGIN__' if framed else '',
+             'boot_before=%s' % BOOT, 'interface_created=1', 'control=explicit', 'cycles=2']
+    for n in (1, 2):
+        lines.append('cycle=%d select_network=OK' % n)
+        lines.append(cycle_line(n))
+        lines.append('cycle=%d host_ack=present' % n)
+        if n == 1:
+            lines.append('rearm=present')
+    for key, value in counts.items():
+        lines.append('%s=%d' % (key, value))
+    lines.append('supplicant_exit=%s' % supplicant_exit)
+    lines.append('supplicant_log_bytes=%d' % LOG2_BYTES)
+    lines.append(extra) if extra else None
+    lines.append('__JOIN_END__' if framed else '')
+    lines += ['connect_exit=%s' % connect_exit, 'cycles_completed=%d' % cycles_completed,
+              'rearms_observed=%d' % rearms, 'terminals_observed=%d' % terminals,
+              'overall_rc=%d' % overall_rc]
+    return ('\n'.join(l for l in lines if l != '') + '\n').encode()
+
+
+def good_cycle(n):
+    return ('cycle=%d dhcp_exit=0 dhcp_bound=1 dhcp_prefix=24 lease_written=1 dropbear_digest_ok=1 '
+            'wifi_sshd_started=1 wifi_sshd_ready=1 ping_transmitted=3 ping_received=3' % n)
+
+
+good2_log = {'complete': True, 'bytes': LOG2_BYTES, 'phrases': counts2}
+lifetimes_pass = {'two_lifetime_pass': True}
+agg = {'all_pass': True, 'cycles_expected': 2,
+       'cycles': [{'cycle': 1, 'boot_match': True, 'ack_written': True, 'closed': False},
+                  {'cycle': 2, 'boot_match': True, 'ack_written': True, 'closed': False}]}
+us = {'transport_complete': True, 'standard_scan_succeeded': True}
+real = C2['two_lifetime_fields'](join_twice_stdout(good_cycle, counts2))
+assert real['cycles_completed'] == 2 and real['rearms_observed'] == 1 and real['terminals_observed'] == 2
+assert set(real['cycles']) == {1, 2} and real['cycles'][2]['host_ack'] is True
+assert real['cycles'][1]['dhcp_exit'] == '0' and real['cycles'][1]['ping_transmitted'] == 3
+assert C2['two_lifetime_device_pass'](real, good2_log, us)
+assert C2['c3_two_lifetime_pass'](lifetimes_pass, real, good2_log, us, True, agg)
+# The kernel two-lifetime pass, the userspace transport/scan, the seal and the host aggregate each required.
+assert not C2['c3_two_lifetime_pass']({'two_lifetime_pass': False}, real, good2_log, us, True, agg)
+assert not C2['c3_two_lifetime_pass'](lifetimes_pass, real, good2_log, us, False, agg)
+assert not C2['c3_two_lifetime_pass'](lifetimes_pass, real, good2_log, us, True, None)
+assert not C2['c3_two_lifetime_pass'](lifetimes_pass, real, good2_log, us, True, {**agg, 'all_pass': False})
+for bad in ({'boot_match': False}, {'ack_written': False}, {'closed': True}):
+    broken = {**agg, 'cycles': [agg['cycles'][0], {**agg['cycles'][1], **bad}]}
+    assert not C2['c3_two_lifetime_pass'](lifetimes_pass, real, good2_log, us, True, broken), bad
+# The inherited userspace transport/scan conjunction is required (a framed stdout is not enough).
+for key in ('transport_complete', 'standard_scan_succeeded'):
+    assert not C2['two_lifetime_device_pass'](real, good2_log, {**us, key: False})
+assert not C2['two_lifetime_device_pass'](real, good2_log, {})
+# The summary tokens must be exactly right.
+for kw in (dict(cycles_completed=1), dict(rearms=2), dict(terminals=1), dict(overall_rc=1),
+           dict(supplicant_exit=1), dict(connect_exit=1), dict(framed=False)):
+    bad = C2['two_lifetime_fields'](join_twice_stdout(good_cycle, counts2, **kw))
+    assert not C2['two_lifetime_device_pass'](bad, good2_log, us), kw
+# A cycle with a failed udhcpc / no lease / no listener / no ping reply fails.
+def bad_dhcp(n):
+    return ('cycle=%d dhcp_exit=1 dhcp_bound=0 dhcp_prefix=0 lease_written=0 dropbear_digest_ok=0 '
+            'wifi_sshd_started=0 wifi_sshd_ready=0 ping_transmitted=3 ping_received=0' % n)
+assert not C2['two_lifetime_device_pass'](C2['two_lifetime_fields'](join_twice_stdout(bad_dhcp, counts2)), good2_log, us)
+# Only three ping attempts are the bounded protocol; a short attempt count fails.
+def few_ping(n):
+    return ('cycle=%d dhcp_exit=0 dhcp_bound=1 dhcp_prefix=24 lease_written=1 dropbear_digest_ok=1 '
+            'wifi_sshd_started=1 wifi_sshd_ready=1 ping_transmitted=1 ping_received=1' % n)
+assert not C2['two_lifetime_device_pass'](C2['two_lifetime_fields'](join_twice_stdout(few_ping, counts2)), good2_log, us)
+# A missing cycle-2 host-ack fails.
+no_ack = join_twice_stdout(good_cycle, counts2).replace(b'cycle=2 host_ack=present\n', b'')
+assert not C2['two_lifetime_device_pass'](C2['two_lifetime_fields'](no_ack), good2_log, us)
+# Single handshake counts fail the doubled requirement.
+assert not C2['two_lifetime_device_pass'](C2['two_lifetime_fields'](join_twice_stdout(good_cycle, {k: 1 for k in counts2})),
+                                          {'complete': True, 'bytes': LOG2_BYTES, 'phrases': {k: 1 for k in counts2}}, us)
+# The exported log must reproduce the counts and the reported byte size.
+assert not C2['two_lifetime_device_pass'](real, {**good2_log, 'phrases': {k: 1 for k in counts2}}, us)
+assert not C2['two_lifetime_device_pass'](real, {**good2_log, 'bytes': LOG2_BYTES - 1}, us)
+print('c2-session: PASS (two-lifetime C3 over the real join-twice grammar: two cycles, one rearm, two terminals, doubled handshake, host aggregate)')
+
+# The two-cycle evidence export: a bounded read-only device script and its validating result.
+BOOTX = '0123abcd-0123-0123-0123-0123456789ab'
+script_x = C2['cycles_export_script'](BOOTX)
+assert BOOTX in script_x and '/proc/sys/kernel/random/boot_id' in script_x
+assert 'host-ack' in script_x and '/c$c/' in script_x
+# Read-only: no redirection or deletion of device files (dd reads with if=, no of=).
+assert ' of=' not in script_x and '> "$f"' not in script_x and 'rm ' not in script_x
+try:
+    C2['cycles_export_script']('not-a-boot')
+except ValueError:
+    pass
+else:
+    raise AssertionError('a malformed boot was accepted')
+
+
+def cycles_export(boot=BOOTX, c2_ack=True, c2_lease=True):
+    out = ['__CYCLES_BEGIN__', 'boot=%s' % boot]
+    for n in (1, 2):
+        files = ['hook-status', 'prefix', 'lease', 'router', 'udhcpc.log', 'dropbear.log', 'ping.log', 'ready', 'host-ack']
+        if n == 2 and not c2_ack:
+            files.remove('host-ack')
+        if n == 2 and not c2_lease:
+            files.remove('lease')
+        for f in files:
+            body = b'data-' + f.encode()
+            out.append('__FILE__ path=/tmp/mt6797-wifi-phase-b-1/c%d/%s bytes=%d' % (n, f, len(body)))
+            out.append(body.decode())
+            out.append('__END__')
+    out += ['__CYCLES_END__', 'boot_after=%s' % boot]
+    return ('\n'.join(out) + '\n').encode()
+
+
+good_export = cycles_export()
+res = C2['cycles_export_result'](good_export, BOOTX)
+assert res['complete'] and res['boot_match'] and set(res['cycles']) == {1, 2}
+assert res['cycles'][1]['lease'] >= 0 and res['cycles'][2]['host-ack'] >= 0
+assert not C2['cycles_export_result'](good_export, 'ffffffff-0123-0123-0123-0123456789ab')['complete']  # boot
+assert not C2['cycles_export_result'](cycles_export(c2_ack=False), BOOTX)['complete']  # cycle-2 ack missing
+assert not C2['cycles_export_result'](cycles_export(c2_lease=False), BOOTX)['complete']  # cycle-2 lease missing
+assert not C2['cycles_export_result'](b'garbage', BOOTX)['complete']
+print('c2-session: PASS (two-cycle evidence export: bounded read-only script, both cycles present with lease and host-ack required)')

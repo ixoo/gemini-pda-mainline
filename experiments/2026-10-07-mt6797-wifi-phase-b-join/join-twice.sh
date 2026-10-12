@@ -77,7 +77,7 @@ run_bounded() {
             wait "$rb_pid" 2>/dev/null
             return 137
         fi
-        $BB sleep 1
+        $BB sleep 0.2
     done
     wait "$rb_pid"
 }
@@ -203,7 +203,13 @@ data_checks() {
         t=0
         while [ "$t" -lt 6 ] && [ ! -s "$cd/sshd-pid" ]; do $BB sleep 0.5; t=$((t + 1)); done
         if [ -s "$cd/sshd-pid" ] && [ "$($BB cat "$cd/sshd-pid")" = "$wifi_sshd_pid" ] && kill -0 "$wifi_sshd_pid" 2>/dev/null; then
-            $BB cat "$cd/lease" > "$cd/wifi-ssh"
+            # The per-cycle ready block, written only with the listener confirmed up
+            # inside the open window: the host reads it over USB (to return the
+            # address) and over Wi-Fi (to attribute the exchange to this cycle). It
+            # carries this boot, this cycle ordinal, the fresh listener pid and the
+            # station's leased address.
+            $BB printf 'boot=%s\ncycle=%s\nsshd_pid=%s\naddress=%s\n' \
+                "$EXPECTED_BOOT" "$cyc" "$wifi_sshd_pid" "$($BB cat "$cd/lease")" > "$cd/ready"
             wifi_sshd_ready=1
         fi
     fi
@@ -232,7 +238,7 @@ wait_record() {
         n=$(printf '%s\n' "$log" | $BB grep -Ec "$pat" || true)
         [ -n "$n" ] || n=0
         [ "$n" -ge "$want" ] && return 0
-        $BB sleep 1
+        $BB sleep 0.2
     done
     return 1
 }
@@ -251,11 +257,20 @@ wait_host_ack() {
         if fatal_record; then
             return 3
         fi
+        # The ack window closes at THIS cycle's healthy terminal: the station is
+        # associated only through the data phase and the cleanup tail (up to the
+        # deauthentication at cleanup stage 1), so a valid Wi-Fi SSH ack arrives
+        # before the stage-3 record. Once that record exists the cycle is done and
+        # a later ack is stale, so it must not gate cycle 2. This is NOT the wall
+        # deadline: the healthy terminal/rearm waits below run after this window.
+        termn=$($BB dmesg | $BB grep -Ec 'one-shot WLAN join cleanup: stage=3 ' || true)
+        [ -n "$termn" ] || termn=0
+        [ "$termn" -lt "$1" ] || return 4
         if [ -f "$ack" ] && [ ! -L "$ack" ] && \
            $BB grep -qxF "host_ack boot=$EXPECTED_BOOT cycle=$1 ssh_exit=0" "$ack"; then
             return 0
         fi
-        $BB sleep 1
+        $BB sleep 0.2
     done
     return 1
 }

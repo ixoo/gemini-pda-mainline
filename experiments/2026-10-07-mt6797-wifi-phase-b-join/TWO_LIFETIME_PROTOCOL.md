@@ -23,8 +23,25 @@ therefore controls the supplicant explicitly, keeping the one vif and the one su
   must return `OK` before its scan.
 - The attributable per-cycle receipt is a **host acknowledgment**, not a device log heuristic: the
   host adapter does the Wi-Fi SSH exchange to the cycle's leased address, validates the live boot,
-  the cycle ordinal, the command output and the exit status, and writes `c<N>/host-ack` containing
-  `boot=<boot> cycle=<N> ssh_exit=0` over authenticated USB; the device only consumes it.
+  the cycle ordinal, the command output and the exit status, and writes the exact line
+  `host_ack boot=<boot> cycle=<N> ssh_exit=0` to `c<N>/host-ack` over authenticated USB; the device
+  only consumes it (an exact `grep -qxF` match on a new non-symlink leaf).
+- **Attributability and the one exact cutoff.** The *data exchange* must happen inside this
+  cycle's data window: the kernel delivers and transmits station data only during the data phase,
+  so a successful Wi-Fi SSH exchange is itself attributable to that window. The host confirms it
+  against the device's own per-cycle `ready` block (this boot, this cycle ordinal, the fresh
+  listener pid, the leased address), served by the device over Wi-Fi — a device-written marker,
+  not an echo of the ordinal the host supplied. The *acknowledgment* is a USB control
+  notification, not station data; it may land during the healthy cleanup tail, but only guarded:
+  the host's write and the device's `wait_host_ack` both fail closed once this cycle's stage-3
+  terminal is reached or any named fault is recorded (the host guard also refuses an existing or
+  symlink ack leaf), so a late or post-fault ack cannot gate cycle 2. This is not a claim that
+  station data moves outside the data phase. The healthy terminal and re-arm waits are
+  deliberately **not** gated on this window: they run after the data phase and cleanup close.
+  Because runtime 32's data window was only ~6.2 s, the device waits/blocking-child polls and the
+  host probe/ack polling use a short 0.2 s interval (same finite budgets, one Wi-Fi attempt per
+  cycle) so the exchange and ack fit the window. The custodian joins and stops the host helper
+  before evidence sealing and recovery, so no ack can be written after the return to Gemian.
 - Before cycle 2 the wrapper waits for **both** the healthy rendezvous (the `one-shot WLAN join
   rearm` record) **and** the attributable cycle-1 host acknowledgment, and stops on the first fault
   (a named join `stopped:`, a boot change or the wall deadline); only then `select_network` for

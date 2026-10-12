@@ -55,15 +55,19 @@ def main():
     parser.add_argument('--target', required=True, type=Path)
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--psk-file', type=Path, help='Phase C2: private 64-hex PSK input (mode 0600)')
+    parser.add_argument('--two-cycle', action='store_true',
+                        help='bind the two-lifetime join-twice.sh instead of join-once.sh')
     args = parser.parse_args()
     os.umask(0o077)
-    data = bind(args.target, Path(__file__).with_name('join-once.sh'),
+    join = 'join-twice.sh' if args.two_cycle else 'join-once.sh'
+    data = bind(args.target, Path(__file__).with_name(join),
                 psk_hex(args.psk_file) if args.psk_file else None)
     # New ignored private output only; never replace an existing test input.
     with args.output.open('xb') as stream:
         stream.write(data)
     args.output.chmod(0o600)
-    print('private-target-bound=1; psk_bound=%d; device_action=none' % bool(args.psk_file))
+    print('private-target-bound=1; psk_bound=%d; two_cycle=%d; device_action=none'
+          % (bool(args.psk_file), bool(args.two_cycle)))
 
 
 if __name__ == '__main__':

@@ -20,7 +20,7 @@ RELEASE = '7.1.3-gemini-a53-wifi-phase-b-compile'
 # the reviewed guard at deployment.
 PREDECESSOR_SHA = 'e758bf369609e18261943dbd6343a37055ce7b39cfafeb5a0aa082f43027673b'
 # Slot filled from the committed results/candidate-31.json after composition.
-MANIFEST_SHA = '00662e5c003620bac4b4699540bec9a4f83a28142864dcdf1617d91de258b210'
+MANIFEST_SHA = 'e487260cda36a706433d5eb5790032413df2db997ef3d4abb4f0f09b54424320'
 ADAPTER.HERE = HERE
 ADAPTER.PREDECESSOR_SHA = PREDECESSOR_SHA
 ADAPTER.INSTALLER.HERE = HERE

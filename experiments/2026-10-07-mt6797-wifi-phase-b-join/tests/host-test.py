@@ -120,15 +120,36 @@ class HostTests(unittest.TestCase):
         # 0180: a bounded two-lifetime log splits at the re-arm record into two
         # healthy lifetimes; a single-lifetime log (pre-0180) stays one segment;
         # the re-arm record and the lifetime-tagged activation are not malformed.
-        good = log(True, keys=True)
+        # Each real lifetime opens with exactly one admitted hw_scan record.
+        scan = b'one-shot passive WLAN scan: admitted=1\n'
+        good = scan + log(True, keys=True)
         rearm = b'one-shot WLAN join rearm: lifetime=1 token=2 sta_seq=2 sequence=35\n'
-        two = good + rearm + log(True, keys=True)
+        two = good + rearm + scan + log(True, keys=True)
         res = classify_lifetimes(two)
         self.assertEqual((res['lifetimes'], res['rearms']), (2, 1))
         self.assertTrue(all(v['bounded_join_pass'] for v in res['verdicts']))
+        # The aggregate milestone: two lifetimes, one scan each, both data-path.
+        self.assertEqual(res['scans_total'], 2)
+        self.assertTrue(res['per_cycle_scan_ok'])
+        self.assertTrue(res['two_lifetime_pass'])
+        self.assertTrue(all(v['scan_count_ok'] for v in res['verdicts']))
+        # A cycle that scanned twice, or not at all, fails the scan gate and the
+        # aggregate, even though each join is otherwise healthy.
+        twice = scan + good + rearm + scan + log(True, keys=True)
+        rt = classify_lifetimes(twice)
+        self.assertEqual(rt['verdicts'][0]['scan_admitted'], 2)
+        self.assertFalse(rt['verdicts'][0]['scan_count_ok'])
+        self.assertFalse(rt['two_lifetime_pass'])
+        none = log(True, keys=True) + rearm + scan + log(True, keys=True)
+        rn = classify_lifetimes(none)
+        self.assertFalse(rn['verdicts'][0]['scan_count_ok'])
+        self.assertFalse(rn['two_lifetime_pass'])
         single = classify_lifetimes(good)
         self.assertEqual((single['lifetimes'], single['rearms']), (1, 0))
         self.assertTrue(single['verdicts'][0]['bounded_join_pass'])
+        self.assertTrue(single['verdicts'][0]['scan_count_ok'])
+        # One lifetime is not the two-lifetime milestone.
+        self.assertFalse(single['two_lifetime_pass'])
         # The re-arm record is a recognized notification, not malformed.
         self.assertFalse(classify(good + rearm)['malformed_stage_record'])
         # The lifetime-tagged activation line parses (feature-gated).

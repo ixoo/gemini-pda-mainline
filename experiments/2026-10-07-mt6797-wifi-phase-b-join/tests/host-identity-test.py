@@ -50,7 +50,7 @@ with tempfile.TemporaryDirectory(prefix='mt6797-host-identity-') as directory:
              ('runtime-15', 'candidate-14'), ('runtime-16', 'candidate-15'),
              ('runtime-17', 'candidate-16'), ('runtime-18', 'candidate-17'),
              ('runtime-19', 'candidate-18'), ('runtime-20', 'candidate-19'),
-             ('runtime-21', 'candidate-20'), ('runtime-22', 'candidate-21'), ('runtime-23', 'candidate-22'), ('runtime-24', 'candidate-23'), ('runtime-25', 'candidate-24'), ('runtime-26', 'candidate-25'), ('runtime-27', 'candidate-26'), ('runtime-28', 'candidate-27'), ('runtime-29', 'candidate-28'), ('runtime-30', 'candidate-29'), ('runtime-31', 'candidate-30'), ('runtime-32', 'candidate-31')]
+             ('runtime-21', 'candidate-20'), ('runtime-22', 'candidate-21'), ('runtime-23', 'candidate-22'), ('runtime-24', 'candidate-23'), ('runtime-25', 'candidate-24'), ('runtime-26', 'candidate-25'), ('runtime-27', 'candidate-26'), ('runtime-28', 'candidate-27'), ('runtime-29', 'candidate-28'), ('runtime-30', 'candidate-29'), ('runtime-31', 'candidate-30'), ('runtime-32', 'candidate-31'), ('runtime-33', 'candidate-32')]
     assert host.HERE == HERE / PAIRS[-1][0]
     receipts = []
     for directory, receipt in PAIRS:

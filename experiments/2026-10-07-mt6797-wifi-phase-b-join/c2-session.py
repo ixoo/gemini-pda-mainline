@@ -180,3 +180,155 @@ def c3_session_pass(join, fields, log, userspace, session_verified, wifi_ssh):
                 (fields.get('ping_received') or 0) >= 1 and
                 wifi_ssh.get('ready_seen') is True and wifi_ssh.get('ssh_exit') == 0 and
                 wifi_ssh.get('boot_match') is True)
+
+
+def two_lifetime_fields(raw):
+    """Parse the authored join-twice.sh stdout grammar (the real tokens, not invented
+    scalars) into the two-lifetime fields: the framing, the __JOIN_END__ summary
+    (connect_exit, cycles_completed, rearms_observed, terminals_observed, overall_rc), the
+    supplicant exit/log size, the supplicant phrase counts, and the per-cycle device line plus
+    its host-ack presence.
+    """
+    text = raw.decode('ascii', 'replace') if isinstance(raw, (bytes, bytearray)) else raw
+    fields = {'framed': '__JOIN_BEGIN__\n' in text and '__JOIN_END__\n' in text}
+    for name in ('connect_exit', 'cycles_completed', 'rearms_observed', 'terminals_observed',
+                 'overall_rc', 'supplicant_exit', 'supplicant_log_bytes'):
+        match = re.search(r'^' + name + r'=(\d{1,9})$', text, re.M)
+        fields[name] = int(match[1]) if match else None
+    fields['supplicant_counts'] = {
+        'supplicant_' + name: (int(m[1]) if (m := re.search(r'^supplicant_' + name + r'=(\d{1,6})$', text, re.M)) else None)
+        for name in PHRASES}
+    cycles = {}
+    line = (r'^cycle=(\d+) dhcp_exit=(\S+) dhcp_bound=(\d+) dhcp_prefix=(\S+) lease_written=(\d+) '
+            r'dropbear_digest_ok=(\d+) wifi_sshd_started=(\d+) wifi_sshd_ready=(\d+) '
+            r'ping_transmitted=(\d+) ping_received=(\d+)$')
+    for m in re.finditer(line, text, re.M):
+        cycles[int(m[1])] = {'dhcp_exit': m[2], 'dhcp_bound': int(m[3]), 'dhcp_prefix': m[4],
+                             'lease_written': int(m[5]), 'dropbear_digest_ok': int(m[6]),
+                             'wifi_sshd_started': int(m[7]), 'wifi_sshd_ready': int(m[8]),
+                             'ping_transmitted': int(m[9]), 'ping_received': int(m[10]), 'host_ack': False}
+    for m in re.finditer(r'^cycle=(\d+) host_ack=present$', text, re.M):
+        if int(m[1]) in cycles:
+            cycles[int(m[1])]['host_ack'] = True
+    fields['cycles'] = cycles
+    return fields
+
+
+def two_lifetime_device_pass(fields, log, userspace):
+    """The device+supplicant half of the two-lifetime verdict, from the authored join-twice
+    output: the join phase's transport completed with a standard scan (the inherited
+    userspace conjunction, so a framed stdout cannot coexist with an incomplete transport);
+    the run is framed and healthy (exactly two completed cycles, one re-arm, two terminal
+    observations, connect and supplicant exits zero, overall_rc zero); each of the two cycles
+    had a clean udhcpc (dhcp_exit 0) that bound a lease (prefix 8..30), ran the digest-checked
+    Dropbear listener, attempted the bounded three pings with at least one reply (the
+    reachability threshold; the bounded protocol transmits three), and carried a present
+    host-ack; the surviving supplicant shows the four-way handshake twice (connected and key
+    negotiation at least twice, two scan sets); and the complete private export reproduces
+    those doubled counts and its reported size.
+    """
+    counts = fields.get('supplicant_counts') or {}
+    cycles = fields.get('cycles') or {}
+    if not ((userspace or {}).get('transport_complete') is True and
+            (userspace or {}).get('standard_scan_succeeded') is True):
+        return False
+    if not (fields.get('framed') and fields.get('cycles_completed') == 2 and
+            fields.get('rearms_observed') == 1 and fields.get('terminals_observed') == 2 and
+            fields.get('overall_rc') == 0 and fields.get('connect_exit') == 0 and
+            fields.get('supplicant_exit') == 0 and set(cycles) == {1, 2}):
+        return False
+    for n in (1, 2):
+        c = cycles[n]
+        if not (c.get('dhcp_exit') == '0' and c['dhcp_bound'] == 1 and c['lease_written'] == 1 and
+                c['dropbear_digest_ok'] == 1 and c['wifi_sshd_started'] == 1 and c['wifi_sshd_ready'] == 1 and
+                re.fullmatch(r'\d{1,2}', str(c['dhcp_prefix'])) and 8 <= int(c['dhcp_prefix']) <= 30 and
+                c['ping_transmitted'] == 3 and c['ping_received'] >= 1 and c['host_ack'] is True):
+            return False
+    if not (counts.get('supplicant_nl80211__received_scan_results') == 2 and
+            counts.get('supplicant_wpa__rx_message_1_of_4_way_handshake') == 2 and
+            counts.get('supplicant_wpa__sending_eapol_key_2_4') == 2 and
+            counts.get('supplicant_rx_message_3_of_4_way_handshake') == 2 and
+            counts.get('supplicant_wpa__sending_eapol_key_4_4') == 2 and
+            (counts.get('supplicant_wpa__key_negotiation_completed') or 0) >= 2 and
+            (counts.get('supplicant_ctrl_event_connected') or 0) >= 2):
+        return False
+    return bool(log.get('complete') is True and log.get('bytes') and
+                log.get('bytes') == fields.get('supplicant_log_bytes') and
+                log.get('phrases') == counts)
+
+
+def c3_two_lifetime_pass(lifetimes, fields, log, userspace, session_verified, wifi_ssh):
+    """The two-lifetime C3 conjunction: the kernel two-lifetime pass (classify_lifetimes:
+    exactly two lifetimes and one re-arm, each a healthy bounded data-path join with exactly
+    one admitted scan), the authored device+supplicant two-lifetime pass, the session seal,
+    and the host aggregate (both cycles validated over Wi-Fi and acknowledged over USB, none
+    closed). Bounded milestone; no throughput, replay-protection or operational claim.
+    """
+    wifi_ssh = wifi_ssh or {}
+    cycles = wifi_ssh.get('cycles') or []
+    host_ok = bool(wifi_ssh.get('all_pass') is True and
+                   isinstance(wifi_ssh.get('cycles_expected'), int) and
+                   wifi_ssh.get('cycles_expected') == len(cycles) == 2 and
+                   all(c.get('boot_match') and c.get('ack_written') and not c.get('closed') for c in cycles))
+    return bool((lifetimes or {}).get('two_lifetime_pass') and session_verified and
+                two_lifetime_device_pass(fields, log, userspace) and host_ok)
+
+
+CYCLE_DIR = '/tmp/mt6797-wifi-phase-b-1'
+CYCLE_FILES = ('hook-status', 'prefix', 'lease', 'router', 'udhcpc.log',
+               'dropbear.log', 'ping.log', 'ready', 'host-ack')
+CYCLE_EXPORT_LIMIT = 131072
+
+
+def cycles_export_script(boot):
+    """One bounded read-only export, in RAM, of the two cycles' retained per-cycle evidence
+    (hook status, lease/prefix/router, the udhcpc/dropbear/ping logs, the ready block and the
+    host-ack), so the custodian can pull it into the private evidence root BEFORE the seal and
+    the recovery that wipes the mainline RAM. Identity is checked before and after; each file
+    is framed with its byte length; nothing is written on the device. The private evidence
+    root retains it at mode 0600; it is never published (it names addresses).
+    """
+    if not re.fullmatch(BOOT_RE, boot):
+        raise ValueError('boot identity is malformed')
+    files = ' '.join(CYCLE_DIR + '/c$c/' + name for name in CYCLE_FILES)
+    return ("#!/bin/sh\nset -u\nBB=/bin/busybox\n"
+            "[ \"$($BB cat /proc/sys/kernel/random/boot_id)\" = '" + boot + "' ] || exit 3\n"
+            "$BB printf '__CYCLES_BEGIN__\\nboot=%s\\n' '" + boot + "'\n"
+            "for c in 1 2; do\n"
+            "  for f in " + files + "; do\n"
+            "    if [ -f \"$f\" ] && [ ! -L \"$f\" ]; then\n"
+            "      n=$($BB wc -c < \"$f\" 2>/dev/null || echo -1)\n"
+            "      $BB printf '__FILE__ path=%s bytes=%s\\n' \"$f\" \"$n\"\n"
+            "      $BB dd if=\"$f\" bs=1 count=" + str(CYCLE_EXPORT_LIMIT) + " 2>/dev/null\n"
+            "      $BB printf '\\n__END__\\n'\n"
+            "    fi\n"
+            "  done\n"
+            "done\n"
+            "$BB printf '__CYCLES_END__\\nboot_after=%s\\n' \"$($BB cat /proc/sys/kernel/random/boot_id)\"\n")
+
+
+def cycles_export_result(raw, boot):
+    """Validate the framed cycles export: identity before and after, framed, and both cycles'
+    key evidence present (a bound lease and a present host-ack for each). Records per-file
+    presence and byte counts only (no contents), so the result json carries no address; the
+    raw framed bytes are the private sealed capture.
+    """
+    text = raw.decode('ascii', 'replace') if isinstance(raw, (bytes, bytearray)) else raw
+    result = {'complete': False, 'boot_match': False, 'cycles': {}, 'bytes': len(raw)}
+    head = re.match(r"__CYCLES_BEGIN__\nboot=(" + BOOT_RE + r")\n", text)
+    tail = re.search(r"\n__CYCLES_END__\nboot_after=(" + BOOT_RE + r")\n$", text)
+    if not head or not tail:
+        return result
+    result['boot_match'] = head[1] == boot and tail[1] == boot
+    present = {}
+    for m in re.finditer(r"^__FILE__ path=(\S+) bytes=(-?\d+)$", text, re.M):
+        path, n = m[1], int(m[2])
+        cyc = re.search(r'/c(\d+)/', path)
+        name = path.rsplit('/', 1)[1]
+        if cyc:
+            present.setdefault(int(cyc[1]), {})[name] = n
+    result['cycles'] = present
+    result['complete'] = bool(result['boot_match'] and
+                              all(c in present and present[c].get('lease', -1) >= 0 and
+                                  present[c].get('host-ack', -1) >= 0 for c in (1, 2)))
+    return result

@@ -32,7 +32,7 @@ with tempfile.TemporaryDirectory(prefix='mt6797-bind-') as directory:
     result = subprocess.run([sys.executable, str(HERE / 'bind-target.py'), '--target', str(target), '--psk-file', str(psk),
                              '--output', str(out)], capture_output=True, text=True, timeout=60)
     assert result.returncode == 0, result.stderr
-    assert result.stdout.strip() == 'private-target-bound=1; psk_bound=1; device_action=none'
+    assert result.stdout.strip() == 'private-target-bound=1; psk_bound=1; two_cycle=0; device_action=none'
     bound = out.read_bytes()
     assert stat.S_IMODE(out.lstat().st_mode) == 0o600
     assert bound.startswith(b'TARGET_SSID=fixture\nTARGET_BSSID=02:11:22:33:44:55\nexport TARGET_SSID TARGET_BSSID\n')
@@ -40,6 +40,16 @@ with tempfile.TemporaryDirectory(prefix='mt6797-bind-') as directory:
     assert bound.endswith(SOURCE) and len(bound) <= WRAPPER_CAP, len(bound)
     # The runtime preparer's wrapper checks (shape, size, PSK binding) accept this wrapper.
     assert bound.startswith(b'TARGET_SSID=') and b'\nWPA_PSK_HEX=' in bound and b'\nTARGET_SSID_HEX=' in bound
+    # The two-lifetime binding wraps join-twice.sh instead, with the same prefix.
+    out2 = work / 'bound-twice.sh'
+    result = subprocess.run([sys.executable, str(HERE / 'bind-target.py'), '--target', str(target),
+                             '--psk-file', str(psk), '--two-cycle', '--output', str(out2)],
+                            capture_output=True, text=True, timeout=60)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == 'private-target-bound=1; psk_bound=1; two_cycle=1; device_action=none'
+    twice = out2.read_bytes()
+    assert twice.startswith(b'TARGET_SSID=fixture\n') and b'\nWPA_PSK_HEX=' in twice
+    assert twice.endswith((HERE / 'join-twice.sh').read_bytes()) and len(twice) <= WRAPPER_CAP
     # Binding never replaces an existing output.
     result = subprocess.run([sys.executable, str(HERE / 'bind-target.py'), '--target', str(target), '--psk-file', str(psk),
                              '--output', str(out)], capture_output=True, text=True, timeout=60)

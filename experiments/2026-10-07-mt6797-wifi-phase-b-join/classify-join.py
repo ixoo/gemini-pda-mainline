@@ -6,6 +6,10 @@ import re
 
 
 def classify(raw):
+    # Exactly one hw_scan is admitted per lifetime (the driver's first-effect
+    # cap). Count the admission record so a segment that scanned twice or not
+    # at all is caught; the string is unique and unambiguous.
+    scan_admitted = raw.count(b'one-shot passive WLAN scan: admitted=1')
     patterns = {
         'tx': rb'TX: subtype=(\d+) pid=(\d+) pages=(\d+)',
         'done': rb'TX done: pid=(\d+) status=(\d+) advanced=([01]) count=(\d+)',
@@ -603,6 +607,10 @@ def classify(raw):
         # their credits, both removals, healthy bounded join. The session's success
         # additionally needs the supplicant's completion phrase from the laptop
         # result; neither claims an installed key or operational Wi-Fi.
+        # Exactly one admitted scan per lifetime (the first-effect cap); more or
+        # none fails the segment.
+        'scan_admitted': scan_admitted,
+        'scan_count_ok': bool(scan_admitted == 1),
         'driver_handshake_path_pass': False,
         'eapol_observations': [{'translated': t, 'frame': f, 'activated': a, 'vector': v, 'bss': b} for _, t, f, a, v, b in eapol_rows],
         # Records only: the driver records the first eight discards and accepts up to
@@ -680,5 +688,17 @@ def classify_lifetimes(raw):
             start = i + 1
     segments.append(b''.join(lines[start:]))
     segments = [seg for seg in segments if seg.strip()]
+    verdicts = [classify(seg) for seg in segments]
+    # A healthy bounded two-lifetime pass: exactly two lifetimes and one re-arm,
+    # each lifetime a healthy bounded data-path join with exactly one admitted
+    # scan. This is the finite milestone; it is not an operational, reliability
+    # or replay-protection claim.
+    two_lifetime_pass = bool(
+        len(segments) == 2 and
+        all(v.get('bounded_join_pass') and v.get('driver_data_path_pass') and
+            v.get('scan_count_ok') for v in verdicts))
     return {'lifetimes': len(segments), 'rearms': len(segments) - 1,
-            'verdicts': [classify(seg) for seg in segments]}
+            'scans_total': sum(v['scan_admitted'] for v in verdicts),
+            'per_cycle_scan_ok': all(v['scan_count_ok'] for v in verdicts),
+            'two_lifetime_pass': two_lifetime_pass,
+            'verdicts': verdicts}

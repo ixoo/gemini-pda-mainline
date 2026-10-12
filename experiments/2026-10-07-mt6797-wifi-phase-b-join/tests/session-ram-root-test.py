@@ -69,9 +69,9 @@ with tempfile.TemporaryDirectory(prefix='mt6797-session-ram-root-') as directory
     helper_data = bytes([0x7f, ord('E'), ord('L'), ord('F')]) + bytes(session.HELPER_BYTES - 4)
     session.HELPER_SHA256 = digest(helper_data)  # synthetic helper bytes with the pinned size
     good = dict(members); good['bin/join-connect'] = member(helper_data, 0o100755)
-    # Runtime 13's committed receipt declares the supplicant: the 62-member
-    # candidate-4 shape is refused until the pinned member is present.
-    assert session.SUPPLICANT_REQUIRED is True
+    # The runtime-33 committed receipt declares both the supplicant and wpa_cli: the
+    # 62-member candidate-4 shape is refused until the pinned members are present.
+    assert session.SUPPLICANT_REQUIRED is True and session.CLI_REQUIRED is True
     try:
         session.check_ram_root(good, record, userspace)
     except ValueError:
@@ -79,6 +79,7 @@ with tempfile.TemporaryDirectory(prefix='mt6797-session-ram-root-') as directory
     else:
         raise AssertionError('62 members admitted although the receipt declares the supplicant')
     session.SUPPLICANT_REQUIRED = False
+    session.CLI_REQUIRED = False
     session.check_ram_root(good, record, userspace)  # candidate-4 shape admitted
 
     def refused(bad):

@@ -43,8 +43,16 @@ RAM_ROOT_MEMBERS = 62
 SUPPLICANT_MEMBER = 'bin/wpa_supplicant'
 SUPPLICANT_SHA256 = '0487b7109c0a456eabf3aef33d74d38e5aa4e6dddcb586c03bb203803dd27da7'
 SUPPLICANT_BYTES = 1719888
-# Runtime 13's committed receipt declares the supplicant, so the member is required.
-SUPPLICANT_REQUIRED = 'supplicant' in json.loads((HERE / 'results/candidate-31.json').read_bytes())
+# Runtime 33: the reviewed static wpa_cli as a further member, same pins as the
+# composer; the parent members, helper and supplicant are unchanged.
+CLI_MEMBER = 'bin/wpa_cli'
+CLI_SHA256 = '04fdf3ae5615f7831461028331bcc6c62d7c6d6974c2676f5b3a93960e5afd22'
+CLI_BYTES = 798352
+# The runtime-33 committed receipt declares the supplicant and wpa_cli, so both
+# members are required.
+_RECEIPT = json.loads((HERE / 'results/candidate-32.json').read_bytes())
+SUPPLICANT_REQUIRED = 'supplicant' in _RECEIPT and _RECEIPT['supplicant'] is not None
+CLI_REQUIRED = _RECEIPT.get('wpa_cli') is not None
 
 
 def check_ram_root(members, record, userspace):
@@ -55,7 +63,8 @@ def check_ram_root(members, record, userspace):
     root ownership and single link are checked explicitly.
     """
     base = SESSION.SESSION
-    base.require(len(members) == RAM_ROOT_MEMBERS + (SUPPLICANT_MEMBER in members) and
+    base.require(len(members) == RAM_ROOT_MEMBERS + (SUPPLICANT_MEMBER in members) +
+                 (CLI_MEMBER in members) and
                  all(name in members and base.digest(members[name].data) == digest and
                      members[name].mode == 0o100644 for name, digest in ROM_PATCHES.items()) and
                  all(base.digest(members[item['path']].data) == item['sha256'] and
@@ -78,6 +87,13 @@ def check_ram_root(members, record, userspace):
                  base.digest(supplicant.data) == SUPPLICANT_SHA256 and supplicant.mode == 0o100755 and
                  supplicant.uid == 0 and supplicant.gid == 0 and supplicant.nlink == 1),
                  'reviewed wpa_supplicant changed in the RAM root')
+    cli = members.get(CLI_MEMBER)
+    base.require(cli is not None or not CLI_REQUIRED,
+                 'reviewed wpa_cli absent from the RAM root the receipt declares')
+    base.require(cli is None or (len(cli.data) == CLI_BYTES and
+                 base.digest(cli.data) == CLI_SHA256 and cli.mode == 0o100755 and
+                 cli.uid == 0 and cli.gid == 0 and cli.nlink == 1),
+                 'reviewed wpa_cli changed in the RAM root')
 
 
 def prepare(candidate_dir, previous):

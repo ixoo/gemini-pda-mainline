@@ -75,7 +75,7 @@ with tempfile.TemporaryDirectory(prefix='mt6797-c2-host-') as directory:
         # the same chain refuses, so the guard itself is still exercised.
         assert host.SCAN.SOURCE_LIMIT == 32768 and 16384 < bound.stat().st_size <= 32768
         chained = host.prepare_with_c2(None)
-        assert chained['claim']['phase_budgets']['passive-scan']['seconds'] == (130 if psk else 30)
+        assert chained['claim']['phase_budgets']['passive-scan']['seconds'] == (330 if psk else 30)
         host.SCAN.SOURCE_LIMIT = 16384
         try:
             host.prepare_with_c2(None)
@@ -105,8 +105,8 @@ with tempfile.TemporaryDirectory(prefix='mt6797-c2-host-') as directory:
         host.SCAN.prepare = lambda candidate: {**prepared, 'claim': {
             **prepared['claim'], 'passive_scan_script_sha256': 'deadbeef'}}
         outer = host.prepare_with_c2(None)
-        assert outer['execute'].__globals__['BUDGETS']['passive-scan'] == (130, 262144)
-        assert outer['claim']['phase_budgets']['passive-scan']['seconds'] == 130
+        assert outer['execute'].__globals__['BUDGETS']['passive-scan'] == (330, 262144)
+        assert outer['claim']['phase_budgets']['passive-scan']['seconds'] == 330
         assert outer['claim']['passive_scan_script_sha256'] == 'private-psk-bound'
         assert host.select_prepare(True) is host.prepare_with_c2
         assert host.select_prepare(False) is host.c2_prepare
@@ -155,28 +155,34 @@ with tempfile.TemporaryDirectory(prefix='mt6797-c2-host-') as directory:
             'regression_pass': True, 'return': {}, 'returned_gemian_boot': 'ffffffff-0123-0123-0123-0123456789ab'}))
         join = {'driver_handshake_path_pass': True, 'driver_data_path_pass': True, 'session_verified': True}
         c2 = host.c2_result(join, True)
+        lifetimes = {'two_lifetime_pass': True}
         receipt_path = work / 'wifi-ssh-receipt.json'
-        good_receipt = {'ready_seen': True, 'ssh_exit': 0, 'boot_match': True, 'stdout_bytes': 37, 'boot_id': BOOT}
+        # Runtime 33: the aggregate laptop-wifi-ssh receipt (per-cycle, boot-bound, all_pass).
+        agg = {'boot_id': BOOT, 'cycles_expected': 2, 'all_pass': True,
+               'cycles': [{'cycle': 1, 'boot_match': True, 'ack_written': True, 'closed': False},
+                          {'cycle': 2, 'boot_match': True, 'ack_written': True, 'closed': False}]}
         host.WIFI_SSH_RECEIPT = receipt_path
-        receipt_path.write_text(json.dumps(good_receipt))
-        c3 = host.c3_result(join, c2)
-        assert c3['wifi_ssh_boot_bound'] is True and c3['wifi_ssh'] == good_receipt, c3
-        assert c3['c3_session_pass'] is False, 'the C2 fields alone (no C3 fields in the body) do not pass C3'
-        c3_fields = dict(c2['supplicant'], data_phase_seen=1, tool_udhcpc=1, tool_ping=1, dhcp_exit=0, dhcp_bound=1,
-                         dhcp_prefix=24, lease_written=1, dropbear_digest_ok=1, wifi_sshd_started=1, wifi_sshd_ready=1,
-                         wifi_sshd_exit=0, ping_transmitted=3, ping_received=3)
-        c3 = host.c3_result(join, {**c2, 'supplicant': c3_fields})
-        assert c3['c3_session_pass'] is c2['c2_session_pass'], (c2['c2_session_pass'], c3)
-        receipt_path.write_text(json.dumps({**good_receipt, 'boot_id': 'ffffffff-0123-0123-0123-0123456789ab'}))
-        foreign = host.c3_result(join, {**c2, 'supplicant': c3_fields})
-        assert foreign['wifi_ssh_boot_bound'] is False and foreign['c3_session_pass'] is False
+        receipt_path.write_text(json.dumps(agg))
+        c3 = host.c3_result(join, c2, lifetimes)
+        assert c3['wifi_ssh_boot_bound'] is True and c3['wifi_ssh'] == agg, c3
+        # The single-count supplicant body here does not satisfy the doubled handshake, so C3
+        # fails; the full two-lifetime composition is exercised in c2-session-test.
+        assert c3['c3_session_pass'] is False
+        # A foreign boot does not bind; a non-all_pass or non-aggregate/malformed/missing
+        # receipt fails and is recorded as absent where applicable.
+        receipt_path.write_text(json.dumps({**agg, 'boot_id': 'ffffffff-0123-0123-0123-0123456789ab'}))
+        assert host.c3_result(join, c2, lifetimes)['wifi_ssh_boot_bound'] is False
+        receipt_path.write_text(json.dumps({**agg, 'all_pass': False}))
+        assert host.c3_result(join, c2, lifetimes)['c3_session_pass'] is False
+        receipt_path.write_text(json.dumps({'ready_seen': True, 'boot_id': BOOT}))  # old single-cycle shape, no cycles
+        assert host.c3_result(join, c2, lifetimes)['wifi_ssh'] is None
         receipt_path.write_text('not json')
-        assert host.c3_result(join, c2)['wifi_ssh'] is None and host.c3_result(join, c2)['c3_session_pass'] is False
+        assert host.c3_result(join, c2, lifetimes)['wifi_ssh'] is None and host.c3_result(join, c2, lifetimes)['c3_session_pass'] is False
         receipt_path.unlink()
-        assert host.c3_result(join, c2)['wifi_ssh'] is None and host.c3_result(join, c2)['c3_session_pass'] is False
-        receipt_path.write_text(json.dumps(good_receipt))
+        assert host.c3_result(join, c2, lifetimes)['wifi_ssh'] is None
+        receipt_path.write_text(json.dumps(agg))
         (root / 'deferred-start-result.json').write_text(json.dumps({'regression_pass': True, 'boot_id': BOOT}))
-        assert host.c3_result(join, {**c2, 'supplicant': c3_fields})['wifi_ssh_boot_bound'] is False, 'boot_id alone is not the established field'
+        assert host.c3_result(join, c2, lifetimes)['wifi_ssh_boot_bound'] is False, 'boot_id alone is not the established mainline_boot'
         host.WIFI_SSH_RECEIPT = None
         assert 'rc = 0 if ready' not in (HERE / 'passive-host.py').read_text()
 print('c2-host: PASS (C2 selection, supplicant-log phase once before the seal, budgets, private claim, phase-complete exit substitution, verdict)')
