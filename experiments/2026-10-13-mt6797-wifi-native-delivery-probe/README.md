@@ -24,6 +24,17 @@ count-all/reject-before-caps budget with the wall enforced on an empty stream, t
 ambiguity contract, and the honest positive/negative limit (valid traffic does not prove
 hostile-replay rejection). The driver change is proposal 0181 under `patches/proposals/`.
 
+## Composition and runtime
+
+The admitted default-off diagnostic is composed into its own build and runtime
+identity (candidate 32 / runtime 33 untouched); see [COMPOSITION.md](COMPOSITION.md).
+The build profile `mt6797-a53-wifi-native-delivery-diag` (`kernel/manifest.json`
++ `configs/gemini-a53-wifi-native-delivery-diag.fragment`) builds the diagnostic
+into the station-join kernel and force-arms the read-only `mac.native_delivery_diag=1`
+boot parameter, preserving `clk_ignore_unused` and PSCI. `prepare-native-delivery.py`
+is the offline runtime adapter (receipt-driven, no fabricated hashes, no device
+action). Build and device remain held until root reviews the source and profile.
+
 ## Checks
 
 `tests/run-native-diag-test.py`, `tests/run-native-rx-test.py` and `tests/run-native-loop-test.py` (ASan/UBSan) pass against the
