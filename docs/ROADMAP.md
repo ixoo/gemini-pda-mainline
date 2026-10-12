@@ -44,9 +44,18 @@ Keep this file under 200 lines; move anything else to an experiment record.
   lifecycle — both keys submitted and credited, a budget-bounded data phase,
   a DHCP lease, three ICMP replies, one boot-bound Wi-Fi SSH exchange, and a
   clean three-stage cleanup, with no refusal and no footer
-  ([runtime 31](../experiments/2026-10-07-mt6797-wifi-phase-b-join/RUNTIME_31_RESULT.md)).
-  One bounded lifetime only; `wifi_operational` stays false and no operational,
-  reliability, persistence or replay-protection claim follows.
+  ([runtime 31](../experiments/2026-10-07-mt6797-wifi-phase-b-join/RUNTIME_31_RESULT.md)),
+  repeated on candidate 31
+  ([runtime 32](../experiments/2026-10-07-mt6797-wifi-phase-b-join/RUNTIME_32_RESULT.md),
+  which also observed the received-PN group absent on that one sample — an availability
+  fact, not a replay or crypto claim). Bounded lifetimes only; `wifi_operational` stays
+  false and no operational, reliability, persistence or replay-protection claim follows.
+- **Next (local, source first).** The smallest coherent reusable healthy
+  connect/scan lifecycle
+  ([design](../experiments/2026-10-07-mt6797-wifi-phase-b-join/REUSABLE_LIFECYCLE_DESIGN.md):
+  re-arm the healthy terminal only, keep the fatal poison non-rearmable), gated on
+  resolving firmware reusability and the mac80211 reconnect contract; and, separately and
+  required, the crypto/replay boundary (received PN producer semantics; no generic floor).
 - **Open.** Wi-Fi station operation beyond one bounded lifetime; replay
   enforcement in firmware is unknown. No charging, RTC alarm or lid.
   The `full` profile has never booted. No upstream submission. A72 and thermal

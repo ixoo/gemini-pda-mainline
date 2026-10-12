@@ -449,6 +449,23 @@ data-path shapes through mac80211, replay the reference offline) is admitted
 as hardware-free source work and awaits its proposal diff, checks and
 combined test protocol before any build.
 
+## Runtime 32 result: second bounded C2+C3 pass; group-1 absent on this sample (2026-10-12)
+
+Runtime 32 ([RUNTIME_32_RESULT.md](RUNTIME_32_RESULT.md)) on mainline boot `869f4bdf…`,
+candidate 31 (compile 36, package `521e1ce3…`), is the second healthy lifetime: C2/C3 pass,
+bounded join, healthy stage-3 cleanup, DHCP lease, three pings, boot-bound Wi-Fi SSH (37 B,
+exit 0); no refusal, no footer, not malformed; `wifi_operational` false. The 0179
+observation is present and consistent: `uni 0/33`, `grp 0/27`, both masks `0x100` — every one
+of the 60 delivered frames carried GROUP_VLD `0x8` (group 4 only), so **group 1 (the received
+PN group) was absent on this one sample**. That is an availability fact only: not proof the
+firmware never attaches group 1, not a replay statement, and not grounds to treat the
+crypto/replay boundary as met. 0178 and 0177 were again unobserved; recovery returned the
+device to Gemian `32144a9b…`. The smallest coherent reusable healthy-lifecycle change is
+designed (no code) in [REUSABLE_LIFECYCLE_DESIGN.md](REUSABLE_LIFECYCLE_DESIGN.md): re-arm the
+healthy terminal only (scan/connect), keep the `first_error`/`closing` poison non-rearmable
+and the grant-tail safety, with firmware reusability and the mac80211 reconnect contract as
+uncertainties to resolve before code and crypto/replay a separate required condition.
+
 ## Runtime 31 result: first complete bounded C2+C3 pass (2026-10-12)
 
 Runtime 31 ([RUNTIME_31_RESULT.md](RUNTIME_31_RESULT.md)) on mainline boot
