@@ -62,3 +62,13 @@ verdict (a healthy two-lifetime is not forced to exit 1 by the single-scan rc),
 the private pinned baseline sources, and the single reviewed recovery. No kernel
 rebuild and no worker device action; the **owner** performs the physical boot2
 selection.
+
+## Note: join-twice.sh fixed after the frozen R34 binding
+
+Two unbounded kill/wait paths in join-twice.sh (run_bounded's window-closure
+and stage=finish) were replaced with the finite quiesce_owned contract after the
+R34 join34 private leaf was bound. R34 had not run (no capture claim), so this
+correction was explicitly authorized. The private join34 must be REBOUND to the
+new join-twice.sh and the installer/capture/session re-preflighted from this
+commit before any R34 test. Candidate 32/33 receipts, the C33 install and the
+R33 executed evidence are unchanged; only the runtime join leaf changed.

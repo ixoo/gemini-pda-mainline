@@ -65,10 +65,16 @@ stop_wifi_sshd() {
     wifi_sshd_pid=
 }
 supplicant_pid=
+rb_pid=
 # shellcheck disable=SC2317  # on_exit runs only via the EXIT/HUP/INT/TERM trap
 on_exit() {
     rc=$?
     stop_wifi_sshd
+    # A bounded helper (udhcpc/ping via run_bounded) still owned when the shell
+    # exits mid-poll is quiesced here too, so no effectful child survives
+    # unrecorded; its fault identity is preserved on non-quiescence.
+    [ -n "$rb_pid" ] && { quiesce_owned "$rb_pid" bounded-helper || true; }
+    rb_pid=
     # Stop and reap the owned supplicant on every exit path (success or a failed
     # cycle) with the same finite discipline, so the host's supplicant-log export
     # never sees a lingering effectful process; a quiesce failure is observable
@@ -119,13 +125,22 @@ run_bounded() {
     rb_pid=$!
     while kill -0 "$rb_pid" 2>/dev/null; do
         if ! window_ok "$rb_cyc"; then
-            kill "$rb_pid" 2>/dev/null
-            wait "$rb_pid" 2>/dev/null
+            # Window closed: finite termination of this owned bounded child, never
+            # an unbounded wait on a child that will not die. A non-quiescence is
+            # recorded in the boot-bound quiescence record and holds recovery.
+            quiesce_owned "$rb_pid" bounded-helper || true
+            rb_pid=
             return 137
         fi
         $BB sleep 0.2
     done
+    # The child exited on its own: reap for its status, then release ownership.
+    set +e
     wait "$rb_pid"
+    rb_rc=$?
+    set -e
+    rb_pid=
+    return "$rb_rc"
 }
 
 stage=target_input
@@ -366,11 +381,13 @@ while [ "$cyc" -le 2 ]; do
 done
 
 stage=finish
-set +e
-kill "$supplicant_pid" 2>/dev/null
-wait "$supplicant_pid" 2>/dev/null
-supplicant_exit=$?
-set -e
+# Finite termination of the owned supplicant (the same contract on_exit uses), so
+# the host's supplicant-log export sees no lingering effectful process.
+# quiesce_owned records any non-quiescence as an authoritative boot-bound fault
+# that holds the recovery; the PID is then cleared because that fault is already
+# recorded (clearing does not imply a guaranteed reap).
+quiesce_owned "$supplicant_pid" wpa-supplicant || true
+supplicant_exit=$owned_exit
 supplicant_pid=
 $BB rm -f "$conf"
 stop_wifi_sshd
