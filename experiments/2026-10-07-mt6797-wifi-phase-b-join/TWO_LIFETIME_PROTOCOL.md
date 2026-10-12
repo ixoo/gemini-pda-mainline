@@ -6,22 +6,28 @@ runs. It is a bounded source-supported prototype, not production reusability and
 result. The crypto/replay boundary stays a separate required condition; the absent group 1 in
 runtime 32 does not reduce it.
 
-## What the wrapper does (identical device effects to runtime 32, twice)
+## What the wrapper does (explicit same-supplicant control; device effects of runtime 32, twice)
 
-- Keeps the vif alive between the two disconnect/connect cycles: `remove_interface` and `stop`
-  remain separate from a disconnect, and are not invoked between the cycles.
-- Lifetime 1 is the runtime-31/32 healthy C2+C3 exactly. Then a healthy disconnect that drives
-  mac80211's `sta_state` down to `NOTEXIST`.
-- Waits for the attributable first healthy terminal **and** the completed station teardown
-  before the second connect: the driver re-arms only when the worker's healthy stage-3 cleanup
-  and the `NOTEXIST` teardown have both been observed (either order), the lifetime is quiescent
-  (empty queue, no debt, no credit pending, no in-flight frame), exactly the two expected key
-  removals are credited with both key-done windows and no third, and the two-lifetime cap is
-  unreached. The wrapper does not start the second connect until the `one-shot WLAN join rearm`
-  record is observed.
-- Lifetime 2 is a second connect and its scan, same finite bounds as lifetime 1.
-- No automatic retry: a re-arm that does not occur (any gate unmet, or a wire-identity wrap) is
-  a named terminal, not a retried cycle.
+The supplicant's natural auto-reconnect is NOT used: it can begin cycle 2's scan during cycle
+1's DHCP block, before the wrapper has seen cycle 1's fault or its host SSH receipt, and the
+driver's first-effect scan cap cannot stop that (only one scan has occurred). The wrapper
+therefore controls the supplicant explicitly, keeping the one vif and the one supplicant alive:
+
+- The network starts **disabled** (`wpa_cli disable_network`, with `ap_scan=1`). `remove_interface`
+  and `stop` are never invoked between cycles; the vif and supplicant stay up.
+- Cycle 1: one `wpa_cli enable_network`/`select_network` → the one scan, join, data phase and the
+  per-cycle DHCP/ping/SSH in cycle 1's own directory with a fresh readiness marker and receipt →
+  the driver's bounded teardown → `disable_network` on the terminal.
+- Before cycle 2 the wrapper waits for **both** the healthy rendezvous (the `one-shot WLAN join
+  rearm` record) **and** the attributable cycle-1 host SSH receipt (the host's completed exchange
+  to cycle 1's leased address), and stops on the first fault; only then one `enable_network` for
+  cycle 2. There is no automatic retry, and no second `enable_network` is issued if cycle 1
+  faulted or its receipt is absent.
+- Cycle 2: the same finite bounds; `disable_network` on its terminal.
+- Control client: a pinned same-version `wpa_cli` (built from the supplicant's hostap source on
+  the Buildbox, static aarch64, by digest), added minimally to the private RAM root as a composition
+  input with its checksum. (Build + composition input: the pending sub-project; the device hook and
+  host adapter are authored against it.)
 
 ## Exact budgets and counts (per lifetime, as runtime 32)
 

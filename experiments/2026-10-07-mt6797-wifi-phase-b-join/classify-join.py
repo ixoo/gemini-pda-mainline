@@ -62,6 +62,9 @@ def classify(raw):
                      rb'data group1: uni_present=\d{1,6} uni_absent=\d{1,6} grp_present=\d{1,6} grp_absent=\d{1,6} uni_masks=0x[0-9a-f]{1,4} grp_masks=0x[0-9a-f]{1,4}',
                      # 0180: the bounded two-lifetime re-arm record (after a healthy terminal).
                      rb'rearm: lifetime=\d{1,3} token=\d{1,3} sta_seq=\d{1,3} sequence=\d{1,3}',
+                     # 0180: named re-arm refusals (a cap-reached refusal is the bounded end; a wrap poisons).
+                     rb'rearm refused: lifetimes=\d{1,3} closed=[01] cleanup=[01] sta_removed=[01] keys=\d\d done=[01][01] queue_empty=[01]',
+                     rb'rearm wrap: token=\d{1,3} sta_seq=\d{1,3} sequence=\d{1,5} next_pid=\d{1,3}',
                      # 0174: the 0168 class beyond its eight recorded discards, the total before the stage-3 record.
                      rb'group action frames discarded: total=\d{1,6}',
                      # 0173: the target's beacon in the keyed descriptor variant, skipped like every beacon (first four, then the total).
@@ -158,6 +161,10 @@ def classify(raw):
                     llc_total_rows.append((index, int(body.rsplit(b'total=', 1)[1])))
                 elif body.startswith(b'rearm:'):
                     pass  # 0180 two-lifetime re-arm notification
+                elif body.startswith(b'rearm refused:'):
+                    pass  # 0180 named re-arm refusal (cap end or unmet gate)
+                elif body.startswith(b'rearm wrap:'):
+                    pass  # 0180 wire-identity wrap; the lifetime is poisoned
                 elif body.startswith(b'data group1:'):
                     gf = dict(part.split(b'=') for part in body.split(b': ', 1)[1].split(b' '))
                     data_group1_rows.append((index, int(gf[b'uni_present']), int(gf[b'uni_absent']),

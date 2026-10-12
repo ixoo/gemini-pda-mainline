@@ -453,8 +453,9 @@ combined test protocol before any build.
 
 [REUSABLE_LIFECYCLE_DESIGN.md](REUSABLE_LIFECYCLE_DESIGN.md) is implemented as proposal 0180
 (`patches/proposals/0180-...`): after one healthy join reaches stage-3 cleanup and mac80211
-drives the station to `NOTEXIST`, the already-serialized `join_work` re-arms the driver to its
-pre-scan baseline for a second connect and scan in the same boot. The two facts rendezvous in
+drives the station to `NOTEXIST` (an explicit close/stop stays permanently fenced), the
+already-serialized `join_work` re-arms the driver to its pre-scan baseline for a second connect
+and scan in the same boot, via a dedicated pass checked before the running/retired bail. The two facts rendezvous in
 either order (`sta_state` records `NOTEXIST` and never poisons for in-progress cleanup; the
 worker resets once both are seen, the lifetime quiescent, under a two-lifetime cap). Wire
 identities advance with a wrap-refusal; completions reinit once after both teardowns; the
