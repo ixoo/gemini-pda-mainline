@@ -393,6 +393,14 @@ def main():
             verdict = combined['c3']['c3_session_pass']
     with (ROOT / 'phase-b-session-result.json').open('x') as stream:
         stream.write(json.dumps(combined, indent=2, sort_keys=True) + '\n')
+    if C2_SCRIPT:
+        # The inherited single-scan rc (SCAN.main) sees a two-lifetime run as two
+        # scans and eight tuning samples and does not represent it, so it must not
+        # force a healthy two-lifetime result to exit 1. The two-cycle lifetime /
+        # C3 classifier above is authoritative; session health (transport,
+        # regression, recovery) is already folded into the verdict through
+        # session_verified. A hard parser/setup error (rc == 2) still fails.
+        return rc if rc == 2 else (0 if verdict else 1)
     return rc or (0 if verdict else 1)
 
 
