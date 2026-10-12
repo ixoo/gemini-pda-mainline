@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-13-mt6797-wifi-native-delivery-probe` |
-| Status | Authoring only, no build or device action; proposal 0181 authored on the reviewed 0180 (compile-37) parent and selected only by the isolated `series-a53-wifi-native-delivery-diag` profile, with candidate 32 / runtime 33 unchanged; the strict native RXD decoder, the SET_MONITOR encoder, the bounded decision core and the mac.c credit/expiry/ambiguity wiring are authored with focused offline tests passing; held for root review before any build |
+| Status | ND1 (d104654d) was built, installed under the reviewed boot2 guard and RUN ONCE: NEGATIVE before native delivery, caused by a HOST defect (the SET_MONITOR CID 0xFC was omitted from the command validator `mt6797_join_prepare_command`, so the enable was refused locally, EINVAL) -- the firmware capability is UNOBSERVED. See [ND1_RESULT](ND1_RESULT.md). Fix: proposal 0181 now adds the config-gated 0xFC validator case (+ a validator-path test); a rebuild yields the ND2 candidate. Recovery is UNCONFIRMED (return collector did not reach known-good Gemian). |
 | Base | Proposal 0180 ([compile 37](../2026-10-07-mt6797-wifi-phase-b-join/COMPILE_37.md)), kernel `5d6323e1` / `b33ba5a2` |
 | Date | 2026-10-13 |
-| Device action | None; authoring and offline source-grounded tests only |
+| Device action | ND1 was installed and run once (host-defect negative; see [ND1_RESULT](ND1_RESULT.md)); recovery unconfirmed. Root is sole device custodian; no worker device access. The 0181 validator fix and tests are offline; ND2 build/compose/install is root-driven. |
 
 ## Question
 

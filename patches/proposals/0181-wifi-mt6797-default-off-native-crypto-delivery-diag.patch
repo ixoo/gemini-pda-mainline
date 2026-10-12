@@ -1,4 +1,4 @@
-From 3a5150a8b20fc6f9907cf522dc4d81c4a7e64b15 Mon Sep 17 00:00:00 2001
+From 8392cac4877b1a4253f089b8539d6c2c3e45b1bf Mon Sep 17 00:00:00 2001
 From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
 Date: Mon, 12 Oct 2026 17:24:12 +0000
 Subject: [PATCH] wifi: mt6797: default-off strict native-crypto-delivery
@@ -54,10 +54,11 @@ monitor-netdev (monWork) host policy, no generic observer; only channel 40.
  .../net/wireless/mediatek/mt6797/data-rx.h    | 110 +++++++
  drivers/net/wireless/mediatek/mt6797/hif.c    |  17 ++
  drivers/net/wireless/mediatek/mt6797/hif.h    |   6 +
+ .../mediatek/mt6797/join-command-submit.h     |  26 ++
  .../wireless/mediatek/mt6797/join-commands.h  |  36 +++
  drivers/net/wireless/mediatek/mt6797/mac.c    | 289 +++++++++++++++++-
  .../wireless/mediatek/mt6797/native-diag.h    | 212 +++++++++++++
- 7 files changed, 683 insertions(+), 2 deletions(-)
+ 8 files changed, 709 insertions(+), 2 deletions(-)
  create mode 100644 drivers/net/wireless/mediatek/mt6797/native-diag.h
 
 diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
@@ -247,6 +248,43 @@ index 4313aa0c8..e9676987f 100644
  /* One native bounded management frame through the existing TC4 PIO owner.
   * Process context only. Caller owns station/channel generation, destination,
   * exact frame-body admission and single-use PID. No overlapping page debt.
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-command-submit.h b/drivers/net/wireless/mediatek/mt6797/join-command-submit.h
+index bd0571c5b..9eb955d26 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join-command-submit.h
++++ b/drivers/net/wireless/mediatek/mt6797/join-command-submit.h
+@@ -44,6 +44,32 @@ mt6797_join_prepare_command(struct mt6797_normal_transaction *t,
+ 	case 0x1c:
+ 		required = 16;
+ 		break;
++#ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
++	case 0xfc:
++		/* CMD_ID_SET_MONITOR, the default-off native-crypto-delivery
++		 * diagnostic's one 16-byte SET_MONITOR (proposal 0181). Present
++		 * only when the diagnostic is compiled in, so a normal build still
++		 * refuses 0xfc. Reject a short/long length BEFORE reading any
++		 * field, then require the exercised fields the encoder emits
++		 * (mt6797_native_monitor_payload): ucEnable 0/1, band 0,
++		 * ucPriChannel 40, and SCO/width/S1/S2 plus the nine reserved
++		 * bytes zero. No credit/quota inference (quota is never a TC4
++		 * term).
++		 */
++		if (bytes != MT6797_NATIVE_MONITOR_BYTES)
++			return -EINVAL;
++		if (payload[0] > 1 || payload[1] || payload[2] != 40)
++			return -EINVAL;
++		{
++			size_t i;
++
++			for (i = 3; i < MT6797_NATIVE_MONITOR_BYTES; i++)
++				if (payload[i])
++					return -EINVAL;
++		}
++		required = MT6797_NATIVE_MONITOR_BYTES;
++		break;
++#endif
+ 	default:
+ 		return -EINVAL;
+ 	}
 diff --git a/drivers/net/wireless/mediatek/mt6797/join-commands.h b/drivers/net/wireless/mediatek/mt6797/join-commands.h
 index 884faa1b2..228e7cbd3 100644
 --- a/drivers/net/wireless/mediatek/mt6797/join-commands.h
