@@ -98,6 +98,34 @@ budget changes. The classifier knows the records, their window (inside the data 
 the total bound to the first min(total, 8) records, and reports records and total
 apart.
 
+## Independent advisory (a data point, not an approval)
+
+The custodian commissioned the owner-requested independent advisory on Buildbox-2
+against the published 8ccf249c, the thirteen safe runtime 30 files and the corrected
+private RE v2 summary, after verifying that both hosts hold byte-identical copies of the
+pinned vendor receive source and header. Points it corroborates and this record keeps:
+status 0xc200 masked with the vendor's error bitmap 0x07f8 leaves bit 9 set, so the
+frame is the vendor's dropped error class; the discard is group-only inside the data
+window with exact status, peer, broadcast-entry and layout bounds; no executable defect
+in the decoders; one bounded runtime 31 of 0178 is the supported next step; security
+mode 4 and header translation are descriptor observations, not measured decryption, and
+the body is unknown. Points the custodian rejected after checking, which this record
+does not adopt: a predicted refusal of a ninth group Action frame (0174 removed that
+cap and records the first eight plus the total); an identity between the 94-byte frames
+seen before the key, after it and the 110-byte after-removal class (no body was
+retained; 0177's class differs in layout and WLAN index; recurrence is a hypothesis);
+"every other status bit clear" (0xc200 keeps bits 14 and 15; the statement is "every
+other covered error indicator clear"); the key state tests as proof of installed keys
+(they denote submitted and credited commands); the header byte 0xce as a BSSID carrier
+(byte 7, 0x04, carries BSSID field 1); and any reading of a static handler omission as
+proof that the firmware cannot enforce replay protection, which remains unknown.
+Research clues for a later design, not for this change: whether the existing RX
+metadata exposes a group-1 packet number (its presence would prove neither
+enforcement nor integrity, and any host-side floor would need exact PN, cipher, key,
+TID and ordering semantics), and native-format software crypto as an alternative if
+firmware replay protection cannot be established. No RE, replay or radio test is
+authorized by the advisory.
+
 ## Proposed runtime 31 protocol (bounded, one test)
 
 Candidate 30 from compile 35 (0163 to 0178) with candidate 29's RAM root, DT and

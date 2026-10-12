@@ -449,6 +449,18 @@ data-path shapes through mac80211, replay the reference offline) is admitted
 as hardware-free source work and awaits its proposal diff, checks and
 combined test protocol before any build.
 
+## Compile 35 and the candidate 30 pins (2026-10-12)
+
+[COMPILE_35.md](COMPILE_35.md): the phase-B compile profile at the built input
+8ccf249c with 0163 to 0178 built and validated on Buildbox-1 (package
+`bfa7516a…`, kernel image `7258b7cb…`, decompressed size of compiles 31, 32
+and 34, kernel config and board DT unchanged, warnings identical to the
+compile-34 job log, zero driver warnings). The later commit that recast
+0178's prose changed comments only (comment-stripped digests identical), so
+the compiled code is the reviewed code. `build-candidate.py` pins the built
+input and the package for candidate 30; nothing else changes. The custodian
+composes candidate 30; nothing has been installed or booted.
+
 ## Runtime 30 result and proposal 0178 (2026-10-12)
 
 Runtime 30 ([RUNTIME_30_RESULT.md](RUNTIME_30_RESULT.md)): four beacons
