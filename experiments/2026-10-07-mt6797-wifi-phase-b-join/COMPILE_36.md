@@ -13,15 +13,15 @@ Status: validated compile-only; no candidate composed, no device test.
   selection plus 0179 after 0178, in canonical order; patchset
   `ccf43622f6c6a69fd301fa935b50aa3cd89e774414785a2d9e9d9ab2a9803fdb`, source
   `be41c068…` unchanged; the package provenance series equals the selected series.
-- Builder: Buildbox-1, 32 jobs, one heavy build through the managed backend after the
-  clean push; job `7fa36c01…-mt6797-a53-wifi-phase-b-compile-m0`, generated
+- Builder: the managed Buildbox backend, 32 jobs, one heavy build after the clean push;
+  job `7fa36c01…-mt6797-a53-wifi-phase-b-compile-m0`, generated
   2026-10-12T11:17:52Z, `hardware_write=none`.
 - Package: `521e1ce391a9801ebd7eaf179c98da1fb0928ee4f4168d21ba81673c3aea3511`
   (`linux-7.1.3-gemini-521e1ce3…`), `sha256sums=passed`. Kernel image `Image.gz`
   SHA-256 `ded2f6db15cc14228819080f3f0eb2111662c2e0090f7c1daacb8b46f2f186d4`
-  (6-series gzip; decompressed 16025608 bytes, 65536 larger than compiles 31, 32, 34 and
-  35 — the observation's code and strings crossing an image alignment boundary; the image
-  effective size is 16646144). The kernel configuration is unchanged (`975f8703…`, 24
+  (6-series gzip, 6649132 bytes; decompressed 16025608 bytes, 65536 larger than compiles
+  31, 32, 34 and 35 — a difference consistent with the added observation, the exact cause
+  not read from the image map; the image effective size is 16646144). The kernel configuration is unchanged (`975f8703…`, 24
   fragments).
 - The board DT is unchanged (123 DTBs, checksums passed at validation; the built board DT
   digest `07b097d5…` equals compiles 24 to 35). Warnings against the build: the two
