@@ -69,4 +69,21 @@ except ValueError:
     pass
 else:
     raise AssertionError('iw ownership change accepted')
+# add_cli() inserts the pinned wpa_cli next to iw with the same metadata, round-trips with
+# one more member, and refuses a wrong size, an already present leaf or a missing iw.
+assert composer.CLI_PATH == 'bin/wpa_cli' and composer.CLI_BYTES == 798352
+assert composer.CLI_SHA256 == '04fdf3ae5615f7831461028331bcc6c62d7c6d6974c2676f5b3a93960e5afd22'
+cli = bytes([0x7f, ord('E'), ord('L'), ord('F')]) + bytes(composer.CLI_BYTES - 4)
+composer.CLI_SHA256 = hashlib.sha256(cli).hexdigest()
+with_cli = composer.add_cli(new, cli)
+assert set(with_cli) == set(new) | {'bin/wpa_cli'} and all(with_cli[k] == new[k] for k in new)
+c = with_cli['bin/wpa_cli']
+assert c.mode == 0o100755 and c.uid == 0 and c.gid == 0 and c.nlink == 1 and c.data == cli
+assert len(parse(encode(with_cli))) == len(new) + 1
+for bad_root, bad_cli in ((new, cli[:-1]), (with_cli, cli), ({k: v for k, v in new.items() if k != 'bin/iw'}, cli)):
+    try:
+        composer.add_cli(bad_root, bad_cli)
+    except (ValueError, KeyError):
+        continue
+    raise AssertionError('invalid wpa_cli insertion accepted')
 print('composer helper: PASS (pinned digest/size, iw ownership copied, one extra member re-parses, invalid cases refused)')

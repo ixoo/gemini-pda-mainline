@@ -24,8 +24,11 @@ PARENT_RECEIPT = HERE.parent / '2026-10-06-mt6797-wifi-common-init/results/candi
 PARENT_MANIFEST_SHA = '28e6b6df119c30c8c9e91ab9bd7c08cbaaef64504167265d6d74e7bde6aa4f1c'
 PARENT_BOOT2_SHA256 = '827a6582b8913d5130704be38a347beceda2a133b8b86a4033e6fa06df892ce9'
 PARENT_RELEASE = b'7.1.3-gemini-a53-wifi-phase-a'
-COMMIT = '7fa36c01db2deb27b55d0d77bc8279dc62b140b3'
-PACKAGE = '521e1ce391a9801ebd7eaf179c98da1fb0928ee4f4168d21ba81673c3aea3511'
+# Compile 37 (proposal 0180, the bounded two-lifetime re-arm). Its kernel
+# inputs are byte-identical to the reviewed b33ba5a2; the config and board DT
+# digests are unchanged from compile 36.
+COMMIT = '5d6323e11edcddad6ca5574c0a225b1c23a32255'
+PACKAGE = 'fba8f3160888341e3d638b3e3f8f052b345d3900adf5f715b1072d8197716038'
 PROFILE = 'mt6797-a53-wifi-phase-b-compile'
 RELEASE = '7.1.3-gemini-a53-wifi-phase-b-compile'
 BUILT_DTB_SHA256 = '07b097d581cae6208eea8387d534e14bb2c2bc30752b0d4b783f711284284734'
@@ -46,6 +49,13 @@ HELPER_BYTES = 665552
 SUPPLICANT_PATH = 'bin/wpa_supplicant'
 SUPPLICANT_SHA256 = '0487b7109c0a456eabf3aef33d74d38e5aa4e6dddcb586c03bb203803dd27da7'
 SUPPLICANT_BYTES = 1719888
+# Reviewed static wpa_cli, built from the SAME pinned wpa_supplicant 2.11 and
+# libnl 3.11.0 sources, .config, toolchain and flags as the supplicant
+# (scratch/supplicant-build/build-wpa-cli.sh); the two-lifetime control client,
+# inserted as bin/wpa_cli.
+CLI_PATH = 'bin/wpa_cli'
+CLI_SHA256 = '04fdf3ae5615f7831461028331bcc6c62d7c6d6974c2676f5b3a93960e5afd22'
+CLI_BYTES = 798352
 OWNER = '/consys@10001340'
 WIFI = OWNER + '/wifi'
 PARTITION_BYTES = 16777216
@@ -61,6 +71,21 @@ def add_supplicant(members, supplicant):
     tool = members['bin/iw']
     new = dict(members)
     new[SUPPLICANT_PATH] = replace(tool, data=supplicant)
+    return new
+
+
+def add_cli(members, cli):
+    """Return the RAM root members plus the reviewed wpa_cli next to the pinned iw.
+
+    Same ownership and mode as the helper and supplicant; the control client is
+    required only alongside the supplicant, and every other member stays
+    byte-identical.
+    """
+    require(len(cli) == CLI_BYTES and sha(cli) == CLI_SHA256 and
+            CLI_PATH not in members, 'wpa_cli absent, changed or already present')
+    tool = members['bin/iw']
+    new = dict(members)
+    new[CLI_PATH] = replace(tool, data=cli)
     return new
 
 
@@ -105,6 +130,8 @@ def main():
         parser.add_argument('--' + name, type=Path, required=True)
     parser.add_argument('--supplicant', type=Path,
                         help='Phase C2: the reviewed static wpa_supplicant, inserted as bin/wpa_supplicant')
+    parser.add_argument('--wpa-cli', type=Path, dest='wpa_cli',
+                        help='the two-lifetime control client, inserted as bin/wpa_cli (requires --supplicant)')
     args = parser.parse_args()
     os.umask(0o077)
 
@@ -184,6 +211,10 @@ def main():
     if args.supplicant:
         require(not args.supplicant.is_symlink(), 'supplicant path is a symlink')
         new = add_supplicant(new, regular(args.supplicant))
+    if args.wpa_cli:
+        require(args.supplicant is not None, 'wpa_cli requires the supplicant')
+        require(not args.wpa_cli.is_symlink(), 'wpa_cli path is a symlink')
+        new = add_cli(new, regular(args.wpa_cli))
     for name, (digest, size) in ROM_PATCHES.items():
         member = old[FIRMWARE_DIR + name]
         require(len(member.data) == size and sha(member.data) == digest and
@@ -191,7 +222,8 @@ def main():
     require(old[FIRMWARE_DIR + 'WIFI.storage'].mode == 0o100600,
             'private board record permissions changed')
     initramfs = encode(new)
-    require(parse(initramfs) == new and len(new) == len(old) + 1 + bool(args.supplicant) and
+    require(parse(initramfs) == new and
+            len(new) == len(old) + 1 + bool(args.supplicant) + bool(args.wpa_cli) and
             parse(initramfs)[HELPER_PATH].data == new[HELPER_PATH].data,
             'RAM root encoding changed')
 
@@ -235,12 +267,17 @@ def main():
                   'files': {p.name: {'sha256': sha(regular(p)), 'bytes': p.stat().st_size}
                             for p in sorted(stage.iterdir())},
                   'device_tree_change': 'none; exact Phase A runtime-3 parent DT',
-                  'ram_root_change': ('release gate, the reviewed bin/join-connect helper and the '
-                                      'reviewed bin/wpa_supplicant' if args.supplicant else
-                                      'release gate and the reviewed bin/join-connect helper'),
+                  'ram_root_change': (
+                      'release gate, the reviewed bin/join-connect helper, the reviewed '
+                      'bin/wpa_supplicant and the reviewed bin/wpa_cli' if args.wpa_cli else
+                      'release gate, the reviewed bin/join-connect helper and the '
+                      'reviewed bin/wpa_supplicant' if args.supplicant else
+                      'release gate and the reviewed bin/join-connect helper'),
                   'helper': {'path': HELPER_PATH, 'sha256': HELPER_SHA256, 'bytes': HELPER_BYTES},
                   'supplicant': ({'path': SUPPLICANT_PATH, 'sha256': SUPPLICANT_SHA256,
                                   'bytes': SUPPLICANT_BYTES} if args.supplicant else None),
+                  'wpa_cli': ({'path': CLI_PATH, 'sha256': CLI_SHA256,
+                               'bytes': CLI_BYTES} if args.wpa_cli else None),
                   'secret_bearing': True, 'device_action': 'none',
                   'physical_admission': False}
         (stage / 'candidate.json').write_text(json.dumps(result, indent=2) + '\n')
