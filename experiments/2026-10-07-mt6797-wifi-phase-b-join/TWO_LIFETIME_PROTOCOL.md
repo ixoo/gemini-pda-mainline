@@ -18,11 +18,20 @@ therefore controls the supplicant explicitly, keeping the one vif and the one su
 - Cycle 1: one `wpa_cli enable_network`/`select_network` → the one scan, join, data phase and the
   per-cycle DHCP/ping/SSH in cycle 1's own directory with a fresh readiness marker and receipt →
   the driver's bounded teardown → `disable_network` on the terminal.
+- A failed control response stops the run before any effect: the control socket must be up and
+  `sta_autoconnect 0` must return exact `OK` before any scan, and each cycle's `select_network`
+  must return `OK` before its scan.
+- The attributable per-cycle receipt is a **host acknowledgment**, not a device log heuristic: the
+  host adapter does the Wi-Fi SSH exchange to the cycle's leased address, validates the live boot,
+  the cycle ordinal, the command output and the exit status, and writes `c<N>/host-ack` containing
+  `boot=<boot> cycle=<N> ssh_exit=0` over authenticated USB; the device only consumes it.
 - Before cycle 2 the wrapper waits for **both** the healthy rendezvous (the `one-shot WLAN join
-  rearm` record) **and** the attributable cycle-1 host SSH receipt (the host's completed exchange
-  to cycle 1's leased address), and stops on the first fault; only then one `enable_network` for
-  cycle 2. There is no automatic retry, and no second `enable_network` is issued if cycle 1
-  faulted or its receipt is absent.
+  rearm` record) **and** the attributable cycle-1 host acknowledgment, and stops on the first fault
+  (a named join `stopped:`, a boot change or the wall deadline); only then `select_network` for
+  cycle 2. No automatic retry; no second selection if cycle 1 faulted or its ack is absent.
+- Every wait (data phase, host ack, terminal, rearm) and every blocking host operation (DHCP,
+  listener, ping, via `window_ok`) shares the same fatal/boot/deadline guard, so a cycle's
+  lease/listener/ping stay within the live data window and nothing runs after a fault.
 - Cycle 2: the same finite bounds; `disable_network` on its terminal.
 - Control client: a pinned same-version `wpa_cli`, built from the SAME wpa_supplicant 2.11 and
   libnl 3.11.0 sources, `.config`, toolchain and flags as the pinned supplicant (the reproducible
@@ -38,6 +47,10 @@ therefore controls the supplicant explicitly, keeping the one vif and the one su
 
 - Scan: exactly one admitted `hw_scan` per cycle (`scan_used` reset only on the healthy scan
   completion), channel 40, the one broadcast filter; no probe requests.
+  The supplicant config sets `scan_res_valid_for_connect=0`, so each `select_network` forces a
+  fresh scan (2.11 `fast_associate`'s age check is always expired) rather than a cached
+  fast-associate; the exactly-two-scan bound does not depend on the data-phase duration. The
+  classifier requires each lifetime segment to show exactly one kernel scan admission.
 - Channel: one grant per cycle, held through the data phase, returned at cleanup stage 1; the
   grant-tail and the reserved deauthentication margin preserved.
 - Keys: the two WPA2 key commands (pairwise, group) submitted and credited, then removed at

@@ -44,6 +44,43 @@ on_exit() {
 trap on_exit EXIT
 trap 'exit 1' HUP INT TERM
 now_s() { $BB cut -d. -f1 /proc/uptime; }
+# True while this boot is live, no named join fault has been recorded, and the
+# wall deadline has not passed. Blocking host operations check it so a cycle's
+# lease/listener/ping stay within the live data window and stop on a fault.
+fatal_record() {
+    # A named join fault, any form, is fatal: the stopped footer, a re-arm
+    # refusal or a wire-identity wrap. None admits further control.
+    $BB dmesg | $BB grep -Eq 'one-shot WLAN join (stopped:|rearm refused:|rearm wrap:)'
+}
+window_ok() {
+    # $1 = current cycle. Live only while this boot holds, the wall deadline has
+    # not passed, no named fault was recorded, and THIS cycle's data phase has
+    # not yet ended (fewer than $1 "data phase end" records).
+    [ "$($BB cat /proc/sys/kernel/random/boot_id)" = "$EXPECTED_BOOT" ] || return 1
+    [ "$(now_s)" -lt "${deadline:-0}" ] || return 1
+    fatal_record && return 1
+    ended=$($BB dmesg | $BB grep -Ec 'one-shot WLAN join data phase end: ' || true)
+    [ -n "$ended" ] || ended=0
+    [ "$ended" -lt "${1:-1}" ]
+}
+# Run one blocking host command bounded by BOTH its own timeout and the live
+# window: start it as a child, poll the window each second, kill it the moment
+# the window closes. $1 cycle, $2 max seconds, $3 log, then the command. Returns
+# the child exit, or 137 if the window killed it, or 124 on the timeout.
+run_bounded() {
+    rb_cyc=$1; rb_max=$2; rb_log=$3; shift 3
+    $BB timeout "$rb_max" "$@" > "$rb_log" 2>&1 &
+    rb_pid=$!
+    while kill -0 "$rb_pid" 2>/dev/null; do
+        if ! window_ok "$rb_cyc"; then
+            kill "$rb_pid" 2>/dev/null
+            wait "$rb_pid" 2>/dev/null
+            return 137
+        fi
+        $BB sleep 1
+    done
+    wait "$rb_pid"
+}
 
 stage=target_input
 : "${EXPECTED_BOOT:?authenticated boot is required}"
@@ -100,7 +137,11 @@ conf=/tmp/mt6797-wifi-phase-b-1/wpa.conf
 wpa_log=/tmp/mt6797-wifi-phase-b-1/wpa.log
 $BB mkdir -p /tmp/wpa
 {
-    printf 'ctrl_interface=/tmp/wpa\npassive_scan=1\nap_scan=1\n'
+    # scan_res_valid_for_connect=0 forces select_network to scan every time:
+    # fast_associate's os_reltime_expired(now,last_scan,0) is always true, so no
+    # cached BSS short-circuits a cycle's scan (2.11 events.c). One scan per cycle,
+    # independent of the data-phase duration.
+    printf 'ctrl_interface=/tmp/wpa\npassive_scan=1\nap_scan=1\nscan_res_valid_for_connect=0\n'
     printf 'network={\n\tssid=%s\n\tbssid=%s\n\tscan_freq=5200\n\tfreq_list=5200\n' "$TARGET_SSID_HEX" "$TARGET_BSSID"
     printf '\tproto=RSN\n\tkey_mgmt=WPA-PSK\n\tpairwise=CCMP\n\tgroup=CCMP\n\tieee80211w=0\n\tdisabled=1\n\tpsk=%s\n}\n' "$WPA_PSK_HEX"
 } > "$conf"
@@ -120,6 +161,11 @@ if [ "$csock" = 1 ]; then
     [ "$(wpa_cli sta_autoconnect 0 2>/dev/null)" = "OK" ] && sta_auto=0
 fi
 $BB printf 'ctrl_socket=%s\nsta_autoconnect=%s\n' "$csock" "$sta_auto"
+# No scan or any effect is admitted unless the control socket is up and
+# auto-reconnect was explicitly disabled (exact OK). A failed control stops now.
+stage=control_ready
+[ "$csock" = 1 ] || { $BB printf '__STAGE_FAIL__ stage=%s rc=control-socket\n' "$stage" >&2; exit 1; }
+[ "$sta_auto" = 0 ] || { $BB printf '__STAGE_FAIL__ stage=%s rc=sta-autoconnect\n' "$stage" >&2; exit 1; }
 
 dropbear_sha256=10663dd45019bc1391730c36d779e6a5e4433fd86311543a714f1a198629bc54
 deadline=$(( $(now_s) + 300 ))
@@ -138,10 +184,8 @@ data_checks() {
     # shellcheck disable=SC2016
     $BB printf '#!/bin/sh\nBB=/bin/busybox\ndir=%s\nstatus() { $BB printf %%s "$1" > "$dir/hook-status"; }\ncase "$1" in\n  bound|renew)\n    [ "$interface" = wlan0 ] || { status interface; exit 0; }\n    printf %%s "$ip" | $BB grep -Eq "^([0-9]{1,3}\\.){3}[0-9]{1,3}$" || { status address; exit 0; }\n    printf %%s "$mask" | $BB grep -Eq "^[0-9]{1,2}$" && [ "$mask" -ge 1 ] && [ "$mask" -le 32 ] || { status prefix; exit 0; }\n    $BB ip addr add "$ip/$mask" dev wlan0 || { status addr-failed; exit 0; }\n    for r in $router; do\n      if $BB ip route add default via "$r" dev wlan0 2>/dev/null; then $BB printf %%s "$r" > "$dir/router"; break; fi\n    done\n    $BB printf %%s "$mask" > "$dir/prefix"\n    $BB printf %%s "$ip" > "$dir/lease"\n    status bound\n    ;;\nesac\n' "$cd" > "$cd/dhcp.sh"
     $BB chmod 700 "$cd/dhcp.sh"
-    set +e
-    $BB timeout 20 $BB udhcpc -i wlan0 -f -n -q -t 4 -T 3 -s "$cd/dhcp.sh" > "$cd/udhcpc.log" 2>&1
-    dhcp_exit=$?
-    set -e
+    dhcp_exit=0
+    run_bounded "$cyc" 20 "$cd/udhcpc.log" $BB udhcpc -i wlan0 -f -n -q -t 4 -T 3 -s "$cd/dhcp.sh" || dhcp_exit=$?
     [ -f "$cd/hook-status" ] && hook_status=$($BB cat "$cd/hook-status")
     if [ "$hook_status" = bound ] && [ -f "$cd/lease" ] && [ -f "$cd/prefix" ]; then
         dhcp_bound=1; lease_written=1
@@ -151,7 +195,7 @@ data_checks() {
     if [ "$dhcp_bound" = 1 ] && [ "$($BB sha256sum /bin/dropbear | $BB cut -c1-64)" = "$dropbear_sha256" ]; then
         dropbear_digest_ok=1
     fi
-    if [ "$dropbear_digest_ok" = 1 ] && [ -f /etc/dropbear/host_key ] && [ -d /root/.ssh ]; then
+    if [ "$dropbear_digest_ok" = 1 ] && [ -f /etc/dropbear/host_key ] && [ -d /root/.ssh ] && window_ok "$cyc"; then
         $BB timeout 90 /bin/dropbear -F -s -j -k -l wlan0 -p "$($BB cat "$cd/lease"):22" -D /root/.ssh \
             -r /etc/dropbear/host_key -P "$cd/sshd-pid" -I 30 -M 60 -T 2 2> "$cd/dropbear.log" &
         wifi_sshd_pid=$!
@@ -163,10 +207,8 @@ data_checks() {
             wifi_sshd_ready=1
         fi
     fi
-    if [ "$dhcp_bound" = 1 ] && [ -f "$cd/router" ]; then
-        set +e
-        $BB timeout 12 $BB ping -c 3 -W 2 "$($BB cat "$cd/router")" > "$cd/ping.log" 2>&1
-        set -e
+    if [ "$dhcp_bound" = 1 ] && [ -f "$cd/router" ] && window_ok "$cyc"; then
+        run_bounded "$cyc" 12 "$cd/ping.log" $BB ping -c 3 -W 2 "$($BB cat "$cd/router")" || :
         ping_transmitted=$($BB sed -n 's/^\([0-9][0-9]*\) packets transmitted, \([0-9][0-9]*\) packets received.*/\1/p' "$cd/ping.log" | $BB head -n 1)
         ping_received=$($BB sed -n 's/^\([0-9][0-9]*\) packets transmitted, \([0-9][0-9]*\) packets received.*/\2/p' "$cd/ping.log" | $BB head -n 1)
         [ -n "$ping_transmitted" ] || ping_transmitted=0
@@ -184,7 +226,7 @@ wait_record() {
     while [ "$(now_s)" -lt "$deadline" ]; do
         [ "$($BB cat /proc/sys/kernel/random/boot_id)" = "$EXPECTED_BOOT" ] || return 2
         log=$($BB dmesg)
-        if printf '%s\n' "$log" | $BB grep -q 'one-shot WLAN join stopped:'; then
+        if printf '%s\n' "$log" | $BB grep -Eq 'one-shot WLAN join (stopped:|rearm refused:|rearm wrap:)'; then
             return 3
         fi
         n=$(printf '%s\n' "$log" | $BB grep -Ec "$pat" || true)
@@ -194,11 +236,23 @@ wait_record() {
     done
     return 1
 }
-# Wait for the attributable host SSH session on this cycle's listener.
-wait_ssh_receipt() {
-    cd="/tmp/mt6797-wifi-phase-b-1/c$1"
+# Wait for the ATTRIBUTABLE per-cycle host acknowledgment: the host adapter does
+# the Wi-Fi SSH exchange to this cycle's leased address over the authenticated
+# path, validates the live boot, this cycle ordinal, the command output and the
+# exit status, and writes "$cd/host-ack" containing "boot=<EXPECTED_BOOT>
+# cycle=<N> ssh_exit=0" over authenticated USB. The device only consumes it; a
+# generic dropbear session line is NOT accepted. Same fatal/boot/deadline checks
+# as wait_record: a boot change, a named join fault (stopped:) or the wall
+# deadline ends the wait with no further control. The ack file is retained.
+wait_host_ack() {
+    ack="/tmp/mt6797-wifi-phase-b-1/c$1/host-ack"
     while [ "$(now_s)" -lt "$deadline" ]; do
-        if [ -f "$cd/dropbear.log" ] && $BB grep -Eq 'Pubkey auth succeeded|Password auth succeeded|lastlog|Exit \(root\)|child connection' "$cd/dropbear.log"; then
+        [ "$($BB cat /proc/sys/kernel/random/boot_id)" = "$EXPECTED_BOOT" ] || return 2
+        if fatal_record; then
+            return 3
+        fi
+        if [ -f "$ack" ] && [ ! -L "$ack" ] && \
+           $BB grep -qxF "host_ack boot=$EXPECTED_BOOT cycle=$1 ssh_exit=0" "$ack"; then
             return 0
         fi
         $BB sleep 1
@@ -213,28 +267,38 @@ overall_rc=0
 cyc=1
 while [ "$cyc" -le 2 ]; do
     stage=cycle_$cyc
+    # Re-check immediately before this cycle's first effect (the select), after
+    # the cycle-1 rearm wait: a named fault, a boot change or the wall deadline
+    # since then forbids starting another cycle.
+    if fatal_record; then $BB printf 'cycle=%s pre_select_fault=1\n' "$cyc"; overall_rc=1; break; fi
+    [ "$($BB cat /proc/sys/kernel/random/boot_id)" = "$EXPECTED_BOOT" ] || { $BB printf 'cycle=%s pre_select_boot_changed=1\n' "$cyc"; overall_rc=1; break; }
+    [ "$(now_s)" -lt "$deadline" ] || { $BB printf 'cycle=%s pre_select_deadline=1\n' "$cyc"; overall_rc=1; break; }
     # Flush any stale address/route from the previous cycle before this DHCP.
     $BB ip addr flush dev wlan0 2>/dev/null || true
     $BB ip route flush dev wlan0 2>/dev/null || true
     # Explicitly start this cycle; no auto-reconnect is in play.
     sel=$(wpa_cli select_network 0 2>/dev/null || true)
     $BB printf 'cycle=%s select_network=%s\n' "$cyc" "$sel"
+    [ "$sel" = "OK" ] || { $BB printf 'cycle=%s select_network_failed=1\n' "$cyc"; overall_rc=1; break; }
     # This cycle's open data phase (the cyc-th data phase record), then its checks.
-    if ! wait_record "$data_re" "$cyc"; then overall_rc=1; break; fi
+    wr=0; wait_record "$data_re" "$cyc" || wr=$?
+    if [ "$wr" != 0 ]; then $BB printf 'cycle=%s data_phase=fault_or_timeout rc=%s\n' "$cyc" "$wr"; overall_rc=1; break; fi
     stop_wifi_sshd
-    set +e; data_checks "$cyc"; dc=$?; set -e
+    dc=0; data_checks "$cyc" || dc=$?
     if [ "$dc" != 0 ]; then $BB printf 'cycle=%s data_checks_failed=1\n' "$cyc"; overall_rc=1; break; fi
-    # The attributable host SSH session for this cycle.
-    if ! wait_ssh_receipt "$cyc"; then $BB printf 'cycle=%s ssh_receipt=absent\n' "$cyc"; overall_rc=1; break; fi
-    $BB printf 'cycle=%s ssh_receipt=present\n' "$cyc"
+    # The attributable per-cycle host acknowledgment (boot+cycle+exit bound).
+    wr=0; wait_host_ack "$cyc" || wr=$?
+    if [ "$wr" != 0 ]; then $BB printf 'cycle=%s host_ack=absent rc=%s\n' "$cyc" "$wr"; overall_rc=1; break; fi
+    $BB printf 'cycle=%s host_ack=present\n' "$cyc"
     # This cycle's healthy terminal (stage 3); a fault stops immediately.
-    wait_record "$terminal_re" "$cyc"; wr=$?
+    wr=0; wait_record "$terminal_re" "$cyc" || wr=$?
     if [ "$wr" != 0 ]; then $BB printf 'cycle=%s terminal=fault_or_timeout rc=%s\n' "$cyc" "$wr"; overall_rc=1; break; fi
     stop_wifi_sshd
     wpa_cli disable_network 0 >/dev/null 2>&1 || true
     if [ "$cyc" = 1 ]; then
         # Cycle 2 starts only after BOTH the kernel re-arm and the cycle-1 SSH receipt.
-        if ! wait_record "$rearm_re" 1; then $BB printf 'rearm=absent\n'; overall_rc=1; break; fi
+        wr=0; wait_record "$rearm_re" 1 || wr=$?
+        if [ "$wr" != 0 ]; then $BB printf 'rearm=absent rc=%s\n' "$wr"; overall_rc=1; break; fi
         $BB printf 'rearm=present\n'
     fi
     cyc=$((cyc + 1))
