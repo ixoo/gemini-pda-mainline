@@ -449,6 +449,39 @@ data-path shapes through mac80211, replay the reference offline) is admitted
 as hardware-free source work and awaits its proposal diff, checks and
 combined test protocol before any build.
 
+## Runtime 31 result: first complete bounded C2+C3 pass (2026-10-12)
+
+Runtime 31 ([RUNTIME_31_RESULT.md](RUNTIME_31_RESULT.md)) on mainline boot
+`fdb6a30a…`, candidate 30 (compile 35, package `bfa7516a…`), is the first
+healthy lifetime of the series: `c2_session_pass`, `c3_session_pass`,
+`bounded_join_pass`, `healthy_cleanup_demonstrated`, `stage_and_credit_order_verified`,
+driver handshake and data paths all true; no refusal, no footer, not malformed;
+`wifi_operational` stays false. The handshake completed with both keys submitted
+and credited, the data phase opened on its 6176 ms budget and ended on that budget
+(27 data TX completions with status 0 — completion records, not ACK or delivery proof,
+and not split by Ethernet unicast since DHCP may broadcast; 34 unicast + 12 group
+receives, zero drops), a DHCP lease bound, three ICMP replies returned and one
+boot-bound Wi-Fi SSH exchange
+succeeded (37 bytes, boot match true), and the cleanup reached a healthy stage 3
+(deauthentication done, both key removals credited, credits returned, slots retired).
+The pre-existing management discard classes appeared (eight group Action, one directed
+Action, status 0xe000); the **new 0178 data LLC-mismatch class and the 0177 cleanup
+class were both unobserved** (no triggering frame arrived), so neither is demonstrated
+and neither can be credited with the pass. The reviewed native recovery returned the
+device to Gemian (changed boot `505bcade…`, 3.18.41+, confirmed independently); the
+request-stage `recovery_confirmed=false` and the later confirmed return are both kept
+as recorded. This is one bounded lifetime, not an operational, reliability or
+replay-protection claim; firmware replay enforcement remains unknown. The smallest
+justified next step is a read-only reading of whether the vendor RX metadata exposes a
+received group-key packet number — a dependency for host-side replay accounting over the
+existing IV-stripped receive path only, not a precondition for native-format software
+CCMP (a separate approach needing intact ciphertext, CCMP header/MIC, authentication and
+its own availability evidence), and proving neither enforcement nor integrity on its own
+(key, TID, incarnation, authenticity and ordering limits remain). It is a read-only
+source reading within the current hardware-free scope; no device, build, boot or extra
+approval is part of it. Evidence: the custodian's thirteen sanitized uploads, each hop SHA
+verified; kernel log `683f0015…`, supplicant log `4685719a…`, join records `bcb74332…`.
+
 ## Compile 35 and the candidate 30 pins (2026-10-12)
 
 [COMPILE_35.md](COMPILE_35.md): the phase-B compile profile at the built input

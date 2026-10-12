@@ -40,7 +40,15 @@ Keep this file under 200 lines; move anything else to an experiment record.
   With the RSN element, the association was accepted, completed in mac80211
   with the station activated, and the AP's first frame observed as clear
   EAPOL-Key framing ([runtime 12](../experiments/2026-10-07-mt6797-wifi-phase-b-join/RUNTIME_12.md), Phase C1 passed).
-- **Open.** No Wi-Fi key exchange or traffic (Phase C2 and C3). No charging, RTC alarm or lid.
+- **Wi-Fi Phase C2+C3.** Passed once on candidate 30: one bounded WPA2-PSK
+  lifecycle — both keys submitted and credited, a budget-bounded data phase,
+  a DHCP lease, three ICMP replies, one boot-bound Wi-Fi SSH exchange, and a
+  clean three-stage cleanup, with no refusal and no footer
+  ([runtime 31](../experiments/2026-10-07-mt6797-wifi-phase-b-join/RUNTIME_31_RESULT.md)).
+  One bounded lifetime only; `wifi_operational` stays false and no operational,
+  reliability, persistence or replay-protection claim follows.
+- **Open.** Wi-Fi station operation beyond one bounded lifetime; replay
+  enforcement in firmware is unknown. No charging, RTC alarm or lid.
   The `full` profile has never booted. No upstream submission. A72 and thermal
   protection are parked.
 - **Device.** The last session returned to changed-boot Gemian. Nothing is
