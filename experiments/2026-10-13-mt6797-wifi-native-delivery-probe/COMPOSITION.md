@@ -1,5 +1,19 @@
 # Native-crypto-delivery composition and runtime (proposal 0181)
 
+> **STATUS (checkpoint, NOT execution-ready).** The native device-side leaf,
+> classifier, Wi-Fi SSH helper (marker-gated), installer and offline prepare are
+> authored and pass offline CLI/unit preflight. The capture/session identity
+> nesting (capture-private EXPERIMENT, passive-session RELEASE/_CANDIDATE/_RECEIPT)
+> is bound and unit-tested, but NOT yet verified by a full real preflight with the
+> actual private ND1 artifacts. **Native execution is NOT declared ready** until
+> root's full real capture/session preflight with the ND1 receipt (e1) passes.
+> No device/radio/build action. The committed ND1 receipt (e1) carries no
+> `supplicant`/`wpa_cli` keys, so the native session preserves the required wpa+cli
+> 64-member checks from the inherited C32 parent evidence (candidate-32), not from
+> e1, and does not weaken them; the native identity re-pointing updates the actual
+> passive-session prepare/check_ram_root namespace.
+
+
 How the admitted default-off diagnostic is composed into a build and a bounded
 runtime. **Build and device remain held** until root reviews it. Candidate 32 /
 runtime 33 stay pinned at `7b2bf45d` and are not touched — the native-delivery
@@ -22,11 +36,46 @@ diagnostic has its own candidate/runtime identity.
   boot-bound quiescence record, and the readiness marker written only AFTER native
   ACTIVE and tagged with the native-delivery mode). `install-native.py` binds the
   reviewed boot2 guard.
-- **Still to complete:** the host-side one-cycle session binding -- reusing the
-  phase-b laptop-private host/capture and laptop-wifi-ssh for exactly one cycle,
-  recording the device post-ACTIVE mode marker into the SSH receipt that
-  classify-native checks, with classify-native as the verdict instead of the
-  two-lifetime C3. Nothing here claims the Buildbox build produces a boot2 candidate.
+- **Authored:** the complete host-side one-lifetime runnable set (narrow native
+  variants that do NOT modify the frozen R34 files or their pins):
+  `laptop-wifi-ssh-native.py` (the frozen phase-b helper reused, restricted to one
+  cycle, with probe GATED on the device post-ACTIVE native-delivery marker before
+  any connection and the marker re-verified in the Wi-Fi exchange, merged into the
+  receipt), `passive-host-native.py` (the phase-b C2 session machinery re-pointed
+  to the native identity and one cycle, verdict = classify-native, NOT the
+  two-lifetime C3), `laptop-capture-native.py` and `laptop-session-native.py` (the
+  reviewed capture/session with the private-source remap and the ND1 identity),
+  and `install-native.py` (the reviewed boot2 guard, now binding its real program
+  name and native receipt). Nothing here claims the Buildbox build produces a boot2
+  candidate.
+
+## Exact run order (root, with the private inputs; no device action authored here)
+
+The private join binder is produced with the EXISTING reviewed API (no new
+framework): `bind-target.bind(target, source, psk)` in
+`../2026-10-07-mt6797-wifi-phase-b-join/bind-target.py`, where `target` is the
+private mode-0600 channel-40 target JSON (ssid/bssid/frequency/channel), `source`
+is the committed `join-native.sh`, and `psk` is the PSK hex. It returns the binder
+bytes (`TARGET_SSID=`...`WPA_PSK_HEX=`/`TARGET_SSID_HEX=` prefix, never printed,
+then the exact `join-native.sh` suffix); write them to a mode-0600 file and pass it
+as `GEMINI_JOIN_SCRIPT`. `prepare-native-delivery.py` validates that suffix is the
+current `join-native.sh`, the PSK/hex-SSID markers and the 0600 mode.
+
+1. `GEMINI_PRIVATE_REPO=... GEMINI_RUNTIME_ROOT=... GEMINI_JOIN_SCRIPT=<binder>
+   python3 prepare-native-delivery.py` -- validates the private inputs and the
+   committed ND1 receipt, creates `native-delivery/session-nd1`, leaves
+   `capture-nd1` for the capture to claim.
+2. `install-native.py prepare --previous-gemian-boot <fresh-Gemian> --candidate
+   <ND1 dir> --output <new dir>` -- generates `install.sh` offline (no `--execute`);
+   root inspects it and runs `install.sh` under the reviewed boot2 guard (C33
+   predecessor `74c5...` rederived from live GPT). Owner selects boot2 physically.
+3. On the verified ND1 boot: `laptop-capture-native.py` (Phase-A, writes
+   `capture-nd1/phase-a-result.json`), then `GEMINI_WIFI_SSH_KEYS=...
+   GEMINI_WIFI_SSH_BOOT=<verified sealed boot> laptop-session-native.py
+   --candidate <ND1 dir> --execute` -- one association, one post-ACTIVE Wi-Fi
+   challenge, finite export/quiescence/seal/A53 regression/one reviewed recovery;
+   the verdict is `classify-native` over the kmsg, the marker-bearing receipt and
+   the verified boot. Return to Gemian through the reviewed recovery only.
 
 ## Build identity — Buildbox emits a kernel PACKAGE, not a boot2 image
 
@@ -106,10 +155,10 @@ deployment. `<nd1>` is the composed native candidate directory.
    marker (boot, mode, after-ACTIVE). The reviewed finite helper/supplicant/
    listener quiescence, the registered export budgets and the single reviewed
    recovery all apply. The device join and the post-ACTIVE mode-bound marker are
-   authored as `join-native.sh` (reviewed-pending). **STATUS: the host-side
-   one-cycle session binding -- the laptop-private host/capture restricted to one
-   cycle and laptop-wifi-ssh recording the mode marker into the receipt -- is not
-   yet authored/executable-reviewed; this step is incomplete until it is.**
+   authored as `join-native.sh`. **STATUS: the complete host-side one-lifetime
+   runnable set (capture/session/helper/host/installer/binder validation) is
+   authored with offline CLI preflight tests; root exercises it with the actual
+   private inputs before any device action. No device action is taken here.**
 5. Verdict: `classify-native.py <kmsg.log> <wifi-ssh-receipt.json> <verified-boot>`
    keeps two separate conclusions. ELIGIBLE DELIVERY (necessary, not sufficient):
    the exact owned one-cycle state/action sequence (1 act1, 2 act0, 3 act2, 4

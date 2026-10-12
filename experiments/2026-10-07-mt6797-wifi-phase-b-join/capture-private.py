@@ -19,6 +19,9 @@ SPEC = importlib.util.spec_from_file_location('wmt_start_capture', SOURCE)
 WMT = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(WMT)
 RELEASE = '7.1.3-gemini-a53-wifi-phase-b-compile'
+# The admitted deployment experiment; a native variant re-points it. Default
+# preserves the phase-b capture unchanged; native expects only the native id.
+EXPERIMENT = 'mt6797-wifi-phase-b'
 # Runtime identity (33 = candidate 32, the default and unchanged; 34 = the
 # successor candidate 33). A narrow R34 wrapper sets GEMINI_PHASE_B_SESSION=34;
 # every pinned receipt sha is a reviewed constant selected by it, not derived.
@@ -170,7 +173,7 @@ def prepare(candidate):
     WMT.require(all(len(row) == 2 for row in rows) and
                 len({row[0] for row in rows}) == len(rows), 'deployment malformed')
     fields = dict(rows)
-    WMT.require(fields.get('experiment') == 'mt6797-wifi-phase-b' and
+    WMT.require(fields.get('experiment') == EXPERIMENT and
                 fields.get('candidate_manifest_sha256') == MANIFEST_SHA and
                 fields.get('target_logical_name') == 'boot2' and
                 fields.get('result') in ('write-synced-flushed-full-readback-verified',

@@ -59,11 +59,10 @@ def main():
     body = script.read_bytes()
     # The diagnostic engages during the reviewed C2 join; reuse that exact
     # script (the private binder adds the PSK and hex SSID; never printed here).
-    reviewed = (HERE.parent / '2026-10-07-mt6797-wifi-phase-b-join' /
-                'join-once.sh').resolve()
+    reviewed = (HERE / 'join-native.sh').resolve()
     if not body.startswith(b'TARGET_SSID=') or \
             not body.endswith(reviewed.read_bytes()):
-        refuse('GEMINI_JOIN_SCRIPT does not wrap the reviewed one-cycle join-once.sh')
+        refuse('GEMINI_JOIN_SCRIPT does not wrap the reviewed one-cycle join-native.sh')
     if b'\nWPA_PSK_HEX=' not in body or b'\nTARGET_SSID_HEX=' not in body:
         refuse('GEMINI_JOIN_SCRIPT is not the PSK-bound single-lifetime script')
     # The receipt is produced by the LAPTOP compositor (from the Buildbox

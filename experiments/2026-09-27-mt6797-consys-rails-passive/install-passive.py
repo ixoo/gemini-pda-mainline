@@ -15,6 +15,8 @@ import uuid
 
 sys.dont_write_bytecode = True
 HERE = Path(__file__).resolve().parent
+TOOL_NAME = 'install-passive.py'
+CANDIDATE_RECEIPT = 'results/candidate.json'
 REPO = HERE.parents[1]
 BASELINE = REPO / 'experiments/2026-09-05-owner-away-experiment-preparation/baseline/scripts'
 EXPERIMENT = 'mt6797-consys-rails-passive'
@@ -92,7 +94,11 @@ def receipt(raw, candidate_sha, manifest_sha, previous):
 
 
 def adapt(source, candidate, previous):
-    tool = HERE / 'install-passive.py'
+    # The experiment's own installer program name. Default preserves every
+    # experiment whose program is install-passive.py; a variant whose program
+    # has another name (e.g. install-native.py) sets TOOL_NAME so the derived
+    # validate/receipt calls and the embedded sha check bind the real program.
+    tool = HERE / TOOL_NAME
 
     def replace(old, new, count=1):
         nonlocal source
@@ -109,7 +115,7 @@ def adapt(source, candidate, previous):
         return ('[[ "$(sha256sum ' + shlex.quote(str(path)) + " | awk '{print $1}')\" == " +
                 digest(path.read_bytes()) + " ]] || die 'validation tool changed'\n")
 
-    replace(check(validator), check(tool) + check(HERE / 'results/candidate.json'))
+    replace(check(validator), check(tool) + check(HERE / CANDIDATE_RECEIPT))
     old = shlex.join(['python3', str(BASELINE / 'deployment_receipt.py'), '--candidate-sha256'])
     new = shlex.join(['python3', str(tool), 'receipt', '--previous-gemian-boot',
                       previous, '--candidate-sha256'])
