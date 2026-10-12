@@ -57,7 +57,9 @@ def classify(raw):
     )
     notifications = (rb'bss absence: bss=0 absent=[01] quota=' + byte + rb' reserved=' + byte,
                      # Phase C3: the first delivered data frame and the first submitted data frame, metadata only.
-                     rb'data RX: first group=[01] tid=\d{1,2} keyid=[0-3] bytes=\d{1,4} vector=[01]',
+                     rb'data RX: first group=[01] tid=\d{1,2} keyid=[0-3] bytes=\d{1,4} vector=[01](?: group_vld=0x[0-9a-f])?',
+                     # 0179: the data phase's per-class group-1 (received PN group) observation, printed once at the data phase end.
+                     rb'data group1: uni_present=\d{1,6} uni_absent=\d{1,6} grp_present=\d{1,6} grp_absent=\d{1,6} uni_masks=0x[0-9a-f]{1,4} grp_masks=0x[0-9a-f]{1,4}',
                      # 0174: the 0168 class beyond its eight recorded discards, the total before the stage-3 record.
                      rb'group action frames discarded: total=\d{1,6}',
                      # 0173: the target's beacon in the keyed descriptor variant, skipped like every beacon (first four, then the total).
@@ -99,6 +101,7 @@ def classify(raw):
     cleanup_group_rows = []  # (index, count)
     cleanup_group_total_rows = []  # (index, total)
     llc_rows = []  # (index, count)
+    data_group1_rows = []  # (index, uni_present, uni_absent, grp_present, grp_absent, uni_masks, grp_masks)
     llc_total_rows = []  # (index, total)
     key_refusal_rows = []  # (index, kind, status, running)
     refused = False
@@ -151,6 +154,11 @@ def classify(raw):
                     llc_rows.append((index, int(body.rsplit(b'count=', 1)[1])))
                 elif body.startswith(b'data LLC mismatches discarded:'):
                     llc_total_rows.append((index, int(body.rsplit(b'total=', 1)[1])))
+                elif body.startswith(b'data group1:'):
+                    gf = dict(part.split(b'=') for part in body.split(b': ', 1)[1].split(b' '))
+                    data_group1_rows.append((index, int(gf[b'uni_present']), int(gf[b'uni_absent']),
+                                             int(gf[b'grp_present']), int(gf[b'grp_absent']),
+                                             int(gf[b'uni_masks'], 16), int(gf[b'grp_masks'], 16)))
                 elif body.startswith(b'cleanup group frame discarded:'):
                     cleanup_group_rows.append((index, int(body.rsplit(b'count=', 1)[1])))
                 elif body.startswith(b'cleanup group frames discarded:'):
@@ -177,6 +185,44 @@ def classify(raw):
                 any(not (stage2[0] < i < min(terminal)) for i in absence_rows)):
             malformed = True
     tx, done, rx = rows['tx'], rows['done'], rows['rx']
+    # 0179: the per-class group-1 observation line, printed once at the data phase
+    # end. It is consistent only as a single, well-placed, fully reconciled line:
+    # exactly one data phase end record; the line after that end and before the first
+    # cleanup submission or the terminal; present+absent equal to the end record's
+    # delivered unicast and group counts; and, per class, the mask bitmap limited to
+    # the admitted values 8..15 (group 4 mandatory), zero iff the class total is zero,
+    # with odd-index support (group 1 present) iff present>0 and even-index support
+    # (group 1 absent) iff absent>0. A line present but not consistent, duplicated, or
+    # without a single data phase end is malformed. Absent on earlier runtimes.
+    data_group1_fields = None
+    data_group1_consistent = False
+    if data_group1_rows:
+        g1i, up, ua, gp, ga, um, gm = data_group1_rows[0]
+        data_group1_fields = {'uni_present': up, 'uni_absent': ua, 'grp_present': gp,
+                              'grp_absent': ga, 'uni_masks': um, 'grp_masks': gm}
+        de = rows['data_end']
+        after = ([r[0] for r in rows['cleanup_submission']] + [r[0] for r in rows['cleanup']] +
+                 ([stopped_index] if stopped_index is not None else []))
+        placed = bool(de and len(de) == 1 and g1i > de[0][0] and (not after or g1i < min(after)))
+
+        def _class_ok(present, absent, masks):
+            total = present + absent
+            if total == 0:
+                return masks == 0
+            if masks == 0 or (masks & 0x00ff):            # nonzero, only values 8..15
+                return False
+            if bool(masks & 0xaaaa) != (present > 0):      # odd-index support <=> group 1 present
+                return False
+            if bool(masks & 0x5555) != (absent > 0):       # even-index support <=> group 1 absent
+                return False
+            return True
+
+        data_group1_consistent = bool(
+            len(data_group1_rows) == 1 and de and len(de) == 1 and placed and
+            up + ua == de[0][3] and gp + ga == de[0][4] and
+            _class_ok(up, ua, um) and _class_ok(gp, ga, gm))
+        if len(data_group1_rows) > 1 or not data_group1_consistent:
+            malformed = True
     eapol_tx, key_commands, key_credits, key_removals = rows['eapol_tx'], rows['key_command'], rows['key_credit'], rows['key_removal']
     key_done = rows['key_done']
     keys_ok = True
@@ -582,6 +628,11 @@ def classify(raw):
         'beacons_delivered': {'records': len(beacon_firsts),
                               'total': (beacon_totals[0][3] if beacon_totals else None),
                               'keyed': (beacon_totals[0][2] if beacon_totals else None)},
+        # 0179: per delivered class, how many frames had GROUP_VLD group 1 present or
+        # absent and which mask values were seen (bitmaps over 0..15); None on earlier
+        # runtimes. Availability only; no PN value, no replay or enforcement claim.
+        'data_group1': data_group1_fields,
+        'data_group1_consistent': data_group1_consistent,
         'wifi_operational': False,
     }
     result['bounded_join_pass'] = bool(exchange and healthy and cleanup_ok and activation_ok and order_ok)

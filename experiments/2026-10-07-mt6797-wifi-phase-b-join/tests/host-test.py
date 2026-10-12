@@ -69,6 +69,51 @@ class HostTests(unittest.TestCase):
             self.assertEqual(result['associated_station_activation_demonstrated'], accepted)
             self.assertFalse(result['wifi_operational'])
 
+    def test_data_group1_observation(self):
+        # 0179: the per-class group-1 (received PN group) observation line, printed
+        # once at the data phase end. Feature-absent old logs stay valid; a present
+        # line is consistent only as a single, well-placed, fully reconciled record.
+        good = log(True, keys=True)
+        end = b'one-shot WLAN join data phase end: reason=budget'
+        pfx = b'one-shot WLAN join '
+
+        def place(block):
+            nl = good.index(b'\n', good.index(end)) + 1
+            return good[:nl] + block + good[nl:]
+
+        def line(text):
+            return pfx + text + b'\n'
+
+        base = classify(good)
+        self.assertIsNone(base['data_group1'])
+        self.assertFalse(base['data_group1_consistent'])
+        self.assertFalse(base['malformed_stage_record'])
+        self.assertTrue(base['bounded_join_pass'])
+
+        absent = classify(place(line(b'data group1: uni_present=0 uni_absent=40 grp_present=0 grp_absent=3 uni_masks=0x100 grp_masks=0x100')))
+        self.assertTrue(absent['data_group1_consistent'])
+        self.assertFalse(absent['malformed_stage_record'])
+        self.assertEqual(absent['data_group1'], {'uni_present': 0, 'uni_absent': 40, 'grp_present': 0,
+                                                 'grp_absent': 3, 'uni_masks': 0x100, 'grp_masks': 0x100})
+
+        present = classify(place(line(b'data group1: uni_present=40 uni_absent=0 grp_present=3 grp_absent=0 uni_masks=0x200 grp_masks=0x200')))
+        self.assertTrue(present['data_group1_consistent'])
+        self.assertFalse(present['malformed_stage_record'])
+
+        for bad in (b'data group1: uni_present=0 uni_absent=40 grp_present=0 grp_absent=3 uni_masks=0x1 grp_masks=0x100',    # value < 8
+                    b'data group1: uni_present=1 uni_absent=39 grp_present=0 grp_absent=3 uni_masks=0x100 grp_masks=0x100',  # present>0, even-only mask
+                    b'data group1: uni_present=0 uni_absent=30 grp_present=0 grp_absent=3 uni_masks=0x100 grp_masks=0x100'): # total 30 != 40
+            r = classify(place(line(bad)))
+            self.assertTrue(r['malformed_stage_record'], bad)
+            self.assertFalse(r['data_group1_consistent'], bad)
+
+        full = line(b'data group1: uni_present=0 uni_absent=40 grp_present=0 grp_absent=3 uni_masks=0x100 grp_masks=0x100')
+        # Misplaced after the cleanup terminal, duplicated, and present without a data phase end.
+        self.assertTrue(classify(good + full)['malformed_stage_record'])
+        self.assertTrue(classify(place(full + full))['malformed_stage_record'])
+        no_end = b''.join(ln + b'\n' for ln in good.split(b'\n') if end not in ln and ln)
+        self.assertTrue(classify(no_end + full)['malformed_stage_record'])
+
     def test_incomplete_or_duplicate_evidence(self):
         raw = log(True)
         mutations = [raw.replace(b'status=0 advanced', b'status=1 advanced', 1),

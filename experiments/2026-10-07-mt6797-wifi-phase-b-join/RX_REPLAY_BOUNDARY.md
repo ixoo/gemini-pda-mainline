@@ -74,6 +74,39 @@ incarnation and ordering), none of which a raw group-1 PN supplies. This measure
 establishes none of that; it only tells whether group 1 is even present to consider those
 options.
 
+## Proposal 0179: the change, its records and its checks
+
+The change (`patches/proposals/0179-...`, one logical change over `data-rx.h` and `mac.c`,
+after 0178 in canonical order): the receive decoder returns the 4-bit GROUP_VLD mask it
+already computes in a new `group_vld` struct field; the data phase keeps, per delivered
+class, counters of frames with group 1 present or absent and a per-class `u16` bitmap of
+which mask values 0..15 were seen; the counts rise exactly where the delivered class was
+already classified. Two record changes, no behaviour change:
+
+- the first data RX record gains ` group_vld=0x<hex>`;
+- at the data phase end (where that record already prints) one line is added:
+  `data group1: uni_present=<n> uni_absent=<n> grp_present=<n> grp_absent=<n> uni_masks=0x<hex> grp_masks=0x<hex>`.
+
+Classifier contract (`classify-join.py`): a new `data_group1` field (the six values, or
+`None` on earlier runtimes, which keeps old logs valid) and `data_group1_consistent`. The
+line is consistent only as a single, well-placed, fully reconciled record — exactly one
+data phase end; the line after that end and before the first cleanup submission or the
+terminal; `present + absent` equal to the end record's delivered unicast and group counts;
+per class the mask bitmap limited to the admitted values 8..15 (group 4 mandatory), zero
+iff the class total is zero, with an odd-index bit (group 1 present) iff `present > 0` and
+an even-index bit (group 1 absent) iff `absent > 0`. A present-but-inconsistent, duplicated,
+or data-phase-end-less line is malformed. The next candidate's C3 measurement requires this
+observation line to be present and consistent.
+
+Fixture and repository checks completed on this input: the decoder C unit test
+(`tests/data-rx-test.c`, ASan/UBSan) with the new `group_vld` assertions and a
+group-1-present case; the host/classifier test (`tests/host-test.py`) with the consistent
+cases and the contradictory-mask, support, total, placement, duplicate and missing-end
+negatives; and `./scripts/check-repository`. Planned after this input is published: one
+managed kernel build of the Phase B compile profile on the Buildbox; its compile receipt
+is recorded when it finishes, and prose is not rebuilt for that. No device, radio, replay
+or capture step is part of 0179.
+
 ## Dependency chain to a usable mac80211/cfg80211 station (not a work plan, the ordering)
 
 A complete Wi-Fi driver is a usable, maintained standard mac80211/cfg80211 station, not

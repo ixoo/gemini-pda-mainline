@@ -1,0 +1,136 @@
+From 50060c7f35fb880adb9bddcd77e3ff4e4b2b8eb0 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 12 Oct 2026 11:00:00 +0000
+Subject: [PATCH 179/179] wifi: mt6797: record the delivered data classes'
+ GROUP_VLD group-1 presence
+
+Runtime 31 (candidate 30, compile 35) completed the first bounded C2+C3
+lifecycle: both keys credited, a budget-bounded data phase with 27 data TX
+completions and 34 unicast plus 12 group receives, a lease, three ping
+replies and one SSH exchange, and a healthy three-stage cleanup. The pinned
+gen3 receive layout (nic_rx.h) defines a received packet number in receive
+status group 1, present only when its GROUP_VLD bit is set; the decoder here
+already reads the 4-bit GROUP_VLD mask to walk the variable groups' offsets
+but exposes only group 3 (the RX vector) and group 4 (the translated frame
+control). So whether group 1 is present on the delivered, firmware-decrypted,
+header-translated data classes is not in any record, and the data RX record's
+vector field is group 3, not group 1.
+
+Record it, as a bounded metadata-only observation. The decoder returns the
+GROUP_VLD mask it already computes in a new struct field. The data phase keeps,
+per delivered class, how many unicast and group frames had group 1 present or
+absent, and a per-class bitmap of which mask values 0..15 were seen; it prints
+the four counters and the two bitmaps once at the data phase end, and the first
+data RX record also carries the mask. No PN bytes, no payload and no addresses
+are read or stored, nothing is surfaced to the crypto path, and no delivery,
+drop, radio, transmit or timing behaviour changes: the counts are incremented
+exactly where the delivered class was already classified, and the aggregate
+line is printed exactly where the data phase end record already prints.
+
+This settles only whether group 1 is available on the sampled delivered
+classes, which is presently unknown. It does not establish replay ownership
+or prove firmware enforcement or its absence, and a present group-1 PN proves
+neither the key, TID, key incarnation, authenticity nor ordering. Standard
+mac80211 CCMP replay reads the PN from the in-frame CCMP header and is skipped
+on the RX_FLAG_IV_STRIPPED path this driver uses, so a raw descriptor PN
+cannot be handed to it out of band; that remains a separate design question.
+No operational, reliability or replay-protection claim is made.
+---
+ .../net/wireless/mediatek/mt6797/data-rx.h    |  3 ++
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 33 ++++++++++++++++---
+ 2 files changed, 32 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/data-rx.h b/drivers/net/wireless/mediatek/mt6797/data-rx.h
+index 3f2a6b014..7a9fcf2e7 100644
+--- a/drivers/net/wireless/mediatek/mt6797/data-rx.h
++++ b/drivers/net/wireless/mediatek/mt6797/data-rx.h
+@@ -14,6 +14,7 @@ struct mt6797_data_rx {
+ 	bool group;                /* Destination group bit (and the descriptor's BC/MC bit). */
+ 	bool signal_valid;         /* False when RX vector group 3 was omitted. */
+ 	int signal_dbm;
++	unsigned char group_vld;   /* The 4-bit GROUP_VLD mask as decoded (bit 0 is group 1). */
+ };
+ 
+ /* Original decoder of one protected, firmware-decrypted, translated data
+@@ -138,6 +139,7 @@ mt6797_data_rx(const unsigned char *packet, size_t bytes, unsigned char channel,
+ 	r.bytes = bytes - r.offset;
+ 	r.signal_valid = vector != 0;
+ 	r.signal_dbm = vector ? (int)packet[vector + 9] / 2 - 110 : 0;
++	r.group_vld = (unsigned char)groups;
+ 	*out = r;
+ 	return true;
+ }
+@@ -223,6 +225,7 @@ mt6797_data_rx_llc_mismatch(const unsigned char *packet, size_t bytes,
+ 	r.bytes = bytes - r.offset;
+ 	r.signal_valid = vector != 0;
+ 	r.signal_dbm = vector ? (int)packet[vector + 9] / 2 - 110 : 0;
++	r.group_vld = (unsigned char)groups;
+ 	*out = r;
+ 	return true;
+ }
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index e856b9fa5..fe5cc2a52 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -154,6 +154,15 @@ struct mt6797_mac {
+ 	 */
+ 	unsigned int join_data_rx_unicast, join_data_rx_group, join_data_rx_dropped;
+ 	unsigned int join_data_rx_outside;
++	/* Phase C3 metadata-only observation, per delivered class: how many
++	 * frames had GROUP_VLD group 1 (the received PN group) present or
++	 * absent, and a bitmap of which mask values 0..15 were seen (bit N set
++	 * means mask value N occurred). No PN bytes are read or stored; nothing
++	 * is surfaced to the crypto path.
++	 */
++	unsigned int join_data_g1_uni_present, join_data_g1_uni_absent;
++	unsigned int join_data_g1_grp_present, join_data_g1_grp_absent;
++	u16 join_data_uni_masks, join_data_grp_masks;
+ 	unsigned int join_data_credits, join_data_credit_records;
+ 	/* Data transmit: mac80211's protected non-QoS data frames to the target,
+ 	 * converted to Ethernet II and submitted on the TC1 pool one at a time;
+@@ -1196,6 +1205,11 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+ 		 mac->join_data_rx_unicast, mac->join_data_rx_group, mac->join_data_rx_dropped,
+ 		 mac->join_data_tx_queued, mac->join_data_tx_done, mac->join_data_tx_failed,
+ 		 mac->join_data_credits);
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot WLAN join data group1: uni_present=%u uni_absent=%u grp_present=%u grp_absent=%u uni_masks=0x%x grp_masks=0x%x\n",
++		 mac->join_data_g1_uni_present, mac->join_data_g1_uni_absent,
++		 mac->join_data_g1_grp_present, mac->join_data_g1_grp_absent,
++		 mac->join_data_uni_masks, mac->join_data_grp_masks);
+ }
+ 
+ /* Open the bounded data phase after the group key's credit, inside the live
+@@ -1834,15 +1848,26 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 					IEEE80211_SKB_RXCB(skb)->signal = data.signal_dbm;
+ 				else
+ 					IEEE80211_SKB_RXCB(skb)->flag |= RX_FLAG_NO_SIGNAL_VAL;
+-				if (data.group)
++				if (data.group) {
++					mac->join_data_grp_masks |= BIT(data.group_vld);
++					if (data.group_vld & 1)
++						mac->join_data_g1_grp_present++;
++					else
++						mac->join_data_g1_grp_absent++;
+ 					mac->join_data_rx_group++;
+-				else
++				} else {
++					mac->join_data_uni_masks |= BIT(data.group_vld);
++					if (data.group_vld & 1)
++						mac->join_data_g1_uni_present++;
++					else
++						mac->join_data_g1_uni_absent++;
+ 					mac->join_data_rx_unicast++;
++				}
+ 				if (mac->join_data_rx_unicast + mac->join_data_rx_group == 1)
+ 					dev_info(wiphy_dev(mac->hw->wiphy),
+-						 "one-shot WLAN join data RX: first group=%u tid=%u keyid=%u bytes=%zu vector=%u\n",
++						 "one-shot WLAN join data RX: first group=%u tid=%u keyid=%u bytes=%zu vector=%u group_vld=0x%x\n",
+ 						 data.group, data.tid, data.key_id, data.bytes,
+-						 data.signal_valid);
++						 data.signal_valid, data.group_vld);
+ 				__skb_queue_tail(&received, skb);
+ 				continue;
+ 			}
+-- 
+2.39.5
+

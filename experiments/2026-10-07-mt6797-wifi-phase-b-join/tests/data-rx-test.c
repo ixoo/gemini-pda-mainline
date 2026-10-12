@@ -59,7 +59,7 @@ int main(void)
 	/* Unicast with the RX vector: header rebuilt, payload located, signal valid. */
 	n = build(p, false, true, 20);
 	assert(mt6797_data_rx(p, n, 40, own, ap, 2, &r));
-	assert(!r.group && r.ether_type == 0x0800 && r.tid == 0 && r.key_id == 0);
+	assert(!r.group && r.ether_type == 0x0800 && r.tid == 0 && r.key_id == 0 && r.group_vld == 0xc);
 	assert(r.offset == 16 + 16 + 24 + 14 && r.bytes == 20 && r.signal_valid && r.signal_dbm == -60);
 	assert(r.prefix[0] == 0x08 && r.prefix[1] == 0x42 && !r.prefix[2] && !r.prefix[3]);
 	assert(!memcmp(r.prefix + 4, own, 6) && !memcmp(r.prefix + 10, ap, 6) && !memcmp(r.prefix + 16, host, 6));
@@ -69,8 +69,21 @@ int main(void)
 	/* Group on the declared broadcast entry, without the vector: signal invalid. */
 	n = build(p, true, false, 40);
 	assert(mt6797_data_rx(p, n, 40, own, ap, 2, &r));
-	assert(r.group && !r.signal_valid && r.offset == 16 + 16 + 14 && r.bytes == 40 && !memcmp(r.prefix + 4, bcast, 6));
+	assert(r.group && !r.signal_valid && r.offset == 16 + 16 + 14 && r.bytes == 40 && !memcmp(r.prefix + 4, bcast, 6) && r.group_vld == 0x8);
 	assert(!mt6797_data_rx(p, n, 40, own, ap, 0, &r)); /* another declared entry */
+	/* Group-1 (the received PN group) present: GROUP_VLD bit 0 adds 16 bytes
+	 * after group 4; the decoder accounts them and reports the mask. */
+	{
+		unsigned char q[256];
+		size_t m = build(q, true, false, 20);  /* groups 0x8, total 66 */
+		unsigned int t = 2U << 13 | 0x9U << 9; /* group 4 + group 1 */
+		memmove(q + 48, q + 32, m - 32);       /* shift translated frame down by 16 */
+		memset(q + 32, 0, 16);                 /* group-1 PN bytes (never read) */
+		m += 16; q[0] = m; q[1] = m >> 8; q[2] = t; q[3] = t >> 8;
+		assert(mt6797_data_rx(q, m, 40, own, ap, 2, &r));
+		assert(r.group && r.group_vld == 0x9 && (r.group_vld & 1) &&
+		       r.offset == 16 + 16 + 16 + 14 && r.bytes == 20);
+	}
 	/* Multicast match bit with a multicast destination. */
 	p[4] = 0x04; p[16 + 16] = 0x01; p[16 + 17] = 0x00; p[16 + 18] = 0x5e;
 	assert(mt6797_data_rx(p, n, 40, own, ap, 2, &r) && r.group);
