@@ -612,6 +612,29 @@ static void script_data_frame(bool group)
 	script_bytes[script_count++] = bytes;
 }
 
+/* 0178: the data receive class's group form flagged LLC mismatch (runtime 30): status
+ * 0xc200, key id 1, the header offset pad, an 802.3 length word; unicast when asked.
+ */
+static void script_data_frame_llc(bool group)
+{
+	u8 *p = script[script_count];
+	size_t bytes = 16 + 16 + 2 + 14 + 46;
+
+	assert(script_count < 6);
+	memset(p, 0, sizeof(script[0]));
+	put_unaligned_le16(2U << 13 | 8U << 9, p + 2);
+	p[4] = group ? 0x48 : 0x42; p[5] = 40; p[6] = 0x80 | 0x40 | 14; p[7] = 0x04; p[8] = group ? 2 : 1; p[9] = 0x40;
+	put_unaligned_le16(0xc200, p + 10);
+	put_unaligned_le16(0x6208, p + 16); memcpy(p + 18, ap, ETH_ALEN); put_unaligned_le16(0x12c0, p + 24);
+	if (group)
+		memset(p + 34, 0xff, ETH_ALEN);
+	else
+		memcpy(p + 34, own, ETH_ALEN);
+	memcpy(p + 40, ap, ETH_ALEN); p[46] = 0x00; p[47] = 0x2e;
+	put_unaligned_le16(bytes, p);
+	script_bytes[script_count++] = bytes;
+}
+
 /* mac80211's protected non-QoS To-DS data frame to the target with LLC/SNAP IPv4. */
 static struct sk_buff *data_tx_frame(void)
 {
@@ -1510,6 +1533,28 @@ int main(void)
 	mac.join_page_debt = 1;
 	script_group_data_removed(0x02, 0x6208); run_worker();                                           /* unicast-to-me flag: a refusal */
 	assert(mac.first_error == -EPROTO && !mac.join_cleanup_group_discarded);
+	mt6797_mac_join_close(&mac);
+
+	/* 10i. 0178: inside the data phase the LLC-mismatch group variant is discarded and
+	 *      counted (first eight recorded), never delivered, the worker keeps running;
+	 *      the unicast form is a refusal as before; outside the data phase (before the
+	 *      keys) the variant is a refusal as before.
+	 */
+	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = true; mac.join_bss_configured = true;
+	mac.join_key_pairwise_submitted = mac.join_key_group_submitted = true; mac.join_key_pairwise = mac.join_key_group = 1;
+	mac.join_data_phase = true; mac.join_channel_granted = true; mac.join_data_started = now_ns;
+	mac.join_data_deadline = now_ns + 5500 * NSEC_PER_MSEC; mac.join_grant_deadline = mac.join_data_deadline + 2500 * NSEC_PER_MSEC;
+	mac.join_deadline = mac.join_data_deadline + 5 * NSEC_PER_SEC; mac.join_hold_until = mac.join_data_deadline;
+	script_data_frame_llc(true); script_data_frame(true); script_data_frame_llc(true); run_worker();
+	assert(!mac.first_error && mac.join_running && mac.join_data_llc_discarded == 2 && rx_delivered == 1 && mac.join_data_rx_group == 1 && !submissions);
+	mac.join_data_llc_discarded = 8; script_data_frame_llc(true); run_worker();                       /* the ninth: counted, not recorded, not refused */
+	assert(!mac.first_error && mac.join_running && mac.join_data_llc_discarded == 9 && rx_delivered == 1);
+	script_data_frame_llc(false); run_worker();                                                        /* the unicast form: a refusal */
+	assert(mac.first_error == -EPROTO && !mac.join_running && mac.join_data_llc_discarded == 9);
+	mt6797_mac_join_close(&mac);
+	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = true; mac.join_bss_configured = true;
+	script_data_frame_llc(true); run_worker();                                                         /* before the keys and the phase: a refusal */
+	assert(mac.first_error == -EPROTO && !mac.join_data_llc_discarded);
 	mt6797_mac_join_close(&mac);
 
 	puts("join_ownership=pass; production close/worker paths; exact-once release; EAPOL delivery window and hold; C1 association request admitted; C2 one-queue handshake sequence; group data and action frames discarded undelivered and bounded; add-key-done events admitted at most twice by window; no device");

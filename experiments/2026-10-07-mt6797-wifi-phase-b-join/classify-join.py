@@ -63,6 +63,9 @@ def classify(raw):
                      # 0173: the target's beacon in the keyed descriptor variant, skipped like every beacon (first four, then the total).
                      rb'keyed beacon skipped: bytes=\d{1,4} fc=0x80 match=0x08 wlan=2 bss=1 sec=4 status=0xe004 count=[1-4]',
                      rb'keyed beacons skipped: total=\d{1,6}',
+                     # 0178: the data receive class's group form flagged LLC mismatch, discarded inside the data phase (first eight, then the total).
+                     rb'data LLC mismatch discarded: bytes=\d{1,4} fc=0x[0-9a-f]{1,4} keyid=[0-3] tid=\d{1,2} type=0x[0-9a-f]{4} count=[1-8]',
+                     rb'data LLC mismatches discarded: total=\d{1,6}',
                      # 0177: the group-data class in its removed-key variant during the cleanup (first eight, then the total).
                      rb'cleanup group frame discarded: bytes=\d{1,4} fc=0x[0-9a-f]{1,4} match=0x[0-9a-f]{2} wlan=255 bss=\d{1,2} sec=0 status=0xc200 count=[1-8]',
                      rb'cleanup group frames discarded: total=\d{1,6}',
@@ -95,6 +98,8 @@ def classify(raw):
     beacon_rows = []  # (index, is_total, keyed_total, total or count)
     cleanup_group_rows = []  # (index, count)
     cleanup_group_total_rows = []  # (index, total)
+    llc_rows = []  # (index, count)
+    llc_total_rows = []  # (index, total)
     key_refusal_rows = []  # (index, kind, status, running)
     refused = False
     stopped_index = None
@@ -142,6 +147,10 @@ def classify(raw):
                 elif (body.startswith(b'data TX: first') or body.startswith(b'data RX: first') or body.startswith(b'data RX outside:') or
                       body.startswith(b'data credit:') or body.startswith(b'data TX timeout:') or body.startswith(b'keyed beacon')):
                     pass  # Phase C3 first-frame notifications: metadata, neither refusal nor stage
+                elif body.startswith(b'data LLC mismatch discarded:'):
+                    llc_rows.append((index, int(body.rsplit(b'count=', 1)[1])))
+                elif body.startswith(b'data LLC mismatches discarded:'):
+                    llc_total_rows.append((index, int(body.rsplit(b'total=', 1)[1])))
                 elif body.startswith(b'cleanup group frame discarded:'):
                     cleanup_group_rows.append((index, int(body.rsplit(b'count=', 1)[1])))
                 elif body.startswith(b'cleanup group frames discarded:'):
@@ -354,6 +363,23 @@ def classify(raw):
             [count for _, count in group_action_rows] != list(range(1, len(group_action_rows) + 1)) or
             (lifetime_end is not None and any(index >= lifetime_end for index, _ in group_action_rows))):
         malformed = True
+    # 0178: the LLC-mismatch discards are admitted only inside the data phase (after its
+    # record, before its end record when one exists, before the lifetime's end),
+    # numbered 1..n in order (at most eight recorded); one total at most, in the
+    # stage-3 window, equal in records to min(total, 8).
+    llc_phase_end = (data_end[0][0] if data_end else None)
+    if llc_rows and (
+            [count for _, count in llc_rows] != list(range(1, len(llc_rows) + 1)) or
+            len(data_phase_rows) != 1 or any(index < data_phase_rows[0][0] for index, _ in llc_rows) or
+            (llc_phase_end is not None and any(index > llc_phase_end for index, _ in llc_rows)) or
+            (lifetime_end is not None and any(index >= lifetime_end for index, _ in llc_rows))):
+        malformed = True
+    if llc_total_rows and (
+            len(llc_total_rows) > 1 or len(data_phase_rows) != 1 or llc_total_rows[0][0] < data_phase_rows[0][0] or
+            len(llc_rows) != min(llc_total_rows[0][1], 8) or
+            (llc_rows and llc_total_rows[0][0] < llc_rows[-1][0]) or
+            (lifetime_end is not None and llc_total_rows[0][0] >= lifetime_end)):
+        malformed = True
     # 0177: the removed-key group-data discards are admitted only after the group key
     # removal's record and before the lifetime's end, numbered 1..n in order (at most
     # eight recorded); one total at most, after the records, at least their count,
@@ -541,6 +567,10 @@ def classify(raw):
         # the total and its keyed part; otherwise both unknown. A notification, not a claim.
         # 0177: the removed-key group-data discards during the cleanup (records at most
         # eight; the total when the stage-3 record exists, else unknown).
+        # 0178: the LLC-mismatch group discards inside the data phase (records at most
+        # eight; the total when the stage-3 record exists, else unknown).
+        'data_llc_discards': {'records': len(llc_rows),
+                              'total': (llc_total_rows[0][1] if llc_total_rows else None)},
         'cleanup_group_discards': {'records': len(cleanup_group_rows),
                                    'total': (cleanup_group_total_rows[0][1] if cleanup_group_total_rows else None)},
         'beacons_delivered': {'records': len(beacon_firsts),

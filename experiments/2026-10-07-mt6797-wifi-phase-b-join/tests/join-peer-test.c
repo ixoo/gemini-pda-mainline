@@ -113,7 +113,7 @@ struct mt6797_mac {
  unsigned join_absence_events;
  unsigned join_eapol_seen; u64 join_hold_until;
  bool join_rsn; unsigned join_key_pairwise, join_key_group; u8 join_group_key_id;
- unsigned int join_group_discarded; unsigned int join_action_discarded, join_group_action_discarded, join_keyed_beacons, join_beacons_delivered, join_cleanup_group_discarded; bool join_key_pairwise_submitted, join_key_group_submitted, join_key_done, join_key_done_second;
+ unsigned int join_group_discarded; unsigned int join_action_discarded, join_group_action_discarded, join_keyed_beacons, join_beacons_delivered, join_cleanup_group_discarded, join_data_llc_discarded; bool join_key_pairwise_submitted, join_key_group_submitted, join_key_done, join_key_done_second;
  bool join_channel_released, join_data_phase, join_data_ended; u64 join_data_deadline, join_data_started; const char *join_data_end_reason;
  unsigned join_data_credits, join_data_credit_records;
  unsigned join_data_rx_unicast, join_data_rx_group, join_data_rx_dropped, join_data_rx_outside;

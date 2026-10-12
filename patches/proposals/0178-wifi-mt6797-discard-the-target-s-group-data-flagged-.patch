@@ -1,0 +1,200 @@
+From 025fb304beff012fc788787784d8db9a275429ae Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 12 Oct 2026 01:43:33 +0000
+Subject: [PATCH 178/178] wifi: mt6797: discard the target's group data flagged LLC
+ mismatch inside the data phase
+
+Runtime 30 (candidate 29, compile 34) delivered four beacons, completed 27
+data frames with status 0, obtained a lease, answered three pings and served
+one SSH exchange, then fail-stopped at the frame gate 5.4 s into the data
+phase on a 94-byte hardware data descriptor: type word 0x5000 (packet type
+2, status group 4 present), descriptor bytes 48 28 ce 04 02 40 00 c2 (the
+broadcast match bit with key id 1, channel 40, header translation with the
+14-byte header and the 2-byte offset, payload format 0 with BSSID field 1,
+the declared broadcast entry, TID 0, security mode 4, status 0xc200: the two
+high bits every admitted packet carries and the LLC-mismatch flag, every
+error flag clear), group-4 frame control 0x6208 (data, FromDS, More Data,
+Protected) with fragment 0 and the target as transmitter, and a translated
+header whose word after the addresses was 0x002e, an IEEE 802.3 length: the
+firmware decrypted the frame under the group key and translated its header,
+and the payload carried no SNAP header the translation could map. The data
+receive decoder requires status 0xc000 and refused it on that word alone. In
+the pinned vendor data path a status word with the LLC-mismatch flag is the
+error class (RXS_DW2_RX_nERR_BITMAP covers bit 9) and the frame is dropped
+without delivery.
+
+Name that variant with a second decoder in data-rx.h: the group form of the
+data receive class with the status word exactly 0xc200, the type or length
+word carried as metadata only; the data receive decoder is unchanged. Under
+the data receive gate's conditions that exact variant is discarded as the
+vendor drops it, never delivered or interpreted, no submission follows: the
+first eight recorded by their descriptor fields and the type or length word,
+the total before the stage-3 record; the lifetime's packet budget and the
+data phase's budget bound it. The unicast form, any other status and every
+other shape stay refusals as before. No radio, TX or time budget changes; no
+replay-protection or operational claim.
+---
+ .../net/wireless/mediatek/mt6797/data-rx.h    | 83 +++++++++++++++++++
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 33 ++++++++
+ 2 files changed, 116 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/data-rx.h b/drivers/net/wireless/mediatek/mt6797/data-rx.h
+index 985551622..f1eb0c075 100644
+--- a/drivers/net/wireless/mediatek/mt6797/data-rx.h
++++ b/drivers/net/wireless/mediatek/mt6797/data-rx.h
+@@ -141,4 +141,87 @@ mt6797_data_rx(const unsigned char *packet, size_t bytes, unsigned char channel,
+ 	*out = r;
+ 	return true;
+ }
++
++/* The group form of the class above in its LLC-mismatch variant (runtime 30,
++ * inside the data phase, 5.4 s after it opened): a 94-byte data RXD with
++ * descriptor bytes 48 28 ce 04 02 40 00 c2 (the broadcast match bit with key
++ * id 1 in bits 6 and 7, channel 40, header translation with the 14-byte
++ * header and the 2-byte offset, payload format 0 with BSSID field 1, the
++ * declared broadcast entry, TID 0, security mode 4, status 0xc200: the two
++ * high bits every admitted packet carries and the LLC-mismatch flag, every
++ * error flag clear), status group 4 with frame control 0x6208 (data, FromDS,
++ * More Data, Protected), fragment 0 and the target as transmitter, and a
++ * translated header whose word after the addresses was 0x002e: an IEEE
++ * 802.3 length, not an EtherType, because the decrypted payload carried no
++ * SNAP header the translation could map. In the pinned vendor data path a
++ * status word with the LLC-mismatch flag is the error class
++ * (RXS_DW2_RX_nERR_BITMAP covers bit 9) and the frame is dropped without
++ * delivery. This decoder names exactly that variant: the group form's
++ * conditions of mt6797_data_rx (that decoder is unchanged) with the status
++ * word exactly 0xc200, so the caller can discard it as the vendor does,
++ * without delivery or interpretation; the type or length word is carried as
++ * metadata only. The unicast form, any other status and every other shape
++ * are not this class and reach the caller's refusal.
++ */
++static inline bool
++mt6797_data_rx_llc_mismatch(const unsigned char *packet, size_t bytes,
++			    unsigned char channel, const unsigned char ap[6],
++			    unsigned char bmc_index, struct mt6797_data_rx *out)
++{
++	struct mt6797_data_rx r = {0};
++	size_t offset = 16, group4 = 0, vector = 0;
++	unsigned int groups, fc, i, match;
++	const unsigned char *f;
++
++	if (!packet || !ap || !out || bytes < 16 || bytes > 4096 ||
++	    !channel || mt6797_join_le16(packet) != bytes ||
++	    (mt6797_join_le16(packet + 2) >> 13) != 2 ||
++	    packet[5] != channel || (packet[6] & 0x80) == 0 ||
++	    (packet[6] & 63) != 14 || packet[7] != 0x04 ||
++	    (packet[9] >> 4) != 4 || mt6797_join_le16(packet + 10) != 0xc200)
++		return false;
++	match = packet[4];
++	if (((match & 0x3f) != 0x08 && (match & 0x3f) != 0x04) ||
++	    packet[8] != bmc_index)
++		return false;
++	r.group = true;
++	r.key_id = match >> 6;
++	r.tid = packet[9] & 15;
++	groups = (mt6797_join_le16(packet + 2) >> 9) & 15;
++	if (groups & 8) {
++		group4 = offset;
++		offset += 16;
++	}
++	if (groups & 1)
++		offset += 16;
++	if (groups & 2)
++		offset += 8;
++	if (groups & 4) {
++		vector = offset;
++		offset += 24;
++	}
++	if (packet[6] & 0x40)
++		offset += 2;
++	if (!group4 || offset > bytes || bytes - offset < 14 ||
++	    (vector && packet[vector + 9] > 220))
++		return false;
++	fc = mt6797_join_le16(packet + group4);
++	if ((fc & ~0x2800U) != 0x4208 || (mt6797_join_le16(packet + group4 + 8) & 15))
++		return false;
++	for (i = 0; i < 6; i++)
++		if (packet[group4 + 2 + i] != ap[i])
++			return false;
++	f = packet + offset;
++	if (!(f[0] & 1) || (f[6] & 1))
++		return false;
++	r.ether_type = ((unsigned int)f[12] << 8) | f[13];
++	r.prefix[0] = fc;
++	r.prefix[1] = fc >> 8;
++	r.offset = offset + 14;
++	r.bytes = bytes - r.offset;
++	r.signal_valid = vector != 0;
++	r.signal_dbm = vector ? (int)packet[vector + 9] / 2 - 110 : 0;
++	*out = r;
++	return true;
++}
+ #endif
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 5d45014b3..0aa258d78 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -124,6 +124,7 @@ struct mt6797_mac {
+ 	unsigned int join_keyed_beacons;
+ 	unsigned int join_beacons_delivered;
+ 	unsigned int join_cleanup_group_discarded;
++	unsigned int join_data_llc_discarded;
+ 	/* Phase C2: the pairwise and group key commands were submitted; the
+ 	 * firmware's add-key-done event was recorded at most twice, once in the
+ 	 * window after each submission (attributed by window, not by key).
+@@ -1095,6 +1096,10 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
+ 			dev_info(wiphy_dev(mac->hw->wiphy),
+ 				 "one-shot WLAN join cleanup group frames discarded: total=%u\n",
+ 				 mac->join_cleanup_group_discarded);
++		if (mac->join_data_llc_discarded)
++			dev_info(wiphy_dev(mac->hw->wiphy),
++				 "one-shot WLAN join data LLC mismatches discarded: total=%u\n",
++				 mac->join_data_llc_discarded);
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+ 			 "one-shot WLAN join cleanup: stage=3 credits=returned slots=retired deauth=%u\n",
+ 			 mac->join_deauth_done);
+@@ -1841,6 +1846,33 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 				__skb_queue_tail(&received, skb);
+ 				continue;
+ 			}
++			/* The data receive class's group form flagged LLC mismatch
++			 * (runtime 30, inside the data phase: a decrypted, translated
++			 * group frame whose payload carried no SNAP header; data-rx.h
++			 * names the observed and the source-defined conditions). The
++			 * pinned vendor data path drops it; here it is discarded under
++			 * the same gate as the delivered class, never delivered or
++			 * interpreted, no new host submission: the first eight recorded
++			 * by their descriptor fields and the translated type or length
++			 * word, the total before the stage-3 record; the lifetime's
++			 * packet budget and the data phase's budget bound it. The
++			 * unicast form and any other status are refusals as before.
++			 */
++			if (mac->join_data_phase && !mac->join_data_ended &&
++			    mac->join_key_pairwise == 1 && mac->join_key_group == 1 &&
++			    !mac->join_deauth_done && !mac->join_cleanup_done &&
++			    mt6797_data_rx_llc_mismatch(mac->join_packet, rx.logical_bytes, 40,
++							mac->join_ap, MT6797_JOIN_BMC_WLAN_INDEX,
++							&data)) {
++				mac->join_data_llc_discarded++;
++				if (mac->join_data_llc_discarded <= 8)
++					dev_info(wiphy_dev(mac->hw->wiphy),
++						 "one-shot WLAN join data LLC mismatch discarded: bytes=%zu fc=0x%x keyid=%u tid=%u type=0x%04x count=%u\n",
++						 data.bytes, mac->join_packet[16] | mac->join_packet[17] << 8,
++						 data.key_id, data.tid, data.ether_type,
++						 mac->join_data_llc_discarded);
++				continue;
++			}
+ 			/* Protected group-addressed data from the target, flagged by
+ 			 * the hardware as a cipher mismatch because this station holds
+ 			 * no group key, ended runtime 17 at the gate before message 3
+@@ -2577,6 +2609,7 @@ static int mt6797_mac_join_add_peer(struct mt6797_mac *mac,
+ 	mac->join_keyed_beacons = 0;
+ 	mac->join_beacons_delivered = 0;
+ 	mac->join_cleanup_group_discarded = 0;
++	mac->join_data_llc_discarded = 0;
+ 	mac->join_data_credits = 0;
+ 	mac->join_data_credit_records = 0;
+ 	mac->join_data_started = 0;
+-- 
+2.39.5
+

@@ -132,6 +132,41 @@ int main(void)
 	assert(mt6797_data_rx(p, n, 40, own, ap, 2, &r) && r.ether_type == 0x888e);
 	assert(!mt6797_data_rx(NULL, n, 40, own, ap, 2, &r) && !mt6797_data_rx(p, n, 40, NULL, ap, 2, &r) &&
 	       !mt6797_data_rx(p, n, 40, own, NULL, 2, &r) && !mt6797_data_rx(p, n, 40, own, ap, 2, NULL));
-	puts("data-rx: PASS (two non-aggregated classes, rebuilt header, aggregated/QoS/error/field/address/length refusals)");
+	/* 0178: the group form in its LLC-mismatch variant (status exactly 0xc200, runtime 30's
+	 * descriptor with the header offset pad, key id 1, an 802.3 length word): named by the
+	 * second decoder, not by the first; the unicast form, any other status bit, and the
+	 * first decoder's refusals stay refusals of the variant. */
+	{
+		struct mt6797_data_rx v;
+		unsigned char q[256];
+		size_t m = build(q, true, false, 46);
+		q[4] = 0x48; q[6] = 0x80 | 0x40 | 14; q[10] = 0x00; q[11] = 0xc2;
+		/* the pad shifts the translated header by two bytes: rebuild it there */
+		memmove(q + 16 + 16 + 2, q + 16 + 16, 14 + 46); q[16 + 16] = 0; q[16 + 16 + 1] = 0; m += 2; q[0] = m; q[1] = m >> 8;
+		q[16 + 16 + 2 + 12] = 0x00; q[16 + 16 + 2 + 13] = 0x2e; q[16] = 0x08; q[16 + 1] = 0x62; q[16 + 8] = 0xc0; q[16 + 9] = 0x12;
+		assert(m == 94 && !mt6797_data_rx(q, m, 40, own, ap, 2, &v));
+		assert(mt6797_data_rx_llc_mismatch(q, m, 40, ap, 2, &v) && v.group && v.key_id == 1 && v.tid == 0 && v.ether_type == 0x002e &&
+		       v.offset == 16 + 16 + 2 + 14 && v.bytes == 46 && !v.signal_valid && v.prefix[0] == 0x08 && v.prefix[1] == 0x62);
+		for (unsigned bit = 0; bit < 16; bit++) { unsigned st = 0xc200 ^ (1U << bit); q[10] = st; q[11] = st >> 8; assert(!mt6797_data_rx_llc_mismatch(q, m, 40, ap, 2, &v)); }
+		q[10] = 0x00; q[11] = 0xc2;
+		q[4] = 0x02; assert(!mt6797_data_rx_llc_mismatch(q, m, 40, ap, 2, &v)); q[4] = 0x42; assert(!mt6797_data_rx_llc_mismatch(q, m, 40, ap, 2, &v)); /* unicast forms */
+		q[4] = 0x44; assert(mt6797_data_rx_llc_mismatch(q, m, 40, ap, 2, &v)); q[4] = 0x08; assert(mt6797_data_rx_llc_mismatch(q, m, 40, ap, 2, &v) && v.key_id == 0); q[4] = 0x48;
+		q[8] = 1; assert(!mt6797_data_rx_llc_mismatch(q, m, 40, ap, 2, &v)); q[8] = 255; assert(!mt6797_data_rx_llc_mismatch(q, m, 40, ap, 2, &v)); q[8] = 2;
+		q[9] = 0x00; assert(!mt6797_data_rx_llc_mismatch(q, m, 40, ap, 2, &v)); q[9] = 0x40;
+		q[16 + 1] = 0x42; assert(mt6797_data_rx_llc_mismatch(q, m, 40, ap, 2, &v));   /* More Data clear: free */
+		q[16 + 1] = 0x63; assert(!mt6797_data_rx_llc_mismatch(q, m, 40, ap, 2, &v));  /* ToDS */
+		q[16] = 0x88; assert(!mt6797_data_rx_llc_mismatch(q, m, 40, ap, 2, &v));      /* QoS */
+		q[16] = 0x08; q[16 + 1] = 0x62;
+		q[16 + 8] = 0xc1; assert(!mt6797_data_rx_llc_mismatch(q, m, 40, ap, 2, &v)); q[16 + 8] = 0xc0;  /* fragment */
+		q[16 + 2] ^= 1; assert(!mt6797_data_rx_llc_mismatch(q, m, 40, ap, 2, &v)); q[16 + 2] ^= 1;      /* other transmitter */
+		q[16 + 16 + 2] = 0x02; assert(!mt6797_data_rx_llc_mismatch(q, m, 40, ap, 2, &v)); q[16 + 16 + 2] = 0xff;  /* unicast destination */
+		q[16 + 16 + 2 + 6] |= 1; assert(!mt6797_data_rx_llc_mismatch(q, m, 40, ap, 2, &v)); q[16 + 16 + 2 + 6] &= ~1;  /* group source */
+		assert(!mt6797_data_rx_llc_mismatch(q, m, 36, ap, 2, &v));
+		assert(!mt6797_data_rx_llc_mismatch(NULL, m, 40, ap, 2, &v) && !mt6797_data_rx_llc_mismatch(q, m, 40, NULL, 2, &v) && !mt6797_data_rx_llc_mismatch(q, m, 40, ap, 2, NULL));
+		for (size_t cut = 0; cut < m; cut++) { unsigned char w[256]; memcpy(w, q, m); w[0] = cut; w[1] = cut >> 8; assert(mt6797_data_rx_llc_mismatch(w, cut, 40, ap, 2, &v) == (cut >= 16 + 16 + 2 + 14)); }
+		/* The delivered class (status 0xc000) is not this variant. */
+		m = build(q, true, false, 20); assert(mt6797_data_rx(q, m, 40, own, ap, 2, &v) && !mt6797_data_rx_llc_mismatch(q, m, 40, ap, 2, &v));
+	}
+	puts("data-rx: PASS (two non-aggregated classes, rebuilt header, aggregated/QoS/error/field/address/length refusals; LLC-mismatch group variant named apart)");
 	return 0;
 }

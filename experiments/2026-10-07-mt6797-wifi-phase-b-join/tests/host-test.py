@@ -567,6 +567,44 @@ class HostTests(unittest.TestCase):
         self.assertEqual(r28f['data_phase_end_reason'], 'disconnect')
         self.assertTrue(classify(r28[:deauth_tx_at] + footer9 + r28[deauth_tx_at:])['malformed_stage_record'], 'footer before the submission')
         self.assertEqual(classify(good)['terminal_branch'], None)
+        # 0178 (runtime 30 shape): the LLC-mismatch group variant discarded inside the data
+        # phase is a notification: records after the phase record and before its end, the
+        # total before the stage-3 record equal in records to min(total, 8); the data-path
+        # pass and the healthy cleanup stand. Records before the phase, after its end, out
+        # of order, more than eight, or an inconsistent total are malformed; runtime 30's
+        # refusal shape stays a refusal.
+        ld = b'one-shot WLAN join data LLC mismatch discarded: bytes=46 fc=0x6208 keyid=1 tid=0 type=0x002e count=%d\n'
+        ltotal = b'one-shot WLAN join data LLC mismatches discarded: total=%d\n'
+        phase_row_at = good.index(b'one-shot WLAN join data phase: budget_ms=5500')
+        rx_first_at = good.index(b'one-shot WLAN join data RX: first')
+        end_row_at = good.index(b'one-shot WLAN join data phase end:')
+        end_row_end = good.index(b'\n', end_row_at) + 1
+        stage3_at2 = good.index(b'one-shot WLAN join cleanup: stage=3')
+        r30 = good[:rx_first_at] + ld % 1 + ld % 2 + good[rx_first_at:stage3_at2] + ltotal % 2 + good[stage3_at2:]
+        rl = classify(r30)
+        self.assertFalse(rl['malformed_stage_record'], rl['diagnostic_records'])
+        self.assertTrue(rl['healthy_cleanup_demonstrated'] and rl['driver_data_path_pass'])
+        self.assertEqual(rl['data_llc_discards'], {'records': 2, 'total': 2})
+        r30b = good[:rx_first_at] + b''.join(ld % k for k in range(1, 9)) + good[rx_first_at:stage3_at2] + ltotal % 11 + good[stage3_at2:]
+        self.assertFalse(classify(r30b)['malformed_stage_record'], classify(r30b)['diagnostic_records'])
+        self.assertEqual(classify(r30b)['data_llc_discards'], {'records': 8, 'total': 11})
+        self.assertEqual(classify(good[:rx_first_at] + ld % 1 + good[rx_first_at:])['data_llc_discards'], {'records': 1, 'total': None})
+        self.assertEqual(classify(good)['data_llc_discards'], {'records': 0, 'total': None})
+        self.assertTrue(classify(good[:phase_row_at] + ld % 1 + good[phase_row_at:])['malformed_stage_record'], 'before the phase')
+        self.assertTrue(classify(good[:end_row_end] + ld % 1 + good[end_row_end:])['malformed_stage_record'], 'after the phase end')
+        self.assertTrue(classify(good[:rx_first_at] + ld % 2 + ld % 1 + good[rx_first_at:])['malformed_stage_record'], 'out of order')
+        self.assertTrue(classify(r30.replace(ltotal % 2, ltotal % 5))['malformed_stage_record'], 'total above the recorded first discards')
+        self.assertTrue(classify(good[:stage3_at2] + ltotal % 3 + good[stage3_at2:])['malformed_stage_record'], 'a total with no records')
+        self.assertTrue(classify(good[:phase_row_at] + ltotal % 1 + good[phase_row_at:] )['malformed_stage_record'], 'a total before the phase')
+        self.assertTrue(classify(good[:rx_first_at] + b''.join(ld % k for k in range(1, 10)) + good[rx_first_at:])['malformed_stage_record'], 'nine records')
+        refusal30 = (good[:rx_first_at] +
+                     b'one-shot WLAN join frame refused: bytes=94 type=0x5000 allowed=0x1400 hdr=4828ce04024000c2 groups=0x8 at=34 g4fc=0x6208 g4seq=0x12c0 g4ta=1 translated=1 first=0x2e sec=4 to=0 from=0\n'
+                     b'one-shot WLAN join stopped: status=-71 first=0 submitted=0x801 debt=0 cleanup=0 branch=7\n'
+                     b'one-shot WLAN join data phase end: reason=disconnect elapsed_ms=6300 rx_unicast=34 rx_group=8 rx_dropped=0 tx_queued=0 tx_done=0 tx_failed=0 tx_credits=0\n')
+        rr30 = classify(refusal30)
+        self.assertFalse(rr30['malformed_stage_record'], rr30['diagnostic_records'])
+        self.assertTrue(rr30['refusal_recorded'] and rr30['terminal_failure_recorded'] and rr30['terminal_branch'] == 7)
+        self.assertFalse(rr30['driver_data_path_pass'] or rr30['healthy_cleanup_demonstrated'])
         # 0177 (runtime 29 shape): the removed-key group-data variant discarded during the
         # cleanup is a notification: records after the group key removal, the total before
         # the stage-3 record; the healthy cleanup stands. Records before the removal, out

@@ -449,6 +449,31 @@ data-path shapes through mac80211, replay the reference offline) is admitted
 as hardware-free source work and awaits its proposal diff, checks and
 combined test protocol before any build.
 
+## Runtime 30 result and proposal 0178 (2026-10-12)
+
+Runtime 30 ([RUNTIME_30_RESULT.md](RUNTIME_30_RESULT.md)): four beacons
+delivered, 27 completions with status 0, the lease, three ping replies and
+the Wi-Fi SSH exchange repeated a third time; 5.4 s into the data phase the
+frame gate refused a 94-byte data descriptor (type 2 with status group 4,
+translated 14-byte header with the offset pad, broadcast match with key id
+1, the declared broadcast entry, CCMP, status 0xc200, group-4 frame control
+0x6208 from the target, an 802.3 length word 0x002e): the data receive
+class's group form flagged LLC mismatch, which the 0166 decoder refuses on
+the status word and the pinned vendor data path drops as its error class.
+The data-end record 877 ms after the footer is the session's supplicant
+teardown (reason 3, locally generated) on the already-stopped lifetime, not
+a cause and not runtime 28's idle disconnect. Verdicts preserved; not
+malformed; 0177 not exercised in this boot (no cleanup reached). **0178**
+names that variant with a second decoder in `data-rx.h` (the 0166 decoder
+unchanged) and discards it under the data receive gate as the vendor does,
+recorded (first eight with the type or length word, total before stage 3)
+and bounded by the lifetime's budgets; the unicast form and every other
+status stay refusals. The classifier knows the records, their data-phase
+window and the total. Fixtures: `tests/data-rx-test.c`,
+`tests/join-ownership-test.c`, `tests/host-test.py`. The proposed runtime
+31 protocol is in the result record. No operational or replay-protection
+claim; replay protection remains unproven.
+
 ## Candidate 29 and the runtime 30 bindings (2026-10-12)
 
 Candidate 29 pairs the compile-34 package (`f6ef3ead…`, built input 4cf4b465)
