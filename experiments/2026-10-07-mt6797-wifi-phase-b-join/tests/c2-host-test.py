@@ -40,6 +40,20 @@ def stub_prepared(calls):
                    b'\nsupplicant_processes=0\n' + LOG +
                    b'\n__SUPPLICANT_LOG_END__\nbytes_after=' + str(len(LOG)).encode() + b'\nboot_after=' + BOOT.encode() + b'\n')
             return raw, b'', {'exit_status': 0, 'reason': None, 'stdin_complete': True, 'stdout_bytes': len(raw), 'stderr_bytes': 0}
+        if label == 'cycles-export':
+            # A well-framed two-cycle export (both cycles' lease and host-ack
+            # present): transport/boot/framing intact and not truncated, so the
+            # recovery gate must not refuse it.
+            out = ['__CYCLES_BEGIN__', 'boot=%s' % BOOT]
+            for n in (1, 2):
+                for f in ('lease', 'host-ack'):
+                    body = b'data-' + f.encode()
+                    out.append('__FILE__ path=/tmp/mt6797-wifi-phase-b-1/c%d/%s bytes=%d' % (n, f, len(body)))
+                    out.append(body.decode())
+                    out.append('__END__')
+            out += ['__CYCLES_END__', 'boot_after=%s' % BOOT]
+            craw = ('\n'.join(out) + '\n').encode()
+            return craw, b'', {'exit_status': 0, 'reason': None, 'stdin_complete': True, 'stdout_bytes': len(craw), 'stderr_bytes': 0}
         return b'', b'', {'exit_status': 0, 'reason': None, 'stdout_bytes': 0, 'stderr_bytes': 0}
     globals_ = {'invoke': invoke, 'BUDGETS': {'passive-scan': (30, 262144)}}
     execute = type('E', (), {'__globals__': globals_})()

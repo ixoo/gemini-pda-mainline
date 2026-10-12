@@ -20,15 +20,40 @@ set -eu
 umask 077
 BB=/bin/busybox
 stage=start
+owned_exit=255
 wifi_sshd_pid=
 wifi_sshd_exit=255
+# Finite termination of ONE owned child (a direct child started with &): SIGTERM,
+# a bounded poll, SIGKILL ONLY if it is still live, another bounded poll, then
+# reap. Sets owned_exit to the reaped status. Returns 0 if the child is gone; on
+# an effectful owned process that cannot be quiesced it prints an observable
+# __QUIESCE_FAIL__, sets quiesce_failed and returns 1. Only this pid; no killall.
+quiesce_owned() {
+    _p=$1
+    owned_exit=255
+    [ -n "$_p" ] || return 0
+    kill "$_p" 2>/dev/null || true
+    _i=0
+    while kill -0 "$_p" 2>/dev/null && [ "$_i" -lt 25 ]; do $BB sleep 0.2; _i=$((_i + 1)); done
+    if kill -0 "$_p" 2>/dev/null; then
+        kill -9 "$_p" 2>/dev/null || true
+        _i=0
+        while kill -0 "$_p" 2>/dev/null && [ "$_i" -lt 25 ]; do $BB sleep 0.2; _i=$((_i + 1)); done
+    fi
+    set +e
+    wait "$_p" 2>/dev/null
+    owned_exit=$?
+    set -e
+    if kill -0 "$_p" 2>/dev/null; then
+        $BB printf '__QUIESCE_FAIL__ pid=%s\n' "$_p" >&2
+        return 1
+    fi
+    return 0
+}
 stop_wifi_sshd() {
     [ -n "$wifi_sshd_pid" ] || return 0
-    set +e
-    kill "$wifi_sshd_pid" 2>/dev/null
-    wait "$wifi_sshd_pid"
-    wifi_sshd_exit=$?
-    set -e
+    quiesce_owned "$wifi_sshd_pid" || true
+    wifi_sshd_exit=$owned_exit
     wifi_sshd_pid=
 }
 supplicant_pid=
@@ -36,7 +61,12 @@ supplicant_pid=
 on_exit() {
     rc=$?
     stop_wifi_sshd
-    [ -n "$supplicant_pid" ] && { kill "$supplicant_pid" 2>/dev/null || true; }
+    # Stop and reap the owned supplicant on every exit path (success or a failed
+    # cycle) with the same finite discipline, so the host's supplicant-log export
+    # never sees a lingering effectful process; a quiesce failure is observable
+    # (__QUIESCE_FAIL__) and the host refuses the RAM-wiping recovery.
+    [ -n "$supplicant_pid" ] && { quiesce_owned "$supplicant_pid" || true; }
+    supplicant_pid=
     if [ "$rc" != 0 ]; then
         $BB printf '__STAGE_FAIL__ stage=%s rc=%s\n' "$stage" "$rc" >&2
     fi
@@ -50,7 +80,7 @@ now_s() { $BB cut -d. -f1 /proc/uptime; }
 fatal_record() {
     # A named join fault, any form, is fatal: the stopped footer, a re-arm
     # refusal or a wire-identity wrap. None admits further control.
-    $BB dmesg | $BB grep -Eq 'one-shot WLAN join (stopped:|rearm refused:|rearm wrap:)'
+    $BB dmesg | $BB grep -Eq 'one-shot WLAN join (stopped:|rearm refused:|rearm wrap:)|one-shot passive WLAN scan: status=-|one-shot passive WLAN submission stopped:'
 }
 window_ok() {
     # $1 = current cycle. Live only while this boot holds, the wall deadline has
@@ -232,7 +262,7 @@ wait_record() {
     while [ "$(now_s)" -lt "$deadline" ]; do
         [ "$($BB cat /proc/sys/kernel/random/boot_id)" = "$EXPECTED_BOOT" ] || return 2
         log=$($BB dmesg)
-        if printf '%s\n' "$log" | $BB grep -Eq 'one-shot WLAN join (stopped:|rearm refused:|rearm wrap:)'; then
+        if printf '%s\n' "$log" | $BB grep -Eq 'one-shot WLAN join (stopped:|rearm refused:|rearm wrap:)|one-shot passive WLAN scan: status=-|one-shot passive WLAN submission stopped:'; then
             return 3
         fi
         n=$(printf '%s\n' "$log" | $BB grep -Ec "$pat" || true)

@@ -223,6 +223,15 @@ def c2_prepare(candidate):
                 result = {'complete': False, 'reason': str(error)}
             active['collector'].write_new(ROOT / 'supplicant-log-result.json',
                                            HOST.DOMAIN.HOST.encoded(result))
+            # Refuse the seal and the RAM-wiping recovery if the owned supplicant is
+            # not confirmed quiesced: a non-zero (effectful process still running) or
+            # an unknown count (the log could not be framed to confirm it). The leaf
+            # on_exit reaps it on every exit, so a legitimately failed cycle reports
+            # zero here and still recovers; completeness itself never gates recovery.
+            if result.get('supplicant_processes') != 0:
+                raise RuntimeError('owned supplicant not confirmed quiesced '
+                                   '(supplicant_processes=%r); refusing seal and '
+                                   'recovery' % result.get('supplicant_processes'))
             # The two cycles' retained per-cycle evidence, pulled off-device (RAM) into the
             # private evidence root before the seal and the RAM-wiping recovery. The raw
             # framed bytes (which name addresses) stay private; the result records presence
@@ -244,6 +253,17 @@ def c2_prepare(candidate):
                 cresult = {'complete': False, 'reason': str(error)}
             active['collector'].write_new(ROOT / 'cycles-evidence-result.json',
                                            HOST.DOMAIN.HOST.encoded(cresult))
+            # Refuse the seal and the RAM-wiping recovery on a transport, boot or
+            # framing failure, or if any produced file was truncated -- the
+            # evidence is not trustworthy and must stay for a re-pull. A
+            # legitimately failed cycle (transport/boot/framing intact but a
+            # missing lease or host-ack, so complete is false) is NOT a reason to
+            # refuse: recovery still runs. Completeness alone never gates recovery.
+            if (not cresult.get('boot_match') or not cresult.get('transport_ok') or
+                    cresult.get('truncated')):
+                raise RuntimeError('cycles-export transport/boot/framing failed or a '
+                                   'file was truncated; refusing seal and recovery to '
+                                   'preserve device RAM evidence')
         return invoke(active, label, script, network_status=network_status)
 
     globals_['invoke'] = invoke_with_supplicant_log
