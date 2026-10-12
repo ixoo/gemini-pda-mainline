@@ -482,6 +482,22 @@ source reading within the current hardware-free scope; no device, build, boot or
 approval is part of it. Evidence: the custodian's thirteen sanitized uploads, each hop SHA
 verified; kernel log `683f0015…`, supplicant log `4685719a…`, join records `bcb74332…`.
 
+## RX replay boundary and the next driver step (2026-10-12)
+
+[RX_REPLAY_BOUNDARY.md](RX_REPLAY_BOUNDARY.md): a hardware-free source review after the
+runtime 31 pass. The pinned RXD layout defines a received packet number in receive status
+group 1 (gated by GROUP_VLD), but the current decoder exposes only groups 3 (RX vector)
+and 4 (frame control), and nothing on the host consumes the PN for replay; so for runtime
+31's delivered traffic the group-1/PN wire presence is unknown (the record's `vector` field
+is group 3, not group 1). The one decision-changing measurement is a bounded, reviewable
+decoder change to record the GROUP_VLD mask and group-1 presence on the delivered class —
+no decryption, replay, radio or TX effect — which decides whether mac80211 can do standard
+CCMP replay on the existing path, the firmware already does it, or it is absent. The review
+also sets out the dependency chain to a usable mac80211/cfg80211 station (crypto/replay
+boundary → packet DMA/IRQ and resource ownership from source, with PIO as the observed
+fallback → ordinary connect/disconnect/scan and TX/RX lifecycle → regression). Driver
+completion is unproven and no upstream/DCO claim is made.
+
 ## Compile 35 and the candidate 30 pins (2026-10-12)
 
 [COMPILE_35.md](COMPILE_35.md): the phase-B compile profile at the built input
