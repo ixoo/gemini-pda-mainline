@@ -19,19 +19,27 @@ SPEC = importlib.util.spec_from_file_location('wmt_start_capture', SOURCE)
 WMT = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(WMT)
 RELEASE = '7.1.3-gemini-a53-wifi-phase-b-compile'
-# Slot filled from the committed results/candidate-32.json after composition.
-MANIFEST_SHA = 'e487260cda36a706433d5eb5790032413df2db997ef3d4abb4f0f09b54424320'
+# Runtime identity (33 = candidate 32, the default and unchanged; 34 = the
+# successor candidate 33). A narrow R34 wrapper sets GEMINI_PHASE_B_SESSION=34;
+# every pinned receipt sha is a reviewed constant selected by it, not derived.
+_SID = os.environ.get('GEMINI_PHASE_B_SESSION', '33')
+if _SID not in ('33', '34'):
+    raise SystemExit('GEMINI_PHASE_B_SESSION must be 33 or 34')
+_CANDIDATE, MANIFEST_SHA = {
+    '33': ('candidate-32', 'e487260cda36a706433d5eb5790032413df2db997ef3d4abb4f0f09b54424320'),
+    '34': ('candidate-33', '064d0f81b644eb2409406fa46054fa5ac135117bcf08678215466aaebebb4a37'),
+}[_SID]
 START_TIMEOUT_S = 120
 WMT.HERE = HERE
 WMT.ROOT = ROOT
-WMT.CAPTURE_DIR = ROOT / 'capture-33'
+WMT.CAPTURE_DIR = ROOT / ('capture-' + _SID)
 WMT.RELEASE = RELEASE
 WMT.START_TRIGGER = '/sys/bus/platform/devices/10001340.consys/wmt_negotiate'
 WMT.CAPTURE.HERE = HERE
 WMT.CAPTURE.ROOT = ROOT
 WMT.CAPTURE.CAPTURE = WMT.CAPTURE_DIR
-WMT.CAPTURE.DEPLOYMENT = ROOT / 'session-33/deployment-summary.txt'
-WMT.CAPTURE.RECEIPT = HERE / 'results/candidate-32.json'
+WMT.CAPTURE.DEPLOYMENT = ROOT / ('session-' + _SID + '/deployment-summary.txt')
+WMT.CAPTURE.RECEIPT = HERE / 'results' / (_CANDIDATE + '.json')
 WMT.CAPTURE.MANIFEST_SHA = MANIFEST_SHA
 WMT.CAPTURE.RELEASE = RELEASE
 

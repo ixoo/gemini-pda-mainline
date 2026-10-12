@@ -17,8 +17,14 @@ import sys
 sys.dont_write_bytecode = True
 HERE = Path(__file__).resolve().parent
 PRIVATE_REPO = Path(os.environ['GEMINI_PRIVATE_REPO']).resolve(strict=True)
-ROOT = Path(os.environ['GEMINI_RUNTIME_ROOT']).resolve(strict=True) / 'wifi-phase-b/session-33'
-CAPTURE = Path(os.environ['GEMINI_RUNTIME_ROOT']).resolve(strict=True) / 'wifi-phase-b/capture-33'
+# Runtime identity: 33 is the C2+C3 run on candidate 32 (the default, unchanged);
+# 34 is the successor two-lifetime run on candidate 33. A narrow R34 wrapper sets
+# GEMINI_PHASE_B_SESSION=34; nothing else about the orchestration differs.
+_SID = os.environ.get('GEMINI_PHASE_B_SESSION', '33')
+if _SID not in ('33', '34'):
+    raise SystemExit('GEMINI_PHASE_B_SESSION must be 33 or 34')
+ROOT = Path(os.environ['GEMINI_RUNTIME_ROOT']).resolve(strict=True) / ('wifi-phase-b/session-' + _SID)
+CAPTURE = Path(os.environ['GEMINI_RUNTIME_ROOT']).resolve(strict=True) / ('wifi-phase-b/capture-' + _SID)
 RELEASE = '7.1.3-gemini-a53-wifi-phase-b-compile'
 SOURCE = HERE.parent / '2026-10-02-mt6797-scan-tuning-sample/passive-host.py'
 SPEC = importlib.util.spec_from_file_location('scan_tuning_host', SOURCE)

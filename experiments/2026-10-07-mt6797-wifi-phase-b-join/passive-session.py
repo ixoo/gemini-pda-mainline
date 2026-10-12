@@ -16,6 +16,12 @@ SPEC = importlib.util.spec_from_file_location('passive_wlan_session', SOURCE)
 SESSION = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(SESSION)
 RELEASE = '7.1.3-gemini-a53-wifi-phase-b-compile'
+# Runtime identity (33 = candidate 32 default/unchanged; 34 = successor
+# candidate 33). A narrow R34 wrapper sets GEMINI_PHASE_B_SESSION=34.
+_SID = os.environ.get('GEMINI_PHASE_B_SESSION', '33')
+if _SID not in ('33', '34'):
+    raise SystemExit('GEMINI_PHASE_B_SESSION must be 33 or 34')
+_CANDIDATE = {'33': 'candidate-32', '34': 'candidate-33'}[_SID]
 ROM_PATCHES = {
     'lib/firmware/mediatek/mt6797/ROMv3_patch_1_1_hdr.bin':
         '5732c0730380e937b48ad169f2805b65e8d4a178265566c5083cb2cc2d249f1e',
@@ -79,7 +85,7 @@ CLI_SHA256 = '04fdf3ae5615f7831461028331bcc6c62d7c6d6974c2676f5b3a93960e5afd22'
 CLI_BYTES = 798352
 # The runtime-33 committed receipt declares the supplicant and wpa_cli, so both
 # members are required.
-_RECEIPT = json.loads((HERE / 'results/candidate-32.json').read_bytes())
+_RECEIPT = json.loads((HERE / 'results' / (_CANDIDATE + '.json')).read_bytes())
 SUPPLICANT_REQUIRED = 'supplicant' in _RECEIPT and _RECEIPT['supplicant'] is not None
 CLI_REQUIRED = _RECEIPT.get('wpa_cli') is not None
 
@@ -141,7 +147,7 @@ def prepare(candidate_dir, previous):
     finish = load('wlan_finish', base.BASELINE / 'finish-baseline.py')
     candidate_dir = Path(os.path.abspath(candidate_dir))
     collector.directory(candidate_dir)
-    receipt = json.loads((HERE / 'results/candidate-32.json').read_text())
+    receipt = json.loads((HERE / 'results' / (_CANDIDATE + '.json')).read_text())
     base.require(receipt['kernel_release'] == RELEASE and
                  receipt['physical_admission'] is False, 'candidate receipt changed')
     expected = receipt['files']
