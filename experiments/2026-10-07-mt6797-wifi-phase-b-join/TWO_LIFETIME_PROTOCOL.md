@@ -24,10 +24,15 @@ therefore controls the supplicant explicitly, keeping the one vif and the one su
   cycle 2. There is no automatic retry, and no second `enable_network` is issued if cycle 1
   faulted or its receipt is absent.
 - Cycle 2: the same finite bounds; `disable_network` on its terminal.
-- Control client: a pinned same-version `wpa_cli` (built from the supplicant's hostap source on
-  the Buildbox, static aarch64, by digest), added minimally to the private RAM root as a composition
-  input with its checksum. (Build + composition input: the pending sub-project; the device hook and
-  host adapter are authored against it.)
+- Control client: a pinned same-version `wpa_cli`, built from the SAME wpa_supplicant 2.11 and
+  libnl 3.11.0 sources, `.config`, toolchain and flags as the pinned supplicant (the reproducible
+  `build-wpa-cli.sh`; static aarch64, SHA-256 `04fdf3ae…`), added to the private RAM root as a
+  composition input with that checksum. Source-verified control contract (wpa_supplicant-2.11):
+  `STA_AUTOCONNECT 0` sets `wpa_s->auto_reconnect_disabled`, which `events.c` gates the
+  post-disconnect auto-reconnect on, so a cycle's driver teardown leaves the supplicant idle and
+  the wrapper drives each cycle with `select_network`/`reconnect` over the one live vif — no
+  reliance on `disable_network` timing. The host two-cycle adapter and the composition input are
+  the remaining sub-project.
 
 ## Exact budgets and counts (per lifetime, as runtime 32)
 
