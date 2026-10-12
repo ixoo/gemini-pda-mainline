@@ -9,13 +9,15 @@ diagnostic has its own candidate/runtime identity.
 
 - **Build-admitted and ready:** the kernel build profile below. Root's semantic
   review of the profile/fragment passed.
-- **Offline scaffold only (not yet the executable tooling):**
-  `prepare-native-delivery.py` validates the private inputs and the committed
-  candidate receipt and creates the evidence root; it takes no device action and
-  fabricates no hashes. The **laptop compositor, capture/session and the native
-  classifier are still to be completed** (sections below describe the intended
-  behaviour, reusing the candidate-32 tooling). Nothing here claims the Buildbox
-  build produces a boot2 candidate.
+- **Executable laptop compositor (authored):** `build-native-candidate.py`
+  composes the native candidate from the validated d104 kernel package on the
+  verified candidate-32 parent, offline and gated. `prepare-native-delivery.py`
+  validates the private inputs and the committed candidate receipt and creates
+  the evidence root. Both take no device action and fabricate no hashes; root
+  executes the compositor with the private parent/package.
+- **Still to complete:** the one-lifetime capture/session runner and the native
+  classifier (reusing the candidate-32 phase-b tooling; see below). Nothing here
+  claims the Buildbox build produces a boot2 candidate.
 
 ## Build identity — Buildbox emits a kernel PACKAGE, not a boot2 image
 
@@ -32,16 +34,22 @@ diagnostic has its own candidate/runtime identity.
   RAM root or parent**: it emits a **validated kernel package** for the HEAD and
   profile. No candidate receipt or boot2 hash is produced here or pre-written.
 
-## Laptop compositor — produces the boot2 candidate (reuse candidate-32)
+## Laptop compositor — produces the boot2 candidate
 
-The authored laptop compositor (reusing the existing candidate-32 compositor,
-`../2026-10-07-mt6797-wifi-phase-b-join/build-candidate.py`, not a new
-framework) consumes the validated package plus the **verified private parent /
-RAM root**, changes only the intended kernel/release gate, preserves the DT,
-PSCI, the clocks and the existing RAM members, produces/pads/validates the boot2
-image, and generates the **real candidate receipt**
-(`results/native-delivery-candidate.json`) with its true build commit, package
-sha and padded-image sha. (This executable step is the to-be-completed tooling.)
+`build-native-candidate.py` consumes the validated d104 package plus the
+**verified candidate-32 parent**, reusing candidate 32's board DT and its whole
+64-member private RAM root byte-identical except the one release-gate string the
+init checks (phase-b -> native-delivery). The kernel configuration is candidate
+32's plus exactly three verified changes -- the forced
+`mac.native_delivery_diag=1` command line and the distinct USB identity, the
+LOCALVERSION, and `CONFIG_MT6797_NATIVE_DELIVERY_DIAG=y` -- and anything else
+differing is refused. It produces, pads and validates the boot2 image and the
+**real candidate receipt** (with its true build commit d104654d, package sha
+aa305e66…, padded-image sha) and `native_delivery_diag: true`. Reuses only
+require/regular/sha/nodes, the newc parse/encode and the boot builder/analyzer,
+not the C37-pinned Phase-A composer. Offline, no device action; root runs it with
+the private parent/package. CLI:
+`./build-native-candidate.py --kernel-package <linux-7.1.3-gemini-aa305e66… dir> --parent <candidate-32 dir> --output <native-candidate dir>`
 
 ## Runtime — one native diagnostic lifetime (not join-twice)
 
