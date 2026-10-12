@@ -38,9 +38,11 @@ and the same fourteen pre-existing dtc `ranges_format` notes on the SoC DT inclu
 zero MT6797 driver warnings.
 
 The built gate, stated exactly: the LLC-mismatch group variant is discarded under the
-data receive delivery gate (data phase open and not ended, both keys installed, no
-deauthentication done, cleanup not done); outside it the variant is a refusal as
-before; the unicast form is a refusal in every state.
+data receive delivery gate (data phase open and not ended, both key-install commands
+credited — the pairwise and group key credits received, `join_key_pairwise == 1 &&
+join_key_group == 1`, not a measured hardware-install proof — no deauthentication
+done, cleanup not done); outside it the variant is a refusal as before; the unicast
+form is a refusal in every state.
 
 ## Candidate 30 composition (waits for the custodian)
 

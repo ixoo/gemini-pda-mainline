@@ -487,6 +487,23 @@ window and the total. Fixtures: `tests/data-rx-test.c`,
 31 protocol is in the result record. No operational or replay-protection
 claim; replay protection remains unproven.
 
+## Candidate 30 and the runtime 31 bindings (2026-10-12)
+
+Candidate 30 pairs the compile-35 package (`bfa7516a…`, built input 8ccf249c)
+with candidate 29's RAM root, board DT and kernel config byte-identical; boot
+image `7aee04b8…`, full padded boot2 `e758bf36…`; the committed receipt
+[results/candidate-30.json](results/candidate-30.json) (SHA-256 `44117611…`)
+is the custodian's exact bytes and `runtime-31/results/candidate.json` its
+copy. The installer's predecessor is the installed candidate 29
+(`27005b8f…`). [RUNTIME_31_PREPARATION](RUNTIME_31_PREPARATION.md) states what
+differs from runtime 30 (proposal 0178 only, reviewed by source digest, its
+gate the data receive conditions with both key-install commands credited —
+submitted and credited, not a hardware-install proof), the hypothesis that the
+LLC-mismatch group frame that stopped runtime 30 is now discarded and counted
+so the data phase runs to its budget and the cleanup records stages 1 to 3
+without a footer, the separately reported network terms, the four branches,
+and the bindings table. Nothing has been installed or booted.
+
 ## Candidate 29 and the runtime 30 bindings (2026-10-12)
 
 Candidate 29 pairs the compile-34 package (`f6ef3ead…`, built input 4cf4b465)

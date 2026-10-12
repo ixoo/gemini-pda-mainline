@@ -15,17 +15,17 @@ ADAPTER = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(ADAPTER)
 ADAPTER = ADAPTER.ADAPTER
 RELEASE = '7.1.3-gemini-a53-wifi-phase-b-compile'
-# Current boot2 content: the installed candidate 28 (deployment 28, full 16 MiB
+# Current boot2 content: the installed candidate 29 (deployment 29, full 16 MiB
 # readback verified); the custodian rederives the live GPT and verifies it with
 # the reviewed guard at deployment.
-PREDECESSOR_SHA = '92bf31d0d57d465793bb8af06efcf12b7fd8929ecdff958d247afc1257c6e5c2'
-# Slot filled from the committed results/candidate-29.json after composition.
-MANIFEST_SHA = 'aa27b4cffab930fc86e28772c9d47e3e68e66b840be3c454e0480da3b2dc7e80'
+PREDECESSOR_SHA = '27005b8f5dee5284badc6b6c1e052610377bc208a78615e954f698b62464e963'
+# Slot filled from the committed results/candidate-30.json after composition.
+MANIFEST_SHA = '44117611c53d985881c90b0d54002a882b66195d6e338210719424fc9c5c5415'
 ADAPTER.HERE = HERE
 ADAPTER.PREDECESSOR_SHA = PREDECESSOR_SHA
 ADAPTER.INSTALLER.HERE = HERE
 ADAPTER.INSTALLER.EXPERIMENT = 'mt6797-wifi-phase-b'
-ADAPTER.INSTALLER.RECEIPT_NAME = 'mt6797-wifi-phase-b-deployment-29'
+ADAPTER.INSTALLER.RECEIPT_NAME = 'mt6797-wifi-phase-b-deployment-30'
 ADAPTER.INSTALLER.MANIFEST_SHA = MANIFEST_SHA
 ADAPTER.MANIFEST_SHA = MANIFEST_SHA
 ORIGINAL_SOURCES = ADAPTER.INSTALLER.sources
@@ -56,7 +56,7 @@ def validate(candidate, previous):
     ADAPTER.INSTALLER.require(MANIFEST_SHA is not None, 'Phase B receipt slot not filled')
     ADAPTER.INSTALLER.boot_uuid(previous)
     candidate = Path(os.path.abspath(candidate))
-    published = HERE / 'results/candidate-29.json'
+    published = HERE / 'results/candidate-30.json'
     ADAPTER.INSTALLER.require(candidate.is_dir() and not candidate.is_symlink() and
                               ADAPTER.INSTALLER.digest(published.read_bytes()) ==
                               MANIFEST_SHA, 'candidate receipt changed')
