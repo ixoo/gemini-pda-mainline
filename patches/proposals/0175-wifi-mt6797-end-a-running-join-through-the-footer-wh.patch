@@ -1,0 +1,149 @@
+From 0973a987ac4eec4860ba4deadf817a81af472df5 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 12 Oct 2026 00:13:55 +0000
+Subject: [PATCH 175/175] wifi: mt6797: end a running join through the footer when a
+ regulatory update retires it
+
+The regulatory notifier's join branch retired a used lifetime by clearing
+join_running and join_open and setting first_error without any record: the
+worker's next tick exited at its first check without the footer and did not
+rearm, leaving any in-flight frame and the installed keys as they were.
+cfg80211 calls every wiphy's notifier when it restores its regulatory
+settings after all interfaces have disconnected (sme.c disconnect_work,
+regulatory_hint_disconnect, restore_regulatory_settings,
+update_all_wiphy_regulatory, reg_call_notifier), so the callback follows any
+mac80211-reported disconnect during a lifetime.
+
+Runtime 28 (candidate 27, compile 32) ended its data phase on a locally
+generated disconnect, dequeued its reserved deauthentication and recorded
+nothing further for the rest of the sealed capture: no completion, cleanup
+stage, key removal or footer, although the worker's frame deadline would
+have printed one. The callback is uninstrumented, so its involvement there
+is an inference consistent with the records; the experiment record carries
+the chronology and provenance.
+
+A running lifetime now ends through the one terminal path
+(mt6797_mac_join_fail_stop, branch 9): the footer is recorded with status
+-ECANCELED, the queue and the in-flight frame are freed exactly once after
+the mutex is released, and the internal frame goes back to the driver. A
+lifetime already ended (stage 3 or an earlier footer) is retired as before
+with no second footer; an unused lifetime is untouched. No decoder, radio, TX
+or time budget changes. The disconnect's cause (mac80211's beacon monitor
+with no beacon delivered to it) is a separate change.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 76 +++++++++++++++++-----
+ 1 file changed, 58 insertions(+), 18 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index df1ed2f85..f6bb3e8f6 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -234,14 +234,63 @@ static int mt6797_mac_domains(struct mt6797_mac *mac,
+ 	return ret;
+ }
+ 
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++static int mt6797_mac_join_fail_stop(struct mt6797_mac *mac, int ret,
++				     unsigned int branch,
++				     struct sk_buff_head *discard,
++				     struct sk_buff **internal);
++
++/* A regulatory update while the join lifetime is in use. cfg80211 calls the
++ * notifier when it restores its regulatory settings after every interface
++ * has disconnected (regulatory_hint_disconnect), so this callback can retire
++ * a running lifetime silently, with frames in flight and keys installed. A
++ * running lifetime now ends through the one terminal path (branch 9), so the
++ * footer makes the notifier's involvement observable and the frames are
++ * freed exactly once; a lifetime already ended is retired as before without a
++ * second footer. Called with the mutex held; the caller frees the discard
++ * list after unlocking. Returns true when the lifetime was in use.
++ */
++static bool mt6797_mac_join_regulatory_stop(struct mt6797_mac *mac,
++					    struct sk_buff_head *discard,
++					    struct sk_buff **internal)
++{
++	unsigned long flags;
++
++	if (!mac->join_scan_ready && !mac->join_peer_used)
++		return false;
++	if (mac->join_running && !mac->join_retired) {
++		mt6797_mac_join_fail_stop(mac, -ECANCELED, 9, discard, internal);
++		return true;
++	}
++	mac->first_error = -ECANCELED;
++	mac->closing = true;
++	mac->join_retired = true;
++	mac->join_credit_pending = false;
++	mac->join_channel_pending = false;
++	mac->join_sta_pending = false;
++	complete_all(&mac->join_credit_done);
++	complete_all(&mac->join_frame_done);
++	complete_all(&mac->join_channel_done);
++	complete_all(&mac->join_sta_done);
++	spin_lock_irqsave(&mac->join_queue.lock, flags);
++	mac->join_running = false;
++	mac->join_open = false;
++	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++	return true;
++}
++#endif
++
+ static void mt6797_mac_regulatory(struct wiphy *wiphy,
+ 				  struct regulatory_request *request)
+ {
+ 	struct ieee80211_hw *hw = wiphy_to_ieee80211_hw(wiphy);
+ 	struct mt6797_mac *mac = hw->priv;
+ 	struct mt6797_regulatory_payloads policy;
++	struct sk_buff_head discard;
++	struct sk_buff *skb __maybe_unused, *internal __maybe_unused = NULL;
+ 	int ret;
+ 
++	skb_queue_head_init(&discard);
+ 	/* cfg80211 updates the channel flags/power before this RTNL callback.
+ 	 * It may also call us before ieee80211_register_hw() returns.
+ 	 */
+@@ -250,25 +299,8 @@ static void mt6797_mac_regulatory(struct wiphy *wiphy,
+ 	if (mac->closing || mac->first_error)
+ 		goto out;
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+-	if (mac->join_scan_ready || mac->join_peer_used) {
+-		unsigned long flags;
+-
+-		mac->first_error = -ECANCELED;
+-		mac->closing = true;
+-		mac->join_retired = true;
+-		mac->join_credit_pending = false;
+-		mac->join_channel_pending = false;
+-		mac->join_sta_pending = false;
+-		complete_all(&mac->join_credit_done);
+-		complete_all(&mac->join_frame_done);
+-		complete_all(&mac->join_channel_done);
+-		complete_all(&mac->join_sta_done);
+-		spin_lock_irqsave(&mac->join_queue.lock, flags);
+-		mac->join_running = false;
+-		mac->join_open = false;
+-		spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++	if (mt6797_mac_join_regulatory_stop(mac, &discard, &internal))
+ 		goto out;
+-	}
+ #endif
+ #if IS_ENABLED(CONFIG_MT6797_PASSIVE_SCAN)
+ 	/* Regulatory changes retire an accepted scan before submitting updates.
+@@ -306,6 +338,14 @@ static void mt6797_mac_regulatory(struct wiphy *wiphy,
+ 	}
+ out:
+ 	mutex_unlock(&mac->mutex);
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++	while ((skb = __skb_dequeue(&discard))) {
++		if (skb == internal)
++			dev_kfree_skb(skb);
++		else
++			ieee80211_free_txskb(mac->hw, skb);
++	}
++#endif
+ }
+ 
+ #if IS_ENABLED(CONFIG_MT6797_PASSIVE_SCAN)
+-- 
+2.39.5
+

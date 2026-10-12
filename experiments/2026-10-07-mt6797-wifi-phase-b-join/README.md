@@ -449,6 +449,36 @@ data-path shapes through mac80211, replay the reference offline) is admitted
 as hardware-free source work and awaits its proposal diff, checks and
 combined test protocol before any build.
 
+## Runtime 28 result, proposals 0175 and 0176 (2026-10-12)
+
+Runtime 28 ([RUNTIME_28_RESULT.md](RUNTIME_28_RESULT.md)) is the series'
+first network milestone: both keys credited, 28 data frames completed with
+status 0 and 32 unicast frames delivered, and on the device a DHCP lease,
+three ping replies and one completed Wi-Fi SSH exchange from the laptop
+(exit 0, boot match). 5.3 s into the data phase the supplicant reported a
+locally generated disconnect (reason 4); the driver ended the phase, dequeued
+its reserved deauthentication and recorded no further join record for the
+rest of the 193 s capture (the supplicant's refused reconnect scan is the one
+later kernel record). The host verdicts stand as computed (C2 and C3 false,
+malformed because the lifetime has no terminal record, not because of
+firmware framing). Source audit, inference not proof: mac80211's beacon
+monitor, fed no beacon, polled the AP with a nullfunc that neither TX gate
+admits and that is freed without a record, so the poll ended in the local
+disconnect once unicast traffic idled; cfg80211's disconnect-time regulatory
+restore then reached the driver's regulatory notifier, whose join branch
+retired the running lifetime silently. **0175** ends a running lifetime there
+through the footer (branch 9). **0176** delivers the target's clear and keyed
+beacons to mac80211 after association, exactly as the two existing decoders
+accept them, recorded and bounded; the connection-monitor flag is rejected
+and the reason recorded. The classifier parses the footer (branch, status),
+closes the window at a footer after the deauthentication's submission, and
+knows the delivered-beacon records. Fixtures: `tests/join-ownership-test.c`
+(regulatory stop; beacons delivered after association, skipped before, another
+BSS skipped), `tests/action-frame-test.c` (RCPI output), `tests/host-test.py`
+(runtime 28 shape with and without the footer, delivered-beacon records and
+their negatives). Neither proposal is compiled yet; the proposed runtime 29
+protocol is in the result record. No operational or replay-protection claim.
+
 ## Candidate 27 and the runtime 28 bindings (2026-10-11)
 
 Candidate 27 pairs the compile-32 package (`e9610ba5…`, built input 5ee1f55f)

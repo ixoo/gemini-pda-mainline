@@ -181,6 +181,12 @@ int main(void)
    #define KBUILD(fc, da, ta, bssid, body) do { m = build(p, 7, fc, da, ta, bssid, body); p[4] = 0x08; p[7] = 0x04; p[8] = 2; p[9] = 0x40; put16(p + 10, 0xe004); } while (0)
    #define KRUN(bmc) (memset(&k, 0x5a, sizeof(k)), mt6797_join_keyed_beacon(p, m, 40, ap, (bmc), &k))
    KBUILD(0x0080, bcast, ap, ap, 354); assert(m == 442 && KRUN(2) && k.bytes == 378 && k.fc == 0x0080 && k.match == 0x08 && k.wlan == 2 && k.bss == 1 && k.sec == 4 && k.status == 0xe004);
+   /* 0176: the RX vector's RCPI byte is carried for the delivered frame's signal; it is
+    * not an acceptance condition (any value, including an out-of-range one, decodes).
+    */
+   KBUILD(0x0080, bcast, ap, ap, 354); p[16 + 16 + 8 + 9] = 101; assert(KRUN(2) && k.rcpi == 101);
+   p[16 + 16 + 8 + 9] = 255; assert(KRUN(2) && k.rcpi == 255);
+   p[16 + 16 + 8 + 9] = 0; assert(KRUN(2) && k.rcpi == 0);
    assert(!KRUN(0) && !KRUN(1));                                                            /* another declared entry */
    KBUILD(0x0080, bcast, ap, ap, 12); assert(KRUN(2) && k.bytes == 36);                    /* the fixed body only */
    KBUILD(0x0080, bcast, ap, ap, 11); assert(!KRUN(2));

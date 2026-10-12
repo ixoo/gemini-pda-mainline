@@ -88,7 +88,7 @@ struct mt6797_hif_rx_result { size_t logical_bytes; };
 enum { OWNER_MAC80211 = 1, OWNER_DRIVER };
 struct sk_buff {
 	struct sk_buff *next;
-	u8 data[256];
+	u8 data[512];  /* a delivered beacon (0176) is up to 378 wire bytes */
 	unsigned int len, owner, released;
 	union { struct ieee80211_tx_info tx; struct ieee80211_rx_status rx; } cb;
 };
@@ -1091,15 +1091,27 @@ int main(void)
 	mac.join_data_phase = true; mac.join_channel_granted = true; mac.join_data_started = now_ns;
 	mac.join_data_deadline = now_ns + 5500 * NSEC_PER_MSEC; mac.join_grant_deadline = mac.join_data_deadline + 2500 * NSEC_PER_MSEC;
 	mac.join_deadline = mac.join_data_deadline + 5 * NSEC_PER_SEC; mac.join_hold_until = mac.join_data_deadline;
+	/* 0176: after an accepted association the target's beacons, keyed or clear, are
+	 * delivered to mac80211 (counted, the keyed part apart); another BSS's clear
+	 * beacon is still skipped; before the association nothing is delivered; the
+	 * keyed variant before the group key is still a refusal.
+	 */
 	script_beacon(true); script_beacon(false); script_beacon(true); run_worker();
-	assert(!mac.first_error && mac.join_running && mac.join_keyed_beacons == 2 && !rx_delivered && !submissions);
+	assert(!mac.first_error && mac.join_running && mac.join_keyed_beacons == 2 && mac.join_beacons_delivered == 3 && rx_delivered == 3 && !submissions);
+	{ u8 other_ap[ETH_ALEN] = { 2, 9, 9, 9, 9, 9 }; script_beacon(false); memcpy(script[script_count - 1] + 64 + 10, other_ap, ETH_ALEN); memcpy(script[script_count - 1] + 64 + 16, other_ap, ETH_ALEN); }
+	run_worker();
+	assert(!mac.first_error && mac.join_running && mac.join_beacons_delivered == 3 && rx_delivered == 3);
 	mt6797_mac_join_close(&mac);
 	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = true; mac.join_bss_configured = true;
 	mac.join_key_pairwise_submitted = true; mac.join_key_pairwise = 1;             /* pairwise only: the keyed variant is not the class yet */
 	script_beacon(false); run_worker();
-	assert(!mac.first_error && mac.join_running && !mac.join_keyed_beacons);
+	assert(!mac.first_error && mac.join_running && !mac.join_keyed_beacons && mac.join_beacons_delivered == 1 && rx_delivered == 1);
 	script_beacon(true); run_worker();
-	assert(mac.first_error == -EPROTO && !mac.join_keyed_beacons);
+	assert(mac.first_error == -EPROTO && !mac.join_keyed_beacons && mac.join_beacons_delivered == 1);
+	mt6797_mac_join_close(&mac);
+	setup();                                                                       /* before any response: the clear beacon is skipped */
+	script_beacon(false); run_worker();
+	assert(!mac.first_error && mac.join_running && !mac.join_beacons_delivered && !rx_delivered);
 	mt6797_mac_join_close(&mac);
 
 	/* 10t. 0172 timing inside the grant tail. A data frame admitted at the phase's
@@ -1410,6 +1422,43 @@ int main(void)
 		assert(!mac.first_error && mac.join_inflight == mac.join_internal && mac.join_pid == 127 && submissions == 2);
 		mt6797_mac_join_close(&mac);
 	}
+
+	/* 10g. 0175: a regulatory update (cfg80211 restores its settings after any
+	 *      disconnect) while the lifetime runs ends it through the one terminal
+	 *      path: the footer (branch 9), the in-flight frame and the queue freed
+	 *      exactly once, the internal frame to the driver; the worker then stays
+	 *      stopped without a second footer. A lifetime already ended is retired as
+	 *      before; an unused lifetime is not the notifier's business.
+	 */
+	setup(); mac.join_assoc_received = true; mac.join_assoc_status = 0; mac.join_sta_active = true; mac.join_bss_configured = true;
+	mac.join_data_phase = true; mac.join_data_ended = true; mac.join_cleanup_requested = true;
+	{ struct sk_buff_head discard; struct sk_buff *skb, *internal = NULL;
+	  struct sk_buff *q = new_skb(OWNER_MAC80211); q->len = 40; mac.join_queue_bytes = q->len; __skb_queue_tail(&mac.join_queue, q);
+	  mac.join_internal = new_skb(OWNER_DRIVER); mac.join_internal->len = 26; mac.join_inflight = mac.join_internal; mac.join_page_debt = 1;
+	  skb_queue_head_init(&discard);
+	  assert(mt6797_mac_join_regulatory_stop(&mac, &discard, &internal) && internal && internal != q);
+	  assert(mac.first_error == -ECANCELED && mac.closing && mac.join_retired && !mac.join_running && !mac.join_open &&
+		 !mac.join_inflight && !mac.join_internal && mac.join_queue.qlen == 0 && discard.qlen == 2);
+	  while ((skb = __skb_dequeue(&discard))) { if (skb == internal) dev_kfree_skb(skb); else ieee80211_free_txskb(&hw, skb); }
+	  assert(mac80211_frees == 1 && dev_frees == 1);
+	  /* A second update: already ended, retired as before, nothing to free. */
+	  internal = NULL; skb_queue_head_init(&discard);
+	  assert(mt6797_mac_join_regulatory_stop(&mac, &discard, &internal) && !internal && discard.qlen == 0 && mac.first_error == -ECANCELED); }
+	run_worker();
+	assert(!mac.join_running && mac80211_frees == 1 && dev_frees == 1 && !submissions);
+	mt6797_mac_join_close(&mac);
+	assert(mac80211_frees == 1 && dev_frees == 1);
+	/* Ended by stage 3 (not running): retired, no footer path, no frames. */
+	setup(); mac.join_running = false; mac.join_cleanup_done = true;
+	{ struct sk_buff_head discard; struct sk_buff *internal = NULL; skb_queue_head_init(&discard);
+	  assert(mt6797_mac_join_regulatory_stop(&mac, &discard, &internal) && !internal && discard.qlen == 0 &&
+		 mac.first_error == -ECANCELED && mac.closing && mac.join_retired); }
+	mt6797_mac_join_close(&mac);
+	/* Never used: not the notifier's business. */
+	setup(); mac.join_scan_ready = false; mac.join_peer_used = false;
+	{ struct sk_buff_head discard; struct sk_buff *internal = NULL; skb_queue_head_init(&discard);
+	  assert(!mt6797_mac_join_regulatory_stop(&mac, &discard, &internal) && !mac.first_error && !mac.closing && mac.join_running); }
+	mt6797_mac_join_close(&mac);
 
 	puts("join_ownership=pass; production close/worker paths; exact-once release; EAPOL delivery window and hold; C1 association request admitted; C2 one-queue handshake sequence; group data and action frames discarded undelivered and bounded; add-key-done events admitted at most twice by window; no device");
 	return 0;

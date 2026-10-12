@@ -545,6 +545,49 @@ class HostTests(unittest.TestCase):
         self.assertFalse(classify(late)['malformed_stage_record'], classify(late)['diagnostic_records'])
         self.assertEqual(classify(late)['data_completions'], {'status_0': 4, 'other': 0, 'late': 1})
         self.assertEqual(res27['data_completions']['late'], 0)
+        # Runtime 28 shape (0175): the data phase ends on a disconnect, the reserved
+        # deauthentication is submitted and nothing follows. Without a terminal record
+        # the lifetime is malformed (runtime 28's original verdict); with the regulatory
+        # notifier's footer (branch 9) after the deauthentication's submission the
+        # window closes at the footer: not malformed, terminal failure recorded, branch
+        # and status reported, no handshake or data-path pass, completions intact. A
+        # footer placed before the deauthentication's submission is malformed.
+        deauth_tx_at = good.index(b'one-shot WLAN join TX: subtype=12 pid=17 pages=1')
+        deauth_tx_end = good.index(b'\n', deauth_tx_at) + 1
+        r28 = good[:deauth_tx_end].replace(b'reason=budget elapsed_ms=5500', b'reason=disconnect elapsed_ms=5256')
+        self.assertTrue(classify(r28)['malformed_stage_record'])
+        self.assertFalse(classify(r28)['terminal_failure_recorded'])
+        footer9 = b'one-shot WLAN join stopped: status=-125 first=0 submitted=0x1801 debt=1 cleanup=0 branch=9\n'
+        r28f = classify(r28 + footer9)
+        self.assertFalse(r28f['malformed_stage_record'], r28f['diagnostic_records'])
+        self.assertTrue(r28f['terminal_failure_recorded'] and not r28f['refusal_recorded'])
+        self.assertEqual((r28f['terminal_branch'], r28f['terminal_status']), (9, -125))
+        self.assertFalse(r28f['driver_handshake_path_pass'] or r28f['driver_data_path_pass'] or r28f['healthy_cleanup_demonstrated'])
+        self.assertEqual(r28f['data_completions'], {'status_0': 12, 'other': 0, 'late': 0})
+        self.assertEqual(r28f['data_phase_end_reason'], 'disconnect')
+        self.assertTrue(classify(r28[:deauth_tx_at] + footer9 + r28[deauth_tx_at:])['malformed_stage_record'], 'footer before the submission')
+        self.assertEqual(classify(good)['terminal_branch'], None)
+        # 0176: the target's beacons delivered to mac80211 are notifications (first four
+        # recorded, the total with its keyed part before the stage-3 record); the total
+        # must be single, at least the recorded count, with its keyed part no larger, and
+        # placed after the first records and before the terminal record.
+        bd = b'one-shot WLAN join beacon delivered: bytes=378 rcpi=101 keyed=%d count=%d\n'
+        firsts = bd % (0, 1) + bd % (1, 2) + bd % (1, 3) + bd % (0, 4)
+        stage3 = good.index(b'one-shot WLAN join cleanup: stage=3')
+        with_beacons = good[:phase_end] + firsts + good[phase_end:stage3] + b'one-shot WLAN join beacons delivered: total=57 keyed=40\n' + good[stage3:]
+        rb_ = classify(with_beacons)
+        self.assertFalse(rb_['malformed_stage_record'], rb_['diagnostic_records'])
+        self.assertTrue(rb_['driver_data_path_pass'] and rb_['healthy_cleanup_demonstrated'])
+        self.assertEqual(rb_['beacons_delivered'], {'records': 4, 'total': 57, 'keyed': 40})
+        # Without the total record the first records are a lower bound only: total and
+        # keyed part unknown; the records must be numbered in order.
+        self.assertEqual(classify(good[:phase_end] + firsts + good[phase_end:])['beacons_delivered'], {'records': 4, 'total': None, 'keyed': None})
+        self.assertEqual(classify(good)['beacons_delivered'], {'records': 0, 'total': None, 'keyed': None})
+        self.assertTrue(classify(good[:phase_end] + bd % (0, 1) + bd % (1, 3) + good[phase_end:])['malformed_stage_record'], 'records out of order')
+        self.assertTrue(classify(with_beacons.replace(b'total=57 keyed=40', b'total=3 keyed=1'))['malformed_stage_record'], 'total below the records')
+        self.assertTrue(classify(with_beacons.replace(b'total=57 keyed=40', b'total=57 keyed=58'))['malformed_stage_record'], 'keyed above the total')
+        self.assertTrue(classify(with_beacons.replace(b'total=57 keyed=40\n', b'total=57 keyed=40\none-shot WLAN join beacons delivered: total=58 keyed=40\n'))['malformed_stage_record'], 'two totals')
+        self.assertTrue(classify(good[:phase_end] + firsts + bd % (1, 5) + good[phase_end:])['malformed_stage_record'], 'a fifth record')
         # 0174: eight recorded 0168 discards and a total record before the stage-3 record;
         # the total must exceed eight, follow the eighth record, and be single.
         ga = b'one-shot WLAN join group action frame discarded: bytes=644 fc=0xd0 match=0x08 wlan=255 bss=15 sec=0 status=0xe000 count=%d\n'

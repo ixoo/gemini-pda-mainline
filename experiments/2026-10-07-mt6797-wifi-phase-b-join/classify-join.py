@@ -63,6 +63,9 @@ def classify(raw):
                      # 0173: the target's beacon in the keyed descriptor variant, skipped like every beacon (first four, then the total).
                      rb'keyed beacon skipped: bytes=\d{1,4} fc=0x80 match=0x08 wlan=2 bss=1 sec=4 status=0xe004 count=[1-4]',
                      rb'keyed beacons skipped: total=\d{1,6}',
+                     # 0176: the target's beacons delivered to mac80211 (first four, then the total).
+                     rb'beacon delivered: bytes=\d{1,4} rcpi=\d{1,3} keyed=[01] count=[1-4]',
+                     rb'beacons delivered: total=\d{1,6} keyed=\d{1,6}',
                      # 0172: TC1 credit returns (first eight) and a data frame still in flight at its deadline, metadata only.
                      rb'data credit: pages=\d{1,2} debt=\d{1,2} count=[1-8]',
                      rb'data TX timeout: pid=\d{1,3} debt=\d{1,2} credits=\d{1,6} elapsed_ms=\d{1,5}',
@@ -86,9 +89,12 @@ def classify(raw):
     action_rows = []
     group_action_rows = []
     group_action_total_rows = []
+    beacon_rows = []  # (index, is_total, keyed_total, total or count)
     key_refusal_rows = []  # (index, kind, status, running)
     refused = False
     stopped_index = None
+    stopped_status = None
+    stopped_branch = None
     malformed = False
     stopped = False
     for index, line in enumerate(raw.splitlines()):
@@ -99,6 +105,12 @@ def classify(raw):
         if body.startswith(b'stopped:'):
             stopped = True
             stopped_index = index
+            footer = re.fullmatch(rb'stopped: status=(-?\d+)(?: first=(-?\d+) submitted=0x([0-9a-f]+) debt=(\d+) cleanup=(\d+) branch=(\d+))?', body)
+            if footer:
+                stopped_status = int(footer.group(1))
+                stopped_branch = int(footer.group(6)) if footer.group(6) is not None else None
+            else:
+                malformed = True
             continue
         for name, pattern in patterns.items():
             if match := re.fullmatch(pattern, body):
@@ -125,6 +137,10 @@ def classify(raw):
                 elif (body.startswith(b'data TX: first') or body.startswith(b'data RX: first') or body.startswith(b'data RX outside:') or
                       body.startswith(b'data credit:') or body.startswith(b'data TX timeout:') or body.startswith(b'keyed beacon')):
                     pass  # Phase C3 first-frame notifications: metadata, neither refusal nor stage
+                elif body.startswith(b'beacon delivered:'):
+                    beacon_rows.append((index, False, None, int(body.rsplit(b'count=', 1)[1])))
+                elif body.startswith(b'beacons delivered:'):
+                    beacon_rows.append((index, True, int(body.rsplit(b'keyed=', 1)[1]), int(body.split(b'total=', 1)[1].split(b' ')[0])))
                 elif body.startswith(b'eapol observed:') or body.startswith(b'eapol delivered:'):
                     fields = dict(part.split(b'=') for part in body.split(b': ', 1)[1].split(b' '))
                     eapol_rows.append((index, int(fields[b'translated']), int(fields[b'frame']),
@@ -329,6 +345,18 @@ def classify(raw):
             [count for _, count in group_action_rows] != list(range(1, len(group_action_rows) + 1)) or
             (lifetime_end is not None and any(index >= lifetime_end for index, _ in group_action_rows))):
         malformed = True
+    # 0176: one delivered-beacon total at most, after the first records, before the
+    # terminal record, carrying at least the recorded count and at least its keyed part.
+    beacon_firsts = [row for row in beacon_rows if not row[1]]
+    beacon_totals = [row for row in beacon_rows if row[1]]
+    if beacon_totals and (
+            len(beacon_totals) > 1 or beacon_totals[0][3] < len(beacon_firsts) or beacon_totals[0][2] > beacon_totals[0][3] or
+            any(beacon_totals[0][0] < row[0] for row in beacon_firsts) or
+            (lifetime_end is not None and beacon_totals[0][0] >= lifetime_end)):
+        malformed = True
+    # The first records are numbered 1..n in order, at most four.
+    if [row[3] for row in beacon_firsts] != list(range(1, len(beacon_firsts) + 1)) or len(beacon_firsts) > 4:
+        malformed = True
     # 0174: one total record at most, only after eight recorded discards, carrying
     # more than eight, before the terminal record.
     if group_action_total_rows and (
@@ -348,6 +376,12 @@ def classify(raw):
         if len(deauth_tx) == 1 and len(deauth_done) == 1:
             window_end = deauth_done[0]
         elif not deauth_tx and stopped_index is not None:
+            window_end = stopped_index
+        elif len(deauth_tx) == 1 and not deauth_done and stopped_index is not None and stopped_index > deauth_tx[0][0]:
+            # 0175: the lifetime fail-stopped after its deauthentication was submitted
+            # and before its completion (the regulatory notifier, branch 9, or any other
+            # terminal path); the footer closes the window. Runtime 28's shape without a
+            # footer stays malformed: a lifetime that ends with no terminal record.
             window_end = stopped_index
         else:
             window_end = None
@@ -469,6 +503,16 @@ def classify(raw):
         'action_frame_discards': len(action_rows),
         'action_frame_discard_limit': 8,
         'terminal_failure_recorded': stopped,
+        # The footer's status and branch (branch 9: the regulatory notifier, 0175); None
+        # for the early bare footer shape.
+        'terminal_status': stopped_status,
+        'terminal_branch': stopped_branch,
+        # 0176: the target's beacons delivered to mac80211: the first records' count
+        # (at most four, a lower bound only) and, when the stage-3 total record exists,
+        # the total and its keyed part; otherwise both unknown. A notification, not a claim.
+        'beacons_delivered': {'records': len(beacon_firsts),
+                              'total': (beacon_totals[0][3] if beacon_totals else None),
+                              'keyed': (beacon_totals[0][2] if beacon_totals else None)},
         'wifi_operational': False,
     }
     result['bounded_join_pass'] = bool(exchange and healthy and cleanup_ok and activation_ok and order_ok)

@@ -19,7 +19,7 @@ names = ("mt6797_mac_join_refused_frame", "mt6797_mac_join_frame", "mt6797_mac_t
          "mt6797_mac_join_wait_credit_fwd", "mt6797_mac_join_end_data", "mt6797_mac_join_release_channel",
          "mt6797_mac_join_retire_idle_bss", "mt6797_mac_join_close",
          "mt6797_mac_join_control_event", "mt6797_mac_join_cleanup_step",
-         "mt6797_mac_join_fail_stop", "mt6797_mac_join_work", "mt6797_mac_join_wait_credit",
+         "mt6797_mac_join_fail_stop", "mt6797_mac_join_regulatory_stop", "mt6797_mac_join_deliver_beacon", "mt6797_mac_join_work", "mt6797_mac_join_wait_credit",
          "mt6797_mac_join_wait_management")
 # The predicate's accepted RSN body must be the body of the element the
 # reviewed connect helper sends up to its capabilities, which the helper sends
