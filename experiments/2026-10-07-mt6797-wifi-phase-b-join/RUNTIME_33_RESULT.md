@@ -11,7 +11,7 @@ PSK, AP identifiers, addresses, personal paths or raw captures). Overall
 - Regression **PASS**, kernel log complete, 52 pre-recovery files verified; one reviewed
   recovery to fresh Gemian `c0534bf5-7403-4061-bf3c-e42c2eb794a4` (3.18.41+); helper group
   quiesced (owned, safe, group_quiescent); no retry.
-- **Cycle 1 healthy:** one scan (status 0, one frame, one beacon, ~526 ms dwell),
+- **Cycle 1 healthy:** one scan (status 0, one frame, one beacon; host scan elapsed ~526 ms, not a measured RF dwell),
   association/keys, data phase 6132 ms (RX 34 unicast / 31 group, TX 27 status-0 / 0
   failures / 58 credits), healthy stage-3 cleanup, one re-arm. Fresh **Wi-Fi SSH exit 0**,
   boot match, host_ack written; helper elapsed 5.4 s.
@@ -38,7 +38,8 @@ The firmware emitted **event id 0x11 — EVENT_ID_BSS_ABSENCE_PRESENCE** (12 byt
 unsolicited seq 0; grounded in the event definition / que_mgt.h and the existing join
 event parser `mt6797_join_event(.., 0x11, 4)`, not the like-numbered command
 `MT6797_NORMAL_BSS_ACTIVE` — command and event ids are separate namespaces). It is an
-asynchronous notification about the BSS cycle 1 associated with. The scan event handler
+asynchronous owned-BSS notification; its body was not observed, so the BSS it names is not
+claimed (in particular not asserted to be cycle 1's). The scan event handler
 had no case for id 0x11, so it hit the default unknown-event refusal and returned
 `-EPROTO`; the submission then stopped with `-95`. The 0x11 **body fields were not
 recorded**, so nothing is claimed about absent vs present / fresh vs stale. This is an
@@ -72,7 +73,7 @@ the gate requires balance), a latent gate fragility.
 
 ## Boundary
 
-Cycle 1 is one healthy maintained-join lifetime with a real Wi-Fi SSH exchange; it is **not**
+Cycle 1 is one healthy bounded join lifetime with a real Wi-Fi SSH exchange; it is **not**
 full-driver completion (ordinary WPA2/DHCP/ping/sustained SSH, IRQ/DMA, stop/unbind/restart).
 Cycle 2's refusal is a single, now-diagnosed event-handling gap; a re-run requires the 0182
 image, not an unchanged-image retry.
