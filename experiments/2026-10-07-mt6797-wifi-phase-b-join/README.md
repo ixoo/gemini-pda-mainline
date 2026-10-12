@@ -449,6 +449,21 @@ data-path shapes through mac80211, replay the reference offline) is admitted
 as hardware-free source work and awaits its proposal diff, checks and
 combined test protocol before any build.
 
+## Candidate 28 and the runtime 29 bindings (2026-10-12)
+
+Candidate 28 pairs the compile-33 package (`bf244275…`, built input 94e9c890)
+with candidate 27's RAM root, board DT and kernel config byte-identical; boot
+image `4a7e826f…`, full padded boot2 `92bf31d0…`; the committed receipt
+[results/candidate-28.json](results/candidate-28.json) (SHA-256 `c3af0e07…`)
+is the custodian's exact bytes and `runtime-29/results/candidate.json` its
+copy. The installer's predecessor is the installed candidate 27
+(`c45503fa…`). [RUNTIME_29_PREPARATION](RUNTIME_29_PREPARATION.md) states
+what differs from runtime 28 (proposals 0175 and 0176 only), the hypothesis
+that the delivered beacons keep mac80211's monitors satisfied so the data
+phase runs to its budget and the driver's own cleanup follows, the separately
+reported network terms, the four branches, and the bindings table. Nothing
+has been installed or booted.
+
 ## Compile 33 and the candidate 28 pins (2026-10-12)
 
 [COMPILE_33.md](COMPILE_33.md): the phase-B compile profile at 94e9c890 with
