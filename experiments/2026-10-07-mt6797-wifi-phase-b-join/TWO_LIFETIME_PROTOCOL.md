@@ -43,7 +43,7 @@ therefore controls the supplicant explicitly, keeping the one vif and the one su
 - Data phase: budget = min(`MT6797_JOIN_DATA_BUDGET_MS` 60000 ms, grant deadline −
   `MT6797_JOIN_GRANT_TAIL_MS` 2500 ms); teardown margin `MT6797_JOIN_TEARDOWN_MARGIN_MS` 5000 ms;
   worker poll cap `MT6797_JOIN_MAX_POLLS` 4096; RX delivery cap `MT6797_JOIN_DATA_RX_MAX` 16384;
-  TX at most `MT6797_JOIN_DATA_TX_QUEUE` 8 in flight; TX-failure cap `MT6797_JOIN_DATA_TX_FAILURES`
+  a TX queue of up to `MT6797_JOIN_DATA_TX_QUEUE` 8 slots with one frame in flight at a time; TX-failure cap `MT6797_JOIN_DATA_TX_FAILURES`
   8; credit records `MT6797_JOIN_DATA_CREDIT_RECORDS` 8.
 - Host per cycle: `udhcpc` ≤ 20 s (4 tries × 3 s, one lease), the Dropbear listener ≤ 90 s,
   `ping` 3 × 2 s ≤ 12 s, the SSH readiness wait ≤ 6 × 0.5 s.
@@ -53,7 +53,10 @@ therefore controls the supplicant explicitly, keeping the one vif and the one su
   the second cycle has fresh pids and never reuses them.
 - Aggregate over the two cycles: ≤ 2 scans, ≤ 2 channel grants, 4 key adds + 4 key removes,
   6 management transmits + 4 EAPOL, two data phases, all pids and sequences within the single
-  monotonic u8 spaces above; a third cycle's first-effect scan is refused.
+  monotonic u8 spaces above; a third cycle's first-effect scan is refused. After lifetime 2's healthy cleanup the
+  driver does not schedule a re-arm (the cap is reached), so the stage-3 cleanup record is the
+  expected terminal; no "rearm refused lifetimes=2" record is emitted, and the wrapper treats
+  the two-cycle completion, not a refusal, as success.
 - Wire identities: `join_channel_token` and `join_sta_sequence` advance by one per re-arm and the
   monotonic command `sequence` continues; a u8 wrap or an exhausted `sequence` (> 248) refuses the
   re-arm. Scan counters and observers reset per completed cycle; wire identities stay fresh.

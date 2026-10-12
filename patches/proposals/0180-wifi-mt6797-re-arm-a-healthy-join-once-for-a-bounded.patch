@@ -1,4 +1,4 @@
-From e275ed4a68a7ca83e6d56c5ba3cc341e54b40b4b Mon Sep 17 00:00:00 2001
+From d484b4d6e7396a79f1cac4a332fb74dbc961e477 Mon Sep 17 00:00:00 2001
 From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
 Date: Mon, 12 Oct 2026 12:30:00 +0000
 Subject: [PATCH 180/180] wifi: mt6797: re-arm a healthy join once for a
@@ -42,8 +42,8 @@ run does not settle that residual firmware contract. No crypto, replay,
 operational or sustained-operation claim follows.
 ---
  .../net/wireless/mediatek/mt6797/join-rearm.h |  53 ++++
- drivers/net/wireless/mediatek/mt6797/mac.c    | 287 +++++++++++++++++-
- 2 files changed, 327 insertions(+), 13 deletions(-)
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 288 +++++++++++++++++-
+ 2 files changed, 328 insertions(+), 13 deletions(-)
  create mode 100644 drivers/net/wireless/mediatek/mt6797/join-rearm.h
 
 diff --git a/drivers/net/wireless/mediatek/mt6797/join-rearm.h b/drivers/net/wireless/mediatek/mt6797/join-rearm.h
@@ -106,7 +106,7 @@ index 000000000..75f5e07cb
 +
 +#endif /* MT6797_JOIN_REARM_H */
 diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
-index fe5cc2a52..5a3723c54 100644
+index fe5cc2a52..42e888780 100644
 --- a/drivers/net/wireless/mediatek/mt6797/mac.c
 +++ b/drivers/net/wireless/mediatek/mt6797/mac.c
 @@ -20,6 +20,7 @@
@@ -383,7 +383,7 @@ index fe5cc2a52..5a3723c54 100644
  	spin_lock_irqsave(&mac->join_queue.lock, flags);
  	running = mac->join_running;
  	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
-@@ -2071,6 +2288,21 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -2071,6 +2288,22 @@ static void mt6797_mac_join_work(struct work_struct *work)
  	ret = mt6797_mac_join_cleanup_step(mac);
  	if (ret)
  		goto failed;
@@ -398,6 +398,7 @@ index fe5cc2a52..5a3723c54 100644
 +	 * inline reset, so the re-arm never runs while this pass holds local SKBs.
 +	 */
 +	if (mac->join_cleanup_done && mac->join_sta_removed && !mac->join_closed &&
++	    mac->join_lifetimes < 2 &&
 +	    !mac->first_error && !mac->closing && !mac->join_rearm_pending) {
 +		mac->join_rearm_pending = true;
 +		schedule_delayed_work(&mac->join_work, msecs_to_jiffies(20));
@@ -405,7 +406,7 @@ index fe5cc2a52..5a3723c54 100644
  #endif
  	spin_lock_irqsave(&mac->join_queue.lock, flags);
  	if (mac->join_running)
-@@ -2241,7 +2473,8 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+@@ -2241,7 +2474,8 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
  
  	mutex_lock(&mac->mutex);
  	if (!mac->scan_ready || !mac->started || mac->vif != vif ||
@@ -415,7 +416,7 @@ index fe5cc2a52..5a3723c54 100644
  		goto out;
  	/* mac80211 may append supported-rate IEs internally. There are no
  	 * probe requests in this passive form, so no IEs are transmitted.
-@@ -2278,6 +2511,12 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+@@ -2278,6 +2512,12 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
  	 * cannot be retried or treated as an effect-free rejection.
  	 */
  	mac->scan_used = true;
@@ -428,7 +429,7 @@ index fe5cc2a52..5a3723c54 100644
  	ret = mt6797_mac_scan_guard(mac, ktime_get_ns() + NSEC_PER_SEC);
  	if (ret) {
  		mac->first_error = ret;
-@@ -2356,7 +2595,8 @@ static int mt6797_mac_start(struct ieee80211_hw *hw)
+@@ -2356,7 +2596,8 @@ static int mt6797_mac_start(struct ieee80211_hw *hw)
  	int ret = -EOPNOTSUPP;
  
  	mutex_lock(&mac->mutex);
@@ -438,7 +439,7 @@ index fe5cc2a52..5a3723c54 100644
  		mac->started = true;
  		ret = 0;
  	}
-@@ -3092,17 +3332,38 @@ static int mt6797_mac_sta_state(struct ieee80211_hw *hw,
+@@ -3092,17 +3333,38 @@ static int mt6797_mac_sta_state(struct ieee80211_hw *hw,
  			bool close = true;
  
  			mutex_lock(&mac->mutex);
@@ -469,7 +470,7 @@ index fe5cc2a52..5a3723c54 100644
 -					mac->first_error = ret;
 -					mac->closing = true;
 +					if (mac->join_sta_removed && !mac->join_closed &&
-+					    !mac->join_rearm_pending) {
++					    mac->join_lifetimes < 2 && !mac->join_rearm_pending) {
 +						mac->join_rearm_pending = true;
 +						schedule_delayed_work(&mac->join_work, 0);
 +					}
