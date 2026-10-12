@@ -449,6 +449,17 @@ data-path shapes through mac80211, replay the reference offline) is admitted
 as hardware-free source work and awaits its proposal diff, checks and
 combined test protocol before any build.
 
+## Compile 33 and the candidate 28 pins (2026-10-12)
+
+[COMPILE_33.md](COMPILE_33.md): the phase-B compile profile at 94e9c890 with
+0163 to 0176 built and validated on Buildbox-1 after the custodian's source
+review (package `bf244275…`, kernel image `4c213d67…`, decompressed one
+alignment above compile 32, kernel config and board DT unchanged, warnings
+identical to the compile-32 job log, zero driver warnings).
+`build-candidate.py` pins that input and package for candidate 28; nothing
+else changes. The custodian composes candidate 28; nothing has been
+installed or booted.
+
 ## Runtime 28 result, proposals 0175 and 0176 (2026-10-12)
 
 Runtime 28 ([RUNTIME_28_RESULT.md](RUNTIME_28_RESULT.md)) is the series'
