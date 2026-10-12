@@ -374,11 +374,17 @@ def classify(raw):
             (llc_phase_end is not None and any(index > llc_phase_end for index, _ in llc_rows)) or
             (lifetime_end is not None and any(index >= lifetime_end for index, _ in llc_rows))):
         malformed = True
+    # The driver writes the total in the cleanup step that records stage 3, so the
+    # total sits after the data phase's end record and the stage-2 submission and
+    # before the one stage-3 terminal; anywhere else is malformed.
+    llc_stage2 = [row[0] for row in rows['cleanup_submission'] if row[1] == 2]
     if llc_total_rows and (
             len(llc_total_rows) > 1 or len(data_phase_rows) != 1 or llc_total_rows[0][0] < data_phase_rows[0][0] or
             len(llc_rows) != min(llc_total_rows[0][1], 8) or
             (llc_rows and llc_total_rows[0][0] < llc_rows[-1][0]) or
-            (lifetime_end is not None and llc_total_rows[0][0] >= lifetime_end)):
+            llc_phase_end is None or llc_total_rows[0][0] < llc_phase_end or
+            len(llc_stage2) != 1 or llc_total_rows[0][0] < llc_stage2[0] or
+            len(stage3_terminal) != 1 or llc_total_rows[0][0] >= stage3_terminal[0]):
         malformed = True
     # 0177: the removed-key group-data discards are admitted only after the group key
     # removal's record and before the lifetime's end, numbered 1..n in order (at most

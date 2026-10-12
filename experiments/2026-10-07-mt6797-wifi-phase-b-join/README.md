@@ -456,8 +456,9 @@ delivered, 27 completions with status 0, the lease, three ping replies and
 the Wi-Fi SSH exchange repeated a third time; 5.4 s into the data phase the
 frame gate refused a 94-byte data descriptor (type 2 with status group 4,
 translated 14-byte header with the offset pad, broadcast match with key id
-1, the declared broadcast entry, CCMP, status 0xc200, group-4 frame control
-0x6208 from the target, an 802.3 length word 0x002e): the data receive
+1, the declared broadcast entry, cipher field 4, status 0xc200, group-4
+frame control 0x6208 from the target, a word 0x002e consistent with an
+802.3 length field; no body retained): the data receive
 class's group form flagged LLC mismatch, which the 0166 decoder refuses on
 the status word and the pinned vendor data path drops as its error class.
 The data-end record 877 ms after the footer is the session's supplicant

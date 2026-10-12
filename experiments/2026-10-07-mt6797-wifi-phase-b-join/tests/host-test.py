@@ -596,6 +596,13 @@ class HostTests(unittest.TestCase):
         self.assertTrue(classify(r30.replace(ltotal % 2, ltotal % 5))['malformed_stage_record'], 'total above the recorded first discards')
         self.assertTrue(classify(good[:stage3_at2] + ltotal % 3 + good[stage3_at2:])['malformed_stage_record'], 'a total with no records')
         self.assertTrue(classify(good[:phase_row_at] + ltotal % 1 + good[phase_row_at:] )['malformed_stage_record'], 'a total before the phase')
+        # The total is written in the step that records stage 3: a valid total moved
+        # before the data phase's end, or before the stage-2 submission, is malformed.
+        stage2_at = good.index(b'one-shot WLAN join cleanup submission: stage=2')
+        moved_before_end = good[:rx_first_at] + ld % 1 + ld % 2 + good[rx_first_at:end_row_at] + ltotal % 2 + good[end_row_at:]
+        self.assertTrue(classify(moved_before_end)['malformed_stage_record'], 'total before the data phase end')
+        moved_before_stage2 = good[:rx_first_at] + ld % 1 + ld % 2 + good[rx_first_at:stage2_at] + ltotal % 2 + good[stage2_at:]
+        self.assertTrue(classify(moved_before_stage2)['malformed_stage_record'], 'total before the stage-2 submission')
         self.assertTrue(classify(good[:rx_first_at] + b''.join(ld % k for k in range(1, 10)) + good[rx_first_at:])['malformed_stage_record'], 'nine records')
         refusal30 = (good[:rx_first_at] +
                      b'one-shot WLAN join frame refused: bytes=94 type=0x5000 allowed=0x1400 hdr=4828ce04024000c2 groups=0x8 at=34 g4fc=0x6208 g4seq=0x12c0 g4ta=1 translated=1 first=0x2e sec=4 to=0 from=0\n'

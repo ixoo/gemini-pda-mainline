@@ -59,22 +59,25 @@ and no RX vector. Descriptor: match flags 0x48, that is, the broadcast bit with 
 1 in bits 6 and 7 (the group key id the data phase's group frames carry); channel 40;
 header byte 0xce: header translation set, 14-byte Ethernet header, 2-byte header
 offset; payload format 0 with BSSID field 1; WLAN index 2 (the declared broadcast
-entry); TID 0 and security mode 4 (CCMP); status 0xc200: the two high bits every
-admitted packet carries and `RX_STATUS_LLC_MIS` (bit 9), every error flag clear.
-Group 4: frame control 0x6208 (data, FromDS, More Data, Protected), sequence 300,
-fragment 0, transmitter the target. Translated header: a group destination, type or
-length word 0x002e, that is, an IEEE 802.3 length of 46 and not an EtherType: the
-firmware decrypted the frame under the group key and translated its header, and the
-payload carried no SNAP header the translation could map, so the LLC-mismatch flag is
-set and the word after the addresses is the 802.3 length. The frame is otherwise
-exactly the data receive decoder's group class (data-rx.h, 0166): that decoder requires
-status 0xc000 and refused it on the status word alone, so it reached the gate.
+entry); TID 0 and security mode 4 in the descriptor's cipher field (the field the
+delivered group frames carry; decryption itself is not independently proven by this
+packet); status 0xc200: the two high bits every admitted packet carries and
+`RX_STATUS_LLC_MIS` (bit 9), every other covered error indicator clear. Group 4: frame
+control 0x6208 (data, FromDS, More Data, Protected), sequence 300, fragment 0,
+transmitter the target. Translated header: a group destination and a word after the
+addresses of 0x002e, consistent with an IEEE 802.3 length field of 46 rather than an
+EtherType. No body was retained: what the payload carried and why the firmware set the
+flag are not measured; the LLC-mismatch flag is itself an error indicator in the
+vendor's classification. The frame is otherwise exactly the data receive decoder's
+group class (data-rx.h, 0166): that decoder requires status 0xc000 and refused it on
+the status word alone, so it reached the gate.
 
 The pinned vendor data path (`nicRxProcessDataPacket`) classifies a status word with
 the LLC-mismatch flag as the error class and drops the frame without delivery
-(`fgDrop = TRUE` on `HAL_RX_STATUS_IS_LLC_MIS`). Inference, not measured: a station on
-the target's network sends 802.3-framed broadcasts; one arrived 5.4 s into the data
-phase and ended the lifetime at the gate.
+(`fgDrop = TRUE` on `HAL_RX_STATUS_IS_LLC_MIS`). Inference, not measured: a group
+frame of the delivered class whose status word carried that flag arrived 5.4 s into
+the data phase and ended the lifetime at the gate; whether the environment sends
+802.3-framed broadcasts is one reading of the length word, not an observation.
 
 ## Proposal 0178
 
@@ -98,9 +101,9 @@ apart.
 ## Proposed runtime 31 protocol (bounded, one test)
 
 Candidate 30 from compile 35 (0163 to 0178) with candidate 29's RAM root, DT and
-config; runtime 30's protocol otherwise unchanged. Hypothesis: 802.3-framed group
-frames during the data phase are discarded and counted, the data phase ends by its
-budget, the cleanup follows (the deauthentication completed, both removal commands
+config; runtime 30's protocol otherwise unchanged. Hypothesis: group frames of the
+delivered class flagged LLC mismatch during the data phase are discarded and counted,
+the data phase ends by its budget, the cleanup follows (the deauthentication completed, both removal commands
 credited, any after-removal group frames discarded under 0177, stages 1 to 3, no
 footer); the beacon, cleanup-discard and LLC-discard totals are recorded at stage 3;
 the lease, ping replies and the SSH exchange are reported apart. Branches: (1) stages
