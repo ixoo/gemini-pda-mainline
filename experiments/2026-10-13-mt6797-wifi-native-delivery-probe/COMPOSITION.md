@@ -1,17 +1,23 @@
 # Native-crypto-delivery composition and runtime (proposal 0181)
 
-> **STATUS (checkpoint, NOT execution-ready).** The native device-side leaf,
-> classifier, Wi-Fi SSH helper (marker-gated), installer and offline prepare are
-> authored and pass offline CLI/unit preflight. The capture/session identity
-> nesting (capture-private EXPERIMENT, passive-session RELEASE/_CANDIDATE/_RECEIPT)
-> is bound and unit-tested, but NOT yet verified by a full real preflight with the
-> actual private ND1 artifacts. **Native execution is NOT declared ready** until
-> root's full real capture/session preflight with the ND1 receipt (e1) passes.
-> No device/radio/build action. The committed ND1 receipt (e1) carries no
+> **STATUS (validated offline; execution gated on the reviewed install).** Root's
+> real private preflight of this set passed: `install-native.py prepare` (derived
+> installer), the native candidate validate, the private prepare CLI, and the
+> inherited native prepare API via `laptop-session-native.py` all PASS against the
+> real ND1 candidate hashes, the native init release, the 64-member RAM root, the
+> pinned WPA + wpa_cli + calibration and the source deps. The full capture/session
+> dry-runs stop only at the missing REAL ND deployment receipt and session initial
+> receipt -- an expected PRE-INSTALL dependency, NOT a code gap.
+>
+> Those real receipts are produced BY the reviewed install (install.sh's receipt
+> step) and the session itself; they are never fabricated to force a pre-install
+> pass. So the order is fixed: root installs ND1 under the reviewed boot2 guard
+> (standing approval), the real deployment receipt is then obtained, and only a
+> full ACTUAL capture/session preflight PASS on the installed boot clears native
+> execution before any clean handoff / owner boot. The e1 receipt carries no
 > `supplicant`/`wpa_cli` keys, so the native session preserves the required wpa+cli
-> 64-member checks from the inherited C32 parent evidence (candidate-32), not from
-> e1, and does not weaken them; the native identity re-pointing updates the actual
-> passive-session prepare/check_ram_root namespace.
+> 64-member checks from the inherited C32 parent (candidate-32), not weakened and
+> not by editing e1. No device/radio/kernel-build action is authored here.
 
 
 How the admitted default-off diagnostic is composed into a build and a bounded
@@ -68,7 +74,10 @@ current `join-native.sh`, the PSK/hex-SSID markers and the 0600 mode.
 2. `install-native.py prepare --previous-gemian-boot <fresh-Gemian> --candidate
    <ND1 dir> --output <new dir>` -- generates `install.sh` offline (no `--execute`);
    root inspects it and runs `install.sh` under the reviewed boot2 guard (C33
-   predecessor `74c5...` rederived from live GPT). Owner selects boot2 physically.
+   predecessor `74c5...` rederived from live GPT). The install's receipt step
+   writes the REAL deployment receipt (`session-nd1/deployment-summary.txt`) that
+   the capture then admits -- it is obtained here, never fabricated beforehand.
+   Owner selects boot2 physically.
 3. On the verified ND1 boot: `laptop-capture-native.py` (Phase-A, writes
    `capture-nd1/phase-a-result.json`), then `GEMINI_WIFI_SSH_KEYS=...
    GEMINI_WIFI_SSH_BOOT=<verified sealed boot> laptop-session-native.py
