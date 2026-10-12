@@ -449,6 +449,18 @@ data-path shapes through mac80211, replay the reference offline) is admitted
 as hardware-free source work and awaits its proposal diff, checks and
 combined test protocol before any build.
 
+## Compile 34 and the candidate 29 pins (2026-10-12)
+
+[COMPILE_34.md](COMPILE_34.md): the phase-B compile profile at 4cf4b465 with
+0163 to 0177 built and validated on Buildbox-1 after the custodian's source
+review (package `f6ef3ead…`, kernel image `e6d0e1f9…`, decompressed size of
+compiles 31 and 32, kernel config and board DT unchanged, warnings identical
+to the compile-33 job log, zero driver warnings); the record states the built
+gate exactly (the discard admits the variant once the group key removal
+command is submitted, not on its credit). `build-candidate.py` pins that
+input and package for candidate 29; nothing else changes. The custodian
+composes candidate 29; nothing has been installed or booted.
+
 ## Runtime 29 result and proposal 0177 (2026-10-12)
 
 Runtime 29 ([RUNTIME_29_RESULT.md](RUNTIME_29_RESULT.md)): four beacons
