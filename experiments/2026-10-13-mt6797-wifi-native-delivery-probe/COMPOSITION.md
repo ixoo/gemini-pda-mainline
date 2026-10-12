@@ -1,28 +1,30 @@
 # Native-crypto-delivery composition and runtime (proposal 0181)
 
-> **STATUS (validated offline; execution gated on the reviewed install).** Root's
-> real private preflight of this set passed: `install-native.py prepare` (derived
-> installer), the native candidate validate, the private prepare CLI, and the
-> inherited native prepare API via `laptop-session-native.py` all PASS against the
-> real ND1 candidate hashes, the native init release, the 64-member RAM root, the
-> pinned WPA + wpa_cli + calibration and the source deps. The full capture/session
-> dry-runs then exposed one real binding gap: the lower SCAN/C2 prepare chain
-> (consys-rails-passive) loaded the phase-b C33 installer by fixed basename and
-> validated against candidate-32. Fixed here -- during a native session the session
-> wrapper selects install-native.py (ND1 receipt, native experiment/release), with
-> every validate/receipt and boot2/readback guard intact.
+> **STATUS (offline preflight PASS; cleared for one reviewed ND1 run at pin
+> 2e347e62).** Root's real private OFFLINE preflight of this set passed end to end:
+> `install-native.py prepare` (derived installer), the native candidate validate,
+> the private prepare CLI, the inherited native prepare API via
+> `laptop-session-native.py`, and -- with the real ND1 deployment receipt
+> (`a89881aa`) and the actual candidate (`e1` / full `76a9` / native 64-member
+> root) -- the full ACTUAL capture AND session preflights. These preflights are
+> OFFLINE (laptop-side, against the real receipt), NOT on-device.
 >
-> Real receipts are produced BY the reviewed install (install.sh's receipt step)
-> and the session itself; they are never fabricated to force a pre-install pass.
-> ND1 is now installed under the reviewed boot2 guard (predecessor C33 `74c5`,
-> new full `76a9` readback-verified, clean shutdown) and the real deployment
-> receipt was obtained; the native capture preflight passes with it. Native
-> execution is still NOT declared ready: a full ACTUAL capture AND session
-> preflight PASS on the installed ND1 boot (with this session fix) must clear it
-> before any clean handoff / owner boot. The e1 receipt carries no
+> The one binding gap the session preflight exposed is fixed: the lower SCAN/C2
+> prepare chain (consys-rails-passive) loaded the phase-b C33 installer by fixed
+> basename and validated against candidate-32; the native session now selects
+> `install-native.py` (ND1 receipt e1, native experiment/release), every
+> validate/receipt and boot2/readback guard intact. Real receipts come BY the
+> reviewed install and the session, never fabricated. The e1 receipt carries no
 > `supplicant`/`wpa_cli` keys, so the native session preserves the required wpa+cli
-> 64-member checks from the inherited C32 parent (candidate-32), not weakened and
-> not by editing e1. No device/radio/kernel-build action is authored here.
+> 64-member checks from the inherited C32 parent (candidate-32), not weakened.
+>
+> ND1 is installed under the reviewed boot2 guard (predecessor C33 `74c5`, new full
+> `76a9` readback-verified, clean shutdown). The native runtime tooling is cleared
+> for root to run ND1 ONCE at source pin `2e347e62`; owner physical boot2-start is
+> the gating action. A native-delivery POSITIVE from this one-lifetime diagnostic
+> is NOT driver completion -- ordinary reusable operation, sustained (~10 min)
+> operation, host crypto, IRQ/DMA, unbind/restart and consolidation remain. No new
+> build, reinstall or worker device action.
 
 
 How the admitted default-off diagnostic is composed into a build and a bounded
