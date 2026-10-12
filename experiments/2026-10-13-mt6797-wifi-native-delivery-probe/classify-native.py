@@ -35,6 +35,8 @@ _FAULT = re.compile(rb'one-shot WLAN (?:join (?:stopped:|rearm refused:|rearm wr
 _BOOT = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
 # The exact owned one-cycle (state, act) transition sequence.
 _SEQUENCE = [(1, 1), (2, 0), (3, 2), (4, 0)]
+RX_MAX, NATIVE_MAX, BYTES_MAX = 512, 64, 1024 * 1024  # 0181 sample ceilings
+HIF_RX_MAX_PACKET = 2352  # MT6797_HIF_RX_MAX_PACKET
 
 
 def classify(kmsg, ssh_receipt, verified_boot):
@@ -45,20 +47,36 @@ def classify(kmsg, ssh_receipt, verified_boot):
     diag = [m for line in lines if (m := _DIAG.search(line))]
     rx = [m for line in lines if (m := _RX.search(line))]
     seq = [(int(m[1]), int(m[2])) for m in diag]
-    native_counts = [int(m[4]) for m in diag]
+    counts = [(int(m[3]), int(m[4]), int(m[5])) for m in diag]  # (total, native, bytes)
+    native_last = counts[-1][1] if counts else 0
+    # Admitted 0181 sample ceilings (the drain budget is separate and never
+    # inflates these): total RX <= 512, protected-native <= 64, bytes <= 1 MiB.
+    def bounded(c):
+        t, n, b = c
+        return 0 <= n <= t <= RX_MAX and n <= NATIVE_MAX and b <= BYTES_MAX
+    monotone = all(counts[i][j] >= counts[i - 1][j]
+                   for i in range(1, len(counts)) for j in range(3))
+    counts_ok = bool(counts) and all(bounded(c) for c in counts) and monotone
+    # Exactly one "first native MPDU" record (the driver guards it to once); every
+    # emitted one must be flags-clear and within the HIF max packet size.
+    rx_ok = (len(rx) == 1 and int(rx[0][2], 16) == 0 and 0 < int(rx[0][1]) <= HIF_RX_MAX_PACKET)
     result = {
         'sequence': seq,
         'sequence_ok': seq == _SEQUENCE,
-        'native_delivered': max(native_counts) if native_counts else 0,
-        'first_rx_bypass_flags': (int(rx[0][2], 16) if rx else None),
-        'bypass_flags_clear': bool(rx) and int(rx[0][2], 16) == 0,
+        'counts_ok': counts_ok,
+        'native_delivered': native_last,
+        'first_rx_mpdu_bytes': (int(rx[0][1]) if len(rx) == 1 else None),
+        'first_rx_bypass_flags': (int(rx[0][2], 16) if len(rx) == 1 else None),
+        'bypass_flags_clear': rx_ok,
         'fault': any(_FAULT.search(line) for line in lines),
     }
-    # Eligible delivery: the exact owned cycle, no fault, >=1 flags-clear MPDU
-    # queued to mac80211. Necessary, NOT authentication.
-    result['eligible_delivery'] = bool(result['sequence_ok'] and not result['fault'] and
-                                       result['native_delivered'] >= 1 and
-                                       result['bypass_flags_clear'])
+    # Eligible delivery: the exact owned cycle with bounded monotone counters, no
+    # fault, and exactly one flags-clear first MPDU within the parser max queued to
+    # mac80211. Necessary, NOT authentication. Credit retirement is inferred only
+    # from this exact healthy 1/2/3/4 sequence (the DISABLE_PENDING->CLOSED
+    # transition requires a quiescent ledger) together with no fault.
+    result['eligible_delivery'] = bool(result['sequence_ok'] and result['counts_ok'] and
+                                       not result['fault'] and native_last >= 1 and rx_ok)
     # Authenticated path: a fresh, mode-bound, exclusively-native Wi-Fi exchange.
     valid_boot = isinstance(verified_boot, str) and bool(_BOOT.match(verified_boot))
     cycles = ssh_receipt.get('cycles') if isinstance(ssh_receipt, dict) else None
