@@ -319,10 +319,22 @@ assert b'/tmp/mt6797-wifi-phase-b-1/quiescence' in qscript and BOOTX.encode() in
 def _q(faults, boot=BOOTX, after=BOOTX):
     return (b'__QUIESCENCE_BEGIN__\nboot=' + boot.encode() + b'\nfaults=' + faults +
             b'\n__QUIESCENCE_END__\nboot_after=' + after.encode() + b'\n')
-clean = C2['quiescence_result'](_q(b''), BOOTX)
-assert clean['quiesced'] and clean['boot_match'] and clean['faults'] == ''
-faulted = C2['quiescence_result'](_q(b'4242:wpa-supplicant,51:wifi-sshd'), BOOTX)
+def _ok(raw):
+    return (b'', {'exit_status': 0, 'reason': None, 'stdin_complete': True,
+                  'stdout_bytes': len(raw), 'stderr_bytes': 0})
+def _res(raw, err=None, process=None, boot=BOOTX):
+    if err is None and process is None:
+        err, process = _ok(raw)
+    return C2['quiescence_result'](raw, err, process, boot)
+clean = _res(_q(b''))
+assert clean['quiesced'] and clean['boot_match'] and clean['transport_ok'] and clean['faults'] == ''
+faulted = _res(_q(b'4242:wpa-supplicant,51:wifi-sshd'))
 assert not faulted['quiesced'] and faulted['faults'] == '4242:wpa-supplicant,51:wifi-sshd'
-assert not C2['quiescence_result'](_q(b'', after='0000ffff-0000-0000-0000-000000000000'), BOOTX)['quiesced']
-assert not C2['quiescence_result'](b'__QUIESCENCE_BEGIN__\n__QUIESCENCE_END__\nboot_after=' + BOOTX.encode() + b'\n', BOOTX)['quiesced']
-print('c2-session: PASS (boot-bound quiescence record: clean quiesced, named fault / boot mismatch / missing not quiesced)')
+assert not _res(_q(b'', after='0000ffff-0000-0000-0000-000000000000'))['quiesced']
+assert not _res(b'__QUIESCENCE_BEGIN__\n__QUIESCENCE_END__\nboot_after=' + BOOTX.encode() + b'\n')['quiesced']
+# A clean record but a failed read-only transport (stderr, bad byte count) is NOT
+# authoritative quiescence.
+raw = _q(b'')
+assert not C2['quiescence_result'](raw, b'oops', {'exit_status': 0, 'reason': None, 'stdin_complete': True, 'stdout_bytes': len(raw), 'stderr_bytes': 3}, BOOTX)['quiesced']
+assert not C2['quiescence_result'](raw, b'', {'exit_status': 0, 'reason': None, 'stdin_complete': True, 'stdout_bytes': len(raw) - 1, 'stderr_bytes': 0}, BOOTX)['quiesced']
+print('c2-session: PASS (boot-bound quiescence: clean quiesced; fault/boot-mismatch/missing/bad-transport not quiesced)')

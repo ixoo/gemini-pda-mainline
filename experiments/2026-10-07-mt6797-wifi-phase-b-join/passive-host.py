@@ -198,6 +198,12 @@ def c2_prepare(candidate):
     globals_['BUDGETS']['cycles-export'] = (20, cycles_cap)
     prepared['claim']['phase_budgets']['cycles-export'] = {
         'connections': 1, 'seconds': 20, 'stdout_bytes': cycles_cap, 'stderr_bytes': 16384}
+    # The boot-bound quiescence record is a tiny framed read; register its narrow
+    # budget so the real BUDGETS[label] lookup in invoke resolves (an unregistered
+    # phase would KeyError and refuse every run).
+    globals_['BUDGETS']['quiescence'] = (20, 4096)
+    prepared['claim']['phase_budgets']['quiescence'] = {
+        'connections': 1, 'seconds': 20, 'stdout_bytes': 4096, 'stderr_bytes': 16384}
     exported = False
 
     def invoke_with_supplicant_log(active, label, script, *, network_status=None):
@@ -238,8 +244,8 @@ def c2_prepare(candidate):
             # the record is present, boot-bound and fault-free, so a still-live
             # listener cannot pass merely because wpa is gone.
             try:
-                qraw, _qerr, _qp = invoke(active, 'quiescence', C2['quiescence_script'](boot))
-                qresult = C2['quiescence_result'](qraw, boot)
+                qraw, qerr, qprocess = invoke(active, 'quiescence', C2['quiescence_script'](boot))
+                qresult = C2['quiescence_result'](qraw, qerr, qprocess, boot)
             except (OSError, ValueError, KeyError, TypeError) as error:
                 qresult = {'quiesced': False, 'reason': str(error)}
             active['collector'].write_new(ROOT / 'quiescence-result.json',

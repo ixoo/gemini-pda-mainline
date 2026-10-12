@@ -124,6 +124,12 @@ with tempfile.TemporaryDirectory(prefix='mt6797-c2-host-') as directory:
         assert prepared['claim']['phase_budgets']['supplicant-log']['seconds'] == 20
         assert prepared['execute'].__globals__['BUDGETS']['cycles-export'][0] == 20
         assert prepared['claim']['phase_budgets']['cycles-export']['seconds'] == 20
+        # The quiescence read is indexed by the real invoke as BUDGETS[label]; an
+        # unregistered phase would KeyError and refuse every run, so its narrow
+        # budget must be registered (this is the caller/stub-mismatch guard).
+        assert prepared['execute'].__globals__['BUDGETS']['quiescence'] == (20, 4096)
+        assert prepared['claim']['phase_budgets']['quiescence'] == {
+            'connections': 1, 'seconds': 20, 'stdout_bytes': 4096, 'stderr_bytes': 16384}
         # The scan-tuning prepare is replaced by a stub to check the outer hooks.
         host.SCAN.prepare = lambda candidate: {**prepared, 'claim': {
             **prepared['claim'], 'passive_scan_script_sha256': 'deadbeef'}}

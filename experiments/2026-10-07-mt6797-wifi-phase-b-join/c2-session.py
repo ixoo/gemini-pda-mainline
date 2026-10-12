@@ -364,15 +364,24 @@ def quiescence_script(boot):
             "\"$($BB cat /proc/sys/kernel/random/boot_id)\"\n").encode()
 
 
-def quiescence_result(raw, boot):
-    """Parse the framed quiescence record. 'quiesced' is true only when the record
-    is present, boot-bound before and after, and its faults line is empty; a
-    missing, boot-mismatched or non-empty-faults record is NOT quiesced, so the
-    host refuses the seal and the RAM-wiping recovery. The named faults (owned
-    pid:identity list) are retained for diagnosis.
+def quiescence_result(raw, err, process, boot):
+    """Parse the framed quiescence record. 'quiesced' is true only when the
+    read-only transport actually completed cleanly (no stderr, a clean process,
+    the whole stdout accounted for), the record is present and boot-bound before
+    and after, and its faults line is empty; a transport/boot/frame failure, or a
+    missing or non-empty-faults record, is NOT quiesced, so the host refuses the
+    seal and the RAM-wiping recovery. The named faults (owned pid:identity list)
+    are retained for diagnosis.
     """
     text = raw.decode('ascii', 'replace') if isinstance(raw, (bytes, bytearray)) else raw
-    result = {'quiesced': False, 'boot_match': False, 'faults': None, 'bytes': len(raw)}
+    process = process or {}
+    result = {'quiesced': False, 'boot_match': False, 'transport_ok': False,
+              'faults': None, 'bytes': len(raw)}
+    result['transport_ok'] = bool(not err and process.get('exit_status') == 0 and
+                                  process.get('reason') is None and
+                                  process.get('stdin_complete') is True and
+                                  process.get('stdout_bytes') == len(raw) and
+                                  process.get('stderr_bytes', 0) == 0)
     head = re.match(r"__QUIESCENCE_BEGIN__\n", text)
     tail = re.search(r"\n__QUIESCENCE_END__\nboot_after=(" + BOOT_RE + r")\n$", text)
     if not head or not tail:
@@ -381,5 +390,6 @@ def quiescence_result(raw, boot):
     result['boot_match'] = bool(body and body[1] == boot and tail[1] == boot)
     if body:
         result['faults'] = body[2]
-    result['quiesced'] = bool(result['boot_match'] and body and body[2] == '')
+    result['quiesced'] = bool(result['transport_ok'] and result['boot_match'] and
+                              body and body[2] == '')
     return result
