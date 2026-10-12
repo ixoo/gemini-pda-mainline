@@ -449,6 +449,21 @@ data-path shapes through mac80211, replay the reference offline) is admitted
 as hardware-free source work and awaits its proposal diff, checks and
 combined test protocol before any build.
 
+## Candidate 29 and the runtime 30 bindings (2026-10-12)
+
+Candidate 29 pairs the compile-34 package (`f6ef3ead…`, built input 4cf4b465)
+with candidate 28's RAM root, board DT and kernel config byte-identical; boot
+image `65191c11…`, full padded boot2 `27005b8f…`; the committed receipt
+[results/candidate-29.json](results/candidate-29.json) (SHA-256 `aa27b4cf…`)
+is the custodian's exact bytes and `runtime-30/results/candidate.json` its
+copy. The installer's predecessor is the installed candidate 28
+(`92bf31d0…`). [RUNTIME_30_PREPARATION](RUNTIME_30_PREPARATION.md) states
+what differs from runtime 29 (proposal 0177 only, its gate the removal
+command's submission), the hypothesis that the AP's group frames during the
+cleanup are discarded so the cleanup stages 1 to 3 are recorded and the
+lifetime ends healthy, the separately reported network terms, the four
+branches, and the bindings table. Nothing has been installed or booted.
+
 ## Compile 34 and the candidate 29 pins (2026-10-12)
 
 [COMPILE_34.md](COMPILE_34.md): the phase-B compile profile at 4cf4b465 with
