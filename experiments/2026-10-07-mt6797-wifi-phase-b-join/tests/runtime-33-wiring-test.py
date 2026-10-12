@@ -83,4 +83,38 @@ with tempfile.TemporaryDirectory(prefix='mt6797-rt33-wiring-') as directory:
     assert out['predecessor_sha256'] == PREDECESSOR and out['deployment_receipt'] == 'deployment-32'
     assert (runtime / 'wifi-phase-b/session-33').is_dir()
 
+# The inherited session's reviewed baseline source root is bound to GEMINI_PRIVATE_REPO, so
+# the mandatory SOURCE_PINS (e.g. finish-baseline.py, changed in the public checkout by
+# a0887d2c) read the preserved private copies; the pins themselves are unchanged.
+import importlib.util as _il
+
+PUBLIC_FINISH = HERE.parent / '2026-09-05-owner-away-experiment-preparation/baseline/scripts/finish-baseline.py'
+assert hashlib.sha256(PUBLIC_FINISH.read_bytes()).hexdigest() != \
+    'f4fc22f6de7456e9c5e3336fd76114151492414d4c09356cda77b2a9d35a6708', \
+    'public finish-baseline.py would need the binding only if it had diverged from the pin'
+with tempfile.TemporaryDirectory(prefix='mt6797-rt33-privsrc-') as _d:
+    priv = Path(_d)
+    scripts = priv / 'experiments/2026-09-05-owner-away-experiment-preparation/baseline/scripts'
+    scripts.mkdir(parents=True)
+    marker = b'reviewed-private-finish-baseline\n'
+    (scripts / 'finish-baseline.py').write_bytes(marker)
+    env_prev = os.environ.get('GEMINI_PRIVATE_REPO')
+    os.environ['GEMINI_PRIVATE_REPO'] = str(priv)
+    try:
+        spec = _il.spec_from_file_location('rt33_ps', HERE / 'passive-session.py')
+        ps = _il.module_from_spec(spec)
+        spec.loader.exec_module(ps)
+        base = ps.SESSION.SESSION
+        assert base.BASELINE == scripts, base.BASELINE                     # root bound to private
+        read = (base.BASELINE / 'finish-baseline.py').read_bytes()
+        assert read == marker                                             # the pinned read targets private
+        assert ps.SOURCE_PINS['finish-baseline.py'] == \
+            'f4fc22f6de7456e9c5e3336fd76114151492414d4c09356cda77b2a9d35a6708'  # pin mandatory, unchanged
+        assert 'collect-baseline.py' in ps.SOURCE_PINS and 'session_steps.py' in ps.SOURCE_PINS
+    finally:
+        if env_prev is None:
+            del os.environ['GEMINI_PRIVATE_REPO']
+        else:
+            os.environ['GEMINI_PRIVATE_REPO'] = env_prev
+
 print('runtime-33 wiring: PASS (active paths, predecessor, receipt/deployment names and MANIFEST_SHA all candidate-32/runtime-33; prepare-runtime dry-run against the real receipt)')

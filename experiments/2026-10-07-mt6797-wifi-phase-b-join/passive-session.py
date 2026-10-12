@@ -32,6 +32,35 @@ SESSION.RELEASE = RELEASE
 SESSION.SESSION.RELEASE = RELEASE
 
 
+# Bind the inherited session's reviewed baseline source root to the retained private
+# checkout, exactly as the installer's sources() override does for install-boot2.sh: the
+# public checkout's finish-baseline.py (and siblings) were changed by a0887d2c after the pin,
+# while the private checkout keeps the pinned bytes. Every SOURCE_PINS digest stays mandatory
+# and unchanged — a mismatching private copy still refuses; this only moves the root to
+# GEMINI_PRIVATE_REPO so the pinned reads find the preserved reviewed sources. Done here so it
+# applies however prepare() is invoked (not only through laptop-session's run_path hook), and
+# it is idempotent with that hook (a path already outside the checkout is left alone).
+REPO = HERE.parents[1]
+_PRIVATE = (Path(os.environ['GEMINI_PRIVATE_REPO']).resolve()
+            if os.environ.get('GEMINI_PRIVATE_REPO') else None)
+
+
+def _bind_private_sources(module, seen):
+    if _PRIVATE is None or id(module) in seen:
+        return
+    seen.add(id(module))
+    for name in ('BASELINE', 'SERVICE'):
+        value = getattr(module, name, None)
+        if isinstance(value, Path) and value.is_relative_to(REPO):
+            setattr(module, name, _PRIVATE / value.relative_to(REPO))
+    for value in vars(module).values():
+        if isinstance(value, type(SESSION)) and str(getattr(value, '__file__', '')).startswith(str(REPO)):
+            _bind_private_sources(value, seen)
+
+
+_bind_private_sources(SESSION, set())
+
+
 # Candidate 4 adds exactly one member to the parent RAM root: the reviewed
 # static nl80211 connect helper, with iw's ownership and mode.
 HELPER_MEMBER = 'bin/join-connect'
