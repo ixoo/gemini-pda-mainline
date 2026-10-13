@@ -1,0 +1,225 @@
+From ad0df94c3f8bad98fdba1e180701683098c02a06 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 13 Oct 2026 00:33:17 +0000
+Subject: [PATCH] wifi: mt6797: hold and resume owned TX on owned-BSS
+ absence/presence
+
+Owned-BSS absence/presence (event 0x11) is the firmware's DATA-scheduling state,
+not association loss. Runtime 34's second join refused a valid-shape 0x11 in the
+pre-data window (teardown-only admission), stalling the lifetime. Admit the valid
+owned-slot notification throughout the owned lifetime (pre-data, data, teardown),
+log its body before deciding, record the scheduling state, and drive a maintained
+backpressure gate: hold owned MMPDU frames before dequeue while absent, keep
+servicing RX, credit and TX-done, and resume on presence once the shared queue is
+below its low mark. There is no lifetime cap on valid notifications; a malformed,
+out-of-slot or out-of-lifetime event is an exceptional refusal, counted truthfully
+and refused. mac80211 stop/wake is decided and published under join_queue.lock.
+Unsent owned frames are held, never dropped-as-held; a frame that still reaches the
+hard shared-queue cap remains an honest drop, not claimed eliminated. Absence by
+itself never ends the lifetime; the existing finite deadlines and idle guards still
+decide teardown. No FORCE_TX, no blanket DATA ignore, quota is never a TC4 term.
+The reserved deauthentication is held like any owned MMPDU while absent; its
+software/credit/TX-done accounting is unchanged (unsent is a software cancel, a
+submitted debt retires on matching credits/TX-done or poison).
+---
+ mac.c | 118 ++++++++++++++++++++++++++++++++++++++++++++++------------
+ 1 file changed, 94 insertions(+), 24 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index faa03b2..5566d4e 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -132,6 +132,17 @@ struct mt6797_mac {
+ 	bool join_sta_pending, join_sta_active;
+ 	bool join_peer_refusal_logged, join_channel_refusal_logged;
+ 	unsigned int join_absence_events;
++	/* Owned-BSS absence/presence (event 0x11) is a firmware DATA-scheduling
++	 * state, not association loss. While absent, owned MMPDU frames are held
++	 * before dequeue (never submitted, never dropped-as-hold) and mac80211 is
++	 * stopped; on presence with the shared queue below its low mark they resume.
++	 * join_absence_seen counts admitted valid notifications (uncapped -- repeated
++	 * absent/present are normal); join_absence_refused counts exceptional malformed
++	 * or foreign ones, truthfully. join_tx_stopped tracks the mac80211 stop so wake
++	 * is published once and a stale stop never outlives a lifetime (rearm clears it).
++	 */
++	bool join_bss_absent, join_tx_stopped;
++	unsigned int join_absence_seen, join_absence_refused;
+ 	/* Phase C1: bounded observation of the AP's first clear EAPOL frames. */
+ 	unsigned int join_eapol_seen, join_eapol_tx, join_group_discarded;
+ 	unsigned int join_action_discarded, join_group_action_discarded;
+@@ -206,6 +217,9 @@ static bool mt6797_mac_finish_scan(struct mt6797_mac *mac, int *status,
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ static int mt6797_mac_join_retire_idle_bss(struct mt6797_mac *mac);
+ static int mt6797_mac_join_wait_credit(struct mt6797_mac *mac);
++static bool mt6797_mac_join_tx_pressure(const struct mt6797_mac *mac);
++static void mt6797_mac_join_publish_tx_gate(struct mt6797_mac *mac);
++static void mt6797_mac_join_set_absent(struct mt6797_mac *mac, bool absent);
+ #endif
+ #endif
+ 
+@@ -859,6 +873,9 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ 	mac->join_cleanup_group_discarded = 0;
+ 	mac->join_data_llc_discarded = 0;
+ 	mac->join_absence_events = 0;
++	mac->join_absence_seen = 0;
++	mac->join_absence_refused = 0;
++	mt6797_mac_join_set_absent(mac, false);
+ 	mac->join_data_rx_unicast = 0;
+ 	mac->join_data_rx_group = 0;
+ 	mac->join_data_rx_dropped = 0;
+@@ -1198,35 +1215,36 @@ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
+ 	}
+ #endif
+ 	if (mt6797_join_event(mac->join_packet, bytes, 0x11, 4)) {
+-		/* EVENT_ID_BSS_ABSENCE_PRESENCE (publicly pinned gen3 que_mgt.h):
+-		 * the event header, then ucBssIndex, ucIsAbsent, ucBssFreeQuota
+-		 * and one reserved byte; unsolicited, so its sequence is zero.
+-		 * Admitted only for the owned BSS slot during the host-owned
+-		 * teardown after the BSS-off submission, with no page owed,
+-		 * nothing in flight and nothing queued. The cap of two is a
+-		 * chosen bounded notification budget, not an observed count. The
+-		 * quota and reserved bytes are unrestricted metadata, logged and
+-		 * not validated: the quota is never TC4 credit and never proof of
+-		 * drain or quiescence; the original idle guards still decide.
++		/* EVENT_ID_BSS_ABSENCE_PRESENCE (publicly pinned gen3 que_mgt.h): the
++		 * event header, then ucBssIndex, ucIsAbsent, ucBssFreeQuota and one
++		 * reserved byte; unsolicited, so its sequence is zero. This is the
++		 * firmware's owned-BSS DATA-scheduling state, NOT association loss, and
++		 * it can arrive while the owned slot exists -- pre-data, in the data
++		 * phase, or teardown. A valid-shape notification for the owned slot
++		 * (slot 0, boolean absent, sequence zero) is admitted and recorded, so
++		 * owned MMPDU TX is held while absent and resumes on presence; there is
++		 * NO lifetime cap on valid notifications, since repeated absent/present
++		 * are normal. A malformed, out-of-slot or out-of-lifetime event is an
++		 * exceptional refusal, counted truthfully and refused like any unknown
++		 * event. The quota and reserved bytes are metadata, logged and never TC4
++		 * credit nor proof of drain/quiescence; the idle guards still decide
++		 * teardown, and absence by itself never ends the lifetime.
+ 		 */
+ 		const u8 *body = mac->join_packet + 8;
+-		bool queued;
+ 
+-		spin_lock_irqsave(&mac->join_queue.lock, flags);
+-		queued = !skb_queue_empty(&mac->join_queue);
+-		spin_unlock_irqrestore(&mac->join_queue.lock, flags);
+-		if (mac->join_packet[5] || body[0] || body[1] > 1 ||
+-		    !mac->join_cleanup_requested || mac->join_cleanup_done ||
+-		    mac->join_cleanup_stage != 3 || mac->join_page_debt ||
+-		    mac->join_credit_pending || mac->join_inflight || queued ||
+-		    mac->join_absence_events >= 2)
+-			return -EPROTO;
+-		mac->join_absence_events++;
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+-			 "one-shot WLAN join bss absence: bss=%u absent=%u quota=%u reserved=%u\n",
+-			 body[0], body[1], body[2], body[3]);
++			 "one-shot WLAN join bss absence: bss=%u absent=%u quota=%u reserved=%u seen=%u refused=%u\n",
++			 body[0], body[1], body[2], body[3],
++			 mac->join_absence_seen, mac->join_absence_refused);
+ #endif
++		if (mac->join_packet[5] || body[0] || body[1] > 1 ||
++		    !mac->join_running || mac->join_retired) {
++			mac->join_absence_refused++;
++			return -EPROTO;
++		}
++		mac->join_absence_seen++;
++		mt6797_mac_join_set_absent(mac, body[1]);
+ 		return 0;
+ 	}
+ 	return -EPROTO;
+@@ -1554,6 +1572,54 @@ static int mt6797_mac_join_deliver_beacon(struct mt6797_mac *mac, size_t offset,
+ }
+ #endif
+ 
++/* Shared single join_queue backpressure: the reserved deauthentication, EAPOL,
++ * management and data frames share this queue and its byte budget, so the mark is
++ * the actual skb_queue_len / join_queue_bytes (the reserved deauth is one counted
++ * slot). High mark leaves headroom below the data cap for an in-flight .tx; low
++ * mark hysteresis avoids thrashing. These are host-queue marks, not firmware TC4.
++ */
++static bool mt6797_mac_join_tx_pressure(const struct mt6797_mac *mac)
++{
++	return skb_queue_len(&mac->join_queue) >= MT6797_JOIN_DATA_TX_QUEUE - 1 ||
++	       mac->join_queue_bytes + 1550U > MT6797_JOIN_DATA_TX_QUEUE_BYTES;
++}
++
++/* DECIDE+PUBLISH the mac80211 queue gate with join_queue.lock held (the reviewed
++ * ordering: ieee80211_stop_queues/wake_queues take and release their own reason
++ * lock before any direct driver call, so publishing here is race-free against a
++ * concurrent .tx or a worker completion -- no outside-the-lock stale re-read).
++ * Stopped whenever absent OR under pressure; woken only when BOTH clear and the
++ * queue is below the low mark, and never while closing.
++ */
++static void mt6797_mac_join_publish_tx_gate(struct mt6797_mac *mac)
++{
++	bool stop = mac->join_bss_absent || mt6797_mac_join_tx_pressure(mac);
++	bool low = skb_queue_len(&mac->join_queue) <= MT6797_JOIN_DATA_TX_QUEUE / 2;
++
++	if (stop && !mac->join_tx_stopped) {
++		mac->join_tx_stopped = true;
++		ieee80211_stop_queues(mac->hw);
++	} else if (mac->join_tx_stopped && !stop && low &&
++		   !mac->closing && !mac->first_error) {
++		mac->join_tx_stopped = false;
++		ieee80211_wake_queues(mac->hw);
++	}
++}
++
++/* Record an admitted owned-BSS absence/presence and republish the gate. Absence
++ * holds owned TX; presence resumes it. Nothing about credits/quiescence is
++ * inferred (ucBssFreeQuota is never a TC4 term).
++ */
++static void mt6797_mac_join_set_absent(struct mt6797_mac *mac, bool absent)
++{
++	unsigned long flags;
++
++	spin_lock_irqsave(&mac->join_queue.lock, flags);
++	mac->join_bss_absent = absent;
++	mt6797_mac_join_publish_tx_gate(mac);
++	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++}
++
+ static void mt6797_mac_join_work(struct work_struct *work)
+ {
+ 	struct mt6797_mac *mac = container_of(to_delayed_work(work),
+@@ -1708,7 +1774,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	if (!mac->join_inflight && !mac->join_page_debt) {
+ 		spin_lock_irqsave(&mac->join_queue.lock, flags);
+ 		skb = NULL;
+-		if (mac->join_open) {
++		if (mac->join_open && !mac->join_bss_absent) {
+ 			/* One queue, in order, with two holds: the driver-built
+ 			 * deauthentication waits out the bounded handshake hold in
+ 			 * its place, and a control-port data frame waits for the
+@@ -1751,6 +1817,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 		}
+ 		if (skb)
+ 			mac->join_queue_bytes -= skb->len;
++		mt6797_mac_join_publish_tx_gate(mac);
+ 		spin_unlock_irqrestore(&mac->join_queue.lock, flags);
+ 		if (skb) {
+ 			mac->join_inflight = skb;
+@@ -3532,6 +3599,7 @@ static void mt6797_mac_tx(struct ieee80211_hw *hw,
+ 			mac->join_queue_bytes += skb->len;
+ 			__skb_queue_tail(&mac->join_queue, skb);
+ 			schedule_delayed_work(&mac->join_work, 0);
++			mt6797_mac_join_publish_tx_gate(mac);
+ 			accepted = true;
+ 		}
+ 		spin_unlock_irqrestore(&mac->join_queue.lock, flags);
+@@ -3565,6 +3633,7 @@ static void mt6797_mac_tx(struct ieee80211_hw *hw,
+ 			mac->join_queue_bytes += skb->len;
+ 			__skb_queue_tail(&mac->join_queue, skb);
+ 			schedule_delayed_work(&mac->join_work, 0);
++			mt6797_mac_join_publish_tx_gate(mac);
+ 			accepted = true;
+ 		}
+ 		spin_unlock_irqrestore(&mac->join_queue.lock, flags);
+@@ -3589,6 +3658,7 @@ static void mt6797_mac_tx(struct ieee80211_hw *hw,
+ 			mac->join_queue_bytes += skb->len;
+ 			__skb_queue_tail(&mac->join_queue, skb);
+ 			schedule_delayed_work(&mac->join_work, 0);
++			mt6797_mac_join_publish_tx_gate(mac);
+ 			accepted = true;
+ 		}
+ 		spin_unlock_irqrestore(&mac->join_queue.lock, flags);

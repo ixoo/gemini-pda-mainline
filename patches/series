@@ -794,3 +794,4 @@ proposals/0180-wifi-mt6797-re-arm-a-healthy-join-once-for-a-bounded.patch
 proposals/0181-wifi-mt6797-default-off-native-crypto-delivery-diag.patch
 proposals/0182-wifi-mt6797-discard-owned-bss-absence-presence-event-during-scan.patch
 proposals/0183-wifi-mt6797-reset-per-scan-tuning-diagnostics.patch
+proposals/0184-wifi-mt6797-hold-and-resume-owned-tx-on-bss-absence.patch
