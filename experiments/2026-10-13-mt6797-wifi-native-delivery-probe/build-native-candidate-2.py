@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-"""Compose the native-crypto-delivery candidate from the d104 package on the C32 parent.
+"""Compose the native-crypto-delivery ND2 candidate from the 2e9cae6e package on the C32 parent.
 
 The native-delivery diagnostic (proposal 0181, default-off but force-armed by the
 profile) is the verified candidate 32 (phase-b station join) with the native
@@ -52,7 +52,7 @@ BOOT_CMDLINE = 'bootopt=64S3,32N2,64N2'
 
 def expected_native_config(parent_config):
     """Candidate 32's phase-b config with exactly the three native-delivery changes
-    (verified byte-exact against the d104 package): the armed/identity command
+    (verified byte-exact against the 2e9cae6e/ND2 package): the armed/identity command
     line, the LOCALVERSION, and the default-off-at-config diagnostic symbol.
     Anything else differing from the parent is an unrelated change and is refused.
     """
