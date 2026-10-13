@@ -3,16 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-13-mt6797-wifi-native-delivery-probe` |
-| Status | Inconclusive native-delivery result: ND3 overcame the earlier local refusals and completed enable/ACTIVE/disable/CLOSED command-credit progression, but delivered zero native frames and made no authenticated post-ACTIVE challenge. Preservation/regression and exactly one reviewed recovery passed; changed-boot Gemian independently confirmed. See [ND3_RESULT](ND3_RESULT.md). No firmware-mode acceptance, crypto or maintained-driver claim. ND1/ND2 records remain immutable. |
+| Status | ND4 completed negative: 238 actual native decoder calls, zero eligibility/delivery; regulatory branch9 cancellation after disable submission, no CLOSED or HIF refusal. Preservation/seals/regression and exactly one reviewed recovery passed; changed-boot Gemian independently confirmed. See [ND4_RESULT](ND4_RESULT.md); ND3's different HIF failure remains unresolved. No firmware-mode acceptance, crypto or maintained-driver claim. Historical inputs/results remain immutable. |
 | Base | Proposal 0180 ([compile 37](../2026-10-07-mt6797-wifi-phase-b-join/COMPILE_37.md)), kernel `5d6323e1` / `b33ba5a2` |
 | Date | 2026-10-13 |
 | Device action | ND1, ND2 and ND3 each ran once; no unchanged-artifact retry. Laptop coordinator is sole device custodian; implementation/build author has no device access. Current source reassessment uses retained sanitized ND3 evidence only. |
 
 ## Question
 
-The reviewed ND4 metadata successor is built, privately composed and bound for
-fresh private preflight; see [ND4 preparation](ND4_PREPARATION.md). It is not
-installed or runtime-tested.
+The reviewed ND4 metadata successor ran once; see [ND4 result](ND4_RESULT.md)
+and its historical [preparation](ND4_PREPARATION.md). No unchanged retry.
 
 Does a firmware mode deliver intact protected native MPDUs the host can authenticate through
 standard mac80211 — the route-4 precondition for maintained RX crypto? This is the runtime
