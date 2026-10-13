@@ -1,0 +1,172 @@
+From 16cb97670534dbe184a91c73ccc99a9d2c8af40a Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 13 Oct 2026 22:51:25 +0000
+Subject: [PATCH] wifi: mt6797: admit intact native beacons inside the active
+ diagnostic
+
+ND4 records local beacon loss and no beacon deliveries after native ACTIVE.
+Existing class7 beacon selectors exclude class2 descriptors. This supports
+a host-delivery hypothesis, not proof that ND4 contained a native beacon.
+Its ordinary-data rejections do not establish protected-frame availability
+or a decoder defect.
+
+Add an independently expressed class2 native beacon decoder. Validate the
+byte count, channel, untranslated 24-byte header, group walk/pad, complete
+fixed frame bounds, unprotected beacon FC and joined-AP/broadcast
+addresses.
+Require the existing RX-vector signal contract and conservatively refuse
+FCS/ICV errors. Return the buffered MPDU span unchanged, never reconstruct
+a header or manufacture a beacon.
+
+Call it only inside the default-off diagnostic's existing ACTIVE admission
+after central sample accounting. Use the unchanged normal mac80211 beacon
+delivery helper. Count successful native-beacon queueing separately in the
+existing terminal phase report, adding one scalar field and no output line.
+Do not count beacons as protected-native eligibility or a crypto PASS.
+
+Class7 paths, ordinary data/flags, one descriptor sample, prospective
+ceilings, stop/drain, radio/credit/cleanup and regulatory cancellation stay
+unchanged. Paired extracted-dispatch tests show the same synthetic beacon
+withheld by the exact ND4 parent and queued verbatim by this child, with
+strict negative/layout/phase/accounting/allocation tests. These do not
+prove actual beacon traffic, live MLME behavior, firmware or concurrency.
+
+Internal experiment archive, not submission-ready; no DCO certification.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 27 +++++++-
+ .../wireless/mediatek/mt6797/native-beacon.h  | 62 +++++++++++++++++++
+ 2 files changed, 86 insertions(+), 3 deletions(-)
+ create mode 100644 drivers/net/wireless/mediatek/mt6797/native-beacon.h
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 799676a..a3ea15e 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -23,6 +23,7 @@
+ #include "join-rearm.h"
+ #ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
+ #include "native-diag.h"
++#include "native-beacon.h"
+ static bool native_delivery_diag;
+ module_param(native_delivery_diag, bool, 0444);
+ MODULE_PARM_DESC(native_delivery_diag,
+@@ -172,7 +173,7 @@ struct mt6797_mac {
+ 	unsigned int native_diag_retire_reads, native_diag_retire_bytes;
+ 	u64 native_diag_started, native_diag_retire_started;
+ 	struct {
+-		unsigned int type[8], gate[MT6797_NATIVE_RX_GATES], window_blocked;
++		unsigned int type[8], gate[MT6797_NATIVE_RX_GATES], window_blocked, beacons;
+ 	} native_diag_rx[4];
+ 	bool native_diag_rx_reported;
+ 	bool native_diag_rxd_sampled;
+@@ -1233,8 +1234,9 @@ static void mt6797_native_diag_rx_report(struct mt6797_mac *mac)
+ 		const unsigned int *g = mac->native_diag_rx[p].gate;
+ 
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+-			 "one-shot WLAN native RX classes: phase=%u t0=%u t1=%u t2=%u t3=%u t4=%u t5=%u t6=%u t7=%u\n",
+-			 p, t[0], t[1], t[2], t[3], t[4], t[5], t[6], t[7]);
++			 "one-shot WLAN native RX classes: phase=%u t0=%u t1=%u t2=%u t3=%u t4=%u t5=%u t6=%u t7=%u beacons=%u\n",
++			 p, t[0], t[1], t[2], t[3], t[4], t[5], t[6], t[7],
++			 mac->native_diag_rx[p].beacons);
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+ 			 "one-shot WLAN native RX gates: phase=%u blocked=%u eligible=%u input=%u length=%u type=%u channel=%u translated=%u msdu=%u fcs=%u header=%u span=%u frame_type=%u unprotected=%u ds=%u frame_shape=%u peer=%u destination=%u ccmp_shape=%u\n",
+ 			 p, mac->native_diag_rx[p].window_blocked,
+@@ -2332,8 +2334,27 @@ submitted:
+ 				size_t mo, ml;
+ 				enum mt6797_native_rx_gate gate = MT6797_NATIVE_RX_INPUT;
+ 				bool admitted;
++				struct mt6797_native_beacon nbcn;
+ 
+ 				admitted = mt6797_native_diag_admit(mac->native_diag_state, &nb);
++				/* Class7 beacon paths above stay unchanged. A raw class2 beacon
++				 * in the ACTIVE sample uses the same normal mac80211 delivery,
++				 * after central all-RX accounting and the existing admission.
++				 * It is not a protected-native ordinary-data eligibility call.
++				 */
++				if (admitted && mac->join_assoc_received &&
++				    !mac->join_assoc_status && !mac->join_cleanup_done &&
++				    !mac->join_deauth_done &&
++				    mt6797_native_beacon(mac->join_packet, rx.logical_bytes,
++							 40, mac->join_ap, &nbcn)) {
++					ret = mt6797_mac_join_deliver_beacon(mac, nbcn.offset,
++									     nbcn.bytes, nbcn.rcpi,
++									     false, &received);
++					if (ret)
++						goto failed;
++					mac->native_diag_rx[nd_phase].beacons++;
++					continue;
++				}
+ 				if (admitted)
+ 					gate = mt6797_data_rx_native_gate(mac->join_packet,
+ 									  rx.logical_bytes, 40,
+diff --git a/drivers/net/wireless/mediatek/mt6797/native-beacon.h b/drivers/net/wireless/mediatek/mt6797/native-beacon.h
+new file mode 100644
+index 0000000..03084c6
+--- /dev/null
++++ b/drivers/net/wireless/mediatek/mt6797/native-beacon.h
+@@ -0,0 +1,62 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef MT6797_NATIVE_BEACON_H
++#define MT6797_NATIVE_BEACON_H
++
++#include "join-events.h"
++
++struct mt6797_native_beacon {
++	size_t offset, bytes;
++	unsigned int rcpi;
++};
++
++/* A complete, untranslated class2 beacon from the joined AP, not ordinary data.
++ * Return the original MPDU span: no group4 reconstruction, strip or synthesis.
++ * Delivery/admission belongs to the caller; matching is not authentication.
++ */
++static inline bool
++mt6797_native_beacon(const unsigned char *packet, size_t bytes,
++		     unsigned char channel, const unsigned char ap[6],
++		     struct mt6797_native_beacon *out)
++{
++	size_t offset = 16, vector;
++	unsigned int groups, fc, i, rcpi;
++	const unsigned char *frame;
++
++	if (!packet || !ap || !out || !channel || bytes < 16 || bytes > 4096 ||
++	    mt6797_join_le16(packet) != bytes ||
++	    (mt6797_join_le16(packet + 2) >> 13) != 2 || packet[5] != channel ||
++	    (packet[6] & 0x80) || (packet[6] & 0x3f) != 24 || (packet[7] & 3) ||
++	    (mt6797_join_le16(packet + 10) & 0x0012)) /* conservative FCS/ICV filter */
++		return false;
++	groups = (mt6797_join_le16(packet + 2) >> 9) & 15;
++	if (!(groups & 4))
++		return false;	/* the existing delivery helper's RX vector signal */
++	if (groups & 8)
++		offset += 16;
++	if (groups & 1)
++		offset += 16;
++	if (groups & 2)
++		offset += 8;
++	vector = offset;
++	offset += 24;
++	if (packet[6] & 0x40)
++		offset += 2;
++	if (offset > bytes || bytes - offset < 36)
++		return false;	/* 24-byte header and 12-byte beacon fixed fields */
++	frame = packet + offset;
++	fc = mt6797_join_le16(frame);
++	if ((fc & 0x00ff) != 0x0080 || (fc & 0xc700) ||
++	    (mt6797_join_le16(frame + 22) & 15))
++		return false;	/* version0 beacon, no DS/protection/fragment/HTC */
++	for (i = 0; i < 6; i++)
++		if (frame[4 + i] != 0xff || frame[10 + i] != ap[i] ||
++		    frame[16 + i] != ap[i])
++			return false;
++	rcpi = packet[vector + 9];
++	if (rcpi > 220)
++		return false;
++	*out = (struct mt6797_native_beacon){offset, bytes - offset, rcpi};
++	return true;
++}
++
++#endif /* MT6797_NATIVE_BEACON_H */
+-- 
+2.39.5
+

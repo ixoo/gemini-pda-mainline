@@ -798,3 +798,4 @@ proposals/0184-wifi-mt6797-hold-and-resume-owned-tx-on-bss-absence.patch
 proposals/0185-wifi-mt6797-bound-native-diagnostic-hif-deadlines.patch
 proposals/0186-wifi-mt6797-fence-regulatory-submissions-after-terminal-close.patch
 proposals/0187-wifi-mt6797-count-native-rx-eligibility-and-name-hif-refusals.patch
+proposals/0188-wifi-mt6797-admit-intact-native-beacons-in-active-diagnostic.patch

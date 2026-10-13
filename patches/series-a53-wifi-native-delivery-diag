@@ -680,3 +680,4 @@ proposals/0180-wifi-mt6797-re-arm-a-healthy-join-once-for-a-bounded.patch
 proposals/0181-wifi-mt6797-default-off-native-crypto-delivery-diag.patch
 proposals/0185-wifi-mt6797-bound-native-diagnostic-hif-deadlines.patch
 proposals/0187-wifi-mt6797-count-native-rx-eligibility-and-name-hif-refusals.patch
+proposals/0188-wifi-mt6797-admit-intact-native-beacons-in-active-diagnostic.patch
