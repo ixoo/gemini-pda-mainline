@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-13-mt6797-wifi-native-delivery-probe` |
-| Status | Inconclusive: native firmware mode remains untested. ND1 and ND2 completed negative runs with separate host whitelist and operation-deadline refusals before native submission. ND2 preservation/regression and one recovery passed; Gemian return independently confirmed. See [ND2_RESULT](ND2_RESULT.md); [ND1_RESULT](ND1_RESULT.md) remains immutable. Proposal 0185 is the source-reviewed narrow deadline repair, not a hardware result. |
+| Status | Inconclusive native-delivery result: ND3 overcame the earlier local refusals and completed enable/ACTIVE/disable/CLOSED command-credit progression, but delivered zero native frames and made no authenticated post-ACTIVE challenge. Preservation/regression and exactly one reviewed recovery passed; changed-boot Gemian independently confirmed. See [ND3_RESULT](ND3_RESULT.md). No firmware-mode acceptance, crypto or maintained-driver claim. ND1/ND2 records remain immutable. |
 | Base | Proposal 0180 ([compile 37](../2026-10-07-mt6797-wifi-phase-b-join/COMPILE_37.md)), kernel `5d6323e1` / `b33ba5a2` |
 | Date | 2026-10-13 |
-| Device action | ND1 and ND2 each ran once; no unchanged-artifact retry. Laptop coordinator is sole device custodian; implementation/build author has no device access. New deadline repair/tests are hardware-free. |
+| Device action | ND1, ND2 and ND3 each ran once; no unchanged-artifact retry. Laptop coordinator is sole device custodian; implementation/build author has no device access. Current source reassessment uses retained sanitized ND3 evidence only. |
 
 ## Question
 
