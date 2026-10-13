@@ -43,6 +43,11 @@ the custodian supplies the real receipt using the private parent/RAM root.
 
 ## Checks
 
+The source-reviewed deadline successor is built and privately composed, with
+fresh receipt/runtime/installer bindings in [ND3 preparation](ND3_PREPARATION.md).
+No ND3 deployment or device result is implied; ND3 precedes the separately
+compiled maintained-BSS-absence correction in the device queue.
+
 `tests/run-native-diag-test.py`, `tests/run-native-rx-test.py` and `tests/run-native-loop-test.py` (ASan/UBSan) pass against the
 applied tree; `scripts/validate-manifest-series`, the invariant test and `scripts/check-repository`
 pass; pinned `checkpatch.pl` on 0181 shows only the standing archive-proposal exceptions. No

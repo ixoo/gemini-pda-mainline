@@ -17,6 +17,40 @@ function and an inherited patch-application whitespace warning; no build error.
 No new DT or configuration change was made; DT schema validation was not rerun.
 No device action or native firmware observation has occurred for ND3.
 
+## Real composition and fresh runtime bindings
+
+The laptop custodian ran the committed `bdff094b` compositor. All composition,
+inventory/provenance/configuration, 64-member RAM-root and LK gates passed;
+independent six-file hash/size and exact 16 MiB zero-padding checks passed.
+DT, config and RAM root are byte-identical to ND2; only the kernel changed.
+
+- [Real candidate receipt](results/native-delivery-candidate-3.json):
+  `f00de1e3bcc40e912ba65f7ebbe3ad15bbc159b230f3e84af3b45dd8cebe7e10`.
+- Raw boot: `e25c1fa387f2be84908363a4e65f7e4b70ffea541684bccd991a4736f44980a6`,
+  12668928 bytes. Candidate directory must be `candidate-` plus this full digest.
+- Full boot2: `7b61241a89c9d8472885c93d654ecda6f63a188f154b2a7bfc69dd5caaf9dc06`,
+  16777216 bytes. This is composition evidence, not a deployment receipt.
+
+Use a fresh private `GEMINI_RUNTIME_ROOT` (runtime-3), the retained private
+`GEMINI_PRIVATE_REPO` and PSK-bound `GEMINI_JOIN_SCRIPT` wrapping unchanged
+`join-native.sh`. No credentials or private RAM-root members are published.
+
+| Program/identity | ND3 binding |
+| --- | --- |
+| `prepare-native-delivery-3.py` | Checks real receipt pin; creates only `native-delivery/session-nd3`, leaves `capture-nd3` absent for one-attempt claim |
+| `install-native-3.py` | Real receipt, ND2 predecessor, actual program digest, deployment name `mt6797-wifi-native-delivery-deployment-3`; unchanged source/GPT/root/power/write/readback/shutdown guards |
+| `laptop-capture-native-3.py` | Real receipt, `capture-nd3`, `session-nd3/deployment-summary.txt`; unchanged Phase-A capture gates |
+| `passive-host-native-3.py` | `session-nd3`/`capture-nd3`, exact `runtime-nd3/results/candidate.json` copy, helper output identity |
+| `laptop-session-native-3.py` | Actual prepare/check_ram_root namespace selects ND3; required C32 supplicant/wpa_cli checks retained; actual installer routed to ND3 |
+
+ND2's scripts, receipt and evidence are not edited. The shared native classifier,
+Wi-Fi helper and one-cycle join script remain unchanged. The wiring test loads
+the actual modules/namespaces, checks installer derivation with its own digest,
+exercises offline preparation/fresh-root refusal and bad-candidate refusal.
+It makes no device call and creates no deployment receipt. Classifier and Wi-Fi
+helper fixtures also pass; a full private-candidate dry run remains with the
+custodian before installation. No installed or booted ND3 claim is made.
+
 ## Hypothesis and unique observation
 
 ND1 and ND2 both refused locally before PIO. ND3 changes only the shared native
