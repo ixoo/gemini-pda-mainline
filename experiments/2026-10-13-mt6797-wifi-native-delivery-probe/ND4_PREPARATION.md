@@ -57,16 +57,52 @@ receipt; no additional assembly approval is needed within this reviewed task.
 The actual ND4 compositor namespace/CLI was checked against the validated
 package: commit/profile/release/inventory/Image pins match; inherited parent,
 config, container and RAM-root gate bodies remain unchanged. Private C32
-composition has not been run by the worker. The real receipt is pending from
-the custodian.
+composition was run by the custodian, not the worker. The real receipt and fresh
+offline/runtime bindings are recorded below. ND4 is **not installed**.
 
-Only that real receipt will supply the candidate, full-partition and runtime
-pins. ND4 will use fresh `native-delivery/session-nd4` and `capture-nd4` paths and
-a separate `runtime-nd4` identity copy. Those paths are planned, not claimed or
-created by this document. Actual-module preparation/installer/capture/session
-wiring tests must pass before custodian private preflight. A full-host dry run
-must refuse a missing real deployment summary; no synthetic deployment is used.
-ND3 runtime/receipt/script files remain byte-identical.
+### Real composition receipt and exact bindings
+
+The custodian reports all frozen config/RAM/inventory/provenance/PSCI/clock/LK
+gates passed, all six file hashes/sizes independently verified, and exact16MiB
+zero padding verified. Only the kernel changed from installed ND3; config,
+board DT and the whole64-member RAM root are byte-identical. The author verified
+the supplied receipt digest, byte-exact identity copies and unchanged ND3
+config/DT/RAM metadata. Private images were not copied into Git.
+
+- [Real candidate receipt](results/native-delivery-candidate-4.json), byte-exact
+  [runtime identity](runtime-nd4/results/candidate.json):
+  `b7ca24a196fb416b25ce6e078770087b96d3ea240dd9928230d1e3156d7dd079`.
+- Raw boot `f6eb9084c6cad5bc466359d3858df6253bb950983e82d50ffe9e9cd6cb2864c3`,
+  12668928 bytes; candidate directory must be `candidate-` plus this full digest.
+- Full boot2 `7ce16dc852c1d89881c3ed4e676713fde1f8af755f297cc3e9671cddf6819a0c`,
+  16777216 bytes. Composition is not deployment or boot evidence.
+
+| Tool | ND4 binding |
+| --- | --- |
+| [prepare-native-delivery-4.py](prepare-native-delivery-4.py) | Exact receipt pin before evidence creation; fresh `native-delivery/session-nd4`, capture left absent for its one-attempt claim |
+| [install-native-4.py](install-native-4.py) | Real receipt, ND3 predecessor, actual program digest and `mt6797-wifi-native-delivery-deployment-4`; unchanged GPT/root/power/write/readback/shutdown gates |
+| [laptop-capture-native-4.py](laptop-capture-native-4.py) | Exact receipt, `capture-nd4` and `session-nd4/deployment-summary.txt`, unchanged Phase-A/one-attempt gates |
+| [passive-host-native-4.py](passive-host-native-4.py) | `session-nd4`/`capture-nd4`, `runtime-nd4` identity and helper receipt paths; unchanged budgets/verdict |
+| [laptop-session-native-4.py](laptop-session-native-4.py) | Actual prepare/check_ram_root namespace selects ND4; mandatory supplicant/wpa_cli/private-source pins retained; installer routed to ND4 |
+
+Tool SHA256 pins:
+
+- Installer `a99ab4a5f1e5e17fc14538c95aedb8aa1d1100baa0b5189c54d5a7806223155b`.
+- Standalone prepare `c29374e156e796d4bdc7e40ff5595004755c1d4f5d9174096d06e7d0c0137d6c`.
+- Capture `f7e12c567b47e7aa502048313d0093846131f2d8007eba96ba30bf162f979922`.
+- Host `e27ca1642f9921a8fceb24b4c4f48c889a05a589d754f14a9bfd9357046b2937`.
+- Session `c5b6744c1d8c0f378da14d4e6b2b2ee29d1715171c7e0d27f7bd2ea0ccceb2ec`.
+
+[Actual-module wiring tests](tests/nd4-wiring-test.py) pass for these namespaces,
+receipt copies, installer/self-digest derivation, bad candidate refusal,
+offline fresh-root preparation/reuse refusal and changed receipt refusal before
+evidence creation. ND3 wiring regression and original classifier/helper fixtures
+pass. Tests use temporary offline fixtures, create no deployment summary or
+device operation, and do not validate the private candidate's full file set.
+Actual private standalone/installer/session preflight remains with the custodian.
+A full-host dry run must refuse missing real deployment evidence. There is no
+installation, boot or native-delivery claim. ND3/C35 scripts/receipts/evidence
+remain immutable; no wrapper change requires a kernel rebuild.
 
 The last independently verified predecessor is ND3 full boot2
 `7b61241a89c9d8472885c93d654ecda6f63a188f154b2a7bfc69dd5caaf9dc06`, returned

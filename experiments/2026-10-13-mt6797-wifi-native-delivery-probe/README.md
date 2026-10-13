@@ -10,8 +10,9 @@
 
 ## Question
 
-The reviewed ND4 metadata successor is built and awaiting private composition;
-see [ND4 preparation](ND4_PREPARATION.md). It is not installed or runtime-tested.
+The reviewed ND4 metadata successor is built, privately composed and bound for
+fresh private preflight; see [ND4 preparation](ND4_PREPARATION.md). It is not
+installed or runtime-tested.
 
 Does a firmware mode deliver intact protected native MPDUs the host can authenticate through
 standard mac80211 — the route-4 precondition for maintained RX crypto? This is the runtime
