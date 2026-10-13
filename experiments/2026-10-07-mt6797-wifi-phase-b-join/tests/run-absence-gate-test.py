@@ -13,16 +13,17 @@ import tempfile
 
 parser = argparse.ArgumentParser()
 parser.add_argument("kernel_tree", type=Path)
+parser.add_argument("--mac-source", type=Path)
 args = parser.parse_args()
 driver = args.kernel_tree.resolve() / "drivers/net/wireless/mediatek/mt6797"
-source = (driver / "mac.c").read_text()
+source = (args.mac_source or driver / "mac.c").read_text()
 limits = [l for l in re.findall(r"^#define MT6797_JOIN_DATA_TX_QUEUE[A-Z0-9_]* .*$", source, re.M)]
 if len(limits) < 2:
     parser.error("MT6797_JOIN_DATA_TX_QUEUE limits missing")
 parts = list(limits)
-for name in ("mt6797_mac_join_tx_pressure", "mt6797_mac_join_publish_tx_gate",
-             "mt6797_mac_join_set_absent"):
-    m = re.search(r"static (?:bool|void) " + name + r"\([^;]*?\)\n\{.*?\n\}", source, re.S)
+for name in ("mt6797_mac_join_tx_pressure",
+             "mt6797_mac_join_publish_tx_gate", "mt6797_mac_join_set_absent"):
+    m = re.search(r"static (?:bool|void|unsigned int) " + name + r"\([^;]*?\)\n\{.*?\n\}", source, re.S)
     if not m:
         parser.error("function missing (apply the maintained-queue patch): " + name)
     parts.append(m.group(0))

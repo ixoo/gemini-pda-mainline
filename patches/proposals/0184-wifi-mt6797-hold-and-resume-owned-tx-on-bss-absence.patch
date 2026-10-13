@@ -1,32 +1,39 @@
-From ad0df94c3f8bad98fdba1e180701683098c02a06 Mon Sep 17 00:00:00 2001
+From 2548ef790d393231f805011f2917973a0a5dbe32 Mon Sep 17 00:00:00 2001
 From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
-Date: Tue, 13 Oct 2026 00:33:17 +0000
-Subject: [PATCH] wifi: mt6797: hold and resume owned TX on owned-BSS
- absence/presence
+Date: Tue, 13 Oct 2026 01:24:03 +0000
+Subject: [PATCH] wifi: mt6797: hold and resume owned TX on owned-BSS absence
 
-Owned-BSS absence/presence (event 0x11) is the firmware's DATA-scheduling state,
-not association loss. Runtime 34's second join refused a valid-shape 0x11 in the
-pre-data window (teardown-only admission), stalling the lifetime. Admit the valid
-owned-slot notification throughout the owned lifetime (pre-data, data, teardown),
-log its body before deciding, record the scheduling state, and drive a maintained
-backpressure gate: hold owned MMPDU frames before dequeue while absent, keep
-servicing RX, credit and TX-done, and resume on presence once the shared queue is
-below its low mark. There is no lifetime cap on valid notifications; a malformed,
-out-of-slot or out-of-lifetime event is an exceptional refusal, counted truthfully
-and refused. mac80211 stop/wake is decided and published under join_queue.lock.
-Unsent owned frames are held, never dropped-as-held; a frame that still reaches the
-hard shared-queue cap remains an honest drop, not claimed eliminated. Absence by
-itself never ends the lifetime; the existing finite deadlines and idle guards still
-decide teardown. No FORCE_TX, no blanket DATA ignore, quota is never a TC4 term.
-The reserved deauthentication is held like any owned MMPDU while absent; its
-software/credit/TX-done accounting is unchanged (unsent is a software cancel, a
-submitted debt retires on matching credits/TX-done or poison).
+Runtime 34's second join refused event 0x11 before data submissions; the
+body was unobserved. Admit strictly shaped owned-slot boolean notifications
+throughout the owned lifetime, logging the body before deciding. Do not
+limit normal repeated notifications or treat absence as association loss.
+
+Hold owned frames before dequeue while absent; continue the worker's RX,
+credit and TX-done servicing. Resume only with absence and shared pressure
+clear. Management/EAPOL retain their 3-frame/3*2304 admission even during
+DATA; data retains 8-frame/8*1550 admission. Publish stop/wake under the
+queue lock using the smaller shared admission cap. Reserved deauth counts
+in this same queue. No headroom guarantee covers direct management callers:
+exceptional hard-cap drops remain honest unsent drops, not retained frames.
+
+Fence permanent close and failure even from a previously woken state. A
+worker/presence cannot undo permanent close; only healthy quiescent rearm
+releases the old stop after reset so fresh auth is not blocked. No
+FORCE_TX, fake ACK or quota-as-credit; unsent deauth is never a hardware
+TC4 refund.
+
+Host tests cover actual control handling, helper gates, worker selection
+and lifecycle queue blocks. They do not prove kernel concurrency or
+firmware semantics. Internal experiment archive, not submission-ready;
+no DCO certification. Preserves the interrupted author's corrections,
+with further shared-cap and permanent-close repairs authored after the
+ownership handoff.
 ---
- mac.c | 118 ++++++++++++++++++++++++++++++++++++++++++++++------------
- 1 file changed, 94 insertions(+), 24 deletions(-)
+ drivers/net/wireless/mediatek/mt6797/mac.c | 150 +++++++++++++++++----
+ 1 file changed, 125 insertions(+), 25 deletions(-)
 
 diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
-index faa03b2..5566d4e 100644
+index faa03b2..d30c30f 100644
 --- a/drivers/net/wireless/mediatek/mt6797/mac.c
 +++ b/drivers/net/wireless/mediatek/mt6797/mac.c
 @@ -132,6 +132,17 @@ struct mt6797_mac {
@@ -57,17 +64,54 @@ index faa03b2..5566d4e 100644
  #endif
  #endif
  
-@@ -859,6 +873,9 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+@@ -859,6 +873,8 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
  	mac->join_cleanup_group_discarded = 0;
  	mac->join_data_llc_discarded = 0;
  	mac->join_absence_events = 0;
 +	mac->join_absence_seen = 0;
 +	mac->join_absence_refused = 0;
-+	mt6797_mac_join_set_absent(mac, false);
  	mac->join_data_rx_unicast = 0;
  	mac->join_data_rx_group = 0;
  	mac->join_data_rx_dropped = 0;
-@@ -1198,35 +1215,36 @@ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
+@@ -907,6 +923,15 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ 	mac->join_running = false;
+ 	mac->join_open = false;
+ 	mac->join_queue_bytes = 0;
++	/* Release the fence only here, after the fresh lifetime's queue/gates are
++	 * reset, so a stop left by the prior lifetime cannot block the new auth and
++	 * no stale wake is published mid-reset.
++	 */
++	mac->join_bss_absent = false;
++	if (mac->join_tx_stopped) {
++		mac->join_tx_stopped = false;
++		ieee80211_wake_queues(mac->hw);
++	}
+ 	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
+ 	mac->join_retired = false;
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+@@ -935,6 +960,13 @@ static void mt6797_mac_join_close(struct mt6797_mac *mac)
+ 	spin_lock_irqsave(&mac->join_queue.lock, flags);
+ 	mac->join_running = false;
+ 	mac->join_open = false;
++	/* Fence mac80211 on the permanent close (stop/remove/poison); only the
++	 * healthy re-arm releases it, and close invalidates re-arm.
++	 */
++	if (!mac->join_tx_stopped) {
++		mac->join_tx_stopped = true;
++		ieee80211_stop_queues(mac->hw);
++	}
+ 	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
+ 	mutex_unlock(&mac->mutex);
+ 	/* Neither this mutex nor the queue lock may be held while cancelling. */
+@@ -1066,7 +1098,6 @@ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
+ 		.bss = 0, .token = mac->join_channel_token, .channel = 40,
+ 		.band = 2, .max_ms = mac->join_requested_ms,
+ 	};
+-	unsigned long flags;
+ 	u32 interval, own;
+ 	int ret;
+ 
+@@ -1198,35 +1229,36 @@ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
  	}
  #endif
  	if (mt6797_join_event(mac->join_packet, bytes, 0x11, 4)) {
@@ -127,20 +171,42 @@ index faa03b2..5566d4e 100644
  		return 0;
  	}
  	return -EPROTO;
-@@ -1554,6 +1572,54 @@ static int mt6797_mac_join_deliver_beacon(struct mt6797_mac *mac, size_t offset,
+@@ -1499,6 +1531,7 @@ static int mt6797_mac_join_fail_stop(struct mt6797_mac *mac, int ret,
+ 	mac->join_open = false;
+ 	skb_queue_splice_init(&mac->join_queue, discard);
+ 	mac->join_queue_bytes = 0;
++	mt6797_mac_join_publish_tx_gate(mac);
+ 	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
+ 	if (mac->join_inflight) {
+ 		__skb_queue_tail(discard, mac->join_inflight);
+@@ -1554,6 +1587,69 @@ static int mt6797_mac_join_deliver_beacon(struct mt6797_mac *mac, size_t offset,
  }
  #endif
  
 +/* Shared single join_queue backpressure: the reserved deauthentication, EAPOL,
 + * management and data frames share this queue and its byte budget, so the mark is
 + * the actual skb_queue_len / join_queue_bytes (the reserved deauth is one counted
-+ * slot). High mark leaves headroom below the data cap for an in-flight .tx; low
-+ * mark hysteresis avoids thrashing. These are host-queue marks, not firmware TC4.
++ * slot). Low-mark hysteresis avoids thrashing. These are host-queue marks, not
++ * firmware TC4; direct management callbacks have no bounded publication residual.
++ */
++/* The admission caps are class-specific on the one shared queue: data admits at
++ * < MT6797_JOIN_DATA_TX_QUEUE (8) frames / its byte budget, while EAPOL and
++ * management (and so the pre-data and teardown phases) admit at < 3 frames /
++ * 3 * 2304 bytes, including during DATA. Stop conservatively at the smaller
++ * shared-queue admission cap in every phase, so a presence cannot wake into a
++ * queue already at the control cap. The reserved deauthentication is one counted
++ * slot. This bounds the common case; it is not a headroom guarantee for
++ * every direct .tx callback, so a frame that still reaches the hard cap is an
++ * honest refusal (freed unsent), never a disguised hold.
 + */
 +static bool mt6797_mac_join_tx_pressure(const struct mt6797_mac *mac)
 +{
-+	return skb_queue_len(&mac->join_queue) >= MT6797_JOIN_DATA_TX_QUEUE - 1 ||
-+	       mac->join_queue_bytes + 1550U > MT6797_JOIN_DATA_TX_QUEUE_BYTES;
++	unsigned int cap = 3U;
++	unsigned int bytecap = 3U * 2304U;
++	unsigned int next = 2304U;
++
++	return skb_queue_len(&mac->join_queue) >= cap - 1 ||
++	       mac->join_queue_bytes + next > bytecap;
 +}
 +
 +/* DECIDE+PUBLISH the mac80211 queue gate with join_queue.lock held (the reviewed
@@ -152,14 +218,15 @@ index faa03b2..5566d4e 100644
 + */
 +static void mt6797_mac_join_publish_tx_gate(struct mt6797_mac *mac)
 +{
-+	bool stop = mac->join_bss_absent || mt6797_mac_join_tx_pressure(mac);
-+	bool low = skb_queue_len(&mac->join_queue) <= MT6797_JOIN_DATA_TX_QUEUE / 2;
++	bool stop = mac->join_bss_absent || mac->join_closed || mac->closing || mac->first_error ||
++		    mt6797_mac_join_tx_pressure(mac);
++	bool low = skb_queue_len(&mac->join_queue) <= 1;
 +
 +	if (stop && !mac->join_tx_stopped) {
 +		mac->join_tx_stopped = true;
 +		ieee80211_stop_queues(mac->hw);
 +	} else if (mac->join_tx_stopped && !stop && low &&
-+		   !mac->closing && !mac->first_error) {
++		   !mac->join_closed && !mac->closing && !mac->first_error) {
 +		mac->join_tx_stopped = false;
 +		ieee80211_wake_queues(mac->hw);
 +	}
@@ -182,7 +249,7 @@ index faa03b2..5566d4e 100644
  static void mt6797_mac_join_work(struct work_struct *work)
  {
  	struct mt6797_mac *mac = container_of(to_delayed_work(work),
-@@ -1708,7 +1774,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -1708,7 +1804,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
  	if (!mac->join_inflight && !mac->join_page_debt) {
  		spin_lock_irqsave(&mac->join_queue.lock, flags);
  		skb = NULL;
@@ -191,7 +258,7 @@ index faa03b2..5566d4e 100644
  			/* One queue, in order, with two holds: the driver-built
  			 * deauthentication waits out the bounded handshake hold in
  			 * its place, and a control-port data frame waits for the
-@@ -1751,6 +1817,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -1751,6 +1847,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
  		}
  		if (skb)
  			mac->join_queue_bytes -= skb->len;
@@ -199,7 +266,7 @@ index faa03b2..5566d4e 100644
  		spin_unlock_irqrestore(&mac->join_queue.lock, flags);
  		if (skb) {
  			mac->join_inflight = skb;
-@@ -3532,6 +3599,7 @@ static void mt6797_mac_tx(struct ieee80211_hw *hw,
+@@ -3532,6 +3629,7 @@ static void mt6797_mac_tx(struct ieee80211_hw *hw,
  			mac->join_queue_bytes += skb->len;
  			__skb_queue_tail(&mac->join_queue, skb);
  			schedule_delayed_work(&mac->join_work, 0);
@@ -207,7 +274,7 @@ index faa03b2..5566d4e 100644
  			accepted = true;
  		}
  		spin_unlock_irqrestore(&mac->join_queue.lock, flags);
-@@ -3565,6 +3633,7 @@ static void mt6797_mac_tx(struct ieee80211_hw *hw,
+@@ -3565,6 +3663,7 @@ static void mt6797_mac_tx(struct ieee80211_hw *hw,
  			mac->join_queue_bytes += skb->len;
  			__skb_queue_tail(&mac->join_queue, skb);
  			schedule_delayed_work(&mac->join_work, 0);
@@ -215,7 +282,7 @@ index faa03b2..5566d4e 100644
  			accepted = true;
  		}
  		spin_unlock_irqrestore(&mac->join_queue.lock, flags);
-@@ -3589,6 +3658,7 @@ static void mt6797_mac_tx(struct ieee80211_hw *hw,
+@@ -3589,6 +3688,7 @@ static void mt6797_mac_tx(struct ieee80211_hw *hw,
  			mac->join_queue_bytes += skb->len;
  			__skb_queue_tail(&mac->join_queue, skb);
  			schedule_delayed_work(&mac->join_work, 0);
@@ -223,3 +290,6 @@ index faa03b2..5566d4e 100644
  			accepted = true;
  		}
  		spin_unlock_irqrestore(&mac->join_queue.lock, flags);
+-- 
+2.39.5
+
