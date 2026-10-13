@@ -56,11 +56,57 @@ device test. Synthetic tests remain distinct from live MLME/firmware/crypto.
 [build-native-candidate-5.py](build-native-candidate-5.py) pins the actual package/
 Image above and reuses frozen ND4/ND2 private C32 config/RAM/board/LK gates.
 Its actual namespace/CLI and inherited gate bodies are checked against the
-validated package. Root automatically performs private composition within this admitted
-task and returns the REAL receipt. Only that receipt will bind fresh
-`native-delivery/session-nd5`, `capture-nd5`, `runtime-nd5` and installer identity.
-No wrapper-only rebuild or extra assembly approval is needed. Worker device
-access, placeholder receipts and synthetic deployment summaries are forbidden.
+validated package. Root completed private composition within this admitted task
+and returned the REAL receipt. Exact fresh bindings below use that receipt,
+not placeholders. ND5 is **not installed or runtime-tested**. No wrapper-only
+rebuild or extra assembly approval is needed. Worker device access and synthetic
+deployment summaries are forbidden.
+
+### Real composition and fresh runtime identities
+
+The custodian reports all frozen C32/config/RAM/inventory/provenance/PSCI-smc/
+clock/LK gates passed, all six file hashes/sizes independently verified and
+exact16MiB zero padding verified. Only kernel changed from ND4; config/board DT/
+whole64-member private RAM root are byte-identical. The author verified the
+real receipt digest and byte-exact imports, plus unchanged ND4 metadata pins.
+Private images and RAM-root members were not transferred into public Git.
+
+- [Real receipt](results/native-delivery-candidate-5.json) and byte-exact
+  [runtime identity](runtime-nd5/results/candidate.json):
+  `25893fa2bf4b67364e0821e635c0105c212f110d37156748d8e5a9338a612ef8`.
+- Raw boot `f6b3a0d30d4955655c9c7d0fdcc3b7ef8aef880655e976fdc517ae5aa574fe50`,
+  12668928 bytes; candidate directory must be `candidate-` plus this full digest.
+- Full boot2 `6fec5cf5227f58deef91c0c1b0213956ab6c88f61292961d2817a6e6ec273ae0`,
+  16777216 bytes. Composition is not deployment/boot evidence.
+
+| Tool | Actual ND5 binding |
+| --- | --- |
+| [prepare-native-delivery-5.py](prepare-native-delivery-5.py) | Exact receipt pin before evidence creation, fresh `native-delivery/session-nd5`, `capture-nd5` left absent for its one-attempt claim |
+| [install-native-5.py](install-native-5.py) | Real receipt/ND4 predecessor/actual program digest, deployment `mt6797-wifi-native-delivery-deployment-5`; unchanged live GPT/root/power/write/readback/shutdown guards |
+| [laptop-capture-native-5.py](laptop-capture-native-5.py) | Exact receipt, `capture-nd5`, `session-nd5/deployment-summary.txt`; unchanged Phase-A capture gates |
+| [passive-host-native-5.py](passive-host-native-5.py) | Actual `session-nd5`/`capture-nd5` namespaces, `runtime-nd5` identity and helper receipt; same finite protocol/verdict |
+| [laptop-session-native-5.py](laptop-session-native-5.py) | Actual prepare/check_ram_root namespace selects ND5, mandatory inherited supplicant/wpa_cli/private source/calibration checks retained, actual installer routed to ND5 |
+
+Tool SHA256 pins:
+
+- Installer `81996cde2330aa9253715b4e075ae71d96fa666d182cdded5f8efd4a2691792f`.
+- Standalone prepare `89a1f452bf23bce4861b3d884eb5bc1d321da3c9f60ae53b4f47b623d4da37aa`.
+- Capture `7acce54380269f12d5a5530865ad92166add99775c30f893170be49b7957fd48`.
+- Host `4e2066c36b517db136c0d8907a57926900dbf44192f5a3a623a67f529b463e24`.
+- Session `6aaa9e39c8bff0c2f39604a67255882e58909fbd962cd6136b7000cf8ea046c4`.
+
+[Actual-module wiring tests](tests/nd5-wiring-test.py) pass: standalone CLI
+receipt/fresh-root/reuse and changed/missing receipt refusal before evidence
+creation; actual installer/self-digest/deployment/predecessor derivation and
+bad-candidate refusal; standalone-host/capture/session/prepare/check_ram_root
+namespaces and mandatory supplicant/wpa_cli flags. No deployment summary was
+created. ND4/ND3 wiring regression and original classifier/helper tests pass.
+Temporary synthetic fixtures do not validate the private images or provide live
+identity. Real private64-member session API/installer/capture preflights remain
+with the custodian. The full-host pre-deployment dry run must refuse missing REAL
+deployment evidence; that private full-host check is not claimed by the fixtures.
+Same one-cycle leaf/helper/classifier/finite/quiescence/seal/regression/one-recovery
+contracts, no reconstruction or eligibility/crypto bypass change from bindings.
 
 The latest verified installed predecessor is ND4 full boot2
 `7ce16dc852c1d89881c3ed4e676713fde1f8af755f297cc3e9671cddf6819a0c`,

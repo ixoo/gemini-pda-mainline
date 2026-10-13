@@ -12,8 +12,9 @@
 
 The reviewed ND4 metadata successor ran once; see [ND4 result](ND4_RESULT.md)
 and its historical [preparation](ND4_PREPARATION.md). No unchanged retry.
-The reviewed ND5 native-beacon successor is built and awaiting private
-composition, not installed or runtime-tested; see [ND5 preparation](ND5_PREPARATION.md).
+The reviewed ND5 native-beacon successor is built, privately composed and bound
+for fresh private preflight, not installed or runtime-tested; see
+[ND5 preparation](ND5_PREPARATION.md).
 
 Does a firmware mode deliver intact protected native MPDUs the host can authenticate through
 standard mac80211 — the route-4 precondition for maintained RX crypto? This is the runtime
