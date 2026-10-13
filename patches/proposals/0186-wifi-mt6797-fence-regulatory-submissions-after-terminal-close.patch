@@ -1,0 +1,44 @@
+From c35a22e455ac15feb23568cded22b48f7c6cc7c2 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 13 Oct 2026 02:41:02 +0000
+Subject: [PATCH] wifi: mt6797: fence regulatory submissions after terminal
+ join close
+
+Explicit stop closes the join lifetime before dropping the mac mutex for
+worker cancellation. A regulatory callback can run during that gap or
+after stop. When cleanup_done is true, the existing healthy regulatory
+restore exception returns false from join_regulatory_stop, so the notifier
+continues to submit domain and power commands despite join_closed.
+
+Check the terminal fence in the actual notifier under the existing mutex,
+before the benign-retirement exception. Healthy two-lifetime rearm leaves
+join_closed clear and retains its regulatory restore behavior. Do not
+clear poison, alter command/page ownership, lift a budget or add an IRQ
+operation.
+
+Host tests compile the actual stop, close, regulatory admission and sender
+bodies with kernel/policy/HIF-boundary shims. The old source submits in the
+close/cancel gap; the fixed source refuses before any sender or debit.
+These tests do not prove kernel concurrency or firmware behavior.
+
+Internal experiment archive, not submission-ready; no DCO certification.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index d30c30f..c592f55 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -347,6 +347,8 @@ static void mt6797_mac_regulatory(struct wiphy *wiphy,
+ 	if (mac->closing || mac->first_error)
+ 		goto out;
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++	if (mac->join_closed)
++		goto out;
+ 	if (mt6797_mac_join_regulatory_stop(mac, &discard, &internal))
+ 		goto out;
+ #endif
+-- 
+2.39.5
+

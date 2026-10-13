@@ -796,3 +796,4 @@ proposals/0182-wifi-mt6797-discard-owned-bss-absence-presence-event-during-scan.
 proposals/0183-wifi-mt6797-reset-per-scan-tuning-diagnostics.patch
 proposals/0184-wifi-mt6797-hold-and-resume-owned-tx-on-bss-absence.patch
 proposals/0185-wifi-mt6797-bound-native-diagnostic-hif-deadlines.patch
+proposals/0186-wifi-mt6797-fence-regulatory-submissions-after-terminal-close.patch
