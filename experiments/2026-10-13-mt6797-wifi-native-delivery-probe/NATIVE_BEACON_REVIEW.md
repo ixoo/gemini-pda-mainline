@@ -2,7 +2,7 @@
 
 [0188](../../patches/proposals/0188-wifi-mt6797-admit-intact-native-beacons-in-active-diagnostic.patch)
 SHA256 `f2d5c61673b278eb1c57dee731a18ea2258e9915896cfbe4fb9710f5b3a09ad1`.
-Unselected proposal on the exact ND4 built driver, mac.c
+Reviewed proposal on the exact ND4 built driver, mac.c
 `47dbe9567a216aef6ae2703ee13204c49eb9594c1015c64f369e45598dd4c751`.
 Two driver files only: new native-beacon.h and MAC dispatch/one report field,
 86 insertions /3 deletions. Coordinator exact-source review approved immutable
