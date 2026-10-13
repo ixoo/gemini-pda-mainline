@@ -110,3 +110,7 @@ deployment/evidence digests are retained under the publication policy. Historica
 unchanged. C34/R35 and C35/R36 remain independently prepared but not installed;
 no candidate substitution or unchanged ND3 retry is authorized by this result.
 Full maintained station/crypto/replay/IRQ/DMA/rekey/clean-profile goal remains open.
+
+The subsequently supplied numeric chronology and source-review-only diagnostic
+proposal are recorded in [ND4_SOURCE_REVIEW](ND4_SOURCE_REVIEW.md). This adds
+missing observations without changing the frozen ND3 inputs or result.
