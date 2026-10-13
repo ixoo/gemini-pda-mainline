@@ -1,0 +1,35 @@
+From 0257d83419b6595d411e92d9f572e96fd920f82d Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 13 Oct 2026 01:19:27 +0000
+Subject: [PATCH] wifi: mt6797: bound native diagnostic HIF operation deadlines
+
+The native enable and disable caller passed the whole join lifetime to a
+HIF entry gate limited to one second. ND2 refused locally after command
+debit and sequence admission, before PIO. Use the existing 100 ms operation
+budget capped by remaining lifetime for both actions. Preserve HIF poison,
+ledger ownership and all diagnostic limits.
+
+Host fixtures exercise the actual caller and HIF; firmware native mode
+remains untested. Internal experiment archive, not submission-ready; no
+DCO certification.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index fe6319e..b70e4bd 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -1483,7 +1483,8 @@ static void mt6797_native_diag_step(struct mt6797_mac *mac)
+ 	if (act == MT6797_ND_ACT_SUBMIT_ENABLE || act == MT6797_ND_ACT_SUBMIT_DISABLE) {
+ 		rc = mt6797_hif_native_monitor(mac->hif, mac->sequence++,
+ 					       act == MT6797_ND_ACT_SUBMIT_ENABLE, 40,
+-					       mac->join_deadline);
++					       min_t(u64, mac->join_deadline,
++						     ktime_get_ns() + 100 * NSEC_PER_MSEC));
+ 		if (rc) {
+ 			if (!mac->first_error)
+ 				mac->first_error = rc;
+-- 
+2.39.5
+

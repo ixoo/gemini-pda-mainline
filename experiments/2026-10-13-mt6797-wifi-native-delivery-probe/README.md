@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-13-mt6797-wifi-native-delivery-probe` |
-| Status | ND1 (d104654d) was built, installed under the reviewed boot2 guard and RUN ONCE: NEGATIVE before native delivery, caused by a HOST defect (the SET_MONITOR CID 0xFC was omitted from the command validator `mt6797_join_prepare_command`, so the enable was refused locally, EINVAL) -- the firmware capability is UNOBSERVED. See [ND1_RESULT](ND1_RESULT.md). Fix: proposal 0181 now adds the config-gated 0xFC validator case (+ a validator-path test); the native profile was rebuilt (ND2, package 2d2c6615) and COMPOSED+validated (receipt 9e8e008f, candidate `candidate-d0340e7e`), with fresh ND2 wrappers pinned (install-native-2 / prepare-native-delivery-2 / runtime under session-nd2 / capture-nd2; predecessor = installed ND1 76a9). ND1 (e1/d104) stays immutable. ND1 recovery is UNCONFIRMED and a fresh Gemian identity is pending (Gemian LAN and mainline USB both unavailable); no ND2 device write yet. |
+| Status | Inconclusive: native firmware mode remains untested. ND1 and ND2 completed negative runs with separate host whitelist and operation-deadline refusals before native submission. ND2 preservation/regression and one recovery passed; Gemian return independently confirmed. See [ND2_RESULT](ND2_RESULT.md); [ND1_RESULT](ND1_RESULT.md) remains immutable. Proposal 0185 is the source-reviewed narrow deadline repair, not a hardware result. |
 | Base | Proposal 0180 ([compile 37](../2026-10-07-mt6797-wifi-phase-b-join/COMPILE_37.md)), kernel `5d6323e1` / `b33ba5a2` |
 | Date | 2026-10-13 |
-| Device action | ND1 was installed and run once (host-defect negative; see [ND1_RESULT](ND1_RESULT.md)); recovery unconfirmed. Root is sole device custodian; no worker device access. The 0181 validator fix and tests are offline; ND2 build/compose/install is root-driven. |
+| Device action | ND1 and ND2 each ran once; no unchanged-artifact retry. Laptop coordinator is sole device custodian; implementation/build author has no device access. New deadline repair/tests are hardware-free. |
 
 ## Question
 
@@ -36,9 +36,10 @@ is the offline preparation adapter (receipt-driven, no fabricated hashes, no
 device action). Buildbox emits a validated kernel **package**; the laptop
 compositor (reusing candidate-32's) produces the boot2 image and receipt. The
 runtime is a single native diagnostic lifetime (one-cycle join, Wi-Fi SSH gated
-on a post-ACTIVE marker, native classifier). The executable compositor, capture/
-session and classifier are still being completed; build and device remain held
-until root reviews the source and profile.
+on a post-ACTIVE marker, native classifier). ND1/ND2 compositor and runtime
+receipts remain pinned and immutable. A repaired successor needs source review,
+clean pushed inputs, a validated package and fresh candidate/runtime bindings;
+the custodian supplies the real receipt using the private parent/RAM root.
 
 ## Checks
 
