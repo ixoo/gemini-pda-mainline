@@ -63,6 +63,14 @@ receipt pins follow that receipt, not speculative hashes. The installed
 predecessor must be pinned from the completed ND3 device outcome and freshly
 verified at later live-GPT deployment; ND3 has not been installed at this record.
 
+`passive-host-35.py` and `laptop-session-35.py` prepare the actual fresh host
+namespace and two-cycle helper identity, preserving private-source remapping
+and requiring C32's supplicant/wpa_cli members when selecting the new receipt.
+The main session refuses until the real runtime35 receipt copy is published;
+these adapters are not yet device-ready. Host namespace tests make no candidate,
+deployment or device claim. Capture/installer binding and full private dry run
+remain receipt-dependent; no incomplete adapter is an instruction to install.
+
 A later bounded test asks whether valid owned-BSS absence notifications can
 hold/resume the second join's unsent ownership without the R34 local refusal.
 Observe exact notifications, queue/TX completion and healthy-rearm chronology;
