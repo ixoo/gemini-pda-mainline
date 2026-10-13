@@ -71,6 +71,10 @@ these adapters are not yet device-ready. Host namespace tests make no candidate,
 deployment or device claim. Capture/installer binding and full private dry run
 remain receipt-dependent; no incomplete adapter is an instruction to install.
 
+A real candidate34 receipt and complete fresh bindings are now recorded in
+[runtime35 preparation](RUNTIME_35_PREPARATION.md); that later record supersedes
+the receipt-pending adapter status above without changing this build identity.
+
 A later bounded test asks whether valid owned-BSS absence notifications can
 hold/resume the second join's unsent ownership without the R34 local refusal.
 Observe exact notifications, queue/TX completion and healthy-rearm chronology;

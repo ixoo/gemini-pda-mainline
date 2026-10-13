@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-"""Runtime35 session preparation, preserving private-source and 64-member gates.
+"""Real C34/R35 session binding; private-source and 64-member gates unchanged.
 
-Not device-ready until real candidate-34 and exact install/capture bindings
-are published. ND3 precedes this separately compiled step in the device queue.
+ND3 precedes this separately compiled step in the device queue. Actual private
+dry run and fresh deployment/boot identity remain the custodian's gates.
 """
 import json
 import os

@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: MIT
 """Fresh runtime35 identity for the reviewed two-lifetime phase-b host.
 
-Preparation only until the real candidate-34/runtime35 receipt and installer
-bindings exist. Budgets, verdict, helper quiescence and recovery are unchanged.
+Real candidate-34/runtime35 receipt and installer bindings are separate from
+deployment/runtime observations. Budgets, verdict and recovery are unchanged.
 """
 import importlib.util
 import os
