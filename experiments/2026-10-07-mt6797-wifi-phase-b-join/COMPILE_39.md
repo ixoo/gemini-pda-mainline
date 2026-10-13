@@ -59,6 +59,10 @@ real receipt; none is invented here. `prepare-runtime-36.py` binds fresh
 receipt exists. Final receipt/installer/capture/session pins and predecessor
 must follow actual composition and device-queue state; no placeholder deployment.
 
+The actual custodian C35 receipt and completed R36 identity bindings are now
+recorded in [runtime36 preparation](RUNTIME_36_PREPARATION.md), superseding the
+receipt-pending status above without changing this exact build identity.
+
 ND3 frozen `d37` remains installed and first; C34/R35 input1ed/package074/real8505
 receipt and reviewed815 runtime remain immutable offline evidence. This guard
 does not substitute a candidate in their queue or require an observer-only boot.
