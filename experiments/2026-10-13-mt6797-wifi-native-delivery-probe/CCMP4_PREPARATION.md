@@ -109,10 +109,20 @@ config/DT/PSCI/clock/container/header/padding/disk gates unchanged. ROOT execute
 python3 experiments/2026-10-13-mt6797-wifi-native-delivery-probe/build-ccmp-candidate-4.py --kernel-package <validated-949d-package> --parent <verified-private-C32-parent> --output <fresh-private-CCMP4-output>
 ```
 
-ROOT independently verifies the six-file inventory/exact16MiB padding and returns
-actual receipt bytes/digest/raw/full identities; no private image/RAM/key crosses
-to a worker. Final prepare/install/capture/session/runtime4 pins await that REAL
-receipt, not another assembly approval or rebuild. No placeholder identity.
+ROOT composed using exact5446eff4 and independently verified six-file hashes/
+sizes/exact zero16MiB padding. The [REAL receipt](results/ccmp-stable-monitor-candidate-4.json)
+SHA256 is `1e8efbeaf49ac08f6fea3d76d3e4949d8473b2d1586c964a67a0b4677449598c`;
+[runtime4 copy](runtime-ccmp4/results/candidate.json) is byte-identical. Raw
+12670976B `b0402a254d847b300bcc22f74a8e476f40e073589e78cfd8a67b8976a669f2f2`;
+full16777216B `ee5dd8ad261496a387cf755b755982e0280f13a259e49619eb2de26e4a8dfc16`.
+RAM0b89/DT25ab/config483 are byte-identical to booted CCMP3; only kernel changes.
+Receipt only was transferred, no private image/RAM/key. No rebuild/device retry.
+
+An initial offline attempt used unsupported Python3.9, failed at zip(strict),
+finalized nothing and cleaned temporary state. ROOT reran unchanged tools with
+installed Python3.13 and passed; this is an interpreter correction, not code or
+kernel change. Use Python3.10+ throughout CLI, child tools and derived-shell
+validation/receipt steps; do not rely on a system3.9 executable named python3.
 
 [Host4 namespaces](passive-host-ccmp4.py) and [actual failure-main fixture](tests/ccmp4-no-scan-host-test.py)
 pass fresh root routing/genuine no-scan/started-child guards; private executor
@@ -120,3 +130,62 @@ mocked, no device test. [Config oracle](tests/ccmp4-composition-test.py) passes
 actual package/C32 configuration equality and inherited negative gates. Final
 receipt/private64/full installer/capture/session offline preflights belong to
 ROOT after truthful binding. Completed tools/candidates/evidence stay unchanged.
+
+## Fresh real-receipt install/capture/session binding
+
+[Prepare](prepare-ccmp4.py), [installer](install-ccmp4.py),
+[capture](laptop-capture-ccmp4.py), [session](laptop-session-ccmp4.py) and runtime4
+bind receipt1e8e/sourceb596/program/deployment4/fresh namespaces. Expected
+predecessor is booted CCMP3 full4e3c, freshly verified by ROOT's live guard.
+Private64/source/calibration/supplicant/CLI/binder/key/known-hosts requirements
+and all genuine no-scan/started-child/seal/regression/one-return gates remain.
+
+ROOT selects a supported Python and ensures child tools/derived shell resolve
+the supported interpreter too. Keep private environment exported **through the
+derived guarded shell and final receipt validation**, not only offline checks:
+
+```sh
+P=experiments/2026-10-13-mt6797-wifi-native-delivery-probe
+PYTHON=<installed-supported-Python-executable>
+export GEMINI_PRIVATE_REPO=<existing-private-checkout>
+export GEMINI_RUNTIME_ROOT=<private-runtime-root>
+export GEMINI_JOIN_SCRIPT=<existing-mode-0600-one-link-private-CCMP-binder>
+CANDIDATE=<private-path>/candidate-b0402a254d847b300bcc22f74a8e476f40e073589e78cfd8a67b8976a669f2f2
+"$PYTHON" "$P/prepare-ccmp4.py"
+"$PYTHON" "$P/install-ccmp4.py" validate --candidate "$CANDIDATE" --previous-gemian-boot "$PREVIOUS_GEMIAN_BOOT"
+"$PYTHON" "$P/install-ccmp4.py" prepare --candidate "$CANDIDATE" --previous-gemian-boot "$PREVIOUS_GEMIAN_BOOT" --output "$INSTALL_OUTPUT"
+```
+
+ROOT uses fresh authenticated Gemian identity, actually preflights the private
+candidate/full capture/session/deployment dependencies, reviews the whole derived
+shell with identity-only substitutions/Bash syntax/ShellCheck, then applies the
+unchanged live OS/boot/GPT/logicalboot2/inactive/unmounted/non-root/size/power and
+full4e3c predecessor guards. Require sync/flush/full ee5d readback and clean
+shutdown; no fresh backup solely per write. Retain only ACTUAL deployment-
+summary.txt under `$GEMINI_RUNTIME_ROOT/ccmp-stable-monitor/session-ccmp4/`.
+No fabricated receipt/live boot, automatic reboot or slot substitution; owner
+physically selects boot2. After ROOT authenticates the new expected candidate/
+release/boot identity, execute exactly one fresh capture/session:
+
+```sh
+export GEMINI_WIFI_SSH_KEYS=<existing-private-key-root>
+export GEMINI_WIFI_SSH_BOOT=<fresh-authenticated-CCMP4-boot-UUID>
+"$PYTHON" "$P/laptop-capture-ccmp4.py" --candidate "$CANDIDATE" --execute
+"$PYTHON" "$P/laptop-session-ccmp4.py" --candidate "$CANDIDATE" --execute
+```
+
+Same finite WPA/real DHCP/lease/WLAN ping3/3/ACTIVE-bound SSH and full leaf/cycle/
+process/consumed-ACK/healthy-cleanup/seal/A53/return conjunction. Missing ping
+statistics are missing, not zero traffic; partial evidence remains partial.
+Hint validity means staging only, E000 cannot certify event/deauthTXdone (exact
+parser requires24 bytes). No other hint/tail/postread/repair, budget increase,
+WHCR access, normal PN shortcut, unchecked GTK/rekey/reuse or unchanged retry.
+Preserve faults and available evidence/quiescence before one reviewed recovery.
+
+[Actual wiring/refusal fixture](tests/ccmp4-wiring-test.py) passes receipt/runtime
+copy, private binder/fresh roots, actual lower namespaces/installer program+
+digest/receipt routing, nonexistent-candidate CLI refusal, helper single spawn,
+and passive-session private64/supplicant/CLI requirement routing. These are host
+fixtures, not actual private image/full derived-shell or device execution.
+ROOT's actual preflights/live guard remain required. No completed tool/log/input
+mutation, assembly permission turn or binding-only kernel rebuild.
