@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-13-mt6797-wifi-native-delivery-probe` |
-| Status | Inconclusive ordinary-crypto availability: ND5 demonstrated26 new native-beacon queues and healthy ceiling/cleanup; ordinary native eligibility/delivery and authenticated exchange remain0. Preservation/seals/regression and exactly one reviewed recovery passed; changed-boot Gemian independently confirmed. See [ND5_RESULT](ND5_RESULT.md). No firmware-mode acceptance, crypto/throughput or maintained-driver claim. Historical inputs/results remain immutable. |
+| Status | Inconclusive ordinary-crypto availability: ND6 queued18 native beacons and captured translated reported-index1 Group4 metadata, ordinary native0. After CLOSED a header-length HIF refusal stopped the join; no healthy cleanup-stage3 claim. Preservation/seals/quiescence/regression and exactly one reviewed recovery passed. See [ND6_RESULT](ND6_RESULT.md); historical [ND5_RESULT](ND5_RESULT.md) remains immutable. No authenticated ordinary native exchange, firmware-policy or maintained-driver support claim. |
 | Base | Proposal 0180 ([compile 37](../2026-10-07-mt6797-wifi-phase-b-join/COMPILE_37.md)), kernel `5d6323e1` / `b33ba5a2` |
 | Date | 2026-10-13 |
-| Device action | ND1 through ND5 each ran once; no unchanged-artifact retry. ND6 is composed and bound, not installed or runtime-tested. Laptop coordinator is sole device custodian; implementation/build author has no device access. |
+| Device action | ND1 through ND6 each ran once; no unchanged-artifact retry. ND6 recovered to independently verified changed-boot Gemian. Laptop coordinator is sole device custodian; implementation/build author has no device access. |
 
 ## Question
 
@@ -23,9 +23,9 @@ The [compositor](build-native-candidate-6.py) produced the
 [prepare](prepare-native-delivery-6.py), [installer](install-native-6.py),
 [capture](laptop-capture-native-6.py), [host](passive-host-native-6.py) and
 [session](laptop-session-native-6.py) bindings preserve the frozen protocol;
-[actual binding tests](tests/nd6-wiring-test.py) pass offline. No deployment or
-runtime result is claimed. ROOT must freshly verify live identity and the ND5
-predecessor before installation; historical returned Gemian is not current proof.
+[actual binding tests](tests/nd6-wiring-test.py) pass offline. ROOT completed
+guarded installation and one runtime cycle; see [ND6 result](ND6_RESULT.md).
+Historical returned Gemian is not proof of current device identity.
 
 ND6's sole retargeted sample observes the first actual ACTIVE/admitted ordinary
 class2 translated rejection reporting programmed index1. Group4 availability
