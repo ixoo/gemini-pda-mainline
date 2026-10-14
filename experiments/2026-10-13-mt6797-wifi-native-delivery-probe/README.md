@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-13-mt6797-wifi-native-delivery-probe` |
-| Status | ND4 completed negative: 238 actual native decoder calls, zero eligibility/delivery; regulatory branch9 cancellation after disable submission, no CLOSED or HIF refusal. Preservation/seals/regression and exactly one reviewed recovery passed; changed-boot Gemian independently confirmed. See [ND4_RESULT](ND4_RESULT.md); ND3's different HIF failure remains unresolved. No firmware-mode acceptance, crypto or maintained-driver claim. Historical inputs/results remain immutable. |
+| Status | Inconclusive ordinary-crypto availability: ND5 demonstrated26 new native-beacon queues and healthy ceiling/cleanup; ordinary native eligibility/delivery and authenticated exchange remain0. Preservation/seals/regression and exactly one reviewed recovery passed; changed-boot Gemian independently confirmed. See [ND5_RESULT](ND5_RESULT.md). No firmware-mode acceptance, crypto/throughput or maintained-driver claim. Historical inputs/results remain immutable. |
 | Base | Proposal 0180 ([compile 37](../2026-10-07-mt6797-wifi-phase-b-join/COMPILE_37.md)), kernel `5d6323e1` / `b33ba5a2` |
 | Date | 2026-10-13 |
 | Device action | ND1, ND2 and ND3 each ran once; no unchanged-artifact retry. Laptop coordinator is sole device custodian; implementation/build author has no device access. Current source reassessment uses retained sanitized ND3 evidence only. |
@@ -12,9 +12,8 @@
 
 The reviewed ND4 metadata successor ran once; see [ND4 result](ND4_RESULT.md)
 and its historical [preparation](ND4_PREPARATION.md). No unchanged retry.
-The reviewed ND5 native-beacon successor is built, privately composed and bound
-for fresh private preflight, not installed or runtime-tested; see
-[ND5 preparation](ND5_PREPARATION.md).
+The reviewed ND5 native-beacon successor ran once; see [ND5 result](ND5_RESULT.md)
+and historical [preparation](ND5_PREPARATION.md). No identical retry.
 
 Does a firmware mode deliver intact protected native MPDUs the host can authenticate through
 standard mac80211 — the route-4 precondition for maintained RX crypto? This is the runtime
