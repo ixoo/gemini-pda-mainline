@@ -96,7 +96,90 @@ ROOT may compose directly, no extra assembly permission or binding-only rebuild:
 python3 experiments/2026-10-13-mt6797-wifi-native-delivery-probe/build-ccmp-candidate-2.py --kernel-package <validated-0304-package-at-input5c5> --parent <existing-private-C32-parent> --output <fresh-private-CCMP2-output>
 ```
 
-Actual receipt/new raw/full boot2 hashes remain pending ROOT's real composition,
-never placeholders. After that receipt, finalize only fresh CCMP2 prepare/capture/
-session/installer identities; predecessor expected full418 from CCMP1, freshly
-verified by ROOT's live guard. Frozen CCMP1 files/roots/claims stay untouched.
+ROOT actually composed with toolingd3da89da/compositor4dc1290f, verified private
+C32, package0304 and all6 output identities/padding/config/private64/board gates.
+The [REAL receipt](results/ccmp-stable-monitor-candidate-2.json) is SHA256
+`ba8078a0be1673a81a8159b5166769aeb226785eb0ee29ba682c3db3e50dc93d`;
+[runtime identity copy](runtime-ccmp2/results/candidate.json) is byte-identical.
+No private image/RAM/key was transferred to the agent. Raw boot12670976B:
+`e7e7e433bdc6f5ace8cede9236c6fe48fbfd39d9727a33953457c6d5a86e0ec4`;
+full16777216B `7b2b881b74b958502cd9c148f10b23c58949ea221f75281c9d97721d8b3bd60e`.
+RAM0b89/board25ab/config483 are identical to CCMP1; only the kernel changes relative
+to CCMP1. Expected predecessor full418 from CCMP1 is freshly verified by ROOT's
+live guard, not taken as a current Gemian identity. Frozen CCMP1 stays untouched.
+
+## Fresh receipt-bound installation and runtime handoff
+
+[Prepare](prepare-ccmp2.py), [installer](install-ccmp2.py),
+[capture](laptop-capture-ccmp2.py) and [session](laptop-session-ccmp2.py) bind the
+real receipt/program/source/predecessor and fresh capture-ccmp2/session-ccmp2/
+runtime-ccmp2 roots. Existing private64/source/calibration/supplicant/CLI/credential,
+device guard, seal/regression/one-recovery and started-child quiescence rules
+remain. Shared reviewed `join-ccmp.sh`, ACTIVE-only Wi-Fi helper and corrected
+full leaf/export/process classifier remain byte-identical; the private binder
+must wrap that exact leaf at mode0600/one link. No static-IP fallback.
+
+ROOT sets its existing private paths and fresh verified Gemian boot identity:
+
+```sh
+P=experiments/2026-10-13-mt6797-wifi-native-delivery-probe
+export GEMINI_PRIVATE_REPO=<existing-private-checkout>
+export GEMINI_RUNTIME_ROOT=<private-runtime-root>
+export GEMINI_JOIN_SCRIPT=<mode-0600-private-CCMP-binder>
+CANDIDATE=<private-path>/candidate-e7e7e433bdc6f5ace8cede9236c6fe48fbfd39d9727a33953457c6d5a86e0ec4
+python3 "$P/prepare-ccmp2.py"
+python3 "$P/install-ccmp2.py" validate --candidate "$CANDIDATE" --previous-gemian-boot "$PREVIOUS_GEMIAN_BOOT"
+python3 "$P/install-ccmp2.py" prepare --candidate "$CANDIDATE" --previous-gemian-boot "$PREVIOUS_GEMIAN_BOOT" --output "$INSTALL_OUTPUT"
+```
+
+ROOT performs actual private64/full-host preflights, reviews/executes the derived
+guarded shell with fresh OS/boot/GPT/root/power/predecessor, requires full readback
+7b2b881b and clean shutdown, then owner physically selects boot2. Do not create a
+fresh backup merely per write, invent a deployment summary or substitute reboot.
+Retain the actual deployment-summary under
+`$GEMINI_RUNTIME_ROOT/ccmp-stable-monitor/session-ccmp2/`. After physical boot,
+ROOT authenticates the fresh expected release/candidate and supplies that boot:
+
+```sh
+export GEMINI_WIFI_SSH_KEYS=<existing-private-key-root>
+export GEMINI_WIFI_SSH_BOOT=<fresh-authenticated-CCMP2-boot-UUID>
+python3 "$P/laptop-capture-ccmp2.py" --candidate "$CANDIDATE" --execute
+python3 "$P/laptop-session-ccmp2.py" --candidate "$CANDIDATE" --execute
+```
+
+Exactly one fresh capture/session; no CCMP1 repeat or namespace reuse. Genuine
+not-ready Phase A now uses the underlying no-leaf/A53 route: no never-started
+helper/C2 export prerequisites, no safe/quiescence fabrication. Started or
+uncertain children retain/refuse bypass of their real guards. Original ordinary
+recovery requires complete **available** evidence; logger deadline-limited logs
+must still be labelled incomplete with false regression/compatibility, not fake
+full-log success or an emergency RAM-loss premise.
+
+## Scalar hypothesis, unique evidence and decision branches
+
+The sole source-fix hypothesis is that the explicit supported CCMP suite clears
+the exact core registration predicate (`main.c:1076`) while both hardware flags,
+key/TX/fallback guards and finite monitor/PTK behavior stay unchanged. Unique
+scalar evidence is this candidate's registration/regulatory status and wiphy/
+TC4 startup result. No added observer, histogram, descriptor sample or firmware
+command is authorized by this fix; existing protocol evidence suffices.
+
+- Registration still refuses: preserve exact status/boot/trace, withhold scan,
+  use corrected no-scan seal/available-preservation/one-reviewed-return path;
+  no unchanged retry, cipher/fallback relaxation or PHY success claim.
+- Startup ready but no CCMP queue/lease: preserve normal finite monitor/key/
+  credit/queue and leaf evidence; partial, not authentication/support. Initial
+  GTK RX stays withheld, so broadcast DHCP/ARP responses can block completion.
+- Queue/SSH but missing ping3/3, leaf host-ack consumption or complete sameboot/
+  cycle export/process proof: retain separately named partial fields, no full
+  provisional pass. Missing/unexported/truncated evidence remains absent.
+- All admitted DHCP/lease/listener/ping/SSH/leaf/healthy-cleanup and sealed boot/
+  regression/recovery evidence: first finite provisional compatibility only.
+- HIF poison/deadline/cleanup ambiguity: no retry or claimed hardware key
+  deletion; preserve unique available evidence and use the unchanged finite
+  stop/quiescence/seal/identity/tool-bound one-recovery rules.
+
+Focused actual binding/refusal/namespace/private64-requirement/helper ownership
+tests and actual future failure-main tests are host-only; no worker device or
+private64 execution is claimed. ROOT's real preflights remain required. Full
+normal producer/GTK/rekey/reuse/IRQ-DMA/clean-profile ten-minute support is unproved.
