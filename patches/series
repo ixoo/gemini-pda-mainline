@@ -802,3 +802,4 @@ proposals/0188-wifi-mt6797-admit-intact-native-beacons-in-active-diagnostic.patc
 proposals/0189-wifi-mt6797-retarget-native-metadata-to-translated-index1.patch
 proposals/0190-wifi-mt6797-add-unwired-stable-ptk-rx-decision-helper.patch
 proposals/0191-wifi-mt6797-gate-one-monitor-assisted-stable-ccmp-epoch.patch
+proposals/0192-wifi-mt6797-declare-ccmp-suite-for-stable-monitor-registration.patch
