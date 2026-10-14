@@ -1,0 +1,133 @@
+From 536f35bde1ac5d3681166264b6e9d71f8f37337f Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Wed, 14 Oct 2026 01:04:05 +0000
+Subject: [PATCH] wifi: mt6797: retarget native metadata to translated reported
+ index1
+
+ND5 queued native beacons and completed healthy cleanup, but no ordinary
+frame reached Protected eligibility. Existing metadata cannot identify
+the translated population: RXD index/security and group4 FC/TA were not
+captured. Index1 is the programmed pairwise slot, not ownership proof.
+
+Count only ACTIVE/admitted ordinary class2 calls reporting index1, split
+by header translation. Append two descriptive scalars to the existing
+terminal phase report without adding output lines. Retarget the single
+descriptor sample to the first translated-gate rejection in that scope.
+
+Read original FC and compare TA with the joined AP only from present,
+bounded group4 at offset16. Short/missing group4 leaves those fields
+explicitly absent. Never interpret translated Ethernet destination bytes
+as FC or print addresses, payload, IV, PN or keys. Field availability is
+not whole-frame validity, authentication or firmware acceptance.
+
+The ordinary decoder and its decisions/outputs, native beacons, flags,
+sample/radio/drain/credit/cleanup and all control behavior stay unchanged.
+Paired actual parent/child dispatch tables and bounded metadata tests
+exercise selection, absence, phases, privacy and existing packet outcomes.
+These are synthetic evidence only, not a representation or support result.
+
+Internal experiment archive, not submission-ready; no DCO certification.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 60 ++++++++++++++++------
+ 1 file changed, 44 insertions(+), 16 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index a3ea15e..50403f3 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -174,6 +174,7 @@ struct mt6797_mac {
+ 	u64 native_diag_started, native_diag_retire_started;
+ 	struct {
+ 		unsigned int type[8], gate[MT6797_NATIVE_RX_GATES], window_blocked, beacons;
++		unsigned int reported_idx1_translated, reported_idx1_untranslated;
+ 	} native_diag_rx[4];
+ 	bool native_diag_rx_reported;
+ 	bool native_diag_rxd_sampled;
+@@ -1234,9 +1235,11 @@ static void mt6797_native_diag_rx_report(struct mt6797_mac *mac)
+ 		const unsigned int *g = mac->native_diag_rx[p].gate;
+ 
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+-			 "one-shot WLAN native RX classes: phase=%u t0=%u t1=%u t2=%u t3=%u t4=%u t5=%u t6=%u t7=%u beacons=%u\n",
++			 "one-shot WLAN native RX classes: phase=%u t0=%u t1=%u t2=%u t3=%u t4=%u t5=%u t6=%u t7=%u beacons=%u reported_idx1_translated=%u reported_idx1_untranslated=%u\n",
+ 			 p, t[0], t[1], t[2], t[3], t[4], t[5], t[6], t[7],
+-			 mac->native_diag_rx[p].beacons);
++			 mac->native_diag_rx[p].beacons,
++			 mac->native_diag_rx[p].reported_idx1_translated,
++			 mac->native_diag_rx[p].reported_idx1_untranslated);
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+ 			 "one-shot WLAN native RX gates: phase=%u blocked=%u eligible=%u input=%u length=%u type=%u channel=%u translated=%u msdu=%u fcs=%u header=%u span=%u frame_type=%u unprotected=%u ds=%u frame_shape=%u peer=%u destination=%u ccmp_shape=%u\n",
+ 			 p, mac->native_diag_rx[p].window_blocked,
+@@ -1244,6 +1247,42 @@ static void mt6797_native_diag_rx_report(struct mt6797_mac *mac)
+ 			 g[9], g[10], g[11], g[12], g[13], g[14], g[15], g[16]);
+ 	}
+ }
++
++/* Called only after an admitted ordinary decoder call, never beacon delivery.
++ * Index1 is a programmed-record report, not packet ownership/authentication.
++ * Group4 FC/TA are metadata; a translated Ethernet header is never an FC.
++ */
++static void mt6797_native_diag_ordinary_record(struct mt6797_mac *mac, size_t bytes,
++					       enum mt6797_native_rx_gate gate, int phase)
++{
++	const u8 *d = mac->join_packet;
++	unsigned int type, groups, fc = 0;
++	bool translated, group4_valid, ta_ap_equal = false;
++
++	if (mac->native_diag_state != MT6797_ND_ACTIVE || phase != 1 || bytes < 16)
++		return;
++	type = mt6797_join_le16(d + 2);
++	if ((type >> 13) != 2 || d[8] != 1)
++		return;
++	translated = d[6] & 0x80;
++	if (translated)
++		mac->native_diag_rx[phase].reported_idx1_translated++;
++	else
++		mac->native_diag_rx[phase].reported_idx1_untranslated++;
++	if (!translated || gate != MT6797_NATIVE_RX_TRANSLATED || mac->native_diag_rxd_sampled)
++		return;
++	groups = (type >> 9) & 15;
++	group4_valid = (groups & 8) && bytes >= 32;
++	if (group4_valid) {
++		fc = mt6797_join_le16(d + 16);
++		ta_ap_equal = ether_addr_equal(d + 18, mac->join_ap);
++	}
++	mac->native_diag_rxd_sampled = true;
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot WLAN native RX descriptor: phase=%d bytes=%zu fields_valid=1 type=0x%04x channel=%u header=0x%02x groups=0x%x msdu=%u status=0x%04x reported_index=%u security_mode=%u group4_valid=%u fc=0x%04x ta_ap_equal=%u\n",
++		 phase, bytes, type, d[5], d[6], groups, d[7] & 3,
++		 mt6797_join_le16(d + 10), d[8], d[9] >> 4, group4_valid, fc, ta_ap_equal);
++}
+ #endif
+ 
+ /* Poller-owned finite teardown. A returned page proves submission, not reuse. */
+@@ -2355,24 +2394,13 @@ submitted:
+ 					mac->native_diag_rx[nd_phase].beacons++;
+ 					continue;
+ 				}
+-				if (admitted)
++				if (admitted) {
+ 					gate = mt6797_data_rx_native_gate(mac->join_packet,
+ 									  rx.logical_bytes, 40,
+ 									  mac->hw->wiphy->perm_addr,
+ 									  mac->join_ap, &mo, &ml);
+-				if (admitted && !mac->native_diag_rxd_sampled) {
+-					bool valid = rx.logical_bytes >= 16;
+-					const u8 *d = mac->join_packet;
+-
+-					mac->native_diag_rxd_sampled = true;
+-					dev_info(wiphy_dev(mac->hw->wiphy),
+-						 "one-shot WLAN native RX descriptor: phase=%d bytes=%zu fields_valid=%u type=0x%04x channel=%u header=0x%02x groups=0x%x msdu=%u status=0x%04x\n",
+-						 nd_phase, rx.logical_bytes, valid,
+-						 valid ? mt6797_join_le16(d + 2) : 0,
+-						 valid ? d[5] : 0, valid ? d[6] : 0,
+-						 valid ? (mt6797_join_le16(d + 2) >> 9) & 15 : 0,
+-						 valid ? d[7] & 3 : 0,
+-						 valid ? mt6797_join_le16(d + 10) : 0);
++					mt6797_native_diag_ordinary_record(mac, rx.logical_bytes,
++									   gate, nd_phase);
+ 				}
+ 				if (nd_phase >= 0) {
+ 					if (admitted)
+-- 
+2.39.5
+

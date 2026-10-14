@@ -799,3 +799,4 @@ proposals/0185-wifi-mt6797-bound-native-diagnostic-hif-deadlines.patch
 proposals/0186-wifi-mt6797-fence-regulatory-submissions-after-terminal-close.patch
 proposals/0187-wifi-mt6797-count-native-rx-eligibility-and-name-hif-refusals.patch
 proposals/0188-wifi-mt6797-admit-intact-native-beacons-in-active-diagnostic.patch
+proposals/0189-wifi-mt6797-retarget-native-metadata-to-translated-index1.patch
