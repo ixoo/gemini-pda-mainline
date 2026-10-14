@@ -107,6 +107,7 @@ struct mt6797_mac {
 };
 static bool ccmp_stable_epoch;
 static int delivered;
+static struct sk_buff last_delivered;
 static uint64_t ktime_get_ns(void) { return 1000000000ULL; }
 static void mt6797_mac_join_end_data(struct mt6797_mac *m, const char *s) { (void)m; (void)s; }
 static void mt6797_mac_join_refused_frame(struct mt6797_mac *m, size_t n) { (void)m; (void)n; }
@@ -114,7 +115,7 @@ static unsigned int get_unaligned_le16(const unsigned char *p) { return mt6797_j
 static struct sk_buff *dev_alloc_skb(size_t n) { assert(n <= 2304); return calloc(1, sizeof(struct sk_buff)); }
 static void skb_put_data(struct sk_buff *s, const void *p, size_t n) { memcpy(s->data, p, n); }
 #define IEEE80211_SKB_RXCB(s) (&(s)->status)
-static void __skb_queue_tail(struct sk_buff_head *q, struct sk_buff *s) { assert(!q->skb); q->skb=s; delivered++; }
+static void __skb_queue_tail(struct sk_buff_head *q, struct sk_buff *s) { assert(!q->skb); q->skb=s; last_delivered=*s; delivered++; }
 '''
 checks = r'''
 static void packet(struct mt6797_mac *m, int subtype) {
@@ -161,6 +162,26 @@ int main(void) {
     ccmp_stable_epoch=false; m.join_auth_received=false;
     m.join_rx_allowed=BIT(11); packet(&m,11); delivered=0;
     assert(dispatch(&m,70)==0 && m.join_auth_received && delivered==1);
+    if (FIXED) {
+        /* Compare real old-mode fall-through with new-mode goto from identical
+         * synthetic state: strict parser offset/content, state and queued skb.
+         */
+        struct mt6797_mac initial=m, old_state;
+        struct sk_buff old_skb;
+        struct mt6797_join_rx_frame decoded;
+        initial.join_auth_received=false;
+        assert(mt6797_join_rx_frame(initial.join_packet,70,40,w.perm_addr,
+                                   initial.join_ap,initial.join_rx_allowed,&decoded));
+        assert(decoded.offset==40 && decoded.bytes==30 && decoded.subtype==11);
+        m=initial; delivered=0; ccmp_stable_epoch=false;
+        assert(dispatch(&m,70)==0 && delivered==1);
+        old_state=m; old_skb=last_delivered;
+        m=initial; delivered=0; ccmp_stable_epoch=true;
+        assert(dispatch(&m,70)==0 && delivered==1);
+        assert(!memcmp(&m,&old_state,sizeof(m)));
+        assert(!memcmp(&last_delivered,&old_skb,sizeof(old_skb)));
+        assert(!memcmp(last_delivered.data,m.join_packet+decoded.offset,decoded.bytes));
+    }
     /* CCMP mode still drops all non-management/invalid shapes, no legacy RX. */
     ccmp_stable_epoch=true; m.join_auth_received=false; delivered=0;
     for (int mutation=0; mutation<10; mutation++) {
@@ -177,7 +198,9 @@ int main(void) {
         case 8: m.join_packet[0]=69; break; /* length */
         case 9: m.join_packet[62]=1; break; /* fragment */
         }
+        struct mt6797_mac before=m;
         assert(dispatch(&m,70)==0 && !m.join_auth_received && !delivered);
+        assert(!memcmp(&m,&before,sizeof(m))); /* decoder false: no state mutation */
     }
     if (FIXED) {
         m.join_auth_received=false; m.join_rx_allowed=BIT(11);
