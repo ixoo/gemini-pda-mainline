@@ -1,0 +1,41 @@
+{
+  "status": "offline-gated-native-delivery-candidate-validated",
+  "kernel_build_commit": "6e29f38a0b8ba314f08331906c4d0703579a3343",
+  "kernel_release": "7.1.3-gemini-a53-wifi-native-delivery-diag",
+  "kernel_package_sha256": "ace5aad38afdc9374f2a26964bd68b02c130dd07f9ba84597654d7fc22acab7e",
+  "parent_candidate": "candidate-32",
+  "parent_boot2_sha256": "5260715b453d4ad9e635845132f7d08530e0386ce6bce98f53a818b3ab87b815",
+  "files": {
+    "Image.gz": {
+      "sha256": "7f73a6202a8cb7faf5136d7079e179ee877e3798e3d40a136a70cb33d197dc9b",
+      "bytes": 6652861
+    },
+    "board.dtb": {
+      "sha256": "25ab60f45686138c46200e858206756a16eef5ee33b26b2bd2ac13c7179d7717",
+      "bytes": 28671
+    },
+    "boot.img": {
+      "sha256": "98c4606ef5792da7db0b4982ffad59d576100bf34e8f926a4bb8db1d720da604",
+      "bytes": 12668928
+    },
+    "boot2-padded.img": {
+      "sha256": "bf49d91c73689e479c7865ab15e298a72e859b95dfe5cfe449bae1e7c45791ef",
+      "bytes": 16777216
+    },
+    "initramfs.img": {
+      "sha256": "d3353978b504d557fe92695f5ce3ce5b258a6dfcf176395b28d22d2eaa2ad269",
+      "bytes": 5982211
+    },
+    "kernel.config": {
+      "sha256": "33a50989755c6e226e3a4f388177d35956d407702f4e08120e737f28d6b2bf43",
+      "bytes": 113178
+    }
+  },
+  "kernel_config_change": "the armed mac.native_delivery_diag=1 command line and USB identity, LOCALVERSION, and CONFIG_MT6797_NATIVE_DELIVERY_DIAG=y; nothing else",
+  "device_tree_change": "none; exact candidate 32 board DT",
+  "ram_root_change": "release gate only; the exact candidate 32 64-member private RAM root",
+  "native_delivery_diag": true,
+  "secret_bearing": true,
+  "device_action": "none",
+  "physical_admission": false
+}

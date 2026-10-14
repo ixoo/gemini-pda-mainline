@@ -6,7 +6,7 @@
 | Status | Inconclusive ordinary-crypto availability: ND5 demonstrated26 new native-beacon queues and healthy ceiling/cleanup; ordinary native eligibility/delivery and authenticated exchange remain0. Preservation/seals/regression and exactly one reviewed recovery passed; changed-boot Gemian independently confirmed. See [ND5_RESULT](ND5_RESULT.md). No firmware-mode acceptance, crypto/throughput or maintained-driver claim. Historical inputs/results remain immutable. |
 | Base | Proposal 0180 ([compile 37](../2026-10-07-mt6797-wifi-phase-b-join/COMPILE_37.md)), kernel `5d6323e1` / `b33ba5a2` |
 | Date | 2026-10-13 |
-| Device action | ND1, ND2 and ND3 each ran once; no unchanged-artifact retry. Laptop coordinator is sole device custodian; implementation/build author has no device access. Current source reassessment uses retained sanitized ND3 evidence only. |
+| Device action | ND1 through ND5 each ran once; no unchanged-artifact retry. ND6 is composed and bound, not installed or runtime-tested. Laptop coordinator is sole device custodian; implementation/build author has no device access. |
 
 ## Question
 
@@ -14,6 +14,27 @@ The reviewed ND4 metadata successor ran once; see [ND4 result](ND4_RESULT.md)
 and its historical [preparation](ND4_PREPARATION.md). No unchanged retry.
 The reviewed ND5 native-beacon successor ran once; see [ND5 result](ND5_RESULT.md)
 and historical [preparation](ND5_PREPARATION.md). No identical retry.
+
+ND6 selects reviewed metadata-only proposal 0189 at kernel input `6e29f38a`;
+validated build and actual-source paired tests passed, configuration unchanged.
+The [compositor](build-native-candidate-6.py) produced the
+[real receipt](results/native-delivery-candidate-6.json), imported byte-exact as
+[runtime identity](runtime-nd6/results/candidate.json). Fresh
+[prepare](prepare-native-delivery-6.py), [installer](install-native-6.py),
+[capture](laptop-capture-native-6.py), [host](passive-host-native-6.py) and
+[session](laptop-session-native-6.py) bindings preserve the frozen protocol;
+[actual binding tests](tests/nd6-wiring-test.py) pass offline. No deployment or
+runtime result is claimed. ROOT must freshly verify live identity and the ND5
+predecessor before installation; historical returned Gemian is not current proof.
+
+ND6's sole retargeted sample observes the first actual ACTIVE/admitted ordinary
+class2 translated rejection reporting programmed index1. Group4 availability
+permits bounded descriptor FC/TA equality only; absent fields stay absent, and
+Ethernet destination bytes are never FC. Two reported-index split counters do
+not prove ownership, authentication or producer truth. This measurement must
+guide representation/producer work, not admit rejected frames or claim support.
+Eight terminal lines, one sample and all decoder/crypto/budget/control behavior
+are unchanged; full maintained-driver acceptance remains incomplete.
 
 Does a firmware mode deliver intact protected native MPDUs the host can authenticate through
 standard mac80211 — the route-4 precondition for maintained RX crypto? This is the runtime
