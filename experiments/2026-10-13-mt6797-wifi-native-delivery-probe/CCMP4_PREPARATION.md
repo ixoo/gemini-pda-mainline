@@ -87,3 +87,36 @@ leaf/process/cycle/ACK/healthy-cleanup/seal/A53/one-return proof; partial remain
 partial. Any fault preserves available evidence, quiesces children and uses the
 unchanged identity/tool-bound return, no extra read/sample/alternate recovery.
 Full maintained driver goal remains active; this is a diagnostic, not a repair.
+
+## Validated package and real-pin composition handoff
+
+Kernel input `92be8e69a39aa899701026294776c9ea79c9806a` completed ordinary BB1
+build/validation2026-10-14T23:34:29Z,32jobs/modulesfalse/selectorunset. Normal
+fetch passed exact inventory and clean/profile/provenance checks. Package:
+`949d7d049ebb90c4b8fb01584a183129dc7f79ab954da0d64f904bc3b6c01cf1`;
+Image.gz `ae1d4f15bc1505952e70443071ce1b8d7af41f817820a7505e9f41a277b3eb09`.
+Patchset `3d7dbc3821b2430441475efdc45627b24eb1a6c68dbd92a3d27f723b3b1a3fc2`,
+config-input `9b79cf7d393e38462d74352ae7ddfa741622c3a2c1cbe3eae999290ea1ffb57a`.
+Resolved config483e0165 is byte-identical to CCMP3. All actual built driver
+files equal exact approved sourceb5969e62, including all three reviewed hashes.
+Compilation/validation is not hardware framing, producer or Wi-Fi support.
+
+[Fresh compositor](build-ccmp-candidate-4.py) changes only real package/input/
+profile/series/source/patch pins from frozen CCMP3. C32/private64 RAM inventory,
+config/DT/PSCI/clock/container/header/padding/disk gates unchanged. ROOT executes:
+
+```sh
+python3 experiments/2026-10-13-mt6797-wifi-native-delivery-probe/build-ccmp-candidate-4.py --kernel-package <validated-949d-package> --parent <verified-private-C32-parent> --output <fresh-private-CCMP4-output>
+```
+
+ROOT independently verifies the six-file inventory/exact16MiB padding and returns
+actual receipt bytes/digest/raw/full identities; no private image/RAM/key crosses
+to a worker. Final prepare/install/capture/session/runtime4 pins await that REAL
+receipt, not another assembly approval or rebuild. No placeholder identity.
+
+[Host4 namespaces](passive-host-ccmp4.py) and [actual failure-main fixture](tests/ccmp4-no-scan-host-test.py)
+pass fresh root routing/genuine no-scan/started-child guards; private executor
+mocked, no device test. [Config oracle](tests/ccmp4-composition-test.py) passes
+actual package/C32 configuration equality and inherited negative gates. Final
+receipt/private64/full installer/capture/session offline preflights belong to
+ROOT after truthful binding. Completed tools/candidates/evidence stay unchanged.
