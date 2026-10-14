@@ -123,7 +123,8 @@ require_noninteractive_shell_support() (
   fi
   [[ "${version_status}" -eq 0 ]] || die "unable to query Lima version"
   version="$(<"${version_file}")"
-  [[ "${version}" == "limactl version 2.2.0" ]] || die "explicit re-shell requires Lima 2.2.0"
+  [[ "${version}" == "limactl version 2.2.0" || "${version}" == "limactl version 2.2.1" ]] || \
+    die "explicit re-shell requires Lima 2.2.0 or 2.2.1"
   : >"${version_file}"
   set +e
   limactl shell --help 2>/dev/null | head -c 65537 >"${version_file}"

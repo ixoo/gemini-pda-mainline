@@ -147,16 +147,18 @@ assert_file_contains '<bash>' "${CALL_LOG}"
 assert_file_contains '<-lc>' "${CALL_LOG}"
 
 # Version and bounded help failures stop before list/start/shell transport.
-reset_case
-STUB_VERSION='limactl version 2.1.0'
-run_script -- /usr/bin/true
-assert_failure
-assert_file_contains '<--version>' "${CALL_LOG}"
-assert_file_absent '<list>' "${CALL_LOG}"
-assert_file_absent '<start>' "${CALL_LOG}"
-assert_file_absent '<shell>' "${CALL_LOG}"
-assert_file_contains 'requires Lima 2.2.0' "${ERR}"
-assert_probe_clean
+for version in 'limactl version 2.1.0' 'limactl version 2.2.2' 'limactl version 2.3.0' 'limactl version 2.2.1-dev'; do
+  reset_case
+  STUB_VERSION="${version}"
+  run_script -- /usr/bin/true
+  assert_failure
+  assert_file_contains '<--version>' "${CALL_LOG}"
+  assert_file_absent '<list>' "${CALL_LOG}"
+  assert_file_absent '<start>' "${CALL_LOG}"
+  assert_file_absent '<shell>' "${CALL_LOG}"
+  assert_file_contains 'requires Lima 2.2.0 or 2.2.1' "${ERR}"
+  assert_probe_clean
+done
 
 reset_case
 STUB_HELP='help without tty automation support'
@@ -196,24 +198,27 @@ assert_file_absent '<start>' "${CALL_LOG}"
 assert_probe_clean
 
 # Explicit transport preserves literal arguments and uses the direct shell.
-reset_case
-STUB_RUN_GUEST=1
-run_script -- /usr/bin/printf '%s\n' 'space value' 'quote" value' '$dollar' 'semi;colon' '--leading-option'
-assert_status 0
-expected=$'space value\nquote" value\n$dollar\nsemi;colon\n--leading-option\n'
-printf '%s' "${expected}" | cmp -s - "${OUT}" || fail "literal command arguments changed"
-assert_probe_clean
-assert_file_contains '<--tty=false>' "${CALL_LOG}"
-assert_file_contains '<--workdir=/tmp>' "${CALL_LOG}"
-assert_file_contains '</bin/sh>' "${CALL_LOG}"
-assert_file_contains '<-c>' "${CALL_LOG}"
-assert_file_absent '<bash>' "${CALL_LOG}"
-assert_file_absent '<-lc>' "${CALL_LOG}"
-assert_file_absent '<-l>' "${CALL_LOG}"
-assert_file_absent '<-i>' "${CALL_LOG}"
-assert_file_absent 'SHELL' "${CALL_LOG}"
-assert_file_contains 'exec /usr/bin/env -i' "${CALL_LOG}"
-assert_file_contains 'cd -P' "${CALL_LOG}"
+for version in 'limactl version 2.2.0' 'limactl version 2.2.1'; do
+  reset_case
+  STUB_VERSION="${version}"
+  STUB_RUN_GUEST=1
+  run_script -- /usr/bin/printf '%s\n' 'space value' 'quote" value' '$dollar' 'semi;colon' '--leading-option'
+  assert_status 0
+  expected=$'space value\nquote" value\n$dollar\nsemi;colon\n--leading-option\n'
+  printf '%s' "${expected}" | cmp -s - "${OUT}" || fail "literal command arguments changed"
+  assert_probe_clean
+  assert_file_contains '<--tty=false>' "${CALL_LOG}"
+  assert_file_contains '<--workdir=/tmp>' "${CALL_LOG}"
+  assert_file_contains '</bin/sh>' "${CALL_LOG}"
+  assert_file_contains '<-c>' "${CALL_LOG}"
+  assert_file_absent '<bash>' "${CALL_LOG}"
+  assert_file_absent '<-lc>' "${CALL_LOG}"
+  assert_file_absent '<-l>' "${CALL_LOG}"
+  assert_file_absent '<-i>' "${CALL_LOG}"
+  assert_file_absent 'SHELL' "${CALL_LOG}"
+  assert_file_contains 'exec /usr/bin/env -i' "${CALL_LOG}"
+  assert_file_contains 'cd -P' "${CALL_LOG}"
+done
 
 # The guest script rejects empty and relative HOME values before touching payloads.
 for invalid_home in '' relative/home; do
