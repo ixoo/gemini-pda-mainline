@@ -49,6 +49,13 @@ cover that failure route and all started/proc/PGID/unknown-start refusals. Fresh
 CCMP2 host binding must route its no-scan branch here; these isolated tests are
 not a private64/device execution or a completed runtime-binding receipt.
 
+The [fresh host binding](passive-host-ccmp2.py) now routes its actual failure main
+through that function and rebinds every evidence namespace to capture-ccmp2/
+session-ccmp2/runtime-ccmp2. [Actual host-main tests](tests/ccmp2-no-scan-host-test.py)
+pass the enabled-but-never-started helper case without phantom exports, keep
+recovered failed compatibility false and reject a real started-helper shortcut.
+Only the underlying private preparation/executor is mocked; no device action.
+
 Build only clean pushed intended inputs with ordinary BB1 provenance,32 jobs,
 modulesfalse, experimentselectorunset, one heavy job after actual capacity/locks
 checks. After validated real package pins, reuse the reviewed private C32/RAM
@@ -62,3 +69,34 @@ ping3/3 and boot/mode-bound SSH within actual finite ACTIVE; full leaf/export/pr
 proof required, partial evidence retained honestly. Full normal producer/GTK/
 rekey/reuse/IRQ-DMA/clean-profile ten-minute Wi-Fi remains incomplete. No new
 descriptor sample/observer/radio effect, crypto/HIF relaxation or unreviewed retry.
+
+## Validated real package and offline compositor
+
+Clean pushed kernel input `5c5a7b10932b506c87e4ef624d018330bbf6490e` completed ordinary
+BB1 build/validator at2026-10-14T11:01:56Z,32jobs/modulesfalse/experimentselectorunset.
+The agent fetched the validated exact inventory/provenance; ROOT independently
+verified the actual job and initiated its own fetch at that input. Package inventory:
+`0304e09eaa435e8faa37113564f2f5c340ffac9d84a601772eefbea40cf26d7b`.
+Image.gz SHA256 `451e46da9fe257eb42c135c85253484ea9fc96608655569a6ee2b145702d4ecf`;
+resolved config `483e0165368ce521f7f6e082e5acbc612c26badab7cacdc1e1cd60166f15c350`
+is byte-identical to CCMP1. Patchset digest:
+`274b8e45e9d1c5eedb6edeef5ee12051edbe32d1391b9af86fd0839a651e2197`;
+config-input digest `9fb8d1761ad9acf158e03da36a294af72f878e803ca83594c2fa1ffba117cec6`.
+All actual built driver files equal exact approved source0fcdc1; MACa140b36a.
+Compilation/fetch is not registration/runtime success.
+
+[CCMP2 compositor](build-ccmp-candidate-2.py) reuses frozen CCMP1/C32 whole-parent/
+64-member RAM/config/board/clock/PSCI/container/padding gates. Only real kernel/
+profile/source/patchset/image/687-series pins differ; expected config/RAM release
+gate change from C32 remains the same. [Focused oracle](tests/ccmp2-composition-test.py)
+reuses the actual C32-hash/real resolved-config and mutation refusals, PASS.
+ROOT may compose directly, no extra assembly permission or binding-only rebuild:
+
+```sh
+python3 experiments/2026-10-13-mt6797-wifi-native-delivery-probe/build-ccmp-candidate-2.py --kernel-package <validated-0304-package-at-input5c5> --parent <existing-private-C32-parent> --output <fresh-private-CCMP2-output>
+```
+
+Actual receipt/new raw/full boot2 hashes remain pending ROOT's real composition,
+never placeholders. After that receipt, finalize only fresh CCMP2 prepare/capture/
+session/installer identities; predecessor expected full418 from CCMP1, freshly
+verified by ROOT's live guard. Frozen CCMP1 files/roots/claims stay untouched.
