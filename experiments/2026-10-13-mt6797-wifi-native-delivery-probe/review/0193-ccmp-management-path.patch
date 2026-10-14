@@ -1,0 +1,64 @@
+From e1ecfcd967a246ad72627b9fd2d92caaa31c59a0 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Wed, 14 Oct 2026 20:53:15 +0000
+Subject: [PATCH] wifi: mt6797: retain strict management RX in CCMP mode
+
+The CCMP no-legacy-fallback continue also bypassed AUTH and ASSOC response
+decoding before native monitor engagement. Route only frames accepted by
+the unchanged strict directed management decoder to the existing management
+state and queue path; all other shapes remain withheld. Do not enable
+legacy data delivery, repeated AUTH, software crypto, GTK RX, rekey or
+reuse.
+Firmware/HIF/monitor effects, lifetime and budgets are unchanged.
+
+Actual parent/child dispatch and mgd_prepare_tx fragments pass synthetic
+ASan/UBSan checks. Parent withholds valid AUTH; its next preparation
+poisons first_error=-EOPNOTSUPP. Child routes strict management,
+preserves refused retry and old-mode path, rejects malformed and
+ordinary-data inputs.
+Runtime reception of an AUTH response was not observed in CCMP2; this
+repairs a source-demonstrated obstruction, not proof of AP response or
+future association.
+
+Internal experiment archive, synthetic non-certifying author; no DCO
+certification and not submission-ready.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 15 +++++++++++++--
+ 1 file changed, 13 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 791277d..f661069 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -2590,8 +2590,16 @@ submitted:
+ 			}
+ #endif
+ #ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
+-			if (ccmp_stable_epoch)
+-				continue;	/* no ordinary legacy fallback */
++			if (ccmp_stable_epoch) {
++				/* Preserve the strict directed management path without
++				 * admitting any ordinary legacy data fallback.
++				 */
++				if (mt6797_join_rx_frame(mac->join_packet, rx.logical_bytes, 40,
++							 mac->hw->wiphy->perm_addr, mac->join_ap,
++							 mac->join_rx_allowed, &frame))
++					goto management_frame;
++				continue;
++			}
+ #endif
+ 			if (mac->join_key_pairwise_submitted && !mac->join_cleanup_done &&
+ 			    mt6797_data_rx(mac->join_packet, rx.logical_bytes, 40,
+@@ -2823,6 +2831,9 @@ submitted:
+ 				goto failed;
+ 			}
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++management_frame:
++#endif
+ 			body = mac->join_packet + frame.offset;
+ 			if (frame.subtype == 11) {
+ 				if (!(mac->join_submitted & BIT(11)) || mac->join_auth_received) {
+-- 
+2.39.5
+
