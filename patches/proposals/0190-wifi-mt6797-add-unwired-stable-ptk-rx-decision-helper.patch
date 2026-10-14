@@ -1,0 +1,144 @@
+From 7e89fa209b4fd9c1ad7f9efcae8210a4d633e11c Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Wed, 14 Oct 2026 03:32:18 +0000
+Subject: [PATCH] wifi: mt6797: add unwired stable PTK RX decision helper
+
+Add an original, offline-only checked view of the provisional public gen3
+and layout-correlated mt7603 CCMP descriptor contract. Validate current
+caller context, complete mandatory Group4/Group1 and optional group/pad
+bounds, conservative nonaggregated translated unicast shape and strict
+seeded first6-LE PN increase. Return an actual Ethernet view and commit
+PN only after every check succeeds.
+
+One authorized station and initial stable CCMP128 PTK only. No GTK,
+fragment, QoS, AMSDU, BA, rekey or firmware-slot replacement contract.
+Caller-provided active state cannot distinguish old firmware-queued
+frames. No production includes, delivery, flags, logging, MMIO or Makefile
+changes. Failures preserve context and output. Synthetic host negatives
+are not firmware or negative-on-wire validation.
+
+Internal experiment archive, synthetic non-certifying author; not
+submission-ready and no DCO certification.
+---
+ .../net/wireless/mediatek/mt6797/ccmp-rx.h    | 109 ++++++++++++++++++
+ 1 file changed, 109 insertions(+)
+ create mode 100644 drivers/net/wireless/mediatek/mt6797/ccmp-rx.h
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/ccmp-rx.h b/drivers/net/wireless/mediatek/mt6797/ccmp-rx.h
+new file mode 100644
+index 0000000..3229290
+--- /dev/null
++++ b/drivers/net/wireless/mediatek/mt6797/ccmp-rx.h
+@@ -0,0 +1,109 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef MT6797_CCMP_RX_H
++#define MT6797_CCMP_RX_H
++
++#include "join-events.h"
++
++/*
++ * Caller-owned, serialized context for ONE initial, stable PTK epoch. The
++ * caller must establish current authorization/key activation and seed pn from
++ * mac80211 RX sequence state. PN is most-significant-byte first. No RXD epoch
++ * tag exists: replacing/reinstalling a firmware slot is NOT admitted here.
++ */
++struct mt6797_ccmp_rx_context {
++	bool authorized, active, seeded, pairwise;
++	unsigned int cipher;
++	unsigned char key_bytes, key_id, wlan_index, rxd_bssid, channel;
++	unsigned char own[6], ap[6], pn[6];
++};
++
++struct mt6797_ccmp_rx {
++	size_t offset, bytes; /* Actual Ethernet frame, no reconstructed header. */
++};
++
++/*
++ * Provisional public gen3/mt7603 descriptor contract, not firmware assurance.
++ * Only non-BA, non-QoS, unfragmented CCMP128 unicast with Group4+Group1 is
++ * accepted. Status0xc000 excludes the source-defined errors and aggregation.
++ * Group1 first6 LE PN is converted to mac80211 order and checked strictly.
++ * No flags/delivery/logging/MMIO. False preserves ALL context/output bytes;
++ * true commits only the validated PN and Ethernet view, under caller locking.
++ */
++static inline bool
++mt6797_ccmp_rx_check(const unsigned char *packet, size_t bytes,
++		     struct mt6797_ccmp_rx_context *context,
++		     struct mt6797_ccmp_rx *out)
++{
++	struct mt6797_ccmp_rx r;
++	unsigned char pn[6];
++	size_t offset = 48; /* base16, mandatory Group4 at16, Group1 at32 */
++	unsigned int groups, fc, i;
++	bool greater = false, own_any = false, ap_any = false, source_any = false;
++	const unsigned char *ethernet;
++
++	if (!packet || !context || !out || bytes < 16 || bytes > 2352 ||
++	    !context->authorized || !context->active || !context->seeded ||
++	    !context->pairwise || context->cipher != 0x000fac04U ||
++	    context->key_bytes != 16 || context->key_id ||
++	    context->wlan_index != 1 || context->rxd_bssid > 63 || !context->channel ||
++	    (context->own[0] & 1) || (context->ap[0] & 1))
++		return false;
++	for (i = 0; i < 6; i++) {
++		own_any |= context->own[i] != 0;
++		ap_any |= context->ap[i] != 0;
++	}
++	if (!own_any || !ap_any || mt6797_join_le16(packet) != bytes ||
++	    (mt6797_join_le16(packet + 2) >> 13) != 2 ||
++	    packet[4] != 0x02 || packet[5] != context->channel ||
++	    (packet[6] & 0xbf) != 0x8e ||
++	    packet[7] != (unsigned int)context->rxd_bssid << 2 ||
++	    packet[8] != context->wlan_index || packet[9] != 0x40 ||
++	    mt6797_join_le16(packet + 10) != 0xc000)
++		return false;
++	groups = (mt6797_join_le16(packet + 2) >> 9) & 15;
++	if ((groups & 9) != 9)
++		return false;
++	if (groups & 2)
++		offset += 8;
++	if (groups & 4)
++		offset += 24;
++	if (packet[6] & 0x40)
++		offset += 2;
++	/* Bounds precede every Group4, Group1 and Ethernet field access. */
++	if (offset > bytes || bytes - offset <= 14)
++		return false;
++	fc = mt6797_join_le16(packet + 16);
++	if ((fc & ~0x2800U) != 0x4208 ||
++	    (mt6797_join_le16(packet + 24) & 15) ||
++	    mt6797_join_le16(packet + 26) || mt6797_join_le32(packet + 28))
++		return false;
++	ethernet = packet + offset;
++	for (i = 0; i < 6; i++) {
++		if (packet[18 + i] != context->ap[i] || ethernet[i] != context->own[i])
++			return false;
++		source_any |= ethernet[6 + i] != 0;
++		pn[i] = packet[32 + 5 - i];
++	}
++	/* Ethernet-II only; EAPOL remains on the existing control-port path. */
++	if (!source_any || (ethernet[6] & 1) ||
++	    (((unsigned int)ethernet[12] << 8) | ethernet[13]) < 0x0600 ||
++	    (ethernet[12] == 0x88 && ethernet[13] == 0x8e))
++		return false;
++	for (i = 0; i < 6; i++) {
++		if (pn[i] < context->pn[i])
++			return false;
++		if (pn[i] > context->pn[i]) {
++			greater = true;
++			break;
++		}
++	}
++	if (!greater)
++		return false;
++	r.offset = offset;
++	r.bytes = bytes - offset;
++	for (i = 0; i < 6; i++)
++		context->pn[i] = pn[i];
++	*out = r;
++	return true;
++}
++#endif
+-- 
+2.39.5
+
