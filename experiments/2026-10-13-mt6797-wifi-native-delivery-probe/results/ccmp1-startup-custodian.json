@@ -1,0 +1,12 @@
+{
+  "classification": "startup-registration-refusal-before-radio",
+  "scan_attempted": false,
+  "helper_started": false,
+  "recovery_requested": false,
+  "session_exception": "RuntimeError: Wi-Fi helper process group not confirmed quiescent; refusing export, seal and recovery",
+  "frozen_tooling": "ca7ee96b591ae51483f8fd917c4f70b3e5e2693d",
+  "kernel_input": "83b91a6c54e45159763f62652b14710670bf895f",
+  "phase_a_log_sha256": "520083a9f55c6bba6f3865f59e9e67ed686b7aac14a4afdc516c157303e4cf92",
+  "full_log_preservation_pending": true,
+  "session_already_claimed": true
+}

@@ -1,0 +1,167 @@
+{
+  "files": {
+    "PRE_RECOVERY_SHA256SUMS": {
+      "bytes": 3265,
+      "sha256": "c467e5071ceafc87ccc702260cf5eeeabfa07683ec7cf01c9c7e4f5071a0d7e2"
+    },
+    "ccmp1-continuation-claim.json": {
+      "bytes": 531,
+      "sha256": "4352fbc9fe2949086248cfb2edfbaed097ec6864c4622db68affcc9e57e4b191"
+    },
+    "ccmp1-continuation-result.json": {
+      "bytes": 310,
+      "sha256": "9a0aef3da057f1a65231e843875eaae35aba909227401ab7f08f9f199117ce37"
+    },
+    "deployment-summary.txt": {
+      "bytes": 942,
+      "sha256": "84da99d0c8703c4b30c43793066d5c8d2b723f2f21218020e06be2dd626a31b3"
+    },
+    "execution-claim.json": {
+      "bytes": 1862,
+      "sha256": "be308a8cf806d400b6914c63c2490dd6bb16d660d9d12082dfcd31160d59d521"
+    },
+    "kmsg-exit": {
+      "bytes": 2,
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+    },
+    "kmsg.log": {
+      "bytes": 145634,
+      "sha256": "c22fb27e2c521aafffc2df0f76f168e98c27691985deb50a27afef0979908ba5"
+    },
+    "kmsg.status": {
+      "bytes": 179,
+      "sha256": "cfa7d1bce5a85144071dbf30a7c88d8ba7e3b1305a22085be607890402b25b14"
+    },
+    "kmsg.status.partial": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "log-export/command.sh": {
+      "bytes": 5784,
+      "sha256": "ae277c38f4a1f50577b1b1a34f47eb6862cc8013c37f77136f7657ac07077d7b"
+    },
+    "log-export/process.json": {
+      "bytes": 142,
+      "sha256": "fd48061a211c5e8ace263f632d2ac424200d37ac77dbaf936d1136673bb25411"
+    },
+    "log-export/stderr.txt": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "log-export/stdout.txt": {
+      "bytes": 198068,
+      "sha256": "dfda2a2d57f51c04ed0fb748583ffe60b476e6712dcbff18462521815944adf2"
+    },
+    "log-export-host-route.json": {
+      "bytes": 215,
+      "sha256": "4a7d0ca7224fb06479afdb23aaf666982ee374c107d7265346558cd08aff0292"
+    },
+    "log-result.json": {
+      "bytes": 1629,
+      "sha256": "a5dec29bf510a904212b71e53f168dd0e1687164f0857010ee86797b106b8cf8"
+    },
+    "observation/command.sh": {
+      "bytes": 10028,
+      "sha256": "24abf45805f642523cb347196afae0e78baf90d6a4e5d2f67102303750519894"
+    },
+    "observation/process.json": {
+      "bytes": 140,
+      "sha256": "c9af1d7db8631ba71f45b08a56e10f7a5f622e39d83dcb90ba374a21e862c8c5"
+    },
+    "observation/stderr.txt": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "observation/stdout.txt": {
+      "bytes": 3814,
+      "sha256": "86677384f00c10d76c76415460e6405ef66a28ba3fc3fd53254e210c97ab6348"
+    },
+    "observation-host-route.json": {
+      "bytes": 215,
+      "sha256": "4a7d0ca7224fb06479afdb23aaf666982ee374c107d7265346558cd08aff0292"
+    },
+    "observation-result.json": {
+      "bytes": 378,
+      "sha256": "46f7b662a3143bde61771ae9512c179013bc09887438bdeeb89215c763cd94f6"
+    },
+    "probe/command.sh": {
+      "bytes": 1088,
+      "sha256": "b7314cd99b7144b32651684bd78d1f3c77daed14a5467f95ca313497703488ec"
+    },
+    "probe/process.json": {
+      "bytes": 137,
+      "sha256": "6e9eb0ae2b413b00c27439e64f6c60db63884ef6498dcfe8a8127fa43ae8314c"
+    },
+    "probe/stderr.txt": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "probe/stdout.txt": {
+      "bytes": 59,
+      "sha256": "fe7d95e1f357364d7426e4dbcfe74d599b6b7884ed6affcd315e3061a8276dbe"
+    },
+    "probe-host-route.json": {
+      "bytes": 215,
+      "sha256": "4a7d0ca7224fb06479afdb23aaf666982ee374c107d7265346558cd08aff0292"
+    },
+    "provider-probe/command.sh": {
+      "bytes": 865,
+      "sha256": "007180d8bacb8c543bff3a3a5786737da2c85721ffe889ec69effc0954c54554"
+    },
+    "provider-probe/process.json": {
+      "bytes": 139,
+      "sha256": "46b45e2e3c299e742d48a6528cc33b90818afa6d03d07f4507835a7885edfd27"
+    },
+    "provider-probe/stderr.txt": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "provider-probe/stdout.txt": {
+      "bytes": 226,
+      "sha256": "2c755422f04e4df1b968980f2db1b752050e77cd65800e2bb36b036d8f095ac9"
+    },
+    "provider-probe-host-route.json": {
+      "bytes": 215,
+      "sha256": "4a7d0ca7224fb06479afdb23aaf666982ee374c107d7265346558cd08aff0292"
+    },
+    "provider-probe-result.json": {
+      "bytes": 124,
+      "sha256": "33142fa2a8dc4799b4d48a19b48f06e8c514c473aa4c8f12495a52301b22b0f1"
+    },
+    "ssh-command.json": {
+      "bytes": 1266,
+      "sha256": "620b1ebaec5eefa9ccec23ebd6ed79f233ba8dbb0417c619abef82c3f88ec8b3"
+    },
+    "wiphy-probe/command.sh": {
+      "bytes": 693,
+      "sha256": "d8274304dfe938b9d94a9468e9f9a34f9079a40bc24ba288b0dd4e884ede6cc3"
+    },
+    "wiphy-probe/process.json": {
+      "bytes": 139,
+      "sha256": "92c28b3653729eb1e9a5bcda05cab63d0fbdc1814c363b89821f14cdb00cfb52"
+    },
+    "wiphy-probe/stderr.txt": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "wiphy-probe/stdout.txt": {
+      "bytes": 191,
+      "sha256": "f6481bd8b8bfba3f54a392590fae4532d1adae581a66a1ff8565588a2a422c78"
+    },
+    "wiphy-probe-host-route.json": {
+      "bytes": 215,
+      "sha256": "4a7d0ca7224fb06479afdb23aaf666982ee374c107d7265346558cd08aff0292"
+    },
+    "wiphy-probe-result.json": {
+      "bytes": 295,
+      "sha256": "f82095ba8b4df71b9817f7bf76552de77b4ce8921da8edb105dca3c8a63a72d2"
+    }
+  },
+  "directories": [
+    "log-export",
+    "observation",
+    "probe",
+    "provider-probe",
+    "wiphy-probe"
+  ]
+}

@@ -1,0 +1,76 @@
+{
+  "frozen_tools_commit": "ca7ee96b591ae51483f8fd917c4f70b3e5e2693d",
+  "files": {
+    "deployment-summary.txt": {
+      "bytes": 942,
+      "sha256": "84da99d0c8703c4b30c43793066d5c8d2b723f2f21218020e06be2dd626a31b3"
+    },
+    "execution-claim.json": {
+      "bytes": 1862,
+      "sha256": "be308a8cf806d400b6914c63c2490dd6bb16d660d9d12082dfcd31160d59d521"
+    },
+    "observation/command.sh": {
+      "bytes": 10028,
+      "sha256": "24abf45805f642523cb347196afae0e78baf90d6a4e5d2f67102303750519894"
+    },
+    "observation/process.json": {
+      "bytes": 140,
+      "sha256": "c9af1d7db8631ba71f45b08a56e10f7a5f622e39d83dcb90ba374a21e862c8c5"
+    },
+    "observation/stderr.txt": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "observation/stdout.txt": {
+      "bytes": 3814,
+      "sha256": "86677384f00c10d76c76415460e6405ef66a28ba3fc3fd53254e210c97ab6348"
+    },
+    "observation-host-route.json": {
+      "bytes": 215,
+      "sha256": "4a7d0ca7224fb06479afdb23aaf666982ee374c107d7265346558cd08aff0292"
+    },
+    "observation-result.json": {
+      "bytes": 378,
+      "sha256": "46f7b662a3143bde61771ae9512c179013bc09887438bdeeb89215c763cd94f6"
+    },
+    "probe/command.sh": {
+      "bytes": 1088,
+      "sha256": "b7314cd99b7144b32651684bd78d1f3c77daed14a5467f95ca313497703488ec"
+    },
+    "probe/process.json": {
+      "bytes": 137,
+      "sha256": "6e9eb0ae2b413b00c27439e64f6c60db63884ef6498dcfe8a8127fa43ae8314c"
+    },
+    "probe/stderr.txt": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "probe/stdout.txt": {
+      "bytes": 59,
+      "sha256": "fe7d95e1f357364d7426e4dbcfe74d599b6b7884ed6affcd315e3061a8276dbe"
+    },
+    "probe-host-route.json": {
+      "bytes": 215,
+      "sha256": "4a7d0ca7224fb06479afdb23aaf666982ee374c107d7265346558cd08aff0292"
+    },
+    "ssh-command.json": {
+      "bytes": 1266,
+      "sha256": "620b1ebaec5eefa9ccec23ebd6ed79f233ba8dbb0417c619abef82c3f88ec8b3"
+    }
+  },
+  "directories": [
+    "observation",
+    "probe"
+  ],
+  "absent": [
+    "session-result.json",
+    "deferred-start-result.json",
+    "wifi-ssh-helper.json",
+    "passive-scan",
+    "log-export",
+    "provider-probe",
+    "wiphy-probe",
+    "native-reboot",
+    "PRE_RECOVERY_SHA256SUMS"
+  ]
+}
