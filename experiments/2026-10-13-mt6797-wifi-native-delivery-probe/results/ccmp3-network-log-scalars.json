@@ -1,0 +1,27 @@
+{
+  "udhcpc.log": {
+    "bytes": 194,
+    "lease_obtained": true
+  },
+  "dropbear.log": {
+    "bytes": 210,
+    "child_connection": true,
+    "pubkey_auth": false,
+    "exit_signal": true
+  },
+  "ping.log": {
+    "bytes": 101,
+    "stats": [],
+    "ping_header": true,
+    "error_lines": [],
+    "usage": false,
+    "individual_reply_count": 1,
+    "reply_scalars": [
+      {
+        "seq": 0,
+        "ttl": 64,
+        "time_ms": 79.464
+      }
+    ]
+  }
+}

@@ -1,0 +1,83 @@
+6,1981,57774508,-;mt6797-consys 10001340.consys: one-shot passive WLAN scan: admitted=1
+6,1991,58310658,-;mt6797-consys 10001340.consys: one-shot passive WLAN scan: status=0 complete=1 frame=1 beacon=1 credit=1 retired=1
+6,1992,58337111,-;mt6797-consys 10001340.consys: one-shot WLAN join credit: pages=1 remaining=0
+6,1993,58361078,-;mt6797-consys 10001340.consys: one-shot WLAN join credit: pages=1 remaining=0
+6,1994,58481194,-;mt6797-consys 10001340.consys: one-shot WLAN join grant: channel=40 interval_ms=9000
+6,1995,58505164,-;mt6797-consys 10001340.consys: one-shot WLAN join credit: pages=2 remaining=0
+6,1996,58506673,-;mt6797-consys 10001340.consys: one-shot WLAN join peer: ready=1 sequence=23
+6,1999,58529116,-;mt6797-consys 10001340.consys: one-shot WLAN join TX: subtype=11 pid=1 pages=1
+6,2000,58557072,-;mt6797-consys 10001340.consys: one-shot WLAN join credit: pages=1 remaining=0
+6,2001,58558144,-;mt6797-consys 10001340.consys: one-shot WLAN join TX done: pid=1 status=0 advanced=1 count=1
+6,2002,58559375,-;mt6797-consys 10001340.consys: one-shot WLAN join RX: subtype=11 status=0
+6,2005,58585100,-;mt6797-consys 10001340.consys: one-shot WLAN join TX: subtype=0 pid=2 pages=1
+6,2006,58613072,-;mt6797-consys 10001340.consys: one-shot WLAN join credit: pages=1 remaining=0
+6,2007,58614143,-;mt6797-consys 10001340.consys: one-shot WLAN join TX done: pid=2 status=0 advanced=1 count=1
+6,2008,58615382,-;mt6797-consys 10001340.consys: one-shot WLAN join RX: subtype=1 status=0
+6,2009,58616402,-;mt6797-consys 10001340.consys: one-shot WLAN join eapol delivered: translated=1 frame=99 activated=0 vector=0 bss=15
+6,2011,58641102,-;mt6797-consys 10001340.consys: one-shot WLAN join credit: pages=1 remaining=0
+6,2012,58665072,-;mt6797-consys 10001340.consys: one-shot WLAN join credit: pages=2 remaining=0
+6,2013,58666198,-;mt6797-consys 10001340.consys: one-shot WLAN join beacon delivered: bytes=378 rcpi=104 keyed=0 count=1
+6,2014,58667524,-;mt6797-consys 10001340.consys: one-shot WLAN join activation: sequence=24 state=3 lifetime=1
+6,2017,58693100,-;mt6797-consys 10001340.consys: one-shot WLAN join eapol sent: pid=3 pages=2 bytes=135
+6,2018,58717061,-;mt6797-consys 10001340.consys: one-shot WLAN join credit: pages=2 remaining=0
+6,2019,58718125,-;mt6797-consys 10001340.consys: one-shot WLAN join TX done: pid=3 status=0 advanced=1 count=1
+6,2020,58719358,-;mt6797-consys 10001340.consys: one-shot WLAN join eapol delivered: translated=1 frame=155 activated=1 vector=0 bss=1
+6,2021,58741143,-;mt6797-consys 10001340.consys: one-shot WLAN join eapol sent: pid=4 pages=2 bytes=113
+6,2022,58765176,-;mt6797-consys 10001340.consys: one-shot WLAN join credit: pages=2 remaining=0
+6,2023,58766298,-;mt6797-consys 10001340.consys: one-shot WLAN join TX done: pid=4 status=0 advanced=1 count=1
+6,2024,58767603,-;mt6797-consys 10001340.consys: one-shot WLAN join beacon delivered: bytes=378 rcpi=104 keyed=0 count=2
+6,2025,58768952,-;mt6797-consys 10001340.consys: one-shot WLAN join key command: pairwise submitted sequence=25
+6,2026,58789090,-;mt6797-consys 10001340.consys: one-shot WLAN join credit: pages=1 remaining=0
+6,2027,58790173,-;mt6797-consys 10001340.consys: one-shot WLAN join key done: first after=pairwise bss=0 peer=1
+6,2028,58791505,-;mt6797-consys 10001340.consys: one-shot WLAN join key credit returned: pairwise
+6,2029,58829143,-;mt6797-consys 10001340.consys: one-shot WLAN join key command: group submitted sequence=26
+6,2030,58837105,-;mt6797-consys 10001340.consys: one-shot WLAN join credit: pages=1 remaining=0
+6,2031,58838190,-;mt6797-consys 10001340.consys: one-shot WLAN join key done: second after=group bss=0 peer=1
+6,2032,58839523,-;mt6797-consys 10001340.consys: one-shot WLAN join key credit returned: group
+6,2033,58840559,-;mt6797-consys 10001340.consys: one-shot WLAN join data phase: budget_ms=6140 teardown_margin_ms=5000 inside_grant=1
+6,2034,58865120,-;mt6797-consys 10001340.consys: one-shot WLAN native-diag: state=1 act=1 total=0 native=0 bytes=0
+6,2035,58866686,-;mt6797-consys 10001340.consys: one-shot WLAN join beacon delivered: bytes=378 rcpi=104 keyed=1 count=3
+6,2036,58893095,-;mt6797-consys 10001340.consys: one-shot WLAN join credit: pages=1 remaining=0
+6,2037,58894178,-;mt6797-consys 10001340.consys: one-shot WLAN native-diag: state=2 act=0 total=8 native=0 bytes=990
+6,2038,58965191,-;mt6797-consys 10001340.consys: one-shot WLAN join beacon delivered: bytes=378 rcpi=106 keyed=0 count=4
+6,2039,59249128,-;mt6797-consys 10001340.consys: one-shot WLAN join data TX: first pid=5 pages=3 bytes=342
+6,2040,59250371,-;mt6797-consys 10001340.consys: one-shot WLAN join TX done: pid=5 status=0 advanced=1 count=1
+6,2041,59273078,-;mt6797-consys 10001340.consys: one-shot WLAN join data credit: pages=3 debt=0 count=1
+6,2042,59274285,-;mt6797-consys 10001340.consys: one-shot WLAN ccmp-stable RX: first ethernet_bytes=347 flags=0x40200512
+6,2043,59349106,-;mt6797-consys 10001340.consys: one-shot WLAN join data credit: pages=3 debt=0 count=2
+6,2044,59350347,-;mt6797-consys 10001340.consys: one-shot WLAN join TX done: pid=6 status=0 advanced=1 count=1
+6,2045,60649146,-;mt6797-consys 10001340.consys: one-shot WLAN join data credit: pages=1 debt=0 count=3
+6,2046,60650355,-;mt6797-consys 10001340.consys: one-shot WLAN join TX done: pid=7 status=0 advanced=1 count=1
+6,2047,60697108,-;mt6797-consys 10001340.consys: one-shot WLAN join data credit: pages=1 debt=0 count=4
+6,2048,60698366,-;mt6797-consys 10001340.consys: one-shot WLAN join TX done: pid=8 status=0 advanced=1 count=1
+6,2049,60897075,-;mt6797-consys 10001340.consys: one-shot WLAN join data credit: pages=1 debt=0 count=5
+6,2050,60898279,-;mt6797-consys 10001340.consys: one-shot WLAN join TX done: pid=9 status=0 advanced=1 count=1
+6,2051,61317080,-;mt6797-consys 10001340.consys: one-shot WLAN join data credit: pages=1 debt=0 count=6
+6,2052,61341353,-;mt6797-consys 10001340.consys: one-shot WLAN join TX done: pid=10 status=0 advanced=1 count=1
+6,2053,61413110,-;mt6797-consys 10001340.consys: one-shot WLAN join data credit: pages=1 debt=0 count=7
+6,2054,61414335,-;mt6797-consys 10001340.consys: one-shot WLAN join TX done: pid=11 status=0 advanced=1 count=1
+6,2055,61461110,-;mt6797-consys 10001340.consys: one-shot WLAN join data credit: pages=5 debt=0 count=8
+6,2056,61462338,-;mt6797-consys 10001340.consys: one-shot WLAN join TX done: pid=12 status=0 advanced=1 count=1
+6,2057,61557176,-;mt6797-consys 10001340.consys: one-shot WLAN join TX done: pid=13 status=0 advanced=1 count=1
+6,2058,61629154,-;mt6797-consys 10001340.consys: one-shot WLAN join TX done: pid=14 status=0 advanced=1 count=1
+6,2059,61725130,-;mt6797-consys 10001340.consys: one-shot WLAN join TX done: pid=15 status=0 advanced=1 count=1
+6,2060,61749077,-;mt6797-consys 10001340.consys: one-shot WLAN native-diag: state=3 act=2 total=512 native=0 bytes=77740
+6,2061,61773114,-;mt6797-consys 10001340.consys: one-shot WLAN join credit: pages=1 remaining=0
+6,2062,61774207,-;mt6797-consys 10001340.consys: one-shot WLAN join data phase end: reason=native-diag elapsed_ms=2933 rx_unicast=0 rx_group=0 rx_dropped=0 tx_queued=13 tx_done=11 tx_failed=0 tx_credits=19
+6,2063,61776447,-;mt6797-consys 10001340.consys: one-shot WLAN ccmp-stable end: queued=11 no_reuse=1
+6,2064,61777590,-;mt6797-consys 10001340.consys: one-shot WLAN join data group1: uni_present=0 uni_absent=0 grp_present=0 grp_absent=0 uni_masks=0x0 grp_masks=0x0
+6,2065,61779390,-;mt6797-consys 10001340.consys: one-shot WLAN native-diag: state=4 act=0 total=512 native=0 bytes=77740
+6,2066,61780743,-;mt6797-consys 10001340.consys: one-shot WLAN join TX: subtype=12 pid=16 pages=1
+6,2067,61805180,-;mt6797-consys 10001340.consys: one-shot WLAN join credit: pages=1 remaining=0
+6,2068,61806354,-;mt6797-consys 10001340.consys: one-shot WLAN native HIF refused: gate=header-length port=0 pre_valid=1 pre_wrplr=0x0000004c selected=76 header_valid=1 header=28 setup=1 complete=1 staging=80 post_valid=0 post_wrplr=0x00000000
+3,2069,61809010,-;mt6797-consys 10001340.consys: one-shot WLAN join stopped: status=-71 first=0 submitted=0x1801 debt=0 cleanup=0 branch=4
+6,2070,61810589,-;mt6797-consys 10001340.consys: one-shot WLAN native RX classes: phase=0 t0=0 t1=0 t2=7 t3=0 t4=0 t5=0 t6=0 t7=1 beacons=0 reported_idx1_translated=0 reported_idx1_untranslated=0
+6,2071,61812749,-;mt6797-consys 10001340.consys: one-shot WLAN native RX gates: phase=0 blocked=7 eligible=0 input=0 length=0 type=0 channel=0 translated=0 msdu=0 fcs=0 header=0 span=0 frame_type=0 unprotected=0 ds=0 frame_shape=0 peer=0 destination=0 ccmp_shape=0
+6,2072,61815677,-;mt6797-consys 10001340.consys: one-shot WLAN native RX classes: phase=1 t0=0 t1=0 t2=483 t3=0 t4=0 t5=0 t6=0 t7=21 beacons=27 reported_idx1_translated=0 reported_idx1_untranslated=0
+6,2073,61817888,-;mt6797-consys 10001340.consys: one-shot WLAN native RX gates: phase=1 blocked=1 eligible=0 input=0 length=0 type=0 channel=0 translated=0 msdu=0 fcs=0 header=0 span=0 frame_type=0 unprotected=0 ds=0 frame_shape=0 peer=0 destination=0 ccmp_shape=0
+6,2074,61820796,-;mt6797-consys 10001340.consys: one-shot WLAN native RX classes: phase=2 t0=0 t1=0 t2=14 t3=0 t4=0 t5=0 t6=0 t7=2 beacons=0 reported_idx1_translated=0 reported_idx1_untranslated=0
+6,2075,61822990,-;mt6797-consys 10001340.consys: one-shot WLAN native RX gates: phase=2 blocked=0 eligible=0 input=0 length=0 type=0 channel=0 translated=0 msdu=0 fcs=0 header=0 span=0 frame_type=0 unprotected=0 ds=0 frame_shape=0 peer=0 destination=0 ccmp_shape=0
+6,2076,61825933,-;mt6797-consys 10001340.consys: one-shot WLAN native RX classes: phase=3 t0=0 t1=0 t2=12 t3=0 t4=0 t5=0 t6=0 t7=0 beacons=0 reported_idx1_translated=0 reported_idx1_untranslated=0
+6,2077,61828105,-;mt6797-consys 10001340.consys: one-shot WLAN native RX gates: phase=3 blocked=12 eligible=0 input=0 length=0 type=0 channel=0 translated=0 msdu=0 fcs=0 header=0 span=0 frame_type=0 unprotected=0 ds=0 frame_shape=0 peer=0 destination=0 ccmp_shape=0
+6,2079,62153117,-;mt6797-consys 10001340.consys: one-shot WLAN ccmp-stable disable: local=1 removal_command_credit=0 status=-71 no_reuse=1
+6,2080,62154839,-;mt6797-consys 10001340.consys: one-shot WLAN ccmp-stable disable: local=1 removal_command_credit=0 status=-71 no_reuse=1

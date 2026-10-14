@@ -68,6 +68,14 @@ static unsigned int check(unsigned int port, unsigned int length, unsigned int d
 		assert(t.phase == MT6797_INIT_POISONED);
 		assert(h->normal.phase == MT6797_NORMAL_FAILED);
 	}
+	if (rc == -EPROTO && mock.copy_allowed) {
+		/* Header mismatch exits before the post-WRPLR setup/read and before
+		 * publishing a packet type or any logical caller bytes.
+		 */
+		assert(mock.calls == mock.words + 3);
+		assert(r.rx_setup && r.rx_complete && r.staging_bytes == mock.words * 4);
+		assert(!r.post_valid && !r.post_wrplr && !r.logical_bytes && !r.packet_type);
+	}
 #ifdef TEST_METADATA
 	log_lines = 0;
 	logged_refusal(rc, port, r);
@@ -119,6 +127,13 @@ int main(void)
 		check(p, 2352, 0, ~0U, 0);
 		check(p, 20, 1, ~0U, -EPROTO);
 		check(p, 20, 256, ~0U, -EPROTO);
+		/* CCMP3 76/28 and ND6 80/32: synthetic staged headers, not proof
+		 * of the runtime packet family or producer cause. Equality stays strict.
+		 */
+		check(p, 76, (unsigned int)-48, ~0U, -EPROTO);
+		check(p, 80, (unsigned int)-48, ~0U, -EPROTO);
+		check(p, 76, 0, ~0U, 0);
+		check(p, 80, 0, ~0U, 0);
 		calls = check(p, 20, 0, ~0U, 0);
 		for (unsigned int f = 1; f <= calls; f++)
 			check(p, 20, 0, f, -EIO);
