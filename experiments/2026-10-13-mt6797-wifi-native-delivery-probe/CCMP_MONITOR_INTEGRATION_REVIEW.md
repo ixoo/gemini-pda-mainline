@@ -1,16 +1,17 @@
 # First finite monitor-assisted stable PTK — proposal 0191
 
-**Archive-only source/test review; unselected and not built.** ROOT authorized
-this authoring stage and the normal DHCP branch. Exact patch review remains
-required before selection/build. Frozen ND6 and exact [0190 helper](CCMP_RX_CONTRACT_REVIEW.md)
+**Source/test review record; no build or hardware result.** ROOT authorized
+authoring, the normal DHCP branch, and subsequently the exact source/profile
+below for selection/build. Frozen ND6 and exact [0190 helper](CCMP_RX_CONTRACT_REVIEW.md)
 are the foundation; no historical artifacts, series or runtime evidence changed.
 
 - [0191 patch](../../patches/proposals/0191-wifi-mt6797-gate-one-monitor-assisted-stable-ccmp-epoch.patch)
   changes only driver `Kconfig` and `mac.c`.
 - [Profile proposal](../../configs/gemini-a53-wifi-ccmp-stable-monitor.fragment)
-  is not a manifest-selected build profile. It proposes native arm0/CCMP arm1
+  originally archived unselected, uses native arm0/CCMP arm1
   and requires the existing ND6 profile's ordered foundation plus exact0190/0191.
-  No series or manifest selection is made by this archive.
+  The later approved selection is recorded below; the original fragment's
+  proposal/unselected comments describe its pre-review origin.
 - Source commit: `9b7bad2ba02513b4f003fa1162e00ea94a502d8d`, parent
   `7e89fa209b4fd9c1ad7f9efcae8210a4d633e11c`.
 - Patch SHA256: `0b855aecb02c3fada1a263ad8e7c811b1850a8f56a0255fb37d7532a08251fe4`.
@@ -101,8 +102,8 @@ and is not upstream-submission-ready. Source and test licenses are GPL-2.0-only.
 
 ## Next boundary
 
-After ROOT's exact source approval, select a separate profile with canonical-order
-ND6+0190+0191 inputs, commit/push clean inputs and build on Buildbox-1 with32 jobs,
+ROOT approved exact `9b7bad2`/patch0b855aec/MAC94319809/profile8lines. Select a separate
+profile with canonical-order ND6+0190+0191 inputs, commit/push clean inputs and build on Buildbox-1 with32 jobs,
 modulesfalse and ordinary provenance. Prepare compositor/runtime/installer/real
 receipt bindings with that admitted build; composition needs no new assembly
 permission. Private parent/RAM remain outside Git; ROOT alone operates hardware.
@@ -112,5 +113,32 @@ then WLAN-bound unicast ping/boot-mode SSH within the available finite window.
 No static address fallback, fabricated lease/READY, or USB-as-WLAN claim. Short
 window/failure is a truthful partial result. Full normal producer, GTK RX,
 retirement/rekey/reuse, IRQ-DMA reliability and clean-profile ten-minute SSH remain
-unresolved. No selected profile, package, compositor or device receipt is claimed
-by this source-only archive.
+unresolved. Selection below supplies no validated package, compositor or device
+receipt; none is claimed by this source-only record.
+
+## Approved selection audit
+
+`mt6797-a53-wifi-ccmp-stable-monitor` selects
+`patches/series-a53-wifi-ccmp-stable-monitor`: exactly the frozen ND6 ordered684
+patches followed by unchanged0190 and approved0191, total686. The manifest adds
+only this profile, cloning ND6's complete base/ordered25 fragments and appending
+the reviewed CCMP fragment. No DT patch or other source tuple changes.
+
+Against published `904e703c`, all existing manifest entries and all47 tracked
+configuration/DT paths remain identical. The checkout contains **17 existing
+named explicit series files**, all byte-identical (18 existing series files if
+the canonical file is counted). These measured counts replace an assumed18
+explicit-file count; no existing named series is altered. Canonical series only
+appends0190/0191. Four historical implicit consumers (`full`, `handoff`, `usbdiag`,
+`usbdiag-clkignore`) consequently inherit those additions; that is not evidence
+they apply cleanly or are admitted new build foundations. Only the exact ND6-based
+new profile is authorized for this build.
+
+Selected series SHA256:
+`7b9066cee939342b84b43baf0db9cab7d29b8d15fa80fda5600fe7f95a9a1663`.
+Resolved configuration, compiler outputs and package identities are pending the
+ordinary build/validation; requested fragments alone are not a resolved-config
+receipt. ROOT independently reviewed and approved the one-comment clarification
+from `da480f1` to `9b7bad2` (`set_key` versus `DISABLE_KEY` returns), with no executable
+change. Selection keeps published archive45a3ec43's exact patch0b855aec and the
+more precise comment; all source/build/compositor pins must use that final source.
