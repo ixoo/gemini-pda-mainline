@@ -1,5 +1,9 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /* Reuse the actual-HIF fixture, including its transport and lifetime mocks. */
+#ifdef TEST_REFUSED_TYPE
+#include <stdint.h>
+typedef uint16_t u16;
+#endif
 #define main baseline_main
 #define check baseline_check
 #include "../../2026-10-01-mt6797-pio-rx/tests/test-pio-rx.c"
@@ -76,6 +80,18 @@ static unsigned int check(unsigned int port, unsigned int length, unsigned int d
 		assert(r.rx_setup && r.rx_complete && r.staging_bytes == mock.words * 4);
 		assert(!r.post_valid && !r.post_wrplr && !r.logical_bytes && !r.packet_type);
 	}
+#ifdef TEST_REFUSED_TYPE
+	{
+		bool valid = rc == -EPROTO &&
+			r.protocol_refusal == MT6797_HIF_RX_REFUSAL_HEADER &&
+			r.rx_setup && r.rx_complete && r.header_valid && r.staging_bytes >= 4;
+
+		assert(r.refused_type_valid == valid);
+		_Static_assert(sizeof(r.refused_type_word) == 2, "hint must be 16 bits");
+		/* The fixture stages this synthetic word, not a runtime type claim. */
+		assert(r.refused_type_word == (valid ? 0xe000 : 0));
+	}
+#endif
 #ifdef TEST_METADATA
 	log_lines = 0;
 	logged_refusal(rc, port, r);
@@ -98,11 +114,42 @@ static unsigned int check(unsigned int port, unsigned int length, unsigned int d
 			assert(r.rx_setup && r.rx_complete && r.staging_bytes);
 		}
 		assert(strstr(last_log, "post_valid=0 post_wrplr=0x00000000"));
+#ifdef TEST_REFUSED_TYPE
+		assert(strstr(last_log, r.refused_type_valid ?
+			"refused_type_valid=1 refused_type_word=0xe000" :
+			"refused_type_valid=0 refused_type_word=0x0000"));
+#endif
 	} else {
 		assert(r.protocol_refusal == MT6797_HIF_RX_REFUSAL_NONE);
 		assert(!r.header_valid && !r.header_length && !r.selected_length);
 	}
 #endif
+	if (rc == -EPROTO) {
+		struct mt6797_hif_rx_result again;
+		unsigned int calls = mock.calls;
+		int retry;
+
+		/* Test the poisoned owner, not a radio retry: no further transport
+		 * call or second refusal report can occur on this context.
+		 */
+		retry = mt6797_hif_receive_packet(h, port, 1000001000ULL,
+						buffer, sizeof(buffer), &again);
+		assert(retry == -EIO && mock.calls == calls);
+		assert(!again.pre_valid && !again.rx_setup && !again.rx_complete &&
+		       !again.post_valid && !again.logical_bytes && !again.packet_type);
+#ifdef TEST_METADATA
+		assert(!again.header_valid && again.protocol_refusal == MT6797_HIF_RX_REFUSAL_NONE);
+#endif
+#ifdef TEST_REFUSED_TYPE
+		assert(!again.refused_type_valid && !again.refused_type_word);
+#endif
+		for (size_t i = 0; i < sizeof(buffer); i++)
+			assert(buffer[i] == 0x5a);
+#ifdef TEST_METADATA
+		logged_refusal(retry, port, again);
+		assert(log_lines == 1);
+#endif
+	}
 	/* Parent/child byte-identical table proves no extra transport operations. */
 	printf("port=%u length=%u delta=%u fail=%u ret=%d calls=%u setup=%u complete=%u first=%d\n",
 	       port, length, delta, fail_at, rc, mock.calls, r.rx_setup,
