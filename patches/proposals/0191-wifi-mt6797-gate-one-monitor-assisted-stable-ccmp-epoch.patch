@@ -1,0 +1,672 @@
+From 9b7bad2ba02513b4f003fa1162e00ea94a502d8d Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Wed, 14 Oct 2026 05:09:07 +0000
+Subject: [PATCH] wifi: mt6797: gate one monitor-assisted stable CCMP epoch
+
+Reuse the admitted finite monitor engine for a separate read-only,
+default-off mode. It is mutually exclusive with the native diagnostic.
+The original native profile, flags, counters and classifier remain intact.
+Normal-mode PN production is unresolved: runtime32 delivered60 frames
+with Group4 only; ND6 captured Group1 only in the monitor sequence.
+
+Use the checked stable-PTK helper with current authorized station/key
+context, seeded driver PN and standard hardware-CCMP decap flags. Bind
+the actual pubsta under RCU and use one BH-disabled, serialized RX API
+family across scan/control/data. Do not force core fast_rx or vif flags.
+Block all ordinary legacy fallback and GTK RX. Keep the original512 RX,
+1MiB,64 accepted frames,10s/lower-deadline and shared-ledger monitor gates.
+CCMP queue evidence is separate from native ciphertext and HW replay.
+
+Require the first owned add-key event before GTK plus returned credit
+for provisional initial PTK activation. Seed from mac80211 and assign
+actual hardware indexes. TX uses only the current PTK cookie and the
+existing firmware-encrypted ToDS path, with no host IV/MIC generation.
+Withdrawal fences RX/TX/cookies and synchronizes batches/queued work
+before keyconf lifetime ends. Preserve existing deauth/credit/removal
+cleanup; local disable under fault is not firmware key deletion proof.
+No re-arm, rekey, same-slot replacement or new firmware/control writes.
+
+Actual-source host tests cover callback activation/refusal/withdrawal,
+RX API context, strict PN/bounds, queued TX cookies, the actual monitor
+engine and original-native trace equivalence. These are host simulations,
+not proof of live kernel RCU/core behavior or negative-on-wire integrity.
+No kernel build or hardware support result is claimed.
+
+Internal experiment archive, synthetic non-certifying author; no DCO
+certification and not submission-ready.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig |  11 +
+ drivers/net/wireless/mediatek/mt6797/mac.c   | 390 +++++++++++++++++++
+ 2 files changed, 401 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index aa196a0..8b302d2 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -92,3 +92,14 @@ config MT6797_NATIVE_DELIVERY_DIAG
+ 	  native_delivery_diag module parameter and is absent from the build
+ 	  unless this option is set; the Phase B compile profile does not set it.
+ 	  Not driver support; a bounded source-grounded crypto-delivery test.
++
++config MT6797_CCMP_STABLE_EPOCH
++	bool "MT6797 default-off monitor-assisted stable PTK compatibility"
++	depends on MT6797_NATIVE_DELIVERY_DIAG
++	default n
++	help
++	  Reuse the admitted finite monitor protocol for one initial station/key
++	  epoch. Checked hardware-CCMP Ethernet RX with driver PN validation uses
++	  standard mac80211 decap. GTK RX, rekey, slot reuse and normal-mode PN
++	  production are not supported. The read-only ccmp_stable_epoch arm is
++	  mutually exclusive with native_delivery_diag. No IRQ/DMA changes.
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 50403f3..ce39e03 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -30,6 +30,14 @@ MODULE_PARM_DESC(native_delivery_diag,
+ 		 "Arm the default-off native-crypto-delivery diagnostic (0181)");
+ #endif
+ #include "action-frame.h"
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++#include <linux/rcupdate.h>
++#include "ccmp-rx.h"
++static bool ccmp_stable_epoch;
++module_param(ccmp_stable_epoch, bool, 0444);
++MODULE_PARM_DESC(ccmp_stable_epoch,
++		 "Arm one monitor-assisted stable PTK epoch; excludes native_delivery_diag");
++#endif
+ #include "join-tx.h"
+ #include "join-commands.h"
+ 
+@@ -178,6 +186,17 @@ struct mt6797_mac {
+ 	} native_diag_rx[4];
+ 	bool native_diag_rx_reported;
+ 	bool native_diag_rxd_sampled;
++#endif
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++	struct mt6797_ccmp_rx_context ccmp_rx;
++	struct ieee80211_sta __rcu *ccmp_sta;
++	/* Cookies only: never dereferenced, withdrawn before DISABLE_KEY returns. */
++	struct ieee80211_key_conf *ccmp_ptk, *ccmp_gtk;
++	/* Serializes scan/join RX, TX status and completed key withdrawal. */
++	struct mutex ccmp_receive_mutex;
++	struct completion ccmp_key_done, ccmp_cleanup_done;
++	bool ccmp_decap, ccmp_closed, ccmp_ptk_attempted, ccmp_tx_ready;
++	unsigned int ccmp_queued;
+ #endif
+ 	u64 join_data_deadline, join_data_started;
+ 	const char *join_data_end_reason;
+@@ -226,6 +245,94 @@ static int mt6797_mac_join_wait_credit(struct mt6797_mac *mac);
+ #endif
+ #endif
+ 
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++/* MAC mutex held; queue state also fences atomic .tx admission. */
++static void mt6797_ccmp_withdraw(struct mt6797_mac *mac)
++{
++	unsigned long flags;
++
++	mac->ccmp_rx.active = false;
++	mac->ccmp_rx.authorized = false;
++	mac->ccmp_decap = false;
++	mac->ccmp_closed = true;
++	RCU_INIT_POINTER(mac->ccmp_sta, NULL);
++	spin_lock_irqsave(&mac->join_queue.lock, flags);
++	mac->ccmp_tx_ready = false;
++	mac->ccmp_ptk = NULL;
++	mac->ccmp_gtk = NULL;
++	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++	complete_all(&mac->ccmp_key_done);
++}
++
++static bool mt6797_ccmp_rx_ready(struct mt6797_mac *mac)
++{
++	return !mac->ccmp_closed && mac->ccmp_rx.active && mac->ccmp_rx.authorized &&
++	       mac->ccmp_decap && rcu_access_pointer(mac->ccmp_sta) && mac->ccmp_ptk &&
++	       !mac->closing && !mac->first_error &&
++	       !mac->join_retired && mac->join_data_phase && !mac->join_data_ended &&
++	       mac->native_diag_state == MT6797_ND_ACTIVE;
++}
++
++/* Caller holds the MAC mutex and has already admitted this ACTIVE RX. */
++static int mt6797_ccmp_queue_rx(struct mt6797_mac *mac, size_t bytes,
++				struct sk_buff_head *received)
++{
++	struct mt6797_ccmp_rx view;
++	struct sk_buff *skb;
++	unsigned int rx_flags = RX_FLAG_8023 | RX_FLAG_DECRYPTED | RX_FLAG_IV_STRIPPED |
++		RX_FLAG_MIC_STRIPPED | RX_FLAG_PN_VALIDATED | RX_FLAG_NO_SIGNAL_VAL;
++
++	if (!mt6797_ccmp_rx_ready(mac) || mac->ccmp_queued >= MT6797_NATIVE_DIAG_NATIVE_MAX)
++		return 0;
++	/* Allocate before the PN decision commits highwater. */
++	skb = dev_alloc_skb(bytes);
++	if (!skb)
++		return -ENOMEM;
++	if (!mt6797_ccmp_rx_check(mac->join_packet, bytes, &mac->ccmp_rx, &view)) {
++		dev_kfree_skb(skb);
++		return 0;
++	}
++	skb_put_data(skb, mac->join_packet + view.offset, view.bytes);
++	memset(IEEE80211_SKB_RXCB(skb), 0, sizeof(struct ieee80211_rx_status));
++	IEEE80211_SKB_RXCB(skb)->band = NL80211_BAND_5GHZ;
++	IEEE80211_SKB_RXCB(skb)->freq = 5200;
++	IEEE80211_SKB_RXCB(skb)->flag = rx_flags;
++	if (!mac->ccmp_queued)
++		dev_info(wiphy_dev(mac->hw->wiphy),
++			 "one-shot WLAN ccmp-stable RX: first ethernet_bytes=%zu flags=0x%x\n",
++			 view.bytes, rx_flags);
++	mac->ccmp_queued++;
++	__skb_queue_tail(received, skb);
++	return 0;
++}
++
++/* Called only in the common serialized RX/TX-status batch, outside MAC locks.
++ * Withdrawal fences eligibility then waits for this batch before key removal
++ * callbacks complete. RCU covers pubsta and the entire core RX handoff.
++ */
++static void mt6797_ccmp_receive(struct mt6797_mac *mac, struct sk_buff *skb)
++{
++	struct ieee80211_sta *sta = NULL;
++	bool ethernet = IEEE80211_SKB_RXCB(skb)->flag & RX_FLAG_8023, ready = true;
++
++	mutex_lock(&mac->mutex);
++	local_bh_disable();
++	rcu_read_lock();
++	if (ethernet) {
++		ready = mt6797_ccmp_rx_ready(mac);
++		sta = rcu_dereference_protected(mac->ccmp_sta, lockdep_is_held(&mac->mutex));
++		ready = ready && sta;
++	}
++	mutex_unlock(&mac->mutex);
++	if (ready)
++		ieee80211_rx_napi(mac->hw, sta, skb, NULL);
++	else
++		dev_kfree_skb(skb);
++	rcu_read_unlock();
++	local_bh_enable();
++}
++#endif
++
+ static int mt6797_mac_send(struct mt6797_mac *mac,
+ 			   enum mt6797_normal_config_kind kind,
+ 			   const u8 *payload, size_t bytes)
+@@ -904,6 +1011,10 @@ static void mt6797_mac_join_close(struct mt6797_mac *mac)
+ 	 */
+ 	mutex_lock(&mac->mutex);
+ 	mac->join_retired = true;
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++	if (ccmp_stable_epoch)
++		mt6797_ccmp_withdraw(mac);
++#endif
+ 	mac->join_closed = true;
+ 	mac->join_rearm_pending = false;
+ 	spin_lock_irqsave(&mac->join_queue.lock, flags);
+@@ -1166,6 +1277,10 @@ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
+ 			mac->join_key_done_second = true;
+ 		else
+ 			mac->join_key_done = true;
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++		if (ccmp_stable_epoch && !mac->join_key_group_submitted)
++			complete_all(&mac->ccmp_key_done);
++#endif
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+ 			 "one-shot WLAN join key done: %s bss=%u peer=1\n", window, body[0]);
+ 		return 0;
+@@ -1341,6 +1456,12 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
+ 	}
+ 	if (mac->join_cleanup_stage == 3) {
+ 		mac->join_cleanup_done = true;
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++		if (ccmp_stable_epoch) {
++			mt6797_ccmp_withdraw(mac);
++			complete_all(&mac->ccmp_cleanup_done);
++		}
++#endif
+ 		mac->join_sta_active = false;
+ 		mac->join_channel_granted = false;
+ 		mac->bss_active = false;
+@@ -1504,6 +1625,10 @@ static int mt6797_native_diag_pre_read(struct mt6797_mac *mac)
+ 	     mac->native_diag_bytes + MT6797_HIF_RX_MAX_PACKET >
+ 	     MT6797_NATIVE_DIAG_BYTES_MAX))
+ 		mac->native_diag_sample_done = true;
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++	if (ccmp_stable_epoch && mac->ccmp_queued >= MT6797_NATIVE_DIAG_NATIVE_MAX)
++		mac->native_diag_sample_done = true;
++#endif
+ 	/* The window is over on a sample ceiling OR any data-phase end (lower
+ 	 * deadline / PID budget / association loss).
+ 	 */
+@@ -1555,6 +1680,12 @@ static void mt6797_native_diag_step(struct mt6797_mac *mac)
+ 	b.bytes = mac->native_diag_bytes;
+ 	c.state = mac->native_diag_state;
+ 	c.armed = native_delivery_diag;
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++	if (ccmp_stable_epoch) {
++		c.armed = true;
++		b.native_rx = mac->ccmp_queued;
++	}
++#endif
+ 	c.data_phase = mac->join_data_phase && !mac->join_data_ended &&
+ 		       mac->join_key_pairwise == 1 && mac->join_key_group == 1 &&
+ 		       now < mac->join_data_deadline;
+@@ -1629,6 +1760,12 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+ 		 mac->join_data_rx_unicast, mac->join_data_rx_group, mac->join_data_rx_dropped,
+ 		 mac->join_data_tx_queued, mac->join_data_tx_done, mac->join_data_tx_failed,
+ 		 mac->join_data_credits);
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++	if (ccmp_stable_epoch)
++		dev_info(wiphy_dev(mac->hw->wiphy),
++			 "one-shot WLAN ccmp-stable end: queued=%u no_reuse=1\n",
++			 mac->ccmp_queued);
++#endif
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+ 		 "one-shot WLAN join data group1: uni_present=%u uni_absent=%u grp_present=%u grp_absent=%u uni_masks=0x%x grp_masks=0x%x\n",
+ 		 mac->join_data_g1_uni_present, mac->join_data_g1_uni_absent,
+@@ -1692,6 +1829,13 @@ static int mt6797_mac_join_fail_stop(struct mt6797_mac *mac, int ret,
+ {
+ 	unsigned long flags;
+ 
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++	if (ccmp_stable_epoch) {
++		mt6797_ccmp_withdraw(mac);
++		complete_all(&mac->ccmp_cleanup_done);
++	}
++#endif
++
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ 	dev_err(wiphy_dev(mac->hw->wiphy),
+ 		"one-shot WLAN join stopped: status=%d first=%d submitted=0x%x debt=%u cleanup=%u branch=%u\n",
+@@ -2394,6 +2538,18 @@ submitted:
+ 					mac->native_diag_rx[nd_phase].beacons++;
+ 					continue;
+ 				}
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++				if (ccmp_stable_epoch) {
++					if (admitted)
++						ret = mt6797_ccmp_queue_rx(mac, rx.logical_bytes,
++									   &received);
++					else if (nd_phase >= 0)
++						mac->native_diag_rx[nd_phase].window_blocked++;
++					if (ret)
++						goto failed;
++					continue;
++				}
++#endif
+ 				if (admitted) {
+ 					gate = mt6797_data_rx_native_gate(mac->join_packet,
+ 									  rx.logical_bytes, 40,
+@@ -2431,6 +2587,10 @@ submitted:
+ 				}
+ 				continue;	/* translated/plain withheld while engaged */
+ 			}
++#endif
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++			if (ccmp_stable_epoch)
++				continue;	/* no ordinary legacy fallback */
+ #endif
+ 			if (mac->join_key_pairwise_submitted && !mac->join_cleanup_done &&
+ 			    mt6797_data_rx(mac->join_packet, rx.logical_bytes, 40,
+@@ -2723,6 +2883,9 @@ submitted:
+ 	 * inline reset, so the re-arm never runs while this pass holds local SKBs.
+ 	 */
+ 	if (mac->join_cleanup_done && mac->join_sta_removed && !mac->join_closed &&
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++	    !ccmp_stable_epoch &&
++#endif
+ 	    mac->join_lifetimes < 2 &&
+ 	    !mac->first_error && !mac->closing && !mac->join_rearm_pending) {
+ 		mac->join_rearm_pending = true;
+@@ -2739,6 +2902,10 @@ failed:
+ unlock:
+ 	mutex_unlock(&mac->mutex);
+ 	/* One worker serializes RX_ni and TX_status_ni, outside driver locks. */
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++	if (ccmp_stable_epoch)
++		mutex_lock(&mac->ccmp_receive_mutex);
++#endif
+ 	if (completed) {
+ 		if (completed_internal)
+ 			dev_kfree_skb(completed);
+@@ -2748,9 +2915,17 @@ unlock:
+ 	while ((skb = __skb_dequeue(&received))) {
+ 		if (ret)
+ 			dev_kfree_skb(skb);
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++		else if (ccmp_stable_epoch)
++			mt6797_ccmp_receive(mac, skb);
++#endif
+ 		else
+ 			ieee80211_rx_ni(mac->hw, skb);
+ 	}
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++	if (ccmp_stable_epoch)
++		mutex_unlock(&mac->ccmp_receive_mutex);
++#endif
+ 	while ((skb = __skb_dequeue(&discard))) {
+ 		if (skb == internal)
+ 			dev_kfree_skb(skb);
+@@ -2876,12 +3051,24 @@ out:
+ 	 * the hardware scan is still in progress, so its scan receive path
+ 	 * records them before the completion below.
+ 	 */
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++	if (ccmp_stable_epoch)
++		mutex_lock(&mac->ccmp_receive_mutex);
++#endif
+ 	while ((skb = __skb_dequeue(&received))) {
+ 		if (ret)
+ 			dev_kfree_skb(skb);
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++		else if (ccmp_stable_epoch)
++			mt6797_ccmp_receive(mac, skb);
++#endif
+ 		else
+ 			ieee80211_rx_ni(mac->hw, skb);
+ 	}
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++	if (ccmp_stable_epoch)
++		mutex_unlock(&mac->ccmp_receive_mutex);
++#endif
+ 	if (notify)
+ 		ieee80211_scan_completed(mac->hw, &info);
+ }
+@@ -3614,6 +3801,77 @@ static void mt6797_mac_mgd_complete_tx(struct ieee80211_hw *hw,
+  * the lifetime fail-stop. DISABLE_KEY submits
+  * nothing: the lifetime retires its keys explicitly in the cleanup.
+  */
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++/* DISABLE_KEY completes locally, never asserts firmware key deletion. */
++static int mt6797_ccmp_disable_key(struct mt6797_mac *mac)
++{
++	struct sk_buff_head discard;
++	struct sk_buff *skb, *tmp, *internal = NULL;
++	unsigned long flags;
++	u64 deadline, now;
++	int ret = 0;
++	bool retired;
++
++	skb_queue_head_init(&discard);
++	mutex_lock(&mac->mutex);
++	mt6797_ccmp_withdraw(mac);
++	/* Retain only reserved deauth; never dereference queued key cookies. */
++	spin_lock_irqsave(&mac->join_queue.lock, flags);
++	skb_queue_walk_safe(&mac->join_queue, skb, tmp) {
++		if (skb == mac->join_internal)
++			continue;
++		__skb_unlink(skb, &mac->join_queue);
++		mac->join_queue_bytes -= skb->len;
++		__skb_queue_tail(&discard, skb);
++	}
++	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++	if (mac->join_data_phase && !mac->join_data_ended)
++		mt6797_mac_join_end_data(mac, "key-disable");
++	deadline = mac->join_deadline;
++	mutex_unlock(&mac->mutex);
++	/* Prior RX/TX-status batches finish before the callback completes. */
++	mutex_lock(&mac->ccmp_receive_mutex);
++	mutex_unlock(&mac->ccmp_receive_mutex);
++	mutex_lock(&mac->mutex);
++	if (mac->join_inflight && !mac->first_error)
++		ret = mt6797_mac_join_wait_management(mac);
++	if (!ret && !mac->join_cleanup_done && !mac->first_error &&
++	    mac->join_running && !mac->join_retired && !mac->closing) {
++		schedule_delayed_work(&mac->join_work, 0);
++		now = ktime_get_ns();
++		if (now < deadline) {
++			mutex_unlock(&mac->mutex);
++			wait_for_completion_timeout(&mac->ccmp_cleanup_done,
++						    nsecs_to_jiffies(deadline - now) + 1);
++			mutex_lock(&mac->mutex);
++		}
++	}
++	retired = mac->join_cleanup_done && mac->join_key_pairwise == 2 &&
++		  mac->join_key_group == 2;
++	if (!retired) {
++		if (!ret)
++			ret = mac->first_error ? mac->first_error : -ETIMEDOUT;
++		if (mac->join_running && !mac->join_retired)
++			mt6797_mac_join_fail_stop(mac, ret, 8, &discard, &internal);
++	}
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot WLAN ccmp-stable disable: local=1 removal_command_credit=%u status=%d no_reuse=1\n",
++		 retired, ret);
++	mutex_unlock(&mac->mutex);
++	/* The terminal worker's last TX-status batch also precedes keyconf free. */
++	cancel_delayed_work_sync(&mac->join_work);
++	mutex_lock(&mac->ccmp_receive_mutex);
++	mutex_unlock(&mac->ccmp_receive_mutex);
++	while ((skb = __skb_dequeue(&discard))) {
++		if (skb == internal)
++			dev_kfree_skb(skb);
++		else
++			ieee80211_free_txskb(mac->hw, skb);
++	}
++	return 0;
++}
++#endif
++
+ static int mt6797_mac_set_key(struct ieee80211_hw *hw, enum set_key_cmd cmd,
+ 			      struct ieee80211_vif *vif, struct ieee80211_sta *sta,
+ 			      struct ieee80211_key_conf *key)
+@@ -3622,10 +3880,23 @@ static int mt6797_mac_set_key(struct ieee80211_hw *hw, enum set_key_cmd cmd,
+ 	bool pairwise = key->flags & IEEE80211_KEY_FLAG_PAIRWISE;
+ 	unsigned long flags;
+ 	int ret;
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++	struct ieee80211_key_seq seed;
++
++	if (ccmp_stable_epoch && cmd == DISABLE_KEY)
++		return mt6797_ccmp_disable_key(mac);
++#endif
+ 
+ 	if (cmd == DISABLE_KEY)
+ 		return 0;
+ 	mutex_lock(&mac->mutex);
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++	if (ccmp_stable_epoch && (mac->ccmp_closed ||
++				  (pairwise && mac->ccmp_ptk_attempted))) {
++		ret = -EOPNOTSUPP;
++		goto failed;
++	}
++#endif
+ 	if (vif != mac->vif || !mac->join_rsn || !mac->join_running ||
+ 	    !mac->join_sta_active || !mac->join_bss_configured ||
+ 	    mac->join_retired || mac->closing || mac->first_error ||
+@@ -3640,6 +3911,13 @@ static int mt6797_mac_set_key(struct ieee80211_hw *hw, enum set_key_cmd cmd,
+ 		ret = -EOPNOTSUPP;
+ 		goto failed;
+ 	}
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++	if (ccmp_stable_epoch && pairwise) {
++		mac->ccmp_ptk_attempted = true;
++		ieee80211_get_key_rx_seq(key, 0, &seed);
++		reinit_completion(&mac->ccmp_key_done);
++	}
++#endif
+ 	/* The standard supplicant hands message 4 to the driver before it
+ 	 * installs the pairwise key, so the reply may be in flight or its pages
+ 	 * still owed when this is called. Serialize on the existing TC4 ledger:
+@@ -3676,6 +3954,47 @@ static int mt6797_mac_set_key(struct ieee80211_hw *hw, enum set_key_cmd cmd,
+ 	}
+ 	if (ret)
+ 		goto failed;
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++	if (ccmp_stable_epoch && pairwise) {
++		u64 now = ktime_get_ns(), deadline = min_t(u64, mac->join_deadline,
++							 now + 100 * NSEC_PER_MSEC);
++
++		/* First owned event precedes GTK; attribution remains provisional. */
++		if (!mac->join_key_done && now < deadline) {
++			mutex_unlock(&mac->mutex);
++			wait_for_completion_timeout(&mac->ccmp_key_done,
++						    nsecs_to_jiffies(deadline - now) + 1);
++			mutex_lock(&mac->mutex);
++		}
++		if (!mac->join_key_done || mac->join_key_group_submitted ||
++		    mac->ccmp_closed || mac->first_error || mac->closing || mac->join_retired) {
++			ret = mac->first_error ? mac->first_error : -ETIMEDOUT;
++			goto failed;
++		}
++		memcpy(mac->ccmp_rx.pn, seed.ccmp.pn, 6);
++		memcpy(mac->ccmp_rx.own, hw->wiphy->perm_addr, 6);
++		memcpy(mac->ccmp_rx.ap, mac->join_ap, 6);
++		mac->ccmp_rx.cipher = key->cipher;
++		mac->ccmp_rx.key_bytes = key->keylen;
++		mac->ccmp_rx.key_id = key->keyidx;
++		mac->ccmp_rx.wlan_index = 1;
++		mac->ccmp_rx.rxd_bssid = 1; /* measured tag, not command BSS arithmetic */
++		mac->ccmp_rx.channel = 40;
++		mac->ccmp_rx.pairwise = true;
++		mac->ccmp_rx.seeded = true;
++		mac->ccmp_rx.active = true;
++		rcu_assign_pointer(mac->ccmp_sta, sta);
++		key->hw_key_idx = 1;
++		spin_lock_irqsave(&mac->join_queue.lock, flags);
++		mac->ccmp_ptk = key;
++		spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++	} else if (ccmp_stable_epoch) {
++		key->hw_key_idx = MT6797_JOIN_BMC_WLAN_INDEX;
++		spin_lock_irqsave(&mac->join_queue.lock, flags);
++		mac->ccmp_gtk = key;
++		spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++	}
++#endif
+ 	dev_info(wiphy_dev(hw->wiphy),
+ 		 "one-shot WLAN join key credit returned: %s\n",
+ 		 pairwise ? "pairwise" : "group");
+@@ -3750,6 +4069,18 @@ static int mt6797_mac_sta_state(struct ieee80211_hw *hw,
+ 	 * admitted by this incomplete upward-transition implementation.
+ 	 */
+ 	if (new <= old) {
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++		if (ccmp_stable_epoch && new < old) {
++			struct mt6797_mac *mac = hw->priv;
++
++			mutex_lock(&mac->mutex);
++			mt6797_ccmp_withdraw(mac);
++			mutex_unlock(&mac->mutex);
++			/* No MAC lock while synchronizing an already-started handoff. */
++			mutex_lock(&mac->ccmp_receive_mutex);
++			mutex_unlock(&mac->ccmp_receive_mutex);
++		}
++#endif
+ #if IS_ENABLED(CONFIG_MT6797_PASSIVE_SCAN)
+ 		if (new < old) {
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+@@ -3776,6 +4107,9 @@ static int mt6797_mac_sta_state(struct ieee80211_hw *hw,
+ 					 */
+ 					close = false;
+ 					if (mac->join_sta_removed && !mac->join_closed &&
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++					    !ccmp_stable_epoch &&
++#endif
+ 					    mac->join_lifetimes < 2 && !mac->join_rearm_pending) {
+ 						mac->join_rearm_pending = true;
+ 						schedule_delayed_work(&mac->join_work, 0);
+@@ -3843,12 +4177,31 @@ static int mt6797_mac_sta_state(struct ieee80211_hw *hw,
+ 	if (old == IEEE80211_STA_ASSOC && new == IEEE80211_STA_AUTHORIZED) {
+ 		struct mt6797_mac *mac = hw->priv;
+ 		int ret = -EOPNOTSUPP;
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++		unsigned long flags;
++		struct ieee80211_sta *current_sta;
++#endif
+ 
+ 		mutex_lock(&mac->mutex);
+ 		if (vif == mac->vif && ether_addr_equal(sta->addr, mac->join_ap) &&
+ 		    mac->join_sta_active && mac->join_bss_configured &&
+ 		    !mac->join_retired && !mac->closing && !mac->first_error)
+ 			ret = 0;
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++		if (ccmp_stable_epoch) {
++			current_sta = rcu_dereference_protected(mac->ccmp_sta,
++								lockdep_is_held(&mac->mutex));
++			if (!ret && !mac->ccmp_closed && mac->ccmp_rx.active &&
++			    current_sta == sta) {
++				mac->ccmp_rx.authorized = true;
++				spin_lock_irqsave(&mac->join_queue.lock, flags);
++				mac->ccmp_tx_ready = true;
++				spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++			} else {
++				ret = -EOPNOTSUPP;
++			}
++		}
++#endif
+ 		mutex_unlock(&mac->mutex);
+ 		return ret;
+ 	}
+@@ -3862,6 +4215,23 @@ static void mt6797_mac_filter(struct ieee80211_hw *hw, unsigned int changed,
+ 	*total = 0;
+ }
+ 
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++static void mt6797_mac_sta_set_decap_offload(struct ieee80211_hw *hw,
++					     struct ieee80211_vif *vif,
++					     struct ieee80211_sta *sta, bool enabled)
++{
++	struct mt6797_mac *mac = hw->priv;
++
++	if (!ccmp_stable_epoch)
++		return;
++	mutex_lock(&mac->mutex);
++	mac->ccmp_decap = enabled && vif == mac->vif && !mac->ccmp_closed &&
++		mac->ccmp_rx.active && mac->ccmp_rx.authorized &&
++		rcu_dereference_protected(mac->ccmp_sta, lockdep_is_held(&mac->mutex)) == sta;
++	mutex_unlock(&mac->mutex);
++}
++#endif
++
+ static void mt6797_mac_tx(struct ieee80211_hw *hw,
+ 			  struct ieee80211_tx_control *control, struct sk_buff *skb)
+ {
+@@ -3923,6 +4293,10 @@ static void mt6797_mac_tx(struct ieee80211_hw *hw,
+ 	    ether_addr_equal(header + 10, hw->wiphy->perm_addr)) {
+ 		spin_lock_irqsave(&mac->join_queue.lock, flags);
+ 		if (mac->join_open && mac->join_data_phase && !mac->join_data_ended &&
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++		    (!ccmp_stable_epoch || (mac->ccmp_tx_ready &&
++		     IEEE80211_SKB_CB(skb)->control.hw_key == mac->ccmp_ptk)) &&
++#endif
+ 		    mac->join_key_pairwise == 1 && mac->join_key_group == 1 &&
+ 		    !mac->join_deauth_done &&
+ 		    skb_queue_len(&mac->join_queue) < MT6797_JOIN_DATA_TX_QUEUE &&
+@@ -3974,6 +4348,9 @@ static const struct ieee80211_ops mt6797_mac_ops = {
+ 	.config = mt6797_mac_config,
+ 	.configure_filter = mt6797_mac_filter,
+ 	.sta_state = mt6797_mac_sta_state,
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++	.sta_set_decap_offload = mt6797_mac_sta_set_decap_offload,
++#endif
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ 	.set_key = mt6797_mac_set_key,
+ #endif
+@@ -4071,6 +4448,10 @@ int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+ 	*out = NULL;
+ 	if (!dev || !hif || !capability || !record)
+ 		return -EINVAL;
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++	if (ccmp_stable_epoch && native_delivery_diag)
++		return -EINVAL;
++#endif
+ 	if (capability->product != 0x6797 || capability->firmware_own != 0x0403 ||
+ 	    capability->firmware_peer || capability->rf_cal_fail ||
+ 	    capability->bb_cal_fail || !mt6797_wifi_record_commands(record))
+@@ -4098,6 +4479,15 @@ int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+ 	init_completion(&mac->join_sta_done);
+ 	init_completion(&mac->join_credit_done);
+ 	init_completion(&mac->join_frame_done);
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++	mutex_init(&mac->ccmp_receive_mutex);
++	init_completion(&mac->ccmp_key_done);
++	init_completion(&mac->ccmp_cleanup_done);
++	if (ccmp_stable_epoch) {
++		ieee80211_hw_set(hw, SUPPORTS_RX_DECAP_OFFLOAD);
++		ieee80211_hw_set(hw, SW_CRYPTO_CONTROL);
++	}
++#endif
+ 	hw->wiphy->max_scan_ssids = 0;
+ 	/* Userspace may attach elements to a scan request (the standard
+ 	 * supplicant always does); with a hw_scan operation mac80211 keeps a
+-- 
+2.39.5
+
