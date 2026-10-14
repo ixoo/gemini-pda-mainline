@@ -1,0 +1,95 @@
+{
+  "purpose": "Retained register and producer metadata consolidation; no hardware actions",
+  "whcr_snapshots": [
+    {
+      "experiment": "tx-status",
+      "log_sha256": "e72f6c474f2889f5be15cefc1d1e21fbb057bdd0c130e2af1beb22101a40b109",
+      "values": [
+        0
+      ],
+      "count": 1
+    },
+    {
+      "experiment": "tx-status-header",
+      "log_sha256": "c66b0cd9847dc30b55e195f522880633279449dc028cf420d88468a0c8e9ef7a",
+      "values": [
+        0
+      ],
+      "count": 1
+    },
+    {
+      "experiment": "tc4-reconcile",
+      "log_sha256": "fce87d82c5c4df3a74ed268c5f522d683859fe6413304128d3286a765b2039d3",
+      "values": [
+        0,
+        0,
+        0
+      ],
+      "count": 3
+    },
+    {
+      "experiment": "boot-sleepy",
+      "log_sha256": "e3051ab6394da0c56abd3d8b68bd88b66e1d7550618e3859a408d732ab615103",
+      "values": [
+        0,
+        0,
+        0
+      ],
+      "count": 3
+    }
+  ],
+  "metadata_logs": [
+    {
+      "experiment": "CCMP3",
+      "log_sha256": "d93be0aff544d19ea24ee79db30be08c69eab4e73733170703424dff9ed8907a",
+      "retained_metadata": [
+        {
+          "uni_present": "0",
+          "uni_absent": "0",
+          "grp_present": "0",
+          "grp_absent": "0",
+          "uni_masks": "0x0",
+          "grp_masks": "0x0"
+        }
+      ],
+      "prearm_postarm_per_frame_group_comparison_available": false
+    },
+    {
+      "experiment": "ND6",
+      "log_sha256": "971c1b7adab4379122cc1f0caf9bfc7db98112600265f25c2279b35f639ba235",
+      "retained_metadata": [
+        {
+          "phase": "1",
+          "bytes": "429",
+          "fields_valid": "1",
+          "type": "0x5faf",
+          "channel": "40",
+          "header": "0xce",
+          "groups": "0xf",
+          "msdu": "0",
+          "status": "0xc000",
+          "reported_index": "1",
+          "security_mode": "4",
+          "group4_valid": "1",
+          "fc": "0x4208",
+          "ta_ap_equal": "1"
+        },
+        {
+          "uni_present": "0",
+          "uni_absent": "0",
+          "grp_present": "0",
+          "grp_absent": "0",
+          "uni_masks": "0x0",
+          "grp_masks": "0x0"
+        }
+      ],
+      "prearm_postarm_per_frame_group_comparison_available": false
+    }
+  ],
+  "limits": [
+    "Historical snapshots are not current fault-time WHCR or reset-default proof",
+    "Untrusted type hint cannot certify an event or aggregation",
+    "Ordinary group1 footer zero counters are not absence of normal-mode G1",
+    "No new register writes, parser acceptance or normal-mode delivery admitted"
+  ]
+}

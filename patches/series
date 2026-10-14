@@ -804,3 +804,4 @@ proposals/0190-wifi-mt6797-add-unwired-stable-ptk-rx-decision-helper.patch
 proposals/0191-wifi-mt6797-gate-one-monitor-assisted-stable-ccmp-epoch.patch
 proposals/0192-wifi-mt6797-declare-ccmp-suite-for-stable-monitor-registration.patch
 proposals/0193-wifi-mt6797-retain-strict-management-rx-in-ccmp-mode.patch
+proposals/0194-wifi-mt6797-retain-failure-only-staged-type-word.patch

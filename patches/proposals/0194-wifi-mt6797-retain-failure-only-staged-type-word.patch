@@ -1,0 +1,86 @@
+From b5969e62f02486f70fec2f202e21ec3e724286d9 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Wed, 14 Oct 2026 22:46:15 +0000
+Subject: [PATCH] wifi: mt6797: retain one failure-only staged type-word hint
+
+On the existing header-length refusal only, retain a separate valid bit
+and the untrusted 16-bit word at already-staged offset two. Require the
+existing setup, complete, header-valid and four-byte span conditions.
+Append only those fields to the existing refusal record. A valid bit
+means the bytes were staged, not a valid packet type or producer cause.
+
+Keep immediate poison and the existing no-copy, no-published-packet-type
+and no-post-WRPLR-read behavior. The same owned worker lifetime fail-stops
+after its one refusal report; the poisoned HIF cannot perform another
+transport read. No tail/boundary word, payload, parser, new read, radio
+effect, budget, key/PN gate, cleanup bypass or framing repair is added.
+
+Actual parent/child HIF and logger tests reuse the existing transport
+fixture/compiler under ASan/UBSan. Results and call tables match, including
+76/28 and 80/32, valid sizes, both ports and each I/O fault. Hint validity
+and absence, fixed width, poisoned second-call no-I/O/no-report and the
+exact two-field logger delta are checked. This is an internal diagnostic
+review, not hardware validation or a claim about the refused packet.
+
+Internal experiment archive, synthetic non-certifying author; no DCO
+certification and not submission-ready.
+---
+ drivers/net/wireless/mediatek/mt6797/hif.c | 6 ++++++
+ drivers/net/wireless/mediatek/mt6797/hif.h | 3 +++
+ drivers/net/wireless/mediatek/mt6797/mac.c | 5 +++--
+ 3 files changed, 12 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 4416dfd..0d32a9e 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -1142,6 +1142,12 @@ int mt6797_hif_receive_packet(struct mt6797_hif *hif, unsigned int port,
+ 		result->selected_length = logical;
+ 		result->header_length = mt6797_normal_le16(hif->scratch);
+ 		result->header_valid = true;
++		if (result->rx_setup && result->rx_complete && result->header_valid &&
++		    result->staging_bytes >= 4) {
++			/* No further I/O or parsing: this word is not a valid packet type. */
++			result->refused_type_word = mt6797_normal_le16(hif->scratch + 2);
++			result->refused_type_valid = true;
++		}
+ 		error = -EPROTO;
+ 		goto poison;
+ 	}
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index dea1dbd..7322194 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -82,6 +82,9 @@ struct mt6797_hif_rx_result {
+ 	} protocol_refusal;
+ 	unsigned int selected_length, header_length;
+ 	bool header_valid;
++	/* Already-staged framing hint on header-length refusal only; untrusted. */
++	u16 refused_type_word;
++	bool refused_type_valid;
+ };
+ 
+ /* One interrupt/control and eight returned-page register reads. WHISR and
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index f661069..c02ca57 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -2263,12 +2263,13 @@ submitted:
+ #ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
+ 			if (ret == -EPROTO && rx.protocol_refusal != MT6797_HIF_RX_REFUSAL_NONE)
+ 				dev_info(wiphy_dev(mac->hw->wiphy),
+-					 "one-shot WLAN native HIF refused: gate=%s port=%u pre_valid=%u pre_wrplr=0x%08x selected=%u header_valid=%u header=%u setup=%u complete=%u staging=%zu post_valid=%u post_wrplr=0x%08x\n",
++					 "one-shot WLAN native HIF refused: gate=%s port=%u pre_valid=%u pre_wrplr=0x%08x selected=%u header_valid=%u header=%u setup=%u complete=%u staging=%zu post_valid=%u post_wrplr=0x%08x refused_type_valid=%u refused_type_word=0x%04x\n",
+ 					 rx.protocol_refusal == MT6797_HIF_RX_REFUSAL_LENGTH ?
+ 					 "wrplr-length" : "header-length", port, rx.pre_valid,
+ 					 rx.pre_wrplr, rx.selected_length, rx.header_valid,
+ 					 rx.header_length, rx.rx_setup, rx.rx_complete,
+-					 rx.staging_bytes, rx.post_valid, rx.post_wrplr);
++					 rx.staging_bytes, rx.post_valid, rx.post_wrplr,
++					 rx.refused_type_valid, rx.refused_type_word);
+ #endif
+ 			if (ret == -EAGAIN) {
+ 				ret = 0;
+-- 
+2.39.5
+
