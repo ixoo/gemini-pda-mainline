@@ -88,17 +88,82 @@ was copied to the worker. ROOT executes:
 python3 experiments/2026-10-13-mt6797-wifi-native-delivery-probe/build-ccmp-candidate-3.py --kernel-package <validated-f811-package> --parent <verified-private-C32> --output <fresh-private-CCMP3-output>
 ```
 
-ROOT verifies the six-file inventory and returns the actual receipt bytes/raw/
-full identities for fresh CCMP3 installer/prepare/capture/session/runtime binding.
-No placeholder receipt, device action or source/kernel rebuild.
+ROOT composed with exact compositor7d6e85a1, verified all844 package inventory
+hashes/provenance/gzip/raw ARM64 header/config and independent built MAC261a1595,
+and independently validated the six-file output inventory/exact16MiB padding.
+The [REAL receipt](results/ccmp-stable-monitor-candidate-3.json) SHA256 is
+`84722412ea250d86c0772b57e0d0fd39ccfd9335a555c42702037b6d6cae3919`;
+[runtime3 identity copy](runtime-ccmp3/results/candidate.json) is byte-identical.
+Raw12673024B:
+`77d0a567ab6b2e398922037d6a829d5b943da2be7daec19b8540d6df5552a295`;
+full16777216B:
+`4e3c8ef7cc3f6470ef76f3337e038160ba29ba996b32d4d0534f597c30f175e5`.
+RAM0b89/DT25ab/config483 are byte-identical to CCMP2; only kernel changes.
+No private image/RAM/key was copied to a worker. No rebuild or device action.
 
 [Fresh host](passive-host-ccmp3.py) uses capture-ccmp3/session-ccmp3/runtime-ccmp3
 through all underlying namespaces and the unchanged genuine-no-scan function.
 [Actual failure-main fixture](tests/ccmp3-no-scan-host-test.py) passes never-started
 helper failure, keeps failed compatibility false, and refuses started-child
-bypass. Private executor is mocked; final real-receipt wiring remains pending.
+bypass. Private executor is mocked; no hardware preflight/execution claimed.
 [Composition oracle](tests/ccmp3-composition-test.py) reuses exact C32 config/
 negative gates. Optional [actual management fixture](tests/ccmp-management-path-test.py)
 also compares whole state on decoder-false and old-mode/new-goto queued content/
 status/state/strict parsed offset from identical synthetic input; ASan/UBSan pass.
 These tooling-only tests do not change approved0193 or require a binding rebuild.
+
+## Fresh real-receipt installation/runtime binding
+
+[Prepare](prepare-ccmp3.py), [installer](install-ccmp3.py),
+[capture](laptop-capture-ccmp3.py) and [session](laptop-session-ccmp3.py) bind
+receipt8472/sourcee1ec/expected-predecessor7b2b/program/deployment3 and all fresh
+capture-ccmp3/session-ccmp3/runtime-ccmp3 paths. Actual underlying preparation/
+RAM checks still require C32 private64/source/calibration/supplicant/CLI. Shared
+one-cycle `join-ccmp.sh`, ACTIVE-only helper/classifier, no-scan/quiescence/seal/
+available-preservation/A53/one-reviewed-return tools remain unchanged.
+
+ROOT keeps private environment exported **through the derived installation
+shell and its final receipt validation**, not only offline preflight:
+
+```sh
+P=experiments/2026-10-13-mt6797-wifi-native-delivery-probe
+export GEMINI_PRIVATE_REPO=<existing-private-checkout>
+export GEMINI_RUNTIME_ROOT=<private-runtime-root>
+export GEMINI_JOIN_SCRIPT=<existing-mode-0600-one-link-private-CCMP-binder>
+CANDIDATE=<private-path>/candidate-77d0a567ab6b2e398922037d6a829d5b943da2be7daec19b8540d6df5552a295
+python3 "$P/prepare-ccmp3.py"
+python3 "$P/install-ccmp3.py" validate --candidate "$CANDIDATE" --previous-gemian-boot "$PREVIOUS_GEMIAN_BOOT"
+python3 "$P/install-ccmp3.py" prepare --candidate "$CANDIDATE" --previous-gemian-boot "$PREVIOUS_GEMIAN_BOOT" --output "$INSTALL_OUTPUT"
+```
+
+ROOT supplies fresh authenticated Gemian boot identity and performs actual
+offline private/full-host preflights, reviews/executes the derived unchanged
+guarded shell with live OS/boot/GPT/logicalboot2/inactive/unmounted/non-root/size/
+power and expected full7b2b predecessor, requires full4e3c readback/sync/flush and
+clean shutdown. No new backup solely per write. Store only ACTUAL deployment-
+summary.txt under `$GEMINI_RUNTIME_ROOT/ccmp-stable-monitor/session-ccmp3/`.
+Owner physically selects boot2; no automatic reboot/slot substitution. Then
+ROOT authenticates the new expected release/candidate boot and runs once:
+
+```sh
+export GEMINI_WIFI_SSH_KEYS=<existing-private-key-root>
+export GEMINI_WIFI_SSH_BOOT=<fresh-authenticated-CCMP3-boot-UUID>
+python3 "$P/laptop-capture-ccmp3.py" --candidate "$CANDIDATE" --execute
+python3 "$P/laptop-session-ccmp3.py" --candidate "$CANDIDATE" --execute
+```
+
+Existing finite protocol and decision branches above apply: strict state-
+permitted management, one bounded initial PTK/normal DHCP/ping3/ACTIVE SSH trial;
+no static fallback, GTK RX, key reuse/rearm or unchanged retry. A53 pass/complete
+seal/return does not imply Wi-Fi pass. Missing lease/leaf/cycle/ACK evidence stays
+absent; partial remains partial. Preserve available evidence and recover once
+through the reviewed identity/tool-bound path, never fabricate quiescence.
+
+[Actual wiring fixture](tests/ccmp3-wiring-test.py) passes real receipt/runtime
+copy identity, fresh private binder/root/refusal/namespace paths, actual derived
+installer receipt/program/digest routing, missing-candidate CLI refusal, helper
+single spawn and actual passive-session private64/supplicant/CLI requirements.
+No worker private image/full derived-shell/device execution is claimed; ROOT's
+actual offline checks/live guard remain required. All completed CCMP2 tooling,
+receipt/evidence paths and kernel inputs are unchanged. No assembly approval turn
+or binding-only kernel rebuild. Full maintained Wi-Fi support remains unproved.
