@@ -33,3 +33,34 @@ only, not a certified mechanism or full acceptance. Missing evidence/other
 faults remain separate; network/ACTIVE/SSH versus HIF/cleanup conclusions stay
 distinct. No extra register/read/write/radio/key/PN/lifecycle/port-arbitration
 effects, no unchecked delivery, parser relaxation, new RE or unchanged retry.
+
+## Validated package and real-pin composition
+
+Exactly one ordinary BB1 build validated2026-10-15T01:25:56Z from clean pushed
+kernel input `ea1fc0056738453a6e0d76cbea1d82db7ebbea48`,32jobs/modulesfalse/
+selectorunset. Ordinary fetch and all846 inventory members verified. Package
+`47d14ae59c49ea72d97ea3de7355e466b3aac0c553e2a4f7eea48048d48ed23b`;
+Image.gz `154a1e76e71e2e7f1288fdaca361237df01a50f62f7dbe14fc68f2e81ed6c133`.
+Patchset `b44f9e0a0d0655fd52e61f4c499cd7d832815e93ef7668d5576fca449ff2738b`;
+config-input `d7e50eecc40d13731a1a49682e610c7f68a2522f71fb3c5201e11f064b554979`;
+resolved config `483e0165368ce521f7f6e082e5acbc612c26badab7cacdc1e1cd60166f15c350`
+is byte-identical to C4. Actual built driver files all equal approved85d1d621,
+including HIF904ee916/header55cea740/MACfdc2d7fb; consys76e11464 unchanged.
+
+[Compositor5](build-ccmp-candidate-5.py) changes only real input/package/profile/
+series/source/patch pins from frozen compositor4. C32 private64 RAM, config/DT,
+container, padding and disk gates remain. ROOT executes with Python3.13 also
+resolved for child commands/derived shell via PATH:
+
+```sh
+python3.13 experiments/2026-10-13-mt6797-wifi-native-delivery-probe/build-ccmp-candidate-5.py --kernel-package <validated-47d14a-package> --parent <verified-private-C32-parent> --output <fresh-private-CCMP5-output>
+```
+
+Only the actual composed receipt returns for binding; no placeholder candidate,
+deployment or private image/RAM/key transfer. [Host5](passive-host-ccmp5.py) and
+[session5](laptop-session-ccmp5.py) have fresh runtime-ccmp5/capture-ccmp5/session-
+ccmp5 identities. They are not receipt-bound/ready to execute until the real
+receipt and installer/capture/prepare bindings are published. The actual no-scan
+ownership fixture passes, as does the config oracle using actual ND6/new configs
+and the C32 receipt digest. These are offline tests, not private64 composition
+or hardware evidence. C4 artifacts/tools/evidence are unchanged.
