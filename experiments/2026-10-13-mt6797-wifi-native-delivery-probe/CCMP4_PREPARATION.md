@@ -1,5 +1,8 @@
 # CCMP4 — approved failure-only staged word, no transport repair
 
+Completed once; see [CCMP4 result and source limits](CCMP4_RESULT.md).
+This preparation record is not authorization to repeat the candidate.
+
 ROOT materially approved exact [0194](../../patches/proposals/0194-wifi-mt6797-retain-failure-only-staged-type-word.patch),
 SHA256 `96443818f38fb74e5f09362d7216c9b42f09a349beb23cd06cb3e442fe968701`,
 body `ea1cf2930372c8dc26b1531b44ac7f0b50541d0d9ad52438b36791423c28c9db`,

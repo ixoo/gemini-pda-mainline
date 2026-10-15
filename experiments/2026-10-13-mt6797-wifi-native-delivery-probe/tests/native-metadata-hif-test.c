@@ -181,6 +181,9 @@ int main(void)
 		check(p, 80, (unsigned int)-48, ~0U, -EPROTO);
 		check(p, 76, 0, ~0U, 0);
 		check(p, 80, 0, ~0U, 0);
+		/* CCMP4 lengths; the fixture's type word remains synthetic. */
+		check(p, 449, (unsigned int)-48, ~0U, -EPROTO);
+		check(p, 449, 0, ~0U, 0);
 		calls = check(p, 20, 0, ~0U, 0);
 		for (unsigned int f = 1; f <= calls; f++)
 			check(p, 20, 0, f, -EIO);

@@ -1,0 +1,18 @@
+{
+  "normal_dhcp_lease_obtained": true,
+  "dhcp_log_bytes": 194,
+  "listener_child_connection": true,
+  "listener_pubkey_auth": false,
+  "listener_log_bytes": 210,
+  "ping_log_bytes": 101,
+  "individual_reply_count": 1,
+  "reply_scalars": [
+    {
+      "seq": 0,
+      "ttl": 64,
+      "time_ms": 95.138
+    }
+  ],
+  "ping_final_statistics_present": false,
+  "leaf_ping_0_0": "missing-final-statistics defaults, not measured zero packets"
+}

@@ -1,0 +1,69 @@
+{
+  "runs": [
+    {
+      "run": "ND6",
+      "kmsg_sha256": "971c1b7adab4379122cc1f0caf9bfc7db98112600265f25c2279b35f639ba235",
+      "kmsg_bytes": 161636,
+      "closed_us": 391443021,
+      "deauth_submit_us": 391444354,
+      "deauth_pid": 6,
+      "deauth_tx_done_observed": false,
+      "refusal_us": 391467137,
+      "closed_to_refusal_us": 24116,
+      "deauth_submit_to_refusal_us": 22783,
+      "selected": 80,
+      "header": 32,
+      "gap": 48,
+      "staging": 84,
+      "closed_successful_type2": 12,
+      "hint_valid": null,
+      "hint_word": null,
+      "word_semantics": "unobserved"
+    },
+    {
+      "run": "CCMP3",
+      "kmsg_sha256": "d93be0aff544d19ea24ee79db30be08c69eab4e73733170703424dff9ed8907a",
+      "kmsg_bytes": 164195,
+      "closed_us": 61779390,
+      "deauth_submit_us": 61780743,
+      "deauth_pid": 16,
+      "deauth_tx_done_observed": false,
+      "refusal_us": 61806354,
+      "closed_to_refusal_us": 26964,
+      "deauth_submit_to_refusal_us": 25611,
+      "selected": 76,
+      "header": 28,
+      "gap": 48,
+      "staging": 80,
+      "closed_successful_type2": 12,
+      "hint_valid": null,
+      "hint_word": null,
+      "word_semantics": "unobserved"
+    },
+    {
+      "run": "CCMP4",
+      "kmsg_sha256": "c9e01e4121ddfa9e3199dd86a922385d66d488e633ce4494d477771553d813c9",
+      "kmsg_bytes": 164933,
+      "closed_us": 60076593,
+      "deauth_submit_us": 60077924,
+      "deauth_pid": 21,
+      "deauth_tx_done_observed": false,
+      "refusal_us": 60079234,
+      "closed_to_refusal_us": 2641,
+      "deauth_submit_to_refusal_us": 1310,
+      "selected": 449,
+      "header": 401,
+      "gap": 48,
+      "staging": 456,
+      "closed_successful_type2": 4,
+      "hint_valid": true,
+      "hint_word": 16384,
+      "word_semantics": "untrusted framing hint only"
+    }
+  ],
+  "limits": [
+    "Three different boots; not a controlled producer/mode experiment",
+    "ND6 deauth submission is confirmed in the full log; earlier sanitized omission is not evidence of absence",
+    "No refused packet identity, group presence, aggregation or coherence is certified"
+  ]
+}

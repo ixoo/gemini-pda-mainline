@@ -70,6 +70,7 @@ with tempfile.TemporaryDirectory(prefix='ccmp-refused-type-', dir='/tmp/opencode
                   '', logs['child']) == logs['parent']
     assert 'length=76 delta=4294967248' in outputs['child']
     assert 'length=80 delta=4294967248' in outputs['child']
-    print('Actual HIF parent/child: PASS 76/28,80/32, equal-size positives, both ports, all I/O faults')
+    assert 'length=449 delta=4294967248' in outputs['child']
+    print('Actual HIF parent/child: PASS 76/28,80/32,449/401, equal-size positives, both ports, all I/O faults')
     print('PASS unchanged call/result tables; poison/no-copy/post-unread; poisoned second call has no I/O/report')
     print('PASS failure-only hint validity/absence, two-field logging/privacy; ASan/UBSan; exact delta reversal')

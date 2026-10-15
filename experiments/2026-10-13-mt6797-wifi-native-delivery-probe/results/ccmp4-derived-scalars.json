@@ -1,0 +1,76 @@
+{
+  "source_kmsg_sha256": "c9e01e4121ddfa9e3199dd86a922385d66d488e633ce4494d477771553d813c9",
+  "source_kmsg_bytes": 164933,
+  "text_lines": 2493,
+  "records": 2085,
+  "property_lines": 408,
+  "first_sequence": 0,
+  "last_sequence": 2084,
+  "all_supplied_chronology_lines_match_raw": true,
+  "timing_us": {
+    "data_phase_start": 56717881,
+    "active": 56763476,
+    "disable_submit": 60046382,
+    "data_phase_end": 60071437,
+    "closed": 60076593,
+    "deauth_submit": 60077924,
+    "header_refusal": 60079234,
+    "active_to_disable": 3282906,
+    "data_phase_elapsed": 3353556,
+    "closed_to_refusal": 2641,
+    "deauth_submit_to_refusal": 1310
+  },
+  "sample_counts": {
+    "pending": 1,
+    "active_type2": 480,
+    "active_type7": 31,
+    "total": 512,
+    "sample_bytes": 76098,
+    "drain_type2": 57,
+    "drain_type7": 2,
+    "closed_successful_type2": 4,
+    "checked_ethernet_queued": 16
+  },
+  "deauth_pid": 21,
+  "deauth_tx_done_observed": false,
+  "whcr_snapshots": [
+    {
+      "sequence": 1933,
+      "timestamp_us": 40280628,
+      "snapshot": 0,
+      "status": 0,
+      "valid_words": 1023,
+      "whcr": 0,
+      "whisr": 130
+    },
+    {
+      "sequence": 1961,
+      "timestamp_us": 40323188,
+      "snapshot": 1,
+      "status": 0,
+      "valid_words": 1023,
+      "whcr": 0,
+      "whisr": 1
+    },
+    {
+      "sequence": 1970,
+      "timestamp_us": 40334715,
+      "snapshot": 2,
+      "status": 0,
+      "valid_words": 1023,
+      "whcr": 0,
+      "whisr": 0
+    }
+  ],
+  "last_logged_whcr_to_refusal_us": 19744519,
+  "whcr_at_fault_observed": false,
+  "limits": [
+    "Source log remains private; only numeric metadata retained here",
+    "Logged WHCR snapshots precede association/monitor, not fault-time state",
+    "Untrusted 0x4000 is not a validated packet/type/group/producer observation"
+  ],
+  "whcr_snapshot_contexts": {
+    "0": "after START-ready, before capability query",
+    "1_and_2": "after mac80211 registration/regulatory configuration, before scan readiness"
+  }
+}
