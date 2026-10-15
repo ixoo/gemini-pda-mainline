@@ -1,0 +1,48 @@
+{
+  "status": "offline-gated-ccmp-stable-monitor-candidate-validated",
+  "kernel_build_commit": "ea1fc0056738453a6e0d76cbea1d82db7ebbea48",
+  "kernel_release": "7.1.3-gemini-a53-wifi-ccmp-stable-monitor",
+  "kernel_package_sha256": "47d14ae59c49ea72d97ea3de7355e466b3aac0c553e2a4f7eea48048d48ed23b",
+  "integration_source_commit": "85d1d6212d24f8c1d53050dcc4be7060820c06af",
+  "integration_patch_sha256": "7a1d50eb6aa7ddb02066e2255a2e1547b88b7c48b9f9bc664673c321eafdee4f",
+  "kernel_profile": "mt6797-a53-wifi-ccmp-runtime-no-post",
+  "parent_candidate": "candidate-32",
+  "parent_boot2_sha256": "5260715b453d4ad9e635845132f7d08530e0386ce6bce98f53a818b3ab87b815",
+  "files": {
+    "Image.gz": {
+      "sha256": "154a1e76e71e2e7f1288fdaca361237df01a50f62f7dbe14fc68f2e81ed6c133",
+      "bytes": 6654580
+    },
+    "board.dtb": {
+      "sha256": "25ab60f45686138c46200e858206756a16eef5ee33b26b2bd2ac13c7179d7717",
+      "bytes": 28671
+    },
+    "boot.img": {
+      "sha256": "e0ca6fa2cc59225c3b3c0bdc710d4940396adc6dc284309f9809e959b38b6dc8",
+      "bytes": 12670976
+    },
+    "boot2-padded.img": {
+      "sha256": "776cccbe841af9e36ccf981f19ec30456c61b819c6fa3d113dcd59c59533b812",
+      "bytes": 16777216
+    },
+    "initramfs.img": {
+      "sha256": "0b89dd8d560505a8e87a72082c5762d16b6ffbbf6eefc77cd4f99ebeec7707ff",
+      "bytes": 5982210
+    },
+    "kernel.config": {
+      "sha256": "483e0165368ce521f7f6e082e5acbc612c26badab7cacdc1e1cd60166f15c350",
+      "bytes": 113238
+    }
+  },
+  "kernel_config_change": "old native arm0, CCMP stable arm1 command line and USB identity, LOCALVERSION, and NATIVE_DELIVERY_DIAG/CCMP_STABLE_EPOCH=y; nothing else",
+  "device_tree_change": "none; exact candidate 32 board DT",
+  "ram_root_change": "release gate only; the exact candidate 32 64-member private RAM root",
+  "native_delivery_diag": false,
+  "ccmp_stable_epoch": true,
+  "bootstrap": "normal-dhcp-only",
+  "gtk_rx": false,
+  "key_reuse": false,
+  "secret_bearing": true,
+  "device_action": "none",
+  "physical_admission": false
+}

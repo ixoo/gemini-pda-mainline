@@ -59,8 +59,68 @@ python3.13 experiments/2026-10-13-mt6797-wifi-native-delivery-probe/build-ccmp-c
 Only the actual composed receipt returns for binding; no placeholder candidate,
 deployment or private image/RAM/key transfer. [Host5](passive-host-ccmp5.py) and
 [session5](laptop-session-ccmp5.py) have fresh runtime-ccmp5/capture-ccmp5/session-
-ccmp5 identities. They are not receipt-bound/ready to execute until the real
-receipt and installer/capture/prepare bindings are published. The actual no-scan
+ccmp5 identities. Real receipt and installer/capture/prepare bindings are now
+published below; actual ROOT private/live preflights still precede execution. The no-scan
 ownership fixture passes, as does the config oracle using actual ND6/new configs
 and the C32 receipt digest. These are offline tests, not private64 composition
 or hardware evidence. C4 artifacts/tools/evidence are unchanged.
+
+## REAL receipt bound; ROOT guarded installation/runtime handoff
+
+ROOT composed with unchanged compositor1beba24f/Python3.13 and independently
+verified all six members/sizes/zero16MiB padding. Only the byte-exact REAL receipt
+returned: [candidate5](results/ccmp-stable-monitor-candidate-5.json), SHA256
+`1b1d668c15754b75e36fac6d24d4a31a3bc21eda042ead307a198c560e58597d`, equal to
+[runtime5 copy](runtime-ccmp5/results/candidate.json). Raw12670976B/leaf
+`e0ca6fa2cc59225c3b3c0bdc710d4940396adc6dc284309f9809e959b38b6dc8`;
+full16777216B `776cccbe841af9e36ccf981f19ec30456c61b819c6fa3d113dcd59c59533b812`.
+RAM0b89/DT25ab/config483 are byte-identical to C4; only the kernel changed.
+No private image/RAM/key was transferred. This is not a deployment receipt.
+
+[Prepare5](prepare-ccmp5.py), [installer5](install-ccmp5.py),
+[capture5](laptop-capture-ccmp5.py), existing [session5](laptop-session-ccmp5.py)
+and runtime5 bind the real receipt/source85d1. Installer expects the C4 full
+predecessor ee5dd8ad, never substitutes historical Gemian context for fresh live
+verification. The unchanged private-source pins/boot2 guard and full readback,
+no-repeat/clean shutdown/physical selection/evidence/one-return rules apply.
+
+ROOT keeps Python3.13 selected throughout CLI, child-tool PATH and the entire
+derived shell, and exports private-source/runtime/binder environment through
+final receipt validation. With private64 candidate and fresh known-good identity:
+
+```sh
+P=experiments/2026-10-13-mt6797-wifi-native-delivery-probe
+PYTHON=<installed-Python3.13-executable>
+CANDIDATE=<private-path>/candidate-e0ca6fa2cc59225c3b3c0bdc710d4940396adc6dc284309f9809e959b38b6dc8
+"$PYTHON" "$P/prepare-ccmp5.py"
+"$PYTHON" "$P/install-ccmp5.py" validate --candidate "$CANDIDATE" --previous-gemian-boot "$PREVIOUS_GEMIAN_BOOT"
+"$PYTHON" "$P/install-ccmp5.py" prepare --candidate "$CANDIDATE" --previous-gemian-boot "$PREVIOUS_GEMIAN_BOOT" --output "$INSTALL_OUTPUT"
+```
+
+An already prepared runtime5 must not be claimed again; prepare refuses existing
+roots. ROOT validates actual private64/source/calibration/supplicant/CLI/binder
+and receipt requirements, reviews the **whole** derived installer shell with
+identity-only substitutions/Bash syntax/ShellCheck, then freshly verifies live
+OS/boot/GPT/logicalboot2/inactive/unmounted/non-root/size/power and C4 predecessor.
+Require sync/flush and full776cccbe readback, then clean shutdown, not reboot or
+another slot. Retain only actual deployment-summary.txt under session-ccmp5;
+do not fabricate one to satisfy capture/session preflights. Owner selects boot2.
+
+ROOT authenticates the new boot/release and candidate chain before exactly one
+capture5/session5. The package System.map's new
+`mt6797_hif_receive_runtime_packet` symbol offers an additional live corroboration
+against old same-release C4, not a replacement for candidate/boot identity.
+
+```sh
+export GEMINI_WIFI_SSH_BOOT=<fresh-authenticated-CCMP5-boot-UUID>
+"$PYTHON" "$P/laptop-capture-ccmp5.py" --candidate "$CANDIDATE" --execute
+"$PYTHON" "$P/laptop-session-ccmp5.py" --candidate "$CANDIDATE" --execute
+```
+
+The [actual wiring fixture](tests/ccmp5-wiring-test.py) passes real receipt/copy,
+fresh private binder/roots, installer predecessor/program/digest, absent-candidate
+CLI refusal, capture/deployment routing, lower session/private64/supplicant/CLI
+requirements and helper single-spawn binding. It uses private executor fixtures,
+not an actual candidate or fabricated deployment; ROOT's real whole-shell/live
+preflights remain mandatory. No binding-only kernel rebuild, new effect or
+completed-tool mutation. At publication CCMP5 has not been installed or run.
