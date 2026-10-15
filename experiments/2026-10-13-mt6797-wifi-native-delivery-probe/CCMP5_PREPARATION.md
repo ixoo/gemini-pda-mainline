@@ -1,5 +1,9 @@
 # CCMP5 — approved runtime-only success-post-read comparison
 
+**Consumed once; INCOMPLETE / PAUSED.** See [CCMP5 result](CCMP5_RESULT.md) and
+[resume checkpoint](RESUME_CHECKPOINT.md). Historical commands below must not
+be rerun: no unchanged C5 retry or next candidate is selected.
+
 ROOT materially approved exact [0195/body/source](RUNTIME_NO_POST_PROPOSAL.md),
 child `85d1d6212d24f8c1d53050dcc4be7060820c06af` atop C4 b5969e62. Existing boot
 reader/post metadata and consys remain unchanged; only MAC scan/join omit the
@@ -123,4 +127,5 @@ CLI refusal, capture/deployment routing, lower session/private64/supplicant/CLI
 requirements and helper single-spawn binding. It uses private executor fixtures,
 not an actual candidate or fabricated deployment; ROOT's real whole-shell/live
 preflights remain mandatory. No binding-only kernel rebuild, new effect or
-completed-tool mutation. At publication CCMP5 has not been installed or run.
+completed-tool mutation. At binding publication CCMP5 had not been installed or
+run; its subsequent one-run result and paused return are linked above.

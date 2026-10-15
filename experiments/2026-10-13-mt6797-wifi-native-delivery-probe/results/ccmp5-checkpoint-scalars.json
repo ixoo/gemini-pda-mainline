@@ -1,0 +1,109 @@
+{
+  "checkpoint_status": "INCOMPLETE/PAUSED",
+  "sanitized_input_manifest_sha256": "bda095e02305787c4f9d43070c04b0ef14743b2346592fdda563395b4dced1d3",
+  "sanitized_input_payloads": 13,
+  "deployment_summary_sha256": "f42da2f4ed5b1b55dfe8967ed481d0ed9b450b6502f99d8d6d43a811edb14878",
+  "deployment_checksum_scope": "Custodian verified original byte-exact/mode0600 copy; separately supplied metadata, original text not published",
+  "mainline_identity": {
+    "ssh_exit": 0,
+    "boot_id": "ba6e4498-7d2c-4a4d-8e8f-ea2348ee35ed",
+    "release": "7.1.3-gemini-a53-wifi-ccmp-stable-monitor",
+    "arch": "aarch64",
+    "runtime_symbol_present": true,
+    "ccmp_armed": true,
+    "native_diag_off": true
+  },
+  "returned_identity": {
+    "ssh_exit": 0,
+    "boot_id": "d09f829e-2a7e-4b5f-a240-b718c63f26ff",
+    "release": "3.18.41+",
+    "arch": "aarch64"
+  },
+  "attempts": {
+    "capture": 1,
+    "capture_exit": 0,
+    "session": 1,
+    "session_exit": 1,
+    "recovery_requests": 1,
+    "recovery_connection_attempts": 2
+  },
+  "kernel_observations": {
+    "auth_response_status": 0,
+    "assoc_response_status": 0,
+    "checked_ccmp_ethernet_queued": 1,
+    "first_ethernet_bytes": 347,
+    "first_rx_flags": 1075840274,
+    "native_ciphertext_queued": 0,
+    "join_stop_status": -110,
+    "join_stop_first_printed": 0,
+    "join_stop_branch": 1,
+    "page_debt_at_stop": 0,
+    "cleanup_at_stop": 0,
+    "data_footer_elapsed_ms": 2132,
+    "data_tx_queued": 2,
+    "data_tx_done": 1,
+    "data_tx_failed": 0,
+    "active_type2": 463,
+    "active_type7": 2,
+    "pending_reads": 0,
+    "drain_reads": 0,
+    "closed_reads": 0,
+    "HIF_refusal_lines": 0
+  },
+  "supplicant_phrases": {
+    "supplicant_associated_with": 2,
+    "supplicant_ctrl_event_connected": 1,
+    "supplicant_ctrl_event_disconnected": 1,
+    "supplicant_nl80211__received_scan_results": 1,
+    "supplicant_rx_message_3_of_4_way_handshake": 1,
+    "supplicant_wpa__installing_gtk": 1,
+    "supplicant_wpa__installing_ptk": 1,
+    "supplicant_wpa__key_negotiation_completed": 1,
+    "supplicant_wpa__rx_message_1_of_4_way_handshake": 1,
+    "supplicant_wpa__sending_eapol_key_2_4": 1,
+    "supplicant_wpa__sending_eapol_key_4_4": 1
+  },
+  "network_leaf": {
+    "dhcp_bound": 0,
+    "dhcp_exit": "137",
+    "dhcp_prefix": "0",
+    "dropbear_digest_ok": 0,
+    "host_ack": false,
+    "lease_written": 0,
+    "ping_received": 0,
+    "ping_transmitted": 0,
+    "wifi_sshd_ready": 0,
+    "wifi_sshd_started": 0
+  },
+  "network_protocol_pass": false,
+  "ssh_ready_seen": false,
+  "ssh_attempted": false,
+  "healthy_cleanup": false,
+  "maintained_wifi_support": false,
+  "log": {
+    "bytes": 160188,
+    "classification": "complete-log-through-seal",
+    "coverage": "sequence-zero-through-explicit-seal",
+    "records": 2057,
+    "sha256": "6abbd402c844b113ee63104cdaf600c48a01af8536f6917f880c6d8c6039c72f",
+    "status_sha256": "57c200f160aa2814dfdcd113825aad5f8bb56c999e1d23a998cba0c714822f33"
+  },
+  "seal": {
+    "sha256": "57966de4f1566359b1b67c0fa290339e3628880309d19bf41cd70441bf20215f",
+    "entries": 63,
+    "all_entries_match_reported_by_custodian": true
+  },
+  "quiescence": {
+    "helper_safe": true,
+    "helper_group_quiescent": true,
+    "device_children_quiesced": true
+  },
+  "a53_regression_pass": true,
+  "recovery_confirmed": true,
+  "limits": [
+    "Read-only checkpoint classification, not new diagnosis",
+    "Zero HIF refusal lines after earlier timeout does not establish a repaired length mismatch",
+    "Leaf ping counters do not establish a WLAN ping test; DHCP did not bind",
+    "No certified FIFO pop trigger, key deletion, integrity/replay guarantee or maintained support"
+  ]
+}
