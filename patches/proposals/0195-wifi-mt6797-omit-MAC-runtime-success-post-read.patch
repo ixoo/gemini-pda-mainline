@@ -1,0 +1,141 @@
+From 85d1d6212d24f8c1d53050dcc4be7060820c06af Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 15 Oct 2026 01:11:01 +0000
+Subject: [PATCH] wifi: mt6797: omit success post-read for MAC runtime
+ comparison
+
+Repeated post-close selected/header refusals leave a receive-sequence
+hypothesis unresolved. The public gen3 non-enhanced single-packet path
+does not make our success-only post-WRPLR observation. This controlled
+comparison tests that source difference; it does not establish a FIFO
+pop trigger or repair a proven producer defect.
+
+Keep the existing receive_packet API and its post observation for the
+boot-event drain, which uses that metadata for continuation and
+opposite-port refusal. Route only the two MAC scan/join call sites
+through an explicit runtime entry point. One internal boolean selects
+the existing post-read block; no cache, arbitration, read retry or queue
+model is added.
+
+Retain the pre sample, selected/header equality, transfer and guard,
+poison, failure-only staged hint, no-copy on error and packet
+publication gates. Runtime success alone omits the final logical
+register setup/read pair and leaves post_valid false. All existing
+failure reads, frame/byte/wall budgets, crypto, lifecycle and cleanup
+rules remain unchanged.
+
+Actual-source parent/child ASan/UBSan tests cover both ports, boot
+success/negative/all I/O faults, runtime success minus two transport
+operations, all shared failures and unchanged poison/no-copy/refusal
+hints. These synthetic tests prove program order, not controller queue-
+advance behavior. No profile selection, build or hardware result.
+
+Internal experiment archive, synthetic non-certifying author; no DCO
+certification and not submission-ready.
+---
+ drivers/net/wireless/mediatek/mt6797/hif.c | 30 +++++++++++++++++-----
+ drivers/net/wireless/mediatek/mt6797/hif.h |  7 +++++
+ drivers/net/wireless/mediatek/mt6797/mac.c | 11 ++++----
+ 3 files changed, 36 insertions(+), 12 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 0d32a9e..489fb74 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -1076,9 +1076,9 @@ unlock:
+  * full packet private to the caller; a parsed header alone is insufficient
+  * for later event or mac80211 delivery.
+  */
+-int mt6797_hif_receive_packet(struct mt6797_hif *hif, unsigned int port,
++static int mt6797_hif_receive(struct mt6797_hif *hif, unsigned int port,
+ 			      u64 deadline_ns, u8 *buffer, size_t capacity,
+-			      struct mt6797_hif_rx_result *result)
++			      struct mt6797_hif_rx_result *result, bool post_read)
+ {
+ 	struct mt6797_hif_pio_result transfer = {0};
+ 	u32 lengths;
+@@ -1151,11 +1151,13 @@ int mt6797_hif_receive_packet(struct mt6797_hif *hif, unsigned int port,
+ 		error = -EPROTO;
+ 		goto poison;
+ 	}
+-	error = mt6797_hif_read32_locked(hif, 0x90, &lengths);
+-	if (error)
+-		goto poison;
+-	result->post_valid = true;
+-	result->post_wrplr = lengths;
++	if (post_read) {
++		error = mt6797_hif_read32_locked(hif, 0x90, &lengths);
++		if (error)
++			goto poison;
++		result->post_valid = true;
++		result->post_wrplr = lengths;
++	}
+ 	result->packet_type = mt6797_normal_le16(hif->scratch + 2);
+ 	memcpy(buffer, hif->scratch, logical);
+ 	result->logical_bytes = logical;
+@@ -1166,3 +1168,17 @@ unlock:
+ 	mutex_unlock(&hif->mutex);
+ 	return error;
+ }
++
++int mt6797_hif_receive_packet(struct mt6797_hif *hif, unsigned int port,
++			      u64 deadline_ns, u8 *buffer, size_t capacity,
++			      struct mt6797_hif_rx_result *result)
++{
++	return mt6797_hif_receive(hif, port, deadline_ns, buffer, capacity, result, true);
++}
++
++int mt6797_hif_receive_runtime_packet(struct mt6797_hif *hif, unsigned int port,
++				      u64 deadline_ns, u8 *buffer, size_t capacity,
++				      struct mt6797_hif_rx_result *result)
++{
++	return mt6797_hif_receive(hif, port, deadline_ns, buffer, capacity, result, false);
++}
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index 7322194..b9ab2ef 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -271,4 +271,11 @@ int mt6797_hif_receive_packet(struct mt6797_hif *hif, unsigned int port,
+ 			      u64 deadline_ns, u8 *buffer, size_t capacity,
+ 			      struct mt6797_hif_rx_result *result);
+ 
++/* MAC runtime comparison: same receive contract, but no success post-WRPLR
++ * observation. post_valid stays false; boot readers retain receive_packet().
++ */
++int mt6797_hif_receive_runtime_packet(struct mt6797_hif *hif, unsigned int port,
++				      u64 deadline_ns, u8 *buffer, size_t capacity,
++				      struct mt6797_hif_rx_result *result);
++
+ #endif
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index c02ca57..309576d 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -2258,8 +2258,9 @@ submitted:
+ 			ret = 0;
+ #endif
+ 			branch = 4;
+-			ret = mt6797_hif_receive_packet(mac->hif, port, deadline,
+-				 mac->join_packet, sizeof(mac->join_packet), &rx);
++			ret = mt6797_hif_receive_runtime_packet(mac->hif, port, deadline,
++								mac->join_packet,
++								sizeof(mac->join_packet), &rx);
+ #ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
+ 			if (ret == -EPROTO && rx.protocol_refusal != MT6797_HIF_RX_REFUSAL_NONE)
+ 				dev_info(wiphy_dev(mac->hw->wiphy),
+@@ -3017,9 +3018,9 @@ static void mt6797_mac_scan_work(struct work_struct *work)
+ 		bool got = false;
+ 
+ 		for (port = 0; port < 2; port++) {
+-			ret = mt6797_hif_receive_packet(mac->hif, port, deadline,
+-							mac->scan_packet,
+-							sizeof(mac->scan_packet), &rx);
++			ret = mt6797_hif_receive_runtime_packet(mac->hif, port, deadline,
++								mac->scan_packet,
++								sizeof(mac->scan_packet), &rx);
+ 			if (ret == -EAGAIN) {
+ 				ret = 0;
+ 				continue;
+-- 
+2.39.5
+
