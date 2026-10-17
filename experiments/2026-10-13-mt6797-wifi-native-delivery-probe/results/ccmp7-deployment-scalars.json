@@ -1,0 +1,21 @@
+{
+  "result": "write-synced-flushed-full-readback-verified",
+  "target_logical_name": "boot2",
+  "boot2_device_guard": "passed",
+  "boot2_device_guard_sha256": "0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf",
+  "candidate_manifest_sha256": "734b236535fe1f0f3309795c16892c42bf4a4c8f87bd95a83da778c81d85a40a",
+  "candidate_sha256": "5b4405e0060111173da65445e3e4b1ffcd13347c9cf0ddb23d36d85140665ee6",
+  "readback_sha256": "5b4405e0060111173da65445e3e4b1ffcd13347c9cf0ddb23d36d85140665ee6",
+  "boot_id": "29fa9106-1c76-408e-b735-42cc2bc183ae",
+  "post_shutdown_reachability": "unreachable",
+  "reboot": "no",
+  "next_action": "owner-physically-selects-boot2",
+  "deployment_summary_sha256": "843fc28225ce7d5e573083e8d83388d4b310ac95aa2f7eaf551b8da1e18855b0",
+  "deployment_summary_bytes": 942,
+  "executed_tooling_commit": "fdaa80968a662ba05ff2aa6c9a23dd9338d0775b",
+  "power_gate": "passed",
+  "capture_started": false,
+  "session_started": false,
+  "record_scope": "verified installation handoff before physical selection",
+  "raw_summary_published": false
+}
