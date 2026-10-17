@@ -50,19 +50,21 @@ Keep this file under 200 lines; move anything else to an experiment record.
   which also observed the received-PN group absent on that one sample — an availability
   fact, not a replay or crypto claim). Bounded lifetimes only; `wifi_operational` stays
   false and no operational, reliability, persistence or replay-protection claim follows.
-- **Next (local, source first).** The smallest coherent reusable healthy
-  connect/scan lifecycle
-  ([design](../experiments/2026-10-07-mt6797-wifi-phase-b-join/REUSABLE_LIFECYCLE_DESIGN.md):
-  re-arm the healthy terminal only, keep the fatal poison non-rearmable), gated on
-  resolving firmware reusability and the mac80211 reconnect contract; and, separately and
-  required, the crypto/replay boundary (received PN producer semantics; no generic floor).
+- **Next (source first, 2026-10-17).** C5 stopped on PID 6's frame-completion
+  deadline before the earlier C3/C4 cleanup-length comparison point. Validate
+  the [terminal-observation successor](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/CCMP_COMPLETION_SUCCESSOR.md)
+  and classify its one bounded result before choosing a transport repair.
+  Then complete ordinary-mode integrity/PN and key retirement, healthy
+  reconnect, and clean-profile ten-minute SSH acceptance. No unchanged C5
+  retry, longer diagnostic budget or unchecked receive fallback.
 - **Open.** Wi-Fi station operation beyond one bounded lifetime; replay
   enforcement in firmware is unknown. No charging, RTC alarm or lid.
   The `full` profile has never booted. No upstream submission. A72 and thermal
   protection are parked.
-- **Device.** The last session returned to changed-boot Gemian. Nothing is
-  installed to `boot2` awaiting selection; the laptop Codex is custodian. Stock Gemian requests 4.416 V on the
-  charger; keep its charging attended.
+- **Device.** Last retained C5 state was changed-boot Gemian with C5 still in
+  `boot2`; this is not a live inspection or a new boot selection. Verify identity
+  and sole custody before successor deployment. Stock Gemian requests 4.416 V
+  on the charger; keep its charging attended.
 
 ## Next device boots, in order
 

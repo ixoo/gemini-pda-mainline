@@ -1,0 +1,245 @@
+{
+  "runs": [
+    {
+      "run": "CCMP3",
+      "log_sha256": "d93be0aff544d19ea24ee79db30be08c69eab4e73733170703424dff9ed8907a",
+      "log_bytes": 164195,
+      "records": 2081,
+      "events": {
+        "data_start": [
+          {
+            "sequence": 2033,
+            "time_us": 58840559,
+            "budget_ms": 6140,
+            "margin_ms": 5000
+          }
+        ],
+        "first_submit": [
+          {
+            "sequence": 2039,
+            "time_us": 59249128,
+            "pid": 5,
+            "pages": 3,
+            "bytes": 342
+          }
+        ],
+        "completion": [
+          {
+            "sequence": 2040,
+            "time_us": 59250371,
+            "pid": 5,
+            "status": 0,
+            "advanced": 1,
+            "count": 1
+          },
+          {
+            "sequence": 2044,
+            "time_us": 59350347,
+            "pid": 6,
+            "status": 0,
+            "advanced": 1,
+            "count": 1
+          }
+        ],
+        "credit": [
+          {
+            "sequence": 2041,
+            "time_us": 59273078,
+            "pages": 3,
+            "debt": 0,
+            "count": 1
+          },
+          {
+            "sequence": 2043,
+            "time_us": 59349106,
+            "pages": 3,
+            "debt": 0,
+            "count": 2
+          }
+        ],
+        "timeout": [],
+        "stop": [
+          {
+            "sequence": 2069,
+            "time_us": 61809010,
+            "status": -71,
+            "first": 0,
+            "submitted": 6145,
+            "debt": 0,
+            "cleanup": 0,
+            "branch": 4
+          }
+        ]
+      },
+      "recognized_completion_records": 15,
+      "logged_credit_records": 8,
+      "first_submit_to_completion_us": 1243,
+      "pid6_submit_time_observed": false,
+      "pid6_completion_observed": true,
+      "hif_refusal_records": 1
+    },
+    {
+      "run": "CCMP4",
+      "log_sha256": "c9e01e4121ddfa9e3199dd86a922385d66d488e633ce4494d477771553d813c9",
+      "log_bytes": 164933,
+      "records": 2085,
+      "events": {
+        "data_start": [
+          {
+            "sequence": 2032,
+            "time_us": 56717881,
+            "budget_ms": 6188,
+            "margin_ms": 5000
+          }
+        ],
+        "first_submit": [
+          {
+            "sequence": 2039,
+            "time_us": 57210470,
+            "pid": 5,
+            "pages": 3,
+            "bytes": 342
+          }
+        ],
+        "completion": [
+          {
+            "sequence": 2040,
+            "time_us": 57211901,
+            "pid": 5,
+            "status": 0,
+            "advanced": 1,
+            "count": 1
+          },
+          {
+            "sequence": 2044,
+            "time_us": 57307819,
+            "pid": 6,
+            "status": 0,
+            "advanced": 1,
+            "count": 1
+          }
+        ],
+        "credit": [
+          {
+            "sequence": 2041,
+            "time_us": 57234411,
+            "pages": 3,
+            "debt": 0,
+            "count": 1
+          },
+          {
+            "sequence": 2043,
+            "time_us": 57306503,
+            "pages": 3,
+            "debt": 0,
+            "count": 2
+          }
+        ],
+        "timeout": [],
+        "stop": [
+          {
+            "sequence": 2073,
+            "time_us": 60082459,
+            "status": -71,
+            "first": 0,
+            "submitted": 6145,
+            "debt": 1,
+            "cleanup": 0,
+            "branch": 4
+          }
+        ]
+      },
+      "recognized_completion_records": 20,
+      "logged_credit_records": 8,
+      "first_submit_to_completion_us": 1431,
+      "pid6_submit_time_observed": false,
+      "pid6_completion_observed": true,
+      "hif_refusal_records": 1
+    },
+    {
+      "run": "CCMP5",
+      "log_sha256": "6abbd402c844b113ee63104cdaf600c48a01af8536f6917f880c6d8c6039c72f",
+      "log_bytes": 160188,
+      "records": 2057,
+      "events": {
+        "data_start": [
+          {
+            "sequence": 2030,
+            "time_us": 138714183,
+            "budget_ms": 6144,
+            "margin_ms": 5000
+          }
+        ],
+        "first_submit": [
+          {
+            "sequence": 2036,
+            "time_us": 139090557,
+            "pid": 5,
+            "pages": 3,
+            "bytes": 342
+          }
+        ],
+        "completion": [
+          {
+            "sequence": 2038,
+            "time_us": 139510530,
+            "pid": 5,
+            "status": 0,
+            "advanced": 1,
+            "count": 1
+          }
+        ],
+        "credit": [
+          {
+            "sequence": 2037,
+            "time_us": 139114422,
+            "pages": 3,
+            "debt": 0,
+            "count": 1
+          },
+          {
+            "sequence": 2040,
+            "time_us": 139590433,
+            "pages": 3,
+            "debt": 0,
+            "count": 2
+          }
+        ],
+        "timeout": [
+          {
+            "sequence": 2041,
+            "time_us": 140326541,
+            "pid": 6,
+            "debt": 0,
+            "credits": 6,
+            "elapsed_ms": 760
+          }
+        ],
+        "stop": [
+          {
+            "sequence": 2042,
+            "time_us": 140327968,
+            "status": -110,
+            "first": 0,
+            "submitted": 2049,
+            "debt": 0,
+            "cleanup": 0,
+            "branch": 1
+          }
+        ]
+      },
+      "recognized_completion_records": 5,
+      "logged_credit_records": 2,
+      "first_submit_to_completion_us": 419973,
+      "pid6_submit_time_observed": false,
+      "pid6_completion_observed": false,
+      "hif_refusal_records": 0
+    }
+  ],
+  "limits": [
+    "Recorded host handling times are not firmware/RF latency measurements",
+    "No PID-6 submission timestamp was logged; none is reconstructed from timeout",
+    "Missing recognized completion does not prove absence of a hardware event",
+    "C5 ended before the C3/C4 comparison point; 0195 causality remains unresolved"
+  ]
+}

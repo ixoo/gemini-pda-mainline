@@ -1,5 +1,9 @@
 # Design: MT6797 Wi-Fi native-crypto-delivery diagnostic (proposal 0181, default-off)
 
+Latest preparation: [C5 diagnosis and terminal completion successor](CCMP_COMPLETION_SUCCESSOR.md)
+(2026-10-17), following the explicit owner resume. No successor device result
+or maintained-support claim follows; the original ND/CCMP results remain frozen.
+
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-13-mt6797-wifi-native-delivery-probe` |

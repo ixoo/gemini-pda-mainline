@@ -1,0 +1,195 @@
+From 1e20191a4531ddf5bebd4321f3e1968d6dbca694 Mon Sep 17 00:00:00 2001
+From: Codex Experiment <codex-experiment@example.invalid>
+Date: Sat, 17 Oct 2026 17:54:36 -0400
+Subject: [PATCH] wifi: mt6797: retain terminal CCMP completion observations
+
+C5 returned both TC1 page debits but timed out waiting for PID 6 TX-done.
+Its retained logs do not show which port advertisements the host observed
+or the control/interrupt state already acquired by the runtime guard.
+Neither missing completion nor absent HIF refusal establishes a repair.
+
+During the existing opt-in CCMP epoch retain numeric metadata from the
+existing join guard and receive calls. Report once on fail-stop or healthy
+stage-3 cleanup: last successful guard acquisition, each port's last
+pre-WRPLR result and counters, and the last ordinary submission-return
+boundary and current frame deadline. Opposite-half counts are observed
+advertisements only, not packets lost or certified firmware events.
+
+Add no register/FIFO read, write, packet sample, timer extension, accepted
+frame, re-arm or crypto exception. Emit no extra line in ACTIVE. HIF,
+boot/scan readers, transfer spans and fail-closed predicates are unchanged.
+Cached values are acquisition-bound history, not fault-time snapshots.
+
+Internal experiment archive. Synthetic non-certifying author identity;
+no DCO certification or upstream-submission claim.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 97 ++++++++++++++++++++++
+ 1 file changed, 97 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 309576d..daa13f8 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -81,6 +81,25 @@ MODULE_PARM_DESC(ccmp_stable_epoch,
+  */
+ #define MT6797_JOIN_DATA_RX_OUTSIDE_MAX 256U
+ 
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++/* Terminal-only evidence from existing acquisitions, not FIFO state or proof
++ * that a returned page carried a TX completion. No packet bytes are retained.
++ */
++struct mt6797_ccmp_observation {
++	bool active, reported, guard_valid;
++	u32 whcr, whisr;
++	u64 guard_return_ns, submit_return_ns;
++	u8 submit_pid;
++	struct {
++		unsigned int attempts, packets, type7, opposite;
++		bool pre_valid;
++		u32 pre_wrplr;
++		int status;
++		u64 return_ns;
++	} port[2];
++};
++#endif
++
+ struct mt6797_mac {
+ 	struct mt6797_hif *hif;
+ 	/* Order: RTNL -> this mutex -> HIF mutex. No CONSYS callback here. */
+@@ -198,6 +217,7 @@ struct mt6797_mac {
+ 	struct completion ccmp_key_done, ccmp_cleanup_done;
+ 	bool ccmp_decap, ccmp_closed, ccmp_ptk_attempted, ccmp_tx_ready;
+ 	unsigned int ccmp_queued;
++	struct mt6797_ccmp_observation ccmp_observation;
+ #endif
+ 	u64 join_data_deadline, join_data_started;
+ 	const char *join_data_end_reason;
+@@ -247,6 +267,63 @@ static int mt6797_mac_join_wait_credit(struct mt6797_mac *mac);
+ #endif
+ 
+ #ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++/* The caller holds mac->mutex. Report once at a terminal, never in ACTIVE.
++ * Return timestamps bound completed acquisitions; they are not fault-time
++ * register samples, packet arrival times or firmware execution timestamps.
++ */
++static void mt6797_ccmp_observe_rx(struct mt6797_ccmp_observation *o,
++				   unsigned int port, int status,
++				   const struct mt6797_hif_rx_result *rx)
++{
++	if (!o->active || o->reported || port > 1)
++		return;
++	o->port[port].attempts++;
++	o->port[port].status = status;
++	o->port[port].pre_valid = rx->pre_valid;
++	o->port[port].pre_wrplr = rx->pre_valid ? rx->pre_wrplr : 0;
++	o->port[port].return_ns = ktime_get_ns();
++	if (rx->pre_valid && (port ? rx->pre_wrplr & 0xffffU : rx->pre_wrplr >> 16))
++		o->port[port].opposite++;
++	if (!status) {
++		o->port[port].packets++;
++		if (rx->packet_type >> 13 == 7)
++			o->port[port].type7++;
++	}
++}
++
++static void mt6797_ccmp_observe_guard(struct mt6797_ccmp_observation *o,
++				      const struct mt6797_hif_tx_status *status)
++{
++	if (!o->active || o->reported)
++		return;
++	o->guard_valid = true;
++	o->whcr = status->whcr;
++	o->whisr = status->whisr;
++	o->guard_return_ns = ktime_get_ns();
++}
++
++static void mt6797_ccmp_observe_terminal(struct mt6797_mac *mac)
++{
++	struct mt6797_ccmp_observation *o = &mac->ccmp_observation;
++	unsigned int port;
++
++	if (!o->active || o->reported)
++		return;
++	o->reported = true;
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot WLAN CCMP completion observation: now_ns=%llu inflight=%u pid=%u submit_pid=%u submit_return_ns=%llu frame_deadline_ns=%llu guard_valid=%u guard_return_ns=%llu whcr=0x%08x whisr=0x%08x\n",
++		 ktime_get_ns(), !!mac->join_inflight, mac->join_pid, o->submit_pid,
++		 o->submit_return_ns, mac->join_frame_deadline, o->guard_valid,
++		 o->guard_return_ns, o->whcr, o->whisr);
++	for (port = 0; port < 2; port++)
++		dev_info(wiphy_dev(mac->hw->wiphy),
++			 "one-shot WLAN CCMP receive observation: port=%u attempts=%u packets=%u type7=%u opposite=%u status=%d pre_valid=%u pre_wrplr=0x%08x return_ns=%llu\n",
++			 port, o->port[port].attempts, o->port[port].packets,
++			 o->port[port].type7, o->port[port].opposite,
++			 o->port[port].status, o->port[port].pre_valid,
++			 o->port[port].pre_wrplr, o->port[port].return_ns);
++}
++
+ /* MAC mutex held; queue state also fences atomic .tx admission. */
+ static void mt6797_ccmp_withdraw(struct mt6797_mac *mac)
+ {
+@@ -1080,6 +1157,10 @@ static int mt6797_mac_join_guard(struct mt6797_mac *mac, u64 deadline)
+ 		ret = -EACCES;
+ 	if (!ret)
+ 		ret = mt6797_hif_reconcile_runtime(mac->hif, deadline, &status, &account);
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++	if (!ret)
++		mt6797_ccmp_observe_guard(&mac->ccmp_observation, &status);
++#endif
+ 	if (!ret) {
+ 		if (account.released_pages > mac->join_page_debt) {
+ 			dev_info(wiphy_dev(mac->hw->wiphy),
+@@ -1456,6 +1537,9 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
+ 		return -EPROTO;
+ 	}
+ 	if (mac->join_cleanup_stage == 3) {
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++		mt6797_ccmp_observe_terminal(mac);
++#endif
+ 		mac->join_cleanup_done = true;
+ #ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
+ 		if (ccmp_stable_epoch) {
+@@ -1802,6 +1886,10 @@ static int mt6797_mac_join_release_channel(struct mt6797_mac *mac)
+ 	mac->join_data_phase = true;
+ 	mac->join_data_ended = false;
+ 	mac->join_data_started = now;
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++	if (ccmp_stable_epoch)
++		mac->ccmp_observation.active = true;
++#endif
+ 	mac->join_data_deadline = min(budget_end, grant_end);
+ 	mac->join_deadline = mac->join_data_deadline +
+ 			     (u64)MT6797_JOIN_TEARDOWN_MARGIN_MS * NSEC_PER_MSEC;
+@@ -1831,6 +1919,7 @@ static int mt6797_mac_join_fail_stop(struct mt6797_mac *mac, int ret,
+ 	unsigned long flags;
+ 
+ #ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++	mt6797_ccmp_observe_terminal(mac);
+ 	if (ccmp_stable_epoch) {
+ 		mt6797_ccmp_withdraw(mac);
+ 		complete_all(&mac->ccmp_cleanup_done);
+@@ -2196,6 +2285,11 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 							 "one-shot WLAN join data TX: first pid=%u pages=%u bytes=%zu\n",
+ 							 mac->join_pid, pages, eth_bytes);
+ 					mac->join_frame_deadline = ktime_get_ns() + 750 * NSEC_PER_MSEC;
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++					mac->ccmp_observation.submit_pid = mac->join_pid;
++					mac->ccmp_observation.submit_return_ns =
++						mac->join_frame_deadline - 750 * NSEC_PER_MSEC;
++#endif
+ 					goto submitted;
+ 				}
+ 				ret = mt6797_hif_send_security(mac->hif, mac->join_eth, eth_bytes,
+@@ -2261,6 +2355,9 @@ submitted:
+ 			ret = mt6797_hif_receive_runtime_packet(mac->hif, port, deadline,
+ 								mac->join_packet,
+ 								sizeof(mac->join_packet), &rx);
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++			mt6797_ccmp_observe_rx(&mac->ccmp_observation, port, ret, &rx);
++#endif
+ #ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
+ 			if (ret == -EPROTO && rx.protocol_refusal != MT6797_HIF_RX_REFUSAL_NONE)
+ 				dev_info(wiphy_dev(mac->hw->wiphy),
+-- 
+2.54.0 (Apple Git-157)
+

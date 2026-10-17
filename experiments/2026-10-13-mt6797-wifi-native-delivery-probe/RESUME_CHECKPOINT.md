@@ -1,5 +1,10 @@
 # Wi-Fi resume checkpoint — INCOMPLETE / PAUSED
 
+Historical pause boundary. The owner explicitly resumed implementation on
+2026-10-17; see the [completion successor](CCMP_COMPLETION_SUCCESSOR.md) for
+the new source/evidence review and candidate gates. The frozen C5 result and
+old launch commands below remain consumed, not repeatable instructions.
+
 **Owner stopped work after the single CCMP5 test and reviewed return. This
 checkpoint authorizes nothing beyond preserving the record.** No driver work,
 tests/builds, analysis execution, candidate selection or device action resumes
