@@ -5,6 +5,9 @@ and then failed with monitor disable pending and no healthy cleanup. Evidence
 was sealed and changed-boot Gemian confirmed. No unchanged C6 retry or maintained
 support; [source follow-up](CCMP_COMPLETION_SUCCESSOR.md) remains separate.
 
+Next prepared measurement: [C7 credit pairing and timeout site](CCMP7_CREDIT_OBSERVATION.md),
+with no ledger-policy, timeout or RX-acceptance change. No C7 runtime result yet.
+
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-13-mt6797-wifi-native-delivery-probe` |

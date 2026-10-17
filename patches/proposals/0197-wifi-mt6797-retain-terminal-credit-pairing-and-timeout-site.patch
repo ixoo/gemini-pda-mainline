@@ -1,0 +1,118 @@
+From 4b6ca1ff3e14ba3eb44bbd87f5263c4b5d4150f4 Mon Sep 17 00:00:00 2001
+From: Codex Experiment <codex-experiment@example.invalid>
+Date: Sat, 17 Oct 2026 19:17:22 -0400
+Subject: [PATCH] wifi: mt6797: retain terminal credit pairing and timeout site
+
+C6 ended after monitor disable with one shared page owed, but no frame
+in flight. The existing terminal history cannot distinguish a missing
+CPU completion from a missing free-buffer return or identify the exact
+branch-1 timeout site.
+
+Cache WTQCR7 and the validated release result from the same existing
+successful reconciliation. Add their raw/accumulated credit fields and
+the existing pending/deadline/state fields to one terminal-only line.
+Tag the three existing branch-1 failure sites without changing their
+conditions, short-circuit operations, deadlines or error paths.
+
+No new I/O, ledger update, synthetic refund, timer extension, ordinary
+RX admission, mode command, sample budget or key/lifetime change. The
+vendor extra-TX-done algorithm is an offline comparison, not selected
+policy. Cached fields remain acquisition-bound history, not a fault-
+time sample or proof of firmware execution.
+
+Internal experiment archive, synthetic non-certifying author identity;
+no DCO certification and not an upstream submission.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 28 +++++++++++++++++++---
+ 1 file changed, 25 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index daa13f8..849d9fe 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -87,7 +87,9 @@ MODULE_PARM_DESC(ccmp_stable_epoch,
+  */
+ struct mt6797_ccmp_observation {
+ 	bool active, reported, guard_valid;
+-	u32 whcr, whisr;
++	u32 whcr, whisr, wtqcr7;
++	struct mt6797_normal_release credit;
++	unsigned int branch1_site;
+ 	u64 guard_return_ns, submit_return_ns;
+ 	u8 submit_pid;
+ 	struct {
+@@ -292,13 +294,16 @@ static void mt6797_ccmp_observe_rx(struct mt6797_ccmp_observation *o,
+ }
+ 
+ static void mt6797_ccmp_observe_guard(struct mt6797_ccmp_observation *o,
+-				      const struct mt6797_hif_tx_status *status)
++				      const struct mt6797_hif_tx_status *status,
++				      const struct mt6797_normal_release *account)
+ {
+ 	if (!o->active || o->reported)
+ 		return;
+ 	o->guard_valid = true;
+ 	o->whcr = status->whcr;
+ 	o->whisr = status->whisr;
++	o->wtqcr7 = status->wtqcr[7];
++	o->credit = *account;
+ 	o->guard_return_ns = ktime_get_ns();
+ }
+ 
+@@ -322,6 +327,14 @@ static void mt6797_ccmp_observe_terminal(struct mt6797_mac *mac)
+ 			 o->port[port].type7, o->port[port].opposite,
+ 			 o->port[port].status, o->port[port].pre_valid,
+ 			 o->port[port].pre_wrplr, o->port[port].return_ns);
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot WLAN CCMP credit observation: site=%u native_state=%u pending=%u credit_deadline_ns=%llu lifetime_deadline_ns=%llu polls=%u scan=%u closing=%u first=%d wtqcr7=0x%08x tc4_free=%u cpu_pending=%u ffa_pending=%u tc1_free=%u ac1_pending=%u released=%u tc1_released=%u\n",
++		 o->branch1_site, mac->native_diag_state, mac->join_credit_pending,
++		 mac->join_credit_deadline, mac->join_deadline, mac->join_polls,
++		 mac->scan_active, mac->closing, mac->first_error, o->wtqcr7,
++		 o->credit.tc4_free, o->credit.pending_cpu, o->credit.pending_ffa,
++		 o->credit.tc1_free, o->credit.pending_ac1, o->credit.released_pages,
++		 o->credit.tc1_released);
+ }
+ 
+ /* MAC mutex held; queue state also fences atomic .tx admission. */
+@@ -1159,7 +1172,7 @@ static int mt6797_mac_join_guard(struct mt6797_mac *mac, u64 deadline)
+ 		ret = mt6797_hif_reconcile_runtime(mac->hif, deadline, &status, &account);
+ #ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
+ 	if (!ret)
+-		mt6797_ccmp_observe_guard(&mac->ccmp_observation, &status);
++		mt6797_ccmp_observe_guard(&mac->ccmp_observation, &status, &account);
+ #endif
+ 	if (!ret) {
+ 		if (account.released_pages > mac->join_page_debt) {
+@@ -2113,6 +2126,9 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	branch = 1;
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ 	if (now >= mac->join_deadline && !mac->first_error && !mac->closing) {
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++		mac->ccmp_observation.branch1_site = 1;
++#endif
+ 		ret = mt6797_mac_join_retire_idle_bss(mac);
+ 		if (!ret)
+ 			ret = -ETIMEDOUT;
+@@ -2134,6 +2150,9 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 				 "one-shot WLAN join data TX timeout: pid=%u debt=%u credits=%u elapsed_ms=%llu\n",
+ 				 mac->join_pid, mac->join_data_page_debt, mac->join_data_credits,
+ 				 (now - (mac->join_frame_deadline - 750 * NSEC_PER_MSEC)) / NSEC_PER_MSEC);
++#endif
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++		mac->ccmp_observation.branch1_site = 2;
+ #endif
+ 		/* An error another path raised (a refused key command) is the
+ 		 * footer's status; a stop this check finds is a timeout.
+@@ -2144,6 +2163,9 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	deadline = min_t(u64, now + 100 * NSEC_PER_MSEC, mac->join_deadline);
+ 	if (mac->join_credit_pending) {
+ 		if (now >= mac->join_credit_deadline) {
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++			mac->ccmp_observation.branch1_site = 3;
++#endif
+ 			ret = -ETIMEDOUT;
+ 			goto failed;
+ 		}
+-- 
+2.54.0 (Apple Git-157)
+

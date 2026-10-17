@@ -807,3 +807,4 @@ proposals/0193-wifi-mt6797-retain-strict-management-rx-in-ccmp-mode.patch
 proposals/0194-wifi-mt6797-retain-failure-only-staged-type-word.patch
 proposals/0195-wifi-mt6797-omit-MAC-runtime-success-post-read.patch
 proposals/0196-wifi-mt6797-retain-terminal-ccmp-completion-observations.patch
+proposals/0197-wifi-mt6797-retain-terminal-credit-pairing-and-timeout-site.patch
