@@ -1,7 +1,7 @@
 # CCMP6: terminal completion-observation candidate
 
-Status: physically booted with changed identity and the new symbol verified;
-Phase A passed, no join result yet, 2026-10-17. The
+Status: consumed once; [C6 result](CCMP6_RESULT.md) records DHCP followed by
+pending-disable failure and verified Gemian return, 2026-10-17. The
 [successor review](CCMP_COMPLETION_SUCCESSOR.md) owns the diagnosis, hypothesis,
 finite protocol and decision branches. This is a measurement candidate, not a
 transport repair or maintained Wi-Fi.
@@ -99,7 +99,7 @@ then execute one capture and one session, preserve/seal/quiesce, and perform
 one reviewed return. The successor's existing finite budgets and result
 branches remain binding; no unchanged-artifact retry or PN/length exception.
 
-## Verified installation and pending physical selection
+## Verified installation and physical-selection handoff
 
 The [deployment scalars](results/ccmp6-deployment-scalars.json) record the
 actual guarded C5-to-C6 write, sync/flush and matching full-partition readback.
@@ -116,7 +116,7 @@ the raw summary and private paths are not published. The artifact receipt's
 original `physical_admission=false` remains composition metadata, not a
 replacement for this separate deployment record or a runtime-support claim.
 
-## Host source preflight after physical selection
+## Host source preflight after physical selection (historical)
 
 The owner selected boot2. New boot
 `71a631b3-5628-459b-a040-f4ea698baca5` reports the expected release/aarch64
@@ -138,4 +138,5 @@ calibration, candidate and evidence roots remain separate and unchanged; no
 credentials were copied. The focused source fixture checks these namespaces
 and original recovery-pin rejection. Complete actual offline preparation now
 passes without device action. Kernel, candidate, leaf, effect budgets and
-recovery behavior are unchanged; the first real session remains unconsumed.
+recovery behavior were unchanged. The later single real session and return
+are recorded in the C6 result; this historical preflight is not retry admission.

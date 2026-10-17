@@ -1,8 +1,9 @@
 # Design: MT6797 Wi-Fi native-crypto-delivery diagnostic (proposal 0181, default-off)
 
-Latest preparation: [C5 diagnosis and terminal completion successor](CCMP_COMPLETION_SUCCESSOR.md)
-(2026-10-17), following the explicit owner resume. No successor device result
-or maintained-support claim follows; the original ND/CCMP results remain frozen.
+Latest executed result: [C6](CCMP6_RESULT.md) (2026-10-17) completed WPA2/DHCP
+and then failed with monitor disable pending and no healthy cleanup. Evidence
+was sealed and changed-boot Gemian confirmed. No unchanged C6 retry or maintained
+support; [source follow-up](CCMP_COMPLETION_SUCCESSOR.md) remains separate.
 
 | Field | Value |
 | --- | --- |

@@ -1,0 +1,17 @@
+# Whitelisted numeric host log chronology; no raw packet, peer or key bytes.
+tx_done sequence=1998 time_us=450289958 pid=1 status=0 advanced=1 count=1
+tx_done sequence=2004 time_us=450338191 pid=2 status=0 advanced=1 count=1
+tx_done sequence=2016 time_us=450438077 pid=3 status=0 advanced=1 count=1
+tx_done sequence=2025 time_us=450495342 pid=4 status=0 advanced=1 count=1
+data_start sequence=2030 time_us=450520331 budget_ms=6196 teardown_ms=5000
+native_transition sequence=2031 time_us=450540858 state=1 act=1 total=0 native=0 bytes=0
+native_transition sequence=2033 time_us=450565942 state=2 act=0 total=0 native=0 bytes=0
+data_submit sequence=2036 time_us=450988896 pid=5 pages=3 bytes=342
+tx_done sequence=2038 time_us=451014096 pid=5 status=0 advanced=1 count=1
+tx_done sequence=2041 time_us=451164940 pid=6 status=0 advanced=1 count=1
+native_transition sequence=2042 time_us=452252839 state=3 act=2 total=512 native=0 bytes=52125
+terminal sequence=2044 time_us=452352838 now_ns=452308059334 inflight=0 pid=6 submit_pid=6 submit_return_ns=451020155334 frame_deadline_ns=451770155334 guard_valid=1 guard_return_ns=452284049719 whcr=0 whisr=2
+rx_terminal sequence=2045 time_us=452355925 port=0 attempts=518 packets=512 type7=4 opposite=0 status=0 pre_valid=1 pre_wrplr=92 return_ns=452184248796
+rx_terminal sequence=2046 time_us=452358238 port=1 attempts=517 packets=0 type7=0 opposite=508 status=-11 pre_valid=1 pre_wrplr=92 return_ns=452184234180
+stop sequence=2047 time_us=452360499 status=-110 first=0 submitted=2049 debt=1 cleanup=0 branch=1
+footer sequence=2056 time_us=452384846 elapsed_ms=1864 rx_unicast=0 rx_group=0 rx_dropped=0 tx_queued=2 tx_done=2 tx_failed=0 tx_credits=6

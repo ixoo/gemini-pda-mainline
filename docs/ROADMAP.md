@@ -50,21 +50,21 @@ Keep this file under 200 lines; move anything else to an experiment record.
   which also observed the received-PN group absent on that one sample — an availability
   fact, not a replay or crypto claim). Bounded lifetimes only; `wifi_operational` stays
   false and no operational, reliability, persistence or replay-protection claim follows.
-- **Next (source first, 2026-10-17).** C5 stopped on PID 6's frame-completion
-  deadline before the earlier C3/C4 cleanup-length comparison point. Validate
-  the [terminal-observation successor](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/CCMP_COMPLETION_SUCCESSOR.md)
-  and classify its one bounded result before choosing a transport repair.
-  Then complete ordinary-mode integrity/PN and key retirement, healthy
-  reconnect, and clean-profile ten-minute SSH acceptance. No unchanged C5
-  retry, longer diagnostic budget or unchecked receive fallback.
+- **Next (source first, 2026-10-17).** [C6](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/CCMP6_RESULT.md)
+  completed both data-TX completions and DHCP, then stopped with monitor
+  disable pending and one shared credit page owed. Trace that command/page-
+  return contract and pending RX before choosing a correction; C6 did not
+  reach the earlier post-CLOSED mismatch point. Ordinary-mode integrity/PN,
+  key retirement, healthy reconnect and clean-profile ten-minute SSH remain
+  required. No unchanged C6 retry or unchecked receive/credit workaround.
 - **Open.** Wi-Fi station operation beyond one bounded lifetime; replay
   enforcement in firmware is unknown. No charging, RTC alarm or lid.
   The `full` profile has never booted. No upstream submission. A72 and thermal
   protection are parked.
-- **Device (2026-10-17).** [C6](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/CCMP6_PREPARATION.md#verified-installation-and-pending-physical-selection)
-  is installed to guarded `boot2`, full readback matched, and clean shutdown
-  was confirmed. Await owner physical boot2 selection with USB connected;
-  no C6 runtime result yet. Keep charging attended.
+- **Device (2026-10-17).** The single C6 session returned through the reviewed
+  path to changed-boot Gemian, independently confirmed. C6 remains in `boot2`;
+  its trial is consumed, with no next candidate or physical selection pending.
+  Keep charging attended.
 
 ## Next device boots, in order
 

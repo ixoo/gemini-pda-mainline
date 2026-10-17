@@ -1,13 +1,13 @@
 # CCMP completion successor: C5 diagnosis and terminal-only observation
 
-Status: preparation, 2026-10-17. The owner explicitly resumed implementation
+Status: one successor trial consumed, 2026-10-17. The owner explicitly resumed implementation
 from `598040b5`, with device tests available after candidate validation and
 owner-operated physical boot selection. This chat remains independent of
 other agents and does not modify their shared checkout or assume device
-custody from historical records. No successor device result exists.
+custody from historical records. The [C6 result](CCMP6_RESULT.md) records DHCP,
+a pending-disable failure and verified return; no unchanged retry is selected.
 
-The successor is now built, package-validated and privately composed; see
-[C6 preparation](CCMP6_PREPARATION.md) for the real pins and tooling review.
+See [C6 preparation](CCMP6_PREPARATION.md) for the real pins and tooling review.
 
 ## Reproduced evidence and decision
 
@@ -109,7 +109,8 @@ operations on runtime success. Strict checkpatch reports one missing truthful
 DCO sign-off, zero warnings/checks; the internal proposal deliberately carries
 no invented sign-off and is not submission-ready. Local repository checks
 passed, including all 29 profiles. Kernel compile/package/device validation
-remains pending; subsequent build and test identities belong below.
+was still pending at that initial checkpoint; subsequent identities and the
+consumed trial are linked above.
 
 Before building: inspect the exact staged paths/diff, run repository checks
 and profile audit, commit only Wi-Fi changes, verify the origin URL, push

@@ -1,0 +1,241 @@
+{
+  "status": "consumed once; incomplete compatibility; no unchanged retry",
+  "kernel_input": "6a34397c3cda3b5a5a6847b9e84bd6e54f48bdee",
+  "capture_tooling_commit": "336cd40144dc3f86a7cadff8c52af95eed52eb73",
+  "session_tooling_commit": "0c706a34ae5cf5a179bd25b1d22a058c40c59801",
+  "attempts": {
+    "phase_a_capture": 1,
+    "phase_a_exit": 0,
+    "actual_device_sessions": 1,
+    "actual_session_exit": 1,
+    "native_recovery_requests": 1,
+    "recovery_watch_connection_attempts": 2,
+    "independent_read_only_gemian_confirmation": true,
+    "pre_session_execute_cli_refusal": 1
+  },
+  "events": {
+    "data_start": [
+      {
+        "sequence": 2030,
+        "time_us": 450520331,
+        "budget_ms": 6196,
+        "teardown_ms": 5000
+      }
+    ],
+    "data_submit": [
+      {
+        "sequence": 2036,
+        "time_us": 450988896,
+        "pid": 5,
+        "pages": 3,
+        "bytes": 342
+      }
+    ],
+    "tx_done": [
+      {
+        "sequence": 1998,
+        "time_us": 450289958,
+        "pid": 1,
+        "status": 0,
+        "advanced": 1,
+        "count": 1
+      },
+      {
+        "sequence": 2004,
+        "time_us": 450338191,
+        "pid": 2,
+        "status": 0,
+        "advanced": 1,
+        "count": 1
+      },
+      {
+        "sequence": 2016,
+        "time_us": 450438077,
+        "pid": 3,
+        "status": 0,
+        "advanced": 1,
+        "count": 1
+      },
+      {
+        "sequence": 2025,
+        "time_us": 450495342,
+        "pid": 4,
+        "status": 0,
+        "advanced": 1,
+        "count": 1
+      },
+      {
+        "sequence": 2038,
+        "time_us": 451014096,
+        "pid": 5,
+        "status": 0,
+        "advanced": 1,
+        "count": 1
+      },
+      {
+        "sequence": 2041,
+        "time_us": 451164940,
+        "pid": 6,
+        "status": 0,
+        "advanced": 1,
+        "count": 1
+      }
+    ],
+    "native_transition": [
+      {
+        "sequence": 2031,
+        "time_us": 450540858,
+        "state": 1,
+        "act": 1,
+        "total": 0,
+        "native": 0,
+        "bytes": 0
+      },
+      {
+        "sequence": 2033,
+        "time_us": 450565942,
+        "state": 2,
+        "act": 0,
+        "total": 0,
+        "native": 0,
+        "bytes": 0
+      },
+      {
+        "sequence": 2042,
+        "time_us": 452252839,
+        "state": 3,
+        "act": 2,
+        "total": 512,
+        "native": 0,
+        "bytes": 52125
+      }
+    ],
+    "terminal": [
+      {
+        "sequence": 2044,
+        "time_us": 452352838,
+        "now_ns": 452308059334,
+        "inflight": 0,
+        "pid": 6,
+        "submit_pid": 6,
+        "submit_return_ns": 451020155334,
+        "frame_deadline_ns": 451770155334,
+        "guard_valid": 1,
+        "guard_return_ns": 452284049719,
+        "whcr": 0,
+        "whisr": 2
+      }
+    ],
+    "rx_terminal": [
+      {
+        "sequence": 2045,
+        "time_us": 452355925,
+        "port": 0,
+        "attempts": 518,
+        "packets": 512,
+        "type7": 4,
+        "opposite": 0,
+        "status": 0,
+        "pre_valid": 1,
+        "pre_wrplr": 92,
+        "return_ns": 452184248796
+      },
+      {
+        "sequence": 2046,
+        "time_us": 452358238,
+        "port": 1,
+        "attempts": 517,
+        "packets": 0,
+        "type7": 0,
+        "opposite": 508,
+        "status": -11,
+        "pre_valid": 1,
+        "pre_wrplr": 92,
+        "return_ns": 452184234180
+      }
+    ],
+    "stop": [
+      {
+        "sequence": 2047,
+        "time_us": 452360499,
+        "status": -110,
+        "first": 0,
+        "submitted": 2049,
+        "debt": 1,
+        "cleanup": 0,
+        "branch": 1
+      }
+    ],
+    "footer": [
+      {
+        "sequence": 2056,
+        "time_us": 452384846,
+        "elapsed_ms": 1864,
+        "rx_unicast": 0,
+        "rx_group": 0,
+        "rx_dropped": 0,
+        "tx_queued": 2,
+        "tx_done": 2,
+        "tx_failed": 0,
+        "tx_credits": 6
+      }
+    ]
+  },
+  "hif_refusals": 0,
+  "data_tx_timeout_lines": 0,
+  "checked_ccmp_ethernet_queued": 2,
+  "native_ciphertext_queued": 0,
+  "initial_wpa2_key_negotiation_completed": 1,
+  "network": {
+    "dhcp_bound": 1,
+    "dhcp_exit": "0",
+    "dhcp_prefix": "24",
+    "dropbear_digest_ok": 1,
+    "host_ack": false,
+    "lease_written": 1,
+    "ping_received": 0,
+    "ping_transmitted": 0,
+    "wifi_sshd_ready": 1,
+    "wifi_sshd_started": 1
+  },
+  "ssh": {
+    "ready_seen": false,
+    "attempted": false,
+    "ack_written": false
+  },
+  "healthy_cleanup": false,
+  "provisional_pass": false,
+  "maintained_wifi_support": false,
+  "key_deletion_proven": false,
+  "hardware_replay_proven": false,
+  "preservation": {
+    "sealed_entries_verified": 63,
+    "seal_sha256": "34f689046bb6b239959f6d51b419f041b8806567b74ed85f64148c2182e4e9a0",
+    "log_sha256": "7ba0f4628cc50e7c72b29ff34996a12c436987da0cd5c6c5c11a5fcf056c8df8",
+    "log_bytes": 161208,
+    "log_records": 2061,
+    "contiguous_records": true,
+    "helper_owned_safe_group_quiescent": true,
+    "device_children_quiesced": true,
+    "regression_pass": true,
+    "recovery_confirmed": true,
+    "mainline_boot": "71a631b3-5628-459b-a040-f4ea698baca5",
+    "returned_gemian_boot": "29fa9106-1c76-408e-b735-42cc2bc183ae"
+  },
+  "helper_quiescence": {
+    "owned": true,
+    "started": true,
+    "safe": true,
+    "group_quiescent": true,
+    "timed_out": false,
+    "probe_error": false,
+    "kill_error": false
+  },
+  "limits": [
+    "Return timestamps are completed-acquisition bounds, not fault-time samples",
+    "Opposite-half advertisements do not establish lost packets or a FIFO-pop mechanism",
+    "No CLOSED transition or post-CLOSED RX: no test of the earlier gap-48 comparison point",
+    "No in-flight frame at terminal: distinguish this from C5; precise combined branch-1 predicate not separately recorded",
+    "Leaf ping zeros are absent-proof defaults; no complete ping transcript is retained"
+  ]
+}
