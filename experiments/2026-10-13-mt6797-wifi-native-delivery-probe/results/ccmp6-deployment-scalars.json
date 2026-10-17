@@ -1,0 +1,22 @@
+{
+  "result": "write-synced-flushed-full-readback-verified",
+  "target_logical_name": "boot2",
+  "boot2_device_guard": "passed",
+  "boot2_device_guard_sha256": "0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf",
+  "candidate_manifest_sha256": "d12ea43d7ddc4e0f9b836bcc7d9db081a06dc640a091b087cdaba8c5fd4865c2",
+  "candidate_sha256": "fbb5eb729638bec7afb435782b1dbb73219ff3e52469b0aa946ca26073ff3091",
+  "readback_sha256": "fbb5eb729638bec7afb435782b1dbb73219ff3e52469b0aa946ca26073ff3091",
+  "boot_id": "d09f829e-2a7e-4b5f-a240-b718c63f26ff",
+  "post_shutdown_reachability": "unreachable",
+  "reboot": "no",
+  "next_action": "owner-physically-selects-boot2",
+  "deployment_summary_sha256": "5ad73fc8ae57cd5bdf26f7d7ac4b827ffc276352ba4df2fa87fa509b049064c5",
+  "deployment_summary_bytes": 942,
+  "executed_tooling_commit": "4a3836546568d7f4865990c14adcd3265ff40dae",
+  "state": "installed-and-shut-down; awaiting owner boot2 selection",
+  "runtime_capture_started": false,
+  "runtime_session_started": false,
+  "power_gate": "passed",
+  "raw_summary_published": false,
+  "record_scope": "installation handoff snapshot before physical boot2 selection"
+}

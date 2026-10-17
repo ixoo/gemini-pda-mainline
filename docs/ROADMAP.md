@@ -61,10 +61,10 @@ Keep this file under 200 lines; move anything else to an experiment record.
   enforcement in firmware is unknown. No charging, RTC alarm or lid.
   The `full` profile has never booted. No upstream submission. A72 and thermal
   protection are parked.
-- **Device.** Last retained C5 state was changed-boot Gemian with C5 still in
-  `boot2`; this is not a live inspection or a new boot selection. Verify identity
-  and sole custody before successor deployment. Stock Gemian requests 4.416 V
-  on the charger; keep its charging attended.
+- **Device (2026-10-17).** [C6](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/CCMP6_PREPARATION.md#verified-installation-and-pending-physical-selection)
+  is installed to guarded `boot2`, full readback matched, and clean shutdown
+  was confirmed. Await owner physical boot2 selection with USB connected;
+  no C6 runtime result yet. Keep charging attended.
 
 ## Next device boots, in order
 

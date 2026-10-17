@@ -1,7 +1,7 @@
 # CCMP6: terminal completion-observation candidate
 
-Status: built, package-validated, privately composed and offline tooling-reviewed;
-no deployment or device result yet, 2026-10-17. The
+Status: installed to guarded boot2 with full readback and clean shutdown;
+awaiting owner selection, no runtime result yet, 2026-10-17. The
 [successor review](CCMP_COMPLETION_SUCCESSOR.md) owns the diagnosis, hypothesis,
 finite protocol and decision branches. This is a measurement candidate, not a
 transport repair or maintained Wi-Fi.
@@ -98,3 +98,20 @@ summary into session 6. Authenticate changed boot/release/new terminal symbol,
 then execute one capture and one session, preserve/seal/quiesce, and perform
 one reviewed return. The successor's existing finite budgets and result
 branches remain binding; no unchanged-artifact retry or PN/length exception.
+
+## Verified installation and pending physical selection
+
+The [deployment scalars](results/ccmp6-deployment-scalars.json) record the
+actual guarded C5-to-C6 write, sync/flush and matching full-partition readback.
+Both live guards passed in the known-good Gemian boot named above; the stable
+power gate passed. The device shut down and became unreachable. No reboot,
+capture, session or runtime retry was requested. The owner must physically
+select boot2 with USB connected before the single new capture/session.
+
+Executed installer tooling was `4a383654`; the independently hash-verified
+actual deployment summary is 942 bytes, SHA-256
+`5ad73fc8ae57cd5bdf26f7d7ac4b827ffc276352ba4df2fa87fa509b049064c5`.
+Its byte-exact mode-0600 copy is retained in the fresh session-6 directory;
+the raw summary and private paths are not published. The artifact receipt's
+original `physical_admission=false` remains composition metadata, not a
+replacement for this separate deployment record or a runtime-support claim.
