@@ -5,7 +5,9 @@ import argparse
 import hashlib
 from pathlib import Path
 import re
+import resource
 import subprocess
+import sys
 import tempfile
 
 parser = argparse.ArgumentParser(description=__doc__)
@@ -109,8 +111,21 @@ with tempfile.TemporaryDirectory(prefix='ccmp7-credit-') as directory:
     subprocess.run(['git', 'apply', '--reverse', str(patch)], cwd=tmp, check=True)
     assert path.read_bytes() == (parent / 'mac.c').read_bytes()
     binary = tmp / 'test'
+    flags = ['-fno-pie', '-no-pie'] if sys.platform.startswith('linux') else []
     subprocess.run(['cc', '-std=c11', '-Wall', '-Wextra', '-Werror', '-Wformat=2',
-                    '-fsanitize=address,undefined', '-fno-omit-frame-pointer',
+                    '-fsanitize=address,undefined', '-fno-omit-frame-pointer', *flags,
                     '-I', str(tmp), str(tmp / 'fixture.c'), '-o', str(binary)], check=True, timeout=30)
-    subprocess.run([str(binary)], check=True, timeout=30)
+
+    def output_bound():
+        resource.setrlimit(resource.RLIMIT_FSIZE, (1024 * 1024, 1024 * 1024))
+
+    with (tmp / 'stdout').open('wb') as stdout, (tmp / 'stderr').open('wb') as stderr:
+        result = subprocess.run([str(binary)], stdout=stdout, stderr=stderr,
+                                preexec_fn=output_bound, timeout=30)
+    output = (tmp / 'stdout').read_bytes()
+    errors = (tmp / 'stderr').read_bytes()
+    if result.returncode or errors:
+        sys.stderr.write(errors[-8192:].decode('utf-8', 'replace'))
+        raise SystemExit('C7 sanitizer fixture failed; terminal output bounded')
+    print(output.decode('utf-8'), end='')
 print('C7 unchanged timeout gates, HIF/ledger/boot files, RX helper and exact MAC reversal: pass')

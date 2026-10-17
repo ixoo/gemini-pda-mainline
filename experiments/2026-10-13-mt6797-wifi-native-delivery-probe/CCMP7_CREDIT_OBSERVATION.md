@@ -1,6 +1,7 @@
 # C7: distinguish shared credit pairing and exact timeout site
 
-Status: source/test preparation, no build or runtime result yet, 2026-10-17.
+Status: built, package-validated and privately composed; no runtime result yet,
+2026-10-17. [Preparation](CCMP7_PREPARATION.md) owns real pins and tooling gates.
 The active objective remains ordinary secure Wi-Fi, DHCP/three pings/ten-minute
 authenticated SSH and healthy reconnect on a board profile. This diagnostic
 does not replace that acceptance milestone. C6's one trial is consumed and
