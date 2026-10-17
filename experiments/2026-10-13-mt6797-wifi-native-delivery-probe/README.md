@@ -5,9 +5,11 @@ and retained two real ping replies. SSH failed; monitor-disable credit returned,
 then cleanup refused lengths 427/379. Evidence was sealed and changed-boot
 Gemian independently confirmed. No unchanged C7 retry or maintained support.
 
-Next source boundary: monitor-disable/pending-RX ownership and advertised versus
-staged length pairing. Keep equality, full transfer and poison/no-copy. No
-credit-policy change, timeout extension or 48-byte framing exception is selected.
+Next authored comparison: [post-CLOSED port selection](CLOSED_RX_SELECTION_COMPARISON.md)
+uses one existing length acquisition to select a nonempty port during cleanup.
+Local actual-source tests pass; Linux and Buildbox validation are pending.
+Keep equality, full transfer and poison/no-copy; no certified cause, credit-policy
+change, timeout extension or 48-byte framing exception is selected.
 
 | Field | Value |
 | --- | --- |

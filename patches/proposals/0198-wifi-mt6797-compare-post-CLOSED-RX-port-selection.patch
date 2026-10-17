@@ -1,0 +1,175 @@
+From fbe469ca374f0297d7f4dd1a641cdf1e75e79802 Mon Sep 17 00:00:00 2001
+From: Codex Experiment <codex-experiment@example.invalid>
+Date: Sat, 17 Oct 2026 19:50:03 -0400
+Subject: [PATCH] wifi: mt6797: compare post-CLOSED RX port selection
+
+C7 returned monitor-disable credit, then refused advertised/header
+lengths 427/379 during cleanup. Removing success post-WRPLR reads did
+not prevent that failure. The MAC still acquires a fresh whole WRPLR
+word separately for each requested port, including empty selected
+halves with opposite-port work advertised.
+
+Add an internal runtime reader that selects port0 if nonempty, else
+port1 from that same acquisition, as in public gen3 nicRxReadBuffer.
+Use it only in the opted-in, engaged, CLOSED stable-CCMP join phase,
+at most eight packets per tick. ACTIVE and scan selection are unchanged.
+Return selected-port metadata from the existing word so the retained
+history/refusal uses the actual port. Boot and legacy requested-port
+readers keep their operation/publication behavior.
+
+This is a bounded source-sequence comparison, not a certified FIFO-pop
+repair or an operational fairness policy. Earlier acquisitions may
+still matter; a repeat refusal cannot exclude their influence. Preserve
+complete transfers, strict equality, poison/no-copy, deadlines, credits,
+crypto gates and cleanup. No cache, new register or firmware command.
+
+Internal experiment archive, synthetic non-certifying author identity;
+no DCO certification and not an upstream submission.
+---
+ drivers/net/wireless/mediatek/mt6797/hif.c | 26 ++++++++++++++++---
+ drivers/net/wireless/mediatek/mt6797/hif.h | 14 +++++++++++
+ drivers/net/wireless/mediatek/mt6797/mac.c | 29 ++++++++++++++++++----
+ 3 files changed, 61 insertions(+), 8 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 489fb74..edf519e 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -1078,7 +1078,8 @@ unlock:
+  */
+ static int mt6797_hif_receive(struct mt6797_hif *hif, unsigned int port,
+ 			      u64 deadline_ns, u8 *buffer, size_t capacity,
+-			      struct mt6797_hif_rx_result *result, bool post_read)
++			      struct mt6797_hif_rx_result *result, bool post_read,
++			      bool select_port)
+ {
+ 	struct mt6797_hif_pio_result transfer = {0};
+ 	u32 lengths;
+@@ -1107,6 +1108,14 @@ static int mt6797_hif_receive(struct mt6797_hif *hif, unsigned int port,
+ 		goto poison;
+ 	result->pre_valid = true;
+ 	result->pre_wrplr = lengths;
++	if (select_port) {
++		/* Public gen3 single-packet selection from this same acquisition.
++		 * Priority is diagnostic policy, not a FIFO-pop assertion.
++		 */
++		port = (lengths & 0xffffU) ? 0 : 1;
++		result->selected_port = port;
++		result->selected_port_valid = !!lengths;
++	}
+ 	logical = port ? lengths >> 16 : lengths & 0xffffU;
+ 	if (!logical) {
+ 		error = -EAGAIN;
+@@ -1173,12 +1182,23 @@ int mt6797_hif_receive_packet(struct mt6797_hif *hif, unsigned int port,
+ 			      u64 deadline_ns, u8 *buffer, size_t capacity,
+ 			      struct mt6797_hif_rx_result *result)
+ {
+-	return mt6797_hif_receive(hif, port, deadline_ns, buffer, capacity, result, true);
++	return mt6797_hif_receive(hif, port, deadline_ns, buffer, capacity,
++				  result, true, false);
+ }
+ 
+ int mt6797_hif_receive_runtime_packet(struct mt6797_hif *hif, unsigned int port,
+ 				      u64 deadline_ns, u8 *buffer, size_t capacity,
+ 				      struct mt6797_hif_rx_result *result)
+ {
+-	return mt6797_hif_receive(hif, port, deadline_ns, buffer, capacity, result, false);
++	return mt6797_hif_receive(hif, port, deadline_ns, buffer, capacity,
++				  result, false, false);
++}
++
++int mt6797_hif_receive_selected(struct mt6797_hif *hif,
++				u64 deadline_ns, u8 *buffer,
++				size_t capacity,
++				struct mt6797_hif_rx_result *result)
++{
++	return mt6797_hif_receive(hif, 0, deadline_ns, buffer, capacity, result,
++				  false, true);
+ }
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index b9ab2ef..f968c9c 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -74,6 +74,11 @@ struct mt6797_hif_rx_result {
+ 	size_t staging_bytes, logical_bytes;
+ 	unsigned int packet_type;
+ 	bool pre_valid, rx_setup, rx_complete, post_valid;
++	/* Selected-runtime API only: selection from the existing pre word.
++	 * Valid means a nonzero advertised half, not an accepted packet.
++	 */
++	unsigned int selected_port;
++	bool selected_port_valid;
+ 	/* Failure-only observations; zero is absent unless the valid bit is set. */
+ 	enum {
+ 		MT6797_HIF_RX_REFUSAL_NONE,
+@@ -278,4 +283,13 @@ int mt6797_hif_receive_runtime_packet(struct mt6797_hif *hif, unsigned int port,
+ 				      u64 deadline_ns, u8 *buffer, size_t capacity,
+ 				      struct mt6797_hif_rx_result *result);
+ 
++/* Post-CLOSED comparison only: one pre-WRPLR, port0 if nonempty else port1.
++ * No success post-read, cache, extra I/O or change to equality/poison/copy.
++ * Both empty: -EAGAIN and selected_port_valid=false. Port0 priority is not
++ * operational fairness. Legacy callers above retain requested-port behavior.
++ */
++int mt6797_hif_receive_selected(struct mt6797_hif *hif,
++				u64 deadline_ns, u8 *buffer,
++				size_t capacity,
++				struct mt6797_hif_rx_result *result);
+ #endif
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 849d9fe..ed76efd 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -2362,6 +2362,8 @@ submitted:
+ 			break;
+ #endif
+ 		for (port = 0; port < 2; port++) {
++			unsigned int rx_port __maybe_unused = port;
++
+ #ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
+ 			ret = mt6797_native_diag_pre_read(mac);
+ 			if (ret < 0)
+@@ -2374,18 +2376,35 @@ submitted:
+ 			ret = 0;
+ #endif
+ 			branch = 4;
+-			ret = mt6797_hif_receive_runtime_packet(mac->hif, port, deadline,
+-								mac->join_packet,
+-								sizeof(mac->join_packet), &rx);
+ #ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
+-			mt6797_ccmp_observe_rx(&mac->ccmp_observation, port, ret, &rx);
++			if (ccmp_stable_epoch && mac->native_diag_engaged &&
++			    mac->native_diag_state == MT6797_ND_CLOSED) {
++				/* One selected packet per outer iteration, at most eight.
++				 * ACTIVE/scan retain the original per-port acquisition.
++				 */
++				if (port)
++					break;
++				ret = mt6797_hif_receive_selected(mac->hif, deadline,
++								  mac->join_packet,
++								  sizeof(mac->join_packet), &rx);
++				if (rx.selected_port_valid)
++					rx_port = rx.selected_port;
++			} else {
++#endif
++				ret = mt6797_hif_receive_runtime_packet(mac->hif, port, deadline,
++									mac->join_packet,
++									sizeof(mac->join_packet),
++									&rx);
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++			}
++			mt6797_ccmp_observe_rx(&mac->ccmp_observation, rx_port, ret, &rx);
+ #endif
+ #ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
+ 			if (ret == -EPROTO && rx.protocol_refusal != MT6797_HIF_RX_REFUSAL_NONE)
+ 				dev_info(wiphy_dev(mac->hw->wiphy),
+ 					 "one-shot WLAN native HIF refused: gate=%s port=%u pre_valid=%u pre_wrplr=0x%08x selected=%u header_valid=%u header=%u setup=%u complete=%u staging=%zu post_valid=%u post_wrplr=0x%08x refused_type_valid=%u refused_type_word=0x%04x\n",
+ 					 rx.protocol_refusal == MT6797_HIF_RX_REFUSAL_LENGTH ?
+-					 "wrplr-length" : "header-length", port, rx.pre_valid,
++					 "wrplr-length" : "header-length", rx_port, rx.pre_valid,
+ 					 rx.pre_wrplr, rx.selected_length, rx.header_valid,
+ 					 rx.header_length, rx.rx_setup, rx.rx_complete,
+ 					 rx.staging_bytes, rx.post_valid, rx.post_wrplr,
+-- 
+2.54.0 (Apple Git-157)
+
