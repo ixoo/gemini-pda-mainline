@@ -1,0 +1,16 @@
+{
+  "status": "offline-reviewed",
+  "frozen_c5_installer_sha256": "9f6f06958ef2e9b73f6ddce8508f15a47fd82aa9767ef8ac3a8bd40077dbe67a",
+  "derived_installer_sha256": "2642e42fc0f6f9ab1b74a738b5f2ea71ed3f9ad8d16581c77f3bf4d30fb282ed",
+  "derived_lines": 603,
+  "whole_shell_delta": "exact identity, path and binding substitutions only",
+  "bash_syntax": "pass",
+  "shellcheck": "pass",
+  "historical_source_pins": "unchanged; base recovered from cac47380",
+  "boot2_device_guard_sha256": "0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf",
+  "candidate_manifest_sha256": "d12ea43d7ddc4e0f9b836bcc7d9db081a06dc640a091b087cdaba8c5fd4865c2",
+  "full_boot2_sha256": "fbb5eb729638bec7afb435782b1dbb73219ff3e52469b0aa946ca26073ff3091",
+  "expected_predecessor_sha256": "776cccbe841af9e36ccf981f19ec30456c61b819c6fa3d113dcd59c59533b812",
+  "previous_gemian_boot": "d09f829e-2a7e-4b5f-a240-b718c63f26ff",
+  "device_action": "none"
+}

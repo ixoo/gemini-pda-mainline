@@ -6,6 +6,9 @@ owner-operated physical boot selection. This chat remains independent of
 other agents and does not modify their shared checkout or assume device
 custody from historical records. No successor device result exists.
 
+The successor is now built, package-validated and privately composed; see
+[C6 preparation](CCMP6_PREPARATION.md) for the real pins and tooling review.
+
 ## Reproduced evidence and decision
 
 The [comparison](results/ccmp-completion-comparison.json) was reproduced from
