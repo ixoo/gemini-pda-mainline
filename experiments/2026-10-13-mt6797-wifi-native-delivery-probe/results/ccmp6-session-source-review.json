@@ -1,0 +1,23 @@
+{
+  "status": "offline-source-routing-reviewed",
+  "kernel_or_candidate_changed": false,
+  "device_session_claimed": false,
+  "initial_execute_cli_exit": 2,
+  "initial_refusal": "Gemian return v2 source changed",
+  "initial_refusal_scope": "before HOST.prepare, session claim, helper start or device commands",
+  "recovery_source_sha256": {
+    "experiments/2026-09-09-standard-kernel-package/a53-ram-return-v2.py": "4ef45cd11071a9de2e0c0b6cefbc9dfb1b5f75b6ca2b68f264bcf6f7e3522fe6",
+    "experiments/2026-09-09-standard-kernel-package/a53-ram-return.py": "0f6f20c324dc7bb4911c34a8e793b09a0af819ed46474ee996b723930bf5d081",
+    "experiments/2026-09-09-standard-kernel-package/a53-ram-host.py": "edba94181863d4e49ca9d7c5d3a6e5b8e638d8e6f140144f7d9238c0468e1bf0"
+  },
+  "retained_tooling_revision": "164c2d3fe3632f23ceac5f7dfe4e8dabedb2b50b",
+  "credentials_copied": false,
+  "private_candidate_or_calibration_moved": false,
+  "recovery_pins_or_budgets_changed": false,
+  "complete_offline_preparation": "pass",
+  "source_binding_fixture": "pass",
+  "live_boot_id": "71a631b3-5628-459b-a040-f4ea698baca5",
+  "new_terminal_symbol_present": true,
+  "phase_a_ready_for_scan": true,
+  "capture_repeated": false
+}

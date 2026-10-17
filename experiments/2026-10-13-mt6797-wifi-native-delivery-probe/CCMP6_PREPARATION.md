@@ -1,7 +1,7 @@
 # CCMP6: terminal completion-observation candidate
 
-Status: installed to guarded boot2 with full readback and clean shutdown;
-awaiting owner selection, no runtime result yet, 2026-10-17. The
+Status: physically booted with changed identity and the new symbol verified;
+Phase A passed, no join result yet, 2026-10-17. The
 [successor review](CCMP_COMPLETION_SUCCESSOR.md) owns the diagnosis, hypothesis,
 finite protocol and decision branches. This is a measurement candidate, not a
 transport repair or maintained Wi-Fi.
@@ -115,3 +115,27 @@ Its byte-exact mode-0600 copy is retained in the fresh session-6 directory;
 the raw summary and private paths are not published. The artifact receipt's
 original `physical_admission=false` remains composition metadata, not a
 replacement for this separate deployment record or a runtime-support claim.
+
+## Host source preflight after physical selection
+
+The owner selected boot2. New boot
+`71a631b3-5628-459b-a040-f4ea698baca5` reports the expected release/aarch64
+and the new terminal symbol; the single capture completed with Phase A ready.
+The first session CLI refused on the recovery v2 source pin before
+`HOST.prepare`, a session claim, helper spawn or device commands. No join,
+session execution, capture retry, boot retry or recovery request resulted.
+
+The [source-routing review](results/ccmp6-session-source-review.json) records
+the exact old host/return/v2 hashes, recovered from the retained public Git
+revision preceding `a0887d2c`. Current public recovery sources were sanitized
+after those pins. A private historical tooling cohort outside the active
+checkout preserves all original
+source checks rather than changing their expected digests.
+
+Only the C6 laptop session adds optional `GEMINI_SESSION_SOURCE_ROOT`, reusing
+the existing source remapper for RETURN_V2, SERVICE and BASELINE. Credential,
+calibration, candidate and evidence roots remain separate and unchanged; no
+credentials were copied. The focused source fixture checks these namespaces
+and original recovery-pin rejection. Complete actual offline preparation now
+passes without device action. Kernel, candidate, leaf, effect budgets and
+recovery behavior are unchanged; the first real session remains unconsumed.

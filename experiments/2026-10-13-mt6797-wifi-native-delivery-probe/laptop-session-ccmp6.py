@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 """Fresh CCMP6 host/no-scan/private64/installer binding; completed hosts unchanged."""
 from pathlib import Path
+import os
 import runpy
 
 HERE = Path(__file__).resolve().parent
@@ -10,6 +11,23 @@ GLOBALS = BASE['reviewed_run_path'].__globals__
 BIND = GLOBALS['ORIGINAL_RUN_PATH'](str(HERE / 'passive-host-ccmp6.py'))
 BIND['bind_ccmp6'](GLOBALS['NH'])
 GLOBALS['NATIVE_CANDIDATE'] = 'ccmp-stable-monitor-candidate-6'
+
+# Current public recovery sources were sanitized after their reviewed pins.
+# Reuse the existing source-only remapper with an optional retained cohort;
+# credentials, calibration, candidate and evidence roots stay in their original
+# namespaces. Every inherited source and recovery identity check still applies.
+if 'GEMINI_SESSION_SOURCE_ROOT' in os.environ:
+    source_root = Path(os.environ['GEMINI_SESSION_SOURCE_ROOT']).resolve(strict=True)
+    if source_root.is_relative_to(GLOBALS['REPO']):
+        raise ValueError('retained session sources must be outside the active checkout')
+    GLOBALS['PRIVATE_REPO'] = source_root
+    GLOBALS['DOMAIN'].RETURN_V2 = source_root / \
+        'experiments/2026-09-09-standard-kernel-package/a53-ram-return-v2.py'
+    GLOBALS['DOMAIN'].HOST.SERVICE = source_root / \
+        'experiments/2026-09-09-standard-kernel-package'
+    GLOBALS['DOMAIN'].HOST.BASELINE = source_root / \
+        'experiments/2026-09-05-owner-away-experiment-preparation/baseline/scripts'
+    GLOBALS['rebind'](GLOBALS['DOMAIN'], set())
 
 
 def reviewed_run_path(path, *args, **kwargs):
