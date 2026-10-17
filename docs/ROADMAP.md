@@ -50,21 +50,23 @@ Keep this file under 200 lines; move anything else to an experiment record.
   which also observed the received-PN group absent on that one sample — an availability
   fact, not a replay or crypto claim). Bounded lifetimes only; `wifi_operational` stays
   false and no operational, reliability, persistence or replay-protection claim follows.
-- **Next (source first, 2026-10-17).** [C6](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/CCMP6_RESULT.md)
-  completed both data-TX completions and DHCP, then stopped with monitor
-  disable pending and one shared credit page owed. Trace that command/page-
-  return contract and pending RX before choosing a correction; C6 did not
-  reach the earlier post-CLOSED mismatch point. Ordinary-mode integrity/PN,
-  key retirement, healthy reconnect and clean-profile ten-minute SSH remain
-  required. No unchanged C6 retry or unchecked receive/credit workaround.
+- **Next (source first, 2026-10-17).** [C7](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/CCMP7_RESULT.md)
+  completed WPA2/DHCP and two ping replies; SSH failed. Monitor-disable credit
+  returned, then cleanup refused advertised/header lengths 427/379. Trace
+  monitor-disable/pending-RX ownership and length/data pairing before selecting
+  a correction or bounded discriminating observation. Preserve equality,
+  complete transfer and poison/no-copy; no unchanged retry or 48-byte exception.
+  Ordinary integrity/PN, key retirement, healthy reconnect and clean-profile
+  ten-minute SSH remain required.
 - **Open.** Wi-Fi station operation beyond one bounded lifetime; replay
   enforcement in firmware is unknown. No charging, RTC alarm or lid.
   The `full` profile has never booted. No upstream submission. A72 and thermal
   protection are parked.
-- **Device (2026-10-17).** [C7](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/CCMP7_PREPARATION.md#verified-deployment-and-pending-physical-selection)
-  is installed to guarded `boot2`, full readback matched, and shutdown was
-  confirmed. Await owner physical boot2 selection with USB connected; no C7
-  runtime result yet. C6 is consumed. Keep charging attended.
+- **Device (2026-10-17).** [C7](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/CCMP7_RESULT.md#preservation-and-recovery)
+  ran once; all sealed files, quiescence and A53 regression passed. One reviewed
+  return and independent LAN identity check confirmed changed-boot Gemian.
+  C7 remains installed but consumed; no physical boot selection is pending.
+  Keep charging attended.
 
 ## Next device boots, in order
 

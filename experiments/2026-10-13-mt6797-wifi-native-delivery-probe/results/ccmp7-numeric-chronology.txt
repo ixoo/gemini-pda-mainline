@@ -1,0 +1,28 @@
+# Sanitized fixed-prefix numeric fields; sequence, boot microseconds, event.
+1998 112735993 tx_done pid=1 status=0 advanced=1 count=1
+2004 112784331 tx_done pid=2 status=0 advanced=1 count=1
+2014 112865431 tx_done pid=3 status=0 advanced=1 count=1
+2024 112935977 tx_done pid=4 status=0 advanced=1 count=1
+2029 112962296 data_start budget_ms=6196 teardown_margin_ms=5000 inside_grant=1
+2030 112982857 native_transition state=1 act=1 total=0 native=0 bytes=0
+2033 113007928 native_transition state=2 act=0 total=3 native=0 bytes=598
+2036 113406962 data_submit pid=5 pages=3 bytes=342
+2037 113408225 tx_done pid=5 status=0 advanced=1 count=1
+2039 113434861 data_credit pages=3 debt=0 count=1
+2040 113482839 data_credit pages=3 debt=0 count=2
+2041 113484079 tx_done pid=6 status=0 advanced=1 count=1
+2042 114850837 data_credit pages=1 debt=0 count=3
+2043 114852109 tx_done pid=7 status=0 advanced=1 count=1
+2044 114898978 data_credit pages=1 debt=0 count=4
+2045 114900423 tx_done pid=8 status=0 advanced=1 count=1
+2046 115850971 data_credit pages=1 debt=0 count=5
+2047 115852260 tx_done pid=9 status=0 advanced=1 count=1
+2048 116042852 native_transition state=3 act=2 total=512 native=0 bytes=86258
+2050 116067927 footer elapsed_ms=3105 rx_unicast=0 rx_group=0 rx_dropped=0 tx_queued=5 tx_done=5 tx_failed=0 tx_credits=9 reason=native-diag
+2053 116073066 native_transition state=4 act=0 total=512 native=0 bytes=86258
+2056 116100076 refusal port=0 pre_valid=1 pre_wrplr=427 selected=427 header_valid=1 header=379 setup=1 complete=1 staging=432 post_valid=0 post_wrplr=0 refused_type_valid=1 refused_type_word=16384 gate=header-length
+2057 116103351 terminal now_ns=116056580622 inflight=1 pid=10 submit_pid=9 submit_return_ns=115780047776 frame_deadline_ns=116778737391 guard_valid=1 guard_return_ns=116052059622 whcr=0 whisr=3
+2058 116106405 rx_terminal port=0 attempts=611 packets=523 type7=27 opposite=0 status=-71 pre_valid=1 pre_wrplr=427 return_ns=116053305314
+2059 116108703 rx_terminal port=1 attempts=609 packets=0 type7=0 opposite=467 status=-11 pre_valid=1 pre_wrplr=427 return_ns=116053247237
+2060 116110978 credit_terminal site=0 native_state=4 pending=0 credit_deadline_ns=116096057545 lifetime_deadline_ns=124112101622 polls=146 scan=0 closing=0 first=0 wtqcr7=65537 tc4_free=26 cpu_pending=0 ffa_pending=0 tc1_free=16 ac1_pending=0 released=1 tc1_released=0
+2061 116114590 stop status=-71 first=0 submitted=6145 debt=0 cleanup=0 branch=4

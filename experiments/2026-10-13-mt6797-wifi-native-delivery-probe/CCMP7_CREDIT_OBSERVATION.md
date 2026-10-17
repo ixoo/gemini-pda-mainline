@@ -1,11 +1,10 @@
 # C7: distinguish shared credit pairing and exact timeout site
 
-Status: built, package-validated and privately composed; no runtime result yet,
-2026-10-17. [Preparation](CCMP7_PREPARATION.md) owns real pins and tooling gates.
-The active objective remains ordinary secure Wi-Fi, DHCP/three pings/ten-minute
-authenticated SSH and healthy reconnect on a board profile. This diagnostic
-does not replace that acceptance milestone. C6's one trial is consumed and
-the device is confirmed in Gemian; do not repeat C6.
+Status: consumed once, 2026-10-17. [C7 result](CCMP7_RESULT.md) records returned
+monitor-disable credit, two real ping replies, failed SSH and post-CLOSED
+receive-length refusal. No unchanged C7 retry. [Preparation](CCMP7_PREPARATION.md)
+owns real pins and tooling gates. Ordinary secure Wi-Fi, ten-minute SSH and
+healthy reconnect remain the objective; this diagnostic is not acceptance.
 
 ## Concrete gap after C6
 

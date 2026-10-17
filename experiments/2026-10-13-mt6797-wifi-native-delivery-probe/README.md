@@ -1,12 +1,13 @@
 # Design: MT6797 Wi-Fi native-crypto-delivery diagnostic (proposal 0181, default-off)
 
-Latest executed result: [C6](CCMP6_RESULT.md) (2026-10-17) completed WPA2/DHCP
-and then failed with monitor disable pending and no healthy cleanup. Evidence
-was sealed and changed-boot Gemian confirmed. No unchanged C6 retry or maintained
-support; [source follow-up](CCMP_COMPLETION_SUCCESSOR.md) remains separate.
+Latest executed result: [C7](CCMP7_RESULT.md) (2026-10-17) completed WPA2/DHCP
+and retained two real ping replies. SSH failed; monitor-disable credit returned,
+then cleanup refused lengths 427/379. Evidence was sealed and changed-boot
+Gemian independently confirmed. No unchanged C7 retry or maintained support.
 
-Next prepared measurement: [C7 credit pairing and timeout site](CCMP7_CREDIT_OBSERVATION.md),
-with no ledger-policy, timeout or RX-acceptance change. No C7 runtime result yet.
+Next source boundary: monitor-disable/pending-RX ownership and advertised versus
+staged length pairing. Keep equality, full transfer and poison/no-copy. No
+credit-policy change, timeout extension or 48-byte framing exception is selected.
 
 | Field | Value |
 | --- | --- |

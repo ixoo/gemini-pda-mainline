@@ -1,7 +1,7 @@
 # C7: validated terminal credit-pair observation
 
-Status: installed to guarded boot2, full readback and clean shutdown verified;
-awaiting owner physical selection, no runtime result, 2026-10-17. The
+Status: consumed once; [C7 result](CCMP7_RESULT.md) records two ping replies,
+failed SSH and a cleanup receive-length refusal, 2026-10-17. The
 [source/experiment decision](CCMP7_CREDIT_OBSERVATION.md) owns the hypothesis,
 unchanged finite protocol and interpretation branches. The full objective
 remains ordinary secure Wi-Fi with ten-minute SSH and healthy reconnect.
@@ -90,7 +90,7 @@ installed full checksum and the new credit-observation line bind C7.
 Preserve/seal/quiesce and perform one reviewed return on every admitted
 outcome. No C6/C7 repeat or automatic reboot/alternate partition.
 
-## Verified deployment and pending physical selection
+## Verified deployment and completed physical selection
 
 The [deployment scalars](results/ccmp7-deployment-scalars.json) record the
 actual guarded C6-to-C7 write. Both block-identity checks and the stable power
@@ -102,6 +102,7 @@ The complete actual offline session preparation passed after that real
 summary was copied, with historical source and current credential namespaces
 kept separate. All C7 binding/source/ownership/config fixtures and the final
 applied-source non-PIE ASan/UBSan check passed on Linux as well as locally.
-Executed installation tooling is `fdaa8096`. No capture or session has run;
-the owner must select boot2 physically with USB connected before the single
-new C7 trial. This handoff is not Wi-Fi acceptance or retry admission.
+Executed installation tooling is `fdaa8096`. The owner subsequently selected
+boot2; one capture and one session ran with tooling `20ca4667`. The
+[C7 result](CCMP7_RESULT.md) supersedes the physical handoff. Evidence and
+changed-boot Gemian are verified; no unchanged retry or Wi-Fi acceptance.
