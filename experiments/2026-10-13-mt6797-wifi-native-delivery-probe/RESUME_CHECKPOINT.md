@@ -1,56 +1,50 @@
 # Wi-Fi resume checkpoint — INCOMPLETE
 
-**GTK7 installed and ready for physical boot2 selection; no live run yet.**
-Source `8aed6b61`, tooling `cd1a81ef`: PM-abort-first, one bounded retained page
-through remaining teardown, a distinct non-healthy debt terminal, periodic
-pings and PM-relative completion/beacon/credit observations. Linux tests,
-required Buildbox build, package, five host fixtures, guarded full readback,
-clean shutdown and complete offline host preparation pass.
-Full boot2 SHA-256 `d9f0d3407b186b2d314c281af08dd7fcee0660e2a50863dd0e36eb8102c6536f`.
-The new periodic reviewed leaf is required. The owner selects boot2 with USB
-attached; verify a fresh boot and 84-byte notes SHA-256
-`0b4add89483baa2e91872da3d6b0099845cc4e2336585dbf00a92df4c2962596`
-before the single admitted capture/session.
-[Handoff](SESSION_0202_PLAN.md#gtk7-installed--physical-selection-pending).
+**GTK7 consumed once: capability and 60-second low-traffic duration PASS;
+whole-ledger cleanup stage 3 reached, deauthentication still unacknowledged.**
+Boot `138674d4-2aff-4ff5-ad75-a0670d432b36`, source `8aed6b61`, tooling
+`cd1a81ef`, handoff `1cfeb81e`.
+[One row and analysis](SESSION_0202_PLAN.md#gtk7-consumed--whole-ledger-cleanup-with-late-deauthentication),
+[one scalars file](results/gtk7-runtime-scalars.json).
 
-Latest result: **GTK6 capability observation and 60-second duration PASS;
-cleanup and full finite session FAIL.** One boot
-`6f5dbd31-9ed7-4f91-9c42-6a7ccd432bfd`, source `af6923d3`, tooling `ee5da8c4`,
-handoff `1b6ca1e0`. [One row and analysis](SESSION_0202_PLAN.md#gtk6-consumed--command-path-credit-with-a-retained-page),
-[one scalars file](results/gtk6-runtime-scalars.json).
+Data ended by budget at 60,011 ms. DHCP, initial three replies, SSH exit 0 in
+1.618 s and all five periodic numeric-router probes passed. Checked PTK/GTK
+41/238; GTK ARP handoffs 107, withheld 0; no named HIF refusal or 0x13 event.
+Every owned TX completion and cleanup command timestamp is exported relative
+to the 0x16 credit. No continuous SSH-traffic claim is made. Standard scan
+acceptance remains open; the passive-scan classifier reports no standard BSS.
 
-Window ended by budget at 60,015 ms with 0x16 present and 0x13 observed zero;
-no firmware mechanism is attributed. DHCP, three pings and SSH exit 0 in
-1.739 s passed while open. Checked PTK/GTK 35/225, GTK ARP handoffs 104,
-withheld ARP 0. No binding resource cap or named HIF length refusal.
+PM abort credited **before** reserved deauth. PID 41 still missed 750 ms and
+was retired with one page debt, without ACK/refund. Removals proceeded under
+the existing 100 ms bounds. The ledger returned whole during station removal;
+late retired completion status 5 followed. Channel abort/BSS-off credited at
+floor zero; healthy stage 3, `deauth=0`, both local disables status 0. This is
+whole-ledger cleanup with an unacknowledged frame, not a bounded-debt terminal
+or timely deauth success. PM-abort-first did not cure the missing completion;
+periodic traffic also changed, so unique causal attribution is unavailable.
 
-Deauthentication completion was missing; the exact owned PID 34 host slot was
-retired without ACK or refund. PM abort sequence 30 submitted, and the command
-path returned one credit with one retained page still owed. The whole-ledger
-requirement then stopped removals: branch 1/site 3, `-110`, debt 1, cleanup 0.
-No healthy stage 3; local disables `-110`. Aggregate credit does not identify
-an individual buffer or prove firmware execution.
+Owned-beacon admissions at data end: total 21, since PM 20, last age 58.162 s.
+Do not claim continuous beacon delivery or infer RF loss from this counter;
+phase-1 type-7 total 110 is not an owned-beacon count. All five periodic pings
+replied, so the predeclared fixed-offset host-TX failure trigger did not occur.
 
-All 71 seals and 2,110 contiguous records verify. Helper/device quiescence,
-A53 regression and one reviewed return pass; independently confirmed Gemian
-`0040b209-8b30-4587-b8e4-74c50a24a09b`. GTK6 is closed; the GTK7 physical handoff above is pending. Do not repeat
-GTK6 unchanged.
-
-Next is owner-selected GTK7: PM-abort-first order, bounded retained-page debt
-through remaining cleanup, a separate bounded-debt terminal (never healthy
-stage 3), device ping every ten seconds with PM-credit-relative TX offsets,
-and owned-beacon count/age at data end. Three logical archives 0214/0215/0216 and the periodic leaf are prepared;
-local actual-source/HIF/periodic and historical-compatibility fixtures pass.
-Source/periodic Linux fixtures and the required Buildbox build pass at `8aed6b61`;
-the real GTK7 receipt and five local host fixtures pass. Linux host binding and
-guarded installation now pass; physical GTK7 selection remains pending.
-Keep publications on `main`.
+All 71 seals, 2,185 contiguous kmsg records, complete one-cycle export,
+helper/device quiescence and A53 regression verify. One reviewed return and
+independent Gemian identity confirm `78b701cf-cb65-4283-bc32-dbe7dadb5497`.
+No live device process, physical handoff or retry is pending. GTK7 is consumed;
+no successor candidate is selected. Review the late unacknowledged completion,
+stale beacon admissions and persistent station ownership before the next
+milestone. Two/ten minutes of authenticated SSH traffic and same-boot reusable
+lifetimes remain unproved.
 
 Keep 0x16 before keys, counter-only 0210/fatal event refusal, connection-monitor
 flag, no nullfunc, existing frame/command deadlines and resource caps. No PID
-or key reuse, rekey or reconnect. Full healthy lifecycle and two/ten-minute
-acceptance remain unproved. Preserve published measurements; keep firmware-RE
-explanations and private source identities out of public text.
+or key reuse, rekey or reconnect. Keep publications on `main`; preserve public
+measurements and exclude firmware-RE explanations/private source identities.
+
+Earlier GTK6 command-path credit with one retained page and its whole-ledger
+stop remain recorded in the [prior analysis](SESSION_0202_PLAN.md#gtk6-consumed--command-path-credit-with-a-retained-page)
+and [scalars](results/gtk6-runtime-scalars.json). Do not repeat it unchanged.
 
 GTK1's prior ERANGE is classified and its [0205 correction](../../patches/proposals/0205-wifi-mt6797-retain-the-validated-channel-grant-horizon.patch)
 is proved to permit the requested data budget in GTK2. GTK1 had both keys

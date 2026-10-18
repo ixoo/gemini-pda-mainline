@@ -230,6 +230,7 @@ remain in the existing private evidence seal, not public scalars.
 | GTK4 | `c2efe494-648e-44ca-9bb1-519ffce4496d` | complete event; host `-EPROTO`, no named HIF refusal | bound | 3/3 | authenticated, exit 0, 1.325 s | healthy stage 3 absent; quiescence/return pass | 29.955 / 60 s; BSS 0/reason 6, recent beacons | [one scalars file](results/gtk4-runtime-scalars.json) |
 | GTK5 | `f015f0f2-1320-4e12-98d5-dbacc7c69cb2` | no named HIF refusal in data; cleanup completion timeout | bound | 75.305 / 69.919 / 49.575 ms | authenticated, exit 0, 1.439 s | FAIL: deauth PID 33 timeout; no stage 3; quiescence/return pass | 60.019 / 60 s PASS; cleanup stop +0.813 s | [one scalars file](results/gtk5-runtime-scalars.json) |
 | GTK6 | `6f5dbd31-9ed7-4f91-9c42-6a7ccd432bfd` | no named HIF refusal; command-path credit observed | bound | 94.942 / 89.260 / 37.169 ms | authenticated, exit 0, 1.739 s | FAIL: missing deauth; PM abort credited with one retained page; whole-ledger stop | 60.015 / 60 s PASS | [one scalars file](results/gtk6-runtime-scalars.json) |
+| GTK7 | `138674d4-2aff-4ff5-ad75-a0670d432b36` | no named HIF refusal; six cleanup command paths credited | bound | initial 3/3; periodic 5/5 | authenticated, exit 0, 1.618 s | stage 3, zero debt; deauth missed bound, late status 5; return verified | 60.011 / 60 s PASS | [one scalars file](results/gtk7-runtime-scalars.json) |
 
 D3's SSH process lasted 1.410 seconds with empty stderr. Its numeric ARP read
 was absent before A and complete afterward. The route read returned exit 71,
@@ -1224,3 +1225,67 @@ identity verification and one admitted capture/session. Export the periodic,
 beacon and teardown-credit timing scalars as predeclared; no retry or second
 association. A bounded page-debt terminal is separate from healthy stage 3.
 All inputs/checkpoints are on `main`; restored research remains separate.
+
+
+### GTK7 consumed — whole-ledger cleanup with late deauthentication
+
+One admitted boot `138674d4-2aff-4ff5-ad75-a0670d432b36`, source `8aed6b61`,
+tooling `cd1a81ef`, handoff `1cfeb81e`. Exact boot2 and kernel-note identities
+matched. Phase A passed 285/285; one capture, one session, one SSH attempt,
+no retry. The [single scalars file](results/gtk7-runtime-scalars.json) exports
+all five periodic probes, every owned TX completion, end-of-data beacon
+metrics and all twelve cleanup submission/credit timestamps.
+
+Capability and duration pass for this finite low-traffic run: DHCP, initial
+pings 96.085 / 44.519 / 32.367 ms, fresh SSH authentication in 1.618 s with
+exit 0 and empty stderr, while the window remained open. The window ended by
+budget at 60,011 ms. Five separately scheduled numeric-router pings at PM-credit
++10/+20/+30/+40/+50 s each returned one reply; userspace completion offsets
+were 10.557 / 20.407 / 30.507 / 40.717 / 50.487 s (10 ms clock resolution).
+Driver TX completions continued through +50.128 s. These host observations do
+not identify individual ICMP frames solely by nearby timestamps. Checked
+PTK/GTK handoffs were 41/238, delivered GTK ARP 107, withheld ARP 0. No named
+HIF refusal, capacity stop or pre-budget AP loss was observed; 0x13 count zero.
+The passive-scan classifier still reports no standard BSS result: standard
+scan acceptance remains open.
+
+PM abort sequence 30 was credited at +60.224 s, before reserved deauth PID 41.
+Deauth still missed the unchanged 750 ms completion bound: its host slot was
+retired without ACK or refund, carrying one actual page debt. PTK and GTK
+removals returned to floor one; station removal returned the actual ledger to
+zero. The exact retired PID then completed late with status 5 at +61.110 s;
+this did not credit or free it a second time. Channel abort and BSS-off used
+floor zero and credited. All six command paths met their existing 100 ms
+credit bounds. Healthy stage 3 followed with a whole ledger, `deauth=0`, and
+both local key disables returned status 0 with removal-command credit. No
+bounded-debt terminal was needed. This establishes host-ledger cleanup and
+credited removal paths, not independent firmware key erasure or an
+acknowledged deauthentication.
+
+This is a distinct outcome from the two simple cleanup branches: completion
+was missing at the frame bound, but the debt later returned and the ledger
+finished whole. PM-abort-first did **not** restore timely frame completion.
+The order and preceding periodic traffic changed together; do not attribute
+the improved teardown to one of them or claim a firmware mechanism.
+
+End-of-data owned-beacon queue admissions were 21 total, 20 after PM credit;
+last-admission age was 58.162 s at data end (last admission about +2.003 s
+after PM credit). Continuous owned-beacon delivery is not established. Phase-1
+aggregate type-7 count 110 is not an owned-beacon count. These observations do
+not prove RF loss; no new acquisition or firmware explanation is inferred.
+All periodic TX probes succeeded, so the predeclared fixed-offset host-TX
+failure trigger for a private question was not reached.
+
+All 71 pre-recovery seals and 2,185 contiguous kmsg records (184,315 bytes)
+verify; eight retained client-observation files are sealed. One-cycle export,
+helper/device quiescence and A53 regression pass. One reviewed recovery request
+returned to changed-boot Gemian `78b701cf-cb65-4283-bc32-dbe7dadb5497`, independently
+confirmed. No physical handoff or live device process remains pending.
+
+Next review should separate the remaining unacknowledged teardown frame from
+persistent station ownership and connection monitoring. Do not extend this
+finite grant to claim two or ten minutes. Before a successor, account for the
+stale owned-beacon observation and preserve the exact late-completion behavior.
+No new candidate is selected by this result. Rekey, PID/key reuse and reconnect
+remain disabled. Ten-minute authenticated SSH traffic and reusable lifetimes
+remain incomplete.
