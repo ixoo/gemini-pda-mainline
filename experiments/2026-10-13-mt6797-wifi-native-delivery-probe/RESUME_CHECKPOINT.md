@@ -3,12 +3,15 @@
 Current continuation: [C10 result](CCMP10_RESULT.md) is the latest consumed
 trial: finite WPA2/DHCP/three-ping/authenticated-SSH pass with mask-only metadata
 control, complete host cleanup and no refusal. Preservation and changed-boot
-Gemian were independently verified. C10 remains installed but consumed; no
-physical selection or unchanged retry is pending. Full Wi-Fi remains incomplete.
+Gemian were independently verified. C10 is consumed. [C11](CCMP11_PREPARATION.md) is installed with full readback,
+clean shutdown and host preparation verified, awaiting owner physical boot2
+selection. No C11 capture/session has run; no unchanged C10 retry. Full Wi-Fi
+remains incomplete.
 Next resolve ordinary integrity/PN and key/queued-frame ownership before healthy
 reuse and sustained acceptance; the [key-retirement review](KEY_RETIREMENT_SOURCE_REVIEW.md)
 and [post-C10 BSS observation](POST_C10_KEY_OWNERSHIP_RESULT.md) resolve the
-callback bodies but leave shared-RX/key-incarnation ordering unproved. No successor selected.
+callback bodies but leave shared-RX/key-incarnation ordering unproved. C11 adds
+only the separately justified GTK metadata observation, with delivery withheld.
 The timeout classification and C6–C10 successors ran after owner resume.
 
 Historical pause boundary. The owner explicitly resumed implementation on

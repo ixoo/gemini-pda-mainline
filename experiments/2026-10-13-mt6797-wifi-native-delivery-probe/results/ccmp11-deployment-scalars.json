@@ -1,0 +1,19 @@
+{
+  "predecessor_sha256": "73e1ac21860e69f6e8f03fd3625022bd8d4c8e6f189c17ecc44d40f91066ed8d",
+  "candidate_sha256": "3fea3a7cf1572f6f3feae4aeb6b773bca912bcc9e548a665679a20ab2ee92aae",
+  "readback_sha256": "3fea3a7cf1572f6f3feae4aeb6b773bca912bcc9e548a665679a20ab2ee92aae",
+  "boot_id": "2e2d8be5-54d4-4d99-a40b-91e005d19c1c",
+  "power": "1|100|Good|1",
+  "boot2_device_guard": "passed",
+  "poweroff_ssh_rc": "255",
+  "post_shutdown_reachability": "unreachable",
+  "reboot": "no",
+  "status": "C11 installed; full readback verified; clean shutdown; owner physical selection pending",
+  "installer_exit": 0,
+  "summary_sha256": "9300a49b7a3998eb67dc97802a22d6409c0bba01ddba069cd8acf7a72e026117",
+  "summary_bytes": 944,
+  "summary_seal_independently_verified": true,
+  "session_summary_byte_identical": true,
+  "fresh_predecessor_backup": false,
+  "device_test_executed": false
+}

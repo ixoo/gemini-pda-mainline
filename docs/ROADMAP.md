@@ -50,19 +50,19 @@ Keep this file under 200 lines; move anything else to an experiment record.
   which also observed the received-PN group absent on that one sample — an availability
   fact, not a replay or crypto claim). Bounded lifetimes only; `wifi_operational` stays
   false and no operational, reliability, persistence or replay-protection claim follows.
-- **Next (after C10, 2026-10-18 UTC).** [C10](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/CCMP10_RESULT.md)
+- **Next (C11 observation, 2026-10-18 UTC).** [C10](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/CCMP10_RESULT.md)
   passed one finite mask-only WPA2/DHCP/three-ping/authenticated-SSH lifetime
-  with host cleanup and no refusal. Resolve ordinary integrity/PN and
-  PTK/GTK/rekey/shared-RX retirement before safe reuse; then prove two healthy
-  lifetimes and minimal-profile ten-minute SSH/disconnect/reconnect acceptance.
-  No unchanged retry or next candidate selected.
+  with host cleanup and no refusal. [C11](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/CCMP11_PREPARATION.md)
+  observes the missing GTK PN metadata while delivery stays withheld; installed
+  and prepared, awaiting owner selection. Ordinary integrity/key retirement,
+  two healthy lifetimes and minimal-profile ten-minute acceptance remain.
 - **Open.** Wi-Fi station operation beyond one bounded lifetime; replay
   enforcement in firmware is unknown. No charging, RTC alarm or lid.
   The `full` profile has never booted. No upstream submission. A72 and thermal
   protection are parked.
-- **Device (2026-10-18 UTC).** C10 remains installed but consumed. Reviewed
-  recovery and independent LAN SSH confirmed changed-boot Gemian; no physical
-  selection is pending. Keep charging attended.
+- **Device (2026-10-18 UTC).** C11 is installed to guarded boot2 with matching
+  full readback, clean shutdown and host preparation verified. Await owner
+  physical boot2 selection with USB attached; no C11 runtime result yet.
 
 ## Next device boots, in order
 

@@ -1,10 +1,11 @@
-# C11: group PN observation — offline prepared, not installed
+# C11: group PN observation — installed, await physical boot2 selection
 
 [Predeclared hypothesis and branches](GROUP_PN_SUCCESSOR.md): retain missing GTK
 PN-availability scalars from existing acquisitions, with group delivery still
 withheld. C10's finite PTK pass is consumed and is not repeated unchanged.
-No C11 device action yet; installation, complete host preparation and owner
-physical selection remain gated on the actual tooling review below.
+Guarded installation, full readback, clean shutdown and complete actual host
+preparation passed. No C11 capture/session has run. Owner physical boot2
+selection is the remaining handoff; the trial must start from fresh identity.
 
 ## Source, Linux build and validated package
 
@@ -58,9 +59,9 @@ stable-monitor; this profile uses C0 mask control, with no SET_MONITOR fallback.
 Fresh C11 preparation, capture, installer, host and session adapters bind this
 real receipt and fresh namespaces. The installer pins the last installed C10
 full checksum `73e1ac21860e69f6e8f03fd3625022bd8d4c8e6f189c17ecc44d40f91066ed8d`.
-The five inherited binding/source/no-scan fixtures pass locally. Clean pushed
-Linux tooling validation and actual derived installer review are pending;
-no execution or physical handoff follows from local preparation alone.
+The five inherited binding/source/no-scan fixtures pass locally. All five fixtures also passed on Linux from clean pushed tooling
+`003519224de8ddc9d525971b3d3c9028b55aae05`. The actual derived installer
+review and deployment below complete the physical handoff gates.
 
 ## Fresh live image identity before any C11 trial
 
@@ -95,3 +96,33 @@ credit refund or global-monitor fallback. Original preservation/quiescence/A53/
 one native return/finite changed-boot Gemian verification gates remain required.
 Ordinary integrity, rekey/retirement, two healthy lifetimes and sustained minimal-
 profile ten-minute SSH acceptance are still incomplete.
+
+## Guarded deployment and complete host preparation
+
+The [actual installer review](results/ccmp11-installer-review.json) pins the
+603-line derived script SHA-256
+`0df673ffb05240884deab7689bdfabb9986469699e416dba95ff20617d7b9a8c`.
+It is byte-identical to C10 under the intended identity substitutions only.
+Bash syntax and ShellCheck passed. The complete source guard remained
+`0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf`.
+
+The installer executed once, exit 0, from fresh verified Gemian boot
+`2e2d8be5-54d4-4d99-a40b-91e005d19c1c`. Both live block-device gates passed,
+with inactive/unmounted/non-root boot2, expected size/writability, exact C10
+predecessor and stable power `1|100|Good|1`. It wrote C11, synced/flushed and
+required exact full 16 MiB checksum and byte comparison. No new predecessor
+backup; primary boot, boot3, calibration and GPT were not written.
+
+[Deployment scalars](results/ccmp11-deployment-scalars.json) record full matching
+readback and clean poweroff. SSH closed with status 255 during the reviewed
+`systemctl poweroff`; the required finite watcher confirmed unreachable, with
+no reboot. The summary's checksum seal was independently verified and the
+summary copied mode 0600 byte-for-byte into the fresh C11 session root.
+
+Complete actual offline session preparation then passed with Wi-Fi helper
+key/boot environment unset, using the retained pinned source cohort separately
+from credentials/calibration. Session root contains only that deployment summary;
+capture, execution claim and helper remain absent. No scan, C11 radio trial or
+runtime result yet. Physically select boot2 with USB attached, then require the
+fresh kernel/boot/84-byte-notes identity above before the single admitted capture
+and session. Original stop/preservation/recovery boundaries remain mandatory.

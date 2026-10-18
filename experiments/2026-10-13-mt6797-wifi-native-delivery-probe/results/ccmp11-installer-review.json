@@ -1,0 +1,14 @@
+{
+  "status": "actual derived C11 installer reviewed offline",
+  "tooling_commit": "003519224de8ddc9d525971b3d3c9028b55aae05",
+  "previous_gemian_boot": "2e2d8be5-54d4-4d99-a40b-91e005d19c1c",
+  "actual_derived_lines": 603,
+  "installer_sha256": "0df673ffb05240884deab7689bdfabb9986469699e416dba95ff20617d7b9a8c",
+  "identity_only_equal_c10": true,
+  "shell_syntax_pass": true,
+  "shellcheck_pass": true,
+  "boot2_guard_source_sha256": "0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf",
+  "predecessor_full_sha256": "73e1ac21860e69f6e8f03fd3625022bd8d4c8e6f189c17ecc44d40f91066ed8d",
+  "device_execution": false,
+  "candidate_full_sha256": "3fea3a7cf1572f6f3feae4aeb6b773bca912bcc9e548a665679a20ab2ee92aae"
+}

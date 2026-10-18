@@ -10,6 +10,10 @@ healthy reuse and ten-minute SSH remain. See the predeclared
 [mask comparison](MASK_ONLY_COMPARISON.md), [preparation](CCMP10_PREPARATION.md)
 and [key-retirement source boundary](KEY_RETIREMENT_SOURCE_REVIEW.md).
 
+The [GTK PN observation successor C11](CCMP11_PREPARATION.md) is now built,
+validated and installed with matching full readback, clean shutdown and complete
+host preparation. Await owner physical boot2 selection; no C11 runtime result.
+
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-13-mt6797-wifi-native-delivery-probe` |
