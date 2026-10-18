@@ -1,5 +1,19 @@
 # Reusable healthy lifetimes: current source audit and remaining gates
 
+## C10 follow-up: key-removal credits and retirement
+
+C10 is installed and awaiting owner boot2 selection; its pending comparison is
+unchanged. The [retirement source review](../2026-10-13-mt6797-wifi-native-delivery-probe/KEY_RETIREMENT_SOURCE_REVIEW.md)
+re-anchors the removal arm and narrows the missing contract to transitive
+station/BSS teardown and queued-RX lifetime. The inspected group-removal arm
+has no visible slot-specific retire operation; this is not proof of a whole
+firmware no-op. Neither command credits nor the inherited `slots=retired` label
+establish safe GTK reuse. Seven relevant C10 host function bodies remain
+byte-identical to C9, including key callbacks, cleanup and re-arm. Stable-CCMP
+re-arm and fatal-poison protections must remain until the firmware barrier and
+mac80211 teardown both have source-supported contracts. No new candidate or
+device action is selected by this independent audit.
+
 ## Source refresh, 2026-10-18 UTC
 
 The historical 0179 proposal below is no longer a description of current code.
@@ -7,8 +21,9 @@ The historical 0179 proposal below is no longer a description of current code.
 already implements a bounded healthy re-arm rendezvous. The current
 [validated C9 source](../2026-10-13-mt6797-wifi-native-delivery-probe/results/ccmp9-build-validation.json)
 retains it, but explicitly excludes the stable-CCMP epoch from both re-arm
-scheduling paths. C9 is installed pending owner physical selection; this audit
-adds no device action, code change, candidate or two-lifetime support claim.
+scheduling paths. At that review C9 was installed pending owner physical
+selection; it has since been consumed. This historical audit adds no device action, code change,
+candidate or two-lifetime support claim.
 C8 ended fatally before cleanup, so it supplies no healthy reuse evidence.
 
 The inspected input is project `79a2c883f2feaff6f5ed4583d05998fe73924ab6`,
@@ -71,7 +86,7 @@ completion from being applied after key-slot reuse; this audit does
 not assert that such a capability is impossible. Resolve it before selecting
 reuse, then test two healthy protected connect/disconnect lifetimes in one boot.
 Ten-minute operation and the clean board profile remain separate acceptance
-requirements. The pending C9 receive-framing trial must not be replaced or
+requirements. The pending C10 comparison linked above must not be replaced or
 repeated to test lifecycle work.
 
 ## Historical design before 0180
