@@ -1,0 +1,76 @@
+{
+  "status": "bounded source observation complete; queued-RX retirement contract remains unresolved",
+  "baseline_result": "ccmp10-runtime-scalars.json",
+  "device_os": "Gemian 3.18.41+ aarch64",
+  "boot_id": "2e2d8be5-54d4-4d99-a40b-91e005d19c1c",
+  "probes": [
+    {
+      "scope": "fixed dispatch anchor and two BSS pointer words",
+      "query_count": 3,
+      "host_fixture_cases": 26,
+      "exit": 0
+    },
+    {
+      "scope": "same guards and two fixed 64-byte function prefixes",
+      "query_count": 35,
+      "host_fixture_cases": 250,
+      "exit": 0
+    },
+    {
+      "scope": "same guards and fixed 108/84-byte continuations",
+      "query_count": 51,
+      "host_fixture_cases": 362,
+      "exit": 0
+    }
+  ],
+  "unchanged_boot_postflights": 3,
+  "firmware_control_writes": 0,
+  "retries": 0,
+  "decode_location": "RE VM",
+  "completed_function_caps_bytes": [
+    172,
+    148
+  ],
+  "control_flow": {
+    "pass": true,
+    "windows": [
+      {
+        "window": 0,
+        "instructions": 61,
+        "all_direct_branch_targets_inside": true,
+        "backward_branches": 0,
+        "calls": 0,
+        "paired_word_stores": 2,
+        "ends_in_return": true,
+        "historical_zeb_flags": 2
+      },
+      {
+        "window": 1,
+        "instructions": 52,
+        "all_direct_branch_targets_inside": true,
+        "backward_branches": 0,
+        "calls": 0,
+        "paired_word_stores": 2,
+        "ends_in_return": true,
+        "historical_zeb_flags": 2
+      }
+    ],
+    "register_side_effect_semantics_not_proven": true
+  },
+  "regression_operand_vectors": 64,
+  "limits": [
+    "Captured function pointers and narrow dispatch anchor do not attest the entire live firmware image",
+    "Two historical byte-extend flags per body correspond to exact operand shapes already validated in the 64-vector addendum; frozen flags remain unchanged",
+    "Both complete visible bodies assemble address bytes and an active bit and perform paired register stores",
+    "No explicit queue walk, call, completion wait or key-generation acknowledgement in these bodies",
+    "Register side effects and ordering against queued HIF frames remain unproved; no whole-firmware absence claim",
+    "No key-slot reuse, rekey, re-arm, new kernel candidate or radio test follows from this source observation"
+  ],
+  "preservation": {
+    "entries": 26,
+    "manifest_sha256": "51e476adf1b6fef1abdeb903a780dd87827d012f9d1297150eda8ae83032fce2",
+    "archive_sha256": "86bd4b8ac542e90352604d36b5ea97eca69cb32aa9702344dc727610f7f2730d",
+    "decoder_processes": 0,
+    "independently_verified": true
+  }
+}

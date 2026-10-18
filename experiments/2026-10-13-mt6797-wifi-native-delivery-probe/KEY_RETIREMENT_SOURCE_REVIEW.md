@@ -1,9 +1,12 @@
 # Key removal: handler effects and the remaining retirement boundary
 
-Hardware-free source audit, 2026-10-18 UTC. C10 was installed and shut down
-cleanly and is [awaiting owner physical selection](CCMP10_PREPARATION.md).
-No device read, control write, candidate change or re-arm was performed for this audit. Full
-Wi-Fi acceptance remains incomplete.
+Original hardware-free source audit, 2026-10-18 UTC, performed while C10
+awaited physical selection. [C10 subsequently passed](CCMP10_RESULT.md) its
+finite test and recovered. The [post-C10 observation](POST_C10_KEY_OWNERSHIP_RESULT.md)
+resolved the two BSS callback bodies using separately bounded read-only queries;
+their register writes still do not establish shared queued-RX retirement.
+The original audit below changed no candidate or re-arm behavior. Full Wi-Fi
+acceptance remains incomplete.
 
 ## Actual command and inspected scope
 
@@ -113,10 +116,10 @@ withdrawal, key disable, set_key, station state, cleanup step, join worker and
 re-arm helper. C10 still excludes stable-CCMP from re-arm and keeps the initial
 PTK/no-reuse and fatal-poison gates. Its stage-3 `slots=retired` log remains an
 inherited host-protocol label, not new firmware evidence. Keep that distinction
-when recording C10's eventual cleanup result; key retirement must stay separate.
+when interpreting C10's successful host cleanup; key retirement must stay separate.
 
 The original 27-entry and later 10-entry private evidence bundles were each
 independently verified against their sealed manifests; RE processes were checked
 quiescent. This audit changed no C10
-artifact or source, adds no hardware-support claim and does not replace its
-pending single comparison or authorize a subsequent candidate.
+artifact or source, adds no hardware-support claim and did not replace its
+then-pending comparison or authorize a subsequent candidate.

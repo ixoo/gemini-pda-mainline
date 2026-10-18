@@ -2,17 +2,18 @@
 
 ## C10 follow-up: key-removal credits and retirement
 
-C10 is installed and awaiting owner boot2 selection; its pending comparison is
-unchanged. The [retirement source review](../2026-10-13-mt6797-wifi-native-delivery-probe/KEY_RETIREMENT_SOURCE_REVIEW.md)
-re-anchors the removal arm and narrows the missing contract to transitive
-station/BSS teardown and queued-RX lifetime. The inspected group-removal arm
-has no visible slot-specific retire operation; this is not proof of a whole
-firmware no-op. Neither command credits nor the inherited `slots=retired` label
-establish safe GTK reuse. Seven relevant C10 host function bodies remain
-byte-identical to C9, including key callbacks, cleanup and re-arm. Stable-CCMP
-re-arm and fatal-poison protections must remain until the firmware barrier and
-mac80211 teardown both have source-supported contracts. No new candidate or
-device action is selected by this independent audit.
+[C10 passed](../2026-10-13-mt6797-wifi-native-delivery-probe/CCMP10_RESULT.md)
+one finite mask-only WPA2/DHCP/three-ping/authenticated-SSH lifetime, with host
+cleanup and no refusal. The [retirement source review](../2026-10-13-mt6797-wifi-native-delivery-probe/KEY_RETIREMENT_SOURCE_REVIEW.md)
+and [post-C10 BSS observation](../2026-10-13-mt6797-wifi-native-delivery-probe/POST_C10_KEY_OWNERSHIP_RESULT.md)
+separate that success from the missing shared queued-RX/key-incarnation barrier.
+The two now-resolved BSS callback bodies perform address/enable register writes;
+implicit peripheral effects remain unknown. Neither command credits nor the
+inherited `slots=retired` label establishes safe GTK reuse. Seven relevant C10
+host function bodies remain byte-identical to C9, including key callbacks,
+cleanup and re-arm. Stable-CCMP re-arm remains excluded until firmware/resource
+and mac80211 teardown both have source-supported contracts. Fatal poison must
+remain permanent. No new candidate or two-lifetime claim follows.
 
 ## Source refresh, 2026-10-18 UTC
 
@@ -86,8 +87,7 @@ completion from being applied after key-slot reuse; this audit does
 not assert that such a capability is impossible. Resolve it before selecting
 reuse, then test two healthy protected connect/disconnect lifetimes in one boot.
 Ten-minute operation and the clean board profile remain separate acceptance
-requirements. The pending C10 comparison linked above must not be replaced or
-repeated to test lifecycle work.
+requirements. Do not repeat the consumed C10 artifact to test lifecycle work.
 
 ## Historical design before 0180
 

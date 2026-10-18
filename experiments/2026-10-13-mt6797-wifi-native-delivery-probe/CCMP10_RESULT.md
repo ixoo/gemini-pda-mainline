@@ -70,7 +70,9 @@ and mac80211 teardown, preserve permanent fatal poison, and demonstrate two
 healthy lifetimes in one boot. Only afterward replace diagnostic termination
 with source-supported connection/channel monitoring and run the minimal-profile
 three-ping/ten-minute authenticated-SSH/disconnect/reconnect acceptance test.
-No next kernel candidate or device test is selected by this result.
+No next kernel candidate or device test is selected by this result. The later
+[bounded BSS observation](POST_C10_KEY_OWNERSHIP_RESULT.md) resolved those two
+callback bodies without establishing the queued-frame retirement barrier.
 
 ## Preservation and return
 

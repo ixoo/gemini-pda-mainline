@@ -7,7 +7,8 @@ Gemian were independently verified. C10 remains installed but consumed; no
 physical selection or unchanged retry is pending. Full Wi-Fi remains incomplete.
 Next resolve ordinary integrity/PN and key/queued-frame ownership before healthy
 reuse and sustained acceptance; the [key-retirement review](KEY_RETIREMENT_SOURCE_REVIEW.md)
-pins the missing BSS implementations/shared-RX ordering. No successor selected.
+and [post-C10 BSS observation](POST_C10_KEY_OWNERSHIP_RESULT.md) resolve the
+callback bodies but leave shared-RX/key-incarnation ordering unproved. No successor selected.
 The timeout classification and C6–C10 successors ran after owner resume.
 
 Historical pause boundary. The owner explicitly resumed implementation on
