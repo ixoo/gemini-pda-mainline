@@ -125,7 +125,7 @@ with tempfile.TemporaryDirectory(prefix='mt6797-mask-') as d:
         (tmp/'guard.c').write_text('#include <assert.h>\n#include <stdbool.h>\n#include <errno.h>\n'
             'static int gate(bool ccmp_stable_epoch, bool native_delivery_diag) {\n'+guard+
             '\nreturn 0; }\nint main(void) { for (int c=0;c<2;c++) for (int n=0;n<2;n++) '
-            'assert(gate(c,n)==((c&&n'+('||!c' if on else '')+')?-EINVAL:0)); return 0; }\n')
+            'assert(gate(c,n)==(((c&&n)'+('||!c' if on else '')+')?-EINVAL:0)); return 0; }\n')
         binary = tmp/('guard-on' if on else 'guard-off')
         subprocess.run(common+flags+(['-DCONFIG_MT6797_CCMP_MASK_CONTROL'] if on else [])+
                        [str(tmp/'guard.c'), '-o', str(binary)], check=True, timeout=30)
