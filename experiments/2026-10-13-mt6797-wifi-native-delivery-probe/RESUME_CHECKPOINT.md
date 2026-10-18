@@ -21,9 +21,10 @@ counters, one low-traffic 60-second observation. Keep every time, native,
 retirement, PID and crypto limit unchanged; no PID reuse or sustained-SSH claim.
 The earlier 1 MiB budget question is superseded by this explicit direction.
 [0206/0207 source and host verdict](SESSION_0202_PLAN.md#gtk3-source-preparation-capacity-and-handoff-observers)
-are implemented with local actual-source and parser fixtures passing; Linux
-validation and the standard budget-successor build are next. No GTK3 device
-admission or physical action is pending yet.
+pass local and clean-input Linux source/verdict checks. The standard Buildbox
+build at `a32ddfce` passed; its actual GTK3 receipt and five local tooling fixtures
+are prepared. Linux tooling validation and guarded installation remain before
+physical admission. No GTK3 device result or physical action is pending yet.
 Rekey, reuse, reconnect, -48 adjustment and speculative firmware RE stay excluded.
 
 GTK1's prior ERANGE is classified and its [0205 correction](../../patches/proposals/0205-wifi-mt6797-retain-the-validated-channel-grant-horizon.patch)
@@ -45,8 +46,8 @@ Its actual-source fixtures pass locally and on Linux from clean pushed input
 cases. See the source contract for scope and deliberate checkpatch exclusions.
 No hardware GTK acceptance or SSH-cause proof is claimed. Preserve strict
 PN/integrity/ownership requirements.
-0202/0203/0204 remain unbuilt under the owner's hold; the 65-second request /
-60-second wall exception is approved for preparation only. Keep one scalars
+0202 remains separate and unbuilt. The owner resumed regular builds/tests;
+0203/0204/0205 ran as GTK2 and the admitted capacity successor is built. Keep one scalars
 file and one table row per future run; no per-run result documents. No -48
 adjustment, longer transaction deadlines, rekey, reuse or reconnect.
 

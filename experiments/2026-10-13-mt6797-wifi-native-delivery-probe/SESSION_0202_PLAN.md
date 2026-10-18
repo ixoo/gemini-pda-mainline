@@ -528,7 +528,25 @@ cover boundaries, malformed/duplicate records, quota/drain, failed SSH/protocol
 and scope preservation. The new session binding must explicitly select this
 verdict; preparation is not yet a device admission or result.
 
-Linux validation from clean pushed inputs and one standard corrected-budget
-kernel build are next. The candidate remains low traffic: no PID reuse and no
-continuous SSH workload is promised. If a different ceiling binds or a protocol,
-transport or cleanup fault occurs, record that first point separately.
+Clean pushed input `a32ddfce` passed Linux actual-source fixtures for both the
+GTK selection and the separate fixed-format overlay, plus the verdict and
+historical binding fixtures. The first attempt exposed only a patch-context
+conflict beside the fixed-format guard; 0206 now selects the capacity helper
+before that unchanged guard and applies to both. Strict checkpatch reports only
+the intentionally absent DCO certification, with zero warnings/checks.
+
+The standard Buildbox build and package validator passed from `a32ddfce`:
+700 patches, package inventory
+`d960f2c6f48ad8a2be0a1ed5810485bc770a55022b8ff6a7cbd3516539c2a8cc`,
+unchanged GTK2 configuration. The [actual receipt](results/ccmp-stable-monitor-candidate-gtk3.json)
+and [compositor](build-ccmp-gtk3-candidate.py) bind this package and the capacity /
+handoff archives. Kernel ELF notes, Image bounds and the sysfs exporter agree;
+the 84-byte identity differs from GTK2. Local composition, namespace/refusal,
+no-scan, retained installer and recovery-source checks pass. The new binding
+explicitly selects the GTK3 verdict in both standalone and session paths.
+Tooling Linux validation and guarded installation remain before device admission.
+
+The candidate remains low traffic: no PID reuse and no continuous SSH workload
+is promised. If a different ceiling binds or a protocol, transport or cleanup
+fault occurs, record that first point separately. Compilation and host fixtures
+are not a GTK3 runtime result.

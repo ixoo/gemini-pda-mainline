@@ -1,0 +1,60 @@
+{
+  "status": "offline-gated-ccmp-initial-gtk-candidate-validated",
+  "kernel_build_commit": "a32ddfcec83e1b24a5e818702f509a6f50dbec93",
+  "kernel_release": "7.1.3-gemini-a53-wifi-ccmp-stable-monitor",
+  "kernel_package_sha256": "d960f2c6f48ad8a2be0a1ed5810485bc770a55022b8ff6a7cbd3516539c2a8cc",
+  "integration_source_commit": "d5d85d83afbe9533a1799406c7287e8306567acd",
+  "integration_patch_sha256": "6bc38174fe821849135b1a48d78f9268a1035d56a3ea1f679aff405e719aa06a",
+  "kernel_profile": "mt6797-a53-wifi-ccmp-initial-gtk",
+  "parent_candidate": "candidate-32",
+  "parent_boot2_sha256": "5260715b453d4ad9e635845132f7d08530e0386ce6bce98f53a818b3ab87b815",
+  "files": {
+    "Image.gz": {
+      "sha256": "173a6697395bb4e21a71bfc308e9a8e840881c87f0b26a1aafb281be43b6092b",
+      "bytes": 6658691
+    },
+    "board.dtb": {
+      "sha256": "25ab60f45686138c46200e858206756a16eef5ee33b26b2bd2ac13c7179d7717",
+      "bytes": 28671
+    },
+    "boot.img": {
+      "sha256": "b2abad0b901ca11f5648feb9f60483518a519342ebb30a77f5a17b38c35bf07f",
+      "bytes": 12675072
+    },
+    "boot2-padded.img": {
+      "sha256": "e2571776fe674cf1288f8a12f4362c7fba1d083cf93846edfb1a3850ed27eb09",
+      "bytes": 16777216
+    },
+    "initramfs.img": {
+      "sha256": "0b89dd8d560505a8e87a72082c5762d16b6ffbbf6eefc77cd4f99ebeec7707ff",
+      "bytes": 5982210
+    },
+    "kernel.config": {
+      "sha256": "ff1f087376b3a1a2afb38e5325e799926f58db67b46efac1e1ebb6214fea9bd1",
+      "bytes": 113337
+    }
+  },
+  "kernel_config_change": "old native arm0, CCMP stable arm1 command line and USB identity, LOCALVERSION, and NATIVE_DELIVERY_DIAG/CCMP_INITIAL_GTK/CCMP_60S_WINDOW/CCMP_STABLE_EPOCH/CCMP_MASK_CONTROL=y; nothing else",
+  "device_tree_change": "none; exact candidate 32 board DT",
+  "ram_root_change": "release gate only; the exact candidate 32 64-member private RAM root",
+  "native_delivery_diag": false,
+  "ccmp_stable_epoch": true,
+  "mask_control": true,
+  "group_pn_observe": false,
+  "initial_gtk": true,
+  "observation_window_ms": 60000,
+  "grant_horizon_decoupled": true,
+  "early_grant_minimum_ms": 62500,
+  "checked_ccmp_max": 1024,
+  "total_rx_max": 4096,
+  "rx_bytes_max": 2097152,
+  "pid_reuse": false,
+  "low_traffic_only": true,
+  "gtk_arp_handoff_counter": true,
+  "bootstrap": "normal-dhcp-only",
+  "gtk_rx": true,
+  "key_reuse": false,
+  "secret_bearing": true,
+  "device_action": "none",
+  "physical_admission": false
+}
