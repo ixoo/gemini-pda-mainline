@@ -35,8 +35,11 @@ No live device process, physical handoff or retry is pending. GTK7 is consumed.
 A default-off [connected-channel comparison](SESSION_0202_PLAN.md#after-gtk7--bounded-connected-channel-ownership-comparison)
 is prepared under 0217: a nine-second join grant released during the unchanged
 60-second window, original command/frame/tail limits, periodic traffic and
-GTK7 teardown. Local actual-source/option-off/crypto/HIF fixtures pass; Linux,
-build/package/hardware remain pending. No successor image is installed. Two/ten minutes of authenticated SSH traffic and same-boot reusable
+GTK7 teardown. Local and Linux actual-source/option-off/HIF fixtures and the required
+Buildbox build pass at `8792a406`; [GTK8 package/host bindings](SESSION_0202_PLAN.md#gtk8-validated-package--host-binding-validation-pending)
+are prepared from the validated package. Local five host fixtures and the
+strict post-release verdict tests pass. Linux host binding validation, guarded
+installation and hardware remain pending. No successor image is installed. Two/ten minutes of authenticated SSH traffic and same-boot reusable
 lifetimes remain unproved.
 
 Keep 0x16 before keys, counter-only 0210/fatal event refusal, connection-monitor

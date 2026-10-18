@@ -1,0 +1,97 @@
+{
+  "status": "offline-gated-ccmp-initial-gtk-candidate-validated",
+  "kernel_build_commit": "8792a406713f126c3a77a31ab08add466e39a03f",
+  "kernel_release": "7.1.3-gemini-a53-wifi-ccmp-stable-monitor",
+  "kernel_package_sha256": "b53512f0139d2b0a362a6a5d9ea099d6fca42d8dcbfe4985dec4c33dc2d2d56b",
+  "integration_source_commit": "f7ae3f2efe0916081397ae4476cc1887a8f869c1",
+  "integration_patch_sha256": "40f76affeeeabebe796f655196adf0d6ceefb483d2b9ad9651345f633c1b8cc0",
+  "kernel_profile": "mt6797-a53-wifi-ccmp-channel-release",
+  "parent_candidate": "candidate-32",
+  "parent_boot2_sha256": "5260715b453d4ad9e635845132f7d08530e0386ce6bce98f53a818b3ab87b815",
+  "files": {
+    "Image.gz": {
+      "sha256": "52dcb2b3237d564360a56728ee679000c30c1487c84562b03d8c31ceae86f535",
+      "bytes": 6663346
+    },
+    "board.dtb": {
+      "sha256": "25ab60f45686138c46200e858206756a16eef5ee33b26b2bd2ac13c7179d7717",
+      "bytes": 28671
+    },
+    "boot.img": {
+      "sha256": "522951ece0a7d8ebd4372aa00e65c0bb01b3d102dfcb74e09b59dbd5372172a3",
+      "bytes": 12679168
+    },
+    "boot2-padded.img": {
+      "sha256": "ffbb0d343aa7061e1c592488ee6ee92786cc70abe7a6f9008ca1f4a17cce2dff",
+      "bytes": 16777216
+    },
+    "initramfs.img": {
+      "sha256": "0b89dd8d560505a8e87a72082c5762d16b6ffbbf6eefc77cd4f99ebeec7707ff",
+      "bytes": 5982210
+    },
+    "kernel.config": {
+      "sha256": "d1342a6a2fb829bbecebd3c4e89240c21165d67462d5abbddbd1dff20ccbd34c",
+      "bytes": 113374
+    }
+  },
+  "kernel_config_change": "old native arm0, CCMP stable arm1 command line and USB identity, LOCALVERSION, and NATIVE_DELIVERY_DIAG/CCMP_CHANNEL_RELEASE/CCMP_INITIAL_GTK/CCMP_60S_WINDOW/CCMP_STABLE_EPOCH/CCMP_MASK_CONTROL=y; nothing else",
+  "device_tree_change": "none; exact candidate 32 board DT",
+  "ram_root_change": "release gate only; the exact candidate 32 64-member private RAM root",
+  "native_delivery_diag": false,
+  "ccmp_stable_epoch": true,
+  "mask_control": true,
+  "group_pn_observe": false,
+  "initial_gtk": true,
+  "observation_window_ms": 60000,
+  "connected_channel_release": true,
+  "join_grant_request_ms": 9000,
+  "connected_release_tail_ms": 2500,
+  "data_window_inside_grant": false,
+  "post_release_traffic_required": true,
+  "grant_horizon_decoupled": true,
+  "early_grant_minimum_ms": 9000,
+  "checked_ccmp_max": 1024,
+  "total_rx_max": 4096,
+  "rx_bytes_max": 2097152,
+  "pid_reuse": false,
+  "low_traffic_only": true,
+  "gtk_arp_handoff_counter": true,
+  "bss_timeout_observe": true,
+  "owned_beacon_recency": true,
+  "conditional_bss_timeout": false,
+  "timeout_policy": "observe-count-and-refuse",
+  "pm_connected_before_keys": true,
+  "pm_abort_before_removals": true,
+  "connection_monitor": true,
+  "reconnect": false,
+  "deauth_timeout_retirement": true,
+  "deauth_timeout_bound_ms": 750,
+  "deauth_debt_limit_pages": 1,
+  "abort_waits_full_ledger": true,
+  "late_retired_pid_only": true,
+  "cleanup_waits_full_ledger": false,
+  "cleanup_uses_latched_debt_floor": true,
+  "bounded_page_debt_terminal": true,
+  "healthy_stage_requires_whole_ledger": true,
+  "pm_abort_before_deauth": true,
+  "pm_relative_timing": true,
+  "owned_beacons_at_data_end": true,
+  "periodic_ping_offsets_s": [
+    10,
+    20,
+    30,
+    40,
+    50
+  ],
+  "periodic_before_ssh_ack": true,
+  "periodic_clock_resolution_ns": 10000000,
+  "periodic_leaf_sha256": "55d15ff3499ed23eb41d10853955ce7634836b5040484c714126d31d558bd87f",
+  "beacon_clock_scope": "existing owned-beacon queue admission; includes pre-data",
+  "last_rx_clock_scope": "strict PTK/GTK queue admission only",
+  "bootstrap": "normal-dhcp-only",
+  "gtk_rx": true,
+  "key_reuse": false,
+  "secret_bearing": true,
+  "device_action": "none",
+  "physical_admission": false
+}

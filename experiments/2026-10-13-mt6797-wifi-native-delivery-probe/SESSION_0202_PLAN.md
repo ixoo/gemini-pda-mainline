@@ -1364,3 +1364,42 @@ Strict checkpatch has only the deliberate missing DCO certification, zero
 warnings/checks; this synthetic archive is not an upstream submission.
 Linux validation, the required clean/pushed Buildbox build, package binding,
 installation and hardware result remain pending. No candidate is installed.
+
+
+### GTK8 validated package — host binding validation pending
+
+The channel-release input `8792a406` is pushed to `main`. Both primary and
+canonical Linux release/actual-HIF fixtures pass; the required Buildbox kernel
+build completed from that clean input. The fetched package inventory is
+`b53512f0139d2b0a362a6a5d9ea099d6fca42d8dcbfe4985dec4c33dc2d2d56b`.
+The [real GTK8 receipt](results/ccmp-stable-monitor-candidate-gtk8.json) binds
+profile `mt6797-a53-wifi-ccmp-channel-release`, logical archive 0217 and all
+710 selected patches in canonical order. Full configuration equality proves
+only the channel-release option is added to GTK7; board DT and the C32-derived
+64-member RAM root remain byte-identical to GTK7. This is a finite ownership
+comparison, not a persistent-driver or usable-Wi-Fi claim.
+
+The 84-byte kernel-note identity was independently matched across the actual
+ELF, packaged Image/System.map and pinned sysfs exporter; expected SHA-256 is
+`6725caca78f120244c9fcc00137a3800f4573588fc1424287a1278ffbdf9cd0a`, distinct
+from GTK7. Local composition/config-mutation, installer source routing,
+session source routing, completed host/no-scan ownership and actual receipt/
+namespace fixtures pass. The exact existing GTK7 periodic leaf is reused,
+including its hash/namespace guard and permanent client stderr retention.
+No credential or raw evidence is published.
+
+A separate host verdict requires the exact 9-second grant, one attributable
+release submission/credit within 100 ms, consistent PM clock, all five periodic
+replies after release, and owned successful data completions beyond PM+9 s
+through PM+50 s, in addition to the existing full-window/crypto/network/cleanup
+verdict. PM indication follows the join grant, so PM+10 s is beyond that grant.
+It preserves the independent capability/duration values. Synthetic missing,
+malformed, duplicate, wrong-grant, credit-bound and missing-traffic cases pass.
+The sealed GTK7 export independently parses all five probes, retains its
+legacy pass and is correctly refused as proof of channel release. These host
+checks do not prove firmware execution or associate individual ICMP frames
+solely by nearby aggregate completion timestamps.
+
+Linux validation of the new host bindings, guarded installation, full readback,
+shutdown, offline preparation and a new owner physical selection remain pending.
+GTK8 has not run; do not reuse the consumed GTK7 physical-selection reply.
