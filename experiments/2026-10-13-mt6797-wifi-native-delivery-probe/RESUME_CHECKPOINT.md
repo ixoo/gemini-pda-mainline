@@ -1,5 +1,18 @@
 # Wi-Fi resume checkpoint — INCOMPLETE
 
+**GTK8 installed; waiting for owner physical boot2 selection.** Source
+`8792a406`, host/package bindings `49ff0b1c`: a 9-second join privilege released
+during the unchanged 60-second initial-key window. Linux source/HIF/host
+fixtures, required Buildbox build and package validation pass. Guarded full
+readback, clean shutdown and offline host preparation pass. Expected boot2
+SHA-256 `ffbb0d343aa7061e1c592488ee6ee92786cc70abe7a6f9008ca1f4a17cce2dff`;
+84-byte kernel-note SHA-256
+`6725caca78f120244c9fcc00137a3800f4573588fc1424287a1278ffbdf9cd0a`.
+[Current handoff](SESSION_0202_PLAN.md#gtk8-installed--physical-selection-pending).
+No GTK8 capture/session has occurred; use a fresh owner selection and boot
+identity before one admitted run. No automatic boot selection or unchanged retry.
+
+
 **GTK7 consumed once: capability and 60-second low-traffic duration PASS;
 whole-ledger cleanup stage 3 reached, deauthentication still unacknowledged.**
 Boot `138674d4-2aff-4ff5-ad75-a0670d432b36`, source `8aed6b61`, tooling
@@ -31,15 +44,17 @@ replied, so the predeclared fixed-offset host-TX failure trigger did not occur.
 All 71 seals, 2,185 contiguous kmsg records, complete one-cycle export,
 helper/device quiescence and A53 regression verify. One reviewed return and
 independent Gemian identity confirm `78b701cf-cb65-4283-bc32-dbe7dadb5497`.
-No live device process, physical handoff or retry is pending. GTK7 is consumed.
+GTK7 has no live device process or retry pending and is consumed; the new
+GTK8 physical handoff is recorded above.
 A default-off [connected-channel comparison](SESSION_0202_PLAN.md#after-gtk7--bounded-connected-channel-ownership-comparison)
 is prepared under 0217: a nine-second join grant released during the unchanged
 60-second window, original command/frame/tail limits, periodic traffic and
 GTK7 teardown. Local and Linux actual-source/option-off/HIF fixtures and the required
 Buildbox build pass at `8792a406`; [GTK8 package/host bindings](SESSION_0202_PLAN.md#gtk8-validated-package--host-binding-validation-pending)
-are prepared from the validated package. Local five host fixtures and the
-strict post-release verdict tests pass. Linux host binding validation, guarded
-installation and hardware remain pending. No successor image is installed. Two/ten minutes of authenticated SSH traffic and same-boot reusable
+are prepared from the validated package. Five host fixtures and the
+strict post-release verdict pass locally and on Linux. Guarded installation
+and offline host preparation now pass; physical GTK8 selection is pending
+as recorded above. No GTK8 hardware observation is claimed. Two/ten minutes of authenticated SSH traffic and same-boot reusable
 lifetimes remain unproved.
 
 Keep 0x16 before keys, counter-only 0210/fatal event refusal, connection-monitor

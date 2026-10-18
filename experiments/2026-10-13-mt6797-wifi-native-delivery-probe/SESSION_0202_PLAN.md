@@ -1403,3 +1403,31 @@ solely by nearby aggregate completion timestamps.
 Linux validation of the new host bindings, guarded installation, full readback,
 shutdown, offline preparation and a new owner physical selection remain pending.
 GTK8 has not run; do not reuse the consumed GTK7 physical-selection reply.
+
+
+### GTK8 installed — physical selection pending
+
+GTK8 source `8792a406`, package/host bindings `49ff0b1c` are on `main`. Both
+Linux source variants, the required kernel build, fetched package, five Linux
+host fixtures and the strict release-verdict fixture pass. The reviewed
+603-line installer differs from GTK7 only in candidate/tool/boot/evidence
+identities; the exact device guard, Bash syntax and ShellCheck pass.
+
+Live Gemian boot `78b701cf-cb65-4283-bc32-dbe7dadb5497` was independently
+verified before installation. The guard resolved inactive, unmounted, non-root
+logical boot2 from live GPT with stable power and the expected GTK7 predecessor.
+Full-partition write/readback SHA-256 matches
+`ffbb0d343aa7061e1c592488ee6ee92786cc70abe7a6f9008ca1f4a17cce2dff`.
+Deployment summary/seal verifies and clean shutdown is confirmed. No fresh
+partition backup, other partition write or automatic boot selection occurred.
+
+Fresh runtime, exact mode-0600 deployment summary and complete offline host
+preparation pass. Reuse the exact reviewed GTK7 periodic leaf, not the older
+six-second leaf. There is no capture, session result or GTK8 run row yet.
+Next action is the owner's physical boot2 selection with USB attached, then
+verify a fresh mainline boot and the exact 84-byte kernel-note identity
+`6725caca78f120244c9fcc00137a3800f4573588fc1424287a1278ffbdf9cd0a`
+before one admitted capture/session under the declared release/traffic/cleanup
+branches. No retry, key/PID reuse, rekey or second association. Preserve
+release sequence/credit timing, periodic outcomes, beacon count/age and
+teardown timestamps in one public scalars file and one existing table row.
