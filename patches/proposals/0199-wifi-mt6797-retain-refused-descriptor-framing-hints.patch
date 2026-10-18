@@ -1,0 +1,92 @@
+From 614688341c84b9b29aacd9ab7d158155b316c6bd Mon Sep 17 00:00:00 2001
+From: Codex Experiment <codex-experiment@example.invalid>
+Date: Sat, 17 Oct 2026 20:22:58 -0400
+Subject: [PATCH] wifi: mt6797: retain refused descriptor framing hints
+
+C8's cleanup selection comparison still hit advertised/header 88/40.
+The existing four-byte failure hint cannot distinguish native from
+translated framing or identify the source-defined status flags.
+
+On the existing fatal header-length refusal, retain raw byte6 and LE16
+at10 only when both lengths and the completed staged span contain the
+16-byte base, and the existing untrusted type word has class2. A valid
+bit denotes those bounds only, never descriptor validity or admission.
+Emit one extra fixed-prefix failure line with the valid bit and fields.
+No payload, PN, key, peer or address bytes are retained.
+
+Preserve complete transfer, equality, poison/no-copy, arbitration,
+credit/timer/key/lifetime paths and all hardware acquisitions. No group
+walk, packet parsing or 48-byte rule. Synthetic tests establish host
+behavior only; these hints cannot prove a firmware conversion mechanism.
+
+Internal experiment archive, synthetic non-certifying author identity;
+no DCO certification and not an upstream submission.
+---
+ drivers/net/wireless/mediatek/mt6797/hif.c | 9 +++++++++
+ drivers/net/wireless/mediatek/mt6797/hif.h | 4 ++++
+ drivers/net/wireless/mediatek/mt6797/mac.c | 7 ++++++-
+ 3 files changed, 19 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index edf519e..ca8a451 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -1156,6 +1156,15 @@ static int mt6797_hif_receive(struct mt6797_hif *hif, unsigned int port,
+ 			/* No further I/O or parsing: this word is not a valid packet type. */
+ 			result->refused_type_word = mt6797_normal_le16(hif->scratch + 2);
+ 			result->refused_type_valid = true;
++			if (logical >= 16 && result->header_length >= 16 &&
++			    result->staging_bytes >= 16 &&
++			    (result->refused_type_word >> 13) == MT6797_RX_DATA_TYPE) {
++				/* Already staged base only; no groups, payload or admission. */
++				result->refused_header_control = hif->scratch[6];
++				result->refused_status_flags =
++					mt6797_normal_le16(hif->scratch + 10);
++				result->refused_base_valid = true;
++			}
+ 		}
+ 		error = -EPROTO;
+ 		goto poison;
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index f968c9c..514bcfe 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -90,6 +90,10 @@ struct mt6797_hif_rx_result {
+ 	/* Already-staged framing hint on header-length refusal only; untrusted. */
+ 	u16 refused_type_word;
+ 	bool refused_type_valid;
++	/* Raw base fields, not a validated RXD or packet interpretation. */
++	u8 refused_header_control;
++	u16 refused_status_flags;
++	bool refused_base_valid;
+ };
+ 
+ /* One interrupt/control and eight returned-page register reads. WHISR and
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index ed76efd..31ef759 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -2400,7 +2400,7 @@ submitted:
+ 			mt6797_ccmp_observe_rx(&mac->ccmp_observation, rx_port, ret, &rx);
+ #endif
+ #ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
+-			if (ret == -EPROTO && rx.protocol_refusal != MT6797_HIF_RX_REFUSAL_NONE)
++			if (ret == -EPROTO && rx.protocol_refusal != MT6797_HIF_RX_REFUSAL_NONE) {
+ 				dev_info(wiphy_dev(mac->hw->wiphy),
+ 					 "one-shot WLAN native HIF refused: gate=%s port=%u pre_valid=%u pre_wrplr=0x%08x selected=%u header_valid=%u header=%u setup=%u complete=%u staging=%zu post_valid=%u post_wrplr=0x%08x refused_type_valid=%u refused_type_word=0x%04x\n",
+ 					 rx.protocol_refusal == MT6797_HIF_RX_REFUSAL_LENGTH ?
+@@ -2409,6 +2409,11 @@ submitted:
+ 					 rx.header_length, rx.rx_setup, rx.rx_complete,
+ 					 rx.staging_bytes, rx.post_valid, rx.post_wrplr,
+ 					 rx.refused_type_valid, rx.refused_type_word);
++				dev_info(wiphy_dev(mac->hw->wiphy),
++					 "one-shot WLAN native HIF framing hint: base_valid=%u header_control=0x%02x status_flags=0x%04x\n",
++					 rx.refused_base_valid, rx.refused_header_control,
++					 rx.refused_status_flags);
++			}
+ #endif
+ 			if (ret == -EAGAIN) {
+ 				ret = 0;
+-- 
+2.54.0 (Apple Git-157)
+

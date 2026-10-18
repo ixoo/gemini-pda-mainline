@@ -6,10 +6,11 @@ passed length equality, then the selected reader refused lengths 88/40.
 The post-CLOSED sequence alone is insufficient. Evidence was sealed and
 changed-boot Gemian independently confirmed; no unchanged retry or support claim.
 
-Next source boundary: pending length ownership and the refused descriptor's
-translation/header/status contract. Keep equality, complete transfer and
-poison/no-copy. No next candidate, credit-policy change, timeout extension or
-48-byte framing exception is selected.
+Next authored observation: [refused framing fields](REFUSED_RXD_FRAMING_SUCCESSOR.md)
+retains two bounded, untrusted scalars from the existing failed transfer.
+Local actual-source tests pass; Linux/build validation is pending. Keep equality,
+complete transfer and poison/no-copy. No real successor candidate, credit-policy
+change, timeout extension or 48-byte framing exception is selected.
 
 | Field | Value |
 | --- | --- |
