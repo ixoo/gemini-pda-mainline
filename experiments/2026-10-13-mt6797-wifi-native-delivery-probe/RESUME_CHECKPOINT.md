@@ -26,8 +26,9 @@ is pending. GTK5 remains installed but consumed; do not repeat it unchanged.
 
 Next is the one logical bounded deauthentication-retirement successor 0213
 under the [predeclared GTK6 contract](SESSION_0202_PLAN.md#predeclared-gtk6-bounded-reserved-deauthentication-retirement).
-Local source/HIF tests pass; Linux checks, build and device admission remain
-pending. Keep all later publications on `main`. Do not assume PM abort belongs before deauth,
+Linux source/HIF tests and the required Buildbox build pass at `af6923d3`;
+the real GTK6 receipt and five local host fixtures pass. Linux host binding
+checks and guarded device admission remain pending. Keep publications on `main`. Do not assume PM abort belongs before deauth,
 accept unowned completions, add register reads or extend deadlines. Healthy
 cleanup is required before promotion to persistent or longer operation.
 Keep 1024 checked / 4096 all-RX / 2 MiB and the existing time/retirement/PID

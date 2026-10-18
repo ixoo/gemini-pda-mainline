@@ -1025,3 +1025,23 @@ while ordinary command admission stays strict. Crypto callbacks and option-off
 MAC parity remain covered; the pre-existing PM fixture still runs against
 GTK5. Synthetic checks do not establish firmware behavior. Publish to `main`
 before Linux checks/build; no new branch or physical test is selected yet.
+
+### GTK6 validated package — deployment pending
+
+Source `af6923d3` was pushed to `main` before Linux fixtures and the required
+Buildbox backend build. Both selected and canonical-overlay actual-source
+fixtures pass, including page-ledger/HIF transfer cases. Validated inventory
+`43849fa3b584d0bf8e7591d2292ae2a712a19e5bb8f9ae6ec418f89c7e01f89a`.
+The [real GTK6 receipt](results/ccmp-stable-monitor-candidate-gtk6.json) binds
+boot image `af31e2aa18049945fca797e7bf5d339c204d5a960c2129392e436cbb5c147d72`.
+Config, board DT and exact RAM root match GTK5. Runtime notes are 84 bytes,
+SHA-256 `8a5d78bc3489be692c786c6c5bf74f8ff9a71e0070c3f95a24ed1731972a5285`,
+matched between ELF, Image, map bounds and the unchanged sysfs exporter, and
+differ from GTK5. Five local host binding/source fixtures pass.
+
+Six fresh GTK6 wrappers bind the bounded deauthentication retirement, one-page
+debt exception for the first abort, whole-ledger wait and retired-PID-only late
+status rule. The 60-second window, all deadlines and all resource caps remain
+unchanged. Linux host binding checks, reviewed guarded deployment, full readback,
+clean shutdown and fresh host preparation remain required before physical boot2
+selection. GTK6 has no hardware result yet; no new run row is created.
