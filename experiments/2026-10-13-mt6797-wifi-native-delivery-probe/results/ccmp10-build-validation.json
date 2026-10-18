@@ -1,0 +1,32 @@
+{
+  "repository_commit": "0d1f51194d7001fc9c6b9219726935ede36bc828",
+  "repository_dirty": false,
+  "build_profile": "mt6797-a53-wifi-ccmp-mask-control",
+  "kernel_release": "7.1.3-gemini-a53-wifi-ccmp-stable-monitor",
+  "modules_built": false,
+  "base_config": "defconfig",
+  "build_architecture": "x86_64",
+  "target_architecture": "arm64",
+  "toolchain_mode": "cross",
+  "patchset_sha256": "93eab8c4a5dee069b051f6763425f04e3c8914e9b1171fb9a75ecbc25b32eb9c",
+  "config_sha256": "005d81ad9c877c8b5d1dd721452c6c08e0c87ec0a04af27eec2b3e880ab9bb31",
+  "status": "validated",
+  "package_inventory_sha256": "1ef1141b3e78647d072cced777965b79492f8193e310bf4011e1d026b26d9dd0",
+  "inventory_members": 852,
+  "image_gz_sha256": "dcc58eb67eef79e8a7463350ffb0b5e5c06e832fad3e9ab288faf13feca01f42",
+  "completed_utc": "2026-10-18T02:39:23Z",
+  "source_file_sha256": {
+    "Kconfig": "61d2498088e43cd1496344b6f2d80a1117cda5cb66859113521ca189190a069a",
+    "hif.c": "1d5b6b636a027536ef7115b03cf25a96ce1da5fb36b644876e26310037c0ad3f",
+    "hif.h": "ee16fbc5557bb217403ffb718036020846c6c2420eb067a5e08572c563aca913",
+    "join-command-submit.h": "534626758def805f1fcc1b9cd3fe9627f6a133f00be0a6671fc19fa16a600db7",
+    "join-commands.h": "d71a803c852df6ed63eea5523f13c99ed67a24c550dd689abcaf360c51732c5f",
+    "mac.c": "9c436a627a5b23a416b9fc2a1401f349a10e971af4086464117bc6d50890ef88"
+  },
+  "sanitizer_applied_source": "ASan/UBSan pass; Linux non-PIE convention",
+  "test_runner_sha256": "bc30b3a607108ef3670d26bf20e868ec77adad29e470630df7dcc714d6fd7adb",
+  "dtbs_compiled": 123,
+  "mask_helper_symbol_count": 1,
+  "mask_submission_format_count": 1,
+  "device_action": "none"
+}

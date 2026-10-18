@@ -1,7 +1,7 @@
 # Mask-only control comparison — before implementation
 
-Status: source-grounded diagnostic proposal, no build or device write admitted
-by this record alone. [Pointer observation](POST_C9_POINTER_RESULT.md) resolved
+Status: [C10 built and privately composed](CCMP10_PREPARATION.md); no device
+write or runtime result. The design below preceded implementation. [Pointer observation](POST_C9_POINTER_RESULT.md) resolved
 one complete monitor callback: for Boolean arguments it writes a three-bit mask,
 7 on enable and 0 on disable, to firmware address `0x800c0068`. No firmware code
 is copied. Group meanings and the RX length-publication mechanism remain unproved.
@@ -112,7 +112,9 @@ Profile `mt6797-a53-wifi-ccmp-mask-control` selects C9's 694 ordered patches plu
 0200. Its 26 inherited fragments are unchanged; one additional fragment enables
 only the new comparison option. All existing profile definitions and named
 series files are unchanged; the canonical superset appends 0200. All 33 profile
-checks pass. Linux checks, checkpatch and kernel/package validation remain
-pending; no candidate composition, installation or resource write has run.
+checks pass. Linux actual-source checks and kernel/package validation passed;
+strict checkpatch has only the standing non-certifying DCO omission. The real
+composition and remaining tooling/deployment gates are in [C10 preparation](CCMP10_PREPARATION.md).
+No installation or resource write has run.
 
 Proposal SHA-256: `933bbacc1262e7c8d827d68d3beaa4eed0a2a0ef78c023d0a777d884cf462b2c`.

@@ -11,8 +11,9 @@ The [post-C9 pointer observation](POST_C9_POINTER_RESULT.md) resolved the
 opaque callback targets and captured one complete three-bit control primitive
 using bounded read-only stock queries. Its group-reporting/queued-length
 contract remains unproved. The [mask-only comparison](MASK_ONLY_COMPARISON.md)
-is authored and passes focused local actual-source tests; Linux/build gates
-remain before any candidate or write. No new boot admission or unchanged C9 retry;
+is [built and privately composed as C10](CCMP10_PREPARATION.md). Linux source
+checks pass; tooling/deployment gates remain before a boot admission. No
+unchanged C9 retry;
 ordinary integrity/PN, key retirement, healthy reuse and ten-minute SSH remain.
 
 | Field | Value |

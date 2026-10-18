@@ -1,11 +1,11 @@
-# Wi-Fi resume checkpoint — INCOMPLETE / PAUSED
+# Wi-Fi resume checkpoint — INCOMPLETE
 
 Current continuation: [C9 result](CCMP9_RESULT.md) records the latest consumed
 trial, verified preservation and return. [Post-C9 source review](POST_C9_SOURCE_REVIEW.md)
 records the read-query admission review. The later [pointer observation](POST_C9_POINTER_RESULT.md)
 completed bounded stock reads. The [mask-only comparison](MASK_ONLY_COMPARISON.md)
-is authored with local checks; Linux/build/device gates remain. No resource
-write or next boot is admitted.
+is [built/composed as C10](CCMP10_PREPARATION.md); tooling/deployment gates
+remain before a device write or boot.
 The timeout classification and C6-C9
 successors were executed after the owner resumed. Full Wi-Fi remains incomplete;
 no unchanged retry or next boot is selected. The pause record below is historical.
