@@ -811,3 +811,4 @@ proposals/0197-wifi-mt6797-retain-terminal-credit-pairing-and-timeout-site.patch
 proposals/0198-wifi-mt6797-compare-post-CLOSED-RX-port-selection.patch
 proposals/0199-wifi-mt6797-retain-refused-descriptor-framing-hints.patch
 proposals/0200-wifi-mt6797-compare-observed-mask-only-control.patch
+proposals/0201-wifi-mt6797-observe-initial-GTK-PN-metadata.patch

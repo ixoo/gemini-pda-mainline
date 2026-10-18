@@ -1,0 +1,123 @@
+From 7bf0b138059b317e2c97a75bb933e1d7b4f1b7f4 Mon Sep 17 00:00:00 2001
+From: Codex Experiment <codex-experiment@example.invalid>
+Date: Sun, 18 Oct 2026 09:04:23 -0400
+Subject: [PATCH] wifi: mt6797: observe initial GTK PN metadata
+
+C10 checked only the initial PTK receive path. Retain group metadata
+from already admitted complete acquisitions using the unchanged
+translated classifier, without reading a PN value or accepting GTK
+traffic.
+
+Count reported group shapes, current key/TID/Ethernet-II observation
+eligibility, G1 availability and mask combinations. Emit once with the
+existing terminal RX report. A default-off option depends on the mask-
+only comparison.
+
+Keep every HIF, crypto, key, queue, frame/byte/wall/grant and cleanup
+gate unchanged. This observes availability, not authentication or
+retirement. No userspace control API.
+
+Internal experiment archive, synthetic non-certifying author identity;
+no DCO certification and not an upstream submission.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig |  9 ++++
+ drivers/net/wireless/mediatek/mt6797/mac.c   | 45 ++++++++++++++++++++
+ 2 files changed, 54 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index 9be3a5c..d6cc56c 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -113,3 +113,12 @@ config MT6797_CCMP_MASK_CONTROL
+ 	  global monitor operation, retaining all initial-PTK diagnostic limits.
+ 	  Only one fixed address and values 7/0 are admitted. This does not
+ 	  establish group meanings, firmware integrity or healthy key reuse.
++
++config MT6797_CCMP_GROUP_PN_OBSERVE
++	bool "MT6797 default-off group PN metadata observation"
++	depends on MT6797_CCMP_MASK_CONTROL
++	default n
++	help
++	  Count initial GTK-shaped metadata from complete, already admitted RX.
++	  Reuse the existing translated decoder without delivery or PN reads.
++	  Group RX, key reuse and rekey remain withheld; all limits stay fixed.
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 6ad2cc8..b2edcc5 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -220,6 +220,10 @@ struct mt6797_mac {
+ 	bool ccmp_decap, ccmp_closed, ccmp_ptk_attempted, ccmp_tx_ready;
+ 	unsigned int ccmp_queued;
+ 	struct mt6797_ccmp_observation ccmp_observation;
++#ifdef CONFIG_MT6797_CCMP_GROUP_PN_OBSERVE
++	unsigned int ccmp_group_reported, ccmp_group_shape, ccmp_group_eligible;
++	unsigned int ccmp_group_pn_present, ccmp_group_pn_absent, ccmp_group_masks;
++#endif
+ #endif
+ 	u64 join_data_deadline, join_data_started;
+ 	const char *join_data_end_reason;
+@@ -364,6 +368,36 @@ static bool mt6797_ccmp_rx_ready(struct mt6797_mac *mac)
+ 	       mac->native_diag_state == MT6797_ND_ACTIVE;
+ }
+ 
++#ifdef CONFIG_MT6797_CCMP_GROUP_PN_OBSERVE
++/* Metadata only from the ready initial-key window; never reads a PN value,
++ * delivers a group frame or changes replay/key/queue state. The legacy view
++ * is a source-supported shape, not a GTK authentication decision.
++ */
++static void mt6797_ccmp_group_observe(struct mt6797_mac *mac, size_t bytes)
++{
++	const unsigned char *d = mac->join_packet;
++	struct mt6797_data_rx view;
++
++	if (!mac->ccmp_gtk || mac->join_key_group != 1 || bytes < 16 ||
++	    (mt6797_join_le16(d + 2) >> 13) != 2 || !(d[4] & 0x0c))
++		return;
++	mac->ccmp_group_reported++;
++	if (!mt6797_data_rx(d, bytes, 40, mac->hw->wiphy->perm_addr,
++			    mac->join_ap, MT6797_JOIN_BMC_WLAN_INDEX, &view) || !view.group)
++		return;
++	mac->ccmp_group_shape++;
++	if (view.key_id != mac->join_group_key_id || view.tid || !view.bytes ||
++	    view.ether_type < 0x0600 || view.ether_type == 0x888e)
++		return;
++	mac->ccmp_group_eligible++;
++	mac->ccmp_group_masks |= BIT(view.group_vld);
++	if (view.group_vld & 1)
++		mac->ccmp_group_pn_present++;
++	else
++		mac->ccmp_group_pn_absent++;
++}
++#endif
++
+ /* Caller holds the MAC mutex and has already admitted this ACTIVE RX. */
+ static int mt6797_ccmp_queue_rx(struct mt6797_mac *mac, size_t bytes,
+ 				struct sk_buff_head *received)
+@@ -375,6 +409,9 @@ static int mt6797_ccmp_queue_rx(struct mt6797_mac *mac, size_t bytes,
+ 
+ 	if (!mt6797_ccmp_rx_ready(mac) || mac->ccmp_queued >= MT6797_NATIVE_DIAG_NATIVE_MAX)
+ 		return 0;
++#ifdef CONFIG_MT6797_CCMP_GROUP_PN_OBSERVE
++	mt6797_ccmp_group_observe(mac, bytes);
++#endif
+ 	/* Allocate before the PN decision commits highwater. */
+ 	skb = dev_alloc_skb(bytes);
+ 	if (!skb)
+@@ -1440,6 +1477,14 @@ static void mt6797_native_diag_rx_report(struct mt6797_mac *mac)
+ 	if (!mac->native_diag_engaged || mac->native_diag_rx_reported)
+ 		return;
+ 	mac->native_diag_rx_reported = true;
++#ifdef CONFIG_MT6797_CCMP_GROUP_PN_OBSERVE
++	if (ccmp_stable_epoch)
++		dev_info(wiphy_dev(mac->hw->wiphy),
++			 "one-shot WLAN group PN observation: reported=%u shape=%u eligible=%u pn_present=%u pn_absent=%u masks=0x%04x\n",
++			 mac->ccmp_group_reported, mac->ccmp_group_shape,
++			 mac->ccmp_group_eligible, mac->ccmp_group_pn_present,
++			 mac->ccmp_group_pn_absent, mac->ccmp_group_masks);
++#endif
+ 	for (p = 0; p < 4; p++) {
+ 		const unsigned int *t = mac->native_diag_rx[p].type;
+ 		const unsigned int *g = mac->native_diag_rx[p].gate;
+-- 
+2.54.0 (Apple Git-157)
+

@@ -92,5 +92,27 @@
       "decoder_processes": 0,
       "independently_verified": true
     }
+  },
+  "inactive_path_followup": {
+    "retained_source_rounds": 3,
+    "key_anchor_instructions_reproduced_each_round": 43,
+    "operand_addenda_total_vectors": [
+      68,
+      79
+    ],
+    "operand_validation_all_pass": true,
+    "fixed_data_references": 3,
+    "bytes_cap_each_data_reference": 256,
+    "group_cleanup_attributed_to_tx_from_own_diagnostic": true,
+    "shared_rx_retirement_proven": false,
+    "partial_bcm_windows_and_unknown_callbacks_remain": true,
+    "device_actions": 0,
+    "preservation": {
+      "entries": 31,
+      "manifest_sha256": "737cba5ed39205af02659a92b0a80e14dc7ddd4233a09e49860d48dd50e77fae",
+      "archive_sha256": "2cb0c30b8d30e9379b3aff5c2e078e32e59357189a6bfcbd5d201b4787c73696",
+      "decoder_processes": 0,
+      "independently_verified": true
+    }
   }
 }

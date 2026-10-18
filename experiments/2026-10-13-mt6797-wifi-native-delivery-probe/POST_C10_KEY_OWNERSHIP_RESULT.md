@@ -66,6 +66,27 @@ does not authorize an automatic recursive trace or new device experiment.
 A separate 10-entry private bundle was sealed and independently verified;
 decoder processes were quiescent.
 
+## Inactive-path classification after the caller
+
+Three further, separately bounded retained-source rounds inspected only the
+actual remaining callees, the inactive branch they selected, and four direct
+mode/state operations from that branch. No device action. The group cleanup
+helper's own fixed diagnostic identifies TX cleanup: its three context lists
+must not be substituted for the shared receive queue. The inactive BSS mode
+path delegates further through direct and indirect calls; several inspected
+windows are partial. Their state/peripheral effects and ordering remain
+unresolved, so there is still no receive-retirement barrier to implement.
+
+The original 43 key instruction anchors reproduced in each round. Exact new
+operand-shape addenda extended the existing 64 synthetic vectors to 68, then
+79, all passing; frozen decoder accounting flags remain visible. These checks
+validate decoding, not queue ownership. Only three fixed referenced diagnostic
+strings were examined, each capped at 256 bytes; no image/string/slot scan.
+The 31-entry private bundle was sealed and independently verified, with no
+active decoder processes. The
+[GTK availability successor](GROUP_PN_SUCCESSOR.md) addresses a separate missing
+ordinary-crypto observation and changes no retirement or re-arm protection.
+
 ## Implementation consequence
 
 Keep the demonstrated mask-only initial-PTK path as a finite baseline. C10's
