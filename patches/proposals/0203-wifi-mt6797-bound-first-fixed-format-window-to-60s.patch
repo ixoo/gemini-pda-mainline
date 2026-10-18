@@ -1,11 +1,17 @@
-From 5c8b999009cd5d44b69dce2aecdf8dedf79096b6 Mon Sep 17 00:00:00 2001
+From 9a60f0adea3a584c30be39491e48cc3c9e5fa23b Mon Sep 17 00:00:00 2001
 From: Codex Experiment <codex-experiment@example.invalid>
 Date: Sun, 18 Oct 2026 12:28:17 -0400
 Subject: [PATCH] wifi: mt6797: bound first fixed-format window to 60s
 
-Narrowly admit one 65000 ms channel request for the fixed-format experiment. Require at least 62500 ms actual grant remaining at data opening, preserve the 2500 ms tail and 5000 ms teardown margin, and use a 60000 ms observation wall. Keep all resource caps and command/frame deadlines unchanged. A short grant is refused with ERANGE before opening data.
+Narrowly admit one 65000 ms channel request for the fixed-format
+experiment. Require at least 62500 ms actual grant remaining at data
+opening, preserve the 2500 ms tail and 5000 ms teardown margin, and use
+a 60000 ms observation wall. Keep all resource caps and command/frame
+deadlines unchanged. A short grant is refused with ERANGE before
+opening data.
 
-Internal experiment archive, synthetic non-certifying author identity; no DCO certification and not an upstream submission.
+Internal experiment archive, synthetic non-certifying author identity;
+no DCO certification and not an upstream submission.
 ---
  .../net/wireless/mediatek/mt6797/join-commands.h |  5 +++++
  drivers/net/wireless/mediatek/mt6797/mac.c       | 16 ++++++++++++++++
@@ -30,7 +36,7 @@ index 1438d3e..d67be6c 100644
  	p[1] = token; /* BSS 0, project-owned single-use token. */
  	p[2] = abort; /* Request 0, abort 1. */
 diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
-index 5b3aa3c..0de25dd 100644
+index 00d5ad1..8e0de93 100644
 --- a/drivers/net/wireless/mediatek/mt6797/mac.c
 +++ b/drivers/net/wireless/mediatek/mt6797/mac.c
 @@ -1935,6 +1935,18 @@ static int mt6797_mac_join_release_channel(struct mt6797_mac *mac)

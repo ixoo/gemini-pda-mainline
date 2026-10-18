@@ -67,8 +67,12 @@ The [actual-source fixture](tests/run-fixed-format-test.py) and
 These establish host behavior only. A missing mutex stub and a whitespace-only
 option-off comparison failure were corrected in fixture/prototype preparation;
 logs are retained. The historical exact-C10 runner correctly refused the extra
-prototype changes and was not weakened. Linux host validation and strict patch
-review are pending from pushed inputs. No kernel compilation, DT/schema check,
+prototype changes and was not weakened. Linux host fixtures passed from clean
+pushed input `8fa3951a`, including all 1,482 cases, window boundaries and the
+combined-source scan/group fixture. Strict patch review found alignment and
+description-wrapping issues; these were corrected and local fixtures reran.
+The archives intentionally lack DCO certification; do not label checkpatch green.
+Final strict review of the formatting correction is pending from pushed inputs. No kernel compilation, DT/schema check,
 firmware enforcement, healthy resource lifetime or Wi-Fi runtime success is claimed.
 
 ## Remaining boundary
@@ -98,7 +102,9 @@ with ASan/UBSan. It exhausts request/grant intervals 0..70,000 ms, verifies
 60-second data deadline and unchanged cleanup/resource stops. Option-off encoder,
 request, opening function and budget preprocessing match the parent exactly.
 An initial option-off textual comparison exposed redundant parentheses; those
-were removed without weakening the check. Linux host validation is pending.
+were removed without weakening the check. Linux host validation passed from
+clean pushed input `8fa3951a`; the updated source fixtures also passed locally
+after the strict-review formatting correction.
 The format fixture still passes all 1,482 cases after refreshing the existing
 software-ledger error report. These are partial-source fixtures, not kernels.
 Runtime A/B binding and full-window authenticated SSH operation remain pending;

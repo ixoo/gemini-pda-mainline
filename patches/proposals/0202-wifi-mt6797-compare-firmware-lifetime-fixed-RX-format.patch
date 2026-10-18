@@ -1,24 +1,32 @@
-From 6dbeae563e6d8e46921293593be9bb6b41287fb3 Mon Sep 17 00:00:00 2001
+From a3a44ee17d43732525c19c0947b773bc9c9f41fd Mon Sep 17 00:00:00 2001
 From: Codex Experiment <codex-experiment@example.invalid>
 Date: Sun, 18 Oct 2026 12:03:31 -0400
 Subject: [PATCH] wifi: mt6797: compare firmware-lifetime fixed RX format
 
-D2 refused an enable-time 94/142 packet after earlier close-time differences of the opposite sign. Configure the exact observed mask once before scan-ready, with startup normal-credit ownership and the same absolute 100 ms limit. Keep data windows local and reject join-owned mask writes.
+D2 refused an enable-time 94/142 packet after earlier close-time
+differences of the opposite sign. Configure the exact observed mask once
+before scan-ready, with startup normal-credit ownership and the same
+absolute 100 ms limit. Keep data windows local and reject join-owned
+mask writes.
 
-Preserve RX equality, complete transfer, poison/no-copy, crypto and lifetime ceilings. Configuration credit is not firmware application, queue retirement or integrity proof. GTK, rekey, reuse and reconnect remain disabled.
+Preserve RX equality, complete transfer, poison/no-copy, crypto and
+lifetime ceilings. Configuration credit is not firmware application,
+queue retirement or integrity proof. GTK, rekey, reuse and reconnect
+remain disabled.
 
-Internal experiment archive, synthetic non-certifying author identity; no DCO certification and not an upstream submission.
+Internal experiment archive, synthetic non-certifying author identity;
+no DCO certification and not an upstream submission.
 ---
  drivers/net/wireless/mediatek/mt6797/Kconfig  |  11 ++
- drivers/net/wireless/mediatek/mt6797/hif.c    |  60 ++++++++++
- drivers/net/wireless/mediatek/mt6797/hif.h    |   9 ++
+ drivers/net/wireless/mediatek/mt6797/hif.c    |  61 ++++++++++
+ drivers/net/wireless/mediatek/mt6797/hif.h    |  11 ++
  .../mediatek/mt6797/join-command-submit.h     |   5 +
- drivers/net/wireless/mediatek/mt6797/mac.c    | 106 ++++++++++++++++++
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 105 ++++++++++++++++++
  drivers/net/wireless/mediatek/mt6797/mac.h    |   4 +
  .../wireless/mediatek/mt6797/native-diag.h    |  14 +++
  .../wireless/mediatek/mt6797/normal_command.h |  24 ++++
  drivers/soc/mediatek/mt6797-consys.c          |   4 +
- 9 files changed, 237 insertions(+)
+ 9 files changed, 239 insertions(+)
 
 diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
 index 9be3a5c..e430dfa 100644
@@ -43,7 +51,7 @@ index 9be3a5c..e430dfa 100644
  	bool "MT6797 default-off observed mask-only control comparison"
  	depends on MT6797_CCMP_STABLE_EPOCH
 diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
-index 501dda8..2707ff2 100644
+index 501dda8..6a847bc 100644
 --- a/drivers/net/wireless/mediatek/mt6797/hif.c
 +++ b/drivers/net/wireless/mediatek/mt6797/hif.c
 @@ -41,6 +41,9 @@ struct mt6797_hif {
@@ -56,7 +64,7 @@ index 501dda8..2707ff2 100644
  	int first_error;
  	u8 scratch[2560];
  };
-@@ -966,6 +969,63 @@ unlock:
+@@ -966,6 +969,64 @@ unlock:
  	return error;
  }
  
@@ -65,7 +73,8 @@ index 501dda8..2707ff2 100644
 + * Credit is command-buffer retirement, not a firmware application/queue fence.
 + */
 +int mt6797_hif_configure_rx_format(struct mt6797_hif *hif,
-+		unsigned int sequence, u64 deadline_ns, enum mt6797_rx_format_phase *phase)
++				   unsigned int sequence, u64 deadline_ns,
++				   enum mt6797_rx_format_phase *phase)
 +{
 +	struct mt6797_hif_tx_status status;
 +	struct mt6797_normal_release account;
@@ -101,8 +110,8 @@ index 501dda8..2707ff2 100644
 +			}
 +			/* Retire prior normal configuration before charging this page. */
 +			*phase = MT6797_RX_FORMAT_SUBMIT;
-+			ret = mt6797_hif_send_config(hif, MT6797_NORMAL_RX_FORMAT, sequence,
-+						   payload, sizeof(payload), deadline_ns);
++			ret = mt6797_hif_send_config(hif, MT6797_NORMAL_RX_FORMAT,
++						     sequence, payload, sizeof(payload), deadline_ns);
 +			if (ret)
 +				return ret;
 +			submitted = true;
@@ -121,10 +130,10 @@ index 501dda8..2707ff2 100644
  int mt6797_hif_send_scan_tuning(struct mt6797_hif *hif, unsigned int role,
  				unsigned int sequence, u64 deadline_ns)
 diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
-index d44064e..0b1e4dd 100644
+index d44064e..fc7f600 100644
 --- a/drivers/net/wireless/mediatek/mt6797/hif.h
 +++ b/drivers/net/wireless/mediatek/mt6797/hif.h
-@@ -12,6 +12,15 @@
+@@ -12,6 +12,17 @@
  #include "normal_command.h"
  
  struct mt6797_hif;
@@ -133,9 +142,11 @@ index d44064e..0b1e4dd 100644
 +	MT6797_RX_FORMAT_ADMISSION, MT6797_RX_FORMAT_PRIOR_CREDIT,
 +	MT6797_RX_FORMAT_SUBMIT, MT6797_RX_FORMAT_CREDIT, MT6797_RX_FORMAT_DONE,
 +};
++
 +/* SUBMIT names an attempted call, not a complete transfer or firmware ACK. */
 +int mt6797_hif_configure_rx_format(struct mt6797_hif *hif,
-+		unsigned int sequence, u64 deadline_ns, enum mt6797_rx_format_phase *phase);
++				   unsigned int sequence, u64 deadline_ns,
++				   enum mt6797_rx_format_phase *phase);
 +#endif
  
  struct mt6797_hif_section_request {
@@ -164,7 +175,7 @@ index db7657d..66eb305 100644
  	case 0xfc:
  		/* CMD_ID_SET_MONITOR, the default-off native-crypto-delivery
 diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
-index 6ad2cc8..5b3aa3c 100644
+index 6ad2cc8..00d5ad1 100644
 --- a/drivers/net/wireless/mediatek/mt6797/mac.c
 +++ b/drivers/net/wireless/mediatek/mt6797/mac.c
 @@ -249,6 +249,9 @@ struct mt6797_mac {
@@ -263,11 +274,10 @@ index 6ad2cc8..5b3aa3c 100644
  			if (ret == -EAGAIN) {
  				ret = 0;
  				continue;
-@@ -4739,14 +4792,67 @@ free_hw:
+@@ -4739,14 +4792,66 @@ free_hw:
  	return ret;
  }
  
-+
 +#ifdef CONFIG_MT6797_CCMP_FIXED_RX_FORMAT
 +int mt6797_mac_prepare_rx_format(struct ieee80211_hw *hw)
 +{
@@ -284,7 +294,7 @@ index 6ad2cc8..5b3aa3c 100644
 +	} else {
 +		mac->rx_format_attempted = true;
 +		ret = mt6797_hif_configure_rx_format(mac->hif, mac->sequence++,
-+				ktime_get_ns() + 100 * NSEC_PER_MSEC, &phase);
++						     ktime_get_ns() + 100 * NSEC_PER_MSEC, &phase);
 +	}
 +	if (ret) {
 +		if (!mac->first_error)
