@@ -7,7 +7,8 @@ Gemian independently confirmed. No unchanged C7 retry or maintained support.
 
 Next authored comparison: [post-CLOSED port selection](CLOSED_RX_SELECTION_COMPARISON.md)
 uses one existing length acquisition to select a nonempty port during cleanup.
-Local actual-source tests pass; Linux and Buildbox validation are pending.
+Actual-source tests and Buildbox validation pass;
+[C8 preparation](CCMP8_PREPARATION.md) pins the real candidate and installer.
 Keep equality, full transfer and poison/no-copy; no certified cause, credit-policy
 change, timeout extension or 48-byte framing exception is selected.
 

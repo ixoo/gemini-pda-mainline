@@ -1,6 +1,6 @@
 # Post-CLOSED receive selection comparison
 
-Status: authored and locally tested successor, not a proved repair or hardware result,
+Status: built and composed successor, not a proved repair or hardware result,
 2026-10-17. C7 is consumed; no unchanged repetition. The full Wi-Fi delivery
 objective and its crypto, lifetime and ten-minute acceptance gates remain.
 
@@ -109,10 +109,9 @@ metadata is valid even on later refusal, and does not certify an RX packet.
 
 Profile `mt6797-a53-wifi-ccmp-closed-select` selects C7's ordered 692 patches
 plus 0198 with identical 26 fragments. Existing named series/profiles remain
-unchanged; the canonical superset gains 0198. Linux fixture validation,
-checkpatch, repository/profile audit and ordinary clean pushed Buildbox build
-must pass before any package or real candidate can be selected. No C8 package,
-receipt, installation or runtime result exists yet.
+unchanged; the canonical superset gains 0198. Linux actual-source fixture
+validation and the ordinary clean pushed Buildbox build subsequently passed. [C8 preparation](CCMP8_PREPARATION.md) owns
+the real validated package, receipt and tooling; no runtime result yet.
 
 Strict checkpatch reports only the deliberately absent truthful DCO sign-off
 (one error, zero warnings/checks) on this internal non-certifying archive.

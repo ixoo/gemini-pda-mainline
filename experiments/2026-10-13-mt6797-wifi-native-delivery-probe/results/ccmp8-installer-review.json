@@ -1,0 +1,15 @@
+{
+  "status": "offline-reviewed",
+  "frozen_c7_installer_sha256": "5ed1d26761f4a7e5f084f89dc9b4da8788df7ba4ae8d1112d601b01347da826a",
+  "derived_installer_sha256": "4e16f2a76ce230e59fa7d199d2ea68abbee9853662a215beda3f27afc8832009",
+  "derived_lines": 603,
+  "whole_shell_delta": "exact candidate, tool identity and predecessor substitutions only",
+  "bash_syntax": "pass",
+  "shellcheck": "pass",
+  "boot2_guard_sha256": "0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf",
+  "candidate_manifest_sha256": "2f67ae1087fc3b967af527718f7edbc1cdd83e76e111679f3e4ea5a5fcaea98c",
+  "full_boot2_sha256": "e3c347f1f45a942746dec025a5666242807c849fdc91f71c5fb9279c73e0ec66",
+  "expected_predecessor_sha256": "5b4405e0060111173da65445e3e4b1ffcd13347c9cf0ddb23d36d85140665ee6",
+  "previous_gemian_boot": "baff9c68-f74b-4797-8d28-1982211adba6",
+  "device_action": "none"
+}
