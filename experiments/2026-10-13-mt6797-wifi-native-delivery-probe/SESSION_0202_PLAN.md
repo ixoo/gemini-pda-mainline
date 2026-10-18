@@ -28,8 +28,13 @@ all 16 masks and padding, strict addresses/status/frame shape and truncation;
 it also passed against 0202 locally. The class7 keyed-beacon selector remains
 strict about its existing shape; it is not broadened to reinterpret class2 or
 scan frames. These are host parsing results, not proof of firmware behavior
-after requesting mask 7 before scan-ready. Linux validation from pushed inputs
-is pending. No framing check or production decoder changed for this prerequisite.
+after requesting mask 7 before scan-ready. Linux ASan/UBSan scan delivery and
+joined-beacon cases, and all seven A/B helper tests, passed from clean pushed
+input `cf927f441e58369912687b49faaa2e50d4f0aff0` against the retained C10 source.
+Its scan headers and MAC digest matched the frozen local C10 source. The 0202
+scan function/headers are identical; the full 0202 prototype has not received
+Linux validation. Repository checks passed locally; no kernel build or device
+test ran. No framing check or production decoder changed for this prerequisite.
 
 ## Controlled SSH A/B
 

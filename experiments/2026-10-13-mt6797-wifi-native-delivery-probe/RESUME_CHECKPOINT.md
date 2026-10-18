@@ -1,5 +1,15 @@
 # Wi-Fi resume checkpoint — INCOMPLETE
 
+Latest owner correction: follow the [0202 session preparation](SESSION_0202_PLAN.md)
+before any new build. Actual-source scan/group cases and SSH A/B helper checks
+pass locally and on Linux from pushed inputs. The A/B helper is not yet bound to
+an admitted runtime. A 60-second stage conflicts with the 9-second request,
+10-second encoder ceiling and 10-second diagnostic wall. The explicit 65-second
+grant / 60-second wall proposal is pending owner response; no limit change,
+kernel build or device action is authorized by this checkpoint. Preserve one
+scalars file and one table row per future run. GTK design follows the 0202
+result; rekey/reuse/reconnect remain disabled. No physical handoff is pending.
+
 Current continuation: [D2](SSH_D2_RESULT.md) consumed once on unchanged C10.
 Port 0 advertised 94, staged descriptor 142; complete advertised PIO transfer
 then equality refusal/poison/no-copy. Fault at ENABLE_PENDING, branch 4/-71,
