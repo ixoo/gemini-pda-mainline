@@ -60,9 +60,9 @@ Keep this file under 200 lines; move anything else to an experiment record.
   enforcement in firmware is unknown. No charging, RTC alarm or lid.
   The `full` profile has never booted. No upstream submission. A72 and thermal
   protection are parked.
-- **Device (2026-10-18 UTC).** C10 run 3 consumed; reviewed return and independent
-  LAN identity confirmed changed-boot Gemian. C10 remains installed. D1 is not
-  executed; validate and prepare its host-only handoff before physical selection.
+- **Device (2026-10-18 UTC).** D1 uses the already matching C10 image, full readback
+  verified, clean shutdown and new host-adapter preparation passed. Await owner
+  physical boot2 selection with USB attached; no D1 session has started.
 
 ## Next device boots, in order
 

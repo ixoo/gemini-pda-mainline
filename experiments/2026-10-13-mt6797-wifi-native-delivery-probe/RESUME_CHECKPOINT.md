@@ -17,7 +17,9 @@ No new kernel candidate or build. Its one observation retains the existing
 client error before selecting a transport/crypto/TCP diagnostic. GTK delivery,
 rekey, reuse and reconnect stay disabled. Staged 60 s / 2 min / 10 min lifetimes
 remain untested; do not extend unexplained timeouts. Another physical boot2
-selection is needed only after D1 validation and complete reviewed preparation.
+selection is now pending: D1 host tools passed focused tests and full offline
+preparation; unchanged C10 full readback and clean shutdown are confirmed.
+No D1 capture/helper/session has started. Stop at the owner physical handoff.
 The pause record below is historical.
 
 Historical pause boundary. The owner explicitly resumed implementation on

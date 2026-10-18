@@ -68,3 +68,40 @@ identity/ACK, retained nonzero output without ACK, stale boot/mode/ACTIVE
 rejection, closed-window rejection, existing timeout propagation, occupied
 observation refusal and second-attempt refusal. These test host behavior only.
 No kernel, firmware enforcement or D1 runtime result is claimed.
+
+## D1 verified preparation — await physical selection
+
+Published host input `4fe87eb8`, repository checks and seven actual-source tests
+passed. Exact original C10 kernel input, image, candidate receipt, leaf, capture
+and recovery sources remain unchanged. No Buildbox or local kernel compilation
+was requested or performed. D1 is not a fourth unchanged baseline run.
+
+Fresh known-good identity was independently verified as Gemian 3.18.41+/aarch64,
+boot `38038581-a960-46ee-a6e3-06121192308e`. The original reviewed 603-line
+installer is byte-identical under identity/path/hash substitutions only; Bash
+syntax and ShellCheck passed. Derived shell SHA-256
+`ba753a142c4d05b736568aad5f7bbac35ae651867aab82a04e12d690b2424f4b`.
+Guard source remains
+`0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf`.
+One invocation verified C10 already matching, skipped the partition write,
+and independently read back/byte-compared all 16 MiB against
+`73e1ac21860e69f6e8f03fd3625022bd8d4c8e6f189c17ecc44d40f91066ed8d`.
+Clean shutdown and unreachability confirmed; no automatic reboot or new backup.
+
+The actual 925-byte deployment summary, SHA-256
+`135e6d5d242bf2f0fc4cf8f2da2a1bcf89037202f75119f91089bb9de1a8d709`,
+was seal-verified and copied byte-exact/mode 0600 into the new D1 session root.
+Complete offline preparation through the new session adapter passed with helper
+key/boot environment unset. An earlier offline invocation supplied an invalid
+false-valued execution flag; argument parsing refused it before device action,
+and its log is preserved. The corrected invocation omitted that flag. No
+capture, helper, observation or execution claim exists; the session contains
+only its deployment summary.
+
+Required owner action: physically select boot2 with USB connected to the
+custodian laptop and report startup. Stop until that action. Then verify the
+fresh mainline identity and unchanged C10 installation provenance; execute one
+original C10 capture and one D1 session, under all original limits. Include the
+private observation directory in the pre-recovery seal, verify helper/device
+quiescence, then perform the reviewed return and independent changed-boot Gemian
+confirmation. Record any failure separately; do not retry silently.
