@@ -639,5 +639,73 @@ or future clocks, two-second +/-1 ns age rounding, strict PTK/GTK-only clock
 updates, allocation/replay/stale refusal, existing withdrawal threads and
 option-off full MAC parity. Reverse application recovers GTK3 exactly before
 the earlier overlays. Strict checkpatch has only the deliberately absent DCO
-certification, zero warnings/checks. Linux validation and the standard build
-remain next; this is preparation, not another device result.
+certification, zero warnings/checks. Clean pushed `aabc1cc3` passed the same
+Linux fixture on the initial-GTK and separate fixed-format source selections.
+The standard Buildbox build/package validator also passed: 701 patches,
+unchanged configuration, package inventory
+`4fc69aa055b443b5200d9011cc6687cce6ef27ee4822aa8e590bd42e81c5be02`.
+This is preparation, not another device result.
+
+### Researcher follow-up: reason first, then owned state handling
+
+GTK3 has a positive capability observation for checked GTK/ARP core handoff and
+network/SSH, alongside failed duration, full finite session and healthy cleanup.
+The terminal phase-1 counts are type 2 = 174 and type 7 = 367. Their aggregate
+rate is not evidence of uninterrupted, owned-AP beacon reception or an
+undegraded link. The last PID 32 is far below the existing ceiling; no PID reuse
+is justified here. `reason=disconnect` names host cleanup after the branch-6
+fault, not a firmware link-down report. The refusal offset is 29.825 s; the
+subsequent data-end offset is 30.144 s.
+
+The reason-first diagnostic was already building when this follow-up arrived.
+The pinned receiver can ignore reason 8 and can ignore other reasons when RX
+is recent. Thus reason 8 does not prove a host retirement defect, and another
+reason does not prove an RF failure. Record BSS/reason and the qualified RX age
+before selecting a correction. The four-byte body was staged but not retained
+in GTK3; a later read cannot recover those original bytes.
+
+The suggested 0x16 connection indication is a concrete contract to investigate,
+not yet a demonstrated fix. The pinned
+[command builder](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic.c)
+(`6ccae6fbbd21287df1247720f2056c3961a5d1cdeeba5bcc2246a6e8de4b0ce4`)
+uses the header's 12-byte layout and no query response. The current host has AID
+and beacon interval but no retained DTIM or 0x16 encoder/admission. The
+[infrastructure join path](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/ais_fsm.c)
+(`738b8fcf0d34098fef986c1dba4963ebe0676665b0a914d7a712a50e814838ba`)
+defers this indication until the first post-association beacon. The
+[beacon consumer](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/scan.c)
+(`2671e377dde82be4eea99477557596963b060e2a0948b94094da296de0daa161`)
+requires connected infrastructure mode, matching BSSID and a beacon, then
+updates DTIM and submits 0x16. A future implementation needs that owned fresh
+beacon/DTIM contract, bounded command credit and disconnect/abort ownership;
+constant defaults or unconditional post-association submission do not match
+this path. 0x15 belongs to BSS creation, including the separate ad-hoc path;
+its absence alone is not a station-join defect. Header definitions do not prove
+runtime firmware acceptance.
+
+No blanket count-and-continue event family is selected. 0x11 is already a
+modeled owned-BSS absence/presence notification driving the TX gate; 0x12 is
+station power-save, 0x14 NoA, and 0x18 roaming status. These need exact shape,
+ownership and state consequences, particularly with roaming disabled. Replace
+unmodeled fatal stops with source-supported handlers as their contracts are
+established; do not conceal connection loss or resource changes. 0208 preserves
+the refusal while retaining the currently missing discriminating evidence.
+
+### GTK4 actual package and host preparation
+
+The [actual GTK4 receipt](results/ccmp-stable-monitor-candidate-gtk4.json)
+and [compositor](build-ccmp-gtk4-candidate.py) bind the validated `aabc1cc3`
+package to 0208, source `2f9eb1a21120a8cb9d8e99f5f2eb5cd2c88f59cd` and the
+701-patch series. Config, DT and RAM root are identical to GTK3. ELF notes,
+Image bounds and the sysfs exporter agree on the fresh 84-byte identity,
+different from GTK3. The new namespaces retain the GTK3 duration-aware verdict,
+permanent client stderr, numeric neighbor/netstat and post-client window check.
+Five local composition/namespace/refusal/no-scan/retained-source fixtures pass;
+the generated 603-line installer has only identity substitutions from GTK3,
+with unchanged guard and passing Bash/ShellCheck. Linux tooling checks and
+guarded deployment remain before physical admission. The only behavioral
+addition is observation; neither 0x16 nor event-family tolerance is bundled.
+
+If no timeout recurs and the complete window/cleanup pass, report that run's
+success and the untriggered diagnostic, without claiming the original timeout
+was fixed. An event with missing/malformed observation remains unclassified.

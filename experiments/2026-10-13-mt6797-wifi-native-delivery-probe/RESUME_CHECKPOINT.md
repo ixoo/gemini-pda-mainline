@@ -22,8 +22,12 @@ build or session process or physical handoff remains pending. GTK3 is consumed.
 
 The predeclared scalar-only 0x13 diagnostic is implemented as 0208, with one
 checked-RX clock and existing-acquisition BSS/reason observation, preserving
-refusal. Local actual-source fixtures pass; clean-input Linux validation and
-the standard build remain next. Do not ignore the notification or assume its
+refusal. Local and clean-input Linux actual-source fixtures pass; the standard
+Buildbox package at `aabc1cc3` is validated. Actual GTK4 bindings and five local
+host fixtures pass; Linux tooling checks and guarded deployment remain before
+physical admission. The latest researcher follow-up is assessed in the plan:
+0x16 needs fresh post-association DTIM/ownership, and no broad informational
+ignore list is selected. Do not ignore the notification or assume its
 reason or BSS. Keep CCMP 1024 checked / 4096 all-RX / 2 MiB and the 60-second
 low-traffic protocol; every time, native, retirement, PID and crypto limit stays.
 No PID reuse, rekey, reconnect, -48 adjustment or speculative firmware RE.

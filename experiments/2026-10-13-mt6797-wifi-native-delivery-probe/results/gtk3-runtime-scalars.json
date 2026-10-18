@@ -41,7 +41,8 @@
     "tx_queued": 28,
     "tx_done": 28,
     "tx_failed": 0,
-    "terminal_sample_byte_count": null
+    "terminal_sample_byte_count": null,
+    "disconnect_label_scope": "host disconnect/cleanup after branch-6 failure; no firmware link-down event established"
   },
   "network": {
     "dhcp_exit": "0",
@@ -236,5 +237,13 @@
     "No healthy cleanup or firmware key retirement established; no rekey, reuse or reconnect",
     "No continuous SSH workload or 60-second or ten-minute sustained-operation acceptance",
     "The 12-byte refused event body was not retained; header identity alone does not prove event ownership or reason"
-  ]
+  ],
+  "capability_observation_pass": true,
+  "full_finite_session_pass": false,
+  "rx_observations": {
+    "phase_1_type2": 174,
+    "phase_1_type7": 367,
+    "scope": "terminal aggregate classes; no AP-specific beacon count or time distribution",
+    "continuous_management_reception_proven": false
+  }
 }
