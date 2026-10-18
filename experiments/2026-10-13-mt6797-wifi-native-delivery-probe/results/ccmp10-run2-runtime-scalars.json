@@ -1,0 +1,519 @@
+{
+  "status": "C10 baseline run 2 consumed; DHCP/three pings; SSH failed; maintained Wi-Fi incomplete",
+  "kernel_input": "0d1f51194d7001fc9c6b9219726935ede36bc828",
+  "capture_tooling_commit": "cbc7913adacbd3e28c584c7a991a6d0400c3d996",
+  "session_tooling_commit": "cbc7913adacbd3e28c584c7a991a6d0400c3d996",
+  "attempts": {
+    "phase_a_capture": 1,
+    "phase_a_exit": 0,
+    "actual_device_sessions": 1,
+    "actual_session_exit": 1,
+    "native_recovery_requests": 1,
+    "recovery_watch_connection_attempts": 3,
+    "independent_read_only_gemian_confirmation": true
+  },
+  "events": {
+    "data_start": [
+      {
+        "sequence": 2030,
+        "time_us": 38864689,
+        "budget_ms": 6156,
+        "teardown_margin_ms": 5000,
+        "inside_grant": 1
+      }
+    ],
+    "data_submit": [
+      {
+        "sequence": 2037,
+        "time_us": 39265512,
+        "pid": 5,
+        "pages": 3,
+        "bytes": 342
+      }
+    ],
+    "data_credit": [
+      {
+        "sequence": 2040,
+        "time_us": 39301239,
+        "pages": 3,
+        "debt": 0,
+        "count": 1
+      },
+      {
+        "sequence": 2041,
+        "time_us": 39357231,
+        "pages": 3,
+        "debt": 0,
+        "count": 2
+      },
+      {
+        "sequence": 2043,
+        "time_us": 40753256,
+        "pages": 1,
+        "debt": 0,
+        "count": 3
+      },
+      {
+        "sequence": 2045,
+        "time_us": 40801233,
+        "pages": 1,
+        "debt": 0,
+        "count": 4
+      },
+      {
+        "sequence": 2047,
+        "time_us": 41749213,
+        "pages": 1,
+        "debt": 0,
+        "count": 5
+      },
+      {
+        "sequence": 2049,
+        "time_us": 42761237,
+        "pages": 1,
+        "debt": 0,
+        "count": 6
+      },
+      {
+        "sequence": 2051,
+        "time_us": 44441244,
+        "pages": 1,
+        "debt": 0,
+        "count": 7
+      }
+    ],
+    "tx_done": [
+      {
+        "sequence": 1998,
+        "time_us": 38594343,
+        "pid": 1,
+        "status": 0,
+        "advanced": 1,
+        "count": 1
+      },
+      {
+        "sequence": 2004,
+        "time_us": 38642271,
+        "pid": 2,
+        "status": 0,
+        "advanced": 1,
+        "count": 1
+      },
+      {
+        "sequence": 2014,
+        "time_us": 38719764,
+        "pid": 3,
+        "status": 0,
+        "advanced": 1,
+        "count": 2
+      },
+      {
+        "sequence": 2020,
+        "time_us": 38790324,
+        "pid": 4,
+        "status": 0,
+        "advanced": 1,
+        "count": 1
+      },
+      {
+        "sequence": 2038,
+        "time_us": 39267066,
+        "pid": 5,
+        "status": 0,
+        "advanced": 1,
+        "count": 1
+      },
+      {
+        "sequence": 2042,
+        "time_us": 39358438,
+        "pid": 6,
+        "status": 0,
+        "advanced": 1,
+        "count": 1
+      },
+      {
+        "sequence": 2044,
+        "time_us": 40754461,
+        "pid": 7,
+        "status": 0,
+        "advanced": 1,
+        "count": 1
+      },
+      {
+        "sequence": 2046,
+        "time_us": 40802569,
+        "pid": 8,
+        "status": 0,
+        "advanced": 1,
+        "count": 1
+      },
+      {
+        "sequence": 2048,
+        "time_us": 41750450,
+        "pid": 9,
+        "status": 0,
+        "advanced": 1,
+        "count": 1
+      },
+      {
+        "sequence": 2050,
+        "time_us": 42762460,
+        "pid": 10,
+        "status": 0,
+        "advanced": 1,
+        "count": 1
+      },
+      {
+        "sequence": 2052,
+        "time_us": 44442478,
+        "pid": 11,
+        "status": 0,
+        "advanced": 1,
+        "count": 1
+      },
+      {
+        "sequence": 2062,
+        "time_us": 45082397,
+        "pid": 12,
+        "status": 0,
+        "advanced": 1,
+        "count": 1
+      }
+    ],
+    "native_transition": [
+      {
+        "sequence": 2032,
+        "time_us": 38886372,
+        "state": 1,
+        "act": 1,
+        "total": 0,
+        "native": 0,
+        "bytes": 0
+      },
+      {
+        "sequence": 2034,
+        "time_us": 38910299,
+        "state": 2,
+        "act": 0,
+        "total": 0,
+        "native": 0,
+        "bytes": 0
+      },
+      {
+        "sequence": 2054,
+        "time_us": 45030426,
+        "state": 3,
+        "act": 2,
+        "total": 125,
+        "native": 0,
+        "bytes": 37443
+      },
+      {
+        "sequence": 2059,
+        "time_us": 45058253,
+        "state": 4,
+        "act": 0,
+        "total": 125,
+        "native": 0,
+        "bytes": 37443
+      }
+    ],
+    "terminal": [
+      {
+        "sequence": 2074,
+        "time_us": 45203717,
+        "now_ns": 45158559464,
+        "inflight": 0,
+        "pid": 12,
+        "submit_pid": 11,
+        "submit_return_ns": 44372071617,
+        "frame_deadline_ns": 45765492848,
+        "guard_valid": 1,
+        "guard_return_ns": 45158557771,
+        "whcr": 0,
+        "whisr": 0
+      }
+    ],
+    "rx_terminal": [
+      {
+        "sequence": 2075,
+        "time_us": 45206766,
+        "port": 0,
+        "attempts": 390,
+        "packets": 135,
+        "type7": 109,
+        "opposite": 0,
+        "status": -11,
+        "pre_valid": 1,
+        "pre_wrplr": 0,
+        "return_ns": 45158545541
+      },
+      {
+        "sequence": 2076,
+        "time_us": 45209035,
+        "port": 1,
+        "attempts": 373,
+        "packets": 0,
+        "type7": 0,
+        "opposite": 52,
+        "status": -11,
+        "pre_valid": 1,
+        "pre_wrplr": 0,
+        "return_ns": 44960133310
+      }
+    ],
+    "credit_terminal": [
+      {
+        "sequence": 2077,
+        "time_us": 45211289,
+        "site": 0,
+        "native_state": 4,
+        "pending": 0,
+        "credit_deadline_ns": 45233187541,
+        "lifetime_deadline_ns": 49976126156,
+        "polls": 279,
+        "scan": 0,
+        "closing": 0,
+        "first": 0,
+        "wtqcr7": 0,
+        "tc4_free": 26,
+        "cpu_pending": 0,
+        "ffa_pending": 0,
+        "tc1_free": 16,
+        "ac1_pending": 0,
+        "released": 0,
+        "tc1_released": 0
+      }
+    ],
+    "stop": [],
+    "footer": [
+      {
+        "sequence": 2055,
+        "time_us": 45031746,
+        "elapsed_ms": 6167,
+        "rx_unicast": 0,
+        "rx_group": 0,
+        "rx_dropped": 0,
+        "tx_queued": 7,
+        "tx_done": 7,
+        "tx_failed": 0,
+        "tx_credits": 11
+      }
+    ],
+    "refusal": [],
+    "rx_classes": [
+      {
+        "sequence": 2080,
+        "time_us": 45217468,
+        "phase": 0,
+        "t0": 0,
+        "t1": 0,
+        "t2": 0,
+        "t3": 0,
+        "t4": 0,
+        "t5": 0,
+        "t6": 0,
+        "t7": 0,
+        "beacons": 0,
+        "reported_idx1_translated": 0,
+        "reported_idx1_untranslated": 0
+      },
+      {
+        "sequence": 2083,
+        "time_us": 45222525,
+        "phase": 1,
+        "t0": 0,
+        "t1": 0,
+        "t2": 26,
+        "t3": 0,
+        "t4": 0,
+        "t5": 0,
+        "t6": 0,
+        "t7": 99,
+        "beacons": 0,
+        "reported_idx1_translated": 0,
+        "reported_idx1_untranslated": 0
+      },
+      {
+        "sequence": 2085,
+        "time_us": 45228747,
+        "phase": 2,
+        "t0": 0,
+        "t1": 0,
+        "t2": 0,
+        "t3": 0,
+        "t4": 0,
+        "t5": 0,
+        "t6": 0,
+        "t7": 0,
+        "beacons": 0,
+        "reported_idx1_translated": 0,
+        "reported_idx1_untranslated": 0
+      },
+      {
+        "sequence": 2087,
+        "time_us": 45233817,
+        "phase": 3,
+        "t0": 0,
+        "t1": 0,
+        "t2": 0,
+        "t3": 0,
+        "t4": 0,
+        "t5": 0,
+        "t6": 0,
+        "t7": 10,
+        "beacons": 0,
+        "reported_idx1_translated": 0,
+        "reported_idx1_untranslated": 0
+      }
+    ],
+    "management_submit": [
+      {
+        "sequence": 1996,
+        "time_us": 38569235,
+        "subtype": 11,
+        "pid": 1,
+        "pages": 1
+      },
+      {
+        "sequence": 2002,
+        "time_us": 38617215,
+        "subtype": 0,
+        "pid": 2,
+        "pages": 1
+      },
+      {
+        "sequence": 2060,
+        "time_us": 45059583,
+        "subtype": 12,
+        "pid": 12,
+        "pages": 1
+      }
+    ],
+    "framing_hint": [],
+    "mask_control": [
+      {
+        "sequence": 2031,
+        "time_us": 38885212,
+        "enable": 1,
+        "status": 0
+      },
+      {
+        "sequence": 2053,
+        "time_us": 45029231,
+        "enable": 0,
+        "status": 0
+      }
+    ],
+    "cleanup": [
+      {
+        "sequence": 2079,
+        "time_us": 45216092,
+        "stage": 3,
+        "deauth": 1
+      }
+    ],
+    "checked_end": [
+      {
+        "sequence": 2056,
+        "time_us": 45033945,
+        "queued": 7,
+        "no_reuse": 1
+      }
+    ],
+    "key_disable": [
+      {
+        "sequence": 2089,
+        "time_us": 45301222,
+        "local": 1,
+        "removal_command_credit": 1,
+        "status": 0,
+        "no_reuse": 1
+      },
+      {
+        "sequence": 2090,
+        "time_us": 45302919,
+        "local": 1,
+        "removal_command_credit": 1,
+        "status": 0,
+        "no_reuse": 1
+      }
+    ]
+  },
+  "checked_ccmp_ethernet_queued": 7,
+  "native_ciphertext_queued": 0,
+  "initial_wpa2_key_negotiation_completed": 1,
+  "network": {
+    "dhcp_bound": 1,
+    "dhcp_exit": "0",
+    "dhcp_prefix": "24",
+    "dropbear_digest_ok": 1,
+    "host_ack": false,
+    "lease_written": 1,
+    "ping_received": 3,
+    "ping_transmitted": 3,
+    "wifi_sshd_ready": 1,
+    "wifi_sshd_started": 1
+  },
+  "retained_individual_ping_replies": [
+    {
+      "sequence": 0,
+      "ttl": 64,
+      "time_ms": 87.143
+    },
+    {
+      "sequence": 1,
+      "ttl": 64,
+      "time_ms": 33.774
+    },
+    {
+      "sequence": 2,
+      "ttl": 64,
+      "time_ms": 45.498
+    }
+  ],
+  "ping_log_present": true,
+  "ping_summary_present": true,
+  "ssh": {
+    "ready_seen": true,
+    "ssh_attempted": true,
+    "ssh_exit": 255,
+    "ack_written": false,
+    "boot_match": false,
+    "elapsed_s": 14.3,
+    "ready_wait_s": 4.3,
+    "reason": "exchange failed",
+    "failure_stage": "unknown; no server-side accepted connection observed",
+    "server_accepted_connection_observed": false,
+    "client_error_text_retained": false
+  },
+  "healthy_cleanup": true,
+  "provisional_pass": false,
+  "maintained_wifi_support": false,
+  "key_deletion_proven": false,
+  "hardware_replay_proven": false,
+  "preservation": {
+    "sealed_entries_verified": 63,
+    "seal_sha256": "316bb0245b651d041312f1f0a950a56757e9b022e1320ec62e743fab0a6c0b84",
+    "log_sha256": "49b781b50b8fc7713aa6281ae1f9b3441dde16cc5513e51e212b043cc41afb6f",
+    "log_bytes": 166109,
+    "log_records": 2092,
+    "contiguous_records": true,
+    "complete_through_seal": true,
+    "helper_owned_safe_group_quiescent": true,
+    "device_children_quiesced": true,
+    "regression_pass": true,
+    "recovery_confirmed": true,
+    "mainline_boot": "ae97a99b-abf8-4de5-b2cf-eb3c0f772bd5",
+    "returned_gemian_boot": "d1e05167-ed31-4f0a-9835-4c0deba2e470"
+  },
+  "limits": [
+    "Mask submission is PIO submission, not independent firmware completion acknowledgement",
+    "No SET_MONITOR is selected in the comparison; maintained mask ownership and group meanings remain unproved",
+    "Checked delivery exercises the initial-PTK host-PN gate; no firmware integrity/replay or GTK/rekey claim",
+    "CLOSED and cleanup stage 3 are host protocol observations, not shared-RX/key retirement proof",
+    "No gap48 occurred in this single finite session; no producer mechanism or permanent fix is proved",
+    "Original data/grant limits unchanged; ten-minute sustained SSH not tested",
+    "No stable-CCMP re-arm, key-slot reuse or second lifetime admitted"
+  ]
+}

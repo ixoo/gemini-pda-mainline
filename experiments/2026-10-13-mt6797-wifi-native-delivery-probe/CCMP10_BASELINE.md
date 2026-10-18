@@ -1,4 +1,4 @@
-# Unchanged C10 baseline — run 2 prepared, awaiting owner selection
+# Unchanged C10 baseline — run 2 consumed; run 3 awaits owner selection
 
 Owner-directed after the [sealed C10/C11 comparison](CCMP11_RESULT.md#sealed-c10c11-comparison-and-ssh-boundary).
 No new candidate, kernel build or runtime code change. The original C10 pass
@@ -15,9 +15,10 @@ and reconnect stay disabled, requiring a physical selection for each session.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | C10 run 1 | `c80f93fe-ea39-4d6e-86b8-bfec0254c65c` | Pass | Bound | 3/3 | Authenticated, fresh boot matched | Stage 3, debt 0 | 6.210 s / 6.200 s planned |
 | C11 | `e86a098f-c62a-4b48-a1c6-153627abbef2` | Pass | Bound | 3/3 | Exit 255; no accepted server connection observed; exact TCP/KEX/auth stage unknown | Stage 3, debt 0 | 6.175 s / 6.156 s planned |
-| C10 run 2 | Pending physical boot | Not run | Not run | Not run | Not run | Not run | Not run |
+| C10 run 2 | `ae97a99b-abf8-4de5-b2cf-eb3c0f772bd5` | Pass | Bound | 3/3 | Exit 255; no accepted server connection observed; exact stage unknown | Stage 3, debt 0 | 6.167 s / 6.156 s planned |
+| C10 run 3 | Pending physical boot | Not run | Not run | Not run | Not run | Not run | Not run |
 
-## Run 2 guarded restore and handoff
+## Run 2 guarded restore and consumed handoff
 
 Exact retained C10 image and original runtime tools, with kernel input
 `0d1f51194d7001fc9c6b9219726935ede36bc828`. Raw image SHA-256
@@ -49,11 +50,82 @@ Complete offline host preparation passed using the original pinned sources,
 with helper key/boot variables unset. Only the deployment summary exists in
 the session directory; no capture or execution claim yet.
 
-Required owner action: physically select boot2 with USB connected to the
-custodian laptop and report startup. Stop here until that action. Then verify
-fresh mainline boot and candidate identity before the single admitted capture
-and session, seal evidence, perform reviewed recovery and verify changed-boot
-Gemian independently. Record any different failure as a separate result.
+Owner physical selection subsequently started run 2. The preparation and
+handoff above are consumed; the actual result follows.
+
+## Run 2 result: SSH failure also occurs without the observer
+
+Executed from pushed checkout `cbc7913adacbd3e28c584c7a991a6d0400c3d996` after
+fresh strict USB identity and mask-helper checks. One Phase-A capture completed
+285/285 initialization steps, exit 0; one session exited 1 for failed SSH. No
+retry, new candidate or instrumentation. The five C10 adapter files were
+byte-compared to their original validated cohort and unchanged.
+
+DHCP bound, lease written and exit 0; individual ping seq 0/1/2 replies were
+87.143 / 33.774 / 45.498 ms, TTL 64. Seven checked PTK frames were queued;
+seven data TX completed, zero TX failure, eleven credits. ACTIVE type-2 26,
+type-7 99; CLOSED type-2 0, type-7 10. The other 19 ACTIVE type-2 frames were
+not classified by this unchanged image; legacy zero drop counts cannot establish
+zero discards. No framing hint, HIF refusal or join-stopped record occurred.
+Data duration 6167 ms covered its calculated 6156 ms budget, with unchanged
+5000 ms teardown margin. It was not a shortened run or sustained-operation test.
+
+SSH helper readiness was 4.3 s, final elapsed 14.3 s, exit 255, generic
+`exchange failed`, no served-boot match and no guarded ACK. The 146-byte server
+log contains listener startup and termination with no accepted connection,
+KEX or auth event. The frozen client discarded stderr and did not retain
+nonzero stdout; exact failure stage remains unknown. This reproduces C11's
+observable SSH failure pattern without its observer. C11-specific causality
+is therefore not required to explain an SSH failure; it is not proved absent.
+
+Host cleanup reached CLOSED/deauth/stage 3, no in-flight frame and zero terminal
+pending credit. This is not firmware key/queue retirement proof. Owned-helper
+quiescence, boot-matched device quiescence and A53 regression passed. All 63
+seal entries independently rehashed; complete kmsg has 166109 bytes and 2092
+contiguous records, SHA-256
+`49b781b50b8fc7713aa6281ae1f9b3441dde16cc5513e51e212b043cc41afb6f`.
+Seal SHA-256
+`316bb0245b651d041312f1f0a950a56757e9b022e1320ec62e743fab0a6c0b84`.
+One reviewed native return, three finite watcher attempts, and independent
+strict LAN SSH confirmed Gemian 3.18.41+/aarch64 on changed boot
+`d1e05167-ed31-4f0a-9835-4c0deba2e470`. Raw evidence remains private.
+See [run-2 scalars](results/ccmp10-run2-runtime-scalars.json) and
+[numeric chronology](results/ccmp10-run2-numeric-chronology.txt).
+
+## Run 3 admission
+
+The third and final unchanged C10 session completes the owner-directed baseline
+sample. Run 2 already establishes that SSH can fail without the observer. Keep
+all original limits and separate verdicts; no fourth unchanged baseline run.
+C10 is already installed: the guarded installer must verify it, skip a matching
+write, perform independent full readback and clean shutdown. No re-arm, rekey,
+reuse, reconnect or GTK delivery. A fresh physical boot2 selection is required.
+
+## Run 3 verified preparation and physical handoff
+
+The 603-line installer is byte-identical to the original C10 script under
+exact identity/path/hash substitutions only. Bash syntax and ShellCheck passed;
+derived shell SHA-256
+`877288a80c79ba68f439ebf4b66178903fd7e202ff98d902d6f8e8a8aee14ee8`.
+Live Gemian boot `d1e05167-ed31-4f0a-9835-4c0deba2e470` and the matching C10
+predecessor were verified. One guarded invocation reported
+`skipped-already-matching`: no partition write. Independent full 16 MiB readback
+and byte comparison matched C10; clean shutdown and unreachability confirmed,
+no automatic reboot or fresh backup.
+
+The 925-byte actual deployment summary, SHA-256
+`3fcddd0263180a9a4e5121881deb7e903687e4c3f671b9f81b0e97d7ae5ecf08`,
+was seal-verified and copied byte-exact/mode 0600 into a separate fresh run-3
+session root. Complete actual offline host preparation passed, helper key/boot
+variables unset. The session contains only the deployment summary; capture and
+execution claim are absent. No run-3 session or helper has started.
+
+Owner action required: physically select boot2 with USB connected to the
+custodian laptop, then report startup. Stop at this handoff. After that action,
+verify the fresh mainline boot and exact C10 installation provenance, perform
+one capture and one session under unchanged limits, seal evidence and use the
+reviewed return, independently verifying changed-boot Gemian. No additional
+session in the same boot: healthy re-arm/reconnect remain disabled.
 
 ## Decisions after baseline
 
