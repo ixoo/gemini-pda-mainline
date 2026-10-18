@@ -145,9 +145,68 @@ static void deauth_debt(void)
 
 #endif
 
+#ifdef TEST_GTK7
+static void gtk7_cleanup_pages(void)
+{
+	struct mt6797_normal_transaction t;
+	struct mt6797_hif_command cmd;
+	struct mt6797_normal_release release;
+	unsigned char history[32] = {0}, payload[128] = {0}, out[160];
+	const unsigned char peer[6] = {2, 0, 0, 0, 0, 2};
+	unsigned int words[8] = {0};
+
+	ready(&t, history); t.tc4_free = 3; t.tc4_pending_ffa = 1;
+	t.cleanup_retained_pages = 1;
+	assert(mt6797_normal_cleanup_ready(&t));
+	assert(mt6797_join_key_payload(true, true, peer, 0, (unsigned char[16]){0}, payload));
+	assert(mt6797_join_prepare_command(&t, 0x07, 31, payload, 64, out, sizeof(out), &cmd) == -EOPNOTSUPP);
+	assert(t.tc4_free == 3 && t.tc4_pending_ffa == 1);
+	assert(mt6797_join_channel_payload(1, 40, 9000, false, payload));
+	assert(mt6797_join_prepare_command(&t, 0x1c, 31, payload, 16, out, sizeof(out), &cmd) == -EOPNOTSUPP);
+	payload[0] = 9; payload[1] = payload[2] = payload[3] = 0;
+	assert(mt6797_join_prepare_command(&t, 0x0a, 31, payload, 4, out, sizeof(out), &cmd) == -EOPNOTSUPP);
+	for (unsigned int step = 0; step < 5; step++) {
+		unsigned int bytes, cid;
+		memset(payload, 0, sizeof(payload));
+		if (step < 2) {
+			assert(mt6797_join_key_payload(false, step == 0, step == 0 ? peer : NULL,
+				step == 0 ? 0 : 1, NULL, payload));
+			cid = 0x07; bytes = 64;
+		} else if (step == 2) {
+			cid = 0x14; bytes = 4; assert(mt6797_join_remove_station(payload));
+		} else if (step == 3) {
+			cid = 0x1c; bytes = 16; assert(mt6797_join_channel_payload(1, 40, 0, true, payload));
+		} else {
+			cid = MT6797_NORMAL_BSS_ACTIVE; bytes = 12; payload[3] = 1;
+		}
+		assert(mt6797_normal_cleanup_ready(&t));
+		int rc = step == 4 ? mt6797_normal_prepare_config(&t, cid, 31 + step, payload, bytes, out, sizeof(out), &cmd) :
+			mt6797_join_prepare_command(&t, cid, 31 + step, payload, bytes, out, sizeof(out), &cmd);
+		assert(!rc && t.tc4_free == 2 && t.tc4_pending_ffa == 1);
+		assert(!mt6797_normal_submitted(&t, 0) && !mt6797_normal_cleanup_ready(&t));
+		words[7] = (1U << 16) | 1;
+		assert(!mt6797_normal_reconcile(&t, words, &release));
+		assert(release.released_pages == 1 && t.tc4_free == 3 && t.tc4_pending_ffa == 1);
+	}
+	/* Return the retained page: physical counters become whole, not reset. */
+	words[7] = 1U << 16;
+	assert(!mt6797_normal_reconcile(&t, words, &release));
+	assert(t.tc4_free == 4 && !t.tc4_pending_ffa && !t.tc4_pending_cpu);
+	assert(mt6797_normal_cleanup_ready(&t) && t.cleanup_retained_pages == 1);
+	memset(payload, 0, 12); payload[1] = payload[3] = 1;
+	assert(mt6797_normal_prepare_config(&t, MT6797_NORMAL_BSS_ACTIVE, 40, payload, 12, out, sizeof(out), &cmd) == -EOPNOTSUPP);
+	assert(t.tc4_free == 4);
+	t.phase = MT6797_NORMAL_FAILED; assert(!mt6797_normal_cleanup_ready(&t));
+	puts("GTK7 ledger: PASS one charged page across removals/abort/BSS-off, per-command real debit/return, install/request/active refusals and whole recovery");
+}
+#endif
+
 int main(void)
 {
 	metadata(); ledger();
+#ifdef TEST_GTK7
+	gtk7_cleanup_pages();
+#endif
 #ifdef TEST_DEAUTH_RETIRE
 	deauth_debt();
 #endif

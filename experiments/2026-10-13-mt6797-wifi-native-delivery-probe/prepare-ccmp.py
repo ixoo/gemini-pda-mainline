@@ -19,6 +19,7 @@ RECEIPT = HERE / 'results/ccmp-stable-monitor-candidate.json'
 MANIFEST_SHA = '725a5422eaf4cbf2014bd84bee4a5c7b9c8bd67e843ed348aea16138adc00544'
 RELEASE = '7.1.3-gemini-a53-wifi-ccmp-stable-monitor'
 EVIDENCE, CAPTURE, SESSION = 'ccmp-stable-monitor', 'capture-ccmp1', 'session-ccmp1'
+REVIEWED_JOIN_SCRIPT = HERE / 'join-ccmp.sh'
 
 
 def refuse(reason):
@@ -44,10 +45,10 @@ def main():
     body = script.read_bytes()
     # The diagnostic engages during the reviewed C2 join; reuse that exact
     # script (the private binder adds the PSK and hex SSID; never printed here).
-    reviewed = (HERE / 'join-ccmp.sh').resolve()
+    reviewed = REVIEWED_JOIN_SCRIPT.resolve()
     if not body.startswith(b'TARGET_SSID=') or \
             not body.endswith(reviewed.read_bytes()):
-        refuse('GEMINI_JOIN_SCRIPT does not wrap the reviewed one-cycle join-ccmp.sh')
+        refuse('GEMINI_JOIN_SCRIPT does not wrap the reviewed one-cycle ' + reviewed.name)
     if b'\nWPA_PSK_HEX=' not in body or b'\nTARGET_SSID_HEX=' not in body:
         refuse('GEMINI_JOIN_SCRIPT is not the PSK-bound single-lifetime script')
     # The receipt is produced by the LAPTOP compositor (from the Buildbox

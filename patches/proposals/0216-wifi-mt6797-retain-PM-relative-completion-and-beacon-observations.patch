@@ -1,0 +1,170 @@
+From 9c1d63b3d988db14c9eaadba40127df658b19d2d Mon Sep 17 00:00:00 2001
+From: Codex Experiment <codex-experiment@example.invalid>
+Date: Sun, 18 Oct 2026 18:04:12 -0400
+Subject: [PATCH] wifi: mt6797: retain PM-relative completion and beacon
+ observations
+
+Timestamp the successful PM connection credit once. Report owned TX
+completion and cleanup submission/credit processing offsets, plus owned
+beacon count and age at data end. Read only existing host state; no new
+firmware transaction, resource budget or deadline change.
+
+Internal experiment archive, synthetic non-certifying author;
+no DCO certification and not an upstream submission.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 74 +++++++++++++++++++++-
+ 1 file changed, 72 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 416dbac..3e8f64f 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -232,6 +232,8 @@ struct mt6797_mac {
+ 	unsigned int ccmp_cleanup_retained_pages, ccmp_cleanup_credit_floor;
+ 	unsigned int ccmp_cleanup_op, ccmp_cleanup_sequence;
+ 	bool ccmp_cleanup_credit_active, ccmp_cleanup_bounded_done;
++	u64 ccmp_pm_credit_ns;
++	unsigned int ccmp_beacons_at_pm_credit;
+ #endif
+ 	struct ieee80211_sta __rcu *ccmp_sta;
+ 	/* Cookies only: never dereferenced, withdrawn before DISABLE_KEY returns. */
+@@ -569,6 +571,51 @@ static bool mt6797_ccmp_cleanup_credit_ready(const struct mt6797_mac *mac)
+ 		mac->join_page_debt <= mac->ccmp_cleanup_credit_floor;
+ }
+ 
++static void mt6797_ccmp_tx_timing(struct mt6797_mac *mac, unsigned int pid,
++				  unsigned int status, unsigned int frame_class)
++{
++	u64 now = ktime_get_ns();
++
++	if (!ccmp_stable_epoch || !mac->ccmp_pm_credit_ns || now < mac->ccmp_pm_credit_ns)
++		return;
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot WLAN TX completion timing: pid=%u status=%u class=%u observed_ns=%llu pm_offset_ns=%llu\n",
++		 pid, status, frame_class, now, now - mac->ccmp_pm_credit_ns);
++}
++
++static void mt6797_ccmp_cleanup_timing(struct mt6797_mac *mac, bool credit)
++{
++	u64 now = ktime_get_ns();
++
++	if (!ccmp_stable_epoch || !mac->ccmp_cleanup_credit_active ||
++	    !mac->ccmp_pm_credit_ns || now < mac->ccmp_pm_credit_ns)
++		return;
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot WLAN cleanup timing: op=%u sequence=%u credit=%u observed_ns=%llu pm_offset_ns=%llu floor=%u debt=%u\n",
++		 mac->ccmp_cleanup_op, mac->ccmp_cleanup_sequence, (unsigned int)credit,
++		 now, now - mac->ccmp_pm_credit_ns, mac->ccmp_cleanup_credit_floor,
++		 mac->join_page_debt);
++}
++
++static void mt6797_ccmp_data_end_beacons(struct mt6797_mac *mac)
++{
++	u64 now = ktime_get_ns(), age = 0;
++	bool known = mac->join_beacons_delivered && mac->ccmp_last_beacon_rx <= now;
++	bool since_known = mac->ccmp_pm_credit_ns &&
++		mac->join_beacons_delivered >= mac->ccmp_beacons_at_pm_credit;
++	unsigned int since = since_known ?
++		mac->join_beacons_delivered - mac->ccmp_beacons_at_pm_credit : 0;
++
++	if (!ccmp_stable_epoch)
++		return;
++	if (known)
++		age = now - mac->ccmp_last_beacon_rx;
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot WLAN data-end beacons: observed_ns=%llu count=%u known=%u age_ns=%llu since_pm_known=%u since_pm=%u interval_tu=%u\n",
++		 now, mac->join_beacons_delivered, (unsigned int)known, age,
++		 (unsigned int)since_known, since, mac->join_beacon_interval);
++}
++
+ /* A late completion for this lifetime's one retired PID cannot own a second
+  * skb or credit. Unknown PIDs, invalid status and malformed events still fail.
+  */
+@@ -584,6 +631,7 @@ static bool mt6797_ccmp_deauth_late(struct mt6797_mac *mac, size_t bytes)
+ 	    (result.status > 7 && (result.status < 32 || result.status > 34)))
+ 		return false;
+ 	mac->ccmp_deauth_late++;
++	mt6797_ccmp_tx_timing(mac, mac->ccmp_deauth_retired_pid, result.status, 3);
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+ 		 "one-shot WLAN retired deauth completion: pid=%u status=%u late=%u no_credit=1\n",
+ 		 mac->ccmp_deauth_retired_pid, result.status, mac->ccmp_deauth_late);
+@@ -1425,6 +1473,7 @@ static int mt6797_mac_join_guard(struct mt6797_mac *mac, u64 deadline)
+ #endif
+ #ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
+ 		if (mac->join_credit_pending && mt6797_ccmp_cleanup_credit_ready(mac)) {
++			mt6797_ccmp_cleanup_timing(mac, true);
+ 			mac->ccmp_cleanup_credit_active = false;
+ #else
+ 		if (mac->join_credit_pending && !mac->join_page_debt) {
+@@ -1854,8 +1903,10 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
+ 			ret = mt6797_hif_join_pm_abort(mac->hif, mac->sequence++, deadline);
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+ 			 "one-shot WLAN PM abort: sequence=%u status=%d\n", mac->sequence - 1, ret);
+-		if (!ret)
++		if (!ret) {
++			mt6797_ccmp_cleanup_timing(mac, false);
+ 			mac->ccmp_pm_abort_pending = true;
++		}
+ 		return ret;
+ 	}
+ #endif
+@@ -1990,6 +2041,9 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
+ 					  NULL, deadline);
+ 		if (ret)
+ 			return ret;
++#ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
++		mt6797_ccmp_cleanup_timing(mac, false);
++#endif
+ 		if (pairwise)
+ 			mac->join_key_pairwise = 2;
+ 		else
+@@ -2026,6 +2080,9 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
+ 		break;
+ 	}
+ 	if (!ret) {
++#ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
++		mt6797_ccmp_cleanup_timing(mac, false);
++#endif
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+ 			 "one-shot WLAN join cleanup submission: stage=%u\n",
+ 			 mac->join_cleanup_stage);
+@@ -2242,6 +2299,9 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+ 		return;
+ 	mac->join_data_ended = true;
+ 	mac->join_data_end_reason = reason;
++#ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
++	mt6797_ccmp_data_end_beacons(mac);
++#endif
+ 	mac->join_hold_until = ktime_get_ns();
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+ 		 "one-shot WLAN join data phase end: reason=%s elapsed_ms=%llu rx_unicast=%u rx_group=%u rx_dropped=%u tx_queued=%u tx_done=%u tx_failed=%u tx_credits=%u\n",
+@@ -2938,6 +2998,11 @@ submitted:
+ 					 "one-shot WLAN join TX done: pid=%u status=%u advanced=%u count=%u\n",
+ 					 mac->join_pid, result.status, !!(result.flags & 1),
+ 					 result.count);
++#endif
++#ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
++				mt6797_ccmp_tx_timing(mac, mac->join_pid, result.status,
++						      mac->join_inflight_data ? 1 :
++						      completed_internal ? 2 : 0);
+ #endif
+ 				ack = result.status == 0;
+ 				mac->join_last_acked = ack;
+@@ -4274,8 +4339,13 @@ static int mt6797_ccmp_pm_indicate(struct mt6797_mac *mac, u64 phase_deadline)
+ 		ret = mac->first_error ? mac->first_error : -ECANCELED;
+ 	if (!ret && ktime_get_ns() >= deadline)
+ 		ret = -ETIMEDOUT;
+-	if (!ret)
++	if (!ret) {
+ 		mac->ccmp_pm_connected = true;
++		mac->ccmp_pm_credit_ns = ktime_get_ns();
++		mac->ccmp_beacons_at_pm_credit = mac->join_beacons_delivered;
++		dev_info(wiphy_dev(mac->hw->wiphy),
++			 "one-shot WLAN PM credit clock: ns=%llu\n", mac->ccmp_pm_credit_ns);
++	}
+ out:
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+ 		 "one-shot WLAN PM connection: attempted=%u credited=%u status=%d dtim_valid=%u dtim_status=%d keys=%u%u\n",
+-- 
+2.54.0 (Apple Git-157)
+

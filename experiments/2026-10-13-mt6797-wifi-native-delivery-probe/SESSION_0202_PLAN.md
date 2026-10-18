@@ -1109,3 +1109,68 @@ stage 3 still requires a whole ledger. No deadline extension, PID/key reuse,
 rekey, reconnect, nullfunc or event-0x13 tolerance is admitted. Record every
 periodic completion offset and cleanup credit timestamp in the next run's one
 public scalars file; no per-run result document.
+
+### Predeclared GTK7 inputs and observations
+
+Keep 0x16 credited before keys, the fatal counter-only 0x13 policy, standard
+connection-monitor ownership, all current deadlines and caps, no nullfunc,
+PID/key reuse, rekey or reconnect. GTK7 makes these separate logical changes:
+
+1. Carry at most one charged retired-deauthentication page through remaining
+   teardown. Never reset/free/refund the ledger. Each command debits its own
+   page and must return to its pre-submission debt floor within the existing
+   100 ms deadline. If the retained page has already returned, the next command
+   floor is zero, not one. Admit only cleanup removals/abort/BSS-off in this
+   mode. A distinct terminal may report cleanup complete with one bounded page
+   debt; it permanently closes the lifetime and is never healthy stage 3.
+   Healthy stage 3 still requires the physical ledger whole.
+2. Send and credit PM abort before selecting the reserved deauthentication.
+   Keep the remainder of the existing removal order. This order comparison
+   tests the PM-connected-state explanation; an outcome supports or contradicts
+   that explanation for the run, not a general firmware mechanism proof.
+3. Retain one immutable host timestamp at the 0x16 credit and report every owned
+   TX completion with its class/PID/status and precise offset. Report cleanup
+   command submission/credit offsets and owned-beacon count/last-delivery age at
+   data end. These are host observations from existing acquisitions, not new
+   register reads or firmware execution timestamps.
+4. Use a fresh reviewed one-cycle device leaf: five scheduled numeric-router
+   pings at PM-credit offsets +10/+20/+30/+40/+50 seconds. A probe is one `-c 1`
+   ping under the existing window/boot/fatal guards and a three-second child
+   bound; no catch-up burst, retry or +60-second boundary probe. Preserve each
+   exit/reply and completion offset in the existing sealed ping log. Export
+   userspace clock resolution separately from precise driver completion timing.
+   No DNS, host cache flush, capture or additional association.
+
+Predeclare outcomes: deauthentication completes after PM-abort-first and the
+whole ledger reaches healthy stage 3; deauthentication remains missing but
+remaining command paths credit and cleanup completes with exactly one bounded
+page debt; periodic host TX stops completing at a measured offset (only then a
+bounded private firmware question may be useful); a remaining cleanup command
+fails its credit bound as a separate first failure; or pre-budget mac80211
+beacon/AP loss interpreted against the owned-beacon end count and age. Every
+other first failure remains separate. Export periodic offsets, beacon metrics
+and all teardown credit timestamps into one public run scalars file and one
+existing table row. No actual GTK7 result is implied by preparation.
+
+GTK7 preparation now consists of logical archives 0214 (bounded page / distinct
+terminal), 0215 (PM-abort-first) and 0216 (PM-relative completion/credit clocks
+and end-of-data beacons), plus a reviewed periodic device leaf. Local actual
+MAC, pure-ledger and actual-HIF cases pass, including the correct existing
+single-STA removal payload, real debit/return at each retained floor, transfer
+cuts with no refund, whole-vs-bounded terminals and recovery of the retained
+page before a later command. Crypto and option-off MAC parity pass; the frozen
+GTK6 source and default reviewed-leaf binding still pass their fixtures.
+Strict checkpatch has only the synthetic archive author's deliberate missing
+DCO sign-off, with no style warnings/checks.
+
+The periodic leaf passes host simulation for five fixed probes, failure without
+retry, missed-slot handling, retained raw outputs, and boot/window/clock/numeric
+address refusals. It runs before the SSH-ack wait, so SSH failure cannot suppress
+TX measurements. The normal 300-second wall, 90-second listener and 32 KiB leaf
+cap remain unchanged. Userspace ping completion offsets have 10 ms clock
+resolution; driver TX-status and cleanup-reconciliation observations carry
+monotonic nanosecond offsets from the host's PM credit. Neither is a firmware
+execution timestamp or proof of per-frame on-air delivery. Raw ping output
+stays in the existing sealed `ping.log`; public scalars export only measurements.
+The existing classifier's healthy-stage requirement remains unchanged for a
+bounded-debt terminal. Linux checks, build and hardware admission remain pending.

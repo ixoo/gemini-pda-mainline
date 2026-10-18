@@ -1,7 +1,15 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /* Actual reserved-frame retirement, cleanup and late-status helpers. */
 static bool deauth_hif_ready;
+#ifdef FIXTURE_GTK7
+static int mt6797_hif_retain_cleanup_page(void *h)
+{
+	(void)h; assert(current->join_page_debt == 1); return 0;
+}
+static bool mt6797_hif_cleanup_ready(void *h)
+#else
 static bool mt6797_hif_cleanup_abort_ready(void *h)
+#endif
 {
 	(void)h; return deauth_hif_ready;
 }
@@ -31,6 +39,8 @@ static void deauth_free(struct mt6797_mac *m, struct sk_buff_head *q)
 	if (m->join_internal) dev_kfree_skb(m->join_internal);
 	m->join_internal = m->join_inflight = NULL; destroy(m);
 }
+
+#ifndef FIXTURE_GTK7
 static void deauth_retire_tests(void)
 {
 	struct mt6797_mac m, before;
@@ -123,3 +133,5 @@ static void deauth_retire_tests(void)
 	mutex_unlock(&m.mutex); deauth_free(&m, &q);
 	puts("reserved deauth: PASS actual +/-1ns retirement, strict owner/poison gates, no ACK/refund, partial-credit block, original cleanup order and late owned PID only");
 }
+
+#endif

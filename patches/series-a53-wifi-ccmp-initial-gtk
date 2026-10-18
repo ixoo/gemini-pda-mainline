@@ -704,3 +704,6 @@ proposals/0210-wifi-mt6797-count-owned-timeout-observations-without-changing-ref
 proposals/0211-wifi-mt6797-indicate-PM-connection-from-owned-beacon-before-keys.patch
 proposals/0212-wifi-mt6797-own-connection-monitoring-in-PM-required-experiment.patch
 proposals/0213-wifi-mt6797-retire-only-reserved-deauth-timeout-for-bounded-cleanup.patch
+proposals/0214-wifi-mt6797-quarantine-one-cleanup-page-without-a-healthy-terminal.patch
+proposals/0215-wifi-mt6797-credit-PM-abort-before-reserved-deauthentication.patch
+proposals/0216-wifi-mt6797-retain-PM-relative-completion-and-beacon-observations.patch

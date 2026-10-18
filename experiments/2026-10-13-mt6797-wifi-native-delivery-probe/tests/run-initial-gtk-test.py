@@ -18,9 +18,11 @@ p.add_argument('--timeout-observer', action='store_true', help='also validate th
 p.add_argument('--beacon-observer', action='store_true', help='also validate owned-beacon recency')
 p.add_argument('--timeout-counter', action='store_true', help='validate owned timeout counting without event tolerance')
 p.add_argument('--pm-connected', action='store_true', help='validate owned PM indication before keys')
+p.add_argument('--gtk7', action='store_true', help='validate bounded debt, PM-first and timing observations')
 p.add_argument('--deauth-retire', action='store_true', help='validate reserved deauth timeout cleanup')
 p.add_argument('--connection-monitor', action='store_true', help='also validate standard loss reporting')
 a = p.parse_args()
+a.deauth_retire = a.deauth_retire or a.gtk7
 a.connection_monitor = a.connection_monitor or a.deauth_retire
 a.pm_connected = a.pm_connected or a.connection_monitor
 a.timeout_counter = a.timeout_counter or a.pm_connected
@@ -45,7 +47,8 @@ assert hashlib.sha256((child / 'ccmp-gtk-rx.h').read_bytes()).hexdigest() == \
 assert {x.name for x in child.iterdir()} == {x.name for x in parent.iterdir()} | {'ccmp-gtk-rx.h'}
 for x in parent.iterdir():
     if x.is_file() and x.name not in (({'mac.c', 'Kconfig', 'native-diag.h'} if a.gtk3 else {'mac.c', 'Kconfig'}) |
-                                        ({'hif.c', 'hif.h', 'join-commands.h', 'join-command-submit.h'} if a.pm_connected else set())):
+                                        ({'hif.c', 'hif.h', 'join-commands.h', 'join-command-submit.h'} if a.pm_connected else set()) |
+                                        ({'normal_command.h'} if a.gtk7 else set())):
         assert x.read_bytes() == (child / x.name).read_bytes(), x.name
 # Reversing exactly the selected archive must recover every parent file.
 archive = fixtures.parents[2] / 'patches/proposals/0204-wifi-mt6797-gate-one-separately-seeded-initial-GTK.patch'
@@ -58,6 +61,10 @@ with tempfile.TemporaryDirectory(prefix='gtk-reverse-') as directory:
     import shutil
     recovered = Path(directory)
     shutil.copytree(child, recovered / rel)
+    if a.gtk7:
+        for number in [216, 215, 214]:
+            patch = next((fixtures.parents[2] / 'patches/proposals').glob(f'{number:04d}-*.patch'))
+            subprocess.run(['git', 'apply', '--reverse', str(patch)], cwd=recovered, check=True, timeout=10)
     if a.deauth_retire:
         patch = fixtures.parents[2] / 'patches/proposals/0213-wifi-mt6797-retire-only-reserved-deauth-timeout-for-bounded-cleanup.patch'
         subprocess.run(['git', 'apply', '--reverse', str(patch)], cwd=recovered, check=True, timeout=10)
@@ -173,9 +180,16 @@ with tempfile.TemporaryDirectory(prefix='initial-gtk-') as directory:
         assert function(new, 'mt6797_mac_tx') == function(monitor_parent_mac, 'mt6797_mac_tx'), 'new TX class'
         assert new.count('ieee80211_hw_set(hw, CONNECTION_MONITOR)') == 1
     if a.deauth_retire:
-        names += [('bool', 'mt6797_ccmp_deauth_retire'), ('bool', 'mt6797_ccmp_deauth_abort_owed'),
+        names += [('bool', 'mt6797_ccmp_deauth_retire'),
+                  ('bool', 'mt6797_ccmp_cleanup_debt_ready' if a.gtk7 else 'mt6797_ccmp_deauth_abort_owed'),
                   ('bool', 'mt6797_ccmp_deauth_late')]
         assert function(new, 'mt6797_mac_tx') == function(deauth_parent_mac, 'mt6797_mac_tx')
+    if a.gtk7:
+        names += [('bool', 'mt6797_ccmp_cleanup_credit_ready'), ('bool', 'mt6797_ccmp_pm_holds_deauth'),
+                  ('void', 'mt6797_ccmp_tx_timing'), ('void', 'mt6797_ccmp_cleanup_timing'),
+                  ('void', 'mt6797_ccmp_data_end_beacons')]
+        assert function(new, 'mt6797_mac_join_end_data').count('mt6797_ccmp_data_end_beacons(mac)') == 1
+        assert function(new, 'mt6797_mac_join_work').count('mt6797_ccmp_tx_timing(mac, mac->join_pid') == 1
     obs_start = new.index('struct mt6797_ccmp_observation {')
     obs_end = new.index('\n};', obs_start) + 3
     handler_definitions = ''
@@ -309,6 +323,16 @@ with tempfile.TemporaryDirectory(prefix='initial-gtk-') as directory:
         callbacks = '#define FIXTURE_DEAUTH_RETIRE 1\n' + callbacks
         extra = 'static void deauth_retire_tests(void);\n' + extra + '\n' + (fixtures / 'deauth-retire-callbacks.inc').read_text()
         extra = extra.replace('pm_callback_tests();', 'pm_callback_tests();\n deauth_retire_tests();')
+    if a.gtk7:
+        callbacks = '#define FIXTURE_GTK7 1\n' + callbacks
+        callbacks = callbacks.replace('static char last_log[1024];',
+            'static unsigned int gtk7_healthy_logs, gtk7_bounded_logs;\nstatic char last_log[1024];')
+        callbacks = callbacks.replace('va_end(args);',
+            'va_end(args); if (strstr(last_log, \"join cleanup: stage=3\")) gtk7_healthy_logs++; '
+            'if (strstr(last_log, \"cleanup complete: bounded_page_debt=1\")) gtk7_bounded_logs++;')
+        extra = 'static void gtk7_callback_tests(void);\n' + extra + '\n' + (fixtures / 'gtk7-callbacks.inc').read_text()
+        extra = extra.replace('deauth_retire_tests();', 'gtk7_callback_tests();')
+        extra = extra.replace('static void deauth_retire_tests(void);\n', '')
     if a.connection_monitor:
         callbacks = '#define FIXTURE_CONNECTION_MONITOR 1\n' + callbacks
     (tmp / 'callbacks.c').write_text(callbacks + '\n' + extra)

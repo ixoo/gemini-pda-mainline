@@ -26,8 +26,9 @@ is pending. GTK6 remains installed but consumed; do not repeat it unchanged.
 Next is owner-selected GTK7: PM-abort-first order, bounded retained-page debt
 through remaining cleanup, a separate bounded-debt terminal (never healthy
 stage 3), device ping every ten seconds with PM-credit-relative TX offsets,
-and owned-beacon count/age at data end. Plan and actual-source tests precede
-build. Publish GTK6 result and all GTK7 inputs directly to `main`.
+and owned-beacon count/age at data end. Three logical archives 0214/0215/0216 and the periodic leaf are prepared;
+local actual-source/HIF/periodic and historical-compatibility fixtures pass.
+Linux checks/build and device admission remain pending. Publish inputs to `main`.
 
 Keep 0x16 before keys, counter-only 0210/fatal event refusal, connection-monitor
 flag, no nullfunc, existing frame/command deadlines and resource caps. No PID

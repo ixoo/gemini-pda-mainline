@@ -25,7 +25,19 @@ static int mt6797_hif_send_config(void *, enum mt6797_normal_config_kind, unsign
 static void ieee80211_connection_loss(struct ieee80211_vif *);
 
 #ifdef FIXTURE_DEAUTH_RETIRE
+#ifndef FIXTURE_GTK7
 static bool mt6797_ccmp_deauth_abort_owed(const struct mt6797_mac *);
 static bool mt6797_hif_cleanup_abort_ready(void *);
+#else
+static bool mt6797_ccmp_cleanup_debt_ready(const struct mt6797_mac *);
+static bool mt6797_ccmp_cleanup_credit_ready(const struct mt6797_mac *);
+static bool mt6797_ccmp_pm_holds_deauth(const struct mt6797_mac *);
+static bool mt6797_hif_cleanup_ready(void *);
+static int mt6797_hif_retain_cleanup_page(void *);
+static void mt6797_ccmp_tx_timing(struct mt6797_mac *, unsigned int, unsigned int, unsigned int);
+static void mt6797_ccmp_cleanup_timing(struct mt6797_mac *, bool);
+static void mt6797_ccmp_data_end_beacons(struct mt6797_mac *);
+static struct sk_buff *skb_peek(const struct sk_buff_head *q) { return q->head; }
+#endif
 static int mt6797_hif_join_pm_abort_debt(void *, unsigned int, unsigned int, u64);
 #endif

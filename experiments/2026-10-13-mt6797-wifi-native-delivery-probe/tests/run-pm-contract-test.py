@@ -9,7 +9,9 @@ import tempfile
 p = argparse.ArgumentParser(description=__doc__)
 p.add_argument('kernel_tree', type=Path)
 p.add_argument('--deauth-retire', action='store_true')
+p.add_argument('--gtk7', action='store_true')
 a = p.parse_args()
+a.deauth_retire = a.deauth_retire or a.gtk7
 driver = a.kernel_tree.resolve() / 'drivers/net/wireless/mediatek/mt6797'
 with tempfile.TemporaryDirectory(prefix='pm-contract-') as d:
     binary = Path(d) / 'test'
@@ -17,6 +19,8 @@ with tempfile.TemporaryDirectory(prefix='pm-contract-') as d:
              '-fsanitize=address,undefined', '-fno-omit-frame-pointer']
     if a.deauth_retire:
         flags += ['-DTEST_DEAUTH_RETIRE']
+    if a.gtk7:
+        flags += ['-DTEST_GTK7']
     if sys.platform.startswith('linux'):
         flags += ['-fno-pie', '-no-pie']
     subprocess.run([*flags, '-DCONFIG_MT6797_CCMP_INITIAL_GTK', '-I', str(driver),

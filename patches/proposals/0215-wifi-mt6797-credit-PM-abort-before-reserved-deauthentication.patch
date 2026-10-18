@@ -1,0 +1,115 @@
+From 57b31cabf3d1c464c79be994527c78c5ce1e0483 Mon Sep 17 00:00:00 2001
+From: Codex Experiment <codex-experiment@example.invalid>
+Date: Sun, 18 Oct 2026 18:03:05 -0400
+Subject: [PATCH] wifi: mt6797: credit PM abort before reserved
+ deauthentication
+
+Fence only the reserved frame in the selection walk. Permit the one queued
+owned deauthentication during the PM abort phase, await its credit, then
+release that frame. Preserve later teardown order and the existing frame
+and command deadlines.
+
+Internal experiment archive, synthetic non-certifying author;
+no DCO certification and not an upstream submission.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 41 +++++++++++++++++++---
+ 1 file changed, 37 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index ab6b50a..416dbac 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -504,7 +504,8 @@ static bool mt6797_ccmp_deauth_retire(struct mt6797_mac *mac, u64 now,
+ {
+ 	if (!ccmp_stable_epoch || mac->ccmp_deauth_timeouts || mac->first_error ||
+ 	    mac->closing || mac->join_retired || mac->scan_active || !mac->join_running ||
+-	    !mac->join_data_phase || !mac->join_data_ended || !mac->ccmp_pm_connected ||
++	    !mac->join_data_phase || !mac->join_data_ended ||
++	    (!mac->ccmp_pm_connected && !mac->ccmp_pm_abort_credited) ||
+ 	    !mac->join_cleanup_requested || mac->join_cleanup_done || mac->join_cleanup_stage ||
+ 	    !mac->join_sta_active || mac->native_diag_state != MT6797_ND_CLOSED ||
+ 	    !mac->join_internal || mac->join_inflight != mac->join_internal ||
+@@ -539,6 +540,17 @@ static bool mt6797_ccmp_deauth_retire(struct mt6797_mac *mac, u64 now,
+ 	return true;
+ }
+ 
++/* The reserved frame stays queued until the PM abort is credited. Ordinary
++ * expired data may still be discarded by the existing selection walk.
++ */
++static bool mt6797_ccmp_pm_holds_deauth(const struct mt6797_mac *mac)
++{
++	return ccmp_stable_epoch && mac->join_cleanup_requested &&
++		mac->join_data_phase && mac->join_data_ended &&
++		mac->native_diag_state == MT6797_ND_CLOSED &&
++		mac->ccmp_pm_connected && !mac->ccmp_pm_abort_credited;
++}
++
+ static bool mt6797_ccmp_cleanup_debt_ready(const struct mt6797_mac *mac)
+ {
+ 	return ccmp_stable_epoch && mac->ccmp_deauth_timeouts == 1 &&
+@@ -1747,6 +1759,14 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
+ 		return -ECANCELED;
+ 	spin_lock_irqsave(&mac->join_queue.lock, flags);
+ 	queued = !skb_queue_empty(&mac->join_queue);
++#ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
++	if (queued && mt6797_ccmp_pm_holds_deauth(mac) && mac->join_internal &&
++	    skb_queue_len(&mac->join_queue) == 1 &&
++	    skb_peek(&mac->join_queue) == mac->join_internal &&
++	    mac->join_internal->len == 26 &&
++	    mt6797_join_le16(mac->join_internal->data) == 0x00c0)
++		queued = false;
++#endif
+ 	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
+ #ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
+ 	if (queued || mac->join_inflight ||
+@@ -1761,8 +1781,7 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
+ 		return 0;	/* wait for the native enable/disable to retire first */
+ #endif
+ #ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
+-	if (mac->join_sta_active && !mac->join_deauth_done &&
+-	    !(ccmp_stable_epoch && mac->ccmp_deauth_timeouts == 1))
++	if (!ccmp_stable_epoch && mac->join_sta_active && !mac->join_deauth_done)
+ #else
+ 	if (mac->join_sta_active && !mac->join_deauth_done)
+ #endif
+@@ -1813,7 +1832,9 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+ 			 "one-shot WLAN PM abort credit: returned=1\n");
+ 	}
+-	if (ccmp_stable_epoch && mac->ccmp_pm_connected) {
++	if (ccmp_stable_epoch && mac->ccmp_pm_connected &&
++	    (mac->join_deauth_done || mac->ccmp_deauth_timeouts ||
++	     mt6797_ccmp_pm_holds_deauth(mac))) {
+ 		unsigned int deauth_debt = mt6797_ccmp_cleanup_debt_ready(mac) ? 1 : 0;
+ 
+ 		if (mac->sequence > 253)
+@@ -1838,6 +1859,12 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
+ 		return ret;
+ 	}
+ #endif
++#ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
++	if (ccmp_stable_epoch && mac->join_sta_active && !mac->join_deauth_done &&
++	    !mac->ccmp_deauth_timeouts)
++		return 0;
++#endif
++
+ 	if (mac->join_cleanup_stage == 3) {
+ #ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
+ 		if (ccmp_stable_epoch && mac->join_page_debt) {
+@@ -2647,7 +2674,13 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 				bool port = IEEE80211_SKB_CB(walk)->control.flags &
+ 					    IEEE80211_TX_CTRL_PORT_CTRL_PROTO;
+ 
++#ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
++				if (walk == mac->join_internal &&
++				    (now_ns < mac->join_hold_until ||
++				     mt6797_ccmp_pm_holds_deauth(mac)))
++#else
+ 				if (walk == mac->join_internal && now_ns < mac->join_hold_until)
++#endif
+ 					continue;
+ 				if (data && !mac->join_sta_active)
+ 					continue;
+-- 
+2.54.0 (Apple Git-157)
+
