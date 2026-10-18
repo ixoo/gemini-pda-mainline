@@ -1,30 +1,26 @@
 # Wi-Fi resume checkpoint — INCOMPLETE
 
-Latest owner direction: resume regular builds and tests. The initial-GTK kernel
-build and package validation passed through the standard Buildbox backend from pushed input
-`c833b2b5`, profile `mt6797-a53-wifi-ccmp-initial-gtk`. This supersedes the build
-hold described below. Guarded installation, verified live identity, preserved
-evidence and owner physical boot2 selection remain mandatory before a trial.
-GTK1 is composed, installed to boot2 with matching full readback, and cleanly
-powered off. Local and Linux session fixtures (`57131770`) and complete actual
-offline host preparation pass. The original installer exited 2 only at its
-final host receipt check after shutdown (missing environment); independent
-receipt validation and final sealing passed without repeating device work.
-[Exact installation/handoff](MAC80211_GROUP_RX_CONTRACT.md#gtk1-guarded-installation-and-physical-handoff).
-Owner physical boot2 selection is next. No GTK1 capture or test has started.
-No additional ARP-pair boot, rekey, reuse or reconnect is selected.
+Latest completed device result: GTK1, boot
+`b1417555-b2f2-4d07-89cc-9608874f78a8`, is consumed once.
+[One row and source diagnosis](SESSION_0202_PLAN.md#gtk1-result-and-smallest-justified-correction),
+[one scalars file](results/gtk1-runtime-scalars.json). The validated firmware
+grant was 65,000 ms, but the driver clipped its stored resource horizon to the
+10-second setup deadline. Opening required 62,500 ms and found 9,466 ms:
+`-ERANGE`/branch 8 before any data window. No DHCP/ping/SSH/GTK result. Healthy
+stage 3 absent; no named HIF refusal. Do not repeat this unchanged candidate.
 
-Latest completed device result: unchanged-C10 D3 consumed once, boot
-`ccce2504-bdbf-470b-ba7c-267b61f102d0`. [One row and analysis](SESSION_0202_PLAN.md#evidence-and-later-work)
-and [one scalars file](results/ssh-d3-runtime-scalars.json): transport, DHCP,
-three individual pings, fresh SSH A and host cleanup passed in 6.205 / 6.178 s.
-A's neighbor entry was absent before and complete afterward; route query exit 71
-is unknown (`Operation not permitted`). A succeeded, so no ping intervention or
-B attempt occurred. Earlier SSH failure remains unclassified; do not claim a
-cause. All 70 seal entries and 2,113 contiguous log records verified; device and
-helper quiescence, A53 regression and one reviewed return passed. Changed-boot
-Gemian `216ec26f-5811-444c-9422-40c1b23af081` independently confirmed.
-No process, physical handoff or additional C10 boot is pending.
+All 63 seal entries and 2,035 contiguous records verified, with helper/device
+quiescence, A53 regression and one reviewed return. Changed-boot Gemian
+`9ff760f3-c66a-4aaf-9b91-95a2b48bc26b` independently confirmed. No live process or
+physical handoff is pending. Regular builds/tests remain owner-authorized.
+The [predeclared successor](SESSION_0202_PLAN.md#gtk1-result-and-smallest-justified-correction)
+will separate the actual grant horizon from the unchanged setup/transaction
+limits. Preserve all other diagnostic limits and the separate 0202 comparison.
+
+Prior D3 on unchanged C10 authenticated with an initially absent neighbor entry;
+B was correctly skipped. Earlier SSH failures remain approximately ten-second
+silence, with SYN-not-emitted versus SYN-unanswered unresolved. No further
+ARP-pair boot, -48 adjustment, rekey, reuse or reconnect is selected.
 
 The [reviewer reassessment](SESSION_0202_PLAN.md#reviewer-reassessment-before-further-implementation-or-any-build)
 corrects the all-`0xc200` premise: C11's 32 eligible groups required `0xc000`.

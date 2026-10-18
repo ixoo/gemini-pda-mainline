@@ -282,3 +282,15 @@ boot2 selection with USB connected to the custodian laptop. Require a new live
 boot and the pinned 84-byte kernel-notes digest before the single capture and
 admitted session. The planned observation remains 60 seconds subject to the
 unchanged limits; no GTK or sustained-operation result exists yet.
+
+## GTK1 consumed; grant-horizon correction next
+
+The owner selected boot2 and GTK1 ran once on its verified fresh image. It never
+opened a data window: the retained 65-second grant was clipped by the existing
+10-second setup deadline, producing `-ERANGE` at the 62.5-second opening check.
+[Exact scalars and successor branches](SESSION_0202_PLAN.md#gtk1-result-and-smallest-justified-correction)
+separate this host admission failure from transport, GTK and SSH questions.
+The sealed result and independently confirmed return supersede the pending
+physical handoff above. No GTK delivery, ARP counter or sustained result exists.
+The next correction retains the validated resource horizon without extending
+setup, command, frame or cleanup timeouts.

@@ -1,19 +1,19 @@
 # Design: MT6797 Wi-Fi native-crypto-delivery diagnostic (proposal 0181, default-off)
 
-Latest completed device result: [D3](SESSION_0202_PLAN.md#evidence-and-later-work)
-on unchanged C10 passed DHCP, three pings, fresh SSH and finite cleanup. Its
-neighbor entry changed from absent to complete; this proves resolution worked
-in that run, not how. A authenticated in 1.410 seconds, so B was correctly
-skipped. No additional ARP-pair boot is planned.
+Latest result: [GTK1](SESSION_0202_PLAN.md#gtk1-result-and-smallest-justified-correction)
+refused the data window with `-ERANGE`: firmware reported 65 seconds, but the
+host clipped the resource horizon to its 10-second setup deadline. DHCP, pings,
+SSH and GTK delivery were not reached. No named HIF refusal was observed;
+healthy stage 3 was absent. Preservation, quiescence, A53 regression and the
+reviewed return to independently confirmed changed-boot Gemian passed.
 
-The [post-D3 source contract](MAC80211_GROUP_RX_CONTRACT.md#prepared-implementation--unbuilt)
-records the owner-directed initial-GTK prototype and separate 60-second window.
-Standard sessions retain full client stderr and numeric netstat/neighbor state.
-The earlier approximately ten-second failures remain silence with SYN-not-emitted
-versus SYN-unanswered unresolved. GTK1 has passed the standard Buildbox build and actual composition gates;
-it remains untested on hardware. The owner resumed regular builds and tests. The separate 0202 framing
-comparison comes later. No -48 adjustment, rekey, reuse or reconnect. Sustained
-SSH, ordinary integrity/key retirement and full acceptance remain incomplete.
+The next correction separates the validated grant horizon from the unchanged
+setup/transaction limits. No unchanged GTK1 retry. Prior D3 demonstrated that
+neighbor resolution can work, without identifying its mechanism. Earlier SSH
+silence remains unresolved. Standard sessions retain client stderr and numeric
+netstat/neighbor state; the 60-second window is still unproved. The owner resumed
+regular builds/tests. No -48 adjustment, rekey, reuse or reconnect; ordinary
+integrity/key retirement and full acceptance remain incomplete.
 
 | Field | Value |
 | --- | --- |

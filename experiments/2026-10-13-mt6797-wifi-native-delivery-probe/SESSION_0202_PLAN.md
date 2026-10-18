@@ -224,6 +224,7 @@ remain in the existing private evidence seal, not public scalars.
 | Run / arm | Boot ID | Transport | DHCP | Individual pings | SSH / failure stage | Cleanup | Actual / planned duration | Scalars |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | C10 D3 / A only | `ccce2504-bdbf-470b-ba7c-267b61f102d0` | finite pass | bound | 3/3 | A authenticated, exit 0; B skipped | host stage 3 clean | 6.205 / 6.178 s | [one scalars file](results/ssh-d3-runtime-scalars.json) |
+| GTK1 | `b1417555-b2f2-4d07-89cc-9608874f78a8` | no named HIF refusal; host `-ERANGE` | not reached | not reached | not attempted; before ready marker | healthy stage 3 absent | 0 / 60 s; window unopened | [one scalars file](results/gtk1-runtime-scalars.json) |
 
 D3's SSH process lasted 1.410 seconds with empty stderr. Its numeric ARP read
 was absent before A and complete afterward. The route read returned exit 71,
@@ -288,3 +289,54 @@ records open/ended/closed-or-fault/unknown without changing the client verdict
 or ACK. This checks the driver admission state, not continued AP association.
 All seven cases pass on Linux from clean pushed input `4bde0dbf`; the
 independent window checks previously passed there at `5b92d39a`.
+
+## GTK1 result and smallest justified correction
+
+GTK1 is **NOT REACHED** for data, GTK and network/SSH, and consumed once. Firmware reported a validated 65,000 ms channel grant;
+PTK and GTK command credits returned. Before the data window could open, the
+host required 62,500 ms remaining but reported only 9,466 ms and stopped with
+`-ERANGE`, branch 8. No ACTIVE data window, DHCP, ping, listener, Wi-Fi SSH or
+checked GTK queue was reached. The withheld-ARP counter was not emitted and is
+unknown, not zero. This does not classify the intermittent SSH failure.
+
+The retained source explains the refusal: scan completion creates the existing
+10-second setup deadline; channel-event handling stores
+`join_grant_deadline = min(join_deadline, now + validated_interval)`. Thus the
+65-second resource horizon is clipped to the setup deadline before the new
+62.5-second admission check. This is host bookkeeping, not evidence of a short
+firmware grant. Healthy cleanup stage 3 was absent. All 63 seal entries and
+2,035 contiguous log records independently verified; helper/device quiescence,
+A53 regression, one reviewed return and changed-boot Gemian confirmation passed.
+
+The next logical correction will retain the actual validated resource horizon
+for the independent 60-second selection while leaving the 10-second setup
+and all command/frame/teardown limits unchanged. The setup must still finish
+within its existing deadline; only after successful key admission may the
+already-approved 60-second data phase replace it. No extra firmware operation,
+register access, framing rule, resource-cap change or longer transaction timeout.
+
+Before implementation, the hypothesis is that this separates channel ownership
+from setup admission and permits the already-approved window when the actual
+grant is sufficient. The regression must feed the actual grant-event branch
+into the actual data-opening function, reproducing the parent refusal and
+checking the successor without manually inserting a long grant deadline.
+A valid sufficient grant may open 60 seconds; a genuine short/expired grant
+must still refuse without publication; an expired setup must still stop.
+The later device trial must report actual GTK exposure, duration and the first
+limit/fault reached separately. No unchanged GTK1 retry is admitted.
+
+The follow-up researcher review agrees on decoupling the grant horizon. Its
+claim that no key command was submitted and cleanup was healthy conflicts with
+the sealed records: pairwise/group submissions are sequences 2021/2025, credit
+returns 2024/2028, window refusal 2029, and the consequent `set_key` error 2030.
+There is no healthy stage-3 record. Quiescence and reviewed recovery are separate
+successful verdicts. The GTK path is unmeasured, not failed by this run.
+
+`join_deadline` fences every join phase, including commands and frame progress;
+it is not merely a grant timer. Keep that fence unchanged until the existing
+successful data-opening transition installs the already-approved data/teardown
+deadline. Retain the exact +/-1 ns opening boundary. Earlier roughly six-second
+windows reflect host-requested grant/setup caps and the 2.5-second tail, not a
+proven firmware lifetime ceiling. Ten-minute operation needs persistent station
+and channel ownership/monitoring; another increase of the finite join constant
+is not that implementation.

@@ -1,0 +1,154 @@
+{
+  "run": "GTK1",
+  "status": "NOT REACHED for data/GTK/network/SSH; consumed once; observed 65000 ms grant clipped by host setup deadline",
+  "boot_id": "b1417555-b2f2-4d07-89cc-9608874f78a8",
+  "kernel_input": "c833b2b5124eeb8c2dd14c08a1e60b118d5ed13c",
+  "tooling_commit": "57131770",
+  "candidate_full_partition_sha256": "c1af69befe43ac1e24cda8006952953af08246bfa40318728e3b298754f427ea",
+  "attempts": {
+    "phase_a_capture": 1,
+    "device_sessions": 1,
+    "wifi_ssh": 0,
+    "native_recovery_requests": 1,
+    "watcher_attempts": 3
+  },
+  "verdicts": {
+    "transport": "no named HIF refusal observed; host window admission refused with ERANGE",
+    "dhcp": "not reached",
+    "pings": "not reached",
+    "ssh": "not attempted; ready marker never established",
+    "cleanup": "healthy stage 3 absent; local key withdrawal is not firmware retirement",
+    "sustained_operation": "not reached; no 60-second pass"
+  },
+  "data_window": {
+    "planned_ms": 60000,
+    "opened": false,
+    "actual_ms": 0,
+    "planned_window_reached": false,
+    "firmware_reported_grant_ms": 65000,
+    "host_remaining_at_refusal_ms": 9466,
+    "required_remaining_ms": 62500
+  },
+  "network": {
+    "dhcp_attempted": false,
+    "individual_pings": [],
+    "wifi_sshd_ready": false,
+    "host_ack": false
+  },
+  "ssh": {
+    "attempted": false,
+    "failure_stage": "before client readiness, at driver data-window admission",
+    "exit": null,
+    "client_observation_created": false,
+    "helper_timed_out": false
+  },
+  "gtk": {
+    "checked_queue_events": 0,
+    "withheld_arp_counter": null,
+    "counter_emitted": false,
+    "delivery_tested": false
+  },
+  "driver_events": {
+    "channel_grant": [
+      {
+        "sequence": 1991,
+        "time_us": 75464484,
+        "fields": [
+          "40",
+          "65000"
+        ]
+      }
+    ],
+    "initial_key_window_refused": [
+      {
+        "sequence": 2029,
+        "time_us": 75827955,
+        "fields": [
+          "9466",
+          "62500"
+        ]
+      }
+    ],
+    "stopped": [
+      {
+        "sequence": 2031,
+        "time_us": 75830946,
+        "fields": [
+          "-34",
+          "0",
+          "0x801",
+          "0",
+          "0",
+          "8"
+        ]
+      }
+    ],
+    "key_commands_submitted": [
+      {
+        "sequence": 2021,
+        "time_us": 75754817,
+        "fields": [
+          "pairwise",
+          "25"
+        ]
+      },
+      {
+        "sequence": 2025,
+        "time_us": 75800449,
+        "fields": [
+          "group",
+          "26"
+        ]
+      }
+    ],
+    "key_credits_returned": [
+      {
+        "sequence": 2024,
+        "time_us": 75778857,
+        "fields": [
+          "pairwise"
+        ]
+      },
+      {
+        "sequence": 2028,
+        "time_us": 75826911,
+        "fields": [
+          "group"
+        ]
+      }
+    ]
+  },
+  "named_fault_counts": {
+    "join_stopped": 1,
+    "hif_refused": 0,
+    "framing_hint": 0
+  },
+  "source_diagnosis": {
+    "setup_deadline_ms": 10000,
+    "grant_deadline_assignment": "min(join_deadline, grant_receive_time + validated_interval)",
+    "effect": "stored resource horizon is clipped to the setup deadline before the 62500 ms data-window test",
+    "firmware_short_grant_explanation": "excluded for this refusal: validated event reported 65000 ms",
+    "command_timeout_extension_required": false,
+    "key_command_refused_line": "set_key reports its downstream data-opening ERANGE after both key credits returned; not an additional submitted command or wire failure"
+  },
+  "preservation": {
+    "sealed_entries_verified": 63,
+    "seal_sha256": "cc5f177395f6a425c16075023fcf260b3fcb284d50fbba88b84b7937bef4ff6a",
+    "log_sha256": "7c1c817d8c79ee51a36be211afee9b3f59bf8f5e5af75c064331b2a7dd84b1a3",
+    "log_bytes": 155274,
+    "contiguous_log_records": 2035,
+    "complete_through_seal": true,
+    "helper_safe_group_quiescent": true,
+    "device_children_quiesced": true,
+    "regression_pass": true,
+    "recovery_confirmed": true,
+    "returned_gemian_boot": "9ff760f3-c66a-4aaf-9b91-95a2b48bc26b",
+    "independently_confirmed_gemian": true
+  },
+  "limits": [
+    "No protected data window, DHCP, ping or SSH measurement; this run cannot classify the intermittent SSH failure",
+    "No GTK or withheld-ARP result; unarmed counters are unknown, not zero",
+    "A reported firmware grant does not itself demonstrate continued firmware channel ownership or integrity enforcement",
+    "No framing adjustment, rekey, key reuse or reconnect; firmware key retirement remains unproved"
+  ]
+}
