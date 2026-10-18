@@ -1,0 +1,3 @@
+# SPDX-License-Identifier: GPL-2.0-only
+# One finite initial-key comparison, no rekey/reuse/reconnect.
+CONFIG_MT6797_CCMP_CHANNEL_RELEASE=y

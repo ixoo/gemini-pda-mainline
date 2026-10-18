@@ -1,5 +1,28 @@
 # Reusable healthy lifetimes: current source audit and remaining gates
 
+## GTK7 refresh: resource cleanup is separate from connected ownership
+
+[GTK7](../2026-10-13-mt6797-wifi-native-delivery-probe/SESSION_0202_PLAN.md#gtk7-consumed--whole-ledger-cleanup-with-late-deauthentication)
+now reaches whole-ledger stage 3 after a 60-second protected window, with
+credited PM abort and explicit key/station/channel/BSS removal paths. Its
+reserved deauthentication missed the existing bound, then returned late with
+status 5 during removals. Stage 3 no longer implies an acknowledged deauth:
+0213/0214 separate retired host ownership, actual page debt and a distinct
+non-healthy bounded-debt terminal. GTK7 finished with zero debt and did not use
+that terminal. Returned command credits remain buffer-consumption evidence,
+not a new key-incarnation or queued-RX retirement acknowledgment.
+
+The 60-second run had a 65-second privilege; sustained connected ownership
+after release is still unproved. The [bounded channel-release comparison](../2026-10-13-mt6797-wifi-native-delivery-probe/SESSION_0202_PLAN.md#after-gtk7--bounded-connected-channel-ownership-comparison)
+keeps the existing data and transport limits while separating the join grant
+from connected data. It does not enable re-arm. Successful traffic after
+release would permit the next persistent-station step; it would not authorize
+key/PN reset, rekey, stale-event acceptance or reconnect. Preserve both core
+teardown and firmware/resource barriers below. Owned-beacon admission recency
+is now measured at data end and was stale in GTK7 despite successful periodic
+traffic; do not substitute aggregate management counts or silence for a
+source-supported connection-monitor contract.
+
 ## C10 follow-up: key-removal credits and retirement
 
 [C10 passed](../2026-10-13-mt6797-wifi-native-delivery-probe/CCMP10_RESULT.md)
@@ -84,8 +107,10 @@ No selected patch modifies the three mac80211 files below. Source identities:
   discards non-reserved queued frames, waits within the lifetime deadline,
   cancels the worker outside the MAC mutex and synchronizes the final handoff.
   These are host-side barriers, not proof of firmware queue or key retirement.
-- Healthy cleanup requires deauthentication, whole host credit ledgers and
-  returned command credits. It explicitly submits pairwise and group removal
+- In the C9/C10 code reviewed here, healthy cleanup required successful
+  deauthentication, whole host credit ledgers and returned command credits.
+  GTK7 changes the frame-completion policy as recorded above; the whole-ledger
+  stage-3 requirement remains. It explicitly submits pairwise and group removal
   before station/channel/BSS cleanup. Key-state value 2 records submission;
   the following credit retires command-buffer debt. The stage-3 log's
   `slots=retired` does not establish firmware deletion or safe reuse.

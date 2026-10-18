@@ -31,10 +31,12 @@ replied, so the predeclared fixed-offset host-TX failure trigger did not occur.
 All 71 seals, 2,185 contiguous kmsg records, complete one-cycle export,
 helper/device quiescence and A53 regression verify. One reviewed return and
 independent Gemian identity confirm `78b701cf-cb65-4283-bc32-dbe7dadb5497`.
-No live device process, physical handoff or retry is pending. GTK7 is consumed;
-no successor candidate is selected. Review the late unacknowledged completion,
-stale beacon admissions and persistent station ownership before the next
-milestone. Two/ten minutes of authenticated SSH traffic and same-boot reusable
+No live device process, physical handoff or retry is pending. GTK7 is consumed.
+A default-off [connected-channel comparison](SESSION_0202_PLAN.md#after-gtk7--bounded-connected-channel-ownership-comparison)
+is prepared under 0217: a nine-second join grant released during the unchanged
+60-second window, original command/frame/tail limits, periodic traffic and
+GTK7 teardown. Local actual-source/option-off/crypto/HIF fixtures pass; Linux,
+build/package/hardware remain pending. No successor image is installed. Two/ten minutes of authenticated SSH traffic and same-boot reusable
 lifetimes remain unproved.
 
 Keep 0x16 before keys, counter-only 0210/fatal event refusal, connection-monitor

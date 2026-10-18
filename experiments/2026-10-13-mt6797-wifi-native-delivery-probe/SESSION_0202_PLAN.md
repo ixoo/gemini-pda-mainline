@@ -1289,3 +1289,78 @@ stale owned-beacon observation and preserve the exact late-completion behavior.
 No new candidate is selected by this result. Rekey, PID/key reuse and reconnect
 remain disabled. Ten-minute authenticated SSH traffic and reusable lifetimes
 remain incomplete.
+
+
+### After GTK7 — bounded connected-channel ownership comparison
+
+GTK7's five periodic replies and whole-ledger terminal are progress toward
+persistent operation. They do not establish data after channel-privilege
+release: its 65-second grant enclosed the whole data phase. The earlier
+[runtime 25](../2026-10-07-mt6797-wifi-phase-b-join/RUNTIME_25_RESULT.md)
+released before data and stalled on the first data TX; it did not have the
+now-credited PM connection indication. Do not repeat that artifact or assume
+that the missing indication was its cause.
+
+The retained public
+[AIS source](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/ais_fsm.c)
+was reverified at SHA-256
+`738b8fcf0d34098fef986c1dba4963ebe0676665b0a914d7a712a50e814838ba`.
+`aisFsmRunEventChGrant` starts the join timer from the actual grant interval;
+`aisFsmRunEventJoinTimeout` in NORMAL_TR calls `aisFsmReleaseCh` without
+tearing down the connected BSS. This supports a bounded comparison, not a
+firmware execution guarantee or a proof of current driver compatibility.
+
+**Hypothesis:** the current PM-configured connected BSS can continue protected
+traffic after returning a short join privilege. One new default-off profile,
+`mt6797-a53-wifi-ccmp-channel-release`, selects logical archive 0217 on GTK7.
+The existing initial-GTK profile is unchanged. Request 9,000 ms instead of
+65,000 ms; reject a shorter returned interval before association/keys. Open
+only with the unchanged 2,500 ms grant tail still available, but retain the
+existing 60,000 ms observation wall and 5,000 ms teardown margin independently
+of the join privilege. Thus the old full-window-within-grant admission applies
+to the old profile; this comparison explicitly tests its replacement ownership
+contract. No frame, command, teardown or resource limit is extended.
+
+At grant end minus the existing tail, hold selection of new TX. Let existing
+owned TX complete and both TC1/TC4 ledgers return whole within their existing
+bounds and remaining grant. Submit the existing CH_PRIVILEGE abort once with
+its original token, fresh sequence and one real page, under the existing
+100 ms command bound, clamped to the grant/lifetime horizon. Continue existing
+RX/credit processing without a blocking wait. Mark the privilege released and
+resume connected-BSS TX only after real credit returns. A failed/uncertain
+submission keeps its debit and takes the fatal path. Cleanup skips a second
+channel abort, using the existing released-channel branch; all other GTK7
+cleanup behavior stays unchanged. No new wire access, key/PID reuse, rekey,
+reconnect, event tolerance or receive-format change.
+
+**Unique observation:** preserve release submission/credit sequence, status and
+host timestamps, then individual periodic replies and TX completions after
+release and after the original grant horizon. Reuse five scheduled +10 through
++50-second probes and permanent SSH stderr. Export these alongside GTK7's
+beacon and teardown clocks in one future scalars file/row. No actual run or
+run row exists yet.
+
+**Decision branches:** (1) release cannot drain/submit/credit before its bounds:
+report that first ownership/transport failure, no later success claim;
+(2) release credits but the first later TX lacks completion or RX/traffic
+fails: report the first PID, ledger, offset and network stage, preserving the
+runtime-25 comparison without assigning a cause; (3) periodic replies continue
+beyond release and the original grant horizon to 60 seconds: connected data
+after release is demonstrated for that bounded lifetime; independently grade
+healthy stage 3 versus bounded debt and deauthentication acknowledgment;
+(4) a monitor event, resource cap, framing refusal or other first failure is
+its own result. Owned-beacon count/age still does not identify RF loss.
+
+Actual-source host fixtures pass for the grant branch, data-opening tail
+boundaries at +/-1 ns, release/drain/credit ownership, transport failure with
+no refund, poisoned/key/sequence refusals, exactly-once release and expired
+resource horizons. The option-off preprocessed MAC matches frozen GTK7 under
+three selections. Existing GTK7 crypto/callback/pthread and actual-HIF PM/debt
+fixtures pass. One first local regression invocation selected the wrong parent
+cohort and failed before tests; the correct retained grant-window parent
+(with the existing 0205 adjustment) passes. The new grant fixture initially
+lacked the existing IS_ENABLED shim; adding that fixture-only shim passes.
+Strict checkpatch has only the deliberate missing DCO certification, zero
+warnings/checks; this synthetic archive is not an upstream submission.
+Linux validation, the required clean/pushed Buildbox build, package binding,
+installation and hardware result remain pending. No candidate is installed.

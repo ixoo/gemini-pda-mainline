@@ -827,3 +827,4 @@ proposals/0213-wifi-mt6797-retire-only-reserved-deauth-timeout-for-bounded-clean
 proposals/0214-wifi-mt6797-quarantine-one-cleanup-page-without-a-healthy-terminal.patch
 proposals/0215-wifi-mt6797-credit-PM-abort-before-reserved-deauthentication.patch
 proposals/0216-wifi-mt6797-retain-PM-relative-completion-and-beacon-observations.patch
+proposals/0217-wifi-mt6797-test-connected-data-after-bounded-join-privilege-release.patch

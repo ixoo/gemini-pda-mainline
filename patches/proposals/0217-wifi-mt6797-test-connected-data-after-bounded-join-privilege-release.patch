@@ -1,0 +1,236 @@
+From f7ae3f2efe0916081397ae4476cc1887a8f869c1 Mon Sep 17 00:00:00 2001
+From: Codex Experiment <codex-experiment@example.invalid>
+Date: Sun, 18 Oct 2026 19:01:38 -0400
+Subject: [PATCH] wifi: mt6797: test connected data after bounded join
+ privilege release
+
+Keep the existing initial-GTK data window and all resource and
+transaction limits. Request a nine-second join privilege, stop new TX
+at its existing tail, drain owned TX and real page debt, then submit
+the existing channel-abort command once under its credit deadline.
+Resume connected-BSS TX only after that credit, with no reacquisition,
+key reuse or reconnect. The default profile remains inside the grant.
+
+Internal experiment archive, synthetic non-certifying author;
+no DCO certification and not an upstream submission.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig |  10 ++
+ drivers/net/wireless/mediatek/mt6797/mac.c   | 118 ++++++++++++++++++-
+ 2 files changed, 123 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index f19e27e..625605d 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -93,6 +93,16 @@ config MT6797_NATIVE_DELIVERY_DIAG
+ 	  unless this option is set; the Phase B compile profile does not set it.
+ 	  Not driver support; a bounded source-grounded crypto-delivery test.
+ 
++config MT6797_CCMP_CHANNEL_RELEASE
++	bool "MT6797 default-off connected data after join privilege release"
++	depends on MT6797_CCMP_INITIAL_GTK
++	default n
++	help
++	  Request nine seconds for joining, then return that privilege during
++	  the existing 60-second initial-key window. Hold new TX across the
++	  existing command credit deadline; retain all resource caps and the
++	  finite teardown. No rekey, reuse, reconnect or sustained support claim.
++
+ config MT6797_CCMP_INITIAL_GTK
+ 	bool "MT6797 default-off checked initial GTK compatibility"
+ 	depends on MT6797_CCMP_60S_WINDOW
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 3e8f64f..3798e9a 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -233,6 +233,11 @@ struct mt6797_mac {
+ 	unsigned int ccmp_cleanup_op, ccmp_cleanup_sequence;
+ 	bool ccmp_cleanup_credit_active, ccmp_cleanup_bounded_done;
+ 	u64 ccmp_pm_credit_ns;
++#ifdef CONFIG_MT6797_CCMP_CHANNEL_RELEASE
++	u64 ccmp_channel_release_at;
++	unsigned int ccmp_channel_release_sequence;
++	bool ccmp_channel_release_pending;
++#endif
+ 	unsigned int ccmp_beacons_at_pm_credit;
+ #endif
+ 	struct ieee80211_sta __rcu *ccmp_sta;
+@@ -1552,10 +1557,21 @@ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
+ 		/* Keep the acquired resource recorded even on an early refusal.
+ 		 * The late check remains authoritative after association and keys.
+ 		 */
+-		if (interval < MT6797_JOIN_DATA_BUDGET_MS + MT6797_JOIN_GRANT_TAIL_MS) {
++		if (interval <
++#ifdef CONFIG_MT6797_CCMP_CHANNEL_RELEASE
++		    9000U
++#else
++		    MT6797_JOIN_DATA_BUDGET_MS + MT6797_JOIN_GRANT_TAIL_MS
++#endif
++		   ) {
+ 			dev_info(wiphy_dev(mac->hw->wiphy),
+ 				 "one-shot WLAN initial-key grant refused: interval_ms=%u required_ms=%u\n",
+-				 interval, MT6797_JOIN_DATA_BUDGET_MS + MT6797_JOIN_GRANT_TAIL_MS);
++				 interval,
++#ifdef CONFIG_MT6797_CCMP_CHANNEL_RELEASE
++				 9000U);
++#else
++				 MT6797_JOIN_DATA_BUDGET_MS + MT6797_JOIN_GRANT_TAIL_MS);
++#endif
+ 			return -ERANGE;
+ 		}
+ #else
+@@ -2334,16 +2350,21 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+  * tail before the grant's end so the reserved deauthentication keeps its
+  * grant room; the lifetime deadline becomes that end plus the teardown
+  * margin. No command is submitted here. Data after a release stays
+- * unmeasured on this driver and is not attempted.
++ * unmeasured on the default path. The separately selected channel-release
++ * comparison below retains a finite data window while returning privilege.
+  */
+ static int mt6797_mac_join_release_channel(struct mt6797_mac *mac)
+ {
+ 	u64 now = ktime_get_ns(), budget_end, grant_end;
+ 
++#ifdef CONFIG_MT6797_CCMP_CHANNEL_RELEASE
++	if (!ccmp_stable_epoch || !mac->ccmp_pm_connected || !mac->ccmp_pm_credit_ns)
++		return -EOPNOTSUPP;
++#endif
+ 	if (!mac->join_channel_granted || mac->join_channel_released ||
+ 	    mac->join_data_phase || mac->join_page_debt || mac->join_credit_pending)
+ 		return -EBUSY;
+-#ifdef CONFIG_MT6797_CCMP_60S_WINDOW
++#if defined(CONFIG_MT6797_CCMP_60S_WINDOW) && !defined(CONFIG_MT6797_CCMP_CHANNEL_RELEASE)
+ 	/* A shorter grant cannot qualify as a shortened 60-second trial. */
+ 	if (mac->join_grant_deadline <= now || mac->join_grant_deadline - now <
+ 	    (u64)(MT6797_JOIN_DATA_BUDGET_MS + MT6797_JOIN_GRANT_TAIL_MS) * NSEC_PER_MSEC) {
+@@ -2366,7 +2387,16 @@ static int mt6797_mac_join_release_channel(struct mt6797_mac *mac)
+ 	if (ccmp_stable_epoch)
+ 		mac->ccmp_observation.active = true;
+ #endif
++#ifdef CONFIG_MT6797_CCMP_CHANNEL_RELEASE
++	/* Only this comparison separates connected data from join privilege.
++	 * Keep the same data budget and teardown margin; release before the old
++	 * grant tail, with no new TX until its command credit returns.
++	 */
++	mac->ccmp_channel_release_at = grant_end;
++	mac->join_data_deadline = budget_end;
++#else
+ 	mac->join_data_deadline = min(budget_end, grant_end);
++#endif
+ 	mac->join_deadline = mac->join_data_deadline +
+ 			     (u64)MT6797_JOIN_TEARDOWN_MARGIN_MS * NSEC_PER_MSEC;
+ 	mac->join_hold_until = mac->join_data_deadline;
+@@ -2377,6 +2407,70 @@ static int mt6797_mac_join_release_channel(struct mt6797_mac *mac)
+ }
+ #endif
+ 
++#ifdef CONFIG_MT6797_CCMP_CHANNEL_RELEASE
++/* Return 1 to hold new TX while releasing the join privilege. The existing
++ * worker still drains RX and reconciles credit; no blocking wait under mutex.
++ * The public AIS NORMAL_TR join-timer path releases CH_PRIVILEGE while the
++ * connected BSS remains active. This bounded comparison tests that ownership
++ * independently of a longer grant. No key or PID can be reused here.
++ */
++static int mt6797_ccmp_channel_release_step(struct mt6797_mac *mac, u64 now)
++{
++	u64 deadline;
++	int ret;
++
++	if (!ccmp_stable_epoch || mac->join_channel_released)
++		return 0;
++	if (!mac->ccmp_channel_release_pending &&
++	    (!mac->join_data_phase || mac->join_data_ended ||
++	     now < mac->ccmp_channel_release_at))
++		return 0;
++	if (mac->first_error || mac->closing || mac->join_retired ||
++	    !mac->join_running || !mac->join_channel_granted ||
++	    !mac->ccmp_pm_connected || !mac->ccmp_pm_credit_ns ||
++	    !mac->join_sta_active || mac->join_key_pairwise != 1 ||
++	    mac->join_key_group != 1)
++		return -EPROTO;
++	if (now >= mac->join_grant_deadline || now >= mac->join_deadline)
++		return -ETIMEDOUT;
++	if (mac->ccmp_channel_release_pending) {
++		if (mac->join_credit_pending || mac->join_page_debt)
++			return 1;
++		mac->ccmp_channel_release_pending = false;
++		mac->join_channel_released = true;
++		mac->join_channel_granted = false;
++		dev_info(wiphy_dev(mac->hw->wiphy),
++			 "one-shot WLAN connected channel release: credited=1 sequence=%u observed_ns=%llu pm_offset_ns=%llu debt=0\n",
++			 mac->ccmp_channel_release_sequence, now, now - mac->ccmp_pm_credit_ns);
++		return 0;
++	}
++	/* Stop selecting new frames at the old grant tail. An already owned TX
++	 * must complete and both real ledgers must be whole before the abort.
++	 * The unchanged frame bound and remaining tail bound this drain.
++	 */
++	if (mac->join_inflight || mac->join_credit_pending ||
++	    mac->join_page_debt || mac->join_data_page_debt)
++		return 1;
++	if (mac->sequence > 253)
++		return -ENOSPC;
++	deadline = min_t(u64, now + 100 * NSEC_PER_MSEC,
++			 min(mac->join_deadline, mac->join_grant_deadline));
++	mac->join_credit_deadline = deadline;
++	reinit_completion(&mac->join_credit_done);
++	mac->join_credit_pending = true;
++	mac->join_page_debt = 1;
++	mac->ccmp_channel_release_pending = true;
++	mac->ccmp_channel_release_sequence = mac->sequence++;
++	ret = mt6797_hif_join_channel(mac->hif, mac->ccmp_channel_release_sequence,
++				      mac->join_channel_token, 40, 0, true, deadline);
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot WLAN connected channel release: credited=0 sequence=%u status=%d observed_ns=%llu pm_offset_ns=%llu debt=%u\n",
++		 mac->ccmp_channel_release_sequence, ret, now, now - mac->ccmp_pm_credit_ns,
++		 mac->join_page_debt);
++	return ret ? ret : 1;
++}
++#endif
++
+ /* The lifetime's one terminal path (mutex held): the stopped footer, the
+  * first error, the flags that fence every producer, the waiters completed,
+  * and the queued and in-flight frames moved to `discard` for the caller to
+@@ -2555,6 +2649,9 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	const u8 *body;
+ #endif
+ 	bool running, ack = false, completed_internal = false, select;
++#ifdef CONFIG_MT6797_CCMP_CHANNEL_RELEASE
++	bool channel_release_holds_tx = false;
++#endif
+ #ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
+ 	bool nd_stop = false, nd_over = false;
+ 	int nd_phase;
+@@ -2696,9 +2793,20 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	if (mac->join_data_phase && !mac->join_data_ended &&
+ 	    ktime_get_ns() >= mac->join_data_deadline)
+ 		mt6797_mac_join_end_data(mac, "budget");
++#endif
++#ifdef CONFIG_MT6797_CCMP_CHANNEL_RELEASE
++	ret = mt6797_ccmp_channel_release_step(mac, ktime_get_ns());
++	if (ret < 0)
++		goto failed;
++	channel_release_holds_tx = ret;
++	ret = 0;
+ #endif
+ 	branch = 3;
+ 	select = !mac->join_inflight && !mac->join_page_debt;
++#ifdef CONFIG_MT6797_CCMP_CHANNEL_RELEASE
++	if (channel_release_holds_tx)
++		select = false;
++#endif
+ #ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
+ 	/* PID-budget exhaustion ends the data phase in the queue path; evaluate it
+ 	 * before any frame is selected so the step disables and the fence holds.
+@@ -4207,7 +4315,7 @@ static int mt6797_mac_join_add_peer(struct mt6797_mac *mac,
+ 		goto failed;
+ 	/* A fresh token is reserved once, before the first request write. */
+ 	mac->join_channel_token = 1;
+-#ifdef CONFIG_MT6797_CCMP_60S_WINDOW
++#if defined(CONFIG_MT6797_CCMP_60S_WINDOW) && !defined(CONFIG_MT6797_CCMP_CHANNEL_RELEASE)
+ 	mac->join_requested_ms = 65000;
+ #else
+ 	mac->join_requested_ms = 9000;
+-- 
+2.54.0 (Apple Git-157)
+
