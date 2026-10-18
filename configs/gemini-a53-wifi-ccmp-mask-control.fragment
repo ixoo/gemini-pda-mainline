@@ -1,0 +1,3 @@
+# SPDX-License-Identifier: GPL-2.0-only
+# Default-off fixed-mask comparison; unchanged stable-epoch limits.
+CONFIG_MT6797_CCMP_MASK_CONTROL=y

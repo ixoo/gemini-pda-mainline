@@ -10,8 +10,9 @@ Evidence was sealed and changed-boot Gemian independently confirmed.
 The [post-C9 pointer observation](POST_C9_POINTER_RESULT.md) resolved the
 opaque callback targets and captured one complete three-bit control primitive
 using bounded read-only stock queries. Its group-reporting/queued-length
-contract remains unproved. Next: review that contract and resource ownership
-before any write comparison. No new boot candidate or unchanged C9 retry;
+contract remains unproved. The [mask-only comparison](MASK_ONLY_COMPARISON.md)
+is authored and passes focused local actual-source tests; Linux/build gates
+remain before any candidate or write. No new boot admission or unchanged C9 retry;
 ordinary integrity/PN, key retirement, healthy reuse and ten-minute SSH remain.
 
 | Field | Value |
