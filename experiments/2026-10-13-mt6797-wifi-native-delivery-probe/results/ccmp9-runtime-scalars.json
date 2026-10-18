@@ -1,0 +1,415 @@
+{
+  "status": "consumed once; receive-length refusal; no unchanged retry",
+  "kernel_input": "79a2c883f2feaff6f5ed4583d05998fe73924ab6",
+  "capture_tooling_commit": "627cf81b741c2869a104f024ed21b96bd42a1690",
+  "session_tooling_commit": "627cf81b741c2869a104f024ed21b96bd42a1690",
+  "attempts": {
+    "phase_a_capture": 1,
+    "phase_a_exit": 0,
+    "actual_device_sessions": 1,
+    "actual_session_exit": 1,
+    "native_recovery_requests": 1,
+    "recovery_watch_connection_attempts": 3,
+    "independent_read_only_gemian_confirmation": true
+  },
+  "events": {
+    "data_start": [
+      {
+        "sequence": 2033,
+        "time_us": 118974102,
+        "budget_ms": 6152,
+        "teardown_margin_ms": 5000,
+        "inside_grant": 1
+      }
+    ],
+    "data_submit": [
+      {
+        "sequence": 2039,
+        "time_us": 119378801,
+        "pid": 5,
+        "pages": 3,
+        "bytes": 342
+      }
+    ],
+    "data_credit": [
+      {
+        "sequence": 2040,
+        "time_us": 119402620,
+        "pages": 3,
+        "debt": 0,
+        "count": 1
+      },
+      {
+        "sequence": 2043,
+        "time_us": 119454606,
+        "pages": 3,
+        "debt": 0,
+        "count": 2
+      }
+    ],
+    "tx_done": [
+      {
+        "sequence": 2001,
+        "time_us": 118699668,
+        "pid": 1,
+        "status": 0,
+        "advanced": 1,
+        "count": 1
+      },
+      {
+        "sequence": 2007,
+        "time_us": 118747654,
+        "pid": 2,
+        "status": 0,
+        "advanced": 1,
+        "count": 1
+      },
+      {
+        "sequence": 2017,
+        "time_us": 118825208,
+        "pid": 3,
+        "status": 0,
+        "advanced": 1,
+        "count": 1
+      },
+      {
+        "sequence": 2022,
+        "time_us": 118876098,
+        "pid": 4,
+        "status": 0,
+        "advanced": 1,
+        "count": 1
+      },
+      {
+        "sequence": 2041,
+        "time_us": 119403889,
+        "pid": 5,
+        "status": 0,
+        "advanced": 1,
+        "count": 1
+      },
+      {
+        "sequence": 2044,
+        "time_us": 119456098,
+        "pid": 6,
+        "status": 0,
+        "advanced": 1,
+        "count": 1
+      }
+    ],
+    "native_transition": [
+      {
+        "sequence": 2034,
+        "time_us": 118994613,
+        "state": 1,
+        "act": 1,
+        "total": 0,
+        "native": 0,
+        "bytes": 0
+      },
+      {
+        "sequence": 2036,
+        "time_us": 119019741,
+        "state": 2,
+        "act": 0,
+        "total": 0,
+        "native": 0,
+        "bytes": 0
+      },
+      {
+        "sequence": 2045,
+        "time_us": 120670601,
+        "state": 3,
+        "act": 2,
+        "total": 512,
+        "native": 0,
+        "bytes": 61220
+      },
+      {
+        "sequence": 2050,
+        "time_us": 120700891,
+        "state": 4,
+        "act": 0,
+        "total": 512,
+        "native": 0,
+        "bytes": 61220
+      }
+    ],
+    "terminal": [
+      {
+        "sequence": 2055,
+        "time_us": 120732557,
+        "now_ns": 120686034699,
+        "inflight": 1,
+        "pid": 7,
+        "submit_pid": 6,
+        "submit_return_ns": 119384092468,
+        "frame_deadline_ns": 121406815545,
+        "guard_valid": 1,
+        "guard_return_ns": 120680043237,
+        "whcr": 0,
+        "whisr": 3
+      }
+    ],
+    "rx_terminal": [
+      {
+        "sequence": 2056,
+        "time_us": 120735643,
+        "port": 0,
+        "attempts": 533,
+        "packets": 524,
+        "type7": 4,
+        "opposite": 0,
+        "status": -71,
+        "pre_valid": 1,
+        "pre_wrplr": 427,
+        "return_ns": 120681257314
+      },
+      {
+        "sequence": 2058,
+        "time_us": 120737902,
+        "port": 1,
+        "attempts": 519,
+        "packets": 0,
+        "type7": 0,
+        "opposite": 505,
+        "status": -11,
+        "pre_valid": 1,
+        "pre_wrplr": 80,
+        "return_ns": 120600083545
+      }
+    ],
+    "credit_terminal": [
+      {
+        "sequence": 2059,
+        "time_us": 120741361,
+        "site": 0,
+        "native_state": 4,
+        "pending": 0,
+        "credit_deadline_ns": 120724057314,
+        "lifetime_deadline_ns": 130080145930,
+        "polls": 95,
+        "scan": 0,
+        "closing": 0,
+        "first": 0,
+        "wtqcr7": 65537,
+        "tc4_free": 26,
+        "cpu_pending": 0,
+        "ffa_pending": 0,
+        "tc1_free": 16,
+        "ac1_pending": 0,
+        "released": 1,
+        "tc1_released": 0
+      }
+    ],
+    "stop": [
+      {
+        "sequence": 2060,
+        "time_us": 120744990,
+        "status": -71,
+        "first": 0,
+        "submitted": 6145,
+        "debt": 0,
+        "cleanup": 0,
+        "branch": 4
+      }
+    ],
+    "footer": [
+      {
+        "sequence": 2047,
+        "time_us": 120695736,
+        "elapsed_ms": 1721,
+        "rx_unicast": 0,
+        "rx_group": 0,
+        "rx_dropped": 0,
+        "tx_queued": 2,
+        "tx_done": 2,
+        "tx_failed": 0,
+        "tx_credits": 6
+      }
+    ],
+    "refusal": [
+      {
+        "sequence": 2053,
+        "time_us": 120727779,
+        "port": 0,
+        "pre_valid": 1,
+        "pre_wrplr": 427,
+        "selected": 427,
+        "header_valid": 1,
+        "header": 379,
+        "setup": 1,
+        "complete": 1,
+        "staging": 432,
+        "post_valid": 0,
+        "post_wrplr": 0,
+        "refused_type_valid": 1,
+        "refused_type_word": 16384
+      }
+    ],
+    "rx_classes": [
+      {
+        "sequence": 2061,
+        "time_us": 120746509,
+        "phase": 0,
+        "t0": 0,
+        "t1": 0,
+        "t2": 0,
+        "t3": 0,
+        "t4": 0,
+        "t5": 0,
+        "t6": 0,
+        "t7": 0,
+        "beacons": 0,
+        "reported_idx1_translated": 0,
+        "reported_idx1_untranslated": 0
+      },
+      {
+        "sequence": 2063,
+        "time_us": 120751597,
+        "phase": 1,
+        "t0": 0,
+        "t1": 0,
+        "t2": 508,
+        "t3": 0,
+        "t4": 0,
+        "t5": 0,
+        "t6": 0,
+        "t7": 4,
+        "beacons": 16,
+        "reported_idx1_translated": 0,
+        "reported_idx1_untranslated": 0
+      },
+      {
+        "sequence": 2065,
+        "time_us": 120756683,
+        "phase": 2,
+        "t0": 0,
+        "t1": 0,
+        "t2": 0,
+        "t3": 0,
+        "t4": 0,
+        "t5": 0,
+        "t6": 0,
+        "t7": 0,
+        "beacons": 0,
+        "reported_idx1_translated": 0,
+        "reported_idx1_untranslated": 0
+      },
+      {
+        "sequence": 2067,
+        "time_us": 120761738,
+        "phase": 3,
+        "t0": 0,
+        "t1": 0,
+        "t2": 12,
+        "t3": 0,
+        "t4": 0,
+        "t5": 0,
+        "t6": 0,
+        "t7": 0,
+        "beacons": 0,
+        "reported_idx1_translated": 0,
+        "reported_idx1_untranslated": 0
+      }
+    ],
+    "management_submit": [
+      {
+        "sequence": 1999,
+        "time_us": 118674592,
+        "subtype": 11,
+        "pid": 1,
+        "pages": 1
+      },
+      {
+        "sequence": 2005,
+        "time_us": 118722592,
+        "subtype": 0,
+        "pid": 2,
+        "pages": 1
+      },
+      {
+        "sequence": 2051,
+        "time_us": 120702226,
+        "subtype": 12,
+        "pid": 7,
+        "pages": 1
+      }
+    ],
+    "framing_hint": [
+      {
+        "sequence": 2054,
+        "time_us": 120731014,
+        "base_valid": 1,
+        "header_control": 24,
+        "status_flags": 57344
+      }
+    ]
+  },
+  "checked_ccmp_ethernet_queued": 2,
+  "native_ciphertext_queued": 0,
+  "initial_wpa2_key_negotiation_completed": 1,
+  "network": {
+    "dhcp_bound": 1,
+    "dhcp_exit": "0",
+    "dhcp_prefix": "24",
+    "dropbear_digest_ok": 1,
+    "host_ack": false,
+    "lease_written": 1,
+    "ping_received": 0,
+    "ping_transmitted": 0,
+    "wifi_sshd_ready": 1,
+    "wifi_sshd_started": 1
+  },
+  "retained_individual_ping_replies": [],
+  "ping_log_present": false,
+  "ping_summary_present": false,
+  "ssh": {
+    "ready_seen": true,
+    "ssh_attempted": true,
+    "ssh_exit": 255,
+    "ack_written": false,
+    "boot_match": false
+  },
+  "healthy_cleanup": false,
+  "provisional_pass": false,
+  "maintained_wifi_support": false,
+  "key_deletion_proven": false,
+  "hardware_replay_proven": false,
+  "preservation": {
+    "sealed_entries_verified": 63,
+    "seal_sha256": "ecc1156ade9a90ba34bc3cccc33cfa7b7c113f9aa076daa06d14bafd7e431ef1",
+    "log_sha256": "3d5713a6185e0e5c897ce8c6c1477ac266bce413d1fc8efb92896d5366d545a9",
+    "log_bytes": 163397,
+    "log_records": 2071,
+    "contiguous_records": true,
+    "helper_owned_safe_group_quiescent": true,
+    "device_children_quiesced": true,
+    "regression_pass": true,
+    "recovery_confirmed": true,
+    "mainline_boot": "05aafcdf-751b-4cf1-9cf8-34e484389528",
+    "returned_gemian_boot": "770cff12-273b-4465-899f-f9ad54d0078a"
+  },
+  "helper_quiescence": {
+    "owned": true,
+    "started": true,
+    "safe": true,
+    "group_quiescent": true,
+    "timed_out": false,
+    "probe_error": false,
+    "kill_error": false
+  },
+  "limits": [
+    "New base_valid means staged bounds only, never validity or admission",
+    "Raw header_control/status_flags are untrusted hints; bit decoding cannot prove producer or conversion",
+    "Cached guard/release state is from the last completed acquisition, not fault-time sampling",
+    "C9 did not reproduce the C6 timeout; no cause or timer repair is proved",
+    "Leaf ping zeros are defaults; this export has no ping log or retained individual reply",
+    "CLOSED means monitor-disable credit reconciled, not firmware queue drain or mac80211 teardown",
+    "Refused type word is untrusted staged metadata, not an accepted packet",
+    "Twelve CLOSED type-2 transfers passed length equality before the refusal; no individual accepted acquisition timestamps retained",
+    "CLOSED-only selection cannot exclude pairing damage from unchanged earlier ACTIVE/scan/boot acquisitions",
+    "Terminal shared debt is 0; cleanup stage 0 still does not prove resource or key retirement",
+    "No subtraction, short read, prefix copy or packet acceptance follows from delta 48"
+  ]
+}

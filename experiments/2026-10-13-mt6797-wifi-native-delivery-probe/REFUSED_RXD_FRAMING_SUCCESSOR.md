@@ -1,6 +1,6 @@
 # Refused descriptor framing: two retained failure-only scalars
 
-Status: built and privately composed observation, no runtime result yet, 2026-10-18 UTC. [C8](CCMP8_RESULT.md) is consumed. The complete
+Status: consumed once; see [C9 result](CCMP9_RESULT.md), 2026-10-18 UTC. [C8](CCMP8_RESULT.md) is consumed. The complete
 goal remains ordinary secure Wi-Fi, DHCP/three replies/ten-minute authenticated
 SSH and healthy reconnect; this observation does not replace those gates.
 

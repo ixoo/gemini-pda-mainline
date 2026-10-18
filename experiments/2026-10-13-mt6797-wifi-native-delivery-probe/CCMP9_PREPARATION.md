@@ -1,7 +1,7 @@
 # C9: refused descriptor framing hints
 
-Status: installed to guarded boot2, full readback and clean shutdown verified;
-awaiting owner physical selection, no runtime result, 2026-10-18 UTC. The
+Status: [consumed once](CCMP9_RESULT.md), 2026-10-18 UTC. The guarded
+installation/preparation record below is historical. The
 [source decision](REFUSED_RXD_FRAMING_SUCCESSOR.md) owns the hypothesis,
 unique observation and branches. C8 is consumed. This is a bounded observation,
 not a receive repair, crypto contract or maintained Wi-Fi claim.
@@ -105,9 +105,11 @@ Its SHA-256 is `15099957f1e2dbe6856d32e5f182ce9665af5e5f4e7b4910439567f15f4e25f8
 that real summary, candidate, current credential/calibration checkout and
 separate retained recovery source cohort. No Wi-Fi helper was started; bind
 it to the fresh boot only after live mainline identity is verified.
-Capture 9 is absent and no session execution claim exists.
+At that preparation boundary, capture 9 was absent and no session execution
+claim existed.
 
-Owner physical boot2 selection with USB connected is the next required action.
-No C9 runtime has run and no unchanged retry is admitted. Ordinary integrity/PN,
+Owner subsequently selected boot2; [C9 ran once](CCMP9_RESULT.md) and returned
+to independently confirmed Gemian. This preparation record does not authorize
+an unchanged retry. Ordinary integrity/PN,
 GTK/rekey/key retirement, healthy reusable lifetimes and clean-profile
 ten-minute SSH remain required for the complete Wi-Fi goal.

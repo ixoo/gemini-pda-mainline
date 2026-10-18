@@ -1,19 +1,18 @@
 # Design: MT6797 Wi-Fi native-crypto-delivery diagnostic (proposal 0181, default-off)
 
-Latest executed result: [C8](CCMP8_RESULT.md) (2026-10-18 UTC) completed
-WPA2/DHCP and retained one real ping reply. SSH failed. Four CLOSED transfers
-passed length equality, then the selected reader refused lengths 88/40.
-The post-CLOSED sequence alone is insufficient. Evidence was sealed and
-changed-boot Gemian independently confirmed; no unchanged retry or support claim.
+Latest executed result: [C9](CCMP9_RESULT.md) (2026-10-18 UTC) completed
+WPA2/DHCP, with no retained individual ping reply or authenticated SSH.
+Twelve CLOSED length-equal type-2 transfers preceded the fatal 427/379 refusal.
+New bounded hints `0x18`/`0xe000` suggest untranslated header-length24/DATA/AMPDU
+under the pinned layout; they do not validate the bytes or explain delta48.
+Evidence was sealed and changed-boot Gemian independently confirmed.
 
-Next authored observation: [refused framing fields](REFUSED_RXD_FRAMING_SUCCESSOR.md)
-retains two bounded, untrusted scalars from the existing failed transfer.
-Actual-source tests and Buildbox validation pass;
-[C9 preparation](CCMP9_PREPARATION.md#verified-installation-and-physical-handoff)
-records verified installation, full readback, shutdown and actual host preparation.
-Await owner physical selection; keep equality,
-complete transfer and poison/no-copy. No runtime result, credit-policy
-change, timeout extension or 48-byte framing exception is selected.
+Next: source review of untranslated receive/pending-length ownership around
+monitor disable. No next device candidate or unchanged C9 retry selected;
+keep complete transfer, equality and poison/no-copy. Ordinary integrity/PN,
+key retirement, healthy reuse and ten-minute SSH remain required. See the
+[predeclared observation](REFUSED_RXD_FRAMING_SUCCESSOR.md) and
+[preparation](CCMP9_PREPARATION.md) for historical build/deployment gates.
 
 | Field | Value |
 | --- | --- |

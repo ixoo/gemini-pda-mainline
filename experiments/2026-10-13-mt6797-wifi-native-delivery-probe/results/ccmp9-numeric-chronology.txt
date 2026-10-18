@@ -1,0 +1,30 @@
+# Sanitized fixed-prefix numeric fields; sequence, boot microseconds, event.
+1999 118674592 management_submit subtype=11 pid=1 pages=1
+2001 118699668 tx_done pid=1 status=0 advanced=1 count=1
+2005 118722592 management_submit subtype=0 pid=2 pages=1
+2007 118747654 tx_done pid=2 status=0 advanced=1 count=1
+2017 118825208 tx_done pid=3 status=0 advanced=1 count=1
+2022 118876098 tx_done pid=4 status=0 advanced=1 count=1
+2033 118974102 data_start budget_ms=6152 teardown_margin_ms=5000 inside_grant=1
+2034 118994613 native_transition state=1 act=1 total=0 native=0 bytes=0
+2036 119019741 native_transition state=2 act=0 total=0 native=0 bytes=0
+2039 119378801 data_submit pid=5 pages=3 bytes=342
+2040 119402620 data_credit pages=3 debt=0 count=1
+2041 119403889 tx_done pid=5 status=0 advanced=1 count=1
+2043 119454606 data_credit pages=3 debt=0 count=2
+2044 119456098 tx_done pid=6 status=0 advanced=1 count=1
+2045 120670601 native_transition state=3 act=2 total=512 native=0 bytes=61220
+2047 120695736 footer elapsed_ms=1721 rx_unicast=0 rx_group=0 rx_dropped=0 tx_queued=2 tx_done=2 tx_failed=0 tx_credits=6 reason=native-diag
+2050 120700891 native_transition state=4 act=0 total=512 native=0 bytes=61220
+2051 120702226 management_submit subtype=12 pid=7 pages=1
+2053 120727779 refusal port=0 pre_valid=1 pre_wrplr=427 selected=427 header_valid=1 header=379 setup=1 complete=1 staging=432 post_valid=0 post_wrplr=0 refused_type_valid=1 refused_type_word=16384 gate=header-length
+2054 120731014 framing_hint base_valid=1 header_control=24 status_flags=57344
+2055 120732557 terminal now_ns=120686034699 inflight=1 pid=7 submit_pid=6 submit_return_ns=119384092468 frame_deadline_ns=121406815545 guard_valid=1 guard_return_ns=120680043237 whcr=0 whisr=3
+2056 120735643 rx_terminal port=0 attempts=533 packets=524 type7=4 opposite=0 status=-71 pre_valid=1 pre_wrplr=427 return_ns=120681257314
+2058 120737902 rx_terminal port=1 attempts=519 packets=0 type7=0 opposite=505 status=-11 pre_valid=1 pre_wrplr=80 return_ns=120600083545
+2059 120741361 credit_terminal site=0 native_state=4 pending=0 credit_deadline_ns=120724057314 lifetime_deadline_ns=130080145930 polls=95 scan=0 closing=0 first=0 wtqcr7=65537 tc4_free=26 cpu_pending=0 ffa_pending=0 tc1_free=16 ac1_pending=0 released=1 tc1_released=0
+2060 120744990 stop status=-71 first=0 submitted=6145 debt=0 cleanup=0 branch=4
+2061 120746509 rx_classes phase=0 t0=0 t1=0 t2=0 t3=0 t4=0 t5=0 t6=0 t7=0 beacons=0 reported_idx1_translated=0 reported_idx1_untranslated=0
+2063 120751597 rx_classes phase=1 t0=0 t1=0 t2=508 t3=0 t4=0 t5=0 t6=0 t7=4 beacons=16 reported_idx1_translated=0 reported_idx1_untranslated=0
+2065 120756683 rx_classes phase=2 t0=0 t1=0 t2=0 t3=0 t4=0 t5=0 t6=0 t7=0 beacons=0 reported_idx1_translated=0 reported_idx1_untranslated=0
+2067 120761738 rx_classes phase=3 t0=0 t1=0 t2=12 t3=0 t4=0 t5=0 t6=0 t7=0 beacons=0 reported_idx1_translated=0 reported_idx1_untranslated=0

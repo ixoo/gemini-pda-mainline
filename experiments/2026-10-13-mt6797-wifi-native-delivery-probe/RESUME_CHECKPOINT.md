@@ -1,5 +1,10 @@
 # Wi-Fi resume checkpoint — INCOMPLETE / PAUSED
 
+Current continuation: [C9 result](CCMP9_RESULT.md) records the latest consumed
+trial, verified preservation and return. The timeout classification and C6-C9
+successors were executed after the owner resumed. Full Wi-Fi remains incomplete;
+no unchanged retry or next boot is selected. The pause record below is historical.
+
 Historical pause boundary. The owner explicitly resumed implementation on
 2026-10-17; see the [completion successor](CCMP_COMPLETION_SUCCESSOR.md) for
 the new source/evidence review and candidate gates. The frozen C5 result and
