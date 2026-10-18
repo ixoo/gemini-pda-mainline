@@ -28,8 +28,10 @@ selects one fixed-format ownership comparison: initialize before scan-ready,
 retain the format for the firmware instance, keep data-window/crypto gates.
 Exact C10 EAPOL headers passed 48 existing cases on Linux with ASan/UBSan.
 The [0202 prototype](FIXED_RX_FORMAT_PREPARATION.md) is implemented and passes
-1482 local ASan/UBSan cases plus RX/option-off comparisons. Linux host validation
-and patch review are next; no kernel build or execution is admitted. Do not repeat D2 or build under the owner's hold.
+1482 ASan/UBSan cases plus RX/option-off comparisons locally and on Linux.
+The separate approved 0203 window patch passes actual-source boundary/parity
+checks. Final strict patch review has only the intentional missing DCO sign-off.
+Next bind the A/B and sustained SSH session; no kernel build or execution is admitted. Do not repeat D2 or build under the owner's hold.
 
 The [three-run C10 baseline](CCMP10_BASELINE.md) remains SSH 2/3, all its finite
 transport/network/host-cleanup windows passed. [D1](SSH_D1_RESULT.md) passed

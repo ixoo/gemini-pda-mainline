@@ -1,8 +1,9 @@
 # Fixed receive format: predeclared design and unbuilt prototype
 
 Status: [prototype 0202](FIXED_RX_FORMAT_PREPARATION.md) implements the comparison
-below and passes local host fixtures. It remains unbuilt and is not a proven
-fix, runtime admission or permission to repeat D2. The design below predates code. The owner's hold
+below and passes local and Linux host fixtures. It remains unbuilt and is not
+a proven fix, runtime admission or permission to repeat D2. The design below
+predates code. The owner's hold
 on new candidate builds remains. No device operation occurred in this review.
 
 ## Questions resolved and limits

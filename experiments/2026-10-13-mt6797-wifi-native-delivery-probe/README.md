@@ -12,10 +12,11 @@ classifying the earlier SSH failure. D2 is a separate transport result, not an
 SSH measurement. The [RX contract review](D2_RX_CONTRACT_REVIEW.md) covers this
 new +48 direction, existing pre-arm status and updated actual-source fixtures.
 The [fixed-format source proposal](RX_FORMAT_OWNERSHIP_SUCCESSOR.md) is ready
-as an [unbuilt prototype](FIXED_RX_FORMAT_PREPARATION.md), with focused local
-host tests passing and Linux host validation pending. No successor candidate is
-built or admitted. GTK delivery, rekey, reuse and reconnect
-stay disabled; ordinary integrity/key retirement and sustained acceptance remain.
+as an [unbuilt prototype](FIXED_RX_FORMAT_PREPARATION.md), with host fixtures
+passing locally and on Linux. The approved 60-second budget patch is separate.
+A/B runtime binding and sustained SSH preparation remain pending. No successor
+candidate is built or admitted. GTK delivery, rekey, reuse and reconnect stay
+disabled; ordinary integrity/key retirement and sustained acceptance remain.
 
 | Field | Value |
 | --- | --- |

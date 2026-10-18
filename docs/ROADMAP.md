@@ -53,8 +53,9 @@ Keep this file under 200 lines; move anything else to an experiment record.
 - **Next (RX contract, 2026-10-18 UTC).** [D2](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/SSH_D2_RESULT.md)
   hit 94/142 framing refusal at mask enable before DHCP/SSH. [Source review](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/D2_RX_CONTRACT_REVIEW.md)
   supports one [fixed-format ownership proposal](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/RX_FORMAT_OWNERSHIP_SUCCESSOR.md)
-  now has an [unbuilt prototype](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/FIXED_RX_FORMAT_PREPARATION.md)
-  for Linux host validation/review before any build. Earlier C10 SSH 2/3 and D1
+  with an [unbuilt prototype](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/FIXED_RX_FORMAT_PREPARATION.md)
+  passing Linux host checks, with the approved 60-second budget in a separate patch.
+  Next bind controlled SSH A/B and sustained traffic under the build hold. C10 SSH 2/3 and D1
   success leave the earlier SSH failure stage unknown. Preserve equality/poison/
   no-copy, GTK/rekey/reuse/reconnect off.
   Sustained 60 s / 2 min / 10 min acceptance remains untested.

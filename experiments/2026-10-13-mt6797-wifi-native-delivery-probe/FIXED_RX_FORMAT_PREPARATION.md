@@ -72,13 +72,18 @@ pushed input `8fa3951a`, including all 1,482 cases, window boundaries and the
 combined-source scan/group fixture. Strict patch review found alignment and
 description-wrapping issues; these were corrected and local fixtures reran.
 The archives intentionally lack DCO certification; do not label checkpatch green.
-Final strict review of the formatting correction is pending from pushed inputs. No kernel compilation, DT/schema check,
+The final source fixtures pass on Linux from clean pushed input `115f58ee`.
+Strict stdin patch review reports zero warnings/checks for both patches; each
+returns nonzero solely for the intentional missing DCO sign-off. The full
+Linux repository check passed on `8fa3951a` before these formatting-only changes.
+No kernel compilation, DT/schema check,
 firmware enforcement, healthy resource lifetime or Wi-Fi runtime success is claimed.
 
 ## Remaining boundary
 
-Complete Linux host validation, patch/profile review and the repository checks
-before requesting release of the owner's explicit new-candidate build hold.
+Host fixtures, profile audit and patch review are complete with the explicit
+DCO exception above. Complete the 0202-specific A/B binding and bounded sustained
+SSH preparation before requesting release of the explicit candidate build hold.
 Only a later authorized standard Buildbox build/package and reviewed real
 composition/install can lead to a physical boot2 handoff. No device run or
 unchanged D2 retry is admitted by this prototype. Full Wi-Fi acceptance remains
