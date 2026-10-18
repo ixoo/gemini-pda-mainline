@@ -15,7 +15,7 @@ a = p.parse_args()
 rel = Path('drivers/net/wireless/mediatek/mt6797')
 parent, child = a.parent.resolve() / rel, a.child.resolve() / rel
 fixtures = Path(__file__).resolve().parent
-allowed = {'mac.c', 'native-diag.h', 'join-commands.h'}
+allowed = {'mac.c', 'native-diag.h', 'join-commands.h', 'Kconfig'}
 assert {x.name for x in parent.iterdir()} == {x.name for x in child.iterdir()}
 for path in parent.iterdir():
     if path.is_file() and path.name not in allowed:
@@ -27,8 +27,8 @@ def hooks(root):
     start = mac.index('static int mt6797_mac_join_release_channel(')
     end = mac.index('\n}\n', start) + 3
     request = mac.index('\tmac->join_requested_ms = 9000;')
-    if '#ifdef CONFIG_MT6797_CCMP_FIXED_RX_FORMAT\n\tmac->join_requested_ms = 65000;' in mac:
-        begin = mac.rindex('#ifdef CONFIG_MT6797_CCMP_FIXED_RX_FORMAT', 0, request)
+    if '#ifdef CONFIG_MT6797_CCMP_60S_WINDOW\n\tmac->join_requested_ms = 65000;' in mac:
+        begin = mac.rindex('#ifdef CONFIG_MT6797_CCMP_60S_WINDOW', 0, request)
         assignment = mac[begin:mac.index('#endif', request) + len('#endif')]
     else:
         assignment = '\tmac->join_requested_ms = 9000;'
@@ -52,7 +52,7 @@ with tempfile.TemporaryDirectory(prefix='fixed-window-') as directory:
         flags += ['-fno-pie', '-no-pie']
     (tmp / 'window-functions.inc').write_text(hooks(child))
     binary = tmp / 'window'
-    subprocess.run(['cc', *flags, '-DCONFIG_MT6797_CCMP_FIXED_RX_FORMAT', '-DCONFIG_MT6797_CCMP_STABLE_EPOCH',
+    subprocess.run(['cc', *flags, '-DCONFIG_MT6797_CCMP_60S_WINDOW', '-DCONFIG_MT6797_CCMP_STABLE_EPOCH',
                     '-I', str(child), '-I', str(tmp), str(fixtures / 'fixed-window-test.c'),
                     '-o', str(binary)], check=True)
     subprocess.run([str(binary)], check=True, timeout=30)

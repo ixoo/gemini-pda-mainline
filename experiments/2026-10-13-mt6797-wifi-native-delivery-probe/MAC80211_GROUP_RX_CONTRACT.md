@@ -5,8 +5,7 @@ physical selection. The [C11 result](CCMP11_RESULT.md) subsequently established
 positive group-PN availability; GTK delivery remains withheld. No new candidate, GTK acceptance, frame acquisition or device action.
 The [C11 observation](GROUP_PN_SUCCESSOR.md) establishes only sampled availability.
 The unchanged C10 baseline and the later [D3 diagnostic](SESSION_0202_PLAN.md#evidence-and-later-work)
-are now recorded. Candidate ordering is awaiting an explicit owner choice; the
-new-build hold remains. No GTK acceptance code has been added.
+are now recorded. The owner adopted group-first preparation after D3; the new-build hold remains. No GTK acceptance code has been added.
 
 Input: the actual prepared Linux 7.1.3 source for kernel commit
 `774e08aa5570f96986acc1fd2a40afa0c226777d`, using the
@@ -85,9 +84,49 @@ The current TX-credit quiescence is not an RX-producer fence. Early write-once
 0202 remains a bounded comparison, not a proven fix or proof of RX quiescence.
 No new register access or deadline extension is authorized by this inference.
 
-The approved 0203 60-second exception is currently guarded by
-`CONFIG_MT6797_CCMP_FIXED_RX_FORMAT`; selecting it without 0202 does not enable
-that exception. A group-first preparation must separate the observation-window
-selection while preserving all resource caps and transaction/cleanup limits.
-This is a concrete dependency, not permission to build. The owner is being asked
-whether to supersede the earlier instruction deferring GTK until the 0202 result.
+The owner explicitly superseded framing-first ordering: prepare initial GTK
+first, with 0202 retained as a separate framing comparison. The approved 0203
+exception is now selected by independent `CONFIG_MT6797_CCMP_60S_WINDOW` and a
+C10-derived profile that excludes 0202. Request/grant/window boundaries pass
+locally; Linux validation of this revision is pending. Builds and device work
+remain on hold, and the 120/600-second stages are not included in this change.
+
+## Predeclared initial-GTK preparation
+
+The successor starts from C10 plus the independent 60-second window, without
+C11's availability observer or 0202's global format change. Retain the C10
+mask protocol and reject any RX length mismatch without adjustment. This is
+one initial-key compatibility experiment, not maintained normal-mode crypto.
+
+Keep the PTK checker unchanged. Add a separate GTK context with the same strict
+shape/error/fragment/TID/aggregation predicates, changing only key class/ID,
+BMC index and group destination. Key IDs 0..3 must match the single installed
+GTK, WLAN index must be 2, and Ethernet RA must be group-addressed. Require G4
+and G1; reverse the six-byte PN at offset 32 and require strict increase over
+the real GTK seed. No same-PN exception, QoS expansion or PTK replay-state reuse.
+
+Read the initial GTK sequence with the pinned key API's TID 0 convention before
+any GTK acceptance, serialized against receive handoff. Do not acquire the
+receive mutex while holding the MAC mutex: the receive path uses the opposite
+order. Release it before any firmware-credit wait. Only successful key command
+credit and current station/key admission can publish the seeded GTK context;
+credit remains buffer retirement, not an independent firmware key-install ACK.
+
+Authorization follows the current AP station. Any existing withdrawal closes
+both contexts before synchronizing the receive batch; no queued frame may
+escape after key/station teardown. Allocation precedes PN mutation. Retain
+permanent poison and prohibit every reinstall, rekey, reuse and reconnect.
+
+Add the requested single withheld-ARP counter using the validated group
+EtherType, without a PN read in the classifier or retained frame content.
+A one-time first-checked-GTK-queue event is also needed: ARP/SSH already succeed
+on C10, so network success alone cannot prove that the new path was exercised.
+This event is queue evidence, not independent core delivery or firmware
+integrity proof. PTK and GTK together retain the existing 64-frame delivery cap;
+other RX/byte/PID/poll/time limits remain unchanged.
+
+Actual-source fixtures must distinguish both PN contexts, GTK IDs, missing or
+truncated groups, replay/equality/rollover, wrong status/peer/destination, stale
+keys and queued frames, allocation failure, authorization/withdrawal races,
+option-off parity and unchanged HIF receive behavior. Synthetic checks prove
+host behavior only. No candidate build or radio test follows automatically.

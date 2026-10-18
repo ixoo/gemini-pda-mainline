@@ -115,3 +115,15 @@ software-ledger error report. These are partial-source fixtures, not kernels.
 Runtime A/B binding and full-window authenticated SSH operation remain pending;
 no candidate may be built under the hold. Subsequent 120/600-second limits are
 not included in the owner's first-stage approval.
+
+## Later selection refinement: independent window, group-first successor
+
+The owner now selects initial GTK first and retains 0202 separately. Unbuilt
+0203 has been revised to use `CONFIG_MT6797_CCMP_60S_WINDOW` and an independent
+C10-derived profile; it no longer requires fixed-format ownership. The existing
+fixed-format fragment explicitly enables the new flag to preserve its prepared
+60-second behavior. All prior manifest profile definitions are unchanged. The
+new window-only series is C10 + 0203 and excludes 0202/C11. Actual-source window
+and option-off cases pass locally on this C10 child. Earlier Linux/checkpatch
+results above pin the earlier archive revision; this revision needs clean-input
+Linux validation. No source, build or device result is claimed beyond that.

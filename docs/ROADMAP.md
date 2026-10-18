@@ -50,14 +50,15 @@ Keep this file under 200 lines; move anything else to an experiment record.
   which also observed the received-PN group absent on that one sample — an availability
   fact, not a replay or crypto claim). Bounded lifetimes only; `wifi_operational` stays
   false and no operational, reliability, persistence or replay-protection claim follows.
-- **Next (RX contract, 2026-10-18 UTC).** [D2](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/SSH_D2_RESULT.md)
-  hit 94/142 framing refusal at mask enable before DHCP/SSH. [Source review](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/D2_RX_CONTRACT_REVIEW.md)
-  supports one [fixed-format ownership proposal](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/RX_FORMAT_OWNERSHIP_SUCCESSOR.md)
-  with an [unbuilt prototype](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/FIXED_RX_FORMAT_PREPARATION.md)
-  passing Linux host checks, with the approved 60-second budget in a separate patch.
-  Next bind controlled SSH A/B and sustained traffic under the build hold. C10 SSH 2/3 and D1
-  success leave the earlier SSH failure stage unknown. Preserve equality/poison/
-  no-copy, GTK/rekey/reuse/reconnect off.
+- **Next (owner-directed group-first, 2026-10-18 UTC).** Prepare the
+  [strict initial-GTK path](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/MAC80211_GROUP_RX_CONTRACT.md#predeclared-initial-gtk-preparation)
+  with independent PN/key ownership and the approved independent 60-second window.
+  [D3](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/SESSION_0202_PLAN.md#evidence-and-later-work)
+  authenticated despite an absent initial neighbor; no more ARP-pair boot.
+  Make retained client stderr/numeric netstat state standard. Keep
+  [0202](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/FIXED_RX_FORMAT_PREPARATION.md)
+  separate for the framing fault, preserving equality/poison/no-copy.
+  Builds/device work stay on hold; rekey/reuse/reconnect remain disabled.
   Sustained 60 s / 2 min / 10 min acceptance remains untested.
 - **Open.** Wi-Fi station operation beyond one bounded lifetime; replay
   enforcement in firmware is unknown. No charging, RTC alarm or lid.

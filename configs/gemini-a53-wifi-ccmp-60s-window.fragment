@@ -1,0 +1,3 @@
+# SPDX-License-Identifier: GPL-2.0-only
+# Independent approved observation window; no fixed-format ownership.
+CONFIG_MT6797_CCMP_60S_WINDOW=y

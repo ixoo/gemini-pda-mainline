@@ -15,9 +15,12 @@ No process, physical handoff or additional C10 boot is pending.
 The [reviewer reassessment](SESSION_0202_PLAN.md#reviewer-reassessment-before-further-implementation-or-any-build)
 corrects the all-`0xc200` premise: C11's 32 eligible groups required `0xc000`.
 Expanded 2,718 actual-source cases and eleven paired-helper cases pass locally
-and on Linux from clean pushed input `f45b7645`. A new group-first researcher
-proposal is next for source/security review; it is not an implemented GTK path
-or proof of SSH causality. Preserve strict PN/integrity/ownership requirements.
+and on Linux from clean pushed input `f45b7645`. The owner adopted group-first preparation. The independent 60-second window
+and permanent standard client stderr/netstat retention are implemented locally
+with focused fixtures passing; current-revision Linux validation is next.
+The strict initial-GTK context/checker is next for implementation under the
+[predeclared source contract](MAC80211_GROUP_RX_CONTRACT.md#predeclared-initial-gtk-preparation).
+No new GTK acceptance or SSH-cause proof is claimed. Preserve strict PN/integrity/ownership requirements.
 0202/0203 remain unbuilt under the owner's hold; the 65-second request /
 60-second wall exception is approved for preparation only. Keep one scalars
 file and one table row per future run; no per-run result documents. No -48

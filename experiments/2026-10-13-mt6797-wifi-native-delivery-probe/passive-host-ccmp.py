@@ -53,7 +53,7 @@ class NativeWifiHelper(PH.WifiHelper):
         if not self.enabled() or self.record['started']:
             return
         import subprocess
-        argv = [sys.executable, str(HERE / 'laptop-wifi-ssh-ccmp.py'), str(self.keys),
+        argv = [sys.executable, str(HERE / 'laptop-wifi-ssh-retain.py'), str(self.keys),
                 self.boot, '--cycles', '1', '--poll-seconds', str(self.poll),
                 '--receipt', str(self.receipt_path)]
         self.proc = self.spawn(argv, start_new_session=True,

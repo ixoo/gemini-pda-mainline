@@ -246,3 +246,40 @@ build/package, reviewed session preparation and guarded install/readback/clean
 shutdown. After reporting the 0202 result, the next design item is strict GTK
 delivery with per-frame group PN checking grounded in C11's observed metadata.
 No GTK implementation is part of this preparation.
+
+## Latest owner direction after D3: group-first, permanent client evidence
+
+No further ARP-pair boot. Prepare initial GTK before the separate framing
+comparison, following the [source contract and predeclared preparation](MAC80211_GROUP_RX_CONTRACT.md#predeclared-initial-gtk-preparation).
+The 60-second observation is also a timeout discriminator: retain the original
+single connect call and verify that its entire measured duration lies inside a
+live, authenticated device data window. Kernel/USB liveness alone is not enough
+if a resource cap already closed the station data phase.
+
+Both earlier failed receipts returned 255 after approximately ten seconds from
+readiness: C10 #2, 4.3 to 14.3 s; C11, 3.8 to 13.8 s. Their owned helpers were
+not timed out, and the client returned rather than being killed by the host.
+D3's 1.410-second successful client exchange leaves about 0.29 seconds of other
+work in the rounded post-readiness interval. Record the earlier signature as a
+roughly ten-second silent failure, not a fast local refusal. Its client stderr
+was discarded, so the exact TCP/SSH stage remains unproved. For the connect
+silence hypothesis, keep SYN-not-emitted and SYN-unanswered explicitly separate;
+received-frame counts cannot decide between them.
+
+Authentication with a longer live window is consistent with transient delivery
+or retry timing, not proof of a particular lost packet. A repeated ten-second
+failure entirely inside a live data window supports investigating a persistent
+path problem. Neither branch justifies silently increasing a timeout or
+claiming a cause from one outcome.
+
+The standard owned session now selects [permanent client retention](laptop-wifi-ssh-retain.py).
+It reuses D1's full stdout/stderr/exit/timing retention and original verifier/ACK
+rules for every standard lifetime, not a purpose-built diagnostic boot. Its
+active route observation is `netstat -rn -f inet`, with the numeric ARP reads
+retained around the client. The complete routing table stays private. This
+command succeeded unprivileged in the same helper sandbox (exit 0, 1,517 stdout
+bytes, empty stderr); it sends no probe and needs no privilege or cache change.
+The completed D1/D2/D3 source inputs remain historical at their recorded commits.
+Five focused standard-client cases pass locally, including default host dispatch,
+retained failed-client stderr, unknown-route handling and the owned GTK receipt
+namespace. Linux validation is pending from pushed inputs.
