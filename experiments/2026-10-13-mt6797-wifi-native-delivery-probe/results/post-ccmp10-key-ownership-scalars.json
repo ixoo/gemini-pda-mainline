@@ -72,5 +72,25 @@
     "archive_sha256": "86bd4b8ac542e90352604d36b5ea97eca69cb32aa9702344dc727610f7f2730d",
     "decoder_processes": 0,
     "independently_verified": true
+  },
+  "actual_bss_caller_continuation": {
+    "byte_cap": 256,
+    "instructions": 59,
+    "trailing_gaps": 29,
+    "new_unvalidated_shapes": 0,
+    "visible_handler_reaches_return": true,
+    "direct_helpers_remaining_unresolved": 3,
+    "original_key_instruction_anchors_reproduced": 43,
+    "width_fixture_cases": 836,
+    "pre_decode_saved_file_preflight_failures": 1,
+    "successful_fixed_window_decodes": 1,
+    "device_actions": 0,
+    "preservation": {
+      "entries": 10,
+      "manifest_sha256": "0dcf90f8e8a637d8606467108d67163dcc934db65937d1a0be818c89f5d0e1d0",
+      "archive_sha256": "f56c20f9e71bf0d08ed8d9fdf3ab31dc854bf4c0dd3c8cafd2bc0b8a4b3d169c",
+      "decoder_processes": 0,
+      "independently_verified": true
+    }
   }
 }

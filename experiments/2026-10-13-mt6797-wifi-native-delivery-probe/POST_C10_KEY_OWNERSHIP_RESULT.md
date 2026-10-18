@@ -46,6 +46,26 @@ flags were not suppressed. New control-flow checks use the existing decoded
 records without acquiring or decoding further bytes. Raw code, captured words,
 addresses and private analysis records are not published here.
 
+## Actual BSS caller continuation
+
+A separate retained-source window continued the actual command handler after
+those callbacks, under a fixed 256-byte cap. It supplied 59 instructions and
+29 trailing undecoded halfwords; the visible handler reaches its return before
+that trailing area. The original 43 key-removal instruction anchors reproduced,
+with no new shapes outside the frozen decoder's accounting. The width fixture
+passed 836 cases. An initial script invocation failed its saved-file identity
+preflight before decoding; that record was preserved. The corrected saved-file
+invocation decoded the unchanged window once, without device access.
+
+The tail includes conditional diagnostic work and three further direct helper
+calls before return. Their effects are unresolved. Thus the two complete BSS
+address callbacks do not exhaust the command's cleanup behavior, and the caller
+return is not yet a queued-frame retirement contract. A future source review
+must classify those specific remaining effects and their ordering; this result
+does not authorize an automatic recursive trace or new device experiment.
+A separate 10-entry private bundle was sealed and independently verified;
+decoder processes were quiescent.
+
 ## Implementation consequence
 
 Keep the demonstrated mask-only initial-PTK path as a finite baseline. C10's
