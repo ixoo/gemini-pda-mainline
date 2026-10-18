@@ -107,3 +107,8 @@ then found the new Kconfig help paragraph one line short and stopped before any
 kernel build. The help paragraph is now complete; observer MAC code is unchanged.
 The failed pre-build log remains retained. Corrected-input Linux validation and
 the single kernel build subsequently passed; see C11 preparation.
+
+The later [pinned mac80211 GTK handoff review](MAC80211_GROUP_RX_CONTRACT.md)
+confirms that the existing Ethernet decap path can carry multicast while leaving
+key/integrity/PN validation to the driver. C11 availability remains the next gate;
+no GTK acceptance or reuse follows from that source review.
