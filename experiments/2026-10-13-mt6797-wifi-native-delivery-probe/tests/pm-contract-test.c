@@ -109,9 +109,48 @@ static void ledger(void)
 	assert(mt6797_normal_submitted(&t, -EIO) < 0 && t.phase == MT6797_NORMAL_FAILED && t.tc4_free == 3);
 }
 
+#ifdef TEST_DEAUTH_RETIRE
+static void deauth_debt(void)
+{
+	struct mt6797_normal_transaction t;
+	struct mt6797_normal_release release;
+	struct mt6797_hif_command cmd;
+	unsigned char history[32] = {0}, out[64], saved[64], payload[4] = {0};
+	unsigned int words[8] = {0};
+
+	ready(&t, history); t.tc4_free--; t.tc4_pending_ffa = 1;
+	assert(mt6797_join_cleanup_abort_ready(&t, 1));
+	memset(out, 0xa5, sizeof(out)); memcpy(saved, out, sizeof(out));
+	assert(mt6797_join_prepare_command(&t, 0x17, 21, payload, 4, out, sizeof(out), &cmd) == -EBUSY);
+	assert(t.tc4_free == 3 && t.tc4_pending_ffa == 1 && !memcmp(out, saved, sizeof(out)));
+	assert(mt6797_join_prepare_cleanup_abort(&t, 21, 0, out, sizeof(out), &cmd) == -EBUSY);
+	assert(mt6797_join_prepare_cleanup_abort(&t, 21, 2, out, sizeof(out), &cmd) == -EBUSY);
+	assert(!mt6797_join_prepare_cleanup_abort(&t, 21, 1, out, sizeof(out), &cmd));
+	assert(t.tc4_free == 2 && t.tc4_pending_ffa == 1 && out[4] == 0x17 && out[7] == 21);
+	assert(!mt6797_normal_submitted(&t, 0));
+	/* One aggregate return cannot prove both outstanding buffers retired. */
+	words[7] = 1U << 16;
+	assert(!mt6797_normal_reconcile(&t, words, &release));
+	assert(release.released_pages == 1 && t.tc4_free == 3);
+	assert(mt6797_join_prepare_command(&t, 0x17, 22, payload, 4, out, sizeof(out), &cmd) == -EBUSY);
+	words[7] = (1U << 16) | 1;
+	assert(!mt6797_normal_reconcile(&t, words, &release) && t.tc4_free == 4);
+	assert(!t.tc4_pending_cpu && !t.tc4_pending_ffa);
+	assert(!mt6797_join_cleanup_abort_ready(&t, 1));
+	assert(!mt6797_join_prepare_command(&t, 0x17, 22, payload, 4, out, sizeof(out), &cmd));
+	assert(mt6797_normal_submitted(&t, -EIO) < 0 && t.tc4_free == 3);
+	assert(!mt6797_join_cleanup_abort_ready(&t, 1));
+	puts("deauth page ledger: PASS ordinary admission stays strict, bounded abort debit, partial/full returns, poison and no refund");
+}
+
+#endif
+
 int main(void)
 {
 	metadata(); ledger();
+#ifdef TEST_DEAUTH_RETIRE
+	deauth_debt();
+#endif
 	puts("PM contract: PASS actual TIM bounds/unique/period/AID/interval, exact wire encoders and existing sequence/page-credit ownership; no firmware claim");
 	return 0;
 }

@@ -23,3 +23,9 @@ static int mt6797_hif_join_channel(void *, unsigned int, u8, u8, unsigned int, b
 static int mt6797_hif_send_config(void *, enum mt6797_normal_config_kind, unsigned int,
 				const u8 *, size_t, u64);
 static void ieee80211_connection_loss(struct ieee80211_vif *);
+
+#ifdef FIXTURE_DEAUTH_RETIRE
+static bool mt6797_ccmp_deauth_abort_owed(const struct mt6797_mac *);
+static bool mt6797_hif_cleanup_abort_ready(void *);
+static int mt6797_hif_join_pm_abort_debt(void *, unsigned int, unsigned int, u64);
+#endif

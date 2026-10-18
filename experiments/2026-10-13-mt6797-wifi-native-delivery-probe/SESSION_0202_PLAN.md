@@ -972,3 +972,56 @@ select another candidate without that evidence. If source cannot distinguish
 the remaining causes, predeclare one bounded scalar diagnostic from existing
 acquisitions. Resolve healthy cleanup before the longer/persistent lifetime;
 no two-minute, ten-minute, rekey, reuse or reconnect acceptance is established.
+
+### Predeclared GTK6: bounded reserved-deauthentication retirement
+
+The public vendor source starts a 100 ms deauthentication done timer in
+`AIS_STATE_DISCONNECTING` and calls `aisDeauthXmitComplete` with a lifetime-timeout
+result on expiry, continuing disconnect handling
+([pinned AIS source](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/ais_fsm.c)).
+This supports separating missing deauthentication completion from resource
+cleanup. It does not authorize inventing a completion, ACK or returned page.
+
+One logical successor, archive 0213, keeps the current 750 ms management-frame
+bound and all 100 ms command deadlines. On expiry it retires only the current
+lifetime's reserved, driver-owned 26-byte deauthentication after the data phase
+and native close. Count the missing completion; leave ACK false and the page
+charged. Keep the free outside the MAC lock, including a subsequent failure in
+the same worker tick. All other frame timeouts remain fatal.
+
+Our ordinary command encoder requires the whole TC4 pool. A narrow internal
+exception permits only the first 0x17 PM abort against exactly one charged
+retired-deauthentication page, with TC1 whole and the existing ledger bounds.
+Debit the new page too; never refund, reset or alter the pending counters. Then
+require the whole pool within the unchanged 100 ms credit deadline before any
+key/station removal. One aggregate page return cannot identify which of the
+two buffers retired, so a partial return remains blocked and cannot be called
+an abort credit or healthy cleanup. Fatal transport poison remains permanent.
+
+Keep deauthentication first. The actual existing final order is PM abort,
+pairwise/group removals, station removal, channel abort and BSS-off; preserve
+it. A late exact completion for the one retired PID is counted without a second
+free or page release. Unknown PID, malformed/status-invalid events, reuse and
+reconnect remain refused. No resource cap, grant or data-window change.
+
+Predeclared outcomes for one fresh 60-second low-traffic session:
+
+- Deauthentication completes inside the original bound, all cleanup credit
+  returns and stage 3 is reached: healthy host cleanup after PM setup observed.
+- Completion is missing, all pages and cleanup command credits return and
+  stage 3 is reached: host teardown is healthy, on-air deauthentication /
+  completion reporting remains an open item. No reuse is enabled.
+- Completion and full cleanup credit retirement are missing: retain exact
+  command/stage/debt/deadline scalars, bounded stop. Firmware state is a branch
+  to investigate; credit counts alone do not identify its cause. Only then
+  consider a separate PM-abort-before-deauthentication comparison.
+- Another first failure is its own result, not a retry or substituted pass.
+
+Local actual-source tests cover retirement at deadline ±1 ns, strict owner and
+poison gates, same-tick fatal free classification, partial-credit refusal,
+original cleanup order, and exact late-PID handling. The pure and actual-HIF
+fixtures cover the bounded debit and all transfer cuts/expiry without refund,
+while ordinary command admission stays strict. Crypto callbacks and option-off
+MAC parity remain covered; the pre-existing PM fixture still runs against
+GTK5. Synthetic checks do not establish firmware behavior. Publish to `main`
+before Linux checks/build; no new branch or physical test is selected yet.

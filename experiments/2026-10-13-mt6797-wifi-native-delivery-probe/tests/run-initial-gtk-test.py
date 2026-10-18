@@ -18,8 +18,10 @@ p.add_argument('--timeout-observer', action='store_true', help='also validate th
 p.add_argument('--beacon-observer', action='store_true', help='also validate owned-beacon recency')
 p.add_argument('--timeout-counter', action='store_true', help='validate owned timeout counting without event tolerance')
 p.add_argument('--pm-connected', action='store_true', help='validate owned PM indication before keys')
+p.add_argument('--deauth-retire', action='store_true', help='validate reserved deauth timeout cleanup')
 p.add_argument('--connection-monitor', action='store_true', help='also validate standard loss reporting')
 a = p.parse_args()
+a.connection_monitor = a.connection_monitor or a.deauth_retire
 a.pm_connected = a.pm_connected or a.connection_monitor
 a.timeout_counter = a.timeout_counter or a.pm_connected
 a.beacon_observer = a.beacon_observer or a.timeout_counter
@@ -56,6 +58,10 @@ with tempfile.TemporaryDirectory(prefix='gtk-reverse-') as directory:
     import shutil
     recovered = Path(directory)
     shutil.copytree(child, recovered / rel)
+    if a.deauth_retire:
+        patch = fixtures.parents[2] / 'patches/proposals/0213-wifi-mt6797-retire-only-reserved-deauth-timeout-for-bounded-cleanup.patch'
+        subprocess.run(['git', 'apply', '--reverse', str(patch)], cwd=recovered, check=True, timeout=10)
+        deauth_parent_mac = (recovered / rel / 'mac.c').read_text()
     if a.connection_monitor:
         patch = fixtures.parents[2] / 'patches/proposals/0212-wifi-mt6797-own-connection-monitoring-in-PM-required-experiment.patch'
         subprocess.run(['git', 'apply', '--reverse', str(patch)], cwd=recovered, check=True, timeout=10)
@@ -166,6 +172,10 @@ with tempfile.TemporaryDirectory(prefix='initial-gtk-') as directory:
         names.append(('void', 'mt6797_ccmp_connection_lost'))
         assert function(new, 'mt6797_mac_tx') == function(monitor_parent_mac, 'mt6797_mac_tx'), 'new TX class'
         assert new.count('ieee80211_hw_set(hw, CONNECTION_MONITOR)') == 1
+    if a.deauth_retire:
+        names += [('bool', 'mt6797_ccmp_deauth_retire'), ('bool', 'mt6797_ccmp_deauth_abort_owed'),
+                  ('bool', 'mt6797_ccmp_deauth_late')]
+        assert function(new, 'mt6797_mac_tx') == function(deauth_parent_mac, 'mt6797_mac_tx')
     obs_start = new.index('struct mt6797_ccmp_observation {')
     obs_end = new.index('\n};', obs_start) + 3
     handler_definitions = ''
@@ -295,6 +305,10 @@ with tempfile.TemporaryDirectory(prefix='initial-gtk-') as directory:
     if a.pm_connected:
         extra = (fixtures / 'pm-callbacks.inc').read_text() + '\n' + extra
         extra = extra.replace('timeout_counter_tests();', 'timeout_counter_tests();\n pm_callback_tests();')
+    if a.deauth_retire:
+        callbacks = '#define FIXTURE_DEAUTH_RETIRE 1\n' + callbacks
+        extra = 'static void deauth_retire_tests(void);\n' + extra + '\n' + (fixtures / 'deauth-retire-callbacks.inc').read_text()
+        extra = extra.replace('pm_callback_tests();', 'pm_callback_tests();\n deauth_retire_tests();')
     if a.connection_monitor:
         callbacks = '#define FIXTURE_CONNECTION_MONITOR 1\n' + callbacks
     (tmp / 'callbacks.c').write_text(callbacks + '\n' + extra)

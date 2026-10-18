@@ -24,9 +24,10 @@ A53 regression and one reviewed recovery passed; independently confirmed Gemian
 `c6c0a8ab-0d6b-45e8-8bfc-02cbb274ab4d`. No device process or physical handoff
 is pending. GTK5 remains installed but consumed; do not repeat it unchanged.
 
-Next classify the management-frame submission/completion contract and public
-vendor teardown/TX options before selecting a correction or one bounded
-existing-acquisition diagnostic. Do not assume PM abort belongs before deauth,
+Next is the one logical bounded deauthentication-retirement successor 0213
+under the [predeclared GTK6 contract](SESSION_0202_PLAN.md#predeclared-gtk6-bounded-reserved-deauthentication-retirement).
+Local source/HIF tests pass; Linux checks, build and device admission remain
+pending. Keep all later publications on `main`. Do not assume PM abort belongs before deauth,
 accept unowned completions, add register reads or extend deadlines. Healthy
 cleanup is required before promotion to persistent or longer operation.
 Keep 1024 checked / 4096 all-RX / 2 MiB and the existing time/retirement/PID
