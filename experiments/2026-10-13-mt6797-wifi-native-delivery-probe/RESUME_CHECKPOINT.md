@@ -1,5 +1,15 @@
 # Wi-Fi resume checkpoint — INCOMPLETE
 
+Latest owner direction: resume regular builds and tests. The initial-GTK kernel
+build and package validation passed through the standard Buildbox backend from pushed input
+`c833b2b5`, profile `mt6797-a53-wifi-ccmp-initial-gtk`. This supersedes the build
+hold described below. Guarded installation, verified live identity, preserved
+evidence and owner physical boot2 selection remain mandatory before a trial.
+GTK1 is composed with real receipt/notes identity and local session fixtures
+passing; clean-input Linux session validation and installer review are next.
+No installation or physical handoff has occurred. No additional ARP-pair boot,
+rekey, reuse or reconnect is selected.
+
 Latest completed device result: unchanged-C10 D3 consumed once, boot
 `ccce2504-bdbf-470b-ba7c-267b61f102d0`. [One row and analysis](SESSION_0202_PLAN.md#evidence-and-later-work)
 and [one scalars file](results/ssh-d3-runtime-scalars.json): transport, DHCP,

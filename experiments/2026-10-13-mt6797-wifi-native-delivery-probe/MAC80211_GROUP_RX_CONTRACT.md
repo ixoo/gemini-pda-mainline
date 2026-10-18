@@ -190,3 +190,64 @@ short grant, framing refusal and cleanup failure are separate results. No second
 ARP-pair boot, GTK rekey/reuse, reconnect, -48 adjustment or longer transaction
 deadline is included. A 60-second observation is not 60 seconds of authenticated
 traffic, and the 2/10-minute stages remain unprepared.
+
+## Execution resumed
+
+The owner authorized regular builds and tests after the validated preparation.
+The first GTK build uses pushed input `c833b2b5` and the initial-GTK profile;
+this supersedes the earlier hold. Its hypothesis is that clean initial group
+CCMP traffic can pass the separate strict PN context while retaining healthy
+transport and the unchanged PTK path. Unique observations are the first checked
+GTK queue, withheld-ARP count, actual live-window duration and retained SSH
+client output. Keep one result scalars file and one row in the existing session
+table. Do not count an early cap or a short firmware grant as a 60-second pass.
+
+After actual package/provenance and composition checks, one admitted lifetime
+will distinguish: checked GTK plus healthy network/SSH; no eligible GTK exposure;
+strict GTK withholding; transport refusal; live-window SSH silence; and an early
+resource limit. These are separate verdicts, not automatic retries. Missing PN,
+wrong key or non-increasing PN remains rejection. Any framing refusal remains a
+complete-transfer equality failure with poison/no-copy. The later 0202 framing
+comparison stays separate, and 2/10-minute stages still require a justified
+window change rather than silent extension.
+
+## GTK1 build and composed inputs
+
+The standard Buildbox build completed from `c833b2b5`: x86_64 cross-build,
+32 jobs, modules disabled, 697 ordered patches, 29 fragments and 123 DTBs.
+Inventory validation and standard package fetch passed. The generated config
+is exactly C10 plus `CCMP_INITIAL_GTK=y` and `CCMP_60S_WINDOW=y`; no observer
+or fixed-format selection. The inherited `kernel/cpu.c` unused-function warning
+and historical patch 0261 whitespace warning remain; no new driver warning.
+
+| Input | SHA-256 |
+| --- | --- |
+| Package inventory | `78a74463ade0f5371282e7ea2b7de5e356165373593d27b856bb2b542633cd5d` |
+| Image.gz | `f6f0ac330f6087f095d8b666cda78a562c6a802f827396de0da18ed0d85a66b8` |
+| Config | `ff1f087376b3a1a2afb38e5325e799926f58db67b46efac1e1ebb6214fea9bd1` |
+| Patchset | `796f23238d44c87d17ac57abd5cf898de2239d453b89bca9d0cfe16148b679fb` |
+| Candidate receipt | `ef1cf412c6bfe1b2d43fd98069c9cd2f29d059d6533e9cceef0e45aaebe66385` |
+| Full boot2 image | `c1af69befe43ac1e24cda8006952953af08246bfa40318728e3b298754f427ea` |
+| Live kernel notes, exactly 84 bytes | `8075edfb7f39bed78eb158bec1dd26119f6e19f655a7176f5cdc7a2502d49dc9` |
+
+The [compositor](build-ccmp-gtk-candidate.py) retains the actual C32 inventory,
+DT/RAM/container gates and reuses the frozen C10 configuration oracle. The
+[real candidate receipt](results/ccmp-stable-monitor-candidate-gtk1.json) equals
+[runtime binding](runtime-ccmp-gtk1/results/candidate.json). Its six private
+members have verified digests/sizes and mode 0600; DT and RAM root are byte-identical
+to C10. The initial-GTK selection changes no userspace control interface.
+
+The live-notes check agrees between the built ELF notes, System.map boundaries
+and the packaged Image, and differs from C10. Use this read-only identity check
+before capture as well as the fresh boot/architecture/release and guarded
+installation chain. The existing exporter source hashes match the previously
+reviewed kernel contract. A release string alone does not identify this image.
+
+Fresh GTK1 preparation/capture/session/installer adapters bind this receipt and
+new evidence roots. Local actual-source fixtures pass config equality with
+8 parent refusals/7 child differences, receipt/namespace/no-scan ownership,
+retained installer pins and retained recovery-source refusal. Linux validation
+of these session bindings is next. No installation or physical handoff has yet
+occurred. The generic host's finite compatibility boolean is not a 60-second
+or GTK acceptance verdict; record actual duration and GTK queue evidence
+separately, and reject a short run as a duration pass.

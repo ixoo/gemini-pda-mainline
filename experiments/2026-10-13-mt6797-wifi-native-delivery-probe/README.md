@@ -10,8 +10,8 @@ The [post-D3 source contract](MAC80211_GROUP_RX_CONTRACT.md#prepared-implementat
 records the owner-directed initial-GTK prototype and separate 60-second window.
 Standard sessions retain full client stderr and numeric netstat/neighbor state.
 The earlier approximately ten-second failures remain silence with SYN-not-emitted
-versus SYN-unanswered unresolved. GTK is unbuilt and untested on hardware;
-kernel builds and device work remain on hold. The separate 0202 framing
+versus SYN-unanswered unresolved. GTK1 has passed the standard Buildbox build and actual composition gates;
+it remains untested on hardware. The owner resumed regular builds and tests. The separate 0202 framing
 comparison comes later. No -48 adjustment, rekey, reuse or reconnect. Sustained
 SSH, ordinary integrity/key retirement and full acceptance remain incomplete.
 

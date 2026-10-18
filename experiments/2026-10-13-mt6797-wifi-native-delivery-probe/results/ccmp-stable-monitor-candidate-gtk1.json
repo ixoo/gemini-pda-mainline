@@ -1,0 +1,52 @@
+{
+  "status": "offline-gated-ccmp-initial-gtk-candidate-validated",
+  "kernel_build_commit": "c833b2b5124eeb8c2dd14c08a1e60b118d5ed13c",
+  "kernel_release": "7.1.3-gemini-a53-wifi-ccmp-stable-monitor",
+  "kernel_package_sha256": "78a74463ade0f5371282e7ea2b7de5e356165373593d27b856bb2b542633cd5d",
+  "integration_source_commit": "b57f975e7ce6f487474c3c3cc5b4f8e00d3db628",
+  "integration_patch_sha256": "cf2c280e887a6c172b7191f67603ab984c7653aa17e74764da472a6e854c5877",
+  "kernel_profile": "mt6797-a53-wifi-ccmp-initial-gtk",
+  "parent_candidate": "candidate-32",
+  "parent_boot2_sha256": "5260715b453d4ad9e635845132f7d08530e0386ce6bce98f53a818b3ab87b815",
+  "files": {
+    "Image.gz": {
+      "sha256": "f6f0ac330f6087f095d8b666cda78a562c6a802f827396de0da18ed0d85a66b8",
+      "bytes": 6658686
+    },
+    "board.dtb": {
+      "sha256": "25ab60f45686138c46200e858206756a16eef5ee33b26b2bd2ac13c7179d7717",
+      "bytes": 28671
+    },
+    "boot.img": {
+      "sha256": "e6c3925a97243d71b61e2291a0040befad285955855e45fe869a3151b75a323b",
+      "bytes": 12675072
+    },
+    "boot2-padded.img": {
+      "sha256": "c1af69befe43ac1e24cda8006952953af08246bfa40318728e3b298754f427ea",
+      "bytes": 16777216
+    },
+    "initramfs.img": {
+      "sha256": "0b89dd8d560505a8e87a72082c5762d16b6ffbbf6eefc77cd4f99ebeec7707ff",
+      "bytes": 5982210
+    },
+    "kernel.config": {
+      "sha256": "ff1f087376b3a1a2afb38e5325e799926f58db67b46efac1e1ebb6214fea9bd1",
+      "bytes": 113337
+    }
+  },
+  "kernel_config_change": "old native arm0, CCMP stable arm1 command line and USB identity, LOCALVERSION, and NATIVE_DELIVERY_DIAG/CCMP_INITIAL_GTK/CCMP_60S_WINDOW/CCMP_STABLE_EPOCH/CCMP_MASK_CONTROL=y; nothing else",
+  "device_tree_change": "none; exact candidate 32 board DT",
+  "ram_root_change": "release gate only; the exact candidate 32 64-member private RAM root",
+  "native_delivery_diag": false,
+  "ccmp_stable_epoch": true,
+  "mask_control": true,
+  "group_pn_observe": false,
+  "initial_gtk": true,
+  "observation_window_ms": 60000,
+  "bootstrap": "normal-dhcp-only",
+  "gtk_rx": true,
+  "key_reuse": false,
+  "secret_bearing": true,
+  "device_action": "none",
+  "physical_admission": false
+}
