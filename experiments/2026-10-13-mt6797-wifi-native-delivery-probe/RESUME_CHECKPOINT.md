@@ -1,5 +1,14 @@
 # Wi-Fi resume checkpoint — INCOMPLETE
 
+Latest reviewer reassessment: [source and harness findings](SESSION_0202_PLAN.md#reviewer-reassessment-before-further-implementation-or-any-build)
+confirm router-ping/timeout concerns but disprove the all-`0xc200` C11 premise:
+32 eligible groups passed the decoder requiring `0xc000`. The explicit expanded
+fixture passes locally; Linux validation is next. The owner approved preparing
+one unchanged-C10 boot with conditional B; its eleven host cases pass locally.
+Complete Linux checks, fresh exact-image preparation and host admission before
+the physical handoff. No device run has occurred; 0202/0203 builds stay on hold.
+Do not use a format-changed boot to settle unchanged-C10 SSH behavior.
+
 Latest owner correction: follow the [0202 session preparation](SESSION_0202_PLAN.md)
 before any new build. Actual-source scan/group cases and SSH A/B helper checks
 pass locally and on Linux from pushed inputs. The A/B helper is not yet bound to

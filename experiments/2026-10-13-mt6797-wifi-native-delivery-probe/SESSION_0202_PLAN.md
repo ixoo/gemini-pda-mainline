@@ -1,6 +1,11 @@
 # 0202 session preparation — UNBUILT, NOT ADMITTED
 
-The owner's latest order supersedes the earlier six-second trial preparation:
+The latest [reviewer reassessment](#reviewer-reassessment-before-further-implementation-or-any-build)
+puts an unchanged-C10 diagnostic choice before any new candidate build. C11's
+eligible group counts contradict the proposed all-LLC-error premise. The owner approved preparing one conditional A/B boot on C10. Complete host
+validation and the reviewed exact-image preparation before physical selection. Keep 0202 separate for the framing fault.
+
+The earlier owner order superseded six-second successor-trial preparation:
 scan/group regression first, controlled SSH priming A/B, then a staged sustained
 window. No new kernel build or device action has occurred. The local 0202
 ownership prototype remains unbuilt. This document is preparation, not a result.
@@ -36,7 +41,7 @@ scan function/headers are identical; the full 0202 prototype has not received
 Linux validation. Repository checks passed locally; no kernel build or device
 test ran. No framing check or production decoder changed for this prerequisite.
 
-## Controlled SSH A/B
+## Earlier unadmitted 0202 A/B preparation — superseded for SSH diagnosis
 
 Hypothesis: an otherwise healthy session can fail before TCP acceptance because
 the laptop needs group ARP delivery. Device-originated traffic to the laptop may
@@ -54,8 +59,9 @@ router, USB endpoint, network and broadcast addresses. DHCP/local interface
 evidence stays private. No hostname resolution, cache flush, packet capture,
 laptop privilege or alternate device control API is allowed.
 
-Preassign alternating OFF/ON arms before boot; never select an arm after reading
-neighbor state. After fresh readiness:
+The earlier alternating-boot A/B is superseded by the reviewer reassessment
+below. Keep the helper as unadmitted preparation; do not use 0202 to infer
+unchanged-C10 group behavior. An unprimed arm is not a cold-cache assertion. After fresh readiness:
 
 1. Read numeric route and laptop neighbor entry for the device's fresh lease.
 2. ON: one guarded USB command makes the device ping the laptop's verified LAN
@@ -120,11 +126,86 @@ an initial successful login does not count as a full-duration pass.
 
 Rekey, key reuse, reconnect and GTK delivery remain disabled. Therefore one
 lifetime per boot is the current maximum; batching several lifetimes in one
-boot would violate those boundaries. A three-run sample cannot establish a
-15–20% failure rate: under independent trials, 19 runs are needed for a 95%
-chance of seeing at least one 15% failure (14 for 20%). These are sampling facts,
-not permission for unattended repeats or evidence that runs are independent.
-Each run needs its own reviewed handoff and owner boot2 selection.
+boot would violate those boundaries. Drop the repeated-boot sampling model. Prefer a predeclared measurement that
+can distinguish a concrete cause in one boot, without promising that a passing
+or time-censored boot will settle the hypothesis. Each admitted boot needs its
+own reviewed handoff and owner physical selection.
+
+## Reviewer reassessment before further implementation or any build
+
+The owner supplied a shorter-path proposal. Source review changes several of
+its premises; no device action or candidate build follows this review.
+The sustained-client implementation is held while the C10 diagnostic is resolved.
+
+| Point | Established fact / implication |
+| --- | --- |
+| Router versus laptop | `join-ccmp.sh` pings the DHCP router. It does not actively prime the laptop. A pre-existing laptop neighbor entry is a measured initial condition, not evidence of an empty cache in an unprimed arm. |
+| Client deadline | The baseline explicitly uses `ConnectionAttempts=1` and `ConnectTimeout=10`. Failed C10 #2 spent ten seconds in its attempt; its data phase lasted 6,167 ms. A complete A/B pair cannot be guaranteed in unchanged C10. |
+| C11 group status | All 32 reported groups also passed the shape and eligibility gates. The pinned C11 observer calls the unchanged `mt6797_data_rx`, which requires exactly `0xc000`. These groups were therefore not all `0xc200` LLC errors. This is a source-conditioned inference from the counters, not a retained per-frame status log. |
+| Status regression | The actual-source fixture now explicitly accepts `0xc000` into observation, refuses `0xc200` from that observation, recognizes the latter as the separate LLC-mismatch discard shape, and confirms the strict PTK checker rejects the clean group without reading PN or changing replay state. All 2,718 exact-allocation cases pass locally. No GTK delivery is introduced. |
+| Future candidate scope | 0202 remains a framing/format-ownership comparison. Its boot cannot substitute for unchanged C10 when explaining C10 group behavior. A future counters-only protocol classifier must be a separate logical change, not a receive-gate relaxation. |
+| Credit limits | The source admits normal TC4 limit 26, with the data TC1 pool separately limited to 16. D2 snapshot 2 retained free 14 and pending FFA 12. Do not describe that as TC4 14/16 or combine the pools. |
+| Failure ownership | The CONSYS firmware worker's `stopped` label logs and retains state; it does not tear down or poison the whole provider. HIF faults poison the HIF transaction; failed preparation closes MAC/scan admission. Preserve these fail-closed rules rather than suppressing genuine transport/accounting faults. |
+| Shared credit budget | 0202 already reports admission/prior-credit/submit/mask-credit/done phase and the software ledger on error. The two phases retain one absolute 100 ms ceiling. Before building, retain the entry/previous phase and phase timing explicitly; do not split it into two fresh 100 ms deadlines. |
+| RTNL | The inspected credit path is synchronous HIF mutex/guard/MMIO plus normal-ledger reconciliation. It neither acquires RTNL nor waits for an RX worker, network callback or completion requiring RTNL. Holding RTNL across the bounded sleep does not introduce that callback dependency in this path. This does not prove a firmware credit response. |
+| Sequence limits | The initialization sender consumes one command sequence and accepts through 255. The inherited diagnostic uses `seq_ok <= 253`, historically reserving mode-command space. Fixed format removes those mode writes. Audit all remaining cleanup command needs and boundary cases before unifying these guards; a cosmetic equality of constants is not a lifetime ownership proof. |
+| Scan readiness | Failure already withholds scan-ready and logs the preparation/parent stop. A direct no-op `scan_ready` call is still silent; make that refusal explicit before a future build. |
+
+### One unchanged-C10 boot: conditional two-arm proposal
+
+A runs first using the original numeric lease, retained route/neighbor reads,
+one original SSH command and full D1 stdout/stderr/exit/timing retention. If A
+succeeds, stop: the missing-neighbor hypothesis was not reproduced. Record its
+initial and final neighbor entry, not an assumed cold-cache condition.
+
+If A fails, record its exact client stage and whether its attempt outlasted the
+data window. B is a separately predeclared intervention, never an automatic
+retry: it requires a fresh live boot/window/listener/lease check; one guarded
+device-to-laptop ping; a neighbor read after the ping; and one separately retained
+SSH attempt. If A consumed the window, B is not admitted and is recorded as
+unreached. Do not change the grant, client timeout, keys or receive path silently
+in order to manufacture a pair. The owner approved preparing this conditional boot, keeping the original
+client timeout and all driver limits. B may be unreachable. A partial handshake
+can also consume remaining PTK/PID resources; preserve their existing caps.
+
+`No route to host` plus an incomplete neighbor is evidence consistent with a
+neighbor-resolution problem, not exclusive proof: also retain the numeric route.
+A timeout with a populated entry does not prove that a SYN left the laptop, nor
+that the entry was valid throughout the attempt. A's own resolution activity
+may change neighbor state before B. Successful B after priming is useful
+correlation, not deterministic causation. A phase that overlaps diagnostic
+termination is time-censored, not evidence that the driver rejected a SYN.
+
+The [paired helper](laptop-wifi-ssh-paired.py) reuses the actual C10 verifier,
+D1 output retention and D2 numeric route/neighbor reads in separate private
+`arm-a`/`arm-b` directories. A's original receipt and failed verdict are never
+replaced by B. B's client gets only the remainder of the shared original exchange
+budget; neither ConnectTimeout nor any driver deadline is increased. The helper
+verifies the routed interface's address, DHCP mask and lease with local numeric
+queries before priming. Unknown or inconsistent results stop B. Additional local
+reads retain 0.5-second ceilings; the ping has one three-second process bound and
+one two-second reply wait. The fresh post-prime probe must match the exact ready
+identity before B. The [session adapter](laptop-session-ccmp10-ssh-paired.py)
+changes only the owned helper path; the original C10 image, leaf, child group,
+seal and reviewed recovery remain. All raw arm/query files must be included in
+the existing recursive pre-recovery seal. Produce one public scalars file with
+both arms and one table row for this boot; no new per-run result document.
+
+Eleven [actual-source host cases](tests/ssh-paired-test.py) pass locally: A success
+stops, separate B success preserves A failure, closed window, prime guard refusal,
+post-prime window change, unverified laptop address, unanswered ping/no retry and
+retained A timeout, exhausted original budget, no third exchange after B failure,
+and the actual CLI/receipt binding. These are host-control tests, not a device result. Linux
+validation and complete host preparation remain prerequisites to the handoff.
+
+A future group classifier may inspect bounded Ethernet/LLC header fields to
+export only ARP/IPv4/IPv6/other/SNAP booleans alongside descriptor counters. That
+necessarily reads those header fields, but must retain no frame contents or
+addresses, read no PN, make no HIF acquisition, deliver nothing and mutate no
+key/replay state. The exact consumer and decision branches must be specified
+before implementation. Clean C11 groups already show that changing `0xc200` to
+`0xc000` acceptance alone cannot resolve group key ownership. Strict GTK design
+and delivery remain deferred until the separate framing result as directed.
 
 ## Evidence and later work
 

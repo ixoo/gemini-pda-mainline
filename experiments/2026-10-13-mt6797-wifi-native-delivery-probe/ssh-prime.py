@@ -41,6 +41,8 @@ def prime_command(boot, identity, laptop, fatal_re, terminal_re, ready_path):
             'printf "%s" "$d" | grep -Eq ' + q(fatal_re) + ' && exit 11; '
             '[ "$(printf "%s" "$d" | grep -Ec ' + q(terminal_re) +
             ')" -eq 0 ] || exit 12; '
+            'if printf "%s" "$d" | grep -q "one-shot WLAN join data phase end:"; '
+            'then exit 12; fi; '
             'printf "%s" "$d" | grep -q "one-shot WLAN native-diag: state=2 " || exit 15; ' +
             checks + 'kill -0 ' + q(str(identity['sshd_pid'])) + ' || exit 16; '
             '/bin/busybox timeout 3 /bin/busybox ping -I wlan0 -c 1 -W 2 ' + q(laptop))

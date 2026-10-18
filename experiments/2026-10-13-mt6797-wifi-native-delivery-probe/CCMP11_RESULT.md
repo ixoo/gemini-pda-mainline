@@ -95,6 +95,19 @@ with no new HIF operation, acceptance, crypto or deadline change. It can still
 change CPU work, scheduling or timing. One passing C10 and one failing C11
 cannot establish causality or a stable C10 baseline.
 
+## Later source-status clarification (no additional device run)
+
+The 32 reported groups were also all shape/eligible in the frozen C11 observer.
+That observer calls the unchanged `mt6797_data_rx()` decoder, whose status gate
+requires exactly `0xc000`. Thus the observed eligible group class is not the
+`0xc200` LLC-mismatch discard class. This is a source-conditioned inference from
+the sealed counters, not a newly acquired per-frame status trace. The expanded
+[actual-source regression](tests/group-pn-observe-test.c) distinguishes both
+statuses, keeps PN bytes poisoned, and confirms that the strict PTK-only checker
+still rejects a clean group without changing replay state. Removing the LLC
+status gate alone is therefore not an explanation or a safe GTK delivery fix.
+See the [current reviewer reassessment](SESSION_0202_PLAN.md#reviewer-reassessment-before-further-implementation-or-any-build).
+
 ## Owner-directed next decision: unchanged C10 baseline
 
 Do not build a successor. Restore the exact validated C10 image and admit up

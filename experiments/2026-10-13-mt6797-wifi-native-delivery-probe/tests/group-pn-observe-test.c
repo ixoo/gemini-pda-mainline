@@ -149,6 +149,36 @@ int main(void)
 		mt6797_ccmp_group_observe(&m, n);
 		assert(m.ccmp_group_eligible == 1 && m.ccmp_group_pn_present == 1);
 	}
+	/* C11's eligible count implies c000, not the separate c200 LLC-error
+	 * class. Neither observation authorizes group delivery through PTK.
+	 */
+	n = frame(p, 15, true, 1);
+	m = observe(p, n, true);
+	assert(mt6797_join_le16(p + 10) == 0xc000);
+	assert(m.ccmp_group_reported == 1 && m.ccmp_group_shape == 1 &&
+	       m.ccmp_group_eligible == 1);
+	{
+		struct mt6797_ccmp_rx_context context = {
+			.authorized = true, .active = true, .seeded = true,
+			.pairwise = true, .cipher = 0x000fac04U, .key_bytes = 16,
+			.wlan_index = 1, .rxd_bssid = 1, .channel = 40,
+		};
+		struct mt6797_ccmp_rx_context before;
+		struct mt6797_ccmp_rx result;
+		struct mt6797_data_rx llc;
+
+		memcpy(context.own, own, 6); memcpy(context.ap, ap, 6);
+		before = context;
+		__asan_poison_memory_region(p + 32, 16);
+		assert(!mt6797_ccmp_rx_check(p, n, &context, &result));
+		__asan_unpoison_memory_region(p + 32, 16);
+		assert(!memcmp(&context, &before, sizeof(context)));
+		p[11] = 0xc2;
+		m = observe(p, n, true);
+		assert(m.ccmp_group_reported == 1 && !m.ccmp_group_shape &&
+		       !m.ccmp_group_eligible);
+		assert(mt6797_data_rx_llc_mismatch(p, n, 40, ap, 2, &llc));
+	}
 	n = frame(p, 9, false, 1); memcpy(original, p, n);
 	/* Every status bit, wrong table/BSS/cipher/channel/translation/peer. */
 	for (unsigned int bit = 0; bit < 16; bit++) {
