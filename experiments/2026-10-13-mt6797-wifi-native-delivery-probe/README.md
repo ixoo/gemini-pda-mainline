@@ -10,8 +10,9 @@ and changed-boot Gemian independently verified. No unchanged retry.
 The [three-run unchanged C10 baseline](CCMP10_BASELINE.md) is complete: all
 finite transport/network/host-cleanup windows passed, SSH passed 2/3. Thus the
 observer is not necessary for an SSH failure. Exact failure stage is unknown;
-[D1](SSH_FAILURE_DIAGNOSTIC.md) retains the discarded client output using the
-same image and SSH command. No new kernel candidate/build. GTK delivery,
+[D1](SSH_D1_RESULT.md) passed without reproducing failure.
+[D2](SSH_NEIGHBOR_DIAGNOSTIC.md) retains local route/neighbor state around the
+same SSH attempt on the same image. No new kernel candidate/build. GTK delivery,
 rekey, reuse and reconnect stay disabled; sustained acceptance is incomplete.
 
 | Field | Value |

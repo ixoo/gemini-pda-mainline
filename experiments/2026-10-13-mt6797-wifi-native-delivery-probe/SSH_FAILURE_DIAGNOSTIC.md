@@ -1,4 +1,8 @@
-# D1: retain the existing SSH failure acquisition, unchanged C10 image
+# D1: retained SSH acquisition — consumed once, success
+
+Status: [consumed once](SSH_D1_RESULT.md): authenticated SSH, no client error.
+Earlier failure stage remains unknown. Preparation below is historical, not a
+repeat admission. [D2](SSH_NEIGHBOR_DIAGNOSTIC.md) selects a different observation.
 
 Predeclared after the [three-run C10 baseline](CCMP10_BASELINE.md). No new kernel
 candidate or build. C10 SSH passed twice and failed once; C11's observer is not
@@ -69,7 +73,7 @@ rejection, closed-window rejection, existing timeout propagation, occupied
 observation refusal and second-attempt refusal. These test host behavior only.
 No kernel, firmware enforcement or D1 runtime result is claimed.
 
-## D1 verified preparation — await physical selection
+## D1 verified preparation — physical handoff consumed
 
 Published host input `4fe87eb8`, repository checks and seven actual-source tests
 passed. Exact original C10 kernel input, image, candidate receipt, leaf, capture

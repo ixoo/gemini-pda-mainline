@@ -11,15 +11,16 @@ The failed runs lack client error text, so the exact TCP/KEX/auth stage remains
 unknown. Run 3 returned to independently verified changed-boot Gemian; C10
 remains installed and consumed.
 
-Next is [D1, host-only SSH output retention](SSH_FAILURE_DIAGNOSTIC.md), using
-the exact C10 image and unchanged original acquisition/ACK state machine.
-No new kernel candidate or build. Its one observation retains the existing
-client error before selecting a transport/crypto/TCP diagnostic. GTK delivery,
-rekey, reuse and reconnect stay disabled. Staged 60 s / 2 min / 10 min lifetimes
-remain untested; do not extend unexplained timeouts. Another physical boot2
-selection is now pending: D1 host tools passed focused tests and full offline
-preparation; unchanged C10 full readback and clean shutdown are confirmed.
-No D1 capture/helper/session has started. Stop at the owner physical handoff.
+[D1](SSH_D1_RESULT.md) is consumed once: transport/DHCP/three pings/SSH/host
+cleanup passed; original SSH stderr was empty. The earlier failure remains
+unclassified, not repaired. Its 66-entry seal and changed-boot Gemian were
+independently verified. No unchanged D1 retry.
+
+Next is [D2](SSH_NEIGHBOR_DIAGNOSTIC.md): one bounded local route and neighbor
+snapshot around the same SSH attempt on exact C10. No new kernel candidate or
+build, cache mutation, device packet/probe or deadline extension. GTK delivery,
+rekey, reuse and reconnect stay disabled. Staged longer lifetimes remain pending.
+D2 needs validation/preparation and a new physical handoff before execution.
 The pause record below is historical.
 
 Historical pause boundary. The owner explicitly resumed implementation on

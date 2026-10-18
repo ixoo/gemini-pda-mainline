@@ -52,17 +52,17 @@ Keep this file under 200 lines; move anything else to an experiment record.
   false and no operational, reliability, persistence or replay-protection claim follows.
 - **Next (SSH stage, 2026-10-18 UTC).** The [three-run unchanged C10 baseline](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/CCMP10_BASELINE.md)
   passed every finite transport/DHCP/three-ping/host-cleanup window; SSH passed
-  2/3. C11's observer is not required for failure. [D1](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/SSH_FAILURE_DIAGNOSTIC.md)
-  retains the existing client error to classify TCP/KEX/auth before selecting
-  a fix. No new kernel candidate/build; GTK delivery/rekey/reuse/reconnect stay
+  2/3. C11's observer is not required for failure. [D1](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/SSH_D1_RESULT.md)
+  passed without reproducing failure. [D2](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/SSH_NEIGHBOR_DIAGNOSTIC.md)
+  observes local route/neighbor state around the same SSH attempt before a fix. No new kernel candidate/build; GTK delivery/rekey/reuse/reconnect stay
   disabled. Then review 60 s / 2 min / 10 min lifetimes; full acceptance remains.
 - **Open.** Wi-Fi station operation beyond one bounded lifetime; replay
   enforcement in firmware is unknown. No charging, RTC alarm or lid.
   The `full` profile has never booted. No upstream submission. A72 and thermal
   protection are parked.
-- **Device (2026-10-18 UTC).** D1 uses the already matching C10 image, full readback
-  verified, clean shutdown and new host-adapter preparation passed. Await owner
-  physical boot2 selection with USB attached; no D1 session has started.
+- **Device (2026-10-18 UTC).** D1 consumed; reviewed return and independent LAN
+  identity verified changed-boot Gemian. C10 remains installed. D2 is not run;
+  validate and prepare its host-only handoff before physical selection.
 
 ## Next device boots, in order
 
