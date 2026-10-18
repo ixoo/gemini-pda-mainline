@@ -63,6 +63,30 @@ static size_t build(u8 *out, unsigned channel, unsigned rcpi, u16 fc, const u8 *
 	return total;
 }
 
+/* Early mask 7 may add G1/G2 ahead of the existing G3 vector. Exercise
+ * every advertised group mask, rather than infer layout from configuration.
+ */
+static size_t grouped(u8 *out, unsigned groups, bool pad, u16 fc, size_t *offset)
+{
+    size_t o = 16, vector = 0, n;
+    unsigned type = 0xe001 | (groups << 9);
+    memset(out, 0, 2048);
+    if (groups & 8) o += 16;
+    if (groups & 1) o += 16;
+    if (groups & 2) o += 8;
+    if (groups & 4) { vector = o; o += 24; }
+    if (pad) o += 2;
+    n = o + 40;
+    out[0] = n; out[1] = n >> 8;
+    out[2] = type; out[3] = type >> 8;
+    out[5] = 40; out[6] = 24 | (pad ? 0x40 : 0);
+    if (vector) out[vector + 9] = 100;
+    out[o] = fc; out[o + 1] = fc >> 8;
+    memset(out + o + 4, 0xff, 6);
+    *offset = o;
+    return n;
+}
+
 int main(void)
 {
 	struct ieee80211_hw hw = {0}; struct mt6797_hif hif = {0};
@@ -76,6 +100,29 @@ int main(void)
 	assert(slot >= (int)MT6797_2G_CHANNELS);
 	m.channels[slot] = (struct ieee80211_channel){.band = NL80211_BAND_5GHZ, .center_freq = 5200, .hw_value = 40};
 	m.scan_channels = BIT(slot);
+    /* Production scan handler: G1/G2/G4 never leak into the queued MPDU.
+     * Missing G3 is withheld; every truncation before the beacon fixed fields
+     * is rejected even when the descriptor length matches the short buffer.
+     */
+    for (unsigned g = 0; g < 16; g++)
+        for (unsigned pad = 0; pad < 2; pad++)
+            for (unsigned probe = 0; probe < 2; probe++) {
+                size_t off;
+                n = grouped(m.scan_packet, g, pad, probe ? 0x50 : 0x80, &off);
+                assert(mt6797_mac_scan_packet(&m, n, 1, &done, &q) == 0);
+                if (!(g & 4)) { assert(q.count == 0); continue; }
+                assert(q.count == 1 && q.head->len == 40);
+                assert(q.head->cb.signal == -60 && q.head->cb.freq == 5200);
+                assert(!memcmp(q.head->data, m.scan_packet + off, 40));
+                free(q.head->data); free(q.head);
+                q = (struct sk_buff_head){0};
+                for (size_t short_n = 0; short_n < off + 36; short_n++) {
+                    m.scan_packet[0] = short_n; m.scan_packet[1] = short_n >> 8;
+                    assert(mt6797_mac_scan_packet(&m, short_n, 1, &done, &q) == -EPROTO);
+                    assert(q.count == 0);
+                }
+            }
+    m.scan_frame_seen = false; m.scan_beacon = false;
 	/* Beacon on the admitted channel: queued once with band, frequency and dBm signal. */
 	n = build(m.scan_packet, 40, 100, 0x0080, body, sizeof(body));
 	assert(mt6797_mac_scan_packet(&m, n, 1, &done, &q) == 0 && q.count == 1 && m.scan_beacon && !done);
@@ -102,6 +149,6 @@ int main(void)
 	n = build(m.scan_packet, 40, 90, 0x0080, body, sizeof(body));
 	assert(mt6797_mac_scan_packet(&m, n, 1, &done, &q) == -ENOMEM && q.count == 2);
 	while (q.head) { struct sk_buff *s = q.head; q.head = s->next; free(s->data); free(s); }
-	puts("scan-report=pass");
+	puts("scan-report=pass all16 metadata masks/pad/beacon+probe, exact MPDU and truncated-frame refusal");
 	return 0;
 }

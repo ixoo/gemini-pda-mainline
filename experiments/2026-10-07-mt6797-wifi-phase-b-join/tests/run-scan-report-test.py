@@ -5,6 +5,7 @@ import argparse
 from pathlib import Path
 import re
 import subprocess
+import sys
 import tempfile
 
 parser = argparse.ArgumentParser()
@@ -22,7 +23,8 @@ with tempfile.TemporaryDirectory(prefix="mt6797-scan-report-") as directory:
     (work / "scan-packet-function.h").write_text(match.group(0))
     binary = work / "scan-report-test"
     subprocess.run(["cc", "-std=c11", "-Wall", "-Wextra", "-Werror", "-Wno-sign-compare", "-Wno-unused-parameter",
-                    "-fsanitize=address,undefined", "-fno-pie", "-no-pie",
+                    "-fsanitize=address,undefined",
+                    *(["-fno-pie", "-no-pie"] if sys.platform.startswith("linux") else []),
                     "-I", str(work), "-I", str(driver),
                     str(Path(__file__).with_name("scan-report-test.c")), "-o", str(binary)], check=True)
     subprocess.run([str(binary)], check=True, timeout=10)
