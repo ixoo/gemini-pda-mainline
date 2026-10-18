@@ -1,0 +1,54 @@
+From 1fb35c3df1af24857817c15e276a71a8e07632d1 Mon Sep 17 00:00:00 2001
+From: Codex Experiment <codex-experiment@example.invalid>
+Date: Sun, 18 Oct 2026 14:37:25 -0400
+Subject: [PATCH] wifi: mt6797: separate grant horizon from join phase limit
+
+GTK1 received a validated 65000 ms grant but stored only the earlier setup
+limit, leaving 9466 ms when data opening required 62500 ms. Under the
+60-second option, retain the actual validated resource horizon without
+changing the join phase deadline or the authoritative late opening guard.
+
+Reject an insufficient interval at the grant event before association
+and keys. Preserve the acquired resource in the ledger on refusal; do not
+publish successful completion. Command, frame, tail, teardown and resource
+limits stay unchanged. The late check still accounts for elapsed setup.
+
+Internal experiment archive, synthetic non-certifying author identity;
+no DCO certification and not an upstream submission.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 17 +++++++++++++++++
+ 1 file changed, 17 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 4b43a3b..68bef9c 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -1322,8 +1322,25 @@ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
+ 			return -EPROTO;
+ 		mac->join_channel_pending = false;
+ 		mac->join_channel_granted = true;
++#ifdef CONFIG_MT6797_CCMP_60S_WINDOW
++		/* The grant is a resource horizon, not the join phase deadline.
++		 * join_deadline still fences every pre-data operation unchanged.
++		 */
++		mac->join_grant_deadline = ktime_get_ns() +
++			(u64)interval * NSEC_PER_MSEC;
++		/* Keep the acquired resource recorded even on an early refusal.
++		 * The late check remains authoritative after association and keys.
++		 */
++		if (interval < MT6797_JOIN_DATA_BUDGET_MS + MT6797_JOIN_GRANT_TAIL_MS) {
++			dev_info(wiphy_dev(mac->hw->wiphy),
++				 "one-shot WLAN initial-key grant refused: interval_ms=%u required_ms=%u\n",
++				 interval, MT6797_JOIN_DATA_BUDGET_MS + MT6797_JOIN_GRANT_TAIL_MS);
++			return -ERANGE;
++		}
++#else
+ 		mac->join_grant_deadline = min_t(u64, mac->join_deadline,
+ 			ktime_get_ns() + (u64)interval * NSEC_PER_MSEC);
++#endif
+ 		complete_all(&mac->join_channel_done);
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+-- 
+2.54.0 (Apple Git-157)
+

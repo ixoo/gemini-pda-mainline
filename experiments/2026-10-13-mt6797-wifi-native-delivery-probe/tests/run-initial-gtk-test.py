@@ -130,7 +130,7 @@ with tempfile.TemporaryDirectory(prefix='initial-gtk-') as directory:
     callbacks = callbacks.replace('mutex_init(&m->mutex); mutex_init(&m->ccmp_receive_mutex);',
         'mutex_init(&m->mutex); mutex_init(&m->ccmp_receive_mutex); seed_mac = &m->mutex; seed_receive = &m->ccmp_receive_mutex;')
     callbacks = callbacks.replace('static int submit_error, wait_mode;',
-        'static int submit_error, wait_mode, credit_error; static bool withdraw_on_credit;')
+        'static int submit_error, wait_mode, credit_error; static bool withdraw_on_credit, expire_on_credit;')
     callbacks = callbacks.replace('static void ieee80211_get_key_rx_seq(',
         'static bool withdraw_at_gtk_seed; static void gtk_seed_withdraw(void);\nstatic void ieee80211_get_key_rx_seq(')
     callbacks = callbacks.replace('if (!(k->flags & IEEE80211_KEY_FLAG_PAIRWISE)) {\n',
@@ -144,9 +144,10 @@ with tempfile.TemporaryDirectory(prefix='initial-gtk-') as directory:
     callbacks = callbacks.replace('m->join_credit_pending = false; m->join_page_debt = 0; return 0;',
         'if (credit_error) { return credit_error; }\n'
         ' if (withdraw_on_credit) { mt6797_ccmp_withdraw(m); }\n'
+        ' if (expire_on_credit) { now += 10000 * NSEC_PER_MSEC; }\n'
         ' m->join_credit_pending = false; m->join_page_debt = 0; return 0;')
     callbacks = callbacks.replace('seed_calls = key_submits = 0; submit_error = 0;',
-        'seed_calls = key_submits = 0; submit_error = credit_error = 0; withdraw_at_gtk_seed = withdraw_on_credit = false;')
+        'seed_calls = key_submits = 0; submit_error = credit_error = 0; withdraw_at_gtk_seed = withdraw_on_credit = expire_on_credit = false;')
     callbacks = callbacks.replace('static int mt6797_hif_native_monitor(void *,',
         'static int mt6797_hif_diag_mask(void *, unsigned int, bool, u64);\nstatic int mt6797_hif_native_monitor(void *,')
     callbacks = callbacks.replace('m->join_deadline = now + 20000 * NSEC_PER_MSEC;',

@@ -340,3 +340,29 @@ windows reflect host-requested grant/setup caps and the 2.5-second tail, not a
 proven firmware lifetime ceiling. Ten-minute operation needs persistent station
 and channel ownership/monitoring; another increase of the finite join constant
 is not that implementation.
+
+## Corrected grant successor: 0205 prepared
+
+[0205](../../patches/proposals/0205-wifi-mt6797-retain-the-validated-channel-grant-horizon.patch)
+changes only the grant-event branch under `CCMP_60S_WINDOW`. It stores the full
+validated horizon separately from the unchanged join-phase deadline. A grant
+below 62,500 ms returns ERANGE before successful channel completion, association
+or key commands, while recording the acquired firmware resource. The existing
+terminal path wakes the failed waiter and preserves poison; early refusal is
+not a claim of healthy firmware cleanup. The authoritative late check is
+byte-identical and still accounts for time consumed by setup.
+
+[Actual event-to-window tests](tests/run-grant-horizon-test.py) reproduce the
+parent's exact 9,466 ms remaining value, open the successor's 60-second window,
+check +/-1 ns at the late boundary, all 65,000 positive millisecond event
+intervals at the early boundary, malformed/truncated events, resource retention
+on early refusal and option-off MAC parity. The selected GTK callback fixture
+also refuses publication when the unchanged 10-second setup limit expires
+during the credit wait. Source changes no setup/command/frame/teardown limit,
+PN gate, resource cap, HIF operation or the late ERANGE check.
+
+All three profiles selecting the independent 60-second window include this
+correction in canonical order; 0202 remains separate and is not selected by the
+initial-GTK profile. Source-only tests prove host decisions, not firmware channel
+ownership, GTK integrity or sustained Wi-Fi. Linux host validation and one
+corrected GTK kernel build precede the next guarded physical handoff.

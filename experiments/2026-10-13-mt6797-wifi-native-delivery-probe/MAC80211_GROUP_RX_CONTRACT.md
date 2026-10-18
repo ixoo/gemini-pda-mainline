@@ -294,3 +294,10 @@ The sealed result and independently confirmed return supersede the pending
 physical handoff above. No GTK delivery, ARP counter or sustained result exists.
 The next correction retains the validated resource horizon without extending
 setup, command, frame or cleanup timeouts.
+
+The [0205 implementation and fixtures](SESSION_0202_PLAN.md#corrected-grant-successor-0205-prepared)
+retain the actual validated horizon and refuse an insufficient grant early,
+without changing the authoritative late check or the join-phase deadline.
+The [lifecycle design](../2026-10-07-mt6797-wifi-phase-b-join/REUSABLE_LIFECYCLE_DESIGN.md#gtk1-failed-installation-unwind)
+now records GTK1's measured add-command/host-install divergence; it remains a
+barrier to reuse, not a reason to suppress the original fault.

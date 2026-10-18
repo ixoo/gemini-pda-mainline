@@ -14,8 +14,10 @@ quiescence, A53 regression and one reviewed return. Changed-boot Gemian
 `9ff760f3-c66a-4aaf-9b91-95a2b48bc26b` independently confirmed. No live process or
 physical handoff is pending. Regular builds/tests remain owner-authorized.
 The [predeclared successor](SESSION_0202_PLAN.md#gtk1-result-and-smallest-justified-correction)
-will separate the actual grant horizon from the unchanged setup/transaction
-limits. Preserve all other diagnostic limits and the separate 0202 comparison.
+is implemented as [0205](../../patches/proposals/0205-wifi-mt6797-retain-the-validated-channel-grant-horizon.patch),
+with the late check unchanged and an early minimum-interval refusal before
+association/keys. Local actual event-to-window and GTK callback fixtures pass;
+Linux validation and the single corrected build are next. Preserve all other diagnostic limits and the separate 0202 comparison.
 
 Prior D3 on unchanged C10 authenticated with an initially absent neighbor entry;
 B was correctly skipped. Earlier SSH failures remain approximately ten-second

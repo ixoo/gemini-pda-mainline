@@ -15,6 +15,31 @@ cleanup and re-arm. Stable-CCMP re-arm remains excluded until firmware/resource
 and mac80211 teardown both have source-supported contracts. Fatal poison must
 remain permanent. No new candidate or two-lifetime claim follows.
 
+## GTK1 failed installation unwind
+
+[GTK1's sealed result](../2026-10-13-mt6797-wifi-native-delivery-probe/results/gtk1-runtime-scalars.json)
+is a measured command/host-view divergence. Pairwise and group add commands
+were submitted and credited, with key-done events observed, before the data
+opening returned ERANGE to the key callback. Healthy cleanup stage 3 was absent;
+local withdrawal and the later reviewed return do not constitute an attributable
+firmware deletion. Command credits and generationless key events still cannot
+prove the final firmware key state. A failed core install return must not be
+used as evidence that firmware never received that key.
+
+The successor separates the validated grant resource horizon from the unchanged
+join-phase fence and rejects an obviously insufficient interval before
+association/key commands. That prevents this guaranteed late failure for short
+grants, but elapsed setup can still fail the authoritative late check. The
+lifecycle must therefore handle failed-install unwind as well as healthy
+teardown, retaining fatal poison and refusing reconnect/reuse until both core
+and firmware/resource ownership are resolved.
+
+The historical six-second windows came from host-requested grant/setup caps
+and the cleanup tail, not a measured firmware maximum. Ten-minute operation
+requires persistent station/channel ownership and connection monitoring after
+the finite join phase. Increasing the diagnostic constant again does not
+implement that lifecycle. GTK1 supplies no protected-data or sustained result.
+
 ## Source refresh, 2026-10-18 UTC
 
 The historical 0179 proposal below is no longer a description of current code.

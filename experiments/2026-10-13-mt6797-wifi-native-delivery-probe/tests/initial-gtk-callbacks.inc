@@ -95,7 +95,7 @@ static void gtk_callback_tests(void)
 	/* Neither rejected command credit nor a withdrawal during seed collection
 	 * may publish a GTK context or let that key be retried.
 	 */
-	for (unsigned int failure = 0; failure < 4; failure++) {
+	for (unsigned int failure = 0; failure < 5; failure++) {
 		prepare(&m, &hw, &vif, &sta); wait_mode = OWNED_FIRST;
 		assert(!mt6797_mac_set_key(&hw, SET_KEY, &vif, &sta, &ptk));
 		gtk.hw_key_idx = 0;
@@ -103,6 +103,10 @@ static void gtk_callback_tests(void)
 		if (failure == 1) credit_error = -EPROTO;
 		if (failure == 2) withdraw_at_gtk_seed = true;
 		if (failure == 3) withdraw_on_credit = true;
+		if (failure == 4) {
+			m.join_deadline = now + 10000 * NSEC_PER_MSEC;
+			expire_on_credit = true;
+		}
 		assert(mt6797_mac_set_key(&hw, SET_KEY, &vif, NULL, &gtk) < 0);
 		assert(m.ccmp_closed && m.ccmp_gtk_attempted && !m.ccmp_gtk);
 		assert(!m.ccmp_gtk_rx.active && !m.ccmp_gtk_rx.seeded && !gtk.hw_key_idx);
@@ -112,7 +116,7 @@ static void gtk_callback_tests(void)
 		assert(seed_calls == seeds && key_submits == submitted);
 		destroy(&m);
 	}
-	puts("GTK actual callbacks: PASS distinct seed/PN/auth/flags, PN-free ARP counter, allocation/cap, stale queued RX, command/credit/withdrawal failures and no reinstall");
+	puts("GTK actual callbacks: PASS distinct seed/PN/auth/flags, PN-free ARP counter, allocation/cap, stale queued RX, command/credit/withdrawal/setup-expiry failures and no reinstall");
 }
 
 int main(void)
