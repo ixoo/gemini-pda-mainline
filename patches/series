@@ -814,3 +814,4 @@ proposals/0200-wifi-mt6797-compare-observed-mask-only-control.patch
 proposals/0201-wifi-mt6797-observe-initial-GTK-PN-metadata.patch
 proposals/0202-wifi-mt6797-compare-firmware-lifetime-fixed-RX-format.patch
 proposals/0203-wifi-mt6797-bound-first-fixed-format-window-to-60s.patch
+proposals/0204-wifi-mt6797-gate-one-separately-seeded-initial-GTK.patch

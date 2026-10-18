@@ -2,10 +2,13 @@
 
 Source-only review performed while [C11](CCMP11_PREPARATION.md) awaited owner
 physical selection. The [C11 result](CCMP11_RESULT.md) subsequently established
-positive group-PN availability; GTK delivery remains withheld. No new candidate, GTK acceptance, frame acquisition or device action.
+positive group-PN availability. The completed device runs withheld GTK delivery.
+The initial-GTK implementation below is prepared and unbuilt; no new frame
+acquisition or device action has occurred.
 The [C11 observation](GROUP_PN_SUCCESSOR.md) establishes only sampled availability.
 The unchanged C10 baseline and the later [D3 diagnostic](SESSION_0202_PLAN.md#evidence-and-later-work)
-are now recorded. The owner adopted group-first preparation after D3; the new-build hold remains. No GTK acceptance code has been added.
+are now recorded. The owner adopted group-first preparation after D3; the
+new-build hold remains.
 
 Input: the actual prepared Linux 7.1.3 source for kernel commit
 `774e08aa5570f96986acc1fd2a40afa0c226777d`, using the
@@ -32,11 +35,11 @@ initial GTK implementation if its independent source/metadata contract is
 supported. C11's observation-policy eligibility is not that check: it reads no
 PN value, authenticates no frame and still withholds group delivery.
 
-A future positive availability result would justify reviewing a separately seeded
+The positive availability result justified reviewing a separately seeded
 GTK context alongside the unchanged initial PTK context, with unambiguous packet
 class/key attribution, mutation only after full validation and allocation, and
-withdrawal before key/station pointers can be freed. This review changes no
-callback, context or acceptance code and does not select that implementation.
+withdrawal before key/station pointers can be freed. The original core review alone did not select acceptance code; the subsequent
+owner-directed implementation is described below.
 Missing required metadata must continue to reject. Firmware integrity attribution,
 rekey/deletion and queued-frame retirement remain obligations before key reuse;
 the [lifecycle barriers](../2026-10-07-mt6797-wifi-phase-b-join/REUSABLE_LIFECYCLE_DESIGN.md)
@@ -88,7 +91,7 @@ The owner explicitly superseded framing-first ordering: prepare initial GTK
 first, with 0202 retained as a separate framing comparison. The approved 0203
 exception is now selected by independent `CONFIG_MT6797_CCMP_60S_WINDOW` and a
 C10-derived profile that excludes 0202. Request/grant/window boundaries pass
-locally; Linux validation of this revision is pending. Builds and device work
+locally and on Linux from clean pushed input `5b92d39a`. Builds and device work
 remain on hold, and the 120/600-second stages are not included in this change.
 
 ## Predeclared initial-GTK preparation
@@ -130,3 +133,49 @@ truncated groups, replay/equality/rollover, wrong status/peer/destination, stale
 keys and queued frames, allocation failure, authorization/withdrawal races,
 option-off parity and unchanged HIF receive behavior. Synthetic checks prove
 host behavior only. No candidate build or radio test follows automatically.
+
+## Prepared implementation — unbuilt
+
+[0204](../../patches/proposals/0204-wifi-mt6797-gate-one-separately-seeded-initial-GTK.patch)
+implements this contract behind default-off `CONFIG_MT6797_CCMP_INITIAL_GTK`.
+The [initial-GTK profile](../../kernel/manifest.json) selects C10 + independent
+0203 + 0204 and excludes both the C11 observer and 0202. All 36 previous
+profile definitions are unchanged. The original PTK checker and every HIF file
+are byte-identical to the parent; disabling GTK preserves the complete
+preprocessed MAC in both native and C10/window configurations.
+
+The separate GTK seed is taken before its first firmware submission, while the
+receive barrier is held and the MAC mutex is released. The attempt is reserved
+before that unlock. Publication rechecks the permanent epoch closure after both
+seeding and the credit wait. A focused regression demonstrated publication
+following withdrawal during that wait in the first prototype; the corrected
+source refuses it. Credit retirement still does not independently prove firmware
+key installation or integrity enforcement. No key reuse is permitted.
+
+The [actual-source runner](tests/run-initial-gtk-test.py) reverses the archive to
+recover the parent exactly, pins the reused fixtures and runs ASan/UBSan plus
+the existing pthread withdrawal check. Local validation passes 19,007
+checker cases and actual callback cases for distinct GTK/PTK seeds and PNs,
+authorization, allocation/caps, missing metadata, PN-free ARP classification,
+stale queued frames, submission/credit/withdrawal failures and reinstall refusal.
+The callback control-call stub does not simulate the HIF wire or firmware.
+Linux validation of this GTK revision is pending clean pushed inputs.
+
+C11 did not retain all reserved-word/source-address predicate values or PN
+values required by this stricter checker. Its eligible count therefore does not
+predict a positive GTK queue. An admitted run must report the first checked GTK
+queue separately from network and SSH success. The withheld-ARP counter covers
+eligible ARP-class groups rejected at the GTK gate, including missing PN or
+replay; it does not cover packets outside the admitted window/cap or establish
+which rejection was legitimate traffic. Record the exact first limit reached.
+
+The first admitted candidate, after release of the build/device hold, keeps one
+SSH attempt with ConnectTimeout=10 and retained stderr inside the independently
+verified live window. Authentication is consistent with transient loss/retry
+behavior, without proving it. A ten-second silence while the driver window
+remains open supports a persistent-path investigation; SYN-not-emitted and
+SYN-unanswered remain separate until new evidence discriminates. Early cap,
+short grant, framing refusal and cleanup failure are separate results. No second
+ARP-pair boot, GTK rekey/reuse, reconnect, -48 adjustment or longer transaction
+deadline is included. A 60-second observation is not 60 seconds of authenticated
+traffic, and the 2/10-minute stages remain unprepared.

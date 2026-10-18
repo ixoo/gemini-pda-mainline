@@ -280,6 +280,11 @@ retained around the client. The complete routing table stays private. This
 command succeeded unprivileged in the same helper sandbox (exit 0, 1,517 stdout
 bytes, empty stderr); it sends no probe and needs no privilege or cache change.
 The completed D1/D2/D3 source inputs remain historical at their recorded commits.
-Five focused standard-client cases pass locally, including default host dispatch,
+Seven focused standard-client cases pass locally, including default host dispatch,
 retained failed-client stderr, unknown-route handling and the owned GTK receipt
-namespace. Linux validation is pending from pushed inputs.
+namespace, early data-window closure and an unknown post-client probe. The
+standard path takes one bounded read-only USB snapshot after the client; it
+records open/ended/closed-or-fault/unknown without changing the client verdict
+or ACK. This checks the driver admission state, not continued AP association.
+The original five cases passed on Linux at `5b92d39a`; current seven-case Linux
+validation is pending clean pushed inputs.

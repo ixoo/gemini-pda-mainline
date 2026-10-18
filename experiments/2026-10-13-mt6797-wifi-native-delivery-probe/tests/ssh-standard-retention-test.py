@@ -28,7 +28,7 @@ F = load('standard_retained_fixtures', HERE / 'ssh-observation-test.py')
 
 
 class StandardTests(unittest.TestCase):
-    def exercise(self, rc=0, route_rc=0):
+    def exercise(self, rc=0, route_rc=0, ended=False, post_timeout=False):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / 'observed'
             calls = []
@@ -48,7 +48,10 @@ class StandardTests(unittest.TestCase):
                     if rc:
                         kwargs['stderr'].write(b'ssh: connect to host fixture port 22: Operation timed out\n')
                     return subprocess.CompletedProcess(argv, rc, stdout=F.SERVED if not rc else b'partial')
-                return subprocess.CompletedProcess(argv, 0, stdout=F.PROBE)
+                if 'DATA_ENDED=' in argv[-1] and post_timeout:
+                    raise subprocess.TimeoutExpired(argv, kwargs['timeout'])
+                return subprocess.CompletedProcess(argv, 0, stdout=F.PROBE +
+                    (b'DATA_ENDED=1\n' if ended else b'DATA_ENDED=0\n'))
 
             old = S.D.O.C.M.base_command
             umask = os.umask(0o077)
@@ -68,12 +71,23 @@ class StandardTests(unittest.TestCase):
         self.assertTrue(result['client_observation_created'])
         self.assertEqual(error, b'')
         self.assertEqual(sum(a[0] == '/usr/sbin/netstat' for a in calls), 1)
+        self.assertEqual(result['driver_window_after_client']['driver_data_window'], 'open')
 
     def test_standard_failure_retains_full_error_without_ack(self):
         result, _, error, _ = self.exercise(rc=255)
         self.assertFalse(result['all_pass'])
         self.assertFalse(result['cycles'][0]['ack_written'])
         self.assertEqual(error, b'ssh: connect to host fixture port 22: Operation timed out\n')
+        self.assertEqual(result['driver_window_after_client']['driver_data_window'], 'open')
+
+    def test_early_data_end_is_not_mistaken_for_a_live_nominal_window(self):
+        result, _, _, _ = self.exercise(rc=255, ended=True)
+        self.assertEqual(result['driver_window_after_client']['driver_data_window'], 'ended')
+
+    def test_post_client_timeout_stays_unknown_without_another_wifi_attempt(self):
+        result, calls, _, _ = self.exercise(rc=255, post_timeout=True)
+        self.assertEqual(result['driver_window_after_client']['driver_data_window'], 'unknown')
+        self.assertEqual(sum(any(a.startswith('HostKeyAlias=') for a in argv) for argv in calls), 1)
 
     def test_failed_route_snapshot_stays_unknown_and_does_not_replace_ssh(self):
         result, _, _, observations = self.exercise(route_rc=71)

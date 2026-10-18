@@ -1,22 +1,19 @@
 # Design: MT6797 Wi-Fi native-crypto-delivery diagnostic (proposal 0181, default-off)
 
-Latest executed result: [D2](SSH_D2_RESULT.md) (2026-10-18 UTC) hit a port-0
-94/142 header-length refusal during mask ENABLE_PENDING on unchanged C10.
-DHCP/pings/SSH and the intended local queries were not reached. Healthy cleanup
-failed; poison/debt were retained. Evidence and reviewed return to changed-boot
-Gemian were independently verified. No retry, length adjustment or timer change.
+Latest completed device result: [D3](SESSION_0202_PLAN.md#evidence-and-later-work)
+on unchanged C10 passed DHCP, three pings, fresh SSH and finite cleanup. Its
+neighbor entry changed from absent to complete; this proves resolution worked
+in that run, not how. A authenticated in 1.410 seconds, so B was correctly
+skipped. No additional ARP-pair boot is planned.
 
-The [three-run C10 baseline](CCMP10_BASELINE.md) passed all finite transport/
-network/host-cleanup windows, SSH 2/3; [D1](SSH_D1_RESULT.md) then passed without
-classifying the earlier SSH failure. D2 is a separate transport result, not an
-SSH measurement. The [RX contract review](D2_RX_CONTRACT_REVIEW.md) covers this
-new +48 direction, existing pre-arm status and updated actual-source fixtures.
-The [fixed-format source proposal](RX_FORMAT_OWNERSHIP_SUCCESSOR.md) is ready
-as an [unbuilt prototype](FIXED_RX_FORMAT_PREPARATION.md), with host fixtures
-passing locally and on Linux. The approved 60-second budget patch is separate.
-A/B runtime binding and sustained SSH preparation remain pending. No successor
-candidate is built or admitted. GTK delivery, rekey, reuse and reconnect stay
-disabled; ordinary integrity/key retirement and sustained acceptance remain.
+The [post-D3 source contract](MAC80211_GROUP_RX_CONTRACT.md#prepared-implementation--unbuilt)
+records the owner-directed initial-GTK prototype and separate 60-second window.
+Standard sessions retain full client stderr and numeric netstat/neighbor state.
+The earlier approximately ten-second failures remain silence with SYN-not-emitted
+versus SYN-unanswered unresolved. GTK is unbuilt and untested on hardware;
+kernel builds and device work remain on hold. The separate 0202 framing
+comparison comes later. No -48 adjustment, rekey, reuse or reconnect. Sustained
+SSH, ordinary integrity/key retirement and full acceptance remain incomplete.
 
 | Field | Value |
 | --- | --- |

@@ -37,7 +37,49 @@ def run(root, keys, boot, cycles, poll_seconds, runner=subprocess.run):
     result['client_retention_enabled'] = True
     result['client_observation_created'] = root.exists()
     result['route_probe'] = 'netstat -rn -f inet; private IPv4 table snapshot'
+    if root.exists() and any(c['ssh_attempted'] for c in result['cycles']):
+        result['driver_window_after_client'] = window_after_client(root, keys, boot, runner)
     return result
+
+
+def window_after_client(root, keys, boot, runner):
+    """One software-only USB snapshot; never a second Wi-Fi attempt or ACK.
+
+    Nominal 60 seconds is insufficient if an existing resource cap ended the
+    window early. Reuse the boot/listener/mode verifier and its dmesg snapshot,
+    additionally excluding a data-end record before the stage-3 terminal.
+    """
+    record = {'exit': None, 'timeout': False, 'boot_match': False,
+              'driver_data_window': 'unknown'}
+    fields = {}
+
+    def read(argv, **kwargs):
+        nonlocal fields
+        suffix = ('; printf "DATA_ENDED=%s\\n" "$(printf "%s" "$d" | '
+                  'grep -c "one-shot WLAN join data phase end:")"')
+        response = runner([*argv[:-1], argv[-1] + suffix], **kwargs)
+        with (root / 'post-client-window.bin').open('xb') as stream:
+            stream.write(response.stdout)
+        record['exit'] = response.returncode
+        fields = D.O.C.M.parse_block(response.stdout.decode('ascii', 'replace'))
+        return response
+
+    try:
+        status, _ = D.O.C.probe(keys, boot, 1, read, 0.5)
+        record['boot_match'] = fields.get('BOOT') == boot
+        if record['boot_match'] and fields.get('DMESG') == 'ok':
+            ended = fields.get('DATA_ENDED', '')
+            if re.fullmatch(r'[0-9]+', ended) and int(ended) > 0:
+                record['driver_data_window'] = 'ended'
+            elif status == 'ok' and ended == '0':
+                record['driver_data_window'] = 'open'
+            elif status == 'closed':
+                record['driver_data_window'] = 'closed_or_fault'
+    except subprocess.TimeoutExpired:
+        record['timeout'] = True
+    except OSError:
+        pass
+    return record
 
 
 def main():

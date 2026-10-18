@@ -1,0 +1,178 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-2.0-only
+"""Actual GTK checker/callbacks plus frozen PTK/pthread fixtures; host only."""
+import argparse
+import ast
+import hashlib
+from pathlib import Path
+import re
+import subprocess
+import sys
+import tempfile
+
+p = argparse.ArgumentParser(description=__doc__)
+p.add_argument('parent', type=Path, help='C10 plus independent 0203')
+p.add_argument('child', type=Path, help='unbuilt initial-GTK source')
+a = p.parse_args()
+fixtures = Path(__file__).resolve().parent
+# Pin the frozen fixtures whose narrow substitutions are used below.
+for name, digest in {
+    'ccmp-rx-test.c': '8a34df09b1d89644952de95e363fadec170f569fd5b39f75239d8a87606ba96b',
+    'native-rx-test.c': '9b3e1e355425cc69fdcd6f6e78058225876253967bb632b1441a22c976cbbae6',
+    'ccmp-monitor-state-test.c': 'b9f907551aaf4f6ffdfcc2f8919ab37e7404106330869b3914715a422b177ce4',
+    'run-native-beacon-test.py': '078b69b048c55e6a1808d03f7bdc9285db8a985016d22b7bac49a56e9fab663d',
+}.items():
+    assert hashlib.sha256((fixtures / name).read_bytes()).hexdigest() == digest, name
+rel = Path('drivers/net/wireless/mediatek/mt6797')
+parent, child = a.parent.resolve() / rel, a.child.resolve() / rel
+assert hashlib.sha256((child / 'ccmp-rx.h').read_bytes()).hexdigest() == \
+    '35b581f1cd3abdda66e8b392b39bd538875975e2254e80488dc1cc8dbbec85a0'
+assert {x.name for x in child.iterdir()} == {x.name for x in parent.iterdir()} | {'ccmp-gtk-rx.h'}
+for x in parent.iterdir():
+    if x.is_file() and x.name not in {'mac.c', 'Kconfig'}:
+        assert x.read_bytes() == (child / x.name).read_bytes(), x.name
+# Reversing exactly the selected archive must recover every parent file.
+archive = fixtures.parents[2] / 'patches/proposals/0204-wifi-mt6797-gate-one-separately-seeded-initial-GTK.patch'
+with tempfile.TemporaryDirectory(prefix='gtk-reverse-') as directory:
+    import shutil
+    recovered = Path(directory)
+    shutil.copytree(child, recovered / rel)
+    subprocess.run(['git', 'apply', '--reverse', str(archive)], cwd=recovered,
+                   check=True, timeout=10)
+    files = {x.relative_to(recovered) for x in recovered.rglob('*') if x.is_file()}
+    assert files == {rel / x.name for x in parent.iterdir() if x.is_file()}
+    for x in parent.iterdir():
+        if x.is_file():
+            assert x.read_bytes() == (recovered / rel / x.name).read_bytes(), x.name
+
+old, new = (parent / 'mac.c').read_text(), (child / 'mac.c').read_text()
+
+
+def function(text, name):
+    match = re.search(r'\b' + re.escape(name) + r'\([^;]*?\)\n\{', text)
+    assert match, name
+    start = match.start()
+    return text[start:text.index('\n}\n', start) + 2]
+
+
+def matching_endif(text, start):
+    depth = 0
+    for match in re.finditer(r'(?m)^#(if[^\n]*|endif[^\n]*)$', text[start:]):
+        if match[1].startswith('if'):
+            depth += 1
+        elif depth:
+            depth -= 1
+        else:
+            return start + match.start() - 1
+    raise AssertionError('missing outer endif')
+
+
+extractors = (fixtures / 'run-native-beacon-test.py').read_text().replace(
+    'text.index("\\n#endif", native_start)', 'matching_endif(text, native_start)').replace(
+    'text.index("\\n#endif", account_start)', 'matching_endif(text, account_start)')
+tree = ast.parse(extractors)
+ns = {'matching_endif': matching_endif}
+exec(compile(ast.Module(body=[n for n in tree.body if isinstance(n, ast.FunctionDef)],
+                        type_ignores=[]), 'existing-native-extractors', 'exec'), ns)
+
+with tempfile.TemporaryDirectory(prefix='initial-gtk-') as directory:
+    tmp = Path(directory)
+    flags = ['cc', '-std=c11', '-Wall', '-Wextra', '-Werror', '-Wformat=2',
+             '-fsanitize=address,undefined', '-fno-omit-frame-pointer']
+    if sys.platform.startswith('linux'):
+        flags += ['-fno-pie', '-no-pie']
+    baseline = (fixtures / 'ccmp-rx-test.c').read_text().replace(
+        '"../../2026-10-07-mt6797-wifi-phase-b-join/tests/data-rx-test.c"',
+        '"' + str(fixtures.parents[1] / '2026-10-07-mt6797-wifi-phase-b-join/tests/data-rx-test.c') + '"')
+    (tmp / 'ptk-baseline.inc').write_text(baseline.replace('int main(void)', 'int ptk_baseline_tests(void)'))
+    binary = tmp / 'checker'
+    subprocess.run([*flags, '-I', str(tmp), '-I', str(child), str(fixtures / 'ccmp-gtk-rx-test.c'),
+                    '-o', str(binary)], check=True, timeout=30)
+    subprocess.run([str(binary)], check=True, timeout=30)
+
+    start = new.index('struct mt6797_mac {'); end = new.index('\n};', start) + 3
+    names = [
+        ('void', 'mt6797_ccmp_observe_terminal'),
+        ('void', 'mt6797_ccmp_withdraw'), ('bool', 'mt6797_ccmp_rx_ready'),
+        ('void', 'mt6797_ccmp_withheld_arp'), ('void', 'mt6797_ccmp_receive'),
+        ('void', 'mt6797_mac_sta_set_decap_offload'), ('int', 'mt6797_ccmp_queue_rx'),
+        ('void', 'mt6797_native_diag_rx_report'), ('int', 'mt6797_mac_join_fail_stop'),
+        ('int', 'mt6797_ccmp_disable_key'), ('int', 'mt6797_mac_set_key'),
+        ('int', 'mt6797_mac_sta_state'), ('int', 'mt6797_native_diag_pre_read'),
+        ('void', 'mt6797_native_diag_ordinary_record'), ('void', 'mt6797_mac_tx'),
+        ('void', 'mt6797_native_diag_step'), ('bool', 'mt6797_native_diag_tx_fenced')]
+    obs_start = new.index('struct mt6797_ccmp_observation {')
+    obs_end = new.index('\n};', obs_start) + 3
+    (tmp / 'actual-ccmp-monitor.inc').write_text(new[obs_start:obs_end] + '\n' + new[start:end] + '\n' + '\n'.join(
+        '#pragma GCC diagnostic push\n#pragma GCC diagnostic ignored "-Wunused-parameter"\n' +
+        'static ' + result + ' ' + function(new, name) + '\n#pragma GCC diagnostic pop'
+        for result, name in names))
+    event = new.index('\tif (mt6797_join_event(mac->join_packet, bytes, 0x24, 8))')
+    end = new.index('\n\tif (mt6797_join_event(mac->join_packet, bytes, 0x11', event)
+    (tmp / 'actual-key-event.inc').write_text('static int owned_key_event(struct mt6797_mac *mac, size_t bytes) {\n' +
+        new[event:end].rsplit('\n#endif', 1)[0] + '\nreturn -EINVAL; }\n')
+    (tmp / 'parent-monitor-step.inc').write_text('static void ' +
+        function(old, 'mt6797_native_diag_step').replace('mt6797_native_diag_step(', 'parent_monitor_step(', 1) + '\n')
+    dispatch = ns['hooks'](new).replace('static void ' + function(new, 'mt6797_native_diag_rx_report') + '\n', '')
+    (tmp / 'actual-dispatch.inc').write_text(dispatch)
+    (tmp / 'helper-fixture.inc').write_text(baseline.replace('int main(void)', 'int offline_helper_tests(void)'))
+    native = (fixtures / 'native-rx-test.c').read_text().replace('int main(void)', 'int native_layout_tests(void)')
+    (tmp / 'native-fixture.inc').write_text('#define own native_own\n#define ap native_ap\n' + native + '\n#undef own\n#undef ap\n')
+    callbacks = (fixtures / 'ccmp-monitor-state-test.c').read_text()
+    callbacks = callbacks.replace('#include "ccmp-rx.h"', '#include "ccmp-rx.h"\n#include "ccmp-gtk-rx.h"\n#include "normal_command.h"')
+    callbacks = callbacks.replace('static void mutex_init(struct mutex *m)',
+                                'static struct mutex *seed_receive, *seed_mac;\nstatic void mutex_init(struct mutex *m)')
+    callbacks = callbacks.replace('memset(s, 0, sizeof(*s)); s->ccmp.pn[5] = 5;',
+        'if (!(k->flags & IEEE80211_KEY_FLAG_PAIRWISE)) {\n'
+        ' assert(pthread_mutex_trylock(&seed_receive->lock) == EBUSY);\n'
+        ' assert(!pthread_mutex_trylock(&seed_mac->lock)); assert(!pthread_mutex_unlock(&seed_mac->lock)); }\n'
+        ' memset(s, 0, sizeof(*s)); s->ccmp.pn[5] = (k->flags & IEEE80211_KEY_FLAG_PAIRWISE) ? 5 : 50;')
+    callbacks = callbacks.replace('mutex_init(&m->mutex); mutex_init(&m->ccmp_receive_mutex);',
+        'mutex_init(&m->mutex); mutex_init(&m->ccmp_receive_mutex); seed_mac = &m->mutex; seed_receive = &m->ccmp_receive_mutex;')
+    callbacks = callbacks.replace('static int submit_error, wait_mode;',
+        'static int submit_error, wait_mode, credit_error; static bool withdraw_on_credit;')
+    callbacks = callbacks.replace('static void ieee80211_get_key_rx_seq(',
+        'static bool withdraw_at_gtk_seed; static void gtk_seed_withdraw(void);\nstatic void ieee80211_get_key_rx_seq(')
+    callbacks = callbacks.replace('if (!(k->flags & IEEE80211_KEY_FLAG_PAIRWISE)) {\n',
+        'if (!(k->flags & IEEE80211_KEY_FLAG_PAIRWISE)) {\n')
+    callbacks = callbacks.replace('memset(s, 0, sizeof(*s)); s->ccmp.pn[5] = (k->flags',
+        'gtk_seed_withdraw(); memset(s, 0, sizeof(*s)); s->ccmp.pn[5] = (k->flags')
+    callbacks = callbacks.replace('static struct mt6797_mac *current;',
+        'static struct mt6797_mac *current;\n'
+        'static void gtk_seed_withdraw(void) { if (withdraw_at_gtk_seed) { '
+        'mutex_lock(&current->mutex); mt6797_ccmp_withdraw(current); mutex_unlock(&current->mutex); } }')
+    callbacks = callbacks.replace('m->join_credit_pending = false; m->join_page_debt = 0; return 0;',
+        'if (credit_error) return credit_error; if (withdraw_on_credit) mt6797_ccmp_withdraw(m); m->join_credit_pending = false; m->join_page_debt = 0; return 0;')
+    callbacks = callbacks.replace('seed_calls = key_submits = 0; submit_error = 0;',
+        'seed_calls = key_submits = 0; submit_error = credit_error = 0; withdraw_at_gtk_seed = withdraw_on_credit = false;')
+    callbacks = callbacks.replace('static int mt6797_hif_native_monitor(void *,',
+        'static int mt6797_hif_diag_mask(void *, unsigned int, bool, u64);\nstatic int mt6797_hif_native_monitor(void *,')
+    callbacks = callbacks.replace('m->join_deadline = now + 20000 * NSEC_PER_MSEC;',
+                                  'm->join_deadline = now + 125000 * NSEC_PER_MSEC;')
+    callbacks = callbacks.replace('m->join_data_deadline = now + 15000 * NSEC_PER_MSEC;',
+                                  'm->join_data_deadline = now + 120000 * NSEC_PER_MSEC;')
+    callbacks = callbacks.replace('now + 10000 * NSEC_PER_MSEC', 'now + 60000 * NSEC_PER_MSEC')
+    callbacks = callbacks.replace('now += 10000 * NSEC_PER_MSEC', 'now += 60000 * NSEC_PER_MSEC')
+    callbacks = callbacks.replace('m.ccmp_rx.pn[5] == 6 && seed_calls == 1', 'm.ccmp_rx.pn[5] == 6 && seed_calls == 2')
+    # Preserve the errno assertion on both Linux and macOS (EPROTO differs).
+    callbacks = callbacks.replace('assert(strstr(last_log, "removal_command_credit=0 status=-71"));',
+        'char expected_error[64]; snprintf(expected_error, sizeof(expected_error), '
+        '"removal_command_credit=0 status=%d ", -EPROTO); assert(strstr(last_log, expected_error));')
+    callbacks = callbacks.replace('int main(void)', 'int existing_callbacks(void)')
+    callbacks = callbacks.replace('GTK-withhold', 'initial-key ownership').replace('actual monitor engine:', 'actual mask engine (control-call stub):')
+    (tmp / 'callbacks.c').write_text(callbacks + '\n' + (fixtures / 'initial-gtk-callbacks.inc').read_text())
+    binary = tmp / 'callbacks'
+    subprocess.run([*flags, '-pthread', '-DCONFIG_MT6797_CCMP_MASK_CONTROL',
+        '-DCONFIG_MT6797_CCMP_60S_WINDOW', '-DCONFIG_MT6797_CCMP_INITIAL_GTK',
+        '-I', str(tmp), '-I', str(child), str(tmp / 'callbacks.c'), '-o', str(binary)], check=True, timeout=30)
+    subprocess.run([str(binary)], check=True, timeout=30)
+
+    for options in [[], ['-DCONFIG_MT6797_NATIVE_DELIVERY_DIAG', '-DCONFIG_MT6797_CCMP_STABLE_EPOCH',
+                       '-DCONFIG_MT6797_CCMP_MASK_CONTROL', '-DCONFIG_MT6797_CCMP_60S_WINDOW']]:
+        tokens = []
+        for label, source in [('parent', old), ('off', new)]:
+            path = tmp / (label + '.c'); path.write_text(re.sub(r'^#include[^\n]*\n', '', source, flags=re.M))
+            tokens.append(subprocess.run(['cc', '-E', '-P', '-DIS_ENABLED(x)=1', *options, str(path)],
+                         capture_output=True, check=True).stdout)
+        assert tokens[0] == tokens[1], 'option-off full MAC changed'
+print('PASS actual checker/callbacks, original pthread withdrawal, option-off MAC parity; no firmware/key retirement proof')

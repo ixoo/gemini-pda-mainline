@@ -16,11 +16,12 @@ The [reviewer reassessment](SESSION_0202_PLAN.md#reviewer-reassessment-before-fu
 corrects the all-`0xc200` premise: C11's 32 eligible groups required `0xc000`.
 Expanded 2,718 actual-source cases and eleven paired-helper cases pass locally
 and on Linux from clean pushed input `f45b7645`. The owner adopted group-first preparation. The independent 60-second window
-and permanent standard client stderr/netstat retention are implemented locally
-with focused fixtures passing; current-revision Linux validation is next.
-The strict initial-GTK context/checker is next for implementation under the
+and permanent standard client stderr/netstat retention passed locally and on Linux from clean pushed input `5b92d39a`.
+The strict initial-GTK context/checker is implemented under the
 [predeclared source contract](MAC80211_GROUP_RX_CONTRACT.md#predeclared-initial-gtk-preparation).
-No new GTK acceptance or SSH-cause proof is claimed. Preserve strict PN/integrity/ownership requirements.
+Its actual-source fixtures pass locally; current GTK/Linux validation is next.
+No hardware GTK acceptance or SSH-cause proof is claimed. Preserve strict
+PN/integrity/ownership requirements.
 0202/0203 remain unbuilt under the owner's hold; the 65-second request /
 60-second wall exception is approved for preparation only. Keep one scalars
 file and one table row per future run; no per-run result documents. No -48
@@ -47,7 +48,8 @@ The [0202 prototype](FIXED_RX_FORMAT_PREPARATION.md) is implemented and passes
 1482 ASan/UBSan cases plus RX/option-off comparisons locally and on Linux.
 The separate approved 0203 window patch passes actual-source boundary/parity
 checks. Final strict patch review has only the intentional missing DCO sign-off.
-Next bind the A/B and sustained SSH session; no kernel build or execution is admitted. Do not repeat D2 or build under the owner's hold.
+The old A/B plan is superseded: no further ARP-pair boot. Initial GTK plus the
+independent window is next; no kernel build or execution is admitted.
 
 The [three-run C10 baseline](CCMP10_BASELINE.md) remains SSH 2/3, all its finite
 transport/network/host-cleanup windows passed. [D1](SSH_D1_RESULT.md) passed
@@ -55,8 +57,9 @@ without reproducing failure. Exact earlier TCP/KEX/auth failure stage remains
 unknown; D2 does not classify it. [C11](CCMP11_RESULT.md) did not enable GTK.
 
 Keep equality, complete transfer, poison/no-copy; no -48 adjustment, longer
-transport deadline, speculative register or unrelated callback RE. GTK delivery,
-rekey, reuse and reconnect stay disabled. Staged 60 s / 2 min / 10 min and full
+transport deadline, speculative register or unrelated callback RE. GTK delivery
+remains disabled on tested images; the default-off prototype is unbuilt. Rekey,
+reuse and reconnect stay disabled. Staged 60 s / 2 min / 10 min and full
 Wi-Fi acceptance remain incomplete. The pause record below is historical.
 
 Historical pause boundary. The owner explicitly resumed implementation on

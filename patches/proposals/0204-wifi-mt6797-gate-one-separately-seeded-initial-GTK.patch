@@ -1,0 +1,339 @@
+From b57f975e7ce6f487474c3c3cc5b4f8e00d3db628 Mon Sep 17 00:00:00 2001
+From: Codex Experiment <codex-experiment@example.invalid>
+Date: Sun, 18 Oct 2026 13:50:31 -0400
+Subject: [PATCH] wifi: mt6797: gate one separately seeded initial GTK
+
+Deliver only strict translated group CCMP frames for the installed BMC
+key. Keep the original PTK checker unchanged and seed a separate
+monotonic GTK PN before offload under the receive barrier. Revalidate
+withdrawal after the credit wait; retain permanent closure and prohibit
+reinstall.
+
+Count withheld ARP-class groups without a PN read in the classifier and
+name the first checked GTK queue. Shared frame caps, HIF protocol and
+transaction deadlines stay unchanged. Default-off compatibility
+experiment, not normal-mode integrity or key-reuse proof.
+
+Internal experiment archive, synthetic non-certifying author identity;
+no DCO certification and not an upstream submission.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig  |  10 ++
+ .../wireless/mediatek/mt6797/ccmp-gtk-rx.h    |  91 +++++++++++++++
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 108 ++++++++++++++++++
+ 3 files changed, 209 insertions(+)
+ create mode 100644 drivers/net/wireless/mediatek/mt6797/ccmp-gtk-rx.h
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index ee943cb..f19e27e 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -93,6 +93,16 @@ config MT6797_NATIVE_DELIVERY_DIAG
+ 	  unless this option is set; the Phase B compile profile does not set it.
+ 	  Not driver support; a bounded source-grounded crypto-delivery test.
+ 
++config MT6797_CCMP_INITIAL_GTK
++	bool "MT6797 default-off checked initial GTK compatibility"
++	depends on MT6797_CCMP_60S_WINDOW
++	default n
++	help
++	  Extend the single initial-key experiment with an independently seeded
++	  strict GTK PN context, group/BMC attribution and checked Ethernet RX.
++	  Keep all receive/transport limits and the standard mac80211 handoff.
++	  No rekey, reuse, reconnect or maintained crypto support claim.
++
+ config MT6797_CCMP_60S_WINDOW
+ 	bool "MT6797 default-off 60-second initial-key observation"
+ 	depends on MT6797_CCMP_MASK_CONTROL
+diff --git a/drivers/net/wireless/mediatek/mt6797/ccmp-gtk-rx.h b/drivers/net/wireless/mediatek/mt6797/ccmp-gtk-rx.h
+new file mode 100644
+index 0000000..d4f56cb
+--- /dev/null
++++ b/drivers/net/wireless/mediatek/mt6797/ccmp-gtk-rx.h
+@@ -0,0 +1,91 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef MT6797_CCMP_GTK_RX_H
++#define MT6797_CCMP_GTK_RX_H
++
++#include "ccmp-rx.h"
++
++/* One separately seeded initial GTK context, never the PTK context. Preserve
++ * the PTK shape/status/PN contract, changing only group key class, ID, index
++ * and RA. A valid group does not make firmware integrity independently proven.
++ * False preserves every input/context/output byte; true advances only this
++ * context's strict PN after complete validation. No delivery or key lookup.
++ */
++static inline bool
++mt6797_ccmp_gtk_rx_check(const unsigned char *packet, size_t bytes,
++			 struct mt6797_ccmp_rx_context *context,
++			 struct mt6797_ccmp_rx *out)
++{
++	struct mt6797_ccmp_rx r;
++	unsigned char pn[6];
++	size_t offset = 48; /* base16, mandatory Group4 at16, Group1 at32 */
++	unsigned int groups, fc, i;
++	bool greater = false, own_any = false, ap_any = false, source_any = false;
++	const unsigned char *ethernet;
++
++	if (!packet || !context || !out || bytes < 16 || bytes > 2352 ||
++	    !context->authorized || !context->active || !context->seeded ||
++	    context->pairwise || context->cipher != 0x000fac04U ||
++	    context->key_bytes != 16 || context->key_id > 3 ||
++	    context->wlan_index != 2 || context->rxd_bssid > 63 || !context->channel ||
++	    (context->own[0] & 1) || (context->ap[0] & 1))
++		return false;
++	for (i = 0; i < 6; i++) {
++		own_any |= context->own[i] != 0;
++		ap_any |= context->ap[i] != 0;
++	}
++	if (!own_any || !ap_any || mt6797_join_le16(packet) != bytes ||
++	    (mt6797_join_le16(packet + 2) >> 13) != 2 ||
++	    ((packet[4] & 0x3f) != 0x08 && (packet[4] & 0x3f) != 0x04) ||
++	    (packet[4] >> 6) != context->key_id || packet[5] != context->channel ||
++	    (packet[6] & 0xbf) != 0x8e ||
++	    packet[7] != (unsigned int)context->rxd_bssid << 2 ||
++	    packet[8] != context->wlan_index || packet[9] != 0x40 ||
++	    mt6797_join_le16(packet + 10) != 0xc000)
++		return false;
++	groups = (mt6797_join_le16(packet + 2) >> 9) & 15;
++	if ((groups & 9) != 9)
++		return false;
++	if (groups & 2)
++		offset += 8;
++	if (groups & 4)
++		offset += 24;
++	if (packet[6] & 0x40)
++		offset += 2;
++	/* Bounds precede every Group4, Group1 and Ethernet field access. */
++	if (offset > bytes || bytes - offset <= 14)
++		return false;
++	fc = mt6797_join_le16(packet + 16);
++	if ((fc & ~0x2800U) != 0x4208 ||
++	    (mt6797_join_le16(packet + 24) & 15) ||
++	    mt6797_join_le16(packet + 26) || mt6797_join_le32(packet + 28))
++		return false;
++	ethernet = packet + offset;
++	for (i = 0; i < 6; i++) {
++		if (packet[18 + i] != context->ap[i])
++			return false;
++		source_any |= ethernet[6 + i] != 0;
++		pn[i] = packet[32 + 5 - i];
++	}
++	/* Ethernet-II only; EAPOL remains on the existing control-port path. */
++	if (!(ethernet[0] & 1) || !source_any || (ethernet[6] & 1) ||
++	    (((unsigned int)ethernet[12] << 8) | ethernet[13]) < 0x0600 ||
++	    (ethernet[12] == 0x88 && ethernet[13] == 0x8e))
++		return false;
++	for (i = 0; i < 6; i++) {
++		if (pn[i] < context->pn[i])
++			return false;
++		if (pn[i] > context->pn[i]) {
++			greater = true;
++			break;
++		}
++	}
++	if (!greater)
++		return false;
++	r.offset = offset;
++	r.bytes = bytes - offset;
++	for (i = 0; i < 6; i++)
++		context->pn[i] = pn[i];
++	*out = r;
++	return true;
++}
++#endif /* MT6797_CCMP_GTK_RX_H */
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index be83ee0..4b43a3b 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -33,6 +33,9 @@ MODULE_PARM_DESC(native_delivery_diag,
+ #ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
+ #include <linux/rcupdate.h>
+ #include "ccmp-rx.h"
++#ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
++#include "ccmp-gtk-rx.h"
++#endif
+ static bool ccmp_stable_epoch;
+ static const u32 mt6797_ccmp_ciphers[] = { WLAN_CIPHER_SUITE_CCMP };
+ module_param(ccmp_stable_epoch, bool, 0444);
+@@ -211,6 +214,11 @@ struct mt6797_mac {
+ #endif
+ #ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
+ 	struct mt6797_ccmp_rx_context ccmp_rx;
++#ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
++	struct mt6797_ccmp_rx_context ccmp_gtk_rx;
++	bool ccmp_gtk_attempted, ccmp_gtk_seen;
++	unsigned int ccmp_gtk_arp_withheld;
++#endif
+ 	struct ieee80211_sta __rcu *ccmp_sta;
+ 	/* Cookies only: never dereferenced, withdrawn before DISABLE_KEY returns. */
+ 	struct ieee80211_key_conf *ccmp_ptk, *ccmp_gtk;
+@@ -344,6 +352,10 @@ static void mt6797_ccmp_withdraw(struct mt6797_mac *mac)
+ 
+ 	mac->ccmp_rx.active = false;
+ 	mac->ccmp_rx.authorized = false;
++#ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
++	mac->ccmp_gtk_rx.active = false;
++	mac->ccmp_gtk_rx.authorized = false;
++#endif
+ 	mac->ccmp_decap = false;
+ 	mac->ccmp_closed = true;
+ 	RCU_INIT_POINTER(mac->ccmp_sta, NULL);
+@@ -364,12 +376,30 @@ static bool mt6797_ccmp_rx_ready(struct mt6797_mac *mac)
+ 	       mac->native_diag_state == MT6797_ND_ACTIVE;
+ }
+ 
++#ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
++/* Observation only: no PN read, key/replay mutation or frame-content log. */
++static void mt6797_ccmp_withheld_arp(struct mt6797_mac *mac, size_t bytes)
++{
++	struct mt6797_data_rx view;
++
++	if (mac->ccmp_gtk && mac->join_key_group == 1 &&
++	    mt6797_data_rx(mac->join_packet, bytes, 40, mac->hw->wiphy->perm_addr,
++			   mac->join_ap, MT6797_JOIN_BMC_WLAN_INDEX, &view) &&
++	    view.group && view.key_id == mac->join_group_key_id && !view.tid &&
++	    view.bytes && view.ether_type == 0x0806)
++		mac->ccmp_gtk_arp_withheld++;
++}
++#endif
++
+ /* Caller holds the MAC mutex and has already admitted this ACTIVE RX. */
+ static int mt6797_ccmp_queue_rx(struct mt6797_mac *mac, size_t bytes,
+ 				struct sk_buff_head *received)
+ {
+ 	struct mt6797_ccmp_rx view;
+ 	struct sk_buff *skb;
++#ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
++	bool group = false;
++#endif
+ 	unsigned int rx_flags = RX_FLAG_8023 | RX_FLAG_DECRYPTED | RX_FLAG_IV_STRIPPED |
+ 		RX_FLAG_MIC_STRIPPED | RX_FLAG_PN_VALIDATED | RX_FLAG_NO_SIGNAL_VAL;
+ 
+@@ -380,9 +410,28 @@ static int mt6797_ccmp_queue_rx(struct mt6797_mac *mac, size_t bytes,
+ 	if (!skb)
+ 		return -ENOMEM;
+ 	if (!mt6797_ccmp_rx_check(mac->join_packet, bytes, &mac->ccmp_rx, &view)) {
++#ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
++		if (mac->ccmp_gtk && mac->join_key_group == 1 &&
++		    mac->ccmp_gtk_rx.key_id == mac->join_group_key_id &&
++		    mt6797_ccmp_gtk_rx_check(mac->join_packet, bytes,
++					     &mac->ccmp_gtk_rx, &view)) {
++			group = true;
++			goto checked;
++		}
++		mt6797_ccmp_withheld_arp(mac, bytes);
++#endif
+ 		dev_kfree_skb(skb);
+ 		return 0;
+ 	}
++#ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
++checked:
++	if (group && !mac->ccmp_gtk_seen) {
++		mac->ccmp_gtk_seen = true;
++		dev_info(wiphy_dev(mac->hw->wiphy),
++			 "one-shot WLAN checked GTK RX: first_queued=1 ethernet_bytes=%zu\n",
++			 view.bytes);
++	}
++#endif
+ 	skb_put_data(skb, mac->join_packet + view.offset, view.bytes);
+ 	memset(IEEE80211_SKB_RXCB(skb), 0, sizeof(struct ieee80211_rx_status));
+ 	IEEE80211_SKB_RXCB(skb)->band = NL80211_BAND_5GHZ;
+@@ -1440,6 +1489,12 @@ static void mt6797_native_diag_rx_report(struct mt6797_mac *mac)
+ 	if (!mac->native_diag_engaged || mac->native_diag_rx_reported)
+ 		return;
+ 	mac->native_diag_rx_reported = true;
++#ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
++	if (ccmp_stable_epoch)
++		dev_info(wiphy_dev(mac->hw->wiphy),
++			 "one-shot WLAN checked GTK counters: withheld_arp=%u\n",
++			 mac->ccmp_gtk_arp_withheld);
++#endif
+ 	for (p = 0; p < 4; p++) {
+ 		const unsigned int *t = mac->native_diag_rx[p].type;
+ 		const unsigned int *g = mac->native_diag_rx[p].gate;
+@@ -4074,8 +4129,14 @@ static int mt6797_mac_set_key(struct ieee80211_hw *hw, enum set_key_cmd cmd,
+ 		return 0;
+ 	mutex_lock(&mac->mutex);
+ #ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++#ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
++	if (ccmp_stable_epoch && (mac->ccmp_closed ||
++				  (pairwise && mac->ccmp_ptk_attempted) ||
++				  (!pairwise && mac->ccmp_gtk_attempted))) {
++#else
+ 	if (ccmp_stable_epoch && (mac->ccmp_closed ||
+ 				  (pairwise && mac->ccmp_ptk_attempted))) {
++#endif
+ 		ret = -EOPNOTSUPP;
+ 		goto failed;
+ 	}
+@@ -4094,6 +4155,26 @@ static int mt6797_mac_set_key(struct ieee80211_hw *hw, enum set_key_cmd cmd,
+ 		ret = -EOPNOTSUPP;
+ 		goto failed;
+ 	}
++#ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
++	if (ccmp_stable_epoch && !pairwise) {
++		/* Reserve this initial key before dropping the MAC mutex. The RX
++		 * batch takes receive -> MAC, so never wait in the opposite order.
++		 * No GTK is eligible before this context is published below.
++		 */
++		mac->ccmp_gtk_attempted = true;
++		mutex_unlock(&mac->mutex);
++		mutex_lock(&mac->ccmp_receive_mutex);
++		ieee80211_get_key_rx_seq(key, 0, &seed);
++		mutex_unlock(&mac->ccmp_receive_mutex);
++		mutex_lock(&mac->mutex);
++		if (mac->ccmp_closed || mac->first_error || mac->closing ||
++		    mac->join_retired || mac->join_key_pairwise != 1 ||
++		    ktime_get_ns() >= mac->join_deadline) {
++			ret = mac->first_error ? mac->first_error : -EOPNOTSUPP;
++			goto failed;
++		}
++	}
++#endif
+ #ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
+ 	if (ccmp_stable_epoch && pairwise) {
+ 		mac->ccmp_ptk_attempted = true;
+@@ -4172,6 +4253,30 @@ static int mt6797_mac_set_key(struct ieee80211_hw *hw, enum set_key_cmd cmd,
+ 		mac->ccmp_ptk = key;
+ 		spin_unlock_irqrestore(&mac->join_queue.lock, flags);
+ 	} else if (ccmp_stable_epoch) {
++#ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
++		/* The credit wait released the MAC mutex; withdrawal is permanent. */
++		if (mac->ccmp_closed || mac->first_error || mac->closing ||
++		    mac->join_retired || !mac->ccmp_gtk_attempted ||
++		    !mac->ccmp_rx.active || mac->ccmp_gtk ||
++		    mac->join_key_group || mac->join_key_pairwise != 1 ||
++		    ktime_get_ns() >= mac->join_deadline) {
++			ret = mac->first_error ? mac->first_error : -EOPNOTSUPP;
++			goto failed;
++		}
++		memcpy(mac->ccmp_gtk_rx.pn, seed.ccmp.pn, 6);
++		memcpy(mac->ccmp_gtk_rx.own, hw->wiphy->perm_addr, 6);
++		memcpy(mac->ccmp_gtk_rx.ap, mac->join_ap, 6);
++		mac->ccmp_gtk_rx.cipher = key->cipher;
++		mac->ccmp_gtk_rx.key_bytes = key->keylen;
++		mac->ccmp_gtk_rx.key_id = key->keyidx;
++		mac->ccmp_gtk_rx.wlan_index = MT6797_JOIN_BMC_WLAN_INDEX;
++		mac->ccmp_gtk_rx.rxd_bssid = 1;
++		mac->ccmp_gtk_rx.channel = 40;
++		mac->ccmp_gtk_rx.pairwise = false;
++		mac->ccmp_gtk_rx.seeded = true;
++		mac->ccmp_gtk_rx.authorized = mac->ccmp_rx.authorized;
++		mac->ccmp_gtk_rx.active = true;
++#endif
+ 		key->hw_key_idx = MT6797_JOIN_BMC_WLAN_INDEX;
+ 		spin_lock_irqsave(&mac->join_queue.lock, flags);
+ 		mac->ccmp_gtk = key;
+@@ -4377,6 +4482,9 @@ static int mt6797_mac_sta_state(struct ieee80211_hw *hw,
+ 			if (!ret && !mac->ccmp_closed && mac->ccmp_rx.active &&
+ 			    current_sta == sta) {
+ 				mac->ccmp_rx.authorized = true;
++#ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
++				mac->ccmp_gtk_rx.authorized = true;
++#endif
+ 				spin_lock_irqsave(&mac->join_queue.lock, flags);
+ 				mac->ccmp_tx_ready = true;
+ 				spin_unlock_irqrestore(&mac->join_queue.lock, flags);
+-- 
+2.54.0 (Apple Git-157)
+
