@@ -1,0 +1,562 @@
+{
+  "run": "GTK6",
+  "status": "consumed once; capability observation and 60-second duration PASS; full finite session FAIL on post-abort aggregate credit deadline",
+  "boot_id": "6f5dbd31-9ed7-4f91-9c42-6a7ccd432bfd",
+  "kernel_input": "af6923d3d28caf45d5fdee0d4c3209c14592c2a4",
+  "tooling_commit": "ee5da8c4",
+  "handoff_commit": "1b6ca1e0",
+  "candidate_full_partition_sha256": "75316795e8a9a732db5f02e5df32393b7f955c402422b72832fb9d5855f5ee09",
+  "attempts": {
+    "phase_a_capture": 1,
+    "device_sessions": 1,
+    "wifi_ssh": 1,
+    "native_recovery_requests": 1,
+    "watcher_attempts": 3
+  },
+  "verdicts": {
+    "capability_observation": "PASS: DHCP, three replies, fresh SSH authentication and strict GTK/ARP handoff observed",
+    "finite_session": "FAIL: one of two outstanding TC4 pages remained owed after PM abort; healthy cleanup absent",
+    "transport": "no named HIF length/read refusal; PM abort submitted and one aggregate page returned, but the whole-ledger credit predicate timed out",
+    "dhcp": "bound",
+    "pings": "three individual replies",
+    "ssh": "authenticated, exit 0 while data window open",
+    "cleanup": "FAIL: deauth completion missing; host slot retired, PM abort command path credited against one retained page; whole-ledger requirement stopped removals",
+    "duration": "PASS: budget end at 60015 / 60000 ms; low traffic only"
+  },
+  "data_window": {
+    "firmware_reported_grant_ms": 65000,
+    "planned_ms": 60000,
+    "actual_ms": 60015,
+    "planned_window_reached": true,
+    "checked_queued": 260,
+    "checked_cap": 1024,
+    "total_rx_cap": 4096,
+    "rx_byte_cap": 2097152,
+    "polls_at_fault": 2532,
+    "poll_cap": 4096,
+    "last_data_pid": 33,
+    "cleanup_pid": 34,
+    "pid_reuse": false,
+    "tx_queued": 29,
+    "tx_done": 29,
+    "tx_failed": 0,
+    "first_fault_after_open_ms": 60927.819,
+    "first_fault_after_data_end_ms": 912.798,
+    "deauth_log_to_fault_ms": 884.908,
+    "first_limit": "cleanup aggregate page-credit deadline after PM abort, not the retired frame deadline or observation capacity",
+    "pm_abort_log_to_fault_ms": 129.777,
+    "deauth_log_to_retirement_ms": 753.597
+  },
+  "pm": {
+    "metadata_observed": true,
+    "dtim_period": 3,
+    "beacon_interval_tu": 100,
+    "aid": 2,
+    "connection_attempted": true,
+    "connection_credit_returned": true,
+    "connection_status": 0,
+    "keys_submitted_at_credit_report": "00",
+    "connection_credit_report_before_data_ms": 150.331,
+    "abort_reached": true,
+    "credit_scope": "host buffer-consumption accounting, not an explicit firmware execution acknowledgement",
+    "abort_submission_status": 0,
+    "abort_full_ledger_credit_returned": false,
+    "abort_individual_credit_returned": null,
+    "abort_credit_attribution": "one valid aggregate TC4 credit was observed after PM abort while the retained-page debt remained; this credits the command path in the bounded-debt model, not an explicit firmware execution acknowledgement or per-buffer identity",
+    "command_path_credited_against_retained_deauth_debt": true
+  },
+  "monitor": {
+    "owned_bss_timeout_observed": 0,
+    "timeout_body_observations": 0,
+    "connection_monitor_flag_selected": true,
+    "standard_loss_report_count": 1,
+    "standard_loss_report_source": "terminal",
+    "software_ap_loss_scope": "after the recorded cleanup failure; not a first data-window monitor failure",
+    "bss_timeout_tolerance_enabled": false
+  },
+  "network": {
+    "dhcp_exit": "0",
+    "dhcp_bound": 1,
+    "dhcp_prefix": "24",
+    "lease_written": 1,
+    "dropbear_digest_ok": 1,
+    "wifi_sshd_started": 1,
+    "wifi_sshd_ready": 1,
+    "ping_transmitted": 3,
+    "ping_received": 3,
+    "host_ack": true
+  },
+  "individual_pings": [
+    {
+      "sequence": 0,
+      "ttl": 64,
+      "time_ms": 94.942
+    },
+    {
+      "sequence": 1,
+      "ttl": 64,
+      "time_ms": 89.26
+    },
+    {
+      "sequence": 2,
+      "ttl": 64,
+      "time_ms": 37.169
+    }
+  ],
+  "ssh": {
+    "attempted": true,
+    "failure_stage": null,
+    "exit": 0,
+    "client_elapsed_ms": 1738.549041,
+    "observed_client_call_elapsed_ms": 1711.732583,
+    "stdout_bytes": 173,
+    "stderr_bytes": 0,
+    "driver_window_after_client": {
+      "boot_match": true,
+      "driver_data_window": "open",
+      "exit": 0,
+      "timeout": false
+    },
+    "neighbor_before": "absent",
+    "neighbor_after": "complete",
+    "route_snapshot_exit": 0
+  },
+  "gtk": {
+    "first_checked_queue_seen": true,
+    "first_checked_ethernet_bytes": 60,
+    "queued_ptk": 35,
+    "queued_gtk": 225,
+    "delivered_arp": 104,
+    "withheld_arp": 0,
+    "delivered_arp_scope": "driver-to-core handoff only; no stack acknowledgement, peer attribution or causal proof"
+  },
+  "driver_events": {
+    "grant": [
+      {
+        "sequence": 1991,
+        "time_us": 122010967,
+        "fields": [
+          "40",
+          "65000"
+        ]
+      }
+    ],
+    "pm_metadata": [
+      {
+        "sequence": 2011,
+        "time_us": 122230930,
+        "fields": [
+          "3",
+          "100",
+          "2"
+        ]
+      }
+    ],
+    "pm_connection": [
+      {
+        "sequence": 2014,
+        "time_us": 122256015,
+        "fields": [
+          "1",
+          "1",
+          "0",
+          "1",
+          "0",
+          "00"
+        ]
+      }
+    ],
+    "data_start": [
+      {
+        "sequence": 2033,
+        "time_us": 122406346,
+        "fields": [
+          "60000",
+          "5000",
+          "1"
+        ]
+      }
+    ],
+    "data_end": [
+      {
+        "sequence": 2082,
+        "time_us": 182421367,
+        "fields": [
+          "budget",
+          "60015",
+          "0",
+          "0",
+          "0",
+          "29",
+          "29",
+          "0",
+          "60"
+        ]
+      }
+    ],
+    "gtk_counters": [
+      {
+        "sequence": 2097,
+        "time_us": 183336926,
+        "fields": [
+          "0",
+          "35",
+          "225",
+          "104"
+        ]
+      }
+    ],
+    "first_gtk_queue": [
+      {
+        "sequence": 2046,
+        "time_us": 123358965,
+        "fields": [
+          "1",
+          "60"
+        ]
+      }
+    ],
+    "native_state_transitions": [
+      {
+        "sequence": 2035,
+        "time_us": 122428024,
+        "fields": [
+          "1",
+          "1",
+          "0",
+          "0",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2038,
+        "time_us": 122451912,
+        "fields": [
+          "2",
+          "0",
+          "2",
+          "0",
+          "584"
+        ]
+      },
+      {
+        "sequence": 2081,
+        "time_us": 182420054,
+        "fields": [
+          "3",
+          "2",
+          "362",
+          "0",
+          "61430"
+        ]
+      },
+      {
+        "sequence": 2086,
+        "time_us": 182447932,
+        "fields": [
+          "4",
+          "0",
+          "362",
+          "0",
+          "61430"
+        ]
+      }
+    ],
+    "pm_abort": [
+      {
+        "sequence": 2089,
+        "time_us": 183204388,
+        "fields": [
+          "30",
+          "0"
+        ]
+      }
+    ],
+    "deauth_retirement": [
+      {
+        "sequence": 2088,
+        "time_us": 183202854,
+        "fields": [
+          "34",
+          "1",
+          "1",
+          "0",
+          "1"
+        ]
+      }
+    ],
+    "late_retired_completion": [],
+    "tc4_credits": [
+      {
+        "sequence": 1989,
+        "time_us": 121866881,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 1990,
+        "time_us": 121890846,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 1992,
+        "time_us": 122034908,
+        "fields": [
+          "2",
+          "0"
+        ]
+      },
+      {
+        "sequence": 1997,
+        "time_us": 122086862,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2003,
+        "time_us": 122134867,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2007,
+        "time_us": 122158900,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2009,
+        "time_us": 122182903,
+        "fields": [
+          "2",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2013,
+        "time_us": 122254858,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2018,
+        "time_us": 122306873,
+        "fields": [
+          "2",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2024,
+        "time_us": 122354870,
+        "fields": [
+          "2",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2026,
+        "time_us": 122378954,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2030,
+        "time_us": 122402884,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2037,
+        "time_us": 122450851,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2085,
+        "time_us": 182446858,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2090,
+        "time_us": 183226856,
+        "fields": [
+          "1",
+          "1"
+        ]
+      }
+    ],
+    "deauth_tx": [
+      {
+        "sequence": 2087,
+        "time_us": 182449257,
+        "fields": [
+          "12",
+          "34",
+          "1"
+        ]
+      }
+    ],
+    "fault": [
+      {
+        "sequence": 2095,
+        "time_us": 183334165,
+        "fields": [
+          "-110",
+          "0",
+          "0x1801",
+          "1",
+          "0",
+          "1"
+        ]
+      }
+    ],
+    "bss_timeout_counter": [
+      {
+        "sequence": 2098,
+        "time_us": 183338528,
+        "fields": [
+          "0"
+        ]
+      }
+    ],
+    "loss_report": [
+      {
+        "sequence": 2096,
+        "time_us": 183335716,
+        "fields": [
+          "terminal",
+          "1"
+        ]
+      }
+    ],
+    "key_disables": [
+      {
+        "sequence": 2108,
+        "time_us": 183430876,
+        "fields": [
+          "1",
+          "0",
+          "-110",
+          "1"
+        ]
+      },
+      {
+        "sequence": 2109,
+        "time_us": 183432699,
+        "fields": [
+          "1",
+          "0",
+          "-110",
+          "1"
+        ]
+      }
+    ],
+    "completion_observation": [
+      {
+        "sequence": 2091,
+        "time_us": 183322847,
+        "fields": [
+          "now_ns=183280043472 inflight=0 pid=34 submit_pid=33 submit_return_ns=127884084546 frame_deadline_ns=183157520549 guard_valid=1 guard_return_ns=183256043087 whcr=0x00000000 whisr=0x00000000"
+        ]
+      }
+    ],
+    "credit_observation": [
+      {
+        "sequence": 2094,
+        "time_us": 183330516,
+        "fields": [
+          "site=3 native_state=4 pending=1 credit_deadline_ns=183261569626 lifetime_deadline_ns=187363548314 polls=2532 scan=0 closing=0 first=0 wtqcr7=0x00000000 tc4_free=25 cpu_pending=0 ffa_pending=1 tc1_free=16 ac1_pending=0 released=0 tc1_released=0"
+        ]
+      }
+    ],
+    "receive_observations": [
+      {
+        "sequence": 2092,
+        "time_us": 183325933,
+        "fields": [
+          "port=0 attempts=2863 packets=365 type7=99 opposite=0 status=-11 pre_valid=1 pre_wrplr=0x00000000 return_ns=183256045318"
+        ]
+      },
+      {
+        "sequence": 2093,
+        "time_us": 183328245,
+        "fields": [
+          "port=1 attempts=2824 packets=0 type7=0 opposite=216 status=-11 pre_valid=1 pre_wrplr=0x00000000 return_ns=182352085472"
+        ]
+      }
+    ]
+  },
+  "preservation": {
+    "sealed_entries_verified": 71,
+    "client_observation_files_sealed": 8,
+    "seal_sha256": "2d2a164047513354abe6fd894ec225366f081d4632a7a99f0421e02a8eec5e09",
+    "log_sha256": "9db98d17cea8245777e6d1c913e38fa133281c69a70ce179998911e95f303ea4",
+    "log_bytes": 169572,
+    "contiguous_log_records": 2110,
+    "complete_through_seal": true,
+    "one_cycle_export_complete": true,
+    "inherited_two_cycle_complete": false,
+    "helper_safe_group_quiescent": true,
+    "device_children_quiesced": true,
+    "regression_pass": true,
+    "recovery_confirmed": true,
+    "returned_gemian_boot": "0040b209-8b30-4587-b8e4-74c50a24a09b",
+    "independently_confirmed_gemian": true
+  },
+  "capability_observation_pass": true,
+  "duration_pass": true,
+  "full_finite_session_pass": false,
+  "unchanged_classifier_low_traffic_60s_pass": false,
+  "limits": [
+    "One finite low-traffic window does not establish sustained authenticated traffic, two minutes or ten minutes",
+    "A missing completion was retired only as host ownership; no ACK or page refund was invented",
+    "Aggregate partial credit does not prove either individual buffer uncredited and does not identify firmware causation",
+    "No healthy cleanup or key retirement established; rekey/reuse/reconnect remain disabled",
+    "No BSS-timeout or unowned-completion event was observed; no event tolerance or firmware mechanism attribution",
+    "Do not extend the frame or command deadlines or label outstanding resource debt healthy"
+  ],
+  "cleanup": {
+    "deauth_pid": 34,
+    "deauth_completion_missing": true,
+    "missing_completion_count": 1,
+    "host_inflight_slot_retired": true,
+    "acknowledged": false,
+    "late_owned_completion_count": 0,
+    "deauth_debt_at_retirement": 1,
+    "outstanding_pages_after_abort_submission": 2,
+    "aggregate_pages_returned_after_abort": 1,
+    "aggregate_pages_still_owed": 1,
+    "command_credit_bound_ms": 100,
+    "full_ledger_predicate_met": false,
+    "first_command_sequence": 30,
+    "pm_abort_before_deauth": false,
+    "key_removals_reached": false,
+    "healthy_stage_3": false,
+    "credit_attribution_unresolved": true,
+    "command_path_credited": true,
+    "stop_condition": "whole-ledger requirement before removals"
+  }
+}

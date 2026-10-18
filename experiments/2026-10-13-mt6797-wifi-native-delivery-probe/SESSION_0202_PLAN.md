@@ -229,6 +229,7 @@ remain in the existing private evidence seal, not public scalars.
 | GTK3 | `1fa923f3-aab1-43e1-83f9-f6d12c2aa422` | no named HIF refusal; host control-event `-EPROTO` | bound | 3/3 | authenticated, exit 0, 1.256 s | healthy stage 3 absent; quiescence/return pass | 30.144 / 60 s; event 0x13 refused | [one scalars file](results/gtk3-runtime-scalars.json) |
 | GTK4 | `c2efe494-648e-44ca-9bb1-519ffce4496d` | complete event; host `-EPROTO`, no named HIF refusal | bound | 3/3 | authenticated, exit 0, 1.325 s | healthy stage 3 absent; quiescence/return pass | 29.955 / 60 s; BSS 0/reason 6, recent beacons | [one scalars file](results/gtk4-runtime-scalars.json) |
 | GTK5 | `f015f0f2-1320-4e12-98d5-dbacc7c69cb2` | no named HIF refusal in data; cleanup completion timeout | bound | 75.305 / 69.919 / 49.575 ms | authenticated, exit 0, 1.439 s | FAIL: deauth PID 33 timeout; no stage 3; quiescence/return pass | 60.019 / 60 s PASS; cleanup stop +0.813 s | [one scalars file](results/gtk5-runtime-scalars.json) |
+| GTK6 | `6f5dbd31-9ed7-4f91-9c42-6a7ccd432bfd` | no named HIF refusal; command-path credit observed | bound | 94.942 / 89.260 / 37.169 ms | authenticated, exit 0, 1.739 s | FAIL: missing deauth; PM abort credited with one retained page; whole-ledger stop | 60.015 / 60 s PASS | [one scalars file](results/gtk6-runtime-scalars.json) |
 
 D3's SSH process lasted 1.410 seconds with empty stderr. Its numeric ARP read
 was absent before A and complete afterward. The route read returned exit 71,
@@ -1066,3 +1067,45 @@ consume one capture and one session under the predeclared cleanup outcomes.
 No retry, rekey, reuse or reconnect. One run scalars file and one table row will
 be added only after the actual session. All checkpoints are pushed to `main`;
 restored research remains unstaged and separate.
+
+### GTK6 consumed — command-path credit with a retained page
+
+Capability observation and duration pass in the one fresh boot
+`6f5dbd31-9ed7-4f91-9c42-6a7ccd432bfd`: the data window ended by budget at
+60,015 ms with 0x16 present and zero observed 0x13 events. No firmware mechanism
+is inferred. DHCP, three individual ping replies and fresh SSH authentication
+(exit 0, 1,738.549 ms, empty stderr) passed while open. Checked PTK/GTK queues
+were 35/225, GTK ARP handoffs 104 and withheld ARP 0. Limits did not bind.
+
+Cleanup failed. Reserved deauthentication PID 34 had no completion before its
+unchanged bound; its host slot was retired with ACK false and one page still
+charged. PM abort sequence 30 was submitted successfully, then one TC4 credit
+returned with one page still owed. **The command path was credited after the
+missing completion.** The whole-ledger requirement stopped before removals:
+branch 1/site 3, `-110`, pending credit 1, TC4 free 25, pending CPU 0 / FFA 1,
+TC1 free 16, debt 1, cleanup 0. PM abort's buffer identity is not separately
+encoded by these aggregate counters; the observed credit is not an explicit
+firmware execution acknowledgement. No late retired-PID status was observed.
+No healthy stage 3 occurred, and both local disables returned `-110`.
+
+The stop was logged 912.798 ms after data end and 129.777 ms after the PM-abort
+submission log; those are kmsg offsets, not replacement deadlines or firmware
+execution timings. The configured credit bound stayed 100 ms. The standard
+loss report happened once after this stop; the later AP-loss message was not
+a first data-window monitor failure. Keep the unchanged finite classifier's
+failure and the separate positive capability/duration verdicts.
+
+All 71 seals, eight client-observation files and 2,110 contiguous log records
+(169,572 bytes) verify. Helper/device quiescence, A53 regression and one reviewed
+return passed. Changed-boot Gemian `0040b209-8b30-4587-b8e4-74c50a24a09b` was
+independently confirmed. GTK6 is consumed; no device process or physical handoff
+is pending, and no retry occurred.
+
+The owner selects GTK7 to distinguish the retained-page condition from the
+teardown frame's order: PM abort before the reserved deauthentication, at most
+one retained page throughout remaining teardown, a distinct bounded-debt
+terminal, periodic standard device pings and end-of-data beacon recency. Healthy
+stage 3 still requires a whole ledger. No deadline extension, PID/key reuse,
+rekey, reconnect, nullfunc or event-0x13 tolerance is admitted. Record every
+periodic completion offset and cleanup credit timestamp in the next run's one
+public scalars file; no per-run result document.
