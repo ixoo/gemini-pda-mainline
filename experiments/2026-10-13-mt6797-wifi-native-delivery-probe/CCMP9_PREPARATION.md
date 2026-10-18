@@ -1,7 +1,7 @@
 # C9: refused descriptor framing hints
 
-Status: built, package-validated, privately composed and installer-reviewed;
-not installed, no runtime result, 2026-10-18 UTC. The
+Status: installed to guarded boot2, full readback and clean shutdown verified;
+awaiting owner physical selection, no runtime result, 2026-10-18 UTC. The
 [source decision](REFUSED_RXD_FRAMING_SUCCESSOR.md) owns the hypothesis,
 unique observation and branches. C8 is consumed. This is a bounded observation,
 not a receive repair, crypto contract or maintained Wi-Fi claim.
@@ -61,8 +61,8 @@ checks pass. Synthetic cases prove host behavior, not firmware descriptor
 validity, conversion, integrity, replay, key retirement or FIFO enforcement.
 
 Fresh receipt/wiring, composition/config, no-scan failure/ownership,
-installer-source and retained-session-source fixtures pass locally. Linux
-binding checks await publication of these real bindings. C8 arbitration,
+installer-source and retained-session-source fixtures pass locally and on
+Linux from clean published tooling `e7b05705`. C8 arbitration,
 all hardware acquisitions, complete transfers/equality/poison, deadlines,
 all-RX512/1MiB/delivery64/wall10s-or-lower, private64 admission, PSK-bound
 one-cycle leaf, helper ownership and recovery source pins remain unchanged.
@@ -91,6 +91,23 @@ unchanged limits, preserve/seal/quiesce and make one reviewed return. If this
 fails earlier or yields no eligible hint, record the missing observation; no
 unchanged retry, new read, credit refund or deadline extension follows.
 
-No installation or runtime result yet. Ordinary integrity/PN, GTK/rekey/key
-retirement, healthy reusable lifetimes and clean-profile ten-minute SSH remain
-required for the complete Wi-Fi goal.
+## Verified installation and physical handoff
+
+The [deployment scalars](results/ccmp9-deployment-scalars.json) record the actual
+guarded C8-to-C9 write from the expected Gemian boot. Both block identity gates
+and stable power passed. Sync/flush/full readback matched C9 `851a465e…`;
+clean shutdown and unreachability were confirmed, with no reboot. Executed
+tooling is `e7b057059ad3cd479a169860a40765973bc4b8e1`.
+
+The actual deployment summary is retained byte-exact, mode 0600, in session 9.
+Its SHA-256 is `15099957f1e2dbe6856d32e5f182ce9665af5e5f4e7b4910439567f15f4e25f8`
+(944 bytes). Complete actual offline session preparation passed with
+that real summary, candidate, current credential/calibration checkout and
+separate retained recovery source cohort. No Wi-Fi helper was started; bind
+it to the fresh boot only after live mainline identity is verified.
+Capture 9 is absent and no session execution claim exists.
+
+Owner physical boot2 selection with USB connected is the next required action.
+No C9 runtime has run and no unchanged retry is admitted. Ordinary integrity/PN,
+GTK/rekey/key retirement, healthy reusable lifetimes and clean-profile
+ten-minute SSH remain required for the complete Wi-Fi goal.

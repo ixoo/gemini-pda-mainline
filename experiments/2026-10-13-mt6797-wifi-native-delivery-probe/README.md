@@ -9,7 +9,9 @@ changed-boot Gemian independently confirmed; no unchanged retry or support claim
 Next authored observation: [refused framing fields](REFUSED_RXD_FRAMING_SUCCESSOR.md)
 retains two bounded, untrusted scalars from the existing failed transfer.
 Actual-source tests and Buildbox validation pass;
-[C9 preparation](CCMP9_PREPARATION.md) pins the real candidate. Keep equality,
+[C9 preparation](CCMP9_PREPARATION.md#verified-installation-and-physical-handoff)
+records verified installation, full readback, shutdown and actual host preparation.
+Await owner physical selection; keep equality,
 complete transfer and poison/no-copy. No runtime result, credit-policy
 change, timeout extension or 48-byte framing exception is selected.
 

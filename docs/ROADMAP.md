@@ -50,22 +50,20 @@ Keep this file under 200 lines; move anything else to an experiment record.
   which also observed the received-PN group absent on that one sample — an availability
   fact, not a replay or crypto claim). Bounded lifetimes only; `wifi_operational` stays
   false and no operational, reliability, persistence or replay-protection claim follows.
-- **Next (source first, 2026-10-18 UTC).** [C8](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/CCMP8_RESULT.md)
-  reached DHCP/one reply; SSH failed. Its post-CLOSED selection comparison
-  passed four length checks, then refused 88/40. Review pending-length
-  ownership and the refused descriptor's translation/header/status contract
-  before choosing another observation or correction. Preserve equality,
-  complete transfer, poison and deadlines; no unchanged retry or 48-byte rule.
+- **Next (bounded observation, 2026-10-18 UTC).** [C9](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/REFUSED_RXD_FRAMING_SUCCESSOR.md)
+  retains header-control/status hints from an already completed fatal receive.
+  It follows C8's four CLOSED length checks and 88/40 refusal. No extra I/O,
+  new packet admission, 48-byte rule, deadline extension or credit change.
   Ordinary integrity/PN, key retirement, healthy reconnect and clean-profile
-  ten-minute SSH remain required.
+  ten-minute SSH remain required. No unchanged C8/C9 retry.
 - **Open.** Wi-Fi station operation beyond one bounded lifetime; replay
   enforcement in firmware is unknown. No charging, RTC alarm or lid.
   The `full` profile has never booted. No upstream submission. A72 and thermal
   protection are parked.
-- **Device (2026-10-18 UTC).** [C8](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/CCMP8_RESULT.md#preservation-and-reviewed-return)
-  ran once. All 63 sealed files, owned-child quiescence and A53 regression
-  passed; one reviewed return and independent LAN SSH confirmed changed-boot
-  Gemian. C8 is installed but consumed; no selection is pending. Keep charging attended.
+- **Device (2026-10-18 UTC).** [C9](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/CCMP9_PREPARATION.md#verified-installation-and-physical-handoff)
+  is installed to guarded boot2, full readback matched, shutdown confirmed and
+  complete actual offline session preparation passed. Await owner physical
+  boot2 selection with USB connected; no C9 runtime result. Keep charging attended.
 
 ## Next device boots, in order
 
