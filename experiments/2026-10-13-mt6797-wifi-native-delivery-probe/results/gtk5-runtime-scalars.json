@@ -1,0 +1,387 @@
+{
+  "run": "GTK5",
+  "status": "consumed once; capability observation and 60-second low-traffic duration PASS; full finite session FAIL on post-window deauthentication completion timeout",
+  "boot_id": "f015f0f2-1320-4e12-98d5-dbacc7c69cb2",
+  "kernel_input": "fa3124b46ac4c22c2a02659953848c0ea9998d58",
+  "tooling_commit": "e0cf5e17",
+  "handoff_commit": "6c24cd7d",
+  "candidate_full_partition_sha256": "646f1869e9ad9c623d09cc901c237d6e7bf81caf550cd46d9613643974fabeb1",
+  "attempts": {
+    "phase_a_capture": 1,
+    "device_sessions": 1,
+    "wifi_ssh": 1,
+    "native_recovery_requests": 1,
+    "watcher_attempts": 3
+  },
+  "verdicts": {
+    "capability_observation": "PASS: DHCP, three replies, fresh SSH authentication and strict GTK/ARP handoff observed",
+    "finite_session": "FAIL: post-window deauthentication completion timeout, healthy cleanup absent",
+    "transport": "no named HIF length/read refusal during data; deauthentication completion and one owed command page did not retire before the frame deadline",
+    "dhcp": "bound",
+    "pings": "three individual replies",
+    "ssh": "authenticated, exit 0 while data window open",
+    "cleanup": "FAIL: deauth PID 33 timed out; no PM abort/removal or healthy stage 3; local disable -110",
+    "duration": "PASS: budget end at 60019 / 60000 ms; low traffic only"
+  },
+  "data_window": {
+    "firmware_reported_grant_ms": 65000,
+    "planned_ms": 60000,
+    "actual_ms": 60019,
+    "planned_window_reached": true,
+    "checked_queued": 272,
+    "checked_cap": 1024,
+    "total_rx_cap": 4096,
+    "rx_byte_cap": 2097152,
+    "polls_at_fault": 2528,
+    "poll_cap": 4096,
+    "last_data_pid": 32,
+    "cleanup_pid": 33,
+    "pid_reuse": false,
+    "tx_queued": 28,
+    "tx_done": 28,
+    "tx_failed": 0,
+    "first_fault_after_open_ms": 60831.857,
+    "first_fault_after_data_end_ms": 812.629,
+    "deauth_log_to_fault_ms": 780.865,
+    "first_limit": "cleanup management-frame completion deadline, not observation capacity"
+  },
+  "pm": {
+    "metadata_observed": true,
+    "dtim_period": 3,
+    "beacon_interval_tu": 100,
+    "aid": 6,
+    "connection_attempted": true,
+    "connection_credit_returned": true,
+    "connection_status": 0,
+    "keys_submitted_at_credit_report": "00",
+    "connection_credit_report_before_data_ms": 126.302,
+    "abort_reached": false,
+    "credit_scope": "host buffer-consumption accounting, not an explicit firmware execution acknowledgement"
+  },
+  "monitor": {
+    "owned_bss_timeout_observed": 0,
+    "timeout_body_observations": 0,
+    "event_tolerance_enabled": false,
+    "connection_monitor_flag_selected": true,
+    "standard_loss_report_count": 1,
+    "standard_loss_report_source": "terminal",
+    "software_ap_loss_scope": "after the recorded cleanup failure; not a first data-window monitor failure"
+  },
+  "network": {
+    "dhcp_exit": "0",
+    "dhcp_bound": 1,
+    "dhcp_prefix": "24",
+    "lease_written": 1,
+    "dropbear_digest_ok": 1,
+    "wifi_sshd_started": 1,
+    "wifi_sshd_ready": 1,
+    "ping_transmitted": 3,
+    "ping_received": 3,
+    "host_ack": true
+  },
+  "individual_pings": [
+    {
+      "sequence": 0,
+      "ttl": 64,
+      "time_ms": 75.305
+    },
+    {
+      "sequence": 1,
+      "ttl": 64,
+      "time_ms": 69.919
+    },
+    {
+      "sequence": 2,
+      "ttl": 64,
+      "time_ms": 49.575
+    }
+  ],
+  "ssh": {
+    "attempted": true,
+    "failure_stage": null,
+    "exit": 0,
+    "client_elapsed_ms": 1439.178708,
+    "observed_client_call_elapsed_ms": 1407.216042,
+    "stdout_bytes": 173,
+    "stderr_bytes": 0,
+    "driver_window_after_client": {
+      "boot_match": true,
+      "driver_data_window": "open",
+      "exit": 0,
+      "timeout": false
+    },
+    "neighbor_before": "absent",
+    "neighbor_after": "complete",
+    "route_snapshot_exit": 0
+  },
+  "gtk": {
+    "first_checked_queue_seen": true,
+    "first_checked_ethernet_bytes": 74,
+    "queued_ptk": 35,
+    "queued_gtk": 237,
+    "delivered_arp": 106,
+    "withheld_arp": 0,
+    "delivered_arp_scope": "driver-to-core handoff only; no stack acknowledgement, peer attribution or causal proof"
+  },
+  "driver_events": {
+    "grant": [
+      {
+        "sequence": 1991,
+        "time_us": 53957602,
+        "fields": [
+          "40",
+          "65000"
+        ]
+      }
+    ],
+    "pm_metadata": [
+      {
+        "sequence": 2012,
+        "time_us": 54249540,
+        "fields": [
+          "3",
+          "100",
+          "6"
+        ]
+      }
+    ],
+    "pm_connection": [
+      {
+        "sequence": 2015,
+        "time_us": 54274550,
+        "fields": [
+          "1",
+          "1",
+          "0",
+          "1",
+          "0",
+          "00"
+        ]
+      }
+    ],
+    "data_start": [
+      {
+        "sequence": 2034,
+        "time_us": 54400852,
+        "fields": [
+          "60000",
+          "5000",
+          "1"
+        ]
+      }
+    ],
+    "data_end": [
+      {
+        "sequence": 2081,
+        "time_us": 114420080,
+        "fields": [
+          "budget",
+          "60019",
+          "0",
+          "0",
+          "0",
+          "28",
+          "28",
+          "0",
+          "59"
+        ]
+      }
+    ],
+    "gtk_counters": [
+      {
+        "sequence": 2093,
+        "time_us": 115235461,
+        "fields": [
+          "0",
+          "35",
+          "237",
+          "106"
+        ]
+      }
+    ],
+    "first_gtk_queue": [
+      {
+        "sequence": 2041,
+        "time_us": 54758778,
+        "fields": [
+          "1",
+          "74"
+        ]
+      }
+    ],
+    "native_state_transitions": [
+      {
+        "sequence": 2036,
+        "time_us": 54422668,
+        "fields": [
+          "1",
+          "1",
+          "0",
+          "0",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2038,
+        "time_us": 54446449,
+        "fields": [
+          "2",
+          "0",
+          "0",
+          "0",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2080,
+        "time_us": 114418727,
+        "fields": [
+          "3",
+          "2",
+          "379",
+          "0",
+          "71755"
+        ]
+      },
+      {
+        "sequence": 2085,
+        "time_us": 114450510,
+        "fields": [
+          "4",
+          "0",
+          "379",
+          "0",
+          "71755"
+        ]
+      }
+    ],
+    "deauth_tx": [
+      {
+        "sequence": 2086,
+        "time_us": 114451844,
+        "fields": [
+          "12",
+          "33",
+          "1"
+        ]
+      }
+    ],
+    "fault": [
+      {
+        "sequence": 2091,
+        "time_us": 115232709,
+        "fields": [
+          "-110",
+          "0",
+          "0x1801",
+          "1",
+          "0",
+          "1"
+        ]
+      }
+    ],
+    "bss_timeout_counter": [
+      {
+        "sequence": 2094,
+        "time_us": 115237063,
+        "fields": [
+          "0"
+        ]
+      }
+    ],
+    "loss_report": [
+      {
+        "sequence": 2092,
+        "time_us": 115234253,
+        "fields": [
+          "terminal",
+          "1"
+        ]
+      }
+    ],
+    "key_disables": [
+      {
+        "sequence": 2104,
+        "time_us": 115305429,
+        "fields": [
+          "1",
+          "0",
+          "-110",
+          "1"
+        ]
+      },
+      {
+        "sequence": 2105,
+        "time_us": 115307268,
+        "fields": [
+          "1",
+          "0",
+          "-110",
+          "1"
+        ]
+      }
+    ],
+    "completion_observation": [
+      {
+        "sequence": 2087,
+        "time_us": 115221385,
+        "fields": [
+          "now_ns=115176028083 inflight=1 pid=33 submit_pid=32 submit_return_ns=59804080388 frame_deadline_ns=115157564006 guard_valid=1 guard_return_ns=115152075852 whcr=0x00000000 whisr=0x00000000"
+        ]
+      }
+    ],
+    "credit_observation": [
+      {
+        "sequence": 2090,
+        "time_us": 115229054,
+        "fields": [
+          "site=2 native_state=4 pending=0 credit_deadline_ns=114472086545 lifetime_deadline_ns=119355503695 polls=2528 scan=0 closing=0 first=0 wtqcr7=0x00000000 tc4_free=25 cpu_pending=0 ffa_pending=1 tc1_free=16 ac1_pending=0 released=0 tc1_released=0"
+        ]
+      }
+    ],
+    "receive_observations": [
+      {
+        "sequence": 2088,
+        "time_us": 115224473,
+        "fields": [
+          "port=0 attempts=2873 packets=382 type7=95 opposite=0 status=-11 pre_valid=1 pre_wrplr=0x00000000 return_ns=115152078160"
+        ]
+      },
+      {
+        "sequence": 2089,
+        "time_us": 115226784,
+        "fields": [
+          "port=1 attempts=2838 packets=0 type7=0 opposite=228 status=-11 pre_valid=1 pre_wrplr=0x00000000 return_ns=114348084852"
+        ]
+      }
+    ]
+  },
+  "preservation": {
+    "sealed_entries_verified": 71,
+    "client_observation_files_sealed": 8,
+    "seal_sha256": "d97c21465d40d2047014d0287a81e30c145e32fdff070de92ce3b7f67fd2cabc",
+    "log_sha256": "a762dd00d114a8cf9659195f53eb46094a651430ba42cb505159d14faf11c2dc",
+    "log_bytes": 168734,
+    "contiguous_log_records": 2106,
+    "complete_through_seal": true,
+    "one_cycle_export_complete": true,
+    "inherited_two_cycle_complete": false,
+    "helper_safe_group_quiescent": true,
+    "device_children_quiesced": true,
+    "regression_pass": true,
+    "recovery_confirmed": true,
+    "returned_gemian_boot": "c6c0a8ab-0d6b-45e8-8bfc-02cbb274ab4d",
+    "independently_confirmed_gemian": true
+  },
+  "capability_observation_pass": true,
+  "duration_pass": true,
+  "full_finite_session_pass": false,
+  "unchanged_classifier_low_traffic_60s_pass": false,
+  "limits": [
+    "One finite low-traffic window does not establish sustained authenticated traffic, two minutes or ten minutes",
+    "No healthy PM abort, removal credit or firmware key retirement established in this run; rekey/reuse/reconnect remain disabled",
+    "GTK ARP handoff and neighbor observations do not prove peer attribution or causation of SSH success",
+    "No unowned completion or BSS-timeout event was observed; no event tolerance or firmware reason interpretation was used",
+    "Do not extend cleanup or transport deadlines to conceal the first post-window failure"
+  ]
+}

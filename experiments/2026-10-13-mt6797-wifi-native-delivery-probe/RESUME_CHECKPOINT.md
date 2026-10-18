@@ -1,48 +1,42 @@
 # Wi-Fi resume checkpoint — INCOMPLETE
 
-**GTK5 ready for the owner's physical boot2 selection; no live run yet.**
-Source `fa3124b4`, tooling `e0cf5e17`, counter-only 0210 plus credited PM setup /
-abort and the connection-monitor flag. Linux tests, required Buildbox build,
-real package provenance, five host fixtures and guarded deployment pass.
-Full boot2 readback `646f1869e9ad9c623d09cc901c237d6e7bf81caf550cd46d9613643974fabeb1`
-matches; clean shutdown confirmed. Fresh runtime and complete offline host
-preparation pass. Keep USB attached to this laptop; only the owner selects boot2.
-Verify new boot identity and notes SHA-256
-`395ec929f1977d113bae6e0c21b09885f2eb6792ff4b80e82d6e3c0c8c509646`
-before the one admitted capture/session. [Handoff and outcomes](SESSION_0202_PLAN.md#gtk5-installed--physical-selection-pending).
+Latest result: **GTK5 capability observation and 60-second low-traffic duration
+PASS; full finite session and healthy cleanup FAIL.** One fresh boot
+`f015f0f2-1320-4e12-98d5-dbacc7c69cb2`, source `fa3124b4`, tooling `e0cf5e17`,
+handoff `6c24cd7d`, exact verified GTK5 notes and boot2 image.
+[One row and result analysis](SESSION_0202_PLAN.md#gtk5-consumed--full-window-reached-post-window-cleanup-failed),
+[one scalars file](results/gtk5-runtime-scalars.json).
 
-Latest completed result: **GTK4 capability observation pass; full finite session,
-duration and healthy cleanup fail**. Boot `c2efe494-648e-44ca-9bb1-519ffce4496d`
-reported owned BSS 0 / reason 6 at 29.811 s after data opening, with 293 admitted
-target beacons, beacon age 71 ms and checked-data age 287 ms. The preserved
-0x13 refusal stopped branch 6 (`-EPROTO`); data ended at 29.955 / 60 seconds.
-[One table row, result and correction plan](SESSION_0202_PLAN.md#gtk4-consumed-owned-timeout-with-recent-admitted-beacons),
-[one scalars file](results/gtk4-runtime-scalars.json).
+PM connection credit returned before keys with DTIM 3 / interval 100 TU / AID 6.
+Data ended by budget at 60,019 ms; owned BSS-timeout count zero, with the fatal
+event dispatcher unchanged. DHCP, three individual pings and fresh SSH exit 0
+in 1.439 s passed while open. Checked PTK/GTK 35/237, GTK ARP handoffs 106,
+withheld ARP 0; no named HIF length refusal or binding observation cap.
 
-DHCP, three individual replies and fresh SSH exit 0 in 1.325 s passed before
-the stop. Checked PTK/GTK 35/114; GTK ARP handoffs 55; withheld ARP 0. Healthy
-stage 3 absent; local disables `-71` with no removal credit. All 71 seals and
-2,098 contiguous records verified; helper/device quiescence, A53 regression
-and one reviewed return passed. Changed-boot Gemian
-`4256d0ec-11e4-4e84-8202-6b2e78281876` independently confirmed. GTK4 is closed; the GTK5 handoff above is now pending.
+The first failure was reserved cleanup deauthentication PID 33: no completion
+before its unchanged frame deadline, branch 1 / `-110`, debt 1, cleanup 0.
+Stop logged 812.629 ms after data end. PM abort and removals were not reached;
+local disables returned `-110`. The single standard loss report and subsequent
+AP-loss message follow this stop. The finite classifier remains failed.
 
-Recent owned host admissions support a firmware/host monitor discrepancy;
-reason 6 is not decoded and completeness of the beacon stream is not proved.
-The count includes pre-data and may include duplicates; beacon intervals use TU.
-The latest owner guidance selects an observation/count-only 0210 with the
-fatal event dispatcher unchanged, plus public-source-supported 0x16 from fresh
-post-association TIM/DTIM before keys, credited 0x17 before healthy removals,
-and the standard connection-monitor flag. The prior conditional-handler input
-`ef2e2fc3` compiled and packaged but is superseded for device admission. Revised
-Linux source tests and the Buildbox build pass at `fa3124b4`; five host binding
-fixtures pass against the real GTK5 receipt. Guarded deployment now passes; the actual
-hardware result remains pending. Keep published device
-measurements; exclude firmware-RE explanations from public text. Full outcomes
-and limits are in the existing plan. Do not repeat GTK4 unchanged.
+All 71 seals and 2,106 contiguous records verified. Helper/device quiescence,
+A53 regression and one reviewed recovery passed; independently confirmed Gemian
+`c6c0a8ab-0d6b-45e8-8bfc-02cbb274ab4d`. No device process or physical handoff
+is pending. GTK5 remains installed but consumed; do not repeat it unchanged.
 
-Keep 1024 checked / 4096 all-RX / 2 MiB, existing time/native/retirement/PID limits,
-no PID reuse, rekey, reconnect, -48 adjustment or speculative firmware RE.
-No normal maintained-lifecycle or ten-minute acceptance is established.
+Next classify the management-frame submission/completion contract and public
+vendor teardown/TX options before selecting a correction or one bounded
+existing-acquisition diagnostic. Do not assume PM abort belongs before deauth,
+accept unowned completions, add register reads or extend deadlines. Healthy
+cleanup is required before promotion to persistent or longer operation.
+Keep 1024 checked / 4096 all-RX / 2 MiB and the existing time/retirement/PID
+limits. Rekey, reuse, reconnect, PID reuse and -48 adjustment remain disabled.
+The 60-second low-traffic window is not continuous authenticated SSH traffic,
+two-minute/ten-minute acceptance or a reusable station lifecycle.
+
+Preserve published empirical measurements; keep firmware-RE explanations and
+private source identities out of public text. The earlier conditional-handler
+input `ef2e2fc3` is superseded, compiled only, and was never installed.
 
 GTK1's prior ERANGE is classified and its [0205 correction](../../patches/proposals/0205-wifi-mt6797-retain-the-validated-channel-grant-horizon.patch)
 is proved to permit the requested data budget in GTK2. GTK1 had both keys

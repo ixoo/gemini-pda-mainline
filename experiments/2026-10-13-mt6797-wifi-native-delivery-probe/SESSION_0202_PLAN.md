@@ -228,6 +228,7 @@ remain in the existing private evidence seal, not public scalars.
 | GTK2 | `f77aa006-7757-40b3-960e-2a96ddc82804` | finite capability pass | bound | 3/3 | authenticated, exit 0, 1.410 s | host stage 3 clean | 5.925 / 60 s; checked-frame cap 64 | [one scalars file](results/gtk2-runtime-scalars.json) |
 | GTK3 | `1fa923f3-aab1-43e1-83f9-f6d12c2aa422` | no named HIF refusal; host control-event `-EPROTO` | bound | 3/3 | authenticated, exit 0, 1.256 s | healthy stage 3 absent; quiescence/return pass | 30.144 / 60 s; event 0x13 refused | [one scalars file](results/gtk3-runtime-scalars.json) |
 | GTK4 | `c2efe494-648e-44ca-9bb1-519ffce4496d` | complete event; host `-EPROTO`, no named HIF refusal | bound | 3/3 | authenticated, exit 0, 1.325 s | healthy stage 3 absent; quiescence/return pass | 29.955 / 60 s; BSS 0/reason 6, recent beacons | [one scalars file](results/gtk4-runtime-scalars.json) |
+| GTK5 | `f015f0f2-1320-4e12-98d5-dbacc7c69cb2` | no named HIF refusal in data; cleanup completion timeout | bound | 75.305 / 69.919 / 49.575 ms | authenticated, exit 0, 1.439 s | FAIL: deauth PID 33 timeout; no stage 3; quiescence/return pass | 60.019 / 60 s PASS; cleanup stop +0.813 s | [one scalars file](results/gtk5-runtime-scalars.json) |
 
 D3's SSH process lasted 1.410 seconds with empty stderr. Its numeric ARP read
 was absent before A and complete afterward. The route read returned exit 71,
@@ -920,3 +921,54 @@ Retain the predeclared outcomes and independent transport/network/SSH/cleanup /
 duration verdicts; no retry or reconnect. Create one run scalars file and one
 table row only after consuming the session. The earlier `ef2e2fc3` image remains
 superseded and is not the installed candidate.
+
+### GTK5 consumed — full window reached, post-window cleanup failed
+
+The single fresh boot `f015f0f2-1320-4e12-98d5-dbacc7c69cb2` matched the
+GTK5 notes identity and passed all 285 initialization checks. PM connection
+credit returned with DTIM 3, interval 100 TU, AID 6 and keys `00`, before key
+submission and data opening. The data window ended by budget at 60,019 ms.
+No BSS-timeout body was observed; the owned counter is zero, and event refusal
+was never relaxed. No unsolicited completion or first software monitor failure
+was observed during the window. This is one measured outcome, not proof of a
+firmware mechanism or of production monitoring.
+
+Capability observations pass: DHCP, three individual ICMP replies and fresh SSH
+authentication (exit 0, 1,439.179 ms, empty stderr) while the driver window was
+open. Checked PTK/GTK queues were 35/237, GTK ARP handoffs 106, withheld ARP 0;
+first GTK Ethernet length was 74 bytes. The numeric neighbor read was absent
+before SSH and complete afterward; these records do not identify the peer of
+an ARP handoff or prove that GTK caused SSH success. Resource caps did not bind.
+The duration gate passes for a low-traffic window; continuous authenticated SSH
+traffic was not tested.
+
+The first stop is separate: after mask-disable credit and native state CLOSED,
+the reserved deauthentication (subtype 12, PID 33, one page) was submitted. Its
+completion did not arrive before the existing frame deadline. Branch 1 stopped
+with `-ETIMEDOUT`, debt 1 and cleanup stage 0, 812.629 ms after the data-end log.
+The retained scalar reports inflight 1 / PID 33, empty last pending-RX lengths,
+TC4 free 25, pending CPU 0 / FFA 1, TC1 free 16 and no new page release. These
+are host observations; they do not prove whether the frame transmitted or
+whether firmware should have generated a completion. The older submit-PID 32
+observation belongs to data TX and is not the management PID 33 submission.
+Offsets derived from kmsg are log timestamps, not firmware execution times.
+
+PM abort was not reached, no key removal credit or healthy stage 3 was recorded,
+and both local disables returned `-110`. The standard loss report occurred once
+after this stop, so the later mac80211 AP-loss message is a consequence. Keep
+the original finite-session classifier failure; the duration and positive
+network observations do not turn it into a healthy lifetime.
+
+All 71 pre-recovery seals, eight client-observation files and 2,106 contiguous
+log records (168,734 bytes) verify. Helper/device quiescence, A53 regression and
+one reviewed recovery passed; changed-boot Gemian
+`c6c0a8ab-0d6b-45e8-8bfc-02cbb274ab4d` was independently confirmed. No device
+process or physical handoff is pending. No retry occurred.
+
+Next: classify the reserved deauthentication's submission/completion contract
+and compare the public vendor teardown/TX options with the retained host path.
+Do not move PM abort earlier, admit unknown completions, extend deadlines or
+select another candidate without that evidence. If source cannot distinguish
+the remaining causes, predeclare one bounded scalar diagnostic from existing
+acquisitions. Resolve healthy cleanup before the longer/persistent lifetime;
+no two-minute, ten-minute, rekey, reuse or reconnect acceptance is established.
