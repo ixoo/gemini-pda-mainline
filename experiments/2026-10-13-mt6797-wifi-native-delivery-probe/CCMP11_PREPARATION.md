@@ -1,11 +1,11 @@
-# C11: group PN observation — installed, await physical boot2 selection
+# C11: group PN observation — consumed once
 
 [Predeclared hypothesis and branches](GROUP_PN_SUCCESSOR.md): retain missing GTK
 PN-availability scalars from existing acquisitions, with group delivery still
 withheld. C10's finite PTK pass is consumed and is not repeated unchanged.
 Guarded installation, full readback, clean shutdown and complete actual host
-preparation passed. No C11 capture/session has run. Owner physical boot2
-selection is the remaining handoff; the trial must start from fresh identity.
+preparation passed. Owner physical boot2 selection subsequently started the [single C11 trial](CCMP11_RESULT.md).
+The instructions below describe its preparation, not a new admission or retry.
 
 ## Source, Linux build and validated package
 
@@ -121,8 +121,8 @@ summary copied mode 0600 byte-for-byte into the fresh C11 session root.
 
 Complete actual offline session preparation then passed with Wi-Fi helper
 key/boot environment unset, using the retained pinned source cohort separately
-from credentials/calibration. Session root contains only that deployment summary;
-capture, execution claim and helper remain absent. No scan, C11 radio trial or
-runtime result yet. Physically select boot2 with USB attached, then require the
-fresh kernel/boot/84-byte-notes identity above before the single admitted capture
-and session. Original stop/preservation/recovery boundaries remain mandatory.
+from credentials/calibration. At that preparation checkpoint the session root
+contained only the deployment summary; capture, execution claim and helper were
+absent. Owner physical selection then started the single trial described in the
+[C11 result](CCMP11_RESULT.md), including verified return. These preparation
+instructions are consumed; no unchanged retry or physical selection is pending.

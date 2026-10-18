@@ -1,18 +1,17 @@
 # Design: MT6797 Wi-Fi native-crypto-delivery diagnostic (proposal 0181, default-off)
 
-Latest executed result: [C10](CCMP10_RESULT.md) (2026-10-18 UTC) passed one
-finite mask-only protected lifetime: WPA2, DHCP, three ping replies, fresh
-boot-bound authenticated SSH and stage-3 host cleanup, without a receive refusal
-or unexplained timeout. Required metadata reached the initial-PTK checker without
-global SET_MONITOR. Evidence was sealed and changed-boot Gemian independently
-confirmed. No unchanged retry; ordinary integrity/PN, GTK/rekey/key retirement,
-healthy reuse and ten-minute SSH remain. See the predeclared
-[mask comparison](MASK_ONLY_COMPARISON.md), [preparation](CCMP10_PREPARATION.md)
-and [key-retirement source boundary](KEY_RETIREMENT_SOURCE_REVIEW.md).
+Latest executed result: [C11](CCMP11_RESULT.md) (2026-10-18 UTC) observed G1
+on all 32 eligible group shapes with GROUP_VLD 0xf; GTK delivery remained
+withheld. DHCP and three pings passed, but Wi-Fi SSH exit 255 did not authenticate
+the boot, so the overall compatibility result is false. Transport and host
+cleanup passed independently, with no refusal or timeout. Evidence was sealed
+and changed-boot Gemian independently verified. No unchanged retry.
 
-The [GTK PN observation successor C11](CCMP11_PREPARATION.md) is now built,
-validated and installed with matching full readback, clean shutdown and complete
-host preparation. Await owner physical boot2 selection; no C11 runtime result.
+[C10](CCMP10_RESULT.md) remains the earlier finite authenticated-SSH pass,
+not an established baseline. The [next step](CCMP11_RESULT.md#owner-directed-next-decision-unchanged-c10-baseline)
+is up to two further unchanged C10 sessions, each with physical boot2 selection.
+No new candidate or build. GTK delivery, rekey, reuse and reconnect stay disabled;
+staged longer lifetimes follow the baseline. Full acceptance remains incomplete.
 
 | Field | Value |
 | --- | --- |

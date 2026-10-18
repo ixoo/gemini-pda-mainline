@@ -1,0 +1,45 @@
+# Sanitized fixed-prefix numeric fields; sequence, boot microseconds, event.
+1996 118101820 management_submit subtype=11 pid=1 pages=1
+1998 118126827 tx_done pid=1 status=0 advanced=1 count=1
+2002 118149837 management_submit subtype=0 pid=2 pages=1
+2004 118174814 tx_done pid=2 status=0 advanced=1 count=1
+2014 118252321 tx_done pid=3 status=0 advanced=1 count=1
+2020 118323110 tx_done pid=4 status=0 advanced=1 count=1
+2030 118397246 data_start budget_ms=6156 teardown_margin_ms=5000 inside_grant=1
+2031 118417962 mask_control enable=1 status=0
+2032 118419264 native_transition state=1 act=1 total=0 native=0 bytes=0
+2034 118442872 native_transition state=2 act=0 total=0 native=0 bytes=0
+2037 118841861 data_submit pid=5 pages=3 bytes=342
+2038 118843088 tx_done pid=5 status=0 advanced=1 count=1
+2040 118865805 data_credit pages=3 debt=0 count=1
+2041 118917795 data_credit pages=3 debt=0 count=2
+2042 118918996 tx_done pid=6 status=0 advanced=1 count=1
+2043 120281814 data_credit pages=1 debt=0 count=3
+2044 120283058 tx_done pid=7 status=0 advanced=1 count=1
+2045 120333795 data_credit pages=1 debt=0 count=4
+2046 120335047 tx_done pid=8 status=0 advanced=1 count=1
+2047 121273790 data_credit pages=1 debt=0 count=5
+2048 121275041 tx_done pid=9 status=0 advanced=1 count=1
+2049 122289906 data_credit pages=1 debt=0 count=6
+2050 122291272 tx_done pid=10 status=0 advanced=1 count=1
+2051 123993772 data_credit pages=1 debt=0 count=7
+2052 123995037 tx_done pid=11 status=0 advanced=1 count=1
+2053 124569816 mask_control enable=0 status=0
+2054 124570998 native_transition state=3 act=2 total=147 native=0 bytes=47148
+2055 124572310 footer elapsed_ms=6175 rx_unicast=0 rx_group=0 rx_dropped=0 tx_queued=7 tx_done=7 tx_failed=0 tx_credits=11
+2056 124574510 checked_end queued=7 no_reuse=1
+2059 124598881 native_transition state=4 act=0 total=147 native=0 bytes=47148
+2060 124600215 management_submit subtype=12 pid=12 pages=1
+2062 124622981 tx_done pid=12 status=0 advanced=1 count=1
+2075 124744130 terminal now_ns=124698407468 inflight=0 pid=12 submit_pid=11 submit_return_ns=123924058238 frame_deadline_ns=125305560699 guard_valid=1 guard_return_ns=124698406391 whcr=0 whisr=0
+2076 124747233 rx_terminal port=0 attempts=414 packets=159 type7=120 opposite=0 status=-11 pre_valid=1 pre_wrplr=0 return_ns=124698394699
+2077 124749514 rx_terminal port=1 attempts=395 packets=0 type7=0 opposite=68 status=-11 pre_valid=1 pre_wrplr=0 return_ns=124500041084
+2078 124751786 credit_terminal site=0 native_state=4 pending=0 credit_deadline_ns=124773156699 lifetime_deadline_ns=129508104237 polls=281 scan=0 closing=0 first=0 wtqcr7=0 tc4_free=26 cpu_pending=0 ffa_pending=0 tc1_free=16 ac1_pending=0 released=0 tc1_released=0
+2080 124756557 cleanup stage=3 deauth=1
+2081 124757939 group_pn reported=32 shape=32 eligible=32 pn_present=32 pn_absent=0 masks=32768
+2082 124759653 rx_classes phase=0 t0=0 t1=0 t2=0 t3=0 t4=0 t5=0 t6=0 t7=0 beacons=0 reported_idx1_translated=0 reported_idx1_untranslated=0
+2084 124764711 rx_classes phase=1 t0=0 t1=0 t2=39 t3=0 t4=0 t5=0 t6=0 t7=108 beacons=0 reported_idx1_translated=0 reported_idx1_untranslated=0
+2086 124769819 rx_classes phase=2 t0=0 t1=0 t2=0 t3=0 t4=0 t5=0 t6=0 t7=0 beacons=0 reported_idx1_translated=0 reported_idx1_untranslated=0
+2088 124774871 rx_classes phase=3 t0=0 t1=0 t2=0 t3=0 t4=0 t5=0 t6=0 t7=12 beacons=0 reported_idx1_translated=0 reported_idx1_untranslated=0
+2090 124805781 key_disable local=1 removal_command_credit=1 status=0 no_reuse=1
+2091 124807499 key_disable local=1 removal_command_credit=1 status=0 no_reuse=1

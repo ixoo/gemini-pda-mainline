@@ -1,9 +1,10 @@
 # GTK handoff: existing mac80211 decap path and driver obligations
 
-Source-only review while [C11](CCMP11_PREPARATION.md) awaits owner physical
-selection. No new candidate, GTK acceptance, frame acquisition or device action.
-The [C11 observation](GROUP_PN_SUCCESSOR.md) must establish its missing metadata
-availability before selecting a strict initial-GTK checker.
+Source-only review performed while [C11](CCMP11_PREPARATION.md) awaited owner
+physical selection. The [C11 result](CCMP11_RESULT.md) subsequently established
+positive group-PN availability; GTK delivery remains withheld. No new candidate, GTK acceptance, frame acquisition or device action.
+The [C11 observation](GROUP_PN_SUCCESSOR.md) establishes only sampled availability.
+The owner-directed next step is the unchanged C10 baseline, not GTK delivery.
 
 Input: the actual prepared Linux 7.1.3 source for kernel commit
 `774e08aa5570f96986acc1fd2a40afa0c226777d`, using the

@@ -50,19 +50,19 @@ Keep this file under 200 lines; move anything else to an experiment record.
   which also observed the received-PN group absent on that one sample — an availability
   fact, not a replay or crypto claim). Bounded lifetimes only; `wifi_operational` stays
   false and no operational, reliability, persistence or replay-protection claim follows.
-- **Next (C11 observation, 2026-10-18 UTC).** [C10](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/CCMP10_RESULT.md)
-  passed one finite mask-only WPA2/DHCP/three-ping/authenticated-SSH lifetime
-  with host cleanup and no refusal. [C11](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/CCMP11_PREPARATION.md)
-  observes the missing GTK PN metadata while delivery stays withheld; installed
-  and prepared, awaiting owner selection. Ordinary integrity/key retirement,
-  two healthy lifetimes and minimal-profile ten-minute acceptance remain.
+- **Next (C10 baseline, 2026-10-18 UTC).** [C11](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/CCMP11_RESULT.md)
+  passed DHCP/three pings, transport and host cleanup, but SSH failed. Its group
+  observer's causality is unknown. Re-run unchanged C10 up to three total runs
+  including its original finite pass; no new candidate/build. Diagnose SSH from
+  those results, then review 60 s / 2 min / 10 min lifetimes. GTK delivery,
+  rekey, reuse and reconnect remain disabled. Full acceptance remains open.
 - **Open.** Wi-Fi station operation beyond one bounded lifetime; replay
   enforcement in firmware is unknown. No charging, RTC alarm or lid.
   The `full` profile has never booted. No upstream submission. A72 and thermal
   protection are parked.
-- **Device (2026-10-18 UTC).** C11 is installed to guarded boot2 with matching
-  full readback, clean shutdown and host preparation verified. Await owner
-  physical boot2 selection with USB attached; no C11 runtime result yet.
+- **Device (2026-10-18 UTC).** C11 remains installed but consumed. Reviewed
+  recovery and independent LAN SSH confirmed changed-boot Gemian; no physical
+  selection is pending.
 
 ## Next device boots, in order
 

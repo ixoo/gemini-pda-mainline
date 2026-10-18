@@ -1,18 +1,20 @@
 # Wi-Fi resume checkpoint — INCOMPLETE
 
-Current continuation: [C10 result](CCMP10_RESULT.md) is the latest consumed
-trial: finite WPA2/DHCP/three-ping/authenticated-SSH pass with mask-only metadata
-control, complete host cleanup and no refusal. Preservation and changed-boot
-Gemian were independently verified. C10 is consumed. [C11](CCMP11_PREPARATION.md) is installed with full readback,
-clean shutdown and host preparation verified, awaiting owner physical boot2
-selection. No C11 capture/session has run; no unchanged C10 retry. Full Wi-Fi
-remains incomplete.
-Next resolve ordinary integrity/PN and key/queued-frame ownership before healthy
-reuse and sustained acceptance; the [key-retirement review](KEY_RETIREMENT_SOURCE_REVIEW.md)
-and [post-C10 BSS observation](POST_C10_KEY_OWNERSHIP_RESULT.md) resolve the
-callback bodies but leave shared-RX/key-incarnation ordering unproved. C11 adds
-only the separately justified GTK metadata observation, with delivery withheld.
-The timeout classification and C6–C10 successors ran after owner resume.
+Current continuation: [C11](CCMP11_RESULT.md) is consumed once. G1 was present
+on 32/32 eligible group shapes, still withheld from delivery. DHCP and three
+pings passed; SSH exit 255 had no authenticated boot/ACK. Transport and host
+cleanup passed independently. Seals, quiescence, regression and changed-boot
+Gemian were verified. C11 remains installed but consumed; no physical action or
+unchanged retry is pending. C10 is the earlier finite authenticated-SSH pass.
+
+Next: follow the [owner-directed unchanged C10 baseline](CCMP11_RESULT.md#owner-directed-next-decision-unchanged-c10-baseline),
+up to three total C10 sessions including its original pass. No new candidate
+or build. Compare separate SSH and transport/network/cleanup verdicts before
+choosing a diagnostic. Only then review 60 s / 2 min / 10 min lifetimes.
+GTK delivery, rekey, key reuse and reconnect stay disabled. No length adjustment,
+longer transport deadlines or unresolved-callback RE without a specific test need.
+Each fresh session needs its own physical boot2 selection; stop at that handoff.
+The pause record below is historical.
 
 Historical pause boundary. The owner explicitly resumed implementation on
 2026-10-17; see the [completion successor](CCMP_COMPLETION_SUCCESSOR.md) for

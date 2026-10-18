@@ -1,5 +1,9 @@
 # Before implementation: observe GTK PN availability without delivery
 
+Status: [C11 consumed once](CCMP11_RESULT.md), with G1 on 32/32 eligible group
+shapes. GTK remained withheld; DHCP/three pings passed, SSH did not authenticate.
+The proposal below predates implementation and is not a repeat admission.
+
 C10 passed one finite mask-only initial-PTK lifetime. Its checked receive path
 accepts only unicast PTK frames and bypasses the older per-class PN counters.
 Consequently its 36 deliveries prove no GTK PN availability. No raw RX capture
