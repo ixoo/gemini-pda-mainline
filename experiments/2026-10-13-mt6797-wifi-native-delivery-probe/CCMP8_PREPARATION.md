@@ -1,8 +1,7 @@
 # C8: post-CLOSED receive-selection comparison
 
-Status: installed to guarded boot2, full readback and clean shutdown verified;
-owner selection and fresh mainline identity verified, no runtime result,
-2026-10-18 UTC. The
+Status: consumed once; [C8 result](CCMP8_RESULT.md) records DHCP/one ping,
+failed SSH and post-CLOSED length refusal, 2026-10-18 UTC. The
 [source decision](CLOSED_RX_SELECTION_COMPARISON.md) owns the hypothesis,
 unique observation and branches. This tests cleanup sequence sensitivity,
 not a proved repair or ordinary secure Wi-Fi. C7 is consumed; no unchanged retry.
@@ -105,14 +104,16 @@ The actual deployment summary is retained byte-exact, mode 0600, in session 8.
 Its SHA-256 is `6aa9a4370a22e8f7d6d0e6a40c7046cb69a75376cd122bd5bf8e25c5868d26f0`
 (944 bytes). Complete actual offline session preparation then passed against
 the real candidate, real summary, retained historical source cohort and current
-credential/calibration checkout. No Wi-Fi helper was started; its fresh boot
-binding must be supplied only after the next mainline identity is verified.
-Capture 8 is absent and no session execution claim exists.
+credential/calibration checkout. That preparation started no Wi-Fi helper;
+the helper later received its fresh boot binding after USB identity verification.
+At the installation handoff, capture 8 and the session execution claim were
+absent.
 
 The owner confirmed physical boot2 selection. Strict USB SSH then verified
 new mainline boot `69e90265-77e3-4aa9-9610-5e7607647ab1`, the expected release,
 aarch64 and the new selected-reader symbol. This corroborates the installed
-full-readback/source chain; no Phase-A capture or runtime trial has run yet.
-No unchanged retry is admitted. Ordinary
+full-readback/source chain. One capture and one session then ran with tooling
+`6bcb0334`; see the [C8 result](CCMP8_RESULT.md). Evidence, quiescence and
+changed-boot Gemian are verified. No unchanged retry is admitted. Ordinary
 integrity/PN, key retirement/reuse, healthy reconnect and clean-profile
 ten-minute SSH remain required by the delivery plan.

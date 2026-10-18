@@ -1,18 +1,15 @@
 # Design: MT6797 Wi-Fi native-crypto-delivery diagnostic (proposal 0181, default-off)
 
-Latest executed result: [C7](CCMP7_RESULT.md) (2026-10-17) completed WPA2/DHCP
-and retained two real ping replies. SSH failed; monitor-disable credit returned,
-then cleanup refused lengths 427/379. Evidence was sealed and changed-boot
-Gemian independently confirmed. No unchanged C7 retry or maintained support.
+Latest executed result: [C8](CCMP8_RESULT.md) (2026-10-18 UTC) completed
+WPA2/DHCP and retained one real ping reply. SSH failed. Four CLOSED transfers
+passed length equality, then the selected reader refused lengths 88/40.
+The post-CLOSED sequence alone is insufficient. Evidence was sealed and
+changed-boot Gemian independently confirmed; no unchanged retry or support claim.
 
-Next authored comparison: [post-CLOSED port selection](CLOSED_RX_SELECTION_COMPARISON.md)
-uses one existing length acquisition to select a nonempty port during cleanup.
-Actual-source tests and Buildbox validation pass;
-[C8 preparation](CCMP8_PREPARATION.md#verified-installation-and-physical-handoff)
-records verified installation, full readback, clean shutdown, owner selection
-and fresh mainline boot identity; no C8 runtime result yet.
-Keep equality, full transfer and poison/no-copy; no certified cause, credit-policy
-change, timeout extension or 48-byte framing exception is selected.
+Next source boundary: pending length ownership and the refused descriptor's
+translation/header/status contract. Keep equality, complete transfer and
+poison/no-copy. No next candidate, credit-policy change, timeout extension or
+48-byte framing exception is selected.
 
 | Field | Value |
 | --- | --- |

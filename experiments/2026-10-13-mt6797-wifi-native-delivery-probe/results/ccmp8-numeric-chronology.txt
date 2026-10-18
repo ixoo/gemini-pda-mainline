@@ -1,0 +1,33 @@
+# Sanitized fixed-prefix numeric fields; sequence, boot microseconds, event.
+1999 95142703 management_submit subtype=11 pid=1 pages=1
+2001 95167822 tx_done pid=1 status=0 advanced=1 count=1
+2005 95190657 management_submit subtype=0 pid=2 pages=1
+2007 95215714 tx_done pid=2 status=0 advanced=1 count=1
+2017 95293239 tx_done pid=3 status=0 advanced=1 count=1
+2027 95363824 tx_done pid=4 status=0 advanced=1 count=1
+2032 95390063 data_start budget_ms=6204 teardown_margin_ms=5000 inside_grant=1
+2033 95410660 native_transition state=1 act=1 total=0 native=0 bytes=0
+2036 95435738 native_transition state=2 act=0 total=3 native=0 bytes=1602
+2039 95906702 data_submit pid=5 pages=3 bytes=342
+2040 95930664 data_credit pages=3 debt=0 count=1
+2041 95931982 tx_done pid=5 status=0 advanced=1 count=1
+2043 96030644 data_credit pages=3 debt=0 count=2
+2044 96031938 tx_done pid=6 status=0 advanced=1 count=1
+2045 97370657 data_credit pages=1 debt=0 count=3
+2046 97371924 tx_done pid=7 status=0 advanced=1 count=1
+2047 97422751 data_credit pages=1 debt=0 count=4
+2048 97424044 tx_done pid=8 status=0 advanced=1 count=1
+2049 97478686 native_transition state=3 act=2 total=512 native=0 bytes=93341
+2051 97503781 footer elapsed_ms=2113 rx_unicast=0 rx_group=0 rx_dropped=0 tx_queued=4 tx_done=4 tx_failed=0 tx_credits=8 reason=native-diag
+2054 97509013 native_transition state=4 act=0 total=512 native=0 bytes=93341
+2055 97510392 management_submit subtype=12 pid=9 pages=1
+2056 97511745 refusal port=0 pre_valid=1 pre_wrplr=88 selected=88 header_valid=1 header=40 setup=1 complete=1 staging=92 post_valid=0 post_wrplr=0 refused_type_valid=1 refused_type_word=16384 gate=header-length
+2057 97515038 terminal now_ns=97468457621 inflight=1 pid=9 submit_pid=8 submit_return_ns=97348095544 frame_deadline_ns=98214955928 guard_valid=1 guard_return_ns=97456096698 whcr=0 whisr=3
+2058 97518112 rx_terminal port=0 attempts=547 packets=516 type7=12 opposite=0 status=-71 pre_valid=1 pre_wrplr=88 return_ns=97465165851
+2059 97520478 rx_terminal port=1 attempts=541 packets=0 type7=0 opposite=485 status=-11 pre_valid=1 pre_wrplr=427 return_ns=97404313082
+2060 97522795 credit_terminal site=0 native_state=4 pending=0 credit_deadline_ns=97532083698 lifetime_deadline_ns=106548138697 polls=104 scan=0 closing=0 first=0 wtqcr7=65537 tc4_free=26 cpu_pending=0 ffa_pending=0 tc1_free=16 ac1_pending=0 released=1 tc1_released=0
+2061 97526446 stop status=-71 first=0 submitted=6145 debt=1 cleanup=0 branch=4
+2062 97528040 rx_classes phase=0 t0=0 t1=0 t2=0 t3=0 t4=0 t5=0 t6=0 t7=3 beacons=0 reported_idx1_translated=0 reported_idx1_untranslated=0
+2064 97533201 rx_classes phase=1 t0=0 t1=0 t2=500 t3=0 t4=0 t5=0 t6=0 t7=9 beacons=20 reported_idx1_translated=0 reported_idx1_untranslated=0
+2066 97538376 rx_classes phase=2 t0=0 t1=0 t2=0 t3=0 t4=0 t5=0 t6=0 t7=0 beacons=0 reported_idx1_translated=0 reported_idx1_untranslated=0
+2068 97543553 rx_classes phase=3 t0=0 t1=0 t2=4 t3=0 t4=0 t5=0 t6=0 t7=0 beacons=0 reported_idx1_translated=0 reported_idx1_untranslated=0

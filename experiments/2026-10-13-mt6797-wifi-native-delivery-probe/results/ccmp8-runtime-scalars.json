@@ -1,0 +1,439 @@
+{
+  "status": "consumed once; receive-length refusal; no unchanged retry",
+  "kernel_input": "3dafb0666295bab558b02a3b7c0ce3e70efa1b9c",
+  "capture_tooling_commit": "6bcb0334f1d0f27775b18621ea74dcfc44ccd03b",
+  "session_tooling_commit": "6bcb0334f1d0f27775b18621ea74dcfc44ccd03b",
+  "attempts": {
+    "phase_a_capture": 1,
+    "phase_a_exit": 0,
+    "actual_device_sessions": 1,
+    "actual_session_exit": 1,
+    "native_recovery_requests": 1,
+    "recovery_watch_connection_attempts": 2,
+    "independent_read_only_gemian_confirmation": true
+  },
+  "events": {
+    "data_start": [
+      {
+        "sequence": 2032,
+        "time_us": 95390063,
+        "budget_ms": 6204,
+        "teardown_margin_ms": 5000,
+        "inside_grant": 1
+      }
+    ],
+    "data_submit": [
+      {
+        "sequence": 2039,
+        "time_us": 95906702,
+        "pid": 5,
+        "pages": 3,
+        "bytes": 342
+      }
+    ],
+    "data_credit": [
+      {
+        "sequence": 2040,
+        "time_us": 95930664,
+        "pages": 3,
+        "debt": 0,
+        "count": 1
+      },
+      {
+        "sequence": 2043,
+        "time_us": 96030644,
+        "pages": 3,
+        "debt": 0,
+        "count": 2
+      },
+      {
+        "sequence": 2045,
+        "time_us": 97370657,
+        "pages": 1,
+        "debt": 0,
+        "count": 3
+      },
+      {
+        "sequence": 2047,
+        "time_us": 97422751,
+        "pages": 1,
+        "debt": 0,
+        "count": 4
+      }
+    ],
+    "tx_done": [
+      {
+        "sequence": 2001,
+        "time_us": 95167822,
+        "pid": 1,
+        "status": 0,
+        "advanced": 1,
+        "count": 1
+      },
+      {
+        "sequence": 2007,
+        "time_us": 95215714,
+        "pid": 2,
+        "status": 0,
+        "advanced": 1,
+        "count": 1
+      },
+      {
+        "sequence": 2017,
+        "time_us": 95293239,
+        "pid": 3,
+        "status": 0,
+        "advanced": 1,
+        "count": 1
+      },
+      {
+        "sequence": 2027,
+        "time_us": 95363824,
+        "pid": 4,
+        "status": 0,
+        "advanced": 1,
+        "count": 1
+      },
+      {
+        "sequence": 2041,
+        "time_us": 95931982,
+        "pid": 5,
+        "status": 0,
+        "advanced": 1,
+        "count": 1
+      },
+      {
+        "sequence": 2044,
+        "time_us": 96031938,
+        "pid": 6,
+        "status": 0,
+        "advanced": 1,
+        "count": 1
+      },
+      {
+        "sequence": 2046,
+        "time_us": 97371924,
+        "pid": 7,
+        "status": 0,
+        "advanced": 1,
+        "count": 1
+      },
+      {
+        "sequence": 2048,
+        "time_us": 97424044,
+        "pid": 8,
+        "status": 0,
+        "advanced": 1,
+        "count": 1
+      }
+    ],
+    "native_transition": [
+      {
+        "sequence": 2033,
+        "time_us": 95410660,
+        "state": 1,
+        "act": 1,
+        "total": 0,
+        "native": 0,
+        "bytes": 0
+      },
+      {
+        "sequence": 2036,
+        "time_us": 95435738,
+        "state": 2,
+        "act": 0,
+        "total": 3,
+        "native": 0,
+        "bytes": 1602
+      },
+      {
+        "sequence": 2049,
+        "time_us": 97478686,
+        "state": 3,
+        "act": 2,
+        "total": 512,
+        "native": 0,
+        "bytes": 93341
+      },
+      {
+        "sequence": 2054,
+        "time_us": 97509013,
+        "state": 4,
+        "act": 0,
+        "total": 512,
+        "native": 0,
+        "bytes": 93341
+      }
+    ],
+    "terminal": [
+      {
+        "sequence": 2057,
+        "time_us": 97515038,
+        "now_ns": 97468457621,
+        "inflight": 1,
+        "pid": 9,
+        "submit_pid": 8,
+        "submit_return_ns": 97348095544,
+        "frame_deadline_ns": 98214955928,
+        "guard_valid": 1,
+        "guard_return_ns": 97456096698,
+        "whcr": 0,
+        "whisr": 3
+      }
+    ],
+    "rx_terminal": [
+      {
+        "sequence": 2058,
+        "time_us": 97518112,
+        "port": 0,
+        "attempts": 547,
+        "packets": 516,
+        "type7": 12,
+        "opposite": 0,
+        "status": -71,
+        "pre_valid": 1,
+        "pre_wrplr": 88,
+        "return_ns": 97465165851
+      },
+      {
+        "sequence": 2059,
+        "time_us": 97520478,
+        "port": 1,
+        "attempts": 541,
+        "packets": 0,
+        "type7": 0,
+        "opposite": 485,
+        "status": -11,
+        "pre_valid": 1,
+        "pre_wrplr": 427,
+        "return_ns": 97404313082
+      }
+    ],
+    "credit_terminal": [
+      {
+        "sequence": 2060,
+        "time_us": 97522795,
+        "site": 0,
+        "native_state": 4,
+        "pending": 0,
+        "credit_deadline_ns": 97532083698,
+        "lifetime_deadline_ns": 106548138697,
+        "polls": 104,
+        "scan": 0,
+        "closing": 0,
+        "first": 0,
+        "wtqcr7": 65537,
+        "tc4_free": 26,
+        "cpu_pending": 0,
+        "ffa_pending": 0,
+        "tc1_free": 16,
+        "ac1_pending": 0,
+        "released": 1,
+        "tc1_released": 0
+      }
+    ],
+    "stop": [
+      {
+        "sequence": 2061,
+        "time_us": 97526446,
+        "status": -71,
+        "first": 0,
+        "submitted": 6145,
+        "debt": 1,
+        "cleanup": 0,
+        "branch": 4
+      }
+    ],
+    "footer": [
+      {
+        "sequence": 2051,
+        "time_us": 97503781,
+        "elapsed_ms": 2113,
+        "rx_unicast": 0,
+        "rx_group": 0,
+        "rx_dropped": 0,
+        "tx_queued": 4,
+        "tx_done": 4,
+        "tx_failed": 0,
+        "tx_credits": 8
+      }
+    ],
+    "refusal": [
+      {
+        "sequence": 2056,
+        "time_us": 97511745,
+        "port": 0,
+        "pre_valid": 1,
+        "pre_wrplr": 88,
+        "selected": 88,
+        "header_valid": 1,
+        "header": 40,
+        "setup": 1,
+        "complete": 1,
+        "staging": 92,
+        "post_valid": 0,
+        "post_wrplr": 0,
+        "refused_type_valid": 1,
+        "refused_type_word": 16384
+      }
+    ],
+    "rx_classes": [
+      {
+        "sequence": 2062,
+        "time_us": 97528040,
+        "phase": 0,
+        "t0": 0,
+        "t1": 0,
+        "t2": 0,
+        "t3": 0,
+        "t4": 0,
+        "t5": 0,
+        "t6": 0,
+        "t7": 3,
+        "beacons": 0,
+        "reported_idx1_translated": 0,
+        "reported_idx1_untranslated": 0
+      },
+      {
+        "sequence": 2064,
+        "time_us": 97533201,
+        "phase": 1,
+        "t0": 0,
+        "t1": 0,
+        "t2": 500,
+        "t3": 0,
+        "t4": 0,
+        "t5": 0,
+        "t6": 0,
+        "t7": 9,
+        "beacons": 20,
+        "reported_idx1_translated": 0,
+        "reported_idx1_untranslated": 0
+      },
+      {
+        "sequence": 2066,
+        "time_us": 97538376,
+        "phase": 2,
+        "t0": 0,
+        "t1": 0,
+        "t2": 0,
+        "t3": 0,
+        "t4": 0,
+        "t5": 0,
+        "t6": 0,
+        "t7": 0,
+        "beacons": 0,
+        "reported_idx1_translated": 0,
+        "reported_idx1_untranslated": 0
+      },
+      {
+        "sequence": 2068,
+        "time_us": 97543553,
+        "phase": 3,
+        "t0": 0,
+        "t1": 0,
+        "t2": 4,
+        "t3": 0,
+        "t4": 0,
+        "t5": 0,
+        "t6": 0,
+        "t7": 0,
+        "beacons": 0,
+        "reported_idx1_translated": 0,
+        "reported_idx1_untranslated": 0
+      }
+    ],
+    "management_submit": [
+      {
+        "sequence": 1999,
+        "time_us": 95142703,
+        "subtype": 11,
+        "pid": 1,
+        "pages": 1
+      },
+      {
+        "sequence": 2005,
+        "time_us": 95190657,
+        "subtype": 0,
+        "pid": 2,
+        "pages": 1
+      },
+      {
+        "sequence": 2055,
+        "time_us": 97510392,
+        "subtype": 12,
+        "pid": 9,
+        "pages": 1
+      }
+    ]
+  },
+  "checked_ccmp_ethernet_queued": 4,
+  "native_ciphertext_queued": 0,
+  "initial_wpa2_key_negotiation_completed": 1,
+  "network": {
+    "dhcp_bound": 1,
+    "dhcp_exit": "0",
+    "dhcp_prefix": "24",
+    "dropbear_digest_ok": 1,
+    "host_ack": false,
+    "lease_written": 1,
+    "ping_received": 0,
+    "ping_transmitted": 0,
+    "wifi_sshd_ready": 1,
+    "wifi_sshd_started": 1
+  },
+  "retained_individual_ping_replies": [
+    {
+      "sequence": 0,
+      "ttl": 64,
+      "time_ms": 103.125
+    }
+  ],
+  "ping_summary_present": false,
+  "ssh": {
+    "ready_seen": true,
+    "ssh_attempted": true,
+    "ssh_exit": 255,
+    "ack_written": false,
+    "boot_match": false
+  },
+  "healthy_cleanup": false,
+  "provisional_pass": false,
+  "maintained_wifi_support": false,
+  "key_deletion_proven": false,
+  "hardware_replay_proven": false,
+  "preservation": {
+    "sealed_entries_verified": 63,
+    "seal_sha256": "c252a9930a0e267d77b00a19af68042dfe1a9e6e9b77bcd637d136c16bfecf76",
+    "log_sha256": "5b829ad913120ada7bc703ed5dc79548d3afca9c9ec2c893d2b70caf7df05204",
+    "log_bytes": 163516,
+    "log_records": 2073,
+    "contiguous_records": true,
+    "helper_owned_safe_group_quiescent": true,
+    "device_children_quiesced": true,
+    "regression_pass": true,
+    "recovery_confirmed": true,
+    "mainline_boot": "69e90265-77e3-4aa9-9610-5e7607647ab1",
+    "returned_gemian_boot": "8cffe5a0-4a2e-4441-aa93-1cc8be97cd59"
+  },
+  "helper_quiescence": {
+    "owned": true,
+    "started": true,
+    "safe": true,
+    "group_quiescent": true,
+    "timed_out": false,
+    "probe_error": false,
+    "kill_error": false
+  },
+  "limits": [
+    "Cached guard/release state is from the last completed acquisition, not fault-time sampling",
+    "C8 did not reproduce the C6 timeout; no cause or timer repair is proved",
+    "Leaf ping zeros are defaults: the partial raw transcript independently contains one reply, without a final summary",
+    "CLOSED means monitor-disable credit reconciled, not firmware queue drain or mac80211 teardown",
+    "Refused type word is untrusted staged metadata, not an accepted packet",
+    "Four CLOSED type-2 transfers passed length equality before the refusal; no individual accepted acquisition timestamps retained",
+    "CLOSED-only selection cannot exclude pairing damage from unchanged earlier ACTIVE/scan/boot acquisitions",
+    "Cached free counts precede the newly submitted deauthentication debt; terminal shared debt is 1",
+    "No subtraction, short read, prefix copy or packet acceptance follows from delta 48"
+  ]
+}
