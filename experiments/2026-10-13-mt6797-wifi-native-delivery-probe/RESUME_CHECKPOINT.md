@@ -1,26 +1,31 @@
 # Wi-Fi resume checkpoint — INCOMPLETE
 
-Current continuation: [D1](SSH_D1_RESULT.md) is consumed once: finite transport,
-DHCP/three pings/SSH/host cleanup passed, but the earlier intermittent failure
-was not reproduced. Client stderr was empty. Its 66-entry seal and changed-boot
-Gemian were independently verified. No unchanged D1 retry.
+Current continuation: [D2](SSH_D2_RESULT.md) consumed once on unchanged C10.
+Port 0 advertised 94, staged descriptor 142; complete advertised PIO transfer
+then equality refusal/poison/no-copy. Fault at ENABLE_PENDING, branch 4/-71,
+23.238 ms after data-phase log, not a timeout. DHCP/pings/SSH and all local
+queries were not reached. Healthy cleanup failed; one page debt retained.
+Seal/quiescence/A53 regression and changed-boot Gemian independently verified.
+C10 remains installed but consumed; no physical selection is pending.
 
-The [three-run unchanged C10 baseline](CCMP10_BASELINE.md) is complete: all
-finite transport/network/host-cleanup windows passed, SSH passed 2/3. C11's
-observer is not required for failure; its timing effect remains unproved.
-Failed C10/C11 runs lack client error text, so exact TCP/KEX/auth stage is
-unknown. [C11's group metadata result](CCMP11_RESULT.md) did not enable GTK.
+The [bounded RX contract review](D2_RX_CONTRACT_REVIEW.md) verifies exact C10
+source, TX-only arm quiescence and retained pre-arm WHISR 0x2. Public gen3 mapping
+suggests an RX indication; this is not a FIFO/producer fence. New enable-time
++48 differs from historical close-time -48. The actual-source regression now
+covers 94/142 on both ports, valid 94 and I/O faults; local ASan/UBSan passed.
+No host framing correction is proved. Next source-review metadata-format
+ownership across queued/acquired frames before selecting one justified successor.
+Do not repeat D2 unchanged or build a new candidate under the owner's hold.
 
-Next is [D2](SSH_NEIGHBOR_DIAGNOSTIC.md): one bounded local route/neighbor
-snapshot around the same SSH attempt on exact C10. Four focused cases,
-repository checks and full offline preparation passed. Unchanged C10 full
-readback and clean shutdown confirmed. Await owner physical boot2 selection
-with USB attached; no D2 capture/helper/session has started. Stop at handoff.
+The [three-run C10 baseline](CCMP10_BASELINE.md) remains SSH 2/3, all its finite
+transport/network/host-cleanup windows passed. [D1](SSH_D1_RESULT.md) passed
+without reproducing failure. Exact earlier TCP/KEX/auth failure stage remains
+unknown; D2 does not classify it. [C11](CCMP11_RESULT.md) did not enable GTK.
 
-No new kernel candidate/build, cache mutation, extra device traffic, -48
-adjustment or transport deadline extension. GTK delivery, rekey, reuse and
-reconnect remain disabled. Staged 60 s / 2 min / 10 min lifetimes and full
-maintained Wi-Fi acceptance remain incomplete. The pause record below is historical.
+Keep equality, complete transfer, poison/no-copy; no -48 adjustment, longer
+transport deadline, speculative register or unrelated callback RE. GTK delivery,
+rekey, reuse and reconnect stay disabled. Staged 60 s / 2 min / 10 min and full
+Wi-Fi acceptance remain incomplete. The pause record below is historical.
 
 Historical pause boundary. The owner explicitly resumed implementation on
 2026-10-17; see the [completion successor](CCMP_COMPLETION_SUCCESSOR.md) for

@@ -1,4 +1,8 @@
-# D2: observe local route and neighbor state, unchanged C10
+# D2: local-state observation — consumed, earlier transport refusal
+
+Status: [consumed once](SSH_D2_RESULT.md): port-0 94/142 length refusal
+before readiness, no local query or SSH attempt. Preparation below is historical,
+not a retry admission.
 
 Predeclared after [D1 succeeded](SSH_D1_RESULT.md). D1 retained the missing
 client output but did not reproduce failure, so its earlier-failure stage is
@@ -89,7 +93,7 @@ are separate operations. Numeric input and `-n` avoid hostname lookup. This
 supports the selected observation scope; it is not a firmware or binary-identity
 claim. The actual query exit/output and elapsed time remain runtime evidence.
 
-## Verified preparation — await physical selection
+## Verified preparation — physical handoff consumed
 
 Published host input `9820f896`, four focused actual-source cases and repository
 checks passed. Original C10 image/receipt/leaf/capture/driver/recovery unchanged;

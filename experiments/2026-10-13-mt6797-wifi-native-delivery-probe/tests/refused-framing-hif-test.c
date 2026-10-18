@@ -157,6 +157,8 @@ int main(void)
 	selected_baseline_main();
 	for (unsigned int api = 0; api < 3; api++) {
 		for (unsigned int port = 0; port < 2; port++) {
+			/* D2: header exceeds the completed advertised transfer by 48. */
+			trial(api, port, 94, 142, 2352, 0x5faf, 0xce, 0xc000, 0, 0);
 			trial(api, port, 0, 0, 2352, 0x4000, 0x18, 0x1000, 0, 0);
 			trial(api, port, 1, 16, 2352, 0x4000, 0x18, 0x1000, 0, 0);
 			trial(api, port, 2353, 2305, 2352, 0x4000, 0x18, 0x1000, 0, 0);

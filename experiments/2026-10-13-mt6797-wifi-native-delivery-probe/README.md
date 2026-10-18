@@ -1,19 +1,18 @@
 # Design: MT6797 Wi-Fi native-crypto-delivery diagnostic (proposal 0181, default-off)
 
-Latest executed result: [C11](CCMP11_RESULT.md) (2026-10-18 UTC) observed G1
-on all 32 eligible group shapes with GROUP_VLD 0xf; GTK delivery remained
-withheld. DHCP and three pings passed, but Wi-Fi SSH exit 255 did not authenticate
-the boot, so the overall compatibility result is false. Transport and host
-cleanup passed independently, with no refusal or timeout. Evidence was sealed
-and changed-boot Gemian independently verified. No unchanged retry.
+Latest executed result: [D2](SSH_D2_RESULT.md) (2026-10-18 UTC) hit a port-0
+94/142 header-length refusal during mask ENABLE_PENDING on unchanged C10.
+DHCP/pings/SSH and the intended local queries were not reached. Healthy cleanup
+failed; poison/debt were retained. Evidence and reviewed return to changed-boot
+Gemian were independently verified. No retry, length adjustment or timer change.
 
-The [three-run unchanged C10 baseline](CCMP10_BASELINE.md) is complete: all
-finite transport/network/host-cleanup windows passed, SSH passed 2/3. Thus the
-observer is not necessary for an SSH failure. Exact failure stage is unknown;
-[D1](SSH_D1_RESULT.md) passed without reproducing failure.
-[D2](SSH_NEIGHBOR_DIAGNOSTIC.md) retains local route/neighbor state around the
-same SSH attempt on the same image. No new kernel candidate/build. GTK delivery,
-rekey, reuse and reconnect stay disabled; sustained acceptance is incomplete.
+The [three-run C10 baseline](CCMP10_BASELINE.md) passed all finite transport/
+network/host-cleanup windows, SSH 2/3; [D1](SSH_D1_RESULT.md) then passed without
+classifying the earlier SSH failure. D2 is a separate transport result, not an
+SSH measurement. The [RX contract review](D2_RX_CONTRACT_REVIEW.md) covers this
+new +48 direction, existing pre-arm status and updated actual-source fixtures.
+No successor candidate is admitted. GTK delivery, rekey, reuse and reconnect
+stay disabled; ordinary integrity/key retirement and sustained acceptance remain.
 
 | Field | Value |
 | --- | --- |

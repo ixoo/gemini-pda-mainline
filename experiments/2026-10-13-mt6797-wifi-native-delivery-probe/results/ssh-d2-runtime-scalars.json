@@ -1,0 +1,420 @@
+{
+  "status": "D2 consumed once; earlier port-0 header-length refusal; SSH diagnostic not reached",
+  "kernel_input": "0d1f51194d7001fc9c6b9219726935ede36bc828",
+  "capture_tooling_commit": "faa5e182c66cfe2c68b21da7062f4f6ded86da14",
+  "session_tooling_commit": "faa5e182c66cfe2c68b21da7062f4f6ded86da14",
+  "attempts": {
+    "phase_a_capture": 1,
+    "phase_a_exit": 0,
+    "actual_device_sessions": 1,
+    "actual_session_exit": 1,
+    "native_recovery_requests": 1,
+    "recovery_watch_connection_attempts": 3,
+    "independent_read_only_gemian_confirmation": true
+  },
+  "events": {
+    "data_start": [
+      {
+        "sequence": 2032,
+        "time_us": 68316626,
+        "budget_ms": 5196,
+        "teardown_margin_ms": 5000,
+        "inside_grant": 1
+      }
+    ],
+    "data_submit": [],
+    "data_credit": [],
+    "tx_done": [
+      {
+        "sequence": 1998,
+        "time_us": 67090192,
+        "pid": 1,
+        "status": 0,
+        "advanced": 1,
+        "count": 1
+      },
+      {
+        "sequence": 2004,
+        "time_us": 67138245,
+        "pid": 2,
+        "status": 0,
+        "advanced": 1,
+        "count": 2
+      },
+      {
+        "sequence": 2019,
+        "time_us": 68238240,
+        "pid": 3,
+        "status": 0,
+        "advanced": 1,
+        "count": 1
+      },
+      {
+        "sequence": 2027,
+        "time_us": 68290237,
+        "pid": 4,
+        "status": 0,
+        "advanced": 1,
+        "count": 1
+      }
+    ],
+    "native_transition": [
+      {
+        "sequence": 2034,
+        "time_us": 68338378,
+        "state": 1,
+        "act": 1,
+        "total": 0,
+        "native": 0,
+        "bytes": 0
+      }
+    ],
+    "terminal": [
+      {
+        "sequence": 2037,
+        "time_us": 68344686,
+        "now_ns": 68299654619,
+        "inflight": 0,
+        "pid": 4,
+        "submit_pid": 0,
+        "submit_return_ns": 0,
+        "frame_deadline_ns": 68968304696,
+        "guard_valid": 1,
+        "guard_return_ns": 68292076004,
+        "whcr": 0,
+        "whisr": 2
+      }
+    ],
+    "rx_terminal": [
+      {
+        "sequence": 2038,
+        "time_us": 68347731,
+        "port": 0,
+        "attempts": 3,
+        "packets": 2,
+        "type7": 1,
+        "opposite": 0,
+        "status": -71,
+        "pre_valid": 1,
+        "pre_wrplr": 94,
+        "return_ns": 68294833311
+      },
+      {
+        "sequence": 2039,
+        "time_us": 68350050,
+        "port": 1,
+        "attempts": 2,
+        "packets": 0,
+        "type7": 0,
+        "opposite": 2,
+        "status": -11,
+        "pre_valid": 1,
+        "pre_wrplr": 94,
+        "return_ns": 68294818157
+      }
+    ],
+    "credit_terminal": [
+      {
+        "sequence": 2040,
+        "time_us": 68352307,
+        "site": 0,
+        "native_state": 1,
+        "pending": 1,
+        "credit_deadline_ns": 68392076773,
+        "lifetime_deadline_ns": 78468083388,
+        "polls": 61,
+        "scan": 0,
+        "closing": 0,
+        "first": 0,
+        "wtqcr7": 0,
+        "tc4_free": 26,
+        "cpu_pending": 0,
+        "ffa_pending": 0,
+        "tc1_free": 16,
+        "ac1_pending": 0,
+        "released": 0,
+        "tc1_released": 0
+      }
+    ],
+    "stop": [
+      {
+        "sequence": 2041,
+        "time_us": 68355952,
+        "status": -71,
+        "first": 0,
+        "submitted": 2049,
+        "debt": 1,
+        "cleanup": 0,
+        "branch": 4
+      }
+    ],
+    "footer": [
+      {
+        "sequence": 2051,
+        "time_us": 68701121,
+        "elapsed_ms": 384,
+        "rx_unicast": 0,
+        "rx_group": 0,
+        "rx_dropped": 0,
+        "tx_queued": 0,
+        "tx_done": 0,
+        "tx_failed": 0,
+        "tx_credits": 0
+      }
+    ],
+    "refusal": [
+      {
+        "sequence": 2035,
+        "time_us": 68339864,
+        "port": 0,
+        "pre_valid": 1,
+        "pre_wrplr": 94,
+        "selected": 94,
+        "header_valid": 1,
+        "header": 142,
+        "setup": 1,
+        "complete": 1,
+        "staging": 100,
+        "post_valid": 0,
+        "post_wrplr": 0,
+        "refused_type_valid": 1,
+        "refused_type_word": 24495
+      }
+    ],
+    "rx_classes": [
+      {
+        "sequence": 2042,
+        "time_us": 68357515,
+        "phase": 0,
+        "t0": 0,
+        "t1": 0,
+        "t2": 1,
+        "t3": 0,
+        "t4": 0,
+        "t5": 0,
+        "t6": 0,
+        "t7": 1,
+        "beacons": 0,
+        "reported_idx1_translated": 0,
+        "reported_idx1_untranslated": 0
+      },
+      {
+        "sequence": 2044,
+        "time_us": 68362646,
+        "phase": 1,
+        "t0": 0,
+        "t1": 0,
+        "t2": 0,
+        "t3": 0,
+        "t4": 0,
+        "t5": 0,
+        "t6": 0,
+        "t7": 0,
+        "beacons": 0,
+        "reported_idx1_translated": 0,
+        "reported_idx1_untranslated": 0
+      },
+      {
+        "sequence": 2046,
+        "time_us": 68367783,
+        "phase": 2,
+        "t0": 0,
+        "t1": 0,
+        "t2": 0,
+        "t3": 0,
+        "t4": 0,
+        "t5": 0,
+        "t6": 0,
+        "t7": 0,
+        "beacons": 0,
+        "reported_idx1_translated": 0,
+        "reported_idx1_untranslated": 0
+      },
+      {
+        "sequence": 2048,
+        "time_us": 68372921,
+        "phase": 3,
+        "t0": 0,
+        "t1": 0,
+        "t2": 0,
+        "t3": 0,
+        "t4": 0,
+        "t5": 0,
+        "t6": 0,
+        "t7": 0,
+        "beacons": 0,
+        "reported_idx1_translated": 0,
+        "reported_idx1_untranslated": 0
+      }
+    ],
+    "management_submit": [
+      {
+        "sequence": 1996,
+        "time_us": 67061147,
+        "subtype": 11,
+        "pid": 1,
+        "pages": 1
+      },
+      {
+        "sequence": 2002,
+        "time_us": 67113125,
+        "subtype": 0,
+        "pid": 2,
+        "pages": 1
+      }
+    ],
+    "framing_hint": [
+      {
+        "sequence": 2036,
+        "time_us": 68343108,
+        "base_valid": 1,
+        "header_control": 206,
+        "status_flags": 49152
+      }
+    ],
+    "mask_control": [
+      {
+        "sequence": 2033,
+        "time_us": 68337123,
+        "enable": 1,
+        "status": 0
+      }
+    ],
+    "cleanup": [],
+    "checked_end": [
+      {
+        "sequence": 2052,
+        "time_us": 68703333,
+        "queued": 0,
+        "no_reuse": 1
+      }
+    ],
+    "key_disable": [
+      {
+        "sequence": 2054,
+        "time_us": 68781147,
+        "local": 1,
+        "removal_command_credit": 0,
+        "status": -71,
+        "no_reuse": 1
+      },
+      {
+        "sequence": 2055,
+        "time_us": 68782904,
+        "local": 1,
+        "removal_command_credit": 0,
+        "status": -71,
+        "no_reuse": 1
+      }
+    ]
+  },
+  "checked_ccmp_ethernet_queued": 0,
+  "native_ciphertext_queued": 0,
+  "initial_wpa2_key_negotiation_completed": 1,
+  "network": null,
+  "retained_individual_ping_replies": [],
+  "ping_log_present": false,
+  "ping_summary_present": false,
+  "ssh": {
+    "ready_seen": false,
+    "ssh_attempted": false,
+    "ssh_exit": null,
+    "ack_written": false,
+    "boot_match": false,
+    "elapsed_s": 3.5,
+    "ready_wait_s": null,
+    "reason": "a named join fault was recorded"
+  },
+  "healthy_cleanup": false,
+  "provisional_pass": false,
+  "maintained_wifi_support": false,
+  "key_deletion_proven": false,
+  "hardware_replay_proven": false,
+  "preservation": {
+    "sealed_entries_verified": 63,
+    "seal_sha256": "06c2b121627c3c1835c0ec8372837b0f2a365e3396b616f4e930dc2e70d5dd1e",
+    "log_sha256": "1048c329f0184b29b912e4a53c3a41a24c4bfbf6e820964ce021c68388e232b4",
+    "log_bytes": 160696,
+    "log_records": 2056,
+    "contiguous_records": true,
+    "complete_through_seal": true,
+    "helper_owned_safe_group_quiescent": true,
+    "device_children_quiesced": true,
+    "regression_pass": true,
+    "recovery_confirmed": true,
+    "mainline_boot": "61d0351a-5fe7-4bf5-8c55-21825fb867e6",
+    "returned_gemian_boot": "e062dfca-3176-4135-88b0-681e57e80f0b"
+  },
+  "limits": [
+    "WPA2 completed but no DHCP/ping/SSH observation was reached; absent replies are not measured loss",
+    "Earlier RX header-length refusal is separate from the prior intermittent SSH failure",
+    "Mask-only control does not eliminate the length refusal; difference 48 is not an accepted framing rule",
+    "Advertised transfer completed; equality refusal/poison/no-copy retained, no further acquisition or length adjustment",
+    "Healthy host cleanup failed; poison and outstanding credit are not forgiven or reusable",
+    "Reviewed return to Gemian is recovery, not firmware cleanup/key retirement proof",
+    "No D2 local route/neighbor query or Wi-Fi SSH process ran; no unchanged retry or deadline extension",
+    "GTK delivery/rekey/reuse/reconnect and sustained Wi-Fi remain disabled or unproved"
+  ],
+  "local_observation": {
+    "queries_executed": 0,
+    "client_process_executed": false,
+    "reason": "named driver fault before readiness"
+  },
+  "verdicts": {
+    "transport": "header-length refusal -71",
+    "dhcp": "not reached",
+    "pings": "not attempted; no measured loss count",
+    "ssh": "not attempted; previous failure stage unresolved",
+    "cleanup": "failed; no stage-3 terminal; poison/debt retained",
+    "duration": "early termination; not a duration pass"
+  },
+  "rx_refusal_gate": "header-length",
+  "failure_timing": {
+    "log_data_start_to_refusal_us": 23238,
+    "log_enable_submission_to_refusal_us": 2741,
+    "ktime_rx_return_before_credit_deadline_ns": 97243462,
+    "ktime_guard_return_to_arm_step_now_ns": 769,
+    "clock_domains_kept_separate": true
+  },
+  "rx_regression": {
+    "host": "Darwin",
+    "asan_ubsan_pass": true,
+    "new_observed_pair": [
+      94,
+      142
+    ],
+    "prior_mismatch_pairs": 5,
+    "ports_tested": [
+      0,
+      1
+    ],
+    "kernel_unchanged": true,
+    "linux_only_checks_run": false,
+    "kernel_build_run": false,
+    "test_runner_sha256": "62665b69816cea688419631e08c66418852be2baf88457ea431a991abe9aa730",
+    "private_log_sha256": "a79a6e0074c4893d1cd7beba9a5a593649650e8b13ba47d9fde672fd49790044",
+    "exact_refused_tuple_tested": {
+      "length": 94,
+      "header": 142,
+      "type_word": 24495,
+      "control": 206,
+      "status": 49152,
+      "ports": [
+        0,
+        1
+      ],
+      "apis": [
+        "boot",
+        "runtime",
+        "selected"
+      ],
+      "retained_receive_sources": [
+        "C8",
+        "C9"
+      ],
+      "local_asan_ubsan_pass": true,
+      "fixture_sha256": "5666fc82048c25acb2a0793bf05f73bf1418b61a6f616d5d862bff29081ab282",
+      "private_log_sha256": "646e3d4ebaafcea434313f8bc6990abaae9686b4f59f25de59cd2a8a0bdea7cc"
+    }
+  }
+}

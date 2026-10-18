@@ -1,0 +1,25 @@
+# Sanitized fixed-prefix numeric fields; sequence, boot microseconds, event.
+1996 67061147 management_submit subtype=11 pid=1 pages=1
+1998 67090192 tx_done pid=1 status=0 advanced=1 count=1
+2002 67113125 management_submit subtype=0 pid=2 pages=1
+2004 67138245 tx_done pid=2 status=0 advanced=1 count=2
+2019 68238240 tx_done pid=3 status=0 advanced=1 count=1
+2027 68290237 tx_done pid=4 status=0 advanced=1 count=1
+2032 68316626 data_start budget_ms=5196 teardown_margin_ms=5000 inside_grant=1
+2033 68337123 mask_control enable=1 status=0
+2034 68338378 native_transition state=1 act=1 total=0 native=0 bytes=0
+2035 68339864 refusal port=0 pre_valid=1 pre_wrplr=94 selected=94 header_valid=1 header=142 setup=1 complete=1 staging=100 post_valid=0 post_wrplr=0 refused_type_valid=1 refused_type_word=24495
+2036 68343108 framing_hint base_valid=1 header_control=206 status_flags=49152
+2037 68344686 terminal now_ns=68299654619 inflight=0 pid=4 submit_pid=0 submit_return_ns=0 frame_deadline_ns=68968304696 guard_valid=1 guard_return_ns=68292076004 whcr=0 whisr=2
+2038 68347731 rx_terminal port=0 attempts=3 packets=2 type7=1 opposite=0 status=-71 pre_valid=1 pre_wrplr=94 return_ns=68294833311
+2039 68350050 rx_terminal port=1 attempts=2 packets=0 type7=0 opposite=2 status=-11 pre_valid=1 pre_wrplr=94 return_ns=68294818157
+2040 68352307 credit_terminal site=0 native_state=1 pending=1 credit_deadline_ns=68392076773 lifetime_deadline_ns=78468083388 polls=61 scan=0 closing=0 first=0 wtqcr7=0 tc4_free=26 cpu_pending=0 ffa_pending=0 tc1_free=16 ac1_pending=0 released=0 tc1_released=0
+2041 68355952 stop status=-71 first=0 submitted=2049 debt=1 cleanup=0 branch=4
+2042 68357515 rx_classes phase=0 t0=0 t1=0 t2=1 t3=0 t4=0 t5=0 t6=0 t7=1 beacons=0 reported_idx1_translated=0 reported_idx1_untranslated=0
+2044 68362646 rx_classes phase=1 t0=0 t1=0 t2=0 t3=0 t4=0 t5=0 t6=0 t7=0 beacons=0 reported_idx1_translated=0 reported_idx1_untranslated=0
+2046 68367783 rx_classes phase=2 t0=0 t1=0 t2=0 t3=0 t4=0 t5=0 t6=0 t7=0 beacons=0 reported_idx1_translated=0 reported_idx1_untranslated=0
+2048 68372921 rx_classes phase=3 t0=0 t1=0 t2=0 t3=0 t4=0 t5=0 t6=0 t7=0 beacons=0 reported_idx1_translated=0 reported_idx1_untranslated=0
+2051 68701121 footer elapsed_ms=384 rx_unicast=0 rx_group=0 rx_dropped=0 tx_queued=0 tx_done=0 tx_failed=0 tx_credits=0
+2052 68703333 checked_end queued=0 no_reuse=1
+2054 68781147 key_disable local=1 removal_command_credit=0 status=-71 no_reuse=1
+2055 68782904 key_disable local=1 removal_command_credit=0 status=-71 no_reuse=1

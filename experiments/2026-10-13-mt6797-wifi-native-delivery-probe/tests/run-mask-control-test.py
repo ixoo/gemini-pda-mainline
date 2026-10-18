@@ -84,18 +84,22 @@ with tempfile.TemporaryDirectory(prefix='mt6797-mask-') as d:
     (tmp/'selected-pio-baseline.inc').write_text(baseline)
     selected = (f/'closed-selected-hif-test.c').read_text()
     assert selected.count('{427, 379} }') == 1
-    selected = selected.replace('{427, 379} }', '{427, 379}, {88, 40} }')
-    selected = selected.replace('four mismatch pairs', 'five mismatch pairs')
+    selected = selected.replace('{427, 379} }', '{427, 379}, {88, 40}, {94, 142} }')
+    selected = selected.replace('four mismatch pairs', 'six mismatch pairs')
+    assert selected.count('{ 4, 76, 80, 427, 449, 2352 }') == 1
+    selected = selected.replace('{ 4, 76, 80, 427, 449, 2352 }',
+                                '{ 4, 76, 80, 94, 427, 449, 2352 }')
     (tmp/'selected.c').write_text(selected)
     legacy = (f/'runtime-no-post-hif-test.c').read_text()
     legacy = legacy.replace('"../../2026-10-01-mt6797-pio-rx/tests/test-pio-rx.c"',
         '"'+str(f.parents[1]/'2026-10-01-mt6797-pio-rx/tests/test-pio-rx.c')+'"')
     assert legacy.count('{ 4, 76, 80, 449, 2352 }') == 1
-    legacy = legacy.replace('{ 4, 76, 80, 449, 2352 }', '{ 4, 76, 80, 88, 427, 449, 2352 }')
+    legacy = legacy.replace('{ 4, 76, 80, 449, 2352 }', '{ 4, 76, 80, 88, 94, 427, 449, 2352 }')
     needle = '\t\t\ttrial(mode, port, 449, 2352, (unsigned int)-48, 0);'
     assert legacy.count(needle) == 1
     legacy = legacy.replace(needle, needle+'\n\t\t\ttrial(mode, port, 88, 2352, (unsigned int)-48, 0);'
-        +'\n\t\t\ttrial(mode, port, 427, 2352, (unsigned int)-48, 0);')
+        +'\n\t\t\ttrial(mode, port, 427, 2352, (unsigned int)-48, 0);'
+        +'\n\t\t\ttrial(mode, port, 94, 2352, 48, 0);')
     (tmp/'legacy.c').write_text(legacy)
     for fixture, label in [(tmp/'legacy.c', 'legacy-runtime-rx'),
                            (tmp/'selected.c', 'selected-rx')]:

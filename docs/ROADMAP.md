@@ -50,20 +50,19 @@ Keep this file under 200 lines; move anything else to an experiment record.
   which also observed the received-PN group absent on that one sample — an availability
   fact, not a replay or crypto claim). Bounded lifetimes only; `wifi_operational` stays
   false and no operational, reliability, persistence or replay-protection claim follows.
-- **Next (SSH stage, 2026-10-18 UTC).** The [three-run unchanged C10 baseline](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/CCMP10_BASELINE.md)
-  passed every finite transport/DHCP/three-ping/host-cleanup window; SSH passed
-  2/3. C11's observer is not required for failure. [D1](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/SSH_D1_RESULT.md)
-  passed without reproducing failure. [D2](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/SSH_NEIGHBOR_DIAGNOSTIC.md)
-  observes local route/neighbor state around the same SSH attempt before a fix.
-  No new kernel candidate/build; GTK delivery/rekey/reuse/reconnect stay
-  disabled. Then review 60 s / 2 min / 10 min lifetimes; full acceptance remains.
+- **Next (RX contract, 2026-10-18 UTC).** [D2](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/SSH_D2_RESULT.md)
+  hit 94/142 framing refusal at mask enable before DHCP/SSH. [Source review](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/D2_RX_CONTRACT_REVIEW.md)
+  must resolve format ownership across queued/acquired RX before a successor;
+  no new candidate build. Earlier C10 SSH 2/3 and D1 success leave its failure
+  stage unknown. Preserve equality/poison/no-copy, GTK/rekey/reuse/reconnect off.
+  Sustained 60 s / 2 min / 10 min acceptance remains untested.
 - **Open.** Wi-Fi station operation beyond one bounded lifetime; replay
   enforcement in firmware is unknown. No charging, RTC alarm or lid.
   The `full` profile has never booted. No upstream submission. A72 and thermal
   protection are parked.
-- **Device (2026-10-18 UTC).** D2 uses the verified already matching C10 image;
-  full readback, clean shutdown and new host-adapter preparation passed. Await
-  owner physical boot2 selection with USB; no D2 session has started.
+- **Device (2026-10-18 UTC).** D2 consumed; evidence sealed and reviewed return
+  plus independent LAN SSH verified changed-boot Gemian. C10 remains installed;
+  no physical action or unchanged retry is pending.
 
 ## Next device boots, in order
 
