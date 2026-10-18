@@ -7,13 +7,12 @@ New bounded hints `0x18`/`0xe000` suggest untranslated header-length24/DATA/AMPD
 under the pinned layout; they do not validate the bytes or explain delta48.
 Evidence was sealed and changed-boot Gemian independently confirmed.
 
-Next: [post-C9 source review](POST_C9_SOURCE_REVIEW.md) narrows the opaque
-monitor boundary to a specific stock read-query admission question. No device
-query, next boot candidate or unchanged C9 retry selected;
-keep complete transfer, equality and poison/no-copy. Ordinary integrity/PN,
-key retirement, healthy reuse and ten-minute SSH remain required. See the
-[predeclared observation](REFUSED_RXD_FRAMING_SUCCESSOR.md) and
-[preparation](CCMP9_PREPARATION.md) for historical build/deployment gates.
+The [post-C9 pointer observation](POST_C9_POINTER_RESULT.md) resolved the
+opaque callback targets and captured one complete three-bit control primitive
+using bounded read-only stock queries. Its group-reporting/queued-length
+contract remains unproved. Next: review that contract and resource ownership
+before any write comparison. No new boot candidate or unchanged C9 retry;
+ordinary integrity/PN, key retirement, healthy reuse and ten-minute SSH remain.
 
 | Field | Value |
 | --- | --- |

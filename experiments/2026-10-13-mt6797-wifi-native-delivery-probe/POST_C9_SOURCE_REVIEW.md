@@ -71,7 +71,13 @@ map `slti` to unsigned comparison with a signed immediate operand. Treating the
 printed negative immediate as a signed comparison would misclassify the guard.
 That source fact does not by itself validate the remaining firmware path.
 
-## Next bounded decision
+## Subsequent observation
+
+The [pointer result](POST_C9_POINTER_RESULT.md) records the later admitted
+read-only queries and one fixed callback capture. The admission question below
+was resolved for those exact reads only; it does not authorize a control write.
+
+## Original next bounded decision
 
 Review whether the stock read query can safely retain exactly the already
 identified monitor pointer words, without changing radio configuration,

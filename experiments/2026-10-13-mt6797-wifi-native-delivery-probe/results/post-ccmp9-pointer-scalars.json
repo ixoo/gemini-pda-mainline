@@ -1,0 +1,55 @@
+{
+  "status": "read-only observations completed; Wi-Fi incomplete",
+  "kernel": "3.18.41+",
+  "boot_id": "770cff12-273b-4465-899f-f9ad54d0078a",
+  "observations": [
+    {
+      "kind": "dispatch anchor and three pointer words",
+      "query_budget": 4,
+      "queries": 4,
+      "responses_checked": 4,
+      "exit": 0,
+      "whole_run_alarm_seconds": 30,
+      "selftest_cases": 33
+    },
+    {
+      "kind": "identity anchor, selected pointer and one fixed callback window",
+      "query_budget": 18,
+      "queries": 18,
+      "responses_checked": 18,
+      "exit": 0,
+      "whole_run_alarm_seconds": 60,
+      "selftest_cases": 131,
+      "captured_bytes": 64
+    }
+  ],
+  "callback": {
+    "complete_visible_body_instructions": 15,
+    "trailing_undecoded_halfwords": 9,
+    "nested_calls": 0,
+    "boolean_mask_bits": 3,
+    "monitor_enable_mask": 7,
+    "monitor_disable_mask": 0,
+    "register_group_semantics_proven": false,
+    "pending_length_mechanism_proven": false
+  },
+  "decoder": {
+    "query_operand_vectors": 60,
+    "callback_operand_vectors": 64,
+    "all_pass": true,
+    "frozen_sources_unchanged": true
+  },
+  "preservation": {
+    "vm_entries_independently_verified": 26,
+    "host_manifest_entries": 50,
+    "host_manifest_sha256": "49937dfe80e31c27a099cb891ee8e6138ac568d99a871039affb9689d0964255",
+    "analysis_process_matches": 0,
+    "gemian_unchanged_boot_independently_verified": true
+  },
+  "configuration_writes": 0,
+  "debug_unlocks": 0,
+  "retries": 0,
+  "mainline_boots": 0,
+  "new_wifi_support_claim": false,
+  "next_resource_write_admitted": false
+}
