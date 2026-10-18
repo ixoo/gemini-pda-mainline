@@ -4,8 +4,10 @@ Current continuation: [C11](CCMP11_RESULT.md) is consumed once. G1 was present
 on 32/32 eligible group shapes, still withheld from delivery. DHCP and three
 pings passed; SSH exit 255 had no authenticated boot/ACK. Transport and host
 cleanup passed independently. Seals, quiescence, regression and changed-boot
-Gemian were verified. C11 remains installed but consumed; no physical action or
-unchanged retry is pending. C10 is the earlier finite authenticated-SSH pass.
+Gemian were verified. [Unchanged C10 run 2](CCMP10_BASELINE.md) is now installed
+with matching full readback, clean shutdown and complete host preparation.
+Await owner physical boot2 selection; no run-2 capture/session has started.
+C10 is the earlier finite authenticated-SSH pass.
 
 Next: follow the [owner-directed unchanged C10 baseline](CCMP11_RESULT.md#owner-directed-next-decision-unchanged-c10-baseline),
 up to three total C10 sessions including its original pass. No new candidate

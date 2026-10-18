@@ -60,9 +60,9 @@ Keep this file under 200 lines; move anything else to an experiment record.
   enforcement in firmware is unknown. No charging, RTC alarm or lid.
   The `full` profile has never booted. No upstream submission. A72 and thermal
   protection are parked.
-- **Device (2026-10-18 UTC).** C11 remains installed but consumed. Reviewed
-  recovery and independent LAN SSH confirmed changed-boot Gemian; no physical
-  selection is pending.
+- **Device (2026-10-18 UTC).** [Unchanged C10 run 2](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/CCMP10_BASELINE.md)
+  is installed with matching full readback, clean shutdown and host preparation.
+  Await owner physical boot2 selection with USB attached; run 2 has not started.
 
 ## Next device boots, in order
 
