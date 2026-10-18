@@ -1,4 +1,4 @@
-From a1772f3410b1099b8609d0365edc0d2394fa5935 Mon Sep 17 00:00:00 2001
+From 0b88350b26679568c7fc27fcd117994122ddc7fa Mon Sep 17 00:00:00 2001
 From: Codex Experiment <codex-experiment@example.invalid>
 Date: Sat, 17 Oct 2026 22:19:28 -0400
 Subject: [PATCH] wifi: mt6797: compare observed mask-only control
@@ -21,13 +21,13 @@ unproved. No generic register control API or maintained support claim.
 Internal experiment archive, synthetic non-certifying author identity;
 no DCO certification and not an upstream submission.
 ---
- drivers/net/wireless/mediatek/mt6797/Kconfig  | 10 +++++++++
- drivers/net/wireless/mediatek/mt6797/hif.c    | 15 +++++++++++++
+ drivers/net/wireless/mediatek/mt6797/Kconfig  | 10 ++++++++
+ drivers/net/wireless/mediatek/mt6797/hif.c    | 15 ++++++++++++
  drivers/net/wireless/mediatek/mt6797/hif.h    |  6 +++++
  .../mediatek/mt6797/join-command-submit.h     | 12 +++++++++-
- .../wireless/mediatek/mt6797/join-commands.h  | 22 +++++++++++++++++++
- drivers/net/wireless/mediatek/mt6797/mac.c    | 14 ++++++++++++
- 6 files changed, 78 insertions(+), 1 deletion(-)
+ .../wireless/mediatek/mt6797/join-commands.h  | 23 +++++++++++++++++++
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 14 +++++++++++
+ 6 files changed, 79 insertions(+), 1 deletion(-)
 
 diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
 index 8b302d2..9be3a5c 100644
@@ -114,13 +114,14 @@ index 9eb955d..db7657d 100644
  		/* CMD_ID_SET_MONITOR, the default-off native-crypto-delivery
  		 * diagnostic's one 16-byte SET_MONITOR (proposal 0181). Present
 diff --git a/drivers/net/wireless/mediatek/mt6797/join-commands.h b/drivers/net/wireless/mediatek/mt6797/join-commands.h
-index 228e7cb..704e38d 100644
+index 228e7cb..1438d3e 100644
 --- a/drivers/net/wireless/mediatek/mt6797/join-commands.h
 +++ b/drivers/net/wireless/mediatek/mt6797/join-commands.h
-@@ -304,4 +304,26 @@ mt6797_native_monitor_payload(bool enable, unsigned char channel,
+@@ -304,4 +304,27 @@ mt6797_native_monitor_payload(bool enable, unsigned char channel,
  	output[2] = channel;	    /* ucPriChannel; band/SCO/width/S1/S2 stay 0 */
  	return true;
  }
++
 +#ifdef CONFIG_MT6797_CCMP_MASK_CONTROL
 +/* Observed stock callback's complete Boolean-mask store, not a general MCR API.
 + * Group meanings and pending-format ownership remain diagnostic questions.
@@ -145,7 +146,7 @@ index 228e7cb..704e38d 100644
 +#endif
  #endif
 diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
-index 31ef759..579e562 100644
+index 31ef759..6ad2cc8 100644
 --- a/drivers/net/wireless/mediatek/mt6797/mac.c
 +++ b/drivers/net/wireless/mediatek/mt6797/mac.c
 @@ -1798,10 +1798,20 @@ static void mt6797_native_diag_step(struct mt6797_mac *mac)
@@ -154,9 +155,9 @@ index 31ef759..579e562 100644
  	if (act == MT6797_ND_ACT_SUBMIT_ENABLE || act == MT6797_ND_ACT_SUBMIT_DISABLE) {
 +#ifdef CONFIG_MT6797_CCMP_MASK_CONTROL
 +		rc = mt6797_hif_diag_mask(mac->hif, mac->sequence++,
-+					act == MT6797_ND_ACT_SUBMIT_ENABLE,
-+					min_t(u64, mac->join_deadline,
-+					      ktime_get_ns() + 100 * NSEC_PER_MSEC));
++					  act == MT6797_ND_ACT_SUBMIT_ENABLE,
++					  min_t(u64, mac->join_deadline,
++						ktime_get_ns() + 100 * NSEC_PER_MSEC));
 +		dev_info(wiphy_dev(mac->hw->wiphy),
 +			 "one-shot WLAN mask-control submission: enable=%u status=%d\n",
 +			 (unsigned int)(act == MT6797_ND_ACT_SUBMIT_ENABLE), rc);

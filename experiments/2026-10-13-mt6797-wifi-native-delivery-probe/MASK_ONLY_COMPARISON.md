@@ -91,7 +91,7 @@ observed mismatches and no-copy/poison; host tests do not prove firmware effects
 [Proposal 0200](../../patches/proposals/0200-wifi-mt6797-compare-observed-mask-only-control.patch)
 adds the default-off option, fixed encoder/validator and HIF helper, the existing
 MAC action-site selection and the stable-arm registration gate. Its bounded
-source snapshot is `a1772f3`; it is not a standalone Linux revision. Other driver
+source snapshot is `0b88350`; it is not a standalone Linux revision. Other driver
 files, RX/crypto/key/lifetime paths and scan/boot code remain unchanged. Global
 monitor is refused only in this new mode; the option-off preprocessed HIF/MAC
 fixture is byte-identical to C9.
@@ -115,4 +115,4 @@ series files are unchanged; the canonical superset appends 0200. All 33 profile
 checks pass. Linux checks, checkpatch and kernel/package validation remain
 pending; no candidate composition, installation or resource write has run.
 
-Proposal SHA-256: `5f6a0ab8ea451a609be93fe4d4324b266c0a79c6671c8c2dc6fcb815ba4f7acb`.
+Proposal SHA-256: `933bbacc1262e7c8d827d68d3beaa4eed0a2a0ef78c023d0a777d884cf462b2c`.
