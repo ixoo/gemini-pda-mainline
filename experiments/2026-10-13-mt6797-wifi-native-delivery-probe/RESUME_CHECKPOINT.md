@@ -5,10 +5,14 @@ build and package validation passed through the standard Buildbox backend from p
 `c833b2b5`, profile `mt6797-a53-wifi-ccmp-initial-gtk`. This supersedes the build
 hold described below. Guarded installation, verified live identity, preserved
 evidence and owner physical boot2 selection remain mandatory before a trial.
-GTK1 is composed with real receipt/notes identity and local session fixtures
-passing; clean-input Linux session validation and installer review are next.
-No installation or physical handoff has occurred. No additional ARP-pair boot,
-rekey, reuse or reconnect is selected.
+GTK1 is composed, installed to boot2 with matching full readback, and cleanly
+powered off. Local and Linux session fixtures (`57131770`) and complete actual
+offline host preparation pass. The original installer exited 2 only at its
+final host receipt check after shutdown (missing environment); independent
+receipt validation and final sealing passed without repeating device work.
+[Exact installation/handoff](MAC80211_GROUP_RX_CONTRACT.md#gtk1-guarded-installation-and-physical-handoff).
+Owner physical boot2 selection is next. No GTK1 capture or test has started.
+No additional ARP-pair boot, rekey, reuse or reconnect is selected.
 
 Latest completed device result: unchanged-C10 D3 consumed once, boot
 `ccce2504-bdbf-470b-ba7c-267b61f102d0`. [One row and analysis](SESSION_0202_PLAN.md#evidence-and-later-work)

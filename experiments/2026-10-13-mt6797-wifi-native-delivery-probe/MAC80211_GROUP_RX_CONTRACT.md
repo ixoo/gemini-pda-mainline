@@ -246,8 +246,39 @@ reviewed kernel contract. A release string alone does not identify this image.
 Fresh GTK1 preparation/capture/session/installer adapters bind this receipt and
 new evidence roots. Local actual-source fixtures pass config equality with
 8 parent refusals/7 child differences, receipt/namespace/no-scan ownership,
-retained installer pins and retained recovery-source refusal. Linux validation
-of these session bindings is next. No installation or physical handoff has yet
-occurred. The generic host's finite compatibility boolean is not a 60-second
+retained installer pins and retained recovery-source refusal. All five session-binding fixtures also pass on Linux from clean pushed
+input `57131770`. The deployment and physical handoff are recorded below. The generic host's finite compatibility boolean is not a 60-second
 or GTK acceptance verdict; record actual duration and GTK queue evidence
 separately, and reject a short run as a duration pass.
+
+## GTK1 guarded installation and physical handoff
+
+The exact derived 603-line installer passed Bash syntax and ShellCheck and
+matched the reviewed C11 installer under candidate/tool/receipt/boot identity
+substitutions only. Script SHA-256:
+`9348b28cdf301b3a154178bffce39390ebd2e69df99ed10d2ce8809d565f8f47`.
+The guard pin remains
+`0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf`.
+
+One installer execution wrote GTK1 from independently verified Gemian boot
+`216ec26f-5811-444c-9422-40c1b23af081`. Both live GPT/root/unmounted/inactive
+block-device gates passed, with expected size, writability, C10 predecessor and
+stable power. Write/sync/flush and complete 16 MiB readback matched the bound
+candidate. The reviewed poweroff and finite unreachable observation completed;
+no automatic reboot or other partition write occurred.
+
+The installer then exited 2 at its final host-side receipt validation because
+the execution environment omitted `GEMINI_PRIVATE_REPO`. Device work had already
+completed. The preserved receipt was independently validated offline with the
+required source environment restored, and its final checksum seal was completed
+while preserving the earlier seal. No installation, write or shutdown was
+repeated. Do not describe the original installer process as exit 0.
+
+The exact sealed deployment summary is copied mode 0600 into the fresh GTK1
+session. Complete actual offline host preparation passed with client keys/boot
+environment unset. Only the deployment summary exists there; capture, execution
+claim and client observation remain absent. The next action is owner physical
+boot2 selection with USB connected to the custodian laptop. Require a new live
+boot and the pinned 84-byte kernel-notes digest before the single capture and
+admitted session. The planned observation remains 60 seconds subject to the
+unchanged limits; no GTK or sustained-operation result exists yet.
