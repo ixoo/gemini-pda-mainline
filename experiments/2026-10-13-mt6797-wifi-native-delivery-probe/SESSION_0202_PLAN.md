@@ -1174,3 +1174,32 @@ execution timestamp or proof of per-frame on-air delivery. Raw ping output
 stays in the existing sealed `ping.log`; public scalars export only measurements.
 The existing classifier's healthy-stage requirement remains unchanged for a
 bounded-debt terminal. Linux checks, build and hardware admission remain pending.
+
+### GTK7 validated package — deployment pending
+
+GTK7 source and periodic inputs were pushed to `main` at `8aed6b61` before
+Linux fixtures and the required Buildbox build. Selected/canonical actual-source,
+HIF, periodic and reviewed-leaf binding tests pass. Validated package inventory
+`d928d71aee6a96b3a7ace0d4c24b7da61c432ee63ba4a600cf41de3ae11b546f`.
+The [real GTK7 receipt](results/ccmp-stable-monitor-candidate-gtk7.json) binds
+boot image `5fa1331e33664ed86c5b4cc6f30369b861ddf768299355c6e75b31b2b37e19ea`.
+Config, board DT and exact RAM root match GTK6. The 84-byte runtime notes have
+SHA-256 `0b4add89483baa2e91872da3d6b0099845cc4e2336585dbf00a92df4c2962596`,
+matched between ELF, Image, map bounds and the unchanged sysfs exporter, and
+differ from GTK6. Five local host binding/source fixtures pass.
+
+Fresh GTK7 wrappers require the exact periodic reviewed leaf; the default old
+leaf remains unchanged for historical wrappers. The new body is 28,186 bytes,
+and the private bound leaf stays below the unchanged 32 KiB cap. Owned-child,
+exit-trap, bounded-command and window guards are byte-identical to the historical
+leaf. No credentials, private leaf or RAM image is published.
+
+GTK7 changes both teardown order and the preceding traffic pattern. A successful
+deauthentication will demonstrate the combined tested path; one run alone does
+not uniquely attribute that outcome to order rather than its new traffic
+history. Public results will state the measured offsets and observations,
+without attributing an absent event to a firmware mechanism.
+
+Linux host binding checks, guarded deployment, full readback, clean shutdown
+and complete fresh host preparation remain required before physical selection.
+There is no GTK7 hardware result or run row yet.

@@ -28,7 +28,9 @@ through remaining cleanup, a separate bounded-debt terminal (never healthy
 stage 3), device ping every ten seconds with PM-credit-relative TX offsets,
 and owned-beacon count/age at data end. Three logical archives 0214/0215/0216 and the periodic leaf are prepared;
 local actual-source/HIF/periodic and historical-compatibility fixtures pass.
-Linux checks/build and device admission remain pending. Publish inputs to `main`.
+Source/periodic Linux fixtures and the required Buildbox build pass at `8aed6b61`;
+the real GTK7 receipt and five local host fixtures pass. Linux host binding and
+guarded device admission remain pending. Keep publications on `main`.
 
 Keep 0x16 before keys, counter-only 0210/fatal event refusal, connection-monitor
 flag, no nullfunc, existing frame/command deadlines and resource caps. No PID
