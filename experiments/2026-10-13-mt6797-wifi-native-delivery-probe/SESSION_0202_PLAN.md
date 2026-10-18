@@ -1203,3 +1203,24 @@ without attributing an absent event to a firmware mechanism.
 Linux host binding checks, guarded deployment, full readback, clean shutdown
 and complete fresh host preparation remain required before physical selection.
 There is no GTK7 hardware result or run row yet.
+
+### GTK7 installed — physical selection pending
+
+Tooling `cd1a81ef` passed all five Linux host fixtures from clean pushed `main`.
+The 603-line installer has only identity-pin changes from GTK6 and passes shell
+syntax/ShellCheck. Known-good Gemian boot
+`0040b209-8b30-4587-b8e4-74c50a24a09b` was independently verified before the
+live-GPT guard; inactive/non-root boot2 and the GTK6 predecessor matched.
+Full candidate and readback SHA-256 both equal
+`d9f0d3407b186b2d314c281af08dd7fcee0660e2a50863dd0e36eb8102c6536f`.
+The deployment seal and clean shutdown verify; no fresh backup or other
+partition write occurred.
+
+Fresh runtime, the exact mode-0600 deployment summary, new periodic private leaf
+and complete offline host preparation pass with the pinned recovery sources.
+No GTK7 boot/capture/session has occurred. Next action is the owner's physical
+boot2 selection with USB attached to this laptop, followed by fresh boot/notes
+identity verification and one admitted capture/session. Export the periodic,
+beacon and teardown-credit timing scalars as predeclared; no retry or second
+association. A bounded page-debt terminal is separate from healthy stage 3.
+All inputs/checkpoints are on `main`; restored research remains separate.

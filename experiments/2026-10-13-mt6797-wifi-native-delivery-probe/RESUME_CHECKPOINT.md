@@ -1,5 +1,18 @@
 # Wi-Fi resume checkpoint — INCOMPLETE
 
+**GTK7 installed and ready for physical boot2 selection; no live run yet.**
+Source `8aed6b61`, tooling `cd1a81ef`: PM-abort-first, one bounded retained page
+through remaining teardown, a distinct non-healthy debt terminal, periodic
+pings and PM-relative completion/beacon/credit observations. Linux tests,
+required Buildbox build, package, five host fixtures, guarded full readback,
+clean shutdown and complete offline host preparation pass.
+Full boot2 SHA-256 `d9f0d3407b186b2d314c281af08dd7fcee0660e2a50863dd0e36eb8102c6536f`.
+The new periodic reviewed leaf is required. The owner selects boot2 with USB
+attached; verify a fresh boot and 84-byte notes SHA-256
+`0b4add89483baa2e91872da3d6b0099845cc4e2336585dbf00a92df4c2962596`
+before the single admitted capture/session.
+[Handoff](SESSION_0202_PLAN.md#gtk7-installed--physical-selection-pending).
+
 Latest result: **GTK6 capability observation and 60-second duration PASS;
 cleanup and full finite session FAIL.** One boot
 `6f5dbd31-9ed7-4f91-9c42-6a7ccd432bfd`, source `af6923d3`, tooling `ee5da8c4`,
@@ -20,8 +33,8 @@ an individual buffer or prove firmware execution.
 
 All 71 seals and 2,110 contiguous records verify. Helper/device quiescence,
 A53 regression and one reviewed return pass; independently confirmed Gemian
-`0040b209-8b30-4587-b8e4-74c50a24a09b`. No live device process or physical handoff
-is pending. GTK6 remains installed but consumed; do not repeat it unchanged.
+`0040b209-8b30-4587-b8e4-74c50a24a09b`. GTK6 is closed; the GTK7 physical handoff above is pending. Do not repeat
+GTK6 unchanged.
 
 Next is owner-selected GTK7: PM-abort-first order, bounded retained-page debt
 through remaining cleanup, a separate bounded-debt terminal (never healthy
@@ -30,7 +43,8 @@ and owned-beacon count/age at data end. Three logical archives 0214/0215/0216 an
 local actual-source/HIF/periodic and historical-compatibility fixtures pass.
 Source/periodic Linux fixtures and the required Buildbox build pass at `8aed6b61`;
 the real GTK7 receipt and five local host fixtures pass. Linux host binding and
-guarded device admission remain pending. Keep publications on `main`.
+guarded installation now pass; physical GTK7 selection remains pending.
+Keep publications on `main`.
 
 Keep 0x16 before keys, counter-only 0210/fatal event refusal, connection-monitor
 flag, no nullfunc, existing frame/command deadlines and resource caps. No PID
