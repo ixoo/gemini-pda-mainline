@@ -301,3 +301,8 @@ without changing the authoritative late check or the join-phase deadline.
 The [lifecycle design](../2026-10-07-mt6797-wifi-phase-b-join/REUSABLE_LIFECYCLE_DESIGN.md#gtk1-failed-installation-unwind)
 now records GTK1's measured add-command/host-install divergence; it remains a
 barrier to reuse, not a reason to suppress the original fault.
+
+The single [corrected GTK2 build](SESSION_0202_PLAN.md#gtk2-corrected-build-and-session-preparation)
+and composition passed from `7fe3d616`. GTK/ARP, SSH and actual duration remain
+separate unmeasured runtime outcomes. Session binding validation and guarded
+installation precede owner physical selection; no unchanged GTK1 retry.

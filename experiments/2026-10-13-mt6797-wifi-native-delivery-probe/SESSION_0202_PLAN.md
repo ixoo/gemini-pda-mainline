@@ -366,3 +366,37 @@ correction in canonical order; 0202 remains separate and is not selected by the
 initial-GTK profile. Source-only tests prove host decisions, not firmware channel
 ownership, GTK integrity or sustained Wi-Fi. Linux host validation and one
 corrected GTK kernel build precede the next guarded physical handoff.
+
+## GTK2 corrected build and session preparation
+
+The single requested corrected build completed from clean pushed input
+`7fe3d616`, profile `mt6797-a53-wifi-ccmp-initial-gtk`, 32 jobs, modules disabled.
+The actual grant/GTK/canonical-overlay tests pass on Linux from that same input;
+0205 checkpatch has only the deliberate missing DCO error, zero warnings/checks.
+Standard package validation/fetch passed. Configuration, DT and RAM root remain
+byte-identical to GTK1; its 60-second window and every other limit are unchanged.
+
+| Input | SHA-256 |
+| --- | --- |
+| Package inventory | `34b72953368b5850ef35694a5689b00f14a61089107822d177daee849e72b4e9` |
+| Image.gz | `2b642f01eb6904520054c17f0ed3ad05d91fcd30972afcfeb67795afae3bf97f` |
+| Patchset | `675229435abd9c3c2f1db86ae503e5a2419e67fec477578e00498e7b49d638fc` |
+| Candidate receipt | `a557a7b7c5c53ddbff10948e9e79119d656016c65e4cf5ca7f3cea29de08ecac` |
+| Full boot2 image | `f567d6666b106d1ecc2eaadc12022ab27306b210eabd274aa1c44c2985b95e6e` |
+| Live kernel notes, exactly 84 bytes | `c1262456dede57a2594156919d1ba117019b82902c274b05f72e4989f92d3bba` |
+
+The [GTK2 compositor](build-ccmp-gtk2-candidate.py) retains the actual-parent,
+inventory, configuration and container checks; the [real receipt](results/ccmp-stable-monitor-candidate-gtk2.json)
+equals its [runtime binding](runtime-ccmp-gtk2/results/candidate.json). All private
+members have verified size/hash/mode. ELF notes, System.map and packaged Image
+agree, and the read-only live fingerprint differs from GTK1. Fresh session and
+installer adapters require this receipt, the corrected horizon flag and the
+62,500 ms early minimum. Their five local fixtures pass; clean-input Linux
+session validation and actual installer review precede the physical handoff.
+
+The next admitted GTK2 lifetime separately measures checked GTK queue exposure
+and withheld-ARP count, DHCP/individual pings, fresh SSH stage/output, actual
+window and cleanup. A sufficient grant plus the host correction permits the
+window; it is not itself a protected-data result. Do not count a cap-ended
+short run as a 60-second pass. Retain permanent client stderr and the existing
+quiescence/preservation/regression/recovery gates. No GTK2 test has started.

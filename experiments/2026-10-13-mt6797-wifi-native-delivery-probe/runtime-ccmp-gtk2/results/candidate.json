@@ -1,0 +1,54 @@
+{
+  "status": "offline-gated-ccmp-initial-gtk-candidate-validated",
+  "kernel_build_commit": "7fe3d616ad212d9d22b3ebe00fccaa7097a1de16",
+  "kernel_release": "7.1.3-gemini-a53-wifi-ccmp-stable-monitor",
+  "kernel_package_sha256": "34b72953368b5850ef35694a5689b00f14a61089107822d177daee849e72b4e9",
+  "integration_source_commit": "1fb35c3df1af24857817c15e276a71a8e07632d1",
+  "integration_patch_sha256": "623acad53f4ce4f273ee050dfd55ad256ffad780a8a36a2728274497855f1690",
+  "kernel_profile": "mt6797-a53-wifi-ccmp-initial-gtk",
+  "parent_candidate": "candidate-32",
+  "parent_boot2_sha256": "5260715b453d4ad9e635845132f7d08530e0386ce6bce98f53a818b3ab87b815",
+  "files": {
+    "Image.gz": {
+      "sha256": "2b642f01eb6904520054c17f0ed3ad05d91fcd30972afcfeb67795afae3bf97f",
+      "bytes": 6658757
+    },
+    "board.dtb": {
+      "sha256": "25ab60f45686138c46200e858206756a16eef5ee33b26b2bd2ac13c7179d7717",
+      "bytes": 28671
+    },
+    "boot.img": {
+      "sha256": "762aa5873f46d9f8bfd65846235c9eeb4a50db4e28ffb950a3ec6b561cfa4041",
+      "bytes": 12675072
+    },
+    "boot2-padded.img": {
+      "sha256": "f567d6666b106d1ecc2eaadc12022ab27306b210eabd274aa1c44c2985b95e6e",
+      "bytes": 16777216
+    },
+    "initramfs.img": {
+      "sha256": "0b89dd8d560505a8e87a72082c5762d16b6ffbbf6eefc77cd4f99ebeec7707ff",
+      "bytes": 5982210
+    },
+    "kernel.config": {
+      "sha256": "ff1f087376b3a1a2afb38e5325e799926f58db67b46efac1e1ebb6214fea9bd1",
+      "bytes": 113337
+    }
+  },
+  "kernel_config_change": "old native arm0, CCMP stable arm1 command line and USB identity, LOCALVERSION, and NATIVE_DELIVERY_DIAG/CCMP_INITIAL_GTK/CCMP_60S_WINDOW/CCMP_STABLE_EPOCH/CCMP_MASK_CONTROL=y; nothing else",
+  "device_tree_change": "none; exact candidate 32 board DT",
+  "ram_root_change": "release gate only; the exact candidate 32 64-member private RAM root",
+  "native_delivery_diag": false,
+  "ccmp_stable_epoch": true,
+  "mask_control": true,
+  "group_pn_observe": false,
+  "initial_gtk": true,
+  "observation_window_ms": 60000,
+  "grant_horizon_decoupled": true,
+  "early_grant_minimum_ms": 62500,
+  "bootstrap": "normal-dhcp-only",
+  "gtk_rx": true,
+  "key_reuse": false,
+  "secret_bearing": true,
+  "device_action": "none",
+  "physical_admission": false
+}

@@ -16,8 +16,11 @@ physical handoff is pending. Regular builds/tests remain owner-authorized.
 The [predeclared successor](SESSION_0202_PLAN.md#gtk1-result-and-smallest-justified-correction)
 is implemented as [0205](../../patches/proposals/0205-wifi-mt6797-retain-the-validated-channel-grant-horizon.patch),
 with the late check unchanged and an early minimum-interval refusal before
-association/keys. Local actual event-to-window and GTK callback fixtures pass;
-Linux validation and the single corrected build are next. Preserve all other diagnostic limits and the separate 0202 comparison.
+association/keys. Actual event-to-window and GTK callback fixtures pass locally and on Linux
+from clean input `7fe3d616`. The single corrected GTK2 build and real composition
+passed; [session bindings](SESSION_0202_PLAN.md#gtk2-corrected-build-and-session-preparation)
+are prepared with local fixtures passing. Linux session checks and installer
+review precede the next physical handoff; no GTK2 test has started. Preserve all other diagnostic limits and the separate 0202 comparison.
 
 Prior D3 on unchanged C10 authenticated with an initially absent neighbor entry;
 B was correctly skipped. Earlier SSH failures remain approximately ten-second
