@@ -227,6 +227,7 @@ remain in the existing private evidence seal, not public scalars.
 | GTK1 | `b1417555-b2f2-4d07-89cc-9608874f78a8` | no named HIF refusal; host `-ERANGE` | not reached | not reached | not attempted; before ready marker | healthy stage 3 absent | 0 / 60 s; window unopened | [one scalars file](results/gtk1-runtime-scalars.json) |
 | GTK2 | `f77aa006-7757-40b3-960e-2a96ddc82804` | finite capability pass | bound | 3/3 | authenticated, exit 0, 1.410 s | host stage 3 clean | 5.925 / 60 s; checked-frame cap 64 | [one scalars file](results/gtk2-runtime-scalars.json) |
 | GTK3 | `1fa923f3-aab1-43e1-83f9-f6d12c2aa422` | no named HIF refusal; host control-event `-EPROTO` | bound | 3/3 | authenticated, exit 0, 1.256 s | healthy stage 3 absent; quiescence/return pass | 30.144 / 60 s; event 0x13 refused | [one scalars file](results/gtk3-runtime-scalars.json) |
+| GTK4 | `c2efe494-648e-44ca-9bb1-519ffce4496d` | complete event; host `-EPROTO`, no named HIF refusal | bound | 3/3 | authenticated, exit 0, 1.325 s | healthy stage 3 absent; quiescence/return pass | 29.955 / 60 s; BSS 0/reason 6, recent beacons | [one scalars file](results/gtk4-runtime-scalars.json) |
 
 D3's SSH process lasted 1.410 seconds with empty stderr. Its numeric ARP read
 was absent before A and complete afterward. The route read returned exit 71,
@@ -708,9 +709,13 @@ only from GTK3, with unchanged guard and passing Bash/ShellCheck.
 
 The added beacon-clock source fixtures pass locally and on Linux from clean
 pushed `8ac513a3` for both initial-GTK and fixed-format overlay selections. The
-standard kernel build and package validation passed. Replacement tooling Linux
-checks and guarded deployment remain before physical admission. Only observation
-is added; neither 0x16 nor event-family/late-completion tolerance is bundled.
+standard kernel build and package validation passed. All five replacement
+Linux tooling fixtures passed from clean pushed `77760306`. The reviewed
+603-line installer exited 0 after guarded boot2 write, matching full readback,
+sealed deployment evidence and clean shutdown. Independent seal/summary checks
+and actual offline host preparation passed. The owner then selected boot2;
+GTK4 was consumed once as recorded below. Only observation was added; neither
+0x16 nor event-family/late-completion tolerance was bundled.
 
 If no timeout recurs and the complete window/cleanup pass, report that run's
 success and the untriggered diagnostic, without claiming the original timeout
@@ -767,3 +772,73 @@ has only the intentional missing DCO, zero warnings/checks. Clean-input Linux
 source checks and the replacement package passed; tooling/deployment gates are
 recorded above. The first prepared GTK4 image must not be installed for this
 revised diagnostic.
+
+## GTK4 consumed: owned timeout with recent admitted beacons
+
+The run used kernel `8ac513a3`, tooling `77760306` and verified boot
+`c2efe494-648e-44ca-9bb1-519ffce4496d`. Initial capture passed all 285 steps.
+The exact 12-byte event (`0xe000`, id 0x13, sequence 0) reported BSS 0, reason 6.
+At its observation, checked-data age was 287 ms; the owned-beacon clock was
+known, with 293 successful queue admissions and age 71 ms. The event observation
+was 29,811.219 ms after data opening, followed by the preserved header refusal
+at 29,813.401 ms and branch-6 `-EPROTO`. The data phase later ended under host
+`disconnect` cleanup at 29,955 / 60,000 ms. GTK3's corresponding header refusal
+was 29,824.588 ms: the repeated near-30-second offset supports a monitor-window
+hypothesis, without proving its origin or configuration.
+
+This follows the predeclared non-8 reason with recent owned beacon and checked-
+data branch. It argues against a simple absence of host-admitted target beacons;
+it does not decode reason 6 or establish a complete RF stream. The pinned host
+header names reason 8 only. A detailed reason-6 mapping, if needed later, needs
+an explicit bounded VM emitter question rather than inference from a code table.
+Beacon intervals are TU (1.024 ms), as the pinned Linux `TU_TO_JIFFIES` conversion
+shows, not milliseconds. The admission count includes pre-data frames, does not
+deduplicate sequence numbers, and carries host queue times. It cannot prove
+completeness or an exact missed-beacon count from 293/window. No DTIM or runtime
+beacon-interval value was retained in this result.
+
+Capability observation passed: checked PTK/GTK 35/114; GTK ARP handoffs 55,
+withheld eligible ARP 0; DHCP bound; replies 99.248 / 37.802 / 37.563 ms; fresh
+SSH authenticated with exit 0 in 1.325 s and retained empty stderr while the
+post-client window was open. Initial neighbor was absent then complete; route
+snapshot passed. These are independent observations, not GTK-causation proof.
+Full finite-session, duration and healthy-cleanup verdicts failed. Healthy stage
+3 is absent and both local disables returned `-71` without removal credit.
+No named HIF length/read refusal or framing hint occurred. At the fault, 1,248
+polls, 149 checked frames, 519 acquisitions and last PID 32 were below their
+binding ceilings; all 28 data TX completed. No retry occurred.
+
+All 71 sealed entries, eight client files and 2,098 contiguous records
+(167,539 bytes) independently matched. Helper/device quiescence, A53 regression
+and one reviewed recovery passed. A separate authenticated check confirmed
+changed-boot Gemian `4256d0ec-11e4-4e84-8202-6b2e78281876`. No key retirement,
+reuse, reconnect or sustained-operation acceptance is established.
+
+### Predeclared correction after GTK4
+
+The owner proposed a conditional owned timeout handler and the missing PM
+connection indication. Prepare two logical source changes in one candidate:
+
+1. For exact owned-BSS 0x13/12-byte/sequence-zero events in the current healthy,
+   authorized data lifetime, continue and count only when both clocks are known,
+   not in the future, owned-beacon age is strictly less than two committed
+   beacon intervals (TU converted to nanoseconds), and strictly checked RX age
+   is below two seconds. Keep comparisons at nanosecond precision; log numeric
+   reason, intervals/ages and cumulative count. No reason-6 meaning is inferred.
+   Other event families, foreign/stale/invalid states and failed freshness retain
+   the refusal. This event does not release credit, complete TX or change keys.
+2. Retain DTIM from the TIM IE of an existing qualified fresh post-association
+   target beacon, using the validated AssocResp AID and committed beacon interval.
+   Encode 0x16 with zero ATIM and no UAPSD for this legacy no-PS profile. Submit
+   it through the existing sequence/page-credit owner after key credit and before
+   opening traffic, as connection indication, never as an arbitrary data-opening
+   write. Model its disconnect/abort ownership too. Missing metadata or credits
+   stay bounded refusals under the existing join/transaction deadlines.
+
+Before building, trace the exact callback/worker ordering and add actual-source
+cases for nanosecond boundaries, stale/unknown clocks and BSS, TIM truncation /
+duplicates/period bounds, AID/interval, sequence/credit failure and cleanup. Keep
+all existing caps and deadlines, no rekey/reuse/reconnect or -48 adjustment.
+If 0x13 still occurs, count and timestamp it; disappearance in one run supports
+but does not prove the missing-indication hypothesis. A different failure is a
+separate result. Do not repeat GTK4 unchanged or broaden the event family.

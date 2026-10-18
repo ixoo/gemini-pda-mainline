@@ -1,37 +1,35 @@
 # Wi-Fi resume checkpoint — INCOMPLETE
 
-Latest completed result: **GTK3 network/GTK capability observed; full finite
-session and duration FAIL at 30.144 / 60 seconds**. The first host refusal at
-29.825 s was a complete 12-byte control event (`0xe000`, id `0x13`, seq 0),
-not a measurement cap or HIF length fault. The pinned public source calls this
-a BSS beacon-timeout notification; its BSS/reason body was not retained.
-[One table row, result and predeclared successor](SESSION_0202_PLAN.md#gtk3-consumed-network-observed-control-event-stop-before-60-seconds),
-[one scalars file](results/gtk3-runtime-scalars.json).
+Latest completed result: **GTK4 capability observation pass; full finite session,
+duration and healthy cleanup fail**. Boot `c2efe494-648e-44ca-9bb1-519ffce4496d`
+reported owned BSS 0 / reason 6 at 29.811 s after data opening, with 293 admitted
+target beacons, beacon age 71 ms and checked-data age 287 ms. The preserved
+0x13 refusal stopped branch 6 (`-EPROTO`); data ended at 29.955 / 60 seconds.
+[One table row, result and correction plan](SESSION_0202_PLAN.md#gtk4-consumed-owned-timeout-with-recent-admitted-beacons),
+[one scalars file](results/gtk4-runtime-scalars.json).
 
-Boot `1fa923f3-aab1-43e1-83f9-f6d12c2aa422`: DHCP, three individual replies,
-fresh SSH exit 0 in 1.256 s while open, checked PTK/GTK 35/132, GTK ARP handoff
-53, withheld ARP 0. Initial neighbor absent then complete; no peer attribution
-or GTK-causation proof. Healthy stage 3 absent, local key disables `-71` with
-no removal credit. The strict finite/duration verdict stays failed.
+DHCP, three individual replies and fresh SSH exit 0 in 1.325 s passed before
+the stop. Checked PTK/GTK 35/114; GTK ARP handoffs 55; withheld ARP 0. Healthy
+stage 3 absent; local disables `-71` with no removal credit. All 71 seals and
+2,098 contiguous records verified; helper/device quiescence, A53 regression
+and one reviewed return passed. Changed-boot Gemian
+`4256d0ec-11e4-4e84-8202-6b2e78281876` independently confirmed. No build,
+installer, capture or session process or physical handoff remains pending.
 
-All 71 seals and 2,097 contiguous records verified, including retained client
-stderr and numeric neighbor/netstat state. Helper/device quiescence, A53
-regression and one reviewed return passed; changed-boot Gemian
-`34302162-2a50-400f-85d9-d7b92ef826c7` independently confirmed. No device,
-build or session process or physical handoff remains pending. GTK3 is consumed.
+Recent owned host admissions support a firmware/host monitor discrepancy;
+reason 6 is not decoded and completeness of the beacon stream is not proved.
+The count includes pre-data and may include duplicates; beacon intervals use TU.
+The latest owner guidance selects a narrowly conditional owned timeout handler
+and source-supported 0x16 connection indication with fresh TIM/DTIM, AID and
+interval, on the existing sequence/page-credit path before traffic. Callback,
+metadata and disconnect/abort ownership need review and actual-source tests
+before implementation/build. Other event families and late TX completions keep
+their current behavior. Full outcomes and pipelining are in the existing plan /
+roadmap. Do not repeat GTK4 unchanged.
 
-The predeclared 0208 timeout diagnostic and first GTK4 package/tooling passed
-local/Linux checks but were **not installed**. The latest review requires
-owned-beacon recency because idle checked-data age cannot distinguish loss.
-0209 passes local/Linux actual-source fixtures; the replacement Buildbox package
-at `8ac513a3` is validated. Its actual GTK4 bindings and five local tooling
-fixtures pass; Linux tooling and guarded deployment remain before physical
-admission. Do not install the first prepared GTK4 image. Full outcomes, late-
-completion fragility, 0x16 ordering and pipelining are recorded in the plan. No broad event ignore list is selected.
-Do not assume the timeout's reason or BSS. Keep CCMP 1024 checked / 4096 all-RX /
-2 MiB and the 60-second low-traffic protocol; every time, native, retirement, PID and crypto limit stays.
-No PID reuse, rekey, reconnect, -48 adjustment or speculative firmware RE.
-No sustained SSH or normal maintained-lifecycle acceptance is established.
+Keep 1024 checked / 4096 all-RX / 2 MiB, existing time/native/retirement/PID limits,
+no PID reuse, rekey, reconnect, -48 adjustment or speculative firmware RE.
+No normal maintained-lifecycle or ten-minute acceptance is established.
 
 GTK1's prior ERANGE is classified and its [0205 correction](../../patches/proposals/0205-wifi-mt6797-retain-the-validated-channel-grant-horizon.patch)
 is proved to permit the requested data budget in GTK2. GTK1 had both keys

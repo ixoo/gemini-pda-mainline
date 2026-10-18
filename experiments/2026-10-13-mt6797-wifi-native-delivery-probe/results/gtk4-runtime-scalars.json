@@ -1,0 +1,278 @@
+{
+  "run": "GTK4",
+  "status": "consumed once; DHCP, pings, SSH and checked GTK/ARP handoff observed; full finite session and 60-second duration FAIL on unsolicited control-event refusal",
+  "boot_id": "c2efe494-648e-44ca-9bb1-519ffce4496d",
+  "kernel_input": "8ac513a30e5a4e10a3d6847145656e4b058c7cf8",
+  "tooling_commit": "77760306",
+  "handoff_commit": null,
+  "candidate_full_partition_sha256": "f58aaf21b832980ec43c1178959713eff997513c56fdf10625ca552f430ac798",
+  "attempts": {
+    "phase_a_capture": 1,
+    "device_sessions": 1,
+    "wifi_ssh": 1,
+    "native_recovery_requests": 1,
+    "watcher_attempts": 2
+  },
+  "verdicts": {
+    "capability_observation": "checked GTK and ARP core handoff, DHCP, three replies and fresh authenticated SSH observed before fault",
+    "finite_session": "FAIL: control event refused and healthy cleanup absent",
+    "transport": "no named HIF length/read refusal; complete 12-byte control event reached host dispatch, which refused it",
+    "dhcp": "bound",
+    "pings": "three individual replies",
+    "ssh": "authenticated, exit 0 while data window open",
+    "cleanup": "FAIL: no healthy stage 3; local disable status -71, removal command not credited",
+    "duration": "FAIL: 29955 / 60000 ms"
+  },
+  "data_window": {
+    "firmware_reported_grant_ms": 65000,
+    "planned_ms": 60000,
+    "actual_ms": 29955,
+    "planned_window_reached": false,
+    "first_fault_after_open_ms": 29813.401,
+    "first_limit": "host control-event whitelist refusal, not observation capacity",
+    "checked_queued": 149,
+    "checked_cap": 1024,
+    "total_rx_cap": 4096,
+    "rx_byte_cap": 2097152,
+    "polls_at_fault": 1248,
+    "poll_cap": 4096,
+    "last_data_pid": 32,
+    "pid_reuse": false,
+    "tx_queued": 28,
+    "tx_done": 28,
+    "tx_failed": 0,
+    "terminal_sample_byte_count": null,
+    "disconnect_label_scope": "host cleanup after branch-6 refusal; no firmware link-down report established"
+  },
+  "network": {
+    "dhcp_exit": "0",
+    "dhcp_bound": 1,
+    "dhcp_prefix": "24",
+    "lease_written": 1,
+    "dropbear_digest_ok": 1,
+    "wifi_sshd_started": 1,
+    "wifi_sshd_ready": 1,
+    "ping_transmitted": 3,
+    "ping_received": 3,
+    "host_ack": true
+  },
+  "individual_pings": [
+    {
+      "sequence": 0,
+      "ttl": 64,
+      "time_ms": 99.248
+    },
+    {
+      "sequence": 1,
+      "ttl": 64,
+      "time_ms": 37.802
+    },
+    {
+      "sequence": 2,
+      "ttl": 64,
+      "time_ms": 37.563
+    }
+  ],
+  "ssh": {
+    "attempted": true,
+    "failure_stage": null,
+    "exit": 0,
+    "client_elapsed_ms": 1324.765083,
+    "stdout_bytes": 173,
+    "stderr_bytes": 0,
+    "driver_window_after_client": {
+      "boot_match": true,
+      "driver_data_window": "open",
+      "exit": 0,
+      "timeout": false
+    },
+    "neighbor_before": "absent",
+    "neighbor_after": "complete",
+    "route_snapshot_exit": 0,
+    "observed_client_call_elapsed_ms": 1314.0975
+  },
+  "gtk": {
+    "first_checked_queue_seen": true,
+    "first_checked_ethernet_bytes": 60,
+    "queued_ptk": 35,
+    "queued_gtk": 114,
+    "delivered_arp": 55,
+    "withheld_arp": 0,
+    "delivered_arp_scope": "driver-to-core handoff only; no stack acknowledgement, peer attribution or causal proof"
+  },
+  "driver_events": {
+    "grant": [
+      {
+        "sequence": 1991,
+        "time_us": 61250266,
+        "fields": [
+          "40",
+          "65000"
+        ]
+      }
+    ],
+    "data_start": [
+      {
+        "sequence": 2030,
+        "time_us": 61574961,
+        "fields": [
+          "60000",
+          "5000",
+          "1"
+        ]
+      }
+    ],
+    "native_state_transitions": [
+      {
+        "sequence": 2032,
+        "time_us": 61595420,
+        "fields": [
+          "1",
+          "1",
+          "0",
+          "0",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2034,
+        "time_us": 61619348,
+        "fields": [
+          "2",
+          "0",
+          "0",
+          "0",
+          "0"
+        ]
+      }
+    ],
+    "first_gtk_queue": [
+      {
+        "sequence": 2036,
+        "time_us": 61622062,
+        "fields": [
+          "1",
+          "60"
+        ]
+      }
+    ],
+    "control_refusal": [
+      {
+        "sequence": 2077,
+        "time_us": 91388362,
+        "fields": [
+          "-71",
+          "12",
+          "0xe000",
+          "0x13",
+          "0"
+        ]
+      }
+    ],
+    "fault": [
+      {
+        "sequence": 2082,
+        "time_us": 91401019,
+        "fields": [
+          "-71",
+          "0",
+          "0x801",
+          "0",
+          "0",
+          "6"
+        ]
+      }
+    ],
+    "gtk_counters": [
+      {
+        "sequence": 2083,
+        "time_us": 91402544,
+        "fields": [
+          "0",
+          "35",
+          "114",
+          "55"
+        ]
+      }
+    ],
+    "data_end": [
+      {
+        "sequence": 2093,
+        "time_us": 91530216,
+        "fields": [
+          "disconnect",
+          "29955",
+          "0",
+          "0",
+          "0",
+          "28",
+          "28",
+          "0",
+          "59"
+        ]
+      }
+    ],
+    "bss_timeout_observation": [
+      {
+        "sequence": 2076,
+        "time_us": 91386180,
+        "fields": [
+          "0",
+          "6",
+          "1",
+          "287",
+          "1",
+          "293",
+          "71"
+        ]
+      }
+    ]
+  },
+  "preservation": {
+    "sealed_entries_verified": 71,
+    "client_observation_files_sealed": 8,
+    "seal_sha256": "6fa34311c56eb97a8fcef4c2bd7a1950b7412d6a06bf3a86fd2a4b18a8f3a30c",
+    "log_sha256": "ebbad6995137775f380b0f1c902ca6c61c580b43fcdb7320a03ce837080b7c18",
+    "log_bytes": 167539,
+    "contiguous_log_records": 2098,
+    "complete_through_seal": true,
+    "one_cycle_export_complete": true,
+    "inherited_two_cycle_complete": false,
+    "helper_safe_group_quiescent": true,
+    "device_children_quiesced": true,
+    "regression_pass": true,
+    "recovery_confirmed": true,
+    "returned_gemian_boot": "4256d0ec-11e4-4e84-8202-6b2e78281876",
+    "independently_confirmed_gemian": true
+  },
+  "limits": [
+    "GTK/ARP handoff and SSH success do not prove peer attribution, GTK causation or firmware integrity enforcement",
+    "Failed finite-session classifier is retained unchanged; positive network observations do not turn it into a pass",
+    "No healthy cleanup or firmware key retirement established; no rekey, reuse or reconnect",
+    "No continuous SSH workload or 60-second or ten-minute sustained-operation acceptance",
+    "Reason 6 is recorded numerically; the pinned host header names only reason 8, so no detailed meaning for reason 6 is claimed",
+    "Recent admitted target beacons support a host/firmware monitor discrepancy; total count is not proof of complete or duplicate-free RF reception"
+  ],
+  "bss_timeout": {
+    "owned_bss": 0,
+    "reason": 6,
+    "reason_6_meaning": "not established by pinned host source",
+    "checked_rx_known": true,
+    "checked_rx_age_ms": 287,
+    "beacon_known": true,
+    "owned_beacon_admissions": 293,
+    "beacon_age_ms": 71,
+    "event_after_data_open_ms": 29811.219,
+    "clock_scope": "host queue admission, not RF timestamp; beacon count includes pre-data and may include duplicates",
+    "branch": "owned non-8 reason with recent owned beacon and checked-data admissions",
+    "comparison_with_gtk3_event_ms": 29824.588,
+    "fixed_timer_inference": "two offsets near 29.8 seconds support a repeated monitor window, without proving cause"
+  },
+  "capability_observation_pass": true,
+  "full_finite_session_pass": false,
+  "rx_observations": {
+    "phase_1_type2": 152,
+    "phase_1_type7": 367,
+    "scope": "aggregate classes, not an uninterrupted peer-specific stream"
+  }
+}
