@@ -85,6 +85,13 @@ and further calls. The list has not been linked to the shared host RX queue;
 it must not be labeled an RX flush or a key-incarnation fence by its shape or
 entry count. Successful traffic would not resolve that attribution either.
 
+A later check examined five fixed data references already present in these
+bodies, each capped at 256 bytes. The list-processing function's own diagnostic
+places it in a TX disconnect path; a receive-component reference belongs to a
+separate context-reset helper. These labels add context, not proof of every
+list's contents or a shared-RX fence. TX cleanup must not be substituted for
+queued-RX retirement. No new decoding, scan or device command was involved.
+
 The complete 19-instruction BSS helper reaches two indirect table targets,
 passing context-derived indices, the active byte and address pointers. Those
 target values remain unresolved, so behavior cannot be attributed from
