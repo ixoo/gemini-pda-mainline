@@ -1,31 +1,32 @@
 # Wi-Fi resume checkpoint — INCOMPLETE
 
-Latest completed device result: GTK1, boot
-`b1417555-b2f2-4d07-89cc-9608874f78a8`, is consumed once.
-[One row and source diagnosis](SESSION_0202_PLAN.md#gtk1-result-and-smallest-justified-correction),
-[one scalars file](results/gtk1-runtime-scalars.json). The validated firmware
-grant was 65,000 ms, but the driver clipped its stored resource horizon to the
-10-second setup deadline. Opening required 62,500 ms and found 9,466 ms:
-`-ERANGE`/branch 8 before any data window. No DHCP/ping/SSH/GTK result. Healthy
-stage 3 absent; no named HIF refusal. Do not repeat this unchanged candidate.
+Latest completed result: **GTK2 capability pass for the finite run; duration
+fail at 5.925 / 60 seconds**, from the unchanged 64 checked-frame cap.
+[One table row and interpretation](SESSION_0202_PLAN.md#gtk2-consumed-capability-pass-duration-fail),
+[one scalars file](results/gtk2-runtime-scalars.json). Verified boot
+`f77aa006-7757-40b3-960e-2a96ddc82804`; strict GTK queue event, DHCP, three pings,
+fresh SSH exit 0 in 1.410 s and healthy host stage 3. No named HIF refusal.
+No independent core GTK-delivery, firmware integrity or retirement claim.
 
-All 63 seal entries and 2,035 contiguous records verified, with helper/device
-quiescence, A53 regression and one reviewed return. Changed-boot Gemian
-`9ff760f3-c66a-4aaf-9b91-95a2b48bc26b` independently confirmed. No live process or
-physical handoff is pending. Regular builds/tests remain owner-authorized.
-The [predeclared successor](SESSION_0202_PLAN.md#gtk1-result-and-smallest-justified-correction)
-is implemented as [0205](../../patches/proposals/0205-wifi-mt6797-retain-the-validated-channel-grant-horizon.patch),
-with the late check unchanged and an early minimum-interval refusal before
-association/keys. Actual event-to-window and GTK callback fixtures pass locally and on Linux
-from clean input `7fe3d616`. The single corrected GTK2 build and real composition
-passed; [session bindings](SESSION_0202_PLAN.md#gtk2-corrected-build-and-session-preparation)
-are prepared with local fixtures passing. Linux session checks and installer
-review precede the next physical handoff; no GTK2 test has started. Preserve all other diagnostic limits and the separate 0202 comparison.
+All 71 sealed files and 2,115 contiguous records verified, including retained
+client stdout/stderr, neighbor/netstat state and post-client window check.
+Helper/device quiescence, A53 regression and one reviewed return passed.
+Changed-boot Gemian `cbab7eed-8b34-44de-a9a4-f95cc8fe9838` independently confirmed.
+No capture/session/build process or physical handoff remains pending. GTK2 is
+consumed; do not repeat unchanged.
 
-Prior D3 on unchanged C10 authenticated with an initially absent neighbor entry;
-B was correctly skipped. Earlier SSH failures remain approximately ten-second
-silence, with SYN-not-emitted versus SYN-unanswered unresolved. No further
-ARP-pair boot, -48 adjustment, rekey, reuse or reconnect is selected.
+The owner adopted the [next bounded preparation](SESSION_0202_PLAN.md#next-admitted-preparation-low-traffic-60-second-measurement):
+CCMP-only 1024 checked / 4096 all-RX / 2 MiB, PTK/GTK split and GTK-ARP handoff
+counters, one low-traffic 60-second observation. Keep every time, native,
+retirement, PID and crypto limit unchanged; no PID reuse or sustained-SSH claim.
+The earlier 1 MiB budget question is superseded by this explicit direction.
+Rekey, reuse, reconnect, -48 adjustment and speculative firmware RE stay excluded.
+
+GTK1's prior ERANGE is classified and its [0205 correction](../../patches/proposals/0205-wifi-mt6797-retain-the-validated-channel-grant-horizon.patch)
+is proved to permit the requested data budget in GTK2. GTK1 had both keys
+submitted/credited before refusal and lacked healthy cleanup; it did not test
+GTK/network/SSH. Earlier intermittent SSH silence remains unclassified. D3 and
+GTK2 both resolved an initially absent neighbor without proving how.
 
 The [reviewer reassessment](SESSION_0202_PLAN.md#reviewer-reassessment-before-further-implementation-or-any-build)
 corrects the all-`0xc200` premise: C11's 32 eligible groups required `0xc000`.

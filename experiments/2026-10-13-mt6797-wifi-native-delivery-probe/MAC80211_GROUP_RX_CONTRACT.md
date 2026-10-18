@@ -306,3 +306,16 @@ The single [corrected GTK2 build](SESSION_0202_PLAN.md#gtk2-corrected-build-and-
 and composition passed from `7fe3d616`. GTK/ARP, SSH and actual duration remain
 separate unmeasured runtime outcomes. Session binding validation and guarded
 installation precede owner physical selection; no unchanged GTK1 retry.
+
+GTK2's [guarded handoff](SESSION_0202_PLAN.md#gtk2-guarded-installation-and-handoff)
+is complete through installer exit 0, matching full readback, sealed receipt,
+clean shutdown and actual offline host preparation. The next step is owner
+physical selection and fresh live-image verification, not another build.
+
+GTK2 is now [consumed](SESSION_0202_PLAN.md#gtk2-consumed-capability-pass-duration-fail):
+strict GTK queue admission, DHCP/three pings/fresh SSH and healthy host cleanup
+passed during the 5.925-second finite window. Duration failed at the 64 checked-
+frame ceiling; no 60-second acceptance claim. The owner adopted the separately
+[bounded capacity and ARP-handoff preparation](SESSION_0202_PLAN.md#next-admitted-preparation-low-traffic-60-second-measurement).
+The pending physical-selection statements above are historical; the reviewed
+return to changed-boot Gemian is complete.

@@ -1,19 +1,19 @@
 # Design: MT6797 Wi-Fi native-crypto-delivery diagnostic (proposal 0181, default-off)
 
-Latest result: [GTK1](SESSION_0202_PLAN.md#gtk1-result-and-smallest-justified-correction)
-refused the data window with `-ERANGE`: firmware reported 65 seconds, but the
-host clipped the resource horizon to its 10-second setup deadline. DHCP, pings,
-SSH and GTK delivery were not reached. No named HIF refusal was observed;
-healthy stage 3 was absent. Preservation, quiescence, A53 regression and the
-reviewed return to independently confirmed changed-boot Gemian passed.
+Latest result: [GTK2](SESSION_0202_PLAN.md#gtk2-consumed-capability-pass-duration-fail)
+passed finite capability checks: strict GTK queue admission, DHCP, three pings,
+fresh authenticated SSH and healthy host cleanup. Duration failed at **5.925 /
+60 seconds**, from the unchanged 64 checked-frame ceiling. No named transport
+refusal; no independent core GTK-delivery or firmware-retirement proof.
+Preservation, quiescence, A53 regression and reviewed return to independently
+confirmed changed-boot Gemian passed. No unchanged retry.
 
-The next correction separates the validated grant horizon from the unchanged
-setup/transaction limits. No unchanged GTK1 retry. Prior D3 demonstrated that
-neighbor resolution can work, without identifying its mechanism. Earlier SSH
-silence remains unresolved. Standard sessions retain client stderr and numeric
-netstat/neighbor state; the 60-second window is still unproved. The owner resumed
-regular builds/tests. No -48 adjustment, rekey, reuse or reconnect; ordinary
-integrity/key retirement and full acceptance remain incomplete.
+The [next admitted preparation](SESSION_0202_PLAN.md#next-admitted-preparation-low-traffic-60-second-measurement)
+resizes CCMP-only count/byte budgets together and adds PTK/GTK and GTK-ARP handoff
+counters for a low-traffic sixty-second observation. Time, native, retirement
+and PID limits remain; no PID reuse, rekey, reconnect or -48 adjustment.
+Ten-minute traffic still requires persistent station/channel monitoring and
+completed crypto/key ownership, not another finite join-time increase.
 
 | Field | Value |
 | --- | --- |

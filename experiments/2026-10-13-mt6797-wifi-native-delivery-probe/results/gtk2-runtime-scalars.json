@@ -1,0 +1,291 @@
+{
+  "run": "GTK2",
+  "status": "consumed once; finite protected traffic and checked GTK queue observed; 60-second gate NOT PASSED because the unchanged 64 checked-frame cap ended the window",
+  "boot_id": "f77aa006-7757-40b3-960e-2a96ddc82804",
+  "kernel_input": "7fe3d616ad212d9d22b3ebe00fccaa7097a1de16",
+  "tooling_commit": "b6ff824b",
+  "candidate_full_partition_sha256": "f567d6666b106d1ecc2eaadc12022ab27306b210eabd274aa1c44c2985b95e6e",
+  "attempts": {
+    "phase_a_capture": 1,
+    "device_sessions": 1,
+    "wifi_ssh": 1,
+    "native_recovery_requests": 1,
+    "watcher_attempts": 3
+  },
+  "verdicts": {
+    "transport": "finite observed traffic passed; no named HIF refusal",
+    "dhcp": "bound",
+    "pings": "three individual replies",
+    "ssh": "authenticated; fresh boot/mode/listener bound; exit 0",
+    "gtk": "strict checked GTK queue observed; independent end-to-end group delivery and firmware enforcement unproved",
+    "cleanup": "healthy host stage 3; firmware key/queue retirement unproved",
+    "sustained_operation": "NOT PASSED: diagnostic checked-frame ceiling stopped the 60-second observation",
+    "capability": "PASS for this finite run: protected traffic, checked GTK queue, fresh SSH, healthy host cleanup; independent core group-delivery/enforcement unproved",
+    "duration": "FAIL: 5925 ms against 60000 ms; diagnostic checked-frame budget, not a named driver fault"
+  },
+  "data_window": {
+    "firmware_reported_grant_ms": 65000,
+    "planned_ms": 60000,
+    "actual_ms": 5925,
+    "planned_window_reached": false,
+    "observed_close_transition_after_open_ms": 5901.674,
+    "first_limit": "combined PTK+GTK checked-frame cap",
+    "checked_queued": 64,
+    "checked_cap": 64,
+    "total_rx": 198,
+    "total_rx_cap": 512,
+    "rx_bytes": 43974,
+    "rx_byte_cap": 1048576,
+    "native_ciphertext_queued": 0,
+    "wall_ms": 60000
+  },
+  "network": {
+    "dhcp_exit": "0",
+    "dhcp_bound": 1,
+    "dhcp_prefix": "24",
+    "lease_written": 1,
+    "dropbear_digest_ok": 1,
+    "wifi_sshd_started": 1,
+    "wifi_sshd_ready": 1,
+    "ping_transmitted": 3,
+    "ping_received": 3,
+    "host_ack": true
+  },
+  "individual_pings": [
+    {
+      "sequence": 0,
+      "ttl": 64,
+      "time_ms": 95.496
+    },
+    {
+      "sequence": 1,
+      "ttl": 64,
+      "time_ms": 57.967
+    },
+    {
+      "sequence": 2,
+      "ttl": 64,
+      "time_ms": 25.716
+    }
+  ],
+  "ssh": {
+    "attempted": true,
+    "failure_stage": null,
+    "exit": 0,
+    "client_elapsed_ms": 1409.556958,
+    "stdout_bytes": 173,
+    "stderr_bytes": 0,
+    "driver_window_after_client": {
+      "boot_match": true,
+      "driver_data_window": "open",
+      "exit": 0,
+      "timeout": false
+    },
+    "queries": [
+      {
+        "label": "route-before",
+        "exit": 0,
+        "timeout": false,
+        "category": "snapshot retained",
+        "elapsed_ms": 8.214292,
+        "offset_from_client_start_ms": -15.579875
+      },
+      {
+        "label": "arp-before",
+        "exit": 1,
+        "timeout": false,
+        "category": "absent",
+        "elapsed_ms": 6.305666,
+        "offset_from_client_start_ms": -6.687833
+      },
+      {
+        "label": "arp-after",
+        "exit": 0,
+        "timeout": false,
+        "category": "complete",
+        "elapsed_ms": 11.2715,
+        "offset_from_client_start_ms": 1409.56825
+      }
+    ]
+  },
+  "gtk": {
+    "first_checked_queue_seen": true,
+    "first_checked_ethernet_bytes": 60,
+    "withheld_arp_counter": 0,
+    "withheld_arp_scope": "eligible ARP-class groups refused at the strict GTK gate inside the admitted window; no sender/target attribution",
+    "exact_gtk_frame_count": null
+  },
+  "driver_events": {
+    "grant": [
+      {
+        "sequence": 1991,
+        "time_us": 104058205,
+        "fields": [
+          "40",
+          "65000"
+        ]
+      }
+    ],
+    "data_start": [
+      {
+        "sequence": 2030,
+        "time_us": 104417635,
+        "fields": [
+          "60000",
+          "5000",
+          "1"
+        ]
+      }
+    ],
+    "native_state_transitions": [
+      {
+        "sequence": 2032,
+        "time_us": 104439349,
+        "fields": [
+          "1",
+          "1",
+          "0",
+          "0",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2035,
+        "time_us": 104463248,
+        "fields": [
+          "2",
+          "0",
+          "2",
+          "0",
+          "536"
+        ]
+      },
+      {
+        "sequence": 2077,
+        "time_us": 110319309,
+        "fields": [
+          "3",
+          "2",
+          "198",
+          "0",
+          "43974"
+        ]
+      },
+      {
+        "sequence": 2082,
+        "time_us": 110348321,
+        "fields": [
+          "4",
+          "0",
+          "198",
+          "0",
+          "43974"
+        ]
+      }
+    ],
+    "first_gtk_queue": [
+      {
+        "sequence": 2043,
+        "time_us": 105370242,
+        "fields": [
+          "1",
+          "60"
+        ]
+      }
+    ],
+    "data_end": [
+      {
+        "sequence": 2079,
+        "time_us": 110343171,
+        "fields": [
+          "native-diag",
+          "5925",
+          "0",
+          "0",
+          "0",
+          "28",
+          "28",
+          "0",
+          "59"
+        ]
+      }
+    ],
+    "cleanup": [
+      {
+        "sequence": 2102,
+        "time_us": 110513270,
+        "fields": [
+          "1"
+        ]
+      }
+    ],
+    "withheld_arp": [
+      {
+        "sequence": 2103,
+        "time_us": 110514698,
+        "fields": [
+          "0"
+        ]
+      }
+    ]
+  },
+  "named_fault_counts": {
+    "join_stopped": 0,
+    "hif_refused": 0,
+    "framing_hint": 0
+  },
+  "preservation": {
+    "sealed_entries_verified": 71,
+    "client_observation_files_sealed": 8,
+    "seal_sha256": "d8ae54b36598d3fb9e11c6e65d7296b54821476a7c05c331017887d4c680fce7",
+    "log_sha256": "eb9d9d9ac3d341367c0e4955a29712be50d2ccf839556caae25da5ae04c6cde5",
+    "log_bytes": 170117,
+    "contiguous_log_records": 2115,
+    "complete_through_seal": true,
+    "one_cycle_export_complete": true,
+    "inherited_two_cycle_complete": false,
+    "helper_safe_group_quiescent": true,
+    "device_children_quiesced": true,
+    "regression_pass": true,
+    "recovery_confirmed": true,
+    "returned_gemian_boot": "cbab7eed-8b34-44de-a9a4-f95cc8fe9838",
+    "independently_confirmed_gemian": true
+  },
+  "limits": [
+    "The finite compatibility exit 0 is not a 60-second or ten-minute acceptance pass",
+    "The GTK event proves checked queue admission, not independent core delivery or firmware integrity/replay enforcement",
+    "Combined checked count is 64; no per-key-class total was retained",
+    "Zero withheld ARP does not attribute laptop ARP or rule out other frame rejection; legacy RX class counters are bypassed by the checked path",
+    "Initially absent neighbor became complete; resolution mechanism and cause of earlier SSH silence remain unmeasured",
+    "No rekey, key reuse or reconnect; healthy host cleanup credits do not establish firmware key retirement"
+  ],
+  "rx_phase_counts": {
+    "enable_pending": {
+      "t2": 1,
+      "t7": 1,
+      "blocked": 1
+    },
+    "active": {
+      "t2": 64,
+      "t7": 132,
+      "blocked": 0
+    },
+    "retire": {
+      "t2": 0,
+      "t7": 0,
+      "blocked": 0
+    },
+    "closed": {
+      "t2": 0,
+      "t7": 10,
+      "blocked": 0
+    }
+  },
+  "next_budget_basis": {
+    "actual_sampled_rx_bytes": 43974,
+    "flat_60s_byte_estimate": 445306.32911392406,
+    "traffic_rates_are_estimates": true,
+    "type7_not_individually_identified_as_beacons": true,
+    "tx_count_is_a_startup_burst_not_a_measured_steady_rate": true
+  }
+}

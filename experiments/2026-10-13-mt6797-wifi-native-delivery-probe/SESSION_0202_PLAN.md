@@ -225,6 +225,7 @@ remain in the existing private evidence seal, not public scalars.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | C10 D3 / A only | `ccce2504-bdbf-470b-ba7c-267b61f102d0` | finite pass | bound | 3/3 | A authenticated, exit 0; B skipped | host stage 3 clean | 6.205 / 6.178 s | [one scalars file](results/ssh-d3-runtime-scalars.json) |
 | GTK1 | `b1417555-b2f2-4d07-89cc-9608874f78a8` | no named HIF refusal; host `-ERANGE` | not reached | not reached | not attempted; before ready marker | healthy stage 3 absent | 0 / 60 s; window unopened | [one scalars file](results/gtk1-runtime-scalars.json) |
+| GTK2 | `f77aa006-7757-40b3-960e-2a96ddc82804` | finite capability pass | bound | 3/3 | authenticated, exit 0, 1.410 s | host stage 3 clean | 5.925 / 60 s; checked-frame cap 64 | [one scalars file](results/gtk2-runtime-scalars.json) |
 
 D3's SSH process lasted 1.410 seconds with empty stderr. Its numeric ARP read
 was absent before A and complete afterward. The route read returned exit 71,
@@ -391,8 +392,8 @@ equals its [runtime binding](runtime-ccmp-gtk2/results/candidate.json). All priv
 members have verified size/hash/mode. ELF notes, System.map and packaged Image
 agree, and the read-only live fingerprint differs from GTK1. Fresh session and
 installer adapters require this receipt, the corrected horizon flag and the
-62,500 ms early minimum. Their five local fixtures pass; clean-input Linux
-session validation and actual installer review precede the physical handoff.
+62,500 ms early minimum. Their five local fixtures and all five Linux fixtures pass from clean pushed
+tooling `b6ff824b`. The reviewed installer and completed handoff gates follow.
 
 The next admitted GTK2 lifetime separately measures checked GTK queue exposure
 and withheld-ARP count, DHCP/individual pings, fresh SSH stage/output, actual
@@ -400,3 +401,87 @@ window and cleanup. A sufficient grant plus the host correction permits the
 window; it is not itself a protected-data result. Do not count a cap-ended
 short run as a 60-second pass. Retain permanent client stderr and the existing
 quiescence/preservation/regression/recovery gates. No GTK2 test has started.
+
+## GTK2 guarded installation and handoff
+
+The derived installer is 603 lines, SHA-256
+`5d8e76d5f666b7495b57aabf671e7c910d723d977ad74c18c6e1e935160a6c82`.
+It matches GTK1 under candidate/tool/receipt/predecessor/boot identity changes
+only; Bash syntax and ShellCheck pass. The boot2 guard remains byte-identical.
+
+One execution completed with exit 0 from freshly verified Gemian boot
+`9ff760f3-c66a-4aaf-9b91-95a2b48bc26b`. Both live GPT/root/unmounted/inactive
+checks passed, with the exact GTK1 predecessor, stable power and correct size.
+Write/sync/flush and full 16 MiB readback matched GTK2; receipt validation and
+clean shutdown passed. The final summary seal and exact mode-0600 runtime copy
+were independently verified. No other partition write or automatic reboot.
+
+Complete actual offline session preparation passed with Wi-Fi client keys/boot
+environment unset. The new session contains only the sealed deployment summary;
+capture, execution claim and client remain absent. Owner physical boot2
+selection with USB connected to the custodian laptop is next. Afterward require
+a fresh boot and the exact 84-byte GTK2 notes digest before the one capture and
+admitted lifetime. GTK2 has no runtime result yet. All prior failed artifacts
+remain consumed; no unchanged GTK1 retry is selected.
+
+## GTK2 consumed: capability pass, duration fail
+
+GTK2 ran once on verified boot `f77aa006-7757-40b3-960e-2a96ddc82804`.
+Capability **PASS for this finite run**: a strictly checked GTK frame was queued,
+DHCP bound, three individual ICMP replies arrived, and fresh boot/mode/listener-
+bound SSH authenticated in 1.410 seconds with exit 0 and empty retained stderr.
+The post-client USB snapshot still showed an open driver window. Host cleanup
+stage 3 completed; group-removal credit and local disable status 0/no_reuse were
+observed. These are not firmware key-retirement or independent core GTK-delivery
+proofs. `withheld_arp=0` describes the eligible rejected class, not ARP arrival.
+
+Duration **FAIL**: the existing combined checked-frame cap reached 64. The close
+transition was observed at +5.902 seconds, and the data window ended at 5.925
+seconds against its full 60,000 ms budget. The 65,000 ms grant and full-budget
+opening demonstrate the grant-horizon correction, but not sustained operation.
+There was no named HIF refusal or join fault. No unchanged retry is selected.
+
+ACTIVE classes were `t2=64`, `t7=132`, with native-gate `blocked=0`.
+ENABLE_PENDING had one blocked frame; do not claim every phase had zero blocks.
+The total sample was 198 RX records and 43,974 logical bytes; CLOSED additionally
+reported ten type-7 records. Type-7 counts are not independently identified
+beacons here. Flat extrapolation gives roughly 2,000 RX records, 650 checked
+frames and 445 kB over 60 seconds, with startup/phase boundaries and traffic
+variation limiting those estimates. TX 28 was a startup burst, not a measured
+steady rate; its non-reusing PID ceiling remains a separate possible stop.
+
+All 71 pre-recovery entries, including all eight client observation files, and
+2,115 contiguous log records independently verified. The actual one-cycle
+export was complete; the inherited two-cycle completeness flag correctly stayed
+false. Helper/device quiescence, A53 regression and one reviewed return passed.
+Changed-boot Gemian `cbab7eed-8b34-44de-a9a4-f95cc8fe9838` was independently
+confirmed. The finite compatibility process returned 0; it is not a 60-second
+acceptance result. Initial neighbor absence followed by completion does not
+prove a resolution mechanism or explain earlier SSH silence; D3 passed without
+GTK delivery.
+
+## Next admitted preparation: low-traffic 60-second measurement
+
+The owner directed review/action on the researcher's revised budget, superseding
+the earlier unchanged-cap constraint for this bounded successor. Select
+**1,024 checked CCMP frames, 4,096 total RX records and 2 MiB RX bytes** only for
+the approved CCMP 60-second mode. Keep native-ciphertext limits, the 65-second
+request, 60-second wall, 10-second pre-data join fence, 2.5-second grant tail,
+5-second teardown, 100 ms command, 750 ms frame/drain, retirement, poll and PID
+limits unchanged. No PID reuse. The proposed protocol is explicitly low traffic:
+one DHCP, three pings, one fresh SSH authentication, then observation to the
+planned end. It does not demonstrate sustained SSH traffic for sixty seconds.
+Any different first limit or fault is a separate result, not an automatic retry.
+
+Add checked PTK/GTK totals to the terminal counters and count GTK ARP at the
+actual driver-to-core handoff after readiness checks, without payload/address
+logging, PN changes or new HIF acquisitions. Label the counter's scope: a core
+handoff call is not independently observed stack delivery. Reject stale queued
+frames without counting them as handed off. Initial ARP absence, a positive
+GTK-ARP handoff count and SSH authentication in the same run support the group-
+ARP hypothesis but do not establish sender/target attribution or sole causation.
+The hypothesis is that these budgets permit a full low-traffic observation;
+actual counters, duration, SSH stage and cleanup decide the result. Strict PN,
+key ownership, no rekey/reuse/reconnect and no -48 adjustment remain mandatory.
+Persistent station/channel ownership and connection monitoring, not further
+finite-window duration increases, remain necessary for ten-minute acceptance.
