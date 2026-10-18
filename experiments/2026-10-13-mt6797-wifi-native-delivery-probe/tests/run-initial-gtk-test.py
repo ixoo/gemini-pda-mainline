@@ -15,7 +15,9 @@ p.add_argument('parent', type=Path, help='C10 plus independent 0203')
 p.add_argument('child', type=Path, help='initial-GTK source')
 p.add_argument('--gtk3', action='store_true', help='also validate the admitted capacity/handoff overlays')
 p.add_argument('--timeout-observer', action='store_true', help='also validate the refused-timeout observer')
+p.add_argument('--beacon-observer', action='store_true', help='also validate owned-beacon recency')
 a = p.parse_args()
+a.timeout_observer = a.timeout_observer or a.beacon_observer
 a.gtk3 = a.gtk3 or a.timeout_observer
 fixtures = Path(__file__).resolve().parent
 # Pin the frozen fixtures whose narrow substitutions are used below.
@@ -40,10 +42,15 @@ for x in parent.iterdir():
 archive = fixtures.parents[2] / 'patches/proposals/0204-wifi-mt6797-gate-one-separately-seeded-initial-GTK.patch'
 parity_mac = None
 observer_parent_mac = None
+beacon_parent_mac = None
 with tempfile.TemporaryDirectory(prefix='gtk-reverse-') as directory:
     import shutil
     recovered = Path(directory)
     shutil.copytree(child, recovered / rel)
+    if a.beacon_observer:
+        patch = fixtures.parents[2] / 'patches/proposals/0209-wifi-mt6797-retain-owned-beacon-recency-at-refused-timeout.patch'
+        subprocess.run(['git', 'apply', '--reverse', str(patch)], cwd=recovered, check=True, timeout=10)
+        beacon_parent_mac = (recovered / rel / 'mac.c').read_text()
     if a.timeout_observer:
         patch = fixtures.parents[2] / 'patches/proposals/0208-wifi-mt6797-observe-refused-BSS-timeout-and-checked-RX-age.patch'
         subprocess.run(['git', 'apply', '--reverse', str(patch)], cwd=recovered, check=True, timeout=10)
@@ -127,6 +134,9 @@ with tempfile.TemporaryDirectory(prefix='initial-gtk-') as directory:
         names.append(('void', 'mt6797_ccmp_timeout_observe'))
         assert function(new, 'mt6797_mac_join_control_event') == function(
             observer_parent_mac, 'mt6797_mac_join_control_event'), 'control admission changed'
+    if a.beacon_observer:
+        assert function(new, 'mt6797_mac_join_work') == function(
+            beacon_parent_mac, 'mt6797_mac_join_work'), 'beacon dispatch/ownership changed'
     obs_start = new.index('struct mt6797_ccmp_observation {')
     obs_end = new.index('\n};', obs_start) + 3
     (tmp / 'actual-ccmp-monitor.inc').write_text(new[obs_start:obs_end] + '\n' + new[start:end] + '\n' + '\n'.join(
@@ -206,6 +216,9 @@ with tempfile.TemporaryDirectory(prefix='initial-gtk-') as directory:
     if a.timeout_observer:
         extra = (fixtures / 'timeout-observer.inc').read_text() + '\n' + extra
         extra = extra.replace('gtk_callback_tests();', 'gtk_callback_tests();\n timeout_observer_tests();')
+    if a.beacon_observer:
+        extra = (fixtures / 'beacon-observer.inc').read_text() + '\n' + extra
+        extra = extra.replace('timeout_observer_tests();', 'timeout_observer_tests();\n beacon_observer_tests();')
     (tmp / 'callbacks.c').write_text(callbacks + '\n' + extra)
     binary = tmp / 'callbacks'
     subprocess.run([*flags, '-pthread', '-DCONFIG_MT6797_CCMP_MASK_CONTROL',

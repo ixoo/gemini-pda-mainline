@@ -1,0 +1,73 @@
+From bfa21f93137e034c4c1ad474bc97763aee119aab Mon Sep 17 00:00:00 2001
+From: Codex Experiment <codex-experiment@example.invalid>
+Date: Sun, 18 Oct 2026 16:09:35 -0400
+Subject: [PATCH] wifi: mt6797: retain owned beacon recency at refused timeout
+
+Idle checked-data age cannot identify a missing beacon. Reuse the existing
+owned clear/keyed/native beacon admission count and stamp its successful
+queue path. Report known/count/age with the already acquired timeout body.
+The generic type-7 class includes non-beacon events and is not this clock.
+
+Keep event refusal, beacon parsers/delivery and every resource/time/key
+limit unchanged. No new wire access or informational-event ignore path.
+
+Internal experiment archive, synthetic non-certifying author identity;
+no DCO certification and not an upstream submission.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 18 +++++++++++++-----
+ 1 file changed, 13 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 75bacfb..a5fbb71 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -219,7 +219,7 @@ struct mt6797_mac {
+ 	bool ccmp_gtk_attempted, ccmp_gtk_seen;
+ 	unsigned int ccmp_gtk_arp_withheld;
+ 	unsigned int ccmp_gtk_queued, ccmp_gtk_arp_handoff;
+-	u64 ccmp_last_checked_rx;
++	u64 ccmp_last_checked_rx, ccmp_last_beacon_rx;
+ #endif
+ 	struct ieee80211_sta __rcu *ccmp_sta;
+ 	/* Cookies only: never dereferenced, withdrawn before DISABLE_KEY returns. */
+@@ -460,8 +460,8 @@ checked:
+  */
+ static void mt6797_ccmp_timeout_observe(const struct mt6797_mac *mac, size_t bytes)
+ {
+-	u64 now, age = 0;
+-	bool known;
++	u64 now, age = 0, beacon_age = 0;
++	bool known, beacon_known;
+ 
+ 	if (!ccmp_stable_epoch || !mt6797_join_event(mac->join_packet, bytes, 0x13, 4) ||
+ 	    mac->join_packet[5])
+@@ -470,9 +470,13 @@ static void mt6797_ccmp_timeout_observe(const struct mt6797_mac *mac, size_t byt
+ 	known = mac->ccmp_queued && mac->ccmp_last_checked_rx <= now;
+ 	if (known)
+ 		age = (now - mac->ccmp_last_checked_rx) / NSEC_PER_MSEC;
++	beacon_known = mac->join_beacons_delivered && mac->ccmp_last_beacon_rx <= now;
++	if (beacon_known)
++		beacon_age = (now - mac->ccmp_last_beacon_rx) / NSEC_PER_MSEC;
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+-		 "one-shot WLAN CCMP BSS timeout observation: bss=%u reason=%u checked_rx_known=%u checked_rx_age_ms=%llu\n",
+-		 mac->join_packet[8], mac->join_packet[9], (unsigned int)known, age);
++		 "one-shot WLAN CCMP BSS timeout observation: bss=%u reason=%u checked_rx_known=%u checked_rx_age_ms=%llu beacon_known=%u beacon_count=%u beacon_age_ms=%llu\n",
++		 mac->join_packet[8], mac->join_packet[9], (unsigned int)known, age,
++		 (unsigned int)beacon_known, mac->join_beacons_delivered, beacon_age);
+ }
+ #endif
+ 
+@@ -2163,6 +2167,10 @@ static int mt6797_mac_join_deliver_beacon(struct mt6797_mac *mac, size_t offset,
+ 	else
+ 		IEEE80211_SKB_RXCB(skb)->flag |= RX_FLAG_NO_SIGNAL_VAL;
+ 	mac->join_beacons_delivered++;
++#ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
++	if (ccmp_stable_epoch)
++		mac->ccmp_last_beacon_rx = ktime_get_ns();
++#endif
+ 	if (keyed)
+ 		mac->join_keyed_beacons++;
+ 	if (mac->join_beacons_delivered <= 4)
+-- 
+2.54.0 (Apple Git-157)
+

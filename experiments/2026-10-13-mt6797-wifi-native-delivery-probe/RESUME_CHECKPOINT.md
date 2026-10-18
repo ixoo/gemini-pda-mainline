@@ -20,14 +20,14 @@ regression and one reviewed return passed; changed-boot Gemian
 `34302162-2a50-400f-85d9-d7b92ef826c7` independently confirmed. No device,
 build or session process or physical handoff remains pending. GTK3 is consumed.
 
-The predeclared scalar-only 0x13 diagnostic is implemented as 0208, with one
-checked-RX clock and existing-acquisition BSS/reason observation, preserving
-refusal. Local and clean-input Linux actual-source fixtures pass; the standard
-Buildbox package at `aabc1cc3` is validated. Actual GTK4 bindings and five local
-host fixtures pass; Linux tooling checks and guarded deployment remain before
-physical admission. The latest researcher follow-up is assessed in the plan:
-0x16 needs fresh post-association DTIM/ownership, and no broad informational
-ignore list is selected. Do not ignore the notification or assume its
+The predeclared 0208 timeout diagnostic and first GTK4 package/tooling passed
+local/Linux checks but were **not installed**. The latest review requires
+owned-beacon recency because idle checked-data age cannot distinguish loss.
+0209 is implemented with local actual-source fixtures passing; clean-input
+Linux validation and a replacement build remain next. Do not install the first
+prepared GTK4 image. Full outcomes, late-completion fragility, 0x16 ordering and
+pipelining are recorded in the plan. No broad event ignore list is selected.
+Do not assume the timeout's
 reason or BSS. Keep CCMP 1024 checked / 4096 all-RX / 2 MiB and the 60-second
 low-traffic protocol; every time, native, retirement, PID and crypto limit stays.
 No PID reuse, rekey, reconnect, -48 adjustment or speculative firmware RE.

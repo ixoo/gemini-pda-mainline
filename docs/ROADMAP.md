@@ -184,6 +184,11 @@ then unbind and restart without a fault. Usable means WPA2 association, DHCP,
 ping and a ten-minute SSH session on a clean profile. Then one CONSYS/WMT
 owner, one WLAN driver and one profile; retired diagnostics leave the series.
 
+After the low-traffic gate, replace the single in-flight TX bottleneck with
+bounded pipelining and exact completion ownership. The current frame waits for
+one completion round trip before the next; throughput and rekey timing need
+that work, but it is not a prerequisite for the 60-second ARP/SSH diagnostic.
+
 ## Rules of the road
 
 - One question per boot is not the default. A candidate carries a

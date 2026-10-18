@@ -709,3 +709,54 @@ addition is observation; neither 0x16 nor event-family tolerance is bundled.
 If no timeout recurs and the complete window/cleanup pass, report that run's
 success and the untriggered diagnostic, without claiming the original timeout
 was fixed. An event with missing/malformed observation remains unclassified.
+
+### GTK4 gap closed before installation: owned-beacon recency
+
+The first GTK4 package/tooling passed validation but was not installed or run.
+The new review correctly identifies that idle checked-data age alone cannot
+distinguish a healthy quiet link from loss. Before physical admission, extend
+the same observation with the existing owned-beacon admission count and one
+last-beacon queue timestamp. Stamp only the existing successful beacon-delivery
+helper, reached through the already validated clear/keyed/native target-beacon
+paths. It checks the AP/channel upstream; no new decoder, delivery rule or wire
+access is introduced. A generic type-7 timestamp would be misleading because
+control events, probe responses or other APs could refresh it. Counts include
+post-association beacons before data opening; record that scope. Age is a host
+admission clock, not proof of firmware beacon recognition.
+
+Predeclare every outcome, with the timeout event offset measured from the data-
+start kmsg timestamp (GTK3 first refusal 29.825 s; later end 30.144 s):
+
+| Outcome | Interpretation and next decision |
+| --- | --- |
+| Owned BSS, reason 8, recent admitted target beacons | Firmware no-TX-done report alongside a working host beacon path; investigate completion/idle and monitor contracts, without asserting a proven retirement defect. |
+| Owned BSS, reason 8, no recent admitted target beacons | Both watchdog report and host beacon-observation gap; distinguish RF loss from host filtering/format or channel ownership before a fix. |
+| Another reason code, recent or absent admitted target beacons | Record both dimensions; recent owned admissions support a firmware/host monitor discrepancy, absence alone does not prove RF loss. |
+| Foreign BSS, malformed shape/sequence, or absent observation | Preserve refusal; ownership or evidence remains unclassified. No invented reason/zero-age freshness. |
+| Event does not recur, full 60-second window and healthy cleanup pass | Pass for this low-traffic run; diagnostic untriggered, original timeout not established as fixed. |
+| Event does not recur but another limit/fault ends the run | Separate first-failure result; no automatic retry or nominal-duration pass. |
+
+The known 0x0f fragility is separate: the current worker refuses a TX completion
+without the exact in-flight PID. Future handling must distinguish a completion
+owed by the current lifetime from stale/unowned notifications before allowing
+discard; the next diagnostic changes neither behavior nor PID reuse. No generic
+late-completion tolerance is bundled. Sequence/generation ambiguity remains part
+of reusable lifecycle ownership. Single-inflight TX pipelining is a roadmap item,
+not a gate for this low-traffic run. A future 0x16 uses the existing sequence and
+page-credit discipline at the owned post-association beacon/connection indication,
+before traffic, with disconnect/abort ownership; never inject it at data opening.
+
+[0209](../../patches/proposals/0209-wifi-mt6797-retain-owned-beacon-recency-at-refused-timeout.patch)
+implements the added clock and includes `beacon_known`, `beacon_count` and
+`beacon_age_ms` in the timeout observation. It reuses `join_beacons_delivered`
+(the existing queue-admission count, despite that legacy name) rather than
+adding another counter. The complete join-worker dispatch remains byte-identical;
+only the existing successful beacon queue helper gains a timestamp. Actual-source
+ASan/UBSan fixtures pass for clear/keyed queue clocks, allocation refusal,
+idle checked-data versus recent beacons, zero/future clocks, old/recent ages and
+two-second +/-1 ns rounding, with unchanged crypto/gates/withdrawal/option-off
+parity. The first fixture extraction duplicated an already included helper;
+that fixture-only duplication was removed before the passing run. Checkpatch
+has only the intentional missing DCO, zero warnings/checks. Clean-input Linux
+checks and a replacement package remain before GTK4 physical admission. The
+first prepared GTK4 image must not be installed for this revised diagnostic.
