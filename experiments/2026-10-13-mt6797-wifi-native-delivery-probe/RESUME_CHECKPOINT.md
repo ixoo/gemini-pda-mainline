@@ -15,14 +15,17 @@ No process, physical handoff or additional C10 boot is pending.
 The [reviewer reassessment](SESSION_0202_PLAN.md#reviewer-reassessment-before-further-implementation-or-any-build)
 corrects the all-`0xc200` premise: C11's 32 eligible groups required `0xc000`.
 Expanded 2,718 actual-source cases and eleven paired-helper cases pass locally
-and on Linux from clean pushed input `f45b7645`. The owner adopted group-first preparation. The independent 60-second window
-and permanent standard client stderr/netstat retention passed locally and on Linux from clean pushed input `5b92d39a`.
+and on Linux from clean pushed input `f45b7645`. The owner adopted group-first
+preparation. The independent 60-second window and permanent standard client
+stderr/netstat retention passed locally and on Linux at `5b92d39a`.
 The strict initial-GTK context/checker is implemented under the
 [predeclared source contract](MAC80211_GROUP_RX_CONTRACT.md#predeclared-initial-gtk-preparation).
-Its actual-source fixtures pass locally; current GTK/Linux validation is next.
+Its actual-source fixtures pass locally and on Linux from clean pushed input
+`4bde0dbf`, including canonical overlay compatibility and seven standard-client
+cases. See the source contract for scope and deliberate checkpatch exclusions.
 No hardware GTK acceptance or SSH-cause proof is claimed. Preserve strict
 PN/integrity/ownership requirements.
-0202/0203 remain unbuilt under the owner's hold; the 65-second request /
+0202/0203/0204 remain unbuilt under the owner's hold; the 65-second request /
 60-second wall exception is approved for preparation only. Keep one scalars
 file and one table row per future run; no per-run result documents. No -48
 adjustment, longer transaction deadlines, rekey, reuse or reconnect.

@@ -286,5 +286,5 @@ namespace, early data-window closure and an unknown post-client probe. The
 standard path takes one bounded read-only USB snapshot after the client; it
 records open/ended/closed-or-fault/unknown without changing the client verdict
 or ACK. This checks the driver admission state, not continued AP association.
-The original five cases passed on Linux at `5b92d39a`; current seven-case Linux
-validation is pending clean pushed inputs.
+All seven cases pass on Linux from clean pushed input `4bde0dbf`; the
+independent window checks previously passed there at `5b92d39a`.

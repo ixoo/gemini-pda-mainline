@@ -38,8 +38,9 @@ PN value, authenticates no frame and still withholds group delivery.
 The positive availability result justified reviewing a separately seeded
 GTK context alongside the unchanged initial PTK context, with unambiguous packet
 class/key attribution, mutation only after full validation and allocation, and
-withdrawal before key/station pointers can be freed. The original core review alone did not select acceptance code; the subsequent
-owner-directed implementation is described below.
+withdrawal before key/station pointers can be freed. The original core review
+alone did not select acceptance code; the subsequent owner-directed
+implementation is described below.
 Missing required metadata must continue to reject. Firmware integrity attribution,
 rekey/deletion and queued-frame retirement remain obligations before key reuse;
 the [lifecycle barriers](../2026-10-07-mt6797-wifi-phase-b-join/REUSABLE_LIFECYCLE_DESIGN.md)
@@ -159,7 +160,17 @@ checker cases and actual callback cases for distinct GTK/PTK seeds and PNs,
 authorization, allocation/caps, missing metadata, PN-free ARP classification,
 stale queued frames, submission/credit/withdrawal failures and reinstall refusal.
 The callback control-call stub does not simulate the HIF wire or firmware.
-Linux validation of this GTK revision is pending clean pushed inputs.
+Linux validation passes from clean pushed input
+`4bde0dbfa5e81bfc9a78602a316a5937f155b3e4`, both on the selected C10/window
+parent and in canonical order after the separate C11/0202/window patches.
+All seven standard-client cases also pass there. GCC initially rejected a
+compressed host-fixture stub for misleading indentation; formatting that stub
+fixed it without a driver change. The Linux logs are retained privately by the
+custodian under the input revision. Strict checkpatch exits 1: the sole error
+is the deliberately absent DCO sign-off; its sole warning asks whether the new
+internal header needs a MAINTAINERS entry. No upstream submission is claimed,
+so neither a synthetic sign-off nor an unrelated maintainer change is added.
+Repository checks pass; kernel compilation and hardware validation have not run.
 
 C11 did not retain all reserved-word/source-address predicate values or PN
 values required by this stricter checker. Its eligible count therefore does not
