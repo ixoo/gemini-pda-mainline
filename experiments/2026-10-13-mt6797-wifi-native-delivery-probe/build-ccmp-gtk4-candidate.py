@@ -31,16 +31,16 @@ PARENT_RECEIPT_SHA = 'e487260cda36a706433d5eb5790032413df2db997ef3d4abb4f0f09b54
 PARENT_BOOT2_SHA256 = '5260715b453d4ad9e635845132f7d08530e0386ce6bce98f53a818b3ab87b815'
 PARENT_RELEASE = b'7.1.3-gemini-a53-wifi-phase-b-compile'
 
-COMMIT = 'aabc1cc3bdbe16b4049f93038f33a13e97a9f851'
-PACKAGE = '4fc69aa055b443b5200d9011cc6687cce6ef27ee4822aa8e590bd42e81c5be02'
-IMAGE_SHA256 = 'fab29715e417a5788012f9ccb5757a3ff31f1ac4a2df97a4aded6d76f2ada4e4'
+COMMIT = '8ac513a30e5a4e10a3d6847145656e4b058c7cf8'
+PACKAGE = '528fdc5eb220a32c7d7803abe6ceb6ca4f820bc7404114a811cfe1e13ce05bee'
+IMAGE_SHA256 = '4477ed572b215db4841396b968f0b559ef9eb7826a75668a00dad85b1129e303'
 CONFIG_SHA256 = 'ff1f087376b3a1a2afb38e5325e799926f58db67b46efac1e1ebb6214fea9bd1'
-PATCHSET_SHA256 = 'eaed7daf0ff3cc9dba0cf172a06470e214061511e85f64a769e7472aab769085'
+PATCHSET_SHA256 = '82e53212135701073d3e41550a1065dba769e80f30be0dd55aa15fefdfb556e9'
 PROFILE = 'mt6797-a53-wifi-ccmp-initial-gtk'
 RELEASE = '7.1.3-gemini-a53-wifi-ccmp-stable-monitor'
-SOURCE_COMMIT = '2f9eb1a21120a8cb9d8e99f5f2eb5cd2c88f59cd'
-PATCH_SHA256 = '08ff0b17fc4ed2ae19a6c15c9a19d2caf89a4efede81193702305b673e1242f6'
-SERIES_SHA256 = 'ab281a96c054e98e3106610a4b279951e1400a22aa1381144d2b3372cf9799ba'
+SOURCE_COMMIT = 'bfa21f93137e034c4c1ad474bc97763aee119aab'
+PATCH_SHA256 = '8efb9b2a2d13aa9818e82242afc399a39291223e85cb82923d00b8860ab5fb2e'
+SERIES_SHA256 = 'd1e7573b83e710c91847daec43540502defc9c44a72d503254acfa71dc373507'
 PARTITION_BYTES = 16777216
 BOOT_NAME = 'gemini-obs-P'
 BOOT_CMDLINE = 'bootopt=64S3,32N2,64N2'
@@ -99,9 +99,9 @@ def main():
             build['config_sha256'] == CONFIG_SHA256,
             'build provenance changed')
     series = regular(REPO / 'patches/series-a53-wifi-ccmp-initial-gtk')
-    require(sha(series) == SERIES_SHA256 and len(series.splitlines()) == 701 and
+    require(sha(series) == SERIES_SHA256 and len(series.splitlines()) == 702 and
             sha(regular(REPO / 'patches/proposals/'
-                        '0208-wifi-mt6797-observe-refused-BSS-timeout-and-checked-RX-age.patch')) ==
+                        '0209-wifi-mt6797-retain-owned-beacon-recency-at-refused-timeout.patch')) ==
             PATCH_SHA256 and
             sha(regular(REPO / 'patches/proposals/0206-wifi-mt6797-bound-low-traffic-CCMP-observation-capacity.patch')) ==
             'e6645a1bbbba03bc9e32d236418b91987effd91b6bb7f5f436dd938e70dd5185' and
@@ -190,6 +190,8 @@ def main():
                   'rx_bytes_max': 2097152, 'pid_reuse': False,
                   'low_traffic_only': True, 'gtk_arp_handoff_counter': True,
                   'bss_timeout_observe': True,
+                  'owned_beacon_recency': True,
+                  'beacon_clock_scope': 'existing owned-beacon queue admission; includes pre-data',
                   'last_rx_clock_scope': 'strict PTK/GTK queue admission only',
                   'bootstrap': 'normal-dhcp-only', 'gtk_rx': True, 'key_reuse': False,
                   'secret_bearing': True, 'device_action': 'none', 'physical_admission': False}

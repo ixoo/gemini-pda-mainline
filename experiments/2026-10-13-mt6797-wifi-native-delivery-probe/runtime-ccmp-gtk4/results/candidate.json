@@ -1,28 +1,28 @@
 {
   "status": "offline-gated-ccmp-initial-gtk-candidate-validated",
-  "kernel_build_commit": "aabc1cc3bdbe16b4049f93038f33a13e97a9f851",
+  "kernel_build_commit": "8ac513a30e5a4e10a3d6847145656e4b058c7cf8",
   "kernel_release": "7.1.3-gemini-a53-wifi-ccmp-stable-monitor",
-  "kernel_package_sha256": "4fc69aa055b443b5200d9011cc6687cce6ef27ee4822aa8e590bd42e81c5be02",
-  "integration_source_commit": "2f9eb1a21120a8cb9d8e99f5f2eb5cd2c88f59cd",
-  "integration_patch_sha256": "08ff0b17fc4ed2ae19a6c15c9a19d2caf89a4efede81193702305b673e1242f6",
+  "kernel_package_sha256": "528fdc5eb220a32c7d7803abe6ceb6ca4f820bc7404114a811cfe1e13ce05bee",
+  "integration_source_commit": "bfa21f93137e034c4c1ad474bc97763aee119aab",
+  "integration_patch_sha256": "8efb9b2a2d13aa9818e82242afc399a39291223e85cb82923d00b8860ab5fb2e",
   "kernel_profile": "mt6797-a53-wifi-ccmp-initial-gtk",
   "parent_candidate": "candidate-32",
   "parent_boot2_sha256": "5260715b453d4ad9e635845132f7d08530e0386ce6bce98f53a818b3ab87b815",
   "files": {
     "Image.gz": {
-      "sha256": "fab29715e417a5788012f9ccb5757a3ff31f1ac4a2df97a4aded6d76f2ada4e4",
-      "bytes": 6659143
+      "sha256": "4477ed572b215db4841396b968f0b559ef9eb7826a75668a00dad85b1129e303",
+      "bytes": 6659185
     },
     "board.dtb": {
       "sha256": "25ab60f45686138c46200e858206756a16eef5ee33b26b2bd2ac13c7179d7717",
       "bytes": 28671
     },
     "boot.img": {
-      "sha256": "21ce44fce5039e1a5d6a141e0091fccb1961eaab58c971f1eb1ca20b1b917697",
+      "sha256": "6d6287d0a5869262abcd15d71aeae302bdfc0c444359f08134e62441c4c9acc5",
       "bytes": 12675072
     },
     "boot2-padded.img": {
-      "sha256": "dd296d5fefdc5c93df2d589f13aa2fece5f9ca535d87e2fab30fc9a2c319487f",
+      "sha256": "f58aaf21b832980ec43c1178959713eff997513c56fdf10625ca552f430ac798",
       "bytes": 16777216
     },
     "initramfs.img": {
@@ -52,6 +52,8 @@
   "low_traffic_only": true,
   "gtk_arp_handoff_counter": true,
   "bss_timeout_observe": true,
+  "owned_beacon_recency": true,
+  "beacon_clock_scope": "existing owned-beacon queue admission; includes pre-data",
   "last_rx_clock_scope": "strict PTK/GTK queue admission only",
   "bootstrap": "normal-dhcp-only",
   "gtk_rx": true,

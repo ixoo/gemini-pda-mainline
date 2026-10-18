@@ -10,7 +10,7 @@ fixture = fixture.replace('ccmp2', 'ccmp-gtk4').replace('CCMP2', 'GTK4').replace
     'mt6797-wifi-ccmp-stable-monitor-deployment-2',
     'mt6797-wifi-ccmp-stable-monitor-deployment-gtk4').replace(
     'ba8078a0be1673a81a8159b5166769aeb226785eb0ee29ba682c3db3e50dc93d',
-    '74fb9d94e4202e2030e3659ca717487af0de17fb659493f595567ff4fe7aad89').replace(
+    'bd6d0dc4c0c17b89dc92d750bd3d9c7ecb802f0067e0e476b3859bf557535bd4').replace(
     '41881cb1345a9b1e3d39930c646a63d21499d5d7222039b8abfa7a9bf3b0be8e',
     'e2571776fe674cf1288f8a12f4362c7fba1d083cf93846edfb1a3850ed27eb09')
 fixture = fixture.replace('laptop-wifi-ssh-ccmp.py', 'laptop-wifi-ssh-retain.py')

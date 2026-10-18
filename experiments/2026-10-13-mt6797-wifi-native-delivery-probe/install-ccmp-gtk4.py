@@ -19,7 +19,7 @@ RELEASE = '7.1.3-gemini-a53-wifi-ccmp-stable-monitor'
 # Expected last-installed GTK3, freshly verified by ROOT/GPT guard before write.
 # Historical Gemian identity is not current identity or a deployment receipt.
 PREDECESSOR_SHA = 'e2571776fe674cf1288f8a12f4362c7fba1d083cf93846edfb1a3850ed27eb09'
-MANIFEST_SHA = '74fb9d94e4202e2030e3659ca717487af0de17fb659493f595567ff4fe7aad89'
+MANIFEST_SHA = 'bd6d0dc4c0c17b89dc92d750bd3d9c7ecb802f0067e0e476b3859bf557535bd4'
 ADAPTER.HERE = HERE
 ADAPTER.PREDECESSOR_SHA = PREDECESSOR_SHA
 ADAPTER.INSTALLER.HERE = HERE
@@ -77,12 +77,15 @@ def validate(candidate, previous):
                                expected.get('low_traffic_only') is True and
                                expected.get('gtk_arp_handoff_counter') is True and
                                expected.get('bss_timeout_observe') is True and
+                               expected.get('owned_beacon_recency') is True and
+                               expected.get('beacon_clock_scope') ==
+                               'existing owned-beacon queue admission; includes pre-data' and
                                expected.get('last_rx_clock_scope') ==
                                'strict PTK/GTK queue admission only' and
                                expected.get('kernel_profile') == 'mt6797-a53-wifi-ccmp-initial-gtk' and
                                expected.get('bootstrap') == 'normal-dhcp-only' and
                                expected.get('integration_source_commit') ==
-                               '2f9eb1a21120a8cb9d8e99f5f2eb5cd2c88f59cd' and
+                               'bfa21f93137e034c4c1ad474bc97763aee119aab' and
                               candidate.name == 'candidate-' +
                               expected['files']['boot.img']['sha256'],
                               'candidate scope or path changed')

@@ -691,20 +691,26 @@ unmodeled fatal stops with source-supported handlers as their contracts are
 established; do not conceal connection loss or resource changes. 0208 preserves
 the refusal while retaining the currently missing discriminating evidence.
 
-### GTK4 actual package and host preparation
+### GTK4 replacement package and host preparation
 
-The [actual GTK4 receipt](results/ccmp-stable-monitor-candidate-gtk4.json)
-and [compositor](build-ccmp-gtk4-candidate.py) bind the validated `aabc1cc3`
-package to 0208, source `2f9eb1a21120a8cb9d8e99f5f2eb5cd2c88f59cd` and the
-701-patch series. Config, DT and RAM root are identical to GTK3. ELF notes,
-Image bounds and the sysfs exporter agree on the fresh 84-byte identity,
-different from GTK3. The new namespaces retain the GTK3 duration-aware verdict,
-permanent client stderr, numeric neighbor/netstat and post-client window check.
-Five local composition/namespace/refusal/no-scan/retained-source fixtures pass;
-the generated 603-line installer has only identity substitutions from GTK3,
-with unchanged guard and passing Bash/ShellCheck. Linux tooling checks and
-guarded deployment remain before physical admission. The only behavioral
-addition is observation; neither 0x16 nor event-family tolerance is bundled.
+The first GTK4 package at `aabc1cc3` was validated but never installed. The
+[actual GTK4 receipt](results/ccmp-stable-monitor-candidate-gtk4.json) now binds
+the replacement Buildbox input `8ac513a3`, source
+`bfa21f93137e034c4c1ad474bc97763aee119aab`, 0208/0209 and the 702-patch series.
+Package inventory is
+`528fdc5eb220a32c7d7803abe6ceb6ca4f820bc7404114a811cfe1e13ce05bee`.
+Config, DT and RAM root are identical to GTK3. ELF notes, Image bounds and the
+sysfs exporter agree on the fresh 84-byte identity, different from GTK3. The
+new namespaces retain the GTK3 duration-aware verdict, permanent client stderr,
+numeric neighbor/netstat and post-client window check. Five local tooling
+fixtures pass; the replacement 603-line installer has identity substitutions
+only from GTK3, with unchanged guard and passing Bash/ShellCheck.
+
+The added beacon-clock source fixtures pass locally and on Linux from clean
+pushed `8ac513a3` for both initial-GTK and fixed-format overlay selections. The
+standard kernel build and package validation passed. Replacement tooling Linux
+checks and guarded deployment remain before physical admission. Only observation
+is added; neither 0x16 nor event-family/late-completion tolerance is bundled.
 
 If no timeout recurs and the complete window/cleanup pass, report that run's
 success and the untriggered diagnostic, without claiming the original timeout
@@ -758,5 +764,6 @@ two-second +/-1 ns rounding, with unchanged crypto/gates/withdrawal/option-off
 parity. The first fixture extraction duplicated an already included helper;
 that fixture-only duplication was removed before the passing run. Checkpatch
 has only the intentional missing DCO, zero warnings/checks. Clean-input Linux
-checks and a replacement package remain before GTK4 physical admission. The
-first prepared GTK4 image must not be installed for this revised diagnostic.
+source checks and the replacement package passed; tooling/deployment gates are
+recorded above. The first prepared GTK4 image must not be installed for this
+revised diagnostic.

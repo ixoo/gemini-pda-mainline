@@ -23,13 +23,13 @@ build or session process or physical handoff remains pending. GTK3 is consumed.
 The predeclared 0208 timeout diagnostic and first GTK4 package/tooling passed
 local/Linux checks but were **not installed**. The latest review requires
 owned-beacon recency because idle checked-data age cannot distinguish loss.
-0209 is implemented with local actual-source fixtures passing; clean-input
-Linux validation and a replacement build remain next. Do not install the first
-prepared GTK4 image. Full outcomes, late-completion fragility, 0x16 ordering and
-pipelining are recorded in the plan. No broad event ignore list is selected.
-Do not assume the timeout's
-reason or BSS. Keep CCMP 1024 checked / 4096 all-RX / 2 MiB and the 60-second
-low-traffic protocol; every time, native, retirement, PID and crypto limit stays.
+0209 passes local/Linux actual-source fixtures; the replacement Buildbox package
+at `8ac513a3` is validated. Its actual GTK4 bindings and five local tooling
+fixtures pass; Linux tooling and guarded deployment remain before physical
+admission. Do not install the first prepared GTK4 image. Full outcomes, late-
+completion fragility, 0x16 ordering and pipelining are recorded in the plan. No broad event ignore list is selected.
+Do not assume the timeout's reason or BSS. Keep CCMP 1024 checked / 4096 all-RX /
+2 MiB and the 60-second low-traffic protocol; every time, native, retirement, PID and crypto limit stays.
 No PID reuse, rekey, reconnect, -48 adjustment or speculative firmware RE.
 No sustained SSH or normal maintained-lifecycle acceptance is established.
 
