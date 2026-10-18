@@ -19,15 +19,14 @@ installer, capture or session process or physical handoff remains pending.
 Recent owned host admissions support a firmware/host monitor discrepancy;
 reason 6 is not decoded and completeness of the beacon stream is not proved.
 The count includes pre-data and may include duplicates; beacon intervals use TU.
-The latest owner guidance selects a narrowly conditional owned timeout handler
-on beacon freshness alone (checked-data age is diagnostic), plus source-
-supported 0x16 with fresh TIM/DTIM, AID and interval on the existing sequence /
-page-credit path at the first qualified post-association beacon, before keys
-and traffic. Archives 0210/0211/0212 now prepare that policy, credited PM
-connection/abort ownership and the standard connection-monitor flag. Local
-actual-source tests pass; Linux validation, build and deployment remain pending. Other event families and late TX completions keep
-their current behavior. Full outcomes and pipelining are in the existing plan /
-roadmap. Do not repeat GTK4 unchanged.
+The latest owner guidance selects an observation/count-only 0210 with the
+fatal event dispatcher unchanged, plus public-source-supported 0x16 from fresh
+post-association TIM/DTIM before keys, credited 0x17 before healthy removals,
+and the standard connection-monitor flag. The prior conditional-handler input
+`ef2e2fc3` compiled and packaged but is superseded for device admission. Revised
+source tests/build and actual deployment remain pending. Keep published device
+measurements; exclude firmware-RE explanations from public text. Full outcomes
+and limits are in the existing plan. Do not repeat GTK4 unchanged.
 
 Keep 1024 checked / 4096 all-RX / 2 MiB, existing time/native/retirement/PID limits,
 no PID reuse, rekey, reconnect, -48 adjustment or speculative firmware RE.

@@ -1,4 +1,4 @@
-From d477b66162736c38e3e0c7e5fa7addf8301cda40 Mon Sep 17 00:00:00 2001
+From 59197c158388f6113714f15652548b3a56480c9e Mon Sep 17 00:00:00 2001
 From: Codex Experiment <codex-experiment@example.invalid>
 Date: Sun, 18 Oct 2026 16:41:32 -0400
 Subject: [PATCH] wifi: mt6797: indicate PM connection from a fresh owned
@@ -194,7 +194,7 @@ index 2c3e446..f935147 100644
 +#endif
  #endif
 diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
-index 7d87b8e..9ae3600 100644
+index 49363ff..e714525 100644
 --- a/drivers/net/wireless/mediatek/mt6797/mac.c
 +++ b/drivers/net/wireless/mediatek/mt6797/mac.c
 @@ -57,10 +57,10 @@ MODULE_PARM_DESC(ccmp_stable_epoch,
@@ -215,7 +215,7 @@ index 7d87b8e..9ae3600 100644
 @@ -221,6 +221,11 @@ struct mt6797_mac {
  	unsigned int ccmp_gtk_queued, ccmp_gtk_arp_handoff;
  	u64 ccmp_last_checked_rx, ccmp_last_beacon_rx;
- 	unsigned int ccmp_timeout_continued;
+ 	unsigned int ccmp_timeout_observed;
 +	struct completion ccmp_dtim_done;
 +	u8 ccmp_dtim_period;
 +	int ccmp_dtim_status;
@@ -232,7 +232,7 @@ index 7d87b8e..9ae3600 100644
  #endif
  	mac->ccmp_decap = false;
  	mac->ccmp_closed = true;
-@@ -1689,6 +1695,32 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
+@@ -1673,6 +1679,32 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
  			 ledger.sequences, ledger.locked);
  		return -EPROTO;
  	}
@@ -265,7 +265,7 @@ index 7d87b8e..9ae3600 100644
  	if (mac->join_cleanup_stage == 3) {
  #ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
  		mt6797_ccmp_observe_terminal(mac);
-@@ -2174,6 +2206,36 @@ static int mt6797_mac_join_fail_stop(struct mt6797_mac *mac, int ret,
+@@ -2158,6 +2190,36 @@ static int mt6797_mac_join_fail_stop(struct mt6797_mac *mac, int ret,
   * the lifetime's packet budget bounds the class. Nothing is interpreted here;
   * no decoder changes.
   */
@@ -302,7 +302,7 @@ index 7d87b8e..9ae3600 100644
  static int mt6797_mac_join_deliver_beacon(struct mt6797_mac *mac, size_t offset,
  					  size_t bytes, unsigned int rcpi,
  					  bool keyed, struct sk_buff_head *received)
-@@ -2192,8 +2254,10 @@ static int mt6797_mac_join_deliver_beacon(struct mt6797_mac *mac, size_t offset,
+@@ -2176,8 +2238,10 @@ static int mt6797_mac_join_deliver_beacon(struct mt6797_mac *mac, size_t offset,
  		IEEE80211_SKB_RXCB(skb)->flag |= RX_FLAG_NO_SIGNAL_VAL;
  	mac->join_beacons_delivered++;
  #ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
@@ -314,7 +314,7 @@ index 7d87b8e..9ae3600 100644
  #endif
  	if (keyed)
  		mac->join_keyed_beacons++;
-@@ -3933,6 +3997,75 @@ out:
+@@ -3920,6 +3984,75 @@ out:
  
  #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
  /* Called with the MAC mutex held; every wait releases it for the poller. */
@@ -390,7 +390,7 @@ index 7d87b8e..9ae3600 100644
  static int mt6797_mac_join_associate(struct mt6797_mac *mac, unsigned int aid)
  {
  	u64 deadline, now;
-@@ -3946,6 +4079,14 @@ static int mt6797_mac_join_associate(struct mt6797_mac *mac, unsigned int aid)
+@@ -3933,6 +4066,14 @@ static int mt6797_mac_join_associate(struct mt6797_mac *mac, unsigned int aid)
  	ret = mt6797_mac_join_wait_management(mac);
  	if (ret)
  		return ret;
@@ -405,7 +405,7 @@ index 7d87b8e..9ae3600 100644
  	/* Pinned vendor AIS applies BSS/RLM before the associated STA record. */
  	mac->join_credit_deadline = min_t(u64, mac->join_deadline,
  					  ktime_get_ns() + 100 * NSEC_PER_MSEC);
-@@ -3992,6 +4133,10 @@ static int mt6797_mac_join_associate(struct mt6797_mac *mac, unsigned int aid)
+@@ -3979,6 +4120,10 @@ static int mt6797_mac_join_associate(struct mt6797_mac *mac, unsigned int aid)
  		return -ECANCELED;
  	if (ktime_get_ns() >= deadline || mac->join_sta_pending || !mac->join_sta_active)
  		return -ETIMEDOUT;
@@ -416,7 +416,7 @@ index 7d87b8e..9ae3600 100644
  	return 0;
  }
  
-@@ -4244,6 +4389,10 @@ static int mt6797_mac_set_key(struct ieee80211_hw *hw, enum set_key_cmd cmd,
+@@ -4231,6 +4376,10 @@ static int mt6797_mac_set_key(struct ieee80211_hw *hw, enum set_key_cmd cmd,
  	mutex_lock(&mac->mutex);
  #ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
  #ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
@@ -427,7 +427,7 @@ index 7d87b8e..9ae3600 100644
  	if (ccmp_stable_epoch && (mac->ccmp_closed ||
  				  (pairwise && mac->ccmp_ptk_attempted) ||
  				  (!pairwise && mac->ccmp_gtk_attempted))) {
-@@ -4892,6 +5041,9 @@ int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+@@ -4879,6 +5028,9 @@ int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
  	mutex_init(&mac->ccmp_receive_mutex);
  	init_completion(&mac->ccmp_key_done);
  	init_completion(&mac->ccmp_cleanup_done);

@@ -16,13 +16,13 @@ p.add_argument('child', type=Path, help='initial-GTK source')
 p.add_argument('--gtk3', action='store_true', help='also validate the admitted capacity/handoff overlays')
 p.add_argument('--timeout-observer', action='store_true', help='also validate the refused-timeout observer')
 p.add_argument('--beacon-observer', action='store_true', help='also validate owned-beacon recency')
-p.add_argument('--timeout-handler', action='store_true', help='validate the conditional owned timeout handler')
+p.add_argument('--timeout-counter', action='store_true', help='validate owned timeout counting without event tolerance')
 p.add_argument('--pm-connected', action='store_true', help='validate owned PM indication before keys')
 p.add_argument('--connection-monitor', action='store_true', help='also validate standard loss reporting')
 a = p.parse_args()
 a.pm_connected = a.pm_connected or a.connection_monitor
-a.timeout_handler = a.timeout_handler or a.pm_connected
-a.beacon_observer = a.beacon_observer or a.timeout_handler
+a.timeout_counter = a.timeout_counter or a.pm_connected
+a.beacon_observer = a.beacon_observer or a.timeout_counter
 a.timeout_observer = a.timeout_observer or a.beacon_observer
 a.gtk3 = a.gtk3 or a.timeout_observer
 fixtures = Path(__file__).resolve().parent
@@ -63,8 +63,8 @@ with tempfile.TemporaryDirectory(prefix='gtk-reverse-') as directory:
     if a.pm_connected:
         patch = fixtures.parents[2] / 'patches/proposals/0211-wifi-mt6797-indicate-PM-connection-from-owned-beacon-before-keys.patch'
         subprocess.run(['git', 'apply', '--reverse', str(patch)], cwd=recovered, check=True, timeout=10)
-    if a.timeout_handler:
-        patch = fixtures.parents[2] / 'patches/proposals/0210-wifi-mt6797-condition-owned-BSS-timeout-on-fresh-beacons.patch'
+    if a.timeout_counter:
+        patch = fixtures.parents[2] / 'patches/proposals/0210-wifi-mt6797-count-owned-timeout-observations-without-changing-refusal.patch'
         subprocess.run(['git', 'apply', '--reverse', str(patch)], cwd=recovered, check=True, timeout=10)
         handler_parent_mac = (recovered / rel / 'mac.c').read_text()
     if a.beacon_observer:
@@ -151,11 +151,10 @@ with tempfile.TemporaryDirectory(prefix='initial-gtk-') as directory:
         ('void', 'mt6797_native_diag_ordinary_record'), ('void', 'mt6797_mac_tx'),
         ('void', 'mt6797_native_diag_step'), ('bool', 'mt6797_native_diag_tx_fenced')]
     if a.timeout_observer:
-        names.append(('bool', 'mt6797_ccmp_timeout_continue') if a.timeout_handler else
-                     ('void', 'mt6797_ccmp_timeout_observe'))
-        if a.timeout_handler:
+        names.append(('void', 'mt6797_ccmp_timeout_observe'))
+        if a.timeout_counter:
             names.append(('int', 'mt6797_mac_join_control_event'))
-        assert function(handler_parent_mac or new, 'mt6797_mac_join_control_event') == function(
+        assert function(new, 'mt6797_mac_join_control_event') == function(
             observer_parent_mac, 'mt6797_mac_join_control_event'), 'control admission changed'
     if a.beacon_observer:
         assert function(handler_parent_mac or new, 'mt6797_mac_join_work') == function(
@@ -170,7 +169,7 @@ with tempfile.TemporaryDirectory(prefix='initial-gtk-') as directory:
     obs_start = new.index('struct mt6797_ccmp_observation {')
     obs_end = new.index('\n};', obs_start) + 3
     handler_definitions = ''
-    if a.timeout_handler:
+    if a.timeout_counter:
         for macro in ['MT6797_JOIN_DATA_BUDGET_MS', 'MT6797_JOIN_GRANT_TAIL_MS',
                       'MT6797_JOIN_TEARDOWN_MARGIN_MS']:
             found = re.findall(r'^#define ' + macro + r' [^\n]+$', new, re.M)
@@ -243,7 +242,7 @@ with tempfile.TemporaryDirectory(prefix='initial-gtk-') as directory:
         callbacks = callbacks.replace('m.native_diag_total = 511;', 'm.native_diag_total = 4095;').replace('m.native_diag_total == 512', 'm.native_diag_total == 4096')
         callbacks = callbacks.replace('m.native_diag_bytes = MT6797_NATIVE_DIAG_BYTES_MAX -', 'm.native_diag_bytes = MT6797_CCMP_DIAG_BYTES_MAX -')
         callbacks = callbacks.replace('arm/63->64', 'arm/1023->1024')
-    if a.timeout_handler:
+    if a.timeout_counter:
         callbacks = callbacks.replace('#define NSEC_PER_MSEC 1000000ULL',
             '#define NSEC_PER_MSEC 1000000ULL\n#define NSEC_PER_USEC 1000ULL')
         stub = ('struct mt6797_hif;\n#define min(a, b) ((a) < (b) ? (a) : (b))\n'
@@ -286,13 +285,16 @@ with tempfile.TemporaryDirectory(prefix='initial-gtk-') as directory:
     if a.beacon_observer:
         extra = (fixtures / 'beacon-observer.inc').read_text() + '\n' + extra
         extra = extra.replace('timeout_observer_tests();', 'timeout_observer_tests();\n beacon_observer_tests();')
-    if a.timeout_handler:
-        extra = extra.replace('mt6797_ccmp_timeout_observe', 'mt6797_ccmp_timeout_continue')
-        extra = (fixtures / 'timeout-handler.inc').read_text() + '\n' + extra
-        extra = extra.replace('beacon_observer_tests();', 'beacon_observer_tests();\n timeout_handler_tests();')
+    if a.timeout_counter:
+        extra = extra.replace('timeout_event(&m, bss, reason); before = m;',
+            'timeout_event(&m, bss, reason); before = m; before.ccmp_timeout_observed += !bss;')
+        extra = extra.replace('before = m; mt6797_ccmp_timeout_observe(&m, 12);',
+            'before = m; before.ccmp_timeout_observed++; mt6797_ccmp_timeout_observe(&m, 12);')
+        extra = (fixtures / 'timeout-counter.inc').read_text() + '\n' + extra
+        extra = extra.replace('beacon_observer_tests();', 'beacon_observer_tests();\n timeout_counter_tests();')
     if a.pm_connected:
         extra = (fixtures / 'pm-callbacks.inc').read_text() + '\n' + extra
-        extra = extra.replace('timeout_handler_tests();', 'timeout_handler_tests();\n pm_callback_tests();')
+        extra = extra.replace('timeout_counter_tests();', 'timeout_counter_tests();\n pm_callback_tests();')
     if a.connection_monitor:
         callbacks = '#define FIXTURE_CONNECTION_MONITOR 1\n' + callbacks
     (tmp / 'callbacks.c').write_text(callbacks + '\n' + extra)

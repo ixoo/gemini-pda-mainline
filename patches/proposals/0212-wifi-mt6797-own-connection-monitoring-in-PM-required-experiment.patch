@@ -1,4 +1,4 @@
-From dddd09d59fa23e70798bd5815e9e8c2c6f1de391 Mon Sep 17 00:00:00 2001
+From 8308a065bd24d7a398664a49cf568e3048f2a1ae Mon Sep 17 00:00:00 2001
 From: Codex Experiment <codex-experiment@example.invalid>
 Date: Sun, 18 Oct 2026 16:50:11 -0400
 Subject: [PATCH] wifi: mt6797: own connection monitoring in the PM-required
@@ -22,7 +22,7 @@ no DCO certification and not an upstream submission.
  1 file changed, 32 insertions(+)
 
 diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
-index 9ae3600..5283b0f 100644
+index e714525..7e7e460 100644
 --- a/drivers/net/wireless/mediatek/mt6797/mac.c
 +++ b/drivers/net/wireless/mediatek/mt6797/mac.c
 @@ -226,6 +226,7 @@ struct mt6797_mac {
@@ -33,9 +33,9 @@ index 9ae3600..5283b0f 100644
  #endif
  	struct ieee80211_sta __rcu *ccmp_sta;
  	/* Cookies only: never dereferenced, withdrawn before DISABLE_KEY returns. */
-@@ -500,6 +501,19 @@ static bool mt6797_ccmp_timeout_continue(struct mt6797_mac *mac, size_t bytes)
- 		 mac->ccmp_timeout_continued);
- 	return continuing;
+@@ -488,6 +489,19 @@ static void mt6797_ccmp_timeout_observe(struct mt6797_mac *mac, size_t bytes)
+ 		 (unsigned int)beacon_known, mac->join_beacons_delivered, beacon_age,
+ 		 mac->join_beacon_interval, mac->ccmp_timeout_observed);
  }
 +
 +/* MAC mutex held; this standard API only queues work, never calls back here.
@@ -53,7 +53,7 @@ index 9ae3600..5283b0f 100644
  #endif
  
  /* Called only in the common serialized RX/TX-status batch, outside MAC locks.
-@@ -1768,8 +1782,15 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
+@@ -1752,8 +1766,15 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
  		mt6797_native_diag_rx_report(mac);
  #endif
  		/* This API only queues work; no synchronous MLME call under our mutex. */
@@ -69,7 +69,7 @@ index 9ae3600..5283b0f 100644
  		return 0;
  	}
  	if (mac->join_cleanup_stage > 3 || mac->sequence > 253)
-@@ -2155,6 +2176,10 @@ static int mt6797_mac_join_fail_stop(struct mt6797_mac *mac, int ret,
+@@ -2139,6 +2160,10 @@ static int mt6797_mac_join_fail_stop(struct mt6797_mac *mac, int ret,
  		"one-shot WLAN join stopped: status=%d first=%d submitted=0x%x debt=%u cleanup=%u branch=%u\n",
  		ret, mac->first_error, mac->join_submitted,
  		mac->join_page_debt, mac->join_cleanup_stage, branch);
@@ -80,7 +80,7 @@ index 9ae3600..5283b0f 100644
  #ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
  	mt6797_native_diag_rx_report(mac);
  #endif
-@@ -5049,6 +5074,13 @@ int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+@@ -5036,6 +5061,13 @@ int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
  		hw->wiphy->n_cipher_suites = ARRAY_SIZE(mt6797_ccmp_ciphers);
  		ieee80211_hw_set(hw, SUPPORTS_RX_DECAP_OFFLOAD);
  		ieee80211_hw_set(hw, SW_CRYPTO_CONTROL);

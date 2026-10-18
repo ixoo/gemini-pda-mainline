@@ -816,119 +816,65 @@ and one reviewed recovery passed. A separate authenticated check confirmed
 changed-boot Gemian `4256d0ec-11e4-4e84-8202-6b2e78281876`. No key retirement,
 reuse, reconnect or sustained-operation acceptance is established.
 
-### Predeclared correction after GTK4
+### GTK5 admission and source preparation — incomplete hardware gate
 
-The owner proposed a conditional owned timeout handler and the missing PM
-connection indication. Prepare three logical source changes in one candidate:
+The latest selection supersedes the conditional continuation draft published
+in `ef2e2fc3`. That input compiled and packaged, but its image is not admitted
+for a device test. Preserve that commit as an attributable compile-only result.
 
-1. For exact owned-BSS 0x13/12-byte/sequence-zero events in the current healthy,
-   authorized data lifetime, continue and count only when the owned-beacon clock is known,
-   not in the future, and owned-beacon age is strictly less than two committed
-   beacon intervals (TU converted to nanoseconds). Checked-data age is logged,
-   never a freshness prerequisite: a quiet authorized station may have no
-   checked data for seconds. Keep comparisons at nanosecond precision; log numeric
-   reason, intervals/ages and cumulative count. No reason-6 meaning is inferred.
-   Other event families, foreign/stale/invalid states and failed freshness retain
-   the refusal. This event does not release credit, complete TX or change keys.
-2. Retain DTIM from the TIM IE of an existing qualified fresh post-association
-   target beacon, using the validated AssocResp AID and committed beacon interval.
-   Encode 0x16 with zero ATIM and no UAPSD for this legacy no-PS profile. Submit
-   it at the first qualified post-association beacon through the existing
-   sequence/page-credit owner, before keys and traffic, as connection indication.
-   The association callback may wait for that beacon within its existing phase
-   deadline; key admission requires the credited indication. Submission refusal
-   or missing credit is a separate bounded pre-key result, not a data-window
-   result. Credit proves buffer consumption, not an explicit firmware status
-   reply. Model disconnect/abort ownership too; do not extend any deadline.
-3. Advertise standard connection-monitor ownership only in this PM-required
-   experiment, reporting an unusable live lifetime once through the standard
-   mac80211 loss API. Keep nullfunc outside the supported TX classes.
+The revised candidate contains three logical archives:
 
-Before building, trace the exact callback/worker ordering and add actual-source
-cases for nanosecond boundaries, stale/unknown clocks and BSS, TIM truncation /
-duplicates/period bounds, AID/interval, sequence/credit failure and cleanup. Keep
-all existing caps and deadlines, no rekey/reuse/reconnect or -48 adjustment.
-If 0x13 still occurs, count and timestamp it; disappearance in one run supports
-but does not prove the missing-indication hypothesis. A different failure is a
-separate result. Do not repeat GTK4 unchanged or broaden the event family.
+1. **0210 observation/count only:** retain the exact acquired event body, the
+   owned-event count, checked-data and owned-beacon ages and committed interval.
+   Keep the existing fatal control-event dispatcher byte-identical. Fresh
+   beacons do not permit continuing after an event. No reason interpretation,
+   credit, TX, key, event-family or deadline change.
+2. **0211 connection/abort indication:** the public vendor driver sends 0x16
+   after association, using the first qualified owned beacon's TIM/DTIM with
+   the validated AssocResp AID and committed interval. Follow that ordering
+   through the existing sequence/page-credit path before keys and traffic,
+   within the existing association phase and command deadlines. Missing valid
+   metadata, refused submission or missing credit stops before keys. Credit
+   proves buffer consumption, not an explicit firmware status reply. On healthy
+   teardown, send 0x17 and require its credit before key/station removals.
+3. **0212 mac80211 ownership:** advertise `IEEE80211_HW_CONNECTION_MONITOR` only
+   in the PM-required experiment. Report an unusable live-data terminal or
+   healthy teardown once through the standard connection-loss API. Keep nullfunc
+   outside the supported firmware Ethernet TX class. This finite test is not
+   production monitoring or keep-alive enforcement evidence.
 
-### Latest ordering/freshness refinement
+Local ASan/UBSan fixtures cover actual association/metadata waits, PM credit
+before keys, deadline ±1 ns, pre-key failures, abort credit before removals,
+exactly-once loss reporting, existing GTK/PN checks and option-off parity. The
+actual HIF fixture covers exact 0x16/0x17 wire encoding and sequence/page debt,
+including transfer cuts and expiry without refund. Synthetic host tests do not
+establish firmware behavior. Strict checkpatch's sole deliberate exclusion is
+the synthetic experiment author's missing DCO sign-off; this is not an upstream
+submission. Linux fixtures and the revised build remain required.
 
-The follow-up correctly removes checked-data recency from the timeout policy;
-only the owned-beacon clock gates freshness. Both clocks remain in the record.
-The current source preparation is being revised accordingly before publication
-or a build. 0x16 follows the vendor first-beacon ordering and must receive its
-command credit before any key submission, replacing the earlier after-key plan.
-The repeated offsets do not identify whether the timer starts at grant,
-association or data opening because those host gaps were also nearly repeated.
-Recent admitted beacons argue against prolonged absence in the host path;
-reason 6 and an exact firmware timer mechanism remain unproved.
+One fresh GTK5 boot retains the 60-second low-traffic window, 65-second requested
+grant, 2.5-second tail, 5-second teardown margin, 100 ms transaction deadlines
+and all resource caps. Predeclare: pre-key metadata/submission/credit failure;
+a refused firmware event with exact scalars and offset from connection
+indication/data opening; an unexpected or unowned completion with PID and offset;
+a first software connection-loss/nullfunc refusal; the full window with no
+such event; or another independently recorded first failure. No event is silently
+tolerated or retried. DHCP, three pings, SSH stage, GTK/ARP handoff, duration and
+cleanup remain separate verdicts. Use one scalars file and one table row for
+an actual run. Installation, physical boot2 selection and hardware result are
+still pending.
 
-Predeclare the extra result: 0x16 submission refusal or missing credit is a
-bounded stop before keys; no DHCP/data-window verdict is measured. Event count
-zero with a full healthy window supports the indication hypothesis for that
-run; a continued event proves emission persisted and records its offset/count.
-After a 60-second pass, prioritize cleanup on fault paths where transport is
-still trustworthy, connected-BSS data after channel-privilege release, standard
-mac80211 connection monitoring and then TX pipelining. Permanent transport poison
-still prohibits further wire cleanup or re-arm; rekey/reuse/reconnect stay off.
+The pinned mac80211 flag bypasses software beacon/idle probes. The translated
+`RX_FLAG_8023` path updates `last_rx` for group data too; this driver does not
+advertise RSS. Thus group traffic can refresh its software idle clock. A loss
+notification following an already recorded driver stop is a consequence, not
+a separate first monitor failure. An existing stage-3 notification alone did
+not cover a fatal path; the candidate adds the missing live-data notification.
 
-The public station disconnect-detection threshold default is also zero
-([pinned configuration](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c),
-SHA-256 `56bf99536fcb96de5a5198943aec96c9efccb8af89261b29c62046e6560c422f`).
-Keep this field unchanged. This establishes equivalence with the public default,
-not an independently measured reference configuration. AID already goes into
-the current station record (0x13); the missing 0x16 supplies it and beacon/DTIM
-metadata to the PM connection contract specifically.
-
-### Connection-monitor ownership in the same candidate
-
-Add a third logical change under the PM-required initial-GTK experiment:
-`IEEE80211_HW_CONNECTION_MONITOR`, with standard connection-loss reporting when
-an owned live data lifetime becomes unusable as well as at healthy teardown.
-Reporting at stage 3 alone does not cover a fatal path that never reaches that
-stage. Keep a single-notification guard and leave nullfunc TX unsupported.
-This is a bounded firmware-monitor hypothesis with required PM setup, not a
-claim of production monitoring or keep-alive enforcement.
-
-The pinned mac80211 flag contract covers hardware keep-alives and probing on
-beacon loss. Its software idle timer uses a 30-second interval after RX/ACK
-activity and the flag bypasses the software beacon/idle probes. One refinement
-matters here: the selected translated `RX_FLAG_8023` path updates `last_rx` in
-`ieee80211_rx_8023` even for group data; this driver does not advertise RSS.
-The raw 802.11 unicast-only update does not describe this delivered GTK path.
-Thus broadcast traffic may refresh the idle clock, and failure at 31–33 seconds
-is a quiet-network possibility, not a certain prediction for this LAN.
-
-Predeclare the additional outcome: a first software `Connection to AP lost` or
-refused nullfunc between 30 and 35 seconds, with no preceding 0x13/PM/resource
-failure, is a separate monitor-ownership failure. A loss notification queued
-because of an already recorded driver stop is a consequence, not this branch.
-All tests/build inputs remain separate from the unstaged restored research.
-Reason-6 firmware-emitter analysis stays a private conditional VM question only
-if 0x13 recurs after PM setup; no private firmware strings or configuration keys
-belong in the public record and the build does not wait for that analysis.
-
-### GTK5 source preparation — incomplete hardware gate
-
-The candidate adds three separate archives, 0210 (owned timeout freshness),
-0211 (PM connection/abort ownership) and 0212 (mac80211 monitor ownership), only
-in the initial-GTK profile. Local ASan/UBSan tests cover actual association,
-metadata waiting, PM credit before keys, credit at deadline ±1 ns, bounded
-pre-key failures, abort credit before removals, and one standard loss report.
-The actual HIF fixture verifies 0x16/0x17 encoding and page/sequence accounting;
-it models host transport, not firmware enforcement. Existing crypto callbacks,
-withdrawal threads and option-off parity remain covered. Strict checkpatch has
-only the deliberate missing DCO sign-off for the synthetic experiment author;
-no upstream certification is asserted.
-
-One fresh GTK5 boot will retain the existing 60-second low-traffic window,
-65-second requested grant, 2.5-second tail, 5-second teardown margin, 100 ms
-command deadlines and all resource caps. Outcomes are: pre-key PM setup stop;
-owned 0x13 continued with fresh beacons (counter and offsets retained); stale,
-foreign or malformed event fatal; full 60 seconds without event; a first
-software monitor failure at 30–35 seconds; or another first failure recorded
-separately. DHCP, three pings, SSH stage, GTK/ARP delivery, duration and cleanup
-are separate verdicts. No repeat of GTK4, broader event tolerance, nullfunc TX,
-rekey, reuse or reconnect is admitted. Build/package/deployment validation and
-physical boot2 selection remain pending; source tests do not establish support.
+No nullfunc TX, PID reuse, rekey, key reuse, reconnect, -48 adjustment, broader
+event tolerance or longer deadline is admitted. Restored research stays outside
+Wi-Fi commits. Preserve published device measurements; keep firmware-RE
+explanations and further private analysis out of public text. After a healthy
+window, priorities remain trustworthy fault cleanup, connected-BSS data after
+privilege release, standard monitoring and TX pipelining. No ten-minute or
+reusable-lifecycle acceptance is established.
