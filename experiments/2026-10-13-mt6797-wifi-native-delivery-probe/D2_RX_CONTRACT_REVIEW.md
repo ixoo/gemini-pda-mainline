@@ -78,3 +78,12 @@ predicate, a single interrupt indication or command credit alone is not a queue
 retirement contract. Do not add a speculative register, assert an unexplained
 callback fence or select a predetermined fix. The owner has not released the
 instruction to hold new candidate builds.
+
+## Follow-up source decision
+
+The [fixed-format proposal](RX_FORMAT_OWNERSHIP_SUCCESSOR.md) records the bounded
+WHCR/public-host review, existing decoder compatibility and the required change
+of completion/configuration owner. Linux ASan/UBSan against exact C10 EAPOL
+headers passed all 48 existing layout/padding cases. No firmware effect or fixed
+format stability is proved. This selects one proposal for implementation/review,
+not a candidate build or device admission; the owner's build hold remains.

@@ -11,7 +11,9 @@ network/host-cleanup windows, SSH 2/3; [D1](SSH_D1_RESULT.md) then passed withou
 classifying the earlier SSH failure. D2 is a separate transport result, not an
 SSH measurement. The [RX contract review](D2_RX_CONTRACT_REVIEW.md) covers this
 new +48 direction, existing pre-arm status and updated actual-source fixtures.
-No successor candidate is admitted. GTK delivery, rekey, reuse and reconnect
+The [fixed-format source proposal](RX_FORMAT_OWNERSHIP_SUCCESSOR.md) is ready
+for implementation/review, with 48 existing EAPOL cases passing on Linux. No
+successor candidate is built or admitted. GTK delivery, rekey, reuse and reconnect
 stay disabled; ordinary integrity/key retirement and sustained acceptance remain.
 
 | Field | Value |

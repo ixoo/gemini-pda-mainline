@@ -1,0 +1,31 @@
+{
+  "source_review_only": true,
+  "device_actions": 0,
+  "candidate_builds": 0,
+  "kernel_input": "0d1f51194d7001fc9c6b9219726935ede36bc828",
+  "bounded_source_commit": "0b88350b26679568c7fc27fcd117994122ddc7fa",
+  "linux_tooling_input": "003519224de8ddc9d525971b3d3c9028b55aae05",
+  "linux_actual_source_eapol": {
+    "fixture_sha256": "7f6b9a0e6ae21c23f0ed1b5fadeda6b63a8e3188b79bcc697158d5ca1f1e38b8",
+    "eapol_rx_h_sha256": "81b5d3e9f55194c4f4f71a172fc3b72641b4efc308aea0448e5425e21dc7f826",
+    "join_events_h_sha256": "68b620271e0e88ecaaaf9a927b8403918d456acdbf95626a0789c6772e521c01",
+    "layout_padding_cases": 48,
+    "asan_ubsan_pass": true,
+    "all_truncations_and_malformed_metadata": true,
+    "log_sha256": "c0880a2c407cade6b76d032195aaf418a2ef3cee3af6627dd2002d468d2fc76c"
+  },
+  "public_comparison": {
+    "commit": "4f43e6b499c6d194030df8d2506485db9d5165bd",
+    "files": {
+      "include_nic_hal.h": "8b488c55d2dede33ba26e9566dd9fe2ee5b6406fb34574000a2a9ccd2441f065",
+      "nic_nic.c": "dfcfd33e5ed92308f0d0a639788588c448a5b3d9b883c00070055f2dac768b3f",
+      "include_nic_hif_rx.h": "1959b0f21805b37841ef94f95f998cc3e175bfc4af0927bb57bb673d103b193d"
+    },
+    "scope": "HAL/nicSDIOInit inspected; no claim of whole-tree absence or AHB equivalence"
+  },
+  "remaining": [
+    "Firmware format stability/ownership across queued frames not proved",
+    "Early mask initialization completion/cleanup ownership needs explicit design",
+    "No firmware integrity, GTK replay or key retirement claim"
+  ]
+}

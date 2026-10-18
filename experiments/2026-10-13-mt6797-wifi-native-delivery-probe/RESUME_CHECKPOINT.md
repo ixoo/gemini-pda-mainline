@@ -13,9 +13,12 @@ source, TX-only arm quiescence and retained pre-arm WHISR 0x2. Public gen3 mappi
 suggests an RX indication; this is not a FIFO/producer fence. New enable-time
 +48 differs from historical close-time -48. The actual-source regression now
 covers 94/142 on both ports, valid 94 and I/O faults; local ASan/UBSan passed.
-No host framing correction is proved. Next source-review metadata-format
-ownership across queued/acquired frames before selecting one justified successor.
-Do not repeat D2 unchanged or build a new candidate under the owner's hold.
+No host framing correction is proved. The [follow-up source review/proposal](RX_FORMAT_OWNERSHIP_SUCCESSOR.md)
+selects one fixed-format ownership comparison: initialize before scan-ready,
+retain the format for the firmware instance, keep data-window/crypto gates.
+Exact C10 EAPOL headers passed 48 existing cases on Linux with ASan/UBSan.
+Next implement/review this single default-off comparison and focused fixtures;
+no build or execution is admitted. Do not repeat D2 or build under the owner's hold.
 
 The [three-run C10 baseline](CCMP10_BASELINE.md) remains SSH 2/3, all its finite
 transport/network/host-cleanup windows passed. [D1](SSH_D1_RESULT.md) passed
