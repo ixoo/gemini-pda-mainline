@@ -50,9 +50,9 @@ with tempfile.TemporaryDirectory(prefix='mt6797-mask-') as d:
     if sys.platform.startswith('linux'):
         common += ['-fno-pie', '-no-pie']
     flags = ['-DCONFIG_MT6797_NATIVE_DELIVERY_DIAG', '-DCONFIG_MT6797_CCMP_STABLE_EPOCH',
-             '-DIS_ENABLED(x)=1']
+             '-DIS_ENABLED(x)=1', '-DRUNTIME_CHILD']
 
-    def run(driver, on, fixture, label, native=True):
+    def run(driver, on, fixture, label, native=True, quiet=False):
         source = (driver/'mac.c').read_text()
         start = source.index('static void mt6797_native_diag_step(')
         end = source.index('\n}\n', start)+3
@@ -62,7 +62,8 @@ with tempfile.TemporaryDirectory(prefix='mt6797-mask-') as d:
         subprocess.run(cmd + ['-I', str(tmp), '-I', str(compat), '-I', str(driver),
                               str(f/fixture), '-o', str(binary)], check=True, timeout=30)
         r = subprocess.run([str(binary)], check=True, capture_output=True, text=True, timeout=30)
-        print(label+': '+r.stdout.strip())
+        print(label+': '+('PASS ('+str(len(r.stdout.splitlines()))+' retained result rows)' if quiet else r.stdout.strip()))
+        return r.stdout
 
     for driver, label in [(p, 'parent'), (c, 'child-off')]:
         run(driver, False, 'mask-control-validator-test.c', label+'-validator')
@@ -71,6 +72,36 @@ with tempfile.TemporaryDirectory(prefix='mt6797-mask-') as d:
     run(c, False, 'mask-control-validator-test.c', 'child-normal', native=False)
     run(c, True, 'mask-control-validator-test.c', 'child-on-validator')
     run(c, True, 'mask-control-hif-test.c', 'child-on-hif')
+
+    # Reuse the actual finite receive fixtures, extending only the mock input
+    # and observed mismatch lengths. No FIFO mechanism model.
+    baseline = (f.parents[1]/'2026-10-01-mt6797-pio-rx/tests/test-pio-rx.c').read_text()
+    baseline = baseline.replace('unsigned int post, header_delta;',
+                                'unsigned int post, header_delta, opposite_length;')
+    baseline = baseline.replace('*value = mock.port ? mock.logical << 16 : mock.logical;',
+        '*value = mock.port ? (mock.logical << 16) | mock.opposite_length : '
+        'mock.logical | (mock.opposite_length << 16);')
+    (tmp/'selected-pio-baseline.inc').write_text(baseline)
+    selected = (f/'closed-selected-hif-test.c').read_text()
+    assert selected.count('{427, 379} }') == 1
+    selected = selected.replace('{427, 379} }', '{427, 379}, {88, 40} }')
+    selected = selected.replace('four mismatch pairs', 'five mismatch pairs')
+    (tmp/'selected.c').write_text(selected)
+    legacy = (f/'runtime-no-post-hif-test.c').read_text()
+    legacy = legacy.replace('"../../2026-10-01-mt6797-pio-rx/tests/test-pio-rx.c"',
+        '"'+str(f.parents[1]/'2026-10-01-mt6797-pio-rx/tests/test-pio-rx.c')+'"')
+    assert legacy.count('{ 4, 76, 80, 449, 2352 }') == 1
+    legacy = legacy.replace('{ 4, 76, 80, 449, 2352 }', '{ 4, 76, 80, 88, 427, 449, 2352 }')
+    needle = '\t\t\ttrial(mode, port, 449, 2352, (unsigned int)-48, 0);'
+    assert legacy.count(needle) == 1
+    legacy = legacy.replace(needle, needle+'\n\t\t\ttrial(mode, port, 88, 2352, (unsigned int)-48, 0);'
+        +'\n\t\t\ttrial(mode, port, 427, 2352, (unsigned int)-48, 0);')
+    (tmp/'legacy.c').write_text(legacy)
+    for fixture, label in [(tmp/'legacy.c', 'legacy-runtime-rx'),
+                           (tmp/'selected.c', 'selected-rx')]:
+        before_rx = run(p, False, fixture, 'parent-'+label, quiet=True)
+        after_rx = run(c, True, fixture, 'child-on-'+label, quiet=True)
+        assert before_rx == after_rx, 'RX I/O/publication table changed: '+label
 
     # Preprocess exact actual HIF and MAC step: disabled option must recover C9.
     before = []

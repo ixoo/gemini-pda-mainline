@@ -102,7 +102,10 @@ all single-bit address/payload mutations, unsupported values, short/long allocat
 boundaries, stale/invalid sequence and outstanding credit. The actual HIF and
 extracted MAC step pass every reachable command-write fault and expiry boundary,
 fatal poison and no second I/O. Both runtime-arm flags are checked. Reversing
-the exact patch recovers every parent driver file byte-for-byte. Synthetic tests
+the exact patch recovers every parent driver file byte-for-byte. Existing receive
+fixtures additionally compare 3889 boot/requested-runtime result rows and selected
+reads on both ports, all five observed mismatches and injected I/O failures.
+The enabled comparison produces identical receive tables. Synthetic tests
 do not establish firmware effects or hardware enforcement.
 
 Profile `mt6797-a53-wifi-ccmp-mask-control` selects C9's 694 ordered patches plus
