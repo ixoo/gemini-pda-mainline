@@ -12,8 +12,8 @@ All 71 sealed files and 2,115 contiguous records verified, including retained
 client stdout/stderr, neighbor/netstat state and post-client window check.
 Helper/device quiescence, A53 regression and one reviewed return passed.
 Changed-boot Gemian `cbab7eed-8b34-44de-a9a4-f95cc8fe9838` independently confirmed.
-No capture/session/build process or physical handoff remains pending. GTK2 is
-consumed; do not repeat unchanged.
+GTK2 is consumed; do not repeat unchanged. GTK3's physical handoff is below;
+no capture/session/build/installer process is running.
 
 The owner adopted the [next bounded preparation](SESSION_0202_PLAN.md#next-admitted-preparation-low-traffic-60-second-measurement):
 CCMP-only 1024 checked / 4096 all-RX / 2 MiB, PTK/GTK split and GTK-ARP handoff
@@ -22,9 +22,20 @@ retirement, PID and crypto limit unchanged; no PID reuse or sustained-SSH claim.
 The earlier 1 MiB budget question is superseded by this explicit direction.
 [0206/0207 source and host verdict](SESSION_0202_PLAN.md#gtk3-source-preparation-capacity-and-handoff-observers)
 pass local and clean-input Linux source/verdict checks. The standard Buildbox
-build at `a32ddfce` passed; its actual GTK3 receipt and five local tooling fixtures
-are prepared. Linux tooling validation and guarded installation remain before
-physical admission. No GTK3 device result or physical action is pending yet.
+build at `a32ddfce` passed; its actual GTK3 receipt and five tooling fixtures
+passed locally and on Linux from clean pushed `2aa30db2`.
+
+**GTK3 is installed and shut down, awaiting owner physical boot2 selection.**
+The reviewed guarded installer exited 0; full-partition readback matches
+`e2571776fe674cf1288f8a12f4362c7fba1d083cf93846edfb1a3850ed27eb09`.
+Deployment evidence is sealed and independently checked. Offline preparation
+passed with the exact mode-0600 deployment summary, fresh namespaces and the
+retained source cohorts. No capture or radio session has started. Require a new
+owner handoff, fresh boot ID, expected release/architecture and 84-byte kernel
+notes SHA-256 `ec5b30ee5ee76ad13943f5b90c09a9eb3e76f6553758de6d8151686121d8edf6`
+before the one admitted capture/session. Do not reuse GTK2's physical reply.
+Report capability, duration, transport, network, SSH and cleanup separately;
+retain client stderr, neighbor/netstat state and actual end reason/counters.
 Rekey, reuse, reconnect, -48 adjustment and speculative firmware RE stay excluded.
 
 GTK1's prior ERANGE is classified and its [0205 correction](../../patches/proposals/0205-wifi-mt6797-retain-the-validated-channel-grant-horizon.patch)

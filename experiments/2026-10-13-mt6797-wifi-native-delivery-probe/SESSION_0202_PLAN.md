@@ -544,7 +544,14 @@ handoff archives. Kernel ELF notes, Image bounds and the sysfs exporter agree;
 the 84-byte identity differs from GTK2. Local composition, namespace/refusal,
 no-scan, retained installer and recovery-source checks pass. The new binding
 explicitly selects the GTK3 verdict in both standalone and session paths.
-Tooling Linux validation and guarded installation remain before device admission.
+All five tooling fixtures also pass on Linux from clean pushed `2aa30db2`.
+The generated 603-line installer differs from GTK2 only in identities, retaining
+the exact reviewed boot2 guard; Bash syntax and ShellCheck pass. Guarded
+installation exited 0 after full readback, sealed deployment evidence and clean
+shutdown. Independent seal/summary checks and offline host preparation pass.
+GTK3 now awaits owner physical boot2 selection; no radio run has started.
+Fresh boot identity and kernel-notes verification remain mandatory before the
+single admitted session. This is a handoff, not a runtime table row.
 
 The candidate remains low traffic: no PID reuse and no continuous SSH workload
 is promised. If a different ceiling binds or a protocol, transport or cleanup
