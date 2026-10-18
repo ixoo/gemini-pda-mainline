@@ -1,27 +1,26 @@
 # Wi-Fi resume checkpoint — INCOMPLETE
 
-Current continuation: [C11](CCMP11_RESULT.md) is consumed once. G1 was present
-on 32/32 eligible group shapes, still withheld from delivery. DHCP and three
-pings passed; SSH exit 255 had no authenticated boot/ACK. Transport and host
-cleanup passed independently. Seals, quiescence, regression and changed-boot
-Gemian were verified. The [three-run unchanged C10 baseline](CCMP10_BASELINE.md)
-is complete: transport/DHCP/three pings/host cleanup passed in all three finite
-windows, SSH passed 2/3. C11's observer is not required for an SSH failure.
-The failed runs lack client error text, so the exact TCP/KEX/auth stage remains
-unknown. Run 3 returned to independently verified changed-boot Gemian; C10
-remains installed and consumed.
+Current continuation: [D1](SSH_D1_RESULT.md) is consumed once: finite transport,
+DHCP/three pings/SSH/host cleanup passed, but the earlier intermittent failure
+was not reproduced. Client stderr was empty. Its 66-entry seal and changed-boot
+Gemian were independently verified. No unchanged D1 retry.
 
-[D1](SSH_D1_RESULT.md) is consumed once: transport/DHCP/three pings/SSH/host
-cleanup passed; original SSH stderr was empty. The earlier failure remains
-unclassified, not repaired. Its 66-entry seal and changed-boot Gemian were
-independently verified. No unchanged D1 retry.
+The [three-run unchanged C10 baseline](CCMP10_BASELINE.md) is complete: all
+finite transport/network/host-cleanup windows passed, SSH passed 2/3. C11's
+observer is not required for failure; its timing effect remains unproved.
+Failed C10/C11 runs lack client error text, so exact TCP/KEX/auth stage is
+unknown. [C11's group metadata result](CCMP11_RESULT.md) did not enable GTK.
 
-Next is [D2](SSH_NEIGHBOR_DIAGNOSTIC.md): one bounded local route and neighbor
-snapshot around the same SSH attempt on exact C10. No new kernel candidate or
-build, cache mutation, device packet/probe or deadline extension. GTK delivery,
-rekey, reuse and reconnect stay disabled. Staged longer lifetimes remain pending.
-D2 needs validation/preparation and a new physical handoff before execution.
-The pause record below is historical.
+Next is [D2](SSH_NEIGHBOR_DIAGNOSTIC.md): one bounded local route/neighbor
+snapshot around the same SSH attempt on exact C10. Four focused cases,
+repository checks and full offline preparation passed. Unchanged C10 full
+readback and clean shutdown confirmed. Await owner physical boot2 selection
+with USB attached; no D2 capture/helper/session has started. Stop at handoff.
+
+No new kernel candidate/build, cache mutation, extra device traffic, -48
+adjustment or transport deadline extension. GTK delivery, rekey, reuse and
+reconnect remain disabled. Staged 60 s / 2 min / 10 min lifetimes and full
+maintained Wi-Fi acceptance remain incomplete. The pause record below is historical.
 
 Historical pause boundary. The owner explicitly resumed implementation on
 2026-10-17; see the [completion successor](CCMP_COMPLETION_SUCCESSOR.md) for

@@ -78,3 +78,47 @@ They pass locally; D1's seven original cases remain unchanged. These are host
 behavior checks, not hardware enforcement or a D2 runtime result. The system
 route/ARP tools are present and executable; no cache read or network action was
 performed by these fixtures.
+
+## Local query source check
+
+Apple's [route manual](https://github.com/apple-oss-distributions/network_cmds/blob/main/route.tproj/route.8)
+describes `get` as destination-route lookup/display. In the published
+[ARP implementation](https://github.com/apple-oss-distributions/network_cmds/blob/main/arp.tproj/arp.c),
+the selected default get path searches and prints existing entries; set/delete
+are separate operations. Numeric input and `-n` avoid hostname lookup. This
+supports the selected observation scope; it is not a firmware or binary-identity
+claim. The actual query exit/output and elapsed time remain runtime evidence.
+
+## Verified preparation — await physical selection
+
+Published host input `9820f896`, four focused actual-source cases and repository
+checks passed. Original C10 image/receipt/leaf/capture/driver/recovery unchanged;
+no new kernel candidate or compilation. Current known-good identity independently
+verified as Gemian 3.18.41+/aarch64, boot
+`f2211c8d-d200-4d67-8540-8dcadfed4047`.
+
+The reviewed 603-line installer is byte-identical to original C10 under exact
+identity/path/hash substitutions only; Bash syntax and ShellCheck passed.
+Derived shell SHA-256
+`74618ecd4d50165e14808a84fe66b3f6117e991ac5320403a1a4e92983752fdd`,
+guard source
+`0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf`.
+One invocation verified already-matching C10 and skipped the partition write.
+Independent full 16 MiB readback plus byte comparison matched
+`73e1ac21860e69f6e8f03fd3625022bd8d4c8e6f189c17ecc44d40f91066ed8d`.
+Clean shutdown/unreachability confirmed; no new backup or automatic reboot.
+
+Actual deployment summary 923 bytes, SHA-256
+`1112f91f15cbd63a967b5cd7cc85f55abb90bf2d9d34a3d1b0893e10f5a4db78`,
+seal-verified and copied byte-exact/mode 0600 into a separate fresh D2 root.
+Complete offline preparation through the new D2 adapter passed with helper
+key/boot environment unset. Session contains only that summary; capture,
+execution claim, helper and observation are absent. No D2 device trial yet.
+
+Owner action: physically select boot2 with USB connected to the custodian laptop
+and report startup. Stop until that action. Then verify fresh USB boot/kernel/
+C10 installation identity, run one original capture and one D2 session with
+unchanged limits, seal all actual client/query files, verify owned-helper/device
+quiescence and A53 regression, use the reviewed return once and independently
+verify changed-boot Gemian. Record missing observations or a different failure
+separately; no silent retry.
