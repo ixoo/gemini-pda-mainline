@@ -66,6 +66,39 @@ reuse; do not manufacture it with a host generation label, PN reset, elapsed
 time, empty software queue or successful traffic. A future source-supported
 barrier must also meet the pinned mac80211 teardown ordering.
 
+## One bounded direct-callee round
+
+A subsequent, separately specified review inspected the five direct station
+callees and the BSS context/active helper, with at most 256 bytes per target.
+The six windows supplied 64, 84, 29, 85, 65 and 19 instructions. Some bodies
+return within the window; others are incomplete or delegate further. Unvalidated
+shapes remain labeled. The original 43 instruction anchors reproduced again.
+
+The byte cap was narrowed to a complete instruction-prefix boundary where
+needed, never expanded. The pinned decoder's big-endian 16/32-bit width rule
+and 836 synthetic boundary cases supported that calculation; the decoder's
+outside-restriction guard remained unchanged. Width alignment does not validate
+instruction semantics, classify a list or prove branch/function completeness.
+
+Visible station work includes per-context resets, list unlink/count operations
+and further calls. The list has not been linked to the shared host RX queue;
+it must not be labeled an RX flush or a key-incarnation fence by its shape or
+entry count. Successful traffic would not resolve that attribution either.
+
+The complete 19-instruction BSS helper reaches two indirect table targets,
+passing context-derived indices, the active byte and address pointers. Those
+target values remain unresolved, so behavior cannot be attributed from
+this helper. A bounded check of the retained container's section headers found
+no section directly covering those table locations. That does not exclude
+aliasing or initialization by encrypted or other code; no decryption,
+image-wide search, live read or recursive follow-on was performed.
+
+This leaves a concrete source-observation need: resolve those exact BSS
+implementations and the queued-frame ownership/order before asserting producer
+quiescence. Any later observation needs separate admission and fresh identity;
+it must not interrupt or replace the pending C10 comparison. A separate
+10-entry evidence bundle was sealed and independently verified for this round.
+
 ## Current protections remain
 
 Seven C10 key/cleanup/station/re-arm function bodies are byte-identical to C9:
@@ -75,7 +108,8 @@ PTK/no-reuse and fatal-poison gates. Its stage-3 `slots=retired` log remains an
 inherited host-protocol label, not new firmware evidence. Keep that distinction
 when recording C10's eventual cleanup result; key retirement must stay separate.
 
-All 27 private evidence entries were independently verified against the sealed
-manifest; RE processes were checked quiescent. This audit changed no C10
+The original 27-entry and later 10-entry private evidence bundles were each
+independently verified against their sealed manifests; RE processes were checked
+quiescent. This audit changed no C10
 artifact or source, adds no hardware-support claim and does not replace its
 pending single comparison or authorize a subsequent candidate.
