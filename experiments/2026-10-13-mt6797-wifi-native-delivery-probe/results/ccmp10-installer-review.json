@@ -1,0 +1,14 @@
+{
+  "status": "offline-installer-reviewed",
+  "tooling_commit": "3d1b12f05399f31cc2d8da3e5c0e7d1b4a3c1631",
+  "derived_lines": 603,
+  "derived_sha256": "0e46491f8ca7adc8cc2f9fb0d03efbb10b0889533b26e190b7104a5677c1d84c",
+  "parent_installer_sha256": "db26af175ff70b8a5477dbd8ffe280f0cc40e15f51ae35c2997e59536c54fe4c",
+  "exact_identity_substitution_equality": true,
+  "bash_syntax": "pass",
+  "shellcheck": "pass",
+  "candidate_manifest_sha256": "807c8fb9f886ce0209688740f67193626a86311b76e02d198a66b7d749b2b11c",
+  "expected_predecessor_sha256": "851a465efddff08895b726767b95d74a59a690ab648222c2dc67a936a06f6f61",
+  "previous_gemian_boot": "770cff12-273b-4465-899f-f9ad54d0078a",
+  "device_action": "none"
+}

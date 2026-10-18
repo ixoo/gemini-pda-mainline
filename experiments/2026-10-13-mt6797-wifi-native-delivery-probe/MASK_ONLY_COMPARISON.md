@@ -1,7 +1,8 @@
 # Mask-only control comparison — before implementation
 
-Status: [C10 built and privately composed](CCMP10_PREPARATION.md); no device
-write or runtime result. The design below preceded implementation. [Pointer observation](POST_C9_POINTER_RESULT.md) resolved
+Status: [C10 installed with verified readback and shutdown](CCMP10_PREPARATION.md);
+await owner physical boot2 selection. No runtime result. The design below
+preceded implementation. [Pointer observation](POST_C9_POINTER_RESULT.md) resolved
 one complete monitor callback: for Boolean arguments it writes a three-bit mask,
 7 on enable and 0 on disable, to firmware address `0x800c0068`. No firmware code
 is copied. Group meanings and the RX length-publication mechanism remain unproved.
@@ -68,7 +69,7 @@ per-frame integrity or pending-format stability. The bounded profile must not
 be promoted to a normal board profile on that basis. Closing the mask may still
 expose the existing refusal; preserve it and fatal poison permanently.
 
-Before any device write: review one logical patch, actual-source focused tests
+Before runtime control writes: review one logical patch, actual-source focused tests
 and resource protocol, canonical-order named profile, clean pushed Buildbox
 build/package provenance, real candidate/tool bindings, guarded boot2/full
 readback and owner physical selection. One custodian and one admitted trial;
@@ -115,6 +116,7 @@ series files are unchanged; the canonical superset appends 0200. All 33 profile
 checks pass. Linux actual-source checks and kernel/package validation passed;
 strict checkpatch has only the standing non-certifying DCO omission. The real
 composition and remaining tooling/deployment gates are in [C10 preparation](CCMP10_PREPARATION.md).
-No installation or resource write has run.
+Guarded boot2 installation and complete offline host preparation passed; no
+mask-control runtime or radio session has run.
 
 Proposal SHA-256: `933bbacc1262e7c8d827d68d3beaa4eed0a2a0ef78c023d0a777d884cf462b2c`.

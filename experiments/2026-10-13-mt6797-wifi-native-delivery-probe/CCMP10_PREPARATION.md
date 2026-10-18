@@ -1,6 +1,8 @@
 # C10: mask-only control comparison
 
-Built and privately composed, 2026-10-18 UTC; no installation or runtime result.
+Installed to guarded boot2 with matching full readback and clean shutdown,
+2026-10-18 UTC. Complete offline host preparation passed. Await owner physical
+selection; no C10 runtime result.
 The [comparison design](MASK_ONLY_COMPARISON.md) records the hypothesis,
 resource scope and decision branches before implementation. C9 is consumed.
 This is an availability comparison, not a proven RX-group contract or a fix for
@@ -75,16 +77,43 @@ and mask flag. The expected predecessor is C9 full boot2
 `851a465efddff08895b726767b95d74a59a690ab648222c2dc67a936a06f6f61`;
 that historical identity must be verified by the actual guarded deployment.
 
-All five offline binding/config/source-routing fixtures pass locally. Six exact
-historical public source files were independently found by digest in Buildbox's
-existing Git objects for the Linux fixture inputs; no credential or Linux source
-tree was copied there. Linux tooling checks, the actual derived installer review,
-full offline host preparation and guarded live-GPT installation remain pending.
-No helper has started; there is no deployment receipt or C10 capture/session.
+All five offline binding/config/source-routing fixtures pass locally and on
+Linux from clean pushed tooling `3d1b12f05399f31cc2d8da3e5c0e7d1b4a3c1631`.
+Six exact historical public source files were independently found by digest in
+Buildbox's existing Git objects for the Linux fixture inputs; no credential or
+Linux source tree was copied there. Original pins and source/credential namespace
+separation remain mandatory.
 
-After all gates pass, the owner physically selects boot2 following verified
-readback and clean shutdown. The admitted runtime remains one capture, one
-session and one reviewed return, with unchanged limits. Require actual network,
-transport and cleanup verdicts independently; a different failure is a separate
-result. No unchanged retry, metadata bypass, length exception, deadline extension
-or promotion to maintained Wi-Fi follows from build/composition success.
+## Verified installation and physical handoff
+
+The [installer review](results/ccmp10-installer-review.json) pins the actual
+603-line derived shell, SHA-256
+`0e46491f8ca7adc8cc2f9fb0d03efbb10b0889533b26e190b7104a5677c1d84c`.
+It matches C9's frozen installer under exact identity substitutions only; Bash
+syntax, ShellCheck and the actual candidate validation passed. The public
+boot2-device guard, protected-partition exclusions, stable-power checks and
+full-readback/shutdown behavior are unchanged.
+
+Fresh strict LAN SSH verified expected Gemian boot
+`770cff12-273b-4465-899f-f9ad54d0078a` before execution. The
+[deployment scalars](results/ccmp10-deployment-scalars.json) record the guarded
+C9-to-C10 write. Both live block-identity gates and stable power passed;
+sync/flush/full 16 MiB readback matched `73e1ac21…`. Shutdown and unreachability
+were confirmed, with no reboot or fresh predecessor backup. Executed tooling
+was `3d1b12f05399f31cc2d8da3e5c0e7d1b4a3c1631`.
+
+The actual 942-byte deployment summary, SHA-256
+`3e69564f01087dcaf256bb543d343f7e588c348c0b8984a03421bfdd863ef136`,
+is retained byte-exact and mode 0600 in the new session root. Complete actual
+offline host preparation passed against that summary, real candidate and
+retained recovery cohort, with SSH helper key/boot variables unset. The session
+contains only the deployment summary; capture and execution claim are absent.
+No helper or C10 radio session has started.
+
+Owner physical boot2 selection with USB connected is the next required action.
+Then verify fresh mainline kernel/boot and the new mask-helper symbol, followed
+by exactly one capture, one session and one reviewed return. Keep unchanged
+limits and record actual network, transport and cleanup independently. A
+different failure is a separate result, not evidence about an unreached boundary.
+No unchanged retry, metadata bypass, length exception, deadline extension or
+promotion to maintained Wi-Fi follows from build or installation success.

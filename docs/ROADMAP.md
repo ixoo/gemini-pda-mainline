@@ -50,20 +50,19 @@ Keep this file under 200 lines; move anything else to an experiment record.
   which also observed the received-PN group absent on that one sample — an availability
   fact, not a replay or crypto claim). Bounded lifetimes only; `wifi_operational` stays
   false and no operational, reliability, persistence or replay-protection claim follows.
-- **Next (source review, 2026-10-18 UTC).** [C9](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/CCMP9_RESULT.md)
-  completed WPA2/DHCP but no retained ping reply or authenticated SSH. Twelve
-  CLOSED length checks preceded refusal 427/379. Untrusted framing hints suggest
-  an untranslated shape; trace pending-length/monitor-transition ownership before
-  selecting another candidate. No extra I/O, 48-byte rule or unchanged retry.
-  Ordinary integrity/PN, key retirement, healthy reconnect and clean-profile
-  ten-minute SSH remain required.
+- **Next (bounded comparison, 2026-10-18 UTC).** [C10](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/CCMP10_PREPARATION.md)
+  compares one observed mask-control primitive with global monitor effects,
+  testing required ordinary metadata under unchanged RX/crypto/budget gates.
+  Installed/readback/shutdown and complete host preparation passed; no runtime
+  result. No length exception, metadata bypass or unchanged C9 retry. Ordinary
+  integrity/PN, key retirement, healthy reconnect and ten-minute SSH remain.
 - **Open.** Wi-Fi station operation beyond one bounded lifetime; replay
   enforcement in firmware is unknown. No charging, RTC alarm or lid.
   The `full` profile has never booted. No upstream submission. A72 and thermal
   protection are parked.
-- **Device (2026-10-18 UTC).** C9 is consumed, evidence sealed and changed-boot
-  Gemian independently confirmed. No next candidate or physical action pending.
-  Keep charging attended.
+- **Device (2026-10-18 UTC).** C10 is installed to guarded boot2; full readback,
+  clean shutdown and host preparation verified. Await owner physical boot2
+  selection with USB connected. Keep charging attended.
 
 ## Next device boots, in order
 

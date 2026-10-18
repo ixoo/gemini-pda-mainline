@@ -1,0 +1,23 @@
+{
+  "result": "write-synced-flushed-full-readback-verified",
+  "boot2_device_guard": "passed",
+  "boot2_device_guard_sha256": "0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf",
+  "candidate_manifest_sha256": "807c8fb9f886ce0209688740f67193626a86311b76e02d198a66b7d749b2b11c",
+  "candidate_sha256": "73e1ac21860e69f6e8f03fd3625022bd8d4c8e6f189c17ecc44d40f91066ed8d",
+  "readback_sha256": "73e1ac21860e69f6e8f03fd3625022bd8d4c8e6f189c17ecc44d40f91066ed8d",
+  "predecessor_sha256": "851a465efddff08895b726767b95d74a59a690ab648222c2dc67a936a06f6f61",
+  "boot_id": "770cff12-273b-4465-899f-f9ad54d0078a",
+  "post_shutdown_reachability": "unreachable",
+  "reboot": "no",
+  "next_action": "owner-physically-selects-boot2",
+  "target_logical_name": "boot2",
+  "deployment_summary_sha256": "3e69564f01087dcaf256bb543d343f7e588c348c0b8984a03421bfdd863ef136",
+  "deployment_summary_bytes": 942,
+  "executed_tooling_commit": "3d1b12f05399f31cc2d8da3e5c0e7d1b4a3c1631",
+  "power_gate": "passed",
+  "capture_started": false,
+  "session_started": false,
+  "actual_offline_host_preparation": "passed",
+  "record_scope": "verified installation handoff before physical selection",
+  "raw_summary_published": false
+}
