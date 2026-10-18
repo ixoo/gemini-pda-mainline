@@ -1,0 +1,200 @@
+{
+  "run": "C10 paired diagnostic D3",
+  "status": "consumed once; A authenticated with initially absent neighbor; B not admitted after A success; earlier failure not reproduced",
+  "boot_id": "ccce2504-bdbf-470b-ba7c-267b61f102d0",
+  "kernel_input": "0d1f51194d7001fc9c6b9219726935ede36bc828",
+  "tooling_commit": "f45b7645",
+  "candidate_full_partition_sha256": "73e1ac21860e69f6e8f03fd3625022bd8d4c8e6f189c17ecc44d40f91066ed8d",
+  "attempts": {
+    "phase_a_capture": 1,
+    "device_sessions": 1,
+    "wifi_ssh_a": 1,
+    "device_to_laptop_ping": 0,
+    "wifi_ssh_b": 0,
+    "native_recovery_requests": 1,
+    "watcher_attempts": 2
+  },
+  "verdicts": {
+    "transport": "pass for finite observed window",
+    "dhcp": "pass",
+    "pings": "three individual replies",
+    "ssh_a": "authenticated; boot/mode/listener bound; exit 0",
+    "ssh_b": "not reached: A succeeded",
+    "cleanup": "healthy host stage 3; firmware key/queue retirement unproved",
+    "sustained_operation": "not tested"
+  },
+  "data_window": {
+    "planned_ms": 6178,
+    "actual_ms": 6205,
+    "planned_window_reached": true
+  },
+  "network": {
+    "dhcp_bound": 1,
+    "dhcp_exit": "0",
+    "dhcp_prefix": "24",
+    "dropbear_digest_ok": 1,
+    "host_ack": true,
+    "lease_written": 1,
+    "ping_received": 3,
+    "ping_transmitted": 3,
+    "wifi_sshd_ready": 1,
+    "wifi_sshd_started": 1
+  },
+  "individual_pings": [
+    {
+      "sequence": 0,
+      "ttl": 64,
+      "time_ms": 87.518
+    },
+    {
+      "sequence": 1,
+      "ttl": 64,
+      "time_ms": 109.997
+    },
+    {
+      "sequence": 2,
+      "ttl": 64,
+      "time_ms": 29.947
+    }
+  ],
+  "ssh": {
+    "arm_a": {
+      "ack_written": true,
+      "boot_match": true,
+      "closed": false,
+      "cycle": 1,
+      "elapsed_s": 6.0,
+      "marker_after_active": true,
+      "marker_boot": "ccce2504-bdbf-470b-ba7c-267b61f102d0",
+      "marker_mode": "ccmp-stable-monitor",
+      "ready_seen": true,
+      "ready_wait_s": 4.3,
+      "reason": null,
+      "ssh_attempted": true,
+      "ssh_exit": 0
+    },
+    "arm_b": null,
+    "b_not_reached": "A succeeded; missing-neighbor hypothesis not reproduced",
+    "client_elapsed_ms": 1409.688084,
+    "stdout_bytes": 173,
+    "stderr_bytes": 0,
+    "queries": [
+      {
+        "label": "route-before",
+        "exit": 71,
+        "timeout": false,
+        "category": "unknown",
+        "elapsed_ms": 4.241209,
+        "offset_from_client_start_ms": -8.053875
+      },
+      {
+        "label": "arp-before",
+        "exit": 1,
+        "timeout": false,
+        "category": "absent",
+        "elapsed_ms": 3.363083,
+        "offset_from_client_start_ms": -3.567666
+      },
+      {
+        "label": "arp-after",
+        "exit": 0,
+        "timeout": false,
+        "category": "complete",
+        "elapsed_ms": 2.716125,
+        "offset_from_client_start_ms": 1409.691875
+      }
+    ],
+    "route_error_category": "routing socket operation not permitted; no route conclusion"
+  },
+  "checked_ptk_ethernet_queued": 36,
+  "driver_events": {
+    "data_start": [
+      {
+        "sequence": 2030,
+        "time_us": 100202383,
+        "budget_ms": 6178,
+        "teardown_margin_ms": 5000,
+        "inside_grant": 1
+      }
+    ],
+    "data_end": [
+      {
+        "sequence": 2077,
+        "time_us": 106407901,
+        "elapsed_ms": 6205,
+        "rx_unicast": 0,
+        "rx_group": 0,
+        "rx_dropped": 0,
+        "tx_queued": 28,
+        "tx_done": 28,
+        "tx_failed": 0,
+        "tx_credits": 59
+      }
+    ],
+    "cleanup": [
+      {
+        "sequence": 2101,
+        "time_us": 106599860,
+        "stage": 3,
+        "deauth": 1
+      }
+    ],
+    "group1": [
+      {
+        "sequence": 2079,
+        "time_us": 106411326,
+        "uni_present": 0,
+        "uni_absent": 0,
+        "grp_present": 0,
+        "grp_absent": 0,
+        "uni_masks": 0,
+        "grp_masks": 0
+      }
+    ],
+    "key_disable": [
+      {
+        "sequence": 2111,
+        "time_us": 106665172,
+        "local": 1,
+        "removal_command_credit": 1,
+        "status": 0,
+        "no_reuse": 1
+      },
+      {
+        "sequence": 2112,
+        "time_us": 106666845,
+        "local": 1,
+        "removal_command_credit": 1,
+        "status": 0,
+        "no_reuse": 1
+      }
+    ]
+  },
+  "named_fault_counts": {
+    "join_stopped": 0,
+    "hif_refused": 0,
+    "framing_hint": 0
+  },
+  "preservation": {
+    "sealed_entries_verified": 70,
+    "seal_sha256": "4b03fd93403b6ac7d46a841e505282ea77f959e902ee7d91ff64856d45cfcf5f",
+    "log_sha256": "18708b60cbc81611e2f055e5a6647230f74a8d41846dc98471abd80f86827568",
+    "log_bytes": 169765,
+    "contiguous_log_records": 2113,
+    "complete_through_seal": true,
+    "helper_safe_group_quiescent": true,
+    "device_children_quiesced": true,
+    "regression_pass": true,
+    "recovery_confirmed": true,
+    "returned_gemian_boot": "216ec26f-5811-444c-9422-40c1b23af081",
+    "independently_confirmed_gemian": true
+  },
+  "limits": [
+    "Success with an initially absent neighbor shows resolution can work; conversion or learning mechanism unmeasured",
+    "An unknown route observation is not an absent route; no extra privileged query or retry was performed",
+    "B was intentionally skipped; no intervention comparison and no diagnosis of the earlier failures",
+    "Only acquired RX is measured; neither missing SYN attribution nor protocol of withheld groups is established",
+    "No GTK delivery, rekey, key reuse or reconnect; no firmware replay/integrity/key-retirement proof",
+    "This unchanged roughly six-second data window does not establish 60-second or ten-minute operation"
+  ]
+}

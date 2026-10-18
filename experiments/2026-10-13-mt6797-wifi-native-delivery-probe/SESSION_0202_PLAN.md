@@ -2,8 +2,9 @@
 
 The latest [reviewer reassessment](#reviewer-reassessment-before-further-implementation-or-any-build)
 puts an unchanged-C10 diagnostic choice before any new candidate build. C11's
-eligible group counts contradict the proposed all-LLC-error premise. The owner approved preparing one conditional A/B boot on C10. Complete host
-validation and the reviewed exact-image preparation before physical selection. Keep 0202 separate for the framing fault.
+eligible group counts contradict the proposed all-LLC-error premise. The owner-approved conditional C10 boot is now consumed: D3 Arm A authenticated,
+so B was skipped. The result and independent preservation/recovery checks are
+recorded below. No further C10 boot or successor build follows automatically. Keep 0202 separate for the framing fault.
 
 The earlier owner order superseded six-second successor-trial preparation:
 scan/group regression first, controlled SSH priming A/B, then a staged sustained
@@ -142,7 +143,7 @@ The sustained-client implementation is held while the C10 diagnostic is resolved
 | Router versus laptop | `join-ccmp.sh` pings the DHCP router. It does not actively prime the laptop. A pre-existing laptop neighbor entry is a measured initial condition, not evidence of an empty cache in an unprimed arm. |
 | Client deadline | The baseline explicitly uses `ConnectionAttempts=1` and `ConnectTimeout=10`. Failed C10 #2 spent ten seconds in its attempt; its data phase lasted 6,167 ms. A complete A/B pair cannot be guaranteed in unchanged C10. |
 | C11 group status | All 32 reported groups also passed the shape and eligibility gates. The pinned C11 observer calls the unchanged `mt6797_data_rx`, which requires exactly `0xc000`. These groups were therefore not all `0xc200` LLC errors. This is a source-conditioned inference from the counters, not a retained per-frame status log. |
-| Status regression | The actual-source fixture now explicitly accepts `0xc000` into observation, refuses `0xc200` from that observation, recognizes the latter as the separate LLC-mismatch discard shape, and confirms the strict PTK checker rejects the clean group without reading PN or changing replay state. All 2,718 exact-allocation cases pass locally. No GTK delivery is introduced. |
+| Status regression | The actual-source fixture now explicitly accepts `0xc000` into observation, refuses `0xc200` from that observation, recognizes the latter as the separate LLC-mismatch discard shape, and confirms the strict PTK checker rejects the clean group without reading PN or changing replay state. All 2,718 exact-allocation cases pass locally and on Linux from clean input `f45b7645`. No GTK delivery is introduced. |
 | Future candidate scope | 0202 remains a framing/format-ownership comparison. Its boot cannot substitute for unchanged C10 when explaining C10 group behavior. A future counters-only protocol classifier must be a separate logical change, not a receive-gate relaxation. |
 | Credit limits | The source admits normal TC4 limit 26, with the data TC1 pool separately limited to 16. D2 snapshot 2 retained free 14 and pending FFA 12. Do not describe that as TC4 14/16 or combine the pools. |
 | Failure ownership | The CONSYS firmware worker's `stopped` label logs and retains state; it does not tear down or poison the whole provider. HIF faults poison the HIF transaction; failed preparation closes MAC/scan admission. Preserve these fail-closed rules rather than suppressing genuine transport/accounting faults. |
@@ -151,7 +152,7 @@ The sustained-client implementation is held while the C10 diagnostic is resolved
 | Sequence limits | The initialization sender consumes one command sequence and accepts through 255. The inherited diagnostic uses `seq_ok <= 253`, historically reserving mode-command space. Fixed format removes those mode writes. Audit all remaining cleanup command needs and boundary cases before unifying these guards; a cosmetic equality of constants is not a lifetime ownership proof. |
 | Scan readiness | Failure already withholds scan-ready and logs the preparation/parent stop. A direct no-op `scan_ready` call is still silent; make that refusal explicit before a future build. |
 
-### One unchanged-C10 boot: conditional two-arm proposal
+### One unchanged-C10 boot: predeclared proposal, now consumed as D3
 
 A runs first using the original numeric lease, retained route/neighbor reads,
 one original SSH command and full D1 stdout/stderr/exit/timing retention. If A
@@ -191,12 +192,15 @@ seal and reviewed recovery remain. All raw arm/query files must be included in
 the existing recursive pre-recovery seal. Produce one public scalars file with
 both arms and one table row for this boot; no new per-run result document.
 
-Eleven [actual-source host cases](tests/ssh-paired-test.py) pass locally: A success
+Eleven [actual-source host cases](tests/ssh-paired-test.py) pass locally and on
+Linux from clean pushed input `f45b7645`: A success
 stops, separate B success preserves A failure, closed window, prime guard refusal,
 post-prime window change, unverified laptop address, unanswered ping/no retry and
 retained A timeout, exhausted original budget, no third exchange after B failure,
-and the actual CLI/receipt binding. These are host-control tests, not a device result. Linux
-validation and complete host preparation remain prerequisites to the handoff.
+and the actual CLI/receipt binding. These are host-control tests, not a device result. The complete host preparation passed before the handoff. The reviewed 603-line
+installer skipped the already-matching C10 image, verified the full readback and
+shut down cleanly. The owner then started boot2; the fresh boot and 84-byte
+kernel notes matched the validated C10 image before the one capture/session.
 
 A future group classifier may inspect bounded Ethernet/LLC header fields to
 export only ARP/IPv4/IPv6/other/SNAP booleans alongside descriptor counters. That
@@ -219,6 +223,23 @@ remain in the existing private evidence seal, not public scalars.
 
 | Run / arm | Boot ID | Transport | DHCP | Individual pings | SSH / failure stage | Cleanup | Actual / planned duration | Scalars |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| C10 D3 / A only | `ccce2504-bdbf-470b-ba7c-267b61f102d0` | finite pass | bound | 3/3 | A authenticated, exit 0; B skipped | host stage 3 clean | 6.205 / 6.178 s | [one scalars file](results/ssh-d3-runtime-scalars.json) |
+
+D3's SSH process lasted 1.410 seconds with empty stderr. Its numeric ARP read
+was absent before A and complete afterward. The route read returned exit 71,
+`Operation not permitted`; treat route state as unknown. There was no privileged
+fallback, extra query or repeat. A succeeded, so the device-to-laptop ping and B
+were not attempted. Absence of an initial entry therefore did not prevent this
+connection, but the resolution mechanism and earlier failure cause remain
+unproved. Thirty-six checked PTK frames were queued; no named transport refusal
+occurred. The data phase met its original finite budget, not a sustained stage.
+
+All 70 pre-recovery seal entries, including nested Arm A files, independently
+matched; the 169,765-byte log contains 2,113 contiguous records. Helper/device
+children quiesced, the A53 regression passed, one reviewed return ran, and a
+separate authenticated read confirmed changed-boot Gemian
+`216ec26f-5811-444c-9422-40c1b23af081`. Healthy host cleanup is not key retirement
+or firmware replay proof. No additional boot or retry is admitted by this result.
 
 No 0202 run has occurred. Stop for a physical handoff only after a validated
 build/package, reviewed session preparation and guarded install/readback/clean

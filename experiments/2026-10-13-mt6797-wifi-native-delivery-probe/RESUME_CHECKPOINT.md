@@ -1,25 +1,29 @@
 # Wi-Fi resume checkpoint — INCOMPLETE
 
-Latest reviewer reassessment: [source and harness findings](SESSION_0202_PLAN.md#reviewer-reassessment-before-further-implementation-or-any-build)
-confirm router-ping/timeout concerns but disprove the all-`0xc200` C11 premise:
-32 eligible groups passed the decoder requiring `0xc000`. The explicit expanded
-fixture passes locally; Linux validation is next. The owner approved preparing
-one unchanged-C10 boot with conditional B; its eleven host cases pass locally.
-Complete Linux checks, fresh exact-image preparation and host admission before
-the physical handoff. No device run has occurred; 0202/0203 builds stay on hold.
-Do not use a format-changed boot to settle unchanged-C10 SSH behavior.
+Latest completed device result: unchanged-C10 D3 consumed once, boot
+`ccce2504-bdbf-470b-ba7c-267b61f102d0`. [One row and analysis](SESSION_0202_PLAN.md#evidence-and-later-work)
+and [one scalars file](results/ssh-d3-runtime-scalars.json): transport, DHCP,
+three individual pings, fresh SSH A and host cleanup passed in 6.205 / 6.178 s.
+A's neighbor entry was absent before and complete afterward; route query exit 71
+is unknown (`Operation not permitted`). A succeeded, so no ping intervention or
+B attempt occurred. Earlier SSH failure remains unclassified; do not claim a
+cause. All 70 seal entries and 2,113 contiguous log records verified; device and
+helper quiescence, A53 regression and one reviewed return passed. Changed-boot
+Gemian `216ec26f-5811-444c-9422-40c1b23af081` independently confirmed.
+No process, physical handoff or additional C10 boot is pending.
 
-Latest owner correction: follow the [0202 session preparation](SESSION_0202_PLAN.md)
-before any new build. Actual-source scan/group cases and SSH A/B helper checks
-pass locally and on Linux from pushed inputs. The A/B helper is not yet bound to
-an admitted runtime. A 60-second stage conflicts with the 9-second request,
-10-second encoder ceiling and 10-second diagnostic wall. The explicit 65-second
-grant / 60-second wall exception is approved for preparation and implemented
-as the separate unbuilt 0203 patch. No kernel build or device action is admitted.
-Preserve one scalars file and one table row per future run. GTK design follows the 0202
-result; rekey/reuse/reconnect remain disabled. No physical handoff is pending.
+The [reviewer reassessment](SESSION_0202_PLAN.md#reviewer-reassessment-before-further-implementation-or-any-build)
+corrects the all-`0xc200` premise: C11's 32 eligible groups required `0xc000`.
+Expanded 2,718 actual-source cases and eleven paired-helper cases pass locally
+and on Linux from clean pushed input `f45b7645`. A new group-first researcher
+proposal is next for source/security review; it is not an implemented GTK path
+or proof of SSH causality. Preserve strict PN/integrity/ownership requirements.
+0202/0203 remain unbuilt under the owner's hold; the 65-second request /
+60-second wall exception is approved for preparation only. Keep one scalars
+file and one table row per future run; no per-run result documents. No -48
+adjustment, longer transaction deadlines, rekey, reuse or reconnect.
 
-Current continuation: [D2](SSH_D2_RESULT.md) consumed once on unchanged C10.
+Prior framing result: [D2](SSH_D2_RESULT.md) consumed once on unchanged C10.
 Port 0 advertised 94, staged descriptor 142; complete advertised PIO transfer
 then equality refusal/poison/no-copy. Fault at ENABLE_PENDING, branch 4/-71,
 23.238 ms after data-phase log, not a timeout. DHCP/pings/SSH and all local
