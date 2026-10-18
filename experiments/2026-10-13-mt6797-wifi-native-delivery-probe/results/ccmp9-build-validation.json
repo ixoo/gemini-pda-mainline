@@ -1,0 +1,28 @@
+{
+  "repository_commit": "79a2c883f2feaff6f5ed4583d05998fe73924ab6",
+  "repository_dirty": false,
+  "build_profile": "mt6797-a53-wifi-ccmp-framing-hint",
+  "kernel_release": "7.1.3-gemini-a53-wifi-ccmp-stable-monitor",
+  "modules_built": false,
+  "base_config": "defconfig",
+  "build_architecture": "x86_64",
+  "target_architecture": "arm64",
+  "toolchain_mode": "cross",
+  "patchset_sha256": "969c912b862797c68908922ba052bb9d341cdd3c480e0cc8b07bf2b0d3ead7e0",
+  "config_sha256": "483e0165368ce521f7f6e082e5acbc612c26badab7cacdc1e1cd60166f15c350",
+  "status": "validated",
+  "package_inventory_sha256": "e3f5a03788d2865f005b65b5b6b0ce193500916aa8f6f1eb3b6250651fdb7d15",
+  "inventory_members": 850,
+  "image_gz_sha256": "e1d5c1d748dc6228e87a9ac1050ce7d3588bca9145d015f0c45c2df2e42f268f",
+  "completed_utc": "2026-10-18T00:33:22Z",
+  "source_file_sha256": {
+    "mac.c": "ec6f81b87b9a81465c88ba217af6e6ff2b6e9178e1adaaba454107576b77659b",
+    "hif.c": "5b499e5bab26811bfabfc5dc23ff02f8632d9cc0fd6ec7480eaeed23e9161a3e",
+    "hif.h": "6f24b623ba10f9efeb9db759ba5cd5fe3daeb7feaac717594f61039c74a0d8ce"
+  },
+  "sanitizer_applied_source": "ASan/UBSan pass; Linux non-PIE convention",
+  "sanitizer_output_bound_bytes": 1048576,
+  "test_runner_sha256": "a1307d27287c58a2b5aefc9b9a1eba9e41a451a95331d496de8df60c918b00a0",
+  "dtbs_compiled": 123,
+  "device_action": "none"
+}

@@ -1,6 +1,6 @@
 # Refused descriptor framing: two retained failure-only scalars
 
-Status: authored and locally tested observation, no build or candidate yet, 2026-10-18 UTC. [C8](CCMP8_RESULT.md) is consumed. The complete
+Status: built and privately composed observation, no runtime result yet, 2026-10-18 UTC. [C8](CCMP8_RESULT.md) is consumed. The complete
 goal remains ordinary secure Wi-Fi, DHCP/three replies/ten-minute authenticated
 SSH and healthy reconnect; this observation does not replace those gates.
 
@@ -109,8 +109,9 @@ Profile `mt6797-a53-wifi-ccmp-framing-hint` selects C8's 693 ordered patches
 plus 0199 with identical 26 fragments. All existing named profiles/series are
 unchanged; canonical order and all 32 profile checks pass. Strict checkpatch
 reports only the deliberately absent truthful DCO sign-off (one error, zero
-warnings/checks) on this internal non-certifying archive. Linux tests and an
-ordinary clean pushed Buildbox build remain required before a real package,
-receipt or deployment. No C9 runtime is selected by these host test results.
+warnings/checks) on this internal non-certifying archive. Linux actual-source
+tests and the ordinary clean pushed Buildbox build subsequently passed.
+[C9 preparation](CCMP9_PREPARATION.md) pins the real package, receipt and
+installer review; no runtime outcome is implied by those host results.
 
 Proposal SHA-256: `c3dba8b04ec1a9c3f509e497d915dc9b487d74637f1670827715beb79fce461a`.

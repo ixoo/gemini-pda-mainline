@@ -8,8 +8,9 @@ changed-boot Gemian independently confirmed; no unchanged retry or support claim
 
 Next authored observation: [refused framing fields](REFUSED_RXD_FRAMING_SUCCESSOR.md)
 retains two bounded, untrusted scalars from the existing failed transfer.
-Local actual-source tests pass; Linux/build validation is pending. Keep equality,
-complete transfer and poison/no-copy. No real successor candidate, credit-policy
+Actual-source tests and Buildbox validation pass;
+[C9 preparation](CCMP9_PREPARATION.md) pins the real candidate. Keep equality,
+complete transfer and poison/no-copy. No runtime result, credit-policy
 change, timeout extension or 48-byte framing exception is selected.
 
 | Field | Value |

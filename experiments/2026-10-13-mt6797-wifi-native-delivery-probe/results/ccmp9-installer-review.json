@@ -1,0 +1,15 @@
+{
+  "status": "offline-reviewed",
+  "frozen_c8_installer_sha256": "4e16f2a76ce230e59fa7d199d2ea68abbee9853662a215beda3f27afc8832009",
+  "derived_installer_sha256": "db26af175ff70b8a5477dbd8ffe280f0cc40e15f51ae35c2997e59536c54fe4c",
+  "derived_lines": 603,
+  "whole_shell_delta": "exact candidate, tool identity and predecessor substitutions only",
+  "bash_syntax": "pass",
+  "shellcheck": "pass",
+  "boot2_guard_sha256": "0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf",
+  "candidate_manifest_sha256": "a8f83b101371f8fb81f93c94777bf551d95140c5dba408d463f00475397a81c8",
+  "full_boot2_sha256": "851a465efddff08895b726767b95d74a59a690ab648222c2dc67a936a06f6f61",
+  "expected_predecessor_sha256": "e3c347f1f45a942746dec025a5666242807c849fdc91f71c5fb9279c73e0ec66",
+  "previous_gemian_boot": "8cffe5a0-4a2e-4441-aa93-1cc8be97cd59",
+  "device_action": "none"
+}
