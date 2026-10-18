@@ -5,9 +5,9 @@ before any new build. Actual-source scan/group cases and SSH A/B helper checks
 pass locally and on Linux from pushed inputs. The A/B helper is not yet bound to
 an admitted runtime. A 60-second stage conflicts with the 9-second request,
 10-second encoder ceiling and 10-second diagnostic wall. The explicit 65-second
-grant / 60-second wall proposal is pending owner response; no limit change,
-kernel build or device action is authorized by this checkpoint. Preserve one
-scalars file and one table row per future run. GTK design follows the 0202
+grant / 60-second wall exception is approved for preparation and implemented
+as the separate unbuilt 0203 patch. No kernel build or device action is admitted.
+Preserve one scalars file and one table row per future run. GTK design follows the 0202
 result; rekey/reuse/reconnect remain disabled. No physical handoff is pending.
 
 Current continuation: [D2](SSH_D2_RESULT.md) consumed once on unchanged C10.
@@ -27,8 +27,9 @@ No host framing correction is proved. The [follow-up source review/proposal](RX_
 selects one fixed-format ownership comparison: initialize before scan-ready,
 retain the format for the firmware instance, keep data-window/crypto gates.
 Exact C10 EAPOL headers passed 48 existing cases on Linux with ASan/UBSan.
-Next implement/review this single default-off comparison and focused fixtures;
-no build or execution is admitted. Do not repeat D2 or build under the owner's hold.
+The [0202 prototype](FIXED_RX_FORMAT_PREPARATION.md) is implemented and passes
+1482 local ASan/UBSan cases plus RX/option-off comparisons. Linux host validation
+and patch review are next; no kernel build or execution is admitted. Do not repeat D2 or build under the owner's hold.
 
 The [three-run C10 baseline](CCMP10_BASELINE.md) remains SSH 2/3, all its finite
 transport/network/host-cleanup windows passed. [D1](SSH_D1_RESULT.md) passed

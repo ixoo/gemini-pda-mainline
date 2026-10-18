@@ -1,0 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-only
+# Unbuilt fixed-format comparison plus approved 60-second observation.
+# Original PTK resource caps, transaction timeouts and cleanup limits.
+CONFIG_MT6797_CCMP_FIXED_RX_FORMAT=y

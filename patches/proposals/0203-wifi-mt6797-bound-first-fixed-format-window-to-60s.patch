@@ -1,0 +1,86 @@
+From 5c8b999009cd5d44b69dce2aecdf8dedf79096b6 Mon Sep 17 00:00:00 2001
+From: Codex Experiment <codex-experiment@example.invalid>
+Date: Sun, 18 Oct 2026 12:28:17 -0400
+Subject: [PATCH] wifi: mt6797: bound first fixed-format window to 60s
+
+Narrowly admit one 65000 ms channel request for the fixed-format experiment. Require at least 62500 ms actual grant remaining at data opening, preserve the 2500 ms tail and 5000 ms teardown margin, and use a 60000 ms observation wall. Keep all resource caps and command/frame deadlines unchanged. A short grant is refused with ERANGE before opening data.
+
+Internal experiment archive, synthetic non-certifying author identity; no DCO certification and not an upstream submission.
+---
+ .../net/wireless/mediatek/mt6797/join-commands.h |  5 +++++
+ drivers/net/wireless/mediatek/mt6797/mac.c       | 16 ++++++++++++++++
+ .../net/wireless/mediatek/mt6797/native-diag.h   |  5 +++++
+ 3 files changed, 26 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-commands.h b/drivers/net/wireless/mediatek/mt6797/join-commands.h
+index 1438d3e..d67be6c 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join-commands.h
++++ b/drivers/net/wireless/mediatek/mt6797/join-commands.h
+@@ -170,7 +170,12 @@ mt6797_join_channel_payload(unsigned char token, unsigned char channel,
+ 	unsigned int i;
+ 
+ 	if (!output || !token || (!abort &&
++#ifdef CONFIG_MT6797_CCMP_FIXED_RX_FORMAT
++	    (channel != 40 || !interval_ms ||
++	     (interval_ms > 10000 && interval_ms != 65000))))
++#else
+ 	    (channel != 40 || !interval_ms || interval_ms > 10000)))
++#endif
+ 		return false;
+ 	p[1] = token; /* BSS 0, project-owned single-use token. */
+ 	p[2] = abort; /* Request 0, abort 1. */
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 5b3aa3c..0de25dd 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -1935,6 +1935,18 @@ static int mt6797_mac_join_release_channel(struct mt6797_mac *mac)
+ 	if (!mac->join_channel_granted || mac->join_channel_released ||
+ 	    mac->join_data_phase || mac->join_page_debt || mac->join_credit_pending)
+ 		return -EBUSY;
++#ifdef CONFIG_MT6797_CCMP_FIXED_RX_FORMAT
++	/* A shorter grant cannot qualify as a shortened 60-second trial. */
++	if (mac->join_grant_deadline <= now || mac->join_grant_deadline - now <
++	    (u64)(MT6797_JOIN_DATA_BUDGET_MS + MT6797_JOIN_GRANT_TAIL_MS) * NSEC_PER_MSEC) {
++		dev_info(wiphy_dev(mac->hw->wiphy),
++			 "one-shot WLAN fixed RX window refused: remaining_ms=%llu required_ms=%u\n",
++			 mac->join_grant_deadline > now ?
++			 (mac->join_grant_deadline - now) / NSEC_PER_MSEC : 0,
++			 MT6797_JOIN_DATA_BUDGET_MS + MT6797_JOIN_GRANT_TAIL_MS);
++		return -ERANGE;
++	}
++#endif
+ 	if (mac->join_grant_deadline <= now + (u64)MT6797_JOIN_GRANT_TAIL_MS * NSEC_PER_MSEC)
+ 		return -ETIMEDOUT;
+ 	budget_end = now + (u64)MT6797_JOIN_DATA_BUDGET_MS * NSEC_PER_MSEC;
+@@ -3730,7 +3742,11 @@ static int mt6797_mac_join_add_peer(struct mt6797_mac *mac,
+ 		goto failed;
+ 	/* A fresh token is reserved once, before the first request write. */
+ 	mac->join_channel_token = 1;
++#ifdef CONFIG_MT6797_CCMP_FIXED_RX_FORMAT
++	mac->join_requested_ms = 65000;
++#else
+ 	mac->join_requested_ms = 9000;
++#endif
+ 	mac->join_channel_pending = true;
+ 	reinit_completion(&mac->join_channel_done);
+ 	grant_wait = min_t(u64, mac->join_deadline,
+diff --git a/drivers/net/wireless/mediatek/mt6797/native-diag.h b/drivers/net/wireless/mediatek/mt6797/native-diag.h
+index 2c6e034..7730ee8 100644
+--- a/drivers/net/wireless/mediatek/mt6797/native-diag.h
++++ b/drivers/net/wireless/mediatek/mt6797/native-diag.h
+@@ -13,7 +13,12 @@
+ /* Root-admitted first-window ceilings; the lower existing data-phase ceilings
+  * (MT6797_JOIN_DATA_RX_MAX etc.) also stop the run, checked by the caller.
+  */
++#ifdef CONFIG_MT6797_CCMP_FIXED_RX_FORMAT
++/* One admitted 60-second observation; resource caps below remain independent. */
++#define MT6797_NATIVE_DIAG_WALL_MS    60000U
++#else
+ #define MT6797_NATIVE_DIAG_WALL_MS    10000U        /* 10 s post-switch wall */
++#endif
+ #define MT6797_NATIVE_DIAG_RX_MAX     512U          /* total RX frames admitted */
+ #define MT6797_NATIVE_DIAG_NATIVE_MAX 64U           /* protected-native ordinary frames */
+ #define MT6797_NATIVE_DIAG_BYTES_MAX  (1024U * 1024U) /* 1 MiB total RX bytes */
+-- 
+2.54.0 (Apple Git-157)
+

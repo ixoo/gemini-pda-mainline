@@ -1,0 +1,464 @@
+From 6dbeae563e6d8e46921293593be9bb6b41287fb3 Mon Sep 17 00:00:00 2001
+From: Codex Experiment <codex-experiment@example.invalid>
+Date: Sun, 18 Oct 2026 12:03:31 -0400
+Subject: [PATCH] wifi: mt6797: compare firmware-lifetime fixed RX format
+
+D2 refused an enable-time 94/142 packet after earlier close-time differences of the opposite sign. Configure the exact observed mask once before scan-ready, with startup normal-credit ownership and the same absolute 100 ms limit. Keep data windows local and reject join-owned mask writes.
+
+Preserve RX equality, complete transfer, poison/no-copy, crypto and lifetime ceilings. Configuration credit is not firmware application, queue retirement or integrity proof. GTK, rekey, reuse and reconnect remain disabled.
+
+Internal experiment archive, synthetic non-certifying author identity; no DCO certification and not an upstream submission.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig  |  11 ++
+ drivers/net/wireless/mediatek/mt6797/hif.c    |  60 ++++++++++
+ drivers/net/wireless/mediatek/mt6797/hif.h    |   9 ++
+ .../mediatek/mt6797/join-command-submit.h     |   5 +
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 106 ++++++++++++++++++
+ drivers/net/wireless/mediatek/mt6797/mac.h    |   4 +
+ .../wireless/mediatek/mt6797/native-diag.h    |  14 +++
+ .../wireless/mediatek/mt6797/normal_command.h |  24 ++++
+ drivers/soc/mediatek/mt6797-consys.c          |   4 +
+ 9 files changed, 237 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index 9be3a5c..e430dfa 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -104,6 +104,17 @@ config MT6797_CCMP_STABLE_EPOCH
+ 	  production are not supported. The read-only ccmp_stable_epoch arm is
+ 	  mutually exclusive with native_delivery_diag. No IRQ/DMA changes.
+ 
++config MT6797_CCMP_FIXED_RX_FORMAT
++	bool "MT6797 default-off firmware-lifetime RX format comparison"
++	depends on MT6797_CCMP_MASK_CONTROL && MT6797_HIF_TX_STATUS_PROBE
++	default n
++	help
++	  Configure the observed fixed metadata mask once after initial TC4
++	  reconciliation, before scan-ready. Keep its format for the firmware
++	  instance; station data-window transitions are local, without mask
++	  commands. Preserve all initial-PTK limits and rejection gates. No
++	  firmware queue fence, integrity, key reuse or maintained support claim.
++
+ config MT6797_CCMP_MASK_CONTROL
+ 	bool "MT6797 default-off observed mask-only control comparison"
+ 	depends on MT6797_CCMP_STABLE_EPOCH
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 501dda8..2707ff2 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -41,6 +41,9 @@ struct mt6797_hif {
+ 	bool tx_status_accounting_baseline;
+ 	bool port0_reported;
+ 	bool port0_attempted;
++#ifdef CONFIG_MT6797_CCMP_FIXED_RX_FORMAT
++	bool rx_format_attempted;
++#endif
+ 	int first_error;
+ 	u8 scratch[2560];
+ };
+@@ -966,6 +969,63 @@ unlock:
+ 	return error;
+ }
+ 
++#ifdef CONFIG_MT6797_CCMP_FIXED_RX_FORMAT
++/* Caller excludes all other normal senders until the one-page debit retires.
++ * Credit is command-buffer retirement, not a firmware application/queue fence.
++ */
++int mt6797_hif_configure_rx_format(struct mt6797_hif *hif,
++		unsigned int sequence, u64 deadline_ns, enum mt6797_rx_format_phase *phase)
++{
++	struct mt6797_hif_tx_status status;
++	struct mt6797_normal_release account;
++	u8 payload[MT6797_DIAG_MASK_BYTES];
++	u64 now = ktime_get_ns();
++	bool submitted = false;
++	int ret;
++
++	if (!phase)
++		return -EINVAL;
++	*phase = MT6797_RX_FORMAT_ADMISSION;
++	if (!hif || (deadline_ns > now && deadline_ns - now > 100000000ULL))
++		return -EINVAL;
++	if (!mutex_trylock(&hif->mutex))
++		return -EBUSY;
++	if (hif->first_error || !hif->tx_status_accounting_baseline ||
++	    !hif->tx_status_normal_attempted)
++		ret = -EIO;
++	else
++		ret = hif->rx_format_attempted ? -EALREADY : 0;
++	if (!ret)
++		hif->rx_format_attempted = true;
++	mutex_unlock(&hif->mutex);
++	if (ret)
++		return ret;
++	mt6797_diag_mask_payload(true, payload);
++	*phase = MT6797_RX_FORMAT_PRIOR_CREDIT;
++	for (;;) {
++		if (mt6797_hif_normal_idle(hif)) {
++			if (submitted) {
++				*phase = MT6797_RX_FORMAT_DONE;
++				return 0;
++			}
++			/* Retire prior normal configuration before charging this page. */
++			*phase = MT6797_RX_FORMAT_SUBMIT;
++			ret = mt6797_hif_send_config(hif, MT6797_NORMAL_RX_FORMAT, sequence,
++						   payload, sizeof(payload), deadline_ns);
++			if (ret)
++				return ret;
++			submitted = true;
++			*phase = MT6797_RX_FORMAT_CREDIT;
++		}
++		ret = mt6797_hif_reconcile_runtime(hif, deadline_ns, &status, &account);
++		if (ret)
++			return ret;
++		if (!mt6797_hif_normal_idle(hif))
++			usleep_range(20000, 21000);
++	}
++}
++#endif
++
+ #if IS_ENABLED(CONFIG_MT6797_SCAN_TUNING_SAMPLE)
+ int mt6797_hif_send_scan_tuning(struct mt6797_hif *hif, unsigned int role,
+ 				unsigned int sequence, u64 deadline_ns)
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index d44064e..0b1e4dd 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -12,6 +12,15 @@
+ #include "normal_command.h"
+ 
+ struct mt6797_hif;
++#ifdef CONFIG_MT6797_CCMP_FIXED_RX_FORMAT
++enum mt6797_rx_format_phase {
++	MT6797_RX_FORMAT_ADMISSION, MT6797_RX_FORMAT_PRIOR_CREDIT,
++	MT6797_RX_FORMAT_SUBMIT, MT6797_RX_FORMAT_CREDIT, MT6797_RX_FORMAT_DONE,
++};
++/* SUBMIT names an attempted call, not a complete transfer or firmware ACK. */
++int mt6797_hif_configure_rx_format(struct mt6797_hif *hif,
++		unsigned int sequence, u64 deadline_ns, enum mt6797_rx_format_phase *phase);
++#endif
+ 
+ struct mt6797_hif_section_request {
+ 	enum mt6797_section_kind kind;
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-command-submit.h b/drivers/net/wireless/mediatek/mt6797/join-command-submit.h
+index db7657d..66eb305 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join-command-submit.h
++++ b/drivers/net/wireless/mediatek/mt6797/join-command-submit.h
+@@ -46,6 +46,10 @@ mt6797_join_prepare_command(struct mt6797_normal_transaction *t,
+ 		break;
+ #ifdef CONFIG_MT6797_CCMP_MASK_CONTROL
+ 	case 0xc0:
++#ifdef CONFIG_MT6797_CCMP_FIXED_RX_FORMAT
++		/* Firmware-lifetime format belongs only to the initialization owner. */
++		return -EINVAL;
++#else
+ 		/* Only the exact observed store; reject lengths before field reads. */
+ 		if (bytes != MT6797_DIAG_MASK_BYTES ||
+ 		    mt6797_join_le32(payload) != MT6797_DIAG_MASK_TARGET ||
+@@ -54,6 +58,7 @@ mt6797_join_prepare_command(struct mt6797_normal_transaction *t,
+ 			return -EINVAL;
+ 		required = MT6797_DIAG_MASK_BYTES;
+ 		break;
++#endif
+ #elif defined(CONFIG_MT6797_NATIVE_DELIVERY_DIAG)
+ 	case 0xfc:
+ 		/* CMD_ID_SET_MONITOR, the default-off native-crypto-delivery
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 6ad2cc8..5b3aa3c 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -249,6 +249,9 @@ struct mt6797_mac {
+ 	u64 scan_deadline, scan_started_ns;
+ 	unsigned int scan_channels, scan_count, scan_polls, scan_packets;
+ 	bool scan_ready, started, scan_used, scan_active, bss_active;
++#ifdef CONFIG_MT6797_CCMP_FIXED_RX_FORMAT
++	bool rx_format_attempted, rx_format_ready;
++#endif
+ 	bool scan_beacon, scan_credit, scan_frame_seen;
+ #if IS_ENABLED(CONFIG_MT6797_SCAN_TUNING_SAMPLE)
+ 	u64 tuning_sent_ns, tuning_deadline;
+@@ -1795,8 +1798,31 @@ static void mt6797_native_diag_step(struct mt6797_mac *mac)
+ 	c.seq_ok = mac->sequence <= 253;
+ 	c.budget_stop = mac->native_diag_sample_done ||
+ 			mt6797_native_diag_budget_step(&b) == MT6797_NATIVE_DIAG_STOP;
++#ifdef CONFIG_MT6797_CCMP_FIXED_RX_FORMAT
++	if (!mac->rx_format_ready || c.state == MT6797_ND_ENABLE_PENDING ||
++	    c.state == MT6797_ND_DISABLE_PENDING) {
++		if (!mac->first_error)
++			mac->first_error = -EIO;
++		mac->closing = true;
++		return;
++	}
++#endif
+ 	act = mt6797_native_diag_transition(&c);
+ 	mac->native_diag_state = c.state;
++#ifdef CONFIG_MT6797_CCMP_FIXED_RX_FORMAT
++	/* The firmware-lifetime format is already credited; no runtime command. */
++	if (act == MT6797_ND_ACT_LATCH_NORADIO) {
++		if (!mac->first_error)
++			mac->first_error = -ETIMEDOUT;
++		mac->closing = true;
++	} else if (act != MT6797_ND_ACT_NONE) {
++		if (!mac->first_error)
++			mac->first_error = -EIO;
++		mac->closing = true;
++		mac->native_diag_state = MT6797_ND_CLOSED;
++	}
++	goto report;
++#endif
+ 	if (act == MT6797_ND_ACT_SUBMIT_ENABLE || act == MT6797_ND_ACT_SUBMIT_DISABLE) {
+ #ifdef CONFIG_MT6797_CCMP_MASK_CONTROL
+ 		rc = mt6797_hif_diag_mask(mac->hif, mac->sequence++,
+@@ -1833,12 +1859,19 @@ static void mt6797_native_diag_step(struct mt6797_mac *mac)
+ 			mac->first_error = -ETIMEDOUT;
+ 		mac->closing = true;
+ 	}
++#ifdef CONFIG_MT6797_CCMP_FIXED_RX_FORMAT
++report:
++#endif
+ 	if (prev != MT6797_ND_CLOSED && mac->native_diag_state == MT6797_ND_CLOSED &&
+ 	    mac->native_diag_engaged)
+ 		mt6797_mac_join_end_data(mac, "native-diag");
+ 	if (prev != MT6797_ND_ACTIVE && mac->native_diag_state == MT6797_ND_ACTIVE) {
+ 		u64 wall = now + (u64)MT6797_NATIVE_DIAG_WALL_MS * NSEC_PER_MSEC;
+ 
++#ifdef CONFIG_MT6797_CCMP_FIXED_RX_FORMAT
++		/* Hardware format was configured before scan-ready, not here. */
++		mac->native_diag_engaged = true;
++#endif
+ 		mac->native_diag_started = now;
+ 		if (wall < mac->join_data_deadline)
+ 			mac->join_data_deadline = wall;	/* wall even on an empty RX stream */
+@@ -2188,6 +2221,12 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ #ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
+ 	mt6797_native_diag_step(mac);
++#ifdef CONFIG_MT6797_CCMP_FIXED_RX_FORMAT
++	if (mac->first_error || mac->closing) {
++		ret = mac->first_error ? mac->first_error : -EIO;
++		goto failed;
++	}
++#endif
+ #endif
+ 	if (mac->join_data_phase && !mac->join_data_ended &&
+ 	    ktime_get_ns() >= mac->join_data_deadline)
+@@ -3174,6 +3213,20 @@ static void mt6797_mac_scan_work(struct work_struct *work)
+ 			ret = mt6797_hif_receive_runtime_packet(mac->hif, port, deadline,
+ 								mac->scan_packet,
+ 								sizeof(mac->scan_packet), &rx);
++#ifdef CONFIG_MT6797_CCMP_FIXED_RX_FORMAT
++			if (ret == -EPROTO && rx.protocol_refusal != MT6797_HIF_RX_REFUSAL_NONE) {
++				dev_info(wiphy_dev(mac->hw->wiphy),
++					 "one-shot WLAN fixed RX scan refused: port=%u pre_valid=%u pre_wrplr=0x%08x selected=%u header_valid=%u header=%u setup=%u complete=%u staging=%zu type_valid=%u type_word=0x%04x\n",
++					 port, rx.pre_valid, rx.pre_wrplr, rx.selected_length,
++					 rx.header_valid, rx.header_length, rx.rx_setup,
++					 rx.rx_complete, rx.staging_bytes,
++					 rx.refused_type_valid, rx.refused_type_word);
++				dev_info(wiphy_dev(mac->hw->wiphy),
++					 "one-shot WLAN fixed RX scan framing hint: base_valid=%u header_control=0x%02x status_flags=0x%04x\n",
++					 rx.refused_base_valid, rx.refused_header_control,
++					 rx.refused_status_flags);
++			}
++#endif
+ 			if (ret == -EAGAIN) {
+ 				ret = 0;
+ 				continue;
+@@ -4739,14 +4792,67 @@ free_hw:
+ 	return ret;
+ }
+ 
++
++#ifdef CONFIG_MT6797_CCMP_FIXED_RX_FORMAT
++int mt6797_mac_prepare_rx_format(struct ieee80211_hw *hw)
++{
++	struct mt6797_mac *mac = hw->priv;
++	enum mt6797_rx_format_phase phase = MT6797_RX_FORMAT_ADMISSION;
++	int ret;
++
++	ASSERT_RTNL();
++	mutex_lock(&mac->mutex);
++	if (mac->rx_format_attempted || mac->scan_ready || mac->started ||
++	    mac->vif || mac->scan_used || !mac->configured ||
++	    mac->closing || mac->first_error || mac->sequence > 255) {
++		ret = mac->first_error ? mac->first_error : -EIO;
++	} else {
++		mac->rx_format_attempted = true;
++		ret = mt6797_hif_configure_rx_format(mac->hif, mac->sequence++,
++				ktime_get_ns() + 100 * NSEC_PER_MSEC, &phase);
++	}
++	if (ret) {
++		if (!mac->first_error)
++			mac->first_error = ret;
++		mac->closing = true;
++		mac->rx_format_ready = false;
++		mac->scan_ready = false;
++	} else {
++		mac->rx_format_ready = true;
++	}
++	dev_info(wiphy_dev(hw->wiphy),
++		 "one-shot WLAN fixed RX format: status=%d phase=%u credited=%u mask=7 scope=firmware\n",
++		 ret, (unsigned int)phase, (unsigned int)!ret);
++	if (ret) {
++		struct mt6797_hif_ledger ledger;
++
++		/* Last host accounting, not a fresh register acquisition. */
++		mt6797_hif_normal_ledger(mac->hif, &ledger);
++		dev_info(wiphy_dev(hw->wiphy),
++			 "one-shot WLAN fixed RX host ledger: locked=%u phase=%u free=%u limit=%u cpu=%u ffa=%u\n",
++			 ledger.locked, ledger.phase, ledger.tc4_free, ledger.tc4_limit,
++			 ledger.pending_cpu, ledger.pending_ffa);
++	}
++	mutex_unlock(&mac->mutex);
++	return ret;
++}
++#endif
++
+ void mt6797_mac_scan_ready(struct ieee80211_hw *hw)
+ {
+ #if IS_ENABLED(CONFIG_MT6797_PASSIVE_SCAN)
+ 	struct mt6797_mac *mac = hw->priv;
+ 
+ 	mutex_lock(&mac->mutex);
++#ifdef CONFIG_MT6797_CCMP_FIXED_RX_FORMAT
++	if (!mac->rx_format_ready)
++		goto unlock;
++#endif
+ 	if (mac->configured && !mac->closing && !mac->first_error)
+ 		mac->scan_ready = true;
++#ifdef CONFIG_MT6797_CCMP_FIXED_RX_FORMAT
++unlock:
++#endif
+ 	mutex_unlock(&mac->mutex);
+ #endif
+ }
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.h b/drivers/net/wireless/mediatek/mt6797/mac.h
+index 6fa6aa9..6d7e1d2 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.h
++++ b/drivers/net/wireless/mediatek/mt6797/mac.h
+@@ -25,5 +25,9 @@ int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+  * standard station-type scan interface. Other profiles stay unavailable.
+  */
+ void mt6797_mac_scan_ready(struct ieee80211_hw *hw);
++#ifdef CONFIG_MT6797_CCMP_FIXED_RX_FORMAT
++/* Parent has reconciled initial TC4 and holds RTNL; scan-ready is still closed. */
++int mt6797_mac_prepare_rx_format(struct ieee80211_hw *hw);
++#endif
+ 
+ #endif
+diff --git a/drivers/net/wireless/mediatek/mt6797/native-diag.h b/drivers/net/wireless/mediatek/mt6797/native-diag.h
+index 3c30312..2c6e034 100644
+--- a/drivers/net/wireless/mediatek/mt6797/native-diag.h
++++ b/drivers/net/wireless/mediatek/mt6797/native-diag.h
+@@ -97,6 +97,10 @@ mt6797_native_diag_retire_step(unsigned int reads, unsigned int bytes,
+  * no new workqueue. The wiring executes the returned action (charge the one page
+  * + credit deadline on a submit, or set first_error+closing on a latch).
+  */
++/* Fixed-format builds use only local IDLE/ACTIVE/CLOSED window states.
++ * Their hardware format was credited before scan-ready and is not retired
++ * by this window; no state transition proves key or firmware queue retirement.
++ */
+ enum mt6797_native_diag_state {
+ 	MT6797_ND_IDLE,
+ 	MT6797_ND_ENABLE_PENDING,
+@@ -134,8 +138,13 @@ mt6797_native_diag_transition(struct mt6797_native_diag_ctx *c)
+ 		if (c->poisoned)
+ 			return MT6797_ND_ACT_NONE;
+ 		if (c->armed && c->data_phase && c->quiescent && c->seq_ok) {
++#ifdef CONFIG_MT6797_CCMP_FIXED_RX_FORMAT
++			c->state = MT6797_ND_ACTIVE;
++			return MT6797_ND_ACT_NONE;
++#else
+ 			c->state = MT6797_ND_ENABLE_PENDING;
+ 			return MT6797_ND_ACT_SUBMIT_ENABLE;
++#endif
+ 		}
+ 		return MT6797_ND_ACT_NONE;
+ 	case MT6797_ND_ENABLE_PENDING:
+@@ -167,8 +176,13 @@ mt6797_native_diag_transition(struct mt6797_native_diag_ctx *c)
+ 				c->state = MT6797_ND_CLOSED;
+ 				return MT6797_ND_ACT_LATCH_NORADIO;
+ 			}
++#ifdef CONFIG_MT6797_CCMP_FIXED_RX_FORMAT
++			c->state = MT6797_ND_CLOSED;
++			return MT6797_ND_ACT_NONE;
++#else
+ 			c->state = MT6797_ND_DISABLE_PENDING;
+ 			return MT6797_ND_ACT_SUBMIT_DISABLE;
++#endif
+ 		}
+ 		return MT6797_ND_ACT_NONE;
+ 	case MT6797_ND_DISABLE_PENDING:
+diff --git a/drivers/net/wireless/mediatek/mt6797/normal_command.h b/drivers/net/wireless/mediatek/mt6797/normal_command.h
+index fcb2b46..ab3ed2d 100644
+--- a/drivers/net/wireless/mediatek/mt6797/normal_command.h
++++ b/drivers/net/wireless/mediatek/mt6797/normal_command.h
+@@ -3,6 +3,9 @@
+ #ifndef GEMINI_NORMAL_COMMAND_H
+ #define GEMINI_NORMAL_COMMAND_H
+ #include "hif_command.h"
++#ifdef CONFIG_MT6797_CCMP_FIXED_RX_FORMAT
++#include "join-commands.h"
++#endif
+ 
+ #define MT6797_NORMAL_CAP_BYTES 124U
+ #define MT6797_NORMAL_NVRAM_BYTES 520U
+@@ -24,6 +27,9 @@ enum mt6797_normal_config_kind {
+ 	MT6797_NORMAL_RSSI = 0x43,
+ 	MT6797_NORMAL_NVRAM_SETTINGS = 0x48,
+ 	MT6797_NORMAL_COUNTRY_POWER = 0x49,
++#ifdef CONFIG_MT6797_CCMP_FIXED_RX_FORMAT
++	MT6797_NORMAL_RX_FORMAT = 0xc0,
++#endif
+ };
+ enum mt6797_normal_phase {
+ 	MT6797_NORMAL_COLD, MT6797_NORMAL_IDLE, MT6797_NORMAL_CAP_TX,
+@@ -373,6 +379,9 @@ mt6797_normal_prepare_config(struct mt6797_normal_transaction *t,
+ 	 * bounded scan owner only. Never replay manufacture data.
+ 	 */
+ 	if (previous == MT6797_NORMAL_NVRAM_SUBMITTED &&
++#ifdef CONFIG_MT6797_CCMP_FIXED_RX_FORMAT
++	    kind != MT6797_NORMAL_RX_FORMAT &&
++#endif
+ 	    kind != MT6797_NORMAL_DOMAIN && kind != MT6797_NORMAL_TX_CTRL &&
+ 	    kind != MT6797_NORMAL_SCAN_V2 && kind != MT6797_NORMAL_BSS_ACTIVE &&
+ 	    kind != MT6797_NORMAL_SCAN_CANCEL &&
+@@ -386,6 +395,21 @@ mt6797_normal_prepare_config(struct mt6797_normal_transaction *t,
+ 	    previous != MT6797_NORMAL_NVRAM_SUBMITTED)
+ 		return mt6797_normal_abort(t);
+ 	switch (kind) {
++#ifdef CONFIG_MT6797_CCMP_FIXED_RX_FORMAT
++	case MT6797_NORMAL_RX_FORMAT:
++		if (previous != MT6797_NORMAL_NVRAM_SUBMITTED)
++			return mt6797_normal_abort(t);
++		if (payload_bytes != MT6797_DIAG_MASK_BYTES ||
++		    mt6797_join_le32(payload) != MT6797_DIAG_MASK_TARGET ||
++		    mt6797_join_le32(payload + 4) != 7)
++			return -EINVAL;
++		if (t->tc4_free != t->tc4_limit || t->tc4_pending_cpu ||
++		    t->tc4_pending_ffa || t->tc1_pending ||
++		    t->tc1_free != t->tc1_limit)
++			return -EBUSY;
++		required = MT6797_DIAG_MASK_BYTES;
++		break;
++#endif
+ 	case MT6797_NORMAL_SCAN_BROADCAST:
+ 		/* Only the source-defined broadcast request for this scan owner. */
+ 		if (payload_bytes != 4 || payload[0] != 8 || payload[1] ||
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index 8b607f8..3296f53 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -1112,6 +1112,10 @@ static void mt6797_consys_probe_firmware_start(struct device *dev,
+ 	/* The only later normal sender is the RTNL-serialized notifier. */
+ 	rtnl_lock();
+ 	ret = mt6797_consys_observe_tx_status(dev, owner, true);
++#ifdef CONFIG_MT6797_CCMP_FIXED_RX_FORMAT
++	if (!ret)
++		ret = mt6797_mac_prepare_rx_format(owner->wlan_hw);
++#endif
+ 	rtnl_unlock();
+ 	if (ret)
+ 		goto stopped;
+-- 
+2.54.0 (Apple Git-157)
+

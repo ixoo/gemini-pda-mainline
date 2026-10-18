@@ -95,7 +95,8 @@ Current C10 limits, also retained by the ownership prototype:
 | `join-ccmp.sh`: listener 90 seconds, overall 300 seconds | Blocks later 120/600-second stages. Its current SSH proof is one exchange, not sustained authenticated traffic. |
 | Teardown 5,000 ms; grant tail 2,500 ms; command 100 ms; frame/drain 750 ms | Preserve these failure/cleanup limits; do not make timeouts disappear by increasing them. |
 
-Proposed first-stage delta, **not implemented or approved by this preparation**:
+Owner-approved first-stage preparation, implemented as a separate unbuilt
+[0203 patch](../../patches/proposals/0203-wifi-mt6797-bound-first-fixed-format-window-to-60s.patch):
 request 65,000 ms and narrowly admit that request in the encoder; retain the
 matching token/channel grant validation and refuse a nominal 60-second trial
 unless at data opening at least 62,500 ms of granted ownership remains. Raise
@@ -103,8 +104,9 @@ only the diagnostic observation wall to 60,000 ms. The existing data budget is
 already 60,000 ms. A 32-bit interval field can encode this request, but does not
 prove firmware will grant it: a smaller/refused grant is a distinct admission
 failure, never a shortened pass. No renewal, new callback interpretation or
-speculative register access is proposed. This requires explicit reconciliation
-with the owner's instruction to keep existing limits before building.
+speculative register access is proposed. The owner explicitly approved preparing this exception while keeping kernel
+builds on hold. All other limits below remain unchanged; this approval is not
+a build or device admission.
 
 Keep all other resource, poison, PN, transaction and cleanup limits. If one ends
 the run before 60 seconds, report its exact counter/time as the first sustained

@@ -1,7 +1,8 @@
-# Before implementation: fixed receive format for one firmware lifetime
+# Fixed receive format: predeclared design and unbuilt prototype
 
-Source-review proposal after [D2](SSH_D2_RESULT.md), not an implemented fix,
-candidate build, runtime admission or permission to repeat D2. The owner's hold
+Status: [prototype 0202](FIXED_RX_FORMAT_PREPARATION.md) implements the comparison
+below and passes local host fixtures. It remains unbuilt and is not a proven
+fix, runtime admission or permission to repeat D2. The design below predates code. The owner's hold
 on new candidate builds remains. No device operation occurred in this review.
 
 ## Questions resolved and limits
@@ -35,8 +36,8 @@ D2's pre-arm RX indication and TX-only quiescence motivate this comparison; they
 do not prove the firmware producer mechanism or an already-correct replacement.
 
 Propose one default-off child of C10, without the C11 observer: configure the same
-fixed mask value 7 once during initial normal configuration, before `configured`
-and `scan_ready` can admit scan/station activity. Keep that format for the HIF /
+fixed mask value 7 once after the parent's initial normal-TC4 reconciliation,
+before `scan_ready` can admit scan/station activity. Keep that format for the HIF /
 firmware instance. Do not toggle it at data-window arm/close or station teardown.
 The mask becomes device configuration owned by the firmware/HIF lifetime, rather
 than a station-scoped borrowed mode. This ownership change must be explicit;
@@ -79,8 +80,10 @@ One future admitted boot would retain:
 - Transport, network, station cleanup and global configuration ownership verdicts
   separately, actual versus planned duration and the first failure point.
 
-Branches: a length refusal without a runtime format transition weakens/refutes
-the transition-only explanation; preserve it and stop, never adjust length. An
+Branches: a length refusal without a station-time format transition weakens
+the station-arm/close-only explanation; preserve it and stop, never adjust
+length. Startup-queued traffic or autonomous firmware changes remain unmeasured,
+so this cannot refute every possible transition/producer mechanism. An
 EAPOL/management shape failure is separate and cannot weaken the decoder. Missing
 PN/status metadata remains rejected. An initialization credit/guard failure stops
 before scan-ready without a longer deadline. Healthy finite traffic supports only
@@ -98,8 +101,8 @@ local data-window state transitions and owed-completion fence without assuming
 firmware queue enforcement. Audit canonical series/profile selection; option-off
 must recover C10 and leave existing profiles unchanged.
 
-No code is implemented by this document. Do not build under the owner's current
-hold. A later build needs the reviewable patch/tests and the owner's release of
+The comparison is now implemented as an unbuilt prototype; see its
+[preparation/checkpoint](FIXED_RX_FORMAT_PREPARATION.md). Do not build under the owner's current hold. A later build needs the reviewable patch/tests and the owner's release of
 that hold, clean pushed inputs, the standard Buildbox backend and package validation.
 Only then can a separately reviewed real candidate/composition/install/protocol
 lead to an owner physical boot2 handoff. No automatic device run follows this plan.
@@ -107,3 +110,28 @@ lead to an owner physical boot2 handoff. No automatic device run follows this pl
 Keep GTK delivery, rekey, reuse and reconnect disabled. No -48 adjustment, longer
 transport deadline, unrelated callback reverse engineering or new userspace API.
 Staged 60 s / 2 min / 10 min operation and the full acceptance test remain open.
+
+## Implementation ordering refinement (before code)
+
+The inspected normal configuration sender returns after submission; it does not
+retire command pages. Record loading marks `configured`, then the CONSYS parent
+performs the complete initial TC4 accounting pair, and only afterward calls
+`mt6797_mac_scan_ready`. Therefore the proposed hook must be **after that pair
+and before scan-ready**, inside the same RTNL serialization. It cannot require
+an idle ledger inside record loading or assume its earlier submissions retired.
+`configured` alone cannot admit start/interface/scan without `scan_ready`.
+
+The new HIF initialization operation will require a full normal ledger, submit
+one exact mask command using that owner, and reconcile only its one-page debit
+under the same absolute 100 ms deadline. It may use the existing runtime credit
+acquisition and existing 20 ms worker cadence; no RX FIFO read or new register
+address. Timeout/transport/accounting failure must poison and prevent scan-ready.
+Both HIF and MAC bind the attempt once to their firmware instance. The normal
+sender's other existing deadlines and all station diagnostic limits stay unchanged.
+
+The sealed D2 initial pair reports free 14, pending CPU 0 and pending FFA 12
+at snapshot 2. A completed acquisition pair is therefore not an idle ledger.
+The initializer must first reconcile existing configuration debt, then charge
+and retire only the mask page. Both stages share the same absolute 100 ms
+budget; no counter reset, borrowed credit or second deadline. A timeout before
+prior debt retires must issue no mask command and retain that debt/poison.

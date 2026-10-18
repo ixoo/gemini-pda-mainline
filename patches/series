@@ -812,3 +812,5 @@ proposals/0198-wifi-mt6797-compare-post-CLOSED-RX-port-selection.patch
 proposals/0199-wifi-mt6797-retain-refused-descriptor-framing-hints.patch
 proposals/0200-wifi-mt6797-compare-observed-mask-only-control.patch
 proposals/0201-wifi-mt6797-observe-initial-GTK-PN-metadata.patch
+proposals/0202-wifi-mt6797-compare-firmware-lifetime-fixed-RX-format.patch
+proposals/0203-wifi-mt6797-bound-first-fixed-format-window-to-60s.patch
