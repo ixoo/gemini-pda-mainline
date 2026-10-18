@@ -7,8 +7,9 @@ New bounded hints `0x18`/`0xe000` suggest untranslated header-length24/DATA/AMPD
 under the pinned layout; they do not validate the bytes or explain delta48.
 Evidence was sealed and changed-boot Gemian independently confirmed.
 
-Next: source review of untranslated receive/pending-length ownership around
-monitor disable. No next device candidate or unchanged C9 retry selected;
+Next: [post-C9 source review](POST_C9_SOURCE_REVIEW.md) narrows the opaque
+monitor boundary to a specific stock read-query admission question. No device
+query, next boot candidate or unchanged C9 retry selected;
 keep complete transfer, equality and poison/no-copy. Ordinary integrity/PN,
 key retirement, healthy reuse and ten-minute SSH remain required. See the
 [predeclared observation](REFUSED_RXD_FRAMING_SUCCESSOR.md) and

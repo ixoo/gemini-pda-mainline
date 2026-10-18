@@ -1,7 +1,9 @@
 # Wi-Fi resume checkpoint — INCOMPLETE / PAUSED
 
 Current continuation: [C9 result](CCMP9_RESULT.md) records the latest consumed
-trial, verified preservation and return. The timeout classification and C6-C9
+trial, verified preservation and return. [Post-C9 source review](POST_C9_SOURCE_REVIEW.md)
+records the next read-query admission question; no live query is admitted.
+The timeout classification and C6-C9
 successors were executed after the owner resumed. Full Wi-Fi remains incomplete;
 no unchanged retry or next boot is selected. The pause record below is historical.
 

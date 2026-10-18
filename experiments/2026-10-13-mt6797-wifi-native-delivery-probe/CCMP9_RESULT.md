@@ -105,9 +105,10 @@ frames or that command-credit return orders such a change. The precise missing
 contract is the producer's relationship between FIFO advertisement, final RXD
 length/group layout and monitor transition for already queued entries. Host
 source inspected here cannot establish it. No supported defect correction or
-new boot follows from this review. A further retained-firmware investigation
-needs a separately bounded dataflow question across the prior indirect-call
-boundary; do not repeat the exhausted scan or relabel a consumer as a producer.
+new boot follows from this review. The subsequent
+[bounded source review](POST_C9_SOURCE_REVIEW.md) followed constant call sites and inspected the stock read-query handler in the RE VM.
+It did not establish the producer mechanism or admit a live query; do not
+repeat the exhausted scan or relabel a consumer as a producer.
 
 Keep the next investigation hardware-free. Do not expand live reads, parse
 refused payload, repeat C9, adjust deadlines, refund credits or weaken equality.
