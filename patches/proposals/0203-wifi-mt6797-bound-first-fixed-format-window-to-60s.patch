@@ -1,4 +1,4 @@
-From 9a60f0adea3a584c30be39491e48cc3c9e5fa23b Mon Sep 17 00:00:00 2001
+From 42e58170985f46659151f97d79884d136bee294c Mon Sep 17 00:00:00 2001
 From: Codex Experiment <codex-experiment@example.invalid>
 Date: Sun, 18 Oct 2026 12:28:17 -0400
 Subject: [PATCH] wifi: mt6797: bound first fixed-format window to 60s
