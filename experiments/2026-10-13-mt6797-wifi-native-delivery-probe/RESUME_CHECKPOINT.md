@@ -20,8 +20,10 @@ regression and one reviewed return passed; changed-boot Gemian
 `34302162-2a50-400f-85d9-d7b92ef826c7` independently confirmed. No device,
 build or session process or physical handoff remains pending. GTK3 is consumed.
 
-Next is the predeclared scalar-only 0x13 diagnostic from the existing complete
-acquisition, preserving refusal. Do not ignore the notification or assume its
+The predeclared scalar-only 0x13 diagnostic is implemented as 0208, with one
+checked-RX clock and existing-acquisition BSS/reason observation, preserving
+refusal. Local actual-source fixtures pass; clean-input Linux validation and
+the standard build remain next. Do not ignore the notification or assume its
 reason or BSS. Keep CCMP 1024 checked / 4096 all-RX / 2 MiB and the 60-second
 low-traffic protocol; every time, native, retirement, PID and crypto limit stays.
 No PID reuse, rekey, reconnect, -48 adjustment or speculative firmware RE.

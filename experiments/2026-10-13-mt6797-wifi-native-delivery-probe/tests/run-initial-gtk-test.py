@@ -14,7 +14,9 @@ p = argparse.ArgumentParser(description=__doc__)
 p.add_argument('parent', type=Path, help='C10 plus independent 0203')
 p.add_argument('child', type=Path, help='initial-GTK source')
 p.add_argument('--gtk3', action='store_true', help='also validate the admitted capacity/handoff overlays')
+p.add_argument('--timeout-observer', action='store_true', help='also validate the refused-timeout observer')
 a = p.parse_args()
+a.gtk3 = a.gtk3 or a.timeout_observer
 fixtures = Path(__file__).resolve().parent
 # Pin the frozen fixtures whose narrow substitutions are used below.
 for name, digest in {
@@ -37,10 +39,15 @@ for x in parent.iterdir():
 # Reversing exactly the selected archive must recover every parent file.
 archive = fixtures.parents[2] / 'patches/proposals/0204-wifi-mt6797-gate-one-separately-seeded-initial-GTK.patch'
 parity_mac = None
+observer_parent_mac = None
 with tempfile.TemporaryDirectory(prefix='gtk-reverse-') as directory:
     import shutil
     recovered = Path(directory)
     shutil.copytree(child, recovered / rel)
+    if a.timeout_observer:
+        patch = fixtures.parents[2] / 'patches/proposals/0208-wifi-mt6797-observe-refused-BSS-timeout-and-checked-RX-age.patch'
+        subprocess.run(['git', 'apply', '--reverse', str(patch)], cwd=recovered, check=True, timeout=10)
+        observer_parent_mac = (recovered / rel / 'mac.c').read_text()
     if a.gtk3:
         for name in ['0207-wifi-mt6797-report-checked-key-classes-and-GTK-ARP-handoff.patch',
                      '0206-wifi-mt6797-bound-low-traffic-CCMP-observation-capacity.patch']:
@@ -116,6 +123,10 @@ with tempfile.TemporaryDirectory(prefix='initial-gtk-') as directory:
         ('int', 'mt6797_mac_sta_state'), ('int', 'mt6797_native_diag_pre_read'),
         ('void', 'mt6797_native_diag_ordinary_record'), ('void', 'mt6797_mac_tx'),
         ('void', 'mt6797_native_diag_step'), ('bool', 'mt6797_native_diag_tx_fenced')]
+    if a.timeout_observer:
+        names.append(('void', 'mt6797_ccmp_timeout_observe'))
+        assert function(new, 'mt6797_mac_join_control_event') == function(
+            observer_parent_mac, 'mt6797_mac_join_control_event'), 'control admission changed'
     obs_start = new.index('struct mt6797_ccmp_observation {')
     obs_end = new.index('\n};', obs_start) + 3
     (tmp / 'actual-ccmp-monitor.inc').write_text(new[obs_start:obs_end] + '\n' + new[start:end] + '\n' + '\n'.join(
@@ -192,6 +203,9 @@ with tempfile.TemporaryDirectory(prefix='initial-gtk-') as directory:
         extra = extra.replace('m.ccmp_queued = 64;', 'm.ccmp_queued = 1024;')
         extra = extra.replace('gtk_callback_tests();', 'gtk_callback_tests();\n gtk3_observer_budget_tests();')
         extra = (fixtures / 'gtk3-observer-budget.inc').read_text() + '\n' + extra
+    if a.timeout_observer:
+        extra = (fixtures / 'timeout-observer.inc').read_text() + '\n' + extra
+        extra = extra.replace('gtk_callback_tests();', 'gtk_callback_tests();\n timeout_observer_tests();')
     (tmp / 'callbacks.c').write_text(callbacks + '\n' + extra)
     binary = tmp / 'callbacks'
     subprocess.run([*flags, '-pthread', '-DCONFIG_MT6797_CCMP_MASK_CONTROL',

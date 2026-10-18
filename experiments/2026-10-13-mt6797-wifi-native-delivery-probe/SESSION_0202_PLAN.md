@@ -623,3 +623,21 @@ drift. Recent host data qualifies the comparison with the vendor's ignore path;
 it does not itself authorize ignoring a firmware event. A malformed or nonzero-sequence event remains a wire/state refusal.
 Reason alone is a report, not proof of the physical cause. Preserve the same
 60-second low-traffic protocol and strict fault stop; do not repeat GTK3 unchanged.
+
+The diagnostic is implemented as
+[0208](../../patches/proposals/0208-wifi-mt6797-observe-refused-BSS-timeout-and-checked-RX-age.patch),
+selected only by the initial-GTK series. It adds one host timestamp at checked
+queue admission and observes exact timeout scalars only on the existing
+control-event refusal path. The control admission function is byte-identical;
+no event is accepted, no resource ledger changes and no extra HIF read occurs.
+Age is truncated to milliseconds, not an exact firmware/RF timestamp.
+
+The existing actual-source runner's `--timeout-observer` mode passes locally
+with ASan/UBSan: unchanged 19,007 crypto cases, all BSS/reason byte combinations,
+malformed length/header/sequence silence, unrestricted reserved bytes, absent
+or future clocks, two-second +/-1 ns age rounding, strict PTK/GTK-only clock
+updates, allocation/replay/stale refusal, existing withdrawal threads and
+option-off full MAC parity. Reverse application recovers GTK3 exactly before
+the earlier overlays. Strict checkpatch has only the deliberately absent DCO
+certification, zero warnings/checks. Linux validation and the standard build
+remain next; this is preparation, not another device result.

@@ -698,3 +698,4 @@ proposals/0204-wifi-mt6797-gate-one-separately-seeded-initial-GTK.patch
 proposals/0205-wifi-mt6797-retain-the-validated-channel-grant-horizon.patch
 proposals/0206-wifi-mt6797-bound-low-traffic-CCMP-observation-capacity.patch
 proposals/0207-wifi-mt6797-report-checked-key-classes-and-GTK-ARP-handoff.patch
+proposals/0208-wifi-mt6797-observe-refused-BSS-timeout-and-checked-RX-age.patch

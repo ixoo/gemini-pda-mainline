@@ -1,0 +1,84 @@
+From 2f9eb1a21120a8cb9d8e99f5f2eb5cd2c88f59cd Mon Sep 17 00:00:00 2001
+From: Codex Experiment <codex-experiment@example.invalid>
+Date: Sun, 18 Oct 2026 16:00:16 -0400
+Subject: [PATCH] wifi: mt6797: observe refused BSS timeout identity and
+ checked RX age
+
+GTK3 first stopped on a complete unsolicited 0x13 event after 29.825
+seconds. Retain its BSS/reason and the age of the last strictly checked
+PTK/GTK queue admission from existing acquisitions. This host clock is
+narrower than the pinned receiver last-RX policy; no ignore behavior is
+admitted.
+
+Keep the control dispatcher, fatal refusal, crypto gates and every
+lifetime/resource limit unchanged. No register acquisition, frame content
+or event acceptance.
+
+Internal experiment archive, synthetic non-certifying author identity;
+no DCO certification and not an upstream submission.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 30 ++++++++++++++++++++++
+ 1 file changed, 30 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 39c7442..75bacfb 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -219,6 +219,7 @@ struct mt6797_mac {
+ 	bool ccmp_gtk_attempted, ccmp_gtk_seen;
+ 	unsigned int ccmp_gtk_arp_withheld;
+ 	unsigned int ccmp_gtk_queued, ccmp_gtk_arp_handoff;
++	u64 ccmp_last_checked_rx;
+ #endif
+ 	struct ieee80211_sta __rcu *ccmp_sta;
+ 	/* Cookies only: never dereferenced, withdrawn before DISABLE_KEY returns. */
+@@ -445,10 +446,36 @@ checked:
+ 			 "one-shot WLAN ccmp-stable RX: first ethernet_bytes=%zu flags=0x%x\n",
+ 			 view.bytes, rx_flags);
+ 	mac->ccmp_queued++;
++#ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
++	mac->ccmp_last_checked_rx = ktime_get_ns();
++#endif
+ 	__skb_queue_tail(received, skb);
+ 	return 0;
+ }
+ 
++#ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
++/* Observe only the already acquired timeout body, preserving its fatal refusal.
++ * The host queue clock covers strictly checked PTK/GTK, not firmware beacons
++ * or the vendor receiver's broader last-RX clock. It authorizes no ignore path.
++ */
++static void mt6797_ccmp_timeout_observe(const struct mt6797_mac *mac, size_t bytes)
++{
++	u64 now, age = 0;
++	bool known;
++
++	if (!ccmp_stable_epoch || !mt6797_join_event(mac->join_packet, bytes, 0x13, 4) ||
++	    mac->join_packet[5])
++		return;
++	now = ktime_get_ns();
++	known = mac->ccmp_queued && mac->ccmp_last_checked_rx <= now;
++	if (known)
++		age = (now - mac->ccmp_last_checked_rx) / NSEC_PER_MSEC;
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot WLAN CCMP BSS timeout observation: bss=%u reason=%u checked_rx_known=%u checked_rx_age_ms=%llu\n",
++		 mac->join_packet[8], mac->join_packet[9], (unsigned int)known, age);
++}
++#endif
++
+ /* Called only in the common serialized RX/TX-status batch, outside MAC locks.
+  * Withdrawal fences eligibility then waits for this batch before key removal
+  * callbacks complete. RCU covers pubsta and the entire core RX handoff.
+@@ -2650,6 +2677,9 @@ submitted:
+ 				branch = 6;
+ 				ret = mt6797_mac_join_control_event(mac, rx.logical_bytes);
+ 				if (ret) {
++#ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
++					mt6797_ccmp_timeout_observe(mac, rx.logical_bytes);
++#endif
+ 					/* Header metadata only: no body bytes, no address. */
+ 					dev_info(wiphy_dev(mac->hw->wiphy),
+ 						 "one-shot WLAN join control event refused: status=%d bytes=%zu type=0x%04x id=0x%02x seq=%u\n",
+-- 
+2.54.0 (Apple Git-157)
+
