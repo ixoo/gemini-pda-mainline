@@ -1,5 +1,16 @@
 # Wi-Fi resume checkpoint — INCOMPLETE
 
+**GTK6 installed and ready for physical boot2 selection; no live run yet.**
+Source `af6923d3`, tooling `ee5da8c4`, one logical bounded deauthentication
+retirement change. Linux tests, required Buildbox build, package provenance,
+five host fixtures, guarded full readback and clean shutdown pass. Full boot2
+SHA-256 `75316795e8a9a732db5f02e5df32393b7f955c402422b72832fb9d5855f5ee09`.
+Fresh runtime and complete offline host preparation pass. Keep USB attached;
+the owner selects boot2. Verify a changed boot and 84-byte notes SHA-256
+`8a5d78bc3489be692c786c6c5bf74f8ff9a71e0070c3f95a24ed1731972a5285`
+before the single admitted capture/session.
+[Handoff](SESSION_0202_PLAN.md#gtk6-installed--physical-selection-pending).
+
 Latest result: **GTK5 capability observation and 60-second low-traffic duration
 PASS; full finite session and healthy cleanup FAIL.** One fresh boot
 `f015f0f2-1320-4e12-98d5-dbacc7c69cb2`, source `fa3124b4`, tooling `e0cf5e17`,
@@ -21,14 +32,14 @@ AP-loss message follow this stop. The finite classifier remains failed.
 
 All 71 seals and 2,106 contiguous records verified. Helper/device quiescence,
 A53 regression and one reviewed recovery passed; independently confirmed Gemian
-`c6c0a8ab-0d6b-45e8-8bfc-02cbb274ab4d`. No device process or physical handoff
-is pending. GTK5 remains installed but consumed; do not repeat it unchanged.
+`c6c0a8ab-0d6b-45e8-8bfc-02cbb274ab4d`. GTK5 is closed; the GTK6 handoff above is pending. Do not repeat GTK5 unchanged.
 
 Next is the one logical bounded deauthentication-retirement successor 0213
 under the [predeclared GTK6 contract](SESSION_0202_PLAN.md#predeclared-gtk6-bounded-reserved-deauthentication-retirement).
 Linux source/HIF tests and the required Buildbox build pass at `af6923d3`;
 the real GTK6 receipt and five local host fixtures pass. Linux host binding
-checks and guarded device admission remain pending. Keep publications on `main`. Do not assume PM abort belongs before deauth,
+checks and guarded installation now pass; physical GTK6 selection remains
+pending. Keep publications on `main`. Do not assume PM abort belongs before deauth,
 accept unowned completions, add register reads or extend deadlines. Healthy
 cleanup is required before promotion to persistent or longer operation.
 Keep 1024 checked / 4096 all-RX / 2 MiB and the existing time/retirement/PID

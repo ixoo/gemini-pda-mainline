@@ -1045,3 +1045,24 @@ status rule. The 60-second window, all deadlines and all resource caps remain
 unchanged. Linux host binding checks, reviewed guarded deployment, full readback,
 clean shutdown and fresh host preparation remain required before physical boot2
 selection. GTK6 has no hardware result yet; no new run row is created.
+
+### GTK6 installed — physical selection pending
+
+Tooling `ee5da8c4` passed all five Linux host fixtures from clean pushed `main`.
+The 603-line installer differs from GTK5 only in identity pins and passes shell
+syntax/ShellCheck. Known-good Gemian boot
+`c6c0a8ab-0d6b-45e8-8bfc-02cbb274ab4d` was independently verified before the
+live-GPT boot2 guard. The inactive/non-root target and GTK5 predecessor matched.
+The new full-partition candidate and readback both equal
+`75316795e8a9a732db5f02e5df32393b7f955c402422b72832fb9d5855f5ee09`.
+The deployment seal and clean shutdown verify; no fresh backup or other
+partition write occurred.
+
+Fresh runtime preparation, the exact mode-0600 deployment summary, retained
+recovery sources and complete offline host preparation pass. No GTK6 mainline
+boot, capture or Wi-Fi session has occurred. The owner must physically select
+boot2 with USB attached to this laptop. After fresh boot/notes verification,
+consume one capture and one session under the predeclared cleanup outcomes.
+No retry, rekey, reuse or reconnect. One run scalars file and one table row will
+be added only after the actual session. All checkpoints are pushed to `main`;
+restored research remains unstaged and separate.
