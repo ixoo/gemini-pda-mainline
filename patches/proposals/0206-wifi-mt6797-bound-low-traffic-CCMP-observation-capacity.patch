@@ -1,6 +1,6 @@
-From dfe65e79a434ab3c78f8adab63e22e9e90cfc57a Mon Sep 17 00:00:00 2001
+From 53086150a0518984e06a6f09be8be39e74a06b23 Mon Sep 17 00:00:00 2001
 From: Codex Experiment <codex-experiment@example.invalid>
-Date: Sun, 18 Oct 2026 15:13:18 -0400
+Date: Sun, 18 Oct 2026 15:47:18 -0400
 Subject: [PATCH] wifi: mt6797: bound the low-traffic CCMP observation capacity
 
 GTK2 reached its 64 checked-frame ceiling after 5925 ms. For the admitted
@@ -15,26 +15,20 @@ observation, not sustained authenticated SSH or a maintained lifetime.
 Internal experiment archive, synthetic non-certifying author identity;
 no DCO certification and not an upstream submission.
 ---
- drivers/net/wireless/mediatek/mt6797/mac.c    | 28 +++++++++++++++++--
- .../wireless/mediatek/mt6797/native-diag.h    | 27 ++++++++++++++++++
- 2 files changed, 53 insertions(+), 2 deletions(-)
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 31 +++++++++++++++++--
+ .../wireless/mediatek/mt6797/native-diag.h    | 27 ++++++++++++++++
+ 2 files changed, 55 insertions(+), 3 deletions(-)
 
 diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
-index 68bef9c..4568a23 100644
+index 68bef9c..bcdbd58 100644
 --- a/drivers/net/wireless/mediatek/mt6797/mac.c
 +++ b/drivers/net/wireless/mediatek/mt6797/mac.c
-@@ -403,7 +403,7 @@ static int mt6797_ccmp_queue_rx(struct mt6797_mac *mac, size_t bytes,
- 	unsigned int rx_flags = RX_FLAG_8023 | RX_FLAG_DECRYPTED | RX_FLAG_IV_STRIPPED |
- 		RX_FLAG_MIC_STRIPPED | RX_FLAG_PN_VALIDATED | RX_FLAG_NO_SIGNAL_VAL;
+@@ -405,3 +405,3 @@ static int mt6797_ccmp_queue_rx(struct mt6797_mac *mac, size_t bytes,
  
 -	if (!mt6797_ccmp_rx_ready(mac) || mac->ccmp_queued >= MT6797_NATIVE_DIAG_NATIVE_MAX)
 +	if (!mt6797_ccmp_rx_ready(mac) || mac->ccmp_queued >= MT6797_CCMP_DIAG_CHECKED_MAX)
  		return 0;
- 	/* Allocate before the PN decision commits highwater. */
- 	skb = dev_alloc_skb(bytes);
-@@ -1788,7 +1788,18 @@ static int mt6797_native_diag_pre_read(struct mt6797_mac *mac)
- 	/* ACTIVE sample window: the crossing read is never admitted (reserve a full
- 	 * HIF-max read); the wall is honored even on an empty stream.
+@@ -1790,3 +1790,14 @@ static int mt6797_native_diag_pre_read(struct mt6797_mac *mac)
  	 */
 +#ifdef CONFIG_MT6797_CCMP_60S_WINDOW
 +	if (ccmp_stable_epoch && !mac->native_diag_sample_done && !mac->join_data_ended &&
@@ -49,32 +43,23 @@ index 68bef9c..4568a23 100644
 +	    !ccmp_stable_epoch &&
 +#endif
  	    (el >= MT6797_NATIVE_DIAG_WALL_MS ||
- 	     mac->native_diag_total >= MT6797_NATIVE_DIAG_RX_MAX ||
- 	     mac->native_diag_native >= MT6797_NATIVE_DIAG_NATIVE_MAX ||
-@@ -1796,7 +1807,7 @@ static int mt6797_native_diag_pre_read(struct mt6797_mac *mac)
- 	     MT6797_NATIVE_DIAG_BYTES_MAX))
- 		mac->native_diag_sample_done = true;
+@@ -1798,3 +1809,3 @@ static int mt6797_native_diag_pre_read(struct mt6797_mac *mac)
  #ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
 -	if (ccmp_stable_epoch && mac->ccmp_queued >= MT6797_NATIVE_DIAG_NATIVE_MAX)
 +	if (ccmp_stable_epoch && mac->ccmp_queued >= MT6797_CCMP_DIAG_CHECKED_MAX)
  		mac->native_diag_sample_done = true;
- #endif
- 	/* The window is over on a sample ceiling OR any data-phase end (lower
-@@ -1867,6 +1878,11 @@ static void mt6797_native_diag_step(struct mt6797_mac *mac)
+@@ -1867,3 +1878,9 @@ static void mt6797_native_diag_step(struct mt6797_mac *mac)
  	c.seq_ok = mac->sequence <= 253;
- 	c.budget_stop = mac->native_diag_sample_done ||
- 			mt6797_native_diag_budget_step(&b) == MT6797_NATIVE_DIAG_STOP;
+-	c.budget_stop = mac->native_diag_sample_done ||
 +#ifdef CONFIG_MT6797_CCMP_60S_WINDOW
 +	if (ccmp_stable_epoch)
 +		c.budget_stop = mac->native_diag_sample_done ||
 +			mt6797_ccmp_diag_budget_step(&b) == MT6797_NATIVE_DIAG_STOP;
++	else
 +#endif
- 	act = mt6797_native_diag_transition(&c);
- 	mac->native_diag_state = c.state;
- 	if (act == MT6797_ND_ACT_SUBMIT_ENABLE || act == MT6797_ND_ACT_SUBMIT_DISABLE) {
-@@ -2760,6 +2776,14 @@ submitted:
- 				struct mt6797_native_beacon nbcn;
- 
++		c.budget_stop = mac->native_diag_sample_done ||
+ 			mt6797_native_diag_budget_step(&b) == MT6797_NATIVE_DIAG_STOP;
+@@ -2762,2 +2779,10 @@ submitted:
  				admitted = mt6797_native_diag_admit(mac->native_diag_state, &nb);
 +#ifdef CONFIG_MT6797_CCMP_60S_WINDOW
 +				if (ccmp_stable_epoch) {
@@ -85,15 +70,11 @@ index 68bef9c..4568a23 100644
 +				}
 +#endif
  				/* Class7 beacon paths above stay unchanged. A raw class2 beacon
- 				 * in the ACTIVE sample uses the same normal mac80211 delivery,
- 				 * after central all-RX accounting and the existing admission.
 diff --git a/drivers/net/wireless/mediatek/mt6797/native-diag.h b/drivers/net/wireless/mediatek/mt6797/native-diag.h
 index 9087d84..520b080 100644
 --- a/drivers/net/wireless/mediatek/mt6797/native-diag.h
 +++ b/drivers/net/wireless/mediatek/mt6797/native-diag.h
-@@ -23,6 +23,19 @@
- #define MT6797_NATIVE_DIAG_NATIVE_MAX 64U           /* protected-native ordinary frames */
- #define MT6797_NATIVE_DIAG_BYTES_MAX  (1024U * 1024U) /* 1 MiB total RX bytes */
+@@ -25,2 +25,15 @@
  
 +/* CCMP-only capacity for the admitted low-traffic 60-second observation.
 + * Native ciphertext ceilings and every retirement ceiling remain unchanged.
@@ -109,11 +90,7 @@ index 9087d84..520b080 100644
 +#endif
 +
  /* Once the sample window ends, draining the owed completion (the exact TX-done
-  * class only; the broad control dispatcher and all other classes are gated) has
-  * its own finite ceiling, set below the parent command/frame/grant/lifetime
-@@ -79,6 +92,20 @@ mt6797_native_diag_budget_step(const struct mt6797_native_diag_budget *b)
- 	return MT6797_NATIVE_DIAG_CONTINUE;
- }
+@@ -81,2 +94,16 @@ mt6797_native_diag_budget_step(const struct mt6797_native_diag_budget *b)
  
 +#ifdef CONFIG_MT6797_CCMP_60S_WINDOW
 +/* native_rx holds checked PTK+GTK for this caller, never native ciphertext. */
@@ -130,8 +107,6 @@ index 9087d84..520b080 100644
 +#endif
 +
  /* STOP when the owed-completion drain budget is reached; otherwise CONTINUE. */
- static inline enum mt6797_native_diag_step
- mt6797_native_diag_retire_step(unsigned int reads, unsigned int bytes,
 -- 
 2.54.0 (Apple Git-157)
 
