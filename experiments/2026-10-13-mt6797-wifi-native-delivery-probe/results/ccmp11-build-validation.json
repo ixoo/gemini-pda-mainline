@@ -1,0 +1,48 @@
+{
+  "status": "validated Linux-only source/tests/build/package; no C11 device action",
+  "kernel_input": "774e08aa5570f96986acc1fd2a40afa0c226777d",
+  "profile": "mt6797-a53-wifi-ccmp-group-pn-observe",
+  "package_inventory_sha256": "8ef839effaaac15490201a619a0dc194a16400bd52ac085b2743b6d8462d3c02",
+  "package_members": 854,
+  "dtbs": 123,
+  "image_gzip_sha256": "27faa867bd85c231882fcf3d994917cf1ab56f48c703f71f1f1e5edb9111415c",
+  "config_sha256": "f4edcd7890078912f0093c15f5393b64af4e80b00c1c96421f87bba970d400d6",
+  "patchset_sha256": "c412b9987a25a436f012aa03ad99162a33f15231ff0851989765af13bb40d9af",
+  "series_sha256": "c7a9e57cb42fd8a3d4040fe2cbb9d7e42aa12a949b3d4774e2ef06518f8beca8",
+  "patch_sha256": "c14244306eeaab5b6749fb68dc039b312c920f5202d1a619f40d018d6dac4193",
+  "bounded_source_snapshot": "70f1b9a3484139b35dfdb894cbbcb56f21b33218",
+  "config_equals_c10_plus_only_observation_flag": true,
+  "actual_source_asan_ubsan_pass": true,
+  "observation_exact_allocation_cases": 2716,
+  "strict_ptk_pn_fixture_pass": true,
+  "option_off_full_mac_parity": true,
+  "reverse_patch_recovers_c10": true,
+  "existing_profiles_unchanged": 33,
+  "patches": 696,
+  "fragments": 28,
+  "new_terminal_format_occurrences": 1,
+  "new_observer_symbols": [],
+  "strict_checkpatch": {
+    "errors": 1,
+    "warnings": 0,
+    "checks": 0,
+    "intentional_error": "missing truthful DCO; internal synthetic non-certifying archive"
+  },
+  "limits": [
+    "No firmware integrity, GTK admission, retirement, re-arm or maintained support proof",
+    "First pushed input stopped at Kconfig help style warning before any kernel build; corrected input built once",
+    "Inherited unused-function warning in kernel/cpu.c; no new driver warning"
+  ],
+  "kernel_notes_identity": {
+    "expected_sys_kernel_notes_sha256": "9519a6db2f5922e736534fc922d54784437ba0f8c62ce05d546f5e1220dc6b69",
+    "notes_bytes": 84,
+    "different_from_c10": true,
+    "export_bounds_match_elf_notes": true,
+    "notes_byte_identical_within_validated_image": true,
+    "exporter_source_sha256": {
+      "kernel/ksysfs.c": "e8eb3004fe77f21b0cae6ba8743dac56595d0eae390a92c09e851da2d5a7b288",
+      "include/linux/sysfs.h": "a4d774ac686de74d5be9ac9469065e1571c215878fb921c6c08cb28fb5f988af",
+      "fs/sysfs/file.c": "c484b377328ff4d14aaa40194b6999da7087a570b3c513ef0c0eb216ffdc0d83"
+    }
+  }
+}

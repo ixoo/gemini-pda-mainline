@@ -98,11 +98,12 @@ are unchanged. These tests establish host behavior only.
 
 The new `mt6797-a53-wifi-ccmp-group-pn-observe` profile selects the 696-patch
 ordered series and all 27 C10 fragments plus one option fragment. All 33 existing
-profile definitions remain identical. Linux validation, strict checkpatch,
-clean pushed Buildbox build/package and actual candidate/tool/device gates are
-still pending at this source checkpoint. No GTK delivery or device test yet.
+profile definitions remain identical. The subsequent [C11 preparation](CCMP11_PREPARATION.md) records Linux validation,
+strict checkpatch, the clean pushed Buildbox build/package and real composition.
+Tooling/device gates remain; no GTK delivery or device test yet.
 
 Linux actual-source ASan/UBSan passed on the first pushed input. Strict checkpatch
 then found the new Kconfig help paragraph one line short and stopped before any
 kernel build. The help paragraph is now complete; observer MAC code is unchanged.
-The failed pre-build log remains retained, and corrected-input validation is pending.
+The failed pre-build log remains retained. Corrected-input Linux validation and
+the single kernel build subsequently passed; see C11 preparation.
