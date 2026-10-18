@@ -16,7 +16,13 @@ p.add_argument('child', type=Path, help='initial-GTK source')
 p.add_argument('--gtk3', action='store_true', help='also validate the admitted capacity/handoff overlays')
 p.add_argument('--timeout-observer', action='store_true', help='also validate the refused-timeout observer')
 p.add_argument('--beacon-observer', action='store_true', help='also validate owned-beacon recency')
+p.add_argument('--timeout-handler', action='store_true', help='validate the conditional owned timeout handler')
+p.add_argument('--pm-connected', action='store_true', help='validate owned PM indication before keys')
+p.add_argument('--connection-monitor', action='store_true', help='also validate standard loss reporting')
 a = p.parse_args()
+a.pm_connected = a.pm_connected or a.connection_monitor
+a.timeout_handler = a.timeout_handler or a.pm_connected
+a.beacon_observer = a.beacon_observer or a.timeout_handler
 a.timeout_observer = a.timeout_observer or a.beacon_observer
 a.gtk3 = a.gtk3 or a.timeout_observer
 fixtures = Path(__file__).resolve().parent
@@ -36,17 +42,31 @@ assert hashlib.sha256((child / 'ccmp-gtk-rx.h').read_bytes()).hexdigest() == \
     '44deda239a5c824469b69489e21fec84ef0af8a26ee7b13f95b1f764ab437bb1'
 assert {x.name for x in child.iterdir()} == {x.name for x in parent.iterdir()} | {'ccmp-gtk-rx.h'}
 for x in parent.iterdir():
-    if x.is_file() and x.name not in ({'mac.c', 'Kconfig', 'native-diag.h'} if a.gtk3 else {'mac.c', 'Kconfig'}):
+    if x.is_file() and x.name not in (({'mac.c', 'Kconfig', 'native-diag.h'} if a.gtk3 else {'mac.c', 'Kconfig'}) |
+                                        ({'hif.c', 'hif.h', 'join-commands.h', 'join-command-submit.h'} if a.pm_connected else set())):
         assert x.read_bytes() == (child / x.name).read_bytes(), x.name
 # Reversing exactly the selected archive must recover every parent file.
 archive = fixtures.parents[2] / 'patches/proposals/0204-wifi-mt6797-gate-one-separately-seeded-initial-GTK.patch'
 parity_mac = None
 observer_parent_mac = None
 beacon_parent_mac = None
+handler_parent_mac = None
+monitor_parent_mac = None
 with tempfile.TemporaryDirectory(prefix='gtk-reverse-') as directory:
     import shutil
     recovered = Path(directory)
     shutil.copytree(child, recovered / rel)
+    if a.connection_monitor:
+        patch = fixtures.parents[2] / 'patches/proposals/0212-wifi-mt6797-own-connection-monitoring-in-PM-required-experiment.patch'
+        subprocess.run(['git', 'apply', '--reverse', str(patch)], cwd=recovered, check=True, timeout=10)
+        monitor_parent_mac = (recovered / rel / 'mac.c').read_text()
+    if a.pm_connected:
+        patch = fixtures.parents[2] / 'patches/proposals/0211-wifi-mt6797-indicate-PM-connection-from-owned-beacon-before-keys.patch'
+        subprocess.run(['git', 'apply', '--reverse', str(patch)], cwd=recovered, check=True, timeout=10)
+    if a.timeout_handler:
+        patch = fixtures.parents[2] / 'patches/proposals/0210-wifi-mt6797-condition-owned-BSS-timeout-on-fresh-beacons.patch'
+        subprocess.run(['git', 'apply', '--reverse', str(patch)], cwd=recovered, check=True, timeout=10)
+        handler_parent_mac = (recovered / rel / 'mac.c').read_text()
     if a.beacon_observer:
         patch = fixtures.parents[2] / 'patches/proposals/0209-wifi-mt6797-retain-owned-beacon-recency-at-refused-timeout.patch'
         subprocess.run(['git', 'apply', '--reverse', str(patch)], cwd=recovered, check=True, timeout=10)
@@ -131,15 +151,32 @@ with tempfile.TemporaryDirectory(prefix='initial-gtk-') as directory:
         ('void', 'mt6797_native_diag_ordinary_record'), ('void', 'mt6797_mac_tx'),
         ('void', 'mt6797_native_diag_step'), ('bool', 'mt6797_native_diag_tx_fenced')]
     if a.timeout_observer:
-        names.append(('void', 'mt6797_ccmp_timeout_observe'))
-        assert function(new, 'mt6797_mac_join_control_event') == function(
+        names.append(('bool', 'mt6797_ccmp_timeout_continue') if a.timeout_handler else
+                     ('void', 'mt6797_ccmp_timeout_observe'))
+        if a.timeout_handler:
+            names.append(('int', 'mt6797_mac_join_control_event'))
+        assert function(handler_parent_mac or new, 'mt6797_mac_join_control_event') == function(
             observer_parent_mac, 'mt6797_mac_join_control_event'), 'control admission changed'
     if a.beacon_observer:
-        assert function(new, 'mt6797_mac_join_work') == function(
+        assert function(handler_parent_mac or new, 'mt6797_mac_join_work') == function(
             beacon_parent_mac, 'mt6797_mac_join_work'), 'beacon dispatch/ownership changed'
+    if a.pm_connected:
+        names += [('void', 'mt6797_ccmp_pm_beacon'), ('int', 'mt6797_ccmp_pm_indicate'),
+                  ('int', 'mt6797_mac_join_associate'), ('int', 'mt6797_mac_join_cleanup_step')]
+    if a.connection_monitor:
+        names.append(('void', 'mt6797_ccmp_connection_lost'))
+        assert function(new, 'mt6797_mac_tx') == function(monitor_parent_mac, 'mt6797_mac_tx'), 'new TX class'
+        assert new.count('ieee80211_hw_set(hw, CONNECTION_MONITOR)') == 1
     obs_start = new.index('struct mt6797_ccmp_observation {')
     obs_end = new.index('\n};', obs_start) + 3
-    (tmp / 'actual-ccmp-monitor.inc').write_text(new[obs_start:obs_end] + '\n' + new[start:end] + '\n' + '\n'.join(
+    handler_definitions = ''
+    if a.timeout_handler:
+        for macro in ['MT6797_JOIN_DATA_BUDGET_MS', 'MT6797_JOIN_GRANT_TAIL_MS',
+                      'MT6797_JOIN_TEARDOWN_MARGIN_MS']:
+            found = re.findall(r'^#define ' + macro + r' [^\n]+$', new, re.M)
+            assert len(found) == 1
+            handler_definitions += found[0] + '\n'
+    (tmp / 'actual-ccmp-monitor.inc').write_text(handler_definitions + new[obs_start:obs_end] + '\n' + new[start:end] + '\n' + '\n'.join(
         '#pragma GCC diagnostic push\n#pragma GCC diagnostic ignored "-Wunused-parameter"\n' +
         'static ' + result + ' ' + function(new, name) + '\n#pragma GCC diagnostic pop'
         for result, name in names))
@@ -206,6 +243,36 @@ with tempfile.TemporaryDirectory(prefix='initial-gtk-') as directory:
         callbacks = callbacks.replace('m.native_diag_total = 511;', 'm.native_diag_total = 4095;').replace('m.native_diag_total == 512', 'm.native_diag_total == 4096')
         callbacks = callbacks.replace('m.native_diag_bytes = MT6797_NATIVE_DIAG_BYTES_MAX -', 'm.native_diag_bytes = MT6797_CCMP_DIAG_BYTES_MAX -')
         callbacks = callbacks.replace('arm/63->64', 'arm/1023->1024')
+    if a.timeout_handler:
+        callbacks = callbacks.replace('#define NSEC_PER_MSEC 1000000ULL',
+            '#define NSEC_PER_MSEC 1000000ULL\n#define NSEC_PER_USEC 1000ULL')
+        stub = ('struct mt6797_hif;\n#define min(a, b) ((a) < (b) ? (a) : (b))\n'
+                'static unsigned int handler_reads;\n'
+                'static int mt6797_hif_read32(struct mt6797_hif *h, unsigned int reg, u64 deadline, u32 *v)\n'
+                '{ (void)h; (void)reg; (void)deadline; (void)v; handler_reads++; return -EIO; }\n'
+                'static bool skb_queue_empty(const struct sk_buff_head *q) { return !q->head; }\n')
+        callbacks = callbacks.replace('#include \"actual-ccmp-monitor.inc\"', stub + '#include \"actual-ccmp-monitor.inc\"')
+    if a.pm_connected:
+        callbacks = callbacks.replace("#define MT6797_JOIN_BMC_WLAN_INDEX 2\n", "")
+        callbacks = callbacks.replace('#include \"ccmp-gtk-rx.h\"', '#include \"ccmp-gtk-rx.h\"\n#include \"join-commands.h\"')
+        callbacks = callbacks.replace('#include \"actual-ccmp-monitor.inc\"',
+            (fixtures / 'pm-callback-prototypes.inc').read_text() + '\n#include \"actual-ccmp-monitor.inc\"')
+        if a.connection_monitor:
+            callbacks = callbacks.replace('#include \"actual-ccmp-monitor.inc\"',
+                'static void mt6797_ccmp_connection_lost(struct mt6797_mac *, const char *);\n#include \"actual-ccmp-monitor.inc\"')
+        stub = 'static int ' + function(callbacks, 'mt6797_mac_join_associate') + '\n'
+        assert callbacks.count(stub) == 1
+        callbacks = callbacks.replace(stub, '')
+        callbacks = callbacks.replace('seed_calls = key_submits = 0;',
+            'm->ccmp_pm_connected = true; pm_reset_world(); seed_calls = key_submits = 0;')
+        callbacks = callbacks.replace('static int mt6797_mac_join_wait_credit(struct mt6797_mac *m)\n{',
+            'static int mt6797_mac_join_wait_credit(struct mt6797_mac *m)\n{\n int rc; if (pm_credit_hook(m, &rc)) return rc;')
+        callbacks = callbacks.replace('assert(add && deadline > now);',
+            'assert(deadline > now); if (!add) return pm_remove_key(pairwise);')
+        anchor = 'assert(!pthread_mutex_trylock(&m->mutex.lock));\n'
+        assert callbacks.count(anchor) == 1
+        callbacks = callbacks.replace(anchor, anchor +
+            ' if (pm_wait_hook(m, c, ticks)) { assert(!pthread_mutex_unlock(&m->mutex.lock)); return c->done; }\n')
     callbacks = callbacks.replace('int main(void)', 'int existing_callbacks(void)')
     callbacks = callbacks.replace('GTK-withhold', 'initial-key ownership').replace('actual monitor engine:', 'actual mask engine (control-call stub):')
     extra = (fixtures / 'initial-gtk-callbacks.inc').read_text()
@@ -219,6 +286,15 @@ with tempfile.TemporaryDirectory(prefix='initial-gtk-') as directory:
     if a.beacon_observer:
         extra = (fixtures / 'beacon-observer.inc').read_text() + '\n' + extra
         extra = extra.replace('timeout_observer_tests();', 'timeout_observer_tests();\n beacon_observer_tests();')
+    if a.timeout_handler:
+        extra = extra.replace('mt6797_ccmp_timeout_observe', 'mt6797_ccmp_timeout_continue')
+        extra = (fixtures / 'timeout-handler.inc').read_text() + '\n' + extra
+        extra = extra.replace('beacon_observer_tests();', 'beacon_observer_tests();\n timeout_handler_tests();')
+    if a.pm_connected:
+        extra = (fixtures / 'pm-callbacks.inc').read_text() + '\n' + extra
+        extra = extra.replace('timeout_handler_tests();', 'timeout_handler_tests();\n pm_callback_tests();')
+    if a.connection_monitor:
+        callbacks = '#define FIXTURE_CONNECTION_MONITOR 1\n' + callbacks
     (tmp / 'callbacks.c').write_text(callbacks + '\n' + extra)
     binary = tmp / 'callbacks'
     subprocess.run([*flags, '-pthread', '-DCONFIG_MT6797_CCMP_MASK_CONTROL',

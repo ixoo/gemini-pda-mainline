@@ -20,10 +20,12 @@ Recent owned host admissions support a firmware/host monitor discrepancy;
 reason 6 is not decoded and completeness of the beacon stream is not proved.
 The count includes pre-data and may include duplicates; beacon intervals use TU.
 The latest owner guidance selects a narrowly conditional owned timeout handler
-and source-supported 0x16 connection indication with fresh TIM/DTIM, AID and
-interval, on the existing sequence/page-credit path before traffic. Callback,
-metadata and disconnect/abort ownership need review and actual-source tests
-before implementation/build. Other event families and late TX completions keep
+on beacon freshness alone (checked-data age is diagnostic), plus source-
+supported 0x16 with fresh TIM/DTIM, AID and interval on the existing sequence /
+page-credit path at the first qualified post-association beacon, before keys
+and traffic. Archives 0210/0211/0212 now prepare that policy, credited PM
+connection/abort ownership and the standard connection-monitor flag. Local
+actual-source tests pass; Linux validation, build and deployment remain pending. Other event families and late TX completions keep
 their current behavior. Full outcomes and pipelining are in the existing plan /
 roadmap. Do not repeat GTK4 unchanged.
 

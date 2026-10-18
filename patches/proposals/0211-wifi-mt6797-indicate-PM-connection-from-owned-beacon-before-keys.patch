@@ -1,0 +1,442 @@
+From d477b66162736c38e3e0c7e5fa7addf8301cda40 Mon Sep 17 00:00:00 2001
+From: Codex Experiment <codex-experiment@example.invalid>
+Date: Sun, 18 Oct 2026 16:41:32 -0400
+Subject: [PATCH] wifi: mt6797: indicate PM connection from a fresh owned
+ beacon before keys
+
+The current initial-GTK join sends BSS and station records but omits the
+public gen3 PM connection indication. Latch a unique valid TIM DTIM from
+an existing qualified post-association target beacon. The association
+callback waits within its existing station phase deadline, then sends
+0x16 through the current sequence/page-credit owner before returning to
+key installation. Zero ATIM/UAPSD fit the admitted legacy no-PS profile.
+
+Require the credited indication at key admission. A metadata/submission/
+credit failure stops before keys. Add the corresponding credited PM abort
+under the existing quiescent healthy-cleanup ledger before key/STA/BSS
+removal. The six cleanup commands fit the unchanged 2500 ms grant tail;
+all phase, transaction, frame, lifetime and resource limits stay unchanged.
+No event family, key reuse or reconnect is enabled by this change.
+
+Internal experiment archive, synthetic non-certifying author identity;
+no DCO certification and not an upstream submission.
+---
+ drivers/net/wireless/mediatek/mt6797/hif.c    |  24 +++
+ drivers/net/wireless/mediatek/mt6797/hif.h    |   7 +
+ .../mediatek/mt6797/join-command-submit.h     |  15 ++
+ .../wireless/mediatek/mt6797/join-commands.h  |  77 +++++++++
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 162 +++++++++++++++++-
+ 5 files changed, 280 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 501dda8..97c87a3 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -670,6 +670,30 @@ int mt6797_hif_join_bss(struct mt6797_hif *hif, unsigned int sequence,
+ 					   sizeof(payload), false, deadline_ns);
+ }
+ 
++#ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
++int mt6797_hif_join_pm_connected(struct mt6797_hif *hif, unsigned int sequence,
++				 unsigned int dtim, unsigned int aid, unsigned int interval,
++				 u64 deadline_ns)
++{
++	u8 payload[MT6797_JOIN_PM_CONNECTED_BYTES];
++
++	if (!mt6797_join_pm_connected_payload(dtim, aid, interval, payload))
++		return -EINVAL;
++	return mt6797_hif_send_join_command(hif, 0x16, sequence, payload,
++					   sizeof(payload), false, deadline_ns);
++}
++
++int mt6797_hif_join_pm_abort(struct mt6797_hif *hif, unsigned int sequence,
++			     u64 deadline_ns)
++{
++	u8 payload[4];
++
++	mt6797_join_pm_abort_payload(payload);
++	return mt6797_hif_send_join_command(hif, 0x17, sequence, payload,
++					   sizeof(payload), false, deadline_ns);
++}
++#endif
++
+ int mt6797_hif_join_station(struct mt6797_hif *hif, unsigned int sequence,
+ 	const u8 *ap, unsigned int state, unsigned int aid,
+ 	unsigned int desired_rates, unsigned int basic_rates, u64 deadline_ns)
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index d44064e..3e13546 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -220,6 +220,13 @@ int mt6797_hif_join_bss(struct mt6797_hif *hif, unsigned int sequence,
+ int mt6797_hif_join_key(struct mt6797_hif *hif, unsigned int sequence,
+ 			bool add, bool pairwise, const u8 *peer,
+ 			unsigned int key_id, const u8 *material, u64 deadline_ns);
++#ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
++int mt6797_hif_join_pm_connected(struct mt6797_hif *hif, unsigned int sequence,
++				 unsigned int dtim, unsigned int aid, unsigned int interval,
++				 u64 deadline_ns);
++int mt6797_hif_join_pm_abort(struct mt6797_hif *hif, unsigned int sequence,
++			     u64 deadline_ns);
++#endif
+ int mt6797_hif_join_station(struct mt6797_hif *hif, unsigned int sequence,
+ 	const u8 *ap, unsigned int state, unsigned int aid,
+ 	unsigned int desired_rates, unsigned int basic_rates, u64 deadline_ns);
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-command-submit.h b/drivers/net/wireless/mediatek/mt6797/join-command-submit.h
+index db7657d..a648d58 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join-command-submit.h
++++ b/drivers/net/wireless/mediatek/mt6797/join-command-submit.h
+@@ -41,6 +41,21 @@ mt6797_join_prepare_command(struct mt6797_normal_transaction *t,
+ 	case 0x14:
+ 		required = 4;
+ 		break;
++#ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
++	case 0x16:
++		if (bytes != MT6797_JOIN_PM_CONNECTED_BYTES || payload[0] || !payload[1] ||
++		    !mt6797_join_le16(payload + 2) || mt6797_join_le16(payload + 2) > 2007 ||
++		    !mt6797_join_le16(payload + 4) || payload[6] || payload[7] ||
++		    payload[8] || payload[9] || payload[10] || payload[11])
++			return -EINVAL;
++		required = MT6797_JOIN_PM_CONNECTED_BYTES;
++		break;
++	case 0x17:
++		if (bytes != 4 || payload[0] || payload[1] || payload[2] || payload[3])
++			return -EINVAL;
++		required = 4;
++		break;
++#endif
+ 	case 0x1c:
+ 		required = 16;
+ 		break;
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-commands.h b/drivers/net/wireless/mediatek/mt6797/join-commands.h
+index 2c3e446..f935147 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join-commands.h
++++ b/drivers/net/wireless/mediatek/mt6797/join-commands.h
+@@ -332,4 +332,81 @@ mt6797_diag_mask_payload(bool enable, unsigned char output[MT6797_DIAG_MASK_BYTE
+ 	return true;
+ }
+ #endif
++#ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
++#define MT6797_JOIN_PM_CONNECTED_BYTES 12U
++
++/* Called only for the existing qualified target beacon, after association.
++ * Validate the entire IE span and a unique TIM; no output changes on failure.
++ */
++static inline int
++mt6797_join_beacon_dtim(const unsigned char *frame, size_t bytes,
++			unsigned int interval, unsigned char *dtim)
++{
++	size_t pos = 36;
++	unsigned char period = 0;
++	unsigned int seen = 0;
++
++	if (!frame || !dtim || bytes < 36 || bytes > 4096 ||
++	    !interval || interval > 0xffffU)
++		return -EINVAL;
++	if ((mt6797_join_le16(frame) & 0x00ff) != 0x0080 ||
++	    mt6797_join_le16(frame + 32) != interval)
++		return -EPROTO;
++	while (pos < bytes) {
++		unsigned int len;
++
++		if (bytes - pos < 2)
++			return -EPROTO;
++		len = frame[pos + 1];
++		if (len > bytes - pos - 2)
++			return -EPROTO;
++		if (frame[pos] == 5) {
++			if (++seen != 1 || len < 4 || !frame[pos + 3] ||
++			    frame[pos + 2] >= frame[pos + 3])
++				return -EPROTO;
++			period = frame[pos + 3];
++		}
++		pos += 2 + len;
++	}
++	if (!seen)
++		return -ENOENT;
++	*dtim = period;
++	return 0;
++}
++
++/* Public gen3 PM connection: BSS 0, legacy no-PS, zero ATIM/UAPSD/reserved.
++ * DTIM is from a fresh qualified beacon; AID is the accepted AssocResp's.
++ */
++static inline bool
++mt6797_join_pm_connected_payload(unsigned int dtim, unsigned int aid,
++				 unsigned int interval,
++				 unsigned char output[MT6797_JOIN_PM_CONNECTED_BYTES])
++{
++	unsigned char p[MT6797_JOIN_PM_CONNECTED_BYTES] = {0};
++	unsigned int i;
++
++	if (!output || !dtim || dtim > 255 || !aid || aid > 2007 ||
++	    !interval || interval > 0xffffU)
++		return false;
++	p[1] = dtim;
++	p[2] = aid;
++	p[3] = aid >> 8;
++	p[4] = interval;
++	p[5] = interval >> 8;
++	for (i = 0; i < sizeof(p); i++)
++		output[i] = p[i];
++	return true;
++}
++
++static inline bool mt6797_join_pm_abort_payload(unsigned char output[4])
++{
++	unsigned int i;
++
++	if (!output)
++		return false;
++	for (i = 0; i < 4; i++)
++		output[i] = 0;
++	return true;
++}
++#endif
+ #endif
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 7d87b8e..9ae3600 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -57,10 +57,10 @@ MODULE_PARM_DESC(ccmp_stable_epoch,
+  * order: the last data frame admitted at the phase's end and its 750 ms
+  * completion deadline; the deauthentication reserved at association, whose
+  * dequeue after that completion needs 850 ms of grant room, which also covers
+- * its own 750 ms completion; then the two removals, the station removal and
+- * the channel abort, each a command with a 100 ms credit deadline, plus the
+- * 20 ms poll and the HIF's 100 ms; 750 + 850 + 4 x 100 + 120 = 2120. No other
+- * budget changes; the phase only gets shorter.
++ * its own 750 ms completion; then PM abort, the two key removals, station
++ * removal, channel abort and BSS disable, each with a 100 ms credit deadline,
++ * plus the 20 ms poll and the HIF's 100 ms: 750 + 850 + 6 x 100 + 120 = 2320.
++ * The existing 2500 ms tail is unchanged; the phase only gets shorter.
+  */
+ #define MT6797_JOIN_GRANT_TAIL_MS 2500U
+ /* Metadata-only observability of the TC1 pool: the first few credit returns
+@@ -221,6 +221,11 @@ struct mt6797_mac {
+ 	unsigned int ccmp_gtk_queued, ccmp_gtk_arp_handoff;
+ 	u64 ccmp_last_checked_rx, ccmp_last_beacon_rx;
+ 	unsigned int ccmp_timeout_continued;
++	struct completion ccmp_dtim_done;
++	u8 ccmp_dtim_period;
++	int ccmp_dtim_status;
++	bool ccmp_dtim_valid, ccmp_pm_attempted, ccmp_pm_connected;
++	bool ccmp_pm_abort_pending, ccmp_pm_abort_credited;
+ #endif
+ 	struct ieee80211_sta __rcu *ccmp_sta;
+ 	/* Cookies only: never dereferenced, withdrawn before DISABLE_KEY returns. */
+@@ -358,6 +363,7 @@ static void mt6797_ccmp_withdraw(struct mt6797_mac *mac)
+ #ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
+ 	mac->ccmp_gtk_rx.active = false;
+ 	mac->ccmp_gtk_rx.authorized = false;
++	complete_all(&mac->ccmp_dtim_done);
+ #endif
+ 	mac->ccmp_decap = false;
+ 	mac->ccmp_closed = true;
+@@ -1689,6 +1695,32 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
+ 			 ledger.sequences, ledger.locked);
+ 		return -EPROTO;
+ 	}
++#ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
++	if (ccmp_stable_epoch && mac->ccmp_pm_abort_pending) {
++		/* All owed pages/pending credit were excluded above, including this
++		 * abort. A credit proves buffer consumption, never key-slot reuse.
++		 */
++		mac->ccmp_pm_abort_pending = false;
++		mac->ccmp_pm_abort_credited = true;
++		mac->ccmp_pm_connected = false;
++		dev_info(wiphy_dev(mac->hw->wiphy),
++			 "one-shot WLAN PM abort credit: returned=1\n");
++	}
++	if (ccmp_stable_epoch && mac->ccmp_pm_connected) {
++		if (mac->sequence > 253)
++			return -ENOSPC;
++		mac->join_credit_deadline = deadline;
++		reinit_completion(&mac->join_credit_done);
++		mac->join_credit_pending = true;
++		mac->join_page_debt = 1;
++		ret = mt6797_hif_join_pm_abort(mac->hif, mac->sequence++, deadline);
++		dev_info(wiphy_dev(mac->hw->wiphy),
++			 "one-shot WLAN PM abort: sequence=%u status=%d\n", mac->sequence - 1, ret);
++		if (!ret)
++			mac->ccmp_pm_abort_pending = true;
++		return ret;
++	}
++#endif
+ 	if (mac->join_cleanup_stage == 3) {
+ #ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
+ 		mt6797_ccmp_observe_terminal(mac);
+@@ -2174,6 +2206,36 @@ static int mt6797_mac_join_fail_stop(struct mt6797_mac *mac, int ret,
+  * the lifetime's packet budget bounds the class. Nothing is interpreted here;
+  * no decoder changes.
+  */
++#ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
++/* The existing caller has validated this target beacon's peer and channel.
++ * Latch once after station activation, before any PM/key command. The callback
++ * waiter releases the MAC mutex; this RX path performs no command submission.
++ */
++static void mt6797_ccmp_pm_beacon(struct mt6797_mac *mac, size_t offset, size_t bytes)
++{
++	u8 period;
++
++	if (!ccmp_stable_epoch || mac->ccmp_dtim_valid || mac->ccmp_pm_attempted ||
++	    mac->ccmp_closed || mac->first_error || mac->closing || mac->join_retired ||
++	    !mac->join_running || !mac->join_assoc_received || mac->join_assoc_status ||
++	    !mac->join_bss_valid || !mac->join_bss_configured || !mac->join_sta_active ||
++	    mac->join_data_phase || mac->join_key_pairwise || mac->join_key_group ||
++	    offset > sizeof(mac->join_packet) || bytes > sizeof(mac->join_packet) - offset ||
++	    ktime_get_ns() >= mac->join_deadline)
++		return;
++	mac->ccmp_dtim_status = mt6797_join_beacon_dtim(mac->join_packet + offset, bytes,
++							mac->join_beacon_interval, &period);
++	if (mac->ccmp_dtim_status)
++		return;
++	mac->ccmp_dtim_period = period;
++	mac->ccmp_dtim_valid = true;
++	complete_all(&mac->ccmp_dtim_done);
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot WLAN PM beacon metadata: dtim=%u interval_tu=%u aid=%u\n",
++		 period, mac->join_beacon_interval, mac->join_aid);
++}
++#endif
++
+ static int mt6797_mac_join_deliver_beacon(struct mt6797_mac *mac, size_t offset,
+ 					  size_t bytes, unsigned int rcpi,
+ 					  bool keyed, struct sk_buff_head *received)
+@@ -2192,8 +2254,10 @@ static int mt6797_mac_join_deliver_beacon(struct mt6797_mac *mac, size_t offset,
+ 		IEEE80211_SKB_RXCB(skb)->flag |= RX_FLAG_NO_SIGNAL_VAL;
+ 	mac->join_beacons_delivered++;
+ #ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
+-	if (ccmp_stable_epoch)
++	if (ccmp_stable_epoch) {
+ 		mac->ccmp_last_beacon_rx = ktime_get_ns();
++		mt6797_ccmp_pm_beacon(mac, offset, bytes);
++	}
+ #endif
+ 	if (keyed)
+ 		mac->join_keyed_beacons++;
+@@ -3933,6 +3997,75 @@ out:
+ 
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ /* Called with the MAC mutex held; every wait releases it for the poller. */
++#ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
++/* Connection indication belongs to the first fresh post-association beacon,
++ * before association returns to key installation. MAC mutex held on entry and
++ * return; its existing phase deadline also bounds metadata and command credit.
++ */
++static int mt6797_ccmp_pm_indicate(struct mt6797_mac *mac, u64 phase_deadline)
++{
++	u64 now = ktime_get_ns(), deadline;
++	int ret;
++
++	if (!mac->ccmp_dtim_valid && now < phase_deadline) {
++		mutex_unlock(&mac->mutex);
++		wait_for_completion_timeout(&mac->ccmp_dtim_done,
++					    nsecs_to_jiffies(phase_deadline - now) + 1);
++		mutex_lock(&mac->mutex);
++	}
++	now = ktime_get_ns();
++	if (mac->first_error || mac->closing || mac->join_retired || mac->ccmp_closed ||
++	    !mac->join_running) {
++		ret = mac->first_error ? mac->first_error : -ECANCELED;
++		goto out;
++	}
++	if (now >= phase_deadline || now >= mac->join_deadline || !mac->ccmp_dtim_valid) {
++		ret = -ETIMEDOUT;
++		goto out;
++	}
++	if (mac->ccmp_pm_attempted || !mac->join_bss_configured || !mac->join_sta_active ||
++	    mac->join_key_pairwise || mac->join_key_group ||
++	    mac->join_key_pairwise_submitted || mac->join_key_group_submitted) {
++		ret = -EOPNOTSUPP;
++		goto out;
++	}
++	if (mac->sequence > 253) {
++		ret = -ENOSPC;
++		goto out;
++	}
++	if (mac->join_inflight || mac->join_page_debt || mac->join_credit_pending ||
++	    !mt6797_hif_normal_idle(mac->hif)) {
++		ret = -EBUSY;
++		goto out;
++	}
++	deadline = min_t(u64, phase_deadline,
++			 min_t(u64, mac->join_deadline, now + 100 * NSEC_PER_MSEC));
++	mac->join_credit_deadline = deadline;
++	reinit_completion(&mac->join_credit_done);
++	mac->join_credit_pending = true;
++	mac->join_page_debt = 1;
++	mac->ccmp_pm_attempted = true;
++	ret = mt6797_hif_join_pm_connected(mac->hif, mac->sequence++,
++					   mac->ccmp_dtim_period, mac->join_aid,
++					   mac->join_beacon_interval, deadline);
++	if (!ret)
++		ret = mt6797_mac_join_wait_credit(mac);
++	if (!ret && (mac->ccmp_closed || mac->closing || mac->join_retired || mac->first_error))
++		ret = mac->first_error ? mac->first_error : -ECANCELED;
++	if (!ret && ktime_get_ns() >= deadline)
++		ret = -ETIMEDOUT;
++	if (!ret)
++		mac->ccmp_pm_connected = true;
++out:
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot WLAN PM connection: attempted=%u credited=%u status=%d dtim_valid=%u dtim_status=%d keys=%u%u\n",
++		 mac->ccmp_pm_attempted, mac->ccmp_pm_connected, ret, mac->ccmp_dtim_valid,
++		 mac->ccmp_dtim_status, mac->join_key_pairwise_submitted,
++		 mac->join_key_group_submitted);
++	return ret;
++}
++#endif
++
+ static int mt6797_mac_join_associate(struct mt6797_mac *mac, unsigned int aid)
+ {
+ 	u64 deadline, now;
+@@ -3946,6 +4079,14 @@ static int mt6797_mac_join_associate(struct mt6797_mac *mac, unsigned int aid)
+ 	ret = mt6797_mac_join_wait_management(mac);
+ 	if (ret)
+ 		return ret;
++#ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
++	if (ccmp_stable_epoch) {
++		mac->ccmp_dtim_valid = false;
++		mac->ccmp_dtim_period = 0;
++		mac->ccmp_dtim_status = -ENODATA;
++		reinit_completion(&mac->ccmp_dtim_done);
++	}
++#endif
+ 	/* Pinned vendor AIS applies BSS/RLM before the associated STA record. */
+ 	mac->join_credit_deadline = min_t(u64, mac->join_deadline,
+ 					  ktime_get_ns() + 100 * NSEC_PER_MSEC);
+@@ -3992,6 +4133,10 @@ static int mt6797_mac_join_associate(struct mt6797_mac *mac, unsigned int aid)
+ 		return -ECANCELED;
+ 	if (ktime_get_ns() >= deadline || mac->join_sta_pending || !mac->join_sta_active)
+ 		return -ETIMEDOUT;
++#ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
++	if (ccmp_stable_epoch)
++		return mt6797_ccmp_pm_indicate(mac, deadline);
++#endif
+ 	return 0;
+ }
+ 
+@@ -4244,6 +4389,10 @@ static int mt6797_mac_set_key(struct ieee80211_hw *hw, enum set_key_cmd cmd,
+ 	mutex_lock(&mac->mutex);
+ #ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
+ #ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
++	if (ccmp_stable_epoch && !mac->ccmp_pm_connected) {
++		ret = -EOPNOTSUPP;
++		goto failed;
++	}
+ 	if (ccmp_stable_epoch && (mac->ccmp_closed ||
+ 				  (pairwise && mac->ccmp_ptk_attempted) ||
+ 				  (!pairwise && mac->ccmp_gtk_attempted))) {
+@@ -4892,6 +5041,9 @@ int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+ 	mutex_init(&mac->ccmp_receive_mutex);
+ 	init_completion(&mac->ccmp_key_done);
+ 	init_completion(&mac->ccmp_cleanup_done);
++#ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
++	init_completion(&mac->ccmp_dtim_done);
++#endif
+ 	if (ccmp_stable_epoch) {
+ 		hw->wiphy->cipher_suites = mt6797_ccmp_ciphers;
+ 		hw->wiphy->n_cipher_suites = ARRAY_SIZE(mt6797_ccmp_ciphers);
+-- 
+2.54.0 (Apple Git-157)
+

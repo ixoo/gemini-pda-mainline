@@ -820,3 +820,6 @@ proposals/0206-wifi-mt6797-bound-low-traffic-CCMP-observation-capacity.patch
 proposals/0207-wifi-mt6797-report-checked-key-classes-and-GTK-ARP-handoff.patch
 proposals/0208-wifi-mt6797-observe-refused-BSS-timeout-and-checked-RX-age.patch
 proposals/0209-wifi-mt6797-retain-owned-beacon-recency-at-refused-timeout.patch
+proposals/0210-wifi-mt6797-condition-owned-BSS-timeout-on-fresh-beacons.patch
+proposals/0211-wifi-mt6797-indicate-PM-connection-from-owned-beacon-before-keys.patch
+proposals/0212-wifi-mt6797-own-connection-monitoring-in-PM-required-experiment.patch

@@ -1,0 +1,99 @@
+From dddd09d59fa23e70798bd5815e9e8c2c6f1de391 Mon Sep 17 00:00:00 2001
+From: Codex Experiment <codex-experiment@example.invalid>
+Date: Sun, 18 Oct 2026 16:50:11 -0400
+Subject: [PATCH] wifi: mt6797: own connection monitoring in the PM-required
+ experiment
+
+Keep nullfunc outside the admitted firmware Ethernet TX class. Advertise
+CONNECTION_MONITOR only in the armed initial-GTK experiment whose
+association requires PM connection credit before keys. Use the standard
+connection-loss API once on an unusable live-data terminal and on healthy
+cleanup, so a fault that never reaches stage 3 still reports loss.
+
+The flag bypasses mac80211 software idle/beacon probes; this bounded
+candidate must measure the firmware monitoring path rather than claim
+production keep-alive enforcement. No normal-profile flag or TX-class,
+resource, key-reuse or deadline change.
+
+Internal experiment archive, synthetic non-certifying author identity;
+no DCO certification and not an upstream submission.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 32 ++++++++++++++++++++++
+ 1 file changed, 32 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 9ae3600..5283b0f 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -226,6 +226,7 @@ struct mt6797_mac {
+ 	int ccmp_dtim_status;
+ 	bool ccmp_dtim_valid, ccmp_pm_attempted, ccmp_pm_connected;
+ 	bool ccmp_pm_abort_pending, ccmp_pm_abort_credited;
++	bool ccmp_loss_reported;
+ #endif
+ 	struct ieee80211_sta __rcu *ccmp_sta;
+ 	/* Cookies only: never dereferenced, withdrawn before DISABLE_KEY returns. */
+@@ -500,6 +501,19 @@ static bool mt6797_ccmp_timeout_continue(struct mt6797_mac *mac, size_t bytes)
+ 		 mac->ccmp_timeout_continued);
+ 	return continuing;
+ }
++
++/* MAC mutex held; this standard API only queues work, never calls back here.
++ * A finite healthy terminal and a fatal live-data stop share one notification.
++ */
++static void mt6797_ccmp_connection_lost(struct mt6797_mac *mac, const char *source)
++{
++	if (!ccmp_stable_epoch || !mac->vif || !mac->started || mac->ccmp_loss_reported)
++		return;
++	mac->ccmp_loss_reported = true;
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot WLAN connection loss report: source=%s once=1\n", source);
++	ieee80211_connection_loss(mac->vif);
++}
+ #endif
+ 
+ /* Called only in the common serialized RX/TX-status batch, outside MAC locks.
+@@ -1768,8 +1782,15 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
+ 		mt6797_native_diag_rx_report(mac);
+ #endif
+ 		/* This API only queues work; no synchronous MLME call under our mutex. */
++#ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
++		if (ccmp_stable_epoch)
++			mt6797_ccmp_connection_lost(mac, "cleanup");
++		else if (mac->vif && mac->started)
++			ieee80211_connection_loss(mac->vif);
++#else
+ 		if (mac->vif && mac->started)
+ 			ieee80211_connection_loss(mac->vif);
++#endif
+ 		return 0;
+ 	}
+ 	if (mac->join_cleanup_stage > 3 || mac->sequence > 253)
+@@ -2155,6 +2176,10 @@ static int mt6797_mac_join_fail_stop(struct mt6797_mac *mac, int ret,
+ 		"one-shot WLAN join stopped: status=%d first=%d submitted=0x%x debt=%u cleanup=%u branch=%u\n",
+ 		ret, mac->first_error, mac->join_submitted,
+ 		mac->join_page_debt, mac->join_cleanup_stage, branch);
++#ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
++	if (mac->join_data_phase)
++		mt6797_ccmp_connection_lost(mac, "terminal");
++#endif
+ #ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
+ 	mt6797_native_diag_rx_report(mac);
+ #endif
+@@ -5049,6 +5074,13 @@ int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+ 		hw->wiphy->n_cipher_suites = ARRAY_SIZE(mt6797_ccmp_ciphers);
+ 		ieee80211_hw_set(hw, SUPPORTS_RX_DECAP_OFFLOAD);
+ 		ieee80211_hw_set(hw, SW_CRYPTO_CONTROL);
++#ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
++		/* This bounded lane requires PM connection credit before keys and
++		 * reports an unusable live lifetime through connection_loss.
++		 * Normal profiles do not advertise this experimental ownership.
++		 */
++		ieee80211_hw_set(hw, CONNECTION_MONITOR);
++#endif
+ 	}
+ #endif
+ 	hw->wiphy->max_scan_ssids = 0;
+-- 
+2.54.0 (Apple Git-157)
+
