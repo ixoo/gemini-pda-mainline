@@ -4,7 +4,9 @@ Source-only review performed while [C11](CCMP11_PREPARATION.md) awaited owner
 physical selection. The [C11 result](CCMP11_RESULT.md) subsequently established
 positive group-PN availability; GTK delivery remains withheld. No new candidate, GTK acceptance, frame acquisition or device action.
 The [C11 observation](GROUP_PN_SUCCESSOR.md) establishes only sampled availability.
-The owner-directed next step is the unchanged C10 baseline, not GTK delivery.
+The unchanged C10 baseline and the later [D3 diagnostic](SESSION_0202_PLAN.md#evidence-and-later-work)
+are now recorded. Candidate ordering is awaiting an explicit owner choice; the
+new-build hold remains. No GTK acceptance code has been added.
 
 Input: the actual prepared Linux 7.1.3 source for kernel commit
 `774e08aa5570f96986acc1fd2a40afa0c226777d`, using the
@@ -40,3 +42,52 @@ Missing required metadata must continue to reject. Firmware integrity attributio
 rekey/deletion and queued-frame retirement remain obligations before key reuse;
 the [lifecycle barriers](../2026-10-07-mt6797-wifi-phase-b-join/REUSABLE_LIFECYCLE_DESIGN.md)
 and two-lifetime/ten-minute acceptance remain unproved.
+
+## Post-D3 reassessment of the group-first proposal
+
+The [C11 source-status clarification](CCMP11_RESULT.md#later-source-status-clarification-no-additional-device-run)
+supports the researcher's key observation: 32 received groups passed the clean
+translated shape/key-ID/TID/EtherType gates, including mandatory G4 and observed
+G1, and were still withheld by the PTK-only checker. Group withholding is a host
+policy, not evidence that those group packets were lost before the driver.
+Their EtherType breakdown was not retained. It does not yet establish that any
+was the laptop's ARP request or caused the earlier SSH failures. Neither blanket
+"upstream fault" nor proven driver-caused SSH failure follows from these counts.
+
+D3 authenticated with an absent initial neighbor entry that became complete,
+without a ping intervention. This demonstrates successful resolution in that
+run, not its mechanism. A's success deliberately prevented B; no extra boot is
+justified as an automatic repeat.
+
+The proposed group predicates and separate PN state are a reasonable basis for
+reviewing a bounded initial-GTK extension. Mandatory G4 followed by G1 places
+G1 at offset 32 in the existing wire order; the PTK accessor already reverses
+its six-byte PN. Reusing an accessor does not establish GTK ownership or seeding.
+A group context must bind the installed GTK ID, BMC index, station/key lifetime,
+real receive-sequence seed and strict monotonic PN independently of PTK. Reject
+missing metadata and retain full validation/allocation before advancing PN.
+The existing current-station/authorized/RCU handoff gates must still apply.
+Passing the AP station pointer enables the Ethernet path; it does **not** ask
+mac80211 to select a GTK or check replay. Those remain driver obligations under
+the pinned contract above. No rekey, deletion/reuse or stale-frame guarantee is
+implied by adding initial group acceptance.
+
+A counters-only withheld-ARP count can use the already validated EtherType
+without reading PN or exporting addresses/content. A positive count proves that
+ARP-class groups reached and were withheld by the host; without sender/target
+attribution it does not uniquely identify the SSH peer's resolution attempt.
+Specify this narrower observation and decision before implementation.
+
+The repeated 48-byte difference equals G1+G2+G3 and the opposite signs are
+consistent with a format/length-record association race. They are not proof of
+that mechanism: associating different FIFO records can also produce either sign.
+The current TX-credit quiescence is not an RX-producer fence. Early write-once
+0202 remains a bounded comparison, not a proven fix or proof of RX quiescence.
+No new register access or deadline extension is authorized by this inference.
+
+The approved 0203 60-second exception is currently guarded by
+`CONFIG_MT6797_CCMP_FIXED_RX_FORMAT`; selecting it without 0202 does not enable
+that exception. A group-first preparation must separate the observation-window
+selection while preserving all resource caps and transaction/cleanup limits.
+This is a concrete dependency, not permission to build. The owner is being asked
+whether to supersede the earlier instruction deferring GTK until the 0202 result.
