@@ -7,11 +7,12 @@ the boot, so the overall compatibility result is false. Transport and host
 cleanup passed independently, with no refusal or timeout. Evidence was sealed
 and changed-boot Gemian independently verified. No unchanged retry.
 
-[C10](CCMP10_RESULT.md) remains the earlier finite authenticated-SSH pass,
-not an established baseline. The [next step](CCMP11_RESULT.md#owner-directed-next-decision-unchanged-c10-baseline)
-is up to two further unchanged C10 sessions, each with physical boot2 selection.
-No new candidate or build. GTK delivery, rekey, reuse and reconnect stay disabled;
-staged longer lifetimes follow the baseline. Full acceptance remains incomplete.
+The [three-run unchanged C10 baseline](CCMP10_BASELINE.md) is complete: all
+finite transport/network/host-cleanup windows passed, SSH passed 2/3. Thus the
+observer is not necessary for an SSH failure. Exact failure stage is unknown;
+[D1](SSH_FAILURE_DIAGNOSTIC.md) retains the discarded client output using the
+same image and SSH command. No new kernel candidate/build. GTK delivery,
+rekey, reuse and reconnect stay disabled; sustained acceptance is incomplete.
 
 | Field | Value |
 | --- | --- |

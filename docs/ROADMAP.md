@@ -50,20 +50,19 @@ Keep this file under 200 lines; move anything else to an experiment record.
   which also observed the received-PN group absent on that one sample — an availability
   fact, not a replay or crypto claim). Bounded lifetimes only; `wifi_operational` stays
   false and no operational, reliability, persistence or replay-protection claim follows.
-- **Next (C10 baseline, 2026-10-18 UTC).** [C11](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/CCMP11_RESULT.md)
-  passed DHCP/three pings, transport and host cleanup, but SSH failed. Its group
-  observer's causality is unknown. Re-run unchanged C10 up to three total runs
-  including its original finite pass; no new candidate/build. Diagnose SSH from
-  those results, then review 60 s / 2 min / 10 min lifetimes. GTK delivery,
-  rekey, reuse and reconnect remain disabled. Full acceptance remains open.
+- **Next (SSH stage, 2026-10-18 UTC).** The [three-run unchanged C10 baseline](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/CCMP10_BASELINE.md)
+  passed every finite transport/DHCP/three-ping/host-cleanup window; SSH passed
+  2/3. C11's observer is not required for failure. [D1](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/SSH_FAILURE_DIAGNOSTIC.md)
+  retains the existing client error to classify TCP/KEX/auth before selecting
+  a fix. No new kernel candidate/build; GTK delivery/rekey/reuse/reconnect stay
+  disabled. Then review 60 s / 2 min / 10 min lifetimes; full acceptance remains.
 - **Open.** Wi-Fi station operation beyond one bounded lifetime; replay
   enforcement in firmware is unknown. No charging, RTC alarm or lid.
   The `full` profile has never booted. No upstream submission. A72 and thermal
   protection are parked.
-- **Device (2026-10-18 UTC).** [C10 run 2](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/CCMP10_BASELINE.md)
-  passed transport/DHCP/three pings/host cleanup but failed SSH without C11's
-  observer. Run 3 is verified already matching, shut down and host-prepared.
-  Await owner physical boot2 selection with USB; run 3 has not started.
+- **Device (2026-10-18 UTC).** C10 run 3 consumed; reviewed return and independent
+  LAN identity confirmed changed-boot Gemian. C10 remains installed. D1 is not
+  executed; validate and prepare its host-only handoff before physical selection.
 
 ## Next device boots, in order
 

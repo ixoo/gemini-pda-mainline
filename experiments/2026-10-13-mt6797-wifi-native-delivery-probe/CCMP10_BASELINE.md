@@ -1,4 +1,4 @@
-# Unchanged C10 baseline — run 2 consumed; run 3 awaits owner selection
+# Unchanged C10 baseline — complete, SSH intermittent
 
 Owner-directed after the [sealed C10/C11 comparison](CCMP11_RESULT.md#sealed-c10c11-comparison-and-ssh-boundary).
 No new candidate, kernel build or runtime code change. The original C10 pass
@@ -16,7 +16,7 @@ and reconnect stay disabled, requiring a physical selection for each session.
 | C10 run 1 | `c80f93fe-ea39-4d6e-86b8-bfec0254c65c` | Pass | Bound | 3/3 | Authenticated, fresh boot matched | Stage 3, debt 0 | 6.210 s / 6.200 s planned |
 | C11 | `e86a098f-c62a-4b48-a1c6-153627abbef2` | Pass | Bound | 3/3 | Exit 255; no accepted server connection observed; exact TCP/KEX/auth stage unknown | Stage 3, debt 0 | 6.175 s / 6.156 s planned |
 | C10 run 2 | `ae97a99b-abf8-4de5-b2cf-eb3c0f772bd5` | Pass | Bound | 3/3 | Exit 255; no accepted server connection observed; exact stage unknown | Stage 3, debt 0 | 6.167 s / 6.156 s planned |
-| C10 run 3 | Pending physical boot | Not run | Not run | Not run | Not run | Not run | Not run |
+| C10 run 3 | `77f1507f-141e-4de2-8fb1-0a14713fd5d1` | Pass | Bound | 3/3 | Authenticated, fresh boot matched | Stage 3, debt 0 | 6.223 s / 6.196 s planned |
 
 ## Run 2 guarded restore and consumed handoff
 
@@ -101,7 +101,7 @@ C10 is already installed: the guarded installer must verify it, skip a matching
 write, perform independent full readback and clean shutdown. No re-arm, rekey,
 reuse, reconnect or GTK delivery. A fresh physical boot2 selection is required.
 
-## Run 3 verified preparation and physical handoff
+## Run 3 verified preparation and consumed physical handoff
 
 The 603-line installer is byte-identical to the original C10 script under
 exact identity/path/hash substitutions only. Bash syntax and ShellCheck passed;
@@ -120,14 +120,48 @@ session root. Complete actual offline host preparation passed, helper key/boot
 variables unset. The session contains only the deployment summary; capture and
 execution claim are absent. No run-3 session or helper has started.
 
-Owner action required: physically select boot2 with USB connected to the
-custodian laptop, then report startup. Stop at this handoff. After that action,
-verify the fresh mainline boot and exact C10 installation provenance, perform
-one capture and one session under unchanged limits, seal evidence and use the
-reviewed return, independently verifying changed-boot Gemian. No additional
-session in the same boot: healthy re-arm/reconnect remain disabled.
+Owner physical selection subsequently started the single run-3 capture and
+session; the preparation above is consumed. No physical selection is pending
+for a fourth unchanged baseline run.
 
-## Decisions after baseline
+## Run 3 result and completed baseline decision
+
+Executed from pushed input `b8f83eb2` on fresh strict USB-verified mainline boot
+`77f1507f-141e-4de2-8fb1-0a14713fd5d1`, bound to the exact installed C10 image
+and mask-helper check. One Phase-A capture passed 285/285, exit 0; one session
+exited 0. Original C10 tools and limits unchanged; no retry or new candidate.
+
+DHCP bound/lease-written/exit 0; ping seq 0/1/2 replies 80.020 / 50.299 /
+41.983 ms, TTL 64. SSH readiness 3.8 s, authenticated fresh-boot/listener/lease/
+mode exchange and guarded ACK by 5.8 s. Data budget 6196 ms, actual 6223 ms,
+unchanged 5000 ms teardown margin. No shortened-session pass or sustained claim.
+Checked PTK deliveries 36; data TX queued/done 28/28, failed 0, credits 59.
+ACTIVE type-2 66 and type-7 141; CLOSED type-2 1/type-7 10. The other 30 ACTIVE
+type-2 packets are unclassified by the retained counters, not proved drops.
+No framing hint, HIF refusal or join-stopped record. CLOSED/deauth/stage 3,
+no in-flight frame and zero terminal credit debt. Local key-disable success
+is host cleanup, not firmware queue/key retirement proof.
+
+All 63 sealed entries independently rehashed. Complete kmsg 169684 bytes,
+2113 contiguous records, SHA-256
+`0c2f341f41e11c7522ace38d79062a7ed3937bb9ea28b7ad5d6344dab823db0f`.
+Seal SHA-256
+`b117453e29526840296256615ca679f6f268a36cf58ae79829b8f7f048eea3ed`.
+Owned-helper/device quiescence and A53 regression passed. One reviewed native
+return, two watcher attempts, and independent strict LAN SSH confirmed Gemian
+3.18.41+/aarch64 on changed boot `38038581-a960-46ee-a6e3-06121192308e`.
+See [run-3 scalars](results/ccmp10-run3-runtime-scalars.json) and
+[numeric chronology](results/ccmp10-run3-numeric-chronology.txt).
+
+C10 SSH passed 2/3, failed 1/3. All three finite transport/network/host-cleanup
+windows passed, but this is not reliable SSH or sustained operation. C11's
+observer is not necessary for an SSH failure; its individual timing effect
+remains unresolved. Failed C10 and C11 both lack a server-side accepted
+connection record; client error output is missing, so exact stage remains
+unknown. Select the [single bounded host-output diagnostic](SSH_FAILURE_DIAGNOSTIC.md)
+before any driver fix or new kernel candidate. No fourth unchanged baseline run.
+
+## Predeclared decision branches — intermittent branch selected
 
 Consistent C10 SSH passes select C11-specific observer diagnosis. Intermittent
 C10 failures select an independent SSH investigation: first establish TCP/KEX/

@@ -4,20 +4,20 @@ Current continuation: [C11](CCMP11_RESULT.md) is consumed once. G1 was present
 on 32/32 eligible group shapes, still withheld from delivery. DHCP and three
 pings passed; SSH exit 255 had no authenticated boot/ACK. Transport and host
 cleanup passed independently. Seals, quiescence, regression and changed-boot
-Gemian were verified. [C10 run 2](CCMP10_BASELINE.md) is consumed: transport,
-DHCP/three pings and host cleanup passed, SSH exit 255 with no server accepted
-connection observed. Exact SSH stage remains unknown. Changed-boot Gemian was
-independently verified. Third/final unchanged C10 is verified already matching
-(no write), shut down cleanly and fully host-prepared. Await owner physical
-boot2 selection with USB attached; no run-3 capture/session has started.
+Gemian were verified. The [three-run unchanged C10 baseline](CCMP10_BASELINE.md)
+is complete: transport/DHCP/three pings/host cleanup passed in all three finite
+windows, SSH passed 2/3. C11's observer is not required for an SSH failure.
+The failed runs lack client error text, so the exact TCP/KEX/auth stage remains
+unknown. Run 3 returned to independently verified changed-boot Gemian; C10
+remains installed and consumed.
 
-Next: follow the [owner-directed unchanged C10 baseline](CCMP11_RESULT.md#owner-directed-next-decision-unchanged-c10-baseline),
-up to three total C10 sessions including its original pass. No new candidate
-or build. Compare separate SSH and transport/network/cleanup verdicts before
-choosing a diagnostic. Only then review 60 s / 2 min / 10 min lifetimes.
-GTK delivery, rekey, key reuse and reconnect stay disabled. No length adjustment,
-longer transport deadlines or unresolved-callback RE without a specific test need.
-Each fresh session needs its own physical boot2 selection; stop at that handoff.
+Next is [D1, host-only SSH output retention](SSH_FAILURE_DIAGNOSTIC.md), using
+the exact C10 image and unchanged original acquisition/ACK state machine.
+No new kernel candidate or build. Its one observation retains the existing
+client error before selecting a transport/crypto/TCP diagnostic. GTK delivery,
+rekey, reuse and reconnect stay disabled. Staged 60 s / 2 min / 10 min lifetimes
+remain untested; do not extend unexplained timeouts. Another physical boot2
+selection is needed only after D1 validation and complete reviewed preparation.
 The pause record below is historical.
 
 Historical pause boundary. The owner explicitly resumed implementation on
