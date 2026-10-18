@@ -878,3 +878,23 @@ explanations and further private analysis out of public text. After a healthy
 window, priorities remain trustworthy fault cleanup, connected-BSS data after
 privilege release, standard monitoring and TX pipelining. No ten-minute or
 reusable-lifecycle acceptance is established.
+
+### GTK5 package and host binding — not yet deployed
+
+Counter-only source input `fa3124b4` passed Linux actual-source fixtures for both
+selected and canonical-overlay paths, then compiled through the required
+Buildbox backend. Validated package inventory
+`7f93e5fcfaf01b3c4715e119693302edc254c8b4af143d9c847c17fb4a2e2448`.
+The real [GTK5 receipt](results/ccmp-stable-monitor-candidate-gtk5.json) binds
+boot image `8bb9dc767c6f96dc65c48882318b0fe1286b26505cf2743a8ebe328b6da1c0f1`,
+with unchanged GTK4 config, board DT and exact RAM root. Runtime notes are
+84 bytes, SHA-256 `395ec929f1977d113bae6e0c21b09885f2eb6792ff4b80e82d6e3c0c8c509646`,
+independently matched between ELF, Image, map bounds and the pinned sysfs exporter;
+they differ from GTK4. This is a host identity check, not a live boot result.
+
+Five focused host fixtures pass: composition/config oracle, actual receipt /
+namespace wiring, no-scan ownership, retained recovery sources, and retained
+installer sources. Six fresh GTK5 wrappers preserve completed hosts and guarded
+installation. The expected predecessor is GTK4's verified full boot2 digest.
+Guarded deployment, full readback, clean shutdown and fresh host preparation
+still precede the owner's physical selection. No actual GTK5 run exists yet.

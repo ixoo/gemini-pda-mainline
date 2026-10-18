@@ -24,7 +24,9 @@ fatal event dispatcher unchanged, plus public-source-supported 0x16 from fresh
 post-association TIM/DTIM before keys, credited 0x17 before healthy removals,
 and the standard connection-monitor flag. The prior conditional-handler input
 `ef2e2fc3` compiled and packaged but is superseded for device admission. Revised
-source tests/build and actual deployment remain pending. Keep published device
+Linux source tests and the Buildbox build pass at `fa3124b4`; five host binding
+fixtures pass against the real GTK5 receipt. Guarded deployment and the actual
+hardware result remain pending. Keep published device
 measurements; exclude firmware-RE explanations from public text. Full outcomes
 and limits are in the existing plan. Do not repeat GTK4 unchanged.
 
