@@ -1,5 +1,16 @@
 # Wi-Fi resume checkpoint — INCOMPLETE
 
+**GTK5 ready for the owner's physical boot2 selection; no live run yet.**
+Source `fa3124b4`, tooling `e0cf5e17`, counter-only 0210 plus credited PM setup /
+abort and the connection-monitor flag. Linux tests, required Buildbox build,
+real package provenance, five host fixtures and guarded deployment pass.
+Full boot2 readback `646f1869e9ad9c623d09cc901c237d6e7bf81caf550cd46d9613643974fabeb1`
+matches; clean shutdown confirmed. Fresh runtime and complete offline host
+preparation pass. Keep USB attached to this laptop; only the owner selects boot2.
+Verify new boot identity and notes SHA-256
+`395ec929f1977d113bae6e0c21b09885f2eb6792ff4b80e82d6e3c0c8c509646`
+before the one admitted capture/session. [Handoff and outcomes](SESSION_0202_PLAN.md#gtk5-installed--physical-selection-pending).
+
 Latest completed result: **GTK4 capability observation pass; full finite session,
 duration and healthy cleanup fail**. Boot `c2efe494-648e-44ca-9bb1-519ffce4496d`
 reported owned BSS 0 / reason 6 at 29.811 s after data opening, with 293 admitted
@@ -13,8 +24,7 @@ the stop. Checked PTK/GTK 35/114; GTK ARP handoffs 55; withheld ARP 0. Healthy
 stage 3 absent; local disables `-71` with no removal credit. All 71 seals and
 2,098 contiguous records verified; helper/device quiescence, A53 regression
 and one reviewed return passed. Changed-boot Gemian
-`4256d0ec-11e4-4e84-8202-6b2e78281876` independently confirmed. No build,
-installer, capture or session process or physical handoff remains pending.
+`4256d0ec-11e4-4e84-8202-6b2e78281876` independently confirmed. GTK4 is closed; the GTK5 handoff above is now pending.
 
 Recent owned host admissions support a firmware/host monitor discrepancy;
 reason 6 is not decoded and completeness of the beacon stream is not proved.
@@ -25,8 +35,8 @@ post-association TIM/DTIM before keys, credited 0x17 before healthy removals,
 and the standard connection-monitor flag. The prior conditional-handler input
 `ef2e2fc3` compiled and packaged but is superseded for device admission. Revised
 Linux source tests and the Buildbox build pass at `fa3124b4`; five host binding
-fixtures pass against the real GTK5 receipt. Guarded deployment and the actual
-hardware result remain pending. Keep published device
+fixtures pass against the real GTK5 receipt. Guarded deployment now passes; the actual
+hardware result remains pending. Keep published device
 measurements; exclude firmware-RE explanations from public text. Full outcomes
 and limits are in the existing plan. Do not repeat GTK4 unchanged.
 

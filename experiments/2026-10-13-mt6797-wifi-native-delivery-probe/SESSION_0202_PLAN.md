@@ -898,3 +898,25 @@ installer sources. Six fresh GTK5 wrappers preserve completed hosts and guarded
 installation. The expected predecessor is GTK4's verified full boot2 digest.
 Guarded deployment, full readback, clean shutdown and fresh host preparation
 still precede the owner's physical selection. No actual GTK5 run exists yet.
+
+### GTK5 installed — physical selection pending
+
+Tooling `e0cf5e17` passed all five Linux host fixtures from a clean pushed
+checkout. The reviewed installer differs from GTK4 only in identity pins;
+603-line guard/write/readback/shutdown logic, shell syntax and ShellCheck pass.
+Live known-good Gemian boot `4256d0ec-11e4-4e84-8202-6b2e78281876` was verified
+before the guarded installation. Live GPT boot2 identity and inactive/non-root
+checks passed; predecessor matched GTK4. Full candidate and readback SHA-256
+both equal `646f1869e9ad9c623d09cc901c237d6e7bf81caf550cd46d9613643974fabeb1`.
+The deployment summary seal and clean shutdown were verified. No fresh backup
+or other partition write occurred.
+
+Fresh GTK5 runtime preparation and the complete offline host preparation pass
+with the exact mode-0600 deployment summary and pinned recovery sources. No
+mainline boot, capture or Wi-Fi session has occurred. Next action: owner selects
+boot2 physically with USB attached to this laptop. Then verify a fresh boot and
+the exact 84-byte notes identity before the single admitted capture/session.
+Retain the predeclared outcomes and independent transport/network/SSH/cleanup /
+duration verdicts; no retry or reconnect. Create one run scalars file and one
+table row only after consuming the session. The earlier `ef2e2fc3` image remains
+superseded and is not the installed candidate.
