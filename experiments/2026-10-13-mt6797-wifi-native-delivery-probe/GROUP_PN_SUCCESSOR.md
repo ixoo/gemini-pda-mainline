@@ -78,9 +78,9 @@ by this diagnostic. The full ordinary-crypto/reconnect/ten-minute goal remains.
 ## Authored source and local validation
 
 [Proposal 0201](../../patches/proposals/0201-wifi-mt6797-observe-initial-GTK-PN-metadata.patch),
-SHA-256 `66deb2cca2b2e60e693927be8be773293bd406570af5c166bf6fbc4ac67f1699`,
+SHA-256 `c14244306eeaab5b6749fb68dc039b312c920f5202d1a619f40d018d6dac4193`,
 changes only `Kconfig` and `mac.c`. Bounded driver snapshot
-`7bf0b138059b317e2c97a75bb933e1d7b4f1b7f4` is an authoring identity, not a Linux
+`70f1b9a3484139b35dfdb894cbbcb56f21b33218` is an authoring identity, not a Linux
 revision. It adds six counters and the existing report site's single numeric
 line. The observer runs only after the unchanged ready/authorized ACTIVE and
 checked-delivery-cap gate, before the unchanged PTK allocation/check path.
@@ -101,3 +101,8 @@ ordered series and all 27 C10 fragments plus one option fragment. All 33 existin
 profile definitions remain identical. Linux validation, strict checkpatch,
 clean pushed Buildbox build/package and actual candidate/tool/device gates are
 still pending at this source checkpoint. No GTK delivery or device test yet.
+
+Linux actual-source ASan/UBSan passed on the first pushed input. Strict checkpatch
+then found the new Kconfig help paragraph one line short and stopped before any
+kernel build. The help paragraph is now complete; observer MAC code is unchanged.
+The failed pre-build log remains retained, and corrected-input validation is pending.

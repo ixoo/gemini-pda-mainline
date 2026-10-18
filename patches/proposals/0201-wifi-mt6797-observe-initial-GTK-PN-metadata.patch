@@ -1,4 +1,4 @@
-From 7bf0b138059b317e2c97a75bb933e1d7b4f1b7f4 Mon Sep 17 00:00:00 2001
+From 70f1b9a3484139b35dfdb894cbbcb56f21b33218 Mon Sep 17 00:00:00 2001
 From: Codex Experiment <codex-experiment@example.invalid>
 Date: Sun, 18 Oct 2026 09:04:23 -0400
 Subject: [PATCH] wifi: mt6797: observe initial GTK PN metadata
@@ -20,15 +20,15 @@ retirement. No userspace control API.
 Internal experiment archive, synthetic non-certifying author identity;
 no DCO certification and not an upstream submission.
 ---
- drivers/net/wireless/mediatek/mt6797/Kconfig |  9 ++++
+ drivers/net/wireless/mediatek/mt6797/Kconfig | 10 +++++
  drivers/net/wireless/mediatek/mt6797/mac.c   | 45 ++++++++++++++++++++
- 2 files changed, 54 insertions(+)
+ 2 files changed, 55 insertions(+)
 
 diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
-index 9be3a5c..d6cc56c 100644
+index 9be3a5c..c597d3e 100644
 --- a/drivers/net/wireless/mediatek/mt6797/Kconfig
 +++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
-@@ -113,3 +113,12 @@ config MT6797_CCMP_MASK_CONTROL
+@@ -113,3 +113,13 @@ config MT6797_CCMP_MASK_CONTROL
  	  global monitor operation, retaining all initial-PTK diagnostic limits.
  	  Only one fixed address and values 7/0 are admitted. This does not
  	  establish group meanings, firmware integrity or healthy key reuse.
@@ -41,6 +41,7 @@ index 9be3a5c..d6cc56c 100644
 +	  Count initial GTK-shaped metadata from complete, already admitted RX.
 +	  Reuse the existing translated decoder without delivery or PN reads.
 +	  Group RX, key reuse and rekey remain withheld; all limits stay fixed.
++	  Counters do not authenticate a frame or change the replay state.
 diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
 index 6ad2cc8..b2edcc5 100644
 --- a/drivers/net/wireless/mediatek/mt6797/mac.c
