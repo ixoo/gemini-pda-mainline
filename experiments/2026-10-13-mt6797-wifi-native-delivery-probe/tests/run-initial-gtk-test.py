@@ -142,7 +142,9 @@ with tempfile.TemporaryDirectory(prefix='initial-gtk-') as directory:
         'static void gtk_seed_withdraw(void) { if (withdraw_at_gtk_seed) { '
         'mutex_lock(&current->mutex); mt6797_ccmp_withdraw(current); mutex_unlock(&current->mutex); } }')
     callbacks = callbacks.replace('m->join_credit_pending = false; m->join_page_debt = 0; return 0;',
-        'if (credit_error) return credit_error; if (withdraw_on_credit) mt6797_ccmp_withdraw(m); m->join_credit_pending = false; m->join_page_debt = 0; return 0;')
+        'if (credit_error) { return credit_error; }\n'
+        ' if (withdraw_on_credit) { mt6797_ccmp_withdraw(m); }\n'
+        ' m->join_credit_pending = false; m->join_page_debt = 0; return 0;')
     callbacks = callbacks.replace('seed_calls = key_submits = 0; submit_error = 0;',
         'seed_calls = key_submits = 0; submit_error = credit_error = 0; withdraw_at_gtk_seed = withdraw_on_credit = false;')
     callbacks = callbacks.replace('static int mt6797_hif_native_monitor(void *,',
