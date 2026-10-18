@@ -1,7 +1,6 @@
 # Mask-only control comparison — before implementation
 
-Status: [C10 installed with verified readback and shutdown](CCMP10_PREPARATION.md);
-await owner physical boot2 selection. No runtime result. The design below
+Status: [C10 consumed once with a finite compatibility pass](CCMP10_RESULT.md). The design below
 preceded implementation. [Pointer observation](POST_C9_POINTER_RESULT.md) resolved
 one complete monitor callback: for Boolean arguments it writes a three-bit mask,
 7 on enable and 0 on disable, to firmware address `0x800c0068`. No firmware code

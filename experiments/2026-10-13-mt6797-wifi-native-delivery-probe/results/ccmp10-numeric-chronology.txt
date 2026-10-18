@@ -1,0 +1,66 @@
+# Sanitized fixed-prefix numeric fields; sequence, boot microseconds, event.
+1996 429646513 management_submit subtype=11 pid=1 pages=1
+1998 429671597 tx_done pid=1 status=0 advanced=1 count=1
+2002 429694455 management_submit subtype=0 pid=2 pages=1
+2004 429719499 tx_done pid=2 status=0 advanced=1 count=1
+2014 429797059 tx_done pid=3 status=0 advanced=1 count=1
+2024 429867534 tx_done pid=4 status=0 advanced=1 count=1
+2029 429897994 data_start budget_ms=6200 teardown_margin_ms=5000 inside_grant=1
+2030 429918502 mask_control enable=1 status=0
+2031 429919687 native_transition state=1 act=1 total=0 native=0 bytes=0
+2034 429943556 native_transition state=2 act=0 total=1 native=0 bytes=442
+2037 430358511 data_submit pid=5 pages=3 bytes=342
+2038 430359742 tx_done pid=5 status=0 advanced=1 count=1
+2040 430382466 data_credit pages=3 debt=0 count=1
+2041 430434542 data_credit pages=3 debt=0 count=2
+2042 430435784 tx_done pid=6 status=0 advanced=1 count=1
+2043 431798459 data_credit pages=1 debt=0 count=3
+2044 431799703 tx_done pid=7 status=0 advanced=1 count=1
+2045 431850475 data_credit pages=1 debt=0 count=4
+2046 431851731 tx_done pid=8 status=0 advanced=1 count=1
+2047 431898460 data_credit pages=1 debt=0 count=5
+2048 431899660 tx_done pid=9 status=0 advanced=1 count=1
+2049 432198470 data_credit pages=1 debt=0 count=6
+2050 432199661 tx_done pid=10 status=0 advanced=1 count=1
+2051 432250496 data_credit pages=1 debt=0 count=7
+2052 432251714 tx_done pid=11 status=0 advanced=1 count=1
+2053 432306450 data_credit pages=5 debt=0 count=8
+2054 432307644 tx_done pid=12 status=0 advanced=1 count=1
+2055 432378509 tx_done pid=13 status=0 advanced=1 count=1
+2056 432426596 tx_done pid=14 status=0 advanced=1 count=1
+2057 432474463 tx_done pid=15 status=0 advanced=1 count=1
+2058 432522500 tx_done pid=16 status=0 advanced=1 count=1
+2059 432570480 tx_done pid=17 status=0 advanced=1 count=1
+2060 432646514 tx_done pid=18 status=0 advanced=1 count=1
+2061 432698631 tx_done pid=19 status=0 advanced=1 count=1
+2062 432750510 tx_done pid=20 status=0 advanced=1 count=1
+2063 432774588 tx_done pid=21 status=0 advanced=1 count=1
+2064 432822463 tx_done pid=22 status=0 advanced=1 count=1
+2065 432898527 tx_done pid=23 status=0 advanced=1 count=1
+2066 432970707 tx_done pid=24 status=0 advanced=1 count=1
+2067 433018496 tx_done pid=25 status=0 advanced=1 count=1
+2068 433150487 tx_done pid=26 status=0 advanced=1 count=1
+2069 433198474 tx_done pid=27 status=0 advanced=1 count=1
+2070 433246488 tx_done pid=28 status=0 advanced=1 count=1
+2071 433302459 tx_done pid=29 status=0 advanced=1 count=1
+2072 433350504 tx_done pid=30 status=0 advanced=1 count=1
+2073 433794596 tx_done pid=31 status=0 advanced=1 count=1
+2074 435546475 tx_done pid=32 status=0 advanced=1 count=1
+2075 436106459 mask_control enable=0 status=0
+2076 436107651 native_transition state=3 act=2 total=192 native=0 bytes=48202
+2077 436108973 footer elapsed_ms=6210 rx_unicast=0 rx_group=0 rx_dropped=0 tx_queued=28 tx_done=28 tx_failed=0 tx_credits=59
+2078 436111264 checked_end queued=36 no_reuse=1
+2081 436135514 native_transition state=4 act=0 total=192 native=0 bytes=48202
+2082 436136847 management_submit subtype=12 pid=33 pages=1
+2083 436138046 tx_done pid=33 status=0 advanced=1 count=1
+2096 436288818 terminal now_ns=436242420718 inflight=0 pid=33 submit_pid=32 submit_return_ns=435476080256 frame_deadline_ns=436841517718 guard_valid=1 guard_return_ns=436242419795 whcr=0 whisr=0
+2097 436291943 rx_terminal port=0 attempts=461 packets=205 type7=153 opposite=0 status=-11 pre_valid=1 pre_wrplr=0 return_ns=436242407872
+2098 436294263 rx_terminal port=1 attempts=441 packets=0 type7=0 opposite=104 status=-11 pre_valid=1 pre_wrplr=0 return_ns=436036331872
+2099 436296585 credit_terminal site=0 native_state=4 pending=0 credit_deadline_ns=436317113641 lifetime_deadline_ns=441052121871 polls=279 scan=0 closing=0 first=0 wtqcr7=0 tc4_free=26 cpu_pending=0 ffa_pending=0 tc1_free=16 ac1_pending=0 released=0 tc1_released=0
+2101 436301435 cleanup stage=3 deauth=1
+2102 436302861 rx_classes phase=0 t0=0 t1=0 t2=0 t3=0 t4=0 t5=0 t6=0 t7=1 beacons=0 reported_idx1_translated=0 reported_idx1_untranslated=0
+2104 436307997 rx_classes phase=1 t0=0 t1=0 t2=50 t3=0 t4=0 t5=0 t6=0 t7=141 beacons=0 reported_idx1_translated=0 reported_idx1_untranslated=0
+2106 436313163 rx_classes phase=2 t0=0 t1=0 t2=0 t3=0 t4=0 t5=0 t6=0 t7=0 beacons=0 reported_idx1_translated=0 reported_idx1_untranslated=0
+2108 436318289 rx_classes phase=3 t0=0 t1=0 t2=2 t3=0 t4=0 t5=0 t6=0 t7=11 beacons=0 reported_idx1_translated=0 reported_idx1_untranslated=0
+2111 436362537 key_disable local=1 removal_command_credit=1 status=0 no_reuse=1
+2112 436364295 key_disable local=1 removal_command_credit=1 status=0 no_reuse=1

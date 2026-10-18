@@ -1,14 +1,14 @@
 # Wi-Fi resume checkpoint — INCOMPLETE
 
-Current continuation: [C9 result](CCMP9_RESULT.md) records the latest consumed
-trial, verified preservation and return. [Post-C9 source review](POST_C9_SOURCE_REVIEW.md)
-records the read-query admission review. The later [pointer observation](POST_C9_POINTER_RESULT.md)
-completed bounded stock reads. The [mask-only comparison](MASK_ONLY_COMPARISON.md)
-is [installed/prepared as C10](CCMP10_PREPARATION.md), awaiting owner physical
-boot2 selection. No C10 capture/session has run.
-The timeout classification and C6-C9
-successors were executed after the owner resumed. Full Wi-Fi remains incomplete;
-no unchanged retry or next boot is selected. The pause record below is historical.
+Current continuation: [C10 result](CCMP10_RESULT.md) is the latest consumed
+trial: finite WPA2/DHCP/three-ping/authenticated-SSH pass with mask-only metadata
+control, complete host cleanup and no refusal. Preservation and changed-boot
+Gemian were independently verified. C10 remains installed but consumed; no
+physical selection or unchanged retry is pending. Full Wi-Fi remains incomplete.
+Next resolve ordinary integrity/PN and key/queued-frame ownership before healthy
+reuse and sustained acceptance; the [key-retirement review](KEY_RETIREMENT_SOURCE_REVIEW.md)
+pins the missing BSS implementations/shared-RX ordering. No successor selected.
+The timeout classification and C6–C10 successors ran after owner resume.
 
 Historical pause boundary. The owner explicitly resumed implementation on
 2026-10-17; see the [completion successor](CCMP_COMPLETION_SUCCESSOR.md) for

@@ -1,19 +1,14 @@
 # Design: MT6797 Wi-Fi native-crypto-delivery diagnostic (proposal 0181, default-off)
 
-Latest executed result: [C9](CCMP9_RESULT.md) (2026-10-18 UTC) completed
-WPA2/DHCP, with no retained individual ping reply or authenticated SSH.
-Twelve CLOSED length-equal type-2 transfers preceded the fatal 427/379 refusal.
-New bounded hints `0x18`/`0xe000` suggest untranslated header-length24/DATA/AMPDU
-under the pinned layout; they do not validate the bytes or explain delta48.
-Evidence was sealed and changed-boot Gemian independently confirmed.
-
-The [post-C9 pointer observation](POST_C9_POINTER_RESULT.md) resolved the
-opaque callback targets and captured one complete three-bit control primitive
-using bounded read-only stock queries. Its group-reporting/queued-length
-contract remains unproved. The [mask-only comparison](MASK_ONLY_COMPARISON.md)
-is [installed as C10 with verified readback/shutdown and host preparation](CCMP10_PREPARATION.md).
-Await owner physical boot2 selection; no C10 runtime result or unchanged C9 retry;
-ordinary integrity/PN, key retirement, healthy reuse and ten-minute SSH remain.
+Latest executed result: [C10](CCMP10_RESULT.md) (2026-10-18 UTC) passed one
+finite mask-only protected lifetime: WPA2, DHCP, three ping replies, fresh
+boot-bound authenticated SSH and stage-3 host cleanup, without a receive refusal
+or unexplained timeout. Required metadata reached the initial-PTK checker without
+global SET_MONITOR. Evidence was sealed and changed-boot Gemian independently
+confirmed. No unchanged retry; ordinary integrity/PN, GTK/rekey/key retirement,
+healthy reuse and ten-minute SSH remain. See the predeclared
+[mask comparison](MASK_ONLY_COMPARISON.md), [preparation](CCMP10_PREPARATION.md)
+and [key-retirement source boundary](KEY_RETIREMENT_SOURCE_REVIEW.md).
 
 | Field | Value |
 | --- | --- |
