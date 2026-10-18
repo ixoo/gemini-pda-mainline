@@ -485,3 +485,50 @@ actual counters, duration, SSH stage and cleanup decide the result. Strict PN,
 key ownership, no rekey/reuse/reconnect and no -48 adjustment remain mandatory.
 Persistent station/channel ownership and connection monitoring, not further
 finite-window duration increases, remain necessary for ten-minute acceptance.
+
+## GTK3 source preparation: capacity and handoff observers
+
+The admitted successor is implemented as two logical archives:
+[0206 capacity](../../patches/proposals/0206-wifi-mt6797-bound-low-traffic-CCMP-observation-capacity.patch)
+and [0207 observers](../../patches/proposals/0207-wifi-mt6797-report-checked-key-classes-and-GTK-ARP-handoff.patch).
+0206 applies the 1024 checked / 4096 all-RX / 2 MiB limits only to CCMP in the
+60-second selection, at prospective read, post-read admission, checked queue
+and state transition. Native ciphertext budgets remain 64 / 512 / 1 MiB;
+retirement and all existing time, poll, PID, transport and crypto rules remain.
+Every profile selecting the window includes 0206; only the initial-GTK series
+selects the GTK observers. No configuration change or new control interface.
+
+0207 adds exactly two counters: checked GTK queues (PTK is total minus GTK)
+and GTK ARP handoff. The terminal reports `queued_ptk`, `queued_gtk`,
+`delivered_arp` and the existing `withheld_arp`. `delivered_arp` means a current,
+ready group Ethernet frame with EtherType 0x0806 passed to the existing core RX
+call. It is counted after the queue/withdrawal decision under the MAC mutex,
+not when merely queued. No ARP payload, addresses or PN are retained; no new
+HIF acquisition or delivery predicate. A core call does not acknowledge stack
+acceptance or identify the SSH peer's ARP.
+
+The [actual-source fixture](tests/run-initial-gtk-test.py), selected with
+`--gtk3`, reverses the two overlays and 0204 to recover the exact parent, then
+checks GTK-off parity against the same capacity policy. Local ASan/UBSan tests
+pass the unchanged 19,007 checker cases, actual native differential engine,
+all four capacity gates and boundaries, unchanged native limits, exact queue
+splits, ARP handoff versus replay/PTK/non-ARP/stale queues, existing withdrawal
+threads and unchanged setup-expiry refusal. Both crypto helpers and all HIF
+files remain byte-identical. Host simulations do not establish firmware effects.
+
+The [GTK3-only verdict](classify-ccmp-gtk-budget.py) reuses the frozen one-cycle
+protocol/SSH/cleanup grammar in a separate instance with the admitted capacities.
+It grades finite capability and duration independently and rejects a short or
+quota-ended run as a qualified 60-second result, including a drain that crosses
+the target time. It requires consistent split/ARP counters and a positive GTK
+queue event. A zero ARP count means no such handoff was observed; it is not itself a failed
+GTK capability and does not rule out an earlier arrival or queue.
+Default historical classifiers retain their old limits. Synthetic parser cases
+cover boundaries, malformed/duplicate records, quota/drain, failed SSH/protocol
+and scope preservation. The new session binding must explicitly select this
+verdict; preparation is not yet a device admission or result.
+
+Linux validation from clean pushed inputs and one standard corrected-budget
+kernel build are next. The candidate remains low traffic: no PID reuse and no
+continuous SSH workload is promised. If a different ceiling binds or a protocol,
+transport or cleanup fault occurs, record that first point separately.

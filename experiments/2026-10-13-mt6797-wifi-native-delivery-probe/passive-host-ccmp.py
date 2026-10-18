@@ -19,6 +19,7 @@ from pathlib import Path
 # re-pointed to the native values below, so the phase-b session id is never used.
 os.environ['GEMINI_PHASE_B_SESSION'] = '33'
 HERE = Path(__file__).resolve().parent
+CCMP_CLASSIFIER = HERE / 'classify-ccmp.py'
 PHASE_B = HERE.parent / '2026-10-07-mt6797-wifi-phase-b-join'
 _spec = importlib.util.spec_from_file_location('wifi_phase_b_host', PHASE_B / 'passive-host.py')
 PH = importlib.util.module_from_spec(_spec)
@@ -119,7 +120,7 @@ def main():
         receipt = json.loads(PH.WIFI_SSH_RECEIPT.read_bytes()) if PH.WIFI_SSH_RECEIPT else None
     except (OSError, ValueError):
         receipt = None
-    classifier = runpy.run_path(str(HERE / 'classify-ccmp.py'))
+    classifier = runpy.run_path(str(CCMP_CLASSIFIER))
     protocol = classifier['read_protocol'](ROOT, verified_boot)
     native = classifier['classify'](kmsg, receipt, verified_boot, protocol)
     combined = {'phase_a_capture': (json.loads(phase_a.read_bytes())

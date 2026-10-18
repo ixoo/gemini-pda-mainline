@@ -695,3 +695,4 @@ proposals/0199-wifi-mt6797-retain-refused-descriptor-framing-hints.patch
 proposals/0200-wifi-mt6797-compare-observed-mask-only-control.patch
 proposals/0203-wifi-mt6797-bound-first-fixed-format-window-to-60s.patch
 proposals/0205-wifi-mt6797-retain-the-validated-channel-grant-horizon.patch
+proposals/0206-wifi-mt6797-bound-low-traffic-CCMP-observation-capacity.patch

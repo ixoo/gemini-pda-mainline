@@ -20,6 +20,10 @@ CCMP-only 1024 checked / 4096 all-RX / 2 MiB, PTK/GTK split and GTK-ARP handoff
 counters, one low-traffic 60-second observation. Keep every time, native,
 retirement, PID and crypto limit unchanged; no PID reuse or sustained-SSH claim.
 The earlier 1 MiB budget question is superseded by this explicit direction.
+[0206/0207 source and host verdict](SESSION_0202_PLAN.md#gtk3-source-preparation-capacity-and-handoff-observers)
+are implemented with local actual-source and parser fixtures passing; Linux
+validation and the standard budget-successor build are next. No GTK3 device
+admission or physical action is pending yet.
 Rekey, reuse, reconnect, -48 adjustment and speculative firmware RE stay excluded.
 
 GTK1's prior ERANGE is classified and its [0205 correction](../../patches/proposals/0205-wifi-mt6797-retain-the-validated-channel-grant-horizon.patch)

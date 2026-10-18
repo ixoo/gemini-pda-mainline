@@ -1,0 +1,73 @@
+From b3ebadbbf2dcbd3e05305444cb4e5c90ffe0c83b Mon Sep 17 00:00:00 2001
+From: Codex Experiment <codex-experiment@example.invalid>
+Date: Sun, 18 Oct 2026 15:13:57 -0400
+Subject: [PATCH] wifi: mt6797: report checked key classes and GTK ARP handoff
+
+Count checked GTK queues and derive PTK queues from the unchanged combined
+count. Report both beside withheld ARP at the terminal. Count GTK ARP only
+after current-station/readiness admission in the serialized core handoff;
+a stale queued frame discarded before that call is not delivery evidence.
+
+The counter describes a driver-to-core call, not independent stack
+acceptance, sender/target attribution or proof of SSH causation. No ARP
+payload, PN, addresses or frame contents are logged; no new HIF read,
+key/PN mutation or delivery predicate is introduced.
+
+Internal experiment archive, synthetic non-certifying author identity;
+no DCO certification and not an upstream submission.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 17 +++++++++++++++--
+ 1 file changed, 15 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 4568a23..7db25d8 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -218,6 +218,7 @@ struct mt6797_mac {
+ 	struct mt6797_ccmp_rx_context ccmp_gtk_rx;
+ 	bool ccmp_gtk_attempted, ccmp_gtk_seen;
+ 	unsigned int ccmp_gtk_arp_withheld;
++	unsigned int ccmp_gtk_queued, ccmp_gtk_arp_handoff;
+ #endif
+ 	struct ieee80211_sta __rcu *ccmp_sta;
+ 	/* Cookies only: never dereferenced, withdrawn before DISABLE_KEY returns. */
+@@ -425,6 +426,8 @@ static int mt6797_ccmp_queue_rx(struct mt6797_mac *mac, size_t bytes,
+ 	}
+ #ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
+ checked:
++	if (group)
++		mac->ccmp_gtk_queued++;
+ 	if (group && !mac->ccmp_gtk_seen) {
+ 		mac->ccmp_gtk_seen = true;
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+@@ -462,6 +465,15 @@ static void mt6797_ccmp_receive(struct mt6797_mac *mac, struct sk_buff *skb)
+ 		ready = mt6797_ccmp_rx_ready(mac);
+ 		sta = rcu_dereference_protected(mac->ccmp_sta, lockdep_is_held(&mac->mutex));
+ 		ready = ready && sta;
++#ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
++		/* Count the eligible driver-to-core handoff, not queue admission.
++		 * Strict PTK RX only admits our unicast RA; group Ethernet is GTK.
++		 * Read no ARP fields, PN or addresses beyond this header predicate.
++		 */
++		if (ready && skb->len >= ETH_HLEN && is_multicast_ether_addr(skb->data) &&
++		    get_unaligned_be16(skb->data + 12) == ETH_P_ARP)
++			mac->ccmp_gtk_arp_handoff++;
++#endif
+ 	}
+ 	mutex_unlock(&mac->mutex);
+ 	if (ready)
+@@ -1509,8 +1521,9 @@ static void mt6797_native_diag_rx_report(struct mt6797_mac *mac)
+ #ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
+ 	if (ccmp_stable_epoch)
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+-			 "one-shot WLAN checked GTK counters: withheld_arp=%u\n",
+-			 mac->ccmp_gtk_arp_withheld);
++			 "one-shot WLAN checked GTK counters: withheld_arp=%u queued_ptk=%u queued_gtk=%u delivered_arp=%u\n",
++			 mac->ccmp_gtk_arp_withheld, mac->ccmp_queued - mac->ccmp_gtk_queued,
++			 mac->ccmp_gtk_queued, mac->ccmp_gtk_arp_handoff);
+ #endif
+ 	for (p = 0; p < 4; p++) {
+ 		const unsigned int *t = mac->native_diag_rx[p].type;
+-- 
+2.54.0 (Apple Git-157)
+

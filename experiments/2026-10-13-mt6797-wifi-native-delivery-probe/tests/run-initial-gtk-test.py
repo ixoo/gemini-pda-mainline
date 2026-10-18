@@ -12,7 +12,8 @@ import tempfile
 
 p = argparse.ArgumentParser(description=__doc__)
 p.add_argument('parent', type=Path, help='C10 plus independent 0203')
-p.add_argument('child', type=Path, help='unbuilt initial-GTK source')
+p.add_argument('child', type=Path, help='initial-GTK source')
+p.add_argument('--gtk3', action='store_true', help='also validate the admitted capacity/handoff overlays')
 a = p.parse_args()
 fixtures = Path(__file__).resolve().parent
 # Pin the frozen fixtures whose narrow substitutions are used below.
@@ -27,16 +28,25 @@ rel = Path('drivers/net/wireless/mediatek/mt6797')
 parent, child = a.parent.resolve() / rel, a.child.resolve() / rel
 assert hashlib.sha256((child / 'ccmp-rx.h').read_bytes()).hexdigest() == \
     '35b581f1cd3abdda66e8b392b39bd538875975e2254e80488dc1cc8dbbec85a0'
+assert hashlib.sha256((child / 'ccmp-gtk-rx.h').read_bytes()).hexdigest() == \
+    '44deda239a5c824469b69489e21fec84ef0af8a26ee7b13f95b1f764ab437bb1'
 assert {x.name for x in child.iterdir()} == {x.name for x in parent.iterdir()} | {'ccmp-gtk-rx.h'}
 for x in parent.iterdir():
-    if x.is_file() and x.name not in {'mac.c', 'Kconfig'}:
+    if x.is_file() and x.name not in ({'mac.c', 'Kconfig', 'native-diag.h'} if a.gtk3 else {'mac.c', 'Kconfig'}):
         assert x.read_bytes() == (child / x.name).read_bytes(), x.name
 # Reversing exactly the selected archive must recover every parent file.
 archive = fixtures.parents[2] / 'patches/proposals/0204-wifi-mt6797-gate-one-separately-seeded-initial-GTK.patch'
+parity_mac = None
 with tempfile.TemporaryDirectory(prefix='gtk-reverse-') as directory:
     import shutil
     recovered = Path(directory)
     shutil.copytree(child, recovered / rel)
+    if a.gtk3:
+        for name in ['0207-wifi-mt6797-report-checked-key-classes-and-GTK-ARP-handoff.patch',
+                     '0206-wifi-mt6797-bound-low-traffic-CCMP-observation-capacity.patch']:
+            overlay = fixtures.parents[2] / 'patches/proposals' / name
+            subprocess.run(['git', 'apply', '--reverse', str(overlay)], cwd=recovered,
+                           check=True, timeout=10)
     subprocess.run(['git', 'apply', '--reverse', str(archive)], cwd=recovered,
                    check=True, timeout=10)
     files = {x.relative_to(recovered) for x in recovered.rglob('*') if x.is_file()}
@@ -44,8 +54,13 @@ with tempfile.TemporaryDirectory(prefix='gtk-reverse-') as directory:
     for x in parent.iterdir():
         if x.is_file():
             assert x.read_bytes() == (recovered / rel / x.name).read_bytes(), x.name
+    if a.gtk3:
+        capacity = fixtures.parents[2] / 'patches/proposals/0206-wifi-mt6797-bound-low-traffic-CCMP-observation-capacity.patch'
+        subprocess.run(['git', 'apply', str(capacity)], cwd=recovered, check=True, timeout=10)
+        parity_mac = (recovered / rel / 'mac.c').read_text()
+        assert (recovered / rel / 'native-diag.h').read_bytes() == (child / 'native-diag.h').read_bytes()
 
-old, new = (parent / 'mac.c').read_text(), (child / 'mac.c').read_text()
+old, new = parity_mac or (parent / 'mac.c').read_text(), (child / 'mac.c').read_text()
 
 
 def function(text, name):
@@ -161,9 +176,23 @@ with tempfile.TemporaryDirectory(prefix='initial-gtk-') as directory:
     callbacks = callbacks.replace('assert(strstr(last_log, "removal_command_credit=0 status=-71"));',
         'char expected_error[64]; snprintf(expected_error, sizeof(expected_error), '
         '"removal_command_credit=0 status=%d ", -EPROTO); assert(strstr(last_log, expected_error));')
+    if a.gtk3:
+        callbacks = callbacks.replace('#define ETH_ALEN 6', '#define ETH_ALEN 6\n#define ETH_HLEN 14\n#define ETH_P_ARP 0x0806\n'
+            'static bool is_multicast_ether_addr(const unsigned char *p) { return p[0] & 1; }\n'
+            'static unsigned short get_unaligned_be16(const unsigned char *p) { return (unsigned short)p[0] << 8 | p[1]; }')
+        callbacks = callbacks.replace('m.ccmp_queued = 63', 'm.ccmp_queued = 1023').replace('m.ccmp_queued = 64', 'm.ccmp_queued = 1024')
+        callbacks = callbacks.replace('m.native_diag_total = 512;', 'm.native_diag_total = 4096;')
+        callbacks = callbacks.replace('m.native_diag_total = 511;', 'm.native_diag_total = 4095;').replace('m.native_diag_total == 512', 'm.native_diag_total == 4096')
+        callbacks = callbacks.replace('m.native_diag_bytes = MT6797_NATIVE_DIAG_BYTES_MAX -', 'm.native_diag_bytes = MT6797_CCMP_DIAG_BYTES_MAX -')
+        callbacks = callbacks.replace('arm/63->64', 'arm/1023->1024')
     callbacks = callbacks.replace('int main(void)', 'int existing_callbacks(void)')
     callbacks = callbacks.replace('GTK-withhold', 'initial-key ownership').replace('actual monitor engine:', 'actual mask engine (control-call stub):')
-    (tmp / 'callbacks.c').write_text(callbacks + '\n' + (fixtures / 'initial-gtk-callbacks.inc').read_text())
+    extra = (fixtures / 'initial-gtk-callbacks.inc').read_text()
+    if a.gtk3:
+        extra = extra.replace('m.ccmp_queued = 64;', 'm.ccmp_queued = 1024;')
+        extra = extra.replace('gtk_callback_tests();', 'gtk_callback_tests();\n gtk3_observer_budget_tests();')
+        extra = (fixtures / 'gtk3-observer-budget.inc').read_text() + '\n' + extra
+    (tmp / 'callbacks.c').write_text(callbacks + '\n' + extra)
     binary = tmp / 'callbacks'
     subprocess.run([*flags, '-pthread', '-DCONFIG_MT6797_CCMP_MASK_CONTROL',
         '-DCONFIG_MT6797_CCMP_60S_WINDOW', '-DCONFIG_MT6797_CCMP_INITIAL_GTK',
