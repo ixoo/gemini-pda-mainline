@@ -88,6 +88,11 @@ poison and no second I/O. Compare the full legacy tables byte-for-byte to C7;
 verify only post-CLOSED MAC routing changes and unchanged scan/boot sources.
 Mocks establish host ordering and selection, not hardware FIFO semantics.
 
+This diagnostic belongs to the current MT6797 HIF/MAC proposal layer. Remove
+its CLOSED-only selection when the ordinary RX ownership contract is
+implemented. A maintained driver change targets Linux's wireless subsystem
+and needs its normal review; this archive is not an upstream submission.
+
 ## Authored input and focused local validation
 
 [Proposal 0198](../../patches/proposals/0198-wifi-mt6797-compare-post-CLOSED-RX-port-selection.patch)

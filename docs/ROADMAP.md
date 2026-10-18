@@ -50,23 +50,21 @@ Keep this file under 200 lines; move anything else to an experiment record.
   which also observed the received-PN group absent on that one sample — an availability
   fact, not a replay or crypto claim). Bounded lifetimes only; `wifi_operational` stays
   false and no operational, reliability, persistence or replay-protection claim follows.
-- **Next (source first, 2026-10-17).** [C7](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/CCMP7_RESULT.md)
-  completed WPA2/DHCP and two ping replies; SSH failed. Monitor-disable credit
-  returned, then cleanup refused advertised/header lengths 427/379. Trace
-  monitor-disable/pending-RX ownership and length/data pairing before selecting
-  a correction or bounded discriminating observation. Preserve equality,
-  complete transfer and poison/no-copy; no unchanged retry or 48-byte exception.
-  Ordinary integrity/PN, key retirement, healthy reconnect and clean-profile
-  ten-minute SSH remain required.
+- **Next (bounded trial, 2026-10-18 UTC).** [C8](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/CLOSED_RX_SELECTION_COMPARISON.md)
+  compares post-CLOSED selection from one existing length acquisition; ACTIVE,
+  scan, equality, full transfer, poison and deadlines remain unchanged. This
+  follows C7's WPA2/DHCP/two replies, failed SSH and cleanup refusal 427/379.
+  It tests sequence sensitivity, not a proved cause or 48-byte exception.
+  No unchanged C7/C8 retry. Ordinary integrity/PN, key retirement, healthy
+  reconnect and clean-profile ten-minute SSH remain required.
 - **Open.** Wi-Fi station operation beyond one bounded lifetime; replay
   enforcement in firmware is unknown. No charging, RTC alarm or lid.
   The `full` profile has never booted. No upstream submission. A72 and thermal
   protection are parked.
-- **Device (2026-10-17).** [C7](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/CCMP7_RESULT.md#preservation-and-recovery)
-  ran once; all sealed files, quiescence and A53 regression passed. One reviewed
-  return and independent LAN identity check confirmed changed-boot Gemian.
-  C7 remains installed but consumed; no physical boot selection is pending.
-  Keep charging attended.
+- **Device (2026-10-18 UTC).** [C8](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/CCMP8_PREPARATION.md#verified-installation-and-physical-handoff)
+  is installed to guarded boot2, full readback matched, shutdown confirmed and
+  actual offline session preparation passed. Owner selected boot2; fresh
+  mainline identity is verified. One C8 trial is pending. Keep charging attended.
 
 ## Next device boots, in order
 

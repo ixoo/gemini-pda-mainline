@@ -1,7 +1,8 @@
 # C8: post-CLOSED receive-selection comparison
 
-Status: built, package-validated, privately composed and installer-reviewed;
-not installed, no runtime result, 2026-10-18 UTC. The
+Status: installed to guarded boot2, full readback and clean shutdown verified;
+owner selection and fresh mainline identity verified, no runtime result,
+2026-10-18 UTC. The
 [source decision](CLOSED_RX_SELECTION_COMPARISON.md) owns the hypothesis,
 unique observation and branches. This tests cleanup sequence sensitivity,
 not a proved repair or ordinary secure Wi-Fi. C7 is consumed; no unchanged retry.
@@ -63,8 +64,8 @@ this non-certifying internal proposal: one error, zero warnings/checks.
 Repository/profile checks pass for all 31 profiles.
 
 Fresh C8 composition/config, receipt/wiring, no-scan ownership/failure,
-installer-source and retained-session-source fixtures pass locally. Linux
-binding checks are pending publication of these new real bindings. The
+installer-source and retained-session-source fixtures pass locally and on
+Linux from clean published tooling `d16cad16`. The
 standard one-cycle DHCP/ping/fresh-boot SSH leaf, source/recovery pins, private64
 admission, helper ownership and finite budgets are unchanged.
 
@@ -92,6 +93,26 @@ physical selection. Then verify changed boot/release/candidate identity, one
 capture and one session with unchanged limits; preserve/seal/quiesce and make
 one reviewed return. No unchanged C8 retry or automatic boot2 selection.
 
-No installation, physical selection or runtime result is implied here.
-Ordinary-mode integrity/PN, key retirement/reuse, healthy reconnect and
-clean-profile ten-minute SSH remain required by the delivery plan.
+## Verified installation and physical handoff
+
+The [deployment scalars](results/ccmp8-deployment-scalars.json) record the actual
+guarded C7-to-C8 write from the expected Gemian boot. Both block identity gates
+and stable power passed. Sync/flush/full readback matched C8 `e3c347f1…`;
+clean shutdown and unreachability were confirmed, without a reboot. Executed
+tooling is `d16cad165f209460a3f7901de76be0524a92f24f`.
+
+The actual deployment summary is retained byte-exact, mode 0600, in session 8.
+Its SHA-256 is `6aa9a4370a22e8f7d6d0e6a40c7046cb69a75376cd122bd5bf8e25c5868d26f0`
+(944 bytes). Complete actual offline session preparation then passed against
+the real candidate, real summary, retained historical source cohort and current
+credential/calibration checkout. No Wi-Fi helper was started; its fresh boot
+binding must be supplied only after the next mainline identity is verified.
+Capture 8 is absent and no session execution claim exists.
+
+The owner confirmed physical boot2 selection. Strict USB SSH then verified
+new mainline boot `69e90265-77e3-4aa9-9610-5e7607647ab1`, the expected release,
+aarch64 and the new selected-reader symbol. This corroborates the installed
+full-readback/source chain; no Phase-A capture or runtime trial has run yet.
+No unchanged retry is admitted. Ordinary
+integrity/PN, key retirement/reuse, healthy reconnect and clean-profile
+ten-minute SSH remain required by the delivery plan.
