@@ -1,42 +1,31 @@
 # Wi-Fi resume checkpoint — INCOMPLETE
 
-Latest completed result: **GTK2 capability pass for the finite run; duration
-fail at 5.925 / 60 seconds**, from the unchanged 64 checked-frame cap.
-[One table row and interpretation](SESSION_0202_PLAN.md#gtk2-consumed-capability-pass-duration-fail),
-[one scalars file](results/gtk2-runtime-scalars.json). Verified boot
-`f77aa006-7757-40b3-960e-2a96ddc82804`; strict GTK queue event, DHCP, three pings,
-fresh SSH exit 0 in 1.410 s and healthy host stage 3. No named HIF refusal.
-No independent core GTK-delivery, firmware integrity or retirement claim.
+Latest completed result: **GTK3 network/GTK capability observed; full finite
+session and duration FAIL at 30.144 / 60 seconds**. The first host refusal at
+29.825 s was a complete 12-byte control event (`0xe000`, id `0x13`, seq 0),
+not a measurement cap or HIF length fault. The pinned public source calls this
+a BSS beacon-timeout notification; its BSS/reason body was not retained.
+[One table row, result and predeclared successor](SESSION_0202_PLAN.md#gtk3-consumed-network-observed-control-event-stop-before-60-seconds),
+[one scalars file](results/gtk3-runtime-scalars.json).
 
-All 71 sealed files and 2,115 contiguous records verified, including retained
-client stdout/stderr, neighbor/netstat state and post-client window check.
-Helper/device quiescence, A53 regression and one reviewed return passed.
-Changed-boot Gemian `cbab7eed-8b34-44de-a9a4-f95cc8fe9838` independently confirmed.
-GTK2 is consumed; do not repeat unchanged. GTK3's physical handoff is below;
-no capture/session/build/installer process is running.
+Boot `1fa923f3-aab1-43e1-83f9-f6d12c2aa422`: DHCP, three individual replies,
+fresh SSH exit 0 in 1.256 s while open, checked PTK/GTK 35/132, GTK ARP handoff
+53, withheld ARP 0. Initial neighbor absent then complete; no peer attribution
+or GTK-causation proof. Healthy stage 3 absent, local key disables `-71` with
+no removal credit. The strict finite/duration verdict stays failed.
 
-The owner adopted the [next bounded preparation](SESSION_0202_PLAN.md#next-admitted-preparation-low-traffic-60-second-measurement):
-CCMP-only 1024 checked / 4096 all-RX / 2 MiB, PTK/GTK split and GTK-ARP handoff
-counters, one low-traffic 60-second observation. Keep every time, native,
-retirement, PID and crypto limit unchanged; no PID reuse or sustained-SSH claim.
-The earlier 1 MiB budget question is superseded by this explicit direction.
-[0206/0207 source and host verdict](SESSION_0202_PLAN.md#gtk3-source-preparation-capacity-and-handoff-observers)
-pass local and clean-input Linux source/verdict checks. The standard Buildbox
-build at `a32ddfce` passed; its actual GTK3 receipt and five tooling fixtures
-passed locally and on Linux from clean pushed `2aa30db2`.
+All 71 seals and 2,097 contiguous records verified, including retained client
+stderr and numeric neighbor/netstat state. Helper/device quiescence, A53
+regression and one reviewed return passed; changed-boot Gemian
+`34302162-2a50-400f-85d9-d7b92ef826c7` independently confirmed. No device,
+build or session process or physical handoff remains pending. GTK3 is consumed.
 
-**GTK3 is installed and shut down, awaiting owner physical boot2 selection.**
-The reviewed guarded installer exited 0; full-partition readback matches
-`e2571776fe674cf1288f8a12f4362c7fba1d083cf93846edfb1a3850ed27eb09`.
-Deployment evidence is sealed and independently checked. Offline preparation
-passed with the exact mode-0600 deployment summary, fresh namespaces and the
-retained source cohorts. No capture or radio session has started. Require a new
-owner handoff, fresh boot ID, expected release/architecture and 84-byte kernel
-notes SHA-256 `ec5b30ee5ee76ad13943f5b90c09a9eb3e76f6553758de6d8151686121d8edf6`
-before the one admitted capture/session. Do not reuse GTK2's physical reply.
-Report capability, duration, transport, network, SSH and cleanup separately;
-retain client stderr, neighbor/netstat state and actual end reason/counters.
-Rekey, reuse, reconnect, -48 adjustment and speculative firmware RE stay excluded.
+Next is the predeclared scalar-only 0x13 diagnostic from the existing complete
+acquisition, preserving refusal. Do not ignore the notification or assume its
+reason or BSS. Keep CCMP 1024 checked / 4096 all-RX / 2 MiB and the 60-second
+low-traffic protocol; every time, native, retirement, PID and crypto limit stays.
+No PID reuse, rekey, reconnect, -48 adjustment or speculative firmware RE.
+No sustained SSH or normal maintained-lifecycle acceptance is established.
 
 GTK1's prior ERANGE is classified and its [0205 correction](../../patches/proposals/0205-wifi-mt6797-retain-the-validated-channel-grant-horizon.patch)
 is proved to permit the requested data budget in GTK2. GTK1 had both keys

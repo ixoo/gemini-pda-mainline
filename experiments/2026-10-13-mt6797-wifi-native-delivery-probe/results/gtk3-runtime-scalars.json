@@ -1,0 +1,240 @@
+{
+  "run": "GTK3",
+  "status": "consumed once; DHCP, pings, SSH and checked GTK/ARP handoff observed; full finite session and 60-second duration FAIL on unsolicited control-event refusal",
+  "boot_id": "1fa923f3-aab1-43e1-83f9-f6d12c2aa422",
+  "kernel_input": "a32ddfcec83e1b24a5e818702f509a6f50dbec93",
+  "tooling_commit": "2aa30db2",
+  "handoff_commit": "254c4868",
+  "candidate_full_partition_sha256": "e2571776fe674cf1288f8a12f4362c7fba1d083cf93846edfb1a3850ed27eb09",
+  "attempts": {
+    "phase_a_capture": 1,
+    "device_sessions": 1,
+    "wifi_ssh": 1,
+    "native_recovery_requests": 1,
+    "watcher_attempts": 2
+  },
+  "verdicts": {
+    "capability_observation": "checked GTK and ARP core handoff, DHCP, three replies and fresh authenticated SSH observed before fault",
+    "finite_session": "FAIL: control event refused and healthy cleanup absent",
+    "transport": "no named HIF length/read refusal; complete 12-byte control event reached host dispatch, which refused it",
+    "dhcp": "bound",
+    "pings": "three individual replies",
+    "ssh": "authenticated, exit 0 while data window open",
+    "cleanup": "FAIL: no healthy stage 3; local disable status -71, removal command not credited",
+    "duration": "FAIL: 30144 / 60000 ms"
+  },
+  "data_window": {
+    "firmware_reported_grant_ms": 65000,
+    "planned_ms": 60000,
+    "actual_ms": 30144,
+    "planned_window_reached": false,
+    "first_fault_after_open_ms": 29824.588,
+    "first_limit": "host control-event whitelist refusal, not observation capacity",
+    "checked_queued": 167,
+    "checked_cap": 1024,
+    "total_rx_cap": 4096,
+    "rx_byte_cap": 2097152,
+    "polls_at_fault": 1243,
+    "poll_cap": 4096,
+    "last_data_pid": 32,
+    "pid_reuse": false,
+    "tx_queued": 28,
+    "tx_done": 28,
+    "tx_failed": 0,
+    "terminal_sample_byte_count": null
+  },
+  "network": {
+    "dhcp_exit": "0",
+    "dhcp_bound": 1,
+    "dhcp_prefix": "24",
+    "lease_written": 1,
+    "dropbear_digest_ok": 1,
+    "wifi_sshd_started": 1,
+    "wifi_sshd_ready": 1,
+    "ping_transmitted": 3,
+    "ping_received": 3,
+    "host_ack": true
+  },
+  "individual_pings": [
+    {
+      "sequence": 0,
+      "ttl": 64,
+      "time_ms": 84.587
+    },
+    {
+      "sequence": 1,
+      "ttl": 64,
+      "time_ms": 51.334
+    },
+    {
+      "sequence": 2,
+      "ttl": 64,
+      "time_ms": 38.912
+    }
+  ],
+  "ssh": {
+    "attempted": true,
+    "failure_stage": null,
+    "exit": 0,
+    "client_elapsed_ms": 1256.234583,
+    "stdout_bytes": 173,
+    "stderr_bytes": 0,
+    "driver_window_after_client": {
+      "boot_match": true,
+      "driver_data_window": "open",
+      "exit": 0,
+      "timeout": false
+    },
+    "neighbor_before": "absent",
+    "neighbor_after": "complete",
+    "route_snapshot_exit": 0,
+    "observed_client_call_elapsed_ms": 1231.003708,
+    "timing_scope": "client process retention; enclosing numeric-neighbor observer records its own call timing separately"
+  },
+  "gtk": {
+    "first_checked_queue_seen": true,
+    "first_checked_ethernet_bytes": 60,
+    "queued_ptk": 35,
+    "queued_gtk": 132,
+    "delivered_arp": 53,
+    "withheld_arp": 0,
+    "delivered_arp_scope": "driver-to-core handoff only; no stack acknowledgement, peer attribution or causal proof"
+  },
+  "driver_events": {
+    "grant": [
+      {
+        "sequence": 1991,
+        "time_us": 43838378,
+        "fields": [
+          "40",
+          "65000"
+        ]
+      }
+    ],
+    "data_start": [
+      {
+        "sequence": 2029,
+        "time_us": 44161788,
+        "fields": [
+          "60000",
+          "5000",
+          "1"
+        ]
+      }
+    ],
+    "native_state_transitions": [
+      {
+        "sequence": 2031,
+        "time_us": 44183531,
+        "fields": [
+          "1",
+          "1",
+          "0",
+          "0",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2034,
+        "time_us": 44208965,
+        "fields": [
+          "2",
+          "0",
+          "1",
+          "0",
+          "442"
+        ]
+      }
+    ],
+    "first_gtk_queue": [
+      {
+        "sequence": 2037,
+        "time_us": 44403805,
+        "fields": [
+          "1",
+          "60"
+        ]
+      }
+    ],
+    "control_refusal": [
+      {
+        "sequence": 2076,
+        "time_us": 73986376,
+        "fields": [
+          "-71",
+          "12",
+          "0xe000",
+          "0x13",
+          "0"
+        ]
+      }
+    ],
+    "fault": [
+      {
+        "sequence": 2081,
+        "time_us": 73999099,
+        "fields": [
+          "-71",
+          "0",
+          "0x801",
+          "0",
+          "0",
+          "6"
+        ]
+      }
+    ],
+    "gtk_counters": [
+      {
+        "sequence": 2082,
+        "time_us": 74000596,
+        "fields": [
+          "0",
+          "35",
+          "132",
+          "53"
+        ]
+      }
+    ],
+    "data_end": [
+      {
+        "sequence": 2092,
+        "time_us": 74306354,
+        "fields": [
+          "disconnect",
+          "30144",
+          "0",
+          "0",
+          "0",
+          "28",
+          "28",
+          "0",
+          "59"
+        ]
+      }
+    ]
+  },
+  "preservation": {
+    "sealed_entries_verified": 71,
+    "client_observation_files_sealed": 8,
+    "seal_sha256": "75b075d3543ebf3530422c20714f67c264a3aae108f0728b13ac8106edd66f0c",
+    "log_sha256": "9791e118a28c14a72f3e22d1247d854a7e23bb86c601eab7acba3136915c6d1f",
+    "log_bytes": 167297,
+    "contiguous_log_records": 2097,
+    "complete_through_seal": true,
+    "one_cycle_export_complete": true,
+    "inherited_two_cycle_complete": false,
+    "helper_safe_group_quiescent": true,
+    "device_children_quiesced": true,
+    "regression_pass": true,
+    "recovery_confirmed": true,
+    "returned_gemian_boot": "34302162-2a50-400f-85d9-d7b92ef826c7",
+    "independently_confirmed_gemian": true
+  },
+  "limits": [
+    "GTK/ARP handoff and SSH success do not prove peer attribution, GTK causation or firmware integrity enforcement",
+    "Failed finite-session classifier is retained unchanged; positive network observations do not turn it into a pass",
+    "No healthy cleanup or firmware key retirement established; no rekey, reuse or reconnect",
+    "No continuous SSH workload or 60-second or ten-minute sustained-operation acceptance",
+    "The 12-byte refused event body was not retained; header identity alone does not prove event ownership or reason"
+  ]
+}

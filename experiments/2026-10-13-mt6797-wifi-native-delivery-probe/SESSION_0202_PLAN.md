@@ -226,6 +226,7 @@ remain in the existing private evidence seal, not public scalars.
 | C10 D3 / A only | `ccce2504-bdbf-470b-ba7c-267b61f102d0` | finite pass | bound | 3/3 | A authenticated, exit 0; B skipped | host stage 3 clean | 6.205 / 6.178 s | [one scalars file](results/ssh-d3-runtime-scalars.json) |
 | GTK1 | `b1417555-b2f2-4d07-89cc-9608874f78a8` | no named HIF refusal; host `-ERANGE` | not reached | not reached | not attempted; before ready marker | healthy stage 3 absent | 0 / 60 s; window unopened | [one scalars file](results/gtk1-runtime-scalars.json) |
 | GTK2 | `f77aa006-7757-40b3-960e-2a96ddc82804` | finite capability pass | bound | 3/3 | authenticated, exit 0, 1.410 s | host stage 3 clean | 5.925 / 60 s; checked-frame cap 64 | [one scalars file](results/gtk2-runtime-scalars.json) |
+| GTK3 | `1fa923f3-aab1-43e1-83f9-f6d12c2aa422` | no named HIF refusal; host control-event `-EPROTO` | bound | 3/3 | authenticated, exit 0, 1.256 s | healthy stage 3 absent; quiescence/return pass | 30.144 / 60 s; event 0x13 refused | [one scalars file](results/gtk3-runtime-scalars.json) |
 
 D3's SSH process lasted 1.410 seconds with empty stderr. Its numeric ARP read
 was absent before A and complete afterward. The route read returned exit 71,
@@ -557,3 +558,68 @@ The candidate remains low traffic: no PID reuse and no continuous SSH workload
 is promised. If a different ceiling binds or a protocol, transport or cleanup
 fault occurs, record that first point separately. Compilation and host fixtures
 are not a GTK3 runtime result.
+
+## GTK3 consumed: network observed, control-event stop before 60 seconds
+
+The single admitted run used kernel `a32ddfce`, tooling `2aa30db2`, handoff
+`254c4868`, and fresh boot `1fa923f3-aab1-43e1-83f9-f6d12c2aa422`.
+Strict GTK queue and driver-to-core ARP handoffs were observed: checked PTK 35,
+checked GTK 132, ARP handoffs 53, eligible withheld ARP 0. DHCP bound, individual
+pings replied in 84.587 / 51.334 / 38.912 ms, and fresh SSH authenticated with
+exit 0, retained empty stderr and a still-open post-client window. The client
+process took 1.256 s (the numeric-neighbor observer's inner call measured
+1.231 s). Initial neighbor was absent, then complete; route snapshot succeeded.
+This is supporting correlation, without peer attribution or GTK-causation proof.
+
+The first fault was a completely transferred 12-byte control event,
+`type=0xe000 id=0x13 seq=0`, refused by the host dispatcher with `-EPROTO` at
+29.825 s after data opening. Its generic header passed, but the dispatcher has
+no 0x13 branch and returns `-EPROTO`. The fault terminal is branch 6, `first=0`,
+no page debt or inflight frame, last PID 32, 28 data TX all completed, and
+1,243 polls below 4,096. Checked count 167 is below 1,024; observed acquisitions
+542 are below 4,096, and even 542 maximum-size 2,352-byte reads are below 2 MiB.
+Thus this is a different first failure, not the enlarged sample capacity.
+The subsequent device disconnect ended data at 30.144 / 60 s. No named HIF
+length/read refusal or framing hint occurred. The final sample-byte counter
+was not emitted on this fatal path; do not invent a terminal byte count.
+
+Healthy stage 3 is absent; both local key-disable callbacks returned `-71`
+without credited removal. Quiescence, A53 regression and one reviewed return
+passed. All 71 seals (including eight client files) and 2,097 contiguous records
+were independently verified; a separate authenticated check confirmed changed-
+boot Gemian `34302162-2a50-400f-85d9-d7b92ef826c7`. The strict classifier remains
+failed for finite session, duration and healthy cleanup. Positive network/GTK
+observations do not convert the faulted session into a pass. No retry occurred.
+
+A bounded public-source check identifies event 0x13 as
+[EVENT_ID_BSS_BEACON_TIMEOUT](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/include/nic_cmd_event.h):
+its four-byte body contains BSS index, reason and two reserved bytes. Header
+SHA-256 `93c8d67b1bc039a8db5b635e5a00975f2b9e408f4ab1bc8a384f5db49bf00a3a`
+matches the retained earlier copy. The
+[pinned receiver](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic_rx.c)
+(`a844bdf75065a152e78d30c789aabb398b0d0f336d30d6ffd028793bf091412b`)
+checks BSS ownership, ignores reason 8 (no TX-done), and also ignores a timeout
+when its last-RX timestamp is within two seconds, before connection-loss handling. GTK3 did not retain either body scalar, so its BSS ownership,
+reason and underlying timeout cause are unmeasured. Do not ignore the event or
+call this merely a harmless whitelist gap.
+
+### Predeclared successor diagnostic
+
+Hypothesis: the first sustained failure is an owned BSS timeout notification;
+its already-acquired BSS/reason bytes distinguish a TX-completion-watchdog report
+from other beacon-timeout reasons or foreign-BSS drift. Retain only those two
+scalars for exact 12-byte 0x13 events with sequence zero, before the existing
+fatal refusal. Also retain one host-clock timestamp at strict checked PTK/GTK
+queue admission and report its age/known flag at this event. This gives the
+recent-checked-data discriminator in the same boot; it is narrower than the
+vendor's general last-RX clock and does not reproduce its policy. No payload,
+address, new register read, event acceptance, deadline, channel or key change. Other headers and malformed lengths stay on the current refusal.
+
+Decision branches: owned BSS 0 / reason 8 leads to the firmware TX-completion-
+watchdog contract despite host completions; owned BSS 0 / another reason leads
+to beacon/channel/BSS monitoring, distinguishing checked data within two seconds
+from older or absent checked data; foreign BSS leads to ownership/configuration
+drift. Recent host data qualifies the comparison with the vendor's ignore path;
+it does not itself authorize ignoring a firmware event. A malformed or nonzero-sequence event remains a wire/state refusal.
+Reason alone is a report, not proof of the physical cause. Preserve the same
+60-second low-traffic protocol and strict fault stop; do not repeat GTK3 unchanged.
